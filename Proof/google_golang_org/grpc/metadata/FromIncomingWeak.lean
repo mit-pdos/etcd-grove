@@ -26,9 +26,10 @@ variable [sem : go.Semantics]
 /-- `metadata.FromIncomingContext(ctx)`: `(md, ok)`; if `ok`, `md` is a fresh map, each of its
 values a fresh slice of at least one string. -/
 abbrev metadata.FromIncomingContext.weakSpec : Prop :=
-  ∀ (ctx : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.metadata }}
-    (App (Val (@! google_golang_org.grpc.metadata.FromIncomingContext)) (Val #ctx))
+  ∀ (ctx : GoInterfaceOk),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.metadata ∗
+      metadata.incomingCtxOk ctx }}
+    (App (Val (@! google_golang_org.grpc.metadata.FromIncomingContext)) (Val #(GoInterface.ok ctx)))
   {{ (md : GoMap) (ok : Bool), RET (PairV #md #ok);
       ⌜ok = false⌝ ∨ ∃ m : GMap GoString GoSlice, md ↦$ m ∗
         [∗map] _k ↦ sl ∈ m, ∃ vs : List GoString, sl ↦* vs ∗ ⌜vs ≠ []⌝ }}

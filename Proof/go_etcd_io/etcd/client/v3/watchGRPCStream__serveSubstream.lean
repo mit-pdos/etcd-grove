@@ -104,7 +104,7 @@ theorem recv_row (V : WEnv GF) (P : WsPrm GF) (k : Int) (r : RespModel) (hk : re
     rw [h0]; iapply cmpOkOf_zero
 
 /-- A created response without events keeps the server-level contract's position. -/
-theorem rawRespOk_created (γst : mvcc.StoreNames) (o : OpFull) (c c' : w64)
+theorem rawRespOk_created (γst : v3rpc.SrvW GF) (o : OpFull) (c c' : w64)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) (hc : r.created = true)
     (he : r.events = []) :
     rawRespOk (GF := GF) γst o c c' v r ⊢ ⌜c' = c⌝ := by
@@ -455,7 +455,7 @@ theorem watchGRPCStream.serveSubstream.wp_proof
   icases HP' with ⟨#Hro, #Hfrecvc, #Houtc, #Hrecvc, #Hctx, #Hretcb, %HPws, #Hsok, -, -, %HPkc, #HPbd⟩
   ihave #HG' := HG
   iunfold isWGS at HG'
-  icases HG' with ⟨%Hwgs, -, #Hsf, %Hlg, #Fowner, #Fremote, #FcallOpts, #Fctx, #FctxKey, #Fcancel,
+  icases HG' with ⟨%Hwgs, -, #Hsf, #Hlg, #Fowner, #Fremote, #FcallOpts, #Fctx, #FctxKey, #Fcancel,
     #Freqc, #Frespc, #Fdonec, #Ferrc, #Fclosingc, #Flg, #HGctx, #HGcancel, #Hreqb, #Herrb, #Hclb,
     #HGdone, -⟩
   ihave #Hro' := Hro

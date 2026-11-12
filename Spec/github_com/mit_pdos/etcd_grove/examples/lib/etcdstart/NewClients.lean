@@ -1,5 +1,5 @@
 /-
-`NewClients(eps, lg)` (`examples/lib/etcdstart/etcdstart.go`; 2026-10-23, `notes/client-timeouts-plan.md` D-T1;
+`NewClients(eps, lg)` (`examples/lib/etcdstart/common.go`; 2026-10-23, `notes/client-timeouts-plan.md` D-T1;
 linkv3p's `newClient` until then, D27-D29): `clientv3.New` of a configuration with the endpoints
 `eps`, the logger `lg`, the examples' timeouts (`DialTimeout`, the keepalive pair `KeepAliveTime`/
 `KeepAliveTimeout`: etcdctl's defaults) and etcd's default retries. Lean-first (no Rocq counterpart).

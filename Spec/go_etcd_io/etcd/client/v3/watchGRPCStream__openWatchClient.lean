@@ -37,7 +37,7 @@ abbrev watchGRPCStream.openWatchClient.spec : Prop :=
     (callSl : GoSlice) (vs : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
-      wgsF wgs go!"ctx" ↦□ (GoInterface.ok ci) ∗ context.isContext ci cd ∗
+      wgsF wgs go!"ctx" ↦□ (GoInterface.ok ci) ∗ context.isContext ci cd ∗ metadata.outgoingCtxOkC ci ∗
       wgsF wgs go!"remote" ↦□ wcIface V.wc ∗ wgsF wgs go!"callOpts" ↦□ callSl ∗
       callSl ↦*□ vs ∗ callOptsOk vs ∗ watchSrvFacts V }}
     (App (Val (wgs @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"openWatchClient")) (Val #()))
@@ -50,7 +50,7 @@ abbrev watchGRPCStream.openWatchClient.spec : Prop :=
         v3rpc.cliWatchStreamIs ws γs (v3rpc.watchUp (V.mem i).2) Dn cd' ∗
         cliSendTok (Req := v3rpc.pbWatchRequest) γs [] ∗
         cliRecvTok (Rep := v3rpc.pbWatchResponse) γs [] ∗
-        v3rpc.watchSpec (V.mem i).2 (auth.mdTokenOf md) γs Dn) ∨
+        v3rpc.watchSpec (V.mem i).2 (V.memW i) (auth.mdTokenOf md) γs Dn) ∨
       (⌜ws = GoInterface.nil ∧ err ≠ GoInterface.nil⌝ ∗ statusErrOk err) }}
 
 end spec

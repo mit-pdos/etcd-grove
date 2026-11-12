@@ -7,6 +7,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRestart
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvWatchBuilt
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServe
 
 @[expose] public section
 
@@ -24,19 +25,42 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
-/-- **The stop's serving readers** (`srvStopReaders`) from `NewServer`'s 64 store readers and its
-watchable store's 64 (`srvWatchReaders`, each holding a reader of the store:
-`srvWatchReaders_storeReaders`). -/
-theorem srvStopReaders_intro [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (s : Loc)
+/-- `n ≥ 1` single reader tokens of the store are `n` of them (`mvccReaders_split.law`). -/
+theorem mvccReaders_ofRep (hRS : mvcc.api.mvccReaders_split.law (GF := GF))
+    (γ : mvcc.api.MvccName) (n : Nat) (hn : 1 ≤ n) :
+    ([∗list] _x ∈ List.replicate n (), mvcc.api.mvccReaders (GF := GF) γ 1) ⊢
+      mvcc.api.mvccReaders γ n := by
+  obtain ⟨m, rfl⟩ : ∃ m, n = m + 1 := ⟨n - 1, by omega⟩
+  clear hn
+  induction m with
+  | zero =>
+    rw [List.replicate_succ]
+    iintro H
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨H1, -⟩
+    iexact H1
+  | succ m ih =>
+    iintro H
+    rw [List.replicate_succ]
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨H1, H⟩
+    iapply (hRS γ (m + 1) 1).2
+    iframe H1
+    iapply ih $$ H
+
+/-- **The stop's serving readers** (`srvStopReaders`) from the gRPC run pool's raw stock, a member
+that never served (per-type stage B2, 2026-11-11: `srvServeStock`'s `srvRevokePoolN` tokens; its
+`bemu` slots and the built part are dropped), joined by the API's `mvccReaders_split.law`. (Until
+stage B3 also `NewServer`'s 64 request reader tokens and its watch service's 64, `srvWatchReaders`.) -/
+theorem srvStopReaders_intro (hRS : mvcc.api.mvccReaders_split.law (GF := GF)) (s : Loc)
     (E : apply.AEnv GF) :
-    ([∗list] _x ∈ List.replicate 64 (), mvcc.storeReader E.s E.γ) ∗ srvWatchReaders s E 64 ⊢
-      srvStopReaders (GF := GF) E := by
+    srvServeStock s E ⊢ srvStopReaders (GF := GF) E := by
   unfold srvStopReaders
-  rw [← List.replicate_append_replicate]
-  iintro ⟨Hsts, HWR⟩
-  iapply BigSepL.bigSepL_append.2
-  iframe Hsts
-  iapply srvWatchReaders_storeReaders $$ HWR
+  iintro Hstk
+  iunfold srvServeStock at Hstk
+  icases Hstk with ⟨-, Hp⟩
+  ihave Hp := replicate_mono iprop(mvcc.api.mvccReaders E.γ 1 ∗ srvBemuReader s)
+    (mvcc.api.mvccReaders E.γ 1) srvRevokePoolN (by iintro ⟨H, -⟩; iexact H) $$ Hp
+  iapply mvccReaders_ofRep hRS E.γ srvRevokePoolN
+    (by simp only [srvRevokePoolN, backend.rdPoolN]; omega) $$ Hp
 
 end readers
 

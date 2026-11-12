@@ -27,9 +27,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 theorem mvcc.metricsTxnWrite.Changes.wp_proof
     (hCh : mvcc.storeTxnWrite.Changes.spec (GF := GF) (hG := hG)) :
     mvcc.metricsTxnWrite.Changes.spec (GF := GF) (hG := hG) := by
-  intro trace mw s γ ilog pend puts deletes putSize crev Z ld
+  intro trace mw s γ ilog pend puts deletes putSize crev Z ld Tr
   wp_start as Htx
-  iunfold mvcc.isTxnWrite at Htx
+  iunfold mvcc.isTxnWriteT at Htx
   iNamed Htx
   (try wp_auto)
   wp_apply (hCh trace tw s γ ilog pend crev Z ld) $$ [$Htw] as %chs %ps ⟨Hchs, Hkvs, %Hps, Htw⟩
@@ -38,8 +38,9 @@ theorem mvcc.metricsTxnWrite.Changes.wp_proof
   iframe Hchs Hkvs
   isplitl []
   · ipureintro; exact Hps
-  iunfold mvcc.isTxnWriteCore
+  iunfold mvcc.isTxnWriteCoreY
   iexists tw, ranges
+  rw [← mvcc.storeTxnWriteCore_Y]
   iframe
 
 end proof

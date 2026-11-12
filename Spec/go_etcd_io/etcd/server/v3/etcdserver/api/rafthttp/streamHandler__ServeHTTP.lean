@@ -24,7 +24,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **A stream handler `h` of the address `a`** (persistent), lending each invocation `Rs`: its
-fields read-only, its logger not `nil`, the member it serves owning `a`; its transport's id; its
+fields read-only, its logger a zap logger, the member it serves owning `a`; its transport's id; its
 raft (`IsIDRemoved`, with `Rs`); its peer getter (`Get` of an id, borrowing `Rs`, which holds a
 reader's token of the transport's lock, returns `nil` or the peer of that id, with its stream
 writers: stage 6 proves it of `Transport`); its transport's `AddRemote`
@@ -32,7 +32,7 @@ writers: stage 6 proves it of `Transport`); its transport's `AddRemote`
 def streamHandlerOk (Rh : RaftHttp GF) (a : GoString) (γd : GName) (Rs : IProp GF) (h : Loc) :
     IProp GF :=
   iprop(∃ (hv : rafthttp.streamHandler) (gi : GoInterfaceOk), h ↦□ hv ∗
-    ⌜hv.lg' ≠ null ∧ Rh.owner a = hv.id' ∧ hv.peerGetter' = GoInterface.ok gi⌝ ∗
+    zapLoggerOk hv.lg' ∗ ⌜Rh.owner a = hv.id' ∧ hv.peerGetter' = GoInterface.ok gi⌝ ∗
     hv.tr'.[rafthttp.Transport, go!"ID"] ↦□ hv.id' ∗
     □ netRaftOk Rh.γn hv.id' γd Rs hv.r' ∗
     □ (∀ pid : w64, {{ Rs }}

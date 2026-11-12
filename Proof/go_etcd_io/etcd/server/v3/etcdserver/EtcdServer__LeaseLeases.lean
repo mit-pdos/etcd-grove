@@ -47,7 +47,7 @@ theorem EtcdServer.LeaseLeases.wp_proof
     (hHdr : EtcdServer.newHeader.spec (GF := GF) (hG := hG)) :
     EtcdServer.LeaseLeases.spec (GF := GF) (hG := hG) := by
   intro s E γr γl ctx cd r mid cid n m
-  wp_start as ⟨#Hsr, #Hhf, Hst, #Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, HRD, #Hpool, Htok, %Hb1, %Hb2⟩
+  wp_start as ⟨#Hsr, #Hhf, Hst, Hrk, #Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, #Hlib, HRD, #Hpool, %Hb1, %Hb2⟩
   ihave #Htx : mvcc.txnCtx (GF := GF) ctx cd $$ []
   · iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hlr' := Hlr
@@ -56,14 +56,14 @@ theorem EtcdServer.LeaseLeases.wp_proof
   ihave #Hlp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply (hLs lp γl m) $$ [$Htok] as %sl %ls ⟨Htok, Hsl, ⟨%li, %Hmi, #Hmap⟩, #Hls⟩
+  wp_apply (hLs lp γl m) $$ [$Hst] as %sl %ls ⟨Hst, Hsl, ⟨%li, %Hmi, #Hmap⟩, #Hls⟩
   · iframe Hinv Hpool Hmlb; ipureintro; exact ⟨Hb1, Hb2⟩
   ihave #Hlive := lease.leaseMapAt_live γl li ls $$ Hmap
   ihave ⟨#Hobj, #Hid⟩ := BigSepL.bigSepL_sep_eqv.1 $$ Hls
   (try wp_auto)
   -- `if err := s.checkLeaseLeases(ctx, ls); err != nil { return nil, err }`
-  wp_apply (hChk s E γl ctx cd sl ls (DFrac.own 1) n li) $$ [$HRD $Htok $Hsl]
-      as %err ⟨HRD, Htok, Hsl, %Hoff, #Herr, Hok⟩
+  wp_apply (hChk s E γl ctx cd sl ls (DFrac.own 1) n li) $$ [$HRD $Hst $Hsl]
+      as %err ⟨HRD, Hst, Hsl, %Hoff, #Herr, Hok⟩
   · iframe #
     isplitr
     · ipureintro; exact Hb1
@@ -73,7 +73,7 @@ theorem EtcdServer.LeaseLeases.wp_proof
   rcases err with ei | _
   · (try wp_auto)
     iapply HΦ
-    iframe HRD Htok Hst
+    iframe HRD Hst Hrk
     iright
     iframe Herr
     ipureintro
@@ -147,12 +147,12 @@ theorem EtcdServer.LeaseLeases.wp_proof
   iunfold srvHeaderFacts at Hhf'
   icases Hhf' with ⟨%cl, #Hcl, #Hcid, #Hmid, #Hlead⟩
   (try wp_auto)
-  wp_apply (hHdr E.authOn s E γr cl mid cid) $$ [$Hst] as %h ⟨Hst, Hh⟩
+  wp_apply (hHdr E.authOn s E γr cl mid cid) $$ [$Hrk] as %h ⟨Hrk, Hh⟩
   · iframe #
   (try wp_auto)
   ihave #Hc := Hok $$ %rfl
   iapply HΦ
-  iframe HRD Htok Hst
+  iframe HRD Hst Hrk
   ileft
   isplitr
   · ipureintro; rfl

@@ -13,10 +13,15 @@ watch's premise on the caller's context is `isContext`'s `Done()` triple (`"#HDo
 or its `*cancelCtx` parent. Every `isContext` gives both (`watchCtx_of_isContext`). So does a context
 outside Perennial's model whose `Done()` is one broadcast channel, such as k8s's
 `wait.ContextForChannel(stop)` (`channelContext.Err`'s spec is of this form).
+
+Since premise fixes 8 (D5, approved by etcd-grove-81) its outgoing metadata is grpc's
+(`metadata.outgoingCtxOkC`, `"#HOut"`): `streamKeyFromCtx` reads it, and the stream context
+`WithCancel(&valCtx{ctx})` reaches it through `valCtx`'s promoted `Value`.
 -/
 module
 
 public import Perennial.Proof.context
+public import Proof.context.LibKeysChain
 
 @[expose] public section
 
@@ -56,23 +61,35 @@ abbrev watchCtx (c : GoInterfaceOk) (s : ContextDesc (IProp GF)) : IProp GF :=
                   else iprop(□ s.PDone ∗ ContextClosed s.Done_gn)) -∗
           (if err = interface.nil then iprop(True) else isCtxErr err) -∗
           Φ #err) -∗
-      WP (App (Val #(methods c.ty go!"Err" c.v)) (Val #())) {{ Φ }})))
+      WP (App (Val #(methods c.ty go!"Err" c.v)) (Val #())) {{ Φ }})) ∗
+  "#HOut" ∷ metadata.outgoingCtxOkC c)
 
 instance watchCtx_persistent (c : GoInterfaceOk) (s : ContextDesc (IProp GF)) :
     Persistent (watchCtx (GF := GF) c s) := by
   unfold watchCtx; infer_instance
 
-/-- **Every model context is one the watch takes**: `isContext`'s `Done()` and `Err()` triples. -/
+/-- **Every model context with grpc's outgoing metadata is one the watch takes**: `isContext`'s
+`Done()` and `Err()` triples. -/
 theorem watchCtx_of_isContext (c : GoInterfaceOk) (s : ContextDesc (IProp GF)) :
-    isContext (GF := GF) c s ⊢ watchCtx c s := by
-  iintro #H
+    isContext (GF := GF) c s ∗ metadata.outgoingCtxOkC c ⊢ watchCtx c s := by
+  iintro ⟨#H, #Ho⟩
   iunfold isContext at H
   iunfold isContextDef at H
   iNamed H
   unfold watchCtx
   isplitr
   · iexact HDone
+  isplitr
   · iexact HErr
+  · iexact Ho
+
+/-- `watchCtx`'s outgoing-metadata clause. -/
+theorem watchCtx_outgoingC (c : GoInterfaceOk) (s : ContextDesc (IProp GF)) :
+    watchCtx (GF := GF) c s ⊢ metadata.outgoingCtxOkC c := by
+  iintro #H
+  unfold watchCtx
+  iNamed H
+  iexact HOut
 
 end defs
 

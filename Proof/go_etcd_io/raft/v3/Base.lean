@@ -155,7 +155,7 @@ def IsNewError (e : GoInterface) : Prop :=
 path compares against (each a non-nil interface value installed by the package
 initializer; a proof that reads one needs the points-to, the load being through
 `GlobalVarAddr`, and the disequality, to decide `err == ErrX` when `err` is `nil`), the
-global RNG, and `emptyState`. -/
+global RNG, `emptyState`, and the logger's mutex. -/
 def isInitialized : IProp GF :=
   iprop(∃ (errStopped errCompacted errUnavailable errSnapUnavail errPropDropped : GoInterface)
       (globalRand' : Loc) (localMsgs responseMsgs : GoArray Bool 23)
@@ -232,7 +232,13 @@ def isInitialized : IProp GF :=
     -- (D22 J4b, 2026-10-27) and as the `errors.New` error it is, for the server's `snapshot`'s
     -- `errors.Is(err, raft.ErrSnapOutOfDate)` (a leaf error)
     "#ErrSnapOODNew" ∷ EtcdGrove.errorsNewVar ErrSnapOutOfDate
-      go!"requested index is older than the existing snapshot")
+      go!"requested index is older than the existing snapshot" ∗
+    -- (premise-fixes-4, 2026-11-10) `raftLoggerMu` (`logger.go`), a mutex owning `raftLogger`,
+    -- which `SetLogger` writes and `getLogger` reads under it (until then the initializer dropped
+    -- both, and the server took `SetLogger`'s triple as a premise, `rnSetLoggerOk`, false in the
+    -- model: nothing owned the globals)
+    "#HloggerMu" ∷ sync.isMutex (globalAddr raftLoggerMu)
+      iprop(∃ l : GoInterface, (globalAddr raftLogger ↦ l : IProp GF)))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.raft.v3 :=
   define_is_pkg_init isInitialized

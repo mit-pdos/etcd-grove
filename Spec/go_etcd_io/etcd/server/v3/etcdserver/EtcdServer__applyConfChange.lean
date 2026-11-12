@@ -31,7 +31,11 @@ until then an axiom, its statement the trust boundary). Two cases, by `v3` (R2d'
 **With `v3`** (`ApplyBoth`), `s.applyConfChange(cc, ep, true)` validates
 the change `cc` (`ValidateConfigurationChange`, reading the member backend: its read contract over
 the tracked buckets) and applies it to the cluster (`s.cluster`, whose backend is the server's:
-the batch lock `E.P` with the post-lock hook `E.f`, `mvcc.hookOk` from the uber applier), to raft
+the batch lock `E.Pk d` with the post-lock hook `E.f` (strict M1, 2026-11-06: the backend `d` a
+`mvcc.KBReal`, named by the tie `E.BkTie`; its write-back and reader tokens `bkWT d`/`bkRT d` in place of
+mvcc's `storeWT`/`storeRT`; the hook's triple `hookRun`; R8, 2026-11-07: in place of `mvcc.hookOk`
+from the uber applier, the caller's `isBackend` of `d` at `E.Pk d` and the frozen hook
+`plHookRO d.γB E.f`, not `nil`, which the restated member backend's contracts take), to raft
 (`s.r.ApplyConfChange`: raft's static mode's clause of `srvRaftNode`, or the dynamic contract
 `srvRaftNodeDyn`), to `ep.confState` and the backend hooks' conf state (`s.beHooks`,
 `isBackendHooks`), and to the transport (`s.r.transport`, `ccMembRes`). Its backend write happens
@@ -95,31 +99,33 @@ abbrev EtcdServer.applyConfChange.spec : Prop :=
   -- with `v3` only: the backend, raft's view (2026-10-30, the repair: raft's one mode, a conf
   -- entry's batch hands the view over; until then, without a view, a static cluster) and the
   -- members' buckets
-  (v3 = true → E.γ.kb = some d ∧ d.γB = γB ∧ dv ≠ none ∧
+  (v3 = true → E.BkTie = srvBkTie d ∧ d.γB = γB ∧ dv ≠ none ∧
     (∀ n, dv = some n → srvCCPre γs.raft.rule ds v (.v1 (membership.ccRaftEff rs.bk m)) k e m') ∧
     (rs.bk.lookup go!"members").isSome ∧ (rs.bk.lookup go!"members_removed").isSome) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       (if v3 then iprop(
-        srvLgAddr s ↦□ lg ∗ ⌜lg ≠ null⌝ ∗ srvLgReader s ∗
+        srvLgAddr s ↦□ lg ∗ zapLoggerOk lg ∗ srvLgReader s ∗
         srvCIAddr s ↦□ ciIface ci ∗ srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗
         srvRaftNode s γs ∗ srvClusterAddr s ↦□ cl ∗ E.RO rs ∗
-        membership.rcLgAddr cl ↦□ lgc ∗ ⌜lgc ≠ null⌝ ∗ membership.rcCidAddr cl ↦□ cid ∗
+        membership.rcLgAddr cl ↦□ lgc ∗ zapLoggerOk lgc ∗ membership.rcCidAddr cl ↦□ cid ∗
         dvCCPre s γs dv v ds ∗
         ownConfChange cc (DFrac.own 1) m ∗ epConfState ep cs ∗
         srvBeHooksAddr s ↦□ bh ∗ storage.isBackendHooks bh ix lgh ∗
         srvTransportAddr s ↦□ srvTrIface tl ∗
-        srvMemberIDAddr s ↦□ lid ∗ ccMembRes γs cl tl lid prs ∗ mvcc.storeRT E.γ ∗
+        srvMemberIDAddr s ↦□ lid ∗ ccMembRes γs cl tl lid prs ∗ apply.bkRT d ∗
         ⌜membership.membersDecode rs.bk⌝ ∗ backend.bkRPool d.γB d.P d.be ∗ threadTok ∗ srvBeRO d ∗
-        mvcc.storeWT E.γ ∗
-        □ ({{ E.P ∗ Pre }} (App (Val E.f) (Val #())) {{ RET #(); Q }}) ∗
-        (Q ={⊤}=∗ E.P ∗ Post) ∗
+        apply.bkWT d ∗
+        (∃ W : IProp GF, backend.isBackend d.γB d.P W (E.Pk d) d.be) ∗
+        backend.plHookRO d.γB E.f ∗ ⌜E.f ≠ func.nil⌝ ∗
+        mvcc.api.hookRun (E.Pk d) E.f Pre Q ∗
+        (Q ={⊤}=∗ E.Pk d ∗ Post) ∗
         (Pre -∗ ciApplying ci i t ∗ (ciApplying ci i t -∗ Pre)) ∗
         (Pre -∗ WP (App (App (Val (ci @!! go.GoType.PointerType consistentIndex.ty @!!
           go!"SetConsistentIndex")) (Val #i)) (Val #t)) {{ v, ⌜v = #()⌝ ∗ Adv }}) ∗
         Pre)
       else iprop(
-        srvLgAddr s ↦□ lg ∗ ⌜lg ≠ null⌝ ∗ srvLgReader s ∗
-        srvClusterAddr s ↦□ cl ∗ membership.rcLgAddr cl ↦□ lgc ∗ ⌜lgc ≠ null⌝ ∗
+        srvLgAddr s ↦□ lg ∗ zapLoggerOk lg ∗ srvLgReader s ∗
+        srvClusterAddr s ↦□ cl ∗ membership.rcLgAddr cl ↦□ lgc ∗ zapLoggerOk lgc ∗
         membership.rcCidAddr cl ↦□ cid ∗
         ownConfChange cc (DFrac.own 1) m ∗ epConfState ep cs ∗
         srvBeHooksAddr s ↦□ bh ∗ storage.isBackendHooks bh ix lgh ∗
@@ -136,7 +142,7 @@ abbrev EtcdServer.applyConfChange.spec : Prop :=
           (epCsVoters γs csl ∨ ⌜membership.ccValidOn rs.bk m = false ∧ csl = cs⌝)) ∗
         E.RO (ccRest true m rs) ∗ (Post ∨ Adv) ∗
         dvCCPost γs dv k m' ∗ ccMembRes γs cl tl lid (ccPeersAfter true m rs.bk prs) ∗
-        mvcc.storeRT E.γ ∗ backend.bkRPool d.γB d.P d.be ∗ threadTok)
+        apply.bkRT d ∗ backend.bkRPool d.γB d.P d.be ∗ threadTok)
       else iprop(
         (∃ m' : ConfChangeM, ownConfChange cc DFrac.discard m' ∗ ⌜m'.id = m.id⌝) ∗
         epConfState ep cs ∗ ccMembRes γs cl tl lid prs ∗ E.RO rs)) }}

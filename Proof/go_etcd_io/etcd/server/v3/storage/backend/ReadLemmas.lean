@@ -946,6 +946,67 @@ theorem rtHeld_safe (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) :
     ipureintro; exact Hrtx
   ipureintro; exact Hf.2.2.2.2.2
 
+/-- A live interval's bbolt snapshot (premise fixes 5). -/
+theorem rtIntv_snap (γ : BNames) (P : BParams) (q : Qp) (rd : RdSt) (cm : GoMap) (D : Data)
+    (p : Qp) (hn : rd.rtx ≠ Loc.null) :
+    rtIntv (GF := GF) γ P q rd cm D p ⊢ rtIntv γ P q rd cm D p ∗ rtxSnap rd.rtx D := by
+  unfold rtIntv
+  split
+  · iintro ⟨Hl, #Hs, Hr⟩
+    iframe Hs
+    iframe
+  · iintro ⟨%h, -⟩
+    exact absurd h hn
+
+/-- A read buffer's buckets each hold fewer than `2 ^ 61` entries (`bbOk`; premise fixes 5). -/
+theorem rbAt_bkOf_lt (txr : Loc) (dq : DFrac) (m : GoMap) (Pb : BksPhys) (R : RBuf)
+    (h : bksOk Pb R.bks) (id : w64) :
+    rbAt (GF := GF) txr dq m Pb R ⊢ rbAt txr dq m Pb R ∗ ⌜(bkOf R.bks id).length < 2 ^ 61⌝ := by
+  unfold rbAt bksAt
+  iintro ⟨Ht, Hv, Hm, Hb⟩
+  ihave %Hiff := bbs_lookup_iff Pb R.bks dq $$ Hb
+  iframe
+  ipureintro
+  unfold bkOf
+  cases hb : R.bks.lookup id with
+  | none => simp
+  | some es =>
+    have hs : (Pb !! id).isSome := (Hiff id).2 (by simp [hb] <;> rfl)
+    obtain ⟨x, hx⟩ := Option.isSome_iff_exists.1 hs
+    have := h id x es hx hb
+    unfold bbOk at this
+    simp only [Option.getD_some]
+    omega
+
+/-- **A held shared read transaction's states are below bbolt's and the read buffer's bounds**
+(premise fixes 5): every bucket of its bbolt snapshot holds fewer than `2 ^ 61` entries (bbolt's
+`rtxSnap_size`), and so does every bucket of its read buffer (`bbOk`). -/
+theorem rtHeld_sizes (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (n : GoString)
+    (id : w64) :
+    rtHeld (GF := GF) γ P b rtx rv ⊢ rtHeld γ P b rtx rv ∗
+      ⌜(bktOf rv.1 n).size < 2 ^ 61 ∧ (bkOf rv.2.bks id).length < 2 ^ 61⌝ := by
+  unfold rtHeld rtResAt rtRest rtCore
+  iintro ⟨%rt, %rd, %H, %L, #Hrt, Hrl, ⟨%m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs,
+    Hcur, Hcln, Hhist, Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv, #Hfk⟩, %Hrtx, Hcr⟩
+  have hn : rd.rtx ≠ Loc.null := by rw [Hrtx.1]; exact Hrtx.2
+  ihave ⟨Hiv, #Hs⟩ := rtIntv_snap γ P sync.rfrac rd cm rv.1 _ hn $$ Hiv
+  ihave %Hsz := rtxSnap_size rd.rtx rv.1 $$ Hs
+  ihave ⟨Hrb, %Hbk⟩ := rbAt_bkOf_lt _ _ m Pb rv.2 Hok id $$ Hrb
+  isplitl
+  · iexists rt, rd, H, L
+    iframe Hrt Hrl Hcr
+    isplitl
+    · iexists m, Pb, cm
+      iframe; iframe #
+      ipureintro; exact ⟨Hok, Hf⟩
+    ipureintro; exact Hrtx
+  ipureintro
+  refine ⟨?_, Hbk⟩
+  unfold bktOf
+  cases hd : rv.1.lookup n with
+  | none => simp only [Option.getD_none]; rw [GMap.map_size_empty]; decide
+  | some bm => simpa [hd] using Hsz n bm hd
+
 /-- **A held shared read transaction's witness of the compaction keys' flag** (the
 backend-compaction stage, 2026-10-29): the reader's lower bound for its state (persistent). -/
 theorem rtHeldF_fkRd (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (p : Qp) :
@@ -974,10 +1035,10 @@ state with a lower bound has no compaction key. -/
 theorem fkRd_abs (γ : BNames) (P : BParams) (rv : RView) :
     fkOwn (GF := GF) γ 0 ∗ fkRd γ P rv ⊢ fkOwn γ 0 ∗ ⌜fkAbsRv P rv⌝ := by
   unfold fkRd fkOwn
-  iintro ⟨Ho, %f, %w, #Hlb, -, %Hf0⟩
+  iintro ⟨⟨Ho, Hd⟩, %f, %w, #Hlb, -, %Hf0⟩
   ihave %Hv := monoNatLbOwn_valid γ.fk _ 0 f $$ Ho Hlb
   have hf : f = 0 := by have := Hv.2; omega
-  iframe Ho
+  iframe Ho Hd
   ipureintro; exact Hf0.1.1 hf
 
 /-- **The read law of the compaction keys' values at the open** (the M2 storage plan's items
@@ -986,11 +1047,11 @@ data whose compaction keys held `v`, `fkOpen`), a reader's state holds `v` there
 theorem fkRd_open (γ : BNames) (P : BParams) (rv : RView) (n : Nat) (v : FkVals) :
     fkOwn (GF := GF) γ n ∗ fkOpen γ n v ∗ fkRd γ P rv ⊢ fkOwn γ n ∗ ⌜fkValRv P v rv⌝ := by
   unfold fkRd fkOwn fkOpen fkVR
-  iintro ⟨Ho, ⟨%w, #Hv⟩, %f, %g, #Hlb, #Hg, %Hf⟩
+  iintro ⟨⟨Ho, Hd⟩, ⟨%w, #Hv⟩, %f, %g, #Hlb, #Hg, %Hf⟩
   ihave %Hle := monoNatLbOwn_valid γ.fk _ n f $$ Ho Hlb
   ihave %Hag := dghostVar_agree γ.fkv ((w, n, v) : FkG) DFrac.discard g DFrac.discard $$ Hv Hg
   subst Hag
-  iframe Ho
+  iframe Ho Hd
   ipureintro; exact Hf.2 Hle.2
 
 /-- **The read law of the compaction keys' bit** (question 4, 2026-10-29): with the bit `true`, a
@@ -1002,6 +1063,27 @@ theorem fkRd_wf (γ : BNames) (P : BParams) (rv : RView) :
   ihave %Hag := dghostVar_agree γ.fkv ((true, n, v) : FkG) DFrac.discard g DFrac.discard $$ Ht Hw
   subst Hag
   ipureintro; exact Hf.1.2 rfl
+
+/-- `fkRd_abs` with the flag alone (`fkFlag`, mvcc's M3). -/
+theorem fkRd_absF (γ : BNames) (P : BParams) (rv : RView) :
+    fkFlag (GF := GF) γ 0 ∗ fkRd γ P rv ⊢ fkFlag γ 0 ∗ ⌜fkAbsRv P rv⌝ := by
+  unfold fkRd fkFlag
+  iintro ⟨Ho, %f, %w, #Hlb, -, %Hf0⟩
+  ihave %Hv := monoNatLbOwn_valid γ.fk _ 0 f $$ Ho Hlb
+  have hf : f = 0 := by have := Hv.2; omega
+  iframe Ho
+  ipureintro; exact Hf0.1.1 hf
+
+/-- `fkRd_open` with the flag alone (`fkFlag`, mvcc's M3). -/
+theorem fkRd_openF (γ : BNames) (P : BParams) (rv : RView) (n : Nat) (v : FkVals) :
+    fkFlag (GF := GF) γ n ∗ fkOpen γ n v ∗ fkRd γ P rv ⊢ fkFlag γ n ∗ ⌜fkValRv P v rv⌝ := by
+  unfold fkRd fkFlag fkOpen fkVR
+  iintro ⟨Ho, ⟨%w, #Hv⟩, %f, %g, #Hlb, #Hg, %Hf⟩
+  ihave %Hle := monoNatLbOwn_valid γ.fk _ n f $$ Ho Hlb
+  ihave %Hag := dghostVar_agree γ.fkv ((w, n, v) : FkG) DFrac.discard g DFrac.discard $$ Hv Hg
+  subst Hag
+  iframe Ho
+  ipureintro; exact Hf.2 Hle.2
 
 /-- The two together: with the client's half at `0`, a held shared read transaction's state has
 no compaction key. -/

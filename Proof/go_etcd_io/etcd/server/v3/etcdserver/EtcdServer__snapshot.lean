@@ -31,8 +31,9 @@ public import Spec.go_uber_org.zap.Uint64
 public import Spec.go_uber_org.zap.String
 public import Spec.go_uber_org.zap.Bool
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapCert
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapSendBranch
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Commit
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyKVCore
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvBuild
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend
 
 @[expose] public section
 
@@ -94,7 +95,8 @@ theorem EtcdServer.snapshot.wp_proof
     (hMID : EtcdServer.MemberID.spec (GF := GF) (hG := hG))
     (hIDS : types.ID.String.spec (GF := GF) (hG := hG))
     (hKV : EtcdServer.KV.spec (GF := GF) (hG := hG))
-    (hC : mvcc.store.Commit.spec (GF := GF) (hG := hG))
+    [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG))
     (hCS : MemoryStorage.CreateSnapshot.spec (GF := GF) (hG := hG))
     (hIs : errors.Is.spec (GF := GF) (hG := hG))
     (hCI : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG))
@@ -110,8 +112,8 @@ theorem EtcdServer.snapshot.wp_proof
     Hpos Hsz Hwso Hγn Hpre
   cases toDisk
   all_goals (
-  wp_start as ⟨#Hsrv, #Hsa, Hss, #Hfz, #Hnal, Hstor, #Hdisk, #Hal, #Hecs, #Hft, ⟨%kv, #Hkvf, #Hiskv⟩, #Hwp, Hai,
-    Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, Hwt, #Hwh⟩
+  wp_start as ⟨#Hsrv, #Hsa, Hss, #Hfz, #Hnal, Hstor, #Hdisk, #Hal, #Hecs, #Hft, ⟨%kv, #Hkvf, #Hiskv, %Hkve⟩, #Hwp, Hai,
+    Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, Hwt, #Hwh, Htt⟩
   -- (R2b-1 stage 5) the applied log's committed lower bound, kept from `srvSnapStor`
   iunfold srvSnapStor at Hstor
   icases Hstor with ⟨Hmsi, #Hncl, #Hrli, ⟨%Aw, #HAw, %HAwp⟩⟩
@@ -123,7 +125,7 @@ theorem EtcdServer.snapshot.wp_proof
   iunfold isServerCI at Hsci'
   icases Hsci' with ⟨#Hcif, #Hcii, #Hcinv⟩
   iunfold srvFieldsAtM at Hfl'
-  icases Hfl' with ⟨#Hlg, %Hlgnn, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmid, -, -, -, -, -⟩
+  icases Hfl' with ⟨#Hlg, #Hlgnn, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmid, -, -, -, -, -⟩
   ihave #Hsa' := Hsa
   iunfold isServerApplyAll at Hsa'
   icases Hsa' with ⟨%wt, %msc, %sc, -, -, -, -, #Hsc, -, -, -, -⟩
@@ -146,7 +148,7 @@ theorem EtcdServer.snapshot.wp_proof
   · iPkgInit
   wp_auto
   wp_apply hLg s sv.lg $$ [$Hlr] as ⟨-, Hlr⟩
-  · iframe #; ipureintro; exact Hlgnn
+  · iframe #
   (try wp_auto))
   · -- no disk: straight to `CreateSnapshot`
     iunfold epConfState at Hcs
@@ -184,7 +186,7 @@ theorem EtcdServer.snapshot.wp_proof
       (try wp_auto)
       iapply HΦ
       iexists st
-      iframe Hai Hat Hst Hbe Happ Hlr HKV Hfz Hwt
+      iframe Hai Hat Hst Hbe Happ Hlr HKV Hfz Hwt Htt
       isplitl [Hd Hm Hf]
       · iunfold srvSnapState
         iexists d, m, f
@@ -210,7 +212,7 @@ theorem EtcdServer.snapshot.wp_proof
       iapply HΦ
       iexists stLoaded γ st
       obtain ⟨hlp, hlpp, hlc⟩ := stLoaded_facts_snap γ st
-      iframe Hai Hat Hst Hbe Happ Hlr HKV Hfz Hwt
+      iframe Hai Hat Hst Hbe Happ Hlr HKV Hfz Hwt Htt
       isplitl [Hd Hm Hf]
       · iunfold srvSnapState
         iexists d, ai, f
@@ -254,30 +256,35 @@ theorem EtcdServer.snapshot.wp_proof
     iintro %fsl ⟨-, -⟩
     (try wp_auto)
     wp_apply hLg s sv.lg $$ [$Hlr] as ⟨-, Hlr⟩
-    · iframe #; ipureintro; exact Hlgnn
+    · iframe #
     wp_apply hInfo sv.lg $$ []
-    · iframe #; ipureintro; exact Hlgnn
+    · iframe #
     (try wp_auto)
     wp_apply hKV s kv $$ []
     · iframe #
     -- (S6) `Commit()`: the writer's tokens lent by the row, a write token from the budget
-    imod srvApplyKVCore_commit s E γw x ua γp $$ Hwp Hr Hlc HKV with ⟨Hwf, Hwo, Hwt, HKVc⟩
+    -- (strict M1) `KV.Commit.contract` at the KV's dynamic type (`shapes.law`), at the store's
+    -- backend share (lent by the row) and the trivial commit request; the budget's token unused
+    imod srvApplyKVCore_commit s E γw x ua γp $$ Hwp Hr Hlc HKV with ⟨%B, Hmb, Htie, -, HKVc⟩
     ihave #Hmpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
     · iPkgInit
-    ihave Hkc := srvKVCommitOk_of_kv hC kv E.s E.γ iprop(True) iprop(True) iprop(True)
-      $$ [$Hmpkg $Hiskv]
-    ihave Hsrq := mvcc.storeReq_true (GF := GF) E.γ
-    iunfold srvKVCommitOk at Hkc
-    icases Hkc with ⟨%ki, %Hki, #Hkct⟩
-    subst Hki
+    ihave %Hsh := hsh.1 kv E.γ $$ Hiskv
+    obtain ⟨kty, kvv, Hkveq, -, -, -, -, -, -, -, -, hCommitC, -⟩ := Hsh
+    ihave #Hsrq : mvcc.api.storageReq (B : mvcc.api.MvccStorage) (E.Pk B) iprop(True) iprop(True) $$ []
+    · rw [mvcc.api.etcdStorage_req]; iapply backend.commitReq_true
+    ihave Hkv' : □ mvcc.api.isMvcc (interface.mkOk kty kvv) E.γ $$ []
+    · rw [← Hkveq]; imodintro; iexact Hiskv
+    icases Hkv' with #Hkv'
+    rw [Hkveq]
+    simp only [interface.mkOk]
     (try wp_auto)
-    wp_bind (App (Val #(methods ki.ty go!"Commit" ki.v)) (Val #()))
-    iapply Hkct $$ [Hwf Hwo Hwt Hsrq]
-    · iframe Hwf Hwo Hwt Hsrq
-    inext
-    iintro ⟨Hwf, Hwo, -, -⟩
-    ihave HKV := HKVc $$ [Hwf Hwo]
-    · iframe Hwf Hwo
+    iunfold apply.applyTok at Htt
+    wp_apply (hCommitC E.γ 1 B (E.Pk B) iprop(True) iprop(True)) $$ [Htt Hmb]
+      as ⟨Htt, Hmb, -⟩
+    · iframe #; iframe Htt Hmb
+    ihave Htt : apply.applyTok (GF := GF) E $$ [Htt]
+    · iunfold apply.applyTok; iexact Htt
+    ihave HKV := HKVc $$ Hmb Htie
     (try wp_auto)
     -- `CreateSnapshot(ep.appliedi, ep.confState, nil)`
     iunfold epConfState at Hcs
@@ -315,7 +322,7 @@ theorem EtcdServer.snapshot.wp_proof
       (try wp_auto)
       iapply HΦ
       iexists st
-      iframe Hai Hat Hst Hbe Happ Hlr HKV Hfz Hwt
+      iframe Hai Hat Hst Hbe Happ Hlr HKV Hfz Hwt Htt
       isplitl [Hd Hm Hf]
       · iunfold srvSnapState
         iexists d, m, false
@@ -435,12 +442,12 @@ theorem EtcdServer.snapshot.wp_proof
       iintro %fsl2 ⟨-, -⟩
       (try wp_auto)
       wp_apply hInfo sv.lg $$ []
-      · iframe #; ipureintro; exact Hlgnn
+      · iframe #
       (try wp_auto)
       iapply HΦ
       iexists stLoaded γ st
       obtain ⟨hlp, hlpp, hlc⟩ := stLoaded_facts_snap γ st
-      iframe Hai Hat Hst Hbe Happ Hlr HKV Hfz Hwt
+      iframe Hai Hat Hst Hbe Happ Hlr HKV Hfz Hwt Htt
       isplitl [Hd Hm Hf]
       · iunfold srvSnapState
         iexists ai, ai, false

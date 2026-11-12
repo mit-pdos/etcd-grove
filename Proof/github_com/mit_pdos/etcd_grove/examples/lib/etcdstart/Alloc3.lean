@@ -105,7 +105,8 @@ server's `SrvRaft` names one registry, and each member's `bootstrap` joins its o
 invariants do not read it, so they hold at `{γ with reg}` as at `γ`). -/
 theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (reg : GName)
     (issued cnt wn fs : GName) (γk : KVNames) (Φs : w64 → w64 → List w8 → GName → IProp GF)
-    (id : w64) (idx : mvcc.IdxNames) (cok rev : GName) (x : mvcc.IdxNames) (Hx : x = idx)
+    (id : w64) (γm : mvcc.api.MvccName) (γs : srvApi.KVSNames) (cok rev : GName) (x : GName)
+    (Hx : x = γs.slog)
     (Hiss : γk.ids.issued = issued) (Hwn : γk.ids.wn = wn) (Hfs : γk.ids.fs = fs)
     (Hc0 : γk.c0 = W64 0)
     (Hch : γk.ch0 = apply.alarmChain false false false) (Hlog : γk.log0 = [[], []])
@@ -114,7 +115,7 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
     -- (whose single grant-id prefix `kvPfx` is one member's: the Scope's step 2)
     (lm : lease.Mode) (hrun : lease.runCfg (GF := GF) lm lm) (hrev : lm ≠ .revocable)
     (Hklg : γk.lm = lm)
-    (HΦ : Φs (idPfxOf (W16 (uint.Z id))) = srvFloorFact (env₀ (GF := GF) idx cok rev cmp)) :
+    (HΦ : Φs (idPfxOf (W16 (uint.Z id))) = srvFloorFacts (GF := GF) γs.slog) :
     ⊢ srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) -∗
       idClusterInv issued cnt wn fs srvFloorFacts -∗ (W64 0) ↪[issued]□ (none : Option IdClaimV) -∗
       srvPropMint ⟨γ, [], W64 0⟩ γk.ids -∗ srvRdCtxInv ⟨γ, [], W64 0⟩ issued -∗
@@ -126,11 +127,12 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
         ∃ γd : GName, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit)) -∗
       idWaitTokAt wn (idPfxOf (W16 (uint.Z id)), 0) -∗
       ghostMapAuth reg 1 (∅ : GMap Loc MemStorNamesRec) -∗
-      mvcc.idxFresh idx -∗ ghostMapAuth cok 1 (∅ : GMap w64 mvcc.Log) -∗
+      srvApi.newServerStoreFreshA γs -∗ ghostMapAuth cok 1 (∅ : GMap w64 mvcc.Log) -∗
       ghostMapAuth rev 1 (∅ : GMap w64 Unit) ==∗
       ∃ ρ : ReqNames, ⌜ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧ ρ.rd.kv.ch0 = γk.ch0 ∧
         ρ.rd.kv.log0 = γk.log0 ∧ kvSame ρ.rd.kv γk⌝ ∗
-        memberBoot { γ with reg := reg } ctxs ρ (env₀ idx cok rev cmp) Φs id cmp lm := by
+        memberBoot { γ with reg := reg } ctxs ρ (env₀ γm γs rev (srvApi.kvNx ρ.rd false) cmp) Φs id cmp
+          lm := by
   subst Hx
   iintro #Hsrl #Hcl #H0 #Hpm #Hrc #Hkv ⟨Hp, #Hkf, Hnb, Hsd⟩ Hwt0 Hreg Hidx Hcok Hrev
   ihave #Hkv' := kvInv_reg γ reg γk $$ Hkv
@@ -139,7 +141,7 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
     [Hwt0] with ⟨%ρ, %Hρ, #Hkvρ, Hsh, Hnk, Hwt⟩
   · rw [Hwn]; iexact Hwt0
   obtain ⟨hraft, hst, hc0', hch', hlog', hcok, hiss', hcnt, hpfx, hkc', hrl', hcr', hklg', hwn', hfs', hinc'⟩ := Hρ
-  ihave #Hkf' : idKeyFactAt ρ.ids.fs ρ.ids.key x $$ []
+  ihave #Hkf' : idKeyFactAt ρ.ids.fs ρ.ids.key γs.slog $$ []
   · simp only [IdNames.key]; rw [hpfx, hinc', hfs', Hfs]; iexact Hkf
   imodintro
   iexists ρ
@@ -157,11 +159,12 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
   ihave Hnb' : nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗
       nodeVacant γ.cl id $$ [Hnb]
   · rw [Hvs]; iexact Hnb
+  rw [hcok]
   iframe Hnb' Hsrl' Hcl' Hkf' Hpm' Hrc' Hsh Hidx Hcok Hrev Hnk Hkvρ Hwt Hsd Hreg
   isplitr
   · ipureintro
-    refine ⟨rfl, by rw [hc0', Hc0], by rw [hch', Hch], by rw [hlog', Hlog], hcok,
-      hpfx, ?_, trivial, by rw [hkc', Hkc],
+    refine ⟨rfl, by rw [hc0', Hc0], by rw [hch', Hch], by rw [hlog', Hlog],
+      hpfx, ?_, trivial, by rw [hkc', Hkc], trivial,
       (by rw [hklg', Hklg]; exact hrun)⟩
     rw [hpfx]; exact HΦ
   iunfold idNoZero
@@ -171,13 +174,9 @@ theorem memberBoot_of (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (re
 /-- **The cluster's ghost state, from the peers' unregistered HTTP protocols** (`alloc3`'s
 allocation, on the start bundles' pieces; until hub step 7's steps 7-8 also used directly by the
 partition and restart examples and `cluster3`, which do not yet take the bundles). -/
-private theorem alloc3Http (id₁ id₂ id₃ : w64) (ps : List w64) (hperm : ps.Perm [id₁, id₂, id₃])
+private theorem alloc3Http (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id₃ : w64) (ps : List w64) (hperm : ps.Perm [id₁, id₂, id₃])
     (ctxs : List (List w8)) (boot : List LogEntry)
-    (Hlow : ([id₁, id₂, id₃].map (fun id => uint.Z id % 2 ^ 16)).Nodup)
-    (Hlow0 : ∀ id ∈ [id₁, id₂, id₃], uint.Z id % 2 ^ 16 ≠ 0)
-    (HB : BootLog ps ctxs boot)
-    (Hcc : bootCCOk ps (LogEntry.toEntries boot 0))
-    (Hurl : bootURLsOk (LogEntry.toEntries boot 0))
+    (Hbc : BootCore ps ctxs boot)
     (dir : w64 → List GoString)
     -- (2026-10-24, rafthttp stage 6d) the directory's hosts the three peer addresses, no member `0`
     (a₁ a₂ a₃ : GoString) (Hd0 : dir 0 = [])
@@ -210,6 +209,10 @@ private theorem alloc3Http (id₁ id₂ id₃ : w64) (ps : List w64) (hperm : ps
       (netHttpOk γn id₃ ∗ http.httpProtoOwn a₃ (raftProto (netRh γn))) ∗
       (if decide (lm ≠ .none) then iprop(True) else
         etcdKV ρ₁.rd.kv (kvModelSt ρ₁.rd.kv (bootEntries (LogEntry.toEntries boot 0)))) := by
+  have Hlow : ([id₁, id₂, id₃].map (fun id => uint.Z id % 2 ^ 16)).Nodup :=
+    (hperm.map _).nodup_iff.1 Hbc.lowNodup
+  have Hlow0 : ∀ id ∈ [id₁, id₂, id₃], uint.Z id % 2 ^ 16 ≠ 0 :=
+    fun id hid => Hbc.lowNz id (hperm.mem_iff.2 hid)
   obtain ⟨hn12, hn13, hn23⟩ := id_ne id₁ id₂ id₃ Hlow Hlow0
   obtain ⟨hp12, hp13, hp23⟩ := pfx_ne id₁ id₂ id₃ Hlow Hlow0
   have Hnz := id_nz id₁ id₂ id₃ Hlow Hlow0
@@ -217,36 +220,37 @@ private theorem alloc3Http (id₁ id₂ id₃ : w64) (ps : List w64) (hperm : ps
   imod newServerNames_alloc (GF := GF) with ⟨%idx₁, %cok₁, %rev₁, Hidx₁, Hcok₁, Hrev₁⟩
   imod newServerNames_alloc (GF := GF) with ⟨%idx₂, %cok₂, %rev₂, Hidx₂, Hcok₂, Hrev₂⟩
   imod newServerNames_alloc (GF := GF) with ⟨%idx₃, %cok₃, %rev₃, Hidx₃, Hcok₃, Hrev₃⟩
+  -- (R9, the `lean` merge) the stand-ins' store name, any (`envAgree` does not read it)
+  have γm : mvcc.api.MvccName := Classical.choice hne.1
   -- each member's storage registry, its `bootstrap`'s to join
   imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := MemStorNamesRec) with ⟨%reg₁, Hreg₁⟩
   imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := MemStorNamesRec) with ⟨%reg₂, Hreg₂⟩
   imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := MemStorNamesRec) with ⟨%reg₃, Hreg₃⟩
   let Φs : w64 → w64 → List w8 → GName → IProp GF := fun p =>
-    if p = idPfxOf (W16 (uint.Z id₁)) then srvFloorFact (env₀ idx₁ cok₁ rev₁ cmp)
-    else if p = idPfxOf (W16 (uint.Z id₂)) then srvFloorFact (env₀ idx₂ cok₂ rev₂ cmp)
-    else srvFloorFact (env₀ idx₃ cok₃ rev₃ cmp)
-  have HΦ₁ : Φs (idPfxOf (W16 (uint.Z id₁))) = srvFloorFact (env₀ (GF := GF) idx₁ cok₁ rev₁ cmp) := by
+    if p = idPfxOf (W16 (uint.Z id₁)) then srvFloorFacts idx₁.slog
+    else if p = idPfxOf (W16 (uint.Z id₂)) then srvFloorFacts idx₂.slog
+    else srvFloorFacts idx₃.slog
+  have HΦ₁ : Φs (idPfxOf (W16 (uint.Z id₁))) = srvFloorFacts (GF := GF) idx₁.slog := by
     simp only [Φs, if_true]
-  have HΦ₂ : Φs (idPfxOf (W16 (uint.Z id₂))) = srvFloorFact (env₀ (GF := GF) idx₂ cok₂ rev₂ cmp) := by
+  have HΦ₂ : Φs (idPfxOf (W16 (uint.Z id₂))) = srvFloorFacts (GF := GF) idx₂.slog := by
     simp only [Φs, Ne.symm hp12, if_false, if_true]
-  have HΦ₃ : Φs (idPfxOf (W16 (uint.Z id₃))) = srvFloorFact (env₀ (GF := GF) idx₃ cok₃ rev₃ cmp) := by
+  have HΦ₃ : Φs (idPfxOf (W16 (uint.Z id₃))) = srvFloorFacts (GF := GF) idx₃.slog := by
     simp only [Φs, Ne.symm hp13, Ne.symm hp23, if_false]
   -- (R2c) each member's first key registers its store's index
-  let xs : w64 → mvcc.IdxNames := fun p =>
-    if p = idPfxOf (W16 (uint.Z id₁)) then idx₁ else if p = idPfxOf (W16 (uint.Z id₂)) then idx₂
-    else idx₃
-  have Hx₁ : xs (idPfxOf (W16 (uint.Z id₁))) = idx₁ := by simp only [xs, if_true]
-  have Hx₂ : xs (idPfxOf (W16 (uint.Z id₂))) = idx₂ := by
+  let xs : w64 → GName := fun p =>
+    if p = idPfxOf (W16 (uint.Z id₁)) then idx₁.slog
+    else if p = idPfxOf (W16 (uint.Z id₂)) then idx₂.slog else idx₃.slog
+  have Hx₁ : xs (idPfxOf (W16 (uint.Z id₁))) = idx₁.slog := by simp only [xs, if_true]
+  have Hx₂ : xs (idPfxOf (W16 (uint.Z id₂))) = idx₂.slog := by
     simp only [xs, Ne.symm hp12, if_false, if_true]
-  have Hx₃ : xs (idPfxOf (W16 (uint.Z id₃))) = idx₃ := by
+  have Hx₃ : xs (idPfxOf (W16 (uint.Z id₃))) = idx₃.slog := by
     simp only [xs, Ne.symm hp13, Ne.symm hp23, if_false]
   -- the peers `ps`, in `bootstrap`'s (sorted) order, a permutation of the members' ids
   -- (2026-11-03, the final whole-`bootOk` review's S1)
-  imod (srvClusterBoot_alloc (GF := GF) ps ctxs boot xs reg₁ Hrb Hrb2 HB
+  imod (srvClusterBoot_alloc (GF := GF) ps ctxs boot xs reg₁ Hrb Hrb2 Hbc
       (hperm.nodup_iff.2 (by simp [hn12, hn13, hn23]))
       (fun h => by rw [h] at hperm; exact absurd hperm.length_eq (by simp))
-      (fun h => Hnz _ (hperm.subset h) rfl) Hcc Hurl ((hperm.map _).nodup_iff.2 Hlow)
-      (fun id h => Hlow0 id (hperm.subset h)) cmp cret lm) $$ Hmarsh
+      (fun h => Hnz _ (hperm.subset h) rfl) cmp cret lm) $$ Hmarsh
     with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, #Hsrl, #Hkv, Hetcd, #Hcl, #H0, #Hpm, #Hrc, Hms,
       Hwns⟩
   obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, hkr, hklg, -⟩ := Hγ
@@ -255,15 +259,15 @@ private theorem alloc3Http (id₁ id₂ id₃ : w64) (ps : List w64) (hperm : ps
   ihave Hwns' := (BigSepL.bigSepL_perm hperm).1 $$ Hwns
   icases Hms' with ⟨Hm₁, Hm₂, Hm₃, -⟩
   icases Hwns' with ⟨Hw₁, Hw₂, Hw₃, -⟩
-  imod (memberBoot_of γ ps ctxs reg₁ issued cnt wn fs γk Φs id₁ idx₁ cok₁ rev₁
+  imod (memberBoot_of γ ps ctxs reg₁ issued cnt wn fs γk Φs id₁ γm idx₁ cok₁ rev₁
       (xs (idPfxOf (W16 (uint.Z id₁)))) Hx₁ hiss hwn hfs hc0 hch hlog
       hvs cmp hkc lm hrun hrev hklg HΦ₁) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₁ Hw₁ Hreg₁ Hidx₁ Hcok₁ Hrev₁
     with ⟨%ρ₁, %Hρ₁, Hb₁⟩
-  imod (memberBoot_of γ ps ctxs reg₂ issued cnt wn fs γk Φs id₂ idx₂ cok₂ rev₂
+  imod (memberBoot_of γ ps ctxs reg₂ issued cnt wn fs γk Φs id₂ γm idx₂ cok₂ rev₂
       (xs (idPfxOf (W16 (uint.Z id₂)))) Hx₂ hiss hwn hfs hc0 hch hlog
       hvs cmp hkc lm hrun hrev hklg HΦ₂) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₂ Hw₂ Hreg₂ Hidx₂ Hcok₂ Hrev₂
     with ⟨%ρ₂, %Hρ₂, Hb₂⟩
-  imod (memberBoot_of γ ps ctxs reg₃ issued cnt wn fs γk Φs id₃ idx₃ cok₃ rev₃
+  imod (memberBoot_of γ ps ctxs reg₃ issued cnt wn fs γk Φs id₃ γm idx₃ cok₃ rev₃
       (xs (idPfxOf (W16 (uint.Z id₃)))) Hx₃ hiss hwn hfs hc0 hch hlog
       hvs cmp hkc lm hrun hrev hklg HΦ₃) $$ Hsrl Hcl H0 Hpm Hrc Hkv Hm₃ Hw₃ Hreg₃ Hidx₃ Hcok₃ Hrev₃
     with ⟨%ρ₃, %Hρ₃, Hb₃⟩
@@ -281,7 +285,8 @@ private theorem alloc3Http (id₁ id₂ id₃ : w64) (ps : List w64) (hperm : ps
   obtain ⟨hst₃, hc0₃, hch₃, hlog₃, hs₃⟩ := Hρ₃
   imodintro
   iexists γ, reg₁, reg₂, reg₃, ρ₁, ρ₂, ρ₃,
-    env₀ idx₁ cok₁ rev₁ cmp, env₀ idx₂ cok₂ rev₂ cmp, env₀ idx₃ cok₃ rev₃ cmp, Φs, γn
+    env₀ γm idx₁ rev₁ (srvApi.kvNx ρ₁.rd false) cmp, env₀ γm idx₂ rev₂ (srvApi.kvNx ρ₂.rd false) cmp,
+    env₀ γm idx₃ rev₃ (srvApi.kvNx ρ₃.rd false) cmp, Φs, γn
   iframe Hb₁ Hb₂ Hb₃ Hs₁ Hs₂ Hs₃ Ho₁ Ho₂ Ho₃
   isplitr
   · ipureintro
@@ -303,13 +308,9 @@ R, 2026-11-05): `alloc3Http` on the members' start bundles (`memberStartRes`, ea
 address `aᵢ` and its optional client address `cᵢ`), the peers' unregistered protocols reserved for
 the network's raft protocol: each member's start bundle becomes its fresh bundle at the network
 `γn` (`memberFreshRes`), what its first-start starter takes. -/
-theorem alloc3 (id₁ id₂ id₃ : w64) (ps : List w64) (hperm : ps.Perm [id₁, id₂, id₃])
+theorem alloc3 (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id₃ : w64) (ps : List w64) (hperm : ps.Perm [id₁, id₂, id₃])
     (ctxs : List (List w8)) (boot : List LogEntry)
-    (Hlow : ([id₁, id₂, id₃].map (fun id => uint.Z id % 2 ^ 16)).Nodup)
-    (Hlow0 : ∀ id ∈ [id₁, id₂, id₃], uint.Z id % 2 ^ 16 ≠ 0)
-    (HB : BootLog ps ctxs boot)
-    (Hcc : bootCCOk ps (LogEntry.toEntries boot 0))
-    (Hurl : bootURLsOk (LogEntry.toEntries boot 0))
+    (Hbc : BootCore ps ctxs boot)
     (dir : w64 → List GoString)
     (a₁ a₂ a₃ : GoString) (Hd0 : dir 0 = [])
     (Hhost : ∀ (i : w64) (h : GoString), go!"http://" ++ h ∈ dir i → h = a₁ ∨ h = a₂ ∨ h = a₃)
@@ -339,14 +340,14 @@ theorem alloc3 (id₁ id₂ id₃ : w64) (ps : List w64) (hperm : ps.Perm [id₁
       (if decide (lm ≠ .none) then iprop(True) else
         etcdKV ρ₁.rd.kv (kvModelSt ρ₁.rd.kv (bootEntries (LogEntry.toEntries boot 0)))) := by
   simp only [memberStartRes, memberFreshRes]
-  iintro #Hmarsh ⟨Hw₁, ⟨Ha₁, Hf₁⟩, Hc₁⟩ ⟨Hw₂, ⟨Ha₂, Hf₂⟩, Hc₂⟩ ⟨Hw₃, ⟨Ha₃, Hf₃⟩, Hc₃⟩
-  imod (alloc3Http id₁ id₂ id₃ ps hperm ctxs boot Hlow Hlow0 HB Hcc Hurl dir a₁ a₂ a₃ Hd0 Hhost Hrb
+  iintro #Hmarsh ⟨#Hv₁, Hw₁, ⟨Ha₁, Hf₁⟩, Hc₁⟩ ⟨#Hv₂, Hw₂, ⟨Ha₂, Hf₂⟩, Hc₂⟩ ⟨#Hv₃, Hw₃, ⟨Ha₃, Hf₃⟩, Hc₃⟩
+  imod (alloc3Http hne id₁ id₂ id₃ ps hperm ctxs boot Hbc dir a₁ a₂ a₃ Hd0 Hhost Hrb
       Hrb2 lm hrun hrev cmp cret) $$ Hmarsh Hf₁ Hf₂ Hf₃
     with ⟨%γ, %reg₁, %reg₂, %reg₃, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hγ, Hb₁, ⟨Hn₁, Ho₁⟩,
       Hb₂, ⟨Hn₂, Ho₂⟩, Hb₃, ⟨Hn₃, Ho₃⟩, Hetcd⟩
   imodintro
   iexists γ, reg₁, reg₂, reg₃, ρ₁, ρ₂, ρ₃, E₁, E₂, E₃, Φs, γn
-  iframe
+  iframe; iframe #
   ipureintro; exact Hγ
 
 end alloc

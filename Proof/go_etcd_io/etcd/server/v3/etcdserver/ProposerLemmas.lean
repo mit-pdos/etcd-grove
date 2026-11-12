@@ -48,7 +48,7 @@ theorem srv_claim_mint (ρ : ReqNames) (E : apply.AEnv GF) (g : Loc) (id : w64) 
     (Hd : apply.irrDecode d = some rq) (Hid : apply.irrId rq = some id)
     (Hp : idPfx id = ρ.ids.pfx) :
     ⊢ idGen (GF := GF) ρ.ids g (srvFloorFact E) -∗ srvMintInv ρ -∗ idUnclaimed ρ.ids id -∗
-      mvcc.idxCert E.γ.idx F ={⊤}=∗
+      srvApi.kvLogLb E.γs F ={⊤}=∗
       ∃ γf : GName, idClaim ρ.ids id d γf ∗ floorAt γf F ∗ srvPropFresh ρ.raft d := by
   iintro #Hg #Hm Hu #HF
   imod dghostVar_alloc (GF := GF) F with ⟨%γf, Hγ⟩
@@ -78,6 +78,7 @@ theorem srv_claim_mint (ρ : ReqNames) (E : apply.AEnv GF) (g : Loc) (id : w64) 
       iunfold srvFloorFact
       iunfold srvFloorFacts
       iexists F
+      iunfold srvApi.kvLogLb at HF
       iframe Hfl HF
     imod ghost_map_insert d () hF $$ HF' with ⟨HF', Hfr⟩
     imod Hclose $$ [HF' HFs] with -

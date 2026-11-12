@@ -41,7 +41,7 @@ theorem EtcdServer.GoAttach.wp_proof
   icases Hwr with ⟨#Hok, Hrd⟩
   ihave #Hok' := Hok
   iunfold srvGoAttachOk at Hok'
-  icases Hok' with ⟨%ch, %c, #Hch, #Hint, #Hwg, #Hinv, #Hguard, #Hctx, ⟨%l, #Hlg, %Hlgnn⟩, #HrP, %Hbound⟩
+  icases Hok' with ⟨%ch, %c, #Hch, #Hint, #Hwg, #Hinv, #Hguard, #Hctx, ⟨%l, #Hlg, #Hlgnn⟩, #HrP, %Hbound⟩
   wp_apply sync.RWMutex.wp_RLock $$ [$Hrd] as ⟨Hlk, HP0⟩
   ihave #His_ch : isChan ch γ.ch Unit $$ []
   · iunfold isStopChanInternal at Hint; icases Hint with ⟨$, -⟩
@@ -67,11 +67,11 @@ theorem EtcdServer.GoAttach.wp_proof
       imod raftPool_borrowL (srvLgReader s) ⊤ (fun _ _ => CoPset.mem_full) $$ [Hlc1 HrP Htok]
         with ⟨Hlr, Hloan⟩
       · iframe; iframe #
-      wp_apply hLg s l $$ [$Hlr] as ⟨%Hl, Hlr⟩
-      · iframe #; ipureintro; exact Hlgnn
+      wp_apply hLg s l $$ [$Hlr] as ⟨#Hl, Hlr⟩
+      · iframe #
       (try wp_auto)
       wp_apply hW l _ _ $$ []
-      · ipureintro; exact Hl
+      · iframe #
       imod raftLoanL_giveBack (srvLgReader s) ⊤ (fun _ _ => CoPset.mem_full) $$ [Hloan Hlr]
         with Htok
       · iframe

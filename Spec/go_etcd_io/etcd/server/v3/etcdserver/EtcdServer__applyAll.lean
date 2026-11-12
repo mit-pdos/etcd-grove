@@ -36,7 +36,7 @@ statement in both auth modes, over the component `C`, the environment's): the se
 applier row and the model in the component (`isServerC`, `srvApplyKVC` at the model's auth state
 `sa`, `kvAppliedM C.isOn`), the entries' shapes in the mode (`logShapeM`), the lessor finding no
 lease with auth on (`acLessor`), the rights to issue tokens at the consistent index (`acTok`) and the
-receipts' bound (`acReceiptOk`). **At a restart point** (R2d'a swap batch 3, 2026-11-06: until then
+receipts' bound (strict M1, 2026-11-06: in both modes). **At a restart point** (R2d'a swap batch 3, 2026-11-06: until then
 the first-start form, now the instance at `rp = RestartPt.first`; the restart form was `RunR.lean`'s
 `applyAll.specBatchR`): `server.go:984-1030` at the pin `673da07c8` (`applySnapshot`,
 `applyEntries`, the read-index notification, the snapshot trigger and the merged snapshot's receive)
@@ -59,7 +59,10 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       -- the component the environment's, and the batch's premises (`specBatchOff`'s, the shapes in
       -- the mode, `logShapeM`)
-      ⌜E.authMode = C.mode ∧ acReceiptOk (GF := GF) C ∧
+      -- (strict M1, 2026-11-06; merge of `lean`) the receipts' bound in both modes, in place of
+      -- `acReceiptOk C` (`applyEntries`': the log's smallness comes from the writer's receipt,
+      -- `srvApplyKV_small`)
+      ⌜E.authMode = C.mode ∧ receiptBound GF ≤ 2 ^ 48 ∧
         (ms = [] ∨ (entriesFrom f0 ms ∧ uint.Z f0 ≤ uint.Z ai + 1)) ∧ uint.Z ai + 1 < 2 ^ 64 ∧
         loopOk γ st ai ∧ logShapeM C.isOn E.lm (unapplied ai ms) ∧
         dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) (g + 1) (unapplied ai ms) ∧
@@ -89,7 +92,7 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
       notifyRcv γnc ∗ es ↦*□ ents ∗ entriesAt ents ms ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗ epCsAt ρ.raft (ghostOf rp A) cs ∗
       srvSnapState s ep mst γs ai (W64 0) ∗ applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗
-      srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗ srvApplyKVC C s E ρ.wait x sa ∗ srvAppliedOwn γr g ∗
+      srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvBemuReaderAt s E.γbe ∗ srvApplyKVC C s E ρ.wait x sa ∗ srvAppliedOwn γr g ∗
       appliedLogAt γr g x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E γp ∗ srvWTTaken γp.cnt w ∗
       kvAppliedM C.isOn γr.raft γr.kv srvAuthSt0 (ghostOf rp A) x sa ∗ srvRestR E γr rp A ∗
       kvBatchR γr (ciEff γ st.k) ai rp A (unapplied ai ms) ∗
@@ -102,7 +105,7 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
       (match dv with | none => iprop(True) | some n => (letI := srvStor (GF := GF) ρ.raft.raft; nodeRunning n ρ.raft.raft.cl srvClusterN (1 : Qp).half)) ∗
       -- (2026-10-31, #11) what the snapshot takes: the disk snapshot's storage, the server's KV over
       -- the store, the storage's invariant at the storage key `nk`, the apply side's half of the WAL token
-      srvSnapDisk s γr ∗ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗
+      srvSnapDisk s γr ∗ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ □ mvcc.api.isMvcc kv E.γ ∗ ⌜kv = E.kv⌝) ∗
       (letI : MemStorReg GF := ⟨γr.raft.raft.reg⟩; memStorInv mst γs γr.raft.raft.cl nk) ∗
       rnWalTokA γn (srvRAddr s) q ∗
       -- (2026-10-31, S1) the batch's raft term `rt` (`apply.raftTerm`, the merge's guard), good for
@@ -126,13 +129,13 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
         epAppliedIAddr ep ↦ ai' ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs' ∗
         epCsAt ρ.raft (ghostOf rp (A ++ unapplied ai ms)) cs' ∗
         srvSnapState s ep mst γs ai' (W64 0) ∗ applyThread γ' st' ∗ acTok C (ciEff γ' st'.k) ∗ applyBackend γ' ci b' ∗ ciApplying ci a' t' ∗
-        srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗ srvAppliedOwn γr g' ∗ appliedAtLeast γr g' ∗
+        srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E'.γ 1 ∗ srvBemuReaderAt s E.γbe ∗ srvAppliedOwn γr g' ∗ appliedAtLeast γr g' ∗
         srvWTTaken γp.cnt (w + (unapplied ai ms).length) ∗
         (∃ (x' : apply.ApplyKV) (sa' : auth.AuthState), srvApplyKVC C s E' ρ.wait x' sa' ∗
           ⌜entriesStep (ciEff γ st.k) (unapplied ai ms) x x'⌝ ∗ appliedLogAt γr g' x'.log ∗
           kvAppliedM C.isOn γr.raft γr.kv srvAuthSt0 (ghostOf rp (A ++ unapplied ai ms)) x' sa' ∗
           srvRestR E' γr rp (A ++ unapplied ai ms)) ∗
-        (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E'.s E'.γ) ∗ rnWalTokA γn (srvRAddr s) q ∗
+        (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ □ mvcc.api.isMvcc kv E'.γ ∗ ⌜kv = E'.kv⌝) ∗ rnWalTokA γn (srvRAddr s) q ∗
         -- (D22 J1b) the snapshot resources, at the batch's end
         srvSnapOwn s ci E' γr γ' ai' ∗
         ⌜uint.Z g' = uint.Z γr.raft.ai0 + (ghostOf rp (A ++ unapplied ai ms)).length ∧ loopOk γ' st' ai' ∧
@@ -177,8 +180,9 @@ mode `on`, from which `snapRecv_imageOn` gives `specSnapM`'s `hauthI`/`hkI`), an
 (R2d'a swap batch 2, 2026-11-06, the restart form; review F1, the swap the user approved) The
 applied index split, as inside a restart window: Go's `ai` (`ep.appliedi`, `srvSnapState`,
 `srvSnapOwn`) at most the ghost index `g` (`srvAppliedOwn`, `appliedLogAt`, the ghost log `A` with
-`uint.Z g = |A|`), the snapshot strictly above `g` (A8's `rnWinInstallAbove`), the consistent index
-at most `g`, and the rest buckets at an image `r0` whose members have the model's ids (`srvRestRp`;
+`uint.Z g = |A|`), the snapshot strictly above `g` (A8, derived since S1:
+`rnRestartOk_winAbove`), the consistent index at most `g`, and the rest buckets at an image `r0`
+whose members have the model's ids (`srvRestRp`;
 inside the window the replay's, `restReplay_memKeys`). The post is unchanged: past the snapshot
 every index is its. At `g = ai`, `r0` the model of `A` (`hids` by `rfl`, `srvRestRp_model`) it is
 the statement before the swap (a first start's). -/
@@ -196,7 +200,7 @@ abbrev EtcdServer.applyAll.specSnapM : Prop :=
   E.authMode ≠ .any →
   -- the snapshot past the applied index, below `2^61`, at least the boot log
   -- (R2d'a task 4) Go's applied index at most the ghost one, the snapshot strictly above the ghost
-  -- one (A8's `rnWinInstallAbove`)
+  -- one (A8, derived since S1: `rnRestartOk_winAbove`)
   uint.Z ai ≤ uint.Z g → uint.Z g < uint.Z sv.Metadata'.Index' →
   uint.Z sv.Metadata'.Index' < 2 ^ 61 →
   (γr.raft.raft.boot.length : Int) ≤ uint.Z sv.Metadata'.Index' →
@@ -236,10 +240,10 @@ abbrev EtcdServer.applyAll.specSnapM : Prop :=
       -- the apply thread's resources, as `spec`'s
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗
       srvSnapState s ep mst γs ai (W64 0) ∗ applyThread γ st ∗ applyBackend γ ci b ∗
-      ciApplying ci a t ∗ srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗
+      ciApplying ci a t ∗ srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvBemuReaderAt s E.γbe ∗
       srvApplyKVM E.authOn s E ρ.wait x sa ∗ srvAppliedOwn γr g ∗ appliedLogAt γr g x.log ∗
       srvWTPool E γp ∗ srvWTTaken γp.cnt w ∗ kvAppliedM E.authOn γr.raft γr.kv srvAuthSt0 A x sa ∗ srvRestRp E γr A r0 ∗
-      srvApRes s γr A ∗ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ) ∗
+      srvApRes s γr A ∗ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ □ mvcc.api.isMvcc kv E.γ ∗ ⌜kv = E.kv⌝) ∗
       rnWalTokA γn (srvRAddr s) q ∗
       -- the snapshot path's resources (`srvSnapRO`'s configuration rebuild over
       -- `isServerApplyAll`'s two fields)
@@ -268,13 +272,13 @@ abbrev EtcdServer.applyAll.specSnapM : Prop :=
         epConfState ep cs' ∗ epCsAt ρ.raft A' cs' ∗
         srvSnapState s ep mst γs sv.Metadata'.Index' (W64 0) ∗ applyThread γ' st' ∗
         applyBackend γ' ci b' ∗ ciApplying ci a t ∗
-        srvLgReader s ∗ srvGoRes s ∗ srvBemuReaderAt s E.γbe ∗
+        srvLgReader s ∗ srvGoRes s ∗ mvcc.api.mvccReaders E'.γ 1 ∗ srvBemuReaderAt s E.γbe ∗
         srvAppliedOwn γr sv.Metadata'.Index' ∗ appliedAtLeast γr sv.Metadata'.Index' ∗
         srvWTTaken γp.cnt w ∗
         (∃ x' : apply.ApplyKV, srvApplyKVM E.authOn s E' ρ.wait x' (srvAuthAtLog γr.kv srvAuthSt0 A') ∗
           appliedLogAt γr sv.Metadata'.Index' x'.log ∗
           kvAppliedM E.authOn γr.raft γr.kv srvAuthSt0 A' x' (srvAuthAtLog γr.kv srvAuthSt0 A') ∗ srvRest E' γr A') ∗
-        (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ txn.isKV kv E'.s E'.γ) ∗ rnWalTokA γn (srvRAddr s) q ∗
+        (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ □ mvcc.api.isMvcc kv E'.γ ∗ ⌜kv = E'.kv⌝) ∗ rnWalTokA γn (srvRAddr s) q ∗
         srvSnapOwn s ci E' γr γ' sv.Metadata'.Index' ∗
         ⌜loopOk γ' st' sv.Metadata'.Index' ∧ ciEff γ' st'.k = sv.Metadata'.Index' ∧
           A <+: A' ∧ (γr.raft.pre ++ A').length = uint.nat sv.Metadata'.Index' ∧

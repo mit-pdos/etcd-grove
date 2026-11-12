@@ -24,7 +24,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.auth auth go_etcd_io.
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
@@ -36,7 +36,7 @@ theorem auth.authStore.HasRole.wp_proof
   wp_start as ⟨#Hinv, Hown, HWR, Hcs⟩
   ihave #Hinv' := Hinv
   iunfold authInv at Hinv'
-  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, -, -, -⟩
+  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, #Hlgnn⟩, -, -, -, -⟩
   iunfold authWR at HWR
   icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen, Hca⟩
   ihave #Hbeok' := Hbeok
@@ -82,7 +82,7 @@ theorem auth.authStore.HasRole.wp_proof
     iintro %fsl ⟨-, -⟩
     (try wp_auto)
     wp_apply h_Warn
-    · ipureintro; exact Hlgnn
+    · iexact Hlgnn
     (try wp_auto)
     iapply HΦ
     iframe HPost Hown

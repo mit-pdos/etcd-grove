@@ -17,6 +17,13 @@ importable Proof.go_etcd_io.etcd.server.v3.storage.backend.Base
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.BatchLemmas
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.BboltOptions
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.ClientLaws
+# (mvccfull's Probe, 2026-11-09) clients' laws, in place of unfolds: the stopped view's agreement,
+# the constructor's posts' parts and constants, the write-back token
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.NewKLaws
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.StopLaws
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.WbTokLaws
+# (mvccfull's F1 repair round 2, 2026-11-10) the constructor's hooks premise at no hooks
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.HooksLaws
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.CommitLemmas
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.DelKeys
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.HooksLoeb
@@ -31,6 +38,9 @@ importable Proof.go_etcd_io.etcd.server.v3.storage.backend.ReadLemmas
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.UnlockBare
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.VerifyBackendConsistency
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.VerifyBackendConsistency
+# (mvcc-api, 2026-11-07) the constructor's spec, for a client that calls `backend.New` itself
+# (`examples/mvccrand`'s `runChecks`; the server opens its backend through `storage.OpenBackend`)
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.New
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__BatchTx
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__Close
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__ConcurrentReadTx
@@ -61,6 +71,9 @@ importable Spec.go_etcd_io.etcd.server.v3.storage.backend.snapshot__Size
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.snapshot__WriteTo
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.BboltOptsDefs
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.BksLemmas
+# (mvcc-api, 2026-11-07) the safe-range deletions' lemmas (theorems only), which `InvBackend` imports
+# publicly, as its sibling lemma files
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.DlLemmas
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.FkLemmas
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBuffer
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.InvStop

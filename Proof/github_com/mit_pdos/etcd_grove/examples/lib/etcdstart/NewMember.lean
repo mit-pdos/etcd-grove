@@ -41,7 +41,7 @@ theorem NewMember.wp_proof
     (wp_RaftHandler : EtcdServer.RaftHandler.spec (GF := GF) (hG := hG)) :
     NewMember.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client token snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ E₀ Φs
-    γn cmp lm Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8 Hck Haf Hbuq
+    γn cmp lm Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8 Haf Hbuq
     Hdbo
   wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
@@ -54,7 +54,7 @@ theorem NewMember.wp_proof
   -- `newServer(name, peer, client, cluster, token, 0, snapCount, catchUp, lg)`: the compactor off
   wp_apply (wp_newServer N name peerAddr client token (W64 0) snapCount catchUp peer cluster lg M iu Uok ps bootLog
       ctxs dir id γ ρ E₀ Φs γn cmp lm Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8
-      (by decide) Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh] as %s %err Hres
+      (by decide) Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh] as %s %err Hres
   · iframe; iframe #
   icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb, -⟩)
   · -- `newServer` failed: the error returned
@@ -79,8 +79,8 @@ theorem NewMember.wp_proof
   wp_auto
   iunfold memberBuilt at Hmb
   simp only [Bool.false_eq_true, ↓reduceIte]
-  icases Hmb with ⟨%γA, %ci, %TM, %E, %γrn, %b, %cfg, %γk, %τ, %HE, #Hwb, Hsb, Hserve, Hsv, #Hoff,
-    Hlgm, Hrc, #Hnm, Htokp, HServeR, HWR, #Hlr, Hkeep⟩
+  icases Hmb with ⟨%γA, %ci, %TM, %E, %γrn, %b, %cfg, %γk, %τ, %HE, Hstk, #Hwb, Hsb, Hserve, Hsv, #Hoff,
+    Hlgm, Hrc, #Hnm, Htokp, HServeR, #Hlr, Hkeep⟩
   -- (2026-10-24, rafthttp stage 6d) the listener serves the peer address with the raft protocol
   -- (the program start's reservation)
   imod (http.register lis peerAddr (raftProto (netRh γn))) $$ Hlis Hpown with Hlis

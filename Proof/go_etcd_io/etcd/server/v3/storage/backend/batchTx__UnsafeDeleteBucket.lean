@@ -44,7 +44,7 @@ theorem backend.batchTx.UnsafeDeleteBucket.wp_proof
   icases Hei with ⟨%e, #He, %Hel, -⟩
   obtain ⟨Hptr, Hleaf, HIs⟩ := Hel
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
-    ⟨%db, %lg, %h, #Hbe, #Hlg, %Hlgn, #-, #-, #-, #-, #-, %HP⟩
+    ⟨%db, %lg, %h, #Hbe, #Hlg, #Hlgn, #-, #-, #-, #-, #-, %HP⟩
   · iframe #
   unfold btW
   icases Hw with ⟨Htx, Hpend, ⟨%G, Hwtx⟩⟩

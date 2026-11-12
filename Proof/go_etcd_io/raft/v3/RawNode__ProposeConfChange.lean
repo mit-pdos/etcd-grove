@@ -42,10 +42,14 @@ theorem RawNode.ProposeConfChange.wp_proof
     (wp_confChangeToMsg : confChangeToMsg.spec (GF := GF) (hG := hG))
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     RawNode.ProposeConfChange.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs c o dq
+  intro γ rn id rs c o cc dq
   wp_start as H
   iNamed H
   iNamed Hrn
+  -- (raft-entsize §3) the conf change at its model; the size bound is for the later proof
+  obtain ⟨Ho, -⟩ := Hmd
+  ihave Hc : ownConfChangeI c dq (some o) $$ [Hc]
+  · rw [← Ho]; iapply ccPtsCC_own c dq cc $$ Hc
   wp_auto_lc 1
   wp_apply wp_confChangeToMsg c (some o) dq $$ [$Hc] as %ml %bs ⟨Hc, Hm, %Hbs⟩
   -- (2026-10-27) the proposal's ghost work: tracked under its key, its ticket on the entry

@@ -26,15 +26,18 @@ variable [sem : go.Semantics]
 marshals) and a reader of complete streams in `Φ`: the snapshot's body, a reader of the stream of
 the envelope's frame (of an encoding `bs` of `st`) followed by a complete stream of the merged
 message's reader (`snapPre`, `snapPhi`), whose `Close` returns (it closes the merged message's
-reader). The encoding into a `bytes.Buffer` does not fail, so its `lg.Panic` is not reached. -/
+reader). The encoding into a `bytes.Buffer` does not fail, so its `lg.Panic` is not reached.
+(raft-entsize [r3c], 2026-11-10) The message frozen at a content below `2^47` bytes (`msgSzC False`),
+from the caller (until then the trust boundary `swMsgBound_phys`, since deleted). -/
 abbrev rafthttp.createSnapBody.spec : Prop :=
   ∀ (lg m ml : Loc) (rc : GoInterface) (st : MsgSt) (Φ : List w8 → Prop),
   lg ≠ null → MsgMarshals st →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-      snap.msgIs m ml rc ∗ msgOwn ml DFrac.discard st ∗ backend.readerStreams rc Φ }}
+      snap.msgIs m ml rc ∗ msgOwn ml DFrac.discard st ∗ msgSzC False ml st ∗
+      backend.readerStreams rc Φ }}
     (App (App (Val (@! rafthttp.createSnapBody)) (Val #lg)) (Val #m))
   {{ (body : GoInterface), RET #body; ∃ (bs : List w8) (bi : GoInterfaceOk),
-      ⌜body = GoInterface.ok bi ∧ MsgWireOk st bs ∧ bs.length < 2 ^ 63⌝ ∗
+      ⌜body = GoInterface.ok bi ∧ MsgWireOk st bs ∧ MsgEnc st bs ∧ bs.length < 2 ^ 63⌝ ∗
       http.streamHas body (snapPre bs) (snapPhi bs Φ) ∗ rdCloseOk bi }}
 
 end spec

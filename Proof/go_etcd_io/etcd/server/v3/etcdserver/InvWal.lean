@@ -467,42 +467,49 @@ instance rnDurInv_persistent (cl : Cluster) (ν : WalNames) (w : Loc) :
 `RaftState.init` (`StartNode`'s), the fresh records' hard state, nothing pending, nothing handed. -/
 abbrev walView0 : WalView := ⟨RaftState.init, hsZero, none, []⟩
 
-/-- (2026-11-03, R2b-1 stage 3c) **The durability's ghost state allocated** over a fresh WAL
-(`walFresh`, what `bootstrap` gives a first start): the invariant at the start's view (the fresh
-records hold `RaftState.init`, `walFresh_holds`), the loop's half of the view with its "not failed"
-token, the stop's claim, the apply thread's token, and the handed log's lower bound at `[]`. -/
-theorem rnDur_alloc (cl : Cluster) (w : Loc) :
-    walRecs (GF := GF) w walFresh ⊢
-      |={⊤}=> ∃ ν : WalNames, rnDurInv cl ν w ∗ ghostVar ν.view (1 : Qp).half walView0 ∗
-        token ν.ok ∗ token ν.stop ∗ token ν.app ∗ walCommitLb ν [] := by
-  iintro Hr
-  imod (ghostVar_alloc (GF := GF) walView0) with ⟨%γv, Hv⟩
-  imod (mono_list_own_alloc (GF := GF) ([] : List LogEntry)) with ⟨%γc, Hca, #Hcl⟩
+/-- (restart S3 item 4, 2026-11-11) **The view a restart starts at holds of its records**: the node's
+durable state `S` held by the records `σ` (`StorageHolds`, the restart's AU's), a committed log `l`
+ending between their base and their commit that the durable log agrees with, the records' own hard
+state, nothing pending. -/
+theorem viewOk_restart (S : RaftState) (σ : StorContents) (l : List LogEntry)
+    (hS : StorageHolds S σ) (hb : σ.b ≤ l.length) (hc : l.length ≤ σ.commit) (ha : DurAgrees S l) :
+    ViewOk ⟨S, σ.hs, none, l⟩ σ :=
+  ⟨hS, rfl, hb, hc, ha, fun _ h => by cases h⟩
+
+/-- (restart S3 item 4, 2026-11-11; generalizing `rnDur_alloc`) **The durability's ghost state
+allocated over records `σ` at a view `v` they describe** (`ViewOk`, nothing pending): the invariant
+at `v` with the records' snapshot certificate, the loop's half of the view with its "not failed"
+token, the stop's claim, the apply thread's token, and the handed log's lower bound at `v.l`. A
+first start's is `walFresh` at `walView0` (`rnDur_alloc`); a restart's, the records `walRead`
+returned at `⟨S, σ.hs, none, l₀⟩` (`viewOk_restart`; the records' source is W4's). -/
+theorem rnDur_alloc_view (cl : Cluster) (w : Loc) (σ : StorContents) (v : WalView)
+    (hv : ViewOk v σ) (hp : v.pend = none) :
+    walRecs (GF := GF) w σ ∗ walSnapCert cl σ ⊢
+      |={⊤}=> ∃ ν : WalNames, rnDurInv cl ν w ∗ ghostVar ν.view (1 : Qp).half v ∗
+        token ν.ok ∗ token ν.stop ∗ token ν.app ∗ walCommitLb ν v.l := by
+  iintro ⟨Hr, #Hc⟩
+  imod (ghostVar_alloc (GF := GF) v) with ⟨%γv, Hv⟩
+  imod (mono_list_own_alloc (GF := GF) v.l) with ⟨%γc, Hca, #Hcl⟩
   imod (token_alloc (GF := GF)) with ⟨%γo, Ho⟩
   imod (token_alloc (GF := GF)) with ⟨%γs, Hs⟩
   imod (token_alloc (GF := GF)) with ⟨%γa, Ha⟩
-  icases (ghostVar_split_half γv 1 walView0).1 $$ Hv with ⟨Hv1, Hv2⟩
-  imod (inv_alloc rnDurN ⊤ iprop((∃ v : WalView, ghostVar γv (1 : Qp).half v ∗
-      monoListAuthOwn γc 1 v.l ∗ walAsViewed cl w v) ∨
+  icases (ghostVar_split_half γv 1 v).1 $$ Hv with ⟨Hv1, Hv2⟩
+  have hr : recsOf v σ = σ := by unfold recsOf; rw [hp]
+  imod (inv_alloc rnDurN ⊤ iprop((∃ v' : WalView, ghostVar γv (1 : Qp).half v' ∗
+      monoListAuthOwn γc 1 v'.l ∗ walAsViewed cl w v') ∨
     (token γs ∗ token γa ∗ token γo))) $$ [Hv1 Hca Hr] with #Hinv
   · inext
     ileft
-    iexists walView0
+    iexists v
     iframe Hv1
     isplitl [Hca]
     · iexact Hca
     iunfold walAsViewed
-    iexists walFresh
-    simp only [walView0, recsOf]
-    iframe Hr
-    isplitr
-    rotate_left
-    · iapply walSnapCert_fresh
+    iexists σ
+    rw [hr]
+    iframe Hr Hc
     ipureintro
-    unfold ViewOk
-    refine ⟨walFresh_holds, rfl, Nat.le_refl _, Nat.zero_le _, ?_, ?_⟩
-    · intro i e _ he; simp at he
-    · intro m hm; simp at hm
+    exact hv
   imodintro
   iexists ⟨w, γv, γc, γo, γs, γa⟩
   iunfold rnDurInv
@@ -511,6 +518,22 @@ theorem rnDur_alloc (cl : Cluster) (w : Loc) :
   · ipureintro; rfl
   iunfold walCommitLb
   iexact Hcl
+
+/-- (2026-11-03, R2b-1 stage 3c) **The durability's ghost state allocated** over a fresh WAL
+(`walFresh`, what `bootstrap` gives a first start): the invariant at the start's view (the fresh
+records hold `RaftState.init`, `walFresh_holds`), the loop's half of the view with its "not failed"
+token, the stop's claim, the apply thread's token, and the handed log's lower bound at `[]`.
+(Restart S3 item 4: `rnDur_alloc_view` at `walView0`.) -/
+theorem rnDur_alloc (cl : Cluster) (w : Loc) :
+    walRecs (GF := GF) w walFresh ⊢
+      |={⊤}=> ∃ ν : WalNames, rnDurInv cl ν w ∗ ghostVar ν.view (1 : Qp).half walView0 ∗
+        token ν.ok ∗ token ν.stop ∗ token ν.app ∗ walCommitLb ν [] := by
+  iintro Hr
+  ihave #Hc := walSnapCert_fresh (GF := GF) cl
+  iapply rnDur_alloc_view cl w walFresh walView0
+    ⟨walFresh_holds, rfl, Nat.le_refl _, Nat.zero_le _, fun i e _ he => by simp at he,
+      fun m hm => by simp at hm⟩ rfl
+  iframe Hr Hc
 
 /-- (2026-11-03, R2b-1 stage 4) **A `Save` from the view `v` to `v'`** (pure): from any records
 `σ` the view describes (`ViewOk`), the batch `(h, es)` is in `Save`'s case (`WalSaveOk`) and the
@@ -930,7 +953,9 @@ theorem rnDur_take (cl : Cluster) (ν : WalNames) (w : Loc) (v : WalView) (hp : 
     rnDurInv (GF := GF) cl ν w -∗ token ν.stop -∗ token ν.app -∗
       ghostVar ν.view (1 : Qp).half v -∗ token ν.ok ={⊤}=∗
       ∃ σ : StorContents, walRecs w σ ∗
-        ⌜StorageHolds v.S σ ∧ σ.b ≤ v.l.length ∧ v.l.length ≤ σ.commit⌝ ∗
+        ⌜StorageHolds v.S σ ∧ σ.b ≤ v.l.length ∧ v.l.length ≤ σ.commit ∧
+          -- (S1) the records' hard state the view's, and the durable log agreeing with the handed log
+          σ.hs = v.hs ∧ DurAgrees v.S v.l⌝ ∗
         -- (R2d, Q14 (a), DRAFT) the records' snapshot certificate
         walSnapCert cl σ := by
   iintro #Hinv Hs Ha Hv Hok
@@ -953,8 +978,8 @@ theorem rnDur_take (cl : Cluster) (ν : WalNames) (w : Loc) (v : WalView) (hp : 
   rw [hr]
   iframe Hr Hc
   ipureintro
-  obtain ⟨Hh, -, Hb, Hc, -, -⟩ := Hok0
-  exact ⟨Hh, Hb, Hc⟩
+  obtain ⟨Hh, Hhs, Hb, Hc, Hag, -⟩ := Hok0
+  exact ⟨Hh, Hb, Hc, Hhs, Hag⟩
 
 end defs
 

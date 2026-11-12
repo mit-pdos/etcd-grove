@@ -7,6 +7,7 @@ module
 
 public import Proof.go_etcd_io.etcd.client.v3.InvLease
 public import Perennial.Proof.context
+public import Proof.context.LibKeysChain
 
 @[expose] public section
 
@@ -28,7 +29,12 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 the `hasleader` metadata): a context `c` that is never done (its `Done()` is `Background()`'s,
 `nil`), so that `context.WithCancel(c)` is a cancellable context done only when cancelled
 (`propagateCancel` returns at once: `c.Done()` is `nil`), as `context.WithCancelTodo` says of
-`TODO()`. -/
+`TODO()`. (premise-fixes-7) Its library values are well formed (`context.libCtxOk ctx'`): it
+answers grpc's outgoing-metadata key with the `rawMD` `NewOutgoingContext` stored (`builtRawMD`),
+and the other library keys with `Background()`'s `nil`. (premise-fixes-8, C1) So does Perennial's
+chain (`metadata.outgoingCtxOkC ctx'`): `context.value` walks from the `*cancelCtx` to its parent,
+the `*valueCtx` `NewOutgoingContext` made (fields never written), whose key is grpc's
+`mdOutgoingKey{}` and whose value is that `rawMD`. -/
 abbrev WithRequireLeader.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 }}
     (App (Val (@! go_etcd_io.etcd.client.v3.WithRequireLeader))
@@ -40,7 +46,8 @@ abbrev WithRequireLeader.spec : Prop :=
           RET (PairV #(interface.ok ctx') #cancel);
           context.cancelSpec cancel γ' iprop(True) ∗
           context.isContext ctx'
-            { Values := ∅, Deadline := none, Done_gn := γ', PDone := iprop(True) } }}) }}
+            { Values := ∅, Deadline := none, Done_gn := γ', PDone := iprop(True) } ∗
+          context.libCtxOk ctx' ∗ metadata.outgoingCtxOkC ctx' }}) }}
 
 end spec
 

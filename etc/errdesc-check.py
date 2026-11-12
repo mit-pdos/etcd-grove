@@ -27,22 +27,32 @@ REVIEWED = {
     'Spec/google_golang_org/grpc/status/FromError.lean':
         'the description and code from a stable Error()/GRPCStatus() (the premise statusErrOk)',
     'Spec/google_golang_org/grpc/status/Error.lean':
-        '*status.Error: Error() formats its fixed status, GRPCStatus() returns it, Is is proto.Equal',
+        '*status.Error: Error() formats its fixed status, GRPCStatus() returns it, Is is proto.Equal; '
+        'no Format method (statusErrOk since premise-fixes-4; examples/premisefix/fmtarg)',
     'Spec/google_golang_org/grpc/status/Code.lean': 'statusErrOk a premise only',
+    'Spec/k8s_io/apiserver/pkg/storage/etcd3/metrics/RecordEtcdRequest.lean':
+        'statusErrOk a premise only (no description or code in its post)',
     'Spec/errors/IsStatusErr.lean':
         'a leaf: == compares values, Is answers true only for an equal description (grpcErrMethodsOk)',
     'Spec/fmt/ErrorfWrap.lean':
         "the model's errorString cell and Go's wrapError msg are written once",
     'Spec/go_etcd_io/etcd/client/v3/Client__Endpoints.lean': 'statusErrOk opened, not used',
     'Spec/go_etcd_io/etcd/client/v3/waitRetryBackoff.lean': 'statusErrOk opened, not used',
+    'Spec/google_golang_org/grpc/model/respond.lean':
+        'srvErrOk err a premise of the pre (stable Error()/GRPCStatus(): status.FromError, server.go:1461): '
+        'the carrier (Proof/google_golang_org/grpc/model/Serve.lean:71-72) gets it from the deposited run '
+        'contract grpcRunOkMd (InvGrpc.lean, its post; HS-6); errDesc err only gates Psi_e, the handler\'s own '
+        'description, which Invoke returns for a handlerDescs description only',
     'Spec/go_etcd_io/etcd/client/v3/withVersion.lean': 'statusErrOk opened, not used',
     'Proof/go_etcd_io/etcd/api/v3/v3rpc/rpctypes/ErrDesc.lean:rpctypes.errDesc_etcdError':
         'an EtcdError value: Error() returns its desc field',
     'Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/Init.lean:toGRPCErrorMap_init':
-        "its values are rpctypes' ErrGRPC* (status.Error) values",
+        "its values are rpctypes' ErrGRPC* (status.Error) values, without a Format method "
+        '(examples/premisefix/fmtarg)',
     # rpctypes' initializers (etc/gen-init.py): status.Error values and EtcdError values
     'Proof/go_etcd_io/etcd/api/v3/v3rpc/rpctypes/Init.lean:*':
-        'ErrGRPC*: status.Error values; Err*: EtcdError values (Error() returns desc)',
+        'ErrGRPC*: status.Error values; Err*: EtcdError values (Error() returns desc); neither type '
+        'has a Format method (examples/premisefix/fmtarg)',
 }
 
 AXIOM = re.compile(r'^axiom\s+(\S+)(.*?)(?=^\S)', re.S | re.M)

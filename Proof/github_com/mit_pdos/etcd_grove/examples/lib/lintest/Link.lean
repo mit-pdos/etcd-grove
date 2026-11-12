@@ -11,6 +11,8 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.CounterClock
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Run
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.RunLin
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.RunLin2
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.groupOps
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.orderByLinearization
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.runClient
 public import Proof.github_com.anishathalye.porcupine.Link
@@ -37,6 +39,10 @@ theorem wp_orderByLinearization :
     EtcdGrove.lintest.orderByLinearization.spec (GF := GF) (hG := hG) :=
   EtcdGrove.lintest.orderByLinearization.wp_proof
 
+theorem wp_groupOps :
+    EtcdGrove.lintest.groupOps.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lintest.groupOps.wp_proof
+
 end links
 
 /-! The specs stated at `HeapGS HasLC.hasLC GF`: those using channels, `sync.Once` or
@@ -57,9 +63,13 @@ theorem wp_runClient :
     EtcdGrove.lintest.runClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.lintest.runClient.wp_proof
 
+theorem wp_RunLin2 :
+    EtcdGrove.lintest.RunLin2.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.lintest.RunLin2.wp_proof wp_runClient porcupine.wp_CheckOperationsVerbose porcupine.LinearizationInfo.wp_PartialLinearizations wp_orderByLinearization wp_groupOps
+
 theorem wp_RunLin :
     EtcdGrove.lintest.RunLin.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.lintest.RunLin.wp_proof wp_runClient porcupine.wp_CheckOperationsVerbose porcupine.LinearizationInfo.wp_PartialLinearizations wp_orderByLinearization
+  EtcdGrove.lintest.RunLin.wp_proof wp_RunLin2
 
 theorem wp_Run :
     EtcdGrove.lintest.Run.spec (GF := GF) (hG := hG) :=

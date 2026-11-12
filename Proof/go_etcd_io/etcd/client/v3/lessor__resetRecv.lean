@@ -39,7 +39,7 @@ theorem lessor.resetRecv.wp_proof
   wp_start as ⟨#Hl, #Hstr⟩
   ihave #Hl' := Hl
   iunfold lessorAt at Hl'
-  icases Hl' with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, %Hlgnn, #Hd,
+  icases Hl' with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, ⟨#Hscc, #HscO⟩, #Hlg, #Hlgok, #Hd,
     #Hrem, #Hmu, #Honce⟩
   iunfold lessorRemoteAt at Hrem
   icases Hrem with ⟨%rlc, %conn, %sl, #Hremote, #Hrlc, #Hconn, #Hcopts, #Hco⟩
@@ -52,7 +52,7 @@ theorem lessor.resetRecv.wp_proof
   wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
-  wp_apply context.wp_WithCancel_any sc scd $$ [] as %sctx %γs %cancel ⟨#Hcancel, #Hsctx⟩
+  wp_apply context.wp_WithCancel_any sc scd $$ [] as %sctx %γs %cancel ⟨#Hcancel, #Hsctx, #HsFrom⟩
   · iframe #
   (try wp_auto)
   wp_apply wp_withMax as %ro #Hro
@@ -79,7 +79,8 @@ theorem lessor.resetRecv.wp_proof
   ihave #Hok2 := streamCallOptsOk_app vs [interface.mkOk go_etcd_io.etcd.client.v3.retryOption.ty #ro] $$ [Hok' Hs1]
   · iframe #
   (try wp_auto)
-  ihave #Hctxok := ctxOk_of_isContext sctx _ $$ Hsctx
+  ihave #HsctxO := metadata.outgoingCtxOkC_from sc sctx $$ [$HsFrom $HscO]
+  ihave #Hctxok := ctxOk_of_isContext sctx _ $$ [$Hsctx $HsctxO]
   wp_apply wp_retry rlc conn addr sctx _ copts (vs ++ [interface.mkOk go_etcd_io.etcd.client.v3.retryOption.ty #ro]) $$ [Hcocap] as %st %err Hres
   · iframe #
     iframe

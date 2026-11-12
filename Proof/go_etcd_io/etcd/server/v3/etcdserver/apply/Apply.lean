@@ -43,7 +43,7 @@ theorem apply.Apply.wp_proof
     (hNSE : apply.noSideEffect.spec (GF := GF) (hG := hG)) :
     apply.Apply.spec (GF := GF) (hG := hG) := by
   intro lg e m ua w v3 rq id RD K G ot P Q
-  wp_start as ⟨#Hwok, HRD, HK, %Hlg, #He, %Hprem, ⟨%ui, %Hui, #Htr⟩, HP⟩
+  wp_start as ⟨#Hwok, HRD, HK, #Hlg, #He, %Hprem, ⟨%ui, %Hui, #Htr⟩, HP⟩
   obtain ⟨Hdec, Hid⟩ := Hprem
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
@@ -61,7 +61,7 @@ theorem apply.Apply.wp_proof
   iintro %fsl -
   wp_auto
   wp_apply hDbg
-  · ipureintro; exact Hlg
+  · iexact Hlg
   ihave #Hirr' := Hirr
   iunfold apply.internalRaftRequestIs at Hirr'
   icases Hirr' with ⟨%Hpn, #HID, ⟨%lh, #FH, #Hh⟩, -, -, -, ⟨%lt, #FT, #Ht⟩, -⟩

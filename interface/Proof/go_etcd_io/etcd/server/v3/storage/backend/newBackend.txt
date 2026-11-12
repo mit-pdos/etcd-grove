@@ -20,19 +20,19 @@ theorem backend.newBackend.wp_proof (hOpen : bbolt.Open_kv.spec) (hLog :
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
-            backend.fileHolds cfg.Path' D ∗
-              ⌜P.Wf ∧ P.limit = cfg.BatchLimit'⌝ ∗
-                backend.hooksOk P W Pk cfg.Hooks' ∗
-                  (∀ γ,
-                      backend.hkOwn γ (backend.hkData P D) ∗ backend.pvckInit γ P D ∗ backend.bFresh γ ={⊤}=∗
-                        W γ ∗ Pk γ ∗ K γ) ∗
-                    threadTok -∗
+            zapLoggerOrNil cfg.Logger' ∗
+              backend.fileHolds cfg.Path' D ∗
+                ⌜P.Wf ∧ P.limit = cfg.BatchLimit'⌝ ∗
+                  backend.hooksOk P W Pk cfg.Hooks' ∗
+                    envVerifyOff ∗
+                      (∀ γ, backend.hkOwn γ (backend.hkData P D) ∗ backend.bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ) ∗
+                        threadTok -∗
           (▷
               ∀ r,
                 (∃ b γ,
                       ⌜r = intoVal b⌝ ∗
                         backend.newPostK γ P W Pk K b D ∗
                           backend.hooksAt b cfg.Hooks' ∗ backend.bFile γ cfg.Path' ∗ threadTok) ∨
-                    ⌜∃ p, r = p.PanicV⌝ -∗
+                    ⌜¬backend.dbOpenOk ∧ ∃ p, r = p.PanicV⌝ -∗
                   Φ r) -∗
             WP ((intoVal (functions go_etcd_io.etcd.server.v3.storage.backend.newBackend [])) (intoVal cfg)) {{ Φ }}

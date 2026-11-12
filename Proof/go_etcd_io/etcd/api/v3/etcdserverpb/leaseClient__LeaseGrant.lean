@@ -4,6 +4,7 @@ lease). Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.client.v3.PerTypeLease
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient__LeaseGrant
 public import Spec.google_golang_org.grpc.StaticMethod
 public import Spec.google_golang_org.grpc.ClientConn__Invoke
@@ -57,8 +58,9 @@ theorem leaseClient.LeaseGrant.wp_proof
   ihave Hblank : pbLeaseGrantResponse (GF := GF) |>.blank «$r0_ptr» $$ [«$r0»]
   · simp only [pbLeaseGrantResponse]
     iexact «$r0»
-  have hI := etcdConn_Invoke wp_Invoke conn addr go!"/etcdserverpb.Lease/LeaseGrant" pbLeaseGrantRequest
-    pbLeaseGrantResponse Spec (req.TTL', req.ID') Q ctx cd inp «$r0_ptr» copts ([sm] ++ vs)
+  have hI := etcdConn_Invoke wp_Invoke conn addr go!"/etcdserverpb.Lease/LeaseGrant" pbLeaseGrantRequestT
+    pbLeaseGrantResponseT pbLeaseGrantRequestT_reg pbLeaseGrantResponseT_reg Spec (req.TTL', req.ID') Q ctx cd inp «$r0_ptr» copts ([sm] ++ vs)
+  simp only [pbLeaseGrantRequestT, pbLeaseGrantResponseT] at hI
   rw [show (pbLeaseGrantRequest (GF := GF)).ty = etcdserverpb.LeaseGrantRequest.ty from rfl,
     show (pbLeaseGrantResponse (GF := GF)).ty = etcdserverpb.LeaseGrantResponse.ty from rfl] at hI
   ihave Hpre' := reqPre_box conn _ addr ([sm] ++ vs) _ $$ Hpre
@@ -67,7 +69,7 @@ theorem leaseClient.LeaseGrant.wp_proof
     iframe
     try (ipureintro; first | exact Hsz.2 | exact Hsz | exact (by decide : wireSlack < grpcMsgMax))
   icases Hin' with ⟨%req', Hin', -⟩
-  icases Hres with (⟨%Herr, %m', Hm, Hq⟩ | ⟨%Herr, #Hse, -⟩)
+  icases Hres with (⟨%Herr, %m', Hm, -, Hq⟩ | ⟨%Herr, #Hse, -⟩)
   · subst Herr
     wp_auto
     iapply HΦ

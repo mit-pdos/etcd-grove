@@ -123,12 +123,12 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [k8s_io.apiserver.pkg.storage.etcd3.Assumptions] [k8s_io.apimachinery.pkg.runtime.Assumptions]
     [k8s_io.apimachinery.pkg.runtime.schema.Assumptions] [k8s_io.apiserver.pkg.storage.Assumptions]
     [k8s_io.apiserver.pkg.storage.value.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextReadErrs (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : etcd_putget.BootFacts id ctxs boot)
-    (Hck : ckptEffectsOk) (Haf : authRecordsFit)
+    (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (clients ops : w64)
     (Hc0 : 0 ≤ sint.Z clients) (Hc31 : sint.Z clients < 2 ^ 31) (Hops : 0 ≤ sint.Z ops)
@@ -137,6 +137,8 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (HAs : addrsUnclaimed (k8setcd3Program clients ops) [go!"127.0.0.1:23896"])
     -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
     (HDs : dataDirsAbsent (k8setcd3Program clients ops) [go!"k8setcd3.etcd"])
+    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
+    (HEnv : verifyEnvOff (k8setcd3Program clients ops))
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC k8setcd3GF,
       ⊢ k8s_etcd3.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) n id ctxs boot)
@@ -155,13 +157,14 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     · rfl
     · obtain ⟨p, rfl⟩ := val.isPanic_eq_true h
       exact absurd (UnrecoveredPanic.panic p) (H.2.2 _ hv)
-  refine goose_adequacy_start (GF := k8setcd3GF) (n + 1) (n + 2) (k8setcd3Program clients ops) σ g
+  refine goose_adequacy_start (GF := k8setcd3GF) (hAsLit := by decide) (hEnv := HEnv) (n + 1) (max (n + 2) srvLevelK) (k8setcd3Program clients ops) σ g
     (fun v => v = #(go!"Ok") ∨ v = #(go!"Unknown"))
     (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
       (fun h => intoVal_ne_PanicV _ p h.symm)) ⟨trivial, trivial⟩ ⟨trivial, trivial⟩
     k8setcd3Names [go!"127.0.0.1:23896"] [go!"k8setcd3.etcd"] (by decide) (by decide)
     (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩) HNs HAs HDs ?_
-    n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads (realThreadsBelow_of_one Hthreads)
+    n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads
+    (realThreadsBelow_mono (Nat.le_max_left _ _) (realThreadsBelow_of_one Hthreads))
   intro hG HN HT HL
   have Hprem0 := Hprem hG
   have Hctx0 := Hctx hG
@@ -204,7 +207,7 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     iunfold read.readRegPerm
     iframe
   have hM := k8s_etcd3.wp_Main (GF := k8setcd3GF) n id ctxs boot clients ops Hbf
-    (by rw [HT]; word) (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
+    (by rw [HT]; word) (srvLevels_of_max HT) (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
     k8s_etcd3.storageErrTyOk_holds k8s_etcd3.objTyOk_holds Hc0 Hc31 Hops Hmul
   wp_apply hM $$ [Hstart Htok]
   · iframe; iframe #
@@ -245,12 +248,12 @@ theorem k8s_etcd3_cluster_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [k8s_io.apiserver.pkg.storage.etcd3.Assumptions] [k8s_io.apimachinery.pkg.runtime.Assumptions]
     [k8s_io.apimachinery.pkg.runtime.schema.Assumptions] [k8s_io.apiserver.pkg.storage.Assumptions]
     [k8s_io.apiserver.pkg.storage.value.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextReadErrs (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
     (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : cluster3.BootFacts id₁ id₂ id₃ ps ctxs boot)
-    (Hck : ckptEffectsOk) (Haf : authRecordsFit)
+    (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (clients ops : w64)
     (Hc0 : 0 ≤ sint.Z clients) (Hc31 : sint.Z clients < 2 ^ 31) (Hops : 0 ≤ sint.Z ops)
@@ -260,6 +263,8 @@ theorem k8s_etcd3_cluster_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the members' data directories,
     -- fresh at start (`dataDirsAbsent`; their distinctness is now `decide`d, no longer a hypothesis)
     (HDs : dataDirsAbsent (k8setcd3CProgram clients ops) k8setcd3CDataDirs)
+    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
+    (HEnv : verifyEnvOff (k8setcd3CProgram clients ops))
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC k8setcd3GF,
       ⊢ cluster3.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) k8s_etcd3.clusterCfg n
@@ -272,7 +277,7 @@ theorem k8s_etcd3_cluster_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  refine etcd_adequate_members (GF := k8setcd3GF)
+  refine etcd_adequate_members (GF := k8setcd3GF) (hAsLit := by decide) (HEnv := HEnv)
     github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.initialize'
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainCluster)) (Val #clients))
       (Val #ops))
@@ -297,9 +302,9 @@ theorem k8s_etcd3_cluster_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   haveI : ThreadBoundLe k8setcd3GF (2 ^ 28) := ⟨by rw [HT]; word⟩
   haveI : ReceiptBoundLe k8setcd3GF (2 ^ 48) := ⟨by rw [HN]; omega⟩
   haveI : ReceiptBoundLe k8setcd3GF (n + 1) := ⟨by rw [HN]; omega⟩
-  have hM := k8s_etcd3.wp_MainCluster (GF := k8setcd3GF) n id₁ id₂ id₃ ps ctxs boot clients ops Hbf
+  have hM := k8s_etcd3.wp_MainCluster (GF := k8setcd3GF) n id₁ id₂ id₃ ps ctxs boot clients ops (srvLevels_of_max HT) Hbf
     (by unfold bootWB backend.wbInit; omega)
-    Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
+    Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
     k8s_etcd3.storageErrTyOk_holds k8s_etcd3.objTyOk_holds Hc0 Hc31 Hops Hmul
   wp_apply hM $$ [Hstart Htok]
   · iframe; iframe #
@@ -328,12 +333,12 @@ theorem k8s_etcd3_partition_adequate [lctx : GoLocalContext] [sem : go.Semantics
     [k8s_io.apiserver.pkg.storage.etcd3.Assumptions] [k8s_io.apimachinery.pkg.runtime.Assumptions]
     [k8s_io.apimachinery.pkg.runtime.schema.Assumptions] [k8s_io.apiserver.pkg.storage.Assumptions]
     [k8s_io.apiserver.pkg.storage.value.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextReadErrs (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
     (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : cluster3.BootFacts id₁ id₂ id₃ ps ctxs boot)
-    (Hck : ckptEffectsOk) (Haf : authRecordsFit)
+    (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (clients ops : w64)
     (Hc0 : 0 ≤ sint.Z clients) (Hc31 : sint.Z clients < 2 ^ 31) (Hops : 0 ≤ sint.Z ops)
@@ -345,6 +350,8 @@ theorem k8s_etcd3_partition_adequate [lctx : GoLocalContext] [sem : go.Semantics
     -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the members' data directories,
     -- fresh at start (`dataDirsAbsent`; their distinctness is now `decide`d, no longer a hypothesis)
     (HDs : dataDirsAbsent (k8setcd3PProgram clients ops steps) k8setcd3CDataDirs)
+    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
+    (HEnv : verifyEnvOff (k8setcd3PProgram clients ops steps))
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC k8setcd3GF,
       ⊢ cluster3.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) k8s_etcd3.clusterCfg n
@@ -357,7 +364,7 @@ theorem k8s_etcd3_partition_adequate [lctx : GoLocalContext] [sem : go.Semantics
     (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  refine etcd_adequate_members (GF := k8setcd3GF)
+  refine etcd_adequate_members (GF := k8setcd3GF) (hAsLit := by decide) (HEnv := HEnv)
     github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.initialize'
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainPartition))
       (Val #clients)) (Val #ops)) (schedLit steps))
@@ -417,8 +424,8 @@ theorem k8s_etcd3_partition_adequate [lctx : GoLocalContext] [sem : go.Semantics
         (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty))))
       (W64 (go.arrayLiteralSize
         (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))))
-    steps Hbf (by unfold bootWB backend.wbInit; omega)
-    Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
+    steps (srvLevels_of_max HT) Hbf (by unfold bootWB backend.wbInit; omega)
+    Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
     k8s_etcd3.storageErrTyOk_holds k8s_etcd3.objTyOk_holds Hc0 Hc31 Hops Hmul
   wp_apply hM $$ [Hstart Htok]
   · iframe; iframe #

@@ -77,7 +77,7 @@ theorem mvcc.store.compact.wp_proof
   ipersist ch
   ihave #Hjob' := Hjob
   iunfold mvcc.compactJobPre at Hjob'
-  icases Hjob' with ⟨#Hs, ⟨%oj, #Hstop⟩, %Hcmp, #Hlb, -⟩
+  icases Hjob' with ⟨#Hs, ⟨%oj, #Hstop⟩, %Hcmp, #Hlb, -, #Hcert⟩
   ihave #Hjsc := mvcc.storeStopR_stopChan s γ oj $$ Hstop
   ihave #Hs' := Hs
   iunfold mvcc.isStore at Hs'
@@ -127,10 +127,10 @@ theorem mvcc.store.compact.wp_proof
     wp_auto
     ihave Htok := Hw $$ [HQ HR]
     · iframe HQ HR
-    wp_apply (h3 s γ rev prev mvcc.q8 oj) $$ [$Htok $Hfj] as %h %err ⟨Hfj, Hidx, Hjr, Hres⟩
+    wp_apply (h3 s γ rev prev mvcc.q8 oj) $$ [$Htok $Hfj] as %h %err ⟨Hfj, Hidx, Hjr, Hjc, Hres⟩
     · iframe #
-    ihave Htok : mvcc.compactTok γ (sint.Z rev) $$ [Hidx Hjr]
-    · iunfold mvcc.compactTok; iframe Hjr; iexists (sint.Z rev); iframe Hidx; ipureintro; exact Int.le_refl _
+    ihave Htok : mvcc.compactTok γ (sint.Z rev) $$ [Hidx Hjr Hjc]
+    · iunfold mvcc.compactTok; iframe Hjr Hjc; iexists (sint.Z rev); iframe Hidx; ipureintro; exact Int.le_refl _
     icases Hres with (⟨%Herr, #Hdone⟩ | ⟨Herr, #Hstopped⟩)
     · subst Herr
       wp_auto
@@ -139,7 +139,7 @@ theorem mvcc.store.compact.wp_proof
       wp_join with [hash]
       · (try wp_auto)
         wp_apply (h7 lg) $$ []
-        · iframe #; ipureintro; exact Hlgnn
+        · iframe #
         wp_join_done
       · (try wp_auto)
         wp_apply (h6 shs h) $$ [$HhsOk]
@@ -167,7 +167,7 @@ theorem mvcc.store.compact.wp_proof
       iintro %flds -
       (try wp_auto)
       wp_apply (h5 lg) $$ []
-      · iframe #; ipureintro; exact Hlgnn
+      · iframe #
       (try wp_auto)
       wp_apply mvcc.wp_context_TODO_body
       (try wp_auto)

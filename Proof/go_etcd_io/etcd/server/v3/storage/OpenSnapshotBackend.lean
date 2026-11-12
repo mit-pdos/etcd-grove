@@ -88,8 +88,10 @@ theorem storage.OpenSnapshotBackend.wp_proof
       · ipureintro; rfl
       iintro %sl ⟨Hsl, -⟩
       wp_apply wp_Errorf $$ [$Hfmt $Hsl Hok] as %e -
-      · simp only [EtcdGrove.fmt.argsOk]
-        iframe Hok
+      · fmt_args_intro
+        isplitl [Hok]
+        · fmt_arg_method; iexact Hok
+        · itrivial
       iapply HΦ
       iframe Hmdp Hsm
       iright
@@ -106,8 +108,10 @@ theorem storage.OpenSnapshotBackend.wp_proof
     · ipureintro; rfl
     iintro %sl ⟨Hsl, -⟩
     wp_apply wp_Errorf $$ [$Hfmt $Hsl Hok] as %e -
-    · simp only [EtcdGrove.fmt.argsOk]
-      iframe Hok
+    · fmt_args_intro
+      isplitl [Hok]
+      · fmt_arg_method; iexact Hok
+      · itrivial
     iapply HΦ
     iframe Hmdp Hsm
     iright

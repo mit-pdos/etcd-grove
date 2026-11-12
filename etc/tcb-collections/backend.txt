@@ -82,6 +82,7 @@ axiom bbolt.Tx.DeleteBucket_kv.wp_proof
 axiom bbolt.Tx.Rollback_kv.wp_proof
 axiom bbolt.Tx.Size_kv.wp_proof
 axiom bbolt.Tx.Stats_kv.wp_proof
+axiom envVerifyOffTok
 axiom sort.Stable.wp_proof
 axiom time.Duration.Seconds.wp_proof
 axiom verify.Verify.wp_proof

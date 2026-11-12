@@ -64,14 +64,15 @@ theorem checkCompactRev.wp_proof
   · iPkgInit
   -- the client's `Watcher`, with the watch server's facts (D19f)
   ihave ⟨%w, %conn, %wc, %lgw, %ics, #HWf, #Hcw⟩ := isNewClient_watcher wp_ErrAny hAs cl
-    [go!"127.0.0.1:23794"] (srvWEnv R go!"127.0.0.1:23794" [] null null go!"k" null γr.kv)
-    rfl rfl rfl $$ [Pcli Ppb Pctx Hnc HWF]
+    [go!"127.0.0.1:23794"] (srvWEnv R (etcdstart.srvWOf R.E γr false) γr go!"127.0.0.1:23794" [] null null go!"k" null γr.kv)
+    rfl rfl rfl rfl $$ [Pcli Ppb Pctx Hnc HWF]
   · iframe #
   (try wp_auto)
   -- `cctx, ccancel := context.WithCancel(context.Background())`
   wp_apply context.wp_Background
   wp_apply context.wp_WithCancel_Background iprop(True) $$ [$Pctx $Hcci]
-    as %cctx %γctx %ccancel ⟨#Hccancel, #Hcctx, -⟩
+    as %cctx %γctx %ccancel ⟨#Hccancel, #Hcctx, -, #cctxFrom⟩
+  ihave #cctxO := metadata.outgoingCtxOkC_bgFrom cctx $$ cctxFrom
   (try wp_auto)
   -- the watch's option, `WithRev(2)`
   wp_apply wp_WithRev (W64 2) as %f2 #Hf2
@@ -107,7 +108,7 @@ theorem checkCompactRev.wp_proof
     isplitr
     · ipureintro; rfl
     isplitr
-    · iapply EtcdGrove.context.watchCtx_of_isContext; iassumption
+    · iapply EtcdGrove.context.watchCtx_of_isContext; isplitl [] <;> iassumption
     isplitr
     · ipureintro
       refine ⟨?_, ?_, by decide, ?_⟩

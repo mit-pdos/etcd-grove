@@ -84,12 +84,29 @@ func orderByLinearization(ops []porcupine.Operation, linearization []int) []porc
 // has no Partition, so the info's one partition holds one complete linearization, of indices
 // into the trace); otherwise nil.
 func RunLin(model porcupine.Model, apply func(any) any, gen func(int) any, clock Clock, clients int, ops int, timeout time.Duration) (porcupine.CheckResult, []porcupine.Operation) {
-	histories := make([][]porcupine.Operation, clients)
+	return RunLin2(model, apply, gen, clock, clients, ops, 0, 0, timeout)
+}
+
+// groupOps is the number of operations client id runs: ops in the first group (id < clients),
+// ops2 in the second.
+func groupOps(id int, clients int, ops int, ops2 int) int {
+	if id < clients {
+		return ops
+	}
+	return ops2
+}
+
+// RunLin2 is RunLin with two groups of clients: clients 0 to clients-1 run ops operations each,
+// clients clients to clients+clients2-1 run ops2 each (notes/k8s-7f-scope.md: the k8s driver's
+// watchers, whose operations are whole watches, beside its unary clients).
+func RunLin2(model porcupine.Model, apply func(any) any, gen func(int) any, clock Clock, clients int, ops int, clients2 int, ops2 int, timeout time.Duration) (porcupine.CheckResult, []porcupine.Operation) {
+	histories := make([][]porcupine.Operation, clients+clients2)
 	var wg sync.WaitGroup
-	for id := 0; id < clients; id++ {
+	for id := 0; id < clients+clients2; id++ {
+		n := groupOps(id, clients, ops, ops2)
 		wg.Add(1)
 		go func() {
-			histories[id] = runClient(id, ops, gen, apply, clock)
+			histories[id] = runClient(id, n, gen, apply, clock)
 			wg.Done()
 		}()
 	}

@@ -76,8 +76,10 @@ theorem rafthttp.Transport.AddPeer_core
   ihave #Htr' := Htr
   iunfold trFixed at Htr'
   icases Htr' with ⟨%lg, %ls, %ss0, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr,
-    #Hlg, %Hlgnn, #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok,
+    #Hlg, #Hlgz, #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok,
     #Hdrf, #Hls, %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx, %HmemU, #HrPool⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
+  ihave #Hlgo := zapLoggerOk_orNil _ $$ Hlgz
   obtain ⟨Hmem, Hturls⟩ := HmemU
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -161,12 +163,12 @@ theorem rafthttp.Transport.AddPeer_core
   repeat' (first_callee
     | "String" => (wp_apply hIDStringPtr _ _ _ $$ [id] as %_ ⟨id, -⟩; iexact id)
     | "String" => (wp_apply hIDStringPtr _ DFrac.discard _ $$ [] as %_ -; iframe #)
-    | "rafthttp.addPeerToProber" => (wp_apply hProber $$ [Hus] as Hus; iframe Hus)
+    | "rafthttp.addPeerToProber" => (wp_apply hProber $$ [Hus] as Hus; (iframe Hus; try iframe #))
     | "zap.String" => (wp_apply hZString as %_ -)
     | "zap.Strings" => (wp_apply hZStrings _ us as %_ -)
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
        iintro %_ ⟨-, -⟩)
-    | "Info" => (wp_apply hInfo lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
+    | "Info" => (wp_apply hInfo lg _ _ $$ []; (iframe #))
     | (wp_if_destruct; (try (exfalso; exact Hlgnn rfl)))
     | wp_auto)
   -- the deferred unlock: the peer in the map, its facts
@@ -239,8 +241,10 @@ theorem rafthttp.Transport.AddRemote_core
   ihave #Htr' := Htr
   iunfold trFixed at Htr'
   icases Htr' with ⟨%lg, %ls, %ss0, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr,
-    #Hlg, %Hlgnn, #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok,
+    #Hlg, #Hlgz, #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok,
     #Hdrf, #Hls, %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx, %HmemU, #HrPool⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
+  ihave #Hlgo := zapLoggerOk_orNil _ $$ Hlgz
   obtain ⟨Hmem, Hturls⟩ := HmemU
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -307,7 +311,7 @@ theorem rafthttp.Transport.AddRemote_core
     | "zap.Strings" => (wp_apply hZStrings _ us as %_ -)
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
        iintro %_ ⟨-, -⟩)
-    | "Info" => (wp_apply hInfo lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
+    | "Info" => (wp_apply hInfo lg _ _ $$ []; (iframe #))
     | (wp_if_destruct; (try (exfalso; exact Hlgnn rfl)))
     | wp_auto)
   iunfold remotesOk at Hro

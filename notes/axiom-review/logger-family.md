@@ -17,6 +17,57 @@ non-etcd axioms outside the standard library, grpc, protobuf and zap (k8s, bbolt
 probing, clockwork, humanize) were checked by reading their specs and their logger use (below).
 Lines: Go `server/...` means `etcd/server/...` at the pin; Lean spec line is the `abbrev <F>.spec`.
 
+
+## Repaired (premise fixes 6, 2026-11-11)
+
+Every row of the family is repaired; no axiom was added or removed. #9-11 were repaired first, by
+`dbe4904326` (2026-11-10, sweep B3-2); the other 24 by premise fixes 6, part A (the Scope's A.2,
+`/shared/tmp/premise-fixes-6/scope.md`; the decisions D1-D6 in the Scope's "Decisions"; `notes/decisions.md` gets part A's entry with the stage).
+The rule: a logger premise is `zapLoggerOk lg` (`Spec/go_uber_org/zap/Defs.lean`: `lg ≠ null` and
+the persistent `zap.loggerRaw lg`) where Go logs through `lg` without a nil check, and
+`zapLoggerOrNil lg` (`⌜lg = null⌝ ∨ zapLoggerOk lg`) where Go checks `lg != nil` first or replaces
+nil by `zap.NewNop()`. zap's own `Debug`/`Info`/`Warn`/`Error`/`Fatal`/`Check` take `zapLoggerOk l`
+(A.1); `Panic` keeps `l ≠ null` (decision D4: on a zero logger it panics with a runtime error instead
+of `msg`, which only a `recover` inspecting the value can tell apart). "Text" means the axiom's spec
+file changed; "via P" means its text is unchanged and its meaning changed through the predicate P.
+
+| # | Axiom | Fix |
+|---|---|---|
+| 1 | `monitorFileDescriptor` | text: `⌜lg ≠ null⌝` → `zapLoggerOk lg` |
+| 2 | `txn.WarnOfExpensiveRequest` | text: `⌜lg ≠ null⌝` → `zapLoggerOk lg` |
+| 3 | `txn.WarnOfFailedRequest` | text: `⌜lg ≠ null⌝` → `zapLoggerOk lg` |
+| 4 | `v3rpc.logUnaryRequestStats` | text: `⌜lg ≠ null⌝` → `zapLoggerOk lg` |
+| 5 | `storage.NewBackendQuota` | text: `zapLoggerOk lg` added (was nothing on `lg`); its other gaps, a nil `be` and `Cost(nil)`, stay open (D5, `notes/audit.md`) |
+| 6 | `auth.newTokenProviderJWT` | text: `zapLoggerOrNil lg` added (Go replaces nil by `NewNop`) |
+| 7 | `rafthttp.addPeerToProber` | text: `zapLoggerOrNil lg` added (every use under `lg != nil`) |
+| 8 | `auth.NewAuthStore` | text: `⌜lg ≠ null⌝` → `zapLoggerOrNil lg`; its post's `authInv` holds `zapLoggerOk` of the stored logger |
+| 9 | `lease.NewLessor` | `dbe4904326`: `⌜lg = null⌝ ∨ zapLoggerOk lg` in the pre and in `lessorCfg` |
+| 10 | `lease.lessor.scheduleCheckpointIfNeeded` | `dbe4904326`, via `lessorCfg` |
+| 11 | `lease.lessor.Promote` | `dbe4904326`, via `lessorCfg` |
+| 12 | `storage.OpenBackend` | via `openPre`: `cfg.Logger' ≠ Loc.null` → `zapLoggerOk cfg.Logger'` |
+| 13 | `backend.newBoltLoggerZap` | text: `⌜cfg.Logger' ≠ Loc.null⌝` → `zapLoggerOk cfg.Logger'` |
+| 14 | `mvcc.hashStorage.Store` | via `hashStorageOk`: `⌜lg ≠ null⌝` → `zapLoggerOk lg` |
+| 15 | `traceutil.Trace.LogWithStepThreshold` | via `ownTrace`: the conjunct `zapLoggerOrNil v.lg'` added |
+| 16 | `auth.authStore.AuthInfoFromTLS` | via `authInv`: `⌜lg ≠ null⌝` → `zapLoggerOk lg` (its missing context premise is a separate gap, `notes/audit.md`) |
+| 17 | `snap.Snapshotter.SaveDBFrom` | via `isSnapshotter`: `snapLgAddr ss ↦□ lg ∗ zapLoggerOk lg` added (decision D1: `bootOk`'s `isSnapshotter` asserts it) |
+| 18 | `membership.RaftCluster.Recover` | text: `(∃ lgc, membership.rcLgAddr c ↦□ lgc ∗ zapLoggerOk lgc)` added |
+| 19 | `backend.backend.Snapshot` | via `isBackend`: `lg ≠ Loc.null` → `zapLoggerOk lg` |
+| 20 | `Client.roundRobinQuorumBackoff` | via `isClientLogger`: `lg ≠ null` → `zapLoggerOk lg` |
+| 21 | `Client.streamClientInterceptor` | via `isClientLogger`, as #20 |
+| 22 | `EtcdServer.adjustTicks` | text: `isPkgInit etcdserver` → `... ∗ isServerReqM on s E ρ ∗ srvLoggerOk s` |
+| 23 | `EtcdServer.purgeFile` | text: `isPkgInit etcdserver` → `... ∗ isServerReadM on s E γr` (its `srvReadFieldsAtM` holds `zapLoggerOk` of `s.lg`) |
+| 24 | `EtcdServer.ensureLeadership` | via `srvReadFieldsAtM`: `⌜v.lg ≠ null⌝` → `zapLoggerOk v.lg` |
+| 25 | `EtcdServer.publishV3` | via `srvMonitorPermitM`, which gains `srvLoggerOk s` |
+| 26 | `EtcdServer.monitorClusterVersions` | via `srvMonitorPermitM`, as #25 |
+| 27 | `EtcdServer.monitorStorageVersion` | text: `srvLoggerOk s` added |
+
+New vocabulary: `zapLoggerOrNil` (`Spec/go_uber_org/zap/Defs.lean`), `srvLoggerOk s := ∃ lg, srvLgAddr s
+↦□ lg ∗ zapLoggerOk lg` (etcdserver), `snap.snapLgAddr`. Left out (decision D3): the `lgMu` reader slot
+that `s.Logger()` takes in #22, #23 and #25-27; it goes to a later bounds follow-up. Go evidence:
+`examples/premisefix/zaplogger` (zero loggers panic, the constructors' loggers are zap loggers, the
+family, the examples' loggers). The text below is the survey as written on 2026-11-07, before the repair;
+its summaries carry notes on the repair.
+
 ## The family (exploitable: the triple is false for a zero logger)
 
 "Indep." = a program reaches the axiom's call with a zero logger without first calling a zap
@@ -53,12 +104,15 @@ axiom (so the axiom is refuted on its own, not only through `zap.Logger.*`'s ref
 | 27 | `EtcdServer.monitorStorageVersion.wp_proof` | `Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__monitorStorageVersion.lean:48` | `server/etcdserver/server.go:2264` | `lg.Info` `server.go:2272` (on `stopping`, always); `Monitor.UpdateStorageVersionIfNeeded`'s logs | stored `s.lg`, by `NewServer` | none (`isServerReqM`, `srvSVRes`) | yes, at shutdown | no |
 
 27 axioms. 17 are refutable on their own (#1-15, #20, #21; the cleanest, unconditional ones: #3,
-#4, #8, #12, #14, #15, #20, then #2, #5, #11). Nine take no premise on the logger at all (#5, #6,
+#4, #8, #12, #14, #15, #20, then #2, #5, #11). **(Repaired, 2026-11-11: all 27; #9-11 by `dbe4904326`, the
+rest by premise fixes 6, part A; see "Repaired" above.)** Nine take no premise on the logger at all (#5, #6,
 #7, #10, #11, #15, #18, #22, #23), and #24-27 say nothing about its value. For #16-19 and #22-27 the
 only producer already logs through a zap axiom, so in Go they are reached only after a panic
 elsewhere; they are still in the family because their premises do not carry the property, so the
 repair must add it to them (or to the predicates they take) for the restatement to be stated, not
-only true by a meta-argument about who builds the object.
+only true by a meta-argument about who builds the object. **(Repaired: the predicates now carry it: `authInv` (#16),
+`isSnapshotter` (#17), #18's own premise, `isBackend` (#19), `srvLoggerOk`/`srvReadFieldsAtM`/
+`srvMonitorPermitM` (#22-27).)**
 
 ## Log through a logger, but not exploitable
 
@@ -95,6 +149,18 @@ Outside etcd's modules, nothing is in the family:
   question.
 
 ## Producers whose premise must carry the new predicate (`zapLogger lg`)
+
+**(Repaired, 2026-11-11.)** Every producer below now carries the predicate (it is `zapLoggerOk`,
+not the survey's working name `zapLogger`): `zap.NewNop`'s post gives `zapLoggerOk`; `NewLessor` takes
+`zapLoggerOrNil` (`dbe4904326`); `NewAuthStore` takes `zapLoggerOrNil` and its `authInv` holds
+`zapLoggerOk`; `openPre` and `newBoltLoggerZap` take `zapLoggerOk cfg.Logger'`; `NewServer` takes
+`zapLoggerOk cfg.Logger'` and the server's invariants hold `zapLoggerOk v.lg` in place of
+`⌜v.lg ≠ null⌝`; `newLogUnaryInterceptor`, `NewTokenProvider`, `NewHashStorage`, `Transport.Start`
+pass it on; `newTrace`/`EnsureTrace` take `zapLoggerOrNil`; `backend.New`/`newBackend` take
+`zapLoggerOrNil cfg.Logger'` (D2a), and the frozen mvcc API `New`/`NewStore` take `zapLoggerOrNil lg`
+(D2b); `clientCfgOk` and `isClientLogger` hold `zapLoggerOk`; `bootOk`'s `isSnapshotter` carries it (D1), and `RaftCluster.Recover`'s own premise does (#18); the examples' entry specs take `zapLoggerOk`. Raft's
+`isLogger lok` of `NewRaftLoggerZap(cfg.Logger)` inside `bootOk` is now true of Go, since
+`NewServer`'s pre makes `cfg.Logger` a zap logger.
 
 Axioms (premise today):
 - `lease.NewLessor` (`⌜lg ≠ null⌝`) -> `lessorCfg`/`lessorInv` must record it for #10, #11 (and the

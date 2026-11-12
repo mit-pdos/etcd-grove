@@ -39,12 +39,12 @@ theorem leasingKV.tryModifyOp.wp_proof
     (hEvict : leaseCache.Evict.spec (GF := GF) (hG := hG)) :
     leasingKV.tryModifyOp.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx ctx cs opv o top lo
-  wp_start as ⟨#Hlkv, #Hctx, #Hop, #Hlo, %Hpre⟩
+  wp_start as ⟨#Hlkv, #Hctx, #HctxC, #Hop, #Hlo, %Hpre⟩
   obtain ⟨Htop, Hot, Hsh⟩ := Hpre
   ihave #Hlkv' := Hlkv
   iunfold isLeasingKV at Hlkv'
   icases Hlkv' with ⟨%cl, %kv, %lctx, %lcs, %cancel, %osl, %Hpfx, #Hcl, #Hkvf, #Hpfxf, #Hctxf,
-    #Hcan, #Hosl, #HKV, #HDo, #HTxn, #HLC, #Hlctx, #Hlcc, #Hcache, #Hwg, #Hwginv, #Hpool, %Hbound⟩
+    #Hcan, #Hosl, #HKV, #HDo, #HTxn, #HLC, #Hlctx, #Hlcc, #HlctxC, #Hcache, #Hwg, #Hwginv, #Hpool, %Hbound⟩
   ihave #Hpeek := leasingX_peek (GF := GF) lkv γ
   ihave #Hwaitc := leasingX_waitc (GF := GF) lkv γ
   ihave #Hcv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
@@ -76,7 +76,7 @@ theorem leasingKV.tryModifyOp.wp_proof
   ipersist HslC
   (try wp_auto)
   iunfold isEtcdTxnKVO at HTxn
-  wp_apply HTxn $$ %ctx %cs [$Hctx] as %t ⟨%B, HB, #HBs⟩
+  wp_apply HTxn $$ %ctx %cs [$Hctx $HctxC] as %t ⟨%B, HB, #HBs⟩
   iunfold txnBuilderSpecO at HBs
   icases HBs with ⟨#HIf, #HThen, #HElse, #HCommit⟩
   wp_apply_raw HIf $$ %TxnBuild.empty %_ %([compareM (cmpKeyM .create (pfx ++ o.key)) .lt (.num (rv + W64 1))] : List CmpModel) [$HB]

@@ -1,4 +1,4 @@
-# k8s 7e-3b handoff (2026-11-08, branch `k8s-7e`, third agent)
+# k8s 7e-3b handoff (2026-11-08, branch `k8s-7e`, fourth agent: 7e-3b complete)
 
 State for the next agent; read `notes/k8s-7e-3b-plan.md` first. Scratch: `/shared/tmp/k8s-7e-3b/`
 (`gen.py` writes a spec/proof skeleton pair in the driver's layout; `b*.py` are the batches used).
@@ -47,7 +47,47 @@ State for the next agent; read `notes/k8s-7e-3b-plan.md` first. Scratch: `/share
   g0.hist.length + 1)`; `stRepB`'s configurations own their history read-only (`cfgOwn`).
 - `ioOk` unchanged (option (B): outputs stay plain values; no points-to in the I/O fact).
 
-## Next, in order
+## Done by the fourth agent (2026-11-08): 7e-3b complete, no `sorry` in its files
+
+- **`mlist` proved** (`769997e1b8`, `6365ede8d8`): `wp_join` on the past-read `if` (the store read
+  `storeOwn s (listStL x g.st req)`), the range loop with invariant "the state is `listLoopL x
+  (take j items)`" (`KList`: `scopeL_take_succ`, `listLoopL_take_succ`, `listLoopL_le`), the
+  `Matches`/`PrepareKey`/`PrepareContinueToken` hypotheses, `encodeItems` on the persisted items
+  slice. Its spec now has **no premise** (`cfgOwn c g` only): the loop's `int64` counters stay
+  below the store slice's length. (A kernel error came from `generalize` with abstracted proofs:
+  use `obtain ⟨S, hS⟩ : ∃ S, e = S := ⟨_, rfl⟩; rw [hS]` instead.)
+- **`step`** (`6365ede8d8`): a list answers `mlist` (and returns `[c]`); any other call `mstep` then
+  `advance(c, st, c.pend)`. Premise gains `g.st.hist.length + 1 < 2^64` (advance's); callees gain
+  `mlist`, `advance`.
+- **`closure`** (`6365ede8d8`): the inner loop's `advance(c, st, removeAt(c.pend, i))`; a pending
+  input is a write (`Bounded`), so `succAt` is `kstepL_write`'s. Callee gains `advance`; spec's
+  `st0 : HSt`.
+- **`Model`** (`Model(st0, h0)`): spec takes `storeOwn s0 g0.st ∗ hsl ↦*□ hs ∗ [∗list] storeOwn
+  hs g0.hist` and `g0.st.items.length + g0.hist.length < 2^60` (`g0 : HSt`); `Init` calls
+  `histOf(h0)` (read-only `h0`: Init runs on every call). Callee gains `histOf`. `addConfig`
+  builds unchanged.
+- `inputEqual`, `storeEqual` (`8f8dddce2b`): their `_eq_iff` lemmas on the new records (Input 32
+  fields, Obj 8 with `Annotated`).
+- Optional: `fieldSel.{Empty,RequiresExactMatch}`, `labelSel.{Empty,RequiresExactMatch}` specs and
+  proofs (`d9e48963d1`).
+- Verified: targeted `lake build` of every function proof module of the driver (64G cap): only
+  `Refine` (7e-4) and `workloadKeys` fail (below), plus the now-fixed `inputEqual`/`storeEqual`.
+
+## Left (not 7e-3b's, or optional)
+
+- `workloadKeys`: the workload keys are now `ns-1/pod-1`, ... (7e-0); `wksD` and `genFrom`'s
+  proof (which uses `wksD`, `% 3`) go with the generator's redo (`genList`/`genFrom`, the Scope
+  counts them with the new functions; 7e-4 if not done before).
+- `fieldSel.Matches`/`labelSel.Matches` and `getAttrs`: `fields.Set`/`labels.Set` are names-only
+  in the translation (`Code/k8s_io/apimachinery/pkg/{fields,labels}.toml`), so `Get`/`Has` need
+  specs at the trust boundary (hypotheses or axioms): with the `Matches` hypothesis, for 7e-2's
+  Draft. The `transform`/`String`/`Requirements`/`DeepCopySelector`/`Add` methods are not called
+  by `SelectionPredicate.Matches`.
+- 7e-4: `Link.lean` (the new callee hypotheses of `step`, `closure`, `Model`, `mlist`), `Refine`,
+  `Inv*`, `Seed`, `Apply`, `Check`, ...; Model's callers must give `h0 ↦*□`.
+
+## Next (the third agent's list, for the record)
+
 
 1. `mlist`'s proof: `parseRV`, the too-large test, `pastRead`/`histAt` (from `cfgOwn`'s history),
    `predicate` (store into a local: `Matches` takes `pp ↦ predV x`), the range loop over

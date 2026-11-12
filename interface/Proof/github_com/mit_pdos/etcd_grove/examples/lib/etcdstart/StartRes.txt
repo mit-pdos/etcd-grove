@@ -28,6 +28,9 @@ structure etcdstart.MemberAddrs : Type where
   peer : Option GoString
   client : Option GoString
 
+theorem etcdstart.memberFreshRes_verify (n : GoString) (a : etcdstart.MemberAddrs) (γn : NetNames
+    GF) : etcdstart.memberFreshRes n a γn ⊢ envVerifyOff ∗ etcdstart.memberFreshRes n a γn
+
 theorem etcdstart.memberFreshRes_peer (n : GoString) (a : etcdstart.MemberAddrs) (γn : NetNames GF)
     (p : GoString) (h : a.peer = some p) : etcdstart.memberFreshRes n a γn ⊢ (netAddrFree p ∗
     http.httpProtoOwn p (raftProto (netRh γn))) ∗ etcdstart.memberFreshRes n { client := a.client }
@@ -40,9 +43,9 @@ theorem etcdstart.memberRestartRes_peer (n : GoString) (a : etcdstart.MemberAddr
 
 theorem etcdstart.memberStartRes_intro.{u_1} (ms : List (GoString × etcdstart.MemberAddrs)) (Bs As
     Ds : List GoString) (hA : (List.flatMap (fun m => m.snd.addrs) ms ++ Bs).Perm As) (hD :
-    (List.map (fun m => etcdstart.memberDataDir m.fst) ms).Perm Ds) : (([∗list] a ∈ As, netAddrFree
-    a) ∗ ([∗list] a ∈ As, httpProtoFree a) ∗ [∗list] d ∈ Ds, dataDirFresh d) ⊢ ([∗list] m ∈ ms,
-    etcdstart.memberStartRes m.fst m.snd) ∗ [∗list] b ∈ Bs, netAddrFree b
+    (List.map (fun m => etcdstart.memberDataDir m.fst) ms).Perm Ds) : ([∗list] a ∈ As, netAddrFree
+    a) ∗ ([∗list] a ∈ As, httpProtoFree a) ∗ ([∗list] d ∈ Ds, dataDirFresh d) ∗ envVerifyOff ⊢
+    ([∗list] m ∈ ms, etcdstart.memberStartRes m.fst m.snd) ∗ [∗list] b ∈ Bs, netAddrFree b
 
 def etcdstart.MemberAddrs.addrs (a : etcdstart.MemberAddrs) : List GoString :=
   a.peer.toList ++ a.client.toList

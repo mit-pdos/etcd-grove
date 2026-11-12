@@ -25,7 +25,7 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.traceutil.Assumptions]
 
 theorem traceutil.newTrace.wp_proof : traceutil.newTrace.spec (GF := GF) (hG := hG) := by
   intro op lg fields
-  wp_start as Hf
+  wp_start as ⟨Hf, #Hlz⟩
   wp_auto
   wp_apply time.wp_Now as %now -
   (try wp_auto)
@@ -46,7 +46,9 @@ theorem traceutil.newTrace.wp_proof : traceutil.newTrace.spec (GF := GF) (hG := 
   isplitl []
   · iapply BigSepL.bigSepL_nil.2
     iempintro
-  ipureintro; rfl
+  isplitr
+  · ipureintro; rfl
+  iexact Hlz
 
 end proof
 

@@ -242,7 +242,7 @@ def srvDoneOk (srv : GoInterface) : IProp GF :=
   sent on, with no content (`bcastChan`; `Stopping()`'s buffered, `stopChan`: 2026-10-13, unit 4c);
   the last two with the caller's resource `LR` (given back: they read-lock a notifier; 2026-10-13,
   unit 4b);
-* `Logger()`: a non-nil `*zap.Logger`, for the caller's resource `LR` (the server's `lgMu` reader
+* `Logger()`: a zap logger (`zapLoggerOk`; premise fixes 6), for the caller's resource `LR` (the server's `lgMu` reader
   slot: `EtcdServer.Logger` read-locks it; and the two notifiers' reader slots), given back;
 * `AppliedIndex()`: an index the applied index has reached (`appliedAtLeast`);
 * `ApplyWait(d)`: a channel closed once the applied index has reached `d`: its close tells some `Q`
@@ -259,7 +259,7 @@ def isReadServer (srv : GoInterface) (γr : ReadNames) (LR NR : IProp GF) : IPro
     srvStopOk si go!"Stopping" ∗ srvChanOkR si go!"LeaderChanged" LR ∗
     srvChanOkR si go!"FirstCommitInTermNotify" LR ∗
     □ ({{ LR }} (App (Val #(methods si.ty go!"Logger" si.v)) (Val #()))
-      {{ (l : Loc), RET #l; ⌜l ≠ null⌝ ∗ LR }}) ∗
+      {{ (l : Loc), RET #l; zapLoggerOk l ∗ LR }}) ∗
     □ ({{ True }} (App (Val #(methods si.ty go!"AppliedIndex" si.v)) (Val #()))
       {{ (i : w64), RET #i; appliedAtLeast γr i }}) ∗
     □ (∀ d : w64, {{ True }} (App (Val #(methods si.ty go!"ApplyWait" si.v)) (Val #d))

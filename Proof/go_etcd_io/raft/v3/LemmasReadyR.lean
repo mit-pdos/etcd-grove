@@ -343,6 +343,35 @@ theorem self_pending (γ : RaftNames) (id t : w64) (s : NState) (o : List Msg)
     · simp only [selfmsgs, List.filter_cons, h, Bool.false_eq_true, ↓reduceIte]
       iapply ih Hsub' Hok' $$ Ho Hqc Hxw H
 
+omit [StorageModel GF] package_sem in
+/-- (raft-entsize §2) The `snapUf`s of the `msgsAfterAppend` messages to others. -/
+theorem snapUfs_nonself (id : w64) (ms : List QMsg) :
+    ([∗list] q ∈ ms, snapUf (GF := GF) q.loc q.st) ⊢ [∗list] q ∈ nonself id ms, snapUf q.loc q.st := by
+  induction ms with
+  | nil => simp only [nonself, List.filter_nil]; exact .rfl
+  | cons q ms ih =>
+    iintro H
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨#Hq, H⟩
+    by_cases h : isSelfQ id q = true
+    · have : nonself id (q :: ms) = nonself id ms := by simp [nonself, h]
+      rw [this]; iapply ih $$ H
+    · have : nonself id (q :: ms) = q :: nonself id ms := by simp [nonself, h]
+      rw [this]
+      iapply BigSepL.bigSepL_cons.2
+      iframe Hq
+      iapply ih $$ H
+
+omit [StorageModel GF] package_sem in
+/-- (raft-entsize §2) The `snapUf`s of the messages a `Ready` hands out (`ms1` and the
+`msgsAfterAppend` messages to others), from the queues'. -/
+theorem snapUfs_ready (id : w64) (ms1 ms2 : List QMsg) :
+    ([∗list] q ∈ ms1, snapUf (GF := GF) q.loc q.st) ∗ ([∗list] q ∈ ms2, snapUf q.loc q.st) ⊢
+      [∗list] q ∈ ms1 ++ nonself id ms2, snapUf q.loc q.st := by
+  iintro ⟨H1, H2⟩
+  iapply BigSepL.bigSepL_append.2
+  iframe H1
+  iapply snapUfs_nonself id ms2 $$ H2
+
 end sep
 
 end EtcdGrove

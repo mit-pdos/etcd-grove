@@ -300,8 +300,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of ErrEmptyWatcherRange))
   -- translated initializer of ErrWatcherDuplicateID))
   -- translated initializer of watchBatchMaxRevs))
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xWNE ⟨-, #MWNE⟩
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xEWR ⟨-, #MEWR⟩
+  wp_apply EtcdGrove.wp_New_errorString_cell as %xWNE ⟨#MWNE, #CWNE⟩
+  wp_apply EtcdGrove.wp_New_errorString_cell as %xEWR ⟨#MEWR, #CEWR⟩
   wp_apply _root_.Perennial.context.wp_New_errorString as %xWDI ⟨-, #MWDI⟩
   wp_apply (initFuncsOk init.«0» (by mem_tac))
   ipersist HErrRevisionNotFound
@@ -339,6 +339,10 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   · unfold EtcdGrove.errVarCell; iexists _; iframe HErrCompacted CCP
   ihave #VFR : (EtcdGrove.errVarCell ErrFutureRev go!"mvcc: required revision is a future revision" : IProp GF) $$ []
   · unfold EtcdGrove.errVarCell; iexists _; iframe HErrFutureRev CFR
+  ihave #VEWR : (EtcdGrove.errVarCell ErrEmptyWatcherRange go!"mvcc: watcher range is empty" : IProp GF) $$ []
+  · unfold EtcdGrove.errVarCell; iexists _; iframe HErrEmptyWatcherRange CEWR
+  ihave #VWNE : (EtcdGrove.errVarCell ErrWatcherNotExist go!"mvcc: watcher does not exist" : IProp GF) $$ []
+  · unfold EtcdGrove.errVarCell; iexists _; iframe HErrWatcherNotExist CWNE
   -- (R2) the metrics reporters' locks, each over its reporter (any closure)
   imod (sync.init_RWMutex (go_etcd_io.etcd.server.v3.storage.mvcc.reportP reportDbTotalSizeInBytes) (globalAddr reportDbTotalSizeInBytesMu) (E := ⊤)) $$ [HreportDbTotalSizeInBytes] HreportDbTotalSizeInBytesMu with HRP0
   · inext

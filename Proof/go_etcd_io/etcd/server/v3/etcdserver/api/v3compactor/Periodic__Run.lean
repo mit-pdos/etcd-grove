@@ -52,7 +52,7 @@ local macro "per_ok" : tactic => `(tactic| (
   try iintro %_ ⟨_, -⟩
   try wp_auto
   wp_apply hLogger_Info $$ []
-  · ipureintro; exact Hlgnn
+  · iexact Hlgnn
   (try wp_auto)
   wp_apply +noauto HNow as %t4 -
   (try wp_auto)
@@ -77,7 +77,7 @@ local macro "per_fail" : tactic => `(tactic| (
   try iintro %_ ⟨_, -⟩
   try wp_auto
   wp_apply hLogger_Warn $$ []
-  · ipureintro; exact Hlgnn
+  · iexact Hlgnn
   (try wp_auto)
   wp_for_post
   iframe
@@ -101,8 +101,8 @@ theorem v3compactor.Periodic.Run.wp_proof
   intro pc E period γf
   wp_start as ⟨#Hpc, Htok, Hpre⟩
   iunfold isPeriodic at Hpc
-  icases Hpc with ⟨%lg, %clk, %pd, %ctx, %cd, %γctx, %cancel, #Hlg, %Hlgnn, #Hclkf, #Hclk, #Hpdf,
-    %Hpd, #Hrg, #Hc, #Hctxf, #Hctx, #Htrc, #Hcancelf, #Hcs, #Hguard⟩
+  icases Hpc with ⟨%lg, %clk, %pd, %ctx, %cd, %γctx, %cancel, #Hlg, #Hlgnn, #Hclkf, #Hclk, #Hpdf,
+    %Hpd, #Hrg, #Hc, #Hctxf, #Hctx, #Htrc, #Hspc, #Hclib, #Hcancelf, #Hcs, #Hguard⟩
   obtain ⟨Hpd, H10⟩ := Hpd
   -- (one `word` in this declaration: several shared a cached proof the kernel rejected,
   -- `notes/perennial-changes.md`, "`word`'s caches")
@@ -129,8 +129,10 @@ theorem v3compactor.Periodic.Run.wp_proof
   ihave #HRev' := HRev
   iunfold revGetterOk at HRev'
   icases HRev' with ⟨%ri0, %Hri0, #HRevT⟩
-  wp_apply wp_fork $$ [HR Hrevs Hs0 Hcap0 Hslot Hfirst]
-  · -- the goroutine
+  wp_apply wp_fork_tok_body $$ [HR Hrevs Hs0 Hcap0 Hslot Hfirst]
+  · -- the goroutine, with the thread token its `go` statement gives (R8: lent to `Rev` and
+    -- `Compact`)
+    iintro Htok
     wp_auto
     wp_apply +noauto HNow as %t0 -
     (try wp_auto)
@@ -163,7 +165,7 @@ theorem v3compactor.Periodic.Run.wp_proof
     -- `pc.revs = append(pc.revs, pc.rg.Rev())`
     rw [Hri0]
     ihave #HRevm := HRevT $$ %m
-    wp_apply +noauto HRevm $$ [HR] as %v ⟨HR, #Hv, %Hvb⟩
+    wp_apply +noauto HRevm $$ [HR Htok] as %v ⟨HR, Htok, #Hv, %Hvb⟩
     · iframe; iframe #
     (try wp_auto)
     wp_apply wp_slice_literal (V := w64)
@@ -243,7 +245,7 @@ theorem v3compactor.Periodic.Run.wp_proof
       iintro -
       (try wp_auto)
       wp_for_post
-      itrivial
+      iframe Htok
     iapply BigAndL.bigAndL_cons.2
     isplit
     · -- `<-pc.clock.After(retryInterval)`: the clock is `retry` past the new sample's stamp
@@ -357,7 +359,7 @@ theorem v3compactor.Periodic.Run.wp_proof
         try iintro %_ ⟨_, -⟩
         try wp_auto
         wp_apply hLogger_Info $$ []
-        · ipureintro; exact Hlgnn
+        · iexact Hlgnn
         (try wp_auto)
         wp_apply +noauto HNow as %t2 -
         (try wp_auto)
@@ -371,8 +373,8 @@ theorem v3compactor.Periodic.Run.wp_proof
         rw [Hcci]
         (try wp_auto)
         ihave #HC1 := HCT $$ %(sint.Z y0) %ctx %cd %«$a1_ptr»
-        wp_apply +noauto HC1 $$ [HR «$a1»] as %resp %err ⟨HR, #Herr⟩
-        · iframe HR #
+        wp_apply +noauto HC1 $$ [HR Htok «$a1»] as %resp %err ⟨HR, Htok, #Herr⟩
+        · iframe HR Htok #
           iapply compactReqIs_of _ _ _ ⟨rfl, rfl⟩ $$ «$a1»
         (try wp_auto)
         -- `err == nil || errors.Is(err, mvcc.ErrCompacted)`: `ErrCompacted` is an `errors.New` error

@@ -1173,13 +1173,29 @@ def raftLogInv (γ : RaftNames) : IProp GF := inv (raftLogN γ) (raftLogInvBody 
 /-- The registry half of the commit invariant. -/
 def raftRegInv (γ : RaftNames) : IProp GF := inv (raftRegN γ) (regsOwn γ)
 
-/-- The commit invariant (see the section header). -/
-def raftCommitInv (γ : RaftNames) : IProp GF := iprop(raftLogInv γ ∗ raftRegInv γ)
+/-- The handed-out objects' namespace (raft-entsize §2). -/
+abbrev raftOutN (γ : RaftNames) : Namespace := raftN γ .@ "out"
+
+/-- **The handed-out objects' set** (raft-entsize §2, 2026-11-09): the authority of the monotone set
+`RaftNames.out` of encoded (object, content) pairs, each element kept persistent, so that an element
+already in the set is had again (`raftOutInv_insert`, raft's `OutSet.lean`). -/
+def raftOutBody (γ : RaftNames) : IProp GF :=
+  iprop(∃ S : GMap Pos Unit, ghostMapAuth γ.out 1 S ∗
+    [∗map] p ↦ _u ∈ S, ghostMapElem γ.out p DFrac.discard ())
+
+/-- The handed-out objects' invariant. -/
+def raftOutInv (γ : RaftNames) : IProp GF := inv (raftOutN γ) (raftOutBody γ)
+
+/-- The commit invariant (see the section header); (raft-entsize §2, 2026-11-09) with the
+handed-out objects' set (`raftOutInv`). -/
+def raftCommitInv (γ : RaftNames) : IProp GF := iprop(raftLogInv γ ∗ raftRegInv γ ∗ raftOutInv γ)
 
 instance raftLogInv_persistent (γ : RaftNames) : Persistent (raftLogInv (GF := GF) γ) := by
   unfold raftLogInv; infer_instance
 instance raftRegInv_persistent (γ : RaftNames) : Persistent (raftRegInv (GF := GF) γ) := by
   unfold raftRegInv; infer_instance
+instance raftOutInv_persistent (γ : RaftNames) : Persistent (raftOutInv (GF := GF) γ) := by
+  unfold raftOutInv; infer_instance
 instance raftCommitInv_persistent (γ : RaftNames) :
     Persistent (raftCommitInv (GF := GF) γ) := by
   unfold raftCommitInv; infer_instance
@@ -1188,7 +1204,10 @@ theorem raftCommitInv_log (γ : RaftNames) : raftCommitInv (GF := GF) γ ⊢ raf
   unfold raftCommitInv; iintro ⟨#H, -⟩; iexact H
 
 theorem raftCommitInv_reg (γ : RaftNames) : raftCommitInv (GF := GF) γ ⊢ raftRegInv γ := by
-  unfold raftCommitInv; iintro ⟨-, #H⟩; iexact H
+  unfold raftCommitInv; iintro ⟨-, #H, -⟩; iexact H
+
+theorem raftCommitInv_out (γ : RaftNames) : raftCommitInv (GF := GF) γ ⊢ raftOutInv γ := by
+  unfold raftCommitInv; iintro ⟨-, -, #H⟩; iexact H
 
 /-- A node's committed prefix: the first `commit` entries of its full log `fp ++ log` (the
 entries at indices `1 .. commit`). -/

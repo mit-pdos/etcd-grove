@@ -313,7 +313,17 @@ traffic grows):
 - **7f. Watches.** The etcd3 watcher (`watcher.go`; G1's alias fix in Goose first, a small
   Perennial change, `notes/perennial-changes.md`), over the etcd client's `Watch` (the watch
   specs of `watchkv`/G2), the test's watcher behaviours (slow, hiccup, stalled consumers), and the
-  watch validator. The largest stage; last.
+  watch validator. The largest stage; last. (2026-11-08, `notes/k8s-7f-scope.md`, to 81 for
+  review: G1's fix has landed, so only the two `etcd3.toml` exclusions go; watches become lintest
+  operations checked against 7e's per-configuration history; the store's watches need
+  `WithPrevKV` and `WithRequireLeader` through etcd's watch stack, the second making the premise
+  `runsNoRequireLeader` false; the watcher can deliver events after a `watch.Error`,
+  `nonissues/k8s-etcd3-watcher-events-after-error.md`; 10-16k Lean lines in 8 sub-stages.
+  Revision 2, 2026-11-08, after the review and the user's decisions: departures 1-4 accepted with
+  bookmarks bounded and foreign-object events rejected; `runsNoRequireLeader` deleted with no fork
+  change, through a weak handler context and a changed grpc stream-interceptor contract, Watch and
+  LeaseKeepAlive re-proved; 13-21k Lean lines. Approved by 81, 2026-11-08; 7f-1, `lintest.RunLin2`,
+  built on `k8s-7f`.)
 - **7g. The maintainers' checker.** Translate `correctness` itself (`Model`, `Replay`,
   `WatchValidator`) in place of the Go copy (D30m, "Open" below), with D30g's fix as a patch
   until upstream takes it; `reflect.DeepEqual` and the list/meta accessors at the trust boundary.
@@ -1471,6 +1481,39 @@ here:
 - it rests on false axioms until sweep repairs 1 land: `zap.Logger.{Debug,Error,Fatal,Info,Warn}`,
   `errors.IsCtxErr`, `context.ValueStartTime`, `http.Handle_ok`, and the k8s
   `DefaultFeatureGate`/`DefaultFeatureSupportChecker` initializers.
+
+### Soundness finding in the trust base: `perRPCCredsOk` admitted erring credentials (7e-1 checkpoint (ii), 2026-11-10; fix decided by etcd-grove-81)
+
+On lean, `perRPCCredsOk pc Q` (`Proof/google_golang_org/grpc/InvGrpc.lean`) let `GetRequestMetadata`
+return any error whose description is not a handler's, and `dialOptsAt` admits `.perRPCCreds pc` for any
+such `pc`. grpc-go v1.84 returns a credentials error that already carries a status (a `GRPCStatus()`
+method, or a status wrapped with `%w`) unchanged as the attempt's (`internal/transport/http2_client.go:
+697-702`), so the error is the caller's type or a `*fmt.wrapError`: not a leaf (`Unwrap`), contrary to
+`clientErr`'s `errors.isLeafError`, which `grpcInvokerOk` and `cliStreamErr` assert. A Go program against
+grpc v1.84.0 confirms both (`/shared/tmp/k8s7e1/attack-invoker/main_test.go`). So lean's
+`grpcInvokerOk`/`cliStreamErr` overclaim under an admissible credential. etcd is not affected: its
+`perRPCCredential.GetRequestMetadata` always returns `nil` (proved,
+`perRPCCredential__GetRequestMetadata`), so no Go user of etcd's client hits it (no `nonissues/` entry).
+**Fix (k8s-7e):** `perRPCCredsOk`'s error clause is `err = nil`; etcd's bundle's proof discharges it;
+`TestCredentialNilError` (gates step 9c). The same review found a third grpc path to a non-leaf error,
+a service-config retry policy exhausting its attempts (`stream.go:867`); nothing in the trusted text
+excluded it, so `grpcResolverAt`'s meaning now includes "its service config sets no retry policy"
+(etcd's resolver: `round_robin` only; no `GrpcDialOpt` sets a default service config).
+
+### Bug in our own specs: `HGetAt`/`HList`'s error clause unprovable (7e-1, 2026-11-10; recorded as etcd-grove-81 decided)
+
+The hypotheses `Client.GetAt.spec` and `Client.List.spec` (7e-2, premises of `store.getList`'s proof, and on
+branch `k8s-7e` pending hypotheses `HGetAt`/`HList` of the closed `k8s_etcd3_safe`, `_cluster_safe`,
+`_partition_safe` and their `_adequate` versions) stated their error clause `rangeErrSound o Q err` as
+`□ (errDesc err = futureRevDesc -∗ ∃ σ, □ Q (W64 σ.rev) σ ∗ σ.rev < o)`: the read update fired with its
+revision argument equal to `σ.rev`. No client proof of this design gives it: the client makes its update once,
+at the prophesied response revision `R`, and on the error path the prophecy is never resolved (an error has
+no header), so the update fired at `σ` gives `□ Q R σ` for an `R` unrelated to `σ.rev`. The closed theorems on
+`k8s-7e` were therefore possibly vacuous through `HGetAt`/`HList`; never on `lean` (the hypotheses never
+reached it). Fix R1 (`notes/k8s-7e-1-draft.md` §1, approved by etcd-grove-81 under the user's delegation):
+`rangeErrSound` quantifies `R`, `readErrIs`'s future clause follows, and the driver's `readQ`/`listQ` commit
+`ETooLarge` at `σ.rev < n` whatever `R` (answered reads stay at `σ.rev = R`), as Go's `ErrFutureRev` says only
+that the served revision was below `o` at the linearization point.
 
 ## What blocks where
 

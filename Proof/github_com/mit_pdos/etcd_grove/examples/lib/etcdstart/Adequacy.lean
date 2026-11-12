@@ -7,9 +7,10 @@ panic, the main thread's result in a set": Perennial's adequacy theorem (`goose_
 `goose_adequacy_start`, `Proof/runtime/Start.lean`, which also hands the WP proof program start's
 rights) at the receipt bound `n + 1` and a thread bound at least `n + 2` of an execution of `n`
 steps from one thread (`realThreadsBelow_of_one`): `n + 2` for `init_adequate`, `max (n + 2)
-srvRevokeK` for the etcd lemmas (revoke-open, 2026-11-06: the server's revocation uses
-`srvRevokeK` levels of a thread token, `srvRevokeLevels`); the package state empty (`IsInit`), from which the
-right to initialize (`ownInitializing`); the package's initializer, then the program's body; and
+srvLevelK` for the etcd lemmas (revoke-open, 2026-11-06: the server's revocation uses
+`srvRevokeK` levels of a thread token, `srvRevokeLevels`; per-type stage B2, 2026-11-11, r5 §3.3:
+written with `srvLevelK`, the levels a serving member uses, defined as `srvRevokeK`); the package
+state empty (`IsInit`), from which the right to initialize (`ownInitializing`); the package's initializer, then the program's body; and
 `UnrecoveredPanic`'s exclusion of a final `PanicV` turned into `isPanic = false`.
 
 * `adequate_of_unrecovered`: the last step, pure.
@@ -142,32 +143,34 @@ first** (2026-11-05, Q1 (c) of `notes/k8s-compactor-plan.md`): as `etcd_adequate
 program whose proof needs ghost state allocated before its initializer's triple is chosen (a ghost
 name an instance of the proof carries, as the compactor registry's, `k8s.CompactorRegistry`):
 `T x` is allocated (at some `x`), then given to the body with `B`, and the program's proof may
-depend on `x`. (revoke-open, 2026-11-06) At the thread bound `max (n + 2) srvRevokeK`, as
+depend on `x`. (revoke-open, 2026-11-06) At the thread bound `max (n + 2) srvLevelK`, as
 `etcd_adequate`. -/
 theorem etcd_adequate_alloc [hPre : GooseGpreS GF] [lctx : GoLocalContext]
     (init : val) (body : Expr) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
-    (As : List GoString) (hAs : As.Nodup) (Ds : List GoString) (hDs : Ds.Nodup)
+    (As : List GoString) (hAs : As.Nodup) (hAsLit : ∀ a ∈ As, netAddrLit a = true)
+    (Ds : List GoString) (hDs : Ds.Nodup)
     (σ : state) (g : GlobalState) (Hinitg : extsInitgP g.globalWorld)
     (Hinitw : extsInitP σ.world g.globalWorld)
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
     (HNs : prometheus.namesUnclaimed (init #() ;; body)
       [read.slowReadIndexName, read.readIndexFailedName])
     (HAs : addrsUnclaimed (init #() ;; body) As) (HDs : dataDirsAbsent (init #() ;; body) Ds)
+    (HEnv : verifyEnvOff (init #() ;; body))
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([init #() ;; body], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hprog : ∀ hG : HeapGS .hasLC GF, receiptBound GF = n + 1 →
-      threadBound GF = max (n + 2) srvRevokeK →
+      threadBound GF = max (n + 2) srvLevelK →
       ∃ (X : Type) (T : X → IProp GF),
         (⊢ (|==> ∃ x, T x : IProp GF)) ∧
         ∀ x, progOk (hG := heapWith hG lctx) (read.readRegPerm (GF := GF))
           iprop((([∗list] a ∈ As, netAddrFree a) ∗ ([∗list] a ∈ As, httpProtoFree a) ∗
-            ([∗list] d ∈ Ds, dataDirFresh d)) ∗ T x) init body φ) :
+            ([∗list] d ∈ Ds, dataDirFresh d) ∗ envVerifyOff) ∗ T x) init body φ) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ v, Val v ∈ t2 → v.isPanic = false) := by
   apply adequate_of_unrecovered
-  refine goose_adequacy_start (GF := GF) (n + 1) (max (n + 2) srvRevokeK) _ σ g φ hφ Hinitg
+  refine goose_adequacy_start (GF := GF) (n + 1) (max (n + 2) srvLevelK) _ σ g φ hφ Hinitg
     Hinitw
-    [read.slowReadIndexName, read.readIndexFailedName] As Ds (by decide) hAs hDs HNs HAs HDs ?_
+    [read.slowReadIndexName, read.readIndexFailedName] As Ds (by decide) hAs hDs hAsLit HNs HAs HDs HEnv ?_
     n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads
     (realThreadsBelow_mono (Nat.le_max_left _ _) (realThreadsBelow_of_one Hthreads))
   intro hG HN HT HL
@@ -180,44 +183,47 @@ theorem etcd_adequate_alloc [hPre : GooseGpreS GF] [lctx : GoLocalContext]
   rw [Hinit]
   iintro - - Hgs Htok Hrights
   iunfold startRights at Hrights
-  icases Hrights with ⟨Hns, Has, Hps, Hds⟩
+  icases Hrights with ⟨Hns, Has, Hps, Hds, #Hvoff⟩
   imod Halloc with ⟨%x, HTx⟩
   iapply (wp_of_progOk _ _ init body φ (Hp x)) $$ Hgs Htok [Hns] [Has Hps Hds HTx]
   · iunfold read.readRegPerm
     icases BigSepL.bigSepL_cons.1 $$ Hns with ⟨Hn1, Hr⟩
     icases BigSepL.bigSepL_cons.1 $$ Hr with ⟨Hn2, -⟩
     iframe
-  · iframe
+  · iframe; iexact Hvoff
 
 /-- **An etcd example's closed theorem over `goose_adequacy_start`** (see the file header): as
 `init_adequate`, for a program whose initializer takes the read package's two metric names and
 whose body the addresses `As`, each with its HTTP protocol unregistered (`httpProtoFree`, 2026-10-24,
 rafthttp stage 6a, D39a), and (2026-11-03, the WAL's API) the members' data directories `Ds` fresh
-(`dataDirFresh`). (revoke-open, 2026-11-06) At the thread bound `max (n + 2) srvRevokeK` (until then
+(`dataDirFresh`). (revoke-open, 2026-11-06) At the thread bound `max (n + 2) srvLevelK` (until then
 `n + 2`): the revocation's goroutines use `srvRevokeK` levels of a thread token
-(`srvRevokeLevels`). -/
+(`srvRevokeLevels`), and (per-type stage B2, r5 §3.3) a serving member's gRPC runs `srvLevelK`
+(`srvLevels`; the same number, `srvLevelK := srvRevokeK`). -/
 theorem etcd_adequate [hPre : GooseGpreS GF] [lctx : GoLocalContext]
     (init : val) (body : Expr) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
-    (As : List GoString) (hAs : As.Nodup) (Ds : List GoString) (hDs : Ds.Nodup)
+    (As : List GoString) (hAs : As.Nodup) (hAsLit : ∀ a ∈ As, netAddrLit a = true)
+    (Ds : List GoString) (hDs : Ds.Nodup)
     (σ : state) (g : GlobalState) (Hinitg : extsInitgP g.globalWorld)
     (Hinitw : extsInitP σ.world g.globalWorld)
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
     (HNs : prometheus.namesUnclaimed (init #() ;; body)
       [read.slowReadIndexName, read.readIndexFailedName])
     (HAs : addrsUnclaimed (init #() ;; body) As) (HDs : dataDirsAbsent (init #() ;; body) Ds)
+    (HEnv : verifyEnvOff (init #() ;; body))
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([init #() ;; body], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hprog : ∀ hG : HeapGS .hasLC GF, receiptBound GF = n + 1 →
-      threadBound GF = max (n + 2) srvRevokeK →
+      threadBound GF = max (n + 2) srvLevelK →
       progOk (hG := heapWith hG lctx) (read.readRegPerm (GF := GF))
         iprop(([∗list] a ∈ As, netAddrFree a) ∗ ([∗list] a ∈ As, httpProtoFree a) ∗
-          ([∗list] d ∈ Ds, dataDirFresh d)) init body φ) :
+          ([∗list] d ∈ Ds, dataDirFresh d) ∗ envVerifyOff) init body φ) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ v, Val v ∈ t2 → v.isPanic = false) := by
   apply adequate_of_unrecovered
-  refine goose_adequacy_start (GF := GF) (n + 1) (max (n + 2) srvRevokeK) _ σ g φ hφ Hinitg
+  refine goose_adequacy_start (GF := GF) (n + 1) (max (n + 2) srvLevelK) _ σ g φ hφ Hinitg
     Hinitw
-    [read.slowReadIndexName, read.readIndexFailedName] As Ds (by decide) hAs hDs HNs HAs HDs ?_
+    [read.slowReadIndexName, read.readIndexFailedName] As Ds (by decide) hAs hDs hAsLit HNs HAs HDs HEnv ?_
     n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads
     (realThreadsBelow_mono (Nat.le_max_left _ _) (realThreadsBelow_of_one Hthreads))
   intro hG HN HT HL
@@ -230,12 +236,13 @@ theorem etcd_adequate [hPre : GooseGpreS GF] [lctx : GoLocalContext]
   rw [Hinit]
   iintro - - Hgs Htok Hrights
   iunfold startRights at Hrights
-  icases Hrights with ⟨Hns, Has, Hps, Hds⟩
-  iapply (wp_of_progOk _ _ init body φ Hp) $$ Hgs Htok [Hns] [$Has $Hps $Hds]
-  iunfold read.readRegPerm
-  icases BigSepL.bigSepL_cons.1 $$ Hns with ⟨Hn1, Hr⟩
-  icases BigSepL.bigSepL_cons.1 $$ Hr with ⟨Hn2, -⟩
-  iframe
+  icases Hrights with ⟨Hns, Has, Hps, Hds, #Hvoff⟩
+  iapply (wp_of_progOk _ _ init body φ Hp) $$ Hgs Htok [Hns] [Has Hps Hds]
+  · iunfold read.readRegPerm
+    icases BigSepL.bigSepL_cons.1 $$ Hns with ⟨Hn1, Hr⟩
+    icases BigSepL.bigSepL_cons.1 $$ Hr with ⟨Hn2, -⟩
+    iframe
+  · iframe; iexact Hvoff
 
 end adequacy
 

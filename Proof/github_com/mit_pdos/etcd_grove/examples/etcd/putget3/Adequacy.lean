@@ -16,7 +16,7 @@ package table `PkgTable.lean`) and `putget3_Main` (`Results.lean`).
 
 **Its hypotheses** (D19a; putget's, `notes/decisions.md`, D19r and "D21 M5"):
 * pure facts of the program and its environment: `BootFacts id₁ id₂ id₃ ps bootLog` (the member ids,
-  the peers `ps` in `bootstrap`'s order, a permutation of them, and the bootstrap log Go computes, the ids' 16 low bits distinct and not `0`), `ckptEffectsOk`,
+  the peers `ps` in `bootstrap`'s order, a permutation of them, and the bootstrap log Go computes, the ids' 16 low bits distinct and not `0`),
   `authRecordsFit`, `apply.backendUnderQuota`, `grpcRepliesFit` (the replies' encoded size, `grpc.start`'s, 2026-10-31),
   `storage.diskOk` (D22 S-j2),
   `namesUnclaimed`/`addrsUnclaimed` (D19d), and the execution's length (`n + 2 ≤ 2 ^ 28`,
@@ -110,19 +110,21 @@ thread is stuck; no thread has ended in a panic. -/
 theorem etcd_putget3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.putget3.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC putget3GF, ContextReadErrs (GF := putget3GF) (hG := heapAt3 hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC putget3GF, ContextErrsClient (GF := putget3GF) (hG := heapAt3 hG lctx))
     (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : etcd_putget3.BootFacts id₁ id₂ id₃ ps ctxs boot)
-    (Hck : ckptEffectsOk) (Haf : authRecordsFit)
+    (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (HNs : prometheus.namesUnclaimed putget3Program putget3Names)
     (HAs : addrsUnclaimed putget3Program putget3Addrs)
     -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the members' data directories,
     -- fresh at start (`dataDirsAbsent`; their distinctness is now `decide`d, no longer a hypothesis)
     (HDs : dataDirsAbsent putget3Program [(etcd_putget3.name₁ ++ go!".etcd"), (etcd_putget3.name₂ ++ go!".etcd"), (etcd_putget3.name₃ ++ go!".etcd")])
+    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
+    (HEnv : verifyEnvOff putget3Program)
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putget3GF,
       ⊢ etcd_putget3.premises (GF := putget3GF) (hG := heapAt3 hG lctx) n id₁ id₂ id₃ ps ctxs boot)
@@ -134,7 +136,7 @@ theorem etcd_putget3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  refine etcd_adequate_members (GF := putget3GF) github_com.mit_pdos.etcd_grove.examples.etcd.putget3.initialize'
+  refine etcd_adequate_members (GF := putget3GF) (hAsLit := by decide) (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.putget3.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.putget3.Main) #())
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) putget3Addrs (by decide) [(etcd_putget3.name₁ ++ go!".etcd"), (etcd_putget3.name₂ ++ go!".etcd"), (etcd_putget3.name₃ ++ go!".etcd")] (by decide)
     -- (hub step 7) the members' start bundles: the three peers, member 1's client; the program's
@@ -152,8 +154,8 @@ theorem etcd_putget3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   ihave #Hprem' := Hprem hG
   iintro #Hinit Htok ⟨Hms, -⟩
   icases Hms with ⟨Hs₁, Hs₂, Hs₃, -⟩
-  have hM := etcd_putget3.wp_Main (GF := putget3GF) n id₁ id₂ id₃ ps ctxs boot Hbf (by rw [HT]; word)
-    (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
+  have hM := etcd_putget3.wp_Main (GF := putget3GF) n id₁ id₂ id₃ ps ctxs boot Hbf (by rw [HT]; word) (srvLevels_of_max HT)
+    (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
   wp_apply hM $$ [Hs₁ Hs₂ Hs₃ Htok]
   · iframe; iframe #
   ipureintro

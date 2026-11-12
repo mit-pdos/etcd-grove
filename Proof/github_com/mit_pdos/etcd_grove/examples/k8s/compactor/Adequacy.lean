@@ -31,6 +31,34 @@ writer and the five API servers each with a client of the three bridges. Its hyp
 `examples/etcd/partition`'s at `clusterCfg` (the member ids and bootstrap log, `cluster3.BootFacts`;
 the nine addresses unclaimed; the three data directories distinct and fresh; `cluster3.premises`)
 with this example's (`clock.RealClock.After`, the registry allocated as above).
+
+**Why the opaque premises hold of this program** (finding k8s-misc-3, round 3, 2026-11-11; an
+argument from the Go program, not a proof). Both theorems take four opaque workload or environment
+premises. For `Main` (one member, `etcdstart.StartCompactingServer` with retention 0) and for
+`MainPartition` (three members, `cluster3.StartCluster` at `clusterCfg`, behind bridges):
+* `authRecordsFit` (`InvBoot.lean`): no request touches auth (no user, role or grant is created,
+  auth is never enabled), so the auth store has no record to exceed bbolt's `MaxValueSize`.
+* `apply.backendUnderQuota` (`apply/Contracts.lean`): the members use etcd's default quota (2 GiB:
+  `QuotaBackendBytes` is unset in `etcdstart`'s configuration). The data written is the writer's
+  400 puts of `/registry/objs/w` with values `"0"`..`"399"`, and one put of `compact_rev_key` (a
+  decimal revision) per successful compactor round. Each compactor round also compacts the history
+  below its revision, so a real run's backend stays a few MiB at most, far below the quota. In the
+  theorem's executions, which go on after `Main` returns but have fewer than `2 ^ 28` steps, each
+  write costs many thousands of steps (gRPC, raft, apply, a bbolt commit), so the writes stay far
+  too few to approach 2 GiB.
+* `grpcRepliesFit` (`InvGrpcServer.lean`): every reply a member marshals is small. `Put`'s and
+  `Compact`'s replies are a header. `Get`s are of the single key `compact_rev_key` (the readiness
+  check, `check`'s reads). The compactor's `Txn` replies with one put or a one-key range. The
+  compactor's watch loop follows `compact_rev_key` alone, so a watch reply batches at most 1000
+  revisions (`watchBatchMaxRevs`) of one short key each. All are at most tens of kilobytes, far
+  below `grpcReplyMax`. (The `Status` calls of `CheckClient`'s goroutines are not modeled at all:
+  `notes/audit.md`, the k8s feature-initializer row's caveat, k8s-misc-1.) Under partitions, the
+  bridges forward the same replies; raft's peer traffic is HTTP (rafthttp), not a gRPC reply.
+* `storage.diskOk` (`InvOpen.lean`): an environment premise. It holds of a working local disk on
+  which bbolt's and the WAL's file operations succeed, with the data directory (`k8scompactor.etcd`;
+  for `MainPartition` the three directories of `k8scompactorPDataDirs`) used by this process alone,
+  as `dataDirsAbsent` also requires. Nothing in the program makes it false; a full disk or an I/O
+  error does.
 -/
 module
 
@@ -112,18 +140,20 @@ check panics, no compactor round panics). -/
 theorem k8s_compactor_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC k8scompactorGF, ContextReadErrs (GF := k8scompactorGF) (hG := heapAtKc hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC k8scompactorGF, ContextErrsClient (GF := k8scompactorGF) (hG := heapAtKc hG lctx))
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : etcdstart.BootFacts id ctxs boot)
-    (Hck : ckptEffectsOk) (Haf : authRecordsFit)
+    (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (HNs : prometheus.namesUnclaimed k8scompactorProgram k8scompactorNames)
     (HAs : addrsUnclaimed k8scompactorProgram [go!"127.0.0.1:23976"])
     -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
     (HDs : dataDirsAbsent k8scompactorProgram [go!"k8scompactor.etcd"])
+    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
+    (HEnv : verifyEnvOff k8scompactorProgram)
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC k8scompactorGF,
       ⊢ etcdstart.premises (GF := k8scompactorGF) (hG := heapAtKc hG lctx) go!"k8scompactor"
@@ -139,7 +169,7 @@ theorem k8s_compactor_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  refine etcd_adequate_alloc_members (GF := k8scompactorGF) github_com.mit_pdos.etcd_grove.examples.k8s.compactor.initialize'
+  refine etcd_adequate_alloc_members (GF := k8scompactorGF) (hAsLit := by decide) (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.k8s.compactor.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Main) #())
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23976"] (by decide) [go!"k8scompactor.etcd"] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
     -- (hub step 7) the one member's start bundle: its client address, its data directory
@@ -160,8 +190,8 @@ theorem k8s_compactor_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   ihave #Hprem' := Hprem hG
   iintro #Hinit Htok ⟨⟨Hms, -⟩, Hreg⟩
   icases BigSepL.bigSepL_cons.1 $$ Hms with ⟨Hstart, -⟩
-  have hM := k8s_compactor.wp_Main (GF := k8scompactorGF) (Hafter hG) n id ctxs boot Hbf (by rw [HT]; word)
-    (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
+  have hM := k8s_compactor.wp_Main (GF := k8scompactorGF) (Hafter hG) n id ctxs boot Hbf (by rw [HT]; word) (srvLevels_of_max HT)
+    (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
   wp_apply hM $$ [Hstart Htok Hreg]
   · iframe; iframe #
   ipureintro
@@ -196,13 +226,13 @@ ended in a panic (no API server's check panics, no compactor round panics). -/
 theorem k8s_compactor_partition_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC k8scompactorGF, ContextReadErrs (GF := k8scompactorGF) (hG := heapAtKc hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC k8scompactorGF, ContextErrsClient (GF := k8scompactorGF) (hG := heapAtKc hG lctx))
     (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : cluster3.BootFacts id₁ id₂ id₃ ps ctxs boot)
-    (Hck : ckptEffectsOk) (Haf : authRecordsFit)
+    (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (steps : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step)
     (Hsteps : steps.length < 2 ^ 63)
@@ -211,6 +241,8 @@ theorem k8s_compactor_partition_adequate [lctx : GoLocalContext] [sem : go.Seman
     -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the members' data directories,
     -- fresh at start (`dataDirsAbsent`; their distinctness is now `decide`d, no longer a hypothesis)
     (HDs : dataDirsAbsent (k8scompactorPProgram steps) k8scompactorPDataDirs)
+    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
+    (HEnv : verifyEnvOff (k8scompactorPProgram steps))
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC k8scompactorGF,
       ⊢ cluster3.premises (GF := k8scompactorGF) (hG := heapAtKc hG lctx) k8s_compactor.clusterCfg n
@@ -226,7 +258,7 @@ theorem k8s_compactor_partition_adequate [lctx : GoLocalContext] [sem : go.Seman
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  refine etcd_adequate_alloc_members (GF := k8scompactorGF)
+  refine etcd_adequate_alloc_members (GF := k8scompactorGF) (hAsLit := by decide) (HEnv := HEnv)
     github_com.mit_pdos.etcd_grove.examples.k8s.compactor.initialize'
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.compactor.MainPartition)) (schedLit steps))
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) k8scompactorPAddrs (by decide)
@@ -288,8 +320,8 @@ theorem k8s_compactor_partition_adequate [lctx : GoLocalContext] [sem : go.Seman
       (W64 (go.arrayLiteralSize
         (steps.map (arrayLitKE github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.ty)))))
     steps Hbf
-    (by rw [HT]; word) (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega)
-    Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
+    (by rw [HT]; word) (srvLevels_of_max HT) (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega)
+    Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
   wp_apply hM $$ [Hstart Htok Hreg]
   · iframe; iframe #
   ipureintro

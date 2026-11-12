@@ -6,6 +6,7 @@ counterpart); the auth plan's A2 (2026-10-23), vocabulary `v3rpc/InvAuthAdmin.le
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvAuthAdmin
+public import Proof.context.LibKeys
 
 @[expose] public section
 
@@ -37,7 +38,7 @@ abbrev v3rpc.authMaintenanceServer.Snapshot.spec : Prop :=
     (cd : context.ContextDesc (IProp GF)) (sr : Loc) (srv : GoInterface) (Pin : IProp GF)
     (Q : GoInterface → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
-      v3rpc.amsIs p ms aa ∗ v3rpc.authAdminIs aa s E ∗ srvAdminNilOk s E ∗ mvcc.txnCtx ctx cd ∗
+      v3rpc.amsIs p ms aa ∗ v3rpc.authAdminIs aa s E ∗ srvAdminNilOk s E ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗
       E.RD ∗ Pin ∗ v3rpc.streamCtxOk srv ctx ∗
       v3rpc.guardedSnapOk (adminRes E.authMode) Pin E.RD ms sr srv Q }}
     (App (App (Val (p @!! go.GoType.PointerType v3rpc.authMaintenanceServer.ty @!! go!"Snapshot"))

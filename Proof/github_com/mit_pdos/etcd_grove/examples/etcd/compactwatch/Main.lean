@@ -29,6 +29,7 @@ invariant at the bootstrap log (`putGetInv_alloc_log`); `cli.Put` (`client_Put_o
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WatchSrv
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.Main
 public import Spec.go_uber_org.zap.NewNop
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartCompactingServer
@@ -53,7 +54,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.che
 
 set_option linter.unusedSectionVars false
 set_option synthInstance.maxSize 4096
-set_option synthInstance.maxHeartbeats 400000
+set_option synthInstance.maxHeartbeats 1600000
 
 noncomputable section
 
@@ -98,15 +99,17 @@ theorem Main.wp_proof
     (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
     (wp_Watch : watcher.Watch.spec (GF := GF) (hG := hG))
     (wp_Collect : etcdstart.Collect.spec (GF := GF) (hG := hG))
-    (wp_checkCompactRev : checkCompactRev.spec (GF := GF) (hG := hG)) :
+    (wp_checkCompactRev : checkCompactRev.spec (GF := GF) (hG := hG))
+    (hne : mvcc.api.names_nonempty.law) (hP : mvcc.api.persistent.law (GF := GF))
+    (hR : mvcc.api.mvccState_reachable.law (GF := GF)) (hRS : mvcc.api.mvccReaders_split.law (GF := GF)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC N id ctxs boot Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms hAs
+  intro CS CRE CEC N id ctxs boot Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms hAs
   wp_start as ⟨Hstart, Htok, #Hprem⟩
   -- (hub step 7) the client address's listen right, out of the member's start bundle (to `Serve`)
   icases etcdstart.memberStartRes_client _ _ _ rfl $$ Hstart with ⟨Haddr, Hstart⟩
   iunfold premises at Hprem
   iunfold etcdstart.premises at Hprem
-  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Hnrl⟩
+  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Htd, #Hns, #Hnrl⟩
   -- `Main`'s premises in the shared start's form
   ihave #Hb := etcdstart.bootPremise_of N [id] (LogEntry.toEntries boot 0) ctxs (compactkvDir id)
       go!"compactkv" go!"compactkv"
@@ -146,7 +149,7 @@ theorem Main.wp_proof
   (try wp_auto)
   -- the ghost state `NewServer` takes (`alloc1`)
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
-  imod (etcdstart.alloc1_false id ctxs boot Hbf.idLow Hbf.boot Hbf.cc Hbf.urls (compactkvDir id) (dirOne_member id _)
+  imod (etcdstart.alloc1_false hne id ctxs boot Hbf (compactkvDir id) (dirOne_member id _)
       (by omega) (by omega) (cmp := true) (cret := 1)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
   obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog, hkc, hkr⟩ := Hal
@@ -174,7 +177,7 @@ theorem Main.wp_proof
       (W64 1) lg
       (LogEntry.toEntries boot 0) ctxs (compactkvDir id) id γ ρ E₀ Φs γn .none Htb Hrb48 HrbN HwbN hvs
       hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [compactkvDir, etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) (by decide) (by rw [hkr]; decide) Hck Haf Hbuq Hdbo)
+      (by simp [compactkvDir, etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) (by decide) (by rw [hkr]; decide) Haf Hbuq Hdbo)
       $$ [Htok Hmb Hfresh]
     as %srv %err Hr
   · iframe; iframe #
@@ -187,7 +190,7 @@ theorem Main.wp_proof
   subst Herr
   wp_auto
   icases etcdstart.memberUp_served _ _ _ _ _ _ _ $$ Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd,
-    #Hsf, Hgo, Hlg3, Hbemu, HWR, ⟨Hlts, Hlgs, Hrds, Hsts, Hrslots, Hbms⟩, -, -⟩
+    #Hsf, Hgo, Hlg3, Hbemu, #Hwb, Hstk, -, -⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HEc
   -- `Serve(s, clientAddr)`, with the ghost step `wk_served_nd` (the KV specs and the watch server's
   -- facts at the address; watches across a compaction, W4: the store's fact for watches, no
@@ -196,53 +199,40 @@ theorem Main.wp_proof
   ihave ⟨%HsvOff, #HreqM, #HrdM, #Hlb⟩ := etcdstart.serveViews_off srv E { ρ with wait := γw } ρ.rd
     $$ []
   · iframe #
+  ihave #HzlgC : zapLoggerOk cfg.Logger' $$ []
+  · rw [HElg]; iexact Hlgz
   wp_apply (wp_Serve srv go!"127.0.0.1:23794" E { ρ with wait := γw } ρ.rd cfg
       (fun cid mid R => iprop(⌜R.E = E ∧ noRefusalAt go!"127.0.0.1:23794"⌝ ∗
         client.kvRegsAt (⟨go!"127.0.0.1:23794", E, ρ.rd, cid, mid⟩ : client.SrvAt GF) ∗
-        watchAddrFacts (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv) ∗
-        mvcc.idxCert R.E.γ.idx [[], []])))
-    $$ [Haddr Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms] as %serr Hs
+        watchAddrFacts (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv))))
+    $$ [Haddr Hlg3 Hbemu Hgo Hstk] as %serr Hs
   · iframe; iframe #
     isplitr
-    · ipureintro; exact ⟨by rw [HElg]; exact Hlg, HEtr, HEw, Hms, Hbuq, HsvOff.2⟩
+    · ipureintro; exact ⟨HEtr, HEw, Hms, Hbuq, HsvOff.2⟩
     iintro %gs %lis %cid %mid %R Hg
     rw [HsvOff.1]
     ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
     iunfold etcdstart.grpcUp at Hg
     icases Hg with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
-      #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, HWRs, Hlis, -⟩
-    obtain ⟨HCA, HCE, Hregs1, Hregs2, hRs, hRE, hRw, hRγ⟩ := HC
+      #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, Hlis, -⟩
+    obtain ⟨HCA, HCE, Hregs1, Hregs2, hRs, hRE, hRw, hRγ, Hnd⟩ := HC
     subst hRE
-    icases replicate_take2 _ _ (by omega) $$ Hlts with ⟨-, -, Hlts⟩
-    icases replicate_take2 _ _ (by omega) $$ Hrds with ⟨Hrd1, -, Hrds⟩
-    ihave Hslots := client.etcdGrpcSlots_of_started srv R.E ρ.rd 1 (64 - 2) 64
-        etcdstart.memberReadN 64 (by omega) (by omega)
-        etcdstart.one_le_memberReadN
-        (by omega)
-        $$ [Hlts Hlgs Hrds Hsts Hrslots Hbms]
-    · iframe
-    ihave Hwslots := client.watchRunSlots_of R 1 64 1 (by omega) (by omega) $$ [HWRs Hrd1]
-    · rw [hRw, hRγ]
-      iframe HWRs
-      isplitl [Hrd1]
-      · simp only [List.replicate]
-        iapply BigSepL.bigSepL_cons.2
-        iframe Hrd1
-        iapply BigSepL.bigSepL_nil.2; itrivial
-      ipureintro
-      rw [sync.rwmutex.actualMaxReaders_unseal]
-      omega
+    -- (per-type stage B3) the gRPC run pools, from the serving stocks
+    imod (etcdstart.kvServeStocks_pools srv R.E ρ.rd ⊤) $$ Hstk with ⟨#Hrp, #Hrb⟩
     ihave #Hinvs := srvKVInvs_of_read srv R.E ρ.rd $$ Hrd
-    ihave #H00 := etcd_watch.cert0_of_server pw R $$ Hws
-    ihave #Hkf : client.srvKVFacts (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv) $$ []
-    · iapply client.srvKVFacts_of_off _ ρ.rd (kvSame_refl _) hlog (by omega)
-      iframe Hinvs
-      iapply mvcc.idxCert_sealed; iexact H00
+    ihave #Hkf : client.srvKVFacts (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv) $$ []
+    · iapply client.srvKVFacts_of_off _ ρ.rd (kvSame_refl _) hlog (by omega) rfl rfl
+      iexact Hinvs
     -- (W4) the store's fact for watches: no revision writes a key twice (the rounds' puts)
-    ihave #HwnD : mvcc.watchNoDup R.E.γ $$ []
-    · iunfold mvcc.watchNoDup; iright
-      iapply (noDupKeys_of_rounds (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv) ρ.rd.kv rfl go!"v")
-      iframe Hkf
+    -- the watch path's server facts (R9) and the watch condition
+    ihave HWok : v3rpc.srvWOk (etcdstart.srvWOf R.E ρ.rd false) R.wsl v3rpc.wsN $$ []
+    · rw [hRw]
+      iapply (etcdstart.srvWOk_of_up hP hR srv R.E ρ.rd cfg C (by omega))
+      iframe #
+    ihave #Hon := srvOnce_of_rounds
+        (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv)
+        ρ.rd.kv rfl go!"v" $$ [Hkf]
+    · iframe Hkf
       iapply oneValAu $$ Hinv
     ihave #Hkva := client.kvServerAt_of_is p srv C.A cid mid C.n $$ Hkvs
     rw [HCA]
@@ -250,19 +240,20 @@ theorem Main.wp_proof
         { ρ with wait := γw } [il, im, iu] [ims, is] svcs regs sregs Hregs1 HEo) $$
       [Hgsn Hlis]
     · iframe Hgsn Hlis; iframe #
-    imod (etcd_watch.wk_served_nd (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv) go!"127.0.0.1:23794"
+    imod (etcd_watch.wk_served_nd hP (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv) go!"127.0.0.1:23794"
         gs q p pw srv lis R.E { ρ with wait := γw } ρ.rd cid mid C.n il im iu ims is svcs regs sregs
-        1 1 Hregs1 rfl rfl (by simp) rfl Hms.watch_impl Hregs2 rfl rfl Hrf)
-      $$ [Hgsn Hlis Hslots Hwslots] with ⟨Hserv, #HKV, #HWF⟩
+        Hregs1 rfl rfl hRs rfl (by simp) rfl Hms.watch_impl Hregs2 rfl rfl rfl Hrf Hnd
+        (by rw [sync.rwmutex.actualMaxReaders_unseal]; omega) HLv)
+      $$ [Hgsn Hlis HWok] with ⟨Hserv, #HKV, #HWF⟩
     · iframe; iframe #
       iintro !>
       imodintro
       iunfold idCred
       ipureintro; exact Hrb48
     imodintro
-    iframe Hserv HKV HWF H00
+    iframe Hserv HKV HWF
     ipureintro; exact ⟨rfl, Hnr⟩
-  icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, ⟨%HRQ, #HKV, #HWF, #H00⟩⟩)
+  icases Hs with (%Hserr | ⟨%Hserr, %cid, %mid, %R, ⟨%HRQ, #HKV, #HWF⟩⟩)
   · cases serr with
     | nil => exact absurd rfl Hserr
     | ok ei => ?_
@@ -274,7 +265,7 @@ theorem Main.wp_proof
   ihave #Hregs := HKV
   -- `NewClient(clientAddr, lg)`
   wp_apply (wp_NewClient go!"127.0.0.1:23794" lg
-      (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv)
+      (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv)
       (by unfold plainEndpoint; decide) (by omega)) as %cl %cerr Hcl
   · iframe #
   icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
@@ -297,7 +288,7 @@ theorem Main.wp_proof
     iapply client.kvRegs_one
     iexact Hregs
   imod (monoNatLbOwn_0 (GF := GF) γf) with #Hlb0
-  imod mvcc.idxCert_nil (GF := GF) E.γ.idx with #HF0
+  imod v3rpc.kvLogLb_nil (GF := GF) E.γs with #HF0
   ihave #Hnil : optsAt (GF := GF) slice.nil [] $$ []
   · iunfold optsAt
     iexists ([] : List GoFunc)
@@ -668,13 +659,14 @@ theorem Main.wp_proof
     obtain ⟨hkj, -, -, hpkl⟩ := Hj
     -- the client's `Watcher`, with the watch server's facts (D19f)
     ihave ⟨%w, %conn, %wc, %lgw, %ics, #HWf, #Hcw⟩ := isNewClient_watcher wp_ErrAny hAs cl
-      [go!"127.0.0.1:23794"] (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv) rfl rfl rfl $$ [Pcli Ppb Pctx Hnc HWF]
+      [go!"127.0.0.1:23794"] (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv) rfl rfl rfl rfl $$ [Pcli Ppb Pctx Hnc HWF]
     · iframe #
     (try wp_auto)
     -- `wctx, wcancel := context.WithCancel(context.Background())`
     wp_apply context.wp_Background
     wp_apply context.wp_WithCancel_Background iprop(True) $$ [$Pctx $Hcci]
-      as %wctx %γctx %wcancel ⟨#Hwcancel, #Hwctx, -⟩
+      as %wctx %γctx %wcancel ⟨#Hwcancel, #Hwctx, -, #wctxFrom⟩
+    ihave #wctxO := metadata.outgoingCtxOkC_bgFrom wctx $$ wctxFrom
     (try wp_auto)
     -- the watch's option, `WithRev(2)`
     wp_apply wp_WithRev (W64 2) as %f2 #Hf2
@@ -710,7 +702,7 @@ theorem Main.wp_proof
       isplitr
       · ipureintro; rfl
       isplitr
-      · iapply EtcdGrove.context.watchCtx_of_isContext; iassumption
+      · iapply EtcdGrove.context.watchCtx_of_isContext; isplitl [] <;> iassumption
       isplitr
       · ipureintro
         refine ⟨?_, ?_, by decide, ?_⟩

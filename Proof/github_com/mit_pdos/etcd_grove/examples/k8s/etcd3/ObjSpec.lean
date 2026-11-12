@@ -129,8 +129,13 @@ def driverSpec : ObjSpec GF DObj where
   objAt_ptr := objAtD_ptr
   newObj := objAtD_new
   encErr _ := False
+  trErr _ := False
 
 theorem driverSpec_tyOk (h : objTyOk) : (driverSpec (GF := GF)).tyOk := h
+
+/-- The store's reading of a stored value through the driver's spec is its codec's (7e-3c's
+`refine_list` is stated with `driverCodec.dec`). -/
+theorem driverSpec_dec : (driverSpec (GF := GF)).dec = driverCodec.dec := rfl
 
 end defs
 

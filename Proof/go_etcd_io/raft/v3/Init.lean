@@ -299,8 +299,8 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrProposalDropped go.error as HEPD
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrStopped go.error as HES
   wp_apply wp_GlobalAlloc (V := Loc) emptyState _ as HEmpty
-  wp_apply wp_GlobalAlloc (V := GoInterface) raftLogger Logger.ty as _
-  wp_apply wp_GlobalAlloc (V := sync.Mutex) raftLoggerMu _ as _
+  wp_apply wp_GlobalAlloc (V := GoInterface) raftLogger Logger.ty as HraftLogger
+  wp_apply wp_GlobalAlloc (V := sync.Mutex) raftLoggerMu _ as HraftLoggerMu
   wp_apply wp_GlobalAlloc (V := Loc) discardLogger _ as _
   wp_apply wp_GlobalAlloc (V := Loc) defaultLogger _ as _
   wp_apply encoding.binary.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd18⟩
@@ -333,6 +333,12 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   imod sync.init_Mutex iprop(True) ⊤ («$r0_ptr».[lockedRand, go!"mu"]) $$ mu [] with #Hmu
   · inext
     itrivial
+  -- (premise-fixes-4) `raftLoggerMu`, owning `raftLogger` (stored by the initializer above)
+  imod sync.init_Mutex (iprop(∃ l : GoInterface, (globalAddr raftLogger ↦ l : IProp GF))) ⊤
+      (globalAddr raftLoggerMu) $$ HraftLoggerMu [HraftLogger] with #HloggerMu
+  · inext
+    iexists _
+    iframe HraftLogger
   -- (stage R4 phase 3) `emptyState`'s struct: its cells (all `nil`) frozen, its hidden fields
   -- made into the `protobuf` invariant (`hsRO es ⟨0, 0, 0⟩` unfolded, `Base.lean`)
   ihave %HesNN := typedPointsto_not_null $$ «$r0»
@@ -397,7 +403,7 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   ihave #HESOOD' : iprop(∃ e : GoInterface, (globalAddr ErrSnapOutOfDate ↦□ e : IProp GF))
       $$ [HESOOD]
   · iexists _; iexact HESOOD
-  iframe HES HEPD HGR HEmpty' HEC HEU HESU HESP HESL HisLocal HisResp Hmu HEB' HESOOD'
+  iframe HES HEPD HGR HEmpty' HEC HEU HESU HESP HESL HisLocal HisResp Hmu HEB' HESOOD' HloggerMu
   simp only [named, EtcdGrove.errorsNewVar]
   iframe #
   ipureintro

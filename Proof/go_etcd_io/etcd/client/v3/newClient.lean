@@ -84,7 +84,8 @@ theorem newClient.wp_proof
   rw [Htok, Hctx]
   wp_auto
   wp_apply wp_TODO
-  wp_apply wp_WithCancelTodo as %ctx' %γ' %cancel ⟨#Hcancel, #Hctx'⟩
+  wp_apply wp_WithCancelTodo as %ctx' %γ' %cancel ⟨#Hcancel, #Hctx', #HctxV'⟩
+  ihave #HctxC' := metadata.outgoingCtxOkC_todoFrom ctx' $$ HctxV'
   ihave #Hvars0 := Hvars
   iunfold clientNewVars at Hvars
   icases Hvars with ⟨⟨%dsl, #Hdsl, #Hdslok⟩, -, -, -⟩
@@ -114,8 +115,8 @@ theorem newClient.wp_proof
   imod Hmask with -
   imod (inv_alloc clientLgN ⊤ iprop(∃ lg : Loc,
       sync.atomic.ownPointer (hG := hG) (T' := go_uber_org.zap.Logger) (clientLgAddr «$r0_ptr»)
-        (DFrac.own 1) lg ∗ ⌜lg ≠ null⌝)) $$ [Hlgown] with #HcLg
-  · inext; iexists _; iframe; ipureintro; exact Hlg
+        (DFrac.own 1) lg ∗ zapLoggerOk lg)) $$ [Hlgown] with #HcLg
+  · inext; iexists _; iframe Hlgown; iexact Hzlg
   ihave #HcLg' : isClientLogger (GF := GF) «$r0_ptr» $$ []
   · iunfold isClientLogger; iexact HcLg
   imodintro
@@ -203,6 +204,8 @@ theorem newClient.wp_proof
   ipersist Token
   ipersist authTokenBundle
   ipersist callOpts
+  -- (sweep repairs 1, B5) the endpoints mutex is not nil (`clientCheckFields`)
+  icases typedPointsto_not_null_dup _ _ _ $$ «$v5» with ⟨«$v5», %Hv5nn⟩
   imod (sync.init_RWMutex (fun _ => iprop(True)) «$v5_ptr» (E := ⊤)) $$ [] «$v5» with Hslots
   · inext; itrivial
   icases sync.ownRWMutex_slots_guard _ _ $$ Hslots with ⟨-, #Hguard⟩
@@ -256,8 +259,10 @@ theorem newClient.wp_proof
       $$ [$Hpkg2 $conn $callOpts $Hcvs $Hcvok $HcLg'] as %wi ⟨%w, %wc, %wlg, %Hwi, #Hcw⟩
     · ipureintro; exact Hcnn
     wp_apply wp_NewAuth «$r0_ptr» conn $$ [$HkvS] as %va ⟨%ap, %Hva, #HapS⟩
-    wp_apply wp_NewMaintenance «$r0_ptr» $$ [$Hcore] as %vm -
-    subst Hvkv Hvl Hva
+    wp_apply wp_NewMaintenance «$r0_ptr» $$ [$Hcore] as %vm %Hvm
+    obtain ⟨mp, Hmpn, Hvm⟩ := Hvm
+    subst Hvkv Hvl Hva Hvm
+    ipersist Maintenance
     ipersist KV
     ipersist Watcher
     ipersist Lease
@@ -300,27 +305,29 @@ theorem newClient.wp_proof
     wp_auto
     wp_join iprop(∃ (cx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (cf : GoFunc),
         client_ptr ↦ «$r0_ptr» ∗ ctx_ptr ↦ GoInterface.ok cx ∗ cancel_ptr ↦ cf ∗
-        context.isContext cx cd ∗
+        context.isContext cx cd ∗ metadata.outgoingCtxOkC cx ∗
         □ (∀ Φ : val → IProp GF, ▷ Φ #() -∗ WP (App (Val #cf) (Val #())) {{ Φ }}))
-      with [client ctx cancel] as ⟨%cx, %cd, %cf, client, ctx, cancel, #Hcx, #Hcf⟩
+      with [client ctx cancel] as ⟨%cx, %cd, %cf, client, ctx, cancel, #Hcx, #HcxO, #Hcf⟩
     · wp_apply context.wp_WithTimeout ctx' _ cfg.DialTimeout' $$ [$Hctx']
-        as %cx2 %γ2 %cf2 %dl ⟨#Hcf2, #Hcx2⟩
+        as %cx2 %γ2 %cf2 %dl ⟨#Hcf2, #Hcx2, #Hfrom2⟩
       wp_join_done
       iexists cx2, _, cf2
       iframe client ctx cancel Hcx2
+      isplitr
+      · iapply metadata.outgoingCtxOkC_from ctx' cx2 $$ [$Hfrom2 $HctxC']
       iintro !> %Φ' HΦ'
       iapply Hcf2 $$ [] [HΦ']
       · itrivial
       inext; iintro -; iexact HΦ'
     · iexists ctx', _, _
-      iframe client ctx cancel Hctx'
+      iframe client ctx cancel Hctx' HctxC'
       iintro !> %Φ' HΦ'
       wp_auto
       iexact HΦ'
     wp_apply wp_getToken «$r0_ptr» conn eps cx cd $$ [$Hrc $Hready] as %terr ⟨-, -⟩
     · isplitr
       · inext; iexact Hconn
-      iapply ctxOk_of_isContext; iexact Hcx
+      iapply ctxOk_of_isContext; iframe Hcx HcxO
     -- (E2d) the token's fetch failed (a client with a user name): the client closed, an error
     cases terr with
     | ok e =>
@@ -369,8 +376,20 @@ theorem newClient.wp_proof
       · iunfold clientEndpointsAt
         iexists cfg.Endpoints'
         iframe endpoints Heps
-      iexists _
-      iexact HcliCtx
+      isplitl []
+      · iexists _
+        iframe HcliCtx
+        -- (sweep repairs 1, B5) not nil: `WithCancel`'s context
+        isplitl []
+        · ipureintro; first | (intro h; cases h) | simp
+        iexists ctx'
+        iframe HctxC'
+        (try (ipureintro; rfl))
+      -- (sweep repairs 1, B5) `Maintenance` and `epMu`, read-only, not nil
+      iunfold clientCheckFields
+      isplitl []
+      · iexists mp; iframe Maintenance; ipureintro; exact Hmpn
+      iexists _; iframe epMu; ipureintro; exact Hv5nn
     -- (C1) its KV calls carry the credentials' tokens meeting `P`
     unfold clientTokAt
     iexists api, conn

@@ -13,7 +13,8 @@ as ownership of or knowledge about bbolt's memory is):
   to begin the write transaction; `isDB db`: `db` is an open database (persistent).
 - `txLive tx q`: the transaction `tx` is open (fractional): the memory its reads point into is
   valid. `txBytes tx s b` (persistent): `s` holds `b` while `tx` is open (`txBytes_acc`).
-- `rtxSnap tx D` (persistent): the read transaction `tx` reads the snapshot `D`;
+- `rtxSnap tx D` (persistent): the read transaction `tx` reads the snapshot `D`, each bucket with
+  fewer than `2 ^ 61` entries (`rtxSnap_size`);
   `rtxStats tx` (exclusive): `Bucket()`/`Cursor()`/`ForEach` on it (its statistics).
   `rBkt tx b es` (persistent): `b` is the read transaction's bucket with entries `es`.
 - `ownWTxG tx γ D S G`: the write transaction, begun at the committed `D`, contents `S` now,
@@ -75,6 +76,16 @@ receiver epochs, S8d, W7, 2026-10-25): `db.Close()` does not fail for the enviro
 the old backend panics on an error, `server.go:1137`). -/
 opaque dbCloseOk : Prop
 
+/-- **bbolt's `Open` succeeds** (opaque, a named premise about the program's environment, as
+`dbCloseOk`; 2026-11-08, the user's decision for mvccrand's closed theorem: "an assumption that the
+backend opening doesn't panic"): `bolt.Open(path, …)` of the program's database files does not fail
+for the environment's reasons (the file's creation, lock, `mmap` of the initial size, reads and the
+first meta pages' writes: I/O, address space, another process holding the lock). `Open_kv`'s axiom
+gives `¬ dbOpenOk` on an error, so `backend.New`, which panics on one (`backend.go:236`), panics
+only under `¬ dbOpenOk`. The server's `storage.dbOpensOk` (`InvOpen.lean`) states the same of
+the files `storage.OpenBackend` opens, for its own axiom. -/
+opaque dbOpenOk : Prop
+
 /-- The ghost names of a database. -/
 structure DBNames where
   db : GName
@@ -110,6 +121,21 @@ axiom dbFile (db : Loc) (path : GoString) : IProp GF
 @[instance] axiom txBytes_persistent (tx : Loc) (s : GoSlice) (b : GoString) :
   Persistent (txBytes (GF := GF) tx s b)
 @[instance] axiom rtxSnap_persistent (tx : Loc) (D : Data) : Persistent (rtxSnap (GF := GF) tx D)
+
+/-- **A read transaction's snapshot holds fewer than `2 ^ 61` entries in each bucket** (premise
+fixes 5, 2026-11-10, approved by etcd-grove-81; until then the store's range reads assumed the bound,
+`mvcc.keySized`, a premise of the closed theorems). bbolt reads a snapshot from its read-only map
+of the database file, never more than `common.MaxMapSize` bytes: `mmapSize` refuses a larger map
+("mmap too large", `db.go:630`), and both `Open` (`mmap`) and a commit's `allocate` (`db.go:1260`)
+go through it. `MaxMapSize` is `0xFFFFFFFFFFFF < 2 ^ 48` on 64-bit platforms
+(`internal/common/bolt_amd64.go:4`, `bolt_arm64.go:6`) and smaller on every other. Every entry of
+a bucket (of an inline bucket too) is a leaf element of a page in that map, whose header alone is
+`LeafPageElementSize = 16` bytes (`internal/common/page.go:261-266`, four `uint32`s, the key and
+value after them). So a bucket holds fewer than `2 ^ 44` entries in any snapshot. Pin: etcd's
+`go.etcd.io/bbolt v1.5.0`, replaced by `github.com/upamanyus/bbolt` `743299d8cec8`
+(`examples/go.mod`). -/
+axiom rtxSnap_size (tx : Loc) (D : Data) :
+  rtxSnap (GF := GF) tx D ⊢ ⌜∀ (n : GoString) (m : BktData), D.lookup n = some m → m.size < 2 ^ 61⌝
 @[instance] axiom rBkt_persistent (tx b : Loc) (es : List Ent) :
   Persistent (rBkt (GF := GF) tx b es)
 @[instance] axiom wBkt_persistent (tx b : Loc) (n : GoString) (g : Nat) :

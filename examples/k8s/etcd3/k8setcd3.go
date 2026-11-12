@@ -1322,6 +1322,12 @@ func minRV(m uint64, d uint64, c Obj, hasC bool) string {
 		return ""
 	}
 	r := c.ResourceVersion
+	// The proof's bound (InOk's resource version below 2^63, which GetList needs): every
+	// string minRV returns then parses below 2^62 + 200. Unreachable in a real run, whose
+	// resource versions stay far below 2^62.
+	if r >= 1<<62 {
+		return ""
+	}
 	if m < 84 {
 		return rvBytes(r)
 	}

@@ -29,7 +29,7 @@ theorem Cache.serverRevision.wp_proof
     (wp_WithCountOnly : WithCountOnly.spec (GF := GF) (hG := hG)) :
     Cache.serverRevision.spec (GF := GF) (hG := hG) := by
   intro c cf γr γd cap ctx s
-  wp_start as ⟨#Hc, #Hctx⟩
+  wp_start as ⟨#Hc, #Hctx, #HoC⟩
   ihave #Hcl : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
   unfold isCacheFields
@@ -67,7 +67,7 @@ theorem Cache.serverRevision.wp_proof
   ihave #HG := HisKV $$ %ctx %s %(if cf.pfx = [] then (go!"/" : GoString) else cf.pfx) %optsSl
     %([withLimitM (W64 1), withCountOnlyM] : List (OpFull → OpFull)) %(W64 0)
   wp_apply HG $$ [] as %resp %err ⟨#Hres, #HeS⟩
-  · iframe Hctx Hopts
+  · iframe Hctx HoC Hopts
     isplitr
     · iapply etcdReached_zero
     ipureintro

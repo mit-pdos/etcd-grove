@@ -27,7 +27,7 @@ theorem traceutil.Trace.Step.wp_proof : traceutil.Trace.Step.spec (GF := GF) (hG
   intro t e msg fields
   wp_start as ⟨Ht, Hf⟩
   iunfold traceutil.ownTrace at Ht
-  icases Ht with ⟨%v, %ss, Ht, Hfs, Hss, Hcap, Hsf, %He⟩
+  icases Ht with ⟨%v, %ss, Ht, Hfs, Hss, Hcap, Hsf, %He, #Hlz⟩
   wp_auto
   cases hd : v.stepDisabled'
   · wp_auto
@@ -49,6 +49,7 @@ theorem traceutil.Trace.Step.wp_proof : traceutil.Trace.Step.spec (GF := GF) (hG
     isplitl [Hsf Hf]
     · iapply BigSepL.bigSepL_snoc.2
       iframe
+    (try iframe Hlz)
     ipureintro; exact He
   · wp_auto
     iapply HΦ
@@ -56,6 +57,7 @@ theorem traceutil.Trace.Step.wp_proof : traceutil.Trace.Step.spec (GF := GF) (hG
     iexists _, _
     (try simp only)
     iframe
+    (try iframe Hlz)
     ipureintro; exact He
 
 end proof

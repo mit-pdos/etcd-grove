@@ -26,7 +26,9 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 (`rpctypes.Error(err)`, or, for a gRPC `DeadlineExceeded`/`Canceled` when the context is done,
 the context's error). The error is one grpc's `status` accepts (`statusErrOk`, unit P3a:
 `rpctypes.Error` and `status.FromError` call its `Error()` and `GRPCStatus()`), and so is the
-result; and (D37) the result is no caller's `errors.New` value (`errCellOk`) if `err` is none. -/
+result; and (D37) the result is no caller's `errors.New` value (`errCellOk`) if `err` is none; and
+(k8s 7e-1) a non-nil result keeps `err`'s description (`rpctypes.Error`'s) or has none of the
+handlers' (`ctxErrClient`'s context error). -/
 abbrev ContextError.spec : Prop :=
   ∀ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (err : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ ctxErrClient ci cd ∗
@@ -37,7 +39,10 @@ abbrev ContextError.spec : Prop :=
       ⌜(err = GoInterface.nil → err' = GoInterface.nil) ∧
         (err ≠ GoInterface.nil → err' ≠ GoInterface.nil ∧ clientErr err')⌝ ∗ statusErrOk err' ∗
       -- (2026-10-23, D37) no caller's `errors.New` value if `err` is none (the context's error never)
-      □ (errCellOk err -∗ errCellOk err') }}
+      □ (errCellOk err -∗ errCellOk err') ∗
+      -- (k8s 7e-1, 2026-11-10) the description kept, or not a handler's (the context's error)
+      ⌜err ≠ GoInterface.nil → go_etcd_io.etcd.cache.v3.errDesc err' = go_etcd_io.etcd.cache.v3.errDesc err ∨
+        go_etcd_io.etcd.cache.v3.errDesc err' ∉ handlerDescs⌝ }}
 
 end spec
 

@@ -6,6 +6,7 @@
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putget3.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.go_uber_org.zap.NewNop
@@ -37,12 +38,12 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.putget3.Ass
 /-- **putget3's `Main` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/putget3/Main.lean`), under the semantic premises of
 its callees' linked results (putget's). -/
-theorem etcd_putget3.wp_Main [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+theorem etcd_putget3.wp_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     :
     etcd_putget3.Main.spec (GF := GF) (hG := hG) :=
   etcd_putget3.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_StartMember etcdstart.wp_Serve
     etcdstart.wp_NewClient context.wp_Background context.WithTimeoutBackground.wp_proof
-    context.wp_ErrAny
+    context.wp_ErrAny mvcc.api.mvccApi_names_nonempty_law_holds
 
 end results
 

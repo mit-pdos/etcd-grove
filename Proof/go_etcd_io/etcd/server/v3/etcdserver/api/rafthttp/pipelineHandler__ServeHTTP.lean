@@ -18,6 +18,7 @@ public import Spec.go_etcd_io.etcd.client.pkg.v3.types.ID__String
 public import Spec.go_etcd_io.etcd.client.pkg.v3.types.ID__String_ptr
 public import Spec.github_com.prometheus.client_golang.prometheus.CounterVec__WithLabelValues
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.MsgRead
 
 @[expose] public section
 
@@ -62,7 +63,7 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
   intro Rh a γd Rs h wi r R γk rd Hhost Hpath
   iintro #Hpkg #Hh #HR #Hreq Htk Hbody Hw Hhd %hfl HRs
   iunfold pipeHandlerOk at Hh
-  icases Hh with ⟨%hv, #Hhv, %Hhvok, #Hraft, #Haddr⟩
+  icases Hh with ⟨%hv, #Hhv, #Hhvlg, %Hhvok, #Hraft, #Haddr⟩
   rw [method_unfold (t := go.GoType.PointerType rafthttp.pipelineHandler.ty) (m := go!"ServeHTTP")]
   wp_pures
   ihave #HR0 := HR
@@ -79,7 +80,7 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
     have Hver : verHdrOk (http.hdrSet [] go!"X-Etcd-Cluster-ID" cs) :=
       verHdrOk_set _ _ _ (by decide) verHdrOk_nil
     -- the header check
-    wp_apply hCheck hv.lg' hv.localID' hv.cid' hm R.hdr Hhvok.1 $$ [$Hhs] as %rv Hrv
+    wp_apply hCheck hv.lg' hv.localID' hv.cid' hm R.hdr $$ [$Hhs $Hhvlg] as %rv Hrv
     ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
     · iapply isPkgInit_access $$ Hpkg
     icases Hri with ⟨-, -, -, -, -, -, #HIV, #HCM, #HES, -, ⟨%vRB, #HRB, %HRBl⟩, ⟨%vRF, #HRF, %HRFl⟩, -, -⟩
@@ -93,7 +94,7 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
         iunfold pipeReq at Hpr0
         icases Hpr0 with ⟨%st0, %Hst0, -, -⟩
         wp_apply Haddr $$ [$HR0]
-        · ipureintro; rw [← Hhvok.2, ← Hhost]; exact Hst0.2.2.2.2
+        · ipureintro; rw [← Hhvok, ← Hhost]; exact Hst0.2.2.2.2.2
         ihave #Hio : isPkgInit (PROP := IProp GF) pkg_id.io $$ []
         · iPkgInit
         ihave #Heof0 := io.eof_of_init $$ Hio
@@ -120,7 +121,7 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
           iintro %fsl ⟨-, -⟩
           (try wp_auto)
           wp_apply hWarn hv.lg' _ _ $$ []
-          · iframe #; ipureintro; exact Hhvok.1
+          · iframe #
           wp_apply hError (raftHttpNet Rh) _ a R γk $$ [$Hw Hhd] as Hw
           · simp only [raftHttpNet]
             isplitr
@@ -155,18 +156,27 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
           icases Hpr with ⟨%st, %Hst, #HP, #Hdep⟩
           wp_auto
           -- `proto.Unmarshal(b, &m)`: the body is an encoding, so it decodes
-          have hU := hUnmarshal pbMessage sl R.body (DFrac.own 1) m_ptr
-          simp only [pbMessage_ty, pbMessage_blank, pbMessage_wire] at hU
+          have hU := hUnmarshal pbMessageC pbMessageC_reg sl R.body (DFrac.own 1) m_ptr
+          simp only [pbMessageC_ty, pbMessageC_blank, pbMessageC_decC, pbMessageC_wire,
+            pbMessageC_modelOf, pbMessageC_C, pbMessageC_marshals, pbMessageC_ufValid,
+            pbMessageC_size, pbEncC_pbMessageC] at hU
           wp_apply hU $$ [$Hsl $m] as %uerr ⟨Hsl, %Hok, Hdec⟩
-          have Hue : uerr = GoInterface.nil := Hok ⟨st, Hst.1⟩
+          obtain ⟨c0, hc0m, hc0u, hc0cs, hc0b, hc0sz⟩ := Hst.2.1
+          have Hue : uerr = GoInterface.nil := Hok ⟨c0, by rw [hc0m]; exact Hst.1.1, hc0u, hc0b⟩
           subst Hue
-          ihave ⟨%m', Hm', %Hw'⟩ := Hdec $$ %rfl
+          ihave ⟨%c', Hm', %Hw0'⟩ := Hdec $$ %rfl
+          -- (raft-entsize §4) D2: the decoded content is the sender's, of bounded size when `Sz`
+          have hcc : c' = c0 := Hw0'.2.2.2 c0 (by rw [hc0m]; exact Hst.1.1) hc0u hc0b
+          subst hcc
+          clear Hw0'
+          icases msgPtsCC_read m_ptr true c' hc0cs $$ Hm' with ⟨Hm', Hback⟩
+          rw [hc0m]
           wp_auto
           -- `receivedBytes.WithLabelValues(types.ID(m.GetFrom()).String()).Add(float64(len(b)))`
           ihave %Hsllen := ownSlice_len _ _ _ $$ Hsl
-          wp_apply hGetFrom.1 m_ptr _ _ _ m' $$ [$Hm'] as Hm'
+          wp_apply hGetFrom.1 m_ptr _ _ _ st $$ [$Hm'] as Hm'
           haveI : go.NotInterface go.uint64 := ⟨by unfold go.uint64; trivial⟩
-          wp_apply hIDString m'.msg.From' as %fs %Hfs
+          wp_apply hIDString st.msg.From' as %fs %Hfs
           wp_apply wp_slice_literal (V := GoString) [fs]
           isplitr
           · ipureintro; rfl
@@ -198,17 +208,19 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
             iunfold doneNilCtx
             imodintro
             iapply wp_todoCtx_Done'
+          ihave Hm' := Hback $$ Hm'
           wp_apply HProc $$ %todoCtxVal %bgCd %m_ptr [$HRs HO Hm'] as %perr ⟨#Hperr, HRs⟩
           · iframe #
             iunfold netRecv
-            iexists st, m'
+            iexists st, c'
             iframe Hm' HO HP
             isplitr
             · ipureintro
-              refine ⟨pbMessage_wire_eq Hst.1 Hw', ?_, Hw'.1⟩
-              rw [Hst.2.1, Hhost]; exact Hhvok.2
+              refine ⟨by rw [hc0m]; exact MsgSt.eq_of_wire rfl Hst.2.2.2.2.1, hc0cs, ?_,
+                fun hs _ => hc0sz hs⟩
+              rw [Hst.2.2.1, Hhost]; exact Hhvok
             iunfold netSnapRecv
-            iintro %h; exact absurd h Hst.2.2.1
+            iintro %h; exact absurd h Hst.2.2.2.1
           iunfold nodeErr at Hperr
           icases Hperr with (%Hpn | #Hps | #Hpc)
           · -- `nil`: `204`
@@ -250,7 +262,7 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
             iintro %fsl ⟨-, -⟩
             (try wp_auto)
             wp_apply hWarn hv.lg' _ _ $$ []
-            · iframe #; ipureintro; exact Hhvok.1
+            · iframe #
             wp_apply hError (raftHttpNet Rh) _ a R γk $$ [$Hw Hhd] as Hw
             · simp only [raftHttpNet]
               isplitr

@@ -25,15 +25,15 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.auth auth go_etcd_io.
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- `UserAdd.specT` of a request whose password choice cannot fail (`userAddSure`): no
 `ErrNoPasswordUser` (`noExtra`). -/
 abbrev auth.authStore.UserAdd.specTSure : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString) (b0 : Bool) (sc0 : AuthState),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ userAddReqIs r name ∗ userAddSure r ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗ authWRx st M P f T b0 sc0 ∗ mvcc.csContract P f Pre Q Post ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ userAddReqIs r name ∗ userAddSure r ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗ authWRx st M P f T b0 sc0 ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜stepOk M hs (stepOf (userAddF name))⌝ ∗ capNextM M hs (stepOf (userAddF name)) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"UserAdd")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); ∃ (b : Bool) (sc : AuthState), (Post ∨ Pre) ∗ authWRx st M P f T b sc ∗
@@ -41,9 +41,9 @@ abbrev auth.authStore.UserAdd.specTSure : Prop :=
 
 /-- `UserAdd.specTSure` keeping the store's backend `be` (`authWRxB`; the auth plan's E3l). -/
 abbrev auth.authStore.UserAdd.specTSureB : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString) (b0 : Bool) (sc0 : AuthState) (be : AuthBackend),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ userAddReqIs r name ∗ userAddSure r ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗ authWRxB st M P f T b0 sc0 be ∗ mvcc.csContract P f Pre Q Post ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ userAddReqIs r name ∗ userAddSure r ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗ authWRxB st M P f T b0 sc0 be ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜stepOk M hs (stepOf (userAddF name))⌝ ∗ capNextM M hs (stepOf (userAddF name)) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"UserAdd")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); ∃ (b : Bool) (sc : AuthState), (Post ∨ Pre) ∗ authWRxB st M P f T b sc be ∗
@@ -68,7 +68,7 @@ end spec
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
@@ -87,7 +87,7 @@ theorem auth.authStore.UserAdd.wp_tieSureB
   simp only [AuthErr.var]
   ihave #Hinv' := Hinv
   iunfold authInv at Hinv'
-  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, -, -, -⟩
+  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, #Hlgnn⟩, -, -, -, -⟩
   iunfold userAddReqIs at Hr
   icases Hr with ⟨%Hrnn, #HN, ⟨%pw, %hpw, #Hpw, #Hhpw⟩, ⟨%o, %nob, #Ho, #Hopts⟩⟩
   iunfold authWRxB at HWR
@@ -111,7 +111,7 @@ theorem auth.authStore.UserAdd.wp_tieSureB
     · iunfold authWRxB; iframe HT Hfl Hev Hca Hcsn; iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
-      · ipureintro; intro _; rfl
+      · ipureintro; exact ⟨fun _ => rfl, fun h => by cases h⟩
       · ileft; ipureintro; rfl
     iunfold adminOutP
     iright
@@ -175,7 +175,7 @@ theorem auth.authStore.UserAdd.wp_tieSureB
     · iunfold authWRxB; iframe HT Hfl Hev Hca Hcsn; iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
-      · ipureintro; intro _; rfl
+      · ipureintro; exact ⟨fun _ => rfl, fun h => by cases h⟩
       · ileft; ipureintro; rfl
     iunfold adminOutP
     iright
@@ -304,7 +304,7 @@ theorem auth.authStore.UserAdd.wp_tieSureB
       iintro %fsl ⟨-, -⟩
       (try wp_auto)
       wp_apply h_Info
-      · ipureintro; exact Hlgnn
+      · iexact Hlgnn
       (try wp_auto)
       irename «$r0» => Hresp
       generalize «$r0_ptr» = resp at *
@@ -327,7 +327,7 @@ theorem auth.authStore.UserAdd.wp_tieSureB
       · iunfold authWRxB; iframe HT Hfl Hev Hca Hsnap; iframe Hbe Hbeok
       isplitl [Header]
       · iunfold respOk; isplitr
-        · ipureintro; intro h; exact absurd rfl h
+        · ipureintro; exact ⟨fun h => absurd rfl h, fun _ => by assumption⟩
         · iright; iexists _; iexact Header
       iunfold adminOutP
       iright
@@ -403,7 +403,7 @@ theorem auth.authStore.UserAdd.wp_tieSureB
     iintro %fsl ⟨-, -⟩
     (try wp_auto)
     wp_apply h_Info
-    · ipureintro; exact Hlgnn
+    · iexact Hlgnn
     (try wp_auto)
     irename «$r0» => Hresp
     generalize «$r0_ptr» = resp at *
@@ -426,7 +426,7 @@ theorem auth.authStore.UserAdd.wp_tieSureB
     · iunfold authWRxB; iframe HT Hfl Hev Hca Hsnap; iframe Hbe Hbeok
     isplitl [Header]
     · iunfold respOk; isplitr
-      · ipureintro; intro h; exact absurd rfl h
+      · ipureintro; exact ⟨fun h => absurd rfl h, fun _ => by assumption⟩
       · iright; iexists _; iexact Header
     iunfold adminOutP
     iright

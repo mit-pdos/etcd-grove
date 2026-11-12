@@ -21,24 +21,25 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `s.Write(trace)` opens a write transaction of the inner store (`store.Write`) for the sole
-writer at its committed log `L` (one of its revision tokens; its tokens and certificate pin the
-transaction's committed log to `L`; the trace not `nil`, as `store.Write` takes it) and wraps it with the store, for `End` to notify. As
-`store.Write`, the inner `LockInsideApply` runs the store's post-lock hook `f` (invariant `P`,
-`hookIs`) on the caller's `Pre`: its `Q` is the caller's. -/
+/-- `s.Write(trace)` opens a write transaction of the inner store (`store.Write`, at its committed
+log `ilog`; the trace not `nil`, as `store.Write` takes it) and wraps it with the store, for `End` to
+notify. As `store.Write`, the inner `LockInsideApply` runs the store's post-lock hook `f` (invariant
+`P`, `hookIs`) on the caller's `Pre`: its `Q` is the caller's. (2026-11-06) No sole writer: the inner
+store's writer state keeps the revision tokens and the pin, the lock the whole notified log, so the
+caller brings nothing of them and learns the log from the transaction. -/
 abbrev mvcc.watchableStore.Write.spec : Prop :=
-  ∀ (s st : Loc) (γ : mvcc.WsNames) (trace : Loc) (L : mvcc.Log) (P Pre Q : IProp GF)
-    (f : val) (te : Bool),
+  ∀ (s st : Loc) (γ : mvcc.WsNames) (trace : Loc) (P Pre Q : IProp GF) (f : val) (te : Bool)
+    (G : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.isWatchableStore s st γ ∗ mvcc.storeReader st γ.st ∗ mvcc.storeWT γ.st ∗
-      mvcc.watchWriter γ L ∗
-      ⌜L.length + 4 ≤ 2 ^ 63⌝ ∗ ⌜trace ≠ null⌝ ∗
+      ⌜trace ≠ null⌝ ∗
       mvcc.hookIs γ.st P f ∗ Pre ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) ∗
-      traceutil.ownTrace trace te }}
+      traceutil.ownTrace trace te ∗ G ∗ □ (mvcc.slotF γ.st ∗ G -∗ False) }}
     (App (Val (s @!! go.GoType.PointerType watchableStore.ty @!! go!"Write")) (Val #trace))
-  {{ (tw : Loc) (crev : Int), RET #(interface.mkOk (go.GoType.PointerType watchableStoreTxnWrite.ty) #tw);
-      mvcc.isWatchTxnWrite tw s st γ trace L [] (W64 0) (W64 0) (W64 0) crev ∗ Q ∗
-      mvcc.hookIs γ.st P f }}
+  {{ (tw : Loc) (ilog : mvcc.Log) (crev : Int),
+      RET #(interface.mkOk (go.GoType.PointerType watchableStoreTxnWrite.ty) #tw);
+      mvcc.isWatchTxnWrite tw s st γ trace ilog [] (W64 0) (W64 0) (W64 0) crev ∗ Q ∗
+      mvcc.hookIs γ.st P f ∗ G }}
 
 end spec
 

@@ -112,50 +112,54 @@ theorem apply.newApplierV3Backend.wp_proof
   · imodintro
     iintro %r %rq %o %log %F %Pre %Q %Post %info
     imodintro
-    iintro %Φ' ⟨Hpre, #HF⟩ HΦ'
-    iapply (hPut E p r rq o log F Pre Q Post info) $$ [Hpre] HΦ'
-    iframe Hpre
+    iintro %Φ' ⟨Htt, Hpre, #HF⟩ HΦ'
+    iapply (hPut E p r rq o log F Pre Q Post info) $$ [Hpre Htt] HΦ'
+    iframe Hpre Htt
     iframe #
   isplitr
   · imodintro
     iintro %r %rq %o %log %F %Pre %Q %Post %info
     imodintro
-    iintro %Φ' ⟨Hpre, #HF⟩ HΦ'
-    iapply (hDeleteRange E p r rq o log F Pre Q Post info) $$ [Hpre] HΦ'
-    iframe Hpre
+    iintro %Φ' ⟨Htt, Hpre, #HF⟩ HΦ'
+    iapply (hDeleteRange E p r rq o log F Pre Q Post info) $$ [Hpre Htt] HΦ'
+    iframe Hpre Htt
     iframe #
   isplitr
   · imodintro
     iintro %r %rq %o %log %info
     imodintro
-    iintro %Φ' Hpre HΦ'
-    iapply (hRange E p r rq o log info) $$ [Hpre] HΦ'
-    iframe Hpre
+    iintro %Φ' ⟨Htt, Hpre⟩ HΦ'
+    iapply (hRange E p r rq o log info) $$ [Hpre Htt] HΦ'
+    iframe Hpre Htt
     iframe #
   isplitr
   · imodintro
     iintro %r %skip %rq %t %log %F %Pre %Q %Post %info
     imodintro
-    iintro %Φ' ⟨Hpre, #HF⟩ HΦ'
-    iapply (hTxn E p r skip rq t log F Pre Q Post info) $$ [Hpre] HΦ'
-    iframe Hpre
+    iintro %Φ' ⟨Htt, Hpre, #HF⟩ HΦ'
+    iapply (hTxn E p r skip rq t log F Pre Q Post info) $$ [Hpre Htt] HΦ'
+    iframe Hpre Htt
     iframe #
   isplitr
   · imodintro
     iintro %r %rq %id %log %T %rs %Pre %Q %Post %info
     imodintro
-    iintro %Φ' Hpre HΦ'
-    iapply (hLeaseRevoke E p r rq id log T rs Pre Q Post info) $$ [Hpre] HΦ'
-    iframe Hpre
-    iframe #
+    iintro %Φ' ⟨Htt, Hpre⟩ HΦ'
+    iapply (hLeaseRevoke E p r rq id log T rs Pre Q Post info) $$ [Hpre Htt]
+    · iframe Hpre Htt
+      iframe #
+    inext
+    iintro %resp %err ⟨Htt, H1⟩
+    iapply HΦ'
+    iframe
   isplitr
   · -- `LeaseGrant` (the lease-grant stage, 2.11)
     imodintro
     iintro %r %rq %g %log %T %rs %U %Pre %Q %Post %info
     imodintro
-    iintro %Φ' Hpre HΦ'
-    iapply (hLeaseGrant E p r rq g log T rs U Pre Q Post info) $$ [Hpre] HΦ'
-    iframe Hpre
+    iintro %Φ' ⟨Htt, Hpre⟩ HΦ'
+    iapply (hLeaseGrant E p r rq g log T rs U Pre Q Post info) $$ [Hpre Htt] HΦ'
+    iframe Hpre Htt
     iframe #
   isplitr
   · imodintro
@@ -166,68 +170,72 @@ theorem apply.newApplierV3Backend.wp_proof
     rcases hm with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
       rfl | rfl | rfl
     all_goals simp (config := {decide := true}) only [apply.reqFacts, ↓reduceIte]
-    · icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
-      iapply (hLeaseCheckpoint E p r log Pre Q Post info) $$ [HR Hm Hwt] HΦ'
+    · icases Hpre with ⟨Htt, HR, Hm, #Hsp⟩
+      iapply (hLeaseCheckpoint E p r log Pre Q Post info) $$ [HR Hm Htt] HΦ'
       iframe
       iframe #
-    · icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
-      iapply (hAlarm E p r log Pre Q Post info) $$ [HR Hm Hwt] HΦ'
+    · icases Hpre with ⟨Htt, HR, Hm, #Hsp⟩
+      iapply (hAlarm E p r log Pre Q Post info) $$ [HR Hm]
+      · iframe
+        iframe #
+      inext
+      iintro %resp %err ⟨H1, H2⟩
+      iapply HΦ'
+      iframe
+    · icases Hpre with ⟨Htt, HR, Hm, #Hsp⟩
+      iapply (hAuthenticate E p r log Pre Q Post info) $$ [HR Hm Htt] HΦ'
       iframe
       iframe #
-    · icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
-      iapply (hAuthenticate E p r log Pre Q Post info) $$ [HR Hm Hwt] HΦ'
+    · icases Hpre with ⟨Htt, HR, Hm, #Hsp⟩
+      iapply (hUserAdd E p r log Pre Q Post info) $$ [HR Hm Htt] HΦ'
       iframe
       iframe #
-    · icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
-      iapply (hUserAdd E p r log Pre Q Post info) $$ [HR Hm Hwt] HΦ'
+    · icases Hpre with ⟨Htt, HR, Hm, #Hsp⟩
+      iapply (hUserDelete E p r log Pre Q Post info) $$ [HR Hm Htt] HΦ'
       iframe
       iframe #
-    · icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
-      iapply (hUserDelete E p r log Pre Q Post info) $$ [HR Hm Hwt] HΦ'
+    · icases Hpre with ⟨Htt, HR, Hm, #Hsp⟩
+      iapply (hUserChangePassword E p r log Pre Q Post info) $$ [HR Hm Htt] HΦ'
       iframe
       iframe #
-    · icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
-      iapply (hUserChangePassword E p r log Pre Q Post info) $$ [HR Hm Hwt] HΦ'
+    · icases Hpre with ⟨Htt, HR, Hm, #Hsp⟩
+      iapply (hUserGrantRole E p r log Pre Q Post info) $$ [HR Hm Htt] HΦ'
       iframe
       iframe #
-    · icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
-      iapply (hUserGrantRole E p r log Pre Q Post info) $$ [HR Hm Hwt] HΦ'
+    · icases Hpre with ⟨Htt, HR, Hm, #Hsp⟩
+      iapply (hUserGet E p r log Pre Q Post info) $$ [HR Hm Htt] HΦ'
       iframe
       iframe #
-    · icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
-      iapply (hUserGet E p r log Pre Q Post info) $$ [HR Hm Hwt] HΦ'
+    · icases Hpre with ⟨Htt, HR, Hm, #Hsp⟩
+      iapply (hUserRevokeRole E p r log Pre Q Post info) $$ [HR Hm Htt] HΦ'
       iframe
       iframe #
-    · icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
-      iapply (hUserRevokeRole E p r log Pre Q Post info) $$ [HR Hm Hwt] HΦ'
+    · icases Hpre with ⟨Htt, HR, Hm, #Hsp⟩
+      iapply (hRoleAdd E p r log Pre Q Post info) $$ [HR Hm Htt] HΦ'
       iframe
       iframe #
-    · icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
-      iapply (hRoleAdd E p r log Pre Q Post info) $$ [HR Hm Hwt] HΦ'
+    · icases Hpre with ⟨Htt, HR, Hm, #Hsp⟩
+      iapply (hRoleGrantPermission E p r log Pre Q Post info) $$ [HR Hm Htt] HΦ'
       iframe
       iframe #
-    · icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
-      iapply (hRoleGrantPermission E p r log Pre Q Post info) $$ [HR Hm Hwt] HΦ'
+    · icases Hpre with ⟨Htt, HR, Hm, #Hsp⟩
+      iapply (hRoleGet E p r log Pre Q Post info) $$ [HR Hm Htt] HΦ'
       iframe
       iframe #
-    · icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
-      iapply (hRoleGet E p r log Pre Q Post info) $$ [HR Hm Hwt] HΦ'
+    · icases Hpre with ⟨Htt, HR, Hm, #Hsp⟩
+      iapply (hRoleRevokePermission E p r log Pre Q Post info) $$ [HR Hm Htt] HΦ'
       iframe
       iframe #
-    · icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
-      iapply (hRoleRevokePermission E p r log Pre Q Post info) $$ [HR Hm Hwt] HΦ'
+    · icases Hpre with ⟨Htt, HR, Hm, #Hsp⟩
+      iapply (hRoleDelete E p r log Pre Q Post info) $$ [HR Hm Htt] HΦ'
       iframe
       iframe #
-    · icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
-      iapply (hRoleDelete E p r log Pre Q Post info) $$ [HR Hm Hwt] HΦ'
+    · icases Hpre with ⟨Htt, HR, Hm, #Hsp⟩
+      iapply (hUserList E p r log Pre Q Post info) $$ [HR Hm Htt] HΦ'
       iframe
       iframe #
-    · icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
-      iapply (hUserList E p r log Pre Q Post info) $$ [HR Hm Hwt] HΦ'
-      iframe
-      iframe #
-    · icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
-      iapply (hRoleList E p r log Pre Q Post info) $$ [HR Hm Hwt] HΦ'
+    · icases Hpre with ⟨Htt, HR, Hm, #Hsp⟩
+      iapply (hRoleList E p r log Pre Q Post info) $$ [HR Hm Htt] HΦ'
       iframe
       iframe #
   isplitr
@@ -235,14 +243,14 @@ theorem apply.newApplierV3Backend.wp_proof
     imodintro
     iintro %m %log %Pre %Q %Post %info %hm %hon
     imodintro
-    iintro %Φ' Hpre HΦ'
+    iintro %Φ' ⟨Htt, Hm, HRW⟩ HΦ'
     simp only [apply.resp0Methods, List.mem_cons, List.not_mem_nil, _root_.or_false] at hm
     rcases hm with rfl | rfl
-    · iapply (hAuthEnable E p log Pre Q Post info) $$ [Hpre] HΦ'
+    · iapply (hAuthEnable E p log Pre Q Post info) $$ [Htt Hm HRW] HΦ'
       iframe
       iframe #
       try (ipureintro; exact ⟨hon.2, hon.1 rfl⟩)
-    · iapply (hAuthDisable E p log Pre Q Post info) $$ [Hpre] HΦ'
+    · iapply (hAuthDisable E p log Pre Q Post info) $$ [Htt Hm HRW] HΦ'
       iframe
       iframe #
       try (ipureintro; exact hon.2)
@@ -251,14 +259,14 @@ theorem apply.newApplierV3Backend.wp_proof
     imodintro
     iintro %log %info
     imodintro
-    iintro %Φ' ⟨Hkv, -⟩ HΦ'
-    iapply (hAuthStatus E p log) $$ [Hkv]
+    iintro %Φ' ⟨Htt, Hkv, -⟩ HΦ'
+    iapply (hAuthStatus E p log) $$ [Htt Hkv]
     · iframe
       iframe #
     inext
-    iintro %resp %err ⟨Hkv, #HeI⟩
+    iintro %resp %err ⟨Htt, Hkv, #HeI⟩
     iapply HΦ'
-    iframe Hkv HeI
+    iframe Htt Hkv HeI
     simp only [apply.chainRes]
     ipureintro; trivial
   isplitr
@@ -267,13 +275,13 @@ theorem apply.newApplierV3Backend.wp_proof
     iintro %m %r %v3 %log %Pre %Q %Post %cr %rs %info %hm
     imodintro
     iintro %Φ' Hpre HΦ'
-    icases Hpre with ⟨HR, Hm, Hwt, HFS, HRO⟩
+    icases Hpre with ⟨HR, Hm, HFS, HRO⟩
     cases cr with
     | ver v =>
       iunfold apply.clusterFacts at HR
       icases HR with ⟨%Hmv, #HR, %Hsv⟩
       subst Hmv
-      iapply (hClusterVersionSet E p r v3 log Pre Q Post v rs info) $$ [Hm Hwt HFS HRO] [HΦ']
+      iapply (hClusterVersionSet E p r v3 log Pre Q Post v rs info) $$ [Hm HFS HRO] [HΦ']
       · iframe
         iframe #
         ipureintro; exact Hsv
@@ -285,7 +293,7 @@ theorem apply.newApplierV3Backend.wp_proof
       iunfold apply.clusterFacts at HR
       icases HR with ⟨%Hmv, #HR, %Hmem⟩
       subst Hmv
-      iapply (hClusterMemberAttrSet E p r v3 log Pre Q Post a rs info) $$ [Hm Hwt HRO] [HΦ' HFS]
+      iapply (hClusterMemberAttrSet E p r v3 log Pre Q Post a rs info) $$ [Hm HRO] [HΦ' HFS]
       · iframe
         iframe #
         ipureintro; exact Hmem
@@ -297,7 +305,7 @@ theorem apply.newApplierV3Backend.wp_proof
       iunfold apply.clusterFacts at HR
       icases HR with ⟨%Hmv, #HR, HRW⟩
       subst Hmv
-      iapply (hDowngradeInfoSet E p r v3 log Pre Q Post info) $$ [Hm Hwt HRW] [HΦ' HFS HRO]
+      iapply (hDowngradeInfoSet E p r v3 log Pre Q Post info) $$ [Hm HRW] [HΦ' HFS HRO]
       · iframe
         iframe #
       inext
@@ -330,14 +338,14 @@ theorem apply.newApplierV3Backend.wp_proof
     imodintro
     iintro %cr %rev %log %crev %Pre %Q %Post %info
     imodintro
-    iintro %Φ' Hpre HΦ'
-    iapply (hCompaction E p cr rev log crev Pre Q Post info) $$ [Hpre]
-    · iframe Hpre; iframe #
+    iintro %Φ' ⟨#Hcr, %Hadm, HCp, Htt, Hm, Hc⟩ HΦ'
+    iapply (hCompaction E p cr rev log crev Pre Q Post info) $$ [HCp Htt Hm Hc]
+    · iframe HCp Htt Hm Hc; iframe #; ipureintro; exact Hadm
     inext
-    iintro %resp %ch %trace %err ⟨Hkv, HPP, Hc, Hans⟩
+    iintro %resp %ch %trace %err ⟨Htt, Hkv, HPP, Hc, Hans, Hch⟩
     iapply HΦ'
     simp only [apply.chainCompacts, ↓reduceIte, apply.chainRes]
-    iframe Hkv HPP Hc Hans
+    iframe Htt Hkv HPP Hc Hans Hch
 
 end proof
 

@@ -362,6 +362,43 @@ theorem kvRaftOfOn_append (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthState
     kvRaftOfOn c₀ ch s₀ (A ++ B) = kvRaftOfOn c₀ ch (kvRaftOfOn c₀ ch s₀ A) B := by
   unfold kvRaftOfOn; exact List.foldl_append
 
+-- (strict M1, 2026-11-06) moved here from `KVApplyOn`/`KVReadOn`, below `KVStoreLaws`
+-- (`restoreArgs_holds` takes the model's prefix lemmas in both modes)
+/-- **A mode-`on` entry grows the log by at most one revision** (`kvEntry_grow`'s counterpart). -/
+theorem kvEntryOn_grow (c₀ : w64) (ch : apply.Chain) (s : auth.AuthState × mvcc.Log)
+    (m : EntryModel) :
+    (kvEntryOn c₀ ch s m).2 = s.2 ∨ ∃ cs, (kvEntryOn c₀ ch s m).2 = s.2 ++ [cs] := by
+  unfold kvEntryOn
+  split
+  · split
+    · split
+      · left; rfl
+      · split
+        · left; rfl
+        · exact kvEntry_grow c₀ ch [] s.2 m
+    · left; rfl
+  · exact kvEntry_grow c₀ ch [] s.2 m
+
+/-- **The mode-`on` model's log extends the start's** (`kvRaftOf_extends`'s counterpart). -/
+theorem kvRaftOfOn_extends (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthState × mvcc.Log)
+    (A : List EntryModel) : s₀.2 <+: (kvRaftOfOn c₀ ch s₀ A).2 := by
+  induction A generalizing s₀ with
+  | nil => exact List.prefix_refl _
+  | cons m A ih =>
+    show s₀.2 <+: (kvRaftOfOn c₀ ch (kvEntryOn c₀ ch s₀ m) A).2
+    refine List.IsPrefix.trans ?_ (ih _)
+    rcases kvEntryOn_grow c₀ ch s₀ m with h | ⟨cs, h⟩
+    · rw [h]; exact List.prefix_refl _
+    · rw [h]; exact List.prefix_append _ _
+
+/-- **The mode-`on` model is monotone in the raft log** (`kvRaftOf_prefix`'s counterpart). -/
+theorem kvRaftOfOn_prefix (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthState × mvcc.Log)
+    (A B : List EntryModel) (h : A <+: B) :
+    (kvRaftOfOn c₀ ch s₀ A).2 <+: (kvRaftOfOn c₀ ch s₀ B).2 := by
+  obtain ⟨D, rfl⟩ := h
+  rw [kvRaftOfOn_append]
+  exact kvRaftOfOn_extends _ _ _ _
+
 theorem kvRaftOfOn_snoc (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthState × mvcc.Log)
     (A : List EntryModel) (m : EntryModel) :
     kvRaftOfOn c₀ ch s₀ (A ++ [m]) = kvEntryOn c₀ ch (kvRaftOfOn c₀ ch s₀ A) m := by

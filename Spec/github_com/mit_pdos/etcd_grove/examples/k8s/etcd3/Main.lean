@@ -16,8 +16,7 @@ bootstrap log, the thread and time-receipt bounds, the server's workload and eff
 gRPC's method sets, `errors.As`'s target, the method-set classes of `*errorString`), the method-set
 fact the store asks of the driver's objects (`objTyOk`: `*Obj` is a `runtime.Object` and not a
 `runtime.Unstructured`; `methodSet` is uninterpreted), the one its `errOut` asks of
-`*storage.StorageError` (`storageErrTyOk`: it has `Unwrap`, so no client error is one) and
-`Run`'s bounds on `clients` and `ops`. Stated under the cache package's assumptions, as putget's.
+`*storage.StorageError` (`storageErrTyOk`: it has `Unwrap`, so no client error is one) and `Run`'s bounds on `clients` and `ops`. Stated under the cache package's assumptions, as putget's.
 -/
 module
 
@@ -25,6 +24,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartR
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Base
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ObjSpec
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Calls
 
 @[expose] public section
 
@@ -52,10 +52,12 @@ abbrev Main.spec : Prop :=
     (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (clients ops : w64),
   etcd_putget.BootFacts id ctxs boot →
-  threadBound GF ≤ 2 ^ 28 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
+  threadBound GF ≤ 2 ^ 28 →
+  -- (per-type stage B3) the levels of a thread token the server's gRPC runs use
+  srvLevels (GF := GF) → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
   N + 7 + bootWB ≤ backend.wbInit →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit →
+  authRecordsFit → apply.backendUnderQuota → grpcRepliesFit →
   storage.diskOk → v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → storageErrTyOk →
   objTyOk →

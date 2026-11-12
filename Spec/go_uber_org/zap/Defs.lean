@@ -37,8 +37,8 @@ returns it (`zap.loggerRaw`). Given only by constructor specs (`zap.NewNop`), an
 there by `bootstrap`'s contract (`bootstrapContract`), the server's (`NewServer.spec`) and the
 client's (`clientCfgOk`) preconditions. A zero `zap.Logger` (`&zap.Logger{}`: nil core and clock)
 is not one: each logging method of it panics (`notes/axiom-review/zap-zero.md`). zap's loggers are
-safe for concurrent use. (Sweep repairs 1's later batches make every logging method's spec require
-it; until then they ask `l ≠ null`, which `zapLoggerOk_ne_null` gives.) -/
+safe for concurrent use. Every logging method's spec requires it but `Logger.Panic`'s, which asks `l ≠ null`
+(`zapLoggerOk_ne_null`; premise fixes 6). -/
 def zapLoggerOk (l : Loc) : IProp GF := iprop(⌜l ≠ null⌝ ∗ □ zap.loggerRaw l)
 
 instance zapLoggerOk_persistent (l : Loc) : Persistent (zapLoggerOk (GF := GF) l) := by
@@ -46,6 +46,27 @@ instance zapLoggerOk_persistent (l : Loc) : Persistent (zapLoggerOk (GF := GF) l
 
 theorem zapLoggerOk_ne_null (l : Loc) : zapLoggerOk (GF := GF) l ⊢ ⌜l ≠ null⌝ := by
   unfold zapLoggerOk; iintro ⟨%h, -⟩; ipureintro; exact h
+
+/-- **`l` is nil or a zap logger** (persistent; premise fixes 6): what a Go function that checks
+`lg != nil` before every use, or replaces nil by `zap.NewNop()`, needs of its logger
+(`auth.NewAuthStore`, `backend.New`, `mvcc.NewStore`, `traceutil.EnsureTrace`). A zero
+`zap.Logger` is neither. -/
+def zapLoggerOrNil (l : Loc) : IProp GF := iprop(⌜l = null⌝ ∨ zapLoggerOk l)
+
+instance zapLoggerOrNil_persistent (l : Loc) : Persistent (zapLoggerOrNil (GF := GF) l) := by
+  unfold zapLoggerOrNil; infer_instance
+
+theorem zapLoggerOk_orNil (l : Loc) : zapLoggerOk (GF := GF) l ⊢ zapLoggerOrNil l := by
+  unfold zapLoggerOrNil; iintro H; iright; iexact H
+
+theorem zapLoggerOrNil_null : ⊢ zapLoggerOrNil (GF := GF) null := by
+  unfold zapLoggerOrNil; ileft; ipureintro; rfl
+
+/-- A non-nil logger that is nil or a zap logger is a zap logger. -/
+theorem zapLoggerOrNil_ok (l : Loc) (h : l ≠ null) : zapLoggerOrNil (GF := GF) l ⊢ zapLoggerOk l := by
+  unfold zapLoggerOrNil; iintro (%h' | H)
+  · exact absurd h' h
+  · iexact H
 
 /-- **An entry to write** (opaque, exclusive; sweep repairs 1, L1): `ce` is a
 `*zapcore.CheckedEntry` that `Logger.Check` returned non-nil, at a level below `DPanicLevel`

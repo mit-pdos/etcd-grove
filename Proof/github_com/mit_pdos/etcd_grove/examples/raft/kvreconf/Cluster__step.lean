@@ -85,12 +85,15 @@ theorem Cluster.step.wp_proof
   try wp_auto
   wp_apply context.wp_Background
   try wp_auto
-  wp_apply hWT _ $$ [$Hctxinit $Hcci] as %ctx' %cd %cancel ⟨#Hcancel, #Hctx⟩
+  wp_apply hWT _ $$ [$Hctxinit $Hcci] as %ctx' %cd %cancel ⟨#Hcancel, #Hctx, -⟩
   try wp_auto
   ihave #Hnc : nodeCtx ctx' cd $$ []
   · unfold nodeCtx; iright; iexact Hctx
   ihave #Hloc := snapLocalMsg_noDir (GF := GF) γr.cluster st.msg.To' (by rw [Hsl]) st
-  imod stepIn_intro γr.cluster kvrRaftN st.msg.To' ml sid st rfl $$ [$Hsent $Hm $Hcred $Hloc] with Hin
+  -- (raft-entsize §2) the message's content form; no bound on proposed data (`Hmd`)
+  icases msgPtsC_msgPtsCC _ _ _ _ _ $$ Hm with ⟨%cm, Hm, %Hcm⟩
+  imod stepIn_intro γr.cluster kvrRaftN st.msg.To' ml sid st cm rfl Hcm.1 Hcm.2
+    (fun b h => by simp [Hmd] at h) $$ [$Hsent $Hm $Hcred $Hloc] with Hin
   wp_apply wp_node_Step dn γr.cluster kvrRaftN st.msg.To' ml ctx' cd
     $$ [$Hraftinit $HDisNode $Hnc $Hin] as %err #Herr
   try wp_auto

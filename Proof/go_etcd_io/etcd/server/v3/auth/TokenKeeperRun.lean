@@ -246,18 +246,19 @@ theorem tokenSimple_okA_run (hValid : ValidSpec (GF := GF) (hG := hG))
       tokenProviderOkA (interface.mkOk (go.GoType.PointerType tokenSimple.ty) #p) (.on γa) (simpleAdmin p) :=
   tokenSimple_okA hValid keeper_run h_Debug h_String h_GTP p γa
 
-/-- **`newTokenProviderSimple(lg, indexWaiter, TokenTTL)`** (see the file header): for a positive
+/-- **`newTokenProviderSimple(lg, indexWaiter, TokenTTL)`** (see the file header): for a logger nil
+or a zap logger (`zapLoggerOrNil`, premise fixes 6), a positive
 TTL (`NewTokenProvider` passes the configured one, or `simpleTokenTTLDefault`) and an index waiter
 whose channels are `anyRecv`. -/
 theorem tokenSimple_new (h_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
     (lg : Loc) (iw : GoFunc) (ttl : time.Duration) (hpos : 0 < sint.Z ttl) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ zapLoggerOrNil lg ∗
         □ (∀ idx : w64, {{ True }} (App (Val #iw) (Val #idx)) {{ (ch : Loc), RET #ch; anyRecv ch }}) }}
       (App (App (App (Val (@! newTokenProviderSimple)) (Val #lg)) (Val #iw)) (Val #ttl))
     {{ (p : Loc), RET #p; ∃ γt γf : GName, simpleOk p γt γf ∗ simpleWaitOk p ∗ simpleAdmin p ∗
         ghostMapAuth γf 1 (∅ : GMap GoString Unit) }} := by
-  iintro %Φ ⟨#Hpkg, #Hiw⟩ HΦ
-  wp_apply newTokenProviderSimple.wp_proof h_NewNop lg iw ttl $$ [$Hpkg] as %p ⟨#Hw, Hp⟩
+  iintro %Φ ⟨#Hpkg, #Hzl, #Hiw⟩ HΦ
+  wp_apply newTokenProviderSimple.wp_proof h_NewNop lg iw ttl $$ [$Hpkg $Hzl] as %p ⟨#Hw, Hp⟩
   icases Hp with (%Hneg | ⟨%γt, %γf, #Hok, Had, Hf⟩)
   · exact absurd hpos (by omega)
   iapply HΦ

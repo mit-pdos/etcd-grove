@@ -244,6 +244,36 @@ revision.
   - `Count` is the keys in the range;
   - `Revision` is the header's (current) revision;
   - errors as `Get`'s.
+- **Requirements found by 7e-2's Draft** (`notes/k8s-7e-2-draft.md` §4.5, §7; passed on by
+  etcd-grove-81, 2026-11-08):
+  - **7c-3:** the `*StatusError` exclusion (7b's T2 (c)) must state that a client error's dynamic
+    type is outside `apierrors.APIStatus`'s type set (`typeSetContains t APIStatus.ty = false`) and
+    is a leaf (no `Unwrap`/`As`), i.e. the Draft's `apiErrAt err .plain`, not only `t ≠
+    *StatusError`: `IsTooLargeResourceVersion` tests with `errors.As` to the interface
+    (`apimachinery/pkg/api/errors/errors.go:817-822`).
+  - **7e-1:** `Client.List`'s post gives the response's `Kvs` slice owned (`↦*`, not `↦*□`):
+    the store's `appendChunk` writes `kvs[i] = nil` (`store.go:1074`). Its errors meet the same
+    leaf, non-`APIStatus` condition, and carry the future-revision soundness at the call's revision.
+  - **7e-1 (after 7e-2's attack, `notes/k8s-7e-2-attack.md` T8; decided by etcd-grove-81,
+    2026-11-09):** `Client.List`'s post bounds the response's `Kvs`: `uint.nat resp.Kvs'.len ≤ 2 ^ 41`
+    (a response is at most the client's receive limit, < 2^31 bytes, at least one byte per kv), so
+    that `growSlice`'s `reflect.MakeSlice` meets its new premise `sint.Z m ≤ 2 ^ 41`.
+    **Discharged by 7e-2 instead (correction G3, decided by etcd-grove-81, 2026-11-09):** the
+    store's `kvKeysShort σ` (from `Q`, produced by 7e-4) bounds every revision's key count below
+    `2 ^ 41`, and a response's `Kvs` are keys of the store at the read revision, so `Client.List`'s
+    post need not carry the bound (it may).
+  - **7e-4 (from 7e-2's corrections and 7e-3c; decided by etcd-grove-81, 2026-11-09):** discharge
+    from the driver every new premise: `refine_list`'s `x.Match' ∈ {0,1,2}` and `"/objs/" <+:
+    x.ListKey'` (from `genList`), `KRelH h σ` (its `σ.rev < 2^63` and mod-revision bound included,
+    from `kInv`'s history), `GetList`'s `uint.Z n < 2^63` (from `minRV`) and `0 ≤ Limit'` (from
+    `genList`), and `kvKeysShort`'s count bound (the workload's keys); none may become a premise of a
+    closed theorem (that goes to the user). Adopt 7e-3c's `ItemRelH` (whole object) in `Refine.lean`.
+    `refine_list` is stated with `driverCodec.dec`; `driverSpec_dec` (`ObjSpec.lean`, `rfl`) bridges
+    it to `driverSpec.dec`, which `GetList`'s post uses.
+  - **7e-4 (from 7e-2's B5; decided by etcd-grove-81 under the user's delegation, 2026-11-10):**
+    produce `GetList`'s later-page update `P σ` (indexed by the first page's state `σ`) so that it
+    fires only at a log state that extends `γ.r`'s record of `σ`, giving `Q R σ ∗ P σ σ' ⊢
+    ⌜kvSameHist σ σ' ∧ σ.rev ≤ σ'.rev⌝`; it may not become a premise of a closed theorem.
 
 ## 6. The model in Lean and the invariant
 

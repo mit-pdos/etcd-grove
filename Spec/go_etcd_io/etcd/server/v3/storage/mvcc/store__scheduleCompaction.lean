@@ -32,7 +32,10 @@ stopped between two batches (its stop channel closed): `fmt.Errorf`'s error. The
 (`kvHasher`, crc32: an axiom) is any. The job's budgets (`compactJobResM`, in the token: question
 5's core stage, part (1)) are given back, for the next job. The fields are read through a share at
 the objects `o` (the running job's lease, `storeStopR_lease`; M2, the storage side, item 17),
-given back. -/
+given back. (The snapshot image's tracking, the job, 2026-11-06) The batch lock's tracked
+compaction kept through the batches (its cut at the records' compaction revision, the job's deletes
+moving its cursor, `snap.cmpOk`; at the last batch its finished record), the job's half of the
+cursor (`jobCur`, in the token) given back at its revision. -/
 abbrev mvcc.store.scheduleCompaction.spec : Prop :=
   ∀ (s : Loc) (γ : mvcc.StoreNames) (rev prev : w64) (q : Qp) (o : mvcc.StoreObjs),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ mvcc.compactJobPre s γ rev ∗
@@ -41,6 +44,7 @@ abbrev mvcc.store.scheduleCompaction.spec : Prop :=
       (Val #prev))
   {{ (h : KeyValueHash) (err : GoInterface), RET (PairV #h #err);
       mvcc.fieldShareAt s γ q o ∗ mvcc.idxCompactor γ.idx (sint.Z rev) ∗ mvcc.compactJobResM γ.kb ∗
+      (∃ jc : Int × mvcc.Rev, mvcc.jobCur γ jc ∗ ⌜jc.1 ≤ sint.Z rev⌝) ∗
       ((⌜err = GoInterface.nil⌝ ∗ mvcc.compactedAt γ (sint.Z rev)) ∨
         (mvcc.errorfIs err ∗ mvcc.storeStopped γ)) }}
 

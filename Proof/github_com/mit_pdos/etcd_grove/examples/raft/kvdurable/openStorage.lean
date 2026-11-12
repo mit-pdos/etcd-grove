@@ -279,7 +279,7 @@ theorem openStorage.wp_proof
           have Hsi61 : uint.nat f.snap.Metadata'.Index' < 2 ^ 61 := by rw [Hif]; word
           ihave Hend1 : memEnd γs (1 + ([] : List EntryM).length) $$ [Hend]
           · iexact Hend
-          wp_apply wp_ApplySnapshot ms γs trivJ (some (0, memSnapEmpty)) 1 [] sp DFrac.discard f.snap
+          wp_apply wp_ApplySnapshot.1 ms γs trivJ (some (0, memSnapEmpty)) 1 [] sp DFrac.discard f.snap
             _ (by rw [Hif]; omega) Hsi61 $$ [Hfresh Hend1]
             as ⟨-, #Hcomp, #Hdum, Hend, #Hslb, Hfresh⟩
           · rw [memStorAt_some]
@@ -319,7 +319,7 @@ theorem openStorage.wp_proof
           have Hp61' : uint.nat f.prev < 2 ^ 61 := by word
           ihave Hend1 : memEnd γs (1 + ([] : List EntryM).length) $$ [Hend]
           · iexact Hend
-          wp_apply wp_ApplySnapshot ms γs trivJ (some (0, memSnapEmpty)) 1 [] «$r0_ptr» (DFrac.own 1)
+          wp_apply wp_ApplySnapshot.1 ms γs trivJ (some (0, memSnapEmpty)) 1 [] «$r0_ptr» (DFrac.own 1)
             (SnapshotM.mk [] (SnapshotMetadataM.mk (ConfStateM.mk [] [] [] [] false) f.prev f.prevTerm))
             _ (by simp only; omega) (by simp only; omega) $$ [Hfresh Hend1 Hbs]
             as ⟨-, #Hcomp, #Hdum, Hend, #Hslb, Hfresh⟩

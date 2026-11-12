@@ -21,7 +21,7 @@ open Iris Iris.BI go_etcd_io.etcd.server.v3.auth auth go_etcd_io.etcd.api.v3
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
@@ -29,10 +29,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 batch transaction: the lock runs the hook, `Post`) and the latest state's roles' names
 (`roleListOut`); the authority and the write resource kept. -/
 abbrev auth.authStore.RoleList.spec : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
-      authOwn M hs ∗ authWR st M P f T ∗ mvcc.csContract P f Pre Q Post }}
+      authOwn M hs ∗ authWR st M P f T ∗ srvApi.csContractA P f Pre Q Post }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"RoleList")) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); Post ∗ authOwn M hs ∗
       authWR st M P f T ∗ ∃ sta : AuthState, ⌜histLast M hs sta⌝ ∗ roleListOut sta resp err }}

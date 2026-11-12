@@ -65,6 +65,8 @@ abbrev RawNode.ReadIndex.spec : Prop :=
       -- (2026-10-16, stage R5, D6) the context's bytes, read-only (until then a proposed slice,
       -- `isPropData γ rctx c`): the request's entry holds them
       "#Hctx" ∷ rctx ↦*□ c ∗
+      -- (raft-entsize §3, 2026-11-09) the context within the cluster's bound, if any
+      "%Hmd" ∷ ⌜∀ b, γ.maxData = some b → c.length ≤ b⌝ ∗
       "Hfr" ∷ rdFresh γ c ∗
       "#Hau" ∷ readAu γ Qr ∗
       "#HL0" ∷ isCommitted γ L0 ∗

@@ -234,9 +234,9 @@ theorem pipe_handlerFor (hServe : rafthttp.pipelineHandler.ServeHTTP.spec (GF :=
     iexact Hreq0
   ihave Hbody := http.reqBody_fixed (raftHttpNet Rh) a R γk rd (fun h => by
     simp only [raftHttpNet, raftProto, snapStreamed] at h
-    rw [http.route_raft _ _ Hr.2] at h
+    rw [http.route_raft _ _ (http.route_of_muxRoute Hr.2)] at h
     exact absurd h.2 (by decide)) $$ Hbody
-  iapply (hServe Rh a γd Rs hl wi r R γk rd Hr.1 (http.route_raft _ _ Hr.2)) $$ Hpkg Hh Hra Hreq Htk
+  iapply (hServe Rh a γd Rs hl wi r R γk rd Hr.1 (http.route_raft _ _ (http.route_of_muxRoute Hr.2))) $$ Hpkg Hh Hra Hreq Htk
     Hbody Hw Hhd %Hfl HRs
 
 /-- **A stream handler is a handler of what is routed to the stream prefix.** -/
@@ -258,8 +258,8 @@ theorem stream_handlerFor (hServe : rafthttp.streamHandler.ServeHTTP.spec (GF :=
     iexact Hreq0
   ihave Hbody := http.reqBody_fixed (raftHttpNet Rh) a R γk rd (fun h => by
     simp only [raftHttpNet, raftProto, snapStreamed] at h
-    exact http.route_stream_snap _ _ Hr.2 h.2) $$ Hbody
-  iapply (hServe Rh a γd Rs hl wi r R γk rd Hr.1 (http.route_stream _ _ Hr.2)) $$ Hpkg Hh Hra Hreq
+    exact http.route_stream_snap _ _ (http.route_of_muxRoute Hr.2) h.2) $$ Hbody
+  iapply (hServe Rh a γd Rs hl wi r R γk rd Hr.1 (http.route_stream _ _ (http.route_of_muxRoute Hr.2))) $$ Hpkg Hh Hra Hreq
     Htk Hbody Hw Hhd %Hfl HRs
 
 /-- **A snapshot handler is a handler of what is routed to the snapshot path** (stage 7e). -/
@@ -279,7 +279,7 @@ theorem snap_handlerFor (hServe : rafthttp.snapshotHandler.ServeHTTP.spec (GF :=
   ihave #Hreq : (raftProto Rh).req R γk $$ []
   · rw [show (raftProto Rh).req R γk = ((raftHttpNet Rh).proto a).req R γk from rfl]
     iexact Hreq0
-  iapply (hServe Rh a γd Rs hl wi r R γk rd Hr.1 (http.route_snap _ _ Hr.2)) $$ Hpkg Hh Hra Hreq Htk
+  iapply (hServe Rh a γd Rs hl wi r R γk rd Hr.1 (http.route_snap _ _ (http.route_of_muxRoute Hr.2))) $$ Hpkg Hh Hra Hreq Htk
     Hbody Hw Hhd HRs
 
 set_option maxRecDepth 8000 in
@@ -311,8 +311,9 @@ theorem rafthttp.Transport.Handler_core
   ihave #Htr' := Htr
   iunfold trFixed at Htr'
   icases Htr' with ⟨%lg, %ls, %ss0, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr,
-    #Hlg, %Hlgnn, #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok,
+    #Hlg, #Hlgz, #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok,
     #Hdrf, #Hls, %Hlsnn, #Hss0, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx, %HmemU, #HrPool⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   obtain ⟨Hmem, Hturls⟩ := HmemU
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -320,13 +321,13 @@ theorem rafthttp.Transport.Handler_core
   ihave #HraftRs := netRaftOk_frame Rh.γn lid γd R (trReadTok Rh t lid γd R γs γr) r $$ Hraft
   wp_alloc_auto
   wp_auto
-  wp_apply hNPH Rh a γd iprop(R ∗ trReadTok Rh t lid γd R γs γr) t r cid lg lid Hlgnn Hown $$ []
+  wp_apply hNPH Rh a γd iprop(R ∗ trReadTok Rh t lid γd R γs γr) t r cid lg lid Hown $$ []
     as %hp ⟨%hpl, %Hhp, #Hhpok⟩
   · iunfold trAddRemoteReq at Harr
     iframe #
   (try wp_auto)
   wp_apply hNSH Rh a γd iprop(R ∗ trReadTok Rh t lid γd R γs γr) t
-    ⟨go.GoType.PointerType rafthttp.Transport.ty, #t⟩ r lid cid lg Hlgnn Hown $$ []
+    ⟨go.GoType.PointerType rafthttp.Transport.ty, #t⟩ r lid cid lg Hown $$ []
     as %hs ⟨%hsl, %Hhs, #Hhsok⟩
   · iunfold trAddRemote at HAddR
     iframe #
@@ -341,7 +342,7 @@ theorem rafthttp.Transport.Handler_core
       · ipureintro; exact Hp
       iapply peerStreams_of_peerOk $$ Hpok
   (try wp_auto)
-  wp_apply hNSnH Rh a γd iprop(R ∗ trReadTok Rh t lid γd R γs γr) t r ss cid lg lid Rm Hlgnn Hown
+  wp_apply hNSnH Rh a γd iprop(R ∗ trReadTok Rh t lid γd R γs γr) t r ss cid lg lid Rm Hown
     $$ [] as %hsn ⟨%hsnl, %Hhsn, #Hsnok⟩
   · iunfold trAddRemoteReq at Harr
     iframe #
@@ -353,20 +354,22 @@ theorem rafthttp.Transport.Handler_core
   wp_apply hNSM as %m Hm
   (try wp_auto)
   wp_apply hHdl $$ [$Hm] as Hm
-  · ipureintro; simp
+  · ipureintro; refine ⟨by unfold http.litPathPat; decide, by rw [Hhp]; exact http.handlerRegOk_ptr _ _, by simp⟩
   (try wp_auto)
   wp_apply hHdl $$ [$Hm] as Hm
-  · ipureintro; simp
+  · ipureintro; refine ⟨by unfold http.litPathPat; decide, by rw [Hhs]; exact http.handlerRegOk_ptr _ _, by simp⟩
   (try wp_auto)
   wp_apply hHdl $$ [$Hm] as Hm
-  · ipureintro; simp [snapPath]
+  · ipureintro
+    refine ⟨by unfold http.litPathPat; (try simp only [snapPath]); decide, by rw [Hhsn]; exact http.handlerRegOk_ptr _ _, by simp [snapPath]⟩
   (try wp_auto)
   ihave #Hpbi : isPkgInit (PROP := IProp GF) pkg_id.github_com.xiang90.probing $$ []
   · iPkgInit
-  wp_apply hNewHandler as %hpr #Hprok
+  wp_apply hNewHandler as %hpr ⟨%Hprreg, #Hprok⟩
   (try wp_auto)
   wp_apply hHdl $$ [$Hm] as Hm
-  · ipureintro; simp [snapPath, probingPath]
+  · ipureintro
+    refine ⟨by unfold http.litPathPat; (try simp only [probingPath]); decide, Hprreg, by simp [snapPath, probingPath]⟩
   (try wp_auto)
   subst Hhp Hhs Hhsn
   iapply HΦ
@@ -398,7 +401,7 @@ theorem rafthttp.Transport.Handler_core
         exact verHdrOk_nil
     iapply BigSepL.bigSepL_nil.2
     itrivial
-  · -- the mux's own `404` and `301`
+  · -- the mux's own `404` and `307`
     iintro !> %R' %γk %w %_ -
     rw [show (raftHttpNet Rh).proto a = raftProto Rh from rfl]
     isplitr

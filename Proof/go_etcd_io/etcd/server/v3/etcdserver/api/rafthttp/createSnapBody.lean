@@ -9,6 +9,7 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.messageEnco
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message__fields
 public import Spec.bytes.Buffer__Write
 public import Spec.io.MultiReader
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport
 
 @[expose] public section
 
@@ -58,7 +59,8 @@ theorem rafthttp.createSnapBody.wp_proof
     (hMulti : io.MultiReader.spec (GF := GF) (hG := hG)) :
     rafthttp.createSnapBody.spec (GF := GF) (hG := hG) := by
   intro lg m ml rc st Φ Hlg Hms
-  wp_start as ⟨#Hmsg, #Hml, Hrs⟩
+  wp_start as ⟨#Hmsg, #Hml, #Hmb, Hrs⟩
+  -- the envelope's message, bounded: the sender's bound (raft-entsize [r3c])
   ihave ⟨#HfM, ⟨%tsz, #HfT, -⟩, %rd, %ri, #HfR, %Hrd, #Hwrap, #Hclose⟩ := hFields m ml rc $$ Hmsg
   wp_auto
   rename_i Φs bp
@@ -69,7 +71,7 @@ theorem rafthttp.createSnapBody.wp_proof
   ihave #Hbpk : isPkgInit (PROP := IProp GF) pkg_id.bytes $$ []
   · iPkgInit
   ihave #Hwr := buffer_writerAtF hWrite bp (fun _ => iprop(True)) $$ Hbpk
-  wp_apply hEnc «$r0_ptr» ⟨go.GoType.PointerType _root_.Perennial.bytes.Buffer.ty, #bp⟩ ml st
+  wp_apply hEnc False «$r0_ptr» ⟨go.GoType.PointerType _root_.Perennial.bytes.Buffer.ty, #bp⟩ ml st
       (bufferM.ownBuffer bp) (fun _ => iprop(True)) [] true Hms $$ [$Hbuf]
     as %err ⟨#Herr, %Hnf, %h', Hbuf, Hok⟩
   · iframe #
@@ -78,7 +80,7 @@ theorem rafthttp.createSnapBody.wp_proof
   have Hen : err = GoInterface.nil := Hnf rfl
   subst Hen
   ihave %Hok := Hok $$ %rfl
-  obtain ⟨bs, Hwire, Hbl, Hh⟩ := Hok
+  obtain ⟨bs, Hwire, Hwe, Hbl, Hh⟩ := Hok
   simp only [List.nil_append] at Hh
   subst Hh
   wp_auto
@@ -98,7 +100,7 @@ theorem rafthttp.createSnapBody.wp_proof
   iexists bs, ⟨go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.ioutil.ReaderAndCloser.ty,
     #rac⟩
   isplitr
-  · ipureintro; exact ⟨rfl, Hwire, Hbl⟩
+  · ipureintro; exact ⟨rfl, Hwire, Hwe.enc, Hbl⟩
   isplitl [Hmr]
   · unfold snapPre snapPhi
     iunfold http.streamHas at Hmr

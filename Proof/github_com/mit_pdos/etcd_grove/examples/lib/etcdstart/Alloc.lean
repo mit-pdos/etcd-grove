@@ -42,10 +42,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- **What a one-member `Main` takes of the ghost state, for its member** (see the file header). -/
-theorem alloc1 (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (Hlow : uint.Z id % 2 ^ 16 ≠ 0) (HB : BootLog [id] ctxs boot)
-    (Hcc : bootCCOk [id] (LogEntry.toEntries boot 0))
-    (Hurl : bootURLsOk (LogEntry.toEntries boot 0))
+theorem alloc1 (hne : mvcc.api.names_nonempty.law) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
+    (Hbc : BootCore [id] ctxs boot)
     (dir : w64 → List GoString) (Hone : ∀ f, dir f ≠ [] → f = id)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61)
     (cmp : Bool) (cret : Nat) (lm : lease.Mode) (m : lease.Mode)
@@ -59,15 +57,18 @@ theorem alloc1 (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
       memberBoot γ ctxs ρ E₀ Φs id cmp m ∗ netHttpOk γn id ∗
       (if decide (lm ≠ .none) then iprop(True) else
         etcdKV ρ.rd.kv (kvModelSt ρ.rd.kv (bootEntries (LogEntry.toEntries boot 0)))) := by
+  have Hlow : uint.Z id % 2 ^ 16 ≠ 0 := Hbc.lowNz id (List.mem_singleton_self id)
   iintro #Hmarsh
-  imod newServerNames_alloc (GF := GF) with ⟨%idx, %cok, %rev, Hidx, Hcok, Hrev⟩
+  imod newServerNames_alloc (GF := GF) with ⟨%γs, %cok, %rev, Hidx, Hcok, Hrev⟩
+  -- (R9, the `lean` merge) the stand-in's store name, any (`envAgree` does not read it)
+  have γm : mvcc.api.MvccName := Classical.choice hne.1
   -- the member's storage registry, its `bootstrap`'s to join
   imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := MemStorNamesRec) with ⟨%reg, Hreg⟩
   have Hid0 : id ≠ W64 0 := by
     intro h; apply Hlow; rw [h]; decide
-  let Φs : w64 → w64 → List w8 → GName → IProp GF := fun _ => srvFloorFact (env₀ idx cok rev cmp)
-  imod (srvClusterBoot_alloc (GF := GF) [id] ctxs boot (fun _ => idx) reg Hrb Hrb2 HB (by simp)
-      (by simp) (by simpa using Hid0.symm) Hcc Hurl (by simp) (by simpa using Hlow) cmp cret lm (idPfxOf (W16 (uint.Z id)))) $$ Hmarsh
+  let Φs : w64 → w64 → List w8 → GName → IProp GF := fun _ => srvFloorFacts γs.slog
+  imod (srvClusterBoot_alloc (GF := GF) [id] ctxs boot (fun _ => γs.slog) reg Hrb Hrb2 Hbc (by simp)
+      (by simp) (by simpa using Hid0.symm) cmp cret lm (idPfxOf (W16 (uint.Z id)))) $$ Hmarsh
     with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, #Hsrl, #Hkv, Hetcd, #Hcl, #H0, #Hpm, #Hrc, Hms,
       Hwns⟩
   obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, hkr, hklg, hgp⟩ := Hγ
@@ -78,7 +79,7 @@ theorem alloc1 (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
   · rw [hwn]; iexact Hwn
   obtain ⟨hraft, hst, hc0', hch', hlog', hcok, hiss', hcnt, hpfx, hkc', -, hkr', hklg', hwn', hfs', hinc'⟩ := Hρ
   -- (R2c) the member's first key, its store's index registered, at its names
-  ihave #Hkf' : idKeyFactAt ρ.ids.fs ρ.ids.key idx $$ []
+  ihave #Hkf' : idKeyFactAt ρ.ids.fs ρ.ids.key γs.slog $$ []
   · simp only [IdNames.key]; rw [hpfx, hinc', hfs', hfs]; iexact Hkf
   ihave #Hcl' : idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts $$ []
   · rw [hiss', hcnt, hwn', hfs', hiss, hwn, hfs]; iexact Hcl
@@ -88,7 +89,7 @@ theorem alloc1 (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
   ihave #Hnet := netHttpOk_single γn id
     (fun f hf => Hone f (by rw [Hγn.2] at hf; exact hf)) $$ HregN
   imodintro
-  iexists γ, ρ, env₀ idx cok rev cmp, Φs, γn
+  iexists γ, ρ, env₀ γm γs rev (srvApi.kvNx ρ.rd false) cmp, Φs, γn
   iframe Hnet
   isplitr
   · ipureintro
@@ -102,21 +103,20 @@ theorem alloc1 (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     show kvModelSt ρ.rd.kv (bootEntries γ.boot) = kvModelSt γk (bootEntries γ.boot) by
       unfold kvModelSt kvLeases kvModel; rw [hc0', hch', hlog']]
   rw [← hklg]
+  rw [hcok]
   iframe Hnb Hsrl Hcl' Hkf' Hpm Hrc Hsh Hidx Hcok Hrev Hnk Hkvρ Hwt Hetcd Hsd Hreg
   isplitr
   · ipureintro
-    exact ⟨rfl, by rw [hc0', hc0], by rw [hch', hch], by rw [hlog', hlog], hcok,
-      hpfx, rfl, trivial, by rw [hkc', hkc], by rw [hklg', hklg]; exact hlg⟩
+    exact ⟨rfl, by rw [hc0', hc0], by rw [hch', hch], by rw [hlog', hlog],
+      hpfx, rfl, trivial, by rw [hkc', hkc], trivial, by rw [hklg', hklg]; exact hlg⟩
   iunfold idNoZero
   rw [hiss', hiss]
   iexact H0
 
 /-- **`alloc1` at KV names that grant no lease** (its post before the lease-grant plan's 2.3: the
 clients' half of the KV state returned). -/
-theorem alloc1_false (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (Hlow : uint.Z id % 2 ^ 16 ≠ 0) (HB : BootLog [id] ctxs boot)
-    (Hcc : bootCCOk [id] (LogEntry.toEntries boot 0))
-    (Hurl : bootURLsOk (LogEntry.toEntries boot 0))
+theorem alloc1_false (hne : mvcc.api.names_nonempty.law) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
+    (Hbc : BootCore [id] ctxs boot)
     (dir : w64 → List GoString) (Hone : ∀ f, dir f ≠ [] → f = id)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61)
     (cmp : Bool := false) (cret : Nat := 0) :
@@ -128,7 +128,7 @@ theorem alloc1_false (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
         ρ.rd.kv.cret = cret⌝ ∗
       memberBoot γ ctxs ρ E₀ Φs id cmp ∗ netHttpOk γn id ∗
       etcdKV ρ.rd.kv (kvModelSt ρ.rd.kv (bootEntries (LogEntry.toEntries boot 0))) := by
-  have h := alloc1 (GF := GF) id ctxs boot Hlow HB Hcc Hurl dir Hone Hrb Hrb2 cmp cret .none
+  have h := alloc1 (GF := GF) hne id ctxs boot Hbc dir Hone Hrb Hrb2 cmp cret .none
     .none lease.runCfg_none
   simp only [ne_eq, not_true_eq_false, decide_false, Bool.false_eq_true, ↓reduceIte] at h
   iintro #Hmarsh

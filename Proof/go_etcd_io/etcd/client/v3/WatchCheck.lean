@@ -38,29 +38,30 @@ variable [sem : go.Semantics]
 went on was opened with outgoing metadata `m` of the same stream key as the watch's context `ctx`;
 an attempt of it on the connection `conn` delivered `md` (`clientAttemptMdOf`); and the server
 `s`'s check of a create of the key `key` and the range end `rangeEnd` passed for `md`'s token at
-the bound `n` (`v3rpc.watchAuthed`, over the store's names `γ`). -/
-def watchCheckOk (γ : mvcc.WsNames) (s conn : Loc) (ctx : GoInterface) (n : Nat)
+the bound `n` (`v3rpc.watchAuthed`, at the server's auth tag `tag`; strict M1: was over mvcc's watch names `γ`,
+whose `γ.tag` it read). -/
+def watchCheckOk (tag : GName) (s conn : Loc) (ctx : GoInterface) (n : Nat)
     (key rangeEnd : GoString) : IProp GF :=
   iprop(∃ (m md : GrpcMd),
     ⌜streamKeyOf m = streamKeyOf (metadata.outgoingOf ctx) ∧ clientAttemptMdOf conn m md⌝ ∗
-    v3rpc.watchAuthed γ s (auth.mdTokenOf md) n key rangeEnd)
+    v3rpc.watchAuthed tag s (auth.mdTokenOf md) n key rangeEnd)
 
-instance watchCheckOk_persistent (γ : mvcc.WsNames) (s conn : Loc) (ctx : GoInterface) (n : Nat)
-    (key rangeEnd : GoString) : Persistent (watchCheckOk (GF := GF) γ s conn ctx n key rangeEnd) := by
+instance watchCheckOk_persistent (tag : GName) (s conn : Loc) (ctx : GoInterface) (n : Nat)
+    (key rangeEnd : GoString) : Persistent (watchCheckOk (GF := GF) tag s conn ctx n key rangeEnd) := by
   unfold watchCheckOk; infer_instance
 
 /-- **A watch's check, with the connection's token fact**: the stream's metadata `m` has the
 watch's stream key, its token is one meeting `P` or `m`'s own, and the check passed for an auth
 info bound to it (with auth on) at a state no older than `n`. -/
-theorem watchCheckOk_tok (γ : mvcc.WsNames) (s conn : Loc) (ctx : GoInterface) (n : Nat)
+theorem watchCheckOk_tok (tag : GName) (s conn : Loc) (ctx : GoInterface) (n : Nat)
     (key rangeEnd : GoString) (P : GoString → IProp GF) :
-    watchCheckOk (GF := GF) γ s conn ctx n key rangeEnd ∗ attemptTokOk conn P ⊢
+    watchCheckOk (GF := GF) tag s conn ctx n key rangeEnd ∗ attemptTokOk conn P ⊢
       ∃ (m : GrpcMd) (tok : Option GoString) (M : auth.AuthMode)
         (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
         ⌜streamKeyOf m = streamKeyOf (metadata.outgoingOf ctx)⌝ ∗
         ((∃ t, ⌜tok = some (strings.trimPrefix t go!"Bearer ")⌝ ∗ □ P t) ∨
           ⌜tok = auth.mdTokenOf (metadata.mdNorm m)⌝) ∗
-        auth.modeTag γ.tag M ∗ apply.watchClassFrom M n info key rangeEnd ∗
+        auth.modeTag tag M ∗ apply.watchClassFrom M n info key rangeEnd ∗
         □ (⌜M.isOn = true⌝ → v3rpc.infoBoundT s M tok info) := by
   iintro ⟨#Hc, #Ht⟩
   unfold watchCheckOk
@@ -78,7 +79,7 @@ theorem watchCheckOk_tok (γ : mvcc.WsNames) (s conn : Loc) (ctx : GoInterface) 
 watch's context, bound, request key and range end. -/
 theorem wsRow_eq [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (V : WEnv GF) (P : WsPrm GF) :
-    wsRow V P = iprop(□ (⌜V.nm = 1⌝ → watchCheckOk (V.mem 0).2.γ (V.mem 0).2.s V.conn
+    wsRow V P = iprop(□ (⌜V.nm = 1⌝ → watchCheckOk (V.mem 0).2.tag (V.mem 0).2.s V.conn
       (GoInterface.ok P.ctx) P.n P.key P.ed)) := rfl
 
 /-- **The client's watcher, with its connection's token fact** (G2's F-W3, 2026-10-30;
@@ -93,7 +94,8 @@ theorem watcher_of_clientTokAt [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.a
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (cl : Loc) (eps : List GoString) (V : WEnv GF) (P : GoString → IProp GF)
-    (hV : eps = [V.addr]) (hm : V.mem = fun _ => (V.addr, V.R)) (hn : V.nm = 1) :
+    (hV : eps = [V.addr]) (hm : V.mem = fun _ => (V.addr, V.R)) (hw : V.memW = fun _ => V.W)
+    (hn : V.nm = 1) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       isPkgInit (PROP := IProp GF) pkg_id.context ∗
@@ -104,7 +106,7 @@ theorem watcher_of_clientTokAt [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.a
         attemptTokOk conn P := by
   iintro ⟨#P1, #P2, #P3, #Hn, #Hf, #Ht⟩
   ihave ⟨%w, %conn, %wc, %lg, %ics, #Hw, #Hcw⟩ :=
-    isNewClient_watcher wp_ErrAny hAs cl eps V hV hm hn $$ [P1 P2 P3 Hn Hf]
+    isNewClient_watcher wp_ErrAny hAs cl eps V hV hm hw hn $$ [P1 P2 P3 Hn Hf]
   · iframe #
   ihave #Hc := watcherConnAt_of_watcher _ w $$ Hcw
   ihave #Hk := attemptTokOk_of_watcher cl eps P w conn $$ [Hw Hc Ht]

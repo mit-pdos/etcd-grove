@@ -17,7 +17,7 @@ ids only, the plan's E3), so it stays absent at every later index, among them th
 **The pure premises:** as `leasegrant`'s (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/leasegrant/Main.lean`)
 but `lease.leasesNoExpiry`: the member id and bootstrap log Go computes (`BootFacts`); the thread and
 time-receipt bounds; the write budget; the named workload and effect premises of the server's
-construction (`ckptEffectsOk`, `authRecordsFit`, `apply.backendUnderQuota`, `grpcRepliesFit`,
+construction (`authRecordsFit`, `apply.backendUnderQuota`, `grpcRepliesFit`,
 `storage.diskOk`); the deployment's peers answering the lease handler's path (`leasePeersOk`); Go's
 method sets of the gRPC service values and `errors.As`'s target.
 -/
@@ -56,7 +56,7 @@ abbrev Main.spec : Prop :=
     receiptBound GF ≤ N + 1 →
   -- (2026-11-03, the whole-`bootOk` review, A) the write budget `bootstrap`'s own write-backs leave
   N + 7 + bootWB ≤ backend.wbInit →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → grpcRepliesFit → storage.diskOk →
+  authRecordsFit → apply.backendUnderQuota → grpcRepliesFit → storage.diskOk →
   leasePeersOk →
   v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →

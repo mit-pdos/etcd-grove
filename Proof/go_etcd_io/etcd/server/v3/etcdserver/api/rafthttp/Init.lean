@@ -3,13 +3,15 @@ Package initialization of `go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
 Its fact (`rafthttpInit`, `etcdserver/BaseApply.lean`): `ErrExceedSizeLimit` holds a non-nil
-error, `linkHeartbeatMessage` a heartbeat message, read-only for good. Its initializer runs its
-variables' untranslated initializers: `ErrExceedSizeLimit`'s is an `errors.New` call
-(`msg_codec.go`), which the trust-boundary axiom `errorsNewVarsInit` states; `linkHeartbeatMessage_init`
-states `linkHeartbeatMessage`'s and `linkHeartbeatSize_init` `linkHeartbeatSize`'s (`stream.go`);
-`opaqueInitsOk` the others. `RaftPrefix` (`"/raft"`), its subpaths `ProbingPrefix`,
-`RaftStreamPrefix` and `RaftSnapshotPrefix` (`path.Join`, proved), `ConnReadTimeout`
-(`DefaultConnReadTimeout`, five seconds) and `readBytesLimit` (512 MiB) are translated and set.
+error, `linkHeartbeatMessage` a heartbeat message without unknown fields, read-only for good. Its
+initializer runs its variables' untranslated initializers: `ErrExceedSizeLimit`'s is an `errors.New`
+call (`msg_codec.go`), which the trust-boundary axiom `errorsNewVarsInit` states;
+`linkHeartbeatSize_init` states `linkHeartbeatSize`'s (`stream.go`); `opaqueInitsOk` the others.
+`RaftPrefix` (`"/raft"`), its subpaths `ProbingPrefix`, `RaftStreamPrefix` and `RaftSnapshotPrefix`
+(`path.Join`, proved), `ConnReadTimeout` (`DefaultConnReadTimeout`, five seconds), `readBytesLimit`
+(512 MiB) and (raft-entsize, route H1, 2026-11-10) `linkHeartbeatMessage`
+(`raftpb.Message{Type: raftpb.MsgHeartbeat.Enum()}`, `stream.go`: `Enum`'s proof inlined, the
+literal frozen by `hbMsg_init`) are translated and set.
 -/
 module
 
@@ -47,6 +49,8 @@ public import Proof.path.Clean
 public import Proof.path.lazybuf__index
 public import Proof.path.lazybuf__append
 public import Proof.path.lazybuf__string
+public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.MsgAppV2
 public import Proof.errors.NewVarCell
 public import Proof.runtime.PkgInitExt
 
@@ -105,11 +109,6 @@ axiom errorsNewVarsInit :
         (errMemberRemoved.init, errMemberRemoved, go!"the member has been permanently removed from the cluster"),
         (errUnsupportedStreamType.init, errUnsupportedStreamType, go!"unsupported stream type")] : List (val × GoString × GoString)) →
     EtcdGrove.errorsNewVarInitC (GF := GF) init X msg
-
-/-- `linkHeartbeatMessage = raftpb.Message{Type: raftpb.MsgHeartbeat.Enum()}` (`stream.go`): a message whose type is `MsgHeartbeat`, no other field set; nothing writes it (`hbSt`). -/
-axiom linkHeartbeatMessage_init :
-    {{ (True : IProp GF) }} (App (Val linkHeartbeatMessage.init) (Val #()))
-    {{ RET #(); EtcdGrove.msgOwn (globalAddr linkHeartbeatMessage) DFrac.discard hbSt }}
 
 /-- `linkHeartbeatSize = proto.Size(&linkHeartbeatMessage)` (`stream.go`): the heartbeat's encoding's size (two bytes), an `int` from `0` to below `2^50`; nothing writes it (the stream writer adds it to its metrics). -/
 axiom linkHeartbeatSize_init :
@@ -246,6 +245,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   iapply wp_fupd
+  wp_apply wp_GlobalAlloc (V := _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message) linkHeartbeatMessage _ as HlinkHeartbeatMessage
   wp_apply wp_GlobalAlloc (V := w64) ConnReadTimeout _ as HConnReadTimeout
   wp_apply wp_GlobalAlloc (V := w64) readBytesLimit _ as HreadBytesLimit
   wp_apply wp_GlobalAlloc (V := GoString) RaftSnapshotPrefix _ as HRaftSnapshotPrefix
@@ -354,7 +354,13 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (errorsNewVarsInit errUnsupportedStreamType.init errUnsupportedStreamType go!"unsupported stream type" (by mem_tac))
     as ⟨%xerrUnsupportedStreamType, HerrUnsupportedStreamType, #MerrUnsupportedStreamType, #CerrUnsupportedStreamType⟩
   wp_apply supportedStream_init as ⟨%msupportedStream, %MsupportedStream, HsupportedStream, #MMsupportedStream, #MEsupportedStream⟩
-  wp_apply linkHeartbeatMessage_init as #HlinkHeartbeatMessage
+  -- translated initializer of linkHeartbeatMessage))
+  try wp_auto
+  haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
+  wp_apply (show EtcdGrove.raftpb.MessageType.Enum.spec (GF := GF) (hG := hG) from by intro x; wp_start; wp_auto; iapply HΦ; iframe) (W32 8) as %phb Hphb
+  try wp_auto
+  imod (EtcdGrove.hbMsg_init _ _ ⊤) $$ [HlinkHeartbeatMessage Hphb] with #HlinkHeartbeatMessage
+  · iframe HlinkHeartbeatMessage Hphb
   wp_apply linkHeartbeatSize_init as ⟨%nlinkHeartbeatSize, HlinkHeartbeatSize, %BlinkHeartbeatSize⟩
   wp_apply (errorsNewVarsInit errMemberRemoved.init errMemberRemoved go!"the member has been permanently removed from the cluster" (by mem_tac))
     as ⟨%xerrMemberRemoved, HerrMemberRemoved, #MerrMemberRemoved, #CerrMemberRemoved⟩

@@ -19,7 +19,7 @@ def backend.isBackendNH (γ : backend.BNames) (P : backend.BParams) (W Pk : IPro
             typedPointsto (backend.bF go!"batchLimit" b) P.limit
                 DFrac.discard ∗
               typedPointsto (backend.bF go!"lg" b) lg DFrac.discard ∗
-                ⌜lg ≠ null⌝ ∗
+                zapLoggerOk lg ∗
                   typedPointsto (backend.bF go!"hooks" b) h DFrac.discard ∗
                     typedPointsto (backend.beOf t) b DFrac.discard ∗
                       typedPointsto (backend.rtmuOf (backend.baseOf rt)) tm DFrac.discard ∗
@@ -31,4 +31,6 @@ def backend.isBackendNH (γ : backend.BNames) (P : backend.BParams) (W Pk : IPro
                                   backend.metricsInv b ∗
                                     (sync.isRWMutexGuard (backend.bF go!"mu" b) fun q =>
                                         typedPointsto (backend.bF go!"db" b) db (DFrac.own q)) ∗
-                                      backend.isDB db ∗ ⌜P.Wf⌝ ∗ ∃ path, backend.bDBAt γ db path ∗ backend.dbFile db path)
+                                      backend.isDB db ∗
+                                        ⌜P.Wf⌝ ∗
+                                          (∃ path, backend.bDBAt γ db path ∗ backend.dbFile db path) ∗ envVerifyOff)

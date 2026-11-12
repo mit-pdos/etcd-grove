@@ -59,28 +59,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-! ## The names chosen before the call (D13a) -/
 
 /-- **Two apply environments agree on the names** the raft contract's `E.C` reads (`srvC`: the
-store's index names, through the results' certificates `idxCert`; its certificate map, `certOk`;
-the revisions' tokens, `revMinted`), and (M2, the storage side, review round 2's N1, the
-approval's item 10) on the compaction mode, the first one's mode its store's (`E.γ.cm = E.cmp`:
-one reading of the mode, the store's logical one, which a restore keeps). -/
+results' floors `kvLogLb E.γs` and the store's witness `E.Nx`; the revisions' tokens, `revMinted`),
+and on the compaction mode. (Strict M1, 2026-11-06: until then the store's index names and
+certificate map, `idxCert`/`certOk`, and the store's logical mode `E.γ.cm`, gone with mvcc's
+internals: the API's store has no mode, so `envAgree_mode`, `envAgree_off`, `envAgree_on` are
+deleted; their users read the server's mode `E.cmp` off `envAgree`'s last conjunct.) -/
 def envAgree (E E' : apply.AEnv GF) : Prop :=
-  E.γ.idx = E'.γ.idx ∧ E.γ.cok = E'.γ.cok ∧ E.γrev = E'.γrev ∧ E.cmp = E'.cmp ∧ E.γ.cm = E.cmp
-
-/-- **The mode, read at the stand-in** (N1): the server's store compacts exactly when the stand-in
-says so. -/
-theorem envAgree_mode (E E₀ : apply.AEnv GF) (h : envAgree E E₀) : E.γ.cm = E₀.cmp := by
-  rw [h.2.2.2.2, h.2.2.2.1]
-
-/-- **An off stand-in, an off server** (N1: what the watching examples read off `memberUp`'s
-`envAgree E E₀`, with `E₀.cmp = false` from the member's boot bundle). -/
-theorem envAgree_off (E E₀ : apply.AEnv GF) (h : envAgree E E₀) (h0 : E₀.cmp = false) :
-    E.γ.cm = false := by
-  rw [envAgree_mode E E₀ h, h0]
-
-/-- A compacting stand-in, a compacting server. -/
-theorem envAgree_on (E E₀ : apply.AEnv GF) (h : envAgree E E₀) (h0 : E₀.cmp = true) :
-    E.γ.cm = true := by
-  rw [envAgree_mode E E₀ h, h0]
+  E.γs = E'.γs ∧ E.Nx = E'.Nx ∧ E.γrev = E'.γrev ∧ E.cmp = E'.cmp
 
 /-- **The start of a new cluster's apply thread** (`x₀`): `NewStore`'s two empty revisions, the
 base chain with auth disabled and no alarm, no compaction yet (`-1`). -/
@@ -140,11 +125,34 @@ M1; 2026-10-27: the node API's): read-only, a message the node `id` of the serve
 (`sentMsg`: raft's protocol facts and its term bound, and its sender, what the transport's msgappv2
 stream needs), with its credits (`msgCredits`: a `MsgReadIndex`'s read credit, a forwarded
 proposal's tickets): what a peer's `node.Step` takes of a network message (`stepIn_intro`) but the
-receiver's own facts. -/
+receiver's own facts; (raft-entsize §4, 2026-11-10) frozen at the content raft handed it out with
+(`msgOut`), of bounded size (`msgOut_netContent`, the server's cluster bounding proposed data). -/
 def srvMsgNet (γ : SrvRaft) (id : w64) (m : Loc) : IProp GF :=
   letI := srvStor (GF := GF) γ
   iprop(∃ st : MsgSt, msgOwn m DFrac.discard st ∗ sentMsg γ.cl srvClusterN id st ∗
-    msgCredits γ.cl srvClusterN st)
+    msgCredits γ.cl srvClusterN st ∗
+    ∃ c : MsgC, msgRoC m c ∗ ⌜c.model = st ∧ c.csUfNil ∧ msgSizeOk c⌝)
+
+/-- **A handed-out message's content for the network** (raft-entsize §4, 2026-11-10): frozen at
+the content raft handed it out with (`msgOut`), of bounded size in a cluster with a bound on
+proposed data (`Cluster.outObj_size`), unless a `MsgSnap`. -/
+theorem msgOut_netContent [StorageModel GF] (γc : Cluster) (m : Loc) (st : MsgSt) (b : Nat)
+    (hmd : γc.maxData = some b) (hns : st.msg.Type' ≠ MsgSnap) (hr : st.resps = []) :
+    msgOut (GF := GF) γc m DFrac.discard st ⊢
+      ∃ c : MsgC, msgRoC m c ∗ ⌜c.model = st ∧ c.csUfNil ∧ msgSizeOk c⌝ := by
+  iintro Hmo
+  iunfold msgOut at Hmo
+  icases Hmo with ⟨%c, #Hc, %Hm, #Ho⟩
+  have hcr : c.resps = [] := by
+    have h := congrArg MsgSt.resps Hm.1
+    simp only [MsgC.model, hr, List.map_eq_nil_iff] at h
+    exact h
+  ihave #Hro := msgPtsCC_msgRoC m c hcr $$ Hc
+  ihave %Hsz := Cluster.outObj_size γc m c b $$ Ho
+  iexists c
+  iframe Hro
+  ipureintro
+  exact ⟨Hm.1, Hm.2.1, Hsz hmd (by rw [Hm.1]; exact hns)⟩
 
 /-- Two read-only views of a message agree on its type. -/
 theorem msgOwn_type_agree (m : Loc) (st1 st2 : MsgSt) :
@@ -171,7 +179,7 @@ theorem srvMsgNet_bundle (γ : SrvRaft) (id : w64) (m : Loc) :
   letI := srvAnyStor (GF := GF)
   iintro ⟨H, Hns⟩
   iunfold srvMsgNet at H
-  icases H with ⟨%st, #Hm, #Hr, Hc⟩
+  icases H with ⟨%st, #Hm, #Hr, Hc, %c, #Hcc, %Hcc⟩
   ihave %Hsh := sentMsg_shape γ.cl srvClusterN id st $$ Hr
   ihave %Hfrom := sentMsg_appFrom γ.cl srvClusterN id st $$ Hr
   iunfold srvMsgNoSnap at Hns
@@ -185,9 +193,13 @@ theorem srvMsgNet_bundle (γ : SrvRaft) (id : w64) (m : Loc) :
   isplitr
   · imodintro
     iexists id; iexact Hr
-  ipureintro
-  rw [Hty]
-  exact ⟨Hns, Hsh.1.2.2.2.2.2.2.2, fun ha => ⟨Hsh.1.2.2.2.2.2.1 (Hty ▸ ha), Hfrom (Hty ▸ ha)⟩⟩
+  isplitr
+  · ipureintro
+    rw [Hty]
+    exact ⟨Hns, Hsh.1.2.2.2.2.2.2.2, fun ha => ⟨Hsh.1.2.2.2.2.2.1 (Hty ▸ ha), Hfrom (Hty ▸ ha)⟩⟩
+  iexists c
+  iframe Hcc
+  ipureintro; exact Hcc
 
 /-- **The server's raft environment** (`RNEnv`): `E.C` the server's (`srvC`), every message raft
 hands out but a snapshot (`srvMsgNoSnap`, D19p) with its bundle (`srvMsgNet`, D21 stage M1), a
@@ -244,8 +256,8 @@ instance clusterWorkloadOk_persistent (ρ : ReqNames) (E : apply.AEnv GF) :
 had the uber-applier, `srvUberApplyAddr`, `applierFor`, a KV row of `srvBuildGap`). -/
 def srvFieldsBuiltNA (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (v : SrvFields) : IProp GF :=
-  iprop(srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
-      ⌜E.P = batchLockInv γ TM ∧ E.f = v.hook⌝ ∗ ⌜srvEnvOk s γ ci E v.cluster⌝ ∗
+  iprop(srvLgAddr s ↦□ v.lg ∗ zapLoggerOk v.lg ∗
+      ⌜E.Pk = (fun _ => batchLockInv γ TM) ∧ v.hook = #E.f ∧ E.f ≠ func.nil⌝ ∗ ⌜srvEnvOk s γ ci E v.cluster⌝ ∗
       hookSpec γ ci TM v.hook ∗
       srvLessorAddr s ↦□ v.lessor ∗ lessorOk E.lg E.authMode.isOn v.lessor ∗
       srvFirstCommitAddr s ↦□ v.firstCommit ∗ srvAlarmStoreAddr s ↦□ v.alarmStore ∗
@@ -261,15 +273,14 @@ instance srvFieldsBuiltNA_persistent (s : Loc) (γ : ApplyNames) (ci : Loc)
     Persistent (srvFieldsBuiltNA s γ ci TM E v) := by
   unfold srvFieldsBuiltNA; infer_instance
 
-/-- `srvReadBuilt` without the KV rows (`srvKVAddr`, `txn.isKV`, the store's read view,
-`storeSmall`: `srvBuildGap`). -/
+/-- `srvReadBuilt` without the KV rows (`srvKVAddr` and the store's handle: `srvBuildGap`). -/
 def srvReadBuiltNK (s : Loc) (E : apply.AEnv GF) (v : ReadFields) : IProp GF :=
-  iprop(srvLessorAddr s ↦□ v.lessor ∗ apply.isApplyLessor v.lessor E.s E.γ E.P E.f E.RO E.RW ∗
-    srvAuthStoreAddr s ↦□ v.auth ∗ apply.isAuthStore v.auth E.γ E.P E.f E.RD E.authMode E.RW ∗
-    srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
+  iprop(srvLessorAddr s ↦□ v.lessor ∗ apply.isApplyLessor v.lessor E.γ E.Pk E.f E.BkTie E.RO E.RW ∗
+    srvAuthStoreAddr s ↦□ v.auth ∗ apply.isAuthStore v.auth E.Pk E.f E.BkTie E.RD E.authMode E.RW ∗
+    srvLgAddr s ↦□ v.lg ∗ zapLoggerOk v.lg ∗
     srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ v.wad ∗
     inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗
-    (∃ log₀ : mvcc.Log, mvcc.idxCert E.γ.idx log₀ ∗
+    (∃ log₀ : mvcc.Log, srvApi.kvLogLb E.γs log₀ ∗
       ⌜2 ≤ log₀.length ∧ mvcc.LogPutsLe etcdKeyMax log₀⌝) ∗
     srvFirstCommitAddr s ↦□ v.fc)
 
@@ -282,10 +293,10 @@ def applyBuiltNA (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : a
     (γr : ReadNames) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV) : IProp GF :=
   iprop(∃ (st₀ : ApplyState) (a t : w64) (f : Bool),
     applyThread γ st₀ ∗ ⌜loopOk γ st₀ ai₀ ∧ c₀ = ciEff γ st₀.k⌝ ∗ applyBackend γ ci b ∗
-    ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ srvBeOwn s E ∗
-    revAuth E x₀.log ∗ srvAuthApplyRes s E ∗
+    ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ mvcc.api.mvccReaders E.γ 1 ∗
+    srvBeOwn s E ∗ revAuth E x₀.log ∗ srvAuthApplyRes s E ∗
     -- (2026-11-04, the lease-expiry plan's step 2) the lessor's range deleter (`mvcc.New`'s)
-    lease.rdAt E.γ.leases E.s ∗
+    (∃ rd : GoFunc, lease.rdOwn (mvcc.api.mvccLeases E.γ) rd ∗ mvcc.api.mvccDeleter rd E.γ) ∗
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRun γr ai₀ c₀ [] x₀ ∗ srvRest E γr [] ∗
     srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f)
 
@@ -366,13 +377,8 @@ def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     "Hlr" ∷ srvLgReader s ∗
     "Hlrl" ∷ srvLgReader s ∗
     "Hfcr" ∷ (∃ n : Loc, srvFirstCommitAddr s ↦□ n ∗ notifyReader n) ∗
-    "#Hkv" ∷ (∃ (kv : GoInterface) (rv : Loc), srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ ∗
-      E.s.[go_etcd_io.etcd.server.v3.storage.mvcc.store, go!"ReadView"] ↦□
-        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.readView.ty)
-          #rv : GoInterface) ∗
-      mvcc.isReadView rv E.s E.γ) ∗
+    "#Hkv" ∷ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ □ mvcc.api.isMvcc kv E.γ ∗ ⌜kv = E.kv⌝) ∗
     "HWB" ∷ srvWTBudget E ∗
-    "#Hsmall" ∷ storeSmall E.γ ∗
     "#HNR" ∷ □ (|==> idCred ρ.ids 1) ∗
     "#Hcv" ∷ clusterVersionOk s ∗
     -- (the backend-auth-split stage, 2026-11-02) within the backend's pool of readers (`2 ^ 28`;

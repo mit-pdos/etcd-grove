@@ -72,7 +72,7 @@ theorem SetUp.wp_proof
   wp_apply wp_Principals as %psl Hpsl
   ihave %Hpl := ownSlice_len $$ Hpsl
   (try wp_auto)
-  imod mvcc.idxCert_nil (GF := GF) E.γ.idx with #HF0
+  imod v3rpc.kvLogLb_nil (GF := GF) E.γs with #HF0
   ihave #Hnil : optsAt (GF := GF) slice.nil [] $$ []
   · iunfold optsAt
     iexists ([] : List GoFunc)
@@ -177,7 +177,7 @@ theorem SetUp.wp_proof
     wp_apply context.wp_Background
     (try wp_auto)
     wp_apply (client.wp_WithTimeout_bgMd hWT wp_ErrAny hAs _) $$ []
-      as %cctx %cd %cancel ⟨#Hcancel, #Hctx, #Hce, -, %Hout⟩
+      as %cctx %cd %cancel ⟨#Hcancel, #Hctx, #Hce, -, %Hout, -⟩
     ihave #Hx : setupCtx s conn (GoInterface.ok cctx) $$ []
     · iunfold setupCtx; iframe Hctok Htls; ipureintro; exact Hout
     (try wp_auto)

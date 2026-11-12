@@ -31,7 +31,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 bytes that decode back to `m` (`ccDecodeV2`, what `proto.Unmarshal` makes of bytes, `CCModel.lean`) and
 a `nil` error; the message is untouched but for its size cache (hidden).
 
-Against protobuf-go v1.36.11 (`proto/encode.go`): `Marshal` fails only on a required field
+Against protobuf-go v1.36.12 (`proto/encode.go`): `Marshal` fails only on a required field
 unset, an invalid UTF-8 string (proto3 `string` or `enforce_utf8`) or a size mismatch from a
 concurrent mutation; `raft.proto` is proto2 with no `required` and no `string` field, and the
 caller's fraction excludes a concurrent writer, so the error is `nil`. The output is the
@@ -39,7 +39,14 @@ encoding of every populated field and the unknown fields, and `proto.Unmarshal` 
 `ConfChangeV2` yields the same populated fields (proto2 presence: an unset scalar decodes unset and
 reads as `0`, as `ConfChangeV2M` records it; `Context`'s bytes are the same, a `nil` and an empty one both
 `[]`). No pure encoder is claimed (the bytes depend on which fields are set, which `ConfChangeV2M`
-forgets): the round trip is the postcondition. -/
+forgets): the round trip is the postcondition. (Premise fixes 1, 2026-11-10) The round trip
+holds for the unknown fields an object of the verified programs can hold, which `pbMsg` now
+constrains (`ufWire` at the type's schema, `PbSchema.lean`, per-type models stage A: unknown fields
+as protobuf-go's decoder leaves them, which a re-decode puts back among the unknown fields), not for arbitrary bytes: a record of the message's own field number and
+wire type overrides that field, and garbage does not decode (the premise attack; Go:
+`examples/premisefix/confchange`, `TestRoundTripArbitraryUnknownFails` and
+`TestRoundTripUnmarshalLeftovers`). Until then `pbMsg` admitted any bytes and this axiom was false
+of `ProtoReflect().SetUnknown`'s objects (which no translated code makes). -/
 abbrev proto.MarshalConfChangeV2.spec : Prop :=
   ∀ (p : Loc) (dq : DFrac) (m : ConfChangeV2M),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ ownConfChangeV2 p dq m }}

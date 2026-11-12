@@ -30,29 +30,32 @@ theorem apply.applierV3backend.AuthStatus.wp_proof
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.AuthStatus.spec (GF := GF) (hG := hG) := by
   intro E p log
-  wp_start as ⟨#Hb, Hkv⟩
+  wp_start as ⟨#Hb, Htt, Hkv⟩
   ihave #Hb' := Hb
   iunfold apply.backendIs at Hb'
   icases Hb' with ⟨%opts, #Hopts, #Hok⟩
   iunfold apply.backendOptsOk at Hok
-  icases Hok with ⟨-, -, -, -, #Has, -⟩
+  icases Hok with ⟨-, -, -, -, -, #Has, -⟩
   iunfold apply.isAuthStore at Has
   icases Has with ⟨%ai, %Hai, -, -, -, -, -, #HEn, #HRev, -⟩
   iStructNamed Hopts
   wp_auto
   rw [Hai]
   iunfold apply.kvOwn at Hkv
-  icases Hkv with ⟨Hrd, Hsw, Hknown, Hard, Hwo⟩
+  icases Hkv with ⟨⟨%cr, Hsw⟩, Hbk, Hll, Hard⟩
   wp_apply HEn $$ [$Hard] as %en ⟨Hard, -⟩
   wp_apply HRev as %rev -
-  wp_apply (hHdr E p log) $$ [$Hpkg $Hb $Hrd $Hsw] as %h ⟨Hrd, Hsw, -⟩
+  wp_apply (hHdr E p log cr) $$ [$Hpkg $Hb $Htt $Hsw] as %h ⟨Htt, Hsw, -⟩
   irename «$r0» => Hl
   generalize «$r0_ptr» = l at *
   iapply HΦ
+  isplitl [Htt]
+  · iexact Htt
   isplitl; rotate_left
   · first | iexact HeI | iapply applyErrIs_nil
   iunfold apply.kvOwn
-  iframe
+  iframe Hbk Hll Hard
+  iexists cr; iexact Hsw
 
 end proof
 

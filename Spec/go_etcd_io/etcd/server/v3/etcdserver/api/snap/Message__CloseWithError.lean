@@ -4,7 +4,8 @@
 the message's reader and sends `err == nil` on its `closeC` (`NewMessage`'s channel, of one slot,
 whose receives carry nothing: `isChanBag` at `True`; a second send would block, which a partial
 correctness spec allows). The snapshot sender calls it once, after its post, from `send`'s
-`defer`. The trust boundary (an axiom once the sender's proof uses it, stage 7d). Lean-first (no
+`defer`. True of every `msgIs` because only `NewMessage` makes it, of a reader whose `Close`
+returns (`io.rcCloseOk`, its premise; sweep repairs 1, S1, 2026-11-08). The trust boundary (an axiom once the sender's proof uses it, stage 7d). Lean-first (no
 Rocq counterpart).
 -/
 module

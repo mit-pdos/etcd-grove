@@ -62,7 +62,7 @@ unchanged, and `cluster.go` changes only in `IsLocalMemberLearner`, which no bul
   boot log, and it is at least as long). `members_removed` stays empty (no `RemoveNode`:
   `ccLogOk`); `cluster` holds only the version `SetVersion` saves (`semver`'s `String()` of a
   parsed version, `semverNorm`, which `semver.MustParse` reads back) and no downgrade record
-  (`DowngradeInfoSet` is not in the workload, `plainCover`).
+  (`DowngradeInfoSet` is not in the workload: `clusterVerLogOk`, the premise).
 * *The members are the static cluster's, the local member among them, none removed.* The later
   conf changes of `L'` are `AddNode`s of members of raft's configuration, the boot peers
   (`ccLogOk`), which `ValidateConfigurationChange` rejects (`ErrIDExists`: `ccValidOn` false), so
@@ -83,9 +83,13 @@ unchanged, and `cluster.go` changes only in `IsLocalMemberLearner`, which no bul
   (`memBoot`; `restUpdateAttrs` adds no key; the conf changes are rejected).
   (Reviewed with the `axiom` skill: `notes/axiom-review/clusterimage-ids.md`, survives.)
 * *The cluster version passes `MustDetectDowngrade`.* `Recover` panics only if the version in
-  `cluster` is above the server's own major.minor (`downgrade.go:42-55`). The only proposer of
-  `ClusterVersionSet` is a member's `monitorClusterVersions` (`updateClusterVersionV3`), with
-  `decideClusterVersion`'s minimum of the members' versions, all the binary's: never above it.
+  `cluster` is above the server's own major.minor (`downgrade.go:42-55`). Every `ClusterVersionSet`
+  of `L'` is `semverValid` and `semverAtMostServer`, and none is a `DowngradeInfoSet`
+  (`clusterVerLogOk`, the premise; the only proposer of either is a member's
+  `monitorClusterVersions`, `updateClusterVersionV3`, with `decideClusterVersion`'s minimum of the
+  members' versions, all the binary's, whose `monitorReq` the KV invariant keeps). (Sweep repairs 1,
+  S4, 2026-11-07: until then that step was the argument, not a premise, and the statement was
+  stronger than it: `notes/axiom-review/membership-alarm.md`, attack 8.)
 
 Not true for a cluster that changes membership (a `RemoveNode`, an added member), for a log
 shorter than the boot log (its image misses boot members `mem` already has), or across binaries
@@ -96,6 +100,8 @@ abbrev membership.clusterImageOk_restModel.spec : Prop :=
     -- (merge of D43 M5, 2026-10-27) `ccLogOk`'s static form, which `ccLogOk` was before M5d made it
     -- mode-aware (the same statement as before the merge)
     (∀ m ∈ L', m.typ ≠ W32 0 → ccBootOk γ.raft.cfg m.data) →
+    -- (sweep repairs 1, S4) the normal entries' cluster requests: the KV invariant's per-entry fact
+    clusterVerLogOk L' →
     -- (2026-11-06, the ids form) any in-memory members with the model's ids
     ∀ (mem : GMap w64 apply.MemberM),
       (∀ k, (mem !! k).isSome = ((restModel c0 γ.raft.boot L).mem !! k).isSome) →

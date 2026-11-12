@@ -315,6 +315,17 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
         isplitr
         · iapply mvcc.notifiedLent_none
         isplitr
+        · iapply mvcc.mv_revApi γ r γw.lo (evsw ++ b.evs) (sint.nat stw.minRev) _
+            (by intro h; exact Hbne (List.append_eq_nil_iff.1 h).2) ?_ $$ Hwf
+          have hb : ∃ ev, ev ∈ b.evs := by
+            cases hb : b.evs with
+            | nil => exact absurd hb Hbne
+            | cons ev _ => exact ⟨ev, List.mem_cons_self ..⟩
+          obtain ⟨ev, hev⟩ := hb
+          have := hevs ev hev
+          show (sint.Z (stw.minRev - W64 1)).toNat < (sint.Z stw.minRev).toNat
+          rw [hrev]; omega
+        isplitr
         · ipureintro; intro h; exact absurd h Hbne
         isplitr
         · ipureintro; intro h; simp [cs, h]
@@ -679,12 +690,12 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
     iNamed HQ
     obtain ⟨-, HLC, HPS', Hset', Hsrb', Hur', HL1⟩ := Hq
     wp_auto
-    wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl HrevQ HclogQ HbucketQ HtoksQ HlogQ HcmpQ HcrevQ HrstR]
+    wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrl HrevQ HclogQ HbucketQ HtoksQ HlogQ HcmpQ HcrevQ HXQ HrstR]
     · inext
       iapply mvcc.revMuInv_close; iframe HrstR; iunfold mvcc.revMuBody
       iexists C, ntok, cQ
       simp only [named]
-      iframe HrevQ HclogQ HbucketQ HtoksQ HlogQ HcmpQ HcrevQ
+      iframe HrevQ HclogQ HbucketQ HtoksQ HlogQ HcmpQ HcrevQ HXQ
       iframe #
       ipureintro; exact ⟨HneQ, HbudgetQ, HcQ⟩
     iintro HrevMuR

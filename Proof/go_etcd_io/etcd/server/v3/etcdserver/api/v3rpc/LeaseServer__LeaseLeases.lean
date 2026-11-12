@@ -43,7 +43,7 @@ theorem v3rpc.LeaseServer.LeaseLeases.wp_proof
     (hFill : v3rpc.header.fill.spec (GF := GF) (hG := hG)) :
     v3rpc.LeaseServer.LeaseLeases.spec (GF := GF) (hG := hG) := by
   intro p s A cid mid E γl S ci cd r n m
-  wp_start as ⟨#Hls, #HL, HS, HR, #Hctx, #Hpub, #Hllb⟩
+  wp_start as ⟨#Hls, #HL, HS, HR, #Hctx, #Hlib, #Hpub, #Hllb⟩
   ihave #Hls' := Hls
   iunfold v3rpc.leaseServerAt at Hls'
   icases Hls' with ⟨%Hpn, #Hhdr, #Hle, -⟩
@@ -72,7 +72,7 @@ theorem v3rpc.LeaseServer.LeaseLeases.wp_proof
     iunfold leasesRespIs at Hresp
     icases Hresp with ⟨%w, Hw, Hh, Hlist⟩
     iunfold srvHeaderAt at Hh
-    icases Hh with ⟨%hv, %log, Hhv, #Hcert, %Hlog⟩
+    icases Hh with ⟨%hv, %log, Hhv, #Hcert, -, -, %Hlog⟩
     ihave %Hh := typedPointsto_not_null _ _ _ $$ Hhv
     wp_auto
     -- `ls.hdr.fill(resp.Header)`
@@ -112,8 +112,8 @@ theorem v3rpc.LeaseServer.LeaseLeases.wp_proof
     iframe Hrev
     iframe #
     ipureintro
-    refine ⟨Hlog.1, fun h0 => ?_⟩
-    rw [← Hlog.2.2.2]; exact Hrr (by rw [Hlog.2.2.2]; exact h0)
+    refine ⟨Hlog.2.1, fun h0 => ?_⟩
+    rw [← Hlog.2.2.2.2]; exact Hrr (by rw [Hlog.2.2.2.2]; exact h0)
   · obtain ⟨rfl, Hen, HaOn⟩ := Hn
     cases err with
     | nil => exact absurd rfl Hen

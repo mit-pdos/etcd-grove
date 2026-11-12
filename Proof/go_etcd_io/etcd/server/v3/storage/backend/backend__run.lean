@@ -41,7 +41,7 @@ theorem backend.backend.run.wp_proof
   intro γ P W Pk b sc dc γsc γdc u d
   wp_start as ⟨#Hb, #Hsc, #Hbi, Hdcp, Hrt, Hq, Hus⟩
   icases isBackend_b γ P W Pk b $$ Hb with
-    ⟨%t, %rt, %db, %lg, #Ht, #Hrt, #Hlg, %Hlgn, #Hmi, #Hbe, #Hm, #Hrg, #Hmug, #Hisdb, #Hci, %HP⟩
+    ⟨%t, %rt, %db, %lg, #Ht, #Hrt, #Hlg, #Hlgn, #Hmi, #Hbe, #Hm, #Hrg, #Hmug, #Hisdb, #Hci, %HP⟩
   unfold isStopChansAt
   icases Hsc with ⟨#Hscf, #Hdcf, #Hscb, #Hdcb, #Hinv⟩
   ihave #Hscc := ownBroadcastChan_is_chan _ _ _ _ $$ Hscb
@@ -102,6 +102,10 @@ theorem backend.backend.run.wp_proof
         · simp only [Bool.false_eq_true, ↓reduceIte]
           rw [vData_free P st Hfo.1.1 Hfo.1.2.2.1 Hfo.1.2.2.2.1]
           iapply thinV_refl
+        isplitr
+        · ipureintro; intro h; cases h
+        isplitr
+        · ipureintro; exact Hfo.1.2.2.2.2
         unfold payIn
         rw [if_neg (by decide), if_neg (by decide), if_pos rfl]
         iframe Hus Hlb

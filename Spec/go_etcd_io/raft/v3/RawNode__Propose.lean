@@ -68,6 +68,8 @@ abbrev RawNode.Propose.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs ∗
       "#Hdata" ∷ data_sl ↦*□ data ∗
+      -- (raft-entsize §3, 2026-11-09) the data within the cluster's bound, if any
+      "%Hmd" ∷ ⌜∀ b, γ.maxData = some b → data.length ≤ b⌝ ∗
       "#Hent" ∷ propData γ (propEntryM data) ∗
       -- (2026-10-19, D21 M6) its ticket (or that it may be proposed any number of times)
       "Htk" ∷ entTk γ (propEntryM data) }}

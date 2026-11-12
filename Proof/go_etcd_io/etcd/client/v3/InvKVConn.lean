@@ -527,6 +527,41 @@ instance rangeRespMsg_persistent (l : Loc) (m : RangeRespM) :
     Persistent (rangeRespMsg (GF := GF) l m) := by
   unfold rangeRespMsg; infer_instance
 
+/-- **The read-only part of a decoded `*pb.RangeResponse` `l` holding `m`** (k8s 7e-1): `rangeRespMsg`
+but the key-values (its header, `More`, `Count`; `pbRangeResponse.recv`). -/
+def rangeRespRecv (l : Loc) (m : RangeRespM) : IProp GF :=
+  iprop(⌜l ≠ null⌝ ∗ ∃ h : Loc,
+    structFieldRef etcdserverpb.RangeResponse go!"Header" l ↦□ h ∗ hdrFull h m.hdr ∗
+    structFieldRef etcdserverpb.RangeResponse go!"More" l ↦□ m.more ∗
+    structFieldRef etcdserverpb.RangeResponse go!"Count" l ↦□ m.count)
+
+instance rangeRespRecv_persistent (l : Loc) (m : RangeRespM) :
+    Persistent (rangeRespRecv (GF := GF) l m) := by
+  unfold rangeRespRecv; infer_instance
+
+/-- **The owned key-values of a decoded `*pb.RangeResponse` `l` holding `m`** (k8s 7e-1;
+`pbRangeResponse.recvOwn`): its `Kvs` slice (field read-only), whose cells the caller owns
+(Kubernetes' store writes `resp.Kvs[i] = nil`), each element read-only. -/
+def rangeRespKvsOwn (l : Loc) (m : RangeRespM) : IProp GF :=
+  iprop(∃ (sl : GoSlice) (ps : List Loc),
+    structFieldRef etcdserverpb.RangeResponse go!"Kvs" l ↦□ sl ∗ sl ↦* ps ∗ txn.kvsIs ps m.kvs)
+
+/-- **A decoded `*pb.RangeResponse` `l` holding `m`, its `Kvs` cells owned** (k8s 7e-1): what a
+`Range` call returns (`rangeCallOut`); `rangeRespMsgO_persist` gives `rangeRespMsg`. -/
+def rangeRespMsgO (l : Loc) (m : RangeRespM) : IProp GF :=
+  iprop(rangeRespRecv l m ∗ rangeRespKvsOwn l m)
+
+theorem rangeRespMsgO_persist (l : Loc) (m : RangeRespM) :
+    rangeRespMsgO (GF := GF) l m ⊢ |==> rangeRespMsg l m := by
+  unfold rangeRespMsgO rangeRespRecv rangeRespKvsOwn rangeRespMsg
+  iintro ⟨⟨%Hnn, %h, #HH, #Hh, #HM, #HC⟩, %sl, %ps, #HK, Hsl, #Hkvs⟩
+  imod ownSlice_persist _ _ _ $$ Hsl with #Hsl
+  imodintro
+  isplitr
+  · ipureintro; exact Hnn
+  iexists h, sl, ps
+  iframe #
+
 /-- **The `*pb.DeleteRangeResponse` `l` holds the message `m`** (read-only). -/
 def delRespMsg (l : Loc) (m : DelRespM) : IProp GF :=
   iprop(⌜l ≠ null⌝ ∗ ∃ (h : Loc) (sl : GoSlice) (ps : List Loc),
@@ -1028,8 +1063,27 @@ def putCallOut (Q : PutRespM → IProp GF) (resp : Loc) (err : GoInterface) : IP
 
 /-- **What a unary `Range` call returns** to the client (as `putCallOut`). -/
 def rangeCallOut (Q : RangeRespM → IProp GF) (resp : Loc) (err : GoInterface) : IProp GF :=
+  iprop((⌜err = GoInterface.nil⌝ ∗ ∃ m : RangeRespM, rangeRespMsgO resp m ∗ Q m) ∨
+    (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗ statusErrOk err ∗ errCellOk err))
+
+/-- **`rangeCallOut` with the reply read-only** (`rangeRespMsg`; k8s 7e-1): what a caller that does
+not write the reply's key-values keeps of it (`rangeCallOut_persist`). -/
+def rangeCallOutP (Q : RangeRespM → IProp GF) (resp : Loc) (err : GoInterface) : IProp GF :=
   iprop((⌜err = GoInterface.nil⌝ ∗ ∃ m : RangeRespM, rangeRespMsg resp m ∗ Q m) ∨
     (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗ statusErrOk err ∗ errCellOk err))
+
+theorem rangeCallOut_persist (Q : RangeRespM → IProp GF) (resp : Loc) (err : GoInterface) :
+    rangeCallOut Q resp err ⊢ |==> rangeCallOutP Q resp err := by
+  unfold rangeCallOut rangeCallOutP
+  iintro (⟨%He, %m, Hm, Hq⟩ | H)
+  · imod rangeRespMsgO_persist _ _ $$ Hm with #Hm
+    imodintro
+    ileft
+    isplitl []
+    · ipureintro; exact He
+    iexists m
+    iframe Hm Hq
+  · imodintro; iright; iexact H
 
 /-- **What a unary `DeleteRange` call returns** (as `putCallOut`; the vertical slice's unit V2). -/
 def deleteCallOut (Q : DelRespM → IProp GF) (resp : Loc) (err : GoInterface) : IProp GF :=
@@ -1085,8 +1139,9 @@ def pbRangeResponse : ProtoMsg GF where
   ty := etcdserverpb.RangeResponse.ty
   M := RangeRespM
   send := rangeRespMsg
-  recv := rangeRespMsg
+  recv := rangeRespRecv
   recv_persistent _ _ := inferInstance
+  recvOwn := rangeRespKvsOwn
   blank l := iprop(l ↦ (zero_val etcdserverpb.RangeResponse))
   own l := iprop(∃ v : etcdserverpb.RangeResponse, l ↦ v)
   blank_own l := by iintro H; iexists _; iexact H
@@ -1125,7 +1180,9 @@ transactions, `notes/txn-nested.md`); the decoded copy denotes the same transact
 (`txn.txnRequestIs`: the txn package's model of the server's request) and is as protobuf decodes it
 (`txnWireOk`: each delete's `RangeEnd`, at every depth, `nil` or not empty, an empty `bytes` field
 being decoded as `nil`; fewer than `2 ^ 63` deletes per branch, at every depth, each at least a byte
-of the message). -/
+of the message). Its `wireLen` (`txnWireLen`) is claimed for messages whose nested levels have no
+unknown fields: only the outer struct's are pinned (`send`), the nested levels' are neither pinned
+nor counted (`ProtoMsg.wireLen`'s scope). -/
 def pbTxnRequest : ProtoMsg GF where
   ty := etcdserverpb.TxnRequest.ty
   M := TxnModel
@@ -1271,11 +1328,12 @@ abbrev clientAttemptMd (conn : Loc) (ctx : GoInterface) (md : GrpcMd) : Prop :=
 /-- **A call's precondition at every attempt** (the auth plan's E3zc): the metadata-indexed `Spec`'s
 for the request `m` and the caller's `Φ`, at every metadata an attempt of the call on `conn` with
 the context `ctx` may deliver (`clientAttemptMd`). At a plain spec (`GrpcSpec.md`) it is the
-spec's (`attemptPre_md`). The error outcome is not asked for (`fun _ => True`): no client spec
-speaks of a failed call's description yet. -/
+spec's (`attemptPre_md`). The error outcome `Ψe` (k8s 7e-1: what the caller asks of a failed
+attempt's description, `ifcErrOut`) is `fun _ => True` by default, for the callers that ask none. -/
 def attemptPre {Req Rep : ProtoMsg GF} (conn : Loc) (ctx : GoInterface) (Spec : GrpcSpecMd Req Rep)
-    (m : Req.M) (Φ : Rep.M → IProp GF) : IProp GF :=
-  iprop(∀ md, ⌜clientAttemptMd conn ctx md⌝ -∗ Spec md m Φ (fun _ => iprop(True)))
+    (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF := fun _ => iprop(True)) :
+    IProp GF :=
+  iprop(∀ md, ⌜clientAttemptMd conn ctx md⌝ -∗ Spec md m Φ Ψe)
 
 /-- A plain spec's precondition is one at every attempt. -/
 theorem attemptPre_md {Req Rep : ProtoMsg GF} (conn : Loc) (ctx : GoInterface)
@@ -1296,14 +1354,66 @@ context `c` (`withVersion.spec`'s outgoing metadata). -/
 theorem attemptPre_attempt {Req Rep : ProtoMsg GF} (conn : Loc) (ctx c : GoInterface) (v : GoString)
     (hc : metadata.outgoingOf c =
       metadata.mdSet (metadata.outgoingOf ctx) go!"client-api-version" [v])
-    (Spec : GrpcSpecMd Req Rep) (m : Req.M) (Φ : Rep.M → IProp GF) :
-    attemptPre conn ctx Spec m Φ ⊢
-      ∀ md, ⌜grpcAttemptMd conn c md⌝ -∗ Spec md m Φ (fun _ => iprop(True)) := by
+    (Spec : GrpcSpecMd Req Rep) (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) :
+    attemptPre conn ctx Spec m Φ Ψe ⊢
+      ∀ md, ⌜grpcAttemptMd conn c md⌝ -∗ Spec md m Φ Ψe := by
   iintro H %md %h
   unfold attemptPre
   iapply H
   ipureintro
   exact ⟨c, v, hc, h⟩
+
+/-- **The retry interceptor's error outcome** (k8s 7e-1): the caller's `Ψe` at a returned error's
+description when it is a handler's (`handlerDescs`), for a KV method on a refusal-free connection
+(`noRefusalAt`: the token refresh, whose error is not an attempt's, follows only a refusal). The
+error is then the last attempt's (a wait's error is a context error's, never a handler's
+description: `waitRetryBackoff.spec`), with the invoker's outcome (`grpcInvokerOk`). -/
+def ifcErrOut (method : GoString) (addr : List GoString) (Ψe : GoString → IProp GF)
+    (err : GoInterface) : IProp GF :=
+  iprop(⌜kvMethod method ∧ ∀ a ∈ addr, noRefusalAt a⌝ -∗
+    ⌜go_etcd_io.etcd.cache.v3.errDesc err ∈ handlerDescs⌝ -∗
+    Ψe (go_etcd_io.etcd.cache.v3.errDesc err))
+
+theorem ifcErrOut_notin (method : GoString) (addr : List GoString) (Ψe : GoString → IProp GF)
+    (err : GoInterface) (h : err = GoInterface.nil ∨ go_etcd_io.etcd.cache.v3.errDesc err ∉ handlerDescs)
+    (hne : err ≠ GoInterface.nil) : ⊢ ifcErrOut (GF := GF) method addr Ψe err := by
+  unfold ifcErrOut
+  iintro - %hm
+  rcases h with h | h
+  · exact absurd h hne
+  · exact absurd hm h
+
+theorem ifcErrOut_of_attempt (method : GoString) (addr : List GoString) (Ψe : GoString → IProp GF)
+    (err : GoInterface) :
+    (⌜go_etcd_io.etcd.cache.v3.errDesc err ∈ handlerDescs⌝ -∗
+      Ψe (go_etcd_io.etcd.cache.v3.errDesc err)) ⊢ ifcErrOut (GF := GF) method addr Ψe err := by
+  unfold ifcErrOut
+  iintro H - %hm
+  iapply H
+  ipureintro; exact hm
+
+theorem ifcErrOut_absurd (method : GoString) (addr : List GoString) (Ψe : GoString → IProp GF)
+    (err : GoInterface) (h : (kvMethod method ∧ ∀ a ∈ addr, noRefusalAt a) → False) :
+    ⊢ ifcErrOut (GF := GF) method addr Ψe err := by
+  unfold ifcErrOut
+  iintro %hk
+  exact absurd hk h
+
+/-- The outcome carries over to an error `err'` of the same description, or of none of the handlers'
+(`ContextError`'s result). -/
+theorem ifcErrOut_desc (method : GoString) (addr : List GoString) (Ψe : GoString → IProp GF)
+    (err err' : GoInterface)
+    (h : go_etcd_io.etcd.cache.v3.errDesc err' = go_etcd_io.etcd.cache.v3.errDesc err ∨
+      go_etcd_io.etcd.cache.v3.errDesc err' ∉ handlerDescs) :
+    ifcErrOut (GF := GF) method addr Ψe err ⊢ ifcErrOut method addr Ψe err' := by
+  unfold ifcErrOut
+  iintro H %hk %hm
+  rcases h with h | h
+  · rw [h] at hm ⊢
+    iapply H
+    · ipureintro; exact hk
+    · ipureintro; exact hm
+  · exact absurd hm h
 
 /-- **The client's retry interceptor's contract** (persistent; unit P3a: what
 `Client.unaryClientInterceptor` returns, `Client__unaryClientInterceptor.lean`): called on a
@@ -1319,23 +1429,27 @@ contract's premise, `grpcInvokerOk`), it returns
   its reply's copy of a response (`Rep.recv out m'`) with its run's `Φ m'`; other attempts may
   have run the handler: an attempt that failed with a gRPC `Canceled` or `DeadlineExceeded` while
   `ctx` is not done is retried whatever the method (`nonissues/etcd-client-retry-put-ctx-error.md`);
-* an error: a client error (`clientErr`) that grpc's `status` accepts (`statusErrOk`); nothing
+* an error: a client error (`clientErr`) that grpc's `status` accepts (`statusErrOk`), with the
+  caller's error outcome `Ψe` at a handler's description (`ifcErrOut`, k8s 7e-1); nothing else
   about whether, or how often, the handler ran, nor about `out`. -/
 def etcdInterceptorOk (ic : GoFunc) : IProp GF :=
   iprop(□ ∀ (conn : Loc) (addr : List GoString) (ics : List GoFunc) (dopts : List GoInterface)
-      (inv : GoFunc) (method : GoString) (Req Rep : ProtoMsg GF) (Spec : GrpcSpecMd Req Rep)
-      (m : Req.M) (Φ : Rep.M → IProp GF) (ctx : GoInterfaceOk)
+      (inv : GoFunc) (method : GoString) (Req Rep : ProtoMsgT GF)
+      (_ : grpcReqModelOf GF Req.ty = some Req) (_ : grpcRepModelOf GF Rep.ty = some Rep)
+      (Spec : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg)
+      (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) (ctx : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (inp out : Loc) (opts : GoSlice)
       (vs : List GoInterface),
     {{ grpcConn conn addr ics dopts ∗ grpcInvokerOk conn addr inv ∗ isGrpcRpcsMd addr method Spec ∗
-        □ ▷ attemptPre conn (GoInterface.ok ctx) Spec m Φ ∗ ctxOk ctx cd ∗ Req.send inp m ∗ Rep.blank out ∗
+        □ ▷ attemptPre conn (GoInterface.ok ctx) Spec m Φ Ψe ∗ ctxOk ctx cd ∗ Req.send inp m ∗ Rep.blank out ∗
         opts ↦*□ vs ∗ callOptsOk vs ∗ ⌜Req.wireLen m < grpcMsgMax⌝ }}
       (interceptorCall ic #(GoInterface.ok ctx) #method
         #(interface.mkOk (go.GoType.PointerType Req.ty) #inp : GoInterface)
         #(interface.mkOk (go.GoType.PointerType Rep.ty) #out : GoInterface) #conn inv #opts)
     {{ (err : GoInterface), RET #err; Req.send inp m ∗
-        ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Φ m') ∨
-          (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ statusErrOk err ∗ errCellOk err)) }})
+        ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Rep.recvOwn out m' ∗ Φ m') ∨
+          (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ statusErrOk err ∗ errCellOk err ∗
+            ifcErrOut method addr Ψe err)) }})
 
 instance etcdInterceptorOk_persistent (ic : GoFunc) : Persistent (etcdInterceptorOk (GF := GF) ic) := by
   unfold etcdInterceptorOk; infer_instance
@@ -1365,19 +1479,22 @@ def modePre (md : AttemptMode) (method : GoString) (addr : List GoString) (vs : 
 `etcdInterceptorOkW` (`.write`). -/
 def etcdInterceptorOkM (md : AttemptMode) (ic : GoFunc) : IProp GF :=
   iprop(□ ∀ (conn : Loc) (addr : List GoString) (ics : List GoFunc) (dopts : List GoInterface)
-      (inv : GoFunc) (method : GoString) (Req Rep : ProtoMsg GF) (Spec : GrpcSpecMd Req Rep)
-      (m : Req.M) (Φ : Rep.M → IProp GF) (ctx : GoInterfaceOk)
+      (inv : GoFunc) (method : GoString) (Req Rep : ProtoMsgT GF)
+      (_ : grpcReqModelOf GF Req.ty = some Req) (_ : grpcRepModelOf GF Rep.ty = some Rep)
+      (Spec : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg)
+      (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) (ctx : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (inp out : Loc) (opts : GoSlice)
       (vs : List GoInterface),
     {{ grpcConn conn addr ics dopts ∗ grpcInvokerOk conn addr inv ∗ isGrpcRpcsMd addr method Spec ∗
-        modePre md method addr vs (attemptPre conn (GoInterface.ok ctx) Spec m Φ) ∗ ctxOk ctx cd ∗
+        modePre md method addr vs (attemptPre conn (GoInterface.ok ctx) Spec m Φ Ψe) ∗ ctxOk ctx cd ∗
         Req.send inp m ∗ Rep.blank out ∗ opts ↦*□ vs ∗ callOptsOk vs ∗ ⌜Req.wireLen m < grpcMsgMax⌝ }}
       (interceptorCall ic #(GoInterface.ok ctx) #method
         #(interface.mkOk (go.GoType.PointerType Req.ty) #inp : GoInterface)
         #(interface.mkOk (go.GoType.PointerType Rep.ty) #out : GoInterface) #conn inv #opts)
     {{ (err : GoInterface), RET #err; Req.send inp m ∗
-        ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Φ m') ∨
-          (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ statusErrOk err ∗ errCellOk err)) }})
+        ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Rep.recvOwn out m' ∗ Φ m') ∨
+          (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ statusErrOk err ∗ errCellOk err ∗
+            ifcErrOut method addr Ψe err)) }})
 
 instance etcdInterceptorOkM_persistent (md : AttemptMode) (ic : GoFunc) :
     Persistent (etcdInterceptorOkM (GF := GF) md ic) := by
@@ -1402,9 +1519,10 @@ theorem etcdInterceptorOkM_split (ic : GoFunc) :
   isplitl []
   · ihave #H0 := H $$ %AttemptMode.any
     unfold etcdInterceptorOkM etcdInterceptorOk
-    iintro !> %conn %addr %ics %dopts %inv %method %Req %Rep %Spec %m %Φ %ctx %cd %inp %out %opts
-      %vs %Ψ !> ⟨#Hgc, #Hinv, #Hrpc, #Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok, #Hsz⟩ HΨ
-    iapply H0 $$ [Hsend Hblank] HΨ
+    iintro !> %conn %addr %ics %dopts %inv %method %Req %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd %inp
+      %out %opts %vs %Ψ !> ⟨#Hgc, #Hinv, #Hrpc, #Hpre, #Hctx, Hsend, Hblank, #Hopts, #Hok, #Hsz⟩ HΨ
+    iapply H0 $$ %conn %addr %ics %dopts %inv %method %Req %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd
+      %inp %out %opts %vs %Ψ [Hsend Hblank] HΨ
     unfold modePre
     iframe #
     iframe
@@ -1486,10 +1604,10 @@ instance ctxErrClient_persistent (ci : GoInterfaceOk) (cd : context.ContextDesc 
     Persistent (ctxErrClient ci cd) := by
   unfold ctxErrClient; infer_instance
 
-/-- `ctxErrClient` is `ctxOk`'s third case, `ctxErrs` (grpc's, which this file's definition
-predates). -/
+/-- `ctxErrClient` is the `Err()` half of `ctxOk`'s third case, `ctxErrsErr` (grpc's, which this
+file's definition predates; premise fixes 5: `ctxErrs` adds `Done()`'s, `ctxDone`). -/
 theorem ctxErrClient_eq_errs (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
-    ctxErrClient (GF := GF) ci cd = ctxErrs ci cd := rfl
+    ctxErrClient (GF := GF) ci cd = ctxErrsErr ci cd := rfl
 
 namespace client
 

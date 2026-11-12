@@ -45,11 +45,11 @@ theorem wp_clusterConfig : EtcdGrove.k8s_etcd3.clusterConfig.spec (GF := GF) (hG
 /-- **The driver's `MainCluster` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/MainCluster.lean`), under the semantic
 premises of its callees' linked results (`Main`'s, and the three-member cluster's). -/
-theorem wp_MainCluster [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics]
+theorem wp_MainCluster [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.k8s_etcd3.MainCluster.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.MainCluster.wp_proof zap.wp_NewNop wp_clusterConfig cluster3.wp_StartCluster
-    kubernetes.wp_New wp_seed k8s.wp_New k8s.wp_NewDefaultLeaseManagerConfig wp_newObj
+    kubernetes.wp_New wp_seed wp_noStreaming k8s.wp_New k8s.wp_NewDefaultLeaseManagerConfig wp_newObj
     runtime.wp_Encode codec.wp_Encode versioner.wp_UpdateObject versioner.wp_PrepareObjectForStorage
     versioner.wp_ObjectResourceVersion versioner.wp_ParseResourceVersion
     identity.wp_TransformFromStorage identity.wp_TransformToStorage decoder.wp_Decode
@@ -58,11 +58,11 @@ theorem wp_MainCluster [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64
 /-- **The driver's `MainPartition` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/MainPartition.lean`), under the semantic
 premises of its callees' linked results (`MainCluster`'s, and the cluster's `Partitioner`). -/
-theorem wp_MainPartition [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics]
+theorem wp_MainPartition [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.k8s_etcd3.MainPartition.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.MainPartition.wp_proof zap.wp_NewNop wp_clusterConfig cluster3.wp_StartCluster
-    cluster3.wp_Partitioner kubernetes.wp_New wp_seed k8s.wp_New k8s.wp_NewDefaultLeaseManagerConfig
+    cluster3.wp_Partitioner kubernetes.wp_New wp_seed wp_noStreaming k8s.wp_New k8s.wp_NewDefaultLeaseManagerConfig
     wp_newObj runtime.wp_Encode codec.wp_Encode versioner.wp_UpdateObject
     versioner.wp_PrepareObjectForStorage versioner.wp_ObjectResourceVersion
     versioner.wp_ParseResourceVersion identity.wp_TransformFromStorage identity.wp_TransformToStorage

@@ -18,14 +18,14 @@ trivial extension (`common/TrivialExt.lean`; the proofs are generic over the ext
 
 **Its hypotheses** (D19a; `notes/decisions.md`, D19r):
 * pure facts of the program and its environment: `BootFacts id bootLog` (the member id and the
-  bootstrap log Go computes), `ckptEffectsOk`, `authRecordsFit`,
+  bootstrap log Go computes), `authRecordsFit`,
   `apply.backendUnderQuota`, `grpcRepliesFit` (the replies' encoded size, `grpc.start`'s, 2026-10-31),
   `storage.diskOk` (D22 S-j2), `namesUnclaimed`/`addrsUnclaimed` (D19d),
   and the execution's length (`n + 2 ≤ 2 ^ 28`: the thread bound and, with `N = n + 1`, the
   time-receipt bounds; it also gives `n + 7 ≤ backend.wbInit`, the backend's write-back budget
   `bootstrap`'s contract takes, since 2026-11-01 derived instead of assumed);
 * the semantics: `go.Semantics`, the package assumptions (`putget`'s, the cache's), and the
-  model classes the proofs take (`Float64ToInt64Semantics`, `DialWithBalancerBody`,
+  model classes the proofs take (`DialWithBalancerBody`,
   `log.NewModel`; the method-set facts, `v3rpc.ServerMethodSets`, `errors.AsTarget` of
   `rpctypes.EtcdError`, `ErrorStringLeaf`, `RpctypesEtcdErrorMethods`, are theorems of the
   package assumptions), and `ContextReadErrs` (`context.Canceled`'s and `DeadlineExceeded`'s method
@@ -115,18 +115,20 @@ thread is stuck; no thread has ended in a panic. -/
 theorem etcd_putget_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.putget.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC putgetGF, ContextReadErrs (GF := putgetGF) (hG := heapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC putgetGF, ContextErrsClient (GF := putgetGF) (hG := heapAt hG lctx))
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : etcd_putget.BootFacts id ctxs boot)
-    (Hck : ckptEffectsOk) (Haf : authRecordsFit)
+    (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (HNs : prometheus.namesUnclaimed putgetProgram putgetNames)
     (HAs : addrsUnclaimed putgetProgram [go!"127.0.0.1:23790"])
     -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
     (HDs : dataDirsAbsent putgetProgram [go!"putget.etcd"])
+    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
+    (HEnv : verifyEnvOff putgetProgram)
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetGF,
       ⊢ etcd_putget.premises (GF := putgetGF) (hG := heapAt hG lctx) n id ctxs boot)
@@ -138,7 +140,7 @@ theorem etcd_putget_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  refine etcd_adequate_members (GF := putgetGF) github_com.mit_pdos.etcd_grove.examples.etcd.putget.initialize'
+  refine etcd_adequate_members (GF := putgetGF) (hAsLit := by decide) (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.putget.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.putget.Main) #())
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23790"] (by decide) [go!"putget.etcd"] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
     -- (hub step 7) the one member's start bundle: its client address, its data directory
@@ -153,7 +155,8 @@ theorem etcd_putget_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   iintro #Hinit Htok ⟨Hms, -⟩
   icases BigSepL.bigSepL_cons.1 $$ Hms with ⟨Hstart, -⟩
   have hM := etcd_putget.wp_Main (GF := putgetGF) n id ctxs boot Hbf (by rw [HT]; word)
-    (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
+    (srvLevels_of_max HT)
+    (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
   wp_apply hM $$ [Hstart Htok]
   · iframe; iframe #
   ipureintro

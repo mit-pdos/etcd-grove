@@ -25,7 +25,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
 /-- **`_Lease_LeaseGrant_Handler(srv, ctx, dec, interceptor)`** for a service value `srv` whose type
-implements `LeaseServer` (a method-set fact) and whose `LeaseGrant` meets `Spec` with the resource `S`
+implements `LeaseServer` (a method-set fact) and whose `LeaseGrant` meets `Spec` with the resource `S` and the interceptors' resources `Rs`, which the chain lends the call (per-type stage B3)
 (`grpcHandlerOwnOkMd`: at the run's incoming metadata, given what the run owns of the decoded
 request, `Req.recvOwn`; the lease-grant plan, 2026-11-02, as `Compact`'s; a plain spec is
 `GrpcSpec.md`'s), for messages whose types are `*LeaseGrantRequest`/`*LeaseGrantResponse` (a zero
@@ -44,7 +44,7 @@ abbrev etcdserverpb._Lease_LeaseGrant_Handler.spec : Prop :=
   go.typeSetContains srv.ty etcdserverpb.LeaseServer.ty = true →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       (□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.LeaseGrantRequest) -∗ Req.blank l) ∗
-      grpcHandlerOwnOkMd #(methods srv.ty go!"LeaseGrant" srv.v) S Spec ∗ srvInterceptorsOk Q ics Rs ∗
+      grpcHandlerOwnOkMd #(methods srv.ty go!"LeaseGrant" srv.v) iprop(S ∗ [∗list] R ∈ Rs, R) Spec ∗ srvInterceptorsOk Q ics Rs ∗
       (□ ∀ l : Loc, Req.recv l m -∗
         Q (interface.mkOk (go.GoType.PointerType etcdserverpb.LeaseGrantRequest.ty) #l)) ∗
       S ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗

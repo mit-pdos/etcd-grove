@@ -28,7 +28,7 @@ Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ServerOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ServerOnDefs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ProposeOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthBound
@@ -150,9 +150,11 @@ def resultIsWOn (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (F :
       ⌜apply.applyStep rq true y y' out ∧ apply.applyFloorOk rq true F y.log out ∧ y.log = lb ∧
         out.waived = false ∧ authTie st rq out⌝ ∗
       apply.applyResultIs rq true y.log ar out ∗
-      mvcc.idxCert E.γ.idx y'.log ∗ revMinted E y.log y'.log ∗ appliedWit γr y'.log ∗
-      mvcc.certOk E.γ y'.log ∗ adminTieAr ar rq st (adminNext rq st) out ∗
-      authnArM true E ar rq out ∗ grantArM E ar rq out ∗ revokeArM E ar rq out)
+      srvApi.kvLogLb E.γs y'.log ∗ revMinted E y.log y'.log ∗ appliedWit γr y'.log ∗
+      E.Nx y'.log ∗ adminTieAr ar rq st (adminNext rq st) out ∗
+      authnArM true E ar rq out ∗
+      ⧖ (mvcc.logCh y'.log) ∗ ⌜mvcc.LogWf' y'.log ∧ y'.log.length + 3 ≤ 2 ^ 63⌝ ∗
+      grantArM E ar rq out ∗ revokeArM E ar rq out)
 
 /-- `resultIsWOn` forgets to `resultIsW`. -/
 theorem resultIsW_of_on (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (F : mvcc.Log)
@@ -160,12 +162,14 @@ theorem resultIsW_of_on (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRMod
     resultIsWOn (GF := GF) E γr rq F ar lb st ⊢ resultIsW E γr rq F ar lb := by
   iunfold resultIsWOn
   iunfold resultIsW
-  iintro ⟨%Hnn, %y, %y', %out, %Hs, Hr, Hc, Hm, Hw, Hk, -, -, Hg, Hv⟩
+  iintro ⟨%Hnn, %y, %y', %out, %Hs, Hr, Hc, Hm, Hw, Hk, -, -, #Hrc, %Hwf, Hg, Hv⟩
   isplitr
   · ipureintro; exact Hnn
   iexists y, y', out
-  iframe Hr Hc Hm Hw Hk Hg Hv
-  ipureintro; exact ⟨Hs.1, Hs.2.1, Hs.2.2.1, Hs.2.2.2.1⟩
+  iframe Hr Hc Hm Hw Hk Hrc Hg Hv
+  isplitr
+  · ipureintro; exact ⟨Hs.1, Hs.2.1, Hs.2.2.1, Hs.2.2.2.1⟩
+  ipureintro; exact Hwf
 
 /-- **The committed entry a result is of, in the mode `on`** (`entryWit`'s, see the file header):
 the mode-`on` model of the raft prefix before it is `(st, lb)`, the auth state and the log the
@@ -245,8 +249,9 @@ def adminDoneM (on : Bool) (γk : KVNames) (rq : apply.IRRModel) (L : List Entry
 /-- **The applied result as the proposer reports it, in the auth mode `on`** (the success post of
 `processInternalRaftRequestOnce.spec` with auth on): `resultIsW`'s, at the committed prefix `L` before the
 entry, with what the proposer learns of the model there (`modelOutM`); (C1's A3) an
-`Authenticate`'s response, `authnArM`; (the lease-grant plan's 2.6) a grant's answer, `grantArM`; (the lease-expiry plan's X6) a revocation's,
-`revokeArM`. -/
+`Authenticate`'s response, `authnArM`; (strict M1, 2026-11-06) the log after's receipt, well formed
+and short (`resultIsW`'s); (the lease-grant plan's 2.6) a grant's answer, `grantArM`; (the
+lease-expiry plan's X6) a revocation's, `revokeArM`. -/
 def resPostM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq : apply.IRRModel) (F : mvcc.Log)
     (ar : Loc) (L : List EntryModel) : IProp GF :=
   iprop(⌜ar ≠ null⌝ ∗
@@ -254,8 +259,9 @@ def resPostM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq : apply.IRRMode
       ⌜apply.applyStep rq true y y' out ∧ apply.applyFloorOk rq true F y.log out ∧
         out.waived = false ∧ modelOutM on ρ.kv rq L y.log out⌝ ∗
       apply.applyResultIs rq true y.log ar out ∗
-      mvcc.idxCert E.γ.idx y'.log ∗ revMinted E y.log y'.log ∗ appliedWit ρ.rd y'.log ∗
-      mvcc.certOk E.γ y'.log ∗ adminTieM on ρ.kv rq L ar out ∗ authnArM on E ar rq out ∗
+      srvApi.kvLogLb E.γs y'.log ∗ revMinted E y.log y'.log ∗ appliedWit ρ.rd y'.log ∗
+      E.Nx y'.log ∗ adminTieM on ρ.kv rq L ar out ∗ authnArM on E ar rq out ∗
+      ⧖ (mvcc.logCh y'.log) ∗ ⌜mvcc.LogWf' y'.log ∧ y'.log.length + 3 ≤ 2 ^ 63⌝ ∗
       grantArM E ar rq out ∗ revokeArM E ar rq out)
 
 /-- **The auth state after a request's entry, published, in the auth mode `on`** (the auth plan's
@@ -289,7 +295,7 @@ def authnAnsM (on : Bool) (E : apply.AEnv GF) (rq : apply.IRRModel) (resp : GoIn
         ∃ (am : apply.AuthenticateModel) (rp : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse),
           ⌜rq.authenticate = some am ∧
             resp = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty) #rp⌝ ∗
-          rp ↦ v ∗ auth.tokIssued γa v.Token' am.name)
+          rp ↦ v ∗ ⌜v.unknownFields' = slice.nil⌝ ∗ auth.tokIssued γa v.Token' am.name)
     | _ => iprop(True)
 
 theorem authnAnsM_false (E : apply.AEnv GF) (rq : apply.IRRModel) (resp : GoInterface) :
@@ -320,25 +326,30 @@ theorem authnAnsM_of_ar (on : Bool) (E : apply.AEnv GF) (ar : Loc) (rq : apply.I
     subst Hvv
     iright
     iunfold apply.authnOut at Hout
-    icases Hout with (⟨%He, -⟩ | ⟨-, %w, Hw, #Ht⟩)
+    icases Hout with (⟨%He, -⟩ | ⟨-, %w, Hw, %Hwu, #Ht⟩)
     · exact absurd hve He.1
     iexists am, resp, w
+    isplitr
+    · ipureintro; exact Hr
     iframe Hw Ht
-    ipureintro; exact Hr
+    ipureintro; exact Hwu
 
 /-- **The apply thread's answer, as `raftRequest` reports it, in the auth mode `on`** (`appliedOk`'s
 at the committed prefix `L` before the entry, with `modelOutM`; and (E3x) an admin request's step
 succeeded, `adminDoneM`; (C1's A3) an `Authenticate`'s response and its token's issue,
-`authnAnsM`; the lease-grant plan's 2.6, a grant's answer, `grantAnsM`; the lease-expiry plan's X6, a revocation's,
-`revokeAnsM`). -/
+`authnAnsM`); (strict M1, 2026-11-06) the log after's receipt, well formed and short (`resPostM`'s);
+(the lease-grant plan's 2.6) a grant's answer, `grantAnsM`; (the lease-expiry plan's X6) a
+revocation's, `revokeAnsM`. -/
 def appliedOkM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq' : apply.IRRModel) (F : mvcc.Log)
     (resp : GoInterface) (L : List EntryModel) : IProp GF :=
   iprop(∃ (x x' : apply.ApplyKV) (o : apply.Outcome) (skip : Bool),
     ⌜apply.applyStep rq' true x x' (.dispatched o skip) ∧ apply.kvFloorOk rq' true F x.log o ∧
       skip = false ∧ modelOutM on ρ.kv rq' L x.log (.dispatched o skip) ∧ adminDoneM on ρ.kv rq' L⌝ ∗
-    apply.dispatchAnswer rq' x.log skip resp GoInterface.nil null o ∗ mvcc.idxCert E.γ.idx x'.log ∗
-    revMinted E x.log x'.log ∗ appliedWit ρ.rd x'.log ∗ mvcc.certOk E.γ x'.log ∗
-    authnAnsM on E rq' resp ∗ grantAnsM E rq' resp ∗ revokeAnsM E rq' resp)
+    apply.dispatchAnswer rq' x.log skip resp GoInterface.nil null o ∗ srvApi.kvLogLb E.γs x'.log ∗
+    revMinted E x.log x'.log ∗ appliedWit ρ.rd x'.log ∗ E.Nx x'.log ∗
+    authnAnsM on E rq' resp ∗
+    ⧖ (mvcc.logCh x'.log) ∗ ⌜mvcc.LogWf' x'.log ∧ x'.log.length + 3 ≤ 2 ^ 63⌝ ∗
+    grantAnsM E rq' resp ∗ revokeAnsM E rq' resp)
 
 /-- **The server's registration condition, in the auth mode `on`** (`reqWaitR` with `resultΨM`). -/
 def reqWaitRM (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (id : w64)
@@ -779,20 +790,21 @@ theorem EtcdServer.AuthInfoFromCtx.wpM (on : Bool)
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       structFieldRef EtcdServer go!"authStore" s ↦□ st ∗ isReqAuth st E.RD ∗
       srvAuthBoundM on s E ∗
-      srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ cca ∗ mvcc.txnCtx ctx cd ∗ E.RD }}
+      srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ cca ∗ mvcc.txnCtx ctx cd ∗
+      context.libCtxOk ctx ∗ E.RD }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"AuthInfoFromCtx"))
       (Val #(GoInterface.ok ctx)))
   {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); E.RD ∗ authInfoOpt a ∗ authApplyErrIs err ∗
       □ (⌜on = true⌝ → ctxBoundOrTLS s E.authMode (GoInterface.ok ctx) a) }} := by
   cases on
-  · iintro %Φ ⟨#Hpkg, #Hst, #Hauth, -, #Hcca, #Hctx, Hrd⟩ HΦ
+  · iintro %Φ ⟨#Hpkg, #Hst, #Hauth, -, #Hcca, #Hctx, #Hlib, Hrd⟩ HΦ
     iapply (hAuth s st E.RD .off cca ctx cd) $$ [Hrd] [HΦ]
     · iframe Hrd; iframe #
       iintro !> %h; exact absurd h (by decide)
     · iintro !> %a %err ⟨Hrd, Ha, #Herr, -⟩
       iapply HΦ; iframe Hrd Ha Herr
       iintro !> %h; cases h
-  · iintro %Φ ⟨#Hpkg, #Hst, #Hauth, #Hbd, #Hcca, #Hctx, Hrd⟩ HΦ
+  · iintro %Φ ⟨#Hpkg, #Hst, #Hauth, #Hbd, #Hcca, #Hctx, #Hlib, Hrd⟩ HΦ
     unfold srvAuthBoundM
     icases Hbd with ⟨#Hbd, %hon⟩
     ihave #Hbd2 : □ (⌜E.authOn = true⌝ → srvAuthBound s E) $$ []

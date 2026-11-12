@@ -64,7 +64,7 @@ local macro "send_drop" : tactic => `(tactic| (
     | "zap.Bool" => (wp_apply hZBool as %_ -)
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
        iintro %_ ⟨-, -⟩)
-    | "Warn" => (wp_apply hWarn lg _ _ $$ []; (iframe #; ipureintro; exact Hlgnn))
+    | "Warn" => (wp_apply hWarn lg _ _ $$ []; (iframe #))
     | (wp_if_destruct; (try (exfalso; exact Hlgnn rfl)))
     | wp_auto)
   wp_apply hGetTo.1 ml _ _ _ st $$ [] as -
@@ -133,11 +133,12 @@ theorem rafthttp.peer.send.wp_proof
   wp_start as ⟨#Hp, Hpm⟩
   ihave #Hp' := Hp
   iunfold peerOk at Hp'
-  icases Hp' with ⟨%lg, %ps, %pk, %cw2, %cw1, %pl, %ss, %cr2, %cr1, %r, %rc, %pc, #Hlg, %Hlgnn,
+  icases Hp' with ⟨%lg, %ps, %pk, %cw2, %cw1, %pl, %ss, %cr2, %cr1, %r, %rc, %pc, #Hlg, #Hlgz,
     #Hlid, #Hpid, #Hr, #Hraft, #Hps, #Hpsok, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
     #Hmu⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   iunfold peerMsg at Hpm
-  icases Hpm with ⟨%st, #Hm, #HP, HO, %Hst⟩
+  icases Hpm with ⟨%st, #Hm, #Hbd, #HP, HO, %Hst⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
@@ -164,7 +165,7 @@ theorem rafthttp.peer.send.wp_proof
   icases Hraft with ⟨%ri, %Hri, -, -, #HRU, -⟩
   subst Hri
   icases Hwc with (⟨%γ, #Hb, %Hty⟩ | ⟨%γ, #Hb⟩ | ⟨%γ, #Hb⟩)
-  · ihave Hpay := swMsg_v2_of_peerMsg Rh lid pid ml st Hst Hty $$ Hm HP HO
+  · ihave Hpay := swMsg_v2_of_peerMsg Rh lid pid ml st Hst Hty $$ Hm Hbd HP HO
     send_sel
   · ihave Hpay : swMsg Rh .message lid pid ml $$ [HO]
     · iapply swMsg_message_of_peerMsg

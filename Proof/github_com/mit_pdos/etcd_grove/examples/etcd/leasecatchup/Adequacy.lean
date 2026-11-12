@@ -123,14 +123,14 @@ caught up by a snapshot, still lists the lease granted through it). -/
 theorem etcd_leasecatchup_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC leasecatchupGF,
       ContextReadErrs (GF := leasecatchupGF) (hG := heapAtLcu hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC leasecatchupGF,
       ContextErrsClient (GF := leasecatchupGF) (hG := heapAtLcu hG lctx))
     (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : cluster3.BootFacts id₁ id₂ id₃ ps ctxs boot)
-    (Hck : ckptEffectsOk) (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota)
+    (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota)
     (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (Hlp : leasePeersOk) (Hlne : lease.leasesNoExpiry)
     (HNs : prometheus.namesUnclaimed leasecatchupProgram leasecatchupNames)
@@ -138,6 +138,8 @@ theorem etcd_leasecatchup_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the members' data directories,
     -- fresh at start (`dataDirsAbsent`; their distinctness is now `decide`d, no longer a hypothesis)
     (HDs : dataDirsAbsent leasecatchupProgram leasecatchupDataDirs)
+    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
+    (HEnv : verifyEnvOff leasecatchupProgram)
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC leasecatchupGF,
       ⊢ cluster3.premises (GF := leasecatchupGF) (hG := heapAtLcu hG lctx)
@@ -148,7 +150,7 @@ theorem etcd_leasecatchup_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hn : n + 2 ≤ 2 ^ 28) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  refine etcd_adequate_members (GF := leasecatchupGF)
+  refine etcd_adequate_members (GF := leasecatchupGF) (hAsLit := by decide) (HEnv := HEnv)
     github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.Main) #())
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) leasecatchupAddrs (by decide)
@@ -171,8 +173,8 @@ theorem etcd_leasecatchup_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   wp_apply hM $$ [Hstart Htok]
   · iframe; iframe #
     ipureintro
-    exact ⟨Hbf, ⟨by rw [HT]; word, by rw [HN]; omega, by rw [HN]; omega,
-      by unfold bootWB backend.wbInit; omega⟩, ⟨Hck, Haf, Hbuq, Hrf, Hdbo⟩, ⟨Hlp, Hlne⟩,
+    exact ⟨Hbf, ⟨by rw [HT]; word, srvLevels_of_max HT, by rw [HN]; omega, by rw [HN]; omega,
+      by unfold bootWB backend.wbInit; omega⟩, ⟨Haf, Hbuq, Hrf, Hdbo⟩, ⟨Hlp, Hlne⟩,
       ⟨inferInstance, EtcdGrove.rpctypesEtcdError_asTarget⟩⟩
   ipureintro
   rfl

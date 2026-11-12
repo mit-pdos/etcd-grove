@@ -39,7 +39,7 @@ theorem lease.Lease.Remaining.wp_proof
   ihave #Htime : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
   · iPkgInit
   iapply fupd_wp
-  imod threadPool.borrow leaseExpPoolN γe (sync.ownRWMutex (lsF go!"expiryMu" l) (leaseExpiry l)) ⊤
+  imod threadPool.borrowL leaseExpPoolN leaseLvl γe (sync.ownRWMutex (lsF go!"expiryMu" l) (leaseExpiry l)) ⊤
     (fun _ _ => CoPset.mem_full) $$ [Hpe Htt] with ⟨Hslot, Hloan⟩
   · iframe #; iframe
   imodintro
@@ -55,7 +55,7 @@ theorem lease.Lease.Remaining.wp_proof
     iapply wp_fupd
     wp_apply (sync.RWMutex.wp_RUnlock (lsF go!"expiryMu" l) (leaseExpiry l)) $$ [$Hlk He] as Hslot
     · inext; iunfold leaseExpiry; iexists e; iexact He
-    imod threadPool.giveBack leaseExpPoolN γe (sync.ownRWMutex (lsF go!"expiryMu" l) (leaseExpiry l))
+    imod threadPool.giveBackL leaseExpPoolN leaseLvl γe (sync.ownRWMutex (lsF go!"expiryMu" l) (leaseExpiry l))
       ⊤ (fun _ _ => CoPset.mem_full) $$ [Hpe Hloan Hslot] with Htt
     · iframe #; iframe
     imodintro
@@ -66,7 +66,7 @@ theorem lease.Lease.Remaining.wp_proof
     iapply wp_fupd
     wp_apply (sync.RWMutex.wp_RUnlock (lsF go!"expiryMu" l) (leaseExpiry l)) $$ [$Hlk He] as Hslot
     · inext; iunfold leaseExpiry; iexists e; iexact He
-    imod threadPool.giveBack leaseExpPoolN γe (sync.ownRWMutex (lsF go!"expiryMu" l) (leaseExpiry l))
+    imod threadPool.giveBackL leaseExpPoolN leaseLvl γe (sync.ownRWMutex (lsF go!"expiryMu" l) (leaseExpiry l))
       ⊤ (fun _ _ => CoPset.mem_full) $$ [Hpe Hloan Hslot] with Htt
     · iframe #; iframe
     imodintro

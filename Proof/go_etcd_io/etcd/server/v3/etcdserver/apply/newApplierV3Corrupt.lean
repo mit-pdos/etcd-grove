@@ -4,6 +4,7 @@ Proof of the spec of the same name. Lean-first (no Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.newApplierV3Corrupt
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.WriteLemmas
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Corrupt__Put
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Corrupt__Range
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Corrupt__DeleteRange
@@ -72,9 +73,9 @@ theorem apply.newApplierV3Corrupt.wp_proof
     imodintro
     iintro %r %rq %o %log %F %Pre %Q %Post %info
     imodintro
-    iintro %Φ' ⟨Hpre, #HF⟩ HΦ'
-    iapply (hPut E c (.ok bi) p r rq o log F Pre Q Post info) $$ [Hpre] HΦ'
-    iframe Hpre
+    iintro %Φ' ⟨Htt, Hpre, #HF⟩ HΦ'
+    iapply (hPut E c (.ok bi) p r rq o log F Pre Q Post info) $$ [Hpre Htt] HΦ'
+    iframe Hpre Htt
     iunfold apply.corruptIs
     iframe #
   isplitr
@@ -82,9 +83,9 @@ theorem apply.newApplierV3Corrupt.wp_proof
     imodintro
     iintro %r %rq %o %log %F %Pre %Q %Post %info
     imodintro
-    iintro %Φ' ⟨Hpre, #HF⟩ HΦ'
-    iapply (hDel E c (.ok bi) p r rq o log F Pre Q Post info) $$ [Hpre] HΦ'
-    iframe Hpre
+    iintro %Φ' ⟨Htt, Hpre, #HF⟩ HΦ'
+    iapply (hDel E c (.ok bi) p r rq o log F Pre Q Post info) $$ [Hpre Htt] HΦ'
+    iframe Hpre Htt
     iunfold apply.corruptIs
     iframe #
   isplitr
@@ -92,9 +93,9 @@ theorem apply.newApplierV3Corrupt.wp_proof
     imodintro
     iintro %r %rq %o %log %info
     imodintro
-    iintro %Φ' Hpre HΦ'
-    iapply (hRange E c (.ok bi) p r rq o log info) $$ [Hpre] HΦ'
-    iframe Hpre
+    iintro %Φ' ⟨Htt, Hpre⟩ HΦ'
+    iapply (hRange E c (.ok bi) p r rq o log info) $$ [Hpre Htt] HΦ'
+    iframe Hpre Htt
     iunfold apply.corruptIs
     iframe #
   isplitr
@@ -102,9 +103,9 @@ theorem apply.newApplierV3Corrupt.wp_proof
     imodintro
     iintro %r %skip %rq %t %log %F %Pre %Q %Post %info
     imodintro
-    iintro %Φ' ⟨Hpre, #HF⟩ HΦ'
-    iapply (hTxn E c (.ok bi) p r skip rq t log F Pre Q Post info) $$ [Hpre] HΦ'
-    iframe Hpre
+    iintro %Φ' ⟨Htt, Hpre, #HF⟩ HΦ'
+    iapply (hTxn E c (.ok bi) p r skip rq t log F Pre Q Post info) $$ [Hpre Htt] HΦ'
+    iframe Hpre Htt
     iunfold apply.corruptIs
     iframe #
   isplitr
@@ -112,19 +113,23 @@ theorem apply.newApplierV3Corrupt.wp_proof
     imodintro
     iintro %r %rq %id %log %T %rs %Pre %Q %Post %info
     imodintro
-    iintro %Φ' Hpre HΦ'
-    iapply (hRev E c (.ok bi) p r rq id log T rs Pre Q Post info) $$ [Hpre] HΦ'
-    iframe Hpre
-    iunfold apply.corruptIs
-    iframe #
+    iintro %Φ' ⟨Htt, Hpre⟩ HΦ'
+    iapply (hRev E c (.ok bi) p r rq id log T rs Pre Q Post info) $$ [Hpre Htt]
+    · iframe Hpre Htt
+      iunfold apply.corruptIs
+      iframe #
+    inext
+    iintro %resp %err ⟨Htt, H1⟩
+    iapply HΦ'
+    iframe
   isplitr
   · -- `LeaseGrant` (the lease-grant stage, 2.11): the layer's own
     imodintro
     iintro %r %rq %g %log %T %rs %U %Pre %Q %Post %info
     imodintro
-    iintro %Φ' Hpre HΦ'
-    iapply (hLG E c (.ok bi) p r rq g log T rs U Pre Q Post info) $$ [Hpre] HΦ'
-    iframe Hpre
+    iintro %Φ' ⟨Htt, Hpre⟩ HΦ'
+    iapply (hLG E c (.ok bi) p r rq g log T rs U Pre Q Post info) $$ [Hpre Htt] HΦ'
+    iframe Hpre Htt
     iunfold apply.corruptIs
     iframe #
   isplitr
@@ -140,19 +145,23 @@ theorem apply.newApplierV3Corrupt.wp_proof
       rw [method_unfold (t := go.GoType.PointerType applierV3Corrupt.ty)]
       wp_call
       wp_auto
-      icases Hpre with ⟨HR, Hm, Hwt, #Hsp⟩
-      iunfold apply.mPre at Hm
-      icases Hm with ⟨Hkv, Hres, Hcs⟩
+      icases Hpre with ⟨Htt, HR, Hm, #Hsp⟩
+      icases apply.mPreW_split_chain _ _ _ _ _ _ _ _ $$ Hm with ⟨Hkv, Hres⟩
       ihave Hres := apply.chainRes_corrupt_out c p (.ok bi) info $$ applierV3 Hres
-      iapply HResp $$ %_ %r %log %Pre %Q %Post %info [] [HR Hkv Hres Hcs Hwt]
+      iapply HResp $$ %_ %r %log %Pre %Q %Post %info [] [Htt HR Hkv Hres]
       · ipureintro; simp [apply.respMethods]
-      · iframe HR
-        iunfold apply.mPre
-        iframe
+      · iframe Htt HR
         iframe #
+        iapply apply.mPreW_of_rest
+        iframe
       inext
-      iintro %resp %err ⟨Hpost, #HeI⟩
+      iintro %resp %err ⟨Htt, Hpost, #HeI⟩
       iapply HΦ'
+      iframe Htt
+      iunfold apply.mPostW at Hpost
+      icases Hpost with ⟨Hpost, Hrt⟩
+      iunfold apply.mPostW
+      iframe Hrt
       iunfold apply.mPost at Hpost
       iunfold apply.mPost
       icases Hpost with ⟨Hkv, Hres, HPP⟩
@@ -170,18 +179,23 @@ theorem apply.newApplierV3Corrupt.wp_proof
       rw [method_unfold (t := go.GoType.PointerType applierV3Corrupt.ty)]
       wp_call
       wp_auto
-      icases Hpre with ⟨Hpre, Hwt, HRW⟩
-      iunfold apply.mPre at Hpre
-      icases Hpre with ⟨Hkv, Hres, Hcs⟩
+      icases Hpre with ⟨Htt, Hpre, HRW⟩
+      icases apply.mPreW_split_chain _ _ _ _ _ _ _ _ $$ Hpre with ⟨Hkv, Hres⟩
       ihave Hres := apply.chainRes_corrupt_out c p (.ok bi) info $$ applierV3 Hres
-      iapply HResp0 $$ %_ %log %Pre %Q %Post %info [] [] [Hkv Hres Hcs Hwt HRW]
+      iapply HResp0 $$ %_ %log %Pre %Q %Post %info [] [] [Htt Hkv Hres HRW]
       · ipureintro; simp [apply.resp0Methods]
       · ipureintro; exact hon
-      · iunfold apply.mPre
+      · iframe Htt HRW
+        iapply apply.mPreW_of_rest
         iframe
       inext
-      iintro %resp %err ⟨Hpost, #HeI⟩
+      iintro %resp %err ⟨Htt, Hpost, #HeI⟩
       iapply HΦ'
+      iframe Htt
+      iunfold apply.mPostW at Hpost
+      icases Hpost with ⟨Hpost, Hrt⟩
+      iunfold apply.mPostW
+      iframe Hrt
       iunfold apply.mPost at Hpost
       iunfold apply.mPost
       icases Hpost with ⟨Hkv, Hres, HPP⟩
@@ -192,17 +206,17 @@ theorem apply.newApplierV3Corrupt.wp_proof
     imodintro
     iintro %log %info
     imodintro
-    iintro %Φ' ⟨Hkv, Hres⟩ HΦ'
+    iintro %Φ' ⟨Htt, Hkv, Hres⟩ HΦ'
     rw [method_unfold (t := go.GoType.PointerType applierV3Corrupt.ty) (m := go!"AuthStatus")]
     wp_call
     wp_auto
     ihave Hres := apply.chainRes_corrupt_out c p (.ok bi) info $$ applierV3 Hres
-    iapply HStatus $$ %log %info [Hkv Hres]
+    iapply HStatus $$ %log %info [Htt Hkv Hres]
     · iframe
     inext
-    iintro %resp %err ⟨Hkv, Hres, #HeI⟩
+    iintro %resp %err ⟨Htt, Hkv, Hres, #HeI⟩
     iapply HΦ'
-    iframe HeI Hkv
+    iframe Htt HeI Hkv
     iapply apply.chainRes_corrupt_in c p (.ok bi) info $$ applierV3 Hres
   isplitr
   · -- the cluster's methods: the inner applier's (promoted)
@@ -216,14 +230,13 @@ theorem apply.newApplierV3Corrupt.wp_proof
       rw [method_unfold (t := go.GoType.PointerType applierV3Corrupt.ty)]
       wp_call
       wp_auto
-      icases Hpre with ⟨HR, Hm, Hwt, HFS, HRO⟩
-      iunfold apply.mPreV at Hm
-      icases Hm with ⟨Hkv, Hres, Hcs⟩
+      icases Hpre with ⟨HR, Hm, HFS, HRO⟩
+      icases apply.mPreV_split_chain _ _ _ _ _ _ _ _ _ $$ Hm with ⟨Hkv, Hres⟩
       ihave Hres := apply.chainRes_corrupt_out c p (.ok bi) info $$ applierV3 Hres
-      iapply HCluster $$ %_ %r %v3 %log %Pre %Q %Post %cr %rs %info [] [HR Hkv Hres Hcs Hwt HFS HRO]
+      iapply HCluster $$ %_ %r %v3 %log %Pre %Q %Post %cr %rs %info [] [HR Hkv Hres HFS HRO]
       · ipureintro; simp [apply.clusterMethods]
-      · iframe HR
-        iunfold apply.mPreV
+      · iframe HR HFS HRO
+        iapply apply.mPreV_of_rest
         iframe
       inext
       iintro ⟨Hpost, HFS, HRO⟩
@@ -231,8 +244,8 @@ theorem apply.newApplierV3Corrupt.wp_proof
       iframe HFS HRO
       iunfold apply.mPostV at Hpost
       iunfold apply.mPostV
-      icases Hpost with ⟨Hkv, Hres, HPP⟩
-      iframe Hkv HPP
+      icases Hpost with ⟨Hkv, Hres, HPP, Hrt⟩
+      iframe Hkv HPP Hrt
       iapply apply.chainRes_corrupt_in c p (.ok bi) info $$ applierV3 Hres
   isplitr
   · -- `Apply`: the inner applier's (promoted), its `applyFunc` under the inner's resources
@@ -270,7 +283,7 @@ theorem apply.newApplierV3Corrupt.wp_proof
     imodintro
     iintro %cr %rev %log %crev %Pre %Q %Post %info
     imodintro
-    iintro %Φ' ⟨#Hcr, %Hadm, #Hperm, Hm, Hc⟩ HΦ'
+    iintro %Φ' ⟨#Hcr, %Hadm, HCp, Htt, Hm, Hc⟩ HΦ'
     iunfold apply.compactionIs at Hcr
     icases Hcr with ⟨%Hcrn, -⟩
     iapply (hCompaction p cr) $$ []
@@ -278,10 +291,9 @@ theorem apply.newApplierV3Corrupt.wp_proof
     inext
     iintro %resp %ch %trace %err ⟨%Hn, #He⟩
     iapply HΦ'
-    iunfold apply.mPre at Hm
-    icases Hm with ⟨Hkv, Hres, Hcs⟩
-    iunfold mvcc.csContract at Hcs
-    icases Hcs with ⟨HPre, -, -⟩
+    iframe Htt
+    icases apply.mPre_split_chain _ _ _ _ _ _ _ _ $$ Hm with ⟨Hkv, Hres⟩
+    icases apply.mPreRest_reject _ _ _ _ _ $$ Hkv with ⟨Hkv, HPre⟩
     iframe Hkv Hres
     isplitl [HPre]
     · iright; iexact HPre

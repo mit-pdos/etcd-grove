@@ -23,7 +23,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- `s.syncWatchersLoop()` (a goroutine `New` starts), with reader slots of the store and a done
 token of its wait group: syncs the unsynced watchers (`syncWatchers`) on every tick of its ticker
-until the stop channel is closed, then `s.wg.Done()`. It returns (no panic), (R-D1, 2026-11-04) its reader
+until the stop channel is closed, then `s.wg.Done()`. It returns (no panic), (R-D1) its reader
 of the inner store left at its deferred `Done`, for the closer (`wsWgInv`). -/
 abbrev mvcc.watchableStore.syncWatchersLoop.spec : Prop :=
   ∀ (s st : Loc) (γ : mvcc.WsNames),

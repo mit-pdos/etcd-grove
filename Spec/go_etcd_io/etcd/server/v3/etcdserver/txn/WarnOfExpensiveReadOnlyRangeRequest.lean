@@ -37,7 +37,7 @@ which returns lent `P`: it returns, `P` given back. -/
 abbrev txn.WarnOfExpensiveReadOnlyRangeRequest.spec : Prop :=
   ∀ (lg : Loc) (d : time.Duration) (now : time.Time) (req : GoInterface) (resp : Loc)
     (err : GoInterface) (P : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ ⌜lg ≠ null⌝ ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ zapLoggerOk lg ∗
       txn.stringerOk req ∗ P ∗
       (⌜resp = null⌝ ∨
         (∃ sl : GoSlice, structFieldRef etcdserverpb.RangeResponse go!"Kvs" resp ↦□ sl) ∗

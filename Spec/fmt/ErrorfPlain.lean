@@ -30,15 +30,15 @@ the formatted message begins with (`fmt`'s `doPrintf` copies the format up to it
 def fmt.litPrefix (format : GoString) : GoString := format.takeWhile (fun b => b ≠ W8 37)
 
 /-- **`fmt.Errorf(format, args...)`** of a format without `%w`, for arguments that are
-`fmt.argsOk`: an `*errors.errorString` (`errors.New` of the formatted message), whose `Error()`
-returns that message; the arguments' slice comes back. (2026-10-24, rafthttp stage 6e) Its `s`
+`fmt.argsOk` under the format's verbs: an `*errors.errorString` (`errors.New` of the formatted
+message), whose `Error()` returns that message; the arguments' slice comes back. (2026-10-24, rafthttp stage 6e) Its `s`
 field holds the message for good (`errStrCell`: `errors.New`'s `&errorString{s}`, which nothing
 writes), the message beginning with the format's literal text (`fmt.litPrefix`): what tells it
 from another error of a different message (`checkPostResponse`'s, from `errMemberRemoved`). -/
 abbrev fmt.ErrorfPlain.spec : Prop :=
   ∀ (format : GoString) (args_sl : GoSlice) (xs : List GoInterface) (dq : DFrac),
   ¬ List.IsInfix go!"%w" format →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ args_sl ↦*{dq} xs ∗ fmt.argsOk xs }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ args_sl ↦*{dq} xs ∗ fmt.argsOk fmt.errorfVerbs format xs }}
     (App (App (Val (@! _root_.Perennial.fmt.Errorf)) (Val #format)) (Val #args_sl))
   {{ (x : Loc), RET #(interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x);
       args_sl ↦*{dq} xs ∗ ∃ msg : GoString, errStrCell x msg ∗ ⌜fmt.litPrefix format <+: msg⌝ ∗

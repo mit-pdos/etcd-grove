@@ -22,6 +22,8 @@ REVIEWED = {
     'Proof/k8s_io/client_go/listers/apps/v1/ErrorfLabels.lean': 'post True',
     'Proof/k8s_io/client_go/tools/cache/ErrorfSet.lean': 'post True',
     'Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Errorf.lean': 'premise (W8 37) ∉ format',
+    # premise-fixes-4: `wp_Errorf_errStrOk` (post: some `Error()` string, no `Format` method)
+    'Proof/go_etcd_io/etcd/cache/v3/Base.lean': 'premise ArgsWf: no argument is an error, so Go wraps nothing and returns errors.New(s)',
 }
 
 MODEL = re.compile(r'@! (_root_\.)?Perennial\.fmt\.Errorf\b')
@@ -32,7 +34,8 @@ def main():
     bad = []
     for f in sorted(ROOT.glob('**/*.lean')):
         rel = f.relative_to(ROOT)
-        if rel.parts[0] in ('.lake', 'old', 'Code', 'GeneratedProof') or 'Code' in rel.parts[:2]:
+        # SpecPlan/: the spec plan, specs only (no proof steps into any model)
+        if rel.parts[0] in ('.lake', 'old', 'Code', 'GeneratedProof', 'SpecPlan') or 'Code' in rel.parts[:2]:
             continue
         s = f.read_text()
         if MODEL.search(s) and STEP.search(s) and str(rel) not in REVIEWED:

@@ -23,7 +23,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `l.Check(lvl, msg)` (a non-nil logger) at a level below `DPanicLevel` returns a
+/-- `l.Check(lvl, msg)` (a zap logger, `zapLoggerOk l`; premise fixes 6: a zero `&zap.Logger{}` panics) at a level below `DPanicLevel` returns a
 `*zapcore.CheckedEntry`: `nil` if the level is not enabled, else an entry to write
 (`zapcore.zapEntry`, which `CheckedEntry.Write` consumes; logging has no effect here).
 
@@ -32,11 +32,10 @@ variable [sem : go.Semantics]
 is `255` unsigned) through `ErrorLevel` (`2`). Until then any level was admitted, and an entry at
 `PanicLevel` (on any logger, `zap.NewNop()` included) or at `DPanicLevel` under `Development()`
 panics in its `Write` (`zapcore/entry.go`; Go: `examples/sweeprepairs/zapcheck`). Its only caller,
-`auth/store.go:358`, checks `DebugLevel`. (The logger's premise is still `l ≠ null` until sweep
-repairs 1's LG-5, which asks `zapLoggerOk l`.) -/
+`auth/store.go:358`, checks `DebugLevel`. -/
 abbrev zap.Logger.Check.spec : Prop :=
   ∀ (l : Loc) (lvl : val) (msg : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap ∗ ⌜l ≠ null⌝ ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap ∗ zapLoggerOk l ∗
       ⌜∃ w : w8, lvl = #w ∧ sint.Z w < 3⌝ }}
     (App (App (Val (l @!! go.GoType.PointerType zap.Logger.ty @!! go!"Check")) (Val lvl)) (Val #msg))
   {{ (ce : Loc), RET #ce; ⌜ce = null⌝ ∨ zapcore.zapEntry ce }}

@@ -239,7 +239,8 @@ instance ctxErrDescs_persistent : Persistent (ctxErrDescs (GF := GF)) := by
 /-- **The package facts `watch.go` reads, but `io.EOF`** (persistent; D19j, 2026-10-18: until
 then the premise `watchVars` of the watch path's results, now `v3rpc`'s): the `auth` and `mvcc`
 errors it compares with or reports (pointer leaves, `errVarLeaf`, from their packages' facts),
-the `rpctypes` errors whose `Error()` it calls (`msgErrVar`, from `rpctypes`' fact), its metrics
+the `rpctypes` errors whose `Error()` it calls (`msgErrVar`, from `rpctypes`' fact; `statusMsgErrVar`
+for `ErrGRPCWatchCanceled`, which `Watch` returns, premise-fixes-7), its metrics
 (`streamFailures`, the four histograms: their initializers' trust-boundary axioms `<X>_init`),
 `traceutil.Tracer`, `context.Canceled`'s pointer error, and the progress interval's lock
 (`progressReportIntervalMu`, allocated by the initializer, guarding `progressReportInterval`,
@@ -257,7 +258,7 @@ def _root_.Perennial.EtcdGrove.v3rpc.watchPkgVars : IProp GF :=
     EtcdGrove.v3rpc.msgErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCAuthOldRevision ∗
     EtcdGrove.v3rpc.msgErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCUserEmpty ∗
     EtcdGrove.v3rpc.msgErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCPermissionDenied ∗
-    EtcdGrove.v3rpc.msgErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCWatchCanceled ∗
+    EtcdGrove.v3rpc.statusMsgErrVar go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrGRPCWatchCanceled ∗
     (∃ cv : Loc, globalAddr streamFailures ↦□ cv ∗
       ⌜EtcdGrove.prometheus.vecLabels cv [go!"Type", go!"API"]⌝) ∗
     EtcdGrove.v3rpc.histVar watchSendLoopWatchStreamDuration ∗

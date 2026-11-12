@@ -14,8 +14,8 @@ its past-revision reads use, as the pure functions its helpers compute (their sp
   boundary);
 - the loop, `listLoopL x its`: `ListModel.loop` (7e-3a) on the items in scope, keyed by their store
   keys;
-- `encL`, the continue token of `storage.EncodeContinue` on a key, a prefix and a revision: an
-  opaque function (both the store and the Go model call the same `EncodeContinue`; no property of
+- `encL`, the continue token of `storage.EncodeContinue` on a key, a prefix and a revision: opaque
+  functions' composition (both the store and the Go model call the same `EncodeContinue`; no property of
   it is used, Q7e-1), defined only when the prefix is a non-empty prefix of the key (`encOkL`);
 - `HSt`, the model's state: a store and its history (`hist[R-1]` the store at revision `R`),
   `histAtL` (`histAt`), `advanceL` (`advance`: the history grows iff the revision does);
@@ -28,6 +28,8 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.KModel
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ListModel
 public import Proof.k8s_io.apiserver.pkg.storage.Defs
+public import Proof.encoding.json.Token
+public import Proof.encoding.base64.Base
 
 @[expose] public section
 
@@ -114,9 +116,59 @@ def limitN (x : Input) : Nat := if 0 < sint.Z x.Limit' then (sint.Z x.Limit').to
 def listLoopL (x : Input) (its : List item) : ListModel.LState w8 Obj :=
   ListModel.loop (selOkL x) (limitN x) (scopeL x its)
 
-/-- `storage.EncodeContinue(key, prefix, rv)`'s token, where it is defined (`encOkL`). Opaque:
-nothing about the token is used, only that the store and the model compute the same (Q7e-1). -/
-opaque encL : GoString → GoString → w64 → GoString
+/-- The items in scope of one more store item. -/
+theorem scopeL_take_succ (x : Input) (its : List item) (j : Nat) (it : item)
+    (h : its[j]? = some it) :
+    scopeL x (its.take (j + 1)) = scopeL x (its.take j) ++
+      (if keyInScopeL x.ListKey' x.Recursive' (storeKeyL it.key') then
+        [(storeKeyL it.key', it.obj')] else []) := by
+  rw [List.take_add_one, h]
+  simp only [scopeL, Option.toList_some, List.map_append, List.map_cons, List.map_nil,
+    List.filter_append, List.filter_cons, List.filter_nil]
+
+/-- `mlist`'s loop, one store item more (`lstep` on it iff it is in scope). -/
+theorem listLoopL_take_succ (x : Input) (its : List item) (j : Nat) (it : item)
+    (h : its[j]? = some it) :
+    listLoopL x (its.take (j + 1)) =
+      if keyInScopeL x.ListKey' x.Recursive' (storeKeyL it.key') then
+        ListModel.lstep (selOkL x) (limitN x) (listLoopL x (its.take j)) (storeKeyL it.key', it.obj')
+      else listLoopL x (its.take j) := by
+  unfold listLoopL ListModel.loop
+  rw [scopeL_take_succ x its j it h]
+  split <;> simp [List.foldl_append]
+
+theorem foldl_items_le_total {α O : Type} (sel : O → Bool) (limit : Nat) :
+    ∀ (sc : List (List α × O)) (s : ListModel.LState α O), s.items.length ≤ s.total →
+      (sc.foldl (ListModel.lstep sel limit) s).items.length ≤
+        (sc.foldl (ListModel.lstep sel limit) s).total
+  | [], s, h => by simpa using h
+  | ko :: sc, s, h => by
+    rw [List.foldl_cons]
+    apply foldl_items_le_total sel limit sc
+    simp only [ListModel.lstep]
+    split
+    · simp only; omega
+    · split
+      · simp only [List.length_cons]; omega
+      · simp only; omega
+
+/-- The loop's counts: its items at most its total, its total at most the store items. -/
+theorem listLoopL_le (x : Input) (its : List item) :
+    (listLoopL x its).items.length ≤ (listLoopL x its).total ∧
+      (listLoopL x its).total ≤ its.length := by
+  constructor
+  · exact foldl_items_le_total _ _ _ _ (by simp)
+  · unfold listLoopL; rw [ListModel.loop_total]
+    unfold scopeL
+    exact Nat.le_trans (List.length_filter_le _ _) (by simp)
+
+/-- `storage.EncodeContinue(key, prefix, rv)`'s token, where it is defined (`encOkL`): base64 (URL
+alphabet, no padding) of the JSON of `{"v": "meta.k8s.io/v1", "rv": rv, "start": key without
+prefix}`, through the opaque `rawUrlEnc` and `tokJson` (stage 7e-2, `notes/k8s-7e-2-draft.md` #23;
+until then an opaque function). No property of it is used (Q7e-1; no injectivity), only that the
+store and the model compute the same. -/
+def encL (key pfx : GoString) (rv : w64) : GoString :=
+  encoding.base64.rawUrlEnc (encoding.json.tokJson rv (key.drop pfx.length))
 
 /-- `EncodeContinue(key, prefix, rv)` has no error: `strings.TrimPrefix(key, prefix)` is not
 `key` (and `json.Marshal` of a continue token never fails). -/

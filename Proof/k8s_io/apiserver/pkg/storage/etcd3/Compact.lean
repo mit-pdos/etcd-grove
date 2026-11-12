@@ -161,7 +161,7 @@ theorem cas_commit [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc) (ms : List 
     rw [hw]
     unfold client.txnRevLb client.txnReplied
     simp only [hro, Bool.false_eq_true, ↓reduceIte]
-    icases Hr with ⟨%tw, %hmd, %rq', %t', %y, %y', %l, %skip, %Hp, -, -, -, -, -, HQ⟩
+    icases Hr with ⟨%tw, %hmd, %rq', %t', %y, %y', %l, %skip, %Hp, -, -, -, -, HQ⟩
     obtain ⟨Htw, -, -, Hz, hap, hrev, -, -, -, hlen, hb4, hok, hrel, hsk⟩ := Hp
     have ht : t' = casTxn ev rev := Hz (irrNoZeroEnd_txnOf _ _ _ tw Htw)
     subst ht hsk

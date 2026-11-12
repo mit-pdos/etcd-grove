@@ -69,7 +69,7 @@ theorem auth.authStore.isOpPermitted.wp_proof
   icases HeOR' with ⟨%eOR, #HeORa, -⟩
   ihave #Hinv' := Hinv
   iunfold authInv at Hinv'
-  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, -, -, -⟩
+  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, #Hlgnn⟩, -, -, -, -⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
@@ -112,7 +112,7 @@ theorem auth.authStore.isOpPermitted.wp_proof
     iintro %fsl ⟨-, -⟩
     (try wp_auto)
     wp_apply h_Warn
-    · ipureintro; exact Hlgnn
+    · iexact Hlgnn
     iapply HΦ
     iunfold authRd
     iframe
@@ -150,7 +150,7 @@ theorem auth.authStore.isOpPermitted.wp_proof
     iintro %fsl ⟨-, -⟩
     (try wp_auto)
     wp_apply h_Error
-    · ipureintro; exact Hlgnn
+    · iexact Hlgnn
     (try wp_auto)
     wp_bind (App (Val #(methods ti.ty go!"RUnlock" ti.v)) (Val #()))
     iapply HRU $$ Htok

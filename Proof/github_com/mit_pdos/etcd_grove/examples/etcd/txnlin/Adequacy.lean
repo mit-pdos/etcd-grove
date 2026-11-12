@@ -104,13 +104,13 @@ the check failed); no thread is stuck; no thread has ended in a panic. -/
 theorem etcd_txnlin_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC linkvtxnGF, ContextReadErrs (GF := linkvtxnGF) (hG := linkvtxnHeapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC linkvtxnGF, ContextErrsClient (GF := linkvtxnGF) (hG := linkvtxnHeapAt hG lctx))
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : etcd_putget.BootFacts id ctxs boot)
-    (Hck : ckptEffectsOk) (Haf : authRecordsFit)
+    (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (clients ops : w64)
     (Hc0 : 0 ≤ sint.Z clients) (Hc31 : sint.Z clients < 2 ^ 31) (Hops : 0 ≤ sint.Z ops)
@@ -119,6 +119,8 @@ theorem etcd_txnlin_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (HAs : addrsUnclaimed (linkvtxnProgram clients ops) [go!"127.0.0.1:23796"])
     -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
     (HDs : dataDirsAbsent (linkvtxnProgram clients ops) [go!"linkvtxn.etcd"])
+    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
+    (HEnv : verifyEnvOff (linkvtxnProgram clients ops))
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC linkvtxnGF,
       ⊢ etcd_txnlin.premises (GF := linkvtxnGF) (hG := linkvtxnHeapAt hG lctx) n id ctxs boot)
@@ -130,7 +132,7 @@ theorem etcd_txnlin_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  refine etcd_adequate_members (GF := linkvtxnGF) github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.initialize'
+  refine etcd_adequate_members (GF := linkvtxnGF) (hAsLit := by decide) (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Main) #clients #ops)
     (fun v => v = #(go!"Ok") ∨ v = #(go!"Unknown")) (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
       (fun h => intoVal_ne_PanicV _ p h.symm)) [go!"127.0.0.1:23796"] (by decide) [go!"linkvtxn.etcd"] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
@@ -146,7 +148,7 @@ theorem etcd_txnlin_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   iintro #Hinit Htok ⟨Hms, -⟩
   icases BigSepL.bigSepL_cons.1 $$ Hms with ⟨Hstart, -⟩
   have hM := etcd_txnlin.wp_Main (GF := linkvtxnGF) n id ctxs boot clients ops Hbf
-    (by rw [HT]; word) (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Hck Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
+    (by rw [HT]; word) (srvLevels_of_max HT) (by rw [HN]; omega) (by rw [HN]; omega) (by unfold bootWB backend.wbInit; omega) Haf Hbuq Hrf Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
     Hc0 Hc31 Hops Hmul
   wp_apply hM $$ [Hstart Htok]
   · iframe; iframe #

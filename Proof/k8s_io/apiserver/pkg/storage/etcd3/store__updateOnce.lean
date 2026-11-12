@@ -68,7 +68,9 @@ theorem store.updateOnce.wp_proof
   ihave Hst' := Hst
   iunfold isStore at Hst'
   icases Hst' with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt,
-    #Hkc, #Hcl, #Hone, #Hregs, #Hcon⟩
+    #Hkc, #Hcl, #Hone, #Hregs, #Hcon, #Hlst⟩
+  iunfold storeListOk at Hlst
+  icases Hlst with ⟨%lf, %lγ, -, -, -, %Hutf, -⟩
   iunfold contractOk at Hcon
   icases Hcon with ⟨-, #Henc, #Hver, #Htr, #Hdec, #Hzero, -⟩
   ihave #Pme : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3.metrics $$ []
@@ -98,7 +100,7 @@ theorem store.updateOnce.wp_proof
   iunfold transformerOk at Htr
   icases Htr with ⟨-, #HtrTo⟩
   wp_apply HtrTo $$ [$Hdsl] as %vsl %terr Htres
-  icases Htres with (⟨%Hterr, %val, %Hval, #Hvsl⟩ | ⟨%Hterr, #Htes⟩)
+  icases Htres with (⟨%Hterr, %val, %Hval, #Hvsl⟩ | ⟨%Hterr, %Htre, #Htes⟩)
   · subst Hterr
     have hdv : c.S.dec val = some (o', true) := c.S.dec_toS_encode o' val Hval
     (try wp_auto)
@@ -120,7 +122,8 @@ theorem store.updateOnce.wp_proof
       (fun σ => kvWf c σ → stItem c key s σ)
       (fun σ hw0 hb hA => ⟨(updStepOk_item c key hk s ign c.S.zero hz pre hpre f o' hok hw val hdv σ hw0 hb hA).1,
         fun hf => ⟨(updStepOk_item c key hk s ign c.S.zero hz pre hpre f o' hok hw val hdv σ hw0 hb hA).2 hf,
-          fun hh => by simpa [stepHand] using hh⟩⟩)) $$ [HW Hau]
+          fun hh => by simpa [stepHand] using hh⟩⟩)
+      (fun σ hw => keysIn_optPut _ _ _ _ _ hk σ hw.1)) $$ [HW Hau]
     · iframe HW HA Hau
     rw [method_unfold (t := go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty)
       (m := go!"OptimisticPut")]
@@ -133,9 +136,12 @@ theorem store.updateOnce.wp_proof
     · iframe #
       iexact Hau'
     (try wp_auto)
-    wp_apply wp_txnError as %te -
+    icases (k8s_io.apiserver.pkg.storage.etcd3.statusErrOk_split perr _ _ _) $$ Hput with ⟨#Hse0, Hput⟩
+    wp_apply wp_txnError as %te Hte
+    ihave #Hse := Hte $$ Hse0
     (try wp_auto)
-    wp_apply wp_RecordEtcdRequest
+    wp_apply (wp_RecordEtcdRequest go!"update" c.gr _ _ (by decide) Hutf.1 Hutf.2)
+    · iexact Hse
     (try wp_auto)
     icases Hput with (⟨%Hpe, %σ, ⟨Hres, #Hfs, %HAσ⟩, %Hσ, Hkvo⟩ | ⟨%Hpe, %Hpce, #Hpse, #Hpcl⟩)
     · subst Hpe
@@ -349,7 +355,7 @@ theorem store.updateOnce.wp_proof
       · iframe #
         ipureintro; exact Hspn
       (try wp_auto)
-      wp_apply wp_NewInternalError ti' $$ [] as %ie -
+      wp_apply wp_NewInternalError ti' $$ [] as %ie %Hie
       · iframe #
         iunfold go_etcd_io.etcd.cache.v3.errorStringSpec
         iexact Hes
@@ -357,7 +363,7 @@ theorem store.updateOnce.wp_proof
       iapply HΦ
       ileft
       isplitl []
-      · iapply unkErr_internal
+      · iapply (unkErr_internal _ _ (by rw [Hie]; exact Htre))
       iexists o0, rv0
       iexact Hout
 

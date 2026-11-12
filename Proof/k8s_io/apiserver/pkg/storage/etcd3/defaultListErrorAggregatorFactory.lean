@@ -34,7 +34,15 @@ theorem defaultListErrorAggregatorFactory.wp_proof : defaultListErrorAggregatorF
   wp_alloc a as Ha
   wp_auto
   iapply HΦ
-  itrivial
+  iunfold freshAggr
+  iexists ⟨go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.abortOnFirstError.ty, #a⟩
+  isplitr
+  · ipureintro; rfl
+  iintro %Φ' HΦ'
+  wp_method_call
+  wp_call
+  wp_auto
+  iexact HΦ'
 
 end proof
 

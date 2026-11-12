@@ -87,8 +87,11 @@ theorem EtcdServer.Start.wp_proof
   iunfold isServerReadM at Hrd'
   icases Hrd' with ⟨%vd, #Hvd⟩
   iunfold srvReadFieldsAtM at Hvd
-  icases Hvd with ⟨-, -, -, -, -, -, -, -, -, -, #Hlgf, %Hlgn, -, -, -, -, -, -, -, -, -, -, -,
+  icases Hvd with ⟨-, -, -, -, -, -, -, -, -, #Hlgf, #Hlgn, -, -, -, -, -, -, -, -, -, -,
     #Hstpf, -⟩
+  -- (premise-fixes-6) the server's logger a zap logger (the monitors' and `adjustTicks`'s)
+  ihave #HlgOk : srvLoggerOk s $$ []
+  · iunfold srvLoggerOk; iexists vd.lg; iframe Hlgf Hlgn
   -- `func() { s.adjustTicks() }`
   wp_apply wp_GoAttach_tok hGA s γg _ iprop(True) $$ [Hgr] as Hgr
   · iframe Hgr
@@ -97,7 +100,8 @@ theorem EtcdServer.Start.wp_proof
     iintro !> %Φ' ⟨-, Hrun⟩ HΦ'
     ihave HΦ' := goRunning_frame γg _ $$ Hrun HΦ'
     wp_auto
-    wp_apply hAdj s
+    wp_apply hAdj C.isOn s E { wait := γw, rd := ρ.rd } $$ []
+    · iframe #
     iapply HΦ'
     try itrivial
   -- `func() { s.publishV3(s.Cfg.ReqTimeout()) }`, with the right to close `readych`
@@ -109,7 +113,7 @@ theorem EtcdServer.Start.wp_proof
     wp_apply hReqT (structFieldRef EtcdServer go!"Cfg" s) vq.electionTicks vq.tickMs $$ [] as %d -
     · iframe #
     wp_apply hPub C.isOn s _ E { wait := γw, rd := ρ.rd } $$ [Hrc]
-    · iframe #; iframe Hrc; iapply srvMonitorPermitM_of C.isOn s E { wait := γw, rd := ρ.rd } γn.id HmidcS; iframe Hreq HmidS
+    · iframe #; iframe Hrc; iapply srvMonitorPermitM_of C.isOn s E { wait := γw, rd := ρ.rd } γn.id HmidcS; iframe Hreq HlgOk HmidS
     iapply HΦ'
     try itrivial
   -- `s.purgeFile`
@@ -119,7 +123,8 @@ theorem EtcdServer.Start.wp_proof
     · itrivial
     iintro !> %Φ' ⟨-, Hrun⟩ HΦ'
     ihave HΦ' := goRunning_frame γg _ $$ Hrun HΦ'
-    wp_apply hPurge s
+    wp_apply hPurge C.isOn s E γr $$ []
+    · iframe #
     iapply HΦ'
     try itrivial
   -- `func() { monitorFileDescriptor(s.Logger(), s.stopping) }`
@@ -128,10 +133,10 @@ theorem EtcdServer.Start.wp_proof
     iintro !> %Φ' ⟨HL, Hrun⟩ HΦ'
     ihave HΦ' := goRunning_frame γg _ $$ Hrun HΦ'
     wp_auto
-    wp_apply hLg s vd.lg $$ [HL] as ⟨%Hlg', -⟩
-    · iframe #; iframe HL; ipureintro; exact Hlgn
+    wp_apply hLg s vd.lg $$ [HL] as ⟨#Hlg', -⟩
+    · iframe #; iframe HL
     wp_apply hMFD $$ []
-    · iframe #; ipureintro; exact Hlg'
+    · iframe #
     iapply HΦ'
     try itrivial
   -- `s.monitorClusterVersions`, `s.monitorStorageVersion`
@@ -142,7 +147,7 @@ theorem EtcdServer.Start.wp_proof
     iintro !> %Φ' ⟨-, Hrun⟩ HΦ'
     ihave HΦ' := goRunning_frame γg _ $$ Hrun HΦ'
     wp_apply hMCV C.isOn s E { wait := γw, rd := ρ.rd } $$ []
-    · iframe #; iapply srvMonitorPermitM_of C.isOn s E { wait := γw, rd := ρ.rd } γn.id HmidcS; iframe Hreq HmidS
+    · iframe #; iapply srvMonitorPermitM_of C.isOn s E { wait := γw, rd := ρ.rd } γn.id HmidcS; iframe Hreq HlgOk HmidS
     iapply HΦ'
     try itrivial
   -- (H2, 2026-11-05) with its receipt at `γg`, the budget's registered name

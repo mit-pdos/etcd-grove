@@ -71,6 +71,7 @@ axiom backend.rBkt_persistent
 axiom backend.rBkt_timeless
 axiom backend.rtxSnap
 axiom backend.rtxSnap_persistent
+axiom backend.rtxSnap_size
 axiom backend.rtxStats
 axiom backend.rtxStats_excl
 axiom backend.rtxStats_timeless
@@ -128,11 +129,12 @@ axiom clockwork.stampAt_elim
 axiom clockwork.stampAt_persistent
 axiom config.ServerConfig.BackendPath.wp_proof
 axiom config.ServerConfig.PeerDialTimeout.wp_proof
-axiom context.ValueStartTime.wp_proof
 axiom context.WithCancelBackground.wp_proof
 axiom context.WithValue.wp_proof
 axiom dataDirFresh
 axiom encoding.json.Unmarshal.wp_proof
+axiom entryEncC_ok
+axiom envVerifyOffTok
 axiom errors.AsLeaf.wp_proof
 axiom errors.IsCtxErr.wp_proof
 axiom etcdserverpb.AlarmType.String.wp_proof
@@ -198,13 +200,15 @@ axiom membership.membersOf_decode
 axiom membership.setIsLearnerMetric.wp_proof
 axiom metadata.FromIncomingContext.wp_proof
 axiom monitorFileDescriptor.wp_proof
+axiom msgEncC_ok
 axiom mvcc.hashStorage.Store.wp_proof
 axiom mvcc.kvHasher.Hash.wp_proof
 axiom mvcc.kvHasher.WriteKeyValue.wp_proof
 axiom mvcc.newKVHasher.wp_proof
 axiom newCorruptionChecker.wp_proof
 axiom os.Rename.wp_proof
-axiom pbEnc_ok
+axiom pbEntryC_reg
+axiom pbMessageC_reg
 axiom pbutil.MustUnmarshalMessage.wp_proof
 axiom probing.NewHandler.wp_proof
 axiom probing.NewProber.wp_proof
@@ -216,7 +220,6 @@ axiom proto.CloneConfState.wp_proof
 axiom proto.CloneEntry.wp_proof
 axiom proto.ClonePb.wp_proof
 axiom proto.CloneSnapshot.wp_proof
-axiom proto.EqualConfState.wp_proof
 axiom proto.Marshal.wp_proof
 axiom proto.MarshalAppendPb.wp_proof
 axiom proto.MarshalConfChange.wp_proof
@@ -239,7 +242,6 @@ axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.netErrNotRemoved_ok
 axiom rafthttp.newStreamRoundTripper.wp_proof
 axiom rafthttp.waitSchedule.wp_proof
-axiom raftpb.ConfChangeType.String.wp_proof
 axiom raftpb.MessageType.String.wp_proof
 axiom rate.Every.wp_proof
 axiom rate.Limiter.Wait.wp_proof
@@ -276,7 +278,6 @@ axiom storage.storage.Release.wp_proof
 axiom strconv.FormatBool.wp_proof
 axiom strconv.FormatUint.wp_proof
 axiom strings.TrimSuffix.wp_proof
-axiom swMsgBound_phys
 axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.Seconds_ptr.wp_proof
 axiom time.Duration.String_ptr.wp_proof
@@ -330,3 +331,4 @@ axiom zap.Strings.wp_proof
 axiom zap.Uint32.wp_proof
 axiom zap.Uint64.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof
+sorry out_size

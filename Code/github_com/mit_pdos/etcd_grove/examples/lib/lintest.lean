@@ -47,6 +47,12 @@ noncomputable def orderByLinearization [GooseExts] [GoGlobalContext] : GoString 
 noncomputable def RunLin [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/lib/lintest.RunLin"
 
+noncomputable def groupOps [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/lib/lintest.groupOps"
+
+noncomputable def RunLin2 [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/lib/lintest.RunLin2"
+
 /-- MonotonicClock is the clock of etcd's robustness tests: the time since a base, by Go's
     monotonic clock (time.Since).
 
@@ -293,7 +299,91 @@ noncomputable def RunLin.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "gen" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [go.int] false [go.any]))))) (Var "gen"))
   (Let "apply" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.any]))))) (Var "apply"))
   (Let "model" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.anishathalye.porcupine.Model.ty))) (Var "model"))
-  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty))]))) (Val #())) (App (Val (GoInstruction (GoLoad go.int))) (Var "clients")))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.anishathalye.porcupine.Model.ty))) (Var "model"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.any]))))) (Var "apply"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.int] false [go.any]))))) (Var "gen"))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad Clock.ty))) (Var "clock"))
+  (Let "$a4" (App (Val (GoInstruction (GoLoad go.int))) (Var "clients"))
+  (Let "$a5" (App (Val (GoInstruction (GoLoad go.int))) (Var "ops"))
+  (Let "$a6" (Val #(W64 0))
+  (Let "$a7" (Val #(W64 0))
+  (Let "$a8" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "timeout"))
+  (App (App (App (App (App (App (App (App (App (App (Val (GoInstruction (FuncResolve RunLin2 []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")) (Var "$a5")) (Var "$a6")) (Var "$a7")) (Var "$a8")))))))))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty)))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty)))) (Var "$res1")))))))))))))
+
+/-- groupOps is the number of operations client id runs: ops in the first group (id < clients),
+    ops2 in the second.
+
+    go: lintest.go:92:6 -/
+noncomputable def groupOps.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "id"
+  (Lam "clients"
+  (Lam "ops"
+  (Lam "ops2"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "ops2" (App (Val (GoInstruction (GoAlloc go.int))) (Var "ops2"))
+  (Let "ops" (App (Val (GoInstruction (GoAlloc go.int))) (Var "ops"))
+  (Let "clients" (App (Val (GoInstruction (GoAlloc go.int))) (Var "clients"))
+  (Let "id" (App (Val (GoInstruction (GoAlloc go.int))) (Var "id"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "ops2"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "id")) (App (Val (GoInstruction (GoLoad go.int))) (Var "clients")))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "ops"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))))
+
+/-- RunLin2 is RunLin with two groups of clients: clients 0 to clients-1 run ops operations each,
+    clients clients to clients+clients2-1 run ops2 each (notes/k8s-7f-scope.md: the k8s driver's
+    watchers, whose operations are whole watches, beside its unary clients).
+
+    go: lintest.go:102:6 -/
+noncomputable def RunLin2.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "model"
+  (Lam "apply"
+  (Lam "gen"
+  (Lam "clock"
+  (Lam "clients"
+  (Lam "ops"
+  (Lam "clients2"
+  (Lam "ops2"
+  (Lam "timeout"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "timeout" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "timeout"))
+  (Let "ops2" (App (Val (GoInstruction (GoAlloc go.int))) (Var "ops2"))
+  (Let "clients2" (App (Val (GoInstruction (GoAlloc go.int))) (Var "clients2"))
+  (Let "ops" (App (Val (GoInstruction (GoAlloc go.int))) (Var "ops"))
+  (Let "clients" (App (Val (GoInstruction (GoAlloc go.int))) (Var "clients"))
+  (Let "clock" (App (Val (GoInstruction (GoAlloc Clock.ty))) (Var "clock"))
+  (Let "gen" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [go.int] false [go.any]))))) (Var "gen"))
+  (Let "apply" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.any]))))) (Var "apply"))
+  (Let "model" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.anishathalye.porcupine.Model.ty))) (Var "model"))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty))]))) (Val #())) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "clients")) (App (Val (GoInstruction (GoLoad go.int))) (Var "clients2")))))
   (Let "histories" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty))))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "wg" (App (Val (GoInstruction (GoAlloc _root_.Perennial.sync.WaitGroup.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.sync.WaitGroup.ty))) (Val #())))
@@ -388,13 +478,20 @@ noncomputable def RunLin.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$iter_id" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType go.int)))) (Var "id"))
   (App (App (App (Val doFor) (Lam BAnon
   (Let "id" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.int)))) (Var "$iter_id"))
-  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "id")) (App (Val (GoInstruction (GoLoad go.int))) (Var "clients"))))))) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "id")) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "clients")) (App (Val (GoInstruction (GoLoad go.int))) (Var "clients2"))))))))) (Lam BAnon
   (Let "id" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.int)))) (Var "$iter_id"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "id"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "clients"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad go.int))) (Var "ops"))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad go.int))) (Var "ops2"))
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve groupOps []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$go" (Lam BAnon
   (Seq (App (Val exceptionDo)
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "id"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "ops"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.int] false [go.any]))))) (Var "gen"))
   (Let "$a3" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [go.any] false [go.any]))))) (Var "apply"))
   (Let "$a4" (App (Val (GoInstruction (GoLoad Clock.ty))) (Var "clock"))
@@ -410,7 +507,9 @@ noncomputable def RunLin.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Var "$go") (Val #())))))))
   (App (Val doExecute)
   (Let "$a0" (Val #(W64 1))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Add"))) (Var "wg")) (Var "$a0"))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.WaitGroup.ty) go!"Add"))) (Var "wg")) (Var "$a0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0"))))))))))
   (Lam BAnon
   (Let "id" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.int)))) (Var "$iter_id"))))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -421,8 +520,8 @@ noncomputable def RunLin.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "id") (Var "$r0")))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty))))) (Pair (Var "histories") (Var "$r0")))))))))))))))
-  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty)))) (Var "$res1")))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty))))) (Pair (Var "histories") (Var "$r0")))))))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.github_com.anishathalye.porcupine.Operation.ty)))) (Var "$res1")))))))))))))))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest where
   pkgImportedPkgs := [pkg_id.sync, pkg_id.sync.atomic, pkg_id.time, pkg_id.github_com.anishathalye.porcupine]
@@ -465,6 +564,8 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Run_unfold : FuncUnfold Run [] Run.impl
   orderByLinearization_unfold : FuncUnfold orderByLinearization [] orderByLinearization.impl
   RunLin_unfold : FuncUnfold RunLin [] RunLin.impl
+  groupOps_unfold : FuncUnfold groupOps [] groupOps.impl
+  RunLin2_unfold : FuncUnfold RunLin2 [] RunLin2.impl
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
@@ -477,6 +578,8 @@ attribute [instance] Assumptions.Clock_instance
   Assumptions.Run_unfold
   Assumptions.orderByLinearization_unfold
   Assumptions.RunLin_unfold
+  Assumptions.groupOps_unfold
+  Assumptions.RunLin2_unfold
   Assumptions.import_sync_Assumption
   Assumptions.import_atomic_Assumption
   Assumptions.import_time_Assumption

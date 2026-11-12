@@ -50,7 +50,7 @@ theorem leasingKV.waitSession.wp_proof : leasingKV.waitSession.spec (GF := GF) (
   ihave #Hlkv' := Hlkv
   iunfold isLeasingKV at Hlkv'
   icases Hlkv' with ⟨%cl, %kv, %lctx, %lcs, %cancel, %osl, %Hpfx, #Hclf, #Hkvf, #Hpfxf, #Hctxf,
-    #Hcancelf, #Hoslf, -, -, -, -, #Hlctx, -, -, -, -, -⟩
+    #Hcancelf, #Hoslf, -, -, -, -, #Hlctx, -, -, -, -, -, -⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   unfold lkvReader leaseCacheReader

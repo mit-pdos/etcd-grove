@@ -72,13 +72,6 @@ theorem kvLogsOkM_insert (on : Bool) (γr : ReadNames) (M : GMap w64 mvcc.Log) (
     · obtain ⟨A', h1, h2, h3⟩ := Hm k L' hk
       exact ⟨A', h1.trans h, h2, h3⟩
 
-/-- The applied logs of `kvLogsPubM` (E3u). -/
-theorem kvLogsPubM_ok (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (M : GMap w64 mvcc.Log)
-    (a : w64) : kvLogsPubM (GF := GF) on E γr M a ⊢ kvLogsOkM on γr M := by
-  iintro H
-  icases (kvLogsPubM_iff on E γr M a).1 $$ H with ⟨H, -⟩
-  iexact H
-
 /-- `kvLogsOkM_insert` under `kvLogsPubM` (E3u; the current applied index unchanged). -/
 theorem kvLogsPubM_insert (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (M : GMap w64 mvcc.Log)
     (a v : w64) (L : mvcc.Log) :
@@ -156,7 +149,7 @@ publishes `L`, the mode's KV model of the committed log through `i`. -/
 theorem applied_jumpM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (a i : w64)
     (L₀ L : mvcc.Log) (hi : uint.Z a < uint.Z i) (hp : L₀ <+: L) :
     ⊢ srvAppliedInvM (GF := GF) on s E γr -∗ srvAppliedOwn γr a -∗ appliedLogAt γr a L₀ -∗
-      kvLogAtM on γr i L -∗ mvcc.idxCert E.γ.idx L -∗ appliedPubM on E γr i ={⊤}=∗
+      kvLogAtM on γr i L -∗ srvApi.kvLogLb E.γs L -∗ appliedPubM on E γr i ={⊤}=∗
       srvAppliedOwn γr i ∗ appliedAtLeast γr i ∗ appliedLogAt γr i L := by
   iintro #Hinv Hown #HL₀ #HkA #HcL #Hpub
   iunfold srvAppliedInvM at Hinv
@@ -214,37 +207,6 @@ theorem applied_jumpM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames
   iunfold appliedAtLeast
   iframe Hlb
   iunfold appliedLogAt; iexact HLi
-
-/-- **An applied log is the mode's KV model of the committed raft log through its index**
-(`appliedLogAt_kvLogAt`'s counterpart). -/
-theorem appliedLogAt_kvLogAtM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
-    (i : w64) (L1 : mvcc.Log) :
-    ⊢ srvAppliedInvM (GF := GF) on s E γr -∗ appliedLogAt γr i L1 ={⊤}=∗ kvLogAtM on γr i L1 := by
-  iintro #Hinv #H1
-  iunfold srvAppliedInvM at Hinv
-  iinv Hinv with Hi Hclose
-  iunfold srvAppliedBodyM at Hi
-  icases Hi with ⟨%vat, %v, %L, %M, %p, Hat, >Hauth, >HM, >Hp, >%HMk, >#HL, >#Hc, >#Hkl⟩
-  ihave %Hm1 : iprop(⌜M.lookup i = some L1⌝) $$ [HM]
-  · iunfold appliedLogAt at H1
-    iapply ghost_map_lookup $$ HM H1
-  imod Hclose $$ [Hat Hauth HM Hp] with -
-  · inext
-    iunfold srvAppliedBodyM
-    iexists vat, v, L, M, p
-    iframe Hat Hauth HM Hp HL Hc Hkl
-    ipureintro; exact HMk
-  imodintro
-  ihave #Hkl := kvLogsPubM_ok on E γr M v $$ Hkl
-  iunfold kvLogsOkM at Hkl
-  icases Hkl with ⟨%Lb, #Hlb, %Hm⟩
-  obtain ⟨A, hA, h1, h2⟩ := Hm i L1 Hm1
-  iunfold kvLogAtM
-  iexists A
-  isplitr
-  · iapply srvRLogLb_mono γr.raft A Lb hA $$ Hlb
-  ipureintro; exact ⟨h1, h2⟩
-
 end applied
 
 section server
@@ -274,9 +236,9 @@ theorem srvAtomicsM_false (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
 (`waitInvM`, E3b: its results carry the auth layer's verdict). -/
 def srvFieldsAtM (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (v : SrvFields) : IProp GF :=
-  iprop(srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
+  iprop(srvLgAddr s ↦□ v.lg ∗ zapLoggerOk v.lg ∗
       srvWAddr s ↦□ v.w ∗ waitInvM on v.w ρ E ∗
-      ⌜E.P = batchLockInv γ TM ∧ E.f = v.hook⌝ ∗ ⌜srvEnvOk s γ ci E v.cluster⌝ ∗
+      ⌜E.Pk = (fun _ => batchLockInv γ TM) ∧ v.hook = #E.f ∧ E.f ≠ func.nil⌝ ∗ ⌜srvEnvOk s γ ci E v.cluster⌝ ∗
       hookSpec γ ci TM v.hook ∗
       srvLessorAddr s ↦□ v.lessor ∗ lessorOk E.lg E.authMode.isOn v.lessor ∗
       srvFirstCommitAddr s ↦□ v.firstCommit ∗ srvAlarmStoreAddr s ↦□ v.alarmStore ∗
@@ -340,7 +302,7 @@ def srvApplyKVOn (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
     apply.applyKV E ua x ∗ srvBeOwn s E ∗ revAuth E x.log ∗ srvAuthApplyResB s E st ∗
     (∃ (w : GoInterface) (RD : IProp GF), srvWAddr s ↦□ w ∗
       waitOk w RD (fun ot id => waitRegdOpt γw id ot) (fun ot id => waitGoneOpt γw id ot) ∗ RD) ∗
-    lease.rdAt E.γ.leases E.s)
+    (∃ rd : GoFunc, lease.rdOwn (mvcc.api.mvccLeases E.γ) rd ∗ mvcc.api.mvccDeleter rd E.γ))
 
 /-- **The apply thread's applier state in the mode `on`** (the auth-mode merge's step 1,
 2026-10-29): `srvApplyKV` off (the auth state `st` unused), `srvApplyKVOn` on. -/

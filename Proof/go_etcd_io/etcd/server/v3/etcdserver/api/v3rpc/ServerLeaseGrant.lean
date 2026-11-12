@@ -6,6 +6,7 @@ lending the request path's readers. Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.context.ReqKeys
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvLeaseGrant
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerKV
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__LeaseGrant
@@ -58,8 +59,7 @@ theorem lessorGrantOkG_mono (s : Loc) (E : apply.AEnv GF) (S : IProp GF)
 lease-expiry plan's X2, 2026-11-04) in a cluster that grants leases, given the
 run's resource `S` lending the request path's readers (`EtcdServer.LeaseGrant.spec`'s), with the auth store's contract
 (`srvAuthAt`, amendment (G): from both server views, `srvAuthAt_of_views`). The
-header's answer (`leaseHdrAns`): the revision reached (`etcdReached_of_certOk` from
-`leaseGrantedResp`'s `srvRevLb`), the four id fields from its `txn.respHdrOwn`; the error one the
+header's answer (`leaseHdrAns`): the revision reached (`leaseGrantedResp`'s `srvRevLb`), the four id fields from its `txn.respHdrOwn`; the error one the
 gRPC layer can take (`srvErrIs_of_applyErrIs`). (E3, 2026-11-04) For the requests of a filter `R`
 that, in the revocable lease mode, has only `ID = 0` (`EtcdServer.LeaseGrant.spec`'s premise). -/
 theorem lessorGrantOkLive_of_server (hLG : EtcdServer.LeaseGrant.spec (GF := GF) (hG := hG))
@@ -71,7 +71,10 @@ theorem lessorGrantOkLive_of_server (hLG : EtcdServer.LeaseGrant.spec (GF := GF)
       lessorGrantOkG s E S (grantLiveG E) R := by
   iintro ⟨#Hpkg, #Hq, #Hau, #Hcred, #HS⟩
   unfold lessorGrantOkG
-  iintro %ci %cd %r %m !> %Φ ⟨HSr, #Hctx, -, #Hreq, Hid, %HRm⟩ HΦ
+  iintro %ci %cd %r %m !> %Φ ⟨HSr, #Hctx, #Hrun, #Hreq, Hid, %HRm⟩ HΦ
+  ihave #Hspan := spanCtxOk_of_runCtx ci $$ Hrun
+  ihave #Hlibc := libCtxOk_of_runCtx ci $$ Hrun
+  ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrun
   ihave ⟨Hlt, HRD, Hback⟩ := HS $$ HSr
   wp_apply (hLG s E ρ ci cd r m.1 m.2 h (hR m HRm)) $$ [Hlt HRD Hid] as %resp %err ⟨Hlt, HRD, Hans⟩
   · iframe # Hlt HRD
@@ -94,9 +97,6 @@ theorem lessorGrantOkLive_of_server (hLG : EtcdServer.LeaseGrant.spec (GF := GF)
     icases Hown with ⟨%h', #Hh', %Hnn', %c, %mm, %t, %l, Hc, Hm, Ht, Hl⟩
     icombine Hh Hh' gives %Hhh
     subst Hhh
-    iunfold srvRevLb at Hlb
-    icases Hlb with ⟨%log, -, #Hcert, %Hlt⟩
-    ihave #Hreach := etcdReached_of_certOk E log rv Hlt $$ Hcert
     isplitl
     · iunfold leaseGrantAns
       ileft
@@ -105,7 +105,7 @@ theorem lessorGrantOkLive_of_server (hLG : EtcdServer.LeaseGrant.spec (GF := GF)
       isplitl
       · iunfold leaseHdrAns
         iexists hh, rv
-        iframe Hh Hrv Hreach
+        iframe Hh Hrv Hlb
         isplitl
         · iunfold hdrW
           isplitr

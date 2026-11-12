@@ -19,6 +19,8 @@ public import Spec.k8s_io.apiserver.pkg.storage.etcd3.compactor__UpdateCompactRe
 public import Spec.k8s_io.apimachinery.pkg.util.wait.ContextForChannel
 public import Spec.k8s_io.apimachinery.pkg.util.wait.channelContext__Done
 public import Spec.k8s_io.apimachinery.pkg.util.wait.channelContext__Err
+public import Spec.k8s_io.apimachinery.pkg.util.wait.channelContext__Deadline
+public import Spec.k8s_io.apimachinery.pkg.util.wait.channelContext__Value
 public import Spec.k8s_io.klog.v2.Errorf
 public import Spec.go_etcd_io.etcd.client.v3.Client__Endpoints
 public import Spec.go_etcd_io.etcd.client.v3.WithRev
@@ -86,7 +88,7 @@ theorem client_Watch_field (wp_Watch : watcher.Watch.spec (GF := GF) (hG := hG))
           go!"Watch")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #sl))
     {{ (ch : Loc) (γw : EtcdWatchNames), RET #ch;
         isSpsc γw.spsc ch (watchStateElem V.kv γw (opWatchModel key opts).watchNorm Q
-          iprop(□ (⌜V.nm = 1⌝ → client.watchCheckOk (V.mem 0).2.γ (V.mem 0).2.s V.conn
+          iprop(□ (⌜V.nm = 1⌝ → client.watchCheckOk (V.mem 0).2.tag (V.mem 0).2.s V.conn
             (GoInterface.ok ctx) n (opWatchModel key opts).key
             (opWatchModel key opts).base.rangeEnd)))
           (fun _ => iprop(True)) ∗
@@ -106,6 +108,8 @@ theorem compactor.runWatchLoop.wp_proof
     (wp_ContextForChannel : wait.ContextForChannel.spec (GF := GF) (hG := hG))
     (wp_Done : wait.channelContext.Done.spec (GF := GF) (hG := hG))
     (wp_Err : wait.channelContext.Err.spec (GF := GF) (hG := hG))
+    (wp_Deadline : wait.channelContext.Deadline.spec (GF := GF) (hG := hG))
+    (wp_Value : wait.channelContext.Value.spec (GF := GF) (hG := hG))
     (wp_After : time.After.spec (GF := GF) (hG := hG))
     (wp_getCompactRev : compactor.getCompactRev.spec (GF := GF) (hG := hG))
     (wp_UpdateCompactRevision : compactor.UpdateCompactRevision.spec (GF := GF) (hG := hG))
@@ -132,10 +136,10 @@ theorem compactor.runWatchLoop.wp_proof
   · iPkgInit
   ihave #Ppb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
   · iPkgInit
-  ihave ⟨#Hctx, #Hce⟩ := chanCtx_ok wp_Err EtcdGrove.rpctypesEtcdError_asTarget sc γs γi iprop(True)
+  ihave ⟨#Hctx, #Hce⟩ := chanCtx_ok wp_Done wp_Err wp_Deadline wp_Value EtcdGrove.rpctypesEtcdError_asTarget sc γs γi iprop(True)
     $$ [Pw Hint]
   · iframe #
-  imod chanCtx_watch wp_Done wp_Err sc γs γi $$ [Pw Hint] with ⟨%γdn, #Hwctx⟩
+  imod chanCtx_watch wp_Done wp_Err wp_Value sc γs γi $$ [Pw Hint] with ⟨%γdn, #Hwctx⟩
   · iframe #
   iunfold clientWatchOk at Hwo
   icases Hwo with ⟨%w, %Vw, #Hwf, #Hcw, %Hkst⟩

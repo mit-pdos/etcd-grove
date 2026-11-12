@@ -17,6 +17,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthLatest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthLemmas
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.WriteLemmas
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3__Range
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3__DeleteRange
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.authApplierV3__Put
@@ -134,7 +135,7 @@ refuses is the model's log of no committed prefix. -/
 def certPreW (E : AEnv GF) (c : Chain) (rq : IRRModel) (log : mvcc.Log) (X : Outcome → Prop) :
     IProp GF :=
   iprop(□ ∀ oc : Outcome, ⌜chainStep backendStep c rq log oc ∧ X oc⌝ -∗
-    mvcc.certOk E.γ (oc.logAfter log))
+    E.Nx (oc.logAfter log))
 
 instance certPreW_persistent (E : AEnv GF) (c : Chain) (rq : IRRModel) (log : mvcc.Log)
     (X : Outcome → Prop) : Persistent (certPreW E c rq log X) := by
@@ -154,24 +155,21 @@ def putPreW (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.
     (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log) (Pre Q Post : IProp GF)
     (X : Outcome → Prop) : IProp GF :=
   iprop(⌜rq.put = some o ∧ dispatchKind rq = .put ∧ putOk log⌝ ∗ certPreW E c rq log X ∗
-    txn.putRequestIs r o ∗
-    mvcc.storeWT E.γ ∗ mPre E c a info log Pre Q Post)
+    txn.putRequestIs r o ∗ mPre E c a info log Pre Q Post)
 
 /-- `deletePre` with the certificates of the outcomes `X` admits (`certPreW`). -/
 def deletePreW (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log) (Pre Q Post : IProp GF)
     (X : Outcome → Prop) : IProp GF :=
   iprop(⌜rq.deleteRange = some o ∧ dispatchKind rq = .deleteRange ∧ delOk log o⌝ ∗
-    certPreW E c rq log X ∗ txn.deleteRangeRequestIs r o ∗ mvcc.storeWT E.γ ∗
-    mPre E c a info log Pre Q Post)
+    certPreW E c rq log X ∗ txn.deleteRangeRequestIs r o ∗ mPre E c a info log Pre Q Post)
 
 /-- `txnPre` with the certificates of the outcomes `X` admits (`certPreW`). -/
 def txnPreW (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (r : Loc) (rq : IRRModel) (t : TxnModel) (log : mvcc.Log) (Pre Q Post : IProp GF)
     (X : Outcome → Prop) : IProp GF :=
-  iprop(⌜rq.txn = some t ∧ dispatchKind rq = .txn ∧ txn.TxnPre log t⌝ ∗ certPreW E c rq log X ∗
-    txn.txnRequestIs r t ∗
-    mvcc.storeWT E.γ ∗ mPre E c a info log Pre Q Post)
+  iprop(⌜rq.txn = some t ∧ dispatchKind rq = .txn ∧ txn.TxnPreA log t ∧ putOk log⌝ ∗ certPreW E c rq log X ∗
+    txn.txnRequestIs r t ∗ mPre E c a info log Pre Q Post)
 
 end defs
 
@@ -235,12 +233,12 @@ theorem rangePostL_rangePost (E : AEnv GF) (c : Chain) (a : GoInterface)
 theorem auth_reject_kvPostFL (E : AEnv GF) (on : Bool) (c : Chain) (p : Loc)
     (inner : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (rq : IRRModel)
     (log F : mvcc.Log) (R : Outcome → IProp GF)
-    (Pre Q Post : IProp GF) (X : Outcome → Prop) (hk : authChecks (dispatchKind rq) = true)
+    (P Pre Q Post : IProp GF) (X : Outcome → Prop) (hk : authChecks (dispatchKind rq) = true)
     (hm : authMayReject on rq) (hX : X (.rejected .auth)) :
     structFieldRef authApplierV3 go!"applierV3" p ↦□ inner ⊢
       R (.rejected .auth) -∗ kvOwn E log -∗
       structFieldRef authApplierV3 go!"authInfo" p ↦ info -∗
-      chainResAny c inner -∗ mvcc.csContract E.P E.f Pre Q Post -∗
+      chainResAny c inner -∗ srvApi.csContractA P E.f Pre Q Post -∗
       kvPostFL E (.auth on c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info rq
         log F R Pre Post X := by
   iintro #Happ HR Hkv Hinfo Hres Hcs
@@ -306,13 +304,13 @@ abbrev apply.authApplierV3.Range.specL : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       apply.authIs E p inner ∗ apply.authIsL E p L ∗ apply.applierSpec E c inner ∗
       apply.rangePre E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info r rq o log ∗
-      L hs ∗ ⌜apply.shapedL E.authMode hs (apply.rangePermsM o)⌝ }}
+      L hs ∗ ⌜apply.shapedL E.authMode hs (apply.rangePermsM o)⌝ ∗ apply.applyTok E }}
     (App (Val (p @!! go.GoType.PointerType authApplierV3.ty @!! go!"Range")) (Val #r))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
       apply.rangePostL E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info rq o log resp err
         (fun oc => ∃ e, apply.authEndOf o.base.rangeEnd e ∧
           apply.authOutL E.authMode hs (auth.authInfoM info) c rq log [(o.key, e, .read)] oc) ∗
-      L hs ∗ apply.traceRes trace }}
+      L hs ∗ apply.traceRes trace ∗ apply.applyTok E }}
 
 /-- **`DeleteRange` on the apply thread**: `DeleteRange.spec`'s, the outcome decided at the
 latest state for the write (and with `PrevKv` the read) as the checks saw them; the certificates
@@ -328,7 +326,8 @@ abbrev apply.authApplierV3.DeleteRange.specL : Prop :=
         (fun oc => ∃ e, apply.authEndOf o.base.rangeEnd e ∧
           apply.authOutL E.authMode hs (auth.authInfoM info) c rq log
             ((o.key, e, .write) :: if o.base.prevKV then [(o.key, e, .read)] else []) oc) ∗
-      mvcc.idxCert E.γ.idx F ∗ L hs ∗ ⌜apply.shapedL E.authMode hs (apply.deletePermsM o)⌝ }}
+      srvApi.kvLogLb E.γs F ∗ L hs ∗ ⌜apply.shapedL E.authMode hs (apply.deletePermsM o)⌝ ∗
+      apply.applyTok E }}
     (App (Val (p @!! go.GoType.PointerType authApplierV3.ty @!! go!"DeleteRange")) (Val #r))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
       apply.kvPostFL E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info rq log F
@@ -336,7 +335,7 @@ abbrev apply.authApplierV3.DeleteRange.specL : Prop :=
         (fun oc => ∃ e, apply.authEndOf o.base.rangeEnd e ∧
           apply.authOutL E.authMode hs (auth.authInfoM info) c rq log
             ((o.key, e, .write) :: if o.base.prevKV then [(o.key, e, .read)] else []) oc) ∗
-      L hs ∗ apply.traceRes trace }}
+      L hs ∗ apply.traceRes trace ∗ apply.applyTok E }}
 
 end spec
 
@@ -350,7 +349,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.authApplierV3.Range.wp_latest :
     apply.authApplierV3.Range.specL (GF := GF) (hG := hG) := by
   intro E c inner p r rq o log info L hs
-  wp_start as ⟨#Hauth, #HauthL, #Hinner, Hpre, HL, %Hsh⟩
+  wp_start as ⟨#Hauth, #HauthL, #Hinner, Hpre, HL, %Hsh, Htt⟩
   iunfold apply.authIs at Hauth
   icases Hauth with ⟨#Happ, -, -, -⟩
   iunfold apply.authIsL at HauthL
@@ -393,7 +392,7 @@ theorem apply.authApplierV3.Range.wp_latest :
     have hon : E.authOn = true := by cases h : E.authOn <;> first | rfl | cases Hoff h
     wp_auto
     iapply HΦ
-    iframe HL
+    iframe HL Htt
     isplitl
     rotate_left
     · iapply apply.traceRes_null
@@ -422,13 +421,14 @@ theorem apply.authApplierV3.Range.wp_latest :
   ihave #Hrc := apply.reqClass_range E.authMode info rq o Hk.1 Hk.2.1 $$ Hrc'
   iunfold apply.chainResAny at Hres
   icases Hres with ⟨%info', Hres⟩
-  wp_apply HRangeI $$ %r %rq %o %log %info' [Hkv Hres] as %resp %trace %err ⟨Hpost, Htrc⟩
-  · iunfold apply.rangePre
+  wp_apply HRangeI $$ %r %rq %o %log %info' [Htt Hkv Hres] as %resp %trace %err ⟨Hpost, Htrc, Htt⟩
+  · iframe Htt
+    iunfold apply.rangePre
     iframe
     iframe #
     ipureintro; exact Hk
   iapply HΦ
-  iframe HL
+  iframe HL Htt
   isplitr [Htrc]
   rotate_left
   · iexact Htrc
@@ -452,16 +452,15 @@ theorem apply.authApplierV3.Range.wp_latest :
 theorem apply.authApplierV3.DeleteRange.wp_latest :
     apply.authApplierV3.DeleteRange.specL (GF := GF) (hG := hG) := by
   intro E c inner p r rq o log F Pre Q Post info L hs
-  wp_start as ⟨#Hauth, #HauthL, #Hinner, Hpre, #HF, HL, %Hsh⟩
+  wp_start as ⟨#Hauth, #HauthL, #Hinner, Hpre, #HF, HL, %Hsh, Htt⟩
   iunfold apply.authIs at Hauth
   icases Hauth with ⟨#Happ, -, -, -⟩
   iunfold apply.authIsL at HauthL
   icases HauthL with ⟨%st, #Hasf, #Hst⟩
   iunfold apply.deletePreW at Hpre
-  icases Hpre with ⟨%Hk, #Hcp, #Hr, Hwt, Hm⟩
-  iunfold apply.mPre at Hm
-  icases Hm with ⟨Hkv, Hres, Hcs⟩
-  ihave ⟨Hard, Hkv⟩ := apply.kvOwn_rd E log $$ Hkv
+  icases Hpre with ⟨%Hk, #Hcp, #Hr, Hm⟩
+  icases apply.mPre_split_chain _ _ _ _ _ _ _ _ $$ Hm with ⟨Hm, Hres⟩
+  ihave ⟨Hard, Hkv⟩ := apply.mPreRest_rd E log Pre Q Post $$ Hm
   ihave ⟨Hinfo, Hres⟩ := apply.chainRes_auth_out c p inner info $$ Happ Hres
   ihave #Hst' := Hst
   iunfold apply.isAuthStoreL at Hst'
@@ -498,10 +497,11 @@ theorem apply.authApplierV3.DeleteRange.wp_latest :
   | ok e' =>
     wp_auto
     iapply HΦ
-    iframe HL
+    iframe HL Htt
     isplitl
     rotate_left
     · iapply apply.traceRes_null
+    icases apply.mPreRest_reject_cs _ _ _ _ _ $$ Hkv with ⟨Hkv, %B, Hcs⟩
     have hX : (fun oc => ∃ e, apply.authEndOf o.base.rangeEnd e ∧
         apply.authOutL E.authMode hs (auth.authInfoM info) c rq log
           ((o.key, e, .write) :: if o.base.prevKV then [(o.key, e, .read)] else []) oc)
@@ -510,7 +510,7 @@ theorem apply.authApplierV3.DeleteRange.wp_latest :
       rw [← hkey] at Honew
       exact apply.refusedL_append_left _ _ _ [(o.key, e, .write)]
         (if o.base.prevKV then [(o.key, e, .read)] else []) (Honew.2 (fun h => by cases h))
-    iapply apply.auth_reject_kvPostFL E E.authOn c p (.ok bi) info rq log F _ Pre Q Post _ hk
+    iapply apply.auth_reject_kvPostFL E E.authOn c p (.ok bi) info rq log F _ _ Pre Q Post _ hk
       (Or.inl (by cases h : E.authOn <;> first | rfl | cases Hoff h)) hX $$ Happ [] Hkv Hinfo
       Hres Hcs
     simp only [apply.deleteAnswerIs, apply.deleteOutcomeIs, apply.rejErrIs]
@@ -535,14 +535,16 @@ theorem apply.authApplierV3.DeleteRange.wp_latest :
       exact Honew.1 rfl) $$ Hcp
     iunfold apply.chainResAny at Hres
     icases Hres with ⟨%info', Hres⟩
-    wp_apply HDelI $$ %r %rq %o %log %F %Pre %Q %Post %info' [Hwt Hkv Hres Hcs] as %resp %trace %err ⟨Hpost, Htrc⟩
-    · iunfold apply.deletePre
-      iunfold apply.mPre
-      iframe
+    wp_apply HDelI $$ %r %rq %o %log %F %Pre %Q %Post %info' [Htt Hkv Hres] as %resp %trace %err ⟨Hpost, Htrc, Htt⟩
+    · iframe Htt
+      iunfold apply.deletePre
       iframe #
-      ipureintro; exact Hk
+      isplitr
+      · ipureintro; exact Hk
+      iapply apply.mPre_of_rest
+      iframe
     iapply HΦ
-    iframe HL
+    iframe HL Htt
     isplitr [Htrc]
     rotate_left
     · iexact Htrc
@@ -554,7 +556,7 @@ theorem apply.authApplierV3.DeleteRange.wp_latest :
     rw [← hkey] at Honew
     exact Honew.1 rfl
   wp_auto
-  ihave ⟨Hard, Hkv⟩ := apply.kvOwn_rd E log $$ Hkv
+  ihave ⟨Hard, Hkv⟩ := apply.mPreRest_rd E log Pre Q Post $$ Hkv
   have hshr : apply.shapedL E.authMode hs [(k, e, .read)] := by
     rw [← hkey]
     refine apply.shapedL_one_of _ _ _ _ _ _ _ Hsh ?_ hend
@@ -569,10 +571,11 @@ theorem apply.authApplierV3.DeleteRange.wp_latest :
   | ok e' =>
     wp_auto
     iapply HΦ
-    iframe HL
+    iframe HL Htt
     isplitl
     rotate_left
     · iapply apply.traceRes_null
+    icases apply.mPreRest_reject_cs _ _ _ _ _ $$ Hkv with ⟨Hkv, %B, Hcs⟩
     have hX : (fun oc => ∃ e, apply.authEndOf o.base.rangeEnd e ∧
         apply.authOutL E.authMode hs (auth.authInfoM info) c rq log
           ((o.key, e, .write) :: if o.base.prevKV then [(o.key, e, .read)] else []) oc)
@@ -583,7 +586,7 @@ theorem apply.authApplierV3.DeleteRange.wp_latest :
       rw [← hkey] at Honer
       exact apply.refusedL_append_right _ _ _ [(o.key, e, .write)] [(o.key, e, .read)]
         (Honer.2 (fun h => by cases h))
-    iapply apply.auth_reject_kvPostFL E E.authOn c p (.ok bi) info rq log F _ Pre Q Post _ hk
+    iapply apply.auth_reject_kvPostFL E E.authOn c p (.ok bi) info rq log F _ _ Pre Q Post _ hk
       (Or.inl (by cases h : E.authOn <;> first | rfl | cases Hoff' h)) hX $$ Happ [] Hkv Hinfo
       Hres Hcs
     simp only [apply.deleteAnswerIs, apply.deleteOutcomeIs, apply.rejErrIs]
@@ -607,14 +610,16 @@ theorem apply.authApplierV3.DeleteRange.wp_latest :
       (Honer.1 rfl)) $$ Hcp
   iunfold apply.chainResAny at Hres
   icases Hres with ⟨%info', Hres⟩
-  wp_apply HDelI $$ %r %rq %o %log %F %Pre %Q %Post %info' [Hwt Hkv Hres Hcs] as %resp %trace %err ⟨Hpost, Htrc⟩
-  · iunfold apply.deletePre
-    iunfold apply.mPre
-    iframe
+  wp_apply HDelI $$ %r %rq %o %log %F %Pre %Q %Post %info' [Htt Hkv Hres] as %resp %trace %err ⟨Hpost, Htrc, Htt⟩
+  · iframe Htt
+    iunfold apply.deletePre
     iframe #
-    ipureintro; exact Hk
+    isplitr
+    · ipureintro; exact Hk
+    iapply apply.mPre_of_rest
+    iframe
   iapply HΦ
-  iframe HL
+  iframe HL Htt
   isplitr [Htrc]
   rotate_left
   · iexact Htrc

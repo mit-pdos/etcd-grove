@@ -20,7 +20,7 @@ used by `run`'s deferred shutdown (`run.spec`):
   environment's `ST` (`srvTrStopK γk`), what `raftNode.stop.spec` takes;
 * `srvStop.cleanup_pieces`: the lessor's stop right and, with auth off, the auth store's closer,
   what `Cleanup.spec` takes besides the apply thread's;
-* `srvStop.census_readers`: out of compaction mode, no compactor and the kept store readers;
+* `srvStop.census_readers`: out of compaction mode, no compactor and the kept reader tokens;
 * `srvStop.image_inputs`: at the data directory `dd`, the registry's authority and the WAL's
   directory, `<dd>/member/wal`.
 -/
@@ -55,13 +55,15 @@ store's `Close`. -/
   iprop((∃ lp : Loc, srvLessorAddr s ↦□ lease.lessorIface lp ∗ lease.lessorStopTok lp) ∗
     □ (⌜E.authOn = false⌝ → srvCleanupOwn s))
 
-/-- The census's part (sealed): the store readers `NewServer` hands to nobody (`srvKeepRdN`), and
-the compactor's when there is no compactor; a compactor only in compaction mode (R2c-2: what makes
-the stop's "no compactor" follow from its scope, `srvStop.scope`). -/
+/-- The census's part (sealed): the store's reader tokens `NewServer` hands to nobody
+(`srvKeepRdN`), and the compactor's when there is no compactor; a compactor only in compaction mode
+(R2c-2: what makes the stop's "no compactor" follow from its scope, `srvStop.scope`). (The `lean`
+merge, 2026-11-06: reader tokens of mvcc's API, `mvccReaders`, in place of mvcc's `storeReader`s.) -/
 @[no_expose] def srvStop.censusPart (s : Loc) (E : apply.AEnv GF) : IProp GF :=
-  iprop(([∗list] _x ∈ List.replicate (srvKeepRdN E.γ) (), mvcc.storeReader E.s E.γ) ∗
+  iprop(mvcc.api.mvccReaders E.γ srvKeepRdN ∗
     (∃ cp : GoInterface, srvCompactorAddr s ↦□ cp ∗
-      ((⌜cp = GoInterface.nil⌝ ∗ mvcc.storeReader E.s E.γ) ∨ ⌜cp ≠ GoInterface.nil ∧ E.cmp = true⌝)))
+      ((⌜cp = GoInterface.nil⌝ ∗ mvcc.api.mvccReaders E.γ 1) ∨
+        ⌜cp ≠ GoInterface.nil ∧ E.cmp = true⌝)))
 
 /-- The image's part (sealed): the storage registry's authority, the configuration's data and WAL
 directories, read-only, and the raft wrapper's storage writing the WAL in the latter. -/
@@ -85,9 +87,9 @@ theorem srvStop.keep_intro (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.Ser
     rnStopClaim γrn ∗ srvTrKeyOf s γk ∗
       (∃ lp : Loc, srvLessorAddr s ↦□ lease.lessorIface lp ∗ lease.lessorStopTok lp) ∗
       □ (⌜E.authOn = false⌝ → srvCleanupOwn s) ∗
-      ([∗list] _x ∈ List.replicate (srvKeepRdN E.γ) (), mvcc.storeReader E.s E.γ) ∗
+      mvcc.api.mvccReaders E.γ srvKeepRdN ∗
       (∃ cp : GoInterface, srvCompactorAddr s ↦□ cp ∗
-        ((⌜cp = GoInterface.nil⌝ ∗ mvcc.storeReader E.s E.γ) ∨
+        ((⌜cp = GoInterface.nil⌝ ∗ mvcc.api.mvccReaders E.γ 1) ∨
           ⌜cp ≠ GoInterface.nil ∧ E.cmp = true⌝)) ∗
       (letI : MemStorReg GF := ⟨γrn.node.reg⟩; ∃ M : GMap Loc MemStorNamesRec, memStorRegAuth M) ∗
       srvCfgFieldAddr s go!"DataDir" ↦□ cfg.DataDir' ∗
@@ -140,11 +142,10 @@ theorem srvStop.cleanup_pieces (s : Loc) (E : apply.AEnv GF) :
 /-- **The census's readers**: out of compaction mode (the stop's scope), no compactor (the server's
 `compactor` field `cp` is nil), and the store readers kept for the stop and the compactor's.
 (R2c-2: until then the field's nil a premise.) -/
-theorem srvStop.census_readers (s : Loc) (E : apply.AEnv GF) (cp : GoInterface)
-    (hcmp : E.cmp = false) :
+theorem srvStop.census_readers (hRS : mvcc.api.mvccReaders_split.law (GF := GF)) (s : Loc)
+    (E : apply.AEnv GF) (cp : GoInterface) (hcmp : E.cmp = false) :
     srvStop.censusPart (GF := GF) s E ∗ srvCompactorAddr s ↦□ cp ⊢
-      ⌜cp = GoInterface.nil⌝ ∗
-        [∗list] _x ∈ List.replicate (srvKeepRdN E.γ + 1) (), mvcc.storeReader E.s E.γ := by
+      ⌜cp = GoInterface.nil⌝ ∗ mvcc.api.mvccReaders E.γ (srvKeepRdN + 1) := by
   unfold srvStop.censusPart
   iintro ⟨⟨Hrs, %cp', #Hcp, Hc⟩, #Hcp2⟩
   icombine Hcp Hcp2 gives %Heq
@@ -152,8 +153,7 @@ theorem srvStop.census_readers (s : Loc) (E : apply.AEnv GF) (cp : GoInterface)
   icases Hc with (⟨%Hnil, Hr⟩ | %Hne)
   · isplitr
     · ipureintro; exact Hnil
-    rw [List.replicate_succ]
-    iapply BigSepL.bigSepL_cons.2
+    iapply (hRS E.γ srvKeepRdN 1).2
     iframe Hrs Hr
   · exact absurd Hne.2 (by rw [hcmp]; decide)
 

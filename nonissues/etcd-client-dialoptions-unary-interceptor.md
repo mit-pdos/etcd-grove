@@ -17,6 +17,11 @@ client's stream interceptor (by reading).
 
 **Why not an issue:** documentation: the behavior is gRPC's documented `WithUnaryInterceptor`
 semantics, and the client works as configured; the user's 2026-10-23 review parked it (skip for now).
+An in-tree user does this: the gRPC proxy's own client
+(`server/etcdmain/grpc_proxy.go:344-349`) appends `grpc.WithUnaryInterceptor(grpcproxy.AuthUnaryClientInterceptor)`
+and `grpc.WithStreamInterceptor(grpcproxy.AuthStreamClientInterceptor)` (they forward each call's
+incoming token), so the proxy's client has no retries and no token refresh.
+
 A one-line switch to `WithChainUnaryInterceptor` in `dialSetupOpts`, or a sentence on `DialOptions`,
 would likely be accepted.
 
@@ -34,7 +39,8 @@ FAIL
 
 ## Proof
 
-no: `clientv3.New` is proved under the configuration premise that `Config.DialOptions` is empty
-(`Proof/go_etcd_io/etcd/client/v3/InvClientNew.lean`), a scope restriction: another chain would be
-another premise, and a client without the retry interceptor retries less, which breaks no safety
-statement.
+no: the specs-only branch's `clientv3.New` (batch 1c) admits a caller's unary or stream
+interceptor that calls the invoker at most once and keeps the call's principal (`dialOptsOk`: the
+proxy's): the client then retries less, and the attempt's unsettled refusals are fired as refusals
+by the call's ghost update, which breaks no safety statement. (Earlier, on `lean`, `New` was proved
+under the premise that `Config.DialOptions` is empty.)

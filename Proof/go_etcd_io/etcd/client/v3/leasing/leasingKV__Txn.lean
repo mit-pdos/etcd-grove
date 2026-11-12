@@ -26,13 +26,13 @@ variable [package_sem : go_etcd_io.etcd.client.v3.leasing.Assumptions]
 
 theorem leasingKV.Txn.wp_proof : leasingKV.Txn.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx ctx cs
-  wp_start as ⟨#Hlkv, #Hctx⟩
+  wp_start as ⟨#Hlkv, #Hctx, #HctxC⟩
   ihave #Hlkv' := Hlkv
   iunfold isLeasingKV at Hlkv'
   icases Hlkv' with ⟨%cl, %kv, %c, %ccs, %cancel, %osl, -, -, #Hkv, -, -, -, -, -, -, #HTxn, -⟩
   wp_auto
   iunfold isEtcdTxnKVO at HTxn
-  wp_apply HTxn $$ %ctx %cs [$Hctx] as %t ⟨%B, HB, #HBs⟩
+  wp_apply HTxn $$ %ctx %cs [$Hctx $HctxC] as %t ⟨%B, HB, #HBs⟩
   (try wp_auto)
   wp_alloc txn as Htxn
   iStructNamed Htxn
@@ -41,7 +41,7 @@ theorem leasingKV.Txn.wp_proof : leasingKV.Txn.spec (GF := GF) (hG := hG) := by
   unfold ownTxnLeasing
   iexists t, B, slice.nil, slice.nil, slice.nil, [], []
   rw [show LTxnBuild.empty.inner [] [] = TxnBuild.empty from rfl]
-  iframe Txn lkv ctx cs opst opse HBs Hlkv Hctx HB
+  iframe Txn lkv ctx cs opst opse HBs Hlkv Hctx HctxC HB
   ihave #Hnc := ownSlice_nil (V := go_etcd_io.etcd.client.v3.Cmp) (GF := GF) DFrac.discard
   ihave #Hno := ownSlice_nil (V := go_etcd_io.etcd.client.v3.Op) (GF := GF) DFrac.discard
   ihave Hcc := ownSliceCap_nil (V := go_etcd_io.etcd.client.v3.Cmp) (GF := GF)

@@ -156,9 +156,10 @@ instance roleGrantPermissionReqIs_persistent (r : Loc) (name : GoString) (w : Op
   unfold roleGrantPermissionReqIs; cases w <;> infer_instance
 
 /-- A response of type `T` returned by an admin method: `nil` if it refused, else a fresh one
-whose `Header` the applier sets (the apply package's `respHdrOk`, whose shape this is). -/
+whose `Header` the applier sets (the apply package's `respHdrOk`, whose shape this is); not
+`nil` when it did not refuse (per-type models: a registered reply's `send` needs it). -/
 def respOk (T : Type) (resp : Loc) (err : GoInterface) : IProp GF :=
-  iprop(⌜err ≠ GoInterface.nil → resp = null⌝ ∗
+  iprop(⌜(err ≠ GoInterface.nil → resp = null) ∧ (err = GoInterface.nil → resp ≠ null)⌝ ∗
     (⌜resp = null⌝ ∨ ∃ h : Loc, structFieldRef T go!"Header" resp ↦ h))
 
 end defs

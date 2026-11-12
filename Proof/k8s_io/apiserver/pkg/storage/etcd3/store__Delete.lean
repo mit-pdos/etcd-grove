@@ -48,16 +48,19 @@ theorem store.Delete.wp_proof
   ihave Hst' := Hst
   iunfold isStore at Hst'
   icases Hst' with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt,
-    #Hkc, #Hcl, #Hone, #Hregs, #Hcon⟩
+    #Hkc, #Hcl, #Hone, #Hregs, #Hcon, -⟩
   iunfold contractOk at Hcon
   icases Hcon with ⟨%Hty, -⟩
   ihave #Pcv : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.conversion $$ []
   · iPkgInit
-  ihave #Pft : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.util.feature $$ []
+  ihave #Pft : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.features $$ []
   · iPkgInit
-  ihave #Hft : (k8s_io.apiserver.pkg.storage.etcd3.featureInit : IProp GF) $$ []
+  -- (sweep repairs 1, B5) the default gate's specs, `features`' fact
+  ihave #Hft : (k8s_io.apiserver.pkg.storage.etcd3.featuresInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Pft
-  icases Hft with ⟨%g, #Hg, #Hen⟩
+  icases Hft with ⟨%g, #Hg, #Hgate⟩
+  iunfold EtcdGrove.k8sfeature.featureGateOk at Hgate
+  icases Hgate with ⟨#Hen, -⟩
   ihave %Hptr := c.S.objAt_ptr out o0 rv0 $$ Hout
   obtain ⟨p, hp, rfl⟩ := Hptr
   (try wp_auto)
@@ -74,7 +77,8 @@ theorem store.Delete.wp_proof
   try wp_pure
   (try wp_auto)
   have hpfx : c.pfx <+: c.pathPrefix ++ k := prepareKeyM_prefix _ _ _ _ _ hk
-  wp_apply Hen as %b
+  wp_apply Hen as %b -
+  · ipureintro; decide
   cases b <;>
   · (try wp_auto)
     (try rw [hopt])

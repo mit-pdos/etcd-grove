@@ -417,6 +417,17 @@ structure RaftNames where
   `slotFree`/`pendBatch`) and its generation counter (a ghost variable, half in `slotInv`, half
   `slotLive`). Set at allocation (`ownRaftGhost_alloc_*`). -/
   reSlot : GMap w64 (GName × GName × GName) := ∅
+  /-- **The cluster's bound on proposed data** (raft-entsize §2, 2026-11-09): `some b` for a cluster
+  whose client proposes data (and read contexts, and conf-change contexts) of at most `b` bytes, which
+  the boot log's entries meet (`ownRaftGhost_alloc_core_reg`'s premises, `b ≤ 2^31`); `none` for a
+  cluster that states no bound (raft's own results, kv's). What the size law of the handed-out
+  objects (`outSet`, raft's `PbContent` level) is conditioned on. Pure data, fixed at allocation. -/
+  maxData : Option Nat
+  /-- **The objects handed out** (raft-entsize §2, 2026-11-09): a monotone ghost set of the
+  encoded pairs (object, content) of every message and entry raft handed out in a `Ready`
+  (`outObj`, `outEnt`, raft's `OutSet.lean`), its authority in the invariant `raftOutInv`, a third
+  part of the commit invariant; elements persistent. -/
+  out : GName
 
 /-- The configuration a step is taken at is the ghost state's (2026-10-14, reconfiguration
 stage B2): its incoming voters are `γ.reCfg` and it is not joint (learners, staged

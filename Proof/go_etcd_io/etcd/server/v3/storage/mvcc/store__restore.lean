@@ -20,6 +20,7 @@ public import Spec.go_uber_org.zap.Error
 public import Spec.go_uber_org.zap.Logger__Warn
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreChunks
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RestoreCut
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.KeyToLeaseCut
 
 @[expose] public section
 
@@ -55,18 +56,20 @@ theorem mvcc.store.restore.wp_proof
     (hZE : zap.Error.spec (GF := GF) (hG := hG))
     (hWarn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     mvcc.store.restore.spec (GF := GF) (hG := hG) := by
-  intro s γ b le ti lg q P HF RT WT W Wi Dep NC Cmp PutOk Rb Bt MW SR SRh PV PVx CK dqb dqi R RevP0 RevP RevK RevQ
-    dqc dql q1 q2 r ents Fin ns hR hq12 hrec hns hdq hcut
+  intro s γ b le ti lg q P HF RT WT W Wi Dep NC Cmp PutOk Rb Bt MW SR SRh dqb dqi R RevP0 RevP RevK RevQ
+    dqc dql q1 q2 r ents Fin ns γl Ls hR hq12 hrec hns hdq hcut
   by_cases hR0 : ns = true
   rotate_left
   · -- a bucket with data (the restore plan's R5c), thinned at the restored revision (item 18)
-    obtain ⟨hRne, ⟨hwf', hlen1, -, hcs⟩, hlease⟩ := hR
+    have hidxR := hR.2
+    obtain ⟨hRne, ⟨hwf', hlen1, -, hcs⟩⟩ := hR
     have hb : mvcc.LogB ([[], []] ++ R) := ⟨by omega, hcs⟩
     have hok := mvcc.logEnts_restoreOk ([[], []] ++ R) hb.1 hcs rfl
     have hsub : ents.Sublist (mvcc.logEnts ([[], []] ++ R) 0 ([[], []] ++ R).length) := hcut.1
     have hokE : mvcc.RestoreEntsOk ents := mvcc.restoreOk_sublist hok hsub
-    wp_start as ⟨Hb, #Hbk, Hrt, Hncmp, Hview, Hkvi, Hix, Hig, #Hiw, #Hle, #Hlg, %Hlgnn, Hcur1, Hcmp,
-      HRevP0, HFw, HLk, HUl, HK, Hrcp⟩
+    wp_start as ⟨Hb, #Hbk, Hrt, Hncmp, Hview, Hkvi, Hix, Hig, #Hiw, #Hle, #Hlg, #Hlgnn, Hcur1, Hcmp,
+      HRevP0, HFw, HLk, HUl, HK, Hrcp, HLs⟩
+    ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgnn
     iunfold mvcc.restoreViewR at Hview
     simp only [hR0, Bool.false_eq_true, ↓reduceIte] at *
     icases Hview with ⟨Hbv, Hcr⟩
@@ -139,7 +142,7 @@ theorem mvcc.store.restore.wp_proof
         iintro %fsl ⟨-, -⟩
         (try wp_auto)
         wp_apply (hInfo lg) $$ []
-        · iframe #; ipureintro; exact Hlgnn
+        · iframe #
         (try wp_auto)
         icases ((typedPointsto_dfractional (GF := GF) _ _).dfractional dqc dql).1 $$
           [Hcm] with ⟨Hcmp, Hcm2⟩
@@ -184,8 +187,6 @@ theorem mvcc.store.restore.wp_proof
     -- `rkvc, revc := restoreIntoIndex(s.lg, s.kvindex)` over the image's entries
     wp_apply (hRII lg ti ents Rd TokB e0) $$ [$Hix $HtB] as %rkvc %revc ⟨%γk, %γr, #Hsk, Hprod, #Hsr, Hcons⟩
     · iframe #
-      isplitr
-      · ipureintro; exact Hlgnn
       ipureintro; exact hokE
     (try wp_auto)
     -- the chunk loop: the entries from `r` on are those not sent yet
@@ -205,21 +206,19 @@ theorem mvcc.store.restore.wp_proof
     ihave IH : iprop(∃ (rv : mvcc.Rev) (mnS : GoSlice) (sent : List revKeyValue),
         "min" ∷ min_ptr ↦ mnS ∗ "Hmn" ∷ mnS ↦* mvcc.revBytes rv false ∗
         "Hmnc" ∷ ownSliceCap w8 mnS (DFrac.own 1) ∗ "HtA" ∷ TokA ∗
-        "Hprod" ∷ spscProducer γk sent ∗ "Hktl" ∷ ktl ↦$ (∅ : GMap GoString w64) ∗
+        "Hprod" ∷ spscProducer γk sent ∗
+        "Hktl" ∷ ktl ↦$ mvcc.ktlApply (∅ : GMap GoString w64) (ents.take sent.length) ∗
         "%Hr" ∷ ⌜mvcc.entsFromE ents rv = ents.drop sent.length ∧ sent.length ≤ ents.length ∧
           0 ≤ sint.Z rv.main ∧ 0 ≤ sint.Z rv.sub⌝) $$ [min Hmn Hmnc HtA Hprod Hktl]
     · iexists ⟨W64 1, W64 0⟩, mn, []
+      simp only [List.length_nil, List.take_zero, mvcc.ktlApply_nil]
       iframe
       ipureintro
       refine ⟨by rw [hE0]; rfl, by simp, by word, by word⟩
-    have hlz : mvcc.LogNoLease ([[], []] ++ R) := by
-      intro cs hcs c hc k v l hcl
-      rcases List.mem_append.1 hcs with h | h
-      · simp at h; rcases h with rfl | rfl <;> simp at hc
-      · exact hlease cs h c hc k v l hcl
     wp_join (iprop(∃ (mnS : GoSlice) (sent : List revKeyValue),
         "min" ∷ min_ptr ↦ mnS ∗ "HtA" ∷ TokA ∗ "Hprod" ∷ spscProducer γk sent ∗
-        "%Hall" ∷ ⌜sent.length = ents.length⌝ ∗ "Hktl" ∷ ktl ↦$ (∅ : GMap GoString w64) ∗
+        "%Hall" ∷ ⌜sent.length = ents.length⌝ ∗
+        "Hktl" ∷ ktl ↦$ mvcc.ktlApply (∅ : GMap GoString w64) ents ∗
         "max" ∷ max_ptr ↦ mx ∗ "keyToLease" ∷ keyToLease_ptr ↦ ktl ∗ "s" ∷ s_ptr ↦ s ∗
         "tx" ∷ tx_ptr ↦ GoInterface.ok rt ∗ "rkvc" ∷ rkvc_ptr ↦ rkvc))
       at (App (App (App (Val doFor) _) _) _) with [IH Hmx max keyToLease s tx rkvc]
@@ -257,6 +256,7 @@ theorem mvcc.store.restore.wp_proof
           omega
         isplitr
         · ipureintro; rfl
+        rw [List.take_of_length_le (by omega : ents.length ≤ sent.length)]
         iexists mnS, sent
         iframe
         ipureintro; exact Hall
@@ -270,13 +270,9 @@ theorem mvcc.store.restore.wp_proof
         exact hsub.subset (List.mem_of_mem_drop (List.mem_of_mem_take he))
       wp_apply (hRC lg rkvc ktl ks vs C Rd TokA γk (mvcc.rkvProt Rd ents)
           (fun sent => iprop(⌜sent.length = ents.length⌝))
-          sent (fun _ _ => iprop(emp))) $$ [$HtA $Hktl $Hprod]
+          sent (fun _ _ => iprop(emp)) _) $$ [$HtA $Hktl $Hprod]
         as ⟨HtA, Hktl, %new, %Hnew, Hprod⟩
       · iframe #
-        isplitr
-        · ipureintro
-          intro e he
-          exact mvcc.logEnts_lease _ hlz _ _ e (hCsub e he)
         isplitl []
         · iapply BigSepL.bigSepL_emp.2; itrivial
         iintro !> %j %e %rkv %hj - Hrkv
@@ -292,6 +288,12 @@ theorem mvcc.store.restore.wp_proof
             exact hj
           · cases hj
         · omega
+      have hTk : mvcc.ktlApply (mvcc.ktlApply ∅ (ents.take sent.length)) C =
+          mvcc.ktlApply ∅ (ents.take (sent ++ new).length) := by
+        rw [List.length_append, Hnew, ← mvcc.ktlApply_append, List.take_add, hC, List.length_take]
+        congr 2
+        simp
+      rw [hTk]
       (try wp_auto)
       have hClen : C.length ≤ 10000 := by rw [hC]; exact List.length_take_le _ _
       by_cases hCs : C.length < 10000
@@ -311,6 +313,7 @@ theorem mvcc.store.restore.wp_proof
           omega
         isplitr
         · ipureintro; rfl
+        rw [List.take_of_length_le (by omega : ents.length ≤ (sent ++ new).length)]
         iexists mnS, sent ++ new
         iframe
         ipureintro; exact Hall
@@ -534,18 +537,83 @@ theorem mvcc.store.restore.wp_proof
         iframe
       · simp only [↓reduceIte]
         iframe
-    -- `for key, lid := range keyToLease`: the map is empty
+    -- `for key, lid := range keyToLease`: each key attached to its lease (`Attach` returns `nil`)
+    icases HLs with ⟨#Hlessor, Hown, %Hlok⟩
+    iunfold mvcc.isLessor at Hlessor
+    icases Hlessor with ⟨%lp, %Hli, #Hpin, -, #HAttach, -, -⟩
+    subst Hli
+    have hcutL : ∀ it, (mvcc.pendItems ([[], []] ++ R) []).lookup it =
+        (mvcc.ktlApply ∅ ents).lookup it.Key' :=
+      mvcc.ktlApply_cut_of_idxWf _ _ _ (by simp) hidxR hcut
     (try wp_func_lits)
     wp_bind (App (App (Val (map.forRange _ _)) _) _)
-    iapply wp_map_for_range (fun (_ : List GoString) (_ : Int) => iprop(True)) $$ Hktl
-    iintro %keys -
-    isplitr
-    · ipureintro; trivial
+    iapply wp_map_for_range (fun (keys : List GoString) (i : Int) => iprop(∃ (x : GoString) (y : w64),
+        "%Hi" ∷ ⌜0 ≤ i⌝ ∗ "key" ∷ key_ptr ↦ x ∗ "lid" ∷ lid_ptr ↦ y ∗ "s" ∷ s_ptr ↦ s ∗
+        "Hown" ∷ lease.leaseOwn γl Ls (mvcc.ktlItems (mvcc.ktlApply ∅ ents) (keys.take i.toNat))))
+      $$ Hktl
+    iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
+    isplitl [key lid s Hown]
+    · iexists _, _
+      simp only [named, Int.toNat_zero, List.take_zero, mvcc.ktlItems_nil]
+      iframe
+      ipureintro; exact Int.le_refl _
     isplitr
     · imodintro
-      iintro %i %key %v ⟨-, %Hkv⟩
-      simp at Hkv
-    iintro - Hktl
+      iintro %i %key %lid ⟨%Hkey, %Hlid⟩ HP
+      iNamed HP
+      have hcl := Hlok ⟨key⟩ lid (by rw [hcutL]; exact Hlid)
+      have Htake : keys.take (i + 1).toNat = keys.take i.toNat ++ [key] := by
+        rw [show (i + 1).toNat = i.toNat + 1 by omega, List.take_add_one, Hkey]; rfl
+      have hnm : key ∉ keys.take i.toNat := by
+        have hnd : (keys.take i.toNat ++ [key]).Nodup := by
+          rw [← Htake]; exact Hknodup.sublist (List.take_sublist _ _)
+        intro hm
+        exact (List.nodup_append.1 hnd).2.2 key hm key (List.mem_singleton_self _) rfl
+      (try wp_auto)
+      wp_apply wp_slice_literal
+      isplitr
+      · ipureintro; rfl
+      iintro %items ⟨Hitems, -⟩
+      (try wp_auto)
+      wp_apply HAttach $$ %lid %_ %_ %(DFrac.own 1) %Ls
+          %(mvcc.ktlItems (mvcc.ktlApply ∅ ents) (keys.take i.toNat)) [$Hown $Hitems] as ⟨Hown, -⟩
+      · ipureintro
+        refine ⟨hcl.1, ?_, ?_⟩
+        · intro it hit
+          rw [List.mem_singleton] at hit; subst hit
+          left
+          rw [mvcc.ktlItems_lookup]
+          simp only [hnm, if_false]
+        · intro it hit
+          rw [List.mem_singleton] at hit; subst hit
+          exact hcl.2
+      (try wp_auto)
+      unfold forMapPostcondition
+      iright; ileft
+      isplitr
+      · ipureintro; rfl
+      iexists key, lid
+      simp only [named]
+      rw [Htake, mvcc.ktlItems_snoc _ _ _ _ Hlid]
+      iframe
+      ipureintro; omega
+    iintro HP Hktl
+    iNamed HP
+    rw [Int.toNat_natCast, ← Hklen, List.take_length]
+    ihave Hown := lease.leaseOwn_eq (show mvcc.ktlItems (mvcc.ktlApply ∅ ents) keys =
+        mvcc.pendItems ([[], []] ++ R) [] from by
+      apply GMap.ext; intro it
+      rw [mvcc.ktlItems_lookup, hcutL]
+      by_cases h : it.Key' ∈ keys
+      · rw [if_pos h]
+      · rw [if_neg h]
+        have h2 : ((mvcc.ktlApply ∅ ents).lookup it.Key').isSome = false := by
+          cases hh : ((mvcc.ktlApply ∅ ents).lookup it.Key').isSome
+          · rfl
+          · exact absurd ((Hkset it.Key').2 hh) h
+        cases hl : (mvcc.ktlApply ∅ ents).lookup it.Key' with
+        | none => rfl
+        | some _ => rw [hl] at h2; cases h2) $$ Hown
     (try wp_auto)
     -- `tx.RUnlock()`, the two parts of the read token joined
     ihave Htok := Hjoin $$ HtA HtB
@@ -565,7 +633,7 @@ theorem mvcc.store.restore.wp_proof
     iintro %fsl ⟨-, -⟩
     (try wp_auto)
     wp_apply (hInfo lg) $$ []
-    · iframe #; ipureintro; exact Hlgnn
+    · iframe #
     (try wp_auto)
     -- what `restore` has now; the resumed compaction, if any (`resumeK`)
     ihave HD : mvcc.restoreDone s (GoInterface.ok bi) ti q1 dqb dqi dqc ([[], []] ++ R) ents r RT NC RevQ
@@ -577,6 +645,7 @@ theorem mvcc.store.restore.wp_proof
     · simp only [hres', Bool.false_eq_true, ↓reduceIte] at *
       (try wp_auto)
       iapply HΦ
+      iframe Hown
       iapply HK $$ HD
     simp only [hres', ↓reduceIte] at *
     have hsc : r.sched.getD (W64 0) ≠ W64 0 := by
@@ -600,9 +669,10 @@ theorem mvcc.store.restore.wp_proof
       iintro %gsl ⟨-, -⟩
       (try wp_auto)
       wp_apply (hInfo lg) $$ []
-      · iframe #; ipureintro; exact Hlgnn
+      · iframe #
       (try wp_auto)
       iapply HΦ
+      iframe Hown
       iexact HFin
     | ok ei =>
       -- `s.lg.Warn("compaction encountered error", ...)`
@@ -617,9 +687,10 @@ theorem mvcc.store.restore.wp_proof
       iintro %gsl ⟨-, -⟩
       (try wp_auto)
       wp_apply (hWarn lg) $$ []
-      · iframe #; ipureintro; exact Hlgnn
+      · iframe #
       (try wp_auto)
       iapply HΦ
+      iframe Hown
       iexact HFin
   -- the empty bucket (`NewStore`): no record, no entry
   have hRe := hns hR0
@@ -631,8 +702,9 @@ theorem mvcc.store.restore.wp_proof
     rw [h2] at h
     exact List.sublist_nil.1 h
   subst hents
-  wp_start as ⟨Hb, #Hbk, Hrt, Hncmp, Hview, Hkvi, Hix, Hig, #Hiw, #Hle, #Hlg, %Hlgnn, Hcur1, Hcmp,
-    HRevP0, HFw, HLk, HUl, HK, -⟩
+  wp_start as ⟨Hb, #Hbk, Hrt, Hncmp, Hview, Hkvi, Hix, Hig, #Hiw, #Hle, #Hlg, #Hlgnn, Hcur1, Hcmp,
+    HRevP0, HFw, HLk, HUl, HK, -, -⟩
+  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgnn
   iunfold mvcc.restoreViewR at Hview
   simp only [↓reduceIte]
   icases Hview with ⟨Hbv, %Hmr⟩
@@ -709,8 +781,6 @@ theorem mvcc.store.restore.wp_proof
   wp_apply (hRII lg ti [] (fun _ _ => iprop(False)) iprop(True) e0) $$ [$Hix]
     as %rkvc %revc ⟨%γk, %γr, #Hsk, Hprod, #Hsr, Hcons⟩
   · iframe #
-    isplitr
-    · ipureintro; exact Hlgnn
     ipureintro
     exact ⟨List.Pairwise.nil, fun e h => by cases h⟩
   (try wp_auto)
@@ -833,17 +903,19 @@ theorem mvcc.store.restore.wp_proof
   iintro %fsl ⟨-, -⟩
   (try wp_auto)
   wp_apply (hInfo lg) $$ []
-  · iframe #; ipureintro; exact Hlgnn
+  · iframe #
   (try wp_auto)
   -- nothing resumed: `restore` has what it ends with
   iunfold mvcc.resumeK at HK
   simp only [show (⟨none, none⟩ : mvcc.CmpRecs).resumes = false from rfl, Bool.false_eq_true,
     ↓reduceIte]
   iapply HΦ
-  iapply HK
-  iunfold mvcc.restoreDone
-  simp only [mvcc.CmpRecs.empty, Option.getD_none]
-  iframe
+  isplitl
+  · iapply HK
+    iunfold mvcc.restoreDone
+    simp only [mvcc.CmpRecs.empty, Option.getD_none]
+    iframe
+  · itrivial
 
 end proof
 

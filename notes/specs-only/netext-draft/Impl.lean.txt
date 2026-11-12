@@ -1,0 +1,575 @@
+/-
+DRAFT (design review, 2026-11-10; not in the repository, not in Perennial).
+
+The network extension of GooseLang for etcd's members and client: `net`, `net/http` and
+`google.golang.org/grpc`'s transports, at their APIs [Trusted definitions!].
+
+Design and justification: `notes/specs-only/net-extensions-design.md` (specs-only worktree).
+This file is the extension's semantics only. The Go functions (`net.Listen`, `http.Transport.RoundTrip`,
+`grpc.ClientConn.Invoke`, `grpc.Server.Serve`, ...) are `TrustedCode` GooseLang models that call the
+operations below by name (`ExternalOp "net" "GStart"`), run the program's own code where grpc-go and
+net/http would (dialers, listeners and their wrappers, codecs, interceptors, handlers, credentials),
+and marshal Go values (strings in, strings out, as OsFs does).
+
+* **State.** Local: the node and its incarnation (`Owner`; a crash keeps the node and bumps the
+  incarnation). Global: the deployment's address plan (fixed), the bound addresses, and every
+  listener, connection, HTTP exchange and gRPC stream ever made, each end owned by the
+  incarnation that made or accepted it. A crash changes no global state (DistLang): a dead
+  incarnation's ends simply have no live owner (every operation on them is stuck: no thread of
+  that incarnation is left, and a new one cannot hold their handles), the peers' operations on
+  the other ends may fail at any time, and the node's next `Listen` of one of its addresses takes
+  it over from the dead listener (whose unaccepted connections break).
+* **Connections are byte pipes, used only for prefaces.** etcd wraps listeners and connections
+  with its own code (`client/pkg/transport`'s keepalive, timeout and limit wrappers, cmux,
+  rafthttp's timeout dialer). The models run that code: a client model writes a fresh preface
+  (`Nonce`) through the connection the program's dialer returned, a server model reads it
+  through the connection the program's listener accepted, and each claims the base connection
+  whose pipe carries those bytes (`ClaimD`, `ClaimA`; stuck if none). After that, HTTP and gRPC
+  traffic is records of the global state, not bytes: no HTTP/1 or HTTP/2 model.
+* **Failures are nondeterministic.** Every operation that waits may stutter (wait) and may fail at
+  any time (connection loss, a timeout, a peer's crash, keepalive); a failure never has an effect
+  the peer could mistake for success. What a failure means to the Go caller (which `error`,
+  which status code) is the TrustedCode's, from the result codes below.
+* **At most once.** An HTTP exchange is taken by a server at most once (`taken`), a gRPC stream
+  dispatched at most once (`GsState`, `refused` and `dispatched` final); a client model sends a
+  request again only as a new exchange or stream, and only when the rules of net/http and grpc-go
+  allow (the TrustedCode: never after `taken`/`dispatched`, except a replayable HTTP request).
+
+Result convention: `PairV result (#code)`, `code = 0` success (`rOk`), else `rFail` (any
+failure), `rEOF` (orderly end), `rNotSent` (nothing reached the peer: safe to resend), `rClosed`
+(the listener was closed), `rTemp` (a temporary accept error).
+-/
+module
+
+public import Perennial.GooseLang.Lang
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace GoNet
+
+/-! ## Identities and handles -/
+
+abbrev Id := Nat
+/-- Headers, metadata, trailers: (key, value) pairs in order (keys as the TrustedCode
+canonicalizes them: net/http's `CanonicalMIMEHeaderKey`, grpc's lowercase). -/
+abbrev Hdr := List (GoString × GoString)
+
+/-- The incarnation of a node: the node, and how many times it has crashed. -/
+structure Owner where
+  node : Nat
+  epoch : Nat
+deriving DecidableEq, Inhabited
+
+inductive Side where
+  | dialer
+  | acceptor
+deriving DecidableEq
+
+def Side.toNat : Side → Nat
+  | .dialer => 0
+  | .acceptor => 1
+
+/-- The extension's values: handles of a listener, of one end of a connection, of an HTTP
+exchange or a gRPC stream (the dialer's end is the client's). -/
+inductive Handle where
+  | lis (l : Id)
+  | conn (c : Id) (s : Side)
+  | hx (x : Id) (s : Side)
+  | gs (x : Id) (s : Side)
+deriving DecidableEq
+
+def Handle.enc : Handle → List Nat
+  | .lis l => [0, l]
+  | .conn c s => [1, c, s.toNat]
+  | .hx x s => [2, x, s.toNat]
+  | .gs x s => [3, x, s.toNat]
+
+theorem Side.toNat_inj {a b : Side} (h : a.toNat = b.toNat) : a = b := by
+  cases a <;> cases b <;> simp_all [Side.toNat]
+
+theorem Handle.enc_inj {a b : Handle} (h : a.enc = b.enc) : a = b := by
+  cases a <;> cases b <;> simp only [Handle.enc, List.cons.injEq, and_true] at h <;>
+    first
+    | (simp at h; done)
+    | (obtain ⟨_, rfl⟩ := h; rfl)
+    | (obtain ⟨_, rfl, h2⟩ := h; rw [Side.toNat_inj h2])
+
+noncomputable instance : Pos.Countable Handle :=
+  .ofInjective (fun h => Pos.Countable.encode h.enc) (fun _ _ h => Handle.enc_inj (Pos.encode_inj h))
+
+/-! ## Records -/
+
+/-- One direction of a connection's bytes (prefaces only, in practice). -/
+structure Pipe where
+  bytes : List w8 := []
+  read : Nat := 0
+  /-- The writer closed its end (`FIN`). -/
+  closed : Bool := false
+
+/-- A body (an HTTP request's or response's): the bytes produced so far, the reader's
+position, and its end: `none` open, `some true` complete, `some false` aborted. -/
+structure Body where
+  data : List w8 := []
+  read : Nat := 0
+  done : Option Bool := none
+
+/-- A bound socket. -/
+structure LisRec where
+  addr : GoString
+  owner : Owner
+  isOpen : Bool
+  /-- Connections dialed to it and not yet accepted, oldest first. -/
+  backlog : List Id
+
+structure ConnRec where
+  lis : Id
+  addr : GoString
+  dialer : Owner
+  acceptor : Option Owner
+  up : Pipe
+  dn : Pipe
+  claimedD : Bool
+  claimedA : Bool
+  /-- Reset (closed by either end, or its listener taken over): every later operation on it,
+  its exchanges and streams may only fail or end. -/
+  broken : Bool
+  /-- A gRPC server sent `GOAWAY`: no new stream will be dispatched. -/
+  draining : Bool
+  /-- HTTP exchanges started on it, in order, and how many the server took. -/
+  hxs : List Id
+  hxTaken : Nat
+  /-- gRPC streams started on it, in order. -/
+  gss : List Id
+
+structure HxRec where
+  conn : Id
+  meth : GoString
+  host : GoString
+  path : GoString
+  reqHdr : Hdr
+  hasBody : Bool
+  /-- `false` while the client builds it (`HOpen`, `PutKV`), `true` once sent (`HStart`). -/
+  started : Bool
+  /-- The server read its head: the request was received, and is never received again. -/
+  taken : Bool
+  reqBody : Body
+  respHdr : Hdr
+  /-- The committed status. -/
+  status : Option w64
+  respBody : Body
+  canceled : Bool
+
+inductive GsState where
+  | draft
+  | pending
+  | refused
+  | dispatched
+deriving DecidableEq
+
+/-- One direction of a stream's messages (each a marshaled message: a byte string). -/
+structure Msgs where
+  q : List (List w8) := []
+  read : Nat := 0
+  closed : Bool := false
+
+structure GsRec where
+  conn : Id
+  method : GoString
+  md : Hdr
+  /-- The client's deadline, as a timeout (`grpc-timeout`), if any. -/
+  timeout : Option w64
+  state : GsState
+  up : Msgs
+  dn : Msgs
+  header : Hdr
+  trailer : Hdr
+  /-- The server's end: the status (code, message as it arrives). -/
+  fin : Option (w32 × GoString)
+  reset : Bool
+
+/-- The network. -/
+structure Global where
+  /-- The deployment: the address strings the program may listen at or dial, each the node
+  that may listen at it. Fixed (an execution starts with it, no step changes it). -/
+  plan : GMap GoString Nat
+  bound : GMap GoString Id
+  lis : GMap Id LisRec
+  conns : GMap Id ConnRec
+  hxs : GMap Id HxRec
+  gss : GMap Id GsRec
+  /-- Fresh identities (listeners, connections, exchanges, streams, prefaces). -/
+  next : Nat
+
+instance : Inhabited Global := ⟨⟨∅, ∅, ∅, ∅, ∅, ∅, 0⟩⟩
+
+/-- The extension. Named after the lowest package it implements; its operations serve `net`,
+`net/http` and `google.golang.org/grpc`'s models. -/
+@[reducible] noncomputable def goNetExt : GooseExt where
+  name := "net"
+  Val := Handle
+  LocalState := Owner
+  GlobalState := Global
+
+/-! ## Pure helpers -/
+
+def rOk : w64 := 0
+def rFail : w64 := 1
+def rEOF : w64 := 2
+def rNotSent : w64 := 3
+def rClosed : w64 := 4
+def rTemp : w64 := 5
+
+/-- A preface: a magic string (the TrustedCode chooses it to look like the protocol's own
+preface, so that cmux's matchers classify the connection: HTTP/2's client preface for gRPC, a
+request line for HTTP/1) and 8 bytes of a fresh identity. -/
+def prefaceOf (magic : List w8) (n : Nat) : List w8 :=
+  magic ++ (List.range 8).map (fun i => BitVec.ofNat 8 (n / 256 ^ i))
+
+/-- A status message as it arrives: an ASCII message unchanged; any other, any string
+(grpc-go percent-encodes `grpc-message` and replaces invalid UTF-8; an over-approximation). -/
+def msgArrives (m m' : GoString) : Prop := (∀ b ∈ m, b.toNat < 128) → m' = m
+
+/-- The prefixes of grpc-go's own status messages (v1.84.0): every status a grpc-go client
+makes itself (not received from a server) has a message beginning with one of them, the rest
+being dynamic (an `error`'s text, a size, a code). DRAFT: the list is to be extracted from grpc-go
+by a script and kept beside it; a handful shown. -/
+def grpcOwnPrefixes : List GoString :=
+  [go!"transport is closing", go!"connection error",
+   go!"context deadline exceeded", go!"context canceled",
+   go!"grpc: ", go!"error reading from server",
+   go!"stream terminated by RST_STREAM", go!"unexpected EOF",
+   go!"the connection is draining"]
+
+def grpcOwnMsg (m : GoString) : Prop := ∃ p ∈ grpcOwnPrefixes, p <+: m
+
+/-! ## The step -/
+
+section step
+variable [GooseExts] [GoGlobalContext]
+
+abbrev hv (h : Handle) : val := ExtV (extVal goNetExt h)
+abbrev res (v : val) (c : w64) : Expr := Val (PairV v (#c))
+abbrev failed : Expr := res (#()) rFail
+
+def Global.lisOf (g : Global) (l : Id) (me : Owner) (r : LisRec) : Prop :=
+  g.lis !! l = some r ∧ r.owner = me
+
+/-- `me` owns the end `s` of connection `c`. -/
+def Global.connEnd (g : Global) (c : Id) (s : Side) (me : Owner) (r : ConnRec) : Prop :=
+  g.conns !! c = some r ∧ (match s with
+    | .dialer => r.dialer = me ∧ r.claimedD
+    | .acceptor => r.acceptor = some me ∧ r.claimedA)
+
+/-- The raw end (before or without a claim): what `Read`/`Write`/`Close` act on. -/
+def Global.rawEnd (g : Global) (c : Id) (s : Side) (me : Owner) (r : ConnRec) : Prop :=
+  g.conns !! c = some r ∧ (match s with
+    | .dialer => r.dialer = me
+    | .acceptor => r.acceptor = some me)
+
+def Global.hxEnd (g : Global) (x : Id) (s : Side) (me : Owner) (r : HxRec) (cr : ConnRec) : Prop :=
+  g.hxs !! x = some r ∧ g.connEnd r.conn s me cr
+
+def Global.gsEnd (g : Global) (x : Id) (s : Side) (me : Owner) (r : GsRec) (cr : ConnRec) : Prop :=
+  g.gss !! x = some r ∧ g.connEnd r.conn s me cr
+
+def breakAll (cs : List Id) (m : GMap Id ConnRec) : GMap Id ConnRec :=
+  cs.foldl (fun m c => match m !! c with
+    | some r => <[c := ({ r with broken := true })]> m
+    | none => m) m
+
+/-- `me` may bind `a`: it is `me`'s node's in the plan, and no live listener of `me` holds it
+(a listener of an earlier incarnation of the node is dead). -/
+def Bindable (g : Global) (me : Owner) (a : GoString) : Prop :=
+  g.plan !! a = some me.node ∧
+  (g.bound !! a = none ∨ ∃ l r, g.bound !! a = some l ∧ g.lis !! l = some r ∧
+    r.owner.node = me.node ∧ r.owner.epoch < me.epoch)
+
+/-- Bind `a` to a new listener `l`, taking it over from a dead one (its backlog broken). -/
+def Global.bind (g : Global) (me : Owner) (a : GoString) : Global :=
+  let l := g.next
+  let (lis1, conns1) := match g.bound !! a with
+    | some l0 => match g.lis !! l0 with
+      | some r0 => (<[l0 := ({ r0 with isOpen := false, backlog := [] })]> g.lis, breakAll r0.backlog g.conns)
+      | none => (g.lis, g.conns)
+    | none => (g.lis, g.conns)
+  { g with next := l + 1, bound := <[a := l]> g.bound, conns := conns1,
+           lis := <[l := ⟨a, me, true, []⟩]> lis1 }
+
+/-- A body read of at most `n` bytes: some bytes, or the end. -/
+def BodyRead (b : Body) (n : Nat) (b' : Body) (out : List w8) (code : w64) : Prop :=
+  (b.read < b.data.length ∧ 0 < n ∧ 0 < out.length ∧ out.length ≤ n ∧
+    out = (b.data.drop b.read).take out.length ∧ b' = { b with read := b.read + out.length } ∧
+    code = rOk) ∨
+  (b.read = b.data.length ∧ b.done = some true ∧ b' = b ∧ out = [] ∧ code = rEOF)
+
+/-- The step of one operation (not counting waits, `GoNetStep`). Every case lists its
+successes; the failure branches are explicit. The heap never changes. -/
+def IsStep (op : String) (v : val) (me : Owner) (g : Global) (e' : Expr) (g' : Global) : Prop :=
+  match op with
+  /- ### `net` -/
+  /- `Listen(a)`: a new listener at `a`, or a failure (`EADDRINUSE`, ...). An address outside
+  the node's part of the plan is stuck (`net.Listen` of a string the deployment does not give the
+  node is not modeled). -/
+  | "Listen" => ∃ a : GoString, v = #a ∧ g.plan !! a = some me.node ∧
+      ((Bindable g me a ∧ g' = g.bind me a ∧ e' = res (hv (.lis g.next)) rOk) ∨
+       (g' = g ∧ e' = failed))
+  /- `Accept(l)`: the oldest dialed connection, or `rClosed` once closed, or a temporary error. -/
+  | "Accept" => ∃ l r, v = hv (.lis l) ∧ g.lisOf l me r ∧
+      ((∃ c cr rest, r.isOpen ∧ r.backlog = c :: rest ∧ g.conns !! c = some cr ∧
+          g' = { g with lis := <[l := ({ r with backlog := rest })]> g.lis,
+                        conns := <[c := ({ cr with acceptor := some me })]> g.conns } ∧
+          e' = res (hv (.conn c .acceptor)) rOk) ∨
+       (¬ r.isOpen ∧ g' = g ∧ e' = res (#()) rClosed) ∨
+       (g' = g ∧ e' = res (#()) rTemp))
+  /- `Close(l)`: unbound; its unaccepted connections broken. -/
+  | "LisClose" => ∃ l r, v = hv (.lis l) ∧ g.lisOf l me r ∧ e' = Val (#()) ∧
+      g' = { g with lis := <[l := ({ r with isOpen := false, backlog := [] })]> g.lis,
+                    conns := breakAll r.backlog g.conns,
+                    bound := if g.bound !! r.addr = some l then GMap.delete r.addr g.bound else g.bound }
+  /- `Dial(a)`: a new connection in the backlog of the listener bound at `a`, or a failure
+  (refused, unreachable, timed out). Stuck for an address outside the plan. -/
+  | "Dial" => ∃ a : GoString, v = #a ∧ (∃ n, g.plan !! a = some n) ∧
+      ((∃ l r, g.bound !! a = some l ∧ g.lis !! l = some r ∧ r.isOpen ∧
+          let c := g.next
+          g' = { g with next := c + 1,
+                        lis := <[l := ({ r with backlog := r.backlog ++ [c] })]> g.lis,
+                        conns := <[c := ⟨l, a, me, none, {}, {}, false, false, false, false,
+                                          [], 0, []⟩]> g.conns } ∧
+          e' = res (hv (.conn c .dialer)) rOk) ∨
+       (g' = g ∧ e' = failed))
+  /- `Write(c, data)` (raw): all of `data` appended to the end's direction, or a failure having
+  appended a prefix. -/
+  | "Write" => ∃ (c : _) (s : _) (r : _) (data : List w8), v = PairV (hv (.conn c s)) (#data) ∧ g.rawEnd c s me r ∧
+      let p := match s with | .dialer => r.up | .acceptor => r.dn
+      let set (p' : Pipe) : ConnRec := match s with
+        | .dialer => { r with up := p' } | .acceptor => { r with dn := p' }
+      ((¬ r.broken ∧ ¬ p.closed ∧ g' = { g with conns := <[c := (set { p with bytes := p.bytes ++ data })]> g.conns } ∧
+          e' = res (#(BitVec.ofNat 64 data.length)) rOk) ∨
+       (∃ k ≤ data.length, g' = { g with conns := <[c := (set { p with bytes := p.bytes ++ data.take k })]> g.conns } ∧
+          e' = res (#(BitVec.ofNat 64 k)) rFail))
+  /- `Read(c, n)` (raw): some of the bytes the other end wrote, `rEOF` after its close, or a
+  failure. -/
+  | "Read" => ∃ (c : _) (s : _) (r : _) (n : w64), v = PairV (hv (.conn c s)) (#n) ∧ g.rawEnd c s me r ∧
+      let p := match s with | .dialer => r.dn | .acceptor => r.up
+      let set (p' : Pipe) : ConnRec := match s with
+        | .dialer => { r with dn := p' } | .acceptor => { r with up := p' }
+      ((∃ out : List w8, p.read < p.bytes.length ∧ 0 < out.length ∧ out.length ≤ n.toNat ∧
+          out = (p.bytes.drop p.read).take out.length ∧
+          g' = { g with conns := <[c := (set { p with read := p.read + out.length })]> g.conns } ∧
+          e' = res (#out) rOk) ∨
+       (p.read = p.bytes.length ∧ p.closed ∧ g' = g ∧ e' = res (#([] : List w8)) rEOF) ∨
+       (g' = g ∧ e' = res (#([] : List w8)) rFail))
+  /- `Close(c)`: the end's direction closed, the connection reset for its exchanges/streams. -/
+  | "Close" => ∃ c s r, v = hv (.conn c s) ∧ g.rawEnd c s me r ∧ e' = Val (#()) ∧
+      g' = { g with conns := <[c := (match s with
+        | .dialer => { r with up := { r.up with closed := true }, broken := true }
+        | .acceptor => { r with dn := { r.dn with closed := true }, broken := true })]> g.conns }
+  /- `LocalAddr`/`RemoteAddr` (`local = true`/`false`): the plan address for the listening side,
+  any string for the dialing side (an ephemeral port). -/
+  | "Addr" => ∃ (c : _) (s : _) (r : _) (loc : Bool), v = PairV (hv (.conn c s)) (#loc) ∧ g.rawEnd c s me r ∧ g' = g ∧
+      ((loc = (s == .acceptor) ∧ e' = Val (#r.addr)) ∨ (loc ≠ (s == .acceptor) ∧ ∃ a : GoString, e' = Val (#a)))
+  /- `Nonce(magic)`: a fresh preface. -/
+  | "Nonce" => ∃ magic : List w8, v = #magic ∧ g' = { g with next := g.next + 1 } ∧
+      e' = Val (#(prefaceOf magic g.next))
+  /- `ClaimD(bs)`: the connection `me` dialed whose bytes so far are the preface `bs`. Stuck if
+  none (the program's dialer did not pass the bytes through). -/
+  | "ClaimD" => ∃ (bs : List w8) (c : _) (r : _), v = #bs ∧ g.conns !! c = some r ∧ r.dialer = me ∧
+      ¬ r.claimedD ∧ r.up.bytes = bs ∧ 8 ≤ bs.length ∧
+      g' = { g with conns := <[c := ({ r with claimedD := true })]> g.conns } ∧
+      e' = Val (hv (.conn c .dialer))
+  /- `ClaimA(bs)`: the connection `me` accepted from which `bs`, a preface, was read. -/
+  | "ClaimA" => ∃ (bs : List w8) (c : _) (r : _), v = #bs ∧ g.conns !! c = some r ∧ r.acceptor = some me ∧
+      ¬ r.claimedA ∧ r.up.read = bs.length ∧ r.up.bytes.take bs.length = bs ∧ 8 ≤ bs.length ∧
+      g' = { g with conns := <[c := ({ r with claimedA := true })]> g.conns } ∧
+      e' = Val (hv (.conn c .acceptor))
+  /- ### Headers, metadata, trailers -/
+  /- `PutKV(h, k, v)`: the client's request headers or metadata (before `HStart`/`GStart`), a
+  server's response headers (before the commit), a stream's header or trailer metadata (the
+  server, before `GFinish`; `trailer = true` for the trailer). -/
+  | "PutKV" => ∃ (h : Handle) (k w : GoString) (tr : Bool), v = PairV (hv h) (PairV (#k) (PairV (#w) (#tr))) ∧
+      e' = Val (#()) ∧
+      ((∃ x r cr, h = .hx x .dialer ∧ g.hxEnd x .dialer me r cr ∧ ¬ r.started ∧
+          g' = { g with hxs := <[x := ({ r with reqHdr := r.reqHdr ++ [(k, w)] })]> g.hxs }) ∨
+       (∃ x r cr, h = .hx x .acceptor ∧ g.hxEnd x .acceptor me r cr ∧ r.status = none ∧
+          g' = { g with hxs := <[x := ({ r with respHdr := r.respHdr ++ [(k, w)] })]> g.hxs }) ∨
+       (∃ x r cr, h = .gs x .dialer ∧ g.gsEnd x .dialer me r cr ∧ r.state = .draft ∧
+          g' = { g with gss := <[x := ({ r with md := r.md ++ [(k, w)] })]> g.gss }) ∨
+       (∃ x r cr, h = .gs x .acceptor ∧ g.gsEnd x .acceptor me r cr ∧ r.fin = none ∧
+          g' = { g with gss := <[x := (if tr then { r with trailer := r.trailer ++ [(k, w)] }
+                                             else { r with header := r.header ++ [(k, w)] })]> g.gss }))
+  /- `GetKV(h, i)`: the `i`-th entry the other end put (a server: the request's headers or the
+  stream's metadata; a client: the committed response's headers, the stream's header and, after
+  its end, trailer metadata), or `false`. -/
+  | "GetKV" => ∃ (h : Handle) (i : w64) (tr : Bool), v = PairV (hv h) (PairV (#i) (#tr)) ∧ g' = g ∧
+      ∃ kvs : Hdr,
+        ((∃ x r cr, h = .hx x .acceptor ∧ g.hxEnd x .acceptor me r cr ∧ kvs = r.reqHdr) ∨
+         (∃ x r cr, h = .hx x .dialer ∧ g.hxEnd x .dialer me r cr ∧ r.status ≠ none ∧ kvs = r.respHdr) ∨
+         (∃ x r cr, h = .gs x .acceptor ∧ g.gsEnd x .acceptor me r cr ∧ kvs = r.md) ∨
+         (∃ x r cr, h = .gs x .dialer ∧ g.gsEnd x .dialer me r cr ∧
+            kvs = if tr then (if r.fin ≠ none then r.trailer else []) else r.header)) ∧
+        e' = match kvs[i.toNat]? with
+          | some (k, w) => Val (PairV (#k) (PairV (#w) (#true)))
+          | none => Val (PairV (#([] : GoString)) (PairV (#([] : GoString)) (#false)))
+  /- ### `net/http` (HTTP/1.1 exchanges on a claimed connection) -/
+  | "HOpen" => ∃ (c : _) (r : _) (meth host path : GoString), v = PairV (hv (.conn c .dialer)) (PairV (#meth) (PairV (#host) (#path))) ∧
+      g.connEnd c .dialer me r ∧
+      let x := g.next
+      g' = { g with next := x + 1, hxs := <[x := ⟨c, meth, host, path, [], false, false, false, {}, [], none, {}, false⟩]> g.hxs } ∧
+      e' = Val (hv (.hx x .dialer))
+  /- `HStart(x, hasBody)`: sent, or nothing sent (`rNotSent`: the server never sees it). -/
+  | "HStart" => ∃ (x : _) (r : _) (cr : _) (hb : Bool), v = PairV (hv (.hx x .dialer)) (#hb) ∧ g.hxEnd x .dialer me r cr ∧ ¬ r.started ∧
+      ((¬ cr.broken ∧ g' = { g with hxs := <[x := ({ r with started := true, hasBody := hb, reqBody := if hb then {} else { done := some true } })]> g.hxs,
+                                    conns := <[r.conn := ({ cr with hxs := cr.hxs ++ [x] })]> g.conns } ∧
+          e' = Val (#rOk)) ∨
+       (g' = g ∧ e' = Val (#rNotSent)))
+  /- The client's body copier: more bytes, or the end (`ok = false`: aborted, the server's read
+  fails). -/
+  | "HBodyPut" => ∃ (x : _) (r : _) (cr : _) (data : List w8), v = PairV (hv (.hx x .dialer)) (#data) ∧ g.hxEnd x .dialer me r cr ∧
+      r.started ∧ r.reqBody.done = none ∧
+      ((g' = { g with hxs := <[x := ({ r with reqBody := { r.reqBody with data := r.reqBody.data ++ data } })]> g.hxs } ∧ e' = Val (#rOk)) ∨
+       (g' = g ∧ e' = Val (#rFail)))
+  | "HBodyEnd" => ∃ (x : _) (r : _) (cr : _) (ok : Bool), v = PairV (hv (.hx x .dialer)) (#ok) ∧ g.hxEnd x .dialer me r cr ∧
+      r.reqBody.done = none ∧ e' = Val (#()) ∧
+      g' = { g with hxs := <[x := ({ r with reqBody := { r.reqBody with done := some ok } })]> g.hxs }
+  /- `HHead(x)`: the committed status (headers through `GetKV`), or a failure. -/
+  | "HHead" => ∃ x r cr, v = hv (.hx x .dialer) ∧ g.hxEnd x .dialer me r cr ∧ r.started ∧ g' = g ∧
+      ((∃ st, r.status = some st ∧ e' = res (#st) rOk) ∨ e' = res (#(0 : w64)) rFail)
+  | "HRespRead" => ∃ (x : _) (r : _) (cr : _) (n : w64), v = PairV (hv (.hx x .dialer)) (#n) ∧ g.hxEnd x .dialer me r cr ∧ r.status ≠ none ∧
+      ((∃ b' out code, BodyRead r.respBody n.toNat b' out code ∧
+          g' = { g with hxs := <[x := ({ r with respBody := b' })]> g.hxs } ∧ e' = res (#out) code) ∨
+       (g' = g ∧ e' = res (#([] : List w8)) rFail))
+  | "HCancel" => ∃ x r cr, v = hv (.hx x .dialer) ∧ g.hxEnd x .dialer me r cr ∧ e' = Val (#()) ∧
+      g' = { g with hxs := <[x := ({ r with canceled := true })]> g.hxs }
+  /- `HTake(c)` (a server's connection loop): the next request on the connection, once; `rEOF`
+  when the client closed the connection; a failure. -/
+  | "HTake" => ∃ c r, v = hv (.conn c .acceptor) ∧ g.connEnd c .acceptor me r ∧
+      ((∃ x xr, r.hxs[r.hxTaken]? = some x ∧ g.hxs !! x = some xr ∧ ¬ xr.taken ∧
+          g' = { g with hxs := <[x := ({ xr with taken := true })]> g.hxs,
+                        conns := <[c := ({ r with hxTaken := r.hxTaken + 1 })]> g.conns } ∧
+          e' = res (PairV (hv (.hx x .acceptor)) (PairV (#xr.meth) (PairV (#xr.host) (#xr.path)))) rOk) ∨
+       (r.hxTaken = r.hxs.length ∧ r.up.closed ∧ g' = g ∧ e' = res (#()) rEOF) ∨
+       (g' = g ∧ e' = failed))
+  | "HBodyRead" => ∃ (x : _) (r : _) (cr : _) (n : w64), v = PairV (hv (.hx x .acceptor)) (#n) ∧ g.hxEnd x .acceptor me r cr ∧
+      ((∃ b' out code, BodyRead r.reqBody n.toNat b' out code ∧
+          g' = { g with hxs := <[x := ({ r with reqBody := b' })]> g.hxs } ∧ e' = res (#out) code) ∨
+       (g' = g ∧ e' = res (#([] : List w8)) rFail))
+  /- `HCommit(x, st)`: the status and the headers put so far are the response's (a second commit
+  changes nothing). -/
+  | "HCommit" => ∃ (x : _) (r : _) (cr : _) (st : w64), v = PairV (hv (.hx x .acceptor)) (#st) ∧ g.hxEnd x .acceptor me r cr ∧
+      e' = Val (#()) ∧ g' = { g with hxs := <[x := ({ r with status := some (r.status.getD st) })]> g.hxs }
+  /- `HWrite(x, data)` (after the commit): appended, or a failure having appended a prefix. -/
+  | "HWrite" => ∃ (x : _) (r : _) (cr : _) (data : List w8), v = PairV (hv (.hx x .acceptor)) (#data) ∧ g.hxEnd x .acceptor me r cr ∧
+      r.status ≠ none ∧ r.respBody.done = none ∧
+      ((¬ cr.broken ∧ ¬ r.canceled ∧ g' = { g with hxs := <[x := ({ r with respBody := { r.respBody with data := r.respBody.data ++ data } })]> g.hxs } ∧
+          e' = res (#(BitVec.ofNat 64 data.length)) rOk) ∨
+       (∃ k ≤ data.length, g' = { g with hxs := <[x := ({ r with respBody := { r.respBody with data := r.respBody.data ++ data.take k } })]> g.hxs } ∧
+          e' = res (#(BitVec.ofNat 64 k)) rFail))
+  /- `HFinish(x, ok)`: the handler returned (`true`; a `200` committed if nothing was), or
+  panicked (`false`: the client's read of the body fails). -/
+  | "HFinish" => ∃ (x : _) (r : _) (cr : _) (ok : Bool), v = PairV (hv (.hx x .acceptor)) (#ok) ∧ g.hxEnd x .acceptor me r cr ∧
+      r.respBody.done = none ∧ e' = Val (#()) ∧
+      g' = { g with hxs := <[x := ({ r with respBody := { r.respBody with done := some ok }, status := if ok then some (r.status.getD 200) else r.status })]> g.hxs }
+  /- `HGone(x)`: the request's context may be canceled (returns at any time: the client went
+  away, a timeout, or nothing the server can tell). -/
+  | "HGone" => ∃ x r cr, v = hv (.hx x .acceptor) ∧ g.hxEnd x .acceptor me r cr ∧ g' = g ∧ e' = Val (#())
+  /- ### gRPC (HTTP/2 streams on a claimed connection) -/
+  | "GOpen" => ∃ (c : _) (r : _) (m : GoString) (to : w64) (hasTo : Bool),
+      v = PairV (hv (.conn c .dialer)) (PairV (#m) (PairV (#to) (#hasTo))) ∧ g.connEnd c .dialer me r ∧
+      let x := g.next
+      g' = { g with next := x + 1, gss := <[x := ⟨c, m, [], if hasTo then some to else none, .draft,
+                                                 {}, {}, [], [], none, false⟩]> g.gss } ∧
+      e' = Val (hv (.gs x .dialer))
+  /- `GStart(s)`: the stream's headers sent (it is `pending` on the connection), or nothing sent
+  (`rNotSent`: a transport not ready, closing or draining: grpc retries transparently). -/
+  | "GStart" => ∃ x r cr, v = hv (.gs x .dialer) ∧ g.gsEnd x .dialer me r cr ∧ r.state = .draft ∧
+      ((¬ cr.broken ∧ ¬ cr.draining ∧ g' = { g with gss := <[x := ({ r with state := .pending })]> g.gss,
+                                                     conns := <[r.conn := ({ cr with gss := cr.gss ++ [x] })]> g.conns } ∧
+          e' = Val (#rOk)) ∨
+       (g' = g ∧ e' = Val (#rNotSent)))
+  /- `GSend(s, msg)`: the stream's next message, or a failure (then nothing was added). -/
+  | "GSend" => ∃ (x : _) (r : _) (cr : _) (m : List w8), v = PairV (hv (.gs x .dialer)) (#m) ∧ g.gsEnd x .dialer me r cr ∧
+      r.state ≠ .draft ∧ ¬ r.up.closed ∧
+      ((¬ r.reset ∧ r.fin = none ∧ g' = { g with gss := <[x := ({ r with up := { r.up with q := r.up.q ++ [m] } })]> g.gss } ∧
+          e' = Val (#rOk)) ∨
+       (r.fin ≠ none ∧ g' = g ∧ e' = Val (#rEOF)) ∨
+       (g' = g ∧ e' = Val (#rFail)))
+  | "GCloseSend" => ∃ x r cr, v = hv (.gs x .dialer) ∧ g.gsEnd x .dialer me r cr ∧ e' = Val (#()) ∧
+      g' = { g with gss := <[x := ({ r with up := { r.up with closed := true } })]> g.gss }
+  /- `GRecv(s)`: the server's next message; after all of them, its end (code and message; the
+  trailer through `GetKV`), with `rEOF`; the refusal (`rNotSent`: never dispatched, a
+  transparent retry is allowed); or a failure. -/
+  | "GRecv" => ∃ x r cr, v = hv (.gs x .dialer) ∧ g.gsEnd x .dialer me r cr ∧ r.state ≠ .draft ∧
+      ((∃ m, r.dn.q[r.dn.read]? = some m ∧ g' = { g with gss := <[x := ({ r with dn := { r.dn with read := r.dn.read + 1 } })]> g.gss } ∧
+          e' = res (PairV (#m) (PairV (#(0 : w32)) (#([] : GoString)))) rOk) ∨
+       (∃ code msg, r.dn.read = r.dn.q.length ∧ r.fin = some (code, msg) ∧ g' = g ∧
+          e' = res (PairV (#([] : List w8)) (PairV (#code) (#msg))) rEOF) ∨
+       (r.state = .refused ∧ g' = g ∧ e' = res (#()) rNotSent) ∨
+       (g' = g ∧ e' = failed))
+  | "GCancel" => ∃ x r cr, v = hv (.gs x .dialer) ∧ g.gsEnd x .dialer me r cr ∧ e' = Val (#()) ∧
+      g' = { g with gss := <[x := ({ r with reset := true })]> g.gss }
+  /- `GTake(c)` (a gRPC server's connection loop): a pending stream of the connection,
+  dispatched (once: never refused afterwards), with its method and timeout (metadata through
+  `GetKV`); or a pending stream refused (`REFUSED_STREAM`: `MaxConcurrentStreams`; never
+  dispatched afterwards), and the loop goes on; `rEOF`; a failure. -/
+  | "GTake" => ∃ c r, v = hv (.conn c .acceptor) ∧ g.connEnd c .acceptor me r ∧
+      ((∃ x xr, x ∈ r.gss ∧ g.gss !! x = some xr ∧ xr.state = .pending ∧ ¬ r.draining ∧
+          g' = { g with gss := <[x := ({ xr with state := .dispatched })]> g.gss } ∧
+          e' = res (PairV (hv (.gs x .acceptor)) (PairV (#xr.method)
+                 (PairV (#(xr.timeout.getD 0)) (#xr.timeout.isSome)))) rOk) ∨
+       (∃ x xr, x ∈ r.gss ∧ g.gss !! x = some xr ∧ xr.state = .pending ∧
+          g' = { g with gss := <[x := ({ xr with state := .refused })]> g.gss } ∧
+          e' = ExternalOp goNetExt.name "GTake" (Val v)) ∨
+       (r.up.closed ∧ g' = g ∧ e' = res (#()) rEOF) ∨
+       (g' = g ∧ e' = failed))
+  /- `GDrain(c)` (`GOAWAY`, `GracefulStop`): no stream dispatched on it any more; its pending
+  ones refused. -/
+  | "GDrain" => ∃ c r, v = hv (.conn c .acceptor) ∧ g.connEnd c .acceptor me r ∧ e' = Val (#()) ∧
+      ∃ gss' : GMap Id GsRec, g' = { g with conns := <[c := ({ r with draining := true })]> g.conns, gss := gss' } ∧
+        ∀ y, gss' !! y = (g.gss !! y).map (fun yr =>
+          if y ∈ r.gss ∧ yr.state = .pending then { yr with state := .refused } else yr)
+  | "GSrvRecv" => ∃ x r cr, v = hv (.gs x .acceptor) ∧ g.gsEnd x .acceptor me r cr ∧
+      ((∃ m, r.up.q[r.up.read]? = some m ∧ g' = { g with gss := <[x := ({ r with up := { r.up with read := r.up.read + 1 } })]> g.gss } ∧
+          e' = res (#m) rOk) ∨
+       (r.up.read = r.up.q.length ∧ r.up.closed ∧ g' = g ∧ e' = res (#([] : List w8)) rEOF) ∨
+       (g' = g ∧ e' = res (#([] : List w8)) rFail))
+  | "GSrvSend" => ∃ (x : _) (r : _) (cr : _) (m : List w8), v = PairV (hv (.gs x .acceptor)) (#m) ∧ g.gsEnd x .acceptor me r cr ∧
+      r.fin = none ∧
+      ((¬ r.reset ∧ ¬ cr.broken ∧ g' = { g with gss := <[x := ({ r with dn := { r.dn with q := r.dn.q ++ [m] } })]> g.gss } ∧
+          e' = Val (#rOk)) ∨
+       (g' = g ∧ e' = Val (#rFail)))
+  /- `GFinish(s, code, msg)`: the stream's end, the message as it arrives (`msgArrives`). -/
+  | "GFinish" => ∃ (x : _) (r : _) (cr : _) (code : w32) (msg msg' : GoString), v = PairV (hv (.gs x .acceptor)) (PairV (#code) (#msg)) ∧
+      g.gsEnd x .acceptor me r cr ∧ r.fin = none ∧ msgArrives msg msg' ∧ e' = Val (#()) ∧
+      g' = { g with gss := <[x := ({ r with fin := some (code, msg') })]> g.gss }
+  | "GGone" => ∃ x r cr, v = hv (.gs x .acceptor) ∧ g.gsEnd x .acceptor me r cr ∧ g' = g ∧ e' = Val (#())
+  /- `GOwnErr()`: a status grpc-go makes itself: a code other than `OK` and one of its messages. -/
+  | "GOwnErr" => v = #() ∧ g' = g ∧ ∃ (code : w32) (msg : GoString),
+      1 ≤ code.toNat ∧ code.toNat ≤ 16 ∧ grpcOwnMsg msg ∧ e' = Val (PairV (#code) (#msg))
+  | _ => False
+
+/-- The operations that wait: each may also stutter. -/
+def waitOps : List String :=
+  ["Accept", "Read", "HHead", "HRespRead", "HTake", "HBodyRead", "GRecv", "GTake", "GSrvRecv",
+   "HGone", "GGone"]
+
+/-- The step: an operation's step, or a wait; the heap and the incarnation never change. -/
+def GoNetStep (op : String) (v : val) (h : GMap Loc (NonAtomic val)) (me : Owner) (g : Global)
+    (e' : Expr) (h' : GMap Loc (NonAtomic val)) (me' : Owner) (g' : Global) : Prop :=
+  h' = h ∧ me' = me ∧
+    (IsStep op v me g e' g' ∨ (op ∈ waitOps ∧ g' = g ∧ e' = ExternalOp goNetExt.name op (Val v)))
+
+end step
+
+/-- A crash: the node's next incarnation. Nothing of the network changes (DistLang): the dead
+incarnation's ends are unreachable, and its addresses are taken over by its next `Listen`. -/
+instance goNet_semantics : ExtSemantics goNetExt where
+  step := GoNetStep
+  crash me me' := me'.node = me.node ∧ me'.epoch = me.epoch + 1
+
+end GoNet
+end Perennial
+
+end

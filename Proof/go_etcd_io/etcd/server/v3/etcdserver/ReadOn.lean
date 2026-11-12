@@ -19,15 +19,23 @@ mode-`on` model's (`kvInvOn`), so the deposits are at `kvStOn`.
 
 **Additive.** Nothing mode-off changes.
 
+(Strict M1, 2026-11-06: restated as `InvRead`'s read path, over mvcc's API: the reader's view's KV
+a store handle, the floors `kvLogLb`, the witness `E.Nx` with the read's receipt and `LogWf'`; the
+store's certificates gone, so the KV core's fire and key-length laws take the witness `E.Nx L` alone
+(`srvKVInvs`/`srvKVInvsOn` tie it to the mode's model, `kvNxOff`/`kvNxOn`); `srvKVCoreM_cperm`
+deleted, mvcc's permit invariant being gone. It imports `ServerOnDefs`, not `ServerOn` and
+`AppliedOn`: the read side does not need the built part.)
+
 Lean-first (no Rocq counterpart).
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ServerOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ServerOnDefs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVRead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVReadOn
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AppliedOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.Inv
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReqOn
 
 @[expose] public section
 
@@ -67,18 +75,13 @@ notifier at the mode's state function, `srvAppliedInvM` and `srvKVInvsM`). -/
 def srvReadFieldsAtM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (v : ReadFields) :
     IProp GF :=
   iprop(srvReadAddr s ↦□ v.read ∗ isReadNotify v.read γr (kvStM on γr.kv) ∗
-    srvKVAddr s ↦□ v.kv ∗ txn.isKV v.kv E.s E.γ ∗
-    E.s.[go_etcd_io.etcd.server.v3.storage.mvcc.store, go!"ReadView"] ↦□
-      (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.readView.ty)
-        #v.rv : GoInterface) ∗
-    mvcc.isReadView v.rv E.s E.γ ∗
-    srvLessorAddr s ↦□ v.lessor ∗ apply.isApplyLessor v.lessor E.s E.γ E.P E.f E.RO E.RW ∗
-    srvAuthStoreAddr s ↦□ v.auth ∗ apply.isAuthStore v.auth E.γ E.P E.f E.RD E.authMode E.RW ∗
-    srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
+    srvKVAddr s ↦□ v.kv ∗ □ mvcc.api.isMvcc v.kv E.γ ∗ ⌜v.kv = E.kv⌝ ∗
+    srvLessorAddr s ↦□ v.lessor ∗ apply.isApplyLessor v.lessor E.γ E.Pk E.f E.BkTie E.RO E.RW ∗
+    srvAuthStoreAddr s ↦□ v.auth ∗ apply.isAuthStore v.auth E.Pk E.f E.BkTie E.RD E.authMode E.RW ∗
+    srvLgAddr s ↦□ v.lg ∗ zapLoggerOk v.lg ∗
     srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ v.wad ∗
     inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗
-    storeSmall E.γ ∗
-    (∃ log₀ : mvcc.Log, mvcc.idxCert E.γ.idx log₀ ∗
+    (∃ log₀ : mvcc.Log, srvApi.kvLogLb E.γs log₀ ∗
       ⌜2 ≤ log₀.length ∧ mvcc.LogPutsLe etcdKeyMax log₀⌝) ∗
     srvAppliedInvM on s E γr ∗ srvKVInvsM on s E γr ∗ srvCommittedInv s γr ∗
     srvApplyWaitAddr s ↦□ v.aw ∗ isWaitTime v.aw (appliedAtLeast γr) ∗
@@ -162,8 +165,8 @@ theorem srvAuthLb_rangeCheck (s : Loc) (E : apply.AEnv GF) (ai : GoInterfaceOk) 
 `L` at the mode's model, `kvModelM on`; `rangeReadOk` at `on = false`, by definition). -/
 def rangeReadOkM (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log)
     (o : OpFull) (resp : Loc) (Q : List EntryModel → IProp GF) : IProp GF :=
-  iprop(∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗ mvcc.certOk E.γ log ∗
-    ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log⌝ ∗
+  iprop(∃ log : mvcc.Log, srvApi.kvLogLb E.γs log ∗ E.Nx log ∗ ⧖ (mvcc.logCh log) ∗
+    ⌜mvcc.LogWf' log ∧ 2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log⌝ ∗
     (if o.base.serializable then iprop(True) else readLogOk γr c log) ∗
     (if o.base.serializable then iprop(True) else
       ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelM on γr.kv L = log⌝ ∗ □ Q L) ∗
@@ -178,13 +181,17 @@ theorem rangeReadOkM_false (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : 
 says of a successful read, at the error: a certified log `log` extending the floor `F`, read after
 the read index unless serializable, the deposit's result at a committed raft log whose model is
 `log` (the deposit fires at the read index, before the store's read), and the store's compaction
-revision `crev` read with it (`mvcc.crevLb`), where `P log crev` (the future revision's
-`rangeFutureAt`, the compacted one's `rangeCompactedAt`). -/
+revision `crev` read with it, where `P log crev` (the future revision's `rangeFutureAt`, the
+compacted one's `rangeCompactedAt`). (R8, 2026-11-08, the second `lean` merge: over mvcc's API, as
+`rangeReadOkM`: the log a lower bound of the store's (`kvLogLb`), its raft witness `E.Nx` and
+receipt, well formed; the compaction revision's permit `E.Cp crev`, the store invariant's, in place
+of `lean`'s `idxCert`/`certOk`/`crevLb`, mvcc's internals.) -/
 def rangeErrAt (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log)
     (o : OpFull) (Q : List EntryModel → IProp GF) (P : mvcc.Log → Int → Prop) : IProp GF :=
-  iprop(∃ (log : mvcc.Log) (crev : Int), mvcc.idxCert E.γ.idx log ∗ mvcc.certOk E.γ log ∗
-    mvcc.crevLb E.γ.idx crev ∗
-    ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log ∧ -1 ≤ crev ∧ P log crev⌝ ∗
+  iprop(∃ (log : mvcc.Log) (crev : Int), srvApi.kvLogLb E.γs log ∗ □ E.Nx log ∗
+    ⧖ (mvcc.logCh log) ∗ □ E.Cp crev ∗
+    ⌜mvcc.LogWf' log ∧ 2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log ∧ -1 ≤ crev ∧
+      P log crev⌝ ∗
     (if o.base.serializable then iprop(True) else readLogOk γr c log) ∗
     (if o.base.serializable then iprop(True) else
       ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelM on γr.kv L = log⌝ ∗ □ Q L))
@@ -193,17 +200,6 @@ instance rangeErrAt_persistent (on : Bool) (E : apply.AEnv GF) (γr : ReadNames)
     (F : mvcc.Log) (o : OpFull) (Q : List EntryModel → IProp GF) (P : mvcc.Log → Int → Prop) :
     Persistent (rangeErrAt on E γr c F o Q P) := by
   unfold rangeErrAt; infer_instance
-
-/-- The future revision at the log `log` (`txn.rangeResult`'s first case): the request's revision
-above the log's last. -/
-def rangeFutureAt (o : OpFull) (log : mvcc.Log) (_crev : Int) : Prop :=
-  sint.Z (W64 ((log.length : Int) - 1)) < sint.Z o.base.rev
-
-/-- The compacted revision at the log `log` and compaction revision `crev` (`txn.rangeResult`'s
-fourth case): the revision read below `crev`. -/
-def rangeCompactedAt (o : OpFull) (log : mvcc.Log) (crev : Int) : Prop :=
-  sint.Z o.base.rev ≤ sint.Z (W64 ((log.length : Int) - 1)) ∧
-    sint.Z (mvcc.rangeRev (W64 ((log.length : Int) - 1)) o.base.rev) < crev
 
 /-- **Which error a failed `Range` returns** (k8s etcd3 7c-2 part 2, S3, 2026-11-06): mvcc's
 `ErrFutureRev` or `ErrCompacted`, each with the read's facts at the error (`rangeErrAt`); an auth
@@ -250,8 +246,8 @@ instance rangeErrDesc_persistent (on : Bool) (E : apply.AEnv GF) (γr : ReadName
 log `L` at the mode's model, `kvModelM on`; `txnReadOk` at `on = false`, by definition; E3v). -/
 def txnReadOkM (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log)
     (t : TxnModel) (Q : List EntryModel → IProp GF) (resp : Loc) : IProp GF :=
-  iprop(∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗ mvcc.certOk E.γ log ∗
-    ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log⌝ ∗
+  iprop(∃ log : mvcc.Log, srvApi.kvLogLb E.γs log ∗ E.Nx log ∗ ⧖ (mvcc.logCh log) ∗
+    ⌜mvcc.LogWf' log ∧ 2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log⌝ ∗
     (if txn.txnSerializable t then iprop(True) else readLogOk γr c log) ∗
     (if txn.txnSerializable t then iprop(True) else
       ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelM on γr.kv L = log⌝ ∗ □ Q L) ∗
@@ -368,7 +364,8 @@ def srvKVCoreM (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
   match on with
   | false => srvKVInvs E γr
   | true => iprop(kvInvOn γr.raft γr.kv srvAuthSt0 ∗ kvCertInvOn γr.raft γr.kv srvAuthSt0 ∗
-      srvRaftLogInv γr.raft ∗ ⌜E.γ.cok = γr.kv.cok⌝ ∗ mvcc.crevPermIs E.γ (kvCmpPermit γr.kv))
+      srvRaftLogInv γr.raft ∗ □ srvApi.kvStoreInvG E.kv E.γ E.Nx E.Cp E.γs ∗ ⌜envWitOk E⌝ ∗
+      ⌜E.Nx = kvNxOn γr.raft γr.kv srvAuthSt0⌝)
 
 instance srvKVCoreM_persistent (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) :
     Persistent (srvKVCoreM (GF := GF) on E γr) := by
@@ -380,8 +377,8 @@ theorem srvKVCoreM_false (E : apply.AEnv GF) (γr : ReadNames) :
 theorem srvKVCoreM_true (E : apply.AEnv GF) (γr : ReadNames) :
     srvKVCoreM (GF := GF) true E γr =
       iprop(kvInvOn γr.raft γr.kv srvAuthSt0 ∗ kvCertInvOn γr.raft γr.kv srvAuthSt0 ∗
-        srvRaftLogInv γr.raft ∗ ⌜E.γ.cok = γr.kv.cok⌝ ∗
-        mvcc.crevPermIs E.γ (kvCmpPermit γr.kv)) := rfl
+        srvRaftLogInv γr.raft ∗ □ srvApi.kvStoreInvG E.kv E.γ E.Nx E.Cp E.γs ∗ ⌜envWitOk E⌝ ∗
+        ⌜E.Nx = kvNxOn γr.raft γr.kv srvAuthSt0⌝) := rfl
 
 /-- `srvKVInvsM true`'s KV invariants (`srvKVInvsM_true`'s, in a section without the package's
 assumptions). -/
@@ -398,7 +395,7 @@ theorem srvKVInvsM_core (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNam
     iintro #H
     ihave #Hon := srvKVInvsM_onPart s E γr $$ H
     iunfold srvKVInvsOn at Hon
-    icases Hon with ⟨#Hk, #Hc, #Hr, -, %Hcok, #Hcp, -⟩
+    icases Hon with ⟨#Hk, #Hc, #Hr, -, #Hs, %Hw, %HNx, -⟩
     isplitl []
     · iexact Hk
     isplitl []
@@ -406,22 +403,10 @@ theorem srvKVInvsM_core (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNam
     isplitl []
     · iexact Hr
     isplitl []
-    · ipureintro; exact Hcok
-    iexact Hcp
-
-/-- **The store's compaction permit is the cluster's, in either auth mode** (C3's watch side,
-2026-11-02): the KV core's `crevPermIs`. -/
-theorem srvKVCoreM_cperm (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) :
-    srvKVCoreM (GF := GF) on E γr ⊢ mvcc.crevPermIs E.γ (kvCmpPermit γr.kv) := by
-  cases on
-  · rw [srvKVCoreM_false]
-    iintro #H
-    iunfold srvKVInvs at H
-    icases H with ⟨-, -, -, -, -, -, #Hcp⟩
-    iexact Hcp
-  · rw [srvKVCoreM_true]
-    iintro ⟨-, -, -, -, #Hcp⟩
-    iexact Hcp
+    · iexact Hs
+    isplitl []
+    · ipureintro; exact Hw.1
+    ipureintro; exact HNx
 
 /-- The read view's KV core in its mode (`srvReadFieldsAtM`'s `srvKVInvsM`, `srvKVInvsM_core`). -/
 theorem srvKVCoreM_of_readM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
@@ -430,66 +415,50 @@ theorem srvKVCoreM_of_readM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : Rea
   iunfold isServerReadM at Hsrd
   icases Hsrd with ⟨%v, Hsrd⟩
   iunfold srvReadFieldsAtM at Hsrd
-  icases Hsrd with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hkvi, -⟩
+  icases Hsrd with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hkvi, -⟩
   iapply srvKVInvsM_core on s E γr $$ Hkvi
 
 /-- **A read update fired at a certified log, in either auth mode** (G2's follow-up, 2026-10-30;
-until then `client.watch_fire`, auth off only): with the KV core in the mode `on`, the start log
-sealed (`NewStore`'s `[[], []]`, the KV's start log), and a sealed log `L` the server certified,
-the caller's persistent read update of `γ`'s state (the KV invariant's state variable) fires at the
-committed state, the state of a log `C` that `L` is a prefix of: `L` is the mode's model of a
-committed raft prefix (`kv_cert_read`, `kv_cert_read_on`; `srvRLog_lb`) or has at most two
-revisions (then a prefix of the start log, the sealed logs being in prefix order). -/
-theorem srvKVCoreM_fire [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (on : Bool)
+until then `client.watch_fire`, auth off only): with the KV core in the mode `on` and a log `L`
+with the store's witness (`E.Nx L`), the caller's persistent read update of `γ`'s state (the KV
+invariant's state variable) fires at the committed state, the state of a log `C` that `L` is a
+prefix of: `L` is the mode's model of a committed raft prefix (the witness, tied to the mode's model
+by the KV core; `srvRLog_lb`). (Strict M1, 2026-11-06: over the witness in place of mvcc's
+`certOk` and the sealed logs, whose short case is gone.) -/
+theorem srvKVCoreM_fire (on : Bool)
     (E : apply.AEnv GF) (γr : ReadNames) (γ : KVNames) (hst : γ.st = γr.kv.st)
-    (hlog : γr.kv.log0 = [[], []]) (L : mvcc.Log) (Q : KVState → IProp GF) :
-    ⊢ srvKVCoreM on E γr -∗ mvcc.idxSealed E.γ.idx [[], []] -∗ mvcc.idxSealed E.γ.idx L -∗
-      mvcc.certOk E.γ L -∗
+    (L : mvcc.Log) (Q : KVState → IProp GF) :
+    ⊢ srvKVCoreM on E γr -∗ E.Nx L -∗
       □ (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
         <{ etcdKV γ σ ∗ ⌜kvRoom σ⌝, COMM □ Q σ }>) ={⊤}=∗
       ∃ C : mvcc.Log, □ Q (kvStateOf C) ∗ ⌜L <+: C⌝ := by
+  have Hsub : ((⊤ \ ↑srvRaftN) \ ↑kvN : CoPset) ⊆ ⊤ \ ↑kvN := by
+    intro p hp
+    rw [Iris.Std.LawfulSet.mem_diff, Iris.Std.LawfulSet.mem_diff] at hp
+    rw [Iris.Std.LawfulSet.mem_diff]
+    exact ⟨CoPset.mem_full, hp.2⟩
   cases on
   · rw [srvKVCoreM_false]
-    have Hsub : ((⊤ \ ↑srvRaftN) \ ↑kvN : CoPset) ⊆ ⊤ \ ↑kvN := by
-      intro p hp
-      rw [Iris.Std.LawfulSet.mem_diff, Iris.Std.LawfulSet.mem_diff] at hp
-      rw [Iris.Std.LawfulSet.mem_diff]
-      exact ⟨CoPset.mem_full, hp.2⟩
-    iintro #Hinvs #H0 #HL #Hc #Hau
+    iintro #Hinvs Hc #Hau
     iunfold srvKVInvs at Hinvs
-    icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok, -⟩
-    imod kv_cert_read γr.raft γr.kv E.γ Hcok ⊤ (fun _ _ => CoPset.mem_full) L $$ HcI Hc with Hcase
-    ihave %Hp0 := mvcc.idxSealed_prefix E.γ.idx [[], []] L $$ [H0 HL]
-    · iframe H0 HL
+    icases Hinvs with ⟨#HkI, -, #HrI, -, -, %HNx, -⟩
+    rw [HNx]
+    iunfold kvNxOff at Hc
+    icases Hc with ⟨%A, #HA, %hA⟩
+    obtain ⟨hA, -⟩ := hA
     iunfold kvInv at HkI
     iinv HkI with >Hi Hclose
     icases Hi with ⟨%Lf, HLf, Hσ', %Hok', #Hw, HG⟩
     -- `L` is a prefix of the committed log's model
-    ihave Hp : iprop(|={⊤ \ ↑kvN}=> srvRLog γr.raft Lf ∗ ⌜L <+: kvModel γr.kv Lf⌝) $$ [HLf Hcase]
-    · icases Hcase with (%hl | ⟨%A, #HA, %hA⟩)
-      · imodintro
-        iframe HLf
-        ipureintro
-        have hb : [[], []] <+: kvModel γr.kv Lf := by
-          have := kvRaftOf_extends γr.kv.c0 γr.kv.ch0 γr.kv.log0 Lf
-          unfold kvModel; rw [← hlog]; exact this
-        rcases Hp0 with h | h
-        · have hl2 : ([[], []] : mvcc.Log).length = L.length := by
-            have := h.length_le; simp at this ⊢; omega
-          rw [← h.eq_of_length hl2]; exact hb
-        · exact h.trans hb
-      · imod srvRLog_lb γr.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
-          Lf A $$ HrI HLf HA with ⟨HLf, %Hp⟩
-        ihave %HAi := srvRLogLb_idx γr.raft A $$ HA
-        imodintro
-        iframe HLf
-        ipureintro
-        -- (2026-10-27) `A`'s requested entries are a prefix of the server's log's
-        obtain ⟨A', hA'L, hA'⟩ := srv_eqv_prefix γr.raft A Lf HAi Hp.1 Hp.2.1 Hp.2.2
-        rw [← hA, (kvModel_eqv γr.raft γr.kv A A' hA' Hok'.2.2.1).1]
-        unfold kvModel
-        exact kvRaftOf_prefix _ _ _ A' Lf hA'L
-    imod Hp with ⟨HLf, %HpL⟩
+    imod srvRLog_lb γr.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
+      Lf A $$ HrI HLf HA with ⟨HLf, %Hp⟩
+    ihave %HAi := srvRLogLb_idx γr.raft A $$ HA
+    have HpL : L <+: kvModel γr.kv Lf := by
+      -- (2026-10-27) `A`'s requested entries are a prefix of the server's log's
+      obtain ⟨A', hA'L, hA'⟩ := srv_eqv_prefix γr.raft A Lf HAi Hp.1 Hp.2.1 Hp.2.2
+      rw [← hA, (kvModel_eqv γr.raft γr.kv A A' hA' Hok'.2.2.1).1]
+      unfold kvModel
+      exact kvRaftOf_prefix _ _ _ A' Lf hA'L
     -- the update, fired at the committed state
     imod (fupd_mask_subseteq Hsub) with Hback
     ihave Hacc := aupd_aacc $$ Hau
@@ -517,48 +486,26 @@ theorem srvKVCoreM_fire [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (on
     iframe HQ0
     ipureintro; exact HpL
   · rw [srvKVCoreM_true]
-    have Hsub : ((⊤ \ ↑srvRaftN) \ ↑kvN : CoPset) ⊆ ⊤ \ ↑kvN := by
-      intro p hp
-      rw [Iris.Std.LawfulSet.mem_diff, Iris.Std.LawfulSet.mem_diff] at hp
-      rw [Iris.Std.LawfulSet.mem_diff]
-      exact ⟨CoPset.mem_full, hp.2⟩
-    iintro #Hinvs #H0 #HL #Hc #Hau
-    icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok, -⟩
-    imod kv_cert_read_on γr.raft γr.kv srvAuthSt0 E.γ Hcok ⊤ (fun _ _ => CoPset.mem_full) L
-      $$ HcI Hc with Hcase
-    ihave %Hp0 := mvcc.idxSealed_prefix E.γ.idx [[], []] L $$ [H0 HL]
-    · iframe H0 HL
+    iintro #Hinvs Hc #Hau
+    icases Hinvs with ⟨#HkI, -, #HrI, -, -, %HNx⟩
+    rw [HNx]
+    iunfold kvNxOn at Hc
+    icases Hc with ⟨%A, #HA, %hA⟩
+    obtain ⟨hA, -⟩ := hA
     iunfold kvInvOn at HkI
     iinv HkI with >Hi Hclose
     icases Hi with ⟨%Lf, HLf, Hσ', Hh, %Hok', #Hw⟩
     -- `L` is a prefix of the committed log's mode-`on` model
-    ihave Hp : iprop(|={⊤ \ ↑kvN}=> srvRLog γr.raft Lf ∗
-        ⌜L <+: kvModelOn γr.kv srvAuthSt0 Lf⌝) $$ [HLf Hcase]
-    · icases Hcase with (%hl | ⟨%A, #HA, %hA⟩)
-      · imodintro
-        iframe HLf
-        ipureintro
-        have hb : [[], []] <+: kvModelOn γr.kv srvAuthSt0 Lf := by
-          have := kvRaftOfOn_extends γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0) Lf
-          unfold kvModelOn; rw [← hlog]; exact this
-        rcases Hp0 with h | h
-        · have hl2 : ([[], []] : mvcc.Log).length = L.length := by
-            have := h.length_le; simp at this ⊢; omega
-          rw [← h.eq_of_length hl2]; exact hb
-        · exact h.trans hb
-      · imod srvRLog_lb γr.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
-          Lf A $$ HrI HLf HA with ⟨HLf, %Hp⟩
-        ihave %HAi := srvRLogLb_idx γr.raft A $$ HA
-        imodintro
-        iframe HLf
-        ipureintro
-        obtain ⟨L', hL', hAL⟩ := kvRaftOfOn_of_lb γr.raft γr.kv.c0 γr.kv.ch0
-          (srvAuthSt0, γr.kv.log0) A Lf Hok'.2.2.2.1 HAi Hp.1 (fun m hm => (Hp.2.1 m hm).1) Hp.2.2
-        rw [← hA]
-        unfold kvModelOn
-        rw [hAL]
-        exact kvRaftOfOn_prefix _ _ _ L' Lf hL'
-    imod Hp with ⟨HLf, %HpL⟩
+    imod srvRLog_lb γr.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
+      Lf A $$ HrI HLf HA with ⟨HLf, %Hp⟩
+    ihave %HAi := srvRLogLb_idx γr.raft A $$ HA
+    have HpL : L <+: kvModelOn γr.kv srvAuthSt0 Lf := by
+      obtain ⟨L', hL', hAL⟩ := kvRaftOfOn_of_lb γr.raft γr.kv.c0 γr.kv.ch0
+        (srvAuthSt0, γr.kv.log0) A Lf Hok'.2.2.2.1 HAi Hp.1 (fun m hm => (Hp.2.1 m hm).1) Hp.2.2
+      rw [← hA]
+      unfold kvModelOn
+      rw [hAL]
+      exact kvRaftOfOn_prefix _ _ _ L' Lf hL'
     -- the update, fired at the committed state
     imod (fupd_mask_subseteq Hsub) with Hback
     ihave Hacc := aupd_aacc $$ Hau
@@ -586,125 +533,59 @@ theorem srvKVCoreM_fire [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (on
     ipureintro; exact HpL
 
 
-/-- **The mode-`on` model of a log with short keys, from a start with none, has none**
-(`kvRaftOf_keys`'s: an admin step and a refused request keep the log). -/
-theorem kvRaftOfOn_keys (c₀ : w64) (ch : apply.Chain) :
-    ∀ (s₀ : auth.AuthState × mvcc.Log) (A : List EntryModel), logPutsOk A →
-      mvcc.LogPutsLe etcdKeyMax s₀.2 → mvcc.LogPutsLe etcdKeyMax (kvRaftOfOn c₀ ch s₀ A).2
-  | s₀, [], _, hl => hl
-  | s₀, m :: A, hA, hl => by
-    have hk : kvRaftOfOn c₀ ch s₀ (m :: A) = kvRaftOfOn c₀ ch (kvEntryOn c₀ ch s₀ m) A := rfl
-    rw [hk]
-    apply kvRaftOfOn_keys c₀ ch _ A (fun m' h => hA m' (by simp [h]))
-    have hm := hA m (by simp)
-    unfold kvEntryOn
-    split
-    · split
-      · split
-        · exact hl
-        · split
-          · exact hl
-          · exact kvEntry_keys c₀ ch [] s₀.2 m hm hl
-      · exact hl
-    · exact kvEntry_keys c₀ ch [] s₀.2 m hm hl
+/-- **A committed raft prefix's KV model has short keys, in either auth mode** (R8, 2026-11-07:
+`srvKVCoreM_keys` at a raft prefix `A` in place of the witness, which now carries the key bound:
+what the witness's producers prove it with). -/
+theorem srvKVCoreM_keysA (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) :
+    ⊢ srvKVCoreM on E γr -∗ srvRLogLb γr.raft A ={⊤}=∗
+      ⌜mvcc.LogPutsLe etcdKeyMax (kvModelM on γr.kv A)⌝ := by
+  cases on
+  · rw [srvKVCoreM_false, kvModelM_false]
+    iintro #Hinvs #HA
+    iunfold srvKVInvs at Hinvs
+    icases Hinvs with ⟨#HkI, -, #HrI, -⟩
+    iapply (kvInv_keysA γr A) $$ HkI HrI HA
+  · rw [srvKVCoreM_true, kvModelM_true]
+    iintro #Hinvs #HA
+    icases Hinvs with ⟨#HkI, -, #HrI, -⟩
+    iapply (kvInvOn_keysA γr srvAuthSt0 A) $$ HkI HrI HA
 
-/-- **A certified sealed log has short keys, in either auth mode** (2026-10-30,
-`notes/keylen.md`): with the KV core in the mode `on` and a sealed log `B` of at least two
-revisions with short keys (the start log `[[], []]`), a sealed log `l` the server certified has
-short keys: `l` is the mode's model of a committed raft prefix (`kv_cert_read`,
-`kv_cert_read_on`), whose entries the KV invariant keeps short (`kvWork`'s `logPutsOk`, from the
-start log's), or has at most two revisions (then a prefix of `B`, the sealed logs being in prefix
-order). -/
-theorem srvKVCoreM_keys [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (on : Bool)
-    (E : apply.AEnv GF) (γr : ReadNames) (B l : mvcc.Log) (hB : 2 ≤ B.length)
-    (hBk : mvcc.LogPutsLe etcdKeyMax B) :
-    ⊢ srvKVCoreM on E γr -∗ mvcc.idxSealed E.γ.idx B -∗ mvcc.idxSealed E.γ.idx l -∗
-      mvcc.certOk E.γ l ={⊤}=∗ ⌜mvcc.LogPutsLe etcdKeyMax l⌝ := by
-  have hshort : l.length ≤ 2 → (B <+: l ∨ l <+: B) → mvcc.LogPutsLe etcdKeyMax l := by
-    intro hl h
-    rcases h with h | h
-    · have hlen := h.length_le
-      rw [← h.eq_of_length (by omega)]; exact hBk
-    · exact hBk.prefix h
+/-- **A log with the store's witness has short keys, in either auth mode** (2026-10-30,
+`notes/keylen.md`): with the KV core in the mode `on`, a log `l` with the witness `E.Nx l` is the
+mode's model of a committed raft prefix (the KV core's tie), whose entries the KV invariant keeps
+short (`kvWork`'s `logPutsOk`, from the start log's). (Strict M1, 2026-11-06: over the witness in
+place of mvcc's sealed logs and `certOk`; the short case, and with it the floor `B`, gone.) -/
+theorem srvKVCoreM_keys (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (l : mvcc.Log) :
+    ⊢ srvKVCoreM on E γr -∗ E.Nx l ={⊤}=∗ ⌜mvcc.LogPutsLe etcdKeyMax l⌝ := by
   cases on
   · rw [srvKVCoreM_false]
-    iintro #Hinvs #HB #Hl #Hc
+    iintro #Hinvs Hc
     iunfold srvKVInvs at Hinvs
-    icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok, -⟩
-    imod kv_cert_read γr.raft γr.kv E.γ Hcok ⊤ (fun _ _ => CoPset.mem_full) l $$ HcI Hc with Hcase
-    ihave %Hp0 := mvcc.idxSealed_prefix E.γ.idx B l $$ [HB Hl]
-    · iframe HB Hl
-    icases Hcase with (%hl | ⟨%A, #HA, %hA⟩)
-    · imodintro; ipureintro; exact hshort hl Hp0
-    iunfold kvInv at HkI
-    iinv HkI with >Hi Hclose
-    icases Hi with ⟨%Lf, HLf, Hσ', %Hok', #Hw, HG⟩
-    ihave #Hw2 := Hw
-    iunfold kvWork at Hw2
-    icases Hw2 with ⟨%Hws, -⟩
-    imod srvRLog_lb γr.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
-      Lf A $$ HrI HLf HA with ⟨HLf, %Hp⟩
-    ihave %HAi := srvRLogLb_idx γr.raft A $$ HA
-    imod Hclose $$ [HLf Hσ' HG] with -
-    · inext; iexists Lf; iframe HLf Hσ' Hw HG; ipureintro; exact Hok'
-    imodintro
-    ipureintro
-    obtain ⟨A', hA'L, hA'⟩ := srv_eqv_prefix γr.raft A Lf HAi Hp.1 Hp.2.1 Hp.2.2
-    rw [← hA, (kvModel_eqv γr.raft γr.kv A A' hA' Hok'.2.2.1).1]
-    unfold kvModel
-    exact kvRaftOf_keys _ _ _ A' (fun m hm => Hws.2.2.1 m (hA'L.subset hm)) Hws.2.2.2.1
+    icases Hinvs with ⟨-, -, -, -, -, %HNx, -⟩
+    rw [HNx]
+    iunfold kvNxOff at Hc
+    icases Hc with ⟨%A, -, %hA⟩
+    imodintro; ipureintro; exact hA.2
   · rw [srvKVCoreM_true]
-    iintro #Hinvs #HB #Hl #Hc
-    icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok, -⟩
-    imod kv_cert_read_on γr.raft γr.kv srvAuthSt0 E.γ Hcok ⊤ (fun _ _ => CoPset.mem_full) l
-      $$ HcI Hc with Hcase
-    ihave %Hp0 := mvcc.idxSealed_prefix E.γ.idx B l $$ [HB Hl]
-    · iframe HB Hl
-    icases Hcase with (%hl | ⟨%A, #HA, %hA⟩)
-    · imodintro; ipureintro; exact hshort hl Hp0
-    iunfold kvInvOn at HkI
-    iinv HkI with >Hi Hclose
-    icases Hi with ⟨%Lf, HLf, Hσ', Hh, %Hok', #Hw⟩
-    ihave #Hw2 := Hw
-    iunfold kvWorkOn at Hw2
-    icases Hw2 with ⟨%Hws, -⟩
-    imod srvRLog_lb γr.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
-      Lf A $$ HrI HLf HA with ⟨HLf, %Hp⟩
-    ihave %HAi := srvRLogLb_idx γr.raft A $$ HA
-    imod Hclose $$ [HLf Hσ' Hh] with -
-    · inext; iexists Lf; iframe HLf Hσ' Hh Hw; ipureintro; exact Hok'
-    imodintro
-    ipureintro
-    obtain ⟨L', hL', hAL⟩ := kvRaftOfOn_of_lb γr.raft γr.kv.c0 γr.kv.ch0
-      (srvAuthSt0, γr.kv.log0) A Lf Hok'.2.2.2.1 HAi Hp.1 (fun m hm => (Hp.2.1 m hm).1) Hp.2.2
-    rw [← hA]
-    unfold kvModelOn
-    rw [hAL]
-    exact kvRaftOfOn_keys _ _ _ L' (fun m hm => Hws.2.2.1 m (hL'.subset hm)) Hws.2.2.2.1
+    iintro #Hinvs Hc
+    icases Hinvs with ⟨-, -, -, -, -, %HNx⟩
+    rw [HNx]
+    iunfold kvNxOn at Hc
+    icases Hc with ⟨%A, -, %hA⟩
+    imodintro; ipureintro; exact hA.2
 
 /-- **A log the server certified has short keys** (2026-10-30, `notes/keylen.md`): what a request
-handler holds of the log it read or wrote (its `idxCert` and `certOk`), with the server's read
-view, whose floor is a certified log of at least two revisions with short keys
-(`srvKVCoreM_keys`). -/
-theorem readM_keys [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (on : Bool) (s : Loc)
-    (E : apply.AEnv GF) (γr : ReadNames) (l : mvcc.Log) :
-    ⊢ isServerReadM on s E γr -∗ mvcc.idxCert E.γ.idx l -∗ mvcc.certOk E.γ l ={⊤}=∗
-      ⌜mvcc.LogPutsLe etcdKeyMax l⌝ := by
-  iintro #Hsrd #Hc #Hok
+handler holds of the log it read or wrote (the store's witness `E.Nx l`; strict M1: mvcc's
+`idxCert` and `certOk` until 2026-11-06), with the server's read view (`srvKVCoreM_keys`). -/
+theorem readM_keys (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (l : mvcc.Log) :
+    ⊢ isServerReadM on s E γr -∗ E.Nx l ={⊤}=∗ ⌜mvcc.LogPutsLe etcdKeyMax l⌝ := by
+  iintro #Hsrd Hok
   ihave #Hcore := srvKVCoreM_of_readM on s E γr $$ Hsrd
-  iunfold isServerReadM at Hsrd
-  icases Hsrd with ⟨%v, Hsrd⟩
-  iunfold srvReadFieldsAtM at Hsrd
-  icases Hsrd with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, ⟨%B, #HB, %hB⟩, -⟩
-  ihave #HBs := mvcc.idxCert_sealed E.γ.idx B $$ HB
-  ihave #Hls := mvcc.idxCert_sealed E.γ.idx l $$ Hc
-  iapply (srvKVCoreM_keys on E γr B l hB.1 hB.2) $$ Hcore HBs Hls Hok
+  iapply (srvKVCoreM_keys on E γr l) $$ Hcore Hok
 
 /-- `readM_keys` in the mode `off` (`isServerRead`). -/
-theorem read_keys [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions] (s : Loc)
-    (E : apply.AEnv GF) (γr : ReadNames) (l : mvcc.Log) :
-    ⊢ isServerRead s E γr -∗ mvcc.idxCert E.γ.idx l -∗ mvcc.certOk E.γ l ={⊤}=∗
-      ⌜mvcc.LogPutsLe etcdKeyMax l⌝ :=
+theorem read_keys (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (l : mvcc.Log) :
+    ⊢ isServerRead s E γr -∗ E.Nx l ={⊤}=∗ ⌜mvcc.LogPutsLe etcdKeyMax l⌝ :=
   readM_keys false s E γr l
 
 end defs
@@ -852,7 +733,7 @@ theorem isServerReadM_tie (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
     isServerReadM (GF := GF) true s E γr ⊢
       srvRaftLogInv γr.raft ∗ kvInvOn γr.raft γr.kv srvAuthSt0 ∗ authHistTie E γr srvAuthSt0 := by
   unfold isServerReadM srvReadFieldsAtM
-  iintro ⟨%v, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hkvi, -⟩
+  iintro ⟨%v, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hkvi, -⟩
   ihave #Hkvi := srvKVInvsM_true s E γr $$ Hkvi
   iunfold srvKVInvsOn at Hkvi
   icases Hkvi with ⟨#Hkv, -, #Hrl, #Htie, -⟩
@@ -889,7 +770,7 @@ theorem srvAuthLb_of_uberBase (s : Loc) (ua : GoInterface) (E : apply.AEnv GF) :
 theorem readIndexOk_logM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) :
     ⊢ srvAppliedInvM (GF := GF) on s E γr -∗ readIndexOk γr c ={⊤}=∗
       ∃ (ci₀ : w64) (L₀ : mvcc.Log), ⌜uint.Z c ≤ uint.Z ci₀⌝ ∗ appliedLogAt γr ci₀ L₀ ∗
-        mvcc.idxCert E.γ.idx L₀ ∗ appliedPubM on E γr ci₀ := by
+        srvApi.kvLogLb E.γs L₀ ∗ appliedPubM on E γr ci₀ := by
   iintro #Hinv #Hok
   iunfold readIndexOk at Hok
   icases Hok with ⟨%ci, %Hci, #Hlb⟩
@@ -913,15 +794,18 @@ theorem readIndexOk_logM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNa
 /-- `readIndexOk_logR` over the mode's applied index's invariant. -/
 theorem readIndexOk_logRM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64)
     (log₀ : mvcc.Log) :
-    ⊢ srvAppliedInvM (GF := GF) on s E γr -∗ readIndexOk γr c -∗ mvcc.idxCert E.γ.idx log₀ ={⊤}=∗
-      ∃ logR : mvcc.Log, mvcc.idxCert E.γ.idx logR ∗ ⌜log₀ <+: logR⌝ ∗ readLogOk γr c logR ∗
+    ⊢ srvAppliedInvM (GF := GF) on s E γr -∗ readIndexOk γr c -∗ srvApi.kvLogLb E.γs log₀ ={⊤}=∗
+      ∃ logR : mvcc.Log, srvApi.kvLogLb E.γs logR ∗ ⌜log₀ <+: logR⌝ ∗ readLogOk γr c logR ∗
         appliedPubFrom on E γr c := by
   iintro #Hinv #Hri #Hc0
   imod readIndexOk_logM on s E γr c $$ Hinv Hri with ⟨%ci₀, %L₀, %Hci, #HL, #HcL, #Hpub⟩
   ihave #HpF : appliedPubFrom on E γr c $$ []
   · iunfold appliedPubFrom; iexists ci₀; iframe Hpub; ipureintro; exact Hci
-  ihave %Hpre := mvcc.idxCert_prefix E.γ.idx log₀ L₀ $$ [Hc0 HcL]
-  · iframe Hc0 HcL
+  ihave #Hc0' := Hc0
+  ihave #HcL' := HcL
+  iunfold srvApi.kvLogLb at Hc0'
+  iunfold srvApi.kvLogLb at HcL'
+  ihave %Hpre := mono_list_lb_valid E.γs.slog log₀ L₀ $$ Hc0' HcL'
   imodintro
   rcases Hpre with h | h
   · iexists L₀
@@ -991,8 +875,8 @@ theorem authFloor_of_pubFrom (E : apply.AEnv GF) (γr : ReadNames) (γa : auth.A
 theorem readServed_logRM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64)
     (g : GName) (Q : List EntryModel → IProp GF) (log₀ : mvcc.Log) :
     ⊢ srvAppliedInvM (GF := GF) on s E γr -∗ readServed γr c g -∗ savedPredOwn g DFrac.discard Q -∗
-      mvcc.idxCert E.γ.idx log₀ ={⊤}=∗
-      ∃ logR : mvcc.Log, mvcc.idxCert E.γ.idx logR ∗ ⌜log₀ <+: logR⌝ ∗ readLogOk γr c logR ∗
+      srvApi.kvLogLb E.γs log₀ ={⊤}=∗
+      ∃ logR : mvcc.Log, srvApi.kvLogLb E.γs logR ∗ ⌜log₀ <+: logR⌝ ∗ readLogOk γr c logR ∗
         readWitAt γr Q g logR ∗ appliedPubFrom on E γr c := by
   iintro #Hinv #Hsv #HQ #Hc0
   iunfold readServed at Hsv
@@ -1026,70 +910,58 @@ theorem readServed_logRM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNa
   iframe HL HW HQ
   ipureintro; exact ⟨Hc, Hp.2.2, HpL⟩
 
-/-- **What a linearizable read reads, in the mode `on`** (`kv_read_log`'s): a certified log `l`
-extending the log `L₀` applied through `i` is the mode-`on` model of a committed raft log through an
-index at least `i`. -/
-theorem kv_read_logOn (γr : ReadNames) (γs : mvcc.StoreNames) (hγ : γs.cok = γr.kv.cok)
-    (E : CoPset) (hE : ↑kvcN ⊆ E) (i : w64) (L₀ l : mvcc.Log) (hp : L₀ <+: l) :
-    ⊢ kvCertInvOn (GF := GF) γr.raft γr.kv srvAuthSt0 -∗ kvLogAtM true γr i L₀ -∗
-      mvcc.certOk γs l ={E}=∗
+/-- **What a linearizable read reads, in the mode `on`** (`kv_read_log`'s): a log `l` with the
+mode-`on` witness (`kvNxOn`), extending the log `L₀` applied through `i`, is the mode-`on` model of
+a committed raft log through an index at least `i`. (Strict M1, 2026-11-06: over the witness, as
+`kv_read_log`.) -/
+theorem kv_read_logOn (γr : ReadNames) (E : CoPset) (i : w64) (L₀ l : mvcc.Log) (hp : L₀ <+: l) :
+    ⊢ kvLogAtM (GF := GF) true γr i L₀ -∗ kvNxOn γr.raft γr.kv srvAuthSt0 l ={E}=∗
       ∃ A, srvRLogLb γr.raft A ∗
         ⌜kvModelM true γr.kv A = l ∧ uint.Z i ≤ uint.Z γr.raft.ai0 + A.length⌝ := by
-  iintro #Hinv #Hat #Hc
+  iintro #Hat #Hc
   iunfold kvLogAtM at Hat
   icases Hat with ⟨%AR, #HAR, %HR⟩
-  ihave #Hinv' := Hinv
-  iunfold kvCertInvOn at Hinv'
-  iinv Hinv' with >Hi Hclose
-  icases Hi with ⟨%C, %hi, %Lb, HC, Hhi', #HLb, %Hok⟩
-  imod Hclose $$ [HC Hhi'] with -
-  · inext; iexists C, hi, Lb; iframe HC Hhi' HLb; ipureintro; exact Hok
-  have h2 : 2 ≤ L₀.length := by
-    have h1 := (kvRaftOfOn_extends γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0) AR).length_le
-    have h0 := Hok.2
-    rw [HR.2]; unfold kvModelM kvModelOn; simp only at h1 ⊢; omega
-  imod kv_cert_read_on γr.raft γr.kv srvAuthSt0 γs hγ E hE l $$ Hinv Hc
-    with (%hl | ⟨%A', #HA', %hA'⟩)
-  · have heq : L₀ = l := hp.eq_of_length (by have := hp.length_le; omega)
-    imodintro
+  iunfold kvNxOn at Hc
+  icases Hc with ⟨%A', #HA', %hA'⟩
+  obtain ⟨hA', -⟩ := hA'
+  ihave %Hcmp := srvRLogLb_prefix γr.raft AR A' $$ [HAR HA']
+  · iframe HAR HA'
+  imodintro
+  rcases Hcmp with h | h
+  · iexists A'
+    iframe HA'
+    ipureintro
+    exact ⟨hA', by have := h.length_le; omega⟩
+  · have hk := kvRaftOfOn_prefix γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0) A' AR h
+    have hk' : l <+: L₀ := by
+      have hR2 : L₀ = kvModelOn γr.kv srvAuthSt0 AR := HR.2
+      unfold kvModelOn at hR2
+      unfold kvModelOn at hA'
+      rw [hA', ← hR2] at hk; exact hk
+    have heq : L₀ = l := hp.eq_of_length (Nat.le_antisymm hp.length_le hk'.length_le)
     iexists AR
     iframe HAR
     ipureintro; exact ⟨by rw [← heq]; exact HR.2.symm, by omega⟩
-  · ihave %Hcmp := srvRLogLb_prefix γr.raft AR A' $$ [HAR HA']
-    · iframe HAR HA'
-    imodintro
-    rcases Hcmp with h | h
-    · iexists A'
-      iframe HA'
-      ipureintro
-      exact ⟨hA', by have := h.length_le; omega⟩
-    · have hk := kvRaftOfOn_prefix γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0) A' AR h
-      have hk' : l <+: L₀ := by
-        have hR2 : L₀ = kvModelOn γr.kv srvAuthSt0 AR := HR.2
-        unfold kvModelOn at hR2
-        unfold kvModelOn at hA'
-        rw [hA', ← hR2] at hk; exact hk
-      have heq : L₀ = l := hp.eq_of_length (Nat.le_antisymm hp.length_le hk'.length_le)
-      iexists AR
-      iframe HAR
-      ipureintro; exact ⟨by rw [← heq]; exact HR.2.symm, by omega⟩
 
 /-- **A served read's result at the log it read, in the mode `on`** (`readWit_fire`'s): `l` is the
-mode-`on` model of a committed raft log `L`, and raft's witness gives the client's `□ Q L`. -/
+mode-`on` model of a committed raft log `L`, and raft's witness gives the client's `□ Q L`.
+(Strict M1, 2026-11-06: the witness `E.Nx l`, which `srvKVInvsOn` ties to `kvNxOn`.) -/
 theorem readWit_fireOn (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
     (Q : List EntryModel → IProp GF) (g : GName) (l : mvcc.Log) :
     ⊢ srvAppliedInvM (GF := GF) true s E γr -∗ srvKVInvsM true s E γr -∗ readWitAt γr Q g l -∗
-      mvcc.certOk E.γ l -∗ £ 6
+      E.Nx l -∗ £ 6
       ={⊤}=∗ ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelM true γr.kv L = l⌝ ∗ □ Q L := by
-  iintro #Hainv #Hkvi #Hw #Hc Hlc
+  iintro #Hainv #Hkvi Hw Hc Hlc
   ihave #Hkvi := srvKVInvsM_true s E γr $$ Hkvi
   iunfold srvKVInvsOn at Hkvi
-  icases Hkvi with ⟨-, #HcI, -, -, %Hcok, -⟩
+  icases Hkvi with ⟨-, -, -, -, -, -, %HNx, -⟩
+  rw [HNx]
+  ihave #Hc := Hc
+  ihave #Hw := Hw
   iunfold readWitAt at Hw
   icases Hw with ⟨%ci, %ci₀, %L₀, %gs, %k, %Hp, #HL, #HW, #HQ⟩
   imod appliedLogAt_kvLogAtM true s E γr ci₀ L₀ $$ Hainv HL with #HkL
-  imod kv_read_logOn γr E.γ Hcok ⊤ (fun _ _ => CoPset.mem_full) ci₀ L₀ l Hp.2.2 $$ HcI HkL Hc
-    with ⟨%A, #HA, %HAp⟩
+  imod kv_read_logOn γr ⊤ ci₀ L₀ l Hp.2.2 $$ HkL Hc with ⟨%A, #HA, %HAp⟩
   iunfold srvReadWit at HW
   icases (lc_split (n := 5) (m := 1)).1 $$ Hlc with ⟨Hlc2, Hlc1⟩
   imod HW $$ %A HA %(by omega) Hlc2 with #HQs
@@ -1099,6 +971,26 @@ theorem readWit_fireOn (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
   iexists A
   iframe HA HQL
   ipureintro; exact HAp.1
+
+/-- **The store invariant from the reader's KV invariants** (either auth mode; the `lean` merge,
+2026-11-06): what a request path's read of the store (`KV.Rev`, `KV.Range`, `KV.Read`) builds its
+update from (`au_read`), with the witness's and permit's facts. -/
+theorem srvKVInvsM_kvStoreInv (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    srvKVInvsM (GF := GF) on s E γr ⊢
+      □ srvApi.kvStoreInvG E.kv E.γ E.Nx E.Cp E.γs ∗ ⌜envWitOk E⌝ := by
+  cases on
+  · iintro #H
+    iunfold srvKVInvsM at H
+    iunfold srvKVInvs at H
+    icases H with ⟨-, -, -, #Hk, %Hm, -⟩
+    iframe Hk
+    ipureintro; exact Hm.2.2.1
+  · iintro #H
+    ihave #H' := srvKVInvsM_true s E γr $$ H
+    iunfold srvKVInvsOn at H'
+    icases H' with ⟨-, -, -, -, #Hk, %Hm, -⟩
+    iframe Hk
+    ipureintro; exact Hm.1
 
 end lemmas
 

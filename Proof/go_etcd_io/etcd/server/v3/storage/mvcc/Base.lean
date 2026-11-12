@@ -218,7 +218,11 @@ the apply package's facts take from here; and (D19j, 2026-10-18) `ErrEmptyWatche
 `ErrWatcherDuplicateID` as theirs, which `v3rpc`'s facts take from here; and (2026-10-23, the
 restore plan's R0) `restoreChunkKeys` (`kvstore.go`: `10000`, a `var` for tests only, read-only at
 its initial value), the chunk size and channel capacity of `store.restore`; and (R2) the five
-metrics reporters' locks (`reportVar`), which `setupMetricsReporter` takes to set them. -/
+metrics reporters' locks (`reportVar`), which `setupMetricsReporter` takes to set them; and
+(mvccfull's Freeze, 2026-11-10: `errVars.law`) `ErrWatcherNotExist` as the `errors.New` error it is,
+and the message cells of `ErrEmptyWatcherRange` and `ErrWatcherNotExist` (as `ErrCompacted`'s and
+`ErrFutureRev`'s), so that the four error variables a client compares with are apart: one conjunct,
+the last, so that every pattern ending in `-` is unchanged. -/
 abbrev mvccInit : IProp GF :=
   iprop((∃ e : GoInterfaceOk, globalAddr ErrRevisionNotFound ↦□ GoInterface.ok e) ∗
     (∃ e : GoInterfaceOk, globalAddr ErrCompacted ↦□ GoInterface.ok e) ∗
@@ -264,7 +268,10 @@ abbrev mvccInit : IProp GF :=
     reportVar reportDbTotalSizeInUseInBytesMu reportDbTotalSizeInUseInBytes ∗
     reportVar reportDbOpenReadTxNMu reportDbOpenReadTxN ∗
     reportVar reportCurrentRevMu reportCurrentRev ∗
-    reportVar reportCompactRevMu reportCompactRev)
+    reportVar reportCompactRevMu reportCompactRev ∗
+    (EtcdGrove.errorsNewVar ErrWatcherNotExist go!"mvcc: watcher does not exist" ∗
+      EtcdGrove.errVarCell ErrEmptyWatcherRange go!"mvcc: watcher range is empty" ∗
+      EtcdGrove.errVarCell ErrWatcherNotExist go!"mvcc: watcher does not exist"))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc :=
   define_is_pkg_init mvccInit

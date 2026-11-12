@@ -42,10 +42,10 @@ def epochSt (G : WgsPrm GF) (γs : StreamNames) (b i : Nat) (tok : Option GoStri
 the epoch's first, its tag is the current epoch (an earlier one's count ended at or below `b`). -/
 theorem respcE_at (V : WEnv GF) (G : WgsPrm GF) (γs : StreamNames) (b k i : Nat)
     (tok : Option GoString) (p : Loc)
-    (hk : b ≤ k) (hi : V.mem i = (V.addr, V.R)) :
+    (hk : b ≤ k) (hi : V.mem i = (V.addr, V.R)) (hw : V.memW i = V.W) :
     epochSt G γs b i tok ∗ respcE V G.γep (k : Int) p ⊢
       epochSt G γs b i tok ∗
-        respcElem γs (v3rpc.watchDn γs V.R.γ V.R.s tok V.R.cid V.R.mid) ((k - b : Nat) : Int) p := by
+        respcElem γs (v3rpc.watchDn γs V.R V.W tok) ((k - b : Nat) : Int) p := by
   unfold epochSt respcE
   iintro ⟨⟨%eps, %γc, Ha, Hend⟩, ⟨%e, %b', %γs', %γc', %i', %tok', #Hi, #Hlb, %Hb', Hel⟩⟩
   ihave %Hl := mono_list_auth_idx_lookup _ _ _ _ _ $$ Ha Hi
@@ -62,7 +62,7 @@ theorem respcE_at (V : WEnv GF) (G : WgsPrm GF) (γs : StreamNames) (b k i : Nat
     rw [List.getElem?_append_right (Nat.le_refl _)] at Hl
     simp only [Nat.sub_self, List.getElem?_cons_zero, Option.some.injEq, Prod.mk.injEq] at Hl
     obtain ⟨rfl, rfl, rfl, rfl, rfl⟩ := Hl
-    rw [hi]
+    rw [hi, hw]
     iframe Hel
     iexists eps, γc
     iframe

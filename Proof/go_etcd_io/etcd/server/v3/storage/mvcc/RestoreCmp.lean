@@ -147,7 +147,7 @@ theorem restoreRightM_openOn (s : Loc) (γ : StoreNames) (c : Int) (h : kbCmpM �
       fieldShareAt s γ q8 o ∗ storeStopR s γ o ∗ crevUB γ.idx (1 : Qp).half c := by
   iintro H
   icases (restoreRightM_on s γ c h).1 $$ H with H
-  icases (compactRightR_iff s γ c).1 $$ H with ⟨Hcu, Hq, -, %o, ⟨Hf, #Hsc, Hstc, Htok⟩, #HsR⟩
+  icases (compactRightR_iff s γ c).1 $$ H with ⟨Hcu, Hq, %o, ⟨Hf, #Hsc, Hstc, Htok⟩, #HsR⟩
   iexists o
   iframe Hsc Hstc Htok Hq Hcu Hf HsR
 
@@ -224,7 +224,8 @@ theorem rep_back3 (P : IProp GF) :
 theorem restoreImageM_on (d' : KBReal) (γb' : GName) (L : Log) (r : CmpRecs) (h : d'.cm = true) :
     restoreImageM (GF := GF) d' γb' L r ⊣⊢
       ∃ ents : List KvEnt, kbViewC (some d') γb' 1 (bucketOfEnts ents) ∗
-        kbRecs (some d') γb' r ∗ backend.fkVM d'.γB true ∗
+        (kbRecs (some d') γb' r ∗ kbVals (some d') (recBytes r.fin, recBytes r.sched) ∅) ∗
+        backend.fkVM d'.γB true ∗
         ⌜recsOk L r ∧ recsPos r ∧ entsCutAt L r.crev ents⌝ := by
   unfold restoreImageM; simp only [h, ↓reduceIte]; exact .rfl
 

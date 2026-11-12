@@ -46,7 +46,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.Assumptions]
 
 /-- **`Main` does not panic** (`MainLinked.lean`'s `etcd_leasecatchup.wp_Main`). -/
-theorem leasecatchup_Main [go_etcd_io.etcd.cache.v3.Assumptions] [Float64ToInt64Semantics]
+theorem leasecatchup_Main [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_leasecatchup.Main.spec (GF := GF) (hG := hG) :=
   etcd_leasecatchup.wp_Main
@@ -62,19 +62,21 @@ variable [go_gctx : GoGlobalContext]
 theorem etcd_leasecatchup_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC leasecatchupGF,
       ContextReadErrs (GF := leasecatchupGF) (hG := heapAtLcu hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC leasecatchupGF,
       ContextErrsClient (GF := leasecatchupGF) (hG := heapAtLcu hG lctx))
     (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : cluster3.BootFacts id₁ id₂ id₃ ps ctxs boot)
-    (Hck : ckptEffectsOk) (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota)
+    (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota)
     (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (Hlp : leasePeersOk) (Hlne : lease.leasesNoExpiry)
     (HNs : prometheus.namesUnclaimed leasecatchupProgram leasecatchupNames)
     (HAs : addrsUnclaimed leasecatchupProgram leasecatchupAddrs)   -- 3 peer, 3 client, 3 bridge
     (HDs : dataDirsAbsent leasecatchupProgram leasecatchupDataDirs)
+    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
+    (HEnv : verifyEnvOff leasecatchupProgram)
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC leasecatchupGF,
       ⊢ cluster3.premises (GF := leasecatchupGF) (hG := heapAtLcu hG lctx)
@@ -85,8 +87,8 @@ theorem etcd_leasecatchup_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hn : n + 2 ≤ 2 ^ 28) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  etcd_leasecatchup_adequate Hctx Hcec id₁ id₂ id₃ ps ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo Hlp Hlne
-    HNs HAs HDs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
+  etcd_leasecatchup_adequate Hctx Hcec id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hrf Hdbo Hlp Hlne
+    HNs HAs HDs HEnv n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 end adequacy
 

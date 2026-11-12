@@ -31,11 +31,10 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 /-- `streamKeyFromCtx(ctx)`, for a context `ctx` (`isContext`: Go's body calls `ctx.Value`, which
 panics on a nil context; until G2, 2026-10-30, the spec took any `ctx`, a latent bug of the trust
 base, `notes/audit.md`), returns the key of its outgoing metadata (`streamKeyOf`):
-`FromOutgoingContext(ctx)` then `fmt.Sprintf("%+v", ...)` of the map, `""` with none. Margins: like
-`metadata.FromOutgoingContext.wp_proof`, it assumes `Value(mdOutgoingKey{})` returns, the same value on every call
-(`isContext` does not constrain `Value` at grpc's key; `notes/axiom-review/g2-streamkey.md`); a function of `outgoingOf`, it excludes a context whose
-raw `MD` has two keys equal up to case (grpc lower-cases them into one, keeping whichever the map's
-iteration gives last, so two calls may disagree; no spec here builds such a context). -/
+`FromOutgoingContext(ctx)` then `fmt.Sprintf("%+v", ...)` of the map, `""` with none. Since premise
+fixes 8 (approved by etcd-grove-81) `watchCtx` carries `metadata.outgoingCtxOkC`: `Value(mdOutgoingKey{})`
+returns one value on every call, and a stored `rawMD` is `builtRawMD` (no two keys equal up to case),
+which were this spec's margins (`notes/axiom-review/g2-streamkey.md`). -/
 abbrev streamKeyFromCtx.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   {{ EtcdGrove.context.watchCtx ctx cd }}

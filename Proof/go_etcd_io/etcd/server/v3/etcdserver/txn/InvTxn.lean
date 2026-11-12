@@ -3,13 +3,10 @@ The server's transactions in the heap (txn unit 3): the transaction `Txn` writes
 responses of a transaction, the skeleton `newTxnResp` allocates, the leases a run may attach.
 Lean-first; see `TxnRun.lean` (the pure run) and `notes/decisions.md`, "The server's txn", unit 3.
 
-**The transaction** (`txnViewIs tw s γ trace kind crev ro`): the `mvcc.TxnWrite`/`ReadView` interface value
-`tw` is a transaction of the store behind a `*metricsTxnWrite` (`ro = false`: `store.Read`'s or
-`store.Write`'s, `isTxn` of either kind), or (`ro = true`) the read-only wrapper
-`NewReadOnlyTxnWrite` makes of a read transaction (`isRoTxnWrite`, of kind `.read log rev`).
-`executeRange` runs on any of them; `executeTxn` on a write transaction or the wrapper
-(`txnWriteIs`: of the committed log `ilog` with the pending changes `pend`, none for the
-wrapper).
+**The transaction** is mvcc's API's (strict M1, 2026-11-05): `mvcc.api.mvccTxn tw γ trace k`, of
+either kind (`MTxn`: a read transaction, or a write transaction begun at a state with its pending
+changes); the read-only wrapper `NewReadOnlyTxnWrite` makes of a read transaction is one of the
+same read kind. Until M1 this file had `txnViewIs`/`txnWriteIs` over mvcc's internals.
 
 **The responses** (`responseOpIs`, `responseOpsIs`, `txnRespFieldsIs`, `txnResponseIs`; moved
 from `Requests.lean`, unit 0's, and changed): they mirror `TxnOpResult`. A range's response is the
@@ -35,7 +32,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.RangeLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.TxnRun
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvRoTxn
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 
 @[expose] public section
 
@@ -57,37 +54,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
-
-/-! ## The transaction -/
-
-/-- **The transaction `tw`** (an `mvcc.TxnWrite` or `mvcc.ReadView`): a transaction of `kind`
-behind a `*metricsTxnWrite` `mw` (`tw` is `mw` or, for a watchable store's write transaction, its
-wrapper over `mw`: `twWrap`, unit N4), or (`ro`) the read-only wrapper of a read transaction of
-`kind`. -/
-def txnViewIs (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (kind : mvcc.TxnKind)
-    (crev : Int) (ro : Bool) :
-    IProp GF :=
-  if ro then
-    iprop(∃ (trw : Loc) (log : mvcc.Log) (rev : w64),
-      ⌜tw = interface.mkOk (go.GoType.PointerType txnReadWrite.ty) #trw ∧ kind = .read log rev⌝ ∗
-      mvcc.isRoTxnWrite trw s γ trace log rev crev)
-  else
-    iprop(∃ (mw : Loc) (tyX : go.GoType) (vX : val), ⌜tw = interface.mkOk tyX vX⌝ ∗
-      mvcc.twWrap tyX vX mw ∗ mvcc.isTxn mw s γ trace kind crev)
-
-/-- The kind of `executeTxn`'s transaction: a write transaction of `ilog` with `pend` pending,
-or (`ro`) a read transaction of `ilog` (nothing pending). -/
-def KindIs (ro : Bool) (ilog : mvcc.Log) (pend : List mvcc.Change) (kind : mvcc.TxnKind) : Prop :=
-  if ro then pend = [] ∧ ∃ rev, kind = .read ilog rev
-  else ∃ puts deletes putSize, kind = .write ilog pend puts deletes putSize
-
-/-- **`executeTxn`'s transaction**: a write transaction of the committed log `ilog` with the
-pending changes `pend`, or (`ro`) the read-only wrapper of a read transaction of `ilog`, at the
-compaction revision `crev` it observed (M2, S1). -/
-def txnWriteIs (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (ro : Bool)
-    (ilog : mvcc.Log)
-    (pend : List mvcc.Change) (crev : Int) : IProp GF :=
-  iprop(∃ kind : mvcc.TxnKind, txnViewIs tw s γ trace kind crev ro ∗ ⌜KindIs ro ilog pend kind⌝)
 
 /-! ## The responses -/
 
@@ -295,97 +261,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-/-- The sort's premise from unit 2's (`sortOk`, a small log). -/
-theorem sortSmall_of_sortOk (o : OpFull) (log : mvcc.Log) (hok : LogOk log) (r : Nat)
-    (h : sortOk o log) : sortSmall o (mvcc.stateAt log r) := by
-  intro hs
-  exact srvPre_small o _ (stateAt_small log hok.len (h hs) _)
-
-/-- A transaction behind a `*metricsTxnWrite`. -/
-theorem txnViewIs_mw (mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind) (crev : Int) :
-    txnViewIs (GF := GF) (interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw) s γ trace kind
-      crev false ⊣⊢ mvcc.isTxn mw s γ trace kind crev := by
-  unfold txnViewIs
-  simp only [Bool.false_eq_true, ↓reduceIte]
-  constructor
-  · iintro ⟨%mw', %tyX, %vX, %h, #Hw, H⟩
-    simp only [interface.mkOk, GoInterface.ok.injEq] at h
-    injection h with h1 h2
-    subst h1 h2
-    ihave #Hm := mvcc.twWrap_metrics (GF := GF) mw
-    ihave %He := mvcc.twWrap_agree _ _ mw mw' $$ [$Hm $Hw]
-    subst He
-    iexact H
-  · iintro H
-    iexists mw, _, _
-    iframe H
-    isplitl []
-    · ipureintro; rfl
-    iapply mvcc.twWrap_metrics
-
-/-- **A write transaction over `mw`** (the store's, or a watchable store's wrapper:
-`twWrap`, unit N4). -/
-theorem txnViewIs_wrap (tyX : go.GoType) (vX : val) (mw s : Loc) (γ : mvcc.StoreNames)
-    (kind : mvcc.TxnKind) (crev : Int) :
-    mvcc.twWrap (GF := GF) tyX vX mw ⊢
-      (txnViewIs (interface.mkOk tyX vX) s γ trace kind crev false ∗-∗ mvcc.isTxn mw s γ trace kind crev) := by
-  iintro #Hw
-  unfold txnViewIs
-  simp only [Bool.false_eq_true, ↓reduceIte]
-  isplit
-  · iintro ⟨%mw', %tyX', %vX', %h, #Hw', H⟩
-    simp only [interface.mkOk, GoInterface.ok.injEq] at h
-    injection h with h1 h2
-    subst h1 h2
-    ihave %He := mvcc.twWrap_agree _ _ mw mw' $$ [$Hw $Hw']
-    subst He
-    iexact H
-  · iintro H
-    iexists mw, tyX, vX
-    iframe H Hw
-    ipureintro; rfl
-
-/-- The read-only wrapper of a read transaction. -/
-theorem txnViewIs_ro (trw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) (crev : Int) :
-    txnViewIs (GF := GF) (interface.mkOk (go.GoType.PointerType txnReadWrite.ty) #trw) s γ trace
-      (.read log rev) crev true ⊣⊢ mvcc.isRoTxnWrite trw s γ trace log rev crev := by
-  unfold txnViewIs
-  simp only [↓reduceIte]
-  constructor
-  · iintro ⟨%trw', %log', %rev', %h, H⟩
-    obtain ⟨h1, h2⟩ := h
-    have := mvcc.mkOk_loc_inj _ h1
-    subst this
-    cases h2
-    iexact H
-  · iintro H
-    iexists trw, log, rev
-    iframe H
-    ipureintro; exact ⟨rfl, rfl⟩
-
-/-- The read-only wrapper's read transaction: a well-formed log, read at its last revision. -/
-theorem isRoTxnWrite_pure (trw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64)
-    (crev : Int) :
-    mvcc.isRoTxnWrite (GF := GF) trw s γ trace log rev crev ⊢
-      mvcc.isRoTxnWrite trw s γ trace log rev crev ∗ ⌜LogOk log ∧ log ≠ [] ∧ rev = W64 ((log.length : Int) - 1)⌝ := by
-  iintro H
-  iunfold mvcc.isRoTxnWrite at H
-  icases H with ⟨%mw, Hf, Htx⟩
-  icases isTxnRead_pure mw s γ log rev crev $$ Htx with ⟨Htx, %Hp⟩
-  isplitl
-  · iunfold mvcc.isRoTxnWrite
-    iexists mw
-    iframe
-  · ipureintro; exact Hp
-
-/-- A read transaction at its log's last revision is `KindOk`. -/
-theorem kindOk_read (log : mvcc.Log) (rev : w64)
-    (h : LogOk log ∧ log ≠ [] ∧ rev = W64 ((log.length : Int) - 1)) : KindOk (.read log rev) := by
-  obtain ⟨hok, hne, hrev⟩ := h
-  have hpos := List.length_pos_iff.2 hne
-  have hz := lastRev_sint log.length hpos (by have := hok.len; omega)
-  refine ⟨hok, ?_, ?_⟩ <;> simp only [mvcc.TxnKind.readRev, mvcc.TxnKind.readLog] <;> rw [hrev, hz] <;> omega
-
 theorem leasesOk_append (L : List w64) (a b : List w64) :
     leasesOk (GF := GF) L (a ++ b) ⊣⊢ leasesOk L a ∗ leasesOk L b := by
   unfold leasesOk
@@ -500,53 +375,6 @@ theorem opsSkel_length (s0 : List EtcdKv) :
     ipureintro; simp [h]
   | [], _ :: _ => by unfold opsSkel; iintro H; iexfalso; iexact H
   | _ :: _, [] => by unfold opsSkel; iintro H; iexfalso; iexact H
-
-open Iris.ProofMode in
-/-- **The transaction's trace, borrowed** (`mvcc.isTxn_trace_acc`, `isRoTxnWrite_trace_acc`): its
-owner steps it while the transaction is live. -/
-theorem txnViewIs_trace_acc (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (trace : Loc)
-    (kind : mvcc.TxnKind) (crev : Int) (ro : Bool) :
-    txnViewIs (GF := GF) tw s γ trace kind crev ro ⊢
-      (∃ te, traceutil.ownTrace trace te) ∗
-        ((∃ te, traceutil.ownTrace trace te) -∗ txnViewIs tw s γ trace kind crev ro) := by
-  unfold txnViewIs
-  cases ro
-  · simp only [Bool.false_eq_true, ↓reduceIte]
-    iintro ⟨%mw, %tyX, %vX, %h, #Hw, H⟩
-    icases mvcc.isTxn_trace_acc mw s γ trace kind crev $$ H with ⟨Ht, Hb⟩
-    iframe Ht
-    iintro Ht
-    iexists mw, tyX, vX
-    iframe Hw
-    isplitr
-    · ipureintro; exact h
-    iapply Hb $$ Ht
-  · simp only [↓reduceIte]
-    iintro ⟨%trw, %log, %rev, %h, H⟩
-    icases mvcc.isRoTxnWrite_trace_acc trw s γ trace log rev crev $$ H with ⟨Ht, Hb⟩
-    iframe Ht
-    iintro Ht
-    iexists trw, log, rev
-    isplitr
-    · ipureintro; exact h
-    iapply Hb $$ Ht
-
-open Iris.ProofMode in
-/-- The transaction's trace, borrowed, at `txnWriteIs`. -/
-theorem txnWriteIs_trace_acc (tw : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (trace : Loc)
-    (ro : Bool) (ilog : mvcc.Log) (pend : List mvcc.Change) (crev : Int) :
-    txnWriteIs (GF := GF) tw s γ trace ro ilog pend crev ⊢
-      (∃ te, traceutil.ownTrace trace te) ∗
-        ((∃ te, traceutil.ownTrace trace te) -∗ txnWriteIs tw s γ trace ro ilog pend crev) := by
-  unfold txnWriteIs
-  iintro ⟨%kind, H, %Hk⟩
-  icases txnViewIs_trace_acc tw s γ trace kind crev ro $$ H with ⟨Ht, Hb⟩
-  iframe Ht
-  iintro Ht
-  iexists kind
-  isplitl
-  · iapply Hb $$ Ht
-  ipureintro; exact Hk
 
 open Iris.ProofMode in
 /-- The read-only path slice from `k` on. -/

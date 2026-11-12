@@ -1,5 +1,5 @@
 /-
-`StartServer(name, peerAddr, clientAddr, lg)` (`examples/lib/etcdstart/etcdstart.go`; 2026-10-22, D33): the one
+`StartServer(name, peerAddr, clientAddr, lg)` (`examples/lib/etcdstart/common.go`; 2026-10-22, D33): the one
 member of a new cluster started -- its peer URL slice, `newServer` (with the cluster's map
 `{name ↦ peer}` and the token `name`), `s.Start()`; what putget's, linkv's, linkvtxn's, watchkv's
 and cachekv's `Main`s did up to `Start`. Lean-first (no Rocq counterpart).
@@ -50,7 +50,7 @@ abbrev StartServer.spec : Prop :=
   -- (2026-11-02, the backend-auth-split stage, Q8) the member's name valid UTF-8, `bootPremise`'s
   -- condition on the initial cluster's names
   utf8Valid name →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →
+  authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
       -- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
       zapLoggerOk lg ∗

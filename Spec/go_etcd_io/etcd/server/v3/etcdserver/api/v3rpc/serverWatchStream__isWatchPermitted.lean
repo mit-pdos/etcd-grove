@@ -29,6 +29,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- **`sws.isWatchPermitted(wcr)`** with the auth store's reader resource: the auth info of the
 stream's context, then the auth store's `IsRangePermitted` of the request's range: an error the
@@ -41,9 +42,12 @@ G2 (2026-10-30): at a bound `n` on the auth store's published index (`authPubLbM
 lower-bound check (`srvAuthLb`, as `Range`'s), the class is at states no older than `n`
 (`classResFrom`); at `n = 0` it is the plain class (`classResFrom_zero`). -/
 abbrev v3rpc.serverWatchStream.isWatchPermitted.spec : Prop :=
-  ∀ (sws : Loc) (r : v3rpc.WRun GF) (wcr : Loc) (ks es : GoSlice) (k e : List w8) (dk de : DFrac)
-    (n : Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ v3rpc.swsIs sws r ∗ r.srv.E.RD ∗
+  ∀ (sws : Loc) (r : v3rpc.WRun GF) (Up : Nat → v3rpc.WatchReqM → IProp GF)
+    (Dn : Nat → v3rpc.WatchRespM → IProp GF) (st : GoInterface) (ci : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (wcr : Loc) (ks es : GoSlice) (k e : List w8)
+    (dk de : DFrac) (n : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+      v3rpc.swsIs sws r Up Dn st ci cd ∗ r.srv.E.RD ∗
       srvAuthLb r.srv.s r.srv.E ∗ □ auth.authPubLbM r.srv.E.authMode n ∗
       structFieldRef etcdserverpb.WatchCreateRequest go!"Key" wcr ↦{dk} ks ∗ ks ↦*□ k ∗
       structFieldRef etcdserverpb.WatchCreateRequest go!"RangeEnd" wcr ↦{de} es ∗ es ↦*□ e ∗
@@ -57,7 +61,7 @@ abbrev v3rpc.serverWatchStream.isWatchPermitted.spec : Prop :=
       (∀ _ : err = GoInterface.nil, ∃ info,
         apply.classResFrom r.srv.E.authMode n info [(k, e, auth.PermType.read)] ∗
         □ (⌜r.srv.E.authMode.isOn = true⌝ →
-          principalBoundI r.srv.s r.srv.E.authMode (GoInterface.ok r.ci) info)) }}
+          principalBoundI r.srv.s r.srv.E.authMode (GoInterface.ok ci) info)) }}
 
 end spec
 

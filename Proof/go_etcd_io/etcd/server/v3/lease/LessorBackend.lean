@@ -7,7 +7,7 @@ counterpart).
 (`schema.MustUnsafePutLease`: one `tx.UnsafePut(Lease, ...)`) and unlocks. `leaseBackend b P f`
 is that much of the backend `b` (an interface the lessor holds): `BatchTx()` returns a batch
 transaction whose `LockInsideApply()`, under the batch lock's critical-section contract
-`mvcc.csContract P f Pre Q Post` (the lock's invariant `P`, the post-lock hook `f`: the apply
+`srvApi.csContractA P g Pre Q Post` (the lock's invariant `P`, the post-lock hook `g`, of value `f`: the apply
 package's environment), for a write-back token `T` and a lent open share `R` of the backend
 (2026-10-17, unit N4, D14f: the real backend's `Unlock` spends a write-back, its `LockInsideApply`
 needs the backend open), gives a token `Lk (Post ∗ R)` that `UnsafePut` into the `Lease` bucket
@@ -19,7 +19,8 @@ was for the store before `BackendBridge.lean`): not yet proved of the real backe
 
 `lessorBackend lp P f`: the lessor's `b` is such a backend (`newLessor` sets it; `Recover`,
 names-only, replaces it under the lessor's lock: D22 receiver epochs, S7c, the field half the
-lock's, half its user's, `lessorBeOn`, which the write token lends).
+lock's, half its user's, `lessorBeOn`, which the lent part `Ln` lends: the lease-grant stage, 2.12,
+2026-11-02; until then the write token).
 
 `lessorExpiredC lp GA`: the lessor's `expiredC` (read-only), the channel `ExpiredLeasesC`
 returns, of slices of leases each of which met the lessor's grant guard `GA` (D19n, 2026-10-18:
@@ -35,6 +36,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
 public import Perennial.Golang.Theory.Chan.Idioms.Bag
 public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseRecord
+public import Proof.go_etcd_io.etcd.server.v3.lease.MvccShapes
 
 @[expose] public section
 
@@ -83,15 +85,16 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **The batch transaction `tx`** as the lessor's writes use it (persistent): `LockInsideApply()`
-under the critical-section contract gives the lock's token `Lk Post`; `UnsafePut` into the
+under the critical-section contract (over mvcc's API's `hookRun`, `csContractA`, at the hook `g`
+whose value `f` is: strict M1, 2026-11-05, so that a `nil` hook is the caller's view shift) gives the lock's token `Lk Post`; `UnsafePut` into the
 `Lease` bucket (the value of `schema.Lease`) of an 8-byte key (a lease's id: unit N4, 2026-10-17;
 an empty key is fatal in the real backend) keeps it and puts the entry into the tracked buckets
 `Rb` holds (L3c); `Unlock()` gives `Post`. -/
 def leaseBatchTx (tx : GoInterfaceOk) (P : IProp GF) (f : val) (T R : IProp GF)
     (Rb : GMap GoString backend.BktData → IProp GF := fun _ => iprop(True)) : IProp GF :=
   iprop(∃ Lk : IProp GF → IProp GF,
-    □ (∀ (Pre Q Post : IProp GF),
-      {{ mvcc.csContract P f Pre Q Post ∗ T ∗ R }}
+    □ (∀ (g : GoFunc) (Pre Q Post : IProp GF), ⌜f = #g⌝ →
+      {{ srvApi.csContractA P g Pre Q Post ∗ T ∗ R }}
         (App (Val #(methods tx.ty go!"LockInsideApply" tx.v)) (Val #()))
       {{ RET #(); Lk iprop(Post ∗ R) }}) ∗
     □ (∀ (R : IProp GF) (bk : GoInterface) (key val : GoSlice) (kb vb : GoString)
@@ -126,7 +129,9 @@ fraction of the lessor's `b` field at `b` (D22 receiver epochs, S7c, 2026-10-23:
 longer read-only, `Recover` replaces it; until then `lF "b" lp ↦□ b`, which that store refutes):
 the writes read `le.b` under the lessor's lock, holding it. (The lease-grant stage, 2.12,
 2026-11-02) The lent part is apart from the write token `T`, which the write spends: `Grant` and
-`Checkpoint` give `Ln` back; until then the token lent the field and was spent with it.) -/
+`Checkpoint` give `Ln` back; until then the token lent the field and was spent with it.) (The
+mvcc merge, 2026-11-06: this branch's coordinator had fixed the same give-back by a lens in the lent
+open share `R`; `lean`'s `Ln` kept, the server on `lean` being written against it.) -/
 def lessorBackend (lp : Loc) (P : IProp GF) (f : val) (T Ln R : IProp GF)
     (Rb : GMap GoString backend.BktData → IProp GF := fun _ => iprop(True)) : IProp GF :=
   iprop(∃ b : GoInterface, leaseBackend b P f T R Rb ∗

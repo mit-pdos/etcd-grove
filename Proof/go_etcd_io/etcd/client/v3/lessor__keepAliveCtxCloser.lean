@@ -33,9 +33,9 @@ theorem lessor.keepAliveCtxCloser.wp_proof
     (wp_Value : context.ValueKeepAlive.spec (GF := GF) (hG := hG)) :
     lessor.keepAliveCtxCloser.spec (GF := GF) (hG := hG) := by
   intro l addr ctx cd id kd γkd
-  wp_start as ⟨#Hl, #Hctx, #Hkd⟩
+  wp_start as ⟨#Hl, #Hctx, #Hka, #Hkd⟩
   iunfold lessorAt at Hl
-  icases Hl with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, #Hscc, #Hlg, %Hlgnn, #Hd,
+  icases Hl with ⟨%dc, %γd, %sc, %scd, %lg, %d, %γr, #Hdc, #Hdcu, #Hsc, ⟨#Hscc, #HscO⟩, #Hlg, #Hlgok, #Hd,
     #Hrem, #Hmu, #Honce⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -125,12 +125,12 @@ theorem lessor.keepAliveCtxCloser.wp_proof
         (try wp_auto)
         ihave #Hco := BigSepL.bigSepL_lookup (Φ := fun _ c => kaCtxOk (GF := GF) c) Hc $$ Hctxok
         iunfold kaCtxOk at Hco
-        icases Hco with ⟨%ci, %cdi, %Hcieq, #Hci⟩
+        icases Hco with ⟨%ci, %cdi, %Hcieq, #Hci, #Hkai, -⟩
         rw [Hcieq]
         (try wp_auto)
-        wp_apply wp_Value ci _ cdi rfl $$ [$Hci] as %v1 %Hv1
+        wp_apply wp_Value ci $$ [$Hkai] as %v1 %Hv1
         (try wp_auto)
-        wp_apply wp_Value ctx _ cd rfl $$ [$Hctx] as %v2 %Hv2
+        wp_apply wp_Value ctx $$ [$Hka] as %v2 %Hv2
         rcases Hv1 with rfl | ⟨p1, rfl⟩ <;> rcases Hv2 with rfl | ⟨p2, rfl⟩
         · (try wp_auto)
           have Hlt2 : sint.nat n < chs.length := by rw [Hlen]; exact Hlt

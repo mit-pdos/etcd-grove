@@ -46,10 +46,11 @@ theorem etcdserverpb._Watch_Watch_Handler.wp_proof
   wp_bind (App (Val #(methods srv.ty go!"Watch" srv.v)) _)
   iapply Hh $$ %γ %Dn %ci %cd %_ %_ HSpec HS Hst HRt HSt HAux
   inext
-  iintro %err
+  iintro %err #Herr HS
   wp_auto
   iapply HΦ
-  itrivial
+  iframe HS
+  iexact Herr
 
 end proof
 

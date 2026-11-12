@@ -1,0 +1,188 @@
+== enospc
+check: /tmp/pwrun/mnt is C (kernel 7.0.0-38-generic, ext4, block size 4096, options,rw,bsddf,nogrpid,block_validity,dioread_nolock,nodiscard,delalloc,nowarn_on_error,journal_checksum,barrier,auto_da_alloc,user_xattr,acl,noquota,resuid=0,resgid=0,errors=continue,commit=5,min_batch_time=0,max_batch_time=15000,i_version,stripe=0,data=ordered,inode_readahead_blks=32,init_itable=10,max_dir_size_kb=0,prefetch_block_bitmaps)
+aligned 16 pages [avail 0]   sys off=0              len=65536    -> n=-1       err=no space left on device (errno 28) | (off+n)%4096=-    landed=0        (off+landed)%4096=0    beyond=0 size 0->0
+aligned 16 pages [avail 3]   sys off=0              len=65536    -> n=-1       err=no space left on device (errno 28) | (off+n)%4096=-    landed=0        (off+landed)%4096=0    beyond=0 size 0->0
+aligned 16 pages [avail 7]   sys off=0              len=65536    -> n=-1       err=no space left on device (errno 28) | (off+n)%4096=-    landed=0        (off+landed)%4096=0    beyond=0 size 0->0
+aligned 16 pages [avail 11]  sys off=0              len=65536    -> n=-1       err=no space left on device (errno 28) | (off+n)%4096=-    landed=0        (off+landed)%4096=0    beyond=0 size 0->0
+aligned 16 pages [avail 15]  sys off=0              len=65536    -> n=-1       err=no space left on device (errno 28) | (off+n)%4096=-    landed=0        (off+landed)%4096=0    beyond=0 size 0->0
+aligned 16 pages [avail 19]  sys off=0              len=65536    -> n=65536    err=nil                          | (off+n)%4096=0    landed=65536    (off+landed)%4096=0    beyond=0 size 0->65536
+aligned 16 pages [avail 23]  sys off=0              len=65536    -> n=65536    err=nil                          | (off+n)%4096=0    landed=65536    (off+landed)%4096=0    beyond=0 size 0->65536
+aligned 16 pages [avail 31]  sys off=0              len=65536    -> n=65536    err=nil                          | (off+n)%4096=0    landed=65536    (off+landed)%4096=0    beyond=0 size 0->65536
+aligned 16 pages [avail 47]  sys off=0              len=65536    -> n=65536    err=nil                          | (off+n)%4096=0    landed=65536    (off+landed)%4096=0    beyond=0 size 0->65536
+aligned 16 pages [avail 63]  sys off=0              len=65536    -> n=65536    err=nil                          | (off+n)%4096=0    landed=65536    (off+landed)%4096=0    beyond=0 size 0->65536
+unaligned 100, 16p+300 [avail 0] sys off=100            len=65836    -> n=-1       err=no space left on device (errno 28) | (off+n)%4096=-    landed=0        (off+landed)%4096=100  beyond=0 size 0->0
+unaligned 100, 16p+300 [avail 3] sys off=100            len=65836    -> n=8092     err=nil                          | (off+n)%4096=0    landed=8092     (off+landed)%4096=0    beyond=0 size 0->8192
+unaligned 100, 16p+300 [avail 7] sys off=100            len=65836    -> n=16284    err=nil                          | (off+n)%4096=0    landed=16284    (off+landed)%4096=0    beyond=0 size 0->16384
+unaligned 100, 16p+300 [avail 11] sys off=100            len=65836    -> n=32668    err=nil                          | (off+n)%4096=0    landed=32668    (off+landed)%4096=0    beyond=0 size 0->32768
+unaligned 100, 16p+300 [avail 15] sys off=100            len=65836    -> n=32668    err=nil                          | (off+n)%4096=0    landed=32668    (off+landed)%4096=0    beyond=0 size 0->32768
+unaligned 100, 16p+300 [avail 19] sys off=100            len=65836    -> n=65836    err=nil                          | (off+n)%4096=400  landed=65836    (off+landed)%4096=400  beyond=0 size 0->65936
+unaligned 100, 16p+300 [avail 23] sys off=100            len=65836    -> n=65836    err=nil                          | (off+n)%4096=400  landed=65836    (off+landed)%4096=400  beyond=0 size 0->65936
+unaligned 100, 16p+300 [avail 31] sys off=100            len=65836    -> n=65836    err=nil                          | (off+n)%4096=400  landed=65836    (off+landed)%4096=400  beyond=0 size 0->65936
+unaligned 100, 16p+300 [avail 47] sys off=100            len=65836    -> n=65836    err=nil                          | (off+n)%4096=400  landed=65836    (off+landed)%4096=400  beyond=0 size 0->65936
+unaligned 100, 16p+300 [avail 63] sys off=100            len=65836    -> n=65836    err=nil                          | (off+n)%4096=400  landed=65836    (off+landed)%4096=400  beyond=0 size 0->65936
+unaligned 4000, 16p+300 [avail 0] sys off=4000           len=65836    -> n=-1       err=no space left on device (errno 28) | (off+n)%4096=-    landed=0        (off+landed)%4096=4000 beyond=0 size 0->0
+unaligned 4000, 16p+300 [avail 3] sys off=4000           len=65836    -> n=4192     err=nil                          | (off+n)%4096=0    landed=4192     (off+landed)%4096=0    beyond=0 size 0->8192
+unaligned 4000, 16p+300 [avail 7] sys off=4000           len=65836    -> n=12384    err=nil                          | (off+n)%4096=0    landed=12384    (off+landed)%4096=0    beyond=0 size 0->16384
+unaligned 4000, 16p+300 [avail 11] sys off=4000           len=65836    -> n=28768    err=nil                          | (off+n)%4096=0    landed=28768    (off+landed)%4096=0    beyond=0 size 0->32768
+unaligned 4000, 16p+300 [avail 15] sys off=4000           len=65836    -> n=28768    err=nil                          | (off+n)%4096=0    landed=28768    (off+landed)%4096=0    beyond=0 size 0->32768
+unaligned 4000, 16p+300 [avail 19] sys off=4000           len=65836    -> n=65836    err=nil                          | (off+n)%4096=204  landed=65836    (off+landed)%4096=204  beyond=0 size 0->69836
+unaligned 4000, 16p+300 [avail 23] sys off=4000           len=65836    -> n=65836    err=nil                          | (off+n)%4096=204  landed=65836    (off+landed)%4096=204  beyond=0 size 0->69836
+unaligned 4000, 16p+300 [avail 31] sys off=4000           len=65836    -> n=65836    err=nil                          | (off+n)%4096=204  landed=65836    (off+landed)%4096=204  beyond=0 size 0->69836
+unaligned 4000, 16p+300 [avail 47] sys off=4000           len=65836    -> n=65836    err=nil                          | (off+n)%4096=204  landed=65836    (off+landed)%4096=204  beyond=0 size 0->69836
+unaligned 4000, 16p+300 [avail 63] sys off=4000           len=65836    -> n=65836    err=nil                          | (off+n)%4096=204  landed=65836    (off+landed)%4096=204  beyond=0 size 0->69836
+unaligned 100, 8 MiB [avail 0] sys off=100            len=8388608  -> n=-1       err=no space left on device (errno 28) | (off+n)%4096=-    landed=0        (off+landed)%4096=100  beyond=0 size 0->0
+unaligned 100, 8 MiB [avail 3] sys off=100            len=8388608  -> n=-1       err=no space left on device (errno 28) | (off+n)%4096=-    landed=0        (off+landed)%4096=100  beyond=0 size 0->0
+unaligned 100, 8 MiB [avail 7] sys off=100            len=8388608  -> n=-1       err=no space left on device (errno 28) | (off+n)%4096=-    landed=0        (off+landed)%4096=100  beyond=0 size 0->0
+unaligned 100, 8 MiB [avail 11] sys off=100            len=8388608  -> n=-1       err=no space left on device (errno 28) | (off+n)%4096=-    landed=0        (off+landed)%4096=100  beyond=0 size 0->0
+unaligned 100, 8 MiB [avail 15] sys off=100            len=8388608  -> n=-1       err=no space left on device (errno 28) | (off+n)%4096=-    landed=0        (off+landed)%4096=100  beyond=0 size 0->0
+unaligned 100, 8 MiB [avail 19] sys off=100            len=8388608  -> n=-1       err=no space left on device (errno 28) | (off+n)%4096=-    landed=0        (off+landed)%4096=100  beyond=0 size 0->0
+unaligned 100, 8 MiB [avail 23] sys off=100            len=8388608  -> n=-1       err=no space left on device (errno 28) | (off+n)%4096=-    landed=0        (off+landed)%4096=100  beyond=0 size 0->0
+unaligned 100, 8 MiB [avail 31] sys off=100            len=8388608  -> n=-1       err=no space left on device (errno 28) | (off+n)%4096=-    landed=0        (off+landed)%4096=100  beyond=0 size 0->0
+unaligned 100, 8 MiB [avail 47] sys off=100            len=8388608  -> n=130972   err=nil                          | (off+n)%4096=0    landed=130972   (off+landed)%4096=0    beyond=0 size 0->131072
+unaligned 100, 8 MiB [avail 63] sys off=100            len=8388608  -> n=130972   err=nil                          | (off+n)%4096=0    landed=130972   (off+landed)%4096=0    beyond=0 size 0->131072
+unaligned 100, 8 MiB [avail 255] sys off=100            len=8388608  -> n=524188   err=nil                          | (off+n)%4096=0    landed=524188   (off+landed)%4096=0    beyond=0 size 0->524288
+unaligned 100, 8 MiB [avail 1023] sys off=100            len=8388608  -> n=2097052  err=nil                          | (off+n)%4096=0    landed=2097052  (off+landed)%4096=0    beyond=0 size 0->2097152
+unaligned 100, 8 MiB [avail 2047] sys off=100            len=8388608  -> n=6291356  err=nil                          | (off+n)%4096=0    landed=6291356  (off+landed)%4096=0    beyond=0 size 0->6291456
+unaligned 100, 8 MiB [avail 3071] sys off=100            len=8388608  -> n=8388608  err=nil                          | (off+n)%4096=100  landed=8388608  (off+landed)%4096=100  beyond=0 size 0->8388708
+gap: size 8192, off 5p+100 [avail 0] sys off=20580          len=65536    -> n=-1       err=no space left on device (errno 28) | (off+n)%4096=-    landed=0        (off+landed)%4096=100  beyond=0 size 8192->8192
+gap: size 8192, off 5p+100 [avail 3] sys off=20580          len=65536    -> n=12188    err=nil                          | (off+n)%4096=0    landed=12188    (off+landed)%4096=0    beyond=0 size 8192->32768
+gap: size 8192, off 5p+100 [avail 7] sys off=20580          len=65536    -> n=12188    err=nil                          | (off+n)%4096=0    landed=12188    (off+landed)%4096=0    beyond=0 size 8192->32768
+gap: size 8192, off 5p+100 [avail 11] sys off=20580          len=65536    -> n=44956    err=nil                          | (off+n)%4096=0    landed=44956    (off+landed)%4096=0    beyond=0 size 8192->65536
+gap: size 8192, off 5p+100 [avail 15] sys off=20580          len=65536    -> n=61340    err=nil                          | (off+n)%4096=0    landed=61340    (off+landed)%4096=0    beyond=0 size 8192->81920
+gap: size 8192, off 5p+100 [avail 19] sys off=20580          len=65536    -> n=65536    err=nil                          | (off+n)%4096=100  landed=65536    (off+landed)%4096=100  beyond=0 size 8192->86116
+gap: size 8192, off 5p+100 [avail 23] sys off=20580          len=65536    -> n=65536    err=nil                          | (off+n)%4096=100  landed=65536    (off+landed)%4096=100  beyond=0 size 8192->86116
+gap: size 8192, off 5p+100 [avail 31] sys off=20580          len=65536    -> n=65536    err=nil                          | (off+n)%4096=100  landed=65536    (off+landed)%4096=100  beyond=0 size 8192->86116
+gap: size 8192, off 5p+100 [avail 47] sys off=20580          len=65536    -> n=65536    err=nil                          | (off+n)%4096=100  landed=65536    (off+landed)%4096=100  beyond=0 size 8192->86116
+gap: size 8192, off 5p+100 [avail 63] sys off=20580          len=65536    -> n=65536    err=nil                          | (off+n)%4096=100  landed=65536    (off+landed)%4096=100  beyond=0 size 8192->86116
+one aligned page [avail 0]   sys off=0              len=4096     -> n=-1       err=no space left on device (errno 28) | (off+n)%4096=-    landed=0        (off+landed)%4096=0    beyond=0 size 0->0
+one aligned page [avail 3]   sys off=0              len=4096     -> n=4096     err=nil                          | (off+n)%4096=0    landed=4096     (off+landed)%4096=0    beyond=0 size 0->4096
+one aligned page [avail 7]   sys off=0              len=4096     -> n=4096     err=nil                          | (off+n)%4096=0    landed=4096     (off+landed)%4096=0    beyond=0 size 0->4096
+one aligned page [avail 11]  sys off=0              len=4096     -> n=4096     err=nil                          | (off+n)%4096=0    landed=4096     (off+landed)%4096=0    beyond=0 size 0->4096
+one aligned page [avail 15]  sys off=0              len=4096     -> n=4096     err=nil                          | (off+n)%4096=0    landed=4096     (off+landed)%4096=0    beyond=0 size 0->4096
+one aligned page [avail 19]  sys off=0              len=4096     -> n=4096     err=nil                          | (off+n)%4096=0    landed=4096     (off+landed)%4096=0    beyond=0 size 0->4096
+one aligned page [avail 23]  sys off=0              len=4096     -> n=4096     err=nil                          | (off+n)%4096=0    landed=4096     (off+landed)%4096=0    beyond=0 size 0->4096
+one aligned page [avail 31]  sys off=0              len=4096     -> n=4096     err=nil                          | (off+n)%4096=0    landed=4096     (off+landed)%4096=0    beyond=0 size 0->4096
+one aligned page [avail 47]  sys off=0              len=4096     -> n=4096     err=nil                          | (off+n)%4096=0    landed=4096     (off+landed)%4096=0    beyond=0 size 0->4096
+one aligned page [avail 63]  sys off=0              len=4096     -> n=4096     err=nil                          | (off+n)%4096=0    landed=4096     (off+landed)%4096=0    beyond=0 size 0->4096
+unaligned 3000, 1 page [avail 0] sys off=3000           len=4096     -> n=-1       err=no space left on device (errno 28) | (off+n)%4096=-    landed=0        (off+landed)%4096=3000 beyond=0 size 0->0
+unaligned 3000, 1 page [avail 3] sys off=3000           len=4096     -> n=4096     err=nil                          | (off+n)%4096=3000 landed=4096     (off+landed)%4096=3000 beyond=0 size 0->7096
+unaligned 3000, 1 page [avail 7] sys off=3000           len=4096     -> n=4096     err=nil                          | (off+n)%4096=3000 landed=4096     (off+landed)%4096=3000 beyond=0 size 0->7096
+unaligned 3000, 1 page [avail 11] sys off=3000           len=4096     -> n=4096     err=nil                          | (off+n)%4096=3000 landed=4096     (off+landed)%4096=3000 beyond=0 size 0->7096
+unaligned 3000, 1 page [avail 15] sys off=3000           len=4096     -> n=4096     err=nil                          | (off+n)%4096=3000 landed=4096     (off+landed)%4096=3000 beyond=0 size 0->7096
+unaligned 3000, 1 page [avail 19] sys off=3000           len=4096     -> n=4096     err=nil                          | (off+n)%4096=3000 landed=4096     (off+landed)%4096=3000 beyond=0 size 0->7096
+unaligned 3000, 1 page [avail 23] sys off=3000           len=4096     -> n=4096     err=nil                          | (off+n)%4096=3000 landed=4096     (off+landed)%4096=3000 beyond=0 size 0->7096
+unaligned 3000, 1 page [avail 31] sys off=3000           len=4096     -> n=4096     err=nil                          | (off+n)%4096=3000 landed=4096     (off+landed)%4096=3000 beyond=0 size 0->7096
+unaligned 3000, 1 page [avail 47] sys off=3000           len=4096     -> n=4096     err=nil                          | (off+n)%4096=3000 landed=4096     (off+landed)%4096=3000 beyond=0 size 0->7096
+unaligned 3000, 1 page [avail 63] sys off=3000           len=4096     -> n=4096     err=nil                          | (off+n)%4096=3000 landed=4096     (off+landed)%4096=3000 beyond=0 size 0->7096
+aligned 16 pages [avail 0]   go  off=0              len=65536    -> n=0        err=no space left on device      | (off+n)%4096=-    landed=0        (off+landed)%4096=0    beyond=0 size 0->0
+aligned 16 pages [avail 3]   go  off=0              len=65536    -> n=0        err=no space left on device      | (off+n)%4096=-    landed=0        (off+landed)%4096=0    beyond=0 size 0->0
+aligned 16 pages [avail 7]   go  off=0              len=65536    -> n=0        err=no space left on device      | (off+n)%4096=-    landed=0        (off+landed)%4096=0    beyond=0 size 0->0
+aligned 16 pages [avail 11]  go  off=0              len=65536    -> n=0        err=no space left on device      | (off+n)%4096=-    landed=0        (off+landed)%4096=0    beyond=0 size 0->0
+aligned 16 pages [avail 15]  go  off=0              len=65536    -> n=0        err=no space left on device      | (off+n)%4096=-    landed=0        (off+landed)%4096=0    beyond=0 size 0->0
+aligned 16 pages [avail 19]  go  off=0              len=65536    -> n=65536    err=nil                          | (off+n)%4096=0    landed=65536    (off+landed)%4096=0    beyond=0 size 0->65536
+aligned 16 pages [avail 23]  go  off=0              len=65536    -> n=65536    err=nil                          | (off+n)%4096=0    landed=65536    (off+landed)%4096=0    beyond=0 size 0->65536
+aligned 16 pages [avail 31]  go  off=0              len=65536    -> n=65536    err=nil                          | (off+n)%4096=0    landed=65536    (off+landed)%4096=0    beyond=0 size 0->65536
+aligned 16 pages [avail 47]  go  off=0              len=65536    -> n=65536    err=nil                          | (off+n)%4096=0    landed=65536    (off+landed)%4096=0    beyond=0 size 0->65536
+aligned 16 pages [avail 63]  go  off=0              len=65536    -> n=65536    err=nil                          | (off+n)%4096=0    landed=65536    (off+landed)%4096=0    beyond=0 size 0->65536
+unaligned 100, 16p+300 [avail 0] go  off=100            len=65836    -> n=0        err=no space left on device      | (off+n)%4096=-    landed=0        (off+landed)%4096=100  beyond=0 size 0->0
+unaligned 100, 16p+300 [avail 3] go  off=100            len=65836    -> n=0        err=no space left on device      | (off+n)%4096=-    landed=8092     (off+landed)%4096=0    beyond=0 size 0->8192
+unaligned 100, 16p+300 [avail 7] go  off=100            len=65836    -> n=0        err=no space left on device      | (off+n)%4096=-    landed=16284    (off+landed)%4096=0    beyond=0 size 0->16384
+unaligned 100, 16p+300 [avail 11] go  off=100            len=65836    -> n=0        err=no space left on device      | (off+n)%4096=-    landed=32668    (off+landed)%4096=0    beyond=0 size 0->32768
+unaligned 100, 16p+300 [avail 15] go  off=100            len=65836    -> n=0        err=no space left on device      | (off+n)%4096=-    landed=32668    (off+landed)%4096=0    beyond=0 size 0->32768
+unaligned 100, 16p+300 [avail 19] go  off=100            len=65836    -> n=65836    err=nil                          | (off+n)%4096=400  landed=65836    (off+landed)%4096=400  beyond=0 size 0->65936
+unaligned 100, 16p+300 [avail 23] go  off=100            len=65836    -> n=65836    err=nil                          | (off+n)%4096=400  landed=65836    (off+landed)%4096=400  beyond=0 size 0->65936
+unaligned 100, 16p+300 [avail 31] go  off=100            len=65836    -> n=65836    err=nil                          | (off+n)%4096=400  landed=65836    (off+landed)%4096=400  beyond=0 size 0->65936
+unaligned 100, 16p+300 [avail 47] go  off=100            len=65836    -> n=65836    err=nil                          | (off+n)%4096=400  landed=65836    (off+landed)%4096=400  beyond=0 size 0->65936
+unaligned 100, 16p+300 [avail 63] go  off=100            len=65836    -> n=65836    err=nil                          | (off+n)%4096=400  landed=65836    (off+landed)%4096=400  beyond=0 size 0->65936
+unaligned 4000, 16p+300 [avail 0] go  off=4000           len=65836    -> n=0        err=no space left on device      | (off+n)%4096=-    landed=0        (off+landed)%4096=4000 beyond=0 size 0->0
+unaligned 4000, 16p+300 [avail 3] go  off=4000           len=65836    -> n=0        err=no space left on device      | (off+n)%4096=-    landed=4192     (off+landed)%4096=0    beyond=0 size 0->8192
+unaligned 4000, 16p+300 [avail 7] go  off=4000           len=65836    -> n=0        err=no space left on device      | (off+n)%4096=-    landed=12384    (off+landed)%4096=0    beyond=0 size 0->16384
+unaligned 4000, 16p+300 [avail 11] go  off=4000           len=65836    -> n=0        err=no space left on device      | (off+n)%4096=-    landed=28768    (off+landed)%4096=0    beyond=0 size 0->32768
+unaligned 4000, 16p+300 [avail 15] go  off=4000           len=65836    -> n=0        err=no space left on device      | (off+n)%4096=-    landed=28768    (off+landed)%4096=0    beyond=0 size 0->32768
+unaligned 4000, 16p+300 [avail 19] go  off=4000           len=65836    -> n=65836    err=nil                          | (off+n)%4096=204  landed=65836    (off+landed)%4096=204  beyond=0 size 0->69836
+unaligned 4000, 16p+300 [avail 23] go  off=4000           len=65836    -> n=65836    err=nil                          | (off+n)%4096=204  landed=65836    (off+landed)%4096=204  beyond=0 size 0->69836
+unaligned 4000, 16p+300 [avail 31] go  off=4000           len=65836    -> n=65836    err=nil                          | (off+n)%4096=204  landed=65836    (off+landed)%4096=204  beyond=0 size 0->69836
+unaligned 4000, 16p+300 [avail 47] go  off=4000           len=65836    -> n=65836    err=nil                          | (off+n)%4096=204  landed=65836    (off+landed)%4096=204  beyond=0 size 0->69836
+unaligned 4000, 16p+300 [avail 63] go  off=4000           len=65836    -> n=65836    err=nil                          | (off+n)%4096=204  landed=65836    (off+landed)%4096=204  beyond=0 size 0->69836
+unaligned 100, 8 MiB [avail 0] go  off=100            len=8388608  -> n=0        err=no space left on device      | (off+n)%4096=-    landed=0        (off+landed)%4096=100  beyond=0 size 0->0
+unaligned 100, 8 MiB [avail 3] go  off=100            len=8388608  -> n=0        err=no space left on device      | (off+n)%4096=-    landed=0        (off+landed)%4096=100  beyond=0 size 0->0
+unaligned 100, 8 MiB [avail 7] go  off=100            len=8388608  -> n=0        err=no space left on device      | (off+n)%4096=-    landed=0        (off+landed)%4096=100  beyond=0 size 0->0
+unaligned 100, 8 MiB [avail 11] go  off=100            len=8388608  -> n=0        err=no space left on device      | (off+n)%4096=-    landed=0        (off+landed)%4096=100  beyond=0 size 0->0
+unaligned 100, 8 MiB [avail 15] go  off=100            len=8388608  -> n=0        err=no space left on device      | (off+n)%4096=-    landed=0        (off+landed)%4096=100  beyond=0 size 0->0
+unaligned 100, 8 MiB [avail 19] go  off=100            len=8388608  -> n=0        err=no space left on device      | (off+n)%4096=-    landed=0        (off+landed)%4096=100  beyond=0 size 0->0
+unaligned 100, 8 MiB [avail 23] go  off=100            len=8388608  -> n=0        err=no space left on device      | (off+n)%4096=-    landed=0        (off+landed)%4096=100  beyond=0 size 0->0
+unaligned 100, 8 MiB [avail 31] go  off=100            len=8388608  -> n=0        err=no space left on device      | (off+n)%4096=-    landed=0        (off+landed)%4096=100  beyond=0 size 0->0
+unaligned 100, 8 MiB [avail 47] go  off=100            len=8388608  -> n=0        err=no space left on device      | (off+n)%4096=-    landed=130972   (off+landed)%4096=0    beyond=0 size 0->131072
+unaligned 100, 8 MiB [avail 63] go  off=100            len=8388608  -> n=0        err=no space left on device      | (off+n)%4096=-    landed=130972   (off+landed)%4096=0    beyond=0 size 0->131072
+unaligned 100, 8 MiB [avail 255] go  off=100            len=8388608  -> n=0        err=no space left on device      | (off+n)%4096=-    landed=524188   (off+landed)%4096=0    beyond=0 size 0->524288
+unaligned 100, 8 MiB [avail 1023] go  off=100            len=8388608  -> n=0        err=no space left on device      | (off+n)%4096=-    landed=2097052  (off+landed)%4096=0    beyond=0 size 0->2097152
+unaligned 100, 8 MiB [avail 2047] go  off=100            len=8388608  -> n=0        err=no space left on device      | (off+n)%4096=-    landed=6291356  (off+landed)%4096=0    beyond=0 size 0->6291456
+unaligned 100, 8 MiB [avail 3071] go  off=100            len=8388608  -> n=8388608  err=nil                          | (off+n)%4096=100  landed=8388608  (off+landed)%4096=100  beyond=0 size 0->8388708
+gap: size 8192, off 5p+100 [avail 0] go  off=20580          len=65536    -> n=0        err=no space left on device      | (off+n)%4096=-    landed=0        (off+landed)%4096=100  beyond=0 size 8192->8192
+gap: size 8192, off 5p+100 [avail 3] go  off=20580          len=65536    -> n=0        err=no space left on device      | (off+n)%4096=-    landed=12188    (off+landed)%4096=0    beyond=0 size 8192->32768
+gap: size 8192, off 5p+100 [avail 7] go  off=20580          len=65536    -> n=0        err=no space left on device      | (off+n)%4096=-    landed=12188    (off+landed)%4096=0    beyond=0 size 8192->32768
+gap: size 8192, off 5p+100 [avail 11] go  off=20580          len=65536    -> n=0        err=no space left on device      | (off+n)%4096=-    landed=44956    (off+landed)%4096=0    beyond=0 size 8192->65536
+gap: size 8192, off 5p+100 [avail 15] go  off=20580          len=65536    -> n=0        err=no space left on device      | (off+n)%4096=-    landed=61340    (off+landed)%4096=0    beyond=0 size 8192->81920
+gap: size 8192, off 5p+100 [avail 19] go  off=20580          len=65536    -> n=65536    err=nil                          | (off+n)%4096=100  landed=65536    (off+landed)%4096=100  beyond=0 size 8192->86116
+gap: size 8192, off 5p+100 [avail 23] go  off=20580          len=65536    -> n=65536    err=nil                          | (off+n)%4096=100  landed=65536    (off+landed)%4096=100  beyond=0 size 8192->86116
+gap: size 8192, off 5p+100 [avail 31] go  off=20580          len=65536    -> n=65536    err=nil                          | (off+n)%4096=100  landed=65536    (off+landed)%4096=100  beyond=0 size 8192->86116
+gap: size 8192, off 5p+100 [avail 47] go  off=20580          len=65536    -> n=65536    err=nil                          | (off+n)%4096=100  landed=65536    (off+landed)%4096=100  beyond=0 size 8192->86116
+gap: size 8192, off 5p+100 [avail 63] go  off=20580          len=65536    -> n=65536    err=nil                          | (off+n)%4096=100  landed=65536    (off+landed)%4096=100  beyond=0 size 8192->86116
+one aligned page [avail 0]   go  off=0              len=4096     -> n=0        err=no space left on device      | (off+n)%4096=-    landed=0        (off+landed)%4096=0    beyond=0 size 0->0
+one aligned page [avail 3]   go  off=0              len=4096     -> n=4096     err=nil                          | (off+n)%4096=0    landed=4096     (off+landed)%4096=0    beyond=0 size 0->4096
+one aligned page [avail 7]   go  off=0              len=4096     -> n=4096     err=nil                          | (off+n)%4096=0    landed=4096     (off+landed)%4096=0    beyond=0 size 0->4096
+one aligned page [avail 11]  go  off=0              len=4096     -> n=4096     err=nil                          | (off+n)%4096=0    landed=4096     (off+landed)%4096=0    beyond=0 size 0->4096
+one aligned page [avail 15]  go  off=0              len=4096     -> n=4096     err=nil                          | (off+n)%4096=0    landed=4096     (off+landed)%4096=0    beyond=0 size 0->4096
+one aligned page [avail 19]  go  off=0              len=4096     -> n=4096     err=nil                          | (off+n)%4096=0    landed=4096     (off+landed)%4096=0    beyond=0 size 0->4096
+one aligned page [avail 23]  go  off=0              len=4096     -> n=4096     err=nil                          | (off+n)%4096=0    landed=4096     (off+landed)%4096=0    beyond=0 size 0->4096
+one aligned page [avail 31]  go  off=0              len=4096     -> n=4096     err=nil                          | (off+n)%4096=0    landed=4096     (off+landed)%4096=0    beyond=0 size 0->4096
+one aligned page [avail 47]  go  off=0              len=4096     -> n=4096     err=nil                          | (off+n)%4096=0    landed=4096     (off+landed)%4096=0    beyond=0 size 0->4096
+one aligned page [avail 63]  go  off=0              len=4096     -> n=4096     err=nil                          | (off+n)%4096=0    landed=4096     (off+landed)%4096=0    beyond=0 size 0->4096
+unaligned 3000, 1 page [avail 0] go  off=3000           len=4096     -> n=0        err=no space left on device      | (off+n)%4096=-    landed=0        (off+landed)%4096=3000 beyond=0 size 0->0
+unaligned 3000, 1 page [avail 3] go  off=3000           len=4096     -> n=4096     err=nil                          | (off+n)%4096=3000 landed=4096     (off+landed)%4096=3000 beyond=0 size 0->7096
+unaligned 3000, 1 page [avail 7] go  off=3000           len=4096     -> n=4096     err=nil                          | (off+n)%4096=3000 landed=4096     (off+landed)%4096=3000 beyond=0 size 0->7096
+unaligned 3000, 1 page [avail 11] go  off=3000           len=4096     -> n=4096     err=nil                          | (off+n)%4096=3000 landed=4096     (off+landed)%4096=3000 beyond=0 size 0->7096
+unaligned 3000, 1 page [avail 15] go  off=3000           len=4096     -> n=4096     err=nil                          | (off+n)%4096=3000 landed=4096     (off+landed)%4096=3000 beyond=0 size 0->7096
+unaligned 3000, 1 page [avail 19] go  off=3000           len=4096     -> n=4096     err=nil                          | (off+n)%4096=3000 landed=4096     (off+landed)%4096=3000 beyond=0 size 0->7096
+unaligned 3000, 1 page [avail 23] go  off=3000           len=4096     -> n=4096     err=nil                          | (off+n)%4096=3000 landed=4096     (off+landed)%4096=3000 beyond=0 size 0->7096
+unaligned 3000, 1 page [avail 31] go  off=3000           len=4096     -> n=4096     err=nil                          | (off+n)%4096=3000 landed=4096     (off+landed)%4096=3000 beyond=0 size 0->7096
+unaligned 3000, 1 page [avail 47] go  off=3000           len=4096     -> n=4096     err=nil                          | (off+n)%4096=3000 landed=4096     (off+landed)%4096=3000 beyond=0 size 0->7096
+unaligned 3000, 1 page [avail 63] go  off=3000           len=4096     -> n=4096     err=nil                          | (off+n)%4096=3000 landed=4096     (off+landed)%4096=3000 beyond=0 size 0->7096
+== efbig
+check: /tmp/pwrun/mnt is C (kernel 7.0.0-38-generic, ext4, block size 4096, options,rw,bsddf,nogrpid,block_validity,dioread_nolock,nodiscard,delalloc,nowarn_on_error,journal_checksum,barrier,auto_da_alloc,user_xattr,acl,noquota,resuid=0,resgid=0,errors=continue,commit=5,min_batch_time=0,max_batch_time=15000,i_version,stripe=0,data=ordered,inode_readahead_blks=32,init_itable=10,max_dir_size_kb=0,prefetch_block_bitmaps)
+end at max, 100 before       sys off=17592186040220 len=8192     -> n=100      err=nil                          | (off+n)%4096=0    landed=100      (off+landed)%4096=0    beyond=0 size 0->17592186040320
+end at max, 5000 before      sys off=17592186035320 len=12288    -> n=5000     err=nil                          | (off+n)%4096=0    landed=5000     (off+landed)%4096=0    beyond=0 size 0->17592186040320
+at s_maxbytes                sys off=17592186040320 len=100      -> n=-1       err=file too large (errno 27)    | (off+n)%4096=-    landed=0        (off+landed)%4096=0    beyond=0 size 0->0
+at s_maxbytes+1              sys off=17592186040321 len=100      -> n=-1       err=file too large (errno 27)    | (off+n)%4096=-    landed=0        (off+landed)%4096=1    beyond=0 size 0->0
+end at max, 100 before       go  off=17592186040220 len=8192     -> n=0        err=file too large               | (off+n)%4096=-    landed=100      (off+landed)%4096=0    beyond=0 size 0->17592186040320
+end at max, 5000 before      go  off=17592186035320 len=12288    -> n=0        err=file too large               | (off+n)%4096=-    landed=5000     (off+landed)%4096=0    beyond=0 size 0->17592186040320
+at s_maxbytes                go  off=17592186040320 len=100      -> n=0        err=file too large               | (off+n)%4096=-    landed=0        (off+landed)%4096=0    beyond=0 size 0->0
+at s_maxbytes+1              go  off=17592186040321 len=100      -> n=0        err=file too large               | (off+n)%4096=-    landed=0        (off+landed)%4096=1    beyond=0 size 0->0
+== rlimit
+check: /tmp/pwrun/mnt is C (kernel 7.0.0-38-generic, ext4, block size 4096, options,rw,bsddf,nogrpid,block_validity,dioread_nolock,nodiscard,delalloc,nowarn_on_error,journal_checksum,barrier,auto_da_alloc,user_xattr,acl,noquota,resuid=0,resgid=0,errors=continue,commit=5,min_batch_time=0,max_batch_time=15000,i_version,stripe=0,data=ordered,inode_readahead_blks=32,init_itable=10,max_dir_size_kb=0,prefetch_block_bitmaps)
+(contrast: not C; see README.md)
+RLIMIT_FSIZE 10000           sys off=8000           len=8192     -> n=2000     err=nil                          | (off+n)%4096=1808 landed=2000     (off+landed)%4096=1808 beyond=0 size 0->10000
+RLIMIT_FSIZE 10000, at it    sys off=10000          len=100      -> n=-1       err=file too large (errno 27)    | (off+n)%4096=-    landed=0        (off+landed)%4096=1808 beyond=0 size 10000->10000
+RLIMIT_FSIZE 10000           go  off=8000           len=8192     -> n=0        err=file too large               | (off+n)%4096=-    landed=2000     (off+landed)%4096=1808 beyond=0 size 0->10000
+RLIMIT_FSIZE 10000, at it    go  off=10000          len=100      -> n=0        err=file too large               | (off+n)%4096=-    landed=0        (off+landed)%4096=1808 beyond=0 size 10000->10000
+== signals
+check: /tmp/pwrun/mnt is C (kernel 7.0.0-38-generic, ext4, block size 4096, options,rw,bsddf,nogrpid,block_validity,dioread_nolock,nodiscard,delalloc,nowarn_on_error,journal_checksum,barrier,auto_da_alloc,user_xattr,acl,noquota,resuid=0,resgid=0,errors=continue,commit=5,min_batch_time=0,max_batch_time=15000,i_version,stripe=0,data=ordered,inode_readahead_blks=32,init_itable=10,max_dir_size_kb=0,prefetch_block_bitmaps)
+signals sys rep 0: n=268435456 (len 268435456) err=nil in 1.092613659s
+signals sys rep 1: n=268435456 (len 268435456) err=nil in 1.279301211s
+signals sys rep 2: n=268435456 (len 268435456) err=nil in 937.303742ms
+signals go rep 0: n=268435456 (len 268435456) err=nil in 1.120503442s
+signals go rep 1: n=268435456 (len 268435456) err=nil in 956.112665ms
+signals go rep 2: n=268435456 (len 268435456) err=nil in 961.772651ms
+signals sent: 155816
+untouched mmap source sys: off 100 len 262144 -> n=262144 err=nil
+untouched mmap source go: off 100 len 262144 -> n=262144 err=nil
+== efault
+check: /tmp/pwrun/mnt is C (kernel 7.0.0-38-generic, ext4, block size 4096, options,rw,bsddf,nogrpid,block_validity,dioread_nolock,nodiscard,delalloc,nowarn_on_error,journal_checksum,barrier,auto_da_alloc,user_xattr,acl,noquota,resuid=0,resgid=0,errors=continue,commit=5,min_batch_time=0,max_batch_time=15000,i_version,stripe=0,data=ordered,inode_readahead_blks=32,init_itable=10,max_dir_size_kb=0,prefetch_block_bitmaps)
+(contrast: not C; see README.md)
+source page 2 PROT_NONE      sys off=100            len=12288    -> n=8192     err=nil                          | (off+n)%4096=100  landed=8192     (off+landed)%4096=100  beyond=0 size 0->8292
+source page 2 PROT_NONE      go  off=100            len=12288    -> n=0        err=bad address                  | (off+n)%4096=-    landed=8192     (off+landed)%4096=100  beyond=0 size 0->8292
+== shutdown
+check: /tmp/pwrun/mnt is C (kernel 7.0.0-38-generic, ext4, block size 4096, options,rw,bsddf,nogrpid,block_validity,dioread_nolock,nodiscard,delalloc,nowarn_on_error,journal_checksum,barrier,auto_da_alloc,user_xattr,acl,noquota,resuid=0,resgid=0,errors=continue,commit=5,min_batch_time=0,max_batch_time=15000,i_version,stripe=0,data=ordered,inode_readahead_blks=32,init_itable=10,max_dir_size_kb=0,prefetch_block_bitmaps)
+(contrast: not C; see README.md)
+shutdown: <nil> 
+shutdown during write: off 100 len 536870912 -> n=222298012 err=nil end%4096=0; mapped page cache: landed prefix 222298012

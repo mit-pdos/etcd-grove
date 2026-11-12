@@ -201,7 +201,7 @@ Does not cover:
   then learns entries before the candidate wins; pre-vote equals vote. `MsgTimeoutNow`
   (leader transfer) is not modelled.
 - **Snapshots, compaction, learners, restarts** (outside the crash mode, which is
-  `nonissues/raft-commit-lost-with-entries-kept.md`'s fault): none. So
+  `issues/raft-commit-lost-with-entries-kept.md`'s fault): none. So
   `issues/raft-snapshot-during-apply-stale-confchange.md` is out of scope.
 - **Joining nodes start from `C0`.** An addable node starts with an empty log and the
   initial configuration `C0` (it is not a member of it, so it cannot campaign until it has

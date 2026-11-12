@@ -4,6 +4,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Base
+public import Spec.go_uber_org.zap.Defs
 
 @[expose] public section
 
@@ -25,7 +26,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 the stringer as `WarnOfExpensiveRequest`'s (audit B4b, 2026-10-18). -/
 abbrev txn.WarnOfFailedRequest.spec : Prop :=
   ∀ (lg : Loc) (now : time.Time) (req resp err : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ ⌜lg ≠ null⌝ ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗ zapLoggerOk lg ∗
       (∃ (sp p : Loc), ⌜req = interface.mkOk (go.GoType.PointerType
           go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftStringer.ty) #sp ∧ p ≠ null⌝ ∗
         sp ↦ (go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftStringer.mk p)) }}

@@ -11,18 +11,16 @@ key-value the server fails (`ErrKeyNotFound`, `putKeyMissing`).
 **The delete** of a request `o` (`deleteRangeRequestIs`) deletes the keys of `rangeIn st o`
 (`delChanges`), the client's filter (`stateAfter_commit_delete`).
 
-**The pin** (`Pinned log₀ m ilog`): a caller holding `m` revision tokens and the certificate of
-`log₀` finds a write transaction it opens with one more token at a committed log `ilog` above
-`log₀` that leaves room for its tokens (`isTxnWrite_pinned`, `soleWriter_pins_write` for any
-caller); at the sole writer (`m = soleBudget log₀ - 1`) that is `ilog = log₀` (`pinned_sole`).
-The specs of `Put` and `DeleteRange` take the tokens and the certificate as `store.Read` does
-(unit 0c), so that the sole writer's statements are derived (`Results.lean`).
+**A transaction's reads** (`kindState k`, `KindOk k`, over mvcc's API's `MTxn`, strict M1,
+2026-11-05): the state a transaction reads, and the facts of its read log that relate mvcc's
+index answers (`rangeOutcome`) to that state (`prevKvIs_of_outcome`, `rangeOutcome_sel`). Until
+M1 the internals' `isTxn` gave `KindOk` (`isTxn_kindOk`); the API gives none of it (the gap in
+`notes/mvcc-migration/txn.md`).
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.SoleWriter
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
 
 @[expose] public section
 
@@ -123,41 +121,27 @@ theorem srvEnd_mkGte (sl r : GoSlice) (e : GoString) (hnil : sl = slice.nil → 
       · subst he; simp [hs]
       · simp [hs, he]; exact h0
 
-/-! ## The pin -/
-
-/-- What a caller's `m` tokens and certificate of `log₀` say of the committed log `ilog` of a
-write transaction it opened with one more token. -/
-def Pinned (log₀ : Log) (m : Nat) (ilog : Log) : Prop :=
-  log₀ <+: ilog ∧ ilog.length + m + 4 ≤ 2 ^ 63
-
-/-- At the sole writer's tokens, the pin is the sole writer's log. -/
-theorem pinned_sole (log ilog : Log) (h : log.length + 4 ≤ 2 ^ 63)
-    (hp : Pinned log (soleBudget log - 1) ilog) : ilog = log := by
-  obtain ⟨hpre, hb⟩ := hp
-  have hl := hpre.length_le
-  unfold soleBudget at hb
-  exact (hpre.eq_of_length (by omega)).symm
-
 /-! ## A transaction's reads -/
 
-/-- The state a transaction of this kind reads (`TxnKind.readLog` at `readRev`). -/
-def kindState (kind : TxnKind) : List EtcdKv := stateAt kind.readLog (sint.nat kind.readRev)
+/-- The state a transaction reads (`MTxn.readLog` at `readRev`). -/
+def kindState (k : mvcc.api.MTxn) : List EtcdKv := stateAt k.readLog (sint.nat k.readRev)
 
-/-- What `isTxn` says of the log a transaction reads: well formed, the revision in it. -/
-def KindOk (kind : TxnKind) : Prop :=
-  LogOk kind.readLog ∧ 0 ≤ sint.Z kind.readRev ∧ sint.Z kind.readRev < kind.readLog.length
+/-- What relates mvcc's index answers to the state a transaction reads: its read log well formed
+and small (`LogOk`), the revision in it. -/
+def KindOk (k : mvcc.api.MTxn) : Prop :=
+  LogOk k.readLog ∧ 0 ≤ sint.Z k.readRev ∧ sint.Z k.readRev < k.readLog.length
 
 /-- A write transaction reads the state after its pending changes. -/
-theorem kindState_write (ilog : Log) (pend : List Change) (puts deletes putSize : w64)
-    (hne : ilog ≠ []) (hlen : ilog.length + 1 < 2 ^ 63) :
-    kindState (.write ilog pend puts deletes putSize) = pendState ilog pend := by
-  unfold kindState pendState TxnKind.readLog TxnKind.readRev
-  have := writeRev_lt ilog pend hne
+theorem kindState_write (σ : mvcc.api.MvccState) (pend : List Change)
+    (hne : σ.log ≠ []) (hlen : σ.log.length + 1 < 2 ^ 63) :
+    kindState (.write σ pend) = pendState σ.log pend := by
+  unfold kindState pendState mvcc.api.MTxn.readLog mvcc.api.MTxn.readRev
+  have := writeRev_lt σ.log pend hne
   simp only [List.length_append, List.length_singleton] at this
-  have hz : sint.Z (W64 ((writeRev ilog pend : Nat) : Int)) = writeRev ilog pend := by word
-  have hn : sint.nat (W64 ((writeRev ilog pend : Nat) : Int)) = writeRev ilog pend := by
+  have hz : sint.Z (W64 ((writeRev σ.log pend : Nat) : Int)) = writeRev σ.log pend := by word
+  have hn : sint.nat (W64 ((writeRev σ.log pend : Nat) : Int)) = writeRev σ.log pend := by
     unfold sint.nat; unfold sint.Z at hz; rw [hz]; rfl
-  rw [hn, stateAt_writeRev ilog pend hne]
+  rw [hn, stateAt_writeRev σ.log pend hne]
 
 /-- A range read of one key (`end` is `nil`) answers the key's key-value if it has one. -/
 theorem rangeAnswers_one (log : Log) (hok : LogOk log) (k e : GoString) (r : Nat)
@@ -228,119 +212,10 @@ theorem kvPtrIs_not_null (full : Bool) (p : Loc) (kv : EtcdKv) :
     icases H with ⟨%vs, -, H⟩
     iapply typedPointsto_not_null $$ H
 
-/-- **The pin of a write transaction** (`soleWriter_pins_write` for any caller): a caller's `m`
-tokens and certificate of `log₀`, beside a write transaction it opened with one more token. -/
-theorem storeTxnWriteIs_pinned (γ : mvcc.StoreNames) (log₀ ilog : Log) (pend : List Change)
-    (tw s : Loc) (m : Nat) (crev : Int) :
-    ownToks γ.revs m ∗ idxCert (GF := GF) γ.idx log₀ ∗ storeTxnWriteIs tw s γ trace ilog pend crev ⊢
-      ⌜Pinned log₀ m ilog⌝ := by
-  iintro ⟨Hmine, #Hmycert, H⟩
-  unfold storeTxnWriteIs
-  icases H with ⟨%ti, %bt, %Locked, %chs, %ps, %ntok, H⟩
-  iNamed H
-  unfold revToken
-  icombine Hmine Htok as Hall
-  icombine Htoks Hall gives %hle
-  ihave %hpre := idxWriter_cert_prefix γ.idx ilog pend log₀ $$ [$Hw $Hmycert]
-  ipureintro
-  exact ⟨hpre, by omega⟩
-
-/-- `storeTxnWriteIs_pinned` for the write transaction `store.Write` returns, keeping it. -/
-theorem isTxnWrite_pinned (γ : mvcc.StoreNames) (log₀ ilog : Log) (pend : List Change) (mw s : Loc)
-    (puts deletes putSize : w64) (m : Nat) (crev : Int) :
-    ownToks γ.revs m ∗ idxCert (GF := GF) γ.idx log₀ ∗
-        isTxnWrite mw s γ trace ilog pend puts deletes putSize crev ⊢
-      ⌜Pinned log₀ m ilog⌝ ∗
-        (ownToks γ.revs m ∗ idxCert γ.idx log₀ ∗
-          isTxnWrite mw s γ trace ilog pend puts deletes putSize crev) := by
-  refine persistent_entails_right ?_
-  iintro ⟨Hmine, #Hc, H⟩
-  unfold isTxnWrite
-  icases H with ⟨%tw, %ranges, -, Htw, -⟩
-  iapply storeTxnWriteIs_pinned γ log₀ ilog pend tw s m crev $$ [$Hmine $Hc $Htw]
-
-/-- A write transaction's committed log is not empty and leaves room for its revision. -/
-theorem isTxnWrite_facts (mw s : Loc) (γ : mvcc.StoreNames) (ilog : Log) (pend : List Change)
-    (puts deletes putSize : w64) (crev : Int) :
-    isTxnWrite (GF := GF) mw s γ trace ilog pend puts deletes putSize crev ⊢
-      ⌜ilog ≠ [] ∧ ilog.length + 1 < 2 ^ 63⌝ ∗
-        isTxnWrite mw s γ trace ilog pend puts deletes putSize crev := by
-  refine persistent_entails_right ?_
-  unfold isTxnWrite storeTxnWriteIs
-  iintro ⟨%tw, %ranges, -, ⟨%ti, %bt, %Locked, %chs, %ps, %ntok, H⟩, -⟩
-  iNamed H
-  ihave %Hwf := idxWriter_wf γ.idx ilog pend $$ Hw
-  ipureintro
-  exact ⟨Hne, Hwf.2.1⟩
-
-/-- **What a transaction reads is well formed** (its certificate, or the index writer's
-`IdxWf`), with its revision in its log. -/
-theorem isTxn_kindOk (mw s : Loc) (γ : mvcc.StoreNames) (kind : TxnKind) (crev : Int) :
-    isTxn (GF := GF) mw s γ trace kind crev ⊢ ⌜KindOk kind⌝ ∗ isTxn mw s γ trace kind crev := by
-  refine persistent_entails_right ?_
-  cases kind with
-  | read log rev =>
-    simp only [isTxn, KindOk, TxnKind.readLog, TxnKind.readRev]
-    unfold isTxnRead
-    iintro ⟨%trw, %tr, %ti, %rt, %ranges, H⟩
-    iNamed H
-    iunfold storeTxnReadIs at Htr
-    iNamed Htr
-    iunfold idxCert at Hcert
-    icases Hcert with ⟨-, %Hc, -⟩
-    ipureintro
-    have hpos := List.length_pos_iff.2 Hne
-    have hz := lastRev_sint log.length hpos (by have := Hc.2.1; omega)
-    refine ⟨LogOk.of_cert Hc Hne, ?_, ?_⟩ <;> rw [Hrev, hz] <;> omega
-  | write ilog pend puts deletes putSize =>
-    simp only [isTxn, KindOk, TxnKind.readLog, TxnKind.readRev]
-    unfold isTxnWrite storeTxnWriteIs
-    iintro ⟨%tw, %ranges, -, ⟨%ti, %bt, %Locked, %chs, %ps, %ntok, H⟩, -⟩
-    iNamed H
-    ihave %Hwf := idxWriter_wf γ.idx ilog pend $$ Hw
-    ipureintro
-    obtain ⟨Hwf', Hlen, Hplen, Hcs⟩ := Hwf
-    have hlt := writeRev_lt ilog pend Hne
-    simp only [List.length_append, List.length_singleton] at hlt
-    have hz : sint.Z (W64 ((writeRev ilog pend : Nat) : Int)) = writeRev ilog pend := by word
-    refine ⟨⟨LogWf.of_wf' Hwf' (by simp), by simp; omega, ?_⟩, ?_, ?_⟩
-    · intro cs hcs
-      rcases List.mem_append.1 hcs with h | h
-      · exact Hcs cs h
-      · rw [List.mem_singleton.1 h]; exact Hplen
-    · rw [hz]; omega
-    · rw [hz]; simp; omega
-
-/-- **A transaction's compaction revision is at most the revision it reads at** (M2,
-`notes/m2-plan.md`, S1): a read at the transaction's revision (`ro.Rev = 0`) is never compacted
-(`mvcc.rangeOutcomeC_latest`). -/
-theorem isTxn_crev (mw s : Loc) (γ : mvcc.StoreNames) (kind : TxnKind) (crev : Int) :
-    isTxn (GF := GF) mw s γ trace kind crev ⊢ ⌜crev ≤ sint.Z kind.readRev⌝ ∗ isTxn mw s γ trace kind crev := by
-  refine persistent_entails_right ?_
-  cases kind with
-  | read log rev =>
-    simp only [isTxn, TxnKind.readRev]
-    iintro H
-    ihave %Hc := mvcc.isTxnRead_crev mw s γ trace log rev crev iprop(True) $$ H
-    ipureintro; exact Hc.2
-  | write ilog pend puts deletes putSize =>
-    simp only [isTxn, TxnKind.readRev]
-    unfold isTxnWrite storeTxnWriteIs
-    iintro ⟨%tw, %ranges, -, ⟨%ti, %bt, %Locked, %chs, %ps, %ntok, H⟩, -⟩
-    iNamed H
-    ihave %Hwf := idxWriter_wf γ.idx ilog pend $$ Hw
-    ipureintro
-    have hlt := writeRev_lt ilog pend Hne
-    simp only [List.length_append, List.length_singleton] at hlt
-    have hz : sint.Z (W64 ((writeRev ilog pend : Nat) : Int)) = writeRev ilog pend := by word
-    rw [hz]
-    unfold writeRev
-    split <;> omega
-
 /-- **`getPrevKV`'s answer from the range read** of one key (`end` is `nil`, the options
 `RangeOptions{}`), at a transaction's log and revision, not `nil` (`context.TODO()`): no error,
 and the key's key-value at the state read. -/
-theorem prevKvIs_of_outcome (r : Loc) (err : GoInterface) (kind : TxnKind) (k e : GoString)
+theorem prevKvIs_of_outcome (r : Loc) (err : GoInterface) (kind : mvcc.api.MTxn) (k e : GoString)
     (ro : go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions) (hok : KindOk kind)
     (hro : ro.Rev' = W64 0 ∧ ro.Limit' = W64 0 ∧ ro.CountOnly' = false ∧ ro.FastKeysOnly' = false)
     (hr : r ≠ null) :
@@ -455,7 +330,7 @@ theorem zip_kvsIs (log : Log) (st : List EtcdKv) :
 
 /-- **A full range read** (`RangeOptions{}`) at a transaction's log and revision: a context
 error, or the selection of the state read in the range, read-only (`kvsIs`). -/
-theorem rangeOutcome_sel (r : Loc) (err : GoInterface) (kind : TxnKind) (endNil : Bool)
+theorem rangeOutcome_sel (r : Loc) (err : GoInterface) (kind : mvcc.api.MTxn) (endNil : Bool)
     (k e : GoString) (ro : go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions) (hok : KindOk kind)
     (hro : ro.Rev' = W64 0 ∧ ro.Limit' = W64 0 ∧ ro.CountOnly' = false ∧ ro.FastKeysOnly' = false) :
     rangeOutcome (GF := GF) r err kind.readLog kind.readRev endNil k e ro ⊢ |==>

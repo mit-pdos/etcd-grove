@@ -16,6 +16,11 @@ theorem backend.bbRange_single (es : List backend.Ent) (kb : GoString) (lim : w6
 theorem backend.bOpen_stopped (γ : backend.BNames) (q : Qp) : backend.bOpen γ q ∗ backend.bStopped γ
     ⊢ False
 
+theorem backend.rtHeld_sizes (γ : backend.BNames) (P : backend.BParams) (b rtx : Loc) (rv :
+    backend.RView) (n : GoString) (id : w64) : backend.rtHeld γ P b rtx rv ⊢ backend.rtHeld γ P b
+    rtx rv ∗ ⌜GMap.size (backend.bktOf rv.fst n) < 2 ^ 61 ∧ (backend.bkOf rv.snd.bks id).length < 2
+    ^ 61⌝
+
 theorem backend.cache_mark (γ : backend.BNames) (r q : Qp) (ver : w64) (idx : Nat) (win : Bool) (vd
     : backend.VData) : backend.cacheInv γ ∗ ghostVar γ.cur r ((ver, idx), win) ∗ backend.bView γ q
     vd ⊢ |={⊤}=> backend.cachedAt γ ver idx ∗ ghostVar γ.cur r ((ver, idx), win) ∗ backend.bView γ q
@@ -53,6 +58,10 @@ theorem backend.rtIntv_live (γ : backend.BNames) (P : backend.BParams) (q : Qp)
     (cm : GoMap) (D : backend.Data) (p qo : Qp) : backend.rtIntv γ P q rd cm D p ∗ backend.bOpen γ
     qo ⊢ backend.rtIntv γ P q rd cm D p ∗ backend.bOpen γ qo ∗ ⌜rd.rtx ≠ null⌝
 
+theorem backend.rtIntv_snap (γ : backend.BNames) (P : backend.BParams) (q : Qp) (rd : backend.RdSt)
+    (cm : GoMap) (D : backend.Data) (p : Qp) (hn : rd.rtx ≠ null) : backend.rtIntv γ P q rd cm D p ⊢
+    backend.rtIntv γ P q rd cm D p ∗ backend.rtxSnap rd.rtx D
+
 theorem backend.rdSlices_append (rtx : Loc) (ss ss' : List GoSlice) (bs bs' : List GoString) :
     backend.rdSlices rtx ss bs ∗ backend.rdSlices rtx ss' bs' ⊢ backend.rdSlices rtx (ss ++ ss') (bs
     ++ bs')
@@ -68,8 +77,15 @@ theorem backend.wp_rdAdd (γ : backend.BNames) (rtx wg : Loc) (γw γo γt : GNa
 
 theorem backend.perm_sum_rat {l l' : List Rat} (h : l.Perm l') : l.sum = l'.sum
 
+theorem backend.fkRd_absF (γ : backend.BNames) (P : backend.BParams) (rv : backend.RView) :
+    backend.fkFlag γ 0 ∗ backend.fkRd γ P rv ⊢ backend.fkFlag γ 0 ∗ ⌜backend.fkAbsRv P rv⌝
+
 theorem backend.rtHeld_fkRd (γ : backend.BNames) (P : backend.BParams) (b rtx : Loc) (rv :
     backend.RView) : backend.rtHeld γ P b rtx rv ⊢ backend.rtHeld γ P b rtx rv ∗ backend.fkRd γ P rv
+
+theorem backend.fkRd_openF (γ : backend.BNames) (P : backend.BParams) (rv : backend.RView) (n : Nat)
+    (v : backend.FkVals) : backend.fkFlag γ n ∗ backend.fkOpen γ n v ∗ backend.fkRd γ P rv ⊢
+    backend.fkFlag γ n ∗ ⌜backend.fkValRv P v rv⌝
 
 theorem backend.rtHeld_clean (γ : backend.BNames) (P : backend.BParams) (b rtx : Loc) (rv :
     backend.RView) (q : Qp) (vd : backend.VData) : backend.rtHeld γ P b rtx rv ∗ backend.bViewC γ q
@@ -86,6 +102,10 @@ theorem backend.rbAt_agree (txr : Loc) (dq1 dq2 : DFrac) (m1 m2 : GoMap) (P1 P2 
 
 theorem backend.mapPart_split (cm : GoMap) (qm : Rat) (r : Qp) (M : GMap w64 Loc) (h : r.val ≤ qm) :
     backend.mapPart cm qm M ⊢ backend.mapPart cm (qm - r.val) M ∗ ownMap cm (DFrac.own r) M
+
+theorem backend.rbAt_bkOf_lt (txr : Loc) (dq : DFrac) (m : GoMap) (Pb : backend.BksPhys) (R :
+    backend.RBuf) (h : backend.bksOk Pb R.bks) (id : w64) : backend.rbAt txr dq m Pb R ⊢
+    backend.rbAt txr dq m Pb R ∗ ⌜(backend.bkOf R.bks id).length < 2 ^ 61⌝
 
 theorem backend.crtSnap_read (γ : backend.BNames) (P : backend.BParams) (b crt rtx : Loc) (rv :
     backend.RView) (s : GoSlice) (v : GoString) : backend.crtSnap γ P b crt rtx rv ∗ backend.rdB rtx

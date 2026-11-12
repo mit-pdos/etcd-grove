@@ -7,6 +7,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthClass
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadOn
+public import Proof.context.LibKeys
 
 @[expose] public section
 
@@ -48,7 +49,7 @@ abbrev EtcdServer.doSerialize.spec : Prop :=
     (cd : context.ContextDesc (IProp GF)) (chk get : GoFunc) (G Q : IProp GF)
     (C : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF) (t : Loc) (e : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ mvcc.txnCtx ctx cd ∗
+      isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗
       traceutil.ctxTraceIs ctx (some t) ∗
       (∀ (a : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac),
         {{ a ↦{dq} info ∗ E.RD }} (App (Val #chk) (Val #a))

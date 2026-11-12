@@ -119,8 +119,8 @@ theorem MainWatch.wp_proof
     (wp_WithProgressNotify : WithProgressNotify.spec (GF := GF) (hG := hG))
     (wp_WithCreatedNotify : WithCreatedNotify.spec (GF := GF) (hG := hG)) :
     MainWatch.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS CRE CEC N id₁ id₂ id₃ ps ctxs boot nw nops sched steps Hbf Htb Hrb48
-    HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms hAs H0 H31 Hops Hmul
+  intro CS ES FS RS CRE CEC N id₁ id₂ id₃ ps ctxs boot nw nops sched steps Hbf Htb HLv Hrb48
+    HrbN HwbN Haf Hbuq Hrf Hdbo Hms hAs H0 H31 Hops Hmul
   wp_start as ⟨Hstart, #Hsched, Htok, #Hprem⟩
   -- `io.EOF` (the watch client's) and `context`'s `closedchan`, from their packages' facts
   ihave #Heo : client.eofOk (GF := GF) $$ []
@@ -170,7 +170,7 @@ theorem MainWatch.wp_proof
   wp_apply wp_NewNop as %lg #Hlgz
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hlgz
   (try wp_auto)
-  wp_apply (wp_startCluster N id₁ id₂ id₃ ps ctxs boot lg wkPfx Hbf Htb Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms)
+  wp_apply (wp_startCluster N id₁ id₂ id₃ ps ctxs boot lg wkPfx Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms)
     $$ [Hstart Htok] as %srvs %brs %clis %ok Hup
   · iframe; iframe #
   icases Hup with (%Hok | ⟨%Hok, Htok, Hup⟩)
@@ -189,11 +189,11 @@ theorem MainWatch.wp_proof
   obtain ⟨hst₂, hst₃, -, -⟩ := Hal
   isimp only [cluster3.memberAt_none] at Hm₁ Hm₂ Hm₃
   icases Hm₁ with ⟨#Hfw₁, #Hrd₁, #HPut₁, #HRange₁, #HDel₁, #HTxn₁, #HCmp₁, %Hnr₁, ⟨%pw₁, #Hws₁⟩,
-    %HR₁, #Hstr₁, %Hp₁⟩
+    %HR₁, #Hwl₁, #Hstr₁, %Hp₁⟩
   icases Hm₂ with ⟨#Hfw₂, #Hrd₂, #HPut₂, #HRange₂, #HDel₂, #HTxn₂, #HCmp₂, %Hnr₂, ⟨%pw₂, #Hws₂⟩,
-    %HR₂, #Hstr₂, %Hp₂⟩
+    %HR₂, #Hwl₂, #Hstr₂, %Hp₂⟩
   icases Hm₃ with ⟨#Hfw₃, #Hrd₃, #HPut₃, #HRange₃, #HDel₃, #HTxn₃, #HCmp₃, %Hnr₃, ⟨%pw₃, #Hws₃⟩,
-    %HR₃, #Hstr₃, %Hp₃⟩
+    %HR₃, #Hwl₃, #Hstr₃, %Hp₃⟩
   obtain ⟨hr₁, hc₁, hch₁, hlog₁, hoff₁⟩ := Hp₁
   obtain ⟨hr₂, hc₂, hch₂, hlog₂, hoff₂⟩ := Hp₂
   obtain ⟨hr₃, hc₃, hch₃, hlog₃, hoff₃⟩ := Hp₃
@@ -229,7 +229,11 @@ theorem MainWatch.wp_proof
     · iexists pw₁; iexact Hws₁
     isplitr
     · ipureintro; exact ⟨HR₁.2, hm₁, kvSame_refl _⟩
-    iapply cluster3.watchNoDup_of_off pw₁ R₁ E₁ HR₁.2 hoff₁ $$ Hws₁
+    iframe Hwl₁
+    ihave #Hi₁ := srvKVInvs_of_read s₁ E₁ ρ₁.rd $$ Hrd₁
+    iunfold srvKVInvs at Hi₁
+    icases Hi₁ with ⟨-, -, -, -, %Hm₁', -⟩
+    iapply (client.srvOnce_noCmp _ ρ₁.rd rfl (Hm₁'.1.trans hoff₁))
   ihave #Hmw₂ : cluster3.memberWatch ρ₁.rd s₂ E₂ ρ₂ R₂ $$ []
   · iunfold cluster3.memberWatch
     isplitr
@@ -238,7 +242,11 @@ theorem MainWatch.wp_proof
     · iexists pw₂; iexact Hws₂
     isplitr
     · ipureintro; exact ⟨HR₂.2, hm₂, hst₂⟩
-    iapply cluster3.watchNoDup_of_off pw₂ R₂ E₂ HR₂.2 hoff₂ $$ Hws₂
+    iframe Hwl₂
+    ihave #Hi₂ := srvKVInvs_of_read s₂ E₂ ρ₂.rd $$ Hrd₂
+    iunfold srvKVInvs at Hi₂
+    icases Hi₂ with ⟨-, -, -, -, %Hm₂', -⟩
+    iapply (client.srvOnce_noCmp _ ρ₂.rd rfl (Hm₂'.1.trans hoff₂))
   ihave #Hmw₃ : cluster3.memberWatch ρ₁.rd s₃ E₃ ρ₃ R₃ $$ []
   · iunfold cluster3.memberWatch
     isplitr
@@ -247,7 +255,11 @@ theorem MainWatch.wp_proof
     · iexists pw₃; iexact Hws₃
     isplitr
     · ipureintro; exact ⟨HR₃.2, hm₃, hst₃⟩
-    iapply cluster3.watchNoDup_of_off pw₃ R₃ E₃ HR₃.2 hoff₃ $$ Hws₃
+    iframe Hwl₃
+    ihave #Hi₃ := srvKVInvs_of_read s₃ E₃ ρ₃.rd $$ Hrd₃
+    iunfold srvKVInvs at Hi₃
+    icases Hi₃ with ⟨-, -, -, -, %Hm₃', -⟩
+    iapply (client.srvOnce_noCmp _ ρ₃.rd rfl (Hm₃'.1.trans hoff₃))
   -- each member's `Watch` stream at its bridge
   ihave #Hb₁ := cluster3.isGrpcStream_forwards bridgeAddr₁ clientAddr₁ _ _ _ $$ [Hfw₁ Hstr₁]
   · iframe #
@@ -258,14 +270,14 @@ theorem MainWatch.wp_proof
   -- the first client's `Watcher`, with the members' facts, etcd's watch contract at the history
   ihave #Hconn := cluster3.watchEnv_conn wp_ErrAny hAs clusterCfg clusterCfg_ok R₁ R₂ R₃ ρ₁.rd wkPfx (by decide) hlog₁
     (by omega) s₁ s₂ s₃
-    E₁ E₂ E₃ ρ₁ ρ₂ ρ₃ $$ [Pcli Ppb Pctx Heo Hmw₁ Hmw₂ Hmw₃ Hb₁ Hb₂ Hb₃]
+    E₁ E₂ E₃ ρ₁ ρ₂ ρ₃ HR₁.2 HR₂.2 HR₃.2 $$ [Pcli Ppb Pctx Heo Hmw₁ Hmw₂ Hmw₃ Hb₁ Hb₂ Hb₃]
   · iframe #
   ihave ⟨%w, %conn, %wc, %lgw, %ics, #HWf, #Hcw⟩ := isNewClient_watcher_of cl₁
-    [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] (cluster3.watchEnv clusterCfg R₁ R₂ R₃ ρ₁.rd wkPfx) $$ [Hnc₁ Hconn]
+    [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] (cluster3.watchEnv clusterCfg R₁ R₂ R₃ (etcdstart.srvWOf E₁ ρ₁.rd false) (etcdstart.srvWOf E₂ ρ₂.rd false) (etcdstart.srvWOf E₃ ρ₃.rd false) ρ₁.rd wkPfx) $$ [Hnc₁ Hconn]
   · iframe #
   ihave #Hkw : client.isKvWatcher (GF := GF) w γ.kv $$ []
   · iunfold client.isKvWatcher
-    iexists { cluster3.watchEnv clusterCfg R₁ R₂ R₃ ρ₁.rd wkPfx with conn := conn, ics := ics, wc := wc, lg := lgw }
+    iexists { cluster3.watchEnv clusterCfg R₁ R₂ R₃ (etcdstart.srvWOf E₁ ρ₁.rd false) (etcdstart.srvWOf E₂ ρ₂.rd false) (etcdstart.srvWOf E₃ ρ₃.rd false) ρ₁.rd wkPfx with conn := conn, ics := ics, wc := wc, lg := lgw }
     iframe Hcw
     ipureintro; rw [hγk]; rfl
   ihave #Hew := client.isEtcdWatcher_of_km w γ wkPfx (by decide) (by decide) $$ [Pcli Ppb Pctx Hkw]
@@ -274,7 +286,8 @@ theorem MainWatch.wp_proof
   -- `wctx, cancel := context.WithCancel(context.Background())`
   wp_apply context.wp_Background
   wp_apply context.wp_WithCancel_Background iprop(True) $$ [$Pctx $Hcci]
-    as %wctx %γc %cancel ⟨#Hcancel, #Hwctx, -⟩
+    as %wctx %γc %cancel ⟨#Hcancel, #Hwctx, -, #Hwfrom⟩
+  ihave #HwC := metadata.outgoingCtxOkC_bgFrom wctx $$ Hwfrom
   (try wp_auto)
   -- the watch's options (the cache's `watchEvents`')
   wp_apply wp_WithPrefix as %f1 #Hf1
@@ -343,7 +356,7 @@ theorem MainWatch.wp_proof
       List (OpFull → OpFull))
     %(W64 1)
   wp_apply HW $$ [] as %wch %γw ⟨#Hwch, Hcons⟩
-  · iframe Hwctx Hopts
+  · iframe Hwctx HwC Hopts
     isplitl []
     · ipureintro
       exact ⟨(watchEvents_opts wkPfx (W64 1)).1, (watchEvents_opts wkPfx (W64 1)).2, by decide⟩
@@ -392,9 +405,9 @@ theorem MainWatch.wp_proof
     [⟨bridgeAddr₁, E₁, ρ₁.rd, cid₁, mid₁⟩, ⟨bridgeAddr₂, E₂, ρ₂.rd, cid₂, mid₂⟩,
       ⟨bridgeAddr₃, E₃, ρ₃.rd, cid₃, mid₃⟩]
   have hms : ms.map client.SrvAt.addr = [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] := rfl
-  imod mvcc.idxCert_nil (GF := GF) E₁.γ.idx with #HF₁
-  imod mvcc.idxCert_nil (GF := GF) E₂.γ.idx with #HF₂
-  imod mvcc.idxCert_nil (GF := GF) E₃.γ.idx with #HF₃
+  imod v3rpc.kvLogLb_nil (GF := GF) E₁.γs with #HF₁
+  imod v3rpc.kvLogLb_nil (GF := GF) E₂.γs with #HF₂
+  imod v3rpc.kvLogLb_nil (GF := GF) E₃.γs with #HF₃
   ihave #Hmps : ([∗list] x ∈ ms, memberPut γ.kv x) $$ []
   · iapply BigSepL.bigSepL_cons.2
     isplitr
@@ -404,7 +417,7 @@ theorem MainWatch.wp_proof
         isplitr
         · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₁ HPut₁]; iframe #
         isplitr
-        · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₁ HRange₁]; iframe #
+        · iapply cluster3.isGrpcRpcMd_forwards $$ [Hfw₁ HRange₁]; iframe #
         isplitr
         · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₁ HDel₁]; iframe #
         isplitr
@@ -420,7 +433,7 @@ theorem MainWatch.wp_proof
         isplitr
         · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₂ HPut₂]; iframe #
         isplitr
-        · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₂ HRange₂]; iframe #
+        · iapply cluster3.isGrpcRpcMd_forwards $$ [Hfw₂ HRange₂]; iframe #
         isplitr
         · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₂ HDel₂]; iframe #
         isplitr
@@ -436,7 +449,7 @@ theorem MainWatch.wp_proof
         isplitr
         · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₃ HPut₃]; iframe #
         isplitr
-        · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₃ HRange₃]; iframe #
+        · iapply cluster3.isGrpcRpcMd_forwards $$ [Hfw₃ HRange₃]; iframe #
         isplitr
         · iapply cluster3.isGrpcRpc_forwards $$ [Hfw₃ HDel₃]; iframe #
         isplitr
@@ -448,11 +461,11 @@ theorem MainWatch.wp_proof
     itrivial
   -- (D29) the bridges' addresses are refusal-free: every client's writes are sent at most once
   ihave %Hb₁ : ⌜noRefusalAt bridgeAddr₁⌝ $$ []
-  · iunfold cluster3.forwards at Hfw₁; icases Hfw₁ with ⟨-, %Hf, -⟩; ipureintro; exact Hf Hnr₁
+  · iunfold cluster3.forwards at Hfw₁; icases Hfw₁ with ⟨-, %Hf⟩; ipureintro; exact Hf Hnr₁
   ihave %Hb₂ : ⌜noRefusalAt bridgeAddr₂⌝ $$ []
-  · iunfold cluster3.forwards at Hfw₂; icases Hfw₂ with ⟨-, %Hf, -⟩; ipureintro; exact Hf Hnr₂
+  · iunfold cluster3.forwards at Hfw₂; icases Hfw₂ with ⟨-, %Hf⟩; ipureintro; exact Hf Hnr₂
   ihave %Hb₃ : ⌜noRefusalAt bridgeAddr₃⌝ $$ []
-  · iunfold cluster3.forwards at Hfw₃; icases Hfw₃ with ⟨-, %Hf, -⟩; ipureintro; exact Hf Hnr₃
+  · iunfold cluster3.forwards at Hfw₃; icases Hfw₃ with ⟨-, %Hf⟩; ipureintro; exact Hf Hnr₃
   have hnr : ∀ a ∈ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃], noRefusalAt a := by
     intro a ha
     simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at ha
@@ -461,7 +474,7 @@ theorem MainWatch.wp_proof
     · exact Hb₂
     · exact Hb₃
   ihave #Hcls : ([∗list] cl ∈ [cl₁, cl₂, cl₃], isNewClient cl (ms.map client.SrvAt.addr)
-      (cluster3.watchEnv clusterCfg R₁ R₂ R₃ ρ₁.rd wkPfx) ∗ client.clientWriteOnce cl (ms.map client.SrvAt.addr)) $$ []
+      (cluster3.watchEnv clusterCfg R₁ R₂ R₃ (etcdstart.srvWOf E₁ ρ₁.rd false) (etcdstart.srvWOf E₂ ρ₂.rd false) (etcdstart.srvWOf E₃ ρ₃.rd false) ρ₁.rd wkPfx) ∗ client.clientWriteOnce cl (ms.map client.SrvAt.addr)) $$ []
   · rw [hms]
     iapply BigSepL.bigSepL_cons.2
     isplitr
@@ -528,7 +541,7 @@ theorem MainWatch.wp_proof
     ipersist lo
     wp_apply wp_fork $$ [Hdone]
     · (try wp_auto)
-      wp_apply (wp_writer clis [cl₁, cl₂, cl₃] ms (cluster3.watchEnv clusterCfg R₁ R₂ R₃ ρ₁.rd wkPfx) γ «$r0_ptr»
+      wp_apply (wp_writer clis [cl₁, cl₂, cl₃] ms (cluster3.watchEnv clusterCfg R₁ R₂ R₃ (etcdstart.srvWOf E₁ ρ₁.rd false) (etcdstart.srvWOf E₂ ρ₂.rd false) (etcdstart.srvWOf E₃ ρ₃.rd false) ρ₁.rd wkPfx) γ «$r0_ptr»
           tsl trs (k * nops) (k * nops + nops) (trs.map pairOf) hAs hγW rfl (by simp) (by rw [hlo]; exact Int.mul_nonneg Hk.1 Hops) (by rw [hlo, hhi]; omega)
           (by
             rw [hhi, Htrs.1]

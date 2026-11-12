@@ -37,7 +37,7 @@ theorem EtcdServer.checkLeaseTimeToLive.wp_proof
     (hK : lease.Lease.Keys.spec (GF := GF) (hG := hG)) :
     EtcdServer.checkLeaseTimeToLive.spec (GF := GF) (hG := hG) := by
   intro s E γl ctx cd id n m
-  wp_start as ⟨#Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, HRD, #Hpool, Htok, %Hbound⟩
+  wp_start as ⟨#Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, #Hlib, HRD, #Hpool, Htok, %Hbound⟩
   ihave ⟨%st, %cca, #Has, #Hreq, #Hreqb, #Hcca, #HLb⟩ := leaseCheckSetup s E n $$ [$Hau $Hlb $Hpub]
   iunfold isAuthStoreLeaseLb at HLb
   icases HLb with ⟨%ai, %Hai, #HEn, #HRev, #HAdm, -, #HRng⟩
@@ -180,7 +180,7 @@ theorem EtcdServer.checkLeaseTimeToLive.wp_proof
   (try wp_auto)
   wp_apply (hK γl l id (.reader m)) $$ [Htok] as %sl %ks ⟨Hks, Hpre, Hpost, %Hnd⟩
   · iframe Hlo; rw [lease.keysPre_reader]; iframe Htok Hlive; ipureintro; exact Hbound
-  ihave Hpre : iprop(lease.leaseLiveFrom γl m id l ∗ threadTok ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝)
+  ihave Hpre : iprop(lease.leaseLiveFrom γl m id l ∗ levelTok lease.lessorLvl ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝)
     $$ [Hpre]
   · rw [← lease.keysPre_reader]; iexact Hpre
   icases Hpre with ⟨-, Htok, -⟩

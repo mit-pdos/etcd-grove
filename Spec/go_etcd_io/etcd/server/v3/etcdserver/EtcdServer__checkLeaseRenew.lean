@@ -5,6 +5,7 @@ Part B (2026-10-31), vocabulary `LeaseCheck.lean`.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseCheck
+public import Proof.context.LibKeys
 
 @[expose] public section
 
@@ -47,11 +48,11 @@ abbrev EtcdServer.checkLeaseRenew.spec : Prop :=
     (cd : context.ContextDesc (IProp GF)) (id : w64) (n m : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvAuthAt s E ∗ srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ auth.authPubLbM E.authMode n ∗
-      lease.lessorLb γl m ∗ mvcc.txnCtx ctx cd ∗ E.RD ∗ lease.lessorRdPool γl ∗ threadTok ∗
+      lease.lessorLb γl m ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗ E.RD ∗ lease.lessorRdPool γl ∗ levelTok lease.lessorLvl ∗
       ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"checkLeaseRenew"))
       (Val #(GoInterface.ok ctx))) (Val #id))
-  {{ (err : GoInterface), RET #err; E.RD ∗ threadTok ∗ applyErrIs err ∗
+  {{ (err : GoInterface), RET #err; E.RD ∗ levelTok lease.lessorLvl ∗ applyErrIs err ∗
       (∀ _ : err = GoInterface.nil, leaseCheckFrom s E (GoInterface.ok ctx) n
         (fun info => leaseKeysVerdictFrom E.authMode n info γl m id .write)) }}
 

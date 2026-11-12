@@ -19,7 +19,9 @@ theorem backend.batchTxBuffered.Unlock.bare (h : backend.batchTxBuffered.Unlock.
                             ⌜∀ (n : GoString) (i : w64),
                                   P.BT !! n = some i → P.HB n = false → backend.bkOf st.W.bks i = []⌝ ∗
                               W ∗ Pk ∗ Q ∨
-                          ∃ vd, backend.bView γ 1 vd ∗ Pk ∗ (backend.bView γ 1 (backend.relog P vd st) -∗ W ∗ Q)) -∗
+                          ∃ vd,
+                            ⌜backend.sbKept P st⌝ ∗
+                              backend.bView γ 1 vd ∗ Pk ∗ (backend.bView γ 1 (backend.relog P vd st) -∗ W ∗ Q)) -∗
               ▷ (Q -∗ Φ (intoVal ())) -∗
                 WP
                   ((intoVal
@@ -43,7 +45,9 @@ def backend.batchTxBuffered.Unlock.specBare : Prop :=
                             ⌜∀ (n : GoString) (i : w64),
                                   P.BT !! n = some i → P.HB n = false → backend.bkOf st.W.bks i = []⌝ ∗
                               W ∗ Pk ∗ Q ∨
-                          ∃ vd, backend.bView γ 1 vd ∗ Pk ∗ (backend.bView γ 1 (backend.relog P vd st) -∗ W ∗ Q)) -∗
+                          ∃ vd,
+                            ⌜backend.sbKept P st⌝ ∗
+                              backend.bView γ 1 vd ∗ Pk ∗ (backend.bView γ 1 (backend.relog P vd st) -∗ W ∗ Q)) -∗
               ▷ (Q -∗ Φ (intoVal ())) -∗
                 WP
                   ((intoVal

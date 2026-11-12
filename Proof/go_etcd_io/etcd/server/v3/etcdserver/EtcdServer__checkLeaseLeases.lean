@@ -36,7 +36,7 @@ theorem EtcdServer.checkLeaseLeases.wp_proof
     (hK : lease.Lease.Keys.spec (GF := GF) (hG := hG)) :
     EtcdServer.checkLeaseLeases.spec (GF := GF) (hG := hG) := by
   intro s E γl ctx cd sl ls dq n m
-  wp_start as ⟨#Hau, #Hlb, #Hlr, #Hpub, #Hctx, HRD, Htok, %Hbound, Hsl, #Hls⟩
+  wp_start as ⟨#Hau, #Hlb, #Hlr, #Hpub, #Hctx, #Hlib, HRD, Htok, %Hbound, Hsl, #Hls⟩
   ihave ⟨%st, %cca, #Has, #Hreq, #Hreqb, #Hcca, #HLb⟩ := leaseCheckSetup s E n $$ [$Hau $Hlb $Hpub]
   iunfold isAuthStoreLeaseLb at HLb
   icases HLb with ⟨%ai, %Hai, #HEn, #HRev, #HAdm, -, #HRng⟩
@@ -132,7 +132,7 @@ theorem EtcdServer.checkLeaseLeases.wp_proof
   ihave %Hsll := ownSlice_len _ _ _ $$ Hsl
   iunfold apply.permCheck3Lb at HRng
   ihave IHo : iprop(∃ (j : w64) (lv : Loc),
-      "i" ∷ i_ptr ↦ j ∗ "l" ∷ l_ptr ↦ lv ∗ "Htok" ∷ threadTok ∗
+      "i" ∷ i_ptr ↦ j ∗ "l" ∷ l_ptr ↦ lv ∗ "Htok" ∷ levelTok lease.leaseLvl ∗
       "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z sl.len⌝ ∗
       "#Hcls" ∷ [∗list] x ∈ ls.take (sint.nat j),
         leaseOfKeysVerdictFrom E.authMode n ⟨user, rev'⟩ γl m x.2 x.1 .read) $$ [i l Htok]
@@ -161,7 +161,7 @@ theorem EtcdServer.checkLeaseLeases.wp_proof
     (try wp_auto)
     wp_apply (hK γl x.1 x.2 (.reader m)) $$ [Htok] as %ksl %ks ⟨Hks, Hpre, Hpost, %Hnd⟩
     · iframe Hlo; rw [lease.keysPre_reader]; iframe Htok Hlive; ipureintro; exact Hbound
-    ihave Hpre : iprop(lease.leaseLiveFrom γl m x.2 x.1 ∗ threadTok ∗
+    ihave Hpre : iprop(lease.leaseLiveFrom γl m x.2 x.1 ∗ levelTok lease.leaseLvl ∗
         ⌜threadBound GF ≤ 2 ^ 30 - 1⌝) $$ [Hpre]
     · rw [← lease.keysPre_reader]; iexact Hpre
     icases Hpre with ⟨-, Htok, -⟩

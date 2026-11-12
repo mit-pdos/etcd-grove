@@ -25,7 +25,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
 /-- **`_Lease_LeaseRevoke_Handler(srv, ctx, dec, interceptor)`** for a service value `srv` whose type
-implements `LeaseServer` (a method-set fact) and whose `LeaseRevoke` meets `Spec` with the resource `S`
+implements `LeaseServer` (a method-set fact) and whose `LeaseRevoke` meets `Spec` with the resource `S` and the interceptors' resources `Rs`, which the chain lends the call (per-type stage B3)
 (`grpcHandlerOk`), for messages whose types are `*LeaseRevokeRequest`/`*LeaseRevokeResponse` (a zero
 `*LeaseRevokeRequest` is the request's blank), under the chain `ics` of transparent interceptors with
 their resources `Rs`, for requests with `Q` (which the decoded request has;
@@ -42,7 +42,7 @@ abbrev etcdserverpb._Lease_LeaseRevoke_Handler.spec : Prop :=
   go.typeSetContains srv.ty etcdserverpb.LeaseServer.ty = true →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       (□ ∀ l : Loc, l ↦ (zero_val etcdserverpb.LeaseRevokeRequest) -∗ Req.blank l) ∗
-      grpcHandlerOk #(methods srv.ty go!"LeaseRevoke" srv.v) S Spec ∗ srvInterceptorsOk Q ics Rs ∗
+      grpcHandlerOk #(methods srv.ty go!"LeaseRevoke" srv.v) iprop(S ∗ [∗list] R ∈ Rs, R) Spec ∗ srvInterceptorsOk Q ics Rs ∗
       (□ ∀ l : Loc, Req.recv l m -∗
         Q (interface.mkOk (go.GoType.PointerType etcdserverpb.LeaseRevokeRequest.ty) #l)) ∗
       S ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗

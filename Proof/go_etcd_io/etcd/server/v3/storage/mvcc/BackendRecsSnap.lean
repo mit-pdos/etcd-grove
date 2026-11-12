@@ -46,16 +46,15 @@ theorem isKeyBackendGR_of_G (bi : GoInterfaceOk) (View : Qp → Bucket → IProp
     (Del : GoString → IProp GF) (W Wi Dep : IProp GF) (Cmp : Prop) (P : IProp GF)
     (HF : val → IProp GF) (Req : IProp GF → IProp GF → IProp GF)
     (Rb : GMap GoString backend.BktData → IProp GF) (Bt : GoInterfaceOk → IProp GF)
-    (SR SRh MW HN : IProp GF) (PV : Bucket → IProp GF) (PVx : Prop)
-    (CK : backend.FkVals → IProp GF) :
+    (SR SRh : IProp GF) (MW : backend.FkVals → backend.VData → IProp GF) (HN : DFrac → IProp GF) :
     isKeyBackendG (GF := GF) (GoInterface.ok bi) View RT WT NC' PutOk Del W Wi Dep Cmp P HF Req
-        Rb Bt SR SRh MW HN PV PVx CK ∗
+        Rb Bt SR SRh MW HN ∗
       □ (∀ (q : Qp) (m : Bucket),
         {{ View q m ∗ RT }} (App (Val #(methods bi.ty go!"ReadTx" bi.v)) (Val #()))
         {{ (rt : GoInterfaceOk), RET #(GoInterface.ok rt); View q m ∗
             ∃ L : IProp GF, L ∗ keyReadSnapR View RT NC r Del true rt m L }}) ⊢
     isKeyBackendGR (GoInterface.ok bi) View RT WT NC r PutOk Del W Wi Dep Cmp P HF Req Rb Bt SR
-      SRh MW HN PV PVx CK := by
+      SRh MW HN := by
   iintro ⟨#H, #HR⟩
   iunfold isKeyBackendG at H
   icases H with ⟨%bi', %hb, #HC, -, #HB, #HFC, #HS, #HSU, #HCmp⟩
@@ -90,13 +89,13 @@ theorem rt_lockedRS [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Ass
     $$ [$Hpkg $Hsch $Hb $Hrt $Hsafe $Hfk]
   by_cases he : r = CmpRecs.empty
   · subst he
-    have hnc : bkRecs (GF := GF) γ CmpRecs.empty = bkNoCmp γ := by unfold bkRecs; simp
+    have hnc : bkRecs (GF := GF) γ CmpRecs.empty = bkNoCmpF γ := by unfold bkRecs; simp
     rw [hnc, keyReadLockedR_empty]
     iexact Hl
-  · iapply keyReadLockedR_of_locked (NC' := bkNoCmp γ)
+  · iapply keyReadLockedR_of_locked (NC' := bkNoCmpF γ)
     iframe Hl
     iintro !> Hnc
-    have hnc : bkRecs (GF := GF) γ r = iprop(∃ n : Nat, fkOwn γ n ∗ fkOpen γ n (recsVals r)) := by
+    have hnc : bkRecs (GF := GF) γ r = iprop(∃ n : Nat, fkFlag γ n ∗ fkOpen γ n (recsVals r)) := by
       unfold bkRecs; simp [he]
     rw [hnc]
     icases Hnc with ⟨%n, Ho, #Hop⟩
@@ -208,7 +207,7 @@ theorem storeBackendTR_of_backendC [package_sem : go_etcd_io.etcd.server.v3.stor
     (r : CmpRecs) (hpos : recsSign r) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-      isBackend d.γB d.P (lateWD d) Pk d.be ∗ keySized d.γB d.P d.be ∗
+      isBackend d.γB d.P (lateW d.gx) Pk d.be ∗ keySized d.γB d.P d.be ∗
         storeDlReg d.γB γi ∗ fkV d.γB true ⊢
       ∀ (s : Loc) (γ : StoreNames), ⌜γ.bucket = γb ∧ γ.kb = some d ∧ γ.idx = γi⌝ →
         storeBackendTR
@@ -222,7 +221,7 @@ theorem storeBackendTR_of_backendC [package_sem : go_etcd_io.etcd.server.v3.stor
   have hreg : storeDlReg (GF := GF) d.γB γi = storeDlReg d.γB γ.idx := by rw [hi]
   rw [hreg] at *
   icases storeDlReg_congr d.γB γ (storeCmp γ) $$ Hreg with ⟨#Hd, -⟩
-  ihave #HR := bridge_rtCR hRT hrRL hrRU hrUR hID hName hSafe hP d.γB (lateWD d) Pk d.be r hpos
+  ihave #HR := bridge_rtCR hRT hrRL hrRU hrUR hID hName hSafe hP d.γB (lateW d.gx) Pk d.be r hpos
     (delKey γ) $$ [$Hpkg $Hsch $Hb $Hsz $Hd]
   have hv : bucketView (GF := GF) γ = bkView d.γB := by
     funext q m; unfold bucketView kbView; rw [hk]
@@ -235,7 +234,7 @@ theorem storeBackendTR_of_backendC [package_sem : go_etcd_io.etcd.server.v3.stor
   rw [hrc]
   rw [hv, hrt] at *
   iapply isKeyBackendGR_of_G _ (bkView d.γB) (bkRTx d.γB d.P d.be) (storeWT γ) (bkRecs d.γB r)
-    (kbNoCmp γ.kb γ.bucket)
+    (kbNoCmpF γ.kb γ.bucket)
   iframe HT
   iexact HR
 

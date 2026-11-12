@@ -54,7 +54,7 @@ abbrev startMember.spec : Prop :=
   Uok ⟨[etcdstart.httpURL peerAddr], [etcdstart.httpURL client], M, iu⟩ →
   -- (R2c-5) the initial cluster's names valid UTF-8 (`BuildServer.spec`'s, `bootPremise`'s condition)
   (∀ k, (M.lookup k).isSome → utf8Valid k) →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →
+  authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.restart ∗
       -- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
       zapLoggerOk lg ∗
@@ -89,7 +89,7 @@ abbrev startMember.specRestart : Prop :=
   -- (2026-11-03, the final whole-`bootOk` review's M2) the directory names the peers
   rafthttp.bootCfg dir ps →
   Uok ⟨[etcdstart.httpURL peerAddr], [etcdstart.httpURL client], M, iu⟩ →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →
+  authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.restart ∗
       -- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
       zapLoggerOk lg ∗

@@ -41,12 +41,12 @@ theorem leasingKV.deleteRange.wp_proof
     (hCA : closeAll.spec (GF := GF) (hG := hG)) :
     leasingKV.deleteRange.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx ctx cs opv o lo
-  wp_start as ⟨#Hlkv, Hrd, #Hsr, #Hctx, #Hcc, #Hop, #Hlo, %Hsh⟩
+  wp_start as ⟨#Hlkv, Hrd, #Hsr, #Hctx, #HctxC, #Hcc, #Hop, #Hlo, %Hsh⟩
   obtain ⟨Hsk, Hse, -⟩ := Hsh
   ihave #Hlkv' := Hlkv
   iunfold isLeasingKV at Hlkv'
   icases Hlkv' with ⟨%cl, %kv, %lctx, %lcs, %cancel, %osl, %Hpfx, -, -, -, -, -, -, -, -,
-    -, -, -, -, #Hlc, -⟩
+    -, -, -, -, -, #Hlc, -⟩
   ihave #Hcv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
   ihave #Hctx2 := Hctx
@@ -85,7 +85,7 @@ theorem leasingKV.deleteRange.wp_proof
   (try wp_auto)
   simp only [goose_wp_simp_extra, ↓reduceIte]
   (try wp_auto)
-  wp_apply (hRR lkv γ pfx ctx cs o.key o.base.rangeEnd) $$ [$Hlkv $Hrd $Hsr $Hctx $Hcc]
+  wp_apply (hRR lkv γ pfx ctx cs o.key o.base.rangeEnd) $$ [$Hlkv $Hrd $Hsr $Hctx $HctxC $Hcc]
     as %maxRev %err1 Hrd
   · ipureintro; exact ⟨Hsk, Hse⟩
   (try wp_auto)
@@ -100,7 +100,7 @@ theorem leasingKV.deleteRange.wp_proof
   wp_apply (hLR (lkvLeases lkv) γ.lc pfx (leasingX lkv γ) (leasingSeen γ) o.key o.base.rangeEnd)
     $$ [$Hlc $Hpeek $Hwst] as %wsl ⟨%st, %ks, %wcs, Hwsl, -, Hwcs, -, -⟩
   (try wp_auto)
-  wp_apply (hRPC lkv γ pfx ctx cs maxRev o.key o.base.rangeEnd lo) $$ [$Hlkv $Hctx $Hlo]
+  wp_apply (hRPC lkv γ pfx ctx cs maxRev o.key o.base.rangeEnd lo) $$ [$Hlkv $Hctx $HctxC $Hlo]
     as %dr %err2 Hres
   · ipureintro; exact ⟨Hsk, Hse⟩
   (try wp_auto)

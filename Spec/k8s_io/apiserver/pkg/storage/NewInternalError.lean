@@ -28,7 +28,7 @@ abbrev storage.NewInternalError.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage ∗
       go_etcd_io.etcd.cache.v3.errorStringSpec ei }}
     (App (Val (@! k8s_io.apiserver.pkg.storage.NewInternalError)) (Val #(GoInterface.ok ei)))
-  {{ (ie : k8s_io.apiserver.pkg.storage.InternalError), RET #ie; True }}
+  {{ (ie : k8s_io.apiserver.pkg.storage.InternalError), RET #ie; ⌜ie.err' = GoInterface.ok ei⌝ }}
 
 end spec
 

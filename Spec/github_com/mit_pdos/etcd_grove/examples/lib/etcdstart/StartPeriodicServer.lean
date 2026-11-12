@@ -1,5 +1,5 @@
 /-
-`StartPeriodicServer(name, peerAddr, clientAddr, period, lg)` (`examples/lib/etcdstart/etcdstart.go`;
+`StartPeriodicServer(name, peerAddr, clientAddr, period, lg)` (`examples/lib/etcdstart/common.go`;
 periodic mode, 2026-11-02): `StartServer` with the auto-compactor on, in periodic mode, keeping the
 revisions of the last `period` -- `newServerMode` in periodic mode at that period, `s.Start()`;
 `putgetc`'s start. Lean-first (no Rocq counterpart).
@@ -49,7 +49,7 @@ abbrev StartPeriodicServer.spec : Prop :=
   -- condition on the initial cluster's names
   utf8Valid name →
   10 ≤ sint.Z period → ρ.rd.kv.cret = 0 →
-  ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →
+  authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
       -- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
       zapLoggerOk lg ∗

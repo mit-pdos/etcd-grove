@@ -185,7 +185,8 @@ theorem cache_end_to_end_new [_root_.Perennial.errors.Assumptions] [_root_.Peren
     [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
     (hAs : _root_.Perennial.errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) (cl : Loc) (ep : GoString) (V : client.WEnv GF)
     (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) (γ : client.KMNames) (hV : V.addr = ep)
-    (hm : V.mem = fun _ => (V.addr, V.R)) (hn : V.nm = 1) (hk : V.kst = γ.kv.st)
+    (hm : V.mem = fun _ => (V.addr, V.R)) (hw : V.memW = fun _ => V.W) (hn : V.nm = 1)
+    (hk : V.kst = γ.kv.st)
     (hst : kvSame γr.kv γ.kv) (hrb : receiptBound GF ≤ 2 ^ 62)
     (hff : prefixRangeEnd V.pfx ≠ [W8 0]) (hpl : V.pfx.length ≤ 2 ^ 28) (sl : GoSlice)
     (gs : List (Config → Config)) :
@@ -202,7 +203,7 @@ theorem cache_end_to_end_new [_root_.Perennial.errors.Assumptions] [_root_.Peren
           err }} := by
   iintro %Φ ⟨#Pk, #Pcc, #P1, #P2, #P3, #Hnc, #Hf, #Hrpc, #Hinv, Hopts, %Hcfg, %Hb⟩ HΦ
   ihave ⟨%w, %conn, %wc, %lg, %ics, #HW, #Hw⟩ := isNewClient_watcher context.wp_ErrAny hAs
-    cl [ep] V (by rw [hV]) hm hn $$ [$P1 $P2 $P3 $Hnc $Hf]
+    cl [ep] V (by rw [hV]) hm hw hn $$ [$P1 $P2 $P3 $Hnc $Hf]
   ihave #Hnc' := Hnc
   iunfold isNewClient at Hnc'
   icases Hnc' with ⟨-, -, ⟨%api, #HKV, #Hkv⟩, -⟩
@@ -215,8 +216,8 @@ theorem cache_end_to_end_new [_root_.Perennial.errors.Assumptions] [_root_.Peren
     ipureintro; exact hk
   ihave %hp : ⌜V.pfx ≠ []⌝ $$ []
   · iunfold watchAddrFacts at Hf
-    icases Hf with ⟨-, -, -, -, %H, -⟩
-    ipureintro; exact H.2
+    icases Hf with ⟨-, -, %H, -⟩
+    ipureintro; exact H
   ihave #Hcl := client.isEtcdClient_of_km cl w api γ true V.pfx hp hff $$ []
   · iframe #
   haveI : ThreadBoundLe GF (2 ^ 31 - cacheWgOwedMax) := ⟨by unfold cacheWgOwedMax at *; omega⟩
@@ -228,26 +229,34 @@ theorem cache_end_to_end_new [_root_.Perennial.errors.Assumptions] [_root_.Peren
 /-- **etcd's server, started for a cache** (the started-server step; as `client.etcd_kv_started`,
 the ghost step between `net.Listen` and `go gs.Serve(lis)`): the server `v3rpc.Server` built and a
 listener at `addr` (`etcd_kv_started`'s premises) and the watch service's (the `*watchServer` `p`
-with its stream registration in `sregs`, the stream chain `[ims, is]`'s contracts, `n` watch run
-slots: `etcd_watch_served_chain`'s) give the right to serve `gs` on `lis`, etcd's KV methods
+with its stream registration in `sregs`, the stream chain `[ims, is]`'s contracts:
+`etcd_watch_served_chain`'s; per-type stage B3: the runs borrow from the server's built pools and
+run pool, `srvRevokeBuilt`, `srvRunPool`, with the levels `srvLevels`) give the right to serve `gs`
+on `lis` as some server `γ`, etcd's KV methods
 at `addr` (`kvRegs`, the server's request names' read names `γr`), and the watch server's facts at `addr` (`watchAddrFacts V`), given the wire's and the
 packages' facts `watchAddrFacts` lists beyond the stream's. With `clientv3.New`'s result at `addr`
 these are what `cache_end_to_end_new` takes (and `isServerRead`, `sortNamesOk`, `kvAnyAu`). Under
 `grpcRepliesFit` (`grpc.start`'s, 2026-10-31). -/
-theorem etcd_cache_served (V : client.WEnv GF) (addr : GoString)
+theorem etcd_cache_served [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    (V : client.WEnv GF) (addr : GoString)
     (gs q p pw s : Loc) (lis : GoInterface) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
     (cid mid n : w64) (il im iu ims is : GoFunc) (svcs : List GoString)
-    (regs sregs : List (GoString × val × GoInterface)) (N nw : Nat)
-    (hregs : ∀ x ∈ v3rpc.kvRegs q, x ∈ regs) (hV : V.addr = addr) (hE : V.R.E = E)
+    (regs sregs : List (GoString × GoFunc × GoInterface))
+    (hregs : ∀ x ∈ v3rpc.kvRegs q, x ∈ regs) (hnd : ((regs ++ sregs).map Prod.fst).Nodup)
+    (hV : V.addr = addr) (hE : V.R.E = E) (hs : V.R.s = s) (hγ : V.W.γm = V.R.E.γ)
+    (Htb : threadBound GF ≤ Int.toNat sync.rwmutex.actualMaxReaders) (HL : srvLevels (GF := GF))
     (hp : V.pfx ≠ []) (hrd : ρ.rd = γr)
     (hset : go.typeSetContains
       (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty)
       go_etcd_io.etcd.api.v3.etcdserverpb.WatchServer.ty = true)
-    (hwreg : (go!"/etcdserverpb.Watch/Watch", (@! go_etcd_io.etcd.api.v3.etcdserverpb._Watch_Watch_Handler : val),
+    (hwreg : (go!"/etcdserverpb.Watch/Watch",
+      (functions go_etcd_io.etcd.api.v3.etcdserverpb._Watch_Watch_Handler [] : GoFunc),
       interface.mkOk (go.GoType.PointerType
         go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty) #pw) ∈ sregs)
-    -- (W3) the watch contract at the server's model
-    (hWM : V.WM = v3rpc.etcdModelOfServer V.R.E) (hWL : V.WL = client.srvWL V.R)
+    -- (W3) the watch contract at the server's model (R8, 2026-11-08: R7's restatement, the model at
+    -- the server's names and mode off, the watched logs the server's watch facts' `histLb`)
+    (hWM : V.WM = v3rpc.etcdModelOfServer V.R.E γr false) (hWL : V.WL = client.srvWL V.W)
+    (hH : V.W.histLb = srvApi.histLb γr false V.R.E.γs)
     (Hrf : grpcRepliesFit) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -261,34 +270,32 @@ theorem etcd_cache_served (V : client.WEnv GF) (addr : GoString)
         (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk im iprop(True) Q) ∗
         srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
         grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis addr ∗
-        ([∗list] _x ∈ List.replicate N (), client.etcdGrpcSlot s E γr) ∗
-        v3rpc.isWatchServer pw V.R ∗ srvStreamInterceptorOk ims iprop(True) ∗
-        srvStreamInterceptorOk is iprop(True) ∗
-        ([∗list] _x ∈ List.replicate nw (), v3rpc.watchRunSlot V.R) ∗
+        srvRevokeBuilt s E ∗ srvRunPool s E γr ∗
+        v3rpc.isWatchServer pw V.R ∗ v3rpc.srvWOk V.W V.R.wsl v3rpc.wsN ∗
+        srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorOk is iprop(True) ∗
         client.srvKVFacts V ∗ client.eofOk ∗
         -- (watches across a compaction, 2026-11-01; until then `hoff : V.R.E.γ.cm = false`) the
-        -- store's fact for watches: it does not compact (`isWatchServer_watchNoDup_env`), or no
-        -- revision writes a key twice
-        mvcc.watchNoDup V.R.E.γ ⊢
-      |={⊤}=> grpcServeTok gs lis ∗
+        -- watch condition (R8, 2026-11-08: R7's restatement, `v3rpc.srvOnce`, in place of the
+        -- store's `mvcc.watchNoDup`)
+        v3rpc.srvOnce V.W ⊢
+      |={⊤}=> ∃ γ : GName, grpcServeTok gs lis γ ∗
         client.kvRegs (client.srvsAt [addr] E γr cid mid) ∗ watchAddrFacts V := by
-  iintro ⟨#Pv, #Ps, #Ppb, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hgs, Hlis, Hslots,
-    #Hws, #Hims, #His, Hwslots, #Hkf, #Heof, #HwnD⟩
-  imod (client.etcd_kv_started addr gs q p s lis E ρ γr cid mid n il im iu ims is svcs regs sregs N
-    hregs Hrf hrd) $$ [Hgs Hlis Hslots] with ⟨Htok', Hss, #Hput, #Hrange, #Hdel, #Htxn, #Hcmp⟩
+  have := v3rpc.srvWOk_persistent (mvcc.api.mvccApi_persistent_law_holds (GF := GF)) V.W V.R.wsl
+    v3rpc.wsN
+  iintro ⟨#Pv, #Ps, #Ppb, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hgs, Hlis, #Hb, #Hrp,
+    #Hws, #HWok, #Hims, #His, #Hkf, #Heof, #Honce⟩
+  imod (client.etcd_kv_started addr gs q p s lis E ρ γr cid mid n il im iu ims is svcs regs sregs
+    hregs Hrf hnd hrd HL) $$ [Hgs Hlis]
+    with ⟨%γ, Htok', #Hss, #Hput, #Hrange, #Hdel, #Htxn, #Hcmp⟩
   · iframe; iframe #
-  imod (v3rpc.etcd_watch_served_chain addr pw V.R ims is sregs nw hset hwreg) $$ [Hss Hwslots]
-    with #Hst
-  · iframe; iframe #
-  ihave %Hlink := client.watchSrvLink_of_server pw V.R $$ Hws
-  ihave #Htok := client.watchTokPool_of_server pw V.R $$ Hws
-  ihave #Hnc : mvcc.watchNoDup V.R.γ.st $$ []
-  · rw [Hlink]; iexact HwnD
-  ihave #Hsm : client.srvLogsSmall V.R $$ []
-  · iapply client.srvLogsSmall_of_read V.R s γr Hlink
-    rw [hE]; iexact Hsrd
-  ihave #Hlaws := client.watchLaws_srv V hWM hWL Hlink $$ Hkf
+  subst hs hE
+  imod (v3rpc.etcd_watch_served_chain addr pw V.R V.W ims is sregs γ γr hγ Htb HL hset hwreg)
+    $$ [] with #Hst
+  · iframe #
+  ihave #HWl := client.srvWLaws_of_ok V.W V.R.wsl v3rpc.wsN $$ HWok
+  ihave #Hlaws := client.watchLaws_srv V false γr hWM hWL hH $$ HWl
   imodintro
+  iexists γ
   iframe Htok'
   isplitl []
   · iapply client.kvRegs_one
@@ -298,7 +305,7 @@ theorem etcd_cache_served (V : client.WEnv GF) (addr : GoString)
   unfold watchAddrFacts
   rw [hV]
   iframe #
-  ipureintro; exact ⟨Hlink, hp⟩
+  ipureintro; exact hp
 
 end cache_client
 

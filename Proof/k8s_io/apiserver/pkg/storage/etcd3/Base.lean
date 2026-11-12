@@ -9,9 +9,10 @@ every one needs an instance. The k8s, otel, grpc and klog packages are translate
 `k8s-apiserver` of `etc/goose.py`); the standard-library `encoding/base64`, `encoding/json`,
 `iter` and `path` are not translated by Perennial (`notes/perennial-changes.md`; `encoding/base64`'s instance is in its own `Base.lean`). Every fact is
 `True` but `etcd3`'s own (the compactor registry, `registryFact`, `RegistryDefs.lean`), the store's metrics package's (`metricsInit`: `ErrTransactionConflict`, which
-`txnError` returns for a failed comparison, holds some error) and `util/feature`'s
-(`featureInit`: `DefaultFeatureGate` holds a gate whose `Enabled` answers some `bool`; the gate is
-names-only, `component-base/featuregate`, and which features are on is the deployment's) and
+`txnError` returns for a failed comparison, holds `errors.New("transaction conflict")`) and `util/feature`'s
+(`featureInit`: its two variables hold one gate) and `features`' (`featuresInit`, sweep repairs 1,
+B5: the gate, its features registered, with `Enabled`'s and `Set(false)`'s specs,
+`k8sfeature.featureGateOk`; the gate is names-only, `component-base/featuregate`) and
 `storage/feature`'s (`checkerInit`: `CheckClient` on `DefaultFeatureSupportChecker`'s checker,
 which `etcd3.New` calls, returns; names-only, it starts goroutines that poll each endpoint's
 `Status`, reads; stated as the call's own WP, the variable's load included, since the interface
@@ -30,6 +31,8 @@ public import Proof.go_etcd_io.raft.v3.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
 public import Proof.encoding.base64.Base
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.RegistryDefs
+public import Proof.k8s_io.apiserver.pkg.util.feature.Gate
+public import Perennial.Proof.context.Base
 
 @[expose] public section
 
@@ -49,24 +52,56 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- The store's metrics package's fact: `ErrTransactionConflict` (`errors.New` at init) holds some
-error, for good. -/
+/-- The store's metrics package's fact: `ErrTransactionConflict` holds the error
+`errors.New("transaction conflict")` (`metrics.go:42` at the apiserver pin `9c4ec15b8038`), for
+good: a `*errorString` whose `Error()` returns that message. (Premise fixes 3, 2026-11-10: it was
+some error; `txnError`'s result must be one grpc's `status` accepts, `statusErrOk`, for
+`metrics.RecordEtcdRequest`.) -/
 abbrev metricsInit : IProp GF :=
-  iprop(∃ e : GoInterface,
-    globalAddr k8s_io.apiserver.pkg.storage.etcd3.metrics.ErrTransactionConflict ↦□ e)
+  EtcdGrove.errorsNewVar k8s_io.apiserver.pkg.storage.etcd3.metrics.ErrTransactionConflict
+    go!"transaction conflict"
 
-/-- `util/feature`'s fact: `DefaultFeatureGate` holds a feature gate whose `Enabled` answers some
-`bool` for any feature (see the file header). -/
+/-- `util/feature`'s fact: `DefaultMutableFeatureGate` and `DefaultFeatureGate` hold the same
+feature gate, for good (Go never writes the variables after). (Sweep repairs 1, B5: until then
+`DefaultFeatureGate`'s `Enabled` answered any `bool` for any feature, false of an unregistered one;
+the gate's specs are now `features`' fact, `featuresInit`.) -/
 abbrev featureInit : IProp GF :=
   iprop(∃ g : GoInterfaceOk,
-    globalAddr k8s_io.apiserver.pkg.util.feature.DefaultFeatureGate ↦□ GoInterface.ok g ∗
-    □ ∀ (f : val) (Φ : val → IProp GF), ▷ (∀ b : Bool, Φ #b) -∗
-      WP (App (Val #(methods g.ty go!"Enabled" g.v)) (Val f)) {{ Φ }})
+    globalAddr k8s_io.apiserver.pkg.util.feature.DefaultMutableFeatureGate ↦□ GoInterface.ok g ∗
+    globalAddr k8s_io.apiserver.pkg.util.feature.DefaultFeatureGate ↦□ GoInterface.ok g)
 
-/-- `storage/feature`'s fact: `CheckClient` on `DefaultFeatureSupportChecker`'s checker returns
-(see the file header). -/
+/-- `features`' fact (sweep repairs 1, B5): once its `init` registered its features with the
+default gate, `DefaultFeatureGate` holds a gate with the specs of `k8sfeature.featureGateOk`
+(`Enabled` of the queried features, `Set` of one to `false`). -/
+abbrev featuresInit : IProp GF :=
+  iprop(∃ g : GoInterfaceOk,
+    globalAddr k8s_io.apiserver.pkg.util.feature.DefaultFeatureGate ↦□ GoInterface.ok g ∗
+    EtcdGrove.k8sfeature.featureGateOk g)
+
+/-- **What `CheckClient` needs of its arguments** (sweep repairs 1, B5; revised after etcd-grove-81's
+attack, `/shared/tmp/81-b5-attack`): `cl` a `*kubernetes.Client` whose embedded `*clientv3.Client` `c'`
+holds, read-only, exactly the fields `CheckClient` relies on: the non-nil context `ctx` (`c.Ctx()`,
+which the per-endpoint goroutines wait on), the embedded `Maintenance`, a non-nil `*maintenance`
+(the goroutines call its `Status`), and the endpoints mutex `epMu`, non-nil (`Endpoints()` locks it).
+Read-only (`↦□`): no party can write them afterwards, so a struct copy or an owner that later sets
+`Maintenance` to nil cannot meet the guard (the attack's `maintnil` and `copy` cases, whose
+`CheckClient` crashes). A nil client, a typed-nil one, or a zero `clientv3.Client` does not meet it
+either (`notes/axiom-review/k8s-featureinit.md`). Producer: `New`'s client (`isNewClient_ctxOk`). -/
+def checkClientOk (ctx cl : val) : IProp GF :=
+  iprop(∃ (kc c' mp mu : Loc) (h cx : GoInterface),
+    ⌜cl = #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty) #kc) ∧
+      ctx = #cx ∧ cx ≠ GoInterface.nil ∧ mp ≠ null ∧ mu ≠ null⌝ ∗
+    kc ↦□ go_etcd_io.etcd.client.v3.kubernetes.Client.mk c' h ∗
+    structFieldRef go_etcd_io.etcd.client.v3.Client go!"ctx" c' ↦□ cx ∗
+    structFieldRef go_etcd_io.etcd.client.v3.Client go!"Maintenance" c' ↦□
+      (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.maintenance.ty) #mp : GoInterface) ∗
+    structFieldRef go_etcd_io.etcd.client.v3.Client go!"epMu" c' ↦□ mu)
+
+/-- `storage/feature`'s fact: `CheckClient` on `DefaultFeatureSupportChecker`'s checker returns,
+for a constructed client and its context (`checkClientOk`; see the file header). (Sweep repairs 1,
+B5: until then for any arguments, false of a nil client.) -/
 abbrev checkerInit : IProp GF :=
-  iprop(□ ∀ (ctx cl f : val) (Φ : val → IProp GF), ▷ Φ #() -∗
+  iprop(□ ∀ (ctx cl f : val) (Φ : val → IProp GF), checkClientOk ctx cl -∗ ▷ Φ #() -∗
     WP (App (App (App (App (Val (GoInstruction (MethodResolve
         k8s_io.apiserver.pkg.storage.feature.FeatureSupportChecker.ty go!"CheckClient")))
         (App (Val (GoInstruction (GoLoad k8s_io.apiserver.pkg.storage.feature.FeatureSupportChecker.ty)))
@@ -115,11 +150,20 @@ instance k8s_io_apimachinery_pkg_util_wait_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.wait :=
   build_get_is_pkg_init_wf
 
-instance k8s_io_apiserver_pkg_features_is_pkg_init_inst :
-    IsPkgInit (IProp GF) pkg_id.k8s_io.apiserver.pkg.features :=
+-- (version: moved from the cacher's Base, featuregate imports it)
+instance k8s_io_apimachinery_pkg_util_version_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.version :=
   define_is_pkg_init iprop(True)
-instance k8s_io_apiserver_pkg_features_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apiserver.pkg.features :=
+instance k8s_io_apimachinery_pkg_util_version_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.version :=
+  build_get_is_pkg_init_wf
+
+-- (pflag: names only, what featuregate's interfaces name)
+instance github_com_spf13_pflag_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.github_com.spf13.pflag :=
+  define_is_pkg_init iprop(True)
+instance github_com_spf13_pflag_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.github_com.spf13.pflag :=
   build_get_is_pkg_init_wf
 
 instance k8s_io_component_base_featuregate_is_pkg_init_inst :
@@ -134,6 +178,14 @@ instance k8s_io_apiserver_pkg_util_feature_is_pkg_init_inst :
   define_is_pkg_init featureInit
 instance k8s_io_apiserver_pkg_util_feature_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apiserver.pkg.util.feature :=
+  build_get_is_pkg_init_wf
+
+-- (sweep repairs 1, B5) after `util/feature`'s: `features` imports it
+instance k8s_io_apiserver_pkg_features_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.k8s_io.apiserver.pkg.features :=
+  define_is_pkg_init featuresInit
+instance k8s_io_apiserver_pkg_features_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apiserver.pkg.features :=
   build_get_is_pkg_init_wf
 
 instance k8s_io_apimachinery_pkg_types_is_pkg_init_inst :
@@ -340,6 +392,65 @@ instance k8s_io_apiserver_pkg_storage_etcd3_get_is_pkg_init_wf_inst [EtcdGrove.k
   build_get_is_pkg_init_wf
 
 end init
+
+section errs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+/-- **An `errors.New` error is one grpc's `status` accepts** (`statusErrOk`; premise fixes 3,
+2026-11-10): a `*errorString` is a leaf without `Is` or `GRPCStatus` (`EtcdGrove.ErrorStringLeaf`,
+of the method set goose emits), and its `Error()` returns its message. `metricsInit`'s
+`ErrTransactionConflict`, which `txnError` returns. -/
+theorem errorString_statusErrOk [EtcdGrove.ErrorStringLeaf] (x : Loc) (msg : GoString) :
+    (□ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
+      WP (App (Val #(methods (go.GoType.PointerType _root_.Perennial.errors.errorString.ty)
+        go!"Error" #x)) (Val #())) {{ Φ }}) ⊢
+    go_etcd_io.etcd.cache.v3.statusErrOk
+      (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) := by
+  obtain ⟨-, hl, hIs, hG⟩ := EtcdGrove.errorString_errLeaf x
+  iintro #Hm
+  unfold go_etcd_io.etcd.cache.v3.statusErrOk
+  iintro !> %e %he
+  cases he
+  isplitr
+  · iexists msg
+    unfold go_etcd_io.etcd.cache.v3.errorMsgIs
+    iexact Hm
+  isplitr
+  · ipureintro; exact hl
+  isplitr
+  rotate_left
+  · ipureintro; exact EtcdGrove.ErrorStringLeaf.noFormat
+  unfold go_etcd_io.etcd.cache.v3.grpcErrMethodsOk
+  isplitl
+  · iintro %h
+    simp only [hG] at h; cases h
+  · iintro %h
+    exact absurd h hIs
+
+/-- **The client's result error is one grpc's `status` accepts** (premise fixes 3): `nil` on
+success, `statusErrOk` on failure, as `Client.Get`'s, `OptimisticPut`'s and `OptimisticDelete`'s
+posts state it; the post is kept. -/
+theorem statusErrOk_split (err : GoInterface) (P Q : IProp GF) (c : Prop) :
+    ((⌜err = GoInterface.nil⌝ ∗ P) ∨
+      (⌜err ≠ GoInterface.nil⌝ ∗ ⌜c⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗ Q)) ⊢
+    go_etcd_io.etcd.cache.v3.statusErrOk err ∗
+      ((⌜err = GoInterface.nil⌝ ∗ P) ∨
+        (⌜err ≠ GoInterface.nil⌝ ∗ ⌜c⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗ Q)) := by
+  iintro (⟨%h, HP⟩ | ⟨%h, %hc, #Hs, HQ⟩)
+  · subst h
+    isplitr
+    · iapply go_etcd_io.etcd.cache.v3.statusErrOk_nil
+    · ileft; iframe HP; ipureintro; rfl
+  · iframe Hs
+    iright
+    isplitr; · ipureintro; exact h
+    isplitr; · ipureintro; exact hc
+    iframe HQ
+
+end errs
 
 end k8s_io.apiserver.pkg.storage.etcd3
 end Perennial

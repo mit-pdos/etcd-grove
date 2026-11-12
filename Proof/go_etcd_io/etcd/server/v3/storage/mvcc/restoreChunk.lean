@@ -29,8 +29,8 @@ theorem mvcc.restoreChunk.wp_proof
     (hUnm : proto.Unmarshal.spec (GF := GF) (hG := hG))
     (hTomb : mvcc.isTombstone.spec (GF := GF) (hG := hG)) :
     mvcc.restoreChunk.spec (GF := GF) (hG := hG) := by
-  intro lg kvc mp keys vals ents Rd Tok γ P R sent Q
-  wp_start as ⟨#Hpv, #Hrc, Htok, %Hnl, Hmp, #Hsp, Hprod, HQ, #Hob⟩
+  intro lg kvc mp keys vals ents Rd Tok γ P R sent Q M
+  wp_start as ⟨#Hpv, #Hrc, Htok, Hmp, #Hsp, Hprod, HQ, #Hob⟩
   iunfold mvcc.pairVals at Hpv
   icases Hpv with ⟨%kss, %vss, #Hks, #Hvs, %Hlens, #Hel⟩
   wp_auto
@@ -42,16 +42,16 @@ theorem mvcc.restoreChunk.wp_proof
   ihave %Hkl := ownSlice_len _ _ _ $$ Hks
   ihave IH : iprop(∃ (n k : w64) (kk : GoSlice) (new : List revKeyValue),
       "i" ∷ i_ptr ↦ n ∗ "Higo" ∷ igo ↦ k ∗ "key" ∷ key_ptr ↦ kk ∗
-      "Htok" ∷ Tok ∗ "Hmp" ∷ mp ↦$ (∅ : GMap GoString w64) ∗
+      "Htok" ∷ Tok ∗ "Hmp" ∷ mp ↦$ mvcc.ktlApply M (ents.take (sint.nat n)) ∗
       "Hprod" ∷ spscProducer γ (sent ++ new) ∗
       "HQ" ∷ ([∗list] j ↦ e ∈ ents.drop (sint.nat n), Q (sint.nat n + j) e) ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.nat n ≤ ents.length ∧ new.length = sint.nat n⌝)
       $$ [i Higo key Htok Hmp Hprod HQ]
   · iexists W64 0, _, _, []
     simp only [named, List.append_nil]
-    iframe i Higo key Htok Hmp Hprod
     rw [show sint.nat (W64 0) = 0 from rfl]
-    simp only [List.drop_zero, Nat.zero_add]
+    simp only [List.drop_zero, Nat.zero_add, List.take_zero, mvcc.ktlApply_nil]
+    iframe i Higo key Htok Hmp Hprod
     iframe HQ
     ipureintro; refine ⟨by decide, by simp, by simp⟩
   wp_for IH
@@ -90,59 +90,99 @@ theorem mvcc.restoreChunk.wp_proof
     wp_apply (hTomb ksl (mvcc.revBytes e.rev e.tomb) dqk) $$ [$Hkb] as Hkb
     ihave Htok := Hkback $$ Hkb
     rw [mvcc.isTomb_revBytes_self]
-    have Hl0 : e.kv.lease = W64 0 := Hnl e (List.mem_of_getElem? He)
-    -- every branch deletes the key from the empty map
-    ihave Hmp' : iprop(mp ↦$ (∅ : GMap GoString w64)) $$ [Hmp]
-    · iexact Hmp
+    have hstep : mvcc.ktlApply M (ents.take (sint.nat n + 1)) =
+        mvcc.ktlStep (mvcc.ktlApply M (ents.take (sint.nat n))) e := by
+      rw [List.take_succ, He]; exact mvcc.ktlApply_snoc _ _ _
     cases ht : e.tomb
-    · -- not a tombstone: no lease (`Hl0`), so `delete`
-      (try wp_auto)
-      try simp only [Hl0]
-      try simp only [decide_true, Bool.not_true]
+    · -- not a tombstone: the lease, if any, is recorded
       (try wp_auto)
       ihave Hkvp : iprop(«$r0_ptr» ↦ mvcc.kvMsgOf st ks' vs' uf sc e.kv) $$
           [Kstate KKey KCreateRevision KModRevision KVersion KValue KLease KunknownFields KsizeCache]
       · iapply (typedPointsto_combine _ _ _ Hpnn)
-        simp only [TypedPointsto.typedPointstoDef, mvcc.kvMsgOf, Hl0]
+        simp only [TypedPointsto.typedPointstoDef, mvcc.kvMsgOf]
         iframe
-      wp_apply (wp_mapDelete mp (∅ : GMap GoString w64) e.kv.key go.string
-        go_etcd_io.etcd.server.v3.lease.LeaseID.ty) $$ [$Hmp'] as Hmp
-      rw [GMap.delete_empty]
-      (try wp_auto)
-      -- the entry's restored form, and the protocol's `P` for it
-      have hdrop : ents.drop (sint.nat n) = e :: ents.drop (sint.nat n + 1) := by
-        rw [List.drop_eq_getElem_cons Hlt, (List.getElem?_eq_some_iff.1 He).2]
-      rw [hdrop]
-      icases (BigSepL.bigSepL_cons).1 $$ HQ with ⟨HQe, HQ⟩
-      ihave Hrkv : mvcc.rkvIs Rd ⟨ksl, «$r0_ptr», e.kv.key⟩ e $$ [Hkvp]
-      · iunfold mvcc.rkvIs
-        rw [ht]
-        iframe Hksl
-        isplitr
-        · ipureintro; rfl
-        iexists ks', vs', uf, st, sc
-        iframe Hkvp Hks' Hvs'
-      ihave HP := Hob $$ %(sint.nat n) %e %(revKeyValue.mk ksl «$r0_ptr» e.kv.key) %He HQe Hrkv
-      have hlenS : ((sent ++ new).length : Int) = (sent.length : Int) + (sint.nat n : Int) := by
-        rw [List.length_append, Hn.2.2]; push_cast; rfl
-      try simp only
-      ihave HP' : iprop(P (sent ++ new).length ⟨ksl, «$r0_ptr», e.kv.key⟩) $$ [HP]
-      · rw [hlenS]; iexact HP
-      wp_apply (wp_spsc_send γ kvc P R (sent ++ new) ⟨ksl, «$r0_ptr», e.kv.key⟩)
-        $$ [$Hsp $Hprod $HP'] as Hprod
-      wp_for_post
-      iframe
-      iexists n + W64 1, n, ksl, new ++ [⟨ksl, «$r0_ptr», e.kv.key⟩]
-      simp only [named, List.append_assoc]
-      have hn1 : sint.nat (n + W64 1) = sint.nat n + 1 := by word
-      rw [hn1]
-      iframe
-      isplitl [HQ]
-      · iapply (BigSepL.bigSepL_mono (fun {j _} _ => by
-          rw [show sint.nat n + 1 + j = sint.nat n + (j + 1) by omega])) $$ HQ
-      ipureintro
-      refine ⟨by word, by omega, ?_⟩
-      rw [List.length_append, Hn.2.2]; rfl
+      by_cases hl : e.kv.lease = W64 0
+      · simp only [hl, decide_true, Bool.not_true]
+        (try wp_auto)
+        wp_apply (wp_mapDelete mp _ e.kv.key go.string
+          go_etcd_io.etcd.server.v3.lease.LeaseID.ty) $$ [$Hmp] as Hmp
+        ihave Hmp : iprop(mp ↦$ mvcc.ktlApply M (ents.take (sint.nat n + 1))) $$ [Hmp]
+        · rw [hstep]; unfold mvcc.ktlStep; simp only [ht, hl, Bool.false_eq_true, ↓reduceIte, if_true, if_false]; iexact Hmp
+        (try wp_auto)
+        -- the entry's restored form, and the protocol's `P` for it
+        have hdrop : ents.drop (sint.nat n) = e :: ents.drop (sint.nat n + 1) := by
+          rw [List.drop_eq_getElem_cons Hlt, (List.getElem?_eq_some_iff.1 He).2]
+        rw [hdrop]
+        icases (BigSepL.bigSepL_cons).1 $$ HQ with ⟨HQe, HQ⟩
+        ihave Hrkv : mvcc.rkvIs Rd ⟨ksl, «$r0_ptr», e.kv.key⟩ e $$ [Hkvp]
+        · iunfold mvcc.rkvIs
+          rw [ht]
+          iframe Hksl
+          isplitr
+          · ipureintro; rfl
+          iexists ks', vs', uf, st, sc
+          iframe Hkvp Hks' Hvs'
+        ihave HP := Hob $$ %(sint.nat n) %e %(revKeyValue.mk ksl «$r0_ptr» e.kv.key) %He HQe Hrkv
+        have hlenS : ((sent ++ new).length : Int) = (sent.length : Int) + (sint.nat n : Int) := by
+          rw [List.length_append, Hn.2.2]; push_cast; rfl
+        try simp only
+        ihave HP' : iprop(P (sent ++ new).length ⟨ksl, «$r0_ptr», e.kv.key⟩) $$ [HP]
+        · rw [hlenS]; iexact HP
+        wp_apply (wp_spsc_send γ kvc P R (sent ++ new) ⟨ksl, «$r0_ptr», e.kv.key⟩)
+          $$ [$Hsp $Hprod $HP'] as Hprod
+        wp_for_post
+        iframe
+        iexists n + W64 1, n, ksl, new ++ [⟨ksl, «$r0_ptr», e.kv.key⟩]
+        simp only [named, List.append_assoc]
+        have hn1 : sint.nat (n + W64 1) = sint.nat n + 1 := by word
+        rw [hn1]
+        iframe
+        isplitl [HQ]
+        · iapply (BigSepL.bigSepL_mono (fun {j _} _ => by
+            rw [show sint.nat n + 1 + j = sint.nat n + (j + 1) by omega])) $$ HQ
+        ipureintro
+        refine ⟨by word, by omega, ?_⟩
+        rw [List.length_append, Hn.2.2]; rfl
+      · simp only [hl, decide_false, Bool.not_false]
+        (try wp_auto)
+        wp_apply (wp_mapInsert go.string mp _ e.kv.key e.kv.lease) $$ [$Hmp] as Hmp
+        ihave Hmp : iprop(mp ↦$ mvcc.ktlApply M (ents.take (sint.nat n + 1))) $$ [Hmp]
+        · rw [hstep]; unfold mvcc.ktlStep; simp only [ht, hl, Bool.false_eq_true, ↓reduceIte, if_true, if_false]; iexact Hmp
+        (try wp_auto)
+        -- the entry's restored form, and the protocol's `P` for it
+        have hdrop : ents.drop (sint.nat n) = e :: ents.drop (sint.nat n + 1) := by
+          rw [List.drop_eq_getElem_cons Hlt, (List.getElem?_eq_some_iff.1 He).2]
+        rw [hdrop]
+        icases (BigSepL.bigSepL_cons).1 $$ HQ with ⟨HQe, HQ⟩
+        ihave Hrkv : mvcc.rkvIs Rd ⟨ksl, «$r0_ptr», e.kv.key⟩ e $$ [Hkvp]
+        · iunfold mvcc.rkvIs
+          rw [ht]
+          iframe Hksl
+          isplitr
+          · ipureintro; rfl
+          iexists ks', vs', uf, st, sc
+          iframe Hkvp Hks' Hvs'
+        ihave HP := Hob $$ %(sint.nat n) %e %(revKeyValue.mk ksl «$r0_ptr» e.kv.key) %He HQe Hrkv
+        have hlenS : ((sent ++ new).length : Int) = (sent.length : Int) + (sint.nat n : Int) := by
+          rw [List.length_append, Hn.2.2]; push_cast; rfl
+        try simp only
+        ihave HP' : iprop(P (sent ++ new).length ⟨ksl, «$r0_ptr», e.kv.key⟩) $$ [HP]
+        · rw [hlenS]; iexact HP
+        wp_apply (wp_spsc_send γ kvc P R (sent ++ new) ⟨ksl, «$r0_ptr», e.kv.key⟩)
+          $$ [$Hsp $Hprod $HP'] as Hprod
+        wp_for_post
+        iframe
+        iexists n + W64 1, n, ksl, new ++ [⟨ksl, «$r0_ptr», e.kv.key⟩]
+        simp only [named, List.append_assoc]
+        have hn1 : sint.nat (n + W64 1) = sint.nat n + 1 := by word
+        rw [hn1]
+        iframe
+        isplitl [HQ]
+        · iapply (BigSepL.bigSepL_mono (fun {j _} _ => by
+            rw [show sint.nat n + 1 + j = sint.nat n + (j + 1) by omega])) $$ HQ
+        ipureintro
+        refine ⟨by word, by omega, ?_⟩
+        rw [List.length_append, Hn.2.2]; rfl
     · -- a tombstone: `delete`
       ihave Hkvp : iprop(«$r0_ptr» ↦ mvcc.kvMsgOf st ks' vs' uf sc e.kv) $$
           [Kstate KKey KCreateRevision KModRevision KVersion KValue KLease KunknownFields KsizeCache]
@@ -150,9 +190,10 @@ theorem mvcc.restoreChunk.wp_proof
         simp only [TypedPointsto.typedPointstoDef, mvcc.kvMsgOf]
         iframe
       (try wp_auto)
-      wp_apply (wp_mapDelete mp (∅ : GMap GoString w64) e.kv.key go.string
-        go_etcd_io.etcd.server.v3.lease.LeaseID.ty) $$ [$Hmp'] as Hmp
-      rw [GMap.delete_empty]
+      wp_apply (wp_mapDelete mp _ e.kv.key go.string
+        go_etcd_io.etcd.server.v3.lease.LeaseID.ty) $$ [$Hmp] as Hmp
+      ihave Hmp : iprop(mp ↦$ mvcc.ktlApply M (ents.take (sint.nat n + 1))) $$ [Hmp]
+      · rw [hstep]; unfold mvcc.ktlStep; simp only [ht, ↓reduceIte]; iexact Hmp
       (try wp_auto)
       -- the entry's restored form, and the protocol's `P` for it
       have hdrop : ents.drop (sint.nat n) = e :: ents.drop (sint.nat n + 1) := by
@@ -193,6 +234,7 @@ theorem mvcc.restoreChunk.wp_proof
       have := Hkl.1; rw [hlen1] at this; word
     (try wp_for_post)
     iapply HΦ
+    rw [List.take_of_length_le (by omega : ents.length ≤ sint.nat n)]
     iframe Htok Hmp
     iexists new
     iframe Hprod

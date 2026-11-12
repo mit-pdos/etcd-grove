@@ -52,7 +52,7 @@ def leaseRevokedResp (E : apply.AEnv GF) (resp : Loc) : IProp GF :=
   iprop(∃ (h : Loc) (rv : w64),
     structFieldRef etcdserverpb.LeaseRevokeResponse go!"Header" resp ↦□ h ∗
     structFieldRef etcdserverpb.ResponseHeader go!"Revision" h ↦□ rv ∗ ⌜rv ≠ W64 0⌝ ∗
-    srvRevLb E.γ (sint.Z rv) ∗
+    srvRevLb E (sint.Z rv) ∗
     txn.respHdrOwn (structFieldRef etcdserverpb.LeaseRevokeResponse go!"Header" resp))
 
 end defs

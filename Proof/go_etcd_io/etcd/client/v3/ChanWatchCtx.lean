@@ -101,6 +101,7 @@ theorem isCtxErr_of_canceled (e : GoInterface) :
 header), at a fresh Done cell; the channel's proposition `True` (a stop channel's). -/
 theorem chanCtx_watch (wp_Done : wait.channelContext.Done.spec (GF := GF) (hG := hG))
     (wp_Err : wait.channelContext.Err.spec (GF := GF) (hG := hG))
+    (wp_Value : wait.channelContext.Value.spec (GF := GF) (hG := hG))
     (sc : GoChan) (γs : ChanNames) (γi : BroadcastInternalNames) :
     isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.wait ∗
       isBroadcastChanInternal sc γs γi iprop(True) ⊢ |==> ∃ γdn : GName,
@@ -125,6 +126,7 @@ theorem chanCtx_watch (wp_Done : wait.channelContext.Done.spec (GF := GF) (hG :=
     · itrivial
   ihave #HD := _root_.Perennial.context.isContextDone_of_broadcast ⟨γdn, γi.doneGn⟩ iprop(True)
     sc γs $$ Hd Hbc
+  ihave #HoC := chanCtx_outgoingCtxOkC wp_Value sc $$ Pw
   imodintro
   unfold context.watchCtx
   isplitr
@@ -134,6 +136,7 @@ theorem chanCtx_watch (wp_Done : wait.channelContext.Done.spec (GF := GF) (hG :=
     inext
     iintro -
     iapply HΦ $$ HD
+  isplitr
   · iintro %cl !> %Φ Hcl HΦ
     iapply (wp_Err sc γs γi iprop(True) cl) $$ [Hcl]
     · iframe Pw Hint
@@ -165,6 +168,7 @@ theorem chanCtx_watch (wp_Done : wait.channelContext.Done.spec (GF := GF) (hG :=
           · imodintro; itrivial
           · iunfold _root_.Perennial.context.ContextClosed; iexact Hdn
       · rw [ite_eq_right_of_eq_false _ _ (eq_false Hne)]; iexact Hce
+  · iexact HoC
 
 end proofs
 

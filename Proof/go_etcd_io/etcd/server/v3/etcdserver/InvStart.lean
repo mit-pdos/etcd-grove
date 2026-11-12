@@ -81,8 +81,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **`isServer`'s fields but `w`** (persistent): `srvFieldsAt` without `s.w` (which `start` sets). -/
 def srvFieldsBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (v : SrvFields) : IProp GF :=
-  iprop(srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
-      ⌜E.P = batchLockInv γ TM ∧ E.f = v.hook⌝ ∗ ⌜srvEnvOk s γ ci E v.cluster⌝ ∗
+  iprop(srvLgAddr s ↦□ v.lg ∗ zapLoggerOk v.lg ∗
+      ⌜E.Pk = (fun _ => batchLockInv γ TM) ∧ v.hook = #E.f ∧ E.f ≠ func.nil⌝ ∗ ⌜srvEnvOk s γ ci E v.cluster⌝ ∗
       hookSpec γ ci TM v.hook ∗
       srvLessorAddr s ↦□ v.lessor ∗ lessorOk E.lg E.authMode.isOn v.lessor ∗
       srvFirstCommitAddr s ↦□ v.firstCommit ∗ srvAlarmStoreAddr s ↦□ v.alarmStore ∗
@@ -125,18 +125,13 @@ instance srvReqBuilt_persistent (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v
 /-- **`isServerRead`'s fields but `read`, `applyWait`, `leaderChanged`, `stopping`** (persistent;
 `srvReadFieldsAt` without them and without the indices' invariants). -/
 def srvReadBuilt (s : Loc) (E : apply.AEnv GF) (v : ReadFields) : IProp GF :=
-  iprop(srvKVAddr s ↦□ v.kv ∗ txn.isKV v.kv E.s E.γ ∗
-    E.s.[go_etcd_io.etcd.server.v3.storage.mvcc.store, go!"ReadView"] ↦□
-      (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.readView.ty)
-        #v.rv : GoInterface) ∗
-    mvcc.isReadView v.rv E.s E.γ ∗
-    srvLessorAddr s ↦□ v.lessor ∗ apply.isApplyLessor v.lessor E.s E.γ E.P E.f E.RO E.RW ∗
-    srvAuthStoreAddr s ↦□ v.auth ∗ apply.isAuthStore v.auth E.γ E.P E.f E.RD E.authMode E.RW ∗
-    srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
+  iprop(srvKVAddr s ↦□ v.kv ∗ □ mvcc.api.isMvcc v.kv E.γ ∗ ⌜v.kv = E.kv⌝ ∗
+    srvLessorAddr s ↦□ v.lessor ∗ apply.isApplyLessor v.lessor E.γ E.Pk E.f E.BkTie E.RO E.RW ∗
+    srvAuthStoreAddr s ↦□ v.auth ∗ apply.isAuthStore v.auth E.Pk E.f E.BkTie E.RD E.authMode E.RW ∗
+    srvLgAddr s ↦□ v.lg ∗ zapLoggerOk v.lg ∗
     srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ v.wad ∗
     inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗
-    storeSmall E.γ ∗
-    (∃ log₀ : mvcc.Log, mvcc.idxCert E.γ.idx log₀ ∗
+    (∃ log₀ : mvcc.Log, srvApi.kvLogLb E.γs log₀ ∗
       ⌜2 ≤ log₀.length ∧ mvcc.LogPutsLe etcdKeyMax log₀⌝) ∗
     srvFirstCommitAddr s ↦□ v.fc)
 
@@ -217,11 +212,11 @@ def applyBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : app
     (γr : ReadNames) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV) : IProp GF :=
   iprop(∃ (st₀ : ApplyState) (a t : w64) (f : Bool),
     applyThread γ st₀ ∗ ⌜loopOk γ st₀ ai₀ ∧ c₀ = ciEff γ st₀.k⌝ ∗ applyBackend γ ci b ∗
-    ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ srvBeOwn s E ∗
+    ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvBeOwn s E ∗
     (∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗ apply.applyKV E ua x₀) ∗
     revAuth E x₀.log ∗ srvAuthApplyRes s E ∗
     -- (2026-11-04, the lease-expiry plan's step 2) the lessor's range deleter (`srvApplyKV`'s)
-    lease.rdAt E.γ.leases E.s ∗
+    (∃ rd : GoFunc, lease.rdOwn (mvcc.api.mvccLeases E.γ) rd ∗ mvcc.api.mvccDeleter rd E.γ) ∗
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRun γr ai₀ c₀ [] x₀ ∗ srvRest E γr [] ∗
     srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f)
 
@@ -395,14 +390,14 @@ theorem replicate_map (P Q R : IProp GF) [Persistent R] (M : Nat) (h : R ∗ P �
 zero `wg` and `wgMu`, and the fields the protocol reads, the protocol (`srvGoAttachOk`), the
 closer's token (`run`'s shutdown's) and the reader slots of `wgMu`. -/
 theorem goAttach_init (s ch : Loc) (γch : ChanNames) (c : GoInterface) (l : Loc)
-    (hbound : 2 * threadBound GF ≤ 2 ^ 31) (hl : l ≠ null) :
+    (hbound : 2 * threadBound GF ≤ 2 ^ 31) :
     ⊢ srvStoppingAddr' s ↦□ ch -∗ ownStopChan ch γch iprop(True) .Pending -∗
       srvWgAddr s ↦ (zero_val sync.WaitGroup) -∗ srvWgMuAddr s ↦ (zero_val sync.RWMutex) -∗
-      srvCtxAddr s ↦□ c -∗ srvLgAddr s ↦□ l -∗ raftPool (srvLgReader s) ={⊤}=∗
+      srvCtxAddr s ↦□ c -∗ srvLgAddr s ↦□ l -∗ zapLoggerOk l -∗ raftPool (srvLgReader s) ={⊤}=∗
       ∃ γ : GoNames, srvGoAttachOk s γ ∗ token γ.close ∗
         [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           srvWgReaderAt s γ := by
-  iintro #Hchf Hch Hwg HwgMu #Hctx #Hlg #HrP
+  iintro #Hchf Hch Hwg HwgMu #Hctx #Hlg #Hlz #HrP
   unfold ownStopChan
   icases Hch with ⟨%γchi, #Hint, Hflag⟩
   imod sync.init_WaitGroup goAttachWGN (srvWgAddr s) $$ Hwg with ⟨%γwg, #Hiswg, Hctr, Hwait⟩
@@ -440,8 +435,6 @@ theorem goAttach_init (s ch : Loc) (γch : ChanNames) (c : GoInterface) (l : Loc
   · iunfold srvGoAttachOk
     iexists ch, c
     iframe #
-    isplitr
-    · ipureintro; exact hl
     ipureintro; exact hbound
   imodintro
   iexists γ

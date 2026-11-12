@@ -26,19 +26,18 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) (hG := hG)) :
     mvcc.store.Read.spec (GF := GF) (hG := hG) := by
-  intro s γ mode trace m log₀ te clb Z oa
-  wp_start as ⟨#Hs, Hrd, #HZ, Hmine, #Hc0, #Hclb, %Htrnn, Htrc, HoA⟩
-  ihave Htrc : iprop(∃ te' : Bool, traceutil.ownTrace trace te') $$ [Htrc]
-  · iexists te; iexact Htrc
+  intro s γ mode trace m log₀ te clb Z oa F
+  wp_start as ⟨#Hs, Hrd, #HZ, Hmine, #Hc0, #Hclb, %Htrnn, Htrc, HoA, Hcb⟩
   iunfold mvcc.idxCert at Hc0
   icases Hc0 with ⟨-, -, #Hl0, -⟩
   ihave #Hs0 : mvcc.isStore s γ $$ []
   · iexact Hs
   iunfold mvcc.isStore at Hs
   iNamed Hs
+  wp_auto_lc 1
+  imod (lc_fupd_elim_later (E := ⊤) (P := mvcc.storeReaderC s γ)) $$ Hlc1 Hrd with Hrd
   iunfold mvcc.storeReaderC at Hrd
   iNamedSuffix Hrd "R"
-  (try wp_auto)
   -- `s.mu.RLock()`: its part of `s.mu`'s resource, at the compaction revision `cm`, at or above
   -- the caller's lower bound
   wp_apply +noauto sync.RWMutex.wp_RLock $$ [$HmuR] as ⟨Hmul, HmuP⟩
@@ -76,6 +75,9 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
   iunfold mvcc.revMuBody at HP
   icases HP with ⟨%log, %ntok, %c, HP⟩
   iNamed HP
+  -- the caller's read callback, with `s.revMu`'s slot at the log read
+  iunfold mvcc.readCbC at Hcb
+  imod Hcb $$ %_ %log %c HX with ⟨HX, HF⟩
   icases mvcc.logLent_agree γ.idx _ log oa $$ [$Hlog $HoA] with ⟨Hlog, HoA, %HoaL⟩
   ihave %Hcc := mvcc.crevUB_agree γ.idx _ _ cm c HcM Hc.1 $$ HcrevM Hcrev
   subst Hcc
@@ -119,13 +121,13 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
     · iunfold mvcc.bucketViewL; iexists m0; iframe Hbucket; iexact Hbl
     (try wp_auto)
     -- `s.revMu.RUnlock()`
-    wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrevl Hrev Hbucket Hclog Hcert Htoks Hlog Hcmp Hcrev HrstR]
+    wp_apply +noauto sync.RWMutex.wp_RUnlock $$ [$Hrevl Hrev Hbucket Hclog Hcert Htoks Hlog Hcmp Hcrev HX HrstR]
       as HrevMuR
     · inext
       iapply mvcc.revMuInv_close; iframe HrstR; iunfold mvcc.revMuBody
       iexists log, ntok, cm
       simp only [named]
-      iframe Hrev Hbucket Hclog Htoks Hlog Hcmp Hcrev
+      iframe Hrev Hbucket Hclog Htoks Hlog Hcmp Hcrev HX
       iframe #
       ipureintro; exact ⟨Hne, Hbudget, Hc⟩
     (try wp_auto)
@@ -155,13 +157,13 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
       ipureintro; simpa using Hcmt
     ihave Hmul : sync.ownRWMutexRLocked (mvcc.muAddr s) (mvcc.muInv s (γ.withPhys p)) $$ [Hmul]
     · rw [mvcc.muInv_withPhys]; iexact Hmul
-    ihave Hmuh : mvcc.muHeld s (γ.withPhys p) cm o.ti $$ [Hmul HcmpM HcrevM Hfs]
+    ihave Hmuh : mvcc.muHeld s (γ.withPhys p) cm o.ti $$ [Hmul HcmpM HcrevM HwcM Hfs]
     · iunfold mvcc.muHeld
       iframe Hmul
       isplitr [Hfs]
       · rw [mvcc.muInvAt_withPhys]
         iunfold mvcc.muInvAt
-        iframe HcmpM HcrevM
+        iframe HcmpM HcrevM HwcM
         iframe #
         ipureintro; exact HcM
       iexists o
@@ -172,16 +174,16 @@ theorem mvcc.store.Read.wp_proof (hNew : mvcc.newMetricsTxnRead.spec (GF := GF) 
     iStructNamedPrefix Htrw "W"
     iapply HΦ
     iexists log, (W64 ((log.length : Int) - 1)), cm
-    isplitr [Hmine HoA]
+    isplitr [Hmine HoA HF Htrc]
     rotate_left
-    · iframe Hmine Hlbc Hok HoA
+    · iframe Hmine Hlbc Hok HoA HF Htrc
       isplitr
       · iexact HpM
       ipureintro; exact ⟨⟨Hpre.2, by omega, Hclbc⟩, HoaL⟩
-    iunfold mvcc.isTxnRead
+    iunfold mvcc.isTxnReadT
     iexists p, trw, tr, o.ti, rt, (W64 0)
     simp only [named]
-    iframe Hmw HrevMuR HtiR WTxnRead Hmuh Htrc
+    iframe Hmw HrevMuR HtiR WTxnRead Hmuh
     isplitl []
     · iexact Hs0
     isplitl []
