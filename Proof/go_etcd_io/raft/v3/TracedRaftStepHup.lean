@@ -465,18 +465,18 @@ theorem ownStepGhost_termsLe (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64)
 pinned, the line fired (`trCapB_hookGate`: `phaseStepB_becomeCandidate`, `fxPres_timeout`), the family
 at the candidate's idle server. -/
 theorem lineF_becomeCandidate (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64)
-    (s : NState) (Λ : Option TraceEv → Prop) (htr : s.gh.tr = some γd) (hnl : s.role ≠ .leader)
+    (s : NState) (Λ : Option TraceEv → Prop) {bt : Bool} (htr : s.gh.tr = some γd) (hnl : s.role ≠ .leader)
     (hT : uint.Z s.term + 1 < traceNumBound) (hfit : receiptBound GF + γ.reBoot.length ≤ traceNumBound) :
-    lineF (GF := GF) γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) s.outbox ⊢
+    lineF (GF := GF) γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) bt s.outbox ⊢
       HookGate s.gh.tr r (NodeEvOf (W64 1) id (becomeCandidate id s) c)
-        (lineF γ md c r id s (fun C => SimIdleS C (becomeCandidate id s)) (stepLastEv Λ) s.outbox) := by
+        (lineF γ md c r id s (fun C => SimIdleS C (becomeCandidate id s)) (stepLastEv Λ) bt s.outbox) := by
   unfold lineF trFam
   rw [htr]
-  iintro ⟨Hgh, ⟨%bt, Hf⟩, %Hok⟩
+  iintro ⟨Hgh, ⟨%b0, -, Hf⟩, %Hok⟩
   iapply hookGate_fupd
   imod ownStepGhost_traceBound (GF := GF) γ md c id s hfit $$ Hgh with ⟨%Hb, Hgh⟩
-  icases trCapB_pinMem γd γ r id c bt _ _ $$ Hf with ⟨%C0, %cs0, %P0, %HΦ0, Hf⟩
-  icases trCapB_logger γd γ r id c bt _ _ $$ Hf with ⟨%tl, #Htl, Hf⟩
+  icases trCapB_pinMem γd γ r id c b0 _ _ $$ Hf with ⟨%C0, %cs0, %P0, %HΦ0, Hf⟩
+  icases trCapB_logger γd γ r id c b0 _ _ $$ Hf with ⟨%tl, #Htl, Hf⟩
   have hT63 : uint.Z s.term + 1 < 2 ^ 63 := by unfold traceNumBound at hT; omega
   have hTn : uint.nat (s.term + W64 1) < traceNumBound := by unfold traceNumBound at hT ⊢; word
   ihave #Hfx := fxPres_timeout (GF := GF) γ id (NodeEvOf (W64 1) id (becomeCandidate id s) c)
@@ -509,9 +509,10 @@ theorem lineF_becomeCandidate (γd : GName) (γ : RaftNames) (md : GMode) (c : C
     iframe Hgh
     isplitl [Hc]
     · iexists true
+      isplitr; · ipureintro; exact fun _ => rfl
       iapply trCapB_mono (some γd) γ r id c true _ _ _ (fun _ _ _ h => h.2.2.2) $$ Hc
     ipureintro; exact Hok
-  iapply trCapB_hookGate (some γd) γ r id c tl _ bt (PinAt s C0 cs0 P0 s.outbox) _ (stepLastEv Λ) (stepLastEv Λ)
+  iapply trCapB_hookGate (some γd) γ r id c tl _ b0 (PinAt s C0 cs0 P0 s.outbox) _ (stepLastEv Λ) (stepLastEv Λ)
     iprop(emp) (phaseStepB_becomeCandidate id c s s.outbox C0 cs0 P0 hnl hT63)
     (fun _ e he => by rw [nodeEvOf_name_candidate he]; rfl) (fun e _ => .inr rfl)
     (fun _ e he => nodeEvOf_ok (W64 1) id _ c e _ he (by decide) hTn Hb.1 Hb.2 (Nat.le_refl _))
@@ -524,14 +525,14 @@ pinned, the vote request's or the self-vote's line fired (`trCapB_hookGateOpt`: 
 `fxPres_plain`), the family at the outbox with the message. -/
 theorem lineF_campSend (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64)
     (s : NState) (Λ : Option TraceEv → Prop) (pvs : GMap w64 Progress) (y : w64) (cl : List w8) (o : List Msg)
-    (htr : s.gh.tr = some γd) (hy : y ∈ c.voters) (hlrn : c.learners = ∅)
+    {bt : Bool} (htr : s.gh.tr = some γd) (hy : y ∈ c.voters) (hlrn : c.learners = ∅)
     (hT : uint.Z s.term + 1 < traceNumBound) (hfit : receiptBound GF + γ.reBoot.length ≤ traceNumBound) :
-    lineF (GF := GF) γ md c r id s (fun C => SimIdleS C (becomeCandidate id s)) (stepLastEv Λ) o ⊢
+    lineF (GF := GF) γ md c r id s (fun C => SimIdleS C (becomeCandidate id s)) (stepLastEv Λ) bt o ⊢
       HookGateOpt s.gh.tr r
         (sendOutGate id { becomeCandidate id s with prvals := pvs } c
           (if y = id then vrespW32 false else vreqW32 false)
           [campMsg false id (s.term + W64 1) (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) cl y])
-        (lineF γ md c r id s (fun C => SimIdleS C (becomeCandidate id s)) (stepLastEv Λ)
+        (lineF γ md c r id s (fun C => SimIdleS C (becomeCandidate id s)) (stepLastEv Λ) bt
           (o ++ [campMsg false id (s.term + W64 1) (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents)) cl y])) := by
   have hgate : sendOutGate id { becomeCandidate id s with prvals := pvs } c
       (if y = id then vrespW32 false else vreqW32 false)
@@ -544,13 +545,13 @@ theorem lineF_campSend (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r
     split <;> decide
   unfold lineF trFam
   rw [htr, hgate]
-  iintro ⟨Hgh, ⟨%bt, Hf⟩, %Hok⟩
+  iintro ⟨Hgh, ⟨%b0, -, Hf⟩, %Hok⟩
   iapply hookGateOpt_fupd
   imod ownStepGhost_traceBound (GF := GF) γ md c id s hfit $$ Hgh with ⟨%Hb, Hgh⟩
   icases ownStepGhost_termsLe γ md c id s $$ Hgh with ⟨%Hterms, Hgh⟩
-  icases trCapB_out γd γ r id c bt _ _ $$ Hf with ⟨%Hout, Hf⟩
-  icases trCapB_pinMem γd γ r id c bt _ _ $$ Hf with ⟨%C0, %cs0, %P0, %HΦ0, Hf⟩
-  icases trCapB_logger γd γ r id c bt _ _ $$ Hf with ⟨%tl, #Htl, Hf⟩
+  icases trCapB_out γd γ r id c b0 _ _ $$ Hf with ⟨%Hout, Hf⟩
+  icases trCapB_pinMem γd γ r id c b0 _ _ $$ Hf with ⟨%C0, %cs0, %P0, %HΦ0, Hf⟩
+  icases trCapB_logger γd γ r id c b0 _ _ $$ Hf with ⟨%tl, #Htl, Hf⟩
   obtain ⟨⟨a0, -, -, hs0, -⟩, -⟩ := HΦ0.1
   have hwf : PlogWf (toPState s).base (toPState s).log := hs0.2.1
   have hlt : uint.Z (plogLast (toPState s).base (toPState s).log).term' ≤ uint.Z s.term :=
@@ -579,7 +580,7 @@ theorem lineF_campSend (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r
   obtain ⟨hq, hqr, he, hsrc, hdst, hterm, hvr⟩ := campMsg_abs C0 C0.length id _ y _ cl ma0 hma
   have hyin : y ∈ elements c.incoming :=
     mem_incoming_of c y hlrn Hout ((GMap.elem_of_union _ _ _).2 (.inl hy))
-  icases trCapB_pinPerm γd γ r id c bt _ _ C0 (fun _ _ _ h => h.1) $$ Hf with ⟨%hperm0, Hf⟩
+  icases trCapB_pinPerm γd γ r id c b0 _ _ C0 (fun _ _ _ h => h.1) $$ Hf with ⟨%hperm0, Hf⟩
   have hnlb : (becomeCandidate id s).role ≠ .leader := by simp [becomeCandidate]
   have hS1 : (fun C => SimIdleS C ({ becomeCandidate id s with prvals := pvs } : NState)) =
       (fun C => SimIdleS C (becomeCandidate id s)) :=
@@ -635,10 +636,11 @@ theorem lineF_campSend (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r
     iframe Hgh
     isplitl [Hc]
     · iexists true
+      isplitr; · ipureintro; exact fun _ => rfl
       iapply trCapB_mono (some γd) γ r id c true _ _ _ (fun _ _ _ h => h.2.2.2) $$ Hc
     ipureintro
-    exact outOk_snoc Hok hmok
-  iapply trCapB_hookGateOpt (some γd) γ r id c tl _ bt _ _ (stepLastEv Λ) (stepLastEv Λ) iprop(emp) hps
+    exact outOk_snocT Hok hmok hty
+  iapply trCapB_hookGateOpt (some γd) γ r id c tl _ b0 _ _ (stepLastEv Λ) (stepLastEv Λ) iprop(emp) hps
     (fun e he => sendEvOf_notBoot he hevt.1 hevt.2.1 hevt.2.2.2)
     (fun e _ => .inr rfl)
     (fun _ e he => sendEvOf_ok _ id _ c _ e _ he ⟨hevt.1, hevt.2.2.1⟩ hTn Hb.1 Hb.2 (hmok hty).1 (Nat.le_refl _))
@@ -649,17 +651,22 @@ theorem lineF_campSend (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r
 /-- **The closing wand's capability from a local path's family at another state's idle server** (`s1`,
 whose server part the end state `s'` has): `lineF_close` at the phase of `s1`. -/
 theorem lineF_closeAt (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s s1 s' : NState)
-    (Λ : Option TraceEv → Prop) (hS : ∀ C, SimIdleS C s1 = SimIdleS C s') :
-    lineF (GF := GF) γ md c r id s (fun C => SimIdleS C s1) Λ s'.outbox ⊢
-      |={⊤}=> ownStepGhost γ md c id s ∗ (∃ b : Bool, trCapB s.gh.tr γ r id c b (fun C => SimIdle C s') Λ) ∗
+    (Λ : Option TraceEv → Prop) (bt : Bool) (hS : ∀ C, SimIdleS C s1 = SimIdleS C s')
+    (hs : TrScope s → TrScope s') :
+    lineF (GF := GF) γ md c r id s (fun C => SimIdleS C s1) Λ bt s'.outbox ⊢
+      |={⊤}=> ownStepGhost γ md c id s ∗
+        (⌜OutTyStep s s'⌝ ∗ ∃ b : Bool, ⌜bt = true → b = true⌝ ∗
+          trCapB s.gh.tr γ r id c b (fun C => SimIdle C s') Λ) ∗
         ⌜OutTrStep s s'⌝ := by
   unfold lineF
-  iintro ⟨Hgh, ⟨%b, H⟩, %Hok⟩
+  iintro ⟨Hgh, ⟨%b, %hb, H⟩, %Hok⟩
   imod trFam_idle s.gh.tr γ r id c b s1 s' Λ hS $$ H with H
   imodintro
   iframe Hgh
   isplitl [H]
-  · iexists b; iexact H
+  · isplitr; · ipureintro; exact outTyStep_of_outOk Hok hs
+    iexists b; isplitr; · ipureintro; exact hb
+    iexact H
   ipureintro; exact outTrStep_of_outOk Hok
 
 /-- `LocalHup`'s resources: before the campaign's first line, the family at the idle server of `s`
@@ -669,10 +676,10 @@ from nothing done, `HupGuard` being exclusive); `False` where no path here goes.
 def hupR (bt : Bool) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (Λ : Option TraceEv → Prop) : StepG GF where
   G := trCapB s.gh.tr γ r id c bt (fun C => SimIdle C s) Λ
-  G0 := fun o => iprop(⌜o = s.outbox⌝ ∗ lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) o)
-  G1 := fun o => iprop(⌜o = s.outbox⌝ ∗ lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) o)
+  G0 := fun o => iprop(⌜o = s.outbox⌝ ∗ lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) bt o)
+  G1 := fun o => iprop(⌜o = s.outbox⌝ ∗ lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) bt o)
   GE := fun o => iprop(⌜HupCampaigns c id s⌝ ∗
-    lineF γ md c r id s (fun C => SimIdleS C (becomeCandidate id s)) (stepLastEv Λ) o)
+    lineF γ md c r id s (fun C => SimIdleS C (becomeCandidate id s)) (stepLastEv Λ) bt o)
   Gf := iprop(⌜False⌝)
   Gb1 := iprop(⌜False⌝)
   Gb2 := iprop(⌜False⌝)
@@ -693,7 +700,8 @@ theorem stepBundle_hup_R (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id 
       |={⊤}=> (hupR bt γ md c r id s Λ).G ∗
         stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s (hupR bt γ md c r id s Λ)) ∗
         stepClose γ md c id m ents ctx s (hupR bt γ md c r id s Λ)
-          (fun s' => iprop(∃ bt' : Bool, trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ))) := by
+          (fun s' => iprop(⌜OutTyStep s s'⌝ ∗ ∃ bt' : Bool, ⌜bt = true → bt' = true⌝ ∗
+            trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ))) := by
   have hnbf : ¬ PreBF m s := by
     unfold PreBF; rw [hT0]; intro h; have := h.1; simp at this
   have hpre : ∀ pvs, preState s m pvs = s := fun pvs => by simp [preState, hnbf]
@@ -731,7 +739,7 @@ theorem stepBundle_hup_R (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id 
         have hm1 : mtypeOf MsgHup = none := rfl
         simp only [hp, hm1] at hty'; cases hty'
       rw [hrg]
-      iapply hookGateOpt_mono s.gh.tr r none (lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) s.outbox)
+      iapply hookGateOpt_mono s.gh.tr r none (lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) bt s.outbox)
       isplitr [Hgh Hc]
       · iintro H; isplitr; · ipureintro; rfl
         iexact H
@@ -756,7 +764,7 @@ theorem stepBundle_hup_R (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id 
       isplitr
       · iintro %hc ⟨-, HG⟩
         iapply hookGate_mono s.gh.tr r _
-          (lineF γ md c r id s (fun C => SimIdleS C (becomeCandidate id s)) (stepLastEv Λ) s.outbox)
+          (lineF γ md c r id s (fun C => SimIdleS C (becomeCandidate id s)) (stepLastEv Λ) bt s.outbox)
         isplitr [HG]
         · iintro H; isplitr; · ipureintro; exact hc
           iexact H
@@ -765,7 +773,7 @@ theorem stepBundle_hup_R (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id 
       · imodintro
         iintro %pvs %y %o %hy ⟨%hc, HG⟩
         iapply hookGateOpt_mono s.gh.tr r _
-          (lineF γ md c r id s (fun C => SimIdleS C (becomeCandidate id s)) (stepLastEv Λ)
+          (lineF γ md c r id s (fun C => SimIdleS C (becomeCandidate id s)) (stepLastEv Λ) bt
             (o ++ [campMsg false id (s.term + W64 1) (plogLast s.logst.prev (s.logst.sents ++ s.logst.uents))
               (transferCtx campaignElection) y]))
         isplitr [HG]
@@ -833,7 +841,7 @@ theorem stepBundle_hup_R (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id 
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
       intro o o' h
       simp only
-      rw [lineF_permInv γ md c r id s _ _ o o' h]
+      rw [lineF_permInv γ md c r id s _ _ _ o o' h]
   · -- the closing wand: nothing done (`G0`, `G1`) or the campaign (`GE`), by `HupGuard`
     -- (slice 23a) a close at `s`
     iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_ne (nX _ hne.2.2.1))
@@ -846,11 +854,11 @@ theorem stepBundle_hup_R (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id 
     icases Hout with (⟨%ho, H⟩ | ⟨%ho, H⟩ | ⟨%hc, H⟩ | %hf | ⟨%b, %N, %hf⟩)
     · rcases hg with ⟨-, hss⟩ | ⟨-, pre, peers, pvs, cl, -, -, rfl⟩
       · subst s'
-        iapply lineF_close γ md c r id s s (stepLastEv Λ) (fun _ => rfl) $$ H
+        iapply lineF_close γ md c r id s s (stepLastEv Λ) bt (fun _ => rfl) (fun h => h) $$ H
       · exact absurd ho (campaignState_outbox_ne id s pre peers cl pvs)
     · rcases hg with ⟨-, hss⟩ | ⟨-, pre, peers, pvs, cl, -, -, rfl⟩
       · subst s'
-        iapply lineF_close γ md c r id s s (stepLastEv Λ) (fun _ => rfl) $$ H
+        iapply lineF_close γ md c r id s s (stepLastEv Λ) bt (fun _ => rfl) (fun h => h) $$ H
       · exact absurd ho (campaignState_outbox_ne id s pre peers cl pvs)
     · rcases hg with ⟨hnc, -⟩ | ⟨-, pre, peers, pvs, cl, hpp, -, rfl⟩
       · exact absurd hc hnc
@@ -863,7 +871,10 @@ theorem stepBundle_hup_R (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id 
         intro C
         rw [simIdleS_prvals_nl C _ pvs (by simp [campaignState, sendMsgs, becomeCandidate])]
         rfl
-      iapply lineF_closeAt γ md c r id s (becomeCandidate id s) _ (stepLastEv Λ) hS $$ H
+      have hsc : TrScope s → TrScope ({ campaignState id s false peers cl with prvals := pvs } : NState) := by
+        rintro ⟨-, h1, h2⟩
+        exact ⟨rfl, rfl, h2⟩
+      iapply lineF_closeAt γ md c r id s (becomeCandidate id s) _ (stepLastEv Λ) bt hS hsc $$ H
     · exact hf.elim
     · exact hf.elim
 
@@ -905,7 +916,10 @@ abbrev raft.tickElection.tracedTriple : Prop :=
       "%Hcm" ∷ ⌜uint.Z s.logst.committed ≤ uint.Z s'.logst.committed ∧
         PVoteLe (toPState s) (toPState s')⌝ ∗
       "%Htick" ∷ ⌜TickStep s s'⌝ ∗
-      "Hcap" ∷ ∃ bt' : Bool, trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ) }}
+      -- (2026-11-12, implementation step 2) the step's `OutTyStep` and the flag monotone (design N1)
+      "%Houtty" ∷ ⌜OutTyStep s s'⌝ ∗
+      "Hcap" ∷ ∃ bt' : Bool, ⌜bt = true → bt' = true⌝ ∗
+        trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ) }}
 
 /-- `raft.tickElection.spec`'s traced instance (see `raft.tickElection.tracedTriple`). -/
 theorem raft.tickElection.traced (h : raft.tickElection.spec (GF := GF) (hG := hG)) :
@@ -918,7 +932,8 @@ theorem raft.tickElection.traced (h : raft.tickElection.spec (GF := GF) (hG := h
     hb htr hpv (by unfold StepEndTy; simp [hb]) rfl hT hfit hlrn
     $$ [$Hcap $Hnosnap] with ⟨HG, Hgates, Hclose⟩
   iapply h c md γ r id s (hupR bt γ md c r id s Λ)
-    (fun s' => iprop(∃ bt' : Bool, trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ)))
+    (fun s' => iprop(⌜OutTyStep s s'⌝ ∗ ∃ bt' : Bool, ⌜bt = true → bt' = true⌝ ∗
+      trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ)))
     (by unfold traceNumBound at hT; omega) (fun h => by rw [hpv] at h; cases h) Hwf Hfla Hpc
     $$ [Hphys Hghost HG Hgates Hclose]
   · iframe Hinit Hphys Hghost HG Hgates Hclose
@@ -933,12 +948,15 @@ theorem raft.tickElection.traced (h : raft.tickElection.spec (GF := GF) (hG := h
   · ipureintro; exact Hcm
   isplitr
   · ipureintro; exact Htick
-  icases HG with (⟨%Hs, Hc⟩ | Hc)
+  icases HG with (⟨%Hs, Hc⟩ | ⟨%Hty, Hc⟩)
   · subst s'
     dsimp only [hupR]
+    isplitr; · ipureintro; exact OutTyStep.refl _
     iexists bt
+    isplitr; · ipureintro; exact fun h => h
     iapply trCapB_monoΛ s.gh.tr γ r id c bt _ Λ (stepLastEv Λ) (fun o h => .inl h) $$ Hc
-  · iexact Hc
+  · isplitr; · ipureintro; exact Hty
+    iexact Hc
 
 end gates
 

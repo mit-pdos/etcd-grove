@@ -80,6 +80,79 @@ theorem leadRespNA_end {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM}
       rw [simIdleS_readRespondAll]
       exact hX ms pvs hm C
 
+/-! ### (Implementation step 2) The scope through a response path -/
+
+/-- A replication send is an append or a snapshot, no read-index response. -/
+theorem replSends_ne_rir {id : w64} {s : NState} {ms : List Msg} (h : ReplSends id s ms) :
+    ∀ x ∈ ms, x.ty ≠ .readIndexResp := by
+  intro x hx
+  rcases (h x hx).1 with h' | h'
+  · rw [h'.1]; decide
+  · rw [h'.1]; decide
+
+theorem readonlyRecvAck_pending (r : ReadOnly) (src : w64) (ctx : List w8) :
+    (readonlyRecvAck r src ctx).pending = r.pending := by
+  unfold readonlyRecvAck; split <;> rfl
+
+/-- `maybeAdvance` with no request pending confirms none. -/
+theorem readonlyAdvance_nil (r : ReadOnly) (N : w64) (h : r.pending = []) :
+    (readonlyAdvance r N).2 = [] ∧ (readonlyAdvance r N).1.pending = [] := by
+  unfold readonlyAdvance; split
+  · exact ⟨rfl, h⟩
+  · simp [h]
+
+/-- The read path of a heartbeat response with no request pending: nothing answered. -/
+theorem readAck_idle (id : w64) (Y : NState) (src : w64) (ctx : List w8) (N : w64) (hY : TrScope Y) :
+    TrScope (readRespondAll id
+      { Y with rd := { Y.rd with ro := (readonlyAdvance (readonlyRecvAck Y.rd.ro src ctx) N).1 } }
+      (readonlyAdvance (readonlyRecvAck Y.rd.ro src ctx) N).2) ∧
+    (readRespondAll id
+      { Y with rd := { Y.rd with ro := (readonlyAdvance (readonlyRecvAck Y.rd.ro src ctx) N).1 } }
+      (readonlyAdvance (readonlyRecvAck Y.rd.ro src ctx) N).2).outbox = Y.outbox := by
+  have hpe : (readonlyRecvAck Y.rd.ro src ctx).pending = [] := by
+    rw [readonlyRecvAck_pending]; exact hY.2.1
+  obtain ⟨hq, hq1⟩ := readonlyAdvance_nil _ N hpe
+  rw [hq]
+  exact ⟨⟨hY.1, hq1, hY.2.2⟩, rfl⟩
+
+/-- **A response path's end state, in scope**: the scope kept and no read-index response queued (no
+read pending). -/
+theorem leadRespNA_scope {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
+    {s s' : NState} (hp : LeadRespNA s m) (h : StepFnEnd c id s m ents ctx s') :
+    TrScope s → TrScope s' ∧ ∀ x ∈ s'.outbox, x.ty = .readIndexResp → x ∈ s.outbox := by
+  intro hs
+  obtain ⟨-, hr, hty⟩ := hp
+  obtain ⟨d, hres⟩ := h.2.2 hr
+  have hX : ∀ (ms : List Msg) (pvs : GMap w64 Progress), ReplSends id s ms →
+      TrScope { sendMsgs s ms with prvals := pvs } ∧
+      ∀ x ∈ ({ sendMsgs s ms with prvals := pvs } : NState).outbox, x.ty = .readIndexResp → x ∈ s.outbox := by
+    intro ms pvs hrs
+    refine ⟨TrScope.congr rfl rfl rfl hs, fun x hx hxt => ?_⟩
+    simp only [sendMsgs, List.mem_append] at hx
+    rcases hx with hx | hx
+    · exact hx
+    · exact absurd hxt (replSends_ne_rir hrs x hx)
+  unfold LeaderStepResultC LeaderNonpropResultC at hres
+  rcases hty with ⟨ht, hrej⟩ | ht
+  · rw [ht] at hres
+    simp [MsgAppResp, MsgVoteResp, MsgProp, MsgBeat, MsgHeartbeatResp, MsgReadIndex, MsgForgetLeader,
+      MsgTimeoutNow, MsgUnreachable, MsgSnapStatus, MsgTransferLeader, MsgCheckQuorum, MsgApp, MsgHeartbeat,
+      MsgPreVoteResp, MsgReadIndexResp, hrej] at hres
+    rcases hres.2 with ⟨-, rfl⟩ | ⟨-, ms, pvs, rfl, hrs, -⟩
+    · exact ⟨hs, fun x hx _ => hx⟩
+    · exact hX ms pvs hrs
+  · rw [ht] at hres
+    simp [MsgAppResp, MsgVoteResp, MsgProp, MsgBeat, MsgHeartbeatResp, MsgReadIndex, MsgForgetLeader,
+      MsgTimeoutNow, MsgUnreachable, MsgSnapStatus, MsgTransferLeader, MsgCheckQuorum, MsgApp, MsgHeartbeat,
+      MsgPreVoteResp, MsgReadIndexResp] at hres
+    obtain ⟨-, ms, hrs, pvs, -, hres⟩ := hres
+    rcases hres with ⟨-, rfl⟩ | ⟨-, N, -, rfl⟩
+    · exact hX ms pvs hrs
+    · obtain ⟨h1, h2⟩ := hX ms pvs hrs
+      obtain ⟨h3, h4⟩ := readAck_idle id ({ sendMsgs s ms with prvals := pvs } : NState) m.From' ctx N h1
+      refine ⟨h3, fun x hx hxt => h2 x ?_ hxt⟩
+      rw [← h4]; exact hx
+
 end pure
 
 section bundle
@@ -96,8 +169,10 @@ def leadNAR (bt : Bool) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id :
     (tn : TraceNames) (cs0 : ServerC) (P0 : List Etcdraft.Msg) (Λ : Option TraceEv → Prop) (k : Nat)
     (ma : Etcdraft.Msg) (f : w64) : StepG GF where
   G := iprop(trCapB (some γd) γ r id c bt (IdlePin s tn.voters cs0 P0) Λ ∗ inFlight tn k ma)
-  G0 := fun o => iprop(⌜f ∈ elements c.incoming⌝ ∗ lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) o)
-  G1 := fun o => iprop(⌜f ∈ elements c.incoming⌝ ∗ lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) o)
+  G0 := fun o => iprop(⌜f ∈ elements c.incoming⌝ ∗
+    lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) bt (rirFilter o))
+  G1 := fun o => iprop(⌜f ∈ elements c.incoming⌝ ∗
+    lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) bt (rirFilter o))
   GE := fun _ => iprop(⌜False⌝)
   Gf := iprop(⌜False⌝)
   Gb1 := iprop(⌜False⌝)
@@ -110,22 +185,25 @@ def leadNAR (bt : Bool) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id :
 outbox of `s`, and the sender is a voter (`trCapB_pinPerm`). -/
 theorem lineF_of_leadPin (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (Λ : Option TraceEv → Prop) (C0 : List w64) (cs0 : ServerC) (P0 : List Etcdraft.Msg) (f : w64)
-    (htr : s.gh.tr = some γd) :
+    {bt : Bool} (htr : s.gh.tr = some γd) :
     (ownStepGhost γ md c id s ∗
         trCapB (some γd) γ r id c true (fun C cs P => IdlePin s C0 cs0 P0 C cs P ∧ f ∈ C)
           (fun o => o.isSome = true) : IProp GF) ⊢
-      ⌜f ∈ elements c.incoming⌝ ∗ lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) s.outbox := by
+      ⌜f ∈ elements c.incoming⌝ ∗ lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) bt
+        (rirFilter s.outbox) := by
   iintro ⟨Hgh, Hc⟩
   icases trCapB_pinPerm γd γ r id c true _ _ C0 (fun _ _ _ h => h.1.1) $$ Hc with ⟨%hperm, Hc⟩
   icases trCapB_pinMem γd γ r id c true _ _ $$ Hc with ⟨%C1, %cs1, %P1, %HΦ1, Hc⟩
   obtain ⟨⟨⟨hC1, -⟩, hf⟩, -⟩ := HΦ1
   isplitr
   · ipureintro; rw [hC1] at hf; exact hperm.mem_iff.2 hf
+  iapply lineF_filter
   unfold lineF trFam
   rw [htr]
   iframe Hgh
   isplitl [Hc]
   · iexists true
+    isplitr; · ipureintro; exact fun _ => rfl
     iapply trCapB_monoΛ (some γd) γ r id c true _ _ _ (fun o h => .inr h)
     iapply trCapB_mono (some γd) γ r id c true _ _ _
       (fun C cs P h => simIdle_phaseAt C s cs P h.2.2.2.1.2.2.2) $$ Hc
@@ -261,7 +339,8 @@ theorem stepBundle_traced_leadRespNA : stepBundle_traced.on (GF := GF) (hG := hG
           iapply hookGateOpt_frame
           isplitr
           · ipureintro; exact hf
-          iapply lineF_app γd γ md c r id s Λ mm o htr hrole hT hfit (by rw [hdst]; exact hf) hok' hcm
+          rw [rirFilter_snoc (by rw [hok'.1]; decide)]
+          iapply lineF_app γd γ md c r id s Λ mm (rirFilter o) htr hrole hT hfit (by rw [hdst]; exact hf) hok' hcm
             (by rw [hdst]; exact hmatch) hrh $$ HG
         isplitr
         · -- a confirmed read's response (untraced)
@@ -270,7 +349,7 @@ theorem stepBundle_traced_leadRespNA : stepBundle_traced.on (GF := GF) (hG := hG
           iapply hookGateOpt_frame
           isplitr
           · ipureintro; exact hf
-          iapply lineF_untraced γd γ md c r id s _ _ mm o htr (by rw [hmm]; rfl) $$ HG
+          iapply lineF_rir γd γ md c r id s _ _ bfl mm o htr hmm $$ HG
         isplitr
         · iintro %h; exact (hnAcc h).elim
         isplitr
@@ -287,10 +366,10 @@ theorem stepBundle_traced_leadRespNA : stepBundle_traced.on (GF := GF) (hG := hG
     iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_traced hmty htrd)
     iunfold stepCloseAt
     iintro %s' %B %recv %_ %hend %_ Hout
-    have hS : ∀ C, SimIdleS C s = SimIdleS C s' := by
-      obtain ⟨pvs, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
-      rw [hpre pvs] at h
-      exact leadRespNA_end hp h
+    obtain ⟨pvs, hfe⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
+    rw [hpre pvs] at hfe
+    have hS : ∀ C, SimIdleS C s = SimIdleS C s' := leadRespNA_end hp hfe
+    have hsc := leadRespNA_scope hp hfe
     unfold stepOut
     dsimp only [leadNAR]
     icases Hout with (H | H | %h | %h | ⟨%b, %N, %h⟩)
@@ -300,8 +379,9 @@ theorem stepBundle_traced_leadRespNA : stepBundle_traced.on (GF := GF) (hG := hG
     · exact h.elim
     all_goals
       icases H with ⟨-, H⟩
+      ihave H := lineF_unfilter γ md c r id s _ _ bfl s'.outbox (fun h => (hsc h).2) $$ H
       rw [← htr]
-      iapply lineF_close γ md c r id s s' (stepLastEv Λ) hS $$ H
+      iapply lineF_close γ md c r id s s' (stepLastEv Λ) bfl hS (fun h => (hsc h).1) $$ H
 
 end bundle
 

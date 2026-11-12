@@ -176,8 +176,11 @@ def AckTy (t : w32) : Prop := t = MsgStorageAppendResp ∨ t = MsgStorageApplyRe
 
 /-- (2026-11-11, slice 30c; slice 28n's design) **A storage acknowledgement's end state** (traced): the
 protocol reading unchanged (`stableTo`, `appliedTo`; no snapshot, no automatic leave at a traced node),
-the outbox with it. `StepEnd` says nothing of these types; the closing wand learns this instead. -/
-def AckEnd (m : MessageM) (s s' : NState) : Prop := AckTy m.Type' → toPState s' = toPState s
+the outbox with it. `StepEnd` says nothing of these types; the closing wand learns this instead.
+(2026-11-12, trace-check implementation step 2) And the leader transfer and the read state unchanged,
+which `toPState` does not read: the traced scope's (`TrScope`) through an acknowledgement. -/
+def AckEnd (m : MessageM) (s s' : NState) : Prop :=
+  AckTy m.Type' → toPState s' = toPState s ∧ s'.lt = s.lt ∧ s'.rd = s.rd
 
 theorem AckEnd.of_ty {m : MessageM} {s s' : NState} (h : ¬ AckTy m.Type') : AckEnd m s s' :=
   fun h' => absurd h' h

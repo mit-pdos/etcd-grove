@@ -436,6 +436,103 @@ macro "outtr_tac" : tactic => `(tactic| first
   | exact OutTrStep.of_none (by simp_all)
   | (apply OutTrStep.of_sub; intro _ hm; first | exact hm | simp_all))
 
+/-- (2026-11-12, trace-check design §3.6, implementation step 2) **No read-index request pending**: the
+read-only queue and the pending `MsgReadIndex` messages empty. A leader answers a read only from these
+(`readRespondAll` of `readonlyAdvance`'s confirmed requests, `releasePendingReadIndexMessages`), so a
+node in this state queues no `MsgReadIndexResp`; only a stepped `MsgReadIndex` fills them (`reset`
+empties the queue, nothing else adds to either). -/
+def ReadIdle (s : NState) : Prop := s.rd.ro.pending = [] ∧ s.rd.pend = []
+
+/-- **A traced node's scope** (design §3.6): no leader transfer in progress (`lt = 0`: no
+`MsgTimeoutNow`) and no read pending (`ReadIdle`: no `MsgReadIndexResp`). -/
+def TrScope (s : NState) : Prop := s.lt = W64 0 ∧ ReadIdle s
+
+/-- **A message a traced node may hand out** (design §3.6): of a traced type, or a forwarded proposal
+of normal entries (type `0`, `EntryNormal`, `InvRaftlog.lean`, which this module does not import). -/
+def TrOutMsg (m : Msg) : Prop :=
+  m.ty.traced = true ∨ (m.ty = .propose ∧ ∀ e ∈ m.entries, e.Type' = W32 0)
+
+/-- **A traced step in scope stays in scope and queues only `TrOutMsg`s** (design §3.6, A2): what
+`stepBundle_traced.statement`'s end resource records of the step; vacuous untraced or out of scope. -/
+def OutTyStep (s s' : NState) : Prop :=
+  s.gh.tr.isSome → TrScope s → TrScope s' ∧ ∀ m ∈ s'.outbox, m ∈ s.outbox ∨ TrOutMsg m
+
+theorem OutTyStep.of_none {s s' : NState} (h : s.gh.tr = none) : OutTyStep s s' := by
+  intro h'; rw [h] at h'; cases h'
+
+/-- A message of a traced type is a `TrOutMsg`. -/
+theorem TrOutMsg.of_traced {m : Msg} (h : m.ty.traced = true) : TrOutMsg m := .inl h
+
+/-- `TrScope` reads `lt` and the read state only. -/
+theorem TrScope.congr {s s' : NState} (hl : s'.lt = s.lt) (hr : s'.rd.ro.pending = s.rd.ro.pending)
+    (hp : s'.rd.pend = s.rd.pend) (h : TrScope s) : TrScope s' := by
+  obtain ⟨h1, h2, h3⟩ := h
+  exact ⟨hl.trans h1, hr.trans h2, hp.trans h3⟩
+
+/-- A step that keeps the scope's fields and the outbox's prefix, its new messages `TrOutMsg`s. -/
+theorem OutTyStep.of_app {s s' : NState} (ms : List Msg) (ho : s'.outbox = s.outbox ++ ms)
+    (hl : s'.lt = s.lt) (hr : s'.rd.ro.pending = s.rd.ro.pending) (hp : s'.rd.pend = s.rd.pend)
+    (hm : TrScope s → ∀ m ∈ ms, TrOutMsg m) : OutTyStep s s' := by
+  intro _ hs
+  refine ⟨TrScope.congr hl hr hp hs, fun m h => ?_⟩
+  rw [ho, List.mem_append] at h
+  rcases h with h | h
+  · exact .inl h
+  · exact .inr (hm hs m h)
+
+/-- `OutTyStep.of_app` with the scope's preservation given whole. -/
+theorem OutTyStep.of_app' {s s' : NState} (ms : List Msg) (ho : s'.outbox = s.outbox ++ ms)
+    (hs : TrScope s → TrScope s') (hm : TrScope s → ∀ m ∈ ms, TrOutMsg m) : OutTyStep s s' := by
+  intro _ h
+  refine ⟨hs h, fun m hm' => ?_⟩
+  rw [ho, List.mem_append] at hm'
+  rcases hm' with hm' | hm'
+  · exact .inl hm'
+  · exact .inr (hm h m hm')
+
+/-- (Implementation step 2) `OutTyStep s s'` at an end state `s'` that is `s`'s record updated, its outbox
+`s`'s with messages of traced types appended (a receive path's answer), `reset` or not. -/
+macro "outty_tac" : tactic => `(tactic| (
+  first
+  | refine OutTyStep.of_app' _ rfl ?_ ?_
+  | refine OutTyStep.of_app' [] (List.append_nil _).symm ?_ ?_
+  · first
+    | exact TrScope.congr rfl rfl rfl
+    | exact fun h => ⟨rfl, rfl, h.2.2⟩
+    | exact fun h => ⟨h.1, rfl, h.2.2⟩
+  · intro _ x hx
+    simp only [List.mem_singleton, List.mem_cons, List.not_mem_nil, or_false, List.mem_append] at hx
+    all_goals first
+    | (subst hx; exact .inl rfl)
+    | (rcases hx with rfl | rfl <;> exact .inl rfl)))
+
+/-- A step-down (`becomeFollower`, its `Progress` values `pvs`) queues nothing and resets the scope. -/
+theorem OutTyStep.becomeFollower (s : NState) (t l : w64) (pvs : GMap w64 Progress) :
+    OutTyStep s { becomeFollower s t l with prvals := pvs } :=
+  OutTyStep.of_app' [] (List.append_nil _).symm (fun h => ⟨rfl, rfl, h.2.2⟩)
+    (fun _ _ h => absurd h List.not_mem_nil)
+
+theorem OutTyStep.refl (s : NState) : OutTyStep s s := fun _ h => ⟨h, fun _ hm => .inl hm⟩
+
+/-- An aborted leader transfer (`abortLeaderTransfer`, the ticks'). -/
+theorem OutTyStep.ltZero (s : NState) : OutTyStep s { s with lt := W64 0 } :=
+  fun _ h => ⟨⟨rfl, h.2⟩, fun _ hm => .inl hm⟩
+
+/-- A step that only queues messages. -/
+theorem OutTyStep.sendMsgs {s : NState} {ms : List Msg} (h : TrScope s → ∀ m ∈ ms, TrOutMsg m) :
+    OutTyStep s (sendMsgs s ms) := OutTyStep.of_app ms rfl rfl rfl rfl h
+
+/-- Composition: a step in scope, then another from its end state. -/
+theorem OutTyStep.trans {s s1 s' : NState} (hg : s1.gh.tr = s.gh.tr) (h1 : OutTyStep s s1)
+    (h2 : OutTyStep s1 s') : OutTyStep s s' := by
+  intro ht hs
+  obtain ⟨hs1, ho1⟩ := h1 ht hs
+  obtain ⟨hs', ho'⟩ := h2 (hg ▸ ht) hs1
+  refine ⟨hs', fun m hm => ?_⟩
+  rcases ho' m hm with h | h
+  · exact ho1 m h
+  · exact .inr h
+
 /-- (2026-10-19, D21 M3) The node's no-snapshot mode (`NGhost.ns`) is the cluster's
 (`RaftNames.reNoSnap`): of a cluster with a non-empty bootstrap log (`RaftNames.noSnap_boot`), what
 the leader's rejection handling reads of the messages (`isMessage`'s clause of a rejecting

@@ -37337,3 +37337,33 @@ proof, the leave-joint law, every untraced result re-proved by rewriting its gat
 
 **Rejected.** Gating the escrow off entirely (P5's "no gate needed for soundness"): `run`'s untraced
 proof would then hold `run`'s half, a change to `node.run.spec`'s untraced proof for nothing.
+
+## Implementation step 2 (path facts): the monotone flag and `OutTyStep` in every traced path's end resource, `OutOk` strengthened, `TrNoSnap` under an update, lemma (i), Probe B's item 6; `AckEnd` strengthened and the response paths' families filtered (two gaps of the design); G3 (a) not done (2026-11-12 · trace-check, §9's step 2 of `notes/trace-check-design.md`; decided by the agent under the user's delegation (raft-internal statements) · branch `trace-check-impl2`)
+
+**Context.** Step 2 of the design's order of work: the facts `rnTrace`'s new clauses (step 3) will
+need, as theorems, with no client-visible statement changed.
+
+**Done** (no `sorry`, no axiom): `stepBundle_traced.statement`'s (and `.on`/`.onG`/`.onA`/`.onC`/`.onRB`'s)
+end resource `⌜OutTyStep s s'⌝ ∗ ∃ bt', ⌜bt = true → bt' = true⌝ ∗ trCapB …`, every path re-proved
+(receive paths through `stepClose_anyB_end` and the tactic `outty_tac`; the local families through
+`lineF`, which now carries the step's first flag); `raft.Step.tracedTriple`'s and the ticks' traced
+triples' posts carry both; the consumers (`TracedRawNode.lean`, `TracedRawNodeRep.lean`) re-proved;
+`ReadIdle`, `TrScope`, `TrOutMsg`, `OutTyStep` in `StepGhostMode.lean`; `OutOk`'s guarded conjunct with
+`outOk_snoc`'s new argument at every site and `outTyStep_of_outOk`; `lineF_untraced`'s `¬ ReadIdle X`;
+`TrNoSnap` in its update form (`trNoSnap_traced`, the two `imod`s in `raft__maybeSendAppend.lean`);
+lemma (i) (`TracedConfExcl.lean`); Probe B item 6 (`raft.Step.traced_booted`).
+
+**Decisions.**
+- *`AckEnd` gains `s'.lt = s.lt ∧ s'.rd = s.rd`* (the design's gap: an acknowledgement's close cannot
+  give `TrScope s'` from `toPState` alone). Rejected: leaving acknowledgements out of `OutTyStep` (the
+  traced `RawNode.Advance` steps them and must keep clause 1(b)). Cost: two `raft.Step` branch posts.
+- *The read-index response paths' families indexed by `rirFilter o`*, the responses put back at the
+  close from the end state (`leadRespNA_scope`, `leadAcc_scope`): the design's `¬ ReadIdle X` has no
+  source at those gates. Rejected: a premise on `leaderGates`' two response gates (a change to
+  `raft.Step.spec`'s gates and to `stepLeader`'s loop proofs for two traced-only facts).
+- *The pure conjunct first in the end resource* (`⌜OutTyStep s s'⌝ ∗ ∃ bt', …`): the paths' proofs keep
+  their capability goals unchanged after one `isplitr`.
+- *G3 (a) left for a later step*, with its two obstacles recorded in the design ("Implementation step
+  2", G3): (a1)'s minting site sees no trace fact, so the premise has to be threaded through the ghost
+  step layers or come with `isMessage`'s proposal case (the node API's, step 1's files); (a2) needs the
+  decoder's value on the bootstrap entries, not stated at the protocol level.

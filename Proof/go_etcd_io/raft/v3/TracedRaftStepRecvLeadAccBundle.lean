@@ -72,9 +72,10 @@ theorem leadAcc_closeAt (γd : GName) (γ : RaftNames) (c : CfgM) (r : Loc) (id 
     (s s' : NState) (m : MessageM) (Λ : Option TraceEv → Prop) (C0 : List w64) (cs1 : ServerC)
     (P0 : List Etcdraft.Msg) (pvs : GMap w64 Progress)
     (hpvs : prvalsMatch pvs = appRespMatch s m.From' m.Index')
-    (hS : ∀ C, SimIdleS C s' = SimIdleS C { s with prvals := pvs }) (ho : s'.outbox = s.outbox) :
+    (hS : ∀ C, SimIdleS C s' = SimIdleS C { s with prvals := pvs }) (ho : s'.outbox = s.outbox) {bt : Bool} :
     trCapB (GF := GF) (some γd) γ r id c true (AccPin s C0 cs1 P0 m.From' m.Index') (fun o => o.isSome = true) ⊢
-      |={⊤}=> ∃ bt' : Bool, trCapB (some γd) γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ) := by
+      |={⊤}=> ∃ bt' : Bool, ⌜bt = true → bt' = true⌝ ∗
+        trCapB (some γd) γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ) := by
   iintro Hc
   ihave Hc : trFam (some γd) γ r id c true (fun C => SimIdleS C { s with prvals := pvs })
       (fun o => o.isSome = true) s'.outbox $$ [Hc]
@@ -92,6 +93,7 @@ theorem leadAcc_closeAt (γd : GName) (γ : RaftNames) (c : CfgM) (r : Loc) (id 
   imod trFam_idle (some γd) γ r id c true { s with prvals := pvs } s' _ hS' $$ Hc with Hc
   imodintro
   iexists true
+  isplitr; · ipureintro; exact fun _ => rfl
   iapply trCapB_monoΛ (some γd) γ r id c true _ _ _ (fun o h => .inr h) $$ Hc
 
 /-- **`raft.Step`'s traced bundle on a leader's accepted `MsgAppResp` of its term** (see the header). -/
@@ -259,6 +261,9 @@ theorem stepBundle_traced_leadAcc : stepBundle_traced.on (GF := GF) (hG := hG) L
   · -- the closing wand
     iunfold stepClose
     iintro %s' %B %recv %_ %hend %_ Hout
+    obtain ⟨pvsF, hfe⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
+    rw [hpre pvsF] at hfe
+    have hsc := leadAcc_scope hp hfe
     obtain ⟨pvsE, n, hpvsE, hranE, hnranE, hlogE, hSE⟩ : ∃ (pvs : GMap w64 Progress) (n : w64),
         prvalsMatch pvs = appRespMatch s m.From' m.Index' ∧
         (AppRespRan s m.From' m.Index' → ∃ (b : Bool) (N : w64),
@@ -292,8 +297,15 @@ theorem stepBundle_traced_leadAcc : stepBundle_traced.on (GF := GF) (hG := hG) L
         rw [h1]
         exact simIdleS_prvalsEq C { s with logst := { s.logst with committed := (commitAt s b N).logst.committed } }
           pvs pvsE (hpvs.trans hpvsE.symm)
-      imod lineF_close γ md c r id (commitAt { s with prvals := pvs } b N) s' (stepLastEv Λ) hS $$ HF
-        with ⟨Hgh, Hc, %Hot⟩
+      have hX : ∀ x, x ∈ (commitAt { s with prvals := pvs } b N).outbox ↔ x ∈ s.outbox := by
+        cases b <;> exact fun _ => Iff.rfl
+      have hXs : TrScope (commitAt { s with prvals := pvs } b N) → TrScope s := by
+        cases b <;> exact fun h => h
+      ihave HF := lineF_unfilter γ md c r id (commitAt { s with prvals := pvs } b N) _ _ true s'.outbox
+        (fun h x hx hxt => (hX x).2 ((hsc (hXs h)).2 x hx hxt)) $$ HF
+      imod lineF_close γ md c r id (commitAt { s with prvals := pvs } b N) s' (stepLastEv Λ) true hS
+          (fun h => (hsc (hXs h)).1) $$ HF
+        with ⟨Hgh, ⟨%HtyX, %bb, %hbb, Hc⟩, %Hot⟩
       imodintro
       isplitl [Hgh]
       · iright
@@ -303,7 +315,18 @@ theorem stepBundle_traced_leadAcc : stepBundle_traced.on (GF := GF) (hG := hG) L
         exact .inr (.inr ⟨hTy, hrole, hterm, hrej, hfp, pvs, b, N, hpvs, rfl, hlogX⟩)
       have hXtr : (commitAt { s with prvals := pvs } b N).gh.tr = some γd := by rw [commitAt_gh]; exact htr
       rw [hXtr]
-      iframe Hc
+      isplitl [Hc]
+      · isplitr
+        · ipureintro
+          intro hts hs0
+          have hs' := hsc hs0
+          refine ⟨hs'.1, fun x hx => ?_⟩
+          rcases (HtyX (by rw [hXtr]; rfl) (by cases b <;> exact hs0)).2 x hx with h | h
+          · exact .inl ((hX x).1 h)
+          · exact .inr h
+        iexists bb
+        isplitr; · ipureintro; exact fun _ => hbb rfl
+        iexact Hc
       ipureintro
       cases b <;> exact Hot
     all_goals
@@ -311,11 +334,15 @@ theorem stepBundle_traced_leadAcc : stepBundle_traced.on (GF := GF) (hG := hG) L
       have hn := hnranE (leadAcc_notRan hp hg.2)
       have hS : ∀ C, SimIdleS C s' = SimIdleS C { s with prvals := pvsE } := by
         intro C; rw [hSE C, hn]
-      imod leadAcc_closeAt γd γ c r id s s' m Λ tn.voters _ P0 pvsE hpvsE hS ho $$ Hc with Hc
+      imod leadAcc_closeAt γd γ c r id s s' m Λ tn.voters _ P0 pvsE hpvsE hS ho (bt := bfl) $$ Hc with Hc
       imodintro
-      iframe Hc
       isplitl [Hgh]
       · ileft; iframe Hgh; ipureintro; exact CloseAt.of_traced hmty htrd
+      isplitl [Hc]
+      · isplitr
+        · ipureintro
+          exact fun _ h => ⟨(hsc h).1, fun x hx => .inl (ho ▸ hx)⟩
+        iexact Hc
       ipureintro
       exact outTrStep_of_outOk (by rw [ho]; exact outOk_self s)
 

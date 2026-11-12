@@ -29,6 +29,60 @@ Vocabulary used throughout: `TrNetTy t` (`MsgApp`, `MsgAppResp`, `MsgVote`, `Msg
 
 ---
 
+## Implementation step 2 (2026-11-12): what the Lean changed
+
+Branch `trace-check-impl2`, from `trace-check` at `a38252c9f0` (§9's step 2; `notes/decisions.md`,
+"Implementation step 2 (path facts)"). Done, no `sorry`, no axiom: N1's monotone flag and A2's
+`OutTyStep` in `stepBundle_traced.statement`'s end resource (every path, the close helpers, the ticks'
+traced triples, the 4 consumers, `raft.Step.tracedTriple`'s post), S2's `OutOk`, `TrNoSnap`'s update
+form, lemma (i), Probe B's item 6; `RawNode.Advance.spec`'s strengthened post was already in (checked).
+Not done: G3 (a) (below). The statements as written, and where they depart from the text above:
+
+- **I1 (the end resource's form).** `Gout s' := ⌜OutTyStep s s'⌝ ∗ ∃ bt', ⌜bt = true → bt' = true⌝ ∗
+  trCapB …` (the pure conjunct first, the flag's implication inside the existential): the same content
+  as §3.6's. `stepBundle_traced.onG` moved to `TracedRaftStep.lean` (`stepBundle_traced_localNoLine`
+  is over it, for the forward's batch of normal entries; `LocalNoLine`'s end gives the forward's type
+  and entries). The receive paths close through `stepClose_anyB_end`, which takes `OutTyStep` as a pure
+  function of `StepEnd` (the `outty_tac` tactic proves it at the paths' concrete end states); the
+  ticks' traced triples (`raft.tickElection.traced`, `raft.tickHeartbeat.traced`) give both too.
+- **I2 (`AckEnd` strengthened; a gap in §3.6).** `TrScope s → TrScope s'` is not provable for the
+  storage acknowledgements: the close learns only `AckEnd`'s `toPState s' = toPState s`, which reads
+  neither `lt` nor the read state. `AckEnd` (`LemmasStepGates.lean`, inside `stepClose`, so inside
+  `raft.Step.spec`'s precondition) gains `s'.lt = s.lt ∧ s'.rd = s.rd`; `raft.Step`'s two acknowledgement
+  branches prove it (`raft__Step/MsgStorageAppendResp.lean`, `MsgStorageApplyResp.lean`: the end state
+  is the struct with another log). §3.6's "`raft__Step/*.lean` … do not change" is wrong by these two
+  conjuncts. Raft-internal; `raft.Step.spec`'s text does not change.
+- **I3 (the read-index responses; S2's `lineF_untraced` premise unsatisfiable).** The two paths that
+  queue a read-index response (`"#Hghresp"`, `"#Hgrlresp"`: a leader's heartbeat response and accepted
+  append response) do so at gates that say nothing of the read they answer, so the caller cannot give
+  `lineF_untraced` its `¬ ReadIdle X` (revision 3's S2 said "its caller has [it] from the pending read
+  it answers": it does not). `lineF_untraced` keeps the premise as designed, but those two families are
+  indexed by the outbox without its responses (`rirFilter`, invisible to the traced family:
+  `pendAbs_rirFilter`; the response's gate is `lineF_rir`), and the close puts them back
+  (`lineF_unfilter`) from the end state: in scope no read is pending, so the end state queues none
+  (`leadRespNA_scope`, `leadAcc_scope`). The alternative, strengthening the two gates in `leaderGates`
+  (a premise `¬ ReadIdle s`), changes `raft.Step.spec`'s gates and `stepLeader`'s proofs; not taken.
+- **I4 (`ReadIdle`, `TrScope`, `TrOutMsg`).** `ReadIdle s := s.rd.ro.pending = [] ∧ s.rd.pend = []`
+  (the read-only queue and the pending `MsgReadIndex`es; `reset` empties the first and keeps the
+  second); `TrOutMsg` reads the forwarded proposal's entries at type `W32 0` (`EntryNormal`'s value:
+  `StepGhostMode.lean` does not import `InvRaftlog.lean`).
+- **I5 (the families' flags).** `lineF` takes the step's first flag `bt` (`∃ b, ⌜bt = true → b = true⌝`,
+  P6); the families entered after a line (`propF`, `wonGE`, `leadAccGc`) record `b = true`.
+- **Lemma (i)** is `bootPrefix_unapplied`/`hupCampaigns_applied_boot` (`TracedConfExcl.lean`), over a
+  log whose first entries are the bootstrap's conf entries (the log facts at a node, from the committed
+  log, are step 3's to read).
+- **Probe B item 6** is `trCapB_booted_of_mono`/`raft.Step.traced_booted` (`TracedRaftStepBundle.lean`).
+- **G3 (a): not done.** (a1): the per-entry form is cheaper than a clause on the term logs' authority
+  (`ev2Rec` gains `⌜γ.reTrace ≠ none → IsConfEnt e → IsEmptyV2 e⌝`, minted at
+  `ownRaftGhost_step_propose`, `Protocol/Refinement.lean`), but the minting site has no trace fact: its
+  caller is `ghostR_stepR`'s `StepR.propose` arm (`Protocol/RefinementDyn.lean`), which sees the
+  proposal only as an abstract received message. The premise reaches it either through every layer from
+  `raft.Step`'s `MsgProp` branch (`ghost_stepCD`, `ownRaftGhostR`'s step lemma, the `StepR` update), or
+  as a gated clause of `isMessage`'s proposal case, whose producers are the node API's proposals (step
+  1's files). (a2): `CfgAt γ M P c` is `γ.dyn`'s fold, `cfgFold (effDec dec M) c0` at the node API;
+  that the bootstrap prefix folds to a simple configuration needs the decoder's value on the bootstrap
+  entries' bytes (`dec pre e` for `BootLog`'s `AddNode`s), which no raft lemma states at this level.
+
 ## Probe A (2026-11-11): what the probe changed
 
 §8's Probe A, run as a Lean proof (`tracecheck/ProbeA.lean`, built; no axiom, no `sorry`; the
@@ -1726,7 +1780,9 @@ proved theorem before its facts.** Each landing passes the acceptance test (`not
    or the client's fact) and is re-proved by rewriting the gate. No `rnTrace` clause, no `readyTok` body
    change.
 2. **The facts the new clauses need, as theorems** (no existing statement changes but the raft-internal
-   ones named; revision 3, N3: nothing here needs `lt = 0` or a new `rnTrace` clause):
+   ones named; revision 3, N3: nothing here needs `lt = 0` or a new `rnTrace` clause). (Done
+   2026-11-12 on `trace-check-impl2` but G3 (a), with `AckEnd` strengthened and the response paths'
+   filtered families: "Implementation step 2" at the top.)
    - `stepBundle_traced.statement`'s `Gout` with **`OutTyStep` and the monotone flag** (A2; N1), the 27
      path files and `TracedPin.lean`'s close helpers re-proved (§3.6); `stepClose_anyB` with the flag;
      the 4 consumers that pass `Gout` through (`TracedNodeRecv.lean`, `TracedRawNode.lean`,
