@@ -300,6 +300,8 @@ theorem raft.appendEntry.wp_proof
       push_cast at H0
       refine ⟨⟨by omega, by omega⟩, fun k e Hk => by rw [Hk2 k e Hk, H0]; omega, ?_⟩
       rw [List.length_mapIdx]; omega
+    -- (out_size C3, temporary) the clones' sizes: `entsPtsZ_sized_TODO`
+    ihave Hcl := entsPtsZ_sized_TODO s.logst.sn.sz _ _ _ $$ Hcl
     wp_apply wp_raftLog_append _ _ _ _ _ Hpre $$ [$Hlog $Hcl]
       as %li2 ⟨Hlog, Hcl, %Hsplit2, %Hli2⟩
     · rw [Hado]; simp only [Bool.false_eq_true, ↓reduceIte, named]; itrivial

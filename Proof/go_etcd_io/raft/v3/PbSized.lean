@@ -300,6 +300,21 @@ theorem entsPtsZ_entsPts (sz : Bool) (s : GoSlice) (dq : DFrac) (es : List Entry
   iframe Hs
   iapply entsBigZ_entsBig $$ Hb
 
+/-- (out_size C3) Read a sized batch's entries in today's form, its slice lent and given back. -/
+theorem entsPtsZ_open (sz : Bool) (s : GoSlice) (dq : DFrac) (es : List EntryM) :
+    entsPtsZ (GF := GF) sz s dq es ⊢
+      ∃ ls : List Loc, s ↦*{dq} ls ∗ ([∗list] l;e ∈ ls;es, entRO l e) ∗
+        (s ↦*{dq} ls -∗ entsPtsZ sz s dq es) := by
+  unfold entsPtsZ
+  iintro ⟨%ls, Hs, #Hb⟩
+  iexists ls
+  iframe Hs
+  isplitr
+  · iapply entsBigZ_entsBig $$ Hb
+  iintro Hs
+  iexists ls
+  iframe Hs Hb
+
 theorem entsPts_entsPtsZ (s : GoSlice) (dq : DFrac) (es : List EntryM) :
     entsPts (GF := GF) s dq es ⊢ entsPtsZ false s dq es := by
   unfold entsPtsZ entsPts
@@ -307,6 +322,36 @@ theorem entsPts_entsPtsZ (s : GoSlice) (dq : DFrac) (es : List EntryM) :
   iexists ls
   iframe Hs
   iapply entsBig_entsBigZ $$ Hb
+
+/-- **TEMPORARY (out_size C3, branch only; gone before C3 lands).** Entries read in today's form at
+contents of bounded size under any flag: the `sorry` is the size fact alone (`entSizeOk`), for the
+entries of a received `MsgApp` that `handleAppendEntries` hands `maybeAppend` (P4: `msgInC`). Listed
+in the handoff. -/
+theorem entRZ_sized_TODO (sz : Bool) (l : Loc) (e : EntryM) :
+    entRZ (GF := GF) false l e ⊢ entRZ sz l e := by
+  unfold entRZ
+  iintro ⟨%c, #Hc, %Hm⟩
+  iexists c
+  iframe Hc
+  ipureintro
+  exact ⟨Hm.1, fun _ => sorry⟩
+
+/-- `entRZ_sized_TODO` over a slice (TEMPORARY, see there; also `appendEntry`'s clones, whose
+sizes wait on the clone at contents). -/
+theorem entsPtsZ_sized_TODO (sz : Bool) (s : GoSlice) (dq : DFrac) (es : List EntryM) :
+    entsPts (GF := GF) s dq es ⊢ entsPtsZ sz s dq es := by
+  iintro H
+  ihave H := entsPts_entsPtsZ s dq es $$ H
+  unfold entsPtsZ
+  icases H with ⟨%ls, Hs, #Hb⟩
+  iexists ls
+  iframe Hs
+  iapply (BigSepL2.bigSepL2_mono (fun _ _ => entRZ_sized_TODO sz _ _)) $$ Hb
+
+/-- `entsPtsZ_sized_TODO` read-only (TEMPORARY). -/
+theorem entsROz_sized_TODO (sz : Bool) (s : GoSlice) (es : List EntryM) :
+    entsRO (GF := GF) s es ⊢ entsROz sz s es :=
+  entsPtsZ_sized_TODO sz s DFrac.discard es
 
 theorem entsROz_entsRO (sz : Bool) (s : GoSlice) (es : List EntryM) :
     entsROz (GF := GF) sz s es ⊢ entsRO s es :=

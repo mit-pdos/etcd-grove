@@ -150,7 +150,10 @@ theorem raft.handleAppendEntries.wp_proof
         (logSlice.mk m.Term' (entryID.mk m.LogTerm' m.Index') es) ents m.Commit'
         Hwf Hnw (fun Hm => Hconf (by omega) Hm) (by simp only; omega) $$ [$Hlog $Hcap]
       as %lastnewi %ok %ls' ⟨Hlog, %Hma, %Hmagh⟩
-    · simp only [named, entsPts]; iexists els; iframe Hes Hents
+    · -- (out_size C3, temporary) the received entries' sizes: `entsROz_sized_TODO`
+      simp only [named]
+      iapply entsROz_sized_TODO
+      simp only [entsPts]; iexists els; iframe Hes Hents
     -- (D21 M3) the boundary, the pending snapshot and the storage kept
     have Hkeep : ls'.prev = s.logst.prev ∧ ls'.snap = s.logst.snap ∧
         ls'.storage = s.logst.storage ∧ uint.Z s.logst.committed ≤ uint.Z ls'.committed := by
