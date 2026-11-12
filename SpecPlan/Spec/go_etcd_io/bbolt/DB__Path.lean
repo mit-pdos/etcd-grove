@@ -32,9 +32,9 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- `db.Path()` on an open database: its file's path. -/
 def DB.Path.spec : Prop :=
   ∀ [HasExt osFsExt] (db : Loc) (γ : BoltName) (ns : Bool),
-  {{ isBolt (GF := GF) db γ ns ∗ boltOpened db γ }}
+  {{ isBolt (GF := GF) db γ ns ∗ boltOpened db γ 1 }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"Path")) (Val #()))
-  {{ RET #γ.path; boltOpened db γ }}
+  {{ RET #γ.path; boltOpened db γ 1 }}
 
 end spec
 

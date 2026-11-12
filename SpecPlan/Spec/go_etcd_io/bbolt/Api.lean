@@ -65,8 +65,10 @@ updates are `⊤ \ ↑γ.ns`).
   backed by time receipts). It owns `DB`'s exported fields (`StrictMode`, `NoSync`, `MaxSize`,
   `AllocSize`, ...): a client must not write them after `Open` (no client holds their
   points-to; etcd writes none).
-* **`boltOpened db γ`** (exclusive): the right to close `db` and get `boltClosed γ` back; while it
-  is held, `db` stays open. **`dbClosed db`** (persistent): `db` was closed (a later `Close` does
+* **`boltOpened db γ q`** (fractional, exclusive at `1`): a share of the right to close `db` and
+  get `boltClosed γ` back; while any share is out, `db` stays open (`boltOpened_closed`). `Close`
+  takes the whole; `Path` and `Sync`, which race only with `close()` (`db.path`, `db.file`), take a
+  share (etcd's non-blocking defrag calls `Path` without the backend's lock). **`dbClosed db`** (persistent): `db` was closed (a later `Close` does
   nothing).
 * **`boltTx tx γ q T`** (fractional): `tx` is a live transaction of `γ` with the view `T`
   (`TxView`). A read transaction's whole holds the reader slot its `Begin` took for the caller's
@@ -75,14 +77,39 @@ updates are `⊤ \ ↑γ.ns`).
   exported field `WriteFlag` (at `0`).
 * **`txDone tx`** (persistent): `tx` was committed or rolled back (its statistics can be read).
 * **`txDB tx db`** (persistent): `tx` is a transaction of the `*DB` `db`.
-* **`bktH tx γ b p gs`** (persistent): `b` is `tx`'s handle of the bucket at path `p`, made when
-  the generations of `p`'s prefixes were `gs` (`TxView.gens`). Its operations need `T.gens p = gs`
-  (`bktH_live`: the bucket then exists). Owns nothing but `FillPercent`'s use (`boltTx_fill`).
-* **`boltCur tx γ c p gs T pos`** (exclusive): `c` is a cursor of `tx` over the bucket at `p`
-  (handle generations `gs`), last positioned at the view `T`, at `pos` (`none`: not positioned;
-  `some i`, `i ≤ (T.ents p).length`: at the `i`-th entry, or past the last). `Next`/`Prev` need
-  the transaction still at `T`; `First`/`Last`/`Seek` reposition it at the current view (Go:
-  "reposition your cursor after mutating data").
+* **Bucket handles** (the ledger's 2026-11-12 entry: they replace a per-path generation counter
+  in the view, unobservable state that only invalidated stale handles, which ownership already
+  does). Go keeps, in a write transaction, each bucket's handle in its parent's cache
+  (`b.buckets[name]`, `bucket.go:89-110`): `Bucket` returns the cached `*Bucket`, `CreateBucket` a
+  new one, `DeleteBucket` removes the entry (`:318`), and a handle used after its bucket's deletion
+  panics (`nonissues/bbolt-deleted-bucket-handle.md`). A read transaction has no cache (`:50`) and
+  cannot delete, so its handles never go stale.
+  - **`bktH tx γ b p`** (persistent): `b` is a bucket handle of `tx`, made for the bucket at `p`
+    (its `tx` field, immutable). In a read transaction, and for the root bucket (`tx.root`, path
+    `[]`, which nothing deletes), it is the handle premise itself; in a write transaction it says
+    only which object `b` is (`Tx`, `Writable`, `Cursor` read nothing else).
+  - **`bktOwn tx γ p o q`** (fractional, exclusive at `1`, timeless): **a share of the ownership of
+    the bucket at `p` ≠ `[]` in the write transaction `tx`**, whose parent's cache entry for it is
+    `o` (`none`: not looked up in this transaction; `some b`: the handle `b`). `Begin(true)` gives
+    the whole of each bucket path of its data with `none`; a lookup (`Bucket`,
+    `CreateBucketIfNotExists`) turns `none` into `some b`, which fills the cache (all of it), or
+    returns the cached `b` (any share); `CreateBucket` gives the whole at `some b'`; `DeleteBucket`
+    consumes the wholes of the bucket and of every bucket below it. Tokens are per transaction:
+    nothing gives them back at `Commit`/`Rollback`. Intended realization: a ghost map of the
+    paths' cache entries, its authority in the writer's `wtxCore` agreeing with the cache
+    (`Internal.lean`'s `wtxCore_bktOwn`).
+  - **`bktUse tx γ rw b p q`** (transparent): **the handle premise** of every operation on a
+    handle `b` of the bucket at `p`: `bktOwn tx γ p (some b) q` in a write transaction (`rw`), but
+    for the root; else `bktH tx γ b p`. A current handle's bucket exists (`bktH_live`). `bktTok`
+    (transparent): what a lookup of a child takes.
+  `FillPercent` is the transaction's (`boltTx_fill`).
+* **`boltCur tx γ c b p T pos`** (exclusive): `c` is a cursor of `tx` over the bucket handle `b`
+  of the bucket at `p`, last positioned at the view `T`, at `pos` (`none`: not positioned;
+  `some i`, `i ≤ (T.ents p).length`: at the `i`-th entry, or past the last). Every move takes the
+  handle premise `bktUse … b p …` (so a cursor does not survive its bucket's deletion: a deleted
+  and re-created bucket can leave the view as it was); `Next`/`Prev` need the transaction still at
+  `T`; `First`/`Last`/`Seek` reposition it at the current view (Go: "reposition your cursor after
+  mutating data").
 * **`txBytes tx γ s b`** (persistent): the slice `s` holds `b` while `tx` is live (a key or value
   bbolt returned: in the mapping or the transaction's nodes); read through `txBytes_acc`, **against a
   share of the transaction's liveness `txLive tx p`**, not of `boltTx`.
@@ -140,7 +167,8 @@ updates are `⊤ \ ↑γ.ns`).
 ## Laws
 
 Persistence, timelessness, fractions, agreement, validity, exclusivity of each predicate
-(`boltOpened_closed`); `boltTx_later`, `boltTx_nonnull`, `boltTx_base`, `bktH_live`,
+(`boltOpened_closed`); `boltOpened_frac`, `bktOwn_frac`, `bktOwn_bktH`; `boltTx_later`,
+`boltTx_nonnull`, `boltTx_base`, `bktH_live`,
 `txBytes_acc`, `txLive_frac`, `boltTx_fill`; well-formedness (`boltTx_wf`, for views and the committed data; `boltImage_wf`); the
 size (`boltTx_size`, with `txSize`'s agreement); `putLoan_done`; `dbBroken_state`; `statSlot_wtx`
 (a write transaction pays for `Stats`); the updates a holder of `boltState γ 1 σ` can supply
@@ -225,9 +253,9 @@ opaque boltClosed [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (γ : BoltName) 
 opaque isBolt [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (db : Loc) (γ : BoltName)
     (ns : Bool) : IProp GF := iprop(True)
 
-/-- The right to close `db` (exclusive). -/
-opaque boltOpened [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (db : Loc) (γ : BoltName) :
-    IProp GF := iprop(True)
+/-- A share `q` of the right to close `db` (fractional, exclusive at `1`). -/
+opaque boltOpened [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (db : Loc) (γ : BoltName)
+    (q : Qp) : IProp GF := iprop(True)
 
 /-- `db` was closed (persistent): a later `Close` does nothing. -/
 opaque dbClosed [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (db : Loc) : IProp GF := iprop(True)
@@ -246,14 +274,35 @@ opaque txLive [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (tx : Loc) (p : Qp) 
 /-- `tx` was committed or rolled back (persistent). -/
 opaque txDone [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (tx : Loc) : IProp GF := iprop(True)
 
-/-- **`b` is `tx`'s handle of the bucket at `p`**, made at the generations `gs` (persistent). -/
+/-- **`b` is a bucket handle of `tx`, made for the bucket at `p`** (persistent). -/
 opaque bktH [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (tx : Loc) (γ : BoltName) (b : Loc)
-    (p : BPath) (gs : List Nat) : IProp GF := iprop(True)
+    (p : BPath) : IProp GF := iprop(True)
 
-/-- **`c` is a cursor of `tx` over the bucket at `p`**, last positioned at the view `T`, at
-`pos` (exclusive). -/
+/-- **A share `q` of the ownership of the bucket at `p` in the write transaction `tx`**, whose
+parent's cache entry for it is `o` (fractional, exclusive at `1`; see the header). -/
+opaque bktOwn [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (tx : Loc) (γ : BoltName)
+    (p : BPath) (o : Option Loc) (q : Qp) : IProp GF := iprop(True)
+
+/-- **The handle premise** of an operation on the handle `b` of the bucket at `p` (`rw`: the
+transaction's kind, `T.rw`): its ownership share in a write transaction, but for the root; else
+the persistent handle. -/
+def bktUse [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (tx : Loc) (γ : BoltName) (rw : Bool)
+    (b : Loc) (p : BPath) (q : Qp) : IProp GF :=
+  if rw && !p.isEmpty then bktOwn tx γ p (some b) q else bktH tx γ b p
+
+/-- **What a lookup of the bucket at `p` takes** (`Bucket`, `CreateBucketIfNotExists`): in a write
+transaction, if the bucket exists, a share of its ownership, the whole while it is not cached
+(`o = none`: the lookup fills the cache); nothing else (a read transaction caches nothing; an
+absent bucket has no token and is not cached, `bucket.go:318`). -/
+def bktTok [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (tx : Loc) (γ : BoltName) (T : TxView)
+    (p : BPath) (o : Option Loc) (q : Qp) : IProp GF :=
+  if T.rw && (T.cur.atPath p).any Ent.isBkt then iprop(bktOwn tx γ p o q ∗ ⌜o = none → q = 1⌝)
+  else iprop(emp)
+
+/-- **`c` is a cursor of `tx` over the bucket handle `b` at `p`**, last positioned at the view
+`T`, at `pos` (exclusive). -/
 opaque boltCur [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (tx : Loc) (γ : BoltName) (c : Loc)
-    (p : BPath) (gs : List Nat) (T : TxView) (pos : Option Nat) : IProp GF := iprop(True)
+    (b : Loc) (p : BPath) (T : TxView) (pos : Option Nat) : IProp GF := iprop(True)
 
 /-- The slice `s` holds `b` while `tx` is live (persistent). -/
 opaque txBytes [HasExt osFsExt] [hG : HeapGS HasLC.hasLC GF] (tx : Loc) (γ : BoltName)
@@ -422,7 +471,7 @@ def persistent.spec [HasExt osFsExt] : Prop :=
   (∀ tx, Persistent (txDone (GF := GF) tx)) ∧
   (∀ tx db, Persistent (txDB (GF := GF) tx db)) ∧
   (∀ db, Persistent (dbClosed (GF := GF) db)) ∧
-  (∀ tx γ b p gs, Persistent (bktH (GF := GF) tx γ b p gs)) ∧
+  (∀ tx γ b p, Persistent (bktH (GF := GF) tx γ b p)) ∧
   (∀ tx γ s b, Persistent (txBytes (GF := GF) tx γ s b)) ∧
   (∀ tx n, Persistent (txSize (GF := GF) tx n)) ∧
   (∀ γ, Persistent (dbBroken (GF := GF) γ))
@@ -431,8 +480,9 @@ def persistent.spec [HasExt osFsExt] : Prop :=
 def timeless.spec [HasExt osFsExt] : Prop :=
   (∀ γ q σ, Timeless (boltState (GF := GF) γ q σ)) ∧
   (∀ γ, Timeless (boltClosed (GF := GF) γ)) ∧
-  (∀ db γ, Timeless (boltOpened (GF := GF) db γ)) ∧
-  (∀ tx γ c p gs T pos, Timeless (boltCur (GF := GF) tx γ c p gs T pos)) ∧
+  (∀ db γ q, Timeless (boltOpened (GF := GF) db γ q)) ∧
+  (∀ tx γ p o q, Timeless (bktOwn (GF := GF) tx γ p o q)) ∧
+  (∀ tx γ c b p T pos, Timeless (boltCur (GF := GF) tx γ c b p T pos)) ∧
   (∀ path D, Timeless (fileHolds (GF := GF) path D))
 
 /-- `boltState` is fractional, its fractions agree, and the whole is at most `1`. -/
@@ -444,13 +494,30 @@ def boltState_frac.spec [HasExt osFsExt] : Prop :=
 /-- The exclusive tokens. -/
 def excl.spec [HasExt osFsExt] : Prop :=
   (∀ γ, boltClosed (GF := GF) γ ∗ boltClosed γ ⊢ False) ∧
-  (∀ db γ, boltOpened (GF := GF) db γ ∗ boltOpened db γ ⊢ False) ∧
+  (∀ db γ q, boltOpened (GF := GF) db γ 1 ∗ boltOpened db γ q ⊢ False) ∧
+  (∀ tx γ p o o' q, bktOwn (GF := GF) tx γ p o 1 ∗ bktOwn tx γ p o' q ⊢ False) ∧
   (∀ path D D', fileHolds (GF := GF) path D ∗ fileHolds path D' ⊢ False) ∧
   (∀ tx γ v dv vb, putLoan (GF := GF) tx γ v dv vb ∗ putLoan tx γ v dv vb ⊢ False)
 
-/-- **The close right excludes a close** (`boltOpened` is held until the right's `Close`). -/
+/-- **The close right excludes a close** (any share of `boltOpened` is held until the right's
+`Close`, which takes the whole). -/
 def boltOpened_closed.spec [HasExt osFsExt] : Prop :=
-  ∀ db γ, boltOpened (GF := GF) db γ ∗ dbClosed db ⊢ False
+  ∀ db γ q, boltOpened (GF := GF) db γ q ∗ dbClosed db ⊢ False
+
+/-- The close right is fractional (its exclusivity at `1`: `excl.spec`). -/
+def boltOpened_frac.spec [HasExt osFsExt] : Prop :=
+  ∀ db γ, Fractional (fun q => boltOpened (GF := GF) db γ q)
+
+/-- **A bucket's ownership is fractional**; two shares agree on the cache entry; a share is at
+most `1` (exclusivity at `1`: `excl.spec`). -/
+def bktOwn_frac.spec [HasExt osFsExt] : Prop :=
+  (∀ tx γ p o, Fractional (fun q => bktOwn (GF := GF) tx γ p o q)) ∧
+  (∀ tx γ p o o' q1 q2, bktOwn (GF := GF) tx γ p o q1 ∗ bktOwn tx γ p o' q2 ⊢ ⌜o = o'⌝) ∧
+  (∀ tx γ p o q, bktOwn (GF := GF) tx γ p o q ⊢ ⌜q ≤ 1⌝)
+
+/-- **An owned bucket's cached handle is a handle of it** (what `Tx`, `Writable`, `Cursor` take). -/
+def bktOwn_bktH.spec [HasExt osFsExt] : Prop :=
+  ∀ tx γ p b q, bktOwn (GF := GF) tx γ p (some b) q ⊢ bktOwn tx γ p (some b) q ∗ bktH tx γ b p
 
 /-- **Every state is well-formed** (sorted keys, recursively): a transaction's views and the
 committed data. -/
@@ -494,10 +561,12 @@ def boltTx_base.spec [HasExt osFsExt] : Prop :=
   ∀ tx γ q q' T σ, boltTx (GF := GF) tx γ q T ∗ boltState γ q' σ ⊢
     ⌜T.rw = true → T.base = σ.data⌝
 
-/-- **A current handle's bucket exists** (in the transaction's data now). -/
+/-- **A current handle's bucket exists** (in the transaction's data now): the handle premise's,
+and any owned bucket's (looked up or not), which is a write transaction's, not the root. -/
 def bktH_live.spec [HasExt osFsExt] : Prop :=
-  ∀ tx γ q T b p gs, boltTx (GF := GF) tx γ q T ∗ bktH tx γ b p gs ∗ ⌜T.gens p = gs⌝ ⊢
-    ⌜T.cur.bktAt p⌝
+  (∀ tx γ q T b p qb, boltTx (GF := GF) tx γ q T ∗ bktUse tx γ T.rw b p qb ⊢ ⌜T.cur.bktAt p⌝) ∧
+  (∀ tx γ q T p o qb, boltTx (GF := GF) tx γ q T ∗ bktOwn tx γ p o qb ⊢
+    ⌜T.rw = true ∧ p ≠ [] ∧ T.cur.bktAt p⌝)
 
 /-- A slice the transaction returned is read while the transaction is live (any share of its
 liveness: the transaction's view, `boltTx`, is not needed, so it may be written meanwhile). -/
@@ -509,15 +578,16 @@ def txBytes_acc.spec [HasExt osFsExt] : Prop :=
 def txLive_frac.spec [HasExt osFsExt] : Prop :=
   ∀ tx, Fractional (fun p => txLive (GF := GF) tx p)
 
-/-- **A bucket handle's `FillPercent` field** (exported; the backend writes `0.9`), of any handle
+/-- **A bucket handle's `FillPercent` field** (exported; the backend writes `0.9`), of a current handle
 of a write transaction, with all of it: read, and written back with any value but a NaN (a NaN
 makes `Commit` panic on a large leaf: `nonissues/bbolt-fillpercent-nan.md`; the old D5). -/
 def boltTx_fill.spec [HasExt osFsExt] : Prop :=
-  ∀ tx b γ T p gs, T.rw = true →
-    boltTx (GF := GF) tx γ 1 T ∗ bktH tx γ b p gs ⊢
+  ∀ tx b γ T p qb, T.rw = true →
+    boltTx (GF := GF) tx γ 1 T ∗ bktUse tx γ true b p qb ⊢
       ∃ f : w64, structFieldRef go_etcd_io.bbolt.Bucket go!"FillPercent" b ↦ f ∗
         (∀ f' : w64, ⌜¬ float64IsNaN f'⌝ -∗
-          structFieldRef go_etcd_io.bbolt.Bucket go!"FillPercent" b ↦ f' -∗ boltTx tx γ 1 T)
+          structFieldRef go_etcd_io.bbolt.Bucket go!"FillPercent" b ↦ f' -∗
+          boltTx tx γ 1 T ∗ bktUse tx γ true b p qb)
 
 /-- **A holder of the whole state supplies a read's update** (the layer a client holding
 `boltState γ 1 σ` in a lock uses: the backend's batch lock). -/

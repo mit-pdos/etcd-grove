@@ -42,11 +42,11 @@ outcome (`σ.sync ok`): on success with no commit's meta write in flight and no 
 only the committed data is recoverable. -/
 def DB.Sync.spec : Prop :=
   ∀ [HasExt osFsExt] (db : Loc) (γ : BoltName) (ns : Bool) (S : Bool → IProp GF),
-  {{ isBolt (GF := GF) db γ ns ∗ boltOpened db γ ∗
+  {{ isBolt (GF := GF) db γ ns ∗ boltOpened db γ 1 ∗
       AU <{ ∃∃ (σ : BoltSt), boltState γ 1 σ }> @ ⊤ \ ↑γ.ns, ∅
         <{ ∀∀ (ok : Bool), boltState γ 1 (σ.sync ok), COMM S ok }> }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"Sync")) (Val #()))
-  {{ (err : GoInterface), RET #err; boltOpened db γ ∗
+  {{ (err : GoInterface), RET #err; boltOpened db γ 1 ∗
       ∃ ok : Bool, S ok ∗ ⌜err = GoInterface.nil ↔ ok = true⌝ }}
 
 end spec

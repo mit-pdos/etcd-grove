@@ -3,7 +3,10 @@
 
 **Users.** `backend.Hash` (`backend.go:431`), defrag (`:818, 889, 979`). Snippets: `ReqHash`,
 `ReqDefrag`. **Proof sketch.** `Bucket.Cursor.spec` on the root bucket (`tx.root`, the path `[]`,
-whose generation no `DeleteBucket` bumps). **Changes.** New.
+which nothing deletes: its `bktH` is its handle premise in any transaction). **Changes.** New.
+**Changes (2026-11-12, `notes/specs-only/ledger.md`, bucket handles).** The cursor names the root's
+handle `b`, whose persistent `bktH` (its moves' handle premise) comes with it, in place of `T.gens
+[]` (the per-path generation counter it replaces was unobservable state, redundant with ownership).
 -/
 module
 
@@ -31,7 +34,7 @@ def Tx.Cursor.spec : Prop :=
   ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView),
   {{ boltTx (GF := GF) tx γ q T }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"Cursor")) (Val #()))
-  {{ (c : Loc), RET #c; boltTx tx γ q T ∗ boltCur tx γ c [] (T.gens []) T none }}
+  {{ (c : Loc), RET #c; boltTx tx γ q T ∗ ∃ b : Loc, bktH tx γ b [] ∗ boltCur tx γ c b [] T none }}
 
 end spec
 

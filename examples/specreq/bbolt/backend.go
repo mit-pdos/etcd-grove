@@ -51,8 +51,10 @@ func ReqBackendOpen(path string, noSync bool) *bolt.DB {
 // Specs: DB.Begin.spec (write), DB.Stats.spec (the write transaction pays: statSlot_wtx),
 // Tx.CreateBucketIfNotExists.spec, Tx.Bucket.spec, Bucket.Put.spec, Bucket.Delete.spec,
 // Bucket.Cursor.spec, Cursor.Seek.spec, Cursor.Next.spec, Tx.Commit.spec, Tx.Stats.spec; laws:
-// boltTx_fill, bktH_live, txBytes_acc, boltTx_wf (the order), statSlot_wtx, boltState_commit_au,
-// putLoan_done.
+// boltTx_fill, bktH_live, bktOwn_bktH (Begin's token of keyBucket, or CreateBucketIfNotExists'
+// for a new one, which Tx.Bucket returns at the cached handle), txBytes_acc, boltTx_wf (the order),
+// Ent.atPath_modAt, Ent.curEnts_put, Ent.curEnts_del (the range after the put and the delete),
+// statSlot_wtx, boltState_commit_au, putLoan_done.
 func ReqBackendBatch(db *bolt.DB, k1, k2 []byte) {
 	tx, err := db.Begin(true)
 	if err != nil {
@@ -174,8 +176,10 @@ func ReqBackendRead(db *bolt.DB, k []byte) {
 // REQ bbolt/delete-bucket-not-found: deleting a bucket that is absent returns
 // ErrBucketNotFound, which the backend accepts; any other error is fatal.
 // Users: server/storage/backend/batch_tx.go:147-156 (UnsafeDeleteBucket).
-// Assumes: tx a write transaction; the root holds only buckets; name non-empty.
-// Specs: Tx.DeleteBucket.spec; laws: errIs_distinct.
+// Assumes: tx a write transaction, with the whole tokens of name's bucket and of the buckets below
+// it (bktOwn, from Begin's for the buckets of its data: none if name is absent); the root holds
+// only buckets; name non-empty.
+// Specs: Tx.DeleteBucket.spec; laws: errIs_distinct, Ent.bktsUnder_mem.
 func ReqDeleteBucketNotFound(tx *bolt.Tx, name []byte) {
 	err := tx.DeleteBucket(name)
 	if err != nil && !errors.Is(err, bolterrors.ErrBucketNotFound) {
@@ -377,7 +381,8 @@ func ReqDefrag(odb *bolt.DB, dir string) {
 // the deletes before it, and every deleted key is gone.
 // Users: server/storage/mvcc/kvstore_compaction.go:58-71 (scheduleCompaction: UnsafeRange, then
 // UnsafeDelete of each returned key), through server/storage/backend/batch_tx.go:238.
-// Assumes: tx a write transaction; keyBucket holds no nested bucket.
+// Assumes: tx a write transaction, with keyBucket's token (bktOwn, from Begin); keyBucket holds no
+// nested bucket.
 // Specs: Tx.Bucket.spec, Bucket.Cursor.spec, Cursor.Seek.spec, Cursor.Next.spec,
 // Bucket.Delete.spec, Bucket.Get.spec; laws: txBytes_acc (against txLive, not boltTx),
 // txLive_frac.

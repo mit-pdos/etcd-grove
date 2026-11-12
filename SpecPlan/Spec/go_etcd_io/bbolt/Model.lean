@@ -11,13 +11,18 @@ model is the meaning of the specs.
   keeps the entries sorted with distinct keys (`insEnt`, `delEnt`), so a database reached from
   `Data.empty` or from a file (`Api.lean`'s `fileHolds`) is sorted.
 * **A transaction's view** (`TxView`): read or write, managed (`View`/`Update`) or not, the
-  committed data it began at (`base`), its data now (`cur`), the per-path **generation** that
-  `DeleteBucket` bumps (a deleted bucket's handles are never current again,
-  `nonissues/bbolt-deleted-bucket-handle.md`), and the database's `NoSync` mode.
+  committed data it began at (`base`), its data now (`cur`), and the database's `NoSync` mode.
+  Which bucket handles are current is not in the view: a write transaction's handles are owned
+  (`Api.lean`'s `bktOwn`), a read transaction's never go stale.
 * **The client-owned state** (`BoltSt`): the committed data and **what a crash may recover**
   (`dur`), with the two flags the durability argument needs (`busy`, `lost`); the transitions of a
   commit, a failed commit attempt and a sync (`BoltSt.commit`, `attempt`, `settle`, `sync`).
 * The size bounds (`maxKeySize`, `bboltEntryMax`) and the options (`OptsM`).
+
+**Changes (2026-11-12, `notes/specs-only/ledger.md`).** `TxView.gen`/`gens` removed (a generation
+counter in the view was unobservable state, redundant with the ownership of a write transaction's
+bucket handles, `Api.lean`'s `bktOwn`): `dropBkt` only changes the data. Added: the bucket paths
+(`Ent.bktPaths`, `Ent.bktsUnder`, `TxView.bktNames`), `Ent.curVal`.
 -/
 module
 
@@ -111,12 +116,36 @@ def modAt : Ent → BPath → (Ent → Ent) → Ent
     | some c => e.setKey k (some (c.modAt p f))
     | none => e
 
+/-- An entry's value as a cursor returns it: a value's bytes, `none` for a nested bucket. -/
+def curVal : Ent → Option GoString
+  | .val v => some v
+  | .bkt _ _ => none
+
 /-- A bucket's entries as a cursor (and `ForEach`) returns them, in key order: a value's bytes,
 or `none` for a nested bucket (Go returns a nil value for a bucket's key). -/
 def curEnts (e : Ent) : List (GoString × Option GoString) :=
-  e.ents.map (fun x => (x.1, match x.2 with
-    | .val v => some v
-    | .bkt _ _ => none))
+  e.ents.map (fun x => (x.1, x.2.curVal))
+
+mutual
+/-- **The paths of the nested buckets** of `e`, at any depth, relative to `e` (not `[]`: `e`
+itself), in key order, parents first. -/
+def bktPaths : Ent → List BPath
+  | .val _ => []
+  | .bkt _ es => entsBktPaths es
+
+/-- The nested bucket paths of an entry list (`bktPaths`' helper). -/
+def entsBktPaths : List (GoString × Ent) → List BPath
+  | [] => []
+  | (k, c) :: es =>
+    (if c.isBkt then [k] :: (bktPaths c).map (k :: ·) else []) ++ entsBktPaths es
+end
+
+/-- **The bucket at `q` and every bucket below it** (`[]` if there is no bucket at `q`): the
+handles `DeleteBucket` of `q` invalidates. -/
+def bktsUnder (e : Ent) (q : BPath) : List BPath :=
+  match e.atPath q with
+  | some c => if c.isBkt then q :: (bktPaths c).map (q ++ ·) else []
+  | none => []
 
 end Ent
 
@@ -176,8 +205,6 @@ def float64IsNaN (f : w64) : Prop :=
   `Rollback` panic);
 - `base`: the committed data when it began (its snapshot, for a read transaction);
 - `cur`: its data now (`base` throughout a read transaction);
-- `gen p`: the generation of the bucket path `p`, bumped by `DeleteBucket` of `p`; `0` throughout
-  a read transaction;
 - `noSync`: the database's `NoSync` option (`isBolt`'s mode), which `Commit` follows.
 Written with named fields. -/
 structure TxView where
@@ -185,21 +212,15 @@ structure TxView where
   managed : Bool
   base : Data
   cur : Data
-  gen : BPath → Nat
   noSync : Bool
 
 /-- A read transaction's view: the snapshot `D` (on a database of mode `ns`). -/
 def TxView.ro (D : Data) (managed : Bool) (ns : Bool) : TxView :=
-  { rw := false, managed := managed, base := D, cur := D, gen := fun _ => 0, noSync := ns }
+  { rw := false, managed := managed, base := D, cur := D, noSync := ns }
 
 /-- A write transaction's view when it begins at the committed `D`, on a database of mode `ns`. -/
 def TxView.wr (D : Data) (managed : Bool) (ns : Bool) : TxView :=
-  { rw := true, managed := managed, base := D, cur := D, gen := fun _ => 0, noSync := ns }
-
-/-- The generations of `p` and of each of its ancestors, root first: a bucket handle is current
-while these are what they were when the handle was made. -/
-def TxView.gens (T : TxView) (p : BPath) : List Nat :=
-  (List.range (p.length + 1)).map (fun i => T.gen (p.take i))
+  { rw := true, managed := managed, base := D, cur := D, noSync := ns }
 
 /-- The entries of the bucket at `p` in cursor order (`[]` if there is none). -/
 def TxView.ents (T : TxView) (p : BPath) : List CurEnt :=
@@ -207,19 +228,17 @@ def TxView.ents (T : TxView) (p : BPath) : List CurEnt :=
   | some e => e.curEnts
   | none => []
 
+/-- The names of the nested buckets of the bucket at `p`, in key order (`ForEachBucket`'s). -/
+def TxView.bktNames (T : TxView) (p : BPath) : List GoString :=
+  ((T.ents p).filter (fun e => e.2.isNone)).map Prod.fst
+
 /-- The view with its data changed to `D`. -/
 def TxView.setCur (T : TxView) (D : Data) : TxView := { T with cur := D }
 
-/-- The view with the bucket `p.child k` deleted (with everything in it), its generation bumped,
-and the generations of the paths strictly below it reset to `0` (their handles are stale anyway:
-their generation lists hold `p.child k`'s, which only grows until an ancestor's is bumped).
-Resetting, not keeping, the paths below is what makes `DeleteBucket`'s recursion (each nested
-bucket deleted by its own `DeleteBucket`, bumping its own path) end at this view exactly
-(verify-round A11 F9). -/
+/-- The view with the bucket `p.child k` deleted, with everything in it (`DeleteBucket`; its
+handles' tokens are consumed, `Api.lean`'s `bktOwn`). -/
 def TxView.dropBkt (T : TxView) (p : BPath) (k : GoString) : TxView :=
-  { T with cur := T.cur.modAt p (fun b => b.setKey k none),
-           gen := fun x => if x = p.child k then T.gen x + 1
-             else if (p.child k).isPrefixOf x then 0 else T.gen x }
+  { T with cur := T.cur.modAt p (fun b => b.setKey k none) }
 
 /-! ## The client-owned state: committed data and durability -/
 

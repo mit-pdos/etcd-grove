@@ -19,6 +19,10 @@ On `Begin`'s error (`dbClosed` or `dbBroken`) `fn` is not called and its contrac
 (round 1, S1: was a vacuous `True`).
 
 **Margin.** `fn` must not panic.
+**Changes (2026-11-12, `notes/specs-only/ledger.md`, bucket handles).** The callback gets the whole
+token `bktOwn … none 1` of each bucket path of the data (`Ent.bktPaths`), as `DB.Begin(true)`;
+nothing gives them back (they are the transaction's) (the per-path generation counter it replaces
+was unobservable state, redundant with ownership).
 -/
 module
 
@@ -51,7 +55,7 @@ def DB.Update.spec : Prop :=
     (S : Bool → Bool → Bool → Bool → IProp GF) (R : GoInterface → IProp GF),
   {{ isBolt (GF := GF) db γ ns ∗
       (∀ (tx : Loc) (D : Data) (Φ : val → IProp GF),
-        boltTx tx γ 1 (TxView.wr D true ns) -∗ txLive tx 1 -∗
+        boltTx tx γ 1 (TxView.wr D true ns) -∗ ([∗list] p ∈ D.bktPaths, bktOwn tx γ p none 1) -∗ txLive tx 1 -∗
         ▷ (∀ (err : GoInterface) (T : TxView),
             ⌜T.rw = true ∧ T.managed = true ∧ T.noSync = ns⌝ -∗ boltTx tx γ 1 T -∗ txLive tx 1 -∗
             ((⌜err ≠ GoInterface.nil⌝ ∗ R err) ∨
@@ -64,7 +68,7 @@ def DB.Update.spec : Prop :=
         (R err ∨ (∃ ok synced failed brk : Bool, S ok synced failed brk) ∨
          ((dbClosed db ∨ dbBroken γ) ∗
           (∀ (tx : Loc) (D : Data) (Φ : val → IProp GF),
-        boltTx tx γ 1 (TxView.wr D true ns) -∗ txLive tx 1 -∗
+        boltTx tx γ 1 (TxView.wr D true ns) -∗ ([∗list] p ∈ D.bktPaths, bktOwn tx γ p none 1) -∗ txLive tx 1 -∗
         ▷ (∀ (err : GoInterface) (T : TxView),
             ⌜T.rw = true ∧ T.managed = true ∧ T.noSync = ns⌝ -∗ boltTx tx γ 1 T -∗ txLive tx 1 -∗
             ((⌜err ≠ GoInterface.nil⌝ ∗ R err) ∨

@@ -16,6 +16,10 @@ transaction).
 `Put`'s: `seek`, `Cursor.node` (`repKept`, `keyLeaf`), `node.del`, `physRep_del` (the key not a
 bucket), `wtxCore_view`. An absent key: `node.del` changes nothing and `setKey kb none` of a bucket
 without `kb` is the bucket (`delEnt`).
+**Changes (2026-11-12, `notes/specs-only/ledger.md`, bucket handles).** The handle premise `bktUse`
+(the bucket's ownership share in a write transaction) in place of `bktH … gs` and the generation
+check, given back (the per-path generation counter it replaces was unobservable state, redundant
+with ownership).
 -/
 module
 
@@ -41,10 +45,10 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- `b.Delete(key)`: on a write transaction (all of it), removes `key` from the bucket at `p` (no
 change if absent); errors: not writable, `key` is a nested bucket. -/
 def Bucket.Delete.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (b : Loc) (p : BPath) (gs : List Nat) (key : GoSlice) (kb : GoString) (dk : DFrac),
-  {{ boltTx (GF := GF) tx γ q T ∗ bktH tx γ b p gs ∗ key ↦*{dk} kb ∗ ⌜T.gens p = gs ∧ (T.rw = true → q = 1)⌝ }}
+  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (b : Loc) (p : BPath) (qb : Qp) (key : GoSlice) (kb : GoString) (dk : DFrac),
+  {{ boltTx (GF := GF) tx γ q T ∗ bktUse tx γ T.rw b p qb ∗ key ↦*{dk} kb ∗ ⌜(T.rw = true → q = 1)⌝ }}
     (App (Val (b @!! go.GoType.PointerType Bucket.ty @!! go!"Delete")) (Val #key))
-  {{ (err : GoInterface), RET #err; key ↦*{dk} kb ∗
+  {{ (err : GoInterface), RET #err; bktUse tx γ T.rw b p qb ∗ key ↦*{dk} kb ∗
       (if T.rw = false then
          iprop(boltTx tx γ q T ∗ isErr go_etcd_io.bbolt.errors.ErrTxNotWritable err)
        else if (T.cur.atPath (p.child kb)).any Ent.isBkt then

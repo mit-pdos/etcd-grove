@@ -92,7 +92,7 @@ def Open.spec : Prop :=
       (if o.noFreelistSync then iprop(emp) else iprop(∀ D : Data, commitAU γ D D o.noSync Sf)) }}
     (App (App (App (Val (@! go_etcd_io.bbolt.Open)) (Val #γ.path)) (Val #mode)) (Val #opts))
   {{ (db : Loc) (err : GoInterface), RET (PairV #db #err); optsArg opts dq o ∗
-      ((⌜err = GoInterface.nil⌝ ∗ isBolt db γ o.noSync ∗ boltOpened db γ ∗
+      ((⌜err = GoInterface.nil⌝ ∗ isBolt db γ o.noSync ∗ boltOpened db γ 1 ∗
          (if o.noFreelistSync then iprop(emp) else
             iprop(Sf true (!o.noSync) false false ∨ ∀ D : Data, commitAU γ D D o.noSync Sf))) ∨
        (⌜err ≠ GoInterface.nil⌝ ∗ boltClosed γ ∗ (⌜o.openFile = func.nil⌝ ∨ R) ∗

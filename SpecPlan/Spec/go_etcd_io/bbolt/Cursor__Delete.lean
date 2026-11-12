@@ -14,6 +14,10 @@ the end deletes nothing, left out).
 **Proof sketch, the success arm in the internal vocabulary** (verify-round, A11 F9).
 `Cursor.node` at `boltCur … (some i)` gives `keyLeaf C' p kb n` for the entry's key (`curKey`),
 `node.del`, `physRep_del` (a value: `vo ≠ none`), `wtxCore_view`.
+**Changes (2026-11-12, `notes/specs-only/ledger.md`, bucket handles).** The handle premise `bktUse`
+(new: without the generations, a deleted and re-created bucket can leave the view as it was, and the
+cursor must not survive its bucket), given back; the cursor names its handle `b` in place of `gs`
+(the per-path generation counter it replaces was unobservable state, redundant with ownership).
 -/
 module
 
@@ -39,11 +43,11 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- `c.Delete()` on a cursor at entry `i`: on a write transaction (all of it), removes that entry;
 errors: not writable, a nested bucket. The cursor must be repositioned before `Next`/`Prev`. -/
 def Cursor.Delete.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx c : Loc) (γ : BoltName) (q : Qp) (T : TxView) (p : BPath) (gs : List Nat) (i : Nat) (kb : GoString) (vo : Option GoString),
-  {{ boltTx (GF := GF) tx γ q T ∗ boltCur tx γ c p gs T (some i) ∗
+  ∀ [HasExt osFsExt] (tx c : Loc) (γ : BoltName) (q : Qp) (T : TxView) (b : Loc) (p : BPath) (qb : Qp) (i : Nat) (kb : GoString) (vo : Option GoString),
+  {{ boltTx (GF := GF) tx γ q T ∗ boltCur tx γ c b p T (some i) ∗ bktUse tx γ T.rw b p qb ∗
       ⌜(T.ents p)[i]? = some (kb, vo) ∧ (T.rw = true → q = 1)⌝ }}
     (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"Delete")) (Val #()))
-  {{ (err : GoInterface), RET #err; boltCur tx γ c p gs T (some i) ∗
+  {{ (err : GoInterface), RET #err; bktUse tx γ T.rw b p qb ∗ boltCur tx γ c b p T (some i) ∗
       (if T.rw = false then
          iprop(boltTx tx γ q T ∗ isErr go_etcd_io.bbolt.errors.ErrTxNotWritable err)
        else if vo = none then

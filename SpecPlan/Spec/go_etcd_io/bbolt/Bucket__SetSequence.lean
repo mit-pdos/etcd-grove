@@ -6,6 +6,10 @@ header); `SetInSequence`. **Changes.** New.
 page with a nil parent if `rootNode` is nil (`repKept`, the root then materialized); `wtxCore_seq`
 gives the handle's `InBucket` points-to; 4d's `InBucket.SetInSequence`; the wand gives `physRep`
 of the view with the counter set.
+**Changes (2026-11-12, `notes/specs-only/ledger.md`, bucket handles).** The handle premise `bktUse`
+(the bucket's ownership share in a write transaction) in place of `bktH … gs` and the generation
+check, given back (the per-path generation counter it replaces was unobservable state, redundant
+with ownership).
 -/
 module
 
@@ -30,14 +34,14 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `b.SetSequence(v)`: on a write transaction (all of it), sets the counter of the bucket at `p`. -/
 def Bucket.SetSequence.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (b : Loc) (p : BPath) (gs : List Nat) (v : w64),
-  {{ boltTx (GF := GF) tx γ q T ∗ bktH tx γ b p gs ∗ ⌜T.gens p = gs ∧ (T.rw = true → q = 1)⌝ }}
+  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (b : Loc) (p : BPath) (qb : Qp) (v : w64),
+  {{ boltTx (GF := GF) tx γ q T ∗ bktUse tx γ T.rw b p qb ∗ ⌜(T.rw = true → q = 1)⌝ }}
     (App (Val (b @!! go.GoType.PointerType Bucket.ty @!! go!"SetSequence")) (Val #v))
-  {{ (err : GoInterface), RET #err;
-      if T.rw = false then
+  {{ (err : GoInterface), RET #err; bktUse tx γ T.rw b p qb ∗
+      (if T.rw = false then
         iprop(boltTx tx γ q T ∗ isErr go_etcd_io.bbolt.errors.ErrTxNotWritable err)
       else iprop(⌜err = GoInterface.nil⌝ ∗
-        boltTx tx γ q (T.setCur (T.cur.modAt p (fun e => e.setSeq v)))) }}
+        boltTx tx γ q (T.setCur (T.cur.modAt p (fun e => e.setSeq v))))) }}
 
 end spec
 

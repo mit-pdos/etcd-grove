@@ -16,6 +16,10 @@ public one's loop with the view existential, the cursor's keys a subsequence of 
 remove keys at `p` and add none; the deleted inodes' key bytes stay valid). A second spec of one
 function, internal and for one caller: the public spec is not an instance of it (its fraction is
 any `q`), recorded as a margin of the one-spec rule for internals.
+**Changes (2026-11-12, `notes/specs-only/ledger.md`, bucket handles).** The handle premise `bktUse`
+in place of `bktH … gs` and the generation check, given back (`spec_del` lends it to the callback,
+which calls `DeleteBucket` on the same handle); the names are `TxView.bktNames` (the per-path
+generation counter it replaces was unobservable state, redundant with ownership).
 -/
 module
 
@@ -42,10 +46,10 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- `b.ForEachBucket(fn)`: calls `fn` on each nested bucket's name in the bucket at `p` (the names
 `ks`, in key order), carrying `I` and stopping at the first error. -/
 def Bucket.ForEachBucket.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (b : Loc) (p : BPath) (gs : List Nat) (fn : GoFunc) (I : Nat → IProp GF)
+  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (b : Loc) (p : BPath) (qb : Qp) (fn : GoFunc) (I : Nat → IProp GF)
     (E : Nat → GoInterface → IProp GF) (ks : List GoString),
-  {{ boltTx (GF := GF) tx γ q T ∗ bktH tx γ b p gs ∗
-      ⌜T.gens p = gs ∧ ks = ((T.ents p).filter (fun e => e.2.isNone)).map Prod.fst⌝ ∗ I 0 ∗
+  {{ boltTx (GF := GF) tx γ q T ∗ bktUse tx γ T.rw b p qb ∗
+      ⌜ks = T.bktNames p⌝ ∗ I 0 ∗
       □ (∀ (i : Nat) (kb : GoString) (k : GoSlice) (Φ : val → IProp GF),
           ⌜ks[i]? = some kb⌝ -∗ I i -∗ txBytes tx γ k kb -∗ boltTx tx γ q T -∗
           ▷ (∀ err : GoInterface, boltTx tx γ q T -∗
@@ -53,7 +57,7 @@ def Bucket.ForEachBucket.spec : Prop :=
               Φ #err) -∗
           WP (App (Val #fn) (Val #k)) {{ Φ }}) }}
     (App (Val (b @!! go.GoType.PointerType Bucket.ty @!! go!"ForEachBucket")) (Val #fn))
-  {{ (err : GoInterface), RET #err; boltTx tx γ q T ∗
+  {{ (err : GoInterface), RET #err; bktUse tx γ T.rw b p qb ∗ boltTx tx γ q T ∗
       ((⌜err = GoInterface.nil⌝ ∗ I ks.length) ∨
        (∃ i : Nat, ⌜err ≠ GoInterface.nil ∧ i < ks.length⌝ ∗ E i err)) }}
 
@@ -62,20 +66,22 @@ def Bucket.ForEachBucket.spec : Prop :=
 names `ks` (index `j ≥` the loop's `i`), with all of the transaction at a view `sameAt` the first;
 the result is such a view and the loop state at some index, or the callback's error. -/
 def Bucket.ForEachBucket.spec_del : Prop :=
-  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (T : TxView) (b : Loc) (p : BPath) (gs : List Nat)
+  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (T : TxView) (b : Loc) (p : BPath) (qb : Qp)
     (fn : GoFunc) (I : Nat → TxView → IProp GF) (E : GoInterface → TxView → IProp GF)
     (ks : List GoString),
-  {{ boltTx (GF := GF) tx γ 1 T ∗ bktH tx γ b p gs ∗
-      ⌜T.gens p = gs ∧ ks = ((T.ents p).filter (fun e => e.2.isNone)).map Prod.fst⌝ ∗ I 0 T ∗
+  {{ boltTx (GF := GF) tx γ 1 T ∗ bktUse tx γ T.rw b p qb ∗
+      ⌜ks = T.bktNames p⌝ ∗ I 0 T ∗
       □ (∀ (i j : Nat) (kb : GoString) (k : GoSlice) (T' : TxView) (Φ : val → IProp GF),
           ⌜i ≤ j ∧ ks[j]? = some kb ∧ T.sameAt T' p⌝ -∗ I i T' -∗ txBytes tx γ k kb -∗
-          boltTx tx γ 1 T' -∗
+          boltTx tx γ 1 T' -∗ bktUse tx γ T.rw b p qb -∗
           ▷ (∀ (err : GoInterface) (T'' : TxView), ⌜T.sameAt T'' p⌝ -∗ boltTx tx γ 1 T'' -∗
+              bktUse tx γ T.rw b p qb -∗
               ((⌜err = GoInterface.nil⌝ ∗ I (j + 1) T'') ∨ (⌜err ≠ GoInterface.nil⌝ ∗ E err T'')) -∗
               Φ #err) -∗
           WP (App (Val #fn) (Val #k)) {{ Φ }}) }}
     (App (Val (b @!! go.GoType.PointerType Bucket.ty @!! go!"ForEachBucket")) (Val #fn))
-  {{ (err : GoInterface), RET #err; ∃ T' : TxView, ⌜T.sameAt T' p⌝ ∗ boltTx tx γ 1 T' ∗
+  {{ (err : GoInterface), RET #err; bktUse tx γ T.rw b p qb ∗
+      ∃ T' : TxView, ⌜T.sameAt T' p⌝ ∗ boltTx tx γ 1 T' ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ i : Nat, I i T') ∨ (⌜err ≠ GoInterface.nil⌝ ∗ E err T')) }}
 
 end spec
