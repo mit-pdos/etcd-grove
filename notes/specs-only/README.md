@@ -208,8 +208,14 @@ axioms below a package are eliminated, a closed theorem "this snippet does not p
   facts of the environment (no crash, no other process touches the file). No `Specs:` line and no
   proof vocabulary (predicates, laws, ownership, reader slots, review rounds): which specs prove a
   snippet is the provability review's sketch, not the snippet's.
-- One snippet per aspect the callers rely on, each with as little code as possible: the snippets
-  together are much smaller than the callers' code.
+- As few snippets as possible (the user, 2026-11-12): ideally one generic tester per API, a
+  program shaped like its users (the server's threads, at once, over the API) that exercises every
+  part of it and checks every result against what the program itself wrote. A snippet whose
+  executions are (up to its checks) a subset of another's is dropped: a sequential one is subsumed
+  by a concurrent one doing the same operations. A separate snippet only where one program cannot
+  cover it (a crash target, an exclusive configuration). As little code as possible: the snippets
+  together are much smaller than the callers' code. Mutate the program once (drop a lock, split a
+  session) to see a check fire: a check that cannot fail captures nothing.
 
 The packages not yet converted keep the form below:
 

@@ -33,9 +33,9 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   the view has no `k`, the read may return one entry `(k, v')` with any `v'`, also for a key no image
   ever held. The lingering it models is narrower: the concurrent read's buffer copy may predate the
   last commit, so it may still hold a key that commit *deleted*, with the value the key had.
-- **Evidence.** The snippet `backend/session-atomic` (`examples/specreq/backend/content.go`,
-  `ReqSessionAtomic`): a `ConcurrentReadTx` reads two fresh keys one batch session puts, and panics if
-  it sees exactly one. Its "both present" half is provable (one `V` read atomically), its "both
+- **Evidence.** The snippet `backend/backend` (`examples/specreq/backend/backend.go`, `ReqBackend`'s
+  readers): a `ConcurrentReadTx` visits the keys the writer's sessions put in pairs, and panics if it
+  sees one key of a pair (first written as `session-atomic`, folded into `ReqBackend` the same day). Its "both present" half is provable (one `V` read atomically), its "both
   absent" half is not: either fresh key may read as present. mvcc's real read path (fresh revision
   keys, `kvstore_txn.go:126`) has the same need. The over-approximation's source:
   `nonissues/etcd-backend-read-buffer-cache-stale-after-commit.md`.
