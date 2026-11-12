@@ -272,11 +272,14 @@ PROJECTS = [
         # (055b2f69a, nonissues/etcd-fileutil-touchdirall-existing-after-kill.md), and `ReadAll` in
         # write mode fsyncs the WAL directory and its parent (b18c2d500,
         # nonissues/etcd-wal-dir-names-after-kill.md).
+        # Then (WAL W4a revision, 2026-11-12) c90b03b56 on `goose-lean`: `Exist` reports a WAL when
+        # its directory cannot be read, so `Create` never removes one
+        # (nonissues/etcd-wal-exist-readdir-error-removes-wal.md).
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="b18c2d50067b9e203ecc15f93cd70fed7b20a797",
+        rev="c90b03b56bd25694dbd82a9dc16c508fe6e93bcf",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
