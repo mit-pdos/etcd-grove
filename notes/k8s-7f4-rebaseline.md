@@ -104,3 +104,9 @@ contracts and the chain lemma) and 200-400 for the larger `WithTimeout` lemma.
 - **Q-RB3.** §3 becomes R-3's two contracts with a parametrized stream end. Recommended: yes.
 - **Q-RB4.** W5 changes mvcc's sealed API (`WatchStream.Watch.contract`'s context disjunct gains
   the weak form). Recommended: yes, as an API diff reviewed at step 5's checkpoint.
+
+## 6. Decision (2026-11-12)
+
+Approved by etcd-grove-81 under the user's delegation: Q-RB1, Q-RB2, Q-RB3, Q-RB4, as recommended.
+The 7f-4 Lean stage goes in §4's order; the trusted texts (step 2) go into a Freeze package for
+81's independent review before any is used.
