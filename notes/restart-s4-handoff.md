@@ -25,10 +25,24 @@ the restart point, `run` at `⟨|P|, A₀⟩`.
     `restReplay(_closeI)`, `kvBatchR`, `restReplay_snoc` are generic in `rp`/`P`; `run`'s stop arithmetic
     (`EtcdServer__run.lean:1614-1630`) does not read `rp.b`; `raftNode.start.spec` is generic in `L`.
 
+## Done (steps 2-5, 2026-11-12)
+
+- `c6acbaf6f4`: `AuthCompRows.lean` (plan §1.1-§1.4: `applyBuiltR`, `srvBuiltRestartR`, `rnSnapOnceR`
+  moved above `isServerBuiltC`; `isServerBuiltC`'s `HBr`; `srvRunRestartR` `∃ A₀ P`; `isServerRunC`
+  without the tokens; `applyBuiltR_first`, `srvBuiltRestartR_first`, `srvRunRestartR_first` (+ tokens),
+  `srvRunRows_of_rn`; `isServerBuiltM_C` one way), `EtcdServer__start.lean` (the restart point from
+  `HBr`, rows 6-7 by `srvRunRows_of_rn`), `EtcdServer__run.lean` (`⟨P.length, A₀⟩`, `raftNode.start` at
+  `P`, `goIdx_P`; the scheduler's saved prop renamed `Psv`), `ModeSpecs.lean` and
+  `examples/etcd/auth/startServer.lean` (`hB.1` → `hB`), `run.spec`'s docstring (scope). Each file
+  checked with `etc/lean-check.py -a` (kernel): 0 errors.
+- STATUS (R2d'a section's S4 bullet, Last updated; the oldest entry moved to status-history) and
+  decisions.md "Restart S4".
+
 ## Next, in order
 
-1. CP1 reported to etcd-grove-81; on its go, plan §3 steps 2-6 (move `applyBuiltR`, P1 into
-   `AuthCompRows.lean`; then `start`, `run`, the callers).
+1. Full build (`/shared/tmp/restart-s4/full1.log`), then the gates of plan §3 step 6, then CP2's report.
+2. After CP2: the Freeze package (hub diff + widening argument) to a fresh `spec-reviewer`, CP3, STOP
+   before `etc/land.sh` (merge `lean` first then; it brings SpecPlan/).
 
 ## Build
 
