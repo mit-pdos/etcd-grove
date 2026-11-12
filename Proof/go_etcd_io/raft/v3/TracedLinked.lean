@@ -11,6 +11,8 @@ public import Proof.go_etcd_io.raft.v3.TracedNodeApi
 public import Spec.go_etcd_io.raft.v3.node__Step
 public import Spec.go_etcd_io.raft.v3.node__Advance
 import Proof.go_etcd_io.raft.v3.Link
+import Proof.go_etcd_io.raft.v3.TracedStartNode
+import Proof.go_etcd_io.raft.v3.TracedNodeApiBridge
 
 @[expose] public section
 
@@ -40,6 +42,16 @@ theorem node.wp_Advance_traced [StorageModel GF] :
 theorem node.wp_Step_traced [StorageModel GF] :
     node.Step.tracedSpec (GF := GF) (hG := hG) :=
   node.Step.tracedSpec_of_spec _root_.Perennial.EtcdGrove.node.wp_Step
+
+/-- **`StartNode` of a traced cluster** (2026-11-12, trace-check step 5): the one proof
+(`StartNode.gatedSpec_proof`, from the linked `setupNode` and `node.run`), at the client's
+statement (`StartNode.tracedSpec_of_gated`). What the tracecheck harness took as its hypothesis
+`HarnessOpen`. -/
+theorem wp_StartNode_traced [StorageModel GF] :
+    StartNode.tracedSpec (GF := GF) :=
+  StartNode.tracedSpec_of_gated
+    (_root_.Perennial.EtcdGrove.StartNode.gatedSpec_proof _root_.Perennial.EtcdGrove.wp_setupNode
+      _root_.Perennial.EtcdGrove.node.wp_run)
 
 end links
 

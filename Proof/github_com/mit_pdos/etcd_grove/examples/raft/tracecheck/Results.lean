@@ -10,7 +10,10 @@ The trace check's results (`examples/raft/tracecheck`, the closed program of
   (`StartNode.tracedSpec_of_gated`); nothing else is open. The other traced statements the harness
   uses are proved since implementation step 1 (`stepIn_intro` with the token, `trTok_type`,
   `isReadyChan_recvAu.tracedSpec_proof`, the linked `node.Advance.tracedSpec`, `TracedLinked.lean`).
-  When it lands, `HarnessOpen` is a theorem and the two results below lose their `_of`.
+  When it lands, `HarnessOpen` is a theorem and the two results below lose their `_of`. (2026-11-12,
+  trace-check step 5: landed. `harnessOpen` proves it from raft's linked traced `StartNode`
+  (`TracedLinked.lean`'s `wp_StartNode_traced`), and `raft_tracecheck_safe`/`raft_tracecheck_accepts`
+  are §1.2/§1.3's statements, hypothesis-free, the `_of` results at it.)
 * **`raft_tracecheck_safe_of`**: §1.2's `raft_tracecheck_safe` (no execution of the package's
   initialization then `Main()`, of `n + 2 ≤ 2^31` steps, panics or gets stuck; the main thread's
   result is `#()`), given the bootstrap log's facts and premises (`Defs.lean`). Everything `Main`
@@ -107,6 +110,13 @@ abbrev HarnessOpen : Prop :=
     [HeapGS HasLC.hasLC GF] [go.Semantics] [go_etcd_io.raft.v3.Assumptions] [StorageModel GF],
     HarnessApi (GF := GF)
 
+/-- **The open obligation, discharged** (2026-11-12, trace-check step 5): raft's traced `StartNode`,
+linked (`TracedLinked.lean`'s `wp_StartNode_traced`: the one proof `StartNode.gatedSpec_proof` over the
+linked `setupNode` and `node.run`). -/
+theorem harnessOpen : HarnessOpen := by
+  intros
+  exact RaftLink.wp_StartNode_traced
+
 section harness
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -172,6 +182,22 @@ theorem raft_tracecheck_accepts_of (h : HarnessOpen) [ThreadBoundLe GF (2 ^ 31)]
   iframe Hsl
   ipureintro; exact ⟨rfl, Hacc⟩
 
+/-- **Every run's trace is accepted** (`notes/trace-check-design.md` §1.3; 2026-11-12, trace-check step 5:
+`raft_tracecheck_accepts_of` at the discharged obligation, `harnessOpen`). -/
+theorem raft_tracecheck_accepts [ThreadBoundLe GF (2 ^ 31)]
+    (Hrb : receiptBound GF + 3 ≤ 2 ^ 61) (boot : List LogEntry) (Hbf : tracecheck.BootLogFacts boot) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck ∗
+        context.isClosedchanInit ∗ tracecheck.premises boot }}
+      (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.RunConcurrent))
+        (Val #defaultCConfig))
+    {{ (c : Loc), RET (PairV #c #interface.nil);
+        WP (App (Val (c @!! go.GoType.PointerType
+            github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Cluster.ty @!! go!"Events"))
+            (Val #()))
+          {{ v, ∃ (sl : GoSlice) (L : List TraceEv), ⌜v = #sl⌝ ∗ traceEventsRep sl L ∗
+                ⌜Etcdraft.TraceAccepts (L.map TraceSim.evConv) false false⌝ }} }} :=
+  raft_tracecheck_accepts_of harnessOpen Hrb boot Hbf
+
 end harness
 
 /-! ## The closed theorem, from the open obligation -/
@@ -212,6 +238,23 @@ theorem raft_tracecheck_safe_of (h : HarnessOpen) [lctx : GoLocalContext] [sem :
   tracecheck_adequate_of (tcMainSpec_of h) boot Hbf Hprem σ g Hlctx Hinit Hthreads n Hn κs t2 σ2
     Hsteps
 
+/-- **The trace check never fails** (`notes/trace-check-design.md` §1.2; 2026-11-12, trace-check step 5:
+`raft_tracecheck_safe_of` at the discharged obligation, `harnessOpen`). -/
+theorem raft_tracecheck_safe [lctx : GoLocalContext] [sem : go.Semantics]
+    [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Assumptions]
+    [hLog : log.NewModel]
+    (boot : List LogEntry) (Hbf : tracecheck.BootLogFacts boot)
+    (Hprem : ∀ hG : HeapGS .hasLC tcGF,
+      ⊢ tracecheck.premises (GF := tcGF) (hG := heapWith hG lctx) boot)
+    (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
+    (Hthreads : σ.threads = 1)
+    (n : Nat) (Hn : n + 2 ≤ 2 ^ 31) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNsteps n ([tracecheckProgram], ((σ, g) : CfgState)) κs (t2, σ2)) :
+    (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
+    (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
+    (∀ v, Val v ∈ t2 → v.isPanic = false) :=
+  raft_tracecheck_safe_of harnessOpen boot Hbf Hprem σ g Hlctx Hinit Hthreads n Hn κs t2 σ2 Hsteps
+
 end closed
 
 #print axioms tracecheck_Events_traceAccepts
@@ -219,6 +262,9 @@ end closed
 #print axioms raft_tracecheck_accepts_of
 #print axioms tcMainSpec_of
 #print axioms raft_tracecheck_safe_of
+#print axioms harnessOpen
+#print axioms raft_tracecheck_accepts
+#print axioms raft_tracecheck_safe
 
 end EtcdGrove
 end Perennial

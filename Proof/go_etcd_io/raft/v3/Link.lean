@@ -532,6 +532,34 @@ theorem wp_newLogWithSize [StorageModel GF] :
     newLogWithSize.spec (GF := GF) (hG := hG) :=
   newLogWithSize.wp_proof
 
+theorem unstable.wp_maybeLastIndex [StorageModel GF] :
+    unstable.maybeLastIndex.spec (GF := GF) (hG := hG) :=
+  unstable.maybeLastIndex.wp_proof raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex
+
+theorem raftLog.wp_lastIndex [StorageModel GF] :
+    raftLog.lastIndex.spec (GF := GF) (hG := hG) :=
+  raftLog.lastIndex.wp_proof unstable.wp_maybeLastIndex
+
+theorem unstable.wp_maybeTerm [StorageModel GF] :
+    unstable.maybeTerm.spec (GF := GF) (hG := hG) :=
+  unstable.maybeTerm.wp_proof unstable.wp_maybeLastIndex raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex raftpb.SnapshotMetadata.wp_GetTerm raftpb.Entry.wp_GetTerm
+
+theorem unstable.wp_maybeFirstIndex [StorageModel GF] :
+    unstable.maybeFirstIndex.spec (GF := GF) (hG := hG) :=
+  unstable.maybeFirstIndex.wp_proof raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex
+
+theorem raftLog.wp_firstIndex [StorageModel GF] :
+    raftLog.firstIndex.spec (GF := GF) (hG := hG) :=
+  raftLog.firstIndex.wp_proof unstable.wp_maybeFirstIndex
+
+theorem raftLog.wp_term [StorageModel GF] :
+    raftLog.term.spec (GF := GF) (hG := hG) :=
+  raftLog.term.wp_proof unstable.wp_maybeTerm raftLog.wp_firstIndex raftLog.wp_lastIndex
+
+theorem raftLog.wp_lastEntryID [StorageModel GF] :
+    raftLog.lastEntryID.spec (GF := GF) (hG := hG) :=
+  raftLog.lastEntryID.wp_proof raftLog.wp_lastIndex raftLog.wp_term
+
 theorem tracker.wp_MakeProgressTracker :
     tracker.MakeProgressTracker.spec (GF := GF) (hG := hG) :=
   tracker.MakeProgressTracker.wp_proof
@@ -555,14 +583,6 @@ theorem raft.wp_hardState [StorageModel GF] :
 theorem wp_makeTracingState [StorageModel GF] :
     makeTracingState.spec (GF := GF) (hG := hG) :=
   makeTracingState.wp_proof raft.wp_hardState raftpb.HardState.wp_GetTerm raftpb.HardState.wp_GetVote raftpb.HardState.wp_GetCommit strconv.wp_FormatUint
-
-theorem unstable.wp_maybeLastIndex [StorageModel GF] :
-    unstable.maybeLastIndex.spec (GF := GF) (hG := hG) :=
-  unstable.maybeLastIndex.wp_proof raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex
-
-theorem raftLog.wp_lastIndex [StorageModel GF] :
-    raftLog.lastIndex.spec (GF := GF) (hG := hG) :=
-  raftLog.lastIndex.wp_proof unstable.wp_maybeLastIndex
 
 theorem slices.wp_Sort :
     slices.«Sort».spec (GF := GF) (hG := hG) :=
@@ -844,10 +864,6 @@ theorem strings.wp_Join [StorageModel GF] :
     strings.Join.spec (GF := GF) (hG := hG) :=
   strings.Join.wp_proof
 
-theorem wp_newRaft [StorageModel GF] :
-    newRaft.spec (GF := GF) (hG := hG) :=
-  newRaft.wp_proof Config.wp_validate wp_newLogWithSize tracker.wp_MakeProgressTracker wp_newReadOnly wp_traceInitState confchange.wp_Restore wp_traceConfChangeEvent tracker.ProgressTracker.wp_ConfState wp_assertConfStatesEquivalent wp_IsEmptyHardState raftpb.HardState.wp_GetCommit raftpb.HardState.wp_GetTerm raftpb.HardState.wp_GetVote raft.wp_becomeFollower tracker.ProgressTracker.wp_VoterNodes fmt.wp_Sprintf strings.wp_Join
-
 theorem raft.wp_softState [StorageModel GF] :
     raft.softState.spec (GF := GF) (hG := hG) :=
   raft.softState.wp_proof
@@ -903,26 +919,6 @@ theorem raftLog.wp_hasNextOrInProgressSnapshot [StorageModel GF] :
 theorem raft.wp_promotable [StorageModel GF] :
     raft.promotable.spec (GF := GF) (hG := hG) :=
   raft.promotable.wp_proof raftLog.wp_hasNextOrInProgressSnapshot
-
-theorem unstable.wp_maybeTerm [StorageModel GF] :
-    unstable.maybeTerm.spec (GF := GF) (hG := hG) :=
-  unstable.maybeTerm.wp_proof unstable.wp_maybeLastIndex raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex raftpb.SnapshotMetadata.wp_GetTerm raftpb.Entry.wp_GetTerm
-
-theorem unstable.wp_maybeFirstIndex [StorageModel GF] :
-    unstable.maybeFirstIndex.spec (GF := GF) (hG := hG) :=
-  unstable.maybeFirstIndex.wp_proof raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex
-
-theorem raftLog.wp_firstIndex [StorageModel GF] :
-    raftLog.firstIndex.spec (GF := GF) (hG := hG) :=
-  raftLog.firstIndex.wp_proof unstable.wp_maybeFirstIndex
-
-theorem raftLog.wp_term [StorageModel GF] :
-    raftLog.term.spec (GF := GF) (hG := hG) :=
-  raftLog.term.wp_proof unstable.wp_maybeTerm raftLog.wp_firstIndex raftLog.wp_lastIndex
-
-theorem raftLog.wp_lastEntryID [StorageModel GF] :
-    raftLog.lastEntryID.spec (GF := GF) (hG := hG) :=
-  raftLog.lastEntryID.wp_proof raftLog.wp_lastIndex raftLog.wp_term
 
 theorem raftpb.MessageType.wp_Enum :
     raftpb.MessageType.Enum.spec (GF := GF) (hG := hG) :=
@@ -1539,6 +1535,10 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
+theorem wp_newRaft [StorageModel GF] :
+    newRaft.spec (GF := GF) (hG := hG) :=
+  newRaft.wp_proof Config.wp_validate wp_newLogWithSize raftLog.wp_lastEntryID tracker.wp_MakeProgressTracker wp_newReadOnly wp_traceInitState confchange.wp_Restore wp_traceConfChangeEvent tracker.ProgressTracker.wp_ConfState wp_assertConfStatesEquivalent wp_IsEmptyHardState raftpb.HardState.wp_GetCommit raftpb.HardState.wp_GetTerm raftpb.HardState.wp_GetVote raft.wp_becomeFollower tracker.ProgressTracker.wp_VoterNodes fmt.wp_Sprintf strings.wp_Join
+
 theorem wp_NewRawNode [AllG GF] [StorageModel GF] :
     NewRawNode.spec (GF := GF) (hG := hG) :=
   NewRawNode.wp_proof wp_newRaft raft.wp_softState raft.wp_hardState
@@ -1653,7 +1653,7 @@ theorem raft.wp_hasLeader :
 
 theorem node.wp_run [StorageModel GF] :
     node.run.spec (GF := GF) (hG := hG) :=
-  node.run.wp_proof RawNode.wp_HasReady RawNode.wp_readyWithoutAccept RawNode.wp_acceptReady RawNode.wp_Advance RawNode.wp_Tick raft.wp_Step raft.wp_hasLeader wp_IsResponseMsg wp_IsLocalMsgTarget raft.wp_applyConfChange raftpb.Message.wp_GetType raftpb.Message.wp_GetFrom wp_getStatus
+  node.run.wp_proof RawNode.wp_HasReady RawNode.wp_readyWithoutAccept RawNode.wp_acceptReady RawNode.wp_Advance RawNode.wp_Tick raft.wp_tickElection raft.wp_tickHeartbeat raft.wp_Step raft.wp_hasLeader wp_IsResponseMsg wp_IsLocalMsgTarget raft.wp_applyConfChange raftpb.Message.wp_GetType raftpb.Message.wp_GetFrom wp_getStatus
 
 theorem wp_RestartNode [StorageModel GF] :
     RestartNode.spec (GF := GF) (hG := hG) :=

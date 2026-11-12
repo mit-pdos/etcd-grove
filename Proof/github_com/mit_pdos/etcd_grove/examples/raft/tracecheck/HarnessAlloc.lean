@@ -193,19 +193,22 @@ theorem harness_alloc (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (b
 
 /-- **A voter's `startTraceC`**: in the traced cluster `γ` of the directory `γd`, its share and flag,
 the simulation's invariant and directory, a trace logger of the names' trace that is not nil, and the
-configuration's premises (pre-vote and check-quorum off, fewer than `2^40` voters). -/
+configuration's premises (pre-vote and check-quorum off, fewer than `2^40` voters), and (2026-11-12,
+trace-check step 5) the receipts' fit with the ceiling's headroom (`traceFits`). -/
 theorem startTraceC_intro (γ : Cluster) (γd : GName) (tn : TraceNames) (vs : List w64) (cv : Config)
     (Htr : Cluster.trace γ = some γd) (Hvs : tn.voters = vs) (Hpv : cv.PreVote' = false)
     (Hcq : cv.CheckQuorum' = false) (Hlen : vs.length < 2 ^ 40)
-    (Hnil : cv.TraceLogger' ≠ interface.nil) :
+    (Hnil : cv.TraceLogger' ≠ interface.nil) (N : Namespace)
+    (Hfit : receiptBound GF + max γ.bootLen 2 ≤ 2 ^ 61) :
     ⊢ traceDir (GF := GF) γd tn -∗ Cluster.traceSim γ vs tn -∗ isTraceLogger tn.tr cv.TraceLogger' -∗
       simNode tn cv.ID' (toC (confAbs vs) ((simInit vs).s (idAbs cv.ID'))) [] -∗
-      simBoot tn cv.ID' false none -∗ startTraceC γ vs cv := by
+      simBoot tn cv.ID' false none -∗ startTraceC γ N vs cv := by
   iintro #Hdir #Hinv #Hlog Hsh Hbt
+  ihave #Hf := traceFits_intro (GF := GF) γ N Hfit
   unfold startTraceC
   rw [Htr]
   iexists tn
-  iframe Hdir Hinv Hlog Hsh Hbt
+  iframe Hdir Hinv Hlog Hsh Hbt Hf
   ipureintro
   exact ⟨⟨Hpv, Hcq⟩, Hvs, Hlen, Hnil⟩
 
