@@ -24,6 +24,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode
 
 -- `ifaceCall` is in `Inv/Freelist.lean` (shared: the interface specs are stated over it).

@@ -24,6 +24,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 section tree
 variable [GooseExts]
 

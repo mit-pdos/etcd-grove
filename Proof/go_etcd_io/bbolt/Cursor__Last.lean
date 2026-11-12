@@ -29,6 +29,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section proof
@@ -38,7 +40,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-theorem Cursor.Last.wp_reader [HasExt osFsExt]
+theorem Cursor.Last.wp_reader [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
     (hA : internal.common.Assert.spec (GF := GF) (hG := hG))
     (hRP : internal.common.InBucket.RootPage.spec (GF := GF) (hG := hG))
     (hpn : Bucket.pageNode_r.spec (GF := GF) (hG := hG))
@@ -305,7 +307,7 @@ theorem Cursor.Last.wp_reader [HasExt osFsExt]
 
 /-- **A writer's `Last`** (U6aa): `Read/PubWLast`'s, over `pageNode_w`, `last_w`, `prev_w` and
 `keyValue_ws`; `gensOK`'s third clause by `gensOK_handle_bktLoc` (the cursor's writer facts are `wtxFrac`'s). -/
-theorem Cursor.Last.wp_writer [HasExt osFsExt]
+theorem Cursor.Last.wp_writer [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
     (hA : internal.common.Assert.spec (GF := GF) (hG := hG))
     (hRP : internal.common.InBucket.RootPage.spec (GF := GF) (hG := hG))
     (hpnw : Bucket.pageNode_w.specQ (GF := GF) (hG := hG))
@@ -325,15 +327,15 @@ theorem Cursor.Last.wp_writer [HasExt osFsExt]
 theorem Cursor.Last.wp_proof
     (hA : internal.common.Assert.spec (GF := GF) (hG := hG))
     (hRP : internal.common.InBucket.RootPage.spec (GF := GF) (hG := hG))
-    (hpn : ∀ [HasExt osFsExt], Bucket.pageNode_r.spec (GF := GF) (hG := hG))
+    (hpn : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Bucket.pageNode_r.spec (GF := GF) (hG := hG))
     (hCnt : internal.common.Page.Count.spec (GF := GF) (hG := hG))
-    (hlast : ∀ [HasExt osFsExt], Cursor.last_r.spec (GF := GF) (hG := hG))
-    (hkv : ∀ [HasExt osFsExt], Cursor.keyValue_r.spec (GF := GF) (hG := hG))
-    (hkv0 : ∀ [HasExt osFsExt], Cursor.keyValue_r0.spec (GF := GF) (hG := hG))
-    (hpnw : ∀ [HasExt osFsExt], Bucket.pageNode_w.specQ (GF := GF) (hG := hG))
-    (hlastw : ∀ [HasExt osFsExt], Cursor.last_w.specQ (GF := GF) (hG := hG))
-    (hprevw : ∀ [HasExt osFsExt], Cursor.prev_w.specQ (GF := GF) (hG := hG))
-    (hkvw : ∀ [HasExt osFsExt], Cursor.keyValue_ws.specQ (GF := GF) (hG := hG)) :
+    (hlast : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Cursor.last_r.spec (GF := GF) (hG := hG))
+    (hkv : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Cursor.keyValue_r.spec (GF := GF) (hG := hG))
+    (hkv0 : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Cursor.keyValue_r0.spec (GF := GF) (hG := hG))
+    (hpnw : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Bucket.pageNode_w.specQ (GF := GF) (hG := hG))
+    (hlastw : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Cursor.last_w.specQ (GF := GF) (hG := hG))
+    (hprevw : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Cursor.prev_w.specQ (GF := GF) (hG := hG))
+    (hkvw : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Cursor.keyValue_ws.specQ (GF := GF) (hG := hG)) :
     Cursor.Last.spec (GF := GF) (hG := hG) := by
   intro _ tx c γ q T es pos
   by_cases hrw : T.rw = true

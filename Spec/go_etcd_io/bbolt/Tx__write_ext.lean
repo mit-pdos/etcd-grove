@@ -18,12 +18,14 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
@@ -59,16 +61,16 @@ abbrev Tx.write_ext.spec : Prop :=
       K.db.[DB, go!"file"] ↦{dqf} f ∗
       (K.db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{dqw}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
-      fileOwn f fd K.p (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨K.p, true, true⟩ ∗
-      osMeta K.p (DFrac.own 1) (some om) ∗ wrSlotsSz b K.p (bufSlots bufs ++ T) wb om.size }}
+      fileOwn f fd K.p (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨K.i, true, true⟩ ∗
+      osMeta K.i (DFrac.own 1) om ∗ wrSlotsSz b K.i (bufSlots bufs ++ T) wb om.size }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"write")) (Val #()))
   {{ (err : GoInterface), RET #err; statsTok r sm q ∗ tx.[Tx, go!"db"] ↦{dq} K.db ∗
       (∃ pml' : Loc, tx.[Tx, go!"pages"] ↦ pml' ∗ pml' ↦$ (∅ : GMap w64 Loc)) ∗
       K.db.[DB, go!"file"] ↦{dqf} f ∗
       (K.db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{dqw}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
-      fileOwn f fd K.p (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨K.p, true, true⟩ ∗
-      ∃ (om' : OsMeta) (wb' : Nat → List w8), osMeta K.p (DFrac.own 1) (some om') ∗
+      fileOwn f fd K.p (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨K.i, true, true⟩ ∗
+      ∃ (om' : OsMeta) (wb' : Nat → List w8), osMeta K.i (DFrac.own 1) om' ∗
         ⌜om.size ≤ om'.size ∧ om'.size ≤ max om.size (4096 * (l / 4096)) ∧ om'.maps = om.maps ∧
           (∀ s ∈ bufSlots bufs ++ T, 4096 * (s + 1) ≤ om'.size → (wb' s).length = 4096) ∧
           (∀ s ∈ T, 4096 * (s + 1) ≤ om.size → wb' s = wb s) ∧
@@ -80,9 +82,9 @@ abbrev Tx.write_ext.spec : Prop :=
             (∀ s ∈ bufSlots bufs ++ T, 4096 * s < om'.size → om'.size < 4096 * (s + 1) →
               om'.size - 4096 * s ≤ (wb' s).length) ∧
             (om'.size = om.size ∨ om'.size % 4096 = 0)⌝ ∗
-            slotsOwn (some (b, l) : MapSt) K.p (bufSlots bufs) wb' ∗ wrSlotsSz b K.p T wb' om'.size) ∨
+            slotsOwn (some (b, l) : MapSt) K.i (bufSlots bufs) wb' ∗ wrSlotsSz b K.i T wb' om'.size) ∨
          (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗
-            wrSlotsSz b K.p (bufSlots bufs ++ T) wb' om'.size)) }}
+            wrSlotsSz b K.i (bufSlots bufs ++ T) wb' om'.size)) }}
 
 end spec
 

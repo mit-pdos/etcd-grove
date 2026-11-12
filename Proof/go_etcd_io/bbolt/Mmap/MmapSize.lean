@@ -25,6 +25,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 /-- `DB.mmapSize`'s result for `size` (page size 4096): the least power of two from 32 KiB to

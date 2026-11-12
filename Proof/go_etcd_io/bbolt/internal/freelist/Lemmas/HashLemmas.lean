@@ -21,6 +21,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open go_etcd_io.bbolt.internal.freelist
 
 /-- `sets` with `st` dropped from the set of size `sz`, and that set dropped if it is empty

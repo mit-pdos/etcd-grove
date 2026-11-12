@@ -351,7 +351,7 @@ And the trust-boundary assumptions `GOOS_linux` and `GOARCH_amd64`: the program 
 linux/amd64 (`runtime.GOOS` and `runtime.GOARCH`, constants that goose leaves axiom `val`s, are
 `"linux"` and `"amd64"`), as the repository's other platform facts
 assume linux/amd64 (`os.Getpagesize` returns 4096, `Spec/os/Getpagesize.lean`; the Linux file
-extensions `osFsExt` and `fsExt`). `runtime`'s `IsPkgInit` instance is Perennial's, with the fact `True`, so the
+extension `fsExt`). `runtime`'s `IsPkgInit` instance is Perennial's, with the fact `True`, so the
 packages that read `GOOS`/`GOARCH` state them in their own facts from these axioms (bbolt's root package,
 `bboltRootInit`).''',
     pre=['namespace runtime', '',
@@ -2881,49 +2881,6 @@ def dag_init():
 
 
 
-# The part `LinuxFs/` (the per-byte Linux file extension's `os`, `syscall`, `golang.org/x/sys/unix`,
-# `io/fs`, `internal/poll` and `internal/syscall/unix`, and the programs over it; project bboltfs's
-# part, projects crashlog and walfs): the same Go paths as the main tree's (the first extension's),
-# translated into a module root of its own. Its packages' initializers are generated as the main
-# tree's, from the part's translation (`LFS_ROOT/Code`) and instances (`LFS_ROOT/Proof`), with the
-# imports of the part's modules prefixed; its `PkgInitExt` is the main tree's without raft (whose
-# translation imports the main tree's `os`).
-LFS_ROOT = 'LinuxFs'
-LFS_PKGS = ['os', 'syscall', 'io.fs', 'internal.poll', 'internal.syscall.unix', 'golang_org.x.sys.unix']
-
-
-def lfs_prefix(txt):
-    """`txt` with its imports of the part's modules (those with a file under `LFS_ROOT`) prefixed."""
-    def imp(m):
-        x = m.group(2)
-        if os.path.exists(f'{LFS_ROOT}/{x.replace(".", "/")}.lean') or x == 'Proof.runtime.PkgInitExt':
-            x = f'{LFS_ROOT}.{x}'
-        return m.group(1) + x
-    return re.sub(r'(?m)^(public import )(\S+)', imp, txt)
-
-
-def lfs_inits(ext_txt):
-    """The part's `Init.lean` files and `PkgInitExt.lean`."""
-    global inv, inst
-    saved = inv, inst
-    outs = []
-    try:
-        inv = inventory(f'{LFS_ROOT}/Code')
-        inst = instances(f'{LFS_ROOT}/Proof/')
-        for p in LFS_PKGS:
-            if os.path.exists(f'{LFS_ROOT}/Code/{dirof(p)}.lean'):
-                path, txt = gen(p, SPECIAL.get(p))
-                outs.append((f'{LFS_ROOT}/{path}', lfs_prefix(txt)))
-    finally:
-        inv, inst = saved
-    ext = '\n'.join(l for l in ext_txt.split('\n') if 'go_etcd_io.raft' not in l and 'go_etcd_io_raft' not in l)
-    i = ext.index('\nmodule\n') + 1
-    note = (f'-- The copy for the part `{LFS_ROOT}/` of `Proof/runtime/PkgInitExt.lean` (`etc/gen-init.py`):\n'
-            f'-- the same, without raft (whose translation imports the main tree\'s `os`).\n')
-    outs.append((f'{LFS_ROOT}/Proof/runtime/PkgInitExt.lean', ext[:i] + note + ext[i:]))
-    return outs
-
-
 def main(argv):
     check = '--check' in argv
     pkgs = [a for a in argv if not a.startswith('--')] or packages()
@@ -2935,7 +2892,6 @@ def main(argv):
     outs += [part_copy(path, txt) for path, txt in outs if path in PART_PATHS]
     if not [a for a in argv if not a.startswith('--')]:
         outs += [dag_closures(), dag_init()]
-        outs += lfs_inits(next(t for p, t in outs if p == 'Proof/runtime/PkgInitExt.lean'))
     for path, txt in outs:
         old = open(path).read() if os.path.exists(path) else None
         if old == txt:

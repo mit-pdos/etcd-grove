@@ -24,6 +24,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris
 
 /-- **The decoded ghost names of a database** (design §3.1; the shares are the design's):

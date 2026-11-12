@@ -25,6 +25,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode
 open github_com.mit_pdos.perennial.goose.model
 open github_com.goose_lang.primitive (isMutex isMutex_unseal isMutexDef ownMutex ownMutex_unseal

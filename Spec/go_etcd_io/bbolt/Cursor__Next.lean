@@ -15,13 +15,15 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 /- Every bbolt spec is stated over OsFs's semantics (round 11, D22: the default `osFs_semantics`,
-whose `pwrite` within one aligned OS page is all-or-nothing): the binder `∀ [HasExt osFsExt]` at
+whose `pwrite` within one aligned OS page is all-or-nothing): the binder `∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]` at
 the head of each triple (a section variable is dropped from a definition that does not use it),
 and in the signature of each vocabulary predicate, so that every statement carries it (checked
 with `#check`). -/
@@ -36,7 +38,7 @@ nil, still not positioned. The position is the abstract one (round 2): in a writ
 whose trailing leaves deletes emptied, Go's stack ends on an empty leaf instead, which only a
 `Prev` could tell apart, and the spec of `Prev` is for read transactions only. -/
 abbrev Cursor.Next.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx c : Loc) (γ : BoltName) (q : Qp) (T : TxView) (es : List BoltEnt) (pos : Option Nat),
+  ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (tx c : Loc) (γ : BoltName) (q : Qp) (T : TxView) (es : List BoltEnt) (pos : Option Nat),
   {{ boltTx (GF := GF) tx γ q T ∗ boltCur tx γ c T es pos }}
     (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"Next")) (Val #()))
   {{ (k v : GoSlice), RET (PairV #k #v); boltTx tx γ q T ∗

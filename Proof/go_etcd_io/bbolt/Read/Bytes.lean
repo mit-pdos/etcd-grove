@@ -14,6 +14,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 namespace Read
 
 open Iris Iris.BI Iris.ProofMode

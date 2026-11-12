@@ -20,6 +20,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 #print axioms Mergepgids.wp_proof
 
 end bbolt
