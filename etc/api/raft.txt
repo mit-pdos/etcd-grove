@@ -118,6 +118,13 @@ importable Proof.go_etcd_io.raft.v3.MsgRead
 # none, the literal's), the handed-out set's elements `outObjR`/`outEntR` (`RaftNames.out`), and a
 # message handed out at a content raft pins (`msgOutR`, with the `MsgSnap` law `msgOutR_snap`)
 importable Proof.go_etcd_io.raft.v3.MsgOut
+# (out_size C3, 2026-11-12) a message raft holds at a content of bounded size under the node's flag
+# (`msgOwnZ`) and a received one (`msgInC`): the read-index state (`InvMisc`) speaks of them
+importable Proof.go_etcd_io.raft.v3.MsgOwnZ
+# (out_size C3, B1, decided by etcd-grove-81) the entry type's wire decoding and its registration
+# (`entDecode`, `EntWireOk`, `pbEntry`, `pbEntryC_*`), moved from rafthttp; rafthttp's message
+# instances import it
+importable Proof.go_etcd_io.raft.v3.PbEntryType
 
 ## The protocol's client vocabulary: the cluster's ghost names, the committed log, proposals, the
 ## read index, snapshots, the configuration
