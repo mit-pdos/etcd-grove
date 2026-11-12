@@ -82,8 +82,8 @@ theorem MemoryStorage.Term.wp_proof
   icases Hfields_inv with ⟨%hp, %es', %dummy, %nfi, %nli, %nen, %nte, %nsn, Hfields_inv⟩
   iNamed Hfields_inv
   icases Hents with #Hents
-  ihave %Hcl := entsRO_cons_len $$ Hents
-  icases entsRO_lookup es' (dummy :: (memPhys p ents).ents) 0 dummy rfl $$ Hents
+  ihave %Hcl := entsROz_cons_len _ _ _ _ $$ Hents
+  icases entsROz_lookup _ es' (dummy :: (memPhys p ents).ents) 0 dummy rfl $$ Hents
     with ⟨%ls, %l0, #Hls, #He0, %Hl0⟩
   wp_auto
   rw [ite_eq_left ⟨by word, by word⟩]
@@ -130,7 +130,7 @@ theorem MemoryStorage.Term.wp_proof
     simp only [List.length_cons, memPhys]; word
   obtain ⟨e', He'⟩ : ∃ e', (dummy :: (memPhys p ents).ents)[(uint.Z i0 - uint.Z p.index').toNat]? = some e' :=
     ⟨_, List.getElem?_eq_getElem Hlt⟩
-  icases entsRO_lookup es' (dummy :: (memPhys p ents).ents) _ e' He' $$ Hents
+  icases entsROz_lookup _ es' (dummy :: (memPhys p ents).ents) _ e' He' $$ Hents
     with ⟨%ls1, %l1, #Hls1, #He1, %Hl1⟩
   have H1 : 0 ≤ uint.Z i0 - uint.Z p.index' ∧
       uint.Z i0 - uint.Z p.index' < sint.Z es'.len := by

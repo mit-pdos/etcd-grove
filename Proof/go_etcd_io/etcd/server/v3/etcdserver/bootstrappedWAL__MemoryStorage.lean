@@ -91,14 +91,14 @@ theorem bootstrappedWAL.MemoryStorage.wp_proof
     (wp_SetHardState : MemoryStorage.SetHardState.spec (GF := GF) (hG := hG))
     (wp_Append : MemoryStorage.Append.spec (GF := GF) (hG := hG)) :
     bootstrappedWAL.MemoryStorage.spec (GF := GF) (hG := hG) := by
-  intro w dq bw σ cs sdq edq Hidx Hlast H0t
+  intro sz w dq bw σ cs sdq edq Hidx Hlast H0t
   wp_start as ⟨Hw, Hsnap, #Hhs, Hents⟩
   icases typedPointsto_not_null_dup _ _ _ $$ Hw with ⟨Hw, %Hwnn⟩
   iStructNamed Hw
   ihave #Hraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   try wp_auto
-  wp_apply wp_NewMemoryStorage as %ms %γs ⟨#Hlock, #Hd0, Hend, Hnone, Hmeta, Hfresh⟩
+  wp_apply wp_NewMemoryStorage sz as %ms %γs ⟨%Hsz, #Hlock, #Hd0, Hend, Hnone, Hmeta, Hfresh⟩
   try wp_auto
   imod memSnapNone_open γs $$ Hnone with #Hlb0
   ihave #Hinit := go_etcd_io.raft.v3.isInitialized_access $$ Hraft
@@ -137,12 +137,12 @@ theorem bootstrappedWAL.MemoryStorage.wp_proof
       iframe wal st s Hmeta
   try wp_auto
   -- the entries (none: no `Append`)
-  ihave %Hlen := entsPts_len bw.ents' edq σ.ents $$ Hents
+  ihave %Hlen := entsPtsZ_len sz bw.ents' edq σ.ents $$ Hents
   have Hidx1 : ∀ (j : Nat) (e : EntryM), σ.ents[j]? = some e → uint.nat e.Index' = σ.b + 1 + j :=
     Hidx
   have Hb61' : σ.b + 1 + σ.ents.length ≤ 2 ^ 61 := by unfold StorContents.last at Hlast; omega
   wp_join iprop("Hlog" ∷ memLog γs (σ.b + 1) (DFrac.own 1) σ.ents ∗
-      "Hend" ∷ memEnd γs (σ.last + 1) ∗ "Hents" ∷ entsPts bw.ents' edq σ.ents ∗
+      "Hend" ∷ memEnd γs (σ.last + 1) ∗ "Hents" ∷ entsPtsZ sz bw.ents' edq σ.ents ∗
       "s" ∷ s_ptr ↦ ms ∗ "wal" ∷ wal_ptr ↦ w ∗
       "ents" ∷ w.[bootstrappedWAL, go!"ents"] ↦{dq} bw.ents')
     at (if: _ then _ else _)
@@ -162,9 +162,12 @@ theorem bootstrappedWAL.MemoryStorage.wp_proof
       · rw [if_neg Hne, List.length_nil, Nat.add_zero]
         iframe Hend
         iapply memLog_nil
+      ihave Hents : entsPtsZ γs.sz bw.ents' edq σ.ents $$ [Hents]
+      · rw [Hsz]; iexact Hents
       wp_apply wp_Append ms γs (σ.b + 1) [] σ.ents bw.ents' edq Hidx1 Hb61' $$ [HA Hents]
         as ⟨Hents, HA⟩
       · iframe Hlock HA Hents
+      rw [Hsz]
       rw [if_neg Hne]
       icases HA with ⟨Hlog, Hend⟩
       try wp_auto
@@ -178,6 +181,8 @@ theorem bootstrappedWAL.MemoryStorage.wp_proof
   · iapply typedPointsto_combine _ _ _ Hwnn
     simp only [TypedPointsto.typedPointstoDef]
     iframe lg haveWAL w st ents snapshot meta'
+  isplitr
+  · ipureintro; exact Hsz
   iunfold memStorRestarted
   iframe Hfresh Hmeta Hcomp Hdum Hslb Hlog Hend
 

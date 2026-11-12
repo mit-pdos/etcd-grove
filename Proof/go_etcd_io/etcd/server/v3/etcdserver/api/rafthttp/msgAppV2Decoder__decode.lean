@@ -18,7 +18,7 @@ public import Spec.google_golang_org.protobuf.proto.ClonePb
 public import Spec.go_etcd_io.etcd.pkg.v3.pbutil.MustUnmarshalMessagePb
 public import Spec.encoding.binary.ReadUint64
 public import Perennial.Proof.encoding.binary.Results
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.MsgRead
+public import Proof.go_etcd_io.raft.v3.MsgRead
 
 @[expose] public section
 
@@ -302,7 +302,11 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
         have wpUE := wp_MustUnmarshalMessage pbEntryC pbEntryC_reg «$r0_ptr» (slice.slice buf w8 (W64 0) (W64 sz)) eb (DFrac.own 1)
           ec trivial (by simpa using hecu) trivial (by simpa using hecb)
         simp only [pbEntryC_ty, pbEntryC_blank, pbEntryC_decC, pbEntryC_modelOf, pbEntryC_C] at wpUE
-        wp_apply wpUE $$ [$Hbm $«$r0»] as ⟨Hbm, #Hc1, %Hc1u⟩
+        iapply wp_fupd
+        wp_apply wpUE $$ [$Hbm $«$r0»] as ⟨Hbm, Hc1, %Hc1u⟩
+        -- (out_size C3) the decoded entry is owned (`pbEntryC`'s `decC`): frozen here
+        imod entPtsCC_freeze _ _ _ $$ Hc1 with #Hc1
+        imodintro
         (try wp_auto)
         ihave Hbufs := ownSlice_rejoin buf zs' eb (W64 sz) hbnd (by rw [hebl, hszn]) $$ [Hb0 Hbm Hbr]
         · rw [show zs'.take (sint.nat (W64 0)) = [] from rfl]; iframe
@@ -365,7 +369,11 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
         have wpUE := wp_MustUnmarshalMessage pbEntryC pbEntryC_reg «$r0_ptr» mb eb (DFrac.own 1)
           ec trivial (by simpa using hecu) trivial (by simpa using hecb)
         simp only [pbEntryC_ty, pbEntryC_blank, pbEntryC_decC, pbEntryC_modelOf, pbEntryC_C] at wpUE
-        wp_apply wpUE $$ [$Hbm $«$r0»] as ⟨Hbm, #Hc1, %Hc1u⟩
+        iapply wp_fupd
+        wp_apply wpUE $$ [$Hbm $«$r0»] as ⟨Hbm, Hc1, %Hc1u⟩
+        -- (out_size C3) the decoded entry is owned (`pbEntryC`'s `decC`): frozen here
+        imod entPtsCC_freeze _ _ _ $$ Hc1 with #Hc1
+        imodintro
         (try wp_auto)
         wp_for_post
         iframe

@@ -172,13 +172,13 @@ private theorem wp_ApplySnapshot_gen
          KeyedElement (some (KeyField go!"Index")) (ElementExpression go.uint64.PointerType #«$v1_ptr»)])] = 1 := rfl
     simp only [Hsz]
     -- the fresh dummy entry, at the snapshot's id, frozen
-    imod entOwn_of_struct l0 (raftpb.Entry.mk zeroValDef «$v0_ptr» «$v1_ptr» null slice.nil slice.nil 0)
-        (memDummy sv) ⊤ rfl $$ [Hl0] with He0'
+    imod entRZ_of_struct γs.sz l0
+        (raftpb.Entry.mk zeroValDef «$v0_ptr» «$v1_ptr» null slice.nil slice.nil 0)
+        (memDummy sv) ⊤ rfl (fun _ => by simp [memDummy, entBytesMax]) $$ [Hl0] with #He0'
     · simp only [memDummy]
       iframe Hl0 cT cI
       isplitl []; · iapply cellRO_null
       iapply ownSlice_nil
-    imod entOwn_freeze $$ He0' with #He0'
     imod ownSlice_persist $$ Hsl with #Hsl
     wp_auto
     -- the ghost state: the caller's range deleted, the dummy at `s` frozen, the end at `s + 1`,
@@ -257,14 +257,14 @@ private theorem wp_ApplySnapshot_gen
         simp only [named]
         iframe
         isplitr
-        · iunfold entsRO; iunfold entsPts
+        · iunfold entsROz; iunfold entsPtsZ
           iexists [l0]
           iframe Hsl
           iapply (BigSepL2.bigSepL2_cons).2
           iframe He0'
           simp only [memPhys]
           inext
-          iapply entsBig_nil
+          iapply entsBigZ_nil
         ipureintro; exact ⟨rfl, rfl⟩
       iframe Hlog Hen_inv Hcp Hsx_inv Hsl_inv Hlk Hcjn
       isplitr

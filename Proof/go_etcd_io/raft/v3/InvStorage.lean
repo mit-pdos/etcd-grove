@@ -9,7 +9,7 @@ frozen committed prefix, which only compaction removes), its end exactly (`storE
 compaction point by persistent lower bounds (`storCompacted st c`). These are fields of the class
 `StorageModel` (γ-free; each implementation provides them, with the §1 laws).
 
-The contract raft relies on is `isStorageP SV Bnd st`: ordinary triples for `LastIndex`, `Term`,
+The contract raft relies on is `isStorageP sz SV Bnd st`: ordinary triples for `LastIndex`, `Term`,
 `Entries`, `FirstIndex` and `Snapshot` over these ranges, and two laws (`Hbound`, the compaction's
 justification `Bnd`; `Hlen`, the no-wrap bound). Its cluster-level pieces, `SV` (the snapshot's
 validity, the API's `snapshotValid γ`) and `Bnd` (the API's `nodeAppliedLb`/`snapGiven`), are
@@ -36,6 +36,7 @@ Lean notes: a multiple return `(#li, #interface.nil)` is `PairV #li #interface.n
 module
 
 public import Proof.go_etcd_io.raft.v3.InvPbLog
+public import Proof.go_etcd_io.raft.v3.PbSized
 public import Perennial.Ghost.MonoNat
 public import Perennial.Ghost.SavedProp
 public import Perennial.Ghost.GhostMap
@@ -233,9 +234,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- See above. -/
-def isStorageP (SV : SnapshotM → IProp GF) (Bnd : Nat → IProp GF) (DL : Nat → IProp GF)
-    (st : Storage) : IProp GF :=
+/-- See above. (out_size C2) `sz`: the storage is **sized**: `Entries` returns the entry objects at
+contents (`entsPtsC sz`), each `entSizeOk` when `sz`, and, when `sz` and `maxSize ≤ entsCutMax`, cut at
+`maxSize` (`entsCut`: one entry, or their protobuf sizes sum to at most `maxSize`; Go's `limitSize`
+in `MemoryStorage.Entries`). At `sz = false` the post is today's `entsRO s es`
+(`entsPtsC_entsPtsZ`, `entsPtsZ_false`). -/
+def isStorageP (sz : Bool) (SV : SnapshotM → IProp GF) (Bnd : Nat → IProp GF)
+    (DL : Nat → IProp GF) (st : Storage) : IProp GF :=
   iprop(∃ (i : GoInterfaceOk),
   "%Hstok" ∷ ⌜st = interface.ok i⌝ ∗
   "#HLastIndex" ∷ (∀ (e : Nat),
@@ -263,7 +268,9 @@ def isStorageP (SV : SnapshotM → IProp GF) (Bnd : Nat → IProp GF) (DL : Nat 
      {{ (s : GoSlice) (es : List EntryM) (err : GoInterface), RET (PairV #s #err);
          storLog st k dq1 a ∗ storLog st (k + a.length) dq2 b ∗
          ((⌜err = ec⌝ ∗ storCompacted st (uint.nat lo)) ∨
-          (⌜err = interface.nil⌝ ∗ entsRO s es ∗
+          (⌜err = interface.nil⌝ ∗
+           (∃ (cs : List EntryC), entsPtsC sz s DFrac.discard cs ∗
+             ⌜cs.map EntryC.model = es ∧ (sz = true → uint.nat maxSize ≤ entsCutMax → entsCut maxSize cs)⌝) ∗
            ⌜es ≠ [] ∧ s.cap = s.len ∧
              es <+: ((a ++ b).drop (uint.nat lo - k)).take (uint.nat hi - uint.nat lo)⌝)) }}) ∗
   "#HFirstIndex" ∷ (∀ (c : Nat),
@@ -283,9 +290,46 @@ def isStorageP (SV : SnapshotM → IProp GF) (Bnd : Nat → IProp GF) (DL : Nat 
   "#Hlen" ∷ □ (∀ (k : Nat) (dq : DFrac) (es : List EntryM),
      storLog st k dq es -∗ ⌜es = [] ∨ k + es.length ≤ 2^61⌝ ∗ storLog st k dq es))
 
-instance isStorageP_pers (SV : SnapshotM → IProp GF) (Bnd : Nat → IProp GF) (DL : Nat → IProp GF)
-    (st : Storage) : Persistent (isStorageP SV Bnd DL st) := by
+instance isStorageP_pers (sz : Bool) (SV : SnapshotM → IProp GF) (Bnd : Nat → IProp GF)
+    (DL : Nat → IProp GF) (st : Storage) : Persistent (isStorageP sz SV Bnd DL st) := by
   unfold isStorageP; infer_instance
+
+/-- (out_size C3) A sized storage's contract is the unsized one's. -/
+theorem entsPtsC_unsize (sz : Bool) (s : GoSlice) (dq : DFrac) (cs : List EntryC) :
+    entsPtsC (GF := GF) sz s dq cs ⊢ entsPtsC false s dq cs := by
+  unfold entsPtsC
+  iintro ⟨%ls, Hs, Hb, -⟩
+  iexists ls
+  iframe Hs Hb
+  ipureintro; intro h; exact absurd h (by simp)
+
+/-- (out_size C3) A sized storage meets the unsized contract (`Entries`' extra facts dropped). -/
+theorem isStorageP_unsize (sz : Bool) (SV : SnapshotM → IProp GF) (Bnd : Nat → IProp GF)
+    (DL : Nat → IProp GF) (st : Storage) :
+    isStorageP sz SV Bnd DL st ⊢ isStorageP false SV Bnd DL st := by
+  unfold isStorageP
+  iintro ⟨%i, %Hi, #HL, #HT, #HE, #HF, #HS, #Hb, #Hlen⟩
+  iexists i
+  iframe HL HT HF HS Hb Hlen
+  isplitr
+  · ipureintro; exact Hi
+  iintro %k %dq1 %dq2 %a %b %lo %hi %maxSize %ec
+  imodintro
+  iintro %Φ Hpre HΦ
+  wp_apply HE $$ %k %dq1 %dq2 %a %b %lo %hi %maxSize %ec [$Hpre] as %sl %es %err ⟨H1, H2, Hres⟩
+  iapply HΦ $$ %sl %es %err
+  iframe H1 H2
+  icases Hres with (Hl | ⟨%Herr, ⟨%cs, Hcs, %Hcs⟩, %Hpost⟩)
+  · ileft; iexact Hl
+  · iright
+    isplitr
+    · ipureintro; exact Herr
+    isplitl
+    · iexists cs
+      isplitl
+      · iapply entsPtsC_unsize $$ Hcs
+      · ipureintro; exact ⟨Hcs.1, fun h => absurd h (by simp)⟩
+    · ipureintro; exact Hpost
 
 end rangeContract
 
@@ -384,10 +428,10 @@ instance raftDL_pers (sn : StorNames) (i : Nat) (t : w64) : Persistent (raftDL (
 
 /-- The contract as raft's log holds it: for some `SV` (pinned at `sn.gsv`), `Bnd` (read as
 `raftBnd sn`) and `DL` (read, with a valid snapshot's term, as `raftDL sn`), `SV` persistent. What
-`newLogWithSize` takes. -/
+`newLogWithSize` takes. (out_size C2) Sized as `sn.sz` says. -/
 def isStorageV (sn : StorNames) (st : Storage) : IProp GF :=
   iprop(∃ (SV : SnapshotM → IProp GF) (Bnd : Nat → IProp GF) (DL : Nat → IProp GF),
-    isStorageP SV Bnd DL st ∗
+    isStorageP sn.sz SV Bnd DL st ∗
     savedPredOwn sn.gsv DFrac.discard SV ∗ □ (∀ (sv : SnapshotM), SV sv -∗ □ SV sv) ∗
     □ (∀ (c : Nat), Bnd c -∗ raftBnd sn c) ∗
     □ (∀ (sv : SnapshotM), SV sv -∗ DL (uint.nat sv.Metadata'.Index') ={⊤}=∗
@@ -481,9 +525,10 @@ then the contract itself), against a predicate `P` of the view (`ownStorage sn s
 compaction witness `CT` (`storCut st`) and the snapshot's validity `SC` (`svCert sn`). The
 statements are the ones the log's proofs were written against, but for `HSnapshot` (the storage's
 snapshot is now known only to be valid, at or past what raft knows is compacted) and `Hbounded`
-(raft holds only what is below the batch out). -/
-def isStorageWith (P : StorState → IProp GF) (CT : Int → IProp GF) (SC : SnapshotM → IProp GF)
-    (st : Storage) : IProp GF :=
+(raft holds only what is below the batch out). (out_size C2) `sz`: `Entries` as the contract's
+(`isStorageP sz`): the objects at contents, sized and cut when `sz`. -/
+def isStorageWith (sz : Bool) (P : StorState → IProp GF) (CT : Int → IProp GF)
+    (SC : SnapshotM → IProp GF) (st : Storage) : IProp GF :=
   iprop(∃ (i : GoInterfaceOk),
   "%Hstok" ∷ ⌜st = interface.ok i⌝ ∗
   "#HLastIndex" ∷ (∀ (σ : StorState),
@@ -523,7 +568,8 @@ def isStorageWith (P : StorState → IProp GF) (CT : Int → IProp GF) (SC : Sna
          RET (PairV #s #err);
          (⌜err = ec ∧ uint.Z lo ≤ uint.Z σ.fl⌝ ∗ CT (uint.Z lo) ∗ P σ) ∨
          (⌜err = interface.nil⌝ ∗
-         entsRO s es ∗
+         (∃ (cs : List EntryC), entsPtsC sz s DFrac.discard cs ∗
+           ⌜cs.map EntryC.model = es ∧ (sz = true → uint.nat maxSize ≤ entsCutMax → entsCut maxSize cs)⌝) ∗
          ⌜es ≠ [] ∧
            (es.length : Int) ≤ uint.Z hi - uint.Z lo ∧
            (∀ e, e ∈ es → e ∈ σ.ents.take (uint.Z hi - uint.Z σ.prev.index' - 1).toNat) ∧
@@ -551,12 +597,12 @@ def isStorageWith (P : StorState → IProp GF) (CT : Int → IProp GF) (SC : Sna
            (⌜sv.Metadata'.Index' = W64 0⌝ ∨
             SC sv ∗ ⌜σ.dt.lookup (uint.nat sv.Metadata'.Index') = some sv.Metadata'.Term'⌝))) }}))
 
-/-- The read triples of the view raft holds. -/
+/-- The read triples of the view raft holds (out_size C2: sized as `sn.sz` says). -/
 def isStorageD (sn : StorNames) (st : Storage) : IProp GF :=
-  isStorageWith (ownStorage sn st) (storCut st) (svCert sn) st
+  isStorageWith sn.sz (ownStorage sn st) (storCut st) (svCert sn) st
 
-instance isStorageWith_pers (P : StorState → IProp GF) (CT : Int → IProp GF)
-    (SC : SnapshotM → IProp GF) (st : Storage) : Persistent (isStorageWith P CT SC st) := by
+instance isStorageWith_pers (sz : Bool) (P : StorState → IProp GF) (CT : Int → IProp GF)
+    (SC : SnapshotM → IProp GF) (st : Storage) : Persistent (isStorageWith sz P CT SC st) := by
   unfold isStorageWith; infer_instance
 
 instance isStorage_pers (sn : StorNames) (st : Storage) : Persistent (isStorageD (GF := GF) sn st) := by

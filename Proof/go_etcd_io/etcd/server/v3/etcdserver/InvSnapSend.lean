@@ -231,7 +231,7 @@ theorem merged_sizeOk (f : MsgFC) (m : SnapMetaC) (hr : f.entries = [])
         have := lenSize_le (csSize cs)
         simp only [hmu, List.length_nil]; omega
     have := lenSize_le (metaSize m)
-    simp only [hdrBytes, MsgC.f, optSnapSize, snapSize, optBytesSize, hu, List.length_nil]
+    simp only [hdrBytes, MsgC.f, optSnapSize, snapSize, optBytesSize, hu, List.length_nil, entBytesMax]
     rw [hc]
     omega
   · simp [MsgC.f, hr]

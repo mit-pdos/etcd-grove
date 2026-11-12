@@ -141,17 +141,18 @@ theorem raft.becomeLeader.wp_proof
   ihave Hnilb : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
   · iapply ownSlice_nil
   imod ownSlice_persist $$ Hnilb with #Hnilb
-  imod entOwn_of_struct «$r0_ptr»
+  -- (out_size C3) at a content with no data and no unknown fields: sized (`entRZ_of_struct`)
+  imod entRZ_of_struct s1.gh.sn.sz «$r0_ptr»
       { state' := zeroValDef, Term' := null, Index' := null, Type' := null, Data' := slice.nil,
-        unknownFields' := slice.nil, sizeCache' := 0 } (zero_val EntryM) ⊤ rfl $$ [«$r0»] with He
+        unknownFields' := slice.nil, sizeCache' := 0 } (zero_val EntryM) ⊤ rfl
+      (fun _ => Nat.zero_le _) $$ [«$r0»] with #He
   · iframe «$r0» Hnilb
     msg_nulls
-  imod entOwn_freeze $$ He with #He
   wp_apply wp_slice_literal
   try (isplitr; (ipureintro; rfl))
   iintro %es ⟨Hes, -⟩
-  ihave Hes : entsPts _ (DFrac.own 1) [zero_val EntryM] $$ [Hes]
-  · iunfold entsPts
+  ihave Hes : entsPtsZ s1.gh.sn.sz _ (DFrac.own 1) [zero_val EntryM] $$ [Hes]
+  · iunfold entsPtsZ
     iexists [«$r0_ptr»]
     iframe Hes
     iapply BigSepL2.bigSepL2_singleton.2; iexact He

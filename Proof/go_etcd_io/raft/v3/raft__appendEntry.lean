@@ -1,11 +1,14 @@
 /-
 Port of election_proof/proof_raft__appendEntry.v.
 
-raft v3.7 (stage R4): each entry of the batch (`entsPts es dq ents`, read-only elements) is cloned
-(`proto.CloneEntry`: an owned copy holding the same record), stamped with fresh `Term`/`Index`
-cells (`entOwn_store_Term`/`_Index`, `LemmasSendRB.lean`), frozen (`entOwn_freeze`) and stored
-into the fresh slice `cloned`, which then holds the stamped batch read-only (`entsPts cloned 1`);
-`increaseUncommittedSize` and `raftLog.append` take that slice. The caller's batch is given back
+raft v3.7 (stage R4): each entry of the batch (`entsPtsZ sz es dq ents`, read-only elements at
+contents, sized when `sz`) is cloned (out_size C3: `proto.ClonePb` at `pbEntryC`, an owned object
+at the source's content, `entPtsCC`), stamped with fresh `Term`/`Index` cells
+(`entPtsCC_store_Term`/`_Index`, `LemmasSendRB.lean`), frozen (`entPtsCC_freeze`; the content's size
+is the source's: `entBytes` counts only `Data` and the unknown fields) and stored into the fresh
+slice `cloned`, which then holds the stamped batch read-only and sized (`entsROz sz cloned`);
+`increaseUncommittedSize` and `raftLog.append` take that slice. Until out_size C3 the clone was
+`proto.CloneEntry`'s (model level), which said nothing of sizes. The caller's batch is given back
 untouched. The self-acknowledgement is built owned (`msgOwn_lit0`).
 -/
 module
@@ -17,7 +20,8 @@ public import Spec.go_etcd_io.raft.v3.traceReplicate
 public import Spec.go_etcd_io.raft.v3.raftLog__append
 public import Spec.go_etcd_io.raft.v3.raft__send
 public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
-public import Spec.google_golang_org.protobuf.proto.CloneEntry
+public import Spec.google_golang_org.protobuf.proto.ClonePb
+public import Proof.go_etcd_io.raft.v3.PbEntryType
 public import Proof.go_etcd_io.raft.v3.LemmasSendRB
 public import Proof.ReceiptTactics
 
@@ -35,7 +39,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
@@ -112,7 +116,7 @@ theorem raft.appendEntry.wp_proof
     (wp_traceReplicate : traceReplicate.spec (GF := GF) (hG := hG))
     (wp_raftLog_append : raftLog.append.spec (GF := GF) (hG := hG))
     (wp_raft_send : raft.send.spec (GF := GF) (hG := hG))
-    (wp_CloneEntry : proto.CloneEntry.spec (GF := GF) (hG := hG))
+    (wp_ClonePb : proto.ClonePb.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.appendEntry.spec (GF := GF) (hG := hG) := by
   intro c r id s es ents dq m Hsmall Hnz
@@ -124,7 +128,7 @@ theorem raft.appendEntry.wp_proof
   obtain ⟨Hidx, Hbnd⟩ := Hfacts
   wp_apply wp_raftLog_lastIndex _ _ $$ [$Hlog] as %li ⟨Hlog, %Hli⟩
   ihave Hphys := Hlogback $$ Hlog
-  iunfold entsPts at Hes
+  iunfold entsPtsZ at Hes
   icases Hes with ⟨%lsE, Hes, #Hents⟩
   ihave %Hlen := ownSlice_len $$ Hes
   ihave %Hlen2 := BigSepL2.bigSepL2_length $$ Hents
@@ -139,7 +143,8 @@ theorem raft.appendEntry.wp_proof
       "Hj" ∷ i_ptr ↦ n ∗
       "Hiraft" ∷ iraft ↦ k ∗
       "Hcl" ∷ cl ↦* (lc ++ List.replicate (ents.length - sint.nat n) (zero_val Loc)) ∗
-      "#Hcls" ∷ ([∗list] l;e ∈ lc;(ents.mapIdx (stamp s.term li)).take (sint.nat n), entRO l e) ∗
+      "#Hcls" ∷ ([∗list] l;e ∈ lc;(ents.mapIdx (stamp s.term li)).take (sint.nat n),
+        entRZ s.gh.sn.sz l e) ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (ents.length : Int) ∧ lc.length = sint.nat n⌝ ∗
       -- (2026-10-18, D19b stage 5) one receipt raised per entry cloned
       "#Hrc" ∷ ⧖ (m + sint.nat n))
@@ -158,7 +163,11 @@ theorem raft.appendEntry.wp_proof
   wp_if_destruct
   · have Hlt : sint.nat n < ents.length := by word
     obtain ⟨e, He⟩ : ∃ e, ents[sint.nat n]? = some e := ⟨_, List.getElem?_eq_getElem Hlt⟩
-    icases entsBig_lookup _ _ _ _ He $$ Hents with ⟨%le, %Hle, #Hle⟩
+    icases entsBigZ_lookup _ _ _ _ _ He $$ Hents with ⟨%le, %Hle, #Hle⟩
+    iunfold entRZ at Hle
+    icases Hle with ⟨%c0, #Hc0, %Hc0m⟩
+    obtain ⟨Hc0e, Hc0z⟩ := Hc0m
+    subst Hc0e
     have Hbnd' : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z es.len := ⟨Hn.1, Hif⟩
     ihave %Hcll := ownSlice_len $$ Hcl
     have Hnn : (sint.nat n : Int) = sint.Z n := Int.toNat_of_nonneg Hn.1
@@ -179,7 +188,13 @@ theorem raft.appendEntry.wp_proof
     -- (2026-10-18, D19b stage 5) the receipt of this entry: `proto.Clone`'s resolution
     wp_raise_receipt Hrc
     try wp_auto
-    wp_apply wp_CloneEntry le DFrac.discard e $$ [$Hle] as %l' ⟨-, Hl'⟩
+    have wpC := wp_ClonePb pbEntryC pbEntryC_reg le c0
+    simp only [pbEntryC_ty, pbEntryC_roC, pbEntryC_decC, pbEntryC_C, pbEntryC_modelOf,
+      pbEntryC_marshals] at wpC
+    wp_apply wpC $$ [$Hc0] as %l' ⟨%c', Hl', %Hc'⟩
+    obtain ⟨-, -, Hcc⟩ := Hc'
+    have Hcc : c' = c0 := Hcc trivial
+    subst Hcc
     try wp_auto
     simp only [Hbndc, _root_.and_self, ↓reduceIte]
     wp_apply wp_store_slice_index cl (sint.Z n) _ l' $$ [Hcl] as Hcl
@@ -194,28 +209,32 @@ theorem raft.appendEntry.wp_proof
       rw [show ents.length - (sint.nat n + 1) = k by omega]
     rw [Hset]
     wp_apply raft.wp_load_TermC $$ Hphys as Hphys
-    imod cellRO_alloc $$ «$r0» with #cT
+    imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ «$r0» with #cT
     try wp_auto
     simp only [Hbndc, _root_.and_self, ↓reduceIte]
     wp_apply wp_load_slice_index cl (sint.Z n) _ _ l' Hn.1 $$ [Hcl] as Hcl
     · iframe; ipureintro
       rw [show (sint.Z n).toNat = lc.length by omega, List.append_assoc]
       simp
-    icases entOwn_store_Term _ _ $$ Hl' with ⟨%pT, HT, HTback⟩
+    icases entPtsCC_store_Term _ _ $$ Hl' with ⟨%pT, HT, HTback⟩
     try wp_auto
     ihave Hl' := HTback $$ %_ %s.term HT cT
     try wp_auto
-    imod cellRO_alloc $$ «$r0» with #cI
+    imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ «$r0» with #cI
     simp only [Hbndc, _root_.and_self, ↓reduceIte]
     wp_apply wp_load_slice_index cl (sint.Z n) _ _ l' Hn.1 $$ [Hcl] as Hcl
     · iframe; ipureintro
       rw [show (sint.Z n).toNat = lc.length by omega, List.append_assoc]
       simp
-    icases entOwn_store_Index _ _ $$ Hl' with ⟨%pI, HI, HIback⟩
+    icases entPtsCC_store_Index _ _ $$ Hl' with ⟨%pI, HI, HIback⟩
     wp_pures
     wp_store
     ihave Hl' := HIback $$ %_ %_ HI cI
-    imod entOwn_freeze $$ Hl' with #Hl'
+    imod entPtsCC_freeze _ _ _ $$ Hl' with #Hl'
+    -- the stamped clone's size is the source's (`entBytes`: `Data` and the unknown fields)
+    ihave #Hl' := entRoC_entRZ_eq s.gh.sn.sz l'
+      { c' with term := some s.term, index := some (li + W64 1 + n) }
+      ⟨s.term, li + W64 1 + n, c'.model.Type', c'.model.Data'⟩ rfl Hc0z $$ Hl'
     wp_auto
     wp_for_post
     iframe
@@ -226,7 +245,7 @@ theorem raft.appendEntry.wp_proof
     iframe
     have Htk : (ents.mapIdx (stamp s.term li)).take (sint.nat n + 1)
         = (ents.mapIdx (stamp s.term li)).take (sint.nat n) ++
-          [{ Term' := s.term, Index' := li + W64 1 + n, Type' := e.Type', Data' := e.Data' }] := by
+          [{ Term' := s.term, Index' := li + W64 1 + n, Type' := c'.model.Type', Data' := c'.model.Data' }] := by
       rw [List.take_add_one, List.getElem?_mapIdx, He]
       simp only [Option.map_some, Option.toList_some, stamp]
       rw [show (W64 (sint.nat n : Int) : w64) = n by word]
@@ -244,12 +263,16 @@ theorem raft.appendEntry.wp_proof
     have Hfull : sint.nat n = ents.length := by omega
     rw [Hfull, Nat.sub_self, List.replicate_zero, List.append_nil,
       List.take_of_length_le (by simp only [List.length_mapIdx]; omega)] at *
-    ihave Hcl : entsPts cl (DFrac.own 1) (ents.mapIdx (stamp s.term li)) $$ [Hcl]
-    · iunfold entsPts; iexists lc; iframe Hcl Hcls
-    ihave Hes : entsPts es dq ents $$ [Hes]
-    · iunfold entsPts; iexists lsE; iframe Hes Hents
+    -- `cloned` is not written again: frozen, so that both calls below can read it
+    imod (ownSlice_dfractional (GF := GF) _ _).dfractional_persist _ $$ Hcl with #Hcl
+    ihave #HclZ : entsROz s.gh.sn.sz cl (ents.mapIdx (stamp s.term li)) $$ [Hcl]
+    · iunfold entsROz; iunfold entsPtsZ; iexists lc; iframe Hcl Hcls
+    ihave Hes : entsPtsZ s.gh.sn.sz es dq ents $$ [Hes]
+    · iunfold entsPtsZ; iexists lsE; iframe Hes Hents
     -- the budget check, on the *stamped* batch: the loop ran first
-    wp_apply wp_raft_increaseUncommittedSize $$ [$Hphys $Hcl] as %ok ⟨Hphys, Hcl, %Hok⟩
+    wp_apply wp_raft_increaseUncommittedSize $$ [$Hphys]
+      as %ok ⟨Hphys, -, %Hok⟩
+    · iapply entsPtsZ_entsPts $$ HclZ
     -- acceptance is pinned only for an all-empty batch; stamping does
     -- not touch `Data`, so the implication transfers to `ents`
     have Hacc : (∀ e ∈ ents, e.Data' = []) → ok = true := fun Hz =>
@@ -300,6 +323,10 @@ theorem raft.appendEntry.wp_proof
       push_cast at H0
       refine ⟨⟨by omega, by omega⟩, fun k e Hk => by rw [Hk2 k e Hk, H0]; omega, ?_⟩
       rw [List.length_mapIdx]; omega
+    -- the clones are sized at the log's flag (`GhLogOk`: the log's names are the ghost's)
+    have Hsn : s.logst.sn = s.gh.sn := Hgh0.1.2.2
+    ihave Hcl : entsPtsZ s.logst.sn.sz cl DFrac.discard (ents.mapIdx (stamp s.term li)) $$ [HclZ]
+    · rw [Hsn]; iexact HclZ
     wp_apply wp_raftLog_append _ _ _ _ _ Hpre $$ [$Hlog $Hcl]
       as %li2 ⟨Hlog, Hcl, %Hsplit2, %Hli2⟩
     · rw [Hado]; simp only [Bool.false_eq_true, ↓reduceIte, named]; itrivial
@@ -333,7 +360,7 @@ theorem raft.appendEntry.wp_proof
     try wp_auto
     imod cellRO_alloc $$ «$v2» with #cIx
     try wp_auto
-    imod msgOwn_lit0 «$a0_ptr» _ ⟨W32 4, id, 0, 0, 0, li2, 0, 0, false, 0⟩ ⊤ $$ [«$a0»] with Hr
+    imod msgOwnZ_lit0 _ «$a0_ptr» _ ⟨W32 4, id, 0, 0, 0, li2, 0, 0, false, 0⟩ ⊤ $$ [«$a0»] with Hr
     · iframe «$a0» cTy cTo cIx
       isplitr
       · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
@@ -346,7 +373,7 @@ theorem raft.appendEntry.wp_proof
       unfold selfAck absMsgFrom
       rw [Hlast2]
       rfl
-    · iapply tsSrcU_ne; exact (fun h => absurd h (by simp [MsgSnap]))
+    · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
     try wp_auto
     iapply HΦ
     simp only [↓reduceIte]

@@ -19,7 +19,7 @@ public import Spec.google_golang_org.protobuf.proto.SizeMessage
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetTo
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.MsgRead
+public import Proof.go_etcd_io.raft.v3.MsgRead
 
 @[expose] public section
 

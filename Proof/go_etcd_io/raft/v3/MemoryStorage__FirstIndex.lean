@@ -66,13 +66,13 @@ theorem MemoryStorage.FirstIndex.wp_proof
   icases Hfields_inv with ⟨%hp, %es, %dummy, %nfi, %nli, %nen, %nte, %nsn, Hfields_inv⟩
   iNamed Hfields_inv
   wp_auto
-  ihave Hf : memstorageFields ms (memPhys p ents) $$ [HhardState Hents_f Hents Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
+  ihave Hf : memstorageFields ms γs.sz (memPhys p ents) $$ [HhardState Hents_f Hents Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
   · unfold memstorageFields
     iexists hp, es, dummy, _, _, _, _, _
     simp only [named]
     iframe
     ipureintro; exact Hdummy
-  wp_apply wp_MemoryStorage_firstIndex _ _ Hpb $$ [$Hf] as %fi ⟨%Hfi, Hfields_inv⟩
+  wp_apply wp_MemoryStorage_firstIndex _ _ _ Hpb $$ [$Hf] as %fi ⟨%Hfi, Hfields_inv⟩
   wp_method_call
   wp_call
   wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hfields_inv Hlog_inv Hen_inv Hcp_inv Hsx_inv Hsl_inv Hlk_inv]

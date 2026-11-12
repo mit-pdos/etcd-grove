@@ -123,8 +123,8 @@ lower bounds (`walBaseLb`): the base only grows.
 meaning): when `true`, every entry record written by a *successful* `Save` (one whose law commits,
 `storage.walSaveOk`) is `pbutil.MustMarshalMessage(e)` of an entry object `e` that held a content
 `c` with `entSizeOk c` when it was saved (the `Save` law at `sized = true` takes those objects;
-`saveEntry` marshals the saved object, `wal.go:1011-1020` at the goose pin `a4d2bb172`, called per
-entry from `Save`'s loop, `:1050-1052`). A failed `Save` (`¬ storage.walSaveOk`: its law commits no
+`saveEntry` marshals the saved object, `wal.go:1072-1078` at the pin `0b50f0426`, called per
+entry from `Save`'s loop, `:1112`). A failed `Save` (`¬ storage.walSaveOk`: its law commits no
 update, at either flag) may have written some records and leaves the flag as it was, so a failed
 `Save` at `false` into a sized WAL may leave unbounded records under `true`: a future `ReadAll` law
 that gives the bound must take `walSaveOk` (`diskOk`). `wal.Create` starts with no entry records,
@@ -218,14 +218,14 @@ process. No axiom says it is exclusive: read as `True`, every axiom about it hol
 meaning): when `true`, every entry record in the files written by a *successful* `Save`
 (`storage.walSaveOk`) is `pbutil.MustMarshalMessage(e)` of a saved entry object whose content `c`
 had `entSizeOk c` (`walRecs`'s `sized`, which `Close` carries into the files: `Close` syncs and
-closes, it writes no record; `saveEntry`, `wal.go:1011-1020` at the goose pin `a4d2bb172`, from
-`Save`'s loop, `:1050-1052`). A failed `Save` leaves the flag as it was, possibly with records it
+closes, it writes no record; `saveEntry`, `wal.go:1072-1078` at the pin `0b50f0426`, from
+`Save`'s loop, `:1112`). A failed `Save` leaves the flag as it was, possibly with records it
 wrote (a failed `Save` at `false` into a sized WAL may leave unbounded records under `true`).
-`ReadAll` decodes each entry record with `Unmarshal`, whose exact round trip (stage A's `D2`,
+`ReadAll` decodes each entry record with `Unmarshal` (`wal.go:525-526`, `decoder.go:215-218`), whose exact round trip (stage A's `D2`,
 `proto/UnmarshalPb.lean`) gives back the saved content, unknown fields included, so the replayed
-entries are `entSizeOk`: that fact is to be stated by the restart contract's `ReadAll` (deferred to
-the restart contract's work; no statement gives it yet), which must take `walSaveOk` (`diskOk`: no
-`Save` failed). A WAL written by another program is at `false`: today's facts only. -/
+entries are `entSizeOk`: `bootstrapRestartContract` states it (out_size C3), under its premise
+`storage.walSaveOk` (no `Save` failed), as `bootOkR`'s `Hγsz` (the replayed storage sized:
+`InvRestart.lean`). A WAL written by another program is at `false`: today's facts only. -/
 axiom walFiles {GF : BundledGFunctors} [GooseExts] (dir : GoString) (id cid : w64)
     (σ : StorContents) (sized : Bool := false) : IProp GF
 

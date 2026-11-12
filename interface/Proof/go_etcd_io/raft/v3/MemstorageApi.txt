@@ -12,8 +12,9 @@ def memStorJ (γ : Cluster) (K : GName) : MemJust GF :=
 theorem memStorage_isStorage [package_sem : Assumptions] [MemStorReg GF] (wp_LastIndex :
     MemoryStorage.LastIndex.spec) (wp_FirstIndex : MemoryStorage.FirstIndex.spec) (wp_Term :
     MemoryStorage.Term.spec) (wp_Entries : MemoryStorage.Entries.spec) (wp_Snapshot :
-    MemoryStorage.Snapshot.spec) (ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName) : ⊢
-    memStorInv ms γs γ K -∗ memStorReg ms γs -∗ isStorage γ K (memStorIface ms)
+    MemoryStorage.Snapshot.spec) (ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName) (hsz :
+    γ.maxData.isSome = true → γs.sz = true) : ⊢ memStorInv ms γs γ K -∗ memStorReg ms γs -∗
+    isStorage γ K (memStorIface ms)
 
 theorem memStorInv_persistent (ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName) : Persistent
     (memStorInv ms γs γ K)

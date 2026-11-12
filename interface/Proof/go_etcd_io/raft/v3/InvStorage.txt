@@ -114,7 +114,7 @@ theorem storPast_pers (st : Storage) (m : Int) : Persistent (storPast st m)
 theorem storPast_of_cut (st : Storage) (n : Int) : storCut st n ⊢ storPast st n
 
 def isStorageD (sn : StorNames) (st : Storage) : IProp GF :=
-  isStorageWith (ownStorage sn st) (storCut st) (svCert sn) st
+  isStorageWith sn.sz (ownStorage sn st) (storCut st) (svCert sn) st
 
 theorem storCut_pers (st : Storage) (n : Int) : Persistent (storCut st n)
 
@@ -135,7 +135,7 @@ def snapshotM_countable : Pos.Countable SnapshotM :=
 
 def isStorageV (sn : StorNames) (st : Storage) : IProp GF :=
   iprop(∃ SV Bnd DL,
-      isStorageP SV Bnd DL st ∗
+      isStorageP sn.sz SV Bnd DL st ∗
         savedPredOwn sn.gsv DFrac.discard SV ∗
           (□ ∀ sv, SV sv -∗ □ SV sv) ∗
             (□ ∀ c, Bnd c -∗ raftBnd sn c) ∗
@@ -168,8 +168,8 @@ def raftDL (sn : StorNames) (i : Nat) (t : w64) : IProp GF :=
 def storAuths (sn : StorNames) (σ : StorState) : IProp GF :=
   iprop(monoNatAuthOwn sn.ga 1 (uint.nat σ.fl) ∗ monoNatAuthOwn sn.gg 1 σ.sg ∗ ghostMapAuth sn.gd 1 σ.dt ∗ storCaught sn)
 
-def isStorageWith (P : StorState → IProp GF) (CT : Int → IProp GF) (SC : SnapshotM → IProp GF) (st :
-    Storage) : IProp GF :=
+def isStorageWith (sz : Bool) (P : StorState → IProp GF) (CT : Int → IProp GF) (SC : SnapshotM →
+    IProp GF) (st : Storage) : IProp GF :=
   iprop(∃ i,
       "%Hstok" ∷ ⌜st = GoInterface.ok i⌝ ∗
         ("#HLastIndex" ∷
@@ -227,7 +227,10 @@ def isStorageWith (P : StorState → IProp GF) (CT : Int → IProp GF) (SC : Sna
                               ∀ s es err,
                                 ⌜err = ec ∧ uint.Z lo ≤ uint.Z σ.fl⌝ ∗ CT (uint.Z lo) ∗ P σ ∨
                                     ⌜err = GoInterface.nil⌝ ∗
-                                      entsRO s es ∗
+                                      (∃ cs,
+                                          entsPtsC sz s DFrac.discard cs ∗
+                                            ⌜List.map EntryC.model cs = es ∧
+                                                (sz = true → uint.nat maxSize ≤ entsCutMax → entsCut maxSize cs)⌝) ∗
                                         ⌜es ≠ [] ∧
                                               ↑es.length ≤ uint.Z hi - uint.Z lo ∧
                                                 (∀ (e : EntryM),
@@ -281,6 +284,9 @@ def isStorageWith (P : StorState → IProp GF) (CT : Int → IProp GF) (SC : Sna
 def storGiven (sn : StorNames) (k : Nat) : IProp GF :=
   monoNatLbOwn sn.gg k
 
+theorem isStorageP_unsize [package_sem : Assumptions] (sz : Bool) (SV : SnapshotM → IProp GF) (Bnd
+    DL : Nat → IProp GF) (st : Storage) : isStorageP sz SV Bnd DL st ⊢ isStorageP false SV Bnd DL st
+
 theorem storPast_one (st : Storage) (x : w64) : storPast st (uint.Z x + 1) ⊢ storPast st 1
 
 def PendFrom (σ : StorState) (n : Int) : Prop :=
@@ -291,7 +297,8 @@ theorem storCaught_pers (sn : StorNames) : Persistent (storCaught sn)
 def LogAgree (k1 : Nat) (es1 : List EntryM) (k2 : Nat) (es2 : List EntryM) : Prop :=
   ∀ (i : Nat) (e1 e2 : EntryM), k1 ≤ i → k2 ≤ i → es1[i - k1]? = some e1 → es2[i - k2]? = some e2 → e1 = e2
 
-def isStorageP (SV : SnapshotM → IProp GF) (Bnd DL : Nat → IProp GF) (st : Storage) : IProp GF :=
+def isStorageP (sz : Bool) (SV : SnapshotM → IProp GF) (Bnd DL : Nat → IProp GF) (st : Storage) :
+    IProp GF :=
   iprop(∃ i,
       "%Hstok" ∷ ⌜st = GoInterface.ok i⌝ ∗
         ("#HLastIndex" ∷
@@ -332,7 +339,10 @@ def isStorageP (SV : SnapshotM → IProp GF) (Bnd DL : Nat → IProp GF) (st : S
                                   storLog st (k + a.length) dq2 b ∗
                                     (⌜err = ec⌝ ∗ storCompacted st (uint.nat lo) ∨
                                       ⌜err = GoInterface.nil⌝ ∗
-                                        entsRO s es ∗
+                                        (∃ cs,
+                                            entsPtsC sz s DFrac.discard cs ∗
+                                              ⌜List.map EntryC.model cs = es ∧
+                                                  (sz = true → uint.nat maxSize ≤ entsCutMax → entsCut maxSize cs)⌝) ∗
                                           ⌜es ≠ [] ∧
                                               s.cap = s.len ∧
                                                 es <+:
@@ -394,8 +404,8 @@ def snapTrip_countable : Pos.Countable SnapTrip :=
         al := p.snd.snd.snd.snd.snd.snd.fst, dat := p.snd.snd.snd.snd.snd.snd.snd })
     ⋯
 
-theorem isStorageWith_pers (P : StorState → IProp GF) (CT : Int → IProp GF) (SC : SnapshotM → IProp
-    GF) (st : Storage) : Persistent (isStorageWith P CT SC st)
+theorem isStorageWith_pers (sz : Bool) (P : StorState → IProp GF) (CT : Int → IProp GF) (SC :
+    SnapshotM → IProp GF) (st : Storage) : Persistent (isStorageWith sz P CT SC st)
 
 def StorState.kOut (σ : StorState) : Nat :=
   match σ.pend.head? with
@@ -417,7 +427,10 @@ theorem raftDL_pers (sn : StorNames) (i : Nat) (t : w64) : Persistent (raftDL sn
 def storPast (st : Storage) (m : Int) : IProp GF :=
   iprop(∃ n, ⌜m ≤ n⌝ ∗ storCut st n)
 
-theorem isStorageP_pers (SV : SnapshotM → IProp GF) (Bnd DL : Nat → IProp GF) (st : Storage) :
-    Persistent (isStorageP SV Bnd DL st)
+theorem isStorageP_pers (sz : Bool) (SV : SnapshotM → IProp GF) (Bnd DL : Nat → IProp GF) (st :
+    Storage) : Persistent (isStorageP sz SV Bnd DL st)
+
+theorem entsPtsC_unsize [package_sem : Assumptions] (sz : Bool) (s : GoSlice) (dq : DFrac) (cs :
+    List EntryC) : entsPtsC sz s dq cs ⊢ entsPtsC false s dq cs
 
 theorem storCompacted_pers.{u_1} (st : Storage) (c : Nat) : Persistent (storCompacted st c)

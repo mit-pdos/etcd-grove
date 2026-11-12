@@ -48,7 +48,7 @@ private theorem wp_send_appResp (wp_raft_send : raft.send.spec (GF := GF) (hG :=
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (dst idx hintterm hint : w64)
     (rej : Bool) (Hdst : dst ≠ id) (Htz : s.term ≠ W64 0) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
-        msgOwn ml (DFrac.own 1) ⟨⟨W32 4, dst, 0, 0, hintterm, idx, 0, 0, rej, hint⟩, [], none, [], []⟩ }}
+        msgOwnZ s.gh.sn.sz ml (DFrac.own 1) ⟨⟨W32 4, dst, 0, 0, hintterm, idx, 0, 0, rej, hint⟩, [], none, [], []⟩ }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"send")) (Val #ml))
     {{ RET #(); ownRaftPhysCV c c.voters r id (sendMsgs s [appResp id s dst rej idx hintterm hint]) }} := by
   iintro %Φ ⟨#Hpkg, Hphys, Hm⟩ HΦ
@@ -56,7 +56,7 @@ private theorem wp_send_appResp (wp_raft_send : raft.send.spec (GF := GF) (hG :=
       (Or.inl rfl) (Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, Htz, fun h => absurd h Hdst, rfl⟩))))
       (fun h => absurd h (by simp [MsgSnap]))
       (fun h => absurd h (by simp [MsgApp])) rfl $$ [$Hphys $Hm] as Hphys
-  · iapply tsSrcU_ne; exact (fun h => absurd h (by simp [MsgSnap]))
+  · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
   iapply HΦ
   iexact Hphys
 
@@ -102,11 +102,33 @@ theorem raft.handleAppendEntries.wp_proof
   intro c r id s ml m ents sn ctx rs Hwf Hnw Hconf Hfid Htyapp Hnl Htz
   wp_start as Hpre
   iNamed Hpre
-  simp only [msgIn, needsCap_of_eq Htyapp]
+  unfold msgInC
+  icases Hm with ⟨%cm, Hm, %Hcm⟩
+  obtain ⟨Hcmod, Hcs, Hcsz⟩ := Hcm
+  simp only [needsCap_of_eq Htyapp]
   wp_auto
-  wp_apply wp_logSliceFromMsgApp $$ [$Hm] as %es %els ⟨#Hes, #Hents, Hcap, Hmback⟩
-  ihave Hm := Hmback $$ %false %els %ents Hes Hents []
-  · simp only [Bool.false_eq_true, ↓reduceIte]; iempintro
+  wp_apply wp_logSliceFromMsgApp ml true cm Hcs $$ [$Hm] as %es %els ⟨#Hes, #Hents, Hcap, Hmback⟩
+  ihave Hm := Hmback $$ Hes
+  ihave Hm := msgPtsCC_msgPtsC ml _ _ _ cm Hcs $$ Hm
+  -- (out_size C3) the received entries, at their contents, with their sizes under the flag
+  ihave #HesZ : entsROz s.gh.sn.sz es ents $$ [Hes Hents]
+  · have Hm' : cm.f.entries.map EntryC.model = ents := by
+      have := congrArg MsgSt.ents Hcmod; simpa [MsgC.model] using this
+    rw [← Hm']
+    iapply entsPtsC_entsPtsZ
+    unfold entsPtsC
+    iexists els
+    iframe Hes Hents
+    ipureintro
+    intro hs e he
+    exact (Hcsz hs (by rw [Htyapp]; simp [MsgApp, MsgSnap])).2.2.1 e he
+  have hmsg : cm.f.msgM = m := by
+    have := congrArg MsgSt.msg Hcmod; simpa [MsgC.model] using this
+  have hT : cm.f.term.getD (zero_val w64) = m.Term' := by rw [← hmsg]; rfl
+  have hLT : cm.f.logTerm.getD (zero_val w64) = m.LogTerm' := by rw [← hmsg]; rfl
+  have hI : cm.f.index.getD (zero_val w64) = m.Index' := by rw [← hmsg]; rfl
+  rw [Hcmod]
+  simp only [MsgC.model, MsgFC.msgM, hT, hLT, hI]
   try simp only
   -- the stale test reads `r.raftLog.committed`
   wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
@@ -127,7 +149,7 @@ theorem raft.handleAppendEntries.wp_proof
     ihave Hlog := Hlb $$ Hl
     ihave Hphys := Hlogback $$ Hlog
     imod cellRO_alloc $$ «$v2» with #cIx
-    imod msgOwn_lit0 «$a0_ptr» _ ⟨W32 4, m.From', 0, 0, 0, lv2.committed', 0, 0, false, 0⟩ ⊤
+    imod msgOwnZ_lit0 s.gh.sn.sz «$a0_ptr» _ ⟨W32 4, m.From', 0, 0, 0, lv2.committed', 0, 0, false, 0⟩ ⊤
       $$ [«$a0»] with Hr
     · iframe «$a0» cTy cFr cIx
       isplitr
@@ -150,7 +172,10 @@ theorem raft.handleAppendEntries.wp_proof
         (logSlice.mk m.Term' (entryID.mk m.LogTerm' m.Index') es) ents m.Commit'
         Hwf Hnw (fun Hm => Hconf (by omega) Hm) (by simp only; omega) $$ [$Hlog $Hcap]
       as %lastnewi %ok %ls' ⟨Hlog, %Hma, %Hmagh⟩
-    · simp only [named, entsPts]; iexists els; iframe Hes Hents
+    · -- (out_size C3) the received entries' sizes (`msgInC`)
+      simp only [named]
+      rw [show s.logst.sn = s.gh.sn from Hgh0.1.2.2]
+      iexact HesZ
     -- (D21 M3) the boundary, the pending snapshot and the storage kept
     have Hkeep : ls'.prev = s.logst.prev ∧ ls'.snap = s.logst.snap ∧
         ls'.storage = s.logst.storage ∧ uint.Z s.logst.committed ≤ uint.Z ls'.committed := by
@@ -174,7 +199,7 @@ theorem raft.handleAppendEntries.wp_proof
       wp_auto
       reply_head
       imod cellRO_alloc $$ «$v2» with #cIx
-      imod msgOwn_lit0 «$a0_ptr» _ ⟨W32 4, m.From', 0, 0, 0, lastnewi, 0, 0, false, 0⟩ ⊤
+      imod msgOwnZ_lit0 s.gh.sn.sz «$a0_ptr» _ ⟨W32 4, m.From', 0, 0, 0, lastnewi, 0, 0, false, 0⟩ ⊤
         $$ [«$a0»] with Hr
       · iframe «$a0» cTy cFr cIx
         isplitr
@@ -232,7 +257,7 @@ theorem raft.handleAppendEntries.wp_proof
       imod cellRO_alloc $$ «$v3» with #cRj
       imod cellRO_alloc $$ «$v4» with #cRh
       imod cellRO_alloc $$ «$v5» with #cLt
-      imod msgOwn_lit0 «$a0_ptr» _ ⟨W32 4, m.From', 0, 0, hintterm, m.Index', 0, 0, true, hint⟩ ⊤
+      imod msgOwnZ_lit0 s.gh.sn.sz «$a0_ptr» _ ⟨W32 4, m.From', 0, 0, hintterm, m.Index', 0, 0, true, hint⟩ ⊤
         $$ [«$a0»] with Hr
       · iframe «$a0» cTy cFr cIx cRj cRh cLt
         isplitr

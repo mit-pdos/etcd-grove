@@ -141,6 +141,12 @@ theorem node.wp_TransferLeadership [StorageModel GF] :
     node.TransferLeadership.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.node.wp_TransferLeadership
 
+/-- (out_size C3) At `HasLC.hasLC`: `Entries` cuts through `limitSize`, on `proto.SizePb` at the
+registered `Entry` instance. -/
+theorem MemoryStorage.wp_Entries [StorageModel GF] :
+    MemoryStorage.Entries.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.MemoryStorage.wp_Entries
+
 end linksLC
 
 section links
@@ -170,10 +176,6 @@ theorem MemoryStorage.wp_Append [StorageModel GF] :
 theorem MemoryStorage.wp_SetHardState [StorageModel GF] :
     MemoryStorage.SetHardState.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.MemoryStorage.wp_SetHardState
-
-theorem MemoryStorage.wp_Entries [AllG GF] [StorageModel GF] :
-    MemoryStorage.Entries.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.MemoryStorage.wp_Entries
 
 theorem MemoryStorage.wp_FirstIndex [AllG GF] [StorageModel GF] :
     MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG) :=

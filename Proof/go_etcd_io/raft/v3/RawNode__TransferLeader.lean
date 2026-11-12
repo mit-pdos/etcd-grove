@@ -50,12 +50,13 @@ theorem RawNode.TransferLeader.wp_proof
   wp_apply wp_MessageType_Enum (W32 13) as %pty Hpty
   imod cellRO_alloc $$ Hpty with #cTy
   imod cellRO_alloc $$ «$v1» with #cFr
-  imod msgOwn_lit0 «$a0_ptr» _ ({ (zero_val MessageM) with Type' := W32 13, From' := transferee } : MessageM) ⊤ $$ [«$a0»] with Hm
+  imod msgOwnZ_lit0 true «$a0_ptr» _ ({ (zero_val MessageM) with Type' := W32 13, From' := transferee } : MessageM) ⊤ $$ [«$a0»] with Hm
   · iframe «$a0» cTy cFr
     isplitr
     · ipureintro; simp
     msg_nulls
-  ihave Hm := msgOwn_to_msgIn _ _ (by simp [MsgApp]) $$ Hm
+  -- (out_size C3) a literal without entries or context: at a content of bounded size
+  ihave Hm := msgOwnZ_to_msgInC _ _ _ (by simp [MsgApp]) $$ Hm
   imod rdCred_zero_upd (GF := GF) γ with Hcr
   icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.guard rs.capplied rs.cfg (ds := ds)) $$ Hphys with ⟨%Hpf, Hphys⟩
   icases ownRaftPhysC_sn cf rnv.raft' id s $$ Hphys with ⟨%Hns0, Hphys⟩
@@ -76,7 +77,8 @@ theorem RawNode.TransferLeader.wp_proof
       iintro %h
       exact (h.2 rfl).elim
     isplitl [Hm]
-    · iframe Hm
+    · isplitl [Hm]
+      · iapply msgInC_flag true _ (fun _ => rfl) _ _ _ $$ Hm
       repeat (isplitr; · first | iempintro | (ipureintro; simp) | (ipureintro; msg_ne))
       imodintro
       iintro %ty %Hty

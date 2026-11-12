@@ -78,7 +78,8 @@ theorem RawNode.Campaign.wp_proof
       iintro %h
       exact absurd h.1 (by msg_ne)
     isplitl [Hm]
-    · iframe Hm
+    · isplitl [Hm]
+      · iapply msgIn_toC (by decide) _ _ _ $$ Hm
       repeat (isplitr; · first | iempintro | (ipureintro; simp) | (ipureintro; msg_ne))
       imodintro
       iintro %ty %Hty

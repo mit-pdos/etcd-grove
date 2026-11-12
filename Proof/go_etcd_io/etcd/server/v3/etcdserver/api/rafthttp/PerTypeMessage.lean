@@ -40,7 +40,8 @@ The schemas are defined, with `pbSchemaOf`, in `proto/PbSchema.lean` (CP2).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.PerTypeEntry
+public import Proof.go_etcd_io.raft.v3.PbEntryType
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.PbMessage
 public import Proof.go_etcd_io.raft.v3.PbContentOwn
 
 @[expose] public section
@@ -474,7 +475,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 @[simp] theorem pbEncC_pbMessageC (c : MsgC) : pbEncC (pbMessageC (GF := GF)) c = msgEncC c := rfl
-@[simp] theorem pbEncC_pbEntryC (c : EntryC) : pbEncC (pbEntryC (GF := GF)) c = entryEncC c := rfl
 
 /-! The registered instances' fields (to state the `*Pb` specs at them in this file's terms). -/
 @[simp] theorem pbMessageC_ty : (pbMessageC (GF := GF)).data.ty = raftpb.Message.ty := rfl
@@ -497,22 +497,6 @@ variable [sem : go.Semantics]
 @[simp] theorem pbMessageC_eqv (st st' : MsgSt) :
     (pbMessageC (GF := GF)).data.eqv st st' =
       (wireOf st = wireOf st' ∧ (st.resps = [] → st'.resps = [])) := rfl
-@[simp] theorem pbEntryC_ty : (pbEntryC (GF := GF)).data.ty = raftpb.Entry.ty := rfl
-@[simp] theorem pbEntryC_roC : (pbEntryC (GF := GF)).data.roC = entRoC := rfl
-@[simp] theorem pbEntryC_C : (pbEntryC (GF := GF)).data.C = EntryC := rfl
-@[simp] theorem pbEntryC_modelOf : (pbEntryC (GF := GF)).data.modelOf = EntryC.model := rfl
-@[simp] theorem pbEntryC_size : (pbEntryC (GF := GF)).data.size = entrySize := rfl
-@[simp] theorem pbEntryC_marshals (e : EntryM) : (pbEntryC (GF := GF)).data.marshals e = True := rfl
-@[simp] theorem pbEntryC_wire : (pbEntryC (GF := GF)).data.wire = EntWireOk := rfl
-@[simp] theorem pbEntryC_decOk (c : EntryC) : (pbEntryC (GF := GF)).data.decOk c = True := rfl
-@[simp] theorem pbEntryC_ufValid (c : EntryC) :
-    (pbEntryC (GF := GF)).data.ufValid c = ∀ q ∈ [(entrySchema, c.uf)], ufWire q.1 q.2 := rfl
-@[simp] theorem pbEntryC_blank (l : Loc) :
-    (pbEntryC (GF := GF)).data.blank l = iprop(l ↦ (zero_val raftpb.Entry)) := rfl
-@[simp] theorem pbEntryC_dec (l : Loc) (e : EntryM) :
-    (pbEntryC (GF := GF)).data.dec l e = iprop(∃ c, entRoC l c ∗ ⌜c.model = e⌝) := rfl
-@[simp] theorem pbEntryC_decC (l : Loc) (c : EntryC) :
-    (pbEntryC (GF := GF)).data.decC l c = entRoC l c := rfl
 
 /-- **A frozen message's encoding** (`msgEncC_ok` with `msgRoC_uf`). -/
 theorem msgRoC_enc (l : Loc) (c : MsgC) :

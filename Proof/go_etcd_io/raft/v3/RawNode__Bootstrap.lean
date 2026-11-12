@@ -62,7 +62,7 @@ theorem RawNode.Bootstrap.wp_proof
   icases ownRaftPhys_log_same _ _ _ s $$ Hphys with ⟨Hlog, Hlogback⟩
   iNamed Hlog
   wp_auto
-  ihave #Hsto : isStorageWith (ownStorage s.logst.sn lv.storage') (storCut lv.storage')
+  ihave #Hsto : isStorageWith s.logst.sn.sz (ownStorage s.logst.sn lv.storage') (storCut lv.storage')
       (svCert s.logst.sn) lv.storage' $$ [HisStorage]
   · unfold isStorageD; iexact HisStorage
   unfold isStorageWith
@@ -119,12 +119,23 @@ theorem RawNode.Bootstrap.wp_proof
   -- index `k + 1`), stored at `ents[k]`; after `n` iterations the first `n` boot entries
   iunfold peersCtx at Hctx
   ihave %Hctxlen := BigSepL2.bigSepL2_length $$ Hctx
+  -- (out_size C3, P5) the boot entries within the bound when the node is sized: the cluster's
+  -- bound is met by the bootstrap log's entries and is at most `2^31` (`certLink`)
+  ihave #Hcl0 := Hcl
+  iunfold certLink at Hcl0
+  icases Hcl0 with ⟨-, -, %Hszl, %Hmb⟩
+  have Hbsz : ∀ e ∈ bootLog, s.gh.sn.sz = true → e.Data'.length ≤ entBytesMax := by
+    intro e he hs
+    rw [Hszl] at hs
+    obtain ⟨b, hb⟩ := Option.isSome_iff_exists.1 hs
+    have h1 := (Hmb b hb).1; have h2 := (Hmb b hb).2 e (by rw [R8]; exact he)
+    simp only [entBytesMax]; omega
   ihave IH : iprop(∃ (n : w64) (lc : List Loc) (x : w64) (pr : Peer),
       "i" ∷ i_ptr ↦ n ∗
       "Hi" ∷ igo ↦ x ∗
       "peer" ∷ peer_ptr ↦ pr ∗
       "Hents" ∷ ents ↦* (lc ++ List.replicate (pv.length - sint.nat n) (zero_val Loc)) ∗
-      "#Hlc" ∷ ([∗list] l;e ∈ lc;bootLog.take (sint.nat n), entRO l e) ∗
+      "#Hlc" ∷ ([∗list] l;e ∈ lc;bootLog.take (sint.nat n), entRZ s.gh.sn.sz l e) ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (pv.length : Int) ∧ lc.length = sint.nat n⌝)
     $$ [i Hi peer Hents]
   · iexists W64 0, [], _, _
@@ -184,13 +195,12 @@ theorem RawNode.Bootstrap.wp_proof
     imod cellRO_alloc $$ «$v1» with #cT
     imod cellRO_alloc $$ «$v2» with #cI
     imod ownSlice_persist $$ Hd with #Hd
-    imod entOwn_of_struct «$r0_ptr» (⟨zero_val _, «$v1_ptr», «$v2_ptr», pety, d, slice.nil, 0⟩ : raftpb.Entry)
-        e ⊤ rfl $$ [«$r0»] with He
+    imod entRZ_of_struct s.gh.sn.sz «$r0_ptr» (⟨zero_val _, «$v1_ptr», «$v2_ptr», pety, d, slice.nil, 0⟩ : raftpb.Entry)
+        e ⊤ rfl (Hbsz e (List.mem_of_getElem? Hen)) $$ [«$r0»] with #He
     · have HeI' : e.Index' = n + W64 1 := by word
       iframe «$r0» Hd
       rw [HeT, HeY, HeI']
       iframe cT cY cI
-    imod entOwn_freeze $$ He with #He
     -- `ents[i] = &pb.Entry{...}`
     ihave %Hentsl := ownSlice_len $$ Hents
     simp only [List.length_append, List.length_replicate] at Hentsl
@@ -221,7 +231,7 @@ theorem RawNode.Bootstrap.wp_proof
     iframe i Hi peer Hents
     isplitr
     · rw [List.take_succ, Hen, show (some e).toList = [e] from rfl]
-      iapply entsBig_app lc [«$r0_ptr»] (List.take (sint.nat n) bootLog) [e] $$ [$Hlc]
+      iapply entsBigZ_app s.gh.sn.sz lc [«$r0_ptr»] (List.take (sint.nat n) bootLog) [e] $$ [$Hlc]
       iapply BigSepL2.bigSepL2_singleton.2
       iexact He
     ipureintro
@@ -233,8 +243,8 @@ theorem RawNode.Bootstrap.wp_proof
     rw [Hnlen, Nat.sub_self, List.replicate_zero, List.append_nil]
   have Htake : List.take (sint.nat n) bootLog = bootLog := by
     rw [Hnlen, ← Hpslen, ← HbLen]; exact List.take_length
-  ihave Hes : entsPts ents (DFrac.own 1) bootLog $$ [Hents]
-  · iunfold entsPts
+  ihave Hes : entsPtsZ s.gh.sn.sz ents (DFrac.own 1) bootLog $$ [Hents]
+  · iunfold entsPtsZ
     iexists lc
     isplitl [Hents]
     · iExactEq Hents; rw [Hrep]
@@ -270,11 +280,16 @@ theorem RawNode.Bootstrap.wp_proof
     simp only [List.length_nil] at h2 ⊢
     omega
   have Hcont := logTruncateAppend_cont s.logst bootLog Hfirst
+  have Hsnz : s.gh.sn.sz = s1.logst.sn.sz := by
+    rw [Hgh0.1.2.2, Hs1gh]
+  ihave Hes : entsPtsZ s1.logst.sn.sz ents (DFrac.own 1) bootLog $$ [Hes]
+  · rw [← Hsnz]; iexact Hes
   wp_apply wp_raftLog_append s1.log s1.logst bootLog ents (DFrac.own 1) (by rw [Hs1ls]; exact Hidx1)
     $$ [$Hlog $Hes] as %li ⟨Hlog, Hes, %Hpost⟩
   · rw [Hs1ls, Hcont.2]; simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
   ihave Hes : entsPts ents (DFrac.own 1) bootLog $$ [Hes]
-  · iExactEq Hes; rw [Hs1ls, Hcont.2]; simp only [Bool.false_eq_true, ↓reduceIte]
+  · iapply (entsPtsZ_entsPts s1.logst.sn.sz)
+    iExactEq Hes; rw [Hs1ls, Hcont.2]; simp only [Bool.false_eq_true, ↓reduceIte]
   ihave Hlog : ownRaftLog s1.log (logAppend s.logst bootLog) $$ [Hlog]
   · iExactEq Hlog; rw [Hs1ls, Hcont.1]
   ihave Hphys := Hlogback $$ %(logAppend s.logst bootLog) Hlog

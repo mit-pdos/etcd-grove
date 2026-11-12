@@ -445,6 +445,9 @@ theorem Replica.run.wp_proof
       ihave #HmsInv' := HmsInv
       iunfold memStorInvP at HmsInv'
       icases HmsInv' with ⟨#Hlock, -, -⟩
+      ihave #HrecZ := Hrec
+      iunfold kdStorRec at HrecZ
+      icases HrecZ with ⟨-, -, %HszR⟩
       have Htrip : {{ iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
             memStorLock ρ.ms ρ.γs ∗
             (if es = [] then emp else memLog ρ.γs k (DFrac.own 1) old ∗ memEnd ρ.γs (k + old.length))) ∗
@@ -453,9 +456,15 @@ theorem Replica.run.wp_proof
           {{ RET #interface.nil; entsPts rdv.Entries' DFrac.discard es ∗
             (if es = [] then emp else memLog ρ.γs k (DFrac.own 1) es ∗ memEnd ρ.γs (k + es.length)) }} := by
         iintro %Φ ⟨⟨#Hr, #Hl, Hb⟩, He⟩ HΦ
+        ihave He : entsPtsZ ρ.γs.sz rdv.Entries' DFrac.discard es $$ [He]
+        · rw [HszR]; iapply entsPts_entsPtsZ $$ He
         iapply wp_Append ρ.ms ρ.γs k old es rdv.Entries' DFrac.discard h1 h2 $$ [Hb He]
         · iframe Hr Hl Hb He
-        iexact HΦ
+        inext
+        iintro ⟨He, Hm⟩
+        iapply HΦ
+        iframe Hm
+        iapply entsPtsZ_entsPts $$ He
       wp_apply wp_SAppend st ρ.ms ρ.γs ip (imgSetHardState M (phsNext hd h)) rdv.Entries' DFrac.discard k
           es _ _ h1 hk9 hsz Htrip $$ [$Hpkg $Hrec $Hst' $Himage $Hes Hrange] as ⟨-, Hb, Himage⟩
       · iframe Hrange Hlock
@@ -1226,6 +1235,9 @@ theorem Replica.run.wp_proof
       ihave #HmsInv' := HmsInv
       iunfold memStorInvP at HmsInv'
       icases HmsInv' with ⟨#Hlock, -, -⟩
+      ihave #HrecZ := Hrec
+      iunfold kdStorRec at HrecZ
+      icases HrecZ with ⟨-, -, %HszR⟩
       have Htrip2 : {{ iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
             memStorLock ρ.ms ρ.γs ∗
             (if es = [] then emp else memLog ρ.γs (uint.nat lo.snap.Metadata'.Index' + 1) (DFrac.own 1)
@@ -1237,10 +1249,16 @@ theorem Replica.run.wp_proof
             (if es = [] then emp else memLog ρ.γs (uint.nat lo.snap.Metadata'.Index' + 1) (DFrac.own 1) es ∗
               memEnd ρ.γs (uint.nat lo.snap.Metadata'.Index' + 1 + es.length)) }} := by
         iintro %Φ ⟨⟨#Hr, #Hl, Hb⟩, He⟩ HΦ
+        ihave He : entsPtsZ ρ.γs.sz rdv.Entries' DFrac.discard es $$ [He]
+        · rw [HszR]; iapply entsPts_entsPtsZ $$ He
         iapply wp_Append ρ.ms ρ.γs (uint.nat lo.snap.Metadata'.Index' + 1) [] es rdv.Entries' DFrac.discard
           h1 h2 $$ [Hb He]
         · iframe Hr Hl Hb He
-        iexact HΦ
+        inext
+        iintro ⟨He, Hm⟩
+        iapply HΦ
+        iframe Hm
+        iapply entsPtsZ_entsPts $$ He
       wp_apply wp_SAppend st ρ.ms ρ.γs ip (imgSetHardState (imgApplySnapshot M lo.snap) (phsNext hd h))
           rdv.Entries' DFrac.discard (uint.nat lo.snap.Metadata'.Index' + 1) es _ _ h1
           (fun _ => by simp [imgSetHardState, imgApplySnapshot])

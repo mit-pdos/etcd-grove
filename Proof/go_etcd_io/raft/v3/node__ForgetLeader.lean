@@ -83,8 +83,8 @@ private theorem node.ForgetLeader.wp_raw
   iintro %pty Hpty
   imod cellRO_alloc $$ Hpty with #cTy
   wp_auto
-  imod msgIn_of_scalar_struct «$a1_ptr» pty null null null null null null null null null
-      { (zero_val MessageM) with Type' := W32 23 } ⊤ $$ [«$a1»] with Hmsg
+  imod msgInC_of_scalar_struct γ.raft.maxData.isSome «$a1_ptr» pty null null null null null null null null null
+      { (zero_val MessageM) with Type' := W32 23 } ⊤ rfl $$ [«$a1»] with Hmsg
   · iframe «$a1» cTy
     repeat (isplitr; · iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩)
     iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩

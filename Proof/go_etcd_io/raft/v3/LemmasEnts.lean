@@ -56,6 +56,25 @@ theorem entsRO_cons_len (s : GoSlice) (d : EntryM) (xs : List EntryM) :
   simp only [List.length_cons] at h1
   constructor <;> word
 
+/-- (out_size C3) `entsRO_lookup` from a sized read-only slice. -/
+theorem entsROz_lookup (sz : Bool) (s : GoSlice) (xs : List EntryM) (i : Nat) (e : EntryM)
+    (He : xs[i]? = some e) :
+    entsROz (GF := GF) sz s xs ⊢ ∃ (ls : List Loc) (l : Loc),
+      s ↦*□ ls ∗ entRO l e ∗
+      ⌜ls[i]? = some l ∧ ls.length = xs.length ∧ xs.length = sint.nat s.len ∧
+        0 ≤ sint.Z s.len⌝ := by
+  iintro #H
+  iapply entsRO_lookup s xs i e He
+  iapply entsROz_entsRO $$ H
+
+/-- (out_size C3) `entsRO_cons_len` from a sized read-only slice. -/
+theorem entsROz_cons_len (sz : Bool) (s : GoSlice) (d : EntryM) (xs : List EntryM) :
+    entsROz (GF := GF) sz s (d :: xs) ⊢
+      ⌜0 < sint.Z s.len ∧ (xs.length : Int) + 1 = sint.Z s.len⌝ := by
+  iintro #H
+  iapply entsRO_cons_len s d xs
+  iapply entsROz_entsRO $$ H
+
 /-- A conf state's pointer is not `nil` (kept). -/
 theorem csPts_not_null (p : Loc) (dq : DFrac) (c : ConfStateM) (al : Bool) :
     csPts (GF := GF) p dq c al ⊢ csPts p dq c al ∗ ⌜p ≠ null⌝ := by

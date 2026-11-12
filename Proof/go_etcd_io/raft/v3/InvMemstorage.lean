@@ -132,6 +132,10 @@ structure MemStorNames where
   sl : GName
   /-- the stored snapshot opened for writes (monotone, `0` or `1`) -/
   pr : GName
+  /-- (out_size C2; ghost, chosen at `NewMemoryStorage`) the storage is **sized**: its entry objects
+  are at contents of bounded size (`entSizeOk`), which `Append` takes (`entsPtsZ γs.sz`) and
+  `Entries` returns, cut at `maxSize` (`isStorageP γs.sz`) -/
+  sz : Bool
 
 /-- **The justification parameters** (see the file header): step 4 instantiates them to the API's
 names. -/
@@ -582,12 +586,13 @@ theorem memCompacted_mono (γs : MemStorNames) (c c' : Nat) (h : c' ≤ c) :
 `memStorMeta`'s), the entries (read-only log entries, the dummy at the compaction point first:
 `ents[0]`, made by `NewMemoryStorage`, `ApplySnapshot` or `Compact`) and their capacity, and the
 call counters but `initialState` (`memStorMeta`'s). What the private helpers `lastIndex` and
-`firstIndex` are specified on (`σ.prev` the dummy's id, `σ.ents` the entries after it). -/
-def memstorageFields (ms : Loc) (σ : StorState) : IProp GF :=
+`firstIndex` are specified on (`σ.prev` the dummy's id, `σ.ents` the entries after it). (out_size
+C3) The entries at contents sized as `sz` says (the storage's flag `γs.sz`). -/
+def memstorageFields (ms : Loc) (sz : Bool) (σ : StorState) : IProp GF :=
   iprop(∃ (hp : Loc) (es : GoSlice) (dummy : EntryM) (nfi nli nen nte nsn : w64),
   "HhardState" ∷ ms.[MemoryStorage, go!"hardState"] ↦{DFrac.own (1 : Qp).half} hp ∗
   "Hents_f" ∷ ms.[MemoryStorage, go!"ents"] ↦ es ∗
-  "Hents" ∷ entsRO es (dummy :: σ.ents) ∗
+  "Hents" ∷ entsROz sz es (dummy :: σ.ents) ∗
   "Hents_cap" ∷ ownSliceCap Loc es (DFrac.own 1) ∗
   "%Hdummy" ∷ ⌜dummy.Index' = σ.prev.index' ∧ dummy.Term' = σ.prev.term'⌝ ∗
   "Hcs_firstIndex" ∷ (ms.[MemoryStorage, go!"callStats"]).[inMemStorageCallStats, go!"firstIndex"] ↦ nfi ∗
@@ -597,9 +602,9 @@ def memstorageFields (ms : Loc) (σ : StorState) : IProp GF :=
   "Hcs_snapshot" ∷ (ms.[MemoryStorage, go!"callStats"]).[inMemStorageCallStats, go!"snapshot"] ↦ nsn)
 
 /-- The fields read only the boundary and the entries. -/
-theorem memstorageFields_congr (ms : Loc) (σ σ' : StorState) (h1 : σ'.prev = σ.prev)
+theorem memstorageFields_congr (ms : Loc) (sz : Bool) (σ σ' : StorState) (h1 : σ'.prev = σ.prev)
     (h2 : σ'.ents = σ.ents) :
-    memstorageFields (GF := GF) ms σ ⊢ memstorageFields ms σ' := by
+    memstorageFields (GF := GF) ms sz σ ⊢ memstorageFields ms sz σ' := by
   unfold memstorageFields
   rw [h1, h2]
 
@@ -621,7 +626,7 @@ snapshot's index frozen likewise, unless it is `0` (so `ApplySnapshot`, given an
 `j ≤ s` to the end, finds it below `s`); and `MemOk`. -/
 def memstorageInv (ms : Loc) (γs : MemStorNames) : IProp GF :=
   iprop(∃ (p : entryID) (ents : List EntryM) (M : GMap Nat EntryM) (sv : SnapshotM),
-  "Hfields" ∷ memstorageFields ms (memPhys p ents) ∗
+  "Hfields" ∷ memstorageFields ms γs.sz (memPhys p ents) ∗
   "Hlog" ∷ ghostMapAuth γs.log 1 M ∗
   "Hen" ∷ ghostVar γs.en (1 : Qp).half (uint.nat p.index' + 1 + ents.length) ∗
   "Hcp" ∷ monoNatAuthOwn γs.cp 1 (uint.nat p.index') ∗

@@ -249,7 +249,8 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     · iframe He
     try wp_auto
     wp_apply wp_GetEntries_ro _Q $$ [$Hm] as %es4 ⟨#Hes4, Hm⟩
-    wp_apply _P.entsSize $$ [$Hes4] as %sz -
+    icases entsPts_entsPtsC _ _ _ $$ Hes4 with ⟨%cs4, #Hes4c, -⟩
+    wp_apply _P.entsSize $$ [$Hes4c] as %sz -
     -- `applied ≤ applying`: `applying` stays put when the entries end at or below it
     icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hback⟩
     icases ownRaftLog_ready_wf _ _ $$ Hlog with ⟨%Hrw, Hlog⟩

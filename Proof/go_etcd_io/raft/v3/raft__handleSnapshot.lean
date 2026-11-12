@@ -110,7 +110,7 @@ theorem raft.handleSnapshot.wp_proof
     ihave Hlog := Hlb $$ Hl
     ihave Hphys := Hlogback $$ Hlog
     imod cellRO_alloc $$ «$v2» with #cIx
-    imod msgOwn_lit0 «$a0_ptr» _ ⟨W32 4, m.From', 0, 0, 0, lv2.committed', 0, 0, false, 0⟩ ⊤
+    imod msgOwnZ_lit0 _ «$a0_ptr» _ ⟨W32 4, m.From', 0, 0, 0, lv2.committed', 0, 0, false, 0⟩ ⊤
       $$ [«$a0»] with Hr
     · iframe «$a0» cTy cFr cIx
       isplitr
@@ -121,7 +121,7 @@ theorem raft.handleSnapshot.wp_proof
       (appResp_sendOk id s1 m.From' s1.logst.committed Hfid (by first | exact Htz | simpa using Htz | simp_all)) (fun h => absurd h (by simp [MsgSnap]))
       (fun h => absurd h (by simp [MsgApp]))
       rfl $$ [$Hphys $Hr] as Hphys
-    · iapply tsSrcU_ne; exact (fun h => absurd h (by simp [MsgSnap]))
+    · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
     iapply HΦ $$ %_
     iframe Hphys
     ipureintro
@@ -151,7 +151,7 @@ theorem raft.handleSnapshot.wp_proof
     ihave Hlog := Hlb $$ Hl
     ihave Hphys := Hlogback $$ Hlog
     imod cellRO_alloc $$ «$v2» with #cIx
-    imod msgOwn_lit0 «$a0_ptr» _ ⟨W32 4, m.From', 0, 0, 0, lv2.committed', 0, 0, false, 0⟩ ⊤
+    imod msgOwnZ_lit0 _ «$a0_ptr» _ ⟨W32 4, m.From', 0, 0, 0, lv2.committed', 0, 0, false, 0⟩ ⊤
       $$ [«$a0»] with Hr
     · iframe «$a0» cTy cFr cIx
       isplitr
@@ -162,7 +162,7 @@ theorem raft.handleSnapshot.wp_proof
       (appResp_sendOk id _ m.From' sv.Metadata'.Index' Hfid (by first | exact Htz | simpa using Htz | simp_all)) (fun h => absurd h (by simp [MsgSnap]))
       (fun h => absurd h (by simp [MsgApp]))
       rfl $$ [$Hphys $Hr] as Hphys
-    · iapply tsSrcU_ne; exact (fun h => absurd h (by simp [MsgSnap]))
+    · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
     iapply HΦ $$ %_
     iframe Hphys
     ipureintro
@@ -197,7 +197,7 @@ theorem raft.handleSnapshot.wp_proof
     try wp_auto
     imod cellRO_alloc $$ «$v2» with #cIx
     try wp_auto
-    imod msgOwn_lit0 «$a0_ptr» _ ⟨W32 4, m.From', 0, 0, 0, sv.Metadata'.Index', 0, 0, false, 0⟩ ⊤
+    imod msgOwnZ_lit0 _ «$a0_ptr» _ ⟨W32 4, m.From', 0, 0, 0, sv.Metadata'.Index', 0, 0, false, 0⟩ ⊤
       $$ [«$a0»] with Hr
     · iframe «$a0» cTy cFr cIx
       isplitr
@@ -207,7 +207,7 @@ theorem raft.handleSnapshot.wp_proof
       (appResp_sendOk id _ m.From' sv.Metadata'.Index' Hfid (by first | exact Htz | simpa using Htz | simp_all)) (fun h => absurd h (by simp [MsgSnap]))
       (fun h => absurd h (by simp [MsgApp]))
       rfl $$ [$Hphys $Hr] as Hphys
-    · iapply tsSrcU_ne; exact (fun h => absurd h (by simp [MsgSnap]))
+    · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
     iapply HΦ $$ %_
     iframe Hphys
     ipureintro

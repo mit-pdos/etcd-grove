@@ -158,8 +158,8 @@ structure UnstableSt [GooseExts] where
   /-- (D22 S-d1, 2026-10-20) `u.snapshotInProgress` -/
   sip : Bool := false
   /-- (out_size, 2026-11-12) the size flag, ghost: the entries are at contents of bounded size
-  when it is set (`entsROz`, `PbSized.lean`). The log's is `false` until the node's flag is in its
-  state (out_size P4). -/
+  when it is set (`entsROz`, `PbSized.lean`). The log's is its storage names' flag (`unstableOf`:
+  `ls.sn.sz`, out_size P4). -/
   sz : Bool := false
 
 /-- (D22 S-d1, 2026-10-20) Whether `stableSnapTo(i)` hits: a snapshot is pending at index `i`
@@ -185,7 +185,7 @@ fields; `omega` does not, and a proof hands it projections rewritten by `simp on
 [unstableOf]` (or uses `word`, which rewrites them with the projection lemmas). -/
 abbrev unstableOf [GooseExts] (lv : raftLog) (ls : LogState) : UnstableSt :=
   { ents := ls.uents, offset := lv.unstable'.offset', inprogress := ls.inprogress,
-    snap := ls.snap, ksn := ls.ksn, sip := ls.sip, sz := false }
+    snap := ls.snap, ksn := ls.ksn, sip := ls.sip, sz := ls.sn.sz }
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -886,7 +886,7 @@ def ownRaftLog (l : Loc) (ls : LogState) : IProp GF :=
   "#Hkcert" ∷ ksnCerts ls.sn ls.ksn ∗
   "%Hoffset" ∷ ⌜uint.Z lv.unstable'.offset'
                  = uint.Z ls.prev.index' + (ls.sents.length : Int) + 1⌝ ∗
-  "Huents" ∷ entsROz false lv.unstable'.entries' ls.uents ∗
+  "Huents" ∷ entsROz ls.sn.sz lv.unstable'.entries' ls.uents ∗
   "Huents_cap" ∷ ownSliceCap Loc lv.unstable'.entries' (DFrac.own 1) ∗
   "%Happlied" ∷ ⌜uint.Z ls.prev.index' ≤ uint.Z ls.committed ∧
                   uint.Z ls.applied ≤ uint.Z ls.committed⌝ ∗
@@ -984,7 +984,7 @@ theorem ownRaftLog_intro (l : Loc) (lv : raftLog) (st : Storage) (σ : StorState
       ownSnap lv.unstable'.snapshot' snap -∗
       pendKsn lv.unstable'.snapshot' snap K -∗
       ksnCerts sn K -∗
-      entsROz false lv.unstable'.entries' uents -∗
+      entsROz sn.sz lv.unstable'.entries' uents -∗
       ownSliceCap Loc lv.unstable'.entries' (DFrac.own 1) -∗
       isLoggerVal lv.logger' -∗
       isLoggerVal lv.unstable'.logger' -∗
@@ -1081,7 +1081,7 @@ def ownRaftLogW (l : Loc) (ls : LogState) : IProp GF :=
   "#Hkcert" ∷ ksnCerts ls.sn ls.ksn ∗
   "%Hoffset" ∷ ⌜uint.Z lv.unstable'.offset'
                  = uint.Z ls.prev.index' + (ls.sents.length : Int) + 1⌝ ∗
-  "Huents" ∷ entsROz false lv.unstable'.entries' ls.uents ∗
+  "Huents" ∷ entsROz ls.sn.sz lv.unstable'.entries' ls.uents ∗
   "Huents_cap" ∷ ownSliceCap Loc lv.unstable'.entries' (DFrac.own 1) ∗
   "%Happlied" ∷ ⌜uint.Z ls.prev.index' ≤ uint.Z ls.committed ∧
                   uint.Z ls.applied ≤ uint.Z ls.committed⌝ ∗
@@ -1160,7 +1160,7 @@ theorem ownRaftLogW_intro (l : Loc) (lv : raftLog) (st : Storage) (σ : StorStat
       ownSnap lv.unstable'.snapshot' snap -∗
       pendKsn lv.unstable'.snapshot' snap K -∗
       ksnCerts sn K -∗
-      entsROz false lv.unstable'.entries' uents -∗
+      entsROz sn.sz lv.unstable'.entries' uents -∗
       ownSliceCap Loc lv.unstable'.entries' (DFrac.own 1) -∗
       isLoggerVal lv.logger' -∗
       isLoggerVal lv.unstable'.logger' -∗
@@ -1904,7 +1904,7 @@ theorem raftLog_lend_unstable (l : Loc) (lv : raftLog) (ls : LogState) :
     lv.unstable'.snapshotInProgress' = ls.sip →
     ⊢ (l ↦ lv : IProp GF) -∗
       ownSliceCap Loc lv.unstable'.entries' (DFrac.own 1) -∗
-      entsROz false lv.unstable'.entries' ls.uents -∗
+      entsROz ls.sn.sz lv.unstable'.entries' ls.uents -∗
       ownSnap lv.unstable'.snapshot' ls.snap -∗
       pendKsn lv.unstable'.snapshot' ls.snap ls.ksn -∗
       isLoggerVal lv.unstable'.logger' -∗
@@ -1927,7 +1927,7 @@ theorem ownUnstable_return (l : Loc) (lv : raftLog) (ls : LogState) :
       ownUnstable l.[raftLog, go!"unstable"] (unstableOf lv ls) -∗
       ∃ uv, l ↦ { lv with unstable' := uv } ∗
         ownSliceCap Loc uv.entries' (DFrac.own 1) ∗
-        entsROz false uv.entries' ls.uents ∗ ownSnap uv.snapshot' ls.snap ∗
+        entsROz ls.sn.sz uv.entries' ls.uents ∗ ownSnap uv.snapshot' ls.snap ∗
         pendKsn uv.snapshot' ls.snap ls.ksn ∗ isLoggerVal uv.logger' ∗
         ⌜uv.offset' = lv.unstable'.offset'⌝ ∗ ⌜uv.offsetInProgress' = ls.inprogress⌝ ∗
         ⌜uv.snapshotInProgress' = ls.sip⌝ :=

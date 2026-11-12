@@ -15,6 +15,14 @@ theorem wp_slice_literal_ex [GoGlobalContext] [GoSemanticsFunctions] [preSem : g
 theorem ownSnapM_not_null [package_sem : Assumptions] (p : Loc) (dq : DFrac) (sv : SnapshotM) :
     ownSnapM p dq sv ⊢ ownSnapM p dq sv ∗ ⌜p ≠ null⌝
 
+theorem entsROz_lookup [package_sem : Assumptions] (sz : Bool) (s : GoSlice) (xs : List EntryM) (i :
+    Nat) (e : EntryM) (He : xs[i]? = some e) : entsROz sz s xs ⊢ ∃ ls l, ownSlice s ls DFrac.discard
+    ∗ entRO l e ∗ ⌜ls[i]? = some l ∧ ls.length = xs.length ∧ xs.length = sint.nat s.len ∧ 0 ≤ sint.Z
+    s.len⌝
+
+theorem entsROz_cons_len [package_sem : Assumptions] (sz : Bool) (s : GoSlice) (d : EntryM) (xs :
+    List EntryM) : entsROz sz s (d :: xs) ⊢ ⌜0 < sint.Z s.len ∧ ↑xs.length + 1 = sint.Z s.len⌝
+
 theorem entsRO_lookup [package_sem : Assumptions] (s : GoSlice) (xs : List EntryM) (i : Nat) (e :
     EntryM) (He : xs[i]? = some e) : entsRO s xs ⊢ ∃ ls l, ownSlice s ls DFrac.discard ∗ entRO l e ∗
     ⌜ls[i]? = some l ∧ ls.length = xs.length ∧ xs.length = sint.nat s.len ∧ 0 ≤ sint.Z s.len⌝

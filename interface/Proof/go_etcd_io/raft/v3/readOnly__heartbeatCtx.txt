@@ -4,13 +4,13 @@
 
 theorem readOnly.heartbeatCtx.wp_proof [package_sem : Assumptions] : readOnly.heartbeatCtx.spec
   -- `Perennial.EtcdGrove.readOnly.heartbeatCtx.spec`, unfolded:
-  ∀ (ro : Loc) (r : ReadOnly),
+  ∀ (sz : Bool) (ro : Loc) (r : ReadOnly),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hown" ∷ ownReadOnly ro r -∗
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hown" ∷ ownReadOnly sz ro r -∗
           (▷
               ∀ sl,
-                ownReadOnly ro r ∗
+                ownReadOnly sz ro r ∗
                     (⌜r.pending = [] ∧ sl = slice.nil⌝ ∨
                       ⌜r.pending ≠ []⌝ ∗
                         ownSlice sl (u64Le (readonlyPosition r)) (DFrac.own 1) ∗ ownSliceCap w8 sl (DFrac.own 1)) -∗

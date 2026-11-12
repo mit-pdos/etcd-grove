@@ -63,6 +63,9 @@ private abbrev node.ReadIndex.specRaw : Prop :=
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗
       nodeCtx ctx cd ∗ rctx ↦*□ c ∗ readReq γ.raft c Lc ∗
+      -- (out_size C3) the context within the bound on an entry's bytes when the cluster bounds
+      -- proposed data
+      ⌜γ.raft.maxData.isSome = true → c.length ≤ entBytesMax⌝ ∗
       -- (raft-final, the design's §2.7, §2.9) the read credit for a time receipt, which `ReadIndex`
       -- takes from a Go step of its own (`rdPool_mint`; until then `rdCred γ.raft 1`)
       (⧗ 1 ={⊤}=∗ rdCred γ.raft 1) }}
@@ -90,7 +93,7 @@ private theorem node.ReadIndex.wp_raw
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     node.ReadIndex.specRaw (GF := GF) (hG := hG) := by
   intro γ id n rctx c Lc ctx cd
-  wp_start as ⟨#Hnode, #Hctx, #Hrctx, #Hrq, Hcred⟩
+  wp_start as ⟨#Hnode, #Hctx, #Hrctx, #Hrq, %Hdsz, Hcred⟩
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
   -- (raft-final) the read credit, from a time receipt of a Go step of its own (`MsgReadIndex.Enum()`'s
   -- resolution)
@@ -111,28 +114,26 @@ private theorem node.ReadIndex.wp_raw
       [KeyedElement (some (KeyField go!"Data")) (ElementExpression go.byte.SliceType #rctx)])] = 1 := rfl
   simp only [Hsz]
   imod cellRO_alloc $$ Hpty with #cTy
-  imod entOwn_of_struct l0 (⟨zero_val _, null, null, null, rctx, slice.nil, 0⟩ : raftpb.Entry)
-      (propEntryM c) ⊤ rfl $$ [Hl0] with He
+  imod entRZ_of_struct γ.raft.maxData.isSome l0
+      (⟨zero_val _, null, null, null, rctx, slice.nil, 0⟩ : raftpb.Entry)
+      (propEntryM c) ⊤ rfl Hdsz $$ [Hl0] with #He
   · iframe Hl0
     simp only [propEntryM]
     iframe Hrctx
     msg_nulls
-  imod entOwn_freeze $$ He with #He
   imod ownSlice_persist $$ Hsl with #Hsl
   wp_auto
   ihave #Hnilb := ownSlice_nil (V := w8) (GF := GF) DFrac.discard
-  imod msgPtsC_of_struct «$a1_ptr» (⟨zero_val _, pty, null, null, null, null, null,
-      slice.mk slp (W64 1) (W64 1), null, null, null, null, null, slice.nil, slice.nil, slice.nil,
-      0⟩ : raftpb.Message) DFrac.discard false [l0]
+  imod msgInC_of_struct γ.raft.maxData.isSome «$a1_ptr» (⟨zero_val _, pty, null, null, null, null,
+      null, slice.mk slp (W64 1) (W64 1), null, null, null, null, null, slice.nil, slice.nil,
+      slice.nil, 0⟩ : raftpb.Message) DFrac.discard [l0]
       ⟨{ (zero_val MessageM) with Type' := W32 15 }, [propEntryM c], none, [], []⟩ ⊤
-      rfl $$ [«$a1»] with Hm
+      rfl rfl rfl rfl rfl (fun _ => ⟨by simp, by simp [entBytesMax]⟩) $$ [«$a1»] with Hm
   · iframe «$a1» Hsl Hnilb cTy
     msg_nulls
-    simp only [Bool.false_eq_true, ↓reduceIte, snapOpt]
-    iframe He
-    isplitl []; · iapply entsBig_nil
-    isplitl []; · iempintro
-    isplitl []; · ipureintro; trivial
+    isplitl []
+    · iapply (BigSepL2.bigSepL2_singleton (Φ := fun _ p e => entRZ (GF := GF) γ.raft.maxData.isSome p e)).2
+      iexact He
     iapply ownSlice_nil
   imod termLB_zero (GF := GF) γ.bud with #Hlb
   imod tickCred_zero (GF := GF) γ.bud with Hz
@@ -145,8 +146,7 @@ private theorem node.ReadIndex.wp_raw
     ileft
     iexists ⟨{ (zero_val MessageM) with Type' := W32 15 }, [propEntryM c], none, [], []⟩
     isplitl [Hm]
-    · simp only [msgIn, show needsCap { (zero_val MessageM) with Type' := W32 15 } = false from rfl]
-      iexact Hm
+    · rw [flag_moves (by decide : movesB (W32 15) = true)]; iexact Hm
     isplitr
     · ipureintro
       refine ⟨by simp [netStepTypes, MsgReadIndex], fun h => absurd (.inl hR) h, fun _ _ => rfl,
@@ -209,15 +209,26 @@ private theorem node.wp_ReadIndex_impl
     EtcdGrove.node.ReadIndex.spec (GF := GF) (hG := hG) := by
   unfold EtcdGrove.node.ReadIndex.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.isReadCtx
   intro n γ N id rctx c Q ctx cd
-  iintro %Φ ⟨#Hinit, #Hnode, #Hctx, #Hrctx, #Hrc, %_⟩ HΦ
+  iintro %Φ ⟨#Hinit, #Hnode, #Hctx, #Hrctx, #Hrc, %Hmd⟩ HΦ
   iunfold isNode at Hnode
   icases Hnode with ⟨%γn, %Hf, #Hrn, #Htab, #Hci, #Hpool, -⟩
   have Hγr := Hf.1
+  -- (out_size C3) the context within `entBytesMax`: the cluster's bound, at most `2^31`
+  ihave #Hci0 := Hci
+  iunfold clusterInv at Hci0
+  icases Hci0 with ⟨-, -, -, -, %Hmb⟩
+  have Hdsz : γn.raft.maxData.isSome = true → c.length ≤ entBytesMax := fun hs => by
+    rw [Hγr] at hs
+    obtain ⟨b, hb⟩ := Option.isSome_iff_exists.1 hs
+    have := Hmd b hb; have := (Hmb b hb).1
+    simp only [entBytesMax]; omega
   imod api_read_ensure γ N c Q $$ Hci Hrc with ⟨%Lc, #Hrq⟩
   iapply (hR γn id n rctx c Lc ctx cd) $$ []
   · iframe Hinit Hrn Hctx Hrctx
     rw [Hγr]
     iframe Hrq
+    isplitr
+    · ipureintro; rw [← Hγr]; exact Hdsz
     iintro Hr
     iapply rdPool_mint γ N ⊤ CoPset.subseteq_top $$ Hpool Hr
   iintro !> %err #Herr

@@ -76,9 +76,25 @@ outputs.) Exclusivity per directory
 closes (R2b: `wal.Close`, `backend.Close`, axioms at the trust boundary, from what the server's
 `Save`s and the backend's commits wrote), consumed by `bootstrap`'s restart contract. A graceful
 stop in the same process: every write is visible to the next open, synced or not (the plan's
-Q4). -/
+Q4).
+
+(out_size C3, 2026-11-12; freeze-c2 §4 MAJ-1, MAJ-2, MIN-3) **The WAL's files are sized**
+(`walFiles … true`). What that asserts (`walFiles`' trusted docstring): every entry record a
+*successful* `Save` wrote is the encoding of an entry object whose content had `entSizeOk`; a failed
+`Save` may leave other records, so the restart contract that reads these files takes
+`storage.walSaveOk` (no `Save` failed). It is a statement of provenance: the files were written by
+this repository's server, an incarnation whose cluster bounded proposed data (`maxData = some 2^30`,
+which rests on the server's configuration premise `etcdMaxRequestBytesOk`, `InvRequest.lean`, and
+the allocation's `maxData`, `NewServerAlloc.lean`; Go's `--max-request-bytes` is itself unbounded),
+whose raft loop saved every `Ready`'s entries as handed-out objects of bounded size
+(`walSaveSized_spec`; the durability invariant's records are sized, `walAsViewed`) and whose stop
+closed them (`rnWalClosedW`). Every member of the cluster ran under the same bounded configuration
+(each meets `etcdMaxRequestBytesOk`; the entries a follower appends are sized through the peers'
+`Sz` on the network, `rafthttp/Net.lean`, since msgappv2's decoder enforces no limit itself). A
+data directory written by an etcd with a larger
+`--max-request-bytes`, or by any other program, is outside what these files describe. -/
 def srvFiles (dd : GoString) (id : w64) (σ : StorContents) (D : backend.Data) : IProp GF :=
-  iprop((∃ cid : w64, walFiles (config.walDirOf dd "") id cid σ) ∗
+  iprop((∃ cid : w64, walFiles (config.walDirOf dd "") id cid σ true) ∗
     backend.fileHolds (config.backendPathOf dd) D)
 
 /-- **`cs` is a conf state `buildConfStateFromV3store` builds from the `members` bucket of `D`**
@@ -420,6 +436,15 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     -- `Append`), in place of the fresh storage's tokens; R2d derives `RestartNode`'s
     -- `restartStorage` from it, as kvdurable's `kd_restartStorage`
     "Hrest" ∷ (∃ cs : ConfStateM, ⌜v3ConfStateIs D cs⌝ ∗ memStorRestarted bv.storage' γs σ cs) ∗
+    -- (out_size C3, 2026-11-12; freeze-c2 §4, D5) the rebuilt storage is sized (its ghost flag,
+    -- `MemStorNames.sz`): `bootstrappedWAL.MemoryStorage` (`bootstrap.go:741-753`, proved:
+    -- `bootstrappedWAL.MemoryStorage.spec` at `sz := true`) holds `NewMemoryStorage`'s dummy,
+    -- `ApplySnapshot`'s (data-less) dummy and the `Append`ed entries `ReadAll` decoded from the
+    -- files (`srvFiles`, sized: each record a successful `Save` wrote, `storage.walSaveOk` in the
+    -- premise, from an object at a content with `entSizeOk`; `pbutil.MustUnmarshalMessage`'s round
+    -- trip gives a fresh object at that content, `entBytes` not increased); what `NodeStart`'s
+    -- restart branch gives `memStorage_isStorage`'s `hsz`
+    "%Hγsz" ∷ ⌜γs.sz = true⌝ ∗
     "Hpeers" ∷ bv.peers' ↦* pv ∗
     -- the cluster
     "#Hcl" ∷ rnClusterOk bc.cl' ∗ "#Hrc" ∷ membership.isRaftCluster bc.cl' ∗
@@ -577,6 +602,10 @@ def bootstrapRestartContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfi
       -- (2026-11-03, the final whole-`bootOk` review's M1) bbolt opens the backend file (else
       -- `newBackend`'s `lg.Panic`)
       storage.dbOpensOk ∧
+      -- (out_size C3, MAJ-1, 2026-11-12) no WAL `Save` failed: the sized files (`srvFiles`) speak
+      -- of the records successful `Save`s wrote (`walFiles`' `sized`), which `bootOkR`'s `Hγsz`
+      -- rests on
+      storage.walSaveOk ∧
       N + 7 + bootWB ≤ backend.wbInit ∧
       (∀ f, ((restModel (W64 0) γ.boot L).mem.lookup f).map apply.MemberM.peerURLs =
         ((memBoot γ.boot).lookup f).map apply.MemberM.peerURLs)⌝ -∗

@@ -98,10 +98,10 @@ theorem Cluster.startNew.wp_proof
     iapply HΦ; itrivial
   have Hn9 : uint.nat nid < 10 := by word
   try wp_auto
-  wp_apply wp_NewMemoryStorage $$ [$Hraft] as %ms %γs ⟨#Hml, #Hmlog, Hmend, Hmsnap, Hmeta, Hfresh⟩
+  wp_apply wp_NewMemoryStorage false $$ [$Hraft] as %ms %γs ⟨%Hsz, #Hml, #Hmlog, Hmend, Hmsnap, Hmeta, Hfresh⟩
   try wp_auto
   iStructNamed «$r0»
-  imod kvrStor_alloc «$r0_ptr» ms bp γs (bootCS vs) ⊤ (fun _ _ => CoPset.mem_full)
+  imod kvrStor_alloc «$r0_ptr» ms bp γs (bootCS vs) ⊤ (fun _ _ => CoPset.mem_full) Hsz
     $$ HstorInv MemoryStorage boot HbootCS with ⟨#Hsrec, #Hsboot⟩
   have Hnid0 : nid ≠ W64 0 := by intro h; rw [h] at Hvn; simp at Hvn
   wp_apply wp_config γr vs c nid «$r0_ptr» Hnid0 (by word) $$ [$Hc] as %cp ⟨%cv, Hcv, %Hcfg⟩
@@ -115,7 +115,7 @@ theorem Cluster.startNew.wp_proof
   ihave Hboot := kvr_bootStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
     wp_Entries «$r0_ptr» ms bp γs _ (bootCS vs) γr.cluster
     (fun K => iprop(memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
-      memStorInvP ms γs (kvrJ γr.cluster K)))
+      memStorInvP ms γs (kvrJ γr.cluster K))) Hmd
     $$ Hpkg Hsrec Hsboot Hml Hfresh Hmeta Hmlog Hmend []
   · iintro %K Hm Hi; iframe Hm Hi
   ihave Hau := kvr_restartAu γr.cluster kvrRaftN nid kvrBootContents kvrBoot_holds $$ [HrS]

@@ -87,6 +87,9 @@ private abbrev node.Propose.specRaw : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗
       nodeCtx ctx cd ∗
       data_sl ↦*□ data ∗
+      -- (out_size C3) the data within the bound on an entry's bytes when the cluster bounds
+      -- proposed data
+      ⌜γ.raft.maxData.isSome = true → data.length ≤ entBytesMax⌝ ∗
       -- (2026-10-27) the proposal tracked under its key `entKey (W32 0) data`, or empty data (a
       -- filler, no update; until then `data ≠ []` was required)
       (⌜data = []⌝ ∨ propArg γ.raft (entKey (W32 0) data) Q) }}
@@ -116,7 +119,7 @@ private theorem node.Propose.wp_raw
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     node.Propose.specRaw (GF := GF) (hG := hG) := by
   intro γ id n data_sl data Q ctx cd
-  wp_start as ⟨#Hnode, #Hctx, #Hdata, Harg⟩
+  wp_start as ⟨#Hnode, #Hctx, #Hdata, %Hdsz, Harg⟩
   wp_auto
   -- the proposal's ghost work (2026-10-10): the update deposited (2026-10-27: none for an empty
   -- `data`, a filler)
@@ -135,32 +138,28 @@ private theorem node.Propose.wp_raw
       [KeyedElement (some (KeyField go!"Data")) (ElementExpression go.byte.SliceType #data_sl)])] = 1 := rfl
   simp only [Hsz]
   imod cellRO_alloc $$ Hpty with #cTy
-  imod entOwn_of_struct l0 (⟨zero_val _, null, null, null, data_sl, slice.nil, 0⟩ : raftpb.Entry)
-      (propEntryM data) ⊤ rfl $$ [Hl0] with He
+  imod entRZ_of_struct γ.raft.maxData.isSome l0
+      (⟨zero_val _, null, null, null, data_sl, slice.nil, 0⟩ : raftpb.Entry)
+      (propEntryM data) ⊤ rfl Hdsz $$ [Hl0] with #He
   · iframe Hl0
     simp only [propEntryM]
     iframe Hdata
     msg_nulls
-  imod entOwn_freeze $$ He with #He
   wp_auto
   ihave #Hnilb := ownSlice_nil (V := w8) (GF := GF) DFrac.discard
-  imod msgPtsC_of_struct «$a1_ptr» (⟨zero_val _, pty, null, null, null, null, null,
-      slice.mk slp (W64 1) (W64 1), null, null, null, null, null, slice.nil, slice.nil, slice.nil,
-      0⟩ : raftpb.Message) (DFrac.own 1) false [l0] ⟨propMsgM, [propEntryM data], none, [], []⟩ ⊤
-      rfl $$ [«$a1» Hsl] with Hm
+  imod msgInC_of_struct γ.raft.maxData.isSome «$a1_ptr» (⟨zero_val _, pty, null, null, null, null,
+      null, slice.mk slp (W64 1) (W64 1), null, null, null, null, null, slice.nil, slice.nil,
+      slice.nil, 0⟩ : raftpb.Message) (DFrac.own 1) [l0] ⟨propMsgM, [propEntryM data], none, [], []⟩
+      ⊤ rfl rfl rfl rfl rfl (fun _ => ⟨by simp, by simp [entBytesMax]⟩) $$ [«$a1» Hsl] with Hm
   · iframe «$a1» Hsl Hnilb
     simp only [propMsgM, show MsgProp = W32 2 from rfl]
     iframe cTy
     msg_nulls
-    simp only [Bool.false_eq_true, ↓reduceIte, snapOpt]
-    iframe He
-    isplitl []; · iapply entsBig_nil
-    isplitl []; · iempintro
-    isplitl []; · ipureintro; trivial
+    isplitl []
+    · iapply (BigSepL2.bigSepL2_singleton (Φ := fun _ p e => entRZ (GF := GF) γ.raft.maxData.isSome p e)).2
+      iexact He
     iapply ownSlice_nil
-  wp_apply wp_node_stepWait γ id n «$a1_ptr» data ctx cd $$ [$Hnode $Hctx Hm $Hent $Htk]
-  · simp only [msgIn, show needsCap propMsgM = false from rfl]
-    iexact Hm
+  wp_apply wp_node_stepWait γ id n «$a1_ptr» data ctx cd $$ [$Hnode $Hctx $Hm $Hent $Htk]
   iintro %err #Herr
   wp_auto
   iapply HΦ
@@ -186,13 +185,24 @@ private theorem node.wp_Propose_impl
   unfold EtcdGrove.node.Propose.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.ownCommittedOps
     EtcdGrove.Cluster.dup
   intro n γ N id data_sl data ctx cd
-  iintro %Φ ⟨#Hinit, #Hnode, #Hctx, #Hd, %_, Hau⟩ HΦ
+  iintro %Φ ⟨#Hinit, #Hnode, #Hctx, #Hd, %Hmd, Hau⟩ HΦ
   iunfold isNode at Hnode
   icases Hnode with ⟨%γn, %Hf, #Hrn, #Htab, #Hci, -⟩
   have Hγr := Hf.1
+  -- (out_size C3) the data within `entBytesMax`: the cluster's bound, at most `2^31` (`clusterInv`)
+  ihave #Hci0 := Hci
+  iunfold clusterInv at Hci0
+  icases Hci0 with ⟨-, -, -, -, %Hmb⟩
+  have Hdsz : γn.raft.maxData.isSome = true → data.length ≤ entBytesMax := fun hs => by
+    rw [Hγr] at hs
+    obtain ⟨b, hb⟩ := Option.isSome_iff_exists.1 hs
+    have := Hmd b hb; have := (Hmb b hb).1
+    simp only [entBytesMax]; omega
   by_cases Hne : data = []
   · iapply (hP γn id n data_sl data (fun _ => iprop(True)) ctx cd) $$ []
     · iframe Hinit Hrn Hctx Hd
+      isplitr
+      · ipureintro; exact Hdsz
       ileft; ipureintro; exact Hne
     iintro !> %err #Herr
     iapply HΦ
@@ -207,6 +217,8 @@ private theorem node.wp_Propose_impl
   ihave Hau1 := api_propAu1_if γ N (W32 0) data Hnf HNs $$ Hinv Hau
   iapply (hP γn id n data_sl data (fun _ => iprop(True)) ctx cd) $$ [Hau1]
   · iframe Hinit Hrn Hctx Hd
+    isplitr
+    · ipureintro; exact Hdsz
     iright
     unfold propArg
     rw [Hγr]

@@ -70,7 +70,7 @@ theorem raftNode.onStop.wp_proof :
   wp_apply HStop $$ [$Hrun] as ⟨-, Hvac⟩
   wp_apply HtkStop
   wp_apply HTrStop $$ [$HST]
-  ihave #HClose := walClose_spec stm si Hsieq σ γ.id cid $$ Hsti
+  ihave #HClose := walClose_spec stm si Hsieq σ γ.id cid true $$ Hsti
   subst Hsieq
   wp_apply HClose $$ [$Hwo $Hrecs $Hmeta $Hpurge] as %cerr Hcerr
   · ipureintro; omega

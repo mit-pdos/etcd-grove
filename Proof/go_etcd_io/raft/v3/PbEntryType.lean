@@ -18,12 +18,23 @@ alike, and an empty non-nil `Data` as a nil one: `ro_iff` at `ro := entRO` is un
 unknown fields' validity it now has: `pbMsg` carries `ufWire`, CP2.) Here `ro` is
 `∃ c, entRoC l c ∗ ⌜…⌝`, and `entRoC_entRO` shows it gives today's `entRO`, so its clients keep
 working.
+
+(out_size C3, 2026-11-12, decided by etcd-grove-81: moved here, with the same names and texts, from the
+server's `rafthttp/PerTypeEntry.lean` and, for `entDecode`/`EntWireOk`/`pbEntry`, from
+`rafthttp/PbMessage.lean`, so that raft's `limitSize` and `appendEntry` reach `pbEntryC_reg` for
+`proto.SizePb`/`proto.ClonePb`.)
+
+**The decoded object is owned** (out_size C3, decided by etcd-grove-81, option (a)): `decC l c` is
+`entPtsCC l (DFrac.own 1) c` and `dec` its model-level form, as `pbMessageC`'s are, because
+`proto.Clone` and `proto.Unmarshal` return fresh objects (and the default `Unmarshal` copies `bytes`
+fields rather than aliasing its input: `TestC3DecodedFresh`, `examples/pbschema`). Until then both
+were frozen (`entRoC`), a weaker reading under which `appendEntry` could not store into a clone.
+A caller that wants the frozen form freezes it (`entPtsCC_freeze`).
 -/
 module
 
 public import Proof.google_golang_org.protobuf.proto.InvProto
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.PbMessage
-public import Proof.go_etcd_io.raft.v3.PbContent
+public import Proof.go_etcd_io.raft.v3.PbContentOwn
 
 @[expose] public section
 
@@ -35,6 +46,53 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI go_etcd_io.raft.v3
+
+section wire
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-! ### Entries (the msgappv2 codec's short frame marshals them one by one) -/
+
+/-- **Decoding a `raftpb.Entry`'s bytes** (opaque): the entry, or `none`. -/
+opaque entDecode (bs : List w8) : Option EntryM
+
+/-- **`bs` is an encoding of the entry `e`**: `bs` decodes to it (every entry marshals, of any
+`EntryType` value: the file header). -/
+def EntWireOk (e : EntryM) (bs : List w8) : Prop :=
+  entDecode bs = some e
+
+/-- **A `*raftpb.Entry` at the bytes** (a trusted wire model, read against `raft.proto`'s `Entry`:
+`Term`, `Index`, `Type`, `Data`, all in `EntryM`): read-only for good and decoded alike, a log
+entry (`entRO`); blank, a zero struct. -/
+def pbEntry : PbType GF where
+  ty := raftpb.Entry.ty
+  M := EntryM
+  ro l e := entRO l e
+  ro_persistent l e := entRO_persistent l e
+  marshals _ := True
+  wire := EntWireOk
+  eqv e e' := e = e'
+  blank l := iprop(l ↦ (zero_val raftpb.Entry))
+  dec l e := entRO l e
+
+@[simp] theorem pbEntry_ty : (pbEntry (GF := GF)).ty = raftpb.Entry.ty := rfl
+@[simp] theorem pbEntry_M : (pbEntry (GF := GF)).M = EntryM := rfl
+@[simp] theorem pbEntry_ro (l : Loc) (e : EntryM) : (pbEntry (GF := GF)).ro l e = entRO l e := rfl
+@[simp] theorem pbEntry_marshals (e : EntryM) :
+    (pbEntry (GF := GF)).marshals e = True := rfl
+@[simp] theorem pbEntry_wire : (pbEntry (GF := GF)).wire = EntWireOk := rfl
+@[simp] theorem pbEntry_blank (l : Loc) :
+    (pbEntry (GF := GF)).blank l = iprop(l ↦ (zero_val raftpb.Entry)) := rfl
+@[simp] theorem pbEntry_dec (l : Loc) (e : EntryM) : (pbEntry (GF := GF)).dec l e = entRO l e := rfl
+
+/-- One encoding is of one entry. -/
+theorem EntWireOk.inj {e e' : EntryM} {bs : List w8} (h : EntWireOk e bs) (h' : EntWireOk e' bs) :
+    e = e' :=
+  Option.some.inj (h.symm.trans h')
+
+end wire
 
 /-- **The encoding of an `Entry`'s wire content** (opaque: protobuf-go's `Marshal`). -/
 opaque entryEncC [GooseExts] (c : EntryC) : List w8
@@ -68,7 +126,7 @@ def pbEntryM : PbModelC GF where
   wire := EntWireOk
   eqv e e' := e = e'
   blank l := iprop(l ↦ (zero_val raftpb.Entry))
-  dec l e := iprop(∃ c, entRoC l c ∗ ⌜c.model = e⌝)
+  dec l e := iprop(∃ c, entPtsCC l (DFrac.own 1) c ∗ ⌜c.model = e⌝)
   C := EntryC
   roC := entRoC
   roC_persistent _ _ := inferInstance
@@ -87,9 +145,9 @@ def pbEntryM : PbModelC GF where
     rw [List.mem_singleton] at hp
     subst hp
     exact Hu
-  decC := entRoC
+  decC l c := entPtsCC l (DFrac.own 1) c
   decC_dec l c _ := by
-    iintro #H
+    iintro H
     iexists c
     iframe H
     ipureintro; rfl
@@ -100,6 +158,41 @@ def pbEntryC : PbTypeC GF where
   data := pbEntryM
   encd := { enc := entryEncC
             enc_ok := fun c _ hu hs => entryEncC_ok c (hu _ (List.mem_singleton.2 rfl)) hs }
+
+/-! The registered instance's fields (moved from rafthttp's `PerTypeMessage.lean`, out_size C3). -/
+@[simp] theorem pbEncC_pbEntryC (c : EntryC) : pbEncC (pbEntryC (GF := GF)) c = entryEncC c := rfl
+@[simp] theorem pbEntryC_ty : (pbEntryC (GF := GF)).data.ty = raftpb.Entry.ty := rfl
+@[simp] theorem pbEntryC_roC : (pbEntryC (GF := GF)).data.roC = entRoC := rfl
+@[simp] theorem pbEntryC_C : (pbEntryC (GF := GF)).data.C = EntryC := rfl
+@[simp] theorem pbEntryC_modelOf : (pbEntryC (GF := GF)).data.modelOf = EntryC.model := rfl
+@[simp] theorem pbEntryC_size : (pbEntryC (GF := GF)).data.size = entrySize := rfl
+@[simp] theorem pbEntryC_marshals (e : EntryM) : (pbEntryC (GF := GF)).data.marshals e = True := rfl
+@[simp] theorem pbEntryC_wire : (pbEntryC (GF := GF)).data.wire = EntWireOk := rfl
+@[simp] theorem pbEntryC_decOk (c : EntryC) : (pbEntryC (GF := GF)).data.decOk c = True := rfl
+@[simp] theorem pbEntryC_ufValid (c : EntryC) :
+    (pbEntryC (GF := GF)).data.ufValid c = ∀ q ∈ [(entrySchema, c.uf)], ufWire q.1 q.2 := rfl
+@[simp] theorem pbEntryC_blank (l : Loc) :
+    (pbEntryC (GF := GF)).data.blank l = iprop(l ↦ (zero_val raftpb.Entry)) := rfl
+@[simp] theorem pbEntryC_dec (l : Loc) (e : EntryM) :
+    (pbEntryC (GF := GF)).data.dec l e = iprop(∃ c, entPtsCC l (DFrac.own 1) c ∗ ⌜c.model = e⌝) :=
+  rfl
+@[simp] theorem pbEntryC_decC (l : Loc) (c : EntryC) :
+    (pbEntryC (GF := GF)).data.decC l c = entPtsCC l (DFrac.own 1) c := rfl
+
+/-- (out_size C3) **An entry at a content, frozen**: its fields' points-to made persistent. -/
+theorem entPtsCC_freeze (l : Loc) (dq : DFrac) (c : EntryC) :
+    entPtsCC (GF := GF) l dq c ⊢ |==> entRoC l c := by
+  unfold entPtsCC entRoC
+  iintro ⟨%pt, %pi, %pty, %ds, %Hnn, HT, #cT, HI, #cI, HY, #cY, HD, #Hd, #Hpb⟩
+  imod (typedPointsto_dfractional (GF := GF) _ pt).dfractional_persist _ $$ HT with #HT
+  imod (typedPointsto_dfractional (GF := GF) _ pi).dfractional_persist _ $$ HI with #HI
+  imod (typedPointsto_dfractional (GF := GF) _ pty).dfractional_persist _ $$ HY with #HY
+  imod (typedPointsto_dfractional (GF := GF) _ ds).dfractional_persist _ $$ HD with #HD
+  imodintro
+  iexists pt, pi, pty, ds
+  isplitr
+  · ipureintro; exact Hnn
+  iframe HT cT HI cI HY cY HD Hd Hpb
 
 end defs
 
@@ -159,10 +252,11 @@ theorem bytesC_freeze (ds : GoSlice) (xs : List w8) (h : xs = [] → ds = slice.
       · iexact H
     · ipureintro; rfl
 
-/-- **An entry's struct literal**: its value, which, stored anywhere, freezes to an entry at some
-wire content with the model `e`. -/
+/-- **An entry's struct literal**: its value, which, stored anywhere, is an owned entry at some wire
+content with the model `e` (`entPtsCC_freeze` freezes it). -/
 theorem treeWp_entryTree (e : EntryM) (Φ : val → IProp GF) :
-    (∀ x : raftpb.Entry, (∀ p : Loc, p ↦ x ={⊤}=∗ ∃ c, entRoC p c ∗ ⌜c.model = e⌝) -∗ Φ #x) ⊢
+    (∀ x : raftpb.Entry, (∀ p : Loc, p ↦ x ={⊤}=∗ ∃ c, entPtsCC p (DFrac.own 1) c ∗ ⌜c.model = e⌝) -∗
+      Φ #x) ⊢
       treeWp (entryTree e) Φ := by
   iintro H
   simp only [entryTree, treeWp, treeWpL]
@@ -191,10 +285,6 @@ theorem treeWp_entryTree (e : EntryM) (Φ : val → IProp GF) :
   icases typedPointsto_split _ _ _ $$ Hl with Hl
   simp only [TypedPointsto.typedPointstoDef]
   icases Hl with ⟨HS, HT, HI, HY, HD, HU, HSC, -⟩
-  imod (typedPointsto_dfractional (GF := GF) _ pt).dfractional_persist _ $$ HT with #HT
-  imod (typedPointsto_dfractional (GF := GF) _ pi).dfractional_persist _ $$ HI with #HI
-  imod (typedPointsto_dfractional (GF := GF) _ pty).dfractional_persist _ $$ HY with #HY
-  imod (typedPointsto_dfractional (GF := GF) _ ds).dfractional_persist _ $$ HD with #HD
   ihave Hnil := ownSlice_nil (V := w8) (GF := GF) (DFrac.own 1)
   ihave Hpb : |={⊤}=> pbMsg raftpb.Entry l [] $$ [HS HSC HU Hnil]
   · iapply (pbMsg_alloc _ _ _ _ _ _ _ (ufWire_nil _))
@@ -207,7 +297,7 @@ theorem treeWp_entryTree (e : EntryM) (Φ : val → IProp GF) :
   imod bytesC_freeze ds e.Data' Hds.2 $$ Hs with ⟨%o4, #c4, %h4⟩
   imodintro
   iexists ⟨o1, o2, o3, o4, []⟩
-  unfold entRoC
+  unfold entPtsCC
   isplitl
   · iexists pt, pi, pty, ds
     isplitr
@@ -248,7 +338,8 @@ theorem treeWp_entryPtr (e : EntryM) (Φ : val → IProp GF) :
   isplitr
   · ipureintro; rfl
   iintro %p Hp
-  imod Hx $$ Hp with ⟨%c, #Hc, %Hm⟩
+  imod Hx $$ Hp with ⟨%c, Hc, %Hm⟩
+  imod entPtsCC_freeze _ _ _ $$ Hc with #Hc
   imodintro
   iapply H
   subst Hm

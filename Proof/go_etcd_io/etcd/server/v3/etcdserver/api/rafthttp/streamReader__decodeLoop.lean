@@ -21,7 +21,7 @@ public import Spec.go_uber_org.zap.Logger__Warn
 public import Spec.go_uber_org.zap.String
 public import Spec.go_uber_org.zap.Bool
 public import Proof.github_com.mit_pdos.etcd_grove.FirstCallee
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.MsgRead
+public import Proof.go_etcd_io.raft.v3.MsgRead
 
 @[expose] public section
 

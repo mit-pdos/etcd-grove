@@ -25,16 +25,17 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `ms.Append(entries)` at `k`, the first entry's index. (raft-final, 2026-10-29, the design's A4,
 review 1's M2) An empty batch takes no range of the log (Go returns before the lock,
 `storage.go:293-296`): a `Ready` with no entries lends none; until then the range from `k` with the
-end in both cases. -/
+end in both cases. (out_size C2) The batch's objects at contents sized as the storage is
+(`entsPtsZ γs.sz`; at `γs.sz = false` today's `entsPts`, `entsPtsZ_false`), given back so. -/
 abbrev MemoryStorage.Append.spec : Prop :=
   ∀ (ms : Loc) (γs : MemStorNames) (k : Nat) (old es : List EntryM) (s : GoSlice) (dq : DFrac),
   (∀ (j : Nat) (e : EntryM), es[j]? = some e → uint.nat e.Index' = k + j) →
   k + es.length ≤ 2^61 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ memStorLock ms γs ∗
       (if es = [] then emp else memLog γs k (DFrac.own 1) old ∗ memEnd γs (k + old.length)) ∗
-      entsPts s dq es }}
+      entsPtsZ γs.sz s dq es }}
     (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"Append")) (Val #s))
-  {{ RET #interface.nil; entsPts s dq es ∗
+  {{ RET #interface.nil; entsPtsZ γs.sz s dq es ∗
       (if es = [] then emp else memLog γs k (DFrac.own 1) es ∗ memEnd γs (k + es.length)) }}
 
 end spec

@@ -5,7 +5,7 @@
 theorem raft.appendEntry.wp_proof [package_sem : Assumptions] (wp_raftLog_lastIndex :
     raftLog.lastIndex.spec) (wp_raft_increaseUncommittedSize : raft.increaseUncommittedSize.spec)
     (wp_traceReplicate : traceReplicate.spec) (wp_raftLog_append : raftLog.append.spec)
-    (wp_raft_send : raft.send.spec) (wp_CloneEntry : proto.CloneEntry.spec) (wp_MessageType_Enum :
+    (wp_raft_send : raft.send.spec) (wp_ClonePb : proto.ClonePb.spec) (wp_MessageType_Enum :
     raftpb.MessageType.Enum.spec) : raft.appendEntry.spec
   -- `Perennial.EtcdGrove.raft.appendEntry.spec`, unfolded:
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (es : GoSlice) (ents : List EntryM) (dq : DFrac) (m : Nat),
@@ -14,12 +14,12 @@ theorem raft.appendEntry.wp_proof [package_sem : Assumptions] (wp_raftLog_lastIn
         ⊢
           ∀ Φ,
             isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                ownRaftPhysCV c c.voters r id s ∗ "Hes" ∷ entsPts es dq ents ∗ "#Hrc" ∷ ⧖m -∗
+                ownRaftPhysCV c c.voters r id s ∗ "Hes" ∷ entsPtsZ s.gh.sn.sz es dq ents ∗ "#Hrc" ∷ ⧖m -∗
               (▷
                   ∀ accepted,
                     (⧖(m + ents.length) ∗
                         ⌜(∀ (e : EntryM), e ∈ ents → e.Data' = []) → accepted = true⌝ ∗
-                          entsPts es dq ents ∗
+                          entsPtsZ s.gh.sn.sz es dq ents ∗
                             if accepted = true then
                               ownRaftPhysCV c c.voters r id
                                 (sendMsgs
