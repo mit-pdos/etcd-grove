@@ -35298,3 +35298,47 @@ lists `IsRecording` among the methods that return), which every caller already c
 reverted: `range_linearizable`/`range_serializable` (exported), `EtcdServer.Range.spec`,
 `EtcdServer.LeaseRenew.spec` and `v3rpc.raftLeaseRenew` are back to `lean`'s text. Strengthening
 `isSpan` instead would recheck every `isSpan` producer for a property only `Start` needs.
+
+## auth-schema-fix (2026-11-12 · decided by etcd-grove-81 under the user's delegation; forms decided by the agent, reviewed at checkpoint (`questions.md`) · branch `auth-schema-fix`; the new trusted text awaits etcd-grove-81's axiom re-review, `/shared/tmp/auth-safe/freeze-fix.md`)
+
+The auth results (`srv_auth_tp_on`, `server_new_auth_on`, `authkv_startServer`, `authkv_Main`) took
+two false premises: `auth.ValidSpec` (`notes/auth-validspec-false.md`) and `authSchemaSrv`, refuted
+four ways by S0 (`notes/auth-schema-srv-refuted.md`, F1-F4). Both are fixed; no closed theorem's
+statement changes.
+
+**F1, the write-back budget.** `authSchemaSrv` handed the store two write-back tokens
+(`ownToks d.γB.wb 2`) for every batch it would ever commit. **Decision:** a write-back token
+parameter `Wb` on the auth backend's write contracts (`authBatchTxLk(R)`, `authBatchTxOk(R)`,
+`authWBackendOk(R)`, `authBackendReads`, `authWR`): a batch `Unlock` costs `Wb ∗ Wb`, `ForceCommit`
+and `CreateAuthBuckets` one, `GetAllRoles` (a batch) two; at the server `Wb := backend.wbTok d.γB`,
+and `authSchemaSrv` drops the token bag. The tokens come from receipts: three per applied entry in
+`EtcdServer.apply`'s loop (`apply.adminWTs E`, threaded down the admin chain to the store call;
+the step contracts at `Wb := bkWTFor E`), two at boot in `NewServer`.
+
+**F2-F3.** The bucket lend is a read-only observation (an abstract `RL` with a law against the batch
+lock's `rbOwn`, no write authority); `GetAllRoles` lists only `auth.roleListed` names (non-empty,
+below `[0xff]`, Go's range).
+
+**F4, UTF-8 role names.** `UnsafePutUser`'s trusted text takes `∀ x ∈ ur.roles, utf8Valid x` (proto3
+`string` field: marshalling invalid UTF-8 fails). **Decision:** the invariant `auth.rolesUtf8` lives in
+the fuel's `authSmall` (kept by every `StepSmall`; `stepOk` gives it), and a role reaches the store
+only through `UserGrantRole`, whose name comes from the decoded request: the NEW axiom
+`apply.irrDecode_utf8` (`etcdserver/apply/InvRequest.lean`: a decoded `InternalRaftRequest`'s
+`AuthUserGrantRole.role` is valid UTF-8; Go evidence `/shared/tmp/auth-safe/fix-tests/irr_utf8_test.go`,
+`MustUnmarshalMessage` panics otherwise), carried by `irrWrapperIs`'s `⌜irrUtf8 rq⌝`. Only the
+grant's role is stated: `User.name`/`Role.name` are `bytes`. Results' `apply_UserGrantRole_fuel`
+gains `utf8Valid role`. Rejected: bundling it with `permKeysOk` in `authHist` (same invariant, about
+three times the pass-through sites).
+
+**S1, the token provider.** `ValidSpec` claimed `isValidSimpleToken` returns for every context; a nil
+context panics. The info clause takes `auth.ctxDoneRecv ci` (hlc-generic; `isReqAuth` keeps
+`ctxDoneAny`, converted by a law). The route 81 chose first (authSrvTP's pre carries the waiter
+contract, discharged by `NewServer`) fails: the waiter closure reads `srv.applyWait`, set only in
+`start`. **Decision (option A):** `auth.tpReady M`, a persistent one-shot at `AuthNames.rdy` (other
+modes `True`), joins the info clause; `NewServer` allocates `srvTpInv` (pending, or shot with the
+field's persistent points-to and its `isWaitTime`) and proves the closure's contract; `start` fires
+it after setting `applyWait`. Deviation from the plan (accepted by etcd-grove-81): `isReqAuth` and
+`isReqAuthBound` keep their definitions; holders from before `start` carry
+`□ (auth.tpReady M -∗ …)`, discharged by `start`, which leaves v3rpc's watch handler and the
+off-mode `NewAuthStore` axiom untouched. `ValidSpec` deleted; `authSrvTP_on` and its results drop
+`hValid`; `token_simple_new`/`_ok` take `M`; `srv_auth_bound_of_inv` gains `tpReady`.
