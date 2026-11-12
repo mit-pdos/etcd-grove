@@ -2,8 +2,8 @@
 modes** (`node.run.spec`, step 4's `node.run.gatedSpec` in place since step 5; `notes/trace-check-design.md`, "Step 4
 (2026-11-12): the statements", §3.2). Today's proof (`node__run.lean`) with each callee's triple for both
 modes (`TracedNodeRun.lean`): `RawNode.Advance` and `raft.applyConfChange` by their traced statements
-(the hypotheses `hAdv`, `hCC`), the steps over the traced assembly (`hb`), the tick over its traced
-triple; the token escrow's key allocated at the `readyc` commit and deposited after `acceptReady`
+(the hypotheses `hAdv`, `hCC`), the steps over the traced assembly (`hb`), the tick by
+`RawNode.Tick.spec` (one statement for both modes since the trace-check cleanup); the token escrow's key allocated at the `readyc` commit and deposited after `acceptReady`
 (`rtk_keyG`, `rtk_depositG`), `run`'s half lent at `advancec`; a traced node's bounds from the budget
 (`termLB_rb`) and `RunTracedOk`. -/
 module
@@ -34,8 +34,6 @@ public import Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange
 public import Spec.go_etcd_io.raft.v3.NewRawNode
 public import Proof.go_etcd_io.raft.v3.TracedUntracedRaftStep
 public import Proof.go_etcd_io.raft.v3.TracedNodeRun
-public import Spec.go_etcd_io.raft.v3.raft__tickElection
-public import Spec.go_etcd_io.raft.v3.raft__tickHeartbeat
 
 @[expose] public section
 
@@ -77,17 +75,15 @@ local macro "peel_hif" : tactic => `(tactic| first
   | skip)
 
 set_option maxHeartbeats 1000000 in
-/-- **`node.run()` in both modes** (see the file header): today's `node.run.wp_proof` with
-`RawNode.Advance.spec` and `raft.applyConfChange.spec` replaced by their traced statements, and the
-traced assembly (`stepBundle_traced.statement`) and the ticks' specs (for `RawNode.Tick.traced`). -/
+/-- **`node.run()` in both modes** (see the file header): the callees' specs, `RawNode.Advance.spec`,
+`RawNode.Tick.spec` and `raft.applyConfChange.tracedSpec` (`hCC`) for both modes, and the traced
+assembly (`stepBundle_traced.statement`). -/
 theorem node.run.gated_of
     (wp_RawNode_HasReady : RawNode.HasReady.spec (GF := GF) (hG := hG))
     (wp_RawNode_readyWithoutAccept : RawNode.readyWithoutAccept.spec (GF := GF) (hG := hG))
     (wp_RawNode_acceptReady : RawNode.acceptReady.spec (GF := GF) (hG := hG))
     (hAdv : RawNode.Advance.spec (GF := GF) (hG := hG))
     (wp_RawNode_Tick : RawNode.Tick.spec (GF := GF) (hG := hG))
-    (wp_tickElection : raft.tickElection.spec (GF := GF) (hG := hG))
-    (wp_tickHeartbeat : raft.tickHeartbeat.spec (GF := GF) (hG := hG))
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     (hb : stepBundle_traced.statement (GF := GF) (hG := hG))
     (wp_raft_hasLeader : raft.hasLeader.spec (GF := GF) (hG := hG))
@@ -859,7 +855,7 @@ theorem node.run.gated_of
     icases ownRawNode_term_tc γ.raft nv.rn' id rs $$ Hrn with ⟨%Htt, Hrn⟩
     ihave Hrn := ownRawNode_raise_tc γ.raft nv.rn' id rs (rs.tc + W64 1) (by word) $$ Hrn
     imod termLB_rb γ.bud (rs.tc + W64 1) ⊤ (by solve_ndisj) $$ Hbud Hlb1 with %Hrb1
-    wp_apply wp_RawNode_Tick_g wp_RawNode_Tick wp_tickElection wp_tickHeartbeat γ.raft nv.rn' id
+    wp_apply wp_RawNode_Tick γ.raft nv.rn' id
       { rs with tc := rs.tc + W64 1 } (by simp only; word)
       Hflw (fun h => ⟨tc_bound Hrb1 (Hrb h), Hfit h⟩) $$ [$Hrn] as %t H
     iNamed H

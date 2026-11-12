@@ -8,7 +8,7 @@ theorem RawNode.Tick.wp_proof [package_sem : Assumptions] (wp_tickElection : raf
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState),
     uint.Z rs.term + 1 ≤ uint.Z rs.tc →
       rs.flw = false →
-        γ.reTrace = none →
+        (γ.reTrace ≠ none → uint.Z rs.tc + 1 < ↑traceNumBound ∧ traceReadyFits GF γ) →
           ⊢
             ∀ Φ,
               isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hrn" ∷ ownRawNode γ rn id rs -∗

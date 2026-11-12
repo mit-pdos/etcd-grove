@@ -36,8 +36,6 @@ theorem node.run.wp_proof
     (wp_RawNode_acceptReady : RawNode.acceptReady.spec (GF := GF) (hG := hG))
     (wp_RawNode_Advance : RawNode.Advance.spec (GF := GF) (hG := hG))
     (wp_RawNode_Tick : RawNode.Tick.spec (GF := GF) (hG := hG))
-    (wp_tickElection : raft.tickElection.spec (GF := GF) (hG := hG))
-    (wp_tickHeartbeat : raft.tickHeartbeat.spec (GF := GF) (hG := hG))
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
     (wp_raft_hasLeader : raft.hasLeader.spec (GF := GF) (hG := hG))
     (wp_IsResponseMsg : IsResponseMsg.spec (GF := GF) (hG := hG))
@@ -48,7 +46,7 @@ theorem node.run.wp_proof
     (wp_getStatus : getStatus.spec (GF := GF) (hG := hG)) :
     node.run.spec (GF := GF) (hG := hG) :=
   node.run.gated_of wp_RawNode_HasReady wp_RawNode_readyWithoutAccept wp_RawNode_acceptReady
-    wp_RawNode_Advance wp_RawNode_Tick wp_tickElection wp_tickHeartbeat wp_raft_Step stepBundle_traced
+    wp_RawNode_Advance wp_RawNode_Tick wp_raft_Step stepBundle_traced
     wp_raft_hasLeader wp_IsResponseMsg wp_IsLocalMsgTarget
     (raft.applyConfChange.tracedSpec_of_spec wp_raft_applyConfChange) wp_GetType wp_GetFrom wp_getStatus
 

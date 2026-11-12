@@ -4,7 +4,7 @@ trace-check Q8 stage 1 slice 27n, Q27 (a); `notes/decisions.md`, "Q8 stage 1 (sl
 Raft-internal (not on `etc/api/raft.txt`).
 
 `RawNode.ReportUnreachable.spec`'s triple at a traced cluster (`γ.reTrace = some γd`), with the bounds
-the traced bundle's premises read (as `RawNode.Tick.tracedTriple`'s); the proof is
+the traced bundle's premises read (as `RawNode.Tick.spec`'s traced premise); the proof is
 `RawNode.ReportUnreachable.wp_proof`'s with `raft.Step.spec` at the resources the traced bundle on
 `UnreachPath` (`TracedRaftStepUnreach.lean`) gives, the capability opened from `rnTrace` and closed
 idle at the end state (a report logs no line).

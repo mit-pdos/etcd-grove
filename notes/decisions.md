@@ -37816,3 +37816,21 @@ it (the `_of` statements unchanged). What the review and the proof changed from 
   raised); `RawNode.Bootstrap`'s proof is one thread for both modes (`raft.becomeFollower.traced`, the gate
   form per peer, `boot_rnTrace` at the end).
 No axiom, no `sorry`.
+
+## `RawNode.Tick`: one statement for both modes (2026-11-12 · trace-check cleanup, review F3 of step 4; decided by the agent · branch `trace-check-clean`)
+
+**Context.** Since slice 26n `RawNode.Tick` had two statements and two proofs: `RawNode.Tick.spec`
+(premise `γ.reTrace = none`) and the traced twin `RawNode.Tick.tracedTriple` (`RawNode.Tick.traced`,
+`TracedRawNode.lean`), joined for `run` by a wrapper `wp_RawNode_Tick_g` (`TracedNodeRun.lean`) that took
+both plus the ticks' specs. Step 4's review (F3) asked for one statement, as `RawNode.Advance.spec` and
+`node.run.spec` became in step 5 ("Modes generalize, no twins").
+
+**Decision.** `RawNode.Tick.spec`'s premise `γ.reTrace = none` is replaced by the gated
+`γ.reTrace ≠ none → uint.Z rs.tc + 1 < traceNumBound ∧ traceReadyFits GF γ` (`acceptReady`'s and
+`Advance`'s bounds, so `run` discharges them from the same source); the post is unchanged. One proof,
+`RawNode.Tick.wp_proof` (same callees, `tickElection`/`tickHeartbeat`): a common prefix, then the
+untraced arm over the ticks' untraced instances and the traced arm (the old `RawNode.Tick.traced`) over
+their traced instances. Deleted: `RawNode.Tick.tracedTriple`, `RawNode.Tick.traced`, `wp_RawNode_Tick_g`;
+`node.run.wp_proof` and `node.run.gated_of` lose the hypotheses `wp_tickElection`/`wp_tickHeartbeat`
+(Link regenerated). Nothing outside raft states or uses `RawNode.Tick.spec` (the node API's
+`node.Tick.spec` is unchanged); no closed result's statement moves. No axiom, no `sorry`.

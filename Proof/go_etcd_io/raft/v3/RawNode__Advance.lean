@@ -1,10 +1,11 @@
 /-
 Port of `election_proof/proof_RawNode__Advance.v` (857d09190).
 
-(2026-11-12, trace-check step 4, `hAdv`) **The instance of the proof for both modes**: the proof is
-`RawNode.Advance.tracedSpec_proof` (`TracedRawNodeAdvance.lean`, where this file's proof moved, with its
-lemmas), of `RawNode.Advance.tracedSpec` (`TracedRunSpecs.lean`); `RawNode.Advance.spec` is its untraced
-instance (`RawNode.Advance.spec_of_tracedSpec`). One proof; this statement unchanged.
+(2026-11-12, trace-check step 4, `hAdv`) **The proof for both modes**: `RawNode.Advance.tracedSpec_proof`
+(`TracedRawNodeAdvance.lean`, where this file's proof moved, with its lemmas). Since step 5
+`RawNode.Advance.spec` is step 4's statement for both modes (until then `RawNode.Advance.tracedSpec`,
+`TracedRunSpecs.lean`, of which this statement was the untraced instance), so this proof is that one,
+unchanged. One proof.
 -/
 module
 

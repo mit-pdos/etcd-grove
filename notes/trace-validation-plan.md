@@ -26,8 +26,9 @@ unpushed fork commit: landing on `lean` needs the push, the user's) and `etc/rea
 (199 < 200, identical at `a660e8e6a5`: this machine's Go sources). Steps 4 and 5: the design's "Step 4" and
 "Step 5" sections; `notes/decisions.md`'s step-4 and step-5 entries. Left, not needed by the result:
 `tcRunFits` as a `ReceiptBoundLe` instance (needs §1.3's premise restated: the user's); one statement for
-`RawNode.Tick` (step-4 review F3, a cleanup); `trCapB`'s docstring to note its coupling with
-`trCapStart` (step-5 review S3).
+`RawNode.Tick` (step-4 review F3, a cleanup: done 2026-11-12, branch `trace-check-clean`,
+`notes/decisions.md`, "`RawNode.Tick`: one statement for both modes"); `trCapB`'s docstring to note its
+coupling with `trCapStart` (step-5 review S3: done, same branch).
 
 ## Resume point (2026-11-12, before the user's machine restart)
 
