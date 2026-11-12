@@ -191,8 +191,8 @@ theorem auth.authStore.UserDelete.wp_tie
   (try wp_auto)
   have hstep : userDeleteF en name st0 = .next (bump (delUser st0 name)) := by
     simp [userDeleteF, hnr, Hur.1]
-  obtain ⟨Hrevfit, Hfit⟩ := Hstep
-  have Hfit' := Hfit _ _ rfl hstep
+  obtain ⟨Hrevfit, Hfit, -⟩ := Hstep
+  have Hfit' := (Hfit _ _ rfl hstep).1
   ihave #Hcap1 := Hcap $$ %en
   ihave #Hcn := capNextM_step M hs (userDeleteF en name) st0 (bump (delUser st0 name)) Hl0
     (by rw [hstep]; try simp_all) $$ Hcap1

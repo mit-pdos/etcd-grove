@@ -236,6 +236,7 @@ theorem apply.Apply.wp_admin
     · ipureintro; exact Hwn
     iexists raftReq_ptr
     iframe #
+    ipureintro; exact apply.irrDecode_utf8 _ rq Hdec
   -- the uber-applier
   iunfold apply.uberAuthSteps at Hfor
   icases Hfor with ⟨%p, %opts, %Hua, #Hu, #Hsteps⟩

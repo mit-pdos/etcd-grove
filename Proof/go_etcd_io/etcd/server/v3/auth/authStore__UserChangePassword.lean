@@ -202,7 +202,8 @@ theorem auth.authStore.UserChangePassword.wp_tie
         · iexact Huo
       wp_bind (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #«$r0_ptr»))
       iapply HPutU $$ %st0 %Post %«$r0_ptr» %urN [$HL $Hnu]
-      · ipureintro; exact ⟨by rw [Hur.2.1]; exact Hur.2.2, Hlen⟩
+      · ipureintro; exact ⟨by rw [Hur.2.1]; exact Hur.2.2, Hlen,
+          fun x hx => Hstep.2.2 name roles Hur.1 x (by simpa [urN, Hur.2.1] using hx)⟩
       inext
       iintro ⟨HL, -⟩
       have hput : putUser st0 urN.name urN.roles = st0 := by
@@ -214,8 +215,8 @@ theorem auth.authStore.UserChangePassword.wp_tie
       (try wp_auto)
       have hstep : userChangePasswordF name st0 = .next (bump st0) := by
         simp [userChangePasswordF, Hur.1]
-      obtain ⟨Hrevfit, Hfit⟩ := Hstep
-      have Hfit' := Hfit _ _ rfl hstep
+      obtain ⟨Hrevfit, Hfit, -⟩ := Hstep
+      have Hfit' := (Hfit _ _ rfl hstep).1
       ihave #Hcn := capNextM_step M hs (userChangePasswordF name) st0 (bump st0) Hl0
         (by rw [hstep]; try simp_all) $$ Hcap
       wp_apply (h_commitRevision st R M P f T ti Lk st0 Post hs st0)
@@ -320,7 +321,8 @@ theorem auth.authStore.UserChangePassword.wp_tie
       · iexact Huo
     wp_bind (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #«$r0_ptr»))
     iapply HPutU $$ %st0 %Post %«$r0_ptr» %urN [$HL $Hnu]
-    · ipureintro; exact ⟨by rw [Hur.2.1]; exact Hur.2.2, Hlen⟩
+    · ipureintro; exact ⟨by rw [Hur.2.1]; exact Hur.2.2, Hlen,
+          fun x hx => Hstep.2.2 name roles Hur.1 x (by simpa [urN, Hur.2.1] using hx)⟩
     inext
     iintro ⟨HL, -⟩
     have hput : putUser st0 urN.name urN.roles = st0 := by
@@ -332,8 +334,8 @@ theorem auth.authStore.UserChangePassword.wp_tie
     (try wp_auto)
     have hstep : userChangePasswordF name st0 = .next (bump st0) := by
       simp [userChangePasswordF, Hur.1]
-    obtain ⟨Hrevfit, Hfit⟩ := Hstep
-    have Hfit' := Hfit _ _ rfl hstep
+    obtain ⟨Hrevfit, Hfit, -⟩ := Hstep
+    have Hfit' := (Hfit _ _ rfl hstep).1
     ihave #Hcn := capNextM_step M hs (userChangePasswordF name) st0 (bump st0) Hl0
       (by rw [hstep]; try simp_all) $$ Hcap
     wp_apply (h_commitRevision st R M P f T ti Lk st0 Post hs st0)

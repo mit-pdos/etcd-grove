@@ -292,7 +292,7 @@ theorem apply.uberApplier.dispatch.wp_admin
   icases Hopts' with ⟨#HlgN, -⟩
   ihave #Hw' := Hw
   iunfold apply.irrWrapperIs at Hw'
-  icases Hw' with ⟨%Hrn, %ip, #Hip, #Hirr, #Hskip⟩
+  icases Hw' with ⟨%Hrn, %ip, #Hip, #Hirr, #Hskip, %Hutf8⟩
   ihave #Hirr' := Hirr
   iunfold apply.internalRaftRequestIs at Hirr'
   icases Hirr' with ⟨%Hipn, #FID, ⟨%lHd, #FHd, #HHd⟩, ⟨%lRa, #FRa, #HRa⟩, ⟨%lPu, #FPu, #HPu⟩,
@@ -725,6 +725,7 @@ theorem apply.uberApplier.dispatch.wp_admin
     have hk : dispatchKind rq = .authUserGrantRole := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, zAuthUserAdd, zAuthUserDelete, zAuthUserChangePassword, hs]
     have hnm : (apply.AdminReq.userGrantRole x.1 x.2).nameOk := by
       have h := Hadmk; simp only [apply.adminKindOk, hk] at h
+      refine ⟨?_, Hutf8 x hs⟩
       first | exact h x hs | exact h x.1 x.2 hs
     iunfold apply.authUserGrantRoleIs at HR
     ihave Hx : (apply.AdminReq.userGrantRole x.1 x.2).extraPre E γa hh Pre $$ [Hx]

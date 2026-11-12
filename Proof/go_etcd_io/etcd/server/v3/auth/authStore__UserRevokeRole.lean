@@ -318,7 +318,9 @@ theorem auth.authStore.UserRevokeRole.wp_tie
     · iunfold ownUser
       iexists zeroValDef, unm, upw, sl, uo, slice.nil, (0 : w32)
       iframe Huu Hunm Hupw Hsl' Huo
-    ipureintro; exact ⟨hsorted', by rw [Hurn]; exact Hnamelen⟩
+    ipureintro; refine ⟨hsorted', by rw [Hurn]; exact Hnamelen, fun x hx => ?_⟩
+    rw [hroles'] at hx
+    exact (Hok en st0 Hl0).2.2 name roles Hlook x (Hurr ▸ (List.mem_filter.1 hx).1)
   inext
   iintro ⟨HL, Huu⟩
   (try wp_auto)
@@ -329,8 +331,8 @@ theorem auth.authStore.UserRevokeRole.wp_tie
     simp only [userRevokeRoleF, hnr, Hlook, this, if_false, if_true, hroles', Hurr]
   ihave HL : Lk (putUser st0 name roles') Post $$ [HL]
   · iExactEq HL; rw [Hurn]
-  obtain ⟨Hrevfit, Hfit⟩ := Hstep
-  have Hfit' := Hfit _ _ rfl hstep
+  obtain ⟨Hrevfit, Hfit, -⟩ := Hstep
+  have Hfit' := (Hfit _ _ rfl hstep).1
   ihave #Hcap1 := Hcap $$ %en
   ihave #Hcn := capNextM_step M hs (userRevokeRoleF en name role) st0 (bump (putUser st0 name roles')) Hl0
     (by rw [hstep]; try simp_all) $$ Hcap1

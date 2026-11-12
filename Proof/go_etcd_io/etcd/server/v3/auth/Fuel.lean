@@ -48,6 +48,8 @@ structure authSmall (st : AuthState) : Prop where
   nodup : ∀ u us, st.users !! u = some us → us.Nodup
   roles : ∀ u us, st.users !! u = some us → us.length ≤ st.revision
   names : ∀ n, (st.users !! n).isSome → n.length ≤ backend.maxKeySize
+  /-- every user's roles valid UTF-8 (S0's F4) -/
+  utf8 : rolesUtf8 st
   perms : ∃ L : List GoString, L.Nodup ∧ (∀ r, (st.roles !! r).isSome → r ∈ L) ∧
     permsOn st L ≤ st.revision
 
@@ -120,21 +122,22 @@ theorem permsFit_of_small (st : AuthState) (h : authSmall st) (hr : st.revision 
 
 theorem authSmall_bump (st : AuthState) (h : authSmall st) : authSmall (bump st) := by
   obtain ⟨L, hL, hdom, hle⟩ := h.perms
-  exact ⟨h.nodup, fun u us hu => Nat.le_succ_of_le (h.roles u us hu), h.names, L, hL, hdom,
+  exact ⟨h.nodup, fun u us hu => Nat.le_succ_of_le (h.roles u us hu), h.names, h.utf8, L, hL, hdom,
     by simp only [bump, permsOn] at hle ⊢; omega⟩
 
 theorem authSmall_enabled (st : AuthState) (b : Bool) (h : authSmall st) :
     authSmall { st with enabled := b } := by
   obtain ⟨L, hL, hdom, hle⟩ := h.perms
-  exact ⟨h.nodup, h.roles, h.names, L, hL, hdom, by simp only [permsOn] at hle ⊢; omega⟩
+  exact ⟨h.nodup, h.roles, h.names, h.utf8, L, hL, hdom, by simp only [permsOn] at hle ⊢; omega⟩
 
 /-- A user's record written (its roles without duplicates, at most the bumped revision in number,
 its name a bbolt key), with the revision bumped. -/
 theorem authSmall_bump_putUser (st : AuthState) (name : GoString) (us : User) (hus : us.Nodup)
     (hlen : us.length ≤ st.revision + 1) (hn : name.length ≤ backend.maxKeySize)
+    (hu8 : ∀ x ∈ us, utf8Valid x)
     (h : authSmall st) : authSmall (bump (putUser st name us)) := by
   obtain ⟨L, hL, hdom, hle⟩ := h.perms
-  refine ⟨?_, ?_, ?_, L, hL, hdom, by simp only [bump, putUser, permsOn] at hle ⊢; omega⟩
+  refine ⟨?_, ?_, ?_, ?_, L, hL, hdom, by simp only [bump, putUser, permsOn] at hle ⊢; omega⟩
   · intro u us' hu
     by_cases e : name = u
     · subst e; simp only [bump, putUser, GMap.lookup_insert] at hu; cases hu; exact hus
@@ -149,11 +152,15 @@ theorem authSmall_bump_putUser (st : AuthState) (name : GoString) (us : User) (h
     by_cases e : name = n
     · subst e; exact hn
     · simp only [bump, putUser, GMap.lookup_insert_ne _ _ e] at hn'; exact h.names n hn'
+  · intro u us' hu
+    by_cases e : name = u
+    · subst e; simp only [bump, putUser, GMap.lookup_insert] at hu; cases hu; exact hu8
+    · simp only [bump, putUser, GMap.lookup_insert_ne _ _ e] at hu; exact h.utf8 u us' hu
 
 theorem authSmall_bump_delUser (st : AuthState) (name : GoString) (h : authSmall st) :
     authSmall (bump (delUser st name)) := by
   obtain ⟨L, hL, hdom, hle⟩ := h.perms
-  refine ⟨?_, ?_, ?_, L, hL, hdom, by simp only [bump, delUser, permsOn] at hle ⊢; omega⟩
+  refine ⟨?_, ?_, ?_, ?_, L, hL, hdom, by simp only [bump, delUser, permsOn] at hle ⊢; omega⟩
   · intro u us' hu
     by_cases e : name = u
     · subst e; simp [bump, delUser] at hu
@@ -168,6 +175,10 @@ theorem authSmall_bump_delUser (st : AuthState) (name : GoString) (h : authSmall
     by_cases e : name = n
     · subst e; simp [bump, delUser] at hn'
     · simp only [bump, delUser, GMap.lookup_delete_ne _ e] at hn'; exact h.names n hn'
+  · intro u us' hu
+    by_cases e : name = u
+    · subst e; simp [bump, delUser] at hu
+    · simp only [bump, delUser, GMap.lookup_delete_ne _ e] at hu; exact h.utf8 u us' hu
 
 /-- A role's permissions replaced by at most one more, with the revision bumped. -/
 theorem authSmall_bump_putRole (st : AuthState) (name : GoString) (ps : Role)
@@ -180,7 +191,7 @@ theorem authSmall_bump_putRole (st : AuthState) (name : GoString) (ps : Role)
     simp only [putRole, GMap.lookup_insert_ne _ _ (Ne.symm hx)]
   have hgn : (((putRole st name ps).roles !! name).getD []).length = ps.length := by
     simp only [putRole, GMap.lookup_insert, Option.getD_some]
-  refine ⟨h.nodup, fun u us hu => Nat.le_succ_of_le (h.roles u us hu), h.names, ?_⟩
+  refine ⟨h.nodup, fun u us hu => Nat.le_succ_of_le (h.roles u us hu), h.names, h.utf8, ?_⟩
   by_cases hn : name ∈ L
   · refine ⟨L, hL, ?_, ?_⟩
     · intro r hr
@@ -217,7 +228,7 @@ theorem authSmall_bump_putRole (st : AuthState) (name : GoString) (ps : Role)
 theorem authSmall_bump_delRole (st : AuthState) (name : GoString) (h : authSmall st) :
     authSmall (bump (delRole st name)) := by
   obtain ⟨L, hL, hdom, hle⟩ := h.perms
-  refine ⟨?_, ?_, ?_, L, hL, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, L, hL, ?_, ?_⟩
   · intro u us hu
     simp only [bump, delRole, GMap.lookup_fmap] at hu
     cases e : st.users !! u with
@@ -242,6 +253,13 @@ theorem authSmall_bump_delRole (st : AuthState) (name : GoString) (h : authSmall
     cases e : st.users !! n with
     | none => rw [e] at hn; simp at hn
     | some _ => rfl
+  · intro u us hu x hx
+    simp only [bump, delRole, GMap.lookup_fmap] at hu
+    cases e : st.users !! u with
+    | none => rw [e] at hu; cases hu
+    | some us0 =>
+      rw [e] at hu; simp only [Option.map_some, Option.some.injEq] at hu
+      subst hu; exact h.utf8 u us0 e x ((List.mem_filter.1 hx).1)
   · intro r hr
     by_cases e : name = r
     · subst e; simp [bump, delRole] at hr
@@ -290,7 +308,7 @@ theorem stepSmall_userAdd (name : GoString) (hn : name.length ≤ backend.maxKey
     · cases hR
     · cases hR
       exact ⟨by simp [bump, putUser],
-        authSmall_bump_putUser st name [] List.nodup_nil (by simp) hn h⟩
+        authSmall_bump_putUser st name [] List.nodup_nil (by simp) hn (by simp) h⟩
 
 theorem stepSmall_userDelete (en : Bool) (name : GoString) :
     StepSmall (stepOf (userDeleteF en name)) := by
@@ -310,7 +328,9 @@ theorem stepSmall_userChangePassword (name : GoString) :
   · cases hR
   · cases hR; exact ⟨by simp [bump], authSmall_bump _ h⟩
 
-theorem stepSmall_userGrantRole (user role : GoString) : StepSmall (userGrantRoleR user role) := by
+/-- `UserGrantRole` of a valid UTF-8 role (the decoded request's, `apply.irrDecode_utf8`). -/
+theorem stepSmall_userGrantRole (user role : GoString) (hr : utf8Valid role) :
+    StepSmall (userGrantRoleR user role) := by
   intro st st' h hR
   simp only [userGrantRoleR] at hR
   split at hR
@@ -327,7 +347,11 @@ theorem stepSmall_userGrantRole (user role : GoString) : StepSmall (userGrantRol
           have := h.roles user u hu; omega
         exact ⟨by simp [bump, putUser],
           authSmall_bump_putUser st user u' (nodup_of_pairwise_lt u' hsorted) hlen
-            (h.names user (by rw [hu]; rfl)) h⟩
+            (h.names user (by rw [hu]; rfl))
+            (fun x hx => by
+              rcases List.mem_append.1 (hperm.mem_iff.1 hx) with hx | hx
+              · exact h.utf8 user u hu x hx
+              · rw [List.mem_singleton.1 hx]; exact hr) h⟩
 
 theorem stepSmall_userRevokeRole (en : Bool) (name role : GoString) :
     StepSmall (stepOf (userRevokeRoleF en name role)) := by
@@ -345,7 +369,8 @@ theorem stepSmall_userRevokeRole (en : Bool) (name role : GoString) :
           have := h.roles name u hu; omega
         exact ⟨by simp [bump, putUser],
           authSmall_bump_putUser st name _ ((h.nodup name u hu).filter _) hlen
-            (h.names name (by rw [hu]; rfl)) h⟩
+            (h.names name (by rw [hu]; rfl))
+            (fun x hx => h.utf8 name u hu x ((List.mem_filter.1 hx).1)) h⟩
       · cases hR
 
 theorem stepSmall_roleAdd (name : GoString) : StepSmall (stepOf (roleAddF name)) := by
@@ -449,11 +474,11 @@ theorem stepOk_of_fuel (γa : AuthNames) (hs : List AuthState) (R : StepRel) (k 
   intro st hst
   simp only [histLast] at hst
   obtain ⟨h1, h2⟩ := hf st hst
-  refine ⟨by omega, ?_⟩
+  refine ⟨by omega, ?_, h2.utf8⟩
   intro o st' hro ho
   subst ho
   obtain ⟨h3, h4⟩ := hR st st' h2 hro
-  exact permsFit_of_small st' h4 (by omega)
+  exact ⟨permsFit_of_small st' h4 (by omega), h4.utf8⟩
 
 section ghost
 variable [GooseExts] [GooseSemantics] [GooseInterp]

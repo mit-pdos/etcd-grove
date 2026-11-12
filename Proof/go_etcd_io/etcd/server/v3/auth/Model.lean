@@ -47,6 +47,7 @@ public import Perennial.Ghost.Token
 public import Perennial.Proof.TokSet
 public import Perennial.Golang.Theory.String
 public import Perennial.Std.GMap
+public import Proof.unicode.utf8.Valid
 
 @[expose] public section
 
@@ -288,6 +289,13 @@ the affine order), the model as its least key; the cache computes `coversPoint`/
 such states. -/
 def permKeysOk (st : AuthState) : Prop :=
   ∀ r ps, st.roles !! r = some ps → ∀ p ∈ ps, p.key ≠ []
+
+/-- Every user's roles are valid UTF-8 (S0's F4, 2026-11-12): `authpb.User.roles` is a proto3
+`repeated string`, so protobuf-go's `Marshal` (`UnsafePutUser`) panics on any other; the roles
+come from requests, whose strings the decoder validates (`apply.irrDecode_utf8`). Kept by the
+fuel's `authSmall`, so the step premises (`stepOk`) give it. -/
+def rolesUtf8 (st : AuthState) : Prop :=
+  ∀ u rs, st.users !! u = some rs → ∀ x ∈ rs, utf8Valid x
 
 /-- A user's permissions fit an interval tree's count (`getMergedPerms` inserts each into a tree
 whose count is a `uint64` kept below `2^63`, `adt.ownIvt`). -/

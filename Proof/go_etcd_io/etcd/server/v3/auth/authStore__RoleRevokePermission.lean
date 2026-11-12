@@ -426,8 +426,8 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
   have hstep : roleRevokePermissionR role key rangeEnd st0 (.next (bump (putRole st0 role ps'))) := by
     simp only [roleRevokePermissionR, Hlook]
     right; rw [hps'eq]
-  obtain ⟨Hrevfit, Hfit⟩ := Hok st0 Hl0
-  have Hfit' := Hfit _ _ hstep rfl
+  obtain ⟨Hrevfit, Hfit, -⟩ := Hok st0 Hl0
+  have Hfit' := (Hfit _ _ hstep rfl).1
   ihave #Hcn := capNextM_use M hs _ st0 (bump (putRole st0 role ps')) Hl0 hstep $$ Hcap
   wp_apply (h_commitRevision st R M P f T ti Lk (putRole st0 role ps') Post hs st0)
     $$ [$Hinv $HLk $HL $Hown $Hcn] as ⟨%rev, %Hrev, HL, Hown⟩

@@ -1319,8 +1319,10 @@ D14f) and the mode `M`:
   authority (`authOwnF`: the lock's share of the history joined, the auth plan's S4f);
 - its reads are the state's (`authReaderOk`);
 - `UnsafePutUser(u)` of a message holding a record whose roles are sorted (what `userOut`
-  promises) and whose name fits a bbolt key (`issues/etcd-auth-useradd-long-name-fatal.md`)
-  puts the user (`putUser`; the message kept), `UnsafeDeleteUser(name)` deletes it, likewise the
+  promises), whose name fits a bbolt key (`issues/etcd-auth-useradd-long-name-fatal.md`) and
+  whose roles are valid UTF-8 (S0's F4, 2026-11-12: `authpb.User.roles` is a proto3 `repeated
+  string`, which protobuf-go's `Marshal` refuses otherwise, and `UnsafePutUser` then panics,
+  `nonissues/etcd-auth-putuser-invalid-utf8-role.md`) puts the user (`putUser`; the message kept), `UnsafeDeleteUser(name)` deletes it, likewise the
   roles; `UnsafeSaveAuthEnabled(b)` and `UnsafeSaveAuthRevision(rev)` set the flag and the
   revision;
 - `Unlock()`, with the whole authority at a history whose latest state is the token's (the
@@ -1340,7 +1342,8 @@ def authBatchTxLk (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoFunc
     □ (∀ X : IProp GF, authReaderOk ti (fun st => Lk st X)) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (u : Loc) (ur : UserRec),
       {{ Lk st X ∗ ownUser u ur ∗
-          ⌜ur.roles.Pairwise go.GoStringLt ∧ ur.name.length ≤ backend.maxKeySize⌝ }}
+          ⌜ur.roles.Pairwise go.GoStringLt ∧ ur.name.length ≤ backend.maxKeySize ∧
+            ∀ x ∈ ur.roles, utf8Valid x⌝ }}
         (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #u))
       {{ RET #(); Lk (putUser st ur.name ur.roles) X ∗ ownUser u ur }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (name : GoString),
@@ -1395,7 +1398,8 @@ def authBatchTxLkR (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoFun
     □ (∀ X : IProp GF, authReaderOk ti (fun st => Lk st X)) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (u : Loc) (ur : UserRec),
       {{ Lk st X ∗ ownUser u ur ∗
-          ⌜ur.roles.Pairwise go.GoStringLt ∧ ur.name.length ≤ backend.maxKeySize⌝ }}
+          ⌜ur.roles.Pairwise go.GoStringLt ∧ ur.name.length ≤ backend.maxKeySize ∧
+            ∀ x ∈ ur.roles, utf8Valid x⌝ }}
         (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #u))
       {{ RET #(); Lk (putUser st ur.name ur.roles) X ∗ ownUser u ur }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (name : GoString),

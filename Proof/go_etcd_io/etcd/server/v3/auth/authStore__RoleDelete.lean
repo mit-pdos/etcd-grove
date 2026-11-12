@@ -433,7 +433,9 @@ theorem auth.authStore.RoleDelete.wp_tie
       · iunfold ownUser
         iexists zeroValDef, unm, upw, sl, uo, slice.nil, (0 : w32)
         iframe Huu Hunm Hupw Hsl' Huo
-      ipureintro; exact ⟨hsorted', by rw [Hurn]; exact hnmlen⟩
+      ipureintro; refine ⟨hsorted', by rw [Hurn]; exact hnmlen, fun x hx => ?_⟩
+      rw [hroles'] at hx
+      exact (Hok true st0 Hl0).2.2 nm roles hlook0 x (Hurr ▸ (List.mem_filter.1 hx).1)
     inext
     iintro ⟨HL, -⟩
     (try wp_auto)
@@ -469,8 +471,8 @@ theorem auth.authStore.RoleDelete.wp_tie
   ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
   have hstep : roleDeleteF en role st0 = .next (bump (delRole st0 role)) := by
     simp [roleDeleteF, hnr, Hrr.1]
-  obtain ⟨Hrevfit, Hfit⟩ := Hok en st0 Hl0
-  have Hfit' := Hfit _ _ rfl hstep
+  obtain ⟨Hrevfit, Hfit, -⟩ := Hok en st0 Hl0
+  have Hfit' := (Hfit _ _ rfl hstep).1
   ihave #Hcap1 := Hcap $$ %en
   ihave #Hcn := capNextM_step M hs (roleDeleteF en role) st0 (bump (delRole st0 role)) Hl0
     (by rw [hstep]; try simp_all) $$ Hcap1

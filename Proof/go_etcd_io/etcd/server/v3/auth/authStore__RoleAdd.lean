@@ -169,7 +169,7 @@ theorem auth.authStore.RoleAdd.wp_tieB
   (try wp_auto)
   have hstep : roleAddF name st0 = .next (bump (putRole st0 name [])) := by
     simp [roleAddF, hname, Hnone]
-  obtain ⟨Hrevfit, Hfit⟩ := Hstep
+  obtain ⟨Hrevfit, Hfit, -⟩ := Hstep
   ihave #Hcn := capNextM_step M hs (roleAddF name) st0 (bump (putRole st0 rrN.name rrN.toRole)) Hl0
     (by rw [hstep]; simp [rrN, RoleRec.toRole]) $$ Hcap
   wp_apply (h_commitRevision st R M P f T ti Lk (putRole st0 rrN.name rrN.toRole) Post hs st0)

@@ -319,7 +319,9 @@ theorem auth.authStore.UserGrantRole.wp_tieB
         · iunfold ownUser
           iexists ums, unm, upw, s2, uo, uuf, usc
           iframe Hup Hunm Hupw Hs2 Huo
-        ipureintro; exact ⟨hxs, by show ur.name.length ≤ _; rw [Hurn]; exact Hnamelen⟩
+        ipureintro; refine ⟨hxs, by show ur.name.length ≤ _; rw [Hurn]; exact Hnamelen, ?_⟩
+        exact ((Hok st0 Hl0).2.1 _ _ hstepR rfl).2 user xs'
+          (by simp only [bump, putUser, GMap.lookup_insert])
       inext
       iintro ⟨HL, Huu⟩
       (try wp_auto)
@@ -327,8 +329,8 @@ theorem auth.authStore.UserGrantRole.wp_tieB
       have Hstep := Hok st0 Hl0
       ihave HL : Lk (putUser st0 user xs') Post $$ [HL]
       · iExactEq HL; rw [Hurn]
-      obtain ⟨Hrevfit, Hfit⟩ := Hstep
-      have Hfit' := Hfit _ _ hstepR rfl
+      obtain ⟨Hrevfit, Hfit, -⟩ := Hstep
+      have Hfit' := (Hfit _ _ hstepR rfl).1
       ihave #Hcn := capNextM_use M hs _ st0 _ Hl0 hstepR $$ Hcap
       wp_apply (h_commitRevision st R M P f T ti Lk (putUser st0 user xs') Post hs st0)
         $$ [$Hinv $HLk $HL $Hown $Hcn] as ⟨%rev, %Hrev, HL, Hown⟩

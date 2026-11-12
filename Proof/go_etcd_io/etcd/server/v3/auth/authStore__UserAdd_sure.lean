@@ -231,14 +231,14 @@ theorem auth.authStore.UserAdd.wp_sure
         · iexact Hopts'
       wp_bind (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #«$r0_ptr»))
       iapply HPutU $$ %st0 %Post %«$r0_ptr» %urN [$HL $Hnu]
-      · ipureintro; exact ⟨List.Pairwise.nil, Hlen⟩
+      · ipureintro; exact ⟨List.Pairwise.nil, Hlen, by simp [urN]⟩
       inext
       iintro ⟨HL, -⟩
       (try wp_auto)
       have hstep : userAddF name st0 = .next (bump (putUser st0 name [])) := by
         simp [userAddF, hname, Hnone]
-      obtain ⟨Hrevfit, Hfit⟩ := Hstep
-      have Hfit' := Hfit _ _ rfl hstep
+      obtain ⟨Hrevfit, Hfit, -⟩ := Hstep
+      have Hfit' := (Hfit _ _ rfl hstep).1
       ihave #Hcn := capNextM_step M hs (userAddF name) st0 (bump (putUser st0 urN.name urN.roles)) Hl0
         (by rw [hstep]; try simp_all) $$ Hcap
       wp_apply (h_commitRevision st R M P f T ti Lk (putUser st0 urN.name urN.roles) Post hs st0)
@@ -326,14 +326,14 @@ theorem auth.authStore.UserAdd.wp_sure
       · iexact Hopts'
     wp_bind (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #«$r0_ptr»))
     iapply HPutU $$ %st0 %Post %«$r0_ptr» %urN [$HL $Hnu]
-    · ipureintro; exact ⟨List.Pairwise.nil, Hlen⟩
+    · ipureintro; exact ⟨List.Pairwise.nil, Hlen, by simp [urN]⟩
     inext
     iintro ⟨HL, -⟩
     (try wp_auto)
     have hstep : userAddF name st0 = .next (bump (putUser st0 name [])) := by
       simp [userAddF, hname, Hnone]
-    obtain ⟨Hrevfit, Hfit⟩ := Hstep
-    have Hfit' := Hfit _ _ rfl hstep
+    obtain ⟨Hrevfit, Hfit, -⟩ := Hstep
+    have Hfit' := (Hfit _ _ rfl hstep).1
     ihave #Hcn := capNextM_step M hs (userAddF name) st0 (bump (putUser st0 urN.name urN.roles)) Hl0
       (by rw [hstep]; try simp_all) $$ Hcap
     wp_apply (h_commitRevision st R M P f T ti Lk (putUser st0 urN.name urN.roles) Post hs st0)

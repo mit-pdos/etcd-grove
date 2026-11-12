@@ -139,7 +139,7 @@ five kinds `adminStateR` steps, `auth/Fuel.lean`'s `StepSmall`s; a user's name a
 request model's `adminKindOk`). -/
 theorem adminStateR_wf (rq : apply.IRRModel) (st st' : auth.AuthState) (h : histWf st)
     (hU : ∀ m, rq.authUserAdd = some m → apply.dispatchKind rq = .authUserAdd →
-      m.name.length ≤ backend.maxKeySize)
+      m.name.length ≤ backend.maxKeySize) (hG : apply.irrUtf8 rq)
     (hR : adminStateR rq st st') : histWf st' ∧ st'.revision ≤ st.revision + 1 := by
   unfold adminStateR at hR
   split at hR
@@ -168,7 +168,7 @@ theorem adminStateR_wf (rq : apply.IRRModel) (st st' : auth.AuthState) (h : hist
             exact auth.permKeysOk_bump _ (auth.permKeysOk_putRole _ _ _ hs (by simp))
       · subst hR; exact ⟨h, Nat.le_succ _⟩
     · split at hR <;> rename_i u r hur
-      · refine authRelState_wf _ (auth.stepSmall_userGrantRole u r) ?_ st st' h hR
+      · refine authRelState_wf _ (auth.stepSmall_userGrantRole u r (hG (u, r) hur)) ?_ st st' h hR
         intro s s' hs hn
         simp only [auth.userGrantRoleR] at hn
         split at hn
@@ -215,12 +215,12 @@ theorem adminStateR_wf (rq : apply.IRRModel) (st st' : auth.AuthState) (h : hist
 successor, `adminStateR`'s; else the state kept). -/
 theorem adminNext_wf (rq : apply.IRRModel) (st : auth.AuthState) (h : histWf st)
     (hU : ∀ m, rq.authUserAdd = some m → apply.dispatchKind rq = .authUserAdd →
-      m.name.length ≤ backend.maxKeySize) :
+      m.name.length ≤ backend.maxKeySize) (hG : apply.irrUtf8 rq) :
     histWf (adminNext rq st) ∧ (adminNext rq st).revision ≤ st.revision + 1 := by
   unfold adminNext
   split
   · rename_i hd
-    exact adminStateR_wf rq st _ h hU (Classical.choose_spec hd).1
+    exact adminStateR_wf rq st _ h hU hG (Classical.choose_spec hd).1
   · exact ⟨h, Nat.le_succ _⟩
 
 /-- A mode-on entry's request names a user by a bbolt key (`plainEntryOn`: a plain request is no
@@ -247,6 +247,7 @@ theorem kvEntryOn_wf (c₀ : w64) (ch : apply.Chain) (s : auth.AuthState × mvcc
     · rename_i rq hdec
       split
       · exact adminNext_wf rq s.1 h (plainEntryOn_userAdd m hm hn.1 hn.2 rq hdec)
+          (apply.irrDecode_utf8 _ rq hdec)
       · split
         · exact ⟨h, Nat.le_succ _⟩
         · exact ⟨h, Nat.le_succ _⟩

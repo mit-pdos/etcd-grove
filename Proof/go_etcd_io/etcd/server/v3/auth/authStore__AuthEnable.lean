@@ -229,7 +229,7 @@ theorem auth.authStore.AuthEnable.wp_tieB
   have hr : isRoot roles := by rw [← Hur.2.1]; exact of_decide_eq_true Hroot.symm
   have hstep : authEnableF false st0 = .next { st0 with enabled := true } := by
     simp [authEnableF, hroot, hr]
-  have Hfit := Hstep.2 _ _ rfl hstep
+  have Hfit := (Hstep.2.1 _ _ rfl hstep).1
   simp only [Bool.not_true]
   (try wp_auto)
   wp_bind (App (Val #(methods ti.ty go!"UnsafeSaveAuthEnabled" ti.v)) (Val #true))

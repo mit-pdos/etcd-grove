@@ -62,11 +62,12 @@ inductive AdminReq where
   | .authenticate _ _ => go!"Authenticate"
 
 /-- The request's name within bbolt's key bound (the step specs' premise; `AuthEnable` has none);
-(2026-10-30) an `Authenticate`'s token prefix one the provider makes (`auth.tokPrefixOk`). -/
+(2026-10-30) an `Authenticate`'s token prefix one the provider makes (`auth.tokPrefixOk`); (S0's
+F4, 2026-11-12) a `UserGrantRole`'s role valid UTF-8 (the decoded request's, `irrUtf8`). -/
 @[reducible] def AdminReq.nameOk : AdminReq → Prop
   | .userAdd n => n.length ≤ backend.maxKeySize
   | .roleAdd n => n.length ≤ backend.maxKeySize
-  | .userGrantRole u _ => u.length ≤ backend.maxKeySize
+  | .userGrantRole u ro => u.length ≤ backend.maxKeySize ∧ utf8Valid ro
   | .roleGrantPermission n _ => n.length ≤ backend.maxKeySize
   | .authEnable => True
   | .authenticate _ pre => auth.tokPrefixOk pre
@@ -393,7 +394,7 @@ theorem applierAdmin_backendX
   | userGrantRole u ro =>
     simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result]
     iintro !> %Φ ⟨Hr, ⟨Ho, HX⟩, Hrc, HW, Htt, Hm, #Hcap⟩ HΦ
-    iapply (hUGR E γa X W p r log Pre Q Post info hs u ro hM hb hn) $$ [Hr Ho HX Hrc HW Htt Hm] HΦ
+    iapply (hUGR E γa X W p r log Pre Q Post info hs u ro hM hb hn.1 hn.2) $$ [Hr Ho HX Hrc HW Htt Hm] HΦ
     iframe Hr Ho HX Hrc HW Htt Hm
     iframe #
   | roleGrantPermission n w =>

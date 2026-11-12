@@ -121,7 +121,7 @@ theorem auth.authStore.AuthDisable.wp_tie
   iintro HL
   (try wp_auto)
   have hstep : authDisableF true st0 = .next (bump { st0 with enabled := false }) := rfl
-  obtain ⟨Hrevfit, Hfit⟩ := Hstep
+  obtain ⟨Hrevfit, Hfit, -⟩ := Hstep
   have Hoff : M = .off → ({ st0 with enabled := false } : AuthState).enabled = false := fun _ => rfl
   ihave #Hcap1 := Hcap $$ %true
   ihave #Hcn := capNextM_step M hs (authDisableF true) st0 (bump { st0 with enabled := false }) Hl0

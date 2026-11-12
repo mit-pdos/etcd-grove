@@ -554,8 +554,8 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
       (try wp_auto)
       ihave HL : Lk (putRole st0 name (grantPerms ps w)) Post $$ [HL]
       · iExactEq HL; rw [hrn]
-      obtain ⟨Hrevfit, Hfit⟩ := Hok st0 Hl0
-      have Hfit' := Hfit _ _ hstep rfl
+      obtain ⟨Hrevfit, Hfit, -⟩ := Hok st0 Hl0
+      have Hfit' := (Hfit _ _ hstep rfl).1
       ihave #Hcn := capNextM_use M hs _ st0 _ Hl0 hstep $$ Hcap
       wp_apply (h_commitRevision st R M P f T ti Lk (putRole st0 name (grantPerms ps w)) Post hs st0)
         $$ [$Hinv $HLk $HL $Hown $Hcn] as ⟨%rev, %Hrev, HL, Hown⟩

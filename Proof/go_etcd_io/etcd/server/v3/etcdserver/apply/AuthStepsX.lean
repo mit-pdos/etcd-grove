@@ -723,6 +723,7 @@ abbrev applierV3backend.UserGrantRole.fuelSpecX : Prop :=
     (p r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (hs : List auth.AuthState) (user role : GoString),
     E.authMode = .on γa → receiptBound GF ≤ 2 ^ 48 → user.length ≤ backend.maxKeySize →
+    utf8Valid role →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthStepsX E p X W ∗ auth.userGrantRoleReqIs r user role ∗
         auth.authOwnFu γa hs ∗ X hs ∗ ⧗ 1 ∗ W ∗
@@ -1082,7 +1083,7 @@ theorem applierV3backend.RoleAdd.wp_fuelX
 theorem applierV3backend.UserGrantRole.wp_fuelX
     (h : applierV3backend.UserGrantRole.stepSpecX (GF := GF) (hG := hG)) :
     applierV3backend.UserGrantRole.fuelSpecX (GF := GF) (hG := hG) := by
-  intro E γa X W p r log Pre Q Post info hs user role hM hb hn
+  intro E γa X W p r log Pre Q Post info hs user role hM hb hn hu8
   iintro %Φ ⟨#Hpkg, #Hb, #Hs, Hr, HOF, HX, Hrc, HW, #Hcap, Htt, Hpre⟩ HΦ
   iunfold auth.authOwnFu at HOF
   icases HOF with ⟨Ho, Hf⟩
@@ -1091,7 +1092,7 @@ theorem applierV3backend.UserGrantRole.wp_fuelX
   icases auth.authFuelT_fuel hs hb $$ Hf with ⟨Hf, %Hk⟩
   obtain ⟨k, Hfk, Hlt⟩ := Hk
   have hok : auth.stepOk E.authMode hs (auth.userGrantRoleR user role) :=
-    hM ▸ auth.stepOk_of_fuel γa hs _ k (auth.stepSmall_userGrantRole user role) Hfk Hlt
+    hM ▸ auth.stepOk_of_fuel γa hs _ k (auth.stepSmall_userGrantRole user role hu8) Hfk Hlt
   have hroles : ∀ (sta : auth.AuthState) (u : auth.User), auth.histLast E.authMode hs sta →
       sta.users !! user = some u → u.length < 2 ^ 62 := by
     intro sta u hl hu
@@ -1103,7 +1104,7 @@ theorem applierV3backend.UserGrantRole.wp_fuelX
   · rw [hM]; iframe; iframe #
   iintro !> %resp %err ⟨Htt, Hpost, #He, HW, Hout, Hrn⟩
   rw [hM]
-  ihave Hout := auth.adminOutX_fu γa X hs _ _ err (auth.stepSmall_userGrantRole user role) $$ [Hf Hout]
+  ihave Hout := auth.adminOutX_fu γa X hs _ _ err (auth.stepSmall_userGrantRole user role hu8) $$ [Hf Hout]
   · iframe
   iapply HΦ
   iframe; iframe #
