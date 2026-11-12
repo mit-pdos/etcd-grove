@@ -133,6 +133,36 @@ unstableOf Proof/go_etcd_io/raft/v3/InvRaftlog.lean` (list in `/shared/tmp/out-s
     `entsOut_insert`/`msgOutR_intro`), P4 (`LogState.sz`, `appendEntry` onto `ClonePb`, delete
     `proto.CloneEntry`), P5 after the B2 review, P6, full build, tcb/collections/gates/gen-interface.
 
+- **C3 continued**, 2026-11-12 (agent 3; commits `7b9b049dea`, `5c90c806b4`, merge of lean):
+  - **Restart clause in Lean** (m4, MAJ-1, MAJ-2, MIN-3, MIN-5 pulled into C3 by etcd-grove-81): `srvFiles`
+    holds `walFiles … true` (provenance docstring), `bootstrapRestartContract`'s premise gains
+    `storage.walSaveOk`, `bootOkR` gains `"%Hγsz" ∷ ⌜γs.sz = true⌝`; `bootstrappedWAL.MemoryStorage.spec`
+    `∀ sz` (`entsPtsZ sz`, post `⌜γs.sz = sz⌝`); `NodeStartSpecR` pre gains `Hγsz`, `srvMem_restartStorage`
+    `hsz`. MAJ-2: `walAsViewed` at `walRecs … true` (so `rnDur_alloc_view` takes sized records: MIN-5's
+    obligation moves to W4's restart records), `wal.bootOk_start` no longer unsizes, the raft loop's
+    `Save`s via `walSaveRn_spec` (`rnEntsSized` in `rnReadyData`/`rnReadySnap`, from `readyEnts_sized`
+    and `srvRaftLogInv_maxData` in `rn_ready_recv`), `SaveSnap`/`Close` at `true`, `rnWalClosedW` sized.
+    **Hard stop: etcd-grove-81's axiom review of `/shared/tmp/out-size/freeze-c3-restart.md` before
+    landing.**
+  - Build-6 server failures fixed: `NodeStart:659` (above), `InvSnapSend:236` (`entBytesMax` in the
+    simp set), `raftNode__start:753/:1381` (`rnEntsSized_entsROz`, `entsPtsZ_true`), `NewServer`
+    (passes `bootOk`'s `Hγsz` to `NodeStartSpec`).
+  - **B2 Revision 1** (etcd-grove-81's review: §2.1 approved, §2.2-2.4 dropped for A3'): the three
+    schemas in `pbSchemaOf` (header and docstrings fixed); `proto.MarshalConfChange[V2]` restated over
+    `ccPtsCC` with `bs.length ≤ ccLenMax cc` under `ccSize cc + 64 < 2^63`; `ccLenMax`,
+    `ccLenMax_le` (proved) in `PbContentOwn`; Go tests `TestA3CCLen`, `TestA3CC2Len`,
+    `TestB2MustUnmarshalCC` (+ `TestB2CCDecoderUf`) in `etc/pbschema-check.py`'s `POST_TESTS` (9).
+    **Hard stop: re-review of freeze-b2.md "Revision 1" before landing.**
+  - `notes/confchange-schema-empty.md` (the `[]` finding, decided by etcd-grove-81).
+  - Full build 1 after the lean merge: `/shared/tmp/out-size/c3a-full1.log`.
+  - **Next:** fix full-build failures; P3 (outbox `msgQC`, `raft.send` + callers; discharges the two
+    branch `sorry`s `(fun _ _ => sorry)` at `entsOut_insert` (InvApi ~2394) and `msgOutR_intro`
+    (MsgOutIns:68); Scope §2 table row "outbox" and §3), P4 (`LogState.sz`/unstable sized, step
+    pipeline, `appendEntry` onto `ClonePb`, delete `proto.CloneEntry`), P5 (proposals: the entry's
+    `entSizeOk` from `raftpb.MarshalConfChange` restated over `ccPtsCC` with the bound, then
+    `ccLenMax_le` and the proposal premise `ccSize cc + 64 ≤ b`), P6, then C3 checks (tcb, the
+    collections, gates incl. `etc/pbschema-check.py`, gen-interface).
+
 ## P7 items (from the C2 review; resolve and re-review with the `axiom` skill before P7 lands)
 
 freeze-c2.md §4: MAJ-1 (`walSaveOk` in `bootstrapRestartContract`'s premise), MAJ-2 (`srvDiskImage`'s
