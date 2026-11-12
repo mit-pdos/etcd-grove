@@ -13,7 +13,8 @@ the crash-aware WAL spec (W4a, W4a.1, W4a.2, W4b). The closed theorems are `etcd
 - Plan `/shared/tmp/wal-spec/w4c/plan.md` approved by etcd-grove-81 (Q1, Q2, Q3, Q5) and the user (Q4,
   `walCreateOk` as a listed world-assumption premise; its docstring names Create's cleanup I/O,
   wal.go:294-309). Recorded in `questions.md` (untracked, gitignored).
-- **Tell etcd-grove-81 before touching `GooseLang/Ext/Durable`** (Q1 is shared with rung 3).
+- Q1 (`GooseLang/Ext/Durable`) is done and committed. Rung 3 merges ours; tell etcd-grove-81 before
+  touching Durable again.
 - Step 0 done in `c9840f1022`:
   - the tester is in `examples/etcd/wal` with T-1..T-9;
   - the driver beside it (`*_test.go`, `crashtest/`) sets `SegmentSizeBytes` (`segSizeFor`), and
@@ -67,10 +68,30 @@ the crash-aware WAL spec (W4a, W4a.1, W4a.2, W4b). The closed theorems are `etcd
    - Pitfall: pass `-scratch` as an absolute path (a relative one makes the driver see no WAL
      files).
    - After the review: apply its fixes; then step 2.
-3. Steps 2-4 as in plan §8. Step 2 starts with Q1 (`GooseLang/Ext/Durable`): **send etcd-grove-81
-   a short message and wait for its reply before editing it** (rung 3 may be touching the same
-   area). Asked at the end of the purgeRound revision. R1: the tester's `Base.lean` (IsPkgInit, fact `True`) fails today on
-   `raftpb`'s missing instance: it needs the instance modules of its imports first.
+3. Step 2 (plan §8):
+   - **Q1 done at `59a986cf94`** (go from etcd-grove-81; rung 3 told to stay out of Durable and merge
+     ours). `GooseLang/Ext/Durable/Crash.lean`: fresh ghost names per generation (`durableCrashStart`:
+     the old generation's ctx half and reservation authority, plus the new generation's half of the
+     same files and the reservation element in the same mode), `durableOwnM_crash_keep`,
+     `durableOwnM_crash`, `durableReserved_crash`. `GooseLang/Ext/AbsDisk/Specs.lean`:
+     `absDisk_crash_view_keep`, `walDiskAt_crash_keep`, `walDiskAt_crash_any_keep`,
+     `walAbsent_crash_keep` (interface `interface/GooseLang/Ext/AbsDisk/Specs.txt` regenerated;
+     api-check clean). The targeted build of the 16 leaf importers of AbsDisk/Specs passes.
+   - Next, in order:
+     a. R1: the tester's package init. `Proof/.../examples/etcd/wal/Base.lean` (IsPkgInit, fact
+        `True`, as `examples/etcd/restart/Base.lean`) fails on `raftpb`'s missing `IsPkgInit`
+        instance: first find which instance modules its imports need (raftpb, wal, walpb, zap,
+        fileutil, lib/durable), as restart's Base imports `etcdstart.Base`. Then add the root to
+        `etc/gen-init.py`'s `ROOTS` and run it for the tester and `fileutil` (the handoff's R1 note
+        above). If an instance needs a trust axiom, STOP (hard stop).
+     b. `Proof/.../examples/etcd/wal/Defs.lean`: the tester's model (oracle ↔ WalHist), the
+        invariant of plan §2.
+     c. `RefLemmas.lean`: the transliteration of `ref.go` ↔ WalHist (`walImg_ext`, the image
+        enumeration, the name bound).
+     d. `Crash.lean`: `tester_crash`, using the keep lemmas (the crash obligation opens the old
+        generation's invariant at `⊤` and closes it with its contents).
+     Then CP2 (report).
+4. Steps 3-4 as in plan §8.
 
 ## Pitfalls
 
