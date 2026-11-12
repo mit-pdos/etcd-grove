@@ -160,13 +160,14 @@ gives the hook's gate for any `CCEvOf` event of `s` at the configuration `c` (th
 to the new one `cn` (of at most as many voters), whose update gives the capability back, idle at `s`
 (the share unchanged: `phaseStepB_applyCC`, `fxPres_skip`), its last event `Λ'`'s. The commit index
 covers the bootstrap log (`hboot`: raft's ghost state, `ownRaftGhost`'s `%Hboot`) and is within the log
-(`hcl`); the event's numbers are below `traceNumBound` (`hbnd`, traced). Untraced: the struct's nil
+(`hcl`), both traced only (2026-11-12, step 4: so that one proof of the traced `switchToConfig` covers
+both modes); the event's numbers are below `traceNumBound` (`hbnd`, traced). Untraced: the struct's nil
 logger (`hok`). -/
 theorem trCapB_hookGate_applyCC (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c cn : CfgM)
     (tl0 : GoInterface) (s : NState) (Λ Λ' : Option TraceEv → Prop)
     (hΛ : ∀ e, CCEvOf id s c cn e → Λ' (some e))
-    (hboot : (γ.reBoot.length : Int) ≤ uint.Z s.logst.committed)
-    (hcl : uint.Z s.logst.committed ≤ uint.Z (plastIndex (toPState s)))
+    (hboot : tr.isSome → (γ.reBoot.length : Int) ≤ uint.Z s.logst.committed)
+    (hcl : tr.isSome → uint.Z s.logst.committed ≤ uint.Z (plastIndex (toPState s)))
     (hcn : (elements cn.incoming).length ≤ (elements c.incoming).length)
     (hbnd : tr.isSome → uint.nat s.term < traceNumBound ∧ uint.nat s.logst.committed < traceNumBound ∧
       uint.nat (plastIndex (toPState s)) < traceNumBound)
@@ -195,6 +196,8 @@ theorem trCapB_hookGate_applyCC (tr : Option GName) (γ : RaftNames) (r : Loc) (
       (fun C cs P h => ⟨h.1, h.2.1, h.2.2.1⟩) $$ Hcap
     icases trCapB_pinPerm γd γ r id c true (VPin C0 cs0 P0) Λ C0 (fun _ _ _ h => h.1) $$ Hcap
       with ⟨%Hperm, Hcap⟩
+    have hboot := hboot rfl
+    have hcl := hcl rfl
     have hcb : (C0.length : Int) ≤ uint.Z s.logst.committed := by omega
     ihave #Hsk := fxPres_skip (GF := GF) γ id (CCEvOf id s c cn) C0 cs0 P0
     ihave Hfx : FxPresUT (GF := GF) (some γd) γ id (CCEvOf id s c cn) (VPin C0 cs0 P0) (VPin C0 cs0 P0)
