@@ -15,6 +15,15 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
   `purgeFile`, `Release`). Recommended: (a) a cancellable invariant that the stop cancels, the image
   carrying `snapDirImage`, as its own sub-stage S6a. Reported to 81 (CP1, early: 81 asked for P4
   first, and for any trusted change beyond HS1/`bootOkR` to be reported).
+- What reading found for P5 and P7 (no Lean yet):
+  - P5: the image members' peer URLs move only through `ccRest` (conf changes) and `restAfter`
+    (`InvRest.lean:304`). Proving the contract's clause (G) needs "the committed `L` has no conf
+    change past the boot log that changes peer URLs", from `kvInv`/`srvRule`.
+  - P7: `restoreAlarms.spec` takes `(r.lookup "alarm").getD ∅ = ∅`, under the axiom
+    `v3alarm.NewAlarmStore.wp_proof`. At a restart the image's alarm bucket is
+    `bkRestOf … L "alarm"`, so it needs "no alarm activated in `L`" (the workload, under
+    `backendUnderQuota`). Otherwise the axiom must widen: a trusted change, so report it.
+    `NewLessor` is the axiom `lease.NewLessor.wp_proof`, already restated for buckets with records.
 - Not started: P1-P3, P5-P7 (Lean probes in `Scratch/S56Probe.lean`, after the baseline build).
 
 - Plan: `/shared/tmp/restart-s56/plan.md`: the statements old → new (§1 S5, §2 S6), the hard stops
