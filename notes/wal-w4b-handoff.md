@@ -45,6 +45,23 @@ Branch `wal-w4b`, worktree `/shared/etcd-grove-walw3`, cut from lean `491baacae1
   3. Part C (C1-C4), with C2's premises from W4a.1's R1 fix (guard plus the file-naming bound);
   4. full checks; `notes/decisions.md` "WAL W4b"; STATUS entry; CP3.
 
+## Resumed (2026-11-12, etcd-grove-81): W4a.1 landed (lean `9b00c0c988`)
+
+- `walDiskM` is gone: `walDiskAt` itself is now the lower-bound view (mark and `named` as lower
+  bounds). `Close` and VSE are atomic; new proved steps `wp_WalSyncLen`, `wp_WalNamedLen`,
+  `walOpening_lenLb`; new `WalBodies.lean`. R1/R2 are now W4a.2 (designed in another worktree);
+  Part C's C2 premises wait for it.
+- The second agent stopped at about 2/3 of its context before starting this; a fresh agent does:
+  1. merge lean `9b00c0c988` into `wal-w4b` (common-rules.md's GOWORK rule);
+  2. rebuild `WalHistLemmas` and `WalViews`, adapting to the lower-bound `walDiskAt`
+     (`walDiskAt_crash*` in `Specs.lean` may have new shapes: re-read them; `walCrashKeeps`'s
+     `d'.m = d.m` / `d'.named = d.named` likely become `≤`/implications);
+  3. B1's half over `walDiskAt` (whatever conversions the new view needs: `walDiskAt_walDisk`,
+     `walDisk_excl`, and any monotonicity of the lower bounds);
+  4. the parts of C that do not depend on `walReleasePos` (C1 `walReadR_mono`, `walReadCut_zero`;
+     `StorCompacts` and its basic laws; C4's identity shape where it needs no release bound);
+  5. targeted builds of both modules; checkpoint report to etcd-grove-81 and stop.
+
 ## Pitfalls
 
 - `walImg` is over raw `WalOpG WalEnt` in the extension, the readers over `WalHist` (`EntryM`): state
