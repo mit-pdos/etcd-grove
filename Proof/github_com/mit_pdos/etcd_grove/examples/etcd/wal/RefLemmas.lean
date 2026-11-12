@@ -581,6 +581,12 @@ theorem tReadEnts_prefix_none (b : w64) (es : List TEnt) (n : Nat) (ents : List 
     es.foldlM (fun ents e => tReadEnt b ents e) ents = none := by
   rw [← List.take_append_drop n es, List.foldlM_append, hn]; rfl
 
+theorem tKeep_filter_take_succ (c : w64) (h : List TOp) (i : Nat) (o : TOp) (ho : h[i]? = some o) :
+    (h.take (i + 1)).filter (tKeep c) =
+      (h.take i).filter (tKeep c) ++ (if tKeep c o then [o] else []) := by
+  rw [List.take_add_one, ho, Option.toList_some, List.filter_append]
+  cases hk : tKeep c o <;> simp [List.filter, hk]
+
 end pure
 
 end etcd_wal

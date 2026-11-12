@@ -125,12 +125,41 @@ theorem opsElems_nil : ⊢ opsElems (GF := GF) [] [] := by
   iintro %i %v %o %h
   simp at h
 
+theorem opsElems_subslice (vs : List walOp) (h : List TOp) (lo hi : Nat) :
+    opsElems (GF := GF) vs h ⊢ opsElems (subslice lo hi vs) (subslice lo hi h) := by
+  unfold opsElems
+  iintro ⟨%hl, #Hall⟩
+  isplitr
+  · ipureintro; simp [subslice, hl]
+  imodintro
+  iintro %i %v %o %hi
+  obtain ⟨h1, h2⟩ := hi
+  simp only [subslice, List.getElem?_drop, List.getElem?_take] at h1 h2
+  split at h1
+  · split at h2
+    · iapply Hall; ipureintro; exact ⟨h1, h2⟩
+    · exfalso; omega
+  · cases h1
+
 /-- The operation slice `s` is `h` (read-only). -/
 def opsRep (s : GoSlice) (h : List TOp) : IProp GF :=
   iprop(∃ vs : List walOp, s ↦*□ vs ∗ opsElems vs h)
 
 instance opsRep_persistent (s : GoSlice) (h : List TOp) : Persistent (opsRep (GF := GF) s h) := by
   unfold opsRep; infer_instance
+
+/-- A subslice of an operation slice. -/
+theorem opsRep_slice (s : GoSlice) (h : List TOp) (lo hi : w64)
+    (hb : 0 ≤ sint.Z lo ∧ sint.Z lo ≤ sint.Z hi ∧ sint.Z hi ≤ sint.Z s.len) :
+    opsRep (GF := GF) s h ⊢
+      opsRep (slice.slice s walOp lo hi) (subslice (sint.nat lo) (sint.nat hi) h) := by
+  unfold opsRep
+  iintro ⟨%vs, Hs, #Hel⟩
+  icases (ownSlice_slice lo hi s DFrac.discard vs hb).1 $$ Hs with ⟨-, Hm, -⟩
+  iexists _
+  iframe
+  iapply opsElems_subslice
+  iexact Hel
 
 /-- The Go candidate `v` is `c`. -/
 def candRep (v : cand) (c : TCand) : IProp GF :=
