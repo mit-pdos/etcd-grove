@@ -8,7 +8,7 @@ Goal (the user, 2026-11-11): the first rung of the crash ladder. Prove that the 
 the crash-aware WAL spec (W4a, W4a.1, W4a.2, W4b). The closed theorems are `etcd_wal_adequate` and
 `etcd_wal_safe`.
 
-## State (2026-11-12)
+## State (2026-11-12, after T-10)
 
 - Plan `/shared/tmp/wal-spec/w4c/plan.md` approved by etcd-grove-81 (Q1, Q2, Q3, Q5) and the user (Q4,
   `walCreateOk` as a listed world-assumption premise; its docstring names Create's cleanup I/O,
@@ -152,7 +152,15 @@ the crash-aware WAL spec (W4a, W4a.1, W4a.2, W4b). The closed theorems are `etcd
        Specs: `nameBound`/`openBound` return `tNameBound`/`tOpenBound`; `walImgs` takes
        `0 ≤ sint.Z n` and returns `imgsRep s' (tImgs h (sint.nat n))`; `appendEnts`/`walFold` return
        read-only entries, each among the inputs' (`walFold`: `∃ o ∈ h, o.snap = false ∧ e ∈ o.ents`).
-     - oracle.go: `putU64`, `decoder.u64`, `putHS`, `decoder.hs`, `putOps`, `decoder.ops`,
+     - **oracle.go started:** `putU64` done (`137c15f06b`: owned byte slice `b ↦* bs ∗ ownSliceCap`,
+       returns `bs ++ tU64 x`; lemma `tU64_take_succ` in its proof file).
+       Next `decoder.u64`: a pointer method, spec form
+       `(App (Val (d @!! go.GoType.PointerType decoder.ty @!! go!"u64")) (Val #()))` (as
+       `Spec/.../pkg/v3/wait/list__IsRegistered.lean`); state `d ↦ decoder.mk b off ok`, `b ↦*□ bs`;
+       define a pure `tGetU64 bs off` (the loop's fold of `W64 (uint.Z bs[off+i]) <<< 8i` with `|||`)
+       and prove `tGetU64 (pre ++ tU64 x ++ post) pre.length = x` (8 explicit terms; try `bv_decide`
+       after rewriting the `W8 (uint.Z _)`/`W64 (uint.Z _)` conversions to `setWidth`).
+     - oracle.go, in order: (`putU64` done), `decoder.u64`, `putHS`, `decoder.hs`, `putOps`, `decoder.ops`,
        `encodeOracle` (`tEncodeOracle`), `decodeOracle` (round trip on `tEncodeOracle o`).
        **Design note (2026-11-12):** the round trip needs every length of `o` below `2^64` (the
        encoding writes `W64 len`) and the decoder's `[]byte(s)` a string below `2^63`; `TInvBody`
@@ -177,6 +185,21 @@ the crash-aware WAL spec (W4a, W4a.1, W4a.2, W4b). The closed theorems are `etcd
 5. Step 4 as in plan §8.
 
 ## Pitfalls
+
+- **Step 3 tooling (2026-11-12):** `goal.sh` finds only lines that are a bare `sorry` (`^\s*sorry`),
+  not `· sorry`: with bulleted sorries it shows the wrong goal. Use `etc/lean-check.py --goal L:C`
+  directly. `swap`/`on_goal`/`pick_goal` do not exist (no Batteries/Mathlib tactics).
+- **Step 3 proof patterns (2026-11-12):**
+  - `wp_join R at next with [hyps] as pat` joins an `if` whose condition still has calls/loads
+    (nameBound, walImgs, appendEnts); list in `[...]` every points-to the bound code loads, and put
+    them in `R`. Its cases may close by themselves or end as `True ∗ R`: `wp_join_done`, then
+    `iexists`/`iframe`.
+  - `wp_if_destruct` on `b == len(h)` substitutes `b := s.len` (the Lean variable `b` is gone).
+  - `repeat (simp only [hb, …]; try wp_auto)` can evaluate an `if` whose condition it decides; check
+    the goal before adding `wp_if_destruct`.
+  - `rw [if_pos (by simp [h])]` fails when `simp` normalizes `uint.Z (W64 8)` to `8`: use
+    `(by simp only [decide_eq_true_eq]; exact h)`; an exit after `wp_for` often needs `if_neg` twice.
+  - `wp_end` may close a final goal whose post is an existential (walFold): then nothing follows.
 
 - **Step 3, `etc/lean-check.py`:** after edits it can report a `(kernel) application type mismatch` on
   an auxiliary `wp_proof._proof_1_N` that a fresh elaboration does not have: an artifact of the
