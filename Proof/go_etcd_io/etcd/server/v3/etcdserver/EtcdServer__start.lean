@@ -435,17 +435,21 @@ theorem EtcdServer.start.wp_proof
     iunfold context.cancelSpec
     iexact Hcancel
   -- the apply thread's resources
-  iunfold applyBuiltC at Happ
-  icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hlo, Hbe, Hca, Halg, Hbm, Hrdk, Hbo, ⟨%ua, Hua, Hres, #Hfor, Hkv⟩, HRA,
-    Hrdat, Hao, #Hlog, Hkr, Hrest, Hap, Hfs, Htok⟩
+  -- (restart S4) the restart point: `P`, the storage's snapshot at `|P|`, the tokens at `P`, the apply
+  -- thread's resources at the backend's ghost log `γn.a0`, Go's index `|P|`
+  iunfold srvBuiltRestartR at HBr
+  icases HBr with ⟨%P, %HPa, ⟨%ms, #Hms, Hsnap⟩, Hloop, Happly, Happ⟩
+  iunfold applyBuiltR at Happ
+  icases Happ with ⟨%st₀, %a, %t, %f, %g₀, %sa₀, Hth, %Hlo, Hbe, Hca, Halg, Hbm, Hrdk, Hbo,
+    ⟨%ua, Hua, Hres, #Hfor, Hkv⟩, HRA, Hrdat, Hao, #Hlog, Hkr, Hrest, Hap, Hfs, Htok⟩
   -- the read side, from the component's row (`acRes_read`)
-  icases acRes_read C s E ua srvAuthSt0 hm $$ Hres with ⟨Hres, #HaR⟩
+  icases acRes_read C s E ua sa₀ hm $$ Hres with ⟨Hres, #HaR⟩
   -- (D22 J1b) the snapshot path's resources to the apply thread, its persistent bundle to `run`
-  icases srvSnapOwn_of_boot s ci E γr γ ai₀ $$ Hsnapb with ⟨Hso, #Hsnapb⟩
-  ihave Hstart : applyStartC C s γ ci b E γr ai₀ c₀ x₀ γw $$
+  icases srvSnapOwn_of_boot s ci E γr γ (W64 P.length) $$ Hsnapb with ⟨Hso, #Hsnapb⟩
+  ihave Hstart : srvRestartAtR C s γ ci b E γr ai₀ c₀ x₀ γw γn.a0 (W64 P.length) $$
       [Hth Hbe Hca Halg Hbm Hrdk Hbo Hua Hkv HRA Hres Hrdat Hao Hkr Hrest Hap Hfs Htok Hwg1 HRD Hso]
-  · iunfold applyStartC
-    iexists st₀, a, t, f
+  · iunfold srvRestartAtR
+    iexists st₀, a, t, f, g₀, sa₀
     iframe Hth Hbe Hca Halg Hbm Hrdk Hao Hso Hfs Hwg1 Hlog Hkr Hrest Hap Htok
     isplitr
     · ipureintro; exact Hlo
@@ -601,21 +605,28 @@ theorem EtcdServer.start.wp_proof
     iframe HNR
     iexists cctx, _
     iframe Hctx Hcctx Hclib Hcspan Hcst
-  -- (R2d'a swap batch 5) `run`'s start conjuncts in restart form, from a first start's (`%HEr`,
-  -- `Hsnap`, `Hstart`; `srvRunRestartR_first`)
+  -- (R2d'a swap batch 5; restart S4) `run`'s start conjuncts in restart form, at `P` and the backend's
+  -- ghost log `γn.a0`, rows 6 and 7 from row 8 in the raft node (Q38 (a), `srvRunRows_of_rn`)
+  ihave %Hrows := srvRunRows_of_rn Er γn (srvRAddr s) $$ Hrn
   ihave HRr : srvRunRestartR C s γ ci b E { ρ with wait := γw } γr Er γn ai₀ at₀ c₀ x₀ γw
-      $$ [Hsnap Hstart]
-  · iapply (srvRunRestartR_first C s γ ci b E { ρ with wait := γw } γr Er γn ai₀ at₀ c₀ x₀ γw HEr)
-    isplitl [Hsnap]
-    · iexact Hsnap
-    · iexact Hstart
+      $$ [Hsnap Hstart Hloop Happly]
+  · iunfold srvRunRestartR
+    iexists γn.a0, P
+    iframe Hstart Hloop Happly
+    isplitr
+    · ipureintro
+      obtain ⟨h1, h2, h3⟩ := HEr
+      refine ⟨h1, h2, h3, rfl, HPa.1, HPa.2, Hrows.1, ?_⟩
+      rw [h3.2.2]; exact Hrows.2
+    iexists ms
+    iframe Hms Hsnap
   -- (revoke-open Q8 (a)) `run` forked with the fresh thread token
-  wp_apply wp_fork_tok_body $$ [HRr Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hlr Hwpend Hrunh
+  wp_apply wp_fork_tok_body $$ [HRr Hsend Hrdone Hcomm Hdc Hclose Hlr Hwpend Hrunh
       Hwth Hwtl Hskeep]
   · iintro Htok
     wp_apply hRun s γ ci TM C E { ρ with wait := γw } γr Er γn γg γcx γd
       ⟨vr.errorc, stc, dch, cancel, vr.compactor, vr.stats, lcn⟩ b ai₀ at₀ c₀ x₀ cfgk.DataDir' cs
-      $$ [HRr Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hlr Hwpend Hrunh Hwth Hwtl Hskeep Htok]
+      $$ [HRr Hsend Hrdone Hcomm Hdc Hclose Hlr Hwpend Hrunh Hwth Hwtl Hskeep Htok]
       as Htok
     · simp only [srvStopReq_wait, srvDoneInv_wait]
       iframe Htok

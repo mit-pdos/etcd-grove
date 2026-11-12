@@ -50,10 +50,12 @@ with `done` announcing `True` and no request ever sent, and the draft `specStop`
 resources and the scope as premises). The `errorc` path stays closed.
 
 **Scope** (R2d'a swap batch 5, 2026-11-07: one spec for a first start and a restart, through
-`isServerRunC`'s `srvRunRestartR`, which a first start gives, `srvRunRestartR_first`): `σ.b = 0`
-only, a restart before the WAL's first snapshot (`ai₀ = 0`, `γn.pre = []`): the backend's ghost log
-`A₀ = γn.a0` is replayed through the window `(0, |A₀|]` (a first start is `A₀ = []`). `σ.b > 0` is
-R2d'b's.
+`isServerRunC`'s `srvRunRestartR`, which a first start gives, `srvRunRestartR_first`; restart S4,
+2026-11-12: at any WAL snapshot index, until then `σ.b = 0` only): nothing handed before the start in
+the server's names (`ai₀ = 0`, `γn.pre = []`); Go starts at the log `P` raft handed before this
+incarnation (`A₀`'s prefix up to the WAL snapshot's index), the storage's snapshot at index `|P|` with
+`P`'s last term, the loop's and the apply side's tokens at `P`; the backend's ghost log `A₀ = γn.a0`
+is replayed through the window `(|P|, |A₀|]` (a first start is `A₀ = P = []`).
 
 **The restart-only premises** (`notes/restart-plan.md`, "R2d'a restart-only premises"; each
 proved or vacuous at a first start; R2s removes 1; S1, 2026-11-11: rows 2-3 replaced by two facts):
@@ -75,9 +77,13 @@ proved or vacuous at a first start; R2s removes 1; S1, 2026-11-11: rows 2-3 repl
   hard state, whose commit is `commit0`). Crash-proof.
 * `rnSnapTermAbove` (`rnRestartOk`'s): every `MsgSnap` a `Ready` carries has a term above the
   incarnation's start term.
-* `ai₀ + |A₀| + 1 < 2^64` (`srvRunRestartR`'s): room past the replayed log.
+* `ai₀ + |A₀| + 1 < 2^64` (`srvRunRestartR`'s): room past the replayed log (S4: `start` derives it
+  from the next row, `srvRunRows_of_rn`).
 * every entry of `A₀` has `typ` 0 or 1 (`EntryNormal`/`EntryConfChange`, no `EntryConfChangeV2`;
-  `srvRunRestartR`'s): etcd proposes only v1 `ConfChange`s (`configure`'s `ProposeConfChange`).
+  `srvRunRestartR`'s): etcd proposes only v1 `ConfChange`s (`configure`'s `ProposeConfChange`) (S4:
+  `start` derives it from the next row).
+* (S4) `lastTermIs P at₀` (`srvRunRestartR`'s): the storage snapshot's term is `P`'s last; at a
+  restart its producer is `NewServer`'s restart branch (S6, from `walSnapCert`).
 * `srvRLogLb γ.srv γ.a0` (`rnRestartOk`'s restart disjunct): the backend's log `A₀` is
   cluster-committed.
 
