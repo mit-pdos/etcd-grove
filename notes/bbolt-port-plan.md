@@ -548,3 +548,26 @@ osfs target building after each step:
    `tcb-report --check`, STATUS). The first statements by inode (§3, `fileHolds`, `pathHolds`,
    `Open.spec`, `fdatasync`, `Tx.write_ext`, `osSlot`) are written but not type-checked: real bbolt
    does not build on `fs-lean` until step 3.
+
+**2026-11-12, branch `writeat-ext` (items 1 and 2 of the list above).** `os.File.WriteAt.specExt`
+(`Spec/os/File__WriteAt.lean`, proof `wp_proofExt` in `Proof/os/File__WriteAt.lean`), beside the
+unchanged `spec`: any non-empty write, past the end of the file and of any length (the model's chunk
+loop). It drops `off ≤ size` and `len ≤ 2^30`; takes the bytes below the size from `min off size`
+(`xs.length = min (off + n) size - min off size`; none past the end) and `mcellsAny` over
+`[min off size, off + n)`. Post: `∃ j a ys`, `j ≤ a ≤ n`, `min n 2^30 ≤ a`, `ys`'s values are
+`pwValsG m.size off data j xs` (the zero gap once something landed, `b[0..j)` at `off`, the old bytes
+elsewhere, up to `pwSize`), `os.WaCut off n j` (`PwCut`, or `j` a multiple of 2^30: a failed attempt
+after whole 1 GiB chunks lands a prefix that is a page cut only if `off` is aligned; `WaCut.pwCut` for
+`n ≤ 2^30`), the result as `spec`'s, `osMeta (pwPost m off a j)` (`a` the end of the last chunk
+attempted: the announced range is the furthest chunk's, so not always `n`; on success `a = n`), the
+bytes from `min off size`, the cells, `fmtErrorOkOrNil err`. The bytes' candidates are not stated
+(values only); a byte of a chunk never attempted gets no new candidate, so `PwOut`'s `extra ≠ []`
+would be false there.
+Program logic (`GooseLang/Ext/Fs/Write.lean`, untrusted): new `pwTokG`, `wp_osPWriteStartG` (no
+`hgap`; its continuation also gives `m.lo ≤ m.size`), `wp_osPWriteFinishKG` (bytes/cells from
+`min off m.size`, `pwBytesG`/`pwCellG`/`pwTailG`/`pwPostKG`, `pwVal` the announced byte, zero in the
+gap), `ofWrite_isG`, `pwFile_sizeG`/`pwFile_cacheG`, `pwValsG`; the old `wp_osPWriteStart`,
+`wp_osPWriteFinishK`, `wp_osPWriteFinish` keep their statements and are now corollaries
+(`pwBytesG_eq`, `pwPostKG_eq`, `mcells_congr`). `Proof/os/WriteChunks.lean` rewritten over fsExt
+(`pwValsG_chunk`, `pwPost_chunk`, `pwChunk_end`, `osBytes_split3_range`/`osBytes_app3` by inode,
+`wp_osPWriteFinishG`); `os.WaCut` in `Proof/os/Base.lean`. minibolt, crashlog, walfs build unchanged.
