@@ -596,7 +596,7 @@ Track D2–D6 with a TCB collection each (`etc/tcb-collections/`), as for the ot
   - a crash mid-`Save` can keep the entry records without the state record, if the WAL's
     repair keeps such a prefix.
 
-  `nonissues/raft-commit-lost-with-entries-kept.md` was parked because "atomic
+  `issues/raft-commit-lost-with-entries-kept.md` was parked because "atomic
   persistence of entries and `HardState` is part of the storage contract". If etcd's WAL does
   not provide that atomicity, the scenario may be reachable in etcd. Check:
   - whether either path reaches its trace's step 2, where the node receives indices 1–3 with
