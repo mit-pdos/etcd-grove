@@ -24,7 +24,6 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta__v
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Meta__write
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Open
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Page__meta
-public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.ReadAtRacy
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.envFailure
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.flock
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.initPages
@@ -172,13 +171,13 @@ theorem DB.wp_Get :
     EtcdGrove.osfs_bboltfs.DB.Get.spec (GF := GF) (hG := hG) :=
   EtcdGrove.osfs_bboltfs.DB.Get.wp_proof DB.wp_meta wp_pageAt
 
-theorem wp_ReadAtRacy :
-    EtcdGrove.osfs_bboltfs.ReadAtRacy.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.osfs_bboltfs.ReadAtRacy.wp_proof
+theorem os.File.wp_ReadAtRacy :
+    EtcdGrove.os.File.ReadAt.specRacy (GF := GF) (hG := hG) :=
+  EtcdGrove.os.File.ReadAt.wp_proofRacy
 
 theorem DB.wp_Snapshot :
     EtcdGrove.osfs_bboltfs.DB.Snapshot.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.osfs_bboltfs.DB.Snapshot.wp_proof DB.wp_meta wp_pageAt wp_ReadAtRacy
+  EtcdGrove.osfs_bboltfs.DB.Snapshot.wp_proof DB.wp_meta wp_pageAt os.File.wp_ReadAtRacy
 
 theorem wp_initPages :
     EtcdGrove.osfs_bboltfs.initPages.spec (GF := GF) (hG := hG) :=

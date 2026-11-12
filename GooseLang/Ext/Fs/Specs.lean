@@ -448,9 +448,11 @@ theorem osBytes_lookup_list {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γ
     · exact h1
     · exact h2 y hy
 
-/-- `wp_osPRead_racy` for a list of held ranges (each `(lo, dq, xs)`: `osBytes p lo dq xs`). -/
+/-- `wp_osPRead_racy` for a list of held ranges (each `(lo, dq, xs)`: `osBytes p lo dq xs`), and: a
+successful `pread` that read nothing reached no held byte of its range (the file's size, which a
+`pread` reads up to, is past every held byte). -/
 theorem wp_osPRead_racy_list (fd off n : w64) (dq : DFrac) (d : OsFd)
-    (rs : List (Nat × DFrac × List (ByteG))) (hE : ↑osN ⊆ E) (hrd : d.readable = true)
+    (rs : List (Nat × DFrac × List ByteG)) (hE : ↑osN ⊆ E) (hrd : d.readable = true)
     (hoff : 0 ≤ off.toInt) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osFd (L := L) fd dq d -∗
       ([∗list] x ∈ rs, osBytes (L := L) d.ino x.1 x.2.1 x.2.2) -∗
@@ -458,6 +460,8 @@ theorem wp_osPRead_racy_list (fd off n : w64) (dq : DFrac) (d : OsFd)
         ⌜∀ x ∈ rs, ∀ k (hk : k < x.2.2.length), off.toNat ≤ x.1 + k →
           x.1 + k < off.toNat + n.toNat →
           ∀ (h : x.1 + k - off.toNat < r.length), r[x.1 + k - off.toNat] = x.2.2[k].1⌝ -∗
+        ⌜e = W64 0 → r = [] → ∀ x ∈ rs, ∀ k (_ : k < x.2.2.length), off.toNat ≤ x.1 + k →
+          x.1 + k < off.toNat + n.toNat → False⌝ -∗
         osFd (L := L) fd dq d -∗ ([∗list] x ∈ rs, osBytes (L := L) d.ino x.1 x.2.1 x.2.2) -∗
         Φ (PairV (#r) (#e))) -∗
       WP (ExternalOp fsExt.name "PRead" (Val (PairV (#fd) (PairV (#off) (#n))))) @ s; E
@@ -512,15 +516,22 @@ theorem wp_osPRead_racy_list (fd off n : w64) (dq : DFrac) (d : OsFd)
   iframe
   isplitr
   · ipureintro; exact ⟨hwf, hcoh⟩
-  have hres' : ∃ k' e, e' = osRes (#(r.take k')) e := by
-    rcases hres with ⟨k', -, -, rfl⟩ | ⟨k', e, -, -, rfl⟩
-    · exact ⟨k', 0, rfl⟩
-    · exact ⟨k', e, rfl⟩
-  obtain ⟨k', e, rfl⟩ := hres'
+  have hres' : ∃ k' e, e' = osRes (#(r.take k')) e ∧ (e = W64 0 → r.take k' = [] → r = []) := by
+    rcases hres with ⟨k', -, hk0, rfl⟩ | ⟨k', e, -, he, rfl⟩
+    · refine ⟨k', 0, rfl, fun _ ht => ?_⟩
+      rcases List.take_eq_nil_iff.1 ht with h0 | h0
+      · rcases hk0 with h | h
+        · omega
+        · exact h
+      · exact h0
+    · exact ⟨k', e, rfl, fun h => absurd (by rw [h]; rfl) he⟩
+  obtain ⟨k', e, rfl, hemp⟩ := hres'
   iapply wp_value'
   iapply HΦ $$ %_ %_ %(fun x hx k hk h1 h2 hlt => by
     have h' : x.1 + k - off.toNat < r.length := by simp at hlt; omega
-    simp only [List.getElem_take]; exact (key x hx k hk h1 h2).2 h') Hfd Hbs
+    simp only [List.getElem_take]; exact (key x hx k hk h1 h2).2 h')
+    %(fun he ht x hx k hk h1 h2 => by
+      have h := (key x hx k hk h1 h2).1; rw [hemp he ht] at h; simp at h) Hfd Hbs
 
 /-- The `OsMeta` after a successful sync: the size is durable, every byte is durable, zeros from the
 end of the size's last page on (`OsFile.synced`). -/

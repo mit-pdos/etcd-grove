@@ -516,3 +516,35 @@ proof `Proof/os/File__WriteAt.lean`), in one change:
    `Boot`, walfs `{Boot,SegLog,DirSwap}`).
 Then `fmtErrorOkOrNil` on `ReadAt`/`OpenFile`, `specRacyLt`, then bbolt itself (§5's order: the
 invariants by `K.i`, `Inv/*`, the 38 file-name files, the 62 substantive files), then the gates.
+
+**2026-11-12, fork BX2, continued — paused here (the user merges `fs-lean` into `lean` with real bbolt
+still on the old extension; the port resumes later from this point).** Done since the entry above, every
+osfs target building after each step:
+- `os.File.WriteAt.spec` (`85460240ff`): the post's pure part gains `PwCut off.toNat data.length j`
+  (Go's retries keep it: `pwCut_step`, `pwCut_short` in `Proof/os/File__WriteAt.lean`), so one aligned
+  page lands whole or not at all (v1's D22 for `Tx.writeMeta`), and the post ends with
+  `fmtErrorOkOrNil err`. Consumers adapted (`Proof/os/Off.lean`, bboltfs `DB__{init,commit}`, walfs
+  `{Boot,DirSwap}`).
+- `os.File.ReadAt.spec` (`7893fd7f51`) and `os.OpenFile.spec`/`specCreate` (`0d69bd0b73`) end with
+  `fmtErrorOkOrNil err` (`specCreate`'s disjunction parenthesized so the conjunct covers both cases).
+- `os.File.ReadAt.specRacyLt` (lean's statement, by inode over `ByteG`), proved
+  (`wp_proofRacyLt`); `specRacy` restates v1's `io.EOF` clause (every held byte of the range is below
+  `off + n`) and is its corollary (`wp_proofRacy`). The program logic's `wp_osPRead_racy_list`
+  (`GooseLang/Ext/Fs/Specs.lean`) says that a successful empty `pread` reached no held byte (minibolt's
+  local copy, now shared); minibolt's local `ReadAtRacy` spec and proof are gone (`DB.Snapshot` takes
+  `os.File.ReadAt.specRacy`; `etc/link-lean-first-bboltfs.txt`: `os_File__ReadAt+Racy`; `Link.lean`
+  regenerated).
+
+**Still to do, in order** (nothing of it started):
+1. `WriteAt` with `off > size` (§2.5: generalize `hgap` in `wp_osPWriteStart`/`wp_osPWriteFinishK`,
+   `GooseLang/Ext/Fs/Write.lean`; the token `pwTok` stores it and the proof uses `min off m.size = off`),
+   then the spec's bytes from `min off m.size`.
+2. Lift `data.length ≤ 2^30` (§2.6): a chunk loop over the attempt loop, from lean's
+   `Proof/os/WriteChunks.lean` (old extension; not built on `fs-lean`).
+3. bbolt itself, §5's order: the invariants by `K.i` (`Inv/{Store,Locks,WSlots,Bolt,Tx,Txs}`; `BC`
+   keeps `p` and gains `i`, as decided), the 38 file-name files, the 62 substantive files (the
+   inventory in §1), `Link` and `Results`; then the gates (`gen-link --bbolt [--results]`,
+   `gen-interface etc/api/bbolt.txt` + `api-check`, `gen-init --check`, `goose.py --check`,
+   `tcb-report --check`, STATUS). The first statements by inode (§3, `fileHolds`, `pathHolds`,
+   `Open.spec`, `fdatasync`, `Tx.write_ext`, `osSlot`) are written but not type-checked: real bbolt
+   does not build on `fs-lean` until step 3.

@@ -19,7 +19,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__Snap
 public import Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__meta
 public import Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.pageAt
 public import Spec.os.File__ReadAt
-public import Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.ReadAtRacy
+public import Spec.os.File__ReadAt
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.MapLoan
 public import Perennial.Proof.sync.Results
 
@@ -68,7 +68,7 @@ abbrev DB.Snapshot.readerSpec : Prop :=
 set_option maxHeartbeats 4000000 in
 theorem DB.Snapshot.wp_reader (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
     (wp_pageAt : pageAt.spec (GF := GF) (hG := hG))
-    (wp_ReadAt : ReadAtRacy.spec (GF := GF) (hG := hG)) :
+    (wp_ReadAt : os.File.ReadAt.specRacy (GF := GF) (hG := hG)) :
     DB.Snapshot.readerSpec (GF := GF) (hG := hG) := by
   intro γ db t o
   wp_start as ⟨Hdb, Hrd, Hlast, Hoo⟩
@@ -451,7 +451,7 @@ theorem DB.Snapshot.wp_reader (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
 given back after. -/
 theorem DB.Snapshot.wp_proof (wp_meta : DB.«meta».spec (GF := GF) (hG := hG))
     (wp_pageAt : pageAt.spec (GF := GF) (hG := hG))
-    (wp_ReadAt : ReadAtRacy.spec (GF := GF) (hG := hG)) :
+    (wp_ReadAt : os.File.ReadAt.specRacy (GF := GF) (hG := hG)) :
     DB.Snapshot.spec (GF := GF) (hG := hG) := by
   intro γ db t o
   wp_start_folded as ⟨#Hdb, Htok, Hlast, Hoo⟩
