@@ -575,7 +575,8 @@ def isMessage [ReceiptGS GF] (γ : RaftNames) (m : Msg) : IProp GF :=
                     commitIn γ (fp ++ l) m.index m.term ∗ isCommitted γ (List.take (uint.Z m.index).toNat (fp ++ l))) ∗
             ⌜m.src ≠ W64 0⌝ ∗ ⌜m.dst ≠ m.src ∧ ∀ (T : GSet w64), γ.reTracked = some T → m.src ∈ T ∧ m.dst ∈ T⌝)
   | MsgType.propose =>
-    iprop(⌜m.term = W64 0 ∧ m.entries ≠ [] ∧ ↑m.entries.length < 2 ^ 61⌝ ∗ [∗list] e ∈ m.entries, propData γ e)
+    iprop(⌜m.term = W64 0 ∧ m.entries ≠ [] ∧ ↑m.entries.length < 2 ^ 61 ∧ ∀ (e : EntryM), e ∈ m.entries → TrNoConf γ e⌝ ∗
+        [∗list] e ∈ m.entries, propData γ e)
   | MsgType.heartbeatResp =>
     iprop(⌜m.ctx = []⌝ ∨ ∃ q recs, ⌜m.ctx = u64Le q ∧ HbAckOk m.src (uint.nat q) recs⌝ ∗ rqLb γ m.dst m.term recs)
   | MsgType.readIndex => iprop(∃ e c Lc, ⌜m.entries = [e]⌝ ∗ ⌜e.Data' = c⌝ ∗ readReq γ c Lc)
