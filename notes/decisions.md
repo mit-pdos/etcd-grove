@@ -34730,3 +34730,46 @@ against a purge; `Exist` on a `ReadDir` failure) and minors. The revision (desig
   `area/wal`), never `s0.wal = ∅`; C6's restart start names directories by premise and hands the
   durable reservation from its start. The remaining path aliasing (symbolic links) is a world
   assumption in `Impl.lean`.
+
+## WAL W4a revision round 2: durable's reservation in the interpretation, handle purge rights, sealed handles (2026-11-12 · the second Freeze review's findings; the world assumption "Paths" approved by the user, 2026-11-12, via etcd-grove-81 · branch `wal-w4`)
+
+The second Freeze review (`/shared/tmp/wal-spec/w4/review2-findings.txt`; old → new and the closure per
+finding in `/shared/tmp/wal-spec/w4/freeze-w4a.md`, "Revision round 2") found the previous round's
+durable reservation unenforced (B-1: `durable_reserve`'s hypothesis and `wp_DurableWrite_atomic`'s name
+premise were unused, so a durable `area/wal.tmp` and then `Create` gave a no-panic triple for a program
+that panics), `ValidSnapshotEntries` refutable with an open append handle (B1), `TouchDirAll`'s probe
+`d/.touch` against a durable file (B2), handle modes forgeable (M-1), and the opaque `walPurgeRight`
+minted per call (M1). What changed, and why:
+
+- **The reservation lives in durable's state interpretation** (`durableCtx` holds the reservation's
+  authority with `durableResvInv`: once `some r`, every file name is allowed in mode `some r`), as
+  `absDiskCtx` carries `walKeysInArea`. The program holds the key's element (`() ↪ none` unreserved,
+  `() ↪□ some r` reserved). A ghost update outside a step cannot touch the interpretation, so the
+  reservation is made at a durable step: `wp_DurableRead_atomic` (and `durable.Read.spec`) may change
+  the mode (`durableModeStep`), checking every current name. Why at a `Read`: the tester's `Boot`
+  reads its oracle before any WAL call, every generation; putting the area into durable's trusted step
+  relation instead would add trusted text and couple two extensions' starts. Sealing durable is not
+  needed for soundness (the authority is exclusive and in the interpretation).
+- **Reserved names never hide** (`durableHidden`: a last element starting with `.`), and `TouchDirAll`
+  takes `walAreaOk r`, so its probe `d/.touch` is never a durable file (B2).
+- **VSE reads a prefix** `H.take j`, `m ≤ j ≤ |H|` (what reached the files; B1). etcd calls it before
+  `Open`, where `j = |H|`.
+- **Handles sealed** (M-1): `absHandleAuth` is `@[no_expose]`, its allocation and mode-change lemmas
+  private, and `etc/api/absdisk.txt` lists the extension's modules (no `import all` outside;
+  `etc/api-check.py` now scans `GooseLang/`). W4c gate: a trusted model that performs `"WalCreate"`,
+  `"WalUnlock"` or `"WalNamed"` is reviewed against the handle-minting step specs; `purgeRound`
+  performs only `"WalPurge"`.
+- **One purge right per handle** (`walPurgeW w dir`, proved ghost state, per generation) replaces the
+  server's opaque `walPurgeRight` in the extension's axioms (M1); the server keeps its own until C6.
+- **`walCrash` clamps `unl`, `pur` and the read position to the image's length** (m-1): every unlocked
+  or deleted record is synced (`cut` syncs a file before the next), and a crash keeps the synced
+  records.
+- **The area claim restated** (M2/m-2): only durable (reserved) and `TouchDirAll` are kept out of the
+  WAL footprint. Gates: rung 3 (`osFsExt`) and C6 (the server's WAL axioms) must extend the
+  reservation before a closed theorem combines them with absDisk; C6 must restrict WAL names or
+  exempt the WAL's named siblings (etcd's `member/snap` is in the area, and `snap` is a valid WAL
+  name).
+- Minors: `unl`/`pur` docstrings state what soundness uses; `absDiskInitOk` requires clean durable
+  directories; `Exist`'s docstring names `cleanupWAL`; the empty-`Save` shortcut is shown invisible to
+  readers (`walRead_phantom` …); the `ReadAll` `ErrSnapshotNotFound` bug is a nonissue
+  (`etcd-wal-readall-snapshot-not-found-masked`), excluded by its premise. The etcd pin is `c90b03b56`.

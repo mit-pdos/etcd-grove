@@ -156,3 +156,30 @@ Next, in order:
    (R1 closing table, R2 diffs, R2b vocabulary, R3 Go tests, R4 checks, R5 open items; parts in
    `/shared/tmp/wal-spec/w4/gen/rev-*.md`). Waiting for the second independent review; STOP before
    land.sh.
+
+## W4a revision round 2 (sixth agent, 2026-11-12)
+
+The second Freeze review (journal extracted to `/shared/tmp/wal-spec/w4/review2-findings.txt`; its Go
+tests `/shared/tmp/coord-81/wal-w4a-review2/`) found NOT READY: B-1, B1, B2, M-1, M1, M2/M3, minors.
+Done:
+- `897dd40473`: etcd pin → `c90b03b56` (from GitHub; no translated file changes); examples' go.mod/go.sum
+  at `v3.0.0-20261111235821-c90b03b56bd2` (script `/shared/tmp/wal-spec/w4/modsum2/fix.py`).
+- `1ae018cb4b`: durable's reservation in its state interpretation (`durableCtx` = half + `durableResvAuth`
+  with `durableResvInv`), made at a durable `Read` step (`durableModeStep`, `durableOwnM_step`; the
+  `durable.Read.spec` takes `o o'`), every `Write` re-establishing it (`durableResvAuth_insert`);
+  `durable_reserve` removed; `durableHidden`; `TouchDirAll` takes `walAreaOk`; VSE prefix `H.take j`;
+  `absHandleAuth` `@[no_expose]` with private alloc/set and `etc/api/absdisk.txt` (api-check scans
+  `GooseLang/`); `walPurgeW w dir` (purge-right map `γhp`, `walHandleP`); `walCrash` clamp;
+  `absDiskInitOk` clean dirs; docstrings (the user's "Paths" text verbatim, area claim, unl/pur, Exist,
+  Save, Open, ReadAll, Close); `walRead_phantom` & co.; nonissue `etcd-wal-readall-snapshot-not-found-masked`.
+  Axiom generator: `/shared/tmp/wal-spec/w4/gen/genspecs.py` (round 1's kept as `genspecs-rev1.py`).
+- Go tests `/shared/tmp/wal-spec/w4/rev2-tests/` (all pass; run in `rev-tests/etcd-c90b03b56`).
+- Full build passes (14055 jobs, `/shared/tmp/wal-spec/w4/build-rev2.log`); checks in
+  `/shared/tmp/wal-spec/w4/checks-rev2.log`.
+- Freeze package: "Revision round 2" appended to `/shared/tmp/wal-spec/w4/freeze-w4a.md` (part
+  `gen/rev2-section.md`, trusted diff `gen/rev2-diffs.md`).
+
+Next: the third review; STOP before land.sh. When landing: merge lean first, rerun the checks.
+Pitfalls: `interface/GooseLang/Ext/AbsDisk/*.txt` are generated (`etc/gen-interface.py etc/api/absdisk.txt`);
+W4c's tester must reserve at its first `durable.Read` (mode `none` → `some area`) and keep the oracle's
+invariant in mode `some area`.
