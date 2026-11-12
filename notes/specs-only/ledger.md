@@ -43,8 +43,7 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   on the parent), `SetSequence`/`NextSequence` get it from their `bktUse` by `wtxCore_bktOwn`;
   `node.childAt` from a cached node's bucket; `spill`/`rebalance` walk the cached handles
   (`b.buckets`, `bucket.go:860`).
-- **Decision.** Accepted by the coordinator, 2026-11-12. Applied in the commit that adds this
-  entry.
+- **Decision.** Accepted by the coordinator, 2026-11-12. Applied in `c1297a6c6d`.
 
 ## 2026-11-12: bbolt's bucket handles -- a generation counter in the view is unobservable, redundant state
 
@@ -116,8 +115,7 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `curEnts_put`, `curEnts_del`, `wf_setKey`, `wf_delKey`, `wf_modAt`, `bktPaths_mem`,
   `bktsUnder_mem`). The review of 2026-11-12 (finding 3): how `bktPaths` changes, so the backend's
   lock invariant can rebuild its token list (`Ent.bktPaths_create`, `bktPaths_dropBkt` up to
-  `List.Perm`, `bktPaths_setVal`, `bktPaths_setSeq` equal), applied in the commit that adds this
-  sentence.
+  `List.Perm`, `bktPaths_setVal`, `bktPaths_setSeq` equal), applied in `e6c84e32fd`.
 
 ## 2026-11-12: `DB.Path.spec` (and the close right) -- `Path` needs the exclusive close right, which non-blocking defrag does not hold
 
@@ -150,7 +148,7 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   (`σ.sync ok`, as `DB.Sync.spec`'s), the success post gives `Ss true`, an error `Ss` of the outcome
   or the update back. With `NoFreelistSync` off too, the freelist commit's updates are nested in
   the sync update's `COMM` (a holder of one `boltState` builds both; the review's finding 2):
-  applied in the commit that adds this sentence.
+  applied in `dc5d1f1826`.
 
 ## 2026-11-12: `Open.spec`, `DB.Close.spec` -- their errors cannot be excluded, and the server panics on both
 
