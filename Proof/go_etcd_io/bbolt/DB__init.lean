@@ -161,7 +161,7 @@ theorem pwOut_full {m : OsMeta} {off : Nat} {data : List w8} {xs ys : List ByteG
     ys.length = data.length ∧ ys.map Prod.fst = data := by
   obtain ⟨hl, hv⟩ := h
   have hl' : ys.length = data.length := by
-    rw [hl]; unfold pwSize; rw [if_neg (by omega)]; omega
+    rw [hl]; unfold pwSize; simp only [show ¬ data.length = 0 by omega, ↓reduceIte]; omega
   refine ⟨hl', ?_⟩
   apply List.ext_getElem (by simp [hl'])
   intro i h1 h2
@@ -682,19 +682,15 @@ theorem DB.init.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           rcases hres2 with ⟨h1, -, -⟩ | ⟨-, h2⟩
           · exact h1
           · exact absurd rfl h2
-        have hys2 : ys2.map Prod.fst = metaBuf (initMv 0) ++ metaBuf (initMv 1) := by
-          rw [hysp2]
-          have := pwBytes_inside_fst m2.size (W64 0).toNat (metaBuf (initMv 0) ++ metaBuf (initMv 1))
-            j2 (ys.take 8192) (by rw [metaBufs_length, hm2s]; decide)
-            (by rw [hy1, metaBufs_length]) (Or.inr hj2)
-          rw [this, if_neg (by rw [hj2, metaBufs_length]; decide)]
-        have hys2l : ys2.length = 8192 := by
-          have := congrArg List.length hys2; simp only [List.length_map] at this
-          rw [this, metaBufs_length]
-        have hsz2 : pwSize m2.size (W64 0).toNat j2 = 16384 := by
-          rw [hm2s]; exact pwSize_inside _ _ _ 8192 (by rw [hj2, metaBufs_length]; exact Nat.le_refl _) (by decide)
-        have hsz2' : pwSize m2.size 0 j2 = 16384 := by simpa using hsz2
-        rw [hsz2, hm20] at *
+        subst hj2
+        obtain ⟨hys2l, hys2⟩ := pwOut_full hysp2 (by rw [metaBufs_length]; decide)
+        rw [metaBufs_length] at hys2l
+        have hsz2' : (pwPost m2 0 (metaBuf (initMv 0) ++ metaBuf (initMv 1)).length
+            (metaBuf (initMv 0) ++ metaBuf (initMv 1)).length).size = 16384 := by
+          simp only [pwPost, pwSize, hm2s, metaBufs_length]; decide
+        have hpmaps2 : (pwPost m2 0 (metaBuf (initMv 0) ++ metaBuf (initMv 1)).length
+            (metaBuf (initMv 0) ++ metaBuf (initMv 1)).length).maps = m2.maps := by
+          simp only [pwPost, announce_maps]
         try wp_auto
         -- the second sync
         ihave Hfo : fileOwn f fd p.path (DFrac.own 1) $$ [Hfo]
@@ -757,8 +753,8 @@ theorem DB.init.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           rw [hy1] at *
           iframe
         ipureintro
-        refine ⟨by rw [Hm3.2, Hm2.2]; exact hmaps, ?_, ?_⟩
-        · rw [Hm3.1]; simp [hys2l, hysl, hsz2']
+        refine ⟨by rw [Hm3.2, hpmaps2]; exact hm2m, ?_, ?_⟩
+        · rw [Hm3.1, hsz2']; simp [hys2l, hysl]
         · rw [List.map_append, hys2, List.map_drop, hysp, initImg_join, initImg_split]
 
 end proof

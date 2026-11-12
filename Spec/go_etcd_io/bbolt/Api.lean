@@ -245,11 +245,13 @@ commit (`recursivelyCheckBucket`, which panics on any report) finds nothing. -/
 
 /-- **What `Open(path)` needs of the file system**, in the directory tree `(R, V)`: `path` names a
 file that holds a database with the data `D` (`fileHolds`), or nothing, in a directory of the
-tree, and then `D = ∅` (`Open` creates the file there: bbolt always passes `O_CREATE`). -/
+tree, and then `D = ∅` (`Open` creates the file there: bbolt always passes `O_CREATE`). In the
+second case the roots are well formed (`RootsOk R`, which the tree does not export): after the
+create, `path` names the new file (`lookupH_create`, `Proof/os/OpenFile.lean`). -/
 def pathHolds [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (R : Roots) (V : Hist) (path : GoString)
     (D : Data) : IProp GF :=
   iprop((∃ i, ⌜lookupH R V path = some (.file i)⌝ ∗ fileHolds i D) ∨
-    ⌜∃ d b j, path = child d b ∧ NameOk b ∧ lookupH R V d = some (.dir j) ∧
+    ⌜RootsOk R ∧ ∃ d b j, path = child d b ∧ NameOk b ∧ lookupH R V d = some (.dir j) ∧
       lookupH R V path = none ∧ D = ∅⌝)
 
 /-! ## Laws -/
