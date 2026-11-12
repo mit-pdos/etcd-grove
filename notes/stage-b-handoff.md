@@ -329,6 +329,13 @@ from `lean` `5fde200c15`. Scratch: `/shared/tmp/stageB/`.
     beyond CP1a/§8, the B2 lease specs and T1-T5, `etc/land.sh` with
     `LAKE_PACKAGES=/shared/tmp/manifest-ddc.json PERENNIAL_CHECKOUT=/shared/perennial-ddc0f0acc`,
     logging to `/shared/tmp/stageB/land.log` (go given by etcd-grove-81 under those conditions).
+  - **B3, landing** (2026-11-12): `lean` `49fff2f95c` merged (`a23c25f600`; STATUS's line kept both
+    new entries, `premise fixes 8, S1` moved to status-history); full build exit 0 (the first run hit the
+    64G cap, the retry passed; `/shared/tmp/stageB/logs/fullbuild-cp4b.log`); tcb `--check` 865 axioms,
+    5 sorries (net 0 vs lean: 10 grpc axioms out, 10 in); collections, interfaces (no regeneration diff),
+    gen-init, goose, axiom-tok `--check`, bounds (331) pass; `--roots '_safe$'`: no `*_safe` rests on
+    `grpc.serve`/`serveStream`/`Server.Serve` (gone), only `sorry out_size`. Then `etc/land.sh`
+    (log `/shared/tmp/stageB/land.log`).
   - **B3 next, in order**: (1) check the unchecked files above; fix `QuotaLemmas.lean`/
     `QuotaLeaseLemmas.lean` (`quotaKV_*HandlerOkMd_of`, the inner contract now at `S ∗ srvLgReader s`)
     and the generated handler proofs (`Proof/.../etcdserverpb/_*_Handler.lean`, should follow);
