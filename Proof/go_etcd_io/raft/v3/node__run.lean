@@ -531,7 +531,7 @@ theorem node.run.wp_proof
     icases Hhead with ⟨%rs, Hrn, Hrest⟩
     icases headRest_mode γ nv rs ac rc' rdv' $$ Hrest with ⟨%Hrm, Hrest⟩
     icases ownRawNode_mode γ.raft nv.rn' id rs $$ Hrn with ⟨%Hmd, Hrn⟩
-    icases HP with (%Hn | ⟨%ds, %ca, %cfg, %k, %e, %cs', %Mc, %Hpre, #HMc, #Hdlb, Hcap, Hccq⟩)
+    icases HP with (%Hn | ⟨%ds, %ca, %cfg, %k, %e, %cs', %Mc, %Hpre, #HMc, #Hdlb, Hcap, Hccq, -⟩)
     · -- the static mode: a shrinking change (2026-10-13)
       have Hstatic : γ.raft.reDyn = none := Hmd.1 (Hrm.trans Hn.1)
       have Hgm := Hn.1
@@ -911,7 +911,7 @@ theorem node.run.wp_proof
         -- (D22l) its hard state's witness, for `prevHardSt`
         ihave #Hrdw := phsWit_of_hsWit_next γ.raft rs.phs hrd _ $$ Hhsw
         ihave Hrn := ownRawNodeIdle_ready γ.raft nv.rn' id rs rdv' ce sts hrd Hsteps Hunp Hrdz
-          Hce_ok Hhlb Hphl HtrG $$ Hrdsoft Hrdh Hrdw Hce Hce_cap Hents Hcommitted Hrs Hrn
+          Hce_ok Hhlb Hphl $$ Hrdsoft Hrdh Hrdw Hce Hce_cap Hents Hcommitted Hrs Hrn
         iexists ce, [], [], none
         iframe Hrn Hce Hcommitted Hents
         isplitl []

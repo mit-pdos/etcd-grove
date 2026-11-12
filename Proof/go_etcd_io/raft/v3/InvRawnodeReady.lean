@@ -2760,8 +2760,7 @@ theorem ownRawNodeIdle_ready (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
       uint.Z e.Index' = (rs.delivered.length : Int) + (ce.length : Int))
     -- (2026-11-01, durability stage II (m)) the hard state after it is the node's lower bound
     -- (`ownRawNodeReady_abandon_keep` raised it to the node's hard state then), above `prevHardSt`'s
-    (Hhlb : phsNext rs.phs hrd = rs.hlb) (Hphl : HsLe rs.phs rs.hlb)
-    (HtrG : γ.reTrace = none) :
+    (Hhlb : phsNext rs.phs hrd = rs.hlb) (Hphl : HsLe rs.phs rs.hlb) :
     ⊢ (⌜rd.SoftState' = null⌝ ∨ ∃ v : SoftState, rd.SoftState' ↦□ v) -∗
       hsOpt rd.HardState' hrd -∗
       -- (D22l) its witness (as `readyWithoutAccept` computed it)

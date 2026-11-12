@@ -79,7 +79,7 @@ theorem netGate_step (ρ : RaftNames) (γd : GName) (st : MsgSt) (htr : ρ.reTra
       ⌜StepEndTy st.msg.Type' ∨ AckTy st.msg.Type'⌝ ∗ recvTokOf γd st.msg st.ents st.ctx := by
   unfold netGate
   rw [htr]
-  iintro (⟨%Hn, Ht⟩ | %Hu)
+  iintro (⟨%Hn, Ht, -⟩ | %Hu)
   · iframe Ht; ipureintro; exact .inl Hn.stepEndTy
   · isplitr
     · ipureintro; left; unfold StepEndTy; simp [Hu]
