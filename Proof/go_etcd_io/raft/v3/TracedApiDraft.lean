@@ -25,6 +25,7 @@ import all Proof.go_etcd_io.raft.v3.InvNodeRule
 import Proof.go_etcd_io.raft.v3.InvApi
 import Proof.go_etcd_io.raft.v3.InvApiDec
 import Proof.go_etcd_io.raft.v3.InvApiBoot
+import Proof.go_etcd_io.raft.v3.LemmasSnapCfg
 
 @[expose] public section
 
@@ -189,6 +190,11 @@ theorem startTrace_trCapStart (γ : Cluster) (N : Namespace) (vs : List w64) (ct
     refine ⟨⟨hv, ?_, rfl, Hpb.1, Nat.le_of_eq Hbl.symm⟩, hnil, rfl, rfl, rfl, rfl⟩
     exact ((perm_elements_listToSet vs Hpb.2.1).symm)
 
+/-- A traced cluster's compaction bound is `0` (`storBnd`'s traced arm). -/
+theorem storBnd_traced (γ : Cluster) (K : GName) (c : Nat) (γd : GName) (h : Cluster.trace γ = some γd) :
+    storBnd (GF := GF) γ K c ⊢ ⌜c = 0⌝ := by
+  unfold storBnd; rw [h]
+
 /-- **The storage's no-compaction from the client's contract** (2026-11-12, step 5; `StartNode`'s traced
 `InitialState` answer, before `storBnd_raftBnd` converts the contract to raft's `raftBnd`): `#Hbound` at
 `c ≥ 1` gives `storBnd γ K c`, whose traced arm is `⌜c = 0⌝`. -/
@@ -205,14 +211,10 @@ theorem isStorage_trNoCut (γ : Cluster) (K : GName) (st : Storage) :
   icases Hp with ⟨%n, %Hn, #Hc⟩
   iunfold storCut at Hc
   imod Hbound $$ %n.toNat Hc with Hb
-  unfold storBnd
-  unfold Cluster.raftNames at Htr
-  cases htr : Cluster.trace γ with
-  | none => unfold Cluster.trace at htr; exact absurd htr Htr
-  | some γd =>
-    rw [htr]
-    icases Hb with %H0
-    omega
+  have htr' : Cluster.trace γ ≠ none := by unfold Cluster.trace; unfold Cluster.raftNames at Htr; exact Htr
+  obtain ⟨γd, hγ⟩ := Option.ne_none_iff_exists'.1 htr'
+  icases storBnd_traced γ K _ γd hγ $$ Hb with %H0
+  omega
 
 omit [StorageModel GF] sem package_sem in
 /-- The empty bag represents the empty list. -/

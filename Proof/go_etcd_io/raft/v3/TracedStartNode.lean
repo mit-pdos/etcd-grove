@@ -325,7 +325,10 @@ private theorem wp_StartNode_impl
   -- (step 5) the capability's start, the traced scope and `run`'s fit (`startTrace_trCapStart`)
   icases startTrace_trCapStart γ N vs ctxs cv $$ [Hstt] with ⟨%Htrp, Hcs⟩
   · iframe Hstt Hboot0
-  unfold Cluster.raftNames at Htrp Hcs
+  unfold Cluster.raftNames at Htrp
+  ihave Hcs : trCapStart (GF := GF) γ.raft.reTrace γ.raft cv.ID' cv.TraceLogger' (bootCfg vs)
+      (bootPhase vs cv.ID') bootNone $$ [Hcs]
+  · iExactEq Hcs; rfl
   iunfold EtcdGrove.nodeBoot at Hboot
   iunfold nodeBootU at Hboot
   icases Hboot with ⟨#Hcl, %Hbp, #Hmarsh, #Hcb, #Hbinv, #Htlb1⟩
@@ -474,14 +477,14 @@ private theorem wp_StartNode_impl
       ihave #HKn : storKeyNames (GF := GF) K sn $$ []
       · unfold storKeyNames; iexact HK
       imod Hk $$ %K [] [] with ⟨Hst, Hsh, HF⟩
-      -- (step 5) the storage's no-compaction, from the client's contract (traced)
-      icases isStorage_trNoCut γ K _ $$ Hst with ⟨Hst, #Hnc⟩
       · iunfold EtcdGrove.nodeAppliedLb
         ihave H := nodeAppliedLbU_zero (GF := GF) γ K
         iExactEq H; rfl
       · iunfold EtcdGrove.nodeCommitLb
         ihave H := nodeCommitLbU_zero (GF := GF) γ K
         iExactEq H; rfl
+      -- (step 5) the storage's no-compaction, from the client's contract (traced)
+      icases isStorage_trNoCut γ K _ $$ Hst with ⟨Hst, #Hnc⟩
       imodintro
       isplitl [Hst]
       · iapply isStorage_of_V
@@ -666,7 +669,7 @@ private theorem wp_StartNode_impl
   isplitr
   · ipureintro; rfl
   -- (step 5, A8.3) the completion witness, `setupNode`'s
-  ihave #HsD : startDoneB (GF := GF) γ cv.ID' $$ []
+  ihave HsD : startDoneB (GF := GF) γ cv.ID' $$ []
   · unfold startDoneB Cluster.trace; iExactEq HbD; rfl
   iframe HQ HF Hpeers HsD
   ihave #HisN : EtcdGrove.isNode (GF := GF) np γ N cv.ID' $$ []
