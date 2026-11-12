@@ -102,6 +102,37 @@ unstableOf Proof/go_etcd_io/raft/v3/InvRaftlog.lean` (list in `/shared/tmp/out-s
     size ≤ `ccSize + 64`. Write them with the Go tests in a small Freeze package
     (`/shared/tmp/out-size/freeze-b2.md`) for etcd-grove-81's axiom review; P2-P4 go on meanwhile.
 
+- **C3 continued**, 2026-11-12 (agent 2; commits `07c471b714`..`7de568af9d`):
+  - Build-1's 15 files fixed (`07c471b714`): `raftLog__firstIndex` (`ls.sn.sz`), `MsgStorageApplyResp`/
+    `RawNode__acceptReady` (`entsPts_entsPtsC` before `entsSize`), `StartNode`/`RestartNode` (`sn.sz :=
+    γ.raft.maxData.isSome`, `certLink_make`'s `hsz`, the 9-tuple), kv/kvreconf/kvdurable: the storage
+    records `kvStorRec`/`kvrStorRec`/`kdStorRec` carry `⌜γs.sz = false⌝` (registered with
+    `NewMemoryStorage false`'s fact; `kv*Stor_register`/`kvrStor_alloc` take `hsz`), the promoted
+    `Entries`/`Append` wrappers keep their texts (convert inside), the instance lemmas
+    (`kvStorage_isStorage`, `kvStorage_bootStorage`, kv `Results`' `kv_storage_isStorage`/`kv_bootStorage`,
+    `kvrStorage_isStorage`, `kvr_bootStorage`, `kdStorage_isStorage`, `kd_restartStorage`) take
+    `(hmd : γ.maxData = none)` (freeze-c2 m3); kvdurable `newStorage.spec`'s post gains `⌜γs.sz = false⌝`.
+  - `proto.SizeEntry` deleted (`88b5c9cc0d`; Results prints `proto.wp_SizePb`); Linked's
+    `MemoryStorage.wp_Entries` moved to the `HasLC.hasLC` section (was generic, now false there).
+  - `memStorage_isStorage`'s unsized branch (`9687fda4e8`).
+  - Raft `Results`, kv `Results`, kvreconf/kvdurable `Link` build (`/shared/tmp/out-size/c3-build4.log`).
+  - Server (`5ab9fbc007`): `PerTypeMessage` imports `PbMessage` (lost with B1's deletion of
+    `PerTypeEntry`), `bootstrappedWAL.MemoryStorage` at `sz := false` (spec unchanged),
+    `isRNMemStor_of_memstorage` via `entsPtsZ_true`. **Server build 6** (`c3-build6.log`) fails in:
+    `NodeStart.lean:659` (`memStorage_isStorage`'s `hsz` on the restart path: γs from
+    `bootstrappedWAL.MemoryStorage`, now unsized, while the server's cluster has `maxData = some _`:
+    needs m4/MAJ-2 pulled forward or a decision: **asked**), `InvSnapSend.lean:236` (omega: likely
+    `entBytesMax` not unfolded, try `word` or `simp only [entBytesMax]`), `raftNode__start.lean:753`
+    and `:1381` (`isRNMemStor`'s new shape: `entsROz true sl (es.map toM)` in place of `sl ↦*□ esL`
+    + `entriesAt`; get it from the Ready's sized entries).
+  - **B2 Freeze package written**: `/shared/tmp/out-size/freeze-b2.md` (A1 recommended: three
+    `ConfChange*` schemas in `pbSchemaOf` + two instances, +4 axioms; §1 a finding on today's
+    `MarshalConfChange` at schema `[]`), Go tests `examples/pbschema/confchange_test.go` pass.
+    **Waiting for etcd-grove-81's axiom review.**
+  - **Next:** the server failures above; P3 (outbox `msgQC`, `raft.send`, `outSetR`'s premise at
+    `entsOut_insert`/`msgOutR_intro`), P4 (`LogState.sz`, `appendEntry` onto `ClonePb`, delete
+    `proto.CloneEntry`), P5 after the B2 review, P6, full build, tcb/collections/gates/gen-interface.
+
 ## P7 items (from the C2 review; resolve and re-review with the `axiom` skill before P7 lands)
 
 freeze-c2.md §4: MAJ-1 (`walSaveOk` in `bootstrapRestartContract`'s premise), MAJ-2 (`srvDiskImage`'s
