@@ -187,7 +187,7 @@ local macro "local_follower" : tactic => `(tactic| (
   wp_apply _P.stepFollower c ∅ r id s ml m ents sn rs (zero_val _) ctx R.G1 R.GE (by ty_cases simp [Hty])
       (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
       (by ty_other)
-    (by notfwd_tac) Hgok.1 Hgok.2.1 $$ [Hphys Hm Hsrc0 HG Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+    (by notfwd_tac) Hgok.1 Hgok.2.1 (by xtr_tac) $$ [Hphys Hm Hsrc0 HG Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
   · iframe Hphys Hsrc0 HG Hfg
     rw [if_neg (by ty_cases (rw [Hty]; w32_ne))]
     iexact Hm
@@ -270,7 +270,7 @@ local macro "local_leader" : tactic => `(tactic| (
   wp_apply _P.stepLeader c r id s ml m ents sn ctx rs 0 R.G1 R.GE R.Gp1 R.Gp2 R.Gc (by ty_cases simp [Hty]) Hrole (by first | (intro _; exact HLT Hrole) | ty_other)
       (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
       (by ty_other)
-    (by p3_tac) Hgok.2.1 Hgok.2.2.2.1 Hgok.2.2.2.2 $$ [Hphys Hm HG Hlg] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn, HGo⟩
+    (by p3_tac) Hgok.2.1 Hgok.2.2.2.1 Hgok.2.2.2.2 (by xtr_tac) (by ltr_tac) $$ [Hphys Hm HG Hlg] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn, HGo⟩
   · iframe Hphys Hrc00 HG Hlg
     rw [if_neg (by ty_cases (rw [Hty]; w32_ne))]
     iframe Hm
@@ -307,7 +307,7 @@ local macro "transfer_follower " h:term : tactic => `(tactic| (
       (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
       (fun _ => ⟨fun _ => ⟨$h, Hent, Hctx0, Hxo Hrole⟩, fun h' => absurd h' (by rw [Hty]; w32_ne)⟩)
       (by ty_other)
-    (fun _ => Hnors) Hgok.1 Hgok.2.1 $$ [Hphys Hm Hsrc0 HG Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+    (fun _ => Hnors) Hgok.1 Hgok.2.1 (by xtr_tac) $$ [Hphys Hm Hsrc0 HG Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
   · iframe Hphys Hsrc0 HG Hfg
     rw [if_neg (by rw [Hty]; w32_ne)]
     iexact Hm
@@ -337,7 +337,7 @@ local macro "timeout_follower" : tactic => `(tactic| (
       (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
       (fun _ => ⟨fun h' => absurd h' (by rw [Hty]; w32_ne), fun _ => ⟨Hnw, Hwf, Hfla⟩⟩)
       (by ty_other)
-    (by notfwd_tac) Hgok.1 Hgok.2.1 $$ [Hphys Hm Hsrc0 HG Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+    (by notfwd_tac) Hgok.1 Hgok.2.1 (by xtr_tac) $$ [Hphys Hm Hsrc0 HG Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
   · iframe Hphys Hsrc0 HG Hfg
     rw [if_neg (by rw [Hty]; w32_ne)]
     iexact Hm
@@ -357,7 +357,8 @@ local macro "timeout_follower" : tactic => `(tactic| (
     ⟨Ht1, fun h => absurd h (by rw [Hty]; w32_ne), fun _ _ h => absurd Hty h,
      fun _ => by rw [Hl1]; exact Int.le_refl _,
      fun _ => by have := Int.le_max_left (uint.Z s.term) (uint.Z m.Term'); omega,
-     ⟨fun h => absurd ((Hrl h).symm.trans h) (by rw [Hrole]; decide), Hhg.snapRoleBack Hl1⟩⟩⟩))
+     ⟨fun h => absurd ((Hrl h).symm.trans h) (by rw [Hrole]; decide), Hhg.snapRoleBack Hl1,
+       Hhg.roleUp Hl1 rfl (.inl rfl) (.inr Hty) Hlogf⟩⟩⟩))
 
 set_option hygiene false in
 /-- `Step`'s stale-term test `(r.checkQuorum || r.preVote) && (m.Type == MsgHeartbeat ||
@@ -467,7 +468,9 @@ set_option maxHeartbeats 2000000 in
 theorem wp_Step_MsgTransferLeader (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (PB : raft.Step.PbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
-    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (R : StepG GF) :
+    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (R : StepG GF)
+    -- (2026-11-12, trace-check implementation step 3) not at a traced node (`raft.Step.spec`'s premise)
+    (Hxtr : m.Type' = MsgTransferLeader → s.gh.tr = none) :
     m.Type' = MsgTransferLeader →
     ents = [] →
     ctx = [] →
@@ -574,7 +577,7 @@ theorem wp_Step_MsgTransferLeader (_P : raft.Step.Postulates (GF := GF) (hG := h
         (fun _ => ⟨fun _ => ⟨.inl rfl, Hent, Hctx0, fun h => absurd rfl h⟩,
           fun h' => absurd h' (by rw [Hty]; w32_ne)⟩)
         (by ty_other)
-      (fun _ => Hnors) Hgok.1 Hgok.2.1 $$ [Hphys Hm Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+      (fun _ => Hnors) Hgok.1 Hgok.2.1 (by xtr_tac) $$ [Hphys Hm Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
     · iframe Hphys Hsrc0
       wp_gets
       rw [if_neg (by rw [Hty]; w32_ne)]
@@ -750,7 +753,7 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
         (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
         (fun _ => ⟨fun h' => absurd h' (by rw [Hty]; w32_ne), fun _ => ⟨Hnwm, ⟨rfl, rfl⟩, Hfla⟩⟩)
         (by ty_other)
-      (by notfwd_tac) Hgok.1 Hgok.2.1 $$ [Hphys Hm Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+      (by notfwd_tac) Hgok.1 Hgok.2.1 (by xtr_tac) $$ [Hphys Hm Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
     · iframe Hphys Hsrc0
       wp_gets
       rw [if_neg (by rw [Hty]; w32_ne)]
@@ -785,7 +788,8 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
           = uint.Z m.Term' := rfl
       omega
     · -- (U0) the campaign was of the stepped-down follower: no snapshot pending
-      exact fun h1 h2 => absurd (Hhg.snapRoleBack Hl1 h1 h2).1 (by simp [becomeFollower])
+      exact ⟨fun h1 h2 => absurd (Hhg.snapRoleBack Hl1 h1 h2).1 (by simp [becomeFollower]),
+        Hhg.roleUp Hl1 rfl (.inr rfl) (.inr Hty) Hlogf⟩
   wp_gets
   rw [decide_eq_false Hgt]
   wp_auto

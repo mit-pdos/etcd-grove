@@ -224,6 +224,35 @@ macro "p3_tac" : tactic => `(tactic| (intro Hc; exfalso; first
   | (rcases Hty with h | h <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))))
 
 set_option hygiene false in
+/-- (2026-11-12, trace-check implementation step 3, the design's §3.6 physical half) `stepLeader`'s and
+`stepFollower`'s premise that a traced node steps no transfer request: `raft.Step.spec`'s (`Hxtr`), or
+vacuous at a branch of another type (`Hty`, as `p3_tac`). -/
+macro "xtr_tac" : tactic => `(tactic| first
+  | exact fun h => Hxtr h
+  | (intro Hc; exfalso; first
+    | (rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+    | (rcases Hty3 with h | h | h <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))
+    | (rcases Hty3 with h | h | h | h <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))
+    | (rcases Hty with ⟨h, -⟩ | ⟨h, -⟩ <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))
+    | (rcases Hty with h | h <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))
+    | (simp_all [Perennial.EtcdGrove.MsgTransferLeader, Perennial.EtcdGrove.MsgProp,
+        Perennial.EtcdGrove.MsgReadIndex, Perennial.EtcdGrove.MsgApp, Perennial.EtcdGrove.MsgHeartbeat])))
+
+set_option hygiene false in
+/-- (2026-11-12, implementation step 3) `stepLeader`'s premise that a traced node stepping an append
+response has no transferee: `raft.Step.spec`'s (`Hltr`), or vacuous at a branch of another type. -/
+macro "ltr_tac" : tactic => `(tactic| first
+  | exact fun h hx => Hltr h hx
+  | (intro Hc _; exfalso; first
+    | (rw [Hty] at Hc; exact absurd Hc (by w32_ne))
+    | (rcases Hty3 with h | h | h <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))
+    | (rcases Hty3 with h | h | h | h <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))
+    | (rcases Hty with ⟨h, -⟩ | ⟨h, -⟩ <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))
+    | (rcases Hty with h | h <;> rw [h] at Hc <;> exact absurd Hc (by w32_ne))
+    | (simp_all [Perennial.EtcdGrove.MsgAppResp, Perennial.EtcdGrove.MsgProp,
+        Perennial.EtcdGrove.MsgReadIndex, Perennial.EtcdGrove.MsgApp, Perennial.EtcdGrove.MsgHeartbeat])))
+
+set_option hygiene false in
 /-- (2026-10-22, D38a) `stepFollower`'s premise that a forwarded message (`MsgProp`, `MsgReadIndex`,
 `MsgTransferLeader`) has no responses, at a branch that steps another type: vacuous, by the branch's
 type hypothesis (as `notsnap_tac`). -/
@@ -433,7 +462,8 @@ stage U0). -/
 theorem PreCandStep.mk' {m : MessageM} {s s' : NState}
     (h1 : s'.role = .preCandidate → s'.term = s.term ∧
       ((s.role = .preCandidate ∧ PreKeep s s') ∨ (m.Type' = MsgHup ∧ HupFact s s')))
-    (h2 : SnapRoleBack s s' := by srb_tac) : PreCandStep m s s' := ⟨h1, h2⟩
+    (h2 : SnapRoleBack s s' := by srb_tac) (h3 : RoleUp m s s' := by ru_tac) :
+    PreCandStep m s s' := ⟨h1, h2, h3⟩
 
 /-- (2026-10-28, stage U0) What `hup` leaves (`HupGuard`), its log kept: a campaign checked that no
 snapshot is pending. -/
@@ -443,6 +473,21 @@ theorem HupGuard.snapRoleBack [GoGlobalContext] [GoSemanticsFunctions] {c : CfgM
   rcases h with ⟨-, rfl⟩ | ⟨⟨-, -, Hsn, -⟩, -⟩
   · exact ⟨h1, h2⟩
   · exact absurd (by rw [hl]; exact Hsn) h2
+
+/-- (2026-11-12, trace-check implementation step 3) `RoleUp` of a campaign by `hup` at `sb` (the start
+state `s`, or a step-down of it: its log, and a follower or `s`'s role), with the log facts of `s`. -/
+theorem HupGuard.roleUp [GoGlobalContext] [GoSemanticsFunctions] {c : CfgM} {id : w64} {m : MessageM}
+    {s sb s' : NState} (h : HupGuard c id sb s') (hl : s'.logst = sb.logst) (hb : sb.logst = s.logst)
+    (hr : sb.role = s.role ∨ sb.role = .follower) (hty : m.Type' = MsgHup ∨ m.Type' = MsgTimeoutNow)
+    (hlogf : (s.logst.snap = none → uint.Z s.logst.prev.index' ≤ uint.Z s.logst.applied) ∧
+      uint.Z s.logst.applied ≤ uint.Z s.logst.committed ∧ uint.Z s.logst.committed + 1 < 2 ^ 64) :
+    RoleUp m s s' := fun h1 h2 => by
+  rcases h with ⟨-, rfl⟩ | ⟨⟨-, -, Hsn, Hno⟩, -⟩
+  · rcases hr with hr | hr
+    · exact absurd (hr.trans h2) h1
+    · exact absurd hr h1
+  · rw [hb] at Hsn Hno
+    exact ⟨hty, hl.trans hb, Hsn, Hno, hlogf.1 Hsn, hlogf.2.1, hlogf.2.2⟩
 
 end u0
 

@@ -585,7 +585,7 @@ private theorem RNPv.step_xw [GoSemanticsFunctions] {rs rs' : RNState} {fp : Lis
     (hhup : m.Type' = MsgHup → uint.Z s.term + 1 ≤ uint.Z s.gh.tc) : RNPv rs' fp s' := by
   obtain ⟨H1, H2, -, H4, H5⟩ := H
   refine ⟨fun h => PreGuardF.pc hpc (H1 (hmd ▸ h)), by rw [htc, hgh]; exact H2,
-    by rw [hgh]; exact ht, fun h => ?_, H5.step hpc.2⟩
+    by rw [hgh]; exact ht, fun h => ?_, H5.step hpc.2.1⟩
   obtain ⟨Ht, Hor⟩ := hpc.1 h
   rw [hgh, Ht]
   rcases Hor with ⟨Hr, -⟩ | ⟨Hh, -⟩

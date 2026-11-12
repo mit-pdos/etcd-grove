@@ -549,6 +549,9 @@ theorem wp_stepLeader_transfer
     (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM) (ents : List EntryM)
     (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc) (dq dqe : DFrac) (cap : Bool)
     (Hty : m.Type' = MsgTransferLeader) (Hlead : s.role = .leader) (Htz : s.term ≠ W64 0)
+    -- (2026-11-12, trace-check implementation step 3, the design's §3.6 physical half) not at a
+    -- traced node (`raft.Step.spec`'s premise): `sendTimeoutNow`'s
+    (Htr : s.gh.tr = none)
     (G : List Msg → IProp GF) (Hidx : IdxFree s.gh.tr G) :
     -- (raft-final, 2026-10-29, U9: until then leader transfer on, `Hxo : s.gh.xf = false`)
     -- (Q8 stage 1, slice 8; until then the premise `s.gh.tr = none`) the two sends' gates, at the
@@ -726,7 +729,7 @@ theorem wp_stepLeader_transfer
     ihave Hphys := ownRaftPhysC_eq c r id _ { s with lt := m.From' } (by cases s; simp_all) $$ Hphys
     ispecialize Hgtnow $$ %s.outbox HG
     wp_apply wp_raft_sendTimeoutNow c r id { s with lt := m.From' } m.From' (G s.outbox) Hself
-      (by first | exact Htz | exact Hnz | simpa using Htz | simpa using Hnz | simp_all) $$ [$Hphys $Hgtnow]
+      (by first | exact Htz | exact Hnz | simpa using Htz | simpa using Hnz | simp_all) Htr $$ [$Hphys $Hgtnow]
       as ⟨Hphys, HG⟩
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
     wp_raft_logC
@@ -1123,7 +1126,7 @@ theorem wp_stepLeader_hbresp
             fun h => Hloc (Or.inr h), HcurT, rfl⟩))
           (fun h => by simp [readIndexRespMsg, MsgSnap] at h)
           (fun h => by simp [readIndexRespMsg, MsgApp] at h)
-        rfl (fun _ h => absurd h (by simp only [readIndexRespMsg]; decide)) $$ [$Hphys $Hresp HG]
+        rfl (fun _ => mtypeOf_send_eq (u := W32 16) rfl) $$ [$Hphys $Hresp HG]
         as ⟨Hphys, HG⟩
       · isplitr
         · iapply tsSrc_ne; exact (fun h => by simp [readIndexRespMsg, MsgSnap] at h)
@@ -1326,6 +1329,10 @@ theorem wp_stepLeader_appresp
     (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (Hty : m.Type' = MsgAppResp) (Hlead : s.role = .leader)
     (Hfrom0 : m.From' ≠ W64 0) (Hself : m.Reject' = true → m.From' ≠ id) (Hnz : s.term ≠ W64 0)
+    -- (2026-11-12, trace-check implementation step 3, the design's §3.6 physical half, S3) no
+    -- transfer in progress at a traced node: the `MsgTimeoutNow` branch (`From == leadTransferee`,
+    -- `From ≠ 0`) is not taken there
+    (Hltr : s.gh.tr ≠ none → s.lt = W64 0)
     (Hrdp : ∀ p ∈ s.rd.pend, p.2 ≠ [])
     -- (stage R8a) an accepted acknowledgement is within the log (`MaybeUpdate` keeps `PrvalsOk`)
     (Hidx : m.Reject' = false → uint.Z m.Index' ≤ uint.Z (logLast s.logst))
@@ -1886,6 +1893,16 @@ theorem wp_stepLeader_appresp
             ({ s with logst := { s.logst with committed := n }, rd := { s.rd with pend := [] } } : NState)
             (pendReqs { s with logst := { s.logst with committed := n } })
           rw [h]; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
+    -- (2026-11-12, implementation step 3) the transferee kept
+    have Hs2lt : s2.lt = s.lt := by
+      split at Hs2
+      · obtain ⟨-, rfl⟩ := Hs2; rfl
+      · rcases Hs2 with ⟨-, -, rfl⟩ | ⟨-, -, rfl⟩
+        · rfl
+        · obtain ⟨o, rd', h⟩ := readRespondAll_eq id
+            ({ s with logst := { s.logst with committed := n }, rd := { s.rd with pend := [] } } : NState)
+            (pendReqs { s with logst := { s.logst with committed := n } })
+          rw [h]
     have Hs2p : s2.progress = s.progress := Hs2f.1
     have Hs2r : s2.role = s.role := Hs2f.2.2.2.1
     have Hs2gh : s2.gh = s.gh := Hs2f.2.2.2.2.1
@@ -2030,7 +2047,16 @@ theorem wp_stepLeader_appresp
           wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
           wp_apply wp_raft_sendTimeoutNow c r id _ m.From'
               (Gc bc Nc ({ sendMsgs (sendMsgs s2 hb) (ms ++ ms') with prvals := pvs5 } : NState).outbox)
-              Hfid (by show s2.term ≠ W64 0; rw [Hs2f.2.1]; exact Hnz) $$ [$Hphys HGc] as ⟨Hphys, HGc⟩
+              Hfid (by show s2.term ≠ W64 0; rw [Hs2f.2.1]; exact Hnz)
+              (by
+                -- (implementation step 3) a traced node has no transferee, and `From ≠ 0`
+                show s2.gh.tr = none
+                rw [Hs2gh]
+                apply Classical.byContradiction
+                intro htr
+                have hlt := Hltr htr
+                have : m.From' = s.lt := by rw [Hft]; show s2.lt = s.lt; exact Hs2lt
+                exact Hfrom0 (this.trans hlt)) $$ [$Hphys HGc] as ⟨Hphys, HGc⟩
           · -- (slice 9) at no event
             iapply hookGateOpt_congr s.gh.tr _ r none none _ ?hg1 rfl
             case hg1 => exact (congrArg NGhost.tr Hs2gh).symm

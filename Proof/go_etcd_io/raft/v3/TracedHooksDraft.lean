@@ -252,7 +252,10 @@ abbrev raft.send.tracedSpec : Prop :=
   SnapOut id s m sn out →
   (m.Type' = MsgApp → AppShape ⟨m, ents, sn, ctx, rs⟩) →
   rs = [] →
-  (s.gh.tr.isSome → mtypeOf m.Type' ≠ some .snap) →
+  -- (2026-11-12, trace-check implementation step 3: `raft.send.spec`'s premise as strengthened there,
+  -- the design's §3.6 physical half; until then `mtypeOf m.Type' ≠ some .snap`) a type the model
+  -- describes, not a snapshot
+  (s.gh.tr.isSome → ∃ ty, mtypeOf m.Type' = some ty ∧ ty ≠ .snap) →
   (match (mtypeOf m.Type').bind sendEvt with
    | some evt => ∀ mm ∈ out, PhaseStep id c (SendEvOf evt id s c mm) Φ Φ'
    | none => ∀ C cs P, Φ C cs P → Φ' C cs P) →

@@ -327,10 +327,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 (`ownRaftPhysC_traceLogger`); traced, the capability's field (`rnTrace`), whose contract
 `TraceLoggerOkS` does not constrain. -/
 theorem ownRaftPhysC_traceLoggerS (γ : RaftNames) (c : CfgM) {V : GSet w64} (r : Loc) (id : w64)
-    (s : NState) :
-    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗ rnTrace γ r id c s -∗
+    {dl : List EntryM} (s : NState) :
+    ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗ rnTrace γ r id c dl s -∗
       ∃ tl : GoInterface, r.[raft, go!"traceLogger"] ↦□ tl ∗ ⌜TraceLoggerOkS s.gh.tr tl⌝ ∗
-        ownRaftPhysCV c V r id s ∗ rnTrace γ r id c s := by
+        ownRaftPhysCV c V r id s ∗ rnTrace γ r id c dl s := by
   cases htr : s.gh.tr with
   | none =>
     iintro Hphys Htr
@@ -343,7 +343,7 @@ theorem ownRaftPhysC_traceLoggerS (γ : RaftNames) (c : CfgM) {V : GSet w64} (r 
     iunfold rnTrace at Htr
     rw [htr]
     simp only []
-    icases Htr with ⟨%Hpv, #Hcq, #Hns, %b, Hcap⟩
+    icases Htr with ⟨%Hpv, %Hpure, #Hcq, #Hns, %b, %hb, Hcap⟩
     iunfold trCapB at Hcap
     icases Hcap with ⟨%tn, %C, %tl, %cs, %P, #Hdir, %Hpf, #Htl, Hrest⟩
     iexists tl
@@ -356,7 +356,11 @@ theorem ownRaftPhysC_traceLoggerS (γ : RaftNames) (c : CfgM) {V : GSet w64} (r 
     iframe Hcq Hns
     isplitr
     · ipureintro; exact Hpv
+    isplitr
+    · ipureintro; exact Hpure
     iexists b
+    isplitr
+    · ipureintro; exact hb
     iunfold trCapB
     iexists tn, C, tl, cs, P
     iframe Hdir Htl Hrest
@@ -364,11 +368,14 @@ theorem ownRaftPhysC_traceLoggerS (γ : RaftNames) (c : CfgM) {V : GSet w64} (r 
 
 /-- (2026-11-11, trace-check Q8 stage 1 slice 28n) **A message a `Ready` hands out, its token**
 (`RawNode.acceptReady.spec`'s post): nothing untraced; at a traced cluster the receiver's `recvTokOf`
-(the `Ready` line's, `trCap_fire_ready`), which the node API passes to the message's `Step`. -/
+(the `Ready` line's, `trCap_fire_ready`), which the node API passes to the message's `Step`.
+(2026-11-12, trace-check implementation step 3; design §3.6) And its type, one a traced node hands
+out (`TrSent`): the same body as `trTokR`'s, the escrow's slots' (`rnTrace`'s clause (b) on the
+outbox, `XfOk`'s traced clause on the untyped queued messages). -/
 def readyTok (γ : RaftNames) (st : MsgSt) : IProp GF :=
   match γ.reTrace with
   | none => iprop(True)
-  | some γd => recvTokOf γd st.msg st.ents st.ctx
+  | some γd => iprop(⌜TrSent st⌝ ∗ recvTokOf γd st.msg st.ents st.ctx)
 
 theorem readyToks_none {A : Type} (γ : RaftNames) (f : A → MsgSt) (l : List A) (h : γ.reTrace = none) :
     ⊢ [∗list] x ∈ l, readyTok (GF := GF) γ (f x) := by
@@ -379,6 +386,34 @@ theorem readyToks_none {A : Type} (γ : RaftNames) (f : A → MsgSt) (l : List A
     isplitr
     · unfold readyTok; rw [h]; itrivial
     · iapply ih
+
+/-- A pure fact of every element, out of a big separating conjunction. -/
+theorem bigSepL_pure_drop {A : Type} (φ : A → Prop) (P : A → IProp GF) :
+    ∀ (l : List A), ([∗list] x ∈ l, iprop(⌜φ x⌝ ∗ P x)) ⊢ [∗list] x ∈ l, P x := by
+  intro l
+  induction l with
+  | nil => iintro _; iapply BigSepL.bigSepL_nil.2; iempintro
+  | cons x l ih =>
+    iintro H
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨⟨-, Hx⟩, H⟩
+    iapply BigSepL.bigSepL_cons.2
+    iframe Hx
+    iapply ih $$ H
+
+/-- A pure fact of every element, into a big separating conjunction. -/
+theorem bigSepL_pure_and {A : Type} (φ : A → Prop) (P : A → IProp GF) :
+    ∀ (l : List A), (∀ x ∈ l, φ x) → ([∗list] x ∈ l, P x) ⊢ [∗list] x ∈ l, iprop(⌜φ x⌝ ∗ P x) := by
+  intro l
+  induction l with
+  | nil => intro _; iintro _; iapply BigSepL.bigSepL_nil.2; iempintro
+  | cons x l ih =>
+    intro hl
+    iintro H
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨Hx, H⟩
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [Hx]
+    · iframe Hx; ipureintro; exact hl x List.mem_cons_self
+    · iapply ih (fun y hy => hl y (List.mem_cons_of_mem _ hy)) $$ H
 
 /-- (U8 v2, 2026-10-29) **Raft's certified terms of the entries `L` at the indices `n+1, n+2, …`**
 (persistent; raft-final, 2026-10-29: moved here from `ApiVocab.lean`, internal): the key of `sn.gd` at each index is its entry's term (`raftDL`'s first reading). -/
@@ -1466,7 +1501,7 @@ def ownRawNodeReady (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : 
   "%Hglq" ∷ ⌜s.gh.lq = []⌝ ∗
   -- (2026-11-11, Q8 stage 1 slice 25n) as `ownRawNode`'s: the trace capability, idle at the state
   -- whose outbox the `Ready` hands out (its `Ready` line, in `acceptReady`, not yet logged)
-  "Hrntr" ∷ rnTrace γ rnv.raft' id cf s)
+  "Hrntr" ∷ rnTrace γ rnv.raft' id cf rs.delivered s)
 
 /-- (D22 S-d3a) `loanCom` with no loan. -/
 theorem loanCom_none (γ : RaftNames) {o : Option SnapLoan} (h : o = none) :
@@ -2630,7 +2665,7 @@ def ownRawNodeIdle (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp
   -- pops what it pushes), which the queue-draining closures need (`ownRaftPhysC_view`'s `LqOk`)
   "%Hglq" ∷ ⌜s.gh.lq = []⌝ ∗
   -- (2026-11-11, Q8 stage 1 slice 25n) as `ownRawNode`'s: the trace capability
-  "Hrntr" ∷ rnTrace γ rnv.raft' id cf s)
+  "Hrntr" ∷ rnTrace γ rnv.raft' id cf rs.delivered s)
 
 theorem ownRawNodeIdle_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
     (s : NState) (c : CfgM) (fp : List EntryM) {ds : DecMap} (rnv : RawNode) (sv : SoftState)
@@ -2661,7 +2696,7 @@ theorem ownRawNodeIdle_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
       loanCom γ rs.slent -∗
       snapLocOk γ id s.logst.snap -∗
       durTie γ rs s -∗
-      rnTrace γ rnv.raft' id c s -∗
+      rnTrace γ rnv.raft' id c rs.delivered s -∗
       ownRawNodeIdle γ rn id rs := by
   iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs #Hloanc #Hsloc #Hdur Hrntr
   unfold ownRawNodeIdle

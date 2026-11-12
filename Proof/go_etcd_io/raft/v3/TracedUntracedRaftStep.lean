@@ -388,6 +388,7 @@ theorem raft.Step.untraced (h : raft.Step.spec (GF := GF) (hG := hG)) :
     (fun _ => iprop(emp)) Hsm Hhup Hvote Hvoteresp Hprevote Hprevoteresp
     Happ Hhb Happresp Hhbresp Hsnapt Hbeat Hprop Hsar Hsapr Hri Hrir Hrest Hwf Hpre Hnsx
     (fun _ => htr) (fun _ _ => htr) (fun _ _ _ => htr) (fun _ h => absurd htr h)
+    (fun _ => htr) (fun _ h => absurd htr h)
     $$ [Hphys Hghost Hm Hcred Hlc Hgates]
   · rw [hgi]
     unfold untracedR

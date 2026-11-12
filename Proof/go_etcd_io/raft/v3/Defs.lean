@@ -162,6 +162,19 @@ theorem mtypeOf_MsgSnap : mtypeOf MsgSnap = some .snap := rfl
 theorem mtypeOf_MsgProp : mtypeOf MsgProp = some .propose := rfl
 theorem mtypeOf_MsgPreVoteResp : mtypeOf MsgPreVoteResp = some .preVoteResp := rfl
 
+/-- (2026-11-12, trace-check implementation step 3) **What `raft.send.spec` takes of a traced node's
+message** (the design's §3.6 physical half): a type the model describes, not a snapshot. -/
+theorem mtypeOf_send_of {t : w32} (h : mtypeOf t ≠ none) (h2 : mtypeOf t ≠ some .snap) :
+    ∃ ty, mtypeOf t = some ty ∧ ty ≠ .snap := by
+  cases e : mtypeOf t with
+  | none => exact absurd e h
+  | some ty => exact ⟨ty, rfl, fun h' => h2 (by rw [e, h'])⟩
+
+/-- `mtypeOf_send_of` at a message whose type is a constant `u` (decided). -/
+theorem mtypeOf_send_eq {t u : w32} (h : t = u) (h1 : mtypeOf u ≠ none := by decide)
+    (h2 : mtypeOf u ≠ some .snap := by decide) : ∃ ty, mtypeOf t = some ty ∧ ty ≠ .snap :=
+  h ▸ mtypeOf_send_of h1 h2
+
 /-- Only `MsgSnap` is abstracted as a `snap`. -/
 theorem mtypeOf_Snap (t : w32) (H : mtypeOf t = some .snap) : t = MsgSnap := by
   unfold mtypeOf at H

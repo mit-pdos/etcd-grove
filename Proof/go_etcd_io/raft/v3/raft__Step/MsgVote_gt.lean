@@ -241,7 +241,7 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     wp_apply _P.send c r id s1 «$a0_ptr» resp [] none [] [] _ (R.GE (sendMsgs s1 [Msg.plain .voteResp id m.From' s1.term true]).outbox) (.inl rfl) Hok
       (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
       (fun h => absurd h (by show MsgVoteResp ≠ MsgApp; w32_ne)) rfl
-      (fun _ h => absurd (mtypeOf_Snap _ h) (by show MsgVoteResp ≠ MsgSnap; w32_ne))
+      (fun _ => ⟨_, rfl, by decide⟩)
       $$ [$Hphys $Hresp Hgv] as ⟨Hphys, HG⟩
     · isplitr
       · iapply tsSrc_ne; exact (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
@@ -297,7 +297,7 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     wp_apply _P.send c r id s1 «$a0_ptr» resp [] none [] [] _ (R.GE (sendMsgs s1 [Msg.plain .voteResp id m.From' m.Term' false]).outbox) (.inl rfl) Hok
       (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
       (fun h => absurd h (by show MsgVoteResp ≠ MsgApp; w32_ne)) rfl
-      (fun _ h => absurd (mtypeOf_Snap _ h) (by show MsgVoteResp ≠ MsgSnap; w32_ne))
+      (fun _ => ⟨_, rfl, by decide⟩)
       $$ [$Hphys $Hresp Hgv] as ⟨Hphys, HG⟩
     · isplitr
       · iapply tsSrc_ne; exact (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
@@ -321,6 +321,7 @@ theorem wp_Step_MsgVote_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       Hwf1, ⟨[absMsg .vote m ents] ++ [absMsg .vote m ents], ?_, ?_⟩, rfl,
       stepdown_frame' (by rw [Hty]; w32_ne) Hgt0 Hs1 rfl rfl rfl rfl
         (.mk' (fun h => absurd h (by subst Hs1; simp [sendMsgs, becomeFollower]))
+          (fun h1 _ => (h1 (by subst Hs1; simp [sendMsgs, becomeFollower])).elim)
           (fun h1 _ => (h1 (by subst Hs1; simp [sendMsgs, becomeFollower])).elim))⟩
     · intro m' Hm'; simpa using Hm'
     · refine StepCD.frame ?_ (by subst Hs1; exact ⟨rfl, rfl, fun h => absurd h (by simp [becomeFollower])⟩)

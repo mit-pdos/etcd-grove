@@ -133,7 +133,7 @@ theorem wp_Step_MsgHeartbeat_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
       %(.inl ⟨rfl, by first | exact .inl Hcq | exact .inr Hpv, .inl Hty, rfl⟩) HG
     wp_apply _P.send c r id s «$a0_ptr» ack [] none [] [] _ (R.GE (s.outbox ++ [absMsgFrom .appResp ack id s.term []])) (Or.inl rfl) Hok
       (fun h => absurd h (by simp only [ack]; w32_ne)) (fun h => absurd h (by simp only [ack]; w32_ne))
-      rfl (fun _ h => absurd (mtypeOf_Snap _ h) (by simp only [ack]; w32_ne)) $$ [$Hphys $Hack Hgl] as ⟨Hphys, HG⟩
+      rfl (fun _ => ⟨_, rfl, by decide⟩) $$ [$Hphys $Hack Hgl] as ⟨Hphys, HG⟩
     · isplitr
       · iapply tsSrc_ne; exact (fun h => absurd h (by simp only [ack]; w32_ne))
       · rw [show ack.Type' = MsgAppResp from rfl]; iexact Hgl

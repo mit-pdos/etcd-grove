@@ -16,6 +16,8 @@ Lean proof (`Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/Probe
 corrections, P1-P5, in the section below.
 Implementation step 1 (2026-11-12): branch `trace-check-impl1`; what threading changed, I1-I9, in the
 first section below (I9: `storBnd`'s gate left for a decision).
+Implementation step 3 (2026-11-12): branch `trace-check-impl3`; what the clauses and the physical half
+changed, J1-J5, in the first section below.
 
 Reading order: §1 is the only part the user reviews (settled: Q32 and Q38 decided by the user). §2-§6
 are the agent's (intermediate statements, recorded per "The gates, delegated"). §7 is the whole chain
@@ -109,6 +111,50 @@ Client-visible: no `Spec/` statement changes; `interface/` changes in raft's imp
 `Protocol.Refinement`'s `ownRaftGhost_step_propose`), each a gated addition. Review: one fresh
 `spec-reviewer` round (2026-11-12), no first-tier finding; its S1-S6 folded in here (S3: the older
 text below marked superseded).
+
+## Implementation step 3 (2026-11-12): what the Lean changed
+
+Branch `trace-check-impl3`, from `trace-check` at `fcc535af34` (§9's step 3; `notes/decisions.md`,
+"Implementation step 3 (rnTrace's clauses)"). Done, no `sorry`, no axiom: `rnTrace`'s clauses (a), (b),
+(c), (d); (e) as a lemma; `readyTok`'s `TrSent` body; the physical half; every triple they re-open. Not
+done: nothing of step 3 but what depends on G3 (a), which no step-3 triple reads (1(d) is only framed
+here). The statements as written, and where they depart from the text above:
+
+- **J1 (the clauses' form).** `rnTrace γ r id c dl s` takes the delivered log `dl` (`rs.delivered`) for
+  (a); traced, it is `⌜prevote off ∧ no learners⌝ ∗ ⌜RnTrPure γ c s⌝ ∗ cq ∗ TrNoSnap ∗ ∃ b, ⌜dl ≠ [] → b =
+  true⌝ ∗ trCapB … b …`, with `RnTrPure γ c s := TrScope s ∧ (∀ m ∈ s.outbox, TrOutMsg m) ∧
+  c.autoLeave = false ∧ RnTrBoot γ s` ((b), (d), (c)) (`InvRawnode.lean`). Kept by a step through
+  `RnTrPure.step` (the step's `OutTyStep`, the configuration kept) and `RnTrBoot.step`; (a) through the
+  bundle's monotone flag; the `Ready` line (`rnTrace_fireReady`) sets the flag, so (a) holds at any new
+  `dl`.
+- **J2 ((e) is not a clause).** `applied ≤ capplied` in the dynamic mode is `RInv.applied_cidx` of the
+  ghost state (the ghost part's `cidx` is `rs.capplied`), true at every state:
+  `ownStepGhost_applied_capplied` (`InvRawnode.lean`). No triple needs to keep it.
+- **J3 ((c): the design's argument needs a role-step fact no post had).** §3.3 says (c) is kept "by
+  `hup`" through `StepEnd`'s `HupGuard`; but no traced triple's post exposes `StepEnd`, and nothing in
+  them excludes a follower becoming a leader in one step, or relates a candidate's campaign to the
+  guard. Fix: `raft.Step.spec`'s `PreCandStep` (inside `TermStep`) gains a third conjunct `RoleUp m s s'
+  := s'.role ≠ .follower → s.role = .follower → (m is MsgHup ∨ MsgTimeoutNow) ∧ HupFact s s'` (a
+  campaign's: in raft v3.7 the candidate's own vote is a queued self-addressed response, so no step
+  makes a follower a leader), proved in every `raft.Step` branch (the tactic `ru_tac` in `pc_tac`;
+  `hup`'s branch from `HupGuard`), and `TickStep` the message-free `∃ s0, HupFact s0 s'` (the heartbeat
+  tick composes its two steps). `RnTrBoot γ s := (∀ e ∈ γ.reBoot, IsConfEnt e) ∧ (role ≠ follower →
+  |γ.reBoot| ≤ applied)`: the first conjunct is the fact lemma (i) reads of the cluster (its three
+  `AddNode`s), carried with the capability rather than re-derived; kept through `RoleUp` and lemma (i)
+  at the end state's log (`ownStepGhost_bootPrefix`, `ownStepGhost_bootCommit`, `trNoSnap_prev0`).
+- **J4 (the physical half, as designed).** `XfOk`'s fifth conjunct `s.gh.tr.isSome → ∀ q ∈ l, mtypeOf
+  q.st.msg.Type' ≠ none` (`XfOk.typed`); `raft.send.spec`'s traced premise `s.gh.tr ≠ none → ∃ ty,
+  mtypeOf m.Type' = some ty ∧ ty ≠ .snap` (`mtypeOf_send_eq`, `mtypeOf_send_of` discharge it);
+  `raft.sendTimeoutNow.spec` takes `s.gh.tr = none`; `raft.Step.spec`, `stepLeader.spec` take
+  `m.Type' = MsgTransferLeader → s.gh.tr = none` and `m.Type' = MsgAppResp → s.gh.tr ≠ none → s.lt =
+  W64 0`, `stepFollower.spec` the first (each as its last premises, so every call site appends them);
+  `raft.Step.tracedTriple` gains `m.Type' = MsgAppResp → s.lt = W64 0`. The Draft's (frozen, unused)
+  `raft.send.tracedSpec` premise is strengthened the same way, so that `raft.send.tracedSpec_of_spec`
+  stays proved.
+- **J5 (`readyTok`'s body).** Traced, `⌜TrSent st⌝ ∗ recvTokOf …`, `trTokR`'s body
+  (`readyTok_trTokR` is now `⊣⊢`); `rnTrace_fireReady` proves `TrSent` of every queued message from
+  `outboxRelP`, clause (b) and `XfOk.typed` (`outboxRelP_trSent`); it takes the scope's fields kept and
+  the role and `applied` kept.
 
 ## Implementation step 2 (2026-11-12): what the Lean changed
 
@@ -1934,6 +1980,8 @@ proved theorem before its facts.** Each landing passes the acceptance test (`not
 3. **`rnTrace`'s clauses 1(a)-(e), `readyTok`'s `TrSent` body and the physical half, one landing**
    (revision 3, N3: the physical half moved here whole, §3.6, since `sendTimeoutNow`'s `send` makes its
    premises need `lt = 0`, which only 1(b) supplies):
+   (Done 2026-11-12 on `trace-check-impl3`, with (e) a lemma and (c) through a new `RoleUp` conjunct of
+   `raft.Step.spec`'s `PreCandStep`: "Implementation step 3" at the top.)
    - the physical half: `raft.send.spec`'s premise, `raft.sendTimeoutNow.spec`'s, `raft.Step.spec`'s
      `MsgTransferLeader` premise and its `MsgAppResp → s.gh.tr ≠ none → s.lt = W64 0` (S3),
      `stepLeader.spec`/`stepFollower.spec`, `XfOk`'s clause (`InvRaftPhys.lean`); every caller of

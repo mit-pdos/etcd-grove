@@ -236,6 +236,10 @@ abbrev stepFollower.spec : Prop :=
   PermInv G' →
   -- ... and `G` ignoring it untraced (a snapshot, untraced only, is handled through no gate)
   IdxFree s.gh.tr G →
+  -- (2026-11-12, trace-check implementation step 3, the design's §3.6 physical half) a traced node
+  -- forwards no transfer request (a type the model does not describe, which `send` takes only
+  -- untraced): `raft.Step.spec`'s premise
+  (m.Type' = MsgTransferLeader → s.gh.tr = none) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- (stage R4) the message, as `Step` received it (its `Context` holding `cl`: what a

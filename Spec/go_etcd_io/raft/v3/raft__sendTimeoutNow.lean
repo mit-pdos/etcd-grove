@@ -37,6 +37,10 @@ abbrev raft.sendTimeoutNow.spec : Prop :=
   to ≠ id →
   -- (2026-10-29, stage U7) the term past `0` that `send` stamps (`SentMsgShape`)
   s.term ≠ W64 0 →
+  -- (2026-11-12, trace-check implementation step 3, the design's §3.6 physical half) not at a traced
+  -- node: `MsgTimeoutNow` has no abstraction, and `raft.send.spec` takes none there (a traced node
+  -- steps no transfer, `raft.Step.spec`'s premises)
+  s.gh.tr = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
       -- (2026-11-09, Q8 stage 1 slice 5) `send`'s hook's gate, at no event
       HookGateOpt s.gh.tr r none Q }}

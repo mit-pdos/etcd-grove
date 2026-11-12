@@ -236,7 +236,7 @@ theorem raft.sendTimeoutNow.untraced (h : raft.sendTimeoutNow.spec (GF := GF) (h
   intro c r id s to Hto Htz htr
   iintro %Φ ⟨#Hpkg, Hphys⟩ HΦ
   icases ownRaftPhysC_traceLogger c r id s htr $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
-  iapply h c r id s to iprop(emp) Hto Htz $$ [Hphys]
+  iapply h c r id s to iprop(emp) Hto Htz htr $$ [Hphys]
   · iframe Hpkg Hphys
     rw [htr]
     iapply hookGateOpt_none r _ tl iprop(emp) Htlok

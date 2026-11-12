@@ -102,7 +102,7 @@ theorem raft.sendHeartbeat.wp_proof
   ihave Hgate := Hgate $$ %cm %Hcmeq
   wp_apply wp_raft_send c r id s «$a0_ptr» _ [] none cl [] _ (Q cm) (Or.inl rfl) Hok
     (fun h => absurd h (by simp [MsgSnap]))
-      (fun h => absurd h (by simp [MsgApp])) rfl (fun _ h => absurd h (by simp only; decide))
+      (fun h => absurd h (by simp [MsgApp])) rfl (fun _ => mtypeOf_send_eq (u := W32 8) rfl)
       $$ [$Hphys $Hm Hgate] as ⟨Hphys, HQ⟩
   · isplitr
     · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))

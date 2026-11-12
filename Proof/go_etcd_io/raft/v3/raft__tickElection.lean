@@ -119,7 +119,7 @@ theorem raft.tickElection.wp_proof
       (fun h => absurd h (by msg_ne))
       (fun h => absurd h (by msg_ne)) (fun h => absurd h (by msg_ne)) (fun h => absurd h (by msg_ne))
       (fun h => absurd h (by msg_ne))
-    $$ [$Hphys $Hghost $Hlc1 Hcr Hmsg $HG $Hgates $Hclose]
+    (fun h => absurd h (by msg_ne)) (fun h => absurd h (by msg_ne)) $$ [$Hphys $Hghost $Hlc1 Hcr Hmsg $HG $Hgates $Hclose]
   · simp only [hP, ↓reduceIte, named]
     ihave Hmsg := msgIn_of_msgPtsC_cap _ _ _ $$ Hmsg
     isplitr
@@ -154,7 +154,8 @@ theorem raft.tickElection.wp_proof
       have Htm' := Htm (by msg_ne)
       obtain ⟨Ht1, Ht2, -, Hi, -, Hpc'⟩ := Htm (by msg_ne)
       exact ⟨Hfr (by msg_ne) (by msg_ne) (by msg_ne) (fun h => absurd h (by msg_ne)), Ht1, Ht2 rfl, Hi (by msg_ne),
-        fun h => (Hpc'.1 h).1, fun _ hg => PreGuardF.step Htm' hg, Hpc'.2⟩
+        fun h => (Hpc'.1 h).1, fun _ hg => PreGuardF.step Htm' hg, Hpc'.2.1,
+        fun h1 h2 => ⟨s, (Hpc'.2.2 h1 h2).2⟩⟩
     iright; iexact HG
   · exfalso; revert Hc''; msg_ne
 

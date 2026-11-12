@@ -245,7 +245,7 @@ theorem app_frame {id : w64} {m : MessageM} {ents : List EntryM}
   obtain ⟨Hf, Ht⟩ := frame_handle_app id t m ents s' Hres
   refine ⟨Hft.trans Hf, by rw [Ht]; exact H1, fun h => ?_, fun _ _ _ => by rw [Ht]; exact H2,
     fun h => absurd Happ h, fun h => ?_,
-    fun h => absurd ((handle_app_role Hres).symm.trans h) Htr, fun h1 h2 => ?_⟩
+    fun h => absurd ((handle_app_role Hres).symm.trans h) Htr, fun h1 h2 => ?_, fun h1 h2 => ?_⟩
   · rw [Happ] at h; exact absurd h (by w32_ne)
   · rw [Happ] at h; exact absurd h (by w32_ne)
   · -- (U0) the role is the handler's state's, the pending snapshot kept
@@ -254,6 +254,12 @@ theorem app_frame {id : w64} {m : MessageM} {ents : List EntryM}
     rcases Hrt with h | h
     · exact absurd (Hr'.trans h) h1
     · exact ⟨by rw [← h, ← Hr']; exact h1, by rw [← Hs']; exact h2⟩
+  · -- (2026-11-12, implementation step 3) `RoleUp`: a follower afterwards, or the role kept
+    exfalso
+    have Hr' := handle_app_role Hres
+    rcases Hrt with h | h
+    · exact h1 (Hr'.trans h)
+    · exact h1 ((Hr'.trans h).trans h2)
 
 theorem nstateWf_heartbeatResult (id : w64) (t : NState) (m : MessageM)
     (cl : List w8 := []) :
@@ -527,7 +533,7 @@ theorem SnapStep.of_handle {id : w64} {m : MessageM} {s t s' : NState} {sv : Sna
     (Hr : t.role = .follower) (H : HandleSnapResult id t m sv cl s') : SnapStep m s s' := by
   unfold HandleSnapResult at H
   rcases H with ⟨-, rfl⟩ | ⟨-, -, -, rfl⟩ | ⟨-, -, -, rfl⟩ <;>
-    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ⟨fun h => ?_, fun h _ => ?_⟩⟩ <;>
+    refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ⟨fun h => ?_, fun h _ => ?_, fun h _ => ?_⟩⟩ <;>
     simp only [sendMsgs, logRestore] at * <;>
     first
     | (rw [Hr] at h; cases h)

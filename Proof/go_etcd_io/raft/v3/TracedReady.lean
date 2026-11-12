@@ -40,14 +40,94 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The capability, open at a traced node** (`TracedRawNode.lean`'s `rnTrace_some`, which imports
 this module's importers). -/
-theorem rnTrace_traced (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (s : NState) (γd : GName)
-    (h : s.gh.tr = some γd) :
-    rnTrace (GF := GF) γ r id c s ⊣⊢
-      ⌜s.prevote = false ∧ c.learners = ∅⌝ ∗ r.[raft, go!"checkQuorum"] ↦□ false ∗
-        TrNoSnap (some γd) s.logst ∗ ∃ b : Bool, trCapB (some γd) γ r id c b (fun C => SimIdle C s) := by
+theorem rnTrace_traced (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (dl : List EntryM) (s : NState)
+    (γd : GName) (h : s.gh.tr = some γd) :
+    rnTrace (GF := GF) γ r id c dl s ⊣⊢
+      ⌜s.prevote = false ∧ c.learners = ∅⌝ ∗ ⌜RnTrPure γ c s⌝ ∗ r.[raft, go!"checkQuorum"] ↦□ false ∗
+        TrNoSnap (some γd) s.logst ∗ ∃ b : Bool, ⌜dl ≠ [] → b = true⌝ ∗
+          trCapB (some γd) γ r id c b (fun C => SimIdle C s) := by
   unfold rnTrace
   rw [h]
   exact .rfl
+
+/-! ### The handed-out messages' types (2026-11-12, trace-check implementation step 3; design §3.6) -/
+
+section types
+omit [GooseSemantics] [GooseInterp] go_gctx [StorageModel GF] sem package_sem
+
+theorem mtypeOf_eq_app {t : w32} (H : mtypeOf t = some .app) : t = MsgApp := by
+  unfold mtypeOf at H; split at H <;> simp_all; rename_i h; exact uint_Z_inj.1 (by rw [h]; rfl)
+theorem mtypeOf_eq_appResp {t : w32} (H : mtypeOf t = some .appResp) : t = MsgAppResp := by
+  unfold mtypeOf at H; split at H <;> simp_all; rename_i h; exact uint_Z_inj.1 (by rw [h]; rfl)
+theorem mtypeOf_eq_vote {t : w32} (H : mtypeOf t = some .vote) : t = MsgVote := by
+  unfold mtypeOf at H; split at H <;> simp_all; rename_i h; exact uint_Z_inj.1 (by rw [h]; rfl)
+theorem mtypeOf_eq_voteResp {t : w32} (H : mtypeOf t = some .voteResp) : t = MsgVoteResp := by
+  unfold mtypeOf at H; split at H <;> simp_all; rename_i h; exact uint_Z_inj.1 (by rw [h]; rfl)
+theorem mtypeOf_eq_heartbeat {t : w32} (H : mtypeOf t = some .heartbeat) : t = MsgHeartbeat := by
+  unfold mtypeOf at H; split at H <;> simp_all; rename_i h; exact uint_Z_inj.1 (by rw [h]; rfl)
+theorem mtypeOf_eq_heartbeatResp {t : w32} (H : mtypeOf t = some .heartbeatResp) :
+    t = MsgHeartbeatResp := by
+  unfold mtypeOf at H; split at H <;> simp_all; rename_i h; exact uint_Z_inj.1 (by rw [h]; rfl)
+theorem mtypeOf_eq_propose {t : w32} (H : mtypeOf t = some .propose) : t = MsgProp := by
+  unfold mtypeOf at H; split at H <;> simp_all; rename_i h; exact uint_Z_inj.1 (by rw [h]; rfl)
+
+/-- A described type the trace logs is a traced network type. -/
+theorem mtypeOf_traced_trNetTy {t : w32} {ty : MsgType} (h : mtypeOf t = some ty)
+    (ht : ty.traced = true) : TrNetTy t := by
+  unfold TrNetTy
+  cases ty <;> simp [MsgType.traced] at ht <;> first
+  | exact .inl (mtypeOf_eq_app h)
+  | exact .inr (.inl (mtypeOf_eq_appResp h))
+  | exact .inr (.inr (.inl (mtypeOf_eq_vote h)))
+  | exact .inr (.inr (.inr (.inl (mtypeOf_eq_voteResp h))))
+  | exact .inr (.inr (.inr (.inr (.inl (mtypeOf_eq_heartbeat h)))))
+  | exact .inr (.inr (.inr (.inr (.inr (mtypeOf_eq_heartbeatResp h)))))
+
+/-- **A queued message's type, from its abstraction**: of a described type (`XfOk`'s traced clause),
+its abstraction (if any) a `TrOutMsg` (`rnTrace`'s clause (b) on the outbox): a type a traced node
+hands out (`TrSent`). -/
+theorem trSent_of_abs {st : MsgSt} {a : Option Msg} (ha : msgAbs st a)
+    (hty : mtypeOf st.msg.Type' ≠ none) (hx : ∀ x, a = some x → TrOutMsg x) : TrSent st := by
+  rcases ha with ⟨h1, -⟩ | ⟨ty, h1, -, rfl⟩ | ⟨sv, h1, -, rfl⟩
+  · exact absurd h1 hty
+  · rcases hx _ rfl with h | ⟨h, hents⟩
+    · simp only [absMsg, absMsgFrom] at h
+      exact .inl (mtypeOf_traced_trNetTy h1 h)
+    · simp only [absMsg, absMsgFrom] at h hents
+      subst h
+      exact .inr ⟨mtypeOf_eq_propose h1, fun e he => hents e he⟩
+  · rcases hx _ rfl with h | ⟨h, -⟩ <;> simp [absSnap, absSnapFrom, MsgType.traced] at h
+
+theorem forall₂_msgAbs_mem {ms : List QMsg} {as_ : List (Option Msg)}
+    (h : List.Forall₂ (fun q a => msgAbs q.st a) ms as_) : ∀ q ∈ ms, ∃ a ∈ as_, msgAbs q.st a := by
+  induction h with
+  | nil => intro q hq; cases hq
+  | cons hqa _ ih =>
+    intro q hq
+    rcases List.mem_cons.1 hq with rfl | hq
+    · exact ⟨_, List.mem_cons_self, hqa⟩
+    · obtain ⟨a, ha, h⟩ := ih q hq
+      exact ⟨a, List.mem_cons_of_mem _ ha, h⟩
+
+/-- **Every queued message a type a traced node hands out** (`TrSent`), from the queues' relation to
+the outbox, the outbox's `TrOutMsg`s and the queued messages' described types. -/
+theorem outboxRelP_trSent {o : List Msg} {ms1 ms2 : List QMsg} (h : outboxRelP o ms1 ms2)
+    (hout : ∀ m ∈ o, TrOutMsg m) (hty : ∀ q ∈ ms1 ++ ms2, mtypeOf q.st.msg.Type' ≠ none) :
+    ∀ q ∈ ms1 ++ ms2, TrSent q.st := by
+  obtain ⟨as1, as2, hp, h1, h2⟩ := h
+  intro q hq
+  have key : ∃ a, msgAbs q.st a ∧ ∀ x, a = some x → x ∈ o := by
+    rcases List.mem_append.1 hq with hq' | hq'
+    · obtain ⟨a, ha, hab⟩ := forall₂_msgAbs_mem h1 q hq'
+      refine ⟨a, hab, fun x hx => hp.mem_iff.2 (List.mem_append_left _ ?_)⟩
+      exact List.mem_filterMap.2 ⟨a, ha, by rw [hx]; rfl⟩
+    · obtain ⟨a, ha, hab⟩ := forall₂_msgAbs_mem h2 q hq'
+      refine ⟨a, hab, fun x hx => hp.mem_iff.2 (List.mem_append_right _ ?_)⟩
+      exact List.mem_filterMap.2 ⟨a, ha, by rw [hx]; rfl⟩
+  obtain ⟨a, ha, hin⟩ := key
+  exact trSent_of_abs ha (hty q hq) (fun x hx => hout x (hin x hx))
+
+end types
 
 /-- **The node's numbers from raft's ghost state, when a condition holds** (`ownRaftGhost_traceBound`
 under `P`: a traced cluster, whose receipts fit the trace's bound). -/
@@ -90,7 +170,8 @@ theorem phaseStepReady_idle (id : w64) (c : CfgM) (s s' : NState) (r' : RdState)
 /-- **The `Ready` line's gate, in either mode** (see the file header). `tl` is the struct's logger
 field (`ownRaftPhysReady`'s `Hf_traceLogger`, at its mode's contract); `hb` the event's numbers
 within the trace's bound at a traced node. -/
-theorem rnTrace_fireReady (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (s s' : NState) (r' : RdState)
+theorem rnTrace_fireReady (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) {dl dl' : List EntryM}
+    (s s' : NState) (r' : RdState)
     (ms1 ms2 : List QMsg) (tl : GoInterface)
     (hg : s.gh.tr = γ.reTrace) (htr : s'.gh.tr = s.gh.tr) (hpv : s'.prevote = s.prevote)
     (hp : s'.logst.prev = s.logst.prev) (hst : s'.logst.storage = s.logst.storage)
@@ -98,10 +179,15 @@ theorem rnTrace_fireReady (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (s s'
     (ht : s'.term = s.term) (hc : s'.logst.committed = s.logst.committed)
     (hrel : outboxRelP s.outbox ms1 ms2)
     (hb : s.gh.tr ≠ none → uint.nat s'.term < traceNumBound ∧
-      uint.nat s'.logst.committed < traceNumBound ∧ uint.nat (plastIndex (toPState s')) < traceNumBound) :
-    ⊢ r.[raft, go!"traceLogger"] ↦□ tl -∗ ⌜TraceLoggerOkS s.gh.tr tl⌝ -∗ rnTrace (GF := GF) γ r id c s -∗
+      uint.nat s'.logst.committed < traceNumBound ∧ uint.nat (plastIndex (toPState s')) < traceNumBound)
+    -- (2026-11-12, trace-check implementation step 3) the scope's fields kept (`rnTrace`'s (b)), and
+    -- every queued message of a described type (`XfOk`'s traced clause), for `readyTok`'s `TrSent`
+    (hlt : s'.lt = s.lt) (hro : s'.rd.ro.pending = s.rd.ro.pending) (hpd : s'.rd.pend = s.rd.pend)
+    (hrole : s'.role = s.role) (hap : s'.logst.applied = s.logst.applied)
+    (hxty : s.gh.tr.isSome → ∀ q ∈ ms1 ++ ms2, mtypeOf q.st.msg.Type' ≠ none) :
+    ⊢ r.[raft, go!"traceLogger"] ↦□ tl -∗ ⌜TraceLoggerOkS s.gh.tr tl⌝ -∗ rnTrace (GF := GF) γ r id c dl s -∗
       TraceFire s'.gh.tr tl (NodeEvOf (W64 8) id s' c)
-        iprop(rnTrace γ r id c s' ∗ [∗list] q ∈ ms1 ++ ms2, readyTok γ q.st) := by
+        iprop(rnTrace γ r id c dl' s' ∗ [∗list] q ∈ ms1 ++ ms2, readyTok γ q.st) := by
   rw [htr]
   cases htr0 : s.gh.tr with
   | none =>
@@ -110,13 +196,20 @@ theorem rnTrace_fireReady (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (s s'
     isplitr
     · ipureintro; exact Hok
     isplitr
-    · iapply rnTrace_none γ r id c s' (htr.trans htr0)
+    · iapply rnTrace_none γ r id c dl' s' (htr.trans htr0)
     · iapply readyToks_none γ QMsg.st (ms1 ++ ms2) (hg ▸ htr0)
   | some γd =>
     have hγ : γ.reTrace = some γd := hg ▸ htr0
     obtain ⟨hTn, hCn, hLn⟩ := hb (by rw [htr0]; exact Option.some_ne_none γd)
     iintro #Htl %- Htr
-    icases (rnTrace_traced γ r id c s γd htr0).1 $$ Htr with ⟨%Hpv, #Hcq, #Hns, %b, Hcap⟩
+    icases (rnTrace_traced γ r id c dl s γd htr0).1 $$ Htr with ⟨%Hpv, %Hpure, #Hcq, #Hns, %b, %-, Hcap⟩
+    have hsent : ∀ q ∈ ms1 ++ ms2, TrSent q.st :=
+      outboxRelP_trSent hrel Hpure.2.1 (hxty (by rw [htr0]; rfl))
+    have Hpure' : RnTrPure γ c s' := by
+      have ho : s'.outbox = [] := congrArg PState.outbox hps
+      refine ⟨⟨hlt.trans Hpure.1.1, hro.trans Hpure.1.2.1, hpd.trans Hpure.1.2.2⟩, ?_, Hpure.2.2.1,
+        Hpure.2.2.2.keep hrole (by rw [hap]; exact Int.le_refl _)⟩
+      rw [ho]; intro m hm; cases hm
     have hfire := trCap_fire_ready (GF := GF) γd γ r id c tl (NodeEvOf (W64 8) id s' c)
       (fun C => SimIdle C s) (fun C => SimIdle C s') (fun _ => True) (fun _ => True)
       (phaseStepReady_idle id c s s' r' hps ht hc) (fun _ _ => trivial)
@@ -131,17 +224,22 @@ theorem rnTrace_fireReady (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (s s'
       obtain ⟨cs, hcs⟩ := HP
       have hP : P = pendAbs tn.voters s.outbox := ((simIdle_iff _ s cs P).1 hcs).2
       isplitl [Hcap']
-      · iapply (rnTrace_traced γ r id c s' γd (htr.trans htr0)).2
+      · iapply (rnTrace_traced γ r id c dl' s' γd (htr.trans htr0)).2
         isplitr
         · ipureintro; rw [hpv]; exact Hpv
+        isplitr
+        · ipureintro; exact Hpure'
         iframe Hcq
         isplitr
         · unfold TrNoSnap; rw [hp, hst]; iexact Hns
         iexists true
+        isplitr
+        · ipureintro; exact fun _ => rfl
         iexact Hcap'
       · ihave H := readyToks_queues γd tn Bn P HB s.outbox ms1 ms2 hP hrel $$ Hdir Hbn
         simp only [readyTok, hγ]
-        iexact H
+        iapply bigSepL_pure_and (fun q : QMsg => TrSent q.st)
+          (fun q : QMsg => recvTokOf (GF := GF) γd q.st.msg q.st.ents q.st.ctx) _ hsent $$ H
     · iapply hfire
       iframe Htl
       iunfold trCap
@@ -165,7 +263,7 @@ theorem selfToks_of_readyToks (γ : RaftNames) :
       unfold readyTok selfTok
       cases γ.reTrace with
       | none => itrivial
-      | some γd => iExactEq Hq; rw [he, hx]
+      | some γd => icases Hq with ⟨-, Hq⟩; iExactEq Hq; rw [he, hx]
     · iapply ih (fun q' hq' => hl q' (List.mem_cons_of_mem _ hq')) $$ H
 
 /-- **The tokens of the queues, split** between the self-addressed messages `acceptReady` keeps for

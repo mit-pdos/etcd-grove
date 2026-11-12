@@ -76,7 +76,7 @@ theorem stepFollower.wp_proof
     (wp_GetData : raftpb.Entry.GetData.spec (GF := GF) (hG := hG)) :
     stepFollower.spec (GF := GF) (hG := hG) := by
   -- (Q8 stage 1, slice 8) the gated specs, each arm consuming its gates; a `MsgSnap` untraced
-  intro c scfg r id s ml m ents sn rs sv cl G G' Hty Hri Hstz Hprop Happ Hhb Hrest Hsnap Hnors Hpinv Hidx
+  intro c scfg r id s ml m ents sn rs sv cl G G' Hty Hri Hstz Hprop Happ Hhb Hrest Hsnap Hnors Hpinv Hidx Hxtr
   wp_start as H
   iNamed H
   ihave #Hinit := isInitialized_access $$ Hpkg
@@ -151,7 +151,7 @@ theorem stepFollower.wp_proof
           (fun h => by simp [Hty, MsgProp, MsgSnap] at h)
           (fun h => by simp [Hty, MsgProp, MsgApp] at h)
         (Hnors (.inl Hty))
-        (fun _ => by show mtypeOf m.Type' ≠ some .snap; rw [Hty]; decide) $$ [$Hphys $Hm $Hgs]
+        (fun _ => mtypeOf_send_eq Hty) $$ [$Hphys $Hm $Hgs]
         as ⟨Hphys, HG⟩
       · iapply tsSrc_ne; exact (fun h => by simp [Hty, MsgProp, MsgSnap] at h)
       iapply HΦ $$ %GoInterface.nil %_ %false %c
@@ -348,7 +348,7 @@ theorem stepFollower.wp_proof
           (fun h => by simp [Hty, MsgReadIndex, MsgSnap] at h)
           (fun h => by simp [Hty, MsgReadIndex, MsgApp] at h)
         (Hnors (.inr (.inl Hty)))
-        (fun _ => by show mtypeOf m.Type' ≠ some .snap; rw [Hty]; decide) $$ [$Hphys $Hm $Hgs]
+        (fun _ => mtypeOf_send_eq Hty) $$ [$Hphys $Hm $Hgs]
         as ⟨Hphys, HG⟩
       · iapply tsSrc_ne; exact (fun h => by simp [Hty, MsgReadIndex, MsgSnap] at h)
       iapply HΦ $$ %GoInterface.nil %_ %false %c
@@ -557,7 +557,7 @@ theorem stepFollower.wp_proof
           (fun h => by simp [Hty, MsgTransferLeader, MsgSnap] at h)
           (fun h => by simp [Hty, MsgTransferLeader, MsgApp] at h)
         (Hnors (.inr (.inr Hty)))
-        (fun _ => by show mtypeOf m.Type' ≠ some .snap; rw [Hty]; decide) $$ [$Hphys $Hm $Hgs]
+        (fun h => absurd (Hxtr Hty) h) $$ [$Hphys $Hm $Hgs]
         as ⟨Hphys, HG⟩
       · iapply tsSrc_ne; exact (fun h => by simp [Hty, MsgTransferLeader, MsgSnap] at h)
       ihave Hphys := ownRaftPhysC_unsend c r id s $$ Hphys

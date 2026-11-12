@@ -354,7 +354,7 @@ theorem raft.appendEntry.wp_proof
     ihave Hg := Hgack $$ HG1
     wp_apply wp_raft_send c r id s' «$a0_ptr» _ [] none [] [] [selfAck id s'] G2 (Or.inl rfl) ?_
       (fun h => absurd h (by simp [MsgSnap]))
-      (fun h => absurd h (by simp [MsgApp])) rfl (fun _ h => absurd h (by simp only; decide))
+      (fun h => absurd h (by simp [MsgApp])) rfl (fun _ => mtypeOf_send_eq (u := W32 4) rfl)
       $$ [$Hphys $Hr Hg] as ⟨Hphys, HG2⟩
     · refine Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, Hnz, fun _ => ⟨rfl, rfl, rfl⟩, ?_⟩)))
       unfold selfAck absMsgFrom

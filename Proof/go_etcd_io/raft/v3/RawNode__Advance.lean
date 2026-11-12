@@ -308,7 +308,7 @@ private theorem wp_step_pending
       refine ⟨Hwf', Hstp, by not_self, fun _ => by not_self, Hfr'.1, Hfr'.2.2.1, Hfr'.2.1, Htm.1, ?_,
         Hfr'.2.2.2.1, Hfr'.2.2.2.2.1, Hfr'.2.2.2.2.2.1, Hfr'.2.2.2.2.2.2.1, Hfr'.2.2.2.2.2.2.2.1, ?role,
         fun _ => PreGuardF.step Htm, Hfr'.2.2.2.2.2.2.2.2.1, Hfr'.2.2.2.2.2.2.2.2.2, (fun _ h => by cases h),
-        Htm.2.2.2.2.2.2, fun h => absurd h (by not_self), Htm.2.2.2.1 (by not_self)⟩
+        Htm.2.2.2.2.2.2.1, fun h => absurd h (by not_self), Htm.2.2.2.1 (by not_self)⟩
       case role =>
         intro h
         obtain ⟨Ht, Hor⟩ := Htm.2.2.2.2.2.1 h
@@ -394,7 +394,7 @@ private theorem wp_step_pending
         Hfr.2.2.2.2.2.2.1, Hfr.2.2.2.2.2.2.2.1, Hfr.2.2.2.2.2.2.2.2.1,
         fun h => ⟨by rw [← Hfr.2.2.2.2.2.2.2.2.2.1]; exact h, Hfr.1⟩,
         fun _ => PreGuardF.step (Hterm (by msg_ne)), Hfr.2.2.2.2.2.2.2.2.2.2.1, Hfr.2.2.2.2.2.2.2.2.2.2.2, (fun _ h => by cases h),
-        (Hterm (by msg_ne)).2.2.2.2.2.2, Hapa, Hfr.2.1⟩
+        (Hterm (by msg_ne)).2.2.2.2.2.2.1, Hapa, Hfr.2.1⟩
   | applyAck ce =>
     unfold pendingRel
     icases Hp with ⟨%Hm, -⟩
@@ -451,7 +451,7 @@ private theorem wp_step_pending
         fun h => ⟨by rw [← Hfr.2.2.2.2.2.2.2.2.2.1]; exact h, Hfr.1⟩,
         fun _ => PreGuardF.step (Hterm (by msg_ne)), Hfr.2.2.2.2.2.2.2.2.2.2.1, Hfr.2.2.2.2.2.2.2.2.2.2.2,
         fun ce' h => by injection h with h; subst h; exact Happ rfl,
-        (Hterm (by msg_ne)).2.2.2.2.2.2, fun h => absurd h (by msg_ne), Hfr.2.1⟩
+        (Hterm (by msg_ne)).2.2.2.2.2.2.1, fun h => absurd h (by msg_ne), Hfr.2.1⟩
 
 /-- (2026-10-28, stage U3c) The dynamic mode's invariant (`RInv`), read off the ghost state. -/
 private theorem ownStepGhost_rinv (γ : RaftNames) (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0)

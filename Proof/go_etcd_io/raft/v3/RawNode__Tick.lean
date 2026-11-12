@@ -55,7 +55,7 @@ theorem RawNode.Tick.wp_proof
         (by tr_none) $$ [$Hphys $Hghost] as %s' ⟨Hphys, Hghost, %Hwf', %Hcv, %Htk⟩
   all_goals (
     have Hc := Hcv.1
-    obtain ⟨⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩, Ht1, Ht2, Hip4, Htpc, Hgd, Hsrb⟩ := Htk
+    obtain ⟨⟨Ha, Hsn, Hu, Hpv, Hsd, Hsg, Hpre, Hgh, Hfl', Hap'⟩, Ht1, Ht2, Hip4, Htpc, Hgd, Hsrb, -⟩ := Htk
     icases ownRaftPhysC_sn cf rnv.raft' id s' $$ Hphys with ⟨%Hsn1, Hphys⟩
     ihave #Hstr' := ackInv_keep (rs' := rs) γ rfl Hstok Ht1 Hpv Hsn (logStoreRec_stored Hsd) Hip4 $$ Hstrecs
     iapply HΦ $$ %s'.term

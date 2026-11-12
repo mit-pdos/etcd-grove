@@ -97,6 +97,7 @@ public import Proof.go_etcd_io.raft.v3.Protocol.CommitWit
 public import Proof.go_etcd_io.raft.v3.Protocol.Term0
 -- (2026-11-11, trace-check Q8 stage 1 slice 26n) a self-addressed message's token (`selfTok`)
 public import Proof.go_etcd_io.raft.v3.TracedRecvTok
+public import Proof.go_etcd_io.raft.v3.TracedConfExcl
 
 @[expose] public section
 
@@ -891,7 +892,7 @@ theorem RNPv.step [GoGlobalContext] [GoSemanticsFunctions] {rs rs' : RNState} {f
     (hhup : m.Type' = MsgHup → uint.Z s.term + 1 ≤ uint.Z s.gh.tc) : RNPv rs' fp s' := by
   obtain ⟨H1, H2, -, H4, H5⟩ := H
   refine ⟨fun h => PreGuardF.pc hpc (H1 (hmd ▸ h)), by rw [htc, hgh]; exact H2,
-    by rw [hgh]; exact ht, fun h => ?_, H5.step hpc.2⟩
+    by rw [hgh]; exact ht, fun h => ?_, H5.step hpc.2.1⟩
   obtain ⟨Ht, Hor⟩ := hpc.1 h
   rw [hgh, Ht]
   rcases Hor with ⟨Hr, -⟩ | ⟨Hh, -⟩
@@ -2620,22 +2621,88 @@ theorem PhsOk.snapStep {rs rs' : RNState} {s s' : NState} {sv : SnapshotM} {m : 
     simp only [snapId] at this
     omega
 
+/-- (2026-11-12, trace-check implementation step 3; design §3.2 item 1 (c), §3.4) **The leader
+exclusion's clause**: the bootstrap log's entries are configuration entries (the traced cluster's
+three `AddNode`s; a fixed fact of the cluster, established with the capability), and a node that is no
+follower has applied the bootstrap log (`hup` campaigns only with no conf entry committed and not
+applied, lemma (i); `applied` never moves back). -/
+def RnTrBoot (γ : RaftNames) (s : NState) : Prop :=
+  (∀ e ∈ γ.reBoot, IsConfEnt e) ∧
+  (s.role ≠ .follower → (γ.reBoot.length : Int) ≤ uint.Z s.logst.applied)
+
+/-- The role kept and `applied` not back. -/
+theorem RnTrBoot.keep {γ : RaftNames} {s s' : NState} (h : RnTrBoot γ s) (hr : s'.role = s.role)
+    (ha : uint.Z s.logst.applied ≤ uint.Z s'.logst.applied) : RnTrBoot γ s' :=
+  ⟨h.1, fun h' => Int.le_trans (h.2 (hr ▸ h')) ha⟩
+
+/-- **Through a step** (`RoleUp`, `raft.Step.spec`'s `PreCandStep`; the ticks' `TickStep`): a
+follower that leaves the role does so by `hup`'s campaign, whose check (`HupFact`: no conf entry
+committed and not applied, at the end state's log) at a log starting with the bootstrap log, committed
+past it, puts `applied` past it (lemma (i), `bootPrefix_unapplied`); otherwise as `keep`. -/
+theorem RnTrBoot.step {γ : RaftNames} {s s' : NState} (h : RnTrBoot γ s)
+    (hup : s'.role ≠ .follower → s.role = .follower → ∃ s0 : NState, HupFact s0 s')
+    (ha : uint.Z s.logst.applied ≤ uint.Z s'.logst.applied)
+    (hprev : uint.Z s'.logst.prev.index' = 0) (hpre : γ.reBoot <+: s'.logst.sents ++ s'.logst.uents)
+    (hcm : (γ.reBoot.length : Int) ≤ uint.Z s'.logst.committed) : RnTrBoot γ s' := by
+  refine ⟨h.1, fun hr' => ?_⟩
+  by_cases hf : s.role = .follower
+  · obtain ⟨s0, hlog, -, hno, -, -, hcmb⟩ := hup hr' hf
+    rw [hlog] at hprev hpre hcm ⊢
+    apply Int.not_lt.1
+    intro hlt
+    exact hno (bootPrefix_unapplied s0.logst γ.reBoot hprev hpre h.1 hcm hcmb hlt)
+  · exact Int.le_trans (h.2 hf) ha
+
+/-- `RoleUp`'s form of `RnTrBoot.step`'s premise. -/
+theorem RoleUp.hup {m : MessageM} {s s' : NState} (h : RoleUp m s s') :
+    s'.role ≠ .follower → s.role = .follower → ∃ s0 : NState, HupFact s0 s' :=
+  fun h1 h2 => ⟨s, (h h1 h2).2⟩
+
+/-- (2026-11-12, trace-check implementation step 3; design §3.2 item 1) **The traced node's pure
+clauses** beyond its configuration's scope: (b) in the traced scope (`TrScope`: no transferee, no read
+pending) with every message of its outbox of a type a traced node hands out (`TrOutMsg`), kept by a
+step's `OutTyStep`; (d) no automatic leave at the configuration the struct is at (`c.autoLeave = false`;
+"not joint" is `trCapB`'s). Clause (e) (`applied ≤ capplied`, dynamic mode) is not a clause: it is
+`RInv.applied_cidx` of the ghost state (`ownRawNode_applied_capplied`), at every state. -/
+def RnTrPure (γ : RaftNames) (c : CfgM) (s : NState) : Prop :=
+  TrScope s ∧ (∀ m ∈ s.outbox, TrOutMsg m) ∧ c.autoLeave = false ∧ RnTrBoot γ s
+
+/-- `RnTrPure` reads the scope's fields, the outbox and the configuration's flag only. -/
+theorem RnTrPure.congr {γ : RaftNames} {c : CfgM} {s s' : NState} (h : RnTrPure γ c s)
+    (hl : s'.lt = s.lt) (hr : s'.rd.ro.pending = s.rd.ro.pending) (hp : s'.rd.pend = s.rd.pend)
+    (ho : s'.outbox = s.outbox) (hrole : s'.role = s.role)
+    (ha : uint.Z s.logst.applied ≤ uint.Z s'.logst.applied) : RnTrPure γ c s' :=
+  ⟨⟨hl.trans h.1.1, hr.trans h.1.2.1, hp.trans h.1.2.2⟩, fun m hm => h.2.1 m (ho ▸ hm), h.2.2.1,
+    h.2.2.2.keep hrole ha⟩
+
+/-- `RnTrPure` through a traced step in scope (`OutTyStep`), the configuration kept; the leader
+exclusion's clause at the end state given (`RnTrBoot.step`). -/
+theorem RnTrPure.step {γ : RaftNames} {c : CfgM} {s s' : NState} (h : RnTrPure γ c s)
+    (htr : s.gh.tr.isSome) (ho : OutTyStep s s') (hb : RnTrBoot γ s') : RnTrPure γ c s' := by
+  obtain ⟨hsc, hout⟩ := ho htr h.1
+  exact ⟨hsc, fun m hm => (hout m hm).elim (h.2.1 m) id, h.2.2.1, hb⟩
+
 /-- (2026-11-11, Q8 stage 1 slice 25n) **The node's trace capability** (`ownRawNode`'s `"Hrntr"`):
 nothing at an untraced node; at a traced one (`s.gh.tr = some _`), the traced configuration's scope
 (pre-vote off and no learners, the Draft's P3, `TracedConfigOk` at `StartNode`, which no step changes;
 check-quorum off as the struct's field, persistent, `ownRaftPhysC_cq`), the log never compacted (`TrNoSnap`, the Draft's P2), and the simulation's capability
 idle at the node's state with any `booted` flag (Q19): what the traced node API hands
 `raft.Step`'s traced bundle (`stepBundle_traced.on`) and the ticks. `r` is the `raft` struct, `c` the
-configuration it is at (`ownRawNode`'s `cf`). -/
-def rnTrace (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (s : NState) : IProp GF :=
+configuration it is at (`ownRawNode`'s `cf`). (2026-11-12, trace-check implementation step 3; design
+§3.2 item 1) And the clauses `RnTrPure` ((b), (d)), and (a): the flag set once anything is delivered
+(`dl`, the `RNState`'s `delivered`: a `Ready` line, which sets it, comes before any delivery; kept by a
+step through the bundle's monotone flag). -/
+def rnTrace (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (dl : List EntryM) (s : NState) : IProp GF :=
   match s.gh.tr with
   | none => iprop(emp)
-  | some _ => iprop(⌜s.prevote = false ∧ c.learners = ∅⌝ ∗ r.[raft, go!"checkQuorum"] ↦□ false ∗
-      TrNoSnap s.gh.tr s.logst ∗ ∃ b : Bool, trCapB s.gh.tr γ r id c b (fun C => SimIdle C s))
+  | some _ => iprop(⌜s.prevote = false ∧ c.learners = ∅⌝ ∗ ⌜RnTrPure γ c s⌝ ∗
+      r.[raft, go!"checkQuorum"] ↦□ false ∗
+      TrNoSnap s.gh.tr s.logst ∗ ∃ b : Bool, ⌜dl ≠ [] → b = true⌝ ∗
+        trCapB s.gh.tr γ r id c b (fun C => SimIdle C s))
 
 /-- An untraced node's: nothing. -/
-theorem rnTrace_none (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (s : NState)
-    (h : s.gh.tr = none) : ⊢ rnTrace (GF := GF) γ r id c s := by
+theorem rnTrace_none (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (dl : List EntryM) (s : NState)
+    (h : s.gh.tr = none) : ⊢ rnTrace (GF := GF) γ r id c dl s := by
   unfold rnTrace; rw [h]; exact .rfl
 
 /-- The idle relation reads the node's state only through its protocol reading. -/
@@ -2646,14 +2713,34 @@ theorem simIdle_congr {s s' : NState} (h : toPState s = toPState s') (C : List w
   unfold SimIdle; rw [h1, h2, h]
 
 /-- **At a state reading the same** (the trace mode, the configuration's scope, the log's boundary
-and storage, the protocol reading): the capability carried over. -/
-theorem rnTrace_congr (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) {s s' : NState}
+and storage, the protocol reading, (2026-11-12, implementation step 3) the transferee and the
+delivered log's emptiness): the capability carried over. -/
+theorem rnTrace_congr (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) {dl dl' : List EntryM}
+    {s s' : NState}
     (htr : s'.gh.tr = s.gh.tr) (hpv : s'.prevote = s.prevote)
     (hp : s'.logst.prev = s.logst.prev) (hst : s'.logst.storage = s.logst.storage)
-    (hps : toPState s = toPState s') :
-    rnTrace (GF := GF) γ r id c s ⊢ rnTrace γ r id c s' := by
+    (hps : toPState s = toPState s') (hlt : s'.lt = s.lt := by rfl)
+    (hro : s'.rd.ro.pending = s.rd.ro.pending := by rfl) (hpd : s'.rd.pend = s.rd.pend := by rfl)
+    (hrole : s'.role = s.role := by rfl) (hap : s'.logst.applied = s.logst.applied := by rfl)
+    (hdl : dl' ≠ [] → dl ≠ [] := by first | exact id | (intro h; exact h)) :
+    rnTrace (GF := GF) γ r id c dl s ⊢ rnTrace γ r id c dl' s' := by
   have hf : (fun C => SimIdle C s) = (fun C => SimIdle C s') := funext (simIdle_congr hps)
-  unfold rnTrace TrNoSnap; rw [htr, hpv, hp, hst, hf]
+  have ho : s'.outbox = s.outbox := (congrArg PState.outbox hps).symm
+  have hpure : RnTrPure γ c s → RnTrPure γ c s' := fun h =>
+    h.congr hlt hro hpd ho hrole (by rw [hap]; exact Int.le_refl _)
+  unfold rnTrace TrNoSnap; rw [htr]
+  cases s.gh.tr with
+  | none => exact .rfl
+  | some _ =>
+    rw [hpv, hp, hst, hf]
+    dsimp only
+    iintro ⟨%H1, %H2, #H3, #H4, %b, %hb, H5⟩
+    iframe H3 H4
+    isplitr; · ipureintro; exact H1
+    isplitr; · ipureintro; exact hpure H2
+    iexists b
+    isplitr; · ipureintro; exact fun h => hb (hdl h)
+    iexact H5
 
 /-- See the file header. `s` is the node's physical state, `c` the configuration the struct is
 at, `fp` the ghost full prefix (the dynamic mode's ghost part is `⟨rs.capplied, rs.cfg, fp⟩`);
@@ -2743,7 +2830,7 @@ def ownRawNode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) : IProp GF 
   -- pops what it pushes), which the queue-draining closures need (`ownRaftPhysC_view`'s `LqOk`)
   "%Hglq" ∷ ⌜s.gh.lq = []⌝ ∗
   -- (2026-11-11, Q8 stage 1 slice 25n) the trace capability (`rnTrace`): `emp` untraced
-  "Hrntr" ∷ rnTrace γ rnv.raft' id cf s)
+  "Hrntr" ∷ rnTrace γ rnv.raft' id cf rs.delivered s)
 
 /-- Closing the predicate, with the trace capability (`rnTrace`, slice 25n, last); the pure
 premises are first, the resources in the order of the definition. (2026-10-16, stage R5: the hard state `hprev` after the soft state; the
@@ -2777,7 +2864,7 @@ theorem ownRawNode_intro_tr (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState
       -- (2026-11-01, durability stage I fix G2) the durable state's tie
       durTie γ rs s -∗
       -- (2026-11-11, Q8 stage 1 slice 25n) the trace capability
-      rnTrace γ rnv.raft' id c s -∗
+      rnTrace γ rnv.raft' id c rs.delivered s -∗
       ownRawNode γ rn id rs := by
   iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs #Hloanc #Hsloc #Hdur Hrntr
   unfold ownRawNode
@@ -2821,10 +2908,34 @@ theorem ownRawNode_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
       durTie γ rs s -∗
       ownRawNode γ rn id rs := by
   iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs #Hloanc #Hsloc #Hdur
-  ihave Hrntr := rnTrace_none (GF := GF) γ rnv.raft' id c s (Hgtr.trans Hntr)
+  ihave Hrntr := rnTrace_none (GF := GF) γ rnv.raft' id c rs.delivered s (Hgtr.trans Hntr)
   iapply ownRawNode_intro_tr γ rn id rs s c fp (ds := ds) rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp
     Hsnap Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan Hsdt Hrole Hphs Hgtr Hglq
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hcap Hpend Hdeliv Hstrecs Hloanc Hsloc Hdur Hrntr
+
+/-- (2026-11-12, trace-check implementation step 3; design §3.2 item 1 (e), §3.4 lemma (ii)) **In the
+dynamic mode `applied` is at most the configuration index** the `RawNode` holds (`rs.capplied`, the
+ghost part's `cidx`): `RInv.applied_cidx` of the ghost state, at every state, so no clause of
+`rnTrace` (the design's (e)) is needed for it. -/
+theorem ownStepGhost_applied_capplied (γ : RaftNames) (md : RNMode) (ca : Nat) (cfg : CCState)
+    (fp : List EntryM) (ds : DecMap) (c : CfgM) (id : w64) (s : NState) :
+    ownStepGhost (GF := GF) γ (md.toG ⟨ca, cfg, fp, ds⟩) c id s ⊢
+      ⌜md.isDyn = true → uint.nat s.logst.applied ≤ ca⌝ ∗
+        ownStepGhost γ (md.toG ⟨ca, cfg, fp, ds⟩) c id s := by
+  cases md with
+  | static => iintro H; iframe H; ipureintro; intro h; cases h
+  | dyn dec c0 h0 h1 =>
+    apply persistent_entails_right
+    iintro H
+    iunfold ownStepGhost at H
+    icases H with ⟨-, Hr⟩
+    iunfold ghostRest at Hr
+    icases Hr with ⟨-, Hr, -⟩
+    simp only [RNMode.toG, ghostRestM]
+    icases Hr with ⟨%HC, -⟩
+    ipureintro
+    intro _
+    exact HC.2.2.applied_cidx
 
 /-! ### The static mode, as before (2026-10-14, stage B7 part 2)
 
@@ -2931,6 +3042,43 @@ theorem ownRawNode_mode (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
   iapply ownRawNode_intro_tr γ rn id rs s cf fp rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp Hsnap
     Hstok Htrm Hstor Hpvoff Hrs_out Hrs_unst Hrs_clb Hrnfl Hloan
     Hsdt Hrole Hphs $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc Hdur Hrntr
+
+/-- (2026-11-12, trace-check implementation step 3) **At a traced node the log starts at index `1`**
+(`TrNoSnap`: a compaction is a contradiction), under an update. -/
+theorem trNoSnap_prev0 (tr : Option GName) (ls : LogState) (h : tr ≠ none) :
+    TrNoSnap (GF := GF) tr ls ⊢ |={⊤}=> ⌜uint.Z ls.prev.index' = 0⌝ := by
+  iintro #H
+  by_cases h0 : uint.Z ls.prev.index' = 0
+  · imodintro; ipureintro; exact h0
+  · ihave Hf := trNoSnap_traced tr ls h $$ H
+    imod Hf $$ [] with %Hf
+    · ileft; ipureintro; exact h0
+    exact Hf.elim
+
+/-- (2026-11-12, trace-check implementation step 3) **The log, from index `1`, starts with the
+bootstrap log** (`ownLogGhost_boot`: the full log does; with nothing compacted, the full log is the
+log). -/
+theorem ownStepGhost_bootPrefix (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (s : NState) :
+    ownStepGhost (GF := GF) γ md c id s ⊢
+      ⌜uint.Z s.logst.prev.index' = 0 → γ.reBoot <+: s.logst.sents ++ s.logst.uents⌝ ∗
+        ownStepGhost γ md c id s := by
+  apply persistent_entails_right
+  iintro H
+  iunfold ownStepGhost at H
+  icases H with ⟨Hg, -⟩
+  iunfold ownRaftGhost at Hg
+  icases Hg with ⟨%γv, %voted, %kl, H⟩
+  iNamed H
+  icases ownLogGhost_boot γ id (toPState s) kl $$ Hlg with ⟨-, %fp, %Hx, -⟩
+  ipureintro
+  intro h0
+  obtain ⟨⟨hlen, -⟩, hpre⟩ := Hx
+  have hfp : fp = [] := by
+    apply List.eq_nil_of_length_eq_zero
+    have : uint.Z (toPState s).base.index' = 0 := h0
+    omega
+  subst hfp
+  simpa [toPState] using hpre
 
 /-- (2026-11-01, J8b) **The commit index is past the bootstrap log** (`ownLogGhost`'s `%Hboot`):
 what makes a restored snapshot's index past it (`snapLocOk`). -/

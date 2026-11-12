@@ -87,7 +87,7 @@ theorem stepLeader.wp_proof
     stepLeader.spec (GF := GF) (hG := hG) := by
   -- (Q8 stage 1, slice 9) every arm gated: `send`'s and `maybeCommit`'s one specs, no instance
   intro c r id s ml m ents sn ctx rs k0 G G' Gp1 Gp2 Gc Hty Hlead Htz Hfrom0 Hself Hprop Hrdnz Hri Hhr
-    Hack Hncc HiG HiP HiC
+    Hack Hncc HiG HiP HiC Hxtr Hltr
   iintro %Φ ⟨#Hinit, Hphys, Hm, Hcc, #Hrc, HG, #Hgbeat, Hgriresp, #Hgrihb, Hgtnow, Hgxapp, #Hnosnap,
     Hgcq, Hgprep, Hgpack, #Hgpapp, Hgsapp, #Hghresp, Hgcommit, #Hgrlresp, #Hgrlhb, #Hgaapp,
     #Hgatnow⟩ HΦ
@@ -227,7 +227,7 @@ theorem stepLeader.wp_proof
       wp_raftLog_findConflictByTerm wp_raftLog_lastIndex wp_raftLog_firstIndex
       wp_raft_sendTimeoutNow wp_GetType wp_GetFrom wp_GetReject wp_GetIndex wp_GetRejectHint
       wp_GetLogTerm r id s ml m Hty Hlead (Hfrom0 Hty) (fun Hr => Hself (Or.inr ⟨Hty, Hr⟩))
-      (Hrdnz (Or.inr (Or.inl Hty))).2 (Hrdnz (Or.inr (Or.inl Hty))).1.2.2 (Hack Hty).1 (fun h => (Hack h).2) ents ctx sn rs _ _ _
+      (Hrdnz (Or.inr (Or.inl Hty))).2 (Hltr Hty) (Hrdnz (Or.inr (Or.inl Hty))).1.2.2 (Hack Hty).1 (fun h => (Hack h).2) ents ctx sn rs _ _ _
       G Gc HiG HiC $$ [Hphys Hm HG Hgsapp Hgcommit] HΦ0
     iframe Hphys Hm HG Hgcommit
     iframe Hinit Hgrlresp Hgrlhb Hgaapp Hgatnow Hnosnap
@@ -286,7 +286,7 @@ theorem stepLeader.wp_proof
     ispecialize Hgxapp $$ %Hty
     iapply wp_stepLeader_transfer c wp_raft_sendAppend wp_raft_sendTimeoutNow
       wp_raftLog_lastIndex wp_raft_abortLeaderTransfer wp_GetType wp_GetFrom
-      r id s ml m ents ctx sn rs _ _ _ Hty Hlead (Htz (Or.inr Hty)) G HiG
+      r id s ml m ents ctx sn rs _ _ _ Hty Hlead (Htz (Or.inr Hty)) (Hxtr Hty) G HiG
       $$ [Hphys Hm HG Hgtnow Hgxapp] HΦG
     iframe
     iframe Hinit Hnosnap

@@ -388,7 +388,7 @@ theorem wp_Step_MsgProp
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-      (fun _ => Hnors) Hgok.1 Hgok.2.1 $$ [$Hphys Hm $Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+      (fun _ => Hnors) Hgok.1 Hgok.2.1 (by xtr_tac) $$ [$Hphys Hm $Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
     · iapply msgIn_prop Hty $$ Hm
     ihave HG := stepOut_or R _ _ $$ HGo
     have Hres0 := Hres
@@ -537,7 +537,7 @@ theorem wp_Step_MsgProp
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-      (fun _ h => Htr h) Hgok.2.1 Hgok.2.2.2.1 Hgok.2.2.2.2 $$ [$Hphys $Hrc Hm $HG $Hlg] as %err %s' %dropped ⟨Hphys, Hrcl, %Hres, Herrn, HGo⟩
+      (fun _ h => Htr h) Hgok.2.1 Hgok.2.2.2.1 Hgok.2.2.2.2 (by xtr_tac) (by ltr_tac) $$ [$Hphys $Hrc Hm $HG $Hlg] as %err %s' %dropped ⟨Hphys, Hrcl, %Hres, Herrn, HGo⟩
     · isplitl [Hm]
       · iapply msgIn_prop Hty $$ Hm
       · iintro _; iexists cs; iexact Hcc

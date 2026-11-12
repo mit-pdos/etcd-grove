@@ -256,8 +256,12 @@ abbrev raft.send.spec : Prop :=
   -- `SentMsgOk`: a message raft builds has none, a forwarded one none by `raft.Step`'s premise
   rs = [] →
   -- (2026-11-09, Q8 stage 1 slice 5; until then, stage 0, the premise `s.gh.tr = none`) a traced
-  -- node sends no snapshot (the Draft's P2: Go traces one, the specification does not)
-  (s.gh.tr ≠ none → mtypeOf m.Type' ≠ some .snap) →
+  -- node sends no snapshot (the Draft's P2: Go traces one, the specification does not); (2026-11-12,
+  -- trace-check implementation step 3, the design's §3.6 physical half; until then only `≠ some .snap`)
+  -- and nothing of a type the model does not describe (no `MsgTimeoutNow`, no forwarded
+  -- `MsgTransferLeader`: a traced node steps no transfer), so that what it queues has an abstraction
+  -- (`XfOk`'s traced clause)
+  (s.gh.tr ≠ none → ∃ ty, mtypeOf m.Type' = some ty ∧ ty ≠ .snap) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hm" ∷ msgOwn ml (DFrac.own 1) ⟨m, ents, sn, ctx, rs⟩ ∗

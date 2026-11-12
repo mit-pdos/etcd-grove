@@ -521,7 +521,7 @@ gate is the struct's nil logger (`trCapB_logger0`). -/
 theorem raft.send.tracedSpec_of_spec (h : raft.send.spec (GF := GF) (hG := hG)) :
     raft.send.tracedSpec (GF := GF) (hG := hG) := by
   intro c γ r id s ml m ents sn ctx rs out Φ Φ' b Λ Λ' Hfrom Hok Hsn Hsh Hrs Hsnap Hps HΛ HOkK
-  have Hsnap' : s.gh.tr ≠ none → mtypeOf m.Type' ≠ some .snap :=
+  have Hsnap' : s.gh.tr ≠ none → ∃ ty, mtypeOf m.Type' = some ty ∧ ty ≠ .snap :=
     fun h' => Hsnap (Option.isSome_iff_ne_none.2 h')
   revert Hps HΛ
   cases hev : (mtypeOf m.Type').bind sendEvt with
