@@ -33,6 +33,29 @@ the worktree's untracked `questions.md` (decisions), `/shared/tmp/coord-81/commo
     Nothing used it.
   - freeze §2's "T-e'" section (marked draft).
 
+## Fifth agent, continued (2026-11-12): T-g decided; item 7 and the Watch chain done (lean-checked)
+
+81 decided Q1/Q2/Q3 (questions.md). Done since (each lean-checked `-a`, 0 errors):
+- Addendum T-g in Lean and in `notes/k8s-7f4-freeze.md`: `rawStreamKey si` (a pointer value);
+  `SpanFromContext.spec` and mvcc's `WatchStream.Watch.contract` take `⌜todo⌝ ∨ spanCtxOk`; Go tests
+  `TestRawStreamKey` (data word) and `TestSpanFromContextValueOnly` pass.
+- `newStreamInterceptor` proved against `srvStreamInterceptorWOk` with its require-leader branch
+  (`v3rpc.wrapper_rawW`, `v3rpc.streamKeysOk_insert/_delete`; smap's pointer persisted inside the WP);
+  spec pre gains `⌜threadBound GF ≤ 2^30⌝`; linked (5 new callees).
+- `Server.spec` takes `threadBound GF ≤ 2^30 →` and gives `srvStreamInterceptorWOk is True`;
+  `Serve.spec`'s pure premise gains `threadBound GF ≤ 2^28` (the ten Mains pass `Htb`).
+- Watch chain: `Watch.spec` takes/returns `levelTok v3rpc.ctxErrLvl`, `5 ≤ threadBound`; the recv
+  goroutine and `sendLoop` lend level 4 from their thread token (`threadTok_lend4`,
+  `SrvCtxWeakLaws.lean`); `ErrGRPCNoLeader` after `Done` through `errors.IsStatusErr.spec`
+  (`v3rpc.statusErrOk_of_noLeaderErr`); recvLoop uses `Tracer.Start`'s weak arm; `AuthInfoFromCtx.spec`
+  takes `txnCtx ∨ srvCtxWeak`, `isReqAuth_ctxM` takes `auth.ctxDoneAny`.
+- Lease keep-alive specs temporarily on `srvStreamIsStrong` (old text, nothing produces it) until
+  LeaseKeepAlive is re-proved (after the checkpoint).
+- Results (`etcd_watchMethodOk`, `etcd_watch_served(_chain/_etcd_chain)`, `srvStreamBundle_watchSlot`)
+  over `ics ++ [icW]` and level 4 in the handler's share.
+
+Next: full build, gates, CHECKPOINT (mvcc interface diff + T-g review), then LeaseKeepAlive.
+
 ## Fifth agent (2026-11-12): item 7 started; STOPPED for two trust-base questions (81)
 
 Done (lean-checked `-a`, 0 errors; NOT in a build; the importers of `srvStreamIs` are broken until

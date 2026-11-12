@@ -382,6 +382,48 @@ etcd-grove-81 (questions.md).
   `serverStreamWithCtx.{RecvMsg,SendMsg}`), regenerated with `etc/goose.py --project etcd`
   (`8227d410c2`).
 
+## Addendum T-g (2026-11-12): the raw stream is a pointer value; `SpanFromContext` reads only `Value` (decided by etcd-grove-81, Q1/Q2)
+
+Found while proving item 7 (the interceptor's insert into the monitor's map; mvcc's `Watch` on the
+traced weak context). Both are trusted-text changes; for 81's review with the `axiom` skill at the
+mvcc checkpoint, together with the interface diff.
+
+### T-g1 (Q1). `rawStreamKeyTy t` → `rawStreamKey si` (strengthens T-c)
+
+- **Text** (`Proof/google_golang_org/grpc/InvGrpcStream.lean`, `rawStreamKey`; used in
+  `srvRawStreamIs`): `∃ (t' : go.GoType) (ls : Loc), si = interface.mk (go.GoType.PointerType t') #ls`
+  (was: `∃ t', si.ty = go.GoType.PointerType t'`, the type only). `srvRawStreamIs` says
+  `⌜rawStreamKey si⌝`.
+- **Why:** the monitor's map key `v3rpc.sKey t ls l` (and `safeMapKey_sKey`, `==` on two keys
+  comparing the pointers) needs the raw stream as `interface.mkOk (PointerType t) #ls`; a type
+  alone leaves the value an arbitrary `val`.
+- **Stronger claim** of grpc's run model (`acceptRun`'s raw end) and of prometheus's contract
+  (its handler's raw end).
+- **Evidence** (`examples/premisefix/streamctx` `TestRawStreamKey`, extended): at etcd's interceptor
+  position and in the handler, with and without grpc-prometheus, the stream is a pointer type
+  (`*grpc.serverStream`, `*interceptors.monitoredServerStream`) and the interface's data word
+  (`(*[2]unsafe.Pointer)(unsafe.Pointer(&ss))[1]`) is the pointer itself
+  (`reflect.ValueOf(ss).UnsafePointer()`): Go stores a pointer-typed dynamic value directly in the
+  interface. Passes (`GOWORK=off go test ./premisefix/streamctx -run TestRawStreamKey`).
+
+### T-g2 (Q2). `trace.SpanFromContext.spec` and mvcc's `WatchStream.Watch.contract` take `spanCtxOk` only
+
+- **Text:** `Spec/go_opentelemetry_io/otel/trace/SpanFromContext.lean`, pre
+  `⌜ctx = trace.todoCtx⌝ ∨ trace.spanCtxOk ctx` (was `⌜…⌝ ∨ (context.isContext ctx cd ∗
+  trace.spanCtxOk ctx)`), the binder `cd` kept (unused); `Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.lean`
+  `WatchStream.Watch.contract`, the context part `⌜ctx = todo⌝ ∨ trace.spanCtxOk ctx` (was with
+  `isContext ctx cd`), `cd` kept. **Weaker premises** (the axiom claims more; the sealed API asks
+  less: an interface diff of mvcc's API).
+- **Why:** etcd's `recvLoop` passes mvcc's `Watch` the traced stream context, a weak one
+  (`srvCtxWeak`), not an `isContext`; mvcc's `watchStream.Watch` reads only `SpanFromContext(ctx)`.
+- **Faithful:** otel v1.47.0 `trace/context.go` `SpanFromContext` returns `noopSpanInstance` for a
+  nil context, else `ctx.Value(currentSpanKey).(Span)` or `noopSpanInstance`: no other method of
+  `ctx`. **Evidence:** `TestSpanFromContextValueOnly` (same package): a context whose `Deadline`,
+  `Done` and `Err` panic and whose `Value` answers nil or a span: `SpanFromContext` returns the
+  no-op span and the span (by its `SpanContext`). Passes.
+- Callers repaired: mvcc's `watchStream.Watch` proof (`hspan ctx cd`), `processInternalRaftRequestOnce`
+  (unchanged text, checks).
+
 ### Checks run, Revision 2 (2026-11-12, merged with lean `219ddbbb83`)
 
 Full build passes (17490 jobs); `tcb-report --check` matches the baseline unchanged (865 axioms, 5
