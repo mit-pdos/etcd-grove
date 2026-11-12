@@ -73,6 +73,7 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.Tokens
 public import Proof.go_etcd_io.etcd.server.v3.auth.PermTree
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
 public import Proof.google_golang_org.grpc.metadata.Incoming
+public import Proof.go_etcd_io.etcd.server.v3.auth.CtxDone
 public import Spec.go_uber_org.zap.Defs
 
 @[expose] public section
@@ -735,16 +736,18 @@ admin side's resource `A` (the auth plan's S5d, 2026-10-25):
 - `genTokenPrefix()` (appended, C1's A4, 2026-10-29) returns a prefix with no space (`tokPrefixOk`,
   2026-10-31) and no error (the simple provider's draws random letters,
   `tokenSimple.genTokenPrefix`'s trust-boundary axiom; the no-op and JWT providers' return `""`).
-The simple provider meets it (`auth/TokenSimple.lean`, S5b-S5d) but for `info`'s context premise:
-its `info` waits on the raft index its token names and on the context's `Done()`, which this
-module (generic in the later credits, Perennial's contexts are not) cannot state; the JWT
-provider's binding is its signature's, and it does not meet `assign`'s error clause (its
+`info` is called on a context whose `Done()` returns nil or a channel a receive may complete on
+(`auth.ctxDoneRecv`, which a request context's `auth.ctxDoneAny` gives; auth-schema-fix S1,
+2026-11-12, decided by etcd-grove-81: until then on any context, which the simple provider
+falsifies, `isValidSimpleToken` selecting on a nil context's `Done()`,
+`notes/auth-validspec-false.md`). The simple provider meets it (`auth/TokenSimple.lean`, S5b-S5d;
+`tokenSimple_okA`, given its index waiter's contract `simpleWaitOk`); the JWT provider's binding is its signature's, and it does not meet `assign`'s error clause (its
 `ErrVerifyOnly` and its signing errors are not the package's variables): out of scope. -/
 def tokenProviderOkA (tp : GoInterface) (M : AuthMode) (A : IProp GF) : IProp GF :=
   iprop(∃ ti : GoInterfaceOk, ⌜tp = GoInterface.ok ti⌝ ∗
-    □ (∀ (ctx : GoInterface) (token : GoString) (rev : w64),
-      {{ True }}
-        (App (App (App (Val #(methods ti.ty go!"info" ti.v)) (Val #ctx))
+    □ (∀ (ci : GoInterfaceOk) (token : GoString) (rev : w64),
+      {{ auth.ctxDoneRecv ci }}
+        (App (App (App (Val #(methods ti.ty go!"info" ti.v)) (Val #(GoInterface.ok ci)))
           (Val #token)) (Val #rev))
       {{ (a : Loc) (ok : Bool), RET (PairV #a #ok); authInfoRO a ∗
           (if ok then infoBound M token a else iprop(True)) }}) ∗
@@ -771,9 +774,9 @@ instance tokenProviderOkA_persistent (tp : GoInterface) (M : AuthMode) (A : IPro
 resource `A` (`tokenProviderOkA`), whose holder is the store's admin side (`tpAdmin`). -/
 def tokenProviderOk (tp : GoInterface) (M : AuthMode) : IProp GF :=
   iprop(∃ (A : IProp GF) (ti : GoInterfaceOk), ⌜tp = GoInterface.ok ti⌝ ∗
-    □ (∀ (ctx : GoInterface) (token : GoString) (rev : w64),
-      {{ True }}
-        (App (App (App (Val #(methods ti.ty go!"info" ti.v)) (Val #ctx))
+    □ (∀ (ci : GoInterfaceOk) (token : GoString) (rev : w64),
+      {{ auth.ctxDoneRecv ci }}
+        (App (App (App (Val #(methods ti.ty go!"info" ti.v)) (Val #(GoInterface.ok ci)))
           (Val #token)) (Val #rev))
       {{ (a : Loc) (ok : Bool), RET (PairV #a #ok); authInfoRO a ∗
           (if ok then infoBound M token a else iprop(True)) }}) ∗

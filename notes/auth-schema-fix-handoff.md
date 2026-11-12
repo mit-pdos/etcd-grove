@@ -20,37 +20,33 @@ builds pass.
   server pin: `pbutil.MustUnmarshalMessage` panics on an InternalRaftRequest whose UserGrantRole
   role/user, UserAdd name or RoleAdd name is not valid UTF-8).
 
-## S1 in progress (stashed: `git stash list`; same diff in /shared/tmp/auth-safe/s1-wip.patch)
+## S1 (partly committed; STOPPED at blocker 2, reported to etcd-grove-81 2026-11-12)
 
-The WIP restates the token contract's `info` clause over `auth.ctxDoneAny`, `tokenSimple_isValid`
-over it (with `chan.wp_select_blocking_nil` + `chan.nilClausePre_recv` for a nil Done), deletes
-`ValidSpec`/`tokenSimple_info`/`tokenProviderOkCtx`/`tokenSimple_okCtx`, adds `ctxDoneAny` to the
-store specs `authInfoFromToken` (ctx now `GoInterfaceOk`) and `AuthInfoFromCtx`, and threads it in
-AuthReqDerive. Two blockers found:
-1. **`tokenProviderOkA`/`tokenProviderOk` are in a section generic in `hlc`** (InvAuth.lean ~740),
-   but k8s 7f-4's `auth.ctxDoneAny` is at `HasLC.hasLC` (it names `context.isContextDone`, which is
-   hasLC-only). Build error "failed to synthesize HeapGS HasLC.hasLC GF" at InvAuth 749/778.
-   Recommended fix (form-level): an hlc-generic `auth.ctxDoneRecv ci` ("Done() returns nil or a
-   channel a receive may complete on with any outcome", i.e. `anyRecv`, moved before InvAuth), used
-   in the contract, with a law `auth.ctxDoneAny ci ⊢ auth.ctxDoneRecv ci` at hasLC (from
-   `isContextDone_is_chan`/`isContextDone_receive`), so isReqAuth keeps `ctxDoneAny`.
-2. **`ValidSpec` also covered the provider's index waiter**: `tokenSimple_okA` now needs
-   `simpleWaitOk p` (iw's channels `anyRecv`), which `authSrvTP_on` does not have
-   (NewTokenProvider's post gives only `tsF "indexWaiter" p ↦□ iw`). Needs `authSrvTP`'s pre (on
-   mode) to carry `□ ∀ idx, {{True}} iw idx {{ch; anyRecv ch}}`, discharged in NewServer from
-   `wait.timeList.Wait.spec` (`waitBcast ch Q`) plus a law `waitBcast ⊢ anyRecv`. No trust change;
-   not foreseen by the Scope (its "no new trust, the request side has a context" covered only the
-   context half). Ask 81 whether to take this route.
+Committed (targeted build passes: TokenKeeperRun, authStore__AuthInfoFromCtx/authInfoFromToken,
+AuthReqDerive): the token contract's `info` clause takes the hlc-generic `auth.ctxDoneRecv ci`
+(`auth/CtxDone.lean`, with `auth.anyRecv` moved there from TokenSimple, and the law
+`auth.ctxDoneRecv_of_ctxDoneAny` at hasLC); `tokenSimple_isValid` over it (nil Done:
+`chan.wp_select_blocking_nil` + `chan.nilClausePre_recv`); `ValidSpec`, `tokenSimple_info`,
+`tokenProviderOkCtx`, `tokenSimple_okCtx` deleted; `tokenSimple_okA(_run)` take `simpleWaitOk p`;
+the store specs `authInfoFromToken`/`AuthInfoFromCtx` take `ctxDoneRecv`; AuthReqDerive converts
+isReqAuth's `ctxDoneAny`. Results' `token_simple_ok` now states `tokenProviderOkA`.
+
+**Not building yet**: `etcdserver/AuthSrv.lean` (`authSrvTP_on` still takes `hValid :
+auth.ValidSpec`) and its users in `etcdserver/Results.lean` (`srv_auth_tp_on`, `server_new_auth_on`)
+and `examples/etcd/auth/Results.lean`. Blocker 2: 81's route (authSrvTP's pre carries the waiter
+contract, NewServer discharges it) fails: the waiter closure reads `srv.applyWait`, which Go sets
+only in `start` (server.go:568), so at NewServer the field is nil and the closure panics if called.
+Waiting for 81's decision (questions.md).
 
 ## Next, in order
 
-1. S1: resolve blocker 1 (ctxDoneRecv), unstash, finish (TokenSimpleAdmin/TokenKeeperRun/Results
-   `token_simple_ok`, AuthSrv `authSrvTP_on` drops `hValid`, needs blocker 2), etcdserver Results
+1. S1: blocker 2 per 81's answer; then AuthSrv `authSrvTP_on` drops `hValid`, etcdserver Results
    `srv_auth_tp_on`/`server_new_auth_on`, authkv Results (exported: CP).
 2. F4 (plan step 4): UnsafePutUser `∀ x ∈ ur.roles, utf8Valid x` in authBatchTxLkR and
    authBatchTxLk; state invariant `rolesUtf8` beside permKeysOk; `apply.irrDecode_utf8` (new
    trust-boundary law, Go test above).
-3. F1 (plan step 5): `Wb` parameter; the boot budget question (plan) for 81.
+3. F1 (plan step 5, decided by 81: see questions.md): `Wb` parameter, boot's extra 2 tokens from
+   the server's write-back pool via receipts.
 4. Notes (`notes/auth-validspec-false.md`, `notes/auth-schema-srv-refuted.md` status, decisions.md
    entry, STATUS.md), interfaces (`etc/gen-interface.py etc/api/<pkg>.txt`), tcb collections,
    Freeze package complete; STOP.

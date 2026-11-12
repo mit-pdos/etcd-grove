@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 abbrev auth.authStore.AuthInfoFromCtx.spec : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (ctx : GoInterfaceOk),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ enabledRd st M ∗
-      metadata.incomingCtxOk ctx }}
+      metadata.incomingCtxOk ctx ∗ auth.ctxDoneRecv ctx }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"AuthInfoFromCtx"))
       (Val #(GoInterface.ok ctx)))
   {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); enabledRd st M ∗ authInfoRO a ∗ authErrIs err ∗

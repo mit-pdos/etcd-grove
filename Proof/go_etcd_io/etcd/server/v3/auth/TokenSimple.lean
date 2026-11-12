@@ -11,16 +11,15 @@ persistent `tokIssued`-element `t ↦ u` and the spent right to issue `t` (read-
 E2c: issuing spends the exclusive `tokFresh`), so that `assign`'s caller, who holds the right to
 issue its token (`authnCtx`), knows the token is not in the map: `assignSimpleTokenToUser`'s panic on a token issued twice is unreachable.
 
-**Three hypotheses, not axioms** (`tokenSimple_ok`'s premises): the functions Perennial cannot
-reach. `isValidSimpleToken` parses the token's index with `strconv.ParseUint` (Perennial does not
-translate `strconv`) and waits on the raft index or the context; it is assumed to return
-(`ValidSpec`). The keeper's `run` (a `time.Ticker`, `Time.After`) and `stop` (the channel protocol
-between them) are assumed to return given the keeper's resources (`keeperOk`: its read-only fields,
-the provider's mutex with its invariant, the delete callback's spec, the two channels in
-invariants), which the proof of `enable` produces. `ValidSpec` quantifies over every context: the
-Go function calls `ctx.Done()`, so it holds of contexts; the contract's `info` clause has no
-context premise (`InvAuth` is generic over later credits, Perennial's contexts are not), which is
-where the gap is.
+**Two hypotheses, not axioms** (`tokenSimple_okA`'s premises): the keeper's `run` (a `time.Ticker`,
+`Time.After`) and `stop` (the channel protocol between them) are assumed to return given the
+keeper's resources (`keeperOk`: its read-only fields, the provider's mutex with its invariant, the
+delete callback's spec, the two channels in invariants), which the proof of `enable` produces
+(`TokenKeeperRun.lean` discharges them). `isValidSimpleToken` is proved (`tokenSimple_isValid`):
+on a context whose `Done()` returns nil or a channel a receive may complete on
+(`auth.ctxDoneRecv`, the contract's `info` premise since auth-schema-fix S1, 2026-11-12). (Until
+then it was a hypothesis over every context, `ValidSpec`, which is false: a nil context panics at the `select`'s
+`ctx.Done()`, `notes/auth-validspec-false.md`.)
 
 **The mode**: the provider is created with the names of the issued tokens and of the fresh tokens
 (`γt`, `γf`), before the store's history exists; it meets the contract in the mode `on γa` for the
@@ -230,16 +229,6 @@ theorem keeper_add (k : Loc) (token : GoString) :
   iapply HΦ
   iunfold keeperMap; iexists km, _, ttl; iframe #; iexact Htm
 
-/-- **A channel a receive may complete on with any outcome** (the index waiter's: etcd's
-`wait.WaitTime`'s, closed once the index is applied): a receive's atomic update for any
-postcondition that holds of every outcome. -/
-def anyRecv (ch : Loc) : IProp GF :=
-  iprop(∃ γ : ChanNames, isChan ch γ Unit ∗
-    □ (∀ Φ : Unit → Bool → IProp GF, (∀ v ok, Φ v ok) -∗ recvAu γ Unit Φ))
-
-instance anyRecv_persistent (ch : Loc) : Persistent (anyRecv (GF := GF) ch) := by
-  unfold anyRecv; infer_instance
-
 /-- **The provider's index waiter** (`indexWaiter`, a `func(uint64) <-chan struct{}` set by
 `newTokenProviderSimple`): read-only, and for every index it returns a channel `anyRecv`. -/
 def simpleWaitOk (p : Loc) : IProp GF :=
@@ -248,14 +237,6 @@ def simpleWaitOk (p : Loc) : IProp GF :=
 
 instance simpleWaitOk_persistent (p : Loc) : Persistent (simpleWaitOk (GF := GF) p) := by
   unfold simpleWaitOk; infer_instance
-
-/-- **The hypothesis on `isValidSimpleToken`** (see the file header): it returns. -/
-def ValidSpec : Prop :=
-  ∀ (p : Loc) (γt γf : GName) (ctx : GoInterface) (token : GoString),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ simpleOk p γt γf }}
-      (App (App (Val (p @!! go.GoType.PointerType tokenSimple.ty @!! go!"isValidSimpleToken"))
-        (Val #ctx)) (Val #token))
-    {{ (b : Bool), RET #b; True }}
 
 /-- **`info`**: a token the map holds was issued to the user it maps to. -/
 theorem tokenSimple_info_of (P : IProp GF) [Persistent P] (p : Loc) (γt γf : GName)
@@ -345,22 +326,6 @@ theorem tokenSimple_info_of (P : IProp GF) [Persistent P] (p : Loc) (γt γf : G
     simp only [hγt]
     iapply Hiss $$ %u
     ipureintro; rfl
-
-/-- **`info`**: a token the map holds was issued to the user it maps to (over `ValidSpec`). -/
-theorem tokenSimple_info (hValid : ValidSpec (GF := GF) (hG := hG)) (p : Loc) (γt γf : GName)
-    (γa : AuthNames) (hγt : γa.tok = γt) (ctx : GoInterface) (token : GoString) (rev : w64)
-    (Φ : val → IProp GF) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ simpleOk p γt γf ∗
-      ▷ (∀ (a : Loc) (ok : Bool), authInfoRO a ∗
-        (if ok then infoBound (.on γa) token a else iprop(True)) -∗ Φ (PairV #a #ok)) ⊢
-      WP (App (App (App (Val #(methods (go.GoType.PointerType tokenSimple.ty) go!"info" #p))
-        (Val #ctx)) (Val #token)) (Val #rev)) {{ Φ }} := by
-  iintro ⟨#Hpkg, #Hok, HΦ⟩
-  iapply tokenSimple_info_of (simpleOk p γt γf) p γt γf γa hγt ctx token rev
-  · iintro %Ψ ⟨#Hpkg', #Hok'⟩ HΨ
-    iapply (hValid p γt γf ctx token) $$ [] HΨ
-    iframe #
-  iframe #; iexact HΦ
 
 /-- **`assignSimpleTokenToUser`**, with the right to issue `tok`: `tok` issued to `user`. -/
 theorem tokenSimple_assignToUser (p : Loc) (γt γf : GName) (γa : AuthNames) (hγt : γa.tok = γt)
@@ -487,13 +452,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-/-- **`isValidSimpleToken`** (the auth plan's S5c, 2026-10-25), on a context (Perennial's
-`context.isContext`) and with the provider's index waiter: it returns (`strings.Split`,
-`strconv.ParseUint`, then a `select` on the waiter's channel and the context's `Done`). -/
-theorem tokenSimple_isValid (p : Loc) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
-    (token : GoString) :
+/-- **`isValidSimpleToken`** (the auth plan's S5c, 2026-10-25), on a context whose `Done()` returns
+nil or a channel a receive may complete on (`auth.ctxDoneRecv`; auth-schema-fix S1, 2026-11-12:
+until then on Perennial's `context.isContext`) and with the provider's index waiter: it returns
+(`strings.Split`, `strconv.ParseUint`, then a `select` on the waiter's channel and the context's
+`Done`, a nil one never ready: `chan.wp_select_blocking_nil`). -/
+theorem tokenSimple_isValid (p : Loc) (ci : GoInterfaceOk) (token : GoString) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ simpleWaitOk p ∗
-        context.isContext ci cd }}
+        auth.ctxDoneRecv ci }}
       (App (App (Val (p @!! go.GoType.PointerType tokenSimple.ty @!! go!"isValidSimpleToken"))
         (Val #(GoInterface.ok ci))) (Val #token))
     {{ (b : Bool), RET #b; True }} := by
@@ -504,10 +470,7 @@ theorem tokenSimple_isValid (p : Loc) (ci : GoInterfaceOk) (cd : context.Context
   wp_apply strings.wp_Split token go!"." (by decide) $$ [$Hstr] as %sl ⟨Hsl, -⟩
   ihave %Hslen := ownSlice_len $$ Hsl
   (try wp_auto)
-  ihave #Hctx2 : iprop(context.isContextDef ci cd) $$ [Hctx]
-  · iexact Hctx
-  iunfold context.isContextDef at Hctx2
-  icases Hctx2 with ⟨-, #HDoneC, -⟩
+  iunfold auth.ctxDoneRecv at Hctx
   iunfold simpleWaitOk at Hw
   icases Hw with ⟨%iw, #Hiw, #Hiws⟩
   wp_if_destruct
@@ -533,14 +496,15 @@ theorem tokenSimple_isValid (p : Loc) (ci : GoInterfaceOk) (cd : context.Context
       (try wp_auto)
       wp_apply Hiws as %ch0 #Hch0
       (try wp_auto)
-      wp_apply +noauto HDoneC as %ch1 %γ1 #Hdone1
+      wp_apply +noauto Hctx as %ch1 #Hch1
       (try wp_auto)
-      iunfold anyRecv at Hch0
+      iunfold auth.anyRecv at Hch0
       icases Hch0 with ⟨%γ0, #Hic0, #Hau0⟩
-      wp_apply_core chan.wp_select_blocking
+      wp_apply_core chan.wp_select_blocking_nil
       iapply BigAndL.bigAndL_cons.2
       isplit
-      · simp only [chan.blockingClausePre]
+      · ileft
+        simp only [chan.blockingClausePre]
         iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, ch0, γ0
         isplit
         · ipureintro; rfl
@@ -552,14 +516,20 @@ theorem tokenSimple_isValid (p : Loc) (ci : GoInterfaceOk) (cd : context.Context
         iapply HΦ; itrivial
       iapply BigAndL.bigAndL_cons.2
       isplit
-      · simp only [chan.blockingClausePre]
+      · icases Hch1 with (%Hnil | Hch1)
+        · iright
+          iapply (chan.nilClausePre_recv Unit ch1 _ Hnil)
+        iunfold auth.anyRecv at Hch1
+        icases Hch1 with ⟨%γ1, #Hic1, #Hau1⟩
+        ileft
+        simp only [chan.blockingClausePre]
         iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, ch1, γ1
         isplit
         · ipureintro; rfl
         isplit
-        · iapply context.isContextDone_is_chan $$ Hdone1
-        iapply context.isContextDone_receive _ _ _ _ $$ Hdone1
-        iintro -
+        · iexact Hic1
+        iapply Hau1
+        iintro %v %ok
         (try wp_auto)
         iapply HΦ; itrivial
       iapply BigAndL.bigAndL_nil.2
@@ -572,22 +542,22 @@ theorem tokenSimple_isValid (p : Loc) (ci : GoInterfaceOk) (cd : context.Context
       iapply HΦ; itrivial
   · (try wp_auto); iapply HΦ; itrivial
 
-/-- **`info` on a context** (the auth plan's S5c): a token the map holds was issued to the user it
-maps to, with no hypothesis on `isValidSimpleToken` (`tokenSimple_isValid`). -/
+/-- **`info` on a context** (the auth plan's S5c; over `auth.ctxDoneRecv` since auth-schema-fix S1):
+a token the map holds was issued to the user it maps to (`tokenSimple_isValid`). -/
 theorem tokenSimple_info_ctx (p : Loc) (γt γf : GName) (γa : AuthNames) (hγt : γa.tok = γt)
-    (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (token : GoString) (rev : w64)
+    (ci : GoInterfaceOk) (token : GoString) (rev : w64)
     (Φ : val → IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ simpleOk p γt γf ∗
-      simpleWaitOk p ∗ context.isContext ci cd ∗
+      simpleWaitOk p ∗ auth.ctxDoneRecv ci ∗
       ▷ (∀ (a : Loc) (ok : Bool), authInfoRO a ∗
         (if ok then infoBound (.on γa) token a else iprop(True)) -∗ Φ (PairV #a #ok)) ⊢
       WP (App (App (App (Val #(methods (go.GoType.PointerType tokenSimple.ty) go!"info" #p))
         (Val #(GoInterface.ok ci))) (Val #token)) (Val #rev)) {{ Φ }} := by
   iintro ⟨#Hpkg, #Hok, #Hw, #Hctx, HΦ⟩
-  iapply tokenSimple_info_of iprop(simpleWaitOk p ∗ context.isContext ci cd) p γt γf γa hγt
+  iapply tokenSimple_info_of iprop(simpleWaitOk p ∗ auth.ctxDoneRecv ci) p γt γf γa hγt
     (GoInterface.ok ci) token rev
   · iintro %Ψ ⟨#Hpkg', #Hw', #Hctx'⟩ HΨ
-    iapply (tokenSimple_isValid p ci cd token) $$ [] HΨ
+    iapply (tokenSimple_isValid p ci token) $$ [] HΨ
     iframe #
   iframe #; iexact HΦ
 

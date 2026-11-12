@@ -119,7 +119,8 @@ theorem isReqAuth_of_authInv
   isplitr
   · ipureintro; rfl
   isplitr
-  · iintro !> %ctx %Φ !> ⟨#Hlib, -, Hrd⟩ HΦ
+  · iintro !> %ctx %Φ !> ⟨#Hlib, #Hda, Hrd⟩ HΦ
+    ihave #Hdr := auth.ctxDoneRecv_of_ctxDoneAny ctx $$ Hda
     iunfold context.libCtxOk at Hlib
     icases Hlib with ⟨#Hinc, -, -, -⟩
     iunfold auth.authRd at Hrd
@@ -153,7 +154,8 @@ theorem isReqAuthBound_of_authInv
   iexists (interface.mk (go.GoType.PointerType auth.authStore.ty) #st)
   isplitr
   · ipureintro; rfl
-  iintro !> %ctx %Φ !> ⟨#Hlib, -, Hrd⟩ HΦ
+  iintro !> %ctx %Φ !> ⟨#Hlib, #Hda, Hrd⟩ HΦ
+  ihave #Hdr := auth.ctxDoneRecv_of_ctxDoneAny ctx $$ Hda
   iunfold context.libCtxOk at Hlib
   icases Hlib with ⟨#Hinc, -, -, -⟩
   iunfold auth.authRd at Hrd

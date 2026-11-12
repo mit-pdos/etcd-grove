@@ -1932,15 +1932,16 @@ theorem token_simple_new (lg : Loc) (iw : GoFunc) (ttl : time.Duration) (hpos : 
         auth.simpleAdmin p ∗ ghostMapAuth γf 1 (∅ : GMap GoString Unit) }} :=
   auth.tokenSimple_new zap.NewNop.wp_proof lg iw ttl hpos
 
-/-- **The simple token provider meets the token contract** with `info`'s context premise
-(`auth.tokenProviderOkCtx`, S5e), in the mode `on γa`, with the admin side's share, and no
+/-- **The simple token provider meets the token contract** (`auth.tokenProviderOkA`, whose `info`
+takes a context with `auth.ctxDoneAny` since auth-schema-fix S1; until then the context-premised
+form `tokenProviderOkCtx`, S5e), in the mode `on γa`, with the admin side's share, and no
 hypothesis on the provider (the keeper's goroutine proved, `keeper_run`). -/
 theorem token_simple_ok (p : Loc) (γa : auth.AuthNames) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.simpleOk p γa.tok γa.fresh ∗
         auth.simpleWaitOk p ⊢
-      auth.tokenProviderOkCtx (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.tokenSimple.ty) #p)
+      auth.tokenProviderOkA (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.tokenSimple.ty) #p)
         (.on γa) (auth.simpleAdmin p) :=
-  auth.tokenSimple_okCtx zap.Logger.Debug.wp_proof zap.String.wp_proof
+  auth.tokenSimple_okA_run zap.Logger.Debug.wp_proof zap.String.wp_proof
     auth.tokenSimple.wp_genTokenPrefix p γa
 
 /-- **The auth store's constructor in the mode `on γa`** (`NewAuthStore`, the auth plan's E2a;
