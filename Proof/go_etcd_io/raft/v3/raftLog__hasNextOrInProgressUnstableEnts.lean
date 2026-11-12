@@ -25,7 +25,7 @@ theorem raftLog.hasNextOrInProgressUnstableEnts.wp_proof :
   wp_start as H
   iNamed H
   iNamed Hlog
-  ihave %Hlen := entsPts_len _ _ _ $$ Huents
+  ihave %Hlen := entsPtsZ_len _ _ _ _ $$ Huents
   wp_auto
   iapply HΦ
   isplitl

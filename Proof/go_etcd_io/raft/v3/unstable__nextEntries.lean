@@ -27,13 +27,13 @@ theorem unstable.nextEntries.wp_proof : unstable.nextEntries.spec (GF := GF) (hG
   iNamed H
   open_unstable
   icases Hents with #Hents
-  ihave %Hlen := entsPts_len $$ Hents
+  ihave %Hlen := entsPtsZ_len _ _ _ _ $$ Hents
   ihave Hents' := Hents
-  iunfold entsRO at Hents'
-  iunfold entsPts at Hents'
+  iunfold entsROz at Hents'
+  iunfold entsPtsZ at Hents'
   icases Hents' with ⟨%ls, #Hls, #Hb⟩
   ihave %Hwf := ownSlice_wf $$ Hls
-  ihave %Hbl := entsBig_length $$ Hb
+  ihave %Hbl := entsBigZ_length _ _ _ $$ Hb
   wp_auto
   have Hk : sint.Z (us.inprogress - us.offset) =
       uint.Z us.inprogress - uint.Z us.offset := by word
@@ -43,7 +43,7 @@ theorem unstable.nextEntries.wp_proof : unstable.nextEntries.spec (GF := GF) (hG
     isplitl
     · close_unstable
     rw [List.drop_eq_nil_of_le (by word)]
-    iapply entsPts_nil
+    iapply entsPtsZ_nil
   · rw [ite_eq_left ⟨by word, by word, by word⟩]
     wp_auto
     icases (ownSlice_slice (us.inprogress - us.offset) uv.entries'.len uv.entries'
@@ -57,11 +57,11 @@ theorem unstable.nextEntries.wp_proof : unstable.nextEntries.spec (GF := GF) (hG
       congr 1
       word
     rw [← Hsub]
-    iunfold entsRO
-    iunfold entsPts
+    iunfold entsROz
+    iunfold entsPtsZ
     iexists subslice (sint.nat (us.inprogress - us.offset)) (sint.nat uv.entries'.len) ls
     iframe H2
-    iapply entsBig_subslice $$ Hb
+    iapply entsBigZ_subslice $$ Hb
 
 end proof
 

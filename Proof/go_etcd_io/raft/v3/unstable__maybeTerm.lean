@@ -38,7 +38,7 @@ theorem unstable.maybeTerm.wp_proof
   iNamed H
   open_unstable
   wp_auto
-  ihave %Hlen := entsPts_len $$ Hents
+  ihave %Hlen := entsPtsZ_len _ _ _ _ $$ Hents
   wp_if_destruct
   · rcases snap_some_or_none us.snap with ⟨sid, Hs⟩ | Hs
     · -- below `offset`, with a snapshot pending: its term at its index
@@ -89,7 +89,7 @@ theorem unstable.maybeTerm.wp_proof
         $$ [Hu Hents Hents_cap] as %last %ok ⟨Hun, %Hok1, %Hok2⟩
     · close_unstable
     open_unstable_again
-    ihave %Hlen := entsPts_len $$ Hents
+    ihave %Hlen := entsPtsZ_len _ _ _ _ $$ Hents
     by_cases He : us.ents = []
     · obtain ⟨Hok, Hlast⟩ := Hok1 He
       subst Hok
@@ -142,10 +142,10 @@ theorem unstable.maybeTerm.wp_proof
           ⟨_, List.getElem?_eq_getElem Hlt⟩
         icases Hents with #Hents
         ihave Hents' := Hents
-        iunfold entsRO at Hents'
-        iunfold entsPts at Hents'
+        iunfold entsROz at Hents'
+        iunfold entsPtsZ at Hents'
         icases Hents' with ⟨%ls, #Hs, #Hb⟩
-        icases entsBig_lookup ls us.ents _ e He_lk $$ Hb with ⟨%l, %Hl, #Hl⟩
+        icases entsBigZ_lookup_RO _ ls us.ents _ e He_lk $$ Hb with ⟨%l, %Hl, #Hl⟩
         wp_apply wp_load_slice_index uv.entries' (sint.Z (i - us.offset)) ls DFrac.discard l
           Hbnd.1 $$ [Hs] as -
         · iframe Hs; ipureintro; exact Hl

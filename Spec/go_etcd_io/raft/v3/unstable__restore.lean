@@ -54,7 +54,7 @@ abbrev unstable.restore.spec : Prop :=
                       inprogress := sv.Metadata'.Index' + W64 1,
                       snap := some (snapId sv),
                       ksn := us.ksn ++ [snapTrip sv sv.Metadata'.ConfState'.lists],
-                      sip := false } }}
+                      sip := false, sz := us.sz } }}
 
 end spec
 

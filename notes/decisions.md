@@ -35215,7 +35215,7 @@ etcd-grove-81; a restricting change, no further round).**
   `Open`'s docstring) state the wrap-first branch; the masked nonissue's upstreaming option "keep the
   masked success for old-named WALs" brings F-W4a2-2 back.
 
-## WAL W4b: the history and read lemmas, the crash views, and the purged read (2026-11-12 · plan approved by etcd-grove-81, `/shared/tmp/wal-spec/w4b/plan.md`; C2's premises chosen by the proof, as the plan allows; awaiting CP3 · branch `wal-w4b`)
+## WAL W4b: the history and read lemmas, the crash views, and the purged read (2026-11-12 · plan approved by etcd-grove-81, `/shared/tmp/wal-spec/w4b/plan.md`; C2's premises chosen by the proof, as the plan allows; CP3 approved by etcd-grove-81 under the user's delegation, 2026-11-12: `walCommitLe` as C2's premise, the guard dropped, C4 without `walNoDormant` · branch `wal-w4b`)
 
 Proved only: two unlinked modules over the W4a/W4a.1/W4a.2 axioms, no axiom, `sorry`, opaque or
 trusted text; trust base unchanged.
@@ -35244,8 +35244,8 @@ trusted text; trust base unchanged.
 - **The guard is not a premise**; the name bound alone carries the argument (with the record of
   index `a`, which `ReleaseLockTo`'s and `Open`'s callers have; within the commit for `Open`).
 - **`walCommitLe` is a new premise, and C2 is false without it** (the plan's risk R1). Counterexample
-  (`a = 2`, `k = 1`; the reads machine-checked in `/shared/tmp/wal-spec/w4b/scratch/Cex.lean`, the
-  name bound by hand): `[save c0 [1], save c2 [2], snap 2, save c2 [3,4,5], snap 3, save c4 [], snap
+  (`a = 2`, `k = 1`; the two reads machine-checked in `/shared/tmp/wal-spec/w4b/scratch/Cex.lean`
+  (scratch: two `simp` examples over `walRead`/`walReadFrom` of that history), the name bound by hand): `[save c0 [1], save c2 [2], snap 2, save c2 [3,4,5], snap 3, save c4 [], snap
   4]`. The unpurged read ends at base 4 with no entry (the received snapshot 3, above the running
   commit 2, empties it; snapshot 4 drops nothing more), the purged read keeps entry 5 above base 4.
   The history raises the commit to 4 with the read's last index at 3: raft never does

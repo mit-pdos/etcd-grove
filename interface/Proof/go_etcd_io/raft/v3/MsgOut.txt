@@ -26,9 +26,6 @@ theorem msgPtsC_msgPtsCC_uf (l : Loc) (dq dqe : DFrac) (cap : Bool) (st : MsgSt)
 def outEntR (γ : RaftNames) (e : Loc) (c : EntryC) : IProp GF :=
   outSetR γ (Sum.inr (e, c))
 
-def entSizeOk (e : EntryC) : Prop :=
-  entBytes e ≤ 2 ^ 31
-
 theorem snapUf_congr (l : Loc) (st st' : MsgSt) (h : st'.msg.Type' = st.msg.Type') : snapUf l st ⊢
     snapUf l st'
 
@@ -65,9 +62,6 @@ def outKey : Loc × MsgC ⊕ Loc × EntryC → Loc × MsgFC × List Loc ⊕ Loc 
   match x✝ with
   | Sum.inl (m, c) => Sum.inl (m, c.f, List.map Prod.fst c.resps)
   | Sum.inr x => Sum.inr x
-
-def entBytes (e : EntryC) : Nat :=
-  (e.data.getD []).length + e.uf.length
 
 def MsgFC.countable : Pos.Countable MsgFC :=
   Pos.Countable.ofInjective

@@ -15,7 +15,7 @@ theorem unstable.acceptInProgress.wp_proof [package_sem : Assumptions] (wp_Entry
                   ∀ ip,
                     ownUnstable u
                           { ents := us.ents, offset := us.offset, inprogress := ip, snap := us.snap, ksn := us.ksn,
-                            sip := us.sip || us.snap.isSome } ∗
+                            sip := us.sip || us.snap.isSome, sz := us.sz } ∗
                         ⌜(us.ents = [] → ip = us.inprogress) ∧
                             (us.ents ≠ [] → uint.Z ip = uint.Z us.offset + ↑us.ents.length)⌝ -∗
                       Φ (intoVal ())) -∗
