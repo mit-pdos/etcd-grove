@@ -337,7 +337,7 @@ structure OptsM where
   mmapFlags : w64
   noSync : Bool
   /-- `NoFreelistSync` (re-review N1: with it off, `Open` commits once to write a freelist page
-  into a file that has none, `db.go:319-334`, a commit the client's state must record) -/
+  into a file that has none, `db.go:338-350` at `ea4cab5`, a commit the client's state must record) -/
   noFreelistSync : Bool
 
 /-- `Open(path, mode, nil)`'s options (`DefaultOptions`: no timeout, grow sync, the array

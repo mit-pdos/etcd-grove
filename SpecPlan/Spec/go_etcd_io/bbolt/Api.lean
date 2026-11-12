@@ -9,6 +9,10 @@ D17, D18, D20, D21, D22: below where each lands), and extends it to nested bucke
 `View`/`Update`, `ForEach`, `WriteTo`, `Sync`, a custom `OpenFile`, mutations on read transactions
 (their errors) and **durability across crashes**.
 
+Source: bbolt at the pin `ea4cab5` (`github.com/upamanyus/bbolt@v0.0.0-20261111214215-ea4cab526797`,
+the module `examples/go.mod` replaces `go.etcd.io/bbolt` by; was `743299d`, whose only non-test
+difference is `Open`'s sync before its first commit, `Open.spec`).
+
 Every predicate is stated over the Linux file extension OsFs (`GooseLang/Ext/OsFs/`): each takes
 `[HasExt osFsExt]` and the generation's heap `[hG : HeapGS HasLC.hasLC GF]` **in its own
 signature** (a section variable an opaque body does not use is dropped, PRINCIPLES "An instance

@@ -22,9 +22,10 @@ var keyBucket = []byte("key")
 // backend's assumed fact; then field stores).
 // Assumes: path is the database's closed file (boltFile, boltClosed: from fileHolds_alloc of a
 // file that exists, or boltFresh_alloc of etcd's first boot); a pointer-typed logger meeting
-// boltLogger (here nil).
+// boltLogger (here nil); with noSync false, the caller supplies Open's sync update (it holds
+// boltState γ 1 σ: boltState_settle_au; Open fdatasyncs the file before any commit).
 // Specs: optsLit.spec, optsAlloc.spec, Open.spec; laws: optsAt_int, optsAt_bool, fileHolds_alloc,
-// boltFresh_alloc.
+// boltFresh_alloc, boltState_settle_au.
 func ReqBackendOpen(path string, noSync bool) *bolt.DB {
 	opts := &bolt.Options{}
 	opts.MmapFlags = syscall.MAP_POPULATE
