@@ -1,10 +1,33 @@
 # Plan: a closed proof that raft's traces pass its own TLA+ trace validation (draft, 2026-11-08)
 
 Branch `trace-check`. Background, harness, transcription and its checks:
-`notes/raft-trace-validation.md`. Status: **resumed against the corrected specification (`etc/tla-fixes/`, the user's decision, 2026-11-08; see "Resumed" below); before the Freeze.** The stage follows
+`notes/raft-trace-validation.md`. Status: **done (2026-11-12): `raft_tracecheck_safe` and `raft_tracecheck_accepts` proved with no hypothesis, against the corrected specification (`etc/tla-fixes/`); see "Done" below.** The stage follows
 `notes/spec-first-plan.md`'s phases (Scope, Draft, Review, Test, Probe, Freeze, Prove; no proof
 before the user's freeze, the tag `trace-check-frozen`); amendments after the freeze are dated,
 below the section they amend.
+
+## Done (2026-11-12, the goal's exit criterion (a))
+
+`Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/Results.lean` states and proves
+`raft_tracecheck_safe` and `raft_tracecheck_accepts` (§1.2/§1.3 of `notes/trace-check-design.md` word for
+word, the `_of` results at `harnessOpen`, raft's linked traced `StartNode`); `#print axioms` of each and
+`etc/tcb-collections/tracecheck.txt` (16 axioms, 0 `sorry`): existing trust-base axioms only (protobuf's
+boundary, `fmt.Errorf`, `strconv`, `ccDecodeV2_nil`, `DescribeConfChange`, `ConfChangeType.String`). The
+acceptance test at the merge of `trace-check-s5`: full build green (13896 jobs); every other closed
+theorem's statement unchanged (kv's `kv_storage_isStorage`/`kv_bootStorage`, exported spec-level results,
+gain Q39 (a)'s untraced premise); `etc/tcb-report.py --check` 806/4 and all 54 collections (the tracecheck
+collection updated, existing axioms only); `interface/` differs in raft's package only (the specs restated
+as one statement for both modes with gated premises, `node.ApplyConfChange.spec`'s gated client premise,
+the read-only lending of the trace hooks, B4's module, Q39's premise); `etc/goose.py --check` passes for
+every project under amd64 but raft, whose translation regenerates identically from the unpushed fork
+commit `e8f9566` (`--src raft=.lake/raft-trace`); the tracecheck Go tests pass with `-tags with_tla` and
+(the subpackages) without. Not green, and not in the acceptance test: `etc/gates.sh`'s goose line (the
+unpushed fork commit: landing on `lean` needs the push, the user's) and `etc/reader-slot-check.py`'s floor
+(199 < 200, identical at `a660e8e6a5`: this machine's Go sources). Steps 4 and 5: the design's "Step 4" and
+"Step 5" sections; `notes/decisions.md`'s step-4 and step-5 entries. Left, not needed by the result:
+`tcRunFits` as a `ReceiptBoundLe` instance (needs §1.3's premise restated: the user's); one statement for
+`RawNode.Tick` (step-4 review F3, a cleanup); `trCapB`'s docstring to note its coupling with
+`trCapStart` (step-5 review S3).
 
 ## Resume point (2026-11-12, before the user's machine restart)
 
