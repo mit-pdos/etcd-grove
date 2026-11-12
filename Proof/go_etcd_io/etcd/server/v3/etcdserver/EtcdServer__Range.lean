@@ -37,6 +37,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ProposerLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.CompactMode
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.StartLaws
 
 @[expose] public section
 
@@ -838,7 +839,7 @@ theorem EtcdServer.Range.wp_proof
   · ipureintro; rfl
   iintro %osl ⟨-, -⟩
   (try wp_auto)
-  wp_apply hTS tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp, -, -, #Hlibw⟩
+  wp_apply (traceutil.Tracer.Start.spec_txn hTS) tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp, -, -, #Hlibw⟩
   · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hlib1 := Hlibw $$ Hlib
   iunfold trace.isSpan at Hsp

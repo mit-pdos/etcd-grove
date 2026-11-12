@@ -28,6 +28,7 @@ public import Spec.go_opentelemetry_io.otel.attribute.Int64
 public import Spec.errors.Is
 public import Spec.errors.IsCtxErr
 public import Spec.context.ErrDone
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.StartLaws
 
 @[expose] public section
 
@@ -173,7 +174,7 @@ local macro "renew_forward" : tactic => `(tactic| (
   (try wp_auto)
   -- `leader, lerr := s.waitLeader(cctx)`
   wp_apply (hWl s E ρ γr cctx _) $$ [] as %ldr %lerr Hl
-  · iframe #
+  · iframe #; iapply srvCtxWeak_of_isContext; iassumption
   (try wp_auto)
   icases Hl with (⟨%Hln, %mv, %urls, #Hm, #Hurls⟩ | ⟨%Hln, #Hle⟩)
   rotate_left
@@ -220,7 +221,9 @@ local macro "renew_forward" : tactic => `(tactic| (
     (try wp_auto)
     -- `ttl, err := leasehttp.RenewHTTP(cctx, id, lurl, s.peerRt)`
     wp_apply hHttp cctx _ id _ rt $$ [] as %ttl %herr Hh
-    · iframe #; ipureintro; exact Hrt
+    · iframe #; isplitl []
+      · iapply srvCtxWeak_of_isContext; iassumption
+      ipureintro; exact Hrt
     (try wp_auto)
     -- `if err == nil || errorspkg.Is(err, lease.ErrLeaseNotFound) { return ttl, err }`
     icases Hh with (%Hhn | ⟨%Hhn, #Hhe⟩)
@@ -373,7 +376,7 @@ theorem EtcdServer.LeaseRenew.wp_proof
   · ipureintro; rfl
   iintro %osl ⟨-, -⟩
   (try wp_auto)
-  wp_apply hStart tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, -, %Hinc1, #Hsp, -, -, #Hlibw⟩
+  wp_apply (traceutil.Tracer.Start.spec_txn hStart) tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, -, %Hinc1, #Hsp, -, -, #Hlibw⟩
   · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hctx1 := Hctx1w $$ Hctx
   ihave #Hlib1 := Hlibw $$ Hlib

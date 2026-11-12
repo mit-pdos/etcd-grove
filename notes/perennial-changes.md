@@ -82,6 +82,9 @@ every branch, `default` included); not yet reported upstream.
   in `WithCancel`'s and the deadline constructors' posts, for any parent with a `ctxValue`; a
   `*valueCtx` parent (grpc metadata) through `ctxValue_valueCtx` from its fields, which this
   repository's `WithValue` spec would have to state. P-RL2 not started; the 7f-4 Draft states it.
+  For 7f-4 (`notes/k8s-7f4-rebaseline.md`, R-1): grpc's run context gives its library facts only in
+  the WP form (`grpcRunCtx`), which does not cross `WithCancel`; the re-baseline proposes the chain
+  form in grpc's model.
 
 ### Fatal runtime errors are not in the model: `netpollinit` on file-descriptor exhaustion (2026-11-07, the review of `os-init-lean`)
 

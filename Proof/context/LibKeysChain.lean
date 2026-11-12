@@ -12,6 +12,9 @@ before grpc reads them (`NewSession`, `Election.Observe`, the lessor, the watche
 
 * `metadata.outgoingCtxOkC ctx` (persistent): `ctx`'s outgoing metadata is one value `v` that
   `FromOutgoingContext` accepts (`outgoingRes`), as Perennial's chain says.
+* `context.libCtxOkC ctx`, `trace.spanCtxOkC ctx` (persistent; k8s 7f-4, T-a): the chain form of
+  `context.libCtxOk`'s facts at grpc's keys and of `trace.spanCtxOk`, which grpc's model gives of a
+  stream's run context (`srvRawStreamIs`), so that a `WithCancel` child of it has them.
 
 Laws (all proved): `Background()`, `TODO()` (`_background`, `_todo`); a child by `WithCancel`/the
 deadline constructors (`_from`); a `valueCtx` at another key (`_valueCtx`) or at grpc's own key
@@ -52,6 +55,37 @@ def metadata.outgoingCtxOkC (ctx : GoInterfaceOk) : IProp GF :=
 instance metadata.outgoingCtxOkC_persistent (ctx : GoInterfaceOk) :
     Persistent (metadata.outgoingCtxOkC (GF := GF) ctx) := by
   unfold metadata.outgoingCtxOkC; infer_instance
+
+/-- **`ctx`'s library values, as Perennial's chain says** (persistent; k8s 7f-4, T-a): the facts of
+`context.libCtxOk` at grpc's keys (`mdIncomingKey{}`: one value, which `FromIncomingContext`
+accepts; `mdOutgoingKey{}`: `outgoingCtxOkC`; `peerKey{}`: a value `peer.FromContext`'s callers
+accept; otel's `currentSpanKey`: a value `SpanFromContext`'s callers accept, `trace.spanRes`; k8s
+7f-4 Revision 1, M1), with `context.value`'s chain (`ctxValue`) in place of the WP form, so that
+`WithCancel` and the deadline constructors carry them (`ctxValueFrom`, `context.libCtxOkC_from`):
+the chain form of all four parts of `context.libCtxOk` (`context.libCtxOk_of_libCtxOkC`).
+`trace.spanCtxOkC` is the chain form of `trace.spanCtxOk` (a span, `isSpan`, rather than otel's). -/
+def context.libCtxOkC (ctx : GoInterfaceOk) : IProp GF :=
+  iprop((∃ v : GoInterface, ⌜metadata.incomingRes v⌝ ∗
+      _root_.Perennial.context.ctxValue ctx metadata.mdIncomingKeyAny (· = v)) ∗
+    metadata.outgoingCtxOkC ctx ∗
+    _root_.Perennial.context.ctxValue ctx peer.peerKeyAny peer.peerRes ∗
+    _root_.Perennial.context.ctxValue ctx trace.spanKeyVal trace.spanRes)
+
+instance context.libCtxOkC_persistent (ctx : GoInterfaceOk) :
+    Persistent (context.libCtxOkC (GF := GF) ctx) := by
+  unfold context.libCtxOkC; infer_instance
+
+/-- **`ctx`'s span is a span, as Perennial's chain says** (persistent; k8s 7f-4, T-a):
+`trace.spanCtxOk` with `context.value`'s chain (`ctxValue`) at otel's `currentSpanKey` in place of
+the WP form: the value returned satisfies `R`, and every value satisfying `R` is `nil` or a span. -/
+def trace.spanCtxOkC (ctx : GoInterfaceOk) : IProp GF :=
+  iprop(∃ R : GoInterface → Prop,
+    □ (∀ v : GoInterface, ⌜R v⌝ -∗ (⌜v = GoInterface.nil⌝ ∨ trace.isSpan v)) ∗
+    _root_.Perennial.context.ctxValue ctx trace.spanKeyVal R)
+
+instance trace.spanCtxOkC_persistent (ctx : GoInterfaceOk) :
+    Persistent (trace.spanCtxOkC (GF := GF) ctx) := by
+  unfold trace.spanCtxOkC; infer_instance
 
 end defs
 
@@ -229,6 +263,80 @@ theorem metadata.outgoingCtxOk_of_valueWand (parent c' key : GoInterfaceOk) (v :
   iapply context.valueAt_of_valueWand parent c' key v _ _
     (by intro k' h; simp only [metadata.mdOutgoingKeyAny, interface.mkOk,
       GoInterface.ok.injEq] at h; subst h; exact hk) $$ Hw Ho
+
+/-- **The chain form gives the WP form** (k8s 7f-4, Revision 1, m3): `context.libCtxOkC` gives
+`context.libCtxOk` (`ctxValue_Value` at each key), so `srvRawStreamIs`'s `grpcRunCtx` claims no more
+of the run context's library values than its chain form. -/
+theorem context.libCtxOk_of_libCtxOkC (ctx : GoInterfaceOk) :
+    isPkgInit (PROP := IProp GF) pkg_id.context ∗ context.libCtxOkC ctx ⊢ context.libCtxOk ctx := by
+  iintro ⟨#Hpkg, #H⟩
+  unfold context.libCtxOkC metadata.outgoingCtxOkC
+  icases H with ⟨⟨%vi, %hvi, #Hi⟩, ⟨%vo, %hvo, #Ho⟩, #Hp, #Hs⟩
+  unfold context.libCtxOk metadata.incomingCtxOk metadata.outgoingCtxOk peer.peerCtxOk
+    trace.spanValOk
+  isplitl []
+  · iexists vi; iframe %hvi
+    iapply context.valueAt_of_ctxValue; iframe #
+  isplitl []
+  · iexists vo; iframe %hvo
+    iapply context.valueAt_of_ctxValue; iframe #
+  isplitl []
+  · iapply context.valueAt_of_ctxValue; iframe #
+  · iapply context.valueAt_of_ctxValue; iframe #
+
+/-- **The chain form of the span fact gives its WP form** (m3): `trace.spanCtxOkC` gives
+`trace.spanCtxOk`. -/
+theorem trace.spanCtxOk_of_spanCtxOkC (ctx : GoInterfaceOk) :
+    isPkgInit (PROP := IProp GF) pkg_id.context ∗ trace.spanCtxOkC ctx ⊢ trace.spanCtxOk ctx := by
+  iintro ⟨#Hpkg, #H⟩
+  unfold trace.spanCtxOkC
+  icases H with ⟨%R, #HR, #Hv⟩
+  unfold trace.spanCtxOk
+  iexists R
+  iframe #
+  imodintro
+  iintro %Φ !> - HΦ
+  iapply _root_.Perennial.context.ctxValue_Value ctx trace.spanKeyVal R $$ [] [HΦ]
+  · iframe #
+  iexact HΦ
+
+/-- **`WithCancel` and the deadline constructors carry the chain form** (`ctxValueFrom`). -/
+theorem context.libCtxOkC_from (parent child : GoInterfaceOk) :
+    _root_.Perennial.context.ctxValueFrom (GF := GF) parent child ∗ context.libCtxOkC parent ⊢
+      context.libCtxOkC child := by
+  iintro ⟨#Hf, #H⟩
+  unfold context.libCtxOkC
+  icases H with ⟨⟨%vi, %hvi, #Hi⟩, #Ho, #Hp, #Hs⟩
+  ihave #Hf' := Hf
+  iunfold _root_.Perennial.context.ctxValueFrom at Hf'
+  isplitl []
+  · iexists vi; iframe %hvi
+    iapply Hf'
+    · ipureintro; exact context.libKeys_notIntPtr _ (by simp)
+    iexact Hi
+  isplitl []
+  · iapply metadata.outgoingCtxOkC_from; iframe #
+  isplitl []
+  · iapply Hf'
+    · ipureintro; exact context.libKeys_notIntPtr _ (by simp)
+    iexact Hp
+  · iapply Hf'
+    · ipureintro; exact context.libKeys_notIntPtr _ (by simp)
+    iexact Hs
+
+/-- **`WithCancel` and the deadline constructors carry the span fact's chain form.** -/
+theorem trace.spanCtxOkC_from (parent child : GoInterfaceOk) :
+    _root_.Perennial.context.ctxValueFrom (GF := GF) parent child ∗ trace.spanCtxOkC parent ⊢
+      trace.spanCtxOkC child := by
+  iintro ⟨#Hf, #H⟩
+  unfold trace.spanCtxOkC
+  icases H with ⟨%R, #HR, #Hv⟩
+  iexists R
+  iframe #
+  unfold _root_.Perennial.context.ctxValueFrom
+  iapply Hf
+  · ipureintro; exact context.libKeys_notIntPtr _ (by simp)
+  iexact Hv
 
 end laws
 

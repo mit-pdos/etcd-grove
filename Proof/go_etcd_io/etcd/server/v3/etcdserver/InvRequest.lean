@@ -92,6 +92,7 @@ public import Perennial.Ghost.Token
 public import Iris.BI.Lib.Atomic
 public import Iris.Instances.Lib.FUpd
 public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
+public import Proof.go_etcd_io.etcd.server.v3.auth.CtxDone
 
 @[expose] public section
 
@@ -2622,6 +2623,22 @@ def authInfoIs (a : Loc) (user : GoString) (rev : w64) : IProp GF :=
 def authInfoOpt (a : Loc) : IProp GF :=
   iprop(⌜a = null⌝ ∨ ∃ user rev, authInfoIs a user rev)
 
+/-- **A `txnCtx`'s `Done()` is one the auth store may select on** (T-e'): `nil` (`doneNil`) or an
+`isContext`'s. -/
+theorem auth.ctxDoneAny_of_txnCtx (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
+    mvcc.txnCtx ctx cd ⊢ auth.ctxDoneAny ctx := by
+  iintro #H
+  unfold mvcc.txnCtx
+  icases H with (#Hn | #Hc)
+  · unfold auth.ctxDoneAny mvcc.doneNil
+    iintro !> %Φ !> - HΦ
+    iapply Hn $$ []
+    · itrivial
+    iintro !> -
+    iapply HΦ
+    ileft; ipureintro; rfl
+  · iapply auth.ctxDoneAny_of_isContext ctx cd $$ Hc
+
 /-- **The auth store's request side** (persistent): `AuthInfoFromCtx(ctx)`, with the caller's
 reader resource `RD` (held and given back; 2026-10-14, unit A2: the real method read-locks
 `enabledMu`), returns an auth info (or `nil`) and an error (`nil`, or one the gRPC layer can take:
@@ -2629,16 +2646,28 @@ reader resource `RD` (held and given back; 2026-10-14, unit A2: the real method 
 `authApplyErrIs`, so that the gRPC layer's description of it is known: k8s etcd3 7c-2 part 2, S3a); `AuthInfoFromTLS(ctx)` an auth info (or `nil`); (premise-fixes-8 S2) each call on a context whose
 library values are well formed (`context.libCtxOk`, which the request path carries from the gRPC run
 context). Of the real store: `isReqAuth_of_authInv` (`AuthReqDerive.lean`). The permission checks and `Revision` are the
-apply package's `isAuthStore`. -/
+apply package's `isAuthStore`. (k8s 7f-4, T-e and T-e', decided by etcd-grove-81) Of the context,
+its library values and its `Done()`: with auth off, `AuthInfoFromCtx` returns at
+`!as.IsAuthEnabled()` and `AuthInfoFromTLS` reads only the peer and the metadata (`Value` at grpc's
+keys; fork `673da07c8f` `server/auth/store.go:1073`); with auth on and a simple token, the token
+check (`tokenSimple.isValidSimpleToken`, `server/auth/simple_token.go:239-243`) also selects on
+`ctx.Done()`, which Go evaluates on entry: it returns nil or a context's Done channel
+(`auth.ctxDoneAny`; `notes/auth-validspec-false.md`). Neither reads `Err`/`Deadline`, so a stream
+handler's weak context (`srvCtxWeak`) is one too: a `txnCtx` gives `ctxDoneAny`
+(`auth.ctxDoneAny_of_txnCtx`), and so does `srvCtxWeak` (`auth.ctxDoneAny_of_srvCtxWeak`). The whole
+`libCtxOk` is kept although the store reads only its incoming and peer parts: every caller carries
+it anyway (the request path from grpc's run context, the stream paths from the chain form), and the
+same premise as `checkLeaseRenew`'s and the request path's internal specs keeps one context fact
+across them (`notes/k8s-7f4-freeze.md`, Revision 1, m1). -/
 def isReqAuth (st : GoInterface) (RD : IProp GF) : IProp GF :=
   iprop(∃ ai : GoInterfaceOk, ⌜st = GoInterface.ok ai⌝ ∗
-    □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-      {{ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗ RD }}
+    □ (∀ ctx : GoInterfaceOk,
+      {{ context.libCtxOk ctx ∗ auth.ctxDoneAny ctx ∗ RD }}
         (App (Val #(methods ai.ty go!"AuthInfoFromCtx" ai.v)) (Val #(GoInterface.ok ctx)))
       {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗
           authApplyErrIs err }}) ∗
-    □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-      {{ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx }}
+    □ (∀ ctx : GoInterfaceOk,
+      {{ context.libCtxOk ctx ∗ auth.ctxDoneAny ctx }}
         (App (Val #(methods ai.ty go!"AuthInfoFromTLS" ai.v)) (Val #(GoInterface.ok ctx)))
       {{ (a : Loc), RET #a; authInfoOpt a }}))
 
@@ -2657,8 +2686,8 @@ package's error variables (`authApplyErrIs`, the real store's `auth.authErrIs`; 
 plan's E3, 2026-11-05: what tells a request check's error apart from `lease.ErrLeaseNotFound`). -/
 def isReqAuthBound (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) : IProp GF :=
   iprop(∃ ai : GoInterfaceOk, ⌜st = GoInterface.ok ai⌝ ∗
-    □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-      {{ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗ RD }}
+    □ (∀ ctx : GoInterfaceOk,
+      {{ context.libCtxOk ctx ∗ auth.ctxDoneAny ctx ∗ RD }}
         (App (Val #(methods ai.ty go!"AuthInfoFromCtx" ai.v)) (Val #(GoInterface.ok ctx)))
       {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗
           authApplyErrIs err ∗ auth.ctxBound M (GoInterface.ok ctx) a }}))
