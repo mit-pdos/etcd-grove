@@ -44,11 +44,19 @@ the restart point, `run` at `⟨|P|, A₀⟩`.
   goose, gen-init, import-all); `etc/gen-interface.py --check` for raft, mvcc, backend, bbolt,
   etcdstart: unchanged. Statement diff: `/shared/tmp/restart-s4/cp2-statements.diff`.
 
+- CP3 review: Freeze package `/shared/tmp/restart-s4/freeze-package.md`; fresh `spec-reviewer`
+  (`/shared/tmp/restart-s4/review.md`): approve with fixes; the docstring fixes F1-F7 made
+  (`b01800d4f8`, each file `lean-check -a` clean; `InvRaftNode`'s docstring touched too, so the next
+  full build rebuilds its importers).
+
 ## Next, in order
 
-1. CP2 reported to etcd-grove-81.
-2. After CP2: the Freeze package (hub diff + widening argument) to a fresh `spec-reviewer`, CP3, STOP
-   before `etc/land.sh` (merge `lean` first then; it brings SpecPlan/).
+1. Wait for etcd-grove-81's confirmation that the ckptEffectsOk landing is on `lean` (at `b01800d4f8`
+   `lean` was `d312fbb78a`, without it).
+2. Merge `lean`; before the first build, `cp -a /shared/etcd-grove-ckpt/.lake/build/{lib/lean,ir}/SpecPlan`
+   into the same places of this worktree's `.lake/build` (only after the ckpt landing).
+3. One full build (lock, 64G cap), `etc/gates.sh`, `etc/gen-interface.py --check` x5; STOP before
+   `etc/land.sh` with the reviewer's verdict.
 
 ## Build
 
