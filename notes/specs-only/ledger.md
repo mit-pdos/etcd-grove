@@ -25,15 +25,18 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
-## 2026-11-12: bbolt's bucket handles -- a generation counter in the view is non-physical state
+## 2026-11-12: bbolt's bucket handles -- a generation counter in the view is unobservable, redundant state
 
 - **Spec.** `SpecPlan/Spec/go_etcd_io/bbolt/Model.lean` (`TxView.gen`, `TxView.gens`, `TxView.dropBkt`), `SpecPlan/Spec/go_etcd_io/bbolt/Api.lean`
   (`bktH tx γ b p gs`, `boltCur … gs …`, `bktH_live`), and every triple taking a handle (`Tx.Bucket`,
   `Tx.CreateBucket(IfNotExists)`, `Tx.DeleteBucket`, `Tx.Cursor`, `Tx.ForEach`, `Bucket.*`,
   `Cursor.*`). Real spec: `Spec/go_etcd_io/bbolt/Api.lean` (`boltBkt tx b n g`, the same counter).
 - **Defect.** A handle is valid while the per-path counters `T.gens p` equal those it was made at;
-  `DeleteBucket` bumps them. The counter is bookkeeping the client must carry in its view, with no
-  Go field behind it (the user, 2026-11-12: "It's non-physical state").
+  `DeleteBucket` bumps them. No operation lets the client observe the counter: it is state in the
+  client's view that exists only to invalidate stale handles, which ownership already does (using
+  a bucket takes its token, deleting it consumes the token). The user, 2026-11-12: "it was
+  unobservable state. It introduced a redundancy in the specs which we found was not necessary by
+  instead using ownership."
 - **Evidence.** What the counter excludes is real (`nonissues/bbolt-deleted-bucket-handle.md`: a
   handle used after delete and re-creation panics in `Put`), and Go has a field that says which
   handle is current: in a write transaction `Tx.Bucket`/`Bucket.Bucket` return the parent's cached
@@ -52,7 +55,12 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Decision.** Accepted by the user, 2026-11-12 ("I want the ownership version"); read
   transactions keep a persistent handle (the coordinator's proposal: no Go operation can
   invalidate one, and etcd's shared read transaction caches handles across goroutines,
-  `read_tx.go:49, 97-104`).
+  `read_tx.go:49, 97-104`). Applied in `9fb353a5d1` (with the departures recorded there: `Tx`,
+  `Writable`, `Cursor` and `openBucket` take only the persistent `bktH`, which they need alone and
+  `bktOwn_bktH` gives from a token; the root's handle, in both kinds, is the persistent `bktH`, which
+  `Tx.Cursor` returns; every cursor move, `Next`/`Prev`/`Delete` included, takes the handle premise,
+  since without generations a deleted and re-created bucket can leave the view as it was; the
+  lookup token is `bktTok`; the data's bucket paths `Ent.bktPaths`, `Ent.bktsUnder`).
 
 ## 2026-11-12: `Tx.DeleteBucket.spec`, `Bucket.DeleteBucket.spec` -- the empty name's error arm is false after the first leaf is emptied
 
@@ -68,6 +76,8 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Proposed change.** For `kb = []`: either error, the transaction unchanged (the frozen spec's
   arm). No caller passes the empty name.
 - **Decision.** Accepted (coordinator, 2026-11-12; a sound repair to the real spec's form).
+  Applied in `9fb353a5d1` (the `kb = []` arm before the lookup: either error, the transaction
+  unchanged).
 
 ## 2026-11-12: `Model.lean` -- no laws over the data model
 
@@ -80,7 +90,10 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Proposed change.** Pure laws as `def … .spec : Prop` in `Model.lean`: `atPath` after `modAt`
   (same path, other paths), `setKey` then lookup, `curEnts` of `setKey` (sorted insertion/removal),
   `wf` preserved by `setKey`/`modAt` under the entry bounds.
-- **Decision.** Accepted (coordinator, 2026-11-12; adds laws, changes no triple).
+- **Decision.** Accepted (coordinator, 2026-11-12; adds laws, changes no triple). Applied in
+  `b899a66c70` (`Ent.atPath_modAt`, `atPath_modAt_other`, `lookup_setKey`, `atPath_child_setKey`,
+  `curEnts_put`, `curEnts_del`, `wf_setKey`, `wf_delKey`, `wf_modAt`, `bktPaths_mem`,
+  `bktsUnder_mem`).
 
 ## 2026-11-12: `DB.Path.spec` (and the close right) -- `Path` needs the exclusive close right, which non-blocking defrag does not hold
 
@@ -93,6 +106,9 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Proposed change.** `boltOpened db γ q` fractional; `Path` (and `Sync`, if its Go body only
   races with `close()`) take a share and return it; `Close` takes the whole. Exclusivity at 1.
 - **Decision.** Accepted (coordinator, 2026-11-12; weakens a premise, no new ghost state).
+  Applied in `9fb353a5d1` (`boltOpened db γ q`, used at `1`) and `6eae035a46` (`Path` and `Sync`
+  take a share: `Sync`'s body, `Logger`, `db.path` and `fdatasync`'s `db.file`, races only with
+  `close()`, `db.go:829, 832` at the pin).
 
 ## 2026-11-12: `Open.spec` -- written against bbolt `743299d`, the pin is `ea4cab5`
 
@@ -105,7 +121,10 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Proposed change.** `Open.spec` at `ea4cab5`: with `NoSync` off, the state `Open` read is durable
   (the post's state records it, as a successful sync does), the sync's error is an `Open` error
   (`boltClosed` back); the API header names the pin.
-- **Decision.** Accepted (coordinator, 2026-11-12; follows the pinned code).
+- **Decision.** Accepted (coordinator, 2026-11-12; follows the pinned code). Applied in
+  `ac1de7621a`: with `NoSync` off (`IgnoreNoSync` is false on Linux) `Open` takes a sync update
+  (`σ.sync ok`, as `DB.Sync.spec`'s), the success post gives `Ss true`, an error `Ss` of the outcome
+  or the update back.
 
 ## 2026-11-12: `Open.spec`, `DB.Close.spec` -- their errors cannot be excluded, and the server panics on both
 
