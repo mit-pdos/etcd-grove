@@ -33,6 +33,7 @@ structure MemStorNames : Type where
   hk : GName
   sl : GName
   pr : GName
+  sz : Bool
 
 theorem memStorLock_persistent (ms : Loc) (γs : MemStorNames) : Persistent (memStorLock ms γs)
 
@@ -69,7 +70,7 @@ def memLogL (γ : GName) (k : Nat) (dq : DFrac) : List EntryM → IProp GF :=
 
 def memstorageInv (ms : Loc) (γs : MemStorNames) : IProp GF :=
   iprop(∃ p ents M sv,
-      "Hfields" ∷ memstorageFields ms (memPhys p ents) ∗
+      "Hfields" ∷ memstorageFields ms γs.sz (memPhys p ents) ∗
         "Hlog" ∷ ghostMapAuth γs.log 1 M ∗
           "Hen" ∷ ghostVar γs.en (Qp.half 1) (uint.nat p.index' + 1 + ents.length) ∗
             "Hcp" ∷ monoNatAuthOwn γs.cp 1 (uint.nat p.index') ∗
@@ -188,13 +189,13 @@ theorem memLogL_delete (γ : GName) (M : GMap Nat EntryM) (k : Nat) (es : List E
 theorem memLogL_app (γ : GName) (k : Nat) (dq : DFrac) (a b : List EntryM) : memLogL γ k dq (a ++ b)
     ⊣⊢ memLogL γ k dq a ∗ memLogL γ (k + a.length) dq b
 
-def memstorageFields (ms : Loc) (σ : StorState) : IProp GF :=
+def memstorageFields (ms : Loc) (sz : Bool) (σ : StorState) : IProp GF :=
   iprop(∃ hp es dummy nfi nli nen nte nsn,
       "HhardState" ∷
           typedPointsto (structFieldRef MemoryStorage go!"hardState" ms) hp
             (DFrac.own (Qp.half 1)) ∗
         "Hents_f" ∷ typedPointsto (structFieldRef MemoryStorage go!"ents" ms) es (DFrac.own 1) ∗
-          "Hents" ∷ entsRO es (dummy :: σ.ents) ∗
+          "Hents" ∷ entsROz sz es (dummy :: σ.ents) ∗
             "Hents_cap" ∷ ownSliceCap Loc es (DFrac.own 1) ∗
               "%Hdummy" ∷ ⌜dummy.Index' = σ.prev.index' ∧ dummy.Term' = σ.prev.term'⌝ ∗
                 "Hcs_firstIndex" ∷
@@ -342,8 +343,9 @@ theorem memCompJust_register [package_sem : Assumptions] (ms : Loc) (γs : MemSt
     GF) (k : Nat) (E : CoPset) (hE : ↑memStorN ⊆ E) : ⊢ memStorInvP ms γs J -∗ J.B k ={E}=∗
     memCompJust γs k
 
-theorem memstorageFields_congr [package_sem : Assumptions] (ms : Loc) (σ σ' : StorState) (h1 :
-    σ'.prev = σ.prev) (h2 : σ'.ents = σ.ents) : memstorageFields ms σ ⊢ memstorageFields ms σ'
+theorem memstorageFields_congr [package_sem : Assumptions] (ms : Loc) (sz : Bool) (σ σ' : StorState)
+    (h1 : σ'.prev = σ.prev) (h2 : σ'.ents = σ.ents) : memstorageFields ms sz σ ⊢ memstorageFields ms
+    sz σ'
 
 theorem memLogL_persistent (γ : GName) (k : Nat) (es : List EntryM) : Persistent (memLogL γ k
     DFrac.discard es)

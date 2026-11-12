@@ -55,7 +55,8 @@ theorem stepFollower.wp_proof [package_sem : Assumptions] (wp_raft_handleAppendE
                           isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
                               "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
                                 "Hm" ∷
-                                    msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
+                                    msgInC (s.gh.sn.sz && movesB m.Type') ml
+                                      (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
                                       { msg := m, ents := ents, snap := sn, ctx := cl, resps := rs } ∗
                                   "#Hcert" ∷ rcvSrc s.gh.sn m.Type' sn -∗
                             (▷

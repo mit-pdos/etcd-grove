@@ -4,12 +4,12 @@
 
 theorem readOnly.recvAck.wp_proof [package_sem : Assumptions] : readOnly.recvAck.spec
   -- `Perennial.EtcdGrove.readOnly.recvAck.spec`, unfolded:
-  ∀ (ro : Loc) (r : ReadOnly) (src : w64) (ctx : GoSlice) (cs : List w8) (dq : DFrac),
+  ∀ (sz : Bool) (ro : Loc) (r : ReadOnly) (src : w64) (ctx : GoSlice) (cs : List w8) (dq : DFrac),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-            "Hown" ∷ ownReadOnly ro r ∗ "Hctx" ∷ ownSlice ctx cs dq ∗ "%Hlen" ∷ ⌜cs = [] ∨ 8 ≤ cs.length⌝ -∗
-          ▷ (ownReadOnly ro (readonlyRecvAck r src cs) ∗ ownSlice ctx cs dq -∗ Φ (intoVal ())) -∗
+            "Hown" ∷ ownReadOnly sz ro r ∗ "Hctx" ∷ ownSlice ctx cs dq ∗ "%Hlen" ∷ ⌜cs = [] ∨ 8 ≤ cs.length⌝ -∗
+          ▷ (ownReadOnly sz ro (readonlyRecvAck r src cs) ∗ ownSlice ctx cs dq -∗ Φ (intoVal ())) -∗
             WP
               (((intoVal (methods readOnly.ty.PointerType go!"recvAck" (intoVal ro)))
                   (intoVal src))

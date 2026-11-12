@@ -551,7 +551,6 @@ axiom prometheus.nameUnclaimed
 axiom prometheus.wp_counterOptsLit
 axiom proto.Clone.wp_proof
 axiom proto.CloneConfState.wp_proof
-axiom proto.CloneEntry.wp_proof
 axiom proto.ClonePb.wp_proof
 axiom proto.CloneSnapshot.wp_proof
 axiom proto.Marshal.wp_proof
@@ -561,7 +560,6 @@ axiom proto.MarshalConfChangeV2.wp_proof
 axiom proto.MarshalIRR.wp_proof
 axiom proto.MarshalPb.wp_proof
 axiom proto.Size.wp_proof
-axiom proto.SizeEntry.wp_proof
 axiom proto.SizeMessage.wp_proof
 axiom proto.SizePb.wp_proof
 axiom proto.Unmarshal.wp_proof
@@ -681,4 +679,3 @@ axiom zap.Strings.wp_proof
 axiom zap.Uint.wp_proof
 axiom zap.Uint32.wp_proof
 axiom zap.Uint64.wp_proof
-sorry out_size

@@ -30,7 +30,8 @@ theorem raft.handleAppendEntries.wp_proof [package_sem : Assumptions] (wp_logSli
                       isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
                           "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
                             "Hm" ∷
-                              msgIn ml DFrac.discard { msg := m, ents := ents, snap := sn, ctx := ctx, resps := rs } -∗
+                              msgInC s.gh.sn.sz ml DFrac.discard
+                                { msg := m, ents := ents, snap := sn, ctx := ctx, resps := rs } -∗
                         (▷ ∀ s', ownRaftPhysCV c c.voters r id s' ∗ ⌜HandleAppResult id s m ents s'⌝ -∗ Φ (intoVal ())) -∗
                           WP
                             ((intoVal

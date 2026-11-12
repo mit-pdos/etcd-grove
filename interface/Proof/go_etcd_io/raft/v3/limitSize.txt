@@ -2,16 +2,25 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem limitSize.wp_proof [package_sem : Assumptions] (wp_proto_SizeEntry : proto.SizeEntry.spec) :
+theorem entrySize_sum_take_succ (cs : List EntryC) (i : Nat) (c : EntryC) (h : cs[i]? = some c) :
+    (List.map entrySize (List.take (i + 1) cs)).sum = (List.map entrySize (List.take i cs)).sum +
+    entrySize c
+
+theorem w64_add_exact (acc ni : w64) (a e : Nat) (Ha : uint.nat acc = a) (Hni : sint.Z ni = ↑e) (he
+    : e < 2 ^ 63) (h : a + e < 2 ^ 64) : uint.nat (acc + ni) = a + e
+
+theorem limitSize.wp_proof [package_sem : Assumptions] (wp_SizePb : proto.SizePb.spec) :
     limitSize.spec
   -- `Perennial.EtcdGrove.limitSize.spec`, unfolded:
-  ∀ (s : GoSlice) (es : List EntryM) (dq : DFrac) (maxSize : w64),
+  ∀ (sz : Bool) (s : GoSlice) (cs : List EntryC) (dq : DFrac) (maxSize : w64),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hs" ∷ entsPts s dq es -∗
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hs" ∷ entsPtsC sz s dq cs -∗
           (▷
               ∀ s' n,
-                ⌜n ≤ es.length ∧ (es ≠ [] → 1 ≤ n)⌝ ∗
-                    entsPts s' dq (List.take n es) ∗ (entsPts s' dq (List.take n es) -∗ entsPts s dq es) -∗
+                ⌜n ≤ cs.length ∧
+                        (cs ≠ [] → 1 ≤ n) ∧
+                          (sz = true → uint.nat maxSize ≤ entsCutMax → entsCut maxSize (List.take n cs))⌝ ∗
+                    entsPtsC sz s' dq (List.take n cs) ∗ (entsPtsC sz s' dq (List.take n cs) -∗ entsPtsC sz s dq cs) -∗
                   Φ (intoVal s')) -∗
             WP (((intoVal (functions limitSize [])) (intoVal s)) (intoVal maxSize)) {{ Φ }}

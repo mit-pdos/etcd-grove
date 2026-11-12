@@ -402,10 +402,17 @@ unstableOf Proof/go_etcd_io/raft/v3/InvRaftlog.lean` (list in `/shared/tmp/out-s
     `maybeSendAppend` builds the `MsgApp` with `msgOwnZ_of_structC`, the sum by `msgApp_sum` (cut +
     entry index ≥ 1 ⇒ protobuf size ≥ 2 ⇒ ≤ 2^19 entries).
   - Forms decided: questions.md, "agent 9".
-  - **Next**: full build (`/shared/tmp/out-size/c3-a9-full1.log`), fix rafthttp/server/kv; P6 is
-    expected to be done already (agent 3's restart clause made `bootstrappedWAL.MemoryStorage` `∀ sz`,
-    both paths at `true`); then the C3 checks (tcb `--check`, collections, gates, gen-interface) and
-    the report.
+  - **C3 checks done** (commit after `475aa304c6`): full build passes (`c3-a9-full3.log`; fixes:
+    raft's `msgSzC` renamed `msgSzOk` (clash with rafthttp's), server `Link` regenerated with
+    `proto_ClonePb: @`); P6 needed nothing more. tcb `--check`: only `sorry out_size` gone (updated);
+    `proto.CloneEntry`/`SizeEntry` stay in the baseline because RaftWitness's copies keep the short
+    names. Collections: 15 updated (out_size, CloneEntry, SizeEntry gone); kv, kvdurable, kvreconf,
+    raft gain `pbEntryC_reg`, `entryEncC_ok`, `proto.ClonePb.wp_proof`, `proto.SizePb.wp_proof`
+    (existing axioms, via B1/decC) and lose CloneEntry/SizeEntry: NOT updated, for etcd-grove-81.
+    Gates: pbschema, axiom-tok, model-param, errdesc, bounds, api-check, import-all ok. Interfaces
+    regenerated (62 files, includes C2/B2/restart changes since C1; new `MsgRead.txt`).
+  - **Next**: etcd-grove-81's C3 review; then (on go) the four kv/raft collections' `--update`,
+    merge lean, `etc/land.sh`.
 
 ## P7 items (from the C2 review; resolve and re-review with the `axiom` skill before P7 lands)
 
