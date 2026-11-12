@@ -2,7 +2,7 @@
 `proto.Size` of a raft v3.7 `*pb.Message`: the trust boundary (D21 M2, 2026-10-19, the user's D21h
 (A)). `EtcdServer.Process` sizes a received `MsgApp` for the server's stats
 (`s.stats.RecvAppendReq(..., proto.Size(m))`, `server.go:717-719`). Lean-first; stated over the
-raftpb ownership predicates of `Proof/go_etcd_io/raft/v3/InvPb.lean`, as `SizeEntry.lean`.
+raftpb ownership predicates of `Proof/go_etcd_io/raft/v3/InvPb.lean` (as `SizeEntry.lean` was until out_size C3).
 -/
 module
 
