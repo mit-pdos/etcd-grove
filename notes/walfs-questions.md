@@ -102,23 +102,3 @@ the extension to be built autonomously; nothing is on `lean`.
     `syscall` and `golang.org/x/sys/unix` (1130 names against crashlog's 390: `seglog.go` imports
     `unix`, which `initialize'` reaches); `#print axioms` shows no `sorryAx` and no proof axiom.
 
-
-# Decisions for k8s 7f (branch k8s-7f; restored 2026-11-12: the untracked copy was overwritten by lean's tracked questions.md at the merge)
-
-- 2026-11-08, approved by the user via etcd-grove-81: accept the 7f Scope's departures 1-4 from
-  upstream's WatchValidator, on two conditions: every bookmark bounded by c.st.rv, and events with
-  a foreign object rejected (WBad), not dropped.
-- 2026-11-08, approved by the user via etcd-grove-81: delete `v3rpc.runsNoRequireLeader`, with no
-  etcd fork change.
-- 2026-11-08, decided by etcd-grove-81: Q7f-1 (a), Main/MainCluster/MainPartition gain watchers, wops.
-- 2026-11-08, decided by etcd-grove-81: Q7f-2, a weak handler-context contract (Done as isContext's;
-  Err any time nil or some error; after Done non-nil and isCtxErr or ErrGRPCNoLeader); grpc's
-  stream-interceptor contract changed (the handler gets ci' with incomingOf ci' = incomingOf ci, a
-  reviewed fact); Watch and LeaseKeepAlive re-proved over it.
-- 2026-11-08, decided by etcd-grove-81: P-RL1 restated (the review's correction).
-- 2026-11-08, decided by etcd-grove-81: Q7f-3, both values of ConcurrentWatchObjectDecode, serial first.
-- 2026-11-08, decided by etcd-grove-81: Q7f-5 yes, after fixing the non-issue's front matter and rate.
-- 2026-11-08, decided by etcd-grove-81: the 7f-4 Draft accepted (Q7f4-1 F1-narrow, Q7f4-2 yes,
-  Q7f4-3 at the Lean stage preferring T2, Q7f4-4 local lemmas, Q7f4-5 yes; `notes/k8s-7f4-draft.md` §11).
-- Open: Q7f-6 (when 7f-0's driver change lands relative to 7e), in notes/k8s-7f-scope.md §10.
-- 2026-11-12: 7f-4 re-baseline (`notes/k8s-7f4-rebaseline.md`) open for etcd-grove-81: Q-RB1 (withdraw Q7f4-2, chain-form run-context facts), Q-RB2 (F1-general now), Q-RB3 (two interceptor contracts, parametrized stream end), Q-RB4 (mvcc API change for W5).
