@@ -47,7 +47,7 @@ abbrev unstable.slice.spec : Prop :=
     (App (App (Val (u @!! go.GoType.PointerType unstable.ty @!! go!"slice"))
       (Val #lo)) (Val #hi))
   {{ (s : GoSlice) (es : List EntryM), RET #s;
-      ownUnstable u us ∗ entsRO s es ∗
+      ownUnstable u us ∗ entsROz us.sz s es ∗
       ⌜(es.length : Int) = uint.Z hi - uint.Z lo ∧
         (∀ e, e ∈ es → e ∈ us.ents) ∧
         s.cap = s.len ∧

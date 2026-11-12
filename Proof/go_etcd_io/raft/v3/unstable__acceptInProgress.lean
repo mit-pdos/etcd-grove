@@ -30,7 +30,7 @@ theorem unstable.acceptInProgress.wp_proof
   iNamed H
   open_unstable
   icases Hents with #Hents
-  ihave %Hlen := entsPts_len $$ Hents
+  ihave %Hlen := entsPtsZ_len _ _ _ _ $$ Hents
   wp_auto
   by_cases He : us.ents = []
   · -- no entries: only the snapshot flag
@@ -77,10 +77,10 @@ theorem unstable.acceptInProgress.wp_proof
     have Hk : (sint.Z (uv.entries'.len - W64 1)).toNat = us.ents.length - 1 := by word
     have Hle' : us.ents[(sint.Z (uv.entries'.len - W64 1)).toNat]? = some e := by rw [Hk]; exact Hle
     ihave Hents' := Hents
-    iunfold entsRO at Hents'
-    iunfold entsPts at Hents'
+    iunfold entsROz at Hents'
+    iunfold entsPtsZ at Hents'
     icases Hents' with ⟨%ls, #Hls, #Hb⟩
-    icases entsBig_lookup ls us.ents _ e Hle' $$ Hb with ⟨%l, %Hl, #Hel⟩
+    icases entsBigZ_lookup_RO _ ls us.ents _ e Hle' $$ Hb with ⟨%l, %Hl, #Hel⟩
     wp_apply wp_load_slice_index uv.entries' (sint.Z (uv.entries'.len - W64 1)) ls DFrac.discard l
       Hbnd.1 $$ [Hls] as -
     · iframe Hls; ipureintro; exact Hl

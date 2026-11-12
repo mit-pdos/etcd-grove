@@ -49,7 +49,7 @@ private theorem ownRaftLog_facts (l : Loc) (ls : LogState) :
   -- (D22 S-d1b) the stable part's bound (the storage may be lent)
   icases ownRaftLog_stable_bound _ _ $$ H0 with ⟨%Hsb, H0⟩
   iNamed H0
-  ihave %Hul := entsPts_len _ _ _ $$ Huents
+  ihave %Hul := entsPtsZ_len _ _ _ _ $$ Huents
   -- the stable part: below the storage's bound, or -- with a snapshot
   -- pending -- empty after a snapshot index below `2^61`
   isplitr
