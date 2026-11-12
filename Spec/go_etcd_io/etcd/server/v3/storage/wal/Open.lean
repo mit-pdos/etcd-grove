@@ -1,5 +1,5 @@
 /-
-`wal.Open` (WAL W4a, 2026-11-11, revised after the Freeze review and its second round; the approved W4 Draft's §1.4 and the revision design, `notes/decisions.md`, "WAL W4a" and "WAL W4a revision") Lean-first. Names-only: an axiom at the trust boundary (`Proof/...`), true of the Go code at the etcd pin `c90b03b56` (S/ = `server/storage/wal/`) under the world assumptions of `GooseLang/Ext/AbsDisk/Impl.lean`; the Go evidence is the WAL tester under the crash harness (`notes/decisions.md`, "WAL W3"). An axiomatized body is read as one that performs the abstract-disk extension's steps (`AbsDiskStep`): the step each spec's atomic update or post names.
+`wal.Open` (WAL W4a, 2026-11-11, revised after the Freeze review and its second and third rounds; the approved W4 Draft's §1.4 and the revision design, `notes/decisions.md`, "WAL W4a" and "WAL W4a revision") Lean-first. Names-only: an axiom at the trust boundary (`Proof/...`), true of the Go code at the etcd pin `c90b03b56` (S/ = `server/storage/wal/`) under the world assumptions of `GooseLang/Ext/AbsDisk/Impl.lean`; the Go evidence is the WAL tester under the crash harness (`notes/decisions.md`, "WAL W3"). An axiomatized body is read as one that performs the abstract-disk extension's steps (`AbsDiskStep`): the step each spec's atomic update or post names.
 -/
 module
 
@@ -29,16 +29,28 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [walpb_sem : go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions]
 
 /-- **`Open(lg, dir, snap)`** (S/wal.go:377-379, write mode): opens the WAL at the snapshot `s`, locking
-its files from the one holding `s` on; nothing durable changes (read-only: its entry need not be
-durable). With no WAL at `dir` (`o = none`) it fails (`readWALNames`); while another handle holds
-the files' locks it fails (`TryLockFile`; Go test `rev2-tests` `TestRev2OpenWhileLocked`). At a
+its files from the one holding `s` on (`searchIndex`, `openAtIndex`, S/wal.go:395-466) and leaving
+the earlier ones unlocked: on success `unl` is raised to `walReleasePos` of `s`'s index (the step
+`"WalUnlock"` of that position, `wp_WalOpenHandle`; revision round 3, F1: the purge right in the
+handle is then backed by a current `unl`; Go test `rev3-tests` `TestRev3PurgeWhileOpening`, a purge
+in the window between `Open` and `ReadAll` deletes the unlocked file before the snapshot's).
+Nothing durable changes (read-only: its entry need not be durable). It takes the generation's lock
+token (`walUnlockedTok`): the new handle carries it, and an error gives it back. So no `Open` is
+provable while another handle exists, even one the program dropped without `Close` (Go releases
+such a handle's locks by `os.File` finalizers and loses its buffered records: `Open` then succeeds
+and `ReadAll` misses them, Go test `rev3-tests` `TestRev3LeakedHandleThenOpen`; revision round 3,
+B2); in Go, `Open` next to a live handle fails (`TryLockFile`; `rev2-tests`
+`TestRev2OpenWhileLocked`). With no WAL at `dir` (`o = none`) it fails (`readWALNames`). At a
 snapshot with no record, the open succeeds and `ReadAll` is what must fail (its premise). -/
 abbrev wal.Open.spec : Prop :=
   ∀ (lg : Loc) (r dir : GoString) (o : Option WalDur) (sp : Loc) (s : w64 × w64), walAreaDir r dir →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗ walAreaOk r ∗ walDirIs dir o ∗ walSnapIdTerm sp s }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗ walAreaOk r ∗ walDirIs dir o ∗ walSnapIdTerm sp s ∗ walUnlockedTok }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.Open)) (Val #lg)) (Val #dir)) (Val #sp))
-  {{ (w : Loc) (err : GoInterface), RET (PairV #w #err); walDirIs dir o ∗
-      (⌜err ≠ GoInterface.nil⌝ ∨ (⌜err = GoInterface.nil⌝ ∗ ⌜o.isSome⌝ ∗ walOpening w dir s)) }}
+  {{ (w : Loc) (err : GoInterface), RET (PairV #w #err);
+      (⌜err ≠ GoInterface.nil⌝ ∗ walDirIs dir o ∗ walUnlockedTok) ∨
+      (⌜err = GoInterface.nil⌝ ∗ ∃ d : WalDur, ⌜o = some d⌝ ∗
+        walDiskAt dir { d with unl := max d.unl (walReleasePos (d.H.map WalOpG.toM) s.1) } ∗
+        walOpening w dir s) }}
 
 end spec
 

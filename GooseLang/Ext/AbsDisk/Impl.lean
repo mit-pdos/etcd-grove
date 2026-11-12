@@ -29,8 +29,13 @@ ptrace-recorded crash file system, kill, posix, ordered and kill-then-power-loss
 * **Paths** (approved by the user, 2026-11-12, via etcd-grove-81): during the run, no other process
   creates, renames or removes files in the directories etcd and the tester use; no path the run uses
   has a symbolic link at or below the data directory (symlinked ancestors are fine); file names are
-  case-sensitive. (The paths are clean absolute strings, `Paths.lean`; under this assumption two
-  distinct ones at or below the data directory name distinct files.)
+  case-sensitive. The run names each file at or below the data directory by one spelling: no two
+  distinct clean absolute paths the run uses name the same file (no symlinked or bind-mounted alias
+  of an ancestor is used besides the data directory's own spelling; names are compared byte for
+  byte, with no case folding or Unicode normalization). (The last sentence approved by the user,
+  2026-11-12, via etcd-grove-81, after the third Freeze review's B1. The paths are clean absolute
+  strings, `Paths.lean`; by the one-spelling clause, two distinct ones the run uses at or below the
+  data directory name distinct files.)
 Under them, what a restart decodes is a record-granular prefix of what was written that reaches the
 last sync (F-Z makes a restart's read itself synced); an image outside that set fails the restart's
 read (bootstrap's error, or `Fatal`), which every read spec allows.
@@ -46,7 +51,9 @@ only the durable extension (its names, in the reserved mode) and `TouchDirAll` (
 parents' fsyncs and its probe `d/.touch`, which no durable name in the reserved mode and no WAL
 directory can be) are kept out of the WAL directories' footprint; the WAL functions' own footprint
 is the area's WAL directories and `Create`'s region (`walCreateRegion`), plus the area's and its
-parent's fsyncs. No other extension is constrained: a closed theorem that combines this extension
+parent's fsyncs, and, when the area or its ancestors are missing, `Create`'s mkdir of them (outermost
+first) and the fsyncs of their parents (`CreateDirAll` of `dir.tmp` is `TouchDirAll`); a durable name
+at such an ancestor only makes that mkdir, so `Create`, fail. No other extension is constrained: a closed theorem that combines this extension
 with another one that names paths (`osFsExt`, rung 3's bbolt; the server's WAL axioms, C6) must
 first extend the reservation to it (a gate, `notes/decisions.md`, "WAL W4a revision round 2"). The
 adequacy theorem covers only starts meeting `absDiskInitOk`.
@@ -135,14 +142,20 @@ def walImg {E : Type} (H : List (WalOpG E)) (n : Nat) (I : List (WalOpG E)) : Pr
 
 /-- **The durable state of the WAL in one directory**. `H`: every `Save`/`SaveSnapshot` since
 `Create`, across restarts (after a crash, the image the crash left). `m`: how many operations of `H`
-are synced. `unl`: every record from position `unl` on is in a file the WAL keeps locked (records
-before it may be in unlocked files: `ReleaseLockTo`, and a restart's `Open`, which locks from the
-opened snapshot's file on); an upper bound on what is unlocked. `pur`: no record from position `pur`
+are synced. `unl`: while a handle of the directory with its purge right is live, every record from
+position `unl` on is in a file it keeps locked (records before it may be in unlocked files:
+`ReleaseLockTo`, and a restart's `Open`, which locks from the opened snapshot's file on and raises
+`unl` to that file's start, `walReleasePos`); an upper bound on what is unlocked while the right is
+held. After `Close` or a crash no file is locked, and nothing may purge until a handle exists again
+(the purge right, `walPurgeW`, exists only with a live handle). `pur`: no record from position `pur`
 on has been deleted (records before it may have been: a purge round ran while `unl` was that).
 `cut`: the next restart reads from position `cut` on (chosen at a crash, `≤ pur`). `metadata`: `Create`'s
 metadata. `named`: the WAL directory's entry, and its ancestors', are durable. `sized`: as today's
 `walRecs` flag (WalRecs.lean), every entry record of a successful `Save` is the encoding of an entry
-object of bounded size. -/
+object of bounded size. No step clears it (the third review's m3: the `"WalUnsize"` step, which no
+axiom performed, was dropped): `walDurFresh` is sized, so a `Save` of unsized entries (`sized =
+false`) has no WAL to apply to: a caller saves sized entries (`walSaveEnts true`; a W4c obligation on the
+tester, recorded in `notes/decisions.md`). -/
 structure WalDur where
   H : List (WalOpG WalEnt)
   m : Nat
@@ -221,7 +234,7 @@ the history's length; `"WalUnlock"` raises `unl` (`ReleaseLockTo`, a restart's `
 before a snapshot record's position); `"WalPurge"` of `(dir, k)` raises `pur` to `unl`, and moves the read position
 `cut` to `k`, the start of the first file the round left (deleted files hold only records before
 `unl`, and files are deleted oldest first: `cut ≤ k ≤ max pur unl`; a purge round);
-`"WalUnsize"` clears `sized` (a `Save` of unsized entries); `"DirDurable"` of `d`, a directory
+`"DirDurable"` of `d`, a directory
 not under the area, records that `d`'s entry and its ancestors' are durable (`TouchDirAll`). The operation, mark and position a step takes
 are passed as the second component of the argument, by their code (`walCode`): the WAL
 function's spec (an axiom) says which ones its body passes. -/
@@ -244,8 +257,6 @@ def AbsDiskStep (op : String) (v : val) (h : GMap Loc (NonAtomic val)) (s : AbsD
   | "WalPurge" => ∃ (dir : GoString) (k : Nat), v = PairV (#dir) (#(walCode k)) ∧
       (∀ d, s.wal !! dir = some d → d.cut ≤ k ∧ k ≤ max d.pur d.unl) ∧
       s' = absDiskUpd s dir (fun d => { d with pur := max d.pur d.unl, cut := k })
-  | "WalUnsize" => ∃ dir : GoString, v = #dir ∧
-      s' = absDiskUpd s dir (fun d => { d with sized := false })
   | "DirDurable" => ∃ d : GoString, v = #d ∧ ¬ underDir s.area d ∧
       s' = { s with dirs := <[d := ()]> s.dirs }
   | _ => False

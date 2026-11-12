@@ -35,13 +35,26 @@ approved W4 Draft's §1.2, `notes/decisions.md`, "WAL W4a", and its revision aft
   picks fresh (`walHandle_alloc`), in maps whose authority is in the state interpretation. The
   authority is sealed (`absHandleAuth` is `@[no_expose]`; `absHandle_alloc`/`absHandle_set` and
   their lifted forms are private): outside this file a handle is allocated or its mode changed only
-  through the step specs `wp_WalCreate` (`"WalCreate"`), `wp_WalOpenHandle` (`"WalUnlock"` of 0),
+  through the step specs `wp_WalCreate` (`"WalCreate"`), `wp_WalOpenHandle` (`"WalUnlock"`),
   `wp_WalReadFail` (`"WalUnlock"` of 0) and `wp_WalNamedOpen` (`"WalNamed"`), so no freshness of
   `w` is needed. **W4c gate:** a trusted model that performs one of these operations (today only
   the WAL's axiomatized bodies do; the tester's `purgeRound` performs only `"WalPurge"`) is reviewed
   against these specs. Each handle carries one purge right (`walPurgeW`, exclusive), minted with
   it, handed out with `walOpenW` (by `Create`, or by a successful `ReadAll`), consumed by `Close`.
   Per generation: a crash allocates fresh ghost names, so no handle or right survives it.
+  **Revision round 3** (the third Freeze review): `walHandleP`, `walOpenW`, `walOpening` and
+  `walReadFailed` are sealed (`@[no_expose]`) and the split of a handle into the open WAL and its
+  right is private and of append handles only (F1: no right from an opening or failed handle);
+  `Open` raises `unl` to the opened snapshot's file (`wp_WalOpenHandle` performs `"WalUnlock"` of
+  that position, F1 (b)), so `unl` is current wherever a right exists. **The lock token**
+  (`walUnlockedTok`, B2): one per generation (`absDiskStart`, `absDiskCrashStart`), taken by the
+  handle a successful `Create`/`Open` allocates, carried by every handle predicate and given back
+  only by `Close` (`wp_WalCloseHandle`): at most one handle, so one purge right (M2), per
+  generation, and a dropped handle (whose locks Go's finalizers release, losing its buffered
+  records) blocks every later `Open` until a crash. `wp_WalCloseHandle` joins the W4c gate's list.
+  **W4c gate (M1):** the purge right constrains only through its consumers: the tester's
+  `purgeRound` spec must take `walPurgeW w dir` and `walOpenW w dir`, consumed or framed, never
+  derived (the extension's `wp_WalPurge` itself requires no right).
 * **The steps** (`wp_WalCreate`, ...): one spec per external operation, logically atomic, each
   returning the new state's fact.
 * **The crash** (`absDisk_crash_interp`): the new generation's ghost state is allocated from the
@@ -231,6 +244,9 @@ structure AbsDiskGS (GF : BundledGFunctors) where
   γhd : GName
   /-- The handles' purge rights (exclusive elements at `()`, keyed by the handle's ghost name). -/
   γhp : GName
+  /-- The generation's lock token (`walUnlockedTok`, a `token`): allocated once per generation, at
+  its start; every handle carries it. -/
+  γu : GName
 
 section ghost
 variable {GF : BundledGFunctors}
@@ -273,10 +289,11 @@ def absDiskCtx (hL : AbsDiskGS GF) (s : AbsDiskState) : IProp GF :=
   iprop(ghostVar hL.γs (1 : Qp).half s.wal ∗ absPastAuth hL s ∗ absHandleAuth hL ∗
     ⌜walKeysInArea s⌝)
 
-/-- What the program starts with: the WAL map and the start state's fact (which gives the area,
-`absPast_walArea`). -/
+/-- What the program starts with: the WAL map, the start state's fact (which gives the area,
+`absPast_walArea`) and the generation's lock token (no handle exists yet). -/
 def absDiskStart (hL : AbsDiskGS GF) (s : AbsDiskState) : IProp GF :=
-  iprop(walOwnAt hL s.wal ∗ absPastAt hL s)
+  letI := hL.absDiskAllG
+  iprop(walOwnAt hL s.wal ∗ absPastAt hL s ∗ token hL.γu)
 
 theorem absPast_le (hL : AbsDiskGS GF) (s p : AbsDiskState) :
     ⊢@{IProp GF} absPastAuth hL s -∗ absPastAt hL p -∗ ⌜absLe p s⌝ := by
@@ -389,7 +406,8 @@ theorem absDisk_local_init (hPre : AbsDiskGpreS GF) (s : AbsDiskState) (hk : wal
   imod (ghost_map_alloc_empty (GF := GF) (K := GName) (V := WalMode)) with ⟨%γh, Hh⟩
   imod (ghost_map_alloc_empty (GF := GF) (K := GName) (V := Loc × GoString)) with ⟨%γhd, Hhd⟩
   imod (ghost_map_alloc_empty (GF := GF) (K := GName) (V := Unit)) with ⟨%γhp, Hhp⟩
-  let hL : AbsDiskGS GF := ⟨hPre.absDiskPreAllG, γs, γt, γf, γa, γh, γhd, γhp⟩
+  imod token_alloc (GF := GF) with ⟨%γu, Hu⟩
+  let hL : AbsDiskGS GF := ⟨hPre.absDiskPreAllG, γs, γt, γf, γa, γh, γhd, γhp, γu⟩
   have hsing : (GMap.singleton s () : GMap AbsDiskState Unit) = (∅ : GMap _ _).insert s () := rfl
   rw [hsing]
   icases (BigSepM.bigSepM_insert (PROP := IProp GF) (m := (∅ : GMap AbsDiskState Unit))
@@ -418,7 +436,7 @@ theorem absDisk_local_init (hPre : AbsDiskGpreS GF) (s : AbsDiskState) (hk : wal
       · iexists 0, ∅, ∅, ∅; iframe Hh Hhd Hhp; ipureintro; intro k _; exact ⟨rfl, rfl, rfl⟩
       · ipureintro; exact hk
   · unfold absDiskStart walOwnAt absPastAt
-    iframe Hs2 Ht Hse Ha
+    iframe Hs2 Ht Hse Ha Hu
 
 end ghost
 
@@ -444,14 +462,19 @@ instance absDisk_interp : ExtInterp absDiskExt where
 section crash
 variable {GF : BundledGFunctors}
 
-/-- **What a crash hands the next generation**: the old generation's half of the WAL map at `s`
-and its past states' authority (all below `s`), the new generation's half of the map at `s'` and
-`s'`'s fact, with `s'` a crash of `s`. -/
-def absDiskCrashStart (hL hL' : AbsDiskGS GF) : IProp GF :=
+/-- **What a crash hands the next generation, but its lock token**: the old generation's half of
+the WAL map at `s` and its past states' authority (all below `s`), the new generation's half of the
+map at `s'` and `s'`'s fact, with `s'` a crash of `s`. -/
+def absDiskCrashWal (hL hL' : AbsDiskGS GF) : IProp GF :=
   letI := hL.absDiskAllG
   iprop(∃ s s' : AbsDiskState, ⌜absDisk_semantics.crash s s'⌝ ∗
     ghostVar hL.γs (1 : Qp).half s.wal ∗ absPastAuth hL s ∗
     walOwnAt hL' s'.wal ∗ absPastAt hL' s')
+
+/-- **What a crash hands the next generation**: `absDiskCrashWal` and the new generation's lock
+token (the crash ended every handle: the process died). -/
+def absDiskCrashStart (hL hL' : AbsDiskGS GF) : IProp GF :=
+  iprop(absDiskCrashWal hL hL' ∗ (letI := hL'.absDiskAllG; token hL'.γu))
 
 theorem absDisk_local_crash (hPre : AbsDiskGpreS GF) (hL : AbsDiskGS GF) (s s' : AbsDiskState)
     (hc : absDisk_semantics.crash s s') :
@@ -464,9 +487,11 @@ theorem absDisk_local_crash (hPre : AbsDiskGpreS GF) (hL : AbsDiskGS GF) (s s' :
   imodintro
   iexists hL'
   iframe Hctx'
-  unfold absDiskCrashStart absDiskStart
+  unfold absDiskCrashStart absDiskCrashWal absDiskStart
+  icases Hst' with ⟨HM', Hp', Hu'⟩
+  iframe Hu'
   iexists s, s'
-  iframe Hs HP Hst'
+  iframe Hs HP HM' Hp'
   ipureintro; exact hc
 
 /-- The crash interpretation of the abstract disk. -/
@@ -541,30 +566,64 @@ def walLenLb (w : Loc) (dir : GoString) (n : Nat) : IProp GF :=
   iprop(∃ (γ : GName) (s : AbsDiskState) (d : WalDur),
     walHandleDir (L := L) w dir γ ∗ absPast (L := L) s ∗ ⌜s.wal !! dir = some d ∧ n ≤ d.H.length⌝)
 
-/-- **`w` is a handle of the WAL in `dir`, in mode `m`, with its purge right** (exclusive). -/
-def walHandleP (w : Loc) (dir : GoString) (m : WalMode) : IProp GF :=
+/-- **The generation's lock token** (exclusive; WAL W4a revision round 3, B2): allocated once per
+generation (`absDiskStart`, `absDiskCrashStart`), consumed by a successful `Create` or `Open`,
+carried by the handle (`walOpenW`, `walOpening`, `walReadFailed`) and returned only by `Close`. So
+at most one handle exists per generation, and a handle the program drops takes the token with it: no
+second `Open` or `Create` is provable until a crash. (Go releases a dropped `*WAL`'s locks through
+`os.File` finalizers, without `Close`, and its buffered records are lost: Go test
+`TestRev3LeakedHandleThenOpen`.) No lemma mints it: `token_alloc` gives a fresh name only. -/
+def walUnlockedTok : IProp GF :=
+  letI := (gooseAbsDiskGS (L := L)).absDiskAllG
+  token (gooseAbsDiskGS (L := L)).γu
+
+instance walUnlockedTok_timeless : Timeless (walUnlockedTok (L := L)) := by
+  unfold walUnlockedTok; infer_instance
+
+theorem walUnlockedTok_excl :
+    ⊢@{IProp GF} walUnlockedTok (L := L) -∗ walUnlockedTok (L := L) -∗ False := by
+  unfold walUnlockedTok
+  letI := (gooseAbsDiskGS (L := L)).absDiskAllG
+  iintro H1 H2
+  iapply token_exclusive $$ H1 H2
+
+/-- **`w` is a handle of the WAL in `dir`, in mode `m`, with its purge right and the generation's
+lock token** (exclusive). Sealed (`@[no_expose]`, revision round 3, F1): outside this file the
+right and the token are not separable from the handle. -/
+@[no_expose] def walHandleP (w : Loc) (dir : GoString) (m : WalMode) : IProp GF :=
   letI := (gooseAbsDiskGS (L := L)).absDiskAllG
   iprop(∃ γ : GName, walHandleDir (L := L) w dir γ ∗ γ ↪[(gooseAbsDiskGS (L := L)).γh] m ∗
-    γ ↪[(gooseAbsDiskGS (L := L)).γhp] ())
+    γ ↪[(gooseAbsDiskGS (L := L)).γhp] () ∗ walUnlockedTok (L := L))
 
 /-- **The purge's right on the open WAL `w` in `dir`** (exclusive: one per handle, minted with it, and
 per generation, so it does not survive a crash; WAL W4a revision round 2, replacing the server's
 opaque `walPurgeRight` in the extension's axioms): the purge of old WAL files there may run only
-while it is held, and `Close` (which unlocks every file) consumes it with the handle. -/
+while it is held, and `Close` (which unlocks every file) consumes it with the handle. It is handed
+out only with `walOpenW` (by `Create`, by a successful `ReadAll`: the handle predicates that carry it
+before that are sealed, revision round 3, F1); while it is held, every record from the WAL's `unl`
+on is in a file the handle keeps locked (`Open` raises `unl` to the opened snapshot's file,
+`ReleaseLockTo` to the released files'). With the lock token (`walUnlockedTok`) at most one handle,
+so one right, is live per generation. **W4c gate:** the tester's `purgeRound` spec takes
+`walPurgeW w dir` and `walOpenW w dir`, consumed or framed, never derived. -/
 def walPurgeW (w : Loc) (dir : GoString) : IProp GF :=
   letI := (gooseAbsDiskGS (L := L)).absDiskAllG
   iprop(∃ γ : GName, walHandleDir (L := L) w dir γ ∗ γ ↪[(gooseAbsDiskGS (L := L)).γhp] ())
 
-/-- **`w` is the WAL opened in `dir`, ready to append** (exclusive). -/
-def walOpenW (w : Loc) (dir : GoString) : IProp GF := walHandleSt (L := L) w dir .append
+/-- **`w` is the WAL opened in `dir`, ready to append** (exclusive; with the generation's lock
+token, which only `Close` returns). Sealed (`@[no_expose]`, revision round 3, B2). -/
+@[no_expose] def walOpenW (w : Loc) (dir : GoString) : IProp GF :=
+  iprop(walHandleSt (L := L) w dir .append ∗ walUnlockedTok (L := L))
 
 /-- **`w` is the WAL opened in `dir` for reading at the snapshot `s`** (exclusive; with the handle's
-purge right, which a successful `ReadAll` hands out). -/
-def walOpening (w : Loc) (dir : GoString) (s : w64 × w64) : IProp GF :=
+purge right, which a successful `ReadAll` hands out, and the lock token). Sealed (`@[no_expose]`,
+revision round 3, F1). -/
+@[no_expose] def walOpening (w : Loc) (dir : GoString) (s : w64 × w64) : IProp GF :=
   walHandleP (L := L) w dir (.opening s)
 
-/-- **`w`'s `ReadAll` in `dir` failed** (exclusive): only `Close` accepts it. -/
-def walReadFailed (w : Loc) (dir : GoString) : IProp GF := walHandleP (L := L) w dir .failed
+/-- **`w`'s `ReadAll` in `dir` failed** (exclusive): only `Close` accepts it. Sealed
+(`@[no_expose]`, revision round 3, F1). -/
+@[no_expose] def walReadFailed (w : Loc) (dir : GoString) : IProp GF :=
+  walHandleP (L := L) w dir .failed
 
 instance walArea_persistent (r : GoString) : Persistent (walArea (L := L) r) := by
   unfold walArea; infer_instance
@@ -632,9 +691,9 @@ theorem walOpenW_lenLb (w : Loc) (dir : GoString) (s : AbsDiskState) (d : WalDur
     ⊢@{IProp GF} walOpenW (L := L) w dir -∗ absPast (L := L) s -∗
       walOpenW (L := L) w dir ∗ walLenLb (L := L) w dir n := by
   unfold walOpenW walHandleSt walLenLb
-  iintro ⟨%γ, #Hw, Hm⟩ #Hs
-  isplitl [Hm]
-  · iexists γ; iframe Hw Hm
+  iintro ⟨⟨%γ, #Hw, Hm⟩, Hu⟩ #Hs
+  isplitl [Hm Hu]
+  · iframe Hu; iexists γ; iframe Hw Hm
   · iexists γ, s, d; iframe Hw Hs; ipureintro; exact ⟨hd, hn⟩
 
 /-- Two facts of the area agree. -/
@@ -701,36 +760,47 @@ theorem walDiskAt_syncedLb_le (s : AbsDiskState) (dir : GoString) (d : WalDur) (
   rw [HMd] at h'; cases h'
   exact Nat.le_trans Hdp.2 hm
 
-/-- **A new handle** with its purge right (inside a step: the interpretation holds the handles'
-authorities). Private: only the step specs of this file allocate handles. -/
+/-- **A new handle** with its purge right, taking the generation's lock token (inside a step: the
+interpretation holds the handles' authorities). Private: only the step specs of this file allocate
+handles. -/
 private theorem walHandle_alloc (s : AbsDiskState) (w : Loc) (dir : GoString) (m : WalMode) :
-    ⊢@{IProp GF} absDiskCtx (gooseAbsDiskGS (L := L)) s ==∗
+    ⊢@{IProp GF} absDiskCtx (gooseAbsDiskGS (L := L)) s -∗ walUnlockedTok (L := L) ==∗
       absDiskCtx (gooseAbsDiskGS (L := L)) s ∗ walHandleP (L := L) w dir m := by
   unfold absDiskCtx walHandleP walHandleDir
-  iintro ⟨Hs, HP, HH, Hk⟩
-  imod absHandle_alloc _ w dir m $$ HH with ⟨HH, Hh⟩
+  iintro ⟨Hs, HP, HH, Hk⟩ Hu
+  imod absHandle_alloc _ w dir m $$ HH with ⟨HH, ⟨%γ, Hd, Hm, Hp⟩⟩
   imodintro
-  iframe Hs HP HH Hk Hh
+  iframe Hs HP HH Hk
+  iexists γ; iframe Hd Hm Hp Hu
 
 /-- **A handle's mode changed**, its purge right kept (inside a step). Private. -/
 private theorem walHandleP_set (s : AbsDiskState) (w : Loc) (dir : GoString) (m m' : WalMode) :
     ⊢@{IProp GF} absDiskCtx (gooseAbsDiskGS (L := L)) s -∗ walHandleP (L := L) w dir m ==∗
       absDiskCtx (gooseAbsDiskGS (L := L)) s ∗ walHandleP (L := L) w dir m' := by
   unfold absDiskCtx walHandleP
-  iintro ⟨Hs, HP, HH, Hk⟩ ⟨%γ, #Hd, Hm, Hp⟩
+  iintro ⟨Hs, HP, HH, Hk⟩ ⟨%γ, #Hd, Hm, Hp, Hu⟩
   imod absHandle_set _ γ m m' $$ HH Hm with ⟨HH, Hm⟩
   imodintro
   iframe Hs HP HH Hk
-  iexists γ; iframe Hd Hm Hp
+  iexists γ; iframe Hd Hm Hp Hu
 
-/-- A handle with its purge right is the handle and the right. -/
-theorem walHandleP_split (w : Loc) (dir : GoString) (m : WalMode) :
-    ⊢@{IProp GF} walHandleP (L := L) w dir m -∗ walHandleSt (L := L) w dir m ∗ walPurgeW (L := L) w dir := by
-  unfold walHandleP walHandleSt walPurgeW
-  iintro ⟨%γ, #Hd, Hm, Hp⟩
-  isplitl [Hm]
-  · iexists γ; iframe Hd Hm
+/-- An append handle with its purge right is the open WAL and the right. Private, and only of mode
+`append` (revision round 3, F1: the right is handed out only with `walOpenW`). -/
+private theorem walHandleP_split (w : Loc) (dir : GoString) :
+    ⊢@{IProp GF} walHandleP (L := L) w dir .append -∗ walOpenW (L := L) w dir ∗ walPurgeW (L := L) w dir := by
+  unfold walHandleP walOpenW walHandleSt walPurgeW
+  iintro ⟨%γ, #Hd, Hm, Hp, Hu⟩
+  isplitl [Hm Hu]
+  · iframe Hu; iexists γ; iframe Hd Hm
   · iexists γ; iframe Hd Hp
+
+/-- **A closed handle gives back the lock token** (private: only `Close`'s step, `wp_WalCloseHandle`,
+does it). -/
+private theorem walHandle_close (w : Loc) (dir : GoString) (s : w64 × w64) :
+    ⊢@{IProp GF} ((walOpenW (L := L) w dir ∗ walPurgeW (L := L) w dir) ∨ walOpening (L := L) w dir s ∨
+      walReadFailed (L := L) w dir) -∗ walUnlockedTok (L := L) := by
+  unfold walOpenW walOpening walReadFailed walHandleP
+  iintro (⟨⟨-, Hu⟩, -⟩ | ⟨%γ, -, -, -, Hu⟩ | ⟨%γ, -, -, -, Hu⟩) <;> iexact Hu
 
 /-- **One purge right per handle.** -/
 theorem walPurgeW_excl (w : Loc) (dir : GoString) (γ : GName) :
@@ -941,7 +1011,7 @@ theorem wp_WalNamedOpen (w : Loc) (dir : GoString) (s : w64 × w64) (d : WalDur)
     (walNamed_prog dir).1 (walNamed_prog dir).2 d trivial
     (walOpening (L := L) w dir s) iprop(walOpenW (L := L) w dir ∗ walPurgeW (L := L) w dir)
     (fun s' => by
-      unfold walOpening walOpenW
+      unfold walOpening
       iintro Hc Hh
       imod walHandleP_set s' w dir (.opening s) .append $$ Hc Hh with ⟨Hc, Hh⟩
       imodintro
@@ -1018,20 +1088,36 @@ theorem wp_WalNoop (dir : GoString) (R R' : IProp GF)
   iframe Hc
   iapply Hk $$ HR
 
-/-- **`Open`'s handle**: a no-op step that allocates the handle `w`, opened in `dir` for reading at
-`s`. -/
-theorem wp_WalOpenHandle (w : Loc) (dir : GoString) (s : w64 × w64) (Φ : val → IProp GF) :
-    (|={E,∅}=> walOpening (L := L) w dir s -∗ ▷ |={∅,E}=> Φ #())
+/-- **`Open`'s handle** (revision round 3: F1 (b), B2): the `"WalUnlock"` step of `p` (the start of
+the opened snapshot's file: `Open` locks from it on, the files before it stay unlocked), which
+allocates the handle `w`, opened in `dir` for reading at `s`, taking the generation's lock token. -/
+theorem wp_WalOpenHandle (w : Loc) (dir : GoString) (s : w64 × w64) (p : Nat) (d : WalDur)
+    (Φ : val → IProp GF) :
+    (|={E,∅}=> walDiskAt (L := L) dir d ∗ walUnlockedTok (L := L) ∗
+      (walDiskAt (L := L) dir ({ d with unl := max d.unl p }) -∗ walOpening (L := L) w dir s -∗
+        (∀ s', absPast (L := L) s' -∗
+          ⌜s'.wal !! dir = some ({ d with unl := max d.unl p })⌝ -∗ ▷ |={∅,E}=> Φ #())))
+    ⊢ WP (ExternalOp absDiskExt.name "WalUnlock" (Val (PairV (#dir) (#(walCode p))))) @ st; E
+      {{ Φ }} :=
+  wp_absDisk_walStepR "WalUnlock" _ dir (fun d => { d with unl := max d.unl p }) (fun _ => True)
+    (by simp [val.isPanic]) (fun d => ⟨Nat.le_refl _, Nat.le_refl _, id⟩)
+    (fun h s g _ => (walUnlock_prog dir p).1 h s g) (walUnlock_prog dir p).2 d trivial
+    (walUnlockedTok (L := L)) (walOpening (L := L) w dir s)
+    (fun s' => by unfold walOpening; iapply walHandle_alloc s' w dir (.opening s)) Φ
+
+/-- **`Close`'s handle** (revision round 3, B2): a no-op step that consumes the handle `w` (open with
+its purge right, opening, or failed) and gives back the generation's lock token. -/
+theorem wp_WalCloseHandle (w : Loc) (dir : GoString) (s : w64 × w64) (Φ : val → IProp GF) :
+    (|={E,∅}=> ((walOpenW (L := L) w dir ∗ walPurgeW (L := L) w dir) ∨ walOpening (L := L) w dir s ∨
+        walReadFailed (L := L) w dir) ∗ (walUnlockedTok (L := L) -∗ ▷ |={∅,E}=> Φ #()))
     ⊢ WP (ExternalOp absDiskExt.name "WalUnlock" (Val (PairV (#dir) (#(walCode (0 : Nat))))))
-      @ st; E {{ Φ }} := by
-  iintro HAU
-  iapply wp_WalNoop dir iprop(True) (walOpening (L := L) w dir s)
-    (fun s' => by unfold walOpening; iintro Hc -; iapply walHandle_alloc s' w dir (.opening s) $$ Hc) Φ
-  imod HAU with Hk
-  imodintro
-  isplitr
-  · itrivial
-  · iexact Hk
+      @ st; E {{ Φ }} :=
+  wp_WalNoop dir _ (walUnlockedTok (L := L))
+    (fun s' => by
+      iintro Hc Hh
+      ihave Hu := walHandle_close w dir s $$ Hh
+      imodintro
+      iframe Hc Hu) Φ
 
 /-- **A failed `ReadAll`**: a no-op step that turns the handle `w`, opened for reading, into a
 failed one. -/
@@ -1067,35 +1153,19 @@ theorem wp_WalPurge (dir : GoString) (k : Nat) (d : WalDur) (Hk : d.cut ≤ k �
     obtain rfl := walCode_inj (go.intoVal_inj Ho)
     exact ⟨rfl, rfl, rfl⟩
 
-theorem wp_WalUnsize (dir : GoString) (d : WalDur) (Φ : val → IProp GF) :
-    (|={E,∅}=> walDiskAt (L := L) dir d ∗
-      (walDiskAt (L := L) dir ({ d with sized := false }) -∗ (∀ s', absPast (L := L) s' -∗
-        ⌜s'.wal !! dir = some ({ d with sized := false })⌝ -∗ ▷ |={∅,E}=> Φ #())))
-    ⊢ WP (ExternalOp absDiskExt.name "WalUnsize" (Val (#dir))) @ st; E {{ Φ }} := by
-  refine wp_absDisk_walStep "WalUnsize" _ dir (fun d => { d with sized := false }) (fun d => True)
-    (by simp [val.isPanic]) (fun d => ⟨Nat.le_refl _, Nat.le_refl _, id⟩) ?_ ?_ d trivial Φ
-  · intro h s g hP
-    simp only [AbsDiskStep]
-    refine ⟨?_, ?_, dir, ?_, ?_⟩ <;> first | trivial | rfl | exact hP
-  · intro h s g e' h' s' g' Hst
-    simp only [AbsDiskStep] at Hst
-    obtain ⟨rfl, rfl, dir', Hv, rfl⟩ := Hst
-    obtain rfl := go.intoVal_inj Hv
-    exact ⟨rfl, rfl, rfl⟩
-
 /-- `"WalCreate"` of `(dir, md)`, `dir` a directory of the area `r`: a fresh WAL where there was
 none (the rest of `Create`'s region is then free too, `walCreateRegion_free`), and the handle `w`
 ready to append. -/
 theorem wp_WalCreate (w : Loc) (r dir : GoString) (md : List w8) (hdir : walAreaDir r dir)
     (Φ : val → IProp GF) :
-    walArea (L := L) r ∗
+    walArea (L := L) r ∗ walUnlockedTok (L := L) ∗
     (|={E,∅}=> walAbsent (L := L) dir ∗
       (walDiskAt (L := L) dir (walDurFresh md) -∗ walOpenW (L := L) w dir -∗ walPurgeW (L := L) w dir -∗
         (∀ s', absPast (L := L) s' -∗
           ⌜s'.wal !! dir = some (walDurFresh md)⌝ -∗ ▷ |={∅,E}=> Φ #())))
     ⊢ WP (ExternalOp absDiskExt.name "WalCreate" (Val (PairV (#dir) (#md)))) @ st; E {{ Φ }} := by
-  unfold walAbsent walDiskAt walDirIs walOpenW
-  iintro ⟨#HA, HAU⟩
+  unfold walAbsent walDiskAt walDirIs
+  iintro ⟨#HA, Hu, HAU⟩
   have hle : ∀ s : AbsDiskState, s.wal !! dir = none →
       absLe s { s with wal := <[dir := walDurFresh md]> s.wal } := by
     intro s hs
@@ -1131,7 +1201,7 @@ theorem wp_WalCreate (w : Loc) (r dir : GoString) (md : List w8) (hdir : walArea
   subst HMs
   have hds : walAreaDir s.area dir := by rw [Har]; exact hdir
   imod absDisk_upd s _ s.wal (hle s HMd) (hkeys s hds) $$ Hc HM with ⟨-, Hc, HM, #Hp⟩
-  imod walHandle_alloc _ w dir .append $$ Hc with ⟨Hc, Hw⟩
+  imod walHandle_alloc _ w dir .append $$ Hc Hu with ⟨Hc, Hw⟩
   icases walHandleP_split $$ Hw with ⟨Hw, Hpw⟩
   have hl : (<[dir := walDurFresh md]> s.wal) !! dir = some (walDurFresh md) := GMap.lookup_insert _ _ _
   imodintro
@@ -1183,12 +1253,19 @@ theorem wp_DirDurable (r d : GoString) (hd : ¬ underDir r d) (Φ : val → IPro
 section crashGen
 variable (L' : GooseLocalGS GF)
 
+/-- **The crash start is the WAL part and the new generation's lock token.** -/
+theorem absDiskCrashStart_split :
+    absDiskCrashStart (gooseAbsDiskGS (L := L)) (gooseAbsDiskGS (L := L')) ⊣⊢
+      absDiskCrashWal (gooseAbsDiskGS (L := L)) (gooseAbsDiskGS (L := L')) ∗
+        walUnlockedTok (L := L') := by
+  unfold absDiskCrashStart walUnlockedTok; exact .rfl
+
 /-- What the crash start says of the old generation's WAL map. -/
 theorem absDisk_crash_view (M : GMap GoString WalDur) :
-    ⊢@{IProp GF} absDiskCrashStart (gooseAbsDiskGS (L := L)) (gooseAbsDiskGS (L := L')) -∗
+    ⊢@{IProp GF} absDiskCrashWal (gooseAbsDiskGS (L := L)) (gooseAbsDiskGS (L := L')) -∗
       walOwn (L := L) M -∗ ∃ s s' : AbsDiskState, ⌜absDisk_semantics.crash s s' ∧ M = s.wal⌝ ∗
         absPastAuth (gooseAbsDiskGS (L := L)) s ∗ walOwn (L := L') s'.wal ∗ absPast (L := L') s' := by
-  unfold absDiskCrashStart walOwn absPast
+  unfold absDiskCrashWal walOwn absPast
   letI := (gooseAbsDiskGS (L := L)).absDiskAllG
   iintro ⟨%s, %s', %hc, Hs, HP, HM', Hp'⟩ HM
   unfold walOwnAt
@@ -1202,7 +1279,7 @@ theorem absDisk_crash_view (M : GMap GoString WalDur) :
 entry durable, is the new generation's at an image of its history at or past `n`, with a purged
 prefix `k ≤ min pur |I|` to read from (`unl`, `pur` clamped to `|I|`), still synced to `n` and named (`named` kept: it is `true`). -/
 theorem walDiskAt_crash (dir : GoString) (d : WalDur) (n : Nat) :
-    ⊢@{IProp GF} absDiskCrashStart (gooseAbsDiskGS (L := L)) (gooseAbsDiskGS (L := L')) -∗
+    ⊢@{IProp GF} absDiskCrashWal (gooseAbsDiskGS (L := L)) (gooseAbsDiskGS (L := L')) -∗
       walDiskAt (L := L) dir d -∗ walSyncedLb (L := L) dir n -∗ walNamed (L := L) dir -∗
       ∃ (I : List (WalOpG WalEnt)) (k : Nat), ⌜walImg d.H n I ∧ k ≤ min d.pur I.length⌝ ∗
         walDiskAt (L := L') dir { d with H := I, cut := k, unl := min d.unl I.length, pur := min d.pur I.length } ∗
@@ -1235,7 +1312,7 @@ theorem walDiskAt_crash (dir : GoString) (d : WalDur) (n : Nat) :
 /-- **The crash of a WAL whose entry may not be durable**: it vanishes (only if its entry was not
 durable), or it is the new generation's as in `walDiskAt_crash`. -/
 theorem walDiskAt_crash_any (dir : GoString) (d : WalDur) (n : Nat) :
-    ⊢@{IProp GF} absDiskCrashStart (gooseAbsDiskGS (L := L)) (gooseAbsDiskGS (L := L')) -∗
+    ⊢@{IProp GF} absDiskCrashWal (gooseAbsDiskGS (L := L)) (gooseAbsDiskGS (L := L')) -∗
       walDiskAt (L := L) dir d -∗ walSyncedLb (L := L) dir n -∗
       ((walAbsent (L := L') dir ∗ ⌜d.named = false⌝) ∨
         ∃ (I : List (WalOpG WalEnt)) (k : Nat), ⌜walImg d.H n I ∧ k ≤ min d.pur I.length⌝ ∗
@@ -1266,7 +1343,7 @@ theorem walDiskAt_crash_any (dir : GoString) (d : WalDur) (n : Nat) :
 
 /-- A directory with no WAL has none after the crash. -/
 theorem walAbsent_crash (dir : GoString) :
-    ⊢@{IProp GF} absDiskCrashStart (gooseAbsDiskGS (L := L)) (gooseAbsDiskGS (L := L')) -∗
+    ⊢@{IProp GF} absDiskCrashWal (gooseAbsDiskGS (L := L)) (gooseAbsDiskGS (L := L')) -∗
       walAbsent (L := L) dir -∗ walAbsent (L := L') dir := by
   unfold walAbsent walDirIs
   iintro Hcs ⟨%M, HM, %HMd⟩

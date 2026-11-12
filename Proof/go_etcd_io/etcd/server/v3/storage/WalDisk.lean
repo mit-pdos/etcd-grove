@@ -131,7 +131,7 @@ instance walAreaOk_persistent (r : GoString) : Persistent (walAreaOk (GF := GF) 
 /-- **The WAL in `dir` holds the history `H`, with flag `sized`** (the extension's points-to, read
 over `EntryM`): its durable state's history, as model entries, and flag; the marks, purge positions
 and metadata as they are (`walDiskAt` names them). -/
-def walDisk (dir : GoString) (H : WalHist) (sized : Bool := false) : IProp GF :=
+def walDisk (dir : GoString) (H : WalHist) (sized : Bool) : IProp GF :=
   iprop(∃ d : WalDur, walDiskAt dir d ∗ ⌜d.H.map WalOpG.toM = H ∧ d.sized = sized⌝)
 
 instance walDisk_timeless (dir : GoString) (H : WalHist) (sized : Bool) :
@@ -162,7 +162,11 @@ instance walSnapIdTerm_persistent (sp : Loc) (s : w64 × w64) :
 tester's trusted `purgeRound` model performs, W4c): a purge round in `dir`, while the purge's right
 on the open WAL `w` is held (`walPurgeW`, one per handle, per generation), may delete the records before `unl` (`pur := max pur unl`), and moves the read position to the
 start `k` of the first file it left (`cut ≤ k ≤ max pur unl`). Stated over the step itself
-until the tester's `purgeRound` (and its model) exist. -/
+until the tester's `purgeRound` (and its model) exist. The right is framed here; the step itself
+(`wp_WalPurge`) needs none, so the right constrains only through its consumers. **W4c gate**
+(revision round 3, M1; `notes/decisions.md`): `purgeRound`'s spec takes `walPurgeW w dir` and
+`walOpenW w dir`, consumed or framed, never derived; with them `unl` is current (raised by `Open`,
+`ReleaseLockTo`) and at most one handle, so one right, is live (the lock token). -/
 theorem walPurge_step (w : Loc) (dir : GoString) (d : WalDur) (k : Nat) (hk : d.cut ≤ k)
     (hk' : k ≤ max d.pur d.unl) :
     {{ walDiskAt (L := hG.goose_localGS) dir d ∗ walPurgeW (L := hG.goose_localGS) w dir }}
