@@ -149,7 +149,7 @@ def walImg {E : Type} (H : List (WalOpG E)) (n : Nat) (I : List (WalOpG E)) : Pr
 are synced. `unl`: while a handle of the directory with its purge right is live, every record from
 position `unl` on is in a file it keeps locked (records before it may be in unlocked files:
 `ReleaseLockTo`, and a restart's `Open`, which locks from the opened snapshot's file on and raises
-`unl` to `walReleasePos H s.1`, a position at or after the start of the file `Open` locks from (the snapshot record's last position under `walRelGuard`, 0 at index 0, else `|H|`)); an upper bound on what is unlocked while the right is
+`unl` to `walOpenPos H s.1`, a position at or after the start of the file `Open` locks from (the smaller of the snapshot record's last position under `walRelGuard`, 0 at index 0, else `|H|`, and the last position a file named at most `s.1` can start at; WAL W4a.2)); an upper bound on what is unlocked while the right is
 held. After `Close` or a crash no file is locked, and nothing may purge until a handle exists again
 (the purge right, `walPurgeW`, exists only with a live handle). `pur`: no record from position `pur`
 on has been deleted (records before it may have been: a purge round ran while `unl` was that).

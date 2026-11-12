@@ -1,5 +1,5 @@
 /-
-`wal.Open` (WAL W4a, 2026-11-11, revised after the Freeze review and its second and third rounds; the approved W4 Draft's §1.4 and the revision design, `notes/decisions.md`, "WAL W4a" and "WAL W4a revision") Lean-first. Names-only: an axiom at the trust boundary (`Proof/...`), true of the Go code at the etcd pin `c90b03b56` (S/ = `server/storage/wal/`) under the world assumptions of `GooseLang/Ext/AbsDisk/Impl.lean`; the Go evidence is the WAL tester under the crash harness (`notes/decisions.md`, "WAL W3"). An axiomatized body is read as one that performs the abstract-disk extension's steps (`AbsDiskStep`): the step each spec's atomic update or post names (`Proof/go_etcd_io/etcd/server/v3/storage/WalBodies.lean` gives the bodies of the posts that name a past state). `walDiskAt`'s synced mark and `named` are lower bounds of the real ones (W4a.1 revision 1, `GooseLang/Ext/AbsDisk/Specs.lean`).
+`wal.Open` (WAL W4a, 2026-11-11, revised after the Freeze review and its second and third rounds, and in W4a.1 and its revision 1 (2026-11-12, findings F-W4b-1/F-W4b-2 and the delta review's B1/M1/M2, decided by etcd-grove-81), and in W4a.2 (2026-11-12: the purge bounds' completeness, R1/R2, the soundness findings F-W4a2-1/F-W4a2-2, logically atomic restatements, decided by etcd-grove-81; the fork fix `1aaca041c` approved by the user) the approved W4 Draft's §1.4 and the revision design, `notes/decisions.md`, "WAL W4a" and "WAL W4a revision") Lean-first. Names-only: an axiom at the trust boundary (`Proof/...`), true of the Go code at the etcd pin `1aaca041c` (S/ = `server/storage/wal/`) under the world assumptions of `GooseLang/Ext/AbsDisk/Impl.lean`; the Go evidence is the WAL tester under the crash harness (`notes/decisions.md`, "WAL W3"). An axiomatized body is read as one that performs the abstract-disk extension's steps (`AbsDiskStep`): the step each spec's atomic update or post names (`Proof/go_etcd_io/etcd/server/v3/storage/WalBodies.lean` gives the bodies of the posts that name a past state). `walDiskAt`'s synced mark and `named` are lower bounds of the real ones (W4a.1 revision 1, `GooseLang/Ext/AbsDisk/Specs.lean`).
 -/
 module
 
@@ -29,13 +29,22 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [walpb_sem : go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions]
 
 /-- **`Open(lg, dir, snap)`** (S/wal.go:377-379, write mode): opens the WAL at the snapshot `s`, locking
-its files from the one holding `s` on (`searchIndex`, `openAtIndex`, S/wal.go:395-466) and leaving
-the earlier ones unlocked: on success `unl` is raised to `walReleasePos H s.1`, a position at or after the start of the file `Open` locks from (the snapshot record's last position under `walRelGuard`, 0 at index 0, else `|H|`) (the step `"WalUnlock"` of that
-position, `wp_WalOpenHandle`; revision round 3, F1: the purge right in the handle is then backed by a
-current `unl`). Go tests `rev3-tests`: `TestRev3PurgeWhileOpening` (the `|H|` branch: a purge in the
-window between `Open` and `ReadAll` deletes the unlocked file before the snapshot's) and
-`TestReview4OpenGuardPurge` (the `walRelGuard` branch: the purge deletes only files before the
-snapshot record's position).
+its files from the last one named `≤ s.1` on (`searchIndex`, `openAtIndex`, S/wal.go:395-466) and
+leaving the earlier ones unlocked: `unl` is raised to `walOpenPos H s.1`, a position at or after the
+start of the file `Open` locks from: the smaller of the guard's position (`walGuardPos`: the
+snapshot record's last position under `walRelGuard`, 0 at index 0, else `|H|`) and the name bound
+(the last position a file named at most `s.1` can start at, `walNameBound … false`; WAL W4a.2, R1:
+`Open` locks from a file named exactly `s.1`, where `ReleaseLockTo` would not, so the two bounds
+differ) (the step `"WalUnlock"` of that position, `wp_WalOpenHandle`; revision round 3, F1: the purge
+right in the handle is then backed by a current `unl`). The name bound rests on `w.enti` being at
+least `walLastEntIdx` at every cut, across restarts: true because a successful write-mode `ReadAll`
+matched its start record (the fork's `1aaca041c`; finding F-W4a2-2: before it, an unmatched restart
+left `w.enti` low, and the landed guard argument failed too, Go test `w4a2-tests`
+`TestW4a2UnmatchedRestartUnlocksGuardedRecord` at `c90b03b56`) and no index wraps (guard clause 4,
+`walHasMaxIdx`; finding F-W4a2-1, `TestW4a2NameWrapUnlocksGuardedRecord`). Go tests `rev3-tests`:
+`TestRev3PurgeWhileOpening` (the `|H|` branch) and `TestReview4OpenGuardPurge` (the guard branch);
+the W4a.2 probe (every restart's `Open` of the WAL tester, the first locked file at or below
+`walOpenPos`).
 Nothing durable changes (read-only: its entry need not be durable). It takes the generation's lock
 token (`walUnlockedTok`): the new handle carries it, and an error gives it back. So no `Open` is
 provable while another handle exists, even one the program dropped without `Close` (Go releases
@@ -43,16 +52,21 @@ such a handle's locks by `os.File` finalizers and loses its buffered records: `O
 and `ReadAll` misses them, Go test `rev3-tests` `TestRev3LeakedHandleThenOpen`; revision round 3,
 B2); in Go, `Open` next to a live handle fails (`TryLockFile`; `rev2-tests`
 `TestRev2OpenWhileLocked`). With no WAL at `dir` (`o = none`) it fails (`readWALNames`). At a
-snapshot with no record, the open succeeds and `ReadAll` is what must fail (its premise). -/
+snapshot with no record, the open succeeds and `ReadAll` is what must fail (its premise, and the
+fork's fix). Logically atomic (WAL W4a.2, the W4c gate of W4a.1 revision 1, M-R1): W4c's restart runs under the
+crash model, so the tester keeps the WAL in an invariant and finds it there at a crash during the
+call; the post's `Q` is of the accessed state. The body commits at its locking (the step `"WalUnlock"` with the
+handle, `wp_WalOpenHandle`; `WalBodies.walOpen_commit`); an error commits the same raise (the locks
+may be taken before `OpenDir` fails, and a raise only allows more purging, which needs a handle). -/
 abbrev wal.Open.spec : Prop :=
-  ∀ (lg : Loc) (r dir : GoString) (o : Option WalDur) (sp : Loc) (s : w64 × w64), walAreaDir r dir →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗ walAreaOk r ∗ walDirIs dir o ∗ walSnapIdTerm sp s ∗ walUnlockedTok }}
+  ∀ (lg : Loc) (r dir : GoString) (sp : Loc) (s : w64 × w64) (Q : Option WalDur → IProp GF), walAreaDir r dir →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗ walAreaOk r ∗ walSnapIdTerm sp s ∗ walUnlockedTok ∗
+      AU <{ ∃∃ o : Option WalDur, walDirIs dir o }> @ ⊤, ∅
+        <{ walDirIs dir (o.map (fun d => { d with unl := max d.unl (walOpenPos (d.H.map WalOpG.toM) s.1) })), COMM Q o }> }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.Open)) (Val #lg)) (Val #dir)) (Val #sp))
-  {{ (w : Loc) (err : GoInterface), RET (PairV #w #err);
-      (⌜err ≠ GoInterface.nil⌝ ∗ walDirIs dir o ∗ walUnlockedTok) ∨
-      (⌜err = GoInterface.nil⌝ ∗ ∃ d : WalDur, ⌜o = some d⌝ ∗
-        walDiskAt dir { d with unl := max d.unl (walReleasePos (d.H.map WalOpG.toM) s.1) } ∗
-        walOpening w dir s) }}
+  {{ (w : Loc) (err : GoInterface), RET (PairV #w #err); ∃ o : Option WalDur, Q o ∗
+      ((⌜err ≠ GoInterface.nil⌝ ∗ walUnlockedTok) ∨
+       (⌜err = GoInterface.nil⌝ ∗ ⌜o ≠ none⌝ ∗ walOpening w dir s)) }}
 
 end spec
 

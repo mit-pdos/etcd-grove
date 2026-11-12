@@ -35066,3 +35066,70 @@ fixed exactly by the resource it hands over at the same point; the mark and `nam
 
 **Revision 1b (R1/R2, purge-model completeness): deferred to W4a.2** (the coordinator's fallback),
 `/shared/tmp/wal-spec/w4a1/freeze-w4a1.md`, "Revision 1b".
+
+## WAL W4a.2: the purge bounds' completeness (R1/R2), two soundness bugs in landed WAL axioms, and the restart's calls logically atomic (2026-11-12 · the design decided by etcd-grove-81; the fork fix `1aaca041c` approved by the user, 2026-11-12, via etcd-grove-81 · branch `wal-w4a2`; the trusted texts await the Freeze review, `/shared/tmp/wal-spec/w4a2/freeze-w4a2.md`)
+
+**Soundness bugs in landed trusted text** (found while designing R1; no closed theorem reached the WAL
+axioms, which are unlinked, so nothing proved was affected). Go tests:
+`/shared/tmp/wal-spec/w4a2/tests/w4a2_wrap_test.go`, at the old pin `c90b03b56`.
+
+- **F-W4a2-1 (the name wraps).** A cut names its file `walName(seq+1, w.enti+1)` in `uint64`: at
+  `enti = 2^64-1` the name is 0. A snapshot record of index `2^64-1` after `p` met `walRelGuard`'s
+  clause 3, so the guard branch of `walReleasePos` (`Open`, `ReadAll`, `ReleaseLockTo`) claimed the
+  records from `p` on locked while `ReleaseLockTo(a)` (only the tail kept) or a restart's `Open(a)`
+  (from the wrapped file) left them unlocked, and a purge deleted them.
+- **F-W4a2-2 (an unmatched restart).** `ReadAll` raises `w.enti` to its start only when the start
+  record matches, i.e. lies in the files `Open` selected (from the last one named `≤ s`). The premise
+  "the newest valid pair" does not ensure it: VSE lists every record of the directory. An entry saved
+  at or below a snapshot after its record makes the next segment's name `≤` the snapshot, so the
+  restart at it opens a file after its record; write-mode `ReadAll` lost the `ErrSnapshotNotFound`
+  and succeeded with `w.enti` low. Then the guard argument failed (a later cut named a file `≤ a`
+  after `p`; with a lowered commit `Open(a)` locked past `p`), and **`ReadAll`'s result was wrong**
+  (the model's `walReadCut` read an entry Go did not return). The nonissue
+  `etcd-wal-readall-snapshot-not-found-masked` claimed the premise excluded the masked case; corrected.
+
+**Fixes.** F-W4a2-2: the fork fix `1aaca041c` (write-mode `ReadAll` returns `ErrSnapshotNotFound`
+when nothing matched; with a test failing before it; etcd pin bumped; the WAL is names-only, so no
+translation changed). Rejected: a history premise on `ReadAll` (every client would carry it, and the
+tester's `opResend` histories break it). F-W4a2-1: guard clause 4 (`¬ walHasMaxIdx H`) and the name
+bound's fallback to `|H|`.
+
+**R1 (completeness): two bounds.** `ReleaseLockTo(a)` keeps locked from the lock before the first
+named `≥ a`; `Open(a)` locks from the last file named `≤ a`: a file named exactly `a` separates them.
+`walReleasePos H a := min (walGuardPos H a) (walNameBound H a true)` and `walOpenPos H a := min
+(walGuardPos H a) (walNameBound H a false)`; `walGuardPos` is the landed body with clause 4;
+`walNameBound` is the last `walCutPos` (0, or after a `Save` that writes a record) whose prefix's
+`walLastEntIdx` (the last entry's index) plus one is below (at most) `a`. The argument: with every
+successful restart matched and no wrap, `walLastEntIdx` of the prefix is at most Go's `w.enti` at
+every cut, across restarts (by induction on the cuts: an entry of the cut's generation sets it, a
+snapshot only raises it; otherwise `ReadAll` left at least the last entry decoded and the start,
+and an entry before the opened file is below that file's name, so below the start). `walLastEntIdx`
+ignores snapshot raises on purpose: a raise is lost at a restart before the snapshot is committed
+(W4b's R1 probe used one; unsound across restarts).
+
+**R2: no clause relaxed.** Dropping clause 1 at `j = p+1` is unsound (`TestW4a2RelaxedClause1Unsound`:
+a restart right after a received snapshot's record, below the commit, then a commit-only `Save` cuts
+a file named below `a`). W4b's `Open` failures at `j = p+1` are covered by the name bound when the
+`Save` after the snapshot record has entries (`walOpenPos ≤ p`); when it has none, the bound is
+`p+2` (`|H|` before), a documented limitation (the model does not know where restarts were).
+
+**Logically atomic** (W4a.1 revision 1's W4c gate): `Open`, `ReadAll`, `ReleaseLockTo`, `Repair`,
+`Exist`. `Open`'s and `ReleaseLockTo`'s updates commit the raise in both arms (a raise only allows
+more purging, which needs a handle). `ReadAll` no longer restates `Open`'s raise (a body committing at
+its read cannot also unlock); its body commits at `"WalNamed"` with the handle and syncs after
+(`WalBodies.walReadAll_commit`). Bodies: `walOpen_commit`, `walReleaseLockTo_commit`.
+
+Evidence: the W4a.2 probe (`/shared/tmp/wal-spec/w4a2/r2/`: the W3 tester on the fork at `1aaca041c`,
+true file positions across restarts per candidate; every restart's `Open`, every `ReleaseLockTo` and
+every purge checked against the new bounds); Go tests in `/shared/tmp/wal-spec/w4a2/tests/`.
+
+**Open (hard stop, 2026-11-12): the fork fix costs etcd a restart.** The W4a.2 probe (posix model)
+hit one unmatched restart in a raft-like history, reproduced in
+`/shared/tmp/wal-spec/w4a2/tests/w4a2_forgotsnap_test.go`: a follower persists a received snapshot's
+record (41, above its commit) and crashes before the hard state; it restarts at 0, saves the
+re-sent entries 37..41 after the record, and a cut between them names its file 39; once the commit
+is 41, the restart at 41 opens that file. At `c90b03b56` the masked read is right; at `1aaca041c`
+the restart fails. Proposed instead (or in addition): a cut names its file above every snapshot
+record before it (`max(w.enti, the highest snapshot index saved or decoded) + 1`), which makes every
+restart at a snapshot of the history matched, keeps etcd's restart, and lets the model's lower bound
+count snapshot records (stronger bounds). Awaiting etcd-grove-81 and the user.

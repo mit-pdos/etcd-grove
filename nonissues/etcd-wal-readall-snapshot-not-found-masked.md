@@ -26,9 +26,14 @@ when an entry below the snapshot's index is saved after its record, a cut names 
 `enti+1` at or below the index, and `Open` at the (valid) snapshot starts in that segment
 (`TestReadAllStartRecordBeforeOpenedFile`). The masked error then also leaves `w.enti` unraised, so a
 later cut names a segment below the snapshot, and a later `Open` or `ReleaseLockTo` leaves earlier
-records unlocked for the purge. etcd's raft never saves an entry at or below a snapshot after that
-snapshot's record (its log continues above the snapshot), and segment names never wrap (raft indexes
-stay far below 2^64-1), so etcd's restarts always match. The test in
+records unlocked for the purge. etcd can reach the unmatched read: a follower that persists a received
+snapshot's record and crashes before the hard state that commits it restarts at an older snapshot,
+then saves the entries the leader re-sends below the snapshot's index after its record; once the
+commit reaches the snapshot, the next restart opens a segment after its record
+(`/shared/tmp/wal-spec/w4a2/tests/w4a2_forgotsnap_test.go`, seen once in the W4a.2 probe). There the
+masked read happens to be right (the re-sent entries are at or below the start, so they truncate),
+which is why this stays a nonissue for etcd; the unsound cases need histories etcd does not write (an
+entry below a committed snapshot after its record and a lowered commit, or an index of 2^64-1). The test in
 [etcd-wal-readall-snapshot-not-found-masked/](etcd-wal-readall-snapshot-not-found-masked/)
 (`TestReadAllSnapshotNotFound`, a WAL of entries 1-5 with no snapshot record, opened at (3,1)) fails at
 `c90b03b56`: `ReadAll` returns no error and 2 entries.
@@ -43,7 +48,9 @@ opened snapshot is the newest valid one does not exclude an unmatched read (the 
 did was wrong: WAL W4a.2, finding F-W4a2-2, `notes/decisions.md`), and without the fix its result
 (`walReadCut` of the whole history) differs from Go's, and the purge bounds of `Open`, `ReadAll` and
 `ReleaseLockTo` (`walReleasePos`) are unsound. With the fix every successful write-mode `ReadAll`
-matched, and the spec needs no history premise.
+matched, and the spec needs no history premise. **Open (2026-11-12, for etcd-grove-81):** the fix
+makes the etcd restart above fail (`ErrSnapshotNotFound`) where the masked read was right; a cut
+that names its segment above every snapshot record before it would avoid both.
 
 ## Notes
 

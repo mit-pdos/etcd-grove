@@ -6,27 +6,35 @@ lean `9b00c0c988`. Coordinator: etcd-grove-81. Scratch: `/shared/tmp/wal-spec/w4
 Task: R1/R2 (the purge model's completeness, freeze-w4a1.md §R1b) and the W4c gate (`Open`, `ReadAll`,
 `Repair`, `Exist` logically atomic, §R1.4).
 
-## State (2026-11-12): hard stop after step 1 (design)
+## State (2026-11-12)
 
-- Design: `/shared/tmp/wal-spec/w4a2/design.md`.
-- Soundness findings in landed text (§1 there), each with a passing Go test
-  (`/shared/tmp/wal-spec/w4a2/tests/w4a2_wrap_test.go`, copied into
-  `/shared/tmp/wal-spec/w4/rev-tests/etcd-c90b03b56/server/storage/wal/`; log `tests/wrap.log`):
-  - F-W4a2-1: the cut's name `enti+1` wraps at 2^64-1; the `walRelGuard` branch of `walReleasePos`
-    (Open, ReleaseLockTo, ReadAll) is unsound.
-  - F-W4a2-2: an unmatched restart (masked `ErrSnapshotNotFound`) leaves `enti` low; the guard branch
-    is unsound, and `ReadAll`'s result is wrong (model reads an entry Go does not return).
-  - R2's relaxation of clause 1 (drop j = p+1) is unsound.
-- Waiting for etcd-grove-81: fix F-W4a2-2 by (A) the fork fix (ReadAll reports ErrSnapshotNotFound;
-  recommended) or (B) a history premise on ReadAll.
+- Step 1 (design, `/shared/tmp/wal-spec/w4a2/design.md`) done; hard stop answered by etcd-grove-81
+  (questions.md, "W4a.2"): fork fix approved by the user; ReleaseLockTo atomic too; findings folded
+  into the Freeze package and decisions.md.
+- Fork: `1aaca041c` on `goose-lean-exist` (worktree `/shared/tmp/wal-spec/w4/etcd-exist`), LOCAL,
+  not pushed. Pin bump committed (`b6c8c037f8`): `etc/goose.py`, examples' go.mod (go.sum needs the
+  push), nonissue corrected. Go tests at the new pin: `/shared/tmp/wal-spec/w4a2/etcd` (a worktree at
+  1aaca041c with the W4a/W4a.1/W4a.2 tests; log `tests/gotests-pin.log`).
+- Probes: `/shared/tmp/wal-spec/w4a2/r2/run.sh` (kill, ordered, posix, target; 150 chains each);
+  analysis: `grep '^EV' *.r2log`, `EVBAD`, `C2FAIL`, `UNMATCHED`, `ADOPT`.
+- Lean: `WalDisk.lean` (walLastEntIdx, walHasMaxIdx, walCutPos, walRelGuard clause 4, walGuardPos,
+  walNameBound, walReleasePos, walOpenPos); five axiom files from
+  `/shared/tmp/wal-spec/w4a2/gen/genspecs.py`; `WalBodies.lean` (walOpen_commit,
+  walReleaseLockTo_commit, walReadAll_commit); docstrings in Impl/Specs; decisions.md entry.
 
-## Next (after the decision)
+## HARD STOP (2026-11-12, second): the fork fix costs etcd a restart
 
-1. Probes (design §6): fork copy with (A); tester copy re-pointed; `r4a2.go` with file positions per
-   candidate across restarts; 3 models x 150 chains + target.
-2. Implement through `/shared/tmp/wal-spec/w4a2/gen/genspecs.py` (copy of W4a.1's), `WalDisk.lean`
-   (`walLastEntIdx`, `walHasMaxIdx`, `walCutPos`, `walNameBound`, `walGuardPos`, `walReleasePos`,
-   `walOpenPos`, guard clause 4), `WalBodies.lean`; checks; Freeze package `freeze-w4a2.md`.
+The probe hit one unmatched restart in a raft-like history (posix.r2log, `UNMATCHED restart at (41,3)`),
+reproduced in `/shared/tmp/wal-spec/w4a2/tests/w4a2_forgotsnap_test.go` (old pin: masked read right;
+new pin: restart fails). Proposed: a fork naming fix (cut names `max(enti, highest snapshot index
+saved/decoded)+1`); awaiting etcd-grove-81. The Lean below is consistent with the approved fix
+(1aaca041c) and builds; with the naming fix, `walLastEntIdx` could count snapshot records.
+
+## Next
+
+1. Probe results into the Freeze package; full build (`build.log`), tcb --check, api-check,
+   gen-interface (absdisk), all Go tests.
+2. `/shared/tmp/wal-spec/w4a2/freeze-w4a2.md`; STATUS entry; STOP for review.
 
 ## Pitfalls
 

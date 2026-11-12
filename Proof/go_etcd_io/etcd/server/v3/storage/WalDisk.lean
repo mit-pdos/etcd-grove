@@ -52,29 +52,75 @@ def walLastSnapPos {E : Type} (H : List (WalOpG E)) (a : w64) : Nat :=
     | some (WalOpG.snap m) => decide (m.Index' = a)
     | _ => false)).getLast?.getD 0
 
+/-- **The index of the last entry record of `P`** (0 if none; WAL W4a.2): a lower bound of Go's
+`w.enti` at the end of `P` when a file starts there (`walNameBound`). -/
+def walLastEntIdx (P : WalHist) : Nat :=
+  P.foldl (fun x o => match o with
+    | .save _ es => (es.getLast?.map (fun e => uint.nat e.Index')).getD x
+    | .snap _ => x) 0
+
+/-- **Some record of `H` has index `2^64-1`** (WAL W4a.2, F-W4a2-1): then `w.enti` may be `2^64-1`
+at a cut, whose file name `enti + 1` wraps to 0. -/
+def walHasMaxIdx (H : WalHist) : Prop :=
+  ∃ o ∈ H, match o with
+    | .save _ es => ∃ e ∈ es, uint.nat e.Index' = 2 ^ 64 - 1
+    | .snap m => uint.nat m.Index' = 2 ^ 64 - 1
+
+/-- **A WAL file can start at position `b` of `H`** (WAL W4a.2): 0 (`Create`'s), or right after a
+`Save` that writes a record (a cut ends such a `Save`, S/wal.go:1111; an empty `Save` returns first,
+S/wal.go:1079). -/
+def walCutPos (H : WalHist) (b : Nat) : Prop :=
+  b = 0 ∨ ∃ h es, H[b-1]? = some (WalOpG.save h es) ∧ ¬ (hsEmptyP h ∧ es = [])
+
 /-- **Every file a cut names after `H`'s last snapshot record of index `a` (position `p`) is named
-above `a`** (a sufficient condition, by the Go code; M1 of the Freeze review): every saved commit
-from `p` on is at least `a` (so `a` is a valid snapshot of every image holding `p`, and a restart
-starts at or above it); every entry record after a snapshot record of index `≥ a` has index `> a`;
-every snapshot record after `p` has index `≥ a`. Then `w.enti ≥ a` at every cut after `p`, across
-restarts (`SaveSnapshot` and `ReadAll` raise it to the snapshot's index, S/wal.go:1158, :578), and
-the file names (`enti + 1`) exceed `a`. -/
+above `a`** (a sufficient condition, by the Go code; M1 of the Freeze review; clause 4 in WAL W4a.2):
+every saved commit from `p` on is at least `a` (so `a` is a valid snapshot of every image holding
+`p`, and a restart starts at or above it); every entry record after a snapshot record of index
+`≥ a` has index `> a`; every snapshot record after `p` has index `≥ a`; no record of `H` has index
+`2^64-1` (`walHasMaxIdx`: a cut names its file `w.enti + 1` in `uint64`, which wraps to 0 there,
+finding F-W4a2-1). Then `w.enti ≥ a` at every cut after `p`, across restarts (`SaveSnapshot` and a
+successful `ReadAll` raise it to the snapshot's index, S/wal.go:1158, :578; a write-mode `ReadAll`
+succeeds only when its start record matched, the fork's `1aaca041c`, finding F-W4a2-2), and the file
+names (`enti + 1`) exceed `a`. -/
 def walRelGuard (H : WalHist) (a : w64) (p : Nat) : Prop :=
   (∀ j, p < j → j ≤ H.length → uint.nat a ≤ uint.nat (walLastHS (H.take j)).Commit') ∧
   (∀ (q j : Nat) (m : SnapshotMetadataM) (h : HardStateM) (es : List EntryM) (e : EntryM),
      H[q]? = some (WalOpG.snap m) → uint.nat a ≤ uint.nat m.Index' → q < j →
      H[j]? = some (WalOpG.save h es) → e ∈ es → uint.nat a < uint.nat e.Index') ∧
-  (∀ (j : Nat) (m : SnapshotMetadataM), p < j → H[j]? = some (WalOpG.snap m) → uint.nat a ≤ uint.nat m.Index')
+  (∀ (j : Nat) (m : SnapshotMetadataM), p < j → H[j]? = some (WalOpG.snap m) → uint.nat a ≤ uint.nat m.Index') ∧
+  ¬ walHasMaxIdx H
 
 open Classical in
-/-- **A position before which `ReleaseLockTo(a)` / a restart's `Open` at `a` leaves records
-unlocked, and from which every record stays locked**: 0 for `a = 0` (file 0 is named 0, every later
-file higher); the last snapshot record of index `a` under `walRelGuard`; otherwise the history's
-length (the tail file is never released). -/
-def walReleasePos (H : WalHist) (a : w64) : Nat :=
+/-- **The guard's position** (the landed `walReleasePos`, with clause 4): 0 for `a = 0` (file 0
+is named 0, every later file higher); the last snapshot record of index `a` under `walRelGuard`;
+otherwise the history's length (the tail file is never released). -/
+def walGuardPos (H : WalHist) (a : w64) : Nat :=
   if a = W64 0 then 0
   else if (∃ (i : Nat) (m : SnapshotMetadataM), H[i]? = some (WalOpG.snap m) ∧ m.Index' = a) ∧ walRelGuard H a (walLastSnapPos H a)
     then walLastSnapPos H a else H.length
+
+open Classical in
+/-- **The last position that can start a WAL file whose name may be below `a` (`strict`) or at most
+`a`** (WAL W4a.2, R1): a file starts at a `walCutPos`, and is named `w.enti + 1` (`Create`'s file 0,
+named 0, starts at 0, which the default covers); `walLastEntIdx` of the prefix before it bounds
+`w.enti` from below; so every file named below (at most) `a` starts at a position of the filter
+set, and at or before its last element. `|H|` when an index may wrap (`walHasMaxIdx`). -/
+def walNameBound (H : WalHist) (a : Nat) (strict : Bool) : Nat :=
+  if walHasMaxIdx H then H.length else
+  ((List.range (H.length + 1)).filter (fun b => decide (walCutPos H b ∧
+      (if strict then walLastEntIdx (H.take b) + 1 < a else walLastEntIdx (H.take b) + 1 ≤ a)))).getLast?.getD 0
+
+/-- **A position before which `ReleaseLockTo(a)` may leave records unlocked, and from which every
+record stays locked** (WAL W4a.2: the guard's position and the name bound, strict: `ReleaseLockTo`
+keeps locked from the lock before the first one named `≥ a`, S/wal.go:984-1026). -/
+def walReleasePos (H : WalHist) (a : w64) : Nat :=
+  min (walGuardPos H a) (walNameBound H (uint.nat a) true)
+
+/-- **A position before which a restart's `Open` at `a` leaves records unlocked, and from which
+every record is locked** (WAL W4a.2: the guard's position and the name bound, not strict: `Open`
+locks from the last file named `≤ a`, `searchIndex`, S/util.go:47-60). -/
+def walOpenPos (H : WalHist) (a : w64) : Nat :=
+  min (walGuardPos H a) (walNameBound H (uint.nat a) false)
 
 /-! The empty `Save` (S/wal.go:1079: an empty state and no entries write nothing; the model appends
 `save hsZero []`): no reader sees it. -/
