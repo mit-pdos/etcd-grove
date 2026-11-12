@@ -194,7 +194,12 @@ axiom metadata.incomingOf_of_value (c c' : GoInterfaceOk) (v : GoInterface) :
   (`internal/http2/client_conn_pool.go:284`). **Evidence:** `TestRenewHTTPErrTiming`: `RenewHTTP`
   over a `*http.Transport` with a context whose `Err()` panics before `Done` and returns
   `ErrGRPCNoLeader` after: the successful call and the cancelled call (blocked server, then cancel)
-  never call `Err()`; the cancelled call returns a `*url.Error` of `context.Canceled`.
+  do not call `Err()`; the cancelled call returns a `*url.Error` of `context.Canceled`. (Corrected
+  after the T-g review's M1: on a context already done when `RenewHTTP` is called, the transport's
+  `WithCancelCause` calls the caller's `Err()` twice, synchronously on the caller's goroutine, in
+  `propagateCancel`'s already-done arm and in `Cause`, go1.27.3 `context.go:487, 290`; the test's
+  pre-cancelled case checks it, and that a `*url.Error` is returned. The weak pre still suffices:
+  any error is accepted by the post, and each call is on a live goroutine, Addendum T-f'.)
 - **Review point (from the previous agent):** net/http's `Err()` vs `Done`: above. Remaining: the
   post `applyErrIs err` for a `*url.Error` wrapping `ErrGRPCNoLeader` (reachable only if the
   derived context took the parent's `Err()` through propagateCancel's goroutine path, which a
@@ -404,7 +409,10 @@ mvcc checkpoint, together with the interface diff.
   (`*grpc.serverStream`, `*interceptors.monitoredServerStream`) and the interface's data word
   (`(*[2]unsafe.Pointer)(unsafe.Pointer(&ss))[1]`) is the pointer itself
   (`reflect.ValueOf(ss).UnsafePointer()`): Go stores a pointer-typed dynamic value directly in the
-  interface. Passes (`GOWORK=off go test ./premisefix/streamctx -run TestRawStreamKey`).
+  interface. Passes (`GOWORK=off go test ./premisefix/streamctx -run TestRawStreamKey`). After the
+  review (m1): also with otelgrpc's stats handler and through `ServeHTTP` (an HTTP/2 TLS httptest
+  server), all eight combinations; `srvRawStreamIs`'s docstring names grpc's one wrapper hook (the
+  xDS-internal `xdsFilterWrapperOption`, never set by etcd).
 
 ### T-g2 (Q2). `trace.SpanFromContext.spec` and mvcc's `WatchStream.Watch.contract` take `spanCtxOk` only
 
@@ -423,6 +431,19 @@ mvcc checkpoint, together with the interface diff.
   no-op span and the span (by its `SpanContext`). Passes.
 - Callers repaired: mvcc's `watchStream.Watch` proof (`hspan ctx cd`), `processInternalRaftRequestOnce`
   (unchanged text, checks).
+
+### The T-g review (2026-11-12): READY WITH CHANGES, applied (decided by etcd-grove-81)
+
+- M1: the axiom-tok entry of `RenewHTTP` said net/http never calls the caller's `Err()`; false on
+  a context already done (`propagateCancel`/`Cause`, go1.27.3 `context.go:487, 290`). The entry, the
+  T-f text above and `RenewHTTP`'s docstring restated; `TestRenewHTTPErrTiming` has the pre-cancelled
+  case (two calls, a `*url.Error`). The token argument stands (each call on a live goroutine).
+- m1: `TestRawStreamKey` covers the stats handler and `ServeHTTP`; `srvRawStreamIs`'s docstring
+  names the xDS-only wrapper hook.
+- m2 (kept for cleanup): `SpanFromContext.spec`'s and mvcc's `WatchStream.Watch.contract`'s `cd`
+  binder is unused; drop it with its callers (`hspan ctx cd`) in a later pass.
+- m3: the `Tracer.Start` axiom-tok entry says `Start` never calls `ctx.Err()` (otel's noop and sdk
+  tracers).
 
 ### Checks run, Revision 2 (2026-11-12, merged with lean `219ddbbb83`)
 

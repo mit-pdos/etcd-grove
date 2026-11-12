@@ -14,20 +14,25 @@
 //     WithValue child. metadata.FromIncomingContext reads only Value(mdIncomingKey{}).
 //   - T-c (TestRawStreamKey): the ServerStream an interceptor or handler receives is a pointer (grpc's
 //     *serverStream, prometheus's *monitoredServerStream), a comparable map key, alone or in a
-//     struct beside a pointer (etcd's serverStreamWithCtx).
+//     struct beside a pointer (etcd's serverStreamWithCtx); with and without otelgrpc's stats
+//     handler, through Serve and ServeHTTP.
 //   - T-f (TestRenewHTTPErrTiming): leasehttp.RenewHTTP over a *http.Transport calls the context's
 //     Err() only once Done is closed (a context whose Err panics before Done is fine), and returns
-//     an error when it is cancelled with an Err() of ErrGRPCNoLeader.
+//     an error when it is cancelled with an Err() of ErrGRPCNoLeader; on a context already
+//     cancelled when it is called, Err() is called (on the caller's goroutine) and a *url.Error is
+//     returned.
 package streamctx
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"reflect"
 	"strings"
 	"sync"
@@ -42,9 +47,10 @@ import (
 	"go.etcd.io/etcd/server/v3/lease"
 	"go.etcd.io/etcd/server/v3/lease/leasehttp"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
-	oteltrace "go.opentelemetry.io/otel/trace"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	oteltrace "go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
@@ -69,6 +75,29 @@ func startServer(t *testing.T, opts []grpc.ServerOption, h grpc.StreamHandler) *
 	go s.Serve(l)
 	t.Cleanup(s.Stop)
 	cc, err := grpc.NewClient(l.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { cc.Close() })
+	return cc
+}
+
+// startServerHTTP is startServer through grpc's ServeHTTP (an HTTP/2 TLS httptest server), the
+// path etcd takes when it serves gRPC and HTTP on one port (cmux with TLS).
+func startServerHTTP(t *testing.T, opts []grpc.ServerOption, h grpc.StreamHandler) *grpc.ClientConn {
+	t.Helper()
+	s := grpc.NewServer(opts...)
+	s.RegisterService(&grpc.ServiceDesc{
+		ServiceName: "t.S",
+		HandlerType: (*any)(nil),
+		Streams:     []grpc.StreamDesc{{StreamName: "S", Handler: h, ServerStreams: true, ClientStreams: true}},
+	}, struct{}{})
+	hs := httptest.NewUnstartedServer(s)
+	hs.EnableHTTP2 = true
+	hs.StartTLS()
+	t.Cleanup(hs.Close)
+	cc, err := grpc.NewClient(hs.Listener.Addr().String(),
+		grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{InsecureSkipVerify: true})))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -244,8 +273,20 @@ type serverStreamWithCtx struct {
 	ctx *cancellableContext
 }
 
+// TestRawStreamKey: with and without grpc-prometheus's interceptor and otelgrpc's stats handler,
+// through Serve and through ServeHTTP (the review's m1).
 func TestRawStreamKey(t *testing.T) {
+	type variant struct{ prom, otel, http bool }
+	var vs []variant
 	for _, prom := range []bool{false, true} {
+		for _, otel := range []bool{false, true} {
+			for _, h := range []bool{false, true} {
+				vs = append(vs, variant{prom, otel, h})
+			}
+		}
+	}
+	for _, v := range vs {
+		prom := v.prom
 		got := make(chan string, 2)
 		check := func(where string, ss grpc.ServerStream) {
 			if reflect.TypeOf(ss).Kind() != reflect.Pointer {
@@ -275,14 +316,22 @@ func TestRawStreamKey(t *testing.T) {
 			check("interceptor", ss)
 			return h(srv, ss)
 		})
-		cc := startServer(t, []grpc.ServerOption{grpc.ChainStreamInterceptor(ics...)},
-			func(_ any, ss grpc.ServerStream) error { check("handler", ss); return nil })
+		opts := []grpc.ServerOption{grpc.ChainStreamInterceptor(ics...)}
+		if v.otel {
+			opts = append(opts, grpc.StatsHandler(otelgrpc.NewServerHandler(
+				otelgrpc.WithTracerProvider(sdktrace.NewTracerProvider()))))
+		}
+		start := startServer
+		if v.http {
+			start = startServerHTTP
+		}
+		cc := start(t, opts, func(_ any, ss grpc.ServerStream) error { check("handler", ss); return nil })
 		runStream(t, cc, false)
 		for i := 0; i < 2; i++ {
 			s := <-got
-			t.Logf("prom=%v: %s", prom, s)
+			t.Logf("%+v: %s", v, s)
 			if !strings.Contains(s, " ok: ") {
-				t.Errorf("prom=%v: %s", prom, s)
+				t.Errorf("%+v: %s", v, s)
 			}
 		}
 	}
@@ -344,6 +393,29 @@ func TestRenewHTTPErrTiming(t *testing.T) {
 	}
 	t.Logf("cancelled: %v (%T); Is(Canceled)=%v Is(ErrGRPCNoLeader)=%v; Err() called %d times",
 		err, err, errors.Is(err, context.Canceled), errors.Is(err, rpctypes.ErrGRPCNoLeader), c.errs.Load())
+
+	// Already cancelled when RenewHTTP is called (the M1 finding of the T-g review): the
+	// transport's WithCancelCause(req.Context()) calls the caller's Err() synchronously, on the
+	// caller's goroutine, in propagateCancel's already-done arm and in Cause (go1.27.3
+	// context.go:487, 290). Err() is called, and the error returned is a non-nil *url.Error whose
+	// Error() and errors.Is answer, as the spec's post (applyErrIs of every client error) has it.
+	pre, cancelPre := context.WithCancel(context.Background())
+	cancelPre()
+	cp := &strictCtx{Context: pre}
+	_, err = leasehttp.RenewHTTP(cp, lease.LeaseID(7), srv.URL+"/renew", rt)
+	if err == nil {
+		t.Fatal("pre-cancelled: no error")
+	}
+	var ue *url.Error
+	if !errors.As(err, &ue) {
+		t.Fatalf("pre-cancelled: %v (%T) is not a *url.Error", err, err)
+	}
+	if cp.errs.Load() == 0 {
+		t.Fatal("pre-cancelled: Err() not called (the M1 claim no longer holds: update the notes)")
+	}
+	_ = err.Error()
+	t.Logf("pre-cancelled: %v (%T); Is(ErrLeaseNotFound)=%v; Err() called %d times",
+		err, err, errors.Is(err, lease.ErrLeaseNotFound), cp.errs.Load())
 }
 
 // spanOnlyCtx answers Value and panics on every other method (T-g, Q2).

@@ -53,8 +53,11 @@ are its own `*cancelCtx`'s, and HTTP/2's (`net/http/internal/http2`) reads `ctx.
 only decides whether to dial again. An `Err()` of `ErrGRPCNoLeader`, or a non-nil one before
 `Done`, at most changes which error is returned, and the post accepts every error here
 (`examples/premisefix/streamctx`, `TestRenewHTTPErrTiming`: a context whose `Err()` panics before
-`Done` and is `ErrGRPCNoLeader` after; it is never called, and the cancelled call returns a
-`*url.Error` of `context.Canceled`). (k8s 7f-4, T-f') `srvCtxWeak`'s `Err` clauses take a level
+`Done` and is `ErrGRPCNoLeader` after; it is not called during a live call, nor when the context is
+cancelled in flight, and the cancelled call returns a `*url.Error` of `context.Canceled`; on a
+context already done when `RenewHTTP` is called, the transport's `WithCancelCause` calls it twice,
+synchronously on the caller's goroutine, in `propagateCancel` and `Cause`, go1.27.3
+`context.go:487, 290`, and a `*url.Error` is returned). (k8s 7f-4, T-f') `srvCtxWeak`'s `Err` clauses take a level
 token (`levelTok v3rpc.ctxErrLvl`, the reader slot of the wrapper's `RWMutex`), which the premise
 does not hand over: net/http calls `ctx.Err()` only from live goroutines (the caller's and the
 transport's own), each a thread, so the read locks it holds at one time are bounded by the threads,

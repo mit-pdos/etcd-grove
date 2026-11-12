@@ -397,7 +397,10 @@ sender's token, or fails, the message delivered or not (the token at the old or 
 (k8s 7f-4, T-c, T-g) It is a pointer (`rawStreamKey`: a pointer type, its value a location), so that it is a comparable map
 key (etcd's `monitorLeader` keys a map by it): grpc passes a `*serverStream` (`server.go`
 `processStreamingRPC`), grpc-prometheus's interceptor a `*monitoredServerStream`
-(go-grpc-middleware v2.3.4 `interceptors/server.go:36`). (k8s 7f-4, T-a) `ci`'s library values and its
+(go-grpc-middleware v2.3.4 `interceptors/server.go:36`), through `Serve` and `ServeHTTP` alike (both reach
+`processStreamingRPC`) and with otelgrpc's stats handler, which does not wrap the stream; grpc's only
+wrapper hook is the xDS-internal stream wrapper (`xdsFilterWrapperOption`, grpc v1.84.0 `server.go:666-672,
+1433-1436`), which only the xDS server sets, never etcd. (k8s 7f-4, T-a) `ci`'s library values and its
 span also in the chain form (`context.libCtxOkC`, `trace.spanCtxOkC`), which `WithCancel` carries to a
 child (`ctxValueFrom`): grpc's run context is a chain of `*valueCtx` links (`NewIncomingContext`,
 `peer.NewContext`, grpc's internal keys, otelgrpc's `ContextWithSpan`) over the transport's
