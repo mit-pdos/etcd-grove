@@ -35214,3 +35214,43 @@ etcd-grove-81; a restricting change, no further round).**
   restore); the five summaries of `walGuardPos` (`Impl.lean`'s `WalDur.unl`, `Specs.lean` thrice,
   `Open`'s docstring) state the wrap-first branch; the masked nonissue's upstreaming option "keep the
   masked success for old-named WALs" brings F-W4a2-2 back.
+
+## WAL W4b: the history and read lemmas, the crash views, and the purged read (2026-11-12 · plan approved by etcd-grove-81, `/shared/tmp/wal-spec/w4b/plan.md`; C2's premises chosen by the proof, as the plan allows; awaiting CP3 · branch `wal-w4b`)
+
+Proved only: two unlinked modules over the W4a/W4a.1/W4a.2 axioms, no axiom, `sorry`, opaque or
+trusted text; trust base unchanged.
+
+- **What landed.** `storage/WalHistLemmas.lean` (pure): A1 the `walImg` algebra; A2 `walReadCut_hs`;
+  A3 the read's base is the newest valid pair (`walReadCut_base`, `walReadCut_snap`); A4
+  `walReadCut_wf`, `walReadCut_last_le` (S3's `walRead_wf`); A5 `walReadCut_ents_sub(_raw)`; A6 the
+  purge-bound lemmas, restated for W4a.2 (`walGuardPos_le_length`, `walNameBound_le_length`,
+  `walNameBound_strict_le`, `walReleasePos_le_length`, `walOpenPos_le_length`,
+  `walReleasePos_le_openPos`, `walHasMaxIdx_snoc`, `walRelGuard_snoc` with clause 4 as a premise on
+  the new operation); B3 `walImg_snoc_cases`/`walImg_append_cases`; C. `storage/WalViews.lean`: B1/B2
+  over the lower-bound `walDiskAt` (`walDiskAt_crash_img(_any)`, `walDiskAt_crash_graceful`,
+  `walCrashKeeps(_trans)`, `walDisk_walDiskAt`, `walDiskAt_excl`, ...). `walDiskM` (the plan's B1
+  second half) does not exist: W4a.1 made `walDiskAt` itself the lower-bound view.
+- **C2 holds in the exact form `σ' = σ`, and C4 needs no `walNoDormant`.** `walReadFrom_eq`: for
+  `0 < k ≤ walNameBound I (uint.nat a) false` (`Open`'s name bound, so also `walOpenPos` and
+  `walReleasePos`, `walReadR_eq_openPos`/`_releasePos`), `¬ walHasMaxIdx I`, a snapshot record of
+  index `a` in `I` within its commit, and `walCommitLe I`: `walRead I = some σ → walReadFrom I k =
+  some σ' → σ' = σ`. The name bound puts every snapshot record before `k` below `a`, so the purged
+  prefix holds no record as high as the newest one `M` of the rest (no dormant record), and the
+  two folds agree from `M`'s first record on (`walFoldChk_sim`: before it, the two reads' entries
+  are synced, or the unpurged read's last index is below `M`, or the purged read is empty with a
+  `Save` with entries ahead, `walPairSt`). C2 (`walReadFrom_compacts`), C3 (`walReadCut_compacts`,
+  `walReadR_compacts`) and C4 (`walReadCut_eq`, `walReadR_eq`) follow; `StorCompacts`'s strict
+  arm is not needed under these premises.
+- **The guard is not a premise**; the name bound alone carries the argument (with the record of
+  index `a`, which `ReleaseLockTo`'s and `Open`'s callers have; within the commit for `Open`).
+- **`walCommitLe` is a new premise, and C2 is false without it** (the plan's risk R1). Counterexample
+  (`a = 2`, `k = 1`; the reads machine-checked in `/shared/tmp/wal-spec/w4b/scratch/Cex.lean`, the
+  name bound by hand): `[save c0 [1], save c2 [2], snap 2, save c2 [3,4,5], snap 3, save c4 [], snap
+  4]`. The unpurged read ends at base 4 with no entry (the received snapshot 3, above the running
+  commit 2, empties it; snapshot 4 drops nothing more), the purged read keeps entry 5 above base 4.
+  The history raises the commit to 4 with the read's last index at 3: raft never does
+  (`committed ≤ lastIndex`, and a `Save`'s hard state is `Ready`'s). `walCommitLe I`: every prefix of
+  the restart's kept records, folded from `walFresh`, has `commit ≤ last` (`walCommitLeFrom`). Its
+  consumers (C3's crash clause, C6's `walFiles`) discharge it from raft's `Ready` invariants; it is a
+  premise of pure lemmas only, of no spec.
+

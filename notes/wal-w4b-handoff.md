@@ -82,6 +82,24 @@ Branch `wal-w4b`, worktree `/shared/etcd-grove-walw3`, cut from lean `491baacae1
   (`walNoDormant`); A6 restated if `walReleasePos`/`walRelGuard` change; then plan step 6 (full checks,
   decisions.md "WAL W4b", STATUS, CP3).
 
+## Resumed after W4a.2 (2026-11-12, fourth agent): steps 1-4 done, at CP3
+
+- Lean `f49f87e1cf` merged (`b0ceee1be7`, clean).
+- A6 restated for W4a.2 (`592511beb9`): `lastFilt_getD_le`, `lastFilt_mono`, `walGuardPos_le_length`,
+  `walNameBound_le_length`, `walNameBound_strict_le`, `walReleasePos_le_length`, `walOpenPos_le_length`,
+  `walReleasePos_le_openPos`, `walHasMaxIdx_snoc`; `walRelGuard_snoc` takes `h4 : ¬ walHasMaxIdx [o]`.
+- C second half (end of `WalHistLemmas.lean`): `walReadFrom_eq` (C2 exact: `σ' = σ`), `walReadFrom_compacts`
+  (C2), `walReadCut_eq`/`walReadCut_compacts`, `walReadR_eq`/`walReadR_compacts` (C3/C4),
+  `walReadR_eq_openPos`, `walReadR_eq_releasePos`. Premises: `k ≤ walNameBound I (uint.nat a) false`,
+  `¬ walHasMaxIdx I`, a snapshot record of index `a`, `a ≤` the commit, and the new `walCommitLe I`
+  (C2 is false without it: `notes/decisions.md`, "WAL W4b"; reads checked in
+  `/shared/tmp/wal-spec/w4b/scratch/Cex.lean`). The guard is not needed.
+- Internal vocabulary: `walLastEntF`, `walMaxSnapF`, `walCommitLeFrom`, `walCommitLe`, `walEntsPre`,
+  `walNEBefore`, `walPairSt`; lemmas `walFoldChkFrom_append`, `walFoldChkFrom_last`, `walFoldChk_sim`,
+  `walNewest_max`, `walNameBound_witness`, `lastFilt_getD_mem`.
+- `#print axioms` of the C lemmas: `propext`, `Classical.choice`, `Quot.sound`.
+- Full build and checks: see the CP3 report; then `etc/land.sh` when etcd-grove-81 says go.
+
 ## Pitfalls
 
 - `walImg` is over raw `WalOpG WalEnt` in the extension, the readers over `WalHist` (`EntryM`): state
