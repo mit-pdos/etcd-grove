@@ -306,6 +306,27 @@ etcd-grove-81 (questions.md).
 - m3 (axiom lens, `Value(&cancelCtxKey)` determinism): no change (a Perennial question shared with
   `isContext`; noted by the reviewer as not a finding).
 
+## Revision 2 (2026-11-12, after 81's re-review: B1/T-e'/gates READY; one blocker)
+
+- **Blocker (axiom lens, verified):** Revision 1's `trace.spanCtxOk ctx` did not exclude the
+  `Tracer.Start` refutation: `isSpan` covers only `End`/`AddEvent`/`RecordError`, the no-op tracer
+  calls `SpanContext()` and `IsRecording()`. Go: `examples/premisefix/tracerspan` (`TestStartRefutes`
+  reproduces the panic under a `doneNil` context and under `ContextWithSpan(Background(), …)`;
+  `TestStartOtelSpans`: nil and otel's own spans return; go1.27.3). It predates 7f-4.
+  **Fix:** the premise takes `trace.spanValOk ctx` (nil or `trace.otelSpan`; its docstring now lists
+  `IsRecording`; `otelSpan` is an opaque trusted predicate whose producers, grpc's run context and
+  otel's tracers, give otel's own span types, each of whose methods returns). `spec_txn` takes
+  `context.libCtxOk ctx`, which every caller carries, and projects `spanValOk`. Reverted to lean's
+  text: `range_linearizable`/`range_serializable` (no exported statement changes now),
+  `EtcdServer.Range.spec`, `EtcdServer.LeaseRenew.spec`, `v3rpc.raftLeaseRenew`. History restored:
+  `notes/audit.md` (refuted until this fix), `notes/decisions.md` ("k8s 7f-4 Revision 2").
+- m1 (gates): `auth.ctxDoneAny`'s binder renamed `sDoneAny`; the ten entries keyed on
+  `7:sDoneAny:context.ContextDesc(IPropGF)`. (The script's rule-7 key has no occurrence kinds; noted,
+  not changed.) m2: `etcd_noRefusal`'s entry says its walk is truncated.
+- m1 (axiom): `incomingOf_cancelCtx`'s docstring: written once for an `isContext` parent
+  (`#HParentCC` excludes the `afterFuncer`/`stopCtx` rewrite). m2: the per-execution reading sentence
+  (the same as `WithValue.spec`'s `incomingOf` post).
+
 ### Checks run, Revision 1 (2026-11-12)
 
 - Targeted build of the changed modules, then the full build (`etc/timed-build.py`, 64G cap, under

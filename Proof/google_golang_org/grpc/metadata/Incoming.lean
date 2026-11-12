@@ -36,8 +36,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- (TRUSTED; k8s 7f-4, B1's revision of T-b) **A `*cancelCtx` carries its parent's incoming
-metadata**: a `*cancelCtx` `c` whose `Context` field holds `p` (`ctxField c ↦□ p`: written once, by
-`propagateCancel`, before `WithCancel` returns the context) has `p`'s incoming metadata.
+metadata**: a `*cancelCtx` `c` whose `Context` field holds `p` (`ctxField c ↦□ p`: written by
+`propagateCancel` before `WithCancel` returns the context, once for an `isContext` parent: its
+`#HParentCC` excludes the `afterFuncer` branch that rewrites the field to a `stopCtx{parent, ...}`,
+Go `src/context/context.go:477,514`, which would answer `Value` as `parent` anyway) has `p`'s
+incoming metadata.
 `metadata.FromIncomingContext(x)` (grpc v1.84.0 `metadata/metadata.go:268-282`) is a function of
 `x.Value(mdIncomingKey{})`, and `(*cancelCtx).Value(key)` for a key other than `&cancelCtxKey` is
 `value(c.Context, key)` (Go `src/context/context.go`), which answers as `p.Value(key)` does:
@@ -51,7 +54,10 @@ value (`incomingOf_cancelCtx_parent_unique`). So the equations this axiom gives 
 `*cancelCtx` parent links up to the same root context. A context `L` whose `Value` loops is a root
 (its type is not `*cancelCtx`), and is equated only with `*cancelCtx`s built over it, whose `Value`
 then loops too (so `FromIncomingContext` on them never returns, as on `L`); grpc's run context and
-`Background()` are distinct roots, and nothing equates them. -/
+`Background()` are distinct roots, and nothing equates them. The equations are claims about one
+execution's heap (a location's persistent field value is fixed within an execution), the same reading
+as `context.WithValue.spec`'s and `Tracer.Start.spec`'s `incomingOf` posts on freshly allocated
+contexts: no new class of assumption. -/
 axiom incomingOf_cancelCtx (c : Loc) (p : GoInterfaceOk) :
     _root_.Perennial.context.ctxField c ↦□ (GoInterface.ok p) ⊢ (iprop(⌜metadata.incomingOf
       (GoInterface.ok (interface.mk (go.GoType.PointerType _root_.Perennial.context.cancelCtx.ty) #c)) =

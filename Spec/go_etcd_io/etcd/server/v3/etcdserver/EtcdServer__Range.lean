@@ -51,7 +51,7 @@ abbrev EtcdServer.Range.spec : Prop :=
   E.authMode ≠ .any →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvAuthLb s E ∗
-      auth.authPubLbM E.authMode n ∗ srvRdCall s E γr c ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗ trace.spanCtxOk ctx ∗
+      auth.authPubLbM E.authMode n ∗ srvRdCall s E γr c ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗
       traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ txn.rangeRequestIs r o ∗ ⌜txn.validSortTarget o⌝ ∗
       kvDep γr.kv Q (kvStM E.authOn γr.kv) ∗ srvApi.kvLogLb E.γs F }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Range"))

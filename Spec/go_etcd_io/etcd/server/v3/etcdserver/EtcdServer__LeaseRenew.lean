@@ -54,7 +54,7 @@ abbrev EtcdServer.LeaseRenew.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗
       srvAuthAt s E ∗ srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ auth.authPubLbM E.authMode n ∗
-      lease.lessorLb γl m ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗ trace.spanCtxOk ctx ∗ E.RD ∗ lease.lessorRdPool γl ∗ levelTok lease.lessorLvl ∗
+      lease.lessorLb γl m ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗ E.RD ∗ lease.lessorRdPool γl ∗ levelTok lease.lessorLvl ∗
       srvLgReader s ∗ srvReadReader s γr ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗
       srvPeerRt s }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"LeaseRenew"))

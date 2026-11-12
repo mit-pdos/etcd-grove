@@ -450,7 +450,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
         · ipureintro; rfl
         iintro %optsl -
         wp_auto
-        ihave #Hspr := spanCtxOk_of_runCtx ci $$ Hrunctx
+        ihave #Hlibr := libCtxOk_of_runCtx ci $$ Hrunctx
         wp_apply (traceutil.Tracer.Start.spec_txn hStart) tr ci cd _ _ $$ [] as %ctx' %sp ⟨⟨%vs, #Hctx', Hctxw⟩, -, -, -, #Hspw, -⟩
         · iframe #
           iunfold mvcc.txnCtx

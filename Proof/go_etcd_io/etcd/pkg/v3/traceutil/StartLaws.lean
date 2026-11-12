@@ -26,12 +26,13 @@ variable [sem : go.Semantics]
 variable [package_sem : context.Assumptions]
 
 /-- **`Tracer.Start` on a `txnCtx`**: the context returned is one, and an `isContext` if `ctx` is
-(the triple of `traceutil.Tracer.Start.spec` with the premise's left disjunct). -/
+(the triple of `traceutil.Tracer.Start.spec` with the premise's left disjunct, and its span fact
+`trace.spanValOk` from the library values `context.libCtxOk` the request path carries). -/
 theorem traceutil.Tracer.Start.spec_txn (hTS : traceutil.Tracer.Start.spec (GF := GF) (hG := hG)) :
   ∀ (tr ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (name : GoString)
     (opts : GoSlice),
   {{ globalAddr go_etcd_io.etcd.pkg.v3.traceutil.Tracer ↦□ GoInterface.ok tr ∗
-      mvcc.txnCtx ctx cd ∗ trace.spanCtxOk ctx }}
+      mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx }}
     (App (App (App (Val #(methods tr.ty go!"Start" tr.v)) (Val #(GoInterface.ok ctx))) (Val #name))
       (Val #opts))
   {{ (ctx' : GoInterfaceOk) (sp : GoInterface), RET (PairV #(GoInterface.ok ctx') #sp);
@@ -43,7 +44,10 @@ theorem traceutil.Tracer.Start.spec_txn (hTS : traceutil.Tracer.Start.spec (GF :
       □ (context.startTimeOk ctx -∗ context.startTimeOk ctx') ∗
       □ (context.libCtxOk ctx -∗ context.libCtxOk ctx') }} := by
   intro tr ctx cd name opts
-  iintro %Φ ⟨#Htr, #Htxn, #Hsp⟩ HΦ
+  iintro %Φ ⟨#Htr, #Htxn, #Hlib⟩ HΦ
+  ihave #Hlib' := Hlib
+  iunfold context.libCtxOk at Hlib'
+  icases Hlib' with ⟨-, -, -, #Hsp⟩
   iapply (hTS tr ctx cd name opts) $$ []
   · iframe #
   iintro !> %ctx' %sp ⟨⟨%vs, #Ht, Hw⟩, -, #Hrest⟩

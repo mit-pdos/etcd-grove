@@ -35,11 +35,13 @@ variable [package_sem : _root_.Perennial.context.Assumptions]
 
 /-- **`ctx.Done()` returns nil or a context's Done channel** (persistent; T-e'): from any goroutine,
 `Done()` returns `nil` (receiving on it never proceeds) or a channel `ch` that is some context's
-Done channel (`isContextDone s ch γch`, with its receive spec, `isContextDone_receive`). -/
+Done channel (`isContextDone s ch γch`, with its receive spec, `isContextDone_receive`). The binder's
+distinctive name keys the axiom-tok gate's rule-7 entries (`etc/axiom-tok-allow.txt`) to it. -/
 def auth.ctxDoneAny (ctx : GoInterfaceOk) : IProp GF :=
   iprop(□ {{ True }} (App (Val #(methods ctx.ty go!"Done" ctx.v)) (Val #()))
     {{ (ch : GoChan), RET #ch; ⌜ch = chan.nil⌝ ∨
-        ∃ (s : context.ContextDesc (IProp GF)) (γch : ChanNames), context.isContextDone s ch γch }})
+        ∃ (sDoneAny : context.ContextDesc (IProp GF)) (γch : ChanNames),
+          context.isContextDone sDoneAny ch γch }})
 
 instance auth.ctxDoneAny_persistent (ctx : GoInterfaceOk) :
     Persistent (auth.ctxDoneAny (GF := GF) ctx) := by

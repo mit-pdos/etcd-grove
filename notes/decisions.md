@@ -35106,7 +35106,7 @@ two axioms, each a pure fact from a persistent points-to of one Go type's field,
 `wp_WithCancel_any` hides. A looping context gives no such points-to; each `*cancelCtx` or wrapper is
 related to its one field value (`*_unique`), so the equations follow parent links only.
 
-**`Tracer.Start`'s premise (M2, m2).** `trace.spanCtxOk ctx` joins the premise (the former Open
+**`Tracer.Start`'s premise (M2, m2).** *Superseded in part by "k8s 7f-4 Revision 2": `spanCtxOk` did not exclude the refutation; the premise takes `spanValOk`.* `trace.spanCtxOk ctx` joins the premise (the former Open
 refutation through `ctx`'s span). The premise stays the disjunction `txnCtx ∨ srvCtxWeak`, a known
 departure from the spec principles (alternatives as a disjunction rather than the one fact the
 tracers read): the common generalization (no Done/Err premise, the context-kind transfers as proved
@@ -35118,3 +35118,18 @@ refutation.
 **`isReqAuth` keeps the whole `libCtxOk` (m1).** The store reads only the incoming and peer parts;
 every caller carries the whole fact, and the request path's internal specs (`checkLeaseRenew`,
 `LeaseRenew`, the KV calls) take the same, so a narrower premise would split one context fact in two.
+
+## k8s 7f-4 Revision 2: `Tracer.Start` takes `trace.spanValOk` (2026-11-12 · decided by etcd-grove-81 on the re-review · branch `k8s-7f4`; supersedes Revision 1's "`Tracer.Start`'s premise (M2, m2)" in part)
+
+Revision 1 put `trace.spanCtxOk ctx` in `Tracer.Start`'s premise and called the Open refutation
+fixed. It was not: `spanCtxOk` says the span is `nil` or `isSpan`, and `isSpan` covers only `End`,
+`AddEvent` and `RecordError`, while the no-op tracer etcd uses calls `SpanContext()` and
+`IsRecording()` (`examples/premisefix/tracerspan`, `TestStartRefutes`: a span whose `SpanContext`
+panics, under a `doneNil` context and under `ContextWithSpan(Background(), …)`). The axiom was
+refutable on `lean` before 7f-4, and stayed so after Revision 1. **Decision:** the premise is
+`trace.spanValOk ctx` (`Value(currentSpanKey)` is `nil` or `trace.otelSpan`, whose docstring now
+lists `IsRecording` among the methods that return), which every caller already carries inside
+`context.libCtxOk`; `spec_txn` takes `libCtxOk` and projects it. Revision 1's knock-on premises are
+reverted: `range_linearizable`/`range_serializable` (exported), `EtcdServer.Range.spec`,
+`EtcdServer.LeaseRenew.spec` and `v3rpc.raftLeaseRenew` are back to `lean`'s text. Strengthening
+`isSpan` instead would recheck every `isSpan` producer for a property only `Start` needs.
