@@ -167,6 +167,21 @@ theorem phaseStepReady_idle (id : w64) (c : CfgM) (s s' : NState) (r' : RdState)
   · rw [hc]; exact h2
   · rw [hps]; exact h3
 
+/-- (2026-11-12, trace-check step 4) The capability's trace directory, with the node among its
+voters (for the handed-out append responses' `trFromOk`). -/
+theorem trCapB_dirId (γd : GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) (b : Bool)
+    (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ : Option TraceEv → Prop) :
+    trCapB (GF := GF) (some γd) γ r id c b Φ Λ ⊢
+      (∃ tn : TraceNames, traceDir γd tn ∗ ⌜id ∈ tn.voters⌝) ∗ trCapB (some γd) γ r id c b Φ Λ := by
+  apply persistent_entails_right
+  iintro H
+  iunfold trCapB at H
+  icases H with ⟨%tn, %C, %tl, %cs, %P, #Hdir, %Hpf, -⟩
+  iexists tn
+  iframe Hdir
+  ipureintro
+  rw [Hpf.1]; exact Hpf.2.2.2.1
+
 /-- **The `Ready` line's gate, in either mode** (see the file header). `tl` is the struct's logger
 field (`ownRaftPhysReady`'s `Hf_traceLogger`, at its mode's contract); `hb` the event's numbers
 within the trace's bound at a traced node. -/
@@ -184,7 +199,10 @@ theorem rnTrace_fireReady (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) {dl d
     -- every queued message of a described type (`XfOk`'s traced clause), for `readyTok`'s `TrSent`
     (hlt : s'.lt = s.lt) (hro : s'.rd.ro.pending = s.rd.ro.pending) (hpd : s'.rd.pend = s.rd.pend)
     (hrole : s'.role = s.role) (hap : s'.logst.applied = s.logst.applied)
-    (hxty : s.gh.tr.isSome → ∀ q ∈ ms1 ++ ms2, mtypeOf q.st.msg.Type' ≠ none) :
+    (hxty : s.gh.tr.isSome → ∀ q ∈ ms1 ++ ms2, mtypeOf q.st.msg.Type' ≠ none)
+    -- (2026-11-12, trace-check step 4) every queued append response from the node (`QOk`), for the
+    -- tokens' `trFromOk`
+    (hfrom : ∀ q ∈ ms1 ++ ms2, q.st.msg.Type' = MsgAppResp → q.st.msg.From' = id) :
     ⊢ r.[raft, go!"traceLogger"] ↦□ tl -∗ ⌜TraceLoggerOkS s.gh.tr tl⌝ -∗ rnTrace (GF := GF) γ r id c dl s -∗
       TraceFire s'.gh.tr tl (NodeEvOf (W64 8) id s' c)
         iprop(rnTrace γ r id c dl' s' ∗ [∗list] q ∈ ms1 ++ ms2, readyTok γ q.st) := by
@@ -203,6 +221,7 @@ theorem rnTrace_fireReady (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) {dl d
     obtain ⟨hTn, hCn, hLn⟩ := hb (by rw [htr0]; exact Option.some_ne_none γd)
     iintro #Htl %- Htr
     icases (rnTrace_traced γ r id c dl s γd htr0).1 $$ Htr with ⟨%Hpv, %Hpure, #Hcq, #Hns, %b, %-, Hcap⟩
+    icases trCapB_dirId γd γ r id c b _ _ $$ Hcap with ⟨⟨%tn0, #Hdir0, %Hid0⟩, Hcap⟩
     have hsent : ∀ q ∈ ms1 ++ ms2, TrSent q.st :=
       outboxRelP_trSent hrel Hpure.2.1 (hxty (by rw [htr0]; rfl))
     have Hpure' : RnTrPure γ c s' := by
@@ -238,8 +257,28 @@ theorem rnTrace_fireReady (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM) {dl d
         iexact Hcap'
       · ihave H := readyToks_queues γd tn Bn P HB s.outbox ms1 ms2 hP hrel $$ Hdir Hbn
         simp only [readyTok, hγ]
-        iapply bigSepL_pure_and (fun q : QMsg => TrSent q.st)
+        ihave H := bigSepL_pure_and (fun q : QMsg => TrSent q.st)
           (fun q : QMsg => recvTokOf (GF := GF) γd q.st.msg q.st.ents q.st.ctx) _ hsent $$ H
+        ihave H := bigSepL_sep_addR
+          (fun q : QMsg => iprop(⌜TrSent q.st⌝ ∗ recvTokOf (GF := GF) γd q.st.msg q.st.ents q.st.ctx))
+          (fun q : QMsg => trFromOk (GF := GF) γd q.st) (traceDir γd tn0) (ms1 ++ ms2)
+          (fun q hq => by
+            iintro #Hd
+            iunfold trFromOk
+            iexists tn0
+            iframe Hd
+            ipureintro
+            intro h; rw [hfrom q hq h]; exact Hid0) $$ Hdir0 H
+        have hassoc : ([∗list] q ∈ ms1 ++ ms2, iprop((⌜TrSent q.st⌝ ∗
+            recvTokOf (GF := GF) γd q.st.msg q.st.ents q.st.ctx) ∗ trFromOk γd q.st)) ⊢
+            [∗list] q ∈ ms1 ++ ms2, iprop(⌜TrSent q.st⌝ ∗
+              recvTokOf (GF := GF) γd q.st.msg q.st.ents q.st.ctx ∗ trFromOk γd q.st) := by
+          apply BigSepL.bigSepL_mono
+          intro k x _
+          iintro ⟨⟨%h, A⟩, B⟩
+          iframe A B
+          ipureintro; exact h
+        iapply hassoc $$ H
     · iapply hfire
       iframe Htl
       iunfold trCap
@@ -263,7 +302,7 @@ theorem selfToks_of_readyToks (γ : RaftNames) :
       unfold readyTok selfTok
       cases γ.reTrace with
       | none => itrivial
-      | some γd => icases Hq with ⟨-, Hq⟩; iExactEq Hq; rw [he, hx]
+      | some γd => icases Hq with ⟨-, Hq, -⟩; iExactEq Hq; rw [he, hx]
     · iapply ih (fun q' hq' => hl q' (List.mem_cons_of_mem _ hq')) $$ H
 
 /-- **The tokens of the queues, split** between the self-addressed messages `acceptReady` keeps for

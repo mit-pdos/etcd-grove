@@ -473,12 +473,13 @@ traced node, a network message is of a traced type with its token (`recvTokOf`, 
 line consumes), or `ReportUnreachable`'s `MsgUnreachable` (`True` untraced). (2026-11-12, step 4) A
 traced type's message with its sender's `isRaftMsg` (the transport's facts, which `stepIn_intro` has:
 the receiver's traced step reads its certified abstraction, its numbers and its shape off it,
-`isRaftMsg_trRecv`; `netP`'s `isMessage` is not certified). -/
+`isRaftMsg_trRecv`; `netP`'s `isMessage` is not certified), and an append response's sender a voter
+(`trFromOk`, the sender's token's). -/
 def netGate (ρ : RaftNames) (st : MsgSt) : IProp GF :=
   match ρ.reTrace with
   | none => iprop(True)
   | some γd => iprop((⌜TrNetTy st.msg.Type'⌝ ∗ recvTokOf γd st.msg st.ents st.ctx ∗
-        ∃ src, isRaftMsg ρ src st) ∨
+        (∃ src, isRaftMsg ρ src st) ∗ trFromOk γd st) ∨
       ⌜st.msg.Type' = MsgUnreachable⌝)
 
 theorem fwdGate_none (ρ : RaftNames) (st : MsgSt) (h : ρ.reTrace = none) : ⊢ fwdGate (GF := GF) ρ st :=
@@ -517,9 +518,9 @@ theorem trTokR_net (ρ : RaftNames) (src : w64) (st : MsgSt) (h : st.msg.Type' �
   cases ρ.reTrace with
   | none => iintro _ _; itrivial
   | some γd =>
-    iintro #Hr ⟨%Hs, Ht⟩
+    iintro #Hr ⟨%Hs, Ht, #Hf⟩
     rcases Hs with Hn | ⟨Hp, _⟩
-    · ileft; iframe Ht; isplitr
+    · ileft; iframe Ht Hf; isplitr
       · ipureintro; exact Hn
       iexists src; iexact Hr
     · exact absurd Hp h

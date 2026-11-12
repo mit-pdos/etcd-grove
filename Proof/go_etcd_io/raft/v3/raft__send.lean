@@ -422,7 +422,10 @@ theorem raft.send.wp_proof
       ihave Hphys := Hback $$ %q' %ml %_ %(some (absMsg ty m1 ents ctx)) Hf Hq Hq_cap Hm %Habs %Hot
         %(fun _ => absMsg_noSnap Hns m1 ents ctx) [] [] []
       · sent_tac [Hvt, Hmterm] (fun h => Hself (.inl Hvt) h.symm)
-      · ipureintro; simpa [Hto1] using Hself (.inl Hvt)
+      · ipureintro
+        refine ⟨by simpa [Hto1] using Hself (.inl Hvt), ?_⟩
+        simp only [Hty1]
+        first | (simp [MsgAppResp]; done) | exact HnAR | (rw [Hvt]; tyne) | (rw [HSnap]; tyne) | (rw [HProp]; tyne) | (rw [HRI]; tyne) | (rcases Hlty with h | h | h | h <;> rw [h] <;> tyne) | (rcases Htt with h | h <;> rw [h] <;> tyne)
       · iapply tsSrc_ne; simp only [Hty1, Hvt]; tyne
       send_hook (fun t evt ht _ => ⟨_, List.mem_singleton_self _, fun tm => by obtain rfl : t = ty := Option.some.inj (ht.symm.trans (by first | exact Hty | (rw [← Hty]; simp only [Hvt, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgSnap, MsgAppResp, MsgProp, MsgReadIndex]) | (rw [← Hty]; simp_all))); apply msgEvOf_absMsg_from <;> stamp_tac⟩)
       iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
@@ -446,7 +449,10 @@ theorem raft.send.wp_proof
       ihave Hphys := Hback $$ %q' %ml %_ %(some (absMsg ty m1 ents ctx)) Hf Hq Hq_cap Hm %Habs %Hot
         %(fun _ => absMsg_noSnap Hns m1 ents ctx) [] [] []
       · sent_tac [Hvt, Hmterm] (fun h => Hself (.inr Hvt) h.symm)
-      · ipureintro; simpa [Hto1] using Hself (.inr Hvt)
+      · ipureintro
+        refine ⟨by simpa [Hto1] using Hself (.inr Hvt), ?_⟩
+        simp only [Hty1]
+        first | (simp [MsgAppResp]; done) | exact HnAR | (rw [Hvt]; tyne) | (rw [HSnap]; tyne) | (rw [HProp]; tyne) | (rw [HRI]; tyne) | (rcases Hlty with h | h | h | h <;> rw [h] <;> tyne) | (rcases Htt with h | h <;> rw [h] <;> tyne)
       · iapply tsSrc_ne; simp only [Hty1, Hvt]; tyne
       send_hook (fun t evt ht _ => ⟨_, List.mem_singleton_self _, fun tm => by obtain rfl : t = ty := Option.some.inj (ht.symm.trans (by first | exact Hty | (rw [← Hty]; simp only [Hvt, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgSnap, MsgAppResp, MsgProp, MsgReadIndex]) | (rw [← Hty]; simp_all))); apply msgEvOf_absMsg_from <;> stamp_tac⟩)
       iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
@@ -490,7 +496,10 @@ theorem raft.send.wp_proof
       exact .inl (by first | exact Int.le_refl _ | (rw [Hte1, Hmterm]; word))
     · ipureintro; exact fun _ => absMsg_noSnap Hns _ _ _
     · rcases Hlty with Hvt | Hvt | Hvt | Hvt <;> sent_tac [Hvt] (fun h => Hself h.symm)
-    · ipureintro; simpa [Hto1] using Hself
+    · ipureintro
+      refine ⟨by simpa [Hto1] using Hself, ?_⟩
+      simp only [Hty1]
+      first | (simp [MsgAppResp]; done) | exact HnAR | (rw [Hvt]; tyne) | (rw [HSnap]; tyne) | (rw [HProp]; tyne) | (rw [HRI]; tyne) | (rcases Hlty with h | h | h | h <;> rw [h] <;> tyne) | (rcases Htt with h | h <;> rw [h] <;> tyne)
     · rcases Hlty with Hvt | Hvt | Hvt | Hvt <;> (iapply tsSrc_ne; simp only [Hty1, Hvt]; tyne)
     send_hook (fun t evt ht _ => ⟨_, List.mem_singleton_self _, fun tm => by obtain rfl : t = ty := Option.some.inj (ht.symm.trans (by first | exact Hty | (rw [← Hty]; simp only [Hvt, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgSnap, MsgAppResp, MsgProp, MsgReadIndex]) | (rw [← Hty]; simp_all))); apply msgEvOf_absMsg_from <;> stamp_tac⟩)
     iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
@@ -511,7 +520,10 @@ theorem raft.send.wp_proof
     -- (2026-10-20, D22 S-c) `SentMsgOk` past term `0` for good with transfer off, outside the
     -- no-snapshot mode too: a leader's snapshot, stamped, to another node
     · sent_tac [HSnap] (fun h => Hself h.symm)
-    · ipureintro; simpa [Hto1] using Hself
+    · ipureintro
+      refine ⟨by simpa [Hto1] using Hself, ?_⟩
+      simp only [Hty1]
+      first | (simp [MsgAppResp]; done) | exact HnAR | (rw [Hvt]; tyne) | (rw [HSnap]; tyne) | (rw [HProp]; tyne) | (rw [HRI]; tyne) | (rcases Hlty with h | h | h | h <;> rw [h] <;> tyne) | (rcases Htt with h | h <;> rw [h] <;> tyne)
     · iunfold tsSrc at Hsrc
       icases Hsrc with (%Hn | ⟨%sv', %Hsv', #Hc⟩)
       · exact (Hn rfl).elim
@@ -559,7 +571,10 @@ theorem raft.send.wp_proof
       · -- (2026-11-12, implementation step 3) untraced: the premise refutes a traced node
         obtain ⟨_, htyx, -⟩ := Htsnap (Option.isSome_iff_ne_none.1 htr)
         rw [htyx] at Hty; cases Hty
-    · ipureintro; simpa [Hto1] using Hself
+    · ipureintro
+      refine ⟨by simpa [Hto1] using Hself, ?_⟩
+      simp only [Hty1]
+      first | (simp [MsgAppResp]; done) | exact HnAR | (rw [Hvt]; tyne) | (rw [HSnap]; tyne) | (rw [HProp]; tyne) | (rw [HRI]; tyne) | (rcases Hlty with h | h | h | h <;> rw [h] <;> tyne) | (rcases Htt with h | h <;> rw [h] <;> tyne)
     · iapply tsSrc_ne; simp only [Hty1]; exact HnS
     send_hook (fun t evt ht _ => by rw [Hty] at ht; cases ht)
     iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
@@ -600,7 +615,10 @@ theorem raft.send.wp_proof
       exact .inl (by first | exact Int.le_refl _ | (rw [Hte1, Hmterm]; word))
     · ipureintro; exact fun _ => absMsg_noSnap (by decide) _ _ _
     · sent_tac [HProp, Hmterm] (fun h => Hself h.symm)
-    · ipureintro; simpa [Hto1] using Hself
+    · ipureintro
+      refine ⟨by simpa [Hto1] using Hself, ?_⟩
+      simp only [Hty1]
+      first | (simp [MsgAppResp]; done) | exact HnAR | (rw [Hvt]; tyne) | (rw [HSnap]; tyne) | (rw [HProp]; tyne) | (rw [HRI]; tyne) | (rcases Hlty with h | h | h | h <;> rw [h] <;> tyne) | (rcases Htt with h | h <;> rw [h] <;> tyne)
     · iapply tsSrc_ne; simp only [Hty1, HProp]; tyne
     send_hook (fun t evt ht hev => by obtain rfl : t = .propose := Option.some.inj (ht.symm.trans (by first | rfl | (rw [HProp]; rfl))); simp [sendEvt] at hev)
     iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
@@ -619,7 +637,10 @@ theorem raft.send.wp_proof
         · exact Hidnz
         · assumption
       sent_tac [HRI, Hmterm] (absurd rfl h1)
-    · ipureintro; simpa [Hto1] using Hself
+    · ipureintro
+      refine ⟨by simpa [Hto1] using Hself, ?_⟩
+      simp only [Hty1]
+      first | (simp [MsgAppResp]; done) | exact HnAR | (rw [Hvt]; tyne) | (rw [HSnap]; tyne) | (rw [HProp]; tyne) | (rw [HRI]; tyne) | (rcases Hlty with h | h | h | h <;> rw [h] <;> tyne) | (rcases Htt with h | h <;> rw [h] <;> tyne)
     · iapply tsSrc_ne; simp only [Hty1, HRI]; tyne
     send_hook (fun t evt ht hev => by obtain rfl : t = .readIndex := Option.some.inj (ht.symm.trans (by first | rfl | (rw [HRI]; rfl))); simp [sendEvt] at hev)
     iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys

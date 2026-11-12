@@ -375,7 +375,7 @@ outbox, `XfOk`'s traced clause on the untyped queued messages). -/
 def readyTok (γ : RaftNames) (st : MsgSt) : IProp GF :=
   match γ.reTrace with
   | none => iprop(True)
-  | some γd => iprop(⌜TrSent st⌝ ∗ recvTokOf γd st.msg st.ents st.ctx)
+  | some γd => iprop(⌜TrSent st⌝ ∗ recvTokOf γd st.msg st.ents st.ctx ∗ trFromOk γd st)
 
 theorem readyToks_none {A : Type} (γ : RaftNames) (f : A → MsgSt) (l : List A) (h : γ.reTrace = none) :
     ⊢ [∗list] x ∈ l, readyTok (GF := GF) γ (f x) := by
@@ -414,6 +414,34 @@ theorem bigSepL_pure_and {A : Type} (φ : A → Prop) (P : A → IProp GF) :
     isplitl [Hx]
     · iframe Hx; ipureintro; exact hl x List.mem_cons_self
     · iapply ih (fun y hy => hl y (List.mem_cons_of_mem _ hy)) $$ H
+
+/-- (2026-11-12, trace-check step 4) The right conjunct of every element dropped. -/
+theorem bigSepL_sep_dropR {A : Type} (P Q : A → IProp GF) :
+    ∀ (l : List A), ([∗list] x ∈ l, iprop(P x ∗ Q x)) ⊢ [∗list] x ∈ l, P x := by
+  intro l
+  induction l with
+  | nil => iintro _; iapply BigSepL.bigSepL_nil.2; iempintro
+  | cons x l ih =>
+    iintro H
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨⟨Hx, -⟩, H⟩
+    iapply BigSepL.bigSepL_cons.2
+    iframe Hx
+    iapply ih $$ H
+
+/-- (2026-11-12, trace-check step 4) A persistent fact of every element, added on the right. -/
+theorem bigSepL_sep_addR {A : Type} (P Q : A → IProp GF) (R : IProp GF) [Persistent R] :
+    ∀ (l : List A), (∀ x ∈ l, R ⊢ Q x) → R ⊢ ([∗list] x ∈ l, P x) -∗ [∗list] x ∈ l, iprop(P x ∗ Q x) := by
+  intro l
+  induction l with
+  | nil => intro _; iintro _ _; iapply BigSepL.bigSepL_nil.2; iempintro
+  | cons x l ih =>
+    intro hl
+    iintro #HR H
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨Hx, H⟩
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [Hx]
+    · iframe Hx; iapply (hl x List.mem_cons_self) $$ HR
+    · iapply (ih (fun y hy => hl y (List.mem_cons_of_mem _ hy))) $$ HR H
 
 /-- (U8 v2, 2026-10-29) **Raft's certified terms of the entries `L` at the indices `n+1, n+2, …`**
 (persistent; raft-final, 2026-10-29: moved here from `ApiVocab.lean`, internal): the key of `sn.gd` at each index is its entry's term (`raftDL`'s first reading). -/
