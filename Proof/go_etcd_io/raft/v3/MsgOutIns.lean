@@ -5,7 +5,7 @@ raft (not in `etc/api/raft.txt`): only raft's own proofs hand objects out.
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.MsgOut
+public import Proof.go_etcd_io.raft.v3.MsgOwnZ
 
 @[expose] public section
 
@@ -57,20 +57,21 @@ theorem raftOutInv_insert (γ : RaftNames) (x : Sum (Loc × MsgC) (Loc × EntryC
     iframe He
     ipureintro; exact Hsz
 
-/-- A message handed out: owned, with its `snapUf`, into the set at a content raft pins. -/
+/-- A message handed out: held at a content raft pins (`msgOwnZ`, out_size C3; until then owned with
+its `snapUf`), into the set at that content, whose size the cluster's flag bounds. -/
 theorem msgOutR_intro (γ : RaftNames) (l : Loc) (dq : DFrac) (st : MsgSt) (E : CoPset)
     (HE : ↑(raftOutN γ) ⊆ E) :
-    ⊢ raftOutInv (GF := GF) γ -∗ msgOwn l dq st -∗ snapUf l st ={E}=∗ msgOutR γ l dq st := by
-  iintro #Hinv Hm #Hu
-  icases msgOwn_snapUf_CC l dq st $$ [Hm] with ⟨%c, Hc, %Hok⟩
-  · iframe Hm Hu
-  -- out_size C2: the size fact comes from `msgQC` at P3 (`msgOuts_insert`)
-  imod raftOutInv_insert γ (.inl (l, c)) E HE (fun _ _ => sorry) $$ Hinv with #Ho
+    ⊢ raftOutInv (GF := GF) γ -∗ msgOwnZ γ.maxData.isSome l dq st ={E}=∗ msgOutR γ l dq st := by
+  iintro #Hinv Hm
+  unfold msgOwnZ
+  icases Hm with ⟨%c, Hc, %Hok⟩
+  obtain ⟨Hmod, Hsent, Hsz⟩ := Hok
+  imod raftOutInv_insert γ (.inl (l, c)) E HE (fun b hb => Hsz (by rw [hb]; rfl)) $$ Hinv with #Ho
   imodintro
   unfold msgOutR
   iexists c
   iframe Hc Ho
-  ipureintro; exact Hok
+  ipureintro; exact ⟨Hmod, Hsent⟩
 
 end lemmas
 

@@ -166,6 +166,58 @@ unstableOf Proof/go_etcd_io/raft/v3/InvRaftlog.lean` (list in `/shared/tmp/out-s
     `ccLenMax_le` and the proposal premise `ccSize cc + 64 ≤ b`), P6, then C3 checks (tcb, the
     collections, gates incl. `etc/pbschema-check.py`, gen-interface).
 
+- **C3 continued**, 2026-11-12 (agent 4; commits `958e75ddce`, `a846967ef7`, then the P3 WIP commits):
+  - The reviews of the restart clause and B2 Revision 1: approved by etcd-grove-81 (READY WITH CHANGES,
+    no blockers); their minors folded in (`958e75ddce`; questions.md lists them). m3 (gen-interface)
+    at C3.
+  - **MsgRead moved into raft** (decided by etcd-grove-81): `Proof/go_etcd_io/raft/v3/MsgRead.lean`
+    (importable, `etc/api/raft.txt`), with `optCell_alloc`, `msgPtsCC_of_struct`, `msgPtsCC_pbMsg`,
+    `msgPtsCC_freeze` from rafthttp `MsgAppV2`; `msgPtsCC_splitE`/`_joinE`/`_readE` over the entries'
+    slice fraction. `PbContent`/`PbContentOwn`/`MsgRead`/`MsgOut` now generic in `hlc` (were
+    `HasLC.hasLC`). rafthttp/server not yet rebuilt against the move (only import lines changed).
+  - **P3 design (in Lean): `MsgOwnZ.lean`.** `msgOwnZ sz l dq st := ∃ c, msgPtsCC l dq □ false c ∗
+    ⌜c.model = st ∧ msgSzC sz c⌝` (`msgSzC`: `sentOk` and, under `sz`, `msgSizeOk` unless a
+    `MsgSnap`) replaces the pair `msgOwn ∗ snapUf` everywhere a queued or handed-out message is held.
+    The flag: `s.gh.sn.sz` in raft (the storage names' flag), `γ.maxData.isSome` at the API, linked by
+    `certLink`'s pin (`ownStepGhost_certLink`, as `ownRawNodeReady_abandon` does). Laws:
+    `msgOwnZ_msgOwn`, `_unsize`, `_of_snapUf` (flag false), `_of_uf` (a literal with the fresh
+    `pbMsg l []`: no entries, no snapshot, context ≤ `entBytesMax`, or a `MsgSnap`), `_halves`/
+    `_unhalves` (a response's half kept in today's form), `_read` (getters), `_store_From`/`_Term`
+    (send).
+  - Done with it: `msgQ sz`, `outboxRel sz` (`InvRaftPhys`, `ownRaftPhys` at `s.gh.sn.sz`; the
+    close wand at 2818 at `g.sn.sz`; push lemmas `ownRaftPhysC_msgs`/`_msgsAA` take `msgOwnZ
+    s.gh.sn.sz l' 1 st'` and `tsSrc` only); `InvRawnodeReady` (`qOwn sz`, `selfOwn sz`, `msgQs_split`/
+    `outboxRel_split`/`_join` without `snapUf`, `ownRaftPhysReady` without `Hsuf1/2`, its `Hundo` over
+    `msgOwnZ s.gh.sn.sz`, `ownRawNodeReady_abandon` takes `msgOwnZ γ.maxData.isSome`): both check.
+    **`msgOutR_intro` proved** (`MsgOutIns`, takes `msgOwnZ γ.maxData.isSome l dq st`): its `sorry` gone.
+  - **Next, in order (P3 rest):**
+    1. `LemmasReadyR` (lines 123-183: the `readyDq` lists → `msgOwnZ sz`; delete `snapUfs_nonself`/
+       `snapUfs_ready`).
+    2. `RawNode.readyWithoutAccept` spec and proof (`Hmsgs_own` → `msgOwnZ γ.maxData.isSome`, drop
+       `#Hmsgs_uf`; :461 reads an `ms2` message: `msgOwnZ_read` around the getter), `RawNode__acceptReady`
+       :487 (`qOwn sz`), `RawNode.Ready` spec and proof.
+    3. `InvNodeChan` 679/735, `InvNodeRun` 433/1874/2201, `node__run` 873: `msgOwn (readyDq) ∗ snapUf`
+       → `msgOwnZ <flag>`.
+    4. `InvApi`: `readyMsgs_own_split` (2347), `msgOuts_insert` (2503, now `msgOutR_intro` without
+       `snapUf`), `readyRecv_open` 2773/2891 (drop `Hsuf`).
+    5. `raft.send` spec: `"Hm" ∷ msgOwnZ s.gh.sn.sz ml 1 ⟨…⟩`, `"#Hsrc" ∷ tsSrc …` only. Proof: the
+       getter macros through `msgOwnZ_read`; `load_term`/`From` through `msgOwnZ_store_*`; the push.
+    6. `send`'s callers (`grep -l "raft.send.spec\|wp_send"`): literals via `msgOwn_of_struct_uf`/
+       `msgOwn_lit` + `msgOwnZ_of_uf`. Need more: `maybeSendAppend`'s `MsgApp` (entries from
+       `raftLog.entries`, sized + cut: P4; the sum bound as in the Scope §2.3's `MsgApp` row),
+       `stepFollower`'s forwards and `handleHeartbeat`'s echoed context (received: `msgInC`, P4),
+       `sendMsgReadIndexResponse` (stored request's entries: read requests at contents, `InvMisc`),
+       heartbeat contexts from `readOnly` (sized ReadIndex data), `maybeSendSnapshot` (a `MsgSnap`:
+       `msgOwnZ_of_uf`). Where P4 is needed first, a branch-only `sorry` on the size fact is
+       acceptable meanwhile (list them).
+    7. `entsOut_insert`'s `sorry`: `readyEntsU_intro` from sized entries (`entsROz γ.maxData.isSome`
+       `rd.Entries' es`, from `RawNode.Ready`'s `#Hents`, which needs P4's sized unstable entries).
+  - **P4 (sized unstable):** `ownRaftLog`/`ownRaftLogW`/`ownRaftLog_intro` `entsROz false` →
+    `entsROz ls.sn.sz` (the flag is already in `LogState.sn`; no new field needed); appenders:
+    `appendEntry` (onto `ClonePb`/`pbEntryC`, then delete `proto.CloneEntry`), `handleAppendEntries`/
+    `maybeAppend` (received entries: `msgInC`), `becomeLeader`'s empty entry (`entRZ_of_struct`),
+    `restore`.
+
 ## P7 items (from the C2 review; resolve and re-review with the `axiom` skill before P7 lands)
 
 freeze-c2.md §4: MAJ-1 (`walSaveOk` in `bootstrapRestartContract`'s premise), MAJ-2 (`srvDiskImage`'s
