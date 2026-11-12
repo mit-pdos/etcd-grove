@@ -171,8 +171,9 @@ theorem RawNode.readyWithoutAccept.wp_proof
     · rfl
     · exact absurd (Hloan.none_noack Hsl).1 (Hgh_unst.1.2.1.2.2.1 (.inl h))
   wp_auto
-  wp_apply wp_raftLog_nextUnstableEnts $$ [Hlog] as %sents ⟨Hlog, #Hents⟩
+  wp_apply wp_raftLog_nextUnstableEnts $$ [Hlog] as %sents ⟨Hlog, #HentsZ⟩
   · iframe Hlog
+  ihave #Hents := entsROz_entsRO _ _ _ $$ HentsZ
   -- `rn.applyUnstableEntries()` is `!asyncStorageWrites`
   wp_method_call
   wp_call
@@ -752,7 +753,8 @@ theorem RawNode.readyWithoutAccept.wp_proof
   isplitr
   · iexact Hdeliv'
   isplitr
-  · iexact Hents
+  · have Hsn : s.logst.sn = s.gh.sn := Hgh_unst.1.2.2
+    rw [← Hszl, ← Hsn]; iexact HentsZ
   isplitl [Hmsgs]
   · iexact Hmsgs
   isplitl [Hmsgs_cap]

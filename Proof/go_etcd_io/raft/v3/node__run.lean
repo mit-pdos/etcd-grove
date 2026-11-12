@@ -869,7 +869,7 @@ theorem node.run.wp_proof
     ihave Hg : iprop(∃ (ce es : List EntryM) (ms : List QMsg) (L : Option SnapLoan),
         ownRawNodeReady γ.raft nv.rn' id rs rdv' ce es ms false L ∗
         entsRO rdv'.CommittedEntries' ce ∗ isCommitted γ.raft (rs.delivered ++ ce) ∗
-        entsRO rdv'.Entries' es ∗ rdv'.Messages' ↦* ms.map QMsg.loc ∗
+        entsROz γ.raft.maxData.isSome rdv'.Entries' es ∗ rdv'.Messages' ↦* ms.map QMsg.loc ∗
         ([∗list] q ∈ ms, msgOwnZ γ.raft.maxData.isSome q.loc (readyDq q.st) q.st) ∗
         (∃ sts : List ReadStateM, readStatesPts rdv'.ReadStates' sts ∗
           [∗list] st ∈ sts, readStateRaw γ.raft st) ∗
@@ -911,6 +911,7 @@ theorem node.run.wp_proof
         ihave #Hrdw := phsWit_of_hsWit_next γ.raft rs.phs hrd _ $$ Hhsw
         ihave Hrn := ownRawNodeIdle_ready γ.raft nv.rn' id rs rdv' ce sts hrd Hsteps Hunp Hrdz
           Hce_ok Hhlb Hphl $$ Hrdsoft Hrdh Hrdw Hce Hce_cap Hents Hcommitted Hrs Hrn
+        ihave #Hents := entsROz_of_nil γ.raft.maxData.isSome _ $$ Hents
         iexists ce, [], [], none
         iframe Hrn Hce Hcommitted Hents
         isplitl []

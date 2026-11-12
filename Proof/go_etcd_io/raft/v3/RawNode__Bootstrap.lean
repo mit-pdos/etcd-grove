@@ -270,11 +270,14 @@ theorem RawNode.Bootstrap.wp_proof
     simp only [List.length_nil] at h2 ⊢
     omega
   have Hcont := logTruncateAppend_cont s.logst bootLog Hfirst
+  -- (out_size C3, temporary) the boot entries' sizes (P5: `ccLenMax`): `entsPtsZ_sized_TODO`
+  ihave Hes := entsPtsZ_sized_TODO s1.logst.sn.sz _ _ _ $$ Hes
   wp_apply wp_raftLog_append s1.log s1.logst bootLog ents (DFrac.own 1) (by rw [Hs1ls]; exact Hidx1)
     $$ [$Hlog $Hes] as %li ⟨Hlog, Hes, %Hpost⟩
   · rw [Hs1ls, Hcont.2]; simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
   ihave Hes : entsPts ents (DFrac.own 1) bootLog $$ [Hes]
-  · iExactEq Hes; rw [Hs1ls, Hcont.2]; simp only [Bool.false_eq_true, ↓reduceIte]
+  · iapply (entsPtsZ_entsPts s1.logst.sn.sz)
+    iExactEq Hes; rw [Hs1ls, Hcont.2]; simp only [Bool.false_eq_true, ↓reduceIte]
   ihave Hlog : ownRaftLog s1.log (logAppend s.logst bootLog) $$ [Hlog]
   · iExactEq Hlog; rw [Hs1ls, Hcont.1]
   ihave Hphys := Hlogback $$ %(logAppend s.logst bootLog) Hlog

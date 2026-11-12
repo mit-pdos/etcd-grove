@@ -2372,10 +2372,11 @@ theorem readyMsgs_own_split (γ : Cluster) (N : Namespace) (γn : NodeNames)
     · iapply BigSepL.bigSepL_cons.2
       iframe Hl Hls
 
-/-- (raft-entsize §2) **A `Ready`'s entry objects into the handed-out set**, each at its content. -/
+/-- (raft-entsize §2) **A `Ready`'s entry objects into the handed-out set**, each at its content
+(out_size C3: sized under the cluster's flag, `entRZ`, which the set's size fact takes). -/
 theorem entsOut_insert (γ : Cluster) (E : CoPset) (HE : ↑(raftOutN γ.raft) ⊆ E) :
     ∀ (ls : List Loc) (es : List EntryM),
-    ⊢ raftOutInv (GF := GF) γ.raft -∗ ([∗list] l;e ∈ ls;es, entRO l e) ={E}=∗
+    ⊢ raftOutInv (GF := GF) γ.raft -∗ ([∗list] l;e ∈ ls;es, entRZ γ.raft.maxData.isSome l e) ={E}=∗
       ∃ cs : List EntryC, ([∗list] p;c ∈ ls;cs, entPtsCC p DFrac.discard c ∗ outEntR γ.raft p c) ∗
         ⌜cs.map EntryC.model = es⌝
   | [], es => by
@@ -2391,9 +2392,13 @@ theorem entsOut_insert (γ : Cluster) (E : CoPset) (HE : ↑(raftOutN γ.raft) �
     iintro #Hinv H
     icases BigSepL2.bigSepL2_cons_inv_left.1 $$ H with ⟨%e, %es', %He, #H1, H⟩
     subst He
-    icases (entPts_iff_CC l DFrac.discard e).1 $$ H1 with ⟨%c, #Hc, %Hm⟩
-    -- out_size C2: the size fact comes from `entsROz` at P3 (`readyEntsU_intro`)
-    imod raftOutInv_insert γ.raft (.inr (l, c)) E HE (fun _ _ => sorry) $$ Hinv with #Ho
+    iunfold entRZ at H1
+    icases H1 with ⟨%c, #Hc, %Hm⟩
+    obtain ⟨Hm, Hsz⟩ := Hm
+    ihave #Hc : entPtsCC l DFrac.discard c $$ []
+    · iunfold entPtsCC; iunfold entRoC at Hc; iexact Hc
+    imod raftOutInv_insert γ.raft (.inr (l, c)) E HE (fun b hb => Hsz (by rw [hb]; rfl)) $$ Hinv
+      with #Ho
     imod entsOut_insert γ E HE ls es' $$ Hinv H with ⟨%cs, H, %Hcs⟩
     imodintro
     iexists c :: cs
@@ -2403,12 +2408,13 @@ theorem entsOut_insert (γ : Cluster) (E : CoPset) (HE : ↑(raftOutN γ.raft) �
       iframe Hc Ho
     · ipureintro; simp only [List.map_cons, Hcs, Hm]
 
-/-- (raft-entsize §2) **A `Ready`'s entries handed out** (`readyEntsU`), from today's form. -/
+/-- (raft-entsize §2) **A `Ready`'s entries handed out** (`readyEntsU`), from the sized form (out_size
+C3). -/
 theorem readyEntsU_intro (γ : Cluster) (E : CoPset) (HE : ↑(raftOutN γ.raft) ⊆ E) (s : GoSlice)
     (es : List EntryM) :
-    ⊢ raftOutInv (GF := GF) γ.raft -∗ entsRO s es ={E}=∗ readyEntsU γ s es := by
+    ⊢ raftOutInv (GF := GF) γ.raft -∗ entsROz γ.raft.maxData.isSome s es ={E}=∗ readyEntsU γ s es := by
   iintro #Hinv H
-  unfold entsRO entsPts
+  unfold entsROz entsPtsZ
   icases H with ⟨%ls, #Hs, #H⟩
   imod entsOut_insert γ E HE ls es $$ Hinv H with ⟨%cs, #H, %Hcs⟩
   imodintro
@@ -2772,7 +2778,9 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
     -- (raft-entsize §2) the messages and entries handed out, into the handed-out set
     ihave #Hoinv := clusterInv_out γ N $$ Hci
     imod msgOuts_insert γ N ⊤ CoPset.subseteq_top ms $$ Hoinv Hmo with Hmo
-    imod readyEntsU_intro γ ⊤ CoPset.subseteq_top rd.Entries' es $$ Hoinv Hes with #HesO
+    ihave #HesZ : entsROz γ.raft.maxData.isSome rd.Entries' es $$ []
+    · rw [← Hγr]; iexact Hes
+    imod readyEntsU_intro γ ⊤ CoPset.subseteq_top rd.Entries' es $$ Hoinv HesZ with #HesO
     imod api_committed_lb γ N ⊤ CoPset.subseteq_top (ds ++ ce) $$ Hci [Hcom] with ⟨#Hlb, %HidxOk⟩
     · rw [Hγr]; iexact Hcom
     imod api_readStates γ N ⊤ CoPset.subseteq_top sts $$ Hci [Hrs] with Hrs
@@ -2890,7 +2898,9 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
     -- (raft-entsize §2) the messages and entries handed out, into the handed-out set
     ihave #Hoinv := clusterInv_out γ N $$ Hci
     imod msgOuts_insert γ N ⊤ CoPset.subseteq_top ms $$ Hoinv Hmo with Hmo
-    imod readyEntsU_intro γ ⊤ CoPset.subseteq_top rd.Entries' es $$ Hoinv Hes with #HesO
+    ihave #HesZ : entsROz γ.raft.maxData.isSome rd.Entries' es $$ []
+    · rw [← Hγr]; iexact Hes
+    imod readyEntsU_intro γ ⊤ CoPset.subseteq_top rd.Entries' es $$ Hoinv HesZ with #HesO
     ihave ⟨Hrng, #Hgv⟩ : (∃ (k : Nat) (old : List EntryM), ⌜k ≤ uint.nat l.snap.Metadata'.Index'⌝ ∗
         storLog γn.stor k (DFrac.own 1) old ∗ storEnd γn.stor (k + old.length)) ∗
         storGiven γn.sn (uint.nat l.snap.Metadata'.Index') $$ [Hout]

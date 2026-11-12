@@ -353,6 +353,17 @@ theorem entsROz_sized_TODO (sz : Bool) (s : GoSlice) (es : List EntryM) :
     entsRO (GF := GF) s es ⊢ entsROz sz s es :=
   entsPtsZ_sized_TODO sz s DFrac.discard es
 
+/-- An empty batch is sized under any flag. -/
+theorem entsROz_of_nil (sz : Bool) (s : GoSlice) :
+    entsRO (GF := GF) s [] ⊢ entsROz sz s [] := by
+  unfold entsRO entsPts entsROz entsPtsZ
+  iintro ⟨%ls, Hs, Hb⟩
+  ihave %Hl := BigSepL2.bigSepL2_nil_inv_right $$ Hb
+  subst Hl
+  iexists []
+  iframe Hs
+  iapply BigSepL2.bigSepL2_nil.2; iempintro
+
 theorem entsROz_entsRO (sz : Bool) (s : GoSlice) (es : List EntryM) :
     entsROz (GF := GF) sz s es ⊢ entsRO s es :=
   entsPtsZ_entsPts sz s DFrac.discard es

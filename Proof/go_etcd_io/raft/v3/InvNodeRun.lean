@@ -1877,7 +1877,7 @@ entries `entsRO`; the read states `readStatesPts`; the hard state `hsOpt`.) (D22
 def freshOk (γ : NodeNames) (rd : Ready) (rs : RNState) (ce es : List EntryM)
     (ms : List QMsg) (L : Option SnapLoan) : IProp GF :=
   iprop(entsRO rd.CommittedEntries' ce ∗ isCommitted γ.raft (rs.delivered ++ ce) ∗
-    entsRO rd.Entries' es ∗ rd.Messages' ↦* ms.map QMsg.loc ∗
+    entsROz γ.raft.maxData.isSome rd.Entries' es ∗ rd.Messages' ↦* ms.map QMsg.loc ∗
     ownSliceCap Loc rd.Messages' (DFrac.own 1) ∗
     -- (out_size C3, 2026-11-12; until then `msgOwn` with their `snapUf`s) at a content (`msgOwnZ`)
     ([∗list] q ∈ ms, msgOwnZ γ.raft.maxData.isSome q.loc (readyDq q.st) q.st) ∗
@@ -2176,9 +2176,10 @@ theorem runMid_head (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd
     iright
     isplitr
     · ipureintro; exact Hrc
+    ihave #HentsR := entsROz_entsRO _ _ _ $$ Hents
     unfold staleOk
     iexists ce, es, ms.length, hrd0
-    iframe Hrdsoft Hrdh0 Hhsw' Hce Hce_cap Hcommitted Hents Hrsts
+    iframe Hrdsoft Hrdh0 Hhsw' Hce Hce_cap Hcommitted HentsR Hrsts
     ipureintro
     refine ⟨fun h => Hnuc.2.2.1 ?_, Hnuc.2.1, by simpa using Hshape, Hnuc.1, Hnuc.2.2.2.1, Hhb,
       Hnuc.2.2.2.2⟩

@@ -670,7 +670,7 @@ read-only, which the server reads.) -/
 def readyData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
     (ms : List QMsg) (p p' : HardStateM) : IProp GF :=
   iprop(entsRO rd.CommittedEntries' ce ∗ isCommitted γ.raft (d ++ ce) ∗
-    entsRO rd.Entries' es ∗ readyOut γ.stor γ.sn es none ∗
+    entsROz γ.raft.maxData.isSome rd.Entries' es ∗ readyOut γ.stor γ.sn es none ∗
     -- (U8 v2) the committed entries below the batch, frozen
     ceFrozen γ.stor d.length ce es ∗
     rd.Messages' ↦* ms.map QMsg.loc ∗
@@ -730,7 +730,7 @@ of the snapshot at `Advance` (`advReceipt`, `snapReceipt`). -/
 def readySnapData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
     (ms : List QMsg) (p p' : HardStateM) (l : SnapLoan) : IProp GF :=
   iprop(entsRO rd.CommittedEntries' ce ∗ isCommitted γ.raft (d ++ ce) ∗
-    entsRO rd.Entries' es ∗
+    entsROz γ.raft.maxData.isSome rd.Entries' es ∗
     rd.Messages' ↦* ms.map QMsg.loc ∗
     -- (out_size C3, 2026-11-12; until then `msgOwn` with their `snapUf`s) at a content (`msgOwnZ`)
     ([∗list] q ∈ ms, msgOwnZ γ.raft.maxData.isSome q.loc (readyDq q.st) q.st ∗

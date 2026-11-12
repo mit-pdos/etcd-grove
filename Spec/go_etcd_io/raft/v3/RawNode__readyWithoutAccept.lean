@@ -80,7 +80,9 @@ abbrev RawNode.readyWithoutAccept.spec : Prop :=
       "Hrn" ∷ ownRawNodeReady γ rn id rs rd ce es ms false L ∗
       "#Hce" ∷ entsRO rd.CommittedEntries' ce ∗
       "#Hcommitted" ∷ isCommitted γ (rs.delivered ++ ce) ∗
-      "#Hents" ∷ entsRO rd.Entries' es ∗
+      -- (out_size C3, 2026-11-12; until then `entsRO`) at contents of bounded size in a cluster
+      -- bounding proposed data (`entsROz`)
+      "#Hents" ∷ entsROz γ.maxData.isSome rd.Entries' es ∗
       "Hmsgs" ∷ rd.Messages' ↦* ms.map QMsg.loc ∗
       "Hmsgs_cap" ∷ ownSliceCap Loc rd.Messages' (DFrac.own 1) ∗
       -- (2026-10-16, stage R5, D8) the messages handed out, a response at half
