@@ -4,7 +4,7 @@
 **Users.** None in etcd (a common bbolt idiom for ids). Snippet: `ReqNested`. **Proof sketch.** As
 `SetSequence`, with `IncSequence`. **Changes.** New.
 **Proof sketch in the internal vocabulary** (verify-round, A11 F9). As `SetSequence`'s:
-`Bucket.node` (root materialized), `wtxCore_seq` (its counter is the bucket's `seq`), 4d's
+`Bucket.node` (root materialized; the handle cached by `wtxCore_bktOwn`), `wtxCore_seq` (its counter is the bucket's `seq`), 4d's
 `IncSequence`, then `InSequence` read before the wand closes with `seq + 1`.
 **Changes (2026-11-12, `notes/specs-only/ledger.md`, bucket handles).** The handle premise `bktUse`
 (the bucket's ownership share in a write transaction) in place of `bktH … gs` and the generation

@@ -25,6 +25,27 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-12: `Bucket.node.spec`, `Cursor.node.spec` (internal) -- no panic promised on a deleted handle
+
+- **Spec.** `SpecPlan/Spec/go_etcd_io/bbolt/Bucket__node.lean`, `SpecPlan/Spec/go_etcd_io/bbolt/Cursor__node.lean`
+  (internal); no real spec.
+- **Defect.** Unsound: `Bucket.node` begins with `common.Assert(b.nodes != nil, ...)`
+  (`bucket.go:867`), and `DeleteBucket` sets `child.nodes = nil` on the handle it deletes (`:321`).
+  A deleted handle keeps its persistent `bktH` (and its cursors their `boltCur`), so the pre
+  `wtxCore ∗ bktH b p` holds where Go panics; `Cursor.node` calls `c.bucket.node(...)` when the
+  stack has no leaf node, with its currency `C.bkts b = some p` only as a hypothesis of its post.
+- **Evidence.** The 2026-11-12 review of the bucket-handle change (`9fb353a5d1`), finding 1. No
+  public triple is affected: each supplies `bktUse`, from which `wtxCore_bktOwn` gives the currency.
+- **Proposed change.** `⌜C.bkts b = some p⌝` a premise of both (the cache holds the handle, so it
+  is not a deleted one: `DeleteBucket` drops it from `bkts` before clearing its `nodes`); both posts
+  keep `C'.bkts = C.bkts` (materializing nodes touches no bucket cache), so a caller's later calls
+  keep it. Callers: `Put`, `Delete`, `CreateBucket*`, `Cursor.Delete`, `DeleteBucket` (its `seek`
+  on the parent), `SetSequence`/`NextSequence` get it from their `bktUse` by `wtxCore_bktOwn`;
+  `node.childAt` from a cached node's bucket; `spill`/`rebalance` walk the cached handles
+  (`b.buckets`, `bucket.go:860`).
+- **Decision.** Accepted by the coordinator, 2026-11-12. Applied in the commit that adds this
+  entry.
+
 ## 2026-11-12: bbolt's bucket handles -- a generation counter in the view is unobservable, redundant state
 
 - **Spec.** `SpecPlan/Spec/go_etcd_io/bbolt/Model.lean` (`TxView.gen`, `TxView.gens`, `TxView.dropBkt`), `SpecPlan/Spec/go_etcd_io/bbolt/Api.lean`

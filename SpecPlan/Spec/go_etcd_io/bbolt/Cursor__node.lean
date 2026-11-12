@@ -18,6 +18,11 @@ what the page did); the stack is the search path of the key in `p`'s tree (`curP
 place of `gs`; the leaf clause under `C.bkts b = some p` (the cache holds the handle) in place of
 `C.gens p = gs` (the per-path generation counter it replaces was unobservable state, redundant with
 ownership).
+**Changes (2026-11-12, `notes/specs-only/ledger.md`, `Bucket.node` on a deleted handle).** The
+currency `⌜C.bkts b = some p⌝` is a premise (was a hypothesis of the post's leaf clause: on a
+deleted handle `Bucket.node` panics); the cached handles unchanged (`C'.bkts = C.bkts`). Callers
+(`Put`, `Delete`, `CreateBucket*`, `Cursor.Delete`, `DeleteBucket`) get it from their `bktUse` by
+`wtxCore_bktOwn`.
 -/
 module
 
@@ -43,11 +48,11 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- (internal) the leaf node holding the position, now cached. -/
 def Cursor.node.spec : Prop :=
   ∀ [HasExt osFsExt] (tx c : Loc) (γ : BoltName) (T : TxView) (C : TxCore) (b : Loc) (p : BPath) (st : Option Nat ⊕ GoString),
-  {{ curSt (GF := GF) tx γ c b p T st ∗ ⌜st ≠ .inl none⌝ ∗ wtxCore tx γ C }}
+  {{ curSt (GF := GF) tx γ c b p T st ∗ ⌜st ≠ .inl none ∧ C.bkts b = some p⌝ ∗ wtxCore tx γ C }}
     (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"node")) (Val #()))
   {{ (n : Loc), RET #n; curSt tx γ c b p T st ∗ ∃ (C' : TxCore) (N : NodeR), wtxCore tx γ C' ∗
-      ⌜C'.nodes n = some N ∧ N.isLeaf = true ∧ repKept C C' ∧
-        (C.bkts b = some p → ∀ k, curKey T p st k → keyLeaf C' p k n)⌝ }}
+      ⌜C'.nodes n = some N ∧ N.isLeaf = true ∧ repKept C C' ∧ C'.bkts = C.bkts ∧
+        (∀ k, curKey T p st k → keyLeaf C' p k n)⌝ }}
 
 end spec
 
