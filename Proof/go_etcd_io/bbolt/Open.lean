@@ -3,8 +3,11 @@ The proof of `Spec/go_etcd_io/bbolt/Open.lean` (U11g, `notes/bbolt-proof-plan.md
 "Open"): the fields `Open` sets, the file opened and locked, initialized when empty (`DB.init`)
 or its page size read (`getPageSize`), the page pool, the mapping (`mmapUnlocked`, owned), the
 freelist loaded (`DB.loadFreelist.spec_open`: the core phase, `Open/Core`), the writer phase
-(`Open/Core.open_writer`), and, for a file with no synced freelist, a write transaction committed
-unchanged (`Begin`, `Commit`, over the client's `boltState` it then returns).
+(`Open/Core.open_writer`), unless `NoSync` the file synced (`fdatasync`, bbolt `ea4cab52`:
+issues/bbolt-open-unsynced-meta-kill-then-power-loss.md; the writer side's file metadata changes,
+`Open/SyncAcc.wdbCore_file_acc`; on an error, `db.Close()` over the database the writer phase
+made), and, for a file with no synced freelist, a write transaction committed unchanged (`Begin`,
+`Commit`, over the client's `boltState` it then returns).
 
 Every error exit closes the database (`DB.close.spec_owned`, or `DB.Close` once the transaction
 began), logs, and returns through the deferred log (`Hdef`, the deferred function's spec).
@@ -19,6 +22,7 @@ public import Spec.go_etcd_io.bbolt.Options__String
 public import Spec.go_etcd_io.bbolt.DB__Begin_err
 public import Spec.go_etcd_io.bbolt.Tx__Commit_err
 public import Spec.go_etcd_io.bbolt.DB__Close
+public import Spec.go_etcd_io.bbolt.fdatasync
 public import Spec.os.OpenFile
 public import Spec.os.File__Name
 public import Proof.go_etcd_io.bbolt.Options
@@ -48,8 +52,6 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 namespace bbolt
-
-open Fs
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
@@ -185,7 +187,7 @@ macro "open_exit_j" hv:term:max xs:term:max : tactic => `(tactic| (
 /-- **`Open`'s last write of `db` begins** (U11i, U11j; `Open/PoolNew.dp_lock`): the whole
 validity token of the client's `boltState` lent to the protocol, which gives back the cell's
 other half around one step of `Open`'s (`open_step`). -/
-theorem open_lock [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (B : BNs) (N : Namespace) (γs : GName) (D : Data)
+theorem open_lock [HasExt osFsExt] (B : BNs) (N : Namespace) (γs : GName) (D : Data)
     (dp db : Loc) :
     dpProt (GF := GF) N γs B.bq dp db ∗ ghostVar γs (1 : Qp).half 0 ∗
       boltState (GF := GF) ⟨mkGs B, N⟩ 1 D ⊢
@@ -200,7 +202,7 @@ theorem open_lock [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (B : BNs) (N : N
   iframe; iframe #
 
 /-- **`Open`'s last write of `db` done, on success**: the token back, `db` persistent. -/
-theorem open_unlock [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (B : BNs) (N : Namespace) (γs : GName) (D : Data)
+theorem open_unlock [HasExt osFsExt] (B : BNs) (N : Namespace) (γs : GName) (D : Data)
     (dp db : Loc) :
     dpProt (GF := GF) N γs B.bq dp db ∗ ghostVar γs (1 : Qp).half 1 ∗ dp ↦ db ∗
       ghostVar B.st (1 : Qp).half D ⊢
@@ -299,21 +301,22 @@ macro "open_tx_exit" : tactic => `(tactic| (
 
 set_option maxHeartbeats 4000000 in
 theorem Open.wp_proof [sync.Assumptions]
-    (hOpenFile : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], os.OpenFile.spec (GF := GF) (hG := hG))
+    (hOpenFile : ∀ [HasExt osFsExt], os.OpenFile.spec (GF := GF) (hG := hG))
     (hName : os.File.Name.spec (GF := GF) (hG := hG))
-    (hFlock : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], flock.spec (GF := GF) (hG := hG))
-    (hStat : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], os.File.Stat.spec (GF := GF) (hG := hG))
+    (hFlock : ∀ [HasExt osFsExt], flock.spec (GF := GF) (hG := hG))
+    (hStat : ∀ [HasExt osFsExt], os.File.Stat.spec (GF := GF) (hG := hG))
     (hSize : os.fileStat.Size.spec (GF := GF) (hG := hG))
-    (hMZ : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.metasZero.spec_own (GF := GF) (hG := hG))
-    (hInit : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.init.spec (GF := GF) (hG := hG))
-    (hGPS : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.getPageSize.spec_own (GF := GF) (hG := hG))
-    (hMmap : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.mmapUnlocked.spec_own (GF := GF) (hG := hG))
-    (hLoad : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.loadFreelist.spec_open (GF := GF) (hG := hG))
-    (hSync : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.hasSyncedFreelist.spec (GF := GF) (hG := hG))
-    (hBegin : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.Begin_err.spec (GF := GF) (hG := hG))
-    (hCommit : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Tx.Commit_err.spec (GF := GF) (hG := hG))
+    (hMZ : ∀ [HasExt osFsExt], DB.metasZero.spec_own (GF := GF) (hG := hG))
+    (hInit : ∀ [HasExt osFsExt], DB.init.spec (GF := GF) (hG := hG))
+    (hGPS : ∀ [HasExt osFsExt], DB.getPageSize.spec_own (GF := GF) (hG := hG))
+    (hMmap : ∀ [HasExt osFsExt], DB.mmapUnlocked.spec_own (GF := GF) (hG := hG))
+    (hLoad : ∀ [HasExt osFsExt], DB.loadFreelist.spec_open (GF := GF) (hG := hG))
+    (hSync : ∀ [HasExt osFsExt], DB.hasSyncedFreelist.spec (GF := GF) (hG := hG))
+    (hFds : ∀ [HasExt osFsExt], fdatasync.spec (GF := GF) (hG := hG))
+    (hBegin : ∀ [HasExt osFsExt], DB.Begin_err.spec (GF := GF) (hG := hG))
+    (hCommit : ∀ [HasExt osFsExt], Tx.Commit_err.spec (GF := GF) (hG := hG))
     (hClose : DB.Close.spec (GF := GF) (hG := hG))
-    (hclose : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.close.spec_owned (GF := GF) (hG := hG))
+    (hclose : ∀ [HasExt osFsExt], DB.close.spec_owned (GF := GF) (hG := hG))
     (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     (hOptStr : Options.String.spec (GF := GF) (hG := hG))
     (hModeStr : fs.FileMode.String.spec (GF := GF) (hG := hG)) :
@@ -338,7 +341,10 @@ theorem Open.wp_proof [sync.Assumptions]
   ipersist Hpathv
   rw [decide_eq_false Hoptnn]
   try wp_auto
-  opt_rd (optsAt_bool_rd opts dq o go!"NoSync" (by decide))
+  icases (optsAt_bool_rd opts dq o go!"NoSync" (by decide)) $$ Hopts with
+    ⟨%dqx, %nos, Hx, Hback⟩
+  try wp_auto
+  ihave Hopts := Hback $$ Hx
   opt_rd (optsAt_bool_rd opts dq o go!"NoGrowSync" (by decide))
   opt_rdt (optsAt_mmapFlags_rd opts dq o)
   icases (optsAt_bool_rd opts dq o go!"NoFreelistSync" (by decide)) $$ Hopts with
@@ -846,84 +852,155 @@ theorem Open.wp_proof [sync.Assumptions]
   icases Hlf with ⟨%B, %fl, %fli, #Hcore, #Hpl, Hw, Hst, Hflo, Hsp, Hcls, Hstate, Hopn, ⟨%Hwok, %HBbq⟩⟩
   subst HBbq
   have hCD : treeData C = D := hC.2.2.2.2.2.2.2
+  -- the writer side `W`: `loadFreelist`'s, or with the file's metadata after the sync below
+  have hWC : (lfW C base L { m' with maps := GMap.singleton base L } xs' f fd fl fli).C = C := rfl
+  have hWms : (lfW C base L { m' with maps := GMap.singleton base L } xs' f fd fl fli).ms =
+    some (base, L) := rfl
+  have hWfl : (lfW C base L { m' with maps := GMap.singleton base L } xs' f fd fl fli).fl = fl :=
+    rfl
+  have hWfli : (lfW C base L { m' with maps := GMap.singleton base L } xs' f fd fl fli).fli =
+    fli := rfl
+  generalize lfW C base L { m' with maps := GMap.singleton base L } xs' f fd fl fli = W
+    at Hwok hWC hWms hWfl hWfli ⊢
   try wp_auto
-  cases nfs
-  rotate_left
-  · -- `NoFreelistSync`: done
+  -- `if !db.NoSync { fdatasync(db) }` (bbolt `ea4cab52`): on an error, `db.Close()` (the
+  -- database is shared with its locks by now, as for the transaction's error exit)
+  cases nos
+  case' false =>
+    try wp_auto
+    icases wdbCore_file_acc (GF := GF) B dbl path W $$ Hw with ⟨Hf, Hfo, Hfd, Hosm, Hwb⟩
+    wp_apply hFds dbl W.f W.fd path W.m (DFrac.own 1) (DFrac.own 1) $$ [Hf Hfo Hfd Hosm]
+      as %serr ⟨Hf, Hfo, Hfd, ⟨%m2, Hosm, %hm2⟩, Hsr⟩
+    · iframe; iframe #
+    ihave Hw := Hwb $$ %m2 %hm2.1 Hf Hfo Hfd Hosm
+    have Hwok2 := wdbOK_withMeta W m2 hm2.1 hm2.2 Hwok
+    have hWC2 : ({ W with m := m2 } : WDb).C = C := hWC
+    have hWms2 : ({ W with m := m2 } : WDb).ms = some (base, L) := hWms
+    have hWfl2 : ({ W with m := m2 } : WDb).fl = fl := hWfl
+    have hWfli2 : ({ W with m := m2 } : WDb).fli = fli := hWfli
+    clear Hwok hWC hWms hWfl hWfli hm2
+    generalize ({ W with m := m2 } : WDb) = W at Hwok2 hWC2 hWms2 hWfl2 hWfli2 ⊢
+    icases Hsr with (%Hse | ⟨%Hse, #Hek⟩)
+    rotate_left
+    · cases serr with
+      | nil => exact absurd rfl Hse
+      | ok ei =>
+      try wp_auto
+      have hOW := open_writer (GF := GF) ⊤ B N dbl path sp _ Hwok2
+      rw [hWC2, hWfl2, hWfli2] at hOW
+      imod hOW $$ [Hcore Hpl rwlock Hw Hst Hflo Hsp Hcls Hopn] with #Hbolt
+      · iframe; iframe #
+      ihave Hst' : boltState (GF := GF) ⟨mkGs B, N⟩ 1 D $$ [Hstate]
+      · unfold boltState; rw [bnsOf_mkGs, ← hCD]; iexact Hstate
+      wp_apply hClose dbl ⟨mkGs B, N⟩ $$ []
+      · unfold isBolt; rw [bnsOf_mkGs]; iexact Hbolt
+      iintro %cerr -
+      try wp_auto
+      wp_apply wp_slice_literal
+      isplitr
+      · ipureintro; rfl
+      iintro %sl ⟨Hsl, -⟩
+      simp only [show sint.nat (W64 (0 + 1)) = 1 from rfl, List.set]
+      try wp_auto
+      -- (`+noauto`: `open_step` takes the step before the write of `db`)
+      wp_apply +noauto wp_boltLog li _ _ _ _ [interface.mkOk go.string #path, GoInterface.ok ei] _
+        iprop(True) _ errorf_mem' fmtVerbs_syncErr rfl $$ Hlgok [Hsl] [] [] as Hsl -
+      · iexact Hsl
+      · open_args
+      ihave ⟨-, Hlk⟩ := open_lock B N γs _ db_ptr dbl $$ [Hdpi Hs Hst']
+      · iframe; iframe #
+      open_step
+      try wp_auto
+      wp_bind (App (Val #dv) (Val #()))
+      iapply Hdef $$ [err]
+      · iexact err
+      · simp only [fmtErrorOkOrNil]; iexact Hek
+      iintro err
+      try wp_auto
+      iapply HΦ
+      iframe Hopts
+      iright; ipureintro; intro h; cases h
+    subst Hse
+    have Hwok := Hwok2
+    have hWC := hWC2
+    have hWms := hWms2
+    have hWfl := hWfl2
+    have hWfli := hWfli2
+    clear Hwok2 hWC2 hWms2 hWfl2 hWfli2
+  -- both branches: the writer side `W`
+  all_goals
+    try wp_auto
+    cases nfs
+    rotate_left
+    · -- `NoFreelistSync`: done
+      have hOW := open_writer (GF := GF) ⊤ B N dbl path sp _ Hwok
+      rw [hWC, hWfl, hWfli] at hOW
+      imod hOW $$ [Hcore Hpl rwlock Hw Hst Hflo Hsp Hcls Hopn] with #Hbolt
+      · iframe; iframe #
+      open_ok
+    -- `hasSyncedFreelist()`
+    have hacc := wdbCore_meta_acc (GF := GF) B dbl path W
+    rw [hWms, hWC] at hacc
+    icases hacc $$ Hw with ⟨Hmf, Hmq, Hwb⟩
+    try wp_auto
+    wp_apply hSync dbl base L C (DFrac.own (1 : Qp).half) (1 : Qp).half.half hC.2.1 $$ [Hmf Hmq]
+      as ⟨Hmf, Hmq⟩
+    · iframe
+    ihave Hw := Hwb $$ Hmf Hmq
     have hOW := open_writer (GF := GF) ⊤ B N dbl path sp _ Hwok
-    rw [show (lfW C base L { m' with maps := GMap.singleton base L } xs' f fd fl fli).C = C
-      from rfl] at hOW
+    rw [hWC, hWfl, hWfli] at hOW
     imod hOW $$ [Hcore Hpl rwlock Hw Hst Hflo Hsp Hcls Hopn] with #Hbolt
     · iframe; iframe #
-    open_ok
-  -- `hasSyncedFreelist()`
-  have hacc := wdbCore_meta_acc (GF := GF) B dbl path
-    (lfW C base L { m' with maps := GMap.singleton base L } xs' f fd fl fli)
-  rw [show (lfW C base L { m' with maps := GMap.singleton base L } xs' f fd fl fli).ms =
-      some (base, L) from rfl,
-    show (lfW C base L { m' with maps := GMap.singleton base L } xs' f fd fl fli).C = C
-      from rfl] at hacc
-  icases hacc $$ Hw with ⟨Hmf, Hmq, Hwb⟩
-  try wp_auto
-  wp_apply hSync dbl base L C (DFrac.own (1 : Qp).half) (1 : Qp).half.half hC.2.1 $$ [Hmf Hmq]
-    as ⟨Hmf, Hmq⟩
-  · iframe
-  ihave Hw := Hwb $$ Hmf Hmq
-  have hOW := open_writer (GF := GF) ⊤ B N dbl path sp _ Hwok
-  rw [show (lfW C base L { m' with maps := GMap.singleton base L } xs' f fd fl fli).C = C
-    from rfl] at hOW
-  imod hOW $$ [Hcore Hpl rwlock Hw Hst Hflo Hsp Hcls Hopn] with #Hbolt
-  · iframe; iframe #
-  by_cases hfl : C.flpg = none
-  rotate_left
-  · rw [decide_eq_false hfl]
-    open_ok
-  rw [decide_eq_true hfl]
-  try wp_auto
-  -- no synced freelist: a write transaction, committed unchanged
-  ihave Hst' : boltState (GF := GF) ⟨mkGs B, N⟩ 1 D $$ [Hstate]
-  · unfold boltState; rw [bnsOf_mkGs, ← hCD]; iexact Hstate
-  wp_apply hBegin dbl ⟨mkGs B, N⟩ true (fun _ => iprop(emp)) $$ [] as %tx %txErr Hb
-  · simp only [↓reduceIte]; unfold isBolt; rw [bnsOf_mkGs]
-    isplitl
-    · iexact Hbolt
-    iempintro
-  try simp only [↓reduceIte]
-  icases Hb with (⟨%Hte, #Htxdb, %D', Htx⟩ | ⟨%Hte, #Hek, -⟩)
-  rotate_left
-  · obtain ⟨Hne, rfl⟩ := Hte
-    cases txErr with
-    | nil => exact absurd rfl Hne
-    | ok ei =>
-    open_tx_exit
-  subst Hte
-  icases persistent_entails_left (boltTx_base tx ⟨mkGs B, N⟩ 1 1 (TxView.wr D') D) $$
-    [Htx Hst'] with ⟨⟨Htx, Hst'⟩, %Hbase⟩
-  · iframe
-  have hD' : D' = D := Hbase rfl
-  subst hD'
-  icases persistent_entails_left (boltTx_nonnull tx ⟨mkGs B, N⟩ 1 (TxView.wr D')) $$ Htx
-    with ⟨Htx, %Htxnn⟩
-  try wp_auto
-  rw [decide_eq_false Htxnn]
-  try wp_auto
-  -- the update's carrier is the whole state itself, back on every exit (U11i)
-  wp_apply hCommit tx ⟨mkGs B, N⟩ (TxView.wr D') (boltState ⟨mkGs B, N⟩ 1 D')
-      (boltState ⟨mkGs B, N⟩ 1 D')
-      (by simp only [TxView.wr]; exact boltState_commit_au _ _ _) $$ [Htx Hst']
-    as %cerr ⟨-, Hc⟩
-  · iframe
-    ipureintro; rfl
-  icases Hc with (⟨%Hce, Hst'⟩ | ⟨%Hce, #Hek, Hor⟩)
-  rotate_left
-  · cases cerr with
-    | nil => exact absurd rfl Hce
-    | ok ei =>
-    ihave Hst' : boltState (GF := GF) ⟨mkGs B, N⟩ 1 D' $$ [Hor]
-    · icases Hor with (H | H) <;> iexact H
-    open_tx_exit
-  subst Hce
-  open_ret
+    by_cases hfl : C.flpg = none
+    rotate_left
+    · rw [decide_eq_false hfl]
+      open_ok
+    rw [decide_eq_true hfl]
+    try wp_auto
+    -- no synced freelist: a write transaction, committed unchanged
+    ihave Hst' : boltState (GF := GF) ⟨mkGs B, N⟩ 1 D $$ [Hstate]
+    · unfold boltState; rw [bnsOf_mkGs, ← hCD]; iexact Hstate
+    wp_apply hBegin dbl ⟨mkGs B, N⟩ true (fun _ => iprop(emp)) $$ [] as %tx %txErr Hb
+    · simp only [↓reduceIte]; unfold isBolt; rw [bnsOf_mkGs]
+      isplitl
+      · iexact Hbolt
+      iempintro
+    try simp only [↓reduceIte]
+    icases Hb with (⟨%Hte, #Htxdb, %D', Htx⟩ | ⟨%Hte, #Hek, -⟩)
+    rotate_left
+    · obtain ⟨Hne, rfl⟩ := Hte
+      cases txErr with
+      | nil => exact absurd rfl Hne
+      | ok ei =>
+      open_tx_exit
+    subst Hte
+    icases persistent_entails_left (boltTx_base tx ⟨mkGs B, N⟩ 1 1 (TxView.wr D') D) $$
+      [Htx Hst'] with ⟨⟨Htx, Hst'⟩, %Hbase⟩
+    · iframe
+    have hD' : D' = D := Hbase rfl
+    subst hD'
+    icases persistent_entails_left (boltTx_nonnull tx ⟨mkGs B, N⟩ 1 (TxView.wr D')) $$ Htx
+      with ⟨Htx, %Htxnn⟩
+    try wp_auto
+    rw [decide_eq_false Htxnn]
+    try wp_auto
+    -- the update's carrier is the whole state itself, back on every exit (U11i)
+    wp_apply hCommit tx ⟨mkGs B, N⟩ (TxView.wr D') (boltState ⟨mkGs B, N⟩ 1 D')
+        (boltState ⟨mkGs B, N⟩ 1 D')
+        (by simp only [TxView.wr]; exact boltState_commit_au _ _ _) $$ [Htx Hst']
+      as %cerr ⟨-, Hc⟩
+    · iframe
+      ipureintro; rfl
+    icases Hc with (⟨%Hce, Hst'⟩ | ⟨%Hce, #Hek, Hor⟩)
+    rotate_left
+    · cases cerr with
+      | nil => exact absurd rfl Hce
+      | ok ei =>
+      ihave Hst' : boltState (GF := GF) ⟨mkGs B, N⟩ 1 D' $$ [Hor]
+      · icases Hor with (H | H) <;> iexact H
+      open_tx_exit
+    subst Hce
+    open_ret
 
 end proof
 

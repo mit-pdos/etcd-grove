@@ -34619,3 +34619,32 @@ crash before it was). The tester gained `crashsim.Compose`/`KillInodes` and `-ki
 the base when an entry at or below it was read; `ReadAll` truncates the log there (`ents[:0]`),
 as W0's `walref.ReadEnt` and the Scope's reader say. It explains W1.5's unanalyzed ordered
 violation (chain 2145), which was not a garbage effect.
+
+## bbolt `Open` syncs before its first commit (kill, restart, power loss) (2026-11-11 · the fix decided by the user, `/shared/tmp/crash-rung3/scope.md` U-R3-1 (a); the error exit by etcd-grove-81 · branch `bbolt-open-sync`)
+
+**Finding** (`issues/bbolt-open-unsynced-meta-kill-then-power-loss.md`): a process killed between a
+commit's meta write and its fdatasync leaves that meta only in the page cache. The restarted
+process's `Open` reads it and syncs nothing, so its first commit may overwrite pages that only the
+previous, durable meta references, and a power loss then brings that meta back over them
+(`TestBoltKillThenPower`: 12 of 1160 images violate at upstream `622eada`).
+
+**Correction** (the crash design's PL §0.1, which is not in `notes/`): "power loss subsumes kill
+-9: every kill -9 image is a power-loss image" holds for one crash only. It fails for a kill followed
+by a restart and then a power loss, because what the kill leaves is not durable. The crash theorems
+cover such sequences (U-R3-1 (a)), so bbolt has to sync, as W3's F-Z does for the WAL.
+
+**Decision:** the fork's `Open` fdatasyncs the file once, in write mode, unless `NoSync`, before
+any commit (`c5a6065`). On an error it closes with `db.Close()`, as the failed transaction's exit
+does (`ea4cab5`, etcd-grove-81's option 1). The first version's `db.close()` could not be proved:
+after `loadFreelist`, half of each field `close` clears (`opened`, `freelist`, `ops.writeAt`, the
+mapping's fields) is in `metalock`'s `metaR` and `mmaplock`'s `Pm`. A lock-free `close` cannot
+write those fields without taking the locks, and `isMutex` is sealed. The Go behavior is the same,
+since nothing else holds `db` yet. The upstream candidate keeps `db.close()`, as its own
+failed-transaction exit does. Pin `ea4cab5`.
+
+**Proof:** `Open.wp_proof` takes `fdatasync.spec`, the spec `Tx.write`/`writeMeta` already use.
+It takes the file's resources out of the idle writer side and puts them back with metadata of
+the same size and mappings (`Open/SyncAcc.wdbCore_file_acc`); `wdbOK` reads only those
+(`wdbOK_withMeta`). The error exit makes the database (`open_writer`) and runs `DB.Close`. `Open`'s
+spec is unchanged: in-process durability is out of its scope. No trusted statement changed. The
+trusted docstrings that cite `db.go` line numbers name `743299d8cec8`, so they stay accurate.

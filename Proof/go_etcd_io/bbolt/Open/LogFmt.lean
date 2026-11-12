@@ -58,6 +58,9 @@ set_option maxRecDepth 20000 in
 theorem fmtVerbs_mapErr : fmtVerbs go!"failed to map db file (%s): %v" = some [W8 115, W8 118] :=
   by decide
 set_option maxRecDepth 20000 in
+theorem fmtVerbs_syncErr : fmtVerbs go!"failed to sync db file (%s): %v" = some [W8 115, W8 118] :=
+  by decide
+set_option maxRecDepth 20000 in
 theorem fmtVerbs_txErr : fmtVerbs go!"starting readwrite transaction failed: %v" = some [W8 118] :=
   by decide
 
