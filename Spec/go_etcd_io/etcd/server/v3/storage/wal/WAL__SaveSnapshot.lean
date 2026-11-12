@@ -32,7 +32,8 @@ variable [walpb_sem : go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions]
 state, D6, non-nil unless the index is 0: `ValidateSnapshotForWrite`), committed before the record is
 written; always fdatasynced. An error is an I/O failure (`¬ storage.walSaveOk`). Stated over
 `walDiskAt` (W4a.1, 2026-11-12, finding F-W4b-1; revision 1), as `Save`: the update moves the history
-only (a cut, S/wal.go:864-938, unlocks nothing and rewrites the same metadata; Go test `w4a1-tests`
+only (a cut, S/wal.go:864-938, unlocks no file holding a record, re-locking its new segment under its
+final name while the old tail stays locked, and rewrites the same metadata; Go test `w4a1-tests`
 `TestW4a1SaveKeepsPurgePositions`); the body (`WalBodies.walSaveSnapshot_body`) commits at
 `"WalAppend"`, then performs `"WalSync"` of the new length from its handle's fact alone. -/
 abbrev wal.WAL.SaveSnapshot.spec : Prop :=

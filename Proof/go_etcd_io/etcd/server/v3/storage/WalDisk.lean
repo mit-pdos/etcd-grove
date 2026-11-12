@@ -129,8 +129,8 @@ instance walAreaOk_persistent (r : GoString) : Persistent (walAreaOk (GF := GF) 
   unfold walAreaOk; infer_instance
 
 /-- **The WAL in `dir` holds the history `H`, with flag `sized`** (the extension's points-to, read
-over `EntryM`): its durable state's history, as model entries, and flag; the marks, purge positions
-and metadata as they are (`walDiskAt` names them). -/
+over `EntryM`): its durable state's history, as model entries, and flag; the purge positions and
+metadata as they are, the mark and `named` as lower bounds (`walDiskAt`). -/
 def walDisk (dir : GoString) (H : WalHist) (sized : Bool) : IProp GF :=
   iprop(∃ d : WalDur, walDiskAt dir d ∗ ⌜d.H.map WalOpG.toM = H ∧ d.sized = sized⌝)
 

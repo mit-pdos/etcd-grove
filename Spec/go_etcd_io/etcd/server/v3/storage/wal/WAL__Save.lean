@@ -42,8 +42,11 @@ shift. The flag `sized` is kept: a `Save` with `sized = false` applies only to a
 already false, which none reaches (`walDurFresh` is sized; no step clears it): callers save sized
 entries. Stated over `walDiskAt` (W4a.1, 2026-11-12, finding F-W4b-1; revision 1): the update moves
 the history only. The purge positions `unl`/`pur` and the read position `cut` are unchanged: a cut
-locks its new segment and unlocks none (S/wal.go:864-938; Go test `w4a1-tests`
-`TestW4a1SaveKeepsPurgePositions`). The metadata is unchanged: each cut rewrites `w.metadata`, the
+unlocks no file holding a record: it re-locks its new segment under its final name (S/wal.go:928-930)
+while the old tail stays locked, and the new segment holds only header records until then (a purge
+that deletes oldest first and stops at the first file it cannot lock, as `fileutil.purgeFile` does,
+stops before it; a W4c obligation on the tester's `purgeRound`); S/wal.go:864-938; Go test
+`w4a1-tests` `TestW4a1SaveKeepsPurgePositions`. The metadata is unchanged: each cut rewrites `w.metadata`, the
 same bytes, at the new segment's head (S/wal.go:900). The mark and `named` are lower bounds
 (`walDiskAt`), which nothing in `Save` lowers (a cut fsyncs the WAL directory, not its parent). The
 body (`WalBodies.walSave_body`): `"WalAppend"` is the commit; then, the update consumed, it performs

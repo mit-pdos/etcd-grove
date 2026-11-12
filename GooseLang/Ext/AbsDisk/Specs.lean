@@ -796,6 +796,18 @@ theorem walOpenW_lenLb (w : Loc) (dir : GoString) (s : AbsDiskState) (d : WalDur
   · iframe Hu; iexists γ; iframe Hw Hm
   · iexists γ, s, d; iframe Hw Hs; ipureintro; exact ⟨hd, hn⟩
 
+/-- An opened handle's length fact, from a past state of its directory (W4a.1 revision 1, for an
+atomic `ReadAll`'s body: it syncs after its commit from the handle's fact). -/
+theorem walOpening_lenLb (w : Loc) (dir : GoString) (sn : w64 × w64) (s : AbsDiskState) (d : WalDur)
+    (n : Nat) (hd : s.wal !! dir = some d) (hn : n ≤ d.H.length) :
+    ⊢@{IProp GF} walOpening (L := L) w dir sn -∗ absPast (L := L) s -∗
+      walOpening (L := L) w dir sn ∗ walLenLb (L := L) w dir n := by
+  unfold walOpening walHandleP walLenLb
+  iintro ⟨%γ, #Hw, Hm, Hp, Hu⟩ #Hs
+  isplitl [Hm Hp Hu]
+  · iexists γ; iframe Hw Hm Hp Hu
+  · iexists γ, s, d; iframe Hw Hs; ipureintro; exact ⟨hd, hn⟩
+
 /-- Two facts of the area agree. -/
 theorem walArea_agree (r r' : GoString) :
     ⊢@{IProp GF} walArea (L := L) r -∗ walArea (L := L) r' -∗ ⌜r = r'⌝ := by

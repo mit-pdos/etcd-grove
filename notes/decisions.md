@@ -34963,7 +34963,8 @@ Two strength gaps in W4a's landed axioms, found while planning W4b (`/shared/tmp
 in part by "WAL W4a.1 revision 1" below: that argument is wrong (a commit consumes the update, so no
 body can sync after it), and `walDiskM` is gone: `walDiskAt` itself bounds the mark and `named`.]* Now
   `walDiskM dir d` (`WalDisk.lean`: `d` exactly, the mark at least `d.m`), and the three axioms move
-  only `d.H` (the mark through `walSyncedLb`). Go: a cut locks its new segment and unlocks none, the
+  only `d.H` (the mark through `walSyncedLb`). Go: a cut unlocks no file holding a record (it re-locks
+  its new segment under its final name, S/wal.go:928-930, while the old tail stays locked); the
   metadata is rewritten at each cut.
 - **F-W4b-2.** VSE's prefix `H.take j` (review 2's B1, needed while an append handle buffers records)
   also applied after a crash, where `ReadAll`'s premise needs the whole history's newest pair. A second
@@ -35010,9 +35011,20 @@ axiom: trusted surface, and every client would have to supply it).
 over `walDiskAt`, resp. `walDirIs`), so W4c's tester can keep the WAL in an invariant and still find
 it there at a crash during the call. VSE's token-free conjunct (a prefix while an append handle is
 live) is dropped: no caller (the tester and etcd's bootstrap call VSE with the token, before `Open`),
-and a plain triple would not compose. **W4c gate:** the landed `Open`, `ReadAll`, `ReleaseLockTo`,
-`Repair` and `Exist` are still plain triples over `walDirIs`/`walDiskAt`; a tester that needs the WAL in
-its crash invariant across one of them restates it as logically atomic first (a trusted change).
+and a plain triple would not compose. **W4c gate (unconditional; the re-review's M-R1):** the landed
+`Open`, `ReadAll`, `ReleaseLockTo`, `Repair` and `Exist` are still plain triples over
+`walDirIs`/`walDiskAt`. W4c's restart proof (VSE → `Open` → `ReadAll`, and `Repair` on its retry path)
+runs under the crash model, which kills during recovery too, so `Open`, `ReadAll` and `Repair` (and
+`Exist`, if the caller's runs under the invariant) must be restated as logically atomic: a trusted
+change, scheduled with W4a.2 or W4c's Freeze. VSE's atomic form pays off only once they land. Under
+the lower bounds an atomic `ReadAll` is realizable (commit at the read, then sync and name from the
+handle's fact: `walOpening_lenLb`, proved; a handle-only `wp_WalNamedOpen` variant still to add).
+**W4c option (m-c/m3):** `Close`'s update could carry the sync (`<{ walDiskAt dir {d with m := max d.m
+|d.H|}, COMM Q d }>`, realizable by `walClose_commit` without the weakening), so a crash between its
+fdatasync and its return sees the synced mark; not done now. **W4c obligation (fresh m1):** the
+tester's `purgeRound` deletes oldest first and stops at the first file it cannot lock, as
+`fileutil.purgeFile` does (a cut's new segment is briefly unlocked before its re-lock, holding only
+header records).
 
 **C6 gate (m2).** Every `walSyncedLb` post (`Save`, `SaveSnapshot`, `Sync`, `Close`, `ReadAll`) assumes
 the WAL's `unsafeNoSync` is false: `SetUnsafeNoFsync` (etcd's `--unsafe-no-fsync`) makes `sync` return
@@ -35020,8 +35032,10 @@ after the flush without fdatasync (S/wal.go:956-958). No spec of `SetUnsafeNoFsy
 proved program calls it; C6 must state the server's configuration without it (an explicit premise or
 an assumed config) before it links the server's WAL to these axioms.
 
-**Review checklist (for the next WAL axiom):** no axiom post may give a past-state fact (`walNamed`,
-`walSyncedLb`) about a field that the resource it hands the client fixes exactly.
+**Review checklist (for the next WAL axiom):** no axiom post may give a past-state fact
+(`walSyncedLb`, `walNamed`, `walLenLb`, `dirDurable`) that bounds a field of the state above the value
+fixed exactly by the resource it hands over at the same point; the mark and `named` are lower bounds in
+`walDiskAt`, `H` is exact, so a `walLenLb n` must satisfy `n ≤` the committed `|H|`.
 
 **Revision 1b (R1/R2, purge-model completeness): deferred to W4a.2** (the coordinator's fallback),
 `/shared/tmp/wal-spec/w4a1/freeze-w4a1.md`, "Revision 1b".

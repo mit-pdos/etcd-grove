@@ -25,7 +25,16 @@ behaviour, derived from the proved step specs of `GooseLang/Ext/AbsDisk/Specs.le
 * `ReadAll` (`walReadAll_sync_named`): a plain triple that holds `walDiskAt` throughout; its sync and
   name steps use it (shown for the two steps that give its past-state facts).
 
-What the lemmas do not model: how a body computes a step's argument (an operation from its heap
+**What the lemmas do not show** (the re-review's m-b). With `wp_WalSyncLen`, any `walSyncedLb n`
+backed by a `walLenLb n` has a body, so the faithfulness of each sync claim rests on Go: a real body
+performs `"WalSync"` only at a Go fsync point (`Save` under `walMustSync` or at a cut, `SaveSnapshot`,
+`Sync`, `Close`, `ReadAll`'s F-Z); `walAppendSync_body` shows the sync unconditionally, and `Save`'s
+body performs it only on that branch (otherwise the model's mark would exceed Go's synced prefix). A
+body's length argument (`|d.H|` from the accessed `d`, fixed before the atomic step) is determined
+because the handle (`walOpenW`, with the generation's lock token) excludes every other writer of `H`:
+the body tracks the length itself.
+
+Also not modelled: how a body computes a step's argument (an operation from its heap
 arguments, a length it tracks), as the Draft argued for every argument (`walCode`'s docstring); the
 lemmas take the argument the axiom names. And the reads (`ValidSnapshotEntries`, `ReadAll`'s result,
 `Exist`): every step returns `#()`, so a read's result is argued logically, a function of the state

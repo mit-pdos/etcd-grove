@@ -44,8 +44,10 @@ commit records: VSE reads them, so a snapshot record they validate is returned) 
 `TestW4a1VSEDroppedHandle` (a handle dropped to finalizers loses its buffered records and VSE reads a
 prefix: the token, gone with the handle, is what keeps the triple from applying). Logically atomic
 (revision 1, the delta review's M2: the tester's invariant holds `walDirIs`): with the token held no
-other call moves the state (a write needs a handle, so the token; `Repair` and `Exist` move
-nothing), so the body linearizes at any point of its read; its result is a function of the
+write runs beside it (a write needs a handle, so the token), and `Repair` and `Exist` need
+`walDirIs`, which VSE's update holds open to its caller's invariant, so neither runs beside it; with
+the token no purge removes a file, so VSE's retry loop (S/wal.go:688-712) never fires. So the body
+linearizes at any point of its read; its result is a function of the
 accessed state, argued logically (the steps model writes; a read returns nothing). Revision 1
 dropped W4a's token-free triple (a prefix `H.take j`, `j ≥ m`, for a caller with a live append
 handle, whose encoder buffers records; Go tests `rev2-tests` `TestRev2VSELiveUnflushed`,
