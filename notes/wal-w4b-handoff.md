@@ -32,10 +32,18 @@ Branch `wal-w4b`, worktree `/shared/etcd-grove-walw3`, cut from lean `491baacae1
   snapshot record, purged with `k ≤ p`; the model's `walReleasePos` is coarser than Go's file naming).
 - CP2 report sent (R1: C2 holds in every run under guard + Go file-naming bound `enti(H.take k)+1 < a`; R2: Open clause-1 failures at `j = p+1`); waiting for etcd-grove-81.
 
-## Next, in order (after CP2)
+## Paused (2026-11-12, by etcd-grove-81, after CP2 approval, forms included)
 
-1. B1's `walDiskM` half after W4a.1 lands.
-2. Part C per CP2's decision on R1; full checks; CP3.
+- R1 and R2 go into the W4a.1 revision (separate worktree), together with W4a.1's soundness fix
+  (`Create`'s exact `named = false` together with `walNamed`; post-commit syncs no body can realize).
+  The lower bounds on `m` and `named` change `walDiskM`'s shape.
+- The 116 clause-2 `ReleaseLockTo` cases (dormant records) are accepted as a documented limitation.
+- W4b resumes after W4a.1 (including R1, R2) lands. Then, in order:
+  1. merge lean; rebuild `WalHistLemmas`/`WalViews` against the new `walReleasePos`/`walRelGuard`
+     (A6's `walReleasePos_le_length` and `walRelGuard_snoc` will need restating);
+  2. B1's `walDiskM` half, in the new `walDiskM` shape;
+  3. Part C (C1-C4), with C2's premises from W4a.1's R1 fix (guard plus the file-naming bound);
+  4. full checks; `notes/decisions.md` "WAL W4b"; STATUS entry; CP3.
 
 ## Pitfalls
 
