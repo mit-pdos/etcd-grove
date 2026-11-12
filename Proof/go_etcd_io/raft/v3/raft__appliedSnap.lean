@@ -213,17 +213,26 @@ theorem raft.appliedSnap.wp_proof
   -- `assertConfStatesEquivalent(r.logger, cs, r.switchToConfig(cfg, trk))`
   wp_apply raft.wp_load_loggerC $$ Hphys as %lok0 ⟨Hphys, #Hlg0⟩
   icases ownRaftPhysC_traceLogger _ _ _ _ (by tr_none) $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
-  icases ownRaftPhysCV_reconfig _ (snapCfg sv sv.Metadata'.ConfState'.lists) ((snapCfg sv sv.Metadata'.ConfState'.lists).voters ∪ {[id]}) r id s1
-      (fun h => absurd Hrole1 h) $$ Hphys with ⟨%tv1, Htrkf, Hold, Hback2⟩
+  icases ownRaftPhysCV_reconfigCore _ (snapCfg sv sv.Metadata'.ConfState'.lists) _ ((snapCfg sv sv.Metadata'.ConfState'.lists).voters ∪ {[id]}) r id s1
+      (fun h => absurd Hrole1 h) $$ Hphys with ⟨%tv1, Htrkf, Hold, Hcore, Hback2⟩
   icases ownTrackerC_votes $$ Hold with ⟨Hvotes, %Hmi1⟩
+  have Htr1 : s1.gh.tr = none := by tr_none
   wp_apply wp_raft_switchToConfig (snapCfg sv sv.Metadata'.ConfState'.lists) r id s1 tv1 cfgv prsm prs pvs tl
+      (snapCfg sv sv.Metadata'.ConfState'.lists) raftNames0
       (fun h => absurd (Hrole1.symm.trans h) (by decide))
       (fun h => absurd (Hrole1.symm.trans h) (by decide))
       (fun h => by rcases h with h | h <;> rw [Hrole1] at h <;> cases h)
       (fun h => absurd (Hrole1.symm.trans h) (by decide))
-    (by tr_none) $$ [$Htrkf $Hback2 $Hvotes $Hnew $Htl]
-    as %cs2 %xs2 %os2 %ls2 %lns2 %s2 ⟨Hphys, Hcs2v, %Hcs2, %Hsw⟩
-  · ipureintro; exact ⟨Hmi1, Htlok⟩
+      (fun h => absurd Htr1 h) $$ [$Htrkf $Hcore $Hback2 $Hvotes $Hnew $Htl]
+    as %cs2 %xs2 %os2 %ls2 %lns2 %s2 ⟨Hphys, Hcs2v, %Hcs2, %Hsw, -⟩
+  · rw [Htr1]
+    isplitr
+    · ipureintro; exact Hmi1
+    isplitr
+    · ipureintro; exact fun _ => Htlok
+    isplitr
+    · iapply trOwn_none_intro
+    simp only [trCapB]; iempintro
   obtain ⟨Hxs2, Hos2, Hls2, Hlns2⟩ := Hcs2
   unfold SwitchOkC at Hsw
   rw [ite_eq_right (by simp [Hrole1])] at Hsw

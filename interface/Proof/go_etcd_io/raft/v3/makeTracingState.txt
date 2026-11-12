@@ -8,13 +8,12 @@ theorem makeTracingState.wp_proof [package_sem : Assumptions] (wp_raft_hardState
     raftpb.HardState.GetCommit.spec) (wp_FormatUint : strconv.FormatUint.spec) :
     makeTracingState.spec
   -- `Perennial.EtcdGrove.makeTracingState.spec`, unfolded:
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
+  ∀ (r : Loc) (id : w64) (s : NState),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s -∗
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ ownRaftCore r id s -∗
           (▷
               ∀ ts,
-                ownRaftPhysCV c c.voters r id s ∗
-                    ⌜ts.Term' = s.term ∧ ts.Vote' = decStr s.vote ∧ ts.Commit' = s.logst.committed⌝ -∗
+                ownRaftCore r id s ∗ ⌜ts.Term' = s.term ∧ ts.Vote' = decStr s.vote ∧ ts.Commit' = s.logst.committed⌝ -∗
                   Φ (intoVal ts)) -∗
             WP ((intoVal (functions makeTracingState [])) (intoVal r)) {{ Φ }}

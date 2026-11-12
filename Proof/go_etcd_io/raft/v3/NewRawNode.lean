@@ -67,7 +67,9 @@ theorem NewRawNode.wp_proof
   wp_apply wp_softState _ r cv.ID' s $$ Hphys as Hphys
   -- `prevSoftSt` points to a `SoftState` nobody writes again
   ipersist ss
-  wp_apply wp_hardState _ r cv.ID' s $$ Hphys as %hp ⟨#Hhp, Hphys⟩
+  icases ownRaftPhysC_core _ r cv.ID' s $$ Hphys with ⟨Hcore, Hpb⟩
+  wp_apply wp_hardState r cv.ID' s $$ Hcore as %hp ⟨#Hhp, Hcore⟩
+  ihave Hphys := Hpb $$ Hcore
   obtain ⟨Hwf, Ht, Hv, Hl, Hr, Hvs, Ho, Hpv, Hp, Hse, Hue, Hsd, Hcm, Hap, Happ', Hun, Hsn, Hsg', Hlsn, Hgh,
     Hrst, Hrpd, Hsdr', Hdom, Hdtk⟩ := Hpost
   have Hrel : NStateRel s (restartPState hs σ) :=

@@ -4,11 +4,11 @@
 
 theorem raft.hardState.wp_proof [package_sem : Assumptions] : raft.hardState.spec
   -- `Perennial.EtcdGrove.raft.hardState.spec`, unfolded:
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
+  ∀ (r : Loc) (id : w64) (s : NState),
     ⊢
       ∀ Φ,
-        ownRaftPhysCV c c.voters r id s -∗
-          (▷ ∀ p, hsRO p (hardstateVal (nodeHardstate s)) ∗ ownRaftPhysCV c c.voters r id s -∗ Φ (intoVal p)) -∗
+        ownRaftCore r id s -∗
+          (▷ ∀ p, hsRO p (hardstateVal (nodeHardstate s)) ∗ ownRaftCore r id s -∗ Φ (intoVal p)) -∗
             WP
               ((intoVal
                   (methods raft.ty.PointerType go!"hardState" (intoVal r)))

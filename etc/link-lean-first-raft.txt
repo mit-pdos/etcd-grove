@@ -239,7 +239,7 @@ makeTracingMessage: raftpb_Message__GetLogTerm raftpb_Message__GetEntries raftpb
 traceEvent: stateMachineEventType__String strconv_FormatUint makeTracingState raftLog__lastIndex quorum_MajorityConfig__Slice formatConf StateType__String makeTracingMessage
 traceNodeEvent: traceEvent
 traceInitState: traceNodeEvent
-traceConfChangeEvent:
+traceConfChangeEvent: traceEvent quorum_MajorityConfig__Slice formatConf
 traceCommit: traceNodeEvent
 traceSendMessage: traceEvent raftpb_Message__GetType raftpb_Message__GetFrom
 traceBecomeFollower: traceNodeEvent
