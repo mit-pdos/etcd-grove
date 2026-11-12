@@ -146,7 +146,7 @@ theorem rawNodeAt_fresh (rn r : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w
   have Hca : committedAfter σ.prev hs = W64 0 := by
     unfold committedAfter; rw [ite_eq_left (show HsEmpty hs from ⟨HT, HV, HC⟩), Hp]
   unfold rawNodeAt rawNodeFresh
-  iintro ⟨%rnv, %sv, %hprev, Hrn, %Hr, Hphys, %Hasync, #Hsoft, #Hhard, Hsteps, Hcap, %Hrel, %Hterm,
+  iintro ⟨%rnv, %sv, %hprev, Hrn, %Hrr, Hphys, %Hasync, #Hsoft, #Hhard, Hsteps, Hcap, %Hrel, %Hterm,
     %Hlog, %Hgh, %Hpvoff, %Hsdr, %Hdom, %Hhz, %Hsvr⟩
   iexists rnv, sv, hprev
   ihave Hphys := (show ownRaftPhysC (GF := GF) (cfgState V ∅).cfg rnv.raft' id s ⊢
@@ -163,7 +163,7 @@ theorem rawNodeAt_fresh (rn r : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w
   have Hrs : restartPState hs σ = initPState := by
     unfold restartPState; rw [HT, HV, Hca, Hp, He]; rfl
   rw [Hrs] at Hrel
-  refine ⟨Hr, Hasync, Hrel, ⟨by rw [Ht, HT], by rw [Hv, HV], Hr, Ho, Hst, Hpd⟩,
+  refine ⟨Hrr, Hasync, Hrel, ⟨by rw [Ht, HT], by rw [Hv, HV], Hr, Ho, Hst, Hpd⟩,
     ⟨by rw [Hlp, Hp], by rw [Hse, He], Hue, by rw [Hsd, He], Hcm, by rw [Hap, Hapg0], Hapg0, Hun,
       Hsn, Hsg, by rw [Hdtk]; rfl⟩, Hgh, Hpvoff, Hsdr, ?_, ?_, ?_⟩
   · rw [Hdom]
@@ -207,7 +207,7 @@ theorem rawNodeFresh_intro (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet 
   simp only [named]
   iframe Hrn Hphys Hsoft Hhard Hsteps Hcap
   ipureintro
-  exact ⟨rfl, Hasync, Hrel, Hterm0, Hlog, by rw [Hgh], Hpvoff, Hsdr, Hdom, Hhz, Hsvr⟩
+  exact ⟨Hasync, Hrel, Hterm0, Hlog, by rw [Hgh], Hpvoff, Hsdr, Hdom, Hhz, Hsvr⟩
 
 /-- (raft-final phase 2) `rawNodeFresh_intro` with the storage names mirrored in the ghost state
 (`newRaft`'s post: `s.gh = { sn := sn }`). -/
@@ -234,7 +234,7 @@ theorem rawNodeFresh_intro_sn (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GS
   simp only [named]
   iframe Hrn Hphys Hsoft Hhard Hsteps Hcap
   ipureintro
-  exact ⟨rfl, Hasync, Hrel, Hterm0, Hlog, by rw [Hgh], Hpvoff, Hsdr, Hdom, Hhz, Hsvr⟩
+  exact ⟨Hasync, Hrel, Hterm0, Hlog, by rw [Hgh], Hpvoff, Hsdr, Hdom, Hhz, Hsvr⟩
 
 /-- The commit invariant, from the boot ghost state in either mode. -/
 theorem bootInit_inv (γ : RaftNames) (md : RNMode) (id : w64) (V : GSet w64)
