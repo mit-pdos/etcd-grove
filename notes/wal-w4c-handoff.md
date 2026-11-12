@@ -115,7 +115,7 @@ the crash-aware WAL spec (W4a, W4a.1, W4a.2, W4b). The closed theorems are `etcd
         false`); readback (`fromRaft (absEnt e) = e` for `tEntWf e`) can wait for step 3 (it needs
         `fromRaft`'s Lean model).
      e. (done: AbsDisk interface regenerated at `0922c63aec`, api-check clean, the 18 leaf importers of
-        AbsDisk/Specs build.) tcb `--check` after the next full build.
+        AbsDisk/Specs build; tcb `--check` matches the baseline, 865 axioms / 5 sorries: the new Init axioms are reached by no root yet).
      Then CP2 (report).
 4. Steps 3-4 as in plan §8.
 
