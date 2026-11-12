@@ -9,7 +9,7 @@ public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.wal
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.wal.walpb
 public import GeneratedProof.go_etcd_io.raft.v3.raftpb
 public import GeneratedProof.go_uber_org.zap
-public import Perennial.GeneratedProof.os
+public import GeneratedProof.os
 public import Perennial.GeneratedProof.strings
 public import Perennial.Golang.Theory
 public import Code.github_com.mit_pdos.etcd_grove.examples.etcd.wal

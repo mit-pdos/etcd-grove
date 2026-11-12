@@ -2,7 +2,7 @@
 module
 
 public import Code.github_com.mit_pdos.etcd_grove.examples.lib.durable
-public import Perennial.Code.os
+public import Code.os
 public import Perennial.Code.strings
 public import Perennial.Code.github_com.goose_lang.primitive
 public import Code.go_uber_org.zap

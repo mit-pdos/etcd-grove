@@ -993,8 +993,10 @@ PROJECTS = [
         repo=None,
         rev=None,
         local=os.path.join("examples", "etcd", "wal"),
+        # `os` and `io/fs` are this repository's (as the etcd project's), so that the translation
+        # and the WAL's specs can be imported together
         lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
-                    "go.uber.org=", "google.golang.org="],
+                    "go.uber.org=", "google.golang.org=", "os=", "io/fs="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "wal")],
     ),
