@@ -10,6 +10,9 @@ flMaxIds` (ids below the high-water mark, `≤ 2 ^ 36`); every released page is 
 registered reader's snapshot reaches it), which is what keeps every live read transaction's pages
 unwritten; released pages are unreachable, so the reload invariant (`Internal.lean`, "The
 freelist's side") is kept.
+**Changes (2026-11-12, `notes/specs-only/ledger.md`, bucket handles).** The buckets' whole tokens
+(`bktOwn … none 1` for `D.bktPaths`), as `DB.Begin.spec`'s write arm (the per-path generation
+counter it replaces was unobservable state, redundant with ownership).
 -/
 module
 
@@ -37,7 +40,7 @@ def DB.beginRWTx.spec : Prop :=
   ∀ [HasExt osFsExt] (db : Loc) (γ : BoltName) (ns : Bool),
   {{ isBolt (GF := GF) db γ ns }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"beginRWTx")) (Val #()))
-  {{ (tx : Loc) (err : GoInterface), RET (PairV #tx #err); (⌜err = GoInterface.nil⌝ ∗ txDB tx db ∗ txLive tx 1 ∗ ∃ D, boltTx tx γ 1 (TxView.wr D false ns)) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ (dbClosed db ∨ dbBroken γ)) }}
+  {{ (tx : Loc) (err : GoInterface), RET (PairV #tx #err); (⌜err = GoInterface.nil⌝ ∗ txDB tx db ∗ txLive tx 1 ∗ ∃ D, boltTx tx γ 1 (TxView.wr D false ns) ∗ [∗list] p ∈ D.bktPaths, bktOwn tx γ p none 1) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ (dbClosed db ∨ dbBroken γ)) }}
 
 end spec
 

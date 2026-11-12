@@ -1,6 +1,9 @@
 /-
 `b.maxInlineBucketSize()` (`bucket.go`): `pageSize / 4`.
 (internal; mirrors the code. Round 1, review C8: a proved function of the old tree.)
+**Changes (2026-11-12, `notes/specs-only/ledger.md`, bucket handles).** `bktH` (which object `b` is)
+without the generations (the per-path generation counter it replaces was unobservable state,
+redundant with ownership).
 -/
 module
 
@@ -25,8 +28,8 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- (internal) `1024`. -/
 def Bucket.maxInlineBucketSize.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (b : Loc) (p : BPath) (gs : List Nat),
-  {{ boltTx (GF := GF) tx γ q T ∗ bktH tx γ b p gs }}
+  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (b : Loc) (p : BPath),
+  {{ boltTx (GF := GF) tx γ q T ∗ bktH tx γ b p }}
     (App (Val (b @!! go.GoType.PointerType Bucket.ty @!! go!"maxInlineBucketSize")) (Val #()))
   {{ (z : w64), RET #z; boltTx tx γ q T ∗ ⌜uint.nat z = 1024⌝ }}
 

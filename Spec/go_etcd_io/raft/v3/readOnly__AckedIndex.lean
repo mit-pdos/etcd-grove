@@ -34,11 +34,11 @@ No panic, no call. The result is the voter's ack in the `(value-or-0, ok)` form 
 `isAckedIndexer`'s contract (`InvTracker.lean`), which is what this triple exists to
 discharge for `maybeAdvance`. -/
 abbrev readOnly.AckedIndex.spec : Prop :=
-  ∀ (ro : Loc) (r : ReadOnly) (voterID : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hown" ∷ ownReadOnly ro r }}
+  ∀ (sz : Bool) (ro : Loc) (r : ReadOnly) (voterID : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hown" ∷ ownReadOnly sz ro r }}
     (App (Val (ro @!! go.GoType.PointerType readOnly.ty @!! go!"AckedIndex")) (Val #voterID))
   {{ RET (PairV #((r.acks !! voterID).getD (W64 0)) #((r.acks !! voterID).isSome));
-      ownReadOnly ro r }}
+      ownReadOnly sz ro r }}
 
 end spec
 

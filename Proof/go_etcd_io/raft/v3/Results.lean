@@ -88,11 +88,10 @@ namespace EtcdGrove
 
 -- raftpb (stage R1) and the protobuf trust boundary it rests on
 #print axioms proto.wp_CloneConfState
-#print axioms proto.wp_CloneEntry
 #print axioms proto.wp_CloneSnapshot
 #print axioms proto.wp_MarshalConfChange
 #print axioms proto.wp_MarshalConfChangeV2
-#print axioms proto.wp_SizeEntry
+#print axioms proto.wp_SizePb
 #print axioms proto.wp_UnmarshalConfChange
 #print axioms proto.wp_UnmarshalConfChangeV2
 #print axioms raftpb.ConfChangeSingle.wp_GetNodeId

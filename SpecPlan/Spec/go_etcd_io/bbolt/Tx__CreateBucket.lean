@@ -4,6 +4,9 @@
 **Users.** The bank (`bbolttest.go:236`). Snippet: `ReqBank`. **Proof sketch.**
 `Bucket.CreateBucket.spec` at the root (`p = []`; `modAt [] f = f`). **Changes.** As
 `Bucket.CreateBucket`.
+**Changes (2026-11-12, `notes/specs-only/ledger.md`, bucket handles).** The new bucket's whole token
+`bktOwn … [kb] (some c) 1` in place of `bktH … gs` (the per-path generation counter it replaces was
+unobservable state, redundant with ownership).
 -/
 module
 
@@ -46,7 +49,7 @@ def Tx.CreateBucket.spec : Prop :=
              isErr go_etcd_io.bbolt.errors.ErrIncompatibleValue err)
          | none => iprop(⌜err = GoInterface.nil ∧ c ≠ Loc.null⌝ ∗
              boltTx tx γ q (T.setCur (T.cur.setKey kb (some (Ent.bkt (W64 0) [])))) ∗
-             bktH tx γ c [kb] (T.gens [kb]))) }}
+             bktOwn tx γ [kb] (some c) 1)) }}
 
 end spec
 

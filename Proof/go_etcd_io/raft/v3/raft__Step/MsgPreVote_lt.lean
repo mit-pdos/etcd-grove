@@ -137,7 +137,7 @@ theorem wp_Step_MsgPreVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   imod cellRO_alloc _ _ $$ Hpty with #cTy
   imod cellRO_alloc _ _ $$ «$v1» with #cTe
   imod cellRO_alloc _ _ $$ «$v3» with #cRj
-  imod msgOwn_of_resp _ _ _ _ _ MsgPreVoteResp m.From' s.term true ⊤ $$ [«$a0»] with Hresp
+  imod msgOwn_of_resp _ _ _ _ _ _ MsgPreVoteResp m.From' s.term true ⊤ $$ [«$a0»] with Hresp
   · iframe «$a0» cTy cFr cTe cRj
   let resp : MessageM :=
     ⟨MsgPreVoteResp, m.From', W64 0, s.term, W64 0, W64 0, W64 0, W64 0, true, W64 0⟩
@@ -153,7 +153,7 @@ theorem wp_Step_MsgPreVote_lt (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       (fun h => absurd h (by show MsgPreVoteResp ≠ MsgSnap; w32_ne))
       (fun h => absurd h (by show MsgPreVoteResp ≠ MsgApp; w32_ne))
     rfl $$ [$Hphys $Hresp]
-  · iapply tsSrcU_ne; exact (fun h => absurd h (by show MsgPreVoteResp ≠ MsgSnap; w32_ne))
+  · iapply tsSrc_ne; exact (fun h => absurd h (by show MsgPreVoteResp ≠ MsgSnap; w32_ne))
   iintro Hphys
   wp_auto
   iapply HΦ $$ %interface.nil %_

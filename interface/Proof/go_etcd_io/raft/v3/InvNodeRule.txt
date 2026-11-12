@@ -6,7 +6,7 @@ def skippedIn (γ : Cluster) (l : List LogEntry) (a b : Nat) : IProp GF :=
   [∗list] j ∈ List.range' a (b - a), iprop(∀ e, ⌜l[j]? = some e ∧ e.isConfChange⌝ → confDecided γ j ConfDecision.skip)
 
 def isStorage (γ : Cluster) (K : GName) (st : Storage) : IProp GF :=
-  isStorageP (snapshotValid γ) (storBnd γ K) (nodeCommitLb γ K) st
+  isStorageP γ.maxData.isSome (snapshotValid γ) (storBnd γ K) (nodeCommitLb γ K) st
 
 theorem nodeRunning_stopped [package_sem : Assumptions] (n : Loc) (γ : Cluster) (N : Namespace) (q :
     Qp) : nodeRunning n γ N q ∗ nodeStopped n γ N ⊢ False

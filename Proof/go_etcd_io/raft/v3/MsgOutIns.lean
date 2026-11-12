@@ -5,7 +5,7 @@ raft (not in `etc/api/raft.txt`): only raft's own proofs hand objects out.
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.MsgOut
+public import Proof.go_etcd_io.raft.v3.MsgOwnZ
 
 @[expose] public section
 
@@ -25,9 +25,10 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **Insert an object and its content into the handed-out set** (an element already in it is had
-again). -/
+again). (out_size C2) In a cluster with a bound on proposed data, only at a content of bounded size
+(`outSizeOk`), which the element then carries (`outSetR`, whence `out_size`). -/
 theorem raftOutInv_insert (γ : RaftNames) (x : Sum (Loc × MsgC) (Loc × EntryC)) (E : CoPset)
-    (HE : ↑(raftOutN γ) ⊆ E) :
+    (HE : ↑(raftOutN γ) ⊆ E) (Hsz : ∀ b, γ.maxData = some b → outSizeOk x) :
     ⊢ raftOutInv (GF := GF) γ ={E}=∗ outSetR γ x := by
   unfold raftOutInv raftOutBody outSetR
   iintro #Hinv
@@ -42,7 +43,8 @@ theorem raftOutInv_insert (γ : RaftNames) (x : Sum (Loc × MsgC) (Loc × EntryC
         ghostMapElem (GF := GF) γ.out p DFrac.discard ()) hk).2
       iframe He Hels
     imodintro
-    iexact He
+    iframe He
+    ipureintro; exact Hsz
   · obtain ⟨u, hu⟩ := Option.ne_none_iff_exists'.1 hk
     ihave #He := BigSepM.bigSepM_lookup (Φ := fun (p : Pos) (_ : Unit) =>
       ghostMapElem (GF := GF) γ.out p DFrac.discard ()) (m := S)
@@ -52,21 +54,24 @@ theorem raftOutInv_insert (γ : RaftNames) (x : Sum (Loc × MsgC) (Loc × EntryC
       iexists S
       iframe Ha Hels
     imodintro
-    iexact He
+    iframe He
+    ipureintro; exact Hsz
 
-/-- A message handed out: owned, with its `snapUf`, into the set at a content raft pins. -/
+/-- A message handed out: held at a content raft pins (`msgOwnZ`, out_size C3; until then owned with
+its `snapUf`), into the set at that content, whose size the cluster's flag bounds. -/
 theorem msgOutR_intro (γ : RaftNames) (l : Loc) (dq : DFrac) (st : MsgSt) (E : CoPset)
     (HE : ↑(raftOutN γ) ⊆ E) :
-    ⊢ raftOutInv (GF := GF) γ -∗ msgOwn l dq st -∗ snapUf l st ={E}=∗ msgOutR γ l dq st := by
-  iintro #Hinv Hm #Hu
-  icases msgOwn_snapUf_CC l dq st $$ [Hm] with ⟨%c, Hc, %Hok⟩
-  · iframe Hm Hu
-  imod raftOutInv_insert γ (.inl (l, c)) E HE $$ Hinv with #Ho
+    ⊢ raftOutInv (GF := GF) γ -∗ msgOwnZ γ.maxData.isSome l dq st ={E}=∗ msgOutR γ l dq st := by
+  iintro #Hinv Hm
+  unfold msgOwnZ
+  icases Hm with ⟨%c, Hc, %Hok⟩
+  obtain ⟨Hmod, Hsent, Hsz⟩ := Hok
+  imod raftOutInv_insert γ (.inl (l, c)) E HE (fun b hb => Hsz (by rw [hb]; rfl)) $$ Hinv with #Ho
   imodintro
   unfold msgOutR
   iexists c
   iframe Hc Ho
-  ipureintro; exact Hok
+  ipureintro; exact ⟨Hmod, Hsent⟩
 
 end lemmas
 

@@ -39,7 +39,7 @@ theorem raft.handleHeartbeat.wp_proof
     (wp_GetContext : raftpb.Message.GetContext.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.handleHeartbeat.spec (GF := GF) (hG := hG) := by
-  intro c r id s ml dq dqe cap m ents sn cl rs Hcommit Hfrom Htz
+  intro c r id s ml dq dqe cap m ents sn cl rs Hcommit Hfrom Htz Hctx
   wp_start as H
   iNamed H
   wp_auto
@@ -61,7 +61,8 @@ theorem raft.handleHeartbeat.wp_proof
   wp_auto
   wp_apply wp_GetContext.1 $$ [$Hm] as %cs ⟨#Hcs, Hm⟩
   try wp_auto
-  imod msgOwn_lit «$a0_ptr» _ ⟨W32 9, m.From', 0, 0, 0, 0, 0, 0, false, 0⟩ cl ⊤ $$ [«$a0»] with Hr
+  imod msgOwnZ_lit s.gh.sn.sz «$a0_ptr» _ ⟨W32 9, m.From', 0, 0, 0, 0, 0, 0, false, 0⟩ cl ⊤ Hctx
+    $$ [«$a0»] with Hr
   · iframe «$a0» cTy cFr Hcs
     isplitr
     · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
@@ -72,7 +73,7 @@ theorem raft.handleHeartbeat.wp_proof
   wp_apply wp_raft_send c r id _ «$a0_ptr» _ [] none cl [] _ (Or.inl rfl) (Hok _ (by first | exact Htz | simpa using Htz | simp_all))
     (fun h => absurd h (by simp [MsgSnap]))
       (fun h => absurd h (by simp [MsgApp])) rfl $$ [$Hphys $Hr] as Hphys
-  · iapply tsSrcU_ne; exact (fun h => absurd h (by simp [MsgSnap]))
+  · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
   try wp_auto
   iapply HΦ
   iframe Hm

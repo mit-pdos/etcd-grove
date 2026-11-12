@@ -273,6 +273,16 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
       cv.ID' ∈ ps ∧ γ.vs = ps ∧ srvBootLogOk ps γ.boot⌝ ∗
     "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
     "#Hreg" ∷ memStorReg bv.storage' γs ∗
+    -- (out_size C2, 2026-11-12; approved by the user via etcd-grove-81) the fresh storage is sized
+    -- (`MemStorNames.sz`, a ghost choice: `Append` then takes only entry objects at contents with
+    -- `entSizeOk`, and `Entries` returns them cut at `maxSize`), as the node API's `isStorage` asks
+    -- of a cluster that bounds proposed data (the server's: `maxData = some 2^30`). True of Go: a
+    -- new member's storage is `bootstrapWAL`'s `MemoryStorage()` -- `raft.NewMemoryStorage()`,
+    -- `SetHardState`, and `Append` of the fresh WAL's entries, of which there are none
+    -- (`bootstrap.go`, `bootstrappedWAL.MemoryStorage`) -- so it holds only the dummy entry `{}`,
+    -- without data, which `Entries` never returns; every later entry is one the server's raft loop
+    -- appends from a `Ready` (`isRNMemStor`, `entsROz true`)
+    "%Hγsz" ∷ ⌜γs.sz = true⌝ ∗
     -- (D19r (B), 2026-10-18) the registry's authority, given empty, back with the new storage
     "Hrauth" ∷ memStorRegAuth (GMap.insert bv.storage' γs.tuple (∅ : GMap Loc MemStorNamesRec)) ∗
     -- (2026-10-30, the repair: raft's two-writer `MemoryStorage` specs) the fresh storage as

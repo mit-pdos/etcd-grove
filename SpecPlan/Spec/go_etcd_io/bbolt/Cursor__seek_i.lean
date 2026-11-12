@@ -9,6 +9,10 @@ would have to return the next leaf's entry: the cursor is now left as `curPath` 
 possibly past its leaf's end), and what is returned is stated (`seekRaw`: the key's entry when the
 bucket has it, a nested bucket's stored value as `bktVal`), which `Bucket.Bucket`, `Get`,
 `CreateBucket*`, `DeleteBucket`, `Put`, `Delete` test (`bytes.Equal`, the flags).
+**Changes (2026-11-12, `notes/specs-only/ledger.md`, bucket handles).** The handle premise `bktUse`
+(the bucket's ownership share in a write transaction) in place of the generation check, given back;
+the cursor names its handle `b` in place of `gs` (the per-path generation counter it replaces was
+unobservable state, redundant with ownership).
 -/
 module
 
@@ -34,11 +38,11 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- (internal) the search path of `key` (`curPath`, possibly past its leaf's end), returning
 `key`'s entry if the bucket has it (`seekRaw`). -/
 def Cursor.seek.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx c : Loc) (γ : BoltName) (q : Qp) (T : TxView) (p : BPath) (gs : List Nat) (pos : Option Nat) (key : GoSlice) (kb : GoString) (dk : DFrac),
-  {{ boltTx (GF := GF) tx γ q T ∗ boltCur tx γ c p gs T pos ∗ key ↦*{dk} kb ∗ ⌜T.gens p = gs⌝ }}
+  ∀ [HasExt osFsExt] (tx c : Loc) (γ : BoltName) (q : Qp) (T : TxView) (b : Loc) (p : BPath) (qb : Qp) (pos : Option Nat) (key : GoSlice) (kb : GoString) (dk : DFrac),
+  {{ boltTx (GF := GF) tx γ q T ∗ boltCur tx γ c b p T pos ∗ key ↦*{dk} kb ∗ bktUse tx γ T.rw b p qb }}
     (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"seek")) (Val #key))
-  {{ (k v : GoSlice) (fl : w32), RET (PairV #k (PairV #v #fl)); boltTx tx γ q T ∗ key ↦*{dk} kb ∗
-      curPath tx γ c p gs T kb ∗ seekRaw tx γ p (T.ents p) kb k v fl }}
+  {{ (k v : GoSlice) (fl : w32), RET (PairV #k (PairV #v #fl)); bktUse tx γ T.rw b p qb ∗ boltTx tx γ q T ∗ key ↦*{dk} kb ∗
+      curPath tx γ c b p T kb ∗ seekRaw tx γ p (T.ents p) kb k v fl }}
 
 end spec
 

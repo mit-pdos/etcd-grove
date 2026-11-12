@@ -50,6 +50,8 @@ abbrev raft.bcastHeartbeatWithCtx.spec : Prop :=
   s.role = .leader →
   -- (2026-10-29, stage U7) the term past `0` that `send` stamps (`SentMsgShape`)
   s.term ≠ W64 0 →
+  -- (out_size C3) the context within the entry bound (`sendHeartbeat`'s premise)
+  cl.length ≤ entBytesMax →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "#Hctx" ∷ ctx ↦*□ cl }}

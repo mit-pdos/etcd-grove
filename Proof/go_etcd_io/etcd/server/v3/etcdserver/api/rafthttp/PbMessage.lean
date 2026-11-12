@@ -29,6 +29,7 @@ module
 public import Proof.google_golang_org.protobuf.proto.InvProto
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Net
 public import Proof.go_etcd_io.raft.v3.InvPbMsg
+public import Proof.go_etcd_io.raft.v3.PbEntryType
 
 @[expose] public section
 
@@ -105,45 +106,6 @@ def pbMessage : PbType GF where
     (pbMessage (GF := GF)).blank l = iprop(l ↦ (zero_val raftpb.Message)) := rfl
 @[simp] theorem pbMessage_dec (l : Loc) (st : MsgSt) :
     (pbMessage (GF := GF)).dec l st = msgPtsC l (DFrac.own 1) (DFrac.own 1) true st := rfl
-
-/-! ### Entries (the msgappv2 codec's short frame marshals them one by one) -/
-
-/-- **Decoding a `raftpb.Entry`'s bytes** (opaque): the entry, or `none`. -/
-opaque entDecode (bs : List w8) : Option EntryM
-
-/-- **`bs` is an encoding of the entry `e`**: `bs` decodes to it (every entry marshals, of any
-`EntryType` value: the file header). -/
-def EntWireOk (e : EntryM) (bs : List w8) : Prop :=
-  entDecode bs = some e
-
-/-- **A `*raftpb.Entry` at the bytes** (a trusted wire model, read against `raft.proto`'s `Entry`:
-`Term`, `Index`, `Type`, `Data`, all in `EntryM`): read-only for good and decoded alike, a log
-entry (`entRO`); blank, a zero struct. -/
-def pbEntry : PbType GF where
-  ty := raftpb.Entry.ty
-  M := EntryM
-  ro l e := entRO l e
-  ro_persistent l e := entRO_persistent l e
-  marshals _ := True
-  wire := EntWireOk
-  eqv e e' := e = e'
-  blank l := iprop(l ↦ (zero_val raftpb.Entry))
-  dec l e := entRO l e
-
-@[simp] theorem pbEntry_ty : (pbEntry (GF := GF)).ty = raftpb.Entry.ty := rfl
-@[simp] theorem pbEntry_M : (pbEntry (GF := GF)).M = EntryM := rfl
-@[simp] theorem pbEntry_ro (l : Loc) (e : EntryM) : (pbEntry (GF := GF)).ro l e = entRO l e := rfl
-@[simp] theorem pbEntry_marshals (e : EntryM) :
-    (pbEntry (GF := GF)).marshals e = True := rfl
-@[simp] theorem pbEntry_wire : (pbEntry (GF := GF)).wire = EntWireOk := rfl
-@[simp] theorem pbEntry_blank (l : Loc) :
-    (pbEntry (GF := GF)).blank l = iprop(l ↦ (zero_val raftpb.Entry)) := rfl
-@[simp] theorem pbEntry_dec (l : Loc) (e : EntryM) : (pbEntry (GF := GF)).dec l e = entRO l e := rfl
-
-/-- One encoding is of one entry. -/
-theorem EntWireOk.inj {e e' : EntryM} {bs : List w8} (h : EntWireOk e bs) (h' : EntWireOk e' bs) :
-    e = e' :=
-  Option.some.inj (h.symm.trans h')
 
 /-- **Two messages of which the same bytes are an encoding agree on the wire.** -/
 theorem pbMessage_wire_eq {st st' : MsgSt} {bs : List w8} (h : MsgWireOk st bs)

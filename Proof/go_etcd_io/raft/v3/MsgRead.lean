@@ -1,5 +1,7 @@
 /-
-**Reading a message held at a content through today's specs** (raft-entsize §4, 2026-11-10).
+**Reading a message held at a content through today's specs** (raft-entsize §4, 2026-11-10; out_size
+C3, 2026-11-12: moved here from rafthttp, with `msgPtsCC_of_struct` from rafthttp's `MsgAppV2`, for
+raft's outbox, decided by etcd-grove-81).
 
 A received message is owned at a content (`msgPtsCC ml 1 1 true c`, what `netRecv` hands `Process` and
 `stepIn_intro` takes, with the content's size fact), but the code reads it through specs stated over
@@ -31,7 +33,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 section halves
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- Half of the whole (`(1 : Qp).half`). -/
@@ -95,7 +97,7 @@ end halves
 section cs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 theorem csPtsCC_split (p : Loc) (c : CSC) :
@@ -200,7 +202,7 @@ end cs
 section snap
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 theorem smPtsCC_split (p : Loc) (m : SnapMetaC) :
@@ -333,13 +335,13 @@ end snap
 section msg
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 set_option maxHeartbeats 1000000 in
-theorem msgPtsCC_split (l : Loc) (cap : Bool) (c : MsgC) :
-    msgPtsCC (GF := GF) l (DFrac.own 1) (DFrac.own 1) cap c ⊢
-      msgPtsCC l dqh dqh cap c ∗ msgPtsCC l dqh dqh false c := by
+theorem msgPtsCC_splitE (l : Loc) (cap : Bool) (c : MsgC) (dqa dqb : DFrac) :
+    msgPtsCC (GF := GF) l (DFrac.own 1) (dqa • dqb) cap c ⊢
+      msgPtsCC l dqh dqa cap c ∗ msgPtsCC l dqh dqb false c := by
   unfold msgPtsCC
   iintro ⟨%pty, %pto, %pfr, %pte, %plt, %pix, %pco, %pvo, %prj, %prh, %es, %els, %ps, %cs, %rs,
     %Hnn, HTy, #cTy, HTo, #cTo, HFr, #cFr, HTe, #cTe, HLt, #cLt, HIx, #cIx, HCo, #cCo,
@@ -358,7 +360,7 @@ theorem msgPtsCC_split (l : Loc) (cap : Bool) (c : MsgC) :
   icases (tpt_halves _ ps).1 $$ HSn with ⟨HSn1, HSn2⟩
   icases (tpt_halves _ cs).1 $$ HCx with ⟨HCx1, HCx2⟩
   icases (tpt_halves _ rs).1 $$ HRs with ⟨HRs1, HRs2⟩
-  icases (slice_halves es els).1 $$ Hes with ⟨Hes1, Hes2⟩
+  icases ((ownSlice_dfractional (GF := GF) es els).dfractional dqa dqb).1 $$ Hes with ⟨Hes1, Hes2⟩
   icases (slice_halves rs _).1 $$ Hrs with ⟨Hrs1, Hrs2⟩
   icases snapOptCC_split ps _ $$ Hsn with ⟨Hsn1, Hsn2⟩
   isplitl [HTy1 HTo1 HFr1 HTe1 HLt1 HIx1 HCo1 HVo1 HRj1 HRh1 HEs1 HSn1 HCx1 HRs1 Hes1 Hrs1 Hsn1 Hcap]
@@ -369,9 +371,9 @@ theorem msgPtsCC_split (l : Loc) (cap : Bool) (c : MsgC) :
     iframe; iframe #; ipureintro; exact Hnn
 
 set_option maxHeartbeats 1000000 in
-theorem msgPtsCC_join (l : Loc) (cap : Bool) (c c' : MsgC) :
-    msgPtsCC (GF := GF) l dqh dqh cap c ∗ msgPtsCC l dqh dqh false c' ⊢
-      msgPtsCC l (DFrac.own 1) (DFrac.own 1) cap c := by
+theorem msgPtsCC_joinE (l : Loc) (cap : Bool) (c c' : MsgC) (dqa dqb : DFrac) :
+    msgPtsCC (GF := GF) l dqh dqa cap c ∗ msgPtsCC l dqh dqb false c' ⊢
+      msgPtsCC l (DFrac.own 1) (dqa • dqb) cap c := by
   unfold msgPtsCC
   iintro ⟨⟨%pty, %pto, %pfr, %pte, %plt, %pix, %pco, %pvo, %prj, %prh, %es, %els, %ps, %cs, %rs,
     %Hnn, HTy, #cTy, HTo, #cTo, HFr, #cFr, HTe, #cTe, HLt, #cLt, HIx, #cIx, HCo, #cCo,
@@ -394,11 +396,46 @@ theorem msgPtsCC_join (l : Loc) (cap : Bool) (c c' : MsgC) :
   ihave ⟨HCx, %e13⟩ := tpt_join _ cs cs' $$ [$HCx $HCx']
   ihave ⟨HRs, %e14⟩ := tpt_join _ rs rs' $$ [$HRs $HRs']
   subst e1 e2 e3 e4 e5 e6 e7 e8 e9 e10 e11 e12 e13 e14
-  ihave ⟨Hes, -⟩ := slice_join es els els' $$ [$Hes $Hes']
+  ihave ⟨⟨Hes, Hes'⟩, %f1⟩ := slice_agree_keep es dqa dqb els els' $$ [$Hes $Hes']
+  subst f1
+  ihave Hes := ((ownSlice_dfractional (GF := GF) es els).dfractional dqa dqb).2 $$ [$Hes $Hes']
   ihave ⟨Hrs, -⟩ := slice_join rs _ _ $$ [$Hrs $Hrs']
   ihave Hsn := snapOptCC_join ps _ _ $$ [$Hsn $Hsn']
   iexists pty, pto, pfr, pte, plt, pix, pco, pvo, prj, prh, es, els, ps, cs, rs
   iframe; iframe #; ipureintro; exact Hnn
+
+theorem msgPtsCC_split (l : Loc) (cap : Bool) (c : MsgC) :
+    msgPtsCC (GF := GF) l (DFrac.own 1) (DFrac.own 1) cap c ⊢
+      msgPtsCC l dqh dqh cap c ∗ msgPtsCC l dqh dqh false c := by
+  have h := msgPtsCC_splitE (GF := GF) l cap c dqh dqh
+  rw [dqh_op] at h
+  exact h
+
+theorem msgPtsCC_join (l : Loc) (cap : Bool) (c c' : MsgC) :
+    msgPtsCC (GF := GF) l dqh dqh cap c ∗ msgPtsCC l dqh dqh false c' ⊢
+      msgPtsCC l (DFrac.own 1) (DFrac.own 1) cap c := by
+  have h := msgPtsCC_joinE (GF := GF) l cap c c' dqh dqh
+  rw [dqh_op] at h
+  exact h
+
+/-- **A message held at a content, read through today's form**, its entries' slice at `dqa • dqb`
+(see the file header): half of it in today's form (the slice at `dqb`), and what rebuilds the whole
+at the same content from that half given back. (out_size C3: over the slice's fraction, for raft's
+messages, whose entries' slices are read-only.) -/
+theorem msgPtsCC_readE (l : Loc) (cap : Bool) (c : MsgC) (hcs : c.csUfNil) (dqa dqb : DFrac) :
+    msgPtsCC (GF := GF) l (DFrac.own 1) (dqa • dqb) cap c ⊢
+      msgPtsC l dqh dqb false c.model ∗
+        (msgPtsC l dqh dqb false c.model -∗ msgPtsCC l (DFrac.own 1) (dqa • dqb) cap c) := by
+  iintro H
+  icases msgPtsCC_splitE l cap c dqa dqb $$ H with ⟨H1, H2⟩
+  ihave H2 := msgPtsCC_msgPtsC l dqh dqb false c hcs $$ H2
+  iframe H2
+  iintro H2
+  icases msgPtsC_msgPtsCC l dqh dqb false c.model $$ H2 with ⟨%c', H2, -⟩
+  iapply msgPtsCC_joinE l cap c c' dqa dqb
+  isplitl [H1]
+  · iexact H1
+  · iexact H2
 
 /-- **A message held at a content, read through today's form** (see the file header): half of it in
 today's form, and what rebuilds the whole at the same content from that half given back. -/
@@ -406,18 +443,93 @@ theorem msgPtsCC_read (l : Loc) (cap : Bool) (c : MsgC) (hcs : c.csUfNil) :
     msgPtsCC (GF := GF) l (DFrac.own 1) (DFrac.own 1) cap c ⊢
       msgPtsC l dqh dqh false c.model ∗
         (msgPtsC l dqh dqh false c.model -∗ msgPtsCC l (DFrac.own 1) (DFrac.own 1) cap c) := by
-  iintro H
-  icases msgPtsCC_split l cap c $$ H with ⟨H1, H2⟩
-  ihave H2 := msgPtsCC_msgPtsC l dqh dqh false c hcs $$ H2
-  iframe H2
-  iintro H2
-  icases msgPtsC_msgPtsCC l dqh dqh false c.model $$ H2 with ⟨%c', H2, -⟩
-  iapply msgPtsCC_join l cap c c'
-  isplitl [H1]
-  · iexact H1
-  · iexact H2
+  have h := msgPtsCC_readE (GF := GF) l cap c hcs dqh dqh
+  rw [dqh_op] at h
+  exact h
 
 end msg
+
+section lit
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- A fresh cell, frozen, is a set optional field. -/
+theorem optCell_alloc {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Loc) (v : V) :
+    (p ↦ v : IProp GF) ⊢ |==> optCell p (some v) := by
+  iintro H
+  imod (typedPointsto_dfractional (GF := GF) p v).dfractional_persist _ $$ H with #H
+  imodintro
+  simp only [optCell]
+  iexact H
+
+/-- **A freshly allocated `*pb.Message` at a content** (raft-entsize §4: `msgPtsC_of_struct_uf`'s
+content form): its hidden fields zero, its pointer fields at the content's presences, its `Entries`
+a slice of entries frozen at the content's (elements at `dqe`, the capacity when `cap`), its
+`Snapshot` and `Context` at the content's, no responses, and no unknown fields. -/
+theorem msgPtsCC_of_struct (l : Loc) (v : raftpb.Message) (dqe : DFrac) (cap : Bool)
+    (els : List Loc) (f : MsgFC) (E : CoPset) (Hu : v.unknownFields' = slice.nil) (Hf : f.uf = []) :
+    (l ↦ v ∗ optCell v.Type' f.type ∗ optCell v.To' f.to ∗ optCell v.From' f.frm ∗
+      optCell v.Term' f.term ∗ optCell v.LogTerm' f.logTerm ∗ optCell v.Index' f.index ∗
+      optCell v.Commit' f.commit ∗ optCell v.Vote' f.vote ∗ optCell v.Reject' f.reject ∗
+      optCell v.RejectHint' f.rejectHint ∗
+      v.Entries' ↦*{dqe} els ∗ ([∗list] p;e ∈ els;f.entries, entRoC p e) ∗
+      (if cap then ownSliceCap Loc v.Entries' (DFrac.own 1) else emp) ∗
+      snapOptCC v.Snapshot' (DFrac.own 1) f.snapshot ∗ bytesC v.Context' f.context ∗
+      v.Responses' ↦* ([] : List Loc) : IProp GF) ⊢
+      |={E}=> msgPtsCC l (DFrac.own 1) dqe cap (.mk f []) := by
+  iintro ⟨Hl, #cTy, #cTo, #cFr, #cTe, #cLt, #cIx, #cCo, #cVo, #cRj, #cRh, Hes, #Hents, Hes_cap,
+    Hsn, #Hcs, Hrs⟩
+  ihave %Hnn := typedPointsto_not_null $$ Hl
+  icases typedPointsto_split _ _ _ $$ Hl with Hl
+  simp only [TypedPointsto.typedPointstoDef]
+  icases Hl with ⟨state, Ty, To, From, Term, LogTerm, Index, Entries, Commit, Vote, Snapshot,
+    Reject, RejectHint, Context, Responses, unknownFields, sizeCache, -⟩
+  rw [Hu]
+  ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
+  · iapply ownSlice_nil
+  imod pbMsg_alloc raftpb.Message l v.state' v.sizeCache' slice.nil [] E (ufWire_nil _) $$
+    [state sizeCache unknownFields Hnil] with #Hpb
+  · iframe
+  imodintro
+  unfold msgPtsCC
+  iexists v.Type', v.To', v.From', v.Term', v.LogTerm', v.Index', v.Commit', v.Vote', v.Reject',
+    v.RejectHint', v.Entries', els, v.Snapshot', v.Context', v.Responses'
+  simp only [MsgC.f, MsgC.resps, List.map_nil, Hf]
+  isplitr
+  · ipureintro; exact Hnn
+  iframe
+  iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hents Hcs Hpb
+
+/-- A message's object's unknown fields (its `pbMsg`). -/
+theorem msgPtsCC_pbMsg (l : Loc) (dq dqe : DFrac) (cap : Bool) (c : MsgC) :
+    msgPtsCC (GF := GF) l dq dqe cap c ⊢ pbMsg raftpb.Message l c.f.uf := by
+  iintro H
+  iunfold msgPtsCC at H
+  icases H with ⟨%pty, %pto, %pfr, %pte, %plt, %pix, %pco, %pvo, %prj, %prh, %es, %els, %ps, %cs,
+    %rsl, %Hnn, HTy, #cTy, HTo, #cTo, HFr, #cFr, HTe, #cTe, HLt, #cLt, HIx, #cIx, HCo, #cCo,
+    HVo, #cVo, HRj, #cRj, HRh, #cRh, HEs, Hes, #Hents, Hcap, HSn, Hsn, HCx, #Hcx, HRs, Hrs, #Hpb⟩
+  iexact Hpb
+
+/-- **A message at a content, frozen**: its entries slice frozen, its capacity dropped. -/
+theorem msgPtsCC_freeze (l : Loc) (dq dqe : DFrac) (cap : Bool) (c : MsgC) :
+    msgPtsCC (GF := GF) l dq dqe cap c ⊢ |==> msgPtsCC l dq DFrac.discard false c := by
+  unfold msgPtsCC
+  iintro ⟨%pty, %pto, %pfr, %pte, %plt, %pix, %pco, %pvo, %prj, %prh, %es, %els, %ps, %cs,
+    %rsl, %Hnn, HTy, #cTy, HTo, #cTo, HFr, #cFr, HTe, #cTe, HLt, #cLt, HIx, #cIx, HCo, #cCo,
+    HVo, #cVo, HRj, #cRj, HRh, #cRh, HEs, Hes, #Hents, -, HSn, Hsn, HCx, #Hcx, HRs, Hrs, #Hpb⟩
+  imod (ownSlice_dfractional (GF := GF) _ _).dfractional_persist _ $$ Hes with #Hes
+  imodintro
+  iexists pty, pto, pfr, pte, plt, pix, pco, pvo, prj, prh, es, els, ps, cs, rsl
+  simp only [Bool.false_eq_true, ↓reduceIte]
+  isplitr
+  · ipureintro; exact Hnn
+  iframe
+  iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hes Hents Hcx Hpb
+
+end lit
 
 end EtcdGrove
 end Perennial

@@ -79,17 +79,16 @@ abbrev respStruct (pty pto pte prj : Loc) : raftpb.Message :=
     Context' := slice.nil, Responses' := slice.nil, unknownFields' := slice.nil,
     sizeCache' := 0 }
 
-/-- A response raft builds, `&pb.Message{To: .., Term: .., Type: .., Reject: ..}` (each set
-field a cell; `Term`/`Reject` may be unset, `null`), is an owned message without entries,
-snapshot, context or responses. -/
-theorem msgOwn_of_resp (l pty pto pte prj : Loc) (ty : raftpb.MessageType) (to te : w64)
+/-- `msgOwn_of_resp`'s owned message, with the fresh object's `pbMsg` (out_size C3). -/
+theorem msgOwn_of_resp_uf (l pty pto pte prj : Loc) (ty : raftpb.MessageType) (to te : w64)
     (rj : Bool) (E : CoPset) :
     (l ↦ respStruct pty pto pte prj ∗
       cellRO pty ty ∗ cellRO pto to ∗ cellRO pte te ∗ cellRO prj rj : IProp GF) ⊢
       |={E}=> msgOwn l (DFrac.own 1)
-        ⟨⟨ty, to, W64 0, te, W64 0, W64 0, W64 0, W64 0, rj, W64 0⟩, [], none, [], []⟩ := by
+        ⟨⟨ty, to, W64 0, te, W64 0, W64 0, W64 0, W64 0, rj, W64 0⟩, [], none, [], []⟩ ∗
+        pbMsg raftpb.Message l [] := by
   iintro ⟨Hl, #cTy, #cTo, #cTe, #cRj⟩
-  iapply (msgOwn_of_struct l (respStruct pty pto pte prj) [] _ E rfl)
+  iapply (msgOwn_of_struct_uf l (respStruct pty pto pte prj) [] _ E rfl)
   dsimp only
   iframe Hl
   iframe cTy cTo cTe cRj
@@ -105,6 +104,21 @@ theorem msgOwn_of_resp (l pty pto pte prj : Loc) (ty : raftpb.MessageType) (to t
   isplitr
   · iapply ownSlice_nil
   iapply ownSlice_nil
+
+/-- A response raft builds, `&pb.Message{To: .., Term: .., Type: .., Reject: ..}` (each set
+field a cell; `Term`/`Reject` may be unset, `null`), is an owned message without entries,
+snapshot, context or responses. -/
+theorem msgOwn_of_resp (sz : Bool) (l pty pto pte prj : Loc) (ty : raftpb.MessageType) (to te : w64)
+    (rj : Bool) (E : CoPset) :
+    (l ↦ respStruct pty pto pte prj ∗
+      cellRO pty ty ∗ cellRO pto to ∗ cellRO pte te ∗ cellRO prj rj : IProp GF) ⊢
+      |={E}=> msgOwnZ sz l (DFrac.own 1)
+        ⟨⟨ty, to, W64 0, te, W64 0, W64 0, W64 0, W64 0, rj, W64 0⟩, [], none, [], []⟩ := by
+  iintro H
+  imod msgOwn_of_resp_uf l pty pto pte prj ty to te rj E $$ H with ⟨Hm, #Hp⟩
+  imodintro
+  iapply msgOwnZ_of_uf sz l (DFrac.own 1) _ ⟨rfl, fun _ _ => ⟨rfl, rfl, by simp⟩⟩
+  iframe Hm Hp
 
 omit [GooseInterp] [GooseSemantics] go_gctx in
 /-- `send`'s premise for the vote response the `MsgVote` tails build (`Term: term`,
@@ -287,7 +301,7 @@ macro "vote_grant_tail" : tactic => `(tactic| (
   imod cellRO_alloc _ _ $$ Hpty with #cTy
   ihave #cRj : cellRO (GF := GF) null false $$ []
   · iapply (show ⊢ cellRO (GF := GF) null false from cellRO_null (V := Bool))
-  imod msgOwn_of_resp _ _ _ _ _ MsgVoteResp m.From' m.Term' false ⊤ $$ [«$a0»] with Hresp
+  imod msgOwn_of_resp _ _ _ _ _ _ MsgVoteResp m.From' m.Term' false ⊤ $$ [«$a0»] with Hresp
   · iframe «$a0» cTy cFr cTe cRj
   wp_apply _P.send c r id s «$a0_ptr» _ [] none [] [] _ (.inl rfl)
       (sendOk_voteResp id s m.From' m.Term' false Hterm
@@ -295,7 +309,7 @@ macro "vote_grant_tail" : tactic => `(tactic| (
       (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
       (fun h => absurd h (by show MsgVoteResp ≠ MsgApp; w32_ne)) rfl $$ [Hphys Hresp] as Hphys
   · iframe
-    iapply tsSrcU_ne; exact (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
+    iapply tsSrc_ne; exact (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
   wp_gets
   rw [Hty]
   try wp_auto
@@ -346,7 +360,7 @@ macro "vote_reject_tail" : tactic => `(tactic| (
   imod cellRO_alloc _ _ $$ Hpty with #cTy
   imod cellRO_alloc _ _ $$ «$v1» with #cTe
   imod cellRO_alloc _ _ $$ «$v3» with #cRj
-  imod msgOwn_of_resp _ _ _ _ _ MsgVoteResp m.From' s.term true ⊤ $$ [«$a0»] with Hresp
+  imod msgOwn_of_resp _ _ _ _ _ _ MsgVoteResp m.From' s.term true ⊤ $$ [«$a0»] with Hresp
   · iframe «$a0» cTy cFr cTe cRj
   -- the response carries `s.term`, so `send`'s `m.Term ≠ 0` premise is the incoming
   -- message's, transported along `m.Term = s.term`
@@ -356,7 +370,7 @@ macro "vote_reject_tail" : tactic => `(tactic| (
       (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
       (fun h => absurd h (by show MsgVoteResp ≠ MsgApp; w32_ne)) rfl $$ [Hphys Hresp] as Hphys
   · iframe
-    iapply tsSrcU_ne; exact (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
+    iapply tsSrc_ne; exact (fun h => absurd h (by show MsgVoteResp ≠ MsgSnap; w32_ne))
   iapply HΦ $$ %interface.nil %_
   iframe Hphys
   ipureintro
@@ -412,7 +426,7 @@ macro "prevote_resp_tail " grant:ident : tactic =>
        imod cellRO_alloc _ _ $$ Hpty with #cTy
        ihave #cRj : cellRO (GF := GF) null false $$ []
        · iapply (show ⊢ cellRO (GF := GF) null false from cellRO_null (V := Bool))
-       imod msgOwn_of_resp _ _ _ _ _ MsgPreVoteResp m.From' m.Term' false ⊤ $$ [«$a0»] with Hresp
+       imod msgOwn_of_resp _ _ _ _ _ _ MsgPreVoteResp m.From' m.Term' false ⊤ $$ [«$a0»] with Hresp
        · iframe «$a0» cTy cFr cTe cRj
        wp_gets
        wp_apply _P.send c r id s «$a0_ptr»
@@ -430,7 +444,7 @@ macro "prevote_resp_tail " grant:ident : tactic =>
            (fun h => absurd h (by show MsgPreVoteResp ≠ MsgApp; w32_ne))
          rfl $$ [Hphys Hresp]
        · iframe Hphys Hresp
-         iapply tsSrcU_ne; exact (fun h => absurd h (by show MsgPreVoteResp ≠ MsgSnap; w32_ne))
+         iapply tsSrc_ne; exact (fun h => absurd h (by show MsgPreVoteResp ≠ MsgSnap; w32_ne))
        iintro Hphys)
     | (have _h : $grant = false := rfl
        wp_apply Perennial.EtcdGrove.raft.wp_load_TermC $$ Hphys as Hphys
@@ -444,7 +458,7 @@ macro "prevote_resp_tail " grant:ident : tactic =>
        imod cellRO_alloc _ _ $$ Hpty with #cTy
        imod cellRO_alloc _ _ $$ «$v1» with #cTe
        imod cellRO_alloc _ _ $$ «$v3» with #cRj
-       imod msgOwn_of_resp _ _ _ _ _ MsgPreVoteResp m.From' s.term true ⊤ $$ [«$a0»] with Hresp
+       imod msgOwn_of_resp _ _ _ _ _ _ MsgPreVoteResp m.From' s.term true ⊤ $$ [«$a0»] with Hresp
        · iframe «$a0» cTy cFr cTe cRj
        wp_gets
        wp_apply _P.send c r id s «$a0_ptr»
@@ -461,7 +475,7 @@ macro "prevote_resp_tail " grant:ident : tactic =>
            (fun h => absurd h (by show MsgPreVoteResp ≠ MsgApp; w32_ne))
          rfl $$ [Hphys Hresp]
        · iframe Hphys Hresp
-         iapply tsSrcU_ne; exact (fun h => absurd h (by show MsgPreVoteResp ≠ MsgSnap; w32_ne))
+         iapply tsSrc_ne; exact (fun h => absurd h (by show MsgPreVoteResp ≠ MsgSnap; w32_ne))
        iintro Hphys)
     try wp_auto
     -- not a `MsgVote`: no vote recorded
@@ -503,7 +517,7 @@ macro "prevote_resp_dispatch" : tactic =>
           (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         (by notfwd_tac) $$ [Hphys Hm Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
-      · iframe Hphys Hsrc0; rw [ite_eq_right Hnp]; iexact Hm
+      · iframe Hphys Hsrc0; iapply msgIn_nonprop Hnp $$ Hm
       obtain ⟨rfl, rfl, rfl⟩ := followerStepResult_prevoteresp _ _ _ _ _ _ _ _ _ Hty Hres
       simp only [Bool.false_eq_true, ↓reduceIte]
       icases Herrn with %Herrn
@@ -530,7 +544,7 @@ macro "prevote_resp_dispatch" : tactic =>
           (fun Hp _ => Hnw Hp)
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         $$ [Hphys Hm Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
-      · iframe Hphys Hsrc0; rw [ite_eq_right Hnp]; iexact Hm
+      · iframe Hphys Hsrc0; iapply msgIn_nonprop Hnp $$ Hm
       obtain ⟨rfl, rfl, Hwf1, Hst, Hresp, Hft⟩ :=
         candidateStepResult_prevoteresp (B := B) c _ _ _ _ _ _ _ _ Hty (.inl Hrole)
           (Hvoter (by rw [Hrole]; decide) (by rw [Hrole]; decide)) Hnw Hwf Hres
@@ -560,7 +574,7 @@ macro "prevote_resp_dispatch" : tactic =>
         $$ [Hphys Hm] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn⟩
       · iframe Hphys Hrc00
         isplitl [Hm]
-        · rw [ite_eq_right Hnp]; iexact Hm
+        · iapply msgIn_nonprop Hnp $$ Hm
         · iintro %Hc; exfalso; exact Hnp Hc
       obtain ⟨rfl, rfl⟩ := leaderStepResult_prevoteresp c _ _ _ _ _ _ _ Hty Hres
       simp only [Bool.false_eq_true, ↓reduceIte]
@@ -587,7 +601,7 @@ macro "prevote_resp_dispatch" : tactic =>
           (fun Hp _ => Hnw Hp)
           (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
         $$ [Hphys Hm Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
-      · iframe Hphys Hsrc0; rw [ite_eq_right Hnp]; iexact Hm
+      · iframe Hphys Hsrc0; iapply msgIn_nonprop Hnp $$ Hm
       obtain ⟨rfl, rfl, Hwf1, Hst, Hresp, Hft⟩ :=
         candidateStepResult_prevoteresp (B := B) c _ _ _ _ _ _ _ _ Hty (.inr Hrole)
           (Hvoter (by rw [Hrole]; decide) (by rw [Hrole]; decide)) Hnw Hwf Hres

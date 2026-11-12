@@ -4,6 +4,9 @@
 
 **Changes** (integration I7): the result is stated (`inlineOk` of the root node, `TxCore.roots`):
 `Bucket.write`'s premise, which `Bucket.spill` gets from it.
+**Changes (2026-11-12, `notes/specs-only/ledger.md`, bucket handles).** `bktH` (which object `b` is)
+without the generations (the per-path generation counter it replaces was unobservable state,
+redundant with ownership).
 -/
 module
 
@@ -28,8 +31,8 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- (internal) whether the bucket fits inline: its root node is cached and `inlineOk`. -/
 def Bucket.inlineable.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (C : TxCore) (b : Loc) (p : BPath) (gs : List Nat),
-  {{ wtxCore (GF := GF) tx γ C ∗ bktH tx γ b p gs }}
+  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (C : TxCore) (b : Loc) (p : BPath),
+  {{ wtxCore (GF := GF) tx γ C ∗ bktH tx γ b p }}
     (App (Val (b @!! go.GoType.PointerType Bucket.ty @!! go!"inlineable")) (Val #()))
   {{ (r : Bool), RET #r; wtxCore tx γ C ∗
       ⌜r = true ↔ ∃ n N, C.roots b = some n ∧ C.nodes n = some N ∧ inlineOk N⌝ }}

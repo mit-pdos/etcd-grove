@@ -269,6 +269,11 @@ def readyGot (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDrive
                       committedAtTerm γ N (phsNext st.hardState h).Term' (phsNext st.hardState h).Commit' ∗
                         ⌜↑(st.afterReady ce es h L ss).delivered.length ≤ uint.Z (phsNext st.hardState h).Commit'⌝))
 
+theorem readyEnts_sized [package_sem : Assumptions] (γ : Cluster) (s : GoSlice) (es : List EntryM)
+    (b : Nat) (hmd : γ.maxData = some b) : readyEnts γ s es ⊢ ∃ ls cs, ownSlice s ls DFrac.discard ∗
+    ([∗list] l;c ∈ ls;cs, entRoC l c) ∗ ⌜List.map EntryC.model cs = es ∧ ∀ (c : EntryC), c ∈ cs →
+    entSizeOk c⌝
+
 theorem propErrS_propErr [package_sem : Assumptions] (n : Loc) (γ : Cluster) (N : Namespace) (cd :
     context.ContextDesc (IProp GF)) (err : GoInterface) : propErrS n γ N cd err ⊢ propErr cd err
 

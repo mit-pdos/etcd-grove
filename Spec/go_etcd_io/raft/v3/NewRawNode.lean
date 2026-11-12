@@ -106,6 +106,8 @@ abbrev NewRawNode.spec : Prop :=
   -- conf-change validation on (2026-10-13; `newRaft`'s premise)
   cv.DisableConfChangeValidation' = false →
   (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
+  -- (out_size C3) in a sized node, `MaxSizePerMsg` at most `entsCutMax` (`newRaft`'s premise)
+  (sn.sz = true → uint.nat cv.MaxSizePerMsg' ≤ entsCutMax) →
   -- synchronous storage writes
   cv.AsyncStorageWrites' = false →
   -- (durability stage I-6) `newRaft`'s view of the storage, from the base

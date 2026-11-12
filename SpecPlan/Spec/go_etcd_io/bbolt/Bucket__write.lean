@@ -10,6 +10,9 @@ and the size, `wtxCore_keys` the keys); 4d's `inBucket_view` stores the handle's
 
 **Changes** (integration I7): the root node is a premise (it was not: `n.size()` on a nil root
 panics) and the value is stated (was: some bytes).
+**Changes (2026-11-12, `notes/specs-only/ledger.md`, bucket handles).** `bktH` (which object `b` is)
+without the generations (the per-path generation counter it replaces was unobservable state,
+redundant with ownership).
 -/
 module
 
@@ -37,14 +40,14 @@ written as a page in zeroed bytes (`nodePage`; 4d's `encInBucket`). The bucket i
 writer whose cached root is inlineable (`Bucket.spill`), or `CreateBucket`'s fresh local
 (`fresh`: `emptyBkt`, an empty leaf, a zero header). -/
 def Bucket.write.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (C : TxCore) (b : Loc) (p : BPath) (gs : List Nat)
+  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (C : TxCore) (b : Loc) (p : BPath)
     (n : Loc) (N : NodeR) (fresh : Bool),
   {{ (if fresh then emptyBkt (GF := GF) b ∗ ⌜N = NodeR.emptyLeaf⌝
-      else wtxCore tx γ C ∗ bktH tx γ b p gs ∗
+      else wtxCore tx γ C ∗ bktH tx γ b p ∗
         ⌜C.roots b = some n ∧ C.nodes n = some N ∧ inlineOk N⌝) }}
     (App (Val (b @!! go.GoType.PointerType Bucket.ty @!! go!"write")) (Val #()))
   {{ (s : GoSlice), RET #s;
-      (if fresh then emptyBkt b else wtxCore tx γ C ∗ bktH tx γ b p gs) ∗
+      (if fresh then emptyBkt b else wtxCore tx γ C ∗ bktH tx γ b p) ∗
       ∃ ib : go_etcd_io.bbolt.internal.common.InBucket,
         s ↦* (BboltCommon.encInBucket ib ++ nodePage (List.replicate (nodeSize N) (W8 0)) N) ∗
         ownSliceCap w8 s (DFrac.own 1) ∗

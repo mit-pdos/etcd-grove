@@ -51,7 +51,9 @@ optional field's presence and nil versus empty `bytes`, checked by the harness's
 (`TestD1PostMessage`, `TestD1PostEntry`: the decoded heap, walked directly, compared with the
 reference decoder's content at every level, `decCDiff`). The instance's model-level `dec` follows
 from it when `c` is one `dec` describes (`decC_dec`, a proved field, under `decOk`). `c`'s facts
-are pure. -/
+are pure. The object is fresh, sharing nothing with `b` (out_size C3: at `Entry` too, whose `decC`
+is owned since then): overwriting every byte of the input after the decode leaves the decoded
+content unchanged, at `Entry` and `Message` (`TestC3DecodedFresh`, gated). -/
 abbrev proto.UnmarshalPb.spec : Prop :=
   ∀ (I : PbTypeC GF), pbModelOf GF I.data.ty = some I →
   ∀ (b : GoSlice) (bs : List w8) (dq : DFrac) (l : Loc),

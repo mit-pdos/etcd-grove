@@ -117,7 +117,11 @@ theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (dup : Bool)
     isplitr
     · unfold clusterInv
       iframe Hcinv Hinv HspT
-      ipureintro; exact HNs
+      isplitr
+      · ipureintro; exact HNs
+      ipureintro; intro b hb
+      refine ⟨Hmxd b (Hmxd' ▸ hb), fun e he => ?_⟩
+      rw [HbootL] at he; simp at he
     iframe Hpool
     ipureintro; exact Hrb
   -- every id's part (raft's ghost state at the initial state, the node table's), into the join

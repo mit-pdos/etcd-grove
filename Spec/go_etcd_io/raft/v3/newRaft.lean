@@ -152,6 +152,9 @@ abbrev newRaft.spec : Prop :=
   cv.DisableConfChangeValidation' = false →
   -- a positive applying-size limit (2026-10-05)
   (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
+  -- (out_size C3) in a sized node, `MaxSizePerMsg` at most `entsCutMax` (the starters' premise):
+  -- a `MsgApp`'s entries are cut at it
+  (sn.sz = true → uint.nat cv.MaxSizePerMsg' ≤ entsCutMax) →
   -- (durability stage I-6) the storage's view raft makes: from the base (contiguous indices,
   -- nothing pending, frozen from the base up to at most the restored commit, the floor, the snapshot handed out and the terms
   -- certified at most the base), within 64 bits

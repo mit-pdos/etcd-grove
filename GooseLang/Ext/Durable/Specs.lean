@@ -154,7 +154,7 @@ def durableOwn (fs : DurableState) : IProp GF :=
 
 /-- **The area `r` is reserved, for good**: every durable name is one the reserved mode allows (a
 clean absolute path outside `r/` that does not hide; the interpretation's invariant,
-`durableResvInv`). Persistent; survives crashes (`durable_crash_interp` keeps the ghost names). -/
+`durableResvInv`). Persistent; survives crashes (`durableReserved_crash`: the crash gives the new generation the same mode). -/
 def durableReserved (r : GoString) : IProp GF :=
   letI := (gooseDurableGS (GF := GF)).durableAllG
   () ↪[(gooseDurableGS (GF := GF)).durableResvName]□ (some r)

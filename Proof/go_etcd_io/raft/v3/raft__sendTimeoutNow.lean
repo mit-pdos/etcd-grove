@@ -38,7 +38,7 @@ theorem raft.sendTimeoutNow.wp_proof
   imod cellRO_alloc $$ Hpty with #cTy
   imod cellRO_alloc $$ «$v0» with #cTo
   wp_auto
-  imod msgOwn_lit0 «$a0_ptr» _ ⟨W32 14, to, 0, 0, 0, 0, 0, 0, false, 0⟩ ⊤ $$ [«$a0»] with Hm
+  imod msgOwnZ_lit0 s.gh.sn.sz «$a0_ptr» _ ⟨W32 14, to, 0, 0, 0, 0, 0, 0, false, 0⟩ ⊤ $$ [«$a0»] with Hm
   · iframe «$a0» cTy cTo
     isplitr
     · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
@@ -49,7 +49,7 @@ theorem raft.sendTimeoutNow.wp_proof
   wp_apply wp_raft_send c r id s «$a0_ptr» _ [] none [] [] [] (Or.inl rfl) Hok
     (fun h => absurd h (by simp [MsgSnap]))
       (fun h => absurd h (by simp [MsgApp])) rfl $$ [$Hphys $Hm] as Hphys
-  · iapply tsSrcU_ne; exact (fun h => absurd h (by simp [MsgSnap]))
+  · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
   ihave Hphys := ownRaftPhysC_unsend c r id s $$ Hphys
   iapply HΦ
   iexact Hphys

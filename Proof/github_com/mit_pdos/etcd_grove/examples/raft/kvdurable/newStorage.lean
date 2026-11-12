@@ -31,7 +31,7 @@ theorem newStorage.wp_proof (wp_NewMemoryStorage : NewMemoryStorage.spec (GF := 
   intro bp
   wp_start as -
   wp_auto
-  wp_apply +noauto wp_NewMemoryStorage as %ms %γs ⟨Hlock, Hlog, Hend, Hnone, Hmeta, Hfresh⟩
+  wp_apply +noauto wp_NewMemoryStorage false as %ms %γs ⟨%Hsz, Hlock, Hlog, Hend, Hnone, Hmeta, Hfresh⟩
   iapply wp_fupd
   wp_auto
   imod ownSnapM_of_struct «$v0_ptr» (zero_val raftpb.Snapshot) memSnapEmpty ⊤ rfl $$ [«$v0»]
@@ -48,6 +48,7 @@ theorem newStorage.wp_proof (wp_NewMemoryStorage : NewMemoryStorage.spec (GF := 
   imodintro
   iapply HΦ
   iexists ms, «$v2_ptr», γs
+  isplitr; · ipureintro; exact Hsz
   iframe # ∗
   ihave #Hh := hsOpt_null (GF := GF)
   ihave #He := entsPts_nil (GF := GF) DFrac.discard

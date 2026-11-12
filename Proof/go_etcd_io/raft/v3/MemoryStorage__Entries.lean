@@ -135,8 +135,8 @@ theorem MemoryStorage.Entries.wp_proof
   have Hσents : σ.ents = ents := by rw [← Hσ]; rfl
   iNamed Hfields_inv
   icases Hents with #Hents
-  ihave %Hcl := entsRO_cons_len $$ Hents
-  icases entsRO_lookup es (dummy :: σ.ents) 0 dummy rfl $$ Hents
+  ihave %Hcl := entsROz_cons_len _ _ _ _ $$ Hents
+  icases entsROz_lookup _ es (dummy :: σ.ents) 0 dummy rfl $$ Hents
     with ⟨%ls, %l0, #Hls, #He0, %Hl0⟩
   wp_auto
   rw [ite_eq_left ⟨by word, by word⟩]
@@ -183,30 +183,30 @@ theorem MemoryStorage.Entries.wp_proof
       ((a ++ b).drop (uint.nat lo - k)).take (uint.nat hi - uint.nat lo) := by
     rw [Hσprev, Hσents, ← HEw]
     congr 2 <;> word
-  ihave Hf : memstorageFields ms σ $$ [HhardState Hents_f Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
+  ihave Hf : memstorageFields ms γs.sz σ $$ [HhardState Hents_f Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
   · unfold memstorageFields
     iexists _, _, _, _, _, _, _, _
     iframe HhardState Hents_f Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot Hents Hents_cap
     ipureintro
     exact ⟨Hd0, Hd1⟩
-  wp_apply wp_MemoryStorage_lastIndex ms σ Hpb' $$ [$Hf] as %li ⟨%Hli, Hf⟩
+  wp_apply wp_MemoryStorage_lastIndex ms γs.sz σ Hpb' $$ [$Hf] as %li ⟨%Hli, Hf⟩
   rw [Hd0]
   unfold memstorageFields
   iNamed Hf
   icases Hents with #Hents
   clear Hcl Hl0
-  ihave %Hcl := entsRO_cons_len $$ Hents
+  ihave %Hcl := entsROz_cons_len _ _ _ _ $$ Hents
   obtain ⟨Hd0', Hd1'⟩ := Hdummy
   wp_if_destruct
   · exfalso; word
   wp_if_destruct
   · exfalso; word
-  iunfold entsRO at Hents
-  iunfold entsPts at Hents
+  iunfold entsROz at Hents
+  iunfold entsPtsZ at Hents
   icases Hents with ⟨%ls, #Hls, #Hbig⟩
   ihave %Hlen2 := ownSlice_len _ _ _ $$ Hls
   ihave %Hwf2 := ownSlice_wf _ _ _ $$ Hls
-  ihave %Hbl := entsBig_length $$ Hbig
+  ihave %Hbl := entsBigZ_length γs.sz _ _ $$ Hbig
   have Hlo' : sint.Z (lo - σ.prev.index') = uint.Z lo - uint.Z σ.prev.index' := by word
   have Hhi' : sint.Z (hi - σ.prev.index') = uint.Z hi - uint.Z σ.prev.index' := by word
   rw [ite_eq_left ⟨by word, by word, by word⟩]
@@ -226,34 +226,41 @@ theorem MemoryStorage.Entries.wp_proof
     simp only [List.length_drop, List.length_take]; omega
   icases (ownSlice_slice (lo - σ.prev.index') (hi - σ.prev.index') es DFrac.discard ls
       ⟨by word, by word, by word⟩).1 $$ Hls with ⟨-, #Hsub, -⟩
-  ihave #Hbsub := entsBig_subslice (sint.nat (lo - σ.prev.index')) (sint.nat (hi - σ.prev.index'))
+  ihave #Hbsub := entsBigZ_subslice γs.sz (sint.nat (lo - σ.prev.index')) (sint.nat (hi - σ.prev.index'))
     ls (dummy :: σ.ents) $$ Hbig
-  ihave #HsubE : entsRO (slice.slice es Loc (lo - σ.prev.index') (hi - σ.prev.index'))
+  ihave #HsubE : entsROz γs.sz (slice.slice es Loc (lo - σ.prev.index') (hi - σ.prev.index'))
       ((σ.ents.take (uint.Z hi - uint.Z σ.prev.index' - 1).toNat).drop
         (uint.Z lo - uint.Z σ.prev.index' - 1).toNat) $$ []
   · rw [← HE0]
-    iunfold entsRO; iunfold entsPts
+    iunfold entsROz; iunfold entsPtsZ
     iexists _
     iframe Hsub Hbsub
-  wp_apply wp_limitSize $$ [$HsubE] as %s1 %nlim ⟨%Hn, Hs1, -⟩
-  iunfold entsPts at Hs1
-  icases Hs1 with ⟨%ls1, #Hs1, #Hb1⟩
+  icases entsPtsZ_entsPtsC _ _ _ _ $$ HsubE with ⟨%cs0, HsubC, %Hcs0⟩
+  wp_apply wp_limitSize $$ [$HsubC] as %s1 %nlim ⟨%Hn, Hs1, -⟩
+  rw [← Hcs0, List.length_map] at HE0len
+  have HE0eq : ((σ.ents.take (uint.Z hi - uint.Z σ.prev.index' - 1).toNat).drop
+      (uint.Z lo - uint.Z σ.prev.index' - 1).toNat).take nlim = (cs0.take nlim).map EntryC.model := by
+    rw [← Hcs0, List.map_take]
+  iunfold entsPtsC at Hs1
+  icases Hs1 with ⟨%ls1, #Hs1, #Hb1, %Hz1⟩
   ihave %Hs1len := ownSlice_len _ _ _ $$ Hs1
   ihave %Hs1wf := ownSlice_wf _ _ _ $$ Hs1
-  ihave %Hb1len := entsBig_length $$ Hb1
-  have HE0ne : (σ.ents.take (uint.Z hi - uint.Z σ.prev.index' - 1).toNat).drop
-      (uint.Z lo - uint.Z σ.prev.index' - 1).toNat ≠ [] := by
+  ihave %Hb1len := entsBigC_length _ _ $$ Hb1
+  rw [List.length_take] at Hb1len
+  have HE0ne : cs0 ≠ [] := by
     intro Hc; rw [Hc, List.length_nil] at HE0len; omega
-  have Hn1 := Hn.2 HE0ne
+  have Hn1 := Hn.2.1 HE0ne
+  have Hcs0pos : 0 < cs0.length := List.length_pos_iff.2 HE0ne
   have Hnetake : ((σ.ents.take (uint.Z hi - uint.Z σ.prev.index' - 1).toNat).drop
       (uint.Z lo - uint.Z σ.prev.index' - 1).toNat).take nlim ≠ [] := by
+    rw [HE0eq]
     intro Hc
     have := congrArg List.length Hc
-    rw [List.length_take, List.length_nil] at this
+    rw [List.length_map, List.length_take, List.length_nil] at this
     omega
   have Hls1ne : ls1 ≠ [] := by
     intro Hc; rw [Hc, List.length_nil] at Hb1len
-    exact Hnetake (List.length_eq_zero_iff.1 Hb1len.symm)
+    omega
   rw [ite_eq_left ⟨by decide, by word, by word, by word⟩]
   ihave #Hs2 := MemoryStorage.Entries.ownSlice_same_ptr_len s1 (slice.fullSlice s1 Loc (W64 0) s1.len s1.len)
     DFrac.discard _ Hls1ne
@@ -261,12 +268,12 @@ theorem MemoryStorage.Entries.wp_proof
           go.arrayIndexRef_0])
     (by simp only [slice.fullSlice]; word)
     (by simp only [slice.fullSlice]; word) $$ Hs1
-  ihave Hf : memstorageFields ms σ $$ [HhardState Hents_f Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
+  ihave Hf : memstorageFields ms γs.sz σ $$ [HhardState Hents_f Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
   · unfold memstorageFields
     iexists _, _, _, _, _, _, _, _
     iframe HhardState Hents_f Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot Hents_cap
     isplitr
-    · iunfold entsRO; iunfold entsPts; iexists ls; iframe Hls Hbig
+    · iunfold entsROz; iunfold entsPtsZ; iexists ls; iframe Hls Hbig
     ipureintro
     exact ⟨Hd0', Hd1'⟩
   wp_auto
@@ -288,7 +295,10 @@ theorem MemoryStorage.Entries.wp_proof
   isplitl []
   · ipureintro; rfl
   isplitl []
-  · iunfold entsRO; iunfold entsPts; iexists ls1; iframe Hs2 Hb1
+  · iexists (cs0.take nlim)
+    isplitl
+    · iunfold entsPtsC; iexists ls1; iframe Hs2 Hb1; ipureintro; exact Hz1
+    · ipureintro; exact ⟨HE0eq.symm, Hn.2.2⟩
   ipureintro
   rw [← HE]
   refine ⟨Hnetake, ?_, List.take_prefix _ _⟩

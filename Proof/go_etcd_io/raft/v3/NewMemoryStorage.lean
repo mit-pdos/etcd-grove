@@ -38,6 +38,7 @@ theorem memOk_new :
 theorem NewMemoryStorage.wp_proof
     (wp_EnsureSnapshot : raftpb.EnsureSnapshot.spec (GF := GF) (hG := hG)) :
     NewMemoryStorage.spec (GF := GF) (hG := hG) := by
+  intro sz
   wp_start as #Hinit
   wp_auto
   wp_apply wp_slice_literal_ex (V := Loc)
@@ -50,13 +51,13 @@ theorem NewMemoryStorage.wp_proof
   have Hsz : go.arrayLiteralSize [KeyedElement none (ElementLiteralValue [])] = 1 := rfl
   simp only [Hsz]
   -- the dummy entry, a fresh zero `*pb.Entry`, frozen
-  imod entOwn_of_struct l0 (zero_val raftpb.Entry) (zero_val EntryM) ⊤ rfl $$ [Hl0] with He0
+  imod entRZ_of_struct sz l0 (zero_val raftpb.Entry) (zero_val EntryM) ⊤ rfl
+    (fun _ => Nat.zero_le _) $$ [Hl0] with #He0
   · iframe Hl0
     isplitl []; · iapply cellRO_null
     isplitl []; · iapply cellRO_null
     isplitl []; · iapply cellRO_null
     iapply ownSlice_nil
-  imod entOwn_freeze $$ He0 with #He0
   wp_auto
   iStructNamed «$r0»
   -- the lock's half of `hardState` and its counters
@@ -77,7 +78,7 @@ theorem NewMemoryStorage.wp_proof
   icases (ghostVar_split_half γsx 1 memSnapEmpty).1 $$ Hsx with ⟨Hsx2, Hsx3⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γsl, Hsl0, -⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γpr, Hpr, -⟩
-  let γs : MemStorNames := ⟨γlog, γen, γek, γcp, γjc, γsx, γlk, γhk, γsl, γpr⟩
+  let γs : MemStorNames := ⟨γlog, γen, γek, γcp, γjc, γsx, γlk, γhk, γsl, γpr, sz⟩
   imod sync.init_Mutex (memstorageInv «$r0_ptr» γs) ⊤ («$r0_ptr».[MemoryStorage, go!"Mutex"])
     $$ Mutex [hardState ents cs_firstIndex cs_lastIndex cs_entries cs_term cs_snapshot Hsl_cap
       Hlog Hen1 Hcp Hsx2 Hsl0 Hlk] with #Hmu
@@ -92,13 +93,13 @@ theorem NewMemoryStorage.wp_proof
       simp only [named]
       iframe
       isplitr
-      · iunfold entsRO; iunfold entsPts
+      · iunfold entsROz; iunfold entsPtsZ
         iexists [l0]
         iframe Hsl
         iapply (BigSepL2.bigSepL2_cons).2
         iframe He0
         rw [show (memPhys (entryID.mk (W64 0) (W64 0)) []).ents = [] from rfl]
-        iapply entsBig_nil
+        iapply entsBigZ_nil
       ipureintro; exact ⟨rfl, rfl⟩
     have h0 : uint.nat (W64 0) = 0 := rfl
     simp only [h0, List.length_nil, Nat.zero_add, Nat.add_zero]
@@ -136,6 +137,8 @@ theorem NewMemoryStorage.wp_proof
   ihave Hsp := ownSnapE_weaken $$ Hsp
   imodintro
   iapply HΦ $$ %«$r0_ptr» %γs
+  isplitr
+  · ipureintro; rfl
   isplitr
   · iunfold memStorLock; iframe Hpkg Hmu
   isplitr

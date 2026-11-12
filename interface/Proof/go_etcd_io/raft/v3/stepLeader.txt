@@ -77,7 +77,8 @@ theorem stepLeader.wp_proof [package_sem : Assumptions] (wp_raft_bcastHeartbeat 
                             isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
                                 "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
                                   "Hm" ∷
-                                      msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
+                                      msgInC (s.gh.sn.sz && movesB m.Type') ml
+                                        (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
                                         { msg := m, ents := ents, snap := sn, ctx := ctx, resps := rs } ∗
                                     "Hcc" ∷ (⌜m.Type' = MsgProp⌝ -∗ ∃ cs, ccEntsOk ents cs) ∗ "#Hrc" ∷ ⧖k0 -∗
                               (▷

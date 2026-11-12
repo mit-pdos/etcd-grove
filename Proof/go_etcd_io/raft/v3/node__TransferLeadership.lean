@@ -100,8 +100,8 @@ private theorem node.TransferLeadership.wp_raw
   imod cellRO_alloc $$ «$v2» with #cTo
   wp_apply +noauto nodeCtx_Done ctx cd $$ [$Hctx] as %dch #Hd
   wp_auto_lc 3
-  imod msgIn_of_scalar_struct «$v0_ptr» pty «$v2_ptr» «$v1_ptr» null null null null null null null
-      { (zero_val MessageM) with Type' := W32 13, From' := transferee, To' := lead } ⊤
+  imod msgInC_of_scalar_struct γ.raft.maxData.isSome «$v0_ptr» pty «$v2_ptr» «$v1_ptr» null null null null null null null
+      { (zero_val MessageM) with Type' := W32 13, From' := transferee, To' := lead } ⊤ rfl
       $$ [«$v0»] with Hmsg
   · iframe «$v0» cTy cFr cTo
     repeat (isplitr; · iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩)

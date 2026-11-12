@@ -14,7 +14,7 @@ def StartNode.spec : Prop :=
                 cv.DisableConfChangeValidation' = false →
                   cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0 →
                     cv.AsyncStorageWrites' = false →
-                      (γ.maxData ≠ none → uint.Z cv.MaxSizePerMsg' ≤ 2 ^ 20) →
+                      (γ.maxData ≠ none → uint.Z cv.MaxSizePerMsg' ≤ ↑entsCutMax) →
                         cv.Applied' = W64 0 →
                           csm.Voters' = [] →
                             csm.VotersOutgoing' = [] →

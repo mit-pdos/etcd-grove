@@ -23,6 +23,7 @@ starts with each are the same frame, with the same content. Lengths are below `2
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Codec
+public import Proof.go_etcd_io.raft.v3.MsgRead
 
 @[expose] public section
 
@@ -705,83 +706,10 @@ theorem ents_enc : ∀ (els : List Loc) (ecs : List EntryC), (∀ e ∈ ecs, ent
     ipureintro
     exact .cons ⟨h1.1, by rw [h1.2]; exact hs1, e, rfl, hu, rfl⟩ h2
 
-/-- A fresh cell, frozen, is a set optional field. -/
-theorem optCell_alloc {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Loc) (v : V) :
-    (p ↦ v : IProp GF) ⊢ |==> optCell p (some v) := by
-  iintro H
-  imod (typedPointsto_dfractional (GF := GF) p v).dfractional_persist _ $$ H with #H
-  imodintro
-  simp only [optCell]
-  iexact H
-
-/-- **A freshly allocated `*pb.Message` at a content** (raft-entsize §4: `msgPtsC_of_struct_uf`'s
-content form): its hidden fields zero, its pointer fields at the content's presences, its `Entries`
-a slice of entries frozen at the content's (elements at `dqe`, the capacity when `cap`), its
-`Snapshot` and `Context` at the content's, no responses, and no unknown fields. -/
-theorem msgPtsCC_of_struct [go_etcd_io.raft.v3.Assumptions] (l : Loc) (v : raftpb.Message) (dqe : DFrac) (cap : Bool)
-    (els : List Loc) (f : MsgFC) (E : CoPset) (Hu : v.unknownFields' = slice.nil) (Hf : f.uf = []) :
-    (l ↦ v ∗ optCell v.Type' f.type ∗ optCell v.To' f.to ∗ optCell v.From' f.frm ∗
-      optCell v.Term' f.term ∗ optCell v.LogTerm' f.logTerm ∗ optCell v.Index' f.index ∗
-      optCell v.Commit' f.commit ∗ optCell v.Vote' f.vote ∗ optCell v.Reject' f.reject ∗
-      optCell v.RejectHint' f.rejectHint ∗
-      v.Entries' ↦*{dqe} els ∗ ([∗list] p;e ∈ els;f.entries, entRoC p e) ∗
-      (if cap then ownSliceCap Loc v.Entries' (DFrac.own 1) else emp) ∗
-      snapOptCC v.Snapshot' (DFrac.own 1) f.snapshot ∗ bytesC v.Context' f.context ∗
-      v.Responses' ↦* ([] : List Loc) : IProp GF) ⊢
-      |={E}=> msgPtsCC l (DFrac.own 1) dqe cap (.mk f []) := by
-  iintro ⟨Hl, #cTy, #cTo, #cFr, #cTe, #cLt, #cIx, #cCo, #cVo, #cRj, #cRh, Hes, #Hents, Hes_cap,
-    Hsn, #Hcs, Hrs⟩
-  ihave %Hnn := typedPointsto_not_null $$ Hl
-  icases typedPointsto_split _ _ _ $$ Hl with Hl
-  simp only [TypedPointsto.typedPointstoDef]
-  icases Hl with ⟨state, Ty, To, From, Term, LogTerm, Index, Entries, Commit, Vote, Snapshot,
-    Reject, RejectHint, Context, Responses, unknownFields, sizeCache, -⟩
-  rw [Hu]
-  ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
-  · iapply ownSlice_nil
-  imod pbMsg_alloc raftpb.Message l v.state' v.sizeCache' slice.nil [] E (ufWire_nil _) $$
-    [state sizeCache unknownFields Hnil] with #Hpb
-  · iframe
-  imodintro
-  unfold msgPtsCC
-  iexists v.Type', v.To', v.From', v.Term', v.LogTerm', v.Index', v.Commit', v.Vote', v.Reject',
-    v.RejectHint', v.Entries', els, v.Snapshot', v.Context', v.Responses'
-  simp only [MsgC.f, MsgC.resps, List.map_nil, Hf]
-  isplitr
-  · ipureintro; exact Hnn
-  iframe
-  iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hents Hcs Hpb
-
 /-- (raft-entsize, route H1, 2026-11-10) The wire content of `linkHeartbeatMessage`'s literal: its
 `Type` set to `MsgHeartbeat`, no other field, no unknown fields, no responses. -/
 def hbC : MsgC :=
   .mk ⟨some MsgHeartbeat, none, none, none, none, none, [], none, none, none, none, none, none, []⟩ []
-
-/-- A message's object's unknown fields (its `pbMsg`). -/
-theorem msgPtsCC_pbMsg (l : Loc) (dq dqe : DFrac) (cap : Bool) (c : MsgC) :
-    msgPtsCC (GF := GF) l dq dqe cap c ⊢ pbMsg raftpb.Message l c.f.uf := by
-  iintro H
-  iunfold msgPtsCC at H
-  icases H with ⟨%pty, %pto, %pfr, %pte, %plt, %pix, %pco, %pvo, %prj, %prh, %es, %els, %ps, %cs,
-    %rsl, %Hnn, HTy, #cTy, HTo, #cTo, HFr, #cFr, HTe, #cTe, HLt, #cLt, HIx, #cIx, HCo, #cCo,
-    HVo, #cVo, HRj, #cRj, HRh, #cRh, HEs, Hes, #Hents, Hcap, HSn, Hsn, HCx, #Hcx, HRs, Hrs, #Hpb⟩
-  iexact Hpb
-
-/-- **A message at a content, frozen**: its entries slice frozen, its capacity dropped. -/
-theorem msgPtsCC_freeze (l : Loc) (dq dqe : DFrac) (cap : Bool) (c : MsgC) :
-    msgPtsCC (GF := GF) l dq dqe cap c ⊢ |==> msgPtsCC l dq DFrac.discard false c := by
-  unfold msgPtsCC
-  iintro ⟨%pty, %pto, %pfr, %pte, %plt, %pix, %pco, %pvo, %prj, %prh, %es, %els, %ps, %cs,
-    %rsl, %Hnn, HTy, #cTy, HTo, #cTo, HFr, #cFr, HTe, #cTe, HLt, #cLt, HIx, #cIx, HCo, #cCo,
-    HVo, #cVo, HRj, #cRj, HRh, #cRh, HEs, Hes, #Hents, -, HSn, Hsn, HCx, #Hcx, HRs, Hrs, #Hpb⟩
-  imod (ownSlice_dfractional (GF := GF) _ _).dfractional_persist _ $$ Hes with #Hes
-  imodintro
-  iexists pty, pto, pfr, pte, plt, pix, pco, pvo, prj, prh, es, els, ps, cs, rsl
-  simp only [Bool.false_eq_true, ↓reduceIte]
-  isplitr
-  · ipureintro; exact Hnn
-  iframe
-  iframe cTy cTo cFr cTe cLt cIx cCo cVo cRj cRh Hes Hents Hcx Hpb
 
 /-- (raft-entsize, route H1, 2026-11-10) **`linkHeartbeatMessage`'s translated initializer**: the
 literal `raftpb.Message{Type: MsgHeartbeat.Enum()}` stored at `l`, with `Enum`'s fresh cell, is a

@@ -15,8 +15,13 @@ transaction's error). Kept: names within `maxKeySize` (Go checks no length,
 **Proof sketch, the success arm in the internal vocabulary** (verify-round, A11 F9). `seek`
 (absent), `Bucket.write` of the fresh local (`emptyBktVal`), `Cursor.node` (`repKept`,
 `keyLeaf`), `node.put kb kb emptyBktVal 0 BucketLeafFlag`, `physRep_set` with `newEnt`'s bucket
-case (`kb.length ≤ maxKeySize`: the premise); then `Bucket.Bucket` opens the child from that value
-(`bktH` at the current generations).
+case (`kb.length ≤ maxKeySize`: the premise); then `Bucket.Bucket` opens the child from that value and
+caches it (no handle was cached at the absent key: `DeleteBucket` removes the entry), the new
+token's ghost entry allocated at `some c` with the map write (`wtxCore_bktOwn`).
+**Changes (2026-11-12, `notes/specs-only/ledger.md`, bucket handles).** The parent's handle premise
+`bktUse` in place of `bktH … gs` and the generation check, given back; the new bucket's whole token
+`bktOwn … (some c) 1` in place of its `bktH` (the per-path generation counter it replaces was
+unobservable state, redundant with ownership).
 -/
 module
 
@@ -43,11 +48,11 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 bucket at `p`, and its handle; errors: not writable, empty name, the key exists (a bucket:
 `ErrBucketExists`; a value: `ErrIncompatibleValue`). -/
 def Bucket.CreateBucket.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (b : Loc) (p : BPath) (gs : List Nat) (key : GoSlice) (kb : GoString) (dk : DFrac),
-  {{ boltTx (GF := GF) tx γ q T ∗ bktH tx γ b p gs ∗ key ↦*{dk} kb ∗
-      ⌜T.gens p = gs ∧ (T.rw = true → q = 1) ∧ kb.length ≤ maxKeySize⌝ }}
+  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (b : Loc) (p : BPath) (qb : Qp) (key : GoSlice) (kb : GoString) (dk : DFrac),
+  {{ boltTx (GF := GF) tx γ q T ∗ bktUse tx γ T.rw b p qb ∗ key ↦*{dk} kb ∗
+      ⌜(T.rw = true → q = 1) ∧ kb.length ≤ maxKeySize⌝ }}
     (App (Val (b @!! go.GoType.PointerType Bucket.ty @!! go!"CreateBucket")) (Val #key))
-  {{ (c : Loc) (err : GoInterface), RET (PairV #c #err); key ↦*{dk} kb ∗
+  {{ (c : Loc) (err : GoInterface), RET (PairV #c #err); bktUse tx γ T.rw b p qb ∗ key ↦*{dk} kb ∗
       (if T.rw = false then
          iprop(⌜c = Loc.null⌝ ∗ boltTx tx γ q T ∗ isErr go_etcd_io.bbolt.errors.ErrTxNotWritable err)
        else if kb.length = 0 then
@@ -60,7 +65,7 @@ def Bucket.CreateBucket.spec : Prop :=
              isErr go_etcd_io.bbolt.errors.ErrIncompatibleValue err)
          | none => iprop(⌜err = GoInterface.nil ∧ c ≠ Loc.null⌝ ∗
              boltTx tx γ q (T.setCur (T.cur.modAt p (fun e => e.setKey kb (some (Ent.bkt (W64 0) []))))) ∗
-             bktH tx γ c (p.child kb) (T.gens (p.child kb)))) }}
+             bktOwn tx γ (p.child kb) (some c) 1)) }}
 
 end spec
 

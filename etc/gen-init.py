@@ -101,6 +101,10 @@ ROOTS.append('github_com.mit_pdos.etcd_grove.examples.mvccrand')
 # `True` (`Base.lean`), so no `SPECIAL`; its `PkgTable.lean` (`PROGRAMS`) is Prove's, for the closed
 # theorem
 ROOTS.append('github_com.mit_pdos.etcd_grove.examples.mvccfull')
+# (WAL W4c, 2026-11-12) the WAL robustness tester (examples/etcd/wal): no package variables, its
+# fact `True` (`Base.lean`), so no `SPECIAL`; `fileutil` and `walpb` (names-only, facts `True`, their
+# own `Base.lean`) join the closure through it
+ROOTS.append('github_com.mit_pdos.etcd_grove.examples.etcd.wal')
 # Packages of the closure still without a `wp_initialize'` (their facts are assumed: notes/STATUS.md,
 # "Item 8: package initialization"); see also `ASSUMED`.
 NOT_YET = set()

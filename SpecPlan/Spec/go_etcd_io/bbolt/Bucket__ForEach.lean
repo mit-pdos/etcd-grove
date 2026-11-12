@@ -13,6 +13,9 @@ unchanged, so the cursor stays valid); the loop carries `I i`.
 **Changes.** New.
 
 **Margin.** `fn` must not change the transaction (Go: "must not modify the bucket").
+**Changes (2026-11-12, `notes/specs-only/ledger.md`, bucket handles).** The handle premise `bktUse`
+in place of `bktH … gs` and the generation check, given back (the per-path generation counter it
+replaces was unobservable state, redundant with ownership).
 -/
 module
 
@@ -39,9 +42,9 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 (entries done) and stopping at the first error (`E i err`); `fn` gets the transaction and gives it
 back unchanged. -/
 def Bucket.ForEach.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (b : Loc) (p : BPath) (gs : List Nat) (fn : GoFunc) (I : Nat → IProp GF)
+  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (b : Loc) (p : BPath) (qb : Qp) (fn : GoFunc) (I : Nat → IProp GF)
     (E : Nat → GoInterface → IProp GF),
-  {{ boltTx (GF := GF) tx γ q T ∗ bktH tx γ b p gs ∗ ⌜T.gens p = gs⌝ ∗ I 0 ∗
+  {{ boltTx (GF := GF) tx γ q T ∗ bktUse tx γ T.rw b p qb ∗ I 0 ∗
       □ (∀ (i : Nat) (k v : GoSlice) (Φ : val → IProp GF),
           ⌜i < (T.ents p).length⌝ -∗ I i -∗ curAt tx γ (T.ents p) i k v -∗ boltTx tx γ q T -∗
           ▷ (∀ err : GoInterface, boltTx tx γ q T -∗
@@ -49,7 +52,7 @@ def Bucket.ForEach.spec : Prop :=
               Φ #err) -∗
           WP (App (App (Val #fn) (Val #k)) (Val #v)) {{ Φ }}) }}
     (App (Val (b @!! go.GoType.PointerType Bucket.ty @!! go!"ForEach")) (Val #fn))
-  {{ (err : GoInterface), RET #err; boltTx tx γ q T ∗
+  {{ (err : GoInterface), RET #err; bktUse tx γ T.rw b p qb ∗ boltTx tx γ q T ∗
       ((⌜err = GoInterface.nil⌝ ∗ I (T.ents p).length) ∨
        (∃ i : Nat, ⌜err ≠ GoInterface.nil ∧ i < (T.ents p).length⌝ ∗ E i err)) }}
 

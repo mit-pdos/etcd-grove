@@ -42,12 +42,12 @@ can be anything, and nothing in the state excludes it, so the spec takes
 `cs = [] ∨ 8 ≤ length cs` as a premise (the smallest one). The context slice is only
 read, at any fraction. -/
 abbrev readOnly.recvAck.spec : Prop :=
-  ∀ (ro : Loc) (r : ReadOnly) (src : w64) (ctx : GoSlice) (cs : List w8) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hown" ∷ ownReadOnly ro r ∗
+  ∀ (sz : Bool) (ro : Loc) (r : ReadOnly) (src : w64) (ctx : GoSlice) (cs : List w8) (dq : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hown" ∷ ownReadOnly sz ro r ∗
       "Hctx" ∷ ctx ↦*{dq} cs ∗ "%Hlen" ∷ ⌜cs = [] ∨ 8 ≤ cs.length⌝ }}
     (App (App (Val (ro @!! go.GoType.PointerType readOnly.ty @!! go!"recvAck"))
       (Val #src)) (Val #ctx))
-  {{ RET #(); ownReadOnly ro (readonlyRecvAck r src cs) ∗ ctx ↦*{dq} cs }}
+  {{ RET #(); ownReadOnly sz ro (readonlyRecvAck r src cs) ∗ ctx ↦*{dq} cs }}
 
 end spec
 

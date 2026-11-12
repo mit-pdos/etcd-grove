@@ -196,7 +196,11 @@ theorem releasePendingReadIndexMessages.wp_proof
         ⟨_, List.getElem?_eq_getElem (by omega)⟩
       ihave #Hpl := BigSepL2.bigSepL2_lookup Hl Hp $$ Hpls
       iunfold ownPendRI at Hpl
-      icases Hpl with ⟨%psn, %pctx, %prs, #Hpl⟩
+      icases Hpl with ⟨%psn, %pctx, %prs, #Hpl, %Hpty⟩
+      ihave #Hpl : msgOwnZ (GF := GF) (readRespondAll id { s with rd := { s.rd with pend := [] } }
+          ((pendReqs s).take (sint.nat n))).gh.sn.sz l DFrac.discard ⟨p.1, p.2, psn, pctx, prs⟩
+        $$ [Hpl]
+      · rw [readRespondAll_gh]; iexact Hpl
       rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Hn.1, by word⟩)]
       wp_apply wp_load_slice_index pr (sint.Z n) _ (DFrac.own 1) l Hn.1 $$ [Hpri] as Hpri
       · iframe; ipureintro; exact Hl
@@ -207,7 +211,7 @@ theorem releasePendingReadIndexMessages.wp_proof
         (readRespondAll id { s with rd := { s.rd with pend := [] } }
           ((pendReqs s).take (sint.nat n))) l p.1 p.2 psn pctx prs (by rw [Hcf.2.1]; exact Hlead)
         (by first | exact Hterm | simpa using Hterm | simp_all)
-        (Hpne p (List.mem_of_getElem? Hp))
+        (Hpne p (List.mem_of_getElem? Hp)) Hpty
         $$ [$Hphys $Hpl] as %s' ⟨Hphys, %Hres⟩
       obtain ⟨-, rfl⟩ := Hres.resolve_right (fun h => h.1 Hsg)
       wp_for_post
@@ -261,7 +265,10 @@ theorem releasePendingReadIndexMessages.wp_proof
       ⟨_, List.getElem?_eq_getElem (by omega)⟩
     ihave #Hpl := BigSepL2.bigSepL2_lookup Hl Hp $$ Hpls
     iunfold ownPendRI at Hpl
-    icases Hpl with ⟨%psn, %pctx, %prs, #Hpl⟩
+    icases Hpl with ⟨%psn, %pctx, %prs, #Hpl, %Hpty⟩
+    ihave #Hpl : msgOwnZ (GF := GF) { sendMsgs (relState id s (sint.nat n)) ms with prvals := pvs }.gh.sn.sz
+        l DFrac.discard ⟨p.1, p.2, psn, pctx, prs⟩ $$ [Hpl]
+    · simp only [sendMsgs, relState]; iexact Hpl
     rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Hn.1, by word⟩)]
     wp_apply wp_load_slice_index pr (sint.Z n) _ (DFrac.own 1) l Hn.1 $$ [Hpri] as Hpri
     · iframe; ipureintro; exact Hl
@@ -269,7 +276,7 @@ theorem releasePendingReadIndexMessages.wp_proof
     wp_apply wp_sendMsgReadIndexResponse _ _ _
       { sendMsgs (relState id s (sint.nat n)) ms with prvals := pvs } l p.1 p.2 psn pctx prs Hlead
       (by first | exact Hterm | simpa using Hterm | simp_all)
-      (Hpne p (List.mem_of_getElem? Hp))
+      (Hpne p (List.mem_of_getElem? Hp)) Hpty
       $$ [$Hphys $Hpl] as %s1 ⟨Hphys, %Hres⟩
     rcases Hres with ⟨Hs1, -⟩ | ⟨-, ms', pvs', rfl, Hms', Hmm'⟩
     · exact absurd Hs1 Hsg

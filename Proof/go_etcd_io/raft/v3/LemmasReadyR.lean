@@ -96,6 +96,20 @@ theorem selfmsgs_take_succ (id : w64) (ms : List QMsg) (n : Nat)
   rw [List.take_add_one, Hl]
   by_cases h : mm.st.msg.To' = id <;> simp [List.filter_append, h, isSelfQ]
 
+/-- (out_size C3) One more step of a loop over a slice of `k` elements: the index's bounds (a pure
+lemma: `word` inside `readyWithoutAccept`'s proof made a kernel-ill-typed auxiliary proof). -/
+theorem sint_loop_succ (n m : w64) (k : Nat) (Hn : 0 ≤ sint.Z n ∧ sint.Z n ≤ (k : Int))
+    (Hk : k = sint.nat m ∧ 0 ≤ sint.Z m) (Hlt : sint.Z n < sint.Z m) :
+    sint.nat (n + W64 1) = sint.nat n + 1 ∧ 0 ≤ sint.Z (n + W64 1) ∧ sint.Z (n + W64 1) ≤ (k : Int) := by
+  obtain ⟨rfl, Hm⟩ := Hk
+  refine ⟨?_, ?_, ?_⟩ <;> word
+
+/-- (out_size C3) A loop over a slice of `k` elements is done. -/
+theorem sint_loop_done (n m : w64) (k : Nat) (Hn : 0 ≤ sint.Z n ∧ sint.Z n ≤ (k : Int))
+    (Hk : k = sint.nat m ∧ 0 ≤ sint.Z m) (Hge : ¬ sint.Z n < sint.Z m) : sint.nat n = k := by
+  obtain ⟨rfl, Hm⟩ := Hk
+  word
+
 /-- A response type is not a snapshot's. -/
 theorem mtypeOf_resp_ne_snap (t : w32) (H : RespType t) : mtypeOf t ≠ some .snap := by
   rcases H with H | H | H <;> rw [H] <;> decide
@@ -117,11 +131,12 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+variable {sz : Bool}
 
 /-- `readyDq` of messages that are all responses is a half. -/
 theorem readyDq_halves (l : List QMsg) (H : ∀ q ∈ l, RespType q.st.msg.Type') :
-    ([∗list] q ∈ l, msgOwn (GF := GF) q.loc (readyDq q.st) q.st) ⊢
-      [∗list] q ∈ l, msgOwn q.loc (DFrac.own (1 : Qp).half) q.st := by
+    ([∗list] q ∈ l, msgOwnZ (GF := GF) sz q.loc (readyDq q.st) q.st) ⊢
+      [∗list] q ∈ l, msgOwnZ sz q.loc (DFrac.own (1 : Qp).half) q.st := by
   induction l with
   | nil => iintro _; iempintro
   | cons q l ih =>
@@ -134,8 +149,8 @@ theorem readyDq_halves (l : List QMsg) (H : ∀ q ∈ l, RespType q.st.msg.Type'
 
 /-- ... and back. -/
 theorem halves_readyDq (l : List QMsg) (H : ∀ q ∈ l, RespType q.st.msg.Type') :
-    ([∗list] q ∈ l, msgOwn (GF := GF) q.loc (DFrac.own (1 : Qp).half) q.st) ⊢
-      [∗list] q ∈ l, msgOwn q.loc (readyDq q.st) q.st := by
+    ([∗list] q ∈ l, msgOwnZ (GF := GF) sz q.loc (DFrac.own (1 : Qp).half) q.st) ⊢
+      [∗list] q ∈ l, msgOwnZ sz q.loc (readyDq q.st) q.st := by
   induction l with
   | nil => iintro _; iempintro
   | cons q l ih =>
@@ -148,8 +163,8 @@ theorem halves_readyDq (l : List QMsg) (H : ∀ q ∈ l, RespType q.st.msg.Type'
 
 /-- Owned messages handed out at `readyDq`, the other halves (`respHalf`) kept. -/
 theorem qOwns_ready (l : List QMsg) :
-    ([∗list] q ∈ l, qOwn (GF := GF) q) ⊢
-      ([∗list] q ∈ l, msgOwn q.loc (readyDq q.st) q.st) ∗ [∗list] q ∈ l, respHalf q := by
+    ([∗list] q ∈ l, qOwn (GF := GF) sz q) ⊢
+      ([∗list] q ∈ l, msgOwnZ sz q.loc (readyDq q.st) q.st) ∗ [∗list] q ∈ l, respHalf q := by
   induction l with
   | nil => iintro _; isplitl <;> iempintro
   | cons q l ih =>
@@ -163,8 +178,8 @@ theorem qOwns_ready (l : List QMsg) :
 
 /-- ... and back. -/
 theorem qOwns_unready (l : List QMsg) :
-    ([∗list] q ∈ l, msgOwn (GF := GF) q.loc (readyDq q.st) q.st) ∗ ([∗list] q ∈ l, respHalf q) ⊢
-      [∗list] q ∈ l, qOwn q := by
+    ([∗list] q ∈ l, msgOwnZ (GF := GF) sz q.loc (readyDq q.st) q.st) ∗ ([∗list] q ∈ l, respHalf q) ⊢
+      [∗list] q ∈ l, qOwn sz q := by
   induction l with
   | nil => iintro _; iempintro
   | cons q l ih =>
@@ -179,8 +194,8 @@ theorem qOwns_unready (l : List QMsg) :
 /-- The messages to others of `msgsAfterAppend`, owned, are what is handed out (at `readyDq`,
 a half: they are responses) and what is kept (`otherHalf`). -/
 theorem qOwns_other_ready (id : w64) (l : List QMsg) (H : ∀ q ∈ l, RespType q.st.msg.Type') :
-    ([∗list] q ∈ nonself id l, qOwn (GF := GF) q) ⊢
-      ([∗list] q ∈ nonself id l, msgOwn q.loc (readyDq q.st) q.st) ∗
+    ([∗list] q ∈ nonself id l, qOwn (GF := GF) sz q) ⊢
+      ([∗list] q ∈ nonself id l, msgOwnZ sz q.loc (readyDq q.st) q.st) ∗
         [∗list] q ∈ l, otherHalf id q := by
   iintro Hq
   icases (qOwns_other_halves id l).2 $$ Hq with ⟨H1, H2⟩
@@ -300,7 +315,7 @@ theorem self_pending (γ : RaftNames) (id t : w64) (s : NState) (o : List Msg)
     (Hxf : XfOk id s (ms1 ++ ms2)) (W : DurMaps) :
     ⊢ ([∗list] x ∈ o, □ (durFrags (GF := GF) γ id W -∗ isMessage γ x)) -∗ qCerts γ (ms1 ++ ms2) -∗
       xfW γ s -∗
-      ([∗list] q ∈ l, selfOwn (GF := GF) id q) -∗
+      ([∗list] q ∈ l, selfOwn (GF := GF) sz id q) -∗
       pendList γ id W ((selfmsgs id l).map QMsg.loc)
         ((selfmsgs id l).map (fun q => selfPending q.st.msg)) := by
   induction l with
@@ -324,7 +339,7 @@ theorem self_pending (γ : RaftNames) (id t : w64) (s : NState) (o : List Msg)
       · iexists q.st
         isplitl [Hq]
         · iapply msgOwn_to_msgIn q.loc q.st (resp_ne_MsgApp _ Hresp)
-          unfold selfOwn; simp only [h, ↓reduceIte]; iexact Hq
+          unfold selfOwn; simp only [h, ↓reduceIte]; iapply msgOwnZ_msgOwn $$ Hq
         · ihave #Hqq := qCerts_mem γ _ q (Hsub q List.mem_cons_self) $$ Hqc
           have Hq0 := Hsub q List.mem_cons_self
           unfold pendingRel selfPending
@@ -342,35 +357,6 @@ theorem self_pending (γ : RaftNames) (id t : w64) (s : NState) (o : List Msg)
       · iapply ih Hsub' Hok' $$ Ho Hqc Hxw H
     · simp only [selfmsgs, List.filter_cons, h, Bool.false_eq_true, ↓reduceIte]
       iapply ih Hsub' Hok' $$ Ho Hqc Hxw H
-
-omit [StorageModel GF] package_sem in
-/-- (raft-entsize §2) The `snapUf`s of the `msgsAfterAppend` messages to others. -/
-theorem snapUfs_nonself (id : w64) (ms : List QMsg) :
-    ([∗list] q ∈ ms, snapUf (GF := GF) q.loc q.st) ⊢ [∗list] q ∈ nonself id ms, snapUf q.loc q.st := by
-  induction ms with
-  | nil => simp only [nonself, List.filter_nil]; exact .rfl
-  | cons q ms ih =>
-    iintro H
-    icases BigSepL.bigSepL_cons.1 $$ H with ⟨#Hq, H⟩
-    by_cases h : isSelfQ id q = true
-    · have : nonself id (q :: ms) = nonself id ms := by simp [nonself, h]
-      rw [this]; iapply ih $$ H
-    · have : nonself id (q :: ms) = q :: nonself id ms := by simp [nonself, h]
-      rw [this]
-      iapply BigSepL.bigSepL_cons.2
-      iframe Hq
-      iapply ih $$ H
-
-omit [StorageModel GF] package_sem in
-/-- (raft-entsize §2) The `snapUf`s of the messages a `Ready` hands out (`ms1` and the
-`msgsAfterAppend` messages to others), from the queues'. -/
-theorem snapUfs_ready (id : w64) (ms1 ms2 : List QMsg) :
-    ([∗list] q ∈ ms1, snapUf (GF := GF) q.loc q.st) ∗ ([∗list] q ∈ ms2, snapUf q.loc q.st) ⊢
-      [∗list] q ∈ ms1 ++ nonself id ms2, snapUf q.loc q.st := by
-  iintro ⟨H1, H2⟩
-  iapply BigSepL.bigSepL_append.2
-  iframe H1
-  iapply snapUfs_nonself id ms2 $$ H2
 
 end sep
 

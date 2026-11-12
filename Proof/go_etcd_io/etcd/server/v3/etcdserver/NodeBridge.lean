@@ -263,15 +263,12 @@ theorem isRNMemStor_of_memstorage (γ : RNNames) :
   letI : MemStorReg GF := ⟨γ.reg⟩
   iintro ⟨#Hpkg, #Hreg, #Hlock⟩
   iunfold isRNMemStor
-  iintro !> %sl %esL %es %Φ !> ⟨#Hsl, #Hents, Hright⟩ HΦ
+  iintro !> %sl %es %Φ !> ⟨#Hents, Hright⟩ HΦ
   iunfold rnAppendRight at Hright
   icases Hright with ⟨Hright, %Hfit⟩
   obtain ⟨Hfits, Hcons⟩ := Hfit
-  ihave #Hpts : entsPts sl DFrac.discard (es.map EntryModel.toM) $$ []
-  · iunfold entsPts
-    iexists esL
-    iframe Hsl
-    iapply entRO_of_entriesAt esL es $$ Hents
+  ihave #Hpts : entsPtsZ γ.γs.sz sl DFrac.discard (es.map EntryModel.toM) $$ []
+  · iapply entsPtsZ_true $$ Hents
   iunfold appendRight at Hright
   icases Hright with (%Hnil | ⟨%e0, %old, %Hh, Hl, He⟩)
   · -- nothing to append
