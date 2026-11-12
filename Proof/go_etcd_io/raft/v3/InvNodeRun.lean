@@ -1345,7 +1345,7 @@ takes the next conf entry's change (`StepR.applyConf`), then `switchToConfig`'s 
 configuration index. The node is no candidate (a candidate has no conf entry to apply: `RInv`'s
 `cand`), no pre-candidate (pre-vote off), and a removed leader steps down (`sdrOk`). -/
 theorem wp_applyConf_dyn
-    (wp_raft_applyConfChange : raft.applyConfChange.spec (GF := GF) (hG := hG))
+    (wp_raft_applyConfChange : raft.applyConfChange.specU (GF := GF) (hG := hG))
     (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (dec : CCDec) (c0 : CCState)
     (h0 : CfgOk c0) (h1 : CCGood c0) (hm : rs.mode = .dyn dec c0 h0 h1) (k : Nat)
     (e : EntryM) (cs' : CCState)
@@ -1651,7 +1651,7 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
 /-- `r.applyConfChange(cc)` on the node's raft struct, for a change that leaves the
 configuration unchanged (`node.run`'s `confc` arm); the ghost step inside. -/
 theorem wp_rn_raft_applyConfChange
-    (wp_raft_applyConfChange : raft.applyConfChange.spec (GF := GF) (hG := hG))
+    (wp_raft_applyConfChange : raft.applyConfChange.specU (GF := GF) (hG := hG))
     (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : Loc) (cc : Loc) (ccm : ConfChangeV2M)
     (Hst : γ.reDyn = none)
     (Hn : CCShrink γ.reCfg ccm.transition ccm.changes)
@@ -1727,7 +1727,7 @@ theorem ownRawNode_borrow_in (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
 /-- `r.applyConfChange(cc)` on the node's raft struct in the dynamic mode (2026-10-15, stage N;
 `node.run`'s `confc` arm): `wp_applyConf_dyn` on `ownRawNode`, the changes read-only. -/
 theorem wp_rn_raft_applyConfChange_dyn
-    (wp_raft_applyConfChange : raft.applyConfChange.spec (GF := GF) (hG := hG))
+    (wp_raft_applyConfChange : raft.applyConfChange.specU (GF := GF) (hG := hG))
     (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : Loc) (cc : Loc) (ccm : ConfChangeV2M)
     (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0)
     (h1 : CCGood c0) (hm : rs.mode = .dyn dec c0 h0 h1) (k : Nat) (e : EntryM)

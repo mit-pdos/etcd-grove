@@ -1,5 +1,5 @@
 /- Lean-first (no Rocq counterpart). **Step 4 of the trace-check design (2026-11-12): `node.run` in both
-modes** (`node.run.gatedSpec`, `TracedRunSpecs.lean`; `notes/trace-check-design.md`, "Step 4
+modes** (`node.run.spec`, step 4's `node.run.gatedSpec` in place since step 5; `notes/trace-check-design.md`, "Step 4
 (2026-11-12): the statements", §3.2). Today's proof (`node__run.lean`) with each callee's triple for both
 modes (`TracedNodeRun.lean`): `RawNode.Advance` and `raft.applyConfChange` by their traced statements
 (the hypotheses `hAdv`, `hCC`), the steps over the traced assembly (`hb`), the tick over its traced
@@ -84,7 +84,7 @@ theorem node.run.gated_of
     (wp_RawNode_HasReady : RawNode.HasReady.spec (GF := GF) (hG := hG))
     (wp_RawNode_readyWithoutAccept : RawNode.readyWithoutAccept.spec (GF := GF) (hG := hG))
     (wp_RawNode_acceptReady : RawNode.acceptReady.spec (GF := GF) (hG := hG))
-    (hAdv : RawNode.Advance.tracedSpec (GF := GF) (hG := hG))
+    (hAdv : RawNode.Advance.spec (GF := GF) (hG := hG))
     (wp_RawNode_Tick : RawNode.Tick.spec (GF := GF) (hG := hG))
     (wp_tickElection : raft.tickElection.spec (GF := GF) (hG := hG))
     (wp_tickHeartbeat : raft.tickHeartbeat.spec (GF := GF) (hG := hG))
@@ -97,7 +97,7 @@ theorem node.run.gated_of
     (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
     (wp_GetFrom : raftpb.Message.GetFrom.spec (GF := GF) (hG := hG))
     (wp_getStatus : getStatus.spec (GF := GF) (hG := hG)) :
-    node.run.gatedSpec (GF := GF) (hG := hG) := by
+    node.run.spec (GF := GF) (hG := hG) := by
   intro γ id n Hrok
   have Hfit : γ.raft.reTrace ≠ none → traceReadyFits GF γ.raft := fun h => (Hrok h).2.1
   have Hrb : γ.raft.reTrace ≠ none → receiptBound GF + 2 ≤ traceNumBound := fun h => (Hrok h).2.2
@@ -570,7 +570,7 @@ theorem node.run.gated_of
       rw [Hb]
       try wp_auto
       -- `cs := r.applyConfChange(cc)`
-      wp_apply wp_rn_raft_applyConfChange (raft.applyConfChange.spec_of_tracedSpec hCC) γ.raft nv.rn' id rs r cc ccs
+      wp_apply wp_rn_raft_applyConfChange (raft.applyConfChange.specU_of_tracedSpec hCC) γ.raft nv.rn' id rs r cc ccs
         Hstatic Hn
         HtrG $$ [$Hrn $Hrnraft $Hccs $Hlc1] as %cs %xs %ls ⟨Hrn, -, Hcsp, %Hcs⟩
       -- `_, okAfter := r.trk.Progress[r.id]`: still a voter

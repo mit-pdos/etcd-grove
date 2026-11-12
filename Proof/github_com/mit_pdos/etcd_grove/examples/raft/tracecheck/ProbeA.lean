@@ -172,16 +172,17 @@ theorem probeA_alloc (N : Namespace) (boot : List LogEntry) (γt : GName) (E : C
 for a configuration of the voter's id logging to the names' trace. -/
 theorem probeA_startPre (γ : Cluster) (N : Namespace) (γd : GName) (tn : TraceNames) (cv : Config)
     (Htr : Cluster.trace γ = some γd) (Hvs : tn.voters = tcVoters) (Hpv : cv.PreVote' = false)
-    (Hcq : cv.CheckQuorum' = false) (Hnil : cv.TraceLogger' ≠ interface.nil) :
+    (Hcq : cv.CheckQuorum' = false) (Hnil : cv.TraceLogger' ≠ interface.nil)
+    (Hfit : receiptBound GF + max γ.bootLen 2 ≤ 2 ^ 61) :
     ⊢ voterStart (GF := GF) γ N tcVoters tcCtxs tn cv.ID' -∗ traceDir γd tn -∗
       Cluster.traceSim γ tcVoters tn -∗ isTraceLogger tn.tr cv.TraceLogger' -∗
       nodeBoot γ N tcVoters tcCtxs cv.ID' ∗ nodeVacant γ cv.ID' ∗ raftState γ cv.ID' RaftState.init ∗
-        startTraceC γ tcVoters cv := by
+        startTraceC γ N tcVoters cv := by
   iintro Hv #Hd #Hinv #Hlog
   unfold voterStart
   icases Hv with ⟨#Hb, ⟨Hrs, Hvac⟩, Hsh, Hbt⟩
   iframe Hb Hrs Hvac
-  iapply startTraceC_intro γ γd tn tcVoters cv Htr Hvs Hpv Hcq (by simp) Hnil
+  iapply startTraceC_intro γ γd tn tcVoters cv Htr Hvs Hpv Hcq (by simp) Hnil N Hfit
     $$ Hd Hinv Hlog Hsh Hbt
 
 /-- **The end of the run** (§2.2's last row): the three `StartNode`s' `startDone`s, one voter's

@@ -78,6 +78,16 @@ theorem traceConfChangeEvent.wp_proof
       · unfold ownIdsetOpt; iright; iexact Hin
       · ipureintro; exact Hsz
     wp_apply wp_formatConf $$ [$Hsl1] as %a ⟨-, Ha⟩
+    -- (step 5) the new configuration back whole: the lending is out of `P` with it
+    ihave Hin : ownIdsetQ (GF := GF) vin (DFrac.own 1) cn.incoming $$ [Hin]
+    · unfold ownIdsetQ; iunfold ownIdsetOpt at Hin; iexact Hin
+    ihave Hin := ownIdsetQ_not_nil _ _ _ Hvin_nn $$ Hin
+    ihave Hcfg := ownCfgCC_intro cfgv (DFrac.own 1) cn vin vout Harr Hal $$ Hin Hout Hl Hln
+    ihave Hnew : ownConfigC (GF := GF) cn cfgv prsm prs pvs $$ [Hcfg Hprogs]
+    · iunfold ownConfigC
+      iframe Hcfg Hprsm Hprogs
+      simp only [named]
+      ipureintro; exact ⟨Hinv, Hdom, Hflags, Hsize⟩
     wp_apply wp_map_make1 (K := GoString) (V := GoInterface) go.string go.any as %mp Hmp
     try wp_auto
     wp_apply wp_mapInsert $$ [$Hmp] as Hmp
@@ -105,7 +115,7 @@ theorem traceConfChangeEvent.wp_proof
         · intro w; simp [noProps]
         · intro _; simp
         · intro k hk
-          simp only [List.mem_cons, List.not_mem_nil, or_false, not_or] at hk
+          simp only [List.mem_cons, List.not_mem_nil, _root_.or_false, not_or] at hk
           rw [GMap.lookup_insert_ne _ _ (Ne.symm hk.1)]
           rfl
       simp only [tracingCCRep]
@@ -113,13 +123,13 @@ theorem traceConfChangeEvent.wp_proof
       iframe «$r0» Hsl0 Ha
       ipureintro; rfl
     wp_apply wp_traceEvent (W64 7) r null mp (GoInterface.ok i) (some γd) E Q
-        P $$ [HP Hau] as HR0
+        iprop(P ∗ ownConfigC cn cfgv prsm prs pvs) $$ [HP Hnew Hau] as HR0
     · iframe Htl
-      isplitl [HP]
+      isplitl [HP Hnew]
       · iapply (trOwn_some γd _).2
-        iexists c, id, s, P, none,
+        iexists c, id, s, iprop(P ∗ ownConfigC cn cfgv prsm prs pvs), none,
           { noProps with propCC := some ⟨[], xs.map decStr⟩ }
-        iframe HP Hprops
+        iframe HP Hnew Hprops
         isplitr
         · iexact HRL
         isplitr
@@ -137,18 +147,10 @@ theorem traceConfChangeEvent.wp_proof
       ipureintro; exact Hnn
     icases HR0 with ⟨HR0, HQ⟩
     ihave HP := (trOwn_some γd _).1 $$ HR0
-    ihave Hin : ownIdsetQ (GF := GF) vin (DFrac.own 1) cn.incoming $$ [Hin]
-    · unfold ownIdsetQ; iunfold ownIdsetOpt at Hin; iexact Hin
-    ihave Hin := ownIdsetQ_not_nil _ _ _ Hvin_nn $$ Hin
-    ihave Hcfg := ownCfgCC_intro cfgv (DFrac.own 1) cn vin vout Harr Hal $$ Hin Hout Hl Hln
     iapply HΦ
     iframe HQ
     iapply (trOwn_some γd _).2
-    iapply HR
-    iframe HP
-    iunfold ownConfigC
-    iframe Hcfg Hprsm Hprogs
-    ipureintro; exact ⟨Hinv, Hdom, Hflags, Hsize⟩
+    iapply HR $$ HP
 
 end proof
 

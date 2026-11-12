@@ -28,7 +28,8 @@ theorem traceReady.wp_proof
   intro c r id s tl Q
   wp_start as ⟨#Htl, Hown, Hfire⟩
   wp_auto
-  wp_apply wp_traceNodeEvent (W64 8) c r id s tl Q (by decide) $$ [$Htl $Hown $Hfire] as HR
+  ihave Hown := trOwn_physLend _ c r id s $$ Hown
+  wp_apply wp_traceNodeEvent (W64 8) c r id s tl Q _ (by decide) $$ [$Htl $Hown $Hfire] as HR
   iapply HΦ $$ HR
 
 end proof

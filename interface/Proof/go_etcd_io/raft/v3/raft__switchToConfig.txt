@@ -12,22 +12,15 @@ theorem raft.switchToConfig.wp_proof [package_sem : Assumptions] (wp_traceConfCh
     raft.switchToConfig.spec
   -- `Perennial.EtcdGrove.raft.switchToConfig.spec`, unfolded:
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (tv0 : tracker.ProgressTracker) (cfgv : tracker.Config) (prsm : Loc)
-    (prs : GMap w64 Loc) (pvs : GMap w64 Progress) (tl : GoInterface) (c0 : CfgM) (γ : RaftNames),
+    (prs : GMap w64 Loc) (pvs : GMap w64 Progress) (tl : GoInterface) (c0 : CfgM) (Q : IProp GF),
     (s.role = PRole.leader → id ∈ c.voters → MatchKept s.prvals pvs) →
       (s.role = PRole.leader → s.term ≠ W64 0) →
         (s.role = PRole.candidate ∨ s.role = PRole.preCandidate → id ∈ c.voters) →
           (s.role = PRole.leader → ∀ (v : w64) (p : Progress), pvs !! v = some p → PrOkN s.gh.ns s.logst p) →
-            (s.gh.tr ≠ none →
-                s.role = PRole.follower ∧
-                  c = c0 ∧
-                    ↑γ.reBoot.length ≤ uint.Z s.logst.committed ∧
-                      uint.Z s.logst.committed ≤ uint.Z (plastIndex (toPState s)) ∧
-                        uint.nat s.term < traceNumBound ∧
-                          uint.nat s.logst.committed < traceNumBound ∧
-                            uint.nat (plastIndex (toPState s)) < traceNumBound) →
+            (s.gh.tr ≠ none → s.role = PRole.follower) →
               ⊢
                 ∀ Φ,
-                  (isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                  isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
                       "Htrkf" ∷ typedPointsto (structFieldRef raft go!"trk" r) tv0 (DFrac.own 1) ∗
                         "Hcore" ∷ ownRaftCore r id s ∗
                           ("Hback" ∷
@@ -55,12 +48,11 @@ theorem raft.switchToConfig.wp_proof [package_sem : Assumptions] (wp_traceConfCh
                                         (structFieldRef raft
                                           go!"traceLogger" r)
                                         tl DFrac.discard ∗
-                                    "%Htlok" ∷ ⌜s.gh.tr = none → TraceLoggerOk tl⌝ ∗
-                                      "Hold" ∷ trOwn s.gh.tr (ownCfgCC tv0.Config' (DFrac.own 1) c0) ∗
-                                        "Hcap" ∷ trCapB s.gh.tr γ r id c0 true fun C => SimIdle C s) -∗
+                                    "Hold" ∷ trOwn s.gh.tr iprop(ownCfgCC tv0.Config' (DFrac.own 1) c0 ∗ ⌜CfgSizeOk c0⌝) ∗
+                                      "Hfire" ∷ TraceFire s.gh.tr tl (CCEvOf id s c0 c) Q -∗
                     (▷
                         ∀ cs xs os ls lns s',
-                          (ownRaftPhysCV c c.voters r id s' ∗
+                          ownRaftPhysCV c c.voters r id s' ∗
                               csPts cs (DFrac.own 1)
                                   { Voters' := xs, Learners' := ls, VotersOutgoing' := os, LearnersNext' := lns,
                                     AutoLeave' := c.autoLeave }
@@ -75,7 +67,7 @@ theorem raft.switchToConfig.wp_proof [package_sem : Assumptions] (wp_traceConfCh
                                           prevote := s.prevote, gh := s.gh, rd := s.rd, lt := s.lt, pci := s.pci,
                                           isLearner := learnerOfC c id, sdr := s.sdr, cq := s.cq }
                                         s'⌝ ∗
-                                    trCapB s.gh.tr γ r id c true fun C => SimIdle C s') -∗
+                                    Q -∗
                             Φ (intoVal cs)) -∗
                       WP
                         (((intoVal

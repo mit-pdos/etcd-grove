@@ -16,6 +16,7 @@ Lean notes: As for `raft.Step.spec`, the section fixes `hlc := HasLC.hasLC` and 
 module
 
 public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
+public import Proof.go_etcd_io.raft.v3.TraceFits
 
 @[expose] public section
 
@@ -81,54 +82,26 @@ entries, a non-rejecting `MsgAppResp`, a term bound). They are recorded now:
 application gives back the storage at the snapshot and its half of the snapshot (`loanRet`,
 `snapReceipt`); the node absorbs the storage and steps the acknowledgement, which drops the
 pending snapshot (`appliedSnap`: `stableSnapTo`, then `appliedTo` up to the snapshot's index), and
-hands the committed log up to the snapshot over (`advRS`). Until then a premise `rs.psnap = false`. -/
+hands the committed log up to the snapshot over (`advRS`). Until then a premise `rs.psnap = false`. (2026-11-12, trace-check step 5: step 4's `RawNode.Advance.tracedSpec`, replacing this statement in place) Both modes: the premise `γ.reTrace = none` replaced by, at a traced node, `acceptReady`'s bounds and no snapshot lent (`rs.slent = none`); every other traced content is inside `ownRawNode` (`rnTrace`, `pendingRel`'s `selfTok`). -/
 abbrev RawNode.Advance.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready),
-  -- (D22 S-d3a) the entries handed out appended, but after a snapshot `Ready`, whose receipt
-  -- (`loanRet`, the storage at the snapshot holding them) comes back here
   (rs.slent = none → rs.unpersisted = []) →
   rs.unst = false →
-  -- (From 2026-10-28, stage U3c, to 2026-10-29, stage U5, in the dynamic mode a snapshot's
-  -- `ConfState` was no auto-leave joint one: `appliedTo`'s automatic leave was out of `raft.Step`'s
-  -- scope.)
-  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
-  -- hooks see a nil logger (`TraceLoggerOkS`); stage 1 replaces this premise by the traced
-  -- capability (`trCapB s.gh.tr …`, `TracedHooksDraft.lean`)
-  γ.reTrace = none →
+  -- (step 4) in place of `γ.reTrace = none`: at a traced node, `acceptReady`'s bounds and no loan
+  (γ.reTrace ≠ none → uint.Z rs.tc + 1 < traceNumBound ∧ traceReadyFits GF γ ∧ rs.slent = none) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs ∗
-      -- (D22 S-d3a, 2026-10-21) after a snapshot `Ready`, the application's receipt
       "Hret" ∷ loanRet rs ∗
-      -- (2026-10-14, stage B7 part 2) **A1**, in the dynamic mode: every conf-change entry of the
-      -- committed log handed out has been applied (`ApplyConfChange`) -- none past the
-      -- configuration index (`issues/raft-advance-before-applyconfchange.md`); (2026-10-28, the
-      -- decision switch) or skipped, rejected over decisions recorded (`undecFree`); (raft-final,
-      -- 2026-10-29, the design's A1) only after a `Ready` without a snapshot: after one with a
-      -- snapshot the configuration is the snapshot's (`appliedSnap`, `StepR.applySnap`, which needs
-      -- none; a newcomer that catches up by a snapshot has decided its conf entries `.apply`)
       "#HA1" ∷ □ (⌜rs.slent = none⌝ -∗ undecFree γ rs.mode rs.delivered rs.capplied rs.delivered.length) ∗
-      -- (2026-11-01, durability stage II (k), fix C) the fragments of the batch the last `Ready` cut
-      -- (`RNState.bw`), which *enter* minted: the queued self-addressed responses' facts
       "#Hbw" ∷ durFrags γ id rs.bw }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Advance")) (Val #rd))
   {{ (t : w64) (ca : Nat), RET #();
-      -- (D19i part 1) `applied` up to `applying`, at least the floor: no longer raised;
-      -- (D22 S-d3a) after a snapshot `Ready` the loan returned, the committed log handed out up to
-      -- the snapshot (`advRS`)
       ownRawNode γ rn id (advRS rs t ca) ∗
       ⌜uint.Z rs.term ≤ uint.Z t ∧ uint.Z t ≤ uint.Z rs.term + 1⌝ ∗
-      -- (2026-10-17; 2026-10-10 to 2026-10-17, with pre-vote off: `t = rs.term`) within the
-      -- term ceiling
       ⌜uint.Z t ≤ uint.Z rs.tc⌝ ∗
-      -- (2026-10-14) the configuration index moves up, to at most the committed log handed
-      -- out (`StepR.advance`); not at all in the static mode; (2026-10-28, stage U3c) after a
-      -- snapshot `Ready`, dynamically, to the snapshot's index (`StepR.applySnap`)
       ⌜(rs.slent = none → rs.capplied ≤ ca ∧ ca ≤ max rs.capplied rs.delivered.length) ∧
         (∀ l, rs.slent = some l → rs.mode.isDyn = true → ca = l.dlv.length) ∧
         (rs.mode = .static → ca = rs.capplied)⌝ ∗
-      -- (2026-11-11, trace-check design revision 3's N2, Probe B item 5) after a `Ready` without a
-      -- snapshot, dynamically, the configuration index installed is exactly up to the committed log
-      -- handed out (`StepR.advance`'s `cidx := max r.cidx a`): so `applied ≤ capplied` after (lemma (ii))
       ⌜rs.slent = none → rs.mode.isDyn = true → ca = max rs.capplied rs.delivered.length⌝ }}
 
 end spec

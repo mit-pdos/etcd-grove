@@ -58,10 +58,12 @@ keeps them: `asyncStorageWrites` unset, `prevSoftSt` and `prevHardSt` read-only,
 empty. `RestartNode` closes it (`ownRawNode`, with the ghost state); `Bootstrap` installs the
 peers first. (raft-final, 2026-10-29, U9: until then with leader transfer `xf`, `NGhost.xf`, a
 parameter; its ghost lower bounds empty but for the storage's names, U8 v2's `NGhost.sn`.) -/
-def rawNodeFresh (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64) (sdr : Bool)
+def rawNodeFresh (rn r : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64) (sdr : Bool)
     (pre : Bool) (s : NState) : IProp GF :=
   iprop(∃ (rnv : RawNode) (sv : SoftState) (hprev : HardStateM),
     "Hrn" ∷ rawNodeOwn rn rnv ∗
+    -- (2026-11-12, trace-check step 5) the `raft` struct named (the capability is keyed by it)
+    "%Hr" ∷ ⌜rnv.raft' = r⌝ ∗
     "Hphys" ∷ ownRaftPhys V rnv.raft' id s ∗
     "%Hasync" ∷ ⌜rnv.asyncStorageWrites' = false⌝ ∗
     "#Hsoft" ∷ rnv.prevSoftSt' ↦□ sv ∗
@@ -75,7 +77,8 @@ def rawNodeFresh (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64) (sdr 
       s.logst.uents = [] ∧ s.logst.stored = [] ∧ s.logst.committed = W64 0 ∧
       s.logst.applied = W64 0 ∧ s.logst.applying = W64 0 ∧ s.logst.unpersisted = [] ∧
       s.logst.snap = none ∧ s.logst.storage = interface.ok si ∧ s.logst.dtk = 0⌝ ∗
-    "%Hgh" ∷ ⌜s.gh = { sn := s.gh.sn }⌝ ∗
+    -- (2026-11-12, trace-check step 5) the trace mode free (until then `{ sn := s.gh.sn }`)
+    "%Hgh" ∷ ⌜s.gh = { sn := s.gh.sn, tr := s.gh.tr }⌝ ∗
     "%Hpvoff" ∷ ⌜s.prevote = pre⌝ ∗
     "%Hsdr" ∷ ⌜s.sdr = sdr⌝ ∗
     "%Hdom" ∷ ⌜domSet s.progress = V⌝ ∗
@@ -100,10 +103,12 @@ configuration `cs` (`ownRaftPhysC`), at a state refining the restarted follower'
 hard state's term and vote, the stored log from the base, the commit index `loadState` restores), the
 log stable with nothing unstable or handed out, applying from `A` (or the base), the certification
 bound at the restored commit (durability stage I-6: raft certified the attach record's terms); `prevHardSt` the hard state `r.hardState()` reads then. -/
-def rawNodeAt (rn : Loc) (id : w64) (si : GoInterfaceOk) (cs : CCState) (sdr : Bool) (pre : Bool)
+def rawNodeAt (rn r : Loc) (id : w64) (si : GoInterfaceOk) (cs : CCState) (sdr : Bool) (pre : Bool)
     (hs : HardStateM) (σ : StorState) (A : w64) (s : NState) : IProp GF :=
   iprop(∃ (rnv : RawNode) (sv : SoftState) (hprev : HardStateM),
     "Hrn" ∷ rawNodeOwn rn rnv ∗
+    -- (2026-11-12, trace-check step 5) the `raft` struct named (the capability is keyed by it)
+    "%Hr" ∷ ⌜rnv.raft' = r⌝ ∗
     "Hphys" ∷ ownRaftPhysC cs.cfg rnv.raft' id s ∗
     "%Hasync" ∷ ⌜rnv.asyncStorageWrites' = false⌝ ∗
     "#Hsoft" ∷ rnv.prevSoftSt' ↦□ sv ∗
@@ -119,7 +124,8 @@ def rawNodeAt (rn : Loc) (id : w64) (si : GoInterfaceOk) (cs : CCState) (sdr : B
       s.logst.applying = w64Max σ.prev.index' (if A = W64 0 then σ.prev.index' else A) ∧
       s.logst.unpersisted = [] ∧ s.logst.snap = none ∧ s.logst.storage = interface.ok si ∧
       s.logst.dtk = uint.nat (committedAfter σ.prev hs)⌝ ∗
-    "%Hgh" ∷ ⌜s.gh = { sn := s.gh.sn }⌝ ∗
+    -- (2026-11-12, trace-check step 5) the trace mode free (until then `{ sn := s.gh.sn }`)
+    "%Hgh" ∷ ⌜s.gh = { sn := s.gh.sn, tr := s.gh.tr }⌝ ∗
     "%Hpvoff" ∷ ⌜s.prevote = pre⌝ ∗
     "%Hsdr" ∷ ⌜s.sdr = sdr⌝ ∗
     "%Hdom" ∷ ⌜domSet s.progress = domSet cs.prs⌝ ∗
@@ -130,17 +136,17 @@ def rawNodeAt (rn : Loc) (id : w64) (si : GoInterfaceOk) (cs : CCState) (sdr : B
 
 /-- (2026-11-01, durability stage I-6) On an empty storage, at the voters' tracker, the node built
 is `rawNodeFresh`'s (what `setupNode`'s `Bootstrap` takes). -/
-theorem rawNodeAt_fresh (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64) (sdr pre : Bool)
+theorem rawNodeAt_fresh (rn r : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64) (sdr pre : Bool)
     (hs : HardStateM) (σ : StorState) (A : w64) (s : NState) :
     HsEmpty hs → σ.prev = entryID.mk (W64 0) (W64 0) → σ.ents = [] → A = W64 0 →
-    rawNodeAt (GF := GF) rn id si (cfgState V ∅) sdr pre hs σ A s ⊢
-      rawNodeFresh rn id si V sdr pre s := by
+    rawNodeAt (GF := GF) rn r id si (cfgState V ∅) sdr pre hs σ A s ⊢
+      rawNodeFresh rn r id si V sdr pre s := by
   intro Hhs Hp He HA
   obtain ⟨HT, HV, HC⟩ := Hhs
   have Hca : committedAfter σ.prev hs = W64 0 := by
     unfold committedAfter; rw [ite_eq_left (show HsEmpty hs from ⟨HT, HV, HC⟩), Hp]
   unfold rawNodeAt rawNodeFresh
-  iintro ⟨%rnv, %sv, %hprev, Hrn, Hphys, %Hasync, #Hsoft, #Hhard, Hsteps, Hcap, %Hrel, %Hterm,
+  iintro ⟨%rnv, %sv, %hprev, Hrn, %Hrr, Hphys, %Hasync, #Hsoft, #Hhard, Hsteps, Hcap, %Hrel, %Hterm,
     %Hlog, %Hgh, %Hpvoff, %Hsdr, %Hdom, %Hhz, %Hsvr⟩
   iexists rnv, sv, hprev
   ihave Hphys := (show ownRaftPhysC (GF := GF) (cfgState V ∅).cfg rnv.raft' id s ⊢
@@ -157,7 +163,7 @@ theorem rawNodeAt_fresh (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet w64
   have Hrs : restartPState hs σ = initPState := by
     unfold restartPState; rw [HT, HV, Hca, Hp, He]; rfl
   rw [Hrs] at Hrel
-  refine ⟨Hasync, Hrel, ⟨by rw [Ht, HT], by rw [Hv, HV], Hr, Ho, Hst, Hpd⟩,
+  refine ⟨Hrr, Hasync, Hrel, ⟨by rw [Ht, HT], by rw [Hv, HV], Hr, Ho, Hst, Hpd⟩,
     ⟨by rw [Hlp, Hp], by rw [Hse, He], Hue, by rw [Hsd, He], Hcm, by rw [Hap, Hapg0], Hapg0, Hun,
       Hsn, Hsg, by rw [Hdtk]; rfl⟩, Hgh, Hpvoff, Hsdr, ?_, ?_, ?_⟩
   · rw [Hdom]
@@ -194,7 +200,7 @@ theorem rawNodeFresh_intro (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet 
       rnv.prevSoftSt' ↦□ sv -∗ hsRO rnv.prevHardSt' hprev -∗
       rnv.stepsOnAdvance' ↦* ([] : List Loc) -∗
       ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) -∗
-      rawNodeFresh rn id si V sdr pre s := by
+      rawNodeFresh rn rnv.raft' id si V sdr pre s := by
   iintro Hrn Hphys #Hsoft #Hhard Hsteps Hcap
   unfold rawNodeFresh
   iexists rnv, sv, hprev
@@ -221,14 +227,14 @@ theorem rawNodeFresh_intro_sn (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GS
       rnv.prevSoftSt' ↦□ sv -∗ hsRO rnv.prevHardSt' hprev -∗
       rnv.stepsOnAdvance' ↦* ([] : List Loc) -∗
       ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) -∗
-      rawNodeFresh rn id si V sdr pre s := by
+      rawNodeFresh rn rnv.raft' id si V sdr pre s := by
   iintro Hrn Hphys #Hsoft #Hhard Hsteps Hcap
   unfold rawNodeFresh
   iexists rnv, sv, hprev
   simp only [named]
   iframe Hrn Hphys Hsoft Hhard Hsteps Hcap
   ipureintro
-  exact ⟨Hasync, Hrel, Hterm0, Hlog, Hgh, Hpvoff, Hsdr, Hdom, Hhz, Hsvr⟩
+  exact ⟨Hasync, Hrel, Hterm0, Hlog, by rw [Hgh], Hpvoff, Hsdr, Hdom, Hhz, Hsvr⟩
 
 /-- The commit invariant, from the boot ghost state in either mode. -/
 theorem bootInit_inv (γ : RaftNames) (md : RNMode) (id : w64) (V : GSet w64)

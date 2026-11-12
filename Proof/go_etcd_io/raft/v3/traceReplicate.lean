@@ -70,7 +70,8 @@ theorem traceReplicate.wp_proof
           normalCount (es.drop (sint.Z (n + W64 1)).toNat) + 1 by
         simp only [normalCount, List.filter_cons, hN, if_true, List.length_cons]]
       simp only [TraceFireN]
-      wp_apply wp_traceNodeEvent (W64 5) c r id st tl _ (by decide) $$ [$Htl $Hown $Hfire]
+      ihave Hown := trOwn_physLend _ c r id st $$ Hown
+      wp_apply wp_traceNodeEvent (W64 5) c r id st tl _ _ (by decide) $$ [$Htl $Hown $Hfire]
         as ⟨Hown, Hfire⟩
       wp_for_post
       iframe

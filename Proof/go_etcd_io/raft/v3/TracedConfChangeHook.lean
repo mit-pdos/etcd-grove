@@ -58,7 +58,7 @@ theorem traceConfChangeEvent.tracedSpec_of_spec (h : traceConfChangeEvent.spec (
       iexists c, cn, id, s, prsm, prs, pvs, ownRaftPhysCV c c.voters r id s
       iframe Hphys Hnew
       isplitr
-      · iapply raftReadLend_self
+      · iapply raftReadLend_frame; iapply raftReadLend_self
       isplitr
       · ipureintro; exact fun _ h => h
       iintro H; iexact H

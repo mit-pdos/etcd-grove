@@ -5,6 +5,7 @@ tag since 2026-11-08, `notes/trace-validation-hooks.md`).
 module
 
 public import Proof.go_etcd_io.raft.v3.TracedCap
+public import Proof.go_etcd_io.raft.v3.RaftReadLend
 
 @[expose] public section
 
@@ -32,12 +33,15 @@ instance is the Draft's `traceNodeEvent.tracedSpec` (`TracedHooks.lean`). `evt.S
 the event names (review round 1's F1), hence the premise. Until slice 2: `⌜TraceLoggerOk tl⌝`,
 giving `True` (increment 1, `notes/trace-validation-hooks.md`). -/
 abbrev traceNodeEvent.spec : Prop :=
-  ∀ (evt : w64) (c : CfgM) (r : Loc) (id : w64) (s : NState) (tl : GoInterface) (Q : IProp GF),
+  ∀ (evt : w64) (c : CfgM) (r : Loc) (id : w64) (s : NState) (tl : GoInterface) (Q P : IProp GF),
   uint.nat evt < evtNames.length →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗
-      trOwn s.gh.tr (ownRaftPhysCV c c.voters r id s) ∗ TraceFire s.gh.tr tl (NodeEvOf evt id s c) Q }}
+      -- (2026-11-12, trace-check step 5; until then the whole struct, `ownRaftPhysCV c c.voters r id s`)
+      -- raft's state lent read-only out of `P` (`newRaft`'s `traceInitState` runs before the struct is
+      -- `ownRaftPhysCV`)
+      trOwn s.gh.tr iprop(P ∗ RaftReadLend P c r id s) ∗ TraceFire s.gh.tr tl (NodeEvOf evt id s c) Q }}
     (App (App (Val #(functions traceNodeEvent [])) (Val #evt)) (Val #r))
-  {{ RET #(); trOwn s.gh.tr (ownRaftPhysCV c c.voters r id s) ∗ Q }}
+  {{ RET #(); trOwn s.gh.tr P ∗ Q }}
 
 end spec
 

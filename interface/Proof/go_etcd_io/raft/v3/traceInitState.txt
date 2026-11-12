@@ -13,9 +13,9 @@ theorem traceInitState.wp_proof [package_sem : Assumptions] (wp_traceNodeEvent :
                 (structFieldRef raft go!"traceLogger" r) tl
                 DFrac.discard ∗
               trOwn tr
-                  iprop(∃ c id s,
-                      ownRaftPhysCV c c.voters r id s ∗
-                        ⌜s.gh.tr = tr ∧ ∀ (e : TraceEv), NodeEvOf (W64 0) id s c e → E e⌝ ∗
-                          (ownRaftPhysCV c c.voters r id s -∗ R)) ∗
+                  iprop(∃ c id s P,
+                      P ∗
+                        RaftReadLend P c r id s ∗
+                          ⌜s.gh.tr = tr ∧ ∀ (e : TraceEv), NodeEvOf (W64 0) id s c e → E e⌝ ∗ (P -∗ R)) ∗
                 TraceFire tr tl E Q -∗
           ▷ (trOwn tr R ∗ Q -∗ Φ (intoVal ())) -∗ WP ((intoVal (functions traceInitState [])) (intoVal r)) {{ Φ }}

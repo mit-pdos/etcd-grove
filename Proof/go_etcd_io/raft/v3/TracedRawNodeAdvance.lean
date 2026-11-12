@@ -1482,7 +1482,7 @@ private theorem RNMode.toG_static {mode : RNMode} (h : mode.isDyn = false) (g g'
 set_option maxHeartbeats 800000 in
 theorem RawNode.Advance.tracedSpec_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
-    RawNode.Advance.tracedSpec (GF := GF) (hG := hG) := by
+    RawNode.Advance.spec (GF := GF) (hG := hG) := by
   intro γ rn id rs rd Hunp0 Hunst0 HtrT
   wp_start as H
   iNamed H

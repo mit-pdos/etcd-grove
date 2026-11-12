@@ -40,6 +40,13 @@ theorem traceReadyFits.le {GF : BundledGFunctors} [ReceiptGS GF] {γ : RaftNames
 theorem traceReadyFits.intro {GF : BundledGFunctors} [ReceiptGS GF] {γ : RaftNames}
     (h : receiptBound GF + γ.reBoot.length ≤ traceNumBound) : traceReadyFits GF γ := h
 
+/-- **The term ceiling's headroom at a traced node** (2026-11-12, trace-check step 5): the receipts' bound
+and two more units below the trace's bound, so a ceiling at most `receiptBound GF` raised by one (a tick,
+`Campaign`'s `MsgHup`) has its successor below it (`node.run.spec`'s `RunTracedOk`). Named so that the spec
+states the need, not the receipts' arithmetic (`etc/bounds-check.py`'s `spec-receipt`). -/
+abbrev traceCeilFits (GF : BundledGFunctors) [ReceiptGS GF] : Prop :=
+  receiptBound GF + 2 ≤ traceNumBound
+
 end fits
 
 end EtcdGrove

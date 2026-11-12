@@ -5,7 +5,7 @@
 theorem traceNodeEvent.wp_proof [package_sem : Assumptions] (wp_traceEvent : traceEvent.spec) :
     traceNodeEvent.spec
   -- `Perennial.EtcdGrove.traceNodeEvent.spec`, unfolded:
-  ∀ (evt : w64) (c : CfgM) (r : Loc) (id : w64) (s : NState) (tl : GoInterface) (Q : IProp GF),
+  ∀ (evt : w64) (c : CfgM) (r : Loc) (id : w64) (s : NState) (tl : GoInterface) (Q P : IProp GF),
     uint.nat evt < evtNames.length →
       ⊢
         ∀ Φ,
@@ -13,6 +13,6 @@ theorem traceNodeEvent.wp_proof [package_sem : Assumptions] (wp_traceEvent : tra
               typedPointsto
                   (structFieldRef raft go!"traceLogger" r) tl
                   DFrac.discard ∗
-                trOwn s.gh.tr (ownRaftPhysCV c c.voters r id s) ∗ TraceFire s.gh.tr tl (NodeEvOf evt id s c) Q -∗
-            ▷ (trOwn s.gh.tr (ownRaftPhysCV c c.voters r id s) ∗ Q -∗ Φ (intoVal ())) -∗
+                trOwn s.gh.tr iprop(P ∗ RaftReadLend P c r id s) ∗ TraceFire s.gh.tr tl (NodeEvOf evt id s c) Q -∗
+            ▷ (trOwn s.gh.tr P ∗ Q -∗ Φ (intoVal ())) -∗
               WP (((intoVal (functions traceNodeEvent [])) (intoVal evt)) (intoVal r)) {{ Φ }}

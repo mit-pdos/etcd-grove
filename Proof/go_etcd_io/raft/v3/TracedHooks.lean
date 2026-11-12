@@ -46,7 +46,8 @@ theorem traceNodeEvent.tracedSpec_of_spec (h : traceNodeEvent.spec (GF := GF) (h
   intro evt c r id s tl Q Hevt
   iintro %Φ ⟨#Hpkg, #Htl, Hphys, Hfire⟩ HΦ
   icases trOwn_split s.gh.tr _ $$ Hphys with ⟨Hown, Hback⟩
-  iapply h evt c r id s tl Q Hevt $$ [$Hpkg $Htl $Hown $Hfire]
+  ihave Hown := trOwn_physLend _ c r id s $$ Hown
+  iapply h evt c r id s tl Q _ Hevt $$ [$Hpkg $Htl $Hown $Hfire]
   inext
   iintro ⟨Hown, HQ⟩
   iapply HΦ
@@ -123,8 +124,10 @@ theorem traceInitState.tracedSpec_of_spec (h : traceInitState.spec (GF := GF) (h
   · iapply trOwn_wand
     iframe Hown
     iintro Hp
-    iexists c, id, s
+    iexists c, id, s, ownRaftPhysCV c c.voters r id s
     iframe Hp
+    isplitr
+    · iapply raftReadLend_self
     isplitr
     · ipureintro; exact ⟨rfl, fun _ h => h⟩
     iintro Hp; iexact Hp

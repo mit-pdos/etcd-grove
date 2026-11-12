@@ -10,6 +10,11 @@ public import Spec.go_etcd_io.raft.v3.raftpb.ConfChange__AsV2
 public import Spec.go_etcd_io.raft.v3.raft__applyConfChange
 public import Proof.go_etcd_io.raft.v3.LemmasMiscR
 public import Proof.go_etcd_io.raft.v3.TracedUntraced
+public import Proof.go_etcd_io.raft.v3.TracedHooks
+public import Proof.go_etcd_io.raft.v3.TracedNodeBoot
+public import Proof.go_etcd_io.raft.v3.TracedHooksGlobal
+public import Proof.go_etcd_io.raft.v3.TracedFamilies
+public import Proof.go_etcd_io.raft.v3.LemmasSnapCfg
 
 @[expose] public section
 
@@ -28,8 +33,68 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
+/-- (2026-11-12, trace-check step 5) **The end of a traced bootstrap**: the capability at the last
+bootstrap event (position `|ps| + 3`) mints the completion witness (`trCapB_bootDone`, amendment A8.2:
+the last point where the capability's `Λ` records it), then becomes the node's trace capability
+(`rnTrace`): re-keyed to the struct's configuration, its phase the idle relation at the bootstrapped
+state (`simIdle_boot`), any last event; with the scope's facts, the check-quorum field and the storage's
+no-compaction (`TrNoSnap` at the fresh base). -/
+private theorem boot_rnTrace (γ : RaftNames) (γd : GName) (r : Loc) (id : w64) (si : GoInterfaceOk)
+    (ps : List w64) (es : List EntryM) (sF : NState) (cF : CfgM)
+    (htr : sF.gh.tr = some γd) (hid : id ∈ ps) (hnd : ps.Nodup)
+    (hpv : sF.prevote = false) (hlrn : cF.learners = ∅) (hinc : (elements cF.incoming).Perm ps)
+    (hout : cF.outgoing = ∅) (hal : cF.autoLeave = false)
+    (hsc : TrScope sF) (hboot : ∀ e ∈ γ.reBoot, IsConfEnt e)
+    (hterm : sF.term = W64 1) (hrole : sF.role = .follower) (hvote : sF.vote = W64 0)
+    (hlead : sF.lead = W64 0) (hprev : sF.logst.prev = entryID.mk (W64 0) (W64 0))
+    (hlog : sF.logst.sents ++ sF.logst.uents = es) (hlen : es.length = ps.length)
+    (hlt : (ps.length : Int) < 2 ^ 61) (hcom : sF.logst.committed = W64 (ps.length : Int))
+    (hob : sF.outbox = []) (hwf : PlogWf (entryID.mk (W64 0) (W64 0)) es)
+    (hones : ∀ e ∈ es, e.Term' = W64 1) (hst : sF.logst.storage = interface.ok si) :
+    (r.[raft, go!"checkQuorum"] ↦□ false ∗ trNoCut (some γd) (interface.ok si) ∗
+        trCapB (some γd) γ r id (bootCfg ps) false (bootPhase ps id) (bootAt ps id (ps.length + 3)) :
+        IProp GF) ⊢
+      |={⊤}=> bootDoneG (some γd) id ∗ rnTrace γ r id cF [] sF := by
+  iintro ⟨#Hcq, #Hnc, Hcap⟩
+  imod trCapB_bootDone γd γ r id (bootCfg ps) (bootPhase ps id) (bootAt ps id (ps.length + 3)) ⊤
+      CoPset.subseteq_top
+      (fun C cs P o hP ho => by
+        obtain ⟨rfl, -, -⟩ := hP
+        obtain ⟨x, rfl, hx⟩ := ho
+        exact ⟨x, rfl, hx⟩)
+    $$ Hcap with ⟨Hcap, %tn, #Hdir, #Hbd⟩
+  imodintro
+  isplitr
+  · unfold bootDoneG; iexists tn; iframe Hdir Hbd
+  ihave Hcap := trCapB_cfg γd γ r id (bootCfg ps) cF false _ _
+    (fun C hC _ _ => ⟨hinc.trans ((perm_elements_listToSet ps hnd).trans hC), hout⟩) $$ Hcap
+  ihave Hcap := trCapB_mono (some γd) γ r id cF false (bootPhase ps id) (fun C => SimIdle C sF) _
+    (fun C cs P hP => by
+      obtain ⟨rfl, rfl, rfl⟩ := hP
+      exact simIdle_boot C id hid sF es hterm hrole hvote hlead hprev hlog hlen hlt hcom hob hwf hones)
+    $$ Hcap
+  ihave Hcap := trCapB_monoΛ (some γd) γ r id cF false (fun C => SimIdle C sF) _ (fun _ => True)
+    (fun _ _ => trivial) $$ Hcap
+  unfold rnTrace
+  rw [htr]
+  isplitr
+  · ipureintro; exact ⟨hpv, hlrn⟩
+  isplitr
+  · ipureintro
+    exact ⟨hsc, (fun m hm => by rw [hob] at hm; cases hm), hal, hboot, (fun h => absurd hrole h)⟩
+  iframe Hcq
+  isplitr
+  · rw [← htr]
+    iapply trNoCut_trNoSnap _ _ (by rw [hprev]; rfl)
+    rw [hst, htr]; iexact Hnc
+  iexists false
+  isplitr
+  · ipureintro; intro h; exact absurd rfl h
+  rw [← htr]
+  iExactEq Hcap; rw [htr]
+
 -- (2026-10-19, D21 M3) past the default budget with the no-snapshot facts of `ownRaftPhys`
-set_option maxHeartbeats 400000 in
+set_option maxHeartbeats 1600000 in
 theorem RawNode.Bootstrap.wp_proof
     (wp_raft_becomeFollower : raft.becomeFollower.spec (GF := GF) (hG := hG))
     (wp_ConfChangeType_Enum : raftpb.ConfChangeType.Enum.spec (GF := GF) (hG := hG))
@@ -38,16 +103,23 @@ theorem RawNode.Bootstrap.wp_proof
     (wp_ConfChange_AsV2 : raftpb.ConfChange.AsV2.spec (GF := GF) (hG := hG))
     (wp_raft_applyConfChange : raft.applyConfChange.spec (GF := GF) (hG := hG)) :
     RawNode.Bootstrap.spec (GF := GF) (hG := hG) := by
-  have wp_raft_becomeFollower := raft.becomeFollower.untraced wp_raft_becomeFollower
-  intro γ md rn id si sdr pre s peers dq pv ps ctxs bootLog R1 R2 R3 R4 R5 R6 R7 R8 R9 Rns HtrG
-  wp_start as ⟨Hfresh, Hpeers, #Hctx, #Hmarshal, Hghost, #Hcommitted, #Hcl⟩
+  intro γ md rn r id si sdr pre s peers dq pv ps ctxs bootLog R1 R2 R3 R4 R5 R6 R7 R8 R9 Rns Hgtr0
+    Htrsc
+  wp_start as ⟨Hfresh, Hpeers, #Hctx, #Hmarshal, Hghost, #Hcommitted, #Hcl, Hcap, #Hnc⟩
   iunfold rawNodeFresh at Hfresh
   icases Hfresh with ⟨%rnv, %sv, %hprev, Hfresh⟩
   iNamed Hfresh
+  subst Hr
+  -- (step 5) the check-quorum field (for the trace capability's scope)
+  ihave Hphys := ownRaftPhys_toC' $$ Hphys
+  icases ownRaftPhysC_cq _ _ _ $$ Hphys with ⟨#Hcqf, Hphys⟩
+  ihave Hphys := ownRaftPhysC_toS $$ Hphys
+  -- (2026-11-12, trace-check step 5) the capability after `newRaft`'s lines, at the node's mode
+  ihave Hcap : trCapB (GF := GF) s.gh.tr γ rnv.raft' id (bootCfg ps) false (bootPhase ps id)
+      (bootAt ps id 2) $$ [Hcap]
+  · rw [Hgtr0]; iexact Hcap
   obtain ⟨Hp, Hse, Hue, Hsd, Hcm0, Hap0, Hapg0, Hun, Hsn, Hsg, Hdtk0'⟩ := Hlog
   obtain ⟨Ht0, Hv0, Hr, Ho, Hrst, Hrpd⟩ := Hterm0
-  -- (Q8 stage 0) the fresh node is untraced (`newRaft` sets no trace mode)
-  have Htr : s.gh.tr = none := by rw [Hgh]
   ihave %Hplen := ownSlice_len $$ Hpeers
   have Hpslen : ps.length = pv.length := by rw [R1, List.length_map]
   obtain ⟨HbLen, HbBnd, HbEnt⟩ := R9
@@ -97,9 +169,46 @@ theorem RawNode.Bootstrap.wp_proof
   ihave ⟨%es, #Hg, #Hesz⟩ := emptyState_hsRO $$ Hinit
   wp_auto
   -- `rn.raft.becomeFollower(1, None)`
+  -- (step 5) position 3 of the bootstrap: a bootstrap `BecomeFollower` line (`b = false`)
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
-  wp_apply wp_raft_becomeFollower _ rnv.raft' id s (W64 1) (W64 0) (by rw [Ht0]; word)
-    Htr $$ [$Hphys] as %pvs1 Hphys
+  have Hdom0 : domSet s.progress \ (∅ : GSet w64) = ∅ := by
+    rw [Hdom]
+    apply GMap.set_eq; intro k
+    rw [GMap.elem_of_difference]
+    exact ⟨fun h => h.1, fun h => absurd h (GMap.not_elem_of_empty _)⟩
+  ihave Hphys : ownRaftPhysCV (GF := GF) (CfgM.simple ∅ ∅) (CfgM.simple ∅ ∅).voters rnv.raft' id s $$ [Hphys]
+  · iExactEq Hphys; rw [Hdom0]
+  have Hel0 : (elements (CfgM.simple (∅ : GSet w64) ∅).incoming).length ≤
+      (elements (bootCfg ps).incoming).length := by
+    show (elements (∅ : GSet w64)).length ≤ _
+    rw [show elements (∅ : GSet w64) = [] from
+      List.eq_nil_of_length_eq_zero (by rw [GMap.length_elements, GMap.size_empty])]
+    exact Nat.zero_le _
+  have Hbf3 : ∀ e, NodeEvOf (W64 2) id (becomeFollower s (W64 1) (W64 0)) (CfgM.simple ∅ ∅) e →
+      TraceSim.BootEvAt ps id 3 e := fun e he => (nodeEvOf_bootEvAtBF _ _ _ _ _ he).2 rfl
+  have Hpl3 : uint.nat (plastIndex (toPState (becomeFollower s (W64 1) (W64 0)))) < 2 ^ 40 := by
+    show uint.nat (W64 (uint.Z s.logst.prev.index' + ((s.logst.sents ++ s.logst.uents).length : Int))) < _
+    rw [Hp, Hse, Hue]; simp only [List.append_nil, List.length_nil]; word
+  wp_apply (raft.becomeFollower.traced wp_raft_becomeFollower (CfgM.simple ∅ ∅)
+      (V := (CfgM.simple ∅ ∅).voters) (bootCfg ps) rnv.raft' id s (W64 1) (W64 0) γ false
+      (bootPhase ps id) (bootPhase ps id) (bootAt ps id 2) (bootAt ps id 3) (by rw [Ht0]; word)
+      (fun _ => rfl) (fun h => by cases h) (fun _ => rfl) (fun h => by cases h)
+      (fun _ C cs P hP => ⟨hP, fun _ e he o ho => by
+        obtain ⟨rfl, -, -⟩ := hP
+        obtain ⟨x, rfl, hx⟩ := ho
+        exact TraceSim.bootNext_some C id x e 2 hx (Hbf3 e he)⟩)
+      (fun e he => ⟨e, rfl, Hbf3 e he⟩)
+      (fun _ => ⟨(fun h => by cases h), fun _ e he => nodeEvOf_okBoot _ _ _ _ e _ he
+          (by show uint.nat (W64 1) < 2 ^ 61; decide)
+          (by show uint.nat s.logst.committed < 2 ^ 61; rw [Hcm0]; decide) Hpl3 Hel0⟩))
+    $$ [$Hphys $Hcap] as %pvs1 ⟨Hphys, Hcap⟩
+  · cases s.gh.tr <;> (simp only [trOwn]; try iempintro)
+  ihave Hphys : ownRaftPhysC (GF := GF) (CfgM.simple ∅ (domSet ({ becomeFollower s (W64 1) (W64 0) with prvals := pvs1 } : NState).progress \ ∅)) rnv.raft' id { becomeFollower s (W64 1) (W64 0) with prvals := pvs1 } $$ [Hphys]
+  · have Hc0 : CfgM.simple (∅ : GSet w64)
+        (domSet ({ becomeFollower s (W64 1) (W64 0) with prvals := pvs1 } : NState).progress \ ∅) =
+        CfgM.simple ∅ ∅ := by
+      show CfgM.simple ∅ (domSet s.progress \ ∅) = _; rw [Hdom0]
+    rw [Hc0]; iexact Hphys
   ihave Hphys := ownRaftPhysC_toS $$ Hphys
   -- the state after `becomeFollower(1, None)`, as a variable (`s1`): term `1`, no vote, no leader
   generalize Hs1 : ({ becomeFollower s (W64 1) (W64 0) with prvals := pvs1 } : NState) = s1
@@ -308,6 +417,18 @@ theorem RawNode.Bootstrap.wp_proof
   generalize Hs3 : ({ s2 with logst := { s2.logst with committed := ents.len } } : NState) = s3
   have Hs3pr : s3.progress = s.progress := by rw [← Hs3, ← Hs2, ← Hs1]; rfl
   have Hs3r : s3.role = .follower := by rw [← Hs3, ← Hs2]; exact Hs1r
+  -- (step 5) the bootstrap `ApplyConfChange` lines' numbers (term `1`, the bootstrap log committed)
+  have Hs3t : s3.term = W64 1 := by rw [← Hs3, ← Hs2]; exact Hs1t
+  have Hs3v : s3.vote = W64 0 := by rw [← Hs3, ← Hs2]; exact Hs1v
+  have Hs3gh : s3.gh = s.gh := by rw [← Hs3, ← Hs2]; exact Hs1gh
+  have Hs3c : s3.logst.committed = W64 (ps.length : Int) := by
+    rw [← Hs3]; show ents.len = _; rw [Hlenw, HbLen]
+  have Hs3pl : plastIndex (toPState s3) = W64 (ps.length : Int) := by
+    rw [← Hs3, ← Hs2]
+    show W64 (uint.Z s.logst.prev.index' + ((s.logst.sents ++ (s.logst.uents ++ bootLog)).length : Int)) = _
+    rw [Hp, Hse, Hue, List.nil_append, List.nil_append, HbLen]
+    show W64 (uint.Z (W64 0) + (ps.length : Int)) = _
+    rw [show uint.Z (W64 0) = 0 from rfl, Int.zero_add]
   try wp_auto
   -- the second loop: `applyConfChange(AddNode peer)` per peer, at a follower: the voters so far
   -- (`CfgM.simple (listToSet (ps.take k)) ∅`), the state but for the progress map, the `Progress`
@@ -322,18 +443,25 @@ theorem RawNode.Bootstrap.wp_proof
       "i" ∷ i_ptr ↦ k ∗
       "peer" ∷ peer_ptr ↦ pr ∗
       "Hphys" ∷ ownRaftPhysC (CfgM.simple (GMap.listToSet (ps.take (sint.nat k))) ∅) rnv.raft' id sk ∗
+      -- (step 5) the capability after the `k`-th peer's line (position `k + 3`)
+      "Hcap" ∷ trCapB s.gh.tr γ rnv.raft' id (bootCfg ps) false (bootPhase ps id)
+        (bootAt ps id (sint.nat k + 3)) ∗
       "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ (pv.length : Int) ∧
         ∃ (prs : GMap w64 Loc) (pvs : GMap w64 Progress) (b : Bool),
           sk = { s3 with progress := prs, prvals := pvs, isLearner := b }⌝)
-    $$ [i peer Hphys]
+    $$ [i peer Hphys Hcap]
   · iexists W64 0, _, s3
     simp only [named]
     iframe i peer
     isplitl [Hphys]
     · iExactEq Hphys
       rw [Hd3, show sint.nat (W64 0) = 0 by rfl, List.take_zero, GMap.listToSet_nil]
+    isplitl [Hcap]
+    · iExactEq Hcap; rfl
     · ipureintro
       refine ⟨by word, by word, s3.progress, s3.prvals, s3.isLearner, rfl⟩
+  -- (step 5) the end's ghost updates (`trCapB_bootDone`) after the loop: under an update
+  iapply wp_fupd
   wp_for IH2
   wp_if_destruct
   · -- iteration `k`: `peer := peers[k]`
@@ -380,12 +508,66 @@ theorem RawNode.Bootstrap.wp_proof
       rw [Hids, GMap.size_list_to_set _ (R3.sublist (List.take_sublist _ _))]
       have := List.length_take_le (sint.nat k + 1) ps
       omega
+    -- (step 5) the `ApplyConfChange` line at position `k + 4`, through the bootstrap gate
+    have Hskgh : sk.gh = s.gh := by rw [Hsk]; exact Hs3gh
+    have Hskt : sk.term = W64 1 := by rw [Hsk]; exact Hs3t
+    have Hskv : sk.vote = W64 0 := by rw [Hsk]; exact Hs3v
+    have Hskc : sk.logst.committed = W64 (ps.length : Int) := by rw [Hsk]; exact Hs3c
+    have Hskpl : plastIndex (toPState sk) = W64 (ps.length : Int) := by rw [Hsk]; exact Hs3pl
+    have Hklt : sint.nat k < ps.length := by rw [Hpslen]; exact Hlt
+    have Hinc1 : (elements (cfgState (<[p.ID' := ()]> (GMap.listToSet (ps.take (sint.nat k)))) ∅).cfg.incoming).Perm
+        (ps.take (sint.nat k + 1)) := by
+      show (elements (<[p.ID' := ()]> (GMap.listToSet (ps.take (sint.nat k))))).Perm _
+      rw [← listToSet_take_succ ps (sint.nat k) p.ID' Hpsk]
+      exact (perm_elements_listToSet _ (R3.sublist (List.take_sublist _ _))).symm
+    have HlenC : (elements (bootCfg ps).incoming).length = ps.length :=
+      (perm_elements_listToSet ps R3).length_eq.symm
+    have Hlen_k : (elements (CfgM.simple (GMap.listToSet (ps.take (sint.nat k))) ∅).incoming).length ≤
+        (elements (bootCfg ps).incoming).length := by
+      rw [HlenC]
+      show (elements (GMap.listToSet (ps.take (sint.nat k)))).length ≤ _
+      rw [← (perm_elements_listToSet _ (R3.sublist (List.take_sublist _ _))).length_eq,
+        List.length_take]
+      exact Nat.min_le_right _ _
+    have Hlen_k1 : (elements (cfgState (<[p.ID' := ()]> (GMap.listToSet (ps.take (sint.nat k)))) ∅).cfg.incoming).length ≤
+        (elements (bootCfg ps).incoming).length := by
+      rw [HlenC, Hinc1.length_eq, List.length_take]; exact Nat.min_le_right _ _
+    have HevK : ∀ e, CCEvOf id sk (CfgM.simple (GMap.listToSet (ps.take (sint.nat k))) ∅)
+        (cfgState (<[p.ID' := ()]> (GMap.listToSet (ps.take (sint.nat k)))) ∅).cfg e →
+        TraceSim.BootEvAt ps id (sint.nat k + 4) e := fun e he =>
+      ccEvOf_bootEvAtK ps id sk _ _ e (sint.nat k) Hklt he Hskt Hskv Hskc Hskpl Hskr Hinc1
+    icases ownRaftPhysC_traceLoggerG _ _ _ _ _ $$ Hphys with ⟨%tl, #Htl, %Htlok, Hphys⟩
+    ihave Hcap : trCapB (GF := GF) sk.gh.tr γ rnv.raft' id (bootCfg ps) false (bootPhase ps id)
+        (bootAt ps id (sint.nat k + 3)) $$ [Hcap]
+    · rw [Hskgh]; iexact Hcap
+    ihave Hgate := trCapB_hookGate_ccBoot sk.gh.tr γ rnv.raft' id
+      (CfgM.simple (GMap.listToSet (ps.take (sint.nat k))) ∅)
+      (cfgState (<[p.ID' := ()]> (GMap.listToSet (ps.take (sint.nat k)))) ∅).cfg (bootCfg ps) sk tl
+      (bootPhase ps id) (bootAt ps id (sint.nat k + 3)) (bootAt ps id (sint.nat k + 4))
+      (fun _ C cs P hP e he o ho => by
+        obtain ⟨rfl, -, -⟩ := hP
+        obtain ⟨x, rfl, hx⟩ := ho
+        exact TraceSim.bootNext_some C id x e (sint.nat k + 3) hx (HevK e he))
+      (fun e he => ⟨e, rfl, HevK e he⟩)
+      (fun hsome e he => by
+        have Hps40 : ps.length < 2 ^ 40 :=
+          (Htrsc (fun hn => by
+            have h0 : sk.gh.tr = none := by rw [Hskgh, Hgtr0]; exact hn
+            rw [h0] at hsome; cases hsome)).2.2
+        have h40 : uint.nat (W64 (ps.length : Int)) = ps.length := by word
+        exact ccEvOf_okBoot _ _ _ _ e _ he
+          (by rw [Hskt]; show uint.nat (W64 1) < 2 ^ 61; decide)
+          (by rw [Hskc, h40]; unfold traceNumBound; omega)
+          (by rw [Hskpl, h40]; exact Hps40)
+          Hlen_k Hlen_k1)
+      Htlok
+      $$ [$Htl $Hcap]
     wp_apply wp_raft_applyConfChange (CfgM.simple (GMap.listToSet (ps.take (sint.nat k))) ∅) rnv.raft' id
-        sk v _ (DFrac.own 1) (cfgState (<[p.ID' := ()]> (GMap.listToSet (ps.take (sint.nat k)))) ∅)
+        sk v _ (DFrac.own 1) (cfgState (<[p.ID' := ()]> (GMap.listToSet (ps.take (sint.nat k)))) ∅) _
         (bootCC_apply _ _ Hp0) Hsz (by intro h; rw [Hskr] at h; cases h)
         (by intro h; rcases h with h | h <;> rw [Hskr] at h <;> cases h)
         (by intro _ h; rw [Hskr] at h; cases h)
-      (by tr_none) $$ [$Hphys $Hcc2] as %cs %xs %os %ls %lns %sk' ⟨Hphys, -, -, -, %Hok⟩
+      (fun _ => Hskr) $$ [$Hphys $Hcc2 $Hgate] as %cs %xs %os %ls %lns %sk' ⟨Hphys, -, -, -, %Hok, Hcap⟩
     obtain ⟨prs', pvs', Hsk'⟩ := applyCCOkC_nonleader _ _ _ _ Hok (by rw [Hskr]; decide)
     wp_for_post
     iframe
@@ -396,13 +578,16 @@ theorem RawNode.Bootstrap.wp_proof
     · iExactEq Hphys
       rw [show sint.nat (k + W64 1) = sint.nat k + 1 by clear Hsk Hsk'; word,
         listToSet_take_succ ps (sint.nat k) p.ID' Hpsk, cfgM_eq_simple]
+    isplitl [Hcap]
+    · iExactEq Hcap
+      rw [Hskgh, show sint.nat (k + W64 1) = sint.nat k + 1 by clear Hsk Hsk'; word]
     · ipureintro
       refine ⟨by clear Hsk Hsk'; word, by clear Hsk Hsk'; word, prs', pvs',
         learnerOfC (cfgState (<[p.ID' := ()]> (GMap.listToSet (ps.take (sint.nat k)))) ∅).cfg id, ?_⟩
       rw [Hsk', Hsk]
   -- the loop's exit: every peer a voter, `ownRaftPhys` at the cluster's configuration
   obtain ⟨Hk1, Hk2, prs, pvs, b, Hsk⟩ := Hk
-  have Hklen : sint.nat k = pv.length := by clear Hsk; word
+  have Hklen : sint.nat k = pv.length := by clear Hsk Hs3t Hs3v Hs3gh Hs3c Hs3pl; word
   have Htakek : ps.take (sint.nat k) = ps := by
     rw [Hklen, ← Hpslen]; exact List.take_length
   ihave Hphys : ownRaftPhysC (CfgM.simple (GMap.listToSet ps) ∅) rnv.raft' id sk $$ [Hphys]
@@ -423,13 +608,13 @@ theorem RawNode.Bootstrap.wp_proof
   -- the state: a follower at term `1`, the boot log committed -- `bootPState bootLog`
   have HN : sk.term = W64 1 ∧ sk.vote = W64 0 ∧ sk.lead = W64 0 ∧ sk.role = .follower ∧
       sk.votes = ∅ ∧ sk.outbox = [] ∧
-      sk.logst = { logAppend s.logst bootLog with committed := ents.len } ∧ sk.gh = { sn := s.gh.sn } ∧
+      sk.logst = { logAppend s.logst bootLog with committed := ents.len } ∧ sk.gh = { sn := s.gh.sn, tr := s.gh.tr } ∧
       sk.prevote = pre ∧ sk.rd.states = [] ∧ sk.rd.pend = [] ∧
       sk.stepfn = stepFuncOf .follower ∧ sk.ticking = true := by
     rw [Hsk, ← Hs3, ← Hs2]
     refine ⟨Hs1t, Hs1v, Hs1l, Hs1r, Hs1vs, ?_, rfl, ?_, ?_, ?_, ?_, Hs1sf, Hs1tk⟩
     · show s1.outbox = []; rw [Hs1o, Ho]
-    · show s1.gh = { sn := s.gh.sn }; rw [Hs1gh]; exact Hgh
+    · show s1.gh = { sn := s.gh.sn, tr := s.gh.tr }; rw [Hs1gh]; exact Hgh
     · show s1.prevote = pre; rw [Hs1pv, Hpvoff]
     · show s1.rd.states = []; rw [Hs1rs, Hrst]
     · show s1.rd.pend = []; rw [Hs1rp, Hrpd]
@@ -440,6 +625,64 @@ theorem RawNode.Bootstrap.wp_proof
       (by rw [HNls]; simp only [logAppend]; exact Hse)
       (by rw [HNls]; simp only [logAppend, Hue, List.nil_append])
       (by rw [HNls]; exact Hlenw) HNrs HNrp
+  -- (step 5) the end of the bootstrap: the completion witness (`trCapB_bootDone`, the capability at
+  -- the last bootstrap event) and the node's trace capability (`rnTrace`, `boot_rnTrace`)
+  have Hdiff0 : domSet sk.progress \ γ.reCfg = ∅ := by
+    apply GMap.set_eq; intro k
+    rw [GMap.elem_of_difference]
+    constructor
+    · rintro ⟨h1, h2⟩; exact absurd ((GMap.elem_of_subseteq _ _).1 Hsub k h1) h2
+    · intro h; exact absurd h (GMap.not_elem_of_empty _)
+  have HsFtr : ({ sk with gh := { sk.gh with tc := W64 1 } } : NState).gh.tr = s.gh.tr := by
+    show sk.gh.tr = _; rw [HNgh]
+  ihave Hcap : trCapB (GF := GF) s.gh.tr γ rnv.raft' id (bootCfg ps) false (bootPhase ps id)
+      (bootAt ps id (ps.length + 3)) $$ [Hcap]
+  · iExactEq Hcap; rw [Hklen, ← Hpslen]
+  ihave Hfin : |={⊤}=> (bootDoneG (GF := GF) γ.reTrace id ∗
+      rnTrace γ rnv.raft' id (CfgM.simple γ.reCfg (domSet ({ sk with gh := { sk.gh with tc := W64 1 } } : NState).progress \ γ.reCfg))
+        [] ({ sk with gh := { sk.gh with tc := W64 1 } } : NState)) $$ [Hcap]
+  · rw [← Hgtr0]
+    rcases Option.eq_none_or_eq_some s.gh.tr with Htn | ⟨γd, Htn⟩
+    · rw [Htn]
+      imodintro
+      isplitr
+      · unfold bootDoneG; ipureintro; trivial
+      iapply rnTrace_none
+      exact HsFtr.trans Htn
+    · rw [Htn]
+      have Hsc := Htrsc (by rw [← Hgtr0, Htn]; simp)
+      ihave Hcq0 : rnv.raft'.[raft, go!"checkQuorum"] ↦□ false $$ []
+      · iExactEq Hcqf; rw [Hsc.2.1]
+      ihave Hnc0 : trNoCut (GF := GF) (some γd) (interface.ok si) $$ []
+      · iExactEq Hnc; first | rfl | rw [← Hgtr0, Htn]
+      iapply boot_rnTrace γ γd rnv.raft' id si ps bootLog _ _ (HsFtr.trans Htn) R6 R3
+        (by show sk.prevote = false; rw [HNpv]; exact Hsc.1)
+        (by show domSet sk.progress \ γ.reCfg = ∅; exact Hdiff0)
+        (by show (elements γ.reCfg).Perm ps; rw [R7]; exact (perm_elements_listToSet ps R3).symm)
+        rfl rfl
+        (by
+          rw [Hsk, ← Hs3, ← Hs2, ← Hs1]
+          exact ⟨rfl, rfl, Hrpd⟩)
+        (fun e he => by
+          rw [R8] at he
+          obtain ⟨k, hk⟩ := List.mem_iff_getElem?.1 he
+          exact Or.inl (HbEnt k e hk).2.2.1)
+        HNt HNr HNv HNl
+        (by show sk.logst.prev = _; rw [HNls]; exact Hp)
+        (by show sk.logst.sents ++ sk.logst.uents = _; rw [HNls]; simp only [logAppend, Hse, Hue, List.nil_append])
+        HbLen (by rw [← HbLen]; exact HbBnd)
+        (by show sk.logst.committed = _; rw [HNls]; show ents.len = _; rw [Hlenw, HbLen])
+        HNo ((BootLogOk.wf ⟨HbLen, HbBnd, HbEnt⟩ R3).wf)
+        (fun e he => by
+          obtain ⟨k, hk⟩ := List.mem_iff_getElem?.1 he
+          exact (HbEnt k e hk).1)
+        (by show sk.logst.storage = _; rw [HNls]; exact Hsg)
+      iframe Hcq0 Hnc0 Hcap
+  imod Hfin with ⟨#Hbd, Hrntr⟩
+  ihave Hrntr : rnTrace (GF := GF) γ ({ rnv with prevHardSt' := es } : RawNode).raft' id
+      (CfgM.simple γ.reCfg (domSet ({ sk with gh := { sk.gh with tc := W64 1 } } : NState).progress \ γ.reCfg))
+      [] ({ sk with gh := { sk.gh with tc := W64 1 } } : NState) $$ [Hrntr]
+  · iExactEq Hrntr; rfl
   ihave #Hcomm0 := isCommitted_mono γ [] bootLog List.nil_prefix $$ Hcommitted
   try wp_auto
   -- (2026-10-17) the term ceiling at the term
@@ -467,8 +710,8 @@ theorem RawNode.Bootstrap.wp_proof
     simp only [logAppend] at h
     exact h.symm
   have Hnl0 : NsLink γ ({ sk with gh := { sk.gh with tc := W64 1 } } : NState) :=
-    ⟨by show sk.gh.ns = γ.reNoSnap; rw [HNgh, Hns], by show sk.gh.tr = γ.reTrace; rw [HNgh, HtrG],
-      fun m _ => MsgTrOk.of_none HtrG m⟩
+    ⟨by show sk.gh.ns = γ.reNoSnap; rw [HNgh, Hns], by show sk.gh.tr = γ.reTrace; rw [HNgh]; exact Hgtr0,
+      fun m hm => absurd hm (by show m ∉ sk.outbox; rw [HNo]; exact List.not_mem_nil)⟩
   have HpS : toPState ({ sk with gh := { sk.gh with tc := W64 1 } } : NState) = bootPState bootLog := HNrel.1
   have Hlead0 : (toPState ({ sk with gh := { sk.gh with tc := W64 1 } } : NState)).lead = W64 0 := by
     rw [HpS]; rfl
@@ -485,10 +728,11 @@ theorem RawNode.Bootstrap.wp_proof
     iexact Hcl
   -- (D22l) `prevHardSt` the zero record, `RNState.phs`'s default
   ihave #Hes' := prevHS_of_zero γ _ _ rfl $$ Hesz
+  imodintro
   iapply HΦ
   isplitl []
   · ipureintro; rfl
-  isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap]
+  isplitl [Hrn Hphys Hghost Hsteps Hsteps_cap Hrntr]
   · cases md with
     | static =>
       iunfold bootInit at Hghost
@@ -508,7 +752,7 @@ theorem RawNode.Bootstrap.wp_proof
         ipureintro
         exact ⟨Hnl0, CfgStatic.simple γ _ Hst0,
           TrackedOk.of_sub Hsub (by rw [R7]; exact (GMap.elem_of_list_to_set _ _).2 R6)⟩
-      iapply ownRawNode_intro γ rn id
+      iapply ownRawNode_intro_tr γ rn id
           { delivered := [], unpersisted := [], steps := [], term := W64 1,
             storage := interface.ok si, sn := s.gh.sn, mode := RNMode.static,
             cfg := cfgState (GMap.listToSet ps) ∅, tc := W64 1 }
@@ -534,9 +778,9 @@ theorem RawNode.Bootstrap.wp_proof
         (by exact Hsvr.1.symm)
         -- (2026-11-01, durability stage II (m)) `prevHardSt`'s record the zero hard state
         (PhsOk.zero rfl rfl (by rw [HNls]; simp only [logAppend, Hsn]) Hpcut)
-        (by show sk.gh.tr = γ.reTrace; rw [HNgh, HtrG])
-        (by show sk.gh.lq = []; rw [HNgh, Hgh])
-        $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] [] [] []
+        (by show sk.gh.tr = γ.reTrace; rw [HNgh]; exact Hgtr0)
+        (by show sk.gh.lq = []; rw [HNgh])
+        $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] [] [] [] Hrntr
       · iapply pendList_nil
       · iapply ackInv_none; intro _ _ _ _ h; cases h
       · ipureintro; trivial
@@ -582,7 +826,7 @@ theorem RawNode.Bootstrap.wp_proof
           rw [Hdiff, R7]; rfl
         isplitr; · iapply decLb_empty
         iframe Hcl' Hlw Hxw
-      iapply ownRawNode_intro γ rn id
+      iapply ownRawNode_intro_tr γ rn id
           { delivered := [], unpersisted := [], steps := [], term := W64 1,
             storage := interface.ok si, sn := s.gh.sn, mode := .dyn dec (cfgState (GMap.listToSet ps) ∅) h0 h1,
             cfg := cfgState (GMap.listToSet ps) ∅, tc := W64 1 }
@@ -607,9 +851,9 @@ theorem RawNode.Bootstrap.wp_proof
         (by exact Hsvr.1.symm)
         -- (2026-11-01, durability stage II (m)) `prevHardSt`'s record the zero hard state
         (PhsOk.zero rfl rfl (by rw [HNls]; simp only [logAppend, Hsn]) Hpcut)
-        (by show sk.gh.tr = γ.reTrace; rw [HNgh, HtrG])
-        (by show sk.gh.lq = []; rw [HNgh, Hgh])
-        $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] [] [] []
+        (by show sk.gh.tr = γ.reTrace; rw [HNgh]; exact Hgtr0)
+        (by show sk.gh.lq = []; rw [HNgh])
+        $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] [] [] [] Hrntr
       · iapply pendList_nil
       · iapply ackInv_none; intro _ _ _ _ h; cases h
       · ipureintro; trivial
@@ -619,7 +863,7 @@ theorem RawNode.Bootstrap.wp_proof
         iapply durTie_fresh γ _ _ rfl
         · show sk.logst.prev = _; rw [HNls]; exact Hp
         · show sk.logst.stored = _; rw [HNls]; exact Hsd
-  · iexact Hpeers
+  · iframe Hpeers Hbd
 
 end proof
 

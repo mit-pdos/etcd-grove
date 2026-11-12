@@ -440,7 +440,7 @@ theorem RunConcurrent.wp_proof
       ihave #Htl' : isTraceLogger tn.tr (tcConfig k ms «$v1_ptr»).TraceLogger' $$ []
       · rw [Htn]; iexact Htl
       ihave Hsp := probeA_startPre γ tcRaftN γd tn (tcConfig k ms «$v1_ptr») Htr Hvoters rfl rfl
-        (by simp) $$ Hvk Hdir Hsim Htl'
+        (by simp) (by rw [Hbl, Hbf.1]; exact (Nat.max_eq_left (by decide : 2 ≤ 3)).symm ▸ Hrb) $$ Hvk Hdir Hsim Htl'
       icases Hsp with ⟨#Hnb, Hvac, Hrs0, Hstc⟩
       ihave Hau := tc_startAu γ tcRaftN k $$ Hrs0
       ihave Hboot := tc_bootStorage wp_InitialState wp_LastIndex wp_FirstIndex wp_Term wp_Entries

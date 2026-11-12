@@ -31,7 +31,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem RawNode.Advance.wp_proof
     (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
     RawNode.Advance.spec (GF := GF) (hG := hG) :=
-  RawNode.Advance.spec_of_tracedSpec (RawNode.Advance.tracedSpec_proof wp_raft_Step)
+  RawNode.Advance.tracedSpec_proof wp_raft_Step
 
 end proof
 

@@ -8,7 +8,7 @@ theorem RawNode.Advance.wp_proof [package_sem : Assumptions] (wp_raft_Step : raf
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready),
     (rs.slent = none → rs.unpersisted = []) →
       rs.unst = false →
-        γ.reTrace = none →
+        (γ.reTrace ≠ none → uint.Z rs.tc + 1 < ↑traceNumBound ∧ traceReadyFits GF γ ∧ rs.slent = none) →
           ⊢
             ∀ Φ,
               isPkgInit pkg_id.go_etcd_io.raft.v3 ∗

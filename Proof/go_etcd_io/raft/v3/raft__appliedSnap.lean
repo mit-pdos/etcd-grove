@@ -218,7 +218,7 @@ theorem raft.appliedSnap.wp_proof
   icases ownTrackerC_votes $$ Hold with ⟨Hvotes, %Hmi1⟩
   have Htr1 : s1.gh.tr = none := by tr_none
   wp_apply wp_raft_switchToConfig (snapCfg sv sv.Metadata'.ConfState'.lists) r id s1 tv1 cfgv prsm prs pvs tl
-      (snapCfg sv sv.Metadata'.ConfState'.lists) raftNames0
+      (snapCfg sv sv.Metadata'.ConfState'.lists) iprop(emp)
       (fun h => absurd (Hrole1.symm.trans h) (by decide))
       (fun h => absurd (Hrole1.symm.trans h) (by decide))
       (fun h => by rcases h with h | h <;> rw [Hrole1] at h <;> cases h)
@@ -229,10 +229,11 @@ theorem raft.appliedSnap.wp_proof
     isplitr
     · ipureintro; exact Hmi1
     isplitr
-    · ipureintro; exact fun _ => Htlok
-    isplitr
     · iapply trOwn_none_intro
-    simp only [trCapB]; iempintro
+    simp only [TraceFire]
+    isplitr
+    · ipureintro; exact Htlok
+    iempintro
   obtain ⟨Hxs2, Hos2, Hls2, Hlns2⟩ := Hcs2
   unfold SwitchOkC at Hsw
   rw [ite_eq_right (by simp [Hrole1])] at Hsw

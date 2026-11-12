@@ -39,13 +39,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- See the file header. -/
+/-- See the file header. (2026-11-12, trace-check step 5) Both modes: `TraceLoggerOk` and `γ.reTrace = none` replaced by the capability's start (`trCapStart`) and, traced, pre-vote and check-quorum off with fewer than `2^40` peers; `trNoCut` in the `InitialState` answer; the completion witness out. -/
 abbrev setupNode.spec : Prop :=
   ∀ (γ : RaftNames) (md : RNMode) (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
     (sn : StorNames) (σ : StorState) (hs : HardStateM) (csm : ConfStateM) (R R' : IProp GF)
     (peers : GoSlice) (dq : DFrac) (pv : List Peer) (ps : List w64) (ctxs : List (List w8))
     (bootLog : List EntryM),
-  -- `NewRawNode`'s premises
   ConfigValid cv →
   cv.Logger' = interface.ok lok →
   cv.Storage' = interface.ok si →
@@ -59,17 +58,13 @@ abbrev setupNode.spec : Prop :=
   σ.prev = entryID.mk (W64 0) (W64 0) → σ.ents = [] → σ.pend = [] →
   σ.fr = 0 → σ.sg = 0 → σ.dt = ∅ →
   HsEmpty hs →
-  -- the conf state empty: a new cluster's
   csm.Voters' = [] →
   csm.VotersOutgoing' = [] →
   csm.Learners' = [] →
   csm.LearnersNext' = [] →
   csm.AutoLeave' = false →
   σ.fl = W64 0 →
-  -- (2026-11-01, durability stage I-6) no attach record: an empty storage (`NewRawNode`'s
-  -- `AttachRec` holds vacuously and its `ownStorage sn.unrec` is this one)
   sn.unrec = sn →
-  -- the peers (`RawNode.Bootstrap`'s premises)
   ps = pv.map Peer.ID' →
   ps ≠ [] → ps.Nodup → W64 0 ∉ ps →
   (ps.length : Int) ≤ 2 ^ 62 →
@@ -78,15 +73,9 @@ abbrev setupNode.spec : Prop :=
   γ.reBoot = bootLog →
   BootLogOk ps bootLog →
   γ.reNoSnap = false →
-  -- (2026-11-08, Draft S3 of `notes/trace-validation-plan.md`, Q1: taken by the agent pending the
-  -- user's veto) the trace logger: none (`TraceLoggerOk_nil`); S4 widens it to a logger
-  TraceLoggerOk cv.TraceLogger' →
-  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
-  -- hooks see a nil logger (`TraceLoggerOkS`); stage 1 replaces this premise by the traced
-  -- capability (`trCapB s.gh.tr …`, `TracedHooksDraft.lean`)
-  γ.reTrace = none →
+  -- (step 5) in place of `TraceLoggerOk cv.TraceLogger'` (now in `trCapStart`) and `γ.reTrace = none`
+  (γ.reTrace ≠ none → cv.PreVote' = false ∧ cv.CheckQuorum' = false ∧ ps.length < 2 ^ 40) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗ R ∗
-      -- `NewRawNode`'s boot bundle
       (□ {{ R }} (App (Val #(methods si.ty go!"FirstIndex" si.v)) (Val #()))
          {{ RET (PairV #(W64 1) #interface.nil); R }}) ∗
       (□ {{ R }} (App (Val #(methods si.ty go!"LastIndex" si.v)) (Val #()))
@@ -94,10 +83,14 @@ abbrev setupNode.spec : Prop :=
       (□ {{ R }} (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #()))
          {{ (hp cs : Loc) (al : Bool), RET (PairV (PairV #hp #cs) #interface.nil);
             hsOpt hp hs ∗ csPts cs DFrac.discard csm al ∗
-            |={⊤}=> isStorageD sn (interface.ok si) ∗ ownStorage sn (interface.ok si) σ ∗ R' }}) ∗
+            |={⊤}=> isStorageD sn (interface.ok si) ∗ ownStorage sn (interface.ok si) σ ∗
+              -- (step 5) the storage's no-compaction (traced: from the client's contract)
+              trNoCut γ.reTrace (interface.ok si) ∗ R' }}) ∗
       peers ↦*{dq} pv ∗ peersCtx pv ctxs ∗ bootMarshal ps ctxs bootLog ∗
       bootInit γ md cv.ID' (GMap.listToSet ps) bootLog ∗ isCommitted γ bootLog ∗
-      certLink γ sn }}
+      certLink γ sn ∗
+      -- (step 5) the capability's start (untraced: the nil logger)
+      trCapStart γ.reTrace γ cv.ID' cv.TraceLogger' (bootCfg ps) (bootPhase ps cv.ID') bootNone }}
     (App (App (Val #(functions setupNode [])) (Val #c)) (Val #peers))
   {{ (n : Loc), RET #n;
       R' ∗ ∃ (nv : node) (rn : Loc),
@@ -106,7 +99,9 @@ abbrev setupNode.spec : Prop :=
           { delivered := [], unpersisted := [], steps := [], term := W64 1,
             storage := interface.ok si, sn := sn, mode := md,
             cfg := cfgState (GMap.listToSet ps) ∅, tc := W64 1 } ∗
-        peers ↦*{dq} pv }}
+        peers ↦*{dq} pv ∗
+        -- (step 5, A8.3) the completion witness
+        bootDoneG γ.reTrace cv.ID' }}
 
 end spec
 

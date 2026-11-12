@@ -25,18 +25,16 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem traceNodeEvent.wp_proof
     (wp_traceEvent : traceEvent.spec (GF := GF) (hG := hG)) :
     traceNodeEvent.spec (GF := GF) (hG := hG) := by
-  intro evt c r id s tl Q Hevt
+  intro evt c r id s tl Q P Hevt
   wp_start as ⟨#Htl, Hown, Hfire⟩
   wp_auto
   wp_apply wp_traceEvent evt r null map.nil tl s.gh.tr (NodeEvOf evt id s c) Q
-      (ownRaftPhysCV c c.voters r id s) $$ [$Htl Hown $Hfire] as HR
+      P $$ [$Htl Hown $Hfire] as HR
   · iapply trOwn_wand
     iframe Hown
-    iintro Hphys
-    iexists c, id, s, ownRaftPhysCV c c.voters r id s, none, noProps
-    iframe Hphys
-    isplitr
-    · iapply raftReadLend_self
+    iintro ⟨HP, #Hlend⟩
+    iexists c, id, s, P, none, noProps
+    iframe HP Hlend
     isplitr
     · iapply msgLend_nil
     isplitr

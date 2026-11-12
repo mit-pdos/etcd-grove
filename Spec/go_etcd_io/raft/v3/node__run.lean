@@ -17,6 +17,7 @@ option (c)) at the stop it answers on `stop` with its share of the generation an
 module
 
 public import Proof.go_etcd_io.raft.v3.InvNodeChan
+public import Proof.go_etcd_io.raft.v3.TraceFits
 public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
 public import Proof.go_etcd_io.raft.v3.InvApplyConf
 public import Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange
@@ -58,15 +59,23 @@ def runPre (γ : NodeNames) (id : w64) (n : Loc) : IProp GF :=
     (∃ W : DurMaps × (RaftState × StateType), dghostVar γ.bw (DFrac.own 1) W) ∗
     slotFree γ.raft id γ.gen)
 
-/-- See the file header. -/
+/-- **What the gated `node.run` needs of a traced node** beyond `runPre` (pure; `StartNode`'s traced
+proof discharges it): the node is dynamic (`confcP`'s static arm, `CCShrink`, has no traced callee: every
+node of the node API is dynamic, `StartNode`'s `HdynOk`), the receipts fit the trace's bound past the
+bootstrap log (`traceReadyFits`: the cluster's `readyFits` at its `RaftNames`, for the traced triples'
+premise and `ownStepGhost_traceBound`), and the term ceiling's successor is below the trace's bound
+(`traceCeilFits`, `receiptBound GF + 2 ≤ traceNumBound`: the ceiling `rs.tc` is at most `receiptBound GF` by `termLB` and
+`budgetInv`, so `rs.tc + 1 < traceNumBound`, the traced triples' `Htcb`). The harness has the last two
+from `tcRunFits` (`receiptBound GF + 3 ≤ 2^61`, three voters' bootstrap entries). -/
+def RunTracedOk (GF : BundledGFunctors) [ReceiptGS GF] (γ : NodeNames) : Prop :=
+  γ.mode.isDyn = true ∧ traceReadyFits GF γ.raft ∧ traceCeilFits GF
+
+/-- See the file header. (2026-11-12, trace-check step 5: step 4's `node.run.gatedSpec`, replacing this statement in place) Both modes: the premise `γ.raft.reTrace = none` replaced by the gated `RunTracedOk`, and the precondition's gated half of the token escrow's pending deposit (`rtkRun γ.esc none`, `True` untraced). -/
 abbrev node.run.spec : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc),
-  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
-  -- hooks see a nil logger (`TraceLoggerOkS`); stage 1 replaces this premise by the traced
-  -- capability (`trCapB s.gh.tr …`, `TracedHooksDraft.lean`)
-  γ.raft.reTrace = none →
+  (γ.raft.reTrace ≠ none → RunTracedOk GF γ) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗
-      runPre γ id n }}
+      runPre γ id n ∗ gateTr γ.raft.reTrace (rtkRun γ.esc none) }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"run")) (Val #()))
   {{ RET #(); True }}
 

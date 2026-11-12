@@ -27,8 +27,9 @@ theorem setupNode.wp_proof
     (wp_newNode : newNode.spec (GF := GF) (hG := hG)) :
     setupNode.spec (GF := GF) (hG := hG) := by
   intro γ md c cv lok si sn σ hs csm R R' peers dq pv ps ctxs bootLog P1 P2 P3 P4 P5 P6 P7 P8 P9 P10
-    S1 S2 S3 S4 S5 S6 Hhs Q1 Q2 Q3 Q4 Q5 Hfl0 Hun R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 Htlk HtrG
-  wp_start as ⟨Hc, #Hlg, HR, #HFI, #HLI, #HIS, Hpeers, #Hctx, #Hmarshal, Hghost, #Hcommitted, #Hcl⟩
+    S1 S2 S3 S4 S5 S6 Hhs Q1 Q2 Q3 Q4 Q5 Hfl0 Hun R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 Htrc
+  wp_start as ⟨Hc, #Hlg, HR, #HFI, #HLI, #HIS, Hpeers, #Hctx, #Hmarshal, Hghost, #Hcommitted, #Hcl,
+    Hcs⟩
   ihave %Hplen := ownSlice_len $$ Hpeers
   have Hpvne : pv ≠ [] := by
     intro h; apply R2; rw [R1, h]; rfl
@@ -70,11 +71,12 @@ theorem setupNode.wp_proof
       GMap.listToSet [] = GMap.listToSet ([] : List w64) from
         GMap.set_eq fun k => by simp only [GMap.elem_of_union, or_self], h]
     simp
-  wp_apply wp_NewRawNode c cv lok si sn σ hs csm R R' (cfgState ∅ ∅) P1 P2 P3 P4 P5 P6 P7 P8 P9
-    A1 S3 A2 A3 A4 A5 S6 A7 HAR (.inl Hhs) (.inl P10) A8 A9 A10 Htlk
-    $$ [Hc HR]
-    as %rn %err ⟨HR', %s, Hfresh, %Herr, %Hsn2⟩
-  · iframe Hc Hlg HR
+  wp_apply wp_NewRawNode c cv lok si sn σ hs csm R R' (cfgState ∅ ∅) γ ps P1 P2 P3 P4 P5 P6 P7 P8 P9
+    A1 S3 A2 A3 A4 A5 S6 A7 HAR (.inl Hhs) (.inl P10) A8 A9 A10
+    (fun _ => ⟨Hhs, S1, S2, Q1, Q2, Q3, Q4, Q5⟩)
+    $$ [Hc HR Hcs]
+    as %rn %err ⟨HR', #Hnc, %s, %r, Hfresh, %Herr, %Hsn2, Hcap⟩
+  · iframe Hc Hlg HR Hcs
     isplitr
     · iintro !> !>
       iExactEq HFI; rw [S1]; rfl
@@ -83,22 +85,24 @@ theorem setupNode.wp_proof
       iExactEq HLI; rw [S1, S2]; rfl
     rw [Hun]; iexact HIS
   subst Herr
-  obtain ⟨-, Hgsn⟩ := Hsn2
+  obtain ⟨-, Hgsn, Hgtr, Hcq⟩ := Hsn2
   subst Hgsn
   wp_auto
   have Hfresh0 : GMap.listToSet csm.Voters' = ∅ := by rw [Q1]; rfl
-  ihave Hfresh := rawNodeAt_fresh rn cv.ID' si ∅ cv.StepDownOnRemoval' cv.PreVote' hs σ cv.Applied' s
+  ihave Hfresh := rawNodeAt_fresh rn r cv.ID' si ∅ cv.StepDownOnRemoval' cv.PreVote' hs σ cv.Applied' s
     Hhs S1 S2 P10 $$ Hfresh
-  wp_apply wp_RawNode_Bootstrap γ md rn cv.ID' si cv.StepDownOnRemoval' cv.PreVote' s peers dq pv ps
-    ctxs bootLog R1 R2 R3 R4 R5 R6 R7 R8 R9 R10
-    HtrG $$ [$Hfresh $Hpeers $Hctx $Hmarshal $Hghost $Hcommitted $Hcl] as %err2 ⟨%Herr2, Hrn, Hpeers⟩
+  wp_apply wp_RawNode_Bootstrap γ md rn r cv.ID' si cv.StepDownOnRemoval' cv.PreVote' s peers dq pv ps
+    ctxs bootLog R1 R2 R3 R4 R5 R6 R7 R8 R9 R10 Hgtr
+    (fun h => ⟨(Htrc h).1, by rw [Hcq]; exact (Htrc h).2.1, (Htrc h).2.2⟩)
+    $$ [$Hfresh $Hpeers $Hctx $Hmarshal $Hghost $Hcommitted $Hcl $Hcap $Hnc]
+    as %err2 ⟨%Herr2, Hrn, Hpeers, #HbD⟩
   subst Herr2
   wp_auto
   wp_apply wp_newNode rn as %nv ⟨%Hnvrn, Hchans⟩
   iapply HΦ
   iframe HR'
   iexists nv, rn
-  iframe n Hchans Hrn Hpeers
+  iframe n Hchans Hrn Hpeers HbD
   ipureintro; exact Hnvrn
 
 end proof
