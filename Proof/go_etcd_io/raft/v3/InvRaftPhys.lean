@@ -344,7 +344,11 @@ theorem AAMsgOk.mono {id t t' : w64} {st : MsgSt} (Ht : uint.Z t ≤ uint.Z t')
 `msgsAfterAppend` (`AAMsgOk`), and that nothing in `msgs` is self-addressed (`send` panics on one,
 "message should not be self-addressed": every type `send` routes to `msgs` is not a response). -/
 def QOk (id t : w64) (msgs msgsAA : List QMsg) : Prop :=
-  (∀ m ∈ msgsAA, AAMsgOk id t m.st) ∧ (∀ m ∈ msgs, m.st.msg.To' ≠ id)
+  (∀ m ∈ msgsAA, AAMsgOk id t m.st) ∧
+  -- (2026-11-12, trace-check step 4) and no append response there (`send` routes every response to
+  -- `msgsAfterAppend`): with `AAMsgOk`, every queued `MsgAppResp` is from the node, which its
+  -- `Ready`'s token records (`trFromOk`)
+  (∀ m ∈ msgs, m.st.msg.To' ≠ id ∧ m.st.msg.Type' ≠ MsgAppResp)
 
 theorem QOk.mono {id t t' : w64} {msgs msgsAA : List QMsg} (Ht : uint.Z t ≤ uint.Z t')
     (H : QOk id t msgs msgsAA) : QOk id t' msgs msgsAA :=
@@ -2682,8 +2686,9 @@ theorem ownRaftPhysC_msgs (r : Loc) (id : w64) (s : NState) :
                (s.gh.xw !! (st'.msg.To', st'.msg.Term')).isSome) ∧
              -- (2026-11-12, trace-check implementation step 3) at a traced node of a described type
              (s.gh.tr.isSome → mtypeOf st'.msg.Type' ≠ none)⌝ -∗
-           -- (2026-11-01, durability stage II (m)) not self-addressed (`send`'s panic)
-           ⌜st'.msg.To' ≠ id⌝ -∗
+           -- (2026-11-01, durability stage II (m)) not self-addressed (`send`'s panic); (2026-11-12,
+           -- trace-check step 4) no append response (`send` routes responses to `msgsAfterAppend`)
+           ⌜st'.msg.To' ≠ id ∧ st'.msg.Type' ≠ MsgAppResp⌝ -∗
            -- (D22 S-b′3) the message's certificate's source
            tsSrc s.gh.sn st'.msg.Type' st'.snap -∗
            -- (2026-11-09, Q8 stage 1 slice 5) the message recorded as just queued (`NGhost.lq`), for

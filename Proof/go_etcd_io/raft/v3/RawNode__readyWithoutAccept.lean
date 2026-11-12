@@ -602,7 +602,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
     rcases List.mem_append.1 hq with h | h
     · -- (2026-11-01, durability stage II (m)) `r.msgs` holds no message to the node itself
       -- (`raft.send` panics on one: `ownRaftPhys`'s `QOk`)
-      exact HmsgsAA_ok.2 q h
+      exact (HmsgsAA_ok.2 q h).1
     · have h2 := (List.mem_filter.1 h).2
       simp only [isSelfQ, Bool.not_eq_true', decide_eq_false_iff_not] at h2
       exact h2

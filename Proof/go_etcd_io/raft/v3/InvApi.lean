@@ -3572,6 +3572,7 @@ theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (
   iunfold sentMsg at Hsent
   icases Hsent with ⟨-, #Hraft, #Hlb, -, #Hpool, -⟩
   ihave #Hdat := isRaftMsg_dat γ.raft src st $$ Hraft
+  ihave #Hraft0 := Hraft
   iunfold isRaftMsg at Hraft
   icases Hraft with ⟨%Hsh, ⟨%a, %Habs, #Hl⟩, -, -, #Hxw⟩
   have Hrs : st.resps = [] := Hsh.2.2.2.2.2.2.2
@@ -3690,7 +3691,7 @@ theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (
     iframe Hlb Hrd Htc
     -- (2026-11-12) the gate: a traced type with its token
     rw [Hγr]
-    iapply trTokR_net γ.raft st Hp $$ Htr
+    iapply trTokR_net γ.raft src st Hp $$ Hraft0 Htr
 
 end misc
 

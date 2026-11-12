@@ -378,6 +378,7 @@ theorem Cluster.handleReady.wp_proof
         try wp_auto
         wp_apply wp_ACC n W.cl tcRaftN id _ (.v1 cm) (.v1 cm) (D ++ ce) (D.length + sint.nat j) en v'
             tcMem Hva Hpos (.inl Ht1) (by rw [Hvm]; exact Hap) (by rw [Hvm]; exact Hap)
+            (fun _ => Hvm.symm)
           $$ [$Hraft $Hnode $Hclu $Hdec $Hci $Hcfg $Hdl $Hsk'] as %csp %csm Hres
         icases Hres with (⟨Hcsp, Hcfg, -⟩ | ⟨-, Hstop⟩)
         · try wp_auto

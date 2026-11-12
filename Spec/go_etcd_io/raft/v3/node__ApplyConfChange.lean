@@ -34,13 +34,18 @@ to apply `o'` (`confDecided`), and the change `o` handed in has the effect of `o
 membership, an auto-leave joint configuration included (2026-10-29, stage U5: until then
 `m'.autoLeave = false`, raft's automatic leave being out of `raft.Step`'s scope). (2026-10-28, the conf-change decision switch,
 §4) The conf entries between the view and `k` decided `.skip` (`skippedIn`; until then none at all,
-`NoConfChangeIn`). -/
+`NoConfChangeIn`). (2026-11-12, trace-check step 4) At a traced cluster (`Cluster.trace γ ≠ none`) only a
+change that keeps the view's membership (`m' = v.membership`); vacuous at every other cluster. -/
 abbrev node.ApplyConfChange.spec : Prop :=
   ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (c : GoInterface) (o o' : ConfChangeIM)
     (l : List LogEntry) (k : Nat) (e : LogEntry) (v : ConfigView) (m' : Membership),
   v.applied ≤ k → l[k]? = some e → e.isConfChange →
   Membership.applyChange o' v.membership = some m' →
   Membership.applyChange o v.membership = some m' →
+  -- (2026-11-12, trace-check step 4) at a traced cluster the change keeps the membership: the
+  -- specification's `ApplySimpleConfChange` reapplies the log's configuration (its bootstrap
+  -- `AddNode`s), so raft must stay at it; the recorded decision (`confDecided`) may be any
+  (Cluster.trace γ ≠ none → m' = v.membership) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗
       isCluster γ N ∗ confDecided γ k (.apply o') ∗ ownConfChangeI c DFrac.discard (some o) ∗
       nodeConfig n γ N v ∗ deliveredLogLb n γ N l ∗ skippedIn γ l v.applied k }}

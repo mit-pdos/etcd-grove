@@ -942,6 +942,10 @@ theorem RawNode.acceptReady.wp_proof
     { (toPState s).rd with states := [] } ms1 ms2 tl Hgtr rfl rfl HpN HstN HpsN rfl HcmN Houtbox HnbN
     (by first | rfl | simp [readyNstate]) (by first | rfl | simp [readyNstate])
     (by first | rfl | simp [readyNstate]) (by first | rfl | simp [readyNstate]) Hrapp0 Hxf.typed
+    (fun q hq hty => by
+      rcases List.mem_append.1 hq with h | h
+      · exact absurd hty (HmsgsAA_ok.2 q h).2
+      · exact (HmsgsAA_ok.1 q h).2.1)
     $$ Htl %Htlok Hrntr
   icases trOwn_split s.gh.tr
     (ownRaftPhysCV cf cf.voters rnv.raft' id (readyNstate s L ce sz (max s.logst.dtk (dlvAfter rs.delivered ce L).length)))

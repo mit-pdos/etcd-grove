@@ -470,11 +470,16 @@ instance fwdGate_persistent (ρ : RaftNames) (st : MsgSt) : Persistent (fwdGate 
 
 /-- (2026-11-12, trace-check implementation step 1; the design's §3.2 item 5) `netP`'s gate: at a
 traced node, a network message is of a traced type with its token (`recvTokOf`, which the receive
-line consumes), or `ReportUnreachable`'s `MsgUnreachable` (`True` untraced). -/
+line consumes), or `ReportUnreachable`'s `MsgUnreachable` (`True` untraced). (2026-11-12, step 4) A
+traced type's message with its sender's `isRaftMsg` (the transport's facts, which `stepIn_intro` has:
+the receiver's traced step reads its certified abstraction, its numbers and its shape off it,
+`isRaftMsg_trRecv`; `netP`'s `isMessage` is not certified), and an append response's sender a voter
+(`trFromOk`, the sender's token's). -/
 def netGate (ρ : RaftNames) (st : MsgSt) : IProp GF :=
   match ρ.reTrace with
   | none => iprop(True)
-  | some γd => iprop((⌜TrNetTy st.msg.Type'⌝ ∗ recvTokOf γd st.msg st.ents st.ctx) ∨
+  | some γd => iprop((⌜TrNetTy st.msg.Type'⌝ ∗ recvTokOf γd st.msg st.ents st.ctx ∗
+        (∃ src, isRaftMsg ρ src st) ∗ trFromOk γd st) ∨
       ⌜st.msg.Type' = MsgUnreachable⌝)
 
 theorem fwdGate_none (ρ : RaftNames) (st : MsgSt) (h : ρ.reTrace = none) : ⊢ fwdGate (GF := GF) ρ st :=
@@ -506,16 +511,18 @@ theorem trTokR_fwd (ρ : RaftNames) (st : MsgSt) (h : st.msg.Type' = MsgProp) :
         simp [MsgProp, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp] at h
     · exact He
 
-/-- Any other handed-out message's token passes `netP`'s gate. -/
-theorem trTokR_net (ρ : RaftNames) (st : MsgSt) (h : st.msg.Type' ≠ MsgProp) :
-    trTokR (GF := GF) ρ st ⊢ netGate ρ st := by
+/-- Any other handed-out message's token passes `netP`'s gate, with its sender's `isRaftMsg`. -/
+theorem trTokR_net (ρ : RaftNames) (src : w64) (st : MsgSt) (h : st.msg.Type' ≠ MsgProp) :
+    isRaftMsg (GF := GF) ρ src st ⊢ trTokR ρ st -∗ netGate ρ st := by
   unfold trTokR netGate
   cases ρ.reTrace with
-  | none => iintro _; itrivial
+  | none => iintro _ _; itrivial
   | some γd =>
-    iintro ⟨%Hs, Ht⟩
+    iintro #Hr ⟨%Hs, Ht, #Hf⟩
     rcases Hs with Hn | ⟨Hp, _⟩
-    · ileft; iframe Ht; ipureintro; exact Hn
+    · ileft; iframe Ht Hf; isplitr
+      · ipureintro; exact Hn
+      iexists src; iexact Hr
     · exact absurd Hp h
 
 /-- A proposal forwarded by a peer (2026-10-10), as `Node.Step` takes it: its batch owned
@@ -1190,7 +1197,10 @@ of the next conf entry of `ds`, at position `k` (`DynCCPreOp`). (2026-10-16, sta
         ⌜γ.mode.isDyn = true ∧ ∀ dec c0 h0 h1, γ.mode = .dyn dec c0 h0 h1 →
           DynCCPreOp (effDec dec M) ds ca cfg (ccm.transition, ccm.changes) k e cs'⌝ ∗
         decLb γ.raft M ∗ monoListLbOwn γ.dlm ds ∗ dghostVar γ.cap (DFrac.own (1 : Qp).half) (ca, cfg) ∗
-        dghostVar γ.ccq (DFrac.own (1 : Qp).half) (k + 1, cs'))))
+        dghostVar γ.ccq (DFrac.own (1 : Qp).half) (k + 1, cs') ∗
+        -- (2026-11-12, trace-check step 4) at a traced node the change keeps the configuration
+        -- (`node.ApplyConfChange.spec`'s gated premise)
+        ⌜γ.raft.reTrace ≠ none → cs'.cfg = cfg.cfg⌝)))
 
 /-- A `ConfState`'s four lists are a configuration's (2026-10-15, stage N). (2026-10-16, stage
 R5: pure, over the conf state's record; until then the read-only slices of a Goose value.) -/
