@@ -23,6 +23,10 @@ public import Proof.go_etcd_io.raft.v3.TracedReady
 public import Proof.go_etcd_io.raft.v3.InvNodeRun
 public import Proof.go_etcd_io.raft.v3.InvNodeRunHup
 public import Proof.go_etcd_io.raft.v3.Protocol.SnapCertDyn
+public import Proof.go_etcd_io.raft.v3.InvRtk
+public import Proof.go_etcd_io.raft.v3.TracedEscrow
+public import Spec.go_etcd_io.raft.v3.RawNode__Tick
+import all Proof.go_etcd_io.raft.v3.InvNodeChan
 
 @[expose] public section
 
@@ -1030,6 +1034,206 @@ theorem wp_rn_raft_applyConfChange_dyn_g
   iframe Hrn Hccs Hcs
   ipureintro; exact Hcs
 
+
+/-! ### Both modes: the wrappers `node.run.gated_of` calls -/
+
+/-- The term ceiling's bound at a traced node, from the budget's (`termLB_rb`) and `RunTracedOk`'s. -/
+theorem tc_bound {t : w64} (h1 : uint.nat t ≤ receiptBound GF) (h2 : receiptBound GF + 2 ≤ traceNumBound) :
+    uint.Z t + 1 < traceNumBound := by
+  have := uint_nat_eq t; omega
+
+/-- `ownRawNode_trNoLoan`, gated (vacuous untraced). -/
+theorem ownRawNode_trNoLoanG (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) :
+    ownRawNode (GF := GF) γ rn id rs ⊢
+      |={⊤}=> (⌜γ.reTrace ≠ none → rs.slent = none ∧ γ.reBoot ≠ []⌝ ∗ ownRawNode γ rn id rs) := by
+  cases h : γ.reTrace with
+  | none => iintro H; imodintro; iframe H; ipureintro; intro h'; exact absurd rfl h'
+  | some γd =>
+    iintro H
+    imod ownRawNode_trNoLoan γ rn id rs γd h $$ H with ⟨%Hf, H⟩
+    imodintro; iframe H; ipureintro; intro _; exact Hf
+
+/-- The driver's view of the configuration is `run`'s (`runCfg`'s half of `cap`). -/
+theorem runCfg_cap_agree (γ : NodeNames) (rs : RNState) (ca : Nat) (cfg : CCState) :
+    ⊢ runCfg (GF := GF) γ rs -∗ dghostVar γ.cap (DFrac.own (1 : Qp).half) (ca, cfg) -∗
+      ⌜cfg = rs.cfg⌝ ∗ runCfg γ rs ∗ dghostVar γ.cap (DFrac.own (1 : Qp).half) (ca, cfg) := by
+  iintro Hcfg Hcap
+  iunfold runCfg at Hcfg
+  icases Hcfg with ⟨%Hm0, Hdlm, #Hdk, %ca_r, Hcap_r, Hcam, %Hinv, #Hinv2⟩
+  ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hcap_r Hcap
+  simp only [Prod.mk.injEq] at Heq
+  iframe Hcap
+  isplitr
+  · ipureintro; exact Heq.2.symm
+  iunfold runCfg
+  iframe Hdlm Hdk
+  isplitr
+  · ipureintro; exact Hm0
+  iexists ca_r
+  iframe Hcap_r Hcam Hinv2
+  ipureintro; exact Hinv
+
+/-- The escrow's key, gated (the `readyc` commit). -/
+theorem rtk_keyG (ρ : RaftNames) (γe : RtkNames) (ms : List QMsg) (E : CoPset) (hE : ↑rtkN ⊆ E) :
+    ⊢ gateTr (GF := GF) ρ.reTrace (rtkInv ρ γe) -∗ gateTr ρ.reTrace (rtkRun γe none) ={E}=∗
+      gateTr ρ.reTrace (rtkRun γe (some ms)) ∗ gateTr ρ.reTrace (rtkElem γe ms) := by
+  unfold gateTr
+  cases ρ.reTrace with
+  | none => iintro _ _; imodintro; isplitr <;> itrivial
+  | some _ =>
+    iintro #Hi Hr
+    imod rtk_key ρ γe ms E hE $$ Hi Hr with ⟨Hr, He⟩
+    imodintro; iframe Hr He
+
+/-- The escrow's deposit, gated (after `acceptReady`): the `Ready`'s tokens (`readyTok`, the escrow's
+`trTokR`) in. -/
+theorem rtk_depositG (ρ : RaftNames) (γe : RtkNames) (ms : List QMsg) (E : CoPset) (hE : ↑rtkN ⊆ E) :
+    ⊢ gateTr (GF := GF) ρ.reTrace (rtkInv ρ γe) -∗ gateTr ρ.reTrace (rtkRun γe (some ms)) -∗
+      ([∗list] q ∈ ms, readyTok ρ q.st) ={E}=∗ gateTr ρ.reTrace (rtkRun γe none) := by
+  have hconv : ([∗list] q ∈ ms, readyTok (GF := GF) ρ q.st) ⊢ [∗list] q ∈ ms, trTokR ρ q.st := by
+    apply BigSepL.bigSepL_mono
+    intro k q _
+    exact (readyTok_trTokR ρ q.st).1
+  unfold gateTr
+  cases ρ.reTrace with
+  | none => iintro _ _ _; imodintro; itrivial
+  | some _ =>
+    iintro #Hi Hr Ht
+    ihave Ht := hconv $$ Ht
+    iapply rtk_deposit ρ γe ms E hE $$ Hi Hr Ht
+
+/-- **`r.Step(m)` on `Campaign`'s `MsgHup`, in both modes** (`wp_rn_raft_Step_hup`, `wp_rn_raft_Step_hup_tr`). -/
+theorem wp_rn_raft_Step_hup_g (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
+    (hb0 : stepBundle_traced.statement (GF := GF) (hG := hG))
+    (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : Loc) (ml : Loc) (st : MsgSt)
+    (Hst : st = hupSt) (Hterm : uint.Z rs.term + 1 ≤ uint.Z rs.tc) (Hflw : rs.flw = false)
+    (Htr : γ.reTrace ≠ none → uint.Z rs.tc + 1 < traceNumBound ∧ traceReadyFits GF γ) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+        ownRawNode γ rn id rs ∗ rn.[RawNode, go!"raft"] ↦□ r ∗
+        msgIn ml DFrac.discard st ∗ £ 1 }}
+      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
+    {{ (err : GoInterface) (t : w64), RET #err;
+        ownRawNode γ rn id { rs with term := t } ∗
+        ⌜uint.Z rs.term ≤ uint.Z t ∧ uint.Z t ≤ uint.Z rs.term + 1⌝ }} := by
+  cases HtrG : γ.reTrace with
+  | none => exact wp_rn_raft_Step_hup wp_raft_Step γ rn id rs r ml st Hst Hterm Hflw HtrG
+  | some γd =>
+    obtain ⟨Htcb, Hfit⟩ := Htr (by rw [HtrG]; simp)
+    exact wp_rn_raft_Step_hup_tr wp_raft_Step hb0 γ rn id rs r ml st γd Hst Hterm Hflw HtrG Htcb Hfit.le
+
+/-- **`r.Step(m)` on a network message, in both modes** (`node.run`'s `recvc` arm): `wp_rn_raft_Step_net`
+untraced; traced, `netP`'s gate (`netGate`) gives a `TrRcv` type and the traced step's facts
+(`wp_rn_raft_Step_net_tr`), whose post reads as the untraced one's (no `MsgSnap`). -/
+theorem wp_rn_raft_Step_net_g (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
+    (hb0 : stepBundle_traced.statement (GF := GF) (hG := hG))
+    (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : Loc) (ml : Loc) (st : MsgSt)
+    (Hok : NetMsgOk id st)
+    (Hmtc : uint.Z st.msg.Term' ≤ uint.Z rs.tc)
+    (Htn : st.msg.Type' = MsgTimeoutNow →
+      max (uint.Z rs.term) (uint.Z st.msg.Term') + 1 ≤ uint.Z rs.tc)
+    (Hflw : rs.flw = false)
+    (Htr : γ.reTrace ≠ none → uint.Z rs.tc + 1 < traceNumBound ∧ traceReadyFits GF γ) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+        ownRawNode γ rn id rs ∗ rn.[RawNode, go!"raft"] ↦□ r ∗
+        msgIn ml DFrac.discard st ∗
+        □ (⌜st.msg.Type' = MsgTransferLeader ∧ st.msg.Term' ≠ W64 0⌝ -∗
+          isLeader γ id st.msg.Term') ∗
+        □ (∀ ty, ⌜mtypeOf st.msg.Type' = some ty⌝ -∗ ⌜ty ≠ .snap⌝ -∗
+          isMessage γ (absMsg ty st.msg st.ents st.ctx)) ∗
+        □ (⌜st.msg.Type' = MsgSnap⌝ -∗
+           ∃ (sv : SnapshotM) (scfg : CSLists),
+             ⌜st.snap = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧
+               uint.Z sv.Metadata'.Index' < 2^61⌝ ∗
+             isMessageC γ (absSnap st.msg sv scfg) ∗ snapDataOk γ sv.Metadata'.Index' sv.Data' ∗
+             snapLocal γ id sv.Metadata'.Index') ∗
+        rdCred γ (if st.msg.Type' = MsgReadIndex then 1 else 0) ∗ £ 1 ∗ netGate γ st }}
+      (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
+    {{ (err : GoInterface) (t : w64), RET #err;
+        ownRawNode γ rn id
+          { rs with term := t, psnap := rs.psnap || decide (st.msg.Type' = MsgSnap) } ∗
+        ⌜uint.Z rs.term ≤ uint.Z t ∧ uint.Z t ≤ uint.Z rs.tc ∧
+          (st.msg.Type' ≠ MsgPreVoteResp →
+            uint.Z t ≤ max (uint.Z rs.term) (uint.Z st.msg.Term') +
+              (if st.msg.Type' = MsgTimeoutNow then 1 else 0))⌝ }} := by
+  cases HtrG : γ.reTrace with
+  | none =>
+    iintro %Φ ⟨#Hpkg, Hrn, #Hr, Hm, #Hxf, #Hmsg, #Hsnap, Hcred, Hlc, -⟩ HΦ
+    iapply wp_rn_raft_Step_net wp_raft_Step γ rn id rs r ml st Hok Hmtc Htn Hflw HtrG
+      $$ [$Hpkg $Hrn $Hr $Hm $Hxf $Hmsg $Hsnap $Hcred $Hlc]
+    iexact HΦ
+  | some γd =>
+    obtain ⟨Htcb, Hfit⟩ := Htr (by rw [HtrG]; simp)
+    iintro %Φ ⟨#Hpkg, Hrn, #Hr, Hm, #Hxf, #Hmsg, #Hsnap, Hcred, Hlc, Hg⟩ HΦ
+    imod ownRawNode_trNoLoan γ rn id rs γd HtrG $$ Hrn with ⟨%Hfacts, Hrn⟩
+    unfold netGate
+    rw [HtrG]
+    -- the gate: a traced network type with its token, its sender's facts and its sender a voter, or
+    -- `MsgUnreachable`
+    ihave Hx : iprop(⌜TrRcv st.msg.Type'⌝ ∗ recvTokOf γd st.msg st.ents st.ctx ∗
+        □ (∀ ty : MsgType, ⌜mtypeOf st.msg.Type' = some ty ∧ ty.traced = true⌝ -∗
+          isMessageC γ (absMsg ty st.msg st.ents st.ctx)) ∗
+        ⌜(∀ ty, mtypeOf st.msg.Type' = some ty → MsgTrOk γ (absMsg ty st.msg st.ents st.ctx)) ∧
+          TrRecvShape st.msg st.ents⌝ ∗
+        □ (⌜st.msg.Type' = MsgAppResp⌝ -∗ ∃ tn : TraceNames, traceDir γd tn ∗
+          ⌜st.msg.From' ∈ tn.voters⌝)) $$ [Hg]
+    · icases Hg with (⟨%Hn, Ht, ⟨%src, #Hraft⟩, #Hfr⟩ | %Hu)
+      · icases isRaftMsg_trRecv γ src st $$ Hraft with ⟨#Hmc, %Htrok, -, %Hshape⟩
+        iframe Ht Hmc
+        isplitr; · ipureintro; exact .inl Hn
+        isplitr; · ipureintro; exact ⟨Htrok, Hshape (by rw [HtrG]; rfl)⟩
+        imodintro; iintro %h
+        iunfold trFromOk at Hfr
+        icases Hfr with ⟨%tn, #Hd, %Hin⟩
+        iexists tn; iframe Hd; ipureintro; exact Hin h
+      · have Hmt : mtypeOf st.msg.Type' = none := by rw [Hu]; rfl
+        isplitr; · ipureintro; exact .inr Hu
+        isplitl
+        · iapply recvTokOf_untyped γd st.msg st.ents st.ctx Hmt
+        isplitr
+        · imodintro; iintro %ty %h; rw [Hmt] at h; cases h.1
+        isplitr
+        · ipureintro
+          refine ⟨fun ty h => (by rw [Hmt] at h; cases h), fun h => ?_, fun h => ?_, fun h => ?_,
+            fun ty h => (by rw [Hmt] at h; cases h)⟩
+          · rw [Hu] at h; simp [MsgUnreachable, MsgHeartbeat] at h
+          · rw [Hu] at h; simp [MsgUnreachable, MsgHeartbeatResp] at h
+          · exfalso
+            rcases h with h | h | h <;> rw [Hu] at h <;> simp [MsgUnreachable, MsgVote, MsgApp, MsgHeartbeat] at h
+        imodintro; iintro %h; rw [Hu] at h; simp [MsgUnreachable, MsgAppResp] at h
+    icases Hx with ⟨%Hnt, Htok, #Hmc, %Hrf, #Hfr⟩
+    have HnS : st.msg.Type' ≠ MsgSnap := TrRcv.ne Hnt ⟨by decide, by decide, by decide, by decide,
+      by decide, by decide⟩ (by decide)
+    have HnT : st.msg.Type' ≠ MsgTimeoutNow := TrRcv.ne Hnt ⟨by decide, by decide, by decide, by decide,
+      by decide, by decide⟩ (by decide)
+    iapply wp_rn_raft_Step_net_tr wp_raft_Step hb0 γ rn id rs r ml st γd Hok Hnt Hmtc Hflw HtrG Htcb Hfit.le
+      Hfacts.2 $$ [$Hpkg $Hrn $Hr $Hm $Hmsg $Hcred $Hlc $Htok $Hmc $Hfr]
+    · ipureintro; exact Hrf
+    iintro !> %err %t ⟨Hrn, %Ht⟩
+    iapply HΦ $$ %err %t
+    rw [decide_eq_false HnS, Bool.or_false]
+    iframe Hrn
+    ipureintro
+    refine ⟨Ht.1, Ht.2.1, fun _ => ?_⟩
+    rw [ite_eq_right HnT]; omega
+
+/-- **`rn.Tick()`, in both modes** (`RawNode.Tick.spec`, `RawNode.Tick.traced`). -/
+theorem wp_RawNode_Tick_g (wp_RawNode_Tick : RawNode.Tick.spec (GF := GF) (hG := hG))
+    (wp_tickElection : raft.tickElection.spec (GF := GF) (hG := hG))
+    (wp_tickHeartbeat : raft.tickHeartbeat.spec (GF := GF) (hG := hG))
+    (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
+    (Hterm : uint.Z rs.term + 1 ≤ uint.Z rs.tc) (Hflw : rs.flw = false)
+    (Htr : γ.reTrace ≠ none → uint.Z rs.tc + 1 < traceNumBound ∧ traceReadyFits GF γ) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+        "Hrn" ∷ ownRawNode γ rn id rs }}
+      (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"Tick")) (Val #()))
+    {{ (t : w64), RET #();
+        "Hrn" ∷ ownRawNode γ rn id { rs with term := t } ∗
+        "%Ht" ∷ ⌜uint.Z rs.term ≤ uint.Z t ∧ uint.Z t ≤ uint.Z rs.term + 1⌝ }} := by
+  cases HtrG : γ.reTrace with
+  | none => exact wp_RawNode_Tick γ rn id rs Hterm Hflw HtrG
+  | some γd =>
+    obtain ⟨Htcb, Hfit⟩ := Htr (by rw [HtrG]; simp)
+    exact RawNode.Tick.traced wp_tickElection wp_tickHeartbeat γ rn id rs γd Hterm Hflw HtrG Htcb Hfit.le
 
 end lemmas
 
