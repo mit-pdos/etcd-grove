@@ -34628,6 +34628,75 @@ the base when an entry at or below it was read; `ReadAll` truncates the log ther
 as W0's `walref.ReadEnt` and the Scope's reader say. It explains W1.5's unanalyzed ordered
 violation (chain 2145), which was not a garbage effect.
 
+## WAL W4a: the abstract-disk extension, the WAL's trust-boundary specs, durableExt's crash interpretation (2026-11-11 · the W4 Draft's §9 decisions 1-8 approved by etcd-grove-81; Q-W4a-1 option B decided by etcd-grove-81 under the user's delegation; the trusted texts await the Freeze review, `/shared/tmp/wal-spec/w4/freeze-w4a.md` · branch `wal-w4`)
+
+**What W4a adds** (the approved Draft, `/shared/tmp/wal-spec/w4/draft.md`, §1, §5):
+
+- `GooseLang/Ext/AbsDisk/Impl.lean` [trusted]: the extension `absDiskExt` (name: the WAL's Go
+  package path), its state (`WalDur` per WAL directory: the history `H` of `Save`/`SaveSnapshot`
+  operations over raw entries, the synced mark, the purge positions `unl`/`pur`/`cut`, the metadata,
+  `named`, `sized`; the durable directories), its steps (`AbsDiskStep`) and its crash relation
+  (`walCrash`, `walImg`), with the world assumptions in the module docstring (WAL W3).
+- `Proof/.../storage/WalHist.lean` [trusted meaning]: what a restart reads (`walRead`,
+  `walReadFrom`, `readEnt`, `walReadCut`, `walReadR`).
+- `GooseLang/Ext/AbsDisk/Specs.lean` (proved): the ghost state, the interpretation, one spec per
+  step, the crash interpretation, `walDiskAt_crash` (the Draft's `walDisk_crash`).
+- `GooseLang/Ext/Durable/Crash.lean` (proved): durableExt's crash interpretation (the identity: the
+  new generation keeps the ghost variable, as Perennial's `fs_crash_interp`).
+- `Proof/.../storage/WalDisk.lean` (proved): `walDisk` over `WalHist`, the read path's vocabulary
+  (`walValidSnaps`, `walNewestPair`, `walLastSnapPos`, `walSnapAt`, `walSnapIdTerm`, `walSnapsAt`),
+  and the purge law `walPurge_step`, proved over the extension's purge step (the tester's
+  `purgeRound`, whose trusted model performs that step, comes with W4c).
+- 12 axioms (`Proof/.../storage/wal/*.lean`, `Proof/.../client/pkg/v3/fileutil/TouchDirAll.lean`):
+  `Exist`, `Create`, `Save`, `SaveSnapshot`, `Sync`, `Close` (both modes, one conjunction),
+  `ReleaseLockTo`, `ValidSnapshotEntries`, `Open`, `ReadAll`, `Repair`, `fileutil.TouchDirAll`.
+- walpb (`Snapshot`'s type) and `client/pkg/v3/fileutil` names-only in the etcd goose project.
+
+**Option B** (Q-W4a-1): the server's `walRecs`/`walFiles`/`isWalStorage`/`wal.bootOk` are unchanged;
+until C6 the WAL has two models with nothing linking them (the server's `walRecs`, the extension's
+`walDiskAt`), and no closed etcd theorem uses the new axioms (they are unlinked: no `Link.lean`
+reaches them). Option A's design for C6 is in `notes/wal-w4-handoff.md`.
+
+**Decided in W4a, beyond the Draft's text** (each in the Freeze package, old → new):
+
+1. **The steps take their argument as a value** (a soundness repair of W4a's own earlier form, not
+   of the Draft). `"WalAppend"`, `"WalSync"`, `"WalUnlock"` had chosen their operation, mark and
+   position nondeterministically; a step's successors are demonic, so no body performing them could
+   satisfy `Save`, `Sync`, `ReleaseLockTo` or `ReadAll`'s axioms, and the Draft's §1.6 consistency
+   argument ("a body that performs the steps exists") failed. They now take `PairV #dir
+   #(walCode a)`, `walCode` an injective code (the Draft's text: `"WalAppend" dir op`).
+2. **The ghost state owns the whole WAL map** (`walOwn M`, half of a ghost variable plus a token),
+   and `walDirIs`/`walDiskAt`/`walAbsent` each hold it: the map has no fragments for the infinitely
+   many directories without a WAL, and `Create` needs `walAbsent` of one, so per-directory
+   ownership would need a claim operation. Two of these predicates are exclusive even for two
+   directories: enough for the tester and the server, which have one WAL directory each.
+3. **Facts are past states** (`absPast s`, persistent; the state only grows, `absLe`):
+   `walSyncedLb`, `walNamed`, `dirDurable`, `walLenLb` are facts about a past state. Handles
+   (`walOpenW`, `walOpening`) are exclusive ghost-map elements keyed by the `*wal.WAL`, whose
+   authority is in the interpretation; `walLenLb w n` names `w`'s directory (a persistent element).
+4. **`Create`'s error arm** (the Draft left it open, believing an error after the rename leaves the
+   fresh WAL): an error after the rename runs `cleanupWAL`, which renames the WAL away (not durably),
+   so neither "fresh WAL" nor "absent" is right. Errors before the rename leave the update not
+   committed (the AU returned); after it, `¬ storage.walCreateOk` (the server's environment premise:
+   `Create`'s file operations do not fail).
+5. **`Create`'s and `TouchDirAll`'s `name`** is one path element (non-empty, no `/`, not `.`/`..`),
+   so that the fsynced parent is `parent`.
+6. **`ReadAll`'s post** raises the synced mark (`m := max m |H|`): the Draft's `{ d with unl := … }`
+   kept `m` and contradicted its own `walSyncedLb dir |H|`. Its `⌜walLastHS I = σ.hs ∨ …⌝` (an
+   unfinished conjunct) is omitted: W4b's `walReadCut_hs` lemma states it.
+7. **`walpb.Snapshot` pointers are persistent** (`walSnapAt sp md cs`: frozen; `cs` the conf
+   state's non-nilness, so the Draft's `⌜md.Index' = 0 ∨ walSnapHasCS sp⌝` is
+   `⌜md.Index' = 0 ∨ cs = true⌝`); the read result's entries are `walSaveEnts false` (the Draft's
+   `entriesAtM`).
+8. **`TouchDirAll` takes no package-initialization premise**: `fileutil` is outside `etc/gen-init.py`'s
+   closure (adding it fails on its imports' instance modules); its initializer sets only lock
+   functions and `ErrLocked`, which `TouchDirAll` does not read. W4c brings the package in.
+9. **The purge law is proved over the step** (`walPurge_step`), not an axiom: 12 axioms, not 13.
+
+**Caveats for the review**: `Exist` assumes `ReadDir` does not fail (it returns `false` on an
+error); the handles' allocation is done by the axiomatized bodies (no step allocates them; a model
+body allocates `w` fresh). Go tests per axiom: the Freeze package's table.
+
 ## bbolt `Open` syncs before its first commit (kill, restart, power loss) (2026-11-11 · the fix decided by the user, `/shared/tmp/crash-rung3/scope.md` U-R3-1 (a); the error exit by etcd-grove-81 · branch `bbolt-open-sync`)
 
 **Finding** (`issues/bbolt-open-unsynced-meta-kill-then-power-loss.md`): a process killed between a
@@ -34657,6 +34726,159 @@ the same size and mappings (`Open/SyncAcc.wdbCore_file_acc`); `wdbOK` reads only
 spec is unchanged: in-process durability is out of its scope. No trusted statement changed. The
 trusted docstrings that cite `db.go` line numbers name `743299d8cec8`, so they stay accurate.
 
+## WAL W4a revision: the WAL area, the fork's `Exist` fix, and the Freeze review's findings (2026-11-12 · the revision design approved by etcd-grove-81; M3's fork fix chosen by the user, 2026-11-11 · branch `wal-w4`)
+
+The Freeze review of W4a (two lenses, both NOT READY; `/shared/tmp/wal-spec/w4/review-findings.txt`)
+found five blockers (Create's footprint and `TouchDirAll` against `Exist`; durable's names against the
+WAL's; `ReadAll` twice; `named` after a kill), three majors (`unl` over-claimed; reads from `cut`
+against a purge; `Exist` on a `ReadDir` failure) and minors. The revision (design
+`/shared/tmp/wal-spec/w4/revision.md`; old → new in `/shared/tmp/wal-spec/w4/freeze-w4a.md`,
+"Revision after review"):
+
+- **A fixed WAL area** (`AbsDiskState.area`, `GooseLang/Ext/AbsDisk/Paths.lean`): WAL directories
+  are `area/n` (`walAreaDir`, `n` free of `/` and `.`); `"WalCreate"` requires all of
+  `walCreateRegion dir` free (implied by `walAbsent dir` and the ctx invariant that every WAL key is
+  in the area); `"DirDurable"` (`TouchDirAll`) never under the area; the start constrained by
+  `absDiskInitOk` (`initP`). Why one area rather than per-call roots: the invariant lets
+  `walAbsent dir` imply the region free in any generation (revision §1.2).
+- **Durable's one-shot reservation** of the area (`durableReserved r`, in durable's ghost state,
+  surviving crashes), required by every WAL function that takes a directory (`walAreaOk r`); the
+  durable Go specs take a mode `o` (today's at `o = none`). A premise on one side cannot work
+  (revision §1.2: a durable write inside a WAL directory; a durable read of a WAL's file).
+- `walCrash` keeps `named`; a write-mode `ReadAll` makes it durable (`"WalNamed"`, F-N4) and needs
+  `dirDurable r`; `Open` no longer needs `walNamed`.
+- `ReadAll`'s error arm gives `walReadFailed`, accepted only by `Close`.
+- `unl` is `walReleasePos` (the snapshot record's position under `walRelGuard`, else `|H|`; `0` at
+  `a = 0`); `"WalPurge"` also moves `cut` to the remaining first file's start.
+- **`wal.Exist`**: the user chose the fork fix over an environment premise (option A) or a weak
+  spec (B): `Exist` returns true on any `ReadDir` error but not-found (`c90b03b56`), so its spec says
+  `b = false → o = none` with no premise, and ValidSnapshotEntries/Open/Repair take `walDirIs dir o`
+  and fail on `none`. It also closes the hazard the review found (`renameWAL`'s `RemoveAll` deleting
+  a live WAL after two failed `ReadDir`s; nonissue `etcd-wal-exist-readdir-error-removes-wal`).
+- Gates recorded for W4c and C6 (revision §1.4): the tester's adequacy quantifies the start
+  universally, constrained only at its own directories (`s0.area = root/data/member`, no WAL at
+  `area/wal`), never `s0.wal = ∅`; C6's restart start names directories by premise and hands the
+  durable reservation from its start. The remaining path aliasing (symbolic links) is a world
+  assumption in `Impl.lean`.
+
+## WAL W4a revision round 2: durable's reservation in the interpretation, handle purge rights, sealed handles (2026-11-12 · the second Freeze review's findings; the world assumption "Paths" approved by the user, 2026-11-12, via etcd-grove-81 · branch `wal-w4`)
+
+The second Freeze review (`/shared/tmp/wal-spec/w4/review2-findings.txt`; old → new and the closure per
+finding in `/shared/tmp/wal-spec/w4/freeze-w4a.md`, "Revision round 2") found the previous round's
+durable reservation unenforced (B-1: `durable_reserve`'s hypothesis and `wp_DurableWrite_atomic`'s name
+premise were unused, so a durable `area/wal.tmp` and then `Create` gave a no-panic triple for a program
+that panics), `ValidSnapshotEntries` refutable with an open append handle (B1), `TouchDirAll`'s probe
+`d/.touch` against a durable file (B2), handle modes forgeable (M-1), and the opaque `walPurgeRight`
+minted per call (M1). What changed, and why:
+
+- **The reservation lives in durable's state interpretation** (`durableCtx` holds the reservation's
+  authority with `durableResvInv`: once `some r`, every file name is allowed in mode `some r`), as
+  `absDiskCtx` carries `walKeysInArea`. The program holds the key's element (`() ↪ none` unreserved,
+  `() ↪□ some r` reserved). A ghost update outside a step cannot touch the interpretation, so the
+  reservation is made at a durable step: `wp_DurableRead_atomic` (and `durable.Read.spec`) may change
+  the mode (`durableModeStep`), checking every current name. Why at a `Read`: the tester's `Boot`
+  reads its oracle before any WAL call, every generation; putting the area into durable's trusted step
+  relation instead would add trusted text and couple two extensions' starts. Sealing durable is not
+  needed for soundness (the authority is exclusive and in the interpretation).
+- **Reserved names never hide** (`durableHidden`: a last element starting with `.`), and `TouchDirAll`
+  takes `walAreaOk r`, so its probe `d/.touch` is never a durable file (B2).
+- **VSE reads a prefix** `H.take j`, `m ≤ j ≤ |H|` (what reached the files; B1). etcd calls it before
+  `Open`, where `j = |H|`.
+- **Handles sealed** (M-1): `absHandleAuth` is `@[no_expose]`, its allocation and mode-change lemmas
+  private, and `etc/api/absdisk.txt` lists the extension's modules (no `import all` outside;
+  `etc/api-check.py` now scans `GooseLang/`). W4c gate: a trusted model that performs `"WalCreate"`,
+  `"WalUnlock"` or `"WalNamed"` is reviewed against the handle-minting step specs; `purgeRound`
+  performs only `"WalPurge"`.
+- **One purge right per handle** (`walPurgeW w dir`, proved ghost state, per generation) replaces the
+  server's opaque `walPurgeRight` in the extension's axioms (M1); the server keeps its own until C6.
+- **`walCrash` clamps `unl`, `pur` and the read position to the image's length** (m-1): every unlocked
+  or deleted record is synced (`cut` syncs a file before the next), and a crash keeps the synced
+  records.
+- **The area claim restated** (M2/m-2): only durable (reserved) and `TouchDirAll` are kept out of the
+  WAL footprint. Gates: rung 3 (`osFsExt`) and C6 (the server's WAL axioms) must extend the
+  reservation before a closed theorem combines them with absDisk; C6 must restrict WAL names or
+  exempt the WAL's named siblings (etcd's `member/snap` is in the area, and `snap` is a valid WAL
+  name).
+- Minors: `unl`/`pur` docstrings state what soundness uses; `absDiskInitOk` requires clean durable
+  directories; `Exist`'s docstring names `cleanupWAL`; the empty-`Save` shortcut is shown invisible to
+  readers (`walRead_phantom` …); the `ReadAll` `ErrSnapshotNotFound` bug is a nonissue
+  (`etcd-wal-readall-snapshot-not-found-masked`), excluded by its premise. The etcd pin is `c90b03b56`.
+
+## WAL W4a revision round 3: the lock token, sealed handles, `Open` raises `unl`, one spelling per file (2026-11-12 · the third Freeze review's fixes decided by etcd-grove-81; the "one spelling" clause of "Paths" approved by the user, 2026-11-12, via etcd-grove-81 · branch `wal-w4`)
+
+The third review (`/shared/tmp/coord-81/wal-w4a-review3/findings-full.md`) found F1, B1, B2 (blockers),
+M1, M2 and minors. Each closed (the Freeze package's "Revision round 3" maps them to file:line):
+
+- **The purge right only with an open WAL, and `unl` current from `Open` on** (F1). `walHandleP`,
+  `walOpenW`, `walOpening`, `walReadFailed` are `@[no_expose]`; splitting a handle into the open WAL
+  and its right is private and of append handles only, so the right is reached only through
+  `Create` and a successful `ReadAll`. And `Open`'s success performs `"WalUnlock"` of `walReleasePos H
+  s.1` (`wp_WalOpenHandle`), since Go's `Open` locks only from the opened snapshot's file on: `unl` is
+  current wherever a right exists. The reviewer's `TestRev3PurgeWhileOpening` is now within the
+  model (there `walRelGuard` fails, so `unl = |H|`).
+- **One handle per generation: the lock token** (B2, closes M2). `walUnlockedTok`, a `token` at a
+  ghost name of the generation, is in `absDiskStart` and `absDiskCrashStart`; a successful `Create`
+  or `Open` puts it in the new handle (every handle predicate carries it); only `Close`'s success
+  arms give it back (`wp_WalCloseHandle`; Go's `Close` returns before unlocking when its sync
+  fails). Why: Go releases a dropped `*WAL`'s flocks by `os.File` finalizers without `Close`, losing
+  its buffered records (`TestRev3LeakedHandleThenOpen`: `Open` succeeds after GC, `ReadAll` misses
+  the unsynced commit); a dropped handle now takes the token with it, so no second `Open` is
+  provable until a crash, as if the process had died. With one live handle there is one live purge
+  right. Not an authority in `absHandleAuth`: no lemma mints the token, and the sealing makes it
+  inseparable from the handle.
+- **W4c gate on the purge right** (M1): `wp_WalPurge` takes no right; the right constrains only through
+  its consumers. `purgeRound`'s spec must take `walPurgeW w dir` and `walOpenW w dir`, consumed or
+  framed, never derived (recorded in `Specs.lean`'s header and `walPurge_step`'s docstring). `unl`'s
+  docstring now says what holds: while a handle with its right is live, every record from `unl` on
+  is in a file it keeps locked.
+- **One spelling per file** (B1): appended to "Paths" (the user's text): the run names each file at or
+  below the data directory by one spelling (no symlinked or bind-mounted alias of an ancestor besides
+  the data directory's own spelling; byte comparison). The parenthetical in `Impl.lean` and `Exist`'s
+  docstring now rest on it.
+- Minors: `Create`'s footprint includes `TouchDirAll`'s mkdir of missing ancestors and their parents'
+  fsyncs; `Repair`'s blocking argument restated (it blocks until no handle holds the tail's lock, a
+  concurrent `Close` of an opening or failed handle releases it; `TestReview3RepairLive`); the
+  `"WalUnsize"` step dropped (no axiom performed it; a `Save` with `sized = false` needs a WAL whose
+  flag is false, which none reaches: a W4c obligation, the tester saves sized entries) and
+  `walDisk`'s default argument removed; `etc/api-check.py` scans every `lean_lib`'s directories.
+- W4c gates added: the step spec `wp_WalCloseHandle` joins the handle-step list; the tester's
+  boot holds the token from `absDiskStart`/`absDiskCrashStart` (`absDiskCrashStart_split`).
+
+## WAL W4a review 4 minors: gates and evidence (2026-11-12 · the fourth Freeze review READY WITH CHANGES, minors only; the fixes and round 3's choices (`Close` returns the token only on success, a plain token) decided by etcd-grove-81 · branch `wal-w4`)
+
+Docstrings, tests and notes only; no statement changed.
+
+- **Gate: the area at or below the data directory** (closure3 m1). "Paths"' no-symlink and one-spelling
+  clauses cover the paths at or below the data directory, while every WAL guarantee is over the
+  model's `area`. A closed theorem's area must lie at or below its data directory (the tester's
+  `root/data/member` does). C6 with a dedicated WAL directory (`--wal-dir`, `config.walDirOf dataDir
+  dedicated`, outside the data directory) must first extend "Paths" to it: a change to a world
+  assumption, for the user. Recorded in `Impl.lean`'s "What this covers".
+- **The parenthetical is part of "Paths"** (closure3 m2): in the one-spelling clause, the parenthetical
+  ("no symlinked or bind-mounted alias of an ancestor is used besides the data directory's own
+  spelling; …") is part of the assumption, not an example: it is what excludes creating a new file
+  through an aliased spelling of a directory. At the next user-approved edit of "Paths", write "each
+  file or directory" in the operative sentence.
+- **Gate: several WALs per process** (closure3 m3, fresh4 m5): the lock token is area-wide, so at most one
+  WAL handle exists across the area's directories per generation (enough for etcd and the tester).
+  Rung 3 or C6, if they need several WALs in one process (one per member of a multi-member tester),
+  must key the token per directory, minted with the directory's ownership.
+- `Close`/`wp_WalCloseHandle` need not ask that the `walOpenW` and `walPurgeW` they consume share a ghost
+  name: the token gives at most one outstanding right per generation (closure3 m4; `walPurgeW`'s and
+  `wp_WalCloseHandle`'s docstrings).
+- `Open`'s raise described as what it is (fresh4 m1): `walReleasePos H s.1`, a position at or after the
+  start of the file `Open` locks from (the snapshot record's last position under `walRelGuard`, 0 at
+  index 0, else `|H|`).
+- **W4c items** (fresh4 m5, strength, not soundness): (1) `Open`'s raise persists (a crash only clamps it
+  to `|I|`), so one `Open` at a snapshot failing `walRelGuard` sets `unl = |H|` for good and the purge
+  model may then cut anywhere, losing information in the relaxed read. The fork's
+  `LatestSnapshotEntry` comment documents a pattern (the apply loop's snapshot saved after a newer one
+  the raft loop received) that fails clause 3 at the newest snapshot. The tester opens only at
+  `walNewestPair`; W4c checks whether etcd-shaped histories meet clause 3, or weakens clause 3 to what
+  the purge-past-`p` case needs. (2) The area-wide token (above).
+- Evidence added (`/shared/tmp/wal-spec/w4/rev3-tests/`): the leak test's negative control (fresh4 m2),
+  `TestReview4OpenGuardPurge` (the guarded branch, fresh4 m3), `TestRev4ReopenAfterClose` (fresh4 m4
+  (c)); RR3-3 lists the remaining untested clauses (a)-(e).
 ## Stage B: the lessor's checkpointer is nil; `lessor.Renew`/`leaseTimeToLive` at level 0 (2026-11-12 · T1-T5 approved by etcd-grove-81 under the user's delegation, `/shared/tmp/stageB/lease-level-fix.md` · branch `stage-b`)
 
 Since B2 the trusted `lease.lessor.Renew.spec` and `EtcdServer.leaseTimeToLive.spec` take only the
