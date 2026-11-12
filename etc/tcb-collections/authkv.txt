@@ -34,6 +34,7 @@ axiom RangeRequest.String.wp_proof
 axiom WithRequireLeader.wp_proof
 axiom addFeatureGateMetrics.wp_proof
 axiom api.IsCapabilityEnabled.wp_proof
+axiom apply.irrDecode_utf8
 axiom apply.memberEnc_id_learner
 axiom apply.memberKey_inj
 axiom attribute.Bool.wp_proof

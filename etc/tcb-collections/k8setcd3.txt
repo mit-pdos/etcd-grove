@@ -299,6 +299,7 @@ axiom api.IsCapabilityEnabled.wp_proof
 axiom apierrors.HasStatusCause.wp_proof
 axiom apierrors.IsTimeout.wp_proof
 axiom apimeta.GetItemsPtr.wp_proof
+axiom apply.irrDecode_utf8
 axiom apply.memberEnc_id_learner
 axiom apply.memberKey_inj
 axiom attribute.Bool.wp_proof
