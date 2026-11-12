@@ -37511,3 +37511,50 @@ premise; `readyTok` = `trTokR`'s body; every traced triple re-proved (`RawNode.S
 - *(d) is framed in step 3*: no step-3 triple moves the configuration; G3 (a), which keeps it at the
   `confc` arm, stays with `trace-check-g3`.
 
+
+## Step 4: the traced Advance, applyConfChange and run statements; all three one statement for both modes; three facts `run` lacks and the `confc` arm's change without a source (2026-11-12 · trace-check, §9's step 4 (phase 1: statements) of `notes/trace-check-design.md`; decided by the agent under the coordinator's task (raft-internal statements) · branch `trace-check-s4`)
+
+**Context.** Step 4 proves `node.run.gated_of (hAdv) (hCC) : node.run.gatedSpec`, with the two
+callees' traced triples as hypotheses, by three provers in parallel; this phase fixes the three
+statements (`Proof/go_etcd_io/raft/v3/TracedRunSpecs.lean`, typechecked; the design's "Step 4" section
+has the premise → source tables).
+
+**Decisions.**
+- *One statement for both modes, for all three* ("Modes generalize, no twins"): today's untraced
+  premise replaced by gated premises, as `RawNode.acceptReady.spec` since slice 28n. `run`'s arms then
+  call one triple in either mode; each prover gets the untraced case from today's proof.
+  `node.run.spec` and `RawNode.Advance.spec` are proved instances (`*_of_*`); `raft.applyConfChange`
+  has none (it would need a `RaftNames` value; nothing needs it). Rejected: traced triples beside the
+  untraced specs (`raft.Step.tracedTriple`'s form): the `run` prover would case-split at each arm and
+  in `wp_applyConf_dyn`.
+- *`RawNode.Advance.tracedSpec`'s traced premises are `acceptReady`'s bounds plus `rs.slent = none`*;
+  pre and post otherwise word for word: the rest of the traced content is inside `ownRawNode`
+  (`rnTrace`, `selfTok`). The no-loan fact is a premise (not derived inside) because `run` needs the
+  same lemma (`ownRawNode_trNoLoan`, from `LoanOk`, `ownRaftLogW_snap_prev` and `TrNoSnap`) at `confc`;
+  so one prover writes it once. Rejected: deriving the snapshot arm's vacuity inside `hAdv` from
+  `snapReceipt`'s `storCompacted` (a second copy of the argument).
+- *`raft.applyConfChange.tracedSpec` at the raft level*, the call `run` makes (`r.applyConfChange(cc)`
+  through `wp_applyConf_dyn`); no traced `RawNode.ApplyConfChange` (not on `run`'s path). Its traced
+  premises: a follower, `c'.cfg = c`, and `trCapB_hookGate_applyCC`'s three numeric premises; the
+  capability booted in, at the new configuration and end state out. Rejected: a non-leader premise (the
+  arm proves the follower case anyway, and a follower is what `RnTrBoot` needs); the numeric facts
+  derived inside (they come from `ownStepGhost`, which the raft-level triple does not hold).
+- *`node.run.gatedSpec` is not today's minus its premise*: it takes `γ.raft.reTrace ≠ none →
+  RunTracedOk GF γ` (dynamic mode; `traceReadyFits`; `receiptBound GF + 2 ≤ traceNumBound`) and
+  `gateTr γ.raft.reTrace (rtkRun γ.esc none)` in the precondition. Each is a fact §3.2 assumed `run`
+  had and it has not: the escrow's run half is in neither `runPre` nor `isNodeChan`; the fit is the
+  client's `readyFits`, out of `run`'s sight; the ceiling's `+ 1` below the bound needs `|γ.reBoot| ≥ 2`
+  or the third conjunct; `confcP`'s static arm has no traced callee. Rejected: extending `runPre`
+  (`Spec/`, every untraced caller re-proved for gated conjuncts it does not need); a twin `runPreT`.
+- *The G3 (a) open point (the delivered entry at raft's log position)*: not needed. Recommended route:
+  a lemma over the committed log's records (`isCommitted_trNoConf`, from `isCommitted_recs` and
+  `logRecs_trNoConf`, with the capability's `raftLogInv`); the raft-log route exists too
+  (`ownStepGhost_deliv` gives `D <+: full`).
+- *Found, left to the coordinator* (client-visible): (1) `c'.cfg = c` has no source at the `confc` arm:
+  the applied change is the client's recorded decision (`confDecide` takes any `d` defined on the
+  membership), not the entry's content, so a traced cluster's client may apply a `RemoveNode` at a
+  bootstrap position. Proposed: `node.ApplyConfChange.spec` gains `Cluster.trace γ ≠ none → m' =
+  v.membership` and `confcP`'s dynamic disjunct `γ.raft.reTrace ≠ none → cs'.cfg = cfg.cfg`. (2)
+  `StartNode.tracedSpec` (`HarnessOpen`) does not give the fit `run` needs: a gated pure premise such as
+  `Cluster.trace γ ≠ none → receiptBound GF + vs.length ≤ traceNumBound ∧ 2 ≤ vs.length`, from the
+  harness's `tcRunFits`. Neither changes §1.

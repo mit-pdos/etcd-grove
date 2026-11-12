@@ -18,6 +18,8 @@ Implementation step 1 (2026-11-12): branch `trace-check-impl1`; what threading c
 first section below (I9: `storBnd`'s gate left for a decision).
 Implementation step 3 (2026-11-12): branch `trace-check-impl3`; what the clauses and the physical half
 changed, J1-J5, in the first section below.
+Step 4 (2026-11-12): branch `trace-check-s4`; the three statements of step 4 (`node.run.gatedSpec`,
+`RawNode.Advance.tracedSpec`, `raft.applyConfChange.tracedSpec`), in the first section below.
 
 Reading order: §1 is the only part the user reviews (settled: Q32 and Q38 decided by the user). §2-§6
 are the agent's (intermediate statements, recorded per "The gates, delegated"). §7 is the whole chain
@@ -30,6 +32,133 @@ Vocabulary used throughout: `TrNetTy t` (`MsgApp`, `MsgAppResp`, `MsgVote`, `Msg
 `InvNode.lean`, §3.1), the capability `trCapB` (`TracedCap.lean`), `rnTrace` (`InvRawnode.lean`).
 
 ---
+
+## Step 4 (2026-11-12): the statements
+
+Branch `trace-check-s4`, from `trace-check` at `a660e8e6a5` (§9's step 4, phase 1: the statements the
+three provers share; `notes/decisions.md`, "Step 4: the traced Advance, applyConfChange and run
+statements"). In Lean, typechecked, no proof but two instances: `Proof/go_etcd_io/raft/v3/TracedRunSpecs.lean`
+(raft-internal; `etc/api/raft.txt` untouched). Nothing imports it yet. The intended theorem, in its
+header, is `node.run.gated_of (… hAdv : RawNode.Advance.tracedSpec … hCC : raft.applyConfChange.tracedSpec …)
+: node.run.gatedSpec` (today's `node.run.wp_proof` arguments, `RawNode.Advance.spec` and
+`raft.applyConfChange.spec` replaced by the two, plus `stepBundle_traced.statement`).
+
+**All three are one statement for both modes** ("Modes generalize, no twins"), each today's with its
+untraced premise replaced by gated premises (vacuous untraced), as `RawNode.acceptReady.spec` is since
+slice 28n:
+
+- **`node.run.gatedSpec`** = `node.run.spec` with `γ.raft.reTrace = none` replaced by
+  `γ.raft.reTrace ≠ none → RunTracedOk GF γ`, `RunTracedOk GF γ := γ.mode.isDyn = true ∧
+  traceReadyFits GF γ.raft ∧ receiptBound GF + 2 ≤ traceNumBound`, and the precondition `runPre γ id n
+  ∗ gateTr γ.raft.reTrace (rtkRun γ.esc none)`. Instance: `node.run.spec_of_gatedSpec` (proved).
+  Dropping the premise alone does not suffice (§3.2 assumed otherwise), three facts have no source in
+  `run`'s state: (1) `run`'s half of the escrow's pending deposit (`rtkRun`, Probe B's `pk`) is in
+  neither `runPre` nor `isNodeChan` (today's untraced `run` makes it with `gateTr_none`); (2) the
+  receipts' fit (`traceReadyFits`, the traced triples' `Hfit`, `ownStepGhost_traceBound`'s) is the
+  client's `readyFits`, which `run` (no `Cluster`) does not see; the ceiling's `rs.tc + 1 <
+  traceNumBound` follows from `termLB`/`budgetInv` (`rs.tc ≤ receiptBound GF`) only with `+ 2`, which
+  the fit gives at `|γ.reBoot| ≥ 2` only, hence the third conjunct; (3) `confcP`'s static arm
+  (`CCShrink`, `ownRawNode_borrow_in`, untraced only) has no traced callee: a traced node is dynamic.
+- **`RawNode.Advance.tracedSpec`** = `RawNode.Advance.spec` with `γ.reTrace = none` replaced by
+  `γ.reTrace ≠ none → uint.Z rs.tc + 1 < traceNumBound ∧ traceReadyFits GF γ ∧ rs.slent = none`; pre and
+  post otherwise word for word. Instance: `RawNode.Advance.spec_of_tracedSpec` (proved). Everything
+  else traced is inside `ownRawNode` on both sides (`rnTrace`'s capability, clauses and `TrNoSnap`;
+  `pendingRel`'s `selfTok`), so the post is unchanged: the prover re-establishes `rnTrace` at `advRS rs t
+  ca`. `rs.slent = none` is taken (not proved inside) so the snapshot arm is excluded outright; `run`
+  needs the same fact at `confc` anyway (below), so one lemma serves both.
+- **`raft.applyConfChange.tracedSpec`** = `raft.applyConfChange.spec` with `s.gh.tr = none` replaced by
+  `s.gh.tr ≠ none → s.role = .follower ∧ c'.cfg = c ∧ |γ.reBoot| ≤ committed ∧ committed ≤ lastIndex ∧
+  term, committed, lastIndex < traceNumBound` (`trCapB_hookGate_applyCC`'s `hboot`, `hcl`, `hbnd`), a new
+  binder `γ : RaftNames`, and `trCapB s.gh.tr γ r id c true (fun C => SimIdle C s)` in the pre,
+  `trCapB s.gh.tr γ r id c'.cfg true (fun C => SimIdle C s')` in the post (`emp` untraced, `Λ` the
+  default, as in `rnTrace`). **At the raft level, not `RawNode.ApplyConfChange`'s**: `run`'s `confc` arm
+  calls `r.applyConfChange(cc)` on the raft struct (`node.go`), through `wp_rn_raft_applyConfChange_dyn`
+  → `wp_applyConf_dyn` (`InvNodeRun.lean:1347`), which the `run` prover generalizes (drop `HtrG`, carry
+  `rnTrace` across, the reseal). `RawNode.ApplyConfChange` is not on `run`'s path: no traced statement.
+  No instance theorem `spec_of_tracedSpec` (it would need some `RaftNames` value; none is needed: the
+  untraced spec stays proved). Why a follower with `c'.cfg = c` and not more: the specification's
+  `ApplySimpleConfChange` reapplies the log's configuration (`accSrv`, `toC_accSrv`), so raft must stay
+  at it; a follower's `switchToConfig` neither commits nor sends, its one line is
+  `traceConfChangeEvent`'s, and its `ApplyCCOkC` keeps `toPState` (`simIdle_congr` moves `SimIdle` to
+  `s'`). The result is then simple, without learners and with `autoLeave = false` (1(d) kept), and
+  `rnTrace` at the new state follows from `ApplyCCOkC`'s non-leader arm (`s' = { s with progress, prvals,
+  isLearner }`).
+
+**`hAdv`'s premises, where `run`'s `advancec` arm gets each** (arm at `node__run.lean:1122-1190`):
+
+| Premise | Source in `run`'s state |
+|---|---|
+| `rs.slent = none → rs.unpersisted = []`, `rs.unst = false` | as today (`Hunp1`, `Hunst1`: `advRet`'s receipt and `acceptReady`'s post) |
+| traced: `uint.Z rs.tc + 1 < traceNumBound` | `termLB γ.bud rs.tc` (`runPre`/`headRest`) with `inv budgetN (budgetInv γ.bud)` (`isNodeChan`'s `#Hbud`): `rs.tc ≤ receiptBound GF` (as `termLB_bound`'s proof), and `RunTracedOk`'s `receiptBound GF + 2 ≤ traceNumBound` |
+| traced: `traceReadyFits GF γ.raft` | `RunTracedOk` (gated premise of `gatedSpec`) |
+| traced: `rs.slent = none` | **lemma to write** (the `run` prover): `ownRawNode_trNoLoan : γ.reTrace ≠ none → ownRawNode γ rn id rs ⊢ |={⊤}=> ⌜rs.slent = none⌝ ∗ ownRawNode γ rn id rs`. Proof: `LoanOk`'s third conjunct puts a lent snapshot's (or a later one's) id in `s.logst.snap` at index `> applying ≥ 0`; `ownRaftLogW_snap_prev` makes it `s.logst.prev`; so `prev.index ≠ 0`, which `rnTrace`'s `TrNoSnap` refutes (`trNoSnap_traced`) |
+| `ownRawNode γ rn id rs` (with `rnTrace`) | `advDep`/`advRet`'s `run` node, as today |
+| `loanRet rs`, `□ undecFree …`, `durFrags γ id rs.bw` | as today (`Hlr`, `HA1`, `Hfr'`) |
+| post: `ownRawNode (advRS rs t ca)`, the `ca` facts | into `runHead` and `runCfg_advance`, as today; the tokens are already in `rtkInv` (§3.2 item 3) |
+
+Inside `hAdv` (the prover's, all from `ownRawNode`): the self-addressed responses over
+`raft.Step.tracedTriple` with `selfTok` (`pendingRel`), its `lt` premise from 1(b), its `MsgSnap`/`TrNetTy`
+type from the queue's types; the acknowledgements over `stepBundle_traced_storAck` (`AckEnd`), the append
+acknowledgement's `sn = none` from `LoanOk` at `slent = none` (no `appendAck … (some _)` queued), the apply
+acknowledgement's automatic leave from 1(d); the per-step bounds from `rs.tc` (`RNPv`) and the fit;
+`rnTrace` at the end: 1(a) by the monotone flag (`advRS` keeps `delivered` without a loan), (b)/(d) by
+`RnTrPure.step`, (c) by `RnTrBoot.step` (a candidate winning by its own vote is not a follower before).
+
+**`hCC`'s premises, where `run`'s `confc` arm gets each** (the dynamic branch, `node__run.lean:619-800`;
+`DynCCPreOp … (rsDlv rs) rs.capplied rs.cfg op k e cs'` is `runCfg_confc`'s `Hp'`, `c = cf` with
+`cfgStateC cf = rs.cfg` and `c' = cs'` as in `wp_applyConf_dyn`):
+
+| Premise | Source in `run`'s state |
+|---|---|
+| `ccApplyM … = some c'`, the size bound, the leader's term, a candidate a voter, `ns` | as today (`wp_applyConf_dyn`: `ccStepB_some`, `ownStepGhost_leader_tnz`, `RInv.cand`, `PreGuardF`, `ownStepGhost_ns_last`) |
+| (the static branch) | refuted at a traced node by `RunTracedOk`'s `γ.mode.isDyn = true` (`confcP`'s static disjunct says `γ.mode = .static`) |
+| traced: `s.role = .follower` | not a candidate/pre-candidate: as today (`wp_applyConf_dyn`'s `Hnc`, `Hnpc`); not a leader: 1(c) (`rnTrace`'s `RnTrBoot`: `role ≠ follower → |γ.reBoot| ≤ applied`), lemma (ii) (`ownStepGhost_applied_capplied`: `applied ≤ rs.capplied`, dynamic), `DynCCPreOp`'s `rs.capplied ≤ k`, and G3 (a) for the entry: `k < |γ.reBoot|`, **a lemma to write** (below) |
+| traced: `c'.cfg = c` | **no source** (below, "The `confc` arm's change") |
+| traced: `|γ.reBoot| ≤ committed` | `ownStepGhost_bootCommit` |
+| traced: `committed ≤ lastIndex` | `ownRaftGhost_logOk` (through `ownStepGhost`, as `ghost_stepProp` reads it) |
+| traced: term, committed, lastIndex `< traceNumBound` | `ownStepGhost_traceBound` (with `RunTracedOk`'s fit) for the indices; the term `≤ rs.tc` (`RNPv`) and the ceiling's bound as in the `hAdv` table |
+| `trCapB s.gh.tr γ r id c true (SimIdle · s)` | `rnTrace`'s capability; booted by 1(a): `k < |rsDlv rs|` and `rsDlv rs = rs.delivered` at `rs.slent = none` (`ownRawNode_trNoLoan`), so `delivered ≠ []` |
+| post: `trCapB … c'.cfg true (SimIdle · s')` | back into `rnTrace` at the resealed node, with `RnTrPure`/`prevote`/no learners/`TrNoSnap` from `ApplyCCOkC`'s non-leader arm and `c'.cfg = c` |
+
+**The open point of "G3 (a)", "Left to step 3" (the delivered entry tied to raft's log position):
+settled, two routes, no new statement.** (A, recommended) Over the committed log's records:
+`isCommitted_trNoConf : γ.reTrace ≠ none → ↑(raftLogN γ) ⊆ E → raftLogInv γ -∗ isCommitted γ L ={E}=∗
+⌜∀ k e, L[k]? = some e → IsConfEnt e → k < γ.reBoot.length⌝`, from `isCommitted_recs`'s proof (it uses
+only `raftCommitInv_log`, i.e. `raftLogInv`, which the traced capability holds) and `logRecs_trNoConf` at
+base index `0` (or `k < |L| ≤ |γ.reBoot|` when `L` is a prefix of the bootstrap log); applied to
+`L = rs.delivered` (`ownRawNode`'s `#Hdeliv`). No position link to raft's log is needed. (B) Through
+raft's log: `ownStepGhost_deliv` (dynamic mode, `|D| ≤ committed`) already gives `D <+: (rOf s g).full`,
+hence `(rOf s g).full[k]? = some e` (`wp_applyConf_dyn`'s `Hfull_k`); with `prev = 0`
+(`trNoSnap_prev0`) the full log is the node's log and `ownStepGhost_trNoConf` gives `k + 1 ≤
+|γ.reBoot|`. (B) needs a lemma relating `full` to `sents ++ uents` at `prev = 0`; (A) needs none of the
+ghost part's internals.
+
+**The `confc` arm's change (a gap in §3.4 item 4 (b) and the arm table's "the entry a bootstrap
+`AddNode`").** The change `run` applies is not the entry's content: `DynCCPreOp` says only that the
+change's effect `ccStepB op cfg = some cs'` is the recorded decision's (`dec (D.take k) e = some (.apply
+op')`, `dec = effDec noDec M`, `M` the client's decisions), and `confDecide` (`InvNodeRule.lean:334`)
+records *any* decision `d` with `d.step m = some m'`. So at a traced cluster a client may decide, and
+apply, a `RemoveNode` at a bootstrap position; raft's configuration then leaves the voters' while the
+specification's `ApplySimpleConfChange` reapplies the log's, and no traced statement can follow. Lemma
+(i) and G3 (a) say only that the *entry* is a bootstrap `AddNode`. Not a bug of raft (raft applies what
+it is handed, as documented); a missing premise of the traced node API. The fix, for the coordinator
+(client-visible, gated, not made here): `node.ApplyConfChange.spec` gains `Cluster.trace γ ≠ none → m' =
+v.membership` (the harness has it: its view is always the voters' simple membership, `ViewOk`,
+`tcOps_v1_boot`, `Membership.applyChange_addVoter`), and `confcP`'s dynamic disjunct a gated clause
+`γ.raft.reTrace ≠ none → cs'.cfg = cfg.cfg`, which `node.ApplyConfChange`'s proof derives from it
+(`memOf`/`cfgOf` are inverse, so equal memberships are equal configurations, through `nodeConfig`'s tie
+of `v` to `run`'s `(ca, cfg)`). Rejected: a gate on `confDecide` (every decision of a traced cluster
+keeping its configuration): the decision map would need an invariant relating each decision to the
+configuration at its position; the premise at `ApplyConfChange` is local to the one call that applies.
+
+**What `StartNode`'s traced proof (step 5) must supply to `node.run.gatedSpec`, checked against
+`StartNode.tracedSpec` (`TracedNodeApi.lean:97`) and `StartNode.gatedSpec` (`TracedApiDraft.lean`):**
+`γ.mode.isDyn` from `StartNode`'s `HdynOk` (`StartNode.lean:319`); `rtkRun γn.esc none` from `rtk_alloc`
+at the traced `newNode`/`setupNode` (already planned, §3.2 item 2); **the fit and the ceiling's arithmetic
+are not in either statement's precondition**: `StartNode.tracedSpec` (hence `HarnessOpen`) needs a gated
+pure premise, e.g. `Cluster.trace γ ≠ none → receiptBound GF + vs.length ≤ traceNumBound ∧ 2 ≤ vs.length`
+(`|γ.raft.reBoot| = |vs|` by `BootLogOk`), which the harness discharges from `tcRunFits` with its three
+voters. A change to `HarnessOpen`'s text, not to §1's statements.
 
 ## G3 (a) (2026-11-12): no conf entry past the bootstrap log, the design taken
 
