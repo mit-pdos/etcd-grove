@@ -536,7 +536,7 @@ batch timer does not commit between `CreateMetaBucket` and that read, microsecon
 D1 (U), D2 (hidden name; the tester's db moves to `root/data/member/snap/.db`), D3, D4, D5, D6: **yes, as
 recommended**. D7: **yes**: the fork's `Open` re-runs `init` when no meta validates and the file is exactly
 init's four pages (local fork commit on `upamanyus/bbolt` `goose-lean-v2`, translation, pin move of both
-bbolt projects and the go.mod pins, Open's proof re-checked; in progress, `notes/crash-rung3-handoff.md`).
+bbolt projects and the go.mod pins, Open's proof re-checked; in progress, `notes/wal-crash-handoff/rung3-handoff.md`).
 Upstream (main `622eada1`) has the gap too, as a case of bbolt#567 (closed as a documented known issue),
 so the finding stays in `nonissues/` (its Notes say why). Controls: the driver's targeted mode (images of
 an in-place incarnation before its first fdatasync of the db file, `-target`), rerun at `743299d8`
