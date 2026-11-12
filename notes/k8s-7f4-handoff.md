@@ -33,6 +33,29 @@ the worktree's untracked `questions.md` (decisions), `/shared/tmp/coord-81/commo
     Nothing used it.
   - freeze §2's "T-e'" section (marked draft).
 
+## Sixth agent (2026-11-12): the T-g review applied, landing; LeaseKeepAlive's `WithTimeout` blocked
+
+81's decisions on the T-g review (READY WITH CHANGES; questions.md): done in `7e10aa6b66` (M1: the
+`RenewHTTP` axiom-tok reason restated, the freeze T-f text and the docstring corrected,
+`TestRenewHTTPErrTiming`'s pre-cancelled case: `Err()` called twice, a `*url.Error`; m1:
+`TestRawStreamKey` over prometheus x otelgrpc x Serve/ServeHTTP, the xDS line in `srvRawStreamIs`;
+m3: `Tracer.Start`'s entry; m2 noted in the freeze note for a later cleanup). Merged lean
+(`4b4eabaf38`), full build, the trust-base baselines updated for the four reached axioms, gates,
+landing (see the commit that adds this section and the report for the lean hash).
+
+**LeaseKeepAlive, found before writing Lean** (reported to 81): `LeaseRenew`'s
+`context.WithTimeout(ctx1)` over a weak `ctx1` cannot be a small local lemma. go1.27.3
+`propagateCancel` (`context.go:476-528`), on a parent already done, calls
+`child.cancel(false, parent.Err(), Cause(parent))`: the child `*timerCtx` stores the parent's
+`Err()`, which for etcd's wrapper is `ErrGRPCNoLeader` once the monitor cancelled it. Perennial's
+`*cancelCtx` model fixes the stored error to `isTypedErr ∧ isCtxErr` (`cancelCtxInv`'s `Herr`,
+`childCancelSpec`, `cancelCtx.cancel.spec`, `timerCtx.cancel.spec`; about 45 uses in 12 files of
+`Perennial/Proof/context`), and `srvCtxWeak`'s `#HErrDone` gives no `isTypedErr`. So the child
+`cctx` is not an `isContext`, and a `srvCtxWeak cctx` needs a cancelCtx model over a general error
+predicate (the "natural form" of `notes/perennial-changes.md`, P-RL2). `LeaseRenew`'s switch
+default (log "Unexpected lease renew context error", `ErrCanceled`) becomes reachable too.
+Options in the report; nothing written for them.
+
 ## Fifth agent, continued (2026-11-12): T-g decided; item 7 and the Watch chain done (lean-checked)
 
 81 decided Q1/Q2/Q3 (questions.md). Done since (each lean-checked `-a`, 0 errors):
