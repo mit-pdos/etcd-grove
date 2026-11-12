@@ -587,6 +587,10 @@ theorem tKeep_filter_take_succ (c : w64) (h : List TOp) (i : Nat) (o : TOp) (ho 
   rw [List.take_add_one, ho, Option.toList_some, List.filter_append]
   cases hk : tKeep c o <;> simp [List.filter, hk]
 
+theorem foldl_take_succ {α β : Type} (f : β → α → β) (x : β) (l : List α) (i : Nat) (o : α)
+    (ho : l[i]? = some o) : (l.take (i + 1)).foldl f x = f ((l.take i).foldl f x) o := by
+  rw [List.take_add_one, ho, Option.toList_some, List.foldl_append]; rfl
+
 end pure
 
 end etcd_wal
