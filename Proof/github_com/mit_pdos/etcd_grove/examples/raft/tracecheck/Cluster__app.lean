@@ -5,10 +5,10 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/Cluster__
 The loop keeps the node idle with its durable state, view, liveness, the storage's metadata, the
 adders' share and a thread token. Each iteration `select`s on the stop channel (the broadcast: return,
 the deferred `ticker.Stop()` and `c.apps.Done()` with the liveness and the share), the ticker
-(`node.Tick`) and the node's `Ready` channel, received by the traced law (`RecvTracedSpec`: `readyGotC`,
-the claim on the `Ready`'s messages). A `Ready`: a snapshot is refuted (`probeA_noSnap`); *enter* runs
+(`node.Tick`) and the node's `Ready` channel, received by the traced law (`isReadyChan_recvAu.tracedSpec_proof`:
+`readyGotT`, the claim on the `Ready`'s messages). A `Ready`: a snapshot is refuted (`probeA_noSnap`); *enter* runs
 with the durable state and the liveness; `handleReady`; `Advance` with the claim
-(`AdvanceTracedSpec`: each message's token, `trTok`; the stopped answer refuted by the liveness); then
+(`node.Advance.tracedSpec`: each message's token, `trTok`; the stopped answer refuted by the liveness); then
 each message, its `msgOwn`, `sentMsg`, credits and token (`probeA_msgs`), is cloned
 (`proto.ClonePb` at `pbMessage`, the clone owned without responses: `clone_st`) and sent.
 -/
@@ -72,8 +72,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.
 
 attribute [local instance] memStorageModel
 
-theorem Cluster.app.wp_proof (claim : Loc → Cluster → Namespace → List QMsg → IProp GF)
-    (hRecv : RecvTracedSpec claim) (hAdv : AdvanceTracedSpec claim)
+theorem Cluster.app.wp_proof
+    (wp_AdvanceT : node.Advance.tracedSpec (GF := GF) (hG := hG))
     (wp_handleReady : Cluster.handleReady.spec (GF := GF) (hG := hG))
     (wp_send : Cluster.send.spec (GF := GF) (hG := hG))
     (wp_below : below.spec (GF := GF) (hG := hG))
@@ -164,7 +164,7 @@ theorem Cluster.app.wp_proof (claim : Loc → Cluster → Namespace → List QMs
   isplit
   · -- a `Ready`
     simp only [chan.blockingClausePre]
-    icases hRecv n ch W.cl tcRaftN id st _ Hst.1 $$ Hch Hnode Hdrv with ⟨%γc, #Hchan, Hau⟩
+    icases isReadyChan_recvAu.tracedSpec_proof n ch W.cl tcRaftN id st _ Hst.1 $$ Hch Hnode Hdrv with ⟨%γc, #Hchan, Hau⟩
     iexists Ready, inferInstance, inferInstance, inferInstance, inferInstance, ch, γc
     isplitr
     · ipureintro; rfl
@@ -173,7 +173,7 @@ theorem Cluster.app.wp_proof (claim : Loc → Cluster → Namespace → List QMs
     iapply Hau $$ [$Hlc1 $Hlc2]
     inext
     iintro %rdv Hgot
-    iunfold readyGotC at Hgot
+    iunfold readyGotT at Hgot
     icases Hgot with ⟨%ce, %es, %h, %L, %qs, %ss, #Hce, #Hcomm, -, Hrest, -, Henter, #Hdl, -, Hcl⟩
     iunfold readyRest at Hrest
     icases Hrest with ⟨#Hes, Hmsl, Hmsok, #Hhs, -, %Hbnd, Hsnap, -⟩
@@ -207,7 +207,7 @@ theorem Cluster.app.wp_proof (claim : Loc → Cluster → Namespace → List QMs
     have Hsk := skippedIn_noConf (GF := GF) W.cl (st.delivered ++ ce) v1.applied
       (st.delivered ++ ce).length Hv1.2.2
     ihave #Hsk' := Hsk
-    wp_apply hAdv n W.cl tcRaftN id (st.afterReady ce es h none ss) es none v1 qs rfl
+    wp_apply wp_AdvanceT n W.cl tcRaftN id (st.afterReady ce es h none ss) es none v1 qs rfl
         (fun _ h => by cases h) $$ [Hdrv Hrcpt' Hcfg Hcl] as Hpost
     · iframe Hclu Hnode Hcfg Hcl
       isplitl [Hdrv]

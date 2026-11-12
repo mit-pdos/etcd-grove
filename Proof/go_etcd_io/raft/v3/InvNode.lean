@@ -432,6 +432,34 @@ theorem snapLocalMsg_noDir (γ : Cluster) (id : w64) (h : γ.snapLoc id = none) 
   unfold nodeSnapLocal at H
   iapply H
 
+/-- (2026-11-12, trace-check implementation step 1; the design's §3.1, moved here from
+`TracedNodeApi.lean`) **A sent message's token** (gated): untraced nothing; traced, the message's type
+is one a traced node hands out (`TrSent`: a traced network type, or a forwarded proposal of normal
+entries) and the token of its specification message in flight, which the receive line consumes.
+Sealed: a client carries it from `node.Advance` (`node.Advance.tracedSpec`) to `stepIn_intro`. The
+design's `trTok`, named `sentTok` here: every client of raft imports this module, and etcd's rafthttp
+has a `trTok` of its own (`TransportState.lean`); `TracedNodeApi.lean`'s `trTok` abbreviates this. -/
+@[no_expose] def sentTok (γ : Cluster) (st : MsgSt) : IProp GF := trTokR γ.raft st
+
+/-- An untraced cluster's tokens are free. -/
+theorem sentTok_untraced (γ : Cluster) (st : MsgSt) (h : Cluster.trace γ = none) :
+    ⊢ sentTok (GF := GF) γ st := by
+  unfold sentTok; exact trTokR_none γ.raft st h
+
+/-- **A token says its message is no `MsgSnap`** at a traced cluster (what the harness reads before
+`Step` consumes the token: its `ReportSnapshot` calls are dead). -/
+theorem sentTok_type (γ : Cluster) (st : MsgSt) :
+    sentTok (GF := GF) γ st ⊢ sentTok γ st ∗ ⌜Cluster.trace γ ≠ none → st.msg.Type' ≠ MsgSnap⌝ := by
+  unfold sentTok Cluster.trace trTokR
+  cases γ.raft.reTrace with
+  | none =>
+    iintro H; iframe H; ipureintro; intro h; exact absurd rfl h
+  | some γd =>
+    iintro ⟨%Hs, H⟩
+    isplitl [H]
+    · dsimp only; iframe H; ipureintro; exact Hs
+    ipureintro; intro _; exact Hs.ne_snap
+
 /-- (open) **A message `node.Step` takes** at the node `id` (today `stepP`): the message at `ml`. -/
 @[no_expose] def stepIn (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) : IProp GF :=
   ApiImpl.stepIn γ N id ml
@@ -450,10 +478,13 @@ theorem stepIn_intro (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (src :
     st.msg.To' = id →
     sentMsg (GF := GF) γ N src st ∗
       msgPtsC ml (DFrac.own 1) (DFrac.own 1) true ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∗
-      msgCredits γ N st ∗ snapLocalMsg γ id st ⊢
+      msgCredits γ N st ∗ snapLocalMsg γ id st ∗
+      -- (2026-11-12, trace-check implementation step 1: the design's F2) the message's token
+      -- (`sentTok_untraced` at an untraced cluster)
+      sentTok γ st ⊢
     |==> stepIn γ N id ml := by
   intro H3
-  unfold sentMsg msgCredits stepIn snapLocalMsg
+  unfold sentMsg msgCredits stepIn snapLocalMsg sentTok
   exact ApiImpl.stepIn_intro_impl γ N id ml src st H3
 
 /-- (raft-final, 2026-10-29, U7: the design's §2.5, C12's `sentMsg_shape`) **A sent message has the
@@ -1143,6 +1174,60 @@ def readyGot (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDrive
       committedAtTerm γ N (phsNext st.hardState h).Term' (phsNext st.hardState h).Commit' ∗
       ⌜((st.afterReady ce es h L ss).delivered.length : Int) ≤
         uint.Z (phsNext st.hardState h).Commit'⌝))
+
+/-- (2026-11-12, trace-check implementation step 1; the design's §3.1) **The driver's claim on the
+tokens of a received `Ready`'s messages `ms`** (sealed; exclusive). Untraced `True`. Traced: `ms = []`
+(nothing claimed: a driver that advances with `node.Advance.spec`), or the driver's element of the
+node's token escrow at the `Ready`'s key, recording `ms`, with the key's allocation bound (the
+design's §3.2 items 2-4). **A departure from "no identification handles"** (PRINCIPLES): a resource
+every traced driver threads from `Ready` to `Advance`; it carries content (which messages the tokens
+are for), and a driver that drops it loses only the tokens, never the node's progress. The alternative,
+keeping `ms` in the sealed `nodeDriver`, needs a field of the client-visible `NodeDriverState` set by
+every client. **Also a departure from "No disjunction of alternative specs"**: its traced body is
+"nothing claimed, or the element"; the disjunction is what makes `node.Advance.spec` an instance of the
+one traced proof (`node.Advance.tracedSpec`) instead of a second proof. -/
+@[no_expose] def readyToksClaim (n : Loc) (γ : Cluster) (N : Namespace) (ms : List QMsg) : IProp GF :=
+  ApiImpl.readyToksClaim n γ N ms
+
+/-- Nothing claimed: what `node.Advance.spec` (`node.Advance.tracedSpec`'s instance) passes. -/
+theorem readyToksClaim_nil (n : Loc) (γ : Cluster) (N : Namespace) :
+    ⊢ readyToksClaim (GF := GF) n γ N [] := by
+  unfold readyToksClaim; exact ApiImpl.readyToksClaim_nil_impl n γ N
+
+/-- (2026-11-12, trace-check implementation step 1; the design's §3.1, Probe A's P2) **What receiving a
+`Ready` gives, traced**: `readyGot` with the driver's claim on its messages (`readyToksClaim`) as its
+last conjunct, at `readyRest`'s `ms`. -/
+def readyGotT (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState)
+    (rd : Ready) : IProp GF :=
+  iprop(∃ (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan)
+      (ms : List QMsg) (ss : Option (w64 × StateType)),
+    committedEntriesAt rd.CommittedEntries' st.delivered.length ce ∗
+    isCommittedLogLb γ (st.delivered ++ ce) ∗
+    (∃ rs, readStatesPts rd.ReadStates' rs ∗
+      [∗list] s ∈ rs, readStateOk γ N s.RequestCtx' s.Index') ∗
+    readyRest γ N id rd st ce es h L ms ss ∗
+    readyLeaderMsgs γ N id st ms ss ∗
+    readyEnter n γ N id st (st.afterReady ce es h L ss) ms ∗
+    deliveredLogLb n γ N (st.afterReady ce es h L ss).delivered ∗
+    (⌜phsNext st.hardState h = hsZero⌝ ∨
+      committedAtTerm γ N (phsNext st.hardState h).Term' (phsNext st.hardState h).Commit' ∗
+      ⌜((st.afterReady ce es h L ss).delivered.length : Int) ≤
+        uint.Z (phsNext st.hardState h).Commit'⌝) ∗
+    -- the driver's claim on the messages' tokens
+    readyToksClaim n γ N ms)
+
+/-- (2026-11-12, trace-check implementation step 1) **Receiving a `Ready` as a channel's receive,
+traced**: `isReadyChan_recvAu` with `readyGotT` (the driver's claim) for `readyGot`, for every `γ`. -/
+theorem isReadyChan_recvAuT (n ch : Loc) (γ : Cluster) (N : Namespace) (id : w64)
+    (st : NodeDriverState) (Φ : Ready → Bool → IProp GF) :
+    st.handling = none →
+    ⊢ isReadyChan (GF := GF) n γ N ch -∗ isNode n γ N id -∗ nodeDriver n γ N st -∗
+      ∃ γc : ChanNames, isChan ch γc Ready ∗
+        (£ 1 ∗ £ 1 -∗
+          ▷ (∀ rd : Ready, readyGotT n γ N id st rd -∗ Φ rd true) -∗
+          recvAu γc Ready Φ) := by
+  intro Hh
+  exact ApiImpl.isReadyChan_recvAuT_impl n ch γ N id st Φ Hh
 
 /-- (2026-10-27, the server port's addition) **Receiving a `Ready` as a channel's receive**, for a
 `select` (etcd's `raftNode.start` receives it among a ticker's and a stop channel's): with the loop's

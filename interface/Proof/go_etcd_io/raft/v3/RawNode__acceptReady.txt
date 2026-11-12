@@ -81,7 +81,7 @@ theorem RawNode.acceptReady.wp_proof [package_sem : Assumptions] (wp_IsEmptyHard
   -- `Perennial.EtcdGrove.RawNode.acceptReady.spec`, unfolded:
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready) (ce es : List EntryM) (ms : List QMsg)
     (h : HardStateM) (L : Option SnapLoan),
-    (γ.reTrace ≠ none → uint.Z rs.tc + 1 < ↑traceNumBound ∧ receiptBound GF + γ.reBoot.length ≤ traceNumBound) →
+    (γ.reTrace ≠ none → uint.Z rs.tc + 1 < ↑traceNumBound ∧ traceReadyFits GF γ) →
       ⊢
         ∀ Φ,
           isPkgInit pkg_id.go_etcd_io.raft.v3 ∗

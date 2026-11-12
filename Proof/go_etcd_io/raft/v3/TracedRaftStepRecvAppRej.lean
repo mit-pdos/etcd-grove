@@ -335,7 +335,27 @@ theorem stepBundle_traced_folAppRej : stepBundle_traced.on (GF := GF) (hG := hG)
       exact ⟨fun _ _ _ => rfl, IdxFree.of_some _ hsome, IdxFree.of_some _ hsome,
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: raft's rejection, the specification's
-    iapply stepClose_anyB
+    have hoty : ∀ s', (s.gh.tr.isSome → StepEnd c id m ents ctx s s') → OutTyStep s s' := by
+      intro s' hend
+      obtain ⟨ht, hint, hhi, hht, hse⟩ : ∃ ht hint : w64, uint.Z hint ≤ uint.Z m.Index' ∧
+          uint.Z ht ≤ uint.Z m.LogTerm' ∧
+          s' = sendMsgs { s with lead := m.From' } [appResp id { s with lead := m.From' } m.From' true m.Index' ht hint] := by
+        obtain ⟨pvs, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
+        rw [hpre pvs] at h
+        obtain ⟨scfg, sv, d, c', hf⟩ := h.1 hrole
+        unfold FollowerStepResultC at hf
+        obtain ⟨-, hf⟩ := hf
+        rw [hTy] at hf
+        simp [MsgVoteResp, MsgProp, MsgApp] at hf
+        obtain ⟨-, hf⟩ := hf
+        unfold HandleAppResult at hf
+        try simp only at hf
+        rcases hf with ⟨h, -⟩ | ⟨-, lastnewi, es', ls', h, -⟩ | ⟨-, -, hint, ht, hrh, hht, h⟩
+        · exact absurd h (by show ¬ uint.Z m.Index' < uint.Z s.logst.committed; omega)
+        · exact absurd (plogMaybeAppend_matches h) hnm
+        · exact ⟨ht, hint, hrh.1, hht, h⟩
+      subst hse; outty_tac
+    iapply stepClose_anyB_end hoty
     -- (slice 23a) a close at `s`
     iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_traced hmty rfl)
     iunfold stepCloseAt

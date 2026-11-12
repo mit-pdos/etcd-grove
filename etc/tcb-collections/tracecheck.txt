@@ -1,8 +1,8 @@
 # The trace check (examples/raft/tracecheck, notes/trace-validation-plan.md; 2026-11-11, S7 part 1):
 # the results of Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/Results.lean. Since the
 # harness (2026-11-12, branch trace-check-harness): `raft_tracecheck_safe_of` and
-# `raft_tracecheck_accepts_of` (the design's §1.2 and §1.3 given `HarnessOpen`, the traced node-API
-# statements; they lose the `_of` when those land), `tcMainSpec_of`, `tc_wp_RunConcurrent` and the
+# `raft_tracecheck_accepts_of` (the design's §1.2 and §1.3 given `HarnessOpen`, the traced
+# `StartNode`; they lose the `_of` when it lands), `tcMainSpec_of`, `tc_wp_RunConcurrent` and the
 # corollary's core `tracecheck_Events_traceAccepts`; also the checker's linked results
 # (`etcdraft/Link.lean`, `etc/gen-link.py --tracecheck`).
 # The harness's proof brought five axioms into the baseline, all existing (in etc/tcb-baseline.txt;

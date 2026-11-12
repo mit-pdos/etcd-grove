@@ -7,15 +7,16 @@ theorem node.ReadIndex.wp_proof [package_sem : Assumptions] (wp_node_step : node
   -- `Perennial.EtcdGrove.node.ReadIndex.spec`, unfolded:
   ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (rctx : GoSlice) (c : List w8) (Q : List LogEntry → IProp GF)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-    ⊢
-      ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-            isNode n γ N id ∗ nodeCtx ctx cd ∗ ownSlice rctx c DFrac.discard ∗ isReadCtx γ N c Q -∗
-          (▷ ∀ err, nodeErrS n γ N cd err -∗ Φ (intoVal err)) -∗
-            WP
-              (((intoVal
-                    (methods node.ty.PointerType go!"ReadIndex"
-                      (intoVal n)))
-                  (intoVal (GoInterface.ok ctx)))
-                (intoVal rctx))
-              {{ Φ }}
+    γ.trace = none →
+      ⊢
+        ∀ Φ,
+          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+              isNode n γ N id ∗ nodeCtx ctx cd ∗ ownSlice rctx c DFrac.discard ∗ isReadCtx γ N c Q -∗
+            (▷ ∀ err, nodeErrS n γ N cd err -∗ Φ (intoVal err)) -∗
+              WP
+                (((intoVal
+                      (methods node.ty.PointerType go!"ReadIndex"
+                        (intoVal n)))
+                    (intoVal (GoInterface.ok ctx)))
+                  (intoVal rctx))
+                {{ Φ }}

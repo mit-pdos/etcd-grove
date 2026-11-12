@@ -551,7 +551,7 @@ theorem raftNode_of_StartNode
   iframe Hr Hmu Hloop Happly Hb Hpeers Hminv Hmeta Hsc
   isplitr
   · iapply rnStepIfc_of_isNode γw (wp_Step γw.node) (wp_ReportUnreachable γw.node)
-      (wp_ReportSnapshot γw.node)
+      (wp_ReportSnapshot γw.node) (by rw [Hwnode]; exact HtrC)
     iframe Hpkg Hisnode
   isplitr
   · rw [Hwnl]; iexact Hsfresh

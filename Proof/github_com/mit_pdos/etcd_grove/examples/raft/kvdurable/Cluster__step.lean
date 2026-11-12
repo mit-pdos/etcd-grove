@@ -87,7 +87,8 @@ theorem Cluster.step.wp_proof
   ihave #Hnc : nodeCtx ctx' cd $$ []
   · unfold nodeCtx; iright; iexact Hctx
   ihave #Hloc := snapLocalMsg_noDir (GF := GF) γ.r.cluster st.msg.To' (by rw [Hsl]) st
-  imod stepIn_intro γ.r.cluster kdRaftN st.msg.To' ml sid st rfl $$ [$Hsent $Hm $Hcred $Hloc] with Hin
+  ihave Htok := sentTok_untraced (GF := GF) γ.r.cluster st Htr0
+  imod stepIn_intro γ.r.cluster kdRaftN st.msg.To' ml sid st rfl $$ [$Hsent $Hm $Hcred $Hloc $Htok] with Hin
   wp_apply wp_node_Step dn γ.r.cluster kdRaftN st.msg.To' ml ctx' cd
     $$ [$Hraftinit $HDisNode $Hnc $Hin] as %err #Herr
   try wp_auto
@@ -103,7 +104,7 @@ theorem Cluster.step.wp_proof
       cases b8
       all_goals
         try wp_auto
-        wp_apply wp_ReportSnapshot n γ.r.cluster kdRaftN sid st.msg.To' _ $$ [$Hraftinit $HSisNode]
+        wp_apply wp_ReportSnapshot n γ.r.cluster kdRaftN sid st.msg.To' _ Htr0 $$ [$Hraftinit $HSisNode]
         try wp_auto
         iapply HΦ
         itrivial
@@ -117,7 +118,7 @@ theorem Cluster.step.wp_proof
     wp_apply wp_ReportUnreachable n γ.r.cluster kdRaftN sid st.msg.To' $$ [$Hraftinit $HSisNode]
     try wp_auto
     wp_if_destruct
-    · wp_apply wp_ReportSnapshot n γ.r.cluster kdRaftN sid st.msg.To' _ $$ [$Hraftinit $HSisNode]
+    · wp_apply wp_ReportSnapshot n γ.r.cluster kdRaftN sid st.msg.To' _ Htr0 $$ [$Hraftinit $HSisNode]
       try wp_auto
       iapply HΦ
       itrivial

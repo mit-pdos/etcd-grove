@@ -116,7 +116,7 @@ theorem RawNode.ReportUnreachable.traced
       (fun h => by rcases h with h | h <;> exact absurd h (by msg_ne)) $$ Hpre
     with ⟨%R, HG, Hgates, Hclose⟩
   wp_apply wp_raft_Step cf _ γ _ id s «$a0_ptr» ({ (zero_val MessageM) with Type' := W32 10, From' := to } : MessageM) [] [] none [] R
-      (fun s' => iprop(∃ bt' : Bool,
+      (fun s' => iprop(⌜OutTyStep s s'⌝ ∗ ∃ bt' : Bool, ⌜bt = true → bt' = true⌝ ∗
         trCapB s.gh.tr γ rnv.raft' id cf bt' (fun C => SimIdle C s') (stepLastEv (fun _ => True))))
     (by simp [StepMsg, stepMsgTypes, MsgUnreachable])
     (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne) (by msg_ne)
@@ -179,7 +179,7 @@ theorem RawNode.ReportUnreachable.traced
     isplitr
     · iapply trNoSnap_logst s.gh.tr s'.gh.tr s.logst s'.logst (by rw [Htr', Htr]) Hpv.symm Hsg.symm
         $$ Hnosnap
-    icases HG with ⟨%bt', HG⟩
+    icases HG with ⟨-, %bt', -, HG⟩
     iexists bt'
     rw [show s'.gh.tr = s.gh.tr by rw [Htr', Htr]]
     iapply trCapB_monoΛ _ γ rnv.raft' id cf bt' _ _ _ (fun _ _ => trivial) $$ HG

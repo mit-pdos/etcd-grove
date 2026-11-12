@@ -46,18 +46,18 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 request's facts from raft's ghost state at `X`, `msgFacts_app_of_log`), the share unpinned at the outbox
 with the request. The destination is a voter (`hto`). -/
 theorem lineF_app (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (X : NState)
-    (Λ : Option TraceEv → Prop) (mm : Msg) (o : List Msg) (htr : X.gh.tr = some γd) (hlead : X.role = .leader)
+    (Λ : Option TraceEv → Prop) (mm : Msg) (o : List Msg) {bt : Bool} (htr : X.gh.tr = some γd) (hlead : X.role = .leader)
     (hT : uint.Z X.term + 1 < traceNumBound) (hfit : receiptBound GF + γ.reBoot.length ≤ traceNumBound)
     (hto : mm.dst ∈ elements c.incoming)
     (hok : AppOk id (toPState X) mm) (hcm : mm.commit = X.logst.committed)
     (hmatch : uint.Z ((prvalsMatch X.prvals !! mm.dst).getD (W64 0)) ≤ uint.Z mm.index)
     (hrh : mm.rejecthint = W64 0) :
-    lineF (GF := GF) γ md c r id X (fun C => SimIdleS C X) (stepLastEv Λ) o ⊢
+    lineF (GF := GF) γ md c r id X (fun C => SimIdleS C X) (stepLastEv Λ) bt o ⊢
       HookGateOpt X.gh.tr r (sendOutGate id X c MsgApp [mm])
-        (lineF γ md c r id X (fun C => SimIdleS C X) (stepLastEv Λ) (o ++ [mm])) := by
+        (lineF γ md c r id X (fun C => SimIdleS C X) (stepLastEv Λ) bt (o ++ [mm])) := by
   unfold lineF trFam
   rw [htr, sendOutGate_one id X c MsgApp mm (W64 9) rfl]
-  iintro ⟨Hgh, ⟨%b, Hf⟩, %Hok⟩
+  iintro ⟨Hgh, ⟨%b, -, Hf⟩, %Hok⟩
   iapply hookGateOpt_fupd
   imod ownStepGhost_traceBound (GF := GF) γ md c id X hfit $$ Hgh with ⟨%Hb, Hgh⟩
   icases trCapB_pinMem γd γ r id c b _ _ $$ Hf with ⟨%C0, %cs0, %P0, %HΦ0, Hf⟩
@@ -120,9 +120,10 @@ theorem lineF_app (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Lo
     iframe Hgh
     isplitl [Hc]
     · iexists true
+      isplitr; · ipureintro; exact fun _ => rfl
       iapply trCapB_mono (some γd) γ r id c true _ _ _ (fun _ _ _ h => h.2.2.2) $$ Hc
     ipureintro
-    exact outOk_snoc Hok htrok
+    exact outOk_snocT Hok htrok (by rw [hok.1]; rfl)
   iapply trCapB_hookGateOpt (some γd) γ r id c tl _ b (PinAt X C0 cs0 P0 o) _ (stepLastEv Λ) (stepLastEv Λ)
     iprop(emp) (phaseStepB_msgApp_pin id c X o mm C0 cs0 P0 ma0 hma hlead hto hok hcm' hmatch (by omega))
     (fun e he => sendEvOf_notBoot he (by decide) (by decide) (by decide))
@@ -133,19 +134,21 @@ theorem lineF_app (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Lo
   iframe Htl Hf Hfx
 
 /-- **An untraced send on a local family** (a read-index response: no line), the family at the outbox
-with it. -/
+with it. (Implementation step 2, design S2) At a node with a read pending (`¬ ReadIdle X`), so out of the
+traced scope: `OutOk`'s `TrScope X → TrOutMsg mm` holds vacuously. The response paths' gates do not say a
+read is pending, so their families use `lineF_rir` instead (`TracedPin.lean`, `rirFilter`). -/
 theorem lineF_untraced (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (X : NState)
-    (Φs : List w64 → ServerC → Prop) (Λ : Option TraceEv → Prop) (mm : Msg) (o : List Msg)
-    (htr : X.gh.tr = some γd) (hu : mm.ty.traced = false) :
-    lineF (GF := GF) γ md c r id X Φs Λ o ⊢
-      HookGateOpt X.gh.tr r none (lineF γ md c r id X Φs Λ (o ++ [mm])) := by
+    (Φs : List w64 → ServerC → Prop) (Λ : Option TraceEv → Prop) (bt : Bool) (mm : Msg) (o : List Msg)
+    (htr : X.gh.tr = some γd) (hu : mm.ty.traced = false) (hri : ¬ ReadIdle X) :
+    lineF (GF := GF) γ md c r id X Φs Λ bt o ⊢
+      HookGateOpt X.gh.tr r none (lineF γ md c r id X Φs Λ bt (o ++ [mm])) := by
   have hfe : ∀ b, trFam (GF := GF) X.gh.tr γ r id c b Φs Λ (o ++ [mm]) = trFam X.gh.tr γ r id c b Φs Λ o :=
     fun b => trFam_untraced X.gh.tr γ r id c b Φs Λ o [mm] (fun x hx => by
       simp only [List.mem_singleton] at hx; subst hx; exact hu)
   unfold lineF
   simp only [hfe]
   rw [htr]
-  iintro ⟨Hgh, ⟨%b, Hf⟩, %Hok⟩
+  iintro ⟨Hgh, ⟨%b, %hb, Hf⟩, %Hok⟩
   unfold trFam
   iapply hookGateOpt_mono (some γd) r none
     iprop((ownStepGhost γ md c id X ∗ ⌜OutOk X (o ++ [mm])⌝) ∗
@@ -154,12 +157,13 @@ theorem lineF_untraced (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r
   · iintro ⟨⟨Hgh, %Hok'⟩, Hc⟩
     iframe Hgh
     isplitl [Hc]
-    · iexists b; iexact Hc
+    · iexists b; isplitr; · ipureintro; exact hb
+      iexact Hc
     ipureintro; exact Hok'
   iapply trCapB_gateNone γd γ r id c b _ _ Λ _ (fun _ _ _ h => h)
   iframe Hgh Hf
   ipureintro
-  exact outOk_snoc Hok (Msg.trOk_of_untraced hu)
+  exact outOk_snoc Hok (Msg.trOk_of_untraced hu) (fun h => absurd h.2 hri)
 
 end sends
 

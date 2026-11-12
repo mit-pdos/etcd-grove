@@ -124,7 +124,8 @@ abbrev stepBundle_traced.onA (Path : NState → MessageM → Prop) : Prop :=
       TrNoSnap s.gh.tr s.logst : IProp GF) ⊢
     |={⊤}=> ∃ R : StepG GF, R.G ∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) ∗
       stepClose γ md c id m ents ctx s R
-        (fun s' => iprop(∃ bt' : Bool, trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ)))
+        (fun s' => iprop(⌜OutTyStep s s'⌝ ∗ ∃ bt' : Bool, ⌜bt = true → bt' = true⌝ ∗
+          trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ)))
 
 /-- **`raft.Step`'s traced bundle on a storage acknowledgement** (see the file header): `localR`'s
 resources; no hook logs; the close at `s`, the end state's protocol reading the node's (`AckEnd`). -/
@@ -199,9 +200,12 @@ theorem stepBundle_traced_storAck : stepBundle_traced.onA (GF := GF) (hG := hG) 
     iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_ne hnP)
     iunfold stepCloseAt
     iintro %s' %B %recv %_ %_ %hack Hout
-    have hps : toPState s' = toPState s := hack (by rw [htr]; rfl) hp.1
+    obtain ⟨hps, hlt, hrd⟩ := hack (by rw [htr]; rfl) hp.1
     have hS : ∀ C, SimIdleS C s = SimIdleS C s' := simIdleS_congr hps
     have ho : s'.outbox = s.outbox := congrArg PState.outbox hps
+    have hty' : OutTyStep s s' :=
+      OutTyStep.of_app' [] (by rw [ho, List.append_nil])
+        (TrScope.congr hlt (by rw [hrd]) (by rw [hrd])) (fun _ _ h => absurd h List.not_mem_nil)
     ihave H : localF (GF := GF) bt γ md c r id s Λ s'.outbox $$ [Hout]
     · unfold stepOut
       dsimp only [localR]
@@ -212,7 +216,9 @@ theorem stepBundle_traced_storAck : stepBundle_traced.onA (GF := GF) (hG := hG) 
     imodintro
     iframe Hgh
     isplitl [H]
-    · iexists bt
+    · isplitr; · ipureintro; exact hty'
+      iexists bt
+      isplitr; · ipureintro; exact fun h => h
       iapply trCapB_monoΛ s.gh.tr γ r id c bt _ Λ _ (fun o h => .inl h) $$ H
     ipureintro
     exact outTrStep_of_outOk (by rw [ho]; exact outOk_self s)
@@ -293,13 +299,13 @@ theorem stepBundle_traced : stepBundle_traced.statement (GF := GF) (hG := hG) :=
     have hh : m.Type' = MsgHup → s.role ≠ .leader := fun h' => absurd (h.symm.trans h') (by decide)
     by_cases hr : s.role = .leader
     · path stepBundle_traced_beat ⟨h, hr⟩ hh
-    · path stepBundle_traced_localNoLine ⟨.inl h, hr⟩ hh
+    · path stepBundle_traced_localNoLine ⟨⟨.inl h, hr⟩, fun h' => absurd (h.symm.trans h') (by decide)⟩ hh
   · -- `MsgProp`
     have hh : m.Type' = MsgHup → s.role ≠ .leader := fun h' => absurd (h.symm.trans h') (by decide)
     by_cases hr : s.role = .leader
     · obtain ⟨hne, hnorm⟩ := hbatch h
       path stepBundle_traced_prop ⟨h, hr, hne, hnorm, hrb⟩ hh
-    · path stepBundle_traced_localNoLine ⟨.inr h, hr⟩ hh
+    · path stepBundle_traced_localNoLine ⟨⟨.inr h, hr⟩, fun h' => (hbatch h').2⟩ hh
   · -- `MsgUnreachable`
     have hh : m.Type' = MsgHup → s.role ≠ .leader := fun h' => absurd (h.symm.trans h') (by decide)
     path stepBundle_traced_unreach ⟨h, hloc (.inr (.inr (.inr (.inl h))))⟩ hh
@@ -605,8 +611,12 @@ abbrev raft.Step.tracedTriple : Prop :=
       "Herr" ∷ (⌜err = interface.nil⌝ ∨
                 (⌜m.Type' = MsgProp⌝ ∗
                  globalAddr ErrProposalDropped ↦□ err)) ∗
-      -- the capability back, idle at the end state, with some `booted` flag
-      "Hcap" ∷ ∃ bt' : Bool, trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ) }}
+      -- (2026-11-12, implementation step 2) the step's `OutTyStep` (design §3.6, A2)
+      "%Houtty" ∷ ⌜OutTyStep s s'⌝ ∗
+      -- the capability back, idle at the end state, with some `booted` flag, at least the first one
+      -- (implementation step 2, design N1)
+      "Hcap" ∷ ∃ bt' : Bool, ⌜bt = true → bt' = true⌝ ∗
+        trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ) }}
 
 /-- See `raft.Step.tracedTriple`: `raft.Step.spec` at the resources `stepBundle_traced` gives. -/
 theorem raft.Step.traced (h : raft.Step.spec (GF := GF) (hG := hG))
@@ -626,7 +636,8 @@ theorem raft.Step.traced (h : raft.Step.spec (GF := GF) (hG := hG))
     hnpc hsh hbatch hnode $$ Hb with ⟨%R, HG, Hgates, Hclose⟩
   have hne := stepTrTy_ne hty
   iapply h c md γ r id s ml m ents ctx sn rs R
-    (fun s' => iprop(∃ bt' : Bool, trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ)))
+    (fun s' => iprop(⌜OutTyStep s s'⌝ ∗ ∃ bt' : Bool, ⌜bt = true → bt' = true⌝ ∗
+      trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ)))
     Hsm Hhup Hvote Hvoteresp Hprevote Hprevoteresp
     Happ Hhb Happresp Hhbresp Hsnapt Hbeat Hprop Hsar Hsapr Hri Hrir Hrest Hwf Hpre Hnsx
     (fun ha => absurd ha hne) (fun ha hsn => absurd (hsnn ha) hsn)
@@ -638,9 +649,34 @@ theorem raft.Step.traced (h : raft.Step.spec (GF := GF) (hG := hG))
   iintro %err %s' %c' %md' H
   iapply HΦ $$ %err %s' %c' %md'
   iNamed H
+  icases HG with ⟨%Houtty, HG⟩
   iframe Hphys Hghost Herr HG
   ipureintro
-  exact ⟨Hwf', Hrefines, Hcfg', Hlocal, Hframe, Hxwframe, Hterm, Hresp, Hsnapfr, Htrunc⟩
+  exact ⟨Hwf', Hrefines, Hcfg', Hlocal, Hframe, Hxwframe, Hterm, Hresp, Hsnapfr, Htrunc, Houtty⟩
+
+/-- (2026-11-12, implementation step 2; design §8, Probe B item 6, N1) **A booted node stays booted
+through a step**: `raft.Step.traced`'s (and the ticks', `RawNode`'s traced triples') end capability
+with the monotone flag, at a node booted before the step (`bt = true`, after its first `Ready` line),
+is booted: clause 1(a) of `rnTrace` (`delivered ≠ [] → booted`) is kept by a step, which leaves
+`delivered` alone. -/
+theorem trCapB_booted_of_mono (tr : Option GName) (γ : RaftNames) (r : Loc) (id : w64) (c : CfgM)
+    (Φ : List w64 → ServerC → List Etcdraft.Msg → Prop) (Λ : Option TraceEv → Prop) :
+    (∃ bt' : Bool, ⌜true = true → bt' = true⌝ ∗ trCapB (GF := GF) tr γ r id c bt' Φ Λ) ⊢
+      trCapB tr γ r id c true Φ Λ := by
+  iintro ⟨%bt', %h, H⟩
+  rw [← h rfl]
+  iexact H
+
+/-- (Probe B item 6) **`raft.Step.traced` at a booted node gives back a booted capability**: the
+triple at `bt = true`, its post's capability through `trCapB_booted_of_mono`. -/
+theorem raft.Step.traced_booted (h : raft.Step.spec (GF := GF) (hG := hG))
+    (hb : stepBundle_traced.statement (GF := GF) (hG := hG)) (c : CfgM) (γ : RaftNames)
+    (r : Loc) (id : w64) (s s' : NState) (Λ : Option TraceEv → Prop) :
+    raft.Step.tracedTriple (GF := GF) (hG := hG) ∧
+      ((∃ bt' : Bool, ⌜true = true → bt' = true⌝ ∗
+          trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ)) ⊢
+        trCapB (GF := GF) s.gh.tr γ r id c true (fun C => SimIdle C s') (stepLastEv Λ)) :=
+  ⟨raft.Step.traced h hb, trCapB_booted_of_mono _ γ r id c _ _⟩
 
 end bundle
 

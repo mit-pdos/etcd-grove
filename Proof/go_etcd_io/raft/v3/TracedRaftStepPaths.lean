@@ -63,11 +63,13 @@ theorem localTy_ne {t : w32} (h : t = MsgBeat ∨ t = MsgProp) {x : w32} (hx : x
   · exact hx.2 h
 
 /-- The end state of a `LocalNoLine` path (`StepEnd`, traced): unchanged, or one message of an
-untraced type queued (a follower's forward to its leader). -/
+untraced type queued (a follower's forward to its leader; since implementation step 2, 2026-11-12, a
+proposal of the batch, for `OutTyStep`). -/
 theorem localNoLine_end {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM} {ctx : List w8}
     {s s' : NState} (hp : LocalNoLine s m) (hns : ¬ StaleMsg s m) (hpre : ∀ pvs, preState s m pvs = s)
     (h : StepEnd c id m ents ctx s s') :
-    s' = s ∨ ∃ fwd : Msg, fwd.ty.traced = false ∧ s' = sendMsgs s [fwd] := by
+    s' = s ∨ ∃ fwd : Msg, fwd.ty.traced = false ∧ fwd.ty = .propose ∧ fwd.entries = ents ∧
+      m.Type' = MsgProp ∧ s' = sendMsgs s [fwd] := by
   have hty : StepEndTy m.Type' := by
     unfold StepEndTy; rcases hp.1 with h | h <;> simp [h]
   have hnh : m.Type' ≠ MsgHup := localTy_ne hp.1 (by decide)
@@ -104,7 +106,7 @@ theorem localNoLine_end {c : CfgM} {id : w64} {m : MessageM} {ents : List EntryM
     · rw [if_pos ht] at hres
       by_cases hl : s.lead = W64 0
       · rw [if_pos hl] at hres; exact .inl hres.2
-      · rw [if_neg hl] at hres; exact .inr ⟨_, rfl, hres.2⟩
+      · rw [if_neg hl] at hres; exact .inr ⟨_, rfl, rfl, rfl, ht, hres.2⟩
   | candidate =>
     obtain ⟨scfg, sv, d, c', h⟩ := hc (.inl hr)
     exact .inl (hcand scfg sv d c' h)
@@ -393,9 +395,12 @@ def localR (b : Bool) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w
   Gp2 := localF b γ md c r id s Λ
   Gc := fun _ _ => localF b γ md c r id s Λ
 
-/-- **`raft.Step`'s traced bundle on the local messages that log no line.** -/
-theorem stepBundle_traced_localNoLine : stepBundle_traced.on (GF := GF) (hG := hG) LocalNoLine := by
-  intro γ md c r id s m ents sn ctx rs γd Λ bt hp htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit _ _ _ _ _
+/-- **`raft.Step`'s traced bundle on the local messages that log no line.** (Implementation step 2) A
+proposal's batch of normal entries (the forward's `TrOutMsg`), so over `stepBundle_traced.onG`. -/
+theorem stepBundle_traced_localNoLine : stepBundle_traced.onG (GF := GF) (hG := hG)
+    (fun _ ents s m => LocalNoLine s m ∧ (m.Type' = MsgProp → ∀ e ∈ ents, e.Type' = EntryNormal)) := by
+  intro γ md c r id s m ents sn ctx rs γd Λ bt hp0 htr hpv hcq hty hwf hloc hhup hto hT hmT hok hfit _ _ _ _ _
+  obtain ⟨hp, hnorm⟩ := hp0
   have hT0 : m.Term' = W64 0 := hloc (by rcases hp.1 with h | h <;> simp [h])
   have hnbf : ¬ PreBF m s := by
     unfold PreBF; rw [hT0]; intro h; have := h.1; simp at this
@@ -502,17 +507,26 @@ theorem stepBundle_traced_localNoLine : stepBundle_traced.on (GF := GF) (hG := h
     iintro %s' %B %recv %_ %hend %_ Hout
     have hend' := localNoLine_end hp hns hpre (hend (by rw [htr]; rfl))
     have hS : ∀ C, SimIdleS C s = SimIdleS C s' := by
-      intro C; rcases hend' with rfl | ⟨fwd, -, rfl⟩
+      intro C; rcases hend' with rfl | ⟨fwd, -, -, -, -, rfl⟩
       · rfl
       · exact (simIdleS_sendMsgs C s [fwd]).symm
     have hout : OutTrStep s s' := by
-      rcases hend' with rfl | ⟨fwd, hf, rfl⟩
+      rcases hend' with rfl | ⟨fwd, hf, -, -, -, rfl⟩
       · exact OutTrStep.of_sub (fun _ h => h)
       · intro _ x hx
         simp only [sendMsgs, List.mem_append, List.mem_singleton] at hx
         rcases hx with hx | rfl
         · exact .inl hx
         · exact .inr (Msg.trOk_of_untraced hf)
+    have hty' : OutTyStep s s' := by
+      rcases hend' with rfl | ⟨fwd, -, hfp, hfe, hpr, rfl⟩
+      · exact OutTyStep.refl _
+      · apply OutTyStep.sendMsgs
+        intro _ x hx
+        rw [List.mem_singleton.1 hx]
+        refine .inr ⟨hfp, fun e he => ?_⟩
+        rw [hfe] at he
+        exact hnorm hpr e he
     ihave H : localF (GF := GF) bt γ md c r id s Λ s'.outbox $$ [Hout]
     · unfold stepOut
       dsimp only [localR]
@@ -523,7 +537,9 @@ theorem stepBundle_traced_localNoLine : stepBundle_traced.on (GF := GF) (hG := h
     imodintro
     iframe Hgh
     isplitl [H]
-    · iexists bt
+    · isplitr; · ipureintro; exact hty'
+      iexists bt
+      isplitr; · ipureintro; exact fun h => h
       iapply trCapB_monoΛ s.gh.tr γ r id c bt _ Λ _ (fun o h => .inl h) $$ H
     ipureintro; exact hout
 

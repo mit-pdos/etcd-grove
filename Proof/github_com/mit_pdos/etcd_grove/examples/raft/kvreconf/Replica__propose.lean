@@ -54,7 +54,7 @@ theorem Replica.propose.wp_proof
   iNamed Hrep'
   ihave #Hcl' := Hcl
   iunfold kvrCluster at Hcl'
-  icases Hcl' with ⟨-, -, -, -, #Hinv⟩
+  icases Hcl' with ⟨-, -, -, -, #Hinv, -⟩
   ihave #Hraftinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   ihave #Hctxinit : isPkgInit (PROP := IProp GF) pkg_id.context $$ []

@@ -5,17 +5,15 @@ composition along the concrete path (`StartNode`, `Ready`, `handleReady`, `Advan
 `Step`), over the client statements, each post checked to supply the next pre.
 
 A probe, not a result: nothing links it (no `Link`/`Results` imports it) and nothing here is used by a
-proof. The statements the design specifies that do not exist in Lean yet are **hypotheses** here, each a
-`Prop` (or a parameter standing for a sealed predicate the design adds to raft, with the laws the
-client sees as hypotheses), never an axiom or a `sorry`:
+proof. (2026-11-12, trace-check implementation step 1: the statements step 1 made real are used as they
+now are: `readyToksClaim` and `readyToksClaim_nil`, `readyGotT` with the claim
+(`isReadyChan_recvAu.tracedSpec`, proved: `isReadyChan_recvAu.tracedSpec_proof`), the linked
+`node.Advance.tracedSpec` (`RaftLink.node.wp_Advance_traced`) and its instance `node.Advance.spec_of_traced`,
+`stepIn_intro` with `trTok`, `trTok_type`, and the law `Membership.applyChange_leaveJoint`, which takes
+`Restorable` (`confAt_restorable`) beside the design's premises.) The statements the design specifies
+that do not exist in Lean yet are **hypotheses** here, each a `Prop` (or a parameter standing for a
+sealed predicate the design adds), never an axiom or a `sorry`:
 
-- `readyToksClaim` (design §3.1): a parameter `claim` of the probe, its law `readyToksClaim_nil` the
-  hypothesis `ClaimNil claim` (a client sees the sealed claim only through its laws);
-- `isReadyChan_recvAu.tracedSpec` (revised: `readyGotT` with the claim): `RecvTracedSpec claim`, over
-  `readyGotC claim`;
-- `node.Advance.tracedSpec` (A5): `AdvanceTracedSpec claim`; its instance `node.Advance.spec_of_traced`
-  is **proved** here (`advance_spec_of_traced`), from `ClaimNil` alone;
-- `stepIn_intro` with `trTok` (F2): `StepInIntroTr`; the law `trTok_type`: `TrTokType`;
 - `netJoin` (§6, Q34): parameters `njAdder`, `njDone` (sealed in the design's `NetJoin.lean`) and
   the `Add`/`Done` calls' expressions, with `NetJoinAdd`/`NetJoinDone` the two triples;
 - the harness's own invariants (§2.2: `tcOpsInv`, `tcSnapsInv`, the rule `tcRule`) are **defined**
@@ -50,6 +48,9 @@ public import Spec.google_golang_org.protobuf.proto.ClonePb
 public import Spec.google_golang_org.protobuf.proto.UnmarshalConfChangeV2Empty
 public import Spec.go_etcd_io.raft.v3.node__Advance
 public import Spec.go_etcd_io.raft.v3.node__Step
+public import Proof.go_etcd_io.raft.v3.TracedNodeApi
+public import Proof.go_etcd_io.raft.v3.ConfchangeApi
+public import Proof.go_etcd_io.raft.v3.TracedLinked
 
 @[expose] public section
 
@@ -338,22 +339,13 @@ theorem tcOps_v1_boot (γ : Cluster) (boot l : List LogEntry) (E : CoPset) (HB :
     have := hlb.length_le
     omega
 
-/-- **Probe finding (P1): the empty `ConfChangeV2` applies at a valid joint membership.** What the
-`ConfChangeV2` arm needs and raft does not export: `Membership.applyChange` is sealed and its laws
-(`InvNode.lean`, `applyChange_nodeZero`/`_addVoter`/`_removeVoter`/`_removeAbsent`) are of simple
-memberships only ("nothing is said of joint configurations"); `committed_emptyV2_joint` gives
-`m.isJoint`, not the step. The fix: this law in raft's API (proved from `ccApplyM_leaveJoint`,
-`ConfchangeApiImpl.lean:109`, and `leaveJointM`'s definedness at a valid joint state). -/
-abbrev LeaveJoint : Prop :=
-  ∀ m : Membership, m.Valid → m.isJoint →
-    ∃ m', Membership.applyChange (.v2 ConfChangeV2M.empty) m = some m'
-
 /-- **The `ConfChangeV2` arm** (§2.3, A6): a committed entry `e` of type `2` at position `k`, where
 the membership is `m`: it decodes to the empty change (`ccDecodeV2_nil`, so `proto.Unmarshal` returns no
 error and the `panic` is not reached), the membership is joint (`committed_emptyV2_joint`), the change
-applies (`LeaveJoint`), and `confPolicy_decide` records `.apply` of it: `node.ApplyConfChange.spec`'s
+applies (`Membership.applyChange_leaveJoint`, the probe's P1, at the membership's `Restorable`,
+`confAt_restorable`), and `confPolicy_decide` records `.apply` of it: `node.ApplyConfChange.spec`'s
 `confDecided` and its two `applyChange` premises (`o = o'`, at the view's membership `m`). -/
-theorem probeA_confV2 (hleave : LeaveJoint) (γ : Cluster) (N : Namespace) (boot l : List LogEntry)
+theorem probeA_confV2 (γ : Cluster) (N : Namespace) (boot l : List LogEntry)
     (k : Nat) (e : LogEntry) (m : Membership) (E : CoPset) (HB : BootLogFacts boot)
     (hk : l[k]? = some e) (ht : e.type = W32 2) (hE1 : ↑tcOpsN ⊆ E) (hE2 : ↑tcConfN ⊆ E) :
     ⊢ isCluster (GF := GF) γ N -∗ tcOpsInv γ boot -∗ confPolicy γ tcConfN tcRule -∗
@@ -370,9 +362,10 @@ theorem probeA_confV2 (hleave : LeaveJoint) (γ : Cluster) (N : Namespace) (boot
     have h1 : e.type ≠ W32 1 := by rw [ht]; exact w32_2_ne_1
     rw [if_neg h1, if_pos ht, He2.1, ccDecodeV2_nil]; rfl
   ihave %Hv := confAt_valid γ k m $$ Ha
+  ihave %Hr := confAt_restorable γ k m $$ Ha
   ihave %Hj := committed_emptyV2_joint γ N l k e m hk He2 $$ [Hc Hl Ha]
   · iframe Hc Hl Ha
-  obtain ⟨m', hm'⟩ := hleave m Hv Hj
+  obtain ⟨m', hm'⟩ := Membership.applyChange_leaveJoint m Hv Hr Hj
   have hc : e.isConfChange := .inr ht
   have hs : (ConfDecision.ofRule (tcRule (l.take k) m e)).step m = some m' := by
     simp only [tcRule, Hdec, ConfDecision.ofRule, ConfDecision.step]; exact hm'
@@ -396,99 +389,26 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `readyToksClaim_nil` (§3.1, A5), of the probe's `claim` (the design's sealed `readyToksClaim`). -/
-abbrev ClaimNil (claim : Loc → Cluster → Namespace → List QMsg → IProp GF) : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace), ⊢ claim n γ N []
-
-/-- **The revised `readyGotT`** (§3.1): `readyGot` with the claim on its messages. **Probe finding
-(P2):** the design writes `readyGotT = readyGot ∗ readyToksClaim n γ N ms`, where `ms` is unbound
-(`readyGot` binds it inside its existentials); the claim must be inside them, at `readyRest`'s `ms`
-(the messages `rd.Messages'` points to), as today's `readyGotT` places its tokens. -/
-def readyGotC (claim : Loc → Cluster → Namespace → List QMsg → IProp GF) (n : Loc) (γ : Cluster)
-    (N : Namespace) (id : w64) (st : NodeDriverState) (rd : Ready) : IProp GF :=
-  iprop(∃ (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan)
-      (ms : List QMsg) (ss : Option (w64 × StateType)),
-    committedEntriesAt rd.CommittedEntries' st.delivered.length ce ∗
-    isCommittedLogLb γ (st.delivered ++ ce) ∗
-    (∃ rs, readStatesPts rd.ReadStates' rs ∗
-      [∗list] s ∈ rs, readStateOk γ N s.RequestCtx' s.Index') ∗
-    readyRest γ N id rd st ce es h L ms ss ∗
-    readyLeaderMsgs γ N id st ms ss ∗
-    readyEnter n γ N id st (st.afterReady ce es h L ss) ms ∗
-    deliveredLogLb n γ N (st.afterReady ce es h L ss).delivered ∗
-    (⌜phsNext st.hardState h = hsZero⌝ ∨
-      committedAtTerm γ N (phsNext st.hardState h).Term' (phsNext st.hardState h).Commit' ∗
-      ⌜((st.afterReady ce es h L ss).delivered.length : Int) ≤
-        uint.Z (phsNext st.hardState h).Commit'⌝) ∗
-    claim n γ N ms)
-
-/-- **`isReadyChan_recvAu.tracedSpec`, revised** (§3.1): `readyGotC` for `readyGot`. -/
-abbrev RecvTracedSpec (claim : Loc → Cluster → Namespace → List QMsg → IProp GF) : Prop :=
-  ∀ (n ch : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState)
-    (Φ : Ready → Bool → IProp GF),
-  st.handling = none →
-  ⊢ isReadyChan (GF := GF) n γ N ch -∗ isNode n γ N id -∗ nodeDriver n γ N st -∗
-    ∃ γc : ChanNames, isChan ch γc Ready ∗
-      (£ 1 ∗ £ 1 -∗
-        ▷ (∀ rd : Ready, readyGotC claim n γ N id st rd -∗ Φ rd true) -∗
-        recvAu γc Ready Φ)
-
-/-- **`node.Advance.tracedSpec`** (§3.1, A5), as the design writes it. -/
-abbrev AdvanceTracedSpec (claim : Loc → Cluster → Namespace → List QMsg → IProp GF) : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState) (es : List EntryM)
-    (L : Option SnapLoan) (v : ConfigView) (ms : List QMsg),
-  st.handling = some (es, L) →
-  (∀ l, L = some l → l.dlv.length = uint.nat l.snap.Metadata'.Index') →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isCluster γ N ∗ isNode n γ N id ∗
-      nodeDriver n γ N st ∗ advReceipt st.storage st.delivered.length es L ∗ nodeConfig n γ N v ∗
-      (match L with
-       | none => skippedIn γ st.delivered v.applied st.delivered.length
-       | some l => snapshotCert γ N (snapTrip l.snap l.snap.Metadata'.ConfState'.lists)) ∗
-      claim n γ N ms }}
-    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
-  {{ RET #(); (nodeDriver n γ N { st with handling := none } ∗
-      nodeAppliedLb γ st.key st.delivered.length ∗
-      (match L with
-      | none => nodeConfig n γ N v
-      | some l => ∃ m : Membership,
-          nodeConfig n γ N ⟨uint.nat l.snap.Metadata'.Index', m⟩ ∗
-          confAt γ (uint.nat l.snap.Metadata'.Index') m ∗
-          ⌜confStateIs l.snap.Metadata'.ConfState' m⌝) ∗
-      [∗list] q ∈ ms, trTok γ q.st) ∨
-    (nodeStopped n γ N ∗ nodeDriver n γ N { st with handling := none }) }}
-
-/-- **`node.Advance.spec_of_traced`** (A5), proved: `node.Advance.spec` (today's text, every `γ`) is
-the traced spec's instance at `ms = []`, the claim from `ClaimNil`, the empty list of tokens dropped. -/
-theorem advance_spec_of_traced (claim : Loc → Cluster → Namespace → List QMsg → IProp GF)
-    (hnil : ClaimNil claim) (h : AdvanceTracedSpec claim) : node.Advance.spec (GF := GF) := by
-  intro n γ N id st es L v Hh HL
-  iintro %Φ Hpre HΦ
-  iapply (h n γ N id st es L v [] Hh HL) $$ [Hpre] [HΦ]
-  · icases Hpre with ⟨Hi, Hc, Hn, Hd, Hr, Hv, Hm⟩
-    ihave Hcl := hnil n γ N
-    iframe Hi Hc Hn Hd Hr Hv Hm Hcl
-  · inext
-    iintro Hpost
-    iapply HΦ
-    icases Hpost with (⟨Hd, Ha, Hm, -⟩ | Hs)
-    · ileft; iframe Hd Ha Hm
-    · iright; iexact Hs
+/-- (2026-11-12) **`node.Advance.spec` is `node.Advance.tracedSpec`'s instance** (A5): raft's
+`node.Advance.spec_of_traced`, at the linked traced proof. -/
+theorem advance_spec_of_traced : node.Advance.spec (GF := GF) (hG := hG) :=
+  node.Advance.spec_of_traced RaftLink.node.wp_Advance_traced
 
 /-- **A received `Ready`, taken apart** (the check "the claim's `ms` against `readyGot`'s `ms` and
 `rd.Messages`"): the messages `rd.Messages'` points to, each owned with its credits, the claim on the
 same list, *enter* (whose post gives their `sentMsg`s), the storage part, and the `Ready`'s loop state
 handling the batch (what `node.Advance`'s premise `st.handling = some (es, L)` reads). -/
-theorem probeA_readySplit (claim : Loc → Cluster → Namespace → List QMsg → IProp GF) (n : Loc)
-    (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState) (rd : Ready) :
-    readyGotC claim n γ N id st rd ⊢
+theorem probeA_readySplit (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState)
+    (rd : Ready) :
+    readyGotT (GF := GF) n γ N id st rd ⊢
       ∃ (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan)
         (ms : List QMsg) (ss : Option (w64 × StateType)),
         rd.Messages' ↦* ms.map QMsg.loc ∗
         ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) ∗
         readySnap γ N id rd st ce es L ∗
-        readyEnter n γ N id st (st.afterReady ce es h L ss) ms ∗ claim n γ N ms ∗
+        readyEnter n γ N id st (st.afterReady ce es h L ss) ms ∗ readyToksClaim n γ N ms ∗
         ⌜(st.afterReady ce es h L ss).handling = some (es, L)⌝ := by
-  unfold readyGotC readyRest
+  unfold readyGotT readyRest
   iintro ⟨%ce, %es, %h, %L, %ms, %ss, -, -, -, ⟨-, Hmsl, Hms, -, -, -, Hsnap, -⟩, -, Hent, -, -,
     Hcl⟩
   iexists ce, es, h, L, ms, ss
@@ -513,16 +433,15 @@ theorem probeA_msgs (γ : Cluster) (N : Namespace) (src : w64) (ms : List QMsg) 
   iframe H Ht
 
 /-- **One round of `app`, from the `Ready` to `Advance`'s return** (§2.3): the received `Ready`
-(`readyGotC`), *enter* run with the driver's durable state and its share of `nodeRunning`, the snapshot
+(`readyGotT`), *enter* run with the driver's durable state and its share of `nodeRunning`, the snapshot
 loan refuted (`probeA_noSnap`), `handleReady`'s storage and apply work (abstracted: `Hwork`, from the
 `Ready`'s storage part, the batch's receipt and the view with the skipped conf entries: not on the
-probe's list), then `node.Advance.tracedSpec` with the claim. Its post: for each message, what `send`
-takes (`probeA_msgs`), or the node stopped. -/
-theorem probeA_round (claim : Loc → Cluster → Namespace → List QMsg → IProp GF)
-    (hadv : AdvanceTracedSpec claim) (n : Loc) (γ : Cluster) (N : Namespace) (id : w64)
+probe's list), then the linked `node.Advance.tracedSpec` with the claim. Its post: for each message,
+what `send` takes (`probeA_msgs`), or the node stopped. -/
+theorem probeA_round (n : Loc) (γ : Cluster) (N : Namespace) (id : w64)
     (st : NodeDriverState) (rd : Ready) (qr : Qp) (hN : ↑N ⊆ (⊤ : CoPset)) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 -∗ isCluster γ N -∗ isNode n γ N id -∗
-      tcSnapsInv γ -∗ readyGotC claim n γ N id st rd -∗
+      tcSnapsInv γ -∗ readyGotT n γ N id st rd -∗
       raftState γ id st.durable -∗ nodeRunning n γ N qr -∗
       (∀ (ce : List LogEntry) (es : List EntryM), readySnap γ N id rd st ce es none -∗
         advReceipt st.storage (st.delivered ++ ce).length es none ∗
@@ -536,7 +455,7 @@ theorem probeA_round (claim : Loc → Cluster → Namespace → List QMsg → IP
                 msgCredits γ N q.st) ∗ trTok γ q.st) ∨
             (∃ st', nodeStopped n γ N ∗ nodeDriver n γ N st')) }} := by
   iintro #Hi #Hc #Hn #Hsn Hrg Hrs Hrun Hwork
-  ihave Hsp := probeA_readySplit claim n γ N id st rd $$ Hrg
+  ihave Hsp := probeA_readySplit n γ N id st rd $$ Hrg
   icases Hsp with ⟨%ce, %es, %h, %L, %ms, %ss, Hmsl, Hms, Hsnap, Hent, Hcl, %Hh⟩
   cases L with
   | some l =>
@@ -551,7 +470,7 @@ theorem probeA_round (claim : Loc → Cluster → Namespace → List QMsg → IP
   imodintro
   iexists ms, _
   iframe Hmsl Hrs Hrun
-  iapply (hadv n γ N id (st.afterReady ce es h none ss) es none v ms Hh
+  iapply (RaftLink.node.wp_Advance_traced n γ N id (st.afterReady ce es h none ss) es none v ms Hh
     (fun _ h => by cases h)) $$ [Hdrv Hrec Hv Hcl] [Hms]
   · iframe Hi Hc Hn Hdrv Hv Hcl
     simp only [NodeDriverState.afterReady]
@@ -580,20 +499,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- **`stepIn_intro` with the token** (§3.1, F2), as the design writes it. -/
-abbrev StepInIntroTr : Prop :=
-  ∀ (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (src : w64) (st : MsgSt),
-    st.msg.To' = id →
-    sentMsg (GF := GF) γ N src st ∗
-      msgPtsC ml (DFrac.own 1) (DFrac.own 1) true ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∗
-      msgCredits γ N st ∗ snapLocalMsg γ id st ∗ trTok γ st ⊢
-    |==> stepIn γ N id ml
-
-/-- **The law `trTok_type`** (§2.4), as the design writes it. -/
-abbrev TrTokType : Prop :=
-  ∀ (γ : Cluster) (st : MsgSt),
-    trTok (GF := GF) γ st ⊢ trTok γ st ∗ ⌜Cluster.trace γ ≠ none → st.msg.Type' ≠ MsgSnap⌝
-
 /-- A clone's wire content and responses give the message `stepIn_intro` takes: `pbMessage`'s `eqv`
 with the original's empty responses (`sentMsg_shape`). -/
 theorem clone_st (st st' : MsgSt) (hr : st.resps = [])
@@ -613,7 +518,7 @@ uncertain glue of design-r3's A6): `ClonePb`'s `T.ro` from the `Ready`'s `msgOwn
 (`msgOwn_persist`), its `T.dec`/`eqv` into `msgPtsC … ⟨…, []⟩` (`clone_st`, the original's responses
 empty by `sentMsg_shape`), `stepIn_intro` with the token at the same `q.st`, the snapshot local by the
 harness's `snapLoc` (`snapLocalMsg_noDir`), then `node.Step.spec`. -/
-theorem probeA_cloneStep (hSI : StepInIntroTr (GF := GF))
+theorem probeA_cloneStep
     (wp_Clone : proto.ClonePb.spec (GF := GF) (hG := hG))
     (wp_Step : node.Step.spec (GF := GF) (hG := hG))
     (n : Loc) (γ : Cluster) (N : Namespace) (id src : w64) (q : QMsg) (ctx : GoInterfaceOk)
@@ -643,7 +548,7 @@ theorem probeA_cloneStep (hSI : StepInIntroTr (GF := GF))
   · ipureintro; rfl
   have Hst := clone_st q.st st' hr Heqv
   ihave #Hloc := snapLocalMsg_noDir (GF := GF) γ id hsl q.st
-  imod hSI γ N id l' src q.st hto $$ [Hdec Hcr Htok] with Hstep
+  imod stepIn_intro γ N id l' src q.st hto $$ [Hdec Hcr Htok] with Hstep
   · iframe Hs Hcr Hloc Htok
     rw [← Hst]
     iExactEq Hdec
@@ -659,11 +564,11 @@ theorem probeA_cloneStep (hSI : StepInIntroTr (GF := GF))
 /-- **The `MsgSnap` branches are dead** (§2.4): at a traced cluster the token says the message is no
 `MsgSnap` (`trTok_type`), read before `Step` consumes it; the clone's type is the original's (its wire
 content, `pbMessage`'s `eqv`), which is what `send`'s `typ := m.GetType()` reads. -/
-theorem probeA_noSnapReport (htt : TrTokType (GF := GF)) (γ : Cluster) (γd : GName)
+theorem probeA_noSnapReport (γ : Cluster) (γd : GName)
     (htr : Cluster.trace γ = some γd) (st st' : MsgSt) (hw : wireOf st = wireOf st') :
     trTok (GF := GF) γ st ⊢ trTok γ st ∗ ⌜st'.msg.Type' ≠ MsgSnap⌝ := by
   iintro Ht
-  icases htt γ st $$ Ht with ⟨Ht, %Hty⟩
+  icases trTok_type γ st $$ Ht with ⟨Ht, %Hty⟩
   iframe Ht
   ipureintro
   have : st.msg = st'.msg := by simp only [wireOf, MsgWire.mk.injEq] at hw; exact hw.1

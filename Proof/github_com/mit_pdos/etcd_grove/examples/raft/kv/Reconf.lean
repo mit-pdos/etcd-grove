@@ -124,7 +124,7 @@ theorem kv_snap_read (γr : RKVNames) (k : SnapTrip) (E : CoPset) (HE : ↑kvSna
   iintro #Hcl #Hcert
   ihave #Hcl' := Hcl
   unfold kvCluster
-  icases Hcl' with ⟨#Hc, -, -, #Hinv⟩
+  icases Hcl' with ⟨#Hc, -, -, #Hinv, -⟩
   icases snapshotCert_made γr.cluster kvRaftN k $$ [Hc Hcert] with ⟨%l, %m, #Hl, #Ha, #Hmade, %Hp⟩
   · iframe Hc Hcert
   unfold kvSnapInv
@@ -163,7 +163,7 @@ theorem kv_snap_make (γr : RKVNames) (l : List LogEntry) (i t : w64) (d : List 
       snapshotValid γr.cluster (memSnapMade i t (raft_kv.kvConfState kvVoters) d) := by
   iintro #Hcl #Hl #Ha
   unfold kvCluster
-  icases Hcl with ⟨#Hc, -, -, #Hinv⟩
+  icases Hcl with ⟨#Hc, -, -, #Hinv, -⟩
   unfold kvSnapInv
   iinv Hinv with >Hb Hclose
   icases Hb with ⟨%S, Hown, #HS⟩

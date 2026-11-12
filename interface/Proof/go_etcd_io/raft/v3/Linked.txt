@@ -98,19 +98,20 @@ theorem RaftLink.node.wp_TransferLeadership [package_sem : Assumptions] :
   -- `Perennial.EtcdGrove.node.TransferLeadership.spec`, unfolded:
   ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id lead transferee : w64) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)),
-    ⊢
-      ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd -∗
-          ▷ (True -∗ Φ (intoVal ())) -∗
-            WP
-              ((((intoVal
-                      (methods node.ty.PointerType
-                        go!"TransferLeadership"
-                        (intoVal n)))
-                    (intoVal (GoInterface.ok ctx)))
-                  (intoVal lead))
-                (intoVal transferee))
-              {{ Φ }}
+    γ.trace = none →
+      ⊢
+        ∀ Φ,
+          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd -∗
+            ▷ (True -∗ Φ (intoVal ())) -∗
+              WP
+                ((((intoVal
+                        (methods node.ty.PointerType
+                          go!"TransferLeadership"
+                          (intoVal n)))
+                      (intoVal (GoInterface.ok ctx)))
+                    (intoVal lead))
+                  (intoVal transferee))
+                {{ Φ }}
 
 theorem RaftLink.confchange.Changer.wp_EnterJoint_api [package_sem : Assumptions] :
     confchange.Changer.EnterJoint.apiSpec
@@ -119,18 +120,19 @@ theorem RaftLink.node.wp_ReadIndex [package_sem : Assumptions] : node.ReadIndex.
   -- `Perennial.EtcdGrove.node.ReadIndex.spec`, unfolded:
   ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (rctx : GoSlice) (c : List w8) (Q : List LogEntry → IProp GF)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-    ⊢
-      ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-            isNode n γ N id ∗ nodeCtx ctx cd ∗ ownSlice rctx c DFrac.discard ∗ isReadCtx γ N c Q -∗
-          (▷ ∀ err, nodeErrS n γ N cd err -∗ Φ (intoVal err)) -∗
-            WP
-              (((intoVal
-                    (methods node.ty.PointerType go!"ReadIndex"
-                      (intoVal n)))
-                  (intoVal (GoInterface.ok ctx)))
-                (intoVal rctx))
-              {{ Φ }}
+    γ.trace = none →
+      ⊢
+        ∀ Φ,
+          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+              isNode n γ N id ∗ nodeCtx ctx cd ∗ ownSlice rctx c DFrac.discard ∗ isReadCtx γ N c Q -∗
+            (▷ ∀ err, nodeErrS n γ N cd err -∗ Φ (intoVal err)) -∗
+              WP
+                (((intoVal
+                      (methods node.ty.PointerType go!"ReadIndex"
+                        (intoVal n)))
+                    (intoVal (GoInterface.ok ctx)))
+                  (intoVal rctx))
+                {{ Φ }}
 
 theorem RaftLink.MemoryStorage.wp_FirstIndex [package_sem : Assumptions] :
     MemoryStorage.FirstIndex.spec
@@ -529,16 +531,17 @@ theorem RaftLink.MemoryStorage.wp_ApplySnapshot [package_sem : Assumptions] :
 theorem RaftLink.node.wp_ForgetLeader [package_sem : Assumptions] : node.ForgetLeader.spec
   -- `Perennial.EtcdGrove.node.ForgetLeader.spec`, unfolded:
   ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-    ⊢
-      ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd -∗
-          (▷ ∀ err, nodeErrS n γ N cd err -∗ Φ (intoVal err)) -∗
-            WP
-              ((intoVal
-                  (methods node.ty.PointerType
-                    go!"ForgetLeader" (intoVal n)))
-                (intoVal (GoInterface.ok ctx)))
-              {{ Φ }}
+    γ.trace = none →
+      ⊢
+        ∀ Φ,
+          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd -∗
+            (▷ ∀ err, nodeErrS n γ N cd err -∗ Φ (intoVal err)) -∗
+              WP
+                ((intoVal
+                    (methods node.ty.PointerType
+                      go!"ForgetLeader" (intoVal n)))
+                  (intoVal (GoInterface.ok ctx)))
+                {{ Φ }}
 
 theorem RaftLink.node.wp_ReportUnreachable [package_sem : Assumptions] : node.ReportUnreachable.spec
   -- `Perennial.EtcdGrove.node.ReportUnreachable.spec`, unfolded:
@@ -558,18 +561,19 @@ theorem RaftLink.node.wp_ReportUnreachable [package_sem : Assumptions] : node.Re
 theorem RaftLink.node.wp_ReportSnapshot [package_sem : Assumptions] : node.ReportSnapshot.spec
   -- `Perennial.EtcdGrove.node.ReportSnapshot.spec`, unfolded:
   ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id to : w64) (status : SnapshotStatus),
-    ⊢
-      ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id -∗
-          ▷ (True -∗ Φ (intoVal ())) -∗
-            WP
-              (((intoVal
-                    (methods node.ty.PointerType
-                      go!"ReportSnapshot"
-                      (intoVal n)))
-                  (intoVal to))
-                (intoVal status))
-              {{ Φ }}
+    γ.trace = none →
+      ⊢
+        ∀ Φ,
+          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id -∗
+            ▷ (True -∗ Φ (intoVal ())) -∗
+              WP
+                (((intoVal
+                      (methods node.ty.PointerType
+                        go!"ReportSnapshot"
+                        (intoVal n)))
+                    (intoVal to))
+                  (intoVal status))
+                {{ Φ }}
 
 theorem RaftLink.wp_IsEmptyHardState [package_sem : Assumptions] : IsEmptyHardState.spec
   -- `Perennial.EtcdGrove.IsEmptyHardState.spec`, unfolded:
@@ -619,26 +623,27 @@ theorem RaftLink.node.wp_ProposeConfChange [package_sem : Assumptions] : node.Pr
   -- `Perennial.EtcdGrove.node.ProposeConfChange.spec`, unfolded:
   ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (c : GoInterface) (o : ConfChangeIM) (dq : DFrac)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-    ⊢
-      ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-            isNode n γ N id ∗
-              nodeCtx ctx cd ∗
-                ownConfChangeI c dq (some o) ∗
-                  □?γ.dup AU <{ ∃∃ ops, ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅ <{ ∀∀ t bs,
-                        ⌜MarshalsConfChange (some o) bs⌝ ∗
-                          ownCommittedOps γ
-                            (ops ++ opsOf [{ term := t, type := confChangeEntryType (some o), data := bs }]),
-                        COMM True }> -∗
-          (▷ ∀ err, ownConfChangeI c dq (some o) ∗ nodeErrS n γ N cd err -∗ Φ (intoVal err)) -∗
-            WP
-              (((intoVal
-                    (methods node.ty.PointerType
-                      go!"ProposeConfChange"
-                      (intoVal n)))
-                  (intoVal (GoInterface.ok ctx)))
-                (intoVal c))
-              {{ Φ }}
+    γ.trace = none →
+      ⊢
+        ∀ Φ,
+          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+              isNode n γ N id ∗
+                nodeCtx ctx cd ∗
+                  ownConfChangeI c dq (some o) ∗
+                    □?γ.dup AU <{ ∃∃ ops, ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅ <{ ∀∀ t bs,
+                          ⌜MarshalsConfChange (some o) bs⌝ ∗
+                            ownCommittedOps γ
+                              (ops ++ opsOf [{ term := t, type := confChangeEntryType (some o), data := bs }]),
+                          COMM True }> -∗
+            (▷ ∀ err, ownConfChangeI c dq (some o) ∗ nodeErrS n γ N cd err -∗ Φ (intoVal err)) -∗
+              WP
+                (((intoVal
+                      (methods node.ty.PointerType
+                        go!"ProposeConfChange"
+                        (intoVal n)))
+                    (intoVal (GoInterface.ok ctx)))
+                  (intoVal c))
+                {{ Φ }}
 
 theorem RaftLink.MemoryStorage.wp_SetHardState [package_sem : Assumptions] :
     MemoryStorage.SetHardState.spec

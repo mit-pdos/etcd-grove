@@ -4,12 +4,13 @@ The trace check's results (`examples/raft/tracecheck`, the closed program of
 `notes/trace-check-design.md` §1.2 and §1.3, word for word, each **from one open obligation**,
 `HarnessOpen`, with no `sorry`:
 
-* **`HarnessOpen`**: the traced node-API statements the harness's proof takes
-  (`HarnessDefs.lean`, `HarnessApi`: `StartNode.tracedSpec`, `stepIn_intro` with the token, the law
-  `trTok_type`, and over one sealed claim the traced receive of a `Ready` and the traced `Advance`),
-  at every instance context and storage model. They are steps 1 and 3-5 of the design's §9 (the
-  gated `node.run`, proved in raft's tree); nothing else is open. When they land, `HarnessOpen` is
-  a theorem and the two results below lose their `_of`.
+* **`HarnessOpen`**: the traced node-API statement the harness's proof still takes
+  (`HarnessDefs.lean`, `HarnessApi`): `StartNode.tracedSpec`, at every instance context and storage
+  model. Steps 3-5 of the design's §9 (the gated `node.run` and the traced constructors) prove it
+  (`StartNode.tracedSpec_of_gated`); nothing else is open. The other traced statements the harness
+  uses are proved since implementation step 1 (`stepIn_intro` with the token, `trTok_type`,
+  `isReadyChan_recvAu.tracedSpec_proof`, the linked `node.Advance.tracedSpec`, `TracedLinked.lean`).
+  When it lands, `HarnessOpen` is a theorem and the two results below lose their `_of`.
 * **`raft_tracecheck_safe_of`**: §1.2's `raft_tracecheck_safe` (no execution of the package's
   initialization then `Main()`, of `n + 2 ≤ 2^31` steps, panics or gets stuck; the main thread's
   result is `#()`), given the bootstrap log's facts and premises (`Defs.lean`). Everything `Main`
@@ -40,6 +41,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.belo
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.SyncRecorder__TraceEvent
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Link
 public import Proof.go_etcd_io.raft.v3.Linked
+public import Proof.go_etcd_io.raft.v3.TracedLinked
 public import Proof.go_etcd_io.raft.v3.Link
 public import Proof.context.WithTimeoutBackground
 public import Proof.google_golang_org.protobuf.proto.ClonePb
@@ -86,7 +88,7 @@ theorem tracecheck_Events_traceAccepts (Hrb : receiptBound GF ≤ 2 ^ 61) (c : L
   inext
   iintro %sl ⟨%L, #Hsl, %Hlen, %Hok⟩
   have hlen : (L.length : Int) < Etcdraft.numBound := by
-    unfold Etcdraft.numBound; omega
+    have := Hlen.lt_of_le Hrb; unfold Etcdraft.numBound; omega
   obtain ⟨-, -, -, -, -, -, -, -, hacc⟩ := mainPure_of_runOk L Hok hlen
   iapply HΦ
   iexists L
@@ -97,9 +99,9 @@ end corollary
 
 /-! ## The open obligation, and the harness linked over it -/
 
-/-- **The open obligation** (see the file header): the traced node-API statements the harness's
-proof takes (`HarnessApi`), at every instance context and storage model, as raft's linked results
-are stated. Steps 1 and 3-5 of `notes/trace-check-design.md` §9 prove them. -/
+/-- **The open obligation** (see the file header): the traced `StartNode` the harness's proof takes
+(`HarnessApi`), at every instance context and storage model, as raft's linked results are stated.
+Steps 3-5 of `notes/trace-check-design.md` §9 prove it. -/
 abbrev HarnessOpen : Prop :=
   ∀ [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] {GF : BundledGFunctors}
     [HeapGS HasLC.hasLC GF] [go.Semantics] [go_etcd_io.raft.v3.Assumptions] [StorageModel GF],
@@ -118,21 +120,20 @@ theorem tc_wp_RunConcurrent (h : HarnessOpen) : RunConcurrent.spec (GF := GF) (h
   have wp_app : ∀ [MemStorReg GF], Cluster.app.spec (GF := GF) (hG := hG) := by
     intro _
     letI : StorageModel GF := memStorageModel
-    obtain ⟨-, hSI, htt, claim, hRecv, hAdv⟩ := h (GF := GF)
     intro _
-    exact Cluster.app.wp_proof claim hRecv hAdv
+    exact Cluster.app.wp_proof RaftLink.node.wp_Advance_traced
       (Cluster.handleReady.wp_proof RaftLink.wp_IsEmptySnap RaftLink.wp_IsEmptyHardState
         RaftLink.MemoryStorage.wp_Append RaftLink.MemoryStorage.wp_SetHardState
         RaftLink.node.wp_ApplyConfChange raftpb.Entry.wp_GetType raftpb.Entry.wp_GetData
         raftpb.Entry.wp_GetIndex proto.wp_UnmarshalConfChange)
-      (Cluster.send.wp_proof hSI htt Cluster.replica.wp_proof raftpb.Message.wp_GetTo
+      (Cluster.send.wp_proof Cluster.replica.wp_proof raftpb.Message.wp_GetTo
         raftpb.Message.wp_GetType raftpb.Message.wp_GetFrom context.WithTimeoutBackground.wp_proof
         RaftLink.node.wp_Step RaftLink.node.wp_ReportUnreachable)
       below.wp_proof proto.ClonePb.wp_proof RaftLink.node.wp_Ready RaftLink.node.wp_Tick
   letI : MemStorReg GF := ⟨default⟩
   letI : StorageModel GF := memStorageModel
   intro _
-  exact RunConcurrent.wp_proof (fun {_} => (h (GF := GF)).1) wp_app
+  exact RunConcurrent.wp_proof (fun {_} => h (GF := GF)) wp_app
     (SyncRecorder.TraceEvent.wp_proof sync.Mutex.wp_Lock sync.Mutex.wp_Unlock) below.wp_proof
     RaftLink.wp_NewMemoryStorage RaftLink.MemoryStorage.wp_InitialState
     RaftLink.MemoryStorage.wp_LastIndex RaftLink.MemoryStorage.wp_FirstIndex
@@ -158,7 +159,7 @@ theorem raft_tracecheck_accepts_of (h : HarnessOpen) [ThreadBoundLe GF (2 ^ 31)]
           {{ v, ∃ (sl : GoSlice) (L : List TraceEv), ⌜v = #sl⌝ ∗ traceEventsRep sl L ∗
                 ⌜Etcdraft.TraceAccepts (L.map TraceSim.evConv) false false⌝ }} }} := by
   iintro %Φ ⟨#Hpkg, #Hcc, #Hprem⟩ HΦ
-  iapply (tc_wp_RunConcurrent h Hrb boot Hbf defaultCConfig workload_defaultCConfig) $$ [Hcc Hprem]
+  iapply (tc_wp_RunConcurrent h (tcRunFits.intro Hrb) boot Hbf defaultCConfig workload_defaultCConfig) $$ [Hcc Hprem]
   · iframe Hpkg Hcc Hprem
   inext
   iintro %c Hrun

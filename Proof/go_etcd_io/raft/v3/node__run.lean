@@ -329,7 +329,7 @@ theorem node.run.wp_proof
       iframe Hrn Hrest
     · -- a proposal forwarded by a peer (2026-10-10): no result channel
       iunfold fwdP at Hfwd
-      icases Hfwd with ⟨%st, Hm, %Hty, #Hm0, Htk⟩
+      icases Hfwd with ⟨%st, Hm, %Hty, #Hm0, Htk, -⟩
       icases msgPtsC_store_From _ _ _ _ $$ Hm with ⟨%pf, Hpf, Hback⟩
       wp_auto_lc 1
       imod cellRO_alloc $$ «$r0» with #c0
@@ -371,7 +371,7 @@ theorem node.run.wp_proof
     inext
     iintro %ml Hnet
     iunfold netP at Hnet
-    icases Hnet with (⟨%st, Hm, %Hok, #Hxf, #Hmsg, #Hsnap, #Hlbm, Hcred, Htc⟩ | Hhup)
+    icases Hnet with (⟨%st, Hm, %Hok, #Hxf, #Hmsg, #Hsnap, #Hlbm, Hcred, Htc, -⟩ | Hhup)
     rotate_left
     · -- (2026-10-29, stage U7) `Campaign`'s `MsgHup`: its tick credit raises the term ceiling by
       -- one, past the campaign's term (as a tick's)
@@ -1060,7 +1060,11 @@ theorem node.run.wp_proof
           · ipureintro; exact Hlo
           rw [← Hstor, ← Hsnγ]
           iexact Happ
-      -- the batch, cut
+      -- the batch, cut; (2026-11-12) the escrow's element, gated (untraced: nothing)
+      try imodintro
+      isplitl [Hdur Hbw1 Hpb Hmw]
+      rotate_left
+      · iapply gateTr_none _ _ HtrG
       unfold readyCut
       iexists (rs.dur, rs.role), readyDurable rs.dur (phsNext rs.phs h) L es, W, ss
       rw [Hgid]
@@ -1138,6 +1142,10 @@ theorem node.run.wp_proof
     -- back appended and raised; (D22 S-d4) or, after a snapshot `Ready`, with the loan's receipt
     iapply adv_recv_au γ nv.rn' id nv.advancec' _ $$ [$Hlc1 $Hlc2] Hadvancec [Hrn Hcfg Hrof Hdr]
     · iunfold advDep
+      isplitl
+      rotate_left
+      · iapply gateTr_none _ _ HtrG
+      iunfold advDep0
       iexists rs, d, ce
       iframe Hrn Hlb' Hcfg Hrof
       isplitl [Hdr]
@@ -1146,6 +1154,8 @@ theorem node.run.wp_proof
     inext
     iintro Hret
     iunfold advRet at Hret
+    icases Hret with ⟨Hret, -⟩
+    iunfold advRet0 at Hret
     icases Hret with ⟨%rs1, %ca_d, Hrn, #Hlb1, Hcfg, Hdlv, Hrofs, #Hcamlb, Hlr, Hdur, Hbw, #Hfr,
       Hfree, %Hr1, #HA⟩
     obtain ⟨Hstor1, Hunst1, Hunp1⟩ := Hr1

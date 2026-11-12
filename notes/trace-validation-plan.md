@@ -2707,6 +2707,41 @@ escrow as designed could not do its deposit (`np`/`pend` replaced by a halved `p
 P1); `TrNetTy` must move below `InvNodeChan` (P3); item 6 needs N1's statement change, which also changes
 the families' `lineF` (P6), not proved. Next: Probe A, then step 2 with P6's wider file list.
 
+**Implementation step 1 (2026-11-12, branch `trace-check-impl1`): the gates, in one landing**
+(`notes/decisions.md`, "Implementation step 1 (gates)"; the design's "Implementation step 1" section,
+I1-I9). Every sealed definition of §9's list a gate (a conjunct `gateTr`, `True` untraced) but
+`storBnd`: `stepP` through `fwdP`/`netP`, `readyP` (the claim's element), `advInv`/`advDep`/`advRet` (the
+escrow's request and `run`'s lent half), the escrow (`InvRtk.lean`, Probe B's, `pk` in halves) in
+`isNodeChan` through `isAdvChan`, `trTok` (raft's `sentTok`, I1); `handshake_send_au_fupd`;
+`stepIn_intro` with the token and the five refusals, every call site (server, kv, kvreconf, kvdurable)
+discharged from the cluster predicates' new untraced fact (I8); `isReadyChan_recvAu.tracedSpec` and
+`node.Advance.tracedSpec` proved for every cluster, `node.Advance.spec` its instance (I6);
+`Membership.applyChange_leaveJoint` (with `Restorable`, I5); Probe A over the real statements. No
+`sorry`, no axiom, no closed statement changed. Left (Q39): `storBnd`'s gate. Next: step 2 (merging
+with `trace-check-impl2`), then step 3, where the gate is first read.
+
+- **Q39 (2026-11-12, implementation step 1, I9): `storBnd`'s gate changes a closed kv result.** Gating
+  `storBnd` (Q6 item 8, the design's B2) makes kv's exported `kv_storage_isStorage`
+  (`examples/raft/kv/Results.lean`) need `Cluster.trace γ = none`. Options: (a) the kv result gains the
+  premise (every kv caller has it from `cluster_alloc`); (b) the gate moves into kv's own `kvJ` (the
+  closed text unchanged, its `memStorInvP` premise stronger); (c) `TrNoSnap`'s source at `setupNode`
+  (A4) found without the gate. Recommendation: (a). Not taken (a closed statement): step 1 adds
+  `storBnd_zero` and `storBnd_intro_untraced` only; nothing before step 3 reads the gate.
+
+  **Taken by the coordinator: (a)**, within the user's acceptance test (Q6: `interface/` may differ by "the
+  untraced clients' pure fact `γ.raft.reTrace = none`"); `kv_storage_isStorage` is an exported spec-level
+  result, not a closed adequacy theorem, and every kv caller has the fact from `cluster_alloc`.
+
+**Implementation step 2 (2026-11-12, branch `trace-check-impl2`): the path facts** (`notes/decisions.md`,
+"Implementation step 2 (path facts)"; the design's "Implementation step 2"). Every traced path's end
+resource carries the step's `OutTyStep` and the monotone booted flag, through `raft.Step.tracedTriple`,
+the ticks' traced triples and the `RawNode` traced triples; `OutOk` records `TrOutMsg` in scope;
+`TrNoSnap` is in its update form; lemma (i) and Probe B's item 6 are proved. Two gaps of the design
+fixed raft-internally: `AckEnd` reads `lt` and the read state, and the two read-index response paths
+filter their families (the design's `¬ ReadIdle` premise had no source). Not done: G3 (a) (its minting
+site sees no trace fact; its fold needs the decoder's value on the bootstrap entries). Next: G3 (a), then
+step 3.
+
 ## Order of work
 
 1. **S1 the Go for the proof**: the package split (C), the core rewritten without `fmt` and
@@ -3118,14 +3153,14 @@ theorem `bootEnd`. Not done: minting at the end of `setupNode`, which waits on t
 `newRaft`/`Bootstrap` (§5.2 of `notes/trace-check-design.md`). No axiom, no `sorry`, no closed statement
 changed. Reviews `a8-r1.md` (no first-tier finding), `a8-r2.md` (`notes/decisions.md`, "Amendment A8 (Q36, Q37)").
 
-**The harness (2026-11-12, branch `trace-check-harness`): done over the node API's traced statements.**
+**The harness (2026-11-12, branch `trace-check-harness`): done over the traced `StartNode`.**
 `RunConcurrent`, `app`, `handleReady`, `send` and the drivers are proved (layer D,
 `notes/trace-check-design.md` §2), with the network's join over the raw `WaitGroup` under
 `ThreadBoundLe GF (2^31)` (Q34), `0 < Tick` in `Workload` (Q35) and the existing `strconv.Itoa` axiom
-(Q33). `Results.lean` states the design's §1.2 and §1.3 word for word, each from one hypothesis
-`HarnessOpen` (`raft_tracecheck_safe_of`, `raft_tracecheck_accepts_of`): the traced statements steps 1
-and 3-5 of the design's §9 prove (`StartNode.tracedSpec`, `stepIn_intro` with the token, `trTok_type`,
-the traced `Ready` receive and `Advance` over one claim). No axiom, no `sorry`. The empty
-`ConfChangeV2` arm is refuted rather than applied, so `Membership.applyChange_leaveJoint` is not needed
-(`notes/decisions.md`, "The harness (RunConcurrent)"). Left: B4 (`PbMessage.lean` into raft's tree), and
-`tc_storBnd_zero` to replace by step 1's `storBnd_zero`.
+(Q33), over step 1's traced statements (`stepIn_intro` with the token, `trTok_type`, the traced `Ready`
+receive and `node.Advance`). `Results.lean` states the design's §1.2 and §1.3 word for word, each from
+one hypothesis `HarnessOpen` (`raft_tracecheck_safe_of`, `raft_tracecheck_accepts_of`): the traced
+`StartNode.tracedSpec`, which steps 3-5 prove. No axiom, no `sorry`. The empty `ConfChangeV2` arm is
+refuted rather than applied (`notes/decisions.md`, "The harness (RunConcurrent)"). Left: B4
+(`PbMessage.lean` into raft's tree), and `tc_storBnd_zero` to replace by `storBnd_zero` once
+`storBnd` is gated.

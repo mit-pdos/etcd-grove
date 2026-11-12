@@ -107,28 +107,28 @@ theorem ownStepGhost_traceBound (γ : RaftNames) (md : GMode) (c : CfgM) (id : w
 pinned, the `SendAppendEntriesRequest` line fired (`trCapB_hookGateOpt`: `phaseStepB_heartbeat_pin`,
 `fxPres_heartbeat_pin`), the share unpinned at the outbox with the heartbeat. -/
 theorem lineF_heartbeat (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
-    (Λ : Option TraceEv → Prop) (to cm : w64) (cl : List w8) (o : List Msg)
+    (Λ : Option TraceEv → Prop) (to cm : w64) (cl : List w8) (o : List Msg) {bt : Bool}
     (htr : s.gh.tr = some γd) (hlead : s.role = .leader) (hne : to ≠ id)
     (hdom : to ∈ c.voters ∪ c.learners) (hlrn : c.learners = ∅)
     (hcm : uint.Z cm = min (uint.Z s.logst.committed) (uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))))
     (hT : uint.Z s.term + 1 < traceNumBound) (hfit : receiptBound GF + γ.reBoot.length ≤ traceNumBound) :
-    lineF (GF := GF) γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) o ⊢
+    lineF (GF := GF) γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) bt o ⊢
       HookGateOpt s.gh.tr r
         (sendOutGate id s c MsgHeartbeat [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl])
-        (lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ)
+        (lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) bt
           (o ++ [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl])) := by
   unfold lineF trFam
   rw [htr, sendOutGate_one id s c MsgHeartbeat _ (W64 9) rfl]
-  iintro ⟨Hgh, ⟨%bt, Hf⟩, %Hok⟩
+  iintro ⟨Hgh, ⟨%b0, -, Hf⟩, %Hok⟩
   iapply hookGateOpt_fupd
   imod ownStepGhost_traceBound (GF := GF) γ md c id s hfit $$ Hgh with ⟨%Hb, Hgh⟩
-  icases trCapB_out γd γ r id c bt _ _ $$ Hf with ⟨%Hout, Hf⟩
-  icases trCapB_pinMem γd γ r id c bt _ _ $$ Hf with ⟨%C0, %cs0, %P0, %HΦ0, Hf⟩
-  icases trCapB_logger γd γ r id c bt _ _ $$ Hf with ⟨%tl, #Htl, Hf⟩
+  icases trCapB_out γd γ r id c b0 _ _ $$ Hf with ⟨%Hout, Hf⟩
+  icases trCapB_pinMem γd γ r id c b0 _ _ $$ Hf with ⟨%C0, %cs0, %P0, %HΦ0, Hf⟩
+  icases trCapB_logger γd γ r id c b0 _ _ $$ Hf with ⟨%tl, #Htl, Hf⟩
   obtain ⟨ma0, hma⟩ : ∃ ma0, TraceSim.msgAbs C0 C0.length
       (Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl) = some ma0 := ⟨_, rfl⟩
   have hto := mem_incoming_of c to hlrn Hout hdom
-  icases trCapB_pinPerm γd γ r id c bt _ _ C0 (fun _ _ _ h => h.1) $$ Hf with ⟨%hperm0, Hf⟩
+  icases trCapB_pinPerm γd γ r id c b0 _ _ C0 (fun _ _ _ h => h.1) $$ Hf with ⟨%hperm0, Hf⟩
   have hcmle : uint.Z cm ≤ uint.Z s.logst.committed := by rw [hcm]; exact Int.min_le_left _ _
   have hTn : uint.nat s.term < traceNumBound := by word
   have hcn : uint.nat cm < traceNumBound := by have := Hb.1; word
@@ -145,10 +145,11 @@ theorem lineF_heartbeat (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (
     iframe Hgh
     isplitl [Hc]
     · iexists true
+      isplitr; · ipureintro; exact fun _ => rfl
       iapply trCapB_mono (some γd) γ r id c true _ _ _ (fun _ _ _ h => h.2.2.2) $$ Hc
     ipureintro
-    exact outOk_snoc Hok (heartbeat_trOk id to s.term cm cl hTn hcn)
-  iapply trCapB_hookGateOpt (some γd) γ r id c tl _ bt (PinAt s C0 cs0 P0 o) _ (stepLastEv Λ) (stepLastEv Λ)
+    exact outOk_snocT Hok (heartbeat_trOk id to s.term cm cl hTn hcn) rfl
+  iapply trCapB_hookGateOpt (some γd) γ r id c tl _ b0 (PinAt s C0 cs0 P0 o) _ (stepLastEv Λ) (stepLastEv Λ)
     iprop(emp) (phaseStepB_heartbeat_pin id c s o to cm cl C0 cs0 P0 ma0 hma hlead hne hto hcm)
     (fun e he => sendEvOf_notBoot he (by decide) (by decide) (by decide))
     (fun e _ => .inr rfl)
@@ -203,15 +204,15 @@ theorem msgBeat_ne :
 def beatR (bt : Bool) (γ : RaftNames) (md : GMode) (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (Λ : Option TraceEv → Prop) : StepG GF where
   G := trCapB s.gh.tr γ r id c bt (fun C => SimIdle C s) Λ
-  G0 := lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ)
-  G1 := lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ)
-  GE := lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ)
+  G0 := lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) bt
+  G1 := lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) bt
+  GE := lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) bt
   Gf := iprop(⌜False⌝)
   Gb1 := iprop(⌜False⌝)
   Gb2 := iprop(⌜False⌝)
   Gp1 := iprop(⌜False⌝)
-  Gp2 := lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ)
-  Gc := fun _ _ => lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ)
+  Gp2 := lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) bt
+  Gc := fun _ _ => lineF γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) bt
 
 /-- The end state of a `LocalBeat` path (`StepEnd`, traced): the heartbeats queued, the `Match` values
 unchanged. -/
@@ -336,7 +337,7 @@ theorem stepBundle_traced_beat : stepBundle_traced.on (GF := GF) (hG := hG) Loca
         · imodintro; iintro %h; exact (nAR h.1).elim
         · imodintro; iintro %h; exact (nAR h.1).elim
     · ipureintro
-      exact ⟨lineF_permInv γ md c r id s _ _, IdxFree.of_some _ hsome, IdxFree.of_some _ hsome,
+      exact ⟨lineF_permInv γ md c r id s _ _ _, IdxFree.of_some _ hsome, IdxFree.of_some _ hsome,
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: the heartbeats queued, the `Match` values unchanged; the share re-ordered
     -- (slice 23a) a close at `s`
@@ -346,12 +347,12 @@ theorem stepBundle_traced_beat : stepBundle_traced.on (GF := GF) (hG := hG) Loca
     obtain ⟨ms, pvs, rfl, hm⟩ := localBeat_end hp hns hpre (hend (by rw [htr]; rfl))
     have hS : ∀ C, SimIdleS C s = SimIdleS C { sendMsgs s ms with prvals := pvs } :=
       fun C => (simIdleS_prvals C s ms pvs hm).symm
-    ihave H : lineF (GF := GF) γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ)
+    ihave H : lineF (GF := GF) γ md c r id s (fun C => SimIdleS C s) (stepLastEv Λ) bt
       ({ sendMsgs s ms with prvals := pvs } : NState).outbox $$ [Hout]
     · unfold stepOut
       dsimp only [beatR]
       icases Hout with (H | H | H | H | ⟨%b, %N, H⟩) <;> iexact H
-    iapply lineF_close γ md c r id s _ (stepLastEv Λ) hS $$ H
+    iapply lineF_close γ md c r id s _ (stepLastEv Λ) bt hS (TrScope.congr rfl rfl rfl) $$ H
 
 /-- A local message's token: nothing (an untraced type; `recvTokOf` asks only of a traced one). -/
 theorem recvTokOf_untraced (γd : GName) (m : MessageM) (ents : List EntryM) (ctx : List w8)
@@ -387,7 +388,10 @@ abbrev raft.tickHeartbeat.tracedTriple : Prop :=
       "%Hcm" ∷ ⌜uint.Z s.logst.committed ≤ uint.Z s'.logst.committed ∧
         PVoteLe (toPState s) (toPState s')⌝ ∗
       "%Htick" ∷ ⌜TickStep s s'⌝ ∗
-      "Hcap" ∷ ∃ bt' : Bool, trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ) }}
+      -- (2026-11-12, implementation step 2) the step's `OutTyStep` and the flag monotone (design N1)
+      "%Houtty" ∷ ⌜OutTyStep s s'⌝ ∗
+      "Hcap" ∷ ∃ bt' : Bool, ⌜bt = true → bt' = true⌝ ∗
+        trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ) }}
 
 /-- `raft.tickHeartbeat.spec`'s traced instance (see `raft.tickHeartbeat.tracedTriple`). -/
 theorem raft.tickHeartbeat.traced (h : raft.tickHeartbeat.spec (GF := GF) (hG := hG)) :
@@ -397,7 +401,8 @@ theorem raft.tickHeartbeat.traced (h : raft.tickHeartbeat.spec (GF := GF) (hG :=
   icases ownRaftPhysC_dom c r id s $$ Hphys with ⟨%Hsub, Hphys⟩
   iapply h c md γ r id s (beatR bt γ md c r id s Λ)
     (fun s1 => iprop(⌜s1 = s⌝ ∗ trCapB s.gh.tr γ r id c bt (fun C => SimIdle C s) Λ))
-    (fun s' => iprop(∃ bt' : Bool, trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ))) Hwf Hpc
+    (fun s' => iprop(⌜OutTyStep s s'⌝ ∗ ∃ bt' : Bool, ⌜bt = true → bt' = true⌝ ∗
+      trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ))) Hwf Hpc
     $$ [Hphys Hghost Hcap]
   · iframe Hinit Hphys Hghost
     isplitl [Hcap]
@@ -431,8 +436,14 @@ theorem raft.tickHeartbeat.traced (h : raft.tickHeartbeat.spec (GF := GF) (hG :=
       (by refine ⟨fun h => ?_, fun h => ?_, fun h => ?_, fun ty h => by rw [hmt] at h; cases h⟩ <;>
             rw [hb] at h <;> simp [MsgBeat, MsgHeartbeat, MsgHeartbeatResp, MsgVote, MsgApp] at h)
       (fun h => by rw [hb] at h; simp [MsgBeat, MsgHeartbeat, MsgApp] at h)
+    have h12 : OutTyStep s s2 := by rcases hs2 with rfl | rfl <;> first | exact OutTyStep.refl _ | exact OutTyStep.ltZero _
     rw [hS2, hgh, hls2] at hgo
-    iapply hgo
+    have hgo' := stepBundle_close_conv
+      (G2 := fun s' => iprop(⌜OutTyStep s s'⌝ ∗ ∃ bt' : Bool, ⌜bt = true → bt' = true⌝ ∗
+        trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ)))
+      (fun s' => outTyStep_gout_trans (by rw [hgh]) h12 (fun s' => iprop(∃ bt' : Bool, ⌜bt = true → bt' = true⌝ ∗
+        trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ))) s') hgo
+    iapply hgo'
     iframe Hc Htok Hnosnap
     imodintro; iintro %ty %h; rw [hmt] at h; exact absurd h.1 (by simp)
   inext
@@ -446,14 +457,18 @@ theorem raft.tickHeartbeat.traced (h : raft.tickHeartbeat.spec (GF := GF) (hG :=
   · ipureintro; exact Hcm
   isplitr
   · ipureintro; exact Htick
-  icases HG with (⟨%s1, %Hs', %Hs1, Hc⟩ | Hc)
+  icases HG with (⟨%s1, %Hs', %Hs1, Hc⟩ | ⟨%Hty, Hc⟩)
   · subst s1
     have hS : (fun C => SimIdle C s') = (fun C => SimIdle C s) := by
       rcases Hs' with rfl | rfl <;> rfl
+    have hT : OutTyStep s s' := by rcases Hs' with rfl | rfl <;> first | exact OutTyStep.refl _ | exact OutTyStep.ltZero _
     rw [hS]
+    isplitr; · ipureintro; exact hT
     iexists bt
+    isplitr; · ipureintro; exact fun h => h
     iapply trCapB_monoΛ s.gh.tr γ r id c bt _ Λ (stepLastEv Λ) (fun o h => .inl h) $$ Hc
-  · iexact Hc
+  · isplitr; · ipureintro; exact Hty
+    iexact Hc
 
 end gates
 

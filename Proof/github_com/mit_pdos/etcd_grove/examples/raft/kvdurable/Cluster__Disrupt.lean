@@ -97,7 +97,7 @@ theorem Cluster.Disrupt.wp_proof (wp_sleep : sleep.spec (GF := GF) (hG := hG))
       iunfold isReplica at Hrep2
       icases Hrep2 with ⟨-, -, #Hid2, -⟩
       try wp_auto
-      wp_apply wp_TransferLeadership n γ.r.cluster kdRaftN id _ _ ctx' cd
+      wp_apply wp_TransferLeadership n γ.r.cluster kdRaftN id _ _ ctx' cd Htr0
         $$ [$Hraftinit $HisNode $Hnc]
       try wp_auto
       wp_apply Hcancel
@@ -115,7 +115,7 @@ theorem Cluster.Disrupt.wp_proof (wp_sleep : sleep.spec (GF := GF) (hG := hG))
       iframe
     · -- the leader forgotten
       try wp_auto
-      wp_apply wp_ForgetLeader n γ.r.cluster kdRaftN id ctx' cd $$ [$Hraftinit $HisNode $Hnc]
+      wp_apply wp_ForgetLeader n γ.r.cluster kdRaftN id ctx' cd Htr0 $$ [$Hraftinit $HisNode $Hnc]
         as %err -
       try wp_auto
       wp_apply Hcancel

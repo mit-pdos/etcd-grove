@@ -116,8 +116,9 @@ theorem Replica.read.wp_proof
   · unfold isHandoff; icases Hho with ⟨$, -⟩
   ihave #Hctx' := Hctx
   iNamed Hctx'
+  ihave %Htr0 := kdCluster_untraced γ vs $$ Hcl
   wp_apply wp_node_ReadIndex n γ.r.cluster kdRaftN id b (readCtxB id seq key)
-    (fun _ => iprop(True)) ctx' cd $$ [$Hraftinit $HisNode $Hnc $Hb $Hrc] as %err -
+    (fun _ => iprop(True)) ctx' cd Htr0 $$ [$Hraftinit $HisNode $Hnc $Hb $Hrc] as %err -
   try wp_auto
   wp_apply +noauto HDone as %ch1 %γ1 #Hdone
   wp_auto_lc 1

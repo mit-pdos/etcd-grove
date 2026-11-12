@@ -1265,7 +1265,15 @@ theorem stepBundle_traced_staleRecv : stepBundle_traced.on (GF := GF) (hG := hG)
       exact ⟨fun _ _ _ => rfl, IdxFree.of_some _ hsome, IdxFree.of_some _ hsome,
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: the end state is `s`
-    iapply stepClose_anyB
+    have hoty : ∀ s', (s.gh.tr.isSome → StepEnd c id m ents ctx s s') → OutTyStep s s' := by
+      intro s' hend
+      rcases ((hend (by rw [htr]; rfl)) hty).1 hst with rfl | ⟨ty', mm, hlow, -⟩
+      · exact OutTyStep.refl _
+      · exfalso
+        rcases hlow with ⟨-, h, -⟩ | ⟨-, h, -⟩
+        · rw [hpv, hcq] at h; simp at h
+        · exact hnpv h
+    iapply stepClose_anyB_end hoty
     -- (slice 23a) a close at `s`
     iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_traced hmty htrd)
     iunfold stepCloseAt
@@ -1455,7 +1463,12 @@ theorem stepBundle_traced_ignResp : stepBundle_traced.on (GF := GF) (hG := hG) I
       exact ⟨fun _ _ _ => rfl, IdxFree.of_some _ hsome, IdxFree.of_some _ hsome,
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: the end state is `s`
-    iapply stepClose_anyB
+    have hoty : ∀ s', (s.gh.tr.isSome → StepEnd c id m ents ctx s s') → OutTyStep s s' := by
+      intro s' hend
+      obtain ⟨pvs, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
+      rw [hpre pvs] at h
+      rw [ignResp_end hp h]; exact OutTyStep.refl _
+    iapply stepClose_anyB_end hoty
     -- (slice 23a) a close at `s`
     iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => (by obtain ⟨ty, h1, h2, -⟩ := hp.2; rcases h2 with rfl | rfl | rfl <;> exact CloseAt.of_traced h1 rfl))
     iunfold stepCloseAt
@@ -1656,7 +1669,14 @@ theorem stepBundle_traced_voteReq : stepBundle_traced.on (GF := GF) (hG := hG) V
       exact ⟨fun _ _ _ => rfl, IdxFree.of_some _ hsome, IdxFree.of_some _ hsome,
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: raft's vote, the specification's
-    iapply stepClose_anyB
+    have hoty : ∀ s', (s.gh.tr.isSome → StepEnd c id m ents ctx s s') → OutTyStep s s' := by
+      intro s' hend
+      have hve : VoteEnd id s m s' := by
+        rcases ((hend (by rw [htr]; rfl)) hty).2.2.1 hns hTy with ⟨h, -⟩ | ⟨pvs, h⟩
+        · rw [hcq] at h; cases h
+        · rw [hpre pvs] at h; exact h
+      exact outTyStep_voteEnd hTy hve
+    iapply stepClose_anyB_end hoty
     -- (slice 23a) a close at `s`
     iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_traced hmty htrd)
     iunfold stepCloseAt

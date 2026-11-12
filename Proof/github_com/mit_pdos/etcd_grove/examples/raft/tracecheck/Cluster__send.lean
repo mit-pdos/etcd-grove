@@ -5,9 +5,9 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/Cluster__
 `c.net.Add(1)` deposits the caller's thread token (`netJoin.wp_Add_of`); the `go` gives the caller a
 fresh one (`wp_fork_tok_self`). The goroutine: its deferred `c.net.Done()` hands its slot's token
 back (`netJoin.wp_Done_of`), the token it exits with. Before stepping, the message's token says it is
-no `MsgSnap` (`TrTokType`, at a traced cluster), so both `ReportSnapshot` branches are dead. The
+no `MsgSnap` (`trTok_type`, at a traced cluster), so both `ReportSnapshot` branches are dead. The
 destination `c.replica(m.GetTo())` is the replica of that id (`replicaOf`); for a delivered message
-`stepIn_intro` (with the token, `StepInIntroTr`) makes the message `node.Step`'s.
+`stepIn_intro` (with the token) makes the message `node.Step`'s.
 -/
 module
 
@@ -56,7 +56,6 @@ theorem replicaOf_some (rs : List Loc) (id : w64) (h : replicaOf rs id ≠ null)
     word
 
 theorem Cluster.send.wp_proof
-    (hSI : StepInIntroTr (GF := GF)) (htt : TrTokType (GF := GF))
     (wp_replica : Cluster.replica.spec (GF := GF) (hG := hG))
     (wp_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hG := hG))
     (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
@@ -76,7 +75,7 @@ theorem Cluster.send.wp_proof
   ihave #Hraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   -- the message is no `MsgSnap` (its token, at the traced cluster)
-  icases htt W.cl st $$ Htok with ⟨Htok, %Hty0⟩
+  icases trTok_type W.cl st $$ Htok with ⟨Htok, %Hty0⟩
   have Hty : st.msg.Type' ≠ W32 7 := Hty0 (by rw [Hpure.2.2.1]; simp)
   ihave #Hsrc' := Hsrc
   iunfold repNode at Hsrc'
@@ -137,7 +136,7 @@ theorem Cluster.send.wp_proof
           try wp_auto
           ihave #Hloc := snapLocalMsg_noDir (GF := GF) W.cl st.msg.To'
             (by rw [Hpure.2.2.2.1]) st
-          imod hSI W.cl tcRaftN st.msg.To' ml sid st rfl $$ [Hm Hcr Htok] with Hstep
+          imod stepIn_intro W.cl tcRaftN st.msg.To' ml sid st rfl $$ [Hm Hcr Htok] with Hstep
           · iframe Hs Hm Hcr Hloc Htok
           wp_apply wp_Step nd W.cl tcRaftN st.msg.To' ml ctx cd $$ [Hstep] as %err -
           · iframe Hdnode Hstep

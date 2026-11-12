@@ -59,6 +59,8 @@ private abbrev node.TransferLeadership.specRaw : Prop :=
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   -- (raft-final, 2026-10-29, U9: until then outside the cluster's no-transfer mode,
   -- `γ.raft.reNoXfer = false`; `netP_local` no longer needs it)
+  -- (2026-11-12, trace-check implementation step 1) refused at a traced node
+  γ.raft.reTrace = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗ nodeCtx ctx cd }}
     (App (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"TransferLeadership"))
       (Val #(interface.ok ctx))) (Val #lead)) (Val #transferee))
@@ -83,7 +85,7 @@ into `msgIn` by `msgIn_of_scalar_struct`; `MsgTransferLeader.Enum()` is a new ca
 private theorem node.TransferLeadership.wp_raw
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     node.TransferLeadership.specRaw (GF := GF) (hG := hG) := by
-  intro γ id n lead transferee ctx cd
+  intro γ id n lead transferee ctx cd Htr
   wp_start as ⟨#Hnode, #Hctx⟩
   ihave #Hnode' := Hnode
   open_node Hnode'
@@ -119,7 +121,7 @@ private theorem node.TransferLeadership.wp_raw
     · iapply isHandshake_isChan $$ Hrecvc
     iapply handshake_send_au γ.recvc nv.recvc' _ (netP γ id) iprop(True)
       $$ [$Hlc1 $Hlc2 $Hlc3] Hrecvc [Hmsg Hcr Htc]
-    · iapply netP_local γ id _ _ (.inl rfl) rfl rfl rfl rfl
+    · iapply netP_local γ id _ _ (.inl rfl) rfl rfl rfl rfl (.inl Htr)
         $$ Hmsg Hlb Hcr Htc
     inext
     iintro -
@@ -170,11 +172,11 @@ private theorem node.wp_TransferLeadership_impl
     (hT : EtcdGrove.node.TransferLeadership.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.TransferLeadership.spec (GF := GF) (hG := hG) := by
   unfold EtcdGrove.node.TransferLeadership.spec EtcdGrove.Cluster EtcdGrove.isNode
-  intro n γ N id lead transferee ctx cd
+  intro n γ N id lead transferee ctx cd Htr
   iintro %Φ ⟨#Hinit, #Hnode, #Hctx⟩ HΦ
   iunfold isNode at Hnode
-  icases Hnode with ⟨%γn, -, #Hrn, -⟩
-  iapply (hT γn id n lead transferee ctx cd) $$ []
+  icases Hnode with ⟨%γn, %Hf, #Hrn, -⟩
+  iapply (hT γn id n lead transferee ctx cd (by rw [Hf.1]; exact Htr)) $$ []
   · iframe Hinit Hrn Hctx
   iexact HΦ
 

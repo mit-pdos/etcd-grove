@@ -14,12 +14,12 @@ and its events have the facts the simulation keeps: `MainPure.lean`).
 The premises: package initialization, `context`'s `isClosedchanInit` (the proposer's
 `context.WithTimeout(context.Background(), ...)`, as `raft_kv.Main.spec`), the bootstrap log's facts
 and premise (`tracecheck.BootLogFacts boot`, `tracecheck.premises boot`: `proto.Marshal`'s contract
-at its conf changes, `Defs.lean`), the time receipts' bound past the bootstrap log
-(`receiptBound GF + 3 ≤ 2^61`: the traced cluster's `cluster_alloc` with the voters' three bootstrap
-entries, raft's `readyFits`), and the thread bound `ThreadBoundLe GF (2^31)` (the network's
-`sync.WaitGroup` counts a goroutine per message in flight, and panics past `2^31`: `NetJoin.lean`).
-With the adequacy theorem's `receiptBound = n + 1` and `threadBound = n + 2`, executions of
-`n + 2 ≤ 2^31` steps (Q38, 2026-11-11).
+at its conf changes, `Defs.lean`), the time receipts' bound past the bootstrap log (`tcRunFits GF`,
+`receiptBound GF + 3 ≤ 2^61`, named since 2026-11-12, `Fits.lean`: the traced cluster's
+`cluster_alloc` with the voters' three bootstrap entries, raft's `readyFits`), and the thread bound
+`ThreadBoundLe GF (2^31)` (the network's `sync.WaitGroup` counts a goroutine per message in flight,
+and panics past `2^31`: `NetJoin.lean`). With the adequacy theorem's `receiptBound = n + 1` and
+`threadBound = n + 2`, executions of `n + 2 ≤ 2^31` steps (Q38, 2026-11-11).
 
 Proved (2026-11-12, `Proof/.../tracecheck/RunConcurrent.lean`), over the traced node API's
 statements (`HarnessDefs.lean`, `HarnessApi`; `Results.lean`, `HarnessOpen`).
@@ -30,6 +30,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Reco
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.MainPure
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Defs
 public import Perennial.ProgramLogic.Bounds
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Fits
 
 @[expose] public section
 
@@ -82,7 +83,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.
 
 /-- See the file header. -/
 abbrev RunConcurrent.spec : Prop :=
-  ∀ [ThreadBoundLe GF (2 ^ 31)], receiptBound GF + 3 ≤ 2 ^ 61 →
+  ∀ [ThreadBoundLe GF (2 ^ 31)], tcRunFits GF →
   ∀ (boot : List LogEntry), tracecheck.BootLogFacts boot →
   ∀ (cfg : G.CConfig), Workload cfg →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck ∗

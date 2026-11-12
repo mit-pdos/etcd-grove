@@ -529,7 +529,37 @@ theorem stepBundle_traced_candAppSR (b : Bool) : stepBundle_traced.on (GF := GF)
       exact ⟨fun _ _ _ => rfl, IdxFree.of_some _ hsome, IdxFree.of_some _ hsome,
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: raft's step-down and stale or rejecting handling, the specification's
-    iapply stepClose_anyB
+    have hoty : ∀ s', (s.gh.tr.isSome → StepEnd c id m ents ctx s s') → OutTyStep s s' := by
+      intro s' hend
+      obtain ⟨pvs, ht, hint, hhi, hht, hse⟩ : ∃ (pvs : GMap w64 Progress) (ht hint : w64),
+          uint.Z hint ≤ uint.Z m.Index' ∧ uint.Z ht ≤ uint.Z m.LogTerm' ∧
+          s' = sendMsgs ({ becomeFollower s s.term m.From' with prvals := pvs } : NState)
+            [appResp id ({ becomeFollower s s.term m.From' with prvals := pvs } : NState)
+              m.From' (!b) (if b then s.logst.committed else m.Index')
+              (if b then W64 0 else ht) (if b then W64 0 else hint)] := by
+        obtain ⟨pvs0, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
+        rw [hpre pvs0] at h
+        obtain ⟨scfg, sv, d, c', hf⟩ := h.2.1 (.inl hrole)
+        unfold CandidateStepResultC at hf
+        obtain ⟨-, hf⟩ := hf
+        rw [hTy] at hf
+        simp [MsgVoteResp, MsgProp, MsgApp] at hf
+        obtain ⟨-, pvs, hf⟩ := hf
+        unfold HandleAppResult at hf
+        try simp only at hf
+        cases b with
+        | true =>
+          rcases hf with ⟨-, h⟩ | ⟨h, -⟩ | ⟨h, -⟩
+          · exact ⟨pvs, W64 0, W64 0, by simp, by simp, h⟩
+          · exact absurd h (by show ¬ uint.Z s.logst.committed ≤ uint.Z m.Index'; have := hstl rfl; omega)
+          · exact absurd h (by show ¬ uint.Z s.logst.committed ≤ uint.Z m.Index'; have := hstl rfl; omega)
+        | false =>
+          rcases hf with ⟨h, -⟩ | ⟨-, lastnewi, es', ls', h, -⟩ | ⟨-, -, hint, ht, hrh, hht, h⟩
+          · exact absurd h (by show ¬ uint.Z m.Index' < uint.Z s.logst.committed; have := (hrjc rfl).1; omega)
+          · exact absurd (plogMaybeAppend_matches h) (hrjc rfl).2
+          · exact ⟨pvs, ht, hint, hrh.1, hht, h⟩
+      subst hse; outty_tac
+    iapply stepClose_anyB_end hoty
     -- (slice 23a) a close at `s`
     iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_traced hmty rfl)
     iunfold stepCloseAt

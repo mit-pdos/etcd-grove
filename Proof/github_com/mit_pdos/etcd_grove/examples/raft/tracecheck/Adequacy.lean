@@ -135,7 +135,7 @@ theorem tracecheck_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
   ihave #Hcc : context.isClosedchanInit (GF := tcGF) $$ []
   · iapply context.isClosedchanInit_of_init
     iPkgInit
-  wp_apply (wp_Main Hbound boot Hbf) $$ [Hpkg Hcc Hprem']
+  wp_apply (wp_Main (TraceCheck.tcRunFits.intro Hbound) boot Hbf) $$ [Hpkg Hcc Hprem']
   · iframe #
   ipureintro
   rfl

@@ -61,6 +61,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 private abbrev node.ReadIndex.specRaw : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc) (rctx : GoSlice) (c : List w8) (Lc : List EntryM)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+  -- (2026-11-12, trace-check implementation step 1) refused at a traced node
+  γ.raft.reTrace = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗
       nodeCtx ctx cd ∗ rctx ↦*□ c ∗ readReq γ.raft c Lc ∗
       -- (raft-final, the design's §2.7, §2.9) the read credit for a time receipt, which `ReadIndex`
@@ -89,7 +91,7 @@ private theorem node.ReadIndex.wp_raw
     (wp_node_step : node.step.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     node.ReadIndex.specRaw (GF := GF) (hG := hG) := by
-  intro γ id n rctx c Lc ctx cd
+  intro γ id n rctx c Lc ctx cd Htr
   wp_start as ⟨#Hnode, #Hctx, #Hrctx, #Hrq, Hcred⟩
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
   -- (raft-final) the read credit, from a time receipt of a Go step of its own (`MsgReadIndex.Enum()`'s
@@ -184,7 +186,9 @@ private theorem node.ReadIndex.wp_raw
     isplitl [Hcred]
     · iexact Hcred
     rw [ite_eq_right (show (W32 15 : w32) ≠ MsgTimeoutNow by simp [MsgTimeoutNow])]
-    iexact Hz
+    iframe Hz
+    -- (2026-11-12, trace-check implementation step 1) `netP`'s gate, untraced (the refusal)
+    iapply netGate_none _ _ Htr
   iintro %err #Herr
   wp_auto
   iapply HΦ
@@ -208,13 +212,13 @@ private theorem node.wp_ReadIndex_impl
     (hR : EtcdGrove.node.ReadIndex.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.ReadIndex.spec (GF := GF) (hG := hG) := by
   unfold EtcdGrove.node.ReadIndex.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.isReadCtx
-  intro n γ N id rctx c Q ctx cd
+  intro n γ N id rctx c Q ctx cd Htr
   iintro %Φ ⟨#Hinit, #Hnode, #Hctx, #Hrctx, #Hrc⟩ HΦ
   iunfold isNode at Hnode
   icases Hnode with ⟨%γn, %Hf, #Hrn, #Htab, #Hci, #Hpool, -⟩
   have Hγr := Hf.1
   imod api_read_ensure γ N c Q $$ Hci Hrc with ⟨%Lc, #Hrq⟩
-  iapply (hR γn id n rctx c Lc ctx cd) $$ []
+  iapply (hR γn id n rctx c Lc ctx cd (by rw [Hγr]; exact Htr)) $$ []
   · iframe Hinit Hrn Hctx Hrctx
     rw [Hγr]
     iframe Hrq

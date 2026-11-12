@@ -290,7 +290,8 @@ theorem RunConcurrent.wp_proof
     (wp_Itoa : strconv.Itoa.spec (GF := GF) (hG := hG))
     (wp_WT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG)) :
     RunConcurrent.spec (GF := GF) (hG := hG) := by
-  intro _ Hrb boot Hbf cfg Hwl
+  intro _ Hrb0 boot Hbf cfg Hwl
+  have Hrb := Hrb0.le
   wp_start as ⟨#Hcc, #Hprem⟩
   ihave #Hsy : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

@@ -76,6 +76,7 @@ theorem stepIn_of_recv (γn : NetNames GF) (γ : RNNames) (HN : γn.N = srvNet �
   simp only at HN
   subst HN
   iintro ⟨#Hcl, Hr⟩
+  ihave %Htr := srvClusterOk_untraced (γ := γ.srv) $$ Hcl
   iunfold srvClusterOk at Hcl
   icases Hcl with ⟨-, -, -, -, -, -, -, %Hcsl⟩
   iunfold netRecv at Hr
@@ -98,8 +99,9 @@ theorem stepIn_of_recv (γn : NetNames GF) (γ : RNNames) (HN : γn.N = srvNet �
     iapply (nodeSnapLocal_of_elem γ.node.cl γ.id γd (by rw [Hcsl.1]; exact Hd))
     iunfold snapSaved at Hsav
     iexact Hsav
+  ihave Htok := sentTok_untraced γ.node.cl st Htr
   iapply stepIn_intro γ.node.cl srvClusterN γ.id ml sid st Hto
-  iframe Hrm Hm HO Hloc
+  iframe Hrm Hm HO Hloc Htok
 
 end lemmas
 

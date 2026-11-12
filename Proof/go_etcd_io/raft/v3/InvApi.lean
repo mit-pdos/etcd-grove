@@ -1651,7 +1651,8 @@ def NodeOk (γ : Cluster) (γn : NodeNames) : Prop :=
 
 /-- The configuration names of a node's `NodeNames` (`Cluster.nodeTab`); (2026-10-29, stage U9a) and its
 `live` name, by which `nodeLive` and `nodeStopped` agree. -/
-abbrev CfgNames := GName × GName × GName × GName × GName × Nat × Nat × Nat × Nat × Nat × Nat × GName
+abbrev CfgNames := GName × GName × GName × GName × GName × Nat × Nat × Nat × Nat × Nat × Nat × GName ×
+  (GName × GName × GName × GName × GName)
 
 /-- (U8 v2, 2026-10-29) with the node's storage names (`NodeNames.sn`), by which the API's
 `nodeAppliedLb`/`snapGiven` (of the node's id) are the floor's and the snapshot hand-out's lower
@@ -1663,7 +1664,10 @@ def cfgNamesOf (γn : NodeNames) : CfgNames :=
     γn.gen,
     -- (2026-11-05, the lease-expiry plan's E2 revision 5) the start tag's name, so that
     -- `nodeStartTag` is of the node object
-    γn.start)
+    γn.start,
+    -- (2026-11-12, trace-check implementation step 1) the token escrow's names, so that a driver's
+    -- claim (`readyToksClaim`) names the escrow of the node it advances
+    γn.esc.tup)
 
 /-- **Node `n`'s configuration names are `γn`'s** (persistent): its entry of the cluster's table.
 (2026-11-01, durability stage I-2: keyed by the node object, not its id.) -/
@@ -2195,6 +2199,82 @@ abbrev readyPost (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeD
     deliveredLogLb n γ N (st.afterReady ce es h L ss).delivered ∗
     hsCommitted γ N (phsNext st.hardState h) (st.afterReady ce es h L ss).delivered.length)
 
+/-- (2026-11-12, trace-check implementation step 1; the design's §3.1) **The driver's claim on the
+tokens of a received `Ready`'s messages `ms`**: untraced nothing; traced, nothing claimed (`ms = []`)
+or the element of node `n`'s escrow (`rtkElem`, at the names the node table records for `n`) of the
+key recording `ms`. -/
+def readyToksClaim (n : Loc) (γ : Cluster) (_N : Namespace) (ms : List QMsg) : IProp GF :=
+  match γ.raft.reTrace with
+  | none => iprop(True)
+  | some _ => iprop(⌜ms = []⌝ ∨ ∃ γn : NodeNames, ⌜NodeOk γ γn⌝ ∗ nodeTabOk γ n γn ∗ rtkElem γn.esc ms)
+
+theorem readyToksClaim_nil_impl (n : Loc) (γ : Cluster) (N : Namespace) :
+    ⊢ readyToksClaim (GF := GF) n γ N [] := by
+  unfold readyToksClaim
+  cases γ.raft.reTrace with
+  | none => iintro; ipureintro; trivial
+  | some _ => iintro; ileft; ipureintro; rfl
+
+/-- A `Ready`'s claim, from `readyP`'s gated element at the node's names. -/
+theorem readyToksClaim_of_elem (n : Loc) (γ : Cluster) (N : Namespace) (γn : NodeNames)
+    (ms : List QMsg) (Hok : NodeOk γ γn) :
+    ⊢ nodeTabOk (GF := GF) γ n γn -∗ gateTr γn.raft.reTrace (rtkElem γn.esc ms) -∗
+      readyToksClaim n γ N ms := by
+  iintro #Htab Hel
+  unfold readyToksClaim gateTr
+  rw [Hok.1]
+  cases γ.raft.reTrace with
+  | none => ipureintro; trivial
+  | some _ =>
+    iright
+    iexists γn
+    iframe Htab Hel
+    ipureintro; exact Hok
+
+/-- The claim at `Advance`, at the names of the node the driver holds (its table entry). -/
+theorem readyToksClaim_at (n : Loc) (γ : Cluster) (N : Namespace) (γn : NodeNames)
+    (ms : List QMsg) (Hok : NodeOk γ γn) :
+    ⊢ nodeTabOk (GF := GF) γ n γn -∗ readyToksClaim n γ N ms -∗
+      gateTr γn.raft.reTrace (rtkClaim γn.esc ms) := by
+  iintro #Htab Hcl
+  unfold readyToksClaim gateTr rtkClaim
+  rw [Hok.1]
+  cases γ.raft.reTrace with
+  | none => ipureintro; trivial
+  | some _ =>
+    icases Hcl with (%Hnil | ⟨%γn', %Hok', #Htab', Hel⟩)
+    · ileft; ipureintro; exact Hnil
+    · iright
+      ihave %Hcn := nodeTabOk_agree γ n γn γn' $$ Htab Htab'
+      simp only [cfgNamesOf, Prod.mk.injEq] at Hcn
+      have He : γn.esc = γn'.esc := RtkNames.tup_inj Hcn.2.2.2.2.2.2.2.2.2.2.2.2
+      rw [He]; iexact Hel
+
+/-- (2026-11-12, trace-check implementation step 1) What receiving a `Ready` gives, traced: `readyPost`
+with the driver's claim on its messages (`readyToksClaim`) as its last conjunct, at `readyRest`'s
+`ms` (the design's §3.1, Probe A's P2). -/
+abbrev readyPostT (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState)
+    (rd : Ready) : IProp GF :=
+  iprop(∃ (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan)
+      (ms : List QMsg) (ss : Option (w64 × StateType)),
+    committedEntriesAt rd.CommittedEntries' st.delivered.length ce ∗
+    isCommittedLogLb γ (st.delivered ++ ce) ∗
+    (∃ rs, readStatesPts rd.ReadStates' rs ∗
+      [∗list] s ∈ rs, readStateOk γ N s.RequestCtx' s.Index') ∗
+    readyRest γ N id rd st ce es h L ms ss ∗
+    (⌜roleAfter st.role ss = StateLeader⌝ -∗ readyMsgs γ N id ms) ∗
+    readyEnter n γ N id st (st.afterReady ce es h L ss) ms ∗
+    deliveredLogLb n γ N (st.afterReady ce es h L ss).delivered ∗
+    hsCommitted γ N (phsNext st.hardState h) (st.afterReady ce es h L ss).delivered.length ∗
+    readyToksClaim n γ N ms)
+
+/-- The untraced post: the claim dropped. -/
+theorem readyPostT_post (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState)
+    (rd : Ready) : readyPostT (GF := GF) n γ N id st rd ⊢ readyPost n γ N id st rd := by
+  iintro ⟨%ce, %es, %h, %L, %ms, %ss, H1, H2, H3, H4, H5, H6, H7, H8, -⟩
+  iexists ce, es, h, L, ms, ss
+  iframe H1 H2 H3 H4 H5 H6 H7 H8
+
 /-- **Receiving a `Ready`** (the draft's `node.readyRecv`). -/
 abbrev node.readyRecv.spec : Prop :=
   ∀ (n ch : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState),
@@ -2538,8 +2618,9 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
         (∀ rd : Ready, (∃ (ce es : List EntryM) (ms : List QMsg) (p' : HardStateM)
             (L : Option SnapLoan), readyDataL γn rd ds ce es ms st.hardState p' L ∗
             nodeDriverBusy γn id n (dlvAfter ds ce L) es p' L ∗
-            readyCut γn rd ds ce es ms st.hardState p' L) ={⊤}=∗
-          readyPost n γ N id0 st rd) := by
+            readyCut γn rd ds ce es ms st.hardState p' L ∗
+            gateTr γn.raft.reTrace (rtkElem γn.esc ms)) ={⊤}=∗
+          readyPostT n γ N id0 st rd) := by
   iintro #Hrc #Hnode0 Hdrv
   iunfold nodeDriver at Hdrv
   icases Hdrv with ⟨%γn, %id, %ds, %Hf, #Hci, #Hlb0, %Hdyn, #Htab, #Hhc0, #Hkey, Htok⟩
@@ -2579,7 +2660,9 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
   have Hlen : st.delivered.length = ds.length := by rw [← Hds, strip_length]
   iexists γn, γn.id, ds
   iframe Hrc' Htok
-  iintro %rd ⟨%ce, %es, %ms, %p', %L, Hdata, Hbusy, Hcut⟩
+  iintro %rd ⟨%ce, %es, %ms, %p', %L, Hdata, Hbusy, Hcut, Hel⟩
+  -- (2026-11-12, trace-check implementation step 1) the claim, at the node's names
+  ihave Hcl := readyToksClaim_of_elem n γ N γn ms Hnok $$ Htab Hel
   iunfold readyCut at Hcut
   icases Hcut with ⟨%x, %S', %W, %ss, Hdx, Hbw, Hpend, %HS', #HtS', #Hss, #Hmw, #Hlead, %Hrf⟩
   ihave %Hx := dghostVar_agree _ _ _ _ _ $$ Hdur Hdx
@@ -2694,9 +2777,11 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
         · ipureintro; exact ⟨Hnok, by rw [strip_append, Hds]; rfl⟩
         iright; iexact Htab
       · iExactEq Hlb'; rfl
-    · iExactEq Hhc
-      rw [Hp']
-      simp only [NodeDriverState.afterReady, List.length_append, strip_length, Hlen]
+    · isplitl []
+      · iExactEq Hhc
+        rw [Hp']
+        simp only [NodeDriverState.afterReady, List.length_append, strip_length, Hlen]
+      iexact Hcl
   | some l =>
     iunfold readyDataL at Hdata
     iunfold readySnapData at Hdata
@@ -2811,9 +2896,11 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
         · ipureintro; exact ⟨Hnok, rfl⟩
         iright; iexact Htab
       · iExactEq Hlbd; rfl
-    · iExactEq Hhc
-      rw [Hp']
-      simp only [NodeDriverState.afterReady, strip_length]
+    · isplitl []
+      · iExactEq Hhc
+        rw [Hp']
+        simp only [NodeDriverState.afterReady, strip_length]
+      iexact Hcl
 
 theorem node.wp_readyRecv_impl : node.readyRecv.spec (GF := GF) (hG := hG) := by
   intro n ch γ N id0 st Hh
@@ -2827,7 +2914,7 @@ theorem node.wp_readyRecv_impl : node.readyRecv.spec (GF := GF) (hG := hG) := by
   imod Hk $$ %rd Hraw with Hpost
   imodintro
   iapply HΦ
-  iexact Hpost
+  iapply readyPostT_post $$ Hpost
 
 /-- Raft's `Ready` receive as a channel receive's update (`node_ready_receive`'s). -/
 theorem node_ready_recvAu (γn : NodeNames) (id : w64) (n ch : Loc) (ds : List EntryM)
@@ -2835,39 +2922,41 @@ theorem node_ready_recvAu (γn : NodeNames) (id : w64) (n ch : Loc) (ds : List E
     ⊢ £ 1 ∗ £ 1 -∗ EtcdGrove.isReadyChanRaw γn ch -∗ EtcdGrove.nodeDriverChan γn id n ds p -∗
       ▷ (∀ rd : Ready, (∃ (ce es : List EntryM) (ms : List QMsg) (p' : HardStateM)
           (L : Option SnapLoan), readyDataL γn rd ds ce es ms p p' L ∗
-          nodeDriverBusy γn id n (dlvAfter ds ce L) es p' L ∗ readyCut γn rd ds ce es ms p p' L) -∗
+          nodeDriverBusy γn id n (dlvAfter ds ce L) es p' L ∗ readyCut γn rd ds ce es ms p p' L ∗
+          gateTr γn.raft.reTrace (rtkElem γn.esc ms)) -∗
           Φ rd true) -∗
       recvAu γn.readyc Ready Φ := by
   iintro Hlc #Hrc Hdrv HΦ
   iunfold EtcdGrove.nodeDriverChan at Hdrv
-  icases Hdrv with ⟨#Hnode, Hds, -, Hreq⟩
+  icases Hdrv with ⟨#Hnode, Hds, -, Hesc, Hreq⟩
   unfold EtcdGrove.isReadyChanRaw
   iapply handshake_receive_au γn.readyc ch (readyP γn) iprop(True) Φ
-    $$ Hlc Hrc [] [HΦ Hds Hreq]
+    $$ Hlc Hrc [] [HΦ Hds Hreq Hesc]
   · itrivial
   inext
   iintro %rd HP
   unfold readyP
-  icases HP with ⟨%d, %ce, %es, %ms, %p0, %p', %L, Hd, Hrof, Hdata, #Hlb, #Hk, #Hld, Hcut⟩
+  icases HP with ⟨%d, %ce, %es, %ms, %p0, %p', %L, Hd, Hrof, Hdata, #Hlb, #Hk, #Hld, Hcut, Hel⟩
   ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hd Hds
   cases Heq
   iapply HΦ
   iexists ce, es, ms, p', L
-  iframe Hdata Hcut
+  iframe Hdata Hcut Hel
   unfold nodeDriverBusy
-  iframe Hnode Hld
+  iframe Hnode Hld Hesc
   isplitr
   · unfold dlvLb; iframe Hlb Hk
   iexists ds, ce, p
   iframe Hd Hds Hrof Hreq
   ipureintro; rfl
 
-/-- **Receiving a `Ready` as a channel's receive** (the draft's `isReadyChan_recvAu`). -/
-theorem isReadyChan_recvAu_impl (n ch : Loc) (γ : Cluster) (N : Namespace) (id : w64)
+/-- **Receiving a `Ready` as a channel's receive, traced** (2026-11-12, trace-check implementation
+step 1: the draft's `isReadyChan_recvAu` with the driver's claim, `readyPostT`). -/
+theorem isReadyChan_recvAuT_impl (n ch : Loc) (γ : Cluster) (N : Namespace) (id : w64)
     (st : NodeDriverState) (Φ : Ready → Bool → IProp GF) (Hh : st.handling = none) :
     ⊢ isReadyChan (GF := GF) n γ N ch -∗ isNode n γ N id -∗ nodeDriver n γ N st -∗
       ∃ γc : ChanNames, isChan ch γc Ready ∗
-        (£ 1 ∗ £ 1 -∗ ▷ (∀ rd : Ready, readyPost n γ N id st rd -∗ Φ rd true) -∗
+        (£ 1 ∗ £ 1 -∗ ▷ (∀ rd : Ready, readyPostT n γ N id st rd -∗ Φ rd true) -∗
           recvAu γc Ready Φ) := by
   iintro #Hrc #Hnode0 Hdrv
   icases readyRecv_open n ch γ N id st Hh $$ Hrc Hnode0 Hdrv
@@ -2883,8 +2972,9 @@ theorem isReadyChan_recvAu_impl (n ch : Loc) (γ : Cluster) (N : Namespace) (id 
     (fun rd ok => iprop(⌜ok = true⌝ ∗ (∃ (ce es : List EntryM) (ms : List QMsg) (p' : HardStateM)
           (L : Option SnapLoan), readyDataL γn rd ds ce es ms st.hardState p' L ∗
           nodeDriverBusy γn id' n (dlvAfter ds ce L) es p' L ∗
-          readyCut γn rd ds ce es ms st.hardState p' L) ∗
-        (∀ rd : Ready, readyPost n γ N id st rd -∗ Φ rd true))) Φ
+          readyCut γn rd ds ce es ms st.hardState p' L ∗
+          gateTr γn.raft.reTrace (rtkElem γn.esc ms)) ∗
+        (∀ rd : Ready, readyPostT n γ N id st rd -∗ Φ rd true))) Φ
     $$ [Htok Hlc HΦ] [Hk]
   · iapply node_ready_recvAu γn id' n ch ds st.hardState $$ Hlc Hrc' Htok
     inext
@@ -2895,6 +2985,25 @@ theorem isReadyChan_recvAu_impl (n ch : Loc) (γ : Cluster) (N : Namespace) (id 
   subst Hok
   imod Hk $$ %rd Hraw with Hpost
   iapply HΦ $$ Hpost
+
+/-- **Receiving a `Ready` as a channel's receive** (the draft's `isReadyChan_recvAu`): the traced
+law's instance, the claim dropped. -/
+theorem isReadyChan_recvAu_impl (n ch : Loc) (γ : Cluster) (N : Namespace) (id : w64)
+    (st : NodeDriverState) (Φ : Ready → Bool → IProp GF) (Hh : st.handling = none) :
+    ⊢ isReadyChan (GF := GF) n γ N ch -∗ isNode n γ N id -∗ nodeDriver n γ N st -∗
+      ∃ γc : ChanNames, isChan ch γc Ready ∗
+        (£ 1 ∗ £ 1 -∗ ▷ (∀ rd : Ready, readyPost n γ N id st rd -∗ Φ rd true) -∗
+          recvAu γc Ready Φ) := by
+  iintro #Hrc #Hnode0 Hdrv
+  icases isReadyChan_recvAuT_impl n ch γ N id st Φ Hh $$ Hrc Hnode0 Hdrv with ⟨%γc, #Hc, Hau⟩
+  iexists γc
+  iframe Hc
+  iintro Hlc HΦ
+  iapply Hau $$ Hlc
+  inext
+  iintro %rd Hpost
+  iapply HΦ
+  iapply readyPostT_post $$ Hpost
 
 end node
 
@@ -3446,11 +3555,13 @@ theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (
     st.msg.To' = id →
     sentMsg (GF := GF) γ N src st ∗
       msgPtsC ml (DFrac.own 1) (DFrac.own 1) true ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∗
-      msgCredits γ N st ∗ snapLocalMsg γ id st ⊢
+      msgCredits γ N st ∗ snapLocalMsg γ id st ∗
+      -- (2026-11-12, trace-check implementation step 1: the design's F2) the message's token
+      trTokR γ.raft st ⊢
     |==> stepIn γ N id ml := by
   intro Hto
   subst Hto
-  iintro ⟨#Hsent, Hm, Htk, #Hloc⟩
+  iintro ⟨#Hsent, Hm, Htk, #Hloc, Htr⟩
   icases msgPtsC_nn $$ Hm with ⟨%Hnn, Hm⟩
   ihave %Hbnd : ⌜st.msg.Type' = MsgSnap →
       ∃ sv, st.snap = some sv ∧ uint.Z sv.Metadata'.Index' < 2 ^ 61⌝ $$ []
@@ -3505,7 +3616,9 @@ theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (
       rfl
     simp only [stTks, if_pos Hp]
     rw [Hγr]
-    iexact Htk
+    iframe Htk
+    -- (2026-11-12) the gate: a handed-out proposal's entries are normal
+    iapply trTokR_fwd γ.raft st Hp $$ Htr
   · imod msgPtsC_persist_els $$ Hm with Hm
     have Hnok' : NetMsgOk st.msg.To' st := NetMsgOk.of_shape Hsh rfl Hp
     imodintro
@@ -3575,6 +3688,9 @@ theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (
       iapply Hloc $$ %sv %(⟨Hty, Hsv⟩)
     rw [← Hγr, ← Hγb]
     iframe Hlb Hrd Htc
+    -- (2026-11-12) the gate: a traced type with its token
+    rw [Hγr]
+    iapply trTokR_net γ.raft st Hp $$ Htr
 
 end misc
 

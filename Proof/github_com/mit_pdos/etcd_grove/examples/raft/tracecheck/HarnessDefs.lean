@@ -3,13 +3,13 @@ Lean-first (no Rocq counterpart). Trace-check's layer D (the harness, 2026-11-12
 `notes/trace-check-design.md` §2; `notes/decisions.md`, "The harness (RunConcurrent)"): **what the
 harness's goroutines share**, and **the node-API statements the harness takes as hypotheses**.
 
-* `HarnessApi` (at a storage model): the traced node-API statements steps 1 and 3-5 of the design's
-  §9 provide, exactly in the form §2-§3 and `ProbeA.lean` state them: `StartNode.tracedSpec`
-  (`TracedNodeApi.lean`), `stepIn_intro` with the token (`ProbeA.StepInIntroTr`), the law `trTok_type`
-  (`ProbeA.TrTokType`), and, over one sealed claim `claim` (the design's `readyToksClaim`),
-  `isReadyChan_recvAu.tracedSpec` revised (`ProbeA.RecvTracedSpec`) and `node.Advance.tracedSpec`
-  (`ProbeA.AdvanceTracedSpec`). The design's `Membership.applyChange_leaveJoint` (Probe A's P1) is not
-  among them: the harness's view of the configuration is always the voters' simple membership, so a
+* `HarnessApi` (at a storage model): the traced node-API statement the harness's proof still takes as
+  a hypothesis, `StartNode.tracedSpec` (`TracedNodeApi.lean`; steps 3-5 of the design's §9 prove it,
+  through `StartNode.tracedSpec_of_gated`). The other traced statements it uses are raft's, proved
+  since implementation step 1 (2026-11-12): `stepIn_intro` with the token and the law `trTok_type`
+  (`TracedNodeApi.lean`), `isReadyChan_recvAu.tracedSpec_proof` and the linked
+  `node.Advance.tracedSpec` (`TracedLinked.lean`). The law `Membership.applyChange_leaveJoint` is not
+  used: the harness's view of the configuration is always the voters' simple membership, so a
   committed empty `ConfChangeV2` (at a joint configuration, `committed_emptyV2_joint`) is refuted
   instead of applied (`notes/decisions.md`, "The harness (RunConcurrent)").
 * `tcWorld c W` (persistent): the cluster's fields as the goroutines read them, the stop channel, the
@@ -360,11 +360,9 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- **The traced node-API statements the harness's proof takes** (see the file header). -/
+/-- **The traced node-API statement the harness's proof takes** (see the file header). -/
 abbrev HarnessApi : Prop :=
-  StartNode.tracedSpec (GF := GF) ∧ StepInIntroTr (GF := GF) ∧ TrTokType (GF := GF) ∧
-    ∃ claim : Loc → Cluster → Namespace → List QMsg → IProp GF,
-      RecvTracedSpec claim ∧ AdvanceTracedSpec claim
+  StartNode.tracedSpec (GF := GF)
 
 end api
 

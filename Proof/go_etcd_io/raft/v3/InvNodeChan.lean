@@ -83,6 +83,8 @@ public import Proof.go_etcd_io.raft.v3.InvStorage
 public import Proof.go_etcd_io.raft.v3.InvStatus
 public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
 public import Proof.go_etcd_io.raft.v3.NetMsgOk
+-- (2026-11-12, trace-check implementation step 1) the token escrow, gated (`NodeNames.esc`)
+public import Proof.go_etcd_io.raft.v3.InvRtk
 -- (2026-10-16, stage R5) `netStepTypes`, `NetMsgOk`, `DynCCPreOp`, `propEntryM` are
 -- `InvRawnode.lean`'s (until then `RawNode__Step`'s, `RawNode__Propose`'s,
 -- `RawNode__ApplyConfChange`'s)
@@ -437,6 +439,10 @@ structure NodeNames [GooseExts] where
   /-- (2026-11-05, the lease-expiry plan's E2 revision 5) how the node was started, written
   once at the start, discarded (`nodeStartTag`): `true` by `StartNode`, `false` by `RestartNode` -/
   start : GName := 0
+  /-- (2026-11-12, trace-check implementation step 1) the token escrow's names (`InvRtk.lean`): at a
+  traced node, the `Ready`s' keys with their handed-out messages' tokens, which the driver claims at
+  `Ready` and takes at `Advance` (the design's §3.2 items 2-4); unused untraced (every piece gated) -/
+  esc : RtkNames := {}
   -- (raft-final phase 1, 2026-10-29, U9) `snapIn` (the application may deliver a `MsgSnap`, D22 S-d4)
   -- deleted: in every cluster.
 
@@ -454,6 +460,64 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 -- (2026-10-16, stage R5) `propMsg esl` (the Goose value) is `propMsgM` (`InvRawnode.lean`),
 -- the message's scalars; `propDataInv` (the proposed slices, D6) is gone.
 
+/-- (2026-11-12, trace-check implementation step 1; the design's §3.2 item 6) `fwdP`'s gate: at a
+traced node, a forwarded proposal's entries are normal (`True` untraced). -/
+def fwdGate (ρ : RaftNames) (st : MsgSt) : IProp GF :=
+  gateTr ρ.reTrace iprop(⌜∀ e ∈ st.ents, e.Type' = EntryNormal⌝)
+
+instance fwdGate_persistent (ρ : RaftNames) (st : MsgSt) : Persistent (fwdGate (GF := GF) ρ st) := by
+  unfold fwdGate; infer_instance
+
+/-- (2026-11-12, trace-check implementation step 1; the design's §3.2 item 5) `netP`'s gate: at a
+traced node, a network message is of a traced type with its token (`recvTokOf`, which the receive
+line consumes), or `ReportUnreachable`'s `MsgUnreachable` (`True` untraced). -/
+def netGate (ρ : RaftNames) (st : MsgSt) : IProp GF :=
+  match ρ.reTrace with
+  | none => iprop(True)
+  | some γd => iprop((⌜TrNetTy st.msg.Type'⌝ ∗ recvTokOf γd st.msg st.ents st.ctx) ∨
+      ⌜st.msg.Type' = MsgUnreachable⌝)
+
+theorem fwdGate_none (ρ : RaftNames) (st : MsgSt) (h : ρ.reTrace = none) : ⊢ fwdGate (GF := GF) ρ st :=
+  gateTr_none _ _ h
+
+theorem netGate_none (ρ : RaftNames) (st : MsgSt) (h : ρ.reTrace = none) : ⊢ netGate (GF := GF) ρ st := by
+  unfold netGate; rw [h]; iintro; ipureintro; trivial
+
+/-- `MsgUnreachable` passes `netP`'s gate (`ReportUnreachable`, never refused). -/
+theorem netGate_unreach (ρ : RaftNames) (st : MsgSt) (h : st.msg.Type' = MsgUnreachable) :
+    ⊢ netGate (GF := GF) ρ st := by
+  unfold netGate
+  cases ρ.reTrace with
+  | none => iintro; ipureintro; trivial
+  | some γd => iintro; iright; ipureintro; exact h
+
+/-- A handed-out proposal's token passes `fwdP`'s gate. -/
+theorem trTokR_fwd (ρ : RaftNames) (st : MsgSt) (h : st.msg.Type' = MsgProp) :
+    trTokR (GF := GF) ρ st ⊢ fwdGate ρ st := by
+  unfold trTokR fwdGate gateTr
+  cases ρ.reTrace with
+  | none => iintro _; itrivial
+  | some γd =>
+    iintro ⟨%Hs, -⟩
+    ipureintro
+    rcases Hs with Hn | ⟨_, He⟩
+    · exfalso
+      rcases Hn with h' | h' | h' | h' | h' | h' <;> rw [h'] at h <;>
+        simp [MsgProp, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp] at h
+    · exact He
+
+/-- Any other handed-out message's token passes `netP`'s gate. -/
+theorem trTokR_net (ρ : RaftNames) (st : MsgSt) (h : st.msg.Type' ≠ MsgProp) :
+    trTokR (GF := GF) ρ st ⊢ netGate ρ st := by
+  unfold trTokR netGate
+  cases ρ.reTrace with
+  | none => iintro _; itrivial
+  | some γd =>
+    iintro ⟨%Hs, Ht⟩
+    rcases Hs with Hn | ⟨Hp, _⟩
+    · ileft; iframe Ht; ipureintro; exact Hn
+    · exact absurd Hp h
+
 /-- A proposal forwarded by a peer (2026-10-10), as `Node.Step` takes it: its batch owned
 (`appendEntry` stamps it; a transport delivers a copy), its context (until 2026-10-13 not
 the leader-transfer marker), and what it carries as a protocol message (each entry's data,
@@ -464,7 +528,10 @@ def fwdP (γ : NodeNames) (ml : Loc) : IProp GF :=
   iprop(∃ st : MsgSt, msgIn ml (DFrac.own 1) st ∗ ⌜st.msg.Type' = MsgProp ∧ st.resps = []⌝ ∗
     isMessage γ.raft (absMsg .propose st.msg st.ents) ∗
     -- (2026-10-19, D21 M6) its entries' tickets (`entTk`), which the leader consumes
-    ([∗list] e ∈ st.ents, entTk γ.raft e))
+    ([∗list] e ∈ st.ents, entTk γ.raft e) ∗
+    -- (2026-11-12, trace-check implementation step 1: the design's §3.2 item 6) at a traced node,
+    -- normal entries only
+    fwdGate γ.raft st)
 
 -- (2026-10-26, raft's signature, stage 1) `errProposalDropped` moved to `Proof.go_etcd_io.raft.v3.ApiCtx`.
 
@@ -548,7 +615,10 @@ def netP (γ : NodeNames) (id : w64) (ml : Loc) : IProp GF :=
            snapLocal γ.raft id sv.Metadata'.Index') ∗
       termLB γ.bud st.msg.Term' ∗
       rdCred γ.raft (if st.msg.Type' = MsgReadIndex then 1 else 0) ∗
-      tickCred γ.bud (if st.msg.Type' = MsgTimeoutNow then 1 else 0)) ∨
+      tickCred γ.bud (if st.msg.Type' = MsgTimeoutNow then 1 else 0) ∗
+      -- (2026-11-12, trace-check implementation step 1: the design's §3.2 item 5) at a traced node,
+      -- a traced type with its token, or `MsgUnreachable`
+      netGate γ.raft st) ∨
     hupP γ ml)
 
 /-- (2026-10-13) A local message on `recvc` with no entries, no context and no term (a
@@ -557,7 +627,10 @@ fact. (2026-10-16, stage R5: over the message's state.) -/
 theorem netP_local (γ : NodeNames) (id : w64) (ml : Loc) (st : MsgSt)
     (Hty : st.msg.Type' = MsgTransferLeader ∨ st.msg.Type' = MsgForgetLeader ∨
       st.msg.Type' = MsgUnreachable ∨ st.msg.Type' = MsgSnapStatus)
-    (Ht : st.msg.Term' = W64 0) (He : st.ents = []) (Hc : st.ctx = []) (Hr : st.resps = []) :
+    (Ht : st.msg.Term' = W64 0) (He : st.ents = []) (Hc : st.ctx = []) (Hr : st.resps = [])
+    -- (2026-11-12, trace-check implementation step 1: the design's §3.5) at a traced node only
+    -- `ReportUnreachable`'s (the others are refused there)
+    (Hg : γ.raft.reTrace = none ∨ st.msg.Type' = MsgUnreachable) :
     -- (raft-final, 2026-10-29, U9: until then a transfer request only outside the cluster's
     -- no-transfer mode, `Hxt`)
     ⊢ msgIn (GF := GF) ml DFrac.discard st -∗
@@ -612,6 +685,9 @@ theorem netP_local (γ : NodeNames) (id : w64) (ml : Loc) (st : MsgSt)
     iintro %h
     exact absurd h Hns
   iframe Hlb Hcr Htc
+  rcases Hg with Hg | Hg
+  · iapply netGate_none γ.raft st Hg
+  · iapply netGate_unreach γ.raft st Hg
 
 /-- (2026-10-29, stage U7) `Campaign`'s `MsgHup` on `recvc`, with its tick credit. -/
 theorem netP_hup (γ : NodeNames) (id : w64) (ml : Loc) :
@@ -816,7 +892,10 @@ is of the committed log handed out after the `Ready` (`dlvAfter`). -/
     -- (2026-10-28, the decision switch) the loan's decisions, for `Advance`
     loanDecO γ.raft L ∗
     -- (2026-11-01, durability stage I-3) the batch, cut
-    readyCut γ rd d ce es ms p p' L)
+    readyCut γ rd d ce es ms p p' L ∗
+    -- (2026-11-12, trace-check implementation step 1: the design's §3.2 item 3) at a traced node,
+    -- the driver's element of the escrow's key recording the handed-out messages (its claim)
+    gateTr γ.raft.reTrace (rtkElem γ.esc ms))
 
 -- (2026-10-28) `advReceipt` moved to `ApiVocab.lean` (the storage contract's vocabulary, which
 -- `node.Advance`'s spec states)
@@ -1014,7 +1093,7 @@ taken back by a `select` that fires another case. -/
 
 /-- `run`'s node at the `advancec` rendezvous, before the floor is raised: `runMid_busy`'s.
 (D22 S-d4) Its record names the loan (`rs.slent`). -/
-@[no_expose] def advDep (γ : NodeNames) (rn : Loc) (id : w64) : IProp GF :=
+@[no_expose] def advDep0 (γ : NodeNames) (rn : Loc) (id : w64) : IProp GF :=
   iprop(∃ (rs : RNState) (d ce : List EntryM), ownRawNode γ.raft rn id rs ∗
     termLB γ.bud rs.tc ∗ runCfg γ rs ∗
     dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, rs.unpersisted, rs.phs, rs.slent) ∗
@@ -1023,12 +1102,18 @@ taken back by a `select` that fires another case. -/
     dghostVar γ.bw (DFrac.own (1 : Qp).half) (rs.bw, (rs.dur, rs.role)) ∗
     ⌜(rs.storage = γ.stor ∧ rs.sn = γ.sn) ∧ rs.unst = false ∧ rs.delivered = d ++ ce⌝)
 
+/-- `run`'s deposit at the `advancec` rendezvous (`advDep0`), with (2026-11-12, trace-check
+implementation step 1: the design's §3.2 item 4, Probe B's `pk`) at a traced node its half of the
+escrow's pending deposit, lent at `none`. -/
+@[no_expose] def advDep (γ : NodeNames) (rn : Loc) (id : w64) : IProp GF :=
+  iprop(advDep0 γ rn id ∗ gateTr γ.raft.reTrace (rtkRun γ.esc none))
+
 /-- `run`'s node after the rendezvous: the `Ready`'s entries appended, the floor raised
 (`flw`), the driver's payload in (its `dlv` half, `rof` back whole, A1's lower bound).
 (D22 S-d4, 2026-10-21) Or, after a snapshot `Ready`, the receipt for its loan (`loanRet`), the
 entries not appended here, and the floor not raised; `dlv` at the committed log handed out
 (`rsDlv`, the loan's). -/
-@[no_expose] def advRet (γ : NodeNames) (rn : Loc) (id : w64) : IProp GF :=
+@[no_expose] def advRet0 (γ : NodeNames) (rn : Loc) (id : w64) : IProp GF :=
   iprop(∃ (rs : RNState) (ca_d : Nat), ownRawNode γ.raft rn id rs ∗
     termLB γ.bud rs.tc ∗ runCfgR γ rs ∗
     dghostVar γ.dlv (DFrac.own (1 : Qp).half) (rsDlv rs, rs.phs) ∗
@@ -1046,27 +1131,44 @@ entries not appended here, and the floor not raised; `dlv` at the committed log 
     -- until then unguarded)
     □ (⌜rs.slent = none⌝ -∗ undecFree γ.raft γ.mode rs.delivered ca_d rs.delivered.length))
 
+/-- `run`'s node back from the rendezvous (`advRet0`), with (2026-11-12, trace-check implementation
+step 1) at a traced node its half of the escrow's pending deposit back. -/
+@[no_expose] def advRet (γ : NodeNames) (rn : Loc) (id : w64) : IProp GF :=
+  iprop(advRet0 γ rn id ∗ gateTr γ.raft.reTrace (rtkRun γ.esc none))
+
 /-- The `advancec` protocol (see above). (D22 S-d4) The driver's payload for its `Ready`'s loan
 `L`, its request `reqOf L ds`, `run`'s answer `reqWit`. -/
 @[no_expose] def advInv (γ : NodeNames) (rn : Loc) (id : w64) : IProp GF :=
   iprop(∃ s, "Hch" ∷ ownChan γ.advancec Unit s ∗
     (match s with
      | .Idle => iprop(True)
-     | .SndPending _ => iprop(∃ (L : Option SnapLoan) (x : Nat × CCState), advanceP γ L x ∗
+     | .SndPending _ => iprop((∃ (L : Option SnapLoan) (x : Nat × CCState), advanceP γ L x ∗
          ∃ ds : List EntryM,
          dghostVar γ.req (DFrac.own (1 : Qp).half) ((reqOf L ds, loanReq γ.mode L x) : AdvReq) ∗
-         dlvLb γ ds)
+         dlvLb γ ds) ∗
+         -- (2026-11-12, trace-check implementation step 1) at a traced node, the escrow's request
+         -- with the claimed key's allocation bound
+         gateTr γ.raft.reTrace (escPay γ.esc (monoNatLbOwn γ.esc.al)))
      | .RcvPending => advDep γ rn id
      | .SndCommit _ => advRet γ rn id
-     | .RcvCommit => iprop(∃ q : AdvReq, dghostVar γ.req (DFrac.own (1 : Qp).half) q ∗
-         reqWit γ q.1 ∗ capAns γ q.2)
+     | .RcvCommit => iprop((∃ q : AdvReq, dghostVar γ.req (DFrac.own (1 : Qp).half) q ∗
+         reqWit γ q.1 ∗ capAns γ q.2) ∗
+         -- (2026-11-12) at a traced node, `run`'s answer: the requested key's deposit bound
+         gateTr γ.raft.reTrace (escPay γ.esc (monoNatLbOwn γ.esc.dep)))
      | _ => iprop(False)))
 
 def advN : Namespace := nroot.@"raft_advancec"
 
 /-- `advancec` (D19i part 1): the channel and its protocol. -/
 @[no_expose] def isAdvChan (γ : NodeNames) (rn : Loc) (id : w64) (ch : Loc) : IProp GF :=
-  iprop(isChan ch γ.advancec Unit ∗ inv advN (advInv γ rn id))
+  iprop(isChan ch γ.advancec Unit ∗ inv advN (advInv γ rn id) ∗
+    -- (2026-11-12, trace-check implementation step 1: the design's §3.2 item 2) at a traced node,
+    -- the token escrow (in `isNodeChan` through this)
+    gateTr γ.raft.reTrace (rtkInv γ.raft γ.esc))
+
+theorem rtkN_sub_advN : (↑rtkN : CoPset) ⊆ ⊤ \ ↑advN := fun p hp => by
+  rw [Iris.Std.LawfulSet.mem_diff]
+  exact ⟨CoPset.mem_full, fun h => ndot_ne_disjoint nroot (by decide) p ⟨hp, h⟩⟩
 
 instance isAdvChan_persistent (γ : NodeNames) (rn : Loc) (id : w64) (ch : Loc) :
     Persistent (isAdvChan (GF := GF) γ rn id ch) := by
@@ -1282,6 +1384,8 @@ the last `Ready` it was handed with a non-empty one is `p` (`RNState.phs`; zero 
 @[no_expose] def nodeDriverChan (γ : NodeNames) (id : w64) (n : Loc) (ds : List EntryM) (p : HardStateM) :
     IProp GF :=
   iprop(isNodeChan γ id n ∗ dghostVar γ.dlv (DFrac.own (1 : Qp).half) (ds, p) ∗ dlvLb γ ds ∗
+    -- (2026-11-12, trace-check implementation step 1) at a traced node, the escrow's request
+    gateTr γ.raft.reTrace (escReq γ.esc) ∗
     -- (D19i part 1) the request on `advancec` (`advInv`)
     ∃ q : AdvReq, dghostVar γ.req (DFrac.own (1 : Qp).half) q ∗
       dghostVar γ.req (DFrac.own (1 : Qp).half) q)
@@ -1294,6 +1398,8 @@ snapshot (`dlvAfter`), and the storage is the application's until `Advance` (`ad
 @[no_expose] def nodeDriverBusy (γ : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM)
     (p' : HardStateM) (L : Option SnapLoan := none) : IProp GF :=
   iprop(isNodeChan γ id n ∗ dlvLb γ ds ∗ loanDecO γ.raft L ∗
+    -- (2026-11-12, trace-check implementation step 1) at a traced node, the escrow's request
+    gateTr γ.raft.reTrace (escReq γ.esc) ∗
     ∃ (d ce : List EntryM) (p : HardStateM), dghostVar γ.dlv (DFrac.own (1 : Qp).half) (d, p) ∗
       dghostVar γ.dlv (DFrac.own (1 : Qp).half) (d, p) ∗
       dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, es, p', L) ∗ ⌜ds = dlvAfter d ce L⌝ ∗
@@ -1319,24 +1425,26 @@ theorem node_ready_receive (γ : NodeNames) (id : w64) (n ch : Loc) (ds : List E
     {{ (rd : Ready), RET (PairV #rd #true);
         ∃ (ce es : List EntryM) (ms : List QMsg) (p' : HardStateM) (L : Option SnapLoan),
           readyDataL γ rd ds ce es ms p p' L ∗
-          nodeDriverBusy γ id n (dlvAfter ds ce L) es p' L ∗ readyCut γ rd ds ce es ms p p' L }} := by
+          nodeDriverBusy γ id n (dlvAfter ds ce L) es p' L ∗ readyCut γ rd ds ce es ms p p' L ∗
+          -- (2026-11-12, trace-check implementation step 1) the claim's element, at a traced node
+          gateTr γ.raft.reTrace (rtkElem γ.esc ms) }} := by
   iintro %Φ ⟨#Hrc, Hdrv⟩ HΦ
   unfold nodeDriverChan
-  icases Hdrv with ⟨#Hnode, Hds, -, Hreq⟩
+  icases Hdrv with ⟨#Hnode, Hds, -, Hesc, Hreq⟩
   unfold isReadyChanRaw
-  iapply wp_handshake_receive (t := Ready.ty) γ.readyc ch (readyP γ) iprop(True) $$ [] [HΦ Hds Hreq]
+  iapply wp_handshake_receive (t := Ready.ty) γ.readyc ch (readyP γ) iprop(True) $$ [] [HΦ Hds Hreq Hesc]
   · iframe Hrc
   iintro %rd
   iintro !> HP
   unfold readyP
-  icases HP with ⟨%d, %ce, %es, %ms, %p0, %p', %L, Hd, Hrof, Hdata, #Hlb, #Hk, #Hld, Hcut⟩
+  icases HP with ⟨%d, %ce, %es, %ms, %p0, %p', %L, Hd, Hrof, Hdata, #Hlb, #Hk, #Hld, Hcut, Hel⟩
   ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hd Hds
   cases Heq
   iapply HΦ
   iexists ce, es, ms, p', L
-  iframe Hdata Hcut
+  iframe Hdata Hcut Hel
   unfold nodeDriverBusy
-  iframe Hnode Hld
+  iframe Hnode Hld Hesc
   isplitr
   · unfold dlvLb; iframe Hlb Hk
   iexists ds, ce, p
@@ -1395,8 +1503,8 @@ theorem nodeDriver_isNode (γ : NodeNames) (id : w64) (n : Loc) (ds : List Entry
     nodeDriverChan (GF := GF) γ id n ds p ⊢ nodeDriverChan γ id n ds p ∗ isNodeChan γ id n := by
   iintro Hdrv
   unfold nodeDriverChan
-  icases Hdrv with ⟨#Hnode, Hds, #Hlb, Hreq⟩
-  iframe Hnode Hds Hlb Hreq
+  icases Hdrv with ⟨#Hnode, Hds, #Hlb, Hesc, Hreq⟩
+  iframe Hnode Hds Hlb Hesc Hreq
 
 /-- **Taking a `Ready`'s payload** (`readyP`, what a receive on the `Ready` channel gives,
 `isReadyChanRaw`): with the driver's token at the committed log handed out `ds`, the `Ready`'s data
@@ -1407,18 +1515,20 @@ theorem readyP_take (γ : NodeNames) (id : w64) (n : Loc) (rd : Ready) (ds : Lis
     ⊢ readyP (GF := GF) γ rd -∗ nodeDriverChan γ id n ds p -∗
       ∃ (ce es : List EntryM) (ms : List QMsg) (p' : HardStateM) (L : Option SnapLoan),
         readyDataL γ rd ds ce es ms p p' L ∗ nodeDriverBusy γ id n (dlvAfter ds ce L) es p' L ∗
-        dlvLb γ (dlvAfter ds ce L) ∗ readyCut γ rd ds ce es ms p p' L := by
+        dlvLb γ (dlvAfter ds ce L) ∗ readyCut γ rd ds ce es ms p p' L ∗
+        -- (2026-11-12, trace-check implementation step 1) the claim's element, at a traced node
+        gateTr γ.raft.reTrace (rtkElem γ.esc ms) := by
   iintro HP Hdrv
   unfold nodeDriverChan
-  icases Hdrv with ⟨#Hnode, Hds, -, Hreq⟩
+  icases Hdrv with ⟨#Hnode, Hds, -, Hesc, Hreq⟩
   unfold readyP
-  icases HP with ⟨%d, %ce, %es, %ms, %p0, %p', %L, Hd, Hrof, Hdata, #Hlb, #Hk, #Hld, Hcut⟩
+  icases HP with ⟨%d, %ce, %es, %ms, %p0, %p', %L, Hd, Hrof, Hdata, #Hlb, #Hk, #Hld, Hcut, Hel⟩
   ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hd Hds
   cases Heq
   iexists ce, es, ms, p', L
-  iframe Hdata Hcut
+  iframe Hdata Hcut Hel
   unfold nodeDriverBusy dlvLb
-  iframe Hnode Hlb Hk Hld
+  iframe Hnode Hlb Hk Hld Hesc
   iexists ds, ce, p
   iframe Hd Hds Hrof Hreq
   ipureintro; rfl
@@ -1430,6 +1540,24 @@ theorem handshake_send_au_upd {V : Type} [Pos.Countable V] [ZeroVal V]
     [TypedPointsto (GF := GF) V] {t : go.GoType} [IntoValTyped (GF := GF) V t]
     (γc : ChanNames) (ch : Loc) (v : V) (P : V → IProp GF) (Q : IProp GF) (Φ : IProp GF) :
     ⊢ £ 1 ∗ £ 1 ∗ £ 1 -∗ isHandshake γc ch P Q -∗ (|==> (P v ∗ ▷ (Q -∗ Φ))) -∗
+      sendAu γc v Φ := by
+  iintro Hlc #His Hupd
+  unfold sendAu
+  imod Hupd with ⟨HP, Hau⟩
+  ihave H := handshake_send_au γc ch v P Q Φ $$ Hlc His HP Hau
+  iunfold sendAu at H
+  iexact H
+
+/-- (2026-11-12, trace-check implementation step 1; the design's §3.2 item 3, revision 3's S1) **The
+handshake's send with a `|={⊤}=>` prefix**: the update runs only when the send commits (a waiting
+sender's `sendAu` is run by the receiver's thread at the rendezvous), before the handshake's
+invariant is opened, so `run` can allocate the escrow's key there (`rtk_key`, opening `rtkN`).
+Sound since `sendAu` begins with `|={⊤,∅}=>` (Probe B, P2: `sendAu_fupd` composed with
+`handshake_send_au_upd`). -/
+theorem handshake_send_au_fupd {V : Type} [Pos.Countable V] [ZeroVal V]
+    [TypedPointsto (GF := GF) V] {t : go.GoType} [IntoValTyped (GF := GF) V t]
+    (γc : ChanNames) (ch : Loc) (v : V) (P : V → IProp GF) (Q : IProp GF) (Φ : IProp GF) :
+    ⊢ £ 1 ∗ £ 1 ∗ £ 1 -∗ isHandshake γc ch P Q -∗ (|={⊤}=> (P v ∗ ▷ (Q -∗ Φ))) -∗
       sendAu γc v Φ := by
   iintro Hlc #His Hupd
   unfold sendAu

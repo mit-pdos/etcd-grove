@@ -37302,41 +37302,135 @@ problems found that three review rounds had not: P1 (the escrow as designed coul
 deposit), P3 (the escrow's import position), P6 (N1's scope). No `sorry`, no axiom, no client-visible
 statement changed (the interface of `RawNode.Advance`'s proof file changes by the new conjunct).
 
-## The harness (RunConcurrent): proved over the traced node API's statements, bundled as `HarnessOpen`; §1's statements from it; the `ConfChangeV2` arm refuted, so no `applyChange_leaveJoint` (2026-11-12 · trace-check, layer D of `notes/trace-check-design.md` §2, decided by the agent under the user's delegation (intermediate statements; §1 unchanged but for the hypothesis) · branch `trace-check-harness`)
+## Implementation step 1 (gates): the gates as conjuncts, the escrow threaded, the traced `Ready`/`Advance` proved, the clients' untraced facts; `storBnd`'s gate left for a decision (2026-11-12 · trace-check, §9's step 1 of `notes/trace-check-design.md`, decided by the agent under the user's delegation (raft-internal), but I9, which touches a closed statement and is left to the coordinator/user · branch `trace-check-impl1`)
+
+**Context.** §9's step 1: every sealed definition a gate whose untraced arm is today's body, the escrow
+(Probe B's, `pk` in halves) in `isNodeChan`, the client-side premises (`stepIn_intro`'s token, the five
+refusals) with every L3 call site, the traced `Ready` receive and `node.Advance.tracedSpec` as the one
+proof, the leave-joint law, every untraced result re-proved by rewriting its gate.
+
+**Decisions (each recorded in the design's "Implementation step 1" section, I1-I9).**
+- *The gate's form* (I2): a conjunct `gateTr (γ.raft.reTrace) X`, `True` untraced, rather than a
+  `match` with today's body as an arm: the untraced proofs then change by one `gateTr_none` (or a `-`
+  in a pattern), and the every-`γ` proofs (`node.Advance`, the `Ready` receive) thread gated lemmas
+  instead of splitting on the trace (one proof each, not two). `advDep`/`advRet` keep today's bodies as
+  `advDep0`/`advRet0`, so `advance_complete` is untouched. Rejected: the `match` form (every untraced
+  proof would rewrite the gate before unfolding; the every-`γ` proofs would be proved twice).
+- *The escrow's place* (I2, I3): `rtkInv` in `isAdvChan` (in `isNodeChan` through it, where
+  `adv_recv_au`/`adv_send_au`, the two openers at `⊤ ∖ ↑advN`, already look); its request a ghost
+  name of its own (`NodeNames.esc.rq`) rather than a third component of `AdvReq` (whose users would
+  all change); every escrow name defaulting to `0`, so no untraced allocation changes.
+- *The claim's node* (I4): the node table records the escrow's names (`cfgNamesOf`), so a claim taken
+  from one `nodeDriver`'s names is at the escrow of the next one's (`readyToksClaim_at`).
+- *`sentTok`* (I1): the design's `trTok` would clash with rafthttp's `trTok` in every server module;
+  raft's is `sentTok`, the harness's name an abbreviation in `TracedNodeApi`.
+- *P1's law* (I5): `Restorable` added (the law is false without it: a staged learner that is an
+  incoming voter makes `LeaveJoint` fail `checkInvariants`); `confAt` gives it.
+- *`node.Advance`'s one proof* (I6): an internal module, linked in a new importable `TracedLinked.lean` (not `Linked`, which the server imports: `TracedNodeApi`'s `trTok` clashes with rafthttp's there): a second public
+  theorem in the proof file would be a layout violation (`etc/api/raft-layout.txt`: "don't add").
+- *The clients' facts* (I8): the cluster predicates of kv, kvreconf and kvdurable hold the untraced
+  fact (one construction each, from `cluster_alloc`), not their replica predicates (many
+  constructions); the server's from `srvClusterOk`.
+- *I9, not decided here*: `storBnd`'s gate would change kv's closed `kv_storage_isStorage`; the laws
+  are added, the gate and its three client lemmas' premises wait (options and recommendation in the
+  design's I9). Nothing before step 3 reads it.
+
+**Rejected.** Gating the escrow off entirely (P5's "no gate needed for soundness"): `run`'s untraced
+proof would then hold `run`'s half, a change to `node.run.spec`'s untraced proof for nothing.
+
+## Implementation step 2 (path facts): the monotone flag and `OutTyStep` in every traced path's end resource, `OutOk` strengthened, `TrNoSnap` under an update, lemma (i), Probe B's item 6; `AckEnd` strengthened and the response paths' families filtered (two gaps of the design); G3 (a) not done (2026-11-12 · trace-check, §9's step 2 of `notes/trace-check-design.md`; decided by the agent under the user's delegation (raft-internal statements) · branch `trace-check-impl2`)
+
+**Context.** Step 2 of the design's order of work: the facts `rnTrace`'s new clauses (step 3) will
+need, as theorems, with no client-visible statement changed.
+
+**Done** (no `sorry`, no axiom): `stepBundle_traced.statement`'s (and `.on`/`.onG`/`.onA`/`.onC`/`.onRB`'s)
+end resource `⌜OutTyStep s s'⌝ ∗ ∃ bt', ⌜bt = true → bt' = true⌝ ∗ trCapB …`, every path re-proved
+(receive paths through `stepClose_anyB_end` and the tactic `outty_tac`; the local families through
+`lineF`, which now carries the step's first flag); `raft.Step.tracedTriple`'s and the ticks' traced
+triples' posts carry both; the consumers (`TracedRawNode.lean`, `TracedRawNodeRep.lean`) re-proved;
+`ReadIdle`, `TrScope`, `TrOutMsg`, `OutTyStep` in `StepGhostMode.lean`; `OutOk`'s guarded conjunct with
+`outOk_snoc`'s new argument at every site and `outTyStep_of_outOk`; `lineF_untraced`'s `¬ ReadIdle X`;
+`TrNoSnap` in its update form (`trNoSnap_traced`, the two `imod`s in `raft__maybeSendAppend.lean`);
+lemma (i) (`TracedConfExcl.lean`); Probe B item 6 (`raft.Step.traced_booted`).
+
+**Decisions.**
+- *`AckEnd` gains `s'.lt = s.lt ∧ s'.rd = s.rd`* (the design's gap: an acknowledgement's close cannot
+  give `TrScope s'` from `toPState` alone). Rejected: leaving acknowledgements out of `OutTyStep` (the
+  traced `RawNode.Advance` steps them and must keep clause 1(b)). Cost: two `raft.Step` branch posts.
+- *The read-index response paths' families indexed by `rirFilter o`*, the responses put back at the
+  close from the end state (`leadRespNA_scope`, `leadAcc_scope`): the design's `¬ ReadIdle X` has no
+  source at those gates. Rejected: a premise on `leaderGates`' two response gates (a change to
+  `raft.Step.spec`'s gates and to `stepLeader`'s loop proofs for two traced-only facts).
+- *The pure conjunct first in the end resource* (`⌜OutTyStep s s'⌝ ∗ ∃ bt', …`): the paths' proofs keep
+  their capability goals unchanged after one `isplitr`.
+- *G3 (a) left for a later step*, with its two obstacles recorded in the design ("Implementation step
+  2", G3): (a1)'s minting site sees no trace fact, so the premise has to be threaded through the ghost
+  step layers or come with `isMessage`'s proposal case (the node API's, step 1's files); (a2) needs the
+  decoder's value on the bootstrap entries, not stated at the protocol level.
+
+## Trace-check's receipt bounds as instances: named fits where no power of two is exact (2026-11-12 · trace-check, `etc/bounds-check.py --check`'s five new `spec-receipt` matches; decided by the agent under the coordinator's task (intermediate statements, same strength; no closed statement changed) · branch `trace-check-bounds`)
+
+**Context.** The trace-check branch put `receiptBound` into five Spec files (`etc/bounds-check.py
+--check`: 394 against the baseline's 389): `RawNode.acceptReady.spec`'s traced premise `receiptBound GF
++ γ.reBoot.length ≤ traceNumBound`, `RunConcurrent.spec`'s and `Main.spec`'s `receiptBound GF + 3 ≤
+2^61`, and `SyncRecorder.Events.spec`'s and `Cluster.Events.spec`'s post `L.length < receiptBound GF`.
+`notes/bounds-plan.md` (B1) wants each as an instance `[ReceiptBoundLe GF (2^k)]` or a named `…Fits`
+predicate, with the margins derived inside the owner.
+
+**Decision.** Named predicates, each its old text as its definition (so the same strength, and every
+caller meets it by its definition): raft's receipt fit `traceReadyFits GF γ`
+(`Proof/go_etcd_io/raft/v3/TraceFits.lean`, raft-internal, beside the node API's `readyFits`); the
+harness's `tcRunFits GF` and `traceLenFits GF L` (`Proof/.../tracecheck/Fits.lean`, with
+`traceLenFits.lt_numBound`, the event count below the checker's `numBound` from the two, and
+`traceLenFits.lt_of_le`). The proofs change only where `omega` read the bound: `Main.wp_proof` and
+`tracecheck_Events_traceAccepts` (whose statement keeps its `receiptBound GF ≤ 2^61`).
+
+**Rejected.** Instances: `receiptBound GF + 3 ≤ 2^61` is not a power-of-two bound;
+`[ReceiptBoundLe GF (2^60)]` is stronger, and the closed theorem's present step bound `n + 4 ≤ 2^61`
+(`receiptBound = n + 1`) does not give it, so `Main.spec` under it would change `raft_tracecheck_safe_of`.
+`[ReceiptBoundLe GF (2^61 - 3)]` is exact but not a power of two (no `pow_succ` weakening, nothing
+gained over a name). `acceptReady`'s margin `γ.reBoot.length` is the cluster's, not a constant. A
+post (`Events`') cannot be an instance. After Q38 (a) lands (`n + 2 ≤ 2^31`), `tcRunFits` can become
+`[ReceiptBoundLe GF (2^60)]` with the `+ 3` derived in `Fits.lean`, at no cost to a closed result.
+
+## The harness (RunConcurrent): proved over the traced node API, with the traced `StartNode` as the one hypothesis `HarnessOpen`; §1's statements from it; the `ConfChangeV2` arm refuted, not applied (2026-11-12 · trace-check, layer D of `notes/trace-check-design.md` §2, decided by the agent under the user's delegation (intermediate statements; §1 unchanged but for the hypothesis) · branch `trace-check-harness`)
 
 **What.** The harness's Go (`concurrent.go`: `RunConcurrent`, `app`, `handleReady`, `send`, the
 isolation driver and the proposer) is proved against §2's specs, with Q34's network join (`netJoin`,
 `join3` over the raw `WaitGroup` specs under `ThreadBoundLe GF (2^31)`, `NetJoin.lean`), Q35's
 `0 < Tick` and Q33's existing `strconv.Itoa` axiom. Everything the proof calls is a linked result but
-the traced node-API statements steps 1 and 3-5 of the design's §9 will prove; those are hypotheses,
-bundled in one `Prop`:
+the traced `StartNode`, which steps 3-5 of the design's §9 will prove; it is the one hypothesis:
 
-- `HarnessApi` (`HarnessDefs.lean`): `StartNode.tracedSpec ∧ StepInIntroTr ∧ TrTokType ∧ ∃ claim,
-  RecvTracedSpec claim ∧ AdvanceTracedSpec claim` (Probe A's forms of the design's statements);
+- `HarnessApi` (`HarnessDefs.lean`): `StartNode.tracedSpec`. (Written first over Probe A's
+  hypotheses, `StartNode.tracedSpec ∧ StepInIntroTr ∧ TrTokType ∧ ∃ claim, RecvTracedSpec claim ∧
+  AdvanceTracedSpec claim`; implementation step 1, merged before landing, proved the other four:
+  `stepIn_intro`, `trTok_type`, `isReadyChan_recvAu.tracedSpec_proof`, `RaftLink.node.wp_Advance_traced`,
+  which `send`'s and `app`'s proofs now use directly.)
 - `HarnessOpen` (`Results.lean`): `HarnessApi` at every instance context and storage model, as raft's
   linked results are stated, so that both the closed theorem (at `tcGF`) and the corollary (at any
   `GF`) use it.
 
 `Results.lean` states §1.2 and §1.3 word for word with `(h : HarnessOpen)` first
 (`raft_tracecheck_safe_of`, `raft_tracecheck_accepts_of`); `TcOpen` (the harness's whole spec as a
-hypothesis) is gone. When steps 1 and 3-5 land, `HarnessOpen` is a theorem and the `_of`s are applied
+hypothesis) is gone. When steps 3-5 land, `HarnessOpen` is a theorem (through `StartNode.tracedSpec_of_gated`) and the `_of`s are applied
 to it.
 
-**Why one bundle, at every instance.** The harness's proofs (`app`, `send`, `RunConcurrent`) each take
-only the statements they use, as specs take their callees'; the bundle is only for the results, so
-that what is open is one named thing a reader checks against §9. Quantifying it over the instance
+**Why one named hypothesis, at every instance.** The harness's proofs take only what they use, as
+specs take their callees'; the name is only for the results, so that what is open is one named thing
+a reader checks against §9. Quantifying it over the instance
 context (not fixing `tcGF`) costs nothing (the statements will be proved generically, as every linked
 result) and lets the corollary, which is stated at any `GF`, use the same hypothesis.
 
-**The `ConfChangeV2` arm refuted (Probe A's P1 not needed).** Probe A found that applying a committed
-empty `ConfChangeV2` needs `Membership.applyChange_leaveJoint`, and §9's step 1 was to add it. The proof
-does not apply it: `app`'s view of its node's configuration (`ViewOk`) is always the voters' simple
+**The `ConfChangeV2` arm refuted (Probe A's P1 not needed here).** Probe A found that applying a
+committed empty `ConfChangeV2` needs `Membership.applyChange_leaveJoint`, which step 1 added. The
+harness does not apply the change: `app`'s view of its node's configuration (`ViewOk`) is always the voters' simple
 membership (every committed `ConfChange` is a bootstrap `AddNode` of a voter, `tc_conf1`), and an empty
 `ConfChangeV2` is committed only at a joint configuration (`committed_emptyV2_joint`), so the arm is
-dead (`tc_noConf2`). Step 1 may drop the law unless another client needs it.
+dead (`tc_noConf2`). The law stays in raft's API (Probe A's `probeA_confV2` uses it).
 
 **Smaller choices.** `tc_storBnd_zero` (`HarnessStorage.lean`) proves the storage bound from today's
-ungated `storBnd` (to be replaced by step 1's `storBnd_zero`); the goroutines share one persistent
+ungated `storBnd` (step 1 left `storBnd`'s gate for a decision, its I9; once gated, raft's
+`storBnd_zero` replaces the lemma); the goroutines share one persistent
 `tcWorld c W`; the three `app`s' network-adder shares are `½, ¼, ¼` (`Qp` halves, not thirds);
 `RunConcurrent.wp_proof` takes the node specs whose statements need a storage model as
 `∀ [StorageModel GF]`, since the run allocates the storage registry itself; `probeA_alloc`'s post also

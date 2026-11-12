@@ -14,6 +14,8 @@ Revision 3: branch `trace-check-design4`, from `trace-check` at `344537cee1`, af
 Probe A (2026-11-11): branch `trace-check-probeA`, from `trace-check` at `31058ad33c`: §8's Probe A as a
 Lean proof (`Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/ProbeA.lean`); its
 corrections, P1-P5, in the section below.
+Implementation step 1 (2026-11-12): branch `trace-check-impl1`; what threading changed, I1-I9, in the
+first section below (I9: `storBnd`'s gate left for a decision).
 
 Reading order: §1 is the only part the user reviews (settled: Q32 and Q38 decided by the user). §2-§6
 are the agent's (intermediate statements, recorded per "The gates, delegated"). §7 is the whole chain
@@ -26,6 +28,60 @@ Vocabulary used throughout: `TrNetTy t` (`MsgApp`, `MsgAppResp`, `MsgVote`, `Msg
 `InvNode.lean`, §3.1), the capability `trCapB` (`TracedCap.lean`), `rnTrace` (`InvRawnode.lean`).
 
 ---
+
+## Implementation step 2 (2026-11-12): what the Lean changed
+
+Branch `trace-check-impl2`, from `trace-check` at `a38252c9f0` (§9's step 2; `notes/decisions.md`,
+"Implementation step 2 (path facts)"). Done, no `sorry`, no axiom: N1's monotone flag and A2's
+`OutTyStep` in `stepBundle_traced.statement`'s end resource (every path, the close helpers, the ticks'
+traced triples, the 4 consumers, `raft.Step.tracedTriple`'s post), S2's `OutOk`, `TrNoSnap`'s update
+form, lemma (i), Probe B's item 6; `RawNode.Advance.spec`'s strengthened post was already in (checked).
+Not done: G3 (a) (below). The statements as written, and where they depart from the text above:
+
+- **I1 (the end resource's form).** `Gout s' := ⌜OutTyStep s s'⌝ ∗ ∃ bt', ⌜bt = true → bt' = true⌝ ∗
+  trCapB …` (the pure conjunct first, the flag's implication inside the existential): the same content
+  as §3.6's. `stepBundle_traced.onG` moved to `TracedRaftStep.lean` (`stepBundle_traced_localNoLine`
+  is over it, for the forward's batch of normal entries; `LocalNoLine`'s end gives the forward's type
+  and entries). The receive paths close through `stepClose_anyB_end`, which takes `OutTyStep` as a pure
+  function of `StepEnd` (the `outty_tac` tactic proves it at the paths' concrete end states); the
+  ticks' traced triples (`raft.tickElection.traced`, `raft.tickHeartbeat.traced`) give both too.
+- **I2 (`AckEnd` strengthened; a gap in §3.6).** `TrScope s → TrScope s'` is not provable for the
+  storage acknowledgements: the close learns only `AckEnd`'s `toPState s' = toPState s`, which reads
+  neither `lt` nor the read state. `AckEnd` (`LemmasStepGates.lean`, inside `stepClose`, so inside
+  `raft.Step.spec`'s precondition) gains `s'.lt = s.lt ∧ s'.rd = s.rd`; `raft.Step`'s two acknowledgement
+  branches prove it (`raft__Step/MsgStorageAppendResp.lean`, `MsgStorageApplyResp.lean`: the end state
+  is the struct with another log). §3.6's "`raft__Step/*.lean` … do not change" is wrong by these two
+  conjuncts. Raft-internal; `raft.Step.spec`'s text does not change.
+- **I3 (the read-index responses; S2's `lineF_untraced` premise unsatisfiable).** The two paths that
+  queue a read-index response (`"#Hghresp"`, `"#Hgrlresp"`: a leader's heartbeat response and accepted
+  append response) do so at gates that say nothing of the read they answer, so the caller cannot give
+  `lineF_untraced` its `¬ ReadIdle X` (revision 3's S2 said "its caller has [it] from the pending read
+  it answers": it does not). `lineF_untraced` keeps the premise as designed, but those two families are
+  indexed by the outbox without its responses (`rirFilter`, invisible to the traced family:
+  `pendAbs_rirFilter`; the response's gate is `lineF_rir`), and the close puts them back
+  (`lineF_unfilter`) from the end state: in scope no read is pending, so the end state queues none
+  (`leadRespNA_scope`, `leadAcc_scope`). The alternative, strengthening the two gates in `leaderGates`
+  (a premise `¬ ReadIdle s`), changes `raft.Step.spec`'s gates and `stepLeader`'s proofs; not taken.
+- **I4 (`ReadIdle`, `TrScope`, `TrOutMsg`).** `ReadIdle s := s.rd.ro.pending = [] ∧ s.rd.pend = []`
+  (the read-only queue and the pending `MsgReadIndex`es; `reset` empties the first and keeps the
+  second); `TrOutMsg` reads the forwarded proposal's entries at type `W32 0` (`EntryNormal`'s value:
+  `StepGhostMode.lean` does not import `InvRaftlog.lean`).
+- **I5 (the families' flags).** `lineF` takes the step's first flag `bt` (`∃ b, ⌜bt = true → b = true⌝`,
+  P6); the families entered after a line (`propF`, `wonGE`, `leadAccGc`) record `b = true`.
+- **Lemma (i)** is `bootPrefix_unapplied`/`hupCampaigns_applied_boot` (`TracedConfExcl.lean`), over a
+  log whose first entries are the bootstrap's conf entries (the log facts at a node, from the committed
+  log, are step 3's to read).
+- **Probe B item 6** is `trCapB_booted_of_mono`/`raft.Step.traced_booted` (`TracedRaftStepBundle.lean`).
+- **G3 (a): not done.** (a1): the per-entry form is cheaper than a clause on the term logs' authority
+  (`ev2Rec` gains `⌜γ.reTrace ≠ none → IsConfEnt e → IsEmptyV2 e⌝`, minted at
+  `ownRaftGhost_step_propose`, `Protocol/Refinement.lean`), but the minting site has no trace fact: its
+  caller is `ghostR_stepR`'s `StepR.propose` arm (`Protocol/RefinementDyn.lean`), which sees the
+  proposal only as an abstract received message. The premise reaches it either through every layer from
+  `raft.Step`'s `MsgProp` branch (`ghost_stepCD`, `ownRaftGhostR`'s step lemma, the `StepR` update), or
+  as a gated clause of `isMessage`'s proposal case, whose producers are the node API's proposals (step
+  1's files). (a2): `CfgAt γ M P c` is `γ.dyn`'s fold, `cfgFold (effDec dec M) c0` at the node API;
+  that the bootstrap prefix folds to a simple configuration needs the decoder's value on the bootstrap
+  entries' bytes (`dec pre e` for `BootLog`'s `AddNode`s), which no raft lemma states at this level.
 
 ## Probe A (2026-11-11): what the probe changed
 
@@ -71,6 +127,61 @@ points below; each is fixed in the text here (`notes/decisions.md`, "Probe A (ha
 `stepIn_intro` with `trTok` and `node.Step.spec`; `trTok_type` through the clone's type; the thread
 tokens (`netJoin.wp_Add`, `wp_fork_tok_self`, `netJoin.wp_Done`; `wp_fork_tok_body` for `app`); and
 `startDone` ×3 into `runOver_intro`.
+
+## Implementation step 1 (2026-11-12): what threading the gates changed
+
+Branch `trace-check-impl1`, from `trace-check` at `a38252c9f0` (§9's step 1; `notes/decisions.md`,
+"Implementation step 1 (gates)"). Done, no `sorry`, no axiom: the gates with their `none` arms today's
+bodies, the escrow threaded, the client premises and every L3 call site, `node.Advance.tracedSpec` as
+the one proof, `isReadyChan_recvAu.tracedSpec` proved, the leave-joint law. Where the text above does
+not hold in Lean, the fix (each the smallest that builds):
+
+- **I1 (`trTok`'s name).** Raft's sealed token is `sentTok` (`InvNode.lean`): every client imports
+  `InvNode`, and etcd's rafthttp already has a `trTok` (`TransportState.lean`) in the same namespace.
+  `TracedNodeApi.lean`'s `trTok` is an abbreviation of it, with `trTok_untraced`, `trTok_type`; the
+  untraced clients use `sentTok_untraced`. Its body is §3.1's (`trTokR γ.raft`, with `TrSent`).
+- **I2 (the gates' form).** Each gate is a conjunct `gateTr o X` (`InvRtk.lean`: `True` at `o = none`),
+  so the `none` arm is today's body `∗ True`, not a `match` with today's body as an arm: `fwdP` and
+  `netP` end with `fwdGate`/`netGate`, `readyP` with the element (`rtkElem`), `advInv`'s `SndPending`
+  and `RcvCommit` with the request's payload (`escPay`), `advDep`/`advRet` are `advDep0`/`advRet0` (today's
+  bodies, renamed) `∗` `run`'s lent half, `nodeDriverChan`/`nodeDriverBusy` hold the request whole
+  (`escReq`), `isAdvChan` the escrow (`rtkInv`, in `isNodeChan` through it). An untraced proof frames
+  `gateTr_none`; the two every-`γ` proofs (`node.Advance`, the `Ready` receive) thread the gated
+  escrow lemmas (`esc_send_prep`, `esc_recv_commit`, `esc_send_rcvPending`, `esc_send_rcvCommit`).
+- **I3 (`AdvReq`).** Unchanged: the escrow's request is a ghost name of its own, `NodeNames.esc.rq`
+  (`RtkNames`, every escrow name defaulting to `0`, so no untraced allocation changes), in halves as
+  §3.2 item 4's request; `AdvReq`'s users are untouched.
+- **I4 (the claim's node).** `readyToksClaim n γ N ms` (traced) is `⌜ms = []⌝ ∨ ∃ γn, NodeOk γ γn ∗
+  nodeTabOk γ n γn ∗ rtkElem γn.esc ms`; the node table's entry (`cfgNamesOf`) records the escrow's
+  names, so that at `Advance` the claim names the escrow of the node `nodeDriver` holds
+  (`readyToksClaim_at`). §3.1's `isNodeChan γn …` in the claim is not needed.
+- **I5 (P1's law).** `Membership.applyChange_leaveJoint` takes `m.Restorable` (`confAt_restorable`):
+  a valid joint membership with a staged learner that is an incoming voter is one `LeaveJoint`
+  refuses (raft's `checkInvariants`, the model), and `Valid` does not exclude it. In
+  `ConfchangeApi.lean` (where `Restorable` is), proved from `ccApplyM_leaveJoint` and
+  `leaveJointState_inv` (`ConfchangeApiImpl.lean`). Probe A's `probeA_confV2` reads both facts off
+  `confAt`.
+- **I6 (`node.Advance`'s one proof, where).** `node.Advance.tracedSpec_proof` is in an internal module,
+  `NodeAdvanceTraced.lean` (a proof file of the layout exposes only its `wp_proof`); `node__Advance.lean`
+  proves `node.Advance.wp_proof` as its instance, and `TracedLinked.lean` (a new importable module: `Linked` would bring `TracedNodeApi`'s `trTok` into the server) exports `node.wp_Advance_traced` and
+  `node.wp_Step_traced` (`node.Step.tracedSpec_of_spec`) to clients.
+- **I7 (`netP_local`).** Takes `γ.raft.reTrace = none ∨ MsgUnreachable`: the four refused senders pass
+  their refusal premise, `ReportUnreachable` its type.
+- **I8 (the clients' facts).** As L3 left "to check at threading": kv, kvreconf and kvdurable read the
+  untraced fact from their cluster predicates (`kvCluster`, `kvrCluster`, `kdCluster` gain
+  `⌜Cluster.trace … = none⌝`, from `cluster_alloc`'s at their one construction; `kv…Cluster_untraced`),
+  not their replica predicates; kv's `kvPeerOk` gains it (§3.1). The server reads `srvClusterOk`'s last
+  conjunct (`srvClusterOk_untraced`); `rnStepIfc_of_isNode`, which holds only `rnIsNode`, takes it as a
+  premise from `NodeStart`'s `Cluster.trace γr.cl = none`.
+- **I9 (`storBnd`'s gate: not made; the coordinator's).** Gating `storBnd` (B2) makes kv's **closed**
+  `kv_storage_isStorage` (`examples/raft/kv/Results.lean`) false without a new premise
+  `Cluster.trace γ = none` (its `kvJ`'s bound gives no `c = 0` at a traced cluster), a closed-statement
+  change §9's L3 did not list. Step 1 adds the laws (`storBnd_zero`, `storBnd_intro_untraced`) over the
+  ungated body and leaves the gate, `memStorage_isStorage`'s premise and the three kv-family lemmas for
+  a decision: (a) the kv results gain the premise; (b) the gate goes into kv's own `kvJ`
+  (`B k := nodeAppliedLb γ K k ∗ ⌜k = 0 ∨ untraced⌝`), the closed text unchanged but its premise
+  stronger; (c) `TrNoSnap`'s source at `setupNode` (A4) found elsewhere. Recommendation: (a), the
+  premise every kv result already has from `cluster_alloc`. Nothing before step 3 reads the gate.
 
 ## Probe B (2026-11-11): what the proofs found
 
@@ -128,20 +239,20 @@ Branch `trace-check-harness`, from `trace-check` at `a38252c9f0` (`notes/decisio
 and `join3` (`NetJoin.lean`), Q35's `Workload`, and §1's two statements, each from one hypothesis
 `HarnessOpen` (`Results.lean`: `raft_tracecheck_safe_of`, `raft_tracecheck_accepts_of`; the statements
 are §1.2's and §1.3's with `(h : HarnessOpen)` first). `HarnessOpen` is `HarnessApi`
-(`HarnessDefs.lean`) at every instance context and storage model: `StartNode.tracedSpec`,
-`StepInIntroTr`, `TrTokType`, and over one claim `RecvTracedSpec` and `AdvanceTracedSpec` (Probe A's
-forms), which steps 1 and 3-5 of §9 provide. Where the text above differs from what was proved:
+(`HarnessDefs.lean`) at every instance context and storage model: `StartNode.tracedSpec`, which steps
+3-5 of §9 provide; the other traced statements (`stepIn_intro`, `trTok_type`, the traced `Ready`
+receive and `node.Advance.tracedSpec`) are step 1's, used as proved. Where the text above differs from what was proved:
 
 - **H1 (§2.3, the `ConfChangeV2` arm; Probe A's P1 not needed).** `Membership.applyChange_leaveJoint`
-  is not among the hypotheses and step 1 need not add it for the harness. `app`'s view of its node's
+  (step 1's) is not used by the harness. `app`'s view of its node's
   configuration (`ViewOk`) is always the voters' simple membership: a committed `ConfChange` (type 1)
   is a bootstrap one, an `AddNode` of a voter (`tcOps_v1_boot`, `tc_conf1`), and the empty
   `ConfChangeV2` is refuted, not
   applied: `committed_emptyV2_joint` makes the configuration it is decided at joint, while the
   configuration there is the voters' simple one (`tc_noConf2`).
-- **H2 (§2.2, `storBnd_zero`).** Step 1 has not landed, so the storage's bound is
-  `tc_storBnd_zero` (`HarnessStorage.lean`), proved from today's ungated `storBnd` body through
-  `nodeAppliedLb_zero`. When step 1 gates `storBnd`, its `storBnd_zero` replaces the lemma (one line).
+- **H2 (§2.2, `storBnd_zero`).** Step 1 left `storBnd`'s gate for a decision (its I9), so the
+  storage's bound is `tc_storBnd_zero` (`HarnessStorage.lean`), proved from today's ungated `storBnd`
+  body through `nodeAppliedLb_zero`. Once `storBnd` is gated, `storBnd_zero` replaces the lemma.
 - **H3 (§2.2-§2.4, the shared state).** One persistent `tcWorld c W` (`HarnessDefs.lean`) holds what
   the goroutines read: the configuration's fields `Tick`, `MaxDelay`, `DropPct`, `SnapshotEvery`
   (read-only), the pure workload facts, the stop channel, the replicas and their nodes, the network's
@@ -1713,7 +1824,9 @@ proved theorem before its facts.** Each landing passes the acceptance test (`not
    or the client's fact) and is re-proved by rewriting the gate. No `rnTrace` clause, no `readyTok` body
    change.
 2. **The facts the new clauses need, as theorems** (no existing statement changes but the raft-internal
-   ones named; revision 3, N3: nothing here needs `lt = 0` or a new `rnTrace` clause):
+   ones named; revision 3, N3: nothing here needs `lt = 0` or a new `rnTrace` clause). (Done
+   2026-11-12 on `trace-check-impl2` but G3 (a), with `AckEnd` strengthened and the response paths'
+   filtered families: "Implementation step 2" at the top.)
    - `stepBundle_traced.statement`'s `Gout` with **`OutTyStep` and the monotone flag** (A2; N1), the 27
      path files and `TracedPin.lean`'s close helpers re-proved (§3.6); `stepClose_anyB` with the flag;
      the 4 consumers that pass `Gout` through (`TracedNodeRecv.lean`, `TracedRawNode.lean`,

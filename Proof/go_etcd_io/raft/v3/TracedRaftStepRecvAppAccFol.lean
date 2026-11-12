@@ -409,7 +409,8 @@ abbrev stepBundle_traced.onRB (Path : NState → MessageM → Prop) : Prop :=
       TrNoSnap s.gh.tr s.logst : IProp GF) ⊢
     |={⊤}=> ∃ R : StepG GF, R.G ∗ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) ∗
       stepClose γ md c id m ents ctx s R
-        (fun s' => iprop(∃ bt' : Bool, trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ)))
+        (fun s' => iprop(⌜OutTyStep s s'⌝ ∗ ∃ bt' : Bool, ⌜bt = true → bt' = true⌝ ∗
+          trCapB s.gh.tr γ r id c bt' (fun C => SimIdle C s') (stepLastEv Λ)))
 
 /-- **`stepBundle_traced.onRB` gives `stepBundle_traced.on`** once the capability gives the voters' fit
 (`hcap`, a law of the capability that carries it). -/
@@ -687,7 +688,33 @@ theorem stepBundle_traced_folAppAcc : stepBundle_traced.onRB (GF := GF) (hG := h
       exact ⟨fun _ _ _ => rfl, IdxFree.of_some _ hsome, IdxFree.of_some _ hsome,
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: raft's accepted append, the specification's
-    iapply stepClose_anyB
+    have hoty : ∀ s', (s.gh.tr.isSome → StepEnd c id m ents ctx s s') → OutTyStep s s' := by
+      intro s' hend
+      obtain ⟨ls', hse, hprev', hes', hcm'⟩ : ∃ ls' : LogState,
+          s' = sendMsgs { ({ s with lead := m.From' } : NState) with logst := ls' }
+            [appResp id { s with lead := m.From' } m.From' false lastnewi (W64 0) (W64 0)] ∧
+          ls'.prev = s.logst.prev ∧ ls'.sents ++ ls'.uents = es' ∧
+          ls'.committed = accCommit s.logst.committed m.Commit' lastnewi := by
+        obtain ⟨pvs, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
+        rw [hpre pvs] at h
+        obtain ⟨scfg, sv, d, c', hf⟩ := h.1 hrole
+        unfold FollowerStepResultC at hf
+        obtain ⟨-, hf⟩ := hf
+        rw [hTy] at hf
+        simp [MsgVoteResp, MsgProp, MsgApp] at hf
+        obtain ⟨-, hf⟩ := hf
+        unfold HandleAppResult at hf
+        try simp only at hf
+        rcases hf with ⟨h, -⟩ | ⟨-, ln2, es2, ls', h2, hp', hes2, -, hc2, -, -, h⟩ | ⟨-, hnm, -⟩
+        · exact absurd h (by omega)
+        · rw [show s.logst.prev = base0 from hbase] at h2
+          have h3 := h2.symm.trans happ
+          simp only [Option.some.injEq, Prod.mk.injEq] at h3
+          obtain ⟨rfl, rfl⟩ := h3
+          exact ⟨ls', h, hp', hes2, by rw [hc2]; rfl⟩
+        · exact absurd hmt hnm
+      subst hse; outty_tac
+    iapply stepClose_anyB_end hoty
     -- (slice 23a) a close at `s`
     iapply stepClose_of_at _ _ _ _ _ _ _ _ _ _ (fun _ => CloseAt.of_traced hmty rfl)
     iunfold stepCloseAt

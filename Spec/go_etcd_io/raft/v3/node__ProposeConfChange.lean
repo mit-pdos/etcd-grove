@@ -38,6 +38,9 @@ empty `ConfChangeV2` a requested entry.) (2026-10-29, S1) The update is wrapped 
 abbrev node.ProposeConfChange.spec : Prop :=
   ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (c : GoInterface) (o : ConfChangeIM) (dq : DFrac)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+  -- (2026-11-12, trace-check implementation step 1: the design's §3.5) refused at a traced
+  -- cluster: `run` steps no message of this kind there
+  Cluster.trace γ = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd ∗
       ownConfChangeI c dq (some o) ∗
       □?γ.dup (AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅

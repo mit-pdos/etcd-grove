@@ -124,7 +124,7 @@ theorem Replica.applyEntry.wp_proof
   -- every committed conf entry decodes, with a defined transition
   ihave #Hcl' := Hcl
   iunfold kvrCluster at Hcl'
-  icases Hcl' with ⟨-, -, -, -, #Hinv⟩
+  icases Hcl' with ⟨-, -, -, -, #Hinv, -⟩
   imod rkv_confShaped γr l ⊤ (fun _ _ => CoPset.mem_full) $$ Hinv Hl with %Hsh
   have Hesh : e.isConfChange → ConfShaped e := Hsh e (Hpre.subset (by simp))
   try wp_auto

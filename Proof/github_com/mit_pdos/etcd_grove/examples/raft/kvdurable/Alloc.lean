@@ -212,6 +212,7 @@ theorem kd_alloc (o : KOptions) (dir : GoString) (γf : GName) (E : CoPset)
   · unfold kdCluster
     rw [Hγc, Hγf]
     iframe Hcl Hpol Hca Hsnap Hinv Hfiles
+    ipureintro; exact Htr
   isplitl [Hrs HfV HwV]
   · ihave HV := (BigSepL.bigSepL_sep_eqv (Φ := fun _ id => iprop(raftState (GF := GF) γc id
       RaftState.init ∗ nodeVacant γc id)) (Ψ := fun _ id => iprop(dfile γf (kdFileName dir id) none ∗
