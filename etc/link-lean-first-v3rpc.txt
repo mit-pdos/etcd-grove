@@ -173,7 +173,7 @@ newCancellableContext:
 cancellableContext__Cancel:
 cancellableContext__Err:
 monitorLeader: EtcdServer__GoAttach EtcdServer__StoppingNotify EtcdServer__Leader cancellableContext__Cancel
-newStreamInterceptor: monitorLeader api_IsCapabilityEnabled EtcdServer__MemberID EtcdServer__IsMemberExist EtcdServer__IsLearner metadata_MD__Get utf8_ValidString prometheus_CounterVec__WithLabelValues
+newStreamInterceptor: monitorLeader api_IsCapabilityEnabled EtcdServer__MemberID EtcdServer__IsMemberExist EtcdServer__IsLearner metadata_MD__Get utf8_ValidString prometheus_CounterVec__WithLabelValues metadata_FromIncomingContext EtcdServer__Leader newCancellableContext cancellableContext__Cancel cancellableContext__Err
 #
 # Item 4 (the server start, 2026-10-17): `v3rpc.Server` (grpc.go) and what it calls. grpc's server
 # side is the trust boundary (axioms, `Proof/google_golang_org/grpc/InvGrpcServer.lean`): its options,

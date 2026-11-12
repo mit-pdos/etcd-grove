@@ -4,7 +4,7 @@
 
 `newStreamInterceptor`'s require-leader branch inserts `ss = serverStreamWithCtx{ctx, ss}` into
 `smap.streams` (a `map[grpc.ServerStream]struct{}`): an interface holding a struct of the raw
-stream (a pointer, `rawStreamKeyTy`, T-c) and the `*cancellableContext`. Perennial's default
+stream (a pointer, `rawStreamKey`, T-c, T-g) and the `*cancellableContext`. Perennial's default
 interface keys (`mapKeys_interface`) are nil and pointers only, and invite a proof that needs other
 keys to give its own instance: `v3rpc.streamKeys` (the keys `v3rpc.sKey t ls l`), with
 `v3rpc.safeMapKey_sKey`, from `==`'s reduction (`v3rpc.sKey_eq`: the dynamic types, then the

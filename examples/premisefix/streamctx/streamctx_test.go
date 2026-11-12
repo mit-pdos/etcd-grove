@@ -42,6 +42,7 @@ import (
 	"go.etcd.io/etcd/server/v3/lease"
 	"go.etcd.io/etcd/server/v3/lease/leasehttp"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	oteltrace "go.opentelemetry.io/otel/trace"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -251,6 +252,12 @@ func TestRawStreamKey(t *testing.T) {
 				got <- fmt.Sprintf("%s: %T is not a pointer", where, ss)
 				return
 			}
+			// T-g (Q1): the interface value's data word is the pointer itself (Go stores a
+			// pointer-typed dynamic value directly in the interface's second word).
+			if w := (*[2]unsafe.Pointer)(unsafe.Pointer(&ss))[1]; w != reflect.ValueOf(ss).UnsafePointer() {
+				got <- fmt.Sprintf("%s: %T's data word %p is not its pointer", where, ss, w)
+				return
+			}
 			m := map[grpc.ServerStream]int{ss: 1}
 			k := map[grpc.ServerStream]int{serverStreamWithCtx{ServerStream: ss, ctx: &cancellableContext{}}: 1}
 			if m[ss] != 1 || len(k) != 1 {
@@ -337,4 +344,27 @@ func TestRenewHTTPErrTiming(t *testing.T) {
 	}
 	t.Logf("cancelled: %v (%T); Is(Canceled)=%v Is(ErrGRPCNoLeader)=%v; Err() called %d times",
 		err, err, errors.Is(err, context.Canceled), errors.Is(err, rpctypes.ErrGRPCNoLeader), c.errs.Load())
+}
+
+// spanOnlyCtx answers Value and panics on every other method (T-g, Q2).
+type spanOnlyCtx struct{ v any }
+
+func (spanOnlyCtx) Deadline() (time.Time, bool) { panic("Deadline called") }
+func (spanOnlyCtx) Done() <-chan struct{}       { panic("Done called") }
+func (spanOnlyCtx) Err() error                  { panic("Err called") }
+func (c spanOnlyCtx) Value(key any) any         { return c.v }
+
+// TestSpanFromContextValueOnly: otel's SpanFromContext reads only ctx.Value(currentSpanKey): a
+// context whose Done, Err and Deadline panic works, answering nil (the no-op span) or a span.
+func TestSpanFromContextValueOnly(t *testing.T) {
+	sp := oteltrace.SpanFromContext(spanOnlyCtx{})
+	if sp == nil || sp.SpanContext().IsValid() {
+		t.Fatalf("nil value: got %v", sp)
+	}
+	sc := oteltrace.NewSpanContext(oteltrace.SpanContextConfig{TraceID: [16]byte{1}, SpanID: [8]byte{1}})
+	want := oteltrace.SpanFromContext(oteltrace.ContextWithSpanContext(context.Background(), sc))
+	got := oteltrace.SpanFromContext(spanOnlyCtx{v: want})
+	if !got.SpanContext().Equal(want.SpanContext()) || !got.SpanContext().IsValid() {
+		t.Fatalf("span value: got %v, want %v", got, want)
+	}
 }

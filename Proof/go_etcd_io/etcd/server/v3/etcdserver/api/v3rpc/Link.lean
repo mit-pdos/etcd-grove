@@ -646,9 +646,17 @@ theorem wp_monitorLeader :
     EtcdGrove.v3rpc.monitorLeader.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.monitorLeader.wp_proof EtcdServer.wp_GoAttach EtcdServer.wp_StoppingNotify EtcdServer.wp_Leader cancellableContext.wp_Cancel
 
+theorem wp_newCancellableContext :
+    EtcdGrove.v3rpc.newCancellableContext.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.newCancellableContext.wp_proof
+
+theorem cancellableContext.wp_Err :
+    EtcdGrove.v3rpc.cancellableContext.Err.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.cancellableContext.Err.wp_proof
+
 theorem wp_newStreamInterceptor :
     EtcdGrove.v3rpc.newStreamInterceptor.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.newStreamInterceptor.wp_proof wp_monitorLeader api.wp_IsCapabilityEnabled EtcdServer.wp_MemberID EtcdServer.wp_IsMemberExist EtcdServer.wp_IsLearner metadata.MD.wp_Get utf8.wp_ValidString prometheus.CounterVec.wp_WithLabelValues
+  EtcdGrove.v3rpc.newStreamInterceptor.wp_proof wp_monitorLeader api.wp_IsCapabilityEnabled EtcdServer.wp_MemberID EtcdServer.wp_IsMemberExist EtcdServer.wp_IsLearner metadata.MD.wp_Get utf8.wp_ValidString prometheus.CounterVec.wp_WithLabelValues metadata.wp_FromIncomingContext EtcdServer.wp_Leader wp_newCancellableContext cancellableContext.wp_Cancel cancellableContext.wp_Err
 
 theorem health.wp_NewServer :
     EtcdGrove.health.NewServer.spec (GF := GF) (hG := hG) :=
@@ -798,10 +806,6 @@ theorem authMaintenanceServer.wp_Status :
     EtcdGrove.v3rpc.authMaintenanceServer.Status.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.authMaintenanceServer.Status.wp_proof authMaintenanceServer.wp_requireAuthInfo wp_togRPCError
 
-theorem cancellableContext.wp_Err :
-    EtcdGrove.v3rpc.cancellableContext.Err.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.cancellableContext.Err.wp_proof
-
 theorem errors.wp_IsCtxErr :
     EtcdGrove.errors.IsCtxErr.spec (GF := GF) (hG := hG) :=
   EtcdGrove.errors.IsCtxErr.wp_proof
@@ -825,10 +829,6 @@ theorem storage.wp_NewBackendQuota :
 theorem wp_newBackendQuota :
     EtcdGrove.v3rpc.newBackendQuota.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.newBackendQuota.wp_proof EtcdServer.wp_Logger EtcdServer.wp_Backend storage.wp_NewBackendQuota
-
-theorem wp_newCancellableContext :
-    EtcdGrove.v3rpc.newCancellableContext.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.newCancellableContext.wp_proof
 
 theorem quotaAlarmer.wp_check :
     EtcdGrove.v3rpc.quotaAlarmer.check.spec (GF := GF) (hG := hG) :=

@@ -376,10 +376,13 @@ abbrev msgAny (T : go.GoType) (l : Loc) : GoInterface :=
 
 /-! ## The server end -/
 
-/-- **A raw server stream's dynamic type** (k8s 7f-4, T-c): a pointer type, so that the stream is a
-comparable map key (Go's `==` on two such interface values compares the types, then the pointers). -/
-def rawStreamKeyTy (t : go.GoType) : Prop :=
-  ∃ t' : go.GoType, t = go.GoType.PointerType t'
+/-- **A raw server stream is a pointer** (k8s 7f-4, T-c; strengthened by Addendum T-g, Q1): its dynamic
+type is a pointer type and its value a location, so that the stream is a comparable map key (Go's
+`==` on two such interface values compares the types, then the pointers). Go stores a
+pointer-typed dynamic value directly in the interface's data word
+(`examples/premisefix/streamctx` `TestRawStreamKey`). -/
+def rawStreamKey (si : GoInterfaceOk) : Prop :=
+  ∃ (t' : go.GoType) (ls : Loc), si = interface.mk (go.GoType.PointerType t') #ls
 
 /-- **The server end of a stream, raw** (persistent): grpc's `ServerStream` `st` the runtime
 passes to a stream handler. `RecvMsg(&out)` into an owned message (`Req.own out`) decodes the next
@@ -391,7 +394,7 @@ premise fixes 7, `examples/premisefix/ctxvalue` `TestRealStreamErrors`); `SendMs
 `Rep.send l m` (given back) with the handler's content `Dn j m` for its position `j` grows the
 sender's token, or fails, the message delivered or not (the token at the old or the new list);
 `Context()` returns the run's context `ci` (`isContext ci cd`, `grpcRunCtx ci`).
-(k8s 7f-4, T-c) Its dynamic type is a pointer type (`rawStreamKeyTy`), so that it is a comparable map
+(k8s 7f-4, T-c, T-g) It is a pointer (`rawStreamKey`: a pointer type, its value a location), so that it is a comparable map
 key (etcd's `monitorLeader` keys a map by it): grpc passes a `*serverStream` (`server.go`
 `processStreamingRPC`), grpc-prometheus's interceptor a `*monitoredServerStream`
 (go-grpc-middleware v2.3.4 `interceptors/server.go:36`). (k8s 7f-4, T-a) `ci`'s library values and its
@@ -406,7 +409,7 @@ could wrap the stream in a non-pointer value or store values at grpc's or otel's
 def srvRawStreamIs (st : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
     (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) : IProp GF :=
-  iprop(∃ si : GoInterfaceOk, ⌜st = GoInterface.ok si⌝ ∗ ⌜rawStreamKeyTy si.ty⌝ ∗
+  iprop(∃ si : GoInterfaceOk, ⌜st = GoInterface.ok si⌝ ∗ ⌜rawStreamKey si⌝ ∗
     □ (∀ (L : List Req.M) (out : Loc),
       {{ srvRecvTok (Req := Req) γ L ∗ Req.own out }}
         (App (Val #(methods si.ty go!"RecvMsg" si.v)) (Val #(msgAny Req.ty out)))
