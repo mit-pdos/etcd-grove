@@ -1086,7 +1086,9 @@ unless they start otherwise. The specs are written to each choice except D6 (ope
   nondeterminism), U2 (models as patches of the real grpc/net/http packages), U3 (one stream or
   request per connection), U5-U7 (the over-approximations) accepted. E3: a trusted per-type model of
   `encoding/json`. E5: the WAL's torn-tail/CRC assumption is handled on the user's own `wal` branch;
-  do not design it here. E2 (protobuf-go): open, discussed.
+  do not design it here. **E2 (protobuf-go): (b)**, a trusted model generated from etcd's and raft's
+  `.proto` files (plain per-type `Marshal`/`Unmarshal`, translated by Goose, its specs proved; trusted:
+  protobuf-go agrees with it on these types, the proto3 wire format).
 
 ### Needs your approval
 
