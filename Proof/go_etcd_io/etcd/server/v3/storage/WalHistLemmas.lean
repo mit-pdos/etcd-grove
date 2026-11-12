@@ -128,9 +128,61 @@ end img
 section reader
 variable [GooseExts]
 
+/-- The hard-state step of a fold (`walLastHS`'s). -/
+def walHsStep (p : HardStateM) : WalOp → HardStateM
+  | .save h _ => phsNext p h
+  | .snap _ => p
+
+theorem walLastHS_eq (H : WalHist) : walLastHS H = H.foldl walHsStep hsZero := by
+  unfold walLastHS
+  congr 1
+
+theorem walSaveSnap_hs (σ : StorContents) (m : SnapshotMetadataM) : (walSaveSnap σ m).hs = σ.hs := by
+  unfold walSaveSnap; split <;> rfl
+
+/-- A checked fold's hard state is the hard-state fold. -/
+theorem walFoldChkFrom_hs {σ σ' : StorContents} {H : WalHist} (h : walFoldChkFrom σ H = some σ') :
+    σ'.hs = H.foldl walHsStep σ.hs := by
+  induction H generalizing σ with
+  | nil => simp only [walFoldChkFrom, Option.some.injEq] at h; subst h; rfl
+  | cons o H ih =>
+    cases o with
+    | snap m =>
+      simp only [walFoldChkFrom] at h
+      rw [ih h, walSaveSnap_hs]; rfl
+    | save hs es =>
+      simp only [walFoldChkFrom, Option.bind_eq_bind, Option.bind_eq_some_iff] at h
+      obtain ⟨ents, -, h⟩ := h
+      rw [ih h]; rfl
+
+theorem walHsStep_filter (c : Nat) (p : HardStateM) (H : WalHist) :
+    (H.filter (walKeep c)).foldl walHsStep p = H.foldl walHsStep p := by
+  induction H generalizing p with
+  | nil => rfl
+  | cons o H ih =>
+    cases o with
+    | save h es => simp only [List.filter_cons, walKeep, ite_true, List.foldl_cons, ih]
+    | snap m =>
+      simp only [List.filter_cons, walKeep, List.foldl_cons]
+      by_cases hc : uint.nat m.Index' ≤ c
+      · simp only [hc, decide_true, ite_true, List.foldl_cons, walHsStep, ih]
+      · simp only [hc, decide_false, Bool.false_eq_true, ite_false, walHsStep, ih]
+
+/-- **A2: a read's hard state is the history's last saved one** (`ReadAll`'s returned state; the
+conjunct the Freeze package left to W4b, [FREEZE-4]). -/
 theorem walReadCut_hs {I : WalHist} {k : Nat} {σ : StorContents}
     (h : walReadCut I k = some σ) : σ.hs = walLastHS I := by
-  sorry -- A2
+  unfold walReadCut at h
+  split at h
+  · unfold walRead at h
+    rw [walFoldChkFrom_hs h, walHsStep_filter, walLastHS_eq]; rfl
+  · unfold walReadFrom at h
+    simp only at h
+    split at h
+    · cases h
+    · rw [walFoldChkFrom_hs h, walHsStep_filter]
+      simp only
+      rw [walLastHS_eq, walLastHS_eq, ← List.foldl_append, List.take_append_drop]
 
 /-- A3. -/
 theorem walReadCut_base {I : WalHist} {k : Nat} {σ : StorContents} {s : w64 × w64}
@@ -138,11 +190,88 @@ theorem walReadCut_base {I : WalHist} {k : Nat} {σ : StorContents} {s : w64 × 
     σ.base = entryID.mk s.2 s.1 := by
   sorry -- A3
 
-/-- A4 (restart S3's `walRead_wf`). -/
+/-- The entries are consecutive from the base: the `j`-th has index `b + 1 + j`. -/
+def walEntsWf (σ : StorContents) : Prop :=
+  ∀ (j : Nat) (e : EntryM), σ.ents[j]? = some e → uint.nat e.Index' = σ.b + 1 + j
+
+theorem readEnt_wf {b : Nat} {ents ents' : List EntryM} {e : EntryM}
+    (hw : ∀ (j : Nat) (x : EntryM), ents[j]? = some x → uint.nat x.Index' = b + 1 + j)
+    (h : readEnt b ents e = some ents') :
+    ∀ (j : Nat) (x : EntryM), ents'[j]? = some x → uint.nat x.Index' = b + 1 + j := by
+  unfold readEnt at h
+  split at h
+  · simp only [Option.some.injEq] at h; subst h; intro j x hx; simp at hx
+  · split at h
+    · next h1 h2 =>
+      simp only [Option.some.injEq] at h; subst h
+      intro j x hx
+      have hl : (ents.take (uint.nat e.Index' - b - 1)).length = uint.nat e.Index' - b - 1 := by
+        simp; omega
+      rcases Nat.lt_or_ge j (uint.nat e.Index' - b - 1) with hj | hj
+      · rw [List.getElem?_append_left (by omega), List.getElem?_take_of_lt hj] at hx
+        exact hw j x hx
+      · rw [List.getElem?_append_right (by omega), hl] at hx
+        have : j - (uint.nat e.Index' - b - 1) = 0 := by
+          rcases Nat.lt_or_ge (j - (uint.nat e.Index' - b - 1)) 1 with h0 | h0
+          · omega
+          · rw [List.getElem?_eq_none (by simp; omega)] at hx; cases hx
+        rw [this] at hx
+        simp only [List.getElem?_cons_zero, Option.some.injEq] at hx; subst hx
+        omega
+    · cases h
+
+theorem readEnts_wf {b : Nat} {es : List EntryM} : ∀ {ents ents' : List EntryM},
+    (∀ (j : Nat) (x : EntryM), ents[j]? = some x → uint.nat x.Index' = b + 1 + j) →
+    es.foldlM (fun ents e => readEnt b ents e) ents = some ents' →
+    ∀ (j : Nat) (x : EntryM), ents'[j]? = some x → uint.nat x.Index' = b + 1 + j := by
+  induction es with
+  | nil => intro ents ents' hw h; simp only [List.foldlM_nil, Option.pure_def, Option.some.injEq] at h; subst h; exact hw
+  | cons e es ih =>
+    intro ents ents' hw h
+    simp only [List.foldlM_cons, Option.bind_eq_bind, Option.bind_eq_some_iff] at h
+    obtain ⟨m, hm, h⟩ := h
+    exact ih (readEnt_wf hw hm) h
+
+theorem walSaveSnap_wf {σ : StorContents} (m : SnapshotMetadataM) (hw : walEntsWf σ) :
+    walEntsWf (walSaveSnap σ m) := by
+  unfold walSaveSnap
+  split
+  · exact hw
+  · next hlt =>
+    intro j e he
+    simp only [StorContents.b] at hlt ⊢
+    simp only at he
+    split at he
+    · rw [List.getElem?_drop] at he
+      have := hw _ _ he
+      simp only [StorContents.b] at this
+      omega
+    · simp at he
+
+theorem walFoldChkFrom_wf {σ σ' : StorContents} {H : WalHist} (hw : walEntsWf σ)
+    (h : walFoldChkFrom σ H = some σ') : walEntsWf σ' := by
+  induction H generalizing σ with
+  | nil => simp only [walFoldChkFrom, Option.some.injEq] at h; subst h; exact hw
+  | cons o H ih =>
+    cases o with
+    | snap m => simp only [walFoldChkFrom] at h; exact ih (walSaveSnap_wf m hw) h
+    | save hs es =>
+      simp only [walFoldChkFrom, Option.bind_eq_bind, Option.bind_eq_some_iff] at h
+      obtain ⟨ents, he, h⟩ := h
+      exact ih (σ := { σ with hs := phsNext σ.hs hs, ents := ents }) (readEnts_wf hw he) h
+
+/-- **A4: a read's entries are consecutive from its base** (restart S3's `walRead_wf`, its first
+half; no premise). -/
 theorem walReadCut_wf {I : WalHist} {k : Nat} {σ : StorContents}
-    (h : walReadCut I k = some σ) :
-    ∀ (j : Nat) (e : EntryM), σ.ents[j]? = some e → uint.nat e.Index' = σ.b + 1 + j := by
-  sorry -- A4
+    (h : walReadCut I k = some σ) : walEntsWf σ := by
+  unfold walReadCut at h
+  split at h
+  · exact walFoldChkFrom_wf (by intro j e he; simp [walFresh] at he) h
+  · unfold walReadFrom at h
+    simp only at h
+    split at h
+    · cases h
+    · exact walFoldChkFrom_wf (by intro j e he; simp at he) h
 
 end reader
 
