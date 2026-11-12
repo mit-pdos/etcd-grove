@@ -4,10 +4,11 @@
 Lean-first (no Rocq counterpart).
 
 * `v3rpc.streamsMapIs smap` (persistent): the `*streamsMap` `monitorLeader` returns: its `mu` a
-  mutex whose invariant says the `streams` field holds an empty map. The map stays empty because
-  the only insertion (`smap.streams[ss] = struct{}{}`) is in the interceptor's require-leader
-  branch, which `runsNoRequireLeader` excludes; the monitor goroutine only replaces it by a fresh
-  empty map. So its `for ss := range smap.streams` body never runs.
+  mutex whose invariant says the `streams` field holds a map (owned under the local key instance
+  `v3rpc.streamKeys`, `StreamMapKey.lean`) whose every key is a `serverStreamWithCtx` (`v3rpc.sKey t
+  ls l`) over a wrapper `l` with its handle (`v3rpc.ccHandle`, `InvCancellable.lean`; k8s 7f-4): the
+  interceptor's require-leader branch inserts such keys, and the monitor cancels each
+  (`l.Cancel(ErrGRPCNoLeader)`) and waits for its context's `Done`.
 * `v3rpc.runsNoRequireLeader` (persistent; **a premise about the deployment**): no client of the
   server asks for a leader on a stream. For every run context grpc gives a handler (`isContext ci
   cd ∗ grpcRunCtx ci`), `metadata.FromIncomingContext(ci)` meets its generic triple
@@ -33,8 +34,8 @@ the wrapper is not an `isContext` (`issues/etcd-stream-interceptor-err-before-do
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvQuota
-public import Proof.google_golang_org.grpc.InvGrpcStream
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.StreamMapKey
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvCancellable
 public import Spec.google_golang_org.grpc.metadata.FromIncomingContext
 
 @[expose] public section
@@ -56,11 +57,23 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- The invariant of a `*streamsMap`'s mutex: the `streams` field holds an empty map (see the file
-header). -/
+/-- A key of the monitor's map: a `serverStreamWithCtx` over a wrapper with its handle
+(persistent). -/
+def v3rpc.streamKeyOk (k : GoInterface) : IProp GF :=
+  iprop(∃ (t : go.GoType) (ls l : Loc) (c1 : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+    ⌜k = v3rpc.sKey t ls l⌝ ∗ v3rpc.ccHandle l c1 cd)
+
+instance v3rpc.streamKeyOk_persistent (k : GoInterface) :
+    Persistent (v3rpc.streamKeyOk (GF := GF) k) := by
+  unfold v3rpc.streamKeyOk; infer_instance
+
+attribute [local instance 1100] v3rpc.streamKeys in
+/-- The invariant of a `*streamsMap`'s mutex: the `streams` field holds a map (under the key
+instance `v3rpc.streamKeys`) whose keys are `v3rpc.streamKeyOk` (see the file header). -/
 def v3rpc.streamsMapInv (smap : Loc) : IProp GF :=
-  iprop(∃ mp : GoMap, structFieldRef v3rpc.streamsMap go!"streams" smap ↦ mp ∗
-    mp ↦$ (∅ : GMap GoInterface Unit))
+  iprop(∃ (mp : GoMap) (m : GMap GoInterface Unit),
+    structFieldRef v3rpc.streamsMap go!"streams" smap ↦ mp ∗ mp ↦$ m ∗
+    [∗map] k ↦ _u ∈ m, v3rpc.streamKeyOk k)
 
 /-- **The `*streamsMap` `smap`** (persistent; see the file header). -/
 def v3rpc.streamsMapIs (smap : Loc) : IProp GF :=

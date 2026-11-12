@@ -638,9 +638,13 @@ theorem grpc_prometheus.ServerMetrics.wp_StreamServerInterceptor :
     EtcdGrove.grpc_prometheus.ServerMetrics.StreamServerInterceptor.spec (GF := GF) (hG := hG) :=
   EtcdGrove.grpc_prometheus.ServerMetrics.StreamServerInterceptor.wp_proof
 
+theorem cancellableContext.wp_Cancel :
+    EtcdGrove.v3rpc.cancellableContext.Cancel.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.cancellableContext.Cancel.wp_proof
+
 theorem wp_monitorLeader :
     EtcdGrove.v3rpc.monitorLeader.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.monitorLeader.wp_proof EtcdServer.wp_GoAttach EtcdServer.wp_StoppingNotify EtcdServer.wp_Leader
+  EtcdGrove.v3rpc.monitorLeader.wp_proof EtcdServer.wp_GoAttach EtcdServer.wp_StoppingNotify EtcdServer.wp_Leader cancellableContext.wp_Cancel
 
 theorem wp_newStreamInterceptor :
     EtcdGrove.v3rpc.newStreamInterceptor.spec (GF := GF) (hG := hG) :=
@@ -793,10 +797,6 @@ theorem authMaintenanceServer.wp_Snapshot :
 theorem authMaintenanceServer.wp_Status :
     EtcdGrove.v3rpc.authMaintenanceServer.Status.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.authMaintenanceServer.Status.wp_proof authMaintenanceServer.wp_requireAuthInfo wp_togRPCError
-
-theorem cancellableContext.wp_Cancel :
-    EtcdGrove.v3rpc.cancellableContext.Cancel.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.cancellableContext.Cancel.wp_proof
 
 theorem cancellableContext.wp_Err :
     EtcdGrove.v3rpc.cancellableContext.Err.spec (GF := GF) (hG := hG) :=

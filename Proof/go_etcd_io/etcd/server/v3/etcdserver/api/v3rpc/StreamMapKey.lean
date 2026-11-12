@@ -12,7 +12,8 @@ struct's fields, then the pointers). A map of these keys is owned with this inst
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvStreamInterceptor
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvQuota
+public import Proof.google_golang_org.grpc.InvGrpcStream
 
 @[expose] public section
 

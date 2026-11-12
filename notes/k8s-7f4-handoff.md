@@ -33,6 +33,55 @@ the worktree's untracked `questions.md` (decisions), `/shared/tmp/coord-81/commo
     Nothing used it.
   - freeze §2's "T-e'" section (marked draft).
 
+## Handoff point (2026-11-12, end of the fourth agent's context): items 1-6 done; item 7 next
+
+Done (each lean-checked `-a`; items 1-5 in a full build, `95c4778916`; item 6 in the build of the
+commit that adds this section):
+1. `newCancellableContext` (`Spec/`+`Proof/.../v3rpc/newCancellableContext.lean`): pre `isPkgInit v3rpc
+   ∗ isContext parent cd ∗ ⌜threadBound GF ≤ 2^30⌝` (the pure premise, as `GetProgressReportInterval`'s);
+   post `ccHandle l (cancelCtx c) {cd with PDone := True, Done_gn := γ'} ∗ ctxValueFrom parent c1 ∗
+   ctxField c ↦□ parent`. `e` (the no-leader error) from `interceptorVars`.
+2. `cancellableContext.Cancel`: `ccHandle ∗ (⌜reason = nil⌝ ∨ noLeaderErr reason)` → `ContextClosed cd.Done_gn`.
+3. `cancellableContext.Err`: `ccHandle ∗ levelTok ctxErrLvl ∗ (if b then ContextClosed else True)` →
+   token back ∗ `(if b then ⌜err ≠ nil⌝ ∗ (isCtxErr err ∨ noLeaderErr err) else True)`.
+4. `v3rpc.srvCtxWeak_cc` (`CancellableLaws.lean`, takes `Err.spec` as a hypothesis): `isPkgInit v3rpc ∗
+   ccHandle l c1 cd ⊢ srvCtxWeak (ccCtx l) cd` (parentCancelCtx re-proved from its code).
+   The three functions are linked (`etc/link-lean-first-v3rpc.txt`). The context assumptions come from
+   `v3rpc.Assumptions` (`import_context_Assumption`): no separate `context.Assumptions` variable.
+5. The stream adapter lends level 4: `grpcStreamRunOk_of_pools` bundle `levelTok 0 ∗ levelTok 4 ∗ R₁ ∗
+   R₂ ∗ R₃`, `5 ≤ threadBound`; `RunAdapt.srvStreamBundle` (stream runs; unary keep `srvRunBundle`);
+   `srvLevelK := srvRevokeK + 1` (5); `srvLevels_iff` replaced by `srvRevokeLevels_of_srvLevels`;
+   `srvRevokeLevels_of_max` takes `max m srvLevelK`; leaseexpiry's `Main.spec` takes `srvLevels` (was
+   `srvRevokeLevels`); `etcd_watch_served`'s `h1`/`h2` and `srvStreamBundle_watchSlot` at the stream bundle.
+6. The monitor's map: `InvStreamInterceptor.v3rpc.streamsMapInv` holds `mp ↦$ m` (under the local
+   instance `v3rpc.streamKeys`) with `[∗map] k ↦ _u ∈ m, v3rpc.streamKeyOk k` (`k = sKey t ls l ∗
+   ccHandle l c1 cd`); `StreamMapKey.lean` no longer imports `InvStreamInterceptor` (the reverse now);
+   `monitorLeader`'s range body proved (`Cancel(ErrGRPCNoLeader)`, `<-ss.Context().Done()` through the
+   promoted `Done`), `monitorLeader` takes `Cancel.spec` (linked).
+
+**Next: item 7** (the weakening contract, the weak stream end, the interceptor's branch), then step 5.
+Design point to settle first (scratch: `/shared/tmp/k8s7f4/item7-design.md`): grpc's `srvRawStreamIs` is
+trusted (prometheus's axiom, grpc's model), so do not parametrize it; `srvStreamIs`,
+`grpcStreamHandlerOk`, `srvStreamIs_of_raw` and `_Watch_Watch_Handler.spec` are not trusted (the
+`GenericServerStream` axioms speak only of the raw end's method values). Two options: (a) in grpc's
+`InvGrpcStream`, a non-trusted weak raw end `srvRawStreamIsW` (the RecvMsg/SendMsg/Context clauses, the
+context part `srvCtxWeak ci cd ∗ libCtxOk ci ∗ spanCtxOk ci`) with `srvRawStreamIs ⊢ srvRawStreamIsW`,
+and `srvStreamIs`/`grpcStreamHandlerOk`/`_Watch_Watch_Handler.spec` over the weak end (needs
+`srvCtxWeak` in a module grpc can import: it lives in `v3rpc/SrvCtxWeak.lean` now, whose imports are
+Perennial's context, rpctypes and `auth/CtxDone`); (b) etcd-side weak definitions in v3rpc, but
+etcdserverpb's handler spec would then import v3rpc (layering). (a) looks right; moving `srvCtxWeak` is a
+trusted-text move (form only), list it. Then `srvStreamInterceptorWOk ic R` (strong raw end in; the
+handler on a weak end with `⌜incomingOf ci' = incomingOf ci⌝`, or an early `srvErrOk` error), the chain
+lemma for `ics ++ [icW]`, `newStreamInterceptor.spec`'s post `srvStreamInterceptorWOk ic True`: its
+branch is `FromIncomingContext` (premise kept until step 6), `newCancellableContext(ss.Context())` (needs
+`threadBound ≤ 2^30` in `newStreamInterceptor.spec`'s pre), the wrapper's raw end from `ss`'s by the
+promoted `serverStreamWithCtx.{RecvMsg,SendMsg}` and its `Context` (`ccCtx l`, `srvCtxWeak_cc`,
+`wrapperLibCtx`, `incomingOf_wrapper`), the insert under `smap.mu` (`streamKeyOk`, `safeMapKey_sKey`;
+`attribute [local instance 1100] v3rpc.streamKeys`), the `defer`'s delete and `Cancel(nil)`.
+Results' `etcd_watch_served_chain` breaks until step 5 re-proves the handlers over the weak end: do item 7
+and step 5's handler part before the next full build. Gates not yet run at this point: axiom-tok
+(+selftest), the collections, gen-interface, model-param, errdesc.
+
 ## Handoff point (2026-11-12, end of the third agent's context): T-f' approved; the handle started
 
 T-f' approved by 81 (level 4 accepted). Gates still owed with the next landing: axiom-tok (+selftest),
