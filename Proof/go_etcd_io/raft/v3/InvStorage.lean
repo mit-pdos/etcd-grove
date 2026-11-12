@@ -235,7 +235,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- See above. (out_size C2) `sz`: the storage is **sized**: `Entries` returns the entry objects at
-contents (`entsPtsC sz`), each `entSizeOk` when `sz`, and, when `sz` and `maxSize ≤ 2^20`, cut at
+contents (`entsPtsC sz`), each `entSizeOk` when `sz`, and, when `sz` and `maxSize ≤ entsCutMax`, cut at
 `maxSize` (`entsCut`: one entry, or their protobuf sizes sum to at most `maxSize`; Go's `limitSize`
 in `MemoryStorage.Entries`). At `sz = false` the post is today's `entsRO s es`
 (`entsPtsC_entsPtsZ`, `entsPtsZ_false`). -/
@@ -270,7 +270,7 @@ def isStorageP (sz : Bool) (SV : SnapshotM → IProp GF) (Bnd : Nat → IProp GF
          ((⌜err = ec⌝ ∗ storCompacted st (uint.nat lo)) ∨
           (⌜err = interface.nil⌝ ∗
            (∃ (cs : List EntryC), entsPtsC sz s DFrac.discard cs ∗
-             ⌜cs.map EntryC.model = es ∧ (sz = true → uint.nat maxSize ≤ 2^20 → entsCut maxSize cs)⌝) ∗
+             ⌜cs.map EntryC.model = es ∧ (sz = true → uint.nat maxSize ≤ entsCutMax → entsCut maxSize cs)⌝) ∗
            ⌜es ≠ [] ∧ s.cap = s.len ∧
              es <+: ((a ++ b).drop (uint.nat lo - k)).take (uint.nat hi - uint.nat lo)⌝)) }}) ∗
   "#HFirstIndex" ∷ (∀ (c : Nat),
@@ -532,7 +532,7 @@ def isStorageWith (sz : Bool) (P : StorState → IProp GF) (CT : Int → IProp G
          (⌜err = ec ∧ uint.Z lo ≤ uint.Z σ.fl⌝ ∗ CT (uint.Z lo) ∗ P σ) ∨
          (⌜err = interface.nil⌝ ∗
          (∃ (cs : List EntryC), entsPtsC sz s DFrac.discard cs ∗
-           ⌜cs.map EntryC.model = es ∧ (sz = true → uint.nat maxSize ≤ 2^20 → entsCut maxSize cs)⌝) ∗
+           ⌜cs.map EntryC.model = es ∧ (sz = true → uint.nat maxSize ≤ entsCutMax → entsCut maxSize cs)⌝) ∗
          ⌜es ≠ [] ∧
            (es.length : Int) ≤ uint.Z hi - uint.Z lo ∧
            (∀ e, e ∈ es → e ∈ σ.ents.take (uint.Z hi - uint.Z σ.prev.index' - 1).toNat) ∧

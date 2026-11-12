@@ -24,7 +24,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `ms.Entries(lo, hi, maxSize)` within two adjacent ranges the caller holds. (out_size C2) The
 entries returned at their contents (`entsPtsC γs.sz`: each `entSizeOk` when the storage is sized),
-and, when it is sized and `maxSize ≤ 2^20`, cut at `maxSize` (`entsCut`: Go's `limitSize`,
+and, when it is sized and `maxSize ≤ entsCutMax`, cut at `maxSize` (`entsCut`: Go's `limitSize`,
 `storage.go:150`). -/
 abbrev MemoryStorage.Entries.spec : Prop :=
   ∀ (ms : Loc) (γs : MemStorNames) (k : Nat) (dq1 dq2 : DFrac) (a b : List EntryM)
@@ -40,7 +40,7 @@ abbrev MemoryStorage.Entries.spec : Prop :=
        (⌜err = interface.nil⌝ ∗
         (∃ (cs : List EntryC), entsPtsC γs.sz s DFrac.discard cs ∗
           ⌜cs.map EntryC.model = es ∧
-            (γs.sz = true → uint.nat maxSize ≤ 2^20 → entsCut maxSize cs)⌝) ∗
+            (γs.sz = true → uint.nat maxSize ≤ entsCutMax → entsCut maxSize cs)⌝) ∗
         ⌜es ≠ [] ∧ s.cap = s.len ∧
           es <+: ((a ++ b).drop (uint.nat lo - k)).take (uint.nat hi - uint.nat lo)⌝)) }}
 

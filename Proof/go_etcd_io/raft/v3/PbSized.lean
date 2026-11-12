@@ -39,8 +39,12 @@ variable [GooseExts]
 /-- **An entry's bytes**: its `Data` and its unknown fields. -/
 def entBytes (e : EntryC) : Nat := (e.data.getD []).length + e.uf.length
 
+/-- **The bound on an entry's bytes** (raft-entsize §1): what a sized entry's `Data` and unknown
+fields total at most; the server's `maxData = 2^30` (`MaxRequestBytes`) is below it. -/
+@[word_unfold] def entBytesMax : Nat := 2 ^ 31
+
 /-- **An entry's content is of bounded size**. -/
-def entSizeOk (e : EntryC) : Prop := entBytes e ≤ 2 ^ 31
+def entSizeOk (e : EntryC) : Prop := entBytes e ≤ entBytesMax
 
 end size
 
@@ -94,6 +98,13 @@ or protobuf's sizes of the entries (`entrySize`, what `proto.Size` returns of ea
 (`raftLog.entries(next, maxMsgSize)`), whence the message's framed sum (`msgSizeOk`). -/
 def entsCut (maxSize : w64) (cs : List EntryC) : Prop :=
   cs.length = 1 ∨ (cs.map entrySize).sum ≤ uint.nat maxSize
+
+/-- **The largest `maxSize` a sized storage promises its cut at** (out_size C2): `Entries` cuts at
+`maxSize` only up to it (`isStorageP`; Go's `limitSize` sums sizes in a `uint64`, which stays far
+from wrapping only for a small `maxSize`), and raft's `MsgApp`s are cut at `MaxSizePerMsg`, which the
+starters bound by it when the cluster bounds proposed data (etcd's `maxSizePerMsg = 1 MiB`,
+`server/etcdserver/raft.go`). -/
+@[word_unfold] def entsCutMax : Nat := 2 ^ 20
 
 end cut
 

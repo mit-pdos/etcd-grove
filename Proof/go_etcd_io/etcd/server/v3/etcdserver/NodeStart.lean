@@ -409,7 +409,8 @@ theorem srvMem_bootStorage
     (wp_FirstIndex : MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG))
     (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
     (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
-    (γr : SrvRaft) (ms : Loc) (γs : MemStorNames) (F : GName → IProp GF) :
+    (γr : SrvRaft) (ms : Loc) (γs : MemStorNames) (F : GName → IProp GF)
+    (hsz : γs.sz = true) :
     letI : MemStorReg GF := ⟨γr.reg⟩
     letI := srvStor (GF := GF) γr
     memStorReg ms γs ∗ memStorLock ms γs ∗ memStorFresh ms γs 0 memSnapEmpty ∗
@@ -482,7 +483,7 @@ theorem srvMem_bootStorage
   imodintro
   isplitr
   · iapply memStorage_isStorage wp_LastIndex wp_FirstIndex wp_Term wp_Entries wp_Snapshot
-      ms γs γr.cl K $$ Hinv' Hreg
+      ms γs γr.cl K (fun _ => hsz) $$ Hinv' Hreg
   iframe HFK
   iunfold storHolds
   have hb : (⟨HardStateM.mk (W64 0) (W64 0) (W64 0), none, entryID.mk (W64 0) (W64 0), []⟩ : StorContents).b = 0 := by
@@ -710,6 +711,8 @@ abbrev NodeStartSpec : Prop :=
         -- dummy entry and end; `StartNode`'s `bootStorage` over it (`srvMem_bootStorage`), whose
         -- `InitialState` allocates the storage's invariant at the node's justifications
         "#Hreg" ∷ memStorReg bv.storage' γs ∗
+        -- (out_size C2) sized (`bootOk`'s `Hγsz`): the server's cluster bounds proposed data
+        "%Hγsz" ∷ ⌜γs.sz = true⌝ ∗
         "#Hlock" ∷ memStorLock bv.storage' γs ∗
         "Hfresh" ∷ memStorFresh bv.storage' γs 0 memSnapEmpty ∗
         "Hmeta" ∷ memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
@@ -819,7 +822,7 @@ theorem raftNode_of_StartNode
   ihave Hbs := srvMem_bootStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
       wp_Entries γr bv.storage' γs
       (fun K => iprop(memStorInv bv.storage' γs γr.cl K ∗
-        memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0))))
+        memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)))) Hγsz
       $$ [Hfresh Hmeta Hend]
   · iframe Hreg Hlock Hfresh Hmeta Hlog0 Hend
     iintro %K Hi Hm

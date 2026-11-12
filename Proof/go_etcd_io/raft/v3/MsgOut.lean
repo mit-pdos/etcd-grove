@@ -177,31 +177,26 @@ abbrev outObjR (γ : RaftNames) (m : Loc) (c : MsgC) : IProp GF := outSetR γ (.
 /-- The entry `e` was handed out at the content `c`. -/
 abbrev outEntR (γ : RaftNames) (e : Loc) (c : EntryC) : IProp GF := outSetR γ (.inr (e, c))
 
-/-- **The size law of the handed-out objects** (raft-entsize §2; the tracked `sorry`): in a
-cluster with a bound on proposed data (`RaftNames.maxData = some b`), every object a `Ready` handed
-out, at the content it was handed out with, is of bounded size (`outSizeOk`: a message but a
-`MsgSnap` `msgSizeOk`, an entry `entSizeOk`).
+/-- **The size law of the handed-out objects** (raft-entsize §2): in a cluster with a bound on
+proposed data (`RaftNames.maxData = some b`), every object a `Ready` handed out, at the content it
+was handed out with, is of bounded size (`outSizeOk`: a message but a `MsgSnap` `msgSizeOk`, an entry
+`entSizeOk`).
+
+**Proof** (out_size, 2026-11-12): by the element's definition (`outSetR` carries the fact). The
+work is at insertion: `raftOutInv_insert` takes the fact (`Hsz`), which raft's two hand-outs derive
+from its log and outbox invariants on objects (`entsROz`, `msgQC`).
 
 **Why it is true of Go.** Raft builds its own messages with no unknown fields and no responses;
 their entries are its log's entry objects, whose content comes from proposals (at most `b`, the
-node API's `Propose`/`ReadIndex` premises), raft-internal constants, the storage (bounded by the
-storage contract, raft-entsize §5) and stepped messages (`msgSizeOk` by `stepIn_intro`'s and
-`RawNode.Step`'s premise, raft-entsize §4); it re-emits received objects only after changing their
-scalar fields, which the measure does not count (`hdrBytes`, `entBytes`, `PbSized.lean`), and cuts a `MsgApp`'s
-entries at `MaxSizePerMsg ≤ 2^20` (the starters' premise) or sends one entry. Harness `H4`, `H5`,
-`H9′`: 0 violations over 26,471 non-snapshot messages, adversarial snapshots included.
-
-**Why a `sorry`.** Its proof needs raft's log invariant on entry *objects* (their content, not only
-their model), which raft's proofs do not carry yet.
-
-**A condition of its truth for restarted nodes** (etcd-grove-81, 2026-11-09, scope r3 [r3h]): a
-restarted node's storage entries are WAL-replayed, so the law needs them to satisfy `entSizeOk`. That
-is the `ReadAll` fact (`walFiles … true`, `WalRecs.lean`, gives the replayed objects with
-`entSizeOk`), which goes into the restart contract with R2d'b or with this law's proof, whichever
-comes first; until then the law's Go argument covers restarts only under it.
-
-**The later stage** ("raft-entsize proof") proves it from that invariant; the count goes back from
-5 to 4 then. `outObjR_size`/`outEntR_size` (and the node API's `Cluster.outObj_size`/
+node API's `Propose`/`ReadIndex` premises), raft-internal constants, the storage (sized and cut by
+the storage contract when the cluster bounds proposed data, `isStorage`) and stepped messages
+(`msgSizeOk` by `stepIn_intro`'s and `RawNode.Step`'s premise); it re-emits received objects only
+after changing their scalar fields, which the measure does not count (`hdrBytes`, `entBytes`), and
+cuts a `MsgApp`'s entries at `MaxSizePerMsg ≤ entsCutMax` (the starters' premise) or sends one entry
+(`entsCut`). Harness `H4`, `H5`, `H9′`: 0 violations over 26,471 non-snapshot messages, adversarial
+snapshots included. A restarted node's storage entries are WAL-replayed: they are sized by the
+server's restart contract (out_size's restart clause, P7), and a first start's storage is sized by
+`bootOk`. `outObjR_size`/`outEntR_size` (and the node API's `Cluster.outObj_size`/
 `Cluster.outEnt_size`) are derived from it. -/
 theorem out_size (γ : RaftNames) (x : Sum (Loc × MsgC) (Loc × EntryC)) (b : Nat) :
     outSetR (GF := GF) γ x ⊢ ⌜γ.maxData = some b → outSizeOk x⌝ := by
