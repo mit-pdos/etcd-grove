@@ -1249,6 +1249,14 @@ theorem raft.applyConfChange.spec_of_tracedSpec (γ0 : RaftNames)
   iframe Hphys Hcc Hcs
   ipureintro; exact ⟨Hl, Hok⟩
 
+/-- `fwdP`'s gate, as a gated pure fact. -/
+theorem fwdGate_pure (ρ : RaftNames) (st : MsgSt) :
+    fwdGate (GF := GF) ρ st ⊢ ⌜ρ.reTrace ≠ none → ∀ e ∈ st.ents, e.Type' = EntryNormal⌝ := by
+  unfold fwdGate gateTr
+  cases ρ.reTrace with
+  | none => iintro _; ipureintro; intro h; exact absurd rfl h
+  | some _ => iintro %H; ipureintro; intro _; exact H
+
 end lemmas
 
 end EtcdGrove

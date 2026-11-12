@@ -347,12 +347,7 @@ theorem node.run.gated_of
       -- (step 4) a traced node's bounds, and the forwarded entries normal (`fwdP`'s gate)
       icases headRest_termLB γ nv rs ac rc' rdv' $$ Hrest with ⟨#Hlbp, Hrest⟩
       imod termLB_rb γ.bud rs.tc ⊤ (by solve_ndisj) $$ Hbud Hlbp with %Hrbp
-      ihave %Hnorm : ⌜γ.raft.reTrace ≠ none → ∀ e ∈ st.ents, e.Type' = EntryNormal⌝ $$ []
-      · iunfold fwdGate at Hfg
-        iunfold gateTr at Hfg
-        cases hγ : γ.raft.reTrace with
-        | none => ipureintro; intro h; exact absurd rfl h
-        | some _ => rw [hγ] at Hfg; icases Hfg with %Hn; ipureintro; intro _; exact Hn
+      ihave %Hnorm := fwdGate_pure γ.raft st $$ Hfg
       wp_apply wp_rn_raft_Step_prop_g wp_raft_Step hb γ.raft nv.rn' id rs r pm.m'
         { st with msg := { st.msg with From' := id } } Hty.1 rfl Hty.2
         (fun h => ⟨Hnorm h, tc_bound Hrbp (Hrb h), Hfit h⟩) $$ [$Hrn $Hrnraft $Hm $Hm1 $Htk $Hlc1] as %err ⟨Hrn, -⟩
@@ -663,7 +658,7 @@ theorem node.run.gated_of
     try wp_auto
     -- `cs := r.applyConfChange(cc)`
     -- (step 4) a traced node's bounds and no loan
-    icases headRest_termLB γ nv rs ac rc' rdv' $$ Hrest with ⟨#Hlbc, Hrest⟩
+    icases headRest_termLB γ nv _ ac rc' rdv' $$ Hrest with ⟨#Hlbc, Hrest⟩
     imod termLB_rb γ.bud rs.tc ⊤ (by solve_ndisj) $$ Hbud Hlbc with %Hrbc
     imod ownRawNode_trNoLoanG γ.raft nv.rn' id rs $$ Hrn with ⟨%Hnl, Hrn⟩
     wp_apply wp_rn_raft_applyConfChange_dyn_g hCC γ.raft nv.rn' id rs r cc ccs
@@ -1055,7 +1050,7 @@ theorem node.run.gated_of
     · unfold readyP
       iexists rs.delivered, ce, es, ms, rs.phs, phsNext rs.phs h, L
       iframe Hdlv Hr1 Hdlb Hdlk Hld
-      isplitr [Hdur Hbw1 Hpb Hmw]
+      isplitr [Hdur Hbw1 Hpb Hmw Hel]
       · cases L with
         | none =>
           simp only [readyDataL, readyData, rdSnapOut]
