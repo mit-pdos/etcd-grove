@@ -151,6 +151,22 @@ of `v` to `run`'s `(ca, cfg)`). Rejected: a gate on `confDecide` (every decision
 keeping its configuration): the decision map would need an invariant relating each decision to the
 configuration at its position; the premise at `ApplyConfChange` is local to the one call that applies.
 
+**`node.run.gated_of`, proved (2026-11-12, branch `trace-check-run`; `node__run_gated.lean`, lemmas in
+`TracedNodeRun.lean`).** Every arm through a both-mode wrapper (untraced: today's callee; traced: the
+traced one), the bounds from `termLB_rb` (`rs.tc ≤ receiptBound GF`) with `RunTracedOk` (its `+ 2` is
+used: the tick and `Campaign` raise the ceiling by one before the traced triple's `tc + 1 < bound`), the
+escrow's key at the `readyc` commit (`rtk_keyG`) and its deposit after `acceptReady` (`rtk_depositG`).
+What the proof changed (each recorded in `notes/decisions.md`, step-4 entry):
+- `confc`: `node.ApplyConfChange.spec`'s gated premise and `confcP`'s clause, as the coordinator decided;
+  `runCfg_cap_agree` ties the driver's `cfg` to `rs.cfg`; follower by 1(c), `ownStepGhost_applied_capplied`,
+  `DynCCPreOp`'s `capplied ≤ k` and G3 (a) over the delivered log (`isCommitted_trNoConf`, route (A)).
+- `recvc` (two gaps of §4's table): `netP`'s `isMessage` is not certified, and has no `MsgTrOk` or
+  `TrRecvShape`: `netGate`'s traced disjunct carries the sender's `isRaftMsg` (`stepIn_intro` has it);
+  `StepNodeOk`'s `MsgAppResp → From ∈ progress` does not follow from `run`'s guard (it keeps a response
+  from a local-target id): the token carries the sender a voter (`trFromOk`, in `trTokR`/`readyTok`'s
+  traced bodies, proved at the sender's `Ready` from `QOk`, which gains "no `MsgAppResp` in `msgs`").
+- `propc`: `wp_rn_raft_Step_prop_traced`'s bundle on `PropAny ∧ StepNodeOk` (no `onG PropAny` existed).
+
 **What `StartNode`'s traced proof (step 5) must supply to `node.run.gatedSpec`, checked against
 `StartNode.tracedSpec` (`TracedNodeApi.lean:97`) and `StartNode.gatedSpec` (`TracedApiDraft.lean`):**
 `γ.mode.isDyn` from `StartNode`'s `HdynOk` (`StartNode.lean:319`); `rtkRun γn.esc none` from `rtk_alloc`
@@ -1035,7 +1051,7 @@ changes but §3.5's refusals and F2's `stepIn_intro` premise.
 | `node.Ready` / `isReadyChan_recvAu` | untraced law; `.tracedSpec` (hypothesis) with `readyGotT` = `readyGot` ∗ `[∗list] q ∈ ms, trTok γ q.st` (**unprovable**, 29n finding 4) | `readyGotT` = `readyGot` with **`readyToksClaim n γ N ms`** as its last conjunct, inside its existentials at `readyRest`'s `ms` (Probe A, P2: as a separate conjunct, `ms` would be unbound). `.tracedSpec` a theorem; `isReadyChan_recvAu` stays proved for every `γ` (it drops the claim) |
 | `node.Advance` | `node.Advance.spec` (no tokens) | New **`node.Advance.tracedSpec`**, the one proof (A5): `node.Advance.spec`'s pre ∗ `readyToksClaim n γ N ms`; post: its first disjunct ∗ `[∗list] q ∈ ms, trTok γ q.st`; the stopped disjunct gives nothing. **`node.Advance.spec`: text unchanged, every `γ`, now its instance** at `ms = []` (`readyToksClaim_nil` in, the empty list out). F3: `run` needs nothing back |
 | `node.Propose` | `node.Propose.spec` | unchanged (the `propc` payload's entry is normal by construction) |
-| `node.ApplyConfChange` | `node.ApplyConfChange.spec` | unchanged (traced content: `run`'s `confc` arm) |
+| `node.ApplyConfChange` | `node.ApplyConfChange.spec` | (step 4, 2026-11-12) gains the gated premise `Cluster.trace γ ≠ none → m' = v.membership` (the change keeps the view's membership; carried to `run` as `confcP`'s clause `γ.raft.reTrace ≠ none → cs'.cfg = cfg.cfg`); traced content otherwise `run`'s `confc` arm |
 | `node.Step` | `node.Step.spec` (`stepIn`); `.tracedSpec` (hypothesis) | **`node.Step.spec` unchanged, proved for every `γ`** (F2). `stepIn`'s sealed body is gated through `stepP` (§3.2 items 5-6). **`stepIn_intro` gains `trTok γ st`.** `node.Step.tracedSpec` is a corollary. New law `trTok_type` |
 | `node.ReportUnreachable` | `node.ReportUnreachable.spec` | unchanged |
 | `node.Stop` | `node.Stop.spec` | unchanged |

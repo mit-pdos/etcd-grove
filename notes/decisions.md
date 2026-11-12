@@ -37559,6 +37559,46 @@ has the premise → source tables).
   `Cluster.trace γ ≠ none → receiptBound GF + vs.length ≤ traceNumBound ∧ 2 ≤ vs.length`, from the
   harness's `tcRunFits`. Neither changes §1.
 
+**Addendum (2026-11-12, the proof of `node.run.gated_of`, branch `trace-check-run`).**
+- *`node.ApplyConfChange.spec`'s gated premise (decided by the coordinator, F1 of the step-4 review)*:
+  `Cluster.trace γ ≠ none → m' = v.membership` (with the premise `applyChange o v.membership = some m'`
+  it is the review's `applyChange o v.membership = some v.membership`). Not derivable: `confDecide`
+  records any decision defined on the membership, and raft knows of the bootstrap entries only that they
+  are conf entries. Carried to `run` as `confcP`'s last conjunct `γ.raft.reTrace ≠ none → cs'.cfg =
+  cfg.cfg` (`node.ApplyConfChange`'s proof derives it, `stOf` of equal memberships); the server, kv,
+  kvreconf and kvdurable discharge it from their untraced facts, the tracecheck harness from its view's
+  membership (`Hvm`, `tcMem`).
+- *`netGate`'s traced disjunct carries the sender's `isRaftMsg` (`∃ src, isRaftMsg ρ src st`)*: the
+  receiver's traced step needs the certified abstraction (`isMessageC`), `MsgTrOk` and `TrRecvShape`
+  (`isRaftMsg_trRecv`); `netP`'s `□ isMessage` is not certified. `stepIn_intro` has the sender's
+  `isRaftMsg` (`sentMsg`); `trTokR_net` takes it. Raft-internal (§4's table assumed `netP` had them).
+- *A handed-out append response's sender is a voter (`trFromOk`), in the token*: `StepNodeOk`'s
+  `MsgAppResp → From ∈ domSet progress` (the traced assembly's premise) does not follow from `run`'s
+  guard, which keeps a response from a local-target id (`IsLocalMsgTarget(From)`) whatever the tracker.
+  Options: (a) the sender records it at its `Ready`: `trTokR`/`readyTok`'s traced bodies gain
+  `trFromOk γd st := ∃ tn, traceDir γd tn ∗ ⌜MsgAppResp → From ∈ tn.voters⌝`, proved at
+  `rnTrace_fireReady` (a queued `MsgAppResp` is from the node: `AAMsgOk`, and `QOk` gains "no
+  `MsgAppResp` in `msgs`", `send` routing every response to `msgsAfterAppend`; the node a voter:
+  `trCapB`); (b) a specification invariant "every message in flight is from a server" read off the token;
+  (c) a gated client premise on `stepIn_intro` (which the harness could not discharge). Taken: (a) (the
+  coordinator's decision): nothing client-visible. At the receiver the voter is tracked (`trCapB`'s
+  `elements c.incoming ≡ₚ tn.voters`, `ownTrackerC_progress_map`). Definitions changed: `trTokR`
+  (`TracedRecvTok.lean`), `readyTok` (`InvRawnodeReady.lean`), `QOk` and `ownRaftPhysC_msgs`'s wand
+  (`InvRaftPhys.lean`), `netGate`/`trTokR_net` (`InvNodeChan.lean`), `rnTrace_fireReady`'s premises
+  (`TracedReady.lean`); `selfTok`/`pendingRel` unchanged.
+- *`wp_rn_raft_Step_prop_traced`'s bundle on `PropAny ∧ StepNodeOk`*: no `onG PropAny` was proved, and
+  the assembly (`onG_of_statement`) needs `StepNodeOk`; the triple reads it off the struct
+  (`ownRaftPhysC_prvalsDom`).
+- *`ownRawNodeIdle_ready`'s untraced premise dropped* (unused by its proof; the stale `Ready` of a traced
+  node).
+- *`RunTracedOk`'s `receiptBound GF + 2 ≤ traceNumBound` is used* (the review's S2): the tick and
+  `Campaign`'s `MsgHup` raise the ceiling by one, so the traced triple's `rs.tc + 1 < traceNumBound` at the
+  raised ceiling needs `receiptBound GF + 2`.
+- *Today's `node.run.wp_proof` is left as it is*: its untraced instance would need `hAdv` and `hCC`
+  (`node.run.spec_of_gatedSpec` composes once the two are proved; the replacement is step 5's).
+- *`raft.applyConfChange.spec_of_tracedSpec (γ0 : RaftNames)`*: the static `confc` arm's untraced call
+  from `hCC`, at the node's names.
+
 *Amendment (2026-11-12, `hCC` proved, decided by the agent; branch `trace-check-hcc`).*
 `raft.applyConfChange.tracedSpec` is proved **as stated** (`raft.applyConfChange.tracedSpec_proof`,
 `TracedApplyConfChange.lean`); today's `raft.applyConfChange.wp_proof` is its untraced instance

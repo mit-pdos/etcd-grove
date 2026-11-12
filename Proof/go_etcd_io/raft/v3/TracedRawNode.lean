@@ -337,6 +337,20 @@ local macro "prop_ne" : tactic => `(tactic| (intro Hc; rw [Hty] at Hc; simp [Msg
   MsgSnap, MsgBeat, MsgStorageAppendResp, MsgStorageApplyResp, MsgProp, MsgReadIndex,
   MsgReadIndexResp, MsgForgetLeader, MsgUnreachable, MsgSnapStatus, MsgTimeoutNow, MsgTransferLeader] at Hc))
 
+/-- (2026-11-12, trace-check step 4) **The node's half of `StepNodeOk`** (`raft.Step`'s traced bundle's
+premise): its `Progress` values and their keys, from the struct. -/
+theorem ownRaftPhysC_prvalsDom (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
+    ownRaftPhysCV (GF := GF) c V r id s ⊢
+      ⌜PrvalsOk s ∧ domSet s.prvals = domSet s.progress⌝ ∗ ownRaftPhysCV c V r id s := by
+  iintro H
+  icases ownRaftPhysC_prvals_ok c r id s $$ H with ⟨%Hpo, -, H⟩
+  icases ownRaftPhysC_tracker_same c r id s $$ H with ⟨%tv, Hf, Ht, Hback⟩
+  icases ownTrackerC_prvals_dom c tv _ $$ Ht with ⟨%Hd, Ht⟩
+  ihave H := Hback $$ %tv Hf Ht
+  iframe H
+  ipureintro
+  exact ⟨Hpo, Hd⟩
+
 /-- **The paths of a traced node's proposal**: a `MsgProp` of a non-empty batch of normal entries, in a
 cluster started from a bootstrap log, at any role (a leader appends it, `PropLead`; a follower forwards
 it; a candidate drops it). The assembly's premises for `MsgProp` (`notes/decisions.md`, "Q8 stage 1
@@ -350,7 +364,8 @@ the node API's path): `wp_rn_raft_Step_prop`'s triple at a traced cluster, over 
 `PropAny`. Beyond the untraced premises: the batch's entries normal (the harness proposes no
 configuration change, P3), the bounds, the bootstrap log. -/
 theorem wp_rn_raft_Step_prop_traced (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG))
-    (hb : stepBundle_traced.onG (GF := GF) (hG := hG) PropAny)
+    -- (2026-11-12, trace-check step 4) with the node's `StepNodeOk` (`stepBundle_traced.onG_of_statement`'s)
+    (hb : stepBundle_traced.onG (GF := GF) (hG := hG) (fun γ ents s m => PropAny γ ents s m ∧ StepNodeOk s m))
     (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : Loc) (ml : Loc) (st : MsgSt) (γd : GName)
     (Hty : st.msg.Type' = MsgProp) (Hfr : st.msg.From' = id) (Hrs : st.resps = [])
     (HtrG : γ.reTrace = some γd) (Hnorm : ∀ e ∈ st.ents, e.Type' = EntryNormal)
@@ -394,6 +409,7 @@ theorem wp_rn_raft_Step_prop_traced (wp_raft_Step : raft.Step.spec (GF := GF) (h
   icombine Hcqf Hcq gives %Hcqe
   icases ownRaftPhysC_dom cf rnv.raft' id s $$ Hphys with ⟨%Hsub, Hphys⟩
   icases ownRaftPhysC_precand cf rnv.raft' id s $$ Hphys with ⟨%Hpcd, Hphys⟩
+  icases ownRaftPhysC_prvalsDom cf rnv.raft' id s $$ Hphys with ⟨%Hsno, Hphys⟩
   have Hst1 : uint.Z s.term ≤ uint.Z rs.tc := by rw [Hpvoff.2.1]; exact Hpvoff.2.2.1
   have Hpt : mtypeOf m.Type' = some .propose := by rw [Hty]; rfl
   have Hpu : ∀ ty, mtypeOf m.Type' = some ty → ty.traced = false := by
@@ -412,7 +428,8 @@ theorem wp_rn_raft_Step_prop_traced (wp_raft_Step : raft.Step.spec (GF := GF) (h
     iintro %ty %h
     exact absurd h.2 (by rw [Hpu ty h.1]; simp)
   imod hb γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) cf rnv.raft' id s m ents sn ctx rsp γd
-      (fun _ => True) bt ⟨Hty, Hne, Hnorm, Hboot⟩ Htr Hscope.1 Hcqe.symm
+      (fun _ => True) bt ⟨⟨Hty, Hne, Hnorm, Hboot⟩, Hsno.1, Hsno.2, fun h => absurd h (by prop_ne)⟩
+      Htr Hscope.1 Hcqe.symm
       (by unfold StepEndTy; simp [Hty]) Hwf (fun _ => Hterm) (fun h => absurd h (by prop_ne))
       (fun ty h1 h2 => by rw [Hpu ty h1] at h2; cases h2)
       (by omega) (by rw [Hterm]; unfold traceNumBound; decide)

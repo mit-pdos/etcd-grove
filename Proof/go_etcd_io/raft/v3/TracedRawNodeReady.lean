@@ -128,8 +128,10 @@ theorem RawNode.Ready.traced
   isplitr
   · ipureintro; exact Hpsn
   simp only [readyTok, HtrG]
-  iapply bigSepL_pure_drop (fun q : QMsg => TrSent q.st)
-    (fun q : QMsg => recvTokOf (GF := GF) γd q.st.msg q.st.ents q.st.ctx) ms $$ Htoks
+  ihave Htoks := bigSepL_pure_drop (fun q : QMsg => TrSent q.st)
+    (fun q : QMsg => iprop(recvTokOf (GF := GF) γd q.st.msg q.st.ents q.st.ctx ∗ trFromOk γd q.st)) ms $$ Htoks
+  iapply bigSepL_sep_dropR (fun q : QMsg => recvTokOf (GF := GF) γd q.st.msg q.st.ents q.st.ctx)
+    (fun q : QMsg => trFromOk (GF := GF) γd q.st) ms $$ Htoks
 
 end traced
 

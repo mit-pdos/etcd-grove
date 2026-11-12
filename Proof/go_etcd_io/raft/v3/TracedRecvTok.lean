@@ -81,13 +81,27 @@ instance recvTokOf_timeless (γd : GName) (m : MessageM) (ents : List EntryM) (c
     Timeless (recvTokOf (GF := GF) γd m ents ctx) := by
   unfold recvTokOf TraceSim.traceDir TraceSim.inFlight; infer_instance
 
+/-- (2026-11-12, trace-check step 4) **A handed-out append response is from a voter**: the trace's
+voters (`traceDir`'s) hold its sender. The receiver's traced step needs it (`StepNodeOk`: a leader's
+`Progress` of the sender), which `run`'s guard does not give for a sender that is a local target id;
+the sender records it at its `Ready` (`rnTrace_fireReady`: a queued `MsgAppResp` is from the node,
+`QOk`, and the node is a voter, `trCapB`). -/
+def trFromOk (γd : GName) (st : MsgSt) : IProp GF :=
+  iprop(∃ tn : TraceNames, traceDir γd tn ∗ ⌜st.msg.Type' = MsgAppResp → st.msg.From' ∈ tn.voters⌝)
+
+instance trFromOk_persistent (γd : GName) (st : MsgSt) : Persistent (trFromOk (GF := GF) γd st) := by
+  unfold trFromOk TraceSim.traceDir; infer_instance
+
+instance trFromOk_timeless (γd : GName) (st : MsgSt) : Timeless (trFromOk (GF := GF) γd st) := by
+  unfold trFromOk TraceSim.traceDir; infer_instance
+
 /-- **A handed-out message's token, over a `RaftNames`** (the node API's `trTok` body, `InvNode.lean`,
 and the escrow's slots, `InvRtk.lean`; the design's §3.1, Probe B's P4): untraced nothing; traced,
 its type handed out (`TrSent`) and the receiver's token. -/
 def trTokR (ρ : RaftNames) (st : MsgSt) : IProp GF :=
   match ρ.reTrace with
   | none => iprop(True)
-  | some γd => iprop(⌜TrSent st⌝ ∗ recvTokOf γd st.msg st.ents st.ctx)
+  | some γd => iprop(⌜TrSent st⌝ ∗ recvTokOf γd st.msg st.ents st.ctx ∗ trFromOk γd st)
 
 instance trTokR_timeless (ρ : RaftNames) (st : MsgSt) : Timeless (trTokR (GF := GF) ρ st) := by
   unfold trTokR; cases ρ.reTrace <;> dsimp only <;> infer_instance

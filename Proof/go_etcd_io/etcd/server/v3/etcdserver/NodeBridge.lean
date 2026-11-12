@@ -435,6 +435,7 @@ theorem raftApplyCC_of_isNode (γ : RNNames)
   letI := srvStor (GF := GF) γ.node
   iintro ⟨#Hpraft, #Hnode, #Hcl⟩
   iunfold rnIsNode at Hnode
+  ihave %Huntr := srvClusterOk_untraced γ.srv $$ Hcl
   iunfold srvClusterOk at Hcl
   icases Hcl with ⟨#Hisc, #Hpol, -⟩
   iunfold raftApplyCC
@@ -461,7 +462,7 @@ theorem raftApplyCC_of_isNode (γ : RNNames)
     iexact Hdec
   ihave #Hsk := skippedIn_noConf γ.node.cl l v.applied k h4
   wp_apply (wp_ApplyConfChange γ.nl γ.node.cl srvClusterN γ.id c (.v1 cm) o' l k e v m'
-      h1 h2 h3 h6 h7) $$ [Hc Hcfg] as %csp %cs Hres
+      h1 h2 h3 h6 h7 (fun h => absurd Huntr h)) $$ [Hc Hcfg] as %csp %cs Hres
   · iframe #
     iframe Hc Hcfg
   icases Hres with (⟨Hcs, Hcfg, %Hcsi⟩ | ⟨%-, #Hst⟩)
