@@ -134,6 +134,7 @@ Spec.go_etcd_io.raft.v3.raft__Step Perennial.EtcdGrove.RespStep.of_type  # expos
 Spec.go_etcd_io.raft.v3.raft__Step Perennial.EtcdGrove.RespStep.refl  # exposed by a spec file (theorem)
 Spec.go_etcd_io.raft.v3.raft__Step Perennial.EtcdGrove.RestMsgOk  # exposed by a spec file (def)
 Spec.go_etcd_io.raft.v3.raft__Step Perennial.EtcdGrove.RestMsgOk.of_ne  # exposed by a spec file (theorem)
+Spec.go_etcd_io.raft.v3.raft__Step Perennial.EtcdGrove.RoleUp  # exposed by a spec file (def)
 Spec.go_etcd_io.raft.v3.raft__Step Perennial.EtcdGrove.SnapLogStep  # exposed by a spec file (def)
 Spec.go_etcd_io.raft.v3.raft__Step Perennial.EtcdGrove.SnapLogStep.refl  # exposed by a spec file (theorem)
 Spec.go_etcd_io.raft.v3.raft__Step Perennial.EtcdGrove.SnapStep  # exposed by a spec file (def)

@@ -206,6 +206,9 @@ theorem becomePrecandidate.proj_rd [GoGlobalContext] [GoSemanticsFunctions] (s :
 theorem becomeLeaderPre.proj_gh [GoGlobalContext] [GoSemanticsFunctions] (id : w64) (s : NState) :
     (becomeLeaderPre id s).gh = (resetTo s s.term).gh
 
+theorem mtypeOf_send_of {t : w32} (h : mtypeOf t ≠ none) (h2 : mtypeOf t ≠ some MsgType.snap) : ∃
+    ty, mtypeOf t = some ty ∧ ty ≠ MsgType.snap
+
 theorem resetTo.proj_role (s : NState) (term : w64) : (resetTo s term).role = (resetTo0 s term).role
 
 theorem logRestore.proj_committed (ls : LogState) (k : SnapTrip) : (logRestore ls k).committed =
@@ -1250,6 +1253,9 @@ theorem progressMaybeDecrTo_learner (p : Progress) (a b : w64) : (progressMaybeD
 
 theorem logRestore.proj_applying (ls : LogState) (k : SnapTrip) : (logRestore ls k).applying =
     ls.applying
+
+theorem mtypeOf_send_eq {t u : w32} (h : t = u) (h1 : mtypeOf u ≠ none := by decide) (h2 : mtypeOf u
+    ≠ some MsgType.snap := by decide) : ∃ ty, mtypeOf t = some ty ∧ ty ≠ MsgType.snap
 
 theorem logAppend.proj_dtk (ls : LogState) (ents : List EntryM) : (logAppend ls ents).dtk = ls.dtk
 

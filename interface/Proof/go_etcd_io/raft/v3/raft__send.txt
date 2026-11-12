@@ -14,7 +14,7 @@ theorem raft.send.wp_proof [package_sem : Assumptions] (wp_traceSendMessage : tr
         SnapOut id s m sn out →
           (m.Type' = MsgApp → AppShape { msg := m, ents := ents, snap := sn, ctx := ctx, resps := rs }) →
             rs = [] →
-              (s.gh.tr ≠ none → mtypeOf m.Type' ≠ some MsgType.snap) →
+              (s.gh.tr ≠ none → ∃ ty, mtypeOf m.Type' = some ty ∧ ty ≠ MsgType.snap) →
                 ⊢
                   ∀ Φ,
                     isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
