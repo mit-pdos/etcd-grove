@@ -323,6 +323,36 @@ theorem tImgs_complete {h : List TOp} {n : Nat} {I : WalHist} (hI : walImg (h.ma
             List.map_take]
           rfl
 
+/-! ## `openBound` -/
+
+theorem tOpenBound_fold_ge (a : w64) : ∀ (imgs : List (List TOp)) (acc : w64),
+    uint.nat acc ≤ uint.nat (imgs.foldl (fun best i =>
+      if uint.nat best < uint.nat (tNameBound i a) then tNameBound i a else best) acc) ∧
+    ∀ i ∈ imgs, uint.nat (tNameBound i a) ≤ uint.nat (imgs.foldl (fun best i =>
+      if uint.nat best < uint.nat (tNameBound i a) then tNameBound i a else best) acc) := by
+  intro imgs
+  induction imgs with
+  | nil => intro acc; exact ⟨Nat.le_refl _, fun i hi => by cases hi⟩
+  | cons x imgs ih =>
+    intro acc
+    simp only [List.foldl_cons]
+    have h1 : uint.nat acc ≤ uint.nat (if uint.nat acc < uint.nat (tNameBound x a) then tNameBound x a else acc) ∧
+        uint.nat (tNameBound x a) ≤
+          uint.nat (if uint.nat acc < uint.nat (tNameBound x a) then tNameBound x a else acc) := by
+      split <;> omega
+    obtain ⟨ih1, ih2⟩ := ih (if uint.nat acc < uint.nat (tNameBound x a) then tNameBound x a else acc)
+    refine ⟨Nat.le_trans h1.1 ih1, ?_⟩
+    intro i hi
+    rcases List.mem_cons.1 hi with rfl | hi
+    · exact Nat.le_trans h1.2 ih1
+    · exact ih2 i hi
+
+/-- **`openBound` bounds each image's name bound** (an `Open` after a crash raises `unl` at most to
+the name bound of the image it opened, one of them). -/
+theorem tNameBound_le_openBound {imgs : List (List TOp)} {img : List TOp} (a : w64)
+    (h : img ∈ imgs) : uint.nat (tNameBound img a) ≤ uint.nat (tOpenBound imgs a) :=
+  (tOpenBound_fold_ge a imgs (W64 0)).2 img h
+
 end pure
 
 end etcd_wal

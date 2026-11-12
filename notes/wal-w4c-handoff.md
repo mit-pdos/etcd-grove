@@ -109,13 +109,13 @@ the crash-aware WAL spec (W4a, W4a.1, W4a.2, W4b). The closed theorems are `etcd
      c. `RefLemmas.lean`: part A at `bde0b3afe5` (`tReadCut_abs`: the reads commute with `absOp`, no bound
         needed), part B at `e5b1d150ab` (`tImgs_complete`).
    - **Left of step 2 (next agent, in order):**
-     c'. RefLemmas part C: `tLastIdx_abs` (`uint.nat (tLastIdx h) = walLastIdx (h.map absOp)`), `tCutPos_abs`
+     c'. RefLemmas part C (part D, `tNameBound_le_openBound`, done): `tLastIdx_abs` (`uint.nat (tLastIdx h) = walLastIdx (h.map absOp)`), `tCutPos_abs`
         (`tCutPos h b = true ↔ walCutPos (h.map absOp) b`), `tNameBound_eq` (under `¬ walHasMaxIdx`, i.e. from
         `tHistWf`, and `h.length < 2^64`: `uint.nat (tNameBound h a) = walNameBound (h.map absOp) (uint.nat a)
-        false`); part D: `tNameBound_le_openBound` (`img ∈ imgs → uint.nat (tNameBound img a) ≤ uint.nat
-        (tOpenBound imgs a)`); readback (`fromRaft (absEnt e) = e` for `tEntWf e`) can wait for step 3 (it needs
+        false`); readback (`fromRaft (absEnt e) = e` for `tEntWf e`) can wait for step 3 (it needs
         `fromRaft`'s Lean model).
-     e. Regenerate `interface/GooseLang/Ext/AbsDisk/Specs.txt` (the new lemmas), api-check, tcb `--check`.
+     e. (done: AbsDisk interface regenerated at `0922c63aec`, api-check clean, the 18 leaf importers of
+        AbsDisk/Specs build.) tcb `--check` after the next full build.
      Then CP2 (report).
 4. Steps 3-4 as in plan §8.
 
