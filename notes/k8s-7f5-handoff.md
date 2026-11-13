@@ -18,6 +18,22 @@ the worktree's untracked `questions.md` (decisions; never re-add it tracked).
   this stage's T5-c); 7f-0 partial (records only; the rest goes with 7f-6, Q7).
 - No Lean edited. Nothing built on this branch.
 
+## Handoff point (2026-11-13, fourth 7f-5 agent, final): T5-a LANDED (lean `7112e7c0d6`); 7f-3b next
+
+T5-a landed via `etc/land.sh` (gates all passed, `/shared/tmp/k8s7f3a/land3.log`): the translation of
+`WithRequireLeader`/grpc metadata reverted (`WithPrevKV` kept), the restated axiom with its four-part
+clause (81 accepted the `Value(&cancelCtxKey)` part), `WithRequireLeader.watchCtx_of_post` proved,
+Go tests, STATUS entry. Trust base 870 axioms, 4 sorries (no baseline change).
+
+**Next (a fresh agent): 7f-3b**, from the design section below. 81 approved: `wrespIs` itself
+carries `evOwn` (not a second predicate). Order: vocabulary (`evRd`, `evPk`, `evOwn`, laws
+`evIs ⊢ evRd`, the recombination to `evIs`), built; mvcc proofs bottom-up (newWatcherBatch,
+eventBatch/watcherBatch add, ownEventBatch and victims, watcher.send, the three send sites, Api's
+`wrespIs`, WatchLaws); **report the mvcc interface diff (`etc/gen-interface.py` for mvcc's API list)
+to 81 before landing 7f-3b**; then v3rpc (`recvLoop` with `swsMuP`, `sendLoop`'s `PrevKv` branch,
+`rawRespOkP`, `watchReqOkP`), then the examples/client readers. `Draft7f3a.lean` holds the S1-S9
+statements.
+
 ## Handoff point (2026-11-13, end of the fourth 7f-5 agent): T5-a decomposed; land after 81 sees the flag
 
 81 decided (a): the axiom's `watchCtx ctx s -∗ watchCtx c s` decomposed (no trunc line). Done in
