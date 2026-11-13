@@ -45,6 +45,74 @@ GooseLang `simplePopulateTable` (or by translating `crc32_generic.go` with bodie
 `Update`'s dispatch to it), with `IEEE` alongside; then this part's names-only `hash/crc32` and the
 local model go.
 
+### `io.ReadFull`/`ReadAtLeast` and `binary.Read`'s fast path without bodies (2026-11-13, WAL leaf specs, branch `wal-leaf-std2`)
+
+- **Missing.** Perennial's `io.toml` translates `io` names-only for `ReadFull`/`ReadAtLeast`, and
+  `encoding/binary.toml` only the byte orders (`Read` goes through `reflect`), so neither call can be
+  stepped. The WAL's decoder calls both (decoder.go:117 `io.ReadFull(fileBufReader, data)`,
+  decoder.go:227-231 `binary.Read(r, binary.LittleEndian, &n)` of an `*int64`).
+- **Workaround here.** Two trust-boundary axioms, pending the user's review:
+  `io.ReadFull.wp_proof` (`Spec/io/ReadFull.lean`, over a stream reader `io.readerStream`,
+  `Proof/io/ReaderStream.lean`) and `binary.ReadInt64LE.wp_proof` (`Spec/encoding/binary/
+  ReadInt64LE.lean`, over the triple of its `io.ReadFull` call). **Why not a part-local translation
+  (as `bufio`'s):** a part may replace a package only if no module it imports reaches Perennial's
+  copy (the part's `os`/`io/fs` replace Perennial's because the part also has its own importers of
+  them). `io` is imported by Perennial's `fmt`, `strings`, `bytes`, `bufio`'s part copy, ..., which
+  the WAL's translation imports: a `LinuxFs/Code/io.lean` declaring `Perennial.io.ReadFull` would
+  clash with Perennial's `Perennial.Code.io` in every such module, and a function's `FuncUnfold` can
+  come only from its package's own `Assumptions`. So the bodies have to come from Perennial.
+- **Proposed.** (1) `io.toml`: translate `ReadAtLeast` and `ReadFull` with bodies (`ErrShortBuffer`,
+  `EOF`, `ErrUnexpectedEOF` already are), and prove in `Perennial/Proof/io/` the spec of
+  `Spec/io/ReadFull.lean` (the stream-reader vocabulary `io.readerStream`/`io.readFullOk` moves there
+  with it): a loop over `r.Read(buf[n:])` with the invariant "`ys` delivered, `buf` is `ys ++ rest`,
+  `S (r0 ++ ys)`", the exit's error comparison `err == EOF` an interface comparison of
+  `*errorString`s (no panic). (2) `encoding/binary.toml`: translate `Read`, `intDataSize` and
+  `decodeFast` with bodies and `reflect` names-only (the reflect fallback is unreachable for the
+  fast-path types, as `Read`'s spec premise `intDataSize data ≠ 0` would say), and prove
+  `ReadInt64LE`'s spec (and `ReadUint64`'s) over them; or a trusted model of `Read` restricted to the
+  fast path, if goose cannot translate the type switches. Then the two axioms here become
+  `theorem`s with the same statements (the specs are already over Perennial's names). Not yet
+  proposed.
+
+### Operations on untyped rune constants have no step (2026-11-13, WAL leaf specs, branch `wal-leaf-std2`)
+
+- **Missing.** Goose emits `Separator == '/'` (`GoOp GoEquals go.untypedRune`) and `string(Separator)`
+  (`Convert go.untypedRune go.string`) of `internal/filepathlite`'s untyped constant as run-time
+  operations, and Perennial's semantics has no rule for either (`UntypedIntSemantics` converts untyped
+  integers to the integer types only). Go evaluates both at compile time.
+- **Workaround here.** A hypothesis class `UntypedRuneSemantics`
+  (`LinuxFs/Proof/internal/filepathlite/UntypedRune.lean`, like `UntypedIntToFloat64Semantics`):
+  equality of untyped integers, and `string(c)` an uninterpreted string that is the one byte `c` for
+  ASCII `c`; `filepathlite.FromSlash`/`Base` (and what calls them) take it as an instance. To be
+  added to `etc/gen-link.py`'s `SEM_PREMISES` when the package is linked. **Pending the user's
+  review** (a semantic assumption).
+- **Proposed.** Goose folds constant expressions of untyped constants (the language's "Constant
+  expressions"), or Perennial's `UntypedIntSemantics` gains the two steps. Not yet proposed.
+
+### `Sprintf`'s `%0Nx`, `Sscanf`'s `%0Nx` of a `uint64`, `Time.Format` (2026-11-13, WAL leaf specs, branch `wal-leaf-std2`)
+
+- **Missing.** Perennial's model of `Sprintf` (`Perennial/TrustedCode/fmt.lean`) formats `%d`, `%v`,
+  `%0Nd` and `%x` exactly, but from a `%0Nx` on its output is arbitrary (`intVerb` accepts a width
+  only before `d`); `Sscanf` has no model (names-only); `time.Time.Format` has no body. The WAL's
+  `walName` is `Sprintf("%016x-%016x.wal", seq, index)` (util.go:117), `parseWALName` scans it back
+  with `Sscanf(str, "%016x-%016x.wal", &seq, &index)` (util.go:112), and `cleanupWAL` names the
+  broken directory with `time.Now().Format("20060102.150405.999999")` (wal.go:299).
+- **Workaround here.** Trust-boundary axioms, pending the user's review: `fmt.SprintfWalName`,
+  `fmt.SscanfWalName` (`Spec/fmt/`, the pure model `Proof/fmt/WalName.lean`: `walNameStr`,
+  `scanWalName`, with the round trip proved) and `time.Time.Format` (some string). Go evidence:
+  `examples/stdlib/fmtwalname/` (the Lean models transcribed and compared with `fmt` on edge values,
+  100,000 random pairs and 200,000 random strings) and `examples/stdlib/timeformat/` (no panic on
+  200,000 random layouts and times, any location).
+- **Proposed.** (1) The `Sprintf` model's `intVerb` returns the verb too and accepts `%0Nx` as it
+  accepts `%0Nd`; `formatHex` takes the width and pads with zeros after the sign, as `%0Nd` does
+  (Go's `fmtInteger` with the `zero` flag: `Sprintf("%05x", -255)` is `"-00ff"`); the spec relation
+  `fmt.SprintfOut` gains the case. Then `SprintfWalName` is a corollary of `wp_Sprintf` (the
+  argument list is two `uint64`s, `fmt.ArgsWf`). (2) A model of `Sscanf` for a format of literal
+  bytes and `%x`/`%0Nx`/`%d` of unsigned integers, transcribing `fmt/scan.go`'s `doScanf` on those
+  verbs (`SkipSpace` over-approximated as here: an input byte that may begin a space makes the rest
+  arbitrary), with `scanWalName` as its instance. (3) A trusted model of `Time.Format` returning an
+  arbitrary string (Perennial's `arbitraryString`), so its spec is proved. Not yet proposed.
+
 ### `sort.Sort`'s spec as a function of its input (2026-11-09, specs-only batch 3b)
 
 Perennial's `sort.Sort`/`sort.Slice` specs say only that the result is some sorted permutation of
