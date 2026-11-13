@@ -1,0 +1,11 @@
+# raft's root package in the part `LinuxFs/` (project raft's part, etc/goose.py), for the WAL there:
+# `IsEmptyHardState`, `MustSync` and what they read (`isHardStateEqual`, `emptyState`) with bodies;
+# everything else names only. (The main tree's raft imports the main tree's `os`, which declares
+# the part's names.)
+translate = ["!*", "IsEmptyHardState", "MustSync", "isHardStateEqual", "emptyState"]
+# every import but math/big (no translation), so that only the types embedding a `big.Int` are
+# axiomatized; confchange, quorum and tracker are the main tree's (they do not reach its `os`)
+imports = ["*", "!math/big"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

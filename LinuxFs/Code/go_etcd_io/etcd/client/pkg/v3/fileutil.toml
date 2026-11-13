@@ -1,0 +1,9 @@
+# etcd's file utilities (project etcd's part `LinuxFs/`), with bodies over the part's `os`,
+# `syscall` and `golang.org/x/sys/unix`: the Linux build's files.
+translate = ["*"]
+imports = ["!*", "bufio", "errors", "fmt", "io", "io/fs", "os", "path/filepath", "sort",
+  "strings", "syscall", "time", "golang.org/x/sys/unix", "go.uber.org/zap",
+  "go.etcd.io/etcd/client/pkg/v3/verify"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

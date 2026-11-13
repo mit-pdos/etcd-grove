@@ -1,0 +1,7 @@
+# (project etcd's part `LinuxFs/`; Perennial does not translate hash/crc32) types and names only:
+# what the WAL and `pkg/v3/crc` name (`Table`, `Castagnoli`, `MakeTable`, `Update`). No model yet.
+translate = ["!*"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

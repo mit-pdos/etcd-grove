@@ -1,0 +1,7 @@
+# (project etcd's part `LinuxFs/`) the WAL's page writer, with its body (pagewriter.go); the rest
+# (the limited and exact readers, `WriteAndSyncFile`) names only.
+translate = ["!*", "defaultBufferBytes", "PageWriter", "NewPageWriter", "PageWriter.*"]
+imports = ["!*", "io", "go.etcd.io/etcd/client/pkg/v3/verify"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

@@ -1,0 +1,13 @@
+# The WAL's records (project etcd's part `LinuxFs/`), protobuf-go v2 as raftpb
+# (Code/go_etcd_io/raft/v3/raftpb.toml): record.go and record.pb.go's getters with bodies; the
+# protobuf runtime plumbing names only (`ProtoReflect`, `Descriptor`, `Reset`, `String`, the file
+# descriptor and its initialization).
+translate = ["*",
+  "!*.ProtoReflect", "!*.Descriptor", "!*.Reset", "!*.String",
+  "!file_record_proto*", "!File_record_proto", "!init.*"]
+imports = ["!*", "errors", "fmt", "go.etcd.io/raft/v3/raftpb", "google.golang.org/protobuf/proto",
+  "google.golang.org/protobuf/runtime/protoimpl",
+  "google.golang.org/protobuf/reflect/protoreflect"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true
