@@ -1265,3 +1265,45 @@ beside them in `LinuxFs/Proof/...`:
   `IsDirWriteable` (reached through `TouchDirAll`: `os.WriteFile`, `Remove`).
 - Build note: the seeded `.lake` replayed stale `Proof/.../storage/WalEncDecode` and
   `GooseLang/Ext/Fs/TreeSharedRes` artifacts after the `wal-int` merge; deleting them fixed it.
+
+**W6, second session (branch `wal-save2`, 2026-11-13): the tail's invariant conjunct and the writer
+contract.**
+- *`ByteOk` generalized* (`Abs.lean`): an unsynced byte is the candidate `(y, 0)` then candidates of
+  its intended value `x` stamped by the writes that announced it (any number: retries, a write in
+  flight, a write that stopped short), none past the stream (new `a` argument, `b < |S|`); written
+  ⇒ cache `x` and at least one. Lemmas `byteOk_durB`, `val_unw`, `val_w`, `ByteOk.snoc`,
+  `byteOk_sync`; CutLay/CutSynced/CrashPure/SaveAbs repaired.
+- *Writes in flight in `walInv`* (`Inv.lean`): `SegFl` (token, offset, data, change number, the
+  segment's `OsMeta`/bytes before it); `segResF F g` (idle: `segRes`; in flight: `pwTok` and the halves
+  around the range, as `cfInv`'s `invRes`), `laysResF F Ls` in place of `laysRes`, the layout holding
+  the segment *as announced* (`SegFl.Ok`: `cfMeta`, `pwAnn` in the range), so `WalAbsD`/`CrashOk` are
+  unchanged. `walInv_crash` takes segments with tokens (`CrashTakeSeg.lean`: `crashRestAt_take_tok`,
+  the fixed-crash `crashRest_take_tok_keep`; `crashRest_take_segs` replaces `crashRest_take_files`).
+  **In-size writes only** (`SegFl.Ok`: `off + |data| ≤ m.size`): a write in flight past the size has no
+  ghost candidates for the bytes it extends the file with; the `Save` crossing `SegmentSizeBytes`
+  writes there. Open (next unit): extend `old` with zeros at the announce, candidates from `OsMeta.pc`.
+- *`walTailsRes s Ls F`*, the last conjunct of `walInvBody` (after W4's `walCreating`): a new
+  `WalGS` field `γt`, the tails' authority `walTailsAuth T` (`dir ↦ γ`), the handle's `walTailKey dir
+  γ`; per open tail `ghostVar γ ½ (tailG d lay g.ino (F !! g.ino))` = `(H, md, cuts, wr, ino, write
+  in flight)`, the WAL, layout and last segment, and F-Z (`TailZeros`). The record replaces the
+  design's `γH`/`γS`/`γW` (one name; no mono list: the program's `H` ties the guard to the
+  invariant's history). `walTailsRes_mono` (CreateNamed's `setNamed`).
+- *The writer contract* (decision): a **pure guard**, `io.writerStreamP wi ok W B`
+  (`Proof/io/WriterStream.lean`; `io.writerStream_P`: the length bound is `ok ys := |ys| ≤ lim`), not
+  the Iris-guarded `writerStreamG` (removed). The tail: `ok := tailOk Mr H md cuts o0 sz` (a prefix of
+  the intended stream past `o0`, inside the preallocated size `sz`), `W := walTailW f fd name dir γ i
+  H md cuts o0 sz` (file, offset, program halves, key, the record at `wr = o0 + |out|`), `B := True`
+  (the handle is lost on an error). `encode.specG`/`saveCrc.spec` restated over `writerStreamP`
+  (`B` error form; `ok` prefix-closed): `cut`'s owned `N.tmp` instantiates them with
+  `os.File.writerStream` + `io.writerStream_P` (the coordinator's "second tail mode" is this: the
+  encoder specs are generic, only `walHandleIn` is the crash-tracked mode).
+- *Stated, `sorry`* (`TailWriter.lean`): `wp_tailPWriteStart`, `wp_tailPWriteFinish` (the two
+  `pwrite` steps opening `walInv`), `wal.tailWriter`. Plans in the file header. Needed below them:
+  the pure `walsOk_announce`/`walsOk_finish` (static relation and **the append's crash condition**,
+  the hard part), a `Write`-over-any-`WriteAt` lemma (`Off.lean`'s `Write.wp_spec` generalized), the
+  WAL copy of `WriteAt.wp_proof_crash`'s loop, and the page writer/encoder re-proved over
+  `writerStreamP` (mechanical: their length side conditions become `ok` of a prefix).
+- *Handle* (`Handle.lean`): `WalHS` has `γ` (tail record) and `sz` (tail size) in place of
+  `γH/γS/γW`; locks are `fileutil.lockedFile lf f` (persistent, `wal-fu2`'s) with the file whole.
+  Not yet: the `cuts.length + 2 < 2^63` bound `cut` needs (Save must carry it: a premise of `Save`, or
+  derived from the name bound); Save/saveEntry/saveState/sync/Sync/SaveSnapshot proofs (still `sorry`).

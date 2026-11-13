@@ -53,6 +53,33 @@ instance io.writerStream_persistent (wi : GoInterfaceOk) (lim : Nat) (W : List w
     (B : List w8 → List w8 → IProp GF) : Persistent (io.writerStream wi lim W B) := by
   unfold io.writerStream; infer_instance
 
+/-- **A stream writer whose acceptance is guarded** (WAL W6, 2026-11-13): `io.writerStream` with
+the length bound generalized to a predicate `ok` of the whole stream (`out ++ xs`), which the
+client keeps prefix-closed: a crash-tracked file (the WAL's tail) accepts only the bytes it is meant
+to hold (`ok ys := ys <+: T`), since writing others would break its crash invariant. -/
+def io.writerStreamP (wi : GoInterfaceOk) (ok : List w8 → Prop) (W : List w8 → IProp GF)
+    (B : List w8 → List w8 → IProp GF) : IProp GF :=
+  iprop(□ ∀ (out : List w8) (p : GoSlice) (xs : List w8) (dq : DFrac),
+    ⌜ok (out ++ xs)⌝ →
+    {{ W out ∗ p ↦*{dq} xs }}
+      (App (Val #(methods wi.ty go!"Write" wi.v)) (Val #p))
+    {{ (n : w64) (err : GoInterface), RET (PairV #n #err); p ↦*{dq} xs ∗
+        ((⌜err = GoInterface.nil ∧ sint.Z n = xs.length⌝ ∗ W (out ++ xs)) ∨
+         (⌜err ≠ GoInterface.nil⌝ ∗ B out xs)) }})
+
+instance io.writerStreamP_persistent (wi : GoInterfaceOk) (ok : List w8 → Prop)
+    (W : List w8 → IProp GF) (B : List w8 → List w8 → IProp GF) :
+    Persistent (io.writerStreamP wi ok W B) := by
+  unfold io.writerStreamP; infer_instance
+
+/-- `io.writerStream` is the guarded stream of the length bound. -/
+theorem io.writerStream_P (wi : GoInterfaceOk) (lim : Nat) (W : List w8 → IProp GF)
+    (B : List w8 → List w8 → IProp GF) :
+    io.writerStream wi lim W B ⊣⊢ io.writerStreamP wi (fun ys => ys.length ≤ lim) W B := by
+  unfold io.writerStream io.writerStreamP
+  simp only [List.length_append]
+  exact .rfl
+
 end defs
 
 end EtcdGrove

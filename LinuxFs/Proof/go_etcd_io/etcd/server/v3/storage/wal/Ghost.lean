@@ -59,6 +59,9 @@ class WalGS (GF : BundledGFunctors) where
   /-- The WALs being created (`walCreating`): a ghost map from a WAL directory to the key and
   history of the area claim `Create` renames in, which the invariant holds half of. -/
   γcr : GName
+  /-- The open handles' tails (`walTailsRes`, `Inv.lean`): each WAL directory with an open
+  handle to the ghost name of what the handle and the invariant share of its tail. -/
+  γt : GName
 
 section ghost
 variable {GF : BundledGFunctors} [W : WalGS GF]
@@ -194,6 +197,20 @@ instance walCreating_timeless (dir : GoString) (N : Fs.NameSet) (h : Fs.NamesH) 
 def walPurgeW (w : Loc) (dir : GoString) : IProp GF :=
   letI := walAllG (W := W)
   iprop(∃ γ : GName, walHandleDir (W := W) w dir γ ∗ γ ↪[W.γhp] ())
+
+/-- **The tails' authority** (the WAL invariant's): the directories with an open handle, each to
+the ghost name of its tail (`walTailsRes`, `Inv.lean`). -/
+def walTailsAuth (T : GMap GoString GName) : IProp GF :=
+  letI := walAllG (W := W)
+  ghostMapAuth W.γt 1 T
+
+instance walTailsAuth_timeless (T : GMap GoString GName) : Timeless (walTailsAuth (W := W) T) := by
+  unfold walTailsAuth; infer_instance
+
+/-- **The open handle of `dir` names its tail `γ`** (the handle's, exclusive). -/
+def walTailKey (dir : GoString) (γ : GName) : IProp GF :=
+  letI := walAllG (W := W)
+  dir ↪[W.γt] γ
 
 /-- **`w` is the WAL opened in `dir`, ready to append.** Sealed. -/
 @[no_expose] def walOpenW (w : Loc) (dir : GoString) : IProp GF :=
@@ -434,7 +451,7 @@ invariant's part, the program's map at `s.wal`, `s`'s fact, the lock token and t
 theorem walGhost_init (hPre : AbsDiskGpreS GF) (s : AbsDiskState) (hk : walKeysInArea s) :
     ⊢@{IProp GF} |==> ∃ W : WalGS GF, walGhost (W := W) s ∗ walOwn (W := W) s.wal ∗
       walPast (W := W) s ∗ walUnlockedTok (W := W) ∗ walCrashTok (W := W) ∗
-      walCreatingAuth (W := W) ∅ := by
+      walCreatingAuth (W := W) ∅ ∗ walTailsAuth (W := W) ∅ := by
   imod absDisk_local_init hPre s hk with ⟨%hA, Hctx, Hst⟩
   letI := hA.absDiskAllG
   imod (ghost_map_alloc_empty (GF := GF) (K := GName) (V := WalMode)) with ⟨%γh, Hh⟩
@@ -443,14 +460,16 @@ theorem walGhost_init (hPre : AbsDiskGpreS GF) (s : AbsDiskState) (hk : walKeysI
   imod token_alloc (GF := GF) with ⟨%γc, Hc⟩
   imod (ghost_map_alloc_empty (GF := GF) (K := GoString) (V := Fs.NameSet × Fs.NamesH))
     with ⟨%γcr, Hcr⟩
+  imod (ghost_map_alloc_empty (GF := GF) (K := GoString) (V := GName)) with ⟨%γt, Ht⟩
   imodintro
-  iexists ⟨hA, γh, γhd, γhp, γc, γcr⟩
+  iexists ⟨hA, γh, γhd, γhp, γc, γcr, γt⟩
   iunfold absDiskCtx at Hctx
   icases Hctx with ⟨Hs, HP, -, -⟩
   iunfold absDiskStart at Hst
   icases Hst with ⟨HM, Hp, Hu⟩
-  unfold walGhost walOwn walPast walUnlockedTok walCrashTok walHandleAuth walCreatingAuth walAllG
-  iframe Hs HP HM Hp Hu Hc Hcr
+  unfold walGhost walOwn walPast walUnlockedTok walCrashTok walHandleAuth walCreatingAuth walTailsAuth
+    walAllG
+  iframe Hs HP HM Hp Hu Hc Hcr Ht
   isplitl [Hh Hhd Hhp]
   · iexists 0, ∅, ∅, ∅
     iframe Hh Hhd Hhp

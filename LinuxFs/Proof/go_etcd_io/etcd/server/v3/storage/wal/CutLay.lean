@@ -189,7 +189,9 @@ theorem cutLay_abs (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) 
     · simp only [hbw, decide_false, Bool.false_eq_true, if_false]
       have : (segStream C Mr d (lay.cuts ++ [d.H.length]) (lay.cuts.length + 1)).getD b 0 = 0 := by
         rw [List.getD_eq_getElem?_getD, List.getElem?_eq_none (by omega)]; rfl
-      rw [this]; simp [List.getD_eq_getElem?_getD, List.getElem?_replicate, hb]
+      rw [this]
+      refine ⟨[], ?_, by simp, fun _ => rfl, ?_⟩ <;>
+        simp [List.getD_eq_getElem?_getD, List.getElem?_replicate, hb]
   · simp only [cutLay, List.length_append, List.length_singleton]
     refine ⟨by omega, ?_⟩
     rw [List.take_of_length_le (by omega), hd]

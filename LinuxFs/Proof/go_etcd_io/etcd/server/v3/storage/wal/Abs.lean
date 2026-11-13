@@ -102,13 +102,53 @@ def segStream (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (cuts : List Nat) (k
 /-- The start position of segment `k` in the history. -/
 def segStart (cuts : List Nat) (k : Nat) : Nat := ((0 :: cuts).getD k 0)
 
-/-- A byte of the last segment: its intended value `x`, the value under it `y`, whether it is
-written (`w`) and synced (`s`): durable `x` if synced; else, if written, `x` in the page cache with
-the candidates `y` (as of the sync) and `x` (stamped by its write); else durable `y`. -/
-def ByteOk (x y : w8) (w s : Bool) (g : ByteG) : Prop :=
+/-- A byte of the last segment: its intended value `x`, the value under it `y`, whether it is in
+the intended stream (`a`), written (`w`) and synced (`s`): durable `x` if synced; else the candidate
+`y` (as of the sync) followed by candidates `x` stamped by the writes that announced it (`ex`: each
+attempt of a write adds one, `wp_osPWriteStart`), none if it is past the stream; if written, `x` in
+the page cache and announced at least once; else `y` in the page cache (a write in flight, or one
+that stopped short of it, may have announced it). -/
+def ByteOk (x y : w8) (a w s : Bool) (g : ByteG) : Prop :=
   if s then g = durB x
-  else if w then g.1 = x ∧ ∃ n, 0 < n ∧ g.2 = [(y, 0), (x, n)]
-  else g = durB y
+  else ∃ ex : Cands, g.2 = (y, 0) :: ex ∧ (∀ q ∈ ex, q.1 = x ∧ 0 < q.2) ∧ (a = false → ex = []) ∧
+    (if w then g.1 = x ∧ ex ≠ [] else g.1 = y)
+
+/-- An unwritten byte, durable: its `ByteOk`. -/
+theorem byteOk_durB {x y : w8} {a w s : Bool} (hw : w = false) (hs : s = false) :
+    ByteOk x y a w s (durB y) := by
+  subst hw hs; exact ⟨[], rfl, by simp, fun _ => rfl, rfl⟩
+
+/-- The value of a byte that is not synced and not written. -/
+theorem ByteOk.val_unw {x y : w8} {a : Bool} {g : ByteG} (h : ByteOk x y a false false g) :
+    g.1 = y := by
+  obtain ⟨ex, -, -, -, h⟩ := h; exact h
+
+/-- The value of a byte that is written. -/
+theorem ByteOk.val_w {x y : w8} {a s : Bool} {g : ByteG} (h : ByteOk x y a true s g) : g.1 = x := by
+  unfold ByteOk at h
+  split at h
+  · rw [h]
+  · obtain ⟨ex, -, -, -, h, -⟩ := h; exact h
+
+/-- **A byte's `ByteOk` as the stream grows** (`Save`'s commit appends `X`): a byte of the old
+stream keeps its intended value; one past it was never written nor announced. -/
+theorem ByteOk.snoc {S X : List w8} {y : w8} {w s : Bool} {g : ByteG} {b : Nat}
+    (h : ByteOk (S.getD b 0) y (decide (b < S.length)) w s g) (hw : w = true → b < S.length)
+    (hs : s = true → b < S.length) :
+    ByteOk ((S ++ X).getD b 0) y (decide (b < (S ++ X).length)) w s g := by
+  by_cases hb : b < S.length
+  · have e1 : (S ++ X).getD b 0 = S.getD b 0 := by
+      rw [List.getD_eq_getElem?_getD, List.getElem?_append_left hb, ← List.getD_eq_getElem?_getD]
+    have e2 : decide (b < (S ++ X).length) = decide (b < S.length) := by
+      simp only [List.length_append, decide_eq_decide]; omega
+    rw [e1, e2]; exact h
+  · have hw' : w = false := by cases w; rfl; exact absurd (hw rfl) hb
+    have hs' : s = false := by cases s; rfl; exact absurd (hs rfl) hb
+    subst hw' hs'
+    obtain ⟨ex, h1, -, h3, h4⟩ := h
+    have hex : ex = [] := h3 (by simp; omega)
+    subst hex
+    exact ⟨[], h1, by simp, fun _ => rfl, h4⟩
 
 /-- **The static relation of the WAL `d` and its layout `lay`**, the WAL directory's entries being
 `ents` (plan §2.1). -/
@@ -137,7 +177,8 @@ structure WalAbsD (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (
     let S := segStream C Mr d lay.cuts lay.cuts.length
     lay.so ≤ lay.wr ∧ lay.wr ≤ S.length ∧ g.bs.length = lay.old.length ∧ lay.wr ≤ lay.old.length ∧
     (∀ b (x : ByteG), g.bs[b]? = some x →
-      ByteOk (S.getD b 0) (lay.old.getD b 0) (decide (b < lay.wr)) (decide (b < lay.so)) x) ∧
+      ByteOk (S.getD b 0) (lay.old.getD b 0) (decide (b < S.length)) (decide (b < lay.wr))
+        (decide (b < lay.so)) x) ∧
     lay.z0 ≤ lay.wr ∧ (S.take lay.z0 = lay.old.take lay.z0) ∧
     (lay.z0 < S.length → ∀ b, lay.z0 ≤ b → b < lay.old.length → lay.old.getD b 0 = 0)
   /-- The synced operations' frames, in the last segment, are synced. -/
