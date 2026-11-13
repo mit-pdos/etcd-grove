@@ -134,15 +134,16 @@ theorem os.OpenFile.wp_proofCreateTruncS : os.OpenFile.specCreateTruncS (GF := G
           iapply trFile_new $$ Hm
         rw [decide_eq_false (show e ≠ W64 4 from he4)]
         wp_auto
-        unfold os.model.pathError
-        wp_apply wp_errno
+        wp_apply os.wp_pathError_ok _ _ e he0 as %pe #Hok
         iapply HΦ
         dsimp only [crTr]
         iframe
         isplitl [Hm]
         · iapply trFile_new $$ Hm
         iright
-        ipureintro; exact ⟨(fun h => by cases h), rfl⟩
+        isplitr
+        · ipureintro; exact ⟨(fun h => by cases h), rfl⟩
+        iapply (EtcdGrove.fmtErrorOkOrNil_of _) $$ Hok
       · obtain ⟨rfl, hfd0⟩ := he
         wp_auto
         iStructNamed inner
@@ -189,8 +190,7 @@ theorem os.OpenFile.wp_proofCreateTruncS : os.OpenFile.specCreateTruncS (GF := G
         wp_auto
         rw [decide_eq_false (show e ≠ W64 4 from he4)]
         wp_auto
-        unfold os.model.pathError
-        wp_apply wp_errno
+        wp_apply os.wp_pathError_ok _ _ e he0 as %pe #Hok
         iapply HΦ
         iframe
         dsimp only [crOut, crTr]
@@ -198,7 +198,9 @@ theorem os.OpenFile.wp_proofCreateTruncS : os.OpenFile.specCreateTruncS (GF := G
         isplitl []
         · iempintro
         iright
-        ipureintro; exact ⟨(fun h => by cases h), rfl⟩
+        isplitr
+        · ipureintro; exact ⟨(fun h => by cases h), rfl⟩
+        iapply (EtcdGrove.fmtErrorOkOrNil_of _) $$ Hok
   · obtain ⟨x, sx, i⟩ := xs
     have hi : (h.log x (crEnt j b i sx) (<[b := .file i]> h.cur)).cur !! b = some (.file i) := by
       simp only [NamesH.log]; exact GMap.lookup_insert _ _ _
@@ -262,15 +264,16 @@ theorem os.OpenFile.wp_proofCreateTruncS : os.OpenFile.specCreateTruncS (GF := G
         iright; iexists (x, sx, i); dsimp only [crTr]; iframe
       rw [decide_eq_false (show e ≠ W64 4 from he4)]
       wp_auto
-      unfold os.model.pathError
-      wp_apply wp_errno
+      wp_apply os.wp_pathError_ok _ _ e he0 as %pe #Hok
       iapply HΦ
       dsimp only [crTr]
       iframe
       isplitl [Hm]
       · iapply trFile_mono i False _ (fun h => by cases h) $$ Hm
       iright
-      ipureintro; exact ⟨(fun h => by cases h), rfl⟩
+      isplitr
+      · ipureintro; exact ⟨(fun h => by cases h), rfl⟩
+      iapply (EtcdGrove.fmtErrorOkOrNil_of _) $$ Hok
 
 /-- `os.OpenFile(d/b, flag, perm)`, `flag` with `O_TRUNC` (with or without `O_CREATE`), of a name
 holding the file `i` (a leftover `N.tmp`), with a fraction of a claim on names containing `b` and
@@ -289,7 +292,7 @@ theorem os.OpenFile.wp_truncS (d b : GoString) (flag : w64) (perm : w32) (R : Ro
         osCallPerm qc ∗ trFile i (err = interface.nil) ∗
         ((∃ fd : w64, ⌜err = interface.nil ∧ 0 ≤ fd.toInt⌝ ∗ os.ownFile f fd (child d b) (DFrac.own 1) ∗
             osFd fd (DFrac.own 1) (openFd i (flag ||| W64 0x80000))) ∨
-         ⌜err ≠ interface.nil ∧ f = null⌝) }} := by
+         ⌜err ≠ interface.nil ∧ f = null⌝ ∗ fmtErrorOkOrNil err) }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm, Hf⟩
   generalize hfl' : flag ||| W64 0x80000 = fl at hfl htr ⊢
   imod osNames_next R j _ _ h CoPset.subseteq_top $$ Hsi Hn with ⟨Hn, #Hlb⟩
@@ -353,14 +356,15 @@ theorem os.OpenFile.wp_truncS (d b : GoString) (flag : w64) (perm : w32) (R : Ro
       iapply IH $$ Hperm Hp Hn Hm HΦ
     rw [decide_eq_false (show e ≠ W64 4 from he4)]
     wp_auto
-    unfold os.model.pathError
-    wp_apply wp_errno
+    wp_apply os.wp_pathError_ok _ _ e he0 as %pe #Hok
     iapply HΦ
     iframe
     isplitl [Hm]
     · iapply trFile_mono i False _ (fun h => by cases h) $$ Hm
     iright
-    ipureintro; exact ⟨(fun h => by cases h), rfl⟩
+    isplitr
+    · ipureintro; exact ⟨(fun h => by cases h), rfl⟩
+    iapply (EtcdGrove.fmtErrorOkOrNil_of _) $$ Hok
 
 end proof
 

@@ -14,6 +14,7 @@ module
 public import LinuxFs.Proof.os.OpenFile
 public import LinuxFs.Proof.os.File__Close
 public import LinuxFs.Proof.os.SharedExt
+public import LinuxFs.Proof.os.ErrorOk
 
 @[expose] public section
 
@@ -46,7 +47,7 @@ theorem os.OpenFile.wp_fileS (d b : GoString) (flag : w64) (perm : w32) (R : Roo
         osCallPerm qc ∗
         ((∃ fd : w64, ⌜err = interface.nil ∧ 0 ≤ fd.toInt⌝ ∗ os.ownFile f fd (child d b) (DFrac.own 1) ∗
             osFd fd (DFrac.own 1) (openFd i (flag ||| W64 0x80000))) ∨
-         ⌜err ≠ interface.nil ∧ f = null⌝) }} := by
+         ⌜err ≠ interface.nil ∧ f = null⌝ ∗ fmtErrorOkOrNil err) }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
   generalize hfl' : flag ||| W64 0x80000 = fl at hfl htr ⊢
   imod osNames_next R j _ _ h CoPset.subseteq_top $$ Hsi Hn with ⟨Hn, #Hlb⟩
@@ -99,12 +100,13 @@ theorem os.OpenFile.wp_fileS (d b : GoString) (flag : w64) (perm : w32) (R : Roo
       iapply IH $$ Hperm Hp Hn HΦ
     rw [decide_eq_false (show e ≠ W64 4 from he4)]
     wp_auto
-    unfold os.model.pathError
-    wp_apply wp_errno
+    wp_apply os.wp_pathError_ok _ _ e he0 as %pe #Hok
     iapply HΦ
     iframe
     iright
-    ipureintro; exact ⟨(fun h => by cases h), rfl⟩
+    isplitr
+    · ipureintro; exact ⟨(fun h => by cases h), rfl⟩
+    iapply (EtcdGrove.fmtErrorOkOrNil_of _) $$ Hok
 
 /-- `os.OpenFile(p, O_RDONLY, perm)` of the directory `j` (a spine to it): a shared directory fd,
 not read, holding nothing; or an error. -/
