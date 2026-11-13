@@ -1044,3 +1044,75 @@ MkdirAll*,…}` and `fileutil.LockFile`. Not built, with errors unrelated to the
 the base `wal-osau4` merge `3d888e8e56`, not checked there): `os.OpenFileS`/`OpenFileTruncS`
 (`fmtErrorOkOrNil` of the error branch: `⟨…⟩` against the spec's new shape) and `wal.Codec`
 (`walCodec_ok`), hence `wal.Create`.
+
+### Implementation log, `os.RemoveAll` (branch `wal-osau4-rmall`, 2026-11-13)
+
+Done, proved (no `sorry`; `#print axioms` of both shows no `sorryAx`), over the guard calls above.
+
+**Specs** (`LinuxFs/Spec/os/RemoveAll.lean`, proofs `LinuxFs/Proof/os/RemoveAll.lean`), plain triples:
+
+- `os.RemoveAll.specAbsentS`: `RemoveAll(d/b)`, `b` absent: a spine `osPathS R d (own qd) j`, any
+  fraction `dqn` of the claim `osNames j (.only [b]) dqn h` (`h.cur !! b = none`), any `osCallPerm qc`
+  (half to the guard, half to the inner calls). Post: all of it back unchanged, `fmtErrorOkOrNil err`.
+  The error may be `nil` or not (every inner step fails with an arbitrary errno and no effect).
+- `os.RemoveAll.specDirS`: `d/b` holds the directory `J` (`h.cur !! b = some (.dir J)`), the whole
+  claims on `b` (`.only [b]`) and on `J`'s names (`.except []`, `hJ`) with `FilesOnly hJ.cur` (every
+  entry a file), `osCallPerm 1`. Post: spine, `osCallPerm 1`, `fmtErrorOkOrNil err`, and
+  **`rmAllOut j b J h hJ`**: the whole claims `h'` on `b` and `hJ'` on `J`'s names, `EntsSub hJ'.cur
+  hJ.cur` (some of `J`'s files removed), and `h' = h` or (`osLogged x (rmDirEnt j b J s)`, `h' =
+  h.log x … (restrictN (.only [b]) (delete b h.cur))`, `hJ'.cur = ∅`). **No "nil ⇒ removed"**: the
+  model allows `nil` with `b` still there (an `rmdir` failing with `ENOENT` and no effect is success for
+  `RemoveAll`), and an error with everything removed.
+
+Why plain triples and no per-step updates: the WAL's `dir.tmp` is the program's (whole claims from
+`walAreaRes`/`osSubtree`) until `Create`'s rename publishes it, so nothing under `walInv` changes; and
+`renameWAL`'s `RemoveAll(dir)` meets an absent `dir` (strong absence, `notes/wal-fsext-plan.md`), where a
+fraction of the claim suffices and nothing is logged. The removals of `J`'s files are logged but not
+described (`hJ'` only bounded by `EntsSub`); a client needing them (a crash invariant over `tmp`'s
+contents) would need the entries in the post.
+
+**Proof structure** (all under the guard: `wp_osCallBeginGuardS` at the start, `wp_osLstatDirGuardS` at
+the end, its `hp` from the spine via `os.osPathS_facts`; every `rmdir` by an inner call begun from the
+guard's `osLogLb sg`, so `sg ≤ s0` for `wp_osRmdirSG`):
+
+- `RemoveAllParts.lean`: `os.wp_endsWithDot_child`, `os.wp_splitPath_child` (`splitPath(d/b) = (d, b)`
+  for `d` beginning `/c`, `c ≠ /`: every root does, `os.root_path_head`; the three translated loops),
+  `os.osPathS_borrow` (a spine to `d/b` borrowed from the spine to `d` and the whole claim on `b`, a
+  wand gives both back), `os.peOk` (the error pointer: `nil`, or a `*PathError` owning its `Path`, the
+  model's `prefixPath` writes it; `Op`/`Err` persistent, `Err` `fmtErrorOk`), `wp_pathErrorPtr*`,
+  `wp_prefixPath`; `os.peOk_fmt` (`RemoveAll.lean`) persists `Path` for `fmtErrorOk`.
+- `RemoveAllExt.lean` (namespace `Fs`, additive, over `wp_callEndS`): **`wp_osRmdirS_nonempty`**,
+  `rmdir` of `d/b` holding `J` with a name present (a fraction of a claim on `J`'s names showing it):
+  an errno, no effect (`EmptyDir` fails). The last `rmdir` meets it when an `unlink` failed.
+- `RemoveAllLeaf.lean`: `removeAllFrom` on an entry holding a file or nothing (`wp_removeAllFrom_leaf`,
+  claim `.only [c]`, whole, or any fraction when absent; post `LeafOk`: entries a part, unchanged if
+  absent): its `unlink`, `open` (a file's fd is `FdKind` 0, closed), `rmdir` loops; never reaches the
+  passes' reads. It is also `specAbsentS`'s `removeAllFrom`.
+- `RemoveAllDir.lean`: the loops on the directory state (`wp_unlinkLoop_dirSt`, `wp_openLoop_dirSt`,
+  `wp_rmdirLoop_dirSt`: empty `J` → `wp_osRmdirSG`, else `wp_osRmdirS_nonempty`, removed →
+  `wp_osRmdirS_none`), `os.osNames_split1`/`merge1` (the claim on one name off a directory's whole
+  claim and back), `os.entsSub_merge1`.
+- `RemoveAllFrom.lean`: **`wp_removeAllFrom_dir`**, the passes by Löb (each: open `J`, read all names
+  with the whole claim on `J` — `wp_osDirReadNextS` with `N = .except []`, as `Readdirnames.wp_dirS` —
+  remove each name by the leaf lemma, split/merge, `DirClose`, `ArbitraryInt`), then the `rmdir`.
+
+Technique (for later model proofs): `wp_auto` beta-reduces a `rec:` loop's first application, so the
+Löb hypothesis would be about the first iteration's literal arguments (`#null`, `#(W64 0)`). The proof
+turns those argument occurrences into variables with `rw (occs := .pos [k]) [h]` (`h : null = r0`,
+`W64 0 = W64 ↑k0`; the indices found by trial, printing the goal) before `iloeb … generalizing`; a
+`decide (W64 0 = …)` that `rw` does not find by occurrence is rewritten by its whole term.
+
+**For the WAL's proofs.**
+- `renameWAL`/`renameWALUnlock`'s `RemoveAll(w.dir)` and `Create`'s deferred `RemoveAll(tmp)` after the
+  rename: `specAbsentS`, needing `nm` (resp. `nm.tmp`) absent in the claim the program holds a fraction
+  of; nothing changes, the error is ignored or returned.
+- `Create`'s `RemoveAll(tmp)` of a leftover (`Exist` true): `specDirS`, from `osSubtreeH j tmp h`
+  (`osNames j (.only [tmp]) 1 h` and the claims `cl` with `SubCover`): `h.cur !! tmp = some (.dir J)`
+  gives `J`'s whole claim in `cl`; **`FilesOnly` is a new obligation**: a leftover `tmp` holding a
+  subdirectory, or `tmp` a file, is not covered (the recursion below one level, and `RemoveAll` of a
+  file, are not proved). The WAL itself only creates files in `tmp`, so the invariant (`walAreaRes`)
+  could say so of `nm.tmp`; otherwise the spec needs the recursive case. A `nil` return does not
+  mean `tmp` is gone: `CreateDirAll(tmp)` after it must handle an existing `tmp` (it does: its `ReadDir`
+  check then fails, an error before the rename). The error path of `Create` (deferred `RemoveAll(tmp)`
+  with `tmp` holding the segment) is `specDirS` with the segment's file entry.
+- Built: `lake build LinuxFs.Proof.os.RemoveAll LinuxFs.Proof.os.RemoveAllExt`.
