@@ -21,10 +21,11 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
 
 /-- The shared coherence with a directory fd gone. -/
 theorem treeCohS_delDfd {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS)}
-    {Γc : GMap Nat (Nat × Qp)} (hc : TreeCohS st s0 Γdf Γc) (fd : w64) :
-    TreeCohS (delDfd st fd) s0 (GMap.delete fd Γdf) Γc := by
+    {Γc Γg : GMap Nat (Nat × Qp)} (hc : TreeCohS st s0 Γdf Γc Γg) (fd : w64) :
+    TreeCohS (delDfd st fd) s0 (GMap.delete fd Γdf) Γc Γg := by
   refine ⟨hc.starts, hc.pss, hc.dox, hc.valid, hc.s0le, fun fd' => ?_, fun fd' x df hx hdf => ?_,
-    hc.calls, hc.callsLe, hc.whole, hc.after⟩
+    hc.calls, hc.callsLe, hc.whole, hc.after, hc.gcalls, hc.gdisj,
+    hc.cover, hc.pair⟩
   · show (GMap.delete fd Γdf !! fd').map (·.1) = (GMap.delete fd st.proc.dfds !! fd').map (·.ino)
     rw [GMap.lookup_delete_iff, GMap.lookup_delete_iff]
     split
@@ -53,7 +54,7 @@ theorem legacy_dirFdS_excl (st : OsState) (fd : w64) (j : Ino) (ph : DirPhS) :
 
 /-- A shared directory fd is one of the state's, on its directory. -/
 theorem dfdS_lookup {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS)}
-    {Γc : GMap Nat (Nat × Qp)} (hc : TreeCohS st s0 Γdf Γc) {fd : w64} {j : Ino} {ph : DirPhS}
+    {Γc Γg : GMap Nat (Nat × Qp)} (hc : TreeCohS st s0 Γdf Γc Γg) {fd : w64} {j : Ino} {ph : DirPhS}
     (h : Γdf !! fd = some (j, ph)) : ∃ df, st.proc.dfds !! fd = some df ∧ df.ino = j := by
   have := hc.fds fd; rw [h] at this
   cases h0 : st.proc.dfds !! fd with
@@ -72,7 +73,7 @@ theorem wp_osFdKindDirS' (fd : w64) (j : Ino) (ph : DirPhS) (hE : ↑osN ⊆ E) 
   icases Hm with (Hm | Hm)
   · iexfalso; iapply legacy_dirFdS_excl st fd j ph $$ Hfd Hm
   unfold treeShared
-  icases Hm with ⟨%V0, %s0, %Γdf, %Γc, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr⟩
+  icases Hm with ⟨%V0, %s0, %Γdf, %Γc, %Γg, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
   obtain ⟨hw, hc⟩ := hns
   unfold osDirFdS
   icases gAuth_lookup _ _ _ _ _ _ $$ Hadfs Hfd with %Hfl
@@ -107,12 +108,12 @@ theorem wp_osFdKindDirS' (fd : w64) (j : Ino) (ph : DirPhS) (hE : ↑osN ⊆ E) 
   iexists Γb, Γm, Γf, Γt
   isplitl [Hw]
   · unfold osWorld; iexact Hw
-  isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr Hcm]
+  isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr HAg Hgr Hcm]
   · try unfold treeCtx
     iframe Hcm
     iright
     try unfold treeShared
-    iexists V0, s0, Γdf, Γc
+    iexists V0, s0, Γdf, Γc, Γg
     iframe
     ipureintro; exact ⟨hw, hc⟩
   iapply wp_value'
@@ -129,7 +130,7 @@ theorem wp_osDirCloseS' (fd : w64) (j : Ino) (ph : DirPhS) (hE : ↑osN ⊆ E) (
   icases Hm with (Hm | Hm)
   · iexfalso; iapply legacy_dirFdS_excl st fd j ph $$ Hfd Hm
   unfold treeShared
-  icases Hm with ⟨%V0, %s0, %Γdf, %Γc, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr⟩
+  icases Hm with ⟨%V0, %s0, %Γdf, %Γc, %Γg, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
   obtain ⟨hw, hc⟩ := hns
   unfold osDirFdS
   icases gAuth_lookup _ _ _ _ _ _ $$ Hadfs Hfd with %Hfl
@@ -160,14 +161,14 @@ theorem wp_osDirCloseS' (fd : w64) (j : Ino) (ph : DirPhS) (hE : ↑osN ⊆ E) (
   iexists Γb, Γm, Γf, Γt
   isplitl [Hw]
   · unfold osWorld; iexact Hw
-  isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr Hcm]
+  isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr HAg Hgr Hcm]
   · try unfold treeCtx
     isplitr [Hcm]
     rotate_left
     · iapply commitRes_setProc $$ Hcm
     iright; simp only [delDfd, OsState.setProc]
     try unfold treeShared
-    iexists V0, s0, GMap.delete fd Γdf, Γc
+    iexists V0, s0, GMap.delete fd Γdf, Γc, Γg
     iframe
     ipureintro; exact ⟨fsTreeWf_delDfd hw fd, treeCohS_delDfd hc fd⟩
   iapply wp_value'
@@ -187,7 +188,7 @@ theorem wp_osDirSyncS' (R : Roots) (fd : w64) (j : Ino) (ph : DirPhS) (n : Nat) 
   icases Hm with (Hm | Hm)
   · iexfalso; iapply legacy_dirFdS_excl st fd j ph $$ Hfd Hm
   unfold treeShared
-  icases Hm with ⟨%V0, %s0, %Γdf, %Γc, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr⟩
+  icases Hm with ⟨%V0, %s0, %Γdf, %Γc, %Γg, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
   obtain ⟨hw, hc⟩ := hns
   -- the log is at least `n` long
   unfold osSharedInv
@@ -223,7 +224,7 @@ theorem wp_osDirSyncS' (R : Roots) (fd : w64) (j : Ino) (ph : DirPhS) (n : Nat) 
   rcases hres with ⟨rfl, rfl⟩ | ⟨e, he, rfl, hst⟩
   · -- success: the whole log committed
     have hw' : FsTreeWf st.commitAll := ⟨hw.roots, hw.hist, hw.dfds, hw.disj, hw.files_lt⟩
-    have hc' : TreeCohS st.commitAll s0 Γdf Γc := hc.congr rfl rfl rfl rfl
+    have hc' : TreeCohS st.commitAll s0 Γdf Γc Γg := hc.congr rfl rfl rfl rfl
     imod osWorld_filesSame (st := st) (st' := st.commitAll) ⟨rfl, rfl, rfl, rfl, rfl⟩ Hr Hfr
       $$ [HAb HAm HAf HAt Htok Hcells Hσ] with Hw
     · unfold osWorld; iframe; ipureintro; exact Hwc
@@ -232,12 +233,12 @@ theorem wp_osDirSyncS' (R : Roots) (fd : w64) (j : Ino) (ph : DirPhS) (n : Nat) 
     iexists Γb, Γm, Γf, Γt
     isplitl [Hw]
     · unfold osWorld; iexact Hw
-    isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr Hcm]
+    isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr HAg Hgr Hcm]
     · try unfold treeCtx
       iframe Hcm
       iright; simp only [OsState.commitAll]
       try unfold treeShared
-      iexists V0, s0, Γdf, Γc
+      iexists V0, s0, Γdf, Γc, Γg
       iframe
       ipureintro; exact ⟨hw', hc'⟩
     iapply wp_value'
@@ -253,12 +254,12 @@ theorem wp_osDirSyncS' (R : Roots) (fd : w64) (j : Ino) (ph : DirPhS) (n : Nat) 
     iexists Γb, Γm, Γf, Γt
     isplitl [Hw]
     · unfold osWorld; iexact Hw
-    isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr Hcm]
+    isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr HAg Hgr Hcm]
     · try unfold treeCtx
       iframe Hcm
       iright
       try unfold treeShared
-      iexists V0, s0, Γdf, Γc
+      iexists V0, s0, Γdf, Γc, Γg
       iframe
       ipureintro; exact ⟨hw, hc⟩
     iapply wp_value'

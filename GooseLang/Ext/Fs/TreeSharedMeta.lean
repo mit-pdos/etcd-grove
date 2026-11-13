@@ -555,13 +555,15 @@ theorem wp_osRenameDirS' (R : Roots) (d bs bt : GoString) (j J : Ino) (N : NameS
         (fun h0 => hne h0.2) (.inl htg) hnot _ _)
     hE hE' Φ
 
-theorem wp_osRmdirS' (R : Roots) (d b : GoString) (j J : Ino) (dq : DFrac) (h hJ : NamesH)
-    (k s0 : Nat) (hb : NameOk b) (hd : h.cur !! b = some (.dir J)) (he : hJ.cur = ∅)
+/-- **`rmdir(2)`** of the directory `d/b`, by a call holding the whole permission, or the rest of
+it beside a guard begun no later (`WholeG`). -/
+theorem wp_osRmdirSGen (R : Roots) (d b : GoString) (j J : Ino) (dq : DFrac) (h hJ : NamesH)
+    (k s0 : Nat) (q : Qp) (gd : Option (Nat × Nat × Qp)) (hwh : WholeG q s0 gd) (hb : NameOk b) (hd : h.cur !! b = some (.dir J)) (he : hJ.cur = ∅)
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗
-      osNames (L := L) J (.except []) (DFrac.own 1) hJ -∗ osCallS (L := L) k s0 1 -∗
-      (∀ e : w64, osCallPerm (L := L) 1 -∗ osPathS (L := L) R d dq j -∗
+      osNames (L := L) J (.except []) (DFrac.own 1) hJ -∗ osCallSG (L := L) k s0 q gd -∗
+      (∀ e : w64, osCallPermG (L := L) q gd -∗ osPathS (L := L) R d dq j -∗
         osNames (L := L) J (.except []) (DFrac.own 1) hJ -∗
         osNamesAfter (L := L) j (.only [b]) h ⟨.remove j b (.dir J), s0⟩ (GMap.delete b h.cur)
           (e ≠ 0) -∗ Φ (#e)) -∗
@@ -574,12 +576,12 @@ theorem wp_osRmdirS' (R : Roots) (d b : GoString) (j J : Ino) (dq : DFrac) (h hJ
   have hent : ∀ st, ClaimsAt st cl → st.tree.entry j b = some (.dir J) := by
     intro st hat; rw [hat.ent _ (List.mem_singleton_self _) b hbN]; exact hd
   have hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
-      ((1 : Qp) = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) → P st → ClaimsAt st cl →
+      (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) → P st → ClaimsAt st cl →
       ∃ e' st', IsFsStep "Rmdir" (PairV (osTokV k) (#(child d b))) st e' st' ∧ FilesSame st st' :=
     fun st _ _ hcall _ hp _ => ⟨_, st.metaEnd k, ⟨child d b, k, s0, rfl, treeName_child hp.1 hb, hcall,
       Or.inr ⟨1, by decide, rfl, rfl⟩⟩, filesSame_metaEnd st k⟩
   have hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
-      ((1 : Qp) = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) → P st → ClaimsAt st cl →
+      (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) → P st → ClaimsAt st cl →
       IsFsStep "Rmdir" (PairV (osTokV k) (#(child d b))) st e' st' → ∃ w, e' = Val w ∧
         ((st' = st.metaEnd k ∧ (fun w lg => ∃ e : w64, w = #e ∧ (lg = false → e ≠ 0)) w false) ∨
          (LoggedFrom st st' k s0 o ∧ (∀ x, x ∈ o.apply st.tree → x < st'.fs.nextIno) ∧
@@ -627,7 +629,7 @@ theorem wp_osRmdirS' (R : Roots) (d b : GoString) (j J : Ino) (dq : DFrac) (h hJ
       obtain rfl := hbN' b' hb'
       rw [entsOf_lookup, entry_remove]; simp
   iintro #Hinv #Hsi Hp Hn HJ Hk HΦ
-  iapply wp_logStepS "Rmdir" _ (by simp [val.isPanic]) R k s0 1 o cl
+  iapply wp_logStepSG "Rmdir" _ (by simp [val.isPanic]) R k s0 q gd o cl
     iprop(osPathS (L := L) R d dq j ∗ osNames (L := L) J (.except []) (DFrac.own 1) hJ) P
     (fun w lg => ∃ e : w64, w = #e ∧ (lg = false → e ≠ 0))
     (by simp [cl])
@@ -636,7 +638,7 @@ theorem wp_osRmdirS' (R : Roots) (d b : GoString) (j J : Ino) (dq : DFrac) (h hJ
       exact ⟨b, hbN, .inl (by simp [o, MetaOp.slots])⟩)
     (by intro sl hsl; simp [o, MetaOp.slots] at hsl; subst hsl
         exact ⟨_, List.mem_singleton_self _, rfl, hbN⟩)
-    (fun _ _ => .inr rfl) (fun _ => rfl) (by intro j b hb; simp [o, MetaOp.adds] at hb)
+    (fun _ _ => .inr hwh) (fun _ => hwh) (by intro j b hb; simp [o, MetaOp.adds] at hb)
     (fun st Γn hR hcoh => by
       iintro HA ⟨Hp, HJ⟩
       icases pathS_of R d dq j st Γn hR hcoh $$ HA Hp with %h1
@@ -668,13 +670,56 @@ theorem wp_osRmdirS' (R : Roots) (d b : GoString) (j J : Ino) (dq : DFrac) (h hJ
     · iexact Hlg
     · iapply (BigSepL.bigSepL_singleton).1 $$ Hl
 
-/-- **`mkdir(2)`** of the free name `d/b` (shared mode), by a call holding the whole permission. -/
-theorem wp_osMkdirS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : NamesH) (k s0 : Nat)
-    (hb : NameOk b) (hn : h.cur !! b = none) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E)
+theorem wp_osRmdirS' (R : Roots) (d b : GoString) (j J : Ino) (dq : DFrac) (h hJ : NamesH)
+    (k s0 : Nat) (hb : NameOk b) (hd : h.cur !! b = some (.dir J)) (he : hJ.cur = ∅)
+    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
+      osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗
+      osNames (L := L) J (.except []) (DFrac.own 1) hJ -∗ osCallS (L := L) k s0 1 -∗
+      (∀ e : w64, osCallPerm (L := L) 1 -∗ osPathS (L := L) R d dq j -∗
+        osNames (L := L) J (.except []) (DFrac.own 1) hJ -∗
+        osNamesAfter (L := L) j (.only [b]) h ⟨.remove j b (.dir J), s0⟩ (GMap.delete b h.cur)
+          (e ≠ 0) -∗ Φ (#e)) -∗
+      WP (ExternalOp fsExt.name "Rmdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} := by
+  iintro #Hinv #Hsi Hp Hn HJ Hk HΦ
+  iapply wp_osRmdirSGen R d b j J dq h hJ k s0 1 none rfl hb hd he hE hE' Φ $$ Hinv Hsi Hp Hn HJ
+    [Hk]
+  · iapply osCallSG_none $$ Hk
+  iintro %e Hq
+  iapply HΦ $$ %e [Hq]
+  iapply osCallPermG_none $$ Hq
+
+/-- **`rmdir(2)`** under a guard: `wp_osRmdirSGen` with the guard `t`. -/
+theorem wp_osRmdirSG' (R : Roots) (d b : GoString) (j J : Ino) (dq : DFrac) (h hJ : NamesH)
+    (k s0 t sg : Nat) (q g : Qp) (hqg : q + g = 1) (hsg : sg ≤ s0) (hb : NameOk b)
+    (hd : h.cur !! b = some (.dir J)) (he : hJ.cur = ∅)
+    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
+      osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗
+      osNames (L := L) J (.except []) (DFrac.own 1) hJ -∗ osCallS (L := L) k s0 q -∗
+      osGuardS (L := L) t sg g -∗
+      (∀ e : w64, osCallPerm (L := L) q -∗ osGuardS (L := L) t sg g -∗ osPathS (L := L) R d dq j -∗
+        osNames (L := L) J (.except []) (DFrac.own 1) hJ -∗
+        osNamesAfter (L := L) j (.only [b]) h ⟨.remove j b (.dir J), s0⟩ (GMap.delete b h.cur)
+          (e ≠ 0) -∗ Φ (#e)) -∗
+      WP (ExternalOp fsExt.name "Rmdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} := by
+  iintro #Hinv #Hsi Hp Hn HJ Hk Hg HΦ
+  iapply wp_osRmdirSGen R d b j J dq h hJ k s0 q (some (t, sg, g))
+    ⟨congrArg Subtype.val hqg, hsg⟩ hb hd he hE hE' Φ $$ Hinv Hsi Hp Hn HJ [Hk Hg]
+  · simp only [osCallSG]; iframe
+  iintro %e Hq
+  simp only [osCallPermG]
+  icases Hq with ⟨Hq, Hg⟩
+  iapply HΦ $$ %e Hq Hg
+
+/-- **`mkdir(2)`** of the free name `d/b` (shared mode), by a call holding the whole permission, or
+the rest of it beside a guard begun no later (`WholeG`). -/
+theorem wp_osMkdirSGen (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : NamesH) (k s0 : Nat)
+    (q : Qp) (gd : Option (Nat × Nat × Qp)) (hwh : WholeG q s0 gd) (hb : NameOk b) (hn : h.cur !! b = none) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E)
     (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
-      osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗ osCallS (L := L) k s0 1 -∗
-      (∀ e : w64, osCallPerm (L := L) 1 -∗ osPathS (L := L) R d dq j -∗
+      osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗ osCallSG (L := L) k s0 q gd -∗
+      (∀ e : w64, osCallPermG (L := L) q gd -∗ osPathS (L := L) R d dq j -∗
         ((⌜e ≠ 0⌝ ∗ osNames (L := L) j (.only [b]) (DFrac.own 1) h) ∨
          ∃ x J, osLogged (L := L) x (⟨.mkdir j b J, s0⟩ : LogEntry) ∗
            osNames (L := L) j (.only [b]) (DFrac.own 1) (h.log x (⟨.mkdir j b J, s0⟩ : LogEntry) (<[b := .dir J]> h.cur)) ∗
@@ -690,13 +735,13 @@ theorem wp_osMkdirS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : Na
   have hent : ∀ st, ClaimsAt st cl → st.tree.entry j b = none := by
     intro st hat; rw [hat.ent _ (List.mem_singleton_self _) b hbN]; exact hn
   have hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
-      ((1 : Qp) = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) →
+      (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) →
       st.lookup d = some (.dir j) → ClaimsAt st cl →
       ∃ e' st', IsFsStep "Mkdir" (PairV (osTokV k) (#(child d b))) st e' st' ∧ FilesSame st st' :=
     fun st _ _ hcall _ hp _ => ⟨_, st.metaEnd k, ⟨child d b, k, s0, rfl, treeName_child hp hb, hcall,
       Or.inr ⟨1, by decide, rfl, rfl⟩⟩, filesSame_metaEnd st k⟩
   have hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
-      ((1 : Qp) = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) →
+      (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) →
       st.lookup d = some (.dir j) → ClaimsAt st cl →
       IsFsStep "Mkdir" (PairV (osTokV k) (#(child d b))) st e' st' → ∃ w, e' = Val w ∧
         ((st' = st.metaEnd k ∧ W w false) ∨
@@ -760,14 +805,14 @@ theorem wp_osMkdirS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : Na
         rw [GMap.lookup_insert_ne _ _ hne]
         exact (hat.out _ (List.mem_singleton_self _) b' hb').symm
   iintro #Hinv #Hsi Hp Hn Hk HΦ
-  iapply wp_logStepSN "Mkdir" _ (by simp [val.isPanic]) R k s0 1 oF cl curF
+  iapply wp_logStepSNG "Mkdir" _ (by simp [val.isPanic]) R k s0 q gd oF cl curF
     (osPathS (L := L) R d dq j) (fun st => st.lookup d = some (.dir j)) W
     (by simp [cl]) (fun _ c hc => by
       rw [List.mem_singleton] at hc; subst hc
       exact ⟨b, hbN, .inl (by simp [oF, MetaOp.slots])⟩)
     (by intro n sl hsl; simp [oF, MetaOp.slots] at hsl; subst hsl
         exact ⟨_, List.mem_singleton_self _, rfl, hbN⟩)
-    (fun _ _ => .inr rfl) (fun _ _ => rfl)
+    (fun _ _ => .inr hwh) (fun _ _ => hwh)
     (by intro n j' b' hb'; simp [oF, MetaOp.adds] at hb'; rw [hb'.2]; exact hb)
     (fun st Γn hR hcoh => pathS_of R d dq j st Γn hR hcoh) hprog hpost htree hE hE' Φ
     $$ Hinv Hsi Hp [Hn] Hk
@@ -790,6 +835,50 @@ theorem wp_osMkdirS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : Na
     · iapply (BigSepL.bigSepL_singleton).1 $$ Hl
     · rw [show (oF n).newDirs = [n] from rfl]
       iapply (BigSepL.bigSepL_singleton).1 $$ HJ
+
+/-- **`mkdir(2)`** of the free name `d/b` (shared mode), by a call holding the whole permission. -/
+theorem wp_osMkdirS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : NamesH) (k s0 : Nat)
+    (hb : NameOk b) (hn : h.cur !! b = none) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E)
+    (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
+      osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗ osCallS (L := L) k s0 1 -∗
+      (∀ e : w64, osCallPerm (L := L) 1 -∗ osPathS (L := L) R d dq j -∗
+        ((⌜e ≠ 0⌝ ∗ osNames (L := L) j (.only [b]) (DFrac.own 1) h) ∨
+         ∃ x J, osLogged (L := L) x (⟨.mkdir j b J, s0⟩ : LogEntry) ∗
+           osNames (L := L) j (.only [b]) (DFrac.own 1) (h.log x (⟨.mkdir j b J, s0⟩ : LogEntry) (<[b := .dir J]> h.cur)) ∗
+           ∃ hJ, osNames (L := L) J (.except []) (DFrac.own 1) hJ ∗ ⌜hJ.cur = ∅ ∧ hJ.next = x + 1⌝) -∗
+        Φ (#e)) -∗
+      WP (ExternalOp fsExt.name "Mkdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} := by
+  iintro #Hinv #Hsi Hp Hn Hk HΦ
+  iapply wp_osMkdirSGen R d b j dq h k s0 1 none rfl hb hn hE hE' Φ $$ Hinv Hsi Hp Hn [Hk]
+  · iapply osCallSG_none $$ Hk
+  iintro %e Hq
+  iapply HΦ $$ %e [Hq]
+  iapply osCallPermG_none $$ Hq
+
+/-- **`mkdir(2)`** under a guard: `wp_osMkdirSGen` with the guard `t`. -/
+theorem wp_osMkdirSG' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : NamesH)
+    (k s0 t sg : Nat) (q g : Qp) (hqg : q + g = 1) (hsg : sg ≤ s0) (hb : NameOk b)
+    (hn : h.cur !! b = none) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
+      osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗ osCallS (L := L) k s0 q -∗
+      osGuardS (L := L) t sg g -∗
+      (∀ e : w64, osCallPerm (L := L) q -∗ osGuardS (L := L) t sg g -∗
+        osPathS (L := L) R d dq j -∗
+        ((⌜e ≠ 0⌝ ∗ osNames (L := L) j (.only [b]) (DFrac.own 1) h) ∨
+         ∃ x J, osLogged (L := L) x (⟨.mkdir j b J, s0⟩ : LogEntry) ∗
+           osNames (L := L) j (.only [b]) (DFrac.own 1) (h.log x (⟨.mkdir j b J, s0⟩ : LogEntry) (<[b := .dir J]> h.cur)) ∗
+           ∃ hJ, osNames (L := L) J (.except []) (DFrac.own 1) hJ ∗ ⌜hJ.cur = ∅ ∧ hJ.next = x + 1⌝) -∗
+        Φ (#e)) -∗
+      WP (ExternalOp fsExt.name "Mkdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} := by
+  iintro #Hinv #Hsi Hp Hn Hk Hg HΦ
+  iapply wp_osMkdirSGen R d b j dq h k s0 q (some (t, sg, g)) ⟨congrArg Subtype.val hqg, hsg⟩
+    hb hn hE hE' Φ $$ Hinv Hsi Hp Hn [Hk Hg]
+  · simp only [osCallSG]; iframe
+  iintro %e Hq
+  simp only [osCallPermG]
+  icases Hq with ⟨Hq, Hg⟩
+  iapply HΦ $$ %e Hq Hg
 
 end specs
 

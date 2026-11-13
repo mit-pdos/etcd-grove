@@ -114,7 +114,7 @@ theorem namesCoh_init (V : Hist) :
 shared mode begun at the log's length. -/
 theorem cohS_switch {st : OsState} {V : Hist} {Γdf : GMap w64 (Ino × DirPh)}
     {Γc : GMap Nat (Nat × Qp)} (hc : TreeCoh st V Γdf Γc) (hdf : Γdf = ∅) (hcl : Γc = ∅) :
-    TreeCohS st st.fs.metaLog.length ∅ ∅ := by
+    TreeCohS st st.fs.metaLog.length ∅ ∅ ∅ := by
   have hseq := hc.seq
   have hlt : ∀ x (e : LogEntry), st.fs.metaLog[x]? = some e → x < st.fs.metaLog.length := by
     intro x e h
@@ -122,10 +122,94 @@ theorem cohS_switch {st : OsState} {V : Hist} {Γdf : GMap w64 (Ino × DirPh)}
   refine ⟨fun x e h => Nat.le_of_eq (hseq x e h), fun x y ex ey hyx hx _ _ => by rw [hseq x ex hx]; exact hyx,
     fun x ex hx _ => ⟨hseq x ex hx, fun z ez hz hez => by rw [hseq z ez hez]; exact hz⟩,
     fun x e hx hn => absurd (Or.inr (hlt x e hx)) hn, Nat.le_refl _, fun fd => ?_,
-    fun fd x df hx => by simp at hx, fun t => ?_, fun t x hx => by simp at hx,
-    fun t x hx => by simp at hx, fun t x hx => by simp at hx⟩
+    fun fd x df hx => by simp at hx, fun t x hx => by simp at hx, fun t x hx => by simp at hx,
+    fun t x hx => by simp at hx, fun t x hx => by simp at hx, fun t x hx => by simp at hx,
+    fun t x hx => by simp at hx, fun t s hs => ?_, fun c x t g hx => by simp at hx⟩
   · have := hc.fds fd; rw [hdf] at this; simpa using this
-  · have := hc.calls t; rw [hcl] at this; simpa using this
+  · have := hc.calls t; rw [hcl, hs] at this; simp at this
+
+/-- A key of the logging or guard calls is a call in flight. -/
+theorem TreeCohS.fresh {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS)}
+    {Γc Γg : GMap Nat (Nat × Qp)} (hc : TreeCohS st s0 Γdf Γc Γg) {t : Nat}
+    (ht : st.proc.calls !! t = none) : Γc !! t = none ∧ Γg !! t = none := by
+  constructor
+  · cases h0 : Γc !! t with
+    | none => rfl
+    | some x => have := hc.calls t x h0; rw [ht] at this; cases this
+  · cases h0 : Γg !! t with
+    | none => rfl
+    | some x => have := hc.gcalls t x h0; rw [ht] at this; cases this
+
+/-- The state after `CallBegin` of the call `t`. -/
+abbrev OsState.callBegin (st : OsState) (t : Nat) : OsState :=
+  st.setProc { st.proc with calls := <[t := st.fs.metaLog.length]> st.proc.calls }
+
+/-- The shared coherence with a logging call begun, holding `q`. -/
+theorem treeCohS_begin {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS)}
+    {Γc Γg : GMap Nat (Nat × Qp)} (hc : TreeCohS st s0 Γdf Γc Γg) (t : Nat) (q : Qp)
+    (ht : st.proc.calls !! t = none) :
+    TreeCohS (st.callBegin t) s0 Γdf (<[t := ((st.fs.metaLog.length, q) : Nat × Qp)]> Γc) Γg := by
+  obtain ⟨hct, hgt⟩ := hc.fresh ht
+  refine ⟨hc.starts, hc.pss, hc.dox, hc.valid, hc.s0le, hc.fds, hc.ph, fun t0 x hx => ?_,
+    fun t0 x hx => ?_, fun t0 x hx hq => ?_, fun t0 x hx y ey hy hd => ?_, fun t0 x hx => ?_,
+    fun t0 x hx => ?_, fun t0 s hs => ?_, fun c x t0 g hx hg hq hle => ?_⟩
+  · show (<[t := st.fs.metaLog.length]> st.proc.calls) !! t0 = _
+    by_cases h0 : t = t0
+    · subst h0; rw [GMap.lookup_insert] at hx; cases hx; simp
+    · rw [GMap.lookup_insert_ne _ _ h0] at hx; rw [GMap.lookup_insert_ne _ _ h0]; exact hc.calls t0 x hx
+  · by_cases h0 : t = t0
+    · subst h0; rw [GMap.lookup_insert] at hx; cases hx; exact Nat.le_refl _
+    · rw [GMap.lookup_insert_ne _ _ h0] at hx; exact hc.callsLe t0 x hx
+  · by_cases h0 : t = t0
+    · subst h0; rw [GMap.lookup_insert] at hx; cases hx; rfl
+    · rw [GMap.lookup_insert_ne _ _ h0] at hx; exact hc.whole t0 x hx hq
+  · by_cases h0 : t = t0
+    · subst h0; rw [GMap.lookup_insert] at hx; cases hx
+      exact (List.getElem?_eq_some_iff.1 hy).1
+    · rw [GMap.lookup_insert_ne _ _ h0] at hx; exact hc.after t0 x hx y ey hy hd
+  · show (<[t := st.fs.metaLog.length]> st.proc.calls) !! t0 = _
+    by_cases h0 : t = t0
+    · subst h0; rw [hgt] at hx; cases hx
+    · rw [GMap.lookup_insert_ne _ _ h0]; exact hc.gcalls t0 x hx
+  · by_cases h0 : t = t0
+    · subst h0; rw [hgt] at hx; cases hx
+    · rw [GMap.lookup_insert_ne _ _ h0]; exact hc.gdisj t0 x hx
+  · change (<[t := st.fs.metaLog.length]> st.proc.calls) !! t0 = some s at hs
+    by_cases h0 : t = t0
+    · subst h0; left; rw [GMap.lookup_insert]; simp
+    · rw [GMap.lookup_insert_ne _ _ h0] at hs; rw [GMap.lookup_insert_ne _ _ h0]; exact hc.cover t0 s hs
+  · by_cases h0 : t = c
+    · subst h0; rw [GMap.lookup_insert] at hx; cases hx; rfl
+    · rw [GMap.lookup_insert_ne _ _ h0] at hx; exact hc.pair c x t0 g hx hg hq hle
+
+/-- The shared coherence with a guard call begun, holding `g`. -/
+theorem treeCohS_beginGuard {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS)}
+    {Γc Γg : GMap Nat (Nat × Qp)} (hc : TreeCohS st s0 Γdf Γc Γg) (t : Nat) (g : Qp)
+    (ht : st.proc.calls !! t = none) :
+    TreeCohS (st.callBegin t) s0 Γdf Γc (<[t := ((st.fs.metaLog.length, g) : Nat × Qp)]> Γg) := by
+  obtain ⟨hct, hgt⟩ := hc.fresh ht
+  refine ⟨hc.starts, hc.pss, hc.dox, hc.valid, hc.s0le, hc.fds, hc.ph, fun t0 x hx => ?_,
+    hc.callsLe, hc.whole, hc.after, fun t0 x hx => ?_,
+    fun t0 x hx => ?_, fun t0 s hs => ?_, fun c x t0 g' hx hg hq hle => ?_⟩
+  · show (<[t := st.fs.metaLog.length]> st.proc.calls) !! t0 = _
+    by_cases h0 : t = t0
+    · subst h0; rw [hct] at hx; cases hx
+    · rw [GMap.lookup_insert_ne _ _ h0]; exact hc.calls t0 x hx
+  · show (<[t := st.fs.metaLog.length]> st.proc.calls) !! t0 = _
+    by_cases h0 : t = t0
+    · subst h0; rw [GMap.lookup_insert] at hx; cases hx; simp
+    · rw [GMap.lookup_insert_ne _ _ h0] at hx; rw [GMap.lookup_insert_ne _ _ h0]; exact hc.gcalls t0 x hx
+  · by_cases h0 : t = t0
+    · subst h0; exact hct
+    · rw [GMap.lookup_insert_ne _ _ h0] at hx; exact hc.gdisj t0 x hx
+  · change (<[t := st.fs.metaLog.length]> st.proc.calls) !! t0 = some s at hs
+    by_cases h0 : t = t0
+    · subst h0; right; rw [GMap.lookup_insert]; simp
+    · rw [GMap.lookup_insert_ne _ _ h0] at hs; rw [GMap.lookup_insert_ne _ _ h0]; exact hc.cover t0 s hs
+  · by_cases h0 : t = t0
+    · subst h0; rw [GMap.lookup_insert] at hg; cases hg
+      exact Nat.le_antisymm (hc.callsLe c x hx) hle
+    · rw [GMap.lookup_insert_ne _ _ h0] at hg; exact hc.pair c x t0 g' hx hg hq hle
 
 theorem osShN_sub {E : CoPset} (h : ↑osShN ⊆ E) : (↑osShN : CoPset) ⊆ E \ ↑osN := by
   have hd : (↑osShN : CoPset) ## ↑osN := ndot_ne_disjoint nroot (by decide)
@@ -204,7 +288,7 @@ theorem wp_osShare' (R : Roots) (V : Hist) (op : String) (v : val) (hE : ↑osN 
   icases treeCtx_legacy _ (legacyWit_tree _ _ _) σ $$ Hh Ht with ⟨Hh, Ht, Hcm⟩
   unfold treeLegacy legacyHolds
   icases Ht with ⟨%V0, %Γdf, %Γc, %hns, HAd, HAdf, HAc, Hrd, Hcr, Has, Hadfs, Hacs, Hperm, Han,
-    Halen, Halog⟩
+    Halen, Halog, Hag⟩
   icases osTree_auth _ _ _ _ _ $$ HAd Hh with %Heq
   obtain ⟨rfl, rfl⟩ := Heq
   icases whole_alone _ _ Γdf Γc $$ Hh Hrd Hcr with ⟨%Hal, Hh, -, -⟩
@@ -230,20 +314,22 @@ theorem wp_osShare' (R : Roots) (V : Hist) (op : String) (v : val) (hE : ↑osN 
     iframe Hs Han Halen Halog
     ipureintro; exact ⟨hns.1.roots, namesCoh_init V⟩
   imodintro
-  isplitl [HF Hh HAd HAdf HAc Has Hadfs Hacs Hcm]
+  isplitl [HF Hh HAd HAdf HAc Has Hadfs Hacs Hag Hcm]
   · iapply (os_local_ctx_eq σ).mpr
     unfold osCtx treeCtx
     iframe HF Hcm
     iright
     unfold treeShared
-    iexists V, σ.fs.metaLog.length, ∅, ∅
+    iexists V, σ.fs.metaLog.length, ∅, ∅, ∅
     rw [← hV]
     unfold osTree
-    iframe HAd Hh HAdf HAc Has Hadfs Hacs
+    iframe HAd Hh HAdf HAc Has Hadfs Hacs Hag
     isplitr
     · ipureintro; exact ⟨hns.1, hcohS⟩
     unfold callResS
-    iapply BigSepM.bigSepM_empty.2; itrivial
+    isplitl []
+    · iapply BigSepM.bigSepM_empty.2; itrivial
+    · iapply BigSepM.bigSepM_empty.2; itrivial
   iframe Hg
   simp only [osNames_except]
   unfold osSharedInv osCallPerm osLogLb
@@ -283,7 +369,7 @@ theorem wp_osCallBeginS' (R : Roots) (q : Qp) (n : Nat) (hE : ↑osN ⊆ E) (hE'
   icases Hm with (Hm | Hm)
   · iexfalso; iapply legacy_perm_excl st q $$ Hq Hm
   unfold treeShared
-  icases Hm with ⟨%V0, %s0, %Γdf, %Γc, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr⟩
+  icases Hm with ⟨%V0, %s0, %Γdf, %Γc, %Γg, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
   obtain ⟨hw, hc⟩ := hns
   unfold osSharedInv
   imod inv_acc (osShN_sub hE') $$ Hsi with ⟨Hi, Hclose⟩
@@ -321,44 +407,24 @@ theorem wp_osCallBeginS' (R : Roots) (q : Qp) (n : Nat) (hE : ↑osN ⊆ E) (hE'
     ⟨rfl, rfl, rfl, rfl, rfl⟩ Hr Hfr $$ [HAb HAm HAf HAt Htok Hcells Hσ]
     with Hw
   · unfold osWorld; iframe; ipureintro; exact ⟨hwf, hcoh'⟩
-  have hΓc : Γc !! t' = none := by
-    have := hc.calls t'; rw [h1'] at this
-    cases h0 : Γc !! t' with
-    | none => rfl
-    | some x => rw [h0] at this; cases this
+  have hΓc : Γc !! t' = none := (hc.fresh h1').1
   imod gAuth_insert _ _ _ _ ((st.fs.metaLog.length, q) : Nat × Qp) hΓc $$ Hacs with ⟨Hacs, Hk⟩
   imodintro
   iexists Γb, Γm, Γf, Γt
   dsimp only
   isplitl [Hw]
   · unfold osWorld; iexact Hw
-  isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr Hq Hcm]
+  isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr HAg Hgr Hq Hcm]
   · isplitr [Hcm]
     rotate_left
     · iapply commitRes_setProc $$ Hcm
     iright
     simp only [OsState.setProc]
-    iexists V0, s0, Γdf, <[t' := ((st.fs.metaLog.length, q) : Nat × Qp)]> Γc
-    iframe HAd Hd HAdf HAc Has Hadfs Hacs
+    iexists V0, s0, Γdf, <[t' := ((st.fs.metaLog.length, q) : Nat × Qp)]> Γc, Γg
+    iframe HAd Hd HAdf HAc Has Hadfs Hacs HAg Hgr
     isplitr
     · ipureintro
-      refine ⟨⟨hw.roots, hw.hist, hw.dfds, hw.disj, hw.files_lt⟩,
-        ⟨hc.starts, hc.pss, hc.dox, hc.valid, hc.s0le, hc.fds, hc.ph, fun t0 => ?_,
-          fun t0 x hx => ?_, fun t0 x hx hq => ?_, fun t0 x hx y ey hy hd => ?_⟩⟩
-      · show _ = (<[t' := st.fs.metaLog.length]> st.proc.calls) !! t0
-        by_cases h0 : t' = t0
-        · subst h0; simp
-        · rw [GMap.lookup_insert_ne _ _ h0, GMap.lookup_insert_ne _ _ h0]; exact hc.calls t0
-      · by_cases h0 : t' = t0
-        · subst h0; rw [GMap.lookup_insert] at hx; cases hx; exact Nat.le_refl _
-        · rw [GMap.lookup_insert_ne _ _ h0] at hx; exact hc.callsLe t0 x hx
-      · by_cases h0 : t' = t0
-        · subst h0; rw [GMap.lookup_insert] at hx; cases hx; rfl
-        · rw [GMap.lookup_insert_ne _ _ h0] at hx; exact hc.whole t0 x hx hq
-      · by_cases h0 : t' = t0
-        · subst h0; rw [GMap.lookup_insert] at hx; cases hx
-          exact (List.getElem?_eq_some_iff.1 hy).1
-        · rw [GMap.lookup_insert_ne _ _ h0] at hx; exact hc.after t0 x hx y ey hy hd
+      exact ⟨⟨hw.roots, hw.hist, hw.dfds, hw.disj, hw.files_lt⟩, treeCohS_begin hc t' q h1'⟩
     · unfold callResS
       iapply (BigSepM.bigSepM_insert (Φ := fun (_t : Nat) (x : Nat × Qp) =>
         gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm () (DFrac.own x.2) ()) hΓc).2

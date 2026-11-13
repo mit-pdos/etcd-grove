@@ -543,7 +543,7 @@ theorem wp_osOpenFileS' (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
   icases Hm with (Hm | Hm)
   · iexfalso; iapply legacy_callS_excl st k s0 q $$ Hk Hm
   unfold treeShared
-  icases Hm with ⟨%V0, %s1, %Γdf, %Γc, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr⟩
+  icases Hm with ⟨%V0, %s1, %Γdf, %Γc, %Γg, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
   obtain ⟨hw, hc⟩ := hns
   unfold osSharedInv
   imod inv_acc (osShN_sub hE') $$ Hsi with ⟨Hi, Hclose⟩
@@ -562,7 +562,7 @@ theorem wp_osOpenFileS' (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
   unfold osCallS
   icases gAuth_lookup _ _ _ _ _ _ $$ Hacs Hk with %hk
   have hcall : st.proc.calls !! k = some s0 := by
-    have := hc.calls k; rw [hk] at this; exact this.symm
+    exact hc.calls k _ hk
   unfold osWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   icases cellsRes_lookup h0 _ $$ Hσ Hcells with %Hag
@@ -608,7 +608,7 @@ theorem wp_osOpenFileS' (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
     iexists Γb, Γm, <[fd := openFd i fl]> Γf, Γt
     isplitl [Hw]
     · unfold osWorld; iexact Hw
-    isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr Hcm]
+    isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr HAg Hgr Hcm]
     · try unfold treeCtx
       isplitr [Hcm]
       rotate_left
@@ -618,11 +618,11 @@ theorem wp_osOpenFileS' (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
       iright
       simp only [OsState.metaEnd, OsState.setProc]
       try unfold treeShared
-      iexists V0, s1, Γdf, GMap.delete k Γc
+      iexists V0, s1, Γdf, GMap.delete k Γc, Γg
       iframe
       ipureintro
       exact ⟨fsTreeWf_addFd (fsTreeWf_metaEnd hw k) hdfn,
-        (treeCohS_metaEnd hc k).congr rfl rfl rfl rfl⟩
+        (treeCohS_metaEnd hc k hk).congr rfl rfl rfl rfl⟩
     iapply wp_value'
     iapply HΦ $$ %fd %0 %(.inl ⟨rfl, hfd0⟩) [Hq] Hp Hn
     · unfold osCallPerm; iexact Hq
@@ -639,7 +639,7 @@ theorem wp_osOpenFileS' (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
     iexists Γb, Γm, Γf, Γt
     isplitl [Hw]
     · unfold osWorld; iexact Hw
-    isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr Hcm]
+    isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr HAg Hgr Hcm]
     · try unfold treeCtx
       isplitr [Hcm]
       rotate_left
@@ -648,9 +648,9 @@ theorem wp_osOpenFileS' (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
       iright
       simp only [OsState.metaEnd]
       try unfold treeShared
-      iexists V0, s1, Γdf, GMap.delete k Γc
+      iexists V0, s1, Γdf, GMap.delete k Γc, Γg
       iframe
-      ipureintro; exact ⟨fsTreeWf_metaEnd hw k, treeCohS_metaEnd hc k⟩
+      ipureintro; exact ⟨fsTreeWf_metaEnd hw k, treeCohS_metaEnd hc k hk⟩
     iapply wp_value'
     iapply HΦ $$ %(-1) %e %(.inr ⟨he, rfl⟩) [Hq] Hp Hn
     · unfold osCallPerm; iexact Hq
