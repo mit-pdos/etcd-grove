@@ -29,6 +29,7 @@ is deleted, these move here.
 module
 
 public import LinuxFs.GooseLang.Ext.AbsDisk.Specs
+public import GooseLang.Ext.Fs.NamesGhost
 
 @[expose] public section
 
@@ -55,6 +56,9 @@ class WalGS (GF : BundledGFunctors) where
   γhp : GName
   /-- The generation's crash token (`walCrashTok`): the WAL invariant holds its contents or it. -/
   γc : GName
+  /-- The WALs being created (`walCreating`): a ghost map from a WAL directory to the key and
+  history of the area claim `Create` renames in, which the invariant holds half of. -/
+  γcr : GName
 
 section ghost
 variable {GF : BundledGFunctors} [W : WalGS GF]
@@ -163,6 +167,28 @@ theorem walCrashTok_excl :
   letI := walAllG (W := W)
   iprop(∃ γ : GName, walHandleDir (W := W) w dir γ ∗ γ ↪[W.γh] m ∗ γ ↪[W.γhp] () ∗
     walUnlockedTok (W := W))
+
+/-- **The authority of the WALs being created** (the invariant's): each directory `Create` works on,
+with the names `N` and history `h` of the area directory's claim it renames in. -/
+def walCreatingAuth (CR : GMap GoString (Fs.NameSet × Fs.NamesH)) : IProp GF :=
+  letI := walAllG (W := W)
+  ghostMapAuth W.γcr 1 CR
+
+instance walCreatingAuth_timeless (CR : GMap GoString (Fs.NameSet × Fs.NamesH)) :
+    Timeless (walCreatingAuth (W := W) CR) := by
+  unfold walCreatingAuth; infer_instance
+
+/-- **`Create` of `dir` is renaming in the area claim of names `N`, history `h`** (exclusive, the
+program's): the invariant holds half of that claim (`walInvBody`'s `CreatingOk`), so a client update
+opened at the rename's step, where the file system's shared invariant cannot be opened to compare
+claim keys, finds it. -/
+def walCreating (dir : GoString) (N : Fs.NameSet) (h : Fs.NamesH) : IProp GF :=
+  letI := walAllG (W := W)
+  dir ↪[W.γcr] (N, h)
+
+instance walCreating_timeless (dir : GoString) (N : Fs.NameSet) (h : Fs.NamesH) :
+    Timeless (walCreating (W := W) dir N h) := by
+  unfold walCreating; infer_instance
 
 /-- **The purge's right on the open WAL `w` in `dir`** (exclusive; as `AbsDisk`'s). -/
 def walPurgeW (w : Loc) (dir : GoString) : IProp GF :=
@@ -407,21 +433,24 @@ variable {GF : BundledGFunctors}
 invariant's part, the program's map at `s.wal`, `s`'s fact, the lock token and the crash token. -/
 theorem walGhost_init (hPre : AbsDiskGpreS GF) (s : AbsDiskState) (hk : walKeysInArea s) :
     ⊢@{IProp GF} |==> ∃ W : WalGS GF, walGhost (W := W) s ∗ walOwn (W := W) s.wal ∗
-      walPast (W := W) s ∗ walUnlockedTok (W := W) ∗ walCrashTok (W := W) := by
+      walPast (W := W) s ∗ walUnlockedTok (W := W) ∗ walCrashTok (W := W) ∗
+      walCreatingAuth (W := W) ∅ := by
   imod absDisk_local_init hPre s hk with ⟨%hA, Hctx, Hst⟩
   letI := hA.absDiskAllG
   imod (ghost_map_alloc_empty (GF := GF) (K := GName) (V := WalMode)) with ⟨%γh, Hh⟩
   imod (ghost_map_alloc_empty (GF := GF) (K := GName) (V := Loc × GoString)) with ⟨%γhd, Hhd⟩
   imod (ghost_map_alloc_empty (GF := GF) (K := GName) (V := Unit)) with ⟨%γhp, Hhp⟩
   imod token_alloc (GF := GF) with ⟨%γc, Hc⟩
+  imod (ghost_map_alloc_empty (GF := GF) (K := GoString) (V := Fs.NameSet × Fs.NamesH))
+    with ⟨%γcr, Hcr⟩
   imodintro
-  iexists ⟨hA, γh, γhd, γhp, γc⟩
+  iexists ⟨hA, γh, γhd, γhp, γc, γcr⟩
   iunfold absDiskCtx at Hctx
   icases Hctx with ⟨Hs, HP, -, -⟩
   iunfold absDiskStart at Hst
   icases Hst with ⟨HM, Hp, Hu⟩
-  unfold walGhost walOwn walPast walUnlockedTok walCrashTok walHandleAuth walAllG
-  iframe Hs HP HM Hp Hu Hc
+  unfold walGhost walOwn walPast walUnlockedTok walCrashTok walHandleAuth walCreatingAuth walAllG
+  iframe Hs HP HM Hp Hu Hc Hcr
   isplitl [Hh Hhd Hhp]
   · iexists 0, ∅, ∅, ∅
     iframe Hh Hhd Hhp

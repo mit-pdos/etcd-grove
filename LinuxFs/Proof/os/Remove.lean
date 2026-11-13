@@ -63,7 +63,7 @@ local macro "rmdir_loop" hnd:term " => " post:tacticSeq : tactic => `(tactic| (
     iapply HΦ
     ($post)))
 
-theorem os.Remove.wp_proofFileS : os.Remove.specFileS (GF := GF) (hG := hG) := by
+theorem os.Remove.wp_proofFileSnc : os.Remove.specFileSnc (GF := GF) (hG := hG) := by
   intro d b j i R dq h q r qc Q hb hi hq
   have hbN : (NameSet.only [b]).Mem b := by simp [NameSet.Mem]
   have habs : ∀ x s, (h.log x (⟨.remove j b (.file i), s⟩ : LogEntry)
@@ -72,7 +72,7 @@ theorem os.Remove.wp_proofFileS : os.Remove.specFileS (GF := GF) (hG := hG) := b
     rw [restrictN_lookup _ _ _ hbN]; exact GMap.lookup_delete _ _
   wp_start as ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hau⟩
   imod osNames_next R j _ _ h CoPset.subseteq_top $$ Hsi Hn with ⟨Hn, #Hlb⟩
-  ihave HSt : iprop((osAU (osNames j (.only [b]) (DFrac.own r) h) (rmFileOut j b i h (DFrac.own r)) Q ∗
+  ihave HSt : iprop((osAUnc (osNames j (.only [b]) (DFrac.own r) h) (rmFileOut j b i h (DFrac.own r)) Q ∗
       osNames j (.only [b]) (DFrac.own q) h) ∨
     (∃ xs, Q (some xs) ∗ rmFileOut j b i h (DFrac.own q) (some xs)))
     $$ [Hau Hn]
@@ -82,7 +82,7 @@ theorem os.Remove.wp_proofFileS : os.Remove.specFileS (GF := GF) (hG := hG) := b
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
   icases HSt with (⟨Hau, Hn⟩ | ⟨%xs, HQ, Hout⟩)
-  · wp_apply +noauto (wp_au_step "Unlink" _ (osNames j (.only [b]) (DFrac.own r) h)
+  · wp_apply +noauto (wp_aunc_step "Unlink" _ (osNames j (.only [b]) (DFrac.own r) h)
       (rmFileOut j b i h (DFrac.own r)) Q) $$ Hau [Hn Hk Hp HΦ]
     iintro Hr
     ihave Hw := (osNames_join j _ q r h hq).1 $$ [Hn Hr]
@@ -176,6 +176,14 @@ theorem os.Remove.wp_proofFileS : os.Remove.specFileS (GF := GF) (hG := hG) := b
       iframe
       dsimp only [rmFileOut, logOut, claimOut, osLogged]; iframe; iframe #
       ipureintro; exact ⟨fun _ => rfl, hlo, hlo2⟩
+
+/-- `specFileS` from `specFileSnc`: an `osAU` is an `osAUnc`. -/
+theorem os.Remove.wp_proofFileS : os.Remove.specFileS (GF := GF) (hG := hG) := by
+  intro d b j i R dq h q r qc Q hb hi hq
+  iintro %Φ ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hau⟩ HΦ
+  iapply os.Remove.wp_proofFileSnc d b j i R dq h q r qc Q hb hi hq $$ [Hp Hperm Hn Hau] HΦ
+  iframe Hos Hsi Hp Hperm Hn
+  iapply osAU_osAUnc $$ Hau
 
 end proof
 

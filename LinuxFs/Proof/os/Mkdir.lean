@@ -28,12 +28,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [os.Assumptions]
 
-theorem os.Mkdir.wp_proofS : os.Mkdir.specS (GF := GF) (hG := hG) := by
+theorem os.Mkdir.wp_proofSnc : os.Mkdir.specSnc (GF := GF) (hG := hG) := by
   intro d b perm R j dq h q r Q hb hn hq
   have hbN : (NameSet.only [b]).Mem b := by simp [NameSet.Mem]
   wp_start as ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hau⟩
   imod osLogLb_0 with #Hlb
-  ihave HSt : iprop((osAU (osNames j (.only [b]) (DFrac.own r) h) (mkOut j b h (DFrac.own r)) Q ∗
+  ihave HSt : iprop((osAUnc (osNames j (.only [b]) (DFrac.own r) h) (mkOut j b h (DFrac.own r)) Q ∗
       osNames j (.only [b]) (DFrac.own q) h) ∨
     (∃ xs, Q (some xs) ∗ mkOut j b h (DFrac.own q) (some xs) ∗ mkNew (some xs)))
     $$ [Hau Hn]
@@ -43,7 +43,7 @@ theorem os.Mkdir.wp_proofS : os.Mkdir.specS (GF := GF) (hG := hG) := by
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
   icases HSt with (⟨Hau, Hn⟩ | ⟨%xs, HQ, Hout, Hnew⟩)
-  · wp_apply +noauto (wp_au_step "Mkdir" _ (osNames j (.only [b]) (DFrac.own r) h)
+  · wp_apply +noauto (wp_aunc_step "Mkdir" _ (osNames j (.only [b]) (DFrac.own r) h)
       (mkOut j b h (DFrac.own r)) Q) $$ Hau [Hn Hk Hp HΦ]
     iintro Hr
     ihave Hw := (osNames_join j _ q r h hq).1 $$ [Hn Hr]
@@ -134,6 +134,14 @@ theorem os.Mkdir.wp_proofS : os.Mkdir.specS (GF := GF) (hG := hG) := by
     iapply HΦ
     iframe
     ipureintro; intro _; rfl
+
+/-- `specS` from `specSnc`: an `osAU` is an `osAUnc`. -/
+theorem os.Mkdir.wp_proofS : os.Mkdir.specS (GF := GF) (hG := hG) := by
+  intro d b perm R j dq h q r Q hb hn hq
+  iintro %Φ ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hau⟩ HΦ
+  iapply os.Mkdir.wp_proofSnc d b perm R j dq h q r Q hb hn hq $$ [Hp Hperm Hn Hau] HΦ
+  iframe Hos Hsi Hp Hperm Hn
+  iapply osAU_osAUnc $$ Hau
 
 end proof
 
