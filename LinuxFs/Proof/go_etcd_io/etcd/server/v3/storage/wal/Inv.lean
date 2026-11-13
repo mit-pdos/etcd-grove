@@ -378,10 +378,6 @@ theorem walTailsRes_mono (C : WalCodec) (Mr : WalMarshal) (s s' : AbsDiskState) 
   ipureintro
   exact ⟨hd', hp.2.1, hp.2.2.1, hp.2.2.2.1, hp.2.2.2.2.congr hH hmd⟩
 
-instance walIte_timeless {p : Prop} [Decidable p] (P Q : IProp GF) [Timeless P] [Timeless Q] :
-    Timeless (if p then P else Q) := by
-  split <;> infer_instance
-
 /-- **The program's halves, parked** (W3/W5's gap 2, framed): the parking flag's invariant half
 (`walParkAuth b`, `Ghost.lean`); every segment's program halves (`segRes`) but those of the inodes
 `O`, and the program's half of every WAL directory's claim (`WalDirClaimOf`) but the claims `D`;
