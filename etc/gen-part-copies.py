@@ -96,6 +96,9 @@ COPIES = [
     # imports the server's `BaseApply` for nothing but the frame)
     Whole('Spec/time/Duration__Seconds.lean',
           drop=['Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply'], add=['Perennial.Proof.time']),
+    # its pointer-receiver form (`sync`'s `took.Seconds()` on an addressable `took`)
+    Whole('Spec/time/Duration__Seconds_ptr.lean',
+          drop=['Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply'], add=['Perennial.Proof.time']),
     # zap's trust-boundary specs the WAL's logging calls need (`sync`'s slow-fdatasync warning, `Create`'s
     # warnings): their main modules import the cache's `Base` for its package-initialization instances,
     # which the part gives in `wal/DepsPkgInit.lean`
