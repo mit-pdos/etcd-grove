@@ -5,7 +5,7 @@ consistent-cut theorem's slots (`closed_cut`) and claims whose histories are the
 -/
 module
 
-public import GooseLang.Ext.Fs.TreeShared
+public import GooseLang.Ext.Fs.TreeSharedRes
 
 @[expose] public section
 

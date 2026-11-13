@@ -31,6 +31,7 @@ public import GooseLang.Ext.Fs.TreeSpecsOpen
 public import GooseLang.Ext.Fs.TreeSpecsMeta
 public import GooseLang.Ext.Fs.TreeCutProof
 public import GooseLang.Ext.Fs.TreeSharedSwitch
+public import GooseLang.Ext.Fs.TreeSharedCrash
 
 @[expose] public section
 
@@ -399,10 +400,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
   [GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF]
 
-/-- The claims of a list, each with its fraction. -/
-def osClaims (L : GooseLocalGS GF) (cl : List (Claim × DFrac)) : IProp GF :=
-  iprop([∗list] c ∈ cl, osNames (L := L) c.1.1 c.1.2.1 c.2 c.1.2.2)
-
 /-- **What a region concludes of a crash** of a generation `L` in the shared mode: from its claims
 and a lower bound on the committed prefix, `RegionCrashed` of the new generation's tree. -/
 theorem crashRest_region (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF) (D : List Ino)
@@ -411,8 +408,8 @@ theorem crashRest_region (Q : OsState → OsState → Prop) (L L' : GooseLocalGS
     ⊢ osSharedInv (L := L) R -∗ crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D tt V' -∗
       osClaims L cl -∗ osCommitLb (L := L) n ={E}=∗
       ⌜RegionCrashed (cl.map (·.1)) n V'.now⌝ ∗
-      crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D tt V' ∗ osClaims L cl := by
-  sorry
+      crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D tt V' ∗ osClaims L cl :=
+  crashRest_region' Q L L' D tt V' R cl n E hE
 
 /-- **The tree after a crash, in the shared mode**: the new generation's history, whole (the new
 generation starts in the legacy mode), the crashed tree with the shared invariant's roots. -/
@@ -421,8 +418,8 @@ theorem crashRest_treeS (Q : OsState → OsState → Prop) (L L' : GooseLocalGS 
     ⊢ osSharedInv (L := L) R -∗
       crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D false V' ={E}=∗
       ⌜V'.2 = []⌝ ∗ osTree (L := L') (DFrac.own 1) R V' ∗
-      crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D true V' := by
-  sorry
+      crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D true V' :=
+  crashRest_treeS' Q L L' D V' R E hE
 
 end crash
 

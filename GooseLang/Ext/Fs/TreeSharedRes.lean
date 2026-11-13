@@ -130,6 +130,21 @@ def osNamesAfter (j : Ino) (N : NameSet) (h : NamesH) (e : LogEntry) (c : Ents) 
 
 end resources
 
+section claims
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+  [GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF]
+
+/-- The claims of a list, each with its fraction. -/
+def osClaims (L : GooseLocalGS GF) (cl : List (Claim × DFrac)) : IProp GF :=
+  iprop([∗list] c ∈ cl, osNames (L := L) c.1.1 c.1.2.1 c.2 c.1.2.2)
+
+theorem osClaims_cons (L : GooseLocalGS GF) (c : Claim × DFrac) (cl : List (Claim × DFrac)) :
+    osClaims L (c :: cl) ⊣⊢ osNames (L := L) c.1.1 c.1.2.1 c.2 c.1.2.2 ∗ osClaims L cl :=
+  by unfold osClaims; exact BigSepL.bigSepL_cons
+
+end claims
+
 end Fs
 end Perennial
 
