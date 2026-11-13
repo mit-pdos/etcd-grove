@@ -14,6 +14,14 @@ of raft's `PbEntryType.lean`, for the WAL: W6 of `notes/wal-fsext-plan.md`, §2.
   decoded object (`decC`) is the owned form.
 - **The encoder is a transparent Lean function** (`WalEnc.recEnc`, the wire format), and the
   decoder `recDecode` opaque: what `proto.Unmarshal` makes of the bytes.
+- **The decoded object is owned whole** (`recOwnC l c`, the instance's `decC`; 2026-11-13, W3a):
+  every field, the hidden ones (`state`, `sizeCache`, `unknownFields`) included, at `1`, and `Data`'s
+  bytes owned. Unlike raft's types, whose decoded objects put the hidden fields in an invariant
+  (`pbMsg`): the WAL's decoder reuses one `*walpb.Record` (`rec.Reset()`, then `proto.Unmarshal`
+  into it, decoder.go:82/:125), and `Reset` writes the whole struct (`*x = Record{}`), which an
+  invariant holding the hidden fields (at fixed unknown fields) would not survive. Faithful: the
+  decoded message is fresh (`Data` copied out of the input), and protobuf-go keeps no reference to
+  it after `Unmarshal` returns. A frozen record (`recRoC`, what `Marshal` reads) keeps the invariant.
 
 **Trusted, pending the user's review** (two axioms, as for every registered type):
 - `recEncC_ok`: protobuf-go decodes `recEnc c` back to `c`'s model when `c`'s unknown fields are
@@ -55,7 +63,7 @@ axiom recEncC_ok (c : RecC) : ufWire recSchema c.uf → recSize c < 2 ^ 63 →
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- **The hidden fields of a `*walpb.Record`** (see the file header). -/
@@ -95,6 +103,17 @@ def recPtsCC (l : Loc) (dq : DFrac) (c : RecC) : IProp GF :=
     l.[walpb.Record, go!"Data"] ↦{dq} ds ∗ recBytes ds c.data ∗
     recHidden l c.uf)
 
+/-- A `bytes` field, owned: `nil`, or a non-nil slice holding the bytes. -/
+def recBytesOwn (ds : GoSlice) : Option (List w8) → IProp GF
+  | none => iprop(⌜ds = slice.nil⌝)
+  | some bs => iprop(⌜ds ≠ slice.nil⌝ ∗ ds ↦* bs)
+
+/-- **A decoded `*walpb.Record` at `l` holding exactly `c`, owned whole** (see the file header). -/
+def recOwnC (l : Loc) (c : RecC) : IProp GF :=
+  iprop(∃ v : walpb.Record,
+    l ↦ v ∗ recCell v.Type' c.typ ∗ recCell v.Crc' c.crc ∗ recBytesOwn v.Data' c.data ∗
+    v.unknownFields' ↦* c.uf ∗ ⌜ufWire recSchema c.uf⌝)
+
 /-- **A frozen `*walpb.Record` holding exactly `c`**. -/
 abbrev recRoC (l : Loc) (c : RecC) : IProp GF := recPtsCC l DFrac.discard c
 
@@ -126,7 +145,7 @@ def pbRecordM : PbModelC GF where
   wire r bs := recDecode bs = some r
   eqv r r' := r = r'
   blank l := iprop(l ↦ (zero_val walpb.Record))
-  dec l r := iprop(∃ c, recPtsCC l (DFrac.own 1) c ∗ ⌜c.model = r⌝)
+  dec l r := iprop(∃ c, recOwnC l c ∗ ⌜c.model = r⌝)
   C := RecC
   roC := recRoC
   roC_persistent _ _ := inferInstance
@@ -144,7 +163,7 @@ def pbRecordM : PbModelC GF where
     rw [List.mem_singleton] at hp
     subst hp
     exact Hu
-  decC l c := recPtsCC l (DFrac.own 1) c
+  decC l c := recOwnC l c
   decC_dec l c _ := by
     iintro H
     iexists c
@@ -168,7 +187,7 @@ def pbRecordC : PbTypeC GF where
 @[simp] theorem pbRecordC_marshals (r : WalRec) : (pbRecordC (GF := GF)).data.marshals r = True :=
   rfl
 @[simp] theorem pbRecordC_decC (l : Loc) (c : RecC) :
-    (pbRecordC (GF := GF)).data.decC l c = recPtsCC l (DFrac.own 1) c := rfl
+    (pbRecordC (GF := GF)).data.decC l c = recOwnC l c := rfl
 @[simp] theorem pbRecordC_blank (l : Loc) :
     (pbRecordC (GF := GF)).data.blank l = iprop(l ↦ (zero_val walpb.Record)) := rfl
 theorem pbRecordC_ufValid (c : RecC) :

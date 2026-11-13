@@ -40,7 +40,7 @@ variable [go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [bufio_sem : _root_.Perennial.bufio.Assumptions]
 
 theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
-    (HUnm : ∀ C, proto.UnmarshalWalRecord.spec (GF := GF) (hG := hG) C)
+    (HUnm : proto.UnmarshalWalRecord.spec (GF := GF) (hG := hG))
     (HReset : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record.Reset.spec (GF := GF) (hG := hG))
     (HGetType : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record.GetType.spec (GF := GF) (hG := hG))
     (HValidate : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record.Validate.spec (GF := GF) (hG := hG))
@@ -70,7 +70,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
     subst hfbrs
     have hsl : sl.len = W64 0 := by simp at Hsll; word
     iunfold decEnv at Henv
-    icases Henv with ⟨#Hio, #Hbin, #Hfmt, #Hsync, #Hbufio, #Heof, #Hueof, #Heok, #Htab, #Hcm⟩
+    icases Henv with ⟨#Hio, #Hbin, #Hfmt, #Hsync, #Hbufio, #Heof, #Hueof, #Heok, #Htab, #Hcm, #Hproto⟩
     wp_if_destruct
     · iapply HΦ
       iunfold decPost
@@ -80,7 +80,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
       isplitl []
       · ipureintro; simp [stopErr]
       isplitl [Hr]
-      · iunfold ownRecAny; iexists _; iexact Hr
+      · iapply blank_ownRecAny; iexact Hr
       iunfold ownDecoder
       iexists sl, [], h, rs
       iframe
@@ -105,7 +105,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
     simp only [liveRs, ownFbrs]
     icases Hfbrs with ⟨Hfbr, Hfbrs⟩
     iunfold decEnv at Henv
-    icases Henv with ⟨#Hio, #Hbin, #Hfmt, #Hsync, #Hbufio, #Heof, #Hueof, #Heok, #Htab, #Hcm⟩
+    icases Henv with ⟨#Hio, #Hbin, #Hfmt, #Hsync, #Hbufio, #Heof, #Hueof, #Heok, #Htab, #Hcm, #Hproto⟩
     have hsl0 : 0 < sint.Z sl.len := by
       have h1 : (fbr :: fbrs).length = (sint.Z sl.len).toNat := Hsll.1
       simp only [List.length_cons] at h1
@@ -127,11 +127,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
       wp_auto
       iapply HΦ
       iunfold decPost
-      iright
+      iright; ileft
       isplitl []
       · ipureintro; exact Hferr (by simp)
       isplitl [Hr]
-      · iunfold ownRecAny; iexists _; iexact Hr
+      · iapply blank_ownRecAny; iexact Hr
       iexists (F :: fs), off, c
       iunfold ownDecoder
       iexists sl, fbr :: fbrs, h, (F.bs.take off :: fs.map (fun _ => []))
@@ -238,7 +238,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
           isplitl []
           · ipureintro; simp [stopErr]
           isplitl [Hr]
-          · iunfold ownRecAny; iexists _; iexact Hr
+          · iapply blank_ownRecAny; iexact Hr
           iunfold ownDecoder
           iexists _, [], h, []
           iframe
@@ -260,7 +260,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
             isplitr
             · iunfold decEnv
               iframe
-              iframe Hio Hbin Hfmt Hsync Hbufio Heof Hueof Htab Hcm
+              iframe Hio Hbin Hfmt Hsync Hbufio Heof Hueof Htab Hcm Hproto
               iunfold isEofOk
               iframe Heok
               ipureintro; exact Hneq
@@ -287,11 +287,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
       iapply HΦ
       iunfold decPost
       by_cases hI : IoE (GoInterface.ok ei)
-      · iright
+      · iright; ileft
         isplitl []
         · ipureintro; exact hI
         isplitl [Hr]
-        · iunfold ownRecAny; iexists _; iexact Hr
+        · iapply blank_ownRecAny; iexact Hr
         iexists (F :: fs), off, c
         iunfold ownDecoder
         iexists sl, fbr :: fbrs, h, ((F.bs.take off ++ ys) :: fs.map (fun _ => []))
@@ -328,7 +328,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
         isplitl []
         · ipureintro; exact ⟨h1, trivial⟩
         isplitl [Hr]
-        · iunfold ownRecAny; iexists _; iexact Hr
+        · iapply blank_ownRecAny; iexact Hr
         iunfold ownDecoder
         iexists sl, fbr :: fbrs, h, ((F.bs.take off ++ ys) :: fs.map (fun _ => []))
         iframe
@@ -361,11 +361,14 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
       (by rw [htk, ← hl]; exact hl0)
     rw [htk, ← hl] at hframe
     simp only at hframe
+    have hfrm := decFrame_frame (bs := F.bs) (off := off) hrest8 (by rw [htk, ← hl]; exact hl0)
+    rw [htk, ← hl] at hfrm
+    simp only at hfrm
     have hrb := decodeFrameSize_fst_lt l
     have hpad := decodeFrameSize_snd_lt l
     wp_apply +noauto HDFS l
-    generalize hrbd : (decodeFrameSize l).1 = rb at hframe hrb ⊢
-    generalize hpadd : (decodeFrameSize l).2 = pad at hframe hpad ⊢
+    generalize hrbd : (decodeFrameSize l).1 = rb at hframe hfrm hrb ⊢
+    generalize hpadd : (decodeFrameSize l).2 = pad at hframe hfrm hpad ⊢
     wp_auto
     wp_apply HFI fbr b fi GoInterface.nil DFrac.discard $$ [Hf] as -
     · iexact Hf
@@ -413,7 +416,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
       iapply HΦ
       iapply decPost_stop C d rp IoE eof ueof F fs off c c _ .tooLarge hstep (by simp [stopErr])
       isplitl [Hr]
-      · iunfold ownRecAny; iexists _; iexact Hr
+      · iapply blank_ownRecAny; iexact Hr
       iapply ownDecoder_intro d IoE eof sl fbr fbrs h F fs (F.bs.take off ++ ys) off c _ hoff
         (by simp)
       iframe
@@ -455,7 +458,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
         iapply HΦ
         iapply decPost_ioe C d rp IoE eof ueof (F :: fs) (F :: fs) off off c c _ hI
         isplitl [Hr]
-        · iunfold ownRecAny; iexists _; iexact Hr
+        · iapply blank_ownRecAny; iexact Hr
         iapply ownDecoder_intro d IoE eof sl fbr fbrs h F fs (F.bs.take off ++ ys ++ ys2) off c
           false hoff (by simp)
         iframe
@@ -484,7 +487,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
         iapply decPost_stop C d rp IoE eof ueof F fs off c c _ .shortData hstep
           (by simp only [stopErr]; first | exact hu.symm | exact h1)
         isplitl [Hr]
-        · iunfold ownRecAny; iexists _; iexact Hr
+        · iapply blank_ownRecAny; iexact Hr
         iapply ownDecoder_intro d IoE eof sl fbr fbrs h F fs (F.bs.take off ++ ys ++ ys2) off c
           _ hoff (by simp)
         iframe
@@ -539,7 +542,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
       rw [hrbn, h0n]; simp [subslice]
     rw [hsub2]
     wp_auto
-    wp_apply HUnm C _ _ (DFrac.own 1) rp $$ [Hdm Hr] as %err3 ⟨Hdm, Hres⟩
+    wp_apply HUnm _ _ (DFrac.own 1) rp $$ [Hdm Hr] as %err3 ⟨Hdm, Hres⟩
     · iframe
     ihave Hdat := (ownSlice_slice (W64 0) (W64 rb) dsl (DFrac.own 1) ys2
       ⟨by rw [hz0]; decide, by rw [hz0, hrbz]; omega, by rw [hrbz]; omega⟩).2 $$ [Hd0 Hdm Hd2]
@@ -582,7 +585,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
       iexists fii
       iframe HSize HName
       ipureintro; rfl
-    icases Hres with (⟨%r, ⟨%herr3, %hdec⟩, Hrec⟩ | ⟨⟨%herr3, %hdec⟩, Hrec⟩)
+    icases Hres with (⟨%r, ⟨%herr3, %hdec⟩, Hrec⟩ | ⟨%herr3, %hdec⟩)
     rotate_left
     · -- `proto.Unmarshal` failed
       obtain ⟨ei3, rfl⟩ : ∃ ei, err3 = GoInterface.ok ei := by
@@ -594,21 +597,21 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
         $$ [Hbrs Hoff Hdat] as ⟨Hbrs, Hoff, Hdat⟩
       · iframe
       rw [hlast]
-      have hstep : decRecStep C fs.isEmpty F.bs off c =
-          .stop (.badRec (isTorn fs.isEmpty off ys2)) c := by
-        rw [hstep0]; unfold decRecData; rw [hdec]
+      have hfr : RecFail C fs.isEmpty F.bs off (.badRec (isTorn fs.isEmpty off ys2)) :=
+        ⟨ys2, rb, by rw [hfrm, ite_eq_right htl, ite_eq_right hnsd, hdata], by rw [hC]; exact hdec,
+          rfl⟩
       cases ht : isTorn fs.isEmpty off ys2
-      all_goals rw [ht] at hstep
+      all_goals rw [ht] at hfr
       all_goals
         wp_auto
         iapply HΦ
-        iapply decPost_stop C d rp IoE eof ueof F fs off c c _ _ hstep
+        iapply decPost_fail C d rp IoE eof ueof F fs off c _ _ hfr
           (by simp only [stopErr]; first | exact hu.symm | simp)
-        iframe Hrec
         iapply Hown c _ (by simp)
         iframe
         iframe Hmu Hf HF Hsl Hfio
     subst herr3
+    replace hdec : C.decRec (ys2.take rb) = some r := by rw [hC]; exact hdec
     wp_auto
     wp_apply HGetType rp r $$ Hrec as Hrec
     have hct4 : (W64 4 : w64) = crcType := rfl
@@ -657,7 +660,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
       iexists v
       iframe
       iframe Ht Hc
-    have hCc : C.crc32c c r.data = hash.crc32.crc32c c r.data := by rw [hC]
+    have hCc : C.crc32c c r.data = hash.crc32.crc32c c r.data := by rw [hC]; rfl
     icases Hv with (%hv | ⟨%hne, %ei4, %he4, #Hei4⟩)
     · -- the CRC matches: the record is accepted
       obtain ⟨rfl, hcrc⟩ := hv

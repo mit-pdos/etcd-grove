@@ -44,14 +44,16 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.Decode.wp_proof
   wp_apply HLock $$ [] as ⟨Hown, -⟩
   · iexact Hmu
   wp_apply HDecRec C d rp IoE eof ueof fs off c hC $$ [Hd Hr] as %err Hpost
-  · iframe
-    isplitr
+  · isplitr
     · iunfold decEnv
       iframe #
+    isplitl [Hd]
     · iunfold ownDecoder
       iexists sl, fbrs, h, rs
       iframe
       iexact Hmu
+    · rw [pbRecordC_blank]
+      iexact Hr
   wp_apply HUnlock $$ [Hown]
   · iframe
     isplitl []

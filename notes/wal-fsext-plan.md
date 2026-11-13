@@ -753,26 +753,54 @@ out of `Abs.lean`; statement unchanged). Left: `walInv_alloc` (`sorry`).
   `decFile`, `ownFbr`, `ownDecoder`, `decEnv`, `decPost`, `stopErr`; walpb `ownRec`): proved
   `decodeFrameSize`, `readInt64`, `LastOffset`, `LastCRC`, `UpdateCRC`, `Decode` (over decodeRecord's
   spec), walpb `GetType`/`GetCrc`/`Validate`, fileutil `NewFileBufReader`/`FileInfo`/`Err`/`Read`.
-  `sorry`: `isTornEntry`, `NewDecoder` (started, to the range loop). `decodeRecord` proved (branch
+  `NewDecoder` proved (`wal-dec3`: the range loop builds `ownFbrs` by `ownFbrs_snoc`, each reader's `*FileBufReader` cell persisted; `sync.init_Mutex` for `d.mu`; the readers' slice persisted). `sorry`: `isTornEntry` (three loops: the sector split appending subslices of `data` to `chunks`, then two nested range loops with a `break`; the subslices alias `data`, so its fraction must be split per chunk, or the chunks read through `data` by index). `decodeRecord` proved (branch
   `wal-dec2`, by induction on the files for its recursive call), over its lemmas in `DecLemmas.lean`
   (`fbr_readerStream`: a `*FileBufReader` as `io.Reader` is a stream reader of its file; the
   `decRecStep_*` equations by what the reads returned; `decPost_{stop,accept,ioe,cons_eof}`).
   `isEofOk` gained `nil` and `⌜eof ≠ ueof ∧ ¬ IoE eof⌝` (ledger, 2026-11-13).
-- **`proto.UnmarshalWalRecord.spec` is not derivable from `proto.UnmarshalPb.spec`** (2026-11-13,
-  wal-dec2): (1) `UnmarshalPb` says only "an encoding of a valid content decodes without error"; that a
-  failed `Unmarshal` means `recDecode bs = none` (what `goDecode`'s `badRec` needs) is not in it, and
-  `recDecode` accepts non-canonical encodings, so it does not follow; (2) its precondition is
-  `I.data.blank l` (the hidden `state` field included), not `l ↦ zero_val walpb.Record`; (3) it needs
-  `isPkgInit proto`, which `decEnv` does not give. Options: a trusted law "`Unmarshal` fails only on
-  `recDecode bs = none`" for registered types (Perennial-side, the user's call), or weaken `decRecStep`'s
-  `badRec` stop to "`Unmarshal` failed" (an oracle in `WalCodec`). Left as the hypothesis.
+- **A failed `proto.Unmarshal`: the weaker model** (2026-11-13, `wal-dec3`; supersedes the finding of
+  `wal-dec2` that `proto.UnmarshalWalRecord.spec` was not derivable). `proto.UnmarshalPb.spec` says
+  that a success is the canonical decoding (D1) and that an encoding of a valid content succeeds
+  (D2), nothing more: `Unmarshal` may fail on any other bytes, including bytes `recDecode` decodes
+  (a non-canonical encoding). So the pure decoder keeps `decStep`/`walDecodeFrom`/`walDecodeFiles`
+  as the canonical reader (`C.decRec` = `recDecode`, Unmarshal's result *when it succeeds*; no
+  downstream lemma changed, no part copy changed), and the Go decoder may in addition stop with
+  `badRec` where `Unmarshal` is handed bytes that are no record's encoding (`UFail C u := ∀ r, u ≠
+  C.encRec r`): `WalEncDecoder.lean`'s `decFrame` (the frame handed to `Unmarshal`), `RecFail`,
+  `GoFail` (the decoder state's version, dropping files at their end first), `ReaderRun.fail`; the
+  loop lemma `readerRun_eq`/`readerRun_start` is now "the canonical reader's result, or the
+  canonical records up to a decoder state where `GoFail` holds" (`recs = rs ++ (rdRest …).recs`).
+  A frame the encoder wrote never fails (`UFail` excludes it), so with `NoCollision` a failure can
+  only be where the canonical reader stops too; turning that into the read specs' terms is left
+  to their proofs. `decPost` gained a third disjunct (`GoFail` with `stopErr`, the decoder not live,
+  **the record not given back**: `UnmarshalPb`'s error post drops it; every reader stops at an
+  error, so nothing needs it).
+- **`proto.UnmarshalWalRecord.spec` derived** (`LinuxFs/Proof/google_golang_org/protobuf/proto/UnmarshalWalRecord.lean`,
+  from `proto.UnmarshalPb.spec` and `pbRecordC_reg`): stated over `walCodec` (no codec parameter),
+  pre `isPkgInit proto ∗ b ↦*{dq} bs ∗ pbRecordC.data.blank l`, post `nil` and `ownRec l r` with
+  `recDecode bs = some r`, or an error with `UFail walCodec bs` (D2 at `recOf r`, valid: no unknown
+  fields). Consequently `decoder.decodeRecord.spec`/`Decode.spec` take `C = walCodec` (was
+  `C.crc32c = crc32c`), `decodeRecord`'s precondition is `pbRecordC.data.blank rp`, and `decEnv`
+  gained `isPkgInit proto` (a client obligation, like its other `isPkgInit`s: the part has no
+  `Init.lean` for the WAL's packages, `etc/gen-init.py`'s `LFS_PKGS` stops at `ioutil`; adding `wal`,
+  `walpb`, `fileutil`, `crc` there, with their `SPECIAL` facts, is what derives them).
+- **The registered `walpb.Record`'s decoded object is owned whole** (`PbRecord.lean`, `recOwnC`, the
+  instance's `decC`/`dec`; **trusted, pending the user's review** with the registration): every field
+  at `1`, the hidden ones included, `Data`'s bytes owned. Raft's types put the hidden fields of a
+  decoded object in an invariant (`pbMsg`); that cannot work here: the decoder reuses `rec`
+  (`Reset`, then `Unmarshal` into it), `Reset` writes the whole struct, and a `Reset` spec taking a
+  decoded record to `blank` would duplicate the invariant's points-tos (`False` derivable), nor could
+  the invariant (at the old unknown fields) survive `*x = Record{}`. Faithful: the decoded message is
+  fresh and protobuf-go keeps no reference to it. The frozen form (`recRoC`, what `Marshal` reads)
+  keeps the invariant. `PbRecord`'s definitions are now generic in `HasLC` (the registration axiom
+  stays at `hasLC`).
 - **`walpb.Record.Reset` stays names-only** (2026-11-13): its body (`*x = Record{}`, then
   `protoimpl.X.MessageStateOf(x).StoreMessageInfo(&file_record_proto_msgTypes[0])`) is the protobuf
-  runtime plumbing the configuration excludes on purpose (`walpb.toml`); and its spec's post
-  `l ↦ zero_val walpb.Record` is not what Go leaves (the `state` field holds the message info) -- the
-  same `blank`-vs-`zero_val` point as above. Its spec should be stated over `I.data.blank`.
-- **Hypotheses** (theorem parameters, not axioms): `proto.UnmarshalWalRecord.spec C` (stated over
-  `C.decRec`; to derive from the walpb registration), `walpb.Record.Reset.spec` (names-only),
+  runtime plumbing the configuration excludes on purpose (`walpb.toml`). Its spec (a hypothesis) is
+  now `{{ ownRecAny l }} Reset {{ pbRecordC.data.blank l }}`: blank as the registered instance says
+  (what `Unmarshal` takes), whatever the message state then holds.
+- **Hypotheses** (theorem parameters, not axioms): `proto.UnmarshalWalRecord.spec` (derived, above;
+  a parameter of `decodeRecord`'s proof until a `Link` covers the decoder), `walpb.Record.Reset.spec` (names-only),
   `fmt.ErrorfErrs.spec` (Perennial's `Errorf` spec refuses error arguments, `ArgsWf`; Perennial
   change to propose), and in `decEnv` the client's `isEofOk` (`errors.Is(e, io.EOF)` on the readers'
   errors). **Gap**: Perennial's `Errorf` model does not wrap, so `errors.Is(err, io.ErrUnexpectedEOF)`
