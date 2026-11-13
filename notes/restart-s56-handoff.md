@@ -48,7 +48,21 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
   and the risks R1-R5 (§7).
 - Decisions go in the worktree's `questions.md` (untracked).
 
-## S6a review answered (2026-11-13, the S6a agent continued): next agent starts here
+## S6a item 4: soundness finding (2026-11-13, the S6 agent): next agent starts here
+
+81 accepted the M1 forms (snapDirIs inside snapDirInv, snapDirOwn a definition, purgeFile unchanged,
+the NewServer comment in S6a-2; `questions.md`) and asked first whether `img i` determines `D`, which
+SaveDBFrom's M2 docstring paragraph assumes. **It does not**: `mvccImage`'s `imageOk` leaves the Key
+bucket's compaction progress (`entsCutAt`), the compaction records and `u` free, and `imageRestAt`
+holds the term key existentially. The difference is real in Go: an unfinished `scheduleCompaction`
+at one applied index makes two merged snapshots at that index carry different data. With the double
+rename, the invariant then claims `fileHolds p D1` over a file holding `D2`. No refutation found
+(clients see the data only through the persistent `img`), but the docstring's argument (1) is false.
+Finding, scenario and fixes: `/shared/tmp/restart-s56/s6a-imgfun-finding.md` (recommended: (A) the
+fork's `SaveDBFrom` keeps atomically through `os.Link`). **Stopped for 81's decision. Step 5's
+remaining part (below) is not started.**
+
+## S6a review answered (2026-11-13, the S6a agent continued)
 
 The S6a axiom review (READY WITH CHANGES) is answered; texts and reasons in
 `/shared/tmp/restart-s56/freeze-s6a.md` §3.2-review, decisions in `questions.md` and
