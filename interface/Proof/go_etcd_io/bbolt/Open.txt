@@ -64,16 +64,6 @@ theorem bbolt.open_lock [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (
     1) D ∗ |={⊤}[⊤ \ ↑(bbolt.dpN N)]▷=> ghostVar γs (Qp.half 1) 1 ∗ typedPointsto dp db (DFrac.own
     (Qp.half 1))
 
-theorem bbolt.wp_OpenFile_db [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (hOpenFile :
-    os.OpenFile.spec) (hCreate : os.OpenFile.specCreate) (path : GoString) (perm : w32) (R :
-    Fs.Roots) (V : Fs.Hist) (D : bbolt.Data) : ⊢ ∀ Φ, Fs.osInv ∗ Fs.osTree (DFrac.own 1) R V ∗
-    bbolt.pathHolds R V path D -∗ (▷ ∀ f err, (∃ V', Fs.osTree (DFrac.own 1) R V' ∗ ⌜V' = V ∨ ∃ e,
-    V' = V.push e⌝ ∗ ((∃ fd i, ⌜err = GoInterface.nil ∧ 0 ≤ BitVec.toInt fd ∧ Fs.lookupH R V' path =
-    some (Fs.Node.file i)⌝ ∗ os.ownFile f fd path (DFrac.own 1) ∗ Fs.osFd fd (DFrac.own 1) { ino :=
-    i, readable := true, writable := true } ∗ bbolt.openedF i D) ∨ ⌜err ≠ GoInterface.nil ∧ f =
-    null⌝) ∗ fmtErrorOkOrNil err) -∗ Φ (intoVal f, intoVal err)) -∗ WP ((((intoVal (functions
-    os.OpenFile [])) (intoVal path)) (intoVal (W64 66))) (intoVal perm)) {{ Φ }}
-
 syntax bbolt.tacticOpen_tx_exit
 
 theorem bbolt.boltTx.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (tx tx✝ :
