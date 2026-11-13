@@ -1,6 +1,6 @@
 /-
 Specs of `syscall`'s trusted models of `Fallocate` (mode 0, growing the file, and
-`FALLOC_FL_KEEP_SIZE`) and `FcntlFlock` (the commands that set a lock), over the extension's
+`FALLOC_FL_KEEP_SIZE`) and `FcntlFlock` (the commands that set a lock, and the query `F_OFD_GETLK` on any fd), over the extension's
 (`GooseLang/Ext/Fs/Falloc.lean`): the same models as `golang.org/x/sys/unix`'s, and these the
 same proofs as `Proof/golang_org/x/sys/unix/FileOps.lean`'s (fileutil's `Preallocate` and
 `LockFile` call `syscall`'s). Mode-agnostic: they hold in the tree's shared mode too. Lean-first
@@ -84,6 +84,50 @@ theorem syscall.FcntlFlock.wp_lock (fd cmd : w64) (lk : Loc) (dq : DFrac) (d : O
     iapply wp_errno
     iapply HΦ
     iframe
+
+theorem flock_ty_eq : syscall.model.Flock_t = syscall.Flock_t.ty := by
+  unfold syscall.Flock_t.ty; rfl
+
+/-- `syscall.FcntlFlock(fd, F_OFD_GETLK, lk)` on any fd (fileutil's package initializer, on fd 0):
+no extension step; `*lk` whole for the call. On success (`e = 0`) its lock description is
+arbitrary, its padding as it was; on failure it is unchanged. -/
+theorem syscall.FcntlFlock.wp_getlk (fd : w64) (lk : Loc) (v : syscall.Flock_t) :
+    {{ (lk ↦ v : IProp GF) }}
+      (App (App (App (Val (@! syscall.FcntlFlock)) (Val #fd)) (Val #(W64 36))) (Val #lk))
+    {{ (e : w64), RET #(errnoErr e); ∃ v' : syscall.Flock_t, lk ↦ v' ∗
+        ⌜v'.Pad_cgo_0' = v.Pad_cgo_0' ∧ v'.Pad_cgo_1' = v.Pad_cgo_1' ∧ (e ≠ 0 → v' = v)⌝ }} := by
+  wp_start as Hlk
+  rw [flock_ty_eq]
+  wp_auto
+  wp_apply wp_ArbitraryInt as %e _
+  by_cases he : e = 0
+  · subst he
+    wp_auto
+    wp_apply wp_ArbitraryInt as %a1 _
+    try wp_auto
+    wp_apply wp_ArbitraryInt as %a2 _
+    try wp_auto
+    wp_apply wp_ArbitraryInt as %a3 _
+    try wp_auto
+    wp_apply wp_ArbitraryInt as %a4 _
+    try wp_auto
+    wp_apply wp_ArbitraryInt as %a5 _
+    try wp_auto
+    have h0 : errnoErr (W64 0) = interface.nil := by unfold errnoErr; simp
+    rw [← h0]
+    iapply HΦ
+    iexists _
+    iframe
+    ipureintro
+    exact ⟨rfl, rfl, fun h => absurd rfl h⟩
+  · rw [decide_eq_false (show e ≠ W64 0 from he)]
+    wp_auto
+    iapply wp_errno
+    iapply HΦ
+    iexists v
+    iframe
+    ipureintro
+    exact ⟨rfl, rfl, fun _ => rfl⟩
 
 end proof
 

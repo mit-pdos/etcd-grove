@@ -281,6 +281,19 @@ theorem decRecStep_frame {C : WalCodec} {last : Bool} {bs : List w8} {off : Nat}
   rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right h]
   rfl
 
+theorem decFrame_frame {bs : List w8} {off : Nat}
+    (h1 : 8 ≤ (bs.drop off).length) (h : leToU64 ((bs.drop off).take 8) ≠ 0#64) :
+    decFrame bs off =
+      let l := leToU64 ((bs.drop off).take 8)
+      let rb := (decodeFrameSize l).1
+      let pad := (decodeFrameSize l).2
+      if bs.length < off + pad + rb then none
+      else if (bs.drop off).length < 8 + rb + pad then none
+      else some (((bs.drop off).drop 8).take (rb + pad), rb) := by
+  unfold decFrame
+  simp only
+  rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right h]
+
 theorem goDecode_eof_next {C : WalCodec} {f : List w8} {fs : List (List w8)} {off : Nat} {c : w32}
     (h : decRecStep C fs.isEmpty f off c = .eof) (hfs : fs ≠ []) :
     goDecode C (f :: fs) off c = goDecode C fs 0 c := by
@@ -311,13 +324,24 @@ theorem decPost_cons_eof (C : WalCodec) (d rp : Loc) (IoE : GoInterface → Prop
     exact goDecode_eof_next (by simpa using h) (by simpa using hfs)
   unfold decPost
   rw [hg]
-  iintro (⟨%k, H⟩ | H)
+  iintro (⟨%k, H⟩ | H | ⟨%k, %s, %off', %c', %hf, H⟩)
   · ileft
     iexists (k + 1)
     simp only [List.drop_succ_cons]
     iexact H
-  · iright
+  · iright; ileft
     iexact H
+  · iright; iright
+    iexists (k + 1), s, off', c'
+    simp only [List.drop_succ_cons]
+    iframe
+    ipureintro
+    refine ⟨?_, hf.2⟩
+    obtain ⟨G, gs, rfl⟩ : ∃ G gs, fs = G :: gs := by
+      cases fs with
+      | nil => exact absurd rfl hfs
+      | cons G gs => exact ⟨G, gs, rfl⟩
+    exact GoFail.next (by simpa using h) hf.1
 
 /-- A stop in the first file. -/
 theorem decPost_stop (C : WalCodec) (d rp : Loc) (IoE : GoInterface → Prop)
@@ -366,10 +390,35 @@ theorem decPost_ioe (C : WalCodec) (d rp : Loc) (IoE : GoInterface → Prop)
       decPost C d rp IoE eof ueof fs off c err := by
   iintro ⟨Hr, Hd⟩
   unfold decPost
-  iright
+  iright; ileft
   isplitl []
   · ipureintro; exact hI
   iframe
+
+/-- A blank record is a record. -/
+theorem blank_ownRecAny (l : Loc) : (pbRecordC (GF := GF)).data.blank l ⊢ ownRecAny l := by
+  rw [pbRecordC_blank]
+  unfold ownRecAny
+  iintro H
+  iexists _
+  iexact H
+
+/-- A failed `proto.Unmarshal` in the first file. -/
+theorem decPost_fail (C : WalCodec) (d rp : Loc) (IoE : GoInterface → Prop)
+    (eof ueof : GoInterface) (F : DecFile GF) (fs : List (DecFile GF)) (off : Nat) (c : w32)
+    (err : GoInterface) (s : WalStop) (h : RecFail C fs.isEmpty F.bs off s)
+    (herr : stopErr eof ueof s err) :
+    ownDecoder d IoE eof (F :: fs) off c false ⊢ decPost C d rp IoE eof ueof (F :: fs) off c err := by
+  iintro Hd
+  unfold decPost
+  iright; iright
+  iexists 0, s, off, c
+  simp only [List.drop_zero]
+  iframe
+  ipureintro
+  refine ⟨?_, herr⟩
+  simp only [List.map_cons]
+  exact GoFail.here (by simpa using h)
 
 end post
 

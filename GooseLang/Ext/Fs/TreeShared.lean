@@ -332,7 +332,7 @@ theorem wp_osOpenCreateS (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h 
         Φ (PairV (#fd) (#e))) -∗
       WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#(child d b)) (#fl)))))
         @ s; E {{ Φ }} :=
-  wp_osOpenCreateS' R d b j dq h k s0 q fl hfl hcr htr hb hnd hs hE hE' Φ
+  wp_osOpenCreateS' R d b j dq h k s0 q fl hfl hcr (.inl htr) hb hnd hs hE hE' Φ
 
 /-- **`open(2)` of `d/b`, a name holding the file `i`, without `O_TRUNC`** (with or without
 `O_CREAT`, any access mode), with a fraction of a claim on names containing `b`: no entry; on
