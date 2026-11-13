@@ -231,13 +231,16 @@ fsyncs: `os.File.Sync.specDirS`), and the tail's name: the `.wal` name `nm0` hol
 inode `ino`, the tail file's name `child dir nm0` (`w.seq()` parses it: `walFileName sq ix`, its
 sequence below `2^64 - 1`, which `cut` increments), the largest `.wal` name of the directory (the
 invariant's: the last segment's, `WalAbsD.names`; stable while the handle holds half the claim). The
-claim leaves out the pipeline's names (`walTmps ⊆ X`: the pipeline holds their claims). -/
+claim leaves out the pipeline's names (`walTmps ⊆ X`: the pipeline holds their claims) and no `.wal`
+name (`DirKeysOk`'s: `cut`'s rename target is in the claim, `os.Rename.specFileSnc`'s `N'.Mem bt`);
+the WAL is named (`walNamed`, persistent: `walCut_osAUnc`'s `walCutP` takes it). -/
 def walDirH (dir : GoString) (j : Ino) (dfd : w64) (ino : Ino) (name : GoString) : IProp GF :=
   iprop(∃ (R : Roots) (q : Qp) (X : List GoString) (hj : NamesH) (nm0 : GoString) (ph : DirPhS),
     walDirKey (W := W) dir j X ∗ osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
     osPathS R dir (DFrac.own q) j ∗ osSharedInv R ∗ osCallPerm (1 : Qp).half ∗ osDirFdS dfd j ph ∗
+    walNamed (W := W) dir ∗
     ⌜walNameP nm0 = true ∧ hj.cur !! nm0 = some (.file ino) ∧ name = child dir nm0 ∧
-      (∀ t ∈ walTmps, t ∈ X) ∧
+      (∀ t ∈ walTmps, t ∈ X) ∧ (∀ b ∈ X, walNameP b = false) ∧
       (∃ sq ix : Nat, nm0 = walFileName sq ix ∧ sq + 1 < 2 ^ 64) ∧
       ∀ b n, hj.cur !! b = some n → walNameP b = true → b = nm0 ∨ go.GoStringLt b nm0⌝)
 

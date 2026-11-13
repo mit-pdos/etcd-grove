@@ -219,8 +219,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   try rw [h1pc]
   try rw [h1pend]
   iunfold walDirH at Hdh
-  icases Hdh with ⟨%Rd, %qd, %X, %hj, %nm0, %ph, #Hdk, Hcl, Hpd, #Hsid, Hperm, Hdfd, %hdh⟩
-  obtain ⟨hnm0w, hnm0c, hname, htmps, ⟨sq, ix, hnm0, hsq⟩, hlargest⟩ := hdh
+  icases Hdh with ⟨%Rd, %qd, %X, %hj, %nm0, %ph, #Hdk, Hcl, Hpd, #Hsid, Hperm, Hdfd, #Hnamed, %hdh⟩
+  obtain ⟨hnm0w, hnm0c, hname, htmps, hXw, ⟨sq, ix, hnm0, hsq⟩, hlargest⟩ := hdh
   iunfold walPipeH at Hpipe
   icases Hpipe with ⟨%γp, %Rp, %dqp, %szp, %np, #Hisfp, Hmain, Hpc, %hnp⟩
   ihave #Hisfp' := Hisfp

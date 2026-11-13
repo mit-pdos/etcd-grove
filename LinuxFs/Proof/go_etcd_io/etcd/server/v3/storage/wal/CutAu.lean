@@ -27,6 +27,7 @@ module
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutAuLemmas
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateAu
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Handle
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutHdrStream
 
 @[expose] public section
 
@@ -114,6 +115,7 @@ theorem osMeta_agree' (i : Ino) (dq1 dq2 : DFrac) (m1 m2 : OsMeta) :
 its copy of the WAL (`H`, `md`, `cuts`): `tmp` one of the claim's left-out names; the cuts below
 `|H|`; the old tail at the `.wal` name `nm0`; `bt` free, a `.wal` name past `nm0` with an index past
 the history's; the old tail's bytes as many as its stream's and its size (durable: the invariant's, synced, `lastSeg_synced_durable`); the new segment's
+records' fit (`hfitH`: the headers'; the old records' is the invariant's, `WalAbsD.fit`), its
 bytes its headers' frames (`wr` bytes) then zeros, durable, its `OsMeta` sized to them, named `bt`. -/
 theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (tmp : GoString) (ht : NamesH)
@@ -131,7 +133,8 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       List.replicate (g.bs.length - wr) 0).map durB ∧ wr ≤ g.bs.length)
     (hmeta : g.om.size = g.bs.length ∧ g.om.cut = none ∧ g.om.lo = g.bs.length ∧
       g.om.hi = g.bs.length)
-    (hfit : RecsFit walCodec (recsOfSegs walCodec Mr md (segsOf (H.map WalOpG.toM) (cuts ++ [H.length]))))
+    (hfitH : RecsFit walCodec (chainRecs walCodec (tailCrc Mr H md cuts)
+      (cutHdrDs Mr md (walLastHS (H.map WalOpG.toM)))))
     (hz : g.bs.length - wr = 0 ∨ 8 ≤ g.bs.length - wr) (hgname : g.name = bt) (hgbs : g.bs ≠ []) :
     ⊢ walInv (W := W) walCodec Mr R jr r -∗
       walCutP (W := W) dir j X hj tmp ht γ H md cuts wr0 i0 m0 bs0 g -∗
@@ -319,6 +322,16 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
           · exact hn2 h
         subst he
         exact hexcl _ hmem hne rfl bt hbtw hbX
+      have hfit : RecsFit walCodec (recsOfSegs walCodec Mr d.metadata
+          (segsOf (histM d) (lay1.cuts ++ [d.H.length]))) := by
+        have := allRecs_cut Mr d.H d.metadata lay1.cuts (habs.cuts.2.1.imp Nat.le_of_lt)
+          (fun b hb => Nat.le_of_lt (hcuts b hb))
+        unfold allRecs at this
+        rw [show histM d = d.H.map WalOpG.toM from rfl, this]
+        intro r hr
+        rcases List.mem_append.1 hr with h | h
+        · exact habs.fit r h
+        · exact hfitH r h
       obtain ⟨hok', hco', hcro', han', hnm', hdko'⟩ := cutCommit_pure (x := x) (s0 := s0)
         ⟨hW1, hW2, hW3, hW4, hW5, hW6⟩ Hco Hcro Han.1 Han.2 Hnm Hdko HK hd hl1 hg0
         ⟨l1, l2, rfl, hn1, hn2⟩ hm (hnmd d hd) hlast0 hex0 hcuts hcpos hnm0 hbt hbtw hcur hwr' hbs' hmeta hfit hz
