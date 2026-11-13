@@ -1,0 +1,54 @@
+/-
+The copy for the part `LinuxFs/` of `Spec/google_golang_org/protobuf/proto/MarshalPb.lean` (word for word
+but its imports: the part's `InvProto` and `proto` package instance; keep the two in sync). Its
+header follows.
+-/
+/-
+`proto.Marshal` of a registered message type at its wire content (per-type models, stage A; the
+stage A prototype's `pbutil/PerTypeMarshal.lean`, made the trust boundary in CP2): over a registered
+pair (`pbModelOf`, `InvProto.lean`). Next to today's `proto.MarshalPb.spec` (CP3 rewires the
+users). Lean-first.
+-/
+module
+
+public import LinuxFs.Proof.google_golang_org.protobuf.proto.InvProto
+public import LinuxFs.Proof.google_golang_org.protobuf.proto.PkgInit
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+/-- **`proto.Marshal(m)` of a frozen `*T` of a registered type holding the wire content `c`**, which
+marshals and whose size is below `2^48` (Go's `maxAlloc`): a fresh slice of its encoding
+`pbEncC I c`, and `nil`. What the encoding is comes from the generic `pbEncC_ok` (a theorem from
+the instance's encoder axiom), not from this spec.
+
+Against protobuf-go v1.36.12 (`proto/encode.go:105`, `:174`): `Marshal` sizes, allocates and
+appends the encoding (`internal/impl/encode.go`); it fails only on a missing required field,
+invalid UTF-8 in a proto3 string or a message changed while it is encoded, which `marshals` and
+the frozen `roC` exclude; an allocation above `maxAlloc` panics, which the size premise excludes;
+an empty encoding is a non-nil empty slice. -/
+abbrev proto.MarshalPb.spec : Prop :=
+  ∀ (I : PbTypeC GF), pbModelOf GF I.data.ty = some I →
+  ∀ (l : Loc) (c : I.data.C), I.data.marshals (I.data.modelOf c) → I.data.size c < 2 ^ 48 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ I.data.roC l c }}
+    (App (Val (@! google_golang_org.protobuf.proto.Marshal))
+      (Val #(interface.mkOk (go.GoType.PointerType I.data.ty) #l)))
+  {{ (d : GoSlice), RET (PairV #d #(GoInterface.nil));
+      d ↦* pbEncC I c ∗ ownSliceCap w8 d (DFrac.own 1) }}
+
+end spec
+
+end EtcdGrove
+end Perennial
