@@ -107,7 +107,8 @@ func TestOFDGetlk(t *testing.T) {
 	}
 }
 
-// model_syscall_fcntlflock.go: F_OFD_GETLK leaves the description's padding as it was.
+// model_syscall_fcntlflock.go: F_OFD_GETLK writes the description's padding back as it was
+// (with no concurrent writer).
 func TestOFDGetlkPadding(t *testing.T) {
 	f, err := os.Create(extDir(t) + "/LOCK")
 	if err != nil {

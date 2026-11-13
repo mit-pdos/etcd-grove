@@ -95,6 +95,9 @@ noncomputable def Fallocate.impl : val :=
 /-- `syscall.Flock_t` as goose names it (its `.ty` is in `Code.syscall`, which imports this file). -/
 @[reducible] def model.Flock_t : go.GoType := go.GoType.Named go!"syscall.Flock_t" []
 
+/-- The type of `Flock_t`'s padding fields `Pad_cgo_0` and `Pad_cgo_1`, `[4]byte`. -/
+@[reducible] def model.flockPad : go.GoType := go.GoType.ArrayType 4 go.byte
+
 /-- `FcntlFlock(fd uintptr, cmd int, lk *Flock_t) error` (`flock_linux.go`):
 
 ```go
@@ -116,12 +119,17 @@ not a file's; `lk` is not read.
 `init`, to choose OFD locks over `flock`), on any fd, one the process opened or not (fd 0 is
 whatever the process inherited: a terminal, `/dev/null`, a pipe, or closed): no extension step (a
 query changes no state the model has), and the result is `nil` or any nonzero errno
-(`ArbitraryInt`; Linux answers `EBADF` on a closed fd, `EINVAL` for a bad `l_type`, ...). On
-success Linux writes the lock description back into `*lk` (`l_type = F_UNLCK` if nothing
-conflicts, else the conflicting lock's type, range and `l_pid = -1`), so the model stores arbitrary
-values in its fields `Type`, `Whence`, `Start`, `Len` and `Pid` (the padding is left as it is:
-measured, `TestOFDGetlkPadding`); on failure `*lk` is unchanged (the errors come before the
-copy-out: `EBADF`, `EINVAL`; `EFAULT` needs a bad `lk`, which a Go pointer is not). A nil `lk` is
+(`ArbitraryInt`; Linux answers `EBADF` on a closed fd, `EINVAL` for a bad `l_type`, ...). On the
+call Linux copies the whole struct in (`do_fcntl`: `copy_from_user(&flock, argp, sizeof flock)`),
+and on success it copies the whole struct back (`copy_to_user(argp, &flock, sizeof flock)`): the
+lock description (`l_type = F_UNLCK` if nothing conflicts, else the conflicting lock's type, range
+and `l_pid = -1`) and the padding as it was read. So the model loads all seven fields of `*lk` at
+entry and, on success, stores all seven: arbitrary values in `Type`, `Whence`, `Start`, `Len` and
+`Pid`, and the padding (`Pad_cgo_0`, `Pad_cgo_1`) as loaded (measured with no concurrent writer,
+`TestOFDGetlkPadding`); a concurrent access to any field is then a race, which a proof must
+exclude (a write of the padding by another goroutine during the call could be reverted by Linux).
+On failure `*lk` is unchanged (the errors come before the copy-out: `EBADF`, `EINVAL`; `EFAULT`
+needs a bad `lk`, which a Go pointer is not; the model loads it anyway, which only adds races). A nil `lk` is
 stuck (Linux: `EFAULT`). Any other command (`F_GETLK`, or one that is not about locks) is not
 modelled: a panic, never reached by a proved program. Go example:
 `examples/osfs/semantics/model_syscall_fcntlflock.go`. -/
@@ -131,14 +139,25 @@ noncomputable def FcntlFlock.impl : val :=
         ("cmd" =⟨go.int⟩ #(W64 37)) || ("cmd" =⟨go.int⟩ #(W64 38)) then
       model.errno (ExternalOp Fs.fsExt.name "OfdLock" ("fd", "cmd"))
     else if: "cmd" =⟨go.int⟩ #(W64 36) then
+      -- copy_from_user: the whole struct
+      ![go.int16] (StructFieldRef model.Flock_t go!"Type" "lk") ;;
+      ![go.int16] (StructFieldRef model.Flock_t go!"Whence" "lk") ;;
+      let: "p0" := ![model.flockPad] (StructFieldRef model.Flock_t go!"Pad_cgo_0" "lk") in
+      ![go.int64] (StructFieldRef model.Flock_t go!"Start" "lk") ;;
+      ![go.int64] (StructFieldRef model.Flock_t go!"Len" "lk") ;;
+      ![go.int32] (StructFieldRef model.Flock_t go!"Pid" "lk") ;;
+      let: "p1" := ![model.flockPad] (StructFieldRef model.Flock_t go!"Pad_cgo_1" "lk") in
       let: "e" := ArbitraryInt in
       if: "e" =⟨go.uintptr⟩ #(W64 0) then
+        -- copy_to_user: the whole struct, the padding as read
         StructFieldRef model.Flock_t go!"Type" "lk" <-[go.int16] Convert go.uint64 go.int16 ArbitraryInt ;;
         StructFieldRef model.Flock_t go!"Whence" "lk" <-[go.int16]
           Convert go.uint64 go.int16 ArbitraryInt ;;
+        StructFieldRef model.Flock_t go!"Pad_cgo_0" "lk" <-[model.flockPad] "p0" ;;
         StructFieldRef model.Flock_t go!"Start" "lk" <-[go.int64] ArbitraryInt ;;
         StructFieldRef model.Flock_t go!"Len" "lk" <-[go.int64] ArbitraryInt ;;
         StructFieldRef model.Flock_t go!"Pid" "lk" <-[go.int32] Convert go.uint64 go.int32 ArbitraryInt ;;
+        StructFieldRef model.Flock_t go!"Pad_cgo_1" "lk" <-[model.flockPad] "p1" ;;
         #GoInterface.nil
       else model.errno "e"
     else Panic "syscall.FcntlFlock: a command that sets no lock, other than F_OFD_GETLK, is not modelled"
