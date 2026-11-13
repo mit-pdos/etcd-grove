@@ -61,12 +61,18 @@ theorem treeWp_userOpts (Φ : val → IProp GF) :
   imod (typedPointsto_dfractional (GF := GF) p _).dfractional_persist _ $$ Hp with #Hp
   imodintro
   iapply H
-  unfold userOptsFalse auth.userOptsAt
+  unfold userOptsFalse auth.userOptsAt auth.userOptsIs
+  iexists some []
+  isplitr
+  · ipureintro; exact auth.userOptsUfOk_empty
   iright
   isplitr
   · ipureintro; exact Hnn
-  iexists _, _, _
-  iexact Hp
+  iexists _, _, _, []
+  isplitr
+  · ipureintro; rfl
+  iframe Hp
+  iapply ownSlice_nil
 
 /-- **The store of a user addition**: its name and password (`HashedPassword` empty, as the
 client sends it), its `Options`. -/

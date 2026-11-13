@@ -534,10 +534,15 @@ def adminOut (M : AuthMode) (hs : List AuthState) (R : StepRel) (extra : AuthErr
 def noExtra : AuthErr → Prop := fun _ => False
 
 /-- **A step's premises** (see the file header): at the state the transaction finds, the
-revision fits a `uint64` after the bump, and a `next` state's permissions fit the cache's trees. -/
+revision fits a `uint64` after the bump, a `next` state's permissions fit the cache's trees, and
+(S0's F4, 2026-11-12) the users' roles are valid UTF-8 there and in a `next` state (what
+`UnsafePutUser` needs of the roles it writes), and (the re-review's m1) the stored names are
+non-empty there (what `UnsafePutUser`/`UnsafePutRole` need of a stored record's name). -/
 def stepOk (M : AuthMode) (hs : List AuthState) (R : StepRel) : Prop :=
   ∀ st : AuthState, histLast M hs st →
-    st.revision + 1 < 2 ^ 64 ∧ ∀ (o : Outcome) (st' : AuthState), R st o → o = .next st' → permsFit st'
+    st.revision + 1 < 2 ^ 64 ∧
+      (∀ (o : Outcome) (st' : AuthState), R st o → o = .next st' → permsFit st' ∧ rolesUtf8 st') ∧
+      rolesUtf8 st ∧ namesOk st
 
 end res
 

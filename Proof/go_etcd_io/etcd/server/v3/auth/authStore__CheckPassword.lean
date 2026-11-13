@@ -104,14 +104,14 @@ theorem auth.authStore.CheckPassword.wp_proof
   ihave Hu' := userOut_some u sta username Hif $$ Hu
   icases Hu' with ⟨%roles, %ur, %Hur, Hu⟩
   iunfold ownUser at Hu
-  icases Hu with ⟨%s1, %n, %pw, %rl, %o, %uf, %sc, Hp, #Hn, #Hpw, #Hrl, #Ho⟩
+  icases Hu with ⟨%s1, %n, %pw, %rl, %o, %sc, Hp, #Hn, #Hpw, #Hrl, #Ho⟩
   icases typedPointsto_split _ _ _ $$ Hp with Hp
   simp only [TypedPointsto.typedPointstoDef]
   iNamed Hp
   ipersist Password
   ipersist Options
-  iunfold userOptsAt at Ho
-  icases Ho with (%Ho | ⟨%Hon, %s2, %uf2, %sc2, #Hov⟩)
+  iunfold userOptsIs at Ho
+  icases Ho with (%Ho | ⟨%Hon, %s2, %uf2, %sc2, %u2, -, #Hov, -⟩)
   · obtain ⟨Ho, -⟩ := Ho
     subst Ho
     (try wp_auto)

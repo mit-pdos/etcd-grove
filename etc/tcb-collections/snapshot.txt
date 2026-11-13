@@ -21,6 +21,7 @@ roots ^EtcdServer\.wp_createMergedSnapshotMessage$
 roots ^wp_newSnapshotReaderCloser$
 roots ^EtcdServer\.wp_sendMergedSnap$
 axiom DescribeConfChange.wp_proof
+axiom apply.irrDecode_utf8
 axiom backend.ValidateCalledInsideApply.wp_proof
 axiom backend.ValidateCalledOutSideApply.wp_proof
 axiom backend.backend.Snapshot.wp_proof

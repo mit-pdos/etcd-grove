@@ -29,12 +29,12 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 read transaction: the hook does not run) and the latest state's users' names (`userListOut`); the
 authority and the write resource kept. -/
 abbrev auth.authStore.UserList.spec : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
     (hs : List AuthState) (r : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
-      authOwn M hs ∗ authWR st M P f T }}
+      authOwn M hs ∗ authWR st M P f T Wb }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"UserList")) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); authOwn M hs ∗ authWR st M P f T ∗
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); authOwn M hs ∗ authWR st M P f T Wb ∗
       ∃ sta : AuthState, ⌜histLast M hs sta⌝ ∗ userListOut sta resp err }}
 
 end spec

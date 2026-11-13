@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 theorem auth.authStore.UserGet.wp_proof :
     auth.authStore.UserGet.spec (GF := GF) (hG := hG) := by
-  intro st R M P f T hs r name
+  intro st R M P f T Wb hs r name
   wp_start as ⟨#Hinv, Hreq, Hown, HWR⟩
   iunfold userGetReqIs at Hreq
   icases Hreq with ⟨%Hr, #Hname⟩
@@ -72,7 +72,7 @@ theorem auth.authStore.UserGet.wp_proof :
   icases Hu' with ⟨%roles, %ur, %Hur, Hu⟩
   obtain ⟨Hlook, Hurn, Hurr, -⟩ := Hur
   iunfold ownUser at Hu
-  icases Hu with ⟨%ums, %unm, %upw, %url, %uo, %uuf, %usc, Hup, #Hunm, #Hupw, #Hurl, #Huo⟩
+  icases Hu with ⟨%ums, %unm, %upw, %url, %uo, %usc, Hup, #Hunm, #Hupw, #Hurl, #Huo⟩
   icases typedPointsto_split _ _ _ $$ Hup with Hup
   simp only [TypedPointsto.typedPointstoDef]
   iNamed Hup

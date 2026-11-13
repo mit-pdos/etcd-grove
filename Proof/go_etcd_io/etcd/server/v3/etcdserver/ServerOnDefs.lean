@@ -235,7 +235,7 @@ def srvUberBase (s : Loc) (ua : GoInterface) (E : apply.AEnv GF) : IProp GF :=
     apply.uberBaseAuth ua E au le ∗ authStoreLbM E.authMode au E.RD ∗
     ∃ stl : Loc, ⌜au = auth.authIface stl⌝ ∗ authPublishM E.authMode stl ∗
       authStoreLatestM E.authMode au E.RD stl ∗
-      □ (⌜E.authMode.isOn = true⌝ → isReqAuthBound au E.RD E.authMode))
+      □ (⌜E.authMode.isOn = true⌝ → auth.tpReady E.authMode -∗ isReqAuthBound au E.RD E.authMode))
 
 instance srvUberBase_persistent (s : Loc) (ua : GoInterface) (E : apply.AEnv GF) :
     Persistent (srvUberBase s ua E) := by
@@ -262,11 +262,12 @@ def srvUberOn (s : Loc) : IProp GF :=
     srvUberBase s ua E -∗
     (∀ γc : auth.AuthBkNames, srvLessorNil s -∗ ∃ stl : Loc, srvAuthStoreAddr s ↦□ auth.authIface stl ∗
         apply.uberKVC ua E (.quota .backend) (auth.latestResC stl (.on γa) γc)) ∗
-    (∀ (stl bel : Loc) (T : auth.AuthBkNames) (Pk : IProp GF), ⌜E.Pk = fun _ => Pk⌝ -∗
+    (∀ (stl bel : Loc) (T : auth.AuthBkNames) (Pk Wb : IProp GF), ⌜E.Pk = fun _ => Pk⌝ -∗
+        □ (apply.bkWTFor E -∗ Wb) -∗
         srvAuthStoreAddr s ↦□ auth.authIface stl -∗
         apply.isAuthStepsX (auth.authIface stl) Pk E.f (.on γa) (auth.tieRes stl (.on γa))
-          (adminW stl bel (.on γa) Pk E.f (auth.authWTok T)) E.RD -∗
-        apply.uberAdmC ua E (adminWC stl bel γa Pk E.f T)
+          (adminW stl bel (.on γa) Pk E.f (auth.authWTok T) Wb) Wb E.RD -∗
+        apply.uberAdmC ua E (adminWC stl bel γa Pk E.f T Wb)
           (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h))
           (auth.latestResC stl (.on γa) T)))
 
@@ -335,18 +336,19 @@ theorem srvUberOn_kv (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames) (ua : 
 /-- **The row's admin contract** at an uber-applier of the server (`srvUberBase`), at an admin
 row's store, backend and write token. -/
 theorem srvUberOn_adm (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames) (ua : GoInterface)
-    (stl bel : Loc) (T : auth.AuthBkNames) (Pk : IProp GF) (hM : E.authMode = .on γa)
+    (stl bel : Loc) (T : auth.AuthBkNames) (Pk Wb : IProp GF) (hM : E.authMode = .on γa)
     (hPk : E.Pk = fun _ => Pk) :
     srvUberOn (GF := GF) s ∗ srvUberBase s ua E ∗ srvAuthStoreAddr s ↦□ auth.authIface stl ∗
+      □ (apply.bkWTFor E -∗ Wb) ∗
       apply.isAuthStepsX (auth.authIface stl) Pk E.f (.on γa) (auth.tieRes stl (.on γa))
-        (adminW stl bel (.on γa) Pk E.f (auth.authWTok T)) E.RD ⊢
-      apply.uberAdmC ua E (adminWC stl bel γa Pk E.f T)
+        (adminW stl bel (.on γa) Pk E.f (auth.authWTok T) Wb) Wb E.RD ⊢
+      apply.uberAdmC ua E (adminWC stl bel γa Pk E.f T Wb)
         (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h))
         (auth.latestResC stl (.on γa) T) := by
-  iintro ⟨#H, #Hb, #Hf, #Hsteps⟩
+  iintro ⟨#H, #Hb, #Hf, #Hc, #Hsteps⟩
   iunfold srvUberOn at H
   ihave ⟨-, #Had⟩ := H $$ %E %γa %ua %hM Hb
-  iapply Had $$ %stl %bel %T %Pk %hPk Hf Hsteps
+  iapply Had $$ %stl %bel %T %Pk %Wb %hPk Hc Hf Hsteps
 
 /-- **The certificates' invariant in the auth mode `on`**: `kvCertInv` off, `kvCertInvOn` on. -/
 def kvCertInvM (on : Bool) (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) :

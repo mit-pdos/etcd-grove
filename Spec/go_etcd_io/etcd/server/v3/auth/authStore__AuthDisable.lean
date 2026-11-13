@@ -26,15 +26,17 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 /-- **`as.AuthDisable()`** from the admin side's authority `hs`: having read the flag `en`
-(under `enabledMu`), the step `authDisableF en` (disabled and the revision bumped, or nothing). -/
+(under `enabledMu`), the step `authDisableF en` (disabled and the revision bumped, or nothing).
+Three write-back tokens `Wb`: two spent by the batch transaction's `Unlock`, one by `ForceCommit`
+(auth-schema-fix F1). -/
 abbrev auth.authStore.AuthDisable.spec : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ authOwn M hs ∗ authWR st M P f T ∗ tpAdmin st M ∗ srvApi.csContractA P f Pre Q Post ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ authOwn M hs ∗ authWR st M P f T Wb ∗ Wb ∗ Wb ∗ Wb ∗ tpAdmin st M ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜∀ en : Bool, stepOk M hs (stepOf (authDisableF en))⌝ ∗
       (□ ∀ en : Bool, capNextM M hs (stepOf (authDisableF en))) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"AuthDisable")) (Val #()))
-  {{ RET #(); tpAdmin st M ∗ (Post ∨ Pre) ∗ authWR st M P f T ∗
+  {{ RET #(); tpAdmin st M ∗ (Post ∨ Pre) ∗ authWR st M P f T Wb ∗
       ∃ en : Bool, enabledVerdict M en ∗ adminOut M hs (stepOf (authDisableF en)) noExtra GoInterface.nil }}
 
 end spec

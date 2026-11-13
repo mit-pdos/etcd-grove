@@ -3,7 +3,7 @@ title: authSchemaSrv is false (lend grants writes; write-back budget; two encodi
 found: 2026-11-12
 by: S0 of the etcd_auth_safe Scope, axiom-skill review (report /shared/tmp/auth-safe/s0/report.md, Go tests /shared/tmp/auth-safe/s0/tests/)
 blocks-proof: yes (for an auth closed theorem); no closed *_safe theorem rests on it
-status: open; fixes decided by etcd-grove-81 (stage auth-schema-fix, before etcd_auth_safe)
+status: fixed on branch auth-schema-fix (2026-11-12; F3 e450457d89, F2 350380537e, F4 350baf65a5, F1 398c6dc09f + 10da96a817); not landed, pending etcd-grove-81's axiom re-review
 ---
 # `authSchemaSrv` is false
 
@@ -27,3 +27,18 @@ F3 and F4 are also etcd code facts unreachable from etcd's request path (nonissu
   UTF-8 (proto3 string). Fix: a UTF-8 premise, with a law that `apply.irrDecode` yields valid UTF-8.
 
 `etc/tcb-report.py` does not show it (a hypothesis). The axiom review is to be re-run on the revised text.
+
+## Fixed (2026-11-12, branch auth-schema-fix)
+
+- F3: `auth.rolesOut` lists only `roleListed` names (`n ≠ [] ∧ n < "\xff"`); RoleList's reply likewise.
+- F2: `authBkLend` hands an abstract observation `RL` with a read-only law against the batch lock's
+  `rbOwn` (no `rbPart`, so no write authority).
+- F4: UnsafePutUser's clause takes the roles' `utf8Valid`; the store keeps `rolesUtf8` in the fuel's
+  `authSmall`; the grant's role comes from a new trust-boundary law `apply.irrDecode_utf8` (Go test
+  `/shared/tmp/auth-safe/fix-tests/irr_utf8_test.go`).
+- F1: the write contracts take a write-back token parameter `Wb` (`Unlock` 2: schema's Unlock is the
+  backend's Unlock then Commit; `ForceCommit` 1; `GetAllRoles` 2; `CreateAuthBuckets` 1), at the server
+  `backend.wbTok d.γB`; `authSchemaSrv` drops its `ownToks d.γB.wb 2`. The tokens come from receipts:
+  three per applied entry in the apply loop (`srvWTPool_take_extraOn`), and for the boot two from
+  NewServer (`authKitIn`) beside the kit's two.
+Trusted text old → new with Go evidence: `/shared/tmp/auth-safe/freeze-fix.md`.

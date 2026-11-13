@@ -43,17 +43,17 @@ theorem auth.authStore.Authenticate.wp_core
     (h_String : zap.String.spec (GF := GF) (hG := hG))
     (h_Check : zap.Logger.Check.spec (GF := GF) (hG := hG))
     (h_Write : zapcore.CheckedEntry.Write.spec (GF := GF) (hG := hG))
-    (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T F : IProp GF)
+    (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb F : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (ctx : GoInterface) (username password : GoString)
     (be : AuthBackend) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
         enabledRd st M ∗ authOwn M hs ∗
-        (aF go!"be" st ↦{DFrac.own (1 : Qp).half} be ∗ authWBackendOk be M P f T) ∗ T ∗ F ∗
+        (aF go!"be" st ↦{DFrac.own (1 : Qp).half} be ∗ authWBackendOk be M P f T Wb) ∗ T ∗ F ∗
         srvApi.csContractA P f Pre Q Post ∗ authnCtx M ctx }}
       (App (App (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"Authenticate"))
         (Val #ctx)) (Val #username)) (Val #password))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ enabledRd st M ∗
-        authOwn M hs ∗ (aF go!"be" st ↦{DFrac.own (1 : Qp).half} be ∗ authWBackendOk be M P f T) ∗
+        authOwn M hs ∗ (aF go!"be" st ↦{DFrac.own (1 : Qp).half} be ∗ authWBackendOk be M P f T Wb) ∗
         T ∗ F ∗ (⌜err = GoInterface.nil⌝ ∨ ∃ e : AuthErr, authErrOf e err) ∗
         authenticated M hs username resp err }} := by
   wp_start as ⟨#Hinv, Hen, Hown, ⟨Hbe, #Hbeok⟩, HT, HF, Hcs, Hctx⟩
@@ -116,9 +116,9 @@ theorem auth.authStore.Authenticate.wp_core
   ihave Hu' := userOut_some u sta username Hif $$ Hu
   icases Hu' with ⟨%roles, %ur, %Hur, Hu⟩
   iunfold ownUser at Hu
-  icases Hu with ⟨%s1, %n, %pw, %rl, %o, %uf, %sc, Hp, #Hn, #Hpw, #Hrl, #Ho⟩
-  iunfold userOptsAt at Ho
-  icases Ho with (%Ho | ⟨%Hon, %s2, %uf2, %sc2, #Hov⟩)
+  icases Hu with ⟨%s1, %n, %pw, %rl, %o, %sc, Hp, #Hn, #Hpw, #Hrl, #Ho⟩
+  iunfold userOptsIs at Ho
+  icases Ho with (%Ho | ⟨%Hon, %s2, %uf2, %sc2, %u2, -, #Hov, -⟩)
   · obtain ⟨Ho, -⟩ := Ho
     subst Ho
     (try wp_auto)
@@ -343,12 +343,12 @@ theorem auth.authStore.Authenticate.wp_proof
     (h_Check : zap.Logger.Check.spec (GF := GF) (hG := hG))
     (h_Write : zapcore.CheckedEntry.Write.spec (GF := GF) (hG := hG)) :
     auth.authStore.Authenticate.spec (GF := GF) (hG := hG) := by
-  intro st R M P f T hs Pre Q Post ctx username password
+  intro st R M P f T Wb hs Pre Q Post ctx username password
   iintro %Φ ⟨#Hpkg, #Hinv, Hen, Hown, HWR, Hcs, Hctx⟩ HΦ
   iunfold authWR at HWR
   icases HWR with ⟨⟨%be, Hbe⟩, HT, Henh, Hca⟩
   iapply (auth.authStore.Authenticate.wp_core h_IsAuthEnabled h_Revision h_redactToken h_String
-      h_Check h_Write st R M P f T iprop(enabledHalf st M ∗ cacheHalf st M) hs Pre Q Post ctx
+      h_Check h_Write st R M P f T Wb iprop(enabledHalf st M ∗ cacheHalf st M) hs Pre Q Post ctx
       username password be) $$ [$Hpkg $Hinv $Hen $Hown $Hbe $HT $Hcs $Hctx Henh Hca]
   · iframe Henh Hca
   inext
@@ -366,12 +366,12 @@ theorem auth.authStore.Authenticate.wp_tieB
     (h_Check : zap.Logger.Check.spec (GF := GF) (hG := hG))
     (h_Write : zapcore.CheckedEntry.Write.spec (GF := GF) (hG := hG)) :
     auth.authStore.Authenticate.specTB (GF := GF) (hG := hG) := by
-  intro st R M P f T hs Pre Q Post ctx username password b0 sc0 be
+  intro st R M P f T Wb hs Pre Q Post ctx username password b0 sc0 be
   iintro %Φ ⟨#Hpkg, #Hinv, Hen, Hown, HWR, Hcs, Hctx⟩ HΦ
   iunfold authWRxB at HWR
   icases HWR with ⟨Hbe, HT, Hfl, #Hev, Hca, #Hsn⟩
   iapply (auth.authStore.Authenticate.wp_core h_IsAuthEnabled h_Revision h_redactToken h_String
-      h_Check h_Write st R M P f T iprop(flagAt st M b0 ∗ cacheAt st M sc0) hs Pre Q Post ctx
+      h_Check h_Write st R M P f T Wb iprop(flagAt st M b0 ∗ cacheAt st M sc0) hs Pre Q Post ctx
       username password be) $$ [$Hpkg $Hinv $Hen $Hown $Hbe $HT $Hcs $Hctx Hfl Hca]
   · iframe Hfl Hca
   inext

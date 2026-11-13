@@ -47,6 +47,7 @@ public import Perennial.Ghost.Token
 public import Perennial.Proof.TokSet
 public import Perennial.Golang.Theory.String
 public import Perennial.Std.GMap
+public import Proof.unicode.utf8.Valid
 
 @[expose] public section
 
@@ -289,6 +290,21 @@ such states. -/
 def permKeysOk (st : AuthState) : Prop :=
   ∀ r ps, st.roles !! r = some ps → ∀ p ∈ ps, p.key ≠ []
 
+/-- Every user's roles are valid UTF-8 (S0's F4, 2026-11-12): `authpb.User.roles` is a proto3
+`repeated string`, so protobuf-go's `Marshal` (`UnsafePutUser`) panics on any other; the roles
+come from requests, whose strings the decoder validates (`apply.irrDecode_utf8`). Kept by the
+fuel's `authSmall`, so the step premises (`stepOk`) give it. -/
+def rolesUtf8 (st : AuthState) : Prop :=
+  ∀ u rs, st.users !! u = some rs → ∀ x ∈ rs, utf8Valid x
+
+/-- Every user's and every role's name is non-empty (the axiom re-review of auth-schema-fix, m1):
+bbolt's `Put` refuses an empty key (`ErrKeyRequired`, fatal in the backend's `unsafePut`), so
+`UnsafePutUser`/`UnsafePutRole` take a non-empty name; `UserAdd`/`RoleAdd` refuse the empty one
+(`userAddF`, `roleAddF`) and the other puts write a stored record's name. Kept by the fuel's
+`authSmall`, so the step premises (`stepOk`) give it. -/
+def namesOk (st : AuthState) : Prop :=
+  (∀ n, (st.users !! n).isSome → n ≠ []) ∧ (∀ n, (st.roles !! n).isSome → n ≠ [])
+
 /-- A user's permissions fit an interval tree's count (`getMergedPerms` inserts each into a tree
 whose count is a `uint64` kept below `2^63`, `adt.ownIvt`). -/
 def permsFit (st : AuthState) : Prop :=
@@ -367,6 +383,12 @@ structure AuthNames where
   authority the store's construction mints and discards (`authRdTotal`, `InvAuth.lean`), so that a
   holder of every ticket knows no reader is in `lockedReadTx`'s section (`curInv`) -/
   rdt : GName
+  /-- **the token provider's readiness** (auth-schema-fix S1 option A, decided by etcd-grove-81,
+  2026-11-12): a one-shot cell whose shot (`tpReady`, a lower bound `1` of a mono-nat) says the
+  server has started, so that the simple provider's index waiter (`srv.applyWait.Wait`, the field
+  `start` sets) may be called; the server allocates it before the provider and fires it in
+  `start` -/
+  rdy : GName
 
 /-- **A contract's mode** (see the file header). -/
 inductive AuthMode where
@@ -513,6 +535,25 @@ instance authPubLb_persistent (γa : AuthNames) (i : Nat) :
     Persistent (authPubLb (GF := GF) γa i) := by
   unfold authPubLb; infer_instance
 
+/-- **The readiness cell `γ` shot** (persistent; auth-schema-fix S1 option A): a lower bound `1`
+of the mono-nat at `γ` (pending is an authority at `0`; the server's invariant, `srvTpInv`). -/
+def tpShot (γ : GName) : IProp GF := monoNatLbOwn γ 1
+
+instance tpShot_persistent (γ : GName) : Persistent (tpShot (GF := GF) γ) := by
+  unfold tpShot; infer_instance
+
+/-- **The token provider is ready** in the mode `M` (persistent; auth-schema-fix S1 option A,
+decided by etcd-grove-81, 2026-11-12): in `on γa`, the readiness cell `γa.rdy` shot (a lower bound
+`1`), which the server fires in `start` once `s.applyWait` is set (the simple provider's index
+waiter reads it: `notes/auth-validspec-false.md`); in the other modes `True`. The token contract's
+`info` premise (`tokenProviderOkA`). -/
+def tpReady : AuthMode → IProp GF
+  | .on γa => tpShot γa.rdy
+  | _ => iprop(True)
+
+instance tpReady_persistent (M : AuthMode) : Persistent (tpReady (GF := GF) M) := by
+  cases M <;> unfold tpReady <;> infer_instance
+
 /-- A lower bound is one of every smaller index. -/
 theorem authPubLb_le (γa : AuthNames) {i : Nat} (i' : Nat) (h : i' ≤ i) :
     authPubLb (GF := GF) γa i ⊢ authPubLb γa i' := by
@@ -581,9 +622,9 @@ theorem authHist_full (γa : AuthNames) (hs : List AuthState) :
 /-- A history and its latest state's ghost variable, both halves, with the token providers'
 issued tokens under `γt` (allocated with the provider, `tokAlloc`, `Tokens.lean`) and the fresh
 tokens under `γf` (`Tokens.lean`, S5b). -/
-theorem authHist_alloc (γt γf : GName) (hs : List AuthState) (cur : AuthState) (C : List AuthState)
+theorem authHist_alloc (γt γf γy : GName) (hs : List AuthState) (cur : AuthState) (C : List AuthState)
     (hk : ∀ st ∈ hs, permKeysOk st) :
-    ⊢ |==> ∃ γa : AuthNames, ⌜γa.tok = γt ∧ γa.fresh = γf⌝ ∗ authHist (GF := GF) γa hs ∗
+    ⊢ |==> ∃ γa : AuthNames, ⌜γa.tok = γt ∧ γa.fresh = γf ∧ γa.rdy = γy⌝ ∗ authHist (GF := GF) γa hs ∗
       authCurHalf γa cur ∗
       authCurHalf γa cur ∗ authPubAuth γa 0 ∗ ghostVar γa.fen 1 false ∗ ghostVar γa.fca 1 ((null : Loc), 0) ∗
       authHistRev γa hs ∗ capAuth γa C ∗ capLb γa C ∗
@@ -599,7 +640,7 @@ theorem authHist_alloc (γt γf : GName) (hs : List AuthState) (cur : AuthState)
   imod (ghostVar_alloc (GF := GF) ((γ, γ, γ) : GName × GName × GName)) with ⟨%γb, Hb⟩
   imod (token_alloc (GF := GF)) with ⟨%γs, Hs⟩
   imod (ownTokAuth_alloc (GF := GF)) with ⟨%γr, Hrt⟩
-  icases (authHist_full ⟨γ, γ, γ, γ, γ, γ, γ, γ, γ, γ, γ⟩ hs).1 $$ H with ⟨H, Hr⟩
+  icases (authHist_full ⟨γ, γ, γ, γ, γ, γ, γ, γ, γ, γ, γ, γ⟩ hs).1 $$ H with ⟨H, Hr⟩
   imod (ghostVar_alloc (GF := GF) cur) with ⟨%γc, Hc⟩
   imod (mono_nat_own_alloc (GF := GF) 0) with ⟨%γp, Hp, -⟩
   imod (ghostVar_alloc (GF := GF) false) with ⟨%γe, He⟩
@@ -607,11 +648,11 @@ theorem authHist_alloc (γt γf : GName) (hs : List AuthState) (cur : AuthState)
   ihave Hb' : iprop(∃ γ0 : GName × GName × GName, ghostVar (GF := GF) γb 1 γ0) $$ [Hb]
   · iexists _; iexact Hb
   imodintro
-  iexists ⟨γ, γc, γt, γf, γp, γe, γk, γcap, γb, γs, γr⟩
+  iexists ⟨γ, γc, γt, γf, γp, γe, γk, γcap, γb, γs, γr, γy⟩
   unfold authHist authHistRev capAuth capLb
   iframe H Hp He Hk Hr Hcap Hcl Hs Hb' Hrt
   isplitr
-  · ipureintro; exact ⟨rfl, rfl⟩
+  · ipureintro; exact ⟨rfl, rfl, rfl⟩
   isplitr
   · ipureintro; exact hk
   · iapply (ghostVar_split_half γc 1 cur).1 $$ Hc

@@ -549,12 +549,12 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 /-- **The apply thread's auth row with auth on, opened** (see the file header). -/
 theorem srvAuthApplyResB_open (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames)
     (st : auth.AuthState) (hM : E.authMode = .on γa) :
-    srvAuthApplyResB (GF := GF) s E st ⊢ ∃ (stl bel : Loc) (T : auth.AuthBkNames) (Pk : IProp GF)
-      (hs : List auth.AuthState), ⌜E.Pk = fun _ => Pk⌝ ∗
+    srvAuthApplyResB (GF := GF) s E st ⊢ ∃ (stl bel : Loc) (T : auth.AuthBkNames) (Pk Wb : IProp GF)
+      (hs : List auth.AuthState), ⌜E.Pk = fun _ => Pk⌝ ∗ □ (apply.bkWTFor E -∗ Wb) ∗
       srvAuthStoreAddr s ↦□ auth.authIface stl ∗ roLendsAuthBe E.RO stl bel ∗
-      authWBackendAt bel (.on γa) Pk E.f (auth.authWTok T) ∗
+      authWBackendAt bel (.on γa) Pk E.f (auth.authWTok T) Wb ∗
       apply.isAuthStepsX (auth.authIface stl) Pk E.f (.on γa) (auth.tieRes stl (.on γa))
-        (adminW stl bel (.on γa) Pk E.f (auth.authWTok T)) E.RD ∗
+        (adminW stl bel (.on γa) Pk E.f (auth.authWTok T) Wb) Wb E.RD ∗
       auth.authOwnFu γa hs ∗ auth.tieRes stl (.on γa) hs ∗ ⌜hs.getLast? = some st⌝ ∗
       auth.authWHeld γa T ∗ auth.tpAdmin stl (.on γa) ∗
       (∀ (hs' : List auth.AuthState) (st' : auth.AuthState), auth.authOwnFu γa hs' -∗
@@ -571,10 +571,15 @@ theorem srvAuthApplyResB_open (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthName
   unfold authApplyResB
   iintro ⟨%hs, %P0, %f0, %T, %be, Ho, HX, #Hw, HT, #Hlife, Hpt, Htp, %Hl, #Hwa, #Hsteps, #Hins,
     HRD⟩
-  iexists stl, d.be, T, Pk, hs
+  iexists stl, d.be, T, Pk, (backend.wbTok d.γB), hs
   iframe Hf Hro Hwa Hsteps Ho HX HT Htp
   isplitr
   · ipureintro; exact HPk
+  isplitr
+  · iintro !> Hw'
+    ihave Hw' := apply.bkWTFor_tie E d hkb $$ Hw'
+    iunfold apply.bkWT at Hw'
+    iexact Hw'
   isplitr
   · ipureintro; exact Hl
   iintro %hs' %st' Ho' HX' %Hl' HT' Htp'
@@ -696,15 +701,15 @@ theorem srv_uberAuthStepsL_at
     (hApplyL : apply.authApplierV3.Apply.specL (GF := GF) (hG := hG))
     (hApply : apply.applierV3backend.Apply.spec (GF := GF) (hG := hG))
     (s : Loc) (ua : GoInterface) (E : apply.AEnv GF) (γa : auth.AuthNames) (stl bel : Loc)
-    (T : auth.AuthBkNames) (Pk : IProp GF) (hM : E.authMode = .on γa) (hPk : E.Pk = fun _ => Pk) :
+    (T : auth.AuthBkNames) (Pk Wb : IProp GF) (hM : E.authMode = .on γa) (hPk : E.Pk = fun _ => Pk) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      srvUberBase s ua E ∗ srvAuthStoreAddr s ↦□ auth.authIface stl ∗
+      srvUberBase s ua E ∗ srvAuthStoreAddr s ↦□ auth.authIface stl ∗ □ (apply.bkWTFor E -∗ Wb) ∗
       apply.isAuthStepsX (auth.authIface stl) Pk E.f (.on γa) (auth.tieRes stl (.on γa))
-        (adminW stl bel (.on γa) Pk E.f (auth.authWTok T)) E.RD ⊢
-      apply.uberAuthStepsL ua E (adminWC stl bel γa Pk E.f T)
+        (adminW stl bel (.on γa) Pk E.f (auth.authWTok T) Wb) Wb E.RD ⊢
+      apply.uberAuthStepsL ua E (adminWC stl bel γa Pk E.f T Wb)
         (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h))
         (auth.latestResC stl (.on γa) T) := by
-  iintro ⟨#Hpkg, #Hb, #Hf, #Hsteps⟩
+  iintro ⟨#Hpkg, #Hb, #Hf, #Hc, #Hsteps⟩
   iunfold srvUberBase at Hb
   icases Hb with ⟨%au, %le, #Hauf, #Hlef, #Hub, -, %stl', %Hau, -, #HL, -⟩
   subst Hau
@@ -716,7 +721,7 @@ theorem srv_uberAuthStepsL_at
         (auth.latestResC stl (.on γa) γc)) := by
     rw [hM]; rfl
   iapply (apply.uberAuthStepsL_of_base hUA hRA hUGR hRGP hAE hAu hApplyL hApply ua E (auth.authIface stl)
-    le (auth.tieRes stl (.on γa)) (adminWC stl bel γa Pk E.f T) (auth.latestResC stl (.on γa) T))
+    le (auth.tieRes stl (.on γa)) (adminWC stl bel γa Pk E.f T Wb) (auth.latestResC stl (.on γa) T))
   iframe Hpkg Hub
   isplitr
   · ihave #HLc : iprop(□ ∀ γc : auth.AuthBkNames, apply.isAuthStoreL (auth.authIface stl) E.RD
@@ -727,7 +732,9 @@ theorem srv_uberAuthStepsL_at
   rw [hM, hPk]
   iintro !> %B
   unfold adminWC
-  iapply apply.isAuthStepsX_frameW $$ Hsteps
+  iapply apply.isAuthStepsX_frameW
+  iapply (apply.isAuthStepsX_wbMono _ _ _ _ _ _ Wb)
+  iframe Hc Hsteps
 
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
@@ -899,6 +906,29 @@ theorem srvWTPool_take_nOn (s : Loc) (E : apply.AEnv GF) (γp : WTNames) (γw : 
   iunfold apply.bkWT
   iframe Ht
   ipureintro; exact Hd
+
+/-- (auth-schema-fix F1) **An extra write token of the apply thread's backend**, for a receipt
+and a credit, at its applier state (`srvWTPool_take_extra` over `srvApplyKVOn`; no count): an
+admin step's batch transactions'. -/
+theorem srvWTPool_take_extraOn (s : Loc) (E : apply.AEnv GF) (γp : WTNames) (γw : GName)
+    (x : apply.ApplyKV) (st : auth.AuthState) :
+    ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ £ 1 -∗ srvApplyKVOn s E γw x st ={⊤}=∗
+      srvWT E ∗ srvApplyKVOn s E γw x st := by
+  iintro #Hp Hr Hlc HKV
+  icases srvApplyKVOn_beOwn s E γw x st $$ HKV with ⟨Hbo, HKV⟩
+  imod srvWTPool_take_extra s E γp $$ Hp Hr Hlc Hbo with ⟨Ht, Hbo⟩
+  ihave HKV := HKV $$ Hbo
+  imodintro
+  iframe Ht HKV
+
+omit raftAsm in
+/-- (auth-schema-fix F1) The server's write token is the tie's backend's (`apply.bkWTFor`). -/
+theorem srvWT_bkWTFor (E : apply.AEnv GF) : srvWT (GF := GF) E ⊢ apply.bkWTFor E := by
+  iintro H
+  iunfold srvWT at H
+  icases H with ⟨%d, %Hd, Hw⟩
+  iapply apply.bkWTFor_intro E d (by rw [Hd]; rfl)
+  iexact Hw
 
 /-- **The apply thread's KV log is small, with auth on** (`srvApplyKV_small`'s). -/
 theorem srvApplyKVOn_small [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]

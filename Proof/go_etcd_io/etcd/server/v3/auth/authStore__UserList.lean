@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 theorem auth.authStore.UserList.wp_proof :
     auth.authStore.UserList.spec (GF := GF) (hG := hG) := by
-  intro st R M P f T hs r
+  intro st R M P f T Wb hs r
   wp_start as ⟨#Hinv, Hown, HWR⟩
   iunfold authWR at HWR
   icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen, Hca⟩

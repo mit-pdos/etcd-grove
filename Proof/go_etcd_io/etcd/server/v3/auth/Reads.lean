@@ -59,7 +59,7 @@ def userListOut (sta : AuthState) (resp : Loc) (err : GoInterface) : IProp GF :=
 def roleListOut (sta : AuthState) (resp : Loc) (err : GoInterface) : IProp GF :=
   iprop(⌜err = GoInterface.nil⌝ ∗ ∃ (v : etcdserverpb.AuthRoleListResponse) (names : List GoString),
     resp ↦ v ∗ v.Roles' ↦* names ∗
-    ⌜names.Nodup ∧ ∀ n, n ∈ names ↔ (sta.roles.lookup n).isSome⌝)
+    ⌜names.Nodup ∧ ∀ n, n ∈ names ↔ (sta.roles.lookup n).isSome ∧ roleListed n⌝)
 
 /-- **`CheckPassword`'s answer** for `username` in the mode `M`: an error, one of the package's
 (`authErrOf`; C1's A4, 2026-10-29: the server returns it as its own); or no error, auth

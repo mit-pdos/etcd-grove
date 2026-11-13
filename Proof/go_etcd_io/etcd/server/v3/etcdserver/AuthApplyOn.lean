@@ -57,7 +57,8 @@ theorem authApplyOkM_on
 
 /-- **The real store's request side and apply contract in the mode `on γa`**, both with the
 reader resource `auth.authRd stl R (.on γa)`: what `NewAuthStore`'s axiom gives in the mode `off`
-(`isReqAuth`, `authApplyOk`). -/
+(`isReqAuth`, `authApplyOk`); the request side once the token provider is ready (`auth.tpReady`,
+auth-schema-fix S1 option A). -/
 theorem authSrvContracts_on
     (hCtx : auth.authStore.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
     (hTLS : auth.authStore.AuthInfoFromTLS.spec (GF := GF) (hG := hG))
@@ -70,7 +71,7 @@ theorem authSrvContracts_on
     (stl : Loc) (R : IProp GF) (γa : auth.AuthNames) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗
       auth.authInv stl R (.on γa) ⊢
-      isReqAuth (auth.authIface stl) (auth.authRd stl R (.on γa)) ∗
+      □ (auth.tpReady (.on γa) -∗ isReqAuth (auth.authIface stl) (auth.authRd stl R (.on γa))) ∗
       authApplyOkM (.on γa) stl (auth.authRd stl R (.on γa)) := by
   iintro ⟨#Hpkg, #Hinv⟩
   isplitl []

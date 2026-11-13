@@ -63,24 +63,24 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assump
 (`server_new_auth_on`, with its named premises) and `Start.spec` (`server_Start`) at the auth slot's
 `on γa`. (The auth component's stage 3, 2026-11-04: until then `Start.specOn`, `server_Start_on`,
 which also took `ErrorStringLeaf`.) -/
-theorem authkv_startServer
-    (hValid : auth.ValidSpec (GF := GF) (hG := hG)) (hD22 : ⊢ authSchemaSrv (GF := GF)) :
+theorem authkv_startServer (hD22 : ⊢ authSchemaSrv (GF := GF)) :
     etcd_auth.startServer.spec (GF := GF) (hG := hG) :=
   etcd_auth.startServer.wp_proof etcdstart.features.wp_NewDefaultServerFeatureGate
-    (server_new_auth_on hValid hD22) server_Start
+    (server_new_auth_on hD22) server_Start
 
 /-- **`Main` does not panic** (`Link.lean`'s `etcd_auth.wp_Main`; not proved: a `sorry`). At the
 hypothesis on the semantics every client-building `Main` has (`DialWithBalancerBody`, through
 `newUserClient`'s `clientv3.New`; watchkv's, cachekv's, ...), and the member's start with auth on
 (`authkv_startServer`, 2026-10-30: `Link.lean` links only `.spec`s): its named premises
-(`isValidSimpleToken`'s spec `auth.ValidSpec`, D22's `authSchemaSrv`) and hypotheses on the
+(D22's `authSchemaSrv`; auth-schema-fix S1, 2026-11-12: no longer the false `auth.ValidSpec`) and
+hypotheses on the
 semantics (`ErrorStringLeaf`). `Main.spec`'s named workload premises
 include `grpcRepliesFit` (2026-10-31, `grpc.start`'s: the replies' encoded size). -/
 theorem authkv_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [EtcdGrove.ErrorStringLeaf]
-    (hValid : auth.ValidSpec (GF := GF) (hG := hG)) (hD22 : ⊢ authSchemaSrv (GF := GF)) :
+    (hD22 : ⊢ authSchemaSrv (GF := GF)) :
     etcd_auth.Main.spec (GF := GF) (hG := hG) :=
-  etcd_auth.wp_Main (authkv_startServer hValid hD22)
+  etcd_auth.wp_Main (authkv_startServer hD22)
 
 /-- **`Permitted(who, k)` is `permittedK who k`** (`Link.lean`'s `etcd_auth.wp_Permitted`). -/
 theorem authkv_Permitted : etcd_auth.Permitted.spec (GF := GF) (hG := hG) :=
