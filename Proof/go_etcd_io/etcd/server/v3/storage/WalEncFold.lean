@@ -895,7 +895,35 @@ theorem readAllFold_zero_dev {C : WalCodec} {M : WalMarshal} {U : WalUnmarshal} 
     some (W64 5, W64 1) = walNewestPair (walValidSnaps I 0) ∧ walCommitLe I ∧
     walRead I = none ∧
     readAllFold U (W64 5, W64 1) true (recsOfSegs C M md [I]) .eof = .ok (md, h, [e]) := by
-  sorry
+  intro h e I
+  have hc : walLastHS I = h := by simp [I, walLastHS, phsNext, h]
+  have hhs : phsNext hsZero h = h := by simp [phsNext, h]
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · simp only [walValidSnaps, hc]; simp [I, h, walNewestPair]
+  · intro n τ' hf
+    have hkeep : I.filter (walKeep (uint.nat (walLastHS I).Commit')) = I := by
+      rw [hc]; simp [I, h, walKeep]
+    rw [hkeep] at hf
+    cases n with
+    | zero =>
+      simp only [List.take_zero, walFoldChkFrom, Option.some.injEq] at hf
+      subst hf; simp [walFresh, StorContents.commit, StorContents.last, StorContents.b]
+    | succ n =>
+      simp [I, walFoldChkFrom, readEnt, walFresh, e, StorContents.b] at hf
+  · unfold walRead
+    have hkeep : I.filter (walKeep (uint.nat (walLastHS I).Commit')) = I := by
+      rw [hc]; simp [I, h, walKeep]
+    rw [hkeep]
+    simp [I, walFoldChkFrom, readEnt, walFresh, e, StorContents.b]
+  · have hfold : ((recsOfSegs C M md [I]).map (fun r => (r.typ, r.data))).foldlM
+        (raStep U (W64 5, W64 1)) raInit = .ok ⟨some md, h, [e], true⟩ := by
+      rw [recsOfSegs_map]
+      simp only [segsDs, segHdrDs, ite_true, List.flatten_cons, List.flatten_nil, List.append_nil,
+        List.foldlM_append, raStep_hdr U M hU, raStep_flatMap U M hU]
+      rw [if_neg (by decide), except_ok_bind]
+      simp [I, goOp, readEnt, e, hhs]
+      rfl
+    exact readAllFold_of hfold rfl (Or.inl rfl)
 
 end fold
 
