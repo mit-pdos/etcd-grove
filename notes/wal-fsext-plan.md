@@ -1474,6 +1474,37 @@ contract.**
   encoder over `writerStreamP`, the cuts budget, `saveEntry`/`saveState`/`sync`/`Save`/`SaveSnapshot`/`Sync`
   (all still `sorry`).
 
+**W6, fourth session (branch `wal-save4`, 2026-11-13): the record boundary and the append's crash
+condition lifted to `CrashOkA`.**
+- *`TailBound`* (`Inv.lean`, decided): `walTailsRes` takes `C Mr` and its per-tail pure part gained
+  `TailBound C Mr d lay` beside `TailZeros`: some `jE ≤ |R|` (`R` the last segment's records) with
+  `|recFrames (R.take jE)| = max so z0`. Depends on `d` only through `H`/`metadata` (`TailBound.congr`), so
+  `walTailsRes_mono`/`walTailsRes_create` carry it. **Obligations it adds**: whoever adds a tail record
+  (`Create`, `ReadAll`) and whoever moves `so`/`z0`/the tail (`sync`'s commit: `so := wr` with `pend = []`,
+  `jE = |R|`; `cut`'s new segment) proves it.
+- *Proved, pure, no `sorry`* (`TailCrash.lean`): `lastRecs`/`lastC0`/`lastHdr`/`lastOps` (the last segment's
+  records split off, `lastRecs_eq`, `allRecs_split`, `chainEnd_allRecs_split`, `chainOk_lastRecs`);
+  `tailImg Mr d cuts n` (the history before the last cut, then `histCut` of the last segment: a `walImg`
+  when `n` covers the synced records, `tailImg_walImg`; its last records are the first `|hdr| + n`,
+  `lastRecs_tailImg`; `walImg_toRaw`); **`crashTo_tail`** (the reader's `j` from `tail_decode` to
+  `CrashTo`, the tree part from a `CrashTo` over any other image `fo0` of the tail; the fresh reader of W1G
+  and the chained one agree since a cut segment starts with its CRC record, intact below `so`,
+  `acceptsFrom_crc0`); **`crashOkA_tail`** (a step changing only the tail's bytes and `wr` keeps
+  `CrashOkA`: the old condition applied with the tail imaged as of the last sync, `syncImg`, on which W1G
+  holds by itself, `w1G_sync`); `walAbsD_so_pos` (for `SegFl.Ok`'s `0 < off`, `wal-create4`).
+- *`crashOkA_tail`'s hypotheses the step proofs must discharge*: the tail's `OsMeta.zf` is none or at least
+  its length (`MetaOk.zf` gives it from the state); the tail's length unchanged (in-size writes); **no
+  alternative layout holds the tail** (`halt`): true in practice (a cut's alternative is the layout
+  before its rename, whose segments are the new one's but the last), but `AltOk` says only "a prefix";
+  proposed: `AltOk` gains `lay0.segs.length < lay.segs.length` (`crashOkA_cut` has it from `cutLay`), a W2
+  file, not changed here.
+- *`walTailW`* (`Handle.lean`): the fd is any with write access (`∃ rd, osFd fd 1 ⟨i, rd, true⟩`;
+  `ReadAll`'s tail is `O_RDWR`).
+- *Not done*: the Iris step specs (`wp_tailPWriteStart`/`Finish`: open `walInv` via `wp_atomic_nc`, update
+  `F`/`Ls`, `crashOkA_tail` for the crash part, `walAbsD` of the announced layout), `wal.tailWriter`, the
+  PageWriter/encoder over `writerStreamP`, the cuts budget, `saveEntry`/`saveState`/`sync`/`Save`/
+  `SaveSnapshot`/`Sync` (still `sorry`).
+
 ## W3/W5 implementation log (branch `wal-read`, 2026-11-13)
 
 **Proved (no `sorry`, `lake build`):**
