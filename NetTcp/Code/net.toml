@@ -1,0 +1,23 @@
+# Project nettcp's `net` (etc/goose.py), in the part `NetTcp/`, modeled by the TCP extension
+# `tcpExt` (GooseLang/Ext/Tcp/Impl.lean; notes/net-tcp.md). Not the main tree's `net`
+# (Code/net.toml, names only), whose axioms etcd's server proofs use: the two are never in one
+# import closure.
+#
+# Translated: the interfaces (`Conn`, `Listener`, `Addr`, `Error`). Trusted
+# (NetTcp/TrustedCode/net.lean): `conn`, `TCPConn` (Go's `struct{ conn }`, so `*TCPConn`'s method
+# set is Go's, with `conn`'s methods promoted), `TCPListener` and `OpError` with the layouts the
+# models need (their instances in NetTcp/ManualProof/net.lean), and the functions and methods the
+# examples (examples/net/) call.
+# (`TCPConn.Read`, ...: `conn`'s methods promoted to `*TCPConn`, so that goose emits their
+# `MethodUnfold` facts, Go's promotion through the embedded field: a `Conn` holding a `*TCPConn`.)
+translate = ["!*", "Conn", "Listener", "Addr", "Error",
+  "TCPConn.Read", "TCPConn.Write", "TCPConn.Close",
+  "TCPConn.SetDeadline", "TCPConn.SetReadDeadline", "TCPConn.SetWriteDeadline"]
+imports = ["!*", "io", "time"]
+trusted = ["conn", "TCPConn", "TCPListener", "OpError",
+  "Listen", "Dial",
+  "conn.Read", "conn.Write", "conn.Close",
+  "conn.SetDeadline", "conn.SetReadDeadline", "conn.SetWriteDeadline",
+  "TCPConn.CloseWrite",
+  "TCPListener.Accept", "TCPListener.Close",
+  "OpError.Error", "OpError.Timeout", "OpError.Temporary"]

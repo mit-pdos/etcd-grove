@@ -667,6 +667,23 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "osfs", "walfs")],
     ),
     Project(
+        name="nettcp",
+        # The TCP extension's `net` and the programs proved over it (`examples/net/`,
+        # notes/net-tcp.md): this repository's translation of `net` (the interfaces; `conn`, `TCPConn`,
+        # `TCPListener`, `OpError` and the functions the examples call trusted,
+        # `NetTcp/TrustedCode/net.lean`, over `tcpExt`, `GooseLang/Ext/Tcp`), and the examples'
+        # packages. In the part `NetTcp/` (configured by `NetTcp/Code/**.toml`): the main tree's
+        # `net` is names only, with the axioms etcd's server proofs use, so the part declares the
+        # same names and nothing outside it imports it. A package of the examples' Go module.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "net"),
+        root="NetTcp",
+        lean_roots=["github.com/mit-pdos/etcd-grove=NetTcp", "net=NetTcp"],
+        packages=["net", "./wire", "./echo"],
+        owned=["net", os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "net")],
+    ),
+    Project(
         name="durablekv",
         # kv made durable (`examples/raft/kvfile`): each replica's raft state in a file of the
         # durable package, rewritten whole before the messages that depend on it are sent;

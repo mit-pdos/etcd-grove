@@ -77,5 +77,14 @@ globs = ["Bbolt.+"]
 name = "LinuxFs"
 globs = ["LinuxFs.+"]
 
+# The TCP extension's `net` (`GooseLang/Ext/Tcp`, notes/net-tcp.md) with the programs proved over
+# it (examples/net/), in a parallel tree with the same layout
+# (NetTcp/{Code,TrustedCode,GeneratedProof,ManualProof,Spec,Proof}/; etc/goose.py's project
+# nettcp): the main tree's `net` is names only, with the axioms etcd's server proofs use, so the
+# two declare the same names; nothing outside NetTcp imports it.
+[[lean_lib]]
+name = "NetTcp"
+globs = ["NetTcp.+"]
+
 [leanOptions]
 linter.unusedSectionVars = false
