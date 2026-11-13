@@ -29,11 +29,35 @@ open Iris Fs WalEnc
 section cutlay
 variable [GooseExts]
 
+/-- An extra cut at the end adds an empty segment. -/
+theorem segsOf_snoc_end (H : WalHist) (cuts : List Nat) :
+    segsOf H (cuts ++ [H.length]) = segsOf H cuts ++ [[]] := by
+  unfold segsOf
+  rw [show (0 :: (cuts ++ [H.length])) = (0 :: cuts) ++ [H.length] by simp,
+    List.zip_append (by simp)]
+  simp
+
+theorem length_segsOf (H : WalHist) (cuts : List Nat) : (segsOf H cuts).length = cuts.length + 1 := by
+  simp [segsOf]
+
+theorem chainSegs_append_ex (C : WalCodec) :
+    ∀ (c : w32) (A B : List (List (w64 × List w8))), ∃ X, chainSegs C c (A ++ B) = chainSegs C c A ++ X
+  | c, [], B => ⟨chainSegs C c B, by simp [chainSegs]⟩
+  | c, D :: A, B => by
+    obtain ⟨X, hX⟩ := chainSegs_append_ex C (crcAfter C c D) A B
+    exact ⟨X, by simp [chainSegs, hX]⟩
+
 /-- **An extra cut at the history's end leaves the earlier segments' records.** -/
 theorem segRecs_snoc (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (cuts : List Nat) (k : Nat)
     (hk : k ≤ cuts.length) :
     (segRecs C Mr d (cuts ++ [d.H.length])).getD k [] = (segRecs C Mr d cuts).getD k [] := by
-  sorry
+  have hN : d.H.length = (histM d).length := by simp [histM]
+  rw [segRecs, segRecs, hN, segsOf_snoc_end, segsDs_append]
+  obtain ⟨X, hX⟩ := chainSegs_append_ex C 0#32 (segsDs Mr d.metadata true [] (segsOf (histM d) cuts))
+    (segsDs Mr d.metadata _ _ [[]])
+  rw [hX, List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD, List.getElem?_append_left]
+  rw [length_chainSegs, length_segsDs, length_segsOf]
+  omega
 
 /-- **The static relation after a cut's rename** (see the file header). The old layout: its last
 segment `g0` synced and truncated at its stream (`hlast0`), the history synced (`hm`), its end a cut
