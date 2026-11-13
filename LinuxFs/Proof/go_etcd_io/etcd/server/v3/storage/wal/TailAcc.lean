@@ -8,6 +8,9 @@ then the tail `g0`), the tail's part (`segResF`, idle or with a write in flight)
 of the record, which agrees with the handle's; and they are given back with the tail replaced by
 any `g` and the write position by any `wr'`, the writes in flight changed on the tail only, as long
 as the static relation holds of the new layout (`walsOk_tail`, `TailStepPure.lean`, does the rest).
+The caller lends its half of the tail's `OsMeta` while the tail is idle (`tailHeld`): with the
+invariant's half, it shows the tail out of the parked state (`walParkedIn_of_halves`), so that a
+change may start on it (gap B: a change in flight only on a segment out).
 
 Also `osBytes_agree` (two runs of a file's bytes of the same length agree) and `osN_sub_nwal`.
 -/
@@ -15,6 +18,7 @@ module
 
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.TailStepPure
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateAuLemmas
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Parked
 
 @[expose] public section
 
@@ -212,20 +216,57 @@ theorem segsAll_sep_tail (Φ : SegG → IProp GF) (Ls : GMap GoString WalLay) (d
   refine (BigSepL.bigSepL_singleton (PROP := IProp GF) (Φ := fun _ x => Φ x)).1.trans ?_
   exact hΦ.trans (BigSepL.bigSepL_singleton (PROP := IProp GF) (Φ := fun _ x => Φ x)).2
 
-/-- **The parked halves with a tail replaced** by one of the same inode and length. -/
-theorem walParked_tail (Ls : GMap GoString WalLay) (cl : List Claim) (dir : GoString) (lay : WalLay)
+/-- **The caller's half of its tail's `OsMeta` while the tail is idle** (`walInvBody_tail`'s loan):
+nothing with a change in flight (the change's token holds it). -/
+def tailHeld (tg : TailG) (m : OsMeta) : IProp GF :=
+  match tg.2.2.2.2.2 with
+  | none => osMeta (L := L) tg.2.2.2.2.1 (DFrac.own (1 : Qp).half) m
+  | some _ => emp
+
+/-- **The tail is out of the parked state** (gap B): with a change in flight on it by the invariant's
+fact, idle by the caller's half and the invariant's. -/
+theorem walParkedIn_tail (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMap Ino SegFl)
+    (g0 : SegG) (hg0 : g0 ∈ segsAll Ls) (tg : TailG) (m : OsMeta)
+    (htg : tg.2.2.2.2.1 = g0.ino ∧ tg.2.2.2.2.2 = F !! g0.ino) :
+    walParked (L := L) (W := W) Ls cl F ∗ segResF (L := L) F g0 ∗ tailHeld (L := L) tg m ⊢
+      walParkedIn (L := L) (W := W) Ls cl F g0.ino ∗ segResF (L := L) F g0 ∗ tailHeld (L := L) tg m := by
+  cases hF : F !! g0.ino with
+  | some fl =>
+    iintro ⟨Hp, Hs, Hh⟩
+    iframe Hs Hh
+    iapply walParkedIn_of_fl (L := L) Ls cl F g0.ino (by rw [hF]; simp) $$ Hp
+  | none =>
+    have e1 : segResF (L := L) F g0 = segRes (L := L) g0 := by unfold segResF; rw [hF]
+    have e2 : tailHeld (L := L) tg m = osMeta (L := L) g0.ino (DFrac.own (1 : Qp).half) m := by
+      unfold tailHeld; rw [htg.2, hF]; dsimp only; rw [htg.1]
+    rw [e1, e2]
+    unfold segRes
+    iintro ⟨Hp, ⟨Hm, Hb⟩, Hh⟩
+    icases walParkedIn_of_halves (L := L) Ls cl F g0 hg0 g0.om m $$ [Hp Hm Hh] with ⟨Hp, Hm, Hh⟩
+    · iframe Hp Hm Hh
+    iframe Hp Hm Hb Hh
+
+/-- **The parked halves with a tail replaced** by one of the same inode and length, the changes in
+flight changed on the tail only, which is out. -/
+theorem walParked_tail (Ls : GMap GoString WalLay) (cl : List Claim) (F F' : GMap Ino SegFl)
+    (dir : GoString) (lay : WalLay)
     (pre : List SegG) (g0 g : SegG) (wr' : Nat) (hl : Ls !! dir = some lay)
-    (hs : lay.segs = pre ++ [g0]) (hino : g.ino = g0.ino) (hlen : g.bs.length = g0.bs.length) :
-    walParked (L := L) (W := W) Ls cl ⊢
-      walParked (L := L) (W := W) (<[dir := tailLay lay pre g wr']> Ls) cl := by
-  unfold walParked
-  iintro ⟨%b, %O, %D, Ha, %hb, Hs, Hc, Ht⟩
-  iexists b, O, D
-  iframe Ha
+    (hs : lay.segs = pre ++ [g0]) (hino : g.ino = g0.ino) (hlen : g.bs.length = g0.bs.length)
+    (hF : ∀ i, i ≠ g0.ino → F' !! i = F !! i) :
+    walParkedIn (L := L) (W := W) Ls cl F g0.ino ⊢
+      walParked (L := L) (W := W) (<[dir := tailLay lay pre g wr']> Ls) cl F' := by
+  unfold walParkedIn walParked
+  iintro ⟨%b, %o, Ha, Hoa, %hp, Hs, Hc, Ht⟩
+  iexists b, o
+  iframe Ha Hoa
   isplitr
-  · ipureintro; exact hb
+  · ipureintro
+    intro i hi
+    by_cases he : i = g0.ino
+    · rw [he]; exact hp.2
+    · rw [hF i he] at hi; exact hp.1 i hi
   isplitl [Hs]
-  · iapply segsAll_sep_tail (fun x => iprop(if x.ino ∈ O then emp else segResP (L := L) x)) Ls dir
+  · iapply segsAll_sep_tail (fun x => iprop(if x.ino ∈ o.O then emp else segResP (L := L) x)) Ls dir
       lay pre g0 g wr' hl hs ?_ $$ Hs
     rw [hino]
     split
@@ -234,22 +275,23 @@ theorem walParked_tail (Ls : GMap GoString WalLay) (cl : List Claim) (dir : GoSt
       rw [hino, hlen]
   isplitl [Hc]
   · iapply BigSepL.bigSepL_mono (fun {k c} _ => ?_) $$ Hc
-    have e : ParkedClaim (<[dir := tailLay lay pre g wr']> Ls) D c ↔ ParkedClaim Ls D c := by
+    have e : ParkedClaim (<[dir := tailLay lay pre g wr']> Ls) o.D c ↔ ParkedClaim Ls o.D c := by
       unfold ParkedClaim; rw [walDirClaimOf_tail hl c]
     simp only [propext e]
     exact .rfl
-  · iapply walTmpParked_insert Ls b dir lay (tailLay lay pre g wr') hl rfl $$ Ht
+  · iapply walTmpParked_insert Ls o.T dir lay (tailLay lay pre g wr') hl rfl $$ Ht
 
-/-- **The tail's access** (see the file header). -/
+/-- **The tail's access** (see the file header): the caller lends its half of the tail's `OsMeta`
+while the tail is idle (`tailHeld`, given back). -/
 theorem walInvBody_tail (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots) (jr : Ino)
-    (r : GoString) (s : AbsDiskState) (dir : GoString) (γ : GName) (tg : TailG) :
+    (r : GoString) (s : AbsDiskState) (dir : GoString) (γ : GName) (tg : TailG) (m : OsMeta) :
     ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walTailKey (W := W) dir γ -∗
-      tailVar (W := W) γ tg -∗
+      tailVar (W := W) γ tg -∗ tailHeld (L := L) tg m -∗
       ∃ (F : GMap Ino SegFl) (d : WalDur) (lay : WalLay) (pre : List SegG) (g0 : SegG),
         ⌜s.wal !! dir = some d ∧ lay.segs = pre ++ [g0] ∧ tg = tailG d lay g0.ino (F !! g0.ino) ∧
           (∃ ents, WalAbsD C Mr d lay ents) ∧ g0.om.cut = none⌝ ∗
         segResF (L := L) F g0 ∗ walTailKey (W := W) dir γ ∗ tailVar (W := W) γ tg ∗
-        tailVar (W := W) γ tg ∗
+        tailVar (W := W) γ tg ∗ tailHeld (L := L) tg m ∗
         (∀ (g : SegG) (wr' : Nat) (F' : GMap Ino SegFl),
           ⌜g.ino = g0.ino ∧ g.om.cut = none ∧ g.bs.length = g0.bs.length ∧
             ((∀ z, g0.om.zf = some z → g0.bs.length ≤ z) ∧ SegExact g0 ∧ SegExact g) ∧
@@ -260,7 +302,7 @@ theorem walInvBody_tail (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
           walInvBody (L := L) (W := W) C Mr R jr r s) := by
   letI := walAllG (W := W)
   unfold tailVar
-  iintro Hb Hk Hv
+  iintro Hb Hk Hv Hh
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hn, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
     ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt⟩
@@ -286,9 +328,14 @@ theorem walInvBody_tail (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
   rw [hs]
   icases (BigSepL.bigSepL_append (PROP := IProp GF)).1 $$ Hsegs with ⟨Hpre, Hlast⟩
   icases (BigSepL.bigSepL_singleton (PROP := IProp GF)).1 $$ Hlast with Hlast
+  -- the tail is out of the parked state (gap B)
+  icases walParkedIn_tail (L := L) Ls cl F g0 (mem_segsAll hl hg0m) tg m
+    (by rw [Htg]; exact ⟨rfl, rfl⟩) $$ [Hpk Hlast Hh] with ⟨Hpk, Hlast, Hh⟩
+  · iframe Hpk Hlast Hh
   iexists F, d, lay, pre, g0
   isplitr
   · ipureintro; exact ⟨hd, hs, Htg, ⟨_, habs⟩, hcut0⟩
+  iframe Hh
   rw [Htg]
   iframe Hlast Hk Hv Hv'
   iintro %g %wr' %F' %hp Hseg Hvn
@@ -363,7 +410,7 @@ theorem walInvBody_tail (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
   isplitr
   · ipureintro; exact walsNamed_tail hl hs hname hino HNm
   isplitl [Hpk]
-  · iapply walParked_tail Ls cl dir lay pre g0 g wr' hl hs hino hlen $$ Hpk
+  · iapply walParked_tail Ls cl F F' dir lay pre g0 g wr' hl hs hino hlen hF' $$ Hpk
   isplitl [Hdk Hcp]
   · iexists K, cp
     iframe Hdk Hcp
