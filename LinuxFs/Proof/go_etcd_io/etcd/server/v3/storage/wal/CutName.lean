@@ -133,6 +133,23 @@ theorem scanWalName_walFileName (sq ix : Nat) :
       fmt.hexPad 16 (uint.nat (BitVec.ofNat 64 ix)), by simp [fmt.walNameStr]⟩, ?_⟩
   exact fmt.scanWalName_walNameStr _ _
 
+/-- **`cut`'s new segment name** (`walName(w.seq()+1, next+1)`): the next sequence, the index past
+`next`, neither wrapping. -/
+theorem cutName_str (sq mx : Nat) (nx : w64) (hs : sq + 1 < 2 ^ 64) (hm : mx + 1 < 2 ^ 64)
+    (hnx : uint.nat nx = mx) :
+    fmt.walNameStr (W64 sq + W64 1) (nx + W64 1) = walFileName (sq + 1) (mx + 1) := by
+  rw [walFileName_walNameStr]
+  congr 1
+  · apply BitVec.eq_of_toNat_eq
+    simp only [W64, BitVec.toNat_add, BitVec.toNat_ofNat]
+    rw [BitVec.toNat_ofInt, BitVec.toNat_ofInt]
+    omega
+  · apply BitVec.eq_of_toNat_eq
+    simp only [W64, BitVec.toNat_add, BitVec.toNat_ofNat]
+    rw [BitVec.toNat_ofInt]
+    have : nx.toNat = mx := hnx
+    omega
+
 end pure
 
 end WalFs
