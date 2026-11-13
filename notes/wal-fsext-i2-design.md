@@ -905,9 +905,11 @@ Done, proved (no `sorry`):
 - **The `fmtErrorOk` facts**: `LinkError.Error` is now translated (`LinuxFs/Code/os.toml`, one
   method added; `LinuxFs/Code/os.lean` regenerated, `GeneratedProof` unchanged); in
   `LinuxFs/Proof/os/ErrorOk.lean`: `linkError_fmtErrorOk`, `wp_linkError_ok` (`model.linkError` of
-  a nonzero errno) and `wp_pathError_ok` (`model.pathError` of a nonzero errno). The shared specs'
-  posts do not yet state them (adding `fmtErrorOkOrNil err` to `os.Rename.specFileS` & co. is a
-  statement change for their WAL callers: left to the coordinator).
+  a nonzero errno) and `wp_pathError_ok` (`model.pathError` of a nonzero errno).
+- **Statement change (coordinator's request, for `fileutil.LockFile`)**: the error branch of the
+  shared `OpenFile` specs (`os.OpenFile.specCreateS`, `specCreateTruncS`, `wp_fileS`, `wp_truncS`)
+  is now `⌜err ≠ nil ∧ f = null⌝ ∗ fmtErrorOkOrNil err` (proved over `wp_pathError_ok`); nothing
+  else changed. `Rename`/`Remove`/`Mkdir`'s shared specs do not state it yet.
 
 **`RemoveAll`: the decided guard-call design is unsound as stated; not implemented.** The proposal
 (guard calls that never log, tracked apart from `Γc`, exempt from `TreeCohS.after`/`whole`,
