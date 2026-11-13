@@ -34,6 +34,7 @@ public import GooseLang.Ext.Fs.TreeSharedSwitch
 public import GooseLang.Ext.Fs.TreeSharedCrash
 public import GooseLang.Ext.Fs.TreeSharedLaws
 public import GooseLang.Ext.Fs.TreeSharedClaims
+public import GooseLang.Ext.Fs.TreeSharedDirFd
 
 @[expose] public section
 
@@ -346,20 +347,20 @@ theorem wp_osDirSyncS (R : Roots) (fd : w64) (j : Ino) (ph : DirPhS) (n : Nat) (
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osDirFdS (L := L) fd j ph -∗
       osLogLb (L := L) n -∗
       (∀ e : w64, osDirFdS (L := L) fd j ph -∗ (⌜e ≠ 0⌝ ∨ osCommitLb (L := L) n) -∗ Φ (#e)) -∗
-      WP (ExternalOp fsExt.name "DirSync" (Val (#fd))) @ s; E {{ Φ }} := by
-  sorry
+      WP (ExternalOp fsExt.name "DirSync" (Val (#fd))) @ s; E {{ Φ }} :=
+  wp_osDirSyncS' R fd j ph n hE hE' Φ
 
 /-- **`close(2)` of a shared directory fd.** -/
 theorem wp_osDirCloseS (fd : w64) (j : Ino) (ph : DirPhS) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osDirFdS (L := L) fd j ph -∗ (∀ e : w64, Φ (#e)) -∗
-      WP (ExternalOp fsExt.name "DirClose" (Val (#fd))) @ s; E {{ Φ }} := by
-  sorry
+      WP (ExternalOp fsExt.name "DirClose" (Val (#fd))) @ s; E {{ Φ }} :=
+  wp_osDirCloseS' fd j ph hE Φ
 
 /-- **`FdKind` of a shared directory fd**: a directory's. -/
 theorem wp_osFdKindDirS (fd : w64) (j : Ino) (ph : DirPhS) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osDirFdS (L := L) fd j ph -∗ (osDirFdS (L := L) fd j ph -∗ Φ (#(1 : w64))) -∗
-      WP (ExternalOp fsExt.name "FdKind" (Val (#fd))) @ s; E {{ Φ }} := by
-  sorry
+      WP (ExternalOp fsExt.name "FdKind" (Val (#fd))) @ s; E {{ Φ }} :=
+  wp_osFdKindDirS' fd j ph hE Φ
 
 /-- **One step of a read of a shared directory fd**, with a claim on the names `N` (a fraction;
 nothing of them changed since the read began, `h.next ≤ r0`): a name (in `N`: one there, not yet
