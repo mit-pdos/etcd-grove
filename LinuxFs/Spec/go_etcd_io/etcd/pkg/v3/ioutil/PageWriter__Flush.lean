@@ -27,8 +27,9 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 /-- See the file header. -/
 abbrev go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Flush.spec : Prop :=
   ∀ (pw : Loc) (wi : GoInterfaceOk) (W : List w8 → IProp GF) (B : List w8 → List w8 → IProp GF)
-    (out pend : List w8),
-  ⊢ io.writerStream wi W B -∗
+    (lim : Nat) (out pend : List w8),
+  out.length + pend.length ≤ lim →
+  ⊢ io.writerStream wi lim W B -∗
     {{ ioutil.ownPageWriter pw wi pend ∗ W out }}
       (App (Val (pw @!! go.GoType.PointerType go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.ty @!!
         go!"Flush")) (Val #()))

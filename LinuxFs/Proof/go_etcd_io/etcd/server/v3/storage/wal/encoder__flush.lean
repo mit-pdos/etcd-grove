@@ -30,7 +30,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.wp_proof
     (wp_Unlock : sync.Mutex.Unlock.spec (GF := GF) (hG := hG))
     (wp_Flush : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Flush.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.spec (GF := GF) (hG := hG) := by
-  intro e wi W B out pend c
+  intro e wi W B lim out pend c hlim
   iintro #Hw
   wp_start as ⟨#Henv, He, Hout⟩
   iunfold encEnv at Henv
@@ -44,7 +44,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.wp_proof
   wp_apply wp_Lock $$ [] as ⟨Hown, -⟩
   · iexact Hmu
   try wp_auto
-  wp_apply (wp_Flush pw wi W B out pend) $$ [Hw] [Hpw Hout] as %err ⟨Hpw, Hres⟩
+  wp_apply (wp_Flush pw wi W B lim out pend hlim) $$ [Hw] [Hpw Hout] as %err ⟨Hpw, Hres⟩
   · iexact Hw
   · iframe
   try wp_auto

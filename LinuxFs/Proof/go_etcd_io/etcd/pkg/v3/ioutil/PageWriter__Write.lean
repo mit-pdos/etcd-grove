@@ -24,9 +24,9 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 
 /-- `Write` when `p` fits below the watermark: it is copied into the buffer (the first branch). -/
 theorem ioutil.wp_Write_fits (pw : Loc) (wi : GoInterfaceOk) (W : List w8 → IProp GF)
-    (B : List w8 → List w8 → IProp GF) (out pend : List w8) (p : GoSlice) (xs : List w8) (dq : DFrac)
+    (B : List w8 → List w8 → IProp GF) (lim : Nat) (out pend : List w8) (p : GoSlice) (xs : List w8) (dq : DFrac)
     (hxs : xs.length < 2 ^ 62) (hfit : pend.length + xs.length ≤ 131072) :
-    ⊢ io.writerStream wi W B -∗
+    ⊢ io.writerStream wi lim W B -∗
     {{ ioutil.ownPageWriter pw wi pend ∗ W out ∗ p ↦*{dq} xs }}
       (App (Val (pw @!! go.GoType.PointerType go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.ty @!!
         go!"Write")) (Val #p))
@@ -100,10 +100,10 @@ set_option maxHeartbeats 1000000 in
 theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Write.wp_proof
     (wp_Flush : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Flush.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Write.spec (GF := GF) (hG := hG) := by
-  intro pw wi W B out pend p xs dq hxs
+  intro pw wi W B lim out pend p xs dq hxs hlim
   by_cases hfit : pend.length + xs.length ≤ 131072
   · iintro #Hw
-    ihave #Hf := ioutil.wp_Write_fits pw wi W B out pend p xs dq hxs hfit $$ Hw
+    ihave #Hf := ioutil.wp_Write_fits pw wi W B lim out pend p xs dq hxs hfit $$ Hw
     iintro !> %Φ Hpre HΦ
     iapply Hf $$ Hpre
     iintro !> %n %err ⟨%Hr, Hout, Hpw, Hp⟩
@@ -305,7 +305,8 @@ theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Write.wp_proof
     ⟨%Hret, n, err, Hout, pw, Hpw, Hp⟩)
   · subst Hv0
     wp_auto
-    wp_apply (wp_Flush pw wi W B out _) $$ [Hw] [Hpw Hout] as %err0 ⟨Hpw, Hres⟩
+    wp_apply (wp_Flush pw wi W B lim out (List.take (sint.nat bb) bs ++ List.take k xs)
+      (by simp only [List.length_append, List.length_take]; omega)) $$ [Hw] [Hpw Hout] as %err0 ⟨Hpw, Hres⟩
     · iexact Hw
     · iframe
     icases Hres with (⟨%Herr0, Hout⟩ | ⟨%Herr0, Hbad⟩)
@@ -388,7 +389,7 @@ theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Write.wp_proof
       icases (ownSlice_split_all (V := w8) P s' _ (xs.drop k) hsP).1 $$ Hs' with ⟨H1, H2⟩
       wp_auto
       unfold io.writerStream
-      wp_apply Hw $$ [Hout H1] as %c %werr ⟨H1, Hres⟩
+      wp_apply Hw $$ %(out ++ ys) %_ %(List.take (sint.nat P) (List.drop k xs)) %_ %(by rw [hys]; simp only [List.length_append, List.length_take, List.length_drop]; omega) [Hout H1] as %c %werr ⟨H1, Hres⟩
       · iframe
       icases Hres with (⟨%Hc, Hout⟩ | ⟨%Herr, Hbad⟩)
       rotate_left
@@ -438,7 +439,7 @@ theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Write.wp_proof
         exact ⟨rfl, rfl, Hok20, Hpend2⟩
       have hdP : ((xs.drop k).drop (sint.nat P)).length = xs.length - k - sint.nat P := by
         rw [List.length_drop, hdk]
-      wp_apply (ioutil.wp_Write_fits pw wi W B (out ++ ys ++ (List.take (sint.nat P) (List.drop k xs))) [] _ ((xs.drop k).drop (sint.nat P))
+      wp_apply (ioutil.wp_Write_fits pw wi W B lim (out ++ ys ++ (List.take (sint.nat P) (List.drop k xs))) [] _ ((xs.drop k).drop (sint.nat P))
           dq (by rw [hdP]; omega) (by rw [List.length_nil, hdP]; omega)) $$ [Hw] [Hpw Hout H2]
           as %c2 %werr2 ⟨%Hc2, Hout, Hpw, H2⟩
       · unfold io.writerStream; iexact Hw
@@ -486,7 +487,7 @@ theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Write.wp_proof
         iframe
         ipureintro
         exact ⟨rfl, rfl, Hok20, Hpend2⟩
-      wp_apply (ioutil.wp_Write_fits pw wi W B (out ++ ys) [] s' (xs.drop k) dq
+      wp_apply (ioutil.wp_Write_fits pw wi W B lim (out ++ ys) [] s' (xs.drop k) dq
           (by rw [hdk]; omega) hfit2) $$ [Hw] [Hpw Hout Hs'] as %c %werr ⟨%Hc, Hout, Hpw, Hs'⟩
       · iexact Hw
       · iframe

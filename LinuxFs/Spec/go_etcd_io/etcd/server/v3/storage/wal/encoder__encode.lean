@@ -36,9 +36,10 @@ variable [go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 /-- See the file header. -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.spec : Prop :=
   ∀ (e : Loc) (wi : GoInterfaceOk) (W : List w8 → IProp GF) (B : List w8 → List w8 → IProp GF)
-    (out pend : List w8) (c : w32) (rp : Loc) (t : w64) (d : List w8),
+    (lim : Nat) (out pend : List w8) (c : w32) (rp : Loc) (t : w64) (d : List w8),
   recSize (recOf ⟨t, hash.crc32.crc32c c d, d⟩) < 2 ^ 47 →
-  ⊢ io.writerStream wi W B -∗
+  out.length + pend.length + (frame (walRecEnc ⟨t, hash.crc32.crc32c c d, d⟩)).length ≤ lim →
+  ⊢ io.writerStream wi lim W B -∗
     {{ encEnv ∗ ownEncoder e wi c pend ∗ W out ∗ encRecIn rp t d }}
       (App (Val (e @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.encoder.ty @!!
         go!"encode")) (Val #rp))

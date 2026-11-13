@@ -42,7 +42,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proof
     (wp_pad : go_etcd_io.etcd.server.v3.storage.wal.prepareDataWithPadding.spec (GF := GF) (hG := hG))
     (wp_write : go_etcd_io.etcd.server.v3.storage.wal.write.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.spec (GF := GF) (hG := hG) := by
-  intro e wi W B out pend c rp t d hsz
+  intro e wi W B lim out pend c rp t d hsz hlim
   iintro #Hw
   wp_start as ⟨#Henv, He, Hout, Hr⟩
   iunfold encRecIn at Hr
@@ -122,11 +122,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proof
       $$ [Hdat Hcap] as %dat2 ⟨Hdat2, Hcap2, -⟩
     · iframe
     try wp_auto
-    wp_apply (wp_write pw wi W B out pend u us dat2
+    wp_apply (wp_write pw wi W B lim out pend u us dat2
       (recEnc (recOf ⟨t, hash.crc32.crc32c c d, d⟩) ++ List.replicate
         (framePad (recEnc (recOf ⟨t, hash.crc32.crc32c c d, d⟩)).length) (0#8)) (DFrac.own 1) _ Hus
       (by have := framePad_lt (recEnc (recOf ⟨t, hash.crc32.crc32c c d, d⟩)).length
-          simp only [List.length_append, List.length_replicate]; omega))
+          simp only [List.length_append, List.length_replicate]; omega)
+      (by simp only [WalEnc.frame, walRecEnc, WalEnc.encodeFrameSize, List.length_append,
+            u64Le_length, List.length_replicate] at hlim ⊢; omega))
       $$ [Hw] [Hpw Hout Hus Hdat2] as %err ⟨%pend', Hpw, Hus, Hdat2, Hres⟩
     · iexact Hw
     · iframe
@@ -196,11 +198,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proof
       $$ [Hb' Hc'] as %dat2 ⟨Hdat2, Hcap2, Hback⟩
     · iframe
     try wp_auto
-    wp_apply (wp_write pw wi W B out pend u us dat2
+    wp_apply (wp_write pw wi W B lim out pend u us dat2
       (recEnc (recOf ⟨t, hash.crc32.crc32c c d, d⟩) ++ List.replicate
         (framePad (recEnc (recOf ⟨t, hash.crc32.crc32c c d, d⟩)).length) (0#8)) (DFrac.own 1) _ Hus
       (by have := framePad_lt (recEnc (recOf ⟨t, hash.crc32.crc32c c d, d⟩)).length
-          simp only [List.length_append, List.length_replicate]; omega))
+          simp only [List.length_append, List.length_replicate]; omega)
+      (by simp only [WalEnc.frame, walRecEnc, WalEnc.encodeFrameSize, List.length_append,
+            u64Le_length, List.length_replicate] at hlim ⊢; omega))
       $$ [Hw] [Hpw Hout Hus Hdat2] as %err ⟨%pend', Hpw, Hus, Hdat2, Hres⟩
     · iexact Hw
     · iframe

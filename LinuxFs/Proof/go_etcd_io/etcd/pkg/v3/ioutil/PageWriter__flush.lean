@@ -23,7 +23,7 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 
 theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.flush.wp_proof :
     go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.flush.spec (GF := GF) (hG := hG) := by
-  intro pw wi W B out pend
+  intro pw wi W B lim out pend hlim
   iintro #Hw
   wp_start as ⟨Hpw, Hout⟩
   iunfold ioutil.ownPageWriter at Hpw
@@ -64,7 +64,7 @@ theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.flush.wp_proof :
     icases (ownSlice_split_all bb buf _ bs ⟨hbb0, hbblen⟩).1 $$ Hbuf with ⟨Hb1, Hb2⟩
     wp_auto
     unfold io.writerStream
-    wp_apply Hw $$ [Hout Hb1] as %n %err ⟨Hb1, Hres⟩
+    wp_apply Hw $$ %out %_ %_ %_ %(by simp only [List.length_take] at hlim ⊢; omega) [Hout Hb1] as %n %err ⟨Hb1, Hres⟩
     · iframe
     ihave Hbuf := (ownSlice_split_all bb buf _ bs ⟨hbb0, hbblen⟩).2 $$ [Hb1 Hb2]
     · iframe

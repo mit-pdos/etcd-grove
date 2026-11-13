@@ -32,9 +32,9 @@ variable [go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 /-- See the file header. -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.write.spec : Prop :=
   ∀ (pw : Loc) (wi : GoInterfaceOk) (W : List w8 → IProp GF) (B : List w8 → List w8 → IProp GF)
-    (out pend : List w8) (u : GoSlice) (us : List w8) (d : GoSlice) (ds : List w8) (dq : DFrac) (lenField : w64),
-  us.length = 8 → ds.length < 2 ^ 62 →
-  ⊢ io.writerStream wi W B -∗
+    (lim : Nat) (out pend : List w8) (u : GoSlice) (us : List w8) (d : GoSlice) (ds : List w8) (dq : DFrac) (lenField : w64),
+  us.length = 8 → ds.length < 2 ^ 62 → out.length + pend.length + 8 + ds.length ≤ lim →
+  ⊢ io.writerStream wi lim W B -∗
     {{ encEnv ∗ ioutil.ownPageWriter pw wi pend ∗ W out ∗ u ↦* us ∗ d ↦*{dq} ds }}
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.write))
         (Val #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.ty)
