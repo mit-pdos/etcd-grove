@@ -6,7 +6,7 @@ rest. Lean-first; untrusted.
 -/
 module
 
-public import LinuxFs.Proof.os.RemoveAllLeaf
+public import LinuxFs.Proof.os.RemoveAllDir
 
 @[expose] public section
 
@@ -59,54 +59,6 @@ theorem os.osPathS_facts (R : Roots) (d : GoString) (dq : DFrac) (j : Ino) (b : 
   rcases hc with hc | rfl
   · exact hcs c hc
   · exact hb
-
-/-- `open` loop (read-only) of the directory `j` (a spine to it): an error, or a shared directory
-fd on it. -/
-theorem os.model.wp_openLoop_spine (p : GoString) (R : Roots) (j : Ino) (dq : DFrac) (qc : Qp) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq j ∗ osCallPerm qc }}
-      (App (Val os.model.openLoop) (Val #p))
-    {{ (fd e : w64), RET (PairV #fd #e); osPathS R p dq j ∗ osCallPerm qc ∗
-        (⌜e ≠ 0⌝ ∨ ⌜e = 0⌝ ∗ osDirFdS fd j .idle) }} := by
-  wp_start as ⟨#Hos, #Hsi, Hp, Hperm⟩
-  imod osLogLb_0 with #Hlb
-  iloeb as IH generalizing Hperm Hp
-  wp_apply +noauto wp_osCallBeginS R qc 0 CoPset.subseteq_top CoPset.subseteq_top
-    $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
-  iclear Hls
-  wp_auto
-  wp_apply +noauto wp_osOpenDirS R p j dq t s0 qc CoPset.subseteq_top CoPset.subseteq_top
-    $$ Hos Hsi Hp Hk as %fd %e %hres Hperm Hp Hfd
-  wp_auto
-  by_cases he0 : e = W64 0
-  · subst he0
-    ihave Hfd := Hfd $$ %rfl
-    rw [decide_eq_false (show W64 0 ≠ W64 4 by decide)]
-    wp_auto
-    iapply HΦ
-    iframe
-    iright
-    iframe
-    ipureintro; rfl
-  · iclear Hfd
-    by_cases he4 : e = W64 4
-    · rw [decide_eq_true he4]
-      wp_auto
-      iapply IH $$ Hperm Hp HΦ
-    rw [decide_eq_false he4]
-    wp_auto
-    iapply HΦ
-    iframe
-    ileft; ipureintro; exact he0
-
-/-- `model.closeFd` of a shared directory fd. -/
-theorem os.model.wp_closeFd_dir (fd : w64) (j : Ino) (ph : DirPhS) :
-    {{ osInv (GF := GF) ∗ osDirFdS fd j ph }}
-      (App (Val os.model.closeFd) (Val #fd))
-    {{ RET #(); True }} := by
-  wp_start as ⟨#Hos, Hfd⟩
-  wp_apply wp_osFdKindDirS fd j ph CoPset.subseteq_top $$ Hos Hfd as Hfd
-  wp_apply wp_osDirCloseS fd j ph CoPset.subseteq_top $$ Hos Hfd as %e
-  iapply HΦ; itrivial
 
 /-- A non-nil error pointer of `RemoveAll`'s model, as an `error`, is one `fmt` formats. -/
 theorem os.peOk_fmt (pe : Loc) (hpn : pe ≠ null) :
