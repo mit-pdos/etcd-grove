@@ -39,6 +39,14 @@ theorem EntsSub.restrictN_delete {N : NameSet} {b : GoString} {e e0 : Ents} (h :
     EntsSub (Fs.restrictN N (GMap.delete b e)) e0 :=
   ((EntsSub.restrictN N _).trans (EntsSub.delete b e)).trans h
 
+/-- The claim on `c` after a removal of `c` (from `hc`): its entries a part of what they were,
+unchanged if `c` held nothing. -/
+def LeafOk (c : GoString) (hc hc' : NamesH) : Prop :=
+  EntsSub hc'.cur hc.cur ∧ (hc.cur !! c = none → hc' = hc)
+
+theorem LeafOk.refl (c : GoString) (hc : NamesH) : LeafOk c hc hc :=
+  ⟨EntsSub.refl _, fun _ => rfl⟩
+
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
 variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
@@ -48,18 +56,19 @@ variable [os.Assumptions] [os.fileStat.FieldAssumptions]
 
 /-- `unlink` loop on a name holding a file or nothing (the whole claim on it): some errno; the
 claim's entries a part of what they were. -/
-theorem os.model.wp_unlinkLoop_leaf (p c : GoString) (R : Roots) (J : Ino) (dq : DFrac)
-    (hc : NamesH) (qc : Qp) (hcN : NameOk c) (hcf : ∀ J', hc.cur !! c ≠ some (.dir J')) :
+theorem os.model.wp_unlinkLoop_leaf (p c : GoString) (R : Roots) (J : Ino) (dq dqn : DFrac)
+    (hc : NamesH) (qc : Qp) (hcN : NameOk c) (hcf : ∀ J', hc.cur !! c ≠ some (.dir J'))
+    (hw : dqn = DFrac.own 1 ∨ hc.cur !! c = none) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq J ∗
-        osNames J (.only [c]) (DFrac.own 1) hc ∗ osCallPerm qc }}
+        osNames J (.only [c]) dqn hc ∗ osCallPerm qc }}
       (App (Val os.model.unlinkLoop) (Val #(child p c)))
     {{ (e : w64), RET #e; osPathS R p dq J ∗ osCallPerm qc ∗
-        ∃ hc', osNames J (.only [c]) (DFrac.own 1) hc' ∗ ⌜EntsSub hc'.cur hc.cur⌝ }} := by
+        ∃ hc', osNames J (.only [c]) dqn hc' ∗ ⌜LeafOk c hc hc'⌝ }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
   have hcN' : (NameSet.only [c]).Mem c := by simp [NameSet.Mem]
-  ihave Hst : (∃ hc', osNames J (.only [c]) (DFrac.own 1) hc' ∗ ⌜EntsSub hc'.cur hc.cur⌝ : IProp GF)
+  ihave Hst : (∃ hc', osNames J (.only [c]) dqn hc' ∗ ⌜LeafOk c hc hc'⌝ : IProp GF)
     $$ [Hn]
-  · iexists hc; iframe; ipureintro; exact EntsSub.refl _
+  · iexists hc; iframe; ipureintro; exact LeafOk.refl c hc
   iloeb as IH generalizing Hperm Hp Hst
   icases Hst with ⟨%hc', Hn, %hsub⟩
   imod osNames_next R J _ _ hc' CoPset.subseteq_top $$ Hsi Hn with ⟨Hn, #Hlb⟩
@@ -68,7 +77,7 @@ theorem os.model.wp_unlinkLoop_leaf (p c : GoString) (R : Roots) (J : Ino) (dq :
   iclear Hls
   wp_auto
   rcases hcur : hc'.cur !! c with _ | n
-  · wp_apply +noauto wp_osUnlinkS_none R p c J dq (DFrac.own 1) hc' t s0 qc hcN
+  · wp_apply +noauto wp_osUnlinkS_none R p c J dq dqn hc' t s0 qc hcN
       (fun i h => by rw [hcur] at h; cases h) CoPset.subseteq_top CoPset.subseteq_top
       $$ Hos Hsi Hp Hn Hk as %e %he Hperm Hp Hn
     wp_auto
@@ -85,16 +94,22 @@ theorem os.model.wp_unlinkLoop_leaf (p c : GoString) (R : Roots) (J : Ino) (dq :
   · obtain ⟨i, rfl⟩ : ∃ i, n = .file i := by
       cases n with
       | file i => exact ⟨i, rfl⟩
-      | dir J' => exact absurd (hsub c _ hcur) (hcf J')
+      | dir J' => exact absurd (hsub.1 c _ hcur) (hcf J')
+    have hfile : hc.cur !! c = some (.file i) := hsub.1 c _ hcur
+    obtain rfl : dqn = DFrac.own 1 := by
+      rcases hw with h | h
+      · exact h
+      · rw [hfile] at h; cases h
     wp_apply +noauto wp_osUnlinkS R p c J i dq hc' t s0 qc hcN hcur hs CoPset.subseteq_top
       CoPset.subseteq_top $$ Hos Hsi Hp Hn Hk as %e Hperm Hp Hres
     unfold osNamesAfter
-    ihave Hst : (∃ hc'', osNames J (.only [c]) (DFrac.own 1) hc'' ∗ ⌜EntsSub hc''.cur hc.cur⌝ :
+    ihave Hst : (∃ hc'', osNames J (.only [c]) (DFrac.own 1) hc'' ∗ ⌜LeafOk c hc hc''⌝ :
         IProp GF) $$ [Hres]
     · icases Hres with (⟨-, Hn⟩ | ⟨%x, -, Hn⟩)
       · iexists hc'; iframe; ipureintro; exact hsub
       · iexists _; iframe; ipureintro
-        exact EntsSub.restrictN_delete hsub
+        refine ⟨EntsSub.restrictN_delete hsub.1, fun h => ?_⟩
+        rw [hfile] at h; cases h
     wp_auto
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]
@@ -206,19 +221,20 @@ theorem os.model.wp_rmdirLoop_none (p c : GoString) (R : Roots) (J : Ino) (dq dq
   iframe
   ipureintro; exact he
 
-theorem os.model.wp_removeAllFrom_leaf (p c : GoString) (R : Roots) (J : Ino) (dq : DFrac)
-    (hc : NamesH) (qc : Qp) (hcN : NameOk c) (hcf : ∀ J', hc.cur !! c ≠ some (.dir J')) :
+theorem os.model.wp_removeAllFrom_leaf (p c : GoString) (R : Roots) (J : Ino) (dq dqn : DFrac)
+    (hc : NamesH) (qc : Qp) (hcN : NameOk c) (hcf : ∀ J', hc.cur !! c ≠ some (.dir J'))
+    (hw : dqn = DFrac.own 1 ∨ hc.cur !! c = none) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq J ∗
-        osNames J (.only [c]) (DFrac.own 1) hc ∗ osCallPerm qc }}
+        osNames J (.only [c]) dqn hc ∗ osCallPerm qc }}
       (App (App (Val os.model.removeAllFrom) (Val #p)) (Val #c))
     {{ (pe : Loc), RET #pe; osPathS R p dq J ∗ osCallPerm qc ∗ os.peOk pe ∗
-        ∃ hc', osNames J (.only [c]) (DFrac.own 1) hc' ∗ ⌜EntsSub hc'.cur hc.cur⌝ }} := by
+        ∃ hc', osNames J (.only [c]) dqn hc' ∗ ⌜LeafOk c hc hc'⌝ }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
   rw [show p ++ [47#8] ++ c = child p c by simp [child, slashB]]
-  wp_apply os.model.wp_unlinkLoop_leaf p c R J dq hc qc hcN hcf $$ [Hp Hn Hperm]
+  wp_apply os.model.wp_unlinkLoop_leaf p c R J dq dqn hc qc hcN hcf hw $$ [Hp Hn Hperm]
     as %e ⟨Hp, Hperm, %hc', Hn, %hsub⟩
   · iframe; iframe #
-  have hcf' : ∀ J', hc'.cur !! c ≠ some (.dir J') := fun J' h => hcf J' (hsub c _ h)
+  have hcf' : ∀ J', hc'.cur !! c ≠ some (.dir J') := fun J' h => hcf J' (hsub.1 c _ h)
   by_cases he0 : e = W64 0
   · rw [decide_eq_true he0]
     wp_auto
@@ -257,7 +273,7 @@ theorem os.model.wp_removeAllFrom_leaf (p c : GoString) (R : Roots) (J : Ino) (d
   clear he0 he2
   rcases hcls with rfl | rfl | rfl <;> wp_auto
   all_goals
-    wp_apply os.model.wp_openLoop_leaf p c R J dq (DFrac.own 1) hc' qc hcN hcf' $$ [Hp Hn Hperm]
+    wp_apply os.model.wp_openLoop_leaf p c R J dq dqn hc' qc hcN hcf' $$ [Hp Hn Hperm]
       as %fd %e' ⟨Hp, Hn, Hperm, Hr⟩
     · iframe; iframe #
     icases Hr with (%he' | ⟨%he', %i, Hfd⟩)
@@ -285,7 +301,7 @@ theorem os.model.wp_removeAllFrom_leaf (p c : GoString) (R : Roots) (J : Ino) (d
       try wp_auto
       wp_apply os.model.wp_pathErrorPtr_errno _ _ _ he' as %pe Hpe
       try wp_auto
-      wp_apply os.model.wp_rmdirLoop_none p c R J dq (DFrac.own 1) hc' qc hcN hcf'
+      wp_apply os.model.wp_rmdirLoop_none p c R J dq dqn hc' qc hcN hcf'
         $$ [Hp Hn Hperm] as %e4 ⟨%he4, Hp, Hn, Hperm⟩
       · iframe; iframe #
       try wp_auto
