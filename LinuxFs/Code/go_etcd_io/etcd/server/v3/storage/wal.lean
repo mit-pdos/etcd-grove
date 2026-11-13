@@ -405,6 +405,7 @@ noncomputable def decoder.decodeRecord.impl [GooseExts] [GoGlobalContext] : val 
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader.ty))))) (App (Val (GoInstruction (StructFieldRef decoder.ty go!"brs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType decoder.ty)))) (Var "d")))) (Val #(W64 0)))))
   (Let "fileBufReader" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader.ty) _root_.Perennial.io.Reader.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader.ty)))) (Var "fileBufReader")))
   (App (App (Val (GoInstruction (FuncResolve readInt64 []))) (Val #())) (Var "$a0")))
   (Let "$ret0" (Fst (Var "__p"))
@@ -652,6 +653,20 @@ noncomputable def decoder.decodeRecord.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "l") (Var "$r0"))))))))))))))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader.ty) go!"Err"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader.ty)))) (Var "fileBufReader"))) (Val #()))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader.ty)))) (Pair (Var "fileBufReader") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader.ty))))) (App (Val (GoInstruction (StructFieldRef decoder.ty go!"brs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType decoder.ty)))) (Var "d"))))
@@ -666,7 +681,7 @@ noncomputable def decoder.decodeRecord.impl [GooseExts] [GoGlobalContext] : val 
   (Val #()))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: decoder.go:157:6 -/
+/-- go: decoder.go:160:6 -/
 noncomputable def decodeFrameSize.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lenField"
   (Let "recBytes" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
@@ -701,7 +716,7 @@ noncomputable def decodeFrameSize.impl [GooseExts] [GoGlobalContext] : val :=
 /-- isTornEntry determines whether the last entry of the WAL was partially written
     and corrupted because of a torn write.
 
-    go: decoder.go:170:19 -/
+    go: decoder.go:173:19 -/
 noncomputable def decoder.isTornEntry.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Lam "data"
@@ -818,7 +833,7 @@ noncomputable def decoder.isTornEntry.impl [GooseExts] [GoGlobalContext] : val :
   (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
-/-- go: decoder.go:205:19 -/
+/-- go: decoder.go:208:19 -/
 noncomputable def decoder.UpdateCRC.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Lam "prevCrc"
@@ -832,7 +847,7 @@ noncomputable def decoder.UpdateCRC.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.hash.Hash32.ty))) (Pair (App (Val (GoInstruction (StructFieldRef decoder.ty go!"crc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType decoder.ty)))) (Var "d"))) (Var "$r0"))))))))
   (Val #()))))
 
-/-- go: decoder.go:209:19 -/
+/-- go: decoder.go:212:19 -/
 noncomputable def decoder.LastCRC.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Lam BAnon
@@ -847,7 +862,7 @@ noncomputable def decoder.LastCRC.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint32))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.uint32))) (Var "$res0"))))))
 
-/-- go: decoder.go:213:19 -/
+/-- go: decoder.go:216:19 -/
 noncomputable def decoder.LastOffset.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Lam BAnon
@@ -862,7 +877,7 @@ noncomputable def decoder.LastOffset.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0"))))))
 
-/-- go: decoder.go:215:6 -/
+/-- go: decoder.go:218:6 -/
 noncomputable def MustUnmarshalEntry.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (Val #())))
@@ -882,7 +897,7 @@ noncomputable def MustUnmarshalEntry.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.pkg.v3.pbutil.MustUnmarshalMessage []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)))) (Var "$res0")))))
 
-/-- go: decoder.go:221:6 -/
+/-- go: decoder.go:224:6 -/
 noncomputable def MustUnmarshalState.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Val #())))
@@ -902,7 +917,7 @@ noncomputable def MustUnmarshalState.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.pkg.v3.pbutil.MustUnmarshalMessage []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "$res0")))))
 
-/-- go: decoder.go:227:6 -/
+/-- go: decoder.go:230:6 -/
 noncomputable def readInt64.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
@@ -2685,9 +2700,22 @@ noncomputable def Create.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$f" (Lam BAnon
   (Seq (App (Val exceptionDo)
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "perr")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType WAL.ty) go!"cleanupWAL"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WAL.ty)))) (Var "w"))) (Var "$a0")))
+  (Let "cerr" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "cerr")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (Let "$a0" (Val #(go!"%w (after: %v)"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.error go.any))) (App (Val (GoInstruction (GoLoad go.error))) (Var "cerr")))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.error go.any))) (App (Val (GoInstruction (GoLoad go.error))) (Var "perr")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType WAL.ty) go!"cleanupWAL"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WAL.ty)))) (Var "w"))) (Var "$a0"))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "retErr") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "cerr") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))
   (Val #())))
@@ -3045,7 +3073,7 @@ noncomputable def Create.impl [GooseExts] [GoGlobalContext] : val :=
     To create a standard file, use *os.File type parameter.
     If forceNew is true, the file will be truncated if it already exists.
 
-    go: wal.go:261:6 -/
+    go: wal.go:263:6 -/
 noncomputable def createNewWALFile.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "path"
   (Lam "forceNew"
@@ -3163,7 +3191,7 @@ noncomputable def createNewWALFile.impl [GooseExts] [GoGlobalContext] (T : go.Go
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "flag") (Var "$r0"))))))))))
   (Pair (App (Val (GoInstruction (GoLoad T))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
-/-- go: wal.go:282:15 -/
+/-- go: wal.go:284:15 -/
 noncomputable def WAL.Reopen.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "lg"
@@ -3207,7 +3235,7 @@ noncomputable def WAL.Reopen.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WAL.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: wal.go:290:15 -/
+/-- go: wal.go:292:15 -/
 noncomputable def WAL.SetUnsafeNoFsync.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -3218,10 +3246,14 @@ noncomputable def WAL.SetUnsafeNoFsync.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef WAL.ty go!"unsafeNoSync"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WAL.ty)))) (Var "w"))) (Var "$r0")))))))
   (Val #()))))
 
-/-- go: wal.go:294:15 -/
+/-- cleanupWAL closes the WAL and moves its directory aside, to "<dir>.broken.<timestamp>". It
+    returns the error of the close or of the rename (the directory then keeps its name).
+
+    go: wal.go:298:15 -/
 noncomputable def WAL.cleanupWAL.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "lg"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "w" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType WAL.ty)))) (Var "w"))
   (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
@@ -3235,11 +3267,25 @@ noncomputable def WAL.cleanupWAL.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "brokenDirName" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef WAL.ty go!"dir"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WAL.ty)))) (Var "w"))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "brokenDirName"))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.os.Rename []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"failed to rename WAL during cleanup"))
   (Let "$a1" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
@@ -3251,31 +3297,38 @@ noncomputable def WAL.cleanupWAL.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "brokenDirName"))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl2")))])))))
-  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Panic"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1")))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Warn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "brokenDirName") (Var "$r0")))))))))
   (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType WAL.ty) go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WAL.ty)))) (Var "w"))) (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"failed to close WAL during cleanup"))
   (Let "$a1" (Let "$sl0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Error []))) (Val #())) (Var "$a0")))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0")))])))
-  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Panic"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1")))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Warn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1"))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))
-  (Val #()))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
 /-- syncDir fsyncs the directory dir.
 
-    go: wal.go:311:6 -/
+    go: wal.go:318:6 -/
 noncomputable def syncDir.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "dir"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
@@ -3331,7 +3384,7 @@ noncomputable def syncDir.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.os.File.ty)))) (Pair (Var "df") (Var "$r0"))))))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))
 
-/-- go: wal.go:323:15 -/
+/-- go: wal.go:330:15 -/
 noncomputable def WAL.renameWAL.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "tmpdirpath"
@@ -3439,7 +3492,7 @@ noncomputable def WAL.renameWAL.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WAL.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
-/-- go: wal.go:346:15 -/
+/-- go: wal.go:353:15 -/
 noncomputable def WAL.renameWALUnlock.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "tmpdirpath"
@@ -3571,7 +3624,7 @@ noncomputable def WAL.renameWALUnlock.impl [GooseExts] [GoGlobalContext] : val :
     the given snap. The WAL cannot be appended to before reading out all of its
     previous records.
 
-    go: wal.go:378:6 -/
+    go: wal.go:385:6 -/
 noncomputable def Open.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "dirpath"
@@ -3664,7 +3717,7 @@ noncomputable def Open.impl [GooseExts] [GoGlobalContext] : val :=
 /-- OpenForRead only opens the wal files for read.
     Write on a read only wal panics.
 
-    go: wal.go:392:6 -/
+    go: wal.go:399:6 -/
 noncomputable def OpenForRead.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "dirpath"
@@ -3694,7 +3747,7 @@ noncomputable def OpenForRead.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType WAL.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WAL.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: wal.go:396:6 -/
+/-- go: wal.go:403:6 -/
 noncomputable def openAtIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "dirpath"
@@ -3881,7 +3934,7 @@ noncomputable def openAtIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WAL.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
 
-/-- go: wal.go:435:6 -/
+/-- go: wal.go:442:6 -/
 noncomputable def selectWALFiles.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "dirpath"
@@ -4006,7 +4059,7 @@ noncomputable def selectWALFiles.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "names") (Var "$r0"))))))))))))))))
   (Pair (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.int))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res2"))))))))))
 
-/-- go: wal.go:453:6 -/
+/-- go: wal.go:460:6 -/
 noncomputable def openWALFiles.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "dirpath"
@@ -4255,7 +4308,7 @@ noncomputable def openWALFiles.impl [GooseExts] [GoGlobalContext] : val :=
     ReadAll may return uncommitted yet entries, that are subject to be overridden.
     Do not apply entries that have index > state.commit, as they are subject to change.
 
-    go: wal.go:505:15 -/
+    go: wal.go:512:15 -/
 noncomputable def WAL.ReadAll.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -4857,7 +4910,7 @@ noncomputable def WAL.ReadAll.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Pair (Var "state") (Var "$r0")))))))))
   (Pair (Pair (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "$res2"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res3"))))))))))))))
 
-/-- go: wal.go:678:15 -/
+/-- go: wal.go:685:15 -/
 noncomputable def WAL.LatestSnapshotEntry.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -4933,7 +4986,7 @@ noncomputable def WAL.LatestSnapshotEntry.impl [GooseExts] [GoGlobalContext] : v
 /-- ValidSnapshotEntries returns all the valid snapshot entries in the wal logs in the given directory.
     Snapshot entries are valid if their index is less than or equal to the most recent committed hardstate.
 
-    go: wal.go:698:6 -/
+    go: wal.go:705:6 -/
 noncomputable def ValidSnapshotEntries.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "walDir"
@@ -5034,7 +5087,7 @@ noncomputable def ValidSnapshotEntries.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "attempt") (Var "$r0")))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.ty))))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
-/-- go: wal.go:725:6 -/
+/-- go: wal.go:732:6 -/
 noncomputable def validSnapshotEntries.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "walDir"
@@ -5277,7 +5330,7 @@ noncomputable def validSnapshotEntries.impl [GooseExts] [GoGlobalContext] : val 
     If the loaded snap doesn't match with the expected one, it will
     return error ErrSnapshotMismatch.
 
-    go: wal.go:794:6 -/
+    go: wal.go:801:6 -/
 noncomputable def Verify.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "walDir"
@@ -5560,7 +5613,7 @@ noncomputable def Verify.impl [GooseExts] [GoGlobalContext] : val :=
     cut first creates a temp wal file and writes necessary headers into it.
     Then cut atomically rename temp wal file to a wal file.
 
-    go: wal.go:875:15 -/
+    go: wal.go:882:15 -/
 noncomputable def WAL.cut.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -5928,7 +5981,7 @@ noncomputable def WAL.cut.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "off") (Var "$r0"))))))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: wal.go:967:15 -/
+/-- go: wal.go:974:15 -/
 noncomputable def WAL.sync.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -6006,7 +6059,7 @@ noncomputable def WAL.sync.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: wal.go:994:15 -/
+/-- go: wal.go:1001:15 -/
 noncomputable def WAL.Sync.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -6026,7 +6079,7 @@ noncomputable def WAL.Sync.impl [GooseExts] [GoGlobalContext] : val :=
     For example, if WAL is holding lock 1,2,3,4,5,6, ReleaseLockTo(4) will release
     lock 1,2 but keep 3. ReleaseLockTo(5) will release 1,2,3 but keep 4.
 
-    go: wal.go:1002:15 -/
+    go: wal.go:1009:15 -/
 noncomputable def WAL.ReleaseLockTo.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "index"
@@ -6168,7 +6221,7 @@ noncomputable def WAL.ReleaseLockTo.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Close closes the current WAL file and directory.
 
-    go: wal.go:1046:15 -/
+    go: wal.go:1053:15 -/
 noncomputable def WAL.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -6253,7 +6306,7 @@ noncomputable def WAL.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef WAL.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WAL.ty)))) (Var "w")))) (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: wal.go:1072:15 -/
+/-- go: wal.go:1079:15 -/
 noncomputable def WAL.saveEntry.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "e"
@@ -6302,7 +6355,7 @@ noncomputable def WAL.saveEntry.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: wal.go:1083:15 -/
+/-- go: wal.go:1090:15 -/
 noncomputable def WAL.saveState.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "s"
@@ -6347,7 +6400,7 @@ noncomputable def WAL.saveState.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: wal.go:1093:15 -/
+/-- go: wal.go:1100:15 -/
 noncomputable def WAL.Save.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "st"
@@ -6500,7 +6553,7 @@ noncomputable def WAL.Save.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef WAL.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType WAL.ty)))) (Var "w")))) (Val #())))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
-/-- go: wal.go:1137:15 -/
+/-- go: wal.go:1144:15 -/
 noncomputable def WAL.SaveSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "e"
@@ -6597,7 +6650,7 @@ noncomputable def WAL.SaveSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: wal.go:1164:15 -/
+/-- go: wal.go:1171:15 -/
 noncomputable def WAL.saveCrc.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "prevCrc"
@@ -6616,7 +6669,7 @@ noncomputable def WAL.saveCrc.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: wal.go:1168:15 -/
+/-- go: wal.go:1175:15 -/
 noncomputable def WAL.tail.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -6643,7 +6696,7 @@ noncomputable def WAL.tail.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile.ty)))) (Var "$res0"))))))
 
-/-- go: wal.go:1175:15 -/
+/-- go: wal.go:1182:15 -/
 noncomputable def WAL.seq.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -6706,7 +6759,7 @@ noncomputable def WAL.seq.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile.ty)))) (Pair (Var "t") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))
 
-/-- go: wal.go:1187:6 -/
+/-- go: wal.go:1194:6 -/
 noncomputable def closeAll.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "rcs"
@@ -7319,7 +7372,7 @@ class WAL.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSema
   get_fp : ∀ (x : WAL), go.IsGoStepPureDetTagged under (StructFieldGet WAL.underlying go!"fp") #x (Val #(x.fp'))
   set_fp : ∀ (x : WAL) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet WAL.underlying go!"fp") (PairV #x #y) (Val #(({ x with fp' := y } : WAL)))
   method_set : go.MethodSetIs WAL.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType WAL.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"LatestSnapshotEntry", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.ty), go.error]))), (go!"ReadAll", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty), (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)), go.error]))), (go!"ReleaseLockTo", (some (go.signature.Signature [go.uint64] false [go.error]))), (go!"Reopen", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.ty)] false [(go.GoType.PointerType WAL.ty), go.error]))), (go!"Save", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty), (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))] false [go.error]))), (go!"SaveSnapshot", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.ty)] false [go.error]))), (go!"SetUnsafeNoFsync", (some (go.signature.Signature [] false []))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.cleanupWAL", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/storage/wal.cut", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.renameWAL", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType WAL.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.renameWALUnlock", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType WAL.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.saveCrc", (some (go.signature.Signature [go.uint32] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.saveEntry", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.saveState", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.seq", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.sync", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.tail", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile.ty)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType WAL.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"LatestSnapshotEntry", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.ty), go.error]))), (go!"ReadAll", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty), (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)), go.error]))), (go!"ReleaseLockTo", (some (go.signature.Signature [go.uint64] false [go.error]))), (go!"Reopen", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.ty)] false [(go.GoType.PointerType WAL.ty), go.error]))), (go!"Save", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty), (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))] false [go.error]))), (go!"SaveSnapshot", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.ty)] false [go.error]))), (go!"SetUnsafeNoFsync", (some (go.signature.Signature [] false []))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.cleanupWAL", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.cut", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.renameWAL", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType WAL.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.renameWALUnlock", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType WAL.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.saveCrc", (some (go.signature.Signature [go.uint32] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.saveEntry", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty)] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.saveState", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.seq", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.sync", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.tail", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile.ty)])))]
   ptr_Close_unfold : MethodUnfold (go.GoType.PointerType WAL.ty) go!"Close" WAL.Close.impl
   ptr_LatestSnapshotEntry_unfold : MethodUnfold (go.GoType.PointerType WAL.ty) go!"LatestSnapshotEntry" WAL.LatestSnapshotEntry.impl
   ptr_ReadAll_unfold : MethodUnfold (go.GoType.PointerType WAL.ty) go!"ReadAll" WAL.ReadAll.impl
