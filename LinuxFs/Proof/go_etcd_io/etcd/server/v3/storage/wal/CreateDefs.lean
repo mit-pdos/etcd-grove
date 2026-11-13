@@ -25,6 +25,7 @@ module
 
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Inv
 public import LinuxFs.Proof.os.SharedAu
+public import LinuxFs.Spec.os.RemoveAll
 
 @[expose] public section
 
@@ -93,13 +94,17 @@ instance walAreaOk_persistent (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr :
 /-- **The program's part of the WAL area's directory `jr`** (exclusive): its half of the claim on
 names `N` containing every WAL name and every name `nm.<sfx>` of one (`Create`'s `nm.tmp`, the cleanup's
 `nm.broken.<time>`; the invariant holds the other half), and the whole claims of every directory under
-a non-WAL name of `N`. -/
+a non-WAL name of `N`; a WAL name's temporary directory `nm.tmp` (a leftover of a `Create` a crash
+interrupted) holds only files (`FilesOnly`: the WAL creates nothing else there), so that `Create`'s
+`os.RemoveAll(nm.tmp)` (`os.RemoveAll.specDirS`) applies. -/
 def walAreaRes (jr : Ino) : IProp GF :=
   iprop(∃ (N : NameSet) (h : NamesH) (cl : List Claim),
     osNames (L := L) jr N (DFrac.own (1 : Qp).half) h ∗ ⌜∀ nm, walNameOk nm → N.Mem nm⌝ ∗
     ⌜∀ nm sfx, walNameOk nm → N.Mem (nm ++ go!"." ++ sfx)⌝ ∗
     osClaims L (cl.map (fun c => (c, DFrac.own 1))) ∗
-    ⌜∀ b, N.Mem b → ¬ walNameOk b → SubCover cl (h.cur !! b)⌝)
+    ⌜∀ b, N.Mem b → ¬ walNameOk b → SubCover cl (h.cur !! b)⌝ ∗
+    ⌜∀ nm J, walNameOk nm → h.cur !! tmpName nm = some (.dir J) →
+      ∀ hJ, (J, NameSet.except [], hJ) ∈ cl → FilesOnly hJ.cur⌝)
 
 end res
 

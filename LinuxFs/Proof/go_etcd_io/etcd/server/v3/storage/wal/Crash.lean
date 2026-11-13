@@ -53,7 +53,7 @@ def walStart (L : GooseLocalGS GF) (W : WalGS GF) (C : WalCodec) (Mr : WalMarsha
     (jr : Ino) (r : GoString) (s : AbsDiskState) (m : Tree) : IProp GF :=
   iprop(∃ (Ls : GMap GoString WalLay) (is : List Ino) (fo : Ino → Option Fs.OsFile),
     walGhost (W := W) s ∗ walCreatingAuth (W := W) ∅ ∗ walTailsAuth (W := W) ∅ ∗
-    walParkAuth (W := W) true ∗ ⌜s.area = r⌝ ∗
+    walParkAuth (W := W) true ∗ walDirKeysAuth (W := W) ∅ ∗ walCutAuth (W := W) none ∗ ⌜s.area = r⌝ ∗
     ([∗list] i ∈ is, osFileStartO (L := L) i (fo i)) ∗
     ⌜is.Nodup ∧ ((segsAll Ls).map (·.ino)).Nodup ∧ WalsStart C Mr R jr s Ls m ∧
       ∀ dir lay, Ls !! dir = some lay → ∀ g ∈ lay.segs,
@@ -119,7 +119,7 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
   obtain ⟨s', Ls', hcrash, harea', hk', hstart, hnd', hsegs⟩ :=
     walCrash_pure C hC Mr R jr s Ls cl n V'.now st st' Hok Han.1 Hnm hk Hreg htree (hQ _ _ hQs) hfiles
   -- the new generation's ghost state
-  imod walGhost_init hPre s' hk' with ⟨%W', Hg', HM', #Hp', Hu', Hc', Hcr', Ht', Hpk'⟩
+  imod walGhost_init hPre s' hk' with ⟨%W', Hg', HM', #Hp', Hu', Hc', Hcr', Ht', Hpk', Hdk', Hcp'⟩
   imodintro
   iexists W', s', ((segsAll Ls).map (·.ino) ++ [])
   iframe Hu' Hc' Hcr Hp'
@@ -134,7 +134,7 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
     rw [← hcrash.2.1]; exact hdd
   unfold walStart
   iexists Ls', (segsAll Ls).map (·.ino), (fun i => st'.fs.files !! i)
-  iframe Hg' Hstarts Hcr' Ht' Hpk'
+  iframe Hg' Hstarts Hcr' Ht' Hpk' Hdk' Hcp'
   ipureintro
   exact ⟨by rw [harea', Har], walsOk_nodup Hok, hnd', hstart, hsegs⟩
 
@@ -222,6 +222,36 @@ theorem walsOk_start (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots) (j
   · rw [harea' m' hreg nm hin.1, hst.2.2.1 dir nm hin hnone] at hJ
     cases hJ
 
+/-- **No WAL has an alternative layout at the start** (`DirKeysOk`'s crash clause; pure): as
+`walsOk_start`'s crash conditions. -/
+theorem crashOk_start (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots) (jr : Ino)
+    (s : AbsDiskState) (Ls : GMap GoString WalLay) (V : Hist) (cl : List Claim) (hV : V.2 = [])
+    (hcl : ∀ c ∈ cl, c.2.2 = namesOf V c.1 c.2.1)
+    (harea : ∃ N h, (jr, N, h) ∈ cl ∧ ∀ nm, walNameOk nm → N.Mem nm)
+    (hdirs : ∀ nm J, walNameOk nm → V.now.entry jr nm = some (.dir J) →
+      ∃ h, (J, NameSet.except [], h) ∈ cl)
+    (hst : WalsStart C Mr R jr s Ls V.now) :
+    ∀ dir d lay, s.wal !! dir = some d → Ls !! dir = some lay → CrashOkA C Mr d lay none cl 0 := by
+  have hc : ∀ c ∈ cl, c.2.2 = ⟨restrictN c.2.1 (entsOf V.now c.1), [],
+      restrictN c.2.1 (entsOf V.now c.1)⟩ := fun c h => by rw [hcl c h, namesOf_nil hV]
+  have hlog : ∀ c ∈ cl, c.2.2.ents = [] := fun c h => by rw [hc c h]
+  obtain ⟨N, hN, hNm, hNall⟩ := harea
+  have hNb : hN.boot = restrictN N (entsOf V.now jr) := by
+    have h := hc _ hNm; simp only at h; rw [h]
+  intro dir d lay0 hd hL0
+  obtain ⟨lay, nm, hL, hin, hjr, hnm, he, habs, hfit, h1, h2, h3, hlast⟩ := hst.1 dir d hd
+  rw [show lay0 = lay from Option.some.inj (hL0.symm.trans hL)]
+  obtain ⟨hj, hjm⟩ := hdirs nm lay.j hin.1 he
+  have hjc := hc _ hjm
+  simp only at hjc
+  refine (crashOkA_none_iff C Mr d lay cl 0).2 ?_
+  refine walAbs_crashOk_start C hC Mr d lay cl 0 (entsOf V.now lay.j) habs hfit hlog
+    ⟨hj, hjm, by rw [hjc]; simp only [restrictN_all]⟩ ?_ ⟨h1, h2, h3⟩ hlast
+  rw [hjr, hnm]
+  refine ⟨N, hN, hNm, hNall nm hin.1, ?_⟩
+  rw [hNb, restrictN_lookup _ _ _ (hNall nm hin.1), entsOf_lookup]
+  exact he
+
 /-- **The segments are at their names, at the start** (pure): from the start's (`WalsStart`), the
 claims as the boot history has them, every directory at a WAL name claimed wholly (`hdirs`). -/
 theorem walsNamed_start (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
@@ -307,7 +337,7 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
           osNames (L := L) c.1 c.2.1 (DFrac.own (1 : Qp).half) c.2.2 := by
   iintro Hst Hcl
   unfold walStart
-  icases Hst with ⟨%Ls, %is, %fo, Hg, Hcr, Htl, Hpk, %Har, Hfs, %Hp⟩
+  icases Hst with ⟨%Ls, %is, %fo, Hg, Hcr, Htl, Hpk, Hdk, Hcp, %Har, Hfs, %Hp⟩
   obtain ⟨-, hnd, hstart, hsegs⟩ := Hp
   -- the segments' start resources, halved
   have hsub : ((segsAll Ls).map (·.ino)) ⊆ is := fun i hi => by
@@ -367,7 +397,8 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     exact monoNatLbOwn_0 _
   imod hcm0 with #Hcm
   imod inv_alloc walN E (iprop((∃ s : AbsDiskState, walInvBody (L := L) (W := W) C Mr R jr r s) ∨
-      (crashed (hC := L.goose_crashGS) ∗ walCrashTok (W := W)))) $$ [Hg Hc1 Hi Hcr Htl Hpk Hp Hc2] with #Hinv
+      (crashed (hC := L.goose_crashGS) ∗ walCrashTok (W := W)))) $$ [Hg Hc1 Hi Hcr Htl Hpk Hp Hc2 Hdk Hcp]
+      with #Hinv
   · inext; ileft; iexists s
     unfold walInvBody
     iexists Ls, cl, 0, ∅
@@ -389,7 +420,7 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     · iexists ∅
       iframe Hcr
       ipureintro
-      intro dir N h hd
+      intro dir N h J hd
       simp at hd
     isplitl [Htl]
     · unfold walTailsRes
@@ -402,15 +433,21 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     isplitr
     · ipureintro
       exact walsNamed_start C Mr R jr s Ls V cl hV hcl hdirs hstart
-    unfold walParked
-    iexists true, [], []
-    iframe Hpk Hc2
-    isplitr
-    · ipureintro; intro _; exact ⟨rfl, rfl⟩
-    have hpk : ∀ (k : Nat) (g : SegG), segRes (L := L) g ⊢
-        (if g.ino ∈ ([] : List Ino) then emp else segRes (L := L) g) := fun _ g => by
-      rw [if_neg List.not_mem_nil]
-    iapply BigSepL.bigSepL_mono_of_forall (fun {k} {g} => hpk k g) $$ Hp
+    isplitl [Hpk Hc2 Hp]
+    · unfold walParked
+      iexists true, [], []
+      iframe Hpk Hc2
+      isplitr
+      · ipureintro; intro _; exact ⟨rfl, rfl⟩
+      have hpk : ∀ (k : Nat) (g : SegG), segRes (L := L) g ⊢
+          (if g.ino ∈ ([] : List Ino) then emp else segResP (L := L) g) := fun _ g => by
+        rw [if_neg List.not_mem_nil]; exact segRes_segResP g
+      iapply BigSepL.bigSepL_mono_of_forall (fun {k} {g} => hpk k g) $$ Hp
+    iexists ∅, none
+    iframe Hdk Hcp
+    ipureintro
+    refine ⟨fun dir j X hk => by simp at hk, fun dir d lay hd hl _ => ?_⟩
+    exact crashOk_start C hC Mr R jr s Ls V cl hV hcl harea hdirs hstart dir d lay hd hl
   imodintro
   unfold walInv
   iframe Hinv
