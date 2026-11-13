@@ -26,6 +26,7 @@ module
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Inv
 public import LinuxFs.Proof.os.SharedAu
 public import LinuxFs.Spec.os.RemoveAll
+public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
 
@@ -83,9 +84,14 @@ def osSubtree (j : Ino) (b : GoString) : IProp GF :=
   iprop(∃ (h : NamesH), osSubtreeH (L := L) j b h)
 
 /-- **The WAL area `r` (the directory `jr` under the roots `R`), shared** (persistent): the WAL
-invariant and the file system's invariants. -/
+invariant and the file system's invariants; and the receipts' bound (`ReceiptBoundLe GF (2 ^ 62)`,
+fixed by the adequacy theorem that allocates the area, `notes/bounds-plan.md`'s rule 1), which an open
+handle turns into its pipeline count's bound (`walOpenWF` holds `⧗ pc`, one receipt per file its
+pipeline has handed over since `Open`/`Create`: `pc + 1 < 2 ^ 62`, what `cut`'s Go `int` count and its
+signed `count % 2` need). -/
 def walAreaOk (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) : IProp GF :=
-  iprop(walInv (L := L) (W := W) C Mr R jr r ∗ osInv (L := L) ∗ osSharedInv (L := L) R)
+  iprop(walInv (L := L) (W := W) C Mr R jr r ∗ osInv (L := L) ∗ osSharedInv (L := L) R ∗
+    ⌜ReceiptBoundLe GF (2 ^ 62)⌝)
 
 instance walAreaOk_persistent (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) :
     Persistent (walAreaOk (L := L) (W := W) C Mr R jr r) := by
