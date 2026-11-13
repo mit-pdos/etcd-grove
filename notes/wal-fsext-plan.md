@@ -1331,6 +1331,15 @@ hypotheses; step 3's pure part.**
   hexadecimal byte-wise), `cleanSeg_walFileName`, `baseModel_child_walFileName` (`filepath.Base` of the tail's
   path), `scanWalName_walFileName` (`parseWALName` reads it back). `walName` is `fmt.Sprintf("%016x-%016x.wal")`:
   `fmt.SprintfWalName.spec` (the main tree's trust-boundary axiom) as a hypothesis.
+- *`cut.wp_proof`*: steps 1-2 written (the handle opened, `Seek` by `os.File.Seek.wp_cur`, the truncate, the
+  handle refolded at `sz := o0 + |out|` for `sync.specCut`, the error exits); `sorry` from step 3 on. The
+  theorem takes `[os.file.FieldAssumptions]`, `[fileutil.Assumptions]` (`Seek`, the promoted methods).
+  Order for the next session: step 3 (above), 4 (`wp_walPipeH_open` at the handle's `j`), 5 (the header phase:
+  `os.File.writerStream` over the first bytes of `N.tmp` split off its `osZerosA` run; a `walPreSyncOk` for
+  a preallocated owned file, the zeros synced by `zrun_synced`, shareable with W4's `Create`), 6
+  (`walCut_osAUnc`: split the handle's ½ of the WAL claim into ¼ + ¼, the path fraction in halves,
+  `osPathS_frac`), 7 (`walInvBody_cutSynced` under `wp_notCrashed_acc`; the rename's `logOut` for the
+  `osLogLb`), 8 (re-lock, `walHandleIn` at the new claim history, `walOpenW_cut` back).
 
 ## W4 implementation log (branch `wal-create`, 2026-11-13)
 

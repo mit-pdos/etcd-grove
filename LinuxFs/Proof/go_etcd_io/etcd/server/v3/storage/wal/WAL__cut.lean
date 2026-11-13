@@ -1,6 +1,11 @@
 /-
 The proof of `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__cut.lean` (W2).
-**Unfinished (`sorry`).** The steps (S/wal.go:875-965) and what each needs:
+**Unfinished (`sorry` after step 2).** Done: steps 1 (`Seek`, `os.File.Truncate.specWalTail`) and 2
+(`WAL.sync.specCut`), both hypotheses (`WAL__cutTail.lean`), with their error exits. Next: step 3 over
+`CutName.lean` (`w.seq()` inline: `tail`, `Name`, `filepath.Base` = `baseModel_child_walFileName`,
+`parseWALName` = `scanWalName_walFileName`, the `lg.Fatal` branch unreachable; `walName` over
+`fmt.SprintfWalName.spec`; `filepath.Join` = `child dir bt`, `join_child`). The steps (S/wal.go:875-965)
+and what each needs:
 1. `w.tail().Seek(0, SeekCurrent)`, `Truncate(off)`: the tail's whole `OsMeta`, half of which is
    `walInv`'s (`segRes`): a crash-aware truncate opening `walInv` around the step (W6's tail
    write, `wal-save2`; the stream stops at its end with or without the zeros after it).
