@@ -455,3 +455,11 @@ it lands with the first proofs.
   [entry 6])`, `SaveSnapshot({5, 1})`, restart at `(5, 1)`: `ReadAll` succeeds with `[entry 6]`, `walRead` is
   `none` (its base is 0 at the entry), so `WAL__ReadAll.spec`'s success post (`walReadCut … = some σ`) is false
   at `cut = 0` without a history premise (`walCommitLe` holds vacuously). `segsOf_flatten` (WalEncSegs).
+- **ReadAll's restated post** (`wal-fold`, `WalReadAllPost.lean`, no `sorry`): `walReadAllOk I cut s σ` (∃ k ∈
+  [cut, walOpenPos], `s` newest valid from k, `walReadAt I k s = some σ`) in place of `walReadCut … = some σ`.
+  Condition `walReadsBack I := walCommitLe I ∧ ∃ σ, walRead I = some σ` (its second half is necessary at k = 0);
+  `walReadAt_cut` (k > 0 unconditional), `walReadAllOk_walRead` (clients get `walRead`'s hs/ents under W4b's
+  premises). Preserved by `SaveSnapshot` (any) and by `Save` that unfilters no pending snapshot record and
+  whose entries apply to the read with commit ≤ last; the received-snapshot `Save` (the one raising the commit
+  to the snapshot just saved) is not covered yet. The tester's generator (opEntries/opResend/opRecvSnap) only
+  saves entries contiguous with its log, so it never produces the deviating order (CP1 saw none).
