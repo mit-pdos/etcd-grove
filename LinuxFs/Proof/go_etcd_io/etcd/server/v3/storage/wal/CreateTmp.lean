@@ -53,20 +53,25 @@ theorem wp_existTmp (wp_Exist : go_etcd_io.etcd.client.pkg.v3.fileutil.Exist.spe
       (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.Exist)) (Val #(child d b)))
     {{ (x : Bool), RET #x; osPathS R d (DFrac.own qd) j ∗ tmpDirH j b h ∗ osCallPerm qc }} := by
   iintro %Φ ⟨#Hinv, #Hsi, Hp, Ht, Hperm⟩ HΦ
-  unfold tmpDirH
-  icases Ht with ⟨Hn, (%hnone | ⟨%J, %hJ, %hd, HJ⟩)⟩
-  · wp_apply wp_Exist (child d b) _ _
+  iunfold tmpDirH at Ht
+  icases Ht with ⟨Hn, Hs⟩
+  rcases hcur : h.cur !! b with _ | ⟨i | J⟩
+  · have hnone := hcur
+    wp_apply wp_Exist (child d b) _ _
       (os.Stat.wp_absentS d b R j (.only [b]) (DFrac.own qd) (DFrac.own 1) h qc hb
         (by simp [NameSet.Mem]) hnone) $$ [Hp Hn Hperm] as %x ⟨%err, %-, Hp, Hn, Hperm, %-⟩
     · iframe; isplitl [] <;> iassumption
     iapply HΦ
+    unfold tmpDirH
     iframe
-    ileft; ipureintro; exact hnone
-  · obtain ⟨e, a', b', hqd, hqq⟩ := os.qp_common qd 1
+    rw [hcur]; iexact Hs
+  · iunfold tmpSub at Hs; icases Hs with %hf; exact hf.elim
+  · have hd : h.cur !! b = some (.dir J) := hcur
+    obtain ⟨e, a', b', hqd, hqq⟩ := os.qp_common qd 1
     subst hqd
     icases (osPathS_frac R d e a' j).1 $$ Hp with ⟨Hpe, Hpa⟩
     icases (osNames_join j (.only [b]) e b' h hqq).2 $$ Hn with ⟨Hne, Hnb⟩
-    ihave Hpc := osPathS_child R d b (DFrac.own e) j J h hb hd.1 $$ Hpe Hne
+    ihave Hpc := osPathS_child R d b (DFrac.own e) j J h hb hd $$ Hpe Hne
     wp_apply wp_Exist (child d b) _ _
       (wp_statDir_err (child d b) R J (DFrac.own e) qc) $$ [Hpc Hperm]
       as %x ⟨%err, %-, Hpc, Hperm⟩
@@ -78,11 +83,9 @@ theorem wp_existTmp (wp_Exist : go_etcd_io.etcd.client.pkg.v3.fileutil.Exist.spe
     ihave Hn := (osNames_join j (.only [b]) e b' h'' hqq).1 $$ [Hne Hnb]
     · iframe
     iapply HΦ
+    unfold tmpDirH
     iframe
-    iright
-    iexists J, hJ
-    iframe
-    ipureintro; exact hd
+    rw [hcur]; iexact Hs
 
 end proof
 
@@ -104,16 +107,19 @@ theorem rmAllOut_tmpDirH (j : Ino) (b : GoString) (J : Ino) (h hJ : NamesH)
   · subst he
     iexists h'
     iframe Hn
-    iright
-    iexists J, hJ'
+    rw [hd]
+    simp only [tmpSub]
+    iexists hJ'
     iframe
-    ipureintro; exact ⟨hd, hf'⟩
+    ipureintro; exact hf'
   · iexists h'
     iframe Hn
-    ileft
-    ipureintro
-    rw [he.1]
-    simp [NamesH.log, restrictN_lookup _ _ _ (show (NameSet.only [b]).Mem b by simp [NameSet.Mem])]
+    have : h'.cur !! b = none := by
+      rw [he.1]
+      simp [NamesH.log, restrictN_lookup _ _ _ (show (NameSet.only [b]).Mem b by simp [NameSet.Mem])]
+    rw [this]
+    simp only [tmpSub]
+    iempintro
 
 /-- **`os.RemoveAll(d/b)` of a `tmpDirH`**: a `tmpDirH` again. -/
 theorem wp_removeAllTmp (wp_RmAbs : os.RemoveAll.specAbsentS (GF := GF) (hG := hG))
@@ -126,8 +132,10 @@ theorem wp_removeAllTmp (wp_RmAbs : os.RemoveAll.specAbsentS (GF := GF) (hG := h
         (∃ h', tmpDirH j b h') ∗ fmtErrorOkOrNil err }} := by
   iintro %Φ ⟨#Hinv, #Hsi, Hp, Ht, Hperm⟩ HΦ
   iunfold tmpDirH at Ht
-  icases Ht with ⟨Hn, (%hnone | ⟨%J, %hJ, %hd, HJ⟩)⟩
-  · wp_apply wp_RmAbs d b j R qd (DFrac.own 1) h 1 hb hnone $$ [Hp Hn Hperm]
+  icases Ht with ⟨Hn, Hs⟩
+  rcases hcur : h.cur !! b with _ | ⟨i | J⟩
+  · have hnone := hcur
+    wp_apply wp_RmAbs d b j R qd (DFrac.own 1) h 1 hb hnone $$ [Hp Hn Hperm]
       as %err ⟨Hp, Hn, Hperm, Hok⟩
     · iframe; isplitl [] <;> iassumption
     iapply HΦ
@@ -135,13 +143,17 @@ theorem wp_removeAllTmp (wp_RmAbs : os.RemoveAll.specAbsentS (GF := GF) (hG := h
     iexists h
     unfold tmpDirH
     iframe
-    ileft; ipureintro; exact hnone
-  · wp_apply wp_RmDir d b j J R qd h hJ hb hd.1 hd.2 $$ [Hp Hn HJ Hperm]
+    rw [hcur]; iexact Hs
+  · iunfold tmpSub at Hs; icases Hs with %hf; exact hf.elim
+  · iunfold tmpSub at Hs
+    icases Hs with ⟨%hJ, %hf, HJ⟩
+    have hd : h.cur !! b = some (.dir J) := hcur
+    wp_apply wp_RmDir d b j J R qd h hJ hb hd hf $$ [Hp Hn HJ Hperm]
       as %err ⟨Hp, Hperm, Ho, Hok⟩
     · iframe; isplitl [] <;> iassumption
     iapply HΦ
     iframe
-    iapply rmAllOut_tmpDirH j b J h hJ hd.1 hd.2 $$ Ho
+    iapply rmAllOut_tmpDirH j b J h hJ hd hf $$ Ho
 
 end rm
 

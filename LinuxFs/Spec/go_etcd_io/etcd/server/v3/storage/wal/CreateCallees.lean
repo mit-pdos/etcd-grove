@@ -42,12 +42,17 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 
+/-- **What a temporary directory's entry `e` holds, owned**: nothing, or a directory of files, whose
+whole claim is held. -/
+def tmpSub : Option Node → IProp GF
+  | none => iprop(emp)
+  | some (.file _) => iprop(False)
+  | some (.dir J) => iprop(∃ hJ : NamesH, ⌜FilesOnly hJ.cur⌝ ∗ osNames J (.except []) (DFrac.own 1) hJ)
+
 /-- **The whole of the name `b` of `j` (its claim's history `h`), holding nothing or a directory of
 files** (whose whole claim is held). -/
 def tmpDirH (j : Ino) (b : GoString) (h : NamesH) : IProp GF :=
-  iprop(osNames j (.only [b]) (DFrac.own 1) h ∗
-    (⌜h.cur !! b = none⌝ ∨ ∃ (J : Ino) (hJ : NamesH),
-      ⌜h.cur !! b = some (.dir J) ∧ FilesOnly hJ.cur⌝ ∗ osNames J (.except []) (DFrac.own 1) hJ))
+  iprop(osNames j (.only [b]) (DFrac.own 1) h ∗ tmpSub (h.cur !! b))
 
 end defs
 
