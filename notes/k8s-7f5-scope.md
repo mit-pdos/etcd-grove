@@ -165,7 +165,9 @@ a control that meets the text and does not panic.
   - **Recommended form: no trusted triple** (Q2). Translate `WithRequireLeader` with its body
     (`client/v3.toml`). Translate grpc `metadata.NewOutgoingContext` (one line,
     `context.WithValue(ctx, mdOutgoingKey{}, rawMD{md: md})`), `Pairs`, `MD.Copy` and `MD.Set`
-    with bodies (`Code/google_golang_org/grpc/metadata.toml`). `FromOutgoingContext` already has a
+    with bodies (`Code/google_golang_org/grpc/metadata.toml`), **and `copyOf`**, which `MD.Copy`
+    calls (`metadata.go:307-311`, `make` plus `copy`; S1 review: names-only it would need a new
+    trusted spec). 7f-3a owns this configuration; it is applied there. `FromOutgoingContext` already has a
     spec (`Proof/google_golang_org/grpc/metadata/FromOutgoingContext.lean`). Then the context's
     `Value` at every key other than grpc's outgoing one is the parent's, by Perennial's `WithValue`
     spec, so every key fact (`k8sCtxOk`, `#HCC`, the new T5-b key) carries over with no new axiom.
@@ -173,6 +175,12 @@ a control that meets the text and does not panic.
     `notes/k8s-7f4-draft.md:144-160` states it, **restated** to give, for every key `k` other than
     `mdOutgoingKey{}`, `WP c.Value(k) {Φ} ⊣⊢ WP ctx.Value(k) {Φ}`. Without that clause the triple
     would repeat the T-h..T-k mistake: the derived context's keys would be unconstrained.
+  - **What the Lean result says** (S1 review): every key other than the outgoing one, `Done`, `Err`
+    and `Cause` are the parent's (Perennial's `WithValue`); the outgoing metadata is **the parent's
+    plus one key**, not provably `hasleader`: `MD.Set`/`Pairs` lower-case the key with
+    `strings.ToLower`, which `Spec/strings/ToLower.lean` trusts only to return some string. Enough
+    for T5-a's use (the key facts carry over); a spec that needs the exact key would need a stronger
+    `ToLower` first.
   - **Go evidence:**
     - `TestWithRequireLeaderValues`: the result answers every probed key as the parent does, and the
       outgoing key with the parent's metadata plus `hasleader`;

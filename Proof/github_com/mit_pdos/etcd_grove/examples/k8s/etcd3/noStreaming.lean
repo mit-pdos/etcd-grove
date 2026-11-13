@@ -44,7 +44,7 @@ theorem noStreaming.wp_proof : noStreaming.spec (GF := GF) (hG := hG) := by
   wp_auto
   rw [show go!"EtcdRangeStream=false" = EtcdGrove.k8sfeature.setArg go!"EtcdRangeStream" false from rfl]
   wp_apply Hset as %err Herr
-  · ipureintro; simp [EtcdGrove.k8sfeature.k8sQueriedFeatures]
+  · ipureintro; simp [EtcdGrove.k8sfeature.k8sSetValue, EtcdGrove.k8sfeature.k8sQueriedFeatures]
   icases Herr with (⟨%Hn, #Hoff⟩ | %Hn)
   · subst Hn
     iunfold EtcdGrove.k8sfeature.featureSet at Hoff

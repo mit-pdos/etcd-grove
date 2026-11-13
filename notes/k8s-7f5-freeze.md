@@ -20,6 +20,7 @@ Every read, through the callees, by file:line:
 | `ctx` | `Value(mdOutgoingKey{})`, then `MD.Copy` of the answer | `WithRequireLeader`, `client/v3/ctx.go:29,34` | `libCtxOk` (grpc's outgoing key: `outgoingCtxOkC`, a `rawMD`) |
 | `ctxRL` | `Value(&cancelCtxKey)` (passes to `ctx`), `Done()` | `context.WithCancel`, go1.27.3 `context.go` `propagateCancel`/`parentCancelCtx` | `watchCtx`'s `#HCC`, `Done` (the context sweep); `WithValue` passes the key to `ctx` |
 | `ctxRL` | **`Value(priorityAndFairnessInitializationSignalKey)`, then `Signal()` on a non-nil `InitializationSignal`** | `WatchInitialized`, `watcher.go:158`; `apf_context.go:43,50-51` | **nothing before 7f-5: T5-b** |
+| `ctxRL` | the client's `KV.Get` path (grpc's metadata keys, `Done`, `Err`), through `getCurrentStorageRV(ctxRL)` (added by the S1 review) | `getStartWatchResourceVersion`, `watcher.go:146,193-209`: with RV 0, `WatchList` on and `SendInitialEvents` false, before `createWatchChan`; `getCurrentStorageRV` is `store.GetCurrentResourceVersion` (`store.go:240`), whose `Kubernetes.Get` runs on `ctxRL` (`store.go:735`) | `ctxOk ∗ ctxErrClient` of the premise of `GetCurrentResourceVersion.spec`, over `ctxRL`: `WithRequireLeader`'s `WithValue` keeps every other key (T5-a) |
 | `wc.ctx` | `Done()` | `run` `:282`, `serialProcessEvents` `:571`, `sendError` `:806`, `sendEvent` `:822`, `queueEvent` `:832` (7f-5b: `:615-647`) | `isContext` of the `WithCancel` child (Perennial `wp_WithCancel_any`) |
 | `wc.ctx` | the client's `KV.Get` path: grpc's metadata keys, `Done`, `Err` | `getCurrentStorageRV` `:457` (via `store.GetCurrentResourceVersion`), `syncPaginated` `:347` | `ctxOk ∗ ctxErrClient` (premise of `GetCurrentResourceVersion.spec` and of the client's `Get`), over the child: `WithCancel` keeps `Values` |
 | `wc.ctx` | the client's `Watch`: `Value(mdOutgoingKey{})` (`streamKeyFromCtx`, `watch.go:1102`), `Value(&cancelCtxKey)` (`WithCancel(&valCtx{ctx})`), `Done`, `Err` | `startWatching` `:493` | `watchCtx` (`examples/premisefix/watchctx`: the client's path reads no other key) |
@@ -29,9 +30,13 @@ Every read, through the callees, by file:line:
 
 **The control** (`TestWatchStrictControl`): the store's `Watch` under a context that answers the
 covered keys and panics at every other key does not panic, and the client's `Watch` receives the
-caller's outgoing metadata plus `hasleader`. That test exercises the store's own path to the
-client's `Watch` with a positive resource version. The initial-list path (`sync`) reaches the
-client's `Get`, whose reads the 7e and context-sweep evidence covers.
+caller's outgoing metadata plus `hasleader`. It covers only a positive resource version, with a fake
+watcher (no real member): not the RV-0 paths, `getCurrentStorageRV(ctxRL)` above nor the initial
+list (`sync`), which reach the client's `Get`, whose reads the 7e and context-sweep evidence covers.
+The S1 review's test over a real member records, on those paths, the keys the store and the
+client read of the caller's context, for RV 0 with and without `SendInitialEvents` and RV > 0
+(`/shared/tmp/coord-81/k8s7f5-review/clientkeys/keys_test.go`, `TestKeys`; to be moved into
+`examples/premisefix/watcherctx` with 7f-5a's Draft, which states the watch's context premise).
 
 ## S0.2 The Go evidence (`examples/premisefix/watcherctx`, all passing)
 
@@ -50,7 +55,14 @@ Run: `cd examples/premisefix/watcherctx && GOWORK=off GOTOOLCHAIN=go1.27.3 go te
 - **T5-a** (translated, Q2; for 7f-3a):
   - `TestWithRequireLeaderValues`: other keys, `Done`, `Deadline`, `Err` and `Cause` are the
     parent's, and the metadata is the parent's plus `hasleader`;
-  - `TestWithRequireLeaderNoAlias`: the parent's `MD` is not written.
+  - `TestWithRequireLeaderCause` (S1 review): a parent cancelled by `WithCancelCause` with its own
+    cause, and a `WithDeadlineCause` parent that expires: the child's `Err` and `Cause` are the
+    parent's;
+  - `TestWithRequireLeaderNoAlias`: the parent's `MD`, whose `hasleader` exists with another value,
+    is not written, nor through the child's value slices. The Copy is not what makes it hold at the
+    pin (`FromOutgoingContext` returns a fresh map with copied slices, grpc `metadata.go:342-348`):
+    `TestWithRequireLeaderNoAliasWithoutCopy` passes too, and `TestWithRequireLeaderNoAliasDetects`
+    shows the check catches an aliasing writer.
 - **T5-c** (each scenario in its own process): `TestGateScenarios`:
   - `watchlist-true`: 800 concurrent `Enabled` calls return true after `Set("WatchList=true")`;
   - `two-features`: `Set(EtcdRangeStream=false)` then `Set(WatchList=true)`, and both values hold;
@@ -103,6 +115,12 @@ feature. Nothing calls `Enabled(EtcdRangeStream)` or `Enabled(WatchList)` before
 does it only from `GetList`/`Watch`. One `Set` per feature, before any `Enabled`: **the restated
 assumption holds of the closure.** The driver's tests call `noStreaming`/`watchList` again in one
 process, but they are not the verified `Main*`.
+
+*Superseded by the S1 review (below):* the check is now `etc/featuregate-check.py`, in `etc/gates.sh`,
+with `ResetFeatureValueToDefault`, `AddDependencies`, `AddFlag`, `SetWithLogger` and `AddFeatureGates`
+added to the grep, the DaemonSet program's closure included (as an outside program), and each hit's
+verdict in `etc/featuregate-allow.txt` (66 hits: 57 inert, 2 driver, 7 outside). The order (each
+`Set` before any `Enabled` of its feature) is still this section's manual check.
 
 ## S1 The trusted package (written in Lean; built: see "Checks")
 
@@ -192,6 +210,28 @@ process, but they are not the verified `Main*`.
 - T5-a (translation; 7f-3a);
 - flowcontrol's `WatchInitialized`/`initializationSignalFrom` (translated; their spec is 7f-5a-P's
   first leaf).
+
+## S1 review (2026-11-13, etcd-grove-81's axiom review; decisions in `questions.md`)
+
+Review journal: `/root/.claude-csail/projects/-shared-etcd-grove/c04a65b0-a272-4ae4-94c7-91aa4a20ea30/subagents/workflows/wf_115e23d1-72c/journal.jsonl`;
+the reviewers' Go tests: `/shared/tmp/coord-81/k8s7f5-review/`. No BLOCKER; one MAJOR; minors.
+
+| Finding | Disposition |
+| --- | --- |
+| **MAJOR, T5-c:** `featureOn g s` and `featureOff g s` of one feature both obtainable (a `Set(s=true)` and a `Set(s=false)`), the "one `Set` per feature" assumption load-bearing | **Fixed in the trusted text.** The `Set` triple is for one value per feature, from the table `k8sSetValue` (new trusted definition: `WatchList ↦ some true`, every other queried feature `↦ some false`, else `none`): `∀ s v Φ, ⌜k8sSetValue s = some v⌝ → … featureSet g s v … Set(setArg s v)` (was `∀ s b Φ, ⌜s ∈ k8sQueriedFeatures⌝ → … featureSet g s b … Set(setArg s b)`). `featureOn` and `featureOff` of one feature are unreachable by construction. Callers: `noStreaming`, `watchList` (the side condition is the table lookup) |
+| T5-c: the assumption to say only "no other mutator runs"; drop "before any Enabled" if no triple needs it | Restated: **no code mutates the gate but `Set`s of the table's values (repeats harmless), each before any `Enabled` of its feature.** The order clause **stays**: `Enabled`'s triple hands its caller the wand `featureOff g s -∗ ⌜b = false⌝`, which the caller may keep past a later `Set`; then `b := Enabled(EtcdRangeStream); if Set("EtcdRangeStream=false") == nil && b { panic }` panics in Go (default `true`) and would be provable. Go: scenario `enabled-kept-then-set` (new). The reviewer's minor 5 ("stronger than soundness needs") missed the kept wand. Removing the clause would need `Enabled`'s triple restated (e.g. taking `featureSet` as a premise), a trusted change beyond the decisions: not done |
+| T5-c: `ResetFeatureValueToDefault`, `AddDependencies` missing from the mutator lists | Added (Gate.lean header, the grep), with `AddFlag` (flag parsing calls `Set`), `SetWithLogger` and `AddFeatureGates` |
+| T5-c: the closure check to cover `dsmain` | Covered, as an **outside** program: its closure is grepped and its hits have verdicts; it does mutate the gate (`setFeatureGates`' `SetFromMap`, `dsmain.go:69`; `k8s.io/kubernetes/pkg/features`' `init`: `AddVersioned`, `AddDependencies`, `ReplaceFeatureGates`, the client adapter's `SetFromMap`), so the assumption is not claimed of it; the check fails if any Lean module of its tree names the gate's specs (`k8sfeature`, `featureGateOk`, `featuresInit`). Today none does (its Lean is `apimodel` only) |
+| T5-c: script the check, wire it into the gates (B5 had none) | `etc/featuregate-check.py` (closures by `go list -deps`, allow-list `etc/featuregate-allow.txt` with each hit's class and reason; fails on an unlisted hit, an `outside` hit in an inside program, a stale entry, an outside Lean use), in `etc/gates.sh` (section issues). Covers B5's `Set(EtcdRangeStream=false)` and T5-c's `Set(WatchList=true)` alike. Negative runs: an entry removed, and a driver hit reclassified `outside`, each fail |
+| T5-c minor 3: the `Set` error arm's "changes nothing `Enabled` reads" inaccurate | Reworded: a failed `Set` does not store `enabled` (what `Enabled` reads) but stores the raw pair in `enabledRaw` (`feature_gate.go:498-504`), which later `Set`s re-apply: they then fail too (`failed-set`), or, after a dependency failure, may succeed and apply it; neither is excluded, and the pair is of a table value |
+| T5-a minor 2: `copyOf` names-only in the dry-run configuration | 7f-3a owns the configuration: recorded in the Scope's T5-a (`notes/k8s-7f5-scope.md` §4.2), applied with 7f-3a's statements |
+| T5-a: the Lean can give only "the parent's metadata plus one key" (`strings.ToLower` trusted as some string) | Stated so in the Scope's T5-a and the test file's header |
+| T5-a: the Go tests weaker than claimed (trivial `Cause`; NoAlias passes without the `Copy`) | `TestWithRequireLeaderCause` (a `WithCancelCause` cause and a `WithDeadlineCause` expiry). NoAlias strengthened (a parent `hasleader: ["false"]`, the child's slices written); **no test of `WithRequireLeader` can fail without the `Copy`**: `FromOutgoingContext` already returns a fresh map with copied slices (grpc `metadata.go:342-348`). So instead `TestWithRequireLeaderNoAliasWithoutCopy` (a copy of `WithRequireLeader` without it passes: the property the proof needs holds either way) and `TestWithRequireLeaderNoAliasDetects` (the check catches an aliasing writer) |
+| S0.1 minor 4: the row `getCurrentStorageRV(ctxRL)` missing; the strict control's reach overstated | Row added (`watcher.go:146,193-209`; `store.go:240,735`); the control's paragraph says it covers only RV > 0 with a fake watcher and cites the reviewer's real-member test `/shared/tmp/coord-81/k8s7f5-review/clientkeys/keys_test.go` |
+
+Docstrings only, no meaning change: `featureOn`/`featureOff` (given for the table's value), the
+features `Init`'s doc (`etc/gen-init.py`) and `etcd3/Base.lean`'s `featuresInit` ("`Set` of one to its
+`k8sSetValue`").
 
 ## Checks (2026-11-13, on `f597058f4a` plus the SpecPlan PkgInit regeneration)
 

@@ -44,7 +44,7 @@ theorem watchList.wp_proof : watchList.spec (GF := GF) (hG := hG) := by
   wp_auto
   rw [show go!"WatchList=true" = EtcdGrove.k8sfeature.setArg go!"WatchList" true from rfl]
   wp_apply Hset as %err Herr
-  · ipureintro; simp [EtcdGrove.k8sfeature.k8sQueriedFeatures]
+  · ipureintro; simp [EtcdGrove.k8sfeature.k8sSetValue, EtcdGrove.k8sfeature.k8sQueriedFeatures]
   icases Herr with (⟨%Hn, #Hoff⟩ | %Hn)
   · subst Hn
     iunfold EtcdGrove.k8sfeature.featureSet at Hoff
