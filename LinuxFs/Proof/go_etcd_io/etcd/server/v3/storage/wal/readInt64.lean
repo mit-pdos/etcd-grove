@@ -31,7 +31,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.readInt64.wp_proof
     go_etcd_io.etcd.server.v3.storage.wal.readInt64.spec (GF := GF) (hG := hG) := by
   intro ri S E r0 eof ueof
   iintro #Hrs
-  wp_start as ⟨#Heof, #Hueof, HS⟩
+  wp_start as ⟨#Heof, #Hueof, %Hr8, HS⟩
   ihave #Hinit := encoding.binary.isInit_access $$ Hpkg2
   icases Hinit with ⟨#HLE, -⟩
   ihave #HI := io.isInit_access $$ Hpkg
@@ -52,7 +52,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.readInt64.wp_proof
     · iframe
       isplitl []
       · iexact Heof
+      isplitl []
       · iexact Hueof
+      ipureintro; rw [Hxs]; exact Hr8
     iapply HΦ'
     iexists ys
     iframe

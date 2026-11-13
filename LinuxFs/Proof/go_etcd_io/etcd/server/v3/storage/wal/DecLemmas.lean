@@ -59,15 +59,23 @@ theorem fbr_readerStream
         (bufio.ownReader b F.fr F.S (decRdErr F.bs eof IoE)) (decRdErr F.bs eof IoE) := by
   iintro ⟨#Hf, #HF⟩
   iunfold decFile at HF
-  icases HF with ⟨#Hrs, -⟩
+  icases HF with ⟨#Hrs, #Hpre, -, %HFp⟩
   iunfold io.readerStream
   imodintro
   iintro %r %p %xs
   imodintro
-  iintro %Φ ⟨Hb, Hp⟩ HΦ
+  iintro %Φ ⟨%Hrx, Hb, Hp⟩ HΦ
   wp_apply HRead fbr b fi err DFrac.discard F.fr F.S (decRdErr F.bs eof IoE) r p xs $$ Hrs
-    [Hb Hp] as %n %e ⟨%ys, %Hys, Hp, -, Hb⟩
+    [] [Hb Hp] as %n %e ⟨%ys, %Hys, Hp, -, Hb⟩
+  · imodintro
+    iintro %r' HS
+    ihave %h := Hpre $$ HS
+    ipureintro
+    have := h.length_le
+    omega
   · iframe
+    isplitl []
+    · ipureintro; exact Hrx
     iexact Hf
   iapply HΦ
   iexists ys
@@ -77,7 +85,8 @@ theorem fbr_readerStream
 
 theorem decFile_pure (IoE : GoInterface → Prop) (eof : GoInterface) (F : DecFile GF) :
     decFile IoE eof F ⊢
-      ⌜F.fr.ty ≠ go.GoType.PointerType _root_.Perennial.bufio.Reader.ty ∧ F.bs.length < 2 ^ 62⌝ := by
+      ⌜F.fr.ty ≠ go.GoType.PointerType _root_.Perennial.bufio.Reader.ty ∧
+        F.bs.length + 2 ^ 12 < 2 ^ 62⌝ := by
   iintro HF
   iunfold decFile at HF
   icases HF with ⟨-, -, -, %h⟩

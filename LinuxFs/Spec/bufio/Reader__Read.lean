@@ -27,12 +27,13 @@ variable [package_sem : _root_.Perennial.bufio.Assumptions]
 
 /-- `b.Read(p)`, `b` over the stream reader `ri`: delivers the next bytes `ys` (at most `len(p)`)
 into the front of `p`, from the buffer or from `ri`, and returns only an error `ri` returned
-there (`io.readerStream`'s triple, for `b`). -/
+there (`io.readerStream`'s triple, for `b`). A refill reads a whole buffer (up to 4 KiB) at
+the stream's position, so the underlying stream's states stay 4 KiB below `2^62`. -/
 abbrev bufio.Reader.Read.spec : Prop :=
   ∀ (b : Loc) (ri : GoInterfaceOk) (S : List w8 → IProp GF) (E : List w8 → GoInterface → Prop)
     (r : List w8) (p : GoSlice) (xs : List w8),
-  ⊢ io.readerStream ri S E -∗
-    {{ bufio.ownReader b ri S E r ∗ p ↦* xs }}
+  ⊢ io.readerStream ri S E -∗ (□ ∀ r', S r' -∗ ⌜r'.length + 2 ^ 12 < 2 ^ 62⌝) -∗
+    {{ ⌜r.length + xs.length < 2 ^ 62⌝ ∗ bufio.ownReader b ri S E r ∗ p ↦* xs }}
       (App (Val (b @!! go.GoType.PointerType _root_.Perennial.bufio.Reader.ty @!! go!"Read"))
         (Val #p))
     {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
