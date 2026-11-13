@@ -2161,10 +2161,10 @@ The W3/W5 log's gap 4 (`ZeroToEnd` on the tail; `cut`'s truncate of the old tail
   (`walDecFiles_mk`: `openWALFiles`' `walOpenedFile`s and the opened segments' program halves `segHalves`
   give `NewDecoder`'s `[∗list] F ∈ fs, decFile IoE eof F ∗ F.S []`, `fs.map (·.fr)` the readers, and
   `WalDecTie` (`walReadTie`'s per-file facts) and the locks; over `walDecFile_ok`).
-- **`openAtIndex`'s spec, read mode** (to fix with its proof): its read-mode success returns
+- **Statement change, `openAtIndex`'s read mode**: its read-mode success returned
   `walUnlockedTok`, but `walReadH false` holds the program's halves of the WAL's files and directory claim
   (`walReadTie`), which only a `walLockedTok` holder may have out of `walParked`; `walReadOnlyF` already
-  holds `walLockedTok`. The read-mode success must return `walLockedTok` (`OpenForRead`'s statement does not
+  holds `walLockedTok`. The read-mode success now returns `walLockedTok` (`OpenForRead`'s statement does not
   change).
 - **Gaps found (`openAtIndex`'s pinning step; for the invariant's owner):**
   1. *The WAL directory's path.* `readWALNames`/`openWALFiles`/the pipeline need `osPathS R dir dq j` with
