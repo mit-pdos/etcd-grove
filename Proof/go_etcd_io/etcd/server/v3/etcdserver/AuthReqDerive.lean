@@ -106,20 +106,22 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- **The server's `isReqAuth`, of the real store** at `st` (`auth.authInv st R`), with the
 reader resource `auth.authRd st R` (its `enabledMu` slot is what `AuthInfoFromCtx` uses; see the
-file header). -/
+file header), once the token provider is ready (`auth.tpReady M`: the server's `start` fires it;
+auth-schema-fix S1 option A, 2026-11-12). -/
 theorem isReqAuth_of_authInv
     (hCtx : auth.authStore.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
     (hTLS : auth.authStore.AuthInfoFromTLS.spec (GF := GF) (hG := hG))
     (st : Loc) (R : IProp GF) (M : auth.AuthMode) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ⊢
-      isReqAuth (auth.authIface st) (auth.authRd st R M) := by
-  iintro ⟨#Hpkg, #Hinv⟩
+      □ (auth.tpReady M -∗ isReqAuth (auth.authIface st) (auth.authRd st R M)) := by
+  iintro ⟨#Hpkg, #Hinv⟩ !> #Hrdy
   iunfold isReqAuth
   iexists (interface.mk (go.GoType.PointerType auth.authStore.ty) #st)
   isplitr
   · ipureintro; rfl
   isplitr
-  · iintro !> %ctx %Φ !> ⟨#Hlib, -, Hrd⟩ HΦ
+  · iintro !> %ctx %Φ !> ⟨#Hlib, #Hda, Hrd⟩ HΦ
+    ihave #Hdr := auth.ctxDoneRecv_of_ctxDoneAny ctx $$ Hda
     iunfold context.libCtxOk at Hlib
     icases Hlib with ⟨#Hinc, -, -, -⟩
     iunfold auth.authRd at Hrd
@@ -142,18 +144,20 @@ theorem isReqAuth_of_authInv
     iapply HΦ
     iapply authInfoRO_authInfoOpt a $$ Ha
 
-/-- **The request side with the binding, of the real store** at `st` (`auth.authInv st R M`). -/
+/-- **The request side with the binding, of the real store** at `st` (`auth.authInv st R M`), once
+the token provider is ready (`auth.tpReady M`). -/
 theorem isReqAuthBound_of_authInv
     (hCtx : auth.authStore.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
     (st : Loc) (R : IProp GF) (M : auth.AuthMode) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ⊢
-      isReqAuthBound (auth.authIface st) (auth.authRd st R M) M := by
-  iintro ⟨#Hpkg, #Hinv⟩
+      □ (auth.tpReady M -∗ isReqAuthBound (auth.authIface st) (auth.authRd st R M) M) := by
+  iintro ⟨#Hpkg, #Hinv⟩ !> #Hrdy
   iunfold isReqAuthBound
   iexists (interface.mk (go.GoType.PointerType auth.authStore.ty) #st)
   isplitr
   · ipureintro; rfl
-  iintro !> %ctx %Φ !> ⟨#Hlib, -, Hrd⟩ HΦ
+  iintro !> %ctx %Φ !> ⟨#Hlib, #Hda, Hrd⟩ HΦ
+  ihave #Hdr := auth.ctxDoneRecv_of_ctxDoneAny ctx $$ Hda
   iunfold context.libCtxOk at Hlib
   icases Hlib with ⟨#Hinc, -, -, -⟩
   iunfold auth.authRd at Hrd
@@ -198,8 +202,8 @@ and the error `nil` or one of the auth package's error variables (`authErrVarIs`
 theorem isReqAuth_ctxM (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) (ai : GoInterfaceOk)
     (hai : st = GoInterface.ok ai) :
     isReqAuth (GF := GF) st RD ∗ □ (⌜M.isOn = true⌝ → isReqAuthBound st RD M) ⊢
-      □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-        {{ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗ RD }}
+      □ (∀ ctx : GoInterfaceOk,
+        {{ auth.ctxDoneAny ctx ∗ context.libCtxOk ctx ∗ RD }}
           (App (Val #(methods ai.ty go!"AuthInfoFromCtx" ai.v)) (Val #(GoInterface.ok ctx)))
         {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗
             authApplyErrIs err ∗ □ (⌜M.isOn = true⌝ → auth.ctxBound M (GoInterface.ok ctx) a) ∗
@@ -210,8 +214,7 @@ theorem isReqAuth_ctxM (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) (a
     icases Ha with ⟨%ai1, %Hai1, #H, -⟩
     have h1 : ai1 = ai := GoInterface.ok.inj (Hai1.symm.trans hai)
     subst h1
-    iintro !> %ctx %cd %Φ !> ⟨#Htx, #Hlib, Hrd⟩ HΦ
-    ihave #Hda := auth.ctxDoneAny_of_txnCtx ctx cd $$ Htx
+    iintro !> %ctx %Φ !> ⟨#Hda, #Hlib, Hrd⟩ HΦ
     iapply H $$ %ctx [Hrd]
     · iframe; iframe #
     iintro !> %a %err ⟨HRD, Hai, Herr⟩
@@ -228,8 +231,7 @@ theorem isReqAuth_ctxM (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) (a
     icases Hb' with ⟨%ai1, %Hai1, #H⟩
     have h1 : ai1 = ai := GoInterface.ok.inj (Hai1.symm.trans hai)
     subst h1
-    iintro !> %ctx %cd %Φ !> ⟨#Htx, #Hlib, Hrd⟩ HΦ
-    ihave #Hda := auth.ctxDoneAny_of_txnCtx ctx cd $$ Htx
+    iintro !> %ctx %Φ !> ⟨#Hda, #Hlib, Hrd⟩ HΦ
     iapply H $$ %ctx [Hrd]
     · iframe; iframe #
     iintro !> %a %err ⟨HRD, Hai, #Herr, #Hbd⟩

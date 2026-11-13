@@ -40,6 +40,7 @@ axiom EtcdServer.waitLeader.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom RangeRequest.String.wp_proof
 axiom addFeatureGateMetrics.wp_proof
+axiom apply.irrDecode_utf8
 axiom apply.memberEnc_id_learner
 axiom apply.memberKey_inj
 axiom attribute.Bool.wp_proof
@@ -129,7 +130,6 @@ axiom clockwork.stampAt_elim
 axiom clockwork.stampAt_persistent
 axiom config.ServerConfig.BackendPath.wp_proof
 axiom config.ServerConfig.PeerDialTimeout.wp_proof
-axiom context.WithCancelBackground.wp_proof
 axiom context.WithValue.wp_proof
 axiom dataDirFresh
 axiom encoding.json.Unmarshal.wp_proof
@@ -137,6 +137,7 @@ axiom entryEncC_ok
 axiom envVerifyOffTok
 axiom errors.AsLeaf.wp_proof
 axiom errors.IsCtxErr.wp_proof
+axiom errors.IsStatusErr.wp_proof
 axiom etcdserverpb.AlarmType.String.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom fmt.ErrorfPlain.wp_proof
@@ -304,6 +305,7 @@ axiom v2stats.ServerStats.RecvAppendReq.wp_proof
 axiom v2stats.ServerStats.SendAppendReq.wp_proof
 axiom v3alarm.AlarmStore.restore.wp_proof
 axiom v3alarm.NewAlarmStore.wp_proof
+axiom v3rpc.wp_WithTimeout_weak
 axiom verify.Verify.wp_proof
 axiom version.Cluster.wp_proof
 axiom version.LessThan.wp_proof

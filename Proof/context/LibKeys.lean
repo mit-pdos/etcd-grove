@@ -72,15 +72,34 @@ its `AuthInfo` is nil (insecure) or the server credentials' handshake informatio
 `credentials.TLSInfo` holding the chains `crypto/tls` verified, which contain no nil certificate. -/
 opaque peer.transportPeer [GooseExts] : GoInterface → Prop
 
-/-- (opaque; TRUSTED) **A span otel made**: the value `trace.ContextWithSpan` stores under
-`currentSpanKey` for a span returned by otel's SDK tracer (`sdk/trace` `tracer.Start`: a
-`*recordingSpan` or a `nonRecordingSpan`), by its no-op tracer (`noopSpan`), or the
-`nonRecordingSpan` of `trace.ContextWithRemoteSpanContext` (otel v1.47.0 `trace/context.go`,
-`sdk/trace/tracer.go`, `trace/noop.go`): a `trace.Span` whose methods return (`End`, `AddEvent`,
-`RecordError`, `SpanContext`, `IsRecording`, `TracerProvider`, ...: each of these types' methods
-returns, `*recordingSpan`'s under its own mutex; k8s 7f-4 Revision 2 lists `IsRecording`, which the
-no-op tracer's `Start` calls), and whose `TracerProvider()` is one of
-otel's, whose `Tracer(...).Start` returns another such span. -/
+/-- (opaque; TRUSTED) **A span otel made, of a provider built from otel's own components**: the value
+`trace.ContextWithSpan` stores under `currentSpanKey` for a span returned by otel's SDK tracer
+(`sdk/trace` `tracer.Start`: a `*recordingSpan` or a `nonRecordingSpan`), by its no-op tracer
+(`noopSpan`), or the `nonRecordingSpan` of `trace.ContextWithRemoteSpanContext` (otel v1.47.0
+`trace/context.go`, `sdk/trace/tracer.go`, `trace/noop.go`): a `trace.Span` whose methods return
+(`End`, `AddEvent`, `RecordError`, `SpanContext`, `IsRecording`, `TracerProvider`, ...: each of these
+types' methods returns, `*recordingSpan`'s under its own mutex; k8s 7f-4 Revision 2 lists
+`IsRecording`, which the no-op tracer's `Start` calls), and whose `TracerProvider()` is one of
+otel's, whose `Tracer(...).Start` returns another such span.
+(The narrowing of 2026-11-13, decided by etcd-grove-81; `notes/otelspan-narrow.md`) An SDK span's
+provider (`sdktrace.NewTracerProvider`) is built from otel's own components only, because the SDK's
+`Start` passes the caller's context to them (sdk/trace v1.47.0 `tracer.go`, `Start`, `newSpan`): its
+sampler is `AlwaysSample`, `NeverSample`, `TraceIDRatioBased` or `ParentBased` over these (with any of
+its four options over these; the default and the `OTEL_TRACES_SAMPLER`-configured samplers are among
+them), its ID generator the default one (no `WithIDGenerator`), its span processors otel's Batch and
+Simple ones (`WithBatcher`, `WithSyncer`, `NewBatchSpanProcessor`, `NewSimpleSpanProcessor`) over
+exporters whose `ExportSpans` and `Shutdown` return (the Simple one exports inside `End`); and, when
+the tracer was made with otel's observability metrics on (`OTEL_GO_X_OBSERVABILITY`), the global
+`MeterProvider` is otel's default (none set) or its no-op one (`metric/noop`), never another, since
+the SDK passes the span's start context to its instruments (`observ.Tracer`'s `SpanStarted`,
+`SpanLive`, `SpanEnded`). These read no context key but otel's `currentSpanKey`
+(`examples/premisefix/k8sctx/otelprovider_test.go`). That is what the programs here build:
+kube-apiserver's `tracing.NewProvider` (k8s.io/component-base, `ParentBased(NeverSample` or
+`TraceIDRatioBased)`, a Batch processor over the OTLP exporter; k8s.io/apiserver's `server/options`
+sets the global `MeterProvider` to `metric/noop` at init) and etcd's (`server/embed/config_tracing.go`,
+the same sampler, `WithBatcher` over the OTLP exporter; no `MeterProvider` set). A provider with a
+sampler, ID generator or span processor of the program's own, which may read the context at a key of
+its own (`TestOtelExcludedComponents`), makes no `otelSpan`. -/
 opaque trace.otelSpan [GooseExts] : GoInterface → Prop
 
 section defs

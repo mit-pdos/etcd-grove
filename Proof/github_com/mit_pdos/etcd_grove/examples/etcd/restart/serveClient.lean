@@ -30,8 +30,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.restart.Ass
 theorem serveClient.wp_proof
     (wp_Serve : etcdstart.Serve.spec (GF := GF) (hG := hG)) :
     serveClient.spec (GF := GF) (hG := hG) := by
-  intro CS m s pl addr E ρ γr cfg Q Htr Hpn Hms Hbuq
-  wp_start as ⟨#Hzlg, Hm, Haddr, #Hreq, #Hrd, #Hsf, #Hwb, #Hnrl, Hlgr, Hbemu, Hgo, Hstep⟩
+  intro CS m s pl addr E ρ γr cfg Q Htr Hpn Hms Hbuq Htb
+  wp_start as ⟨#Hzlg, Hm, Haddr, #Hreq, #Hrd, #Hsf, #Hwb, Hlgr, Hbemu, Hgo, Hstep⟩
   ihave #Pcom : isPkgInit (PROP := IProp GF)
       pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart $$ []
   · iPkgInit
@@ -41,7 +41,7 @@ theorem serveClient.wp_proof
   wp_apply (wp_Serve s addr E ρ γr cfg Q) $$ [Haddr Hlgr Hbemu Hgo Hstep] as %err Hres
   · iframe; iframe #
     isplitr
-    · ipureintro; exact ⟨Htr, Hpn, Hms, Hbuq, HsvOff.2⟩
+    · ipureintro; exact ⟨Htr, Hpn, Hms, Hbuq, HsvOff.2, Htb⟩
     iintro %gs %lis %cid %mid %R Hg
     rw [HsvOff.1]
     ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg

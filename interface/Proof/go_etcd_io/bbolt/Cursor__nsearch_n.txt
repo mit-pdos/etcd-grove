@@ -2,9 +2,9 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.Cursor.nsearch_n.wp_proofQ [hos : HasExt osFsExt] (hK :
-    bbolt.internal.common.Inode.Key.spec) (hS : sort.Search.spec) (hC : bytes.Compare.spec) :
-    bbolt.Cursor.nsearch_n.specQ
+theorem bbolt.Cursor.nsearch_n.wp_proofQ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt
+    Fs.fsExt] (hK : bbolt.internal.common.Inode.Key.spec) (hS : sort.Search.spec) (hC :
+    bytes.Compare.spec) : bbolt.Cursor.nsearch_n.specQ
   -- `Perennial.EtcdGrove.bbolt.Cursor.nsearch_n.specQ`, unfolded:
   ∀ (c b : Loc) (stk : GoSlice) (els : List go_etcd_io.bbolt.elemRef) (e : go_etcd_io.bbolt.elemRef) (v : bbolt.View)
     (bl : Loc) (rn : bbolt.NRec) (qn q : Qp) (key : GoSlice) (kr : bbolt.KeyR) (kb : List w8),
@@ -34,8 +34,8 @@ theorem bbolt.Cursor.nsearch_n.wp_proofQ [hos : HasExt osFsExt] (hK :
                         (intoVal key))
                       {{ Φ }}
 
-theorem bbolt.Cursor.nsearch_n.wp_proof [hos : HasExt osFsExt] (hK :
-    bbolt.internal.common.Inode.Key.spec) (hS : sort.Search.spec) (hC : bytes.Compare.spec) :
+theorem bbolt.Cursor.nsearch_n.wp_proof [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt]
+    (hK : bbolt.internal.common.Inode.Key.spec) (hS : sort.Search.spec) (hC : bytes.Compare.spec) :
     bbolt.Cursor.nsearch_n.spec
   -- `Perennial.EtcdGrove.bbolt.Cursor.nsearch_n.spec`, unfolded:
   ∀ (c b : Loc) (stk : GoSlice) (els : List go_etcd_io.bbolt.elemRef) (e : go_etcd_io.bbolt.elemRef) (v : bbolt.View)

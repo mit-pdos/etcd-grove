@@ -18,6 +18,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section proof
@@ -28,13 +30,13 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 theorem Bucket.Delete.wp_proof
-    (hcur : ∀ [HasExt osFsExt], Bucket.Cursor_i.spec (GF := GF) (hG := hG))
-    (hseek : ∀ [HasExt osFsExt], Cursor.seek_w.spec (GF := GF) (hG := hG))
-    (hnode : ∀ [HasExt osFsExt], Cursor.node.spec (GF := GF) (hG := hG))
-    (hdel : ∀ [HasExt osFsExt], node.del.spec (GF := GF) (hG := hG))
+    (hcur : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Bucket.Cursor_i.spec (GF := GF) (hG := hG))
+    (hseek : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Cursor.seek_w.spec (GF := GF) (hG := hG))
+    (hnode : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Cursor.node.spec (GF := GF) (hG := hG))
+    (hdel : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], node.del.spec (GF := GF) (hG := hG))
     (hEq : bytes.Equal.spec (GF := GF) (hG := hG)) :
     Bucket.Delete.spec (GF := GF) (hG := hG) := by
-  intro _ tx γ T b n m key kb dk own
+  intro _ _ _ tx γ T b n m key kb dk own
   exact Write.Bucket.Delete.wp_writer hcur hseek hnode hdel hEq tx γ T b n m key kb dk own
     (fun X h => gensOK_handle_bktLoc T X h)
 

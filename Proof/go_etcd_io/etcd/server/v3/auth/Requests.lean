@@ -5,7 +5,11 @@ fields, the shape of the apply package's request predicates (`apply/InvRequest.l
 `authUserAddIs`, which now are these). A request's `[]byte` fields (`RoleRevokePermission`'s
 `Key`/`RangeEnd`, `RoleGrantPermission`'s `Perm`) are read-only slices, as `proto.Unmarshal`
 leaves them; the permission of a `RoleGrantPermission` is a read-only message (`ownPermW`,
-`Buckets.lean`), which the store puts into the role's record as it is.
+`Buckets.lean`; its unknown fields free: a client's newer fields), of which the store copies
+`Key`, `RangeEnd` and `PermType` into a fresh message for the role's record (`newPerm`, store.go;
+a stored permission has none, `ownPermS`). A `UserAdd`'s `Options` is a read-only message whose
+unknown fields are valid wire format (`userOptsAt`), which the store does put into the user's
+record as it is (`Options: options`; the record keeps those bytes, `UserRec.optsUF`).
 -/
 module
 
@@ -47,7 +51,8 @@ variable [sem : go.Semantics]
 
 /-- The `*pb.AuthUserAddRequest` `r` (not nil): its `Name`, its passwords (`Password`,
 `HashedPassword`: read-only, any strings; the model keeps no passwords, `selectPassword` is the
-trust boundary), and its `Options` (nil, or a read-only `UserAddOptions`, `userOptsAt`). -/
+trust boundary), and its `Options` (nil, or a read-only `UserAddOptions` whose unknown fields are
+valid wire format, `userOptsAt`: the store keeps them in the user's record). -/
 def userAddReqIs (r : Loc) (name : GoString) : IProp GF :=
   iprop(⌜r ≠ null⌝ ∗ structFieldRef etcdserverpb.AuthUserAddRequest go!"Name" r ↦□ name ∗
     (∃ pw hpw : GoString, structFieldRef etcdserverpb.AuthUserAddRequest go!"Password" r ↦□ pw ∗

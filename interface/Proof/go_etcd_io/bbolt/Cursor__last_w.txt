@@ -2,8 +2,8 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.Cursor.last_w.wp_proofQ [hos : HasExt osFsExt] (hpn : bbolt.Bucket.pageNode_w.specQ)
-    (hIL : bbolt.internal.common.Page.IsLeafPage.spec) (hBE :
+theorem bbolt.Cursor.last_w.wp_proofQ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt]
+    (hpn : bbolt.Bucket.pageNode_w.specQ) (hIL : bbolt.internal.common.Page.IsLeafPage.spec) (hBE :
     bbolt.internal.common.Page.BranchPageElement.spec) (hBP :
     bbolt.internal.common.branchPageElement.Pgid.spec) (hIP : bbolt.internal.common.Inode.Pgid.spec)
     (hCnt : bbolt.internal.common.Page.Count.spec) : bbolt.Cursor.last_w.specQ
@@ -46,5 +46,5 @@ theorem bbolt.Cursor.last_w.wp_proofQ [hos : HasExt osFsExt] (hpn : bbolt.Bucket
                       (intoVal ()))
                     {{ Φ }}
 
-theorem bbolt.Bucket.pageNode_w.specQ.congr_simp [hos : HasExt osFsExt] :
+theorem bbolt.Bucket.pageNode_w.specQ.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] :
     bbolt.Bucket.pageNode_w.specQ = bbolt.Bucket.pageNode_w.specQ

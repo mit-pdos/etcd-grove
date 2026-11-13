@@ -17,12 +17,14 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section release
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
@@ -168,7 +170,7 @@ omit sem in
 (`hbs`), the writer side's facts and its `W` slots' cells and bytes extend to the released
 freelist (`wdbOK_released`, `wjoin`: the released slots were committed-pending, so below the
 high-water mark, inside the mapping and the file). -/
-theorem wdb_release (p : GoString) (w : WDb) (σ : StoreSt) (ro : List w64) (S : List Nat)
+theorem wdb_release (p : BFile) (w : WDb) (σ : StoreSt) (ro : List w64) (S : List Nat)
     (bs : Nat → List w8)
     (hσ : σ.C = w.C ∧ σ.fl = w.fl ∧ σ.ms = w.ms ∧ σ.wst = wIdle ∧ storeOK σ) (hok : wdbOK w)
     (hS : ∀ s, s ∈ S ↔ s ∈ slotsOf w.C w.fl ∧ s ∉ slotsOf w.C (w.fl.releasePending ro))
@@ -203,7 +205,7 @@ theorem wdb_release (p : GoString) (w : WDb) (σ : StoreSt) (ro : List w64) (S :
   · iexact Hb
 
 section store
-variable (B : BNs) (N : Namespace) (p : GoString) (E : CoPset) (hE : ↑(pagesN N) ⊆ E)
+variable (B : BNs) (N : Namespace) (p : BFile) (E : CoPset) (hE : ↑(pagesN N) ⊆ E)
 include hE
 
 /-- **`store_release` with its released slots' bytes whole pages** (U5c's finding: the slots

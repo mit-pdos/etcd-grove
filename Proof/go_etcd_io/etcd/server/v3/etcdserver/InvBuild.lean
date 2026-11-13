@@ -358,6 +358,8 @@ def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     "#Hwci" ∷ waitClosecInit ∗
     "Hw" ∷ (∃ w : GoInterface, srvWAddr s ↦ w) ∗
     "Haw" ∷ (∃ aw : GoInterface, srvApplyWaitAddr s ↦ aw) ∗
+    -- (auth-schema-fix S1 option A) the right to fire the token provider's readiness
+    "Htpp" ∷ srvTpPend s E.authMode ∗
     "Hdone" ∷ (∃ c : Loc, srvDoneAddr s ↦ c) ∗
     "Hstop" ∷ (∃ c : Loc, srvStopAddr s ↦ c) ∗
     "Hstopping" ∷ (∃ c : Loc, srvStoppingAddr s ↦ c) ∗

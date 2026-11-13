@@ -453,6 +453,9 @@ noncomputable def seed [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def noStreaming [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8s/etcd3.noStreaming"
 
+noncomputable def watchList [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/k8s/etcd3.watchList"
+
 noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8s/etcd3.Main"
 
@@ -7088,12 +7091,31 @@ noncomputable def noStreaming.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
+/-- watchList turns the store's WatchList feature on (a watch-list request gets its initial events and
+    the initial-events-end bookmark; notes/k8s-7f-scope.md §2.2, notes/k8s-7f5-scope.md Q4), or
+    returns false. Its default at the pinned binary version is on (1.34+); the driver sets it so that
+    no fact about the emulated version is needed.
+
+    go: k8setcd3.go:1696:6 -/
+noncomputable def watchList.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (Let "$a0" (Val #(go!"WatchList=true"))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.component_base.featuregate.MutableVersionedFeatureGate.ty go!"Set"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.component_base.featuregate.MutableVersionedFeatureGate.ty))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.k8s_io.apiserver.pkg.util.feature.DefaultMutableFeatureGate))) (Val #())))) (Var "$a0"))) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
+
 /-- Main starts one member of a new cluster (as examples/etcd/txnlin's Main does), connects a
     kubernetes client configured for one attempt per call, seeds the keys, makes the store and runs
     Check; it panics if porcupine finds the history illegal. An error from a step before Check ends
     Main without a check.
 
-    go: k8setcd3.go:1700:6 -/
+    go: k8setcd3.go:1708:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "clients"
   (Lam "ops"
@@ -7208,7 +7230,7 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.store.ty)))) (Pair (Var "s") (Var "$r0")))))))))))))
-  (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (FuncResolve noStreaming []))) (Val #())) (Val #()))))
+  (If (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (FuncResolve noStreaming []))) (Val #())) (Val #())))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (FuncResolve watchList []))) (Val #())) (Val #()))))
   (Let "$r0" (Val #(go!"Unknown"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -7272,7 +7294,7 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
 /-- clusterConfig is MainCluster's three-member cluster (examples/lib/cluster3): its own token, names
     and addresses, not the other examples', so that their tests can run at once.
 
-    go: k8setcd3.go:1739:6 -/
+    go: k8setcd3.go:1747:6 -/
 noncomputable def clusterConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config.ty))) (Val #())))
@@ -7307,7 +7329,7 @@ noncomputable def clusterConfig.impl [GooseExts] [GoGlobalContext] : val :=
     makes the store and runs Check; it panics if porcupine finds the history illegal. An error from a
     step before Check ends MainCluster without a check.
 
-    go: k8setcd3.go:1755:6 -/
+    go: k8setcd3.go:1763:6 -/
 noncomputable def MainCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "clients"
   (Lam "ops"
@@ -7428,7 +7450,7 @@ noncomputable def MainCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.store.ty)))) (Pair (Var "s") (Var "$r0")))))))))))))
-  (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (FuncResolve noStreaming []))) (Val #())) (Val #()))))
+  (If (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (FuncResolve noStreaming []))) (Val #())) (Val #())))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (FuncResolve watchList []))) (Val #())) (Val #()))))
   (Let "$r0" (Val #(go!"Unknown"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -7483,7 +7505,7 @@ noncomputable def MainCluster.impl [GooseExts] [GoGlobalContext] : val :=
     KeepAliveTime/KeepAliveTimeout); a write that fails is kept pending by the model (it takes
     effect later or never).
 
-    go: k8setcd3.go:1794:6 -/
+    go: k8setcd3.go:1802:6 -/
 noncomputable def MainPartition.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "clients"
   (Lam "ops"
@@ -7616,7 +7638,7 @@ noncomputable def MainPartition.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.store.ty)))) (Pair (Var "s") (Var "$r0")))))))))))))
-  (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (FuncResolve noStreaming []))) (Val #())) (Val #()))))
+  (If (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (FuncResolve noStreaming []))) (Val #())) (Val #())))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (FuncResolve watchList []))) (Val #())) (Val #()))))
   (Let "$r0" (Val #(go!"Unknown"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -9055,6 +9077,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   seedOne_unfold : FuncUnfold seedOne [] seedOne.impl
   seed_unfold : FuncUnfold seed [] seed.impl
   noStreaming_unfold : FuncUnfold noStreaming [] noStreaming.impl
+  watchList_unfold : FuncUnfold watchList [] watchList.impl
   Main_unfold : FuncUnfold Main [] Main.impl
   clusterConfig_unfold : FuncUnfold clusterConfig [] clusterConfig.impl
   MainCluster_unfold : FuncUnfold MainCluster [] MainCluster.impl
@@ -9178,6 +9201,7 @@ attribute [instance] Assumptions.Obj_instance
   Assumptions.seedOne_unfold
   Assumptions.seed_unfold
   Assumptions.noStreaming_unfold
+  Assumptions.watchList_unfold
   Assumptions.Main_unfold
   Assumptions.clusterConfig_unfold
   Assumptions.MainCluster_unfold

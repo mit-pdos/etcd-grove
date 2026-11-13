@@ -15,6 +15,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section pure
@@ -63,12 +65,24 @@ theorem grown_W_sub (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (b : Loc) (L : Nat
     omega
   · exact (wdbOK'_partSlot fr w hok b L hms hal h8 s hlt (by omega)).1
 
+/-- A resize's announcement keeps the size. -/
+theorem grow_announce_size (m : OsMeta) (lo hi tg : Nat) : (m.announce lo hi tg).size = m.size := by
+  unfold OsMeta.announce OsMeta.touch; split
+  · rfl
+  · split <;> rfl
+
+/-- A resize's announcement keeps the mappings. -/
+theorem grow_announce_maps (m : OsMeta) (lo hi tg : Nat) : (m.announce lo hi tg).maps = m.maps := by
+  unfold OsMeta.announce OsMeta.touch; split
+  · rfl
+  · split <;> rfl
+
 end pure
 
 section res
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
@@ -85,8 +99,8 @@ theorem grow_finish (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (hok : 
     (m' : OsMeta) (hsz : w.m.size ≤ m'.size) (hmaps : m'.maps = w.m.maps) (hS : m'.size % 4096 = 0)
     (h10 : L ≤ 0x1000000 → m'.size ≤ L) (h13 : m'.size < 2 ^ 63) (S : Nat) (hSz : m'.size = S) :
     growCloser (GF := GF) fr K tx v w -∗
-    K.db.[DB, go!"file"] ↦ w.f -∗ fileOwn w.f w.fd K.p (DFrac.own 1) -∗
-    osFd w.fd (DFrac.own 1) ⟨K.p, true, true⟩ -∗ osMeta K.p (DFrac.own 1) (some m') -∗
+    K.db.[DB, go!"file"] ↦ w.f -∗ fileOwn w.f w.fd K.p.path (DFrac.own 1) -∗
+    osFd w.fd (DFrac.own 1) ⟨K.p.ino, true, true⟩ -∗ osMeta K.p.ino (DFrac.own 1) m' -∗
     K.db.[DB, go!"datasz"] ↦ W64 (mapLen w.ms : Int) -∗
     ([∗list] s ∈ wSlots (min w.m.size L / 4096) w.C w.fl,
       ∃ vf, cellsR (GF := GF) b (4096 * s) 4096 vf) -∗
@@ -94,7 +108,7 @@ theorem grow_finish (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (hok : 
       (min w.m.size L - 4096 * (min w.m.size L / 4096)) vf) -∗
     (∃ vf, cellsR (GF := GF) b (min w.m.size L) (L - min w.m.size L) vf) -∗
     wBytes K.p w.W w.wb w.m.size -∗
-    osBytes K.p w.m.size (DFrac.own 1) (List.replicate (S - w.m.size) ((0 : w8), false)) -∗
+    zBytes K.p w.m.size (S - w.m.size) -∗
     ∃ w' : WDb, wdbW' fr K tx v w' ∗ ⌜wdbGrown w w'⌝ := by
   subst hSz
   unfold growCloser
@@ -135,8 +149,8 @@ theorem grow_finish_same (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (h
     (b : Loc) (L : Nat) (hms : w.ms = some (b, L)) (hal : L % 4096 = 0) (h8 : 8192 ≤ w.m.size)
     (m' : OsMeta) (hsz : m'.size = w.m.size) (hmaps : m'.maps = w.m.maps) :
     growCloser (GF := GF) fr K tx v w -∗
-    K.db.[DB, go!"file"] ↦ w.f -∗ fileOwn w.f w.fd K.p (DFrac.own 1) -∗
-    osFd w.fd (DFrac.own 1) ⟨K.p, true, true⟩ -∗ osMeta K.p (DFrac.own 1) (some m') -∗
+    K.db.[DB, go!"file"] ↦ w.f -∗ fileOwn w.f w.fd K.p.path (DFrac.own 1) -∗
+    osFd w.fd (DFrac.own 1) ⟨K.p.ino, true, true⟩ -∗ osMeta K.p.ino (DFrac.own 1) m' -∗
     K.db.[DB, go!"datasz"] ↦ W64 (mapLen w.ms : Int) -∗
     ([∗list] s ∈ wSlots (min w.m.size L / 4096) w.C w.fl,
       ∃ vf, cellsR (GF := GF) b (4096 * s) 4096 vf) -∗
@@ -180,6 +194,41 @@ theorem mcellsAny_single_eq (b : Loc) (L lo : Nat) :
   refine BigSepM.bigSepM_singleton.trans ?_
   rw [Nat.min_self]
   exact .rfl
+
+omit hos sem in
+/-- The cells `[lo, L)` of the one mapping `(b, L)`, cut at `S` (`lo ≤ S`) into `Truncate`'s
+`mcellsAny` over `[lo, S)` and the rest. -/
+theorem mcellsAny_single_split (b : Loc) (L lo S : Nat) (hle : lo ≤ S) :
+    (∃ vf, cellsR (GF := GF) b (min lo L) (L - min lo L) vf) ⊢
+      mcellsAny (GF := GF) (GMap.singleton b L) lo S ∗ mcellsAny (GF := GF) (GMap.singleton b L) S L := by
+  unfold mcellsAny
+  refine Entails.trans ?_ (sep_mono BigSepM.bigSepM_singleton.2 BigSepM.bigSepM_singleton.2)
+  rw [Nat.min_self]
+  iintro ⟨%vf, H⟩
+  rw [show L - min lo L = (min S L - min lo L) + (L - min S L) by omega]
+  icases (cellsR_append (GF := GF) b (min lo L) (min S L - min lo L) (L - min S L) vf).1 $$ H
+    with ⟨H1, H2⟩
+  isplitl [H1]
+  · iexists vf; iexact H1
+  · iexists vf
+    rw [show min lo L + (min S L - min lo L) = min S L by omega]
+    iexact H2
+
+omit hos sem in
+/-- `mcellsAny_single_split` reversed. -/
+theorem mcellsAny_single_join (b : Loc) (L lo S : Nat) (hle : lo ≤ S) :
+    mcellsAny (GF := GF) (GMap.singleton b L) lo S ∗ mcellsAny (GF := GF) (GMap.singleton b L) S L ⊢
+      ∃ vf, cellsR (GF := GF) b (min lo L) (L - min lo L) vf := by
+  unfold mcellsAny
+  refine (sep_mono BigSepM.bigSepM_singleton.1 BigSepM.bigSepM_singleton.1).trans ?_
+  rw [Nat.min_self]
+  iintro ⟨⟨%vf1, H1⟩, H2⟩
+  ihave H := cellsR_join b (min lo L) (min S L - min lo L) (L - min S L) $$ [H1 H2]
+  · isplitl [H1]
+    · iexists vf1; iexact H1
+    · rw [show min lo L + (min S L - min lo L) = min S L by omega]; iexact H2
+  rw [show min S L - min lo L + (L - min S L) = L - min lo L by omega]
+  iexact H
 
 omit hos sem in
 /-- `Truncate`'s cells after the file grew from `lo` to `S`, back as the cells `[lo, L)`. -/

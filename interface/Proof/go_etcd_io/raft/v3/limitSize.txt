@@ -2,13 +2,6 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem entrySize_sum_take_succ (cs : List EntryC) (i : Nat) (c : EntryC) (h : cs[i]? = some c) :
-    (List.map entrySize (List.take (i + 1) cs)).sum = (List.map entrySize (List.take i cs)).sum +
-    entrySize c
-
-theorem w64_add_exact (acc ni : w64) (a e : Nat) (Ha : uint.nat acc = a) (Hni : sint.Z ni = ↑e) (he
-    : e < 2 ^ 63) (h : a + e < 2 ^ 64) : uint.nat (acc + ni) = a + e
-
 theorem limitSize.wp_proof [package_sem : Assumptions] (wp_SizePb : proto.SizePb.spec) :
     limitSize.spec
   -- `Perennial.EtcdGrove.limitSize.spec`, unfolded:

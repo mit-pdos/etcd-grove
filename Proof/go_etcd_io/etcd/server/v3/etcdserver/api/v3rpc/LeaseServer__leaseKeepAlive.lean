@@ -56,7 +56,7 @@ local macro "ka_log_ret" lbl:term:max : tactic => `(tactic| (
     · itrivial
     iintro !> -
     wp_auto
-    wp_apply +noauto HErrU $$ [] as %cerr - -
+    wp_apply +noauto HErr $$ HE as %cerr HE
     wp_auto
     wp_apply hICE as %bc -
     wp_if_destruct
@@ -159,13 +159,13 @@ theorem v3rpc.LeaseServer.leaseKeepAlive.wp_proof
     (hCV : prometheus.CounterVec.WithLabelValues.spec (GF := GF) (hG := hG)) :
     v3rpc.LeaseServer.leaseKeepAlive.spec (GF := GF) (hG := hG) := by
   intro p s A cid mid E γl S' st γs Up Dn ci cd
-  wp_start as ⟨#Hls, #HRn, #Hst, #Hspec, #HUp, Hrt, Hstt, HS, HR⟩
+  wp_start as ⟨#Hls, #HRn, #Hst, #Hspec, #HUp, Hrt, Hstt, HS, HR, HE⟩
   ihave #Hls' := Hls
   iunfold v3rpc.leaseServerAt at Hls'
   icases Hls' with ⟨%Hpn, #Hhdr, #Hle, %lg, #Hlg, #Hlgf⟩
   ihave #Hst' := Hst
   iunfold srvStreamIs at Hst'
-  icases Hst' with ⟨%si, %Hsi, #HRecv, #HSend, #HCtx, #Hctxis, #Hrunctx⟩
+  icases Hst' with ⟨%si, %Hsi, #HRecv, #HSend, #HCtx, #Hwkk, #Hlibk, -, #Hnetci, #Hcausek⟩
   iunfold v3rpc.raftLeaseRenew at HRn
   ihave #Hlp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease $$ []
   · iPkgInit
@@ -188,15 +188,15 @@ theorem v3rpc.LeaseServer.leaseKeepAlive.wp_proof
   icases HstreamF with ⟨%cvF, #HcvF, %HcvFl⟩
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
-  ihave #Hctx2 := Hctxis
-  ihave #Hlibk := libCtxOk_of_runCtx ci $$ Hrunctx
+  ihave #Hctx2 := Hwkk
+  iunfold srvCtxWeak at Hctx2
   iNamed Hctx2
-  ihave #HErrU := HErr $$ %Broadcast.Unknown
   wp_auto
   ihave Hinv : iprop(∃ (L : List KaReqM) (Ld : List (w64 × w64)),
       "Hrt" ∷ srvRecvTok (Req := pbLeaseKeepAliveRequest) γs L ∗
       "Hstt" ∷ srvSendTok (Rep := pbLeaseKeepAliveResponse) γs Ld ∗
-      "%Hlen" ∷ ⌜Ld.length = L.length⌝ ∗ "HS" ∷ S' ∗ "HR" ∷ A.revR) $$ [Hrt Hstt HS HR]
+      "%Hlen" ∷ ⌜Ld.length = L.length⌝ ∗ "HS" ∷ S' ∗ "HR" ∷ A.revR ∗
+      "HE" ∷ levelTok v3rpc.ctxErrLvl) $$ [Hrt Hstt HS HR HE]
   · iexists [], []; iframe; ipureintro; rfl
   wp_for Hinv
   rw [Hsi]
@@ -243,7 +243,7 @@ theorem v3rpc.LeaseServer.leaseKeepAlive.wp_proof
     iunfold v3rpc.kaUp at HUq
     icases HUq with ⟨#Hnb, #Hmb⟩
     ihave #HRn' := HRn $$ %ci %cd %v.ID' %q.nb %q.mb
-    wp_apply HRn' $$ [HS] as %ttl %rerr ⟨HS, Hans⟩
+    wp_apply HRn' $$ [HS HE] as %ttl %rerr ⟨HS, HE, Hans⟩
     · iframe; iframe #
     (try wp_auto)
     ihave ⟨Hrt, #Hupq⟩ := srvRecvTok_upAtK γs L q $$ Hrt

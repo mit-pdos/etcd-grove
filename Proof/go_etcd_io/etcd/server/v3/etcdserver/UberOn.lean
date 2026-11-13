@@ -207,10 +207,10 @@ theorem srv_uberAuthStepsL_on
     (hM : E.authMode = .on γa) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       srvUberBase s ua E ∗ srvAuthApplyResB s E st ⊢
-      srvAuthApplyResB s E st ∗ ∃ (stl bel : Loc) (γc : auth.AuthBkNames) (Pk : IProp GF),
+      srvAuthApplyResB s E st ∗ ∃ (stl bel : Loc) (γc : auth.AuthBkNames) (Pk Wb : IProp GF),
         ⌜E.Pk = fun _ => Pk⌝ ∗
         srvAuthStoreAddr s ↦□ auth.authIface stl ∗
-        apply.uberAuthStepsL ua E (adminWC stl bel γa Pk E.f γc)
+        apply.uberAuthStepsL ua E (adminWC stl bel γa Pk E.f γc Wb)
           (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h))
           (auth.latestResC stl (.on γa) γc) := by
   iintro ⟨#Hpkg, #Hb, HR⟩
@@ -241,7 +241,7 @@ theorem srv_uberAuthStepsL_on
     iexists hs, P0, f0, T, be
     iframe Ho HX Hw HT Hlife Hpt Htp Hwa Hsteps Hins HRD
     ipureintro; exact Hl
-  iexists stl, d.be, T, Pk
+  iexists stl, d.be, T, Pk, (backend.wbTok d.γB)
   iframe Hauf
   isplitr
   · ipureintro; exact HPk
@@ -250,7 +250,7 @@ theorem srv_uberAuthStepsL_on
         (auth.latestResC stl (.on γa) γc)) := by
     rw [hM]; rfl
   iapply (apply.uberAuthStepsL_of_base hUA hRA hUGR hRGP hAE hAu hApplyL hApply ua E (auth.authIface stl)
-    le (auth.tieRes stl (.on γa)) (adminWC stl d.be γa Pk E.f T) (auth.latestResC stl (.on γa) T))
+    le (auth.tieRes stl (.on γa)) (adminWC stl d.be γa Pk E.f T (backend.wbTok d.γB)) (auth.latestResC stl (.on γa) T))
   iframe Hpkg Hub
   isplitr
   · ihave #HLc : iprop(□ ∀ γc : auth.AuthBkNames, apply.isAuthStoreL (auth.authIface stl) E.RD
@@ -261,7 +261,14 @@ theorem srv_uberAuthStepsL_on
   rw [hM, HPk]
   iintro !> %B
   unfold adminWC
-  iapply apply.isAuthStepsX_frameW $$ Hsteps
+  iapply apply.isAuthStepsX_frameW
+  iapply (apply.isAuthStepsX_wbMono _ _ _ _ _ _ (backend.wbTok d.γB))
+  isplitr
+  · iintro !> Hw'
+    ihave Hw' := apply.bkWTFor_tie E d hkb $$ Hw'
+    iunfold apply.bkWT at Hw'
+    iexact Hw'
+  iexact Hsteps
 
 end proof
 

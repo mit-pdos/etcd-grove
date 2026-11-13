@@ -72,7 +72,7 @@ abbrev featureInit : IProp GF :=
 
 /-- `features`' fact (sweep repairs 1, B5): once its `init` registered its features with the
 default gate, `DefaultFeatureGate` holds a gate with the specs of `k8sfeature.featureGateOk`
-(`Enabled` of the queried features, `Set` of one to `false`). -/
+(`Enabled` of the queried features, `Set` of one to its `k8sSetValue`). -/
 abbrev featuresInit : IProp GF :=
   iprop(∃ g : GoInterfaceOk,
     globalAddr k8s_io.apiserver.pkg.util.feature.DefaultFeatureGate ↦□ GoInterface.ok g ∗

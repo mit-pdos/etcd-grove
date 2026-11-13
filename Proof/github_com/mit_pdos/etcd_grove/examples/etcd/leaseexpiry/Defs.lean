@@ -31,7 +31,8 @@ triple of a function the program calls, D19a's second kind):
   gone, a theorem of the `time` specs, `rnTickerOk_of_time`; premise-fixes-4, 2026-11-10:
   `rnSetLoggerOk` gone, false in the model, raft's `SetLogger` proved over the package
   initialization);
-* `v3rpc.runsNoRequireLeader` (no client stream asks for a leader: a fact of the deployment).
+* (until 2026-11-13, k8s 7f-4 step 6) `v3rpc.runsNoRequireLeader` (no client stream asks for a leader),
+  deleted: the require-leader branch is proved.
 
 What were package-fact premises until D19r was carried out are gone: `rnRaftStatusOk` and
 `waitClosecInit` are now `etcdserver`'s and `pkg/wait`'s facts; `io.EOF` and `context`'s
@@ -132,9 +133,7 @@ def premises (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     -- premise; until then `bootstrap`'s contract gave it)
     bootMarshal [id] ctxs (LogEntry.toEntries boot 0) ∗
     -- the raft wrapper's trust-boundary contracts (`NodeStartSpec`'s)
-    rnLoggerZapOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk ∗
-    -- the deployment: no client stream asks for a leader
-    v3rpc.runsNoRequireLeader)
+    rnLoggerZapOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk)
 
 instance premises_persistent (N : Nat) (id : w64) (ctxs : List (List w8))
     (boot : List LogEntry) : Persistent (premises (GF := GF) N id ctxs boot) := by

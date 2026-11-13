@@ -53,38 +53,53 @@ instance ablOn_persistent (abl be lg : Loc) : Persistent (ablOn (GF := GF) abl b
 def authWAtHook (γa : auth.AuthNames) (d : mvcc.KBReal) (γc : auth.AuthBkNames) : IProp GF :=
   iprop(□ ∀ (abl' lg' : Loc) (W' Pk' : IProp GF) (f' : GoFunc),
     ablOn abl' d.be lg' -∗ backend.isBackend d.γB d.P W' Pk' d.be -∗ backend.plHookRO d.γB f' -∗
-    ⌜f' ≠ func.nil⌝ -∗ auth.authWBackendOkR (authBkIface abl') (.on γa) Pk' f' (auth.authWTok γc))
+    ⌜f' ≠ func.nil⌝ -∗ auth.authWBackendOkR (authBkIface abl') (.on γa) Pk' f' (auth.authWTok γc)
+      (backend.wbTok d.γB))
 
 instance authWAtHook_persistent (γa : auth.AuthNames) (d : mvcc.KBReal) (γc : auth.AuthBkNames) :
     Persistent (authWAtHook (GF := GF) γa d γc) := by
   unfold authWAtHook; infer_instance
 
-/-- **The realization lends the auth buckets to the writer** (trusted, `authSchemaSrv`'s and
-`authSchemaSnap`'s; persistent; #7-on, the user's approval of 2026-11-03): the holder of the backend
-`γc`'s write token and of the admin side's half of the history `hs` borrows a part of `d`'s tracked
-auth buckets, which hold `hs`'s latest state (`authBucketsAt`), and gives it back. True of the code:
-every auth write is the apply thread's, inside a batch transaction it holds the write token for, so
-while it holds the token (with the history's half) no auth write is pending and the buckets are the
-latest state's encoding. What the merged snapshot's window observes the auth buckets with
-(`srvImageOn`'s `authBucketsAt`). -/
+/-- **The realization lets the writer observe the auth buckets** (trusted, `authSchemaSrv`'s and
+`authSchemaSnap`'s; persistent; #7-on, the user's approval of 2026-11-03; read-only since
+auth-schema-fix F2, 2026-11-12, decided by etcd-grove-81): the holder of the backend `γc`'s write
+token and of the admin side's half of the history `hs` gets, until it gives them back, an
+observation `RL` of `d`'s tracked auth buckets: with the batch lock's half of the tracked buckets
+(`backend.rbOwn d.γB r`, what `backend.Snapshot.spec`'s observation premise holds), `RL` says they
+hold `hs`'s latest state (`authBucketsAt st r`), and gives both back. True of the code: every auth
+write is the apply thread's, inside a batch transaction it holds the write token for, so while it
+holds the token (with the history's half) no auth write is pending and the buckets are the latest
+state's encoding. What the merged snapshot's window observes the auth buckets with
+(`srvImageOn`'s `authBucketsAt`). `RL` is abstract: the holder learns the buckets' contents and
+can write nothing. (Until F2 the lend handed the part itself, `backend.rbPart d.γB authBkts r`,
+which is write authority: S0's F2, a client wrote garbage to `Auth`/`AuthUsers` through the
+backend's batch transaction and the read contract's reads then promised a recorded state while Go
+panicked; `notes/auth-schema-srv-refuted.md`.) -/
 def authBkLend (γa : auth.AuthNames) (γc : auth.AuthBkNames) (d : mvcc.KBReal) : IProp GF :=
   iprop(□ ∀ (hs : List auth.AuthState) (st : auth.AuthState), ⌜hs.getLast? = some st⌝ -∗
     auth.authWTok γc -∗ auth.authHistHalf γa hs ={⊤}=∗
-      ∃ r : GMap GoString backend.BktData, backend.rbPart d.γB authBkts r ∗ ⌜authBucketsAt st r⌝ ∗
-        (backend.rbPart d.γB authBkts r ={⊤}=∗ auth.authWTok γc ∗ auth.authHistHalf γa hs))
+      ∃ RL : IProp GF, RL ∗
+        □ (∀ r : GMap GoString backend.BktData, RL -∗ backend.rbOwn d.γB r -∗
+            ⌜authBucketsAt st r⌝ ∗ RL ∗ backend.rbOwn d.γB r) ∗
+        (RL ={⊤}=∗ auth.authWTok γc ∗ auth.authHistHalf γa hs))
 
 instance authBkLend_persistent (γa : auth.AuthNames) (γc : auth.AuthBkNames) (d : mvcc.KBReal) :
     Persistent (authBkLend (GF := GF) γa γc d) := by
   unfold authBkLend; infer_instance
 
-/-- **A lend of tracked buckets of the environment's backend** (#7-on, 2026-11-03): at the
-backend `d` of `E`'s tie (`E.BkTie = srvBkTie d`), a part of the buckets `SA` at contents `r` with `QA r`, given back for
-`RA`. What the merged snapshot's window observes the auth buckets with in the mode `on`
-(`srvAuthApplyResB_lend`, from `authBkLend`); nothing in the mode `off` (`bkLendW_none`). -/
+/-- **An observation of tracked buckets of the environment's backend** (#7-on, 2026-11-03;
+read-only since auth-schema-fix F2, 2026-11-12): at the backend `d` of `E`'s tie (`E.BkTie =
+srvBkTie d`), an abstract `RL` that, with the batch lock's half of the tracked buckets
+(`backend.rbOwn d.γB r`), says the buckets `SA` of `r` are those of some `ra` with `QA ra` (and
+gives both back), and is given back for `RA`. What the merged snapshot's window observes the auth
+buckets with in the mode `on` (`srvAuthApplyResB_lend`, from `authBkLend`); nothing in the mode
+`off` (`bkLendW_none`). (Until F2 a part of the buckets, `backend.rbPart d.γB SA r`.) -/
 def bkLendW (E : apply.AEnv GF) (SA : GoString → Prop) (QA : GMap GoString backend.BktData → Prop)
     (RA : IProp GF) : IProp GF :=
-  iprop(∀ d : mvcc.KBReal, ⌜E.BkTie = srvBkTie d⌝ ={⊤}=∗ ∃ r : GMap GoString backend.BktData,
-    ⌜QA r⌝ ∗ backend.rbPart d.γB SA r ∗ (backend.rbPart d.γB SA r ={⊤}=∗ RA))
+  iprop(∀ d : mvcc.KBReal, ⌜E.BkTie = srvBkTie d⌝ ={⊤}=∗ ∃ RL : IProp GF, RL ∗
+    □ (∀ r : GMap GoString backend.BktData, RL -∗ backend.rbOwn d.γB r -∗
+        ⌜∃ ra, QA ra ∧ ∀ n, SA n → r.lookup n = ra.lookup n⌝ ∗ RL ∗ backend.rbOwn d.γB r) ∗
+    (RL ={⊤}=∗ RA))
 
 end defs
 

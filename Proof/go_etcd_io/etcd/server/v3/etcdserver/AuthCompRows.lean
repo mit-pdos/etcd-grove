@@ -254,6 +254,8 @@ def isServerBuiltC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : Meta
     "#Hrvkb" ∷ srvRevokeBuilt s E ∗
     "Hw" ∷ (∃ w : GoInterface, srvWAddr s ↦ w) ∗
     "Haw" ∷ (∃ aw : GoInterface, srvApplyWaitAddr s ↦ aw) ∗
+    -- (auth-schema-fix S1 option A) the right to fire the token provider's readiness
+    "Htpp" ∷ srvTpPend s E.authMode ∗
     "Hdone" ∷ (∃ c : Loc, srvDoneAddr s ↦ c) ∗
     "Hstop" ∷ (∃ c : Loc, srvStopAddr s ↦ c) ∗
     "Hstopping" ∷ (∃ c : Loc, srvStoppingAddr s ↦ c) ∗
@@ -641,13 +643,13 @@ theorem isServerBuiltM_C (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM 
     dsimp only [AuthC.isOn, srvKVInvsM] at hK
     unfold isServerBuiltM isServerBuilt isServerBuiltC
     simp only [AuthC.isOn, srvReqBuiltM_false, srvAppliedInvM_false, srvCM_false]
-    iintro ⟨⟨#Hci, #Hfb, #Hreqb, #Hrdb, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci', #Hrn, %HEr, Hwpend, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hρrd, #Hmid, #Hmidc, #HmetaSnap, Hsnap, Hloop, Hsend, Happly, Hrdone, #HNR, #Hcv, #Hcci, #Hwci, #Hbound, #Hrvkb, Hw, Haw, Hdone, Hstop, Hstopping, Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr, HWB, Hwtok, Hsnapb⟩, Hsk⟩
+    iintro ⟨⟨#Hci, #Hfb, #Hreqb, #Hrdb, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci', #Hrn, %HEr, Hwpend, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hρrd, #Hmid, #Hmidc, #HmetaSnap, Hsnap, Hloop, Hsend, Happly, Hrdone, #HNR, #Hcv, #Hcci, #Hwci, #Hbound, #Hrvkb, Hw, Haw, Htpp, Hdone, Hstop, Hstopping, Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr, HWB, Hwtok, Hsnapb⟩, Hsk⟩
     obtain ⟨h1, h2, h3, h4⟩ := HEr
     ihave Happ := hA.1 $$ Happ
     ihave HBr := srvBuiltRestartR_first .off s γ ci b E γr γn ai₀ at₀ c₀ x₀ h4 h3.2.2
       (by have := h3.1; have := h3.2.2; subst ai₀; word) $$ [Hsnap Hloop Happly Happ]
     · iframe Hsnap Hloop Happly Happ
-    iframe Hci Hfb Hreqb Hrdb Hrunb Hcrun Hsab Hai Hti Hci' Hrn Hwpend Hrunh Hwth Hwtl Hdisk Hslg Hρrd Hmid Hmidc HmetaSnap HBr Hsend Hrdone HNR Hcv Hcci Hwci Hbound Hrvkb Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hwtok Hsnapb Hsk
+    iframe Hci Hfb Hreqb Hrdb Hrunb Hcrun Hsab Hai Hti Hci' Hrn Hwpend Hrunh Hwth Hwtl Hdisk Hslg Hρrd Hmid Hmidc HmetaSnap HBr Hsend Hrdone HNR Hcv Hcci Hwci Hbound Hrvkb Hw Haw Htpp Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hwtok Hsnapb Hsk
     isplitr
     · iapply hK.1 $$ Hkvi
     ipureintro; exact ⟨h1, h2, h3⟩
@@ -656,13 +658,13 @@ theorem isServerBuiltM_C (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM 
     dsimp only [AuthC.isOn] at hK
     unfold isServerBuiltM isServerBuiltOn isServerBuiltC
     simp only [AuthC.isOn]
-    iintro ⟨⟨#Hci, #Hfb, #Hreqb, #Hrdb, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci', #Hrn, %HEr, Hwpend, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hρrd, #Hmid, #Hmidc, #HmetaSnap, Hsnap, Hloop, Hsend, Happly, Hrdone, #HNR, #Hcv, #Hcci, #Hwci, #Hbound, #Hrvkb, Hw, Haw, Hdone, Hstop, Hstopping, Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr, HWB, Hwtok, Hsnapb⟩, Hsk⟩
+    iintro ⟨⟨#Hci, #Hfb, #Hreqb, #Hrdb, #Hrunb, Hcrun, #Hsab, #Hai, #Hkvi, #Hti, #Hci', #Hrn, %HEr, Hwpend, Hrunh, Hwth, Hwtl, #Hdisk, #Hslg, #Hρrd, #Hmid, #Hmidc, #HmetaSnap, Hsnap, Hloop, Hsend, Happly, Hrdone, #HNR, #Hcv, #Hcci, #Hwci, #Hbound, #Hrvkb, Hw, Haw, Htpp, Hdone, Hstop, Hstopping, Hctx, Hcancel, Hread, Hlc, Hsc, Hscu, Hwg, HwgMu, Hcomm, Hnot, Happ, Hlr, Hlrl, Hfcr, HWB, Hwtok, Hsnapb⟩, Hsk⟩
     obtain ⟨h1, h2, h3, h4⟩ := HEr
     ihave Happ := hA.1 $$ Happ
     ihave HBr := srvBuiltRestartR_first (.on γa) s γ ci b E γr γn ai₀ at₀ c₀ x₀ h4 h3.2.2
       (by have := h3.1; have := h3.2.2; subst ai₀; word) $$ [Hsnap Hloop Happly Happ]
     · iframe Hsnap Hloop Happly Happ
-    iframe Hci Hfb Hreqb Hrdb Hrunb Hcrun Hsab Hai Hti Hci' Hrn Hwpend Hrunh Hwth Hwtl Hdisk Hslg Hρrd Hmid Hmidc HmetaSnap HBr Hsend Hrdone HNR Hcv Hcci Hwci Hbound Hrvkb Hw Haw Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hwtok Hsnapb Hsk
+    iframe Hci Hfb Hreqb Hrdb Hrunb Hcrun Hsab Hai Hti Hci' Hrn Hwpend Hrunh Hwth Hwtl Hdisk Hslg Hρrd Hmid Hmidc HmetaSnap HBr Hsend Hrdone HNR Hcv Hcci Hwci Hbound Hrvkb Hw Haw Htpp Hdone Hstop Hstopping Hctx Hcancel Hread Hlc Hsc Hscu Hwg HwgMu Hcomm Hnot Hlr Hlrl Hfcr HWB Hwtok Hsnapb Hsk
     isplitr
     · iapply hK.1 $$ Hkvi
     ipureintro; exact ⟨h1, h2, h3⟩
@@ -759,25 +761,28 @@ theorem isServerBuiltC_of_gap (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc)
 
 /-! ### The views `start` makes (the auth component's 2c) -/
 
-/-- **The request view's bound request side**, from the read side. -/
+/-- **The request view's bound request side**, from the read side, once the token provider is
+ready (`auth.tpReady`, which `start` fires: auth-schema-fix S1 option A). -/
 theorem srvAuthBoundM_of_read (C : AuthC) (s : Loc) (E : apply.AEnv GF)
-    (hC : E.authMode = C.mode) : acRead (GF := GF) C s E ⊢ srvAuthBoundM C.isOn s E := by
+    (hC : E.authMode = C.mode) :
+    acRead (GF := GF) C s E ∗ auth.tpReady E.authMode ⊢ srvAuthBoundM C.isOn s E := by
   cases C with
   | off =>
-    iintro -
+    iintro ⟨-, -⟩
     dsimp only [AuthC.isOn, srvAuthBoundM]
     ipureintro; rw [apply.AEnv.authOn_eq, hC]; rfl
   | on γa =>
-    iintro #H
+    iintro ⟨#H, #Hrdy⟩
     dsimp only [AuthC.isOn, srvAuthBoundM]
     isplitl
-    · iapply acRead_bound (GF := GF) (.on γa) γa rfl s E $$ H
+    · iapply acRead_bound (GF := GF) (.on γa) γa rfl s E $$ [H Hrdy]
+      iframe H Hrdy
     ipureintro; rw [apply.AEnv.authOn_eq, hC]; rfl
 
 /-- **The read view's request-side bound** at the store field's value `au`, from the read side. -/
 theorem readBound_of_read (C : AuthC) (s : Loc) (E : apply.AEnv GF) (au : GoInterface)
     (hC : E.authMode = C.mode) :
-    acRead (GF := GF) C s E ∗ srvAuthStoreAddr s ↦□ au ⊢
+    acRead (GF := GF) C s E ∗ srvAuthStoreAddr s ↦□ au ∗ auth.tpReady E.authMode ⊢
       □ (⌜E.authMode.isOn = true⌝ → isReqAuthBound au E.RD E.authMode) := by
   cases C with
   | off =>
@@ -785,8 +790,9 @@ theorem readBound_of_read (C : AuthC) (s : Loc) (E : apply.AEnv GF) (au : GoInte
     iintro !> %h
     simp [hC, AuthC.mode, auth.AuthMode.isOn] at h
   | on γa =>
-    iintro ⟨#H, #Ha⟩
-    ihave #Hb := acRead_bound (GF := GF) (.on γa) γa rfl s E $$ H
+    iintro ⟨#H, #Ha, #Hrdy⟩
+    ihave #Hb := acRead_bound (GF := GF) (.on γa) γa rfl s E $$ [H Hrdy]
+    · iframe H Hrdy
     iunfold srvAuthBound at Hb
     icases Hb with ⟨%st, #Hst, #HB⟩
     ihave #Hst' : srvAuthStoreAddr s ↦□ st $$ []

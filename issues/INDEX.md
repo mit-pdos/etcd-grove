@@ -82,7 +82,7 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [cache: the cache never becomes ready again after a compaction cancels its upstream watch](cache-ready-after-retry.md) | no | etcd-io/etcd#22614 issue open; etcd-io/etcd#22618 pr open; etcd-io/etcd#22408 pr open; etcd-io/etcd#21536 issue closed; etcd-io/etcd#20691 pr merged |
 | [Go: `x.(T)` and `==` fail on an interface value read through a `*I1` to `*I2` conversion](go-itab-reinterpret-assert.md) | no | golang/go#82470 issue open; golang/go#18595 issue closed; golang/go#26094 issue closed |
 
-## Reported by others (24)
+## Reported by others (25)
 
 | Issue | Blocks proof | Upstream links |
 |---|---|---|
@@ -106,6 +106,7 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [rafthttp: a peer's response with a malformed `X-Server-Version` crashes the member that dialed it](etcd-rafthttp-stream-dial-bad-server-version-panic.md) | no | etcd-io/etcd#21829 pr open; etcd-io/etcd#22261 pr open; etcd-io/etcd#21839 pr merged |
 | [etcdserver: RangeStream sorted by a non-key target without an order returns duplicated and missing keys](etcd-rangestream-sort-none.md) | no | etcd-io/etcd#22615 pr open; etcd-io/etcd#21631 pr merged; etcd-io/etcd@9acc0ebe3 |
 | [etcdserver: a member removed from the cluster crashes on the serializable reads it is still serving](etcd-read-after-backend-close-panic.md) | no | etcd-io/etcd#22189 issue open; etcd-io/etcd#22190 pr open; etcd-io/etcd#7322 issue closed; etcd-io/etcd#17223 issue closed; etcd-io/etcd#14256 issue closed |
+| [client/pkg/transport: NewTimeoutTransport never applies its read/write timeouts](etcd-timeout-transport-rw-timeouts-unused.md) | no | etcd-io/etcd#22638 issue open; etcd-io/etcd#22639 pr open |
 | [mvcc: with more than 512 unsynced watchers, a compacted watcher is sent the compaction response again at every sync](etcd-watch-compacted-resent.md) | no | etcd-io/etcd#22294 issue open; etcd-io/etcd#22295 pr open; etcd-io/etcd#21174 pr closed; etcd-io/etcd#21189 pr closed |
 | [watch: a watch created with the ID of a canceled watch receives the canceled watch's queued events](etcd-watch-id-reuse-stale-events.md) | no | etcd-io/etcd#22673 issue open; etcd-io/etcd#22674 pr open; etcd-io/etcd#21880 pr open; etcd-io/etcd#21065 pr open |
 | [apiserver etcd3: the compactor panics when `compact_rev_key` disappears from etcd](k8s-apiserver-compactor-missing-key-panic.md) | no | kubernetes/kubernetes#139252 issue open; kubernetes/kubernetes#139254 pr open; kubernetes/kubernetes#68172 issue closed |

@@ -12,6 +12,7 @@ public import Proof.google_golang_org.grpc.metadata.Incoming
 public import Proof.context.ReqKeys
 public import Proof.context.LibKeys
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.SrvCtxWeak
+public import Proof.net.http.NetCtx
 
 @[expose] public section
 
@@ -50,7 +51,13 @@ does (checked against the noop and the SDK tracer, `examples/sweeprepairs/tracer
 grpc's keys (`mdIncomingKey{}`, `mdOutgoingKey{}`, `peerKey{}`, not otel's key's type) it answers as
 `ctx` does, and at otel's `currentSpanKey` either `ctx`'s value or the span the tracer made, one of
 otel's (`trace.otelSpan`) (checked against the noop and the SDK tracers,
-`examples/premisefix/tracerctx`).
+`examples/premisefix/tracerctx`). The SDK claims hold with Go's execution tracer off: with it on
+(`runtime/trace.Start`, e.g. pprof's `/debug/pprof/trace`), the SDK tracer's `Start` also reads
+`ctx.Value(runtime/trace.traceContextKey{})` (`runtime/trace.NewTask`, sdk/trace v1.47.0
+`span.go:844-856`), a key the premise does not constrain. Not reachable in the model: the `Tracer`
+points-to comes only from `Tracer_init`, the no-op tracer, and `traceutil.Init` has no spec; if it
+gets one, add a premise that the runtime/trace key holds `nil` (true of grpc's run context) or
+restrict the tracer to the no-op one (k8s 7f-4, Addendum T-h review, m3).
 (k8s 7f-4, Revisions 1-2, decided by etcd-grove-81, 2026-11-12) `ctx`'s span is otel's
 (`trace.spanValOk ctx`, in the premise: `Value(currentSpanKey)` returns nil or `trace.otelSpan`, a
 span whose methods return, `SpanContext` and `IsRecording` among them): the tracers call
@@ -69,7 +76,19 @@ no-op tracer). The post's context facts are wands from the premise's (the old tr
 The premise is a disjunction (`txnCtx ∨ srvCtxWeak`), a known departure from the spec principles
 (`notes/decisions.md`, "Tracer.Start's context premise"): `srvCtxWeak` admits program contexts that
 `txnCtx` did not, but `isContext`'s arm of `txnCtx` already admitted the same kind, and with
-`spanValOk` in the premise neither arm can refute the triple through the span. -/
+`spanValOk` in the premise neither arm can refute the triple through the span. (k8s 7f-4, T-f')
+`srvCtxWeak`'s `Err` clauses take a level token (`levelTok v3rpc.ctxErrLvl`), which the wand carries
+unchanged: a `valueCtx`'s `Err()` is `ctx`'s own call, paid with the same token. (k8s 7f-4,
+Addendum T-h0) It holds nothing at net/http's keys, in the chain form, if `ctx` does
+(`http.netCtxOkC`): `ContextWithSpan(ctx, s)` is a `*valueCtx` at otel's `currentSpanKey`, a key of
+another type than `httptrace`'s and `nettrace`'s, whose `context.value()` walk goes on to `ctx`
+(Perennial's `ctxValue_valueCtx`), or `ctx` itself (the no-op tracer); what carries the fact to
+`LeaseRenew`'s `WithTimeout` child (`ctxValueFrom`) and from there to `RenewHTTP`. (k8s 7f-4, Addendum
+T-k) Its causes are context errors or etcd's no-leader error if `ctx`'s are (`v3rpc.ctxCauseOk`):
+`ContextWithSpan(ctx, s)` is a `*valueCtx` (two `WithValue` links over `ctx` with the SDK tracer and Go's
+execution tracer on: `runtime/trace.NewTask`'s, then otel's), whose `Err()` is `ctx.Err()` and whose
+`Value(&cancelCtxKey)` is `ctx`'s (neither key is `&cancelCtxKey`), so `Cause` of it finds what
+`Cause(ctx)` finds; or it is `ctx` itself (the no-op tracer). -/
 abbrev traceutil.Tracer.Start.spec : Prop :=
   ∀ (tr ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (name : GoString)
     (opts : GoSlice),
@@ -86,7 +105,9 @@ abbrev traceutil.Tracer.Start.spec : Prop :=
       ⌜metadata.incomingOf (GoInterface.ok ctx') = metadata.incomingOf (GoInterface.ok ctx)⌝ ∗
       trace.isSpan sp ∗ □ (trace.spanCtxOk ctx -∗ trace.spanCtxOk ctx') ∗
       □ (context.startTimeOk ctx -∗ context.startTimeOk ctx') ∗
-      □ (context.libCtxOk ctx -∗ context.libCtxOk ctx') }}
+      □ (context.libCtxOk ctx -∗ context.libCtxOk ctx') ∗
+      □ (http.netCtxOkC ctx -∗ http.netCtxOkC ctx') ∗
+      □ (v3rpc.ctxCauseOk ctx -∗ v3rpc.ctxCauseOk ctx') }}
 
 end spec
 

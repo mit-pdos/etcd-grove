@@ -149,7 +149,7 @@ theorem Main.wp_proof
   · iunfold etcdstart.commonPremises; iunfold etcd_putget3.commonPremises at Hcom; iexact Hcom
   ihave #Hcom' := Hcom
   iunfold etcd_putget3.commonPremises at Hcom'
-  icases Hcom' with ⟨-, -, -, #Hnrl⟩
+  icases Hcom' with ⟨-, -, -⟩
   -- `context`'s `closedchan`, from its package's fact
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init
@@ -352,7 +352,7 @@ theorem Main.wp_proof
     $$ [Hac Hlg3 Hbemu Hgo Hstk] as %serr Hs
   · iframe; iframe #
     isplitr
-    · ipureintro; exact ⟨HEtr, HEw, Hms, Hbuq, HsvOff.2⟩
+    · ipureintro; exact ⟨HEtr, HEw, Hms, Hbuq, HsvOff.2, Htb⟩
     iintro %gs %lis %cid %mid %R Hg
     rw [HsvOff.1]
     ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg

@@ -2,12 +2,13 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.wsIdx_of_bounds [hos : HasExt osFsExt] (ws : List bbolt.WEntry) (kb : List w8) (idx :
-    Nat) (hle : idx ≤ ws.length) (hbelow : ∀ (k : Nat), k < idx → go.GoStringLt (bbolt.wKey ws k)
-    kb) (hat : idx < ws.length → ¬go.GoStringLt (bbolt.wKey ws idx) kb) : bbolt.wsIdx ws kb = idx
+theorem bbolt.wsIdx_of_bounds [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (ws :
+    List bbolt.WEntry) (kb : List w8) (idx : Nat) (hle : idx ≤ ws.length) (hbelow : ∀ (k : Nat), k <
+    idx → go.GoStringLt (bbolt.wKey ws k) kb) (hat : idx < ws.length → ¬go.GoStringLt (bbolt.wKey ws
+    idx) kb) : bbolt.wsIdx ws kb = idx
 
-theorem bbolt.node.childIndex.wp_proof [hos : HasExt osFsExt] (hK :
-    bbolt.internal.common.Inode.Key.spec) (hS : sort.Search.spec) (hC : bytes.Compare.spec) :
+theorem bbolt.node.childIndex.wp_proof [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt]
+    (hK : bbolt.internal.common.Inode.Key.spec) (hS : sort.Search.spec) (hC : bytes.Compare.spec) :
     bbolt.node.childIndex.spec
   -- `Perennial.EtcdGrove.bbolt.node.childIndex.spec`, unfolded:
   ∀ (v : bbolt.View) (n bl : Loc) (r : bbolt.NRec) (dq : DFrac) (qv : Qp) (child : Loc) (cv : go_etcd_io.bbolt.node)
@@ -32,8 +33,9 @@ theorem bbolt.node.childIndex.wp_proof [hos : HasExt osFsExt] (hK :
                         (intoVal child))
                       {{ Φ }}
 
-theorem bbolt.ciPred_mono [hos : HasExt osFsExt] (ws : List bbolt.WEntry) (kb : List w8) (hs :
-    bbolt.wsSorted ws) : sort.IsMonoPred (bbolt.ciPred ws kb) ↑ws.length
+theorem bbolt.ciPred_mono [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (ws : List
+    bbolt.WEntry) (kb : List w8) (hs : bbolt.wsSorted ws) : sort.IsMonoPred (bbolt.ciPred ws kb)
+    ↑ws.length
 
 def bbolt.ciPred (ws : List bbolt.WEntry) (kb : List w8) (i : Int) : Bool :=
   decide ¬go.GoStringLt (bbolt.wKey ws i.toNat) kb

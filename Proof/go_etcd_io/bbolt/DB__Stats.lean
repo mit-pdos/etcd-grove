@@ -18,6 +18,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section proof
@@ -28,7 +29,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 theorem DB.Stats.wp_proof : DB.Stats.spec (GF := GF) (hG := hG) := by
-  intro _ db γ o
+  intro _ _ _ db γ o
   wp_start as ⟨#Hdb, Hslot⟩
   unfold isBolt isBoltDef
   icases Hdb with ⟨%p, %sp, %t0, #Hb⟩

@@ -210,20 +210,22 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 resource the store's (`auth.authRd`), has the bound request side. `auth.newAuthStore_boot`
 (`auth/Boot.lean`) gives the invariant in the mode `on γa`; the server's own statement still
 takes `NewAuthStore`'s axiom (mode `off`), so this is what the server derives `srvAuthBound` with
-once its boot takes the store from `newAuthStore_boot`. -/
+once its boot takes the store from `newAuthStore_boot`, and once the token provider is ready
+(`auth.tpReady`, the token contract's `info` premise: auth-schema-fix S1 option A). -/
 theorem srvAuthBound_of_authInv
     (hCtx : auth.authStore.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
     (s stp : Loc) (R : IProp GF) (E : apply.AEnv GF)
     (hRD : E.RD = auth.authRd stp R E.authMode) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗
       structFieldRef EtcdServer go!"authStore" s ↦□ auth.authIface stp ∗
-      auth.authInv stp R E.authMode ⊢ srvAuthBound s E := by
-  iintro ⟨#Hpkg, #Hf, #Hinv⟩
+      auth.authInv stp R E.authMode ∗ auth.tpReady E.authMode ⊢ srvAuthBound s E := by
+  iintro ⟨#Hpkg, #Hf, #Hinv, #Hrdy⟩
   iunfold srvAuthBound
   iexists auth.authIface stp
   iframe Hf
   rw [hRD]
-  iapply (isReqAuthBound_of_authInv hCtx stp R E.authMode) $$ [$Hpkg $Hinv]
+  ihave #HB := (isReqAuthBound_of_authInv hCtx stp R E.authMode) $$ [$Hpkg $Hinv]
+  iapply HB $$ Hrdy
 
 end proof
 

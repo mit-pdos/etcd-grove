@@ -27,16 +27,17 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 /-- **`as.UserAdd(r)`** for a request naming `name` (within bbolt's key bound,
 `issues/etcd-auth-useradd-long-name-fatal.md`), from the admin side's authority `hs` with the
-write resource and the batch lock's critical-section contract: the step `userAddF name`
+write resource, two write-back tokens `Wb` (spent by the batch transaction's `Unlock`,
+auth-schema-fix F1) and the batch lock's critical-section contract: the step `userAddF name`
 (`adminOut`: the user added and the revision bumped, or `ErrUserEmpty`/`ErrUserAlreadyExist`), or
 `ErrNoPasswordUser` when the password cannot be selected; a fresh response if it succeeded. -/
 abbrev auth.authStore.UserAdd.spec : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ userAddReqIs r name ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗ authWR st M P f T ∗ srvApi.csContractA P f Pre Q Post ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ userAddReqIs r name ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗ authWR st M P f T Wb ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜stepOk M hs (stepOf (userAddF name))⌝ ∗ capNextM M hs (stepOf (userAddF name)) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"UserAdd")) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ authWR st M P f T ∗
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ authWR st M P f T Wb ∗
       respOk etcdserverpb.AuthUserAddResponse resp err ∗ adminOut M hs (stepOf (userAddF name)) (fun e => e = .noPasswordUser) err }}
 
 /-- **`as.UserAdd(r)` of a request whose password choice cannot fail** (`userAddSure r`: no
@@ -44,12 +45,12 @@ password, or an empty `Password` with a base64-encoded `HashedPassword`, the ser
 as `UserAdd.spec`, without `ErrNoPasswordUser`, so the outcome is the step's alone (`noExtra`; the
 auth plan's E2u, 2026-10-26: the apply thread's mode-`on` step is then determinate). -/
 abbrev auth.authStore.UserAdd.specSure : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T : IProp GF)
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
     (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ userAddReqIs r name ∗ userAddSure r ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗ authWR st M P f T ∗ srvApi.csContractA P f Pre Q Post ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ userAddReqIs r name ∗ userAddSure r ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗ authWR st M P f T Wb ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗
       ⌜stepOk M hs (stepOf (userAddF name))⌝ ∗ capNextM M hs (stepOf (userAddF name)) }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"UserAdd")) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ authWR st M P f T ∗
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ authWR st M P f T Wb ∗
       respOk etcdserverpb.AuthUserAddResponse resp err ∗ adminOut M hs (stepOf (userAddF name)) noExtra err }}
 
 end spec

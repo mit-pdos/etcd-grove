@@ -294,7 +294,8 @@ on the check (`tokenSimple_info_ctx`). The provider still is not shown to meet t
 The binding every row's principal rests on (`tokIssued`) now holds of etcd's default provider in
 `on γa`: `tokenSimple_okA` (`auth/TokenSimpleAdmin.lean`) proves the simple provider meets the
 contract, with `enable`/`disable`/`invalidateUser` from the admin side's share (`tpAdmin`), over two
-hypotheses (`ValidSpec`, `info`'s context; `RunSpec`, the TTL keeper's goroutine). The admin rows
+hypotheses (`ValidSpec`, `info`'s context, deleted by auth-schema-fix S1 on 2026-11-12, false of a nil
+context: `notes/auth-validspec-false.md`; `RunSpec`, the TTL keeper's goroutine). The admin rows
 that call the provider (`AuthEnable`, `AuthDisable`, `UserDelete`, `UserChangePassword`) take
 `tpAdmin` with their write resource (`notes/decisions.md`, "S5d of the auth plan").
 
@@ -303,6 +304,6 @@ that call the provider (`AuthEnable`, `AuthDisable`, `UserDelete`, `UserChangePa
 The binding every row's principal rests on: the simple token provider (etcd's default) is proved to
 meet the token contract with `info`'s context premise in the mode `on γa` with no hypothesis
 (`token_simple_ok`, the server's `Results.lean`), and its constructor (`token_simple_new`). The
-generic contract the store's invariant holds keeps `ValidSpec`; nothing produces the provider in the
+generic contract the store's invariant holds keeps `ValidSpec` (deleted since, auth-schema-fix S1); nothing produces the provider in the
 store yet (`NewAuthStore`, an axiom) (`notes/decisions.md`, "S5e of the auth plan").
 

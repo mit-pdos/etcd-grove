@@ -23,12 +23,15 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 /-- `as.authInfoFromToken(ctx, token)`: the token provider's `info` at the store's revision; an
-accepted token's info is bound to it (`infoBound`; the auth plan's S5). -/
+accepted token's info is bound to it (`infoBound`; the auth plan's S5). Once the provider is ready
+(`tpReady M`, the token contract's `info` premise: auth-schema-fix S1 option A, 2026-11-12). -/
 
 abbrev auth.authStore.authInfoFromToken.spec : Prop :=
-  ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (ctx : GoInterface) (token : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M }}
-    (App (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"authInfoFromToken")) (Val #ctx)) (Val #token))
+  ∀ (st : Loc) (R : IProp GF) (M : auth.AuthMode) (ctx : GoInterfaceOk) (token : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
+      tpReady M ∗ auth.ctxDoneRecv ctx }}
+    (App (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"authInfoFromToken"))
+      (Val #(GoInterface.ok ctx))) (Val #token))
   {{ (a : Loc) (ok : Bool), RET (PairV #a #ok); authInfoRO a ∗
       (if ok then infoBound M token a else iprop(True)) }}
 

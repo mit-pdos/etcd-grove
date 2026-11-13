@@ -275,7 +275,7 @@ theorem EtcdServer.Compact.wp_proof
   iintro %osl ⟨-, -⟩
   (try wp_auto)
   -- the span, over the caller's context (which carries no trace: `Htrc`, kept by `Start`)
-  wp_apply (traceutil.Tracer.Start.spec_txn hStart) tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp, #Hspw, -, #Hlibw⟩
+  wp_apply (traceutil.Tracer.Start.spec_txn hStart) tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp, #Hspw, -, #Hlibw, -⟩
   · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hctx1 := Hctx1w $$ Hctx
   ihave #Hlib1 := Hlibw $$ Hlib

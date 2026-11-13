@@ -46,7 +46,7 @@ abbrev v3rpc.serverWatchStream.sendLoop.spec : Prop :=
       v3rpc.swsIs sws r Up Dn st ci cd ∗ v3rpc.srvSendTok (Rep := v3rpc.pbWatchResponse) r.γs [] ∗
       spscConsumer r.γctrl ([] : List Loc) ∗ mvcc.api.wsRecv r.ι [] ∗
       monoListAuthOwn r.γr 1 ([] : List mvcc.api.WResp) ∗
-      ⌜threadBound GF ≤ Int.toNat sync.rwmutex.actualMaxReaders⌝ ∗
+      ⌜threadBound GF ≤ Int.toNat sync.rwmutex.actualMaxReaders ∧ 5 ≤ threadBound GF⌝ ∗
       sync.ownRWMutex (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm) ∗ threadTok ∗
       mvcc.api.mvccReaders r.W.γm 1 }}
     (App (Val (sws @!! go.GoType.PointerType v3rpc.serverWatchStream.ty @!! go!"sendLoop")) (Val #()))

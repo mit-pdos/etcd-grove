@@ -35381,3 +35381,182 @@ ghost steps (add at the link, nothing at a kept file) are literally the code's. 
 (`etc/goose.py`, the examples' go.mod/go.sum); `db.go` is not translated, so no Lean changes; the
 docstring cites the commit; the nonissue is fixed in the fork (`blocks-proof: yes`). Not an upstream
 report: upstream shows no wrong result (both files are valid snapshots of the index).
+
+## One file semantics, `fsExt`; power loss only (2026-11-13 · the user's decision)
+
+**Decision** (the user, 2026-11-12/13): every file-system proof runs over one trusted semantics, the
+per-byte Linux extension `fsExt` (`GooseLang/Ext/Fs`, configuration C), and the crashes covered are
+**power losses only**: no process kill, no kill followed by a power loss. A program generation starts
+under `fsExt`'s "Restarts" assumption (`GooseLang/Ext/Fs/Impl.lean`): after a machine restart, or after
+the old process exited and a `sync(2)` completed (`notes/restart-vs-crash.md`). This is an environment
+assumption of every crash theorem; `fsExt` needs no change for it.
+
+**Consequences.**
+- **`osFsExt`** (`GooseLang/Ext/OsFs`) goes once real bbolt is ported onto `fsExt` (the bbolt port,
+  another agent; `notes/bbolt-port-plan.md`), and with it the main tree's `osFsExt` `os` layer, which
+  `LinuxFs/`'s replaces; SpecPlan's `HasExt osFsExt` binders are retargeted (ledger entries).
+- **`absDiskExt`** (`GooseLang/Ext/AbsDisk`) stops being a trusted extension: the WAL's 12 axioms
+  (`Spec/go_etcd_io/etcd/server/v3/storage/wal/`, `fileutil.TouchDirAll`) become proved specs of the
+  real WAL over `fsExt`, with the abstract disk's state kept as ghost state over the real files (its
+  pure vocabulary, `WalHist`, `walImg`, `walReadCut`, and the W4b lemmas carry over). Then the extension,
+  its steps (`AbsDiskStep`) and its world-assumption list go. Plan: `notes/wal-fsext-plan.md`.
+- **`durableExt`** (`GooseLang/Ext/Durable`) goes: `examples/lib/durable` is reimplemented over `os`
+  (write a temporary file, fsync, rename, fsync the directory) and its specs proved over `fsExt`.
+- The WAL's world assumptions become `fsExt`'s configuration C plus "no CRC32-Castagnoli collision on
+  torn data" (a premise of the WAL's theorems). Whether `SectorWhole` (`GooseLang/Ext/Fs/Premises.lean`)
+  is needed is decided by the proof; the target is to need it for no safety statement (a read of a
+  crash image outside `walImg` may fail, which every read spec allows).
+
+**Superseded.** The kill and kill-then-power-loss parts of "WAL W3"'s world assumptions ("a kill keeps
+exactly what was written") and of the W4 crash relation as requirements on the proof (`walImg`'s kill
+reading may stay: it is more general than needed); rung 3's "a process-kill crash is needed in `fsExt`
+before it can replace the bbolt arm" (`notes/wal-crash-handoff/rung3/README.md`), and the handoff's
+"unify `absDiskExt` with LinuxFs" (`notes/wal-crash-handoff/README.md`): there is nothing to unify, the
+abstract disk becomes a proof layer over `fsExt`.
+
+**Decided by the agent (the user away, 2026-11-13, delegation in [the user's words] "make decisions
+autonomously to keep making progress towards proving the wal specs"):**
+- The fork fixes made for kill-then-power-loss (WAL F-Z `41fddbc2d`, F-N4; bbolt `c5a6065`, `ea4cab5`)
+  stay: they are correct fixes and upstream candidates, and removing them would be a fork change with
+  no proof benefit. The proofs need not rely on them.
+- The restart track's interface (`notes/wal-crash-handoff/restart-wal-interface.md`, I1-I11) is
+  unaffected; its gate 12 ("restarts are machine crashes") is now this decision.
+- Rejected: keeping `absDiskExt` as a trusted layer and proving a refinement of `fsExt` into it (a
+  second trusted crash relation, which the closed-theorem rule excludes); adding process kills to
+  `fsExt` (the user: not wanted).
+
+## `trace.otelSpan` narrowed to providers of otel's own components (2026-11-13 · approved by etcd-grove-81 · branch `otelspan-narrow`)
+
+The context sweep's minors (a) and (b) (`notes/ctx-sweep-fixes.md`; the refutation, the producers and
+the evidence in `notes/otelspan-narrow.md`). otel's SDK passes the caller's context to the provider's
+sampler, ID generator and span processors, and, with `OTEL_GO_X_OBSERVABILITY`, to the global
+`MeterProvider`'s instruments; `trace.otelSpan` admitted any provider, so user components reading a key
+of their own refuted `tracing.Start.spec`. Approved by etcd-grove-81:
+
+1. **The docstring of the existing opaque is narrowed, rather than a provider-configuration opaque
+   added**: the same restriction in one place, no new opaque, no Lean statement changed. Admitted:
+   `AlwaysSample`, `NeverSample`, `TraceIDRatioBased`, `ParentBased` over these; the default ID
+   generator; the Batch and Simple span processors.
+2. **Minor (b) gets a clause**: with the observability metrics on, the global `MeterProvider` is otel's
+   default or `metric/noop` (kube-apiserver installs the latter at init; etcd sets none). A user
+   `MeterProvider` receives the span's start context, also in `End`.
+3. **The processors' exporters return** (`ExportSpans`, `Shutdown`): the Simple processor exports inside
+   `End`, so a panicking exporter would refute "`End` returns", beyond the context keys.
+
+## auth-schema-fix (2026-11-12 · decided by etcd-grove-81 under the user's delegation; forms decided by the agent, reviewed at checkpoint (`questions.md`) · branch `auth-schema-fix`; the trusted text re-reviewed by etcd-grove-81, READY WITH CHANGES, applied below, `/shared/tmp/auth-safe/freeze-fix.md`)
+
+The auth results (`srv_auth_tp_on`, `server_new_auth_on`, `authkv_startServer`, `authkv_Main`) took
+two false premises: `auth.ValidSpec` (`notes/auth-validspec-false.md`) and `authSchemaSrv`, refuted
+four ways by S0 (`notes/auth-schema-srv-refuted.md`, F1-F4). Both are fixed; no closed theorem's
+statement changes.
+
+**F1, the write-back budget.** `authSchemaSrv` handed the store two write-back tokens
+(`ownToks d.γB.wb 2`) for every batch it would ever commit. **Decision:** a write-back token
+parameter `Wb` on the auth backend's write contracts (`authBatchTxLk(R)`, `authBatchTxOk(R)`,
+`authWBackendOk(R)`, `authBackendReads`, `authWR`): a batch `Unlock` costs `Wb ∗ Wb`, `ForceCommit`
+and `CreateAuthBuckets` one, `GetAllRoles` (a batch) two; at the server `Wb := backend.wbTok d.γB`,
+and `authSchemaSrv` drops the token bag. The tokens come from receipts: three per applied entry in
+`EtcdServer.apply`'s loop (`apply.adminWTs E`, threaded down the admin chain to the store call;
+the step contracts at `Wb := bkWTFor E`), two at boot in `NewServer`.
+
+**F2-F3.** The bucket lend is a read-only observation (an abstract `RL` with a law against the batch
+lock's `rbOwn`, no write authority); `GetAllRoles` lists only `auth.roleListed` names (non-empty,
+below `[0xff]`, Go's range).
+
+**F4, UTF-8 role names.** `UnsafePutUser`'s trusted text takes `∀ x ∈ ur.roles, utf8Valid x` (proto3
+`string` field: marshalling invalid UTF-8 fails). **Decision:** the invariant `auth.rolesUtf8` lives in
+the fuel's `authSmall` (kept by every `StepSmall`; `stepOk` gives it), and a role reaches the store
+only through `UserGrantRole`, whose name comes from the decoded request: the NEW axiom
+`apply.irrDecode_utf8` (`etcdserver/apply/InvRequest.lean`: a decoded `InternalRaftRequest`'s
+`AuthUserGrantRole.role` is valid UTF-8; Go evidence `/shared/tmp/auth-safe/fix-tests/irr_utf8_test.go`,
+`MustUnmarshalMessage` panics otherwise), carried by `irrWrapperIs`'s `⌜irrUtf8 rq⌝`. Only the
+grant's role is stated: `User.name`/`Role.name` are `bytes`. Results' `apply_UserGrantRole_fuel`
+gains `utf8Valid role`. Rejected: bundling it with `permKeysOk` in `authHist` (same invariant, about
+three times the pass-through sites).
+
+**S1, the token provider.** `ValidSpec` claimed `isValidSimpleToken` returns for every context; a nil
+context panics. The info clause takes `auth.ctxDoneRecv ci` (hlc-generic; `isReqAuth` keeps
+`ctxDoneAny`, converted by a law). The route 81 chose first (authSrvTP's pre carries the waiter
+contract, discharged by `NewServer`) fails: the waiter closure reads `srv.applyWait`, set only in
+`start`. **Decision (option A):** `auth.tpReady M`, a persistent one-shot at `AuthNames.rdy` (other
+modes `True`), joins the info clause; `NewServer` allocates `srvTpInv` (pending, or shot with the
+field's persistent points-to and its `isWaitTime`) and proves the closure's contract; `start` fires
+it after setting `applyWait`. Deviation from the plan (accepted by etcd-grove-81): `isReqAuth` and
+`isReqAuthBound` keep their definitions; holders from before `start` carry
+`□ (auth.tpReady M -∗ …)`, discharged by `start`, which leaves v3rpc's watch handler and the
+off-mode `NewAuthStore` axiom untouched. `ValidSpec` deleted; `authSrvTP_on` and its results drop
+`hValid`; `token_simple_new`/`_ok` take `M`; `srv_auth_bound_of_inv` gains `tpReady`.
+
+**The axiom re-review's changes (2026-11-13, decided by etcd-grove-81; READY WITH CHANGES, no
+blocker).**
+- *M1, unknown fields (trusted tightening).* `auth.ownUser`/`auth.ownRole` (the messages
+  `UnsafePutUser`/`UnsafePutRole` take, and `GetUser`/`GetRole` return) and `ownUserX`/`ownRoleX`
+  (what `proto.UnmarshalUser`/`UnmarshalRole` return) now fix the message's `unknownFields` to nil
+  (it was an unconstrained, unowned existential). protobuf-go's `Marshal` copies unknown fields into
+  the encoding unchecked, so a message stored with garbage there makes the next read panic
+  (`lg.Panic` on the failed `Unmarshal`); etcd builds its user and role messages fresh or decodes
+  them from its own bytes, and `Unmarshal` resets the target (Go test
+  `/shared/tmp/auth-safe/fix-tests/zz_authfix_unknown_test.go`, `TestAuthFixUnknownFields`). Not
+  constrained: the `Options` message's and the permissions' unknown fields (a client's
+  `UserAddOptions` may carry valid unknown fields, which round-trip; the permissions are built fresh,
+  but no spec lets a client write their unknown fields either). The same convention (internal
+  protobuf fields unconstrained) holds elsewhere, sound while no spec lets a client write them.
+- *m1, non-empty names.* Both put clauses take `0 < name.length` (bbolt's `Put` refuses an empty key,
+  fatal in the backend's `unsafePut`; `backend.batchTxBuffered.UnsafePut.spec` takes `0 < kb.length`).
+  The store meets it: `UserAdd`/`RoleAdd` check the name (`ErrUserEmpty`/`ErrRoleEmpty`), the other
+  puts write a stored record's name, which `auth.namesOk` (new, `Model.lean`) says is non-empty;
+  `namesOk` is a field of the fuel's `authSmall` (kept by every `StepSmall`, the model's
+  `userAddF`/`roleAddF` refusing the empty name) and `stepOk` gives it at the found state, as F4's
+  `rolesUtf8`. `stepOk` (a premise of the exported `apply_*_step` results) is stronger; no closed
+  statement changes.
+- *m2, for D22 (plan item).* The write contract `authBatchTxLkR` allows any number of
+  `UnsafePut*`/`UnsafeDelete*` in one batch, but the backend's `UnsafePut` needs `pend + 1 < 2^58`
+  and its `Unlock` `pend + hookMax < 2^58` (Go has no panic there: `pending` is an `int`). D22's
+  derivation of the contract from the backend's specs therefore needs a per-batch count: each
+  admin step's batch makes at most a bounded number of puts except `RoleDelete`, which puts back
+  every user holding the role, at most the number of users, itself bounded by the revision (each
+  user was added by one revision-bumping step, at most `receiptBound ≤ 2^48` of them). Plan: D22
+  states the bound as a `Lock()`-time budget in the contract (a pending count below
+  `2^58 - hookMax` threaded through the put clauses, met by the store from `authSmall`'s revision
+  bound), or charges a time receipt per put. Not needed by any result today: the contract is
+  trusted until D22.
+
+**The review's MAJ-1/MAJ-2 (2026-11-13, decided by etcd-grove-81; `notes/auth-unknown-fields-nested.md`).**
+M1 above left the nested messages' unknown fields free, which was wrong both ways: garbage there is
+stored and makes the next read panic (MAJ-1, the permissions and `Options`), and a client's valid
+unknown fields in `Options` round-trip, so one `UserRec` had two encodings and no `userEncode` could
+meet both `authBucketsAre` and `UnmarshalUser.spec` (MAJ-2). Go tests:
+`/shared/tmp/coord-81/authfix-review/r3/server/storage/schema/zz_review_{garbage,optsuf}_test.go`.
+- *MAJ-1, stored permissions (trusted tightening).* New `auth.ownPermS` (`Buckets.lean`): as
+  `ownPermW` with `unknownFields` nil; `ownRole` holds its permissions as `ownPermS`, and `ownPermX`
+  (`ownRoleX`'s, what `UnmarshalRole` returns) fixes `unknownFields` nil too (`ownPermX_persist`
+  gives `ownPermS`). `ownPermW` stays the request's permission (`roleGrantPermissionReqIs`, the
+  client's `InvAuthConn`/`PerTypeAuth`), whose unknown fields a decoded request may fill: fixing them
+  there would make the decode claims false. `RoleGrantPermission` builds `newPerm` fresh (store.go),
+  which gives `ownPermS`; `ownPermS_W` weakens a stored permission to `ownPermW` where a lemma reads
+  one (`wp_permW_key`) and for `RoleGet`'s reply (`roleGetOut` unchanged). `Requests.lean`'s header no
+  longer says the store puts the request's permission in "as it is" (it copies three fields).
+- *MAJ-2, the Options' unknown fields part of the record (trusted change).* `UserRec` gains
+  `optsUF : Option GoString` (none: nil `Options`, encoded without field 4; `some u`: a message whose
+  unknown fields are `u`) and `optsOk : userOptsUfOk optsUF` (`u` is `ufWire userOptsSchema u`,
+  `userOptsSchema = [(1, [0])]`: what protobuf-go's decoder leaves, so Unmarshal∘Marshal keeps it).
+  The validity is a field of the record (a proof), so every record is valid and `UnmarshalUser.spec`
+  stays true for every `x` without a new premise. `userOptsIs o b ou` (new) ties the message at `o`
+  to `NoPassword = b` and the bytes `ou` (`uf ↦*□ u`); `ownUser`/`ownUserX` use it with the record's
+  `optsUF`. The request side keeps `userOptsAt o b`, now `∃ ou, ⌜userOptsUfOk ou⌝ ∗ userOptsIs o b ou`
+  (through it the axiom `pbutil.MustUnmarshalMessage.wp_proof`, its text unchanged, claims more: its
+  IRR case returns `internalRaftRequestIs`, which unfolds through `irrField AuthUserAdd` and
+  `apply.authUserAddIs` to `userOptsAt`, so the raft entry's decode now claims the `Options`' unknown
+  fields valid wire format; true of protobuf-go's decoder, `internal/impl/decode.go` copying an
+  unknown field verbatim after a minimal `AppendTag`, `UfWire.lean`; Go test
+  `/shared/tmp/coord-81/authfix-rereview/r-ufwire/server/storage/schema/zz_rereview_ufwire_test.go`).
+  The gRPC side is proved, not assumed: clients build theirs fresh (`some []`, `userOptsUfOk_empty`)
+  and the receive predicate's satisfiability is a theorem. `UserAdd` stores the request's `Options` (its `ou`) or a fresh empty one
+  (`some []`); the other puts copy the stored record (`{ ur with … }`). The `Option` is needed: a nil
+  and an empty `Options` are different bytes (Go test). `userEncode : UserRec → GoString` keeps its
+  type. No spec of the store's methods changes (the model keeps no user fields but roles).
+  Go control: `/shared/tmp/auth-safe/fix-tests/zz_authfix_optsuf_test.go`
+  (`TestAuthFixOptionsUnknownRoundTrip`: valid unknown fields survive the raft entry, `UserAdd`, the
+  read and every later put, the read does not panic, re-encoding a read user gives the stored
+  bytes; nil vs empty `Options` differ; `UserAdd` with nil `Options` stores an empty one.
+  `TestAuthFixGrantPermissionFresh`: a request's permission with unknown fields is stored without).

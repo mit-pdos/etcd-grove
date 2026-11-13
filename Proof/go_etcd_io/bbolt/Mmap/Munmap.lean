@@ -20,12 +20,14 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section munmap
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
@@ -34,20 +36,20 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 cell's client half): the fields cleared (`mapFields … none`, `datasz` 0); the mapping gone from
 OsFs, or, on an error (`fmtErrorOk`), possibly still there with its cells. -/
 abbrev DB.munmap.spec : Prop :=
-  ∀ (db base : Loc) (l : Nat) (lg : GoInterface) (p : GoString) (m : OsMeta) (vf : Nat → val),
+  ∀ (db base : Loc) (l : Nat) (lg : GoInterface) (p : BFile) (m : OsMeta) (vf : Nat → val),
   db ≠ null → 0 < l → m.maps !! base = some l →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
       db.[DB, go!"logger"] ↦□ lg ∗ boltLogger lg ∗
       mapFields db (DFrac.own 1) (some (base, l)) ∗ db.[DB, go!"datasz"] ↦ W64 (l : Int) ∗
-      osMeta p (DFrac.own 1) (some m) ∗ cellsR (GF := GF) base 0 l vf }}
+      osMeta p.ino (DFrac.own 1) m ∗ cellsR (GF := GF) base 0 l vf }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"munmap")) (Val #()))
   {{ (err : GoInterface), RET #err;
       mapFields db (DFrac.own 1) (none : MapSt) ∗ db.[DB, go!"datasz"] ↦ W64 0 ∗
       ((⌜err = interface.nil⌝ ∗
-          osMeta p (DFrac.own 1) (some { m with maps := GMap.delete base m.maps })) ∨
+          osMeta p.ino (DFrac.own 1) { m with maps := GMap.delete base m.maps }) ∨
        (⌜err ≠ interface.nil ∧ errPtrTyped err⌝ ∗ fmtErrorOk err ∗
-        (osMeta p (DFrac.own 1) (some { m with maps := GMap.delete base m.maps }) ∨
-         (osMeta p (DFrac.own 1) (some m) ∗ cellsR base 0 l vf)))) }}
+        (osMeta p.ino (DFrac.own 1) { m with maps := GMap.delete base m.maps } ∨
+         (osMeta p.ino (DFrac.own 1) m ∗ cellsR base 0 l vf)))) }}
 
 theorem DB.munmap.wp_proof (hM : munmapM.spec (GF := GF) (hG := hG))
     (hLogger : DB.Logger.spec (GF := GF) (hG := hG))

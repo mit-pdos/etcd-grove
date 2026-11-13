@@ -114,6 +114,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StopCensus
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BootStore
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVStoreLaws
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApplyOptsLemmas
+public import Proof.ReceiptTactics
 
 @[expose] public section
 
@@ -774,12 +775,30 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- `auth.NewTokenProvider`
   ihave #Hapkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []
   · iPkgInit
+  -- (auth-schema-fix S1 option A) the token provider's readiness cell, pending (its other half to
+  -- `start`, `srvTpPend`, with the variable `srv` read-only once `NewServer` returns): the index
+  -- waiter's closure reads `srv.applyWait`, which `start` sets
+  imod (srvTpInv_alloc (GF := GF) s srv_ptr) with ⟨%γy, Htpp, #Htpinv⟩
   wp_func_lits
-  wp_apply hTP as %tp %terr ⟨%Htp, Hkit⟩
+  wp_apply (hTP _ _ _ _ γy) as %tp %terr ⟨%Htp, Hkit⟩
   · iframe Hzlg
-    ipureintro
-    exact fun hon => ⟨(Hauthcfg hon).1,
-      tokenTTL_pos _ (Hauthcfg hon).2.1 (Hauthcfg hon).2.2⟩
+    isplitr
+    · ipureintro
+      exact fun hon => ⟨(Hauthcfg hon).1,
+        tokenTTL_pos _ (Hauthcfg hon).2.1 (Hauthcfg hon).2.2⟩
+    -- the index waiter `func(index) { return srv.applyWait.Wait(index) }`, once the cell is shot
+    iintro !> %_hon %idx %Φw !> #Hshot HΦw
+    wp_auto_lc 1
+    imod (srvTpInv_read s srv_ptr γy) $$ [$Htpinv $Hshot $Hlc1] with ⟨#Hsrvp, %wt, %Pw, #Hwf, #Hwt⟩
+    (try wp_auto)
+    iunfold isWaitTime at Hwt
+    icases Hwt with ⟨%wi, %Hwi, #HWait, -⟩
+    subst Hwi
+    (try wp_auto)
+    wp_apply HWait as %ch ⟨%Qw, #Hb, -⟩
+    (try wp_auto)
+    iapply HΦw
+    iapply waitBcast_anyRecv $$ Hb
   clear Hauthcfg
   (try wp_auto)
   cases terr with
@@ -929,19 +948,32 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   icases replicate_take2 _ _ (by omega) $$ Hlgrs with ⟨Hlr3, Hlr4, Hlgrs⟩
   wp_apply h19 $$ [Hlr3] as ⟨-, Hlr3⟩
   · iframe lg; iframe Hlr3; iexact Hzlg
-  wp_apply h19 $$ [Hlr4] as ⟨-, Hlr4⟩
+  wp_apply +noauto h19 $$ [Hlr4] as ⟨-, Hlr4⟩
   · iframe lg; iframe Hlr4; iexact Hzlg
-  (try wp_auto)
-  wp_apply h29 as %ab ⟨%abl, %Hab, #Hablg, #Habbe⟩
-  (try wp_auto)
+  -- (auth-schema-fix F1) two time receipts, at the resolutions of `schema.NewAuthBackend` and
+  -- `auth.NewAuthStore`, for the boot's two write-back tokens beyond the kit's (`authKitIn`'s), of
+  -- the write budget's stock (`wbSupply_of_stock`)
+  wp_take_receipt as Hrk1
+  wp_apply +noauto h29 as %ab ⟨%abl, %Hab, #Hablg, #Habbe⟩
+  wp_take_receipt as Hrk2
+  ihave #HpoolA := HWBp $$ %({ E₀ with γbe := γbe } : apply.AEnv GF) []
+  · ipureintro; rfl
+  ihave #Hsup := wbSupply_of_stock ({ E₀ with γbe := γbe } : apply.AEnv GF) γp
+    ({ d with cm := true } : mvcc.KBReal) $$ [$HpoolA $Hstock]
+  imod Hsup $$ Hrk1 with Hwk1
+  imod Hsup $$ Hrk2 with Hwk2
+  ihave Hwk1 : backend.wbTok d.γB $$ [Hwk1]
+  · iExactEq Hwk1; rfl
+  ihave Hwk2 : backend.wbTok d.γB $$ [Hwk2]
+  · iExactEq Hwk2; rfl
   rw [show (4 : Nat) = 2 + 2 from rfl]
   icases (ownToks_add 2 2 d.γB.wb).1 $$ Hwb with ⟨Hwb, Hwa⟩
   -- (the auth-on snapshot plan's P5) the auth buckets idle to the kit, the others kept; in the mode
   -- `on` a quarter of the open token and the auth share of the reader slots to the kit too
   -- (`authKitIn`), the apply thread keeping `srvOpenQ M`
   icases (backend.rbOwnIn_split_compl (GF := GF) d.γB authBkts _).1 $$ Hrbo with ⟨HrbA, Hrbo⟩
-  icases authKitIn_take M d $$ [Hopen HrdA] with ⟨HkIn, Hopen⟩
-  · iframe Hopen; iunfold authRdSlots; iexact HrdA
+  icases authKitIn_take M d $$ [Hopen HrdA Hwk1 Hwk2] with ⟨HkIn, Hopen⟩
+  · iframe Hopen Hwk1 Hwk2; iunfold authRdSlots; iexact HrdA
   ihave HKt' := HKt $$ %cfg.Logger' %ab %abl %d %(mvcc.api.mvccW d.gx)
     %(batchLockInv γA (metaTM d.γB d.P)) %(srvOpenQ M) %((backend.rbData d.P D).insert go!"lease" ∅)
   wp_apply HKt'
@@ -2026,6 +2058,8 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iexact HstkP
   -- (R2d'a A10 item 5) `Hwpend`'s token (`srvWinPend`, free at a first start)
   imod (token_alloc (GF := GF)) with ⟨%γwp, Hwpt⟩
+  -- (auth-schema-fix S1 option A) `srv` read-only from here on (it holds `s`): the readiness's
+  ipersist srv
   imodintro
   wp_auto
   iapply HΦ
@@ -2039,7 +2073,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be : GoInterface), γk,
     (⟨t, c⟩ : SrvTr GF)
   isplitr
-  · icases HM with %HM; ipureintro; exact ⟨hγs, HM.1, HM.2⟩
+  · icases HM with %HM; ipureintro; exact ⟨hγs, HM.1, HM.2.1⟩
   isplitl [HsvStk]
   · iexact HsvStk
   iframe Hgap Hserve HSV HMon Hrc Hnm HtokP HServe
@@ -2061,8 +2095,13 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     isplitr
     · ipureintro; exact ⟨rfl, Hci0, HhP, rfl⟩
     iExactEq HB; rfl
+  -- (auth-schema-fix S1 option A) the right to fire the readiness, at the mode's auth names
+  ihave Htpp' : srvTpPend s M $$ [Htpp]
+  · icases HM with %HM0
+    iunfold srvTpPend; iexists γy, srv_ptr; iframe Htpp Htpinv srv
+    ipureintro; exact HM0.2.2
   unfold srvBuiltG
-  iframe HsCI Hloop Happly Hrdone Hcci Hwci Hai Hti Hcmi Hrn Hrvkb
+  iframe Htpp' HsCI Hloop Happly Hrdone Hcci Hwci Hai Hti Hcmi Hrn Hrvkb
   isplitr
   · -- `#Hfb`
     iexists ⟨cfg.Logger', GoInterface.nil, lease.lessorIface lp, #hook, fcn, alst, bc.cl',

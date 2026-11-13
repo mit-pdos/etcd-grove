@@ -7,6 +7,8 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvLeaseRead
 public import Proof.context.LibKeys
+public import Proof.net.http.NetCtx
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.SrvCtxWeak
 
 @[expose] public section
 
@@ -39,14 +41,16 @@ then the header filled. Everything back, and `leaseTTLOut`: on success the respo
 asked lease (its `ID` the request's), with its header filled and the server's verdict (the request authenticated, with `r.Keys` the key check's),
 or the not-found response; on an error `nil`. The request is owned (`r ↦{dq} v`), not the gRPC
 wire model's persistent fields (`pbLeaseGrantRequest.recv`'s form): the stage that links the
-handler to the gRPC server reconciles them. -/
+handler to the gRPC server reconciles them. (k8s 7f-4, T-h6) The context holds nothing at net/http's
+keys (`http.netCtxOk`, which grpc's run context gives: `netCtxOk_of_runCtx`). (k8s 7f-4, Addendum T-k)
+Its causes are context errors or etcd's no-leader error (`v3rpc.ctxCauseOk`: `ctxCauseOk_of_runCtx`). -/
 abbrev v3rpc.LeaseServer.LeaseTimeToLive.spec : Prop :=
   ∀ (p s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64) (E : apply.AEnv GF) (γl : GName)
     (S : IProp GF) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc)
     (dq : DFrac) (v : etcdserverpb.LeaseTimeToLiveRequest) (n m : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       v3rpc.leaseServerAt p s A cid mid ∗ v3rpc.raftLeaseRead s E γl S A.revR ∗ S ∗ A.revR ∗
-      context.isContext ci cd ∗ context.libCtxOk ci ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m ∗
+      context.isContext ci cd ∗ context.libCtxOk ci ∗ http.netCtxOk ci ∗ v3rpc.ctxCauseOk ci ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m ∗
       r ↦{dq} v }}
     (App (App (Val (p @!! go.GoType.PointerType v3rpc.LeaseServer.ty @!! go!"LeaseTimeToLive"))
       (Val #(GoInterface.ok ci))) (Val #r))

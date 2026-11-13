@@ -18,6 +18,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section pure
@@ -122,7 +124,7 @@ end pure
 section acc
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
@@ -160,20 +162,20 @@ theorem cm_write_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
 /-- **The writer side's file and `W` slots** out of `wdbLive`: `db.file`, `db.ops.writeAt`'s half,
 the file, its fd and its `OsMeta`, the `W` slots' cells and bytes; back with any `OsMeta`, `W`
 list and bytes (`WDb.reslot`). -/
-theorem cm_file_acc (B : BNs) (db : Loc) (p : GoString) (sp : Loc) (t0 : Nat) (tx : Loc) (ws : WSt)
+theorem cm_file_acc (B : BNs) (db : Loc) (p : BFile) (sp : Loc) (t0 : Nat) (tx : Loc) (ws : WSt)
     (w : WDb) :
     wdbLive (GF := GF) B db p sp t0 tx ws w ⊢
       db.[DB, go!"file"] ↦ w.f ∗
       (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{DFrac.own (1 : Qp).half}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #w.f ∗
-      fileOwn w.f w.fd p (DFrac.own 1) ∗ osFd w.fd (DFrac.own 1) ⟨p, true, true⟩ ∗
-      osMeta p (DFrac.own 1) (some w.m) ∗ wCells w.ms w.W ∗ wBytes p w.W w.wb w.m.size ∗
+      fileOwn w.f w.fd p.path (DFrac.own 1) ∗ osFd w.fd (DFrac.own 1) ⟨p.ino, true, true⟩ ∗
+      osMeta p.ino (DFrac.own 1) w.m ∗ wCells w.ms w.W ∗ wBytes p w.W w.wb w.m.size ∗
       (∀ (m : OsMeta) (W : List Nat) (wb : Nat → List w8),
         db.[DB, go!"file"] ↦ w.f -∗
         (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{DFrac.own (1 : Qp).half}
           methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #w.f -∗
-        fileOwn w.f w.fd p (DFrac.own 1) -∗ osFd w.fd (DFrac.own 1) ⟨p, true, true⟩ -∗
-        osMeta p (DFrac.own 1) (some m) -∗ wCells w.ms W -∗ wBytes p W wb m.size -∗
+        fileOwn w.f w.fd p.path (DFrac.own 1) -∗ osFd w.fd (DFrac.own 1) ⟨p.ino, true, true⟩ -∗
+        osMeta p.ino (DFrac.own 1) m -∗ wCells w.ms W -∗ wBytes p W wb m.size -∗
         wdbLive B db p sp t0 tx ws (w.reslot m W wb)) := by
   unfold wdbLive wdbCoreG
   iintro ⟨⟨Hcur, Hfl, Hmap, Hout, Hwv, Hfli, Hopn, Hwa, Hrw, Hfile, Hpath, Hdsz, Hmf, Hom, Hfo, Hfd,
@@ -184,7 +186,7 @@ theorem cm_file_acc (B : BNs) (db : Loc) (p : GoString) (sp : Loc) (t0 : Nat) (t
   iframe
 
 /-- The writer side's mapping is at most `maxMapSize` long. -/
-theorem cm_wdbLive_mapLen (B : BNs) (db : Loc) (p : GoString) (sp : Loc) (t0 : Nat) (tx : Loc)
+theorem cm_wdbLive_mapLen (B : BNs) (db : Loc) (p : BFile) (sp : Loc) (t0 : Nat) (tx : Loc)
     (ws : WSt) (w : WDb) :
     wdbLive (GF := GF) B db p sp t0 tx ws w ⊢ ⌜mapLen w.ms ≤ 0xFFFFFFFFFFFF⌝ := by
   unfold wdbLive wdbCoreG

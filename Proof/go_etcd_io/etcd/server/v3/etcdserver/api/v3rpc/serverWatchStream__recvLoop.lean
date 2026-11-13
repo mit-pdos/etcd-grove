@@ -210,7 +210,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
   rw [hws]
   ihave #Hstream' := Hstream
   iunfold v3rpc.srvStreamIs at Hstream'
-  icases Hstream' with ⟨%si, %Hsi, #HRecv, #HSend, #HCtx, #Hctxis, #Hrunctx⟩
+  icases Hstream' with ⟨%si, %Hsi, #HRecv, #HSend, #HCtx, #Hctxw, #Hlibc, #Hspanc, -⟩
   iunfold v3rpc.upOk at Hup
   iunfold v3rpc.watchSrvOk at Hsrv
   icases Hsrv with ⟨#Hrso, #Hauth, #Hvars, #Htag, #HaLb⟩
@@ -450,15 +450,15 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
         · ipureintro; rfl
         iintro %optsl -
         wp_auto
-        ihave #Hlibr := libCtxOk_of_runCtx ci $$ Hrunctx
-        wp_apply (traceutil.Tracer.Start.spec_txn hStart) tr ci cd _ _ $$ [] as %ctx' %sp ⟨⟨%vs, #Hctx', Hctxw⟩, -, -, -, #Hspw, -⟩
+        -- (k8s 7f-4 item 7) the stream's context is a weak one: `Tracer.Start`'s second arm
+        ihave #Hsvo : trace.spanValOk ci $$ []
+        · iunfold context.libCtxOk at Hlibc
+          icases Hlibc with ⟨-, -, -, #H⟩
+          iexact H
+        wp_apply (hStart tr ci cd _ _) $$ [] as %ctx' %sp ⟨⟨%vs, -, -⟩, -, -, -, -, #Hspw, -, -⟩
         · iframe #
-          iunfold mvcc.txnCtx
-          iright; iexact Hctxis
-        ihave #Hctx'' := Hctxw $$ Hctxis
-        -- the run's context's span is a span (`grpcRunCtx`), and so is the traced context's
-        ihave #Hspc := Hspw $$ [Hrunctx]
-        · iapply spanCtxOk_of_runCtx; iexact Hrunctx
+        -- the stream's context's span is a span, and so is the traced context's
+        ihave #Hspc := Hspw $$ Hspanc
         -- the filters: none (`watchReqOk`)
         ihave #Hfi : mvcc.filtersImpl (GF := GF) fsl [] $$ []
         · iunfold mvcc.filtersImpl

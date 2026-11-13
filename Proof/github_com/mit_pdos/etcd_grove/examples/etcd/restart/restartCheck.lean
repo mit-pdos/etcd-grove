@@ -144,7 +144,7 @@ theorem restartCheck.wp_proof
   icases Hst with ⟨HmR, -, -, -⟩
   ihave #Hcm := Hcom
   iunfold etcdstart.commonPremises at Hcm
-  icases Hcm with ⟨-, -, -, #Hnrl⟩
+  icases Hcm with ⟨-, -, -⟩
   -- `serveClient(mR, client)`, with etcd's KV calls registered at the address
   haveI := Hms
   have Hrb48 := ReceiptBoundLe.le (GF := GF) (2 ^ 48)
@@ -152,7 +152,7 @@ theorem restartCheck.wp_proof
   · rw [HElg]; iexact Hzlg
   wp_apply (wp_serveClient mR sR plR caddr E' { ρ' with wait := γw } ρ'.rd cfg
       (fun cid mid _ => etcdstart.etcdKVAt caddr E' { ρ' with wait := γw } ρ'.rd cid mid)
-      HEtr HEw Hms Hbuq)
+      HEtr HEw Hms Hbuq (ThreadBoundLe.le (GF := GF) (2 ^ 28)))
     $$ [HmR Hca Hlg3 Hbemu Hgo Hstk] as %serr ⟨-, Hs⟩
   · iframe; iframe #
     iintro %gs %lis %cid' %mid' %R Hg

@@ -26,6 +26,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section proof
@@ -57,7 +59,7 @@ theorem pt_split {V : Type} [TypedPointsto (GF := GF) V] (l : Loc) (v : V) :
     (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half)).1
   rw [DFrac.op_own, Qp.half_add_half]
 
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 
 /-- Two halves of the mapping fields, as the whole. -/
 theorem mapFields_join2 (db : Loc) (ms : MapSt) :
@@ -70,7 +72,7 @@ theorem mapFields_join2 (db : Loc) (ms : MapSt) :
 
 /-- **The idle writer's gather** (`Close`, with `Pm 1`'s `map` quarter and `mtok`, the writer
 side's `map` half and meta quarter): the mapping's cells, the store's slots out. -/
-theorem close_gather (B : BNs) (N : Namespace) (p : GoString) (w : WDb) (b : Loc) (L : Nat)
+theorem close_gather (B : BNs) (N : Namespace) (p : BFile) (w : WDb) (b : Loc) (L : Nat)
     (hok : wdbOK w) (hms : w.ms = some (b, L)) (hL : 8192 ≤ L) :
     ⊢ inv (pagesN N) (pagesInv (GF := GF) B p) -∗
       ghostVar B.cur (1 : Qp).half.half w.C -∗ ghostVar B.fl (1 : Qp).half w.fl -∗
@@ -129,7 +131,7 @@ theorem close_gather (B : BNs) (N : Namespace) (p : GoString) (w : WDb) (b : Loc
 
 /-- **What `Close` unmaps, gathered** (the idle writer side's resources and `Pm 1`'s): the
 mapping's `closeMapRes`, the mapping's ghost state cleared. -/
-theorem close_res (B : BNs) (N : Namespace) (p : GoString) (w : WDb) (hok : wdbOK w)
+theorem close_res (B : BNs) (N : Namespace) (p : BFile) (w : WDb) (hok : wdbOK w)
     (hL : ∀ b l, w.ms = some (b, l) → 8192 ≤ l) :
     ⊢ inv (pagesN N) (pagesInv (GF := GF) B p) -∗
       ghostVar B.cur (1 : Qp).half.half w.C -∗ ghostVar B.fl (1 : Qp).half w.fl -∗
@@ -137,7 +139,7 @@ theorem close_res (B : BNs) (N : Namespace) (p : GoString) (w : WDb) (hok : wdbO
       ghostVar B.mtok 1 () -∗
       ghostVar B.wv (1 : Qp).half wIdle -∗ ghostVar B.out (1 : Qp).half false -∗
       metaCellsQ (GF := GF) (1 : Qp).half.half w.ms w.C -∗
-      wCells (GF := GF) w.ms w.W -∗ osMeta p (DFrac.own 1) (some w.m) -∗
+      wCells (GF := GF) w.ms w.W -∗ osMeta p.ino (DFrac.own 1) w.m -∗
     |={⊤}=> closeMapRes (GF := GF) p w.ms ∗
       ghostVar B.cur (1 : Qp).half.half w.C ∗ ghostVar B.fl (1 : Qp).half w.fl ∗
       ghostVar B.map (1 : Qp).half (none : MapSt) ∗
@@ -175,9 +177,11 @@ instance Pm_timeless' (B : BNs) (db : Loc) (q : Qp) : Timeless (Pm (GF := GF) B 
     intro ms; rcases ms with _ | ⟨b, l⟩ <;> simp only [mapFields] <;> infer_instance
   unfold Pm; infer_instance
 
-theorem DB.Close.wp_proof (hOwned : DB.close.spec_owned (GF := GF) (hG := hG)) :
+omit [ExtSemantics fsExt] [FsSemOk] hos in
+theorem DB.Close.wp_proof
+    (hOwned : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.close.spec_owned (GF := GF) (hG := hG)) :
     DB.Close.spec (GF := GF) (hG := hG) := by
-  intro _ db γ
+  intro _ _ _ db γ
   wp_start as #Hdb
   unfold isBolt isBoltDef isBoltP
   icases Hdb with ⟨%p, %sp, %t0, #Hcore, #Hrw, -⟩
@@ -266,11 +270,11 @@ theorem DB.Close.wp_proof (hOwned : DB.close.spec_owned (GF := GF) (hG := hG)) :
     omega
   imod close_res _ γ.ns p w Hwok hL $$ Hpi Hcur Hgfl Hgmap Hpmap Hptok Hgwv Hgout Hmc Hwc Hosm
     with ⟨Hres, Hcur, Hgfl, Hgmap, Hpmap, Hptok, Hgwv, Hgout⟩
-  wp_apply hOwned db lg DFrac.discard w.fli _ p w.ms p w.f Ht0.2.1 $$ [Hop Hfli Hwa Hpath Hmf Hdsz
+  wp_apply hOwned db lg DFrac.discard w.fli _ p.path w.ms p w.f Ht0.2.1 $$ [Hop Hfli Hwa Hpath Hmf Hdsz
     Hres Hfile Hfo Hfd]
     as %err ⟨-, Hop, Hfli, Hwa, Hpath, Hmf, Hdsz, Hfile⟩
   · iframe; iframe #
-    iright; iexists w.fd, p, _; iframe
+    iright; iexists w.fd, p.path, _; iframe
   try wp_auto
   -- the deferred unlocks
   icases (mapFields_join2 db (none : MapSt)).2 $$ Hmf with ⟨Hmf1, Hmf2⟩

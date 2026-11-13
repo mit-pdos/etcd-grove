@@ -9,6 +9,7 @@ module
 
 public import Proof.go_etcd_io.bbolt.Inv.Tx
 public import Proof.go_etcd_io.bbolt.Read.TxBytes
+public import GooseLang.Ext.Fs.TreeSpecsOpen
 
 @[expose] public section
 
@@ -17,6 +18,8 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 namespace bbolt
+
+open Fs
 
 open Iris Iris.BI Iris.ProofMode
 
@@ -58,7 +61,7 @@ end image
 section holds
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
@@ -69,63 +72,58 @@ def fileOK (xs : List w8) (size : Nat) (D : Data) : Prop :=
   ∃ C, fileImage xs C ∧ C.metaOk ∧ treeOK C ∧ flFileOK xs C ∧ C.hwm * 4096 ≤ size ∧
     1 ≤ C.txid ∧ C.txid < 2 ^ 62 ∧ treeData C = D
 
-/-- **The file at `path` holds a database with the data `D`** (what `fileHolds` is sealed
-to). The file's size is below `2 ^ 62` (maintainer 12, item 5: true of every file bbolt writes,
-whose mapping is at most `maxMapSize = 2 ^ 48`; `Open`'s `metasZero` and `mmap` need it). -/
-def fileHoldsDef (path : GoString) (D : Data) : IProp GF :=
-  iprop((osMeta path (DFrac.own 1) none ∗ ⌜D = ∅⌝) ∨
-    (∃ (m : OsMeta) (xs : List (w8 × Bool)), osMeta path (DFrac.own 1) (some m) ∗
-      osBytes path 0 (DFrac.own 1) xs ∗
-      ⌜m.maps = ∅ ∧ xs.length = m.size ∧ m.size < 2 ^ 62 ∧ fileOK (xs.map Prod.fst) m.size D⌝))
+/-- **The file of inode `i` holds a database with the data `D`** (what `fileHolds` is sealed
+to): its whole `OsMeta`, with no mapping, and all of its page-cache bytes, whose values are an
+image of `D` (`fileOK`; a fresh, empty file holds `∅`). The bytes' crash candidates are not
+looked at (bbolt's specs are in-process). The file's size is below `2 ^ 62` (maintainer 12, item
+5: true of every file bbolt writes, whose mapping is at most `maxMapSize = 2 ^ 48`; `Open`'s
+`metasZero` and `mmap` need it). "No file at the path" is not a state of the file: it is the
+tree's (`pathHolds`, `Spec/go_etcd_io/bbolt/Api.lean`). -/
+def fileHoldsDef (i : Ino) (D : Data) : IProp GF :=
+  iprop(∃ (m : OsMeta) (xs : List ByteG), osMeta i (DFrac.own 1) m ∗
+      osBytes i 0 (DFrac.own 1) xs ∗
+      ⌜m.maps = ∅ ∧ xs.length = m.size ∧ m.size < 2 ^ 62 ∧ fileOK (xs.map Prod.fst) m.size D⌝)
 
 /-! ## Lemma statements (U11) -/
 
-instance fileHoldsDef_timeless (path : GoString) (D : Data) :
-    Timeless (fileHoldsDef (GF := GF) path D) := by
-  have : ∀ off dq xs, Timeless (osBytes (GF := GF) path off dq xs) := fun _ _ _ => by
+instance fileHoldsDef_timeless (i : Ino) (D : Data) :
+    Timeless (fileHoldsDef (GF := GF) i D) := by
+  have : ∀ off dq xs, Timeless (osBytes (GF := GF) i off dq xs) := fun _ _ _ => by
     unfold osBytes bytesG; exact BigSepL.bigSepL_timeless (fun _ => inferInstance)
   unfold fileHoldsDef; infer_instance
 
-theorem fileHoldsDef_new (path : GoString) (mo : Option OsMeta) :
-    osMeta (GF := GF) path (DFrac.own 1) mo ∗
-      (match mo with
-       | none => iprop(emp)
-       | some m => iprop(⌜m.size = 0 ∧ m.maps = ∅⌝ ∗ osBytes (GF := GF) path 0 (DFrac.own 1) []))
-    ⊢ fileHoldsDef path ∅ := by
+/-- A file just created holds the empty database. -/
+theorem fileHoldsDef_new (i : Ino) :
+    osMeta (GF := GF) i (DFrac.own 1) newMeta ⊢ fileHoldsDef i ∅ := by
   unfold fileHoldsDef
-  cases mo with
-  | none =>
-    iintro ⟨H, -⟩
-    ileft; iframe H; ipureintro; rfl
-  | some m =>
-    iintro ⟨H, %hm, Hb⟩
-    iright; iexists m, []
-    iframe H Hb
-    ipureintro
-    exact ⟨hm.2, by simp [hm.1], by rw [hm.1]; decide, Or.inl ⟨hm.1, rfl⟩⟩
+  iintro H
+  iexists newMeta, []
+  iframe H
+  isplitl
+  · unfold osBytes; iapply (bytesG_nil _ _ _ _).2; iempintro
+  ipureintro
+  exact ⟨rfl, rfl, by decide, Or.inl ⟨rfl, rfl⟩⟩
 
-/-- **Decoding for `Open`**: a fresh file, or the initial committed state `C` of a well-formed
-one (with its bytes). -/
-theorem fileHolds_decode (path : GoString) (D : Data) :
-    fileHoldsDef (GF := GF) path D ⊢
-      (osMeta path (DFrac.own 1) none ∗ ⌜D = ∅⌝) ∨
-      (∃ (m : OsMeta) (xs : List (w8 × Bool)), osMeta path (DFrac.own 1) (some m) ∗
-        osBytes path 0 (DFrac.own 1) xs ∗ ⌜m.maps = ∅ ∧ xs.length = m.size ∧ m.size < 2 ^ 62⌝ ∗
+/-- **Decoding for `Open`**: an empty file holding `∅`, or the initial committed state `C` of a
+well-formed one (with its bytes). -/
+theorem fileHolds_decode (i : Ino) (D : Data) :
+    fileHoldsDef (GF := GF) i D ⊢
+      (∃ (m : OsMeta) (xs : List ByteG), osMeta i (DFrac.own 1) m ∗
+        osBytes i 0 (DFrac.own 1) xs ∗ ⌜m.maps = ∅ ∧ xs.length = m.size ∧ m.size < 2 ^ 62⌝ ∗
         (⌜m.size = 0 ∧ D = ∅⌝ ∨
          ∃ C, ⌜fileImage (xs.map Prod.fst) C ∧ C.metaOk ∧ treeOK C ∧
            flFileOK (xs.map Prod.fst) C ∧ C.hwm * 4096 ≤ m.size ∧ 1 ≤ C.txid ∧ C.txid < 2 ^ 62 ∧
            treeData C = D⌝)) := by
   unfold fileHoldsDef
-  iintro (H | ⟨%m, %xs, Hm, Hb, %h⟩)
-  · ileft; iexact H
-  · iright; iexists m, xs
-    iframe Hm Hb
-    obtain ⟨h1, h2, h0, h3⟩ := h
-    isplitr
-    · ipureintro; exact ⟨h1, h2, h0⟩
-    rcases h3 with h3 | ⟨C, hC⟩
-    · ileft; ipureintro; exact h3
-    · iright; iexists C; ipureintro; exact hC
+  iintro ⟨%m, %xs, Hm, Hb, %h⟩
+  iexists m, xs
+  iframe Hm Hb
+  obtain ⟨h1, h2, h0, h3⟩ := h
+  isplitr
+  · ipureintro; exact ⟨h1, h2, h0⟩
+  rcases h3 with h3 | ⟨C, hC⟩
+  · ileft; ipureintro; exact h3
+  · iright; iexists C; ipureintro; exact hC
 
 end holds
 

@@ -106,7 +106,7 @@ def etcdstart.grpcUpM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) 
                       (□ ∀ Q, srvInterceptorOk im iprop(True) Q) ∗
                         srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
                           srvStreamInterceptorOk ims iprop(True) ∗
-                            srvStreamInterceptorOk is iprop(True) ∗
+                            srvStreamInterceptorWOk is iprop(True) ∗
                               srvLgReader s ∗
                                 srvBemuReader s ∗ srvGoRes s ∗ netListenerAt lis addr ∗ etcdstart.grpcLeaseUp s C.A regs)
 
@@ -148,7 +148,7 @@ def etcdstart.grpcUpOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Read
                       (□ ∀ Q, srvInterceptorOk im iprop(True) Q) ∗
                         srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
                           srvStreamInterceptorOk ims iprop(True) ∗
-                            srvStreamInterceptorOk is iprop(True) ∗
+                            srvStreamInterceptorWOk is iprop(True) ∗
                               srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗ netListenerAt lis addr)
 
 def etcdstart.memberUp (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
@@ -176,7 +176,7 @@ theorem etcdstart.memberBootOn_cmp [v3rpc_sem :
     etcdstart.memberBootOn γ ctxs ρ E₀ Φs id cmp
 
 def etcdstart.commonPremises : IProp GF :=
-  iprop(rnLoggerZapOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk ∗ v3rpc.runsNoRequireLeader)
+  iprop(rnLoggerZapOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk)
 
 def etcdstart.bootPremise (N : Nat) (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8))
     (dir : w64 → List GoString) (token name : GoString) (Uok : BootURLs → Prop) (id : w64) : IProp
@@ -266,7 +266,7 @@ def etcdstart.grpcUp (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNa
                     (□ ∀ Q, srvInterceptorOk im iprop(True) Q) ∗
                       srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
                         srvStreamInterceptorOk ims iprop(True) ∗
-                          srvStreamInterceptorOk is iprop(True) ∗
+                          srvStreamInterceptorWOk is iprop(True) ∗
                             srvLgReader s ∗
                               srvBemuReader s ∗ srvGoRes s ∗ netListenerAt lis addr ∗ etcdstart.grpcLeaseUp s C.A regs)
 

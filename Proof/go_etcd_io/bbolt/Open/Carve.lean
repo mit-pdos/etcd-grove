@@ -1,6 +1,6 @@
 /-
 `Open`'s carving (U11d; design §3.11 "Open", between steps 1.4 and 2): the file's page-cache bytes
-(`fileHolds`' `osBytes p 0 1 xs`) and the new mapping's client halves (`DB.mmapUnlocked.spec_own`'s
+(`fileHolds`' `osBytes p.ino 0 1 xs`) and the new mapping's client halves (`DB.mmapUnlocked.spec_own`'s
 post: the file's extent as bytes at a half, the rest any cells) cut by slot into
 `Open/Core.open_core`'s inputs: the metas' page-cache halves and cell quarters, the store slots'
 page-cache bytes and cells, the writer's `W` slots' page-cache bytes and cells (`W` the slots of
@@ -23,6 +23,8 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 namespace bbolt
+
+open Fs
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
@@ -75,16 +77,16 @@ end runs
 section carve
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- The file's page-cache bytes, by slot. -/
-theorem osBytes_slots (p : GoString) (xs : List (w8 × Bool)) :
-    osBytes (GF := GF) p 0 (DFrac.own 1) xs ⊢
-      [∗list] s ∈ List.range xs.length, osBytes (GF := GF) p (4096 * s) (DFrac.own 1)
+theorem osBytes_slots (p : BFile) (xs : List ByteG) :
+    osBytes (GF := GF) p.ino 0 (DFrac.own 1) xs ⊢
+      [∗list] s ∈ List.range xs.length, osBytes (GF := GF) p.ino (4096 * s) (DFrac.own 1)
         (runSlot xs s) := by
-  have h := runs_slots (GF := GF) (fun o ys => osBytes (GF := GF) p o (DFrac.own 1) ys)
+  have h := runs_slots (GF := GF) (fun o ys => osBytes (GF := GF) p.ino o (DFrac.own 1) ys)
     (fun o a b => by unfold osBytes; exact (bytesG_append _ _ _ _ _ _).1)
     (fun o o' => (osBytes_nil' p o _).1.trans (osBytes_nil' p o' _).2) xs xs.length 0
   simp only [Nat.mul_zero, List.drop_zero] at h
@@ -95,7 +97,7 @@ theorem runSlot_map {α β : Type} (f : α → β) (ys : List α) (s : Nat) :
     (runSlot ys s).map f = runSlot (ys.map f) s := by
   unfold runSlot; rw [List.map_take, List.map_drop]
 
-theorem runSlot_map_fst (xs : List (w8 × Bool)) (s : Nat) :
+theorem runSlot_map_fst (xs : List ByteG) (s : Nat) :
     (runSlot xs s).map Prod.fst = bytesAt (xs.map Prod.fst) (4096 * s) 4096 := by
   rw [runSlot_map]; rfl
 
@@ -146,20 +148,20 @@ theorem runSlot_length_full {α : Type} (ys : List α) (s : Nat) (h : 4096 * (s 
   unfold runSlot; simp only [List.length_take, List.length_drop]; omega
 
 /-- The metas' page-cache bytes, from slots 0 and 1. -/
-theorem open_metaOs (p : GoString) (C : CommitSt) (xs : List (w8 × Bool))
+theorem open_metaOs (p : BFile) (C : CommitSt) (xs : List ByteG)
     (himg : fileImage (xs.map Prod.fst) C) (h8 : 8192 ≤ xs.length) :
-    osBytes (GF := GF) p (4096 * 0) (DFrac.own 1) (runSlot xs 0) ∗
-      osBytes (GF := GF) p (4096 * 1) (DFrac.own 1) (runSlot xs 1) ⊢
+    osBytes (GF := GF) p.ino (4096 * 0) (DFrac.own 1) (runSlot xs 0) ∗
+      osBytes (GF := GF) p.ino (4096 * 1) (DFrac.own 1) (runSlot xs 1) ⊢
     metaOsBytes (GF := GF) p (DFrac.own (1 : Qp).half) C ∗
       metaOsBytes (GF := GF) p (DFrac.own (1 : Qp).half) C := by
   have h0 := runSlot_length_full xs 0 (by omega)
   have e : 4096 * 1 = 0 + (runSlot xs 0).length := by rw [h0]
   rw [e, Nat.mul_zero]
-  have hj : osBytes (GF := GF) p 0 (DFrac.own 1) (runSlot xs 0) ∗
-      osBytes (GF := GF) p (0 + (runSlot xs 0).length) (DFrac.own 1) (runSlot xs 1) ⊢
-      osBytes (GF := GF) p 0 (DFrac.own 1) (runSlot xs 0 ++ runSlot xs 1) := by
+  have hj : osBytes (GF := GF) p.ino 0 (DFrac.own 1) (runSlot xs 0) ∗
+      osBytes (GF := GF) p.ino (0 + (runSlot xs 0).length) (DFrac.own 1) (runSlot xs 1) ⊢
+      osBytes (GF := GF) p.ino 0 (DFrac.own 1) (runSlot xs 0 ++ runSlot xs 1) := by
     unfold osBytes; exact (bytesG_append _ _ _ _ _ _).2
-  refine hj.trans ((osBytes_halves p 0 _).1.trans ?_)
+  refine hj.trans ((osBytes_halves p.ino 0 _).1.trans ?_)
   have hm : (runSlot xs 0 ++ runSlot xs 1).map Prod.fst = C.m0 ++ C.m1 := by
     rw [List.map_append, runSlot_map_fst, runSlot_map_fst, himg.1, himg.2.1]
   unfold metaOsBytes
@@ -169,8 +171,8 @@ theorem open_metaOs (p : GoString) (C : CommitSt) (xs : List (w8 × Bool))
   · iexists _; iframe H2; ipureintro; exact hm
 
 /-- The store slots' page-cache bytes. -/
-theorem open_slotsOs (p : GoString) (xs : List (w8 × Bool)) (S : List Nat) :
-    ([∗list] s ∈ S, osBytes (GF := GF) p (4096 * s) (DFrac.own 1) (runSlot xs s)) ⊢
+theorem open_slotsOs (p : BFile) (xs : List ByteG) (S : List Nat) :
+    ([∗list] s ∈ S, osBytes (GF := GF) p.ino (4096 * s) (DFrac.own 1) (runSlot xs s)) ⊢
       [∗list] s ∈ S, osSlot (GF := GF) p s (bytesAt (xs.map Prod.fst) (4096 * s) 4096) := by
   refine BigSepL.bigSepL_mono fun {_ s} _ => ?_
   unfold osSlot
@@ -178,12 +180,12 @@ theorem open_slotsOs (p : GoString) (xs : List (w8 × Bool)) (S : List Nat) :
   iexists _; iframe H; ipureintro; exact runSlot_map_fst xs s
 
 /-- The writer's slots' page-cache bytes (those inside the file). -/
-theorem open_wOs (p : GoString) (xs : List (w8 × Bool)) (W : List Nat) :
+theorem open_wOs (p : BFile) (xs : List ByteG) (W : List Nat) :
     ([∗list] s ∈ W.filter (fun s => decide (4096 * s < xs.length)),
-        osBytes (GF := GF) p (4096 * s) (DFrac.own 1) (runSlot xs s)) ⊢
+        osBytes (GF := GF) p.ino (4096 * s) (DFrac.own 1) (runSlot xs s)) ⊢
       wBytes (GF := GF) p W (fun s => bytesAt (xs.map Prod.fst) (4096 * s) 4096) xs.length := by
   refine (bigSepL_ite_filter (fun s => decide (4096 * s < xs.length))
-    (fun s => osBytes (GF := GF) p (4096 * s) (DFrac.own 1) (runSlot xs s)) W).2.trans ?_
+    (fun s => osBytes (GF := GF) p.ino (4096 * s) (DFrac.own 1) (runSlot xs s)) W).2.trans ?_
   unfold wBytes
   refine BigSepL.bigSepL_mono fun {_ s} _ => ?_
   by_cases h : 4096 * s < xs.length
@@ -219,10 +221,10 @@ theorem open_metaCells (b : Loc) (L : Nat) (C : CommitSt) (ys : List w8) (vf : N
 
 /-- **`Open`'s carving**: the file `xs` (at least its two metas, at most the mapping `(b, L)`)
 and the mapping's client halves, as `open_core`'s per-slot inputs. -/
-theorem open_carve (p : GoString) (b : Loc) (L : Nat) (C : CommitSt) (xs : List (w8 × Bool))
+theorem open_carve (p : BFile) (b : Loc) (L : Nat) (C : CommitSt) (xs : List ByteG)
     (vf : Nat → val) (himg : fileImage (xs.map Prod.fst) C) (htree : treeOK C)
     (hhwm : C.hwm * 4096 ≤ xs.length) (h8 : 8192 ≤ xs.length) (hL : xs.length ≤ L) :
-    osBytes (GF := GF) p 0 (DFrac.own 1) xs ∗
+    osBytes (GF := GF) p.ino 0 (DFrac.own 1) xs ∗
       bytesPointsto (GF := GF) b (DFrac.own (1 : Qp).half) (xs.map Prod.fst) ∗
       cellsR (GF := GF) b xs.length (L - xs.length) vf ⊢
     metaOsBytes (GF := GF) p (DFrac.own (1 : Qp).half) C ∗

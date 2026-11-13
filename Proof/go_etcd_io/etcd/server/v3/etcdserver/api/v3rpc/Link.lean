@@ -82,6 +82,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.authMaintenan
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.authMaintenanceServer__Status
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.authMaintenanceServer__isPermitted
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.authMaintenanceServer__requireAuthInfo
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.cancellableContext__Cancel
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.cancellableContext__Err
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkDeleteRequest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkIntervals
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.checkPutRequest
@@ -93,6 +95,7 @@ public import Proof.go_etcd_io.etcd.server.v3.config.ServerConfig__MaxRequestByt
 public import Proof.errors.Is
 public import Proof.errors.IsCtxErr
 public import Proof.errors.IsDeadlineExceeded
+public import Proof.errors.IsStatusErr
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.filterNoDelete
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.filterNoPut
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.getServerMetrics
@@ -128,6 +131,7 @@ public import Proof.google_golang_org.grpc.metadata.FromIncomingContext
 public import Proof.google_golang_org.grpc.metadata.MD__Get
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.monitorLeader
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newBackendQuota
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newCancellableContext
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newHeader
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newHealthNotifier
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newLogUnaryInterceptor
@@ -635,13 +639,25 @@ theorem grpc_prometheus.ServerMetrics.wp_StreamServerInterceptor :
     EtcdGrove.grpc_prometheus.ServerMetrics.StreamServerInterceptor.spec (GF := GF) (hG := hG) :=
   EtcdGrove.grpc_prometheus.ServerMetrics.StreamServerInterceptor.wp_proof
 
+theorem cancellableContext.wp_Cancel :
+    EtcdGrove.v3rpc.cancellableContext.Cancel.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.cancellableContext.Cancel.wp_proof
+
 theorem wp_monitorLeader :
     EtcdGrove.v3rpc.monitorLeader.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.monitorLeader.wp_proof EtcdServer.wp_GoAttach EtcdServer.wp_StoppingNotify EtcdServer.wp_Leader
+  EtcdGrove.v3rpc.monitorLeader.wp_proof EtcdServer.wp_GoAttach EtcdServer.wp_StoppingNotify EtcdServer.wp_Leader cancellableContext.wp_Cancel
+
+theorem wp_newCancellableContext :
+    EtcdGrove.v3rpc.newCancellableContext.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.newCancellableContext.wp_proof
+
+theorem cancellableContext.wp_Err :
+    EtcdGrove.v3rpc.cancellableContext.Err.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.cancellableContext.Err.wp_proof
 
 theorem wp_newStreamInterceptor :
     EtcdGrove.v3rpc.newStreamInterceptor.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.newStreamInterceptor.wp_proof wp_monitorLeader api.wp_IsCapabilityEnabled EtcdServer.wp_MemberID EtcdServer.wp_IsMemberExist EtcdServer.wp_IsLearner metadata.MD.wp_Get utf8.wp_ValidString prometheus.CounterVec.wp_WithLabelValues
+  EtcdGrove.v3rpc.newStreamInterceptor.wp_proof wp_monitorLeader api.wp_IsCapabilityEnabled EtcdServer.wp_MemberID EtcdServer.wp_IsMemberExist EtcdServer.wp_IsLearner metadata.MD.wp_Get utf8.wp_ValidString prometheus.CounterVec.wp_WithLabelValues metadata.wp_FromIncomingContext EtcdServer.wp_Leader wp_newCancellableContext cancellableContext.wp_Cancel cancellableContext.wp_Err
 
 theorem health.wp_NewServer :
     EtcdGrove.health.NewServer.spec (GF := GF) (hG := hG) :=
@@ -795,6 +811,10 @@ theorem errors.wp_IsCtxErr :
     EtcdGrove.errors.IsCtxErr.spec (GF := GF) (hG := hG) :=
   EtcdGrove.errors.IsCtxErr.wp_proof
 
+theorem errors.wp_IsStatusErr :
+    EtcdGrove.errors.IsStatusErr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.errors.IsStatusErr.wp_proof
+
 theorem wp_filterNoDelete :
     EtcdGrove.v3rpc.filterNoDelete.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.filterNoDelete.wp_proof
@@ -857,7 +877,7 @@ theorem serverWatchStream.wp_sendLoop [go_etcd_io.etcd.cache.v3.Assumptions] :
 
 theorem watchServer.wp_Watch [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.v3rpc.watchServer.Watch.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.watchServer.Watch.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccReaders_split_law_holds serverWatchStream.wp_recvLoop serverWatchStream.wp_sendLoop serverWatchStream.wp_close wp_isClientCtxErr errors.wp_IsCtxErr errors.wp_Is zap.Logger.wp_Debug zap.Logger.wp_Warn zap.wp_Error prometheus.CounterVec.wp_WithLabelValues
+  EtcdGrove.v3rpc.watchServer.Watch.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccReaders_split_law_holds serverWatchStream.wp_recvLoop serverWatchStream.wp_sendLoop serverWatchStream.wp_close wp_isClientCtxErr errors.wp_IsCtxErr errors.wp_Is errors.wp_IsStatusErr zap.Logger.wp_Debug zap.Logger.wp_Warn zap.wp_Error prometheus.CounterVec.wp_WithLabelValues
 
 end links_hasLC
 

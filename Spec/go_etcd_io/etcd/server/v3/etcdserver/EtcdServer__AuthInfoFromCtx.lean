@@ -7,6 +7,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthReqDerive
 public import Proof.context.LibKeys
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.SrvCtxWeak
 
 @[expose] public section
 
@@ -42,7 +43,7 @@ abbrev EtcdServer.AuthInfoFromCtx.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       structFieldRef EtcdServer go!"authStore" s ↦□ st ∗ isReqAuth st RD ∗
       □ (⌜M.isOn = true⌝ → isReqAuthBound st RD M) ∗
-      srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ cca ∗ mvcc.txnCtx ctx cd ∗
+      srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ cca ∗ (mvcc.txnCtx ctx cd ∨ srvCtxWeak ctx cd) ∗
       context.libCtxOk ctx ∗ RD }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"AuthInfoFromCtx"))
       (Val #(GoInterface.ok ctx)))

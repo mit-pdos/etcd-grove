@@ -3,8 +3,8 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def bbolt.Tx.CreateBucket.spec : Prop :=
-  ∀ [inst : HasExt osFsExt] (tx : Loc) (γ : bbolt.BoltName) (T : bbolt.TxView) (name : GoSlice) (n : GoString)
-    (dq : DFrac),
+  ∀ [inst : ExtSemantics Fs.fsExt] [inst_1 : Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt] (tx : Loc) (γ : bbolt.BoltName)
+    (T : bbolt.TxView) (name : GoSlice) (n : GoString) (dq : DFrac),
     ⊢
       ∀ Φ,
         bbolt.boltTx tx γ 1 T ∗ ownSlice name n dq ∗ ⌜T.rw = true ∧ List.length n ≤ bbolt.maxKeySize⌝ -∗

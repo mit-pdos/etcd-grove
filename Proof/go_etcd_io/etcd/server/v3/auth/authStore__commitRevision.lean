@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 theorem auth.authStore.commitRevision.wp_proof
     (h_Revision : auth.authStore.Revision.spec (GF := GF) (hG := hG)) :
     auth.authStore.commitRevision.spec (GF := GF) (hG := hG) := by
-  intro st R M P f T ti Lk sta X hs st0
+  intro st R M P f T Wb ti Lk sta X hs st0
   wp_start as ⟨#Hinv, #Hlk, HLk, Hown, #Hcap, %Hp⟩
   obtain ⟨Hlast, Hsrev, Hfit, Hk, Hoff⟩ := Hp
   ihave #Hatomic : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []

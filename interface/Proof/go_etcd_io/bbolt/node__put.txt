@@ -2,8 +2,8 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.node.put.wp_proof [hos : HasExt osFsExt] (hPgid :
-    bbolt.internal.common.Meta.Pgid.spec) (hK : bbolt.internal.common.Inode.Key.spec) (hSF :
+theorem bbolt.node.put.wp_proof [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (hPgid
+    : bbolt.internal.common.Meta.Pgid.spec) (hK : bbolt.internal.common.Inode.Key.spec) (hSF :
     bbolt.internal.common.Inode.SetFlags.spec) (hSK : bbolt.internal.common.Inode.SetKey.spec) (hSV
     : bbolt.internal.common.Inode.SetValue.spec) (hSP : bbolt.internal.common.Inode.SetPgid.spec)
     (hA : bbolt.internal.common.Assert.spec) (hS : sort.Search.spec) (hC : bytes.Compare.spec) (hE :

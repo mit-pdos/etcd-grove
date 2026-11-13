@@ -2,15 +2,15 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.Tx.write_ext.wp_proof [hos : HasExt osFsExt] (hLogger : bbolt.DB.Logger.spec) (hSort :
-    sort.Sort.anyLessSpec) (hOv : bbolt.internal.common.Page.Overflow.spec) (hId :
-    bbolt.internal.common.Page.Id.spec) (hUBS : bbolt.internal.common.UnsafeByteSlice.spec)
-    (hWriteAt : os.File.WriteAt.spec) (hSync : bbolt.fdatasync.spec) (hInc :
-    bbolt.TxStats.IncWrite.spec) : bbolt.Tx.write_ext.spec
+theorem bbolt.Tx.write_ext.wp_proof [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt]
+    (hLogger : bbolt.DB.Logger.spec) (hSort : sort.Sort.anyLessSpec) (hOv :
+    bbolt.internal.common.Page.Overflow.spec) (hId : bbolt.internal.common.Page.Id.spec) (hUBS :
+    bbolt.internal.common.UnsafeByteSlice.spec) (hWriteAt : os.File.WriteAt.specExt) (hSync :
+    bbolt.fdatasync.spec) (hInc : bbolt.TxStats.IncWrite.spec) : bbolt.Tx.write_ext.spec
   -- `Perennial.EtcdGrove.bbolt.Tx.write_ext.spec`, unfolded:
   ∀ (K : bbolt.BC) (tx : Loc) (r : bbolt.TxReg) (sm : Bool) (q : Qp) (dq : DFrac) (pml : Loc) (pm : GMap w64 Loc)
-    (bufs : GMap w64 (List w8)) (T : List Nat) (wb : Nat → List w8) (f : Loc) (fd : w64) (om : OsMeta) (b : Loc) (l : Nat)
-    (dqf dqw : DFrac),
+    (bufs : GMap w64 (List w8)) (T : List Nat) (wb : Nat → List w8) (f : Loc) (fd : w64) (om : Fs.OsMeta) (b : Loc)
+    (l : Nat) (dqf dqw : DFrac),
     (∀ (id : w64), (pm !! id).isSome = (bufs !! id).isSome) →
       bbolt.bufsOK bufs (l / 4096) →
         om.size < 2 ^ 63 →
@@ -45,10 +45,10 @@ theorem bbolt.Tx.write_ext.wp_proof [hos : HasExt osFsExt] (hLogger : bbolt.DB.L
                                                   (methods os.File.ty.PointerType
                                                     go!"WriteAt" (intoVal f))
                                                   dqw ∗
-                                                bbolt.fileOwn f fd K.p (DFrac.own 1) ∗
-                                                  osFd fd (DFrac.own 1)
-                                                      { path := K.p, readable := true, writable := true } ∗
-                                                    osMeta K.p (DFrac.own 1) (some om) ∗
+                                                bbolt.fileOwn f fd K.p.path (DFrac.own 1) ∗
+                                                  Fs.osFd fd (DFrac.own 1)
+                                                      { ino := K.p.ino, readable := true, writable := true } ∗
+                                                    Fs.osMeta K.p.ino (DFrac.own 1) om ∗
                                                       bbolt.wrSlotsSz b K.p (bbolt.bufSlots bufs ++ T) wb om.size -∗
                               (▷
                                   ∀ err,
@@ -70,11 +70,11 @@ theorem bbolt.Tx.write_ext.wp_proof [hos : HasExt osFsExt] (hLogger : bbolt.DB.L
                                                   (methods os.File.ty.PointerType
                                                     go!"WriteAt" (intoVal f))
                                                   dqw ∗
-                                                bbolt.fileOwn f fd K.p (DFrac.own 1) ∗
-                                                  osFd fd (DFrac.own 1)
-                                                      { path := K.p, readable := true, writable := true } ∗
+                                                bbolt.fileOwn f fd K.p.path (DFrac.own 1) ∗
+                                                  Fs.osFd fd (DFrac.own 1)
+                                                      { ino := K.p.ino, readable := true, writable := true } ∗
                                                     ∃ om' wb',
-                                                      osMeta K.p (DFrac.own 1) (some om') ∗
+                                                      Fs.osMeta K.p.ino (DFrac.own 1) om' ∗
                                                         ⌜om.size ≤ om'.size ∧
                                                               om'.size ≤ max om.size (4096 * (l / 4096)) ∧
                                                                 om'.maps = om.maps ∧

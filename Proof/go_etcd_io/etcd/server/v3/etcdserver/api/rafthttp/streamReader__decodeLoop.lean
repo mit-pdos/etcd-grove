@@ -364,7 +364,7 @@ theorem rafthttp.streamReader.decodeLoop.wp_proof
   ihave #Hf' := Hf
   iunfold srFixed at Hf'
   icases Hf' with ⟨%lg, %tr, %ps, %rcv, %pcv, %γr, %γp, %ctx, %cd, #Hlg, #Hlgz, #Hpid, #Htr,
-    #Hlid, #Hps, #Hpsok, #Hrcv, #Hrbag, #Hpcv, #Hpbag, #Hmu, #Hctxf, #Hctx⟩
+    #Hlid, #Hps, #Hpsok, #Hrcv, #Hrbag, #Hpcv, #Hpbag, #Hmu, #Hctxf, #Hctx, #Hbgc⟩
   ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

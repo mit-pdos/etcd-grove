@@ -574,17 +574,18 @@ instance isServerReqM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ :
     Persistent (isServerReqM (GF := GF) on s E ρ) := by
   cases on <;> unfold isServerReqM <;> infer_instance
 
-/-- The server's built part's store has the bound request side (`srvUberBase`'s, E3zb). -/
+/-- The server's built part's store has the bound request side (`srvUberBase`'s, E3zb), once the
+token provider is ready (`auth.tpReady`, auth-schema-fix S1 option A). -/
 theorem srvAuthBound_of_uberBase (s : Loc) (ua : GoInterface) (E : apply.AEnv GF)
     (h : E.authMode.isOn = true) :
-    srvUberBase (GF := GF) s ua E ⊢ srvAuthBound s E := by
-  iintro #Hb
+    srvUberBase (GF := GF) s ua E ⊢ □ (auth.tpReady E.authMode -∗ srvAuthBound s E) := by
+  iintro #Hb !> #Hrdy
   iunfold srvUberBase at Hb
   icases Hb with ⟨%au, %le, #Hauf, -, -, -, %stl, -, -, -, #HbB⟩
   iunfold srvAuthBound
   iexists au
   iframe Hauf
-  iapply HbB
+  iapply HbB $$ [] Hrdy
   ipureintro; exact h
 
 theorem isServerReqM_split (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :

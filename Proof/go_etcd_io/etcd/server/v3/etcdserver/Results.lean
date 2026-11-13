@@ -1230,10 +1230,10 @@ the token provider `auth.tpAdmin st M` (S5d), from S4's proofs of
 `UserRevokeRole`, `RoleRevokePermission`, `RoleDelete`, S4c's of `UserGrantRole` and S4d's of
 `RoleGrantPermission`. -/
 theorem auth_apply_steps (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : IProp GF) (f : GoFunc)
-    (T : IProp GF) :
+    (T Wb : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ⊢
       EtcdGrove.apply.isAuthSteps (auth.authIface st) P f M
-        iprop(auth.authWR st M P f T ∗ auth.tpAdmin st M) :=
+        iprop(auth.authWR st M P f T Wb ∗ auth.tpAdmin st M) Wb :=
   EtcdGrove.apply.isAuthSteps_of_authInv auth.authStore.wp_AuthEnable auth.authStore.wp_AuthDisable
     (auth.authStore.UserAdd.wp_sure auth.authStore.wp_commitRevision
       auth.authStore.wp_refreshRangePermCache auth.authStore.wp_selectPassword zap.wp_String
@@ -1241,7 +1241,7 @@ theorem auth_apply_steps (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : IPro
     auth.authStore.wp_UserDelete auth.authStore.wp_UserChangePassword
     auth.authStore.wp_RoleAdd auth.authStore.wp_UserRevokeRole auth.authStore.wp_RoleRevokePermission
     auth.authStore.wp_RoleDelete auth.authStore.wp_UserGrantRole auth.authStore.wp_RoleGrantPermission
-    st R M P f T
+    st R M P f T Wb
 
 /-- **The apply layer's admin requests perform the model's step** (`apply/AuthSteps.lean`):
 `applierV3backend.X` from the backend's options' `isAuthSteps`, the admin side's authority and
@@ -1578,17 +1578,17 @@ theorem auth_role_revoke_permission_tie :
 `apply/AuthStepsX.lean`): `isAuthStepsX` with the halves tied to the history (`auth.tieRes`),
 from E2s's tie-keeping specs. -/
 theorem apply_auth_steps_tie (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : IProp GF) (f : GoFunc)
-    (T : IProp GF) :
+    (T Wb : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ⊢
       EtcdGrove.apply.isAuthStepsX (auth.authIface st) P f M (auth.tieRes st M)
-        iprop(auth.authWB st M P f T ∗ auth.tpAdmin st M) (auth.authRd st R M) :=
+        iprop(auth.authWB st M P f T Wb ∗ auth.tpAdmin st M) Wb (auth.authRd st R M) :=
   EtcdGrove.apply.isAuthStepsX_of_authInvT auth_auth_enable_tie
     (auth.authStore.UserAdd.wp_tieSure auth.authStore.wp_commitRevision
       auth.authStore.wp_refreshRangePermCache auth.authStore.wp_selectPassword zap.wp_String
       zap.Logger.wp_Info) auth_role_add_tie
     auth_user_grant_role_tie auth_role_grant_permission_tie
     (auth.authStore.Authenticate.wp_tieB auth.authStore.wp_IsAuthEnabled auth.authStore.wp_Revision
-      auth.wp_redactToken zap.wp_String zap.Logger.wp_Check zapcore.CheckedEntry.wp_Write) st R M P f T
+      auth.wp_redactToken zap.wp_String zap.Logger.wp_Check zapcore.CheckedEntry.wp_Write) st R M P f T Wb
 
 theorem apply_UserAdd_fuelX [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.apply.applierV3backend.UserAdd.fuelSpecX (GF := GF) (hG := hG) :=
@@ -1736,10 +1736,10 @@ theorem server_uber_auth_steps_on [go_etcd_io.etcd.cache.v3.Assumptions] (s : Lo
     (γa : auth.AuthNames) (st : auth.AuthState) (hM : E.authMode = .on γa) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       srvUberBase s ua E ∗ srvAuthApplyResB s E st ⊢
-      srvAuthApplyResB s E st ∗ ∃ (stl bel : Loc) (γc : auth.AuthBkNames) (Pk : IProp GF),
+      srvAuthApplyResB s E st ∗ ∃ (stl bel : Loc) (γc : auth.AuthBkNames) (Pk Wb : IProp GF),
         ⌜E.Pk = fun _ => Pk⌝ ∗
         srvAuthStoreAddr s ↦□ auth.authIface stl ∗
-        EtcdGrove.apply.uberAuthStepsL ua E (adminWC stl bel γa Pk E.f γc)
+        EtcdGrove.apply.uberAuthStepsL ua E (adminWC stl bel γa Pk E.f γc Wb)
           (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h))
           (auth.latestResC stl (.on γa) γc) :=
   srv_uberAuthStepsL_on apply_UserAdd_fuelX apply_RoleAdd_fuelX apply_UserGrantRole_fuelX
@@ -1922,25 +1922,30 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **The simple token provider's constructor** (`newTokenProviderSimple`, the auth plan's S5e;
 `auth/TokenKeeperRun.lean`): the provider's facts, its index waiter, the admin side's share and the
-authority over the rights to issue tokens, under fresh names. -/
-theorem token_simple_new (lg : Loc) (iw : GoFunc) (ttl : time.Duration) (hpos : 0 < sint.Z ttl) :
+authority over the rights to issue tokens, under fresh names; the index waiter's contract once the
+readiness cell `γy` is shot (`auth.tpShot γy`, auth-schema-fix S1 option A; `token_simple_ok` takes
+it at the auth names' `γa.rdy`). -/
+theorem token_simple_new (lg : Loc) (iw : GoFunc) (ttl : time.Duration) (hpos : 0 < sint.Z ttl)
+    (γy : GName) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ zapLoggerOrNil lg ∗
-        □ (∀ idx : w64, {{ True }} (App (Val #iw) (Val #idx)) {{ (ch : Loc), RET #ch; auth.anyRecv ch }}) }}
+        □ (∀ idx : w64, {{ auth.tpShot γy }} (App (Val #iw) (Val #idx))
+          {{ (ch : Loc), RET #ch; auth.anyRecv ch }}) }}
       (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.newTokenProviderSimple)) (Val #lg)) (Val #iw))
         (Val #ttl))
-    {{ (p : Loc), RET #p; ∃ γt γf : GName, auth.simpleOk p γt γf ∗ auth.simpleWaitOk p ∗
+    {{ (p : Loc), RET #p; ∃ γt γf : GName, auth.simpleOk p γt γf ∗ auth.simpleWaitOk p γy ∗
         auth.simpleAdmin p ∗ ghostMapAuth γf 1 (∅ : GMap GoString Unit) }} :=
-  auth.tokenSimple_new zap.NewNop.wp_proof lg iw ttl hpos
+  auth.tokenSimple_new zap.NewNop.wp_proof lg iw ttl hpos γy
 
-/-- **The simple token provider meets the token contract** with `info`'s context premise
-(`auth.tokenProviderOkCtx`, S5e), in the mode `on γa`, with the admin side's share, and no
+/-- **The simple token provider meets the token contract** (`auth.tokenProviderOkA`, whose `info`
+takes a context with `auth.ctxDoneAny` since auth-schema-fix S1; until then the context-premised
+form `tokenProviderOkCtx`, S5e), in the mode `on γa`, with the admin side's share, and no
 hypothesis on the provider (the keeper's goroutine proved, `keeper_run`). -/
 theorem token_simple_ok (p : Loc) (γa : auth.AuthNames) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.simpleOk p γa.tok γa.fresh ∗
-        auth.simpleWaitOk p ⊢
-      auth.tokenProviderOkCtx (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.tokenSimple.ty) #p)
+        auth.simpleWaitOk p γa.rdy ⊢
+      auth.tokenProviderOkA (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.tokenSimple.ty) #p)
         (.on γa) (auth.simpleAdmin p) :=
-  auth.tokenSimple_okCtx zap.Logger.Debug.wp_proof zap.String.wp_proof
+  auth.tokenSimple_okA_run zap.Logger.Debug.wp_proof zap.String.wp_proof
     auth.tokenSimple.wp_genTokenPrefix p γa
 
 /-- **The auth store's constructor in the mode `on γa`** (`NewAuthStore`, the auth plan's E2a;
@@ -1950,23 +1955,23 @@ first revision committed if the backend's state had none) and the readers' slots
 snapshot plan's Prove step, 2026-11-03, the user's approval: at the backend's names `γc`, with the
 lock's half of the current backend and its whole currency.) -/
 theorem auth_store_new_on (lg : Loc) (ab tp : GoInterface) (cost : w64) (bi : GoInterfaceOk)
-    (γa : auth.AuthNames) (γc : auth.AuthBkNames) (R P : IProp GF) (f : GoFunc) (T A Pre Q Post : IProp GF)
+    (γa : auth.AuthNames) (γc : auth.AuthBkNames) (R P : IProp GF) (f : GoFunc) (T Wb A Pre Q Post : IProp GF)
     (hs : List auth.AuthState) (stl : auth.AuthState) (hlast : hs.getLast? = some stl)
     (hfit : auth.permsFit stl) (hempty : ∃ s ∈ hs, s.users = ∅) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ zapLoggerOk lg ∗
         ⌜ab = GoInterface.ok bi⌝ ∗ auth.authBackendOk ab R (.on γa) γc ∗
         auth.authBkCur γa (1 : Qp).half γc ∗ auth.authCur γc 1 ∗
-        auth.authWBackendOkR ab (.on γa) P f T ∗
-        □ ({{ T }} (App (Val #(methods bi.ty go!"CreateAuthBuckets" bi.v)) (Val #()))
+        auth.authWBackendOkR ab (.on γa) P f T Wb ∗
+        □ ({{ T ∗ Wb }} (App (Val #(methods bi.ty go!"CreateAuthBuckets" bi.v)) (Val #()))
           {{ RET #(); T }}) ∗
-        T ∗ srvApi.csContractA P f Pre Q Post ∗ auth.tokenProviderOkA tp (.on γa) A ∗ A ∗
+        T ∗ Wb ∗ Wb ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗ auth.tokenProviderOkA tp (.on γa) A ∗ A ∗
         auth.authOwn (.on γa) hs ∗ auth.authStoreInit γa hs stl ∗
         auth.capNext (.on γa) hs (auth.bump stl) }}
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.NewAuthStore)) (Val #lg))
         (Val #ab)) (Val #tp)) (Val #cost))
     {{ (st : GoInterface), RET #st; ∃ (stp : Loc) (hs' : List auth.AuthState),
         ⌜st = auth.authIface stp⌝ ∗ auth.authInv stp R (.on γa) ∗
-        auth.authWRAt stp (.on γa) P f T ab ∗
+        auth.authWRAt stp (.on γa) P f T Wb ab ∗
         auth.tpAdmin stp (.on γa) ∗ Post ∗ auth.authOwn (.on γa) hs' ∗
         ⌜(stl.revision ≠ 0 ∧ hs' = hs) ∨ (stl.revision = 0 ∧ hs' = hs ++ [auth.bump stl])⌝ ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
@@ -1974,7 +1979,7 @@ theorem auth_store_new_on (lg : Loc) (ab tp : GoInterface) (cost : w64) (bi : Go
   iintro %Φ Hpre HΦ
   iapply (auth.newAuthStore_on zap.Logger.wp_Warn zap.Int'.wp_proof auth.authStore.wp_Revision
     auth.authStore.wp_commitRevision auth.authStore.wp_setupMetricsReporter
-    auth.authStore.wp_refreshRangePermCache lg ab tp cost bi γa γc R P f T A Pre Q Post hs stl hlast
+    auth.authStore.wp_refreshRangePermCache lg ab tp cost bi γa γc R P f T Wb A Pre Q Post hs stl hlast
     hfit hempty (Int.toNat sync.rwmutex.actualMaxReaders) (Nat.le_refl _)) $$ Hpre
   iintro !> %st ⟨%stp, %hs', %Heq, Hinv, Hw, Ha, Hp, Ho, %Hh, -, -, Hr⟩
   iapply HΦ
@@ -1988,33 +1993,35 @@ allocated over the boot state with the token provider's names, the batch lock's 
 handed to the backend, whose contracts for the new names are the named premise D22 discharges
 (`auth.authSchemaBoot`); the store's invariant, the admin side's write resource, the provider's
 share, the admin side's authority at `[bootState, bump bootState]` and the cap of the history at it
-(H5). -/
+(H5); the names' readiness cell at the caller's `γy` (auth-schema-fix S1). -/
 theorem auth_store_boot_on (lg : Loc) (ab tp : GoInterface) (cost : w64) (bi : GoInterfaceOk)
-    (γt γf : GName) (R P : IProp GF) (f : GoFunc) (T A Pre Q Post : IProp GF) :
+    (γt γf γy : GName) (R P : IProp GF) (f : GoFunc) (T Wb A Pre Q Post : IProp GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ zapLoggerOk lg ∗
-        ⌜ab = GoInterface.ok bi⌝ ∗ auth.authSchemaBoot ab bi γt γf R P f T ∗
-        T ∗ srvApi.csContractA P f Pre Q Post ∗ auth.tokenProviderBoot tp γt γf A ∗ A }}
+        ⌜ab = GoInterface.ok bi⌝ ∗ auth.authSchemaBoot ab bi γt γf R P f T Wb ∗
+        T ∗ Wb ∗ Wb ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗ auth.tokenProviderBoot tp γt γf A ∗ A }}
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.NewAuthStore)) (Val #lg))
         (Val #ab)) (Val #tp)) (Val #cost))
     {{ (st : GoInterface), RET #st; ∃ (γa : auth.AuthNames) (stp : Loc),
-        ⌜γa.tok = γt ∧ γa.fresh = γf⌝ ∗ ⌜st = auth.authIface stp⌝ ∗ auth.authInv stp R (.on γa) ∗
-        auth.authWR stp (.on γa) P f T ∗ auth.tpAdmin stp (.on γa) ∗ Post ∗
+        ⌜γa.tok = γt ∧ γa.fresh = γf ∧ γa.rdy = γy⌝ ∗ ⌜st = auth.authIface stp⌝ ∗
+        auth.authInv stp R (.on γa) ∗
+        auth.authWR stp (.on γa) P f T Wb ∗ auth.tpAdmin stp (.on γa) ∗ Post ∗
         auth.authOwn (.on γa) [auth.bootState, auth.bump auth.bootState] ∗
         auth.capAuth γa [auth.bootState, auth.bump auth.bootState] ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           auth.enabledRd stp (.on γa) ∗ auth.cacheRd stp (.on γa) ∗ auth.beRd stp R (.on γa)) }} :=
   auth.newAuthStore_boot zap.Logger.wp_Warn zap.Int'.wp_proof auth.authStore.wp_Revision
     auth.authStore.wp_commitRevision auth.authStore.wp_setupMetricsReporter
-    auth.authStore.wp_refreshRangePermCache lg ab tp cost bi γt γf R P f T A Pre Q Post
+    auth.authStore.wp_refreshRangePermCache lg ab tp cost bi γt γf γy R P f T Wb A Pre Q Post
 
 /-- **The server's bound request side, of the real store** (the auth plan's E2e;
 `srvAuthBound_of_authInv`, `AuthBound.lean`): `srvAuthBound` from the store's invariant in the
-server's mode, the guards' bound variants' premise. -/
+server's mode, the guards' bound variants' premise; once the token provider is ready
+(`auth.tpReady`, the token contract's `info` premise: auth-schema-fix S1 option A). -/
 theorem srv_auth_bound_of_inv (s stp : Loc) (R : IProp GF) (E : apply.AEnv GF)
     (hRD : E.RD = auth.authRd stp R E.authMode) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗
       structFieldRef EtcdServer go!"authStore" s ↦□ auth.authIface stp ∗
-      auth.authInv stp R E.authMode ⊢ srvAuthBound s E :=
+      auth.authInv stp R E.authMode ∗ auth.tpReady E.authMode ⊢ srvAuthBound s E :=
   srvAuthBound_of_authInv auth.authStore.wp_AuthInfoFromCtx s stp R E hRD
 
 end tokens
@@ -2037,12 +2044,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 with the simple provider gives the auth names allocated over the boot state and `NewAuthStore`'s
 construction in the mode `on γa` (`authStoreKit`): the store from its proofs, not
 `NewAuthStore`'s axiom, its request side and apply contract of its invariant (its admin clauses
-vacuous: `apply.adminAdmitted`). Its named premises: D22's part (`authSchemaSrv`) and
-`isValidSimpleToken`'s spec for any context (`auth.ValidSpec`). What `NewServer`'s proof will take
-with auth on (`notes/decisions.md`, "E2i of the auth plan"). -/
-theorem srv_auth_tp_on (hValid : auth.ValidSpec (GF := GF) (hG := hG))
+vacuous: `apply.adminAdmitted`). Its named premise: D22's part (`authSchemaSrv`) (auth-schema-fix
+S1 option A, 2026-11-12: no longer `isValidSimpleToken`'s spec for any context, `auth.ValidSpec`,
+which was false; the provider's index waiter's contract is the caller's, once the server has
+started: `auth.tpShot`). What `NewServer`'s proof takes with auth on (`notes/decisions.md`, "E2i
+of the auth plan"). -/
+theorem srv_auth_tp_on
     (hD22 : ⊢ authSchemaSrv (GF := GF)) : authSrvTP (GF := GF) (hG := hG) true :=
-  authSrvTP_on auth.wp_NewTokenProvider hValid zap.Logger.wp_Debug zap.String.wp_proof
+  authSrvTP_on auth.wp_NewTokenProvider zap.Logger.wp_Debug zap.String.wp_proof
     auth.tokenSimple.wp_genTokenPrefix
     zap.Logger.wp_Warn zap.Int'.wp_proof auth.authStore.wp_Revision auth.authStore.wp_commitRevision
     auth.authStore.wp_setupMetricsReporter auth.authStore.wp_refreshRangePermCache
@@ -2078,15 +2087,13 @@ theorem srv_auth_tp_off : authSrvTP (GF := GF) (hG := hG) false :=
 the simple token provider and the auth store of `srv_auth_tp_on` (its proofs, not `NewAuthStore`'s
 axiom), the apply environment's auth on, the start's chain with the auth layer enabled; every callee
 linked as in `wp_NewServer` (`NewServer.wp_proofM`, whose mode off gives `wp_NewServer`'s
-statement). Its named premises are `srv_auth_tp_on`'s: D22's part (`authSchemaSrv`) and
-`isValidSimpleToken`'s spec for any context (`auth.ValidSpec`). Since E2w (2026-10-26) its KV
+statement). Its named premise is `srv_auth_tp_on`'s: D22's part (`authSchemaSrv`) (auth-schema-fix
+S1 option A: no longer the false `auth.ValidSpec`). Since E2w (2026-10-26) its KV
 invariant is the mode's (`kvInvM true`, `kvInvOn`), allocatable at the bootstrap log
 (`kvInvOn_alloc_boot`), and its post the mode-indexed built part (`srvBuiltG true`): until then it
 took `kvInv`, whose start chain is mode-`off`, so its precondition was unsatisfiable
 (`kvInv_ch0_on_false`, E2p). -/
 theorem server_new_auth_on [go_etcd_io.etcd.cache.v3.Assumptions]
-   
-    (hValid : auth.ValidSpec (GF := GF) (hG := hG))
     (hD22 : ⊢ authSchemaSrv (GF := GF)) : NewServer.specM (GF := GF) (hG := hG) true :=
   NewServer.wp_proofM true zap.Logger.wp_Error zap.wp_Error zap.Logger.wp_Info zap.Logger.wp_Warn
     v2stats.wp_NewServerStats membership.RaftCluster.wp_String v2stats.wp_NewLeaderStats
@@ -2095,7 +2102,7 @@ theorem server_new_auth_on [go_etcd_io.etcd.cache.v3.Assumptions]
     idutil.wp_NewGenerator notify.wp_NewNotifier wp_addFeatureGateMetrics
     prometheus.GaugeVec.wp_With membership.RaftCluster.wp_SetVersionChangedNotifier
     EtcdServer.wp_Logger config.ServerConfig.wp_ReqTimeout EtcdServer.wp_FeatureEnabled
-    time.Duration.wp_Seconds_ptr math.wp_Ceil lease.wp_NewLessor (srv_auth_tp_on hValid hD22)
+    time.Duration.wp_Seconds_ptr math.wp_Ceil lease.wp_NewLessor (srv_auth_tp_on hD22)
     ⟨apply_uber_apply_kv_latest, apply_uber_apply_admin_latest, apply_range_latest,
     apply_delete_range_latest, apply_put_latest, apply_txn_latest, apply_UserAdd_fuelX,
     apply_RoleAdd_fuelX, apply_UserGrantRole_fuelX, apply_RoleGrantPermission_fuelX,

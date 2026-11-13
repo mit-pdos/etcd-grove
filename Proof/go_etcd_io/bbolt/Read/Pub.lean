@@ -15,16 +15,18 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section pub
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-instance isBoltP_persistent_pub (B : BNs) (N : Namespace) (db : Loc) (p : GoString) (sp : Loc)
+instance isBoltP_persistent_pub (B : BNs) (N : Namespace) (db : Loc) (p : BFile) (sp : Loc)
     (t0 : Nat) : Persistent (isBoltP (GF := GF) B N db p sp t0) := by
   unfold isBoltP; infer_instance
 
@@ -96,7 +98,7 @@ end pub
 section pubKey
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
