@@ -540,6 +540,74 @@ false, so the **default arm becomes reachable**: it logs "Unexpected lease renew
 `srvCtxWeak ctx cd ∗ levelTok v3rpc.ctxErrLvl` (and T-h0's `http.netCtxOk`) in place of
 `isContext ctx cd`; `raftLeaseRenew` likewise.
 
+### T-h5 (2026-11-13, the seventh agent). Soundness finding: T-h2's `ctxDoneErr` would make `RenewHTTP` false
+
+T-h2's `ctxDoneErr` replaces `#HValue` by `#HValueAny` (`Value(&cancelCtxKey)` returns, **no fact of the
+value**), and `RenewHTTP.spec` was to take it. A context can return there a **nil pointer of type
+`*context.cancelCtx`** (the type is unexported, but `reflect.Zero(reflect.TypeOf(v)).Interface()` of the
+value a real child returns builds one): net/http's `WithCancelCause(req.Context())` → `propagateCancel` →
+`parentCancelCtx` asserts it to `*cancelCtx` (ok) and loads `p.done` through the nil pointer (go1.27.3
+`context.go:403-411`): **`RenewHTTP` panics** (`TestRenewHTTPNilCancelCtxPanics`,
+`examples/premisefix/streamctx`, passes: "invalid memory address or nil pointer dereference"). Every
+other clause of `ctxDoneErr` holds (all methods delegate to a real `WithCancel` child). `srvCtxWeak`'s
+`#HValue` (`isCancelCtxAny`: a `*cancelCtx` value is a valid one, `isCancelCtx c`) excludes it, so the
+**landed** `RenewHTTP.spec` is not affected; only the proposed `ctxDoneErr` premise is. `waitLeader`
+is unaffected (it never calls `Value`).
+
+Also in principle: a non-nil `*cancelCtx` that is a reflect copy of a real one (`reflect.New(T.Elem())`,
+then `Elem().Set(...)`) has the real one's `done` channel and `children` map but its own mutex, so
+`parentCancelCtx` accepts it and `propagateCancel` writes the shared map under the wrong lock (a data
+race), so `c ≠ null` alone is not enough either. A fresh zero `*cancelCtx` (`reflect.New`) is harmless
+(`p.done.Load()` is nil, `parentCancelCtx` returns false).
+
+**Options** (for etcd-grove-81):
+- (A) `ctxDoneErr`'s `#HValue`: `Value(&cancelCtxKey)` returns nil, a value of another dynamic type, or a
+  `*cancelCtx` at a location `c` with `context.madeCancelCtx c`, a new opaque trusted predicate ("allocated
+  by `context`'s constructors, its fields written only by `context`'s code"); `wp_WithTimeout_weak` gives
+  it of the child's embedded `*cancelCtx`; `ctxDoneErr_of_srvCtxWeak` needs a trusted law
+  `madeCancelCtx_of_isCancelCtx` (Perennial's `isCancelCtx` holds only of the constructors' contexts).
+- (B) `RenewHTTP`'s premise `srvCtxWeak ctx cd ∨ v3rpc.weakChild ctx cd`, the second an opaque handle the
+  axiom gives of its child only (the same claim as (A), scoped to the one consumer).
+- (C) `c ≠ null` only, the reflect-copy race recorded as a residual (not recommended: a race is
+  undefined behavior in the model).
+- **Recommended:** land T-h0's fix now (below: built), and write `ctxDoneErr`/`ctxChildErr`/
+  `wp_WithTimeout_weak` with (A) at LeaseKeepAlive, their first consumer (nothing in this landing uses
+  the axiom; `waitLeader` can take `ctxDoneErr` then too).
+
+### T-h, as written in Lean (2026-11-13, the seventh agent; `da77c070e5`, `00ce547d39`)
+
+Written (T-h0's fix; steps 1, 2, 4's `RenewHTTP` part, 6, 7 of the handoff):
+- `Proof/net/http/NetCtx.lean` (new, not trusted): the keys `httptrace.clientEventKeyAny`,
+  `nettrace.traceKeyAny`, `nettrace.lookupIPAltResolverKeyAny`; `http.netCtxOk ctx` (`context.valueAt
+  ctx k (· = nil)` at the three), `http.netCtxOkC ctx` (`ctxValue`, the chain form); laws
+  `http.netCtxOk_of_netCtxOkC`, `http.netCtxOkC_from` (`ctxValueFrom`), `http.netCtxOkC_raw` (a type
+  `context.value()` does not special-case).
+- **Trusted, changed:** grpc's `srvRawStreamIs` gains `http.netCtxOkC ci` (docstring: the keys are
+  unexported standard-library types, stored only by `httptrace.WithClientTrace` and `net`'s tests, which
+  neither grpc, otelgrpc nor etcd's interceptors call; `TestRunCtxChain` now also checks that no link of
+  the run context's chain is at those keys, with and without TLS/otelgrpc/prometheus/deadline). Every
+  axiom whose post holds `srvRawStreamIs` (grpc's run model, prometheus's interceptor) claims it.
+- **Axiom, changed:** `leasehttp.RenewHTTP.spec` takes `http.netCtxOk ctx` (beside `srvCtxWeak ctx cd`,
+  unchanged), docstring citing T-h0.
+- **Axiom, changed (stronger post):** `traceutil.Tracer.Start.spec`'s post gains
+  `□ (http.netCtxOkC ctx -∗ http.netCtxOkC ctx')`: **the chain form, not the WP form 81 accepted in
+  principle**, because `LeaseRenew` stays on `isContext` and Perennial's `wp_WithTimeout`, whose post
+  carries only the chain form (`ctxValueFrom`): a WP-form fact of `ctx1` says nothing of a `*timerCtx`
+  child when `ctx1` is a `*valueCtx` (`context.value()` walks it without calling its `Value`). True of
+  Go: `ContextWithSpan(ctx, s)` is a `*valueCtx` at otel's key (another type), walked on to `ctx`
+  (`ctxValue_valueCtx`), or `ctx` itself (the no-op tracer). `Tracer.Start.spec_txn` carries it.
+- With the chain form, `wp_WithTimeout_weak` needs **no** `netCtxOk` wand: its post's `ctxValueFrom
+  parent ctx'` carries `http.netCtxOkC` (`http.netCtxOkC_from`).
+- Not trusted: `srvRawStreamIsW` and the temporary `srvStreamIsStrong` gain `http.netCtxOkC ci`;
+  `v3rpc.wrapperNetCtx` (the wrapper's, from `ci`'s through `ctxValueFrom` and the promoted `Value`);
+  `EtcdServer.LeaseRenew.spec` takes `http.netCtxOkC ctx` (internal; proof: `Tracer.Start`'s wand, then
+  `ctxValueFrom` of `wp_WithTimeout`, then the WP form for `RenewHTTP`); the contract
+  `v3rpc.raftLeaseRenew` takes `http.netCtxOkC ci`, `raftLeaseRenew_of_server` threads it,
+  `leaseKeepAlive` discharges it from `srvStreamIsStrong`.
+
+Not written (T-h5): `v3rpc.ctxDoneErr`, `v3rpc.ctxChildErr`, `v3rpc.wp_WithTimeout_weak`, `waitLeader`'s
+premise change.
+
 ### Checks run, Revision 2 (2026-11-12, merged with lean `219ddbbb83`)
 
 Full build passes (17490 jobs); `tcb-report --check` matches the baseline unchanged (865 axioms, 5

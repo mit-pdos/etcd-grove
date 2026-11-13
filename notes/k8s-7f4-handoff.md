@@ -33,6 +33,20 @@ the worktree's untracked `questions.md` (decisions), `/shared/tmp/coord-81/commo
     Nothing used it.
   - freeze §2's "T-e'" section (marked draft).
 
+## Seventh agent (2026-11-13): T-h0's fix written; T-h5 soundness finding; STOPPED for 81
+
+Done (each lean-checked `-a`, 0 errors): `da77c070e5` T-h0's fix (handoff steps 1, 2, 4's `RenewHTTP`
+part, 6, 7: `Proof/net/http/NetCtx.lean`; `srvRawStreamIs`/`srvRawStreamIsW`/`srvStreamIsStrong` gain
+`http.netCtxOkC ci`; `v3rpc.wrapperNetCtx`; `RenewHTTP.spec` takes `http.netCtxOk`; `Tracer.Start.spec`'s
+post a **chain-form** wand; `LeaseRenew.spec`, `raftLeaseRenew` take `http.netCtxOkC`), `00ce547d39`
+(`TestRunCtxChain` checks the keys). `etc/goose.py --check` passes. **T-h5** (freeze note): T-h2's
+`ctxDoneErr` `#HValueAny` would make `RenewHTTP` false (typed-nil `*cancelCtx`,
+`TestRenewHTTPNilCancelCtxPanics`); `ctxDoneErr`/`ctxChildErr`/`wp_WithTimeout_weak`/`waitLeader` NOT
+written. Recommended: land T-h0's fix alone; the rest with option (A) at LeaseKeepAlive.
+Build/gates results: in the report to 81 and below once run.
+Pitfall: inside `local macro` tactic quotations (`renew_forward`), `ihave #X := lemma $$ [...]` names do
+not resolve later (hygiene); use the `ihave #X : P $$ []` form and `$Name` is an antiquotation there.
+
 ## Handoff point (2026-11-13, end of the sixth agent's context): T-h decided; Lean texts next
 
 81 decided T-h (questions.md, 2026-11-13): T-h0 a refutation of the landed `RenewHTTP.spec`, fix
