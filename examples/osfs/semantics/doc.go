@@ -64,6 +64,9 @@
 //	model_os_stat.go              Stat/Lstat as open+fstat+close     os.lean: model.stat, arbitraryMode
 //	model_os_mkdirall.go          MkdirAll: Go's body over models    os.lean: MkdirAll.impl
 //	model_os_mkdirall_above.go    MkdirAll at or above a root        Impl.lean: PathKind; os.lean: mkdirAllAbove
+//	model_os_stat_above.go        Stat/Lstat above a root, no step   Impl.lean: PathKind, AboveRoot; os.lean: statAbove
+//	model_os_open_above.go        Open/Sync/Close above a root       Impl.lean: Open (OpenOutside), OutSync, OutClose
+//	model_os_filestat_name.go     fileStat.Name: base of the path    os.lean: fileStat, model.base; os.toml
 //	model_os_removeall.go         RemoveAll over paths, rename-free  os.lean: RemoveAll.impl, removeAllFrom
 //	model_os_writefile.go         WriteFile; an empty Write          os.lean: File.Write.impl; WriteFile
 //

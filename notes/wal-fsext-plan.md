@@ -2011,6 +2011,35 @@ condition lifted to `CrashOkA`.**
   the coordinator's `SaveSnapshot` fix (`walSnapAt` with the full protobuf content model, `encSnap` a
   function of it) and `newFileEncoder.spec`'s `e ≠ null`.
 
+**W6, sixth session (branch `wal-save6`, 2026-11-13): the tail writer over a `WriteAt` contract.**
+- *A retry rewrites* (finding): the model's `PWriteFinish` may return `EINTR` with `k > 0` bytes landed
+  (`((k = |data| ∨ 0 < k) ∧ e = 0 ∨ e ≠ 0)`), and `WriteAt`'s loop then retries from `nn`, rewriting them. So
+  the steps are generalized (`TailStepPure.lean`, `TailWriter.lean`, proved): `wp_tailPWriteStart` takes a write
+  at `off ≤ wr` (the record's write position), its intended bytes from `off`, with `off = wr ∨` the program's
+  byte at `off` carries a candidate stamped positive (so `off` is past the synced bytes: `ByteOk.synced_stamps`,
+  a synced byte is `durB`); `walAbsD_announce` past `so`, at or below `wr` (`ByteOk.ann`: an announced
+  candidate of the intended value keeps an unsynced byte's `ByteOk`, written or not); `wp_tailPWriteFinish`
+  (any `wr ≥ fl.off`) leaves `max wr (fl.off + k)` and gives the range's positive candidates (`segFin_cand`);
+  `walAbsD_finish` derives `so ≤ fl.off` from the announced byte. The start's continuation gives `0 < off`.
+- *Proved over `wp_tailWriteAt`*: `wp_tailWrite` (`(*os.File).Write` on the tail, `Off.lean`'s `wp_long` with
+  the tail's `WriteAt`) and **`wal.tailWriter`** (the `writerStreamP` bridge, empty writes by `wp_empty`).
+  `walTailW`'s pure part gained `sz < 2 ^ 62 ∧ 0 ≤ fd.toInt` (the model's `Write` bound and an open fd):
+  **obligation** for `Create`/`ReadAll` when they build it (the size is at most ext4's `s_maxbytes`).
+- *`wp_tailWriteAt` is `sorry`*: the loop (Löb over attempts, chunks of `maxRW` by `ownSlice_slice`, the
+  invariant `off + nn ≤ wr ≤ off + nn + min (len - nn) 2^30`, `off + nn = wr ∨` a positive candidate at
+  `off + nn`, `TailMeta`, the size) is drafted, but `omega` explodes (> 14 GB) in the loop's contexts: the
+  facts on `sint.Z (nnv + W64 2^30)`/`sint.Z (sl.len - nnv)` (toInt of `BitVec` sums) make each call
+  case-split hugely; clearing them per call helped only partly. Next: every arithmetic step through top-level
+  `Nat` lemmas (`tw_minA`/`tw_minB` are the first), or clear the `BitVec` facts right after use. The draft is
+  the body of `wp_tailWriteAt` at commit `df9397b7b4` (`wal-save6`'s "tail WriteAt loop, WIP") plus the
+  isolation edits in this log.
+- *Repairs*: `walInvBody_tail`'s callers pass the name fact (`rfl`); my own `walParked` repair of `TailAcc`
+  was dropped for the owner's (`segResP`).
+- *Not done*: PageWriter/encoder over `writerStreamP` (`encode.specG`, `saveCrc.spec`), `newFileEncoder`'s
+  `e ≠ null`, the `SaveSnapshot` fix, the cuts budget (with the coordinator's requests: the handle should
+  carry `∀ b ∈ h.cuts, b < |H|`, needed by `cut.spec` with `walCutPos`), `saveEntry`/`saveState`/`sync`/
+  `Save`/`SaveSnapshot`/`Sync`.
+
 ## W3/W5 implementation log (branch `wal-read`, 2026-11-13)
 
 **Proved (no `sorry`, `lake build`):**
@@ -2163,6 +2192,42 @@ The W3/W5 log's gap 4 (`ZeroToEnd` on the tail; `cut`'s truncate of the old tail
      `preallocExtend` → `Fallocate.wp_growAu` (the `ENOTSUP` fallback `preallocExtendTrunc` →
      `specAu` again); post: halves of the `osZerosA` run.
 
+**The known-zero tail (branch `wal-kz`, 2026-11-13)**: the fact `eof-page.md`'s P2 left to the ghost
+state (a sync after `ZeroToEnd` gives zeros known from the size, `zf := some size`, not from the end of
+its last page).
+- *Design* (decided; untrusted): an `OsMeta` field **`cz : Nat := 0`**, "the page cache is zero on
+  `[size, cz)`" (`MetaOk.cz`), not a separate ghost resource: the page cache past the size is the
+  state's, which only `osInv`'s coherence sees, and a resource tied to it would have needed the same
+  upkeep in every step lemma plus a new piece in the resize and sync specs. Every step keeps the clause
+  with `cz` unchanged (a write lands only below its new size, a growth's new size is at least the old,
+  a sync keeps the page cache in the size's last page and zeroes past it, a crash or creation starts at
+  0), so the default is right everywhere `{ m with ... }` is built. `rsPost` raises it for an
+  `ftruncate`: `cz := rsCz tr m.size tg m.cz` (`max m.cz (rsHi true s tg)`, the end of what it
+  announced; `fallocate` keeps it); `resize_done_world` takes `htr : tr = true → rsHi tr s tg ≤ e` (a
+  truncate lands all it announced: its three callers pass it). `OsMeta.synced`'s `zf` is `some m.syncZ`
+  (`syncZ` = the size if `pageEnd size ≤ cz`, else `pageEnd size`; `size_le_syncZ`, `syncZ_le`):
+  **`OsMeta.synced_zf_size : pageEnd m.size ≤ m.cz → m.synced.zf = some m.size`**. `bsynced` unchanged.
+- *The lemma for `ZeroToEnd`* (`LinuxFs/Proof/os/Base.lean`): `os.rsPost_cz_true` (`pageEnd (max s tg) ≤
+  (rsPost true m tg sz').cz`), `os.le_rsPost_cz` (a resize never lowers it), **`os.zeroToEnd_cz`**
+  (`o ≤ m.size → pageEnd m.size ≤ (rsPost tr (rsPost true m o o) m.size sz').cz`, either growth: the
+  `fallocate`, or `preallocExtendTrunc`'s `ftruncate` fallback) and **`os.zeroToEnd_synced_zf`** (with
+  the sync: `zf = some m.size`). The split specs' posts name these metas exactly (`os.ftDoneH`'s
+  `rsPost true m tg tg`, `rsOutF`'s `rsPost false …`), so the split `ZeroToEnd`'s post gets them for
+  free; `ReadAll`'s `TailZeros` then holds from `o` on: `[o, size)` the bytes made `durB 0` by the
+  sync, past the size `zf = some size`.
+- *Whole-resource specs*: `fileutil.ZeroToEnd.spec`'s success post gains `pageEnd m.size ≤ m'.cz`
+  (proved; `ftDone_shrunk` gives it); `preGrown` gains `m.cz ≤ m'.cz` (`Defs.lean`'s lemmas,
+  `preGrown_trans` takes `hcz`). bboltfs: `synced_eq` takes `m1.cz = m2.cz`, `WReach.cz` (a write loop
+  keeps it). `wp_osPWriteFinishK` needed `maxHeartbeats 400000` (one more `OsMeta` field).
+- *`os.File.Truncate.specAu` proved* (`Proof/os/File__TruncateAu.lean`, no `sorry`): the loop at half
+  (`ftStateH`), the supply instantiated per attempt (`os.TruncFrom`'s left case, or `rsPost true m tg tg`
+  with no bytes after a landing), `os.ftDoneH_of`, `os.truncOutH_again`.
+- *Not done*: the split `fileutil.ZeroToEnd`/`Preallocate`/`preallocExtend`/`preallocExtendTrunc` (item 3
+  above; its post can state `pageEnd S ≤ m'.cz` by `zeroToEnd_cz`); the WAL-level supplies
+  (`os.truncAu`/`fallocAu` from `walInv`, item 1).
+- *Integration*: `wal/checkWALNames` built again at `wal-int` (`zap.Logger.Warn` now takes `zapLoggerOk l`
+  itself: `iexact Hlg`).
+
 **Third session (branch `wal-read3`, 2026-11-13).**
 - *Gaps 1 and 2 closed* as the coordinator decided: `WalsNamed` and `walParked` in `walInvBody`, the parking
   flag in the lock token (W1 log, sixth session, for the design and the other units' obligations).
@@ -2258,3 +2323,50 @@ The W3/W5 log's gap 4 (`ZeroToEnd` on the tail; `cut`'s truncate of the old tail
 - *Coordinator messages noted*: `walHandleIn`'s new `walDirH` conjunct is `ReadAll`'s to provide (not done
   here); the known-zero lemma after `ZeroToEnd` (branch `wal-kz`) stays a hypothesis of `ReadAll` until it
   lands.
+
+**Sixth session (branch `wal-read6`, 2026-11-13).**
+- *Proved* (no `sorry`, `lake build`): `openWALFiles` (read mode: `os.OpenFile.wp_fileS` at `O_RDONLY`, its
+  error made `errOk` by the local `walOpen_errOk`; the error arm `closeAll` and `Errorf` with `%q` of the
+  path, `argWf_string`, and `%w`). New modules, proved: `HandleAlloc.lean` (`import all` of `Ghost.lean`:
+  `walHandle_alloc`, `walHandleP_mint`/`walOpening_mint` (a handle from `walHandleAuth` and `walLockedTok`),
+  `walHandleP_set` (`ReadAll`: `opening` to `append`/`failed`), `walGhost_handleAuth`); `OpenFiles.lean`
+  (`walDecFiles_mk`: `openWALFiles`' `walOpenedFile`s and the opened segments' program halves `segHalves`
+  give `NewDecoder`'s `[∗list] F ∈ fs, decFile IoE eof F ∗ F.S []`, `fs.map (·.fr)` the readers, and
+  `WalDecTie` (`walReadTie`'s per-file facts) and the locks; over `walDecFile_ok`); `OpenNames.lean` (pure:
+  `walFileName_walNameStr` (`hex16 = fmt.hexPad 16`, last 16 digits), `walName_unique`/`walName_seg` (a
+  present `.wal` name is a segment's, the inodes distinct), `walDirNamesOk_of` (`selectWALFiles`' premise from
+  `SegsNamed`, `WalAbsD.names`, `nameBound`), `walNamesOut_segs` (`readWALNames`' names are exactly
+  `lay.segs.map name`, by `Perm.eq_of_pairwise`), `walOpenNames_ok` (`openWALFiles`' name premise from the
+  selected position; names are 37 bytes)).
+- **Statement change, `openAtIndex`'s read mode**: its read-mode success returned
+  `walUnlockedTok`, but `walReadH false` holds the program's halves of the WAL's files and directory claim
+  (`walReadTie`), which only a `walLockedTok` holder may have out of `walParked`; `walReadOnlyF` already
+  holds `walLockedTok`. The read-mode success now returns `walLockedTok` (`OpenForRead`'s statement does not
+  change).
+- **Gaps found (`openAtIndex`'s pinning step; for the invariant's owner):**
+  1. *The WAL directory's path.* `readWALNames`/`openWALFiles`/the pipeline need `osPathS R dir dq j` with
+     `j = lay.j`: from the area's spine `osPathS R r qp jr` and the program's half of the area claim
+     (`walAreaRes`: `osNames jr N ½ h`) it needs `h.cur !! nm = some (.dir lay.j)` for a present WAL. The
+     invariant does not say it: `WalsOk` has `InArea s.area dir nm ∧ lay.nm = nm` only, `AbsentNone` is the
+     absent case. Proposed: a framed pure conjunct (or a `WalsNamed` clause) `∀ dir lay, Ls !! dir = some
+     lay → ∀ N h, (lay.jr, N, h) ∈ cl → N.Mem lay.nm → h.cur !! lay.nm = some (.dir lay.j)`, with the
+     agreement of the program's area claim with the invariant's (`WalsCreateOk`'s claim holding `nm`, the
+     same key by the shared invariant's disjointness, a step at `⊤`). Kept by `cut` (area untouched),
+     `Create`'s commit (the rename sets `nm ↦ J`), the crash (`WalsStart`'s `m.entry jr nm = .dir lay.j`).
+  2. *The absent case* (`o = none`): `os.Open(dir)` must fail; `readWALNames`' spec takes the directory's
+     claim, so `selectWALFiles` needs a variant for a missing directory (`AbsentNone`: the area claim
+     holds no `nm`), or the pin must find the directory present.
+  3. *The pipeline's claims* (write mode): `newFilePipeline` takes `tmpClaim j (pipeTmp 0)` (the whole claim
+     on `0.tmp`, and a leftover file whole); the `N.tmp` claims are outside `WalDirClaim` and not in
+     `walParked`: where `walInv_alloc` puts them (half the invariant's, half returned to the program) they
+     must reach `Open` whole.
+  4. *`decFile`'s size bound* `|g.bs| + 2^12 < 2^62` and `os.fileStat.Name.spec` (`wal-above`), and
+     `isEofOk IoE eof ueof` for `IoE` the pointer errors (`errors.Is` of a `*PathError` against `io.EOF`:
+     Perennial's `errors.Is` spec), are hypotheses-to-be of `openAtIndex`.
+- *Plan for `openAtIndex`* (not started in the proof file): the pin at the call's first step
+  (`wp_notCrashed_acc`, mask unchanged: open `walInv`, `walUnlockedTok_lock`, the AU's commit, the WAL's
+  segments into `O` and its claim into `D`, exact halves by agreement with `segResF` (idle: the flag was
+  `true`, no handle, so no write in flight), write mode `walOpening_mint` from `walGhost_handleAuth`); then
+  `selectWALFiles` (premise `WalDirNamesOk` from `WalsNamed`), `openWALFiles` (names from the selected
+  position: `walNamesOut_segs`, `walOpenNames_ok`), `walDecFiles_mk`, `NewDecoder`, the struct; the error arms unpin at a later step (the `Errorf`
+  call) with `walLockedTok_unlock`.

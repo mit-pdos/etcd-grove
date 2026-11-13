@@ -75,6 +75,12 @@ structure OsMeta where
   same; `some c`, after a sync without the bytes (`wp_osFsyncB`) at change number `c`: the state's
   are one candidate stamped 0, then the resource's stamped after `c`. -/
   cut : Option Nat := none
+  /-- The page cache is zero from the size to `cz` (nothing known if `cz` is at most the size): an
+  `ftruncate` zeroes it to the end of the page holding the larger of the old and new ends (`rsPost`),
+  and a write, a growth or a sync keeps it (the bytes past the new size were past the old one, and
+  none of them is written). A sync of a file whose last page is known zero past the size makes the
+  zeros known from the size on (`OsMeta.synced`). -/
+  cz : Nat := 0
 
 /-- How the candidates `cs` of a byte resource relate to the state's `sc`, as `cut` says: the same
 (`none`); or (`some c`, after a sync without the bytes at change number `c`) the same candidates
@@ -191,11 +197,11 @@ def TokInfo.Is (ti : TokInfo) (c : OsChange) : Prop :=
 
 instance OsMeta.countable : Pos.Countable OsMeta :=
   Pos.Countable.ofInjective
-    (fun m => Pos.Countable.encode (m.size, m.lo, m.hi, m.maps, m.dlo, m.dhi, m.zf, m.tc, m.cut))
+    (fun m => Pos.Countable.encode (m.size, m.lo, m.hi, m.maps, m.dlo, m.dhi, m.zf, m.tc, m.cut, m.cz))
     (fun a b h => by
       have h := Pos.encode_inj h
       cases a; cases b; simp only [Prod.mk.injEq] at h
-      obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ := h; subst h1 h2 h3 h4 h5 h6 h7 h8 h9; rfl)
+      obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10⟩ := h; subst h1 h2 h3 h4 h5 h6 h7 h8 h9 h10; rfl)
 
 instance Qp.countable : Pos.Countable Qp :=
   Pos.Countable.ofInjective (fun q => Pos.Countable.encode (q.val.num, q.val.den))
@@ -296,6 +302,7 @@ structure MetaOk (i : Ino) (m : OsMeta) (f : OsFile) : Prop where
   dur : ∀ b, b < f.size → ¬ (m.dlo ≤ b ∧ b < m.dhi) → f.cand b = [(f.cache b, 0)]
   zf : ∀ z, m.zf = some z → f.size ≤ z ∧ ∀ b, z ≤ b → f.cand b = [(0, 0)]
   tail : ∀ b c, f.size ≤ b → m.tc !! b = some c → f.cand b = c
+  cz : ∀ b, f.size ≤ b → b < m.cz → f.cache b = 0
 
 /-- The files' ghost maps mirror the state. -/
 structure OsCoh (Γb : GMap (Ino × Nat) ByteG) (Γm : GMap Ino OsMeta)
@@ -595,6 +602,9 @@ structure OsGS (GF : BundledGFunctors) where
   calls"): calls that never log, each holding a fraction of the call permission (`Nat ↦ Nat × Qp`:
   begun at that log length, holding that fraction), apart from the logging calls of `γcS`. -/
   γg : GName
+  /-- The fds of directories outside the roots' trees (`ProcState.ofds`, `w64 ↦ Unit`), each held
+  whole by its owner (`osOutFd`). -/
+  γo : GName
 
 /-! ### The ghost maps of a ghost state `hL`, with the `AllG` of `hL` -/
 
@@ -873,7 +883,7 @@ theorem tailMap_cand (f : OsFile) (b : Nat) (c : Cands) (h : tailMap f !! b = so
 /-- The ghost `OsMeta` of a file as on disk: all of it durable, zeros past its last page (durable
 zeros), and the candidates of the bytes past its size in its last page (`tailMap`). -/
 def initMeta (f : OsFile) : OsMeta :=
-  ⟨f.size, f.size, f.size, ∅, 0, 0, some (pageEnd f.size), tailMap f, none⟩
+  ⟨f.size, f.size, f.size, ∅, 0, 0, some (pageEnd f.size), tailMap f, none, 0⟩
 
 /-- The bytes of the files of `st`, each as the state has it. -/
 def bytesMapF (F : GMap Ino OsFile) : GMap (Ino × Nat) ByteG :=
@@ -1128,9 +1138,27 @@ def osCtxF (hL : OsGS GF) (st : OsState) : IProp GF :=
     tokRes hL Γt ∗
     gVar hL (1 : Qp).half (cellView st, GMap.size st.proc.inflight))
 
-/-- The interpretation of the state `st`: its files and its tree. -/
+/-- The interpretation of the fds of directories outside the roots' trees: their authoritative map,
+and no other fd has the number of one. -/
+def ofdCtx (hL : OsGS GF) (st : OsState) : IProp GF :=
+  iprop(⌜OfdDisj st⌝ ∗ gAuth hL hL.γo st.proc.ofds)
+
+/-- A step other than `OutClose` keeps the outside fds' interpretation (a fresh fd's ghost entry,
+when it opens one, is made and dropped: only `Open`'s outside case's own spec keeps it). -/
+theorem ofdCtx_step [GooseExts] [GoGlobalContext] (hL : OsGS GF) {o : String} {v : val}
+    {st st' : OsState} {e' : Expr} (h : IsFsStep o v st e' st') (ho : o ≠ "OutClose") :
+    ofdCtx hL st ⊢ |==> ofdCtx hL st' := by
+  unfold ofdCtx
+  iintro ⟨%hd, Ha⟩
+  obtain ⟨hd', hk | ⟨fd, hfree, hk⟩⟩ := isFsStep_ofd h ho hd
+  · rw [hk]; imodintro; iframe Ha; ipureintro; exact hd'
+  · rw [hk]
+    imod gAuth_insert hL _ _ fd () hfree.2.2.2 $$ Ha with ⟨Ha, -⟩
+    imodintro; iframe Ha; ipureintro; exact hd'
+
+/-- The interpretation of the state `st`: its files, its tree, and the outside fds. -/
 def osCtx (hL : OsGS GF) (st : OsState) : IProp GF :=
-  iprop(osCtxF hL st ∗ treeCtx hL st)
+  iprop(osCtxF hL st ∗ treeCtx hL st ∗ ofdCtx hL st)
 
 /-- The start resources for a state with no fd, change or mapping: every file and byte, whole, and
 the half of the cells' view that the invariant takes (`osInv_alloc`). -/
@@ -1158,7 +1186,7 @@ theorem metaOk_ofDisk {st : OsState} {i : Ino} (img : Nat → w8) (sz : Nat)
     (hinfl : ∀ t c, st.proc.inflight !! t = some c → c.ino ≠ i) :
     MetaOk st i (initMeta (OsFile.ofDisk img sz)) (OsFile.ofDisk img sz) := by
   refine ⟨rfl, by simp [initMeta, OsFile.ofDisk], by simp [initMeta, OsFile.ofDisk], ?_, ?_, ?_, ?_,
-    fun b c _ h => tailMap_cand _ b c h⟩
+    fun b c _ h => tailMap_cand _ b c h, fun b _ h => absurd h (by simp [initMeta])⟩
   · intro b len
     simp only [initMeta]
     constructor
@@ -1270,11 +1298,12 @@ theorem os_local_init {GF : BundledGFunctors} (hPre : OsGpreS GF) (st : OsState)
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γlen, Halen, -⟩
   imod ghost_map_alloc (GF := GF) (∅ : GMap Nat LogEntry) with ⟨%γlog, Halog, -⟩
   imod ghost_map_alloc (GF := GF) (∅ : GMap Nat (Nat × Qp)) with ⟨%γg, Hag, -⟩
+  imod ghost_map_alloc (GF := GF) (∅ : GMap w64 Unit) with ⟨%γo, Hao, -⟩
   imodintro
   iexists (⟨hPre.osPreAllG, γb, γm, γf, γt, γv, γd, γdf, γc, γcm, γs, γdfS, γcS, γperm, γn, γlen,
-    γlog, γg⟩ : OsGS GF)
-  isplitl [Hab Ham Haf Hat Hv1 Had Hadf Hac Hcm Has Hadfs Hacs Hperm Han Halen Halog Hag]
-  · unfold osCtx osCtxF treeCtx tokRes gAuth gVar commitRes gCommit
+    γlog, γg, γo⟩ : OsGS GF)
+  isplitl [Hab Ham Haf Hat Hv1 Had Hadf Hac Hcm Has Hadfs Hacs Hperm Han Halen Halog Hag Hao]
+  · unfold osCtx osCtxF treeCtx tokRes gAuth gVar commitRes gCommit ofdCtx
     isplitl [Hab Ham Haf Hat Hv1]
     · iexists (bytesMap st), (metaMap st), ∅, ∅
       rw [cellView_of_maps_empty (by rw [hproc]; rfl),
@@ -1283,20 +1312,25 @@ theorem os_local_init {GF : BundledGFunctors} (hPre : OsGpreS GF) (st : OsState)
       isplitr
       · ipureintro; exact ⟨hwf, hcoh⟩
       · iapply BigSepM.bigSepM_empty.2; itrivial
-    · isplitl [Had Hadf Hac Has Hadfs Hacs Hperm Han Halen Halog Hag]
-      · ileft
-        unfold treeLegacy legacyHolds gAuth gElem
-        iexists ((st.fs.treeDur, ([] : List LogEntry)) : Hist), ∅, ∅
-        iframe Had Hadf Hac Has Hadfs Hacs Hperm Han Halen Halog Hag
-        isplitr
-        · ipureintro; exact ⟨htw, htc⟩
-        unfold callRes rdRes
-        isplitl []
-        · iapply BigSepM.bigSepM_empty.2; itrivial
-        · iapply BigSepM.bigSepM_empty.2; itrivial
-      iexists 0
-      iframe Hcm
-      ipureintro; intro y hy; exact absurd hy (Nat.not_lt_zero _)
+    · isplitl [Had Hadf Hac Has Hadfs Hacs Hperm Han Halen Halog Hag Hcm]
+      · isplitl [Had Hadf Hac Has Hadfs Hacs Hperm Han Halen Halog Hag]
+        · ileft
+          unfold treeLegacy legacyHolds gAuth gElem
+          iexists ((st.fs.treeDur, ([] : List LogEntry)) : Hist), ∅, ∅
+          iframe Had Hadf Hac Has Hadfs Hacs Hperm Han Halen Halog Hag
+          isplitr
+          · ipureintro; exact ⟨htw, htc⟩
+          unfold callRes rdRes
+          isplitl []
+          · iapply BigSepM.bigSepM_empty.2; itrivial
+          · iapply BigSepM.bigSepM_empty.2; itrivial
+        iexists 0
+        iframe Hcm
+        ipureintro; intro y hy; exact absurd hy (Nat.not_lt_zero _)
+      rw [show st.proc.ofds = ∅ by rw [hproc]; rfl]
+      unfold gAuth
+      iframe Hao
+      ipureintro; intro fd hfd; simp [hproc, ProcState.empty] at hfd
   · unfold osStart osStartF treeStart gElem gVar histMap
     ihave Hd := (show ([∗map] k ↦ v ∈ ({[() := (st.fs.roots,
           ((st.fs.treeDur, ([] : List LogEntry)) : Hist))]} : GMap Unit (Roots × Hist)),

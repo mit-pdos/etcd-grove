@@ -45,6 +45,7 @@ public import GooseLang.Ext.Fs.TreeSharedMeta
 public import GooseLang.Ext.Fs.TreeSharedRead
 public import GooseLang.Ext.Fs.TreeSharedCreate
 public import GooseLang.Ext.Fs.TreeSharedGuard
+public import GooseLang.Ext.Fs.TreeSharedOut
 
 @[expose] public section
 

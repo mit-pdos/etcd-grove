@@ -927,7 +927,8 @@ theorem wp_logStepSWG (op : String) (v : val) (hv : v.isPanic = false) (R : Root
       (¬ o.IsDirOp → OpOk st.tree o ∧ ∀ j b i, o = .create j b i → ∀ t,
         t ≤ st.fs.metaLog.length → ¬ Named (prefTree st.fs.treeDur st.fs.metaLog t) i) ∧
       (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = curF st.fs.nextIno c))
-    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF)
+    (hO : op ≠ "OutClose" := by decide) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ F -∗
       ([∗list] c ∈ cl, osNames (L := L) c.1 c.2.1 (DFrac.own 1) c.2.2.1) -∗
       osCallSG (L := L) k s0 q gd -∗
@@ -942,7 +943,7 @@ theorem wp_logStepSWG (op : String) (v : val) (hv : v.isPanic = false) (R : Root
       WP (ExternalOp fsExt.name op (Val v)) @ s; E {{ Φ }} := by
   iintro #Hinv #Hsi HF Hcl Hk HΦ1
   icases osCallSG_split k s0 q gd $$ Hk with ⟨Hk, Hgd⟩
-  iapply wp_fs_stepM op _ Φ hv hE $$ Hinv
+  iapply wp_fs_stepM op _ Φ hv hE hO $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw Ht
   ihave HΦ : (∀ w, osCallPerm (L := L) q -∗ osGuardOpt (L := L) gd -∗ F -∗
         ((⌜W w false⌝ ∗ G st.fs.nextIno w false ∗
@@ -1293,7 +1294,8 @@ theorem wp_logStepSW (op : String) (v : val) (hv : v.isPanic = false) (R : Roots
       (¬ o.IsDirOp → OpOk st.tree o ∧ ∀ j b i, o = .create j b i → ∀ t,
         t ≤ st.fs.metaLog.length → ¬ Named (prefTree st.fs.treeDur st.fs.metaLog t) i) ∧
       (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = curF st.fs.nextIno c))
-    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF)
+    (hO : op ≠ "OutClose" := by decide) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ F -∗
       ([∗list] c ∈ cl, osNames (L := L) c.1 c.2.1 (DFrac.own 1) c.2.2.1) -∗
       osCallS (L := L) k s0 q -∗
@@ -1308,7 +1310,7 @@ theorem wp_logStepSW (op : String) (v : val) (hv : v.isPanic = false) (R : Roots
       WP (ExternalOp fsExt.name op (Val v)) @ s; E {{ Φ }} := by
   iintro #Hinv #Hsi HF Hcl Hk HΦ
   iapply wp_logStepSWG op v hv R k s0 q none oF cl curF F P W G hne hwr hslots hnext hdir hadd hF
-    hprog hpost hworld htree hE hE' Φ $$ Hinv Hsi HF Hcl [Hk]
+    hprog hpost hworld htree hE hE' Φ hO $$ Hinv Hsi HF Hcl [Hk]
   · iapply osCallSG_none $$ Hk
   iintro %w Hq
   iapply HΦ $$ %w [Hq]
@@ -1352,7 +1354,8 @@ theorem wp_logStepSN (op : String) (v : val) (hv : v.isPanic = false) (R : Roots
       (¬ o.IsDirOp → OpOk st.tree o ∧ ∀ j b i, o = .create j b i → ∀ t,
         t ≤ st.fs.metaLog.length → ¬ Named (prefTree st.fs.treeDur st.fs.metaLog t) i) ∧
       (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = curF st.fs.nextIno c))
-    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF)
+    (hO : op ≠ "OutClose" := by decide) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ F -∗
       ([∗list] c ∈ cl, osNames (L := L) c.1 c.2.1 (DFrac.own 1) c.2.2.1) -∗
       osCallS (L := L) k s0 q -∗
@@ -1387,7 +1390,7 @@ theorem wp_logStepSN (op : String) (v : val) (hv : v.isPanic = false) (R : Roots
     (fun st _ _ hw hR _ hP hat _ _ => by
       obtain ⟨-, -, h3⟩ := htree st hw hR hP hat
       exact h3)
-    hE hE' Φ $$ Hinv Hsi HF Hcl Hk
+    hE hE' Φ hO $$ Hinv Hsi HF Hcl Hk
   iintro %w Hq HF Hp
   iapply HΦ $$ %w Hq HF
   icases Hp with (⟨%hW, -, Hp⟩ | ⟨%hW, %n, %x, -, Hp⟩)
@@ -1427,7 +1430,8 @@ theorem wp_logStepS (op : String) (v : val) (hv : v.isPanic = false) (R : Roots)
       (¬ o.IsDirOp → OpOk st.tree o ∧ ∀ j b i, o = .create j b i → ∀ t,
         t ≤ st.fs.metaLog.length → ¬ Named (prefTree st.fs.treeDur st.fs.metaLog t) i) ∧
       (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = c.2.2.2))
-    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF)
+    (hO : op ≠ "OutClose" := by decide) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ F -∗
       ([∗list] c ∈ cl, osNames (L := L) c.1 c.2.1 (DFrac.own 1) c.2.2.1) -∗
       osCallS (L := L) k s0 q -∗
@@ -1442,7 +1446,7 @@ theorem wp_logStepS (op : String) (v : val) (hv : v.isPanic = false) (R : Roots)
   iintro #Hinv #Hsi HF Hcl Hk HΦ
   iapply wp_logStepSN op v hv R k s0 q (fun _ => o) cl (fun _ c => c.2.2.2) F P W hne
     (fun _ => hwr) (fun _ => hslots) hnext (fun _ => hdir) (fun _ => hadd) hF hprog hpost htree
-    hE hE' Φ $$ Hinv Hsi HF Hcl Hk
+    hE hE' Φ hO $$ Hinv Hsi HF Hcl Hk
   iintro %w Hq HF Hp
   iapply HΦ $$ %w Hq HF
   icases Hp with (Hp | ⟨%hW, %n, %x, Hp⟩)
@@ -1490,7 +1494,8 @@ theorem wp_logStepSNG (op : String) (v : val) (hv : v.isPanic = false) (R : Root
       (¬ o.IsDirOp → OpOk st.tree o ∧ ∀ j b i, o = .create j b i → ∀ t,
         t ≤ st.fs.metaLog.length → ¬ Named (prefTree st.fs.treeDur st.fs.metaLog t) i) ∧
       (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = curF st.fs.nextIno c))
-    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF)
+    (hO : op ≠ "OutClose" := by decide) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ F -∗
       ([∗list] c ∈ cl, osNames (L := L) c.1 c.2.1 (DFrac.own 1) c.2.2.1) -∗
       osCallSG (L := L) k s0 q gd -∗
@@ -1525,7 +1530,7 @@ theorem wp_logStepSNG (op : String) (v : val) (hv : v.isPanic = false) (R : Root
     (fun st _ _ hw hR _ hP hat _ _ => by
       obtain ⟨-, -, h3⟩ := htree st hw hR hP hat
       exact h3)
-    hE hE' Φ $$ Hinv Hsi HF Hcl Hk
+    hE hE' Φ hO $$ Hinv Hsi HF Hcl Hk
   iintro %w Hq HF Hp
   iapply HΦ $$ %w Hq HF
   icases Hp with (⟨%hW, -, Hp⟩ | ⟨%hW, %n, %x, -, Hp⟩)
@@ -1565,7 +1570,8 @@ theorem wp_logStepSG (op : String) (v : val) (hv : v.isPanic = false) (R : Roots
       (¬ o.IsDirOp → OpOk st.tree o ∧ ∀ j b i, o = .create j b i → ∀ t,
         t ≤ st.fs.metaLog.length → ¬ Named (prefTree st.fs.treeDur st.fs.metaLog t) i) ∧
       (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = c.2.2.2))
-    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF)
+    (hO : op ≠ "OutClose" := by decide) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ F -∗
       ([∗list] c ∈ cl, osNames (L := L) c.1 c.2.1 (DFrac.own 1) c.2.2.1) -∗
       osCallSG (L := L) k s0 q gd -∗
@@ -1580,7 +1586,7 @@ theorem wp_logStepSG (op : String) (v : val) (hv : v.isPanic = false) (R : Roots
   iintro #Hinv #Hsi HF Hcl Hk HΦ
   iapply wp_logStepSNG op v hv R k s0 q gd (fun _ => o) cl (fun _ c => c.2.2.2) F P W hne
     (fun _ => hwr) (fun _ => hslots) hnext (fun _ => hdir) (fun _ => hadd) hF hprog hpost htree
-    hE hE' Φ $$ Hinv Hsi HF Hcl Hk
+    hE hE' Φ hO $$ Hinv Hsi HF Hcl Hk
   iintro %w Hq HF Hp
   iapply HΦ $$ %w Hq HF
   icases Hp with (Hp | ⟨%hW, %n, %x, Hp⟩)

@@ -250,3 +250,88 @@ func TestMkdirAllAboveRoot(t *testing.T) {
 		}
 	}
 }
+
+// model_os_stat_above.go and model_os_open_above.go: at "/" and at a root's parent (an
+// ancestor of a directory of C), Stat and Lstat succeed with a directory; a read-only open
+// succeeds, its fsync and close return 0; the directory is unchanged; a writable open fails with
+// EISDIR. Lstat of a symlink to a directory sees a symlink, Stat a directory.
+func TestStatOpenAboveRoot(t *testing.T) {
+	d, err := filepath.Abs(extDir(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range []string{"/", filepath.Dir(d)} {
+		var before syscall.Stat_t
+		if err := syscall.Stat(p, &before); err != nil {
+			t.Fatal(err)
+		}
+		if fi, err := os.Stat(p); err != nil || !fi.IsDir() {
+			t.Fatalf("Stat(%s): %v %v", p, fi, err)
+		}
+		if fi, err := os.Lstat(p); err != nil || !fi.IsDir() {
+			t.Fatalf("Lstat(%s): %v %v", p, fi, err)
+		}
+		f, err := os.Open(p)
+		if err != nil {
+			t.Fatalf("Open(%s): %v", p, err)
+		}
+		if err := f.Sync(); err != nil {
+			t.Fatalf("Sync(%s): %v", p, err)
+		}
+		if err := f.Close(); err != nil {
+			t.Fatalf("Close(%s): %v", p, err)
+		}
+		for _, fl := range []int{os.O_WRONLY, os.O_RDWR} {
+			if _, err := os.OpenFile(p, fl, 0); !errors.Is(err, syscall.EISDIR) {
+				t.Fatalf("OpenFile(%s, %d): %v, want EISDIR", p, fl, err)
+			}
+		}
+		var after syscall.Stat_t
+		if err := syscall.Stat(p, &after); err != nil || after.Ino != before.Ino ||
+			after.Nlink != before.Nlink || after.Mtim != before.Mtim {
+			t.Fatalf("%s changed: ino %d->%d nlink %d->%d (%v)", p, before.Ino, after.Ino,
+				before.Nlink, after.Nlink, err)
+		}
+	}
+	if err := os.Mkdir(d+"/dir", 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(d+"/dir", d+"/link"); err != nil {
+		t.Fatal(err)
+	}
+	if fi, err := os.Lstat(d + "/link"); err != nil || fi.Mode()&os.ModeType != os.ModeSymlink {
+		t.Fatalf("Lstat(link): %v %v", fi, err)
+	}
+	if fi, err := os.Stat(d + "/link"); err != nil || !fi.IsDir() {
+		t.Fatalf("Stat(link): %v %v", fi, err)
+	}
+}
+
+// model_os_filestat_name.go: Name is the base name of the path given to Stat, "/" for "/", and
+// the base name of the *File's name for File.Stat.
+func TestFileStatName(t *testing.T) {
+	d, err := filepath.Abs(extDir(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(d+"/wal", 0o700); err != nil {
+		t.Fatal(err)
+	}
+	f, err := os.Create(d + "/wal/0000-0000.wal")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	if fi, err := os.Stat(d + "/wal"); err != nil || fi.Name() != "wal" {
+		t.Fatalf("Stat(wal): %v %v", fi, err)
+	}
+	if fi, err := os.Lstat(d + "/wal"); err != nil || fi.Name() != "wal" {
+		t.Fatalf("Lstat(wal): %v %v", fi, err)
+	}
+	if fi, err := os.Stat("/"); err != nil || fi.Name() != "/" {
+		t.Fatalf("Stat(/): %v %v", fi, err)
+	}
+	if fi, err := f.Stat(); err != nil || fi.Name() != "0000-0000.wal" {
+		t.Fatalf("File.Stat: %v %v", fi, err)
+	}
+}

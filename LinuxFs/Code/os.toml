@@ -9,6 +9,8 @@ translate = ["!*", "O_RDONLY", "O_WRONLY", "O_RDWR", "O_APPEND", "O_CREATE", "O_
   "O_TRUNC", "File", "FileInfo", "FileMode", "PathError",
   # real Go over the trusted layouts of `file` and `fileStat` (`return f.name`, `return fs.size`)
   "File.Name", "fileStat.Size",
+  # (2026-11-13, the WAL's decoder) `return fs.name`, over the trusted layout of `fileStat`
+  "fileStat.Name",
   # (2026-11-07) the package-level variable initializers and `init` (what importing `os` runs), as
   # Perennial's os.toml (its fix-semantics Case 33): the `errors.New` errors, `checkWrapErr`,
   # `dirBufPool`'s `sync.Pool` literal, io/fs's error variables, `lstat = Lstat`, the `var _ fs.X =

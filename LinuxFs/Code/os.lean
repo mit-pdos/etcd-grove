@@ -1258,6 +1258,21 @@ noncomputable def init.«0».impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))
   (Val #())))
 
+/-- go: types.go:60:21 -/
+noncomputable def fileStat.Name.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "fs"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "fs" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType fileStat.ty)))) (Var "fs"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef fileStat.ty go!"name"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fileStat.ty)))) (Var "fs"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
 /-- go: types.go:61:21 -/
 noncomputable def fileStat.IsDir.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fs"
@@ -2305,6 +2320,7 @@ class fileStat.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType fileStat.ty) [(go!"IsDir", (some (go.signature.Signature [] false [go.bool]))), (go!"ModTime", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Time" [])]))), (go!"Mode", (some (go.signature.Signature [] false [FileMode.ty]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Size", (some (go.signature.Signature [] false [go.int64]))), (go!"Sys", (some (go.signature.Signature [] false [go.any])))]
   ptr_IsDir_unfold : MethodUnfold (go.GoType.PointerType fileStat.ty) go!"IsDir" fileStat.IsDir.impl
   ptr_Mode_unfold : MethodUnfold (go.GoType.PointerType fileStat.ty) go!"Mode" fileStat.Mode.impl
+  ptr_Name_unfold : MethodUnfold (go.GoType.PointerType fileStat.ty) go!"Name" fileStat.Name.impl
   ptr_Size_unfold : MethodUnfold (go.GoType.PointerType fileStat.ty) go!"Size" fileStat.Size.impl
 
 attribute [instance] fileStat.TypeAssumptions.type_repr
@@ -2313,6 +2329,7 @@ attribute [instance] fileStat.TypeAssumptions.type_repr
   fileStat.TypeAssumptions.ptr_method_set
   fileStat.TypeAssumptions.ptr_IsDir_unfold
   fileStat.TypeAssumptions.ptr_Mode_unfold
+  fileStat.TypeAssumptions.ptr_Name_unfold
   fileStat.TypeAssumptions.ptr_Size_unfold
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

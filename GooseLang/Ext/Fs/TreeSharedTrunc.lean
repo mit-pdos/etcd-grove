@@ -330,7 +330,7 @@ theorem osWorld_trunc {st : OsState} {Γb Γm Γf Γt} {h h' : GMap Loc (NonAtom
       (((startState st i f c t).doneInflight t).setFile i
         ((f.announce c (st.fs.stamp + 1)).land c c.hi 0)) (renderHeap (startState st i f c t) h) :=
     mapsFresh_same rfl
-  imod resize_done_world hwf1 hcoh1 hF c.hi 0 hland Hr2 Hfr2 $$ HAb HAm HAf HAt Htok Hcells Hσ Ht
+  imod resize_done_world hwf1 hcoh1 hF c.hi 0 hland (fun _ => Nat.le_of_eq hF.hchi.symm) Hr2 Hfr2 $$ HAb HAm HAf HAt Htok Hcells Hσ Ht
     with ⟨Hw, Hd⟩
   rw [← truncSt_eq st i f t ht]
   imodintro
@@ -397,7 +397,7 @@ theorem wp_osOpenTruncS (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
   isplitr
   · ipureintro
     obtain ⟨hfr, hr⟩ := step_filesSame (h := h0) Hwc.1 (filesSame_metaEnd st k) Hag
-    exact ⟨_, h0, _, ⟨child d b, fl, k, s0, rfl, treePath_of_lookup hl', hfl, hcall,
+    exact ⟨_, h0, _, .inl ⟨child d b, fl, k, s0, rfl, treePath_of_lookup hl', hfl, hcall,
       ⟨fun _ i' hi' => by rw [hl0] at hi'; cases hi'; exact hnb, .inr ⟨1, by decide, rfl, .inl rfl⟩⟩⟩,
       hfr, hr⟩
   inext
@@ -405,6 +405,7 @@ theorem wp_osOpenTruncS (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
   imod Hclose2
   obtain ⟨Hst, Hfr, Hr⟩ := Hst
   simp only [IsFsStep] at Hst
+  replace Hst := open_inTree Hst (treePath_of_lookup hl')
   obtain ⟨p', fl', k', s', hv, -, -, hk', hres⟩ := Hst
   obtain ⟨rfl, rfl, rfl⟩ := tokPathFl_inj hv
   rw [hcall] at hk'; cases hk'
@@ -434,7 +435,7 @@ theorem wp_osOpenTruncS (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
     rw [hf0, Option.some.injEq] at hf'; subst hf'
     simp only [↓reduceIte] at hst1
     subst st1
-    obtain ⟨hfd0, hfdn, hdfn⟩ := hfree
+    obtain ⟨hfd0, hfdn, hdfn, -⟩ := hfree
     have hst'' : st' = (truncSt (st.metaEnd k) i f).setProc
         { (truncSt (st.metaEnd k) i f).proc with
           fds := <[fd := openFd i fl]> (truncSt (st.metaEnd k) i f).proc.fds } := hst

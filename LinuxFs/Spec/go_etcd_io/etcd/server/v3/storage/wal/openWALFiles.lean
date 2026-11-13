@@ -7,9 +7,8 @@ directory holding each name as a file (`is`: their inodes, in order; `filepath.J
 each name's length below `2^60`, so that `|d| + |b| + 2 < 2^62`): on success the readers, the
 locks (nil in read mode) and each file opened (`walOpenedFile`, fd whole, offset 0); on an error an
 error `fmt.Errorf` may wrap. The closer `closeAll` returns is not specified (write mode drops it;
-`OpenForRead`'s `Close` needs it, W10). Lean-first; proof `sorry`
-(`LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/openWALFiles.lean`: needs
-`fileutil.TryLockFile`'s spec, `fileutil.NewFileReader`'s, `filepath.Join`'s and `closeAll`'s).
+`OpenForRead`'s `Close` needs it, W10). Lean-first; proved
+(`LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/openWALFiles.lean`).
 W5 of `notes/wal-fsext-plan.md`.
 -/
 module

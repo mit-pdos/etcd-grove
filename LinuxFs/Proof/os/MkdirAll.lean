@@ -59,7 +59,7 @@ set_option hygiene false in
 /-- `IsDir` through the `FileInfo` of a `*fileStat` (`os.ownFileStat` in `H`): some boolean. -/
 local macro "fileStat_isDir" H:ident : tactic => `(tactic| (
   unfold os.ownFileStat
-  icases $H:ident with ⟨#Hsz, %mode, #Hmode⟩
+  icases $H:ident with ⟨#Hsz, ⟨%mode, #Hmode⟩, -⟩
   wp_method_call
   wp_call
   try wp_auto

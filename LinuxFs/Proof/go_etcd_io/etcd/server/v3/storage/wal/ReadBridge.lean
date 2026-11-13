@@ -43,11 +43,13 @@ variable [os.file.FieldAssumptions] [go_etcd_io.etcd.client.pkg.v3.fileutil.Assu
 theorem os.ownFileStat_persist (fs : Loc) (sz : w64) :
     os.ownFileStat (GF := GF) fs sz ⊢ □ os.ownFileStat (GF := GF) fs sz := by
   unfold os.ownFileStat
-  iintro ⟨#H1, %m, #H2⟩
+  iintro ⟨#H1, ⟨%m, #H2⟩, %nm, #H3⟩
   imodintro
   iframe H1
-  iexists m
-  iexact H2
+  isplitl []
+  · iexists m; iexact H2
+  iexists nm
+  iexact H3
 
 /-- The decoder's file of a segment `g` read through the `*fileReader` at `rl`. -/
 def walDecFile (rl f : Loc) (fd : w64) (name : GoString) (fl : OsFd) (g : SegG) : DecFile GF :=

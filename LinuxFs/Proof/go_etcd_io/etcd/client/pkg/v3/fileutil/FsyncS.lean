@@ -4,6 +4,7 @@ The proof of `LinuxFs/Spec/go_etcd_io/etcd/client/pkg/v3/fileutil/FsyncS.lean`.
 module
 
 public import LinuxFs.Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.FsyncS
+public import LinuxFs.Proof.os.NsAbove
 
 @[expose] public section
 
@@ -29,6 +30,16 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.Fsync.wp_proofDirS
   wp_start as Hpre
   wp_auto
   wp_apply wp_Sync f fd name dqf R j ph n $$ Hpre as %err Hr
+  iapply HΦ
+  iexact Hr
+
+variable [os.Assumptions] [go.BasicIntoValInj] in
+theorem go_etcd_io.etcd.client.pkg.v3.fileutil.Fsync.wp_proofOutS :
+    go_etcd_io.etcd.client.pkg.v3.fileutil.Fsync.specOutS (GF := GF) (hG := hG) := by
+  intro f fd name dqf
+  wp_start as Hpre
+  wp_auto
+  wp_apply os.File.Sync.wp_outS f fd name dqf $$ Hpre as %err Hr
   iapply HΦ
   iexact Hr
 

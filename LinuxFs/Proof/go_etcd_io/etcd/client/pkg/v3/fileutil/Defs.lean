@@ -2,7 +2,8 @@
 Shared definitions of `fileutil`'s specs over the Linux file extension (the part's translation):
 
 * `preGrown i m w`: the file `i`, which had the `OsMeta` `m`, grown to the size `w` by a resize
-  (`fallocate`'s growth, `ftruncate`): its `OsMeta` some `m'` of that size with `m`'s mappings, and
+  (`fallocate`'s growth, `ftruncate`): its `OsMeta` some `m'` of that size with `m`'s mappings and
+  at least its page cache known zero past the size (`OsMeta.cz`), and
   the bytes from the old size to `w` a zero run of unknown candidates (`osZerosA`, I4: the 64 MB
   segments are never held byte by byte);
 * `errno_errTree`: an `Errno` error is a leaf error tree for `errors.As` with a `*Errno` target.
@@ -31,13 +32,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- The file `i`, of `OsMeta` `m` before, grown to the size `w`: its `OsMeta` (of that size, with
-`m`'s mappings) and its new bytes, zeros. -/
+`m`'s mappings, the page cache known zero past the size at least as far) and its new bytes,
+zeros. -/
 def preGrown (i : Ino) (m : OsMeta) (w : Nat) : IProp GF :=
-  iprop(∃ m' : OsMeta, ⌜m'.size = w ∧ m'.maps = m.maps⌝ ∗ osMeta i (DFrac.own 1) m' ∗
+  iprop(∃ m' : OsMeta, ⌜m'.size = w ∧ m'.maps = m.maps ∧ m.cz ≤ m'.cz⌝ ∗ osMeta i (DFrac.own 1) m' ∗
     osZerosA i m.size (w - m.size) (DFrac.own 1))
 
 theorem preGrown_unfold (i : Ino) (m : OsMeta) (w : Nat) :
-    preGrown (GF := GF) i m w ⊣⊢ ∃ m' : OsMeta, ⌜m'.size = w ∧ m'.maps = m.maps⌝ ∗
+    preGrown (GF := GF) i m w ⊣⊢ ∃ m' : OsMeta, ⌜m'.size = w ∧ m'.maps = m.maps ∧ m.cz ≤ m'.cz⌝ ∗
       osMeta i (DFrac.own 1) m' ∗ osZerosA i m.size (w - m.size) (DFrac.own 1) := .rfl
 
 /-- Not grown. -/
@@ -48,7 +50,7 @@ theorem preGrown_same (i : Ino) (m : OsMeta) :
   iexists m
   iframe Hm
   isplitr
-  · ipureintro; exact ⟨rfl, rfl⟩
+  · ipureintro; exact ⟨rfl, rfl, Nat.le_refl _⟩
   rw [Nat.sub_self]
   iapply (osZerosA_unfold i m.size 0 _).2
   iexists []
@@ -58,7 +60,7 @@ theorem preGrown_same (i : Ino) (m : OsMeta) :
 
 /-- Two growths in a row are one. -/
 theorem preGrown_trans (i : Ino) (m m1 : OsMeta) (w : Nat) (h1 : m.size ≤ m1.size)
-    (h2 : m1.size ≤ w) (hmaps : m1.maps = m.maps) :
+    (h2 : m1.size ≤ w) (hmaps : m1.maps = m.maps) (hcz : m.cz ≤ m1.cz) :
     osZerosA (GF := GF) i m.size (m1.size - m.size) (DFrac.own 1) ∗ preGrown i m1 w ⊢
       preGrown i m w := by
   iintro ⟨Hz, Hg⟩
@@ -67,7 +69,7 @@ theorem preGrown_trans (i : Ino) (m m1 : OsMeta) (w : Nat) (h1 : m.size ≤ m1.s
   iexists m'
   iframe Hm
   isplitr
-  · ipureintro; exact ⟨hm'.1, hm'.2.trans hmaps⟩
+  · ipureintro; exact ⟨hm'.1, hm'.2.1.trans hmaps, Nat.le_trans hcz hm'.2.2⟩
   have hw : w - m.size = (m1.size - m.size) + (w - m1.size) := by omega
   rw [hw]
   iapply (osZerosA_add i m.size _ _ _).2
@@ -82,7 +84,10 @@ theorem rsDone_preGrown {tr : Bool} (p : Ino) (tg sz' : Nat) (m : OsMeta) (n : N
   unfold preGrown
   iexists rsPost tr m tg sz'
   iframe
-  ipureintro; simp [rsPost, OsMeta.announce, OsMeta.touch]; split <;> (try split) <;> rfl
+  ipureintro
+  refine ⟨rfl, ?_, ?_⟩
+  · simp [rsPost, OsMeta.announce, OsMeta.touch]; split <;> (try split) <;> rfl
+  · simp only [rsPost, rsCz]; split <;> omega
 
 /-- A growth that did not land (`rsUndone`, nothing cut off): not grown. -/
 theorem rsUndone_preGrown {tr : Bool} (p : Ino) (tg : Nat) (m : OsMeta) (n : Nat) :
@@ -110,7 +115,10 @@ theorem ftDone_preGrown (p : Ino) (m : OsMeta) (tg : Nat) :
   iexists rsPost true m tg tg
   iframe Hm
   isplitr
-  · ipureintro; simp [rsPost, OsMeta.announce, OsMeta.touch]; split <;> (try split) <;> rfl
+  · ipureintro
+    refine ⟨rfl, ?_, ?_⟩
+    · simp [rsPost, OsMeta.announce, OsMeta.touch]; split <;> (try split) <;> rfl
+    · simp only [rsPost, rsCz, if_true]; omega
   iapply (osZerosA_unfold p m.size _ _).2
   iexists zs
   iframe Hb

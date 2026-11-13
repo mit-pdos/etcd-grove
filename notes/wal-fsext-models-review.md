@@ -251,3 +251,104 @@ The trusted changes below are **pending the user's review** (marked so in their 
    tests pass (needs `sudo`, which this machine has).
 8. **Lock commands return where Linux blocks: no change** (sound; Q1 stays deferred).
 9. **Extra outcomes of an empty `Write`: no change** (sound).
+
+---
+
+## Above-root Stat/Open (2026-11-13, branch `wal-above`)
+
+**Finding** (W4 sixth session, `notes/wal-fsext-plan.md`): `os.Stat` and `os.Open`/`OpenFile` of a
+strict ancestor of a root were stuck (the extension's `Open` needs `TreePath`), and `fileutil.TouchDirAll`'s
+`Exist` loop (which climbs while `Stat` fails; the model lets `Stat` of the root fail) and its `syncDir`
+loop can reach a root's parent, so their proofs would be vacuous. The changes below are trusted and
+**pending the user's review**. Commits: `93d9757a8a` (extension), `5a5cdbb621` (os models, Go
+examples), `a6214a8322` (specs and proofs).
+
+### Trusted text (`GooseLang/Ext/Fs/Impl.lean`)
+
+* Header, "Environment": "Only paths in the roots' trees are given a meaning: a step on any other
+  path is stuck, but for the queries `PathKind` (at or above a root) and `Open`'s outside case (a
+  read-only `open` of a strict ancestor of a root, whose fd only `fsync`s, with no claim on what that
+  makes durable, and closes)."
+* `ProcState` gains `ofds : GMap w64 Unit := ∅` ("the fds of directories outside the roots' trees (a
+  strict ancestor of a root, `Open`'s outside case): the model knows nothing of them but that they are
+  open"); `ProcState.empty` sets it `∅` (so a crash forgets them, as the rest of the process).
+* `OsState.AboveRoot p := p = [slashB] ∨ (p ≠ [] ∧ ∃ rj ∈ st.fs.roots, (p ++ [slashB]).IsPrefix rj.1)`
+  (`/`, or `/c₁/…/cₖ` with `/c₁/…/cₖ/` a prefix of a root). (`AtOrAboveRoot` is now unused; to remove
+  with the next change of the file.)
+* `FdFree st fd` adds `st.proc.ofds !! fd = none`. `OsState.addOfd`/`delOfd` insert/delete in `ofds`.
+* `OpenOutside v st e' st'` (an `abbrev`), the **second disjunct of `"Open"`**:
+  `∃ p fl t start, v = PairV (osTokV t) (PairV #p #fl) ∧ ¬ st.TreePath p ∧ st.AboveRoot p ∧
+  (fl.toNat = O_RDONLY ∨ fl.toNat = O_CLOEXEC) ∧ st.proc.calls !! t = some start ∧
+  ((∃ fd, FdFree st fd ∧ st' = (st.metaEnd t).addOfd fd ∧ e' = osRes #fd 0) ∨
+   (∃ e ≠ 0, st' = st.metaEnd t ∧ e' = osRes #(-1) e))`. Other flags at such a path: stuck.
+* `"FdKind"`: a third answer, `#2`, when `fds !! fd = none ∧ dfds !! fd = none ∧ ofds !! fd = some ()`.
+* `"OutSync"`: `#fd ↦ #e`, any `e` (0 included), `ofds !! fd = some ()`, `st' = st` (no claim on
+  durability: on C a directory fsync commits its filesystem's journal, which may be another
+  filesystem's; claiming nothing is weaker than either).
+* `"OutClose"`: `#fd ↦ #e`, any `e`, `ofds !! fd = some ()`, `st' = st.delOfd fd`.
+* `"PathKind"`: `#1` for a `TreeName`; `#0` for a root (`¬ TreeName p ∧ ∃ rj ∈ roots, rj.1 = p`);
+  `#2` for a strict ancestor (`¬ TreePath p ∧ AboveRoot p`, `/` included: before, `/` was stuck);
+  stuck elsewhere.
+
+### Trusted text (`LinuxFs/TrustedCode/os.lean`)
+
+* `model.stat op name`: first `if PathKind name = 2 then model.statAbove op name else` (the old body).
+* `model.statAbove op name` (no extension step): `if ArbitraryInt = 0` then a fresh `fileStat` with
+  `size := ArbitraryInt`, `mode := arbitraryMode (if ArbitraryInt = 0 then ModeDir else ModeSymlink)`,
+  nil error; else a nil `FileInfo` and `&PathError{op, name, Errno(m)}` (`m := ArbitraryInt`, `2` if
+  it is 0). Linux: `stat` follows a symlink ancestor (a directory), `lstat` may see the symlink; either
+  may fail; the model's extra answer (Stat seeing a symlink) only weakens.
+* `File.Sync.impl`, `File.Close.impl`: `kind = 0` → `Fsync`/`Close`, `kind = 1` → `DirSync`/`DirClose`,
+  otherwise `OutSync`/`OutClose`.
+* `MkdirAll.impl`: the above branch is taken at `PathKind ≠ 1` (was `= 0`), so a root's strict
+  ancestors (now `2`) still take `model.mkdirAllAbove`.
+* `OpenFile.impl` is unchanged (it calls `Open`, whose outside case answers above the roots).
+
+### Go examples and measurements
+
+`examples/osfs/semantics/model_os_stat_above.go`, `model_os_open_above.go` (indexed in `doc.go`);
+`models_test.go`'s `TestStatOpenAboveRoot`, run on C by `run-models-on-c.sh` (2026-11-13: "check:
+…/mnt is C (kernel 7.0.0-38-generic, ext4, block size 4096, …)"; `TestStatMode`,
+`TestMkdirAllAboveRoot`, `TestStatOpenAboveRoot` pass): `Stat`/`Lstat` of `/` and of a root's parent
+succeed with a directory; `open(O_RDONLY|O_CLOEXEC)` of either succeeds, `fsync` and `close` return 0;
+`O_WRONLY`/`O_RDWR` fail with `EISDIR`; the directory's inode, link count and mtime unchanged; `Lstat`
+of a symlink to a directory sees a symlink, `Stat` a directory.
+
+### Untrusted (ghost and proofs)
+
+* The outside fds' ghost: `OsGS.γo` (`w64 ↦ Unit`), `ofdCtx` (`⌜OfdDisj st⌝ ∗ gAuth γo ofds`) a third
+  conjunct of `osCtx`; `osOutFd fd` its whole fragment (`TreeSharedOut.lean`). The generic lifts
+  (`wp_fs_stepT/M/TC`, the variable-op wrappers) take `o ≠ "OutClose"` (an auto-param, `by decide`):
+  every other step keeps `OfdDisj` and adds at most a fresh outside fd (`isFsStep_ofd`, CommitMono.lean),
+  whose ghost entry the generic lift makes and drops; `wp_fs_stepO` exposes `ofdCtx`.
+* Proved (no `sorry`): `wp_osOpenAboveS`, `wp_osFdKindOut`, `wp_osOutSync`, `wp_osOutClose`
+  (`TreeSharedOut.lean`), `wp_osPathKindAboveS` (`PathKindS.lean`), `os.model.wp_stat_aboveS`,
+  `os.OpenFile/Open.wp_aboveS`, `os.File.Sync/Close.wp_outS` (`NsAbove.lean`);
+  **`os.Stat.wp_proofAboveRoot`** (`Proof/os/StatAbove.lean`), `fileutil.OpenDir.wp_proofAboveRoot`,
+  `fileutil.Fsync.wp_proofOutS`, **`fileutil.syncDir.wp_proofAboveRoot`**.
+
+## fileStat.Name (2026-11-13, branch `wal-above`)
+
+**Finding** (`wal-read5`, W3/W5 log): the model's `fileStat` had no name and `Name()` no body (stuck),
+but the WAL's decoder calls `FileInfo().Name()` for its "frame too large" error. Trusted, **pending
+the user's review**:
+
+* `LinuxFs/TrustedCode/os.lean`: `fileStat` gains `name' : GoString` (first, as Go's);
+  `fileStat.underlying` is `struct{ name string; size int64; mode FileMode }`;
+  `fileStat.FieldAssumptions` gains `get_name`/`set_name`. New `model.base path`: `"."` for `""`,
+  else `path[len(mkdirAllParent path)+1:]`, or `path` itself if that is empty (`/`): Go's
+  `filepathlite.Base` on the canonical absolute paths the model takes. `File.Stat.impl` stores
+  `model.base f.name`, `model.stat` and `model.statAbove` `model.base name` (as
+  `fillFileStatFromSys`, `stat_linux.go`: `fs.name = filepathlite.Base(name)`). `model.mkdirAllParent`
+  moved up the file (unchanged).
+* `LinuxFs/Code/os.toml`: `fileStat.Name` translated (`return fs.name`); `Code/os.lean` regenerated
+  (`etc/goose.py --project bboltfs`: `fileStat.Name.impl`, `ptr_Name_unfold`).
+* Go example `examples/osfs/semantics/model_os_filestat_name.go`; `TestFileStatName` on C (pass):
+  `Stat(d/wal).Name() = "wal"` (and `Lstat`), `Stat("/").Name() = "/"`, `f.Stat().Name()` the file's
+  base name.
+
+Untrusted: `ownFileStat` also holds `∃ name, name ↦□ name`; `os.fileStat.Name.wp_proof`
+(`Proof/os/fileStat__Name.lean`) proves the `wal-read5` hypothesis spec `os.fileStat.Name.spec`;
+`os.model.wp_base` and the `parentModel` lemmas moved to `Proof/os/PathParent.lean`; users repaired
+(`StatS`, `File__Stat`, `fileStat__Size`, `MkdirAll*`, `NsAbove`, `ReadBridge`'s `ownFileStat_persist`).
+`ReadBridge` still takes `wp_Name` as a hypothesis: its callers can now pass `os.fileStat.Name.wp_proof`.
