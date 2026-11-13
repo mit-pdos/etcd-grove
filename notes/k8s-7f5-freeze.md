@@ -356,3 +356,13 @@ The older tests (`requireleader_test.go`: `...Values`, `...Cause`, `...NoAlias*`
   `WithRequireLeader.wp_proof` keeps its name, only its statement changed (the baseline lists names,
   so the change is not visible there). Baseline not updated.
 - Go: `examples/premisefix/watcherctx`, all tests pass (GOWORK=off, 32G cap).
+
+## T5-a review (2026-11-13, etcd-grove-81's axiom review; decisions in `questions.md`)
+
+No BLOCKER, MAJOR or MINOR (journal
+`/root/.claude-csail/projects/-shared-etcd-grove/c04a65b0-a272-4ae4-94c7-91aa4a20ea30/subagents/workflows/wf_e96d1742-d2b/journal.jsonl`).
+Approved as written: the disjunctive precondition (`watchCtx ctx s ∨ ⌜ctx = backgroundCtxVal⌝`) and the
+`Background()` clause kept inside the axiom. The two reviewers' own Go tests pass:
+`/shared/tmp/coord-81/t5a-review/adv/adv_test.go` (adversarial parents and keys) and
+`/shared/tmp/coord-81/t5a-review/rl_test.go`. No change to the text; the baseline needs no update
+(the axiom's name is unchanged, 869 axioms, 4 sorries).
