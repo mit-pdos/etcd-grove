@@ -83,9 +83,9 @@ attempt announced it (a failed attempt), or grown (the new bytes zeros, with the
 they had, then the zero an attempt numbered `n` announced). -/
 inductive TReach (m : OsMeta) (bs : List ByteG) (sz : Nat) : OsMeta → List ByteG → Prop
   | refl : TReach m bs sz m bs
-  | ann : TReach m bs sz (m.announce (min m.size sz) (max m.size sz) sz) bs
+  | ann : TReach m bs sz (m.announce (min m.size sz) (rsHi true m.size sz) sz) bs
   | grown (n : Nat) (zs : List Cands) : zs.length = sz - m.size →
-      TReach m bs sz (rsPost m sz sz) (bs ++ zs.map (fun c0 => ((0 : w8), c0 ++ [(0, n)])))
+      TReach m bs sz (rsPost true m sz sz) (bs ++ zs.map (fun c0 => ((0 : w8), c0 ++ [(0, n)])))
 
 namespace EtcdGrove
 
@@ -158,17 +158,17 @@ abbrev os.File.Truncate.specCrashS : Prop :=
       ∀ t n, Ok (some (d.ino, ⟨m', bs', fa, fb, .trunc t sz.toNat n⟩))) →
   {{ osInv (GF := GF) ∗ csInv (GF := GF) N P R γ Good Ok ∗ os.ownFile (GF := GF) f fd name dqf ∗
       osFd (GF := GF) fd dq d ∗ csOwnF (GF := GF) γ (some (d.ino, ⟨m, bs, fa, fb, .idle⟩)) ∗
-      mcellsAny (GF := GF) m.maps m.size sz.toNat }}
+      mcellsAny (GF := GF) m.maps m.size (rsHi true m.size sz.toNat) }}
     (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Truncate")) (Val #sz))
   {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ osFd fd dq d ∗
-      ((⌜err = interface.nil⌝ ∗ ∃ n m0, ⌜m0 = m ∨ m0 = m.announce (min m.size sz.toNat) (max m.size sz.toNat) sz.toNat⌝ ∗
+      ((⌜err = interface.nil⌝ ∗ ∃ n m0, ⌜m0 = m ∨ m0 = m.announce (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat⌝ ∗
           csGrownOwn d.ino γ m0 bs fa fb sz.toNat n) ∨
        (⌜err ≠ interface.nil⌝ ∗
-         ((∃ n m0, ⌜m0 = m ∨ m0 = m.announce (min m.size sz.toNat) (max m.size sz.toNat) sz.toNat⌝ ∗
+         ((∃ n m0, ⌜m0 = m ∨ m0 = m.announce (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat⌝ ∗
           csGrownOwn d.ino γ m0 bs fa fb sz.toNat n) ∨
-          (csOwnF γ (some (d.ino, ⟨m.announce (min m.size sz.toNat) (max m.size sz.toNat) sz.toNat,
+          (csOwnF γ (some (d.ino, ⟨m.announce (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat,
               bs, fa, fb, .idle⟩)) ∗
-            mcellsAny m.maps m.size sz.toNat)))) }}
+            mcellsAny m.maps m.size (rsHi true m.size sz.toNat))))) }}
 
 variable [os.Assumptions] in
 /-- See the file header. -/

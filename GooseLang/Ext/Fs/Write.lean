@@ -1548,6 +1548,23 @@ theorem mcells_any (M : GMap Loc Nat) (lo hi : Nat) (vf : Nat → val) :
   intro b len _
   iintro H; iexists vf; iexact H
 
+theorem mcells_split (M : GMap Loc Nat) (lo mid hi : Nat) (vf : Nat → val) (h1 : lo ≤ mid)
+    (h2 : mid ≤ hi) :
+    mcells (GF := GF) M lo hi vf ⊣⊢ mcells M lo mid vf ∗ mcells M mid hi vf := by
+  unfold mcells
+  rw [← BigSepM.bigSepM_sep_eq]
+  constructor <;> apply BigSepM.bigSepM_mono <;> intro b len _
+  · exact (cellsR_split b len lo mid hi vf h1 h2).1
+  · exact (cellsR_split b len lo mid hi vf h1 h2).2
+
+theorem mcells_congr (M : GMap Loc Nat) (lo hi : Nat) (vf vf' : Nat → val)
+    (h : ∀ i, lo ≤ i → i < hi → vf i = vf' i) :
+    mcells (GF := GF) M lo hi vf ⊣⊢ mcells M lo hi vf' := by
+  unfold mcells
+  constructor <;> apply BigSepM.bigSepM_mono <;> intro b len _
+  · exact (cellsR_congr _ _ _ vf vf' (fun i h1 h2 => h i (by omega) (by omega))).1
+  · exact (cellsR_congr _ _ _ vf vf' (fun i h1 h2 => h i (by omega) (by omega))).2
+
 end specs4
 
 end Fs

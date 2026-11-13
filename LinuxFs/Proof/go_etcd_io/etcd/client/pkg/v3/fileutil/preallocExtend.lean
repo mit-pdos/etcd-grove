@@ -52,9 +52,9 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtend.wp_proof
     iexists sz.toNat
     isplitr
     · ipureintro; exact ⟨hle, Nat.le_refl _, fun _ => rfl⟩
-    have hp : rsDone (GF := GF) d.ino (max m.size (0 + sz.toNat)) (max m.size (0 + sz.toNat)) m n ⊢
+    have hp : rsDone (GF := GF) false d.ino (max m.size (0 + sz.toNat)) (max m.size (0 + sz.toNat)) m n ⊢
         preGrown (GF := GF) d.ino m sz.toNat := by
-      have := rsDone_preGrown (GF := GF) d.ino (max m.size (0 + sz.toNat))
+      have := rsDone_preGrown (GF := GF) (tr := false) d.ino (max m.size (0 + sz.toNat))
         (max m.size (0 + sz.toNat)) m n
       rw [htg'] at this ⊢; exact this
     iapply hp $$ Hd

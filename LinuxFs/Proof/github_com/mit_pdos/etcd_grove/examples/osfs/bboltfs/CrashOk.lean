@@ -2,8 +2,8 @@
 `FileOkS P1 Good i s` for a state `s` of the database file (`Proof/os/CrashSt.lean`), reduced to a
 statement on the file a crash leaves (`CrashImg`).
 
-**What a crash leaves.** Each byte of the file comes back as one of its candidates (`CrashFile`),
-which the client knows exactly (`CSt.kc`): below the size the bytes it holds (`bs`, with their
+**What a crash leaves.** Each byte of the file comes back as one of its candidates, or zero at or
+past the smallest size since the last sync (`CrashFile`), which the client knows exactly (`CSt.kc`): below the size the bytes it holds (`bs`, with their
 candidates), past it those the `OsMeta` knows (`tc`: the bytes past the size in its last page as a
 crash left them on disk, and those a write left there), each with the change in flight's
 announced value over its range (`kc_cand`). P1 (`BootP1.lean`) adds that a meta slot that
@@ -50,7 +50,7 @@ def _root_.Perennial.CSt.kc (s : CSt) (b : Nat) : Option Cands :=
       (s.baseC b).map (· ++ [(if off ≤ b then data.getD (b - off) 0 else 0, n)])
     else s.baseC b
   | .trunc _ sz n =>
-    if inRange (min s.m.size sz) (max s.m.size sz) b then (s.baseC b).map (· ++ [((0 : w8), n)])
+    if inRange (min s.m.size sz) (rsHi true s.m.size sz) b then (s.baseC b).map (· ++ [((0 : w8), n)])
     else s.baseC b
 
 section pure
@@ -95,10 +95,11 @@ theorem kc_cand {Q : OsState → OsState → Prop} {i : Ino} {s : CSt} {fo : Opt
     (hwf : s.Wf) (hcut0 : s.m.cut = none) (hbz : BusyOk s)
     (h : CrashSeenR Q i s.vmeta s.vruns (s.toks i) fo) :
     ∃ (st st' : OsState) (f : OsFile), OsCrash st st' ∧ Q st st' ∧ st'.fs.files !! i = fo ∧
-      st.fs.files !! i = some f ∧ ∀ b c, s.kc b = some c → f.cand b = c := by
+      st.fs.files !! i = some f ∧ s.vmeta.lo ≤ f.sizeLo ∧
+      ∀ b c, s.kc b = some c → f.cand b = c := by
   obtain ⟨st, st', Γb, Γm, Γf, Γt, hwfs, hcoh, hcr, hQ, hfo, hm, hrs, -, hts⟩ := h
   obtain ⟨f, hf, hmo⟩ := hcoh.meta_some i _ hm
-  refine ⟨st, st', f, hcr, hQ, hfo, hf, ?_⟩
+  refine ⟨st, st', f, hcr, hQ, hfo, hf, hmo.lo, ?_⟩
   have hl : s.bs.length = s.m.size := hwf.1
   have hsz : f.size = s.m.size := by rw [← hmo.size, CSt.vmeta_size]
   -- a byte a run holds
@@ -191,19 +192,18 @@ theorem kc_cand {Q : OsState → OsState → Prop} {i : Ino} {s : CSt} {fo : Opt
     have hgrow : s.m.size ≤ sz := by have := hwf.2.2.2; simp only [hbs] at this; exact this
     split at hc
     · rename_i hr
-      simp only [inRange, Bool.and_eq_true, decide_eq_true_eq, Nat.min_eq_left hgrow,
-        Nat.max_eq_right hgrow] at hr
+      simp only [inRange, Bool.and_eq_true, decide_eq_true_eq, Nat.min_eq_left hgrow] at hr
       obtain ⟨c1, hc1, rfl⟩ := Option.map_eq_some_iff.1 hc
-      obtain ⟨f1, hf1, hcand⟩ := htok t ⟨i, .truncate sz, n, s.m, rsAnn n []⟩
+      obtain ⟨f1, hf1, hcand⟩ := htok t ⟨i, rsKind true sz, n, s.m, rsAnn n []⟩
         (by simp [CSt.toks, hbs])
       simp only at hf1
       rw [hf] at hf1; cases hf1
       obtain ⟨c0, h1, h2⟩ := hcand b (by
-        simp only [TokInfo.lo, TokInfo.hi, inRange, Bool.and_eq_true, decide_eq_true_eq,
-          Nat.min_eq_left hgrow, Nat.max_eq_right hgrow]; omega)
+        simp only [rsKind_lo, rsKind_hi, inRange, Bool.and_eq_true, decide_eq_true_eq,
+          Nat.min_eq_left hgrow]; omega)
       unfold CSt.baseC at hc1; rw [if_neg (by omega)] at hc1
       rw [h1, h2 c1 (by simp only; omega) hc1]
-      simp only [TokInfo.val]
+      simp only [rsKind_val]
     · rename_i hr
       by_cases hb : b < s.m.size
       · exact hown b hb (by simp [CSt.taken, hbs]) c hc
@@ -214,13 +214,14 @@ theorem kc_cand {Q : OsState → OsState → Prop} {i : Ino} {s : CSt} {fo : Opt
 
 /-- **What a crash of the state `s` leaves** (`f`): a file on disk, within the size bounds, each
 byte in a page that holds one of the file (the size's last page included) one of its known
-candidates, and each meta slot that validates, whose bytes' candidates are known, the slot as of
+candidates or, at or past the bounds' smallest size, zero (writeback's zeroing), and each meta slot that validates, whose bytes' candidates are known, the slot as of
 one stamp (P1). -/
 structure CrashImg (s : CSt) (f : OsFile) : Prop where
   disk : ∃ img, f = OsFile.ofDisk img f.size
   lo : s.vmeta.lo ≤ f.size
   hi : f.size ≤ s.vmeta.hi
-  byte : ∀ b c, pageIn f.size b = true → s.kc b = some c → ∃ q, (f.cache b, q) ∈ c
+  byte : ∀ b c, pageIn f.size b = true → s.kc b = some c →
+    (∃ q, (f.cache b, q) ∈ c) ∨ (s.vmeta.lo ≤ b ∧ f.cache b = 0)
   slot : ∀ j < 2, 4096 * j < f.size → metaValid (decode (rawSlot f j) : Meta) →
     (∀ k < 64, (s.kc (4096 * j + 16 + k)).isSome) →
     ∃ n, ∀ k < 64, ∀ c, s.kc (4096 * j + 16 + k) = some c → f.cache (4096 * j + 16 + k) = valAt c n
@@ -231,7 +232,7 @@ theorem crashImg_of {i : Ino} {s : CSt} {f : OsFile} (hwf : s.Wf) (hcut : s.m.cu
     (hfc : FileCrashedR s.vmeta s.vruns (some f))
     (h : CrashSeenR P1 i s.vmeta s.vruns (s.toks i) (some f)) : CrashImg s f := by
   obtain ⟨hdisk, hlo, hhi, -, -⟩ := hfc f rfl
-  obtain ⟨st, st', f0, hcr, hQ, hfo, hf0, hkc⟩ := kc_cand hwf hcut hbz h
+  obtain ⟨st, st', f0, hcr, hQ, hfo, hf0, hlo0, hkc⟩ := kc_cand hwf hcut hbz h
   -- the crash's file
   have hn : Named st'.fs.treeDur i := by
     apply Classical.byContradiction; intro hn
@@ -240,11 +241,11 @@ theorem crashImg_of {i : Ino} {s : CSt} {f : OsFile} (hwf : s.Wf) (hcut : s.m.cu
   rw [hf0] at hf1; cases hf1
   rw [hfo] at hf2; cases hf2
   refine ⟨hdisk, hlo, hhi, fun b c hpg hc => ?_, fun j hj hsz hv _ => ?_⟩
-  · obtain ⟨q, hq⟩ := hcand b
-    refine ⟨q, ?_⟩
-    rw [← hkc b c hc]
-    simp only [OsFile.ofDisk, diskByte] at hpg ⊢
-    rw [if_pos hpg]; exact hq
+  · simp only [OsFile.ofDisk, diskByte] at hpg ⊢
+    rw [if_pos hpg]
+    rcases hcand b with ⟨q, hq⟩ | ⟨hl, h0⟩
+    · exact .inl ⟨q, by rw [← hkc b c hc]; exact hq⟩
+    · exact .inr ⟨Nat.le_trans hlo0 hl, h0⟩
   · obtain ⟨n, hn⟩ := hQ i f0 _ hf0 hfo j hj hsz hv
     exact ⟨n, fun k hk c hc => by rw [hn k hk, hkc _ c hc]⟩
 

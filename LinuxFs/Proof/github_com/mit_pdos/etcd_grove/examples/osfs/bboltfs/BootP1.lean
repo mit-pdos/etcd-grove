@@ -25,7 +25,9 @@ the target configuration can produce in a `BootMinibolt` run (given the semantic
 a byte comes back old or new, never garbage); in general it is bbolt's own assumption that a torn meta
 does not collide on its checksum. P1 is never vacuous (`P1Sat.p1_crash_exists`: from every reachable
 state, whenever there is a crash there is one satisfying P1) and a file other than the database never
-makes it fail (`P1Sat.p1_untouched`).
+makes it fail at a slot below its synced size (`P1Sat.p1_untouched`; past it, writeback's zeroing of
+the page holding the end can tear an untouched slot, which P1 assumes does not then validate, as of
+any torn slot).
 
 **The statement** (`BootCrashSafety`): the boot program (initialize the package, call
 `BootMinibolt(dir)`) runs with the extension's semantics whose crash relation is `OsCrash ∧ P1`

@@ -146,12 +146,17 @@ theorem osMeta_eq {a b : OsMeta} (h1 : a.size = b.size) (h2 : a.lo = b.lo) (h3 :
     (h8 : a.tc = b.tc) (h9 : a.cut = b.cut) : a = b := by
   cases a; cases b; simp_all
 
-theorem rsPost_tc (m : OsMeta) (tg sz' b : Nat) :
-    (rsPost m tg sz').tc !! b =
-      if inRange (min m.size tg) (max m.size tg) b then none else m.tc !! b :=
+theorem rsPost_tc (tr : Bool) (m : OsMeta) (tg sz' b : Nat) :
+    (rsPost tr m tg sz').tc !! b =
+      if inRange (min m.size tg) (rsHi tr m.size tg) b then none else m.tc !! b :=
   announce_tc m _ _ tg b
 
-theorem rsPost_size' (m : OsMeta) (tg sz' : Nat) : (rsPost m tg sz').size = sz' := rfl
+theorem rsPost_size' (tr : Bool) (m : OsMeta) (tg sz' : Nat) : (rsPost tr m tg sz').size = sz' :=
+  rfl
+
+theorem rsPost_eq (tr : Bool) (m : OsMeta) (tg sz' : Nat) :
+    rsPost tr m tg sz' = { m.announce (min m.size tg) (rsHi tr m.size tg) tg with size := sz' } :=
+  rfl
 
 theorem touch_dlo (m : OsMeta) (lo hi : Nat) :
     (m.touch lo hi).dlo = if hi ≤ lo then m.dlo else if m.dhi ≤ m.dlo then lo else min m.dlo lo := by
@@ -163,9 +168,9 @@ theorem touch_dhi (m : OsMeta) (lo hi : Nat) :
   unfold OsMeta.touch
   by_cases h1 : hi ≤ lo <;> by_cases h2 : m.dhi ≤ m.dlo <;> simp [h1, h2]
 
-/-- Announcing a range again changes nothing. -/
-theorem announce_idem (m : OsMeta) (lo hi tg : Nat) :
-    (m.announce lo hi tg).announce lo hi tg = m.announce lo hi tg := by
+/-- Announcing a part of an announced range again, with the same target, changes nothing. -/
+theorem announce_sub (m : OsMeta) (lo hi lo2 hi2 tg : Nat) (hl : lo ≤ lo2) (hh : hi2 ≤ hi) :
+    (m.announce lo hi tg).announce lo2 hi2 tg = m.announce lo hi tg := by
   apply osMeta_eq
   · simp
   · simp only [announce_lo]; omega
@@ -182,47 +187,42 @@ theorem announce_idem (m : OsMeta) (lo hi tg : Nat) :
     | none => rfl
     | some z =>
       simp only [Option.map_some, Function.comp_def, Option.some.injEq]
-      by_cases hl : lo < hi <;> simp [hl, Nat.max_assoc]
+      by_cases hl1 : lo < hi <;> by_cases hl2 : lo2 < hi2 <;> simp only [hl1, hl2, if_true, if_false] <;>
+        omega
   · apply GMap.ext; intro b
     simp only [announce_tc]
-    split <;> rfl
-  · simp [rsPost]
+    by_cases hb : inRange lo2 hi2 b = true
+    · have hb' : inRange lo hi b = true := by
+        simp only [inRange, Bool.and_eq_true, decide_eq_true_eq] at hb ⊢; omega
+      simp only [hb, hb', if_true]
+    · simp only [hb, Bool.false_eq_true, if_false]
+  · simp
+
+/-- Announcing a range again changes nothing. -/
+theorem announce_idem (m : OsMeta) (lo hi tg : Nat) :
+    (m.announce lo hi tg).announce lo hi tg = m.announce lo hi tg :=
+  announce_sub m lo hi lo hi tg (Nat.le_refl _) (Nat.le_refl _)
+
+/-- The size does not matter to an announce. -/
+theorem announce_setSize (X : OsMeta) (s lo hi tg : Nat) :
+    ({ X with size := s } : OsMeta).announce lo hi tg = { X.announce lo hi tg with size := s } := by
+  apply osMeta_eq <;> simp [announce_dlo, announce_dhi, touch_dlo, touch_dhi, announce_tc]
+  apply GMap.ext; intro b; simp [announce_tc]
 
 /-- A resize to the size a file has, after one that landed, changes nothing. -/
-theorem rsPost_rsPost (m : OsMeta) (tg : Nat) : rsPost (rsPost m tg tg) tg tg = rsPost m tg tg := by
-  apply osMeta_eq
-  · rfl
-  · simp only [rsPost, announce_lo]; omega
-  · simp only [rsPost, announce_hi]; omega
-  · simp [rsPost]
-  · simp only [rsPost, announce_dlo]; unfold OsMeta.touch; simp
-  · simp only [rsPost, announce_dhi]; unfold OsMeta.touch; simp
-  · simp [rsPost, announce_zf, Function.comp_def]
-  · apply GMap.ext; intro b
-    rw [rsPost_tc, rsPost_size']
-    simp only [Nat.min_self, Nat.max_self]
-    rw [if_neg (by simp only [inRange, Bool.and_eq_true, decide_eq_true_eq]; omega)]
-  · simp [rsPost]
+theorem rsPost_rsPost (tr : Bool) (m : OsMeta) (tg : Nat) :
+    rsPost tr (rsPost tr m tg tg) tg tg = rsPost tr m tg tg := by
+  rw [rsPost_eq tr (rsPost tr m tg tg), rsPost_size', rsPost_eq tr m tg tg, announce_setSize,
+    announce_sub _ _ _ _ _ _ (by omega) (by simpa using rsHi_same_le tr m.size tg)]
 
-theorem announce_rsPost (m : OsMeta) (tg : Nat) :
-    (rsPost m tg tg).announce (min (rsPost m tg tg).size tg) (max (rsPost m tg tg).size tg) tg =
-      rsPost m tg tg := by
-  apply osMeta_eq
-  · simp [rsPost]
-  · simp only [rsPost, announce_lo]; omega
-  · simp only [rsPost, announce_hi]; omega
-  · simp [rsPost]
-  · simp only [rsPost, announce_dlo]; unfold OsMeta.touch; simp
-  · simp only [rsPost, announce_dhi]; unfold OsMeta.touch; simp
-  · simp [rsPost, announce_zf, Function.comp_def]
-  · apply GMap.ext; intro b
-    rw [announce_tc]
-    simp only [rsPost_size', Nat.min_self, Nat.max_self]
-    rw [if_neg (by simp only [inRange, Bool.and_eq_true, decide_eq_true_eq]; omega)]
-  · simp [rsPost]
+theorem announce_rsPost (tr : Bool) (m : OsMeta) (tg : Nat) :
+    (rsPost tr m tg tg).announce (min (rsPost tr m tg tg).size tg) (rsHi tr (rsPost tr m tg tg).size tg)
+      tg = rsPost tr m tg tg := by
+  rw [rsPost_size', rsPost_eq tr m tg tg, announce_setSize,
+    announce_sub _ _ _ _ _ _ (by omega) (by simpa using rsHi_same_le tr m.size tg)]
 
-theorem rsPost_announce (m : OsMeta) (tg sz' : Nat) :
-    rsPost (m.announce (min m.size tg) (max m.size tg) tg) tg sz' = rsPost m tg sz' := by
+theorem rsPost_announce (tr : Bool) (m : OsMeta) (tg sz' : Nat) :
+    rsPost tr (m.announce (min m.size tg) (rsHi tr m.size tg) tg) tg sz' = rsPost tr m tg sz' := by
   unfold rsPost
   rw [announce_size, announce_idem]
 
@@ -247,18 +247,18 @@ did not): its `OsMeta` as the resize leaves it (`rsPost`), the bytes it grew the
 zeros, and the client's halves of the cells over the range, showing the new contents. -/
 def ftDone (p : Ino) (m : OsMeta) (tg : Nat) : IProp GF :=
   iprop(∃ zs : List Cands, ⌜zs.length = tg - m.size⌝ ∗
-    osMeta p (DFrac.own 1) (rsPost m tg tg) ∗
+    osMeta p (DFrac.own 1) (rsPost true m tg tg) ∗
     osBytes p m.size (DFrac.own 1) (zs.map (fun c => ((0 : w8), c))) ∗
-    mcells m.maps (min m.size tg) (max m.size tg) (rsCell tg))
+    mcells m.maps (min m.size tg) (rsHi true m.size tg) (rsCell tg))
 
 /-- A resize of the file `p` from `m` to `tg` that did not land: its `OsMeta` as its first step
 left it, the bytes it would have cut off (`xs`'s values, with new candidates) and the client's
 halves of the cells over the range. -/
 def ftUndone (p : Ino) (m : OsMeta) (tg : Nat) (xs : List ByteG) : IProp GF :=
   iprop(∃ xs' : List ByteG, ⌜xs'.map Prod.fst = xs.map Prod.fst⌝ ∗
-    osMeta p (DFrac.own 1) (m.announce (min m.size tg) (max m.size tg) tg) ∗
+    osMeta p (DFrac.own 1) (m.announce (min m.size tg) (rsHi true m.size tg) tg) ∗
     osBytes p (min m.size tg) (DFrac.own 1) xs' ∗
-    mcellsAny m.maps (min m.size tg) (max m.size tg))
+    mcellsAny m.maps (min m.size tg) (rsHi true m.size tg))
 
 end resize
 end os

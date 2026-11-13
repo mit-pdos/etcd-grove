@@ -154,12 +154,12 @@ theorem osZeros_lookup (i : Ino) (lo n : Nat) (dq : DFrac) (cs : Cands)
 /-- **The growth of a resize as a zero run**: when the file's zeros are known from its size on
 (`m.zf = some z`, `z ≤ m.size`), the bytes `rsDone` gives (from the old size to the new one `sz'`)
 are a zero run with the candidates `zcs n`. -/
-theorem rsDone_zeros (p : Ino) (tg sz' : Nat) (m : OsMeta) (n z : Nat) (hzf : m.zf = some z)
+theorem rsDone_zeros (tr : Bool) (p : Ino) (tg sz' : Nat) (m : OsMeta) (n z : Nat) (hzf : m.zf = some z)
     (hz : z ≤ m.size) :
-    rsDone (L := L) p tg sz' m n ⊢
-      osMeta (L := L) p (DFrac.own 1) (rsPost m tg sz') ∗
+    rsDone (L := L) tr p tg sz' m n ⊢
+      osMeta (L := L) p (DFrac.own 1) (rsPost tr m tg sz') ∗
       osZeros (L := L) p m.size (sz' - m.size) (DFrac.own 1) (zcs n) ∗
-      mcells (L := L) m.maps (min m.size tg) (max m.size tg) (rsCell sz') := by
+      mcells (L := L) m.maps (min m.size tg) (rsHi tr m.size tg) (rsCell sz') := by
   unfold rsDone
   iintro ⟨%zs, %hzs, Hm, Hb, Hc⟩
   have hzr : zs = List.replicate (sz' - m.size) [((0 : w8), 0)] := by
@@ -250,11 +250,11 @@ theorem zcands_synced (zs : List Cands) :
     obtain ⟨c, -, rfl⟩ := List.mem_map.1 hb; rfl⟩
 
 /-- **The growth of any resize as a zero run** (of unknown candidates). -/
-theorem rsDone_zerosA (p : Ino) (tg sz' : Nat) (m : OsMeta) (n : Nat) :
-    rsDone (L := L) p tg sz' m n ⊢
-      osMeta (L := L) p (DFrac.own 1) (rsPost m tg sz') ∗
+theorem rsDone_zerosA (tr : Bool) (p : Ino) (tg sz' : Nat) (m : OsMeta) (n : Nat) :
+    rsDone (L := L) tr p tg sz' m n ⊢
+      osMeta (L := L) p (DFrac.own 1) (rsPost tr m tg sz') ∗
       osZerosA (L := L) p m.size (sz' - m.size) (DFrac.own 1) ∗
-      mcells (L := L) m.maps (min m.size tg) (max m.size tg) (rsCell sz') := by
+      mcells (L := L) m.maps (min m.size tg) (rsHi tr m.size tg) (rsCell sz') := by
   unfold rsDone
   iintro ⟨%zs, %hzs, Hm, Hb, Hc⟩
   iframe Hm Hc

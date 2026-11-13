@@ -421,6 +421,8 @@ theorem crashTo_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} {
     have := hrun (0, DFrac.own (1 : Qp).half, g.bs) (List.mem_singleton_self _) b hb
       (by simp only [Nat.zero_add]; omega)
     simp only [Nat.zero_add] at this
+    rcases this with this | ⟨h0, -⟩
+    rotate_left; · omega
     rw [contents_getD f b (by omega), ← hcs]
     simp only [if_pos hb]
     rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hb, Option.getD_some]
@@ -722,7 +724,7 @@ theorem crashOkA_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur}
       have e : g0.bs.getD k (0, []) = g0.bs[k]'hk := by
         rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hk, Option.getD_some]
       rw [e]
-      exact valAt_mem0 hb.head0
+      exact .inl (valAt_mem0 hb.head0)
     · intro z hz b hzb hb
       have := hzf z hz; omega
   have hf0 : ∀ g' ∈ lay0.segs, FileCrashedR g'.om [(0, DFrac.own (1 : Qp).half, g'.bs)]
