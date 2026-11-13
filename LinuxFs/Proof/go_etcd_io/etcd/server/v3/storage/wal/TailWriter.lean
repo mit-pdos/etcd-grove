@@ -84,23 +84,25 @@ theorem osMeta_agree' (i : Ino) (dq1 dq2 : DFrac) (m1 m2 : OsMeta) :
   icases gElem_valid_2 _ _ _ _ _ _ _ $$ H1 H2 with %Hv
   ipureintro; exact Hv.2
 
-/-- **The first step of a `pwrite` on the tail** (see the file header): at the write position `wr`,
-of the next bytes of the intended stream, inside the file. -/
+/-- **The first step of a `pwrite` on the tail** (see the file header): at `off`, at or below the
+write position `wr` (a retry rewrites what an earlier attempt wrote: then the byte at `off` carries
+that attempt's candidate, stamped positive, so `off` is past the synced bytes), of the intended
+bytes from there, inside the file. -/
 theorem wp_tailPWriteStart (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (dir : GoString)
     (γ : GName) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (wr : Nat)
     (m : OsMeta) (bs : List ByteG) (fd off : w64) (data : List w8) (dq : DFrac) (d : OsFd)
     (Φ : val → IProp GF)
-    (hwr : d.writable = true) (hoff0 : 0 ≤ off.toInt) (hoff : off.toNat = wr) (hd : data ≠ [])
-    (hin : wr + data.length ≤ m.size) (hS : data <+: (tailStream Mr H md cuts).drop wr)
-    (hm : TailMeta m bs) :
+    (hwr : d.writable = true) (hoff0 : 0 ≤ off.toInt) (hoffw : off.toNat ≤ wr)
+    (hre : off.toNat = wr ∨ ∃ q ∈ (bs.getD off.toNat (0, [])).2, 0 < q.2) (hd : data ≠ [])
+    (hin : off.toNat + data.length ≤ m.size)
+    (hS : data <+: (tailStream Mr H md cuts).drop off.toNat) (hm : TailMeta m bs) :
     ⊢ walAreaOk walCodec Mr R jr r -∗ osFd fd dq d -∗ walTailKey (W := W) dir γ -∗
       tailVar (W := W) γ ((H, md, cuts, wr, d.ino, none) : TailG) -∗
       osMeta d.ino (DFrac.own (1 : Qp).half) m -∗ osBytes d.ino 0 (DFrac.own (1 : Qp).half) bs -∗
-      (∀ t : Nat, ∀ n : Nat, ⌜0 < n ∧ 0 < wr⌝ -∗ osFd fd dq d -∗
-        walTailFl dir γ (H, md, cuts, wr, d.ino, some ⟨t, wr, data, n, m, bs, none⟩) d.ino
-          ⟨t, wr, data, n, m, bs, none⟩ -∗ Φ (osTokV t)) -∗
+      (∀ t : Nat, ∀ n : Nat, ⌜0 < n ∧ 0 < off.toNat⌝ -∗ osFd fd dq d -∗
+        walTailFl dir γ (H, md, cuts, wr, d.ino, some ⟨t, off.toNat, data, n, m, bs, none⟩) d.ino
+          ⟨t, off.toNat, data, n, m, bs, none⟩ -∗ Φ (osTokV t)) -∗
       WP (ExternalOp fsExt.name "PWriteStart" (Val (PairV (#fd) (PairV (#off) (#data))))) {{ Φ }} := by
-  subst hoff
   iintro #Harea Hfd Hk Hv Hm1 Hb1 HΦ
   unfold walAreaOk
   icases Harea with ⟨#Hinv, #Hos, -⟩
@@ -112,11 +114,11 @@ theorem wp_tailPWriteStart (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStrin
     | nil => have := hm.1; rw [h] at this; simp at this; have := List.length_pos_iff.2 hd; omega
     | cons x xs => exact ⟨x, xs, rfl⟩
   ihave Hb1 := (show osBytes d.ino 0 (DFrac.own (1 : Qp).half) bs ⊢
-    osBytes (((H, md, cuts, off.toNat, d.ino, none) : TailG).2.2.2.2.1) 0 (DFrac.own (1 : Qp).half)
+    osBytes (((H, md, cuts, wr, d.ino, none) : TailG).2.2.2.2.1) 0 (DFrac.own (1 : Qp).half)
       (x :: xs) by rw [hxs]) $$ Hb1
   icases walInvBody_tail walCodec walCodec_ok Mr R jr r s dir γ _ x xs $$ Hb Hk Hv Hb1 with
     ⟨%F, %dw, %lay, %pre, %g0, %hp, Hseg, Hk, Hv, Hv', Hb1, Hclose⟩
-  ihave Hb1 := (show osBytes (((H, md, cuts, off.toNat, d.ino, none) : TailG).2.2.2.2.1) 0
+  ihave Hb1 := (show osBytes (((H, md, cuts, wr, d.ino, none) : TailG).2.2.2.2.1) 0
     (DFrac.own (1 : Qp).half) (x :: xs) ⊢ osBytes d.ino 0 (DFrac.own (1 : Qp).half) bs
       by rw [hxs]) $$ Hb1
   obtain ⟨hdw, hs, htg, ⟨ents, habs⟩, hcut0⟩ := hp
@@ -134,6 +136,20 @@ theorem wp_tailPWriteStart (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStrin
   icases osBytes_agree d.ino _ _ 0 bs g0.bs (by rw [hm.1, hsz]) $$ Hb1 Hb2 with %hbb
   subst hbb
   have hlen : g0.bs.length = g0.om.size := hm.1
+  -- the write is past the synced bytes
+  have hso : lay.so ≤ off.toNat := by
+    obtain ⟨hso', -, -, -, hB, -⟩ := habs.last g0 hg0
+    rcases hre with he | ⟨q, hq, hq0⟩
+    · omega
+    · refine Nat.le_of_not_lt fun hlt => ?_
+      have hbl : off.toNat < g0.bs.length := by
+        have := List.length_pos_iff.2 hd; omega
+      have hy : g0.bs[off.toNat]? = some (g0.bs.getD off.toNat (0, [])) := by
+        rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hbl]; rfl
+      have hold := hB off.toNat _ hy
+      rw [decide_eq_true hlt] at hold
+      have := hold.synced_stamps q hq
+      omega
   ihave Hm := (osMeta_halves _ _).2 $$ [Hm1 Hm2]
   · iframe
   icases (osBytes_split3 d.ino g0.om g0.bs off.toNat data.length _ hlen).1 $$ Hb1 with ⟨Hp1, Hr1, Hs1⟩
@@ -159,54 +175,54 @@ theorem wp_tailPWriteStart (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStrin
   let fl : SegFl := ⟨t, off.toNat, data, n, g0.om, g0.bs, none⟩
   let g' := segAnn g0 off.toNat data n
   let F' : GMap Ino SegFl := <[g0.ino := fl]> F
-  have hpre' : data <+: (segStream walCodec Mr dw lay.cuts lay.cuts.length).drop lay.wr := by
-    rw [← hwrl, ← hcuts]; rw [hH, hmd] at hS; exact hS
-  have hin'' : lay.wr + data.length ≤ g0.om.size := by rw [← hwrl]; exact hin
+  have hpre' : data <+: (segStream walCodec Mr dw lay.cuts lay.cuts.length).drop off.toNat := by
+    rw [← hcuts]; rw [hH, hmd] at hS; exact hS
+  have hoff1 : 0 < off.toNat := by have h1 := walAbsD_so_pos habs; omega
   imod tailVar_update γ _ _ (tailG dw (tailLay lay pre g' lay.wr) g'.ino (F' !! g'.ino)) $$ Hv Hv'
     with ⟨Hv, Hv'⟩
   ihave Hb := Hclose $$ %g' %lay.wr %F' [] [Htok Hp2 Hs2] Hv'
   · ipureintro
     refine ⟨hino.symm, rfl, by simp [g', segAnn, cfMeta, hcut0], segAnn_length hin' hlen, ?_, ?_, ?_⟩
     · intro z hz; rw [hlen]; exact hm.2.2 z hz
-    · intro ents' habs'; simp only [g']; rw [hwrl]; exact walAbsD_announce habs' hs hin'' hpre' hn
+    · intro ents' habs'; exact walAbsD_announce habs' hs hso hin' hpre' hn
     · intro i hi; exact GMap.lookup_insert_ne _ _ (fun h => hi (h.symm.trans hino.symm))
   · rw [show F' !! g'.ino = some fl from GMap.lookup_insert _ _ _]
     dsimp only [fl]
     rw [show g'.ino = d.ino from hino.symm]
     iframe Htok Hp2 Hs2
     ipureintro
-    exact segAnn_ok hin' hd hlen hcut0
-      (by have h1 := walAbsD_so_pos habs; have h2 := (habs.last g0 hg0).1; omega)
+    exact segAnn_ok hin' hd hlen hcut0 hoff1
   imod Hid
   imod Hcl $$ [Hb]
   · iexists s; iexact Hb
   imodintro
   have e : tailG dw (tailLay lay pre g' lay.wr) g'.ino (F' !! g'.ino) =
-      ((H, md, cuts, off.toNat, d.ino, some fl) : TailG) := by
+      ((H, md, cuts, wr, d.ino, some fl) : TailG) := by
     rw [show F' !! g'.ino = some fl from GMap.lookup_insert _ _ _]
     simp only [tailG, tailLay, g', segAnn]
     rw [hH, hmd, hcuts, hwrl, hino]
   rw [e, hlo, hhi]
-  have hwr0 : 0 < off.toNat := by
-    have h1 := walAbsD_so_pos habs; have h2 := (habs.last g0 hg0).1; omega
-  iapply HΦ $$ %t %n %(⟨hn, hwr0⟩ : 0 < n ∧ 0 < off.toNat) Hfd
+  iapply HΦ $$ %t %n %(⟨hn, hoff1⟩ : 0 < n ∧ 0 < off.toNat) Hfd
   unfold walTailFl
   iframe Hk Hv Hp1 Hs1
 
 /-- **The second step of a `pwrite` on the tail** (see the file header): the `k` bytes written, the
-write position past them, the file idle. -/
+write position past them (or where it was, for a retry below it), the file idle; the write's range
+carries its candidate, stamped positive (a retry from it is past the synced bytes). -/
 theorem wp_tailPWriteFinish (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (dir : GoString)
-    (γ : GName) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (i : Ino) (fl : SegFl)
-    (Φ : val → IProp GF) (hrz : fl.rz = none) (hn : 0 < fl.n) (hm : TailMeta fl.m fl.bs)
-    (hoff : 0 < fl.off) (hoffl : fl.off ≤ fl.bs.length) :
+    (γ : GName) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (wr : Nat) (i : Ino)
+    (fl : SegFl) (Φ : val → IProp GF) (hrz : fl.rz = none) (hn : 0 < fl.n) (hm : TailMeta fl.m fl.bs)
+    (hoff : 0 < fl.off) (hoffl : fl.off ≤ fl.bs.length) (hwrf : fl.off ≤ wr) :
     ⊢ walAreaOk walCodec Mr R jr r -∗
-      walTailFl dir γ (H, md, cuts, fl.off, i, some fl) i fl -∗
+      walTailFl dir γ (H, md, cuts, wr, i, some fl) i fl -∗
       (∀ (k : Nat) (e : w64) (zs : List Cands),
         ⌜k ≤ fl.data.length ∧ ((k = fl.data.length ∨ 0 < k) ∧ e = 0 ∨ e ≠ 0) ∧
           TailMeta (pwPost fl.m fl.off fl.data.length k) (finBytes fl.m fl.bs fl.off fl.data k fl.n zs) ∧
-          (pwPost fl.m fl.off fl.data.length k).size = fl.m.size⌝ -∗
+          (pwPost fl.m fl.off fl.data.length k).size = fl.m.size ∧
+          (∀ b, fl.off ≤ b → b < fl.off + fl.data.length →
+            ∃ q ∈ ((finBytes fl.m fl.bs fl.off fl.data k fl.n zs).getD b (0, [])).2, 0 < q.2)⌝ -∗
         walTailKey (W := W) dir γ -∗
-        tailVar (W := W) γ ((H, md, cuts, fl.off + k, i, none) : TailG) -∗
+        tailVar (W := W) γ ((H, md, cuts, max wr (fl.off + k), i, none) : TailG) -∗
         osMeta i (DFrac.own (1 : Qp).half) (pwPost fl.m fl.off fl.data.length k) -∗
         osBytes i 0 (DFrac.own (1 : Qp).half) (finBytes fl.m fl.bs fl.off fl.data k fl.n zs) -∗
         Φ (PairV (#(W64 k)) (#e))) -∗
@@ -224,11 +240,11 @@ theorem wp_tailPWriteFinish (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStri
     | nil => have := congrArg List.length h; simp only [List.length_take, List.length_nil] at this; omega
     | cons x xs => exact ⟨x, xs, rfl⟩
   ihave Hp1 := (show osBytes i 0 (DFrac.own (1 : Qp).half) (fl.bs.take fl.off) ⊢
-    osBytes (((H, md, cuts, fl.off, i, some fl) : TailG).2.2.2.2.1) 0 (DFrac.own (1 : Qp).half)
+    osBytes (((H, md, cuts, wr, i, some fl) : TailG).2.2.2.2.1) 0 (DFrac.own (1 : Qp).half)
       (x :: xs) by rw [hxs]) $$ Hp1
   icases walInvBody_tail walCodec walCodec_ok Mr R jr r s dir γ _ x xs $$ Hb Hk Hv Hp1 with
     ⟨%F, %dw, %lay, %pre, %g0, %hp, Hseg, Hk, Hv, Hv', Hp1, Hclose⟩
-  ihave Hp1 := (show osBytes (((H, md, cuts, fl.off, i, some fl) : TailG).2.2.2.2.1) 0
+  ihave Hp1 := (show osBytes (((H, md, cuts, wr, i, some fl) : TailG).2.2.2.2.1) 0
     (DFrac.own (1 : Qp).half) (x :: xs) ⊢ osBytes i 0 (DFrac.own (1 : Qp).half) (fl.bs.take fl.off)
       by rw [hxs]) $$ Hp1
   obtain ⟨hdw, hs, htg, ⟨ents, habs⟩, hcut0⟩ := hp
@@ -282,8 +298,8 @@ theorem wp_tailPWriteFinish (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStri
   ihave Hb2 := hfb _ $$ Hb2
   let g' := segFin fl g0 k zs
   let F' : GMap Ino SegFl := GMap.delete g0.ino F
-  imod tailVar_update γ _ _ (tailG dw (tailLay lay pre g' (fl.off + k)) g'.ino (F' !! g'.ino)) $$ Hv Hv'
-    with ⟨Hv, Hv'⟩
+  imod tailVar_update γ _ _ (tailG dw (tailLay lay pre g' (max lay.wr (fl.off + k))) g'.ino
+    (F' !! g'.ino)) $$ Hv Hv' with ⟨Hv, Hv'⟩
   have hzf0 : ∀ z, g0.om.zf = some z → g0.bs.length ≤ z := by
     intro z hz
     rw [hom] at hz
@@ -294,10 +310,10 @@ theorem wp_tailPWriteFinish (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStri
       rw [hbs]; simp only [List.length_append, List.length_take, List.length_drop, pwAnn_length]
       rw [cfRange_length hin hl, hlo, hhi]; omega
     rw [h2]; split <;> omega
-  ihave Hb := Hclose $$ %g' %(fl.off + k) %F' [] [Hm2 Hb2] Hv'
+  ihave Hb := Hclose $$ %g' %(max lay.wr (fl.off + k)) %F' [] [Hm2 Hb2] Hv'
   · ipureintro
     refine ⟨rfl, rfl, by simp [g', segFin, pwPost, hmc], segFin_length hok hk, hzf0, ?_, ?_⟩
-    · intro ents' habs'; exact walAbsD_finish habs' hs hok hwrl.symm hk hn
+    · intro ents' habs'; exact walAbsD_finish habs' hs hok (by omega) hk hn
     · intro i' hi; exact GMap.lookup_delete_ne _ (Ne.symm hi)
   · rw [show F' !! g'.ino = none from GMap.lookup_delete_eq _ _]
     dsimp only
@@ -317,13 +333,15 @@ theorem wp_tailPWriteFinish (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStri
     simp only [pwPost, hps]; split <;> omega
   have hpost : k ≤ fl.data.length ∧ ((k = fl.data.length ∨ 0 < k) ∧ e = 0 ∨ e ≠ 0) ∧
       TailMeta (pwPost fl.m fl.off fl.data.length k) (finBytes fl.m fl.bs fl.off fl.data k fl.n zs) ∧
-      (pwPost fl.m fl.off fl.data.length k).size = fl.m.size :=
-    ⟨hk, hke.2.1, htm, by simp [pwPost, hps]⟩
-  have htv : tailG dw (tailLay lay pre g' (fl.off + k)) g'.ino (F' !! g'.ino) =
-      ((H, md, cuts, fl.off + k, g0.ino, none) : TailG) := by
+      (pwPost fl.m fl.off fl.data.length k).size = fl.m.size ∧
+      (∀ b, fl.off ≤ b → b < fl.off + fl.data.length →
+        ∃ q ∈ ((finBytes fl.m fl.bs fl.off fl.data k fl.n zs).getD b (0, [])).2, 0 < q.2) :=
+    ⟨hk, hke.2.1, htm, by simp [pwPost, hps], fun b h1 h2 => segFin_cand (zs := zs) hok hk hn b h1 h2⟩
+  have htv : tailG dw (tailLay lay pre g' (max lay.wr (fl.off + k))) g'.ino (F' !! g'.ino) =
+      ((H, md, cuts, max wr (fl.off + k), g0.ino, none) : TailG) := by
     rw [show F' !! g'.ino = none from GMap.lookup_delete_eq _ _]
     simp only [tailG, tailLay, g', segFin]
-    rw [hH, hmd, hcuts]
+    rw [hH, hmd, hcuts, hwrl]
   rw [htv]
   iapply HΦ $$ %k %e %zs %hpost Hk Hv Hm1
   iexact Hb1

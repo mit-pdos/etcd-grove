@@ -238,23 +238,59 @@ theorem prefix_getD {data S : List w8} {off j : Nat} (h : data <+: S.drop off) (
     rw [← ht, List.getD_eq_getElem?_getD, List.getElem?_append_left hj, ← List.getD_eq_getElem?_getD]
   rw [← this, List.getD_eq_getElem?_getD, List.getElem?_drop, ← List.getD_eq_getElem?_getD]
 
-/-- **The first step of a write keeps the static relation** (the write at the write position, of
-the next bytes of the intended stream, inside the file, change number positive). -/
+/-- An unsynced byte's candidates: the old value's, then candidates of the intended value, stamped
+positive. -/
+theorem ByteOk.unsync {x y : w8} {a w : Bool} {g : ByteG} (h : ByteOk x y a w false g) :
+    ∃ ex : Cands, g.2 = (y, 0) :: ex ∧ (∀ q ∈ ex, q.1 = x ∧ 0 < q.2) ∧ (a = false → ex = []) := by
+  unfold ByteOk at h
+  simp only [Bool.false_eq_true, if_false] at h
+  obtain ⟨ex, h1, h2, h3, -⟩ := h
+  exact ⟨ex, h1, h2, h3⟩
+
+/-- **An announced candidate of the intended value keeps an unsynced byte's `ByteOk`** (written
+or not: a write announces the bytes it rewrites too). -/
+theorem ByteOk.ann {x y : w8} {a w : Bool} {g : ByteG} {n : Nat} (h : ByteOk x y a w false g)
+    (ha : a = true) (hn : 0 < n) : ByteOk x y a w false (g.1, g.2 ++ [(x, n)]) := by
+  unfold ByteOk at h ⊢
+  simp only [Bool.false_eq_true, if_false] at h ⊢
+  obtain ⟨ex, h1, h2, -, h4⟩ := h
+  refine ⟨ex ++ [(x, n)], by rw [h1]; rfl, ?_, fun h => absurd (ha.symm.trans h) (by decide), ?_⟩
+  · intro q hq
+    rcases List.mem_append.1 hq with hq | hq
+    · exact h2 q hq
+    · simp only [List.mem_singleton] at hq; subst hq; exact ⟨rfl, hn⟩
+  · cases w
+    · simpa using h4
+    · simp only [if_true] at h4 ⊢; exact ⟨h4.1, by simp⟩
+
+/-- A synced byte has no candidate stamped positive. -/
+theorem ByteOk.synced_stamps {x y : w8} {a w : Bool} {g : ByteG} (h : ByteOk x y a w true g) :
+    ∀ q ∈ g.2, q.2 = 0 := by
+  unfold ByteOk at h
+  simp only [if_true] at h
+  subst h
+  intro q hq
+  simp only [durB, List.mem_singleton] at hq
+  subst hq; rfl
+
+/-- **The first step of a write keeps the static relation**: the write past the synced bytes and at
+or below the write position (a retry rewrites bytes an earlier attempt wrote), of the intended
+bytes from there, inside the file, change number positive. -/
 theorem walAbsD_announce {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
-    {pre : List SegG} {g0 : SegG} {data : List w8} {n : Nat}
+    {pre : List SegG} {g0 : SegG} {off : Nat} {data : List w8} {n : Nat}
     (habs : WalAbsD C Mr d lay ents) (hs : lay.segs = pre ++ [g0])
-    (hin : lay.wr + data.length ≤ g0.om.size)
-    (hpre : data <+: (segStream C Mr d lay.cuts lay.cuts.length).drop lay.wr) (hn : 0 < n) :
-    WalAbsD C Mr d (tailLay lay pre (segAnn g0 lay.wr data n) lay.wr) ents := by
+    (hso : lay.so ≤ off) (hin : off + data.length ≤ g0.om.size)
+    (hpre : data <+: (segStream C Mr d lay.cuts lay.cuts.length).drop off) (hn : 0 < n) :
+    WalAbsD C Mr d (tailLay lay pre (segAnn g0 off data n) lay.wr) ents := by
   have hg0 : lay.segs.getLast? = some g0 := by rw [hs]; simp
   have hg0m : g0 ∈ lay.segs := List.mem_of_getLast? hg0
   obtain ⟨hsz, hcut, hlo, hhi⟩ := habs.metas g0 hg0m
-  obtain ⟨hso, hwS, -, hwo, hB, -⟩ := habs.last g0 hg0
+  obtain ⟨hso', hwS, -, hwo, hB, -⟩ := habs.last g0 hg0
   have hl : g0.bs.length = g0.om.size := hsz.symm
   have hlen := segAnn_length (n := n) hin hl
-  refine walAbsD_tail habs hs rfl rfl ?_ hlen hso (habs.last g0 hg0).2.2.2.2.2.1 hwS hwo ?_
+  refine walAbsD_tail habs hs rfl rfl ?_ hlen hso' (habs.last g0 hg0).2.2.2.2.2.1 hwS hwo ?_
   · rw [hlen]
-    have hT : max g0.om.size (lay.wr + data.length) = g0.om.size := by omega
+    have hT : max g0.om.size (off + data.length) = g0.om.size := by omega
     simp only [segAnn, cfMeta, announce_size, OsMeta.announce_cut, announce_lo, announce_hi, hT]
     exact ⟨hsz, hcut, by omega, by omega⟩
   · intro b x hx
@@ -263,26 +299,22 @@ theorem walAbsD_announce {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wa
     · rename_i hb
       obtain ⟨y, hy, rfl⟩ := Option.map_eq_some_iff.1 hx
       have hold := hB b y hy
-      rw [decide_eq_false (show ¬ b < lay.wr by omega),
-        decide_eq_false (show ¬ b < lay.so by omega)] at hold ⊢
-      obtain ⟨ex, h1, h2, -, h4⟩ := byteOk_ff.1 hold
-      obtain ⟨hdj, hbS⟩ := prefix_getD hpre (j := b - lay.wr) (by omega)
-      rw [show lay.wr + (b - lay.wr) = b by omega] at hdj hbS
-      refine byteOk_ff.2 ⟨ex ++ [(data.getD (b - lay.wr) 0, n)], by simp [h1], ?_, ?_, h4⟩
-      · intro q hq
-        rcases List.mem_append.1 hq with hq | hq
-        · exact h2 q hq
-        · simp only [List.mem_singleton] at hq; subst hq; exact ⟨hdj, hn⟩
-      · intro ha; simp at ha; omega
+      rw [decide_eq_false (show ¬ b < lay.so by omega)] at hold ⊢
+      obtain ⟨hdj, hbS⟩ := prefix_getD hpre (j := b - off) (by omega)
+      rw [show off + (b - off) = b by omega] at hdj hbS
+      rw [decide_eq_true hbS] at hold ⊢
+      show ByteOk _ _ _ _ _ (y.1, y.2 ++ [(data.getD (b - off) 0, n)])
+      rw [hdj]
+      exact ByteOk.ann hold rfl hn
     · exact hB b x hx
 
 /-- **The second step of a write keeps the static relation**, the write position past the `k`
-bytes written. -/
+bytes written (or where it was, if a retry rewrote bytes below it). -/
 theorem walAbsD_finish {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
     {pre : List SegG} {g0 : SegG} {fl : SegFl} {k : Nat} {zs : List Cands}
     (habs : WalAbsD C Mr d lay ents) (hs : lay.segs = pre ++ [g0]) (hok : fl.Ok g0)
-    (hwr : lay.wr = fl.off) (hk : k ≤ fl.data.length) (hn : 0 < fl.n) :
-    WalAbsD C Mr d (tailLay lay pre (segFin fl g0 k zs) (fl.off + k)) ents := by
+    (hwr : fl.off ≤ lay.wr) (hk : k ≤ fl.data.length) (hn : 0 < fl.n) :
+    WalAbsD C Mr d (tailLay lay pre (segFin fl g0 k zs) (max lay.wr (fl.off + k))) ents := by
   have hg0 : lay.segs.getLast? = some g0 := by rw [hs]; simp
   have hg0m : g0 ∈ lay.segs := List.mem_of_getLast? hg0
   obtain ⟨hsz, hcut, hlo, hhi⟩ := habs.metas g0 hg0m
@@ -292,26 +324,38 @@ theorem walAbsD_finish {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalL
   have hlen := segFin_length (zs := zs) hok hk
   have hdl : 0 < fl.data.length := List.length_pos_iff.2 hd
   have hg0l : g0.bs.length = fl.m.size := by rw [← hsz, hm]; simp [cfMeta]
+  -- the announced bytes of the range
+  have hya : ∀ b, fl.off ≤ b → b < fl.off + fl.data.length → ∃ hbl : b < fl.bs.length,
+      g0.bs[b]? = some (fl.bs[b].1, fl.bs[b].2 ++ [(fl.data.getD (b - fl.off) 0, fl.n)]) := by
+    intro b h1 h2
+    have hbl : b < fl.bs.length := by omega
+    refine ⟨hbl, ?_⟩
+    have e : g0 = segAnn ⟨g0.name, g0.ino, fl.m, fl.bs⟩ fl.off fl.data fl.n := by
+      cases g0 with
+      | mk nm ino om bs => simp only at hm hbs; subst hm hbs; rfl
+    rw [e, segAnn_getElem? hin hl, if_pos ⟨h1, h2⟩, List.getElem?_eq_getElem hbl]; rfl
+  -- the write starts past the synced bytes: its first byte carries the write's candidate
+  have hso' : lay.so ≤ fl.off := by
+    refine Nat.le_of_not_lt fun hlt => ?_
+    obtain ⟨hbl, hy⟩ := hya fl.off (Nat.le_refl _) (by omega)
+    have hold := hB fl.off _ hy
+    rw [decide_eq_true hlt] at hold
+    have h0 := hold.synced_stamps (fl.data.getD (fl.off - fl.off) 0, fl.n) (by simp)
+    simp only at h0; omega
   -- a byte of the range: its intended value is the data's, and it is in the stream
   have hrng : ∀ b, fl.off ≤ b → b < fl.off + fl.data.length → ∃ y : ByteG, g0.bs[b]? = some y ∧
       fl.data.getD (b - fl.off) 0 = (segStream C Mr d lay.cuts lay.cuts.length).getD b 0 ∧
       b < (segStream C Mr d lay.cuts lay.cuts.length).length ∧
       ∃ ex : Cands, y.2 = (lay.old.getD b 0, 0) :: ex ∧
         (∀ q ∈ ex, q.1 = (segStream C Mr d lay.cuts lay.cuts.length).getD b 0 ∧ 0 < q.2) ∧
-        ex ≠ [] ∧ y.1 = lay.old.getD b 0 := by
+        ex ≠ [] := by
     intro b h1 h2
-    have hbl : b < fl.bs.length := by omega
-    have hy : g0.bs[b]? = some (fl.bs[b].1, fl.bs[b].2 ++ [(fl.data.getD (b - fl.off) 0, fl.n)]) := by
-      have e : g0 = segAnn ⟨g0.name, g0.ino, fl.m, fl.bs⟩ fl.off fl.data fl.n := by
-        cases g0 with
-        | mk nm ino om bs => simp only at hm hbs; subst hm hbs; rfl
-      rw [e, segAnn_getElem? hin hl, if_pos ⟨h1, h2⟩, List.getElem?_eq_getElem hbl]; rfl
+    obtain ⟨hbl, hy⟩ := hya b h1 h2
     refine ⟨_, hy, ?_⟩
     have hold := hB b _ hy
-    rw [decide_eq_false (show ¬ b < lay.wr by omega),
-      decide_eq_false (show ¬ b < lay.so by omega)] at hold
-    obtain ⟨ex, e1, e2, e3, e4⟩ := byteOk_ff.1 hold
-    simp only at e1 e4
+    rw [decide_eq_false (show ¬ b < lay.so by omega)] at hold
+    obtain ⟨ex, e1, e2, e3⟩ := hold.unsync
+    simp only at e1
     have hmem : (fl.data.getD (b - fl.off) 0, fl.n) ∈ ex := by
       cases hc : fl.bs[b].2 with
       | nil => rw [hc] at e1; simp at e1; omega
@@ -324,8 +368,12 @@ theorem walAbsD_finish {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalL
       rcases Nat.lt_or_ge b (segStream C Mr d lay.cuts lay.cuts.length).length with h | h
       · exact h
       · exact absurd (e3 (decide_eq_false (by omega))) hne
-    exact ⟨hq.1, hbS, ex, e1, e2, hne, e4⟩
-  refine walAbsD_tail habs hs rfl rfl ?_ hlen (by omega) (by omega) ?_ (by omega) ?_
+    exact ⟨hq.1, hbS, ex, e1, e2, hne⟩
+  have hkS : fl.off + k ≤ (segStream C Mr d lay.cuts lay.cuts.length).length := by
+    by_cases hk0 : k = 0
+    · subst hk0; omega
+    · obtain ⟨-, -, -, hbS, -⟩ := hrng (fl.off + k - 1) (by omega) (by omega); omega
+  refine walAbsD_tail habs hs rfl rfl ?_ hlen (by omega) (by omega) (by omega) (by omega) ?_
   · have hT : max fl.m.size (fl.off + fl.data.length) = fl.m.size := by omega
     have hps : pwSize fl.m.size fl.off k = fl.m.size := by unfold pwSize; split <;> omega
     have hlo' := hlo; have hhi' := hhi
@@ -334,27 +382,47 @@ theorem walAbsD_finish {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalL
     rw [hlen]
     simp only [segFin, pwPost, hps, announce_lo, announce_hi, OsMeta.announce_cut]
     exact ⟨hg0l.symm, hcut, hlo', hhi'⟩
-  · by_cases hk0 : k = 0
-    · subst hk0; omega
-    · obtain ⟨-, -, -, hbS, -⟩ := hrng (fl.off + k - 1) (by omega) (by omega); omega
   · intro b x hx
     rw [segFin_getElem? hok hk] at hx
     split at hx
     · rename_i hb
       obtain ⟨y, hy, rfl⟩ := Option.map_eq_some_iff.1 hx
-      obtain ⟨y', hy', hdv, hbS, ex, e1, e2, hne, -⟩ := hrng b hb.1 (by omega)
+      obtain ⟨y', hy', hdv, hbS, ex, e1, e2, hne⟩ := hrng b hb.1 (by omega)
       rw [hy] at hy'; cases hy'
-      rw [decide_eq_true (show b < fl.off + k by omega),
+      rw [decide_eq_true (show b < max lay.wr (fl.off + k) by omega),
         decide_eq_false (show ¬ b < lay.so by omega)]
       unfold ByteOk
       simp only [Bool.false_eq_true, if_false, if_true]
       exact ⟨ex, e1, e2, fun h => by simp at h; omega, hdv, hne⟩
     · rename_i hb
       have hold := hB b x hx
-      by_cases h1 : b < fl.off
-      · rwa [decide_eq_true (show b < fl.off + k by omega), ← decide_eq_true (show b < lay.wr by omega)]
-      · rwa [decide_eq_false (show ¬ b < fl.off + k by omega),
-          ← decide_eq_false (show ¬ b < lay.wr by omega)]
+      have e : decide (b < max lay.wr (fl.off + k)) = decide (b < lay.wr) := by
+        by_cases h1 : b < fl.off
+        · rw [decide_eq_true (show b < max lay.wr (fl.off + k) by omega),
+            decide_eq_true (show b < lay.wr by omega)]
+        · have h2 : fl.off + k ≤ b := by omega
+          by_cases h3 : b < lay.wr
+          · rw [decide_eq_true (show b < max lay.wr (fl.off + k) by omega), decide_eq_true h3]
+          · rw [decide_eq_false (show ¬ b < max lay.wr (fl.off + k) by omega), decide_eq_false h3]
+      rw [e]; exact hold
+
+/-- **A finished write's range carries its candidate** (stamped positive): a retry from a byte of the
+range starts past the synced bytes (`wp_tailPWriteStart`'s premise). -/
+theorem segFin_cand {fl : SegFl} {g0 : SegG} {k : Nat} {zs : List Cands} (hok : fl.Ok g0)
+    (hk : k ≤ fl.data.length) (hn : 0 < fl.n) (b : Nat) (h1 : fl.off ≤ b)
+    (h2 : b < fl.off + fl.data.length) :
+    ∃ q ∈ ((segFin fl g0 k zs).bs.getD b (0, [])).2, 0 < q.2 := by
+  have hok' := hok
+  obtain ⟨hin, -, hl, -, hm, hbs, -⟩ := hok'
+  have hbl : b < fl.bs.length := by omega
+  have hy : g0.bs[b]? = some (fl.bs[b].1, fl.bs[b].2 ++ [(fl.data.getD (b - fl.off) 0, fl.n)]) := by
+    have e : g0 = segAnn ⟨g0.name, g0.ino, fl.m, fl.bs⟩ fl.off fl.data fl.n := by
+      cases g0 with
+      | mk nm ino om bs => simp only at hm hbs; subst hm hbs; rfl
+    rw [e, segAnn_getElem? hin hl, if_pos ⟨h1, h2⟩, List.getElem?_eq_getElem hbl]; rfl
+  refine ⟨(fl.data.getD (b - fl.off) 0, fl.n), ?_, hn⟩
+  rw [List.getD_eq_getElem?_getD, segFin_getElem? hok hk, hy]
+  split <;> simp
 
 /-! ## The crash condition and `WalsOk` -/
 
