@@ -510,7 +510,7 @@ module; the bboltfs/crashlog/walfs examples and the generated translations not l
 - `os/`: `File.Truncate.wp_proofAu` (`File__TruncateAu.lean`), `File.WriteAt.wp_proof_long` (`WriteLong.lean`,
   past 1 GiB).
 Not yet stated (no `sorry`, no statement): `Close`, `ReleaseLockTo`, `Repair`, `ValidSnapshotEntries`, `Exist`
-(§4.2's W7-W12), the `walCreating` minting step, the WAL-level resize updates (I3b's open items).
+(§4.2's W7-W12), the WAL-level resize updates (I3b's open items). `Create`'s ghost steps (drop, mint, unmint, merges) are proved (`wal-create10`; W4 log, tenth session).
 
 ## W1 implementation log (branch `wal-inv`, 2026-11-13)
 
@@ -787,6 +787,24 @@ coordinator's decisions). Both separate; every lemma below builds, no `sorry`.
   WAL directory's `0.tmp`/`1.tmp`, a leftover file whole), deposited. `walAbs_crashOk_start`'s `hj` is now
   `∀ m', RegionCrashed cl n m' → walInos (entsOf m' lay.j) = walInos ents` (`start_walEnt`, `walInos_congr`;
   `Crash.lean` imports `CutSynced`).
+
+**Ninth session (branch `wal-create10`, 2026-11-13; W4's tenth session): two invariant changes (the
+coordinator's decision for the first, mine for the second).**
+- *No WAL's directory is the area directory*: folded into **`WalsAt`** (`Inv.lean`), whose per-layout clause is
+  now `lay.j ≠ jr ∧ ∀ N h, …` (accessors `WalsAt.ne`, `WalsAt.at`, `WalsAt.not_walDirClaimOf`: a claim of `jr` is
+  no WAL directory's claim). Carried: every layout change keeps `lay.j` (`walsAt_congr` checks it); `Create`'s
+  commit has `CreatingNew`'s `J ≠ jr` (`walsAt_create`); through the crash, **`WalsStart` gains a last clause**
+  `∀ dir lay, Ls !! dir = some lay → lay.j ≠ jr` (so `hst.2.2.2.2` is now `hst.2.2.2.2.1`), which `walCrash_pure`
+  proves from a new premise `hjne` (the old invariant's `WalsAt.ne`, passed by `walInv_crash`) and `CrashGood`'s
+  `lay'.j = lay.j`; `walsAt_start` reads it. **For the concurrent units**: a use `hA dir lay hl N h hm hN` becomes
+  `hA.at hl hm hN`; a new proof of `WalsAt` gives `lay.j ≠ jr` first (`refine ⟨hA.ne hl, fun N h hm hN => ?_⟩`).
+- *The creating map holds the free lock token* (`walCreatingAuth`'s non-empty case: `walUnlockedTok`, was
+  `walLockedTok`): the parking flag stays `true` while `Create` is between the minting and the rename, so an
+  abort (`walInvBody_unmint`) gets the free token back with everything parked (with the flag `false`, nothing
+  recorded that `O`, `D`, `T` stayed empty). `walCreating_mint` no longer takes `walParkAuth`;
+  `walCreating_delete` gives `walUnlockedTok`; `Create`'s commit takes the lock after the deletion
+  (`walParked_lock`, `CreateKeys.lean`: flag to `false`, nothing out, `walTmpParked_unpark`). The drop's
+  exclusion is `walUnlockedTok_excl`. `Close`'s exclusion of a non-empty map is `walLockedTok_unlocked_excl`.
 
 ## 9. The trusted-model drafts (2026-11-13, branch `wal-models`; pending the user's review [user])
 
@@ -1902,6 +1920,42 @@ update: `s.wal dir := walDurFresh md`, the new layout and its `CrashOk`); then `
   needs `jr ≠ lay.j` for every layout, e.g. a `WalsOk` fact that the area directory is no WAL's
   directory, or the merge done before the lock goes to the handle), the minting, the unminting,
   `wal.Create.wp_proof` (`sorry`).
+
+**Tenth session (branch `wal-create10`, 2026-11-13).**
+- *Task 1 (done)*: `lay.j ≠ jr` in the invariant (`WalsAt`), and the creating map's token (W1 log, ninth
+  session). Both built with every `Inv` importer.
+- *Covering changes of the area claims* (`CreateMerge.lean`, pure): **`CoverOk jr cl cl' n`** (crashes of `cl'`
+  are `cl`'s, its claims of other directories `cl`'s with their multiplicities, its claims of `jr` say of a WAL
+  name what one of `cl` said and hold every WAL name one of `cl` held); every pure fact carries over
+  (`walsOk_cover`, `absentNone_cover`, `walsNamed_cover`, `walsCreateOk_cover`, `dirKeysOk_cover`,
+  `walsAt_cover`); **`mergeClaims cl c1 c2 c`** (`replClaim c1 c (cl.filter (· ≠ c2))`) covers under `MergeOk`
+  (`coverOk_merge`); `mintClaims` covers (`coverOk_mint`).
+- *Coherence of a held claim* (`CreateCoh.lean`): **`namesOf_coh`** (`ClaimCoh (namesOf V j N) j N` under
+  `Starts`: the log's entries in order, and `now_entry_slotAfter`, the tree now has each slot as its last
+  writer left it, `prefTree_frame`), **`osNames_coh`**. This gives `CreatingOk`'s `ClaimCoh` at the minting.
+- *The steps* (`CreateMergeStep.lean`, `CreateMint.lean`; ghost updates with `walInvBody` and `osSharedInv`
+  open, at a mask holding `osShN`): **`walInvBody_merge2`** (the program's halves of two area claims, each
+  found through a WAL name it holds, merged; a lock token `T` the program holds, excluding a non-empty
+  creating map): the merge back after the commit (`T = walLockedTok`) and after the unminting
+  (`T = walUnlockedTok`); **`walInvBody_mergeIn`** (half an area claim and a whole claim of the area with no
+  WAL name, e.g. `nm.tmp`'s, the invariant holding none of it): an abort before the minting;
+  **`walInvBody_unmint`** (the entry deleted, the free token back); **`walInvBody_mint`** (premises: `nm` a
+  WAL name in `N`, `tmp ∉ N`, `N.diff [nm]` non-empty, `tmp` no WAL nor `.wal` name, `nm ∉ X`, `X` no `.wal`
+  name; the program's free token, half area claim, `tmp`'s claim whole, `J`'s `.except X` claim whole (given
+  back); out: the token `walCreating dir (.only [nm, tmp]) hC J`, halves of `(jr, N.diff [nm], …)` and of the
+  creating claim, `hC.restrict jr (.only [tmp]) = hT.restrict …` (so `hC.cur !! tmp` is `nm.tmp`'s entry,
+  `cur_of_part`), `hC.restrict jr (N.inter [nm]) = h.restrict …`, `hC.next = max …`). Helpers:
+  `osClaims_once`, `osClaims_not_mem`, `osClaims_excl` (a whole claim held shares no name with the
+  invariant's claims of its directory), `osClaims_filter_once`, `walCreating_empty`, `walParked_cover`.
+  No `sorry` in any of them.
+- *For `Create`'s body* (not started): the sequence is `walInvBody_drop` (tmp) → `RemoveAll`/`CreateDirAll`
+  /segment/`SaveSnapshot.specPre`/fsync of `nm.tmp` → `walInvBody_mint` (J's claim split `.except walTmps` +
+  `walTmpsRes J` first) → `walCreate_osAUnc` → parent fsync (`walInvBody_named`) → `walInvBody_merge2` (the
+  part off `nm` and the renamed creating claim, `T = walLockedTok`; `b1` a WAL name other than `nm`, e.g.
+  `nm ++ "a"`) → the handle; error arms `walInvBody_mergeIn` (before the minting) or `walInvBody_unmint` +
+  `walInvBody_merge2` (after it, before the rename). Each step needs `walInv` open at a program step
+  (`walInv_open` with the generation's `notCrashed`) and `osSharedInv`. Then `walAreaRes`'s pure facts of the
+  merged claim (`N'' ⊇` every WAL name and `nm.<sfx>`; `SubCover`/`FilesOnly` of the program's whole claims).
 
 **For `wal-create6` (the invariant's owner, 2026-11-13).** (1) `walAreaRes jr` gains `⌜∀ nm J, walNameOk nm →
 h.cur !! tmpName nm = some (.dir J) → ∀ hJ, (J, NameSet.except [], hJ) ∈ cl → FilesOnly hJ.cur⌝` (a leftover
