@@ -646,6 +646,42 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
     icases Hdc with ⟨%lc, %tab, %Hh, Hlc, #Htab⟩
     subst Hh
     wp_auto
+    wp_apply HWrite lc c tab v.Data' r.data (DFrac.own 1) $$ [Hlc Hrdata] as ⟨Hlc, Hrdata⟩
+    · iframe
+      iframe Htab
+    wp_apply HSum lc _ tab (DFrac.own 1) $$ Hlc as Hlc
+    icases Hcm with ⟨%ecm, #Hecm, #Hecmok⟩
+    wp_apply HValidate rp r (hash.crc32.crc32c c r.data) ecm $$ [Hrv Hrdata] as %err4 ⟨Hrec, Hv⟩
+    · iframe Hecm Hecmok
+      iunfold ownRec
+      iexists v
+      iframe
+      iframe Ht Hc
+    have hCc : C.crc32c c r.data = hash.crc32.crc32c c r.data := by rw [hC]
+    icases Hv with (%hv | ⟨%hne, %ei4, %he4, #Hei4⟩)
+    · -- the CRC matches: the record is accepted
+      obtain ⟨rfl, hcrc⟩ := hv
+      wp_auto
+      have hstep : decRecStep C fs.isEmpty F.bs off c =
+          .accept r (8 + rb + pad) (hash.crc32.crc32c c r.data) := by
+        rw [hstep0]; unfold decRecData; rw [hdec]; simp [hct, hCc, hcrc]
+      rw [hacc_off]
+      iapply HΦ
+      iapply decPost_accept C d rp IoE eof ueof F fs off c _ r _ hstep
+      iframe Hrec
+      iapply ownDecoder_intro d IoE eof sl fbr fbrs _ F fs (F.bs.take off ++ ys ++ ys2) _ _ true
+        hacc_lt (fun _ => hacc_rs)
+      iframe
+      iframe Hmu Hsl
+      isplitl [Hlc]
+      · iunfold ownDecCrc
+        iexists lc, tab
+        iframe
+        iframe Htab
+        ipureintro; rfl
+      iapply ownFbr_intro
+      iframe
+      iframe Hf HF Hfio
     sorry
 
 end proof
