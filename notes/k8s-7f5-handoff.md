@@ -28,7 +28,7 @@ transfer does not give it; flagged in the freeze note's T5-a review section)**, 
 (`Proof/go_etcd_io/etcd/client/v3/WithRequireLeaderLaws.lean`, proved); `NewLeaseFromLeaseClient`'s
 pattern updated. The three holder findings (`backend.txLive/snapRO/rtxStats`) are not from this branch
 (it touches no backend file; they did not fail the gate). Build/tcb/axiom-tok results:
-`/shared/tmp/k8s7f3a/{full3,tcb3,atok3}.log`.
+`/shared/tmp/k8s7f3a/{full3,tcb3,atok3}.log`: full build passes (17486 jobs), tcb matches (870/4), axiom-tok ok (0 unknown, 0 truncated).
 
 Next, in order: 81's word on the third part; if the axiom-tok log is clean, `etc/land.sh` (with
 `LAKE_PACKAGES=/shared/tmp/manifest-ddc.json`, not under GOWORK=off; re-merge lean if refused: the
