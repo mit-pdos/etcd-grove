@@ -57,6 +57,20 @@ abbrev os.Remove.specFileS : Prop :=
   {{ (err : GoInterface), RET #err; osPathS R d dq j ∗ osCallPerm qc ∗
       ∃ o, ⌜err = interface.nil → o.isSome⌝ ∗ Q o ∗ rmFileOut j b i h (DFrac.own q) o }}
 
+/-- `specFileS` with `osAUnc` (`Proof/os/SharedAu.lean`): its opening gets the generation's
+`notCrashed`, so a client can open an invariant with a crash branch (the WAL's `walInv`) at it; it
+gives `specFileS` (`osAU_osAUnc`). -/
+abbrev os.Remove.specFileSnc : Prop :=
+  ∀ (d b : GoString) (j i : Ino) (R : Roots) (dq : DFrac) (h : NamesH) (q r qc : Qp)
+    (Q : Option (Nat × Nat) → IProp GF),
+  NameOk b → h.cur !! b = some (.file i) → q + r = 1 →
+  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm qc ∗
+      osNames j (.only [b]) (DFrac.own q) h ∗
+      osAUnc (osNames j (.only [b]) (DFrac.own r) h) (rmFileOut j b i h (DFrac.own r)) Q }}
+    (App (Val (@! os.Remove)) (Val #(child d b)))
+  {{ (err : GoInterface), RET #err; osPathS R d dq j ∗ osCallPerm qc ∗
+      ∃ o, ⌜err = interface.nil → o.isSome⌝ ∗ Q o ∗ rmFileOut j b i h (DFrac.own q) o }}
+
 end spec
 
 end EtcdGrove
