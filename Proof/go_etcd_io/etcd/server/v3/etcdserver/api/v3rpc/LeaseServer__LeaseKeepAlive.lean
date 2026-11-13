@@ -30,11 +30,12 @@ theorem v3rpc.LeaseServer.LeaseKeepAlive.wp_proof
     (hLoop : v3rpc.LeaseServer.leaseKeepAlive.spec (GF := GF) (hG := hG)) :
     v3rpc.LeaseServer.LeaseKeepAlive.spec (GF := GF) (hG := hG) := by
   intro p s A cid mid E γl S' st γs Up Dn ci cd
-  wp_start as ⟨#Hls, #HRn, #Hst, #Hspec, #HUp, Hrt, Hstt, HS, HR, %HT5⟩
+  wp_start as ⟨#Hls, #HRn, #Hst, #Hspec, #HUp, Hrt, Hstt, HS, HR, HE, %HT5⟩
   ihave #Hst' := Hst
-  iunfold srvStreamIsStrong at Hst'
-  icases Hst' with ⟨%si, %Hsi, -, -, #HCtx, #Hctxis, -⟩
-  ihave #Hctx2 := Hctxis
+  iunfold srvStreamIs at Hst'
+  icases Hst' with ⟨%si, %Hsi, -, -, #HCtx, #Hwk, -⟩
+  ihave #Hctx2 := Hwk
+  iunfold srvCtxWeak at Hctx2
   iNamed Hctx2
   ihave #Pv3 : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc $$ []
   · iPkgInit
@@ -87,7 +88,7 @@ theorem v3rpc.LeaseServer.LeaseKeepAlive.wp_proof
     iintro %ve %okE -
     wp_auto
     iapply HΦ
-    iframe #
+    iframe HE; iframe #
   iapply BigAndL.bigAndL_cons.2
   isplit
   · -- `<-stream.Context().Done()`: the context's error
@@ -105,10 +106,10 @@ theorem v3rpc.LeaseServer.LeaseKeepAlive.wp_proof
     · itrivial
     iintro !> -
     wp_auto
-    wp_apply +noauto HErrDone $$ [$HCC] as %cerr - -
+    wp_apply +noauto HErrDone $$ HCC HE as %cerr - - HE
     wp_auto
     iapply HΦ
-    iframe #
+    iframe HE; iframe #
   iapply BigAndL.bigAndL_nil.2
   itrivial
 

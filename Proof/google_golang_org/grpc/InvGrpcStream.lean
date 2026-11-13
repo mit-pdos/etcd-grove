@@ -523,8 +523,9 @@ a message `Rep.send l m` with the handler's content `Dn j m` for its position `j
 sender's token (or fails, the message delivered or not: the token at the old or the new list);
 and whose `Context()` returns the run's context `ci`, a weak one (`srvCtxWeak ci cd`, k8s 7f-4 item
 7: etcd's stream interceptor may pass a `cancellableContext`) with its library values and span well
-formed (`context.libCtxOk ci`, `trace.spanCtxOk ci`) and its causes context errors or etcd's
-no-leader error (`v3rpc.ctxCauseOk ci`, Addendum T-k). Derived from the raw end with a weak context
+formed (`context.libCtxOk ci`, `trace.spanCtxOk ci`), nothing at net/http's keys in the chain form
+(`http.netCtxOkC ci`, the raw end's) and its causes context errors or etcd's no-leader error
+(`v3rpc.ctxCauseOk ci`, Addendum T-k). Derived from the raw end with a weak context
 (`srvStreamIs_of_raw`, over `srvRawStreamIsW`). -/
 def srvStreamIs (st : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
     (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF) (ci : GoInterfaceOk)
@@ -549,47 +550,14 @@ def srvStreamIs (st : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
             ⌜L' = L ∨ L' = L ++ [m]⌝ ∗ srvSendTok (Rep := Rep) γ L') }}) ∗
     □ ({{ True }} (App (Val #(methods si.ty go!"Context" si.v)) (Val #()))
       {{ RET #(GoInterface.ok ci); True }}) ∗
-    srvCtxWeak ci cd ∗ context.libCtxOk ci ∗ trace.spanCtxOk ci ∗ v3rpc.ctxCauseOk ci)
+    srvCtxWeak ci cd ∗ context.libCtxOk ci ∗ trace.spanCtxOk ci ∗ http.netCtxOkC ci ∗
+    v3rpc.ctxCauseOk ci)
 
 instance srvStreamIs_persistent (st : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
     (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) :
     Persistent (srvStreamIs st γ Req Rep Up Dn ci cd) := by
   unfold srvStreamIs; infer_instance
-
-/-- (TEMPORARY, k8s 7f-4 item 7: until step 5 re-proves `LeaseKeepAlive` over the weak end; nothing
-produces it) `srvStreamIs` with grpc's strong run context, as it was before item 7, and (Addendum
-T-h0) nothing at net/http's keys (`http.netCtxOkC ci`, as `srvRawStreamIs`). -/
-def srvStreamIsStrong (st : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
-    (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF) (ci : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) : IProp GF :=
-  iprop(∃ si : GoInterfaceOk, ⌜st = GoInterface.ok si⌝ ∗
-    □ (∀ L : List Req.M,
-      {{ srvRecvTok (Req := Req) γ L }}
-        (App (Val #(methods si.ty go!"Recv" si.v)) (Val #()))
-      {{ (req : Loc) (err : GoInterface), RET (PairV #req #err);
-          (⌜err = GoInterface.nil⌝ ∗ ∃ m : Req.M, Req.recv req m ∗ Up L.length m ∗
-            srvRecvTok (Req := Req) γ (L ++ [m])) ∨
-          (eofIs err ∗ ⌜err ≠ GoInterface.nil⌝ ∗ srvRecvTok (Req := Req) γ L ∗
-            upClosed (Req := Req) γ L) ∨
-          (⌜err ≠ GoInterface.nil⌝ ∗ streamErr err ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
-            srvRecvTok (Req := Req) γ L) }}) ∗
-    □ (∀ (L : List Rep.M) (l : Loc) (m : Rep.M),
-      {{ srvSendTok (Rep := Rep) γ L ∗ Rep.send l m ∗ Dn L.length m }}
-        (App (Val #(methods si.ty go!"Send" si.v)) (Val #l))
-      {{ (err : GoInterface), RET #err;
-          (⌜err = GoInterface.nil⌝ ∗ srvSendTok (Rep := Rep) γ (L ++ [m])) ∨
-          (⌜err ≠ GoInterface.nil⌝ ∗ streamErr err ∗ ∃ L' : List Rep.M,
-            ⌜L' = L ∨ L' = L ++ [m]⌝ ∗ srvSendTok (Rep := Rep) γ L') }}) ∗
-    □ ({{ True }} (App (Val #(methods si.ty go!"Context" si.v)) (Val #()))
-      {{ RET #(GoInterface.ok ci); True }}) ∗
-    context.isContext ci cd ∗ grpcRunCtx ci ∗ http.netCtxOkC ci)
-
-instance srvStreamIsStrong_persistent (st : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
-    (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF) (ci : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) :
-    Persistent (srvStreamIsStrong st γ Req Rep Up Dn ci cd) := by
-  unfold srvStreamIsStrong; infer_instance
 
 /-! ## The client end -/
 
@@ -700,7 +668,7 @@ theorem srvStreamIs_of_raw {Req Rep : StreamMsg GF} (V W : Type) [ZeroVal V]
       (google_golang_org.grpc.GenericServerStream.ty Req.ty Rep.ty)) #p) γ Req Rep Up Dn ci cd := by
   iintro ⟨#Hf, #Hraw, #Hown⟩
   iunfold srvRawStreamIsW at Hraw
-  icases Hraw with ⟨%si, %Hst, #HRecv, #HSend, #HCtx, #Hctx, #Hrc, #Hrs, -, #Hcause⟩
+  icases Hraw with ⟨%si, %Hst, #HRecv, #HSend, #HCtx, #Hctx, #Hrc, #Hrs, #Hnet, #Hcause⟩
   subst Hst
   unfold srvStreamIs
   iexists _

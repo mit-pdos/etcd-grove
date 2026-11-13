@@ -56,7 +56,7 @@ local macro "ka_log_ret" lbl:term:max : tactic => `(tactic| (
     · itrivial
     iintro !> -
     wp_auto
-    wp_apply +noauto HErrU $$ [] as %cerr - -
+    wp_apply +noauto HErr $$ HE as %cerr HE
     wp_auto
     wp_apply hICE as %bc -
     wp_if_destruct
@@ -164,8 +164,8 @@ theorem v3rpc.LeaseServer.leaseKeepAlive.wp_proof
   iunfold v3rpc.leaseServerAt at Hls'
   icases Hls' with ⟨%Hpn, #Hhdr, #Hle, %lg, #Hlg, #Hlgf⟩
   ihave #Hst' := Hst
-  iunfold srvStreamIsStrong at Hst'
-  icases Hst' with ⟨%si, %Hsi, #HRecv, #HSend, #HCtx, #Hctxis, #Hrunctx, #Hnetci⟩
+  iunfold srvStreamIs at Hst'
+  icases Hst' with ⟨%si, %Hsi, #HRecv, #HSend, #HCtx, #Hwkk, #Hlibk, -, #Hnetci, #Hcausek⟩
   iunfold v3rpc.raftLeaseRenew at HRn
   ihave #Hlp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease $$ []
   · iPkgInit
@@ -188,12 +188,9 @@ theorem v3rpc.LeaseServer.leaseKeepAlive.wp_proof
   icases HstreamF with ⟨%cvF, #HcvF, %HcvFl⟩
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
-  ihave #Hctx2 := Hctxis
-  ihave #Hlibk := libCtxOk_of_runCtx ci $$ Hrunctx
-  ihave #Hwkk := srvCtxWeak_of_isContext ci cd $$ Hctxis
-  ihave #Hcausek := ctxCauseOk_of_runCtx ci $$ Hrunctx
+  ihave #Hctx2 := Hwkk
+  iunfold srvCtxWeak at Hctx2
   iNamed Hctx2
-  ihave #HErrU := HErr $$ %Broadcast.Unknown
   wp_auto
   ihave Hinv : iprop(∃ (L : List KaReqM) (Ld : List (w64 × w64)),
       "Hrt" ∷ srvRecvTok (Req := pbLeaseKeepAliveRequest) γs L ∗

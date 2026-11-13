@@ -42,7 +42,7 @@ abbrev v3rpc.LeaseServer.leaseKeepAlive.spec : Prop :=
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       v3rpc.leaseServerAt p s A cid mid ∗ v3rpc.raftLeaseRenew s E γl S' ∗
-      srvStreamIsStrong st γs pbLeaseKeepAliveRequest pbLeaseKeepAliveResponse Up Dn ci cd ∗
+      srvStreamIs st γs pbLeaseKeepAliveRequest pbLeaseKeepAliveResponse Up Dn ci cd ∗
       v3rpc.kaStreamSpec s E γl γs (auth.ctxTokenOf (GoInterface.ok ci)) Dn ∗
       v3rpc.kaUpOk E γl Up ∗
       srvRecvTok (Req := pbLeaseKeepAliveRequest) γs [] ∗
