@@ -15,6 +15,7 @@ public import LinuxFs.Proof.os.OpenFile
 public import LinuxFs.Proof.os.File__Close
 public import LinuxFs.Proof.os.SharedExt
 public import LinuxFs.Proof.os.ErrorOk
+public import LinuxFs.Proof.os.Off
 
 @[expose] public section
 
@@ -46,6 +47,7 @@ theorem os.OpenFile.wp_fileS (d b : GoString) (flag : w64) (perm : w32) (R : Roo
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R d dq j ∗ osNames j N dqn h ∗
         osCallPerm qc ∗
         ((∃ fd : w64, ⌜err = interface.nil ∧ 0 ≤ fd.toInt⌝ ∗ os.ownFile f fd (child d b) (DFrac.own 1) ∗
+            os.ownOff f (W64 0) ∗
             osFd fd (DFrac.own 1) (openFd i (flag ||| W64 0x80000))) ∨
          ⌜err ≠ interface.nil ∧ f = null⌝ ∗ fmtErrorOkOrNil err) }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
@@ -82,10 +84,14 @@ theorem os.OpenFile.wp_fileS (d b : GoString) (flag : w64) (perm : w32) (R : Roo
     iframe
     isplitr
     · ipureintro; exact ⟨rfl, hfd0⟩
-    unfold os.ownFile
-    iexists inner_ptr
-    iframe
-    isplitl [] <;> iassumption
+    unfold os.ownFile os.ownOff
+    isplitr [off]
+    · iexists inner_ptr
+      iframe
+      isplitl [] <;> iassumption
+    · iexists inner_ptr
+      iframe
+      iassumption
   · iclear Hfd
     have hfd : fd = -1 := by rcases hres with ⟨h, -⟩ | ⟨-, h⟩; exact absurd h he0; exact h
     subst hfd

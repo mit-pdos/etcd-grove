@@ -812,7 +812,7 @@ out of `Abs.lean`; statement unchanged). Left: `walInv_alloc` (`sorry`).
   `decFile`, `ownFbr`, `ownDecoder`, `decEnv`, `decPost`, `stopErr`; walpb `ownRec`): proved
   `decodeFrameSize`, `readInt64`, `LastOffset`, `LastCRC`, `UpdateCRC`, `Decode` (over decodeRecord's
   spec), walpb `GetType`/`GetCrc`/`Validate`, fileutil `NewFileBufReader`/`FileInfo`/`Err`/`Read`.
-  `NewDecoder` proved (`wal-dec3`: the range loop builds `ownFbrs` by `ownFbrs_snoc`, each reader's `*FileBufReader` cell persisted; `sync.init_Mutex` for `d.mu`; the readers' slice persisted). `sorry`: `isTornEntry` (three loops: the sector split appending subslices of `data` to `chunks`, then two nested range loops with a `break`; the subslices alias `data`, so its fraction must be split per chunk, or the chunks read through `data` by index). `decodeRecord` proved (branch
+  `NewDecoder` proved (`wal-dec3`: the range loop builds `ownFbrs` by `ownFbrs_snoc`, each reader's `*FileBufReader` cell persisted; `sync.init_Mutex` for `d.mu`; the readers' slice persisted). `isTornEntry` proved (`wal-read`, 2026-11-13: the chunks as bounds `[a, b)` into `data`, `chunkBnds`; each chunk's points-to split out of `data` with `ownSlice_slice` around the inner loop and put back; premise now `off + 8 + len(data) < 2^62`, since `fileOff` is an `int64`: `decodeRecord` passes it). `decodeRecord` proved (branch
   `wal-dec2`, by induction on the files for its recursive call), over its lemmas in `DecLemmas.lean`
   (`fbr_readerStream`: a `*FileBufReader` as `io.Reader` is a stream reader of its file; the
   `decRecStep_*` equations by what the reads returned; `decPost_{stop,accept,ioe,cons_eof}`).
@@ -1008,6 +1008,24 @@ error; `Close`: the token → the pipeline's claims (and the file in flight remo
   persistent `lockedFile`; (6) task 2's `nc` variants: `specCreateTruncSnc` landed on `wal-int`
   (`wal-osau4`); `os.File.Sync.specDirS` has no atomic update, so it needs none: `crashOk_dirSync`
   is applied after the step, opening `walInv` with `wp_notCrashed_acc` before the next one.
+**Gaps session (branch `wal-gaps`, 2026-11-13).** Gaps (1)-(3) closed, no `sorry` added:
+- (1) `os.ownOff f (W64 0)` (the model's `file.off` starts at 0) in the success posts of
+  `os.OpenFile.specCreateS`/`specCreateSnc`/`specCreateTruncS`/`specCreateTruncSnc`, `wp_fileS`,
+  `wp_truncS`, and of `fileutil.openPost`/`lockPost` (`LockFile`'s proof passes it on; the spec
+  modules import `LinuxFs.Proof.os.Off`). `os.OpenFile.wp_dirS` unchanged.
+- (2) `trFile i P` has `m.maps = ∅` (third pure conjunct): a new file has no mappings, a truncation
+  keeps them (`announce_maps`); `trFile_of_rsDone` takes it. True of the WAL's `N.tmp` (never mapped).
+- Found and fixed: the `nc` open specs had lost `fmtErrorOkOrNil err` in their error posts (the merge
+  of `wal-osau4` into `wal-int`, 9bc9e5356e), so `OpenFileS`/`OpenFileTruncS` did not build on `wal-int`.
+- (3) `filepathlite.Clean` proved (`LinuxFs/Proof/internal/filepathlite/Clean.lean`, the main tree's
+  `path.Clean` proof adapted: `IsPathSeparator` calls, the empty output appended through the buffer,
+  `postClean`, `FromSlash`); `filepath.join` specified (`LinuxFs/Spec/path/filepath/join.lean`, the
+  same post as `Join`, no premise) and proved over Perennial's `strings.wp_Join` and `filepath.Clean`
+  (pure: `filepath.joinModel_drop`, `joinModel_empties`); `filepath.Join` proved over `join`. `join`
+  takes `[UntypedRuneSemantics]` (`string(Separator)`, `notes/perennial-changes.md`), to be listed in
+  `etc/gen-link.py`'s `SEM_PREMISES` when filepath is linked.
+- Not done: `fileutil.ReadDir` (still wholly `sorry`), `filepathlite.Dir`/`IsAbs`.
+
 ## W4 implementation log (branch `wal-create`, 2026-11-13)
 
 **Statements (`sorry`-stubbed proofs):** `LinuxFs/Spec/.../storage/wal/Create.lean` (`wal.Create.spec C Mr`),
@@ -1359,3 +1377,106 @@ contract.**
   `γH/γS/γW`; locks are `fileutil.lockedFile lf f` (persistent, `wal-fu2`'s) with the file whole.
   Not yet: the `cuts.length + 2 < 2^63` bound `cut` needs (Save must carry it: a premise of `Save`, or
   derived from the name bound); Save/saveEntry/saveState/sync/Sync/SaveSnapshot proofs (still `sorry`).
+
+**W6, third session (branch `wal-save3`, 2026-11-13): the append's crash condition, its core.**
+- *Proved* (`TailCrashPure.lean`, pure, no `sorry`): `TailCands X Y cs so z0` (the tail's candidates:
+  durable `X b` below `so`; above, `(Y b, 0)` then candidates of `X b` stamped `> 0`; `Y = X` below `z0`,
+  zeros from `z0`: `ByteOk` + F-Z), `AsOf` (`AsOfOneG` over a candidate function, `asOfOneG_asOf`),
+  `tail_frame_match` (a frame the reader accepts at a record boundary is the intended frame: as of one
+  change its core is the intended bytes; as of the sync it is the intended bytes below `max so z0` and
+  zeros above, a zero length word; the padding is the intended zeros since `Y` is zero past `z0`),
+  `tail_decode` (the reader of the crashed tail, from the segment's chain start, reads the intended
+  records `R.take j` for some `j ≥ jE`, their frames a prefix of the image, and rejects the next).
+  It needs W1 only along the reader's path (`acceptsFrom`), not `NoCollisionFrom`'s every boundary.
+- *Its premises the invariant must carry* (new, for the lift): **`max so z0` is a record boundary** of
+  the last segment (`(recFrames C (R.take jE)).length = max so z0`): `z0` ends the frames found, and a
+  tail fdatasync (`sync`) comes after the encoder's flush, at the end of the records encoded (`cut`'s and
+  ReadAll's syncs: at a boundary too). Proposed home: `walTailsRes`'s per-tail pure part (beside
+  `TailZeros`), since appends happen only under an open handle; the sync's commit re-establishes it from
+  the handle's `pend = []`.
+- *Next (the lift to `CrashTo`)*: the bridge `cs b := if b < g.bs.length then (g.bs.getD b (0, [])).2
+  else [(0, 0)]` (`TailCands` from `WalAbsD.last`'s `ByteOk` + `TailZeros`; `AsOf` from `W1G`, every
+  accepted core lying in the image, which `FileCrashedR`'s `hi = g.bs.length` keeps inside `g.bs`); the
+  record count `j` to an image `I` of the history (`walImg_histCut` + `walImg_lift` +
+  `flatMap_histCut`, as `walDecodeFiles_walImg`; the earlier segments unchanged since `lastStart ≤ d.m`);
+  the tree part of `CrashTo` (entry, `q`, `walInos`, purge bound) from the old `CrashOk`, the pwrite steps
+  leaving the claims alone (an `fo₀` with the old last image, `OsFile.ofBytes` of the stamp-0 values,
+  satisfies the old `FileCrashedR` once `metas` also says `zf ≥ size`).
+- *Writes past the preallocated size (task 1), findings, not yet implemented*:
+  1. `WalAbsD.metas` (`lo = hi = |bs|`) cannot hold of a tail written past its size: `pwPost` keeps
+     `lo` at the old size and raises `hi` to `off + len`; a short write leaves `hi > size`. The last
+     segment needs `so ≤ lo ≤ |bs| ≤ hi`, and bytes in `[|bs|, hi)` need candidates.
+  2. `FileCrashedR` (`GooseLang/Ext/Fs/CrashFiles.lean`) ignores `OsMeta.tc`, so a crash image's bytes in
+     `[size, hi)` are unconstrained, and `w1G_of_W1` needs the image no larger than `g.bs`. The fix: a
+     segment's ghost tail `[size, hi)` from `tc` (idle: `MetaOk.tail`; in flight: `OsCoh.tok_cand`,
+     `ti.m0.pc`), taken by a WAL-local variant of `crashRestAt_take`/`_tok` (as `CrashTakeSeg.lean` does),
+     `SegG` gaining the tail's candidates and `SegFl.Ok` recording `pwTail`'s (the layout's `om.tc`, which
+     `FileCrashedR` does not read, can carry them: `wp_osPWriteFinishK true` gives `pwTail`).
+  3. **The candidates past the size are zeros only if the size is page-aligned**: after a sync,
+     `OsMeta.synced` sets `zf := pageUp size`, `tc := ∅`, and the model keeps stale bytes in the last page
+     past the size (`OsFile.ofDisk`, "stale ones included"); a write past an unaligned size has arbitrary
+     durable candidates there (`wp_osPWriteFinishK`'s `zs` unconstrained), against which W1 cannot exclude a
+     stale frame. Reachable: a crossing `Save` grows the tail to an unaligned `curOff`, a crash after
+     `cut`'s truncate and before its rename leaves it the last file, `ReadAll`'s `ZeroToEnd` keeps that
+     size, and the next `Save` writes past it at once. Cut's and Create's segments (64 MB, aligned) are
+     fine. **For the coordinator** (trusted-semantics question, [user]): either the model's truncate and
+     sync zero the page past the size (ext4 does: `block_truncate_page`, writeback zeroes past `i_size`),
+     or the WAL's proof needs `pageUp size = size` of a reopened tail, which it cannot establish.
+  So task 1 changes `WalAbsD.metas` and `SegG` (W1/W2/W4's files: `CrashPure`, `CrashStart`, `CutLay`,
+  `CutSynced`, `CreateCommit`, `CrashTakeSeg`) and waits on item 3; not started, to avoid conflicts with
+  the concurrent branches.
+- *Not done this session*: the step specs (`wp_tailPWriteStart`/`Finish`), `wal.tailWriter`, PageWriter and
+  encoder over `writerStreamP`, the cuts budget, `saveEntry`/`saveState`/`sync`/`Save`/`SaveSnapshot`/`Sync`
+  (all still `sorry`).
+
+## W3/W5 implementation log (branch `wal-read`, 2026-11-13)
+
+**Proved (no `sorry`, `lake build`):**
+- `decoder.isTornEntry` (the decoder's last `sorry`; W3a above). Its premise is now
+  `off + 8 + len(data) < 2^62` (was `len(data) < 2^62`): `fileOff = lastValidOff + 8` advances by
+  each chunk as an `int64`, so the old premises allowed an overflow by up to 6. `decodeRecord` passes
+  it (`hys2o`, from the frame being a prefix of the file). Proof: the chunks as bounds into `data`
+  (`chunkBnds`, `chunkBnds_map`: their contents are `sectorChunks`), each chunk's points-to split out
+  of `data` with `ownSlice_slice` around the inner loop (`wp_join` at the inner loop) and put back.
+  Gotcha: `ys[k]'h` terms in an Iris goal gave kernel "application type mismatch" errors in
+  `_proof_` auxiliaries under `lake build` too (not only `lean-check`): use `ys[k]? = some b`.
+- `parseWALName` (over `strings.HasSuffix.spec` and `fmt.SscanfWalName.spec`, hypotheses),
+  `searchIndex` (`walSearch`: the last position whose index is at most `index`), `isValidSeq`
+  (`walSeqOk 0`, Go's `lastSeq != 0` quirk kept): both over names that are segments'
+  (`fmt.walNameStr`), so their `lg.Panic`s are unreachable (`walNameStr_suffix`,
+  `fmt.scanWalName_walNameStr`).
+
+**Specs (statements; proofs `sorry`):** `LinuxFs/Spec/.../wal/{Open,WAL__ReadAll}.lean`.
+- Both as the main tree's with §3's binders: `walAreaOk walCodec Mr R jr r`, the update at
+  `walAuMask`, `InArea r dir nm`/`cleanAbsPath r`, the area's spine `osPathS R r (own qp) jr` framed.
+  `Open` takes `walAreaRes jr` (framed) and `osCallPerm 1`, returns `walOpeningF w dir s` and
+  `osCallPerm ½` (the pipeline's half, as `Create`), or the token and the permission back.
+  `ReadAll` takes a call permission fraction (framed: `syncDir` of the area) and `walOpeningF`;
+  success: `walReadAllOk` (the ledger's restated post), `P.hsIn hp σ.hs`, `walEntsIn P esL σ.ents`
+  (the main tree's `walSaveEnts false`, and I9, do not arise: `entIn` has no size flag),
+  `mdp ↦*□ d.metadata`, **`walOpenWF P Mr w dir`** (W6's write-mode handle), `walNamed`,
+  `walSyncedLb dir |H|`, `walLenLb`, `walPurgeW`; error: `walReadFailedF w dir`. Both arms `Q d`
+  (the history does not change; the update commits wherever the proof reads it).
+- New vocabulary `ReadDefs.lean`: `walOpeningF`/`walReadFailedF`, sealed, program-level
+  counterparts of the ghost `walOpening`/`walReadFailed`. **Draft bodies**: the ghost handle and
+  the fields `lg`/`dir`/`start`; the decoder (`ownDecoder` over `DecFile`s tied to the segments'
+  program halves), the locks, the pipeline, `dirFile` are for `Open`'s and `ReadAll`'s proofs to add
+  (no client statement changes). Note `WAL.decoder` is the `Decoder` *interface*.
+- Not specified: `OpenForRead` (read mode: no locks, no pipeline, `ReadAll` tolerating
+  `ErrUnexpectedEOF`; VSE/`Verify` use it, W8), `openAtIndex`/`selectWALFiles`/`openWALFiles`/
+  `readWALNames` (internal; their shapes follow from the design point below).
+
+**Open design points (for `Open`'s and `ReadAll`'s proofs):**
+1. *Reading the WAL directory*: `readWALNames` → `fileutil.ReadDir` takes an `osNames` fraction of
+   the directory's claim non-atomically, but the WAL directory's claim is the invariant's
+   (`WalDirClaim`). Needed: an atomic (`osAUnc`) readdir spec, or a read-only fraction of the claim
+   held by the open handle (then `cut`'s rename must reassemble it).
+2. *The decoder's files*: `DecFile.bs` is fixed; the segments' bytes are split between the
+   invariant and the program (halves). The read handle must own the program halves of the files
+   from the opened one on (the last one's is the tail's: `walTailsRes`), so that the bytes cannot
+   change during the read; the non-tail files' halves come from the invariant (W1 `laysRes`).
+3. *ReadAll's establishment of `walTailsRes`* (W6, merged in `f5de562941`): after `ZeroToEnd`
+   + `Fdatasync`, the tail's record with `TailZeros` past `z0` = the decoder's `LastOffset`; the
+   commit is a ghost update inside the fdatasync's step (`wp_atomic_nc`).
+4. *F-N4*: `Fsync(w.dirFile)` and `syncDir(filepath.Dir(dir))` give `osCommitLb`; `walNamed` by
+   `walInvBody_named` (W4) needs the last writer of `nm` below the commit bound.

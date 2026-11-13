@@ -54,7 +54,7 @@ theorem fileutil.wp_ofdLockFile
   unfold fileutil.OpenTriple at hopen
   wp_apply hopen $$ HP as %f %err Hr
   unfold fileutil.openPost
-  icases Hr with ⟨%x, (⟨%he, HA, %fd, %i, %hfi, Hf, Hfd⟩ | ⟨%he, HA, #Herr⟩)⟩
+  icases Hr with ⟨%x, (⟨%he, HA, %fd, %i, %hfi, Hf, Hoff, Hfd⟩ | ⟨%he, HA, #Herr⟩)⟩
   rotate_left
   · obtain ⟨he, rfl⟩ := he
     cases err with
@@ -108,7 +108,7 @@ theorem fileutil.wp_ofdLockFile
     · ipureintro; rfl
     iframe HA
     iexists f, fd, i
-    iframe Hf Hfd
+    iframe Hf Hoff Hfd
     isplitr
     · ipureintro; exact hfi
     unfold fileutil.lockedFile
@@ -143,7 +143,7 @@ theorem fileutil.wp_flockLockFile
   unfold fileutil.OpenTriple at hopen
   wp_apply hopen $$ HP as %f %err Hr
   unfold fileutil.openPost
-  icases Hr with ⟨%x, (⟨%he, HA, %fd, %i, %hfi, Hf, Hfd⟩ | ⟨%he, HA, #Herr⟩)⟩
+  icases Hr with ⟨%x, (⟨%he, HA, %fd, %i, %hfi, Hf, Hoff, Hfd⟩ | ⟨%he, HA, #Herr⟩)⟩
   rotate_left
   · obtain ⟨he, rfl⟩ := he
     cases err with
@@ -179,7 +179,7 @@ theorem fileutil.wp_flockLockFile
     · ipureintro; rfl
     iframe HA
     iexists f, fd, i
-    iframe Hf Hfd
+    iframe Hf Hoff Hfd
     isplitr
     · ipureintro; exact hfi
     unfold fileutil.lockedFile
