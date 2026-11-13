@@ -48,6 +48,32 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
   and the risks R1-R5 (§7).
 - Decisions go in the worktree's `questions.md` (untracked).
 
+## Phase B (go from etcd-grove-81, 2026-11-13): next agent starts here
+
+S6a (step 5 + S6a-2) **landed: `lean` 1c3e201cd1** (approved by 81; merged `lean` d922d242f3 first,
+gates all passed, `/shared/tmp/restart-s56/s6a-land2.log`). 81's go for Phase B (`NewServer.specR`):
+any new trusted text or axiom stops for 81's review; proof-only checkpoints are landed by the agent
+(`etc/land.sh`, merge `lean` first), each landing's hash reported.
+
+Phase A's A2 texts and CP2 never happened (P1-P3, P6 not probed), so Phase B starts there. Order:
+1. **Forms first (no stop; one full build; land as a proof-only checkpoint):**
+   - `lateWBR` deleted (`E/InvRestart.lean:388`; `bootOkR`'s `Hnew` at `fun _ => mvcc.api.mvccW d.gx`).
+     Note: `bootOkR` is contract text; deleting an alias is meaning-preserving, still list it.
+   - `srvDiskImage γ ρ id dd := ∃ S σ i A D m M, srvDiskImageAt γ ρ id dd S σ i A D m M`, the body
+     moved verbatim (plan §2.3); `StopShutdown.stop_cleanup_image` unfolds both.
+   - `wal.stopImage` (`E/WalApi.lean:373`, sealed) gains `∃ l', isCommittedLogLb cl l' ∗
+     ⌜σ.b ≤ l'.length ∧ DurAgrees S l'⌝`; `stopImage_intro` takes it. Source: `raftNode.stop.spec`'s
+     post already has it (`Spec/.../raftNode__stop.lean:62`); `run` drops it (`EtcdServer__run.lean`,
+     `wp_apply hRStop … as ⟨…, #Hwcert, -⟩`): name it, add it to `stopCleanupImage.spec`'s
+     `∃ S σ` block (an extra premise its only caller discharges: a form), pass it to `stopImage_intro`
+     (`StopShutdown.lean:718`).
+2. **P1, P2, P3, P6 probes** in `Scratch/S56Probe.lean` (plan §4 A1), then the A2 texts (plan §4).
+3. **CP2: STOP for 81** with the Freeze package (`/shared/tmp/restart-s56/freeze-package.md`): HS1
+   (`auth.NewAuthStore.spec`, axiom restated; text `/shared/tmp/r2d-hs1-newauthstore.patch`),
+   `bootOkR`'s WAL slot `wal.restartOk` (contract text), `srvRestartRows` (D3), `NewServer.specR`,
+   and H10's `cl.Recover` check. spec-reviewer + `axiom` skill per the plan.
+4. After approval: B2/B3 (`wp_proofB` over `SrvBoot`), CP3 stop before land.
+
 ## S6a-2 (2026-11-13, the S6a-2 agent): next agent starts here
 
 - `lean` (51ee20f154: auth-schema-fix, k8s 7f-4/7f-5, the bbolt port) merged, `fc4ee3a900`
@@ -70,8 +96,8 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
   named the etcd modules at the old pin 0b50f0426; updated to 2eaeb872b (the fork change touches only
   `snap/db.go`, `feature_gate.go` identical), `etc/featuregate-check.py` ok; gates rerun
   (`/shared/tmp/restart-s56/s6a2-gates2.log`): **all passed**.
-- Final texts: `/shared/tmp/restart-s56/freeze-s6a.md` §3.2-S6a-2. **STOPPED for 81** before
-  `etc/land.sh` (step 5 + S6a-2 change statements). Phase B only after 81's go.
+- Final texts: `/shared/tmp/restart-s56/freeze-s6a.md` §3.2-S6a-2. Approved by 81 and landed
+  (`lean` 1c3e201cd1).
 
 ## S6a: fork fix and step 5's image (2026-11-13, the S6 agent, fresh): next agent starts here
 
