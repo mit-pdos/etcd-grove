@@ -51,7 +51,8 @@ file on disk, the segments' inodes distinct. -/
 def walStart (L : GooseLocalGS GF) (W : WalGS GF) (C : WalCodec) (Mr : WalMarshal) (R : Roots)
     (jr : Ino) (r : GoString) (s : AbsDiskState) (m : Tree) : IProp GF :=
   iprop(∃ (Ls : GMap GoString WalLay) (is : List Ino) (fo : Ino → Option Fs.OsFile),
-    walGhost (W := W) s ∗ ⌜s.area = r⌝ ∗ ([∗list] i ∈ is, osFileStartO (L := L) i (fo i)) ∗
+    walGhost (W := W) s ∗ walCreatingAuth (W := W) ∅ ∗ ⌜s.area = r⌝ ∗
+    ([∗list] i ∈ is, osFileStartO (L := L) i (fo i)) ∗
     ⌜is.Nodup ∧ ((segsAll Ls).map (·.ino)).Nodup ∧ WalsStart C Mr R jr s Ls m ∧
       ∀ dir lay, Ls !! dir = some lay → ∀ g ∈ lay.segs,
       g.ino ∈ is ∧ ∃ f, fo g.ino = some f ∧ g.om = initMeta f ∧ g.bs = f.contents.map durB⌝)
@@ -181,7 +182,7 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
   obtain ⟨s', Ls', hcrash, harea', hk', hstart, hnd', hsegs⟩ :=
     walCrash_pure C hC Mr R jr s Ls cl n V'.now st st' Hok hk Hreg htree (hQ _ _ hQs) hfiles
   -- the new generation's ghost state
-  imod walGhost_init hPre s' hk' with ⟨%W', Hg', HM', #Hp', Hu', Hc'⟩
+  imod walGhost_init hPre s' hk' with ⟨%W', Hg', HM', #Hp', Hu', Hc', Hcr'⟩
   imodintro
   iexists W', s', ((segsAll Ls).map (·.ino) ++ [])
   iframe Hu' Hc' Hcr Hp'
@@ -194,7 +195,7 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
   · ipureintro; rw [harea', Har]
   unfold walStart
   iexists Ls', (segsAll Ls).map (·.ino), (fun i => st'.fs.files !! i)
-  iframe Hg' Hstarts
+  iframe Hg' Hstarts Hcr'
   ipureintro
   exact ⟨by rw [harea', Har], walsOk_nodup Hok, hnd', hstart, hsegs⟩
 
@@ -317,7 +318,7 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
       ∃ Ls, ⌜WalsStart C Mr R jr s Ls V.now⌝ ∗ laysRes (L := L) Ls := by
   iintro Hst Hcl
   unfold walStart
-  icases Hst with ⟨%Ls, %is, %fo, Hg, %Har, Hfs, %Hp⟩
+  icases Hst with ⟨%Ls, %is, %fo, Hg, Hcr, %Har, Hfs, %Hp⟩
   obtain ⟨-, hnd, hstart, hsegs⟩ := Hp
   -- the segments' start resources, halved
   have hsub : ((segsAll Ls).map (·.ino)) ⊆ is := fun i hi => by
@@ -361,7 +362,7 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     exact monoNatLbOwn_0 _
   imod hcm0 with #Hcm
   imod inv_alloc walN E (iprop((∃ s : AbsDiskState, walInvBody (L := L) (W := W) C Mr R jr r s) ∨
-      (crashed (hC := L.goose_crashGS) ∗ walCrashTok (W := W)))) $$ [Hg Hc1 Hi] with #Hinv
+      (crashed (hC := L.goose_crashGS) ∗ walCrashTok (W := W)))) $$ [Hg Hc1 Hi Hcr] with #Hinv
   · inext; ileft; iexists s
     unfold walInvBody
     iexists Ls, cl, 0
@@ -373,10 +374,16 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     isplitr
     · ipureintro
       exact walsOk_start C hC Mr R jr s Ls V cl hV hcl harea hdirs hdok hstart hnd hcut
+    isplitr
+    · ipureintro
+      intro nm hnm
+      obtain ⟨N, h, hc, hN⟩ := harea
+      exact ⟨N, h, hc, hN nm hnm⟩
+    iexists ∅
+    iframe Hcr
     ipureintro
-    intro nm hnm
-    obtain ⟨N, h, hc, hN⟩ := harea
-    exact ⟨N, h, hc, hN nm hnm⟩
+    intro dir N h hd
+    simp at hd
   imodintro
   unfold walInv
   iframe Hinv Hc2
