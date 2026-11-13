@@ -544,6 +544,70 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
     ihave Hdat := (ownSlice_slice (W64 0) (W64 rb) dsl (DFrac.own 1) ys2
       ⟨by rw [hz0]; decide, by rw [hz0, hrbz]; omega, by rw [hrbz]; omega⟩).2 $$ [Hd0 Hdm Hd2]
     · rw [hsub2]; iframe
+    have hlast : decide (sl.len = W64 1) = fs.isEmpty := by
+      have h1 : (fbr :: fbrs).length = (sint.Z sl.len).toNat := Hsll.1
+      have h2 := Hl.1
+      simp only [List.length_cons] at h1 h2
+      rcases fs with _ | ⟨G, gs⟩
+      · simp only [List.length_nil] at h2
+        have : sint.Z sl.len = 1 := by omega
+        simp only [List.isEmpty_nil, decide_eq_true_eq]
+        word
+      · simp only [List.length_cons] at h2
+        have : 2 ≤ sint.Z sl.len := by omega
+        simp only [List.isEmpty_cons, decide_eq_false_iff_not]
+        intro h; rw [h] at this; revert this; word
+    have Hown : ∀ (c' : w32) (live : Bool), (live = true → F.bs.take off ++ ys ++ ys2 = F.bs.take off) →
+        (sync.isMutex (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.decoder go!"mu" d) (BI.pure True : IProp GF) ∗
+         structFieldRef go_etcd_io.etcd.server.v3.storage.wal.decoder go!"brs" d ↦ sl ∗
+         structFieldRef go_etcd_io.etcd.server.v3.storage.wal.decoder go!"lastValidOff" d ↦ W64 off ∗
+         structFieldRef go_etcd_io.etcd.server.v3.storage.wal.decoder go!"crc" d ↦ h ∗
+         structFieldRef go_etcd_io.etcd.server.v3.storage.wal.decoder go!"continueOnCrcError" d ↦ false ∗
+         ownDecCrc h c' ∗ fbr ↦□ go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader.mk b (GoInterface.ok fii) GoInterface.nil ∗
+         decFile IoE eof F ∗ sl ↦*□ (fbr :: fbrs) ∗
+         bufio.ownReader b F.fr F.S (decRdErr F.bs eof IoE) (F.bs.take off ++ ys ++ ys2) ∗
+         ownFbrs IoE eof fbrs fs (fs.map (fun _ => [])) ∗ fileInfoOk (GoInterface.ok fii) F.bs.length) ⊢
+        ownDecoder d IoE eof (F :: fs) off c' live := by
+      intro c' live hlive
+      iintro ⟨#Hmu, Hbrs, Hoff, Hcrc, Hcont, Hdc, #Hf, #HF, #Hsl, Hb, Hfbrs, #Hfi⟩
+      iapply ownDecoder_intro d IoE eof sl fbr fbrs h F fs (F.bs.take off ++ ys ++ ys2) off c'
+        live hoff hlive
+      iframe
+      iframe Hmu Hsl
+      iapply ownFbr_intro
+      iframe
+      iframe Hf HF Hfi
+    ihave #Hfio : fileInfoOk (GoInterface.ok fii) F.bs.length $$ []
+    · iunfold fileInfoOk
+      iexists fii
+      iframe HSize HName
+      ipureintro; rfl
+    icases Hres with (⟨%r, ⟨%herr3, %hdec⟩, Hrec⟩ | ⟨⟨%herr3, %hdec⟩, Hrec⟩)
+    rotate_left
+    · -- `proto.Unmarshal` failed
+      obtain ⟨ei3, rfl⟩ : ∃ ei, err3 = GoInterface.ok ei := by
+        cases err3 with
+        | ok ei => exact ⟨ei, rfl⟩
+        | nil => exact absurd rfl herr3
+      wp_auto
+      wp_apply HTorn d sl off dsl ys2 (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) hoff hys2l
+        $$ [Hbrs Hoff Hdat] as ⟨Hbrs, Hoff, Hdat⟩
+      · iframe
+      rw [hlast]
+      have hstep : decRecStep C fs.isEmpty F.bs off c =
+          .stop (.badRec (isTorn fs.isEmpty off ys2)) c := by
+        rw [hstep0]; unfold decRecData; rw [hdec]
+      cases ht : isTorn fs.isEmpty off ys2
+      all_goals rw [ht] at hstep
+      all_goals
+        wp_auto
+        iapply HΦ
+        iapply decPost_stop C d rp IoE eof ueof F fs off c c _ _ hstep
+          (by simp only [stopErr]; first | exact hu.symm | simp)
+        iframe Hrec
+        iapply Hown c _ (by simp)
+        iframe
+        iframe Hmu Hf HF Hsl Hfio
     sorry
 
 end proof
