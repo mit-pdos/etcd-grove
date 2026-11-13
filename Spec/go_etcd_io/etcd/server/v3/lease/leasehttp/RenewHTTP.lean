@@ -75,12 +75,26 @@ the caller's hooks or resolver. (k8s 7f-4, Addendum T-h review, m4) The transpor
 `DialContext` or another hook panics meets it and `RenewHTTP` panics. A verified program cannot
 build one: `http.Transport` is an axiomatized type (`Code/net/http.lean`), so a program allocates
 only its zero value, whose hooks are `nil`; the residual rests on that opacity (a later fix: an
-opaque fact, e.g. a persistent `rafthttp.peerTransport rt`, from `NewRoundTripper`'s spec). -/
+opaque fact, e.g. a persistent `rafthttp.peerTransport rt`, from `NewRoundTripper`'s spec). (k8s
+7f-4, Addendum T-j) The context premise is `v3rpc.ctxDoneErr ctx cd`, weaker than `srvCtxWeak`
+(`v3rpc.ctxDoneErr_of_srvCtxWeak`), so that `LeaseRenew`'s `context.WithTimeout` child, whose
+`*cancelCtx` may store `ErrGRPCNoLeader`, is one (`v3rpc.wp_WithTimeout_weak`,
+`v3rpc.ctxDoneErr_of_child`): it states the `*cancelCtx` that `Value(&cancelCtxKey)` and
+`parentCancelCtx` find as one `context` made (`context.madeCancelCtx`), whatever error it stores, in
+place of `isCancelCtx`. That is what net/http's `WithCancelCause(req.Context())` needs: its
+`propagateCancel` calls `Done`, then the parent's `Err()` and `Cause` (which reads the found
+`*cancelCtx`'s `cause` under its `mu`) if done, else `parentCancelCtx`, and locks the found
+`*cancelCtx` to register its child; `removeChild` does the same. With no fact of the value
+`Value(&cancelCtxKey)` returns, a nil `*cancelCtx` made it panic (Addendum T-h5,
+`TestRenewHTTPNilCancelCtxPanics`); with no parent-cancel clause, a context with an `AfterFunc` method
+that panics did (`propagateCancel`'s `afterFuncer` arm, go1.27.3 `context.go:508-520`,
+`TestRenewHTTPAfterFuncPanics`). Over the child of `TestWithTimeoutWeak` (live, and done with
+`ErrGRPCNoLeader`) it returns, a TTL or an error. -/
 abbrev leasehttp.RenewHTTP.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (id : w64) (url : GoString)
     (rt : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease.leasehttp ∗
-      srvCtxWeak ctx cd ∗ http.netCtxOk ctx ∗
+      v3rpc.ctxDoneErr ctx cd ∗ http.netCtxOk ctx ∗
       ⌜∃ t : Loc, rt = GoInterface.ok ⟨go.GoType.PointerType _root_.Perennial.net.http.Transport.ty, #t⟩⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.lease.leasehttp.RenewHTTP))
       (Val #(GoInterface.ok ctx))) (Val #id)) (Val #url)) (Val #rt))

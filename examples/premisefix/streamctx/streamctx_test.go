@@ -24,6 +24,14 @@
 //     an error when it is cancelled with an Err() of ErrGRPCNoLeader; on a context already
 //     cancelled when it is called, Err() is called (on the caller's goroutine) and a *url.Error is
 //     returned.
+//   - T-h/T-j (TestWithTimeoutWeak, TestNoLeaderTyped, TestRenewHTTPWeakChild): context.WithTimeout
+//     over etcd's wrapper (v3rpc.wp_WithTimeout_weak): the child stores ErrGRPCNoLeader when the
+//     wrapper was already cancelled, else registers with the wrapper's embedded *cancelCtx; RenewHTTP
+//     over the child (v3rpc.ctxDoneErr) returns, live and done. What ctxDoneErr must exclude:
+//     TestRenewHTTPValuePanics (T-h0, a Value panic at httptrace's key), TestRenewHTTPNilCancelCtxPanics
+//     (T-h5, a nil *cancelCtx at &cancelCtxKey: hence context.madeCancelCtx) and
+//     TestRenewHTTPAfterFuncPanics (T-j, no *cancelCtx found and a panicking AfterFunc: hence
+//     ctxDoneErr keeps #HParentCC).
 package streamctx
 
 import (
@@ -600,6 +608,16 @@ func TestWithTimeoutWeak(t *testing.T) {
 		if c.Err() != nil {
 			t.Fatalf("val=%v: Err before done: %v", val, c.Err())
 		}
+		// T-j: parentCancelCtx found the wrapper's embedded *cancelCtx (ctxDoneErr's #HParentCC):
+		// the child is registered in its children map (no afterFuncer arm, no goroutine), and the
+		// child's Value(&cancelCtxKey) is its own embedded *cancelCtx (madeCancelCtx), seen through
+		// context.Cause, which reads that cancelCtx's cause.
+		if n := registered(w); n != 1 {
+			t.Fatalf("val=%v: %d children registered with the wrapper's *cancelCtx, want 1", val, n)
+		}
+		if ty := fmt.Sprintf("%T", c); ty != "*context.timerCtx" {
+			t.Fatalf("val=%v: child is a %s", val, ty)
+		}
 		w.Cancel(rpctypes.ErrGRPCNoLeader)
 		<-c.Done()
 		if c.Err() != context.Canceled {
@@ -664,4 +682,96 @@ func TestRenewHTTPNilCancelCtxPanics(t *testing.T) {
 		t.Logf("recovered: %v", r)
 	}()
 	leasehttp.RenewHTTP(nilCancelCtx{inner}, lease.LeaseID(1), hs.URL+"/leases", &http.Transport{})
+}
+
+// afterFuncCtx (T-j, a finding while writing it): a context whose every method delegates to a real
+// WithCancel child, except Value at context's own &cancelCtxKey, where it returns nil (no
+// *cancelCtx: what ctxDoneErr's #HValue admits), and an AfterFunc method, which panics. Without a
+// parent-cancel clause (T-h2's ctxDoneErr dropped #HParentCC), it meets ctxDoneErr.
+type afterFuncCtx struct{ context.Context }
+
+func (c afterFuncCtx) Value(k any) any {
+	v := c.Context.Value(k)
+	if fmt.Sprintf("%T", v) == "*context.cancelCtx" {
+		return nil
+	}
+	return v
+}
+
+func (c afterFuncCtx) AfterFunc(f func()) func() bool { panic("AfterFunc called") }
+
+// TestRenewHTTPAfterFuncPanics (T-j): RenewHTTP panics on such a context: net/http's
+// WithCancelCause(req.Context()) calls propagateCancel; parentCancelCtx fails (Value gives no
+// *cancelCtx), so propagateCancel takes its afterFuncer arm and calls the context's AfterFunc
+// (go1.27.3 context.go:497-510). So ctxDoneErr keeps a parent-cancel clause (#HParentCC, with
+// madeCancelCtx in place of isCancelCtx).
+func TestRenewHTTPAfterFuncPanics(t *testing.T) {
+	hs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	defer hs.Close()
+	inner, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("RenewHTTP did not panic (the T-j finding no longer holds: update the notes)")
+		}
+		t.Logf("recovered: %v", r)
+	}()
+	leasehttp.RenewHTTP(afterFuncCtx{inner}, lease.LeaseID(1), hs.URL+"/leases", &http.Transport{})
+}
+
+// registered counts the children registered with the wrapper's embedded *context.cancelCtx.
+func registered(w *cancellableContext) int {
+	m, ok := field(reflect.ValueOf(w.Context).Elem(), "children")
+	if !ok {
+		panic("no children field")
+	}
+	return m.Len()
+}
+
+// TestRenewHTTPWeakChild (T-j): RenewHTTP over the child context.WithTimeout makes of etcd's wrapper
+// (directly, and under a WithValue): what v3rpc.wp_WithTimeout_weak gives (ctxChildErr, so ctxDoneErr)
+// and RenewHTTP.spec takes. Live, it returns the TTL; with the wrapper already cancelled with
+// ErrGRPCNoLeader (the child's *cancelCtx stores ErrGRPCNoLeader, not a context error), and with the
+// wrapper cancelled after the child was made (registered), it returns an error; it never panics.
+func TestRenewHTTPWeakChild(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b, _ := proto.Marshal(&pb.LeaseKeepAliveResponse{ID: 7, TTL: 5})
+		w.Header().Set("Content-Type", "application/protobuf")
+		w.Write(b)
+	}))
+	defer srv.Close()
+	rt := &http.Transport{}
+	for _, val := range []bool{false, true} {
+		wrap := func(w *cancellableContext) context.Context {
+			if val {
+				return context.WithValue(w, thKey{}, 1)
+			}
+			return w
+		}
+		w := newWrapper()
+		c, cancel := context.WithTimeout(wrap(w), time.Minute)
+		ttl, err := leasehttp.RenewHTTP(c, lease.LeaseID(7), srv.URL+"/renew", rt)
+		if err != nil || ttl != 5 {
+			t.Fatalf("val=%v live: %v %v", val, ttl, err)
+		}
+		w.Cancel(rpctypes.ErrGRPCNoLeader)
+		<-c.Done()
+		if _, err := leasehttp.RenewHTTP(c, lease.LeaseID(7), srv.URL+"/renew", rt); err == nil {
+			t.Fatalf("val=%v cancelled after: no error", val)
+		}
+		cancel()
+		w = newWrapper()
+		w.Cancel(rpctypes.ErrGRPCNoLeader)
+		c, cancel = context.WithTimeout(wrap(w), time.Minute)
+		if c.Err() != rpctypes.ErrGRPCNoLeader {
+			t.Fatalf("val=%v: child Err %v", val, c.Err())
+		}
+		_, err = leasehttp.RenewHTTP(c, lease.LeaseID(7), srv.URL+"/renew", rt)
+		if err == nil {
+			t.Fatalf("val=%v already done: no error", val)
+		}
+		t.Logf("val=%v already done: %v (%T)", val, err, err)
+		cancel()
+	}
 }

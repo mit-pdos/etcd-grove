@@ -180,7 +180,7 @@ local macro "renew_forward" : tactic => `(tactic| (
   (try wp_auto)
   -- `leader, lerr := s.waitLeader(cctx)`
   wp_apply (hWl s E ρ γr cctx _) $$ [] as %ldr %lerr Hl
-  · iframe #; iapply srvCtxWeak_of_isContext; iassumption
+  · iframe #; iapply v3rpc.ctxDoneErr_of_isContext; iassumption
   (try wp_auto)
   icases Hl with (⟨%Hln, %mv, %urls, #Hm, #Hurls⟩ | ⟨%Hln, #Hle⟩)
   rotate_left
@@ -228,7 +228,7 @@ local macro "renew_forward" : tactic => `(tactic| (
     -- `ttl, err := leasehttp.RenewHTTP(cctx, id, lurl, s.peerRt)`
     wp_apply hHttp cctx _ id _ rt $$ [] as %ttl %herr Hh
     · iframe #; isplitl []
-      · iapply srvCtxWeak_of_isContext; iassumption
+      · iapply v3rpc.ctxDoneErr_of_isContext; iassumption
       ipureintro; exact Hrt
     (try wp_auto)
     -- `if err == nil || errorspkg.Is(err, lease.ErrLeaseNotFound) { return ttl, err }`
