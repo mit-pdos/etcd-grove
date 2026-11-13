@@ -153,10 +153,10 @@ theorem frame_walRecEnc_le (t : w64) (k : w32) (d : List w8) (ht : uint.nat t < 
   have h2 := framePad_lt (recSize (recOf ⟨t, k, d⟩))
   omega
 
-/-- **The headers fit** the encoder's record bound and the writer's. -/
+/-- **The headers fit** ext4's maximum offset (`Seek`'s bound; below the encoder's record bound). -/
 theorem cutHdrs_fit (Mr : WalMarshal) (md : List w8) (hs : HardStateM) (c : w32)
-    (hsz : md.length + (Mr.encState hs).length < 2 ^ 45) :
-    (recFrames walCodec (chainRecs walCodec c (cutHdrDs Mr md hs))).length < 2 ^ 47 := by
+    (hsz : md.length + (Mr.encState hs).length < 2 ^ 42) :
+    (recFrames walCodec (chainRecs walCodec c (cutHdrDs Mr md hs))).length ≤ 0xffffffff000 := by
   rw [cutHdrRecs_frames]
   have h1 := frame_walRecEnc_le crcType (hash.crc32.crc32c c []) [] (by decide)
   have h2 := frame_walRecEnc_le metadataType (hash.crc32.crc32c (hash.crc32.crc32c c []) md) md

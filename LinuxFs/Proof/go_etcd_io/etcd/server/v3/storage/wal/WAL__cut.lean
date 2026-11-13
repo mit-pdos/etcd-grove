@@ -350,7 +350,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
       recFrames walCodec (chainRecs walCodec (tailCrc Mr h.H h.md h.cuts)
         (cutHdrDs Mr h.md (walLastHS (h.H.map WalOpG.toM)))) := by
     rw [tailStream_recs, tailRecs_cut Mr h.H h.md h.cuts hsorted' hle']
-  have hL : (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length < 2 ^ 47 := by
+  have hL : (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length ≤ 0xffffffff000 := by
     rw [hTS]; exact cutHdrs_fit Mr h.md _ _ (by rw [← hst]; exact hmdsz)
   icases (osZerosA_unfold i2 0 m2.size (DFrac.own 1)).1 $$ Hz2 with ⟨%zs2, %hzs2, Hz2⟩
   ihave HW0 := os.fileW_start f2 fd2 (child dir (pipeTmp np)) (DFrac.own 1) (DFrac.own 1)
@@ -475,6 +475,74 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     iapply HΦ
     iright; ipureintro; exact he3
   subst he3
+  (try wp_auto)
+  -- `w.sync()`: the headers flushed and `N.tmp` fdatasynced
+  have hlen3 := congrArg List.length hys3
+  simp only [List.length_append] at hlen3
+  have hall : ([] ++ ys1 ++ ys2 ++ ys3 ++ pend3) = tailStream Mr h.H h.md (h.cuts ++ [h.H.length]) := by
+    calc [] ++ ys1 ++ ys2 ++ ys3 ++ pend3 = ys1 ++ (ys2 ++ (ys3 ++ pend3)) := by simp
+      _ = (ys1 ++ (ys2 ++ pend2)) ++ (if hsEmptyP h.st then [] else stateFrame Mr
+          (hash.crc32.crc32c (hash.crc32.crc32c c0 []) h.md) h.st) := by rw [hys3]; simp
+      _ = ((ys1 ++ pend1) ++ WalEnc.frame (walRecEnc ⟨metadataType,
+            hash.crc32.crc32c (hash.crc32.crc32c c0 []) h.md, h.md⟩)) ++
+          (if hsEmptyP h.st then [] else stateFrame Mr
+            (hash.crc32.crc32c (hash.crc32.crc32c c0 []) h.md) h.st) := by rw [hys2]; simp
+      _ = tailStream Mr h.H h.md (h.cuts ++ [h.H.length]) := by
+          rw [hys1, hFr]; split <;> simp [stateFrame]
+  ihave #Hmds2 := Hmds
+  iunfold recBytes at Hmds2
+  icases Hmds2 with ⟨%hmdsn, #Hmdsb⟩
+  ihave #Hzpk : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
+  · iPkgInit
+  have hlenL : ([] ++ ys1 ++ ys2 ++ ys3).length + pend3.length ≤
+      (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length := by
+    have := congrArg List.length hall; simp only [List.length_append] at this ⊢; omega
+  have hsyncOk := os.fileWI_preSyncOk wp_Fdatasync f2 fd2 (child dir (pipeTmp np)) (DFrac.own 1)
+    (DFrac.own 1) (openFd i2 (wal.walOpenFlag true ||| W64 0x80000)) m2
+    (zs2.map (fun c => ((0 : w8), c)))
+  wp_apply (wp_syncPreL w lg dir mds h.md e2 (ls ++ [lt]) ntl f2 h.snapi h.enti _ _ _
+      (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length ([] ++ ys1 ++ ys2 ++ ys3) pend3 _
+      hlenL hsyncOk)
+    $$ [Hws] [Hlg Hdir Hmd Hns Henti Hsnapi He Hlocks Hls Hcap Henc2 HW3] as %serr4 ⟨Hpre, Henc2, Hr4⟩
+  · iexact Hws
+  · iframe Henv Hzpk Henc2 HW3
+    iunfold walPreInL
+    iexists locks'
+    iframe
+    iframe #
+    ipureintro; exact he2
+  icases Hr4 with (⟨%he4, HS⟩ | ⟨%he4, -⟩)
+  rotate_left
+  · rcases serr4 with ei | _
+    rotate_left
+    · exact absurd rfl he4
+    (try wp_auto)
+    iapply HΦ
+    iright; ipureintro; exact he4
+  subst he4
+  rw [hall]
+  iunfold walPreInL at Hpre
+  icases Hpre with ⟨%locks'', Hlg, -, Hdir, Hmd, -, Hns, -, Henti, Hsnapi, He, -, Hlocks, Hls,
+    Hcap, -⟩
+  iclear Hbw0 Hpw0 Hcf0 Hb0 Hbs0 Hu0 Hus0 Hl0 Hws HwsP
+  (try wp_auto)
+  -- the new segment's offset: the headers' end
+  wp_apply (wp_tail w locks'' (ls ++ [lt]) ntl (DFrac.own 1) (DFrac.own 1)) $$ [Hlocks Hls]
+    as ⟨Hlocks, Hls⟩
+  · iframe
+  (try wp_auto)
+  wp_method_call
+  wp_call
+  (try wp_auto)
+  iunfold os.fileS at HS
+  icases HS with ⟨%mS, %ysS, %hokS, Hf2, Hfd2, Hoff2, HmS, HbS, -⟩
+  obtain ⟨hoS1, hoS2, hoS3⟩ := cut_off_toInt 0 (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length
+    (by omega)
+  rw [show (((0 + (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length : Nat) : Int)) =
+    ((0 : Nat) : Int) + (((tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length : Nat) : Int)
+    by omega]
+  wp_apply (os.File.Seek.wp_cur f2 fd2 _ (DFrac.own 1) _ hfd2 hoS1 hoS2) $$ [$Hf2 $Hoff2]
+    as ⟨Hf2, Hoff2⟩
   (try wp_auto)
   sorry
 
