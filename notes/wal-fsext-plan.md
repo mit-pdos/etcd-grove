@@ -2710,6 +2710,6 @@ Two facts the pin and the error arms need are not in `walInv`; both are invarian
   `D`); write mode `walTmpParked_take`. If `walSearch` fails, the pin takes only the claim. Note for `Open`
   (write mode, the coordinator's `wal-cut9` heads-up): a leftover `N.tmp` handed to `newFilePipeline` must
   satisfy `trFile`'s new `cut = none ∧ lo ≤ size`, and the handle starts `walPipeH … h.pc` at `pc = 0`.
-- *Callees still without a spec for `openAtIndex`'s write mode*: `LockedFile.Name`/`os.File.Name`,
-  `filepath.Base` (names-only package), `WAL.tail` over `walReadH`'s locks (`WAL__tail` is over the write
-  handle).
+- *Callees for `openAtIndex`'s write mode*: `os.File.Name` and `filepath.Base` have specs
+  (`LinuxFs/Spec/os/File__Name.lean`, `LinuxFs/Spec/path/filepath/Base.lean`); `*LockedFile`'s promoted
+  `Name` and `WAL.tail` over `walReadH`'s locks (`WAL__tail` is over the write handle) are to check.
