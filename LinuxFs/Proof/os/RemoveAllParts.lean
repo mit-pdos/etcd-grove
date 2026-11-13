@@ -202,6 +202,104 @@ theorem os.wp_splitPath_child (d b : GoString) (hb : NameOk b)
     iframe
     ipureintro; omega
 
+/-- A spine to `d/b` borrowed from a spine to `d` and the whole claim on `b` (a directory). -/
+theorem os.osPathS_borrow (R : Roots) (d b : GoString) (j J : Ino) (qd : Qp) (h : NamesH)
+    (hb : NameOk b) (hJ : h.cur !! b = some (.dir J)) :
+    osPathS (GF := GF) R d (DFrac.own qd) j ∗ osNames j (.only [b]) (DFrac.own 1) h ⊢
+      ∃ e : Qp, osPathS R (child d b) (DFrac.own e) J ∗
+        (osPathS R (child d b) (DFrac.own e) J -∗
+          osPathS R d (DFrac.own qd) j ∗ osNames j (.only [b]) (DFrac.own 1) h) := by
+  obtain ⟨ε, a', b', hqd, hqq⟩ := os.qp_common qd 1
+  iintro ⟨Hp, Hn⟩
+  rw [← hqd]
+  rw [← hqq]
+  icases (osPathS_frac R d ε a' j).1 $$ Hp with ⟨Hpe, Hpa⟩
+  icases (osNames_frac j (.only [b]) ε b' h).1 $$ Hn with ⟨Hne, Hnb⟩
+  ihave Hpc := osPathS_child R d b (DFrac.own ε) j J h hb hJ $$ Hpe Hne
+  iexists ε
+  iframe
+  iintro Hpc
+  icases os.osPathS_unchild R d b j J ε a' hb $$ [Hpc Hpa] with ⟨%h'', Hp, Hne, %-⟩
+  · iframe
+  icases osNames_agree j (.only [b]) _ _ h'' h $$ Hne Hnb with %he
+  subst he
+  iframe
+  iapply (osNames_frac j (.only [b]) ε b' h'').2
+  iframe
+
+/-- `RemoveAll`'s error pointer: `nil`, or a `*PathError` whose `Path` it owns (the model prefixes
+it) and whose other fields are persistent, its `Err` one `fmt` formats. -/
+def os.peOk (pe : Loc) : IProp GF :=
+  iprop(⌜pe = null⌝ ∨ ∃ (op path : GoString) (err : GoInterface),
+    structFieldRef io.fs.PathError go!"Op" pe ↦□ op ∗
+    structFieldRef io.fs.PathError go!"Path" pe ↦ path ∗
+    structFieldRef io.fs.PathError go!"Err" pe ↦□ err ∗ fmtErrorOk err)
+
+theorem os.peOk_null : ⊢ os.peOk (GF := GF) null := by
+  unfold os.peOk; iintro; ileft; ipureintro; rfl
+
+/-- `model.pathErrorPtr op path err` of an `err` `fmt` formats. -/
+theorem os.model.wp_pathErrorPtr (op path : GoString) (err : GoInterface) :
+    {{ fmtErrorOk (GF := GF) err }}
+      (App (App (App (Val os.model.pathErrorPtr) (Val #op)) (Val #path)) (Val #err))
+    {{ (pe : Loc), RET #pe; os.peOk pe }} := by
+  wp_start as #Herr
+  iapply wp_fupd
+  wp_auto
+  iStructNamed pe
+  ipersist Op
+  ipersist Err
+  imodintro
+  iapply HΦ
+  unfold os.peOk
+  iright
+  iexists op, path, err
+  iframe; iframe #
+
+/-- `model.prefixPath pe pre`. -/
+theorem os.model.wp_prefixPath (pe : Loc) (pre : GoString) :
+    {{ os.peOk (GF := GF) pe }}
+      (App (App (Val os.model.prefixPath) (Val #pe)) (Val #pre))
+    {{ RET #(); os.peOk pe }} := by
+  wp_start as Hpe
+  by_cases hn : pe = null
+  · rw [decide_eq_true hn]
+    wp_auto
+    iapply HΦ $$ Hpe
+  rw [decide_eq_false hn]
+  unfold os.peOk
+  icases Hpe with (%hn' | ⟨%op, %path, %err, #Hop, Hpath, #Herr, #Hok⟩)
+  · exact absurd hn' hn
+  wp_auto
+  iapply HΦ
+  iright
+  iexists _, _, err
+  iframe; iframe #
+
+/-- `model.pathErrorPtr op path (Errno e)`, `e` nonzero. -/
+theorem os.model.wp_pathErrorPtr_errno (op path : GoString) (e : w64) (he : e ≠ 0)
+    (Φ : val → IProp GF) :
+    (∀ pe : Loc, os.peOk pe -∗ Φ #pe) ⊢
+      WP (App (App (App (Val os.model.pathErrorPtr) (Val #op)) (Val #path))
+        (App (Val syscall.model.errno) (Val #e))) {{ Φ }} := by
+  iintro HΦ
+  wp_apply wp_errno
+  wp_apply os.model.wp_pathErrorPtr op path (errnoErr e) $$ [] as %pe Hpe
+  · iapply errnoErr_fmtErrorOk e he
+  iapply HΦ $$ Hpe
+
+/-- `model.pathErrorPtr "readdirnames" b (model.pathError "readdirent" b (Errno e))`, `e`
+nonzero. -/
+theorem os.model.wp_pathErrorPtr_rd (b : GoString) (e : w64) (he : e ≠ 0) (Φ : val → IProp GF) :
+    (∀ pe : Loc, os.peOk pe -∗ Φ #pe) ⊢
+      WP (App (App (App (Val os.model.pathErrorPtr) (Val #go!"readdirnames")) (Val #b))
+        (App (App (App (Val os.model.pathError) (Val #go!"readdirent")) (Val #b))
+          (App (Val syscall.model.errno) (Val #e)))) {{ Φ }} := by
+  iintro HΦ
+  wp_apply os.wp_pathError_ok _ _ e he as %pe0 #Hok
+  wp_apply os.model.wp_pathErrorPtr _ _ _ $$ Hok as %pe Hpe
+  iapply HΦ $$ Hpe
+
 end proof
 
 end EtcdGrove
