@@ -73,35 +73,72 @@ theorem framePad_add_mod (n : Nat) : (n + framePad n) % 8 = 0 := by unfold frame
 
 theorem encodeFrameSize_snd (n : Nat) : (encodeFrameSize n).2 = framePad n := rfl
 
-private theorem fs_bv_pad (x p : BitVec 64) (hx : x < 0x100000000000000#64) (hp : p < 8#64)
-    (hp0 : p ≠ 0#64) :
+/-! The bit facts behind the round trip, bit by bit (not `bv_decide`, whose proof rests on native
+evaluation). -/
+
+private theorem bits_hi (x : BitVec 64) (k : Nat) (hx : x.toNat < 2 ^ k) (i : Nat) (hi : k ≤ i) :
+    x.getLsbD i = false := by
+  rw [← BitVec.testBit_toNat]
+  exact Nat.testBit_lt_two_pow (Nat.lt_of_lt_of_le hx (Nat.pow_le_pow_right (by decide) hi))
+
+private theorem bits_ff : ∀ j, j < 8 → (0xff#64).getLsbD j = true := by decide
+private theorem bits_7 : ∀ j, j < 3 → (7#64).getLsbD j = true := by decide
+private theorem bits_7' : ∀ j, j < 64 → ¬ j < 3 → (7#64).getLsbD j = false := by decide
+private theorem bits_80 : ∀ j, j < 3 → (0x80#64).getLsbD j = false := by decide
+
+private theorem fs_mask (x y : BitVec 64) (hx : x.toNat < 2 ^ 56)
+    (hy : ∀ i, i < 56 → y.getLsbD i = false) :
+    (x ||| y) &&& ~~~(0xff#64 <<< 56) = x := by
+  apply BitVec.eq_of_getLsbD_eq
+  intro i hi
+  simp only [BitVec.getLsbD_and, BitVec.getLsbD_or, BitVec.getLsbD_not, BitVec.getLsbD_shiftLeft,
+    hi, decide_true, Bool.true_and]
+  by_cases h56 : i < 56
+  · simp [h56, hy i h56]
+  · rw [bits_ff (i - 56) (by omega), bits_hi x 56 hx i (by omega)]; simp [h56]
+
+private theorem fs_bv_pad (x p : BitVec 64) (hx : x.toNat < 2 ^ 56) (hp : p.toNat < 8) :
     (x ||| ((0x80#64 ||| p) <<< 56)) &&& ~~~(0xff#64 <<< 56) = x ∧
     (x ||| ((0x80#64 ||| p) <<< 56)).slt 0#64 = true ∧
     ((x ||| ((0x80#64 ||| p) <<< 56)) >>> 56) &&& 7#64 = p := by
-  bv_decide
+  refine ⟨fs_mask x _ hx (fun i hi => by simp [BitVec.getLsbD_shiftLeft, hi]), ?_, ?_⟩
+  · have h7 : (0x80#64).getLsbD 7 = true := by decide
+    have hm : ((0x80#64 ||| p) <<< 56).msb = true := by
+      rw [BitVec.msb_eq_getLsbD_last]
+      simp only [BitVec.getLsbD_shiftLeft, BitVec.getLsbD_or]
+      simp [h7]
+    rw [BitVec.slt_zero_eq_msb, BitVec.msb_or, hm, Bool.or_true]
+  · apply BitVec.eq_of_getLsbD_eq
+    intro j hj
+    simp only [BitVec.getLsbD_and, BitVec.getLsbD_ushiftRight, BitVec.getLsbD_or,
+      BitVec.getLsbD_shiftLeft, bits_hi x 56 hx (56 + j) (by omega)]
+    by_cases h3 : j < 3
+    · rw [bits_7 j h3]
+      simp only [Nat.add_sub_cancel_left, bits_80 j h3]
+      simp; omega
+    · rw [bits_7' j hj h3, bits_hi p 3 (by omega) j (by omega)]; simp
 
-private theorem fs_bv_nopad (x : BitVec 64) (hx : x < 0x100000000000000#64) :
+private theorem fs_bv_nopad (x : BitVec 64) (hx : x.toNat < 2 ^ 56) :
     x &&& ~~~(0xff#64 <<< 56) = x ∧ x.slt 0#64 = false := by
-  bv_decide
+  constructor
+  · have := fs_mask x 0#64 hx (fun i _ => by simp)
+    simpa using this
+  · rw [BitVec.slt_zero_eq_msb, BitVec.msb_eq_getLsbD_last]; exact bits_hi x 56 hx 63 (by omega)
 
 /-- **The frame size round trip** (`decodeFrameSize ∘ encodeFrameSize`) for `n < 2^56`. -/
 theorem decodeFrameSize_encode (n : Nat) (h : n < 2 ^ 56) :
     decodeFrameSize (encodeFrameSize n).1 = (n, framePad n) := by
-  have hx : BitVec.ofNat 64 n < 0x100000000000000#64 := by
-    rw [BitVec.lt_def]; simp only [BitVec.toNat_ofNat]; omega
   have hxn : (BitVec.ofNat 64 n).toNat = n := by simp only [BitVec.toNat_ofNat]; omega
+  have hx : (BitVec.ofNat 64 n).toNat < 2 ^ 56 := by rw [hxn]; exact h
   have hp := framePad_lt n
   unfold encodeFrameSize decodeFrameSize
   by_cases h0 : framePad n = 0
   · simp only [h0, ne_eq, not_true_eq_false, ite_false]
     obtain ⟨h1, h2⟩ := fs_bv_nopad _ hx
     rw [h1, h2]; simp [hxn]
-  · have hp' : BitVec.ofNat 64 (framePad n) < 8#64 := by
-      rw [BitVec.lt_def]; simp only [BitVec.toNat_ofNat]; omega
-    have hp0 : BitVec.ofNat 64 (framePad n) ≠ 0#64 := by
-      intro hc; apply h0
-      have := congrArg BitVec.toNat hc; simp only [BitVec.toNat_ofNat] at this; omega
-    obtain ⟨h1, h2, h3⟩ := fs_bv_pad _ _ hx hp' hp0
+  · have hp' : (BitVec.ofNat 64 (framePad n)).toNat < 8 := by
+      simp only [BitVec.toNat_ofNat]; omega
+    obtain ⟨h1, h2, h3⟩ := fs_bv_pad _ _ hx hp'
     simp only [ne_eq, h0, not_false_eq_true, ite_true, h1, h2, h3]
     simp only [uint.nat, hxn, BitVec.toNat_ofNat, Prod.mk.injEq, true_and]; omega
 

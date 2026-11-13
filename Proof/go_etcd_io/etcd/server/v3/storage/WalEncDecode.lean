@@ -280,21 +280,118 @@ theorem walDecodeFrom_frames {C : WalCodec} (hC : C.Ok) {bs : List w8} (rs : Lis
     rw [ih (fun r' h => hfit r' (by simp [h])) hch.2 hbs']
     simp [recFrames_cons, chainEnd, Nat.add_assoc]
 
+/-- Zeros, or nothing, at the offset: the step reads the end. -/
+theorem decStep_zeros (C : WalCodec) (last : Bool) {bs : List w8} {off z : Nat} {c : w32}
+    (hz : z = 0 ∨ 8 ≤ z) (hbs : bs.drop off = List.replicate z (0#8)) :
+    decStep C last bs off c = .stop .eof := by
+  unfold decStep
+  simp only [hbs, List.length_replicate]
+  rcases hz with rfl | hz
+  · simp
+  · have h8 : List.take 8 (List.replicate z (0#8)) = u64Le (W64 0) := by
+      rw [List.take_replicate, u64Le_0, Nat.min_eq_left hz]; rfl
+    rw [ite_eq_right (by omega), ite_eq_right (by omega), h8, u64Le_to_word, ite_eq_left (by decide)]
+
 /-- **Zeros, or nothing, read as the end** (decoder.go:95: a zero length word; the end of the
 file). Fewer than 8 zeros would be `shortLen`: the WAL's frames and preallocation keep 8-byte
 alignment. -/
 theorem walDecodeFrom_zeros (C : WalCodec) {bs : List w8} {off z : Nat} {c : w32}
     (hz : z = 0 ∨ 8 ≤ z) (hbs : bs.drop off = List.replicate z (0#8)) :
     walDecodeFrom C bs off c = ⟨[], .eof, off, c⟩ := by
-  have hstep : decStep C true bs off c = .stop .eof := by
-    unfold decStep
-    simp only [hbs, List.length_replicate]
-    rcases hz with rfl | hz
-    · simp
-    · have h8 : List.take 8 (List.replicate z (0#8)) = u64Le (W64 0) := by
-        rw [List.take_replicate, u64Le_0, Nat.min_eq_left hz]; rfl
-      rw [ite_eq_right (by omega), ite_eq_right (by omega), h8, u64Le_to_word, ite_eq_left (by decide)]
-  rw [walDecodeFrom_unfold, hstep]
+  rw [walDecodeFrom_unfold, decStep_zeros C true hz hbs]
+
+/-- An accepted step reads only its frame: bytes appended after the file change nothing. -/
+theorem decStep_append {C : WalCodec} {last : Bool} {img : List w8} {off : Nat} {c : w32}
+    {r : WalRec} {len : Nat} {c' : w32} (zs : List w8)
+    (h : decStep C last img off c = .accept r len c') :
+    decStep C last (img ++ zs) off c = .accept r len c' := by
+  have hb := decStep_rec_bound h
+  have hr : (img ++ zs).drop off = img.drop off ++ zs := List.drop_append_of_le_length (by omega)
+  have hl : (img.drop off).length = img.length - off := List.length_drop
+  unfold decStep at h ⊢
+  simp only at h ⊢
+  rw [hr]
+  split at h; · cases h
+  split at h; · cases h
+  rename_i h1 h2
+  have ht8 : (img.drop off ++ zs).take 8 = (img.drop off).take 8 :=
+    List.take_append_of_le_length (by omega)
+  rw [ht8]
+  split at h; · cases h
+  rename_i h3
+  split at h; · cases h
+  rename_i h4
+  split at h; · cases h
+  rename_i h5
+  have hd8 : (img.drop off ++ zs).drop 8 = (img.drop off).drop 8 ++ zs :=
+    List.drop_append_of_le_length (by omega)
+  have hd : ((img.drop off ++ zs).drop 8).take
+        ((decodeFrameSize (leToU64 ((img.drop off).take 8))).1 +
+         (decodeFrameSize (leToU64 ((img.drop off).take 8))).2) =
+      ((img.drop off).drop 8).take
+        ((decodeFrameSize (leToU64 ((img.drop off).take 8))).1 +
+         (decodeFrameSize (leToU64 ((img.drop off).take 8))).2) := by
+    rw [hd8]; exact List.take_append_of_le_length (by simp only [List.length_drop]; omega)
+  rw [ite_eq_right (by simp only [List.length_append]; omega),
+    ite_eq_right (by simp only [List.length_append]; omega), ite_eq_right h3,
+    ite_eq_right (by simp only [List.length_append]; omega),
+    ite_eq_right (by simp only [List.length_append]; omega), hd]
+  exact h
+
+/-- A step that read the end (within the file) still reads it with zeros appended. -/
+theorem decStep_append_eof {C : WalCodec} {last : Bool} {img : List w8} {off z : Nat} {c : w32}
+    (hz : z = 0 ∨ 8 ≤ z) (hoff : off ≤ img.length) (h : decStep C last img off c = .stop .eof) :
+    decStep C last (img ++ List.replicate z (0#8)) off c = .stop .eof := by
+  have hr : (img ++ List.replicate z (0#8)).drop off = img.drop off ++ List.replicate z (0#8) :=
+    List.drop_append_of_le_length hoff
+  by_cases h0 : (img.drop off).length = 0
+  · apply decStep_zeros C last hz
+    rw [hr, List.eq_nil_of_length_eq_zero h0, List.nil_append]
+  · unfold decStep at h ⊢
+    simp only at h ⊢
+    rw [hr, ite_eq_right (by simp only [List.length_append]; omega)]
+    rw [ite_eq_right h0] at h
+    have h8 : ¬ (img.drop off).length < 8 := by
+      intro h8; rw [ite_eq_left h8] at h; cases h
+    rw [ite_eq_right h8] at h
+    rw [ite_eq_right (by simp only [List.length_append]; omega),
+      List.take_append_of_le_length (by omega)]
+    by_cases hl : leToU64 ((img.drop off).take 8) = 0#64
+    · rw [ite_eq_left hl]
+    · exfalso
+      rw [ite_eq_right hl] at h
+      split at h; · cases h
+      split at h; · cases h
+      split at h
+      · cases h
+      · split at h
+        · split at h <;> cases h
+        · split at h <;> cases h
+
+theorem walDecodeFrom_append_zeros (C : WalCodec) {img : List w8} {z : Nat} (hz : z = 0 ∨ 8 ≤ z) :
+    ∀ n off c, img.length - off = n → off ≤ img.length →
+    (walDecodeFrom C img off c).stop = .eof →
+    (walDecodeFrom C (img ++ List.replicate z (0#8)) off c).recs = (walDecodeFrom C img off c).recs ∧
+    (walDecodeFrom C (img ++ List.replicate z (0#8)) off c).stop = .eof := by
+  intro n
+  induction n using Nat.strongRecOn with
+  | ind n ih =>
+    intro off c hn hoff heof
+    rw [walDecodeFrom_unfold] at heof
+    rw [walDecodeFrom_unfold (bs := img), walDecodeFrom_unfold (bs := img ++ _)]
+    cases hs : decStep C true img off c with
+    | stop s =>
+      rw [hs] at heof
+      simp only at heof
+      subst heof
+      rw [decStep_append_eof hz hoff hs]
+      exact ⟨rfl, rfl⟩
+    | accept r len c' =>
+      rw [hs] at heof
+      rw [decStep_append _ hs]
+      have hb := decStep_rec_bound hs
+      have := ih (img.length - (off + len)) (by omega) (off + len) c' rfl (by omega) heof
+      simp only [this.1, this.2, and_self]
 
 /-! ## Images that are not what was written -/
 
@@ -372,8 +469,8 @@ reads the same records from the image followed by preallocated zeros. -/
 theorem walDecode_append_zeros (C : WalCodec) {img : List w8} {z : Nat} (hz : z = 0 ∨ 8 ≤ z)
     (heof : (walDecode C img).stop = .eof) :
     (walDecode C (img ++ List.replicate z (0#8))).recs = (walDecode C img).recs ∧
-    (walDecode C (img ++ List.replicate z (0#8))).stop = .eof := by
-  sorry
+    (walDecode C (img ++ List.replicate z (0#8))).stop = .eof :=
+  walDecodeFrom_append_zeros C hz _ 0 0#32 rfl (Nat.zero_le _) heof
 
 end WalEnc
 end EtcdGrove
