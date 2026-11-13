@@ -104,6 +104,68 @@ theorem wp_serveConn
     iapply HΦ
     itrivial
 
+
+theorem wp_Serve
+    (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
+    (wp_Accept : net.Listener.Accept.spec (GF := GF) (hG := hG))
+    (wp_ReadFull : wire.ReadFull.spec (GF := GF) (hG := hG))
+    (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
+    (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
+    (γm : GName) (eof : GoInterface) :
+    {{ isPkgInit (PROP := IProp GF) pkg ∗ echoInvs γm ∗
+        tcpPlan G srvAddr (extLocalGS tcpExt (L := hG.goose_localGS)).host ∗
+        globalAddr io.EOF ↦□ eof }}
+      (App (Val (@! Serve)) (Val #()))
+    {{ RET #(); True }} := by
+  wp_start as ⟨#Hinvs, #Hplan, #Heof⟩
+  icases echoInvs_elim γm $$ Hinvs with ⟨#HaddrInv, #HechoInv⟩
+  (try wp_auto)
+  wp_apply wp_Listen srvAddr $$ Hplan as %li %err (⟨%Herr, %l, #Hli, Hlis⟩ | %Herr)
+  · -- listening: the accept loop
+    subst Herr
+    unfold net.isListener
+    icases Hli with ⟨%t, %Ht, #Hlt⟩
+    subst Ht
+    wp_auto
+    ihave HI : ("Hlis" ∷ tcpLis (extLocalGS tcpExt (L := hG.goose_localGS)) l srvAddr true :
+      IProp GF) $$ [Hlis]
+    · iexact Hlis
+    wp_for HI
+    wp_apply wp_Accept t l srvAddr true
+        (tcpLis (extLocalGS tcpExt (L := hG.goose_localGS)) l srvAddr true)
+        (fun cn => iprop(tcpLis (extLocalGS tcpExt (L := hG.goose_localGS)) l srvAddr true ∗
+          connProto γm cn)) $$ [Hlis]
+      as %c %err (⟨%Herr, %cn, #Hc, Hlis, Hproto⟩ | ⟨%Herr, Hlis⟩)
+    · iframe Hlt Hlis
+      isplit
+      · iintro Hl; iexact Hl
+      · imod wire.accept_au addrN srvAddr (connProto γm) $$ HaddrInv with ⟨%S, Hp, Hk⟩
+        imodintro
+        iexists S
+        iframe Hp
+        iintro %cn %HcS Hp
+        imod Hk $$ %cn %HcS Hp with Hproto
+        imodintro
+        iintro Hl -
+        iframe Hl Hproto
+    · -- a connection: serve it
+      subst Herr
+      wp_auto
+      wp_apply wp_serveConn wp_ReadFull wp_Write wp_Close γm c cn eof $$ [Hproto]
+      · iframe Hinvs Hc Hproto Heof
+      wp_for_post
+      iframe
+    · -- a failure: go on
+      obtain ⟨pe, rfl⟩ := Herr
+      wp_auto
+      wp_for_post
+      iframe
+  · -- not listening: return
+    obtain ⟨pe, rfl⟩ := Herr
+    wp_auto
+    iapply HΦ
+    itrivial
+
 end proof
 
 end github_com.mit_pdos.etcd_grove.examples.net.echo

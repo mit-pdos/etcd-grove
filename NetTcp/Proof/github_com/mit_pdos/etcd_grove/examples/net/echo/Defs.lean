@@ -37,7 +37,7 @@ open github_com.mit_pdos.etcd_grove.examples.net.wire (G addrInv setMap ndot_mas
 namespace github_com.mit_pdos.etcd_grove.examples.net.echo
 
 /-- The server's address, as a Go string. -/
-def srvAddr : GoString := go!"127.0.0.1:7101"
+abbrev srvAddr : GoString := go!"127.0.0.1:7101"
 
 def addrN : Namespace := nroot.@"echo_addr"
 def echoN : Namespace := nroot.@"echo_conns"
@@ -96,6 +96,10 @@ def echoInvs (γm : GName) : IProp GF :=
 
 instance echoInvs_persistent (γm : GName) : Persistent (echoInvs (hG := hG) γm) := by
   unfold echoInvs; infer_instance
+
+theorem echoInvs_elim (γm : GName) :
+    echoInvs (hG := hG) γm ⊢ inv addrN (addrInv srvAddr (connProto (hG := hG) γm)) ∗
+      inv echoN (echoState G γm) := .rfl
 
 theorem echoTok_exclusive (γ : GName) :
     echoTok (G (hG := hG)) γ -∗ echoTok G γ -∗ False := by

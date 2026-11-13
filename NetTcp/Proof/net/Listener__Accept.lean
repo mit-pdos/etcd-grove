@@ -27,13 +27,10 @@ variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 variable [go.BasicIntoValInj]
 
 theorem Listener.Accept.wp_proof : Listener.Accept.spec (GF := GF) (hG := hG) := by
-  intro li l a o Qfail Qok
-  unfold isListener
-  wp_start as ⟨⟨%t, %Hli, #Ht⟩, Hl, HQ⟩
-  subst Hli
-  wp_auto
-  wp_method_call
-  unfold TCPListener.Accept.impl
+  intro t l a o Qfail Qok
+  wp_start as ⟨#Ht, Hl, HQ⟩
+  (try wp_method_call)
+  (try unfold TCPListener.Accept.impl)
   rw [TCPListener_ty_eq]
   ihave #Ht2 := Ht
   iStructNamed Ht2
