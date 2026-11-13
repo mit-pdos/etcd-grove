@@ -207,3 +207,66 @@ of `pageUp size`. With P1, `FileCrashedR` gives "a candidate, or zero at or past
 tail's unsynced bytes may be zero, which W1 already treats as a torn record. Without P2 the WAL's
 proof cannot exclude a stale frame past `lenf` (the plan's item 3), with no premise that Linux makes
 true short of the model change: no fork change is needed (the code is right on C).
+
+## Dispositions (2026-11-13, branch `wal-p12`; the coordinator's decisions, the user away: both **pending the user's review**)
+
+### P1: implemented as proposed (commits `fbe4414da3`, `287794cf0e`)
+
+Trusted: `CrashFile`'s byte clause is now
+`(∀ b, (∃ s, (img b, s) ∈ f.cand b) ∨ (f.sizeLo ≤ b ∧ img b = 0))`; the header's crash rule says
+"or zero at or past the smallest size since the last sync", and a new paragraph "Writeback zeroes
+the page holding the end past the size" (`ext4_bio_write_folio`, `pl-wb-zero`). Go example
+`examples/osfs/semantics/data_writeback_tail_zeros.go` (indexed in `doc.go`;
+`data_append_old_block.go` and `data_crash_candidates.go` point to it). The alternative (zero as a
+second stamp-0 candidate at a sync) was not taken.
+
+Repaired (no `sorry`, no axiom): `Bridge.crash_byte` (the disjunction), `crash_keeps` (takes
+`b < f.sizeLo`); `FileCrashedR` (a run's byte: a candidate, or zero at or past `m.lo`) and
+`crashSeen_crashed`; `LinuxFs/Proof/os/CrashWrite.lean` (`WriteCrash` gains the disjunct
+`min m.lo (wT …) ≤ b ∧ f.cache b = 0`, `fileCrashedR_byte` returns the disjunction,
+`crashed_dur` takes `b < M.lo`); crashlog (`crash_W1`: a zero flag is no flag; `crash_W2` takes
+`8 ≤ m.lo`, true after its sync), walfs (`synced_good`, `dataGood_start`, `start_key`: the data
+bytes are below the synced size), minibolt (`kc_cand` also gives `s.vmeta.lo ≤ f.sizeLo`;
+`CrashImg.byte` gains the disjunct; `crashImg_clean`, `slotK_same`, `image_take_drop` take the
+byte below `s.vmeta.lo`, which every use meets: metas and root pages are below `lo`); the WAL's
+`durable_img` and `TailCrash` (the tail's bytes are below `g.om.lo = g.bs.length`).
+`Tests.crash_after_sync` now concludes `f'.contents = f.contents` (past the size the last page may
+come back zero); new test `crash_wb_tail_zero`. `P1Sat.p1_untouched` (minibolt's premise P1 never
+fails on an untouched file) is restated for a slot below the file's synced size: past it a
+writeback can tear an untouched slot, which P1 then assumes does not validate, as for any torn
+slot (`BootP1.lean`'s header says so). Every module importing `Impl.lean` rebuilt (92 leaves),
+except `wal/filePipeline__alloc.lean`, which failed at a step unrelated to the crash relation
+("cannot frame zapLoggerOk lg", in its error branch's `zap` call; not investigated here).
+
+### P2: implemented, with one change to the range (commits `b9bf235570`, `6523d2e15f`, `9fc1654125` checkpoints, `7b096fa72a` the trusted change)
+
+Trusted: `pageEnd x := 4096 * ((x + 4095) / 4096)` (`Bridge.pageUp` replaced by it); a kind
+`OsChangeKind.falloc`; `OsChange.ofResize i f sz (trunc : Bool)` with
+`hi := if trunc then pageEnd (max f.size sz) else max f.size sz` (`FtruncateStart` and `O_TRUNC`
+`true`, `FallocStart` `false`, `FallocFinish` on `.falloc`); the header's "An `ftruncate` zeroes the
+rest of the page holding the old end" and "no allocation failure in the write path" widened to the
+truncate's zeroing. Go example `examples/osfs/semantics/data_truncate_tail_zeros.go`.
+
+**The change from the draft**: `pageEnd (max old sz)`, not `max (pageEnd old) sz`. They differ only
+for a growth into a later page, where the new range also covers the new last page past the new size
+(a hole: zeros, `trunc-up-past` measured `00` there), so it is as sound. Why: with the draft a
+second resize to the size the file already has (`os.File.Truncate`'s `EINTR` retry, the crash
+state's loop) announces bytes the first did not, and `rsPost_rsPost` (repeating a resize changes
+nothing) fails; with `pageEnd (max …)` it holds, and the retry's landed state stays a function.
+
+Repaired (no `sorry`): `Truncate.lean` (`rsKind`/`rsHi`, `tr : Bool` on `rsTok`/`rsDone`/`rsUndone`/
+`rsPost`), `Falloc.lean`, `TreeSharedTrunc.lean`, `Tests.lean` (new `trunc_same_synced_zero`:
+after `ftruncate` to the same size and a sync, bytes 5000..8191 have the one candidate `(0, 0)`),
+LinuxFs's `os`/`syscall`/`unix` resize specs, fileutil, minibolt, walfs `SegLog`, the WAL's
+`Inv`/`CrashTakeSeg`. **Client obligation changed**: the mapped cells of a resize spec are
+`[min size tg, rsHi tr size tg)` (the flag of a mapped cell past the end flips while the change is in
+flight), `O_TRUNC`'s open `[0, pageEnd size)`; clients without mappings are unaffected, minibolt
+converts its one mapping (`mcells(Any)_single_past`).
+
+**Not done: the WAL's fact** ("the page cache is zero past the size", making a sync give
+`zf := some size`). The ghost records nothing of the page cache past the size, so it needs a new
+`OsMeta` field (an interval known zero in the page cache: set by an `ftruncate`'s landing to
+`[tg, pageEnd (max s tg))`, kept by `fallocate`, shrunk by writes; a sync whose size lies in it gives
+`zf := some size`) and its upkeep in `MetaOk` wherever it is re-established (start, landing, sync,
+crash). Next unit; with it `ZeroToEnd` (whose `ftruncate` from `lenf` zeroes `[off, pageEnd lenf)`)
+followed by `Fdatasync` gives the WAL every byte from `off` on durable zero.
