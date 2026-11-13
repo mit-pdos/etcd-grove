@@ -1,7 +1,10 @@
 # (project etcd's part `LinuxFs/`; Perennial does not translate hash/crc32) types and names only:
-# what the WAL and `pkg/v3/crc` name (`Table`, `Castagnoli`, `MakeTable`, `Update`). No model yet.
+# what the WAL and `pkg/v3/crc` name (`Table`, `Castagnoli`, `MakeTable`, `Update`). `MakeTable` and
+# `Update` are trusted (LinuxFs/TrustedCode/hash/crc32.lean: Go's portable table-driven code over the
+# Castagnoli table; the assembly is not translatable), pending the user's review (2026-11-13).
 translate = ["!*"]
 imports = ["!*"]
+trusted = ["MakeTable", "Update"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

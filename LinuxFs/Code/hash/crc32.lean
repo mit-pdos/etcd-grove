@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Golang.Defn
+public import LinuxFs.TrustedCode.hash.crc32
 
 @[expose] public section
 
@@ -277,11 +278,15 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   digest_instance : digest.TypeAssumptions
   sse42Table_instance : sse42Table.TypeAssumptions
   slicing8Table_instance : slicing8Table.TypeAssumptions
+  MakeTable_unfold : FuncUnfold MakeTable [] MakeTable.impl
+  Update_unfold : FuncUnfold Update [] Update.impl
 
 attribute [instance] Assumptions.Table_instance
   Assumptions.digest_instance
   Assumptions.sse42Table_instance
   Assumptions.slicing8Table_instance
+  Assumptions.MakeTable_unfold
+  Assumptions.Update_unfold
 
 end hash.crc32
 

@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import LinuxFs.ManualProof.hash.crc32
 public import Perennial.Golang.Theory
 public import LinuxFs.Code.hash.crc32
 
