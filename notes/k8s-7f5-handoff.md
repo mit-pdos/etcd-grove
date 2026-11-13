@@ -18,6 +18,57 @@ the worktree's untracked `questions.md` (decisions; never re-add it tracked).
   this stage's T5-c); 7f-0 partial (records only; the rest goes with 7f-6, Q7).
 - No Lean edited. Nothing built on this branch.
 
+## Handoff point (2026-11-13, fourth 7f-5 agent, later): T5-a approved; land BLOCKED by the axiom-tok gate
+
+81's review: approved as written (freeze note "T5-a review"); STATUS entry added; lean merged
+(`51ee20f154`, clean; the merge adds no trusted text but ours). `etc/land.sh` (log
+`/shared/tmp/k8s7f3a/land.log`): build, links, tcb (870/4 after lean's auth-schema-fix), 55 collections
+ok, but **axiom-tok FAILED**: `WithRequireLeader.wp_proof`'s walk truncates ("stuck:
+Perennial.context.isContextDone", inside `watchCtx`'s `#HDone` over the program-picked `s`), and
+`etc/axiom-tok-allow.txt` says no `trunc` line may be added. lean unchanged. STOPPED for 81:
+- (recommended) restate the axiom's first clause without `watchCtx`: `□ (∀ Φ, WP ctx.Done() {{Φ}} -∗
+  WP c.Done() {{Φ}})`, the same for `Err()`, and `metadata.outgoingCtxOkC c` (the `#HCC` part is
+  already the `Value` transfer at `&cancelCtxKey`); `watchCtx ctx s -∗ watchCtx c s` then a proved
+  lemma outside the axiom. A trusted-text change (same meaning, more direct): needs 81's review.
+- or a `trunc` entry for it (against the ratchet's rule).
+
+7f-3b: design drafted (below), no Lean written.
+
+## 7f-3b design (D2), started 2026-11-13 by the fourth 7f-5 agent; no Lean written yet
+
+Go (fork pin 0b50f0426): `newWatcherBatch` (`watcher_group.go:79-96`) allocates a fresh
+`&mvccpb.Event{Type, Kv, PrevKv}` per (watcher, event); the three send sites
+(`watchable_store.go:309` moveVictims, `:401` syncWatchers, `:490` notify) send `eb.evs`, the batch's
+own copies; v3rpc's `sendWatch` (`watch.go:437-455`) writes `events[i].PrevKv = r.KVs[0]` into
+those copies (`events[i] = evs[i]` copies the pointer only). So each event a watcher receives is
+owned by that watcher's response, but the Kv it points at is shared.
+
+Proposed vocabulary (mvcc, `InvWatchBatch.lean`, exported through `Spec/.../mvcc/Api.lean`):
+- `evRd e ev` (persistent): `e ≠ null`, every field but `PrevKv` `↦□` (state, Type = evType ev,
+  Kv = p ≠ null, unknownFields, sizeCache), `kvPtrFixed p ev.kv`. Law `evIs e ev ⊢ evRd e ev`.
+- `evPk e ev` (owned): `∃ q, PrevKv-field ↦ q ∗ (match ev.prevKv with none => q = null | some pk => kvPtrFixed q pk)`.
+- `evOwn e ev := evRd e ev ∗ evPk e ev`; law: `evOwn e ev` with the field discarded gives back
+  `evIs e ev'` (struct recombination: typedPointsto combine), for the send loop's handover to grpc.
+The store's shared events (`kvsToEvents`, `rangeEvents`, `End`, the `notify`/`syncWatchers`
+arguments) stay `evIs`; `newWatcherBatch`'s post, `eventBatch.add`/`watcherBatch.add`,
+`ownEventBatch` (and the victims), `watcher.send`'s pre (events owned; on success handed to the
+channel, on failure kept) and `wrespIs` (mvcc API: the channel's responses) take `evOwn`.
+Readers of the fields (`IsCreateEvent`, `filterNoPut`/`filterNoDelete`, `eventBatch.add`'s
+`Kv.ModRevision`, client `WatchContent.evIs_facts`) move to `evRd`.
+
+Files (from grep of evIs/wrespIs/ownEventBatch/ownWatcherBatch): mvcc `InvWatchBatch`, `InvWatchFrac`,
+`InvWatchStore`, `MoveVictimsLemmas`, `WatchSendLemmas`, `eventBatch__add`, `watcherBatch__add`,
+`newWatcherBatch`, `watcher__send`, `watchableStore__{notify,syncWatchers,moveVictims,cancelWatcher,watch}`,
+`watchableStoreTxnWrite__End`, `kvsToEvents`, `Api/WatchLaws`, `Spec/.../mvcc/Api.lean` (wrespIs: the
+API change, interface diff); v3rpc `WatchApi`, `serverWatchStream__sendLoop`, `PerTypeWatch`,
+`InvWatchStream`, `WatchLemmas`, `filterNoPut/Delete`, `IsCreateEvent` (specs); examples mvccfull
+`stream__receive`/`stream__watch`, mvccrand `watchCheck__receive`; client `WatchContent`, `WatchRun`.
+
+Open question for 81 (recommend (a)): (a) `wrespIs` carries `evOwn` (non-persistent; the channel's
+element predicate hands it over), or (b) a second response predicate for the PrevKv fields beside a
+persistent `wrespIs`. Order: vocabulary + laws first (built), then mvcc proofs bottom-up, then the
+interface diff (STOP before landing per 81), then v3rpc's recvLoop/sendLoop with `swsMuP`.
+
 ## Handoff point (2026-11-13, fourth 7f-5 agent): T5-a fallback done; STOPPED for 81's axiom review
 
 Done (on `k8s-7f5`, not landed; lean has moved on, merge it before landing):
