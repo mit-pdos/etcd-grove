@@ -1,5 +1,10 @@
 # WAL and crash-model handoff (2026-11-12)
 
+**Update 2026-11-13 (the user's decision):** one file semantics, `fsExt`, power loss only (no process
+kills). `absDiskExt` becomes a ghost layer over `fsExt`, and the WAL's axioms proved specs of the real WAL
+(`notes/decisions.md`, "One file semantics, `fsExt`; power loss only"; plan `notes/wal-fsext-plan.md`).
+What follows about unifying the crash models and adding process kills is superseded by it.
+
 The user's collaborator takes over etcd's WAL specification with a unified crash model (this
 repository's abstract-disk extension `absDiskExt` and the per-byte Linux model in `LinuxFs/`), and with
 it the crash ladder (rung 1 `etcd_wal_safe` through rung 5). The etcd-grove-81 sessions continue the
