@@ -20,7 +20,7 @@ Checks passed (below). Then STOP for 81's re-review; land only on 81's go
 Done 2026-11-13: full build ok (17473 jobs, `/shared/tmp/authfix-81/full-build2.log`); `etc/gates.sh`
 all passed (`/shared/tmp/authfix-81/gates2.log`: tcb matches the baseline, 869 axioms, 4 sorries, no
 update; 55 collections match; interfaces ok, no diff; goose, pbschema, model-param, axiom-tok ok).
-STOPPED for 81's re-review. Pitfall seen: running `lake build` while `etc/lean-check.py` rebuilds
+81's re-review: no BLOCKER/MAJOR, departures approved, minors applied (ac5b04925d); GO to land. Pitfall seen: running `lake build` while `etc/lean-check.py` rebuilds
 imports truncates `.lake/build/ir/*.setup.json` ("unexpected end of input"): never both at once.
 
 ---- older handoff below ----
