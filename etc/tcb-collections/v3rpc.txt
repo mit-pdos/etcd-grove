@@ -85,6 +85,7 @@ axiom bbolt.Tx.Size_kv.wp_proof
 axiom bbolt.Tx.Stats_kv.wp_proof
 axiom bcrypt.GenerateFromPassword.wp_proof
 axiom context.WithValue.wp_proof
+axiom context.madeCancelCtx_of_isCancelCtx
 axiom envVerifyOffTok
 axiom errors.IsCtxErr.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof

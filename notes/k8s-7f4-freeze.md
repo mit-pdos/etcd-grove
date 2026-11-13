@@ -829,6 +829,16 @@ still match, their reasons now name `ctxDoneErr`) and selftest; model-param, err
 and returns `levelTok v3rpc.ctxErrLvl` directly; `srvCtxWeak`'s `Err` methods hand the token on) is
 added when `LeaseRenew` uses it. Go: `examples/premisefix/streamctx` passes at go1.27.3.
 
+### T-j review (2026-11-13): READY WITH CHANGES, applied (decided by etcd-grove-81)
+
+T-j0's fix, the opaque and its law, and `wp_WithTimeout_weak` hold against go1.27.3 (review journal
+`wf_34700c38-af3`). Applied: MIN-1 `etc/tcb-baseline.txt` and the `server`/`v3rpc` collections gain
+`axiom context.madeCancelCtx_of_isCancelCtx` (867 axiom lines, 4 sorries); MIN-2 the T-f sentences of
+`RenewHTTP`'s and `waitLeader`'s docstrings name `ctxDoneErr`, and `RenewHTTP`'s axiom-tok entry says the
+goroutine and afterFuncer arms are excluded by `#HParentCC`; MIN-3 the child's `Err` "takes no `RWMutex`
+reader slot" (an atomic load, then `<-c.Done()`, which may briefly take `c.mu`). MAJ-1 (`RenewHTTP`
+refuted through `context.Cause`, older than T-j) is Addendum T-k.
+
 ### Checks run, Revision 2 (2026-11-12, merged with lean `219ddbbb83`)
 
 Full build passes (17490 jobs); `tcb-report --check` matches the baseline unchanged (865 axioms, 5

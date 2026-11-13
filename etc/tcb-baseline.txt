@@ -431,6 +431,7 @@ axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithTimeoutBackgroundMd.wp_proof
 axiom context.WithValue.wp_proof
+axiom context.madeCancelCtx_of_isCancelCtx
 axiom conversion.EnforcePtr.wp_proof
 axiom corev1.Node.DeepCopyObject.wp_proof
 axiom corev1.Pod.DeepCopyObject.wp_proof

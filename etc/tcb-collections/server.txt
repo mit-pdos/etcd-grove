@@ -130,6 +130,7 @@ axiom clockwork.stampAt_persistent
 axiom config.ServerConfig.BackendPath.wp_proof
 axiom config.ServerConfig.PeerDialTimeout.wp_proof
 axiom context.WithValue.wp_proof
+axiom context.madeCancelCtx_of_isCancelCtx
 axiom dataDirFresh
 axiom encoding.json.Unmarshal.wp_proof
 axiom entryEncC_ok
