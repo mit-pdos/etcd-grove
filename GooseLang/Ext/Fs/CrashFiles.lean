@@ -18,6 +18,7 @@ module
 
 public import GooseLang.Ext.Fs.World
 public import GooseLang.Ext.Fs.Crash
+public import GooseLang.Ext.Fs.TreeCutProof
 
 @[expose] public section
 
@@ -104,6 +105,55 @@ theorem osCrash_rel (htw : FsTreeWf st) (htc : TreeCoh st V Γdf Γc) (hc : OsCr
   · rw [htc.hist, htr]
   · obtain ⟨f, f', -, -, hf'⟩ := (hfiles i).1 hi
     rw [hf']; rfl
+
+/-- **After a machine crash in the shared mode, the state is one a program may start in**
+(`closed_cut`, from the shared mode's disciplines on the log), and each slot of the new tree holds
+what it held right after the last kept entry writing it. -/
+theorem machineCrash_initS {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS)} (htw : FsTreeWf st)
+    (htc : TreeCohS st s0 Γdf Γc) (hc : MachineCrash st st') :
+    FsInit st' ∧ ∃ S, (∀ x, S x → x < st.fs.metaLog.length) ∧ Closed st.fs.metaLog S ∧
+      (∀ y, st.fs.committed y → S y) ∧
+      ∀ j b, st'.fs.treeDur.entry j b = slotAfter st.fs.treeDur st.fs.metaLog S j b := by
+  obtain ⟨hp, hr, hlog, hcom, hino, -, ⟨S, hSlt, hSc, hcl, htr⟩, hfiles⟩ := hc
+  obtain ⟨hwf, hslot, hnamed, ⟨t, ht, hkeys⟩⟩ := closed_cut (R := st.fs.roots) htc.starts htc.pss
+    htc.dox htc.valid (fun t ht => (htw.hist t ht).1) hSlt hcl
+  refine ⟨⟨hp, hlog, hcom, by rw [hr]; exact htw.roots, by rw [hr, htr]; exact hwf, ?_, ?_, ?_, ?_⟩,
+    S, hSlt, hcl, hSc, fun j b => by rw [htr]; exact hslot j b⟩
+  · intro i hi
+    obtain ⟨f, f', -, -, hf'⟩ := (hfiles i).1 hi
+    rw [hf']; simp
+  · intro i f hf
+    by_cases hi : Named st'.fs.treeDur i
+    · refine ⟨hi, ?_⟩
+      obtain ⟨f0, f', -, ⟨sz, vs, -, -, rfl⟩, hf'⟩ := (hfiles i).1 hi
+      rw [hf] at hf'; cases hf'; exact ⟨vs, sz, rfl⟩
+    · rw [(hfiles i).2 hi] at hf; cases hf
+  · intro i hi
+    rw [hino]
+    have hn' : Named st'.fs.treeDur i := by
+      apply Classical.byContradiction; intro hn'
+      rw [GMap.mem_iff, (hfiles i).2 hn'] at hi; cases hi
+    rw [htr] at hn'
+    obtain ⟨t', ht', hnt⟩ := hnamed i hn'
+    obtain ⟨f, hf⟩ := (htw.hist t' ht').2.1 i hnt
+    exact htw.files_lt i (by rw [GMap.mem_iff, hf]; rfl)
+  · intro j hj; rw [hino]; rw [htr] at hj; exact (htw.hist t ht).2.2 j ((hkeys j).1 hj)
+
+/-- **What a crash keeps of the tree, in the shared mode**: the new state is one a program may
+start in, on the same roots, every file it names is there, and the crash kept a closed set of the
+log's entries, with the committed ones, each slot as right after its last kept writer. -/
+theorem osCrash_relS {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS)} (htw : FsTreeWf st)
+    (htc : TreeCohS st s0 Γdf Γc) (hc : OsCrash st st') :
+    FsInit st' ∧ st'.fs.roots = st.fs.roots ∧
+      (∀ i, Named st'.fs.treeDur i → (st'.fs.files !! i).isSome) ∧
+      ∃ S, (∀ x, S x → x < st.fs.metaLog.length) ∧ Closed st.fs.metaLog S ∧
+        (∀ y, st.fs.committed y → S y) ∧
+        ∀ j b, st'.fs.treeDur.entry j b = slotAfter st.fs.treeDur st.fs.metaLog S j b := by
+  obtain ⟨hinit, hS⟩ := machineCrash_initS htw htc hc
+  have hfiles := hc.2.2.2.2.2.2.2
+  refine ⟨hinit, hc.2.1, fun i hi => ?_, hS⟩
+  obtain ⟨f, f', -, -, hf'⟩ := (hfiles i).1 hi
+  rw [hf']; rfl
 
 end after
 

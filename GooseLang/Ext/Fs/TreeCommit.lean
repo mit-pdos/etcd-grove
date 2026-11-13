@@ -48,9 +48,9 @@ theorem osCommitLb_zero : ⊢ |==> osCommitLb (L := L) 0 := by
 
 /-- `wp_fs_stepT`, with the committed prefix's authoritative bound too (`commitRes`). -/
 theorem wp_fs_stepTC (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPanic = false)
-    (hE : ↑osN ⊆ E) :
-    ⊢ osInv (L := L) -∗
-      (∀ st Γb Γm Γf Γt V Γdf Γc h, osWorld st Γb Γm Γf Γt h -∗ treeWorld st V Γdf Γc -∗
+    (hE : ↑osN ⊆ E) (W : IProp GF) (hW : LegacyWit (L := L) W) :
+    ⊢ osInv (L := L) -∗ W -∗
+      (W -∗ ∀ st Γb Γm Γf Γt V Γdf Γc h, osWorld st Γb Γm Γf Γt h -∗ treeWorld st V Γdf Γc -∗
           commitRes (gooseOsGS (L := L)) st ==∗
         ⌜∃ e' h' st', FsStep o v h st () e' h' st' ()⌝ ∗
         ▷ ∀ e' h' st', ⌜FsStep o v h st () e' h' st' ()⌝ ==∗
@@ -58,13 +58,15 @@ theorem wp_fs_stepTC (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPa
             treeWorld st' V' Γdf' Γc' ∗ commitRes (gooseOsGS (L := L)) st' ∗
             WP e' @ s; E {{ Φ }}) -∗
       WP (ExternalOp fsExt.name o (Val v)) @ s; E {{ Φ }} := by
-  iintro #Hinv HF
+  iintro #Hinv HW HF
   iapply wp_extStep o v Φ hv
   iintro %h %σ %g Hheap Hl -
   icases (os_local_ctx_eq σ).mp $$ Hl with Hl
-  unfold osCtx osCtxF treeCtx
-  icases Hl with ⟨⟨%Γb, %Γm, %Γf, %Γt, %Hwc, HAb, HAm, HAf, HAt, Htok, Hv⟩,
-    ⟨%V, %Γdf, %Γc, %Hns, HAd, HAdf, HAc, Hrd, Hcr, Hcm⟩⟩
+  unfold osCtx osCtxF
+  icases Hl with ⟨⟨%Γb, %Γm, %Γf, %Γt, %Hwc, HAb, HAm, HAf, HAt, Htok, Hv⟩, Hns⟩
+  icases treeCtx_legacy W hW σ $$ HW Hns with ⟨HW, Hns, Hcm⟩
+  unfold treeLegacy
+  icases Hns with ⟨%V, %Γdf, %Γc, %Hns, HAd, HAdf, HAc, Hrd, Hcr, Hlh⟩
   unfold osInv
   imod inv_acc hE $$ Hinv with ⟨Hi, Hclose⟩
   icases Hi with >Hi
@@ -72,7 +74,7 @@ theorem wp_fs_stepTC (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPa
   icases gVar_agree _ _ _ _ _ $$ Hv Hv' with %Heq
   simp only [Prod.mk.injEq] at Heq
   obtain ⟨rfl, rfl⟩ := Heq
-  imod HF $$ %σ %Γb %Γm %Γf %Γt %V %Γdf %Γc %h [HAb HAm HAf HAt Htok Hcells Hheap]
+  imod HF $$ HW %σ %Γb %Γm %Γf %Γt %V %Γdf %Γc %h [HAb HAm HAf HAt Htok Hcells Hheap]
     [HAd HAdf HAc Hrd Hcr] Hcm with ⟨%Hex, Hcont⟩
   · unfold osWorld; iframe; ipureintro; exact Hwc
   · unfold treeWorld; iframe; ipureintro; exact Hns
@@ -96,7 +98,7 @@ theorem wp_fs_stepTC (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPa
   · inext; iexists (cellView σ'), (GMap.size σ'.proc.inflight); iframe
   imodintro
   iframe Hheap Hwp
-  isplitl [HAb HAm HAf HAt Htok Hv Hn Hcm]
+  isplitl [HAb HAm HAf HAt Htok Hv Hn Hcm Hlh]
   · iapply (os_local_ctx_eq σ').mpr
     unfold osCtx osCtxF treeCtx
     isplitl [HAb HAm HAf HAt Htok Hv]
@@ -105,8 +107,11 @@ theorem wp_fs_stepTC (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPa
       ipureintro; exact Hwc'
     · unfold treeWorld
       icases Hn with ⟨%Hns', HAd, HAdf, HAc, Hrd, Hcr⟩
+      iframe Hcm
+      ileft
+      unfold treeLegacy
       iexists V', Γdf', Γc'
-      iframe HAd HAdf HAc Hrd Hcr Hcm
+      iframe HAd HAdf HAc Hrd Hcr Hlh
       ipureintro; exact Hns'
   · have : (ExtInterp.globalCtx (E := fsExt) (extGlobalGS fsExt) g' : IProp GF) =
         iprop(True) := rfl
@@ -142,8 +147,8 @@ theorem wp_osDirSync_lb (fd : w64) (dq : DFrac) (x : Ino × DirPh) (dqt : DFrac)
         (⌜e ≠ 0⌝ ∨ osCommitLb (L := L) W.2.length) -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "DirSync" (Val (#fd))) @ s; E {{ Φ }} := by
   iintro #Hinv Hfd Ht HΦ
-  iapply wp_fs_stepTC "DirSync" _ Φ (by simp [val.isPanic]) hE $$ Hinv
-  iintro %st %Γb %Γm %Γf %Γt %V %Γdf %Γc %h Hw Hn Hcm
+  iapply wp_fs_stepTC "DirSync" _ Φ (by simp [val.isPanic]) hE _ (legacyWit_dirFd _ _ _) $$ Hinv Hfd
+  iintro Hfd %st %Γb %Γm %Γf %Γt %V %Γdf %Γc %h Hw Hn Hcm
   unfold treeWorld
   icases Hn with ⟨%Hns, HAd, HAdf, HAc, Hrd, Hcr⟩
   obtain ⟨hw, hc⟩ := Hns

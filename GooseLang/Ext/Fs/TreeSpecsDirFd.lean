@@ -169,8 +169,8 @@ theorem wp_osFdKindDir (fd : w64) (dq : DFrac) (x : Ino × DirPh) (hE : ↑osN �
       (osDirFd (L := L) fd dq x -∗ Φ (#(1 : w64))) -∗
       WP (ExternalOp fsExt.name "FdKind" (Val (#fd))) @ s; E {{ Φ }} := by
   iintro #Hinv Hfd HΦ
-  iapply wp_fs_stepT "FdKind" _ Φ (by simp [val.isPanic]) hE $$ Hinv
-  iintro %st %Γb %Γm %Γf %Γt %V %Γdf %Γc %h Hw Hn
+  iapply wp_fs_stepT "FdKind" _ Φ (by simp [val.isPanic]) hE _ (legacyWit_dirFd _ _ _) $$ Hinv Hfd
+  iintro Hfd %st %Γb %Γm %Γf %Γt %V %Γdf %Γc %h Hw Hn
   unfold treeWorld
   icases Hn with ⟨%Hns, HAd, HAdf, HAc, Hrd, Hcr⟩
   obtain ⟨hw, hc⟩ := Hns
@@ -226,8 +226,8 @@ theorem wp_osDirSync (fd : w64) (dq : DFrac) (x : Ino × DirPh) (hE : ↑osN ⊆
       (∀ e : w64, osDirFd (L := L) fd dq x -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "DirSync" (Val (#fd))) @ s; E {{ Φ }} := by
   iintro #Hinv Hfd HΦ
-  iapply wp_fs_stepT "DirSync" _ Φ (by simp [val.isPanic]) hE $$ Hinv
-  iintro %st %Γb %Γm %Γf %Γt %V %Γdf %Γc %h Hw Hn
+  iapply wp_fs_stepT "DirSync" _ Φ (by simp [val.isPanic]) hE _ (legacyWit_dirFd _ _ _) $$ Hinv Hfd
+  iintro Hfd %st %Γb %Γm %Γf %Γt %V %Γdf %Γc %h Hw Hn
   unfold treeWorld
   icases Hn with ⟨%Hns, HAd, HAdf, HAc, Hrd, Hcr⟩
   obtain ⟨hw, hc⟩ := Hns
@@ -290,8 +290,8 @@ theorem wp_osDirClose (fd : w64) (x : Ino × DirPh) (hE : ↑osN ⊆ E) (Φ : va
       (∀ e : w64, rdBack (L := L) x -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "DirClose" (Val (#fd))) @ s; E {{ Φ }} := by
   iintro #Hinv Hfd HΦ
-  iapply wp_fs_stepT "DirClose" _ Φ (by simp [val.isPanic]) hE $$ Hinv
-  iintro %st %Γb %Γm %Γf %Γt %V %Γdf %Γc %h Hw Hn
+  iapply wp_fs_stepT "DirClose" _ Φ (by simp [val.isPanic]) hE _ (legacyWit_dirFd _ _ _) $$ Hinv Hfd
+  iintro Hfd %st %Γb %Γm %Γf %Γt %V %Γdf %Γc %h Hw Hn
   unfold treeWorld
   icases Hn with ⟨%Hns, HAd, HAdf, HAc, Hrd, Hcr⟩
   obtain ⟨hw, hc⟩ := Hns
@@ -368,8 +368,8 @@ theorem wp_osDirReadStep (fd : w64) (j : Ino) (rs : List GoString) (g : DirG) (q
               osDirFd (L := L) fd (DFrac.own 1) (j, .reading rs g q))) -∗ Φ v) -∗
       WP (ExternalOp fsExt.name "DirReadNext" (Val (#fd))) @ s; E {{ Φ }} := by
   iintro #Hinv Hfd HΦ
-  iapply wp_fs_stepT "DirReadNext" _ Φ (by simp [val.isPanic]) hE $$ Hinv
-  iintro %st %Γb %Γm %Γf %Γt %V %Γdf %Γc %h Hw Hn
+  iapply wp_fs_stepT "DirReadNext" _ Φ (by simp [val.isPanic]) hE _ (legacyWit_dirFd _ _ _) $$ Hinv Hfd
+  iintro Hfd %st %Γb %Γm %Γf %Γt %V %Γdf %Γc %h Hw Hn
   unfold treeWorld
   icases Hn with ⟨%Hns, HAd, HAdf, HAc, Hrd, Hcr⟩
   obtain ⟨hw, hc⟩ := Hns

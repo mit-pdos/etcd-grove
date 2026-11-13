@@ -972,24 +972,122 @@ theorem gCommitLb_le (hL : OsGS GF) {n : Nat} (n' : Nat) (h : n' ≤ n) :
 /-- The tree's roots and history, as a ghost map of one entry. -/
 def histMap (RV : Roots × Hist) : GMap Unit (Roots × Hist) := {[() := RV]}
 
-/-- The interpretation of the tree of `st`. -/
-def treeCtx (hL : OsGS GF) (st : OsState) : IProp GF :=
+/-- What the state interpretation holds, in the legacy mode, of the shared mode's ghost state
+(`notes/wal-fsext-i2-design.md`, §2.1, review M3): its authorities, empty (the log's length `0`),
+and the whole call permission. So no resource of the shared mode exists in the legacy mode. -/
+def legacyHolds (hL : OsGS GF) : IProp GF :=
+  iprop(gAuth hL hL.γs (∅ : GMap Unit (Roots × Hist)) ∗
+    gAuth hL hL.γdfS (∅ : GMap w64 (Ino × DirPhS)) ∗ gAuth hL hL.γcS (∅ : GMap Nat (Nat × Qp)) ∗
+    gElem hL hL.γperm () (DFrac.own 1) () ∗ gAuth hL hL.γn (∅ : GMap (Ino × NameSet) NamesH) ∗
+    (letI := hL.osAllG; monoNatAuthOwn hL.γlen 1 0) ∗ gAuth hL hL.γlog (∅ : GMap Nat LogEntry))
+
+/-- What the state interpretation holds, in the shared mode, of each call on a path in flight:
+the fraction of the call permission its `CallBegin` took. -/
+def callResS (hL : OsGS GF) (Γc : GMap Nat (Nat × Qp)) : IProp GF :=
+  iprop([∗map] _t ↦ x ∈ Γc, gElem hL hL.γperm () (DFrac.own x.2) ())
+
+/-- A shared directory fd's read, the ghost state's and the state's, agree: not begun, done, or
+begun when the log had `r0` entries, the names of `N` returned `rs`; while no entry from `r0` on
+wrote a name of `N` in the directory `j`, those names are as the state's read has them. -/
+def PhOkS (st : OsState) (j : Ino) : DirPhS → OsDirRead → Prop
+  | .idle, .idle => True
+  | .done, .done => True
+  | .reading N r0 rs, .reading u s r =>
+    r0 ≤ st.fs.metaLog.length ∧
+    ((∀ x (e : LogEntry), r0 ≤ x → st.fs.metaLog[x]? = some e → ∀ b, N.Mem b → ¬ e.op.Writes j b) →
+      ∀ b, N.Mem b → u b = present st j b ∧ s b = present st j b ∧ r b = decide (b ∈ rs))
+  | _, _ => False
+
+/-- The tree's ghost state, in the shared mode, mirrors its state (the design's `TreeCohS`): the
+log's disciplines (`TreeCut.lean`; the legacy prefix below `s0` exempt), a ghost entry for every
+directory fd and every call on a path in flight; a call began no later than now, a call holding the
+whole permission began now, and every call began after every directory operation and every entry
+of the legacy prefix. -/
+structure TreeCohS (st : OsState) (s0 : Nat) (Γdf : GMap w64 (Ino × DirPhS))
+    (Γc : GMap Nat (Nat × Qp)) : Prop where
+  starts : Starts st.fs.metaLog
+  pss : PerSlotSeq st.fs.metaLog
+  dox : DirOpExcl st.fs.metaLog s0
+  valid : LogValid st.fs.treeDur st.fs.metaLog s0
+  s0le : s0 ≤ st.fs.metaLog.length
+  fds : ∀ fd, (Γdf !! fd).map (·.1) = (st.proc.dfds !! fd).map (·.ino)
+  ph : ∀ fd x df, Γdf !! fd = some x → st.proc.dfds !! fd = some df → PhOkS st x.1 x.2 df.rd
+  calls : ∀ t, (Γc !! t).map (·.1) = st.proc.calls !! t
+  callsLe : ∀ t x, Γc !! t = some x → x.1 ≤ st.fs.metaLog.length
+  whole : ∀ t x, Γc !! t = some x → x.2 = 1 → x.1 = st.fs.metaLog.length
+  after : ∀ t x, Γc !! t = some x → ∀ y (ey : LogEntry), st.fs.metaLog[y]? = some ey →
+    (ey.op.IsDirOp ∨ y < s0) → y < x.1
+
+/-- The interpretation of the tree of `st` in the legacy mode: the whole-history logic's, and the
+shared mode's authorities, empty (`legacyHolds`). -/
+def treeLegacy (hL : OsGS GF) (st : OsState) : IProp GF :=
   iprop(∃ (V : Hist) (Γdf : GMap w64 (Ino × DirPh)) (Γc : GMap Nat (Nat × Qp)),
     ⌜FsTreeWf st ∧ TreeCoh st V Γdf Γc⌝ ∗ gAuth hL hL.γd (histMap (st.fs.roots, V)) ∗
     gAuth hL hL.γdf Γdf ∗
-    gAuth hL hL.γc Γc ∗ rdRes hL Γdf ∗ callRes hL Γc ∗ commitRes hL st)
+    gAuth hL hL.γc Γc ∗ rdRes hL Γdf ∗ callRes hL Γc ∗ legacyHolds hL)
 
-/-- A step that leaves the tree alone keeps its interpretation. -/
+/-- The interpretation of the tree of `st` in the shared mode, begun when the log had `s0`
+entries: the legacy history frozen at `V0` and held whole, no legacy directory fd or call (so no
+legacy resource exists); the shared history's authority (the state's), its directory fds and calls,
+and the call permission's fractions of the calls in flight. -/
+def treeShared (hL : OsGS GF) (st : OsState) : IProp GF :=
+  iprop(∃ (V0 : Hist) (s0 : Nat) (Γdf : GMap w64 (Ino × DirPhS)) (Γc : GMap Nat (Nat × Qp)),
+    ⌜FsTreeWf st ∧ TreeCohS st s0 Γdf Γc⌝ ∗
+    gAuth hL hL.γd (histMap (st.fs.roots, V0)) ∗ gElem hL hL.γd () (DFrac.own 1) (st.fs.roots, V0) ∗
+    gAuth hL hL.γdf (∅ : GMap w64 (Ino × DirPh)) ∗ gAuth hL hL.γc (∅ : GMap Nat (Nat × Qp)) ∗
+    gAuth hL hL.γs (histMap (st.fs.roots, ((st.fs.treeDur, st.fs.metaLog) : Hist))) ∗
+    gAuth hL hL.γdfS Γdf ∗ gAuth hL hL.γcS Γc ∗ callResS hL Γc)
+
+/-- The interpretation of the tree of `st`: in the legacy mode or in the shared mode, and the
+committed prefix's bound (both modes'). -/
+def treeCtx (hL : OsGS GF) (st : OsState) : IProp GF :=
+  iprop((treeLegacy hL st ∨ treeShared hL st) ∗ commitRes hL st)
+
+/-- `PhOkS` depends on the durable tree and the log only. -/
+theorem PhOkS.congr {st st' : OsState} {j : Ino} {x : DirPhS} {r : OsDirRead} (h : PhOkS st j x r)
+    (hd : st'.fs.treeDur = st.fs.treeDur) (hl : st'.fs.metaLog = st.fs.metaLog) :
+    PhOkS st' j x r := by
+  have hp : ∀ b, present st' j b = present st j b := by
+    intro b; simp [present, OsState.tree, hd, hl]
+  cases x <;> cases r <;> simp only [PhOkS] at h ⊢
+  refine ⟨hl ▸ h.1, fun hn b hb => ?_⟩
+  simp only [hp]
+  exact h.2 (fun x e hx he => hn x e hx (hl ▸ he)) b hb
+
+/-- `TreeCohS` depends on the durable tree, the log, the directory fds and the calls only. -/
+theorem TreeCohS.congr {st st' : OsState} {s0 Γdf Γc} (h : TreeCohS st s0 Γdf Γc)
+    (hd : st'.fs.treeDur = st.fs.treeDur) (hl : st'.fs.metaLog = st.fs.metaLog)
+    (hf : st'.proc.dfds = st.proc.dfds) (hc : st'.proc.calls = st.proc.calls) :
+    TreeCohS st' s0 Γdf Γc := by
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11⟩ := h
+  refine ⟨hl ▸ h1, hl ▸ h2, hl ▸ h3, by rw [hd, hl]; exact h4, hl ▸ h5, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · intro fd; rw [hf]; exact h6 fd
+  · intro fd x df hx hdf; rw [hf] at hdf; exact (h7 fd x df hx hdf).congr hd hl
+  · intro t; rw [hc]; exact h8 t
+  · intro t x hx; rw [hl]; exact h9 t x hx
+  · intro t x hx hq; rw [hl]; exact h10 t x hx hq
+  · intro t x hx y ey hy; rw [hl] at hy; exact h11 t x hx y ey hy
+
+/-- A step that leaves the tree alone keeps its interpretation, in either mode. -/
 theorem treeCtx_frame (hL : OsGS GF) {st st' : OsState} (h : TreeFrame st st') :
     treeCtx hL st ⊢ treeCtx hL st' := by
-  unfold treeCtx
-  iintro ⟨%V, %Γdf, %Γc, %hw, Had, Haf, Hac, Hrd, Hcr, Hcm⟩
-  iexists V, Γdf, Γc
-  rw [h.roots]
-  iframe Had Haf Hac Hrd Hcr
-  isplitr
-  · ipureintro
-    exact ⟨h.wf hw.1, h.coh hw.2⟩
+  unfold treeCtx treeLegacy treeShared
+  iintro ⟨Hm, Hcm⟩
+  isplitl [Hm]
+  · icases Hm with (⟨%V, %Γdf, %Γc, %hw, Had, Haf, Hac, Hrd, Hcr, Hlh⟩ |
+      ⟨%V0, %s0, %Γdf, %Γc, %hw, Had, Hd, Haf, Hac, Has, Hadf, Hacs, Hcr⟩)
+    · ileft
+      iexists V, Γdf, Γc
+      rw [h.roots]
+      iframe Had Haf Hac Hrd Hcr Hlh
+      ipureintro
+      exact ⟨h.wf hw.1, h.coh hw.2⟩
+    · iright
+      iexists V0, s0, Γdf, Γc
+      rw [h.roots, h.treeDur, h.metaLog]
+      iframe Had Hd Haf Hac Has Hadf Hacs Hcr
+      ipureintro
+      exact ⟨h.wf hw.1, hw.2.congr h.treeDur h.metaLog h.dfds h.calls⟩
   · iapply commitRes_grow hL (commitGrows_of_eq h.committed) $$ Hcm
 
 /-- The start resources of the tree: its history, whole (nothing logged on the tree it starts
@@ -1140,18 +1238,19 @@ theorem os_local_init {GF : BundledGFunctors} (hPre : OsGpreS GF) (st : OsState)
   imod ghost_map_alloc (GF := GF) (∅ : GMap w64 (Ino × DirPh)) with ⟨%γdf, Hadf, -⟩
   imod ghost_map_alloc (GF := GF) (∅ : GMap Nat (Nat × Qp)) with ⟨%γc, Hac, -⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γcm, Hcm, -⟩
-  imod ghost_map_alloc (GF := GF) (∅ : GMap Unit (Roots × Hist)) with ⟨%γs, -, -⟩
-  imod ghost_map_alloc (GF := GF) (∅ : GMap w64 (Ino × DirPhS)) with ⟨%γdfS, -, -⟩
-  imod ghost_map_alloc (GF := GF) (∅ : GMap Nat (Nat × Qp)) with ⟨%γcS, -, -⟩
-  imod ghost_map_alloc (GF := GF) (∅ : GMap Unit Unit) with ⟨%γperm, -, -⟩
-  imod ghost_map_alloc (GF := GF) (∅ : GMap (Ino × NameSet) NamesH) with ⟨%γn, -, -⟩
-  imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γlen, -, -⟩
-  imod ghost_map_alloc (GF := GF) (∅ : GMap Nat LogEntry) with ⟨%γlog, -, -⟩
+  imod ghost_map_alloc (GF := GF) (∅ : GMap Unit (Roots × Hist)) with ⟨%γs, Has, -⟩
+  imod ghost_map_alloc (GF := GF) (∅ : GMap w64 (Ino × DirPhS)) with ⟨%γdfS, Hadfs, -⟩
+  imod ghost_map_alloc (GF := GF) (∅ : GMap Nat (Nat × Qp)) with ⟨%γcS, Hacs, -⟩
+  imod ghost_map_alloc (GF := GF) (∅ : GMap Unit Unit) with ⟨%γperm, Hap, -⟩
+  imod ghost_map_insert (GF := GF) () () (by rfl) $$ Hap with ⟨-, Hperm⟩
+  imod ghost_map_alloc (GF := GF) (∅ : GMap (Ino × NameSet) NamesH) with ⟨%γn, Han, -⟩
+  imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γlen, Halen, -⟩
+  imod ghost_map_alloc (GF := GF) (∅ : GMap Nat LogEntry) with ⟨%γlog, Halog, -⟩
   imodintro
   iexists (⟨hPre.osPreAllG, γb, γm, γf, γt, γv, γd, γdf, γc, γcm, γs, γdfS, γcS, γperm, γn, γlen,
     γlog⟩ : OsGS GF)
-  isplitl [Hab Ham Haf Hat Hv1 Had Hadf Hac Hcm]
-  · unfold osCtx osCtxF treeCtx tokRes rdRes gAuth gVar commitRes gCommit
+  isplitl [Hab Ham Haf Hat Hv1 Had Hadf Hac Hcm Has Hadfs Hacs Hperm Han Halen Halog]
+  · unfold osCtx osCtxF treeCtx tokRes gAuth gVar commitRes gCommit
     isplitl [Hab Ham Haf Hat Hv1]
     · iexists (bytesMap st), (metaMap st), ∅, ∅
       rw [cellView_of_maps_empty (by rw [hproc]; rfl),
@@ -1160,15 +1259,17 @@ theorem os_local_init {GF : BundledGFunctors} (hPre : OsGpreS GF) (st : OsState)
       isplitr
       · ipureintro; exact ⟨hwf, hcoh⟩
       · iapply BigSepM.bigSepM_empty.2; itrivial
-    · iexists ((st.fs.treeDur, ([] : List LogEntry)) : Hist), ∅, ∅
-      iframe Had Hadf Hac
-      isplitr
-      · ipureintro; exact ⟨htw, htc⟩
-      unfold callRes
-      isplitl []
-      · iapply BigSepM.bigSepM_empty.2; itrivial
-      isplitl []
-      · iapply BigSepM.bigSepM_empty.2; itrivial
+    · isplitl [Had Hadf Hac Has Hadfs Hacs Hperm Han Halen Halog]
+      · ileft
+        unfold treeLegacy legacyHolds gAuth gElem
+        iexists ((st.fs.treeDur, ([] : List LogEntry)) : Hist), ∅, ∅
+        iframe Had Hadf Hac Has Hadfs Hacs Hperm Han Halen Halog
+        isplitr
+        · ipureintro; exact ⟨htw, htc⟩
+        unfold callRes rdRes
+        isplitl []
+        · iapply BigSepM.bigSepM_empty.2; itrivial
+        · iapply BigSepM.bigSepM_empty.2; itrivial
       iexists 0
       iframe Hcm
       ipureintro; intro y hy; exact absurd hy (Nat.not_lt_zero _)
