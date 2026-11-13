@@ -62,6 +62,10 @@ class WalGS (GF : BundledGFunctors) where
   /-- The open handles' tails (`walTailsRes`, `Inv.lean`): each WAL directory with an open
   handle to the ghost name of what the handle and the invariant share of its tail. -/
   γt : GName
+  /-- Whether the program's halves of the WALs' files and directory claims are all parked in the
+  invariant (`walParked`, `Inv.lean`): a ghost variable of a `Bool`, half the invariant's, half
+  the lock token's (`true`, `walUnlockedTok`) or an open handle's (`false`, `walLockedTok`). -/
+  γpk : GName
 
 section ghost
 variable {GF : BundledGFunctors} [W : WalGS GF]
@@ -144,10 +148,32 @@ def walLenLb (w : Loc) (dir : GoString) (n : Nat) : IProp GF :=
   iprop(∃ (γ : GName) (s : AbsDiskState) (d : WalDur),
     walHandleDir (W := W) w dir γ ∗ walPast (W := W) s ∗ ⌜s.wal !! dir = some d ∧ n ≤ d.H.length⌝)
 
-/-- **The generation's lock token** (exclusive; as `AbsDisk`'s). -/
+/-- The program's half of the parking flag (`WalGS.γpk`). -/
+def walParkFrag (b : Bool) : IProp GF :=
+  letI := walAllG (W := W)
+  ghostVar W.γpk (1 : Qp).half b
+
+/-- The invariant's half of the parking flag (`walParked`, `Inv.lean`). -/
+def walParkAuth (b : Bool) : IProp GF :=
+  letI := walAllG (W := W)
+  ghostVar W.γpk (1 : Qp).half b
+
+instance walParkAuth_timeless (b : Bool) : Timeless (walParkAuth (W := W) b) := by
+  unfold walParkAuth; infer_instance
+
+/-- **The generation's lock token** (exclusive; as `AbsDisk`'s), with the parking flag at `true`:
+no handle holds the program's halves of the WALs' files (the invariant parks them all, `walParked`),
+so that `Open`, holding it, can take them. -/
 def walUnlockedTok : IProp GF :=
   letI := walAllG (W := W)
-  token W.hA.γu
+  iprop(token W.hA.γu ∗ walParkFrag (W := W) true)
+
+/-- **The lock token as an open handle holds it**: the parking flag at `false` (the handle may hold
+program halves the invariant would otherwise park). `walHandleP` and `walOpenW` carry it; `Close`
+returns `walUnlockedTok` after parking what the handle holds (`walPark_set`). -/
+def walLockedTok : IProp GF :=
+  letI := walAllG (W := W)
+  iprop(token W.hA.γu ∗ walParkFrag (W := W) false)
 
 /-- **The generation's crash token** (exclusive): `walInv_crash` takes it, to keep the old
 generation's invariant closed with it in place of its contents. -/
@@ -169,7 +195,7 @@ theorem walCrashTok_excl :
 @[no_expose] def walHandleP (w : Loc) (dir : GoString) (m : WalMode) : IProp GF :=
   letI := walAllG (W := W)
   iprop(∃ γ : GName, walHandleDir (W := W) w dir γ ∗ γ ↪[W.γh] m ∗ γ ↪[W.γhp] () ∗
-    walUnlockedTok (W := W))
+    walLockedTok (W := W))
 
 /-- **The authority of the WALs being created** (the invariant's): each directory `Create` works on,
 with the names `N` and history `h` of the area directory's claim it renames in. -/
@@ -214,7 +240,7 @@ def walTailKey (dir : GoString) (γ : GName) : IProp GF :=
 
 /-- **`w` is the WAL opened in `dir`, ready to append.** Sealed. -/
 @[no_expose] def walOpenW (w : Loc) (dir : GoString) : IProp GF :=
-  iprop(walHandleSt (W := W) w dir .append ∗ walUnlockedTok (W := W))
+  iprop(walHandleSt (W := W) w dir .append ∗ walLockedTok (W := W))
 
 /-- **`w` is the WAL opened in `dir` for reading at the snapshot `s`.** Sealed. -/
 @[no_expose] def walOpening (w : Loc) (dir : GoString) (s : w64 × w64) : IProp GF :=
@@ -256,7 +282,9 @@ instance walDiskAt_timeless (dir : GoString) (d : WalDur) : Timeless (walDiskAt 
 instance walAbsent_timeless (dir : GoString) : Timeless (walAbsent (W := W) dir) := by
   unfold walAbsent; infer_instance
 instance walUnlockedTok_timeless : Timeless (walUnlockedTok (W := W)) := by
-  unfold walUnlockedTok; infer_instance
+  unfold walUnlockedTok walParkFrag; infer_instance
+instance walLockedTok_timeless : Timeless (walLockedTok (W := W)) := by
+  unfold walLockedTok walParkFrag; infer_instance
 
 /-! ## Laws (as `AbsDisk/Specs.lean`'s, same statements) -/
 
@@ -288,8 +316,50 @@ theorem walUnlockedTok_excl :
     ⊢@{IProp GF} walUnlockedTok (W := W) -∗ walUnlockedTok (W := W) -∗ False := by
   unfold walUnlockedTok
   letI := walAllG (W := W)
-  iintro H1 H2
+  iintro ⟨H1, -⟩ ⟨H2, -⟩
   iapply token_exclusive $$ H1 H2
+
+/-- The parking flag's halves agree. -/
+theorem walPark_agree (b b' : Bool) :
+    ⊢@{IProp GF} walParkAuth (W := W) b -∗ walParkFrag (W := W) b' -∗ ⌜b = b'⌝ := by
+  unfold walParkAuth walParkFrag
+  letI := walAllG (W := W)
+  iintro H1 H2
+  iapply ghostVar_agree $$ H1 H2
+
+/-- **Setting the parking flag** (both halves). -/
+theorem walPark_set (b1 b2 b : Bool) :
+    ⊢@{IProp GF} walParkAuth (W := W) b1 -∗ walParkFrag (W := W) b2 ==∗
+      walParkAuth (W := W) b ∗ walParkFrag (W := W) b := by
+  unfold walParkAuth walParkFrag
+  letI := walAllG (W := W)
+  iintro H1 H2
+  iapply ghostVar_update_halves $$ H1 H2
+
+/-- **Taking the lock** (`Open`, `Create`): with the invariant's half of the flag, the lock token
+becomes the handles' (the flag `false`); the invariant's half was `true`. -/
+theorem walUnlockedTok_lock (b : Bool) :
+    ⊢@{IProp GF} walParkAuth (W := W) b -∗ walUnlockedTok (W := W) ==∗
+      ⌜b = true⌝ ∗ walParkAuth (W := W) false ∗ walLockedTok (W := W) := by
+  unfold walUnlockedTok walLockedTok
+  iintro Ha ⟨Ht, Hf⟩
+  icases walPark_agree (W := W) b true $$ Ha Hf with %hb
+  imod walPark_set (W := W) b true false $$ Ha Hf with ⟨Ha, Hf⟩
+  imodintro
+  iframe Ha Ht Hf
+  ipureintro; exact hb
+
+/-- **Releasing the lock** (`Close`, an `Open` that failed after taking it): the flag back to `true`. -/
+theorem walLockedTok_unlock (b : Bool) :
+    ⊢@{IProp GF} walParkAuth (W := W) b -∗ walLockedTok (W := W) ==∗
+      ⌜b = false⌝ ∗ walParkAuth (W := W) true ∗ walUnlockedTok (W := W) := by
+  unfold walUnlockedTok walLockedTok
+  iintro Ha ⟨Ht, Hf⟩
+  icases walPark_agree (W := W) b false $$ Ha Hf with %hb
+  imod walPark_set (W := W) b false true $$ Ha Hf with ⟨Ha, Hf⟩
+  imodintro
+  iframe Ha Ht Hf
+  ipureintro; exact hb
 
 theorem walSyncedLb_mono (dir : GoString) (n n' : Nat) (h : n' ≤ n) :
     ⊢@{IProp GF} walSyncedLb (W := W) dir n -∗ walSyncedLb (W := W) dir n' := by
@@ -451,7 +521,7 @@ invariant's part, the program's map at `s.wal`, `s`'s fact, the lock token and t
 theorem walGhost_init (hPre : AbsDiskGpreS GF) (s : AbsDiskState) (hk : walKeysInArea s) :
     ⊢@{IProp GF} |==> ∃ W : WalGS GF, walGhost (W := W) s ∗ walOwn (W := W) s.wal ∗
       walPast (W := W) s ∗ walUnlockedTok (W := W) ∗ walCrashTok (W := W) ∗
-      walCreatingAuth (W := W) ∅ ∗ walTailsAuth (W := W) ∅ := by
+      walCreatingAuth (W := W) ∅ ∗ walTailsAuth (W := W) ∅ ∗ walParkAuth (W := W) true := by
   imod absDisk_local_init hPre s hk with ⟨%hA, Hctx, Hst⟩
   letI := hA.absDiskAllG
   imod (ghost_map_alloc_empty (GF := GF) (K := GName) (V := WalMode)) with ⟨%γh, Hh⟩
@@ -461,15 +531,17 @@ theorem walGhost_init (hPre : AbsDiskGpreS GF) (s : AbsDiskState) (hk : walKeysI
   imod (ghost_map_alloc_empty (GF := GF) (K := GoString) (V := Fs.NameSet × Fs.NamesH))
     with ⟨%γcr, Hcr⟩
   imod (ghost_map_alloc_empty (GF := GF) (K := GoString) (V := GName)) with ⟨%γt, Ht⟩
+  imod (ghostVar_alloc (GF := GF) true) with ⟨%γpk, Hpk⟩
+  iexists ⟨hA, γh, γhd, γhp, γc, γcr, γt, γpk⟩
+  icases (ghostVar_split_half (GF := GF) γpk 1 true).1 $$ Hpk with ⟨Hpk1, Hpk2⟩
   imodintro
-  iexists ⟨hA, γh, γhd, γhp, γc, γcr, γt⟩
   iunfold absDiskCtx at Hctx
   icases Hctx with ⟨Hs, HP, -, -⟩
   iunfold absDiskStart at Hst
   icases Hst with ⟨HM, Hp, Hu⟩
   unfold walGhost walOwn walPast walUnlockedTok walCrashTok walHandleAuth walCreatingAuth walTailsAuth
-    walAllG
-  iframe Hs HP HM Hp Hu Hc Hcr Ht
+    walParkFrag walParkAuth walAllG
+  iframe Hs HP HM Hp Hu Hc Hcr Ht Hpk1 Hpk2
   isplitl [Hh Hhd Hhp]
   · iexists 0, ∅, ∅, ∅
     iframe Hh Hhd Hhp

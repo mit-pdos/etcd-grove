@@ -176,7 +176,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   icases HP with ⟨Htok, Hau, HJ, Hm, Hbs⟩
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl0, #Hcm, Hlays, %Hok, %Hco, ⟨%CR, Hcra, %Hcro⟩,
-    Htl, %Han⟩
+    Htl, %Han, %Hnm, Hpk⟩
   icases walCreating_lookup CR dir N h $$ Hcra Htok with ⟨%Hcr, Hcra, Htok⟩
   have hco := Hcro
   obtain ⟨hc, hcoh, hexcl, honce, hdist⟩ := Hcro dir N h Hcr
@@ -197,10 +197,10 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     iintro Hα
     icases Hcla with ⟨Hab, -⟩
     imod Hab $$ Hab0 with Hau
-    imod Hcl $$ [Hg Hl1 Hα Hl2 Hlays Hcra Htl]
+    imod Hcl $$ [Hg Hl1 Hα Hl2 Hlays Hcra Htl Hpk]
     · iexists s
       iexists Ls, l1 ++ (jr, N, h) :: l2, n, F
-      iframe Hg Hcm Hlays Htl
+      iframe Hg Hcm Hlays Htl Hpk
       isplitr
       · ipureintro; exact Har
       isplitl [Hl1 Hα Hl2]
@@ -214,7 +214,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       · iexists CR
         iframe Hcra
         ipureintro; exact hco
-      ipureintro; exact Han
+      ipureintro; exact ⟨Han, Hnm⟩
     imodintro
     dsimp only
     iframe Htok Hau HJ Hm Hbs
@@ -227,10 +227,10 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       icases Hβ with ⟨-, Hα⟩
       icases Hcla with ⟨Hab, -⟩
       imod Hab $$ Hab0 with Hau
-      imod Hcl $$ [Hg Hl1 Hα Hl2 Hlays Hcra Htl]
+      imod Hcl $$ [Hg Hl1 Hα Hl2 Hlays Hcra Htl Hpk]
       · iexists s
         iexists Ls, l1 ++ (jr, N, h) :: l2, n, F
-        iframe Hg Hcm Hlays Htl
+        iframe Hg Hcm Hlays Htl Hpk
         isplitr
         · ipureintro; exact Har
         isplitl [Hl1 Hα Hl2]
@@ -244,7 +244,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         · iexists CR
           iframe Hcra
           ipureintro; exact hco
-        ipureintro; exact Han
+        ipureintro; exact ⟨Han, Hnm⟩
       imodintro
       dsimp only [walCreateQ, walCreateP]
       iframe Htok Hau HJ Hm Hbs
@@ -307,7 +307,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       icases (osBytes_halves g.ino 0 (y :: ys)).1 $$ Hbs with ⟨Hb1, Hb2⟩
       have hF : ∀ g' ∈ segsAll Ls, (GMap.delete g.ino F) !! g'.ino = F !! g'.ino := fun g' hg' =>
         GMap.lookup_delete_ne _ (Ne.symm (hino g' hg'))
-      imod Hcl $$ [Hg Hl1 Hα Hl2 HJ Hlays Hm1 Hb1 Hcra Htl]
+      imod Hcl $$ [Hg Hl1 Hα Hl2 HJ Hlays Hm1 Hb1 Hcra Htl Hpk]
       · iexists (createSt s dir md)
         iexists <[dir := lay]> Ls,
           createClaims (l1 ++ (jr, N, h) :: l2) jr N h x (renDirEnt jr tmp nm J s0)
@@ -343,7 +343,13 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
           ipureintro; exact creatingOk_create hco Hcr hnmN hJjr
         isplitl [Htl]
         · iapply walTailsRes_create C Mr s Ls F _ dir md lay hsd hF $$ Htl
-        ipureintro; exact ⟨han', Han.2⟩
+        isplitr
+        · ipureintro; exact ⟨han', Han.2⟩
+        -- W3/W5's conjuncts (W1 log, "wal-read3"): the new WAL's segment at its name in the new
+        -- directory claim, now and after a crash (`WalsNamed`), and its program halves and
+        -- directory claim out (`walParked`: `g.ino` and the claims on `J` added to `O`/`D`, the
+        -- flag `false` since `Create` holds the lock, `walUnlockedTok_lock`). W4's to prove.
+        sorry
       imodintro
       dsimp only [walCreateQ]
       rw [hgbs]
