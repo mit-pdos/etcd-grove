@@ -31,6 +31,8 @@ public import LinuxFs.GeneratedProof.go_etcd_io.etcd.server.v3.storage.wal
 public import LinuxFs.GeneratedProof.go_etcd_io.etcd.client.pkg.v3.fileutil
 public import LinuxFs.Proof.bufio.Defs
 public import Perennial.Proof.sync.Base
+public import LinuxFs.Spec.fmt.ErrorfErrs
+public import Perennial.Proof.encoding.binary.Base
 public import LinuxFs.Spec.go_etcd_io.etcd.pkg.v3.crc.digest__Write
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalEncDecoder
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.walpb.Defs
@@ -177,6 +179,51 @@ def stopErr (eof ueof : GoInterface) : WalStop → GoInterface → Prop
   | _, e => e ≠ GoInterface.nil
 
 end pure
+
+/-! ## What `Decode` needs and gives -/
+
+section post
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [bufio_sem : _root_.Perennial.bufio.Assumptions]
+
+/-- **The decoder's environment** (persistent): the packages it calls initialized, `io.EOF` and
+`io.ErrUnexpectedEOF` at `eof`/`ueof`, `errors.Is(_, io.EOF)` on the readers' errors
+(`isEofOk`), the WAL's CRC table and `walpb.ErrCRCMismatch` (read by `Record.Validate`). -/
+def decEnv (IoE : GoInterface → Prop) (eof ueof : GoInterface) : IProp GF :=
+  iprop(isPkgInit (PROP := IProp GF) pkg_id.io ∗ isPkgInit (PROP := IProp GF) pkg_id.encoding.binary ∗
+    isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ isPkgInit (PROP := IProp GF) pkg_id.sync ∗
+    isPkgInit (PROP := IProp GF) pkg_id.bufio ∗
+    globalAddr _root_.Perennial.io.EOF ↦□ eof ∗
+    globalAddr _root_.Perennial.io.ErrUnexpectedEOF ↦□ ueof ∗
+    isEofOk IoE eof ueof ∗ walCrcTable ∗
+    (∃ e : GoInterfaceOk,
+      globalAddr go_etcd_io.etcd.server.v3.storage.wal.walpb.ErrCRCMismatch ↦□ GoInterface.ok e ∗
+      errOk e))
+
+instance decEnv_persistent (IoE : GoInterface → Prop) (eof ueof : GoInterface) :
+    Persistent (decEnv (GF := GF) IoE eof ueof) := by
+  unfold decEnv; infer_instance
+
+/-- **What `Decode` (and `decodeRecord`) returns from the live decoder `(fs, off, c)`**: what
+`goDecode` says (a record in `*rp` and the decoder live at the next frame; or the stop's error,
+the decoder live only at the end), with the files left a suffix of `fs`; or an I/O error of `IoE`
+(a failed `FileInfo` of the file reached, or a failed read), the decoder no longer live. -/
+def decPost (C : WalCodec) (d rp : Loc) (IoE : GoInterface → Prop) (eof ueof : GoInterface)
+    (fs : List (DecFile GF)) (off : Nat) (c : w32) (err : GoInterface) : IProp GF :=
+  iprop((∃ k : Nat, match goDecode C (fs.map (·.bs)) off c with
+      | .ok r fs' off' c' =>
+        ⌜err = GoInterface.nil ∧ (fs.drop k).map (·.bs) = fs'⌝ ∗ ownRec rp r ∗
+          ownDecoder d IoE eof (fs.drop k) off' c' true
+      | .stop s fs' off' c' =>
+        ⌜stopErr eof ueof s err ∧ (fs.drop k).map (·.bs) = fs'⌝ ∗ ownRecAny rp ∗
+          ownDecoder d IoE eof (fs.drop k) off' c' (decide (s = .eof))) ∨
+    (⌜IoE err⌝ ∗ ownRecAny rp ∗
+      ∃ (fs' : List (DecFile GF)) (off' : Nat) (c' : w32), ownDecoder d IoE eof fs' off' c' false))
+
+end post
 
 end WalFs
 end EtcdGrove
