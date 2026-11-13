@@ -1,0 +1,144 @@
+From 0fa9710dc7764eb6681eb2d1c7285e81f7150ad4 Mon Sep 17 00:00:00 2001
+From: Upamanyu Sharma <sharma.upamanyu@gmail.com>
+Date: Fri, 13 Nov 2026 08:52:01 +0000
+Subject: [PATCH 1/2] fileutil, wal: report a failed fstat from Decode instead
+ of panicking
+
+NewFileBufReader panicked when the reader's FileInfo (fstat) failed, which
+every WAL Open, ValidSnapshotEntries and Repair reach through NewDecoder.
+It now keeps the error (FileBufReader.Err), and the WAL decoder returns it
+from Decode.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ client/pkg/fileutil/filereader.go             | 17 +++++---
+ client/pkg/fileutil/filereader_test.go        | 17 ++++++++
+ server/storage/wal/decoder.go                 |  3 ++
+ server/storage/wal/decoder_stat_error_test.go | 41 +++++++++++++++++++
+ 4 files changed, 72 insertions(+), 6 deletions(-)
+ create mode 100644 server/storage/wal/decoder_stat_error_test.go
+
+diff --git a/client/pkg/fileutil/filereader.go b/client/pkg/fileutil/filereader.go
+index 55248888c..262867de4 100644
+--- a/client/pkg/fileutil/filereader.go
++++ b/client/pkg/fileutil/filereader.go
+@@ -42,19 +42,24 @@ func (fr *fileReader) FileInfo() (fs.FileInfo, error) {
+ // FileBufReader is a wrapper of bufio.Reader. It also provides file info.
+ type FileBufReader struct {
+ 	*bufio.Reader
+-	fi fs.FileInfo
++	fi  fs.FileInfo
++	err error
+ }
+ 
++// NewFileBufReader wraps fr in a buffered reader and takes its file info. If fr.FileInfo fails
++// (an fstat error), the error is kept: Err returns it, and FileInfo returns nil.
+ func NewFileBufReader(fr FileReader) *FileBufReader {
+ 	bufReader := bufio.NewReader(fr)
+ 	fi, err := fr.FileInfo()
+-	if err != nil {
+-		// This should never happen.
+-		panic(err)
+-	}
+-	return &FileBufReader{bufReader, fi}
++	return &FileBufReader{bufReader, fi, err}
+ }
+ 
++// FileInfo returns the file info taken by NewFileBufReader, nil if Err is not nil.
+ func (fbr *FileBufReader) FileInfo() fs.FileInfo {
+ 	return fbr.fi
+ }
++
++// Err returns the error of taking the file info in NewFileBufReader, if any.
++func (fbr *FileBufReader) Err() error {
++	return fbr.err
++}
+diff --git a/client/pkg/fileutil/filereader_test.go b/client/pkg/fileutil/filereader_test.go
+index 2f863cdce..b15b46d18 100644
+--- a/client/pkg/fileutil/filereader_test.go
++++ b/client/pkg/fileutil/filereader_test.go
+@@ -42,3 +42,20 @@ func TestFileBufReader(t *testing.T) {
+ 	assert.Equal(t, fi.Mode(), fbr.FileInfo().Mode())
+ 	assert.Equal(t, fi.ModTime(), fbr.FileInfo().ModTime())
+ }
++
++// TestFileBufReaderStatError: a FileReader whose file info fails (here: an already closed file)
++// gives a FileBufReader reporting the error from Err, instead of a panic.
++func TestFileBufReaderStatError(t *testing.T) {
++	f, err := os.CreateTemp(t.TempDir(), "wal")
++	if err != nil {
++		t.Fatalf("Unexpected error: %v", err)
++	}
++	if err = f.Close(); err != nil {
++		t.Fatalf("Unexpected error: %v", err)
++	}
++
++	var fbr *FileBufReader
++	assert.NotPanics(t, func() { fbr = NewFileBufReader(NewFileReader(f)) })
++	assert.ErrorIs(t, fbr.Err(), os.ErrClosed)
++	assert.Nil(t, fbr.FileInfo())
++}
+diff --git a/server/storage/wal/decoder.go b/server/storage/wal/decoder.go
+index b23dfb3d4..9b61159f9 100644
+--- a/server/storage/wal/decoder.go
++++ b/server/storage/wal/decoder.go
+@@ -91,6 +91,9 @@ func (d *decoder) decodeRecord(rec *walpb.Record) error {
+ 	}
+ 
+ 	fileBufReader := d.brs[0]
++	if err := fileBufReader.Err(); err != nil {
++		return err
++	}
+ 	l, err := readInt64(fileBufReader)
+ 	if errors.Is(err, io.EOF) || (err == nil && l == 0) {
+ 		// hit end of file or preallocated space
+diff --git a/server/storage/wal/decoder_stat_error_test.go b/server/storage/wal/decoder_stat_error_test.go
+new file mode 100644
+index 000000000..bf2e588e8
+--- /dev/null
++++ b/server/storage/wal/decoder_stat_error_test.go
+@@ -0,0 +1,41 @@
++// Copyright 2026 The etcd Authors
++//
++// Licensed under the Apache License, Version 2.0 (the "License");
++// you may not use this file except in compliance with the License.
++// You may obtain a copy of the License at
++//
++//     http://www.apache.org/licenses/LICENSE-2.0
++//
++// Unless required by applicable law or agreed to in writing, software
++// distributed under the License is distributed on an "AS IS" BASIS,
++// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++// See the License for the specific language governing permissions and
++// limitations under the License.
++
++package wal
++
++import (
++	"os"
++	"path/filepath"
++	"testing"
++
++	"github.com/stretchr/testify/require"
++
++	"go.etcd.io/etcd/client/pkg/v3/fileutil"
++	"go.etcd.io/etcd/server/v3/storage/wal/walpb"
++)
++
++// TestDecoderStatError: a WAL file whose fstat fails (here: its descriptor is already closed, the
++// file is the one Open, ValidSnapshotEntries and Repair hand to the decoder) makes the decoder
++// report the error from Decode instead of panicking in NewDecoder.
++func TestDecoderStatError(t *testing.T) {
++	p := filepath.Join(t.TempDir(), walName(0, 0))
++	f, err := os.Create(p)
++	require.NoError(t, err)
++	require.NoError(t, f.Close())
++
++	var d Decoder
++	require.NotPanics(t, func() { d = NewDecoder(fileutil.NewFileReader(f)) })
++	err = d.Decode(&walpb.Record{})
++	require.ErrorIs(t, err, os.ErrClosed)
++}
+-- 
+2.53.0
+

@@ -1,0 +1,130 @@
+From f15d888412d52466880f14a97ee252bd11acb150 Mon Sep 17 00:00:00 2001
+From: Upamanyu Sharma <sharma.upamanyu@gmail.com>
+Date: Fri, 13 Nov 2026 08:55:08 +0000
+Subject: [PATCH 2/2] wal: return Create's cleanup error instead of panicking
+
+When Create fails after renaming the WAL directory into place (opening,
+fsyncing or closing the parent directory), cleanupWAL closes the WAL and
+renames it to <dir>.broken.<timestamp>; a failure of that close or rename
+called lg.Panic. cleanupWAL now returns the error and Create returns it.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../storage/wal/create_cleanup_error_test.go  | 60 +++++++++++++++++++
+ server/storage/wal/wal.go                     | 15 +++--
+ 2 files changed, 71 insertions(+), 4 deletions(-)
+ create mode 100644 server/storage/wal/create_cleanup_error_test.go
+
+diff --git a/server/storage/wal/create_cleanup_error_test.go b/server/storage/wal/create_cleanup_error_test.go
+new file mode 100644
+index 000000000..4cef957f2
+--- /dev/null
++++ b/server/storage/wal/create_cleanup_error_test.go
+@@ -0,0 +1,60 @@
++// Copyright 2026 The etcd Authors
++//
++// Licensed under the Apache License, Version 2.0 (the "License");
++// you may not use this file except in compliance with the License.
++// You may obtain a copy of the License at
++//
++//     http://www.apache.org/licenses/LICENSE-2.0
++//
++// Unless required by applicable law or agreed to in writing, software
++// distributed under the License is distributed on an "AS IS" BASIS,
++// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++// See the License for the specific language governing permissions and
++// limitations under the License.
++
++package wal
++
++import (
++	"os"
++	"path/filepath"
++	"strings"
++	"testing"
++
++	"github.com/stretchr/testify/require"
++	"go.uber.org/zap/zaptest"
++)
++
++// A WAL directory name of 240 bytes: "<name>.tmp" fits in a file name (255 bytes), but the name
++// Create's cleanup renames a failed WAL to, "<name>.broken.<timestamp>", does not, so that rename
++// fails with ENAMETOOLONG.
++func longWALDirName() string { return strings.Repeat("w", 240) }
++
++// TestCreateFailsAfterRenameWithoutPanic: Create's error path after the WAL directory was renamed
++// into place (here: the parent cannot be opened to fsync it, being write-only) moves the WAL to a
++// ".broken" name; when that rename fails, Create returns an error instead of panicking.
++func TestCreateFailsAfterRenameWithoutPanic(t *testing.T) {
++	if os.Geteuid() == 0 {
++		t.Skip("root ignores directory permissions")
++	}
++	parent := filepath.Join(t.TempDir(), "data")
++	require.NoError(t, os.Mkdir(parent, 0o300)) // write and search, no read: OpenDir(parent) fails
++	defer os.Chmod(parent, 0o700)
++	dir := filepath.Join(parent, longWALDirName())
++
++	var err error
++	require.NotPanics(t, func() { _, err = Create(zaptest.NewLogger(t), dir, []byte("data")) })
++	require.Error(t, err)
++}
++
++// TestCleanupWALRenameFails: cleanupWAL, which Create runs when it fails after renaming the WAL
++// directory into place, returns the error of its rename instead of panicking.
++func TestCleanupWALRenameFails(t *testing.T) {
++	dir := filepath.Join(t.TempDir(), longWALDirName())
++	lg := zaptest.NewLogger(t)
++	w, err := Create(lg, dir, []byte("data"))
++	require.NoError(t, err)
++
++	require.NotPanics(t, func() { err = w.cleanupWAL(lg) })
++	require.Error(t, err)
++	require.DirExists(t, dir)
++}
+diff --git a/server/storage/wal/wal.go b/server/storage/wal/wal.go
+index 66bcf09cf..39f647d10 100644
+--- a/server/storage/wal/wal.go
++++ b/server/storage/wal/wal.go
+@@ -209,7 +209,9 @@ func Create(lg *zap.Logger, dirpath string, metadata []byte) (_ *WAL, retErr err
+ 	var perr error
+ 	defer func() {
+ 		if perr != nil {
+-			w.cleanupWAL(lg)
++			if cerr := w.cleanupWAL(lg); cerr != nil {
++				retErr = fmt.Errorf("%w (after: %v)", cerr, perr)
++			}
+ 		}
+ 	}()
+ 	// directory was renamed; sync parent dir to persist rename
+@@ -291,20 +293,25 @@ func (w *WAL) SetUnsafeNoFsync() {
+ 	w.unsafeNoSync = true
+ }
+ 
+-func (w *WAL) cleanupWAL(lg *zap.Logger) {
++// cleanupWAL closes the WAL and moves its directory aside, to "<dir>.broken.<timestamp>". It
++// returns the error of the close or of the rename (the directory then keeps its name).
++func (w *WAL) cleanupWAL(lg *zap.Logger) error {
+ 	var err error
+ 	if err = w.Close(); err != nil {
+-		lg.Panic("failed to close WAL during cleanup", zap.Error(err))
++		lg.Warn("failed to close WAL during cleanup", zap.Error(err))
++		return err
+ 	}
+ 	brokenDirName := fmt.Sprintf("%s.broken.%v", w.dir, time.Now().Format("20060102.150405.999999"))
+ 	if err = os.Rename(w.dir, brokenDirName); err != nil {
+-		lg.Panic(
++		lg.Warn(
+ 			"failed to rename WAL during cleanup",
+ 			zap.Error(err),
+ 			zap.String("source-path", w.dir),
+ 			zap.String("rename-path", brokenDirName),
+ 		)
++		return err
+ 	}
++	return nil
+ }
+ 
+ // syncDir fsyncs the directory dir.
+-- 
+2.53.0
+
