@@ -85,9 +85,10 @@ another type than `httptrace`'s and `nettrace`'s, whose `context.value()` walk g
 (Perennial's `ctxValue_valueCtx`), or `ctx` itself (the no-op tracer); what carries the fact to
 `LeaseRenew`'s `WithTimeout` child (`ctxValueFrom`) and from there to `RenewHTTP`. (k8s 7f-4, Addendum
 T-k) Its causes are context errors or etcd's no-leader error if `ctx`'s are (`v3rpc.ctxCauseOk`):
-`ContextWithSpan(ctx, s)` is a `*valueCtx`, whose `Err()` is `ctx.Err()` and whose
-`Value(&cancelCtxKey)` is `ctx`'s (otel's `currentSpanKey` is not `&cancelCtxKey`), so `Cause` of it
-finds what `Cause(ctx)` finds; or it is `ctx` itself (the no-op tracer). -/
+`ContextWithSpan(ctx, s)` is a `*valueCtx` (two `WithValue` links over `ctx` with the SDK tracer and Go's
+execution tracer on: `runtime/trace.NewTask`'s, then otel's), whose `Err()` is `ctx.Err()` and whose
+`Value(&cancelCtxKey)` is `ctx`'s (neither key is `&cancelCtxKey`), so `Cause` of it finds what
+`Cause(ctx)` finds; or it is `ctx` itself (the no-op tracer). -/
 abbrev traceutil.Tracer.Start.spec : Prop :=
   ∀ (tr ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (name : GoString)
     (opts : GoSlice),

@@ -211,10 +211,10 @@ internally (go1.27.3 `net/dial.go:539`, never the caller's), which neither grpc'
 handler nor etcd's interceptors call (the run context's chain: `TestRunCtxChain`,
 `examples/premisefix/streamctx`). (k8s 7f-4, Addendum T-k) Its causes are context errors
 (`v3rpc.ctxCauseOk`): grpc v1.84.0 makes the run's contexts with `WithCancel`, `WithTimeout` and
-`WithValue` only (`internal/transport/http2_server.go:537-539`, `handler_server.go:396-398`,
+`WithValue` only (e.g. `internal/transport/http2_server.go:537-539`, `handler_server.go:396-398`,
 `server.go:1637, 1787`; no `WithCancelCause`, `WithDeadlineCause`, `WithTimeoutCause` or
-`context.Cause` in its non-test sources), over `Background()` or, through `ServeHTTP`, net/http's
-server's request context (`WithCancel`/`WithValue` of its base context; net/http's only cause variant is
+`context.Cause` in its non-test sources), over `Background()` or, through `ServeHTTP`, the request context of net/http's HTTP/2 server
+(`net/http/internal/http2`; `WithCancel`/`WithValue` of its base context; net/http's only cause variant is
 the client transport's own child, `transport.go:675`, `clientconn.go:403`); otelgrpc's stats handler and
 etcd's unary interceptors add `WithValue` links only. Each such context's `cause` is its `err`
 (`cancel` stores `err` when the cause is nil), `Canceled` or `DeadlineExceeded`, and every `Err()` is

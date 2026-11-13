@@ -91,8 +91,9 @@ errors (`cancel` stores `err` when the cause is nil): `Canceled` (the cancel fun
 (its timer, or `d` already passed); else `propagateCancel` stores `Cause(parent)` (`parent` already done)
 or the found `*cancelCtx` `p`'s `cause` (`p`'s `cancel` passes it to its children, `:550-575`), each a
 cause error by `ctxCauseOk parent`. `c.Value(&cancelCtxKey)` returns its embedded `cancelCtx` (i), and
-`c.Err()` is non-nil only once `cancel` stored `err` and `cause` together under `c.mu`, which `Cause`
-takes before reading `cause` (ii). Go evidence: `TestCauseCancellable` (a `WithTimeout` child of the
+`c.Err()` returns a non-nil error only once `c.Done()` is closed (an atomic load of `err`, then
+`<-c.Done()`, go1.27.3 `:464-471`), which `cancel` does under `c.mu` after it assigned `cause`
+(`:446-457, 550-575`), and `Cause` reads `cause` under `c.mu` after that `Err()` returned (ii). Go evidence: `TestCauseCancellable` (a `WithTimeout` child of the
 wrapper and of a `WithValue` of it: `Cause` is `ErrGRPCNoLeader`, `Canceled` or `DeadlineExceeded`).
 
 Not claimed: anything of `parent` beyond `srvCtxWeak`; the child's `Err` before `Done` is not

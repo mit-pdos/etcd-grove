@@ -85,7 +85,6 @@ axiom bbolt.Tx.Size_kv.wp_proof
 axiom bbolt.Tx.Stats_kv.wp_proof
 axiom bcrypt.GenerateFromPassword.wp_proof
 axiom context.WithValue.wp_proof
-axiom context.madeCancelCtx_of_isCancelCtx
 axiom envVerifyOffTok
 axiom errors.IsCtxErr.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof
@@ -172,11 +171,13 @@ axiom traceutil.Tracer.Start.wp_proof
 axiom txn.RangeSecObserve.wp_proof
 axiom v3rpc.NewMaintenanceServer.wp_proof
 axiom v3rpc.codec_proto
+axiom v3rpc.ctxCauseOk_cancellable
 axiom v3rpc.incomingOf_cancellableContext
 axiom v3rpc.isClientCtxErr.wp_proof
 axiom v3rpc.logUnaryRequestStats.wp_proof
 axiom v3rpc.pbWatchRequestT_reg
 axiom v3rpc.pbWatchResponseT_reg
+axiom v3rpc.wp_WithTimeout_weak
 axiom verify.Verify.wp_proof
 axiom zap.Duration.wp_proof
 axiom zap.Error.wp_proof

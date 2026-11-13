@@ -128,6 +128,7 @@ axiom time.Time.Unix.wp_proof
 axiom trace.SpanFromContext.wp_proof
 axiom trace.WithAttributes.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
+axiom v3rpc.ctxCauseOk_cancellable
 axiom v3rpc.incomingOf_cancellableContext
 axiom v3rpc.isClientCtxErr.wp_proof
 axiom v3rpc.pbWatchRequestT_reg

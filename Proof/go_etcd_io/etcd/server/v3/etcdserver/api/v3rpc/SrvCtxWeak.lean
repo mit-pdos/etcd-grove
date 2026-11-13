@@ -72,8 +72,10 @@ opaque; TRUSTED; k8s 7f-4, Addendum T-k, decided by etcd-grove-81 with the user'
 so (iii) every call of `context.Cause(c)` (`c.Err()`; `nil` if it is; else the found `*cancelCtx`'s
 `cause` if non-nil; else that error, `:289-307`) returns a cause error, and so does every cause a
 context `context` makes over `c` stores (`propagateCancel`'s arms: `Cause(c)` when `c` is done, the found
-`*cancelCtx`'s `cause` when it is cancelled, `:476-528, 550-575`; its own `cancel`, `Canceled`; its
-timer, `DeadlineExceeded`).
+`*cancelCtx`'s `cause` when it is cancelled, `:476-528, 550-575`); and a child made with a nil cause
+(`WithCancel`, `WithTimeout`, `WithDeadline`) stores, of its own, its error as its cause (`Canceled` from
+its cancel function, `DeadlineExceeded` from its timer). Not a child made by `WithCancelCause`,
+`WithDeadlineCause` or `WithTimeoutCause`, which stores the caller's cause (`:269-271, 633-660, 711`).
 
 It says nothing of whether those calls return (the context's own facts say that: `"#HErr"`,
 `"#HValue"` of `ctxDoneErr`), only of the errors that come out. What it excludes: a context made by
@@ -88,7 +90,7 @@ this; it is claimed where contexts are made and carried.
 Given by: grpc's run model (`grpcRunCtx`, so `srvRawStreamIs`: grpc v1.84.0 and net/http's server make
 their contexts with `WithCancel`, `WithTimeout` and `WithValue` only, never a cause variant), the law
 `v3rpc.ctxCauseOk_cancellable` (etcd's `*cancellableContext`), `traceutil.Tracer.Start.spec`'s post
-(a `valueCtx` over `c`, or `c`), and the local axiom `v3rpc.wp_WithTimeout_weak`'s post (the
+(`WithValue` links over `c`: one, or two with the SDK tracer and Go's execution tracer on; or `c`), and the local axiom `v3rpc.wp_WithTimeout_weak`'s post (the
 `*timerCtx` over `c`). No other spec may give it. Taken by `leasehttp.RenewHTTP.spec` and
 `EtcdServer.leaseTimeToLive.spec`. -/
 def v3rpc.ctxCauseOk (c : GoInterfaceOk) : IProp GF := iprop(□ v3rpc.ctxCauseOkRaw c)

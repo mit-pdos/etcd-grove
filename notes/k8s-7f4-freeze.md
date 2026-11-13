@@ -1009,6 +1009,30 @@ Go evidence (go1.27.3, GOWORK=off; `examples/premisefix/streamctx`, all tests pa
 - model-param, errdesc: ok. gen-interface `--check --layout` on the six API lists: no diff.
 - Go: `examples/premisefix/streamctx` passes (go1.27.3, GOWORK=off; T-k's evidence above).
 
+### T-k review (2026-11-13, etcd-grove-81; independent, three lenses, workflow `wf_a94e5fc1-f5f`)
+
+No BLOCKER or MAJOR. Decisions: the fold of (b) into (c) approved; the axiom-tok entry and `trunc` line
+for `wp_WithTimeout_weak` and the bounds allow line for `LeaseKeepAlive` approved; the `5 ≤ threadBound`
+premise in v3rpc `Results`' `LeaseKeepAlive` restatement approved. MINORs (docstrings only, no statement
+changed), all fixed:
+- (a) `ctxCauseOk`'s (iii) said a child's own cancel stores `Canceled` and its timer `DeadlineExceeded`:
+  true only of nil-cause children (`WithCancel`/`WithTimeout`/`WithDeadline`); restricted, with the
+  cause variants named as excluded (go1.27.3 `context.go:269-271, 633-660, 711`).
+- (b) `ctxCauseOk_cancellable` and `wp_WithTimeout_weak` justified (ii) by "err and cause stored together
+  under `c.mu`"; `Err()` loads `err` atomically without `mu` (`:464-471`). Now: `Err()` returns non-nil only
+  after `<-c.Done()`, and `cancel` closes `done` under `mu` after assigning `cause` (`:446-457, 550-575`)
+  (the reviewer's race test: `/shared/tmp/coord-81/tk-review/cause_test.go`).
+- (c) `ctxCauseOk_cancellable` now states that its soundness rests on `cancellableContext` being unexported
+  and `newCancellableContext` (`interceptor.go:278-284`) its only writer (the `*cancelCtx` type alone does not
+  exclude a `WithCancelCause` child).
+- (d) `grpcRunCtx`: the `ServeHTTP` path is net/http's HTTP/2 server (`net/http/internal/http2`); the
+  file:line list of grpc's links is marked as examples, not exhaustive.
+- (e) `ctxCauseOk`/`Tracer.Start`: with the SDK tracer and Go's execution tracer on, `Start`'s result is
+  two `WithValue` links over `ctx`.
+- (f) (no change) the `LeaseKeepAlive` chain's new premises have no producer yet: it still starts from
+  `srvStreamIsStrong` (temporary, until the weak-end re-proof before step 6); recorded in the handoff.
+Then: tcb baseline and the 17 collections `--check --update`.
+
 ### Checks run, Revision 2 (2026-11-12, merged with lean `219ddbbb83`)
 
 Full build passes (17490 jobs); `tcb-report --check` matches the baseline unchanged (865 axioms, 5

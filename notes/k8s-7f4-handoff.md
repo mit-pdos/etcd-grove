@@ -46,6 +46,11 @@ Addendum T-k4 of `notes/k8s-7f4-freeze.md` has the texts as written: the opaque 
 reached by the roots through the stream path, and `wp_WithTimeout_weak` now reached by `LeaseRenew`);
 land via `etc/land.sh` on 81's go; then `LeaseKeepAlive`/`leaseKeepAlive` over the weak stream end (drop
 `srvStreamIsStrong`: `srvStreamIs` now carries `ctxCauseOk`); stop before step 6.
+T-k reviewed by 81 (no BLOCKER/MAJOR; MINORs fixed, freeze note "T-k review"). Known temporary state
+(review MINOR f): `LeaseKeepAlive`/`leaseKeepAlive`'s new premises (`5 ≤ threadBound`, the level token,
+`ctxCauseOk` through `srvStreamIsStrong`'s `grpcRunCtx`) have no producer yet; the chain still starts from
+`srvStreamIsStrong`, produced by nothing, until it is re-proved over the weak end. Step 6 (deleting
+`runsNoRequireLeader`) stays a hard stop: report before starting it.
 Pitfalls: in `renew_forward` (a `hygiene false` macro) errors are reported at the macro's call site;
 to see a goal inside it, insert `fail "DBG"` and check with `etc/lean-check.py -q -a`. Goose
 evaluates call arguments before the receiver (`s.Logger().Warn(.., zap.Error(err))`: `zap.Error`,
