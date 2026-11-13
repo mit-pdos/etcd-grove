@@ -134,6 +134,28 @@ theorem linkError_fmtErrorOk (le : Loc) (op old new : GoString) (err : GoInterfa
   wp_auto
   iapply HΦ
 
+/-- `&PathError{op, path, Errno(e)}` (`model.pathError`) for a nonzero errno `e`: an `error`
+`fmt` formats (`fmtErrorOk`). -/
+theorem wp_pathError_ok (op path : GoString) (e : w64) (he : e ≠ 0) (Φ : val → IProp GF) :
+    (∀ pe : Loc, EtcdGrove.fmtErrorOk (GF := GF)
+        (interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe) -∗
+      Φ #(interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe)) ⊢
+      WP (App (App (App (Val os.model.pathError) (Val #op)) (Val #path))
+        (App (Val syscall.model.errno) (Val #e))) {{ Φ }} := by
+  iintro HΦ
+  wp_apply wp_errno
+  unfold os.model.pathError
+  iapply wp_fupd
+  wp_auto
+  iStructNamed pe
+  ipersist Op
+  ipersist Path
+  ipersist Err
+  imodintro
+  iapply HΦ
+  iapply (pathError_fmtErrorOk pe_ptr op path (errnoErr e)) $$ Op Path Err
+  iapply (errnoErr_fmtErrorOk e he)
+
 /-- `&LinkError{op, old, new, Errno(e)}` (`model.linkError`) for a nonzero errno `e`: an `error`
 `fmt` formats (`fmtErrorOk`). -/
 theorem wp_linkError_ok (op old new : GoString) (e : w64) (he : e ≠ 0) (Φ : val → IProp GF) :
