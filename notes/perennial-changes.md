@@ -74,6 +74,21 @@ local model go.
   `theorem`s with the same statements (the specs are already over Perennial's names). Not yet
   proposed.
 
+### Operations on untyped rune constants have no step (2026-11-13, WAL leaf specs, branch `wal-leaf-std2`)
+
+- **Missing.** Goose emits `Separator == '/'` (`GoOp GoEquals go.untypedRune`) and `string(Separator)`
+  (`Convert go.untypedRune go.string`) of `internal/filepathlite`'s untyped constant as run-time
+  operations, and Perennial's semantics has no rule for either (`UntypedIntSemantics` converts untyped
+  integers to the integer types only). Go evaluates both at compile time.
+- **Workaround here.** A hypothesis class `UntypedRuneSemantics`
+  (`LinuxFs/Proof/internal/filepathlite/UntypedRune.lean`, like `UntypedIntToFloat64Semantics`):
+  equality of untyped integers, and `string(c)` an uninterpreted string that is the one byte `c` for
+  ASCII `c`; `filepathlite.FromSlash`/`Base` (and what calls them) take it as an instance. To be
+  added to `etc/gen-link.py`'s `SEM_PREMISES` when the package is linked. **Pending the user's
+  review** (a semantic assumption).
+- **Proposed.** Goose folds constant expressions of untyped constants (the language's "Constant
+  expressions"), or Perennial's `UntypedIntSemantics` gains the two steps. Not yet proposed.
+
 ### `Sprintf`'s `%0Nx`, `Sscanf`'s `%0Nx` of a `uint64`, `Time.Format` (2026-11-13, WAL leaf specs, branch `wal-leaf-std2`)
 
 - **Missing.** Perennial's model of `Sprintf` (`Perennial/TrustedCode/fmt.lean`) formats `%d`, `%v`,
