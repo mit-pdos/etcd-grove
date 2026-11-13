@@ -1947,7 +1947,10 @@ update: `s.wal dir := walDurFresh md`, the new layout and its `CrashOk`); then `
   `cur_of_part`), `hC.restrict jr (N.inter [nm]) = h.restrict …`, `hC.next = max …`). Helpers:
   `osClaims_once`, `osClaims_not_mem`, `osClaims_excl` (a whole claim held shares no name with the
   invariant's claims of its directory), `osClaims_filter_once`, `walCreating_empty`, `walParked_cover`.
-  No `sorry` in any of them.
+  No `sorry` in any of them. **`CreateSteps.lean`**: `walInv_step` (a step of the contents as an update of
+  `walInv`, with the generation's `notCrashed`, which a program step has by `wp_notCrashed_acc`) and the five
+  steps in that form (`walInv_drop`, `walInv_mint`, `walInv_unmint`, `walInv_merge2`, `walInv_mergeIn`; at a
+  mask `E ⊇ walN` with `osShN ⊆ E \ walN`, `walN_osShN_top` for `⊤`).
 - *For `Create`'s body* (not started): the sequence is `walInvBody_drop` (tmp) → `RemoveAll`/`CreateDirAll`
   /segment/`SaveSnapshot.specPre`/fsync of `nm.tmp` → `walInvBody_mint` (J's claim split `.except walTmps` +
   `walTmpsRes J` first) → `walCreate_osAUnc` → parent fsync (`walInvBody_named`) → `walInvBody_merge2` (the
