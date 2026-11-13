@@ -77,8 +77,9 @@ meaning: a step on any other path is stuck.
   stuck while another is in flight on the same file (a restriction on programs, sound by
   construction: every client writes each file from one thread; Linux serializes a buffered write
   and a truncate on `i_rwsem` anyway); an `open` with `O_TRUNC` is such a first step. An empty
-  `pwrite` is stuck too (Go's `WriteAt` never issues one; the `os` model's empty `Write`, which
-  Go does issue, is not modelled). A mapped load that could see a change in flight is stuck (a
+  `pwrite` is stuck too (Go's `WriteAt` never issues one; Go's `Write` does, and the `os` model's
+  empty `Write` makes no extension step, as a zero-byte `write(2)` of an ext4 file changes nothing:
+  `File.Write.impl`). A mapped load that could see a change in flight is stuck (a
   hole), and a racing `pread` or `fstat` returns any mix. Path calls
   (`CallBegin` … step) overlap, except that a rename of a directory is stuck while any other path
   call is in flight: Linux walks a path a component at a time, and the model resolves it at one
