@@ -1341,6 +1341,47 @@ hypotheses; step 3's pure part.**
   `osPathS_frac`), 7 (`walInvBody_cutSynced` under `wp_notCrashed_acc`; the rename's `logOut` for the
   `osLogLb`), 8 (re-lock, `walHandleIn` at the new claim history, `walOpenW_cut` back).
 
+**Eighth session (branch `wal-cut8`, 2026-11-13): steps 3-4 proved; step 5's lemmas; what step 5 still needs.**
+- **Statement change (the coordinator's decision): the pipeline's count in the handle.** `WalHS` gains `pc`
+  (the files the handle's pipeline has handed over since this `Open`/`Create`; the pipeline's `count`
+  restarts at 0 with each, while `cuts` counts the WAL read back too); `walHandleIn` holds `walPipeH fp dir j
+  h.pc` (was `h.cuts.length`; `ReadDefs`' `walPipeH fp dir 0` is `pc = 0`). `cut.spec` takes `h.pc + 2 <
+  2^63` (was `h.cuts.length + 2 < 2^63`) and gives `h'.pc = h.pc + 1`. W6 supplies the bound (per-lifetime
+  receipts, `notes/bounds-plan.md`).
+- *`cut.wp_proof`, steps 3-4* (proved, `sorry` from step 5 on): `w.seq()` inline (`os.File.Name.spec`,
+  `filepath.Base.spec`, `parseWALName.spec`; the `lg.Fatal` arm unreachable), `next` joined with `wp_join`
+  (`uint.nat nx = max(enti, snapi)`), `walName` over `fmt.SprintfWalName.spec` (`cutName_str`: the name is
+  `walFileName (sq + 1) (max(enti, snapi) + 1)`, no wrap from the handle's bounds), `filepath.Join` (`dir`'s
+  length from `isFilePipe`, `join_child`, `walFileName_nameOk`); `wp_walPipeH_open` with its error exit.
+  New hypotheses of the theorem: `os.File.Name.spec`, `filepath.Base.spec`, `parseWALName.spec`,
+  `fmt.SprintfWalName.spec`, `filepath.Join.spec`.
+- *`PreSync.lean`* (proved, shareable with W4's `Create`): `io.writerStream_frame` (a persistent frame in a
+  stream's states), `os.fileWI`/`os.fileBI` (`os.fileW`/`fileB` from offset 0 with `osInv`: `walPreSyncOk`'s
+  hypothesis triple has no other place for it), `os.File.writerStreamI`, `os.fileS` (the state after a
+  successful fdatasync: `OsMeta` synced, bytes durable), **`os.fileWI_preSyncOk`** (`walPreSyncOk f (fileWI
+  …) (fileS …)` over `fileutil.Fdatasync.spec`).
+- *`CutHdr.lean`* (pure, proved): `metaChain_cut` (writes keep `OsMeta.cut`), `metaChain_size` (the size
+  grows to `max m0.size (o0 + a)`), `streamOk_vals` (over zeros: the bytes are the stream's then zeros).
+  *`CutName.lean`*: `walFileName_nameOk`, `cutName_str`.
+- **Step 5 needs three facts `pipeFile` does not record** (found writing it; a cascade through `os`/`fileutil`
+  specs, not done): `walCut_osAUnc` asks `g.om.cut = none` and the zero tail `0` or `≥ 8` bytes, and
+  `os.fileW_start` asks `m0.lo ≤ m0.size`. Proposed: `pipeFile` gains `m.cut = none ∧ m.lo ≤ m.size ∧ m.size %
+  8 = 0` (`walCut_osAUnc`'s `hz` then follows: the headers' frames are 8-aligned, so `max(size, wr) - wr` is a
+  multiple of 8); `isFilePipe` gains `sz.toInt % 8 = 0` (`newFilePipeline.spec`'s premise; etcd's
+  `SegmentSizeBytes` is 64·10^6); `trFile` (`Spec/os/OpenFileTruncS.lean`) gains `m.cut = none ∧ m.lo ≤
+  m.size` (a new file's `newMeta`, a truncation's `rsPost` keeps `cut` and sets `lo` to 0; a leftover tmp
+  file's producer, W5's `Open`, must give them); `preGrown` (`fileutil/Defs.lean`) gains `m'.cut = m.cut ∧
+  m'.lo ≤ m'.size` (the growth's `rsPost`: `lo := min m.lo tg`). Then `alloc` proves the new `pipeFile`.
+- *Step 5's plan* (with the above): unfold `pipeFile`; `append(w.locks, newTail)` (`wp_slice_append`);
+  `prevCrc` (unfold `ownEncoder`/`ownDecCrc`, `digest.Sum32.spec`, as `decoder.LastCRC`); `w.tail()` at the
+  locks `ls ++ [lt] ++ [newTail]`; `newFileEncoder(newTail.File, prevCrc)` (offset 0); the stream
+  `os.File.writerStreamI` at `lim` the headers' length, `os.fileW_start` over the zeros (`osZerosA_unfold`);
+  `saveCrc.spec`, `encode.specG` (metadata, through `io.writerStream_P`), `saveState.specPre`,
+  `sync.specPreL` over `walPreInL … (ls ++ [lt]) newTail …` with `os.fileWI_preSyncOk`; then `Seek` and
+  `os.fileS` → the new segment `g` (`om := m.synced`, `bs := ys.map durB`) for `walCut_osAUnc`
+  (`streamOk_vals`, `metaChain_*`; the headers' frames = `tailStream Mr H md (cuts ++ [|H|])` from
+  `cutHdrDs` and `h.st = walLastHS`).
+
 ## W4 implementation log (branch `wal-create`, 2026-11-13)
 
 **Statements (`sorry`-stubbed proofs):** `LinuxFs/Spec/.../storage/wal/Create.lean` (`wal.Create.spec C Mr`),
