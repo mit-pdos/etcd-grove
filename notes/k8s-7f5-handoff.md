@@ -20,7 +20,8 @@ the worktree's untracked `questions.md` (decisions; never re-add it tracked).
 
 ## Handoff point (2026-11-13, fifth 7f-5 agent): 7f-3b mvcc part written; STOP before landing
 
-Done (uncommitted until the full build passes, then one commit on `k8s-7f5`):
+Done (`3e90b6e741` on `k8s-7f5`; full build passes, 17487 jobs; tcb matches 870/4; gates all ok after
+the interfaces were regenerated, log `/shared/tmp/k8s7f3b/gates.log`):
 - mvcc vocabulary (`InvWatchBatch.lean`): `prevKvIs`, `evRd` (field-wise, persistent: every field but
   `PrevKv`, the key-value `kvPtrFixed`), `evPk e ev q` (the `PrevKv` field owned at a fraction: the
   lock invariant is fractional), `evOwn := evRd ∗ evPk`; laws `evIs_evRd`, `evOwn_intro` (the
@@ -42,8 +43,7 @@ Done (uncommitted until the full build passes, then one commit on `k8s-7f5`):
   read-only form over `mvcc.evIs`) and `wrespIs_ro : wrespIs ⊢ |==> wrespRO`, applied at the send
   loop's two receipts. The v3rpc part of 7f-3b replaces this by the `PrevKv` write.
 
-Next: full build, interface diff (`etc/gen-interface.py etc/api/mvcc.txt`), tcb `--check`, gates; STOP
-for 81 (exported statements changed: `wrespIs`, the importable `InvWatchBatch`/`InvWatchStore`
+Next: STOPPED for 81's review of the interface diff (`git show 3e90b6e741 -- interface/`) (exported statements changed: `wrespIs`, the importable `InvWatchBatch`/`InvWatchStore`
 vocabulary). After 81's go: land; then v3rpc (`recvLoop`'s `prevKV` entry/`swsMuP`, `sendLoop`'s
 create check and `Range` at `ModRevision - 1` writing into `evPk`, `IsCreateEvent` on `evRd`,
 `rawRespOkP`, `watchReqOkP`); then the client (7f-3c).
