@@ -928,9 +928,10 @@ existing statements unchanged), for the coordinator's decision:
    (it ranges over `Γc`: guards exempt), and `whole` generalized to "a call whose fraction plus the
    guards' is 1 began now" (maintainable: such a call excludes every other logging call).
 3. New specs: `wp_osCallBeginGuardS` (`osCallPerm g` → `osGuardS t s g`), `wp_osLstatDirGuardS`
-   (ends it, the fraction back, needs only `TreePath`), and `wp_osRmdirSG`/`wp_osUnlinkSG`, the
-   directory operations with `osCallS k s0 q ∗ osGuardS t sg (1 - q)` in place of `osCallS k s0 1`.
-   Directory rename keeps requiring `osCallS k s0 1`, which a guard in flight excludes.
+   (ends it, the fraction back, needs only `TreePath`), and `wp_osRmdirSG`/`wp_osMkdirSG`, the
+   directory operations (not rename) with `osCallS k s0 q ∗ osGuardS t sg (1 - q)` in place of `osCallS k s0 1`.
+   Directory rename keeps requiring `osCallS k s0 1`, which a guard in flight excludes. (`Unlink`,
+   `Open`, `DirReadNext` take any fraction already.)
 Churn: every `treeShared` open/close (~40 sites in 11 files of `GooseLang/Ext/Fs/`, plus
 `CrashTok`, `World`'s `LegacyWit`, `Ghost`'s `os_local_init`), the `hc.calls` uses (~16) and the
 `TreeCohS` constructions (`treeCohS_metaEnd`, the switch, `CallBegin`, the logging lemmas). Then
