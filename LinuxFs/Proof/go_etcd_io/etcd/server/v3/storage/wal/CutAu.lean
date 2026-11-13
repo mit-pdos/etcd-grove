@@ -94,6 +94,22 @@ def walCutQ (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (tmp : 
       walParkFrag (W := W) false ∗ walCutFrag (W := W) (some dir) ∗
       osMeta g.ino (DFrac.own (1 : Qp).half) g.om ∗ osBytes g.ino 0 (DFrac.own (1 : Qp).half) g.bs)
 
+/-- A tail record's halves, both updated. -/
+theorem tailVar_upd (γ : GName) (a1 a2 b : TailG) :
+    ⊢ tailVar (W := W) γ a1 -∗ tailVar (W := W) γ a2 ==∗ tailVar (W := W) γ b ∗ tailVar (W := W) γ b := by
+  letI := walAllG (W := W)
+  unfold tailVar
+  iintro H1 H2
+  iapply ghostVar_update_halves $$ H1 H2
+
+/-- Two parts of an `OsMeta` agree. -/
+theorem osMeta_agree' (i : Ino) (dq1 dq2 : DFrac) (m1 m2 : OsMeta) :
+    ⊢@{IProp GF} osMeta i dq1 m1 -∗ osMeta i dq2 m2 -∗ ⌜m1 = m2⌝ := by
+  unfold osMeta
+  iintro H1 H2
+  icases gElem_valid_2 _ _ _ _ _ _ _ $$ H1 H2 with %hv
+  ipureintro; exact hv.2
+
 /-- **`cut`'s update for `os.Rename.specFileSnc`** (see the file header). The program's premises, over
 its copy of the WAL (`H`, `md`, `cuts`): `tmp` one of the claim's left-out names; the cuts below
 `|H|`; the old tail at the `.wal` name `nm0`; `bt` free, a `.wal` name past `nm0` with an index past
@@ -218,7 +234,148 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       dsimp only [walCutQ, walCutP]
       iframe Hkey Hk Hv Hq Ht Hpf Hcf Hm0 Hb0 Hmg Hbg Hsy Hnd
     · imod Hcl'
-      sorry
+      unfold renFileOut
+      simp only [logOut, claimOut]
+      icases Hβ with ⟨⟨%hls, Hlog⟩, Htn, Hwn⟩
+      unfold osLogged
+      icases Hlog with ⟨%hsx, -, -⟩
+      simp only [renFileEnt] at hsx
+      icases (osNames_frac j (.except X) (1 : Qp).half qQuarter _).1 $$ Hwn with ⟨Hαn, Hqn⟩
+      -- no cut pending; the flag to `dir`
+      icases walCut_agree cp none $$ Hcp Hcf with %Hcpn
+      subst Hcpn
+      imod walCut_set none none (some dir) $$ Hcp Hcf with ⟨Hcp, Hcf⟩
+      -- the tail record: the WAL, its layout and old tail, as the program has them
+      icases walTailsRes_cut walCodec Mr s Ls F dir γ _ $$ Htl Hk Hv with
+        ⟨%d, %lay, %g0, %htp, Hk, Hv, Hvi, Htlk⟩
+      obtain ⟨hd, hl, hg0, Htg⟩ := htp
+      simp only [tailG, Prod.mk.injEq] at Htg
+      obtain ⟨rfl, rfl, rfl, rfl, rfl, hF0⟩ := Htg
+      rw [hl1] at hl; cases hl
+      -- the WAL: synced, named
+      obtain ⟨hW1, hW2, hW3, hW4, hW5, hW6⟩ := Hok
+      obtain ⟨lay2, nm, hj2, hl2, hA, hjr2, hnm2, hc2, habs, hcr⟩ := hW1 dir d hd
+      rw [hl1] at hl2; cases hl2
+      icases walGhost_synced s dir _ $$ Hg Hsy with ⟨%hsyn, Hg⟩
+      icases walGhost_named s dir $$ Hg Hnd with ⟨%hnmd, Hg⟩
+      have hm : d.m = d.H.length := Nat.le_antisymm habs.synced.1 (hsyn d hd)
+      -- the old tail's halves agree with the program's
+      obtain ⟨pre, hs⟩ := List.getLast?_eq_some_iff.1 hg0
+      have hg0m : g0 ∈ lay1.segs := by rw [hs]; simp
+      have hsr : segResF (GF := GF) F g0 = segRes (GF := GF) g0 := by unfold segResF; rw [← hF0]
+      icases (laysResF_del F Ls dir lay1 hl1).1 $$ Hlays with ⟨Hsegs, Hrest⟩
+      rw [hs]
+      icases (BigSepL.bigSepL_append (PROP := IProp GF)).1 $$ Hsegs with ⟨Hpre, Hlast⟩
+      icases (BigSepL.bigSepL_singleton (PROP := IProp GF)).1 $$ Hlast with Hlast
+      rw [hsr]
+      unfold segRes
+      icases Hlast with ⟨Hmi, Hbi⟩
+      icases osMeta_agree' g0.ino _ _ g0.om m0 $$ Hmi Hm0 with %hm0
+      have hlen0 : g0.bs.length = bs0.length := by
+        rw [hbs0.2, ← hm0]; exact ((habs.metas g0 hg0m).1).symm
+      icases osBytes_agree g0.ino _ _ 0 g0.bs bs0 hlen0 $$ Hbi Hb0 with %hb0
+      have hlast0 : g0.bs = (segStream walCodec Mr d lay1.cuts lay1.cuts.length).map durB := by
+        rw [hb0, hbs0.1, tailStream_eq]
+      ihave Hlays := (laysResF_del F Ls dir lay1 hl1).2 $$ [Hpre Hmi Hbi Hrest]
+      · iframe Hrest
+        rw [hs]
+        iapply (BigSepL.bigSepL_append (PROP := IProp GF)).2
+        iframe Hpre
+        iapply (BigSepL.bigSepL_singleton (PROP := IProp GF)).2
+        rw [hsr]
+        unfold segRes
+        iframe Hmi Hbi
+      -- the new segment: no layout's
+      obtain ⟨y, ys, hgbs'⟩ : ∃ y ys, g.bs = y :: ys := by
+        cases hb : g.bs with
+        | nil => exact absurd hb hgbs
+        | cons y ys => exact ⟨y, ys, rfl⟩
+      rw [hgbs']
+      icases laysResF_ino_ne F Ls g.ino g.om y ys $$ Hlays Hmg Hbg with ⟨%hino, Hlays, Hmg, Hbg⟩
+      icases (osMeta_halves g.ino g.om).1 $$ Hmg with ⟨Hm1, Hm2⟩
+      icases (osBytes_halves g.ino 0 (y :: ys)).1 $$ Hbg with ⟨Hb1, Hb2⟩
+      -- the pure facts
+      have hwr' := hwr; rw [tailStream_cut] at hwr'
+      have hbs' := hbs; rw [tailStream_cut] at hbs'
+      have hc' : ∀ c1 ∈ l1 ++ l2, c1 ≠ cutClaim j X hj1 tmp bt g.ino x s0 := by
+        intro c1 hc1 he
+        have hbX : bt ∉ X := fun h => by rw [hXw bt h] at hbtw; cases hbtw
+        have hmem : c1 ∈ l1 ++ (j, NameSet.except X, hj1) :: l2 := by
+          rcases List.mem_append.1 hc1 with h | h
+          · exact List.mem_append_left _ h
+          · exact List.mem_append_right _ (List.mem_cons_of_mem _ h)
+        have hne : c1 ≠ (j, NameSet.except X, hj1) := by
+          rintro rfl
+          rcases List.mem_append.1 hc1 with h | h
+          · exact hn1 h
+          · exact hn2 h
+        subst he
+        exact hexcl _ hmem hne rfl bt hbtw hbX
+      obtain ⟨hok', hco', hcro', han', hnm', hdko'⟩ := cutCommit_pure (x := x) (s0 := s0)
+        ⟨hW1, hW2, hW3, hW4, hW5, hW6⟩ Hco Hcro Han.1 Han.2 Hnm Hdko HK hd hl1 hg0
+        ⟨l1, l2, rfl, hn1, hn2⟩ hm (hnmd d hd) hlast0 hcuts hnm0 hbt hbtw hcur hwr' hbs' hmeta hfit hz
+        hino hgname htmpX (Nat.le_trans (Nat.le_max_right _ _) hls) hsx
+      -- the tail record moved, the flag, the parked halves
+      imod tailVar_upd γ _ _ (tailG d (cutLay lay1 d.H.length g wr) g.ino none) $$ Hv Hvi with ⟨Hv, Hvi⟩
+      ihave Htl := Htlk $$ %(cutLay lay1 d.H.length g wr) %g %(GMap.delete g.ino F) [] [Hvi]
+      · ipureintro
+        refine ⟨cutLay_last _ _ _ _, tailZeros_cut _ _ _ _, tailBound_cut _ _ _ _ _ _ hwr', ?_⟩
+        intro k la hk hla g' hg'
+        exact GMap.lookup_delete_ne _ (hino g' (mem_segsAll hla hg')).symm
+      · rw [GMap.lookup_delete_eq]; iexact Hvi
+      ihave Hp0 : segResP g0 $$ [Hm0 Hb0]
+      · unfold segResP
+        iexists m0, bs0
+        iframe Hm0 Hb0
+        ipureintro; exact hlen0.symm
+      ihave ⟨Hpk, Hpf⟩ := walParked_cut Ls l1 l2 (j, NameSet.except X, hj1)
+        (cutClaim j X hj1 tmp bt g.ino x s0) dir lay1 g0 g d.H.length wr hl1 hg0 hW3 hino hc' $$
+        [Hpk Hpf Hp0]
+      · iframe Hpk Hpf Hp0
+      imod Hcl $$ [Hg Hl1 Hαn Hl2 Hlays Hm1 Hb1 Hcra Htl Hpk Hdk Hcp]
+      · iexists s
+        iexists <[dir := cutLay lay1 d.H.length g wr]> Ls,
+          replClaim (j, NameSet.except X, hj1) (cutClaim j X hj1 tmp bt g.ino x s0)
+            (l1 ++ (j, NameSet.except X, hj1) :: l2), n, GMap.delete g.ino F
+        iframe Hg Hcm
+        isplitr
+        · ipureintro; exact Har
+        isplitl [Hl1 Hαn Hl2]
+        · rw [replClaim_split hn1 hn2]
+          iapply (osClaims_split _ _ _ _).2
+          iframe Hl1 Hl2
+          dsimp only [cutClaim]
+          iexact Hαn
+        isplitl [Hlays Hm1 Hb1]
+        · iapply laysResF_cut F Ls dir lay1 d.H.length g wr hl1 hino
+          iframe Hlays
+          unfold segRes
+          rw [hgbs']
+          iframe Hm1 Hb1
+        isplitr
+        · ipureintro; exact hok'
+        isplitr
+        · ipureintro; exact hco'
+        isplitl [Hcra]
+        · iexists CR
+          iframe Hcra
+          ipureintro; exact hcro'
+        iframe Htl
+        isplitr
+        · ipureintro; exact ⟨han', Han.2⟩
+        isplitr
+        · ipureintro; exact hnm'
+        isplitl [Hpk]
+        · rw [replClaim_split hn1 hn2]; iexact Hpk
+        iexists K, some dir
+        iframe Hdk Hcp
+        ipureintro; exact hdko'
+      imodintro
+      dsimp only [walCutQ, cutClaim]
+      rw [hgbs']
+      iframe Htn Hqn Hkey Hk Hpf Hcf Hm2 Hb2
+      rw [tailG_cut]
+      iexact Hv
 
 end au
 
