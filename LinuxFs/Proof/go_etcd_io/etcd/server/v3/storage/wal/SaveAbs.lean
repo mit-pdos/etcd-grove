@@ -162,6 +162,9 @@ theorem walAbsD_snoc {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay
   have htake : ∀ c, c ≤ d.H.length → (histM { d with H := d.H ++ [o] }).take c = (histM d).take c := by
     intro c hcl
     rw [histM_snoc, List.take_append_of_le_length (by simpa [histM] using hcl)]
+  obtain ⟨gl, hgl⟩ : ∃ g, lay.segs.getLast? = some g :=
+    ⟨_, List.getLast?_eq_some_getLast h.nonempty⟩
+  have hW := h.lastWin gl hgl
   obtain ⟨hn, hcs, hnb, hcut, hmeta, hint, hlast, hsyn, hls, -, hstop, hne⟩ := h
   refine ⟨hn, ⟨fun b hb => ?_, hcs.2⟩, ?_, hcut, hmeta, ?_, ?_, ?_, hls, hfit, ?_, hne⟩
   · rw [histM_snoc]; exact walCutPos_snoc _ (hcs.1 b hb)
@@ -174,7 +177,24 @@ theorem walAbsD_snoc {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay
     rw [hsegLt _ (by have := hcs.2.2; have := List.getElem?_eq_some_iff.1 hg; omega)]
     exact hint k g hk hg
   · intro g hg
-    obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := hlast g hg
+    refine ⟨fun hx => ?_, fun hx => ?_⟩
+    rotate_left
+    · obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := (hlast g hg).2 hx
+      unfold TailWin
+      simp only at h1 h2 h3 h4 h5 h6 h7 h8 ⊢
+      rw [hS]
+      refine ⟨h1, by simp; omega, h3, h4, fun b x hb hbw => ?_, h6, ?_, fun hz b hb1 hb2 => ?_⟩
+      · exact (h5 b x hb hbw).snoc (fun hw => by simp at hw; omega) (fun hs => by simp at hs; omega)
+      · rw [List.take_append_of_le_length (by omega)]; exact h7
+      · rcases Nat.lt_or_ge lay.z0 (segStream C Mr d lay.cuts lay.cuts.length).length with hlt | hge
+        · exact h8 hlt b hb1 hb2
+        · apply hZ _ b hb1 hb2
+          intro hnil
+          rw [hnil, List.length_nil, List.length_eq_zero_iff] at hX
+          subst hX
+          simp [recFrames, frames] at hz; omega
+    obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := (hlast g hg).1 hx
+    unfold TailLast
     simp only at h1 h2 h3 h4 h5 h6 h7 h8 ⊢
     rw [hS]
     refine ⟨h1, by simp; omega, h3, h4, fun b x hb => ?_, h6, ?_, fun hz b hb1 hb2 => ?_⟩
@@ -193,8 +213,8 @@ theorem walAbsD_snoc {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay
     exact h2
   · intro hz r len c'
     have hz' : recFrames C X = [] := by
-      have hwr := (hlast _ (List.getLast?_eq_some_getLast hne)).2.1
-      have hz0 := (hlast _ (List.getLast?_eq_some_getLast hne)).2.2.2.2.2.1
+      have hwr := hW.2.1
+      have hz0 := hW.2.2.2.2.2.1
       rw [hS, List.length_append] at hz
       apply List.eq_nil_of_length_eq_zero; omega
     have hX0 := recFrames_eq_nil hz'
@@ -246,7 +266,7 @@ theorem syncLay_getElem? {lay : WalLay} {pre : List SegG} {g0 : SegG} (hs : lay.
 flushed (`wr` the tail's stream's length), the fdatasync made every byte of the tail durable. -/
 theorem walAbsD_sync {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
     {pre : List SegG} {g0 : SegG} (h : WalAbsD C Mr d lay ents) (hs : lay.segs = pre ++ [g0])
-    (htail : lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length) :
+    (hex : SegExact g0) (htail : lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length) :
     WalAbsD C Mr { d with m := d.H.length } (syncLay lay pre g0) ents := by
   have hc : ∀ b ∈ lay.cuts, b ≤ d.H.length := fun b hb => by
     have := walCutPos_le (h.cuts.1 b hb); simpa [histM] using this
@@ -271,10 +291,14 @@ theorem walAbsD_sync {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay
   · intro g hg
     simp only [syncLay, List.mem_append, List.mem_singleton] at hg
     rcases hg with hg | rfl
-    · exact h.metas g (by rw [hs]; simp [hg])
+    · obtain ⟨h1, h2, h3, h4, h5⟩ := h.metas g (by rw [hs]; simp [hg])
+      refine ⟨h1, h2, h3, h4, Or.inr ?_⟩
+      rcases h5 with h5 | h5
+      · obtain rfl := Option.some.inj (hg0.symm.trans h5); exact hex
+      · exact h5
     · have := h.metas g0 (by rw [hs]; simp)
-      simp only [syncTail, OsMeta.synced, List.length_map]
-      exact ⟨this.1, this.2.1, this.1, this.1⟩
+      refine ⟨?_, ?_, ?_, ?_, Or.inl hlast'⟩ <;>
+        simp [syncTail, OsMeta.synced, this.1, this.2.1]
   · intro k g hk hg
     rw [syncLay_getElem? hs] at hg
     obtain ⟨g1, hg1, rfl⟩ := Option.map_eq_some_iff.1 hg
@@ -284,7 +308,11 @@ theorem walAbsD_sync {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay
     exact h.intact k g1 hk' hg1
   · intro g hg
     rw [hlast'] at hg; cases hg
-    obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := h.last g0 hg0
+    have hxs : SegExact (syncTail g0) := by
+      simp [SegExact, syncTail, OsMeta.synced, (h.metas g0 (by rw [hs]; simp)).1]
+    refine ⟨fun _ => ?_, fun hx => absurd hxs hx⟩
+    obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := (h.last g0 hg0).1 hex
+    unfold TailLast
     simp only [syncLay] at h1 h2 h3 h4 h5 h6 h7 h8 ⊢
     refine ⟨Nat.le_refl _, h2, by simp [syncTail, h3], h4, fun b x hb => ?_, h6, h7, h8⟩
     simp only [syncTail, List.getElem?_map] at hb

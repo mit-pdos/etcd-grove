@@ -61,7 +61,7 @@ theorem wp_tailFsync (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (di
   simp only [tailG, Prod.mk.injEq] at htg
   obtain ⟨hH, hmd, hcuts, hwrl, hino, hF⟩ := htg
   have hg0 : lay.segs.getLast? = some g0 := by rw [hs]; simp
-  obtain ⟨hsz, -, -, -⟩ := habs.metas g0 (List.mem_of_getLast? hg0)
+  obtain ⟨hsz, -, -, -, -⟩ := habs.metas g0 (List.mem_of_getLast? hg0)
   unfold segResF segRes
   rw [← hF]
   dsimp only
@@ -78,7 +78,7 @@ theorem wp_tailFsync (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (di
   have htail : lay.wr = (segStream walCodec Mr dw lay.cuts lay.cuts.length).length := by
     rw [← hwrl, hwr, hH, hmd, hcuts]; rfl
   have hzf : ∀ z, g0.om.zf = some z → g0.bs.length ≤ z := fun z hz => by
-    rw [hm.1]; exact hm.2.2 z hz
+    rw [hm.1]; exact hm.2.2.1 z hz
   imod (fupd_mask_subseteq (show (⊤ : CoPset) \ ↑walN ⊆ (⊤ : CoPset) \ ↑walN from fun _ h => h)) with Hid
   imodintro
   iframe Hnc
@@ -89,7 +89,7 @@ theorem wp_tailFsync (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (di
     icases (osBytes_halves _ _ _).1 $$ Hb with ⟨Hb1, Hb2⟩
     icases Hconts with ⟨Hsucc, -⟩
     imod Hsucc $$ [] [Hm2 Hb2] with ⟨Hb, Hpast⟩
-    · ipureintro; exact ⟨rfl, htail, hzf⟩
+    · ipureintro; exact ⟨rfl, htail, hzf, ⟨hm.2.2.2.1.trans hm.1.symm, hm.2.2.2.2.trans hm.1.symm⟩⟩
     · dsimp only [syncTail]; rw [← hino]; iframe
     imod Hid
     imod Hcl $$ [Hb]

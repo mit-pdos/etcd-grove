@@ -166,7 +166,7 @@ theorem walInvBody_sync (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
         segResF (L := L) F g0 ∗ walTailKey (W := W) dir γ ∗ tailVar (W := W) γ tg ∗
         walCutFrag (W := W) none ∗
         (⌜F !! g0.ino = none ∧ lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length ∧
-            (∀ z, g0.om.zf = some z → g0.bs.length ≤ z)⌝ -∗
+            (∀ z, g0.om.zf = some z → g0.bs.length ≤ z) ∧ SegExact g0⌝ -∗
           segRes (L := L) (syncTail g0) ==∗
           walInvBody (L := L) (W := W) C Mr R jr r (walSyncS s dir d) ∗
             walPast (W := W) (walSyncS s dir d)) ∧
@@ -228,7 +228,7 @@ theorem walInvBody_sync (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
       iframe Hdk Hcp
       ipureintro; exact Hdko
     ipureintro; exact HAt
-  iintro ⟨%hF, %htail, %hzf⟩ Hseg
+  iintro ⟨%hF, %htail, %hzf, %hex⟩ Hseg
   -- F-Z, from the tail record's entry (kept by `walTailsRes_cut`'s premise)
   have hZ : TailZeros lay := hZB.1
   have hnd : (lay.segs.map (·.ino)).Nodup := ((segsAll_nodup_iff Ls).1 HW.2.2.1).1 dir lay hl
@@ -265,7 +265,7 @@ theorem walInvBody_sync (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
         iexact Hseg
       · iapply (laysResF_map (L := L) F _).1 $$ Hrest
     isplitr
-    · ipureintro; exact walsOk_sync hC HW hd hl hs htail hZ hzf hok
+    · ipureintro; exact walsOk_sync hC HW hd hl hs htail hZ hzf hex hok
     isplitr
     · ipureintro; exact HWC
     isplitl [Htlc Hv']
@@ -297,7 +297,7 @@ theorem walInvBody_sync (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
     · iexists K, none
       iframe Hdk Hcp
       ipureintro
-      exact dirKeysOk_sync hC HW hd hl hs htail hZ hzf Hdko
+      exact dirKeysOk_sync hC HW hd hl hs htail hZ hzf hex Hdko
     ipureintro
     exact walsAt_insert hl rfl rfl HAt
   · unfold walPast; iexact Hpast

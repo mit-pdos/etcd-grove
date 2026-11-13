@@ -128,9 +128,10 @@ theorem wp_tailPWriteStart (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStrin
   icases osBytes_agree d.ino _ _ 0 bs g0.bs (by rw [hm.1, hsz]) $$ Hb1 Hb2 with %hbb
   subst hbb
   have hlen : g0.bs.length = g0.om.size := hm.1
+  have hex0 : SegExact g0 := ⟨by rw [hm.2.2.2.1, hlen], by rw [hm.2.2.2.2, hlen]⟩
   -- the write is past the synced bytes
   have hso : lay.so ≤ off.toNat := by
-    obtain ⟨hso', -, -, -, hB, -⟩ := habs.last g0 hg0
+    obtain ⟨hso', -, -, -, hB, -⟩ := (habs.last g0 hg0).1 hex0
     rcases hre with he | ⟨q, hq, hq0⟩
     · omega
     · refine Nat.le_of_not_lt fun hlt => ?_
@@ -175,8 +176,13 @@ theorem wp_tailPWriteStart (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStrin
   ihave Hb := Hclose $$ %g' %lay.wr %F' [] [Htok Hp2 Hs2] Hv'
   · ipureintro
     refine ⟨hino.symm, by simp [g', segAnn, cfMeta, hcut0], segAnn_length hin' hlen, ?_, ?_, ?_⟩
-    · intro z hz; rw [hlen]; exact hm.2.2 z hz
-    · intro ents' habs'; exact walAbsD_announce habs' hs hso hin' hpre' hn
+    · refine ⟨fun z hz => by rw [hlen]; exact hm.2.2.1 z hz, hex0, ?_⟩
+      have hT : max g0.om.size (off.toNat + data.length) = g0.om.size := by omega
+      have e1 := hex0.1
+      have e2 := hex0.2
+      refine ⟨?_, ?_⟩ <;> rw [show g'.bs.length = g0.bs.length from segAnn_length hin' hlen] <;>
+        simp only [g', segAnn, cfMeta, announce_lo, announce_hi, hT] <;> omega
+    · intro ents' habs'; exact walAbsD_announce habs' hs hex0 hso hin' hpre' hn
     · exact ⟨fun i hi => GMap.lookup_insert_ne _ _ (fun h => hi (h.symm.trans hino.symm)), rfl⟩
   · rw [show F' !! g'.ino = some fl from GMap.lookup_insert _ _ _]
     dsimp only [fl]
@@ -287,15 +293,26 @@ theorem wp_tailPWriteFinish (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStri
     rw [hom] at hz
     simp only [cfMeta, announce_zf, Option.map_eq_some_iff] at hz
     obtain ⟨z0, hz0, rfl⟩ := hz
-    have h1 := hm.2.2 z0 hz0
+    have h1 := hm.2.2.1 z0 hz0
     have h2 : g0.bs.length = fl.m.size := by
       rw [hbs]; simp only [List.length_append, List.length_take, List.length_drop, pwAnn_length]
       rw [cfRange_length hin hl, hlo, hhi]; omega
     rw [h2]; split <;> omega
+  have hgl : g0.bs.length = fl.m.size := by
+    rw [hbs]; simp only [List.length_append, List.length_take, List.length_drop, pwAnn_length]
+    rw [cfRange_length hin hl, hlo, hhi]; omega
+  have hmlo := hm.2.2.2.1
+  have hmhi := hm.2.2.2.2
+  have hT : max fl.m.size (fl.off + fl.data.length) = fl.m.size := by omega
+  have hex0 : SegExact g0 := by
+    refine ⟨?_, ?_⟩ <;> rw [hom, hgl] <;> simp only [cfMeta, announce_lo, announce_hi, hT] <;> omega
+  have hexF : SegExact g' := by
+    refine ⟨?_, ?_⟩ <;> simp only [g', segFin, hflen, pwPost, announce_lo, announce_hi, hT] <;> omega
   ihave Hb := Hclose $$ %g' %(max lay.wr (fl.off + k)) %F' [] [Hm2 Hb2] Hv'
   · ipureintro
-    refine ⟨rfl, by simp [g', segFin, pwPost, hmc], segFin_length hok hk, hzf0, ?_, ?_⟩
-    · intro ents' habs'; exact walAbsD_finish habs' hs hok (by omega) hk hn
+    refine ⟨rfl, by simp [g', segFin, pwPost, hmc], segFin_length hok hk, ⟨hzf0, hex0, ?_⟩, ?_, ?_⟩
+    · exact hexF
+    · intro ents' habs'; exact walAbsD_finish habs' hs hex0 hok (by omega) hk hn
     · exact ⟨fun i' hi => GMap.lookup_delete_ne _ (Ne.symm hi), rfl⟩
   · rw [show F' !! g'.ino = none from GMap.lookup_delete_eq _ _]
     dsimp only
@@ -307,11 +324,14 @@ theorem wp_tailPWriteFinish (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStri
   · iexists s; iexact Hb
   imodintro
   have htm : TailMeta (pwPost fl.m fl.off fl.data.length k) (finBytes fl.m fl.bs fl.off fl.data k fl.n zs) := by
-    refine ⟨by rw [hflen]; simp [pwPost, hps], by simp [pwPost, hm.2.1], ?_⟩
+    refine ⟨by rw [hflen]; simp [pwPost, hps], by simp [pwPost, hm.2.1], ?_, ?_, ?_⟩
+    rotate_left
+    · have := hm.2.2.2.1; simp only [pwPost, announce_lo, hps]; omega
+    · have := hm.2.2.2.2; simp only [pwPost, announce_hi, hps]; omega
     intro z hz
     simp only [pwPost, announce_zf, Option.map_eq_some_iff] at hz
     obtain ⟨z0, hz0, rfl⟩ := hz
-    have := hm.2.2 z0 hz0
+    have := hm.2.2.1 z0 hz0
     simp only [pwPost, hps]; split <;> omega
   have hpost : k ≤ fl.data.length ∧ ((k = fl.data.length ∨ 0 < k) ∧ e = 0 ∨ e ≠ 0) ∧
       TailMeta (pwPost fl.m fl.off fl.data.length k) (finBytes fl.m fl.bs fl.off fl.data k fl.n zs) ∧

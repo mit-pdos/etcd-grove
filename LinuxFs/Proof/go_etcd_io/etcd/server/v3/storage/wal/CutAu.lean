@@ -125,6 +125,7 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (hbt : bt = walFileName sq ix ∧ walLastIdx (H.map WalOpG.toM) + 1 ≤ ix ∧ go.GoStringLt nm0 bt)
     (hbtw : walNameP bt = true) (hcur : hj.cur !! bt = none)
     (hbs0 : bs0.length = (tailStream Mr H md cuts).length ∧ bs0.length = m0.size)
+    (hm0x : m0.lo = m0.size ∧ m0.hi = m0.size)
     (hwr : wr = (tailStream Mr H md (cuts ++ [H.length])).length)
     (hbs : g.bs = (tailStream Mr H md (cuts ++ [H.length]) ++
       List.replicate (g.bs.length - wr) 0).map durB ∧ wr ≤ g.bs.length)
@@ -278,6 +279,8 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       icases osMeta_agree' g0.ino _ _ g0.om m0 $$ Hmi Hm0 with %hm0
       have hlen0 : g0.bs.length = bs0.length := by
         rw [hbs0.2, ← hm0]; exact ((habs.metas g0 hg0m).1).symm
+      have hex0 : SegExact g0 :=
+        ⟨by rw [hm0, hlen0, hbs0.2]; exact hm0x.1, by rw [hm0, hlen0, hbs0.2]; exact hm0x.2⟩
       icases osBytes_agree g0.ino _ _ 0 g0.bs bs0 hlen0 $$ Hbi Hb0 with %hb0
       have hlast0 : g0.bs = (segStream walCodec Mr d lay1.cuts lay1.cuts.length).map durB :=
         lastSeg_synced_durable habs hg0 hm (by rw [hlen0, hbs0.1, tailStream_eq])
@@ -318,7 +321,7 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
         exact hexcl _ hmem hne rfl bt hbtw hbX
       obtain ⟨hok', hco', hcro', han', hnm', hdko'⟩ := cutCommit_pure (x := x) (s0 := s0)
         ⟨hW1, hW2, hW3, hW4, hW5, hW6⟩ Hco Hcro Han.1 Han.2 Hnm Hdko HK hd hl1 hg0
-        ⟨l1, l2, rfl, hn1, hn2⟩ hm (hnmd d hd) hlast0 hcuts hcpos hnm0 hbt hbtw hcur hwr' hbs' hmeta hfit hz
+        ⟨l1, l2, rfl, hn1, hn2⟩ hm (hnmd d hd) hlast0 hex0 hcuts hcpos hnm0 hbt hbtw hcur hwr' hbs' hmeta hfit hz
         hino hgname htmpX (Nat.le_trans (Nat.le_max_right _ _) hls) hsx
       -- the tail record moved, the flag, the parked halves
       imod tailVar_upd γ _ _ (tailG d (cutLay lay1 d.H.length g wr) g.ino none) $$ Hv Hvi with ⟨Hv, Hvi⟩
