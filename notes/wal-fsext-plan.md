@@ -713,7 +713,24 @@ out of `Abs.lean`; statement unchanged). Left: `walInv_alloc` (`sorry`).
   `decFile`, `ownFbr`, `ownDecoder`, `decEnv`, `decPost`, `stopErr`; walpb `ownRec`): proved
   `decodeFrameSize`, `readInt64`, `LastOffset`, `LastCRC`, `UpdateCRC`, `Decode` (over decodeRecord's
   spec), walpb `GetType`/`GetCrc`/`Validate`, fileutil `NewFileBufReader`/`FileInfo`/`Err`/`Read`.
-  `sorry`: `decodeRecord`, `isTornEntry`, `NewDecoder` (started, to the range loop).
+  `sorry`: `isTornEntry`, `NewDecoder` (started, to the range loop). `decodeRecord` proved (branch
+  `wal-dec2`, by induction on the files for its recursive call), over its lemmas in `DecLemmas.lean`
+  (`fbr_readerStream`: a `*FileBufReader` as `io.Reader` is a stream reader of its file; the
+  `decRecStep_*` equations by what the reads returned; `decPost_{stop,accept,ioe,cons_eof}`).
+  `isEofOk` gained `nil` and `⌜eof ≠ ueof ∧ ¬ IoE eof⌝` (ledger, 2026-11-13).
+- **`proto.UnmarshalWalRecord.spec` is not derivable from `proto.UnmarshalPb.spec`** (2026-11-13,
+  wal-dec2): (1) `UnmarshalPb` says only "an encoding of a valid content decodes without error"; that a
+  failed `Unmarshal` means `recDecode bs = none` (what `goDecode`'s `badRec` needs) is not in it, and
+  `recDecode` accepts non-canonical encodings, so it does not follow; (2) its precondition is
+  `I.data.blank l` (the hidden `state` field included), not `l ↦ zero_val walpb.Record`; (3) it needs
+  `isPkgInit proto`, which `decEnv` does not give. Options: a trusted law "`Unmarshal` fails only on
+  `recDecode bs = none`" for registered types (Perennial-side, the user's call), or weaken `decRecStep`'s
+  `badRec` stop to "`Unmarshal` failed" (an oracle in `WalCodec`). Left as the hypothesis.
+- **`walpb.Record.Reset` stays names-only** (2026-11-13): its body (`*x = Record{}`, then
+  `protoimpl.X.MessageStateOf(x).StoreMessageInfo(&file_record_proto_msgTypes[0])`) is the protobuf
+  runtime plumbing the configuration excludes on purpose (`walpb.toml`); and its spec's post
+  `l ↦ zero_val walpb.Record` is not what Go leaves (the `state` field holds the message info) -- the
+  same `blank`-vs-`zero_val` point as above. Its spec should be stated over `I.data.blank`.
 - **Hypotheses** (theorem parameters, not axioms): `proto.UnmarshalWalRecord.spec C` (stated over
   `C.decRec`; to derive from the walpb registration), `walpb.Record.Reset.spec` (names-only),
   `fmt.ErrorfErrs.spec` (Perennial's `Errorf` spec refuses error arguments, `ArgsWf`; Perennial
