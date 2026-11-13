@@ -115,6 +115,77 @@ theorem regionCrashedK_cover {cl cl' : List Claim} {n : Nat} {m' : Tree} {K : Na
   · obtain ⟨d, hd, hdj, hdb, hdv⟩ := hval c1 hc1 b hb
     rw [← hdv K, ← hK.2.2 d hd b hdb, hdj]
 
+/-- An entry of a claim's restriction to `M` writes a name of `M`. -/
+theorem restrict_ents_writes {h : NamesH} {j : Ino} {M : NameSet} {x : Nat} {e : LogEntry} {E : Ents}
+    (hx : (x, e, E) ∈ (h.restrict j M).ents) : ∃ b, M.Mem b ∧ e.op.Writes j b := by
+  classical
+  unfold NamesH.restrict at hx
+  simp only at hx
+  obtain ⟨xe, hxe, he⟩ := List.mem_map.1 hx
+  obtain ⟨-, hw⟩ := List.mem_filter.1 hxe
+  rcases xe with ⟨x', e', E'⟩
+  simp only [Prod.mk.injEq] at he
+  obtain ⟨rfl, rfl, -⟩ := he
+  simpa using hw
+
+/-! ## The minting's claims -/
+
+/-- The claims after the minting: the area claim `(jr, N, h)` (holding `nm`) replaced by its part
+off `nm`, and the creating claim on `[nm, tmp]` appended (its history `hC` agreeing with the area
+claim's on `nm`: `osNames_merge`'s). -/
+def mintClaims (cl : List Claim) (jr : Ino) (N : NameSet) (h : NamesH) (nm tmp : GoString)
+    (hC : NamesH) : List Claim :=
+  replClaim (jr, N, h) (jr, N.diff [nm], h.restrict jr (N.diff [nm])) cl ++
+    [(jr, .only [nm, tmp], hC)]
+
+/-- **A crash of the claims after the minting is one of the claims before it** (the minting adds
+the name `tmp`, and splits `nm` off the area claim into the creating claim). The area claim's history
+is its own restriction (`namesOf`'s: every entry writes one of its names). -/
+theorem regionCrashedK_mint {cl : List Claim} {jr : Ino} {N : NameSet} {h : NamesH}
+    {nm tmp : GoString} {hC : NamesH} (hc : (jr, N, h) ∈ cl) (hself : h.restrict jr N = h)
+    (hnm : N.Mem nm) (hCr : hC.restrict jr (N.inter [nm]) = h.restrict jr (N.inter [nm]))
+    {n : Nat} {m' : Tree} {K : Nat → Prop}
+    (hK : RegionCrashedK (mintClaims cl jr N h nm tmp hC) n m' K) : RegionCrashedK cl n m' K := by
+  classical
+  have hinI : (N.inter [nm]).Mem nm := (N.mem_inter [nm] nm).2 ⟨hnm, List.mem_singleton_self _⟩
+  have hR : (jr, N.diff [nm], h.restrict jr (N.diff [nm])) ∈ mintClaims cl jr N h nm tmp hC := by
+    have := mem_replClaim (c0 := (jr, N, h)) (c1 := (jr, N.diff [nm], h.restrict jr (N.diff [nm]))) hc
+    rw [if_pos rfl] at this
+    exact List.mem_append_left _ this
+  have hCm : (jr, NameSet.only [nm, tmp], hC) ∈ mintClaims cl jr N h nm tmp hC :=
+    List.mem_append_right _ (List.mem_singleton_self _)
+  have hO : ∀ c ∈ cl, c ≠ (jr, N, h) → c ∈ mintClaims cl jr N h nm tmp hC := fun c hc' hne => by
+    have := mem_replClaim (c0 := (jr, N, h)) (c1 := (jr, N.diff [nm], h.restrict jr (N.diff [nm]))) hc'
+    rw [if_neg hne] at this
+    exact List.mem_append_left _ this
+  refine regionCrashedK_cover (fun c hc' x e E hx => ?_) (fun c hc' b hb => ?_) hK
+  · by_cases hce : c = (jr, N, h)
+    · subst hce
+      simp only at hx
+      rw [← hself] at hx
+      obtain ⟨b, hbN, hw⟩ := restrict_ents_writes hx
+      rw [hself] at hx
+      by_cases hbn : b = nm
+      · subst hbn
+        have h1 := mem_restrict_ents hx hinI hw
+        rw [← hCr] at h1
+        obtain ⟨E', hE'⟩ := restrict_ents_mem h1
+        exact ⟨_, hCm, E', hE'⟩
+      · have hbD : (N.diff [nm]).Mem b := (N.mem_diff [nm] b).2 ⟨hbN, by simpa using hbn⟩
+        exact ⟨_, hR, _, mem_restrict_ents hx hbD hw⟩
+    · exact ⟨c, hO c hc' hce, E, hx⟩
+  · by_cases hce : c = (jr, N, h)
+    · subst hce
+      simp only at hb ⊢
+      by_cases hbn : b = nm
+      · subst hbn
+        refine ⟨_, hCm, rfl, by simp [NameSet.Mem], fun K' => ?_⟩
+        simp only
+        rw [← valAfter_restrict hC jr _ K' _ hinI, hCr, valAfter_restrict h jr _ K' _ hinI]
+      · have hbD : (N.diff [nm]).Mem b := (N.mem_diff [nm] b).2 ⟨hb, by simpa using hbn⟩
+        exact ⟨_, hR, rfl, hbD, fun K' => valAfter_restrict h jr _ K' b hbD⟩
+    · exact ⟨c, hO c hc' hce, rfl, hb, fun _ => rfl⟩
+
 /-! ## Dropping a claim -/
 
 /-- The claims' entries are the log's (as the shared invariant's `NamesCoh` has them: every claim's
