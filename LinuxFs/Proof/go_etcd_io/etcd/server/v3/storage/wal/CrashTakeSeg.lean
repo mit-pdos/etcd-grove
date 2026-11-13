@@ -95,6 +95,26 @@ theorem runsCover_fl {fl : SegFl} {g : SegG} (h : fl.Ok g) :
         rw [List.getElem_append_right (by simp only [List.length_append]; omega)]
         simp only [List.length_append, hT, hA, List.getElem_drop]
 
+/-- A resize in flight's runs (its token's bytes cut off, the halves below them) cover the segment
+as the layout holds it (I3b). -/
+theorem runsCover_rz {fl : SegFl} {tg : Nat} {g : SegG} (h : fl.OkR tg g) :
+    RunsCover [(min fl.m.size tg, DFrac.own 1, rsAnn fl.n (fl.bs.drop (min fl.m.size tg))),
+      (0, DFrac.own (1 : Qp).half, fl.bs.take (min fl.m.size tg))] g.bs := by
+  obtain ⟨hlen, -, -, hbs, -⟩ := h
+  rw [hbs]
+  intro b hb
+  have hT : (fl.bs.take (min fl.m.size tg)).length = min fl.m.size tg := by
+    simp only [List.length_take]; omega
+  by_cases h1 : b < min fl.m.size tg
+  · refine ⟨_, List.mem_cons_of_mem _ (List.mem_cons_self ..), b, by rw [hT]; exact h1, by simp, ?_⟩
+    simp only
+    rw [List.getElem_append_left (by rw [hT]; exact h1)]
+  · refine ⟨_, List.mem_cons_self .., b - min fl.m.size tg, ?_, by omega, ?_⟩
+    · simp only [List.length_append, hT, rsAnn_length, List.length_drop] at hb ⊢; omega
+    · simp only
+      rw [List.getElem_append_right (by rw [hT]; omega)]
+      simp only [hT]
+
 /-! ## Taking a token at a fixed crash -/
 
 section take
@@ -172,7 +192,7 @@ def SegCrashAt (st st' : OsState) (V' : Hist) (g : SegG) : Prop :=
     (Named V'.now g.ino → (st'.fs.files !! g.ino).isSome) ∧
     ∃ f, st.fs.files !! g.ino = some f ∧ ∀ b (y : ByteG), g.bs[b]? = some y → f.cand b = y.2
 
-/-- **Taking a segment, idle or with a write in flight, at a fixed crash.** -/
+/-- **Taking a segment, idle or with a write or a resize in flight, at a fixed crash.** -/
 theorem crashRestAt_take_seg (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF)
     (D : List Ino) (tt : Bool) (V' : Hist) (st st' : OsState) (F : GMap Ino SegFl) (g : SegG)
     (hi : g.ino ∉ D) (hcut : g.om.cut = none) :
@@ -201,33 +221,63 @@ theorem crashRestAt_take_seg (Q : OsState → OsState → Prop) (L L' : GooseLoc
     iapply (fileStartO_eq (L := L') g.ino _).1 $$ Hf
   | some fl =>
     simp only []
-    icases Hs with ⟨Ht, Hb1, Hb2, %hok⟩
-    unfold pwTok osTok osBytes
-    icases Ht with ⟨Ht, %hgap⟩
-    have hcut0 : fl.m.cut = none := hok.2.2.2.1
-    icases crashRestAt_take_tok (gooseOsGS (L := L)) Q (gooseOsGS (L := L')) D tt V' st st' fl.t
-      ⟨g.ino, .write fl.off fl.data, fl.n, fl.m, pwAnn fl.data fl.n (cfRange fl.m fl.bs fl.off fl.data.length)⟩
-      hi [(0, DFrac.own (1 : Qp).half, fl.bs.take (cfLo fl.m fl.off)),
-        (cfHi fl.m fl.off fl.data.length, DFrac.own (1 : Qp).half, fl.bs.drop (cfHi fl.m fl.off fl.data.length))]
-      $$ Hr Ht [Hb1 Hb2] with ⟨%hfc, Hf, Hr, Ht, Hbs⟩
-    · iapply BigSepL.bigSepL_cons.2; iframe Hb1
-      iapply BigSepL.bigSepL_singleton.2; iexact Hb2
-    icases BigSepL.bigSepL_cons.1 $$ Hbs with ⟨Hb1, Hbs⟩
-    icases BigSepL.bigSepL_singleton.1 $$ Hbs with Hb2
-    obtain ⟨h1, h2, f, hf, h3⟩ := hfc
-    have hcov := runsCover_fl hok
-    have hmeta : g.om = cfMeta fl.m fl.off fl.data.length := hok.2.2.2.2.1
-    iframe Hr Hb1 Hb2
-    isplitr
-    · ipureintro
-      refine ⟨?_, h2, f, hf, cands_cover hcov (h3 ?_)⟩
-      · rw [hmeta]; exact fileCrashedR_cover _ hcov h1
-      · show (cfMeta fl.m fl.off fl.data.length).cut = none
-        simp [cfMeta, OsMeta.announce, hcut0]
-    isplitl [Hf]
-    · iapply (fileStartO_eq (L := L') g.ino _).1 $$ Hf
-    iframe Ht
-    ipureintro; exact ⟨hgap, hok⟩
+    cases hrz : fl.rz with
+    | none =>
+      simp only []
+      icases Hs with ⟨Ht, Hb1, Hb2, %hok⟩
+      unfold pwTok osTok osBytes
+      icases Ht with ⟨Ht, %hgap⟩
+      have hcut0 : fl.m.cut = none := hok.2.2.2.1
+      icases crashRestAt_take_tok (gooseOsGS (L := L)) Q (gooseOsGS (L := L')) D tt V' st st' fl.t
+        ⟨g.ino, .write fl.off fl.data, fl.n, fl.m, pwAnn fl.data fl.n (cfRange fl.m fl.bs fl.off fl.data.length)⟩
+        hi [(0, DFrac.own (1 : Qp).half, fl.bs.take (cfLo fl.m fl.off)),
+          (cfHi fl.m fl.off fl.data.length, DFrac.own (1 : Qp).half, fl.bs.drop (cfHi fl.m fl.off fl.data.length))]
+        $$ Hr Ht [Hb1 Hb2] with ⟨%hfc, Hf, Hr, Ht, Hbs⟩
+      · iapply BigSepL.bigSepL_cons.2; iframe Hb1
+        iapply BigSepL.bigSepL_singleton.2; iexact Hb2
+      icases BigSepL.bigSepL_cons.1 $$ Hbs with ⟨Hb1, Hbs⟩
+      icases BigSepL.bigSepL_singleton.1 $$ Hbs with Hb2
+      obtain ⟨h1, h2, f, hf, h3⟩ := hfc
+      have hcov := runsCover_fl hok
+      have hmeta : g.om = cfMeta fl.m fl.off fl.data.length := hok.2.2.2.2.1
+      iframe Hr Hb1 Hb2
+      isplitr
+      · ipureintro
+        refine ⟨?_, h2, f, hf, cands_cover hcov (h3 ?_)⟩
+        · rw [hmeta]; exact fileCrashedR_cover _ hcov h1
+        · show (cfMeta fl.m fl.off fl.data.length).cut = none
+          simp [cfMeta, OsMeta.announce, hcut0]
+      isplitl [Hf]
+      · iapply (fileStartO_eq (L := L') g.ino _).1 $$ Hf
+      iframe Ht
+      ipureintro; exact ⟨hgap, hok⟩
+    | some tg =>
+      simp only []
+      icases Hs with ⟨Ht, Hb1, %hok⟩
+      unfold rsTok osTok osBytes
+      icases Ht with ⟨Ht, %hxl⟩
+      have hcut0 : fl.m.cut = none := hok.2.1
+      icases crashRestAt_take_tok (gooseOsGS (L := L)) Q (gooseOsGS (L := L')) D tt V' st st' fl.t
+        ⟨g.ino, .truncate tg, fl.n, fl.m, rsAnn fl.n (fl.bs.drop (min fl.m.size tg))⟩
+        hi [(0, DFrac.own (1 : Qp).half, fl.bs.take (min fl.m.size tg))]
+        $$ Hr Ht [Hb1] with ⟨%hfc, Hf, Hr, Ht, Hbs⟩
+      · iapply BigSepL.bigSepL_singleton.2; iexact Hb1
+      icases BigSepL.bigSepL_singleton.1 $$ Hbs with Hb1
+      obtain ⟨h1, h2, f, hf, h3⟩ := hfc
+      have hcov := runsCover_rz hok
+      have hmeta : g.om = TokInfo.meta
+          ⟨g.ino, .truncate tg, fl.n, fl.m, rsAnn fl.n (fl.bs.drop (min fl.m.size tg))⟩ :=
+        hok.2.2.1
+      iframe Hr Hb1
+      isplitr
+      · ipureintro
+        refine ⟨?_, h2, f, hf, cands_cover hcov (h3 ?_)⟩
+        · rw [hmeta]; exact fileCrashedR_cover _ hcov h1
+        · simp [TokInfo.meta, OsMeta.announce, hcut0]
+      isplitl [Hf]
+      · iapply (fileStartO_eq (L := L') g.ino _).1 $$ Hf
+      iframe Ht
+      ipureintro; exact ⟨hxl, hok⟩
 
 /-- **Taking the segments `gs`, idle or with writes in flight, at a fixed crash.** -/
 theorem crashRestAt_take_segs (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF)
