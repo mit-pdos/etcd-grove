@@ -86,7 +86,7 @@ theorem cutCommit_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {
     (hd : s.wal !! dir = some d) (hl : Ls !! dir = some lay) (hg0 : lay.segs.getLast? = some g0)
     (hc0 : ClaimOnce (j, .except X, hj) cl)
     (hm : d.m = d.H.length) (_hnamed : d.named = true)
-    (hlast0 : g0.bs = (segStream C Mr d lay.cuts lay.cuts.length).map durB)
+    (hlast0 : g0.bs = (segStream C Mr d lay.cuts lay.cuts.length).map durB) (hex0 : SegExact g0)
     (hcuts : ∀ b ∈ lay.cuts, b < d.H.length) (hcpos : walCutPos (histM d) d.H.length)
     (hnm0 : walNameP nm0 = true ∧ hj.cur !! nm0 = some (.file g0.ino))
     (hbt : bt = walFileName sq ix ∧ walLastIdx (histM d) + 1 ≤ ix ∧ go.GoStringLt nm0 bt)
@@ -160,8 +160,9 @@ theorem cutCommit_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {
     obtain ⟨g', hg', rfl⟩ := List.mem_map.1 hi
     have : b = g'.name := walName_unique hnd0 hb (hsn.1 g' hg').1 he (hsn.1 g' hg').2
     rw [this]; exact hlt g' hg'
+  have hexL : TailExact lay := fun g1 hg1 => by rw [hg0] at hg1; exact Option.some.inj hg1 ▸ hex0
   have habs' : WalAbsD C Mr d (cutLay lay d.H.length g wr) (<[bt := Node.file g.ino]> hj.cur) :=
-    cutLay_abs C Mr d lay hj.cur _ g wr sq ix habs hm
+    cutLay_abs C Mr d lay hj.cur _ g wr sq ix habs hexL hm
       (fun g0' h => by rw [hg0] at h; cases h; exact hlast0) ⟨hcpos, hcuts⟩
       ⟨hgname.trans hbt.1, hbt.2.1, fun g' hg' => by rw [hgname]; exact hlt g' hg'⟩ hwr hbs hmeta
       hfit hents hz
@@ -190,7 +191,7 @@ theorem cutCommit_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {
   have hok0 : CrashOk C Mr d lay cl n :=
     (crashOkA_none_iff C Mr d lay cl n).1 (hDK.2 dir d lay hd hl (fun h => by cases h))
   have hcr' := crashOkA_cut C Mr d lay hj.cur cl n X hj x (renFileEnt lay.j tmp lay.j bt g.ino hj s0)
-    (<[bt := Node.file g.ino]> hj.cur) bt g wr hok0 habs habs' hm hdur hdurg hwr hz hX hcl hcoh1
+    (<[bt := Node.file g.ino]> hj.cur) bt g wr hok0 habs hexL habs' hmeta.2.2 hm hdur hdurg hwr hz hX hcl hcoh1
     hcoh' hs hbt' hcur hothers (Or.inl (by rw [hjr]; exact Ne.symm hjjr))
   have hWnew : WalsOk C Mr R jr s (<[dir := cutLay lay d.H.length g wr]> Ls)
       (replClaim (lay.j, NameSet.except X, hj) (lay.j, NameSet.except X, hj.log x

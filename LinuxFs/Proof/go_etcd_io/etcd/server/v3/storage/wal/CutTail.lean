@@ -69,10 +69,10 @@ theorem lastSeg_synced_durable {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {la
     have h2 := habs.synced.2
     rw [hm, List.take_length] at h2
     exact h2
-  obtain ⟨-, -, -, -, hb, -⟩ := habs.last g hg
+  obtain ⟨hsw, -, -, -, hb, -⟩ := habs.lastWin g hg
   apply List.ext_getElem (by rw [List.length_map]; exact hlen)
   intro b h1 h2
-  have hx := hb b g.bs[b] (List.getElem?_eq_getElem h1)
+  have hx := hb b g.bs[b] (List.getElem?_eq_getElem h1) (by omega)
   have hs : decide (b < lay.so) = true := by simp; omega
   rw [hs] at hx
   unfold ByteOk at hx

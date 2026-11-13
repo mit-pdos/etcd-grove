@@ -107,7 +107,7 @@ theorem img_durable {g : SegG} {f : Fs.OsFile}
 /-- **A synced WAL's crash** (see the file header). -/
 theorem crashTo_synced (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (ents : Ents)
     (m' : Tree) (fo : Ino → Option Fs.OsFile)
-    (habs : WalAbsD C Mr d lay ents) (hm : d.m = d.H.length)
+    (habs : WalAbsD C Mr d lay ents) (hex : TailExact lay) (hm : d.m = d.H.length)
     (hdur : ∀ g ∈ lay.segs, ∀ y ∈ g.bs, y = durB y.1)
     (htail : lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length)
     (hold0 : ∀ b, lay.wr ≤ b → b < lay.old.length → lay.old.getD b 0 = 0)
@@ -129,7 +129,7 @@ theorem crashTo_synced (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalL
     have hn : g.ino ∈ walInos (entsOf m' lay.j) := by
       rw [hinos]; exact List.mem_map_of_mem hg
     obtain ⟨f, hf⟩ := Option.isSome_iff_exists.1 (hnamed g hg hn)
-    have hm' := habs.metas g hg
+    have hm' := habs.metasEx hex g hg
     refine ⟨f, hf, img_durable (by rw [← hf]; exact hfc g hg) (hdur g hg) hm'.2.2.1 hm'.2.2.2⟩
   have hsorted := habs.cuts.2.1
   have hlast : segStart lay.cuts lay.cuts.length ≤ d.H.length := hm ▸ habs.lastSynced
@@ -155,7 +155,7 @@ theorem crashTo_synced (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalL
     intro g hg
     rw [hd]
     obtain ⟨f, hf, hc⟩ := hsome g (List.mem_of_getLast? hg)
-    obtain ⟨hso, hwr, hlen, hwro, hbytes, -⟩ := habs.last g hg
+    obtain ⟨hso, hwr, hlen, hwro, hbytes, -⟩ := habs.lastEx hex g hg
     dsimp only
     generalize hS : segStream C Mr d lay.cuts lay.cuts.length = S at hwr htail hbytes ⊢
     have himg : imgOf (fo g.ino) = S ++ List.replicate (lay.old.length - S.length) 0 := by

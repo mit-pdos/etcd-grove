@@ -180,9 +180,11 @@ def tailOk [GooseExts] (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (md : List w
 
 /-- **What the program knows of the tail's `OsMeta` `m` and bytes `bs`** (`walTailW`): all its bytes,
 no mappings, its known zeros past its size (`MetaOk.zf`: a fact of the state, which the WAL
-invariant does not keep and a step's crash condition needs, `crashOkA_tail`'s `hzf`). -/
+invariant does not keep and a step's crash condition needs, `crashOkA_tail`'s `hzf`), and no resize
+window open on it (`SegExact`: a crash leaves it with its size; the invariant's static relation does
+not say so of the last segment, I3b). -/
 def TailMeta (m : Fs.OsMeta) (bs : List Fs.ByteG) : Prop :=
-  bs.length = m.size ∧ m.maps = ∅ ∧ ∀ z, m.zf = some z → m.size ≤ z
+  bs.length = m.size ∧ m.maps = ∅ ∧ (∀ z, m.zf = some z → m.size ≤ z) ∧ m.lo = m.size ∧ m.hi = m.size
 
 theorem tailOk_prefix [GooseExts] {Mr : WalMarshal} {H : List (WalOpG WalEnt)} {md : List w8}
     {cuts : List Nat} {o0 sz : Nat} {xs ys : List w8} (h : xs <+: ys)

@@ -85,7 +85,7 @@ then zeros, all durable, its `OsMeta` sized to them; the directory's entries `en
 with `g`'s name. -/
 theorem cutLay_abs (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (ents ents' : Ents)
     (g : SegG) (wr : Nat) (sq ix : Nat)
-    (habs : WalAbsD C Mr d lay ents) (hm : d.m = d.H.length)
+    (habs : WalAbsD C Mr d lay ents) (hex : TailExact lay) (hm : d.m = d.H.length)
     (hlast0 : ∀ g0, lay.segs.getLast? = some g0 →
       g0.bs = (segStream C Mr d lay.cuts lay.cuts.length).map durB)
     (hcut : walCutPos (histM d) d.H.length ∧ ∀ b ∈ lay.cuts, b < d.H.length)
@@ -160,8 +160,9 @@ theorem cutLay_abs (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) 
   · intro g' hg'
     simp only [cutLay, List.mem_append, List.mem_singleton] at hg'
     rcases hg' with hg' | rfl
-    · exact habs.metas g' hg'
-    · exact hmeta
+    · obtain ⟨h1, h2, h3, h4⟩ := habs.metasEx hex g' hg'
+      exact ⟨h1, h2, Nat.le_of_eq h3, Nat.le_of_eq h4.symm, Or.inr ⟨h3, h4⟩⟩
+    · exact ⟨hmeta.1, hmeta.2.1, (Nat.le_of_eq hmeta.2.2.1), (Nat.le_of_eq hmeta.2.2.2.symm), Or.inr hmeta.2.2⟩
   · intro k g' hk hg'
     simp only [cutLay, List.length_append, List.length_singleton] at hk hg' ⊢
     have hkl : k < lay.segs.length := by omega
@@ -177,7 +178,8 @@ theorem cutLay_abs (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) 
     simp only [cutLay, List.getLast?_append, List.getLast?_singleton, Option.some_or,
       Option.some.injEq] at hg'
     subst hg'
-    simp only [cutLay, List.length_append, List.length_singleton, List.length_replicate]
+    refine ⟨fun _ => ?_, fun hne => absurd hmeta.2.2 hne⟩
+    simp only [TailLast, cutLay, List.length_append, List.length_singleton, List.length_replicate]
     refine ⟨Nat.le_refl _, by omega, by simp, hbs.2, fun b x hx => ?_, Nat.zero_le _, by simp,
       fun _ b _ hb => by simp [List.getD_eq_getElem?_getD, List.getElem?_replicate, hb]⟩
     have hb : b < g.bs.length := (List.getElem?_eq_some_iff.1 hx).1
@@ -211,8 +213,8 @@ whose crashes keeping the rename are those of a synced WAL (`crashTo_synced`). -
 theorem crashOkA_cut (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay)
     (ents : Ents) (cl : List Claim) (n : Nat) (X : List GoString) (h : NamesH) (x : Nat)
     (e : LogEntry) (c : Ents) (bt : GoString) (g : SegG) (wr : Nat)
-    (hok : CrashOk C Mr d lay cl n) (habs : WalAbsD C Mr d lay ents)
-    (habs' : WalAbsD C Mr d (cutLay lay d.H.length g wr) c) (hm : d.m = d.H.length)
+    (hok : CrashOk C Mr d lay cl n) (habs : WalAbsD C Mr d lay ents) (hex : TailExact lay)
+    (habs' : WalAbsD C Mr d (cutLay lay d.H.length g wr) c) (hexg : SegExact g) (hm : d.m = d.H.length)
     (hdur : ∀ g ∈ lay.segs, ∀ y ∈ g.bs, y = durB y.1) (hdurg : ∀ y ∈ g.bs, y = durB y.1)
     (hwr : wr = (segStream C Mr d (lay.cuts ++ [d.H.length]) (lay.cuts.length + 1)).length)
     (hz : g.bs.length - wr = 0 ∨ 8 ≤ g.bs.length - wr)
@@ -225,10 +227,14 @@ theorem crashOkA_cut (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay
     (hjr : lay.jr ≠ lay.j ∨ lay.nm ≠ bt) :
     CrashOkA C Mr d (cutLay lay d.H.length g wr) (some lay)
       (replClaim (lay.j, NameSet.except X, h) (lay.j, NameSet.except X, h.log x e c) cl) n := by
-  refine crashOkA_rename C Mr d lay (cutLay lay d.H.length g wr) ents cl n X h x e c bt hok habs
+  refine crashOkA_rename C Mr d lay (cutLay lay d.H.length g wr) ents cl n X h x e c bt hok habs hex
     hdur hcl hcoh hcoh' hs hbt hcur hothers hjr ⟨[g], rfl⟩ rfl
     (fun m' fo hf hn hnames hdir => ?_)
-  refine crashTo_synced C Mr d _ c m' fo habs' hm (fun g' hg' => ?_)
+  refine crashTo_synced C Mr d _ c m' fo habs'
+    (fun g' hg' => by
+      simp only [cutLay, List.getLast?_append, List.getLast?_singleton, Option.some_or,
+        Option.some.injEq] at hg'
+      exact hg' ▸ hexg) hm (fun g' hg' => ?_)
     (by simp only [cutLay, List.length_append, List.length_singleton]; exact hwr) ?_ ?_ ?_ hdir hf hn
   · simp only [cutLay, List.mem_append, List.mem_singleton] at hg'
     rcases hg' with hg' | rfl
