@@ -1,0 +1,7 @@
+# (project etcd's part `LinuxFs/`; Perennial does not translate bufio) types and names only: what
+# `fileutil`'s `FileReader` names (`bufio.Reader`, `NewReader`). No model yet.
+translate = ["!*"]
+imports = ["!*", "io"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

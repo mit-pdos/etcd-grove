@@ -135,8 +135,12 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   over `fsExt`, `GooseLang/Ext/Fs`, and their specs and proofs) and the programs proved over it
   (`examples/osfs/{bboltfs,crashlog,walfs}`: minibolt, crashlog, walfs). The main tree's `os`, ... are
   the first extension's (`osFsExt`, `GooseLang/Ext/OsFs`, path-keyed), which real bbolt's proof uses,
-  so the part declares the same names and nothing outside it imports it. Translated by project
-  bboltfs's part and projects crashlog and walfs (`LinuxFs/Code/**.toml`); package initializers by
+  so the part declares the same names and nothing outside it imports it. It also holds etcd's real
+  WAL with bodies (`wal`, `walpb`, `fileutil`, `pkg/v3/ioutil`, `pkg/v3/crc`; names-only `hash/crc32`,
+  `bufio`, `path/filepath`; raft's root package), over the part's `os` (the main tree's names-only
+  WAL stays, for the server). Translated by project
+  bboltfs's part, projects crashlog and walfs and projects etcd's and raft's parts
+  (`LinuxFs/Code/**.toml`); package initializers by
   `etc/gen-init.py` (`LFS_PKGS`, and a `PkgInitExt` without raft). Links: `etc/gen-link.py
   --bboltfs`; trust base: `etc/tcb-collections/linuxfs.txt`. Temporary: once real bbolt is ported
   onto `fsExt` (branch `bbolt-port-wip`, `notes/bbolt-port-plan.md`), the part becomes the main

@@ -147,6 +147,18 @@ PROJECTS = [
         ],
         owned=[os.path.join("go_etcd_io", "raft")],
         counted_modules=["go.etcd.io/raft/v3"],
+        # (WAL over fsExt, 2026-11-13) raft's root package in the part `LinuxFs/`, for the WAL there
+        # (project etcd's part): `IsEmptyHardState`, `MustSync` and what they read with bodies, the
+        # rest names only (LinuxFs/Code/go_etcd_io/raft/v3.toml); raftpb is the main tree's.
+        parts=[Part(
+            root="LinuxFs",
+            lean_roots=["go.etcd.io/raft/v3=LinuxFs", "go.etcd.io/raft/v3/raftpb=",
+                        "go.etcd.io/raft/v3/confchange=", "go.etcd.io/raft/v3/quorum=",
+                        "go.etcd.io/raft/v3/tracker=", "google.golang.org=",
+                        "os=LinuxFs", "syscall=LinuxFs", "golang.org/x/sys=LinuxFs",
+                        "io/fs=LinuxFs", "internal/poll=LinuxFs", "internal/syscall=LinuxFs"],
+            packages=["."],
+            owned=[os.path.join("go_etcd_io", "raft", "v3")])],
     ),
     Project(
         name="bbolt",
@@ -529,6 +541,36 @@ PROJECTS = [
             "go.etcd.io/etcd/pkg/v3",
             "go.etcd.io/etcd/server/v3",
         ],
+        # (WAL over fsExt, 2026-11-13: notes/decisions.md, "One file semantics, `fsExt`") the real
+        # WAL with bodies, in the part `LinuxFs/` over its `os` (LinuxFs/Code/**.toml): `wal` (but
+        # version.go and metrics.go, names only), `walpb`, `fileutil`, `pkg/v3/ioutil` (PageWriter)
+        # and `pkg/v3/crc`, and the standard-library packages they call that nothing translates
+        # (`hash/crc32`, `bufio`, `path/filepath`: names only). The rest is the main tree's (the empty
+        # root): raftpb, zap, protobuf, prometheus, semver, `pkg/v3/pbutil`, `client/pkg/v3/verify`,
+        # `hash`; none of them reaches the main tree's `os`. raft's root package (`IsEmptyHardState`,
+        # `MustSync`) is project raft's part copy in `LinuxFs/` (the main tree's imports its `os`). The
+        # main tree's names-only WAL (above) stays: the server uses it; the part's declares the same
+        # names, so nothing outside `LinuxFs/` imports it.
+        parts=[Part(
+            root="LinuxFs",
+            lean_roots=["go.etcd.io/etcd=", "go.etcd.io/etcd/server/v3/storage/wal=LinuxFs",
+                        "go.etcd.io/etcd/client/pkg/v3/fileutil=LinuxFs",
+                        "go.etcd.io/etcd/pkg/v3/ioutil=LinuxFs", "go.etcd.io/etcd/pkg/v3/crc=LinuxFs",
+                        "go.etcd.io/raft/v3=LinuxFs", "go.etcd.io/raft/v3/raftpb=",
+                        "google.golang.org=", "go.uber.org=", "github.com/prometheus/client_golang=",
+                        "github.com/Masterminds/semver=", "hash=", "hash/crc32=LinuxFs",
+                        "bufio=LinuxFs", "path/filepath=LinuxFs",
+                        "os=LinuxFs", "syscall=LinuxFs", "golang.org/x/sys=LinuxFs",
+                        "io/fs=LinuxFs", "internal/poll=LinuxFs", "internal/syscall=LinuxFs"],
+            packages=["go.etcd.io/etcd/server/v3/storage/wal",
+                      "go.etcd.io/etcd/server/v3/storage/wal/walpb",
+                      "go.etcd.io/etcd/client/pkg/v3/fileutil", "go.etcd.io/etcd/pkg/v3/ioutil",
+                      "go.etcd.io/etcd/pkg/v3/crc", "hash/crc32", "bufio", "path/filepath"],
+            owned=[os.path.join("go_etcd_io", "etcd", "server", "v3", "storage", "wal"),
+                   os.path.join("go_etcd_io", "etcd", "client", "pkg", "v3", "fileutil"),
+                   os.path.join("go_etcd_io", "etcd", "pkg", "v3", "ioutil"),
+                   os.path.join("go_etcd_io", "etcd", "pkg", "v3", "crc"),
+                   os.path.join("hash", "crc32"), "bufio", os.path.join("path", "filepath")])],
     ),
     Project(
         name="kv",

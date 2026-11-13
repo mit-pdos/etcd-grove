@@ -1,0 +1,18 @@
+# The real WAL (project etcd's part `LinuxFs/`, etc/goose.py), with bodies over the part's `os`
+# (the per-byte Linux file extension fsExt): decoder.go, encoder.go, file_pipeline.go, repair.go,
+# util.go, wal.go. Names only: metrics.go (the prometheus histograms and gauge, and the `init.0`
+# that registers them) and version.go (`MinimalEtcdVersion` and the protobuf-reflection visitors).
+translate = ["*",
+  "!walFsyncSec", "!walWriteSec", "!walWriteBytes", "!init.*",
+  "!ReadWALVersion", "!walVersion.*", "!MinimalEtcdVersion", "!VisitFileDescriptor", "!visit*",
+  "!maxVersion", "!etcdVersionFromOptionsString"]
+imports = ["!*", "bytes", "encoding/binary", "errors", "fmt", "hash", "hash/crc32", "io", "os",
+  "path/filepath", "strings", "sync", "time",
+  "github.com/Masterminds/semver/v3", "github.com/prometheus/client_golang/prometheus",
+  "go.etcd.io/etcd/client/pkg/v3/fileutil", "go.etcd.io/etcd/pkg/v3/crc",
+  "go.etcd.io/etcd/pkg/v3/ioutil", "go.etcd.io/etcd/pkg/v3/pbutil",
+  "go.etcd.io/etcd/server/v3/storage/wal/walpb", "go.etcd.io/raft/v3", "go.etcd.io/raft/v3/raftpb",
+  "go.uber.org/zap", "google.golang.org/protobuf/proto"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

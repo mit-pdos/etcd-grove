@@ -1,0 +1,8 @@
+# (project etcd's part `LinuxFs/`; Perennial does not translate path/filepath) types and names
+# only: what the WAL and `fileutil` call (`Join`, `Base`, `Dir`, `Ext`, `Clean`, `Abs`, `Walk`). No
+# model yet.
+translate = ["!*"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true
