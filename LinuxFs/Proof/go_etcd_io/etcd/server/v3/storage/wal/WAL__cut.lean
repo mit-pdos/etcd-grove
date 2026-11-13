@@ -1,13 +1,10 @@
 /-
 The proof of `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__cut.lean` (W2).
-**Unfinished (`sorry` after step 4).** Done: steps 1 (`Seek`, `os.File.Truncate.specWalTail`) and 2
-(`WAL.sync.specCut`), both hypotheses (`WAL__cutTail.lean`), with their error exits; 3 (`w.seq()` inline:
-`File.Name`, `filepath.Base` = `baseModel_child_walFileName`, `parseWALName` = `scanWalName_walFileName`;
-`next` joined by `wp_join`; `walName` over `fmt.SprintfWalName.spec`, `cutName_str`; `filepath.Join` =
-`child dir bt`, `join_child`/`walFileName_nameOk`); 4 (`wp_walPipeH_open`, its error exit). Next: step 5
-(`PreSync.lean`'s `os.fileWI`/`os.fileWI_preSyncOk` for the stream over `N.tmp`, `CutHdr.lean`'s
-`metaChain_cut`/`_size`/`streamOk_vals` for the bytes after it; blocked on `pipeFile` facts, the W2 log's
-eighth session). The steps (S/wal.go:875-965)
+**Unfinished (`sorry` at the rename's return).** Done: steps 1-2 (over the hypotheses
+`os.File.Truncate.specWalTail`, `WAL.sync.specCut`), 3 (the name), 4 (`wp_walPipeH_open`), 5 (the headers on
+`N.tmp`: `saveCrc`, `encode(Metadata)`, `saveState.specPre`, `sync.specPreL`, `Seek`) and 6 up to
+`os.Rename.specFileSnc`'s return (`walCut_osAUnc` instantiated, `CutRen.lean`'s premises). Next: the rename's
+outcome, steps 7-8 (the W2 log's ninth session). The steps (S/wal.go:875-965)
 and what each needs:
 1. `w.tail().Seek(0, SeekCurrent)`, `Truncate(off)`: the tail's whole `OsMeta`, half of which is
    `walInv`'s (`segRes`): a crash-aware truncate opening `walInv` around the step (W6's tail
