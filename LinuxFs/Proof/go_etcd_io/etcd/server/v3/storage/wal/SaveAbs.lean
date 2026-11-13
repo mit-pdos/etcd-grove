@@ -222,66 +222,83 @@ theorem byteOk_sync {x y : w8} {a w s : Bool} {g : ByteG} (h : ByteOk x y a w s 
     rw [h.val_unw]
     exact byteOk_durB rfl rfl
 
-/-- A segment after a successful fdatasync: every byte durable at its value. -/
-def syncSeg (g : SegG) : SegG := { g with bs := g.bs.map (fun y => durB y.1) }
+/-- **The tail after a successful fdatasync**: its `OsMeta` synced (`OsMeta.synced`), every byte
+durable at its value. -/
+def syncTail (g : SegG) : SegG := { g with om := g.om.synced, bs := g.bs.map (fun y => durB y.1) }
 
-/-- The layout after `sync`'s fdatasync of the tail (every byte written, flushed): every byte
-durable, the tail synced up to what is written. -/
-def syncLay (lay : WalLay) : WalLay := { lay with segs := lay.segs.map syncSeg, so := lay.wr }
+/-- **The layout after `sync`'s fdatasync of the tail `g`** (the segments `pre` before it, unchanged:
+every segment but the last is durable already, `WalAbsD.intact`): every byte of the tail written,
+flushed and durable, the tail synced up to what is written. -/
+def syncLay (lay : WalLay) (pre : List SegG) (g : SegG) : WalLay :=
+  { lay with segs := pre ++ [syncTail g], so := lay.wr }
+
+theorem syncLay_getElem? {lay : WalLay} {pre : List SegG} {g0 : SegG} (hs : lay.segs = pre ++ [g0])
+    (k : Nat) : (syncLay lay pre g0).segs[k]? =
+      (lay.segs[k]?).map (fun g => if k = pre.length then syncTail g else g) := by
+  simp only [syncLay, hs]
+  rcases Nat.lt_trichotomy k pre.length with h | h | h
+  · rw [List.getElem?_append_left h, List.getElem?_append_left h]
+    cases pre[k]? <;> simp [Nat.ne_of_lt h]
+  · subst h; simp
+  · rw [List.getElem?_eq_none (by simp; omega), List.getElem?_eq_none (by simp; omega)]; rfl
 
 /-- **`sync`'s commit keeps the static relation**, the history synced (`d.m := |H|`): every record
-flushed (`wr` the tail's stream's length), the fdatasync made every byte durable. -/
+flushed (`wr` the tail's stream's length), the fdatasync made every byte of the tail durable. -/
 theorem walAbsD_sync {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
-    (h : WalAbsD C Mr d lay ents)
+    {pre : List SegG} {g0 : SegG} (h : WalAbsD C Mr d lay ents) (hs : lay.segs = pre ++ [g0])
     (htail : lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length) :
-    WalAbsD C Mr { d with m := d.H.length } (syncLay lay) ents := by
+    WalAbsD C Mr { d with m := d.H.length } (syncLay lay pre g0) ents := by
   have hc : ∀ b ∈ lay.cuts, b ≤ d.H.length := fun b hb => by
     have := walCutPos_le (h.cuts.1 b hb); simpa [histM] using this
-  obtain ⟨hn, hcs, hnb, hcut, hmeta, hint, hlast, hsyn, hls, hfit, hstop, hne⟩ := h
-  refine ⟨?_, ⟨fun b hb => hcs.1 b hb, hcs.2.1, by simpa [syncLay] using hcs.2.2⟩, ?_, hcut, ?_, ?_, ?_, ?_, ?_, hfit, hstop, ?_⟩
-  · simp only [syncLay, List.map_map]
-    exact ⟨hn.1, hn.2⟩
+  have hmapI : (syncLay lay pre g0).segs.map (·.ino) = lay.segs.map (·.ino) := by
+    simp [syncLay, hs, syncTail]
+  have hmapN : (syncLay lay pre g0).segs.map (·.name) = lay.segs.map (·.name) := by
+    simp [syncLay, hs, syncTail]
+  have hlen : (syncLay lay pre g0).segs.length = lay.segs.length := by simp [syncLay, hs]
+  have hg0 : lay.segs.getLast? = some g0 := by rw [hs]; simp
+  have hlast' : (syncLay lay pre g0).segs.getLast? = some (syncTail g0) := by simp [syncLay]
+  refine { names := ?_, cuts := ?_, nameBound := ?_, cut := h.cut, metas := ?_, intact := ?_,
+           last := ?_, synced := ?_, lastSynced := ?_, fit := h.fit, tailStop := h.tailStop,
+           nonempty := ?_ }
+  · rw [hmapI, hmapN]; exact h.names
+  · exact ⟨h.cuts.1, h.cuts.2.1, by rw [hlen]; exact h.cuts.2.2⟩
   · intro k g hk
-    simp only [syncLay, List.getElem?_map] at hk
-    cases hk0 : lay.segs[k]? with
-    | none => rw [hk0] at hk; cases hk
-    | some g0 =>
-      rw [hk0] at hk; simp only [Option.map_some, Option.some.injEq] at hk; subst hk
-      exact hnb k g0 hk0
+    rw [syncLay_getElem? hs] at hk
+    obtain ⟨g1, hg1, rfl⟩ := Option.map_eq_some_iff.1 hk
+    obtain ⟨sq, ix, hn, hb⟩ := h.nameBound k g1 hg1
+    refine ⟨sq, ix, ?_, hb⟩
+    split <;> simp [syncTail, hn]
   · intro g hg
-    simp only [syncLay, List.mem_map] at hg
-    obtain ⟨g0, hg0, rfl⟩ := hg
-    have := hmeta g0 hg0
-    simpa [syncSeg] using this
+    simp only [syncLay, List.mem_append, List.mem_singleton] at hg
+    rcases hg with hg | rfl
+    · exact h.metas g (by rw [hs]; simp [hg])
+    · have := h.metas g0 (by rw [hs]; simp)
+      simp only [syncTail, OsMeta.synced, List.length_map]
+      exact ⟨this.1, this.2.1, this.1, this.1⟩
   · intro k g hk hg
-    simp only [syncLay, List.length_map, List.getElem?_map] at hk hg
-    cases hk0 : lay.segs[k]? with
-    | none => rw [hk0] at hg; cases hg
-    | some g0 =>
-      rw [hk0] at hg; simp only [Option.map_some, Option.some.injEq] at hg; subst hg
-      simp only [syncSeg, hint k g0 hk hk0, List.map_map]
-      rfl
+    rw [syncLay_getElem? hs] at hg
+    obtain ⟨g1, hg1, rfl⟩ := Option.map_eq_some_iff.1 hg
+    have hk' : k + 1 < lay.segs.length := hlen ▸ hk
+    have hkp : k ≠ pre.length := by rw [hs] at hk'; simp at hk'; omega
+    simp only [if_neg hkp]
+    exact h.intact k g1 hk' hg1
   · intro g hg
-    simp only [syncLay, List.getLast?_map] at hg
-    cases hl0 : lay.segs.getLast? with
-    | none => rw [hl0] at hg; cases hg
-    | some g0 =>
-      rw [hl0] at hg; simp only [Option.map_some, Option.some.injEq] at hg; subst hg
-      obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := hlast g0 hl0
-      simp only [syncLay] at h1 h2 h3 h4 h5 h6 h7 h8 ⊢
-      refine ⟨Nat.le_refl _, h2, by simp [syncSeg, h3], h4, fun b x hb => ?_, h6, h7, h8⟩
-      simp only [syncSeg, List.getElem?_map] at hb
-      cases hb0 : g0.bs[b]? with
-      | none => rw [hb0] at hb; cases hb
-      | some y =>
-        rw [hb0] at hb; simp only [Option.map_some, Option.some.injEq] at hb; subst hb
-        exact byteOk_sync (h5 b y hb0)
-          (fun hs => decide_eq_true (Nat.lt_of_lt_of_le (of_decide_eq_true hs) h1))
+    rw [hlast'] at hg; cases hg
+    obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := h.last g0 hg0
+    simp only [syncLay] at h1 h2 h3 h4 h5 h6 h7 h8 ⊢
+    refine ⟨Nat.le_refl _, h2, by simp [syncTail, h3], h4, fun b x hb => ?_, h6, h7, h8⟩
+    simp only [syncTail, List.getElem?_map] at hb
+    cases hb0 : g0.bs[b]? with
+    | none => rw [hb0] at hb; cases hb
+    | some y =>
+      rw [hb0] at hb; simp only [Option.map_some, Option.some.injEq] at hb; subst hb
+      exact byteOk_sync (h5 b y hb0)
+        (fun hs => decide_eq_true (Nat.lt_of_lt_of_le (of_decide_eq_true hs) h1))
   · refine ⟨Nat.le_refl _, ?_⟩
     simp only [syncLay, List.take_length]
     rw [htail]; exact Nat.le_refl _
   · exact segStart_le hc _
-  · simp [syncLay, hne]
+  · simp [syncLay]
 
 end snoc
 

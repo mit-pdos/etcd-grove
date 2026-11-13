@@ -2259,6 +2259,46 @@ stream.**
      needs.
   4. `SaveSnapshot`'s `walpb.Snapshot` registration not started.
 
+**W6, eighth session (branch `wal-save8`, 2026-11-13): the tail's fdatasync, proved down to `fileutil.Fdatasync`.**
+`wal-zte2` (the `WalAbsD` relaxation) was not pushed during the session, so task 1 (writes past the
+size) did not start; the session did the fdatasync half of `sync`, which every remaining unit needs.
+- *`syncLay` reshaped* (`SaveAbs.lean`, W6's own; no other user): `syncLay lay pre g0` replaces only the
+  tail, by `syncTail g0` (its `OsMeta` `om.synced` — the invariant's half must be the state's — and every
+  byte `durB`); the earlier segments are untouched (durable already, `intact`). `walAbsD_sync` restated
+  over it (`hs : lay.segs = pre ++ [g0]`), its proof by named fields (`refine { names := …, … }`), so the
+  `metas` field is the only place `wal-zte2`'s relaxation touches it.
+- *`crashTo_tailM`* (`TailCrash.lean`): `crashTo_tail` with the tree part taken from a `CrashTo` of the
+  WAL at any mark `m0` covering the earlier segments (`{ d with m := m0 }`); `crashTo_tail` is the
+  wrapper at `d.m` (callers unchanged).
+- *Pure, no `sorry`* (`TailSyncPure.lean`): `walSyncS s dir d` (the mark at `|H|`); `tailBound_sync` (the
+  record boundary is the stream's end: `jE = |R|`, `max wr z0 = wr`); **`crashOk_sync`** (as
+  `crashOkA_tail`: the old condition with the tail imaged as of the last sync, then `crashTo_tailM` at the
+  raised mark: a crash after the sync reads the whole history); `walsOk_sync`, `dirKeysOk_sync` (no cut
+  pending), `absentNone_sync`, `dirsAvoid_sync`, `walsNamed_relay`.
+- *Iris, no `sorry`* (`TailSync.lean`): **`walInvBody_sync`** — with `walTailKey`, the tail record's half
+  and `walCutFrag none` (the lock token's: no cut's rename pending, so `CrashOkA … none`), the tail's part
+  out, and *two* closings as an `∧`: the success (`F !! ino = none`, `wr` the stream's end, `zf`; the
+  synced tail's `segRes`) to `walInvBody (walSyncS s dir d) ∗ walPast …`, and the unchanged one
+  (`segResF F g0 -∗ walInvBody s`) for a failed fdatasync. Helpers: `walTailsRes_zeros` (F-Z and the
+  record boundary from the tail record), `segsAll_sep_relay`, `walParked_relay` (any relayout with the
+  same directory and tail inode/length), `walMapLe_sync`, `absLe_sync`, `walKeysInArea_sync`.
+- *Steps, no `sorry`*: **`wp_tailFsync`** (`TailFsync.lean`, the extension's `Fsync` with `walInv` open:
+  halves joined, `wp_osFsync`, success gives the program's synced halves and `walSyncedLb dir |H|`, failure
+  nothing); `syscall.Fdatasync.wp_tail` and **`fileutil.Fdatasync.wp_tail`** (`TailFdatasync.lean`, over
+  `walTailW` with `o0 + |out| = |tailStream|`; takes `os.File.Fd.spec`; `TailMeta.synced`).
+- *What `sync.wp_proof` still needs*: (a) `encoder.flush.specP` over `wal.tailWriter` with the guard
+  `tailOk … (out ++ pend)`: **blocked on writes past the size** (the page writer's pending bytes may pass
+  `sz` even when `curOff < SegmentSizeBytes`), task 1 once `wal-zte2` lands; (b) the handle's
+  `walCutFrag none` (inside the sealed `walOpenW`'s `walLockedTok`: the proof unseals with `import all`
+  of `Ghost.lean`); (c) the leaf calls `time.Now`/`Since`, `Duration.Seconds`, `zap.Duration`,
+  `Logger.Warn`, `walFsyncSec.Observe` (`wal.metricsInit`, `Metrics.lean`); (d) `o0 + |out ++ pend| =
+  |tailStream|` from `WalHS.Split` at `rest = 0`.
+- *Not done*: tasks 1-4 of the brief (writes past the size; the handle facts `∀ b ∈ cuts, b ≤ |H|` and
+  `walLastIdx` only when `Done` — note for whoever does it: `saveEntry`/`saveState` then need a premise
+  covering the case their post is `Done`, e.g. `rest = 1 → walLastIdx H ≤ max(e.Index, snapi)`, which
+  `Save` must supply from a `snapi`-bounds fact the handle does not carry today; the cuts budget; the
+  `walpb.Snapshot` registration).
+
 ## W3/W5 implementation log (branch `wal-read`, 2026-11-13)
 
 **Proved (no `sorry`, `lake build`):**
