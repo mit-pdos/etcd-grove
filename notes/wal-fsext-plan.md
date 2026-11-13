@@ -734,6 +734,13 @@ raftpb/quorum/tracker/confchange/proto from `InitPb.lean`, a generated copy of t
 - The others `True` (the part's raft root too: `emptyState`, which `IsEmptyHardState` reads, would join
   when `Save` needs it). `Create`'s spec can now take `isPkgInit wal`.
 
+**`wal-int` integration fixes (branch `wal-fix`, 2026-11-13).** Proofs only, no statement changed; after them
+every module of `LinuxFs` and `GooseLang/Ext/Fs` builds (3052 jobs).
+- `checkWALNames`: `wp_apply HWarn` leaves the goal `⌜lg ≠ null⌝` (not `zapLoggerOk lg`): from `zapLoggerOk_ne_null`.
+- `ReadDefs`: `walPipeH` takes the directory inode (`walPipeH fp dir j k`): `walReadH`'s write mode holds
+  `∃ j, walPipeH fp dir j 0`, the `∃ j` the predicate used to hold (tying it to `walReadTie`'s `j` is left to `ReadAll`).
+- `newEncoder`: `e ≠ null` is now last in the post, so `isplitl` (the encoder's resources to the left), not `isplitr`.
+
 ## 9. The trusted-model drafts (2026-11-13, branch `wal-models`; pending the user's review [user])
 
 The WAL and fileutil retranslated from the fork's `goose-lean-walfs` (`f15d88841`, the two local fixes
