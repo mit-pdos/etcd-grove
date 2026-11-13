@@ -702,6 +702,31 @@ the one shape rafthttp uses: a `*cancelCtx` whose parent field is `Background()`
 
 No closed theorem's statement changes; no axiom added (one removed).
 
+### T-i review (2026-11-13): READY WITH CHANGES, applied (decided by etcd-grove-81)
+
+The narrowed premise (`bgCancelChild`) and the `WithCancelCause` residual note accepted. m1 the
+baselines below; m2 `bgCancelChild`'s docstring names the `cancelCtx` embedded in a `*timerCtx`
+(unreachable as a context: `&cancelCtxKey` is unexported), and `etc/bgcancel-check.py` (in
+`etc/gates.sh`) fails if the pinned Perennial gains a `WithCancelCause` spec; m3
+`Spec/context/WithCancelBackground.lean`'s header and `traceutil.wp_WithCancelBackground_noTrace`'s
+docstring; m4 `reqCtx`'s wording (net/http's internal writes touch only its own requests); m5 `netErr`
+includes `Canceled` itself, so no law may separate them; m6 `TestRoundTripBgCancelTLS` (cancelled
+before the call and during a handshake the peer never answers: `context.Canceled`); the
+`ProxyFromEnvironment` CONNECT path is argued from the code, not tested (it dials and handshakes with
+the same context, yielding `Canceled` or an error net/http made); m7 the etcd bug found on the way
+(`NewTimeoutTransport`'s read/write-timeout dialer never runs: net/http prefers the `DialContext`
+`NewTransport` set) is `issues/etcd-timeout-transport-rw-timeouts-unused.md` (known upstream,
+etcd-io/etcd#22638, fix PR #22639; Go test fails at v3.7.3; `blocks-proof: no`), and
+`notes/specs-only/net-extensions-design.md` is corrected.
+
+### Checks run, T-i (2026-11-13, merged with lean `564e2bb2e9`)
+
+Full build green; `etc/tcb-report.py --check --update` and every collection `--check --update`:
+the only change is `context.WithCancelBackground.wp_proof` gone (`etc/tcb-baseline.txt`: 867 to 866 axiom lines, 4 sorries; every collection loses that one line); axiom-tok
+ok (and selftest), model-param, errdesc ok; `gen-interface --check` on every API list: no diff;
+`goose --check` ok; `etc/bgcancel-check.py` ok (and fails on a planted `wp_WithCancelCause`);
+`examples/premisefix/rtctx` and `streamctx` pass at go1.27.3; `etc/land.sh`'s gates.
+
 ### Checks run, Revision 2 (2026-11-12, merged with lean `219ddbbb83`)
 
 Full build passes (17490 jobs); `tcb-report --check` matches the baseline unchanged (865 axioms, 5
