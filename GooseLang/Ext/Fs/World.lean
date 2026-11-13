@@ -495,14 +495,14 @@ theorem legacyWit_tree (dq : DFrac) (R : Roots) (V : Hist) :
     LegacyWit (L := L) (osTree (L := L) dq R V) := by
   intro st
   unfold treeShared osTree
-  iintro ⟨H, %V0, %s0, %Γdf, %Γc, %hw, -, Hd, -⟩
+  iintro ⟨H, %V0, %s0, %Γdf, %Γc, %Γg, %hw, -, Hd, -⟩
   icases gElem_valid_2 _ _ _ _ _ _ _ $$ H Hd with %Hv
   exact absurd (DFrac.valid_op_own Hv.1) (by simp)
 
 theorem legacyWit_call (t s : Nat) (q : Qp) : LegacyWit (L := L) (osCall (L := L) t s q) := by
   intro st
   unfold treeShared osCall
-  iintro ⟨H, %V0, %s0, %Γdf, %Γc, %hw, -, -, -, Hac, -⟩
+  iintro ⟨H, %V0, %s0, %Γdf, %Γc, %Γg, %hw, -, -, -, Hac, -⟩
   icases gAuth_lookup _ _ _ _ _ _ $$ Hac H with %Hv
   simp at Hv
 
@@ -510,7 +510,7 @@ theorem legacyWit_dirFd (fd : w64) (dq : DFrac) (x : Ino × DirPh) :
     LegacyWit (L := L) (osDirFd (L := L) fd dq x) := by
   intro st
   unfold treeShared osDirFd
-  iintro ⟨H, %V0, %s0, %Γdf, %Γc, %hw, -, -, Haf, -⟩
+  iintro ⟨H, %V0, %s0, %Γdf, %Γc, %Γg, %hw, -, -, Haf, -⟩
   icases gAuth_lookup _ _ _ _ _ _ $$ Haf H with %Hv
   simp at Hv
 
