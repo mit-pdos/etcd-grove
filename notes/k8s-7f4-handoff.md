@@ -33,6 +33,24 @@ the worktree's untracked `questions.md` (decisions), `/shared/tmp/coord-81/commo
     Nothing used it.
   - freeze §2's "T-e'" section (marked draft).
 
+## Tenth agent (2026-11-13): T-k written and built; STOPPED for 81's axiom review
+
+`684f8ffda2` (Lean), `236001ff3b` (Go evidence), merged with lean `709538af50` (the CI layout fix).
+Addendum T-k4 of `notes/k8s-7f4-freeze.md` has the texts as written: the opaque `v3rpc.ctxCauseOk`
+(`SrvCtxWeak.lean`), (a) `grpcRunCtx`'s fifth part, **(b) folded into (c)** `v3rpc.ctxCauseOk_cancellable`
+(`InvCancellable.lean`; deviation toward soundness, for the review), (d) `Tracer.Start`'s wand, (e)
+`wp_WithTimeout_weak`; `RenewHTTP`/`leaseTimeToLive` take it; `LeaseRenew` on `wp_WithTimeout_weak`
+(default arm reachable, logged); `raftLeaseRenew`, `leaseKeepAlive` (level token), `LeaseKeepAlive`
+(`5 ≤ threadBound`), the `LeaseTimeToLive` chain. Checks: T-k4's "Checks run, T-k".
+**Next, after the review:** tcb/collections `--update` (the new axiom `v3rpc.ctxCauseOk_cancellable`,
+reached by the roots through the stream path, and `wp_WithTimeout_weak` now reached by `LeaseRenew`);
+land via `etc/land.sh` on 81's go; then `LeaseKeepAlive`/`leaseKeepAlive` over the weak stream end (drop
+`srvStreamIsStrong`: `srvStreamIs` now carries `ctxCauseOk`); stop before step 6.
+Pitfalls: in `renew_forward` (a `hygiene false` macro) errors are reported at the macro's call site;
+to see a goal inside it, insert `fail "DBG"` and check with `etc/lean-check.py -q -a`. Goose
+evaluates call arguments before the receiver (`s.Logger().Warn(.., zap.Error(err))`: `zap.Error`,
+the slice literal, then `Logger()`).
+
 ## Handoff point (2026-11-13, end of the ninth agent's context): T-j landed; T-k designed, not in Lean
 
 Landed: lean `0b2a6e3247` (T-j with the review's minors; tcb baseline 867 axiom lines, 4 sorries).
