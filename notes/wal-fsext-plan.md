@@ -1403,6 +1403,57 @@ update: `s.wal dir := walDurFresh md`, the new layout and its `CrashOk`); then `
   `wal-cut3`'s `newFilePipeline.spec`, which needs `dir.length < 2^61`), `TouchDirAll`/`CreateDirAll`
   `wp_proof`s: still `sorry`.
 
+**Sixth session (branch `wal-create6`, 2026-11-13).**
+- *Proved (no `sorry`):* `fileutil.Fsync.specDirS` (`FsyncS.lean`, over `os.File.Sync.specDirS`);
+  **`fileutil.syncDir`** (`syncDir.lean`: spine fraction and call permission fraction, `osLogLb n` →
+  `osCommitLb n` on success; note Go returns `Close`'s error after a successful fsync, so success = both);
+  **`os.WriteFile.specEmptyS`** (`LinuxFs/{Spec,Proof}/os/WriteFile.lean`: an empty file at an absent name
+  whose claim the caller holds whole; outcome `crOut`, success ⇒ created), with `os.osAU_triv` (the
+  update of a caller holding all of `α`) and `os.crOut_join`; **`fileutil.IsDirWriteable`**
+  (`IsDirWriteable.lean`: `.touch` absent in the directory, its `.only [.touch]` claim whole; success ⇒
+  absent again), with `os.rmFileOut_join`, `osPathS_cleanAbs_keep` (the pure fact without consuming the
+  spine), `abs_child`; `TouchLemmas.lean`: `os.ancPath` (`/` or `/c₁/…/cₖ`) `Clean`/`Dir` facts
+  (`dir_take`, `dir_take_ne`), `osSpine_app`/`osSpine_split`, **`wp_statAnc`/`wp_syncDirAnc`** (`Stat`/
+  `syncDir` of any ancestor of `parent`: a borrowed spine prefix below the root, the hypotheses above).
+- *Model finding (for the coordinator, [user]):* **`os.Stat` and `os.Open` of a strict ancestor of a root
+  are stuck** (the extension's `Open` needs `TreePath`; `model.stat` does not ask `PathKind` as
+  `MkdirAll`'s model does). `TouchDirAll`'s `Exist` loop climbs while `Stat` fails, and the model lets
+  `Stat` of the root fail (any errno), so it can reach the root's parent; its last loop then `syncDir`s it.
+  Proposed: `model.stat` (and `fileutil.OpenDir`'s `Open` of a directory, for `syncDir`) answer at
+  `PathKind 0` with no step (stat: a directory; open: any errno, or an fd the extension cannot fsync —
+  the simplest is an error). Until then the proof takes **`os.Stat.specAboveRoot`** and
+  **`fileutil.syncDir.specAboveRoot`** (`LinuxFs/Spec/os/StatAbove.lean`, `syncDir.lean`: any result,
+  nothing changed) as hypotheses, unprovable against the current model.
+- *Statement changes (`TouchDirAll.spec`, `CreateDirAll.spec`):* (1) **`name` absent**
+  (`h.cur !! name = none`, the claim `osNames jp (.only [name]) 1 h` in place of `osSubtreeH`): the os
+  layer has no spec of `OpenFile(O_TRUNC)` over an existing `.touch` (it needs the file's `OsMeta`, which
+  a subtree of claims does not hold), nor of `Stat`/`MkdirAll` of an existing name; (2) the old premise
+  `("/", j0) ∈ R` was **vacuous** (`RootForm` needs at least one component: `/` is never a root), dropped;
+  (3) `isPkgInit fileutil` (`filepath`'s calls), `d.length < 2^60` (`filepath.Join`); (4) success post
+  concrete: `name ↦ dir J`, the claim on `name` and `J`'s whole claim with `hJ.cur = ∅`, `osCommitLb n`,
+  `h'.next ≤ n` (as `CreateDirAll`'s). **Consequence for `Create`:** it must reach `CreateDirAll` with
+  `nm.tmp` absent: `RemoveAll(dir.tmp)` (`specDirS` needs `FilesOnly`, from `wal-owner` via
+  `walAreaRes`, a hypothesis until then) when `Exist` says it exists; but `Exist` may answer `false` for
+  an existing `dir.tmp` (a `Stat` error), and then `CreateDirAll` runs on an existing name: `Create`'s
+  proof needs `CreateDirAll` on an existing directory of files too (spec: error, or success with it
+  emptied — not available from the os layer), or a `Stat` spec that a success-free error on an existing
+  name is excluded. Open.
+- *`TouchDirAll`'s proof plan* (statement above; callees: `Exist.spec` over `wp_absentS`/`wp_statAnc`,
+  `filepath.Clean`/`Dir`, `MkdirAll.specS` with `osAU_triv`, `wp_syncDirAnc`, `IsDirWriteable.spec`, a
+  local `verify.Assert(true)` lemma): decompose the spine once (`osPathS` → root `/rcs`, `cs`;
+  `parent = ancPath (rcs ++ cs)`, `d = ancPath full`, `full = rcs ++ cs ++ [name]`, `n = |full|`);
+  `Exist(d)` false (absent); loop 1 invariant `d ↦ ancPath (full.take k)`, `created ↦* (range' (k+1)
+  (n-k)).map (ancPath ∘ full.take)` (`k = n` uses `wp_absentS`, `k < n` `wp_statAnc`; break at `k = 0`
+  by `dir_take`/`dir_take_ne`); `MkdirAll` (error: `osSubtreeH` with `cl = []` or `[(J, except [], hJ)]`,
+  `SubCover` since `J` holds no directory); `osLogLb h'.next`; loop 2 over `created` (element `m`:
+  `syncDir(ancPath (full.take (m-1)))`, invariant `i < |created| ∨ osCommitLb`; the last element's sync is
+  below the root, so it commits); `IsDirWriteable` with the spine of `d` (`osPathS_child`: a common
+  fraction of the spine and the claim, `qp` may exceed 1 when `parent` is a root) and `J`'s claim split
+  at `.touch` (`osNames_split`/`rekey`/`merge`; success: the merged `cur = ∅`). **Needed first:**
+  `IsDirWriteable`'s post must also say `.touch` holds no directory (for the error arm's `SubCover`).
+- *Not done:* `TouchDirAll`/`CreateDirAll` `wp_proof`s (`sorry`), the `walCreating` minting step,
+  `wal.Create.wp_proof`.
+
 ## 11. Coordinator decisions after W2 and W4 (2026-11-13)
 
 - **Q4 revised to (b)** (W4 found (a) unprovable: `cleanupWAL`'s rename to `dir.broken.*` is never fsynced,
