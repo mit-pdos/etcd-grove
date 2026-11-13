@@ -18,7 +18,7 @@ the worktree's untracked `questions.md` (decisions; never re-add it tracked).
   this stage's T5-c); 7f-0 partial (records only; the rest goes with 7f-6, Q7).
 - No Lean edited. Nothing built on this branch.
 
-## Handoff point (2026-11-13, fifth 7f-5 agent): 7f-3b mvcc part written; STOP before landing
+## Handoff point (2026-11-13, fifth 7f-5 agent, final): 7f-3b mvcc part LANDED; v3rpc part next
 
 Done (`3e90b6e741` on `k8s-7f5`; full build passes, 17487 jobs; tcb matches 870/4; gates all ok after
 the interfaces were regenerated, log `/shared/tmp/k8s7f3b/gates.log`):
@@ -43,12 +43,24 @@ the interfaces were regenerated, log `/shared/tmp/k8s7f3b/gates.log`):
   read-only form over `mvcc.evIs`) and `wrespIs_ro : wrespIs ⊢ |==> wrespRO`, applied at the send
   loop's two receipts. The v3rpc part of 7f-3b replaces this by the `PrevKv` write.
 
-Next: STOPPED for 81's review of the interface diff (`git show 3e90b6e741 -- interface/`) (exported statements changed: `wrespIs`, the importable `InvWatchBatch`/`InvWatchStore`
-vocabulary). After 81's go: land; then v3rpc (`recvLoop`'s `prevKV` entry/`swsMuP`, `sendLoop`'s
-create check and `Range` at `ModRevision - 1` writing into `evPk`, `IsCreateEvent` on `evRd`,
-`rawRespOkP`, `watchReqOkP`); then the client (7f-3c).
+81 approved the interface diff and accepted `wrespRO` as temporary; landed on lean (hash in the next
+handoff line / STATUS). **Next, a fresh agent: the v3rpc part of 7f-3b**, in this order (statements in
+`Draft7f3a.lean`: `swsMuP`, `watchReqOkP`, `client.rawRespOkP`, `prevKvLogOk`):
+1. `recvLoop` records `creq.PrevKv` in the `prevKV` map (`watch.go:342-349`): `swsMu` → `swsMuP`
+   (entries allowed in `prevKV`, `fragment` still empty).
+2. `sendLoop`'s branch (`watch.go:437-455`): the create check (`IsCreateEvent`), mvcc's `Range` of the
+   key at `ModRevision - 1` (`Api/RangeApi.lean`), and `events[i].PrevKv = r.KVs[0]` written into the
+   copy's owned field (`evPk`, from `wrespIs`'s `evOwn`), with the `nil`/error arms.
+3. `IsCreateEvent`'s spec on `evRd` (today `evIs`).
+4. `rawRespOkP` (the client pipeline's server contract: each pointer `prevKvLogOk`), in place of
+   `rawRespOk`.
+5. `watchReqOkP` in `upOk` (the server's `prev_kv = false` restriction dropped).
+6. Remove the stopgap `v3rpc.wrespRO` / `wrespIs_ro` (`WatchApi.lean`) and its two uses in
+   `serverWatchStream__sendLoop.lean`.
+Then the client part, 7f-3c (`notes/k8s-7f3a-draft.md` §5). Report the v3rpc interface/statement
+changes to 81 before landing, as for mvcc.
 
-Pitfall found: after a failing bullet inside `wp_join`, later goals carry unassigned metavariables
+**Pitfall (wp_join):** after a failing bullet inside `wp_join`, later goals carry unassigned metavariables
 and `wp_for`'s clean-up silently fails (`Hif : #(decide …) = #true` undecoded, `word` fails): fix the
 FIRST error before reading later ones. `etc/lean-check.py` incremental runs once gave a spurious
 `(kernel) application type mismatch` on `moveVictims` that `lake build` did not.
