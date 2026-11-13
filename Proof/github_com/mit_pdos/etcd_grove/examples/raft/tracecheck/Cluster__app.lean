@@ -255,8 +255,7 @@ theorem Cluster.app.wp_proof
         have hr : qm.st.resps = [] := by
           have := Hsh.1; unfold SentMsgShape at this; exact this.2.2.2.2.2.2.2
         imod msgOwn_persist qm.loc (readyDq qm.st) qm.st $$ Hmo with #Hro
-        have Hcln := wp_Clone (pbMessage (GF := GF)) qm.loc qm.st
-        simp only [pbMessage_ty, pbMessage_ro] at Hcln
+        have Hcln := ProbeA.wp_Clone_msg wp_Clone qm.loc qm.st hr
         ihave #Hproto : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
         · iPkgInit
         wp_apply Hcln $$ [$Hproto $Hro] as %l' ⟨%st', Hdec, %Heqv⟩

@@ -44,6 +44,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Harn
 public import Proof.go_etcd_io.raft.v3.ConfPolicy
 public import Proof.go_etcd_io.raft.v3.InvPbMsg
 public import Proof.go_etcd_io.raft.v3.PbMessage
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.PerTypeMessage
 public import Spec.google_golang_org.protobuf.proto.ClonePb
 public import Spec.google_golang_org.protobuf.proto.UnmarshalConfChangeV2Empty
 public import Spec.go_etcd_io.raft.v3.node__Advance
@@ -514,6 +515,38 @@ theorem clone_st (st st' : MsgSt) (hr : st.resps = [])
   subst h1 h2 h3 h4 hr2
   rfl
 
+/-- **`proto.Clone` of a frozen raft message without responses**, in the shape the harness uses:
+the clone owned, decoded (`msgPtsC … true`), at the original's wire content with empty responses.
+From `ClonePb`'s per-type spec at the registered `pbMessageC` (`pbMessageC_reg`), the frozen message
+at its wire content by `msgOwn_msgRoC`; the original marshals (no responses), so the clone is at the
+same content, whose snapshot conf states have no unknown fields (`decOk`). -/
+theorem wp_Clone_msg (wp_Clone : proto.ClonePb.spec (GF := GF) (hG := hG))
+    (l : Loc) (st : MsgSt) (hr : st.resps = []) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗
+        msgOwn l DFrac.discard st }}
+      (App (Val (@! google_golang_org.protobuf.proto.Clone))
+        (Val #(interface.mkOk (go.GoType.PointerType raftpb.Message.ty) #l)))
+    {{ (l' : Loc), RET #(interface.mkOk (go.GoType.PointerType raftpb.Message.ty) #l');
+        ∃ st' : MsgSt, msgPtsC l' (DFrac.own 1) (DFrac.own 1) true st' ∗
+          ⌜wireOf st = wireOf st' ∧ (st.resps = [] → st'.resps = [])⌝ }} := by
+  iintro %Φ ⟨#Hpi, #Hro⟩ HΦ
+  ihave ⟨%c, #Hc, %Hcm⟩ := msgOwn_msgRoC l st hr $$ Hro
+  have Hcl := wp_Clone pbMessageC pbMessageC_reg l c
+  simp only [pbMessageC_ty, pbMessageC_roC, pbMessageC_dec, pbMessageC_eqv, pbMessageC_modelOf,
+    pbMessageC_C, pbMessageC_decOk, pbMessageC_marshals, pbMessageC_ufValid] at Hcl
+  iapply Hcl $$ [] [HΦ]
+  · iframe Hpi Hc
+  inext
+  iintro %l' ⟨%c', Hdec, %Hp⟩
+  have hm : MsgMarshals c.model := by simp only [MsgMarshals, Hcm.1, hr]
+  have hc' : c' = c := Hp.2.2 hm
+  subst hc'
+  iapply HΦ
+  iexists c'.model
+  isplitl [Hdec]
+  · iapply Hdec; ipureintro; exact Hcm.2
+  · ipureintro; rw [Hcm.1]; exact ⟨rfl, fun h => h⟩
+
 /-- **`proto.Clone(m)` then `node.Step(ctx, clone)`** (§2.3's last row, §2.4; S1's correction, the
 uncertain glue of design-r3's A6): `ClonePb`'s `T.ro` from the `Ready`'s `msgOwn … (readyDq q.st)`
 (`msgOwn_persist`), its `T.dec`/`eqv` into `msgPtsC … ⟨…, []⟩` (`clone_st`, the original's responses
@@ -538,8 +571,7 @@ theorem probeA_cloneStep
   ihave %Hsh := sentMsg_shape γ N src q.st $$ Hs
   have hr : q.st.resps = [] := by have := Hsh.1; unfold SentMsgShape at this; exact this.2.2.2.2.2.2.2
   imod msgOwn_persist q.loc (readyDq q.st) q.st $$ Hmo with #Hro
-  have Hcl := wp_Clone (pbMessage (GF := GF)) q.loc q.st
-  simp only [pbMessage_ty, pbMessage_ro] at Hcl
+  have Hcl := wp_Clone_msg wp_Clone q.loc q.st hr
   iapply Hcl $$ [] [Hcr Htok]
   · iframe Hpi Hro
   inext
