@@ -1,7 +1,8 @@
 /-
 What a crash leaves of a byte, from its crash candidates (`Impl.lean`, `CrashFile`): one of their
-values (`crash_byte`); a byte whose candidates all hold `x` and that the crash's size covers comes
-back as `x` (`crash_keeps`). And the arithmetic of the file effects the specs use. Untrusted.
+values, or zero at or past the smallest size since the last sync (`crash_byte`); a byte below that
+size whose candidates all hold `x` and that the crash's size covers comes back as `x`
+(`crash_keeps`). And the arithmetic of the file effects the specs use. Untrusted.
 -/
 module
 
@@ -20,19 +21,16 @@ theorem pageIn_of_lt {sz b : Nat} (h : b < sz) : pageIn sz b = true := by
 theorem diskByte_of_lt {img : Nat → w8} {sz b : Nat} (h : b < sz) : diskByte img sz b = img b := by
   simp [diskByte, pageIn_of_lt h]
 
-/-- `x` rounded up to a 4096-byte page. -/
-def pageUp (x : Nat) : Nat := 4096 * ((x + 4095) / 4096)
+theorem pageIn_pageEnd {L b : Nat} (h : pageEnd L ≤ b) : pageIn L b = false := by
+  simp only [pageIn, pageEnd, decide_eq_false_iff_not] at *; omega
 
-theorem pageIn_pageUp {L b : Nat} (h : pageUp L ≤ b) : pageIn L b = false := by
-  simp only [pageIn, pageUp, decide_eq_false_iff_not] at *; omega
+theorem pageEnd_mono {a b : Nat} (h : a ≤ b) : pageEnd a ≤ pageEnd b := by
+  simp only [pageEnd]; omega
 
-theorem pageUp_mono {a b : Nat} (h : a ≤ b) : pageUp a ≤ pageUp b := by
-  simp only [pageUp]; omega
+theorem le_pageEnd (a : Nat) : a ≤ pageEnd a := by simp only [pageEnd]; omega
 
-theorem le_pageUp (a : Nat) : a ≤ pageUp a := by simp only [pageUp]; omega
-
-theorem diskByte_past {img : Nat → w8} {sz b : Nat} (h : pageUp sz ≤ b) : diskByte img sz b = 0 := by
-  simp [diskByte, pageIn_pageUp h]
+theorem diskByte_past {img : Nat → w8} {sz b : Nat} (h : pageEnd sz ≤ b) : diskByte img sz b = 0 := by
+  simp [diskByte, pageIn_pageEnd h]
 
 theorem contents_length (f : OsFile) : f.contents.length = f.size := by simp [OsFile.contents]
 
@@ -46,20 +44,23 @@ theorem contents_getElem? (f : OsFile) (b : Nat) :
 theorem contents_getElem?_of_lt {f : OsFile} {b : Nat} (h : b < f.size) :
     f.contents[b]? = some (f.cache b) := by rw [contents_getElem?, if_pos h]
 
-/-- **A crash leaves each byte one of its candidates' values** (below the crash's size: past it,
-the file of a crash holds no byte). -/
+/-- **A crash leaves each byte one of its candidates' values, or zero at or past the smallest size
+since the last sync** (below the crash's size: past it, the file of a crash holds no byte). -/
 theorem crash_byte {st : OsState} {i : Ino} {f f' : OsFile} {b : Nat}
-    (hc : CrashFile st i f f') (hb : b < f'.size) : ∃ s, (f'.cache b, s) ∈ f.cand b := by
+    (hc : CrashFile st i f f') (hb : b < f'.size) :
+    (∃ s, (f'.cache b, s) ∈ f.cand b) ∨ (f.sizeLo ≤ b ∧ f'.cache b = 0) := by
   obtain ⟨sz, img, -, hcand, rfl⟩ := hc
   simp only [OsFile.ofDisk] at hb ⊢
   rw [diskByte_of_lt hb]; exact hcand b
 
-/-- **A crash keeps a byte whose candidates all hold `x`**, if its size covers it. -/
+/-- **A crash keeps a byte whose candidates all hold `x`**, below the smallest size since the last
+sync, if its size covers it. -/
 theorem crash_keeps {st : OsState} {i : Ino} {f f' : OsFile} {b : Nat} {x : w8}
-    (hc : CrashFile st i f f') (hv : ∀ p ∈ f.cand b, p.1 = x) (hsz : b < f'.size) :
-    f'.contents[b]? = some x := by
-  obtain ⟨s, hs⟩ := crash_byte hc hsz
-  rw [contents_getElem?_of_lt hsz, ← hv _ hs]
+    (hc : CrashFile st i f f') (hv : ∀ p ∈ f.cand b, p.1 = x) (hlo : b < f.sizeLo)
+    (hsz : b < f'.size) : f'.contents[b]? = some x := by
+  rcases crash_byte hc hsz with ⟨s, hs⟩ | ⟨h, -⟩
+  · rw [contents_getElem?_of_lt hsz, ← hv _ hs]
+  · omega
 
 /-- The size a crash leaves the file with: between the smallest and the largest since the last
 sync, or the target of the change in flight. -/

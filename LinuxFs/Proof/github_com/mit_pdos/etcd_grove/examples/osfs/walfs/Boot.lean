@@ -1167,7 +1167,8 @@ theorem synced_good (m : OsMeta) (hsz : m.size = 8) (ys : List ByteG)
   refine ⟨h8, fun b hb => ?_⟩
   have hyb : b < ys.length := by omega
   rw [crashed_dur hfc (List.mem_singleton_self _) (b := b) (x := (ys[b]'hyb).1) (Nat.zero_le _)
-    (by simpa using hyb) (by simp) (by omega), ← hys, List.getElem?_map,
+    (by simpa using hyb) (by simp) (by omega) (by simp only [OsMeta.synced]; omega), ← hys,
+    List.getElem?_map,
     List.getElem?_eq_getElem hyb]; rfl
 
 theorem checkOk_synced (m : OsMeta) (hsz : m.size = 8) (ys : List ByteG)

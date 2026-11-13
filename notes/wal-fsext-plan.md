@@ -504,7 +504,7 @@ Everything under `LinuxFs/` and `GooseLang/Ext/Fs/` builds (3019 jobs); `etc/gen
 module; the bboltfs/crashlog/walfs examples and the generated translations not listed):
 - `wal/`: `Create.wp_proof` (`Create.lean`), `Open.wp_proof`, `OpenForRead.wp_proof`, `openAtIndex.wp_proof`,
   `openWALFiles.wp_proof`, `WAL.ReadAll.wp_proof`, `WAL.Save.wp_proof`, `WAL.SaveSnapshot.wp_proof`,
-  `WAL.Sync.wp_proof`, `WAL.cut.wp_proof`, `WAL.saveEntry.wp_proof`, `WAL.saveState.wp_proof`,
+  `WAL.Sync.wp_proof`, `WAL.cut.wp_proof`, `cutCommit_pure` (`CutCommit.lean`), `WAL.saveEntry.wp_proof`, `WAL.saveState.wp_proof`,
   `WAL.sync.wp_proof`, `wal.tailWriter` (`TailWriter.lean`);
 - `fileutil/`: `ReadDir.wp_proof`, `TouchDirAll.wp_proof`, `CreateDirAll.wp_proof` (`TouchDirAll.lean`);
 - `os/`: `File.Truncate.wp_proofAu` (`File__TruncateAu.lean`), `File.WriteAt.wp_proof_long` (`WriteLong.lean`,
@@ -1219,6 +1219,50 @@ on three facts the invariant does not record.**
   `os.File.writerStream` for `saveCrc`/`encode(Metadata)`/`saveState.specPre`/`sync.specPreL`, and the cuts
   budget (W6). The order the proof must take: the header phase over `walPreInL` with the old segments'
   locks in `ls`, `encode.specG`/`saveCrc.spec` (both still unproved over `writerStreamP`).
+
+**Fifth session (branch `wal-cut5`, 2026-11-13): the rename's update proved, over one pure lemma.**
+- *`walCut_osAUnc`* (`CutAu.lean`, **proved**): the update for `os.Rename.specFileSnc` of the pipeline's
+  `tmp` (claim `(j, .only [tmp], ht)`, the program's half in the update, the call's half) onto the free
+  `.wal` name `bt` of the WAL claim `(j, .except X, hj)`. The program splits its half of the WAL claim:
+  a quarter in the update (`walCutP`, to agree with the invariant's half at the opening; the key
+  `walDirKey dir j X` finds the claim by `DirKeysOk`'s `ClaimOnce`), a quarter to the call; `α` is
+  the tmp claim's half and the WAL claim's `½ + ¼`. Commit: `walCut_agree`/`walCut_set` (`none` →
+  `some dir`); `walTailsRes_cut` (the tail record gives `d`, `lay`, `g0`; the program's `H`, metadata,
+  cuts, old tail inode are substituted); the old tail's halves agree with the program's (`hlast0`:
+  synced, truncated); `laysResF_ino_ne` (the new segment's inode fresh); the invariant takes half of the
+  new claim (`cutClaim`), the new segment's halves (`laysResF_cut`), the tail record moved
+  (`tailG_cut`), the old tail's program halves deposited (`walParked_cut`: `O' = g.ino :: O.filter (·
+  ≠ g0.ino)`, `D' = cutClaim :: D`; if the old tail was already parked, the program's halves are
+  dropped). `walCutQ` gives back the claims' new histories (½ tmp, ¼ WAL), the keys, the tail record at
+  the new segment, the flags (`walCutFrag (some dir)`), the new segment's other halves.
+  Program premises (over its copy `H`, `md`, `cuts`): `tmp ∈ X`; the cuts below `|H|`; the old tail at
+  the `.wal` name `nm0` of `hj.cur`; `bt` free, a `.wal` name, `walFileName sq ix` past `nm0` with `ix`
+  past the history's last index; the old tail's bytes the stream's, durable, `|bs0| = m0.size`; the new
+  segment's bytes the headers' frames (`wr`) then zeros, durable, `OsMeta` sized, named `bt`, nonempty;
+  `RecsFit` of the new segmentation; `walSyncedLb dir |H|`, `walNamed dir` (in `walCutP`).
+- *`CutAuLemmas.lean`* (proved): `walGhost_synced`, `walGhost_named` (past states → `d.m`, `d.named`),
+  `walTailsRes_cut`, `laysResF_cut`, `walParked_cut`, `walDirClaimOf_insert`.
+- **`sorry`: `cutCommit_pure`** (`CutCommit.lean`): every pure conjunct after the commit (`WalsOk`,
+  `WalsCreateOk`, `CreatingOk`, `AbsentNone`, `WalsNamed`, `DirKeysOk … (some dir)`), its plan in the
+  file header. The two non-obvious parts: `cutLay_abs`'s `hents` (`bt` is the largest `.wal` name of
+  `hj.cur`: `nm0` is the last segment's name, since `walInos` of the sorted names are the segments'
+  inodes, `Nodup`), and `WalsNamed`'s crash dropping the rename (`g.ino` in no `.wal` entry of `j`: the
+  old crash condition, the WAL named, puts only the old segments' inodes there; hence `walNamed` in
+  `walCutP`); `DirsOk` needs "a lookup succeeding in `treeDel m' j bt` reads no `(j, bt)`".
+- **`walHandleIn` change** (`Handle.lean`): a new conjunct `walDirH dir h.ino name` (the key
+  `walDirKey dir j X`, the program's half of `(j, .except X, hj)`, `osPathS R dir dq j ∗ osSharedInv
+  R`, `osCallPerm ½`, the tail at `.wal` name `nm0` of `hj.cur` with `name = child dir nm0`). Producers
+  (`Create`'s body, `ReadAll`) must provide it; nothing destructured `walHandleIn` before. Its pipeline
+  (`walPipeH`) still has its own `∃ j`: `cut` ties it to `walDirH`'s by path agreement.
+- **`Ghost.lean`**: `walOpenWC` (sealed: `walOpenW` without its two flags) and `walOpenW_cut :
+  walOpenW ⊣⊢ walOpenWC ∗ walParkFrag false ∗ walCutFrag none` (the update needs the parking flag to know
+  the handle's halves are out, and sets the cut flag).
+- **For W6 / `cut.spec`**: the update needs the cuts strictly below `|H|` (`cutLay_abs`'s increasing
+  cuts), so `cut.spec` needs `∀ b ∈ h.cuts, b < h.H.length` (Save's op is committed before its cut; a
+  second cut at the same length would break `WalAbsD.cuts`): not yet added to the statement.
+- *`(*WAL).cut`*: still `sorry`. Its rename step is now `os.Rename.specFileSnc` with
+  `walCut_osAUnc` (q1 = ½, q2 = ¼); the dir sync then `crashOk_dirSync` with `walCut_set` back to
+  `none` (a lemma opening `walInv` via `wp_notCrashed_acc`, the analog of this one, not written).
 
 ## W4 implementation log (branch `wal-create`, 2026-11-13)
 

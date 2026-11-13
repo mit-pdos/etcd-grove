@@ -490,11 +490,10 @@ theorem os.File.Truncate.wp_proof_crashS : os.File.Truncate.specCrashS (GF := GF
   rw [decide_eq_false h2]
   wp_auto
   have hmin : min m.size sz.toNat = m.size := Nat.min_eq_left hgrow
-  have hmax : max m.size sz.toNat = sz.toNat := Nat.max_eq_right hgrow
   -- the loop's states: not grown yet (`m`, or as an attempt announced it), or grown
-  ihave HS : (∃ m0, ⌜m0 = m ∨ m0 = m.announce (min m.size sz.toNat) (max m.size sz.toNat) sz.toNat⌝ ∗
-      csOwnF γ (some (d.ino, ⟨m0, bs, fa, fb, .idle⟩)) ∗ mcellsAny m.maps m.size sz.toNat) ∨
-      (∃ n m0, ⌜m0 = m ∨ m0 = m.announce (min m.size sz.toNat) (max m.size sz.toNat) sz.toNat⌝ ∗
+  ihave HS : (∃ m0, ⌜m0 = m ∨ m0 = m.announce (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat⌝ ∗
+      csOwnF γ (some (d.ino, ⟨m0, bs, fa, fb, .idle⟩)) ∗ mcellsAny m.maps m.size (rsHi true m.size sz.toNat)) ∨
+      (∃ n m0, ⌜m0 = m ∨ m0 = m.announce (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat⌝ ∗
         csGrownOwn d.ino γ m0 bs fa fb sz.toNat n) $$ [Hown Hc]
   · ileft; iexists m; iframe; ipureintro; exact .inl rfl
   iloeb as IH generalizing HS Hosfd Hfd HΦ
@@ -503,24 +502,24 @@ theorem os.File.Truncate.wp_proof_crashS : os.File.Truncate.specCrashS (GF := GF
     have hsz0 : m0.size = m.size := by rcases hm0 with rfl | rfl <;> simp
     have hmp0 : m0.maps = m.maps := by rcases hm0 with rfl | rfl <;> simp
     have hR0 : TReach m bs sz.toNat m0 bs := by rcases hm0 with rfl | rfl; exact .refl; exact .ann
-    ihave Hc := (show mcellsAny (GF := GF) m.maps m.size sz.toNat ⊢
-      mcellsAny m0.maps m0.size sz.toNat by rw [hsz0, hmp0]) $$ Hc
+    ihave Hc := (show mcellsAny (GF := GF) m.maps m.size (rsHi true m.size sz.toNat) ⊢
+      mcellsAny m0.maps m0.size (rsHi true m0.size sz.toNat) by rw [hsz0, hmp0]) $$ Hc
     wp_apply wp_osFtruncateStart_cs fd sz dq d N P R γ Good Ok m0 bs fa fb hN hwr hsz
       (by rw [hsz0]; exact hgrow) (hT _ _ hR0).2 $$ Hos Hinv Hosfd Hown Hc as %t %n Hosfd Hown
-    have hpost : rsPost m0 sz.toNat sz.toNat = rsPost m sz.toNat sz.toNat := by
+    have hpost : rsPost true m0 sz.toNat sz.toNat = rsPost true m sz.toNat sz.toNat := by
       rcases hm0 with rfl | rfl
       · rfl
-      · exact os.rsPost_announce _ _ _
-    have hann : m0.announce (min m0.size sz.toNat) (max m0.size sz.toNat) sz.toNat =
-        m.announce (min m.size sz.toNat) (max m.size sz.toNat) sz.toNat := by
+      · exact os.rsPost_announce _ _ _ _
+    have hann : m0.announce (min m0.size sz.toNat) (rsHi true m0.size sz.toNat) sz.toNat =
+        m.announce (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat := by
       rw [hsz0]; rcases hm0 with rfl | rfl
       · rfl
       · exact os.announce_idem _ _ _ _
     have hokG : ∀ zs : List Cands, zs.length = sz.toNat - m0.size →
-        Ok (some (d.ino, ⟨rsPost m0 sz.toNat sz.toNat,
+        Ok (some (d.ino, ⟨rsPost true m0 sz.toNat sz.toNat,
           bs ++ zs.map (fun c0 => ((0 : w8), c0 ++ [(0, n)])), fa, fb, .idle⟩)) := by
       intro zs hz; rw [hpost]; rw [hsz0] at hz; exact (hT _ _ (.grown n zs hz)).1
-    have hokF : Ok (some (d.ino, ⟨m0.announce (min m0.size sz.toNat) (max m0.size sz.toNat) sz.toNat,
+    have hokF : Ok (some (d.ino, ⟨m0.announce (min m0.size sz.toNat) (rsHi true m0.size sz.toNat) sz.toNat,
         bs, fa, fb, .idle⟩)) := by rw [hann]; exact (hT _ _ .ann).1
     wp_apply wp_osFtruncateFinish_cs t d.ino sz.toNat n N P R γ Good Ok m0 bs fa fb hN hokG hokF
       $$ Hos Hinv Hown as %e Hr
@@ -534,8 +533,9 @@ theorem os.File.Truncate.wp_proof_crashS : os.File.Truncate.specCrashS (GF := GF
       · ileft; iexists _; rw [hann]; iframe Hown
         isplitr
         · ipureintro; exact .inr rfl
-        iapply (show mcellsAny (GF := GF) m0.maps m0.size sz.toNat ⊢
-          mcellsAny m.maps m.size sz.toNat by rw [hsz0, hmp0]); iexact Hc
+        ihave Hc := mcells_any (GF := GF) _ _ _ _ $$ Hc
+        iapply (show mcellsAny (GF := GF) m0.maps m0.size (rsHi true m0.size sz.toNat) ⊢
+          mcellsAny m.maps m.size (rsHi true m.size sz.toNat) by rw [hsz0, hmp0]); iexact Hc
     · rw [decide_eq_false he4]
       wp_auto
       icases Hr with (⟨%he, Hg⟩ | ⟨%he, HS⟩)
@@ -563,58 +563,80 @@ theorem os.File.Truncate.wp_proof_crashS : os.File.Truncate.specCrashS (GF := GF
         icases HS with (Hg | ⟨Hown, Hc⟩)
         · ileft; iexists n, m0; iframe; ipureintro; exact hm0
         · iright; rw [hann]; iframe Hown
-          iapply (show mcellsAny (GF := GF) m0.maps m0.size sz.toNat ⊢
-            mcellsAny m.maps m.size sz.toNat by rw [hsz0, hmp0]); iexact Hc
+          ihave Hc := mcells_any (GF := GF) _ _ _ _ $$ Hc
+          iapply (show mcellsAny (GF := GF) m0.maps m0.size (rsHi true m0.size sz.toNat) ⊢
+            mcellsAny m.maps m.size (rsHi true m.size sz.toNat) by rw [hsz0, hmp0]); iexact Hc
   · -- grown: a further attempt is a resize to the size the file has
     have hsz0 : m0.size = m.size := by rcases hm0 with rfl | rfl <;> simp
     have hmp0 : m0.maps = m.maps := by rcases hm0 with rfl | rfl <;> simp
-    have hpost : rsPost m0 sz.toNat sz.toNat = rsPost m sz.toNat sz.toNat := by
+    have hpost : rsPost true m0 sz.toNat sz.toNat = rsPost true m sz.toNat sz.toNat := by
       rcases hm0 with rfl | rfl
       · rfl
-      · exact os.rsPost_announce _ _ _
+      · exact os.rsPost_announce _ _ _ _
     iunfold csGrownOwn at Hg
     icases Hg with ⟨%zs, %hzs, Hown, Hcs⟩
-    have hR0 : TReach m bs sz.toNat (rsPost m0 sz.toNat sz.toNat)
+    have hR0 : TReach m bs sz.toNat (rsPost true m0 sz.toNat sz.toNat)
         (bs ++ zs.map (fun c0 => ((0 : w8), c0 ++ [(0, n0)]))) := by
       rw [hpost]; exact .grown n0 zs (by rw [hzs.1, hsz0])
-    have hgsz : (rsPost m0 sz.toNat sz.toNat).size = sz.toNat := rfl
-    ihave Hc0 := os.mcellsAny_nil (GF := GF) (rsPost m0 sz.toNat sz.toNat).maps
-      (rsPost m0 sz.toNat sz.toNat).size sz.toNat (by rw [hgsz]; exact Nat.le_refl _)
+    have hgsz : (rsPost true m0 sz.toNat sz.toNat).size = sz.toNat := rfl
+    have hgmaps : (rsPost true m0 sz.toNat sz.toNat).maps = m0.maps := by simp [rsPost]
+    have hRR : rsHi true sz.toNat sz.toNat = rsHi true m0.size sz.toNat := by
+      simp only [rsHi, if_true, Nat.max_self, Nat.max_eq_right (show m0.size ≤ sz.toNat by omega)]
+    have hR1 := le_rsHi true m0.size sz.toNat
+    icases (mcells_split (GF := GF) m0.maps m0.size sz.toNat (rsHi true m0.size sz.toNat) _
+      (by omega) (by omega)).1 $$ Hcs with ⟨Hc1, Hc2⟩
+    ihave Hc0 := mcells_any (GF := GF) _ _ _ _ $$ Hc2
+    ihave Hc0 := (show mcellsAny (GF := GF) m0.maps sz.toNat (rsHi true m0.size sz.toNat) ⊢
+      mcellsAny (rsPost true m0 sz.toNat sz.toNat).maps (rsPost true m0 sz.toNat sz.toNat).size
+        (rsHi true (rsPost true m0 sz.toNat sz.toNat).size sz.toNat) by rw [hgsz, hgmaps, hRR]) $$ Hc0
     wp_apply wp_osFtruncateStart_cs fd sz dq d N P R γ Good Ok _ _ fa fb hN hwr hsz
       (by rw [hgsz]; exact Nat.le_refl _) (hT _ _ hR0).2 $$ Hos Hinv Hosfd Hown Hc0 as %t %n Hosfd Hown
-    have hokG : ∀ zs' : List Cands, zs'.length = sz.toNat - (rsPost m0 sz.toNat sz.toNat).size →
-        Ok (some (d.ino, ⟨rsPost (rsPost m0 sz.toNat sz.toNat) sz.toNat sz.toNat,
+    have hokG : ∀ zs' : List Cands, zs'.length = sz.toNat - (rsPost true m0 sz.toNat sz.toNat).size →
+        Ok (some (d.ino, ⟨rsPost true (rsPost true m0 sz.toNat sz.toNat) sz.toNat sz.toNat,
           (bs ++ zs.map (fun c0 => ((0 : w8), c0 ++ [(0, n0)]))) ++
             zs'.map (fun c0 => ((0 : w8), c0 ++ [(0, n)])), fa, fb, .idle⟩)) := by
       intro zs' hz
       rw [hgsz, Nat.sub_self] at hz
       rw [List.eq_nil_of_length_eq_zero hz, List.map_nil, List.append_nil, os.rsPost_rsPost]
       exact (hT _ _ hR0).1
-    have hokF : Ok (some (d.ino, ⟨(rsPost m0 sz.toNat sz.toNat).announce
-        (min (rsPost m0 sz.toNat sz.toNat).size sz.toNat) (max (rsPost m0 sz.toNat sz.toNat).size sz.toNat)
+    have hokF : Ok (some (d.ino, ⟨(rsPost true m0 sz.toNat sz.toNat).announce
+        (min (rsPost true m0 sz.toNat sz.toNat).size sz.toNat)
+        (rsHi true (rsPost true m0 sz.toNat sz.toNat).size sz.toNat)
         sz.toNat, bs ++ zs.map (fun c0 => ((0 : w8), c0 ++ [(0, n0)])), fa, fb, .idle⟩)) := by
       rw [os.announce_rsPost]; exact (hT _ _ hR0).1
     wp_apply wp_osFtruncateFinish_cs t d.ino sz.toNat n N P R γ Good Ok _ _ fa fb hN hokG hokF
       $$ Hos Hinv Hown as %e Hr
     -- the state is the grown one again
-    ihave Hown : csOwnF (GF := GF) γ (some (d.ino, ⟨rsPost m0 sz.toNat sz.toNat,
-        bs ++ zs.map (fun c0 => ((0 : w8), c0 ++ [(0, n0)])), fa, fb, .idle⟩)) $$ [Hr]
+    ihave Hown : csOwnF (GF := GF) γ (some (d.ino, ⟨rsPost true m0 sz.toNat sz.toNat,
+        bs ++ zs.map (fun c0 => ((0 : w8), c0 ++ [(0, n0)])), fa, fb, .idle⟩)) ∗
+        mcells m0.maps sz.toNat (rsHi true m0.size sz.toNat) (rsCell sz.toNat) $$ [Hr]
     · unfold csGrownOwn
-      icases Hr with (⟨-, ⟨%zs', %hzs', Hown, -⟩⟩ | ⟨-, (⟨%zs', %hzs', Hown, -⟩ | ⟨Hown, -⟩)⟩)
+      icases Hr with (⟨-, ⟨%zs', %hzs', Hown, Hc⟩⟩ | ⟨-, (⟨%zs', %hzs', Hown, Hc⟩ | ⟨Hown, Hc⟩)⟩)
       · rw [hgsz, Nat.sub_self] at hzs'
         rw [List.eq_nil_of_length_eq_zero hzs'.1, List.map_nil, List.append_nil, os.rsPost_rsPost] at *
-        iexact Hown
+        rw [hgsz, hgmaps, hRR]
+        iframe
       · rw [hgsz, Nat.sub_self] at hzs'
         rw [List.eq_nil_of_length_eq_zero hzs'.1, List.map_nil, List.append_nil, os.rsPost_rsPost] at *
-        iexact Hown
-      · have hA : (rsPost m0 sz.toNat sz.toNat).announce (min sz.toNat sz.toNat) (max sz.toNat sz.toNat)
-            sz.toNat = rsPost m0 sz.toNat sz.toNat := os.announce_rsPost m0 sz.toNat
-        iapply (show csOwnF (GF := GF) γ (some (d.ino, ⟨(rsPost m0 sz.toNat sz.toNat).announce
-            (min sz.toNat sz.toNat) (max sz.toNat sz.toNat) sz.toNat,
-            bs ++ zs.map (fun c0 => ((0 : w8), c0 ++ [(0, n0)])), fa, fb, .idle⟩)) ⊢
-          csOwnF γ (some (d.ino, ⟨rsPost m0 sz.toNat sz.toNat,
-            bs ++ zs.map (fun c0 => ((0 : w8), c0 ++ [(0, n0)])), fa, fb, .idle⟩)) by rw [hA])
-        iexact Hown
+        rw [hgsz, hgmaps, hRR]
+        iframe
+      · have hA : (rsPost true m0 sz.toNat sz.toNat).announce (min sz.toNat sz.toNat)
+            (rsHi true sz.toNat sz.toNat) sz.toNat = rsPost true m0 sz.toNat sz.toNat :=
+          os.announce_rsPost true m0 sz.toNat
+        isplitl [Hown]
+        · iapply (show csOwnF (GF := GF) γ (some (d.ino, ⟨(rsPost true m0 sz.toNat sz.toNat).announce
+              (min sz.toNat sz.toNat) (rsHi true sz.toNat sz.toNat) sz.toNat,
+              bs ++ zs.map (fun c0 => ((0 : w8), c0 ++ [(0, n0)])), fa, fb, .idle⟩)) ⊢
+            csOwnF γ (some (d.ino, ⟨rsPost true m0 sz.toNat sz.toNat,
+              bs ++ zs.map (fun c0 => ((0 : w8), c0 ++ [(0, n0)])), fa, fb, .idle⟩)) by rw [hA])
+          iexact Hown
+        · rw [← hRR, touch_maps]
+          iapply (mcells_congr (GF := GF) _ _ _ _ _ (fun i h1 _ => by
+            simp only [rsOld, rsCell]; rw [if_neg (by omega), if_neg (by omega)])).1 $$ Hc
+    icases Hown with ⟨Hown, Hc2⟩
+    ihave Hcs := (mcells_split (GF := GF) m0.maps m0.size sz.toNat (rsHi true m0.size sz.toNat) _
+      (by omega) (by omega)).2 $$ [Hc1 Hc2]
+    · iframe
     ihave Hg : csGrownOwn (GF := GF) d.ino γ m0 bs fa fb sz.toNat n0 $$ [Hown Hcs]
     · unfold csGrownOwn; iexists zs; iframe; ipureintro; exact hzs
     by_cases he4 : e = W64 4

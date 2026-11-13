@@ -124,13 +124,13 @@ def SegFl.Ok (fl : SegFl) (g : SegG) : Prop :=
     fl.bs.drop (cfHi fl.m fl.off fl.data.length) ∧ 0 < fl.off
 
 /-- **The segment `g` as the resize in flight `fl` to `tg` announced it** (I3b; `wp_osResizeStart`):
-`g`'s `OsMeta` the token's (`TokInfo.meta`: `m` with `[min size tg, max size tg)` announced, the
+`g`'s `OsMeta` the token's (`TokInfo.meta`: `m` with `[min size tg, rsHi true size tg)` announced, the
 target `tg`), its bytes `fl.bs` with zero added as a candidate of each byte cut off (`rsAnn`; none
 if it grows the file); the resize keeps byte 0 (`0 < min size tg`), so that the invariant keeps
 half of it, as `SegFl.Ok`'s `0 < fl.off`. -/
 def SegFl.OkR (fl : SegFl) (tg : Nat) (g : SegG) : Prop :=
   fl.bs.length = fl.m.size ∧ fl.m.cut = none ∧
-  g.om = fl.m.announce (min fl.m.size tg) (max fl.m.size tg) tg ∧
+  g.om = fl.m.announce (min fl.m.size tg) (rsHi true fl.m.size tg) tg ∧
   g.bs = fl.bs.take (min fl.m.size tg) ++ rsAnn fl.n (fl.bs.drop (min fl.m.size tg)) ∧
   0 < min fl.m.size tg
 
@@ -337,7 +337,7 @@ def segResF (F : GMap Ino SegFl) (g : SegG) : IProp GF :=
         osBytes (L := L) g.ino 0 (DFrac.own (1 : Qp).half) (fl.bs.take (cfLo fl.m fl.off)) ∗
         osBytes (L := L) g.ino (cfHi fl.m fl.off fl.data.length) (DFrac.own (1 : Qp).half)
           (fl.bs.drop (cfHi fl.m fl.off fl.data.length)) ∗ ⌜fl.Ok g⌝)
-    | some tg => iprop(rsTok (L := L) fl.t g.ino tg fl.m (fl.bs.drop (min fl.m.size tg)) fl.n ∗
+    | some tg => iprop(rsTok (L := L) true fl.t g.ino tg fl.m (fl.bs.drop (min fl.m.size tg)) fl.n ∗
         osBytes (L := L) g.ino 0 (DFrac.own (1 : Qp).half) (fl.bs.take (min fl.m.size tg)) ∗
         ⌜fl.OkR tg g⌝)
 

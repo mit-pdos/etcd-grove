@@ -479,6 +479,23 @@ theorem walOpenW_lenLb (w : Loc) (dir : GoString) (s : AbsDiskState) (d : WalDur
   · iframe Hu; iexists γ; iframe Hw Hm
   · iexists γ, s, d; iframe Hw Hs; ipureintro; exact ⟨hd, hn⟩
 
+/-- **`walOpenW` without its flags** (sealed): what a cut holds of the ghost handle while its rename
+is pending (`walOpenW_cut`). -/
+@[no_expose] def walOpenWC (w : Loc) (dir : GoString) : IProp GF :=
+  letI := walAllG (W := W)
+  iprop(walHandleSt (W := W) w dir .append ∗ token W.hA.γu)
+
+/-- **The parking and pending-cut flags out of the ghost handle** (W2's `cut`: the parking flag
+`false` tells the rename's update that the handle has taken its WAL's halves out of `walParked`;
+`walCut_set` to `some dir` at the rename's commit, back to `none` at the directory's sync). -/
+theorem walOpenW_cut (w : Loc) (dir : GoString) :
+    walOpenW (W := W) w dir ⊣⊢
+      walOpenWC (W := W) w dir ∗ walParkFrag (W := W) false ∗ walCutFrag (W := W) none := by
+  unfold walOpenW walOpenWC walLockedTok
+  constructor
+  · iintro ⟨Hs, Ht, Hf, Hc⟩; iframe Hs Ht Hf Hc
+  · iintro ⟨⟨Hs, Ht⟩, Hf, Hc⟩; iframe Hs Ht Hf Hc
+
 theorem walOpening_lenLb (w : Loc) (dir : GoString) (sn : w64 × w64) (s : AbsDiskState) (d : WalDur)
     (n : Nat) (hd : s.wal !! dir = some d) (hn : n ≤ d.H.length) :
     ⊢@{IProp GF} walOpening (W := W) w dir sn -∗ walPast (W := W) s -∗

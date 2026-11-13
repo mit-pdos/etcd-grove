@@ -211,6 +211,19 @@ def walLockH (lf : Loc) : IProp GF :=
   iprop(∃ (f : Loc) (fd : w64) (nm : GoString) (d : OsFd),
     fileutil.lockedFile lf f ∗ os.ownFile f fd nm (DFrac.own 1) ∗ osFd fd (DFrac.own 1) d)
 
+/-- **The handle's share of its WAL directory** (W2's `cut`, its rename; the directory-claim map,
+`notes/wal-fsext-plan.md`, W1 log, seventh session): the directory's key `walDirKey dir j X` (the
+invariant holds the claim `(j, .except X, hj)` once, `DirKeysOk`), the program's half of that claim
+(the claim changes only with both halves, so `hj` is the directory as it is), a fraction of the
+directory's path and the shared invariant of its roots, half of the call permission (the file
+pipeline holds the other, plan §11), and the tail's name: the `.wal` name `nm0` holding the tail's
+inode `ino`, the tail file's name `child dir nm0` (`w.seq()` parses it). -/
+def walDirH (dir : GoString) (ino : Ino) (name : GoString) : IProp GF :=
+  iprop(∃ (R : Roots) (dq : DFrac) (j : Ino) (X : List GoString) (hj : NamesH) (nm0 : GoString),
+    walDirKey (W := W) dir j X ∗ osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
+    osPathS R dir dq j ∗ osSharedInv R ∗ osCallPerm (1 : Qp).half ∗
+    ⌜walNameP nm0 = true ∧ hj.cur !! nm0 = some (.file ino) ∧ name = child dir nm0⌝)
+
 /-- **The open WAL `w` of `dir`, in the state `h`** (see the file header). -/
 def walHandleIn (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h : WalHS) :
     IProp GF :=
@@ -235,6 +248,7 @@ def walHandleIn (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"encoder" w ↦ e ∗
     ownEncoder e (wal.fileWi f) (h.crc Mr) h.pend ∗
     walTailW (W := W) f fd name dir h.γ h.ino h.H h.md h.cuts h.o0 h.sz h.out ∗
+    walDirH (W := W) dir h.ino name ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks ∗
     locks ↦* lfs ∗ ownSliceCap Loc locks (DFrac.own 1) ∗ ⌜lfs.getLast? = some lt⌝ ∗
     ([∗list] lf ∈ lfs.dropLast, walLockH lf) ∗

@@ -75,22 +75,22 @@ theorem preGrown_trans (i : Ino) (m m1 : OsMeta) (w : Nat) (h1 : m.size ≤ m1.s
   iframe
 
 /-- A resize that grew the file landed (`rsDone`): grown. -/
-theorem rsDone_preGrown (p : Ino) (tg sz' : Nat) (m : OsMeta) (n : Nat) :
-    rsDone (GF := GF) p tg sz' m n ⊢ preGrown (GF := GF) p m sz' := by
+theorem rsDone_preGrown {tr : Bool} (p : Ino) (tg sz' : Nat) (m : OsMeta) (n : Nat) :
+    rsDone (GF := GF) tr p tg sz' m n ⊢ preGrown (GF := GF) p m sz' := by
   iintro H
-  icases rsDone_zerosA p tg sz' m n $$ H with ⟨Hm, Hz, -⟩
+  icases rsDone_zerosA tr p tg sz' m n $$ H with ⟨Hm, Hz, -⟩
   unfold preGrown
-  iexists rsPost m tg sz'
+  iexists rsPost tr m tg sz'
   iframe
   ipureintro; simp [rsPost, OsMeta.announce, OsMeta.touch]; split <;> (try split) <;> rfl
 
 /-- A growth that did not land (`rsUndone`, nothing cut off): not grown. -/
-theorem rsUndone_preGrown (p : Ino) (tg : Nat) (m : OsMeta) (n : Nat) :
-    rsUndone (GF := GF) p tg m [] n ⊢ preGrown (GF := GF) p m m.size := by
+theorem rsUndone_preGrown {tr : Bool} (p : Ino) (tg : Nat) (m : OsMeta) (n : Nat) :
+    rsUndone (GF := GF) tr p tg m [] n ⊢ preGrown (GF := GF) p m m.size := by
   unfold rsUndone
   iintro ⟨Hm, -, -⟩
   unfold preGrown
-  iexists m.announce (min m.size tg) (max m.size tg) tg
+  iexists m.announce (min m.size tg) (rsHi tr m.size tg) tg
   iframe Hm
   isplitr
   · ipureintro; simp [OsMeta.announce, OsMeta.touch]; split <;> (try split) <;> simp
@@ -107,7 +107,7 @@ theorem ftDone_preGrown (p : Ino) (m : OsMeta) (tg : Nat) :
   unfold os.ftDone
   iintro ⟨%zs, %hzs, Hm, Hb, -⟩
   unfold preGrown
-  iexists rsPost m tg tg
+  iexists rsPost true m tg tg
   iframe Hm
   isplitr
   · ipureintro; simp [rsPost, OsMeta.announce, OsMeta.touch]; split <;> (try split) <;> rfl
@@ -122,7 +122,7 @@ theorem ftUndone_preGrown (p : Ino) (m : OsMeta) (tg : Nat) :
   unfold os.ftUndone
   iintro ⟨%xs', %hxs, Hm, -, -⟩
   unfold preGrown
-  iexists m.announce (min m.size tg) (max m.size tg) tg
+  iexists m.announce (min m.size tg) (rsHi true m.size tg) tg
   iframe Hm
   isplitr
   · ipureintro; simp [OsMeta.announce, OsMeta.touch]; split <;> (try split) <;> simp

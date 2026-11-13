@@ -64,7 +64,8 @@ meaning: a step on any other path is stuck.
   assumption: a memory-cgroup OOM that fails a kernel-mode fault gives `EFAULT` after progress,
   mid-page; every client's source is a heap buffer, and a mapping's page needs a read that cannot
   fail); and an allocation failure in the write path after a short copy (**no allocation failure
-  in the write path**, an environment assumption beside "no failed writeback": a short copy
+  in the write path**, nor in a truncate's zeroing (below, "File bytes and crashes"), an
+  environment assumption beside "no failed writeback": a short copy
   during a page migration followed by `ENOMEM` in the next `write_begin` stops mid-page with
   errno 0; from the kernel source, not measured). Measured on C
   (`notes/axiom-review/bbolt-port-plan-review/`): 20 of 20 `pwrite(2)` errno returns landed
@@ -113,8 +114,9 @@ tree is kept with a set of the metadata operations since replayed (the committed
 under the journal's order, `Follows`); every file that tree names gets a size between the smallest
 and the largest it had since its last successful sync (ext4's delayed allocation leaves on-disk
 sizes the program never set in between), or towards the target of a change in flight, and **each
-byte any one of its candidates, independently**
-(`CrashFile`); every other file, and the process's state, is gone. Bytes are independent because
+byte any one of its candidates, independently**, or zero at or past the smallest size since the
+last sync (writeback's zeroing, below) (`CrashFile`); every other file, and the process's state,
+is gone. Bytes are independent because
 Linux's are: one `pwrite` of a page can reach disk torn mid-sector, a prefix of it new (its source
 crossed a page that was migrated during the copy) or any mix of two writes (a page rewritten while
 its previous writeback was reading it, on a device without stable pages); both measured on C
@@ -125,7 +127,25 @@ their candidates): such a page has no block, or an unwritten one (`dioread_noloc
 and `FALLOC_FL_KEEP_SIZE` allocate unwritten extents), which reads as zeros (`diskByte`). The page
 holding the end keeps whatever its bytes past the size hold, stale ones included; an extension
 (truncate-up, a write past the end, `fallocate`) reads zeros past the old size. All measured on C
-(`notes/axiom-review/fs-config/crash.sh`, `fs-v2-f3/f3.sh`).
+(`notes/axiom-review/fs-config/crash.sh`, `fs-v2-f3/f3.sh`). **An `ftruncate` zeroes the rest of
+the page holding the old end**, to the same, a smaller or a larger size (`OsChange.ofResize`; ext4's
+`ext4_block_truncate_page`, in the page cache and, ordered before the truncate's commit, on disk;
+a growth's new last page past it is a hole; measured on C: `trunc-*`, `zerotoend`,
+`pl-trunc-append` of `notes/axiom-review/eof-page.md`); a
+`fallocate` zeroes only up to its target (`falloc-in`). It rests on **no allocation failure in the
+write path** (above) widened to that zeroing: `__ext4_block_zero_page_range` gets the folio with
+`FGP_CREAT` under `~__GFP_FS`, and `ext4_truncate` ignores its failure, so a memory-cgroup at its
+limit could skip the zeroing of an uncached folio, leaving the stale tail on disk under a successful
+`ftruncate`. **Pending the user's review** (P2 of `eof-page.md`, 2026-11-13). **Writeback zeroes the page holding
+the end past the size** (`ext4_bio_write_folio`, "The folio straddles i_size. It must be zeroed out
+on each and every writepage invocation", in the page cache and in the block it writes): a byte that
+was past the size at some writeback since the last sync, so at or past the smallest size since then
+(`sizeLo`), may come back zero whatever its candidates (`CrashFile`; a byte below `sizeLo` was
+below the size throughout and is never zeroed so; after a sync `sizeLo` is the size, so the stale
+candidate a sync keeps past the size is covered too). Measured on C
+(`notes/axiom-review/eof-page.md`, `pl-wb-zero`: size 5020 reading `00` at bytes 5010..5019, whose
+candidates were the stale `53` and the written `43`). **Pending the user's review** (P1 of
+`eof-page.md`, 2026-11-13).
 
 **Client premises** (`Premises.lean`, never part of these semantics): a theorem may assume of its
 crashes more than this rule gives, as a stated premise on its executions. `SectorWhole` is one:
@@ -169,6 +189,9 @@ structure OsFile where
 of the configuration: the header). -/
 def pageIn (sz b : Nat) : Bool := decide (4096 * (b / 4096) < sz)
 
+/-- The end of the page holding byte `x - 1`: `x` rounded up to a 4096-byte page. -/
+def pageEnd (x : Nat) : Nat := 4096 * ((x + 4095) / 4096)
+
 /-- What the disk holds at byte `b` of a file of durable size `sz` whose bytes are `img`: `img b`
 in a page that holds a byte below `sz`; zero past it, a page with no block or an unwritten one
 (**durable zeros**, the header). -/
@@ -200,11 +223,12 @@ structure OsFd where
   readable : Bool
   writable : Bool
 
-/-- What an in-flight change does: a `pwrite` of `data` at `off`, or a resize to `sz` (`ftruncate`,
-and `fallocate`'s growth). -/
+/-- What an in-flight change does: a `pwrite` of `data` at `off`, a resize to `sz` by `ftruncate`
+(`truncate`), or one by `fallocate`'s growth (`falloc`). -/
 inductive OsChangeKind where
   | write (off : Nat) (data : List w8)
   | truncate (sz : Nat)
+  | falloc (sz : Nat)
 
 /-- A change between its two steps, of the file `ino`: what it does, and what its first step
 announced (`OsFile.announce`): the bytes `[lo, hi)` it may change, the value `val b` each gets, and
@@ -327,11 +351,20 @@ def OsChange.ofWrite (i : Ino) (f : OsFile) (off : Nat) (data : List w8) : OsCha
   { ino := i, kind := .write off data, lo := min off f.size, hi := off + data.length,
     val := fun b => (f.written off data).getD b 0, target := max f.size (off + data.length) }
 
-/-- A resize of the file `f` of inode `i` to `sz`, as its first step announces it: every byte from
-where the old and new sizes part, zero (an extension reads zeros; a cut zeroes the page cache past
-the new end). -/
-def OsChange.ofResize (i : Ino) (f : OsFile) (sz : Nat) : OsChange :=
-  { ino := i, kind := .truncate sz, lo := min f.size sz, hi := max f.size sz, val := fun _ => 0,
+/-- A resize of the file `f` of inode `i` to `sz`, by `ftruncate` (`trunc`) or by `fallocate`'s
+growth, as its first step announces it: zeros from where the old and new sizes part (an extension
+reads zeros; a cut zeroes the page cache past the new end); `ftruncate` also zeroes the rest of the
+page holding the old end (ext4 zeroes the block holding EOF to its end: `ext4_block_truncate_page`
+from `ext4_truncate`, shrinking or at the same size, and from `ext4_setattr`'s growth; the pages
+past it are freed or holes), and so to the end of the page holding the larger of the two ends (a
+growth's new last page, when past the old end's, is a hole: zeros), `fallocate` only up to its
+target (`ext4_zero_partial_blocks`). Measured on C (`notes/axiom-review/eof-page.md`: `trunc-*`,
+`trunc-up-past` reading zeros past its new end, `zerotoend`, `pl-trunc-append`; `falloc-in` keeps
+the stale tail past its target). **Pending the user's review** (P2 of `eof-page.md`,
+2026-11-13). -/
+def OsChange.ofResize (i : Ino) (f : OsFile) (sz : Nat) (trunc : Bool) : OsChange :=
+  { ino := i, kind := if trunc then .truncate sz else .falloc sz, lo := min f.size sz,
+    hi := if trunc then pageEnd (max f.size sz) else max f.size sz, val := fun _ => 0,
     target := sz }
 
 /-- `f` with the change `c` announced as change number `n`: each byte of `[c.lo, c.hi)` gets the
@@ -528,7 +561,7 @@ def OpenEffect (st : OsState) (p : GoString) (acc : Nat) (creat trunc : Bool) (s
   | some (.dir j) => acc = O_RDONLY ∧ creat = false ∧ trunc = false ∧ st1 = st ∧ tgt = .dir j
   | some (.file i) => (∃ f, st.file i = some f ∧
       st1 = (if trunc then
-        st.stampFile i (fun n => let c := OsChange.ofResize i f 0; (f.announce c n).land c c.hi 0)
+        st.stampFile i (fun n => let c := OsChange.ofResize i f 0 true; (f.announce c n).land c c.hi 0)
         else st)) ∧
       tgt = .file i
   | none => creat = true ∧ ∃ j b, st.parent p = some (j, b) ∧
@@ -668,7 +701,7 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   | "FtruncateStart" => ∃ (fd sz : w64) (t : Nat) (d : OsFd) (f : OsFile), v = PairV (#fd) (#sz) ∧
       FdOpen st fd d ∧ d.writable ∧ 0 ≤ sz.toInt ∧ ¬ BusyAt st d.ino ∧ st.file d.ino = some f ∧
       st.proc.inflight !! t = none ∧ st.proc.calls !! t = none ∧
-      (let c := OsChange.ofResize d.ino f sz.toNat
+      (let c := OsChange.ofResize d.ino f sz.toNat true
        st' = (st.stampFile d.ino (f.announce c)).addInflight t c) ∧
       e' = Val (osTokV t)
   /- The second step: `token ↦ #errno`. It lands all of the announced bytes and the new size; on
@@ -826,21 +859,22 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
             (st' = st0 ∨ st' = st0.takeIno.metaDo (o j b) start))) ∨
        (∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ st' = st0))
   /- The first step of `fallocate(fd, 0, off, len)`: `(#fd, #off, #len) ↦ token`, a resize to
-  `max size (off + len)` in flight (its visible effect is `ftruncate`'s to that size: zeros past the
-  end, announced; the blocks it allocates are not modelled). Stuck while another change is in
+  `max size (off + len)` in flight (its visible effect is `ftruncate`'s to that size, zeros past the
+  end announced, but only up to its target, `OsChange.ofResize`; the blocks it allocates are not
+  modelled). Stuck while another change is in
   flight on the file, on a negative offset, or on a length not above 0. -/
   | "FallocStart" => ∃ (fd off len : w64) (t : Nat) (d : OsFd) (f : OsFile),
       v = PairV (#fd) (PairV (#off) (#len)) ∧ FdOpen st fd d ∧ d.writable ∧ 0 ≤ off.toInt ∧
       0 < len.toInt ∧ ¬ BusyAt st d.ino ∧ st.file d.ino = some f ∧ st.proc.inflight !! t = none ∧
       st.proc.calls !! t = none ∧
-      (let c := OsChange.ofResize d.ino f (max f.size (off.toNat + len.toNat))
+      (let c := OsChange.ofResize d.ino f (max f.size (off.toNat + len.toNat)) false
        st' = (st.stampFile d.ino (f.announce c)).addInflight t c) ∧
       e' = Val (osTokV t)
   /- The second step: `token ↦ #errno`. It lands all of the announced bytes (zeros from the old
   end) and the new size; on failure, a prefix of them, the size grown to the prefix's end (ext4
   grows the file as each chunk is allocated). -/
   | "FallocFinish" => ∃ (t : Nat) (c : OsChange) (sz : Nat) (f : OsFile), v = osTokV t ∧
-      st.proc.inflight !! t = some c ∧ c.kind = .truncate sz ∧ st.file c.ino = some f ∧
+      st.proc.inflight !! t = some c ∧ c.kind = .falloc sz ∧ st.file c.ino = some f ∧
       (let st0 := st.doneInflight t
        st' = st0.setFile c.ino (f.land c c.hi c.target) ∧ e' = Val (#(0 : w64)) ∨
        ∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧
@@ -875,13 +909,15 @@ end step
 /-- `f'` is what a machine crash may leave of the file `f` of inode `i`: a size between the
 smallest and the largest it had since its last successful sync, or between such a size and the
 target of the change in flight; each byte
-any one of its crash candidates, each independently (its bytes past the size included); all of it
-on disk (`ofDisk`: the pages past the size durable zeros). -/
+any one of its crash candidates, each independently (its bytes past the size included), or zero
+at or past the smallest size since the last sync (writeback zeroes the page holding the end past
+the size of the moment, the header; **pending the user's review**); all of it on disk (`ofDisk`:
+the pages past the size durable zeros). -/
 def CrashFile (st : OsState) (i : Ino) (f f' : OsFile) : Prop :=
   ∃ (sz : Nat) (img : Nat → w8),
     ((f.sizeLo ≤ sz ∨ ∃ t c, st.proc.inflight !! t = some c ∧ c.ino = i ∧ c.target ≤ sz) ∧
      (sz ≤ f.sizeHi ∨ ∃ t c, st.proc.inflight !! t = some c ∧ c.ino = i ∧ sz ≤ c.target)) ∧
-    (∀ b, ∃ s, (img b, s) ∈ f.cand b) ∧ f' = OsFile.ofDisk img sz
+    (∀ b, (∃ s, (img b, s) ∈ f.cand b) ∨ (f.sizeLo ≤ b ∧ img b = 0)) ∧ f' = OsFile.ofDisk img sz
 
 /-- The file `i` is named in the tree `m`. -/
 def Named (m : Tree) (i : Ino) : Prop := ∃ j b, m.entry j b = some (.file i)
