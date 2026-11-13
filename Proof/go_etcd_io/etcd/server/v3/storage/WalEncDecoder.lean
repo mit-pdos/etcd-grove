@@ -300,6 +300,86 @@ theorem rdRest_stop {C : WalCodec} {fs fs' : List (List w8)} {off off' : Nat} {c
     · cases h
 
 
+/-! ## A failed `proto.Unmarshal`
+
+`decRecStep` (and `walDecodeFrom`) take `proto.Unmarshal` to be the canonical decoding `C.decRec`.
+Its trusted spec (`proto.UnmarshalPb.spec`) says less: a success gives the canonical decoding, but
+it may fail on any bytes that are not the encoding of a valid record (D2). So the Go decoder may
+also stop with `badRec` at a frame whose bytes `decRec` decodes: `GoFail` (the weaker model of
+W3a, 2026-11-13). Only bytes the encoder never wrote can fail (`UFail`), so a frame the encoder
+wrote is read as `decRecStep` says. -/
+
+/-- `proto.Unmarshal` may fail on the bytes `u`: they are no record's encoding (D2). -/
+def UFail (C : WalCodec) (u : List w8) : Prop := ∀ r, u ≠ C.encRec r
+
+/-- **The frame `decodeRecord` hands to `proto.Unmarshal`** in the file `bs` at `lastValidOff =
+off` (decoder.go:104-125): its data (record and padding) and the record's length, when the step
+gets that far. -/
+def decFrame (bs : List w8) (off : Nat) : Option (List w8 × Nat) :=
+  let rest := bs.drop off
+  if rest.length = 0 then none
+  else if rest.length < 8 then none
+  else
+    let l := leToU64 (rest.take 8)
+    if l = 0#64 then none
+    else
+      let rb := (decodeFrameSize l).1
+      let pad := (decodeFrameSize l).2
+      if bs.length < off + pad + rb then none
+      else if rest.length < 8 + rb + pad then none
+      else some ((rest.drop 8).take (rb + pad), rb)
+
+/-- **`decodeRecord`'s `proto.Unmarshal` fails in the file `bs`** (decoder.go:125-130): the stop
+`s` it returns. -/
+def RecFail (C : WalCodec) (last : Bool) (bs : List w8) (off : Nat) (s : WalStop) : Prop :=
+  ∃ data rb, decFrame bs off = some (data, rb) ∧ UFail C (data.take rb) ∧
+    s = .badRec (isTorn last off data)
+
+/-- **`decodeRecord` on the decoder `(fs, off, c)` stops on a failed `proto.Unmarshal`**: the
+stop and the decoder's state after it (`goDecode`'s, but the `Unmarshal` failed): the files at
+whose end it is are dropped first (:95-103). -/
+inductive GoFail (C : WalCodec) :
+    List (List w8) → Nat → w32 → WalStop → List (List w8) → Nat → w32 → Prop where
+  | here {f fs off c s} : RecFail C fs.isEmpty f off s → GoFail C (f :: fs) off c s (f :: fs) off c
+  | next {f g gs off c s fs' off' c'} : decRecStep C false f off c = .eof →
+      GoFail C (g :: gs) 0 c s fs' off' c' → GoFail C (f :: g :: gs) off c s fs' off' c'
+
+/-- A failed `Unmarshal` returns `badRec`. -/
+theorem goFail_badRec {C : WalCodec} {fs : List (List w8)} {off : Nat} {c : w32} {s : WalStop}
+    {fs' : List (List w8)} {off' : Nat} {c' : w32} (h : GoFail C fs off c s fs' off' c') :
+    ∃ t, s = .badRec t := by
+  induction h with
+  | here h => obtain ⟨_, _, _, _, rfl⟩ := h; exact ⟨_, rfl⟩
+  | next _ _ ih => exact ih
+
+/-- The frame `decRecStep` reads is `decFrame`'s. -/
+theorem decRecStep_decFrame {C : WalCodec} {last : Bool} {bs : List w8} {off : Nat} {c : w32}
+    {data : List w8} {rb : Nat} (h : decFrame bs off = some (data, rb)) :
+    ∃ pad, decRecStep C last bs off c =
+      match C.decRec (data.take rb) with
+      | none => .stop (.badRec (isTorn last off data)) c
+      | some r =>
+        if r.typ ≠ crcType then
+          if r.crc = C.crc32c c r.data then .accept r (8 + rb + pad) (C.crc32c c r.data)
+          else .stop (.crcErr (isTorn last off data)) (C.crc32c c r.data)
+        else .accept r (8 + rb + pad) c := by
+  unfold decFrame at h
+  unfold decRecStep
+  simp only at h ⊢
+  split at h; · cases h
+  rename_i h1; rw [ite_eq_right h1]
+  split at h; · cases h
+  rename_i h2; rw [ite_eq_right h2]
+  split at h; · cases h
+  rename_i h3; rw [ite_eq_right h3]
+  split at h; · cases h
+  rename_i h4; rw [ite_eq_right h4]
+  split at h; · cases h
+  rename_i h5; rw [ite_eq_right h5]
+  injection h with h; injection h with hd hr
+  subst hd hr
+  exact ⟨_, rfl⟩
+
 /-! ## The reader's loop, run to its end -/
 
 /-- **The readers' loop over `Decode`** (`for err = decoder.Decode(rec); err == nil; ...`, with
@@ -312,6 +392,8 @@ inductive ReaderRun (C : WalCodec) :
       ReaderRun C fs off c [] s fs' off' c'
   | crcRec {fs off c r fs' off' c'} : goDecode C fs off c = .ok r fs' off' c' →
       r.typ = crcType → crcRecBad c' r → ReaderRun C fs off c [] .crcRec fs' off' c'
+  | fail {fs off c s fs' off' c'} : GoFail C fs off c s fs' off' c' →
+      ReaderRun C fs off c [] s fs' off' c'
   | ok {fs off c r fs1 off1 c1 rs s fs' off' c'} : goDecode C fs off c = .ok r fs1 off1 c1 →
       ¬ (r.typ = crcType ∧ crcRecBad c1 r) →
       ReaderRun C fs1 off1 (rdCrc c1 r) rs s fs' off' c' →
@@ -320,32 +402,41 @@ inductive ReaderRun (C : WalCodec) :
 /-- **The loop lemma**: the readers' loop from the decoder state `(fs, off, c)` reads what
 `rdRest` says; from a fresh decoder, `walDecodeFiles` (`readerRun_start`). The offset and CRC
 agree at every stop but a CRC mismatch (`LastOffset()`/`LastCRC()`, which the readers use only after
-`io.EOF`). -/
+`io.EOF`). Or a `proto.Unmarshal` failed (`GoFail`): then the loop read the records `rdRest` reads
+up to the decoder state `(fs1, off1, c1)` where it failed. -/
 theorem readerRun_eq {C : WalCodec} {fs : List (List w8)} {off : Nat} {c : w32} {rs : List WalRec}
     {s : WalStop} {fs' : List (List w8)} {off' : Nat} {c' : w32}
     (h : ReaderRun C fs off c rs s fs' off' c') :
-    (rdRest C fs off c).recs = rs ∧ (rdRest C fs off c).stop = s ∧
-    (s ≠ .crcRec → (∀ t, s ≠ .crcErr t) →
-      (rdRest C fs off c).off = off' ∧ (rdRest C fs off c).crc = c') := by
+    ((rdRest C fs off c).recs = rs ∧ (rdRest C fs off c).stop = s ∧
+      (s ≠ .crcRec → (∀ t, s ≠ .crcErr t) →
+        (rdRest C fs off c).off = off' ∧ (rdRest C fs off c).crc = c')) ∨
+    (∃ fs1 off1 c1, (rdRest C fs off c).recs = rs ++ (rdRest C fs1 off1 c1).recs ∧
+      GoFail C fs1 off1 c1 s fs' off' c') := by
   induction h with
   | stop hd =>
     obtain ⟨h1, h2, h3⟩ := rdRest_stop hd
-    exact ⟨h1, h2, fun _ ht => h3 ht⟩
+    exact Or.inl ⟨h1, h2, fun _ ht => h3 ht⟩
   | crcRec hd ht hb =>
     obtain ⟨h1, h2⟩ := rdRest_crcRec hd ⟨ht, hb⟩
-    exact ⟨h1, h2, fun h _ => absurd rfl h⟩
+    exact Or.inl ⟨h1, h2, fun h _ => absurd rfl h⟩
+  | fail hf => exact Or.inr ⟨_, _, _, rfl, hf⟩
   | ok hd hok _ ih =>
     rw [rdRest_ok hd hok]
-    exact ⟨by rw [ih.1], ih.2.1, ih.2.2⟩
+    rcases ih with ih | ⟨fs1, off1, c1, h1, h2⟩
+    · exact Or.inl ⟨by rw [ih.1], ih.2.1, ih.2.2⟩
+    · exact Or.inr ⟨fs1, off1, c1, by simp only [h1, List.cons_append], h2⟩
 
 /-- The loop lemma from a fresh decoder (`NewDecoder(rs...)`: offset 0, CRC `crc.New(0, …)`). -/
 theorem readerRun_start {C : WalCodec} {fs : List (List w8)} {rs : List WalRec} {s : WalStop}
     {fs' : List (List w8)} {off' : Nat} {c' : w32} (h : ReaderRun C fs 0 0#32 rs s fs' off' c') :
-    (walDecodeFiles C fs 0#32).recs = rs ∧ (walDecodeFiles C fs 0#32).stop = s ∧
-    (s = .eof → (walDecodeFiles C fs 0#32).off = off' ∧ (walDecodeFiles C fs 0#32).crc = c') := by
+    ((walDecodeFiles C fs 0#32).recs = rs ∧ (walDecodeFiles C fs 0#32).stop = s ∧
+      (s = .eof → (walDecodeFiles C fs 0#32).off = off' ∧ (walDecodeFiles C fs 0#32).crc = c')) ∨
+    (∃ fs1 off1 c1, (walDecodeFiles C fs 0#32).recs = rs ++ (rdRest C fs1 off1 c1).recs ∧
+      GoFail C fs1 off1 c1 s fs' off' c') := by
   rw [← rdRest_start]
-  obtain ⟨h1, h2, h3⟩ := readerRun_eq h
-  exact ⟨h1, h2, fun he => h3 (by subst he; decide) (by subst he; intro t h; cases h)⟩
+  rcases readerRun_eq h with ⟨h1, h2, h3⟩ | h
+  · exact Or.inl ⟨h1, h2, fun he => h3 (by subst he; decide) (by subst he; intro t h; cases h)⟩
+  · exact Or.inr h
 
 end WalEnc
 end EtcdGrove

@@ -160,7 +160,7 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
   · inext; iright; iexact Htok
   icases Hb with ⟨%s, >Hb⟩
   iunfold walInvBody at Hb
-  icases Hb with ⟨%Ls, %cl, %n, Hg, %Har, Hcl, #Hcm, Hlays, %Hok⟩
+  icases Hb with ⟨%Ls, %cl, %n, Hg, %Har, Hcl, #Hcm, Hlays, %Hok, -⟩
   icases walGhost_keys_keep (W := W) s $$ Hg with ⟨Hg, %hk⟩
   -- the tree: what the claims allow
   imod crashRest_region Q L L' [] false V' R (cl.map (fun c => (c, DFrac.own (1 : Qp).half))) n E
@@ -253,7 +253,8 @@ theorem walsOk_start (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots) (j
     obtain ⟨hj, hjm⟩ := hdirs nm lay.j hin.1 he
     have hjc := hc _ hjm
     simp only at hjc
-    refine ⟨lay, nm, hj, hL, hin, hjr, hnm, hjm, ?_, ?_⟩
+    refine ⟨lay, nm, hj, hL, hin, hjr, hnm, ⟨[], by simp, hjm, ?_⟩, ?_, crashOkW_of_crashOk ?_⟩
+    · exact claimCoh_init _ _ _ (by rw [hjc]) (fun b _ => by rw [hjc])
     · rw [hjc]; simp only [restrictN_all]; exact habs
     · refine walAbs_crashOk_start C hC Mr d lay cl 0 (entsOf V.now lay.j) habs hfit hlog
         ⟨hj, hjm, by rw [hjc]; simp only [restrictN_all]⟩ ?_ ⟨h1, h2, h3⟩ hlast
@@ -367,8 +368,13 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     · ipureintro; exact Har
     isplitl [Hi]
     · iapply (laysRes_list (L := L) Ls).2 $$ Hi
+    isplitr
+    · ipureintro
+      exact walsOk_start C hC Mr R jr s Ls V cl hV hcl harea hdirs hdok hstart hnd hcut
     ipureintro
-    exact walsOk_start C hC Mr R jr s Ls V cl hV hcl harea hdirs hdok hstart hnd hcut
+    intro nm hnm
+    obtain ⟨N, h, hc, hN⟩ := harea
+    exact ⟨N, h, hc, hN nm hnm⟩
   imodintro
   unfold walInv
   iframe Hinv Hc2

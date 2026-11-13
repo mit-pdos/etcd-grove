@@ -137,7 +137,8 @@ directory): a failure with no effect; the file there opened; a new file created,
 without its fd. -/
 theorem openCreateStep_cases [GooseExts] [GoGlobalContext] [go.BasicIntoValInj] {st : OsState}
     {d b : GoString} {j : Ino} {k s0 : Nat} {fl : w64} {e' : Expr} {st' : OsState}
-    (hcr : fl.toNat / O_CREAT % 2 = 1) (htr : fl.toNat / O_TRUNC % 2 = 0) (hw : FsTreeWf st)
+    (hcr : fl.toNat / O_CREAT % 2 = 1)
+    (htr : fl.toNat / O_TRUNC % 2 = 0 ∨ st.tree.entry j b = none) (hw : FsTreeWf st)
     (hcall : st.proc.calls !! k = some s0) (hp : st.lookup d = some (.dir j)) (hb : NameOk b)
     (hnd : ∀ J, st.tree.entry j b ≠ some (.dir J))
     (Hst : IsFsStep "Open" (PairV (osTokV k) (PairV (#(child d b)) (#fl))) st e' st') :
@@ -155,8 +156,7 @@ theorem openCreateStep_cases [GooseExts] [GoGlobalContext] [go.BasicIntoValInj] 
   obtain ⟨rfl, rfl, rfl⟩ := tokPathFl_inj hv
   rw [hcall] at hk'; cases hk'
   have hcr' : decide ((fl.toNat / O_CREAT) % 2 = 1) = true := by simp [hcr]
-  have htr' : decide ((fl.toNat / O_TRUNC) % 2 = 1) = false := by simp [htr]
-  simp only [hcr', htr'] at hres
+  simp only [hcr'] at hres
   obtain ⟨-, hres⟩ := hres
   have hl : (st.metaEnd k).lookup (child d b) = st.tree.entry j b := lookup_child hw.roots hp hb
   have hpar : (st.metaEnd k).parent (child d b) = some (j, b) := parent_child hp hb
@@ -176,8 +176,10 @@ theorem openCreateStep_cases [GooseExts] [GoGlobalContext] [go.BasicIntoValInj] 
       cases n with
       | dir J => exact absurd hen (hnd J)
       | file i =>
+        have htr0 : fl.toNat / O_TRUNC % 2 = 0 := htr.resolve_right (by rw [hen]; simp)
+        have htr' : decide ((fl.toNat / O_TRUNC) % 2 = 1) = false := by simp [htr0]
         obtain ⟨⟨f, -, h1⟩, rfl⟩ := heff
-        simp only [Bool.false_eq_true, ↓reduceIte] at h1
+        simp only [htr', Bool.false_eq_true, ↓reduceIte] at h1
         subst h1
         right; left
         refine ⟨i, fd, rfl, hfree, rfl, ?_⟩
@@ -198,8 +200,10 @@ theorem openCreateStep_cases [GooseExts] [GoGlobalContext] [go.BasicIntoValInj] 
         cases n with
         | dir J => exact absurd hen (hnd J)
         | file i =>
+          have htr0 : fl.toNat / O_TRUNC % 2 = 0 := htr.resolve_right (by rw [hen]; simp)
+          have htr' : decide ((fl.toNat / O_TRUNC) % 2 = 1) = false := by simp [htr0]
           obtain ⟨⟨f, -, h1⟩, -⟩ := heff
-          simp only [Bool.false_eq_true, ↓reduceIte] at h1
+          simp only [htr', Bool.false_eq_true, ↓reduceIte] at h1
           left; exact ⟨e, he, rfl, h1⟩
 
 section specs
@@ -251,7 +255,7 @@ def ocGift (fl : w64) (cur : Ents) (b : GoString) (n : Nat) (w : val) (lg : Bool
 
 theorem wp_osOpenCreateS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : NamesH)
     (k s0 : Nat) (q : Qp) (fl : w64) (hfl : OpenFlagsOk fl.toNat) (hcr : fl.toNat / O_CREAT % 2 = 1)
-    (htr : fl.toNat / O_TRUNC % 2 = 0) (hb : NameOk b) (hnd : ∀ J, h.cur !! b ≠ some (.dir J))
+    (htr : fl.toNat / O_TRUNC % 2 = 0 ∨ h.cur !! b = none) (hb : NameOk b) (hnd : ∀ J, h.cur !! b ≠ some (.dir J))
     (hs : h.next ≤ s0) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗ osCallS (L := L) k s0 q -∗
@@ -277,16 +281,23 @@ theorem wp_osOpenCreateS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h
     hat.ent _ (List.mem_singleton_self _) b hbN
   have hndE : ∀ st, ClaimsAt st cl → ∀ J, st.tree.entry j b ≠ some (.dir J) := by
     intro st hat J; rw [hentE st hat]; exact hnd J
+  have htrE : ∀ st, ClaimsAt st cl → fl.toNat / O_TRUNC % 2 = 0 ∨ st.tree.entry j b = none :=
+    fun st hat => htr.imp id (fun hn => (hentE st hat).trans hn)
   have hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
       (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) →
       st.lookup d = some (.dir j) → ClaimsAt st cl →
       ∃ e' st', IsFsStep "Open" (PairV (osTokV k) (PairV (#(child d b)) (#fl))) st e' st' ∧
         FilesSame st st' := by
-    intro st _ _ hcall _ hp _
-    have htr' : decide ((fl.toNat / O_TRUNC) % 2 = 1) = false := by simp [htr]
-    exact ⟨_, st.metaEnd k, ⟨child d b, fl, k, s0, rfl, .inr (treeName_child hp hb), hfl,
-      hcall, ⟨fun h => (Bool.false_ne_true (htr'.symm.trans h)).elim,
-        .inr ⟨1, by decide, rfl, .inl rfl⟩⟩⟩, filesSame_metaEnd st k⟩
+    intro st hw _ hcall _ hp hat
+    refine ⟨_, st.metaEnd k, ⟨child d b, fl, k, s0, rfl, .inr (treeName_child hp hb), hfl,
+      hcall, ⟨fun htr1 i hl => ?_, .inr ⟨1, by decide, rfl, .inl rfl⟩⟩⟩, filesSame_metaEnd st k⟩
+    rcases htr with htr | hnone
+    · have htr' : decide ((fl.toNat / O_TRUNC) % 2 = 1) = false := by simp [htr]
+      exact (Bool.false_ne_true (htr'.symm.trans htr1)).elim
+    · have hl0 : (st.metaEnd k).lookup (child d b) = st.tree.entry j b :=
+        lookup_child hw.roots hp hb
+      have hl' : (st.metaEnd k).lookup (child d b) = some (.file i) := hl
+      rw [hl0, hentE st hat, hnone] at hl'; cases hl'
   have hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
       (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) →
       st.lookup d = some (.dir j) → ClaimsAt st cl →
@@ -294,7 +305,7 @@ theorem wp_osOpenCreateS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h
       ∃ w, e' = Val w ∧ FsTreeWf st' ∧
         ((EndedT st st' k ∧ W w false) ∨ (LoggedT st st' k s0 (oF st.fs.nextIno) ∧ W w true)) := by
     intro st e' st' hw _ hcall _ hp hat Hst
-    rcases openCreateStep_cases hcr htr hw hcall hp hb (hndE st hat) Hst with
+    rcases openCreateStep_cases hcr (htrE st hat) hw hcall hp hb (hndE st hat) Hst with
       ⟨e, -, rfl, rfl⟩ | ⟨i, fd, -, hfree, rfl, rfl⟩ | ⟨hen, e, -, rfl, rfl⟩ | ⟨hen, fd, hfree, rfl, rfl⟩
     · exact ⟨_, rfl, fsTreeWf_metaEnd hw k,
         .inl ⟨endedT_metaEnd st k, _, _, rfl, fun h => by cases h⟩⟩
@@ -316,7 +327,7 @@ theorem wp_osOpenCreateS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h
       ⊢ osWorld (L := L) st Γb Γm Γf Γt hh ==∗ ∃ Γb' Γm' Γf' Γt',
         osWorld (L := L) st' Γb' Γm' Γf' Γt' hh' ∗ ocGift (L := L) fl h.cur b st.fs.nextIno w lg := by
     intro st e' st' hh hh' Γb Γm Γf Γt w lg hw _ hcall _ hp hat Hst hew _ hend hlog Hr Hfr
-    rcases openCreateStep_cases hcr htr hw hcall hp hb (hndE st hat) Hst with
+    rcases openCreateStep_cases hcr (htrE st hat) hw hcall hp hb (hndE st hat) Hst with
       ⟨e, he, rfl, rfl⟩ | ⟨i, fd, hen, hfree, rfl, rfl⟩ | ⟨hen, e, he, rfl, rfl⟩ | ⟨hen, fd, hfree, rfl, rfl⟩
     · cases lg with
       | true => exact absurd (hlog rfl) (fun h' => not_loggedT_same h' rfl)
@@ -421,7 +432,7 @@ theorem wp_osOpenCreateS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h
       (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = curF st.fs.nextIno c) := by
     intro st e' st' hw _ hcall hp hat Hst hlf
     have hen : st.tree.entry j b = none := by
-      rcases openCreateStep_cases hcr htr hw hcall hp hb (hndE st hat) Hst with
+      rcases openCreateStep_cases hcr (htrE st hat) hw hcall hp hb (hndE st hat) Hst with
         ⟨_e, _he, _he', hst'⟩ | ⟨_i, _fd, _h1, _h2, _h3, hst'⟩ | ⟨hen, -⟩ | ⟨hen, -⟩
       · exact absurd hlf (fun h' => not_loggedT_same h' (by rw [hst']; rfl))
       · exact absurd hlf (fun h' => not_loggedT_same h' (by rw [hst']; rfl))

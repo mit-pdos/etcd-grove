@@ -38,6 +38,8 @@ public import Perennial.Proof.encoding.binary.Base
 public import LinuxFs.Spec.go_etcd_io.etcd.pkg.v3.crc.digest__Write
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalEncDecoder
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.walpb.Defs
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Codec
+public import LinuxFs.Proof.google_golang_org.protobuf.proto.PkgInit
 
 @[expose] public section
 
@@ -215,7 +217,8 @@ variable [bufio_sem : _root_.Perennial.bufio.Assumptions]
 
 /-- **The decoder's environment** (persistent): the packages it calls initialized, `io.EOF` and
 `io.ErrUnexpectedEOF` at `eof`/`ueof`, `errors.Is(_, io.EOF)` on the readers' errors
-(`isEofOk`), the WAL's CRC table and `walpb.ErrCRCMismatch` (read by `Record.Validate`). -/
+(`isEofOk`), the WAL's CRC table, `walpb.ErrCRCMismatch` (read by `Record.Validate`) and
+protobuf's `proto` initialized (`proto.Unmarshal`). -/
 def decEnv (IoE : GoInterface → Prop) (eof ueof : GoInterface) : IProp GF :=
   iprop(isPkgInit (PROP := IProp GF) pkg_id.io ∗ isPkgInit (PROP := IProp GF) pkg_id.encoding.binary ∗
     isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ isPkgInit (PROP := IProp GF) pkg_id.sync ∗
@@ -225,7 +228,8 @@ def decEnv (IoE : GoInterface → Prop) (eof ueof : GoInterface) : IProp GF :=
     isEofOk IoE eof ueof ∗ walCrcTable ∗
     (∃ e : GoInterfaceOk,
       globalAddr go_etcd_io.etcd.server.v3.storage.wal.walpb.ErrCRCMismatch ↦□ GoInterface.ok e ∗
-      errOk e))
+      errOk e) ∗
+    isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto)
 
 instance decEnv_persistent (IoE : GoInterface → Prop) (eof ueof : GoInterface) :
     Persistent (decEnv (GF := GF) IoE eof ueof) := by
@@ -234,7 +238,9 @@ instance decEnv_persistent (IoE : GoInterface → Prop) (eof ueof : GoInterface)
 /-- **What `Decode` (and `decodeRecord`) returns from the live decoder `(fs, off, c)`**: what
 `goDecode` says (a record in `*rp` and the decoder live at the next frame; or the stop's error,
 the decoder live only at the end), with the files left a suffix of `fs`; or an I/O error of `IoE`
-(a failed `FileInfo` of the file reached, or a failed read), the decoder no longer live. -/
+(a failed `FileInfo` of the file reached, or a failed read), the decoder no longer live; or
+`proto.Unmarshal` failed on a frame (`GoFail`: bytes that are no record's encoding), the decoder
+no longer live and the record not given back. -/
 def decPost (C : WalCodec) (d rp : Loc) (IoE : GoInterface → Prop) (eof ueof : GoInterface)
     (fs : List (DecFile GF)) (off : Nat) (c : w32) (err : GoInterface) : IProp GF :=
   iprop((∃ k : Nat, match goDecode C (fs.map (·.bs)) off c with
@@ -245,7 +251,10 @@ def decPost (C : WalCodec) (d rp : Loc) (IoE : GoInterface → Prop) (eof ueof :
         ⌜stopErr eof ueof s err ∧ (fs.drop k).map (·.bs) = fs'⌝ ∗ ownRecAny rp ∗
           ownDecoder d IoE eof (fs.drop k) off' c' (decide (s = .eof))) ∨
     (⌜IoE err⌝ ∗ ownRecAny rp ∗
-      ∃ (fs' : List (DecFile GF)) (off' : Nat) (c' : w32), ownDecoder d IoE eof fs' off' c' false))
+      ∃ (fs' : List (DecFile GF)) (off' : Nat) (c' : w32), ownDecoder d IoE eof fs' off' c' false) ∨
+    (∃ (k : Nat) (s : WalStop) (off' : Nat) (c' : w32),
+      ⌜GoFail C (fs.map (·.bs)) off c s ((fs.drop k).map (·.bs)) off' c' ∧ stopErr eof ueof s err⌝ ∗
+      ownDecoder d IoE eof (fs.drop k) off' c' false))
 
 end post
 
