@@ -97,6 +97,45 @@ theorem rsUndone_preGrown (p : Ino) (tg : Nat) (m : OsMeta) (n : Nat) :
   · ipureintro; rfl
   rw [List.map_nil]; unfold osBytes; iapply (bytesG_nil _ _ _ _).2; iempintro
 
+/-- A truncate that grew the file landed (`os.ftDone`): grown. -/
+theorem ftDone_preGrown (p : Ino) (m : OsMeta) (tg : Nat) :
+    os.ftDone (GF := GF) p m tg ⊢ preGrown (GF := GF) p m tg := by
+  unfold os.ftDone
+  iintro ⟨%zs, %hzs, Hm, Hb, -⟩
+  unfold preGrown
+  iexists rsPost m tg tg
+  iframe Hm
+  isplitr
+  · ipureintro; simp [rsPost, OsMeta.announce, OsMeta.touch]; split <;> (try split) <;> rfl
+  iapply (osZerosA_unfold p m.size _ _).2
+  iexists zs
+  iframe Hb
+  ipureintro; exact hzs
+
+/-- A truncate that grew nothing landed (`os.ftUndone`, nothing to cut off): not grown. -/
+theorem ftUndone_preGrown (p : Ino) (m : OsMeta) (tg : Nat) :
+    os.ftUndone (GF := GF) p m tg [] ⊢ preGrown (GF := GF) p m m.size := by
+  unfold os.ftUndone
+  iintro ⟨%xs', %hxs, Hm, -, -⟩
+  unfold preGrown
+  iexists m.announce (min m.size tg) (max m.size tg) tg
+  iframe Hm
+  isplitr
+  · ipureintro; simp [OsMeta.announce, OsMeta.touch]; split <;> (try split) <;> simp
+  rw [Nat.sub_self]
+  iapply (osZerosA_unfold p m.size 0 _).2
+  iexists []
+  isplitr
+  · ipureintro; rfl
+  rw [List.map_nil]; unfold osBytes; iapply (bytesG_nil _ _ _ _).2; iempintro
+
+/-- No mapping, no cells. -/
+theorem mcellsAny_empty (M : GMap Loc Nat) (hM : M = ∅) (lo hi : Nat) :
+    ⊢ mcellsAny (GF := GF) M lo hi := by
+  subst hM
+  unfold mcellsAny
+  iapply BigSepM.bigSepM_empty.2; iempintro
+
 /-- An `Errno` error is a leaf (its method set: `Error`, `Is`, `Temporary`, `Timeout`). -/
 theorem errno_leaf [syscall.Assumptions] (e : w64) :
     errors.isLeafError ⟨syscall.Errno.ty, #e⟩ := by
