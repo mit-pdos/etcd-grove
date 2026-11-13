@@ -673,3 +673,23 @@ out of `Abs.lean`; statement unchanged). Left: `walInv_alloc` (`sorry`).
   the `os` promotion dissolves the part. Rejected: (a), a raft trust-base and `Assumptions` change that
   rebuilds everything under other sessions' raft work, with the user away; waiting for the promotion
   (weeks).
+- **Part copies carried out** (branch `wal-copies`, 2026-11-13): `etc/gen-part-copies.py` (`--check`:
+  a copy differs, or a copy's main-tree import reaches a module the part declares again) writes
+  `LinuxFs/<path>` copies, each headed "GENERATED ... from `<path>`". *Whole copies* (imports of copied
+  modules and of the part's own translations, `LinuxFs/{Code,GeneratedProof,...}`, pointed at the
+  part's): `PbModel`, `AbsDisk/{Impl,Specs}`, `WalHist`, `WalDisk`, `WalHistLemmas`, `WalViews`,
+  `WalEnc{Recs,Segs,SegsImg,Suffix,Fold}`, `WalReadAllPost`, and the `proto` vocabulary (`InvProto`
+  without raft's `Base`, the `Size`/`Marshal`/`Unmarshal` specs and axioms; the hand-kept copies before).
+  *Extracts* (named top-level declarations, verbatim with their docstrings, in a frame of given imports,
+  `open`s and `variable`s): `NodeApiVocab`'s `StorContents` (and `.b`/`.last`/`.commit`), `CommitWit`'s
+  `hardStateM_countable`/`hsZero`/`phsNext` (+ lemmas), `WalRecs`'s `walFresh`/`walSaveSnap`/
+  `walSaveSnap_base_ge` (not the server's ghost state, not the `walFiles` axiom). **No main-tree split**:
+  a split of `NodeApiVocab`/`CommitWit`/`RaftState`/`WalRecs` changes their public `.olean` and rebuilds
+  2202/2733/4750/1253 modules (`etc/importers.py --count`); an extract rebuilds none. Not copied:
+  `walSave` (needs `appendEnts`, `RaftState` over `Protocol.Model`; no WAL module uses it), the
+  `StorContents` countable instance (needs raft's `entryID`/`EntryM`/`SnapshotM` instances; unused). The
+  modules that do not reach the clash (`WalEncFrame`/`Decode`/`Files`, `WalPbWire`, `AbsDisk/Paths`)
+  are imported from the main tree. The W1 layer imports the copies; `wal/ImportCheck.lean` (the WAL
+  translation with the vocabulary, the fold, the W1 layer and the `proto` copies) builds. Adding a
+  module: append it to `COPIES` (an extract when its imports are heavy). The copies go with the `os`
+  promotion.
