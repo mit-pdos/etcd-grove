@@ -983,3 +983,64 @@ both were `axiom … : val`, with which `MkdirAll`'s parent loop and `IsDir` cou
 
 Not done: multi-component `MkdirAll` (an absent component above `b`; the WAL does not need it);
 `fmtErrorOkOrNil` of the returned errors.
+
+### Implementation log, guard calls (branch `wal-osau4-guard`, 2026-11-13)
+
+Done, proved (no `sorry`): the guard-call design above ("`RemoveAll`: the decided guard-call
+design is unsound as stated", the sound version), with one correction to its point 2.
+
+**Deviation: `whole` is not generalized; a pair rule instead.** "A call whose fraction plus the
+guards' is 1 began now" is not maintainable: a call `c` holding `1/2` begins at log length 5;
+another call holding `1/2` logs entry 5 and ends; its thread begins a guard with its `1/2`. Now
+`c`'s fraction and the guards' make 1, but `c` began at 5 and the log has 6 entries, so an `rmdir`
+by `c` would log a directory operation whose call overlapped another entry (`DirOpExcl` broken). What
+holds, and is maintained, is the **pair rule** (`TreeCohS.pair`): a logging call `c` and a guard `t`
+whose fractions make 1, *the guard begun no later* (`t`'s start `≤ c`'s), began now. Guard begin:
+the new guard's start is the log's length, so `c`'s start is too (`callsLe`). A logging step by
+`k`: no other pair can make 1 (the three fractions `k`, `c`, `t` sum to at most 1). Call begin,
+call end, guard end: the log does not move. So the guard specs of `rmdir`/`mkdir` take
+`q + g = 1` **and `sg ≤ s0`** (the inner call began after the guard: `RemoveAll` passes the guard's
+`osLogLb sg` to the inner `CallBegin`, which gives `sg ≤ s0`). `whole` (`q = 1`) is unchanged.
+
+Ghost state and definitions (internal; every existing statement unchanged):
+
+- `OsGS.γg` (Ghost.lean): the guard calls, `Nat ↦ Nat × Qp` (start, fraction); allocated in
+  `os_local_init`, held empty in `legacyHolds` (its last conjunct), moved into `treeShared`, empty,
+  by the switch.
+- `treeShared` gains `Γg` (`∃ V0 s0 Γdf Γc Γg`), `gAuth γg Γg ∗ callResS Γg` after `callResS Γc` (the
+  guards' permission fractions; every open/close site gained `%Γg … HAg, Hgr`).
+- `TreeCohS st s0 Γdf Γc Γg`: `calls` weakened to `Γc ⊆ st.proc.calls` (`∀ t x, Γc !! t = some x →
+  calls !! t = some x.1`); new `gcalls` (`Γg ⊆ calls`), `gdisj` (disjoint keys), `cover` (every call
+  is in `Γc` or `Γg`), `pair` (above). `after`, `whole`, `callsLe` range over `Γc` only (guards exempt).
+- `osGuardS t s g := gElem γg t 1 (s, g)` (`TreeSharedRes.lean`).
+- Lemmas: `TreeCohS.fresh`, `treeCohS_begin`, `treeCohS_beginGuard` (Switch); `treeCohS_metaEnd`
+  now takes `hk : Γc !! k = some _`; `treeCohS_guardEnd` (Step); `treeCohS_log`'s premises are now
+  `hdirS` (a directory operation began now), `hexcl` (others not whole, and none during a directory
+  operation) and `hval` (three-fraction validity); `WholeG q s0 gd` (`q = 1`, or `q + g = 1 ∧ sg ≤
+  s0` for the guard `gd`), `wholeG_facts`, `sole_of` (a call holding all of it is the only call,
+  guards included: the directory rename's `hsole`, now through `cover` and the guards' fractions),
+  `callsRes_facts` (the fractions' validity), `osGuardOpt`/`osCallSG`/`osCallPermG` (TreeSharedLog).
+- `wp_logStepSWG` (the old `wp_logStepSW`'s body, with an optional guard `gd`; `hnext`/`hdir` over
+  `WholeG`), `wp_logStepSNG`, `wp_logStepSG`; `wp_logStepSW`/`SN`/`S` keep their statements (`SW` is
+  now a wrapper with `gd = none`). `wp_osRmdirSGen`/`wp_osMkdirSGen` (TreeSharedMeta): the old
+  proofs over `WholeG`; `wp_osRmdirS'`/`wp_osMkdirS'` are wrappers.
+
+New specs (`TreeShared.lean`; proofs in `TreeSharedGuard.lean` and `TreeSharedMeta.lean`):
+
+- `wp_osCallBeginGuardS R g n`: `osCallPerm g ∗ osLogLb n` → `osGuardS t s0 g ∗ osLogLb s0`,
+  `n ≤ s0`.
+- `wp_osLstatDirGuardS R p t sg g (hp)`: `LstatDir (t, p)` with `osGuardS t sg g` → `osCallPerm g`,
+  `isDir = 1 → e ≠ 0`, no effect. `hp : ∃ r j0 cs, (r, j0) ∈ R ∧ (∀ c ∈ cs, NameOk c) ∧ p = joinPath r cs`
+  (the step's `TreePath`, textual: the path need not exist; `RemoveAll`'s `path` from its spine
+  `osPathS R d dq j` and `NameOk b`: `p = child d b = joinPath r (cs ++ [b])`).
+- `wp_osRmdirSG`, `wp_osMkdirSG`: `wp_osRmdirS`/`wp_osMkdirS` with `osCallS k s0 q ∗ osGuardS t sg g`
+  (premises `q + g = 1`, `sg ≤ s0`) in place of `osCallS k s0 1`, both given back.
+- Under a guard, `Unlink`, `Open` (file or directory), `LstatDir`, the `_none` cases and the
+  directory reads already take any fraction `q`; a directory rename needs `osCallS k s0 1`, which a
+  guard in flight excludes.
+
+Built: every `GooseLang.Ext.Fs.*` module; of `LinuxFs`, `os.{SharedExt,SharedAu,PathKindS,Remove,
+MkdirAll*,…}` and `fileutil.LockFile`. Not built, with errors unrelated to the tree's ghost state (in
+the base `wal-osau4` merge `3d888e8e56`, not checked there): `os.OpenFileS`/`OpenFileTruncS`
+(`fmtErrorOkOrNil` of the error branch: `⟨…⟩` against the spec's new shape) and `wal.Codec`
+(`walCodec_ok`), hence `wal.Create`.
