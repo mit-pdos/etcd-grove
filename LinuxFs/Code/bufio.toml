@@ -1,7 +1,15 @@
-# (project etcd's part `LinuxFs/`; Perennial does not translate bufio) types and names only: what
-# `fileutil`'s `FileReader` names (`bufio.Reader`, `NewReader`). No model yet.
-translate = ["!*"]
-imports = ["!*", "io"]
+# (project etcd's part `LinuxFs/`; Perennial does not translate bufio) types and names, and (WAL
+# leaf specs, 2026-11-13) with their bodies what the WAL's decoder runs of a `*bufio.Reader`
+# (`fileutil.NewFileBufReader`'s `NewReader`, and `Read`, through `io.ReadFull`/`binary.Read`):
+# `NewReader`, `NewReaderSize`, `(*Reader).reset`, `Read`, `readErr`, `Buffered`, the constants
+# they use, and the package's error variables (`errors.New` calls), proved in
+# `LinuxFs/Proof/bufio/`.
+translate = ["!*", "Reader", "NewReader", "NewReaderSize", "Reader.reset", "Reader.Read",
+  "Reader.readErr", "Reader.Buffered", "defaultBufSize", "minReadBufferSize",
+  "errNegativeRead", "ErrInvalidUnreadByte", "ErrInvalidUnreadRune", "ErrBufferFull",
+  "ErrNegativeCount", "errNegativeWrite", "ErrTooLong", "ErrNegativeAdvance", "ErrAdvanceTooFar",
+  "ErrBadReadCount", "ErrFinalToken"]
+imports = ["!*", "io", "errors"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

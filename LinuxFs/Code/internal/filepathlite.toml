@@ -1,0 +1,12 @@
+# (project etcd's part `LinuxFs/`, WAL leaf specs, 2026-11-13; Perennial does not translate it)
+# `path/filepath`'s lexical core on Unix, with bodies: `Clean` over `lazybuf`, `Base`, `Dir`, `Ext`,
+# `IsAbs`, `VolumeName` (empty on Unix), `FromSlash` (the identity on Unix: `replaceStringByte`,
+# which it never reaches there, stays names-only), and `errInvalidPath` (what importing it runs).
+# Proved in `LinuxFs/Proof/internal/filepathlite/`.
+translate = ["!*", "lazybuf", "lazybuf.index", "lazybuf.append", "lazybuf.string", "Clean",
+  "IsPathSeparator", "volumeNameLen", "VolumeName", "FromSlash", "postClean", "Base", "Dir", "Ext",
+  "IsAbs", "errInvalidPath"]
+imports = ["!*", "errors", "internal/stringslite"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

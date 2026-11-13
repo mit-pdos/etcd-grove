@@ -1,8 +1,13 @@
-# (project etcd's part `LinuxFs/`; Perennial does not translate path/filepath) types and names
-# only: what the WAL and `fileutil` call (`Join`, `Base`, `Dir`, `Ext`, `Clean`, `Abs`, `Walk`). No
-# model yet.
-translate = ["!*"]
-imports = ["!*"]
+# (project etcd's part `LinuxFs/`; Perennial does not translate path/filepath) types and names, and
+# (WAL leaf specs, 2026-11-13) with their bodies the Unix lexical functions the WAL and `fileutil`
+# call (`Join`, `Base`, `Dir`, `Ext`, `Clean`, `IsAbs`, `Abs`: over `internal/filepathlite`, also
+# translated in the part; `Abs` of a relative path calls `os.Getwd`, names-only) and `ErrBadPattern`
+# (`errors.New`). `Walk` stays names-only, and so do `SkipDir`, `SkipAll` (copies of `io/fs`'s,
+# whose values the part's `io/fs` fact does not hold) and `lstat`. Proved in
+# `LinuxFs/Proof/path/filepath/`.
+translate = ["!*", "Join", "join", "Base", "Dir", "Ext", "Clean", "IsAbs", "Abs", "abs", "unixAbs",
+  "ErrBadPattern"]
+imports = ["!*", "errors", "internal/filepathlite", "io/fs", "os", "strings"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
