@@ -43,7 +43,20 @@ post a **chain-form** wand; `LeaseRenew.spec`, `raftLeaseRenew` take `http.netCt
 `ctxDoneErr` `#HValueAny` would make `RenewHTTP` false (typed-nil `*cancelCtx`,
 `TestRenewHTTPNilCancelCtxPanics`); `ctxDoneErr`/`ctxChildErr`/`wp_WithTimeout_weak`/`waitLeader` NOT
 written. Recommended: land T-h0's fix alone; the rest with option (A) at LeaseKeepAlive.
-Build/gates results: in the report to 81 and below once run.
+Build of T-h0 (`00ce547d39`): full build green (20261113-011402). Then 81 added the sweep's two
+findings: (1) **done**, `9212d8cdea` T-h6 (`leaseTimeToLive` takes `http.netCtxOk`; `grpcRunCtx` gains
+it, `netCtxOk_of_runCtx`; LeaseTimeToLive's specs/contract carry it; `examples/etcd/lease/ctxsweep_test.go`;
+`notes/leasetimetolive-value-refuted.md`; audit row). (2) **NEXT, not started**: `http.WithContext_ok`
+with `rafthttp.NewRoundTripper`/`newStreamRoundTripper` (`roundTripperOk`): record the request's context
+(`reqCtx` in `reqOwn` or a persistent `reqCtxIs`), `WithContext_spec` takes `isContext ∗ http.netCtxOk`
+(or a Background chain: every caller passes `WithCancel(Background())`; `http.netCtxOkC` of a child of
+Background: `ctxValue_background` + `http.netCtxOkC_from`), `roundTripperOk`'s `RoundTrip` uses it; widen
+`netErr`/`errStrOk` if the done-context error comes back. Findings: 81's workflow journal
+`/root/.claude-csail/projects/-shared-etcd-grove/c04a65b0-a272-4ae4-94c7-91aa4a20ea30/subagents/workflows/wf_91727eee-383/journal.jsonl`
+(search `WithContext_ok`). Record it in `notes/` (as `leasetimetolive-value-refuted.md`), Addendum T-h
+(a T-h7 section), audit row. Then build, tcb --check (report, no --update; collections only after
+81's review), axiom-tok, model-param, gen-interface --check, goose --check; STOP for 81's axiom review.
+Gates script: `/shared/tmp/k8s7f4/gates/run.sh` (outputs in its directory).
 Pitfall: inside `local macro` tactic quotations (`renew_forward`), `ihave #X := lemma $$ [...]` names do
 not resolve later (hygiene); use the `ihave #X : P $$ []` form and `$Name` is an antiquotation there.
 
