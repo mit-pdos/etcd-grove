@@ -11,7 +11,8 @@ roots `R`), in the tree's shared mode (`notes/wal-fsext-i2-design.md`). It holds
   `n` of the generation's tree (`osCommitLb n`, I1), each named segment's halves (`segRes`);
 * the static relation (`WalAbsD`) and the crash condition (`CrashOk`) of every WAL;
 * that a directory of the area with no WAL has none after any crash its claims allow (`AbsentOk`),
-  and that a durable directory (`dirDurable`) resolves after any crash (`DirsOk`).
+  and that a durable directory (`dirDurable`) resolves after any crash (`DirsOk`);
+* `Create`'s framed part (`WalsCreateOk`, W4): a claim of the area holds every WAL name.
 
 **Not yet here** (W2-W6 add them as their steps need): a write in flight on a segment (its
 `pwTok`, as `cfInv`'s `invRes`, LinuxFs/Proof/os/CrashFile.lean); the pipeline's `N.tmp` claims
@@ -68,6 +69,12 @@ def WalsOk (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (s : AbsDiskS
   ((segsAll Ls).map (·.ino)).Nodup ∧ (∀ g ∈ segsAll Ls, g.om.cut = none) ∧
   AbsentOk s jr cl n ∧ DirsOk R s cl n
 
+/-- **`Create`'s part of the invariant** (W4, framed apart from `WalsOk`): a claim of the area
+directory among `cl` holds every WAL name, so that a claim the program holds on a WAL name is known
+to be one the invariant has the other half of (`NamesCoh.disj`), whose crashes it reasons about. -/
+def WalsCreateOk (jr : Ino) (cl : List Claim) : Prop :=
+  ∀ nm, walNameOk nm → ∃ N h, (jr, N, h) ∈ cl ∧ N.Mem nm
+
 end pure
 
 section inv
@@ -100,7 +107,7 @@ def walInvBody (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoSt
   iprop(∃ (Ls : GMap GoString WalLay) (cl : List Claim) (n : Nat),
     walGhost (W := W) s ∗ ⌜s.area = r⌝ ∗
     osClaims L (cl.map (fun c => (c, DFrac.own (1 : Qp).half))) ∗ osCommitLb (L := L) n ∗
-    laysRes (L := L) Ls ∗ ⌜WalsOk C Mr R jr s Ls cl n⌝)
+    laysRes (L := L) Ls ∗ ⌜WalsOk C Mr R jr s Ls cl n⌝ ∗ ⌜WalsCreateOk jr cl⌝)
 
 instance walInvBody_timeless (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (s : AbsDiskState) : Timeless (walInvBody (L := L) (W := W) C Mr R jr r s) := by

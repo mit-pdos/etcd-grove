@@ -160,7 +160,7 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
   · inext; iright; iexact Htok
   icases Hb with ⟨%s, >Hb⟩
   iunfold walInvBody at Hb
-  icases Hb with ⟨%Ls, %cl, %n, Hg, %Har, Hcl, #Hcm, Hlays, %Hok⟩
+  icases Hb with ⟨%Ls, %cl, %n, Hg, %Har, Hcl, #Hcm, Hlays, %Hok, -⟩
   icases walGhost_keys_keep (W := W) s $$ Hg with ⟨Hg, %hk⟩
   -- the tree: what the claims allow
   imod crashRest_region Q L L' [] false V' R (cl.map (fun c => (c, DFrac.own (1 : Qp).half))) n E
@@ -367,8 +367,13 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     · ipureintro; exact Har
     isplitl [Hi]
     · iapply (laysRes_list (L := L) Ls).2 $$ Hi
+    isplitr
+    · ipureintro
+      exact walsOk_start C hC Mr R jr s Ls V cl hV hcl harea hdirs hdok hstart hnd hcut
     ipureintro
-    exact walsOk_start C hC Mr R jr s Ls V cl hV hcl harea hdirs hdok hstart hnd hcut
+    intro nm hnm
+    obtain ⟨N, h, hc, hN⟩ := harea
+    exact ⟨N, h, hc, hN nm hnm⟩
   imodintro
   unfold walInv
   iframe Hinv Hc2
