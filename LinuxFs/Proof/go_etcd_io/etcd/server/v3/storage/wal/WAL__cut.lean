@@ -596,6 +596,32 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     rw [hnm0]; exact walFileName_lt sq ix (sq + 1) _ (by omega) hsq
   have hbtw := walNameP_walFileName (sq + 1) (max (uint.nat h.enti) (uint.nat h.snapi) + 1)
   have hcurbt := cutName_free hlargest hlt hbtw
+  -- the update's resources (`walCutP`): quarters of the WAL claim, halves of the tmp claim
+  have hq3 : qQuarter + ((1 : Qp).half + qQuarter) = 1 := by
+    apply Subtype.ext
+    show (1 : Rat) / 2 / 2 + ((1 : Rat) / 2 + (1 : Rat) / 2 / 2) = 1
+    grind
+  ihave Hcl' : osNames j (.except X) (DFrac.own (qQuarter + qQuarter)) hj $$ [Hcl]
+  · rw [show qQuarter + qQuarter = (1 : Qp).half from Qp.half_add_half _]; iexact Hcl
+  icases (osNames_frac j (.except X) qQuarter qQuarter hj).1 $$ Hcl' with ⟨Hcl1, Hcl2⟩
+  icases (osNames_join j (.only [pipeTmp np]) (1 : Qp).half (1 : Qp).half ht (Qp.half_add_half 1)).2
+    $$ Hn2 with ⟨Hn2a, Hn2b⟩
+  icases (walOpenW_cut w dir).1 $$ Hopen with ⟨Hopen, Hpk, Hcf⟩
+  ihave #Hinv : walInv (W := W) walCodec Mr R jr r $$ [Harea]
+  · iunfold WalFs.walAreaOk at Harea; icases Harea with ⟨#H, -, -⟩; iexact H
+  ihave Hau := walCut_osAUnc Mr R jr r dir j X hj (pipeTmp np) ht h1.γ h.H h.md h.cuts
+    (h1.o0 + h1.out.length) h1.ino m bs g
+    (walFileName (sq + 1) (max (uint.nat h.enti) (uint.nat h.snapi) + 1)) nm0
+    (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length (sq + 1)
+    (max (uint.nat h.enti) (uint.nat h.snapi) + 1)
+    (htmps _ (pipeTmp_mem np)) hcuts hcpos ⟨hnm0w, hnm0c⟩ ⟨rfl, by omega, hlt⟩ hbtw hcurbt hbs0 hm0x
+    rfl hgbs hgmeta hfitH hgz (by rw [← hg]) hgne $$ Hinv [Hdk Htk Hv Hcl1 Hn2a Hpk Hcf Hm Hbs HmS HbS]
+  · iunfold walCutP
+    iframe Hdk Htk Hcl1 Hn2a Hpk Hcf Hm Hbs Hsyn Hnamed
+    isplitl [Hv]
+    · iunfold tailVar; iexact Hv
+    rw [← hg]
+    iframe
   sorry
 
 end proof
