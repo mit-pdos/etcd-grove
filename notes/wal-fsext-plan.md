@@ -715,6 +715,15 @@ holds some mode). Nothing proves the new models yet.
   (`notes/perennial-changes.md`, "`io.ReadFull`/`ReadAtLeast` and `binary.Read`'s fast path without
   bodies"); the `fmt`/`time` ones likewise ("`Sprintf`'s `%0Nx`, ..."), with Go evidence for all three
   in `examples/stdlib/{fmtwalname,timeformat}/`.
+- **`wal-read5`** (2026-11-13): `io.readerStream` takes `len(r) + len(p) < 2^62` of each `Read` (decided
+  option (a) of the `wal-read4` finding: the `*os.File` model does not model reads ending past
+  `model.offMax`). So the `io.ReadFull` axiom's statement is **weakened** by the premise `len(r0) +
+  len(buf) < 2^62` (a stronger precondition: what the axiom claims is less); `binary.ReadInt64LE`'s is
+  stated over `ReadFull`'s triple and does not change. `bufio.ownReader` records the buffer at most 4 KiB
+  and `bufio.Reader.Read.spec` asks that the underlying stream's states stay 4 KiB below `2^62` (a
+  refill reads a whole buffer at the position); `decFile`'s bound is now `|F.bs| + 2^12 < 2^62`;
+  `readInt64` takes `len(r0) + 8 < 2^62`. The decoder discharges both reads: the length word inside
+  `|F.bs| + 8`, the frame at most 8 bytes past the file (Go's size check counts from `lastValidOff`).
 
 **Pending the user's review (trusted or axiomatic), all off `lean`:** the fork fixes (§8,
 `notes/wal-fsext-fork/`); W1 (the crash premise, `LinuxFs/.../wal/W1.lean`; the open question of torn

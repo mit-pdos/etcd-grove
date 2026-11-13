@@ -77,7 +77,7 @@ theorem bufio.ownReader_intro (b : Loc) (ri : GoInterfaceOk) (S : List w8 → IP
     (E : List w8 → GoInterface → Prop) (r : List w8) (v : _root_.Perennial.bufio.Reader)
     (bs : List w8)
     (Hwf : v.rd' = GoInterface.ok ri ∧ 0 ≤ sint.Z v.r' ∧ sint.Z v.r' ≤ sint.Z v.w' ∧
-      sint.nat v.w' ≤ bs.length ∧ 0 < bs.length)
+      sint.nat v.w' ≤ bs.length ∧ 0 < bs.length ∧ bs.length ≤ 2 ^ 12)
     (Herr : v.err' ≠ GoInterface.nil → E (r ++ subslice (sint.nat v.r') (sint.nat v.w') bs) v.err') :
     isPkgInit (PROP := IProp GF) pkg_id.bufio -∗ b ↦ v -∗ v.buf' ↦* bs -∗
       S (r ++ subslice (sint.nat v.r') (sint.nat v.w') bs) -∗ bufio.ownReader b ri S E r := by
@@ -150,8 +150,8 @@ local macro "copy_tail " V:term:max BS:term:max : tactic => `(tactic| (
 set_option maxHeartbeats 800000 in
 theorem bufio.Reader.Read.wp_proof : bufio.Reader.Read.spec (GF := GF) (hG := hG) := by
   intro b ri S E r p xs
-  iintro #Hrd
-  wp_start as ⟨Hb, Hp⟩
+  iintro #Hrd #HSb
+  wp_start as ⟨%Hrx, Hb, Hp⟩
   iunfold bufio.ownReader at Hb
   icases Hb with ⟨#Hpkg, %v, %bs, Hv, Hbuf, %Hwf, HS, %Herr⟩
   ihave %Hplen := ownSlice_len _ _ _ $$ Hp
@@ -214,7 +214,7 @@ theorem bufio.Reader.Read.wp_proof : bufio.Reader.Read.spec (GF := GF) (hG := hG
           try wp_auto
           iunfold io.readerStream at Hrd
           wp_apply Hrd $$ %r %p %xs [HS Hp] as %nr %er ⟨%ys, %Hys, Hp, HS⟩
-          · iframe
+          · iframe; ipureintro; exact Hrx
           have hnr0 : ¬ sint.Z nr < 0 := by omega
           wp_if_destruct
           · exact absurd Hif hnr0
@@ -254,8 +254,9 @@ theorem bufio.Reader.Read.wp_proof : bufio.Reader.Read.spec (GF := GF) (hG := hG
         · try wp_auto
           rw [Hwf.1, hsub, List.append_nil]
           iunfold io.readerStream at Hrd
+          ihave %HSr := HSb $$ HS
           wp_apply Hrd $$ %r %v.buf' %bs [HS Hbuf] as %nr %er ⟨%ys, %Hys, Hbuf, HS⟩
-          · iframe
+          · iframe; ipureintro; have := Hwf.2.2.2.2.2; omega
           have hnr0 : ¬ sint.Z nr < 0 := by omega
           wp_if_destruct
           · exact absurd Hif hnr0
@@ -287,7 +288,7 @@ theorem bufio.Reader.Read.wp_proof : bufio.Reader.Read.spec (GF := GF) (hG := hG
             have hw : sint.nat (W64 0 + nr) = ys.length := by word
             have hsub2 : subslice (sint.nat (W64 0)) (sint.nat (W64 0 + nr)) (ys ++ bs.drop ys.length) = ys := by
               rw [hw]; exact bufio.subslice_prefix ys _
-            have Hwf0 : 0 < bs.length := Hwf.2.2.2.2
+            have Hwf0 : 0 < bs.length ∧ bs.length ≤ 2 ^ 12 := Hwf.2.2.2.2
             have Hblen0 := Hblen
             have hnr : nr ≠ W64 0 := Hif
             clear Hwf Hblen Herr Hif
@@ -297,7 +298,7 @@ theorem bufio.Reader.Read.wp_proof : bufio.Reader.Read.spec (GF := GF) (hG := hG
               (GoInterface.ok ri) (W64 0) (W64 0 + nr) er v.lastByte' v.lastRuneSize' := rfl
             let BS := ys ++ bs.drop ys.length
             have Hwf : V.rd' = GoInterface.ok ri ∧ 0 ≤ sint.Z V.r' ∧ sint.Z V.r' ≤ sint.Z V.w' ∧
-                sint.nat V.w' ≤ BS.length ∧ 0 < BS.length := by
+                sint.nat V.w' ≤ BS.length ∧ 0 < BS.length ∧ BS.length ≤ 2 ^ 12 := by
               refine ⟨rfl, by simp only [hV]; word, by simp only [hV]; word, ?_, ?_⟩ <;> rw [hBS]
               · simp only [hV]; rw [hw]; exact hys0
               · exact Hwf0
