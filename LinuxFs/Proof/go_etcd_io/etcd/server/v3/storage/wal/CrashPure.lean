@@ -161,6 +161,8 @@ theorem crashTo_start (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLa
   have hlenSegs : (crashLay fo lay q S.length).segs.length = lay.segs.length - q := by
     simp [crashLay]
   have hcutsLen := habs.cuts.2.2
+  have hne' : (crashLay fo lay q S.length).segs ≠ [] := by
+    intro h; have := congrArg List.length h; rw [hlenSegs] at this; simp at this; omega
   have hpreS : S <+: f0.contents := hpre0
   have hSlen : S.length ≤ f0.contents.length := hpreS.length_le
   refine ⟨d', crashLay fo lay q S.length, Or.inr ⟨I, segStart lay.cuts (lay.first + q), himg,
@@ -281,6 +283,7 @@ theorem crashTo_start (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLa
       intro _ r len c'
       rw [hold]
       exact hstop0 r len c'
+    · exact hne'
   case fit =>
     have hp := (segs_pre C Mr d.metadata (P := I.map WalOpG.toM) (Q := d.H.map WalOpG.toM)
       (le_segStart_length hsorted) htI hpI).1
@@ -341,7 +344,8 @@ theorem crashGood_exists (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     have := (hcr f' hf').2.2.1
     rw [(habs.metas g hg).2.2.2] at this
     exact this)
-  have hct := hcok m' (fun i => st'.fs.files !! i) hreg (fun g hg => (hf g hg).1) hw1G
+  have hct := hcok m' (fun i => st'.fs.files !! i) hreg (fun g hg => (hf g hg).1)
+    (fun g hg => (hf g hg).2.1) hw1G
   rcases crashTo_start C Mr d lay _ m' (fun i => st'.fs.files !! i) habs
     (fun g hg => (hf g hg).2.1) hct with ⟨hn, he⟩ | ⟨d', lay', hc, hjr', hnm', he, hrest⟩
   · refine ⟨none, Or.inl ⟨hn, rfl⟩, ⟨fun _ => ⟨nm, hin, ?_⟩, fun _ _ h => by cases h⟩⟩

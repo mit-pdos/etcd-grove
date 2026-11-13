@@ -153,6 +153,8 @@ structure WalAbsD (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (
   tailStop : lay.z0 = (segStream C Mr d lay.cuts lay.cuts.length).length → ∀ r len c',
     decStep C true lay.old lay.z0
       (WalEnc.chainEnd C 0#32 (recsOfSegs C Mr d.metadata (segsOf (histM d) lay.cuts))) ≠ .accept r len c'
+  /-- There is a segment (`Create` makes the first; a purge keeps the last). -/
+  nonempty : lay.segs ≠ []
 
 /-! ## W1 over the ghost candidates -/
 
@@ -270,32 +272,15 @@ def CrashTo (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (m' : T
 
 /-- **The crash condition** (plan §2.2): for every crashed tree the WAL's claims allow
 (`RegionCrashed` of the claims `cl` with the commit bound `n`) and every image of each segment its
-halves allow (`FileCrashedR`) on which W1 holds (`W1G`), `CrashTo`. -/
+halves allow (`FileCrashedR`), there if the crashed tree names it, on which W1 holds (`W1G`),
+`CrashTo`. -/
 def CrashOk (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (cl : List Claim)
     (n : Nat) : Prop :=
   ∀ (m' : Tree) (fo : Ino → Option Fs.OsFile), RegionCrashed cl n m' →
     (∀ g ∈ lay.segs, FileCrashedR g.om [(0, DFrac.own (1 : Qp).half, g.bs)] (fo g.ino)) →
+    (∀ g ∈ lay.segs, Named m' g.ino → (fo g.ino).isSome) →
     W1G C (walInos (entsOf m' lay.j)) (fun i => imgOf (fo i)) (segBytesOf lay) →
     CrashTo C Mr d lay m' fo
-
-/-- **The crash condition at a generation's start**: nothing logged on the WAL's names (each claim's
-history empty, `RegionCrashed` then keeps them as they are), every byte of every segment durable and
-nothing appended (`wr = so = z0`, the last segment's stream ending at `z0`), so every crash leaves the
-files as they are; the static relation then gives the crash condition (the reader reads the WAL's
-records, then stops). This is what the next generation's invariant needs (`walInv_crash`). -/
-theorem walAbs_crashOk_start (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (d : WalDur)
-    (lay : WalLay) (cl : List Claim) (n : Nat) (ents : Ents)
-    (habs : WalAbsD C Mr d lay ents)
-    (hfit : RecsFit C (recsOfSegs C Mr d.metadata (segsOf (histM d) lay.cuts)))
-    (hlog : ∀ c ∈ cl, c.2.2.ents = [])
-    (hj : (lay.j, NameSet.except [], ⟨ents, [], ents⟩) ∈ cl)
-    (hr : ∃ N, (lay.jr, N, ⟨{[lay.nm := Node.dir lay.j]}, [], {[lay.nm := Node.dir lay.j]}⟩) ∈ cl ∧
-      ∀ b, N.Mem b ↔ b = lay.nm)
-    (hdur : lay.wr = lay.so ∧ lay.wr = lay.z0 ∧
-      lay.z0 = (segStream C Mr d lay.cuts lay.cuts.length).length)
-    (hlast : ∀ g, lay.segs.getLast? = some g → g.bs = lay.old.map durB) :
-    CrashOk C Mr d lay cl n := by
-  sorry
 
 end abs
 

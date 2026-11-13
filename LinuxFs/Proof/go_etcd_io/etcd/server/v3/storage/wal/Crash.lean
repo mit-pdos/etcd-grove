@@ -21,7 +21,7 @@ the WAL's names are claimed (`wp_osShare`, `osNames_split`).
 -/
 module
 
-public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CrashPure
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CrashStart
 public import GooseLang.Ext.Fs.CrashTakeFiles
 
 @[expose] public section
