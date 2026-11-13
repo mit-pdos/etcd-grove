@@ -2348,3 +2348,10 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
   `LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/`), to be discharged when linking.
 - **Proposed.** `Errorf`'s model wraps the `%w` arguments (Go's `wrapError`/`wrapErrors`) and its spec
   accepts error arguments, with `errors.Is`/`Unwrap` following the chain.
+
+## 2026-11-13: `go.NotInterface` does not unfold `go.int64` (method calls on `time.Duration`)
+
+- **Missing.** `MethodResolve` on a named type over `int64` (`time.Duration`) needs a `go.NotInterface go.int64`
+  instance that Perennial's instances do not derive (they do not unfold `go.int64`).
+- **Workaround here.** A local instance in the WAL encoder's proofs (branch `wal-enc4`, `LinuxFs/.../wal/EncDefs.lean`).
+- **Proposed.** The instance (or the unfolding) in Perennial.
