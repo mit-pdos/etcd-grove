@@ -71,10 +71,11 @@ def PerSlotSeq (log : List LogEntry) : Prop :=
   ∀ x y (ex ey : LogEntry), y < x → log[x]? = some ex → log[y]? = some ey →
     (∃ sl ∈ ex.op.slots, sl ∈ ey.op.slots) → y < ex.start
 
-/-- **Directory operations exclusive**: a directory operation began when it took effect (no entry
+/-- **Directory operations exclusive**: a directory operation, and every entry below `s0` (logged
+before the shared mode began, when calls did not overlap), began when it took effect (no entry
 between its call's start and its step), and every later entry's call began after it. -/
-def DirOpExcl (log : List LogEntry) : Prop :=
-  ∀ x (ex : LogEntry), log[x]? = some ex → ex.op.IsDirOp →
+def DirOpExcl (log : List LogEntry) (s0 : Nat) : Prop :=
+  ∀ x (ex : LogEntry), log[x]? = some ex → (ex.op.IsDirOp ∨ x < s0) →
     ex.start = x ∧ ∀ z (ez : LogEntry), x < z → log[z]? = some ez → x < ez.start
 
 /-- The tree after the first `t` entries of `log`, replayed on `T0`. -/
@@ -90,10 +91,10 @@ def OpOk (m : Tree) : MetaOp → Prop
   | .remove j b n => j ∈ m ∧ m.entry j b = some n
   | .rename j b j' b' n old => j ∈ m ∧ j' ∈ m ∧ m.entry j b = some n ∧ m.entry j' b' = old
 
-/-- Each file operation of the log applicable to the tree it was logged on, and a created file new:
-named in no earlier tree. -/
-def LogValid (T0 : Tree) (log : List LogEntry) : Prop :=
-  ∀ x (e : LogEntry), log[x]? = some e → ¬ e.op.IsDirOp →
+/-- Each file operation of the log from `s0` on applicable to the tree it was logged on, and a
+created file new: named in no earlier tree. -/
+def LogValid (T0 : Tree) (log : List LogEntry) (s0 : Nat) : Prop :=
+  ∀ x (e : LogEntry), log[x]? = some e → ¬ (e.op.IsDirOp ∨ x < s0) →
     OpOk (prefTree T0 log x) e.op ∧
     ∀ j b i, e.op = .create j b i → ∀ t, t ≤ x → ¬ Named (prefTree T0 log t) i
 
@@ -113,19 +114,7 @@ def slotAfter (T0 : Tree) (log : List LogEntry) (S : Nat → Prop) (j : Ino) (b 
   | some x => (prefTree T0 log (x + 1)).entry j b
   | none => T0.entry j b
 
-/-- **The consistent-cut theorem.** A log with the shared mode's disciplines, every tree of whose
-run is a tree over the roots: what a crash keeping a closed set `S` replays is a tree; each slot as
-right after its last kept writer; its files named somewhere in the run; its directories those of one
-of the run's trees. -/
-theorem closed_cut {R : List (GoString × Ino)} {T0 : Tree} {log : List LogEntry}
-    (hst : Starts log) (hps : PerSlotSeq log) (hdx : DirOpExcl log) (hv : LogValid T0 log)
-    (hwf : ∀ t, t ≤ log.length → TreeWf R (prefTree T0 log t))
-    {S : Nat → Prop} (hS : ∀ x, S x → x < log.length) (hc : Closed log S) :
-    TreeWf R (replay (keptOps log S) T0) ∧
-    (∀ j b, (replay (keptOps log S) T0).entry j b = slotAfter T0 log S j b) ∧
-    (∀ i, Named (replay (keptOps log S) T0) i → ∃ t, t ≤ log.length ∧ Named (prefTree T0 log t) i) ∧
-    (∃ t, t ≤ log.length ∧ ∀ j, j ∈ replay (keptOps log S) T0 ↔ j ∈ prefTree T0 log t) := by
-  sorry
+-- The consistent-cut theorem, `closed_cut`, is in `TreeCutProof.lean`.
 
 end Fs
 end Perennial

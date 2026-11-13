@@ -498,3 +498,54 @@ counterexample; `closed_cut`'s paper argument holds). The coordinator's decision
   extension step; blind directory reads with no claim; no-effect failure specs; `os.RemoveAll`'s
   `unlinkat`/`openat` (the trusted-model drafts model it by path over the extension's steps, or report it);
   the per-slot crash rule revisited; a rendezvous channel spec for the pipeline's `N.tmp` hand-off.
+
+## Implementation log
+
+Branch `wal-i2` (off `wal-int`). Modules, FS/ = `GooseLang/Ext/Fs/`:
+
+- `TreeCut.lean` (pure defs): `MetaOp.slots`, `MetaOp.Writes` (slots, and every name of the
+  directory a `mkdir` makes), `MetaOp.IsDirOp`, `Starts`, `PerSlotSeq`, `DirOpExcl log s0`,
+  `OpOk`, `LogValid T0 log s0`, `prefTree`, `lastKept`, `slotAfter`.
+- `TreeCutProof.lean`: **`closed_cut` proved** (no `sorry`).
+- `NamesGhost.lean` (pure): `NameSet` (with `inter`/`diff`/`Same`), `NamesH`, `restrictN`,
+  `NamesH.valAfter`, `Claim`, `RegionCrashed`, `DirPhS`.
+- `CrashRegion.lean`: **`regionCrashed_of_cut` proved**: a closed `S` with the commit bound and
+  `closed_cut`'s slots gives `RegionCrashed` for every list of claims whose histories are the log's.
+- `TreeShared.lean`: the API: resources (`osNames`, `osCallPerm`, `osCallS`, `osLogLb`,
+  `osLogEnt`, `osDirFdS`, `osSpine`/`osPathS`, `osSharedInv`, `osLogged`, `osNamesAfter`), the
+  claims as a function of the history (`namesOf`, m7), `NamesCoh`, laws, `wp_osShare` (the switch as
+  a combinator around any extension step, m2), `wp_osCallBeginS`, every FS-level shared spec, and
+  `crashRest_region`/`crashRest_treeS`. **All `sorry`.**
+- `Ghost.lean`: `OsGS` gains `γs γdfS γcS γperm γn γlen γlog`, allocated (empty) in `os_local_init`;
+  nothing else changed yet.
+
+Deviations from the design:
+
+1. **Directory operations need the whole call permission** (`mkdir`, `rmdir`, a directory's rename,
+   a rename replacing a directory): `wp_osMkdirS`/`wp_osRmdirS`/`wp_osRenameDirS` take
+   `osCallS k s0 1`. The log discipline is `DirOpExcl`: such an entry began when it took effect
+   and every later call began after it. This replaces the footprints `(J,*)` of §4.3 (and the
+   `PerSlotSeq` of directory operations): a kept directory operation keeps everything before it, a
+   dropped one drops everything after, so the replay's directory structure is one of the run's trees
+   (`T a`, `a` past the last kept directory operation) and only file operations need the per-slot
+   argument. It is the §5 risk-1 fallback, strengthened, and costs the WAL nothing (its `MkdirAll`,
+   `Rename(tmp, dir)`, `RemoveAll` run in `Create`/`cleanupWAL` at boot, M4). A server whose
+   libraries `mkdir` concurrently at run time would need the footprints back.
+2. **`DirOpExcl log s0` and `LogValid T0 log s0` exempt the legacy prefix** (`x < s0`, the log's
+   length at the switch): the legacy log is `Sequential`, so its entries are exclusive, and its past
+   operations' applicability (`OpOk`) is not recorded by the legacy invariant. `LogValid` (each file
+   operation applicable to its tree, a create's inode new) is a new invariant fact of the shared mode.
+3. **`closed_cut`'s conclusion**: `TreeWf` of the replay; each slot = `slotAfter` (right after its
+   last kept writer); every named file named in some tree of the run (so in `files`, via
+   `FsTreeWf.hist`); the replay's directory keys those of a tree of the run (for `nextIno`).
+4. `osLogLb` is a `MonoNat` (`γlen`) and `osLogEnt` a persistent ghost-map element (`γlog`), not a
+   `MonoList` (m7). The DirSync spec takes `osSharedInv` (M3). Claims are keyed by `(j, N)` with
+   `N` a list-based `NameSet`; `osNames_rekey` changes a key to another of the same names (m3).
+5. A blind read (`wp_osDirReadNextBlind`) reads with the empty claim set `.only []` (m3).
+6. Not yet stated: the `os`-level logically atomic specs (M1, `LinuxFs/Spec/os/`), the
+   `O_TRUNC` open, the cross-directory rename's spine variant beyond `wp_osRenameFileS`.
+
+Still to do, in order: the mode split (`treeCtx`'s shared branch with `TreeCohS` = `Starts`,
+`PerSlotSeq`, `DirOpExcl _ s0`, `LogValid _ _ s0`, calls/dfds coherence; the legacy branch owning the
+shared authorities and the whole `γperm` token, M3), `crashRest`'s shared branch and `osCrash_rel` via
+`closed_cut`, the laws, the step specs, the `os` wrappers, the two-region test.
