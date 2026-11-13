@@ -66,7 +66,8 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
   about the generator is obsolete).
 - B2 additions: §11.4 (HS1's `Or.inr` or a widened `authStoreKit`; S8's `memberBuiltR` over `srvBuiltR`
   and `srvInvAt`; finding 1's image half first).
-- Builds: `/shared/tmp/restart-s56/cp2fix/{targeted,full,tcb}.log`.
+- Builds (at `48858f7fb4`): targeted and full clean (17479 jobs), tcb --check matches (870, 4),
+  gen-interface --check clean: `/shared/tmp/restart-s56/cp2fix/{targeted,full,tcb}.log`.
 
 ## CP2 (2026-11-13, the CP2 agent): next agent starts here
 
