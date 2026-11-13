@@ -92,7 +92,7 @@ abbrev os.OpenFile.specCreateSnc : Prop :=
       ∃ o, Q o ∗ crOut j b h (DFrac.own q) o ∗ crMeta o ∗
         ((∃ (fd : w64) (i : Ino), ⌜err = interface.nil ∧ 0 ≤ fd.toInt ∧ crIno b h o i⌝ ∗
             os.ownFile f fd (child d b) (DFrac.own 1) ∗ osFd fd (DFrac.own 1) (openFd i (flag ||| W64 0x80000))) ∨
-         ⌜err ≠ interface.nil ∧ f = null⌝) }}
+         ⌜err ≠ interface.nil ∧ f = null⌝ ∗ fmtErrorOkOrNil err) }}
 
 end spec
 
