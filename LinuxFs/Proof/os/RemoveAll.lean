@@ -6,7 +6,7 @@ rest. Lean-first; untrusted.
 -/
 module
 
-public import LinuxFs.Proof.os.RemoveAllDir
+public import LinuxFs.Proof.os.RemoveAllFrom
 
 @[expose] public section
 
@@ -72,16 +72,23 @@ theorem os.peOk_fmt (pe : Loc) (hpn : pe ≠ null) :
   iapply (EtcdGrove.fmtErrorOkOrNil_of _)
   iapply (os.pathError_fmtErrorOk pe op path err) $$ Hop Hpath Herr Hok
 
+/-- The call permission's two halves. -/
+theorem os.osCallPerm_halves (q : Qp) :
+    osCallPerm (GF := GF) q.half ∗ osCallPerm q.half ⊣⊢ osCallPerm q := by
+  have h := osCallPerm_split (GF := GF) q.half q.half
+  rw [Qp.half_add_half] at h
+  exact ⟨h.2, h.1⟩
+
 set_option hygiene false in
-/-- The end of `RemoveAll`: the guard's `LstatDir`, the guard's fraction back. -/
-local macro "rm_fin" fin:tacticSeq : tactic => `(tactic| (
+/-- The end of `RemoveAll`: the guard's `LstatDir`, the guard's fraction (half of `qc`) back. -/
+local macro "rm_fin" qc:term:max fin:tacticSeq : tactic => `(tactic| (
   try wp_auto
-  wp_apply wp_osLstatDirGuardS R (child d b) t sg qc.half hp CoPset.subseteq_top
+  wp_apply wp_osLstatDirGuardS R (child d b) t sg ($qc).half hp CoPset.subseteq_top
     CoPset.subseteq_top $$ Hos Hsi Hg as %isDir %e5 %- Hg
   iapply HΦ
   iframe
   isplitl [Hperm Hg]
-  · iapply (osCallPerm_split qc.half qc.half).2; iframe
+  · iapply (os.osCallPerm_halves $qc).1; iframe
   ($fin)))
 
 theorem os.RemoveAll.wp_proofAbsentS : os.RemoveAll.specAbsentS (GF := GF) (hG := hG) := by
@@ -93,8 +100,7 @@ theorem os.RemoveAll.wp_proofAbsentS : os.RemoveAll.specAbsentS (GF := GF) (hG :
   wp_auto
   wp_apply os.wp_endsWithDot_child d b hb
   imod osLogLb_0 with #Hlb
-  rw [← Qp.half_add_half qc]
-  icases (osCallPerm_split qc.half qc.half).1 $$ Hperm with ⟨Hg, Hperm⟩
+  icases (os.osCallPerm_halves qc).2 $$ Hperm with ⟨Hg, Hperm⟩
   wp_apply +noauto wp_osCallBeginGuardS R qc.half 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hg Hlb as %t %sg %- Hg #Hlsg
   wp_auto
@@ -105,7 +111,7 @@ theorem os.RemoveAll.wp_proofAbsentS : os.RemoveAll.specAbsentS (GF := GF) (hG :
   obtain rfl := hlo.2 hn
   by_cases he0 : e = W64 0
   · rw [decide_eq_true he0]
-    rm_fin
+    rm_fin qc
       simp only [fmtErrorOkOrNil]; itrivial
   rw [decide_eq_false he0]
   wp_auto
@@ -121,7 +127,7 @@ theorem os.RemoveAll.wp_proofAbsentS : os.RemoveAll.specAbsentS (GF := GF) (hG :
   all_goals
     by_cases he22 : e2 = W64 2
     · rw [decide_eq_true he22]
-      rm_fin
+      rm_fin qc
         simp only [fmtErrorOkOrNil]; itrivial
     rw [decide_eq_false he22]
     wp_auto
@@ -132,14 +138,14 @@ theorem os.RemoveAll.wp_proofAbsentS : os.RemoveAll.specAbsentS (GF := GF) (hG :
     icases Ho with (%heo | ⟨%heo, Hfd⟩)
     · by_cases heo2 : eo = W64 2
       · rw [decide_eq_true heo2]
-        rm_fin
+        rm_fin qc
           simp only [fmtErrorOkOrNil]; itrivial
       rw [decide_eq_false heo2]
       wp_auto
       simp only [decide_eq_false (show eo ≠ W64 0 from heo), Bool.not_false]
       wp_auto
       wp_apply os.wp_pathError_ok _ _ eo heo as %pe #Hok
-      rm_fin
+      rm_fin qc
         iapply (EtcdGrove.fmtErrorOkOrNil_of _) $$ Hok
     · rw [decide_eq_false (show eo ≠ W64 2 by rw [heo]; decide)]
       wp_auto
@@ -153,13 +159,91 @@ theorem os.RemoveAll.wp_proofAbsentS : os.RemoveAll.specAbsentS (GF := GF) (hG :
       · iframe; iframe #
       by_cases hpn : pe = null
       · rw [decide_eq_true hpn]
-        rm_fin
+        rm_fin qc
           simp only [fmtErrorOkOrNil]; itrivial
       rw [decide_eq_false hpn]
       wp_auto
       wp_apply os.model.wp_prefixPath pe d $$ Hpe as Hpe
       imod os.peOk_fmt pe hpn $$ Hpe with #Hok
-      rm_fin
+      rm_fin qc
+        iexact Hok
+
+theorem os.RemoveAll.wp_proofDirS : os.RemoveAll.specDirS (GF := GF) (hG := hG) := by
+  intro d b j J R qd h hJ hb hbJ hfo
+  wp_start as ⟨#Hos, #Hsi, Hp, Hn, HJ, Hperm⟩
+  icases os.osPathS_facts R d _ j b hb $$ Hp with %hpf
+  obtain ⟨hd, hp⟩ := hpf
+  ihave Hst : rmAllOut j b J h hJ $$ [Hn HJ]
+  · iapply os.rmPresent_out; unfold os.rmPresent; iexists hJ; iframe; ipureintro
+    exact EntsSub.refl _
+  rw [decide_eq_false (show child d b ≠ [] by simp [child])]
+  wp_auto
+  wp_apply os.wp_endsWithDot_child d b hb
+  imod osLogLb_0 with #Hlb
+  icases (os.osCallPerm_halves 1).2 $$ Hperm with ⟨Hg, Hperm⟩
+  wp_apply +noauto wp_osCallBeginGuardS R (1 : Qp).half 0 CoPset.subseteq_top
+    CoPset.subseteq_top $$ Hos Hsi Hg Hlb as %t %sg %- Hg #Hlsg
+  wp_auto
+  have hqg : (1 : Qp).half + (1 : Qp).half = 1 := Qp.half_add_half 1
+  wp_apply os.model.wp_unlinkLoop_dirSt d b j J R (DFrac.own qd) h hJ (1 : Qp).half hb hbJ
+    $$ [Hp Hst Hperm] as %e ⟨%he0, Hp, Hst, Hperm⟩
+  · iframe; iframe #
+  rw [decide_eq_false (show e ≠ W64 0 from he0)]
+  wp_auto
+  wp_apply os.model.wp_rmdirLoop_dirSt d b j J R qd h hJ (1 : Qp).half (1 : Qp).half t sg hb hbJ
+    hqg $$ [Hp Hst Hperm Hg] as %e1 ⟨Hp, Hst, Hperm, Hg⟩
+  · iframe; iframe #
+  by_cases he10 : e1 = W64 0
+  · rw [decide_eq_true he10]
+    rm_fin (1 : Qp)
+      simp only [fmtErrorOkOrNil]; itrivial
+  rw [decide_eq_false he10]
+  wp_auto
+  by_cases he20 : e1 = W64 20
+  all_goals first
+    | (simp only [decide_eq_true he20, Bool.not_true]; wp_auto; generalize e = e2)
+    | (simp only [decide_eq_false he20, Bool.not_false]; wp_auto; generalize e1 = e2)
+  all_goals
+    by_cases he22 : e2 = W64 2
+    · rw [decide_eq_true he22]
+      rm_fin (1 : Qp)
+        simp only [fmtErrorOkOrNil]; itrivial
+    rw [decide_eq_false he22]
+    wp_auto
+    wp_apply os.wp_splitPath_child d b hb hd
+    wp_apply os.model.wp_openLoop_spine d R j (DFrac.own qd) (1 : Qp).half $$ [Hp Hperm]
+      as %fd %eo ⟨Hp, Hperm, Ho⟩
+    · iframe; iframe #
+    icases Ho with (%heo | ⟨%heo, Hfd⟩)
+    · by_cases heo2 : eo = W64 2
+      · rw [decide_eq_true heo2]
+        rm_fin (1 : Qp)
+          simp only [fmtErrorOkOrNil]; itrivial
+      rw [decide_eq_false heo2]
+      wp_auto
+      simp only [decide_eq_false (show eo ≠ W64 0 from heo), Bool.not_false]
+      wp_auto
+      wp_apply os.wp_pathError_ok _ _ eo heo as %pe #Hok
+      rm_fin (1 : Qp)
+        iapply (EtcdGrove.fmtErrorOkOrNil_of _) $$ Hok
+    · rw [decide_eq_false (show eo ≠ W64 2 by rw [heo]; decide)]
+      wp_auto
+      simp only [decide_eq_true (show eo = W64 0 from heo), Bool.not_true]
+      wp_auto
+      wp_apply os.model.wp_removeAllFrom_dir d b j J R qd h hJ (1 : Qp).half (1 : Qp).half t sg hb
+        hbJ hfo hqg $$ [Hp Hst Hperm Hg] as %pe ⟨Hp, Hst, Hperm, Hg, Hpe⟩
+      · iframe; iframe #
+      wp_apply os.model.wp_closeFd_dir fd j _ $$ [Hfd]
+      · iframe; iframe #
+      by_cases hpn : pe = null
+      · rw [decide_eq_true hpn]
+        rm_fin (1 : Qp)
+          simp only [fmtErrorOkOrNil]; itrivial
+      rw [decide_eq_false hpn]
+      wp_auto
+      wp_apply os.model.wp_prefixPath pe d $$ Hpe as Hpe
+      imod os.peOk_fmt pe hpn $$ Hpe with #Hok
+      rm_fin (1 : Qp)
         iexact Hok
 
 end proof
