@@ -59,7 +59,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.readWALNames.wp_proof
   · iapply isPkgInit_access $$ Hpkg
   icases Hi with ⟨-, -, -, -, -, Hfnf, -⟩
   iunfold wal.errVar at Hfnf
-  icases Hfnf with ⟨%efnf, #Hfnf, -⟩
+  icases Hfnf with ⟨%efnf, #Hfnf, #Hfok⟩
   wp_auto
   wp_apply HRead d slice.nil [] [] (DFrac.own 1) R j dq qc N dqn h rfl $$ [Hp Hperm Hn]
     as %r %err ⟨Hp, Hperm, Hn, -, Hr⟩
@@ -86,7 +86,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.readWALNames.wp_proof
       iapply HΦ
       iframe
       iright
-      ipureintro; intro h; cases h
+      iexists efnf
+      isplitr
+      · ipureintro; rfl
+      iexact Hfok
     · have hne : wl ≠ [] := by
         intro he; subst he; apply Hif; simp at Hwl; word
       try wp_auto
@@ -120,7 +123,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.readWALNames.wp_proof
     iapply HΦ
     iframe
     iright
-    ipureintro; intro h; cases h
+    iexists err2
+    isplitr
+    · ipureintro; rfl
+    iexact Herr2
 
 end proof
 

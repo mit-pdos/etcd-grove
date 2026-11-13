@@ -5,7 +5,7 @@ a claim on names `N` of the directory (`osNames`, as `fileutil.ReadDir`'s): the 
 `WalNamesOut N h`, sorted, non-empty, each a name `parseWALName` may accept, exact on the names of
 `N` that parse. For a WAL directory (`walInv`'s `WalDirClaim`, `.except X` with no `.wal` name in
 `X`) the names outside `N` are no `.wal` names, so the result is exactly the directory's names that
-parse. Proved in `LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/readWALNames.lean`. W5 of
+parse. An error is one `fmt.Errorf` may wrap (`errOk`). Proved in `LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/readWALNames.lean`. W5 of
 `notes/wal-fsext-plan.md`; Lean-first.
 -/
 module
@@ -54,7 +54,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.readWALNames.spec : Prop :=
   {{ (r : GoSlice) (err : GoInterface), RET (PairV #r #err); osPathS R d dq j ∗ osCallPerm qc ∗
       osNames j N dqn h ∗
       ((∃ ws : List GoString, ⌜err = interface.nil ∧ WalNamesOut N h ws⌝ ∗ r ↦* ws) ∨
-       ⌜err ≠ interface.nil⌝) }}
+       ∃ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ ∗ errOk e) }}
 
 end spec
 
