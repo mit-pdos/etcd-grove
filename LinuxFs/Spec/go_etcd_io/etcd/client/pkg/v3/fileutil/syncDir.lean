@@ -37,11 +37,11 @@ abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.syncDir.spec : Prop :=
   {{ (err : GoInterface), RET #err; osPathS R p dq j ∗ osCallPerm qc ∗
       (⌜err ≠ interface.nil⌝ ∨ ⌜err = interface.nil⌝ ∗ osCommitLb n) }}
 
-/-- `syncDir(p)` of a strict ancestor of a root (`os.AboveRoot`): any error, nothing changed. **Not
-provable against the current model** (its `Open` is stuck off the roots' trees, as `os.Stat`'s:
-`LinuxFs/Spec/os/StatAbove.lean`); a hypothesis of `TouchDirAll`'s proof, whose final loop syncs the
-parent of every directory its `Exist` loop found missing, the root's parent included when `Stat` of the
-root failed. -/
+/-- `syncDir(p)` of a strict ancestor of a root (`os.AboveRoot`): any error, nothing changed: `OpenDir`
+gives an fd of a directory outside the roots' trees (the extension's `Open` outside case, 2026-11-13,
+pending the user's review), whose `Sync` claims nothing. A hypothesis of `TouchDirAll`'s proof, whose
+final loop syncs the parent of every directory its `Exist` loop found missing, the root's parent
+included when `Stat` of the root failed. Proved: `syncDir.wp_proofAboveRoot`. -/
 abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.syncDir.specAboveRoot : Prop :=
   ∀ (p : GoString) (R : Roots) (qc : Qp),
   os.AboveRoot R p →

@@ -1,12 +1,11 @@
 /-
-`os.Stat(p)` of a strict ancestor of a root (`/`, or `/c₁/…/cₖ` above a root `/c₁/…/cₙ`, `k < n`): the
-environment makes it an existing directory (`GooseLang/Ext/Fs/Impl.lean`, "the roots and their ancestors
-are existing directories throughout"), but the model's `stat` opens `p` with the extension's `Open`, which
-is stuck off the roots' trees (`OsState.TreePath`). So this triple (any result, nothing changed) is **not
-provable against the current model**: a hypothesis of `fileutil.TouchDirAll`'s proof, whose `Exist` loop
-climbs above the root when `Stat` of the root fails (any errno, in the model). Model finding (W4, sixth
-session, `notes/wal-fsext-plan.md`): `model.stat` should answer at `PathKind` `0` with no step, as
-`MkdirAll`'s model does [user]. Lean-first.
+`os.Stat(p)` of a strict ancestor of a root (`/`, or `/c₁/…/cₖ` above a root `/c₁/…/cₙ`, `k < n`): any
+result, nothing changed. The environment makes such a path an existing directory
+(`GooseLang/Ext/Fs/Impl.lean`, "the roots and their ancestors are existing directories throughout"),
+and `model.stat` answers there with no extension step but the query `PathKind` (`2`: `model.statAbove`,
+2026-11-13, pending the user's review; `notes/wal-fsext-models-review.md`, "Above-root Stat/Open").
+`fileutil.TouchDirAll`'s `Exist` loop climbs above the root when `Stat` of the root fails. Proved in
+`LinuxFs/Proof/os/StatAbove.lean` (`os.Stat.wp_proofAboveRoot`). Lean-first.
 -/
 module
 

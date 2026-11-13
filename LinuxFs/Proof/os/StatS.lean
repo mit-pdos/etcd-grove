@@ -14,6 +14,7 @@ module
 
 public import LinuxFs.Proof.os.OpenFile
 public import LinuxFs.Proof.os.SharedExt
+public import LinuxFs.Proof.os.PathKindS
 
 @[expose] public section
 
@@ -47,6 +48,12 @@ theorem os.model.wp_stat_dirS (op p : GoString) (R : Roots) (J : Ino) (dq : DFra
   try unfold os.model.stat
   unfold os.model.arbitraryMode
   rw [os.fileStat_ty_eq]
+  icases osPathS_pathIn_keep R p dq J $$ Hp with ⟨%hpin, Hp⟩
+  wp_apply wp_osPathKindS R p hpin.2 CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi
+    as %k %hk
+  have hk2 : k ≠ W64 2 := by rcases hk with ⟨-, rfl⟩ | ⟨-, rfl⟩ <;> decide
+  try wp_auto
+  try rw [decide_eq_false hk2]
   try wp_auto
   iloeb as IH generalizing Hperm Hp HΦ
   wp_apply wp_osCallBeginS R qc 0 CoPset.subseteq_top CoPset.subseteq_top
@@ -111,6 +118,12 @@ theorem os.model.wp_stat_absentS (op d b : GoString) (R : Roots) (j : Ino) (N : 
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
   imod osLogLb_0 with #Hlb
   try unfold os.model.stat
+  icases osPathS_pathIn_keep R d dq j $$ Hp with ⟨%hpin, Hp⟩
+  wp_apply wp_osPathKindS R (child d b) (pathIn_child hpin.2 hb) CoPset.subseteq_top
+    CoPset.subseteq_top $$ Hos Hsi as %k %hk
+  have hk2 : k ≠ W64 2 := by rcases hk with ⟨-, rfl⟩ | ⟨-, rfl⟩ <;> decide
+  try wp_auto
+  try rw [decide_eq_false hk2]
   try wp_auto
   iloeb as IH generalizing Hperm Hp Hn HΦ
   wp_apply wp_osCallBeginS R qc 0 CoPset.subseteq_top CoPset.subseteq_top
@@ -152,6 +165,12 @@ theorem os.model.wp_stat_fileS (op d b : GoString) (R : Roots) (j i : Ino) (N : 
   try unfold os.model.stat
   unfold os.model.arbitraryMode
   rw [os.fileStat_ty_eq]
+  icases osPathS_pathIn_keep R d dq j $$ Hp with ⟨%hpin, Hp⟩
+  wp_apply wp_osPathKindS R (child d b) (pathIn_child hpin.2 hb) CoPset.subseteq_top
+    CoPset.subseteq_top $$ Hos Hsi as %k %hk
+  have hk2 : k ≠ W64 2 := by rcases hk with ⟨-, rfl⟩ | ⟨-, rfl⟩ <;> decide
+  try wp_auto
+  try rw [decide_eq_false hk2]
   try wp_auto
   iloeb as IH generalizing Hperm Hp Hn Hm HΦ
   wp_apply wp_osCallBeginS R qc 0 CoPset.subseteq_top CoPset.subseteq_top
