@@ -1525,3 +1525,53 @@ contract.**
    commit is a ghost update inside the fdatasync's step (`wp_atomic_nc`).
 4. *F-N4*: `Fsync(w.dirFile)` and `syncDir(filepath.Dir(dir))` give `osCommitLb`; `walNamed` by
    `walInvBody_named` (W4) needs the last writer of `nm` below the commit bound.
+
+**Second session (branch `wal-read2`, 2026-11-13).**
+- *Proved* (no `sorry`, `lake build`): `checkWALNames` (`WalNamesSel`: an order-preserving selection
+  holding every name that parses, only names that may: `fmt.Sscanf`'s model leaves `.unknown`),
+  `readWALNames` (`WalNamesOut N h`: non-empty, sorted, exact on the claim's names that parse; error
+  `errOk`), `selectWALFiles` (`WalSelected`: `walSearch` position, `walSeqOk` from it; premise
+  `WalDirNamesOk N h`: every `.wal` name in `N`, and the directory's are `fmt.walNameStr`s), walpb
+  `Snapshot.GetIndex` (over `walSnapIdTerm`). Hypotheses: the callees' specs, `fmt.ErrorfErrs.spec`,
+  `zap.String`/`Logger.Warn`, `strings.HasSuffix`.
+- *Statement change*: `fileutil.ReadDir`'s error arm gives `fmtErrorOkOrNil err` (`readWALNames` wraps
+  it with `%w`, which `ErrorfErrs` accepts only of an `errOk` error). Its proof (`sorry`) then needs the
+  same of `os.Open.wp_dirS`'s and `Readdirnames.wp_dirS`'s error posts (`os.wp_pathError_ok`).
+- *Specs, proofs `sorry`*: `openWALFiles` (file-system level: the names from `nameIndex` files of the
+  claim, each `walOpenedFile`: fd whole, offset 0, `*fileReader{f}`, lock or nil), `openAtIndex`
+  (`write`; `Open`'s update, raising `unl` only in write mode; success: `walOpening ∗ walReadH true`
+  and half the permission, or the token, `walReadH false` and the whole permission; `dirFile` nil),
+  `OpenForRead` (the token and an identity update, as the main tree's `ValidSnapshotEntries`; success
+  `walReadOnlyF`, the whole permission).
+- *The handles' bodies* (`ReadDefs.lean`): `walReadH write` (the fields `openAtIndex` leaves: decoder
+  live at 0 with CRC 0 over `fs`, `decEnv`, locks, `readClose` nil and `walPipeH fp dir 0` in write mode,
+  the zero fields, the mutex), `walReadTie` (the program's half of the WAL directory's claim `.except X`;
+  each decoder file `F` the segment `g` from the opened one on: `F.bs` the page cache's values of
+  `g.bs`, `hj.cur !! g.name = file g.ino`, `F.S = walFileS f fd … g`, the stream state holding the file,
+  its offset and the program's halves of `g`), `walOpeningF = walOpening ∗ walReadH true ∗ dirFile`
+  (a shared directory fd), `walReadOnlyF`. The `Open`/`ReadAll` statements did not change.
+- **Decision 1 not needed** (deviation, for the coordinator): the read handle holds the program's half
+  of the WAL directory's claim (parked in `walInv` with the segments' halves, decision 2's pattern), so
+  the plain `Readdirnames.wp_dirS` with that fraction reads it exactly. An atomic readdir "at the read
+  step" would not do anyway: `Readdirnames` is a loop of `DirReadNext` steps whose exactness needs the
+  claim's history fixed across them (`wp_osDirReadNextS`'s `h.next ≤ r0`).
+- **Gaps found:**
+  1. *`WalAbsD` does not tie a segment's `name` to its directory entry* (`names`: only `walInos ents =
+     segs.map ino` and the names sorted), so `nameBound` (about `g.name`) says nothing of the names
+     `Open` reads; `selectWALFiles`' premise (every `.wal` entry a file named `walNameStr`) and which
+     file `searchIndex` picks need `ents !! g.name = some (.file g.ino)` and "every `.wal` entry is a
+     file". Proposed: a `WalAbsD` field (cut, create and the crash establish it; W1's owner).
+  2. *The parked halves are not yet a `walInvBody` conjunct.* Design: `∃ O, [∗list] g ∈ segsAll Ls, if
+     g.ino ∈ O then True else segRes g` plus, per WAL without a handle, the program's half of its
+     directory's claim; returning needs no token (a third half contradicts). `walInv_alloc` deposits
+     what it now returns (`laysRes Ls`, the claims' halves); a cut deposits the old tail's halves.
+  3. *`walTailW`'s fd `⟨i, false, true⟩`* excludes `ReadAll`'s tail, opened `O_RDWR` by `openWALFiles`
+     (`openFd i (2 ||| O_CLOEXEC)` reads too): generalize the read flag (W6).
+  4. *`ZeroToEnd` on the crash-tracked tail*: its spec takes the whole `OsMeta` and bytes `[o, size)`,
+     the handle has the program's halves. The truncate and the fallocate on a segment of `walInv` need
+     an in-flight token as `pwTok` for writes (crash images mixing the old junk past `z0` and zeros,
+     under W1) — an I3-level unit; decision 3's commit at the fdatasync comes after it.
+  5. *Callees with no spec* (for `Open`'s proof): `fileutil.TryLockFile`, `NewFileReader`, `OpenDir`,
+     `closeAll`, the `os.File` reader bridge (`decFile` of a `walFileS` stream: `Read` over the
+     program's half of the bytes, `Stat`), `walpb.Snapshot.Clone`; `newFilePipeline` is `sorry`.
+- *Not done*: the proofs of `openWALFiles`, `openAtIndex`, `OpenForRead`, `Open`, `ReadAll`.
