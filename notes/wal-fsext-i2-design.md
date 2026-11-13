@@ -729,3 +729,60 @@ Found: the WAL creates with `O_WRONLY|O_CREATE` (`createNewWALFile`), which `wp_
 with `O_CREAT`, no `O_TRUNC`; the fd `openFd i fl`). The `os` specs omit `fmtErrorOkOrNil` (no
 `LinkError` lemma yet). Not yet done: `Remove`, `Mkdir`, `MkdirAll`, `RemoveAll`, `Stat`, `Open` of
 a directory, `Readdirnames`, a directory's `Close`, the file-data calls.
+### Implementation log, fifth session (2026-11-13)
+
+Done (no `sorry`): every statement of `TreeShared.lean` is now proved (its header says so).
+
+- `TreeSharedLog`: **`wp_logStepSW`**, the general logging step, and two corollaries.
+  `wp_logStepSN` is note 17: the operation `oF n` and the claims' new entries `curF n` are
+  functions of the step's fresh inode `n` (the state's `nextIno`; inside the proof `generalize`d
+  after the state is known, the post `∃ n x`). `wp_logStepS` is the old statement, `wp_logStepSN`
+  with constant functions (its callers in `TreeSharedMeta` unchanged). `wp_logStepSW` adds a
+  change of the files' world: `hworld` (the caller's update of `osWorld` from the step's
+  `HeapRendered`/`MapsFresh`, giving `G n w logged` to the post), and `hpost` returns `EndedT`
+  (the call ended, as the tree sees it: the fds may have changed) or `LoggedT` (`LoggedFrom`
+  without `FilesSame`) with `FsTreeWf` of the new state, which the caller now proves. Its `htree`
+  dropped the `TreeWf`/"names no new file" conjuncts (only `FsTreeWf` needed them, now the
+  caller's) and takes the step and `LoggedT` (an `open(O_CREAT)` of an existing file is not
+  logged, and `OpOk` of its `create` is false).
+- `TreeSharedMeta`: **`wp_osMkdirS'`** over `wp_logStepSN` (claim entries `<[b := .dir n]> h.cur`;
+  `ClaimsAt.out` makes the restriction drop).
+- `TreeSharedRead`: **`wp_osDirReadNextS'`**. `wp_dirReadS` gained a pure fact `WN n` of the log's
+  length in its post (`hwn`, from `Q`); the blind read passes `True`. With `Q st := h = namesOf ..`
+  (`osNames_auth`): a fresh read's `r0' = n` and `h.next ≤ n` (`namesOf_next_le`); a resumed read
+  sees no write of `N` since `r0` (`noWrite_of_next`, from `lt_namesOf_next` and `h.next ≤ r0`), so
+  `PhOkS`'s clause applies; the end needs a claimed entry's name valid (`present_of_entry`, from
+  `TreeWf`).
+- `TreeSharedCreate` (new): **`wp_osOpenCreateS'`** over `wp_logStepSW`. `openCreateStep_cases`
+  classifies the step (no effect; the file there opened; a file created, with or without its fd),
+  used by `hpost`, `hworld` and `htree`. `fsTreeWf_created` (the legacy `create_facts`' tree part
+  with directory fds, which a create only notes), `fsTreeWf_addFd`, `osWorld_created` (the new
+  file's `OsMeta` minted, the heap unchanged; then `osWorld_filesSame` or `osWorld_addFd`).
+  The gift `ocGift`/`ocFd`: created (logged) `osMeta n ∗` maybe the fd; not logged, the file there
+  and maybe its fd, or a failure.
+- `TreeSharedTest` (new): **the two-region test**. `twoRegion_par`: two claims (`b1`, `b2`) of one
+  directory, each with its own call and a spine fraction, give two separate WPs of
+  `open(O_CREAT)` (what forking the two threads needs). `twoRegion_crash`: a region whose create is
+  logged below the commit bound concludes from `crashRest_region` (with both claims, the other's
+  history arbitrary) that its file is in the crashed tree (`valAfter_last`).
+
+Statement changes:
+
+18. **Note 16 adopted**: `wp_osMkdirS`'s post gives the new directory's claim as
+    `∃ hJ, osNames J (.except []) 1 hJ ∗ ⌜hJ.cur = ∅ ∧ hJ.next = x + 1⌝`.
+19. `wp_dirReadS` (internal to FS/) takes `WN`/`hwn`; `wp_logStepSW` is new, `wp_logStepSN` and
+    `wp_logStepS` keep their statements as corollaries. No other `TreeShared.lean` statement changed.
+
+Not begun: the `os`-level logically atomic specs (M1; another agent, `LinuxFs/`).
+
+Coordinator additions (for the `os` layer, branch `wal-osau`):
+
+20. **`wp_osOpenFileS`** (new, `TreeShared.lean`, proof `wp_osOpenFileS'` in `TreeSharedCreate`):
+    `open(2)` of a name holding a file, without `O_TRUNC` (any access mode, with or without
+    `O_CREAT`), with a fraction of a claim whose `N` contains the name; logs nothing (over
+    `wp_fs_stepM` directly, as `wp_osOpenDirS`); the fd is `openFd i fl`. The statement is the one
+    `wal-osau` had with `sorry` in `LinuxFs/Proof/os/SharedExt.lean` (that copy can go).
+21. **`wp_osOpenCreateS` takes the flags** (statement change): `fl` with `OpenFlagsOk fl.toNat`,
+    `O_CREAT` set, `O_TRUNC` clear, in place of the fixed `flCreat`; the fds it gives are
+    `openFd i fl` (the WAL creates with `O_WRONLY|O_CREATE`). `openCreateStep_cases`, `ocFd`,
+    `ocGift` take `fl`; the two-region test passes `flCreat`.
