@@ -172,6 +172,37 @@ theorem walDecodeFiles_streamFiles {C : WalCodec} (hC : C.Ok) (M : WalMarshal) (
   rw [hfiles, this.1, hfst, hR]
   exact ⟨rfl, this.2⟩
 
+theorem segsOf_flatten_from (H : WalHist) : ∀ (cuts : List Nat) (a : Nat),
+    (a :: cuts).Pairwise (· ≤ ·) → (∀ c ∈ a :: cuts, c ≤ H.length) →
+    ((List.zip (a :: cuts) (cuts ++ [H.length])).map
+      (fun be => (H.drop be.1).take (be.2 - be.1))).flatten = H.drop a := by
+  intro cuts
+  induction cuts with
+  | nil =>
+    intro a _ _
+    simp only [List.nil_append, List.zip_cons_cons, List.zip_nil_left, List.map_cons, List.map_nil,
+      List.flatten_cons, List.flatten_nil, List.append_nil]
+    exact List.take_of_length_le (by simp)
+  | cons c cuts ih =>
+    intro a hp hle
+    have hac : a ≤ c := List.rel_of_pairwise_cons hp List.mem_cons_self
+    have hp' : (c :: cuts).Pairwise (· ≤ ·) := (List.pairwise_cons.1 hp).2
+    have hle' : ∀ x ∈ c :: cuts, x ≤ H.length := fun x hx => hle x (List.mem_cons_of_mem _ hx)
+    simp only [List.cons_append, List.zip_cons_cons, List.map_cons, List.flatten_cons]
+    rw [ih c hp' hle']
+    conv => rhs; rw [← List.take_append_drop (c - a) (H.drop a)]
+    rw [List.drop_drop]
+    congr 2
+    omega
+
+/-- **The segments of `H` at increasing cuts within it make up `H`.** -/
+theorem segsOf_flatten (H : WalHist) (cuts : List Nat) (hcuts : cuts.Pairwise (· ≤ ·))
+    (hle : ∀ c ∈ cuts, c ≤ H.length) : (segsOf H cuts).flatten = H := by
+  unfold segsOf
+  rw [segsOf_flatten_from H cuts 0 (List.pairwise_cons.2 ⟨fun _ _ => Nat.zero_le _, hcuts⟩)
+    (by intro c hc; rcases List.mem_cons.1 hc with rfl | hc; exact Nat.zero_le _; exact hle c hc)]
+  rfl
+
 end segs
 
 end WalEnc
