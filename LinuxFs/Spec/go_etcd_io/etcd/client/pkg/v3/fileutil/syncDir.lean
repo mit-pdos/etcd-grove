@@ -9,6 +9,7 @@ module
 
 public import LinuxFs.GeneratedProof.go_etcd_io.etcd.client.pkg.v3.fileutil
 public import LinuxFs.Proof.os.NsS
+public import LinuxFs.Spec.os.StatAbove
 
 @[expose] public section
 
@@ -35,6 +36,18 @@ abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.syncDir.spec : Prop :=
     (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.syncDir)) (Val #p))
   {{ (err : GoInterface), RET #err; osPathS R p dq j ∗ osCallPerm qc ∗
       (⌜err ≠ interface.nil⌝ ∨ ⌜err = interface.nil⌝ ∗ osCommitLb n) }}
+
+/-- `syncDir(p)` of a strict ancestor of a root (`os.AboveRoot`): any error, nothing changed. **Not
+provable against the current model** (its `Open` is stuck off the roots' trees, as `os.Stat`'s:
+`LinuxFs/Spec/os/StatAbove.lean`); a hypothesis of `TouchDirAll`'s proof, whose final loop syncs the
+parent of every directory its `Exist` loop found missing, the root's parent included when `Stat` of the
+root failed. -/
+abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.syncDir.specAboveRoot : Prop :=
+  ∀ (p : GoString) (R : Roots) (qc : Qp),
+  os.AboveRoot R p →
+  {{ osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osCallPerm (GF := GF) qc }}
+    (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.syncDir)) (Val #p))
+  {{ (err : GoInterface), RET #err; osCallPerm qc }}
 
 end spec
 
