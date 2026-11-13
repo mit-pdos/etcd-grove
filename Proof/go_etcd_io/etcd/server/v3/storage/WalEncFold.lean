@@ -135,6 +135,88 @@ def walReadAt (I : WalHist) (k : Nat) (s : w64 × w64) : Option StorContents :=
   walFoldChkFrom ⟨walLastHS (I.take k), none, entryID.mk s.2 s.1, []⟩
     ((I.drop k).filter (walKeep (uint.nat (walLastHS I).Commit')))
 
+/-! ## The loop over an operation's records -/
+
+/-- Whether an operation is a snapshot record of index `i`. -/
+def snapAt (i : w64) : WalOp → Bool
+  | .snap m => decide (m.Index' = i)
+  | .save _ _ => false
+
+/-- **The loop over one operation's records** (`opDs`), as one step (`raStep_opDs`). -/
+def goOp (s : w64 × w64) (st : RAState) : WalOp → Except ReadAllErr RAState
+  | .save h es =>
+    match es.foldlM (fun ents e => readEnt (uint.nat s.1) ents e) st.ents with
+    | none => .error .sliceOutOfRange
+    | some ents => .ok { st with ents := ents, hs := phsNext st.hs h }
+  | .snap m =>
+    if m.Index' = s.1 then
+      if m.Term' = s.2 then
+        .ok { st with matched := true,
+                      ents := if uint.nat st.hs.Commit' < uint.nat m.Index' then [] else st.ents }
+      else .error .snapshotMismatch
+    else .ok st
+
+theorem except_bind_ok {ε α β : Type} {x : Except ε α} {f : α → Except ε β} {b : β} :
+    (x >>= f) = .ok b ↔ ∃ a, x = .ok a ∧ f a = .ok b := by
+  cases x <;> simp [bind, Except.bind]
+
+theorem hsEmptyP_eq {h : HardStateM} (he : hsEmptyP h) : h = hsZero := by
+  obtain ⟨t, v, c⟩ := h
+  obtain ⟨h1, h2, h3⟩ := he
+  simp only at h1 h2 h3; subst h1 h2 h3; rfl
+
+theorem raStep_entries (U : WalUnmarshal) (M : WalMarshal) (hU : U.Ok M) (s : w64 × w64) :
+    ∀ (es : List EntryM) (st : RAState),
+    (es.map (fun e => (entryType, M.encEntry e))).foldlM (raStep U s) st =
+      match es.foldlM (fun ents e => readEnt (uint.nat s.1) ents e) st.ents with
+      | none => .error .sliceOutOfRange
+      | some ents => .ok { st with ents := ents } := by
+  intro es
+  induction es with
+  | nil => intro st; rfl
+  | cons e es ih =>
+    intro st
+    simp only [List.map_cons, List.foldlM_cons]
+    have : raStep U s st (entryType, M.encEntry e) =
+        match readEnt (uint.nat s.1) st.ents e with
+        | none => .error .sliceOutOfRange
+        | some ents => .ok { st with ents := ents } := by
+      simp [raStep, hU.entry]
+    rw [this]
+    cases readEnt (uint.nat s.1) st.ents e with
+    | none => rfl
+    | some ents =>
+      show (es.map _).foldlM (raStep U s) { st with ents := ents } = _
+      rw [ih]
+      simp only [Option.bind_eq_bind, Option.bind_some]
+
+theorem raStep_opDs (U : WalUnmarshal) (M : WalMarshal) (hU : U.Ok M) (s : w64 × w64)
+    (st : RAState) (o : WalOp) : (opDs M o).foldlM (raStep U s) st = goOp s st o := by
+  cases o with
+  | save h es =>
+    simp only [opDs, List.foldlM_append, raStep_entries U M hU, goOp]
+    cases es.foldlM (fun ents e => readEnt (uint.nat s.1) ents e) st.ents with
+    | none => rfl
+    | some ents =>
+      show (if hsEmptyP h then [] else [(stateType, M.encState h)]).foldlM (raStep U s) _ = _
+      by_cases he : hsEmptyP h
+      · have hp : phsNext st.hs h = st.hs := phsNext_empty _ _ he
+        simp [he, hp]; rfl
+      · have hp : phsNext st.hs h = h := by unfold phsNext; exact ite_eq_right_iff.mpr (fun h1 => absurd h1 he)
+        simp [he, hp, raStep, hU.state, stateType, entryType]
+  | snap m =>
+    simp [opDs, goOp, raStep, hU.snap, snapshotType, entryType, stateType, metadataType, crcType]
+
+theorem raStep_flatMap (U : WalUnmarshal) (M : WalMarshal) (hU : U.Ok M) (s : w64 × w64) :
+    ∀ (L : WalHist) (st : RAState),
+    (L.flatMap (opDs M)).foldlM (raStep U s) st = L.foldlM (goOp s) st := by
+  intro L
+  induction L with
+  | nil => intro st; rfl
+  | cons o L ih =>
+    intro st
+    simp only [List.flatMap_cons, List.foldlM_append, List.foldlM_cons, raStep_opDs U M hU, ih]
+
 /-! ## The main theorems -/
 
 /-- **From a cut file: `ReadAll` succeeds only with `walReadFrom`'s read.** The WAL's segments are
