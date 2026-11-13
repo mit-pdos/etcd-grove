@@ -18,6 +18,34 @@ the worktree's untracked `questions.md` (decisions; never re-add it tracked).
   this stage's T5-c); 7f-0 partial (records only; the rest goes with 7f-6, Q7).
 - No Lean edited. Nothing built on this branch.
 
+## Handoff point (2026-11-13, end of the third 7f-5 agent): S2 decided; T5-a fallback next
+
+81's S2 decisions (2026-11-13, also in questions.md):
+- **D1 fallback.** Restate `WithRequireLeader.wp_proof` (`Proof/go_etcd_io/etcd/client/v3/WithRequireLeader.lean`,
+  spec `Spec/.../WithRequireLeader.lean`) to `specGen` (now in `Draft7f3a.lean`; move it into the Spec
+  file) in `withVersion.spec`'s pattern. Keep the old `Background()` clauses (`libCtxOk`, `outgoingCtxOkC`
+  after `WithCancel`) as a proved corollary, or keep them in the axiom if a corollary is not derivable;
+  the lessor's caller must keep working. Go tests in `examples/premisefix/watcherctx` or a sibling:
+  every key that is not `mdOutgoingKey` answers as the parent does, through `Value` and the chain;
+  Done/Err/Cause are the parent's; same descriptor. Supersede Q2 in questions.md and in
+  `notes/k8s-7f5-scope.md` §8 (reason: translation needs 3-4 trusted changes vs 1).
+- **Revert the translation** of `WithRequireLeader` and grpc metadata's helpers (`NewOutgoingContext`,
+  `Pairs`, `MD.Copy`, `MD.Set`, `copyOf`, `mdOutgoingKey`, `rawMD`, and the imports): restore
+  `Code/google_golang_org/grpc/metadata.toml` to lean's, drop `WithRequireLeader` from
+  `Code/go_etcd_io/etcd/client/v3.toml`, **keep `WithPrevKV`**; then `etc/goose.py --project etcd`,
+  `--check`, `etc/gen-init.py` (metadata Init + PkgTables go back), metadata's SpecPlan PkgInit
+  (`etc/gen-specs-pkginit.py`, keep only that file's change). Nothing else needs them (checked: only
+  `WithRequireLeader` calls them).
+- **D2 yes:** in 7f-3b the mvcc response contract hands over an owned `PrevKv` field per event; list the
+  interface diff for review at landing.
+- **D3 yes:** `specGen` without the metadata content.
+- S1-S9 stay as drafted (`Draft7f3a.lean`, unlinked).
+
+Next, in order: revert the translation as above; the restated axiom with its Go tests (Addendum in
+`notes/k8s-7f5-freeze.md`, "T5-a"); build (targeted, then full under flock); `etc/tcb-report.py --check`
+(expected: same count, `WithRequireLeader.wp_proof` changed text; collections that reach it);
+STOP for 81's axiom review. Then 7f-3b.
+
 ## Handoff point (2026-11-13, third 7f-5 agent): 7f-3a at S2 (STOPPED for 81's review)
 
 Done (on `k8s-7f5`, not landed):
