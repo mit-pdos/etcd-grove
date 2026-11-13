@@ -35370,3 +35370,31 @@ autonomously to keep making progress towards proving the wal specs"):**
 - Rejected: keeping `absDiskExt` as a trusted layer and proving a refinement of `fsExt` into it (a
   second trusted crash relation, which the closed-theorem rule excludes); adding process kills to
   `fsExt` (the user: not wanted).
+
+## WAL over fsExt: `N.tmp` opened with `O_TRUNC` (2026-11-13 · decided by the coordinator, the user away; the fork push pending the user · branch `wal-otrunc`)
+
+**The finding** (`nonissues/etcd-wal-record-type-outside-crc.md`): a WAL record's CRC covers its
+`Data` only. A power loss that keeps an unsynced frame but its one-byte Type (frame byte 9) gives a
+record of the type under it, with a valid CRC. Over a zero byte that is Type 0, a `ReadAll` error every
+read spec allows; over a stale type byte it is wrong content with no CRC collision (an entry read as a
+hard state or a snapshot record). In the fork (which syncs `ReadAll`'s zeroing, F-Z) the only stale
+bytes under a fresh frame are a reused `N.tmp`'s remnant: `filePipeline.alloc` opens `N.tmp` without
+`O_TRUNC`, so the headers of a cut interrupted by a crash stay after the next cut's shorter headers
+(`nonissues/etcd-wal-cut-reuses-stale-tmp.md`). `TestWALTypeTearStaleTmp` builds such an image.
+
+**Decision:** the fork's `alloc` opens `N.tmp` with `O_TRUNC` (`createNewWALFile(fpath, true)`,
+`goose-lean-walfs`, `notes/wal-fsext-fork/0004-*.patch`; not pushed, pending the user). Every byte
+under a fresh frame is then zero (the truncated, preallocated file, or the synced zeroing of F-Z), and
+W1's target is plain "no CRC-32C collision on the `Data` of a frame whose bytes under it were zero":
+a torn non-`Data` byte is the intended byte or 0, and the byte-mix argument of the nonissue shows every
+acceptance with wrong content is then a collision on `Data`.
+
+**Rejected:** keeping the reused `N.tmp` and adding a premise that an accepted frame's aligned 8-byte
+word holding the Type (frame bytes 8-15) comes back whole. It contradicts `fsExt`'s per-byte crash
+model ("Byte-level crash candidates"), which is the trusted semantics every file proof runs over, and
+it would be a second world premise the CRC evidence does not support; also a stale clause in W1
+tracking the remnant's bytes, which `OsState` cannot express and which the fix makes unnecessary.
+
+**Supersedes** the "Decision (stale `N.tmp`): no fork change" of `notes/wal-fsext-plan.md` §8 (and
+§6 Q3's "otherwise: a nonissue and W1's stale clause"): the stale-`N.tmp` restart is still safe on its
+own (a nonissue), but the Type tear over its remnant is not, so the fork fix is taken after all.

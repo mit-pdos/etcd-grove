@@ -1,0 +1,183 @@
+From 6dff53e17a866edb2552906f0cec3fdcc5d5ad4f Mon Sep 17 00:00:00 2001
+From: Upamanyu Sharma <sharma.upamanyu@gmail.com>
+Date: Fri, 13 Nov 2026 17:25:48 +0000
+Subject: [PATCH 4/4] wal: truncate a reused N.tmp in the file pipeline
+
+filePipeline.alloc opened 0.tmp/1.tmp without O_TRUNC. A cut interrupted
+by a crash after writing its headers into N.tmp leaves them there; the
+next incarnation's cut writes its own, possibly shorter, headers over
+them, so the stale remnant stays under the records appended after the
+cut. A WAL record's CRC covers its Data only, so a power loss that keeps
+an appended frame but its one-byte Type leaves the remnant's byte there,
+and when it is a state or snapshot type the restart reads an entry as a
+hard state or a snapshot record, with a valid CRC.
+
+Open N.tmp with O_TRUNC (createNewWALFile(fpath, true), as Create does
+for its first segment): the file is then preallocated from empty, every
+byte under a fresh frame is zero, and a torn Type reads as type 0, which
+ReadAll reports as an error.
+
+TestFilePipelineTruncatesStaleTmp checks that a reused 0.tmp comes back
+all zeros; TestWALTypeTearStaleTmp now asserts that the restart on the
+torn image fails or reads only records the WAL wrote. Both fail before
+this change.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../storage/wal/bytemix_staletmp_min_test.go  | 33 +++++++++--------
+ server/storage/wal/file_pipeline.go           |  5 ++-
+ server/storage/wal/file_pipeline_test.go      | 36 +++++++++++++++++++
+ 3 files changed, 59 insertions(+), 15 deletions(-)
+
+diff --git a/server/storage/wal/bytemix_staletmp_min_test.go b/server/storage/wal/bytemix_staletmp_min_test.go
+index 01f80e235..40400a32b 100644
+--- a/server/storage/wal/bytemix_staletmp_min_test.go
++++ b/server/storage/wal/bytemix_staletmp_min_test.go
+@@ -17,6 +17,7 @@ package wal
+ import (
+ 	"bytes"
+ 	"math/rand"
++	"slices"
+ 	"testing"
+ 
+ 	"github.com/stretchr/testify/require"
+@@ -28,13 +29,15 @@ import (
+ )
+ 
+ // TestWALTypeTearStaleTmp: the fork's own case of TestWALTypeTearStale. After an interrupted cut
+-// and a restart, the next cut writes its headers over the reused 0.tmp, and the stale remnant of the
+-// old hard-state frame stays after them (nonissues/etcd-wal-cut-reuses-stale-tmp). The first Save
+-// after the cut appends an entry record over that remnant. If the remnant's byte under the entry
+-// frame's Type value is 3 (StateType) or 5 (SnapshotType), a power loss that keeps every byte of
+-// the Save but that one makes the restart read the entry's bytes as a hard state (or a snapshot
+-// record), with a valid CRC. The test searches hard states (a vote for a member ID, a commit) whose
+-// old frame puts such a byte there, and runs the restart on that image.
++// and a restart, the next cut writes its headers over the reused 0.tmp
++// (nonissues/etcd-wal-cut-reuses-stale-tmp). Were 0.tmp reused as it was, the stale remnant of the
++// old hard-state frame would stay after the new headers, and the first Save after the cut would
++// append an entry record over it. When the remnant's byte under the entry frame's Type value is 3
++// (StateType) or 5 (SnapshotType), a power loss that keeps every byte of the Save but that one
++// would make the restart read the entry's bytes as a hard state (or a snapshot record), with a
++// valid CRC. The test searches hard states (a vote for a member ID, a commit) whose old frame puts
++// such a byte there, and runs the restart on that image: it must fail or read only records the WAL
++// wrote there. (The pipeline truncates N.tmp: the byte under the Type is 0 and ReadAll fails.)
+ func TestWALTypeTearStaleTmp(t *testing.T) {
+ 	rnd := rand.New(rand.NewSource(3))
+ 	frameLen := func(data []byte, crcv uint32) int {
+@@ -61,14 +64,14 @@ func TestWALTypeTearStaleTmp(t *testing.T) {
+ 		require.NoError(t, enc.flush())
+ 		old := buf.Bytes()
+ 		// the new headers' CRC field encodes in 4 or 5 bytes (unknown before the run)
+-		pos := -1
++		var poss []int
+ 		for _, crcv := range []uint32{1 << 31, 1 << 22} {
+ 			p := hsStart + frameLen(pbutil.MustMarshalMessage(newHS), crcv) + 9 // the first appended frame's Type
+ 			if p < len(old) && (old[p] == byte(StateType) || old[p] == byte(SnapshotType)) {
+-				pos = p
++				poss = append(poss, p)
+ 			}
+ 		}
+-		if pos < 0 {
++		if len(poss) == 0 {
+ 			continue
+ 		}
+ 		cands++
+@@ -77,21 +80,23 @@ func TestWALTypeTearStaleTmp(t *testing.T) {
+ 		seg0, before, after, size := bmStaleTmp(t, oldHS, newHS, saveHS, prev, ents)
+ 		written, ends, _ := bmDecode(after, size, seg0)
+ 		s := ends[len(ends)-3] // the entry frame (then the state frame)
+-		if before[s+9] != old[pos] {
++		if !slices.Contains(poss, int(s)+9) {
+ 			shifted++
+-			continue // the new headers' CRC encoded shorter than assumed
++			continue // the new headers' CRC encoded otherwise than assumed
+ 		}
+ 		found++
+ 		img := append([]byte(nil), after...)
+ 		img[s+9] = before[s+9] // one byte: the Type value as it was before the Save
+ 		o := bmRestartMem(img, size, seg0)
+ 		t.Logf("old %v new %v: entry Type byte %#x -> %#x: %s %s %s", oldHS, newHS, after[s+9], before[s+9], o.kind, o.why, bmShort(o))
++		if o.kind != "ok" {
++			continue // a failed restart is allowed
++		}
+ 		prefix := len(o.recs) <= len(written)
+ 		for j := 0; prefix && j < len(o.recs); j++ {
+ 			prefix = o.recs[j].eq(written[j])
+ 		}
+-		require.False(t, prefix, "the restart reads records the WAL never wrote there")
+-		require.Equal(t, int64(before[s+9]), o.recs[len(written)-2].typ)
++		require.True(t, prefix, "the restart reads records the WAL never wrote there")
+ 	}
+ 	t.Logf("candidates %d, shifted %d, found %d", cands, shifted, found)
+ 	require.Positive(t, found)
+diff --git a/server/storage/wal/file_pipeline.go b/server/storage/wal/file_pipeline.go
+index c8ee4cce4..94e913c6d 100644
+--- a/server/storage/wal/file_pipeline.go
++++ b/server/storage/wal/file_pipeline.go
+@@ -75,7 +75,10 @@ func (fp *filePipeline) Close() error {
+ func (fp *filePipeline) alloc() (f *fileutil.LockedFile, err error) {
+ 	// count % 2 so this file isn't the same as the one last published
+ 	fpath := filepath.Join(fp.dir, fmt.Sprintf("%d.tmp", fp.count%2))
+-	if f, err = createNewWALFile[*fileutil.LockedFile](fpath, false); err != nil {
++	// Truncate: a cut interrupted by a crash leaves its headers in N.tmp. Kept, they
++	// would lie after the next cut's (possibly shorter) headers, under the records
++	// appended later, where a torn write could combine them with the new bytes.
++	if f, err = createNewWALFile[*fileutil.LockedFile](fpath, true); err != nil {
+ 		return nil, err
+ 	}
+ 	if err = fileutil.Preallocate(f.File, fp.size, true); err != nil {
+diff --git a/server/storage/wal/file_pipeline_test.go b/server/storage/wal/file_pipeline_test.go
+index bb59270bf..77ecc01de 100644
+--- a/server/storage/wal/file_pipeline_test.go
++++ b/server/storage/wal/file_pipeline_test.go
+@@ -15,7 +15,10 @@
+ package wal
+ 
+ import (
++	"bytes"
+ 	"math"
++	"os"
++	"path/filepath"
+ 	"testing"
+ 
+ 	"go.uber.org/zap/zaptest"
+@@ -45,3 +48,36 @@ func TestFilePipelineFailPreallocate(t *testing.T) {
+ 		t.Fatal("expected error on invalid pre-allocate size, but no error")
+ 	}
+ }
++
++// TestFilePipelineTruncatesStaleTmp: a 0.tmp left by an interrupted cut is
++// reused empty: every byte of the preallocated file is zero.
++func TestFilePipelineTruncatesStaleTmp(t *testing.T) {
++	tdir := t.TempDir()
++	stale := bytes.Repeat([]byte{0xab}, 4096)
++	if err := os.WriteFile(filepath.Join(tdir, "0.tmp"), stale, 0o600); err != nil {
++		t.Fatal(err)
++	}
++
++	size := int64(64 * 1024)
++	fp := newFilePipeline(zaptest.NewLogger(t), tdir, size)
++	defer fp.Close()
++
++	f, ferr := fp.Open()
++	if ferr != nil {
++		t.Fatal(ferr)
++	}
++	name := f.Name()
++	f.Close()
++	b, err := os.ReadFile(name)
++	if err != nil {
++		t.Fatal(err)
++	}
++	if int64(len(b)) != size {
++		t.Fatalf("size %d, want %d", len(b), size)
++	}
++	for i, c := range b {
++		if c != 0 {
++			t.Fatalf("stale byte %#x at offset %d of the reused %s", c, i, filepath.Base(name))
++		}
++	}
++}
+-- 
+2.53.0
+

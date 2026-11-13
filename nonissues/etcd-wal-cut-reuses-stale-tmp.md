@@ -34,15 +34,22 @@ or spanning zero sectors), or a shorter one whose five top bytes are padding, so
 it is zeros. In the last two cases the record runs into zeros (a zero tag: it does not parse) and holds an
 all-zero sector chunk, so it is torn: `io.ErrUnexpectedEOF`
 ([decoder.go](https://github.com/etcd-io/etcd/blob/1b969e26a2c6/server/storage/wal/decoder.go#L126)).
-`Repair` handles it. Bytes written after the cut overwrite the stale ones, and a power loss that
-loses them only brings back the same state.
+`Repair` handles it. Bytes written after the cut overwrite the stale ones. **Correction
+(2026-11-13):** a power loss that loses some of them does not only bring back the same state: a
+torn write that keeps a frame but its one-byte Type (outside the CRC) leaves the remnant's byte
+there, and when that byte is 3 or 5 the restart reads an entry as a hard state or a snapshot record,
+with a valid CRC (`TestWALTypeTearStaleTmp`,
+[etcd-wal-record-type-outside-crc.md](etcd-wal-record-type-outside-crc.md)). That needs a
+single-byte tear no measured mechanism leaves, so it is a nonissue too, but the fork now truncates
+`N.tmp` (its `O_TRUNC` fix, "Proof").
 
 ## Proof
 
-no: no fork change. The WAL's crash invariant over `fsExt` has to allow these durable stale bytes
-after a reused segment's headers: W1 (no CRC32-C collision on torn data) gets a stale clause, or the
-invariant records that the remnant is a suffix of an old hard-state frame, which the decoder always
-stops at (`notes/wal-fsext-plan.md`, §2.4 item 6, Q3).
+no for this finding alone, which the restart survives. The fork's fix of
+`etcd-wal-record-type-outside-crc` (`goose-lean-walfs`: `alloc` opens `N.tmp` with `O_TRUNC`) removes
+the stale bytes altogether: a reused `N.tmp` reads as zeros after its new headers, so the WAL's crash
+invariant over `fsExt` needs no stale clause (`notes/wal-fsext-plan.md`, §2.4 item 6, §6 Q3;
+`notes/decisions.md`, "WAL over fsExt: `N.tmp` opened with `O_TRUNC`").
 
 ## Notes
 
@@ -51,6 +58,6 @@ builds a state no crash leaves, a `0.tmp` holding old entry records after its he
 new hard states of the same length: the new headers end on an old frame boundary, the old entry fails
 the CRC chain without looking torn, and the restart fails with `ErrCRCMismatch`, which `Repair` does
 not handle. A cut that appended before the directory fsync, or a pipeline that preallocated by writing
-records, would make that reachable; opening `N.tmp` with `O_TRUNC` (`createNewWALFile(fpath, true)`)
-would remove the dependency. Upstream not searched beyond "file_pipeline O_TRUNC" and "0.tmp wal"
+records, would make that reachable; opening `N.tmp` with `O_TRUNC` (`createNewWALFile(fpath, true)`,
+the fork's fix) removes the dependency. Upstream not searched beyond "file_pipeline O_TRUNC" and "0.tmp wal"
 (nothing related).

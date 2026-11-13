@@ -1506,7 +1506,7 @@ noncomputable def filePipeline.alloc.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "fpath"))
-  (Let "$a1" (Val #false)
+  (Let "$a1" (Val #true)
   (App (App (App (Val (GoInstruction (FuncResolve createNewWALFile [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile.ty)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -1535,7 +1535,7 @@ noncomputable def filePipeline.alloc.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "fpath") (Var "$r0")))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
 
-/-- go: file_pipeline.go:90:25 -/
+/-- go: file_pipeline.go:93:25 -/
 noncomputable def filePipeline.run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fp"
   (Lam BAnon
