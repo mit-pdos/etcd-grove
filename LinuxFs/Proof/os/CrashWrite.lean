@@ -5,7 +5,8 @@ per-byte model:
 
 * `WriteCrash m bs off data f`: `f` is a file a crash may leave of the file `m`, `bs` during the
   write: on disk, a size within the write's crash bounds, each byte of the old file one of its old
-  candidates or the data's byte (inside the write), zeros past the zeros known and the write's end.
+  candidates or the data's byte (inside the write) or, at or past the crash bounds' smallest size,
+  zero (writeback's zeroing, `CrashFile`), zeros past the zeros known and the write's end.
 * `WriteOk Good m bs off data`: every such file is `Good` (the caller's obligation, once).
 * `WIn m bs off data m' bs'`: the file `m'`, `bs'` is one the write may pass through (its `OsMeta`'s
   bounds within the write's, each byte's candidates the old ones or the data's byte, the bytes
@@ -36,7 +37,8 @@ def WriteCrash (m : OsMeta) (bs : List ByteG) (off : Nat) (data : List w8) (f : 
   min m.lo (wT m off data.length) ≤ f.size ∧ f.size ≤ max m.hi (wT m off data.length) ∧
   (∀ b (hb : b < bs.length), b < f.size →
     (∃ s, (f.cache b, s) ∈ bs[b].2) ∨
-      (off ≤ b ∧ b < off + data.length ∧ f.cache b = data.getD (b - off) 0)) ∧
+      (off ≤ b ∧ b < off + data.length ∧ f.cache b = data.getD (b - off) 0) ∨
+      (min m.lo (wT m off data.length) ≤ b ∧ f.cache b = 0)) ∧
   (∀ z, m.zf = some z → ∀ b, max z (off + data.length) ≤ b → b < f.size → f.cache b = 0)
 
 /-- Every file a crash may leave of `m`, `bs` while a write of `data` at `off` runs is `Good`. -/
@@ -92,20 +94,22 @@ theorem range_getElem2 (m : OsMeta) (bs : List ByteG) (off n j b : Nat)
       bs[b]'(by simp only [cfRange, List.length_take, List.length_drop] at hj; omega) := by
   subst hb; simp only [cfRange, List.getElem_take, List.getElem_drop]
 
-/-- A byte of a run of a file a crash may leave, below its size: one of its candidates. -/
+/-- A byte of a run of a file a crash may leave, below its size: one of its candidates, or zero at
+or past `M.lo`. -/
 theorem fileCrashedR_byte {M : OsMeta} {rs : List (Nat × DFrac × List ByteG)} {f : OsFile}
     (h : FileCrashedR M rs (some f)) {r : Nat × DFrac × List ByteG} (hr : r ∈ rs) {b : Nat}
     (h1 : r.1 ≤ b) (h2 : b - r.1 < r.2.2.length) (hb : b < f.size) :
-    ∃ s, (f.cache b, s) ∈ (r.2.2[b - r.1]).2 := by
+    (∃ s, (f.cache b, s) ∈ (r.2.2[b - r.1]).2) ∨ (M.lo ≤ b ∧ f.cache b = 0) := by
   have := (h f rfl).2.2.2.1 r hr (b - r.1) h2 (by omega)
   rwa [show r.1 + (b - r.1) = b by omega] at this
 
-/-- A durable byte of a run survives a crash, below the crash's size. -/
+/-- A durable byte of a run survives a crash, below the crash's size and `M.lo`. -/
 theorem crashed_dur {M : OsMeta} {rs : List (Nat × DFrac × List ByteG)} {f : OsFile}
     (h : FileCrashedR M rs (some f)) {r : Nat × DFrac × List ByteG} (hr : r ∈ rs) {b : Nat}
     {x : w8} (h1 : r.1 ≤ b) (h2 : b - r.1 < r.2.2.length) (hx : (r.2.2[b - r.1]).2 = [(x, 0)])
-    (hb : b < f.size) : f.contents[b]? = some x := by
-  obtain ⟨s, hs⟩ := fileCrashedR_byte h hr h1 h2 hb
+    (hb : b < f.size) (hlo : b < M.lo) : f.contents[b]? = some x := by
+  obtain ⟨s, hs⟩ | ⟨h0, -⟩ := fileCrashedR_byte h hr h1 h2 hb
+  rotate_left; · omega
   rw [hx, List.mem_singleton] at hs
   rw [contents_getElem?_of_lt hb, (Prod.mk.inj hs).1]
 
@@ -120,12 +124,14 @@ theorem fileOk_idle {Good : Option OsFile → Prop} {m m' : OsMeta} {bs bs' : Li
   refine ⟨hd, by simp only [fMeta] at hlo; omega, by simp only [fMeta] at hhi; omega,
     fun b hb hbf => ?_, fun z hz0 b hb hbf => ?_⟩
   · have hb' : b < bs'.length := by rw [hW.len]; have := hW.sz1; omega
-    obtain ⟨s, hs⟩ := fileCrashedR_byte hf (List.mem_singleton.2 rfl) (Nat.zero_le b)
+    obtain ⟨s, hs⟩ | ⟨h0l, h0⟩ := fileCrashedR_byte hf (List.mem_singleton.2 rfl) (Nat.zero_le b)
       (by simpa using hb') hbf
+    rotate_left
+    · simp only [fMeta] at h0l; exact .inr (.inr ⟨by omega, h0⟩)
     simp only [Nat.sub_zero] at hs
     rcases hW.cands b hb' hb _ hs with h | ⟨h1, h2, h3⟩
     · exact .inl ⟨s, h⟩
-    · exact .inr ⟨h1, h2, h3⟩
+    · exact .inr (.inl ⟨h1, h2, h3⟩)
   · obtain ⟨z', hz', hle⟩ := hW.zf z hz0
     exact hz z' hz' b (by omega) hbf
 
@@ -158,21 +164,31 @@ theorem fileOk_flight {Good : Option OsFile → Prop} {m m' : OsMeta} {bs bs' : 
     -- which run holds the byte
     have hcand : ∀ q ∈ bs'[b].2, ∀ s, q = (f.cache b, s) →
         (∃ s, (f.cache b, s) ∈ bs[b].2) ∨
-          (off ≤ b ∧ b < off + data.length ∧ f.cache b = data.getD (b - off) 0) := by
+          (off ≤ b ∧ b < off + data.length ∧ f.cache b = data.getD (b - off) 0) ∨
+          (min m.lo (wT m off data.length) ≤ b ∧ f.cache b = 0) := by
       intro q hq s hqs
       rcases hW.cands b hb' hb q hq with h | ⟨h1, h2, h3⟩
       · exact .inl ⟨s, hqs ▸ h⟩
-      · exact .inr ⟨h1, h2, by rw [← h3, hqs]⟩
+      · exact .inr (.inl ⟨h1, h2, by rw [← h3, hqs]⟩)
+    have hzero : (fMeta (m', bs', some (t, off', data', n))).lo ≤ b → f.cache b = 0 →
+        (∃ s, (f.cache b, s) ∈ bs[b].2) ∨
+          (off ≤ b ∧ b < off + data.length ∧ f.cache b = data.getD (b - off) 0) ∨
+          (min m.lo (wT m off data.length) ≤ b ∧ f.cache b = 0) := by
+      intro h0l h0
+      simp only [fMeta, cfMeta, announce_lo] at h0l
+      exact .inr (.inr ⟨by omega, h0⟩)
     by_cases c1 : b < off'
-    · obtain ⟨s, hs⟩ := fileCrashedR_byte hf (r := (0, DFrac.own (1 : Qp).half, bs'.take (cfLo m' off')))
+    · obtain ⟨s, hs⟩ | ⟨h0l, h0⟩ := fileCrashedR_byte hf (r := (0, DFrac.own (1 : Qp).half, bs'.take (cfLo m' off')))
         (by simp [fRuns]) (Nat.zero_le b) (by simp only [List.length_take]; omega) hbf
+      rotate_left; · exact hzero h0l h0
       simp only [Nat.sub_zero, List.getElem_take] at hs
       exact hcand _ hs s rfl
     by_cases c2 : b < cfHi m' off' data'.length
-    · obtain ⟨s, hs⟩ := fileCrashedR_byte hf
+    · obtain ⟨s, hs⟩ | ⟨h0l, h0⟩ := fileCrashedR_byte hf
         (r := (cfLo m' off', DFrac.own 1, pwAnn data' n (cfRange m' bs' off' data'.length)))
         (by simp [fRuns]) (by omega)
         (by simp only [pwAnn_length, cfRange, List.length_take, List.length_drop]; omega) hbf
+      rotate_left; · exact hzero h0l h0
       rw [pwAnn_getElem' data' n _ (b - cfLo m' off')
         (by simp only [cfRange, List.length_take, List.length_drop]; omega)] at hs
       simp only [List.mem_append, List.mem_singleton] at hs
@@ -180,15 +196,16 @@ theorem fileOk_flight {Good : Option OsFile → Prop} {m m' : OsMeta} {bs bs' : 
       · rw [range_getElem' m' bs' off' data'.length b (by omega)
           (by simp only [cfRange, List.length_take, List.length_drop]; omega)] at hs
         exact hcand _ hs s rfl
-      · right
+      · right; left
         obtain ⟨hs1, -⟩ := Prod.mk.inj hs
         refine ⟨by omega, by simp only [cfHi] at c2; omega, ?_⟩
         rw [hs1, hd, hlo']
         rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD, List.getElem?_drop,
           show off' - off + (b - off') = b - off by omega]
-    · obtain ⟨s, hs⟩ := fileCrashedR_byte hf
+    · obtain ⟨s, hs⟩ | ⟨h0l, h0⟩ := fileCrashedR_byte hf
         (r := (cfHi m' off' data'.length, DFrac.own (1 : Qp).half, bs'.drop (cfHi m' off' data'.length)))
         (by simp [fRuns]) (by omega) (by simp only [List.length_drop]; omega) hbf
+      rotate_left; · exact hzero h0l h0
       rw [drop_getElem' bs' _ b (by omega) (by simp only [List.length_drop]; omega)] at hs
       exact hcand _ hs s rfl
   · obtain ⟨z', hz', hle⟩ := hW.zf z hz0

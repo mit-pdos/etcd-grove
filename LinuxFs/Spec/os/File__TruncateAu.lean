@@ -37,13 +37,13 @@ variable [os.Assumptions]
 /-- The caller's half of a resize of the unmapped file `p` from `m` to `tg` that landed
 (`os.ftDone`'s, the candidates `zs` of the bytes grown over). -/
 def os.ftDoneH (p : Ino) (m : OsMeta) (tg : Nat) (zs : List Cands) : IProp GF :=
-  iprop(⌜zs.length = tg - m.size⌝ ∗ osMeta p (DFrac.own (1 : Qp).half) (rsPost m tg tg) ∗
+  iprop(⌜zs.length = tg - m.size⌝ ∗ osMeta p (DFrac.own (1 : Qp).half) (rsPost true m tg tg) ∗
     osBytes p m.size (DFrac.own (1 : Qp).half) (zs.map (fun c => ((0 : w8), c))))
 
 /-- The caller's half of a resize of `p` from `m` to `tg` that did not land (`os.ftUndone`'s, the
 bytes it would have cut off `xs'`). -/
 def os.ftUndoneH (p : Ino) (m : OsMeta) (tg : Nat) (xs' : List ByteG) : IProp GF :=
-  iprop(osMeta p (DFrac.own (1 : Qp).half) (m.announce (min m.size tg) (max m.size tg) tg) ∗
+  iprop(osMeta p (DFrac.own (1 : Qp).half) (m.announce (min m.size tg) (rsHi true m.size tg) tg) ∗
     osBytes p (min m.size tg) (DFrac.own (1 : Qp).half) xs')
 
 /-- What the caller gets back of an attempt from `m0`, `xs0` whose second step returned `e`: its
@@ -60,15 +60,15 @@ def os.truncAu (p : Ino) (tg : Nat) (m0 : OsMeta) (xs0 : List ByteG) : IProp GF 
   osAUnc (A := Nat × Nat)
     iprop(osMeta p (DFrac.own (1 : Qp).half) m0 ∗
       osBytes p (min m0.size tg) (DFrac.own (1 : Qp).half) xs0)
-    (fun tn => rsTok tn.1 p tg m0 xs0 tn.2)
-    (fun tn => osAUnc (A := w64) (rsTok tn.1 p tg m0 xs0 tn.2) (rsOutT p tg m0 xs0 tn.2)
+    (fun tn => rsTok true tn.1 p tg m0 xs0 tn.2)
+    (fun tn => osAUnc (A := w64) (rsTok true tn.1 p tg m0 xs0 tn.2) (rsOutT p tg m0 xs0 tn.2)
       (os.truncOutH p tg m0 xs0 tn.2))
 
 /-- The states an attempt of a resize from `m`, `xs` to `tg` may start from. -/
 def os.TruncFrom (m : OsMeta) (xs : List ByteG) (tg : Nat) (m0 : OsMeta) (xs0 : List ByteG) : Prop :=
-  ((m0 = m ∨ m0 = m.announce (min m.size tg) (max m.size tg) tg) ∧
+  ((m0 = m ∨ m0 = m.announce (min m.size tg) (rsHi true m.size tg) tg) ∧
     xs0.map Prod.fst = xs.map Prod.fst ∧ xs0.length = m.size - tg) ∨
-  (m0 = rsPost m tg tg ∧ xs0 = [])
+  (m0 = rsPost true m tg tg ∧ xs0 = [])
 
 /-- See the file header. -/
 abbrev os.File.Truncate.specAu : Prop :=

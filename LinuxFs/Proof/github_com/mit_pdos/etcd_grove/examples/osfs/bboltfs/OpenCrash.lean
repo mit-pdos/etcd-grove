@@ -96,11 +96,11 @@ theorem kc_start (img : Nat → w8) (sz b : Nat) :
     unfold OsMeta.pc
     rw [show (initMeta (OsFile.ofDisk img sz)).tc = tailMap (OsFile.ofDisk img sz) from rfl,
       tailMap_lookup, hf]
-    by_cases h2 : sz ≤ b ∧ b < pageUp sz
+    by_cases h2 : sz ≤ b ∧ b < pageEnd sz
     · rw [if_pos h2]; rfl
     · rw [if_neg h2]
-      show (if pageUp sz ≤ b then some [((0 : w8), 0)] else none) = _
-      have h3 : pageUp sz ≤ b := by omega
+      show (if pageEnd sz ≤ b then some [((0 : w8), 0)] else none) = _
+      have h3 : pageEnd sz ≤ b := by omega
       rw [if_pos h3, show (OsFile.ofDisk img sz).cache b = 0 from diskByte_past h3]
 
 theorem openStart_disk (img : Nat → w8) (sz : Nat) (hg : Good (some (OsFile.ofDisk img sz))) :
@@ -121,7 +121,7 @@ theorem openStart_disk (img : Nat → w8) (sz : Nat) (hg : Good (some (OsFile.of
         by_cases hk : k < 64
         · rw [List.getElem?_range hk, if_pos hk]
           show some (diskByte img sz _) = _
-          rw [diskByte_past (by unfold pageUp; omega)]
+          rw [diskByte_past (by unfold pageEnd; omega)]
         · rw [List.getElem?_eq_none (by simp; omega), if_neg hk]; rfl
       rw [e]; exact zeroSlot_invalid
   · rw [kc_start]

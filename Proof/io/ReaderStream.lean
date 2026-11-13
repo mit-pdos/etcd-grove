@@ -8,7 +8,9 @@ the WAL's decoder composes (decoder.go: `readInt64`, `io.ReadFull(fileBufReader,
   delivered so far), delivers the next `n` bytes `ys` into the front of `p` (`0 ≤ n ≤ len(p)`,
   `io.Reader`'s contract), leaves `S (r ++ ys)`, and returns only errors `E (r ++ ys)` allows. The
   client chooses `S` (what the bytes are: a file's content from an offset, ...) and `E` (what an
-  error says there: `io.EOF` only at the end, ...).
+  error says there: `io.EOF` only at the end, ...). The caller keeps the end of the read below
+  `2^62` (`len(r) + len(p) < 2^62`): the `*os.File` model does not model a read ending past
+  `model.offMax`, and no reader here gets near it (`notes/wal-fsext-plan.md`, W3/W5 log, `wal-read5`).
 * `io.readFullOk E eof ueof r ys m err`: what `io.ReadFull` of `m` bytes returns after delivering
   `ys` from `r` on: all `m` and `nil`, or fewer and the reader's last error `e` (an `E` one), but
   `io.ErrUnexpectedEOF` in place of `io.EOF` when some bytes came first (io.go, `ReadAtLeast`).
@@ -37,7 +39,7 @@ variable [sem : go.Semantics]
 def io.readerStream (ri : GoInterfaceOk) (S : List w8 → IProp GF)
     (E : List w8 → GoInterface → Prop) : IProp GF :=
   iprop(□ ∀ (r : List w8) (p : GoSlice) (xs : List w8),
-    {{ S r ∗ p ↦* xs }}
+    {{ ⌜r.length + xs.length < 2 ^ 62⌝ ∗ S r ∗ p ↦* xs }}
       (App (Val #(methods ri.ty go!"Read" ri.v)) (Val #p))
     {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
         ∃ ys : List w8, ⌜sint.Z n = ys.length ∧ ys.length ≤ xs.length ∧

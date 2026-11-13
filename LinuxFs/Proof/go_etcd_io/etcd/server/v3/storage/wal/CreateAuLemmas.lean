@@ -73,26 +73,28 @@ theorem claimOnce_createClaims {cl : List Claim} {jr : Ino} {N : NameSet} {h : N
 
 /-- **The creating map after the commit** (the committed entry deleted): the other entries' claims are
 not the replaced one, so they stay, once, exclusive. -/
-theorem creatingOk_create {jr : Ino} {cl : List Claim} {CR : GMap GoString (NameSet × NamesH)}
+theorem creatingOk_create {jr : Ino} {cl : List Claim}
+    {CR : GMap GoString (NameSet × NamesH × Ino)}
     {dir nm : GoString} {N : NameSet} {h : NamesH} {x : Nat} {e : LogEntry} {cc : Ents} {J : Ino}
     {X : List GoString} {hJ : NamesH}
-    (hco : CreatingOk jr cl CR) (hd : CR !! dir = some (N, h)) (hnmN : N.Mem nm) (hJjr : J ≠ jr) :
+    (hco : CreatingOk jr cl CR) (hd : CR !! dir = some (N, h, J)) (hnmN : N.Mem nm) (hJjr : J ≠ jr) :
     CreatingOk jr (createClaims cl jr N h x e cc J X hJ) (GMap.delete dir CR) := by
   classical
-  obtain ⟨-, -, hex0, -, hdist0⟩ := hco dir N h hd
-  intro dir' N' h' hd'
+  obtain ⟨-, -, hex0, -, hdist0, -, -, hJd0, -⟩ := hco dir N h J hd
+  intro dir' N' h' J' hd'
   have hdd : dir' ≠ dir := by
     rintro rfl; rw [GMap.lookup_delete_eq] at hd'; cases hd'
   rw [GMap.lookup_delete_ne _ (Ne.symm hdd)] at hd'
-  obtain ⟨hm, hcoh, hex, honce, hdist⟩ := hco dir' N' h' hd'
+  obtain ⟨hm, hcoh, hex, honce, hdist, hJ'jr, hJ'c, hJ'd, hJ'b⟩ := hco dir' N' h' J' hd'
+  have hJJ' : J' ≠ J := hJd0 dir' (N', h', J') hdd hd'
   have hne : (jr, N', h') ≠ (jr, N, h) := by
     intro he
     simp only [Prod.mk.injEq] at he
     obtain ⟨-, rfl, rfl⟩ := he
-    exact hdist0 dir' hdd hd'
+    exact hdist0 dir' J' hdd hd'
   -- the replaced claim's names are not `N'`'s
   have hNN : ∀ b, N'.Mem b → ¬ N.Mem b :=
-    hex (jr, N, h) (by obtain ⟨l1, l2, hcl, -, -⟩ := (hco dir N h hd).2.2.2.1; rw [hcl]; simp)
+    hex (jr, N, h) (by obtain ⟨l1, l2, hcl, -, -⟩ := (hco dir N h J hd).2.2.2.1; rw [hcl]; simp)
       (Ne.symm hne) rfl
   have hne1 : (jr, N', h') ≠ (jr, N, h.log x e cc) := by
     intro he
@@ -100,7 +102,7 @@ theorem creatingOk_create {jr : Ino} {cl : List Claim} {CR : GMap GoString (Name
     obtain ⟨-, rfl, -⟩ := he
     exact hNN nm hnmN hnmN
   refine ⟨mem_createClaims_other hm hne, hcoh, ?_, claimOnce_createClaims honce hne hne1
-    (fun h1 => hJjr h1.symm), ?_⟩
+    (fun h1 => hJjr h1.symm), ?_, hJ'jr, ?_, ?_, hJ'b⟩
   · intro c hc hcne hcj b hb
     rcases List.mem_append.1 hc with hc | hc
     · obtain ⟨c0, hc0, rfl⟩ := List.mem_map.1 hc
@@ -111,11 +113,25 @@ theorem creatingOk_create {jr : Ino} {cl : List Claim} {CR : GMap GoString (Name
         exact hex c0 hc0 hcne hcj b hb
     · simp only [List.mem_singleton] at hc
       subst hc; exact absurd hcj hJjr
-  · intro dir'' hne'' hl
+  · intro dir'' J'' hne'' hl
     by_cases h2 : dir'' = dir
     · subst h2; rw [GMap.lookup_delete_eq] at hl; cases hl
     · rw [GMap.lookup_delete_ne _ (Ne.symm h2)] at hl
-      exact hdist dir'' hne'' hl
+      exact hdist dir'' J'' hne'' hl
+  · intro c hc hcj b hb
+    rcases List.mem_append.1 hc with hc | hc
+    · obtain ⟨c0, hc0, rfl⟩ := List.mem_map.1 hc
+      by_cases h0 : c0 = (jr, N, h)
+      · simp only [if_pos h0] at hcj; exact absurd hcj.symm hJ'jr
+      · simp only [if_neg h0] at hcj ⊢
+        exact hJ'c c0 hc0 hcj b hb
+    · simp only [List.mem_singleton] at hc
+      subst hc; exact absurd hcj.symm hJJ'
+  · intro dir'' y hne'' hl
+    by_cases h2 : dir'' = dir
+    · subst h2; rw [GMap.lookup_delete_eq] at hl; cases hl
+    · rw [GMap.lookup_delete_ne _ (Ne.symm h2)] at hl
+      exact hJ'd dir'' y hne'' hl
 
 /-- The commit's WAL state is above the old one, the new WAL's directory in the area. -/
 theorem absLe_createSt {s : AbsDiskState} {dir : GoString} {md : List w8}

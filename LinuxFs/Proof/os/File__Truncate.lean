@@ -28,14 +28,14 @@ variable [os.Assumptions]
 
 /-- What an attempt from a state that has not landed leaves, when it lands. -/
 theorem rsDone_ftDone (p : Ino) (m m0 : OsMeta) (tg n : Nat)
-    (hm0 : m0 = m ∨ m0 = m.announce (min m.size tg) (max m.size tg) tg) :
-    rsDone (GF := GF) p tg tg m0 n ⊢ os.ftDone p m tg := by
+    (hm0 : m0 = m ∨ m0 = m.announce (min m.size tg) (rsHi true m.size tg) tg) :
+    rsDone (GF := GF) true p tg tg m0 n ⊢ os.ftDone p m tg := by
   have hsz : m0.size = m.size := by rcases hm0 with rfl | rfl <;> simp
   have hmaps : m0.maps = m.maps := by rcases hm0 with rfl | rfl <;> simp
-  have hpost : rsPost m0 tg tg = rsPost m tg tg := by
+  have hpost : rsPost true m0 tg tg = rsPost true m tg tg := by
     rcases hm0 with rfl | rfl
     · rfl
-    · exact os.rsPost_announce m tg tg
+    · exact os.rsPost_announce true m tg tg
   unfold rsDone os.ftDone
   iintro ⟨%zs, %hzs, Hm, Hb, Hc⟩
   iexists zs.map (fun c0 => c0 ++ [(0, n)])
@@ -47,10 +47,10 @@ theorem rsDone_ftDone (p : Ino) (m m0 : OsMeta) (tg n : Nat)
 it; the bytes to cut off have `xs`'s values), or one did. -/
 def ftState (p : Ino) (m : OsMeta) (tg : Nat) (xs : List ByteG) : IProp GF :=
   iprop((∃ (m0 : OsMeta) (xs0 : List ByteG),
-      ⌜(m0 = m ∨ m0 = m.announce (min m.size tg) (max m.size tg) tg) ∧
+      ⌜(m0 = m ∨ m0 = m.announce (min m.size tg) (rsHi true m.size tg) tg) ∧
         xs0.map Prod.fst = xs.map Prod.fst ∧ xs0.length = m.size - tg⌝ ∗
       osMeta p (DFrac.own 1) m0 ∗ osBytes p (min m.size tg) (DFrac.own 1) xs0 ∗
-      mcellsAny m.maps (min m.size tg) (max m.size tg)) ∨
+      mcellsAny m.maps (min m.size tg) (rsHi true m.size tg)) ∨
     os.ftDone p m tg)
 
 theorem os.File.Truncate.wp_proof : os.File.Truncate.spec (GF := GF) (hG := hG) := by
@@ -84,17 +84,17 @@ theorem os.File.Truncate.wp_proof : os.File.Truncate.spec (GF := GF) (hG := hG) 
     · rw [hsz0]; iexact Hb
     · rw [hsz0, hmaps0]; iexact Hc
     wp_apply wp_osFtruncateFinish t d.ino sz.toNat m0 xs0 n CoPset.subseteq_top $$ Hinv Ht as %e Hr
-    have hann : m0.announce (min m0.size sz.toNat) (max m0.size sz.toNat) sz.toNat =
-        m.announce (min m.size sz.toNat) (max m.size sz.toNat) sz.toNat := by
+    have hann : m0.announce (min m0.size sz.toNat) (rsHi true m0.size sz.toNat) sz.toNat =
+        m.announce (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat := by
       rw [hsz0]; rcases hm0 with rfl | rfl
       · rfl
       · exact os.announce_idem _ _ _ _
     ihave Hr : (⌜e = 0⌝ ∗ os.ftDone d.ino m sz.toNat) ∨
         (⌜e ≠ 0⌝ ∗ (os.ftDone d.ino m sz.toNat ∨
           (∃ xs1 : List ByteG, ⌜xs1.map Prod.fst = xs.map Prod.fst ∧ xs1.length = m.size - sz.toNat⌝ ∗
-            osMeta d.ino (DFrac.own 1) (m.announce (min m.size sz.toNat) (max m.size sz.toNat) sz.toNat) ∗
+            osMeta d.ino (DFrac.own 1) (m.announce (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat) ∗
             osBytes d.ino (min m.size sz.toNat) (DFrac.own 1) xs1 ∗
-            mcellsAny m.maps (min m.size sz.toNat) (max m.size sz.toNat)))) $$ [Hr]
+            mcellsAny m.maps (min m.size sz.toNat) (rsHi true m.size sz.toNat)))) $$ [Hr]
     · unfold rsUndone
       icases Hr with (⟨%he, Hd⟩ | ⟨%he, (Hd | ⟨Hm, Hb, Hc⟩)⟩)
       · ileft; isplitr; · ipureintro; exact he
@@ -153,20 +153,37 @@ theorem os.File.Truncate.wp_proof : os.File.Truncate.spec (GF := GF) (hG := hG) 
   · -- a further attempt after one that landed: a resize to the size the file has
     iunfold os.ftDone at Hd
     icases Hd with ⟨%zs, %hzs, Hm, Hbs, Hcs⟩
-    have hdsz : (rsPost m sz.toNat sz.toNat).size = sz.toNat := rfl
-    have hdmaps : (rsPost m sz.toNat sz.toNat).maps = m.maps := by simp [rsPost]
-    ihave Hc0 := os.mcellsAny_nil (GF := GF) m.maps sz.toNat sz.toNat (Nat.le_refl _)
-    wp_apply wp_osFtruncateStart fd sz dq d (rsPost m sz.toNat sz.toNat) [] CoPset.subseteq_top hwr hsz
-      (by rw [hdsz]; simp) $$ Hinv Hosfd Hm [] [Hc0] as %t %n %- Hosfd Ht
+    have hdsz : (rsPost true m sz.toNat sz.toNat).size = sz.toNat := rfl
+    have hdmaps : (rsPost true m sz.toNat sz.toNat).maps = m.maps := by simp [rsPost]
+    have hR1 := le_rsHi true m.size sz.toNat
+    have hR2 := rsHi_same_le true m.size sz.toNat
+    have hR3 := le_rsHi true sz.toNat sz.toNat
+    icases (mcells_split (GF := GF) m.maps (min m.size sz.toNat) sz.toNat (rsHi true m.size sz.toNat)
+      _ (by omega) (by omega)).1 $$ Hcs with ⟨Hc1, Hcs⟩
+    icases (mcells_split (GF := GF) m.maps sz.toNat (rsHi true sz.toNat sz.toNat)
+      (rsHi true m.size sz.toNat) _ (by omega) (by omega)).1 $$ Hcs with ⟨Hc2, Hc3⟩
+    ihave Hc0 := mcells_any (GF := GF) _ _ _ _ $$ Hc2
+    wp_apply wp_osFtruncateStart fd sz dq d (rsPost true m sz.toNat sz.toNat) [] CoPset.subseteq_top
+      hwr hsz (by rw [hdsz]; simp) $$ Hinv Hosfd Hm [] [Hc0] as %t %n %- Hosfd Ht
     · unfold osBytes; iapply (bytesG_nil _ _ _ _).2; iempintro
-    · rw [hdsz, hdmaps, Nat.min_self, Nat.max_self]; iexact Hc0
+    · rw [hdsz, hdmaps, Nat.min_self]; iexact Hc0
     wp_apply wp_osFtruncateFinish t d.ino sz.toNat _ [] n CoPset.subseteq_top $$ Hinv Ht as %e Hr
-    ihave Hm : osMeta d.ino (DFrac.own 1) (rsPost m sz.toNat sz.toNat) $$ [Hr]
+    ihave Hm : osMeta d.ino (DFrac.own 1) (rsPost true m sz.toNat sz.toNat) ∗
+        mcells m.maps sz.toNat (rsHi true sz.toNat sz.toNat) (rsCell sz.toNat) $$ [Hr]
     · unfold rsDone rsUndone
-      icases Hr with (⟨-, ⟨%_, -, Hm, -, -⟩⟩ | ⟨-, (⟨%_, -, Hm, -, -⟩ | ⟨Hm, -, -⟩)⟩)
-      · rw [os.rsPost_rsPost]; iexact Hm
-      · rw [os.rsPost_rsPost]; iexact Hm
-      · rw [os.announce_rsPost]; iexact Hm
+      icases Hr with (⟨-, ⟨%_, -, Hm, -, Hc⟩⟩ | ⟨-, (⟨%_, -, Hm, -, Hc⟩ | ⟨Hm, -, Hc⟩)⟩)
+      · rw [os.rsPost_rsPost, hdsz, hdmaps, Nat.min_self]; iframe
+      · rw [os.rsPost_rsPost, hdsz, hdmaps, Nat.min_self]; iframe
+      · rw [os.announce_rsPost, hdsz, hdmaps, Nat.min_self]; iframe Hm
+        iapply (mcells_congr (GF := GF) _ _ _ _ _ (fun i h1 _ => by
+          simp only [rsOld, rsCell, if_neg (Nat.not_lt.2 h1)])).1 $$ Hc
+    icases Hm with ⟨Hm, Hc2⟩
+    ihave Hcs := (mcells_split (GF := GF) m.maps sz.toNat (rsHi true sz.toNat sz.toNat)
+      (rsHi true m.size sz.toNat) _ (by omega) (by omega)).2 $$ [Hc2 Hc3]
+    · iframe
+    ihave Hcs := (mcells_split (GF := GF) m.maps (min m.size sz.toNat) sz.toNat
+      (rsHi true m.size sz.toNat) _ (by omega) (by omega)).2 $$ [Hc1 Hcs]
+    · iframe
     ihave Hd : os.ftDone d.ino m sz.toNat $$ [Hm Hbs Hcs]
     · unfold os.ftDone; iexists zs; iframe; ipureintro; exact hzs
     by_cases he4 : e = W64 4

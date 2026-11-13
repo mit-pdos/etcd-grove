@@ -506,7 +506,7 @@ theorem wp_osFtruncateStart_cs (fd sz : w64) (dq : DFrac) (d : OsFd) (N : Namesp
     (hok : ∀ t n, Ok (some (d.ino, ⟨m, bs, fa, fb, .trunc t sz.toNat n⟩))) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ csInv (L := L) N P R γ Good Ok -∗ osFd (L := L) fd dq d -∗
       csOwnF (L := L) γ (some (d.ino, ⟨m, bs, fa, fb, .idle⟩)) -∗
-      mcellsAny (L := L) m.maps m.size sz.toNat -∗
+      mcellsAny (L := L) m.maps m.size (rsHi true m.size sz.toNat) -∗
       (∀ t : Nat, ∀ n : Nat, osFd (L := L) fd dq d -∗
         csOwnF (L := L) γ (some (d.ino, ⟨m, bs, fa, fb, .trunc t sz.toNat n⟩)) -∗ Φ (osTokV t)) -∗
       WP (ExternalOp fsExt.name "FtruncateStart" (Val (PairV (#fd) (#sz)))) {{ Φ }} := by
@@ -515,7 +515,6 @@ theorem wp_osFtruncateStart_cs (fd sz : w64) (dq : DFrac) (d : OsFd) (N : Namesp
   obtain ⟨hl, hab, hfb, -⟩ := Hwf
   dsimp only at hl hab hfb
   have hmin : min m.size sz.toNat = m.size := Nat.min_eq_left hgrow
-  have hmax : max m.size sz.toNat = sz.toNat := Nat.max_eq_right hgrow
   iapply (wp_atomic (E2 := (⊤ : CoPset) \ ↑N))
   imod cs_open N P R γ Good Ok _ ⊤ (show ↑N ⊆ (⊤ : CoPset) from CoPset.subseteq_top) $$ Hinv Hv
     with ⟨Hv, Hr, Hv', %Hok', Hclose⟩
@@ -525,7 +524,7 @@ theorem wp_osFtruncateStart_cs (fd sz : w64) (dq : DFrac) (d : OsFd) (N : Namesp
   imodintro
   iapply wp_osFtruncateStart fd sz dq d m [] hN hwr hsz0 (by simp; omega) $$ Hos Hfd Hm [] [Hc]
   · unfold osBytes; iapply (bytesG_nil _ _ _ _).2; iempintro
-  · rw [hmin, hmax]; iexact Hc
+  · rw [hmin]; iexact Hc
   iintro %t %n %- Hfd Ht
   imod ghostVar_update_halves (some (d.ino, ⟨m, bs, fa, fb, .trunc t sz.toNat n⟩) : CState) γ _ _
     $$ Hv Hv' with ⟨Hv, Hv'⟩
@@ -555,9 +554,9 @@ def csGrownOwn (p : Ino) (γ : GName) (m : OsMeta) (bs : List ByteG) (fa fb sz n
     IProp GF :=
   iprop(∃ zs : List Cands, ⌜zs.length = sz - m.size ∧
       ∀ j z, m.zf = some z → z ≤ m.size + j → j < zs.length → zs[j]? = some [(0, 0)]⌝ ∗
-    csOwnF (L := L) γ (some (p, ⟨rsPost m sz sz,
+    csOwnF (L := L) γ (some (p, ⟨rsPost true m sz sz,
       bs ++ zs.map (fun c0 => ((0 : w8), c0 ++ [(0, n)])), fa, fb, .idle⟩)) ∗
-    mcells (L := L) m.maps m.size sz (rsCell sz))
+    mcells (L := L) m.maps m.size (rsHi true m.size sz) (rsCell sz))
 
 /-- A growing truncate's second step on a file in a crash invariant: grown, or, on failure, maybe
 not (its `OsMeta` as the first step announced it), each of which the caller shows `Ok`. -/
@@ -566,29 +565,29 @@ theorem wp_osFtruncateFinish_cs (t : Nat) (p : Ino) (sz n : Nat) (N : Namespace)
     (Ok : CState → Prop) (m : OsMeta) (bs : List ByteG) (fa fb : Nat)
     (hN : ↑osN ⊆ (⊤ : CoPset) \ ↑N)
     (hokG : ∀ zs : List Cands, zs.length = sz - m.size →
-      Ok (some (p, ⟨rsPost m sz sz, bs ++ zs.map (fun c0 => ((0 : w8), c0 ++ [(0, n)])), fa, fb,
+      Ok (some (p, ⟨rsPost true m sz sz, bs ++ zs.map (fun c0 => ((0 : w8), c0 ++ [(0, n)])), fa, fb,
         .idle⟩)))
-    (hokF : Ok (some (p, ⟨m.announce (min m.size sz) (max m.size sz) sz, bs, fa, fb, .idle⟩)))
+    (hokF : Ok (some (p, ⟨m.announce (min m.size sz) (rsHi true m.size sz) sz, bs, fa, fb, .idle⟩)))
     (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ csInv (L := L) N P R γ Good Ok -∗
       csOwnF (L := L) γ (some (p, ⟨m, bs, fa, fb, .trunc t sz n⟩)) -∗
       (∀ e : w64,
         ((⌜e = 0⌝ ∗ csGrownOwn (L := L) p γ m bs fa fb sz n) ∨
          (⌜e ≠ 0⌝ ∗ (csGrownOwn (L := L) p γ m bs fa fb sz n ∨
-           (csOwnF (L := L) γ (some (p, ⟨m.announce (min m.size sz) (max m.size sz) sz, bs, fa, fb,
+           (csOwnF (L := L) γ (some (p, ⟨m.announce (min m.size sz) (rsHi true m.size sz) sz, bs, fa, fb,
               .idle⟩)) ∗
-             mcellsAny (L := L) m.maps m.size sz)))) -∗ Φ (#e)) -∗
+             mcells (L := L) m.maps m.size (rsHi true m.size sz) (rsOld m.size m.size []))))) -∗
+        Φ (#e)) -∗
       WP (ExternalOp fsExt.name "FtruncateFinish" (Val (osTokV t))) {{ Φ }} := by
   iintro #Hos #Hinv Hown HΦ
   icases (csOwnF_busy _ _ _ (by simp)).1 $$ Hown with ⟨Hv, Hb1, %Hwf⟩
   obtain ⟨hl, hab, hfb, hgrow⟩ := Hwf
   dsimp only at hl hab hfb hgrow
   have hmin : min m.size sz = m.size := Nat.min_eq_left hgrow
-  have hmax : max m.size sz = sz := Nat.max_eq_right hgrow
   iapply (wp_atomic (E2 := (⊤ : CoPset) \ ↑N))
   imod cs_open N P R γ Good Ok _ ⊤ (show ↑N ⊆ (⊤ : CoPset) from CoPset.subseteq_top) $$ Hinv Hv
     with ⟨Hv, Hr, Hv', %Hok', Hclose⟩
-  icases (show invResS (L := L) (some (p, ⟨m, bs, fa, fb, .trunc t sz n⟩)) ⊢ rsTok (L := L) t p sz m [] n ∗
+  icases (show invResS (L := L) (some (p, ⟨m, bs, fa, fb, .trunc t sz n⟩)) ⊢ rsTok (L := L) true t p sz m [] n ∗
     invBytes (L := L) p ⟨m, bs, fa, fb, .trunc t sz n⟩ from .rfl) $$ Hr with ⟨Ht, Hb2⟩
   imodintro
   iapply wp_osFtruncateFinish t p sz m [] n hN $$ Hos Ht
@@ -598,7 +597,7 @@ theorem wp_osFtruncateFinish_cs (t : Nat) (p : Ino) (sz n : Nat) (N : Namespace)
       ghostVar γ (1 : Qp).half (some (p, ⟨m, bs, fa, fb, .trunc t sz n⟩) : CState) -∗
       ghostVar γ (1 : Qp).half (some (p, ⟨m, bs, fa, fb, .trunc t sz n⟩) : CState) -∗
       invBytes (L := L) p ⟨m, bs, fa, fb, .trunc t sz n⟩ -∗ thrBytes (L := L) p ⟨m, bs, fa, fb, .trunc t sz n⟩ -∗
-      rsDone (L := L) p sz sz m n -∗
+      rsDone (L := L) true p sz sz m n -∗
       (▷ (∃ s', ghostVar γ (1 : Qp).half s' ∗ invResS (L := L) s' ∗
         ⌜Ok s' ∧ sIno s' = sIno (some (p, ⟨m, bs, fa, fb, .trunc t sz n⟩)) ∧ CsCut s'⌝) ={(⊤ : CoPset) \ ↑N, ⊤}=∗ True) -∗
       |={(⊤ : CoPset) \ ↑N, ⊤}=> Q := by
@@ -611,14 +610,14 @@ theorem wp_osFtruncateFinish_cs (t : Nat) (p : Ino) (sz n : Nat) (N : Namespace)
         (zs.map (fun c0 => ((0 : w8), c0 ++ [(0, n)]))) ⊢
       osBytes (L := L) p bs.length (DFrac.own 1) (zs.map (fun c0 => ((0 : w8), c0 ++ [(0, n)]))) by
         rw [hl]) $$ Hz
-    icases grow_bytes (L := L) p m (rsPost m sz sz) bs fa fb t sz n _ (by omega) $$ [Hz Hb2 Hb1]
+    icases grow_bytes (L := L) p m (rsPost true m sz sz) bs fa fb t sz n _ (by omega) $$ [Hz Hb2 Hb1]
       with ⟨Hb2, Hb1⟩
     · iframe
     imod ghostVar_update_halves
-      (some (p, ⟨rsPost m sz sz, bs ++ zs.map (fun c0 => ((0 : w8), c0 ++ [(0, n)])), fa, fb, .idle⟩) :
+      (some (p, ⟨rsPost true m sz sz, bs ++ zs.map (fun c0 => ((0 : w8), c0 ++ [(0, n)])), fa, fb, .idle⟩) :
         CState) γ _ _ $$ Hv Hv' with ⟨Hv, Hv'⟩
     imod Hclose $$ [Hv' Hm2 Hb2] with -
-    · inext; iexists (some (p, ⟨rsPost m sz sz, bs ++ zs.map (fun c0 => ((0 : w8), c0 ++ [(0, n)])),
+    · inext; iexists (some (p, ⟨rsPost true m sz sz, bs ++ zs.map (fun c0 => ((0 : w8), c0 ++ [(0, n)])),
         fa, fb, .idle⟩))
       iframe Hv'; isplitl
       · iapply (invResS_idle _ _ rfl).2; iframe
@@ -627,8 +626,8 @@ theorem wp_osFtruncateFinish_cs (t : Nat) (p : Ino) (sz n : Nat) (N : Namespace)
     iapply HQ
     unfold csGrownOwn
     iexists zs
-    ihave Hc := (show mcells (L := L) m.maps (min m.size sz) (max m.size sz) (rsCell sz) ⊢
-      mcells (L := L) m.maps m.size sz (rsCell sz) by rw [hmin, hmax]) $$ Hc
+    ihave Hc := (show mcells (L := L) m.maps (min m.size sz) (rsHi true m.size sz) (rsCell sz) ⊢
+      mcells (L := L) m.maps m.size (rsHi true m.size sz) (rsCell sz) by rw [hmin]) $$ Hc
     iframe Hc
     isplitr
     · ipureintro; exact hzs
@@ -646,29 +645,29 @@ theorem wp_osFtruncateFinish_cs (t : Nat) (p : Ino) (sz n : Nat) (N : Namespace)
     ileft; iexact H
   · icases (osMeta_halves _ _).1 $$ Hm with ⟨Hm1, Hm2⟩
     imod ghostVar_update_halves
-      (some (p, ⟨m.announce (min m.size sz) (max m.size sz) sz, bs, fa, fb, .idle⟩) : CState) γ _ _
+      (some (p, ⟨m.announce (min m.size sz) (rsHi true m.size sz) sz, bs, fa, fb, .idle⟩) : CState) γ _ _
       $$ Hv Hv' with ⟨Hv, Hv'⟩
     imod Hclose $$ [Hv' Hm2 Hb2] with -
-    · inext; iexists (some (p, ⟨m.announce (min m.size sz) (max m.size sz) sz, bs, fa, fb, .idle⟩))
+    · inext; iexists (some (p, ⟨m.announce (min m.size sz) (rsHi true m.size sz) sz, bs, fa, fb, .idle⟩))
       iframe Hv'; isplitl
       · iapply (invResS_idle _ _ rfl).2; iframe Hm2
         iapply (show invBytes (L := L) p ⟨m, bs, fa, fb, .trunc t sz n⟩ ⊢
-          invBytes (L := L) p ⟨m.announce (min m.size sz) (max m.size sz) sz, bs, fa, fb, .idle⟩
+          invBytes (L := L) p ⟨m.announce (min m.size sz) (rsHi true m.size sz) sz, bs, fa, fb, .idle⟩
           from .rfl)
         iexact Hb2
       ipureintro; exact ⟨hokF, rfl, (by have hc := Hok'.2; simp only [CsCut] at hc ⊢; simp [hc, OsMeta.synced, OsMeta.announce, pwPostK, pwPost, rsPost])⟩
     imodintro
     iapply HΦ; iright; isplitr; · ipureintro; exact he
     iright
-    ihave Hc := mcells_any _ _ _ _ $$ Hc
-    ihave Hc := (show mcellsAny (L := L) m.maps (min m.size sz) (max m.size sz) ⊢
-      mcellsAny (L := L) m.maps m.size sz by rw [hmin, hmax]) $$ Hc
+    ihave Hc := (show mcells (L := L) m.maps (min m.size sz) (rsHi true m.size sz)
+        (rsOld m.size (min m.size sz) []) ⊢
+      mcells (L := L) m.maps m.size (rsHi true m.size sz) (rsOld m.size m.size []) by rw [hmin]) $$ Hc
     iframe Hc
     iapply (csOwnF_idle _ _ _ rfl).2
     iframe Hv Hm1
     isplitl
     · iapply (show thrBytes (L := L) p ⟨m, bs, fa, fb, .trunc t sz n⟩ ⊢
-        thrBytes (L := L) p ⟨m.announce (min m.size sz) (max m.size sz) sz, bs, fa, fb, .idle⟩
+        thrBytes (L := L) p ⟨m.announce (min m.size sz) (rsHi true m.size sz) sz, bs, fa, fb, .idle⟩
         from .rfl)
       iexact Hb1
     ipureintro; exact ⟨by rw [announce_size]; exact hl, hab, by rw [announce_size]; exact hfb, trivial⟩

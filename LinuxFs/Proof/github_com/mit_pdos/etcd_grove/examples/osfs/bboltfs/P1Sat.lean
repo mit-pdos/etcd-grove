@@ -3,9 +3,9 @@ of a run beyond what it means to: from every reachable state (one satisfying `Ca
 from boot, after every step and after a crash: `GooseLang/Ext/Fs/Tests.lean`) with a machine crash,
 the crash with the same tree that leaves every named file as of its last sync is a machine crash
 satisfying P1 (`p1_crash_exists`), so the premise never makes `bootCrashSafety` vacuous; and a file
-no change touched since its last sync satisfies P1's clause at every crash, whatever its bytes
-(`p1_untouched`), so a file other than the database (holding a valid meta or not) never makes P1
-fail. From the final review (`notes/axiom-review/fs-final.md`). Untrusted. -/
+no change touched since its last sync satisfies P1's clause at every crash, whatever its bytes, for
+a slot below its synced size (`p1_untouched`; past it, writeback's zeroing may tear the slot), so a
+file other than the database (holding a valid meta or not) never makes P1 fail there. From the final review (`notes/axiom-review/fs-final.md`). Untrusted. -/
 module
 
 public import LinuxFs.Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.BootP1
@@ -77,16 +77,18 @@ theorem p1_crash_exists [GooseExts] {st st' : OsState} (hok : CacheOk st)
   ⟨durCrash st st', durCrash_machine hok hc, durCrash_P1 st st'⟩
 
 /-- **A file nothing changed since its last sync satisfies P1's clause at every crash**, whatever
-its bytes (a valid meta in another file of the roots' trees included): each byte has one candidate,
-stamped 0, so every crash image is the file as of change 0. -/
+its bytes (a valid meta in another file of the roots' trees included), for a slot below its synced
+size: each byte has one candidate, stamped 0, and is below `sizeLo` (past it, writeback may zero
+it), so every crash image of the slot is the file's as of change 0. -/
 theorem p1_untouched (st : OsState) (i : Ino) (f f' : OsFile) (v : Nat → w8)
     (hone : ∀ b, f.cand b = [(v b, 0)]) (hc : CrashFile st i f f') :
-    ∀ j < 2, 4096 * j < f'.size →
+    ∀ j < 2, 4096 * j < f'.size → 4096 * j + 80 ≤ f.sizeLo →
       ∃ n, ∀ k < 64, f'.cache (4096 * j + 16 + k) = valAt (f.cand (4096 * j + 16 + k)) n := by
-  intro j _ hsz
+  intro j _ hsz hlo
   obtain ⟨sz, img, -, himg, rfl⟩ := hc
   refine ⟨0, fun k _ => ?_⟩
-  obtain ⟨s, hs⟩ := himg (4096 * j + 16 + k)
+  obtain ⟨s, hs⟩ | ⟨h0, -⟩ := himg (4096 * j + 16 + k)
+  rotate_left; · omega
   rw [hone] at hs ⊢
   simp only [List.mem_singleton, Prod.mk.injEq] at hs
   simp only [OsFile.ofDisk] at hsz ⊢

@@ -32,6 +32,100 @@ theorem osN_sub_nwal : (↑osN : CoPset) ⊆ (⊤ : CoPset) \ ↑walN := by
   intro p hp
   exact LawfulSet.mem_diff.2 ⟨CoPset.mem_full, fun hn => h1 p ⟨hn, hp⟩⟩
 
+section pure
+variable [GooseExts]
+
+/-- `SegsNamed` reads the segments only through their names and inodes. -/
+theorem segsNamed_congr {segs segs' : List SegG} {ents : Ents}
+    (h : ∀ g' ∈ segs', ∃ g ∈ segs, g.name = g'.name ∧ g.ino = g'.ino) (hs : SegsNamed segs ents) :
+    SegsNamed segs' ents := by
+  refine ⟨fun g' hg' => ?_, hs.2⟩
+  obtain ⟨g, hg, hn, hi⟩ := h g' hg'
+  rw [← hn, ← hi]; exact hs.1 g hg
+
+theorem segsNamedC_congr {segs segs' : List SegG} {ents : Ents}
+    (h : ∀ g' ∈ segs', ∃ g ∈ segs, g.name = g'.name ∧ g.ino = g'.ino) (hs : SegsNamedC segs ents) :
+    SegsNamedC segs' ents := by
+  refine ⟨fun g' hg' => ?_, hs.2⟩
+  obtain ⟨g, hg, hn, hi⟩ := h g' hg'
+  rw [← hn, ← hi]; exact hs.1 g hg
+
+/-- **`WalsNamed` with a tail replaced** by one of the same name and inode. -/
+theorem walsNamed_tail {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat} {dir : GoString}
+    {lay : WalLay} {pre : List SegG} {g0 g : SegG} {wr' : Nat} (hl : Ls !! dir = some lay)
+    (hs : lay.segs = pre ++ [g0]) (hname : g.name = g0.name) (hino : g.ino = g0.ino)
+    (h : WalsNamed Ls cl n) : WalsNamed (<[dir := tailLay lay pre g wr']> Ls) cl n := by
+  intro dir' lay' hl'
+  by_cases e : dir' = dir
+  · subst e
+    rw [GMap.lookup_insert] at hl'; cases hl'
+    have hsub : ∀ x ∈ (tailLay lay pre g wr').segs, ∃ y ∈ lay.segs, y.name = x.name ∧ y.ino = x.ino := by
+      intro x hx
+      simp only [tailLay, List.mem_append, List.mem_singleton] at hx
+      rcases hx with hx | rfl
+      · exact ⟨x, by rw [hs]; exact List.mem_append_left _ hx, rfl, rfl⟩
+      · exact ⟨g0, by rw [hs]; simp, hname.symm, hino.symm⟩
+    obtain ⟨h1, h2⟩ := h dir' lay hl
+    exact ⟨fun hj hw => segsNamed_congr hsub (h1 hj hw),
+      fun m' hr => segsNamedC_congr hsub (h2 m' hr)⟩
+  · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hl'
+    exact h dir' lay' hl'
+
+/-- A WAL directory's claims are the same with a tail replaced (the directory kept). -/
+theorem walDirClaimOf_tail {Ls : GMap GoString WalLay} {dir : GoString} {lay : WalLay}
+    {pre : List SegG} {g : SegG} {wr' : Nat} (hl : Ls !! dir = some lay) (c : Claim) :
+    WalDirClaimOf (<[dir := tailLay lay pre g wr']> Ls) c ↔ WalDirClaimOf Ls c := by
+  constructor
+  · rintro ⟨dir', lay', hl', hj, hX⟩
+    by_cases e : dir' = dir
+    · subst e
+      rw [GMap.lookup_insert] at hl'; cases hl'
+      exact ⟨dir', lay, hl, hj, hX⟩
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hl'
+      exact ⟨dir', lay', hl', hj, hX⟩
+  · rintro ⟨dir', lay', hl', hj, hX⟩
+    by_cases e : dir' = dir
+    · subst e
+      rw [hl] at hl'; cases hl'
+      exact ⟨dir', tailLay lay pre g wr', GMap.lookup_insert _ _ _, hj, hX⟩
+    · exact ⟨dir', lay', by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hl', hj, hX⟩
+
+/-- **The directory keys with a tail replaced** (the tail step's crash condition, `crashOkA_tail`,
+with no alternative). -/
+theorem dirKeysOk_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} {jr : Ino}
+    {s : AbsDiskState} {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat}
+    {K : GMap GoString (Ino × List GoString)} {c : Option GoString} {dir : GoString}
+    {d : WalDur} {lay : WalLay} {pre : List SegG} {g0 g : SegG} {wr' : Nat}
+    (hW : WalsOk C Mr R jr s Ls cl n) (hd : s.wal !! dir = some d) (hl : Ls !! dir = some lay)
+    (hs : lay.segs = pre ++ [g0]) (hino : g.ino = g0.ino)
+    (hlen : g.bs.length = g0.bs.length) (hzf : ∀ z, g0.om.zf = some z → g0.bs.length ≤ z)
+    (hZ : TailZeros lay) (hB : TailBound C Mr d lay)
+    (habs' : ∀ ents, WalAbsD C Mr d lay ents → WalAbsD C Mr d (tailLay lay pre g wr') ents)
+    (h : DirKeysOk C Mr jr s Ls cl n K c) :
+    DirKeysOk C Mr jr s (<[dir := tailLay lay pre g wr']> Ls) cl n K c := by
+  obtain ⟨h1, h2⟩ := h
+  refine ⟨fun dir' j X hk => ?_, fun dir' d' lay' hd' hl' hc => ?_⟩
+  · obtain ⟨lay1, hj, hl1, rest⟩ := h1 dir' j X hk
+    by_cases e : dir' = dir
+    · subst e; rw [hl] at hl1; cases hl1
+      exact ⟨tailLay lay pre g wr', hj, GMap.lookup_insert _ _ _, rest⟩
+    · exact ⟨lay1, hj, by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hl1, rest⟩
+  · by_cases e : dir' = dir
+    · subst e
+      rw [GMap.lookup_insert] at hl'; cases hl'
+      rw [hd] at hd'; cases hd'
+      obtain ⟨lay1, nm, hj, hl1, hA, hjr, hnm, hcl, habs, hcr⟩ := hW.1 dir' d hd
+      rw [hl] at hl1; cases hl1
+      have hnd : (lay.segs.map (·.ino)).Nodup := ((segsAll_nodup_iff Ls).1 hW.2.2.1).1 dir' lay hl
+      have hnd' : ((tailLay lay pre g wr').segs.map (·.ino)).Nodup := by
+        rw [hs] at hnd; simpa [tailLay, hino] using hnd
+      exact crashOkA_tail hC habs (habs' _ habs) hZ hB hnd' hs rfl hino rfl rfl rfl rfl rfl hlen hzf
+        (fun la h => by cases h) (h2 dir' d lay hd hl hc)
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hl'
+      exact h2 dir' d' lay' hd' hl' hc
+
+end pure
+
 section iris
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
   [GoGlobalContext]
@@ -78,6 +172,61 @@ theorem laysResF_del (F : GMap Ino SegFl) (Ls : GMap GoString WalLay) (dir : GoS
     iprop([∗list] g ∈ lay.segs, segResF (L := L) F g)) hl).trans ?_
   exact sep_congr .rfl (laysResF_map (L := L) F _).symm
 
+/-- The segments of every layout, layout by layout (any `Φ`). -/
+theorem segsAll_sep_map (Φ : SegG → IProp GF) (Ls : GMap GoString WalLay) :
+    ([∗list] g ∈ segsAll Ls, Φ g) ⊣⊢ [∗map] _dir ↦ lay ∈ Ls, [∗list] g ∈ lay.segs, Φ g := by
+  unfold segsAll
+  rw [BigSepL.bigSepL_flatMap (PROP := IProp GF)]
+  exact (BigSepM.bigSepM_toList (Φ := fun (_ : GoString) (lay : WalLay) =>
+    iprop([∗list] g ∈ lay.segs, Φ g)) (m := Ls)).symm
+
+/-- **A resource per segment, with a tail replaced** (`Φ g0 ⊢ Φ g`). -/
+theorem segsAll_sep_tail (Φ : SegG → IProp GF) (Ls : GMap GoString WalLay) (dir : GoString)
+    (lay : WalLay) (pre : List SegG) (g0 g : SegG) (wr' : Nat) (hl : Ls !! dir = some lay)
+    (hs : lay.segs = pre ++ [g0]) (hΦ : Φ g0 ⊢ Φ g) :
+    ([∗list] x ∈ segsAll Ls, Φ x) ⊢
+      [∗list] x ∈ segsAll (<[dir := tailLay lay pre g wr']> Ls), Φ x := by
+  refine (segsAll_sep_map Φ Ls).1.trans ?_
+  refine (BigSepM.bigSepM_delete (Φ := fun (_ : GoString) (lay : WalLay) =>
+    iprop([∗list] x ∈ lay.segs, Φ x)) hl).1.trans ?_
+  refine Entails.trans ?_ (segsAll_sep_map Φ _).2
+  refine Entails.trans ?_ (BigSepM.bigSepM_insert_delete (Φ := fun (_ : GoString) (lay : WalLay) =>
+    iprop([∗list] x ∈ lay.segs, Φ x))).2
+  refine sep_mono ?_ .rfl
+  simp only [tailLay]
+  rw [hs]
+  refine (BigSepL.bigSepL_append (PROP := IProp GF)).1.trans ?_
+  refine Entails.trans ?_ (BigSepL.bigSepL_append (PROP := IProp GF)).2
+  refine sep_mono .rfl ?_
+  refine (BigSepL.bigSepL_singleton (PROP := IProp GF) (Φ := fun _ x => Φ x)).1.trans ?_
+  exact hΦ.trans (BigSepL.bigSepL_singleton (PROP := IProp GF) (Φ := fun _ x => Φ x)).2
+
+/-- **The parked halves with a tail replaced** by one of the same inode and length. -/
+theorem walParked_tail (Ls : GMap GoString WalLay) (cl : List Claim) (dir : GoString) (lay : WalLay)
+    (pre : List SegG) (g0 g : SegG) (wr' : Nat) (hl : Ls !! dir = some lay)
+    (hs : lay.segs = pre ++ [g0]) (hino : g.ino = g0.ino) (hlen : g.bs.length = g0.bs.length) :
+    walParked (L := L) (W := W) Ls cl ⊢
+      walParked (L := L) (W := W) (<[dir := tailLay lay pre g wr']> Ls) cl := by
+  unfold walParked
+  iintro ⟨%b, %O, %D, Ha, %hb, Hs, Hc⟩
+  iexists b, O, D
+  iframe Ha
+  isplitr
+  · ipureintro; exact hb
+  isplitl [Hs]
+  · iapply segsAll_sep_tail (fun x => iprop(if x.ino ∈ O then emp else segResP (L := L) x)) Ls dir
+      lay pre g0 g wr' hl hs ?_ $$ Hs
+    rw [hino]
+    split
+    · exact .rfl
+    · unfold segResP
+      rw [hino, hlen]
+  · iapply BigSepL.bigSepL_mono (fun {k c} _ => ?_) $$ Hc
+    have e : ParkedClaim (<[dir := tailLay lay pre g wr']> Ls) D c ↔ ParkedClaim Ls D c := by
+      unfold ParkedClaim; rw [walDirClaimOf_tail hl c]
+    simp only [propext e]
+    exact .rfl
+
 /-- **The tail's access** (see the file header). -/
 theorem walInvBody_tail (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     (r : GoString) (s : AbsDiskState) (dir : GoString) (γ : GName) (tg : TailG) :
@@ -92,7 +241,7 @@ theorem walInvBody_tail (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
           ⌜g.ino = g0.ino ∧ g.om.cut = none ∧ g.bs.length = g0.bs.length ∧
             (∀ z, g0.om.zf = some z → g0.bs.length ≤ z) ∧
             (∀ ents, WalAbsD C Mr d lay ents → WalAbsD C Mr d (tailLay lay pre g wr') ents) ∧
-            (∀ i, i ≠ g0.ino → F' !! i = F !! i)⌝ -∗
+            (∀ i, i ≠ g0.ino → F' !! i = F !! i) ∧ g.name = g0.name⌝ -∗
           segResF (L := L) F' g -∗
           tailVar (W := W) γ (tailG d (tailLay lay pre g wr') g.ino (F' !! g.ino)) -∗
           walInvBody (L := L) (W := W) C Mr R jr r s) := by
@@ -100,7 +249,8 @@ theorem walInvBody_tail (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
   unfold tailVar
   iintro Hb Hk Hv
   unfold walInvBody
-  icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hn, Hlays, %HW, %HWC, HCR, Htl, %Hab⟩
+  icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hn, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
+    ⟨%K, %cp, Hdk, Hcp, %Hdko⟩⟩
   unfold walTailsRes
   icases Htl with ⟨%T, HTa, HTm⟩
   icases walTailKey_lookup T dir γ $$ HTa Hk with %HT
@@ -129,7 +279,7 @@ theorem walInvBody_tail (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
   rw [Htg]
   iframe Hlast Hk Hv Hv'
   iintro %g %wr' %F' %hp Hseg Hvn
-  obtain ⟨hino, hcut, hlen, hzf, habs', hF'⟩ := hp
+  obtain ⟨hino, hcut, hlen, hzf, habs', hF', hname⟩ := hp
   -- the other segments' parts, unchanged
   have hpre_ne : ∀ g' ∈ pre, g'.ino ≠ g0.ino := by
     intro g' hg' he
@@ -195,7 +345,16 @@ theorem walInvBody_tail (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
       iframe Hv''
       ipureintro
       exact ⟨hd', by rw [GMap.lookup_insert_ne _ _ (Ne.symm hne)]; exact hl', hg', hZ', hB'⟩
+  isplitr
   · ipureintro; exact Hab
+  isplitr
+  · ipureintro; exact walsNamed_tail hl hs hname hino HNm
+  isplitl [Hpk]
+  · iapply walParked_tail Ls cl dir lay pre g0 g wr' hl hs hino hlen $$ Hpk
+  iexists K, cp
+  iframe Hdk Hcp
+  ipureintro
+  exact dirKeysOk_tail hC ⟨hW1, hW2, hW3, hW4, hW5, hW6⟩ hd hl hs hino hlen hzf hZ hB habs' Hdko
 
 end iris
 

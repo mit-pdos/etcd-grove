@@ -27,13 +27,13 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader.Read.wp_proof
     (HRead : bufio.Reader.Read.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader.Read.spec (GF := GF) (hG := hG) := by
   intro fbr b fi err dq ri S E r p xs
-  iintro #Hrs
-  wp_start as ⟨Hf, Hb, Hp⟩
+  iintro #Hrs #HSb
+  wp_start as ⟨%Hrx, Hf, Hb, Hp⟩
   ihave %Hn := typedPointsto_not_null fbr _ _ $$ Hf
   iStructNamed Hf
   wp_auto
-  wp_apply HRead b ri S E r p xs $$ Hrs [Hb Hp] as %n %e ⟨%ys, %Hys, Hp, Hb⟩
-  · iframe
+  wp_apply HRead b ri S E r p xs $$ Hrs HSb [Hb Hp] as %n %e ⟨%ys, %Hys, Hp, Hb⟩
+  · iframe; ipureintro; exact Hrx
   iapply HΦ
   iexists ys
   iframe

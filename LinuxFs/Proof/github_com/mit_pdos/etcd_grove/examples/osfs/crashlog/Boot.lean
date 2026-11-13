@@ -74,11 +74,13 @@ theorem crash_W1 (m : OsMeta) (bs : List ByteG) (hhi : m.hi = m.size)
   · omega
   · have hs : 8 < bs.length := (List.getElem?_eq_some_iff.1 hf).1
     rw [List.getElem?_eq_getElem hs, Option.some.injEq] at hf
-    rcases hr 8 hs hl8 with ⟨s, hm⟩ | ⟨-, h2, -⟩
+    rcases hr 8 hs hl8 with ⟨s, hm⟩ | ⟨-, h2, -⟩ | ⟨-, h0⟩
     · rw [hf, List.mem_singleton] at hm
       rw [contents_getElem?_of_lt hl8, (Prod.mk.inj hm).1] at hb8
       cases hb8; exact hb0 rfl
     · simp [dataC] at h2
+    · rw [contents_getElem?_of_lt hl8, h0] at hb8
+      cases hb8; exact hb0 rfl
 
 /-- A sync after the data is written: a crash leaves the data. -/
 theorem crash_synced (m : OsMeta) (bs : List ByteG)
@@ -96,11 +98,12 @@ theorem crash_synced (m : OsMeta) (bs : List ByteG)
   have hbi : i < bs.length := by omega
   have := crashed_dur hfc (r := (0, DFrac.own (1 : Qp).half, bs.map (fun x => durB x.1)))
     (by simp [fRuns]) (b := i) (x := bs[i].1) (Nat.zero_le _) (by simpa using hbi)
-    (by simp) (by omega)
+    (by simp) (by omega) (by simp only [fMeta, OsMeta.synced]; omega)
   rw [this, ← hv i hi, List.getElem?_eq_getElem hbi]; rfl
 
 /-- The second write, of the flag at 8: a crash leaves the data (durable). -/
-theorem crash_W2 (m : OsMeta) (bs : List ByteG) (hsz : 8 ≤ m.size) (hlen : bs.length = m.size)
+theorem crash_W2 (m : OsMeta) (bs : List ByteG) (hsz : 8 ≤ m.size) (hlo : 8 ≤ m.lo)
+    (hlen : bs.length = m.size)
     (hbd : m.hi < 2 ^ 62) (hbd' : m.size < 2 ^ 62)
     (hv : ∀ i < 8, ∃ b, bs[i]? = some (durB b) ∧ dataC[i]? = some b) :
     WriteOk Good m bs 8 [W8 1] := by
@@ -115,10 +118,11 @@ theorem crash_W2 (m : OsMeta) (bs : List ByteG) (hsz : 8 ≤ m.size) (hlen : bs.
   obtain ⟨b, hbi, hd⟩ := hv i hi
   have hbl : i < bs.length := (List.getElem?_eq_some_iff.1 hbi).1
   rw [List.getElem?_eq_getElem hbl, Option.some.injEq] at hbi
-  rcases hr i hbl (by omega) with ⟨s, hm⟩ | ⟨h1, -, -⟩
+  rcases hr i hbl (by omega) with ⟨s, hm⟩ | ⟨h1, -, -⟩ | ⟨h0, -⟩
   · rw [hbi, List.mem_singleton] at hm
     rw [contents_getElem?_of_lt (by omega), (Prod.mk.inj hm).1, hd]
   · omega
+  · simp only [wT] at h0; omega
 
 /-- A file the open creates: empty, so `Good`. -/
 theorem crash_new : FileOk Good (newMeta, [], none) := by
@@ -145,7 +149,7 @@ theorem crash_start (f : OsFile) (hg : Good (some f)) :
     · have hk' : k < f.contents.length := by rw [contents_length]; exact hk
       rw [crashed_dur hfc (r := (0, DFrac.own (1 : Qp).half, f.contents.map durB))
         (by simp [fRuns]) (b := k) (x := f.contents[k]) (Nat.zero_le _) (by simpa using hk')
-        (by simp) (by omega), List.getElem?_eq_getElem hk']
+        (by simp) (by omega) (by simp only [fMeta, initMeta]; omega), List.getElem?_eq_getElem hk']
     · rw [List.getElem?_eq_none (by rw [contents_length]; omega),
         List.getElem?_eq_none (by rw [contents_length]; omega)]
   exact ⟨by rw [hc]; exact hg.1, by rw [hs]; exact hg.2⟩
@@ -412,7 +416,7 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
   wp_apply wp_WriteAtC f fd p (DFrac.own 1) _ [W8 1] (DFrac.own 1) (W64 8) (DFrac.own 1)
       ⟨i, true, true⟩ logN p R γ Good m1.synced (bs1.map (fun x => durB x.1)) V rfl (by decide)
       (show 8 ≤ m1.synced.size from hsz2) (by decide) (by decide) (by decide) logN_disj
-      (crash_W2 _ _ hsz2 (by rw [List.length_map]; exact hlen1) (show m1.size < _ by omega)
+      (crash_W2 _ _ hsz2 (show 8 ≤ m1.synced.lo from hsz2) (by rw [List.length_map]; exact hlen1) (show m1.size < _ by omega)
         (show m1.size < _ by omega) hv2) $$ [Hos Hinv Hf Hsl2 Hfd Hown]
     as %n2 %err2 ⟨Hf, Hsl2, Hfd, %m3, %bs3, %Hres, Hown⟩
   · iframe; iframe #

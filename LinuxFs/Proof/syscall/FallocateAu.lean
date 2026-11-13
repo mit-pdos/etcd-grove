@@ -38,8 +38,8 @@ start's, lending the other half of the `OsMeta` for the token, whose commit is t
 lending the token for the outcome. -/
 def fallocAu (i : Ino) (tg : Nat) (m : OsMeta) (Q : Nat → w64 → IProp GF) : IProp GF :=
   osAUnc (A := Nat × Nat) (osMeta i (DFrac.own (1 : Qp).half) m)
-    (fun tn => rsTok tn.1 i tg m [] tn.2)
-    (fun tn => osAUnc (A := w64) (rsTok tn.1 i tg m [] tn.2) (rsOutF i tg m tn.2) (Q tn.2))
+    (fun tn => rsTok false tn.1 i tg m [] tn.2)
+    (fun tn => osAUnc (A := w64) (rsTok false tn.1 i tg m [] tn.2) (rsOutF i tg m tn.2) (Q tn.2))
 
 /-- **`syscall.Fallocate(fd, 0, off, len)`, split**: the caller's half of the `OsMeta` of an unmapped
 file, the updates `fallocAu` for the rest; the outcome's share `Q n e`, `n` the change's number. -/
