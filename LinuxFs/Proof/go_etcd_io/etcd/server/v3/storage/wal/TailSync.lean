@@ -94,18 +94,18 @@ theorem segsAll_sep_relay (Φ : SegG → IProp GF) (Ls : GMap GoString WalLay) (
 /-- **The parked halves with a layout replaced** by one of the same directory, its last segment
 replaced by one of the same inode and length. -/
 theorem walParked_relay (Ls : GMap GoString WalLay) (cl : List Claim) (dir : GoString)
-    (lay lay' : WalLay) (pre : List SegG) (g0 g : SegG) (hl : Ls !! dir = some lay)
+    (lay lay' : WalLay) (pre : List SegG) (g0 g : SegG) {F : GMap Ino SegFl} (hl : Ls !! dir = some lay)
     (hs : lay.segs = pre ++ [g0]) (hs' : lay'.segs = pre ++ [g]) (hj : lay'.j = lay.j)
     (hino : g.ino = g0.ino) (hlen : g.bs.length = g0.bs.length) :
-    walParked (L := L) (W := W) Ls cl ⊢ walParked (L := L) (W := W) (<[dir := lay']> Ls) cl := by
+    walParked (L := L) (W := W) Ls cl F ⊢ walParked (L := L) (W := W) (<[dir := lay']> Ls) cl F := by
   unfold walParked
-  iintro ⟨%b, %O, %D, Ha, %hb, Hs, Hc, Ht⟩
-  iexists b, O, D
-  iframe Ha
+  iintro ⟨%b, %o, Ha, Hoa, %hb, Hs, Hc, Ht⟩
+  iexists b, o
+  iframe Ha Hoa
   isplitr
   · ipureintro; exact hb
   isplitl [Hs]
-  · iapply segsAll_sep_relay (fun x => iprop(if x.ino ∈ O then emp else segResP (L := L) x)) Ls dir
+  · iapply segsAll_sep_relay (fun x => iprop(if x.ino ∈ o.O then emp else segResP (L := L) x)) Ls dir
       lay lay' pre g0 g hl hs hs' ?_ $$ Hs
     rw [hino]
     split
@@ -114,11 +114,11 @@ theorem walParked_relay (Ls : GMap GoString WalLay) (cl : List Claim) (dir : GoS
       rw [hino, hlen]
   isplitl [Hc]
   · iapply BigSepL.bigSepL_mono (fun {k c} _ => ?_) $$ Hc
-    have e : ParkedClaim (<[dir := lay']> Ls) D c ↔ ParkedClaim Ls D c := by
+    have e : ParkedClaim (<[dir := lay']> Ls) o.D c ↔ ParkedClaim Ls o.D c := by
       unfold ParkedClaim; rw [walDirClaimOf_insert hl hj c]
     simp only [propext e]
     exact .rfl
-  · iapply walTmpParked_insert Ls b dir lay lay' hl hj $$ Ht
+  · iapply walTmpParked_insert Ls o.T dir lay lay' hl hj $$ Ht
 
 /-- **F-Z of the WAL in `dir`**, from its tail record (the handle's key and half). -/
 theorem walTailsRes_zeros (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState)

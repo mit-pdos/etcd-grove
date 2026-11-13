@@ -111,8 +111,10 @@ theorem wp_tailPWriteStart (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStrin
   iapply (wp_atomic_nc (E1 := ⊤) (E2 := (⊤ : CoPset) \ ↑walN) _ _ rfl)
   iintro Hnc
   imod walInv_open walCodec Mr R jr r ⊤ CoPset.subseteq_top $$ Hinv Hnc with ⟨⟨%s, Hb⟩, Hnc, Hcl⟩
-  icases walInvBody_tail walCodec walCodec_ok Mr R jr r s dir γ _ $$ Hb Hk Hv with
-    ⟨%F, %dw, %lay, %pre, %g0, %hp, Hseg, Hk, Hv, Hv', Hclose⟩
+  icases walInvBody_tail walCodec walCodec_ok Mr R jr r s dir γ _ m $$ Hb Hk Hv [Hm1] with
+    ⟨%F, %dw, %lay, %pre, %g0, %hp, Hseg, Hk, Hv, Hv', Hm1, Hclose⟩
+  · dsimp only [tailHeld]; iexact Hm1
+  dsimp only [tailHeld]
   obtain ⟨hdw, hs, htg, ⟨ents, habs⟩, hcut0⟩ := hp
   simp only [tailG, Prod.mk.injEq] at htg
   obtain ⟨hH, hmd, hcuts, hwrl, hino, hF⟩ := htg
@@ -233,8 +235,9 @@ theorem wp_tailPWriteFinish (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStri
   iapply (wp_atomic_nc (E1 := ⊤) (E2 := (⊤ : CoPset) \ ↑walN) _ _ rfl)
   iintro Hnc
   imod walInv_open walCodec Mr R jr r ⊤ CoPset.subseteq_top $$ Hinv Hnc with ⟨⟨%s, Hb⟩, Hnc, Hcl⟩
-  icases walInvBody_tail walCodec walCodec_ok Mr R jr r s dir γ _ $$ Hb Hk Hv with
-    ⟨%F, %dw, %lay, %pre, %g0, %hp, Hseg, Hk, Hv, Hv', Hclose⟩
+  icases walInvBody_tail walCodec walCodec_ok Mr R jr r s dir γ _ fl.m $$ Hb Hk Hv [] with
+    ⟨%F, %dw, %lay, %pre, %g0, %hp, Hseg, Hk, Hv, Hv', -, Hclose⟩
+  · dsimp only [tailHeld]; iempintro
   obtain ⟨hdw, hs, htg, ⟨ents, habs⟩, hcut0⟩ := hp
   simp only [tailG, Prod.mk.injEq] at htg
   obtain ⟨hH, hmd, hcuts, hwrl, hino, hF⟩ := htg
