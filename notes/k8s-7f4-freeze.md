@@ -1033,6 +1033,27 @@ changed), all fixed:
   `srvStreamIsStrong` (temporary, until the weak-end re-proof before step 6); recorded in the handoff.
 Then: tcb baseline and the 17 collections `--check --update`.
 
+### Step 6 (2026-11-13): `v3rpc.runsNoRequireLeader` deleted (the user's decision of 2026-11-08; 81's go)
+
+The deployment premise (a definition, not an axiom) is deleted with no fork change: from
+`InvStreamInterceptor.lean` (its definition, and the header's account of why the branch was excluded),
+the deployment bundles (`etcdstart.commonPremises`, `etcdstart`'s one-member bundle, `putget3.commonPremises`,
+`leaseexpiry`'s and `auth`'s bundles), `etcdstart.Serve.spec`, `restart.serveClient.spec`,
+`v3rpc.newStreamInterceptor.spec` (unused since item 7), `ServeFromStart`, `InvGrpcStart`'s server facts and
+v3rpc `Results`' Watch registration; the proofs drop the hypothesis. No axiom, opaque or trusted text added
+or changed. Interface diff: `etcdstart`'s `Defs`, `OneMember`, `Serve` (proof and spec), the premise removed.
+
+**Closed theorems whose statements lose the premise** (18, as §7 of `notes/k8s-7f4-draft.md`; re-verified:
+every `_safe` theorem of the examples whose `Results` imports `etcdstart/Defs`, `putget3/Defs`,
+`leaseexpiry/Defs`, `ServeFromStart` or `InvGrpcStart`, `etc/importers.py`): `etcd_putget_safe`,
+`etcd_putget3_safe`, `etcd_txnlin_safe`, `etcd_watch_safe`, `etcd_cache_safe`, `etcd_partition_safe`,
+`etcd_partition_watch_safe`, `etcd_lease_safe`, `etcd_leasecatchup_safe`, `etcd_leaseexpiry_safe`,
+`etcd_leasegrant_safe`, `etcd_compacted_safe`, `etcd_compactwatch_safe`, `k8s_compactor_safe`,
+`k8s_compactor_partition_safe`, `k8s_etcd3_safe`, `k8s_etcd3_cluster_safe`, `k8s_etcd3_partition_safe`
+(and `auth`'s exported, not closed, `authkv_Main`). `mvccfull_safe`, the raft examples and
+`goose_prophkv_safe` start no server and are untouched. `etc/tcb-report.py --check` and every collection
+match their baselines unchanged: none reaches a new axiom.
+
 ### Checks run, Revision 2 (2026-11-12, merged with lean `219ddbbb83`)
 
 Full build passes (17490 jobs); `tcb-report --check` matches the baseline unchanged (865 axioms, 5
