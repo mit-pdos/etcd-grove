@@ -608,6 +608,44 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
         iapply Hown c _ (by simp)
         iframe
         iframe Hmu Hf HF Hsl Hfio
+    subst herr3
+    wp_auto
+    wp_apply HGetType rp r $$ Hrec as Hrec
+    have hct4 : (W64 4 : w64) = crcType := rfl
+    rw [hct4]
+    have hpre3 : F.bs.take off ++ ys ++ ys2 <+: F.bs := Hpre2
+    have hlen3 : (F.bs.take off ++ ys ++ ys2).length = off + (8 + rb + pad) := by
+      simp only [List.length_append, List.length_take, h8, hlen2]; omega
+    have hacc_lt : off + (8 + rb + pad) < 2 ^ 62 := by
+      have := hpre3.length_le; omega
+    have hacc_rs : F.bs.take off ++ ys ++ ys2 = F.bs.take (off + (8 + rb + pad)) := by
+      rw [← hlen3]; exact List.prefix_iff_eq_take.mp hpre3
+    have hacc_off : W64 off + (W64 8 + W64 rb + W64 pad) = W64 (off + (8 + rb + pad) : Nat) := by
+      push_cast; word
+    by_cases hct : r.typ = crcType
+    · -- a CRC record: accepted unchecked
+      rw [decide_eq_true hct]
+      wp_auto
+      have hstep : decRecStep C fs.isEmpty F.bs off c = .accept r (8 + rb + pad) c := by
+        rw [hstep0]; unfold decRecData; rw [hdec]; simp [hct]
+      rw [hacc_off]
+      iapply HΦ
+      iapply decPost_accept C d rp IoE eof ueof F fs off c c r _ hstep
+      iframe Hrec
+      iapply ownDecoder_intro d IoE eof sl fbr fbrs h F fs (F.bs.take off ++ ys ++ ys2) _ c true
+        hacc_lt (fun _ => hacc_rs)
+      iframe
+      iframe Hmu Hsl
+      iapply ownFbr_intro
+      iframe
+      iframe Hf HF Hfio
+    rw [decide_eq_false hct]
+    iunfold ownRec at Hrec
+    icases Hrec with ⟨%v, Hrv, #Ht, #Hc, Hrdata⟩
+    iunfold ownDecCrc at Hdc
+    icases Hdc with ⟨%lc, %tab, %Hh, Hlc, #Htab⟩
+    subst Hh
+    wp_auto
     sorry
 
 end proof
