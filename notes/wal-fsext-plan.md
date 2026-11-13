@@ -2512,6 +2512,30 @@ its last page).
   `walsOk_resizeStart`); the finish's update, owning `K`'s half, finds `fl`, lends the token, splits
   `rsOutT`/`rsOutF` into `segRes` and the caller's halves (`walsOk_resizeFinish`).
 
+**The relaxation and `ReadAll`'s tie (branch `wal-zte2`, 2026-11-13).**
+- *Open item 1 done*: `WalAbsD` admits the tail's resize window (`SegExact`/`TailLast`/`TailWin`; the W1 log's
+  ninth session). Item 2 stands and now shows in the statements: in the window `TailWin` constrains no byte
+  from `wr` on, and `W1G` says nothing of an image longer than the bytes the ghost knows, so `CrashOk` across a
+  resize (`walsOk_resizeStart`/`Finish`) still needs a fact the extension does not give: after a truncate lands,
+  `FileCrashedR` bounds the bytes `[size, hi)` only by `zf` (the cut-off bytes' candidates, old value or the
+  zero stamped `n`, are the state's, held by no resource after `rsDone`). Proposal (untrusted, `GooseLang/Ext/Fs`):
+  `rsDone`/`rsPost` of a truncate keep the cut-off bytes' candidates in `OsMeta.tc`, and `FileCrashedR`
+  constrains a byte past the runs by `tc` (the clause it lacks today). `SegFl.OkR`/`segResF`'s resize case are
+  `ftruncate`-only (`rsTok true`, `rsHi true`): `ZeroToEnd`'s growth (`fallocate`) needs `rz : Option (Bool × Nat)`.
+- **`ReadAll`'s tie (option a), designed, not implemented** (no flag in `TailG`):
+  - `walTailsRes`' per-tail `TailZeros lay` becomes `TailZeros lay ∨ lay.wr = lay.z0` (nothing appended past the
+    start's frames). `ReadAll` registers its tail (key, `tailVar` at `wr = so = z0`, `TailBound` at `z0`) at an
+    invariant step before `ZeroToEnd`, so `ZeroToEnd`'s supplies have `K = walTailKey dir γ ∗ ghostVar γ ½ (…, none)`.
+  - `ReadAll`'s fdatasync commit (the window closes) sets the invariant's `om` to `OsMeta.synced` (exact; `zf = some
+    size` by `OsMeta.synced_zf_size`), every byte `durB`, and `old := old.take z0 ++ replicate (|old| - z0) 0`
+    (`TailLast`'s `ByteOk` forces it: a synced zero past `wr` has `y = old b = 0`); `TailZeros` then holds.
+  - The appends get `TailZeros` from the disjunction by a pure lemma (to write): `WalAbsD` + `SegExact g` + the
+    program's bytes from `wr` on of value 0 → `old b = 0` there (`TailLast`'s unwritten, unsynced `ByteOk`: `g.1 =
+    y`), so `wr = z0` gives `TailZeros`. `walTailW` gains `∀ b, o0 + |out| ≤ b → b < |bs| → bs[b].1 = 0` (from
+    `ZeroToEnd.specAu`'s `osZerosA` after the sync; writes keep it: they write below the new `wr`).
+  - **Obligation for `wal-read7`**: the registration step, the sync commit above, `walTailW`'s new conjunct, and
+    `TailMeta`'s exactness (W1 log, ninth session) when building `walTailW`.
+
 **Third session (branch `wal-read3`, 2026-11-13).**
 - *Gaps 1 and 2 closed* as the coordinator decided: `WalsNamed` and `walParked` in `walInvBody`, the parking
   flag in the lock token (W1 log, sixth session, for the design and the other units' obligations).
