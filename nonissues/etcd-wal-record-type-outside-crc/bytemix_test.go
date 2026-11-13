@@ -626,7 +626,15 @@ func TestWALByteMix(t *testing.T) {
 			}
 		}()
 	}
+	// BYTEMIX_OLD=zero: only the cases whose old bytes are zeros (the fork's tail); BYTEMIX_BITS: maxBits
+	only := os.Getenv("BYTEMIX_OLD")
+	if b := os.Getenv("BYTEMIX_BITS"); b != "" {
+		fmt.Sscan(b, &maxBits)
+	}
 	for _, c := range cases {
+		if only != "" && c.old != only {
+			continue
+		}
 		jobs <- job{c}
 	}
 	close(jobs)
