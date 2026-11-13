@@ -827,23 +827,19 @@ theorem walFoldChkFrom_nosnap : ∀ (L : WalHist) (τ τ' σ σ' : StorContents)
       exact ih { τ with hs := phsNext τ.hs hs, ents := ents } { τ' with hs := phsNext τ'.hs hs, ents := ents' }
         σ σ' hns' (by simp only; rw [h1]) (by simp only; exact hf.symm) h3 h h'
 
-/-- **… which is `walRead`'s when that succeeds** (`walCommitLe`: W4b's C2 premise), and the
-metadata `md`. -/
-theorem readAllFold_zero_eq {C : WalCodec} {M : WalMarshal} {U : WalUnmarshal} (hU : U.Ok M)
-    (md : List w8) (Ss : List WalHist) (s : w64 × w64) (write : Bool)
-    (stop : WalStop) (r : List w8 × HardStateM × List EntryM) (σ : StorContents)
-    (hs : some s = walNewestPair (walValidSnaps Ss.flatten 0))
-    (hcl : walCommitLe Ss.flatten) (h : walRead Ss.flatten = some σ)
-    (hok : readAllFold U s write (recsOfSegs C M md Ss) stop = .ok r) :
-    r = (md, σ.hs, σ.ents) := by
-  obtain ⟨σ', h', rfl⟩ := readAllFold_zero hU md Ss s write stop r hs hok
+/-- **The fixed-base read from the first file is `walRead`'s when that succeeds** (`walCommitLe`:
+W4b's C2 premise): the same hard state and entries. -/
+theorem walReadAt_zero_eq {I : WalHist} {s : w64 × w64} {σ σ' : StorContents}
+    (hs : some s = walNewestPair (walValidSnaps I 0))
+    (hcl : walCommitLe I) (h : walRead I = some σ) (h' : walReadAt I 0 s = some σ') :
+    σ'.hs = σ.hs ∧ σ'.ents = σ.ents := by
   obtain ⟨hc, hle⟩ := validSnaps_bounds hs
   simp only [List.drop_zero] at hle
   unfold walReadAt at h'
   rw [List.take_zero, List.drop_zero, show walLastHS [] = hsZero from rfl] at h'
   unfold walRead at h
   unfold walCommitLe at hcl
-  generalize hL : Ss.flatten.filter (walKeep (uint.nat (walLastHS Ss.flatten).Commit')) = L at h h' hcl
+  generalize hL : I.filter (walKeep (uint.nat (walLastHS I).Commit')) = L at h h' hcl
   have hleL : ∀ m, WalOpG.snap m ∈ L → uint.nat m.Index' ≤ uint.nat s.1 := by
     intro m hm
     rw [← hL] at hm
@@ -853,7 +849,7 @@ theorem readAllFold_zero_eq {C : WalCodec} {M : WalMarshal} {U : WalUnmarshal} (
   · have := walFoldChk_sim (uint.nat s.1) L walFresh ⟨hsZero, none, entryID.mk s.2 s.1, []⟩ σ σ'
       hleL hex rfl rfl (by simp [walFresh, StorContents.b])
       (Or.inl (by simp [walFresh])) hcl h h'
-    subst this; rfl
+    subst this; exact ⟨rfl, rfl⟩
   · -- the start is `Create`'s `(0, 0)`, and no record is kept
     have hs0 : uint.nat s.1 = 0 := by
       have hmem := walNewestPair_mem hs.symm
@@ -880,7 +876,21 @@ theorem readAllFold_zero_eq {C : WalCodec} {M : WalMarshal} {U : WalUnmarshal} (
     obtain ⟨e1, e2⟩ := walFoldChkFrom_nosnap L walFresh ⟨hsZero, none, entryID.mk s.2 s.1, []⟩ σ σ'
       hns rfl rfl
       (by simp [walFresh, StorContents.b, hs0]) h h'
-    rw [e1, e2]
+    exact ⟨e1.symm, e2.symm⟩
+
+
+/-- **… which is `walRead`'s when that succeeds** (`walCommitLe`: W4b's C2 premise), and the
+metadata `md`. -/
+theorem readAllFold_zero_eq {C : WalCodec} {M : WalMarshal} {U : WalUnmarshal} (hU : U.Ok M)
+    (md : List w8) (Ss : List WalHist) (s : w64 × w64) (write : Bool)
+    (stop : WalStop) (r : List w8 × HardStateM × List EntryM) (σ : StorContents)
+    (hs : some s = walNewestPair (walValidSnaps Ss.flatten 0))
+    (hcl : walCommitLe Ss.flatten) (h : walRead Ss.flatten = some σ)
+    (hok : readAllFold U s write (recsOfSegs C M md Ss) stop = .ok r) :
+    r = (md, σ.hs, σ.ents) := by
+  obtain ⟨σ', h', rfl⟩ := readAllFold_zero hU md Ss s write stop r hs hok
+  obtain ⟨e1, e2⟩ := walReadAt_zero_eq hs hcl h h'
+  rw [e1, e2]
 
 /-- **The deviation: `ReadAll` from the first file succeeds where `walRead` fails.** `Save` of the
 hard state `{Term 1, Commit 5}` with the entry 6, then `SaveSnapshot({Index 5, Term 1})`: the start
