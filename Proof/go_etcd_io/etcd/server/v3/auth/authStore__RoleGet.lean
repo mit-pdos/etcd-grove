@@ -73,7 +73,7 @@ theorem auth.authStore.RoleGet.wp_proof :
   icases Hro' with ⟨%ps, %rr, %Hrr, Hro⟩
   obtain ⟨Hlook, Hrrn, Hrrp⟩ := Hrr
   iunfold ownRole at Hro
-  icases Hro with ⟨%rms, %rnm, %rkp, %pl, %ruf, %rsc, Hrp, #Hrnm, #Hrkp, %Hpl, Hperms⟩
+  icases Hro with ⟨%rms, %rnm, %rkp, %pl, %rsc, Hrp, #Hrnm, #Hrkp, %Hpl, Hperms⟩
   icases typedPointsto_split _ _ _ $$ Hrp with Hrp
   simp only [TypedPointsto.typedPointstoDef]
   iNamed Hrp

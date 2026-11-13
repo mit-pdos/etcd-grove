@@ -45,7 +45,8 @@ theorem bootState_permsFit : permsFit bootState := by
 
 /-- The boot state is small (`Fuel.lean`, the auth plan's E2l). -/
 theorem bootState_small : authSmall bootState := by
-  refine ⟨?_, ?_, ?_, ?_, [], List.nodup_nil, ?_, ?_⟩ <;> simp [bootState, permsOn, rolesUtf8]
+  refine ⟨?_, ?_, ?_, ?_, ?_, [], List.nodup_nil, ?_, ?_⟩ <;>
+    simp [bootState, permsOn, rolesUtf8, namesOk]
 
 section ghost
 variable [GooseExts] {GF : BundledGFunctors} [AllG GF]

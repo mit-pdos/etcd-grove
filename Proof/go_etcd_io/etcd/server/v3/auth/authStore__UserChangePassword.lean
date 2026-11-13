@@ -121,7 +121,7 @@ theorem auth.authStore.UserChangePassword.wp_tie
   ihave Hu' := userOut_some _ st0 name Hif $$ Hu
   icases Hu' with ⟨%roles, %ur, %Hur, Hu⟩
   iunfold ownUser at Hu
-  icases Hu with ⟨%ums, %unm, %upw, %url, %uo, %uuf, %usc, Hup, #Hunm, #Hupw, #Hurl, #Huo⟩
+  icases Hu with ⟨%ums, %unm, %upw, %url, %uo, %usc, Hup, #Hunm, #Hupw, #Hurl, #Huo⟩
   ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hup
   icases typedPointsto_split _ _ _ $$ Hup with Hup
   simp only [TypedPointsto.typedPointstoDef]
@@ -191,7 +191,7 @@ theorem auth.authStore.UserChangePassword.wp_tie
       let urN : UserRec := ⟨name, pwb, ur.roles, ur.noPassword⟩
       ihave Hnu : ownUser «$r0_ptr» urN $$ [«$r0»]
       · iunfold ownUser
-        iexists _, _, _, _, _, _, _
+        iexists _, _, _, _, _, _
         iframe «$r0»
         isplitr
         · iexact Hnsl
@@ -202,8 +202,9 @@ theorem auth.authStore.UserChangePassword.wp_tie
         · iexact Huo
       wp_bind (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #«$r0_ptr»))
       iapply HPutU $$ %st0 %Post %«$r0_ptr» %urN [$HL $Hnu]
-      · ipureintro; exact ⟨by rw [Hur.2.1]; exact Hur.2.2, Hlen,
-          fun x hx => Hstep.2.2 name roles Hur.1 x (by simpa [urN, Hur.2.1] using hx)⟩
+      · ipureintro; exact ⟨by rw [Hur.2.1]; exact Hur.2.2,
+          List.length_pos_iff.2 (Hstep.2.2.2.1 name (by rw [Hur.1]; rfl)), Hlen,
+          fun x hx => Hstep.2.2.1 name roles Hur.1 x (by simpa [urN, Hur.2.1] using hx)⟩
       inext
       iintro ⟨HL, -⟩
       have hput : putUser st0 urN.name urN.roles = st0 := by
@@ -310,7 +311,7 @@ theorem auth.authStore.UserChangePassword.wp_tie
     let urN : UserRec := ⟨name, [], ur.roles, ur.noPassword⟩
     ihave Hnu : ownUser «$r0_ptr» urN $$ [«$r0»]
     · iunfold ownUser
-      iexists _, _, _, _, _, _, _
+      iexists _, _, _, _, _, _
       iframe «$r0»
       isplitr
       · iexact Hnsl
@@ -321,8 +322,9 @@ theorem auth.authStore.UserChangePassword.wp_tie
       · iexact Huo
     wp_bind (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #«$r0_ptr»))
     iapply HPutU $$ %st0 %Post %«$r0_ptr» %urN [$HL $Hnu]
-    · ipureintro; exact ⟨by rw [Hur.2.1]; exact Hur.2.2, Hlen,
-          fun x hx => Hstep.2.2 name roles Hur.1 x (by simpa [urN, Hur.2.1] using hx)⟩
+    · ipureintro; exact ⟨by rw [Hur.2.1]; exact Hur.2.2,
+          List.length_pos_iff.2 (Hstep.2.2.2.1 name (by rw [Hur.1]; rfl)), Hlen,
+          fun x hx => Hstep.2.2.1 name roles Hur.1 x (by simpa [urN, Hur.2.1] using hx)⟩
     inext
     iintro ⟨HL, -⟩
     have hput : putUser st0 urN.name urN.roles = st0 := by

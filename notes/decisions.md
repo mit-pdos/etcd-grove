@@ -35432,3 +35432,37 @@ it after setting `applyWait`. Deviation from the plan (accepted by etcd-grove-81
 `□ (auth.tpReady M -∗ …)`, discharged by `start`, which leaves v3rpc's watch handler and the
 off-mode `NewAuthStore` axiom untouched. `ValidSpec` deleted; `authSrvTP_on` and its results drop
 `hValid`; `token_simple_new`/`_ok` take `M`; `srv_auth_bound_of_inv` gains `tpReady`.
+
+**The axiom re-review's changes (2026-11-13, decided by etcd-grove-81; READY WITH CHANGES, no
+blocker).**
+- *M1, unknown fields (trusted tightening).* `auth.ownUser`/`auth.ownRole` (the messages
+  `UnsafePutUser`/`UnsafePutRole` take, and `GetUser`/`GetRole` return) and `ownUserX`/`ownRoleX`
+  (what `proto.UnmarshalUser`/`UnmarshalRole` return) now fix the message's `unknownFields` to nil
+  (it was an unconstrained, unowned existential). protobuf-go's `Marshal` copies unknown fields into
+  the encoding unchecked, so a message stored with garbage there makes the next read panic
+  (`lg.Panic` on the failed `Unmarshal`); etcd builds its user and role messages fresh or decodes
+  them from its own bytes, and `Unmarshal` resets the target (Go test
+  `/shared/tmp/auth-safe/fix-tests/zz_authfix_unknown_test.go`, `TestAuthFixUnknownFields`). Not
+  constrained: the `Options` message's and the permissions' unknown fields (a client's
+  `UserAddOptions` may carry valid unknown fields, which round-trip; the permissions are built fresh,
+  but no spec lets a client write their unknown fields either). The same convention (internal
+  protobuf fields unconstrained) holds elsewhere, sound while no spec lets a client write them.
+- *m1, non-empty names.* Both put clauses take `0 < name.length` (bbolt's `Put` refuses an empty key,
+  fatal in the backend's `unsafePut`; `backend.batchTxBuffered.UnsafePut.spec` takes `0 < kb.length`).
+  The store meets it: `UserAdd`/`RoleAdd` check the name (`ErrUserEmpty`/`ErrRoleEmpty`), the other
+  puts write a stored record's name, which `auth.namesOk` (new, `Model.lean`) says is non-empty;
+  `namesOk` is a field of the fuel's `authSmall` (kept by every `StepSmall`, the model's
+  `userAddF`/`roleAddF` refusing the empty name) and `stepOk` gives it at the found state, as F4's
+  `rolesUtf8`. `stepOk` (a premise of the exported `apply_*_step` results) is stronger; no closed
+  statement changes.
+- *m2, for D22 (plan item).* The write contract `authBatchTxLkR` allows any number of
+  `UnsafePut*`/`UnsafeDelete*` in one batch, but the backend's `UnsafePut` needs `pend + 1 < 2^58`
+  and its `Unlock` `pend + hookMax < 2^58` (Go has no panic there: `pending` is an `int`). D22's
+  derivation of the contract from the backend's specs therefore needs a per-batch count: each
+  admin step's batch makes at most a bounded number of puts except `RoleDelete`, which puts back
+  every user holding the role, at most the number of users, itself bounded by the revision (each
+  user was added by one revision-bumping step, at most `receiptBound ≤ 2^48` of them). Plan: D22
+  states the bound as a `Lock()`-time budget in the contract (a pending count below
+  `2^58 - hookMax` threaded through the put clauses, met by the store from `authSmall`'s revision
+  bound), or charges a time receipt per put. Not needed by any result today: the contract is
+  trusted until D22.

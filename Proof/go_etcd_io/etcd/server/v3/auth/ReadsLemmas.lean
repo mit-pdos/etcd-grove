@@ -33,7 +33,7 @@ theorem userOut_nameAt (u : Loc) (st : AuthState) (n : GoString)
   | some roles =>
     iintro ⟨%ur, %Hur, Hu⟩
     iunfold ownUser at Hu
-    icases Hu with ⟨%ms, %nm, %pw, %rl, %o, %uf, %sc, Hp, #Hnm, -, -, -⟩
+    icases Hu with ⟨%ms, %nm, %pw, %rl, %o, %sc, Hp, #Hnm, -, -, -⟩
     icases typedPointsto_split _ _ _ $$ Hp with Hp
     simp only [TypedPointsto.typedPointstoDef]
     iNamed Hp
@@ -54,7 +54,7 @@ theorem roleOut_nameAt (r : Loc) (st : AuthState) (n : GoString)
   | some ps =>
     iintro ⟨%rr, %Hrr, Hr⟩
     iunfold ownRole at Hr
-    icases Hr with ⟨%ms, %nm, %kp, %pl, %uf, %sc, Hp, #Hnm, -⟩
+    icases Hr with ⟨%ms, %nm, %kp, %pl, %sc, Hp, #Hnm, -⟩
     icases typedPointsto_split _ _ _ $$ Hp with Hp
     simp only [TypedPointsto.typedPointstoDef]
     iNamed Hp

@@ -220,7 +220,7 @@ theorem auth.authStore.UserAdd.wp_sure
       let urN : UserRec := ⟨name, pwb, [], false⟩
       ihave Hnu : ownUser «$r0_ptr» urN $$ [«$r0»]
       · iunfold ownUser
-        iexists _, _, _, _, _, _, _
+        iexists _, _, _, _, _, _
         iframe «$r0»
         isplitr
         · iexact Hnsl
@@ -231,7 +231,7 @@ theorem auth.authStore.UserAdd.wp_sure
         · iexact Hopts'
       wp_bind (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #«$r0_ptr»))
       iapply HPutU $$ %st0 %Post %«$r0_ptr» %urN [$HL $Hnu]
-      · ipureintro; exact ⟨List.Pairwise.nil, Hlen, by simp [urN]⟩
+      · ipureintro; exact ⟨List.Pairwise.nil, (List.length_pos_iff.2 hname), Hlen, by simp [urN]⟩
       inext
       iintro ⟨HL, -⟩
       (try wp_auto)
@@ -315,7 +315,7 @@ theorem auth.authStore.UserAdd.wp_sure
     let urN : UserRec := ⟨name, [], [], true⟩
     ihave Hnu : ownUser «$r0_ptr» urN $$ [«$r0»]
     · iunfold ownUser
-      iexists _, _, _, _, _, _, _
+      iexists _, _, _, _, _, _
       iframe «$r0»
       isplitr
       · iexact Hnsl
@@ -326,7 +326,7 @@ theorem auth.authStore.UserAdd.wp_sure
       · iexact Hopts'
     wp_bind (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #«$r0_ptr»))
     iapply HPutU $$ %st0 %Post %«$r0_ptr» %urN [$HL $Hnu]
-    · ipureintro; exact ⟨List.Pairwise.nil, Hlen, by simp [urN]⟩
+    · ipureintro; exact ⟨List.Pairwise.nil, (List.length_pos_iff.2 hname), Hlen, by simp [urN]⟩
     inext
     iintro ⟨HL, -⟩
     (try wp_auto)

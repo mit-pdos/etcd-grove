@@ -116,7 +116,7 @@ theorem auth.authStore.Authenticate.wp_core
   ihave Hu' := userOut_some u sta username Hif $$ Hu
   icases Hu' with ⟨%roles, %ur, %Hur, Hu⟩
   iunfold ownUser at Hu
-  icases Hu with ⟨%s1, %n, %pw, %rl, %o, %uf, %sc, Hp, #Hn, #Hpw, #Hrl, #Ho⟩
+  icases Hu with ⟨%s1, %n, %pw, %rl, %o, %sc, Hp, #Hn, #Hpw, #Hrl, #Ho⟩
   iunfold userOptsAt at Ho
   icases Ho with (%Ho | ⟨%Hon, %s2, %uf2, %sc2, #Hov⟩)
   · obtain ⟨Ho, -⟩ := Ho

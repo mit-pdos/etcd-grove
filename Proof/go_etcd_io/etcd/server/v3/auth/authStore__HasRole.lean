@@ -94,7 +94,7 @@ theorem auth.authStore.HasRole.wp_proof
   icases Hu' with ⟨%roles, %ur, %Hur, Hu⟩
   obtain ⟨Hlook, Hurn, Hurr, Hsorted⟩ := Hur
   iunfold ownUser at Hu
-  icases Hu with ⟨%ums, %unm, %upw, %url, %uo, %uuf, %usc, Hup, #Hunm, #Hupw, #Hurl, #Huo⟩
+  icases Hu with ⟨%ums, %unm, %upw, %url, %uo, %usc, Hup, #Hunm, #Hupw, #Hurl, #Huo⟩
   icases typedPointsto_split _ _ _ $$ Hup with Hup
   simp only [TypedPointsto.typedPointstoDef]
   iNamed Hup

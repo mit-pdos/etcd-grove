@@ -175,7 +175,7 @@ theorem auth.authStore.UserGrantRole.wp_tieB
   all_goals (
       -- the common tail
       iunfold ownUserX at Hu
-      icases Hu with ⟨%ums, %unm, %upw, %url, %uo, %uuf, %usc, Hup, #Hunm, #Hupw, Hurl, Hurlc, #Huo⟩
+      icases Hu with ⟨%ums, %unm, %upw, %url, %uo, %usc, Hup, #Hunm, #Hupw, Hurl, Hurlc, #Huo⟩
       ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hup
       icases typedPointsto_split _ _ _ $$ Hup with Hup
       simp only [TypedPointsto.typedPointstoDef]
@@ -296,7 +296,7 @@ theorem auth.authStore.UserGrantRole.wp_tieB
           Hperm.symm Hsrt
       imod (ownSlice_persist _ _ _) $$ Hs2 with #Hs2
       (try wp_auto)
-      let msgN : authpb.User := authpb.User.mk ums unm upw s2 uo uuf usc
+      let msgN : authpb.User := authpb.User.mk ums unm upw s2 uo slice.nil usc
       ihave Hup : u ↦ msgN $$ [state Name Password Roles Options unknownFields sizeCache]
       · iapply typedPointsto_combine u _ _ hunn
         simp only [TypedPointsto.typedPointstoDef]
@@ -317,9 +317,13 @@ theorem auth.authStore.UserGrantRole.wp_tieB
       · iframe HL
         isplitl [Hup]
         · iunfold ownUser
-          iexists ums, unm, upw, s2, uo, uuf, usc
+          iexists ums, unm, upw, s2, uo, usc
           iframe Hup Hunm Hupw Hs2 Huo
-        ipureintro; refine ⟨hxs, by show ur.name.length ≤ _; rw [Hurn]; exact Hnamelen, ?_⟩
+        ipureintro
+        refine ⟨hxs, by
+            show 0 < ur.name.length; rw [Hurn]
+            exact List.length_pos_iff.2 ((Hok st0 Hl0).2.2.2.1 user (by rw [Hlook]; rfl)),
+          by show ur.name.length ≤ _; rw [Hurn]; exact Hnamelen, ?_⟩
         exact ((Hok st0 Hl0).2.1 _ _ hstepR rfl).2 user xs'
           (by simp only [bump, putUser, GMap.lookup_insert])
       inext
@@ -364,7 +368,7 @@ theorem auth.authStore.UserGrantRole.wp_tieB
       wp_apply h_String _ _ as %f1 -
       (try wp_auto)
       iunfold ownUser at Huu
-      icases Huu with ⟨%ums', %unm', %upw', %url', %uo', %uuf', %usc', Huu, -, -, -, -⟩
+      icases Huu with ⟨%ums', %unm', %upw', %url', %uo', %usc', Huu, -, -, -, -⟩
       ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Huu
       icases typedPointsto_split _ _ _ $$ Huu with Huu
       simp only [TypedPointsto.typedPointstoDef]

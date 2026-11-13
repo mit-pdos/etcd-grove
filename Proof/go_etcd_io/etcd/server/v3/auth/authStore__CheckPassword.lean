@@ -104,7 +104,7 @@ theorem auth.authStore.CheckPassword.wp_proof
   ihave Hu' := userOut_some u sta username Hif $$ Hu
   icases Hu' with ⟨%roles, %ur, %Hur, Hu⟩
   iunfold ownUser at Hu
-  icases Hu with ⟨%s1, %n, %pw, %rl, %o, %uf, %sc, Hp, #Hn, #Hpw, #Hrl, #Ho⟩
+  icases Hu with ⟨%s1, %n, %pw, %rl, %o, %sc, Hp, #Hn, #Hpw, #Hrl, #Ho⟩
   icases typedPointsto_split _ _ _ $$ Hp with Hp
   simp only [TypedPointsto.typedPointstoDef]
   iNamed Hp

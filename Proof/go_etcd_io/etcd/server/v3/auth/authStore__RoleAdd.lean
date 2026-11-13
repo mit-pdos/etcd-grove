@@ -152,7 +152,7 @@ theorem auth.authStore.RoleAdd.wp_tieB
   let rrN : RoleRec := ⟨name, []⟩
   ihave Hnr : ownRole «$r0_ptr» rrN $$ [«$r0»]
   · iunfold ownRole
-    iexists _, _, _, [], _, _
+    iexists _, _, _, [], _
     iframe «$r0»
     isplitr
     · iexact Hnsl
@@ -163,7 +163,7 @@ theorem auth.authStore.RoleAdd.wp_tieB
     · simp only [List.zip_nil_left]; iapply BigSepL.bigSepL_nil.2; itrivial
   wp_bind (App (Val #(methods ti.ty go!"UnsafePutRole" ti.v)) (Val #«$r0_ptr»))
   iapply HPutR $$ %st0 %Post %«$r0_ptr» %rrN %rrN.toRole [$HL $Hnr]
-  · ipureintro; exact ⟨Hlen, List.Perm.refl _⟩
+  · ipureintro; exact ⟨(List.length_pos_iff.2 hname), Hlen, List.Perm.refl _⟩
   inext
   iintro ⟨HL, -⟩
   (try wp_auto)

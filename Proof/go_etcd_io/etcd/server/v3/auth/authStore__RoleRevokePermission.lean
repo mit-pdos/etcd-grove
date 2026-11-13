@@ -200,7 +200,7 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
   icases Hrole' with ⟨%ps, %rr, %Hrr, Hrole⟩
   obtain ⟨Hlook, Hrrn, Hrrps⟩ := Hrr
   iunfold ownRole at Hrole
-  icases Hrole with ⟨%rms, %rnm, %rkp, %pps, %ruf, %rsc, Hrp, #Hrnm, #Hrkp, %Hplen, #Hperms⟩
+  icases Hrole with ⟨%rms, %rnm, %rkp, %pps, %rsc, Hrp, #Hrnm, #Hrkp, %Hplen, #Hperms⟩
   ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hrp
   icases typedPointsto_split _ _ _ $$ Hrp with Hrp
   simp only [TypedPointsto.typedPointstoDef]
@@ -407,7 +407,7 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
   · iframe HL
     isplitl [Huu]
     · iunfold ownRole
-      iexists zeroValDef, rnm, sl, kept.map Prod.fst, slice.nil, (0 : w32)
+      iexists zeroValDef, rnm, sl, kept.map Prod.fst, (0 : w32)
       iframe Huu Hrnm Hsl'
       isplitr
       · ipureintro; simp [rr']
@@ -415,7 +415,10 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
         show (kept.map Prod.fst).zip (kept.map Prod.snd) = kept
         rw [← List.unzip_fst, ← List.unzip_snd, List.zip_unzip]
       rw [hz]; iexact Hkept
-    ipureintro; exact ⟨show rr.name.length ≤ _ by rw [Hrrn]; exact Hrolelen, hps'⟩
+    ipureintro
+    exact ⟨show 0 < rr.name.length by
+        rw [Hrrn]; exact List.length_pos_iff.2 ((Hok st0 Hl0).2.2.2.2 role (by rw [Hlook]; rfl)),
+      show rr.name.length ≤ _ by rw [Hrrn]; exact Hrolelen, hps'⟩
   inext
   iintro ⟨HL, Huu⟩
   (try wp_auto)

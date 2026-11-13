@@ -1321,7 +1321,10 @@ D14f) and the mode `M`:
   authority (`authOwnF`: the lock's share of the history joined, the auth plan's S4f);
 - its reads are the state's (`authReaderOk`);
 - `UnsafePutUser(u)` of a message holding a record whose roles are sorted (what `userOut`
-  promises), whose name fits a bbolt key (`issues/etcd-auth-useradd-long-name-fatal.md`) and
+  promises), whose name fits a bbolt key (`issues/etcd-auth-useradd-long-name-fatal.md`) and is
+  not empty (the axiom re-review of auth-schema-fix, m1: bbolt's `Put` refuses an empty key, which
+  the backend's `unsafePut` makes fatal; etcd never puts one, `namesOk`), whose message has no
+  unknown fields (`ownUser`, the re-review's M1), and
   whose roles are valid UTF-8 (S0's F4, 2026-11-12: `authpb.User.roles` is a proto3 `repeated
   string`, which protobuf-go's `Marshal` refuses otherwise, and `UnsafePutUser` then panics,
   `nonissues/etcd-auth-putuser-invalid-utf8-role.md`) puts the user (`putUser`; the message kept), `UnsafeDeleteUser(name)` deletes it, likewise the
@@ -1348,7 +1351,7 @@ def authBatchTxLk (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoFunc
     □ (∀ X : IProp GF, authReaderOk ti (fun st => Lk st X)) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (u : Loc) (ur : UserRec),
       {{ Lk st X ∗ ownUser u ur ∗
-          ⌜ur.roles.Pairwise go.GoStringLt ∧ ur.name.length ≤ backend.maxKeySize ∧
+          ⌜ur.roles.Pairwise go.GoStringLt ∧ 0 < ur.name.length ∧ ur.name.length ≤ backend.maxKeySize ∧
             ∀ x ∈ ur.roles, utf8Valid x⌝ }}
         (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #u))
       {{ RET #(); Lk (putUser st ur.name ur.roles) X ∗ ownUser u ur }}) ∗
@@ -1356,7 +1359,8 @@ def authBatchTxLk (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoFunc
       {{ Lk st X }} (App (Val #(methods ti.ty go!"UnsafeDeleteUser" ti.v)) (Val #name))
       {{ RET #(); Lk (delUser st name) X }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (r : Loc) (rr : RoleRec) (ps : Role),
-      {{ Lk st X ∗ ownRole r rr ∗ ⌜rr.name.length ≤ backend.maxKeySize ∧ rr.toRole.Perm ps⌝ }}
+      {{ Lk st X ∗ ownRole r rr ∗
+          ⌜0 < rr.name.length ∧ rr.name.length ≤ backend.maxKeySize ∧ rr.toRole.Perm ps⌝ }}
         (App (Val #(methods ti.ty go!"UnsafePutRole" ti.v)) (Val #r))
       {{ RET #(); Lk (putRole st rr.name ps) X ∗ ownRole r rr }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (name : GoString),
@@ -1404,7 +1408,7 @@ def authBatchTxLkR (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoFun
     □ (∀ X : IProp GF, authReaderOk ti (fun st => Lk st X)) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (u : Loc) (ur : UserRec),
       {{ Lk st X ∗ ownUser u ur ∗
-          ⌜ur.roles.Pairwise go.GoStringLt ∧ ur.name.length ≤ backend.maxKeySize ∧
+          ⌜ur.roles.Pairwise go.GoStringLt ∧ 0 < ur.name.length ∧ ur.name.length ≤ backend.maxKeySize ∧
             ∀ x ∈ ur.roles, utf8Valid x⌝ }}
         (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #u))
       {{ RET #(); Lk (putUser st ur.name ur.roles) X ∗ ownUser u ur }}) ∗
@@ -1412,7 +1416,8 @@ def authBatchTxLkR (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoFun
       {{ Lk st X }} (App (Val #(methods ti.ty go!"UnsafeDeleteUser" ti.v)) (Val #name))
       {{ RET #(); Lk (delUser st name) X }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (r : Loc) (rr : RoleRec) (ps : Role),
-      {{ Lk st X ∗ ownRole r rr ∗ ⌜rr.name.length ≤ backend.maxKeySize ∧ rr.toRole.Perm ps⌝ }}
+      {{ Lk st X ∗ ownRole r rr ∗
+          ⌜0 < rr.name.length ∧ rr.name.length ≤ backend.maxKeySize ∧ rr.toRole.Perm ps⌝ }}
         (App (Val #(methods ti.ty go!"UnsafePutRole" ti.v)) (Val #r))
       {{ RET #(); Lk (putRole st rr.name ps) X ∗ ownRole r rr }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (name : GoString),
@@ -2423,7 +2428,7 @@ theorem roleOut_null (st : AuthState) (name : GoString) :
   | some ps =>
     iintro ⟨%rr, -, Hr⟩
     iunfold ownRole at Hr
-    icases Hr with ⟨%s1, %n, %kp, %pl, %uf, %sc, Hp, -⟩
+    icases Hr with ⟨%s1, %n, %kp, %pl, %sc, Hp, -⟩
     ihave %Hnn := typedPointsto_not_null $$ Hp
     exact absurd rfl Hnn
 

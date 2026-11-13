@@ -297,6 +297,14 @@ fuel's `authSmall`, so the step premises (`stepOk`) give it. -/
 def rolesUtf8 (st : AuthState) : Prop :=
   ∀ u rs, st.users !! u = some rs → ∀ x ∈ rs, utf8Valid x
 
+/-- Every user's and every role's name is non-empty (the axiom re-review of auth-schema-fix, m1):
+bbolt's `Put` refuses an empty key (`ErrKeyRequired`, fatal in the backend's `unsafePut`), so
+`UnsafePutUser`/`UnsafePutRole` take a non-empty name; `UserAdd`/`RoleAdd` refuse the empty one
+(`userAddF`, `roleAddF`) and the other puts write a stored record's name. Kept by the fuel's
+`authSmall`, so the step premises (`stepOk`) give it. -/
+def namesOk (st : AuthState) : Prop :=
+  (∀ n, (st.users !! n).isSome → n ≠ []) ∧ (∀ n, (st.roles !! n).isSome → n ≠ [])
+
 /-- A user's permissions fit an interval tree's count (`getMergedPerms` inserts each into a tree
 whose count is a `uint64` kept below `2^63`, `adt.ownIvt`). -/
 def permsFit (st : AuthState) : Prop :=

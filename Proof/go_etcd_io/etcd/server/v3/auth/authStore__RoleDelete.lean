@@ -306,7 +306,7 @@ theorem auth.authStore.RoleDelete.wp_tie
     icases Hu with ⟨%ur, %Hur, Hu⟩
     obtain ⟨Hurn, Hurr, Hsorted⟩ := Hur
     iunfold ownUser at Hu
-    icases Hu with ⟨%ums, %unm, %upw, %url, %uo, %uuf, %usc, Hup, #Hunm, #Hupw, #Hurl, #Huo⟩
+    icases Hu with ⟨%ums, %unm, %upw, %url, %uo, %usc, Hup, #Hunm, #Hupw, #Hurl, #Huo⟩
     ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hup
     icases typedPointsto_split _ _ _ $$ Hup with Hup
     simp only [TypedPointsto.typedPointstoDef]
@@ -431,11 +431,14 @@ theorem auth.authStore.RoleDelete.wp_tie
     · iframe HL
       isplitl [Huu]
       · iunfold ownUser
-        iexists zeroValDef, unm, upw, sl, uo, slice.nil, (0 : w32)
+        iexists zeroValDef, unm, upw, sl, uo, (0 : w32)
         iframe Huu Hunm Hupw Hsl' Huo
-      ipureintro; refine ⟨hsorted', by rw [Hurn]; exact hnmlen, fun x hx => ?_⟩
+      ipureintro
+      refine ⟨hsorted', by
+          rw [Hurn]; exact List.length_pos_iff.2 ((Hok true st0 Hl0).2.2.2.1 nm (by simp [hlook0])),
+        by rw [Hurn]; exact hnmlen, fun x hx => ?_⟩
       rw [hroles'] at hx
-      exact (Hok true st0 Hl0).2.2 nm roles hlook0 x (Hurr ▸ (List.mem_filter.1 hx).1)
+      exact (Hok true st0 Hl0).2.2.1 nm roles hlook0 x (Hurr ▸ (List.mem_filter.1 hx).1)
     inext
     iintro ⟨HL, -⟩
     (try wp_auto)

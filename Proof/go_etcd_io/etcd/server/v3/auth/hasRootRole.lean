@@ -75,7 +75,7 @@ theorem auth.hasRootRole.wp_proof : auth.hasRootRole.spec (GF := GF) (hG := hG) 
   ihave #Hsortpkg : isPkgInit (PROP := IProp GF) pkg_id.sort $$ []
   · iPkgInit
   iunfold auth.ownUser at Hu
-  icases Hu with ⟨%st, %name, %pw, %roles, %o, %uf, %sc, Hp, #Hn, #Hpw, #Hr, #Ho⟩
+  icases Hu with ⟨%st, %name, %pw, %roles, %o, %sc, Hp, #Hn, #Hpw, #Hr, #Ho⟩
   wp_auto
   simp only [go_etcd_io.etcd.server.v3.auth.rootRole]
   wp_apply (_root_.Perennial.sort.wp_SearchStrings roles go!"root" .discard ur.roles)
@@ -93,7 +93,7 @@ theorem auth.hasRootRole.wp_proof : auth.hasRootRole.spec (GF := GF) (hG := hG) 
     iapply HΦ
     isplitl [Hp]
     · iunfold auth.ownUser
-      iexists st, name, pw, roles, o, uf, sc
+      iexists st, name, pw, roles, o, sc
       iframe Hp Hn Hpw Hr Ho
     ipureintro
     simp [auth.isRoot, this]
@@ -110,7 +110,7 @@ theorem auth.hasRootRole.wp_proof : auth.hasRootRole.spec (GF := GF) (hG := hG) 
     iapply HΦ
     isplitl [Hp]
     · iunfold auth.ownUser
-      iexists st, name, pw, roles, o, uf, sc
+      iexists st, name, pw, roles, o, sc
       iframe Hp Hn Hpw Hr Ho
     ipureintro
     rw [List.getElem?_eq_getElem hlt, Option.some.injEq] at hx

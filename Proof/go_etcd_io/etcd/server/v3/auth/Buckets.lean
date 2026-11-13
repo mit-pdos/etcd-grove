@@ -100,13 +100,19 @@ def userOptsAt (o : Loc) (b : Bool) : IProp GF :=
 instance userOptsAt_persistent (o : Loc) (b : Bool) : Persistent (userOptsAt (GF := GF) o b) := by
   unfold userOptsAt; infer_instance
 
-/-- The `*authpb.User` at `p` (owned) holds the record `u`, its byte fields read-only slices. -/
+/-- The `*authpb.User` at `p` (owned) holds the record `u`, its byte fields read-only slices, and no
+unknown fields (`unknownFields` nil: protobuf-go's `Marshal` copies them into the encoding unchecked,
+so garbage there would make the stored bytes fail the next `Unmarshal`; etcd builds its messages
+fresh or decodes them from its own bytes, and `proto.Unmarshal` resets the message, leaving the
+field nil when the bytes carry no unknown field: the axiom re-review of auth-schema-fix, M1, and
+its Go test). The `Options` message's unknown fields are unconstrained (they come from the client's
+request: valid wire format, decoded back unchanged). -/
 def ownUser (p : Loc) (u : UserRec) : IProp GF :=
   iprop(∃ (st : google_golang_org.protobuf.internal.impl.MessageState) (name pw roles : GoSlice)
-    (o : Loc) (uf : GoSlice) (sc : w32),
+    (o : Loc) (sc : w32),
     p ↦ ({
       state' := st, Name' := name, Password' := pw, Roles' := roles, Options' := o,
-      unknownFields' := uf, sizeCache' := sc } : authpb.User) ∗
+      unknownFields' := slice.nil, sizeCache' := sc } : authpb.User) ∗
     name ↦*□ u.name ∗ pw ↦*□ u.password ∗ roles ↦*□ u.roles ∗ userOptsAt o u.noPassword)
 
 /-- The `*authpb.Permission` at `p` (not nil, read-only) holds the wire permission `w`, whose key
@@ -124,12 +130,13 @@ instance ownPermW_persistent (p : Loc) (w : PermW) : Persistent (ownPermW (GF :=
   unfold ownPermW; infer_instance
 
 /-- The `*authpb.Role` at `p` (owned) holds the record `r`: its name a read-only slice, its
-`KeyPermission` a read-only slice of read-only permission messages. -/
+`KeyPermission` a read-only slice of read-only permission messages, and no unknown fields
+(`unknownFields` nil, as `ownUser`). -/
 def ownRole (p : Loc) (r : RoleRec) : IProp GF :=
   iprop(∃ (st : google_golang_org.protobuf.internal.impl.MessageState) (name kp : GoSlice)
-    (ps : List Loc) (uf : GoSlice) (sc : w32),
+    (ps : List Loc) (sc : w32),
     p ↦ ({
-      state' := st, Name' := name, KeyPermission' := kp, unknownFields' := uf,
+      state' := st, Name' := name, KeyPermission' := kp, unknownFields' := slice.nil,
       sizeCache' := sc } : authpb.Role) ∗
     name ↦*□ r.name ∗ kp ↦*□ ps ∗ ⌜ps.length = r.perms.length⌝ ∗
     [∗list] x ∈ ps.zip r.perms, ownPermW x.1 x.2)
@@ -138,13 +145,14 @@ def ownRole (p : Loc) (r : RoleRec) : IProp GF :=
 
 /-- The `*authpb.User` at `p` as `proto.Unmarshal` returns it (the auth plan's S4c, 2026-10-24):
 as `ownUser`, but its `Roles` slice owned with its capacity (Go's decoder allocates it for the
-caller: `UserGrantRole` appends to it and sorts it in place). -/
+caller: `UserGrantRole` appends to it and sorts it in place); no unknown fields, as `ownUser`
+(`proto.Unmarshal` resets the message, and `userEncode` bytes carry none). -/
 def ownUserX (p : Loc) (u : UserRec) : IProp GF :=
   iprop(∃ (st : google_golang_org.protobuf.internal.impl.MessageState) (name pw roles : GoSlice)
-    (o : Loc) (uf : GoSlice) (sc : w32),
+    (o : Loc) (sc : w32),
     p ↦ ({
       state' := st, Name' := name, Password' := pw, Roles' := roles, Options' := o,
-      unknownFields' := uf, sizeCache' := sc } : authpb.User) ∗
+      unknownFields' := slice.nil, sizeCache' := sc } : authpb.User) ∗
     name ↦*□ u.name ∗ pw ↦*□ u.password ∗ roles ↦* u.roles ∗
     ownSliceCap GoString roles (DFrac.own 1) ∗ userOptsAt o u.noPassword)
 
@@ -163,12 +171,13 @@ def ownPermX (p : Loc) (w : PermW) : IProp GF :=
 (`RoleGrantPermission` appends to the slice, sorts it, and writes an entry). Fewer than `2^62`
 permissions (the auth plan's S4d, 2026-10-24: `sort.Sort`'s bound, after the append): each
 permission of the encoding is a length-delimited field, at least a tag byte and a length byte, and
-the encoding is a Go slice, below `2^63` bytes; so a decoded record holds fewer than `2^62`. -/
+the encoding is a Go slice, below `2^63` bytes; so a decoded record holds fewer than `2^62`. No
+unknown fields, as `ownUserX`. -/
 def ownRoleX (p : Loc) (r : RoleRec) : IProp GF :=
   iprop(∃ (st : google_golang_org.protobuf.internal.impl.MessageState) (name kp : GoSlice)
-    (ps : List Loc) (uf : GoSlice) (sc : w32),
+    (ps : List Loc) (sc : w32),
     p ↦ ({
-      state' := st, Name' := name, KeyPermission' := kp, unknownFields' := uf,
+      state' := st, Name' := name, KeyPermission' := kp, unknownFields' := slice.nil,
       sizeCache' := sc } : authpb.Role) ∗
     name ↦*□ r.name ∗ kp ↦* ps ∗ ownSliceCap Loc kp (DFrac.own 1) ∗
     ⌜ps.length = r.perms.length ∧ r.perms.length < 2 ^ 62⌝ ∗
@@ -186,22 +195,22 @@ theorem ownPermX_persist (p : Loc) (w : PermW) : ownPermX (GF := GF) p w ⊢ |==
 
 theorem ownUserX_persist (p : Loc) (u : UserRec) : ownUserX (GF := GF) p u ⊢ |==> ownUser p u := by
   unfold ownUserX ownUser
-  iintro ⟨%st, %name, %pw, %roles, %o, %uf, %sc, Hm, #Hn, #Hpw, Hr, -, #Ho⟩
+  iintro ⟨%st, %name, %pw, %roles, %o, %sc, Hm, #Hn, #Hpw, Hr, -, #Ho⟩
   ipersist Hr
   imodintro
-  iexists st, name, pw, roles, o, uf, sc
+  iexists st, name, pw, roles, o, sc
   iframe Hm Hn Hpw Hr Ho
 
 theorem ownRoleX_persist (p : Loc) (r : RoleRec) : ownRoleX (GF := GF) p r ⊢ |==> ownRole p r := by
   unfold ownRoleX ownRole
-  iintro ⟨%st, %name, %kp, %ps, %uf, %sc, Hm, #Hn, Hkp, -, %Hlen, Hps⟩
+  iintro ⟨%st, %name, %kp, %ps, %sc, Hm, #Hn, Hkp, -, %Hlen, Hps⟩
   ipersist Hkp
   ihave Hps' : |==> [∗list] x ∈ ps.zip r.perms, ownPermW x.1 x.2 $$ [Hps]
   · iapply BigSepL.bigSepL_bupd
     iapply (BigSepL.bigSepL_mono (fun {_ x} _ => ownPermX_persist x.1 x.2)) $$ Hps
   imod Hps'
   imodintro
-  iexists st, name, kp, ps, uf, sc
+  iexists st, name, kp, ps, sc
   iframe Hm Hn Hkp Hps'
   ipureintro; exact Hlen.1
 

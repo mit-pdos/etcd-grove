@@ -48,7 +48,7 @@ theorem auth.roleOutX_null (st : AuthState) (name : GoString) :
   | some ps =>
     iintro ⟨%rr, -, Hr⟩
     iunfold ownRoleX at Hr
-    icases Hr with ⟨%s1, %n, %kp, %pl, %uf, %sc, Hp, -⟩
+    icases Hr with ⟨%s1, %n, %kp, %pl, %sc, Hp, -⟩
     ihave %Hnn := typedPointsto_not_null $$ Hp
     exact absurd rfl Hnn
 
@@ -331,7 +331,7 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
     icases Hrl' with ⟨%ps, %rr, %Hrr, Hrm⟩
     obtain ⟨Hlook, Hrrn, Hrrp⟩ := Hrr
     iunfold ownRoleX at Hrm
-    icases Hrm with ⟨%rst, %rnm, %kp, %locs, %ruf, %rsc, Hrp, #Hrnm, Hkp, Hkpc, %Hlocs, Hperms⟩
+    icases Hrm with ⟨%rst, %rnm, %kp, %locs, %rsc, Hrp, #Hrnm, Hkp, Hkpc, %Hlocs, Hperms⟩
     ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hrp
     icases typedPointsto_split _ _ _ $$ Hrp with Hrp
     simp only [TypedPointsto.typedPointstoDef]
@@ -519,7 +519,7 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
       ihave Hrm : ownRole rl ({ rr with perms := xs'.map Prod.snd } : RoleRec)
         $$ [state Name KeyPermission unknownFields sizeCache]
       · iunfold ownRole
-        iexists rst, rnm, s2, xs'.map Prod.fst, ruf, rsc
+        iexists rst, rnm, s2, xs'.map Prod.fst, rsc
         iframe Hrnm Hxs
         isplitl [state Name KeyPermission unknownFields sizeCache]
         · iapply typedPointsto_combine rl _ _ Hrl
@@ -548,7 +548,9 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
       generalize ({ rr with perms := xs'.map Prod.snd } : RoleRec) = rr' at hgp hrn ⊢
       wp_bind (App (Val #(methods ti.ty go!"UnsafePutRole" ti.v)) (Val #rl))
       iapply HPutR $$ %st0 %Post %rl %rr' %(grantPerms ps w) [HL Hrm]
-      · iframe HL Hrm; ipureintro; rw [hrn]; exact ⟨Hnamelen, hgp⟩
+      · iframe HL Hrm; ipureintro; rw [hrn]
+        exact ⟨List.length_pos_iff.2 ((Hok st0 Hl0).2.2.2.2 name (by rw [Hlook]; rfl)),
+          Hnamelen, hgp⟩
       inext
       iintro ⟨HL, Hrr⟩
       (try wp_auto)

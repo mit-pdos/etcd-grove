@@ -230,7 +230,7 @@ theorem auth.authStore.UserDelete.wp_tie
   inext
   iintro HA
   iunfold ownUser at Hu
-  icases Hu with ⟨%ums, %unm, %upw, %url, %uo, %uuf, %usc, Hup, -, -, -, -⟩
+  icases Hu with ⟨%ums, %unm, %upw, %url, %uo, %usc, Hup, -, -, -, -⟩
   ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hup
   icases typedPointsto_split _ _ _ $$ Hup with Hup
   simp only [TypedPointsto.typedPointstoDef]

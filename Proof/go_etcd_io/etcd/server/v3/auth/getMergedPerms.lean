@@ -52,7 +52,7 @@ theorem auth.getMergedPerms.wp_proof
       dsimp only
       icases Huser with ⟨%ur, %Hur, Huser⟩
       iunfold ownUser at Huser
-      icases Huser with ⟨%ms, %nm, %pw, %rs, %o, %uf, %sc, Hu, -⟩
+      icases Huser with ⟨%ms, %nm, %pw, %rs, %o, %sc, Hu, -⟩
       ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hu
       exact absurd rfl Hnn
     | none =>
@@ -71,7 +71,7 @@ theorem auth.getMergedPerms.wp_proof
       dsimp only
       icases Huser with ⟨%ur, %Hur, Huser⟩
       iunfold ownUser at Huser
-      icases Huser with ⟨%ms, %nm, %pw, %rs, %o, %uf, %sc, Hu, -, -, #Hroles, -⟩
+      icases Huser with ⟨%ms, %nm, %pw, %rs, %o, %sc, Hu, -, -, #Hroles, -⟩
       obtain ⟨-, Hurr, -⟩ := Hur
       subst Hurr
       wp_apply h_NewIntervalTree as %tr Htr
@@ -131,7 +131,7 @@ theorem auth.getMergedPerms.wp_proof
             dsimp only
             icases Hrole with ⟨%rr, %Hrr, Hr⟩
             iunfold ownRole at Hr
-            icases Hr with ⟨%ms', %nm', %kp, %pps, %uf', %sc', Hr, -⟩
+            icases Hr with ⟨%ms', %nm', %kp, %pps, %sc', Hr, -⟩
             ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hr
             exact absurd rfl Hnn
           | none =>
@@ -156,7 +156,7 @@ theorem auth.getMergedPerms.wp_proof
             dsimp only
             icases Hrole with ⟨%rr, %Hrr, Hr⟩
             iunfold ownRole at Hr
-            icases Hr with ⟨%ms', %nm', %kp, %pps, %uf', %sc', Hr, -, #Hkp, %Hplen, #Hperms⟩
+            icases Hr with ⟨%ms', %nm', %kp, %pps, %sc', Hr, -, #Hkp, %Hplen, #Hperms⟩
             obtain ⟨-, Hrrps⟩ := Hrr
             ihave %Hkl := ownSlice_len _ _ _ $$ Hkp
             -- the outer counter, renamed before the inner loop's shadows it

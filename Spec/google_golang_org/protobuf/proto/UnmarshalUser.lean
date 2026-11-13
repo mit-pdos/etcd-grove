@@ -26,7 +26,9 @@ variable [sem : go.Semantics]
 /-- `proto.Unmarshal(b, m)` of the encoding of the record `x` into the `*authpb.User` at `p`
 (whatever it held) makes it hold `x` (`auth.ownUserX`: a fresh message the caller owns, its byte fields read-only
 slices, its `Roles` slice owned with its capacity, the message's internal fields as it
-likes; the auth plan's S4c, 2026-10-24: Go's decoder allocates them) and returns `nil`. -/
+likes; the auth plan's S4c, 2026-10-24: Go's decoder allocates them; its unknown fields nil: `Unmarshal` resets the message, and the encoding of a
+record carries no unknown field of the message itself, auth-schema-fix's unknown-fields tightening,
+Go test `TestAuthFixUnknownFields`) and returns `nil`. -/
 abbrev proto.UnmarshalUser.spec : Prop :=
   ∀ (b : GoSlice) (x : auth.UserRec) (p : Loc) (v : authpb.User) (dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗
