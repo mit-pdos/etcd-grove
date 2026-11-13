@@ -26,6 +26,73 @@ open Iris Fs WalEnc
 section synced
 variable [GooseExts]
 
+
+/-! ## The `.wal` names -/
+
+/-- Sorting by name (`sort.Strings`) does not see the order of its input. -/
+theorem mergeSort_name_perm {l1 l2 : List GoString} (h : l1.Perm l2) :
+    l1.mergeSort (fun a b => decide (go.GoStringLt a b ∨ a = b)) =
+      l2.mergeSort (fun a b => decide (go.GoStringLt a b ∨ a = b)) := by
+  have htr : ∀ a b c : GoString, decide (go.GoStringLt a b ∨ a = b) = true →
+      decide (go.GoStringLt b c ∨ b = c) = true → decide (go.GoStringLt a c ∨ a = c) = true := by
+    intro a b c h1 h2
+    simp only [decide_eq_true_eq] at h1 h2 ⊢
+    rcases h1 with h1 | rfl <;> rcases h2 with h2 | rfl
+    · exact Or.inl (go.goStringLt_trans h1 h2)
+    · exact Or.inl h1
+    · exact Or.inl h2
+    · exact Or.inr rfl
+  have hto : ∀ a b : GoString,
+      (decide (go.GoStringLt a b ∨ a = b) || decide (go.GoStringLt b a ∨ b = a)) = true := by
+    intro a b
+    by_cases h1 : go.GoStringLt a b
+    · simp [h1]
+    by_cases h2 : go.GoStringLt b a
+    · simp [h2]
+    simp [go.goStringLt_eq_of_not_lt h1 h2]
+  refine List.Perm.eq_of_pairwise (le := fun a b => decide (go.GoStringLt a b ∨ a = b) = true) ?_
+    (List.pairwise_mergeSort htr hto _) (List.pairwise_mergeSort htr hto _)
+    ((List.mergeSort_perm _ _).trans (h.trans (List.mergeSort_perm _ _).symm))
+  intro a b _ _ h1 h2
+  simp only [decide_eq_true_eq] at h1 h2
+  rcases h1 with h1 | h1
+  · rcases h2 with h2 | h2
+    · exact absurd h2 (go.goStringLt_asymm h1)
+    · exact h2.symm
+  · exact h1
+
+theorem mem_walKeys {E1 E2 : Ents} (h : ∀ b, walNameP b = true → E1 !! b = E2 !! b) (b : GoString) :
+    b ∈ ((GMap.toList E1).map (·.1)).filter walNameP →
+      b ∈ ((GMap.toList E2).map (·.1)).filter walNameP := by
+  simp only [List.mem_filter, List.mem_map]
+  rintro ⟨⟨⟨b', v⟩, hm, rfl⟩, hw⟩
+  rw [GMap.mem_toList] at hm
+  exact ⟨⟨(b', v), (GMap.mem_toList _ _ _).2 (by rw [← h b' hw]; exact hm), rfl⟩, hw⟩
+
+theorem filterMap_congr' {α β : Type} {f g : α → Option β} :
+    ∀ {l : List α}, (∀ x ∈ l, f x = g x) → l.filterMap f = l.filterMap g
+  | [], _ => rfl
+  | a :: l, h => by
+    simp only [List.filterMap_cons]
+    rw [h a (List.mem_cons_self ..), filterMap_congr' (fun x hx => h x (List.mem_cons_of_mem _ hx))]
+
+/-- **Two directories agreeing on their `.wal` names have the same `.wal` files.** -/
+theorem walInos_congr {E1 E2 : Ents} (h : ∀ b, walNameP b = true → E1 !! b = E2 !! b) :
+    walInos E1 = walInos E2 := by
+  have hn : walNames E1 = walNames E2 := by
+    unfold walNames
+    apply mergeSort_name_perm
+    refine (List.perm_ext_iff_of_nodup ((GMap.toList_keys_nodup _).filter _)
+      ((GMap.toList_keys_nodup _).filter _)).2 (fun b => ⟨mem_walKeys h b,
+        mem_walKeys (fun b hb => (h b hb).symm) b⟩)
+  unfold walInos
+  rw [hn]
+  apply filterMap_congr'
+  intro b hb
+  have hw : walNameP b = true := by
+    unfold walNames at hb; exact (List.mem_filter.1 (List.mem_mergeSort.1 hb)).2
+  rw [h b hw]
+
 /-- A segment all of whose bytes are durable comes back as its bytes. -/
 theorem img_durable {g : SegG} {f : Fs.OsFile}
     (hfc : FileCrashedR g.om [(0, DFrac.own (1 : Qp).half, g.bs)] (some f))
