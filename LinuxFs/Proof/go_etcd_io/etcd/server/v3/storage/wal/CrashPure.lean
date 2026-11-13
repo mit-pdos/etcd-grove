@@ -408,7 +408,7 @@ theorem crashGood_exists (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       ∃ f, st.fs.files !! g.ino = some f ∧ ∀ b (y : ByteG), g.bs[b]? = some y → f.cand b = y.2)
     (dir : GoString) (d : WalDur) (hd : s.wal !! dir = some d) :
     ∃ o, CrashGood C Mr jr s Ls m' st' dir d o := by
-  obtain ⟨lay, nm, hj, hLs, hin, hjr, hnm, -, habs, hcok⟩ := hok.1 dir d hd
+  obtain ⟨lay, nm, hj, hLs, hin, hjr, hnm, -, habs, alt, halt, hcok⟩ := hok.1 dir d hd
   have hf : ∀ g ∈ lay.segs, _ := fun g hg => hfiles g (mem_segsAll hLs hg)
   have hw1G := w1G_of_W1 C st st' m' lay hw1 htree (fun g hg => by
     obtain ⟨hcr, -, hc⟩ := hf g hg
@@ -418,21 +418,30 @@ theorem crashGood_exists (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     exact this)
   have hct := hcok m' (fun i => st'.fs.files !! i) hreg (fun g hg => (hf g hg).1)
     (fun g hg => (hf g hg).2.1) hw1G
-  rcases crashTo_start C Mr d lay _ m' (fun i => st'.fs.files !! i) habs
-    (fun g hg => (hf g hg).2.1) hct with ⟨hn, he⟩ | ⟨d', lay', hc, hjr', hnm', he, hrest⟩
+  -- the layout whose `CrashTo` the crash gives: `lay`, or the one before a pending cut's rename
+  obtain ⟨lay0, ents0, habs0, hjr0, hnm0, hpre, hct0⟩ : ∃ lay0 ents0, WalAbsD C Mr d lay0 ents0 ∧
+      lay0.jr = lay.jr ∧ lay0.nm = lay.nm ∧ lay0.segs <+: lay.segs ∧
+      CrashTo C Mr d lay0 m' (fun i => st'.fs.files !! i) := by
+    rcases hct with h | ⟨l0, hl0, h⟩
+    · exact ⟨lay, _, habs, rfl, rfl, List.prefix_refl _, h⟩
+    · obtain ⟨⟨e0, ha0⟩, h1, h2, -, h3⟩ := halt l0 hl0
+      exact ⟨l0, e0, ha0, h1, h2, h3, h⟩
+  rcases crashTo_start C Mr d lay0 _ m' (fun i => st'.fs.files !! i) habs0
+    (fun g hg => (hf g (hpre.subset hg)).2.1) hct0 with ⟨hn, he⟩ | ⟨d', lay', hc, hjr', hnm', he, hrest⟩
   · refine ⟨none, Or.inl ⟨hn, rfl⟩, ⟨fun _ => ⟨nm, hin, ?_⟩, fun _ _ h => by cases h⟩⟩
-    rw [← hjr, ← hnm]; exact he
+    rw [← hjr, ← hnm, ← hjr0, ← hnm0]; exact he
   · refine ⟨some (d', lay'), hc, ⟨fun h => (by cases h), fun d1 l1 h => ?_⟩⟩
     simp only [Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
     obtain ⟨ha, hfit, h1, h2, h3, h4, hsub, h5⟩ := hrest
-    refine ⟨nm, hin, by rw [hjr', hjr], by rw [hnm', hnm], by rw [← hjr, ← hnm]; exact he, ha, hfit,
-      h1, h2, h3, h4, ⟨lay, hLs, hsub⟩, fun g hg => ?_⟩
+    refine ⟨nm, hin, by rw [hjr', hjr0, hjr], by rw [hnm', hnm0, hnm],
+      by rw [← hjr, ← hnm, ← hjr0, ← hnm0]; exact he, ha, hfit,
+      h1, h2, h3, h4, ⟨lay, hLs, hsub.trans (hpre.sublist.map _)⟩, fun g hg => ?_⟩
     obtain ⟨hi, hrest⟩ := h5 g hg
     refine ⟨?_, hrest⟩
     obtain ⟨g1, hg1, he1⟩ := List.mem_map.1 hi
     rw [← he1]
-    exact List.mem_map_of_mem (f := (·.ino)) (mem_segsAll hLs hg1)
+    exact List.mem_map_of_mem (f := (·.ino)) (mem_segsAll hLs (hpre.subset hg1))
 
 /-- A map with the keys of `m`, each value given by `f`. -/
 def gmapBind {K V V' : Type} [DecidableEq K] (m : GMap K V) (f : K → V → Option V') : GMap K V' :=

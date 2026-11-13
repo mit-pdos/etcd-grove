@@ -253,7 +253,8 @@ theorem walsOk_start (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots) (j
     obtain ⟨hj, hjm⟩ := hdirs nm lay.j hin.1 he
     have hjc := hc _ hjm
     simp only at hjc
-    refine ⟨lay, nm, hj, hL, hin, hjr, hnm, hjm, ?_, ?_⟩
+    refine ⟨lay, nm, hj, hL, hin, hjr, hnm, ⟨[], by simp, hjm, ?_⟩, ?_, crashOkW_of_crashOk ?_⟩
+    · exact claimCoh_init _ _ _ (by rw [hjc]) (fun b _ => by rw [hjc])
     · rw [hjc]; simp only [restrictN_all]; exact habs
     · refine walAbs_crashOk_start C hC Mr d lay cl 0 (entsOf V.now lay.j) habs hfit hlog
         ⟨hj, hjm, by rw [hjc]; simp only [restrictN_all]⟩ ?_ ⟨h1, h2, h3⟩ hlast
