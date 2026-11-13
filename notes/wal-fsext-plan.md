@@ -411,3 +411,32 @@ reviews it.
 
 Branches: `wal-fsext-translate` (the with-bodies translation, `5bd96e306a`) is every wave's base until
 it lands with the first proofs.
+
+## 8. Wave 1 results (2026-11-13)
+
+- **Translation** (`wal-fsext-translate`, `5bd96e306a`): the WAL, `walpb`, `fileutil` (Linux files),
+  `pkg/v3/ioutil` (PageWriter), `pkg/v3/crc` with bodies in `LinuxFs/` (parts of projects `etcd` and
+  `raft`: the raft root package's `IsEmptyHardState`/`MustSync` with bodies in a part copy, since the main
+  raft root imports the main `os`); `hash/crc32`, `bufio`, `path/filepath` names-only in the part. Gaps:
+  §4.3, plus `fileutil` calls `syscall.Fallocate`/`syscall.FcntlFlock` (not `unix`'s) and its package
+  init issues `F_OFD_GETLK` on fd 0.
+- **I1** (`wal-i1`, `497080aa57`): `osCommitLb n` (persistent) from a successful `DirSync`
+  (`wp_osDirSync_lb`; the semantics commits the whole log), `TreeCrashedLb`, `osTreeCrash_take_lb`,
+  `lookupH_crashLb`. Statements unchanged, but definitions extended: `OsGS.γcm`, `treeCtx ∗ commitRes`,
+  `crashRest ∗ crashCommit` (`Ghost.lean`, `World.lean`, `CrashTok.lean`): **the bbolt port will meet
+  merge conflicts there** (repair: the proofs inside `GooseLang/Ext/Fs` that unfold them).
+- **Go tests** (`wal-gotests`): three nonissues, `etcd-wal-cut-reuses-stale-tmp` (safe because a cut
+  appends nothing before its rename and directory fsync: W1 needs a stale-bytes clause),
+  `etcd-fileutil-filebufreader-stat-panic` and `etcd-wal-create-cleanup-panic` (blocks-proof: both).
+  **Local fork fixes** on `goose-lean-walfs` (`0fa9710dc` the decoder returns the stat error, `f15d88841`
+  `cleanupWAL` returns an error), in `/home/ubuntu/.claude-E/jobs/af0ee947/tmp/etcd-fork` (scratch: copy
+  the commits to a durable clone before the job ends). **Not pushed [user].** Until the user pushes them,
+  the WAL is translated from that checkout (`etc/goose.py --src etcd=...`) on the WAL branches, and they
+  cannot land on `lean` (CI's `goose.py --check` needs the pin on GitHub).
+- **Encoding layer** (`wal-enc`, `d607fbfb92`, continuing): `WalEncFrame`, `WalEncDecode`, `WalEncRecs`,
+  `WalEncFiles` (main tree, pure, no `sorry`): frame round trip, `walDecode` (the Go decoder and
+  `ReadAll`'s CRC check, stop reasons), decode∘encode, the prefix lemma under `NoCollision`,
+  `walDecode_walImg`. Next: multi-file stream with cut headers, reads from a later file, the stale clause.
+- **I2 design**: `notes/wal-fsext-i2-design.md` (no semantics change; a shared mode entered at a
+  `CallBegin`; region ownership; a new per-name ordering premise; ~4 agent-weeks), under independent review.
+- Integration branch `wal-int` (notes + translation + I1 + nonissues): wave 2's base.
