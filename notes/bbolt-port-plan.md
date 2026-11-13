@@ -609,6 +609,10 @@ copies) found one tactic, `have hremv2 : … := by word` inside the write loop's
 premise) the whole file takes 320 s. The writer agent's fixes of lines 569-688 and the `iframe` at
 929 needed nothing more. `etc/gen-link.py --bbolt` and `--results` regenerated (`etc/link_bbolt.py`
 over the three instance binders); every bbolt module, `Link` and `Results` build; `gen-init --check`,
-every `Link.lean`'s regeneration, `api-check etc/api/bbolt.txt` and `bounds-check` pass. Left for
-the full build: `gen-interface etc/api/bbolt.txt` (the API's binders and `pathHolds` changed),
-`tcb-report --check` and its collections.
+every `Link.lean`'s regeneration, `api-check etc/api/bbolt.txt` and `bounds-check` pass. Then the
+full build (every default target, 17,390 jobs; one fix: `batchTxBuffered.Unlock` names
+`backend.baseOf`, since `GooseLang/Ext/Fs/Paths.lean`'s `Perennial.baseOf` is now in scope);
+`gen-interface etc/api/bbolt.txt` regenerated (the others unchanged); `tcb-report --check`: the
+trust base unchanged (865 axioms, 5 sorries), all 54 collections match, `osfs.txt` (minibolt,
+crashlog, walfs: no axiom, no sorry; was `linuxfs.txt`) added; `goose.py --check` for bbolt,
+bboltfs, crashlog, walfs up to date. **The port is done.**
