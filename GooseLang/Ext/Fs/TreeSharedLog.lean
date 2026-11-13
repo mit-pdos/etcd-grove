@@ -630,6 +630,326 @@ theorem callResS_excl (Γc : GMap Nat (Nat × Qp)) (k : Nat) (x0 : Nat × Qp) (h
 
 end ghost
 
+theorem namesOf_newDir_cur (V : Hist) (j : Ino) (b : GoString) (J : Ino) (s0 : Nat) :
+    (namesOf (V.1, V.2 ++ [⟨.mkdir j b J, s0⟩]) J (.except [])).cur = ∅ := by
+  show restrictN (.except []) (entsOf (Hist.now (V.1, V.2 ++ [⟨.mkdir j b J, s0⟩])) J) = ∅
+  rw [hist_now_snoc]
+  apply GMap.ext; intro c
+  show restrictN (.except []) (entsOf ((MetaOp.mkdir j b J).apply V.now) J) !! c = (∅ : Ents) !! c
+  rw [restrictN_lookup _ _ _ (by simp [NameSet.Mem]), entsOf_lookup]
+  simp [MetaOp.apply, Tree.entry, GMap.lookup_insert]
+
+open Classical in
+theorem namesOf_newDir_next (V : Hist) (j : Ino) (b : GoString) (J : Ino) (s0 : Nat) :
+    (namesOf (V.1, V.2 ++ [⟨.mkdir j b J, s0⟩]) J (.except [])).next = V.2.length + 1 := by
+  rw [namesOf_next]
+  simp only [List.length_append, List.length_singleton]
+  rw [lastSat_succ, if_pos]
+  apply decide_eq_true
+  exact ⟨⟨.mkdir j b J, s0⟩, by simp, [], by simp [NameSet.Mem], .inr ⟨j, b, rfl⟩⟩
+
+section specs
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+  [GoGlobalContext] [go.BasicIntoValInj]
+variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
+variable {s : Stuckness} {E : CoPset}
+
+/-- **A step that logs `o` for the call `k`** (or only ends it), the claims `cl` (whole) written:
+from what it finds of the state (`P`, given by the caller's resources `F` through the claims'
+authority; `ClaimsAt`: what the claims know) and what it returns (`W w logged`). The obligations:
+each claim is written and every slot `o` writes is in one; the claims' `next` bound the call's
+start (or the call holds the whole permission); a directory operation holds the whole permission;
+the tree after `o` is well formed, names no new file, has the old directories and the new ones
+(fresh), `o` is applicable if a file operation, and the claims' entries after `o` are as given. -/
+theorem wp_logStepS (op : String) (v : val) (hv : v.isPanic = false) (R : Roots) (k s0 : Nat)
+    (q : Qp) (o : MetaOp) (cl : List ClaimW) (F : IProp GF) (P : OsState → Prop)
+    (W : val → Bool → Prop)
+    (hne : ∀ c ∈ cl, c.2.1 ≠ .only [])
+    (hwr : ∀ c ∈ cl, ∃ b, c.2.1.Mem b ∧ o.Writes c.1 b)
+    (hslots : ∀ sl ∈ o.slots, ∃ c ∈ cl, c.1 = sl.1 ∧ c.2.1.Mem sl.2)
+    (hnext : ∀ c ∈ cl, c.2.2.1.next ≤ s0 ∨ q = 1)
+    (hdir : o.IsDirOp → q = 1)
+    (hadd : ∀ j b, b ∈ o.adds j → NameOk b)
+    (hF : ∀ st Γn, st.fs.roots = R → NamesCoh (st.fs.treeDur, st.fs.metaLog) Γn →
+      ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γn Γn -∗ F -∗ ⌜P st⌝)
+    (hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 → P st →
+      ClaimsAt st cl → ∃ e' st', IsFsStep op v st e' st' ∧ FilesSame st st')
+    (hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 → P st →
+      ClaimsAt st cl → IsFsStep op v st e' st' → ∃ w, e' = Val w ∧
+        ((st' = st.metaEnd k ∧ W w false) ∨
+         (LoggedFrom st st' k s0 o ∧ (∀ x, x ∈ o.apply st.tree → x < st'.fs.nextIno) ∧ W w true)))
+    (htree : ∀ st, FsTreeWf st → st.fs.roots = R → P st → ClaimsAt st cl →
+      TreeWf R (o.apply st.tree) ∧ (∀ i, Named (o.apply st.tree) i → Named st.tree i) ∧
+      (∀ x, x ∈ o.apply st.tree → x ∈ st.tree ∨ x ∈ o.newDirs) ∧
+      (∀ J ∈ o.newDirs, J ∉ st.tree) ∧
+      (¬ o.IsDirOp → OpOk st.tree o ∧ ∀ j b i, o = .create j b i → ∀ t,
+        t ≤ st.fs.metaLog.length → ¬ Named (prefTree st.fs.treeDur st.fs.metaLog t) i) ∧
+      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = c.2.2.2))
+    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ F -∗
+      ([∗list] c ∈ cl, osNames (L := L) c.1 c.2.1 (DFrac.own 1) c.2.2.1) -∗
+      osCallS (L := L) k s0 q -∗
+      (∀ w, osCallPerm (L := L) q -∗ F -∗
+        ((⌜W w false⌝ ∗ [∗list] c ∈ cl, osNames (L := L) c.1 c.2.1 (DFrac.own 1) c.2.2.1) ∨
+         (⌜W w true⌝ ∗ ∃ x, osLogged (L := L) x ⟨o, s0⟩ ∗
+           ([∗list] c ∈ cl, osNames (L := L) c.1 c.2.1 (DFrac.own 1)
+             (c.2.2.1.log x ⟨o, s0⟩ c.2.2.2)) ∗
+           [∗list] J ∈ o.newDirs, ∃ hJ, osNames (L := L) J (.except []) (DFrac.own 1) hJ ∗
+             ⌜hJ.cur = ∅ ∧ hJ.next = x + 1⌝)) -∗ Φ w) -∗
+      WP (ExternalOp fsExt.name op (Val v)) @ s; E {{ Φ }} := by
+  iintro #Hinv #Hsi HF Hcl Hk HΦ
+  iapply wp_fs_stepM op _ Φ hv hE $$ Hinv
+  iintro %st %Γb %Γm %Γf %Γt %h Hw Ht
+  unfold treeCtx
+  icases Ht with ⟨Hm, Hcm⟩
+  icases Hm with (Hm | Hm)
+  · iexfalso; iapply legacy_callS_excl st k s0 q $$ Hk Hm
+  unfold treeShared
+  icases Hm with ⟨%V0, %s1, %Γdf, %Γc, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr⟩
+  obtain ⟨hw, hc⟩ := hns
+  unfold osSharedInv
+  imod inv_acc (osShN_sub hE') $$ Hsi with ⟨Hi, Hclose⟩
+  icases Hi with >Hi
+  icases Hi with ⟨%Vs, %Γn, Hs, HAn, %hcoh, Halen, HAlog⟩
+  icases gAuth_lookup _ _ _ _ _ _ $$ Has Hs with %hVs
+  simp only [histMap, GMap.lookup_singleton_eq, Option.some.injEq, Prod.mk.injEq] at hVs
+  obtain ⟨hR, rfl⟩ := hVs
+  icases hF st Γn hR hcoh.2 $$ HAn HF with %hP
+  icases claims_info hcoh.2 cl hne $$ HAn Hcl with %hci
+  obtain ⟨hat, hlk⟩ := hci
+  unfold osCallS
+  icases gAuth_lookup _ _ _ _ _ _ $$ Hacs Hk with %hk
+  have hcall : st.proc.calls !! k = some s0 := by
+    have := hc.calls k; rw [hk] at this; exact this.symm
+  icases callResS_excl Γc k (s0, q) hk $$ Hcr with ⟨%hexcl, Hcr⟩
+  unfold osWorld
+  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
+  icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (E \ ↑osN) \ ↑osShN from Std.LawfulSet.empty_subset)
+  iintro Hclose2
+  isplitr
+  · ipureintro
+    obtain ⟨e', st', hst, hfs⟩ := hprog st hw hR hcall hP hat
+    obtain ⟨hfr, hr⟩ := step_filesSame (h := h) Hwc.1 hfs Hag
+    exact ⟨e', h, st', hst, hfr, hr⟩
+  inext
+  iintro %e' %h' %st' %Hst
+  imod Hclose2
+  obtain ⟨Hst, Hfr, Hr⟩ := Hst
+  obtain ⟨w, rfl, hres⟩ := hpost st e' st' hw hR hcall hP hat Hst
+  unfold callResS
+  icases (BigSepM.bigSepM_delete (M := GMap Nat)
+    (Φ := fun (_t : Nat) (x : Nat × Qp) =>
+      gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm () (DFrac.own x.2) ()) hk).1 $$ Hcr
+    with ⟨Hq, Hcr⟩
+  imod gAuth_delete _ _ _ _ _ $$ Hacs Hk with Hacs
+  rcases hres with ⟨rfl, hW⟩ | ⟨hlf, hlt, hW⟩
+  · -- no effect: the call ended
+    have hs : FilesSame st (st.metaEnd k) := filesSame_metaEnd st k
+    imod osWorld_filesSame (st := st) (st' := st.metaEnd k) hs Hr Hfr
+      $$ [HAb HAm HAf HAt Htok Hcells Hσ] with Hw
+    · unfold osWorld; iframe; ipureintro; exact Hwc
+    imod Hclose $$ [Hs HAn Halen HAlog] with -
+    · inext; iexists _, Γn; iframe; ipureintro; exact hcoh
+    imodintro
+    iexists Γb, Γm, Γf, Γt
+    isplitl [Hw]
+    · unfold osWorld; iexact Hw
+    isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr Hcm]
+    · try unfold treeCtx
+      isplitr [Hcm]
+      rotate_left
+      · iapply commitRes_grow (gooseOsGS (L := L)) (st := st) (st' := st.metaEnd k)
+          (commitGrows_of_eq rfl) $$ Hcm
+      iright
+      simp only [OsState.metaEnd]
+      try unfold treeShared
+      iexists V0, s1, Γdf, GMap.delete k Γc
+      iframe
+      ipureintro; exact ⟨fsTreeWf_metaEnd hw k, treeCohS_metaEnd hc k⟩
+    iapply wp_value'
+    iapply HΦ $$ %w [Hq] HF
+    · unfold osCallPerm; iexact Hq
+    ileft
+    isplitr
+    · ipureintro; exact hW
+    · iexact Hcl
+  · -- logged
+    obtain ⟨htw, hnm, hdirs, hnew, hok, hcur⟩ := htree st hw hR hP hat
+    have htr := hlf.tree
+    have hwf' : FsTreeWf st' := hlf.wf hw (hR ▸ htw) hnm hlt
+    have hpss : ∀ y (ey : LogEntry), st.fs.metaLog[y]? = some ey →
+        (∃ sl ∈ o.slots, sl ∈ ey.op.slots) → y < s0 := by
+      rintro y ey hy ⟨sl, hsl, hsl'⟩
+      obtain ⟨c, hcm, hc1, hc2⟩ := hslots sl hsl
+      have hlt' : y < c.2.2.1.next := by
+        rw [(hlk c hcm).2]
+        refine lt_namesOf_next hy hc2 (.inl ?_)
+        rw [hc1]; exact hsl'
+      rcases hnext c hcm with hn | hq1
+      · omega
+      · have := hc.whole k _ hk hq1
+        have := (List.getElem?_eq_some_iff.1 hy).1
+        simp only at *; omega
+    have hcoh' : TreeCohS st' s1 Γdf (GMap.delete k Γc) :=
+      treeCohS_log hc hk o hlf.dur hlf.log hlf.dfds hlf.calls htr hpss hdir hexcl hok hadd
+    have hnc := namesCoh_log hcoh.2 ⟨o, s0⟩ (cl.map (fun c => (c.1, c.2.1)))
+      (fun kk hkk => by
+        obtain ⟨c, hcm, rfl⟩ := List.mem_map.1 hkk
+        exact ⟨_, (hlk c hcm).1⟩)
+      (fun sl hsl => by
+        obtain ⟨c, hcm, hc1, hc2⟩ := hslots sl hsl
+        exact ⟨(c.1, c.2.1), List.mem_map.2 ⟨c, hcm, rfl⟩, hc1, hc2⟩)
+      hnew hdirs
+    have hcl' : ∀ c ∈ cl, c.2.2.1.log st.fs.metaLog.length ⟨o, s0⟩ c.2.2.2 =
+        namesOf (st.fs.treeDur, st.fs.metaLog ++ [⟨o, s0⟩]) c.1 c.2.1 := by
+      intro c hcm
+      have hsw := namesOf_snoc_written (st.fs.treeDur, st.fs.metaLog) ⟨o, s0⟩ c.1 c.2.1 (hwr c hcm)
+      simp only at hsw
+      rw [hsw, ← (hlk c hcm).2]
+      congr 1
+      exact (hcur c hcm).symm
+    -- ghost updates
+    imod gAuth_update _ _ _ _ _ (st.fs.roots, ((st.fs.treeDur, st.fs.metaLog ++ [⟨o, s0⟩]) : Hist))
+      $$ Has Hs with ⟨Has, Hs⟩
+    imod (letI := (gooseOsGS (L := L)).osAllG;
+      mono_nat_own_update (γ := (gooseOsGS (L := L)).γlen)
+        (st.fs.metaLog ++ [(⟨o, s0⟩ : LogEntry)]).length (by simp)) $$ Halen with ⟨Halen, #Hlb⟩
+    imod gAuth_insert _ _ _ st.fs.metaLog.length (⟨o, s0⟩ : LogEntry)
+      (by rw [logMap_lookup]; simp) $$ HAlog with ⟨HAlog, Hent⟩
+    imod logEnt_persist _ _ $$ Hent with #Hent
+    imod claims_upd (st.fs.treeDur, st.fs.metaLog ++ [⟨o, s0⟩])
+      (fun c => c.2.2.1.log st.fs.metaLog.length ⟨o, s0⟩ c.2.2.2) cl Γn hne hcl' $$ HAn Hcl
+      with ⟨HAn, Hcl⟩
+    imod osWorld_filesSame (st := st) (st' := st') hlf.same Hr Hfr
+      $$ [HAb HAm HAf HAt Htok Hcells Hσ] with Hw
+    · unfold osWorld; iframe; ipureintro; exact Hwc
+    have hlen : (st.fs.metaLog ++ [(⟨o, s0⟩ : LogEntry)]).length = st.fs.metaLog.length + 1 := by
+      simp
+    have hle : s0 ≤ st.fs.metaLog.length := hc.callsLe k _ hk
+    rw [histMap_insert, show logMap (st.fs.treeDur, st.fs.metaLog).2 = logMap st.fs.metaLog from rfl,
+      ← logMap_snoc]
+    have hkey : ∀ J, J ∉ st.tree →
+        insKeys (st.fs.treeDur, st.fs.metaLog ++ [⟨o, s0⟩]) (cl.map (fun c => (c.1, c.2.1))) Γn !!
+          (J, .except []) = none := by
+      intro J hJ
+      rw [insKeys_lookup]
+      split
+      · rename_i hm
+        obtain ⟨c, hcm, hce⟩ := List.mem_map.1 hm
+        simp only [Prod.mk.injEq] at hce
+        have := hcoh.2.dirs _ _ _ (hlk c hcm).1
+        rw [hce.1] at this
+        exact absurd this hJ
+      · cases hl : Γn !! (J, NameSet.except []) with
+        | none => rfl
+        | some h0 => exact absurd (hcoh.2.dirs _ _ _ hl) hJ
+    rcases newDirs_cases o with hnd | ⟨j0, b0, J, rfl, hnd⟩
+    · have hΓ : insKeys (st.fs.treeDur, st.fs.metaLog ++ [⟨o, s0⟩])
+          (newKeys o ++ cl.map (fun c => (c.1, c.2.1))) Γn =
+          insKeys (st.fs.treeDur, st.fs.metaLog ++ [⟨o, s0⟩]) (cl.map (fun c => (c.1, c.2.1))) Γn := by
+        simp [newKeys, hnd]
+      rw [hΓ] at hnc
+      imod Hclose $$ [Hs HAn Halen HAlog] with -
+      · inext
+        iexists (st.fs.treeDur, st.fs.metaLog ++ [⟨o, s0⟩]), _
+        isplitl [Hs]
+        · rw [← hR]; iexact Hs
+        iframe
+        ipureintro; exact ⟨hcoh.1, hnc⟩
+      imodintro
+      iexists Γb, Γm, Γf, Γt
+      isplitl [Hw]
+      · unfold osWorld; iexact Hw
+      isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr Hcm]
+      · isplitr [Hcm]
+        rotate_left
+        · iapply commitRes_grow (gooseOsGS (L := L)) (st := st) (st' := st')
+            (commitGrows_of_eq hlf.committed) $$ Hcm
+        iright
+        iexists V0, s1, Γdf, GMap.delete k Γc
+        rw [hlf.roots, hlf.dur, hlf.log]
+        iframe
+        ipureintro; exact ⟨hwf', hcoh'⟩
+      iapply wp_value'
+      iapply HΦ $$ %w [Hq] HF
+      · unfold osCallPerm; iexact Hq
+      iright
+      isplitr
+      · ipureintro; exact hW
+      iexists st.fs.metaLog.length
+      isplitr [Hcl]
+      · unfold osLogged
+        isplitr
+        · ipureintro; exact hle
+        isplitr
+        · iexact Hent
+        · unfold osLogLb
+          iapply (letI := (gooseOsGS (L := L)).osAllG; monoNatLbOwn_le _ (Nat.le_of_eq hlen.symm)) $$ Hlb
+      isplitl [Hcl]
+      · iexact Hcl
+      rw [hnd]; iapply (BigSepL.bigSepL_nil).2; iempintro
+    · have hΓ : insKeys (st.fs.treeDur, st.fs.metaLog ++ [⟨.mkdir j0 b0 J, s0⟩])
+          (newKeys (.mkdir j0 b0 J) ++ cl.map (fun c => (c.1, c.2.1))) Γn =
+          <[(J, .except []) := namesOf (st.fs.treeDur, st.fs.metaLog ++ [⟨.mkdir j0 b0 J, s0⟩]) J
+            (.except [])]> (insKeys (st.fs.treeDur, st.fs.metaLog ++ [⟨.mkdir j0 b0 J, s0⟩])
+              (cl.map (fun c => (c.1, c.2.1))) Γn) := rfl
+      rw [hΓ] at hnc
+      imod gAuth_insert _ _ _ (J, NameSet.except [])
+        (namesOf (st.fs.treeDur, st.fs.metaLog ++ [⟨.mkdir j0 b0 J, s0⟩]) J (.except []))
+        (hkey J (hnew J (by simp [hnd]))) $$ HAn with ⟨HAn, HJ⟩
+      imod Hclose $$ [Hs HAn Halen HAlog] with -
+      · inext
+        iexists (st.fs.treeDur, st.fs.metaLog ++ [⟨.mkdir j0 b0 J, s0⟩]), _
+        isplitl [Hs]
+        · rw [← hR]; iexact Hs
+        iframe
+        ipureintro; exact ⟨hcoh.1, hnc⟩
+      imodintro
+      iexists Γb, Γm, Γf, Γt
+      isplitl [Hw]
+      · unfold osWorld; iexact Hw
+      isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr Hcm]
+      · isplitr [Hcm]
+        rotate_left
+        · iapply commitRes_grow (gooseOsGS (L := L)) (st := st) (st' := st')
+            (commitGrows_of_eq hlf.committed) $$ Hcm
+        iright
+        iexists V0, s1, Γdf, GMap.delete k Γc
+        rw [hlf.roots, hlf.dur, hlf.log]
+        iframe
+        ipureintro; exact ⟨hwf', hcoh'⟩
+      iapply wp_value'
+      iapply HΦ $$ %w [Hq] HF
+      · unfold osCallPerm; iexact Hq
+      iright
+      isplitr
+      · ipureintro; exact hW
+      iexists st.fs.metaLog.length
+      isplitr [Hcl HJ]
+      · unfold osLogged
+        isplitr
+        · ipureintro; exact hle
+        isplitr
+        · iexact Hent
+        · unfold osLogLb
+          iapply (letI := (gooseOsGS (L := L)).osAllG; monoNatLbOwn_le _ (Nat.le_of_eq hlen.symm)) $$ Hlb
+      isplitl [Hcl]
+      · iexact Hcl
+      rw [hnd]
+      iapply (BigSepL.bigSepL_cons).2
+      isplitl [HJ]
+      · iexists namesOf (st.fs.treeDur, st.fs.metaLog ++ [⟨.mkdir j0 b0 J, s0⟩]) J (.except [])
+        rw [osNames_except]
+        isplitl [HJ]
+        · iexact HJ
+        · ipureintro
+          exact ⟨namesOf_newDir_cur (st.fs.treeDur, st.fs.metaLog) j0 b0 J s0,
+            namesOf_newDir_next (st.fs.treeDur, st.fs.metaLog) j0 b0 J s0⟩
+      · iapply (BigSepL.bigSepL_nil).2; iempintro
+
+end specs
+
 end Fs
 end Perennial
 
