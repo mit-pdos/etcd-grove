@@ -203,6 +203,65 @@ theorem wp_dirReadS (R : Roots) (fd : w64) (j : Ino) (ph : DirPhS) (F : IProp GF
 
 end specs
 
+/-- The names a read has seen are valid, while it is not done. -/
+theorem phOkS_seen {st : OsState} {j : Ino} {ph : DirPhS} {rd : OsDirRead} {u s r : GoString → Bool}
+    (hph : PhOkS st j ph rd) (hnd : ph ≠ .done) (hcur : rd.cur st j = some (u, s, r)) :
+    ∀ b, s b = true → NameOk b := by
+  intro b hb
+  cases ph with
+  | done => exact absurd rfl hnd
+  | idle =>
+    cases rd with
+    | idle =>
+      simp only [OsDirRead.cur, Option.some.injEq, Prod.mk.injEq] at hcur
+      obtain ⟨-, rfl, -⟩ := hcur
+      simp only [present, Bool.and_eq_true, decide_eq_true_eq] at hb; exact hb.1
+    | _ => simp [PhOkS] at hph
+  | reading N r0 rs =>
+    cases rd with
+    | reading u' s' r' =>
+      simp only [OsDirRead.cur, Option.some.injEq, Prod.mk.injEq] at hcur
+      obtain ⟨-, rfl, -⟩ := hcur
+      exact hph.2.1 b hb
+    | _ => simp [PhOkS] at hph
+
+section specs
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+  [GoGlobalContext] [go.BasicIntoValInj]
+variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
+variable {s : Stuckness} {E : CoPset}
+
+theorem wp_osDirReadNextBlind' (R : Roots) (fd : w64) (j : Ino) (ph : DirPhS) (hph : ph ≠ .done)
+    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osDirFdS (L := L) fd j ph -∗
+      (∀ v, ((∃ b, ⌜v = rdName b ∧ NameOk b⌝ ∗ osDirFdS (L := L) fd j (.reading (.only []) 0 [])) ∨
+          (⌜v = rdEnd⌝ ∗ osDirFdS (L := L) fd j .done) ∨
+          (∃ e : w64, ⌜e ≠ 0 ∧ v = rdErr e⌝ ∗ osDirFdS (L := L) fd j (.reading (.only []) 0 []))) -∗
+        Φ v) -∗
+      WP (ExternalOp fsExt.name "DirReadNext" (Val (#fd))) @ s; E {{ Φ }} := by
+  have hok : ∀ st (u s r : GoString → Bool), (∀ b, s b = true → NameOk b) →
+      PhOkS st j (.reading (.only []) 0 []) (.reading u s r) := by
+    intro st u s r hs
+    exact ⟨Nat.zero_le _, hs, fun _ b hb => by simp [NameSet.Mem] at hb⟩
+  iintro #Hinv #Hsi Hfd HΦ
+  iapply wp_dirReadS R fd j ph emp (fun _ => True) (fun _ _ => .reading (.only []) 0 [])
+    (fun _ => .reading (.only []) 0 []) (fun _ b => NameOk b) True
+    (fun _ _ _ _ => by iintro _ _; ipureintro; trivial)
+    (fun st df u s r b _ _ hph' _ hcur hsb _ =>
+      ⟨hok st _ _ _ (phOkS_seen hph' hph hcur), phOkS_seen hph' hph hcur b hsb⟩)
+    (fun _ _ _ _ _ _ _ _ _ _ _ => trivial)
+    (fun st df u s r _ _ hph' _ hcur => hok st _ _ _ (phOkS_seen hph' hph hcur))
+    hph hE hE' Φ $$ Hinv Hsi Hfd []
+  · iempintro
+  iintro %v - ⟨%n, Hv⟩
+  iapply HΦ
+  icases Hv with (⟨%b, ⟨%hv, %hb⟩, Hfd⟩ | ⟨⟨%hv, -⟩, Hfd⟩ | ⟨%e, %he, Hfd⟩)
+  · ileft; iexists b; iframe Hfd; ipureintro; exact ⟨hv, hb⟩
+  · iright; ileft; iframe Hfd; ipureintro; exact hv
+  · iright; iright; iexists e; iframe Hfd; ipureintro; exact he
+
+end specs
+
 end Fs
 end Perennial
 

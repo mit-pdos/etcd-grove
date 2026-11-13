@@ -38,6 +38,7 @@ public import GooseLang.Ext.Fs.TreeSharedDirFd
 public import GooseLang.Ext.Fs.TreeSharedCallEnd
 public import GooseLang.Ext.Fs.TreeSharedOpenDir
 public import GooseLang.Ext.Fs.TreeSharedMeta
+public import GooseLang.Ext.Fs.TreeSharedRead
 
 @[expose] public section
 
@@ -388,15 +389,15 @@ theorem wp_osDirReadNextS (R : Roots) (fd : w64) (j : Ino) (N : NameSet) (r0 : N
 
 /-- **One step of a blind read of a shared directory fd** (no claim): a valid name, the end, or an
 errno. -/
-theorem wp_osDirReadNextBlind (fd : w64) (j : Ino) (ph : DirPhS) (hph : ph ≠ .done)
-    (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
-    ⊢ osInv (L := L) -∗ osDirFdS (L := L) fd j ph -∗
+theorem wp_osDirReadNextBlind (R : Roots) (fd : w64) (j : Ino) (ph : DirPhS) (hph : ph ≠ .done)
+    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osDirFdS (L := L) fd j ph -∗
       (∀ v, ((∃ b, ⌜v = rdName b ∧ NameOk b⌝ ∗ osDirFdS (L := L) fd j (.reading (.only []) 0 [])) ∨
           (⌜v = rdEnd⌝ ∗ osDirFdS (L := L) fd j .done) ∨
           (∃ e : w64, ⌜e ≠ 0 ∧ v = rdErr e⌝ ∗ osDirFdS (L := L) fd j (.reading (.only []) 0 []))) -∗
         Φ v) -∗
-      WP (ExternalOp fsExt.name "DirReadNext" (Val (#fd))) @ s; E {{ Φ }} := by
-  sorry
+      WP (ExternalOp fsExt.name "DirReadNext" (Val (#fd))) @ s; E {{ Φ }} :=
+  wp_osDirReadNextBlind' R fd j ph hph hE hE' Φ
 
 end specs
 
