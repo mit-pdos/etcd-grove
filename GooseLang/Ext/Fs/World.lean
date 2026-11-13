@@ -503,7 +503,7 @@ theorem wp_fs_stepT (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPan
   icases (os_local_ctx_eq σ).mp $$ Hl with Hl
   unfold osCtx osCtxF treeCtx
   icases Hl with ⟨⟨%Γb, %Γm, %Γf, %Γt, %Hwc, HAb, HAm, HAf, HAt, Htok, Hv⟩,
-    ⟨%V, %Γdf, %Γc, %Hns, HAd, HAdf, HAc, Hrd, Hcr⟩⟩
+    ⟨%V, %Γdf, %Γc, %Hns, HAd, HAdf, HAc, Hrd, Hcr, Hcm⟩⟩
   unfold osInv
   imod inv_acc hE $$ Hinv with ⟨Hi, Hclose⟩
   icases Hi with >Hi
@@ -534,7 +534,7 @@ theorem wp_fs_stepT (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPan
   · inext; iexists (cellView σ'), (GMap.size σ'.proc.inflight); iframe
   imodintro
   iframe Hheap Hwp
-  isplitl [HAb HAm HAf HAt Htok Hv Hn]
+  isplitl [HAb HAm HAf HAt Htok Hv Hn Hcm]
   · iapply (os_local_ctx_eq σ').mpr
     unfold osCtx osCtxF treeCtx
     isplitl [HAb HAm HAf HAt Htok Hv]
@@ -544,8 +544,10 @@ theorem wp_fs_stepT (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPan
     · unfold treeWorld
       icases Hn with ⟨%Hns', HAd, HAdf, HAc, Hrd, Hcr⟩
       iexists V', Γdf', Γc'
-      iframe
-      ipureintro; exact Hns'
+      iframe HAd HAdf HAc Hrd Hcr
+      isplitr
+      · ipureintro; exact Hns'
+      · iapply commitRes_grow _ (fsStep_commitGrows Hst) $$ Hcm
   · have : (ExtInterp.globalCtx (E := fsExt) (extGlobalGS fsExt) g' : IProp GF) =
         iprop(True) := rfl
     rw [this]; itrivial

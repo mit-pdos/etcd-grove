@@ -24,10 +24,12 @@ public import Perennial.GooseLang.Lifting
 public import Perennial.GooseLang.Countable
 public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.GhostVar
+public import Perennial.Ghost.MonoNat
 public import GooseLang.Ext.Fs.TreeGhost
 public import GooseLang.Ext.Fs.Bridge
 public import GooseLang.Ext.Fs.Crash
 public import GooseLang.Ext.Fs.SemOk
+public import GooseLang.Ext.Fs.CommitMono
 
 @[expose] public section
 
@@ -569,6 +571,8 @@ structure OsGS (GF : BundledGFunctors) where
   γd : GName
   γdf : GName
   γc : GName
+  /-- A lower bound on the committed prefix of the tree's log (`commitRes`). -/
+  γcm : GName
 
 /-! ### The ghost maps of a ghost state `hL`, with the `AllG` of `hL` -/
 
@@ -898,6 +902,60 @@ of the rest of the history knows that no other call is). -/
 def callRes (hL : OsGS GF) (Γc : GMap Nat (Nat × Qp)) : IProp GF :=
   iprop([∗map] _t ↦ x ∈ Γc, ∃ RV : Roots × Hist, gElem hL hL.γd () (DFrac.own x.2) RV)
 
+/-- The authoritative lower bound `c` on the committed prefix of the tree's log. -/
+def gCommit (hL : OsGS GF) (c : Nat) : IProp GF :=
+  letI := hL.osAllG; monoNatAuthOwn hL.γcm 1 c
+
+/-- A lower bound `n` on the committed prefix of the tree's log (persistent). -/
+def gCommitLb (hL : OsGS GF) (n : Nat) : IProp GF :=
+  letI := hL.osAllG; monoNatLbOwn hL.γcm n
+
+instance gCommitLb_persistent (hL : OsGS GF) (n : Nat) : Persistent (gCommitLb hL n) := by
+  unfold gCommitLb; letI := hL.osAllG; infer_instance
+
+instance gCommitLb_timeless (hL : OsGS GF) (n : Nat) : Timeless (gCommitLb hL n) := by
+  unfold gCommitLb; letI := hL.osAllG; infer_instance
+
+instance gCommit_timeless (hL : OsGS GF) (n : Nat) : Timeless (gCommit hL n) := by
+  unfold gCommit; letI := hL.osAllG; infer_instance
+
+/-- What the state interpretation holds of the committed entries of the tree's log: the
+authoritative lower bound `c` on them, every entry below `c` committed (`DirSync` raises it; a step
+never uncommits an entry, `fsStep_commitGrows`). -/
+def commitRes (hL : OsGS GF) (st : OsState) : IProp GF :=
+  iprop(∃ c : Nat, ⌜∀ y, y < c → st.fs.committed y⌝ ∗ gCommit hL c)
+
+theorem commitRes_grow (hL : OsGS GF) {st st' : OsState} (h : CommitGrows st st') :
+    commitRes hL st ⊢ commitRes hL st' := by
+  unfold commitRes
+  iintro ⟨%c, %hc, H⟩
+  iexists c
+  iframe H
+  ipureintro; exact fun y hy => h y (hc y hy)
+
+/-- The lower bound held, with the authoritative one: below it. -/
+theorem gCommitLb_valid (hL : OsGS GF) (c n : Nat) :
+    ⊢ gCommit hL c -∗ gCommitLb hL n -∗ ⌜n ≤ c⌝ := by
+  unfold gCommit gCommitLb
+  letI := hL.osAllG
+  iintro H1 H2
+  icases monoNatLbOwn_valid _ _ _ _ $$ H1 H2 with %h
+  ipureintro; exact h.2
+
+/-- The authoritative lower bound raised, with a lower bound of the new value. -/
+theorem gCommit_update (hL : OsGS GF) (c c' : Nat) (h : c ≤ c') :
+    ⊢ gCommit hL c ==∗ gCommit hL c' ∗ gCommitLb hL c' := by
+  unfold gCommit gCommitLb
+  letI := hL.osAllG
+  iapply mono_nat_own_update c' h
+
+/-- A lower bound weakened. -/
+theorem gCommitLb_le (hL : OsGS GF) {n : Nat} (n' : Nat) (h : n' ≤ n) :
+    ⊢ gCommitLb hL n -∗ gCommitLb hL n' := by
+  unfold gCommitLb
+  letI := hL.osAllG
+  iapply monoNatLbOwn_le n' h
+
 /-- The tree's roots and history, as a ghost map of one entry. -/
 def histMap (RV : Roots × Hist) : GMap Unit (Roots × Hist) := {[() := RV]}
 
@@ -906,18 +964,20 @@ def treeCtx (hL : OsGS GF) (st : OsState) : IProp GF :=
   iprop(∃ (V : Hist) (Γdf : GMap w64 (Ino × DirPh)) (Γc : GMap Nat (Nat × Qp)),
     ⌜FsTreeWf st ∧ TreeCoh st V Γdf Γc⌝ ∗ gAuth hL hL.γd (histMap (st.fs.roots, V)) ∗
     gAuth hL hL.γdf Γdf ∗
-    gAuth hL hL.γc Γc ∗ rdRes hL Γdf ∗ callRes hL Γc)
+    gAuth hL hL.γc Γc ∗ rdRes hL Γdf ∗ callRes hL Γc ∗ commitRes hL st)
 
 /-- A step that leaves the tree alone keeps its interpretation. -/
 theorem treeCtx_frame (hL : OsGS GF) {st st' : OsState} (h : TreeFrame st st') :
     treeCtx hL st ⊢ treeCtx hL st' := by
   unfold treeCtx
-  iintro ⟨%V, %Γdf, %Γc, %hw, Had, Haf, Hac, Hrd, Hcr⟩
+  iintro ⟨%V, %Γdf, %Γc, %hw, Had, Haf, Hac, Hrd, Hcr, Hcm⟩
   iexists V, Γdf, Γc
   rw [h.roots]
-  iframe
-  ipureintro
-  exact ⟨h.wf hw.1, h.coh hw.2⟩
+  iframe Had Haf Hac Hrd Hcr
+  isplitr
+  · ipureintro
+    exact ⟨h.wf hw.1, h.coh hw.2⟩
+  · iapply commitRes_grow hL (commitGrows_of_eq h.committed) $$ Hcm
 
 /-- The start resources of the tree: its history, whole (nothing logged on the tree it starts
 with). -/
@@ -1066,10 +1126,11 @@ theorem os_local_init {GF : BundledGFunctors} (hPre : OsGpreS GF) (st : OsState)
     (histMap (st.fs.roots, ((st.fs.treeDur, ([] : List LogEntry)) : Hist))) with ⟨%γd, Had, Hd⟩
   imod ghost_map_alloc (GF := GF) (∅ : GMap w64 (Ino × DirPh)) with ⟨%γdf, Hadf, -⟩
   imod ghost_map_alloc (GF := GF) (∅ : GMap Nat (Nat × Qp)) with ⟨%γc, Hac, -⟩
+  imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γcm, Hcm, -⟩
   imodintro
-  iexists (⟨hPre.osPreAllG, γb, γm, γf, γt, γv, γd, γdf, γc⟩ : OsGS GF)
-  isplitl [Hab Ham Haf Hat Hv1 Had Hadf Hac]
-  · unfold osCtx osCtxF treeCtx tokRes rdRes gAuth gVar
+  iexists (⟨hPre.osPreAllG, γb, γm, γf, γt, γv, γd, γdf, γc, γcm⟩ : OsGS GF)
+  isplitl [Hab Ham Haf Hat Hv1 Had Hadf Hac Hcm]
+  · unfold osCtx osCtxF treeCtx tokRes rdRes gAuth gVar commitRes gCommit
     isplitl [Hab Ham Haf Hat Hv1]
     · iexists (bytesMap st), (metaMap st), ∅, ∅
       rw [cellView_of_maps_empty (by rw [hproc]; rfl),
@@ -1083,7 +1144,13 @@ theorem os_local_init {GF : BundledGFunctors} (hPre : OsGpreS GF) (st : OsState)
       isplitr
       · ipureintro; exact ⟨htw, htc⟩
       unfold callRes
-      isplitl [] <;> iapply BigSepM.bigSepM_empty.2 <;> itrivial
+      isplitl []
+      · iapply BigSepM.bigSepM_empty.2; itrivial
+      isplitl []
+      · iapply BigSepM.bigSepM_empty.2; itrivial
+      iexists 0
+      iframe Hcm
+      ipureintro; intro y hy; exact absurd hy (Nat.not_lt_zero _)
   · unfold osStart osStartF treeStart gElem gVar histMap
     ihave Hd := (show ([∗map] k ↦ v ∈ ({[() := (st.fs.roots,
           ((st.fs.treeDur, ([] : List LogEntry)) : Hist))]} : GMap Unit (Roots × Hist)),

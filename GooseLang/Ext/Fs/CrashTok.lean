@@ -18,12 +18,17 @@ assumption on restarts). Untrusted.
     size within the old bounds, each byte of the runs one of its crash candidates), whether the new
     tree names it (then it is there), and the crash's facts (`CrashSeenR`);
   - the tree (`crashRest_tree`): the new history, whole, and that it is a crash of the old one.
+  - with a lower bound `n` of the old generation's committed prefix (`osCommitLb`, given by a
+    directory's successful `fsync`, `TreeCommit.lean`), that the crash kept at least the first `n`
+    entries of the old history (`crashRest_lb`, `TreeCrashCommit.lean`: `TreeCrashedLb`), from
+    the old generation's authoritative bound the restart's resources keep (`crashCommit`).
 * `Q` is a premise on crashes (`fsSemWith Q`); `Q := fun _ _ => True` for the plain interpretation
   (`fs_crash_interp`).
 -/
 module
 
 public import GooseLang.Ext.Fs.CrashFiles
+public import GooseLang.Ext.Fs.TreeCrashLb
 public import Perennial.GooseLang.CrashAdequacy
 
 @[expose] public section
@@ -158,6 +163,12 @@ def treeLeft (hL : OsGS GF) (R : Roots) (V' : Hist) : Bool → IProp GF
   | true => iprop(emp)
   | false => gElem hL hL.γd () (DFrac.own 1) (R, V')
 
+/-- What the restart keeps of the old generation's committed entries: the crash kept at least the
+first `c` entries of the history for every `c` below which the crashed state had them committed,
+and the old generation's authoritative bound on them (`commitRes`). -/
+def crashCommit (hL : OsGS GF) (st : OsState) (V V' : Hist) : IProp GF :=
+  iprop(⌜∀ c, (∀ y, y < c → st.fs.committed y) → TreeCrashedLb V V' c⌝ ∗ commitRes hL st)
+
 /-- **The restart's resources**, once the files `D` and (if `tt`) the tree are taken, the new
 history being `V'`: the crashed state `st`, coherent with the old generation's ghost maps, which a
 crash (and `Q`) made the new state `st'` of; the old maps' authorities and the resources of the
@@ -173,7 +184,8 @@ def crashRest (Q : OsState → OsState → Prop) (hL hL' : OsGS GF) (D : List In
       (∀ i, Named V'.now i → (st'.fs.files !! i).isSome)⌝ ∗
     gAuth hL hL.γb Γb ∗ gAuth hL hL.γm Γm ∗ ([∗map] i ↦ f ∈ F, fileStart hL' i f) ∗
     gAuth hL hL.γt Γt ∗ tokRes hL Γt ∗
-    gAuth hL hL.γd (histMap (st.fs.roots, V)) ∗ treeLeft hL' st.fs.roots V' tt)
+    gAuth hL hL.γd (histMap (st.fs.roots, V)) ∗ treeLeft hL' st.fs.roots V' tt ∗
+    crashCommit hL st V V')
 
 /-- The restart's resources, and the new generation's half of the cells' view (for
 `osInv_alloc`). -/
@@ -315,7 +327,7 @@ theorem crashRest_tree (Q : OsState → OsState → Prop) (hL' : OsGS GF) (D : L
       ⌜TreeCrashed W V'⌝ ∗ gElem hL' hL'.γd () (DFrac.own 1) (R, V') ∗
         crashRest Q hL hL' D true V' ∗ gElem hL hL.γd () dq (R, W) := by
   unfold crashRest
-  iintro ⟨%Γb, %Γm, %F, %st, %st', %Γf, %Γt, %V, %hrel, Hab, Ham, Hfs, HAt, Htok, HAd, Htl⟩
+  iintro ⟨%Γb, %Γm, %F, %st, %st', %Γf, %Γt, %V, %hrel, Hab, Ham, Hfs, HAt, Htok, HAd, Htl, Hcc⟩
     Hd
   icases gAuth_lookup hL _ _ _ _ _ $$ HAd Hd with %hh
   simp only [histMap, GMap.lookup_singleton_eq, Option.some.injEq, Prod.mk.injEq] at hh
@@ -335,7 +347,7 @@ theorem os_local_crash (Q : OsState → OsState → Prop) (hPre : OsGpreS GF) (s
     ⊢@{IProp GF} osCtx hL st ==∗ ∃ hL' : OsGS GF, osCtx hL' st' ∗ osCrashStart Q hL hL' := by
   unfold osCtx osCtxF treeCtx
   iintro ⟨⟨%Γb, %Γm, %Γf, %Γt, %hwc, Hab, Ham, -, HAt, Htok, -⟩,
-    ⟨%V, %Γdf, %Γc, %htw, HAd, -, -, -, -⟩⟩
+    ⟨%V, %Γdf, %Γc, %htw, HAd, -, -, -, -, Hcm⟩⟩
   obtain ⟨hinit, hroots, hcr, hnamed⟩ := osCrash_rel htw.1 htw.2 hc
   have hdisk : ∀ i f, st'.fs.files !! i = some f → ∃ img sz, f = OsFile.ofDisk img sz :=
     fun i f hf => (hinit.2.2.2.2.2.2.1 i f hf).2
@@ -353,8 +365,13 @@ theorem os_local_crash (Q : OsState → OsState → Prop) (hPre : OsGpreS GF) (s
   iexists (st'.fs.treeDur, []), Γb, Γm, st'.fs.files, st, st', Γf, Γt, V
   rw [hroots]
   iframe Hab Ham Hfs HAt Htok HAd Hd
+  isplitr
+  · ipureintro
+    exact ⟨hwc.1, hwc.2, hc, hQ, fun _ _ => rfl, rfl, hcr, hnamed⟩
+  unfold crashCommit
+  iframe Hcm
   ipureintro
-  exact ⟨hwc.1, hwc.2, hc, hQ, fun _ _ => rfl, rfl, hcr, hnamed⟩
+  exact fun c hcm => osCrash_lb htw.2 hc c hcm
 
 /-- The crash interpretation of the Linux file extension. -/
 instance fs_crash_interp : ExtCrashInterp fsExt where
