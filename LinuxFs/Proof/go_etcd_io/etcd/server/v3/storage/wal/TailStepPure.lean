@@ -51,7 +51,7 @@ def segFin (fl : SegFl) (g0 : SegG) (k : Nat) (zs : List Cands) : SegG :=
 theorem segAnn_ok {g0 : SegG} {off : Nat} {data : List w8} {n t : Nat}
     (hin : off + data.length ≤ g0.om.size) (hd : data ≠ []) (hlen : g0.bs.length = g0.om.size)
     (hcut : g0.om.cut = none) (hoff : 0 < off) :
-    SegFl.Ok ⟨t, off, data, n, g0.om, g0.bs⟩ (segAnn g0 off data n) :=
+    SegFl.Ok ⟨t, off, data, n, g0.om, g0.bs, none⟩ (segAnn g0 off data n) :=
   ⟨hin, hd, hlen, hcut, rfl, rfl, hoff⟩
 
 /-! ## The bytes of a write inside the file -/
