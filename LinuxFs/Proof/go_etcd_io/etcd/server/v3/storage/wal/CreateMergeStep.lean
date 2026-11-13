@@ -347,6 +347,129 @@ theorem walInvBody_merge2 (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
     ipureintro; exact walsAt_cover hcov hwo hAt
   ipureintro; exact hmr
 
+/-- **Merging a whole claim of the area holding no WAL name into the program's half of an area
+claim** (see the file header): the area claim holds the WAL name `b1`, so it is the invariant's other
+half; the whole claim is none of the invariant's. -/
+theorem walInvBody_mergeIn (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+    (s : AbsDiskState) (N1 N2 N : NameSet) (h1 h2 : NamesH) (b1 b2 : GoString) (T : IProp GF)
+    (hT : ⊢ T -∗ walUnlockedTok (W := W) -∗ False) {Em : CoPset}
+    (hb1 : walNameOk b1) (hN1 : N1.Mem b1) (hN2 : N2.Mem b2)
+    (hno : ∀ b, N2.Mem b → ¬ walNameOk b) (hN : ∀ b, N.Mem b ↔ N1.Mem b ∨ N2.Mem b)
+    (hE : ↑osShN ⊆ Em) :
+    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ osSharedInv (L := L) R -∗ T -∗
+      osNames (L := L) jr N1 (DFrac.own (1 : Qp).half) h1 -∗
+      osNames (L := L) jr N2 (DFrac.own 1) h2 ={Em}=∗
+      ∃ h, walInvBody (L := L) (W := W) C Mr R jr r s ∗ T ∗
+        osNames (L := L) jr N (DFrac.own (1 : Qp).half) h ∗
+        ⌜h.restrict jr N1 = h1.restrict jr N1 ∧ h.restrict jr N2 = h2.restrict jr N2 ∧
+          h.next = max h1.next h2.next⌝ := by
+  classical
+  have hN1e : N1 ≠ .only [] := nameSet_ne_empty hN1
+  have hN2e : N2 ≠ .only [] := nameSet_ne_empty hN2
+  have hNe : N ≠ .only [] := nameSet_ne_empty ((hN b1).2 (Or.inl hN1))
+  unfold walInvBody
+  iintro Hb #Hsi Ht H1 H2
+  icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %hr, Hcl, Hn, HF, %hwo, %hwc, ⟨%CR, HCRa, %hCR⟩, Htl, %hab,
+    %hwn, Hpk, ⟨%K, %cc, HK, Hcc, %hdk⟩, %hAt⟩
+  icases walCreating_empty CR T hT $$ HCRa Ht with ⟨%hCR0, HCRa, Ht⟩
+  subst hCR0
+  imod osClaims_keys R jr N1 _ h1 _ hN1e hE $$ Hsi H1 Hcl with ⟨H1, Hcl, %hk1⟩
+  have hm1 : ((jr, N1, h1) : Claim) ∈ cl := by
+    obtain ⟨M, g, hm, hM⟩ := hwc b1 hb1
+    obtain ⟨e1, e2⟩ := hk1 ((jr, M, g), _) (List.mem_map_of_mem hm) rfl b1 hN1 hM
+    simp only at e1 e2
+    rw [e1, e2] at hm; exact hm
+  icases osClaims_not_mem (L := L) cl jr N2 h2 hN2e $$ H2 Hcl with ⟨%hm2, H2, Hcl⟩
+  have hne : ((jr, N1, h1) : Claim) ≠ (jr, N2, h2) := fun he => hm2 (he ▸ hm1)
+  icases osClaims_once (L := L) cl (jr, N1, h1) hN1e hm1 $$ H1 Hcl with ⟨%ho1, H1, Hcl⟩
+  obtain ⟨l1, l2, hl, hl1, hl2⟩ := ho1
+  have hfe : cl.filter (fun x => decide (x ≠ ((jr, N2, h2) : Claim))) = cl :=
+    List.filter_eq_self.2 (fun x hx => by
+      have : x ≠ ((jr, N2, h2) : Claim) := fun he => hm2 (he ▸ hx)
+      simpa using this)
+  subst hl
+  icases (osClaims_split (L := L) l1 l2 _ _).1 $$ Hcl with ⟨Hl1, Hc1, Hl2⟩
+  icases osNames_halves jr N1 h1 h1 hN1e $$ H1 Hc1 with ⟨-, Hw1⟩
+  imod osNames_self R jr N1 _ h1 hE $$ Hsi Hw1 with ⟨Hw1, %hs1⟩
+  imod osNames_self R jr N2 _ h2 hE $$ Hsi H2 with ⟨H2, %hs2⟩
+  imod osNames_merge (L := L) R jr N1 N2 N h1 h2 hN hE $$ Hsi Hw1 H2 with ⟨%h, Hw, %hmr⟩
+  icases osNames_halve jr N h hNe $$ Hw with ⟨Hh1, Hh2⟩
+  have hmo : MergeOk (l1 ++ (jr, N1, h1) :: l2) jr N1 N2 N h1 h2 h :=
+    ⟨hm1, Or.inr hno, hne, hs1, hs2, hmr.1, hmr.2.1, hN⟩
+  have hcov := coverOk_merge (n := n) hmo
+  have hcl' : mergeClaims (l1 ++ (jr, N1, h1) :: l2) (jr, N1, h1) (jr, N2, h2) (jr, N, h) =
+      l1 ++ (jr, N, h) :: l2 := by
+    unfold mergeClaims; rw [hfe, replClaim_split hl1 hl2]
+  have hnW : ∀ c : Claim, c.1 = jr → ¬ WalDirClaimOf Ls c := fun c hc => hAt.not_walDirClaimOf c hc
+  have hf := filter_mergeClaims (fun c : Claim => decide (c.1 ≠ jr)) (c1 := (jr, N1, h1))
+    (c2 := (jr, N2, h2)) (c := (jr, N, h)) (by simp) (by simp) (by simp) (l1 ++ (jr, N1, h1) :: l2)
+  ihave Hpk := walParked_cover Ls jr _ _ hnW hf $$ Hpk
+  imodintro
+  iexists h
+  iframe Ht Hh2
+  isplitl [Hg Hl1 Hh1 Hl2 Hn HF HCRa Htl Hpk HK Hcc]
+  · iexists Ls, mergeClaims (l1 ++ (jr, N1, h1) :: l2) (jr, N1, h1) (jr, N2, h2) (jr, N, h), n, F
+    iframe Hg Hn HF Htl Hpk
+    isplitr
+    · ipureintro; exact hr
+    isplitl [Hl1 Hh1 Hl2]
+    · rw [hcl']
+      iapply (osClaims_split (L := L) l1 l2 _ _).2
+      iframe
+    isplitr
+    · ipureintro; exact walsOk_cover hcov hAt hwo
+    isplitr
+    · ipureintro; exact walsCreateOk_cover hcov hwc
+    isplitl [HCRa]
+    · iexists ∅
+      iframe HCRa
+      ipureintro; intro dir N' h' J' hl'; simp at hl'
+    isplitr
+    · ipureintro; exact ⟨absentNone_cover hcov hab.1, hab.2⟩
+    isplitr
+    · ipureintro; exact walsNamed_cover hcov hAt hwn
+    isplitl [HK Hcc]
+    · iexists K, cc
+      iframe HK Hcc
+      ipureintro; exact dirKeysOk_cover hcov hdk
+    ipureintro; exact walsAt_cover hcov hwo hAt
+  ipureintro; exact hmr
+
+/-- **The unminting** (an abort past the minting): the creating entry deleted, the free lock token
+back; the claims unchanged (the caller merges them back, `walInvBody_merge2`). -/
+theorem walInvBody_unmint (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+    (s : AbsDiskState) (dir : GoString) (N : NameSet) (h : NamesH) (J : Ino) :
+    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walCreating (W := W) dir N h J ==∗
+      walInvBody (L := L) (W := W) C Mr R jr r s ∗ walUnlockedTok (W := W) := by
+  unfold walInvBody
+  iintro Hb Htok
+  icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %hr, Hcl, Hn, HF, %hwo, %hwc, ⟨%CR, HCRa, %hCR⟩, Htl, %hab,
+    %hwn, Hpk, ⟨%K, %cc, HK, Hcc, %hdk⟩, %hAt⟩
+  imod walCreating_delete CR dir N h J $$ HCRa Htok with ⟨%hdel, HCRa, Hu⟩
+  imodintro
+  iframe Hu
+  iexists Ls, cl, n, F
+  iframe Hg Hcl Hn HF Htl Hpk
+  isplitr
+  · ipureintro; exact hr
+  isplitr
+  · ipureintro; exact hwo
+  isplitr
+  · ipureintro; exact hwc
+  isplitl [HCRa]
+  · iexists GMap.delete dir CR
+    iframe HCRa
+    ipureintro; rw [hdel]; intro dir' N' h' J' hl'; simp at hl'
+  isplitr
+  · ipureintro; exact hab
+  isplitr
+  · ipureintro; exact hwn
+  isplitl [HK Hcc]
+  · iexists K, cc
+    iframe HK Hcc
+    ipureintro; exact hdk
+  ipureintro; exact hAt
+
 end iris
 
 end WalFs
