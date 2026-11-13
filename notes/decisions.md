@@ -35370,3 +35370,21 @@ autonomously to keep making progress towards proving the wal specs"):**
 - Rejected: keeping `absDiskExt` as a trusted layer and proving a refinement of `fsExt` into it (a
   second trusted crash relation, which the closed-theorem rule excludes); adding process kills to
   `fsExt` (the user: not wanted).
+
+## `trace.otelSpan` narrowed to providers of otel's own components (2026-11-13 · approved by etcd-grove-81 · branch `otelspan-narrow`)
+
+The context sweep's minors (a) and (b) (`notes/ctx-sweep-fixes.md`; the refutation, the producers and
+the evidence in `notes/otelspan-narrow.md`). otel's SDK passes the caller's context to the provider's
+sampler, ID generator and span processors, and, with `OTEL_GO_X_OBSERVABILITY`, to the global
+`MeterProvider`'s instruments; `trace.otelSpan` admitted any provider, so user components reading a key
+of their own refuted `tracing.Start.spec`. Approved by etcd-grove-81:
+
+1. **The docstring of the existing opaque is narrowed, rather than a provider-configuration opaque
+   added**: the same restriction in one place, no new opaque, no Lean statement changed. Admitted:
+   `AlwaysSample`, `NeverSample`, `TraceIDRatioBased`, `ParentBased` over these; the default ID
+   generator; the Batch and Simple span processors.
+2. **Minor (b) gets a clause**: with the observability metrics on, the global `MeterProvider` is otel's
+   default or `metric/noop` (kube-apiserver installs the latter at init; etcd sets none). A user
+   `MeterProvider` receives the span's start context, also in `End`.
+3. **The processors' exporters return** (`ExportSpans`, `Shutdown`): the Simple processor exports inside
+   `End`, so a panicking exporter would refute "`End` returns", beyond the context keys.
