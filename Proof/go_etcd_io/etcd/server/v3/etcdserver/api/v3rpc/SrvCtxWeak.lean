@@ -167,8 +167,9 @@ instance v3rpc.ctxDoneErr_persistent (c : GoInterfaceOk) (s : context.ContextDes
   unfold v3rpc.ctxDoneErr; infer_instance
 
 /-- **The context `v3rpc.wp_WithTimeout_weak` makes** (persistent; k8s 7f-4, Addendum T-j; T-h2):
-`ctxDoneErr`'s clauses with a `*timerCtx`'s `Err()`, which reads its own `err` cell and takes no lock,
-so no level token: `"#HErr"`, at any time `nil` or a context error or etcd's no-leader error (the
+`ctxDoneErr`'s clauses with a `*timerCtx`'s `Err()`, which takes no `RWMutex` reader slot, so no level
+token (an atomic load of its `err` cell, then `<-c.Done()`, which may briefly take its `mu`, a
+`sync.Mutex`, or wait for the concurrent `cancel` to close `done`): `"#HErr"`, at any time `nil` or a context error or etcd's no-leader error (the
 error its `cancel` stored: `Canceled` from its own cancel or its parent's inner `*cancelCtx`,
 `DeadlineExceeded` from its timer, or the parent's `Err()` when the parent was already done,
 `propagateCancel`'s first arm, T-h1); `"#HErrDone"`, after `Done` non-nil, one of those. -/

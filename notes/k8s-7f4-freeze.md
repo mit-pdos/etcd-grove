@@ -814,7 +814,8 @@ T-h2 (a stronger premise for `waitLeader`/`RenewHTTP` than T-h2 proposed; still 
    (`isCancelCtx`, from `srvCtxWeak`) is what makes every stored error but the already-done arm's a
    context error.
 4. The level token: `wp_WithTimeout_weak` takes and returns `levelTok v3rpc.ctxErrLvl` directly (the
-   caller's), and `ctxChildErr`'s `Err` needs none (a `*timerCtx`'s `Err` loads its `err` cell).
+   caller's), and `ctxChildErr`'s `Err` needs none (a `*timerCtx`'s `Err` takes no `RWMutex` reader slot: an atomic
+   load, then `<-c.Done()`, which may briefly take `c.mu` or wait for the concurrent `cancel`).
 
 ### Checks run, T-j (2026-11-13, `43357ed9bc` merged with lean `44d390bd41`)
 

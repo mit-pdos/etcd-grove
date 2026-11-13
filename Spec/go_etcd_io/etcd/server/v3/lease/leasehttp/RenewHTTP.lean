@@ -46,8 +46,9 @@ status, or a reply whose ID is not `id`) or the decode's, each an error value wi
 **Its assumption on the cluster**, as `leaseTimeToLive.spec`'s: a peer's reply is small enough to
 buffer (`readResponse` reads up to `maxLeaseHTTPResponseSize`, 100 MiB, per call); the model has no
 memory bound to state it with.
-(k8s 7f-4, T-f) The context is a stream handler's weak one (`srvCtxWeak`, which every `isContext`
-is: `srvCtxWeak_of_isContext`): `req.WithContext(ctx)`; net/http's transport works on its own
+(k8s 7f-4, T-f; since T-j `v3rpc.ctxDoneErr`, which every `srvCtxWeak` and every `isContext` is:
+`v3rpc.ctxDoneErr_of_srvCtxWeak`, `_of_isContext`) The context's `Err` may return a non-context
+error: `req.WithContext(ctx)`; net/http's transport works on its own
 `context.WithCancelCause(req.Context())` (go1.27 `net/http/transport.go:675`), whose `Err`/`Cause`
 are its own `*cancelCtx`'s, and HTTP/2's (`net/http/internal/http2`) reads `ctx.Err()` only once
 `ctx.Done()` is closed, but for `shouldRetryDial`'s nil test (`client_conn_pool.go:284`), which
@@ -58,7 +59,7 @@ only decides whether to dial again. An `Err()` of `ErrGRPCNoLeader`, or a non-ni
 cancelled in flight, and the cancelled call returns a `*url.Error` of `context.Canceled`; on a
 context already done when `RenewHTTP` is called, the transport's `WithCancelCause` calls it twice,
 synchronously on the caller's goroutine, in `propagateCancel` and `Cause`, go1.27.3
-`context.go:487, 290`, and a `*url.Error` is returned). (k8s 7f-4, T-f') `srvCtxWeak`'s `Err` clauses take a level
+`context.go:487, 290`, and a `*url.Error` is returned). (k8s 7f-4, T-f') `ctxDoneErr`'s (before T-j `srvCtxWeak`'s) `Err` clauses take a level
 token (`levelTok v3rpc.ctxErrLvl`, the reader slot of the wrapper's `RWMutex`), which the premise
 does not hand over: net/http calls `ctx.Err()` only from live goroutines (the caller's and the
 transport's own), each a thread, so the read locks it holds at one time are bounded by the threads,

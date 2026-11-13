@@ -64,7 +64,8 @@ cancelled with `p`'s stored error (a context error: `p`'s `isCancelCtx` invarian
 `p.children`, to be cancelled later with `p`'s error (a context error). Then, if `d` has not passed,
 a timer is armed that cancels `c` with `DeadlineExceeded`, else `c` is cancelled with it at once.
 Every error `c` stores is thus nil, a context error or the parent's `Err()` after `Done`: `c.Err()`
-(a load of `c.err`, no lock, no token) returns nil or such an error, non-nil once `c.Done()` is
+(no `RWMutex` reader slot, so no token: an atomic load of `c.err`, then `<-c.Done()`, which may
+briefly take `c.mu` or wait for the concurrent `cancel` to close `done`) returns nil or such an error, non-nil once `c.Done()` is
 closed (`cancel` stores the error before it closes the channel). The rest of `ctxChildErr` is what
 Perennial proves of a `*timerCtx` (`isContext_timerCtx`): `Deadline()` returns `d`, `Done()` its
 `cancelCtx`'s lazily made channel, `Value(&cancelCtxKey)` its embedded `cancelCtx`, which `context`
