@@ -10,7 +10,6 @@ module
 
 public import LinuxFs.Proof.os.ErrorOk
 public import LinuxFs.Proof.os.OpenFile
-public import LinuxFs.Proof.os.SharedExt
 public import LinuxFs.Spec.os.OpenFileS
 
 @[expose] public section
@@ -31,7 +30,8 @@ variable [sem : go.Semantics]
 variable [os.Assumptions] [os.file.FieldAssumptions]
 
 theorem os.OpenFile.wp_proofCreateS : os.OpenFile.specCreateS (GF := GF) (hG := hG) := by
-  intro d b perm R j dq h q r qc Q hb hnd hq
+  intro d b flag perm R j dq h q r qc Q hfl hcr htr hb hnd hq
+  generalize hfl' : flag ||| W64 0x80000 = fl at hfl hcr htr ⊢
   wp_start as ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hau⟩
   imod osNames_next R j _ _ h CoPset.subseteq_top $$ Hsi Hn with ⟨Hn, #Hlb⟩
   ihave HSt : iprop((osAU (osNames j (.only [b]) (DFrac.own r) h) (crOut j b h (DFrac.own r)) Q ∗
@@ -43,7 +43,7 @@ theorem os.OpenFile.wp_proofCreateS : os.OpenFile.specCreateS (GF := GF) (hG := 
   wp_apply wp_osCallBeginS R qc h.next CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
-  rw [os.file_ty_eq, os.File_ty_eq, show (W64 66 ||| W64 524288) = flCreat from by decide]
+  rw [os.file_ty_eq, os.File_ty_eq, show flag ||| W64 524288 = fl from hfl']
   (try wp_auto)
   icases HSt with (⟨Hau, Hn⟩ | ⟨%xs, HQ, Hout, Hm⟩)
   · wp_apply +noauto (wp_au_step "Open" _ (osNames j (.only [b]) (DFrac.own r) h)
@@ -51,7 +51,7 @@ theorem os.OpenFile.wp_proofCreateS : os.OpenFile.specCreateS (GF := GF) (hG := 
     iintro Hr
     ihave Hw := (osNames_join j _ q r h hq).1 $$ [Hn Hr]
     · iframe
-    iapply wp_osOpenCreateS R d b j dq h t s0 qc hb hnd hs osN_sub_au osShN_sub_au
+    iapply wp_osOpenCreateS R d b j dq h t s0 qc fl hfl hcr htr hb hnd hs osN_sub_au osShN_sub_au
       $$ Hos Hsi Hp Hw Hk
     iintro %fd %e Hperm Hp Hres
     icases Hres with (⟨%i, %hi, Hw, Hr⟩ | ⟨%hn, %x, %i, Hlog, Hw, Hm, Hr⟩ | ⟨%he, Hw⟩)
@@ -209,8 +209,8 @@ theorem os.OpenFile.wp_proofCreateS : os.OpenFile.specCreateS (GF := GF) (hG := 
       simp only [NamesH.log]; exact GMap.lookup_insert _ _ _
     isimp only [crOut] at Hout
     icases Hout with ⟨%hc, Hlo, Hn⟩
-    wp_apply +noauto wp_osOpenFileS R d b j i (.only [b]) dq (DFrac.own q) _ t s0 qc flCreat
-      (by simp only [OpenFlagsOk, O_CREAT, O_TRUNC, O_CLOEXEC]; decide) (by decide) hb
+    wp_apply +noauto wp_osOpenFileS R d b j i (.only [b]) dq (DFrac.own q) _ t s0 qc fl
+      hfl htr hb
       (by simp [NameSet.Mem]) hi CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi Hp Hn Hk
       as %fd %e %hres Hperm Hp Hn Hfd
     ihave Hout : crOut j b h (DFrac.own q) (some (x, sx, i)) $$ [Hlo Hn]
@@ -219,8 +219,8 @@ theorem os.OpenFile.wp_proofCreateS : os.OpenFile.specCreateS (GF := GF) (hG := 
     · subst he0
       have hfd0 : 0 ≤ fd.toInt := by rcases hres with ⟨-, h⟩ | ⟨h, -⟩; exact h; exact absurd rfl h
       ihave Hfd := (show (if W64 0 = (0 : w64) then osFd (GF := GF) fd (DFrac.own 1)
-          (openFd i flCreat) else emp) ⊢ osFd fd (DFrac.own 1) ⟨i, true, true⟩
-        by rw [show flCreat = W64 0x80042 from rfl, openFd_rw]; split
+          (openFd i fl) else emp) ⊢ osFd fd (DFrac.own 1) (openFd i fl)
+        by split
            · iintro H; iexact H
            · exact absurd rfl ‹_›) $$ Hfd
       wp_auto

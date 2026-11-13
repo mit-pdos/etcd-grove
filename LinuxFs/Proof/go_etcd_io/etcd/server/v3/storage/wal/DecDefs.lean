@@ -21,9 +21,11 @@ ghost state is the pure model's (`WalEncDecoder.lean`, `goDecode`): the files le
   `d.mu` (guarding nothing: the decoder is owned). When `live`, the first file's reader has
   delivered exactly its first `off` bytes and the others nothing (what `Decode` needs to step as
   `goDecode`); after an error that consumed bytes (a short read, a bad frame) it is not.
-* `isEofOk IoE eof ueof` (persistent): `errors.Is(e, io.EOF)` answers `e == io.EOF` on the errors a
-  reader returns here (`io.EOF`, `io.ErrUnexpectedEOF`, `IoE`'s): a client obligation, from
-  `errors.Is`'s spec and the error trees of `IoE`'s errors.
+* `isEofOk IoE eof ueof` (persistent): `errors.Is(e, io.EOF)` answers `e == io.EOF` on `nil` and the
+  errors a reader returns here (`io.EOF`, `io.ErrUnexpectedEOF`, `IoE`'s), and `io.EOF` is neither
+  `io.ErrUnexpectedEOF` nor an `IoE` error: a client obligation, from `errors.Is`'s spec, the two
+  `errors.New` allocations and the error trees of `IoE`'s errors. (Without `¬ IoE io.EOF` a reader
+  could end a file early with `io.EOF`, and the decoder would go on in the next file.)
 -/
 module
 
@@ -174,7 +176,8 @@ instance walCrcTable_persistent : Persistent (walCrcTable (GF := GF)) := by
 
 /-- See the file header. -/
 def isEofOk (IoE : GoInterface → Prop) (eof ueof : GoInterface) : IProp GF :=
-  iprop(□ ∀ e : GoInterface, ⌜e = eof ∨ e = ueof ∨ IoE e⌝ →
+  iprop(⌜eof ≠ ueof ∧ ¬ IoE eof⌝ ∗
+    □ ∀ e : GoInterface, ⌜e = GoInterface.nil ∨ e = eof ∨ e = ueof ∨ IoE e⌝ →
     {{ (True : IProp GF) }}
       (App (App (Val (@! _root_.Perennial.errors.Is)) (Val #e)) (Val #eof))
     {{ (b : Bool), RET #b; ⌜b = decide (e = eof)⌝ }})

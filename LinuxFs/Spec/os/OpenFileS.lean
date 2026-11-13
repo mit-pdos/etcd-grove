@@ -1,5 +1,6 @@
 /-
-`os.OpenFile(d/b, O_RDWR|O_CREATE, perm)` (this repository's `os`, part `LinuxFs`) in the tree's
+`os.OpenFile(d/b, flag, perm)`, `flag` with `O_CREATE` and without `O_TRUNC` (the WAL's
+`O_WRONLY|O_CREATE`, bbolt's `O_RDWR|O_CREATE`), (this repository's `os`, part `LinuxFs`) in the tree's
 shared mode (`GooseLang/Ext/Fs/TreeShared.lean`; `notes/wal-fsext-i2-design.md`, review finding
 M1): logically atomic. The model (`TrustedCode/os.lean`) is the extension's `Open` with
 `O_CLOEXEC` added, each attempt after its own `CallBegin`, retried on `EINTR`. The caller holds a
@@ -10,10 +11,11 @@ error); an `EINTR` with no effect aborts it. An attempt that created the file an
 is retried, and opens the file it made. The new file's `OsMeta` (empty) goes to the caller.
 
 * `os.OpenFile.specCreateS`: `b` holds a file or nothing in `d`'s directory `j`. On success a
-  fresh `*os.File` on a fresh fd, readable and writable, on the file the outcome left at `b`.
+  fresh `*os.File` on a fresh fd, with the access mode of `flag` (`openFd`), on the file the
+  outcome left at `b`.
 
-Proved in `Proof/os/OpenFileS.lean`, over `Proof/os/SharedExt.lean`'s `wp_osOpenFileS` (not yet
-proved). Lean-first (no Rocq counterpart).
+Proved in `Proof/os/OpenFileS.lean`, over `wp_osOpenCreateS` and `wp_osOpenFileS`. Lean-first (no
+Rocq counterpart).
 -/
 module
 
@@ -57,17 +59,19 @@ def crMeta : Option (Nat × Nat × Ino) → IProp GF
 
 /-- See the file header. -/
 abbrev os.OpenFile.specCreateS : Prop :=
-  ∀ (d b : GoString) (perm : w32) (R : Roots) (j : Ino) (dq : DFrac) (h : NamesH) (q r qc : Qp)
+  ∀ (d b : GoString) (flag : w64) (perm : w32) (R : Roots) (j : Ino) (dq : DFrac) (h : NamesH) (q r qc : Qp)
     (Q : Option (Nat × Nat × Ino) → IProp GF),
+  OpenFlagsOk (flag ||| W64 0x80000).toNat → (flag ||| W64 0x80000).toNat / O_CREAT % 2 = 1 →
+  (flag ||| W64 0x80000).toNat / O_TRUNC % 2 = 0 →
   NameOk b → (∀ J, h.cur !! b ≠ some (.dir J)) → q + r = 1 →
   {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm qc ∗
       osNames j (.only [b]) (DFrac.own q) h ∗
       osAU (osNames j (.only [b]) (DFrac.own r) h) (crOut j b h (DFrac.own r)) Q }}
-    (App (App (App (Val (@! os.OpenFile)) (Val #(child d b))) (Val #(W64 0x42))) (Val #perm))
+    (App (App (App (Val (@! os.OpenFile)) (Val #(child d b))) (Val #flag)) (Val #perm))
   {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R d dq j ∗ osCallPerm qc ∗
       ∃ o, Q o ∗ crOut j b h (DFrac.own q) o ∗ crMeta o ∗
         ((∃ (fd : w64) (i : Ino), ⌜err = interface.nil ∧ 0 ≤ fd.toInt ∧ crIno b h o i⌝ ∗
-            os.ownFile f fd (child d b) (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨i, true, true⟩) ∨
+            os.ownFile f fd (child d b) (DFrac.own 1) ∗ osFd fd (DFrac.own 1) (openFd i (flag ||| W64 0x80000))) ∨
          ⌜err ≠ interface.nil ∧ f = null⌝) }}
 
 end spec
