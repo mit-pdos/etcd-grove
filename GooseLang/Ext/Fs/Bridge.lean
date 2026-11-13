@@ -21,19 +21,16 @@ theorem pageIn_of_lt {sz b : Nat} (h : b < sz) : pageIn sz b = true := by
 theorem diskByte_of_lt {img : Nat → w8} {sz b : Nat} (h : b < sz) : diskByte img sz b = img b := by
   simp [diskByte, pageIn_of_lt h]
 
-/-- `x` rounded up to a 4096-byte page. -/
-def pageUp (x : Nat) : Nat := 4096 * ((x + 4095) / 4096)
+theorem pageIn_pageEnd {L b : Nat} (h : pageEnd L ≤ b) : pageIn L b = false := by
+  simp only [pageIn, pageEnd, decide_eq_false_iff_not] at *; omega
 
-theorem pageIn_pageUp {L b : Nat} (h : pageUp L ≤ b) : pageIn L b = false := by
-  simp only [pageIn, pageUp, decide_eq_false_iff_not] at *; omega
+theorem pageEnd_mono {a b : Nat} (h : a ≤ b) : pageEnd a ≤ pageEnd b := by
+  simp only [pageEnd]; omega
 
-theorem pageUp_mono {a b : Nat} (h : a ≤ b) : pageUp a ≤ pageUp b := by
-  simp only [pageUp]; omega
+theorem le_pageEnd (a : Nat) : a ≤ pageEnd a := by simp only [pageEnd]; omega
 
-theorem le_pageUp (a : Nat) : a ≤ pageUp a := by simp only [pageUp]; omega
-
-theorem diskByte_past {img : Nat → w8} {sz b : Nat} (h : pageUp sz ≤ b) : diskByte img sz b = 0 := by
-  simp [diskByte, pageIn_pageUp h]
+theorem diskByte_past {img : Nat → w8} {sz b : Nat} (h : pageEnd sz ≤ b) : diskByte img sz b = 0 := by
+  simp [diskByte, pageIn_pageEnd h]
 
 theorem contents_length (f : OsFile) : f.contents.length = f.size := by simp [OsFile.contents]
 

@@ -24,6 +24,9 @@ check of the trusted definitions).
 * `crash_past_end_zeros` (a guarantee): a file grown past its durable size's last page, then a
   crash: the grown pages read zeros, whatever the disk held past the old end (durable zeros;
   `crash.sh shrink-grow`, `keep-size`).
+* `trunc_same_synced_zero` (a guarantee): `ftruncate` to the same size, then a sync: a byte past the
+  size in the page holding the end has the one candidate zero, whatever the disk held there
+  (`ext4_block_truncate_page`; `notes/axiom-review/eof-page.md`, `trunc-eq`).
 * `crash_current`: a crash may keep a file as it is, when its page cache is among its candidates
   (`CacheCand`). `CacheOk` (every file `CacheCand`; every change in flight's announced values
   candidates of its file) holds at the start (`cacheOk_init`), after every step (`cacheOk_step`,
@@ -341,7 +344,7 @@ theorem crash_new_block_zeros (st : OsState) (i : Ino) (n : Nat) :
 /-- A file of size 1 as a crash may find it on disk, its bytes `img` (stale past its end), grown
 to 8192 bytes as change `n`. -/
 def fGrow (img : Nat → w8) (n : Nat) : OsFile :=
-  let ch := OsChange.ofResize 0 (OsFile.ofDisk img 1) 8192
+  let ch := OsChange.ofResize 0 (OsFile.ofDisk img 1) 8192 true
   ((OsFile.ofDisk img 1).announce ch n).land ch ch.hi ch.target
 
 /-- **Durable zeros** (a guarantee): after the file is grown past its durable size's last page, a
@@ -353,7 +356,8 @@ theorem crash_past_end_zeros (st : OsState) (i : Ino) (img : Nat → w8) (n : Na
   rotate_left
   · simp only [OsFile.ofDisk, diskByte, h0]; split <;> rfl
   have hcand : (fGrow img n).cand b =
-      ((OsFile.ofDisk img 1).announce (OsChange.ofResize 0 (OsFile.ofDisk img 1) 8192) n).cand b := rfl
+      ((OsFile.ofDisk img 1).announce (OsChange.ofResize 0 (OsFile.ofDisk img 1) 8192 true) n).cand b :=
+    rfl
   rw [hcand] at h
   have hv : img' b = 0 := by
     rcases mem_announce h with h | h
@@ -361,6 +365,25 @@ theorem crash_past_end_zeros (st : OsState) (i : Ino) (img : Nat → w8) (n : Na
       simp at h; exact h.1
     · exact (Prod.mk.inj h).1
   simp only [OsFile.ofDisk, diskByte, hv]; split <;> rfl
+
+/-- A file of size 5000 as a crash may find it on disk (its bytes `img`, stale past its end),
+truncated to the same size as change `n` (`ftruncate(5000)`), then synced. -/
+def fTruncSynced (img : Nat → w8) (n : Nat) : OsFile :=
+  let ch := OsChange.ofResize 0 (OsFile.ofDisk img 5000) 5000 true
+  (((OsFile.ofDisk img 5000).announce ch n).land ch ch.hi ch.target).synced (fun _ => False)
+
+/-- **`ftruncate` zeroes the rest of the page holding the old end** (a guarantee, P2 of
+`notes/axiom-review/eof-page.md`; measured `trunc-eq`): after `ftruncate` to the same size and a
+sync, a byte past the size in the page holding the end has the one candidate `(0, 0)`, whatever
+the disk held there; so a crash leaves it zero. -/
+theorem trunc_same_synced_zero (img : Nat → w8) (n b : Nat) (h1 : 5000 ≤ b) (h2 : b < 8192) :
+    (fTruncSynced img n).cand b = [(0, 0)] := by
+  have hp : pageIn 5000 b = true := by simp only [pageIn, decide_eq_true_eq]; omega
+  have he : pageEnd 5000 = 8192 := by decide
+  have hr : inRange 5000 8192 b = true := by
+    simp only [inRange, Bool.and_eq_true, decide_eq_true_eq]; omega
+  have hs : (OsFile.ofDisk img 5000).size = 5000 := rfl
+  simp [fTruncSynced, OsFile.synced, OsFile.land, OsChange.ofResize, diskByte, hp, he, hr, hs]
 
 /-- Every byte has a candidate stamped 0 (its value as of the last sync). -/
 def Stamp0 (f : OsFile) : Prop := ∀ b, ∃ v, (v, 0) ∈ f.cand b
