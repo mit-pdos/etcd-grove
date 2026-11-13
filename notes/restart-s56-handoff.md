@@ -56,7 +56,9 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
   unfold both); `wal.stopImage` gains `∃ l', isCommittedLogLb cl l' ∗ ⌜σ.b ≤ l'.length ∧ DurAgrees S
   l'⌝` (intro/elim restated), `stopCleanupImage.spec`'s `∃ S σ` block gains it, `run` passes
   `raftNode.stop`'s (`#Hdag`). Full build clean (17476 jobs, `/shared/tmp/restart-s56/phaseB-forms-full.log`);
-  tcb/interfaces/gates: see the landing line below.
+  `tcb-report --check` matches (870, 4); `gen-interface --check` clean for every API; merged `lean`
+  (k8s 7f-5) and **landed: `lean` 7b8c866a29** (gates all passed, `/shared/tmp/restart-s56/phaseB-forms-land.log`);
+  then merged `origin-lean-3975` (notes only, 81's request) and landed it too.
 - **Probes** (`Scratch/S56Probe.lean`, untracked): P1 (`restartOkD`, `restartOkD_facts`,
   `restartOkD_start`, `walReadFactsD` with I4 as `(snap = none ∧ base = (0,0)) ∨ walSnapAtBase σ`),
   P2 (`probe_P2_boot_storageR`: `boot_storage` with the image's `mvccImage D L c u` in place of the
@@ -65,7 +67,15 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
   (`uint.Z cv.MaxSizePerMsg' ≤ 2^20`), which `rnRestartCfg` needs: `bootOkR`'s text must take
   `rnRestartCfg bv cv lok pv` (contract text: in the CP2 package; Go evidence as `rnStartCfg.maxMsg`'s
   docstring, both constructions call `raftConfig`, `TestMaxSizePerMsg`).
-- Next: A2 texts, then the CP2 Freeze package (`/shared/tmp/restart-s56/freeze-package.md`).
+- **Probes not yet checked by Lean**: `Scratch/S56Probe.lean`'s P1/P2/P6 sections were written while the
+  build ran and never elaborated. First thing: `LAKE_OPTS=--packages=/shared/tmp/manifest-ddc.json
+  etc/lean-check.py -a Scratch/S56Probe.lean` (under the 64G cap) and fix.
+- CP2 package draft (incomplete): `/shared/tmp/restart-s56/freeze-package.md` (HS1, the `bootOkR` slot +
+  `rnRestartCfg`, srvRestartRows, H10's `cl.Recover` check done by reading, world assumptions). Missing:
+  `NewServer.specR`'s Lean text, `srvBuiltR`, the A2 texts in tracked files, spec-reviewer, axiom skill.
+- Next: check the probes; A2 texts (WalApi `wal.restartOk` + laws from P1; InvRestart `bootOkR`'s
+  `Hwal` and `rnRestartCfg`, `srvRestartRows`; NodeStart `Hbc`/F3 from the facts; BootStore
+  `boot_storageR` from P2; BuiltRestart `srvBuiltR`; `specR`; HS1 patch); finish the package; STOP (CP2).
 
 ## Phase B (go from etcd-grove-81, 2026-11-13): next agent starts here
 
