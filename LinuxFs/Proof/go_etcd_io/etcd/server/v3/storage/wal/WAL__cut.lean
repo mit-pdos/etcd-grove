@@ -248,6 +248,23 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   rw [join_child hclean (walFileName_nameOk _ _)] at hfpath
   subst hfpath
   (try wp_auto)
+  -- step 4: `w.fp.Open()`
+  ihave Hpipe : walPipeH fp dir j h.pc $$ [Hmain Hpc]
+  · iunfold walPipeH
+    iexists γp, Rp, dqp, szp, np
+    iframe Hmain Hpc Hisfp
+    ipureintro; exact hnp
+  wp_apply (wp_walPipeH_open _wp_Open fp dir j h.pc hcnt) $$ [$Hpipe] as %ntl %oerr Hop
+  icases Hop with (⟨%he, %γp, %Rp, %dqp, %szp, %np, #Hisfp, Hmain, Hpf, %hnp⟩ | %he)
+  rotate_left
+  · rcases oerr with ei | _
+    rotate_left
+    · exact absurd rfl he
+    (try wp_auto)
+    iapply HΦ
+    iright; ipureintro; exact he
+  subst he
+  (try wp_auto)
   sorry
 
 end proof
