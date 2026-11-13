@@ -151,6 +151,206 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
     wp_auto
     ihave #Hfio := Hfi $$ []
     · ipureintro; rfl
+    ihave #HI := io.isInit_access $$ Hio
+    icases HI with ⟨-, -, -, -, #HE1, #HU1, -⟩
+    iunfold errors.newVar at HE1
+    iunfold errors.newVar at HU1
+    icases HE1 with ⟨%x1, #Hx1, -⟩
+    icases HU1 with ⟨%x2, #Hx2, -⟩
+    icombine Heof Hx1 gives %he
+    icombine Hueof Hx2 gives %hu
+    have heofn : eof ≠ GoInterface.nil := by rw [he]; simp [interface.mkOk]
+    have hueofn : ueof ≠ GoInterface.nil := by rw [hu]; simp [interface.mkOk]
+    iunfold isEofOk at Heok
+    icases Heok with ⟨%Hneq, #Heok⟩
+    ihave #Hrs := fbr_readerStream HRead IoE eof F fbr b fi GoInterface.nil $$ [Hf HF]
+    · iframe Hf HF
+    wp_apply HRI ⟨go.GoType.PointerType go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader.ty, #fbr⟩
+      _ _ (F.bs.take off) eof ueof $$ Hrs [Hb] as %l %err ⟨%ys, %Hys, Hb⟩
+    · iframe
+      iframe Heof Hueof
+    ihave ⟨%Hpre, Hb⟩ := ownReader_prefix IoE eof F b _ _ $$ [HF Hb]
+    · iframe HF Hb
+    rw [← he]
+    ihave #HIs := Heok $$ %err %(readFull_err_cases Hys.1)
+    wp_apply HIs as %bIs %HbIs
+    subst HbIs
+    have hnil8 : err = GoInterface.nil → ys.length = 8 := by
+      intro hn
+      rcases Hys.1 with ⟨h, _⟩ | ⟨_, e, he', _, h1, h2⟩
+      · exact h
+      · exfalso
+        by_cases hc : e = eof ∧ ys ≠ []
+        · exact hueofn (h1 hc ▸ hn)
+        · exact he' (h2 hc ▸ hn)
+    by_cases hdrop : err = eof ∨ (err = GoInterface.nil ∧ l = W64 0)
+    · have hstep : decRecStep C fs.isEmpty F.bs off c = .eof := by
+        rcases hdrop with hE | ⟨hN, hL⟩
+        · obtain ⟨_, hr, hc⟩ := readFull_short Hys.1 Hneq.2 (hE ▸ heofn) (hE ▸ Hneq.2)
+          rcases hc with ⟨_, rfl⟩ | ⟨h1, _⟩
+          · apply decRecStep_end
+            have := congrArg List.length hr
+            simp only [List.append_nil, List.length_take] at this
+            omega
+          · exact absurd (hE.symm.trans h1) Hneq.1
+        · have h8 := hnil8 hN
+          obtain ⟨hle, ht⟩ := take_append_prefix Hpre (by intro h; rw [h] at h8; simp at h8)
+          have htk : (F.bs.drop off).take 8 = ys := by
+            obtain ⟨t, ht⟩ := ht; rw [← ht, ← h8]; simp
+          apply decRecStep_zero (by simp; omega)
+          rw [htk, ← Hys.2 hN, hL]; rfl
+      rcases hdrop with hE | ⟨hN, hL⟩
+      all_goals first
+        | (rw [decide_eq_true hE]; wp_auto)
+        | (subst hN hL; rw [decide_eq_false heofn.symm]; wp_auto)
+      all_goals
+        ihave %Hwf := ownSlice_wf _ _ _ $$ Hsl
+        have h1z : sint.Z (W64 1) = 1 := rfl
+        rw [ite_eq_left (show 0 ≤ sint.Z (W64 1) ∧ sint.Z (W64 1) ≤ sint.Z sl.len ∧
+          sint.Z sl.len ≤ sint.Z sl.cap from ⟨by rw [h1z]; decide, by rw [h1z]; omega, Hwf.2⟩)]
+        ihave Hsl3 := (ownSlice_slice (W64 1) sl.len sl DFrac.discard (fbr :: fbrs)
+          ⟨by rw [h1z]; decide, by rw [h1z]; omega, Int.le_refl _⟩).1 $$ Hsl
+        icases Hsl3 with ⟨-, #Hsl', -⟩
+        have hsub : subslice (sint.nat (W64 1)) (sint.nat sl.len) (fbr :: fbrs) = fbrs := by
+          have h1 : (fbr :: fbrs).length = sint.nat sl.len := Hsll.1
+          have h1n : sint.nat (W64 1) = 1 := rfl
+          rw [← h1, h1n]; simp [subslice]
+        rw [hsub]
+        wp_auto
+        wp_if_destruct
+        · -- the last file: `io.EOF`
+          have hfbrs0 : fbrs = [] := by
+            have h1 : (fbr :: fbrs).length = (sint.Z sl.len).toNat := Hsll.1
+            simp only [List.length_cons] at h1
+            have : sint.Z sl.len = 1 := by
+              have := congrArg sint.Z Hif; revert this; word
+            rw [this] at h1
+            exact List.length_eq_zero_iff.mp (by omega)
+          subst hfbrs0
+          have hfs0 : fs = [] := List.length_eq_zero_iff.mp (by simpa using Hl.1.symm)
+          subst hfs0
+          iapply HΦ
+          iunfold decPost
+          ileft
+          iexists 1
+          rw [show ([F] : List (DecFile GF)).map (·.bs) = [F.bs] from rfl,
+            goDecode_eof_last (by simpa using hstep)]
+          simp only [List.drop_succ_cons, List.drop_zero, List.map_nil]
+          isplitl []
+          · ipureintro; simp [stopErr]
+          isplitl [Hr]
+          · iunfold ownRecAny; iexists _; iexact Hr
+          iunfold ownDecoder
+          iexists _, [], h, []
+          iframe
+          iframe Hmu Hsl'
+          ipureintro
+          simp [hoff, liveRs]
+        · -- the next file, from offset 0
+          have hfs : fs ≠ [] := by
+            intro hfs0; subst hfs0
+            have h1 : (fbr :: fbrs).length = (sint.Z sl.len).toNat := Hsll.1
+            have h2 : fbrs = [] := List.length_eq_zero_iff.mp (by simpa using Hl.1)
+            subst h2
+            simp only [List.length_cons, List.length_nil] at h1
+            apply Hif
+            have : sint.Z sl.len = 1 := by omega
+            word
+          wp_apply (IH 0 c hC) $$ [Hr Hbrs Hoff Hcrc Hcont Hdc Hfbrs] as %err' Hpost
+          · iframe Hr
+            isplitr
+            · iunfold decEnv
+              iframe
+              iframe Hio Hbin Hfmt Hsync Hbufio Heof Hueof Htab Hcm
+              iunfold isEofOk
+              iframe Heok
+              ipureintro; exact Hneq
+            iunfold ownDecoder
+            iexists _, fbrs, h, (fs.map (fun _ => []))
+            iframe
+            iframe Hmu Hsl'
+            ipureintro
+            refine ⟨by omega, fun _ => ?_⟩
+            rcases fs with _ | ⟨G, gs⟩
+            · exact absurd rfl hfs
+            · simp [liveRs]
+          iapply HΦ
+          iapply decPost_cons_eof C d rp IoE eof ueof F fs off c err' hstep hfs
+          iexact Hpost
+    rw [decide_eq_false (fun h => hdrop (Or.inl h))]
+    by_cases hn : err ≠ GoInterface.nil
+    · -- a failed read of the length word
+      obtain ⟨ei, rfl⟩ : ∃ ei, err = GoInterface.ok ei := by
+        cases err with
+        | ok ei => exact ⟨ei, rfl⟩
+        | nil => exact absurd rfl hn
+      wp_auto
+      iapply HΦ
+      iunfold decPost
+      by_cases hI : IoE (GoInterface.ok ei)
+      · iright
+        isplitl []
+        · ipureintro; exact hI
+        isplitl [Hr]
+        · iunfold ownRecAny; iexists _; iexact Hr
+        iexists (F :: fs), off, c
+        iunfold ownDecoder
+        iexists sl, fbr :: fbrs, h, ((F.bs.take off ++ ys) :: fs.map (fun _ => []))
+        iframe
+        iframe Hmu Hsl
+        isplitl [Hb Hfbrs]
+        · simp only [ownFbrs]
+          isplitl [Hb]
+          · iunfold ownFbr
+            iexists b, fi, _
+            iframe
+            iframe Hf HF Hfio
+            ipureintro; simp
+          · iexact Hfbrs
+        ipureintro
+        simp [hoff]
+      · obtain ⟨hlt, hr, hc⟩ := readFull_short Hys.1 Hneq.2 hn hI
+        rcases hc with ⟨h1, _⟩ | ⟨h1, hne⟩
+        · exact absurd h1 (fun h => hdrop (Or.inl h))
+        obtain ⟨hlen, hdrop'⟩ := take_append_eq hr hne
+        have hstep : decRecStep C fs.isEmpty F.bs off c = .stop .shortLen c := by
+          apply decRecStep_shortLen
+          · rw [hdrop']; exact List.length_pos_iff.mpr hne
+          · rw [hdrop']; exact hlt
+        ileft
+        iexists 0
+        have hstep' : decRecStep C (fs.map (·.bs)).isEmpty F.bs off c = .stop .shortLen c := by
+          simpa using hstep
+        have hg : goDecode C ((F :: fs).map (·.bs)) off c =
+            .stop .shortLen ((F :: fs).map (·.bs)) off c := by
+          simp only [List.map_cons]; unfold goDecode; rw [hstep']
+        rw [hg]
+        simp only [List.drop_zero]
+        isplitl []
+        · ipureintro; exact ⟨h1, trivial⟩
+        isplitl [Hr]
+        · iunfold ownRecAny; iexists _; iexact Hr
+        iunfold ownDecoder
+        iexists sl, fbr :: fbrs, h, ((F.bs.take off ++ ys) :: fs.map (fun _ => []))
+        iframe
+        iframe Hmu Hsl
+        isplitl [Hb Hfbrs]
+        · simp only [ownFbrs]
+          isplitl [Hb]
+          · iunfold ownFbr
+            iexists b, fi, _
+            iframe
+            iframe Hf HF Hfio
+            ipureintro; simp
+          · iexact Hfbrs
+        ipureintro
+        simp [hoff]
+    have hn : err = GoInterface.nil := Classical.byContradiction hn
+    subst hn
+    have hl0 : l ≠ W64 0 := fun h => hdrop (Or.inr ⟨rfl, h⟩)
+    have h8 := hnil8 rfl
+    have hl := Hys.2 rfl
+    wp_auto
     sorry
 
 end proof

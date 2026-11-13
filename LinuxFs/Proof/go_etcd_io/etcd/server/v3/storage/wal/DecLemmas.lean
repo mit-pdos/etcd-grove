@@ -215,7 +215,45 @@ theorem decRecStep_frame {C : WalCodec} {last : Bool} {bs : List w8} {off : Nat}
   rw [if_neg (by omega), if_neg (by omega), if_neg h]
   rfl
 
+theorem goDecode_eof_next {C : WalCodec} {f : List w8} {fs : List (List w8)} {off : Nat} {c : w32}
+    (h : decRecStep C fs.isEmpty f off c = .eof) (hfs : fs ≠ []) :
+    goDecode C (f :: fs) off c = goDecode C fs 0 c := by
+  rcases fs with _ | ⟨g, gs⟩
+  · exact absurd rfl hfs
+  · rw [goDecode, h]
+
+theorem goDecode_eof_last {C : WalCodec} {f : List w8} {off : Nat} {c : w32}
+    (h : decRecStep C true f off c = .eof) : goDecode C [f] off c = .stop .eof [] off c := by
+  rw [goDecode, List.isEmpty_nil, h]
+
 end pure
+
+section post
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [bufio_sem : _root_.Perennial.bufio.Assumptions]
+
+/-- The end of a file that is not the last: `decodeRecord` goes on in the next from offset 0. -/
+theorem decPost_cons_eof (C : WalCodec) (d rp : Loc) (IoE : GoInterface → Prop)
+    (eof ueof : GoInterface) (F : DecFile GF) (fs : List (DecFile GF)) (off : Nat) (c : w32)
+    (err : GoInterface) (h : decRecStep C fs.isEmpty F.bs off c = .eof) (hfs : fs ≠ []) :
+    decPost C d rp IoE eof ueof fs 0 c err ⊢ decPost C d rp IoE eof ueof (F :: fs) off c err := by
+  have hg : goDecode C ((F :: fs).map (·.bs)) off c = goDecode C (fs.map (·.bs)) 0 c := by
+    simp only [List.map_cons]
+    exact goDecode_eof_next (by simpa using h) (by simpa using hfs)
+  unfold decPost
+  rw [hg]
+  iintro (⟨%k, H⟩ | H)
+  · ileft
+    iexists (k + 1)
+    simp only [List.drop_succ_cons]
+    iexact H
+  · iright
+    iexact H
+
+end post
 
 end WalFs
 end EtcdGrove
