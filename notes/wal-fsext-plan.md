@@ -2104,8 +2104,11 @@ The W3/W5 log's gap 4 (`ZeroToEnd` on the tail; `cut`'s truncate of the old tail
 - *`openWALFiles`, in progress*: `walOpen_triple` (`os.OpenFile` of a claim's file as `TryLockFile`'s
   `OpenTriple`, `X := Unit`, `C _ i' := i' = i`), the loop invariant (three slices, `walOpenedRcs`, the claim's
   resources, `names[k:]` split out with `ownSlice_slice`), the exit, the write-mode success iteration
-  (`TryLockFile`, the two appends, `l.File`, `NewFileReader` persisted, `walOpenedRcs_snoc`) proved; left
-  `sorry`: the write-mode error (`closeAll` + `Errorf`) and the read mode. Gotcha: `omega`/`word` facts inside
+  (`TryLockFile`, the two appends, `l.File`, `NewFileReader` persisted, `walOpenedRcs_snoc`) and the
+  write-mode error (`closeAll` over `walOpenedRcs_close`, `Errorf` `%w`, `wp_for_post` of the return) proved;
+  left `sorry`: the read mode only (`os.OpenFile.wp_fileS` at flag 0; its error is `fmtErrorOkOrNil`, made
+  `errOk` by `fileutil.errOk_of_fmtErrorOk`; `Errorf`'s `%q` of `p` by `argWf_string`; appends `nil` and
+  `rf`; the same tail as the write mode). Gotcha: `omega`/`word` facts inside
   this long proof gave kernel "application type mismatch" on `_proof_` auxiliaries (an instance argument
   dropped): moved into top-level lemmas (`walOpen_lt_sub`, `walOpen_eq_sub`, `walOpen_succ`, `walOpen_getElem?`).
 - *Coordinator messages noted*: `walHandleIn`'s new `walDirH` conjunct is `ReadAll`'s to provide (not done

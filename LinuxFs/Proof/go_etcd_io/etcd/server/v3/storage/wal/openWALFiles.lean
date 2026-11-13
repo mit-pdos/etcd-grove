@@ -382,7 +382,41 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
         ipureintro
         simp only [List.length_append, List.length_singleton]
         refine ⟨by word, by omega, by omega, by omega, by omega⟩
-      · sorry
+      · obtain ⟨hne, rfl⟩ := he
+        icases Herr with (%h0 | ⟨%e, %he, #Hok⟩)
+        · exact (hne h0).elim
+        subst he
+        (try wp_auto)
+        wp_apply wp_closeAll lg rcsl rcs (DFrac.own 1) $$ [Hrc Hop] as %e2 ⟨Hrc, -⟩
+        · iframe
+          isplitl []; · iexact Hlg
+          isplitl []; · iexact Hinv
+          iapply (walOpenedRcs_close true d ns is (sint.nat jj) frs lfs rcs Hrl (by omega)) $$ Hop
+        (try wp_auto)
+        wp_apply wp_slice_literal (V := GoAny) [interface.ok e]
+        isplitr
+        · ipureintro; rfl
+        iintro %asl ⟨Hasl, -⟩
+        wp_apply wp_Errorf _ _ [interface.ok e] [e] (by
+            intro ii hii
+            right
+            simp only [List.mem_cons, List.not_mem_nil, or_false] at hii
+            cases hii
+            simp) $$ [Hasl] as %e1 #He1
+        · iframe
+          iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
+          iexact Hok
+        (try wp_auto)
+        wp_for_post
+        (try wp_auto)
+        iapply HΦ
+        ihave Hsl := (ownSlice_slice k sl.len sl dqs names ⟨hk0, hkz, Int.le_refl _⟩).2 $$ [Hw1 Hw2 Hw3]
+        · rw [hsub, hns]; iframe
+        iframe
+        iright
+        iexists e1
+        iframe He1
+        ipureintro; rfl
   · have hjn : sint.nat jj = ns.length := by
       have : ¬ sint.Z jj < sint.Z (sl.len - k) := by
         intro h; apply Hif; first | exact h | rw [decide_eq_true h]
