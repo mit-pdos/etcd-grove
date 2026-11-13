@@ -29,7 +29,27 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.wp_proofAbsent :
   intro d b R j dq qc N dqn h hb hN hi
   wp_start as ⟨#Hos, #Hsi, #Hpkg, Hp, Hperm, Hn⟩
   wp_auto
-  sorry
+  wp_bind (App (Val wrapDefer) _)
+  wp_apply wp_with_defer as %defer defer
+  (try wp_auto)
+  wp_method_call
+  wp_auto
+  ihave IH : iprop("i" ∷ i_ptr ↦ W64 0) $$ [i]
+  · simp only [named]; iframe
+  wp_for IH
+  wp_apply os.Open.wp_absentS d b R j N dq dqn h qc hb hN hi $$ [Hp Hn Hperm]
+    as %f %err ⟨Hp, Hn, Hperm, %herr, #Herr⟩
+  · iframe; isplitl [] <;> iassumption
+  obtain ⟨herr, -⟩ := herr
+  cases err with
+  | nil => exact absurd rfl herr
+  | ok ie =>
+  wp_auto
+  iapply HΦ
+  iframe
+  isplitr
+  · ipureintro; exact herr
+  iexact Herr
 
 end proof
 
