@@ -26,6 +26,7 @@ module
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.TailCrashPure
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.SegPre
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Inv
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CrashPure
 
 @[expose] public section
 
@@ -275,6 +276,284 @@ theorem lastC0_nil (C : WalCodec) (Mr : WalMarshal) (d : WalDur) : lastC0 C Mr d
   simp [lastC0, initSegs, segsInit, segsDs, crcAfter]
 
 end helpers
+
+/-! ## The crash of the tail -/
+
+section crash
+variable [GooseExts]
+
+theorem drop_length_sub_one' {α : Type} : ∀ {l : List α} (h : l ≠ []),
+    l.drop (l.length - 1) = [l.getLast h]
+  | [a], _ => rfl
+  | a :: b :: t, _ => by
+    have := drop_length_sub_one' (l := b :: t) (by simp)
+    simp only [List.length_cons, Nat.add_sub_cancel, List.drop_succ_cons] at this ⊢
+    rw [this, List.getLast_cons_cons]
+
+/-- A segment of distinct inodes is the one `segBytesOf` finds. -/
+theorem segBytesOf_mem {lay : WalLay} {g : SegG} (hnd : (lay.segs.map (·.ino)).Nodup)
+    (hg : g ∈ lay.segs) : segBytesOf lay g.ino = some g.bs := by
+  unfold segBytesOf
+  cases hf : lay.segs.find? (fun g' => decide (g'.ino = g.ino)) with
+  | none =>
+    exfalso
+    have := List.find?_eq_none.1 hf g hg
+    simp at this
+  | some g' =>
+    have hg' := List.mem_of_find?_eq_some hf
+    have hi : g'.ino = g.ino := by simpa using List.find?_some hf
+    have : g' = g := Fs.eq_of_nodup_map hnd hg' hg hi
+    subst this; rfl
+
+/-- **The tail's candidates** (`TailCands`) from the static relation and F-Z. -/
+theorem tailCands_of_abs {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
+    {g : SegG} (habs : WalAbsD C Mr d lay ents) (hZ : TailZeros lay)
+    (hg : lay.segs.getLast? = some g) :
+    TailCands (fun b => (segStream C Mr d lay.cuts lay.cuts.length).getD b 0)
+      (fun b => lay.old.getD b 0)
+      (fun b => if b < g.bs.length then (g.bs.getD b (0, [])).2 else [(0, 0)]) lay.so lay.z0 := by
+  obtain ⟨hso, hwr, hlen, hwro, hbytes, hz0, htake, -⟩ := habs.last g hg
+  generalize segStream C Mr d lay.cuts lay.cuts.length = S at hwr hbytes htake ⊢
+  have hb : ∀ b, b < g.bs.length → ByteOk (S.getD b 0) (lay.old.getD b 0) (decide (b < S.length))
+      (decide (b < lay.wr)) (decide (b < lay.so)) (g.bs.getD b (0, [])) := by
+    intro b hbl
+    have := hbytes b (g.bs[b]) (List.getElem?_eq_getElem hbl)
+    have e : g.bs.getD b (0, []) = g.bs[b] := by
+      rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hbl, Option.getD_some]
+    rw [e]; exact this
+  refine ⟨fun b hbs => ?_, fun b hbs => ?_, fun b hbz => ?_, fun b hbz => ?_⟩
+  · have hbl : b < g.bs.length := by omega
+    have h := hb b hbl
+    rw [show decide (b < lay.so) = true by simp; omega] at h
+    simp only [ByteOk, ite_true] at h
+    simp only [if_pos hbl, h]
+  · by_cases hbl : b < g.bs.length
+    · have h := hb b hbl
+      rw [show decide (b < lay.so) = false by simp; omega] at h
+      simp only [ByteOk, Bool.false_eq_true, ite_false] at h
+      obtain ⟨ex, h1, h2, -, -⟩ := h
+      exact ⟨ex, by simp only [if_pos hbl, h1], h2⟩
+    · refine ⟨[], ?_, by simp⟩
+      simp only [if_neg hbl]
+      rw [List.getD_eq_getElem?_getD, List.getElem?_eq_none (by omega)]; rfl
+  · by_cases hbo : b < lay.old.length
+    · have h1 := congrArg (fun l => l.getD b 0) htake
+      simp only [List.getD_eq_getElem?_getD, List.getElem?_take, if_pos hbz] at h1
+      exact h1.symm
+    · rw [List.getD_eq_getElem?_getD (l := lay.old), List.getElem?_eq_none (by omega)]
+      have h1 := congrArg List.length htake
+      simp only [List.length_take] at h1
+      rw [List.getD_eq_getElem?_getD, List.getElem?_eq_none (by omega)]
+  · by_cases hbo : b < lay.old.length
+    · exact hZ b hbz hbo
+    · rw [List.getD_eq_getElem?_getD, List.getElem?_eq_none (by omega)]; rfl
+
+/-- The synced operations' records are the first `a` of the last segment's, `a` covering its
+headers and the synced operations. -/
+theorem lastRecs_synced (C : WalCodec) (Mr : WalMarshal) (d : WalDur) {cuts : List Nat}
+    (hc : cuts.Pairwise (· < ·)) (hL : segStart cuts cuts.length ≤ d.m) :
+    lastRecs C Mr { d with H := d.H.take d.m } cuts = (lastRecs C Mr d cuts).take
+      ((lastHdr Mr d cuts).length +
+        (((lastOps d cuts).take (d.m - segStart cuts cuts.length)).flatMap (opDs Mr)).length) := by
+  have hi : initSegs { d with H := d.H.take d.m } cuts = initSegs d cuts :=
+    initSegs_of_take hc (by simp only; rw [List.take_take, Nat.min_eq_left hL])
+  have e0 : lastC0 C Mr { d with H := d.H.take d.m } cuts = lastC0 C Mr d cuts := by
+    unfold lastC0; rw [hi]
+  have eh : lastHdr Mr { d with H := d.H.take d.m } cuts = lastHdr Mr d cuts := by
+    unfold lastHdr; rw [hi]
+  have eo : lastOps { d with H := d.H.take d.m } cuts =
+      (lastOps d cuts).take (d.m - segStart cuts cuts.length) := by
+    unfold lastOps histM; simp only; rw [List.map_take, List.drop_take]
+  rw [lastRecs_eq, lastRecs_eq, e0, eh, eo, ← chainRecs_take]
+  congr 1
+  obtain ⟨t, ht⟩ := flatMap_take_prefix (opDs Mr) (lastOps d cuts) (d.m - segStart cuts cuts.length)
+  rw [← ht, ← List.append_assoc, List.take_left' (by simp)]
+
+theorem lastHdr_pos (Mr : WalMarshal) (d : WalDur) (cuts : List Nat) :
+    1 ≤ (lastHdr Mr d cuts).length := by
+  unfold lastHdr segHdrDs hdrDs cutHdrDs
+  split <;> split <;> simp
+
+theorem lastRecs_length (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (cuts : List Nat) :
+    (lastRecs C Mr d cuts).length =
+      (lastHdr Mr d cuts).length + ((lastOps d cuts).flatMap (opDs Mr)).length := by
+  rw [lastRecs_eq, length_chainRecs, List.length_append]
+
+/-- **The crash of a tail written this generation** (see the file header): the tree part from a
+`CrashTo` of the layout over another image `fo0` of the tail. -/
+theorem crashTo_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
+    {ents : Ents} {m' : Tree} {fo fo0 : Ino → Option Fs.OsFile} {g : SegG}
+    (habs : WalAbsD C Mr d lay ents) (hZ : TailZeros lay) (hB : TailBound C Mr d lay)
+    (hnd : (lay.segs.map (·.ino)).Nodup) (hg : lay.segs.getLast? = some g)
+    (h0 : CrashTo C Mr d lay m' fo0) (hfo : ∀ i, i ≠ g.ino → fo0 i = fo i)
+    (hfc : FileCrashedR g.om [(0, DFrac.own (1 : Qp).half, g.bs)] (fo g.ino))
+    (hn : Named m' g.ino → (fo g.ino).isSome)
+    (hw : W1G C (walInos (entsOf m' lay.j)) (fun i => imgOf (fo i)) (segBytesOf lay)) :
+    CrashTo C Mr d lay m' fo := by
+  rcases h0 with hl | ⟨q, I0, hent, hq, hinos, hI0, hLI0, hpur, hmid, -⟩
+  · exact Or.inl hl
+  have hsorted := habs.cuts.2.1
+  have hLm : segStart lay.cuts lay.cuts.length ≤ d.m := habs.lastSynced
+  have hmH : d.m ≤ d.H.length := habs.synced.1
+  have hgm : g ∈ lay.segs := List.mem_of_getLast? hg
+  -- the tail is named, so kept
+  have hgq : (lay.segs.drop q).getLast? = some g := by
+    rw [List.getLast?_drop, if_neg (by omega), hg]
+  have hgin : g.ino ∈ walInos (entsOf m' lay.j) := by
+    rw [hinos]; exact List.mem_map_of_mem (List.mem_of_getLast? hgq)
+  obtain ⟨f, hf⟩ := Option.isSome_iff_exists.1 (hn (named_of_mem_walInos hgin))
+  obtain ⟨-, hlo, hhi, hrun, -⟩ := hfc f hf
+  obtain ⟨-, -, hmlo, hmhi⟩ := habs.metas g hgm
+  have hsz : f.size = g.bs.length := by omega
+  obtain ⟨hso, hwr, hlen, hwro, -, hz0, -, -⟩ := habs.last g hg
+  -- the decoding core
+  generalize hR : lastRecs C Mr d lay.cuts = R
+  have hRS : segStream C Mr d lay.cuts lay.cuts.length = recFrames C R := by rw [← hR]; rfl
+  have hT := tailCands_of_abs habs hZ hg
+  rw [hRS] at hT
+  generalize hcs : (fun b => if b < g.bs.length then (g.bs.getD b (0, [])).2 else [(0, 0)]) = cs
+    at hT
+  have himgl : f.contents.length = g.bs.length := by rw [contents_length, hsz]
+  have himg : ∀ b, b < f.contents.length → ∃ s, (f.contents.getD b 0, s) ∈ cs b := by
+    intro b hb
+    rw [himgl] at hb
+    have := hrun (0, DFrac.own (1 : Qp).half, g.bs) (List.mem_singleton_self _) b hb
+      (by simp only [Nat.zero_add]; omega)
+    simp only [Nat.zero_add] at this
+    rw [contents_getD f b (by omega), ← hcs]
+    simp only [if_pos hb]
+    rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hb, Option.getD_some]
+    exact this
+  have hlenI : max lay.so lay.z0 ≤ f.contents.length := by rw [himgl, hlen]; omega
+  obtain ⟨jE, hjE, hEb⟩ := hB
+  have hRdef : (segRecs C Mr d lay.cuts).getD lay.cuts.length [] = R := hR
+  rw [hRdef] at hjE hEb
+  have hfit : RecsFit C R := fun r hr => habs.fit r (by
+    rw [allRecs_split, hR]; exact List.mem_append_right _ hr)
+  have hch : ChainOk C (lastC0 C Mr d lay.cuts) R := hR ▸ chainOk_lastRecs hC Mr d lay.cuts
+  -- the synced records (headers included) are below `jE`
+  generalize hA : (lastHdr Mr d lay.cuts).length + (((lastOps d lay.cuts).take
+    (d.m - segStart lay.cuts lay.cuts.length)).flatMap (opDs Mr)).length = a
+  have haR : a ≤ R.length := by
+    rw [← hA, ← hR, lastRecs_length]
+    have := (flatMap_take_prefix (opDs Mr) (lastOps d lay.cuts)
+      (d.m - segStart lay.cuts lay.cuts.length)).length_le
+    omega
+  have hajE : a ≤ jE := by
+    apply take_le_of_frames_le C R haR
+    have hs := habs.synced.2
+    have e : (segRecs C Mr { d with H := d.H.take d.m } lay.cuts).getD lay.cuts.length [] =
+        R.take a := by
+      rw [← hA, ← hR]; exact lastRecs_synced C Mr d hsorted hLm
+    rw [e] at hs
+    rw [hEb]; omega
+  have hha : 1 ≤ a := by have := lastHdr_pos Mr d lay.cuts; omega
+  -- the image below `max so z0` is the intended stream
+  have hlo' := hT.img_lo himg hlenI
+  -- W1 along the reader's path, from the fresh reader's
+  have hW : ∀ p ∈ acceptsFrom C true f.contents 0 (lastC0 C Mr d lay.cuts),
+      AsOf cs f.contents p (frameCore f.contents p) := by
+    have hW0 : ∀ p ∈ acceptsFrom C true f.contents 0 0#32,
+        AsOf cs f.contents p (frameCore f.contents p) := by
+      intro p hp
+      have hjs : (walInos (entsOf m' lay.j)).drop ((walInos (entsOf m' lay.j)).length - 1) =
+          [g.ino] := by
+        rw [hinos]
+        have hne : lay.segs.drop q ≠ [] := by simp; omega
+        rw [List.length_map, ← List.map_drop, drop_length_sub_one' hne]
+        simp only [List.map_cons, List.map_nil]
+        rw [(List.getLast_eq_iff_getLast?_eq_some _).2 hgq]
+      have hp' : (0, p) ∈ acceptsFiles C (((walInos (entsOf m' lay.j)).drop
+          ((walInos (entsOf m' lay.j)).length - 1)).map (fun i => imgOf (fo i))) 0#32 := by
+        rw [hjs]
+        simp only [List.map_cons, List.map_nil, acceptsFiles, imgOf, hf, Option.map_some,
+          Option.getD_some, List.mem_map]
+        exact ⟨p, hp, rfl⟩
+      have h1 := hw _ (0, p) hp' g.ino g.bs (by rw [hjs]; rfl) (segBytesOf_mem hnd hgm)
+      obtain ⟨x, hx, hxb⟩ := acceptsFiles_bound C _ _ _ hp'
+      rw [hjs] at hx
+      simp only [List.map_cons, List.map_nil, List.getElem?_cons_zero, imgOf, hf, Option.map_some,
+        Option.getD_some, Option.some.injEq] at hx
+      rw [← hx] at hxb; simp only at hxb
+      simp only [imgOf, hf, Option.map_some, Option.getD_some] at h1
+      have hcsb : ∀ b, b < p + frameCore f.contents p → cs b = (g.bs.getD b (0, [])).2 := by
+        intro b hb; rw [← hcs]; simp only; rw [if_pos (by rw [← himgl]; omega)]
+      rcases h1 with h1 | ⟨n, hn0, h1⟩
+      · left; intro b hb1 hb2; rw [hcsb b hb2]; exact h1 b hb1 hb2
+      · right; refine ⟨n, hn0, fun b hb1 hb2 => ?_⟩
+        rw [hcsb b hb2]; exact h1 b hb1 hb2
+    by_cases hc0 : lay.cuts = []
+    · rw [hc0, lastC0_nil]; exact hW0
+    · -- the first frame is the CRC record, intact: the fresh reader reads as the chained one
+      obtain ⟨r0, rs, hR0, ht0⟩ := lastRecs_head_crc C Mr d hc0
+      rw [hR] at hR0
+      subst hR0
+      have hfr0 : frame (C.encRec r0) <+: f.contents := by
+        have hpre : frame (C.encRec r0) <+: recFrames C ((r0 :: rs).take jE) := by
+          obtain ⟨k, hk⟩ : ∃ k, jE = k + 1 := ⟨jE - 1, by omega⟩
+          rw [hk, List.take_succ_cons, recFrames_cons]; exact List.prefix_append _ _
+        have hl := hpre.length_le
+        rw [hEb] at hl
+        apply prefix_of_getD (by omega)
+        intro b hb
+        rw [hlo' b (by omega), recFrames_cons, List.getD_eq_getElem?_getD,
+          List.getElem?_append_left hb, ← List.getD_eq_getElem?_getD]
+      obtain ⟨rest, hrest⟩ := hfr0
+      have hd := decStep_frame hC true (bs := f.contents) (off := 0) (rest := rest)
+        (hfit r0 (List.mem_cons_self ..)) (by rw [List.drop_zero, hrest]) hch.1
+      rw [← acceptsFrom_crc0 ht0 hd]
+      exact hW0
+  obtain ⟨j, hjj, hjR, hpre, hrej⟩ := tail_decode hC hfit hch hT hjE hEb himg hlenI hW
+  have hLH : segStart lay.cuts lay.cuts.length ≤ d.H.length := by omega
+  have hhdr : (lastHdr Mr d lay.cuts).length ≤ j := by omega
+  obtain ⟨nI, hnI⟩ : ∃ nI, nI = j - (lastHdr Mr d lay.cuts).length := ⟨_, rfl⟩
+  have hIimg := tailImg_walImg Mr d lay.cuts nI hLm hmH (by omega)
+  have hIL := walImg_length_ge hIimg
+  have hiI := initSegs_tailImg Mr d nI hsorted hLH
+  have hiI0 : initSegs { d with H := I0 } lay.cuts = initSegs d lay.cuts :=
+    initSegs_of_take hsorted (walImg_take hI0 hLm)
+  have hlastI : lastRecs C Mr { d with H := tailImg Mr d lay.cuts nI } lay.cuts = R.take j := by
+    rw [lastRecs_tailImg C Mr d _ hsorted hLH, hR, hnI, Nat.add_sub_cancel' hhdr]
+  refine Or.inr ⟨q, tailImg Mr d lay.cuts nI, hent, hq, hinos,
+    hIimg, by omega, ?_, ?_, ?_⟩
+  · exact Nat.le_min.2 ⟨(Nat.le_min.1 hpur).1,
+      Nat.le_trans (segStart_le_length hsorted _) (by omega)⟩
+  · intro k g' hk hkc
+    have hne : g'.ino ≠ g.ino := by
+      intro he
+      have hcl := habs.cuts.2.2
+      have h1 : (lay.segs.map (·.ino))[q + k]? = some g.ino := by
+        rw [List.getElem?_map, ← List.getElem?_drop, hk]; simp [he]
+      have h2 : (lay.segs.map (·.ino))[lay.segs.length - 1]? = some g.ino := by
+        rw [List.getElem?_map, ← List.getLast?_eq_getElem?, hg]; simp
+      have hi1 : q + k < (lay.segs.map (·.ino)).length := by
+        simp only [List.length_map]; omega
+      have hi2 : lay.segs.length - 1 < (lay.segs.map (·.ino)).length := by
+        simp only [List.length_map]; omega
+      have := hnd.eq_of_getElem?_eq hi1 (h1.trans h2.symm)
+      omega
+    rw [← hfo g'.ino hne, hmid k g' hk hkc]
+    unfold segStream
+    rw [segRecs_init_congr C Mr (d := { d with H := I0 })
+      (d' := { d with H := tailImg Mr d lay.cuts nI }) rfl
+      (hiI.trans hiI0.symm) hkc]
+  · intro g'' hg''
+    rw [hg] at hg''
+    cases hg''
+    have e1 : segStream C Mr { d with H := tailImg Mr d lay.cuts nI } lay.cuts lay.cuts.length = recFrames C (R.take j) := by
+      show recFrames C (lastRecs C Mr _ lay.cuts) = _
+      rw [hlastI]
+    have e2 := chainEnd_allRecs_split C Mr { d with H := tailImg Mr d lay.cuts nI } lay.cuts
+    have e3 : lastC0 C Mr { d with H := tailImg Mr d lay.cuts nI } lay.cuts = lastC0 C Mr d lay.cuts := by
+      unfold lastC0; rw [hiI]
+    rw [hlastI, e3] at e2
+    simp only [imgOf, hf, Option.map_some, Option.getD_some]
+    rw [e1]
+    refine ⟨hpre, fun r len c' => ?_⟩
+    have := hrej r len c'
+    rwa [← e2] at this
+
+end crash
 
 end WalFs
 end EtcdGrove
