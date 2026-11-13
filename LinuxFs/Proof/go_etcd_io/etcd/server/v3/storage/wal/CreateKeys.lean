@@ -387,6 +387,35 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
   [W : WalGS GF]
 
+/-- The pipeline names parked with the flag `true` are parked with it `false`. -/
+theorem walTmpParked_unpark (Ls : GMap GoString WalLay) :
+    walTmpParked (G := G) (L := L) Ls true ⊢ walTmpParked (G := G) (L := L) Ls false := by
+  unfold walTmpParked
+  iintro ⟨%Jt, %T, %hp, Hm⟩
+  iexists Jt, T
+  iframe Hm
+  ipureintro
+  exact ⟨fun h => (by cases h), hp.2⟩
+
+/-- **Taking the lock with everything parked** (`Create`'s commit, the creating entry's free lock
+token back): the flag goes `false`, nothing out yet. -/
+theorem walParked_lock (Ls : GMap GoString WalLay) (cl : List Claim) :
+    ⊢ walParked (L := L) (W := W) Ls cl -∗ walUnlockedTok (W := W) ==∗
+      walParked (L := L) (W := W) Ls cl ∗ walLockedTok (W := W) := by
+  unfold walParked
+  iintro ⟨%b, %O, %D, Ha, %hb, Hs, Hc, Ht⟩ Hu
+  imod walUnlockedTok_lock (W := W) b $$ Ha Hu with ⟨%hbt, Ha, Hl⟩
+  subst hbt
+  obtain ⟨rfl, rfl⟩ := hb rfl
+  imodintro
+  iframe Hl
+  iexists false, [], []
+  iframe Ha Hs Hc
+  isplitr
+  · ipureintro; intro h; cases h
+  iapply walTmpParked_unpark
+  iexact Ht
+
 /-- **The parked halves after the commit** (the lock token's flag `false`): the new segment's
 inode and `J`'s claim out (`O`, `D`), the rest as before. -/
 theorem walParked_create (Ls : GMap GoString WalLay) (cl : List Claim)

@@ -258,7 +258,7 @@ theorem walInvBody_drop (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
   icases HCRa with ⟨HCRa, Hor⟩
   icases Hor with (%hCR0 | ⟨-, Hl⟩)
   rotate_left
-  · iexfalso; iapply walLockedTok_unlocked_excl $$ Hl Hu
+  · iexfalso; iapply walUnlockedTok_excl $$ Hl Hu
   subst hCR0
   unfold walParked
   icases Hpk with ⟨%bp, %O, %D, Hpa, %hOD, Hsegs, Hpc, Htp⟩
