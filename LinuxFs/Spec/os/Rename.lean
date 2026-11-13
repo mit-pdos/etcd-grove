@@ -16,7 +16,8 @@ fraction keeps it so) and fails: the error is non-nil, the outcome the logged on
   the generation's `notCrashed`; it gives `specFileS`.
 * `os.Rename.specDirS`: the directory `d/bs` (inode `J`) to the free name `d/bt`, both in one
   claim, with the whole call permission (no other call in flight; the WAL's `Create` and
-  `cleanupWAL`). `os.Rename.specDirSnc`: the same with `osAUnc` (it gives `specDirS`).
+  `cleanupWAL`); the call begins after any log lower bound `lb` the caller holds (`Create`'s commit
+  needs it of the claims it does not pass, the new directory's). `os.Rename.specDirSnc`: the same with `osAUnc` (it gives `specDirS`).
 
 Each returns the caller's fractions as the outcome left them. Proved in `Proof/os/Rename.lean`.
 Lean-first (no Rocq counterpart).
@@ -92,40 +93,41 @@ abbrev os.Rename.specFileSnc : Prop :=
       ∃ o, ⌜err = interface.nil → o.isSome⌝ ∗ Q o ∗
         renFileOut j j' i N N' bs bt h h' (DFrac.own q1) (DFrac.own q2) o }}
 
-/-- The claim of a directory rename after an outcome, with fraction `dq`. -/
-def renDirOut (j J : Ino) (N : NameSet) (bs bt : GoString) (h : NamesH) (dq : DFrac)
+/-- The claim of a directory rename after an outcome, with fraction `dq`; the call began at least at
+`lb` (a log lower bound the caller held). -/
+def renDirOut (j J : Ino) (N : NameSet) (bs bt : GoString) (h : NamesH) (dq : DFrac) (lb : Nat)
     (o : Option (Nat × Nat)) : IProp GF :=
-  iprop(logOut 0 (renDirEnt j bs bt J) o ∗
+  iprop(logOut lb (renDirEnt j bs bt J) o ∗
     claimOut j N dq h (renDirEnt j bs bt J)
       (restrictN N (<[bt := .dir J]> (GMap.delete bs h.cur))) o)
 
 /-- See the file header. -/
 abbrev os.Rename.specDirS : Prop :=
   ∀ (d bs bt : GoString) (j J : Ino) (N : NameSet) (R : Roots) (qd : Qp) (h : NamesH)
-    (q r : Qp) (Q : Option (Nat × Nat) → IProp GF),
+    (q r : Qp) (lb : Nat) (Q : Option (Nat × Nat) → IProp GF),
   NameOk bs → NameOk bt → N.Mem bs → N.Mem bt → bs ≠ bt →
   h.cur !! bs = some (.dir J) → h.cur !! bt = none → q + r = 1 →
   {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ osCallPerm 1 ∗
-      osNames j N (DFrac.own q) h ∗
-      osAU (osNames j N (DFrac.own r) h) (renDirOut j J N bs bt h (DFrac.own r)) Q }}
+      osLogLb lb ∗ osNames j N (DFrac.own q) h ∗
+      osAU (osNames j N (DFrac.own r) h) (renDirOut j J N bs bt h (DFrac.own r) lb) Q }}
     (App (App (Val (@! os.Rename)) (Val #(child d bs))) (Val #(child d bt)))
   {{ (err : GoInterface), RET #err; osPathS R d (DFrac.own qd) j ∗ osCallPerm 1 ∗
-      ∃ o, ⌜err = interface.nil → o.isSome⌝ ∗ Q o ∗ renDirOut j J N bs bt h (DFrac.own q) o }}
+      ∃ o, ⌜err = interface.nil → o.isSome⌝ ∗ Q o ∗ renDirOut j J N bs bt h (DFrac.own q) lb o }}
 
 /-- `specDirS` with `osAUnc` (`Proof/os/SharedAu.lean`): its opening gets the generation's
 `notCrashed`, so a client can open an invariant with a crash branch (the WAL's `walInv`) at it; it
 gives `specDirS` (`osAU_osAUnc`). -/
 abbrev os.Rename.specDirSnc : Prop :=
   ∀ (d bs bt : GoString) (j J : Ino) (N : NameSet) (R : Roots) (qd : Qp) (h : NamesH)
-    (q r : Qp) (Q : Option (Nat × Nat) → IProp GF),
+    (q r : Qp) (lb : Nat) (Q : Option (Nat × Nat) → IProp GF),
   NameOk bs → NameOk bt → N.Mem bs → N.Mem bt → bs ≠ bt →
   h.cur !! bs = some (.dir J) → h.cur !! bt = none → q + r = 1 →
   {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ osCallPerm 1 ∗
-      osNames j N (DFrac.own q) h ∗
-      osAUnc (osNames j N (DFrac.own r) h) (renDirOut j J N bs bt h (DFrac.own r)) Q }}
+      osLogLb lb ∗ osNames j N (DFrac.own q) h ∗
+      osAUnc (osNames j N (DFrac.own r) h) (renDirOut j J N bs bt h (DFrac.own r) lb) Q }}
     (App (App (Val (@! os.Rename)) (Val #(child d bs))) (Val #(child d bt)))
   {{ (err : GoInterface), RET #err; osPathS R d (DFrac.own qd) j ∗ osCallPerm 1 ∗
-      ∃ o, ⌜err = interface.nil → o.isSome⌝ ∗ Q o ∗ renDirOut j J N bs bt h (DFrac.own q) o }}
+      ∃ o, ⌜err = interface.nil → o.isSome⌝ ∗ Q o ∗ renDirOut j J N bs bt h (DFrac.own q) lb o }}
 
 end spec
 
