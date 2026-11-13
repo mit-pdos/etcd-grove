@@ -57,6 +57,10 @@ instance connAt_persistent (t : Loc) (cn : Nat) (s : Bool) (a : GoString) :
     Persistent (connAt (GF := GF) t cn s a) := by
   unfold connAt; infer_instance
 
+theorem connAt_conn (t : Loc) (cn : Nat) (s : Bool) (a : GoString) :
+    connAt (GF := GF) t cn s a ⊢ tcpConnAt (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn a := by
+  unfold connAt; exact sep_elim_right
+
 /-- The `Conn` `c` is the end `s` of the connection `cn`, dialed to `a`: a `*TCPConn` `t` with
 `connAt t cn s a`. A method call on `c` resolves (`wp_auto`, once `c` is destructed) to the
 `*TCPConn`'s method, the form the `Conn` specs are stated in. -/

@@ -187,8 +187,8 @@ theorem server_write_au (γm : GName) (cn : Nat) (γ : GName) (bs si : GoString)
     (r : Nat) (hbs : bs <+: si) :
     ⊢ inv echoN (echoState (G (hG := hG)) γm) -∗ echoName G γm cn γ -∗ echoTok G γ -∗
       tcpOutLb G cn false si -∗ tcpEnd G cn true st r -∗
-      |={⊤,∅}=> ∃ st r out f, tcpEnd G cn true st r ∗ tcpOut G cn true out f ∗
-        ∀ k ok st', ⌜WriteRes st bs k ok st'⌝ -∗ tcpEnd G cn true st' r -∗
+      |={⊤,∅}=> ∃ st0 r0 out f, tcpEnd G cn true st0 r0 ∗ tcpOut G cn true out f ∗
+        ∀ k ok st', ⌜WriteRes st0 bs k ok st'⌝ -∗ tcpEnd G cn true st' r0 -∗
           tcpOut G cn true (out ++ bs.take k) f ={∅,⊤}=∗ ∃ st', tcpEnd G cn true st' r := by
   iintro #Hinv #Hname Htok #Hsi Hend
   imod echoState_acc γm cn γ ⊤ (by simp) $$ Hinv Hname with ⟨Hc, Hclose⟩
