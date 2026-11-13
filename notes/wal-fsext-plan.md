@@ -571,6 +571,26 @@ The integration build of `wal-int` needed two fixes: `crashRestAt` (CrashTakeFil
   `CrashGood` record each new layout's inodes a sublist of the old one's; `segsAll_nodup_iff`/`_sub`).
 
 
+**Fourth session (branch `wal-nc`, 2026-11-13): `walInv` with Perennial's crash token (§11).** Perennial's
+Lean port has no fractional `NC q`/`C`: its crash token is `notCrashed` (whole, owned by the state
+interpretation, `gooseBstateInterp`) and the persistent `crashed` (`Perennial/GooseLang/CrashToken.lean`;
+`goose_crash_adequacy` hands the old generation's `crashed` to the crash obligation). `crashed` alone cannot
+replace the WAL's token in the invariant (it is persistent, so it would not stop `walInv_crash` from finding
+the crash branch), so the invariant's second branch holds both:
+`walInv := inv walN ((∃ s, walInvBody s) ∨ (crashed (hC := L.goose_crashGS) ∗ walCrashTok))`.
+- `walInv_open` (new, `Inv.lean`): `walInv -∗ notCrashed ={E, E \ ↑walN}=∗ (∃ s, walInvBody s) ∗ notCrashed
+  ∗ ((∃ s, walInvBody s) ={E \ ↑walN, E}=∗ True)` (`notCrashed_crashed` excludes the crash branch).
+- `walInv_crash` takes `crashed` (old generation) beside `walCrashTok`, and closes the invariant with both;
+  `walInv_alloc` allocates the new shape; the `_keep` lemmas and `walInvBody_named` are unchanged (not over
+  `walInv`).
+- **Open (for every W-unit that opens `walInv`):** an operation has `notCrashed` only inside a step (the
+  state interpretation), and the `os` specs' atomic updates (`osAU`, `wp_au_step`) are opened by
+  `wp_atomic` before the step, without it. Needed: a lifting lemma giving a step's pre-update access to
+  `notCrashed` (for a non-value `e`: `(notCrashed -∗ |={E}=> notCrashed ∗ WP e @ E {{Φ}}) ⊢ WP e @ E {{Φ}}`,
+  from the WP's unfolding; Perennial) and an `osAU` whose opening receives it (`notCrashed -∗ |={osAuMask,
+  ∅}=> α ∗ notCrashed ∗ …`, `LinuxFs/Proof/os/SharedAu.lean`), so that the WAL's update, opened inside the
+  `os` update, can call `walInv_open`. Not done here.
+
 ## 9. The trusted-model drafts (2026-11-13, branch `wal-models`; pending the user's review [user])
 
 The WAL and fileutil retranslated from the fork's `goose-lean-walfs` (`f15d88841`, the two local fixes
