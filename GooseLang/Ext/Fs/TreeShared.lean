@@ -35,6 +35,7 @@ public import GooseLang.Ext.Fs.TreeSharedCrash
 public import GooseLang.Ext.Fs.TreeSharedLaws
 public import GooseLang.Ext.Fs.TreeSharedClaims
 public import GooseLang.Ext.Fs.TreeSharedDirFd
+public import GooseLang.Ext.Fs.TreeSharedCallEnd
 
 @[expose] public section
 
@@ -181,8 +182,8 @@ theorem wp_osUnlinkS_none (R : Roots) (d b : GoString) (j : Ino) (dq dqn : DFrac
       osNames (L := L) j (.only [b]) dqn h -∗ osCallS (L := L) k s0 q -∗
       (∀ e : w64, ⌜e ≠ 0⌝ -∗ osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
         osNames (L := L) j (.only [b]) dqn h -∗ Φ (#e)) -∗
-      WP (ExternalOp fsExt.name "Unlink" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} := by
-  sorry
+      WP (ExternalOp fsExt.name "Unlink" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} :=
+  wp_osUnlinkS_none' R d b j dq dqn h k s0 q hb hi hE hE' Φ
 
 /-- **`rename(2)`** of the file `d/bs` (inode `i`) onto `d'/bt` (a file or nothing), the names in
 two claims (of `j` and `j'`; distinct keys). -/
@@ -247,8 +248,8 @@ theorem wp_osRenameAbsentS (R : Roots) (d bs d' bt : GoString) (j j' : Ino) (N :
       (∀ e : w64, ⌜e ≠ 0⌝ -∗ osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
         osPathS (L := L) R d' dq' j' -∗ osNames (L := L) j N dqn h -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Rename" (Val (PairV (osTokV k)
-        (PairV (#(child d bs)) (#(child d' bt)))))) @ s; E {{ Φ }} := by
-  sorry
+        (PairV (#(child d bs)) (#(child d' bt)))))) @ s; E {{ Φ }} :=
+  wp_osRenameAbsentS' R d bs d' bt j j' N dq dq' dqn h k s0 q hbs hbt hN hsrc hE hE' Φ
 
 /-- **`mkdir(2)`** of the free name `d/b`, by a call holding the whole call permission: the new
 directory `J` comes with a claim on all its names. -/
@@ -289,8 +290,8 @@ theorem wp_osRmdirS_none (R : Roots) (d b : GoString) (j : Ino) (dq dqn : DFrac)
       osNames (L := L) j (.only [b]) dqn h -∗ osCallS (L := L) k s0 q -∗
       (∀ e : w64, ⌜e ≠ 0⌝ -∗ osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
         osNames (L := L) j (.only [b]) dqn h -∗ Φ (#e)) -∗
-      WP (ExternalOp fsExt.name "Rmdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} := by
-  sorry
+      WP (ExternalOp fsExt.name "Rmdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} :=
+  wp_osRmdirS_none' R d b j dq dqn h k s0 q hb hi hE hE' Φ
 
 /-- **`lstat(2)`'s "is it a directory"** of `d/b`, with a fraction of the claim on `b`. -/
 theorem wp_osLstatDirS (R : Roots) (d b : GoString) (j : Ino) (dq dqn : DFrac) (h : NamesH)
@@ -302,8 +303,8 @@ theorem wp_osLstatDirS (R : Roots) (d b : GoString) (j : Ino) (dq dqn : DFrac) (
         osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
         osNames (L := L) j (.only [b]) dqn h -∗ Φ (PairV (#isDir) (#e))) -∗
       WP (ExternalOp fsExt.name "LstatDir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E
-        {{ Φ }} := by
-  sorry
+        {{ Φ }} :=
+  wp_osLstatDirS' R d b j dq dqn h k s0 q hb hE hE' Φ
 
 /-! ## Opens -/
 
