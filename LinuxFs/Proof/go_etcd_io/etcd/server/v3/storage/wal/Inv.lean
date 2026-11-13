@@ -106,13 +106,18 @@ instance SegFl.countable : Pos.Countable SegFl :=
 
 /-- **The segment `g` as the write in flight `fl` announced it**: the write inside the segment
 (the WAL writes its tail inside the preallocated file), not empty; `g`'s `OsMeta` the token's
-(`cfMeta`), its bytes `fl.bs` with the data's candidates added to the written range (`pwAnn`). -/
+(`cfMeta`), its bytes `fl.bs` with the data's candidates added to the written range (`pwAnn`); and
+the write past the segment's first byte (`0 < fl.off`: the tail's writes come after its header
+records, synced when the segment was named), so that the invariant keeps half of byte 0 of every
+segment, idle or written to: a file the program holds byte 0 of wholly (a segment it creates) is
+none of them (`laysResF_ino_ne`, `InvInos.lean`; the inode-clash gap of `Create`'s and `cut`'s
+commits). -/
 def SegFl.Ok (fl : SegFl) (g : SegG) : Prop :=
   fl.off + fl.data.length ≤ fl.m.size ∧ fl.data ≠ [] ∧ fl.bs.length = fl.m.size ∧
   fl.m.cut = none ∧ g.om = cfMeta fl.m fl.off fl.data.length ∧
   g.bs = fl.bs.take (cfLo fl.m fl.off) ++
     pwAnn fl.data fl.n (cfRange fl.m fl.bs fl.off fl.data.length) ++
-    fl.bs.drop (cfHi fl.m fl.off fl.data.length)
+    fl.bs.drop (cfHi fl.m fl.off fl.data.length) ∧ 0 < fl.off
 
 /-- **What the program and the invariant share of an open handle's tail** (half each): the history,
 the metadata, the cuts, the write position, the tail's inode, the write in flight on it if any. -/
