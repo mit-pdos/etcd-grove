@@ -31,7 +31,9 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.NewFileBufReader.wp_proof
   wp_auto
   wp_apply HNew ri S E r hty $$ [HS] as %b Hb
   · iframe
-  wp_apply HFI as %fi %err HQ
+  ihave ⟨%q, HS, Hcl⟩ := bufio.ownReader_open b ri S E r $$ Hb
+  wp_apply HFI $$ %(r ++ q) HS as %fi %err ⟨HS, HQ⟩
+  ihave Hb := Hcl $$ HS
   iapply HΦ
   iexists b, fi, err
   iframe

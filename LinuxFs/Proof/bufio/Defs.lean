@@ -20,7 +20,7 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI
+open Iris Iris.BI Iris.ProofMode
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -39,6 +39,20 @@ def bufio.ownReader (b : Loc) (ri : GoInterfaceOk) (S : List w8 → IProp GF)
       sint.nat v.w' ≤ bs.length ∧ 0 < bs.length ∧ bs.length ≤ 2 ^ 12⌝ ∗
     S (r ++ subslice (sint.nat v.r') (sint.nat v.w') bs) ∗
     ⌜v.err' ≠ GoInterface.nil → E (r ++ subslice (sint.nat v.r') (sint.nat v.w') bs) v.err'⌝)
+
+/-- The underlying stream's state, lent out of the reader (`r` and its buffered bytes `q`). -/
+theorem bufio.ownReader_open (b : Loc) (ri : GoInterfaceOk) (S : List w8 → IProp GF)
+    (E : List w8 → GoInterface → Prop) (r : List w8) :
+    bufio.ownReader b ri S E r ⊢ ∃ q : List w8, S (r ++ q) ∗ (S (r ++ q) -∗ bufio.ownReader b ri S E r) := by
+  unfold bufio.ownReader
+  iintro ⟨#Hpkg, %v, %bs, Hv, Hbuf, %Hwf, HS, %Herr⟩
+  iexists subslice (sint.nat v.r') (sint.nat v.w') bs
+  iframe HS
+  iintro HS
+  iframe Hpkg
+  iexists v, bs
+  iframe
+  ipureintro; exact ⟨Hwf, Herr⟩
 
 end defs
 
