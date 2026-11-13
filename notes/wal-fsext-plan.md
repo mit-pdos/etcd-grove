@@ -463,3 +463,60 @@ it lands with the first proofs.
   whose entries apply to the read with commit ≤ last; the received-snapshot `Save` (the one raising the commit
   to the snapshot just saved) is not covered yet. The tester's generator (opEntries/opResend/opRecvSnap) only
   saves entries contiguous with its log, so it never produces the deviating order (CP1 saw none).
+
+## W1 implementation log (branch `wal-inv`, 2026-11-13)
+
+Modules (`LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/`, namespace `Perennial.EtcdGrove.WalFs`):
+`W1` (the premise), `Ghost` (names and vocabulary), `Abs` (layout, `WalAbsD`, `CrashTo`, `CrashOk`),
+`Inv` (`walInv`), `Crash` (`walInv_crash`, `walInv_alloc`, the `_keep` lemmas).
+
+**Proved:** every law of the vocabulary (`Ghost`: `walDiskAt_weaken`, `walOwn_excl`, `walDirIs_excl`,
+`_mono`, `walOwn_agree`, `walGhost_upd`/`_upd_lag`, `walGhost_init`, ...); `W1Sat`; the frame bounds;
+`w1G_of_W1` (W1 over the state gives it over the invariant's ghost candidates); **`walInv_crash`'s Iris
+proof** (open with the crash token, `crashRest_region`, the segments, the new generation), over two
+pure/FS lemmas; the six `_keep` lemmas with `AbsDisk`'s statements, over `walCrashWal`.
+**`sorry`:** `walCrash_pure` (the crash's pure core: `CrashOk` per WAL → `CrashTo` → the crashed
+state `s'` with `walStCrash s s'` and the new layouts; the plan is in its docstring and below),
+`crashRest_take_files` (I3), `walAbs_crashOk_start` (the new generation's `CrashOk`), `walInv_alloc`.
+
+**Design changes against §2.1-§2.5:**
+- *Reuse, not copy*: the generic parts of `AbsDisk/Specs.lean` (`AbsDiskState`, `absLe`, `walMapLe`,
+  `walDurLe`, `WalMode`, `walOwnAt`, `absPastAt`/`absPastAuth` and their lemmas, `absDisk_local_init`)
+  are imported; `WalGS` wraps an `AbsDiskGS` plus this layer's handle maps and crash token. When `AD/`
+  goes, these move into `Ghost.lean`. `walStCrash := absDisk_semantics.crash` (the relation, now a
+  conclusion).
+- *Crash token*: `walInv` is `inv (body ∨ walCrashTok)`. The crash obligation cannot keep the old
+  authorities and close the invariant with them; `walInv_crash` takes the token, closes the invariant
+  with it, and hands the old authorities out in `walCrashWal` (the analog of `absDiskCrashWal`), from
+  which the `_keep` lemmas convert old facts.
+- *Two-phase restart*: the new generation starts in legacy mode (I2), so `walInv_crash` cannot build the
+  next `walInv` (it needs claims, which exist only after `wp_osShare`). It returns `walStart` (the ghost
+  authorities, every segment's `osFileStartO`, the layouts' static relation over the crashed tree); the
+  boot program builds `walInv` with `walInv_alloc` after the switch and `osNames_split`.
+- *`CrashTo` is literal*, not only a decode outcome: the kept non-last segments' images are exactly the
+  image history's frames, the last one starts with them and the reader stops there. The new
+  generation's `WalAbsD` needs literal bytes; the decode outcome follows by the encoding layer
+  (`walDecodeFiles_walImg`/`_suffix`). This rests on W1 plus "the byte under a frame of this generation
+  is a zero" (`WalAbsD.last`'s `old` clause), which also covers the padding.
+- *Fields the crash forced into `WalAbsD`*: `lastSynced` (every segment but the last synced, so the cuts
+  survive every crash image), `fit` (`RecsFit`), `tailStop`, and `metas` with `lo = hi = size` (else an
+  image byte past the ghost bytes has no ghost candidates and W1 cannot be transported).
+- *W1's text* (`W1.lean`): over every directory's `.wal` files in name order, every fresh reader from
+  any of them; each accepted frame's **core** (length word and record bytes, not the padding) as of
+  the last sync, or as of a change `n > 0` by which each byte was written. **For the review:** the CRC
+  covers `Data` only, so a tear confined to the `Type` field passes with no collision; W1 excludes such
+  crashes and the CRC evidence does not justify that (the file header says when it matters).
+- **I2/I3 API gaps:** (1) `crashRest_take_runs_keep` gives each file its own existential crashed state;
+  W1 is a premise over several files at once, so `walInv_crash` needs one state for all segments
+  (`crashRest_take_files`, stated here, belongs in `FS/CrashTok.lean`, I3). (2) `crashRest` does not
+  relate `st'.fs.treeDur` to `V'` (needed to read W1's directory listing as the crashed tree):
+  `crashRest_take_files` states it. I2's statements otherwise fit (`crashRest_region`, `osClaims`).
+- *Not yet in `walInv`*: a write in flight (its token, as `cfInv`'s `invRes`), the pipeline's `N.tmp`
+  claims, `Create`'s `dir.tmp`; W2-W6 add them.
+
+**`walCrash_pure`'s plan:** per WAL, `w1G_of_W1` (sizes from `FileCrashedR` and `metas`) and `CrashOk`
+give `CrashTo`; `s'.wal dir` is `none` (left) or `{d with H := I, cut := segStart (first+q), unl/pur
+clamped}` (right), so `walStCrash s s'`; the new layout keeps the cuts, `segs.drop q` with `initMeta` and
+`contents.map durB` of each kept file (named in `m'`, so `isSome`), `old` the last image, `wr = so = z0 =
+|S'|`. Lemmas needed: `walCutPos` and `walLastIdx` under a prefix of the history, the last segment's
+records of `I.take m` a prefix of `I`'s, `RecsFit` of a prefix.
