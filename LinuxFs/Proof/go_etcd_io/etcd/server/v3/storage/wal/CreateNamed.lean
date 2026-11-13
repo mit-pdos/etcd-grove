@@ -249,7 +249,7 @@ theorem walInvBody_named (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     · ipureintro; exact Hco
     iframe Hcr
     isplitl [Htl]
-    · iapply walTailsRes_mono s (setNamed s dir) Ls F ?_ $$ Htl
+    · iapply walTailsRes_mono C Mr s (setNamed s dir) Ls F ?_ $$ Htl
       intro dir' d' hd'
       by_cases hdd : dir' = dir
       · subst hdd; rw [hd] at hd'; cases hd'; exact ⟨_, hdn, rfl, rfl⟩
