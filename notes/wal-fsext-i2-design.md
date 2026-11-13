@@ -939,3 +939,47 @@ Churn: every `treeShared` open/close (~40 sites in 11 files of `GooseLang/Ext/Fs
 `TreeCohS` constructions (`treeCohS_metaEnd`, the switch, `CallBegin`, the logging lemmas). Then
 `os.RemoveAll`'s spec (the recursive `removeAllFrom` with its passes, reads and `rmdir`) is a
 separate, large proof. Until then no spec of `RemoveAll` of a directory is provable.
+
+### Implementation log, `os.MkdirAll` (branch `wal-osau4-mkdirall`, 2026-11-13)
+
+Done, proved (no `sorry`), the six steps of the plan above:
+
+- `LinuxFs/Proof/os/PathKindS.lean` (extension level, beside `SharedExt.lean`): **`wp_osPathKindS`**,
+  `PathKind(p)` in the shared mode for a path of the roots (`PathIn R p`: a root and valid
+  components): `#1` iff `RootsTreeName R p` (strictly below a root), else `#0`; nothing changes. The
+  roots are `R` from the shared invariant's `γs` element against `treeShared`'s authority; the legacy
+  mode is excluded by its empty `γs` authority. Over `wp_fs_stepM` directly, as `wp_osFdKindDirS'`.
+- `LinuxFs/Proof/os/MkdirAllParts.lean`: `os.parentModel` (the two loops as `trailIdx`/`backIdx`) with
+  `os.model.wp_mkdirAllParent` (any path) and `os.parentModel_child` (`d/b` ↦ `d`);
+  `os.model.wp_mkdirAllAbove` (no step: `nil` or an error, any path; Löb generalizing the path and
+  the postcondition); `os.Mkdir.wp_takenS` (`Mkdir` of a taken name with a fraction `qc` of the call
+  permission: an error, no effect); **`os.MkdirAll.wp_spineS`**: `MkdirAll(joinPath r cs)` of an
+  existing directory (a spine `osSpine j0 cs dq J`), any `qc`, by induction on `cs` reversed: `nil` or
+  an error, nothing changes (a root: `PathKind` 0, `mkdirAllAbove`; below: `Stat`, then the parent's
+  `MkdirAll`, `Mkdir` of the taken name, `Lstat`, `IsDir`). Spine helpers: `os.osSpine_unsnoc`,
+  `os.osPathS_joinPath` (a spine path is its components' spine), `os.osPathS_unchild` (a spine to
+  `d/b` and one to `d` give back the whole spine to `d` and the claim on `b`); `os.qp_common`.
+- `LinuxFs/Spec/os/MkdirAll.lean`, proof `LinuxFs/Proof/os/MkdirAll.lean`: **`os.MkdirAll.specS`**,
+  `MkdirAll(d/b)` with `b` absent, `osCallPerm 1`, the claim on `b` split caller (`q`) / atomic update
+  (`r`) exactly as `os.Mkdir.specS` (same `mkOut`/`mkNew`, outcome `Option (x, s, J)`), post
+  `⌜err = nil → o.isSome⌝`. What the model allows: `MkdirAll(d)` fails (`Stat(d)` fails and so on up,
+  or `IsDir` false: `ENOTDIR`, or `mkdirAllAbove`'s arbitrary errno) → the update commits with `none`
+  by a fancy update (`os.osAU_commit_none`, no step), the error returned; else `os.Mkdir.wp_proofS`;
+  a failed `Mkdir` is followed by `Lstat(d/b)`: with `none` (`b` still absent) an error; with `some`
+  (the `mkdir` logged, then an error, e.g. `EEXIST` after an effectful `EINTR`) `Lstat` through a spine
+  to the new directory (fractions of the spine and of the caller's claim), and `IsDir` decides
+  between `nil` and the `Mkdir` error.
+
+Statement change (from `os.Mkdir.specS`): the spine to `d` is `osPathS R d (DFrac.own qd) j`, not any
+`dq`: the `Lstat` of `d/b` needs `osPathS_child`, which takes the spine and the claim at one fraction;
+the proof takes a common part of `qd` and the caller's `q` (`os.qp_common`) and gives both back
+(`os.osPathS_unchild`).
+
+Translation changes (trust base shrinks: two untranslated-constant axioms become Go's values):
+`os.PathSeparator` (`LinuxFs/Code/os.toml`, `'/'`, which `IsPathSeparator` compares with) and
+`io/fs.ModeDir` (`LinuxFs/Code/io/fs.toml`, `1 << 31`, which `FileMode.IsDir` tests) are translated;
+both were `axiom … : val`, with which `MkdirAll`'s parent loop and `IsDir` could not step.
+`go.NotInterface go.uint32` is a local instance (`notes/perennial-changes.md`, the `go.int64` entry).
+
+Not done: multi-component `MkdirAll` (an absent component above `b`; the WAL does not need it);
+`fmtErrorOkOrNil` of the returned errors.
