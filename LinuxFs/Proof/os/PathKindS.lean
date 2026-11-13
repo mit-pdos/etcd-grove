@@ -85,7 +85,7 @@ theorem wp_osPathKindS (R : Roots) (p : GoString) (hp : PathIn R p) (hE : ↑osN
     icases gAuth_lookup _ _ _ _ _ _ $$ Has Hs with %hl
     simp at hl
   unfold treeShared
-  icases Hm with ⟨%V0, %s0, %Γdf, %Γc, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr⟩
+  icases Hm with ⟨%V0, %s0, %Γdf, %Γc, %Γg, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
   obtain ⟨hw, hc⟩ := hns
   icases gAuth_lookup _ _ _ _ _ _ $$ Has Hs with %hVs
   simp only [histMap, GMap.lookup_singleton_eq, Option.some.injEq, Prod.mk.injEq] at hVs
@@ -120,12 +120,12 @@ theorem wp_osPathKindS (R : Roots) (p : GoString) (hp : PathIn R p) (hE : ↑osN
   iexists Γb, Γm, Γf, Γt
   isplitl [Hw]
   · unfold osWorld; iexact Hw
-  isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr Hcm]
+  isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr HAg Hgr Hcm]
   · try unfold treeCtx
     iframe Hcm
     iright
     try unfold treeShared
-    iexists V0, s0, Γdf, Γc
+    iexists V0, s0, Γdf, Γc, Γg
     iframe
     ipureintro; exact ⟨hw, hc⟩
   have hTN : st.TreeName p ↔ RootsTreeName R p := by subst hR; rfl

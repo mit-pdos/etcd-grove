@@ -19,6 +19,10 @@ The resources (all of the generation's ghost state):
 * `osCallPerm q`, `osCallS t s q`: a fraction of the call permission; the call `t` in flight, begun
   at the log's length `s`, holding `q` of the permission. A directory operation (`mkdir`, `rmdir`,
   a directory's rename) needs a call holding all of it (`DirOpExcl`).
+* `osGuardS t s g`: the guard call `t` in flight (begun at the log's length `s`, holding `g` of the
+  permission): a call that never logs, ended by `LstatDir`; while it is in flight no directory is
+  renamed, and a `mkdir`/`rmdir` may be done by a call holding the rest of the permission, begun no
+  earlier (`wp_osMkdirSG`, `wp_osRmdirSG`). `os.RemoveAll`'s model holds one.
 * `osLogLb n`, `osLogEnt x e`: the log has at least `n` entries; its entry `x` is `e` (persistent).
 * `osDirFdS fd j ph`: the shared directory fd `fd`, on the directory `j`, its read at `ph`.
 
@@ -40,6 +44,7 @@ public import GooseLang.Ext.Fs.TreeSharedOpenDir
 public import GooseLang.Ext.Fs.TreeSharedMeta
 public import GooseLang.Ext.Fs.TreeSharedRead
 public import GooseLang.Ext.Fs.TreeSharedCreate
+public import GooseLang.Ext.Fs.TreeSharedGuard
 
 @[expose] public section
 
@@ -163,6 +168,27 @@ theorem wp_osCallBeginS (R : Roots) (q : Qp) (n : Nat) (hE : ↑osN ⊆ E) (hE' 
       WP (ExternalOp fsExt.name "CallBegin" (Val (#()))) @ s; E {{ Φ }} :=
   wp_osCallBeginS' R q n hE hE' Φ
 
+/-- **`CallBegin()` of a guard** in the shared mode, with a fraction `g` of the call permission: a
+guard call in flight holding it, begun at a log length `s0` at least any the caller knew. -/
+theorem wp_osCallBeginGuardS (R : Roots) (g : Qp) (n : Nat) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E)
+    (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osCallPerm (L := L) g -∗ osLogLb (L := L) n -∗
+      (∀ (t s0 : Nat), ⌜n ≤ s0⌝ -∗ osGuardS (L := L) t s0 g -∗ osLogLb (L := L) s0 -∗
+        Φ (osTokV t)) -∗
+      WP (ExternalOp fsExt.name "CallBegin" (Val (#()))) @ s; E {{ Φ }} :=
+  wp_osCallBeginGuardS' R g n hE hE' Φ
+
+/-- **`lstat(2)`'s "is it a directory" ending a guard**, of any path of the roots (a root followed
+by valid components; it need not exist): the guard's fraction back, nothing changes. -/
+theorem wp_osLstatDirGuardS (R : Roots) (p : GoString) (t sg : Nat) (g : Qp)
+    (hp : ∃ r j0 cs, (r, j0) ∈ R ∧ (∀ c ∈ cs, NameOk c) ∧ p = joinPath r cs)
+    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osGuardS (L := L) t sg g -∗
+      (∀ isDir : w64, ∀ e : w64, ⌜isDir = 1 → e ≠ 0⌝ -∗ osCallPerm (L := L) g -∗
+        Φ (PairV (#isDir) (#e))) -∗
+      WP (ExternalOp fsExt.name "LstatDir" (Val (PairV (osTokV t) (#p)))) @ s; E {{ Φ }} :=
+  wp_osLstatDirGuardS' R p t sg g hp hE hE' Φ
+
 /-! ## Metadata steps. Each ends its call (`osCallPerm q` back); a claim written whole, with
 `h.next ≤ s0`. -/
 
@@ -272,6 +298,24 @@ theorem wp_osMkdirS (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : Nam
       WP (ExternalOp fsExt.name "Mkdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} :=
   wp_osMkdirS' R d b j dq h k s0 hb hn hE hE' Φ
 
+/-- **`mkdir(2)` under a guard**: `wp_osMkdirS` with a call holding `q` of the permission and the
+guard `t` (begun no later) the rest. -/
+theorem wp_osMkdirSG (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : NamesH)
+    (k s0 t sg : Nat) (q g : Qp) (hqg : q + g = 1) (hsg : sg ≤ s0) (hb : NameOk b)
+    (hn : h.cur !! b = none) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
+      osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗ osCallS (L := L) k s0 q -∗
+      osGuardS (L := L) t sg g -∗
+      (∀ e : w64, osCallPerm (L := L) q -∗ osGuardS (L := L) t sg g -∗
+        osPathS (L := L) R d dq j -∗
+        ((⌜e ≠ 0⌝ ∗ osNames (L := L) j (.only [b]) (DFrac.own 1) h) ∨
+         ∃ x J, osLogged (L := L) x (⟨.mkdir j b J, s0⟩ : LogEntry) ∗
+           osNames (L := L) j (.only [b]) (DFrac.own 1) (h.log x (⟨.mkdir j b J, s0⟩ : LogEntry) (<[b := .dir J]> h.cur)) ∗
+           ∃ hJ, osNames (L := L) J (.except []) (DFrac.own 1) hJ ∗ ⌜hJ.cur = ∅ ∧ hJ.next = x + 1⌝) -∗
+        Φ (#e)) -∗
+      WP (ExternalOp fsExt.name "Mkdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} :=
+  wp_osMkdirSG' R d b j dq h k s0 t sg q g hqg hsg hb hn hE hE' Φ
+
 /-- **`rmdir(2)`** of the directory `d/b` (inode `J`), empty (its whole claim, with no name), by a
 call holding the whole call permission. -/
 theorem wp_osRmdirS (R : Roots) (d b : GoString) (j J : Ino) (dq : DFrac) (h hJ : NamesH)
@@ -286,6 +330,23 @@ theorem wp_osRmdirS (R : Roots) (d b : GoString) (j J : Ino) (dq : DFrac) (h hJ 
           (e ≠ 0) -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Rmdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} :=
   wp_osRmdirS' R d b j J dq h hJ k s0 hb hd he hE hE' Φ
+
+/-- **`rmdir(2)` under a guard**: `wp_osRmdirS` with a call holding `q` of the permission and the
+guard `t` (begun no later) the rest. -/
+theorem wp_osRmdirSG (R : Roots) (d b : GoString) (j J : Ino) (dq : DFrac) (h hJ : NamesH)
+    (k s0 t sg : Nat) (q g : Qp) (hqg : q + g = 1) (hsg : sg ≤ s0) (hb : NameOk b)
+    (hd : h.cur !! b = some (.dir J)) (he : hJ.cur = ∅)
+    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
+      osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗
+      osNames (L := L) J (.except []) (DFrac.own 1) hJ -∗ osCallS (L := L) k s0 q -∗
+      osGuardS (L := L) t sg g -∗
+      (∀ e : w64, osCallPerm (L := L) q -∗ osGuardS (L := L) t sg g -∗ osPathS (L := L) R d dq j -∗
+        osNames (L := L) J (.except []) (DFrac.own 1) hJ -∗
+        osNamesAfter (L := L) j (.only [b]) h ⟨.remove j b (.dir J), s0⟩ (GMap.delete b h.cur)
+          (e ≠ 0) -∗ Φ (#e)) -∗
+      WP (ExternalOp fsExt.name "Rmdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} :=
+  wp_osRmdirSG' R d b j J dq h hJ k s0 t sg q g hqg hsg hb hd he hE hE' Φ
 
 /-- **`rmdir(2)`** of a name holding nothing or a file: an errno, no effect. -/
 theorem wp_osRmdirS_none (R : Roots) (d b : GoString) (j : Ino) (dq dqn : DFrac) (h : NamesH)
