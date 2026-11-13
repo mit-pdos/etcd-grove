@@ -30,6 +30,7 @@ module
 
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.HandshakeN
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Cut
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.TmpClaim
 public import LinuxFs.Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.LockDefs
 public import LinuxFs.Proof.os.Off
 public import LinuxFs.Proof.os.SharedAu
@@ -82,18 +83,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions]
 
-/-- What a name of the pipeline holds, owned with its claim: nothing, or a file, whole (`trFile`:
-a leftover `N.tmp`, which `alloc`'s `O_TRUNC` open takes whole, `os.OpenFile.wp_truncS`); never a
-directory. -/
-def tmpEnt : Option Node → IProp GF
-  | none => iprop(emp)
-  | some (.file i) => trFile i False
-  | some (.dir _) => iprop(False)
-
-/-- **A whole claim on the name `b` of the directory `j`, holding no directory**, with what it holds
-(absent or a file: `alloc`'s `O_CREAT|O_TRUNC` open makes it a fresh, empty file either way). -/
-def tmpClaim (j : Ino) (b : GoString) : IProp GF :=
-  iprop(∃ h : NamesH, osNames j (.only [b]) (DFrac.own 1) h ∗ tmpEnt (h.cur !! b))
+-- `tmpEnt`, `tmpClaim`: `TmpClaim.lean`.
 
 /-- **The `n`-th file of the pipeline of the directory `dir` (inode `j`), at `lf`**: a locked file
 on the name `pipeTmp n`, open write-only at offset 0, its `OsMeta` (no mappings) and its bytes

@@ -62,7 +62,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.newEncoder.wp_proof
     «$r0_ptr».[go_etcd_io.etcd.server.v3.storage.wal.encoder, go!"mu"] $$ mu [] with #Hmu
   · inext; itrivial
   iapply HΦ
-  isplitr
+  isplitl
   rotate_left
   · ipureintro; exact Hen
   iunfold ownEncoder

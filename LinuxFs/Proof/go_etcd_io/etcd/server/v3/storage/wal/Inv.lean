@@ -39,6 +39,7 @@ module
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Ghost
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Abs
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Cut
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.TmpClaim
 public import GooseLang.Ext.Fs.TreeShared
 public import LinuxFs.Proof.os.CrashFile
 
@@ -300,6 +301,50 @@ def ParkedClaim (Ls : GMap GoString WalLay) (D : List Claim) (c : Claim) : Prop 
 noncomputable instance ParkedClaim.dec (Ls : GMap GoString WalLay) (D : List Claim) (c : Claim) :
     Decidable (ParkedClaim Ls D c) := Classical.propDecidable _
 
+/-- **Every WAL's directory is at its name in the area** (W3/W5's gap 1, framed): in every claim of
+the area directory `jr` holding a WAL's name, the entry there is the WAL's directory. `Open` reads
+the WAL directory's path through it (from its own half of the area claim, `walAreaRes`). Established
+at the start (`WalsStart`), kept by the tail's steps (no claim changes), a cut (the area claims
+unchanged, the WAL directory not the area's) and `Create`'s commit (the rename puts the new WAL's
+directory at its name; the others' names untouched). -/
+def WalsAt (jr : Ino) (Ls : GMap GoString WalLay) (cl : List Claim) : Prop :=
+  ∀ dir lay, Ls !! dir = some lay → ∀ N h, (jr, N, h) ∈ cl → N.Mem lay.nm →
+    h.cur !! lay.nm = some (.dir lay.j)
+
+/-- **`WalsAt` under a change of layouts and claims**: every new layout one of a key with the same
+name and directory before, every new claim of the area one before. -/
+theorem walsAt_congr {jr : Ino} {Ls Ls' : GMap GoString WalLay} {cl cl' : List Claim}
+    (hL : ∀ dir lay', Ls' !! dir = some lay' →
+      ∃ lay, Ls !! dir = some lay ∧ lay.nm = lay'.nm ∧ lay.j = lay'.j)
+    (hc : ∀ N h, (jr, N, h) ∈ cl' → (jr, N, h) ∈ cl) (h : WalsAt jr Ls cl) : WalsAt jr Ls' cl' := by
+  intro dir lay' hl' N hh hm hN
+  obtain ⟨lay, hl, hnm, hj⟩ := hL dir lay' hl'
+  rw [← hnm, ← hj]
+  exact h dir lay hl N hh (hc N hh hm) (hnm ▸ hN)
+
+/-- The layout at a key replaced by one of the same name and directory (the tail's steps, a cut). -/
+theorem walsAt_insert {jr : Ino} {Ls : GMap GoString WalLay} {cl : List Claim} {dir : GoString}
+    {lay lay' : WalLay} (hl : Ls !! dir = some lay) (hnm : lay'.nm = lay.nm) (hj : lay'.j = lay.j)
+    (h : WalsAt jr Ls cl) : WalsAt jr (<[dir := lay']> Ls) cl := by
+  refine walsAt_congr (fun dir' l hl' => ?_) (fun _ _ hm => hm) h
+  by_cases hd : dir' = dir
+  · subst hd
+    rw [GMap.lookup_insert_eq] at hl'
+    cases hl'
+    exact ⟨lay, hl, hnm.symm, hj.symm⟩
+  · rw [GMap.lookup_insert_ne _ _ (Ne.symm hd)] at hl'
+    exact ⟨l, hl', rfl, rfl⟩
+
+/-- A claim of another directory than the area's replaced (a cut's sync logs the WAL directory's). -/
+theorem walsAt_mid {jr : Ino} {Ls : GMap GoString WalLay} {l1 l2 : List Claim} {c c' : Claim}
+    (hne : c'.1 ≠ jr) (h : WalsAt jr Ls (l1 ++ c :: l2)) : WalsAt jr Ls (l1 ++ c' :: l2) := by
+  refine walsAt_congr (fun dir l hl => ⟨l, hl, rfl, rfl⟩) (fun N hh hm => ?_) h
+  simp only [List.mem_append, List.mem_cons] at hm ⊢
+  rcases hm with hm | hm | hm
+  · exact Or.inl hm
+  · exact absurd (by rw [← hm]) hne
+  · exact Or.inr (Or.inr hm)
+
 end pure
 
 section inv
@@ -427,19 +472,135 @@ theorem segRes_segResP (g : SegG) : segRes (L := L) g ⊢ segResP (L := L) g := 
   iframe Hm Hb
   ipureintro; rfl
 
+/-- **The pipeline names, parked** (W3/W5's gap 3; part of `walParked`, the parking flag `b`): for
+each directory of `Jt` (a superset of the WALs': each WAL's directory inode `lay.j` at its key), both
+pipeline names' whole claims (`walTmpsRes`, with any leftover `N.tmp` file whole) but those of the
+directories `T`, which a write-mode handle holds (`Open` takes its WAL's, `Close` puts them back, a
+new WAL's are its creator's); with the flag `true` (no handle) none is out. -/
+def walTmpParked (Ls : GMap GoString WalLay) (b : Bool) : IProp GF :=
+  iprop(∃ (Jt : GMap GoString Ino) (T : List GoString),
+    ⌜(b = true → T = []) ∧ ∀ dir lay, Ls !! dir = some lay → Jt !! dir = some lay.j⌝ ∗
+    [∗map] dir ↦ J ∈ Jt, if dir ∈ T then emp else walTmpsRes (hG := ⟨G, L⟩) J)
+
+instance walTmpParked_timeless (Ls : GMap GoString WalLay) (b : Bool) :
+    Timeless (walTmpParked (G := G) (L := L) Ls b) := by
+  unfold walTmpParked
+  haveI : ∀ (T : List GoString) (dir : GoString) (J : Ino), Timeless (iprop(if dir ∈ T then iprop(emp)
+      else walTmpsRes (hG := ⟨G, L⟩) J) : IProp GF) :=
+    fun T dir J => by split <;> infer_instance
+  infer_instance
+
+/-- **The parked pipeline names under a change of layouts** with the same directories (the tail's
+steps, a cut). -/
+theorem walTmpParked_congr (Ls Ls' : GMap GoString WalLay) (b : Bool)
+    (hL : ∀ dir lay', Ls' !! dir = some lay' → ∃ lay, Ls !! dir = some lay ∧ lay.j = lay'.j) :
+    walTmpParked (G := G) (L := L) Ls b ⊢ walTmpParked (G := G) (L := L) Ls' b := by
+  unfold walTmpParked
+  iintro ⟨%Jt, %T, %hp, Hm⟩
+  iexists Jt, T
+  iframe Hm
+  ipureintro
+  refine ⟨hp.1, fun dir lay' hl' => ?_⟩
+  obtain ⟨lay, hl, hj⟩ := hL dir lay' hl'
+  rw [← hj]; exact hp.2 dir lay hl
+
+/-- The layout at a key replaced by one of the same directory (the tail's steps, a cut). -/
+theorem walTmpParked_insert (Ls : GMap GoString WalLay) (b : Bool) (dir : GoString) (lay lay' : WalLay)
+    (hl : Ls !! dir = some lay) (hj : lay'.j = lay.j) :
+    walTmpParked (G := G) (L := L) Ls b ⊢ walTmpParked (G := G) (L := L) (<[dir := lay']> Ls) b := by
+  refine walTmpParked_congr Ls _ b (fun dir' l hl' => ?_)
+  by_cases hd : dir' = dir
+  · subst hd
+    rw [GMap.lookup_insert_eq] at hl'
+    cases hl'
+    exact ⟨lay, hl, hj.symm⟩
+  · rw [GMap.lookup_insert_ne _ _ (Ne.symm hd)] at hl'
+    exact ⟨l, hl', rfl⟩
+
+/-- **A new WAL's pipeline names are out** (`Create`'s commit, the flag `false`): its key's entry is
+replaced (what was parked there, if anything, dropped). -/
+theorem walTmpParked_create (Ls : GMap GoString WalLay) (dir : GoString) (lay : WalLay) :
+    walTmpParked (G := G) (L := L) Ls false ⊢
+      walTmpParked (G := G) (L := L) (<[dir := lay]> Ls) false := by
+  classical
+  unfold walTmpParked
+  iintro ⟨%Jt, %T, %hp, Hm⟩
+  iexists <[dir := lay.j]> Jt, dir :: T
+  isplitr
+  · ipureintro
+    refine ⟨fun h => (by cases h), fun dir' lay' hl' => ?_⟩
+    by_cases hd : dir' = dir
+    · subst hd
+      rw [GMap.lookup_insert_eq] at hl'
+      cases hl'
+      rw [GMap.lookup_insert_eq]
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm hd)] at hl'
+      rw [GMap.lookup_insert_ne _ _ (Ne.symm hd)]
+      exact hp.2 dir' lay' hl'
+  have hdel : ([∗map] dir' ↦ J ∈ Jt, if dir' ∈ T then emp else walTmpsRes (hG := ⟨G, L⟩) J) ⊢
+      [∗map] dir' ↦ J ∈ GMap.delete dir Jt,
+        if dir' ∈ dir :: T then emp else walTmpsRes (hG := ⟨G, L⟩) J := by
+    refine Entails.trans (BigSepM.bigSepM_subseteq (GMap.delete_subseteq Jt dir))
+      (BigSepM.bigSepM_mono (fun {k J} hk => ?_))
+    have hkd : k ≠ dir := by
+      intro e; subst e
+      have h2 : get? (GMap.delete k Jt) k = none := GMap.lookup_delete_eq Jt k
+      rw [h2] at hk; cases hk
+    have e : (k ∈ dir :: T) ↔ k ∈ T := by simp [hkd]
+    simp only [propext e]
+    exact .rfl
+  iapply (BigSepM.bigSepM_insert_delete (Φ := fun (dir' : GoString) (J : Ino) =>
+    iprop(if dir' ∈ dir :: T then emp else walTmpsRes (hG := ⟨G, L⟩) J))).2
+  isplitr
+  · rw [if_pos (List.mem_cons_self ..)]; iempintro
+  iapply hdel $$ Hm
+
+/-- **`Open` takes its WAL's pipeline names** (the flag turned `false`: nothing was out). -/
+theorem walTmpParked_take (Ls : GMap GoString WalLay) (dir : GoString) (lay : WalLay)
+    (hl : Ls !! dir = some lay) :
+    walTmpParked (G := G) (L := L) Ls true ⊢
+      walTmpParked (G := G) (L := L) Ls false ∗ walTmpsRes (hG := ⟨G, L⟩) lay.j := by
+  classical
+  unfold walTmpParked
+  iintro ⟨%Jt, %T, %hp, Hm⟩
+  have hT : T = [] := hp.1 rfl
+  subst hT
+  have hJ := hp.2 dir lay hl
+  ihave Hm := (BigSepM.bigSepM_delete (Φ := fun (dir' : GoString) (J : Ino) =>
+    iprop(if dir' ∈ ([] : List GoString) then emp else walTmpsRes (hG := ⟨G, L⟩) J)) hJ).1 $$ Hm
+  icases Hm with ⟨Hd, Hm⟩
+  rw [if_neg List.not_mem_nil]
+  iframe Hd
+  iexists Jt, [dir]
+  isplitr
+  · ipureintro; exact ⟨fun h => (by cases h), hp.2⟩
+  iapply (BigSepM.bigSepM_delete (Φ := fun (dir' : GoString) (J : Ino) =>
+    iprop(if dir' ∈ [dir] then emp else walTmpsRes (hG := ⟨G, L⟩) J)) hJ).2
+  isplitr
+  · rw [if_pos (List.mem_singleton_self _)]; iempintro
+  iapply BigSepM.bigSepM_mono (fun {k J} hk => ?_) $$ Hm
+  have hkd : k ≠ dir := by
+    intro e; subst e
+    have h2 : get? (delete Jt k) k = none := GMap.lookup_delete_eq Jt k
+    rw [h2] at hk; cases hk
+  have e : (k ∈ [dir]) ↔ k ∈ ([] : List GoString) := by simp [hkd]
+  simp only [propext e]
+  exact .rfl
+
 /-- **The program's halves, parked** (W3/W5's gap 2, framed): the parking flag's invariant half
 (`walParkAuth b`, `Ghost.lean`); every segment's program halves (`segResP`) but those of the inodes
 `O`, and the program's half of every WAL directory's claim (`WalDirClaimOf`) but the claims `D`;
 with the flag `true` (the lock token free: no handle) nothing is out. A handle (the flag `false`)
 takes what it needs (`Open`: the opened WAL's segments and directory claim) and puts back what it
 does not keep (`ReadAll`: all but the tail's); returning a half needs no token (a third half
-contradicts). -/
+contradicts). And the pipeline names' claims (`walTmpParked`, gap 3), under the same flag. -/
 def walParked (Ls : GMap GoString WalLay) (cl : List Claim) : IProp GF :=
   iprop(∃ (b : Bool) (O : List Ino) (D : List Claim), walParkAuth (W := W) b ∗
     ⌜b = true → O = [] ∧ D = []⌝ ∗
     ([∗list] g ∈ segsAll Ls, if g.ino ∈ O then emp else segResP (L := L) g) ∗
-    [∗list] c ∈ cl, if ParkedClaim Ls D c then
-      osNames (L := L) c.1 c.2.1 (DFrac.own (1 : Qp).half) c.2.2 else emp)
+    ([∗list] c ∈ cl, if ParkedClaim Ls D c then
+      osNames (L := L) c.1 c.2.1 (DFrac.own (1 : Qp).half) c.2.2 else emp) ∗
+    walTmpParked (G := G) (L := L) Ls b)
 
 instance walParked_timeless (Ls : GMap GoString WalLay) (cl : List Claim) :
     Timeless (walParked (L := L) (W := W) Ls cl) := by
@@ -465,7 +626,8 @@ def walInvBody (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoSt
     laysResF (L := L) F Ls ∗ ⌜WalsOk C Mr R jr s Ls cl n⌝ ∗ ⌜WalsCreateOk jr cl⌝ ∗
     (∃ CR, walCreatingAuth (W := W) CR ∗ ⌜CreatingOk jr cl CR⌝) ∗ walTailsRes (W := W) C Mr s Ls F ∗
     ⌜AbsentNone s jr cl n ∧ DirsAvoid R jr s⌝ ∗ ⌜WalsNamed Ls cl n⌝ ∗ walParked (L := L) (W := W) Ls cl ∗
-    ∃ K c, walDirKeysAuth (W := W) K ∗ walCutAuth (W := W) c ∗ ⌜DirKeysOk C Mr jr s Ls cl n K c⌝)
+    (∃ K c, walDirKeysAuth (W := W) K ∗ walCutAuth (W := W) c ∗ ⌜DirKeysOk C Mr jr s Ls cl n K c⌝) ∗
+    ⌜WalsAt jr Ls cl⌝)
 
 instance walInvBody_timeless (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (s : AbsDiskState) : Timeless (walInvBody (L := L) (W := W) C Mr R jr r s) := by

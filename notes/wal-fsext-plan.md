@@ -734,6 +734,60 @@ raftpb/quorum/tracker/confchange/proto from `InitPb.lean`, a generated copy of t
 - The others `True` (the part's raft root too: `emptyState`, which `IsEmptyHardState` reads, would join
   when `Save` needs it). `Create`'s spec can now take `isPkgInit wal`.
 
+**`wal-int` integration fixes (branch `wal-fix`, 2026-11-13).** Proofs only, no statement changed; after them
+every module of `LinuxFs` and `GooseLang/Ext/Fs` builds (3052 jobs).
+- `checkWALNames`: `wp_apply HWarn` leaves the goal `⌜lg ≠ null⌝` (not `zapLoggerOk lg`): from `zapLoggerOk_ne_null`.
+- `ReadDefs`: `walPipeH` takes the directory inode (`walPipeH fp dir j k`): `walReadH`'s write mode holds
+  `∃ j, walPipeH fp dir j 0`, the `∃ j` the predicate used to hold (tying it to `walReadTie`'s `j` is left to `ReadAll`).
+- `newEncoder`: `e ≠ null` is now last in the post, so `isplitl` (the encoder's resources to the left), not `isplitr`.
+**Eighth session (branch `wal-read7`, 2026-11-13): W3/W5's gaps 1 and 3 in the invariant** (the
+coordinator's decisions). Both separate; every lemma below builds, no `sorry`.
+- *Gap 1, `WalsAt`* (`Inv.lean`, pure, `walInvBody`'s new **last** conjunct `⌜WalsAt jr Ls cl⌝`, after the
+  `∃ K c, …` one):
+  ```
+  WalsAt jr Ls cl := ∀ dir lay, Ls !! dir = some lay → ∀ N h, (jr, N, h) ∈ cl → N.Mem lay.nm →
+    h.cur !! lay.nm = some (.dir lay.j)
+  ```
+  Established by `walInv_alloc` (`walsAt_start`, from `WalsStart`); carried by `walInvBody_tail`
+  (`walsAt_insert hl rfl rfl`), `walInvBody_named` (unchanged `Ls`, `cl`), `CreateAu`'s abort arms
+  (unchanged) and commit (`walsAt_create`, `CreateKeys.lean`), `cut`'s rename (`CutAu`: `walsAt_repl`,
+  `CreateKeys.lean`; the new claim's directory `j ≠ jr` from `DirKeysOk`) and its directory sync
+  (`CutSync`: `walsAt_mid hjjr`), `Create`'s drop step (`CreateDropStep`: `walsAt_drop`, the area claim
+  losing a non-WAL name). Generic: `walsAt_congr`. **Obligations for `wal-cut7`/`wal-create9`**:
+  a proof destructuring `walInvBody` adds `, %HAt` after `⟨%K, %cp, Hdk, Hcp, %Hdko⟩`; one rebuilding it
+  wraps the last part as `isplitl [Hdk Hcp]; · iexists K, cp …; ipureintro; exact <WalsAt>`, with
+  - `walsAt_insert (hl : Ls !! dir = some lay) (hnm : lay'.nm = lay.nm) (hj : lay'.j = lay.j) : WalsAt jr Ls cl →
+    WalsAt jr (<[dir := lay']> Ls) cl`;
+  - `walsAt_repl (hA : WalsAt jr Ls cl) (hl) (hnm) (hj) (hc1 : c1.1 ≠ jr) : WalsAt jr (<[dir := lay']> Ls)
+    (replClaim c0 c1 cl)`;
+  - `walsAt_mid (hne : c'.1 ≠ jr) : WalsAt jr Ls (l1 ++ c :: l2) → WalsAt jr Ls (l1 ++ c' :: l2)`;
+  - `walsAt_create (hA) (hok : WalsOk …) (hnew : CreatingNew jr cl CR dir N J) (hin : InArea s.area dir nm)
+    (htmp : ¬ walNameOk tmp) (hc : (jr, N, h) ∈ cl) (hothers) (hlay : lay.jr = jr ∧ lay.nm = nm ∧ lay.j = J) :
+    WalsAt jr (<[dir := lay]> Ls) (createClaims cl jr N h x (renDirEnt jr tmp nm J st) (renCur N h tmp nm J) J X hJ)`.
+- *Gap 3, the pipeline names parked*: `tmpEnt`/`tmpClaim` moved from `Pipe.lean` to `TmpClaim.lean` (over any
+  `HeapGS hlc GF`; `walTmpsRes j := [∗list] b ∈ walTmps, tmpClaim j b`). `walParked` gains a **last** sep
+  conjunct `walTmpParked Ls b` (`b` its flag):
+  ```
+  walTmpParked Ls b := ∃ (Jt : GMap GoString Ino) (T : List GoString),
+    ⌜(b = true → T = []) ∧ ∀ dir lay, Ls !! dir = some lay → Jt !! dir = some lay.j⌝ ∗
+    [∗map] dir ↦ J ∈ Jt, if dir ∈ T then emp else walTmpsRes (hG := ⟨G, L⟩) J
+  ```
+  Lemmas (`Inv.lean`): `walTmpParked_congr`, `walTmpParked_insert Ls b dir lay lay' hl (hj : lay'.j = lay.j)`
+  (tail, cut: `walParked_tail`/`walParked_cut` use it), `walTmpParked_create Ls dir lay` (flag `false`: the new
+  WAL's names out, `walParked_create` uses it), `walTmpParked_take Ls dir lay hl : walTmpParked Ls true ⊢
+  walTmpParked Ls false ∗ walTmpsRes lay.j` (`Open`, write mode). **Not provided: `Close`'s put-back** —
+  turning the flag back to `true` needs `T ⊆ [dir]`, which the invariant does not record (nor `O`, `D` for
+  `walParked`'s other parts): `Close`'s design (W10) must track what the handle took. **Obligation for the
+  units destructuring `walParked`**: the pattern gains `, Ht` (`⟨%b, %O, %D, Ha, %hb, Hs, Hc, Ht⟩`) and the
+  rebuilt one an `isplitl [Hc]` before the tmp part.
+- *`walInv_alloc`'s statement changed*: `hdirs` gives each directory at a WAL name the claim `(J, .except
+  walTmps, h)` (was `.except []`: the pipeline names are claimed apart, whole); new arguments `Jm : GMap GoString
+  Ino`, `hJm : ∀ dir nm J, InArea r dir nm → V.now.entry jr nm = some (.dir J) → Jm !! dir = some J`, and the
+  Iris premise `[∗map] _dir ↦ J ∈ Jm, walTmpsRes (hG := ⟨G, L⟩) J` (the boot program's whole claims on each
+  WAL directory's `0.tmp`/`1.tmp`, a leftover file whole), deposited. `walAbs_crashOk_start`'s `hj` is now
+  `∀ m', RegionCrashed cl n m' → walInos (entsOf m' lay.j) = walInos ents` (`start_walEnt`, `walInos_congr`;
+  `Crash.lean` imports `CutSynced`).
+
 ## 9. The trusted-model drafts (2026-11-13, branch `wal-models`; pending the user's review [user])
 
 The WAL and fileutil retranslated from the fork's `goose-lean-walfs` (`f15d88841`, the two local fixes
@@ -2596,3 +2650,25 @@ its last page).
   `selectWALFiles` (premise `WalDirNamesOk` from `WalsNamed`), `openWALFiles` (names from the selected
   position: `walNamesOut_segs`, `walOpenNames_ok`), `walDecFiles_mk`, `NewDecoder`, the struct; the error arms unpin at a later step (the `Errorf`
   call) with `walLockedTok_unlock`.
+
+**Seventh session (branch `wal-read7`, 2026-11-13).**
+- *Gaps 1 and 3 closed in the invariant* (W1 log, eighth session: `WalsAt`, `walTmpParked`, `walInv_alloc`'s new
+  premises; the lemmas the other units apply).
+- *Gap 2, a missing WAL directory, proved* (no `sorry`): `os.OpenFile.wp_absentS`/`os.Open.wp_absentS`
+  (`LinuxFs/Proof/os/NsAbsentS.lean`, over `wp_osOpenAbsentS`, `EINTR` retried); `fileutil.ReadDir.specAbsent`
+  (no option, `d/b` with `b` absent in a claim fraction: an error, `fmtErrorOkOrNil`) proved
+  (`ReadDir.wp_proofAbsent`: `applyOpts` over `nil` by `wp_method_call`, the empty loop by `wp_for`);
+  `readWALNames.specAbsent`, `selectWALFiles.specAbsent` (an `errOk` error; claim and path back), proved over
+  them and `fmt.ErrorfErrs`.
+- *`openAtIndex`'s pin, the area part* (`OpenPin.lean`, proved): `walDirAt_pure` (from `WalsOk`, `WalsAt`,
+  `AbsentNone`, a claim `(jr, N, h) ∈ cl` holding `nm`: `s.wal !! dir = none → h.cur !! nm = none`, and for a WAL
+  its layout with `h.cur !! nm = some (.dir lay.j)`), `walInvBody_areaAt` (the program's area-claim fraction is
+  the invariant's claim, `osNames_same_name`; at a mask with `osShN`).
+- *ReadDefs repaired after `wal-cut7`*: `walReadH`'s pipeline is `∃ j, walPipeH fp dir j 0` (`walPipeH` now takes
+  the directory inode); `ReadAll` ties `j` to `walReadTie`'s claim, and must establish `walHandleIn`'s new facts
+  (`walDirH` with `j`, the dir fd, `walTmps ⊆ X`, the tail name; the size and `enti`/`snapi` bounds).
+- *Not done*: `openAtIndex` (beyond the pin's area part), `OpenForRead`, `Open`. The rest of the pin: at the
+  first step (`wp_notCrashed_acc`), open `walInv`, `walInvBody_areaAt`'s facts for the AU's `o` (`walDirIs` agrees
+  with `s.wal` through `walMapLe`), `walUnlockedTok_lock`, take the segments and directory claim out
+  (`walParked`) and, in write mode, `walTmpParked_take` (the pipeline's `tmpClaim j (pipeTmp 0)` and the handle's
+  `pipeTmp 1`); `o = none`: commit `Q none` and continue on `selectWALFiles.specAbsent` with the token back.
