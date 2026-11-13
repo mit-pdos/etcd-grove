@@ -594,3 +594,61 @@ Deviations (for the WAL invariant's author):
 Still `sorry`: `osNames_split`/`merge`/`rekey`, `osPathS_frac`/`child`, every extension-level step spec
 (Unlink, Rename ×4, Mkdir, Rmdir ×2, LstatDir, OpenCreate, OpenDir, DirSync, DirClose, FdKind,
 DirReadNext, blind DirReadNext), the `os`-level logically atomic specs, the two-region test.
+
+### Implementation log, third session (2026-11-13)
+
+Done (no `sorry`), each statement in `TreeShared.lean` unchanged and proved from a new module:
+
+- `TreeSharedClaims`: `osNames_split`/`merge`/`rekey` (through `CohEx`, the claims' coherence with
+  some names of one directory unclaimed: `osNames_del` gives a whole claim back to the authority,
+  `osNames_ins` claims unclaimed names; `namesOf_restrict`, `namesOf_congr`, `namesOf_next_union`);
+  `osPathS_frac`/`child`; the new laws `osPathS_root` (a root of `R` is a path, from the shared
+  invariant) and `osPathS_rootsOk`. `osNames_frac`/`agree` moved here (statements unchanged).
+- `TreeSharedDirFd`: `wp_osFdKindDirS`, `wp_osDirCloseS`, `wp_osDirSyncS`.
+- `TreeSharedStep`: `osNames_entry` (a claim's names hold in the state what it knows),
+  `osSpine_walk`, `osPathS_lookup` (a spine names its directory in the state), `wp_callEndS` (a
+  step that only ends its call, given the state facts the caller's resources give).
+- `TreeSharedCallEnd`: `wp_osLstatDirS`, `wp_osUnlinkS_none`, `wp_osRmdirS_none`,
+  `wp_osRenameAbsentS` (over `wp_callEndS`).
+- `TreeSharedOpenDir`: `wp_osOpenDirS`.
+
+Deviation:
+
+10. **Proposal 9 adopted** (coordinator's decision): `osPathS` records `RootsOk R` in its pure part
+    (`TreeSharedRes.lean`), so two spines of one path agree (`root_split_unique`); new law
+    `osPathS_root`.
+
+Found, for the next session (not yet done):
+
+11. **`PhOkS` needs `∀ b, s b = true → NameOk b`** (a shared read's seen names are valid). Without
+    it `wp_osDirReadNextBlind`'s `NameOk b`, and `wp_osDirReadNextS`'s for a name outside `N`, are
+    unprovable: after an entry touches the directory, `PhOkS` says nothing of the bits, and `note`
+    adds `o.adds` names to `s`. The fix is a definition change in `Ghost.lean` (`PhOkS`'s reading
+    case gains the clause; `PhOkS.congr` and the step lemmas keep it: `o.adds` names are entries of
+    the new tree, valid by `FsTreeWf`), which rebuilds everything above `Ghost.lean`.
+12. **`NamesCoh` needs "every claimed directory is a directory of the tree"** (`∀ j N h, Γn !! (j,
+    N) = some h → j ∈ V.now`) for `wp_osMkdirS`: the new directory's claim `(J, .except [])` is
+    inserted, which needs the key free; nothing records that no stale key on a fresh inode exists.
+    True of every map built so far (`claimsInit`, split/merge/rekey on an existing key; removed
+    directories stay in the tree). A definition change in `TreeSharedRes.lean`; `CohEx` and
+    `namesCoh_init` gain the clause.
+13. **The logging steps** (`Unlink`, the three file `Rename`s, `OpenCreate`; then `Mkdir`, `Rmdir`,
+    the directory `Rename`) want one generic lemma, `wp_logStepS`, as `wp_callEndS` is for the
+    no-effect ones: the step logs `e = ⟨o, s0⟩` at `x = |log|` (or only ends the call); its
+    obligations are (a) `FsTreeWf` of the new state (the legacy `fsTreeWf_meta` and the
+    `named_*`/`mem_*` lemmas of `TreeSpecsMeta`); (b) `TreeCohS`: `Starts` from `callsLe`,
+    `PerSlotSeq` from the presented claims (`h.next ≤ s0`, every earlier writer of a claimed slot in
+    `h.ents`), `DirOpExcl` from `after`, `LogValid` (`OpOk` from the claims' `cur`; a create's inode
+    is `nextIno`, named nowhere by `FsTreeWf.hist`), `whole` for the other calls (no other call holds
+    all of the permission while this one holds `q > 0`: two `γperm` elements of `callResS`), `ph`
+    (with 11: an entry writing a name of `N` falsifies the hypothesis for good; one that does not
+    leaves `N`'s bits, `note`); (c) the ghost updates: `γs` (auth and the invariant's element),
+    `γlen` (auth, `osLogLb (x+1)`), `γlog` (`logMap (log ++ [e]) = <[x := e]> (logMap log)`), and
+    the presented whole claims to `h.log x e (restrictN N cur')`, every other claim unchanged
+    (`namesOf V' j N = namesOf V j N` when `e` writes no name of `N` in `j`: `prefTree` of a
+    longer log agrees below its length, and `MetaOp.apply` leaves unwritten slots).
+
+Still `sorry` in `TreeShared.lean`: `wp_osUnlinkS`, `wp_osRenameFileS`, `wp_osRenameFileS1`,
+`wp_osRenameDirS`, `wp_osMkdirS`, `wp_osRmdirS`, `wp_osOpenCreateS` (13), `wp_osDirReadNextS`,
+`wp_osDirReadNextBlind` (11). Not begun: the `os`-level logically atomic specs (M1), the two-region
+test.
