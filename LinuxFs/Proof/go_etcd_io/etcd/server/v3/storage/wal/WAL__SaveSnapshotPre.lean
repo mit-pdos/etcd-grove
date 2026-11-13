@@ -141,6 +141,152 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofPre
     · ileft; iframe HS; ipureintro; subst H0; rfl
     · iright; iframe HW; ipureintro; unfold errnoErr; simp; exact H0
 
+theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_proofPre (Mr : WalMarshal)
+    (wp_sync : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specPre (GF := GF))
+    (wp_encode : go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.spec (GF := GF) (hG := hG))
+    (wp_Validate : go_etcd_io.etcd.server.v3.storage.wal.walpb.ValidateSnapshotForWrite.spec
+      (GF := GF) (hG := hG))
+    (wp_GetIndex : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.GetIndex.spec (GF := GF)
+      (hG := hG))
+    (wp_Marshal : go_etcd_io.etcd.pkg.v3.pbutil.MustMarshalMessage.specWalSnap (GF := GF) Mr)
+    (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := hG))
+    (wp_Unlock : sync.Mutex.Unlock.spec (GF := GF) (hG := hG)) :
+    go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.specPre (GF := GF) Mr := by
+  intro w lg dir mds md e lt f snapi enti W B S lim out pend c sp sm cs hcs hlim hlim47 hsync
+  iintro #Hw
+  wp_start as ⟨#Henv, #Hzap, #Hpb, Hpre, He, Hout, #Hs⟩
+  ihave #Hs0 := Hs
+  iunfold walSnapAt at Hs
+  icases Hs with ⟨%s, #Hsp, #Hi, #Ht, %Hcs⟩
+  ihave %Hspn := typedPointsto_not_null sp _ _ $$ Hsp
+  try wp_auto
+  wp_apply wp_with_defer as %defer Hdefer
+  try wp_auto
+  simp only [decide_eq_false Hspn]
+  try wp_auto
+  wp_apply (wp_Validate sp sm cs hcs) $$ []
+  · iexact Hs0
+  try wp_auto
+  wp_apply (wp_Marshal sp sm cs) $$ [] as %d ⟨%Hdn, Hd, Hdc⟩
+  · iframe #
+  try wp_auto
+  iunfold walPreIn at Hpre
+  icases Hpre with ⟨%locks, Hlg, #Hlgok, Hdir, Hmd, #Hmds, Hns, #Hmu, Henti, Hsnapi, Hfe, %Hen,
+    Hlocks, Hls, Hcap, #Hlt⟩
+  wp_apply wp_Lock $$ [] as ⟨Hown, -⟩
+  · iexact Hmu
+  try wp_auto
+  simp only [go_etcd_io.etcd.server.v3.storage.wal.SnapshotType]
+  try wp_auto
+  have hT : (W64 5) = snapshotType := rfl
+  have hfl : out.length + pend.length +
+      (WalEnc.frame (walRecEnc ⟨snapshotType, hash.crc32.crc32c c (Mr.encSnap sm), Mr.encSnap sm⟩)).length
+      ≤ lim := by
+    simp only [snapFrame, List.length_append] at hlim; omega
+  have hsz : recSize (recOf ⟨snapshotType, hash.crc32.crc32c c (Mr.encSnap sm), Mr.encSnap sm⟩)
+      < 2 ^ 47 := by
+    have h1 : (walRecEnc ⟨snapshotType, hash.crc32.crc32c c (Mr.encSnap sm), Mr.encSnap sm⟩).length =
+        recSize (recOf ⟨snapshotType, hash.crc32.crc32c c (Mr.encSnap sm), Mr.encSnap sm⟩) :=
+      recEnc_length _
+    have h2 : (walRecEnc ⟨snapshotType, hash.crc32.crc32c c (Mr.encSnap sm), Mr.encSnap sm⟩).length ≤
+        (WalEnc.frame (walRecEnc ⟨snapshotType, hash.crc32.crc32c c (Mr.encSnap sm),
+          Mr.encSnap sm⟩)).length := by
+      unfold WalEnc.frame; simp only [List.length_append]; omega
+    omega
+  ipersist «$v0»
+  ipersist Hd
+  wp_apply (wp_encode e (wal.fileWi f) W B lim out pend c _ snapshotType (Mr.encSnap sm) hsz hfl)
+    $$ [Hw] [He Hout «$r0»] as %err ⟨%pend', He, #Hrec, Hres⟩
+  · iexact Hw
+  · iframe; iframe #
+    iunfold encRecIn
+    iexists _
+    iframe «$r0»
+    rw [hT]
+    iframe #
+    have hro : (recOf ⟨snapshotType, 0#32, Mr.encSnap sm⟩).data = some (Mr.encSnap sm) := by
+      simp [recOf, snapshotType, crcType]
+    rw [hro]
+    simp only [recBytes]
+    isplitl []
+    · isplitr
+      · ipureintro; exact Hdn
+      · iexact Hd
+    · ipureintro; simp
+  icases Hres with (⟨%ys, ⟨%Herr, %Hys⟩, Hout⟩ | ⟨%a, %b, ⟨%Herr, %Hpe, %Hab⟩, Hbad⟩)
+  rotate_left
+  · -- the encode failed
+    rcases err with ei | _
+    rotate_left
+    · exact absurd rfl Herr
+    try wp_auto
+    wp_apply wp_Unlock $$ [Hown]
+    · iframe
+      isplitl []
+      · iexact Hmu
+      inext; itrivial
+    try wp_auto
+    iapply HΦ
+    iexists snapi, enti
+    iunfold walPreIn
+    isplitl [Hlg Hdir Hmd Hns Henti Hsnapi Hfe Hlocks Hls Hcap]
+    · iexists locks
+      iframe; iframe #; ipureintro; exact Hen
+    iright
+    isplitr
+    · ipureintro; exact Herr
+    iexists _, _
+    iframe He
+    ileft; iexists _, _; iexact Hbad
+  subst Herr
+  have hlen2 : (out ++ ys).length + pend'.length ≤ lim := by
+    have := congrArg List.length Hys; simp only [List.length_append] at this ⊢; omega
+  have heq : out ++ ys ++ pend' = out ++ pend ++ snapFrame Mr c sm := by
+    rw [List.append_assoc, Hys, snapFrame, List.append_assoc]
+  try wp_auto
+  have hIT : walSnapAt (GF := GF) sp sm cs ⊢ walSnapIdTerm sp (sm.Index', sm.Term') := by
+    iintro #H; iunfold walSnapIdTerm; iexists sm, cs; iframe H; ipureintro; rfl
+  ihave #HsIT := hIT $$ Hs0
+  wp_apply (wp_GetIndex sp (sm.Index', sm.Term')) $$ []
+  · iexact HsIT
+  wp_if_destruct
+  all_goals (try (wp_apply (wp_GetIndex sp (sm.Index', sm.Term')) $$ []; iexact HsIT))
+  all_goals (try wp_auto)
+  all_goals (try (wp_apply (wp_GetIndex sp (sm.Index', sm.Term')) $$ []; iexact HsIT))
+  all_goals (try wp_auto)
+  all_goals wp_if_destruct
+  all_goals (try (wp_apply (wp_GetIndex sp (sm.Index', sm.Term')) $$ []; iexact HsIT))
+  all_goals (try wp_auto)
+  all_goals (
+    wp_apply (wp_sync w lg dir mds md e lt f _ _ W B S lim (out ++ ys) pend'
+      (hash.crc32.crc32c c (Mr.encSnap sm)) hlen2 hsync) $$ [Hw]
+      [Hlg Hdir Hmd Hns Henti Hsnapi Hfe Hlocks Hls Hcap He Hout] as %err2 ⟨Hpre, He, Hres2⟩
+    · iexact Hw
+    · iframe; iframe #
+      iunfold walPreIn; iexists locks; iframe; iframe #; ipureintro; exact Hen
+    try wp_auto
+    wp_apply wp_Unlock $$ [Hown]
+    · iframe
+      isplitl []
+      · iexact Hmu
+      inext; itrivial
+    try wp_auto
+    iapply HΦ
+    iexists _, _
+    iframe Hpre
+    icases Hres2 with (⟨%H0, HS⟩ | ⟨%H0, Hbad⟩)
+    · ileft
+      rw [heq]
+      iframe; ipureintro; exact H0
+    · iright
+      isplitr
+      · ipureintro; exact H0
+      iexists _, _
+      iframe He
+      icases Hbad with (Hb | Hw')
+      · ileft; iexists _, _; iexact Hb
+      · iright; iexists _; iexact Hw')
+
 end proof
 
 end EtcdGrove

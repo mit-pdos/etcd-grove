@@ -1,7 +1,8 @@
 /-
 **`pbutil.MustMarshalMessage(e)` of a WAL snapshot** (`SaveSnapshot`, S/wal.go:1145): the law the
 WAL's proofs take as a hypothesis (W6 of `notes/wal-fsext-plan.md`: "the proofs will take the laws
-(`MustMarshalMessage`, ...) as hypotheses"), its encoding the marshaller parameter's `Mr.encSnap`.
+(`MustMarshalMessage`, ...) as hypotheses"), its encoding the marshaller parameter's `Mr.encSnap`, in a fresh non-nil slice (protobuf-go's
+`Marshal` returns a non-nil slice, empty or not: `MarshalPb.lean`).
 `pbutil` is names-only (the main tree's spec, `Spec/go_etcd_io/etcd/pkg/v3/pbutil/MustMarshalMessage.lean`,
 is over a registered protobuf type's model; the part has no `walpb.Snapshot` model yet).
 
@@ -41,7 +42,8 @@ abbrev go_etcd_io.etcd.pkg.v3.pbutil.MustMarshalMessage.specWalSnap (Mr : WalMar
     (App (Val (@! go_etcd_io.etcd.pkg.v3.pbutil.MustMarshalMessage))
       (Val #(interface.mkOk
         (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.ty) #sp)))
-  {{ (d : GoSlice), RET #d; d ↦* Mr.encSnap sm ∗ ownSliceCap w8 d (DFrac.own 1) }}
+  {{ (d : GoSlice), RET #d;
+      ⌜d ≠ slice.nil⌝ ∗ d ↦* Mr.encSnap sm ∗ ownSliceCap w8 d (DFrac.own 1) }}
 
 end spec
 
