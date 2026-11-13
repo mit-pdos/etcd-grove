@@ -258,7 +258,7 @@ theorem crashTo_start (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLa
           · have hbS' : ¬ b < (crashLay fo lay q S.length).so := hbS
             have hbS'' : ¬ b < (crashLay fo lay q S.length).wr := hbS
             simp only [hbS', hbS'', decide_false]
-            simp [List.getD_eq_getElem?_getD, hb]
+            refine ⟨[], ?_, by simp, fun _ => rfl, ?_⟩ <;> simp [List.getD_eq_getElem?_getD, hb]
       · rw [hold]
         obtain ⟨t, ht⟩ := hpreS
         show S.take S.length = f0.contents.take S.length

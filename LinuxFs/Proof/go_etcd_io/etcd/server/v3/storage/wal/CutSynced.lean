@@ -164,22 +164,17 @@ theorem crashTo_synced (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalL
       intro b h1 h2
       simp only [List.getElem_map]
       have hb := hbytes b (g.bs[b]'(by simpa using h1)) (List.getElem?_eq_getElem _)
-      unfold ByteOk at hb
       by_cases hbS : b < S.length
       · rw [List.getElem_append_left hbS]
         have hw : decide (b < lay.wr) = true := by simp; omega
         rw [hw] at hb
-        split at hb
-        · rw [hb]; simp [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hbS]
-        · simp only [if_true] at hb
-          rw [hb.1]; simp [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hbS]
+        rw [hb.val_w]; simp [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hbS]
       · rw [List.getElem_append_right (by omega)]
         simp only [List.getElem_replicate]
         have hw : decide (b < lay.wr) = false := by simp; omega
         have hs : decide (b < lay.so) = false := by simp; omega
         rw [hw, hs] at hb
-        simp only [Bool.false_eq_true, if_false] at hb
-        rw [hb]
+        rw [hb.val_unw]
         exact hold0 b (by omega) (by simp at h1; omega)
     rw [himg]
     refine ⟨List.prefix_append _ _, fun r len c' => ?_⟩
