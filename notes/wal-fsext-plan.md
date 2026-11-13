@@ -1724,6 +1724,53 @@ update: `s.wal dir := walDurFresh md`, the new layout and its `CrashOk`); then `
   `.wal` name). The unminting is the reverse (`walCreating_delete`, then `walLockedTok_unlock`), the claims
   merged back by `regionCrashedK_cover`.
 
+**Ninth session (branch `wal-create9`, 2026-11-13).**
+- *Task 1, `Starts` in the shared invariant (done; GooseLang/Ext/Fs, untrusted).* Put in as a field of
+  `NamesCoh` (`starts : Starts V.2`), not a new conjunct of `osSharedInv`'s pure part: every site that opens
+  the invariant binds `%hcoh` and closes with `exact hcoh` unchanged; only the three places building a
+  `NamesCoh` changed (`namesCoh_log` takes `e.start ≤ |V.2|`, the step passing `TreeCohS.callsLe`;
+  `namesCoh_init` takes `Starts V.2`, the switch passing `TreeCohS.starts`; `CohEx.coh` takes it, the
+  split/merge/rekey laws passing `hcoh.2.starts`). **`osClaims_log`** (`TreeShared.lean`, proof
+  `osClaims_log'` in `TreeSharedCrash.lean`): `osSharedInv R -∗ osClaims L cl ={E}=∗ osClaims L cl ∗
+  ⌜∃ log, Starts log ∧` every claim's entry `(x, e, _)` has `log[x]? = some e⌝`. No statement changed;
+  the `LinuxFs` leaves rebuilt clean.
+- **Finding and fix (internal, the crash condition's file premise).** The drop's carry-over of
+  `CrashOkA` failed: a crash `m'` of the remaining claims is one of the old with `nm.tmp` reset to what
+  the area claim says (`treeSetE`), and that value may be a file (nothing records that `nm.tmp`'s
+  history held none: at boot, or after an error of `CreateDirAll`, whose post hides the claim's
+  entries), so the reset tree may *name* a segment's inode the crash left without a file, and
+  `CrashOkA`'s premise `∀ g ∈ lay.segs, Named m' g.ino → (fo g.ino).isSome` could not be given for it.
+  Every proof used that premise only for segments the WAL directory lists (`named_of_mem_walInos`), so
+  the premise is now **`g.ino ∈ walInos (entsOf m' lay.j) → (fo g.ino).isSome`** (`CrashOk`, `Abs.lean`;
+  `CrashOkA`, `Cut.lean`; a stronger condition, weaker premise): the consumer (`walCrash_pure`) gives it
+  from the crash's `Named` fact, the producers lost their `named_of_mem_walInos` steps, the transfers
+  (`named_treeUnren`, `named_treeDel`) became `walInos` equalities (`mem_walInos_treeDel`, `CutCrash.lean`).
+  Edited: `Abs`, `Cut`, `CrashPure`, `CrashStart`, `CutCrash`, `CutCommitPure`, `CutSynced`, `TailCrash`,
+  `CreateCommit`, `CreateKeys` (one or two lines each). **For the concurrent units**: a new proof of a
+  `CrashOk`/`CrashOkA` gets the premise for listed segments only (use it directly where it used
+  `named_of_mem_walInos`).
+- *Task 2, the drop (done, no `sorry`).* `CreateDropInv.lean` (pure): `dropClaims cl jr N h b` (the area
+  claim replaced by its part off `b`), **`DropOk`** (the claims one log's with `Starts`, the area claim
+  among them, its own restriction, holding `b`, no other claim of `jr` holding `b`), **`DropOk.crash`**
+  (a crash of `dropClaims` is, with `b` set to some value, one of `cl`: `regionCrashedK_drop1` over the
+  claims split at `b`, then `regionCrashedK_cover`), and the facts carried over: `walsOk_drop`,
+  `absentNone_drop`, `walsNamed_drop`, `walsCreateOk_drop`, `dirKeysOk_drop` (`b` no WAL name, no `.wal`
+  name, an `AreaSlot`; the area claim no `WalDirClaimOf`). `CreateDropStep.lean`: `osClaims_keys` (a
+  list's claims of the directory sharing a name with a claim held are it), `osNames_self`,
+  `osNames_halves`/`osNames_halve`/`osNames_three_halves`, `walUnlocked_park`, `parked_drop`, and
+  **`walInvBody_drop`**: `walInvBody s -∗ osSharedInv R -∗ walUnlockedTok -∗ osNames jr N ½ h ={Em}=∗
+  walInvBody s ∗ walUnlockedTok ∗ osNames jr (N.diff [b]) ½ _ ∗ osNames jr (.only [b]) 1 _` (premises:
+  `N ∋ nm` a WAL name, `N ∋ b`, `b` neither a WAL nor a `.wal` name, an `AreaSlot`; `↑osShN ⊆ Em`). The
+  area claim is found through `WalsCreateOk` at `nm`; once (a second occurrence: three halves); no WAL
+  directory's (the lock free, the flag `true`, `walParked` holds its program half: three halves); the
+  creating map empty (a non-empty one holds the lock token).
+- *Not done:* the merge back (the reverse: adding names only shrinks the crashed trees, every RC fact
+  carries by `regionCrashedK_cover` on the same tree; the non-RC facts need the merged claim to be no
+  `WalDirClaimOf`, which after the commit, the lock being the handle's, `walParked` no longer gives:
+  needs `jr ≠ lay.j` for every layout, e.g. a `WalsOk` fact that the area directory is no WAL's
+  directory, or the merge done before the lock goes to the handle), the minting, the unminting,
+  `wal.Create.wp_proof` (`sorry`).
+
 **For `wal-create6` (the invariant's owner, 2026-11-13).** (1) `walAreaRes jr` gains `⌜∀ nm J, walNameOk nm →
 h.cur !! tmpName nm = some (.dir J) → ∀ hJ, (J, NameSet.except [], hJ) ∈ cl → FilesOnly hJ.cur⌝` (a leftover
 `nm.tmp` holds only files; `CreateDefs.lean`, importing `LinuxFs.Spec.os.RemoveAll`), for `os.RemoveAll.specDirS`
