@@ -2011,6 +2011,35 @@ condition lifted to `CrashOkA`.**
   the coordinator's `SaveSnapshot` fix (`walSnapAt` with the full protobuf content model, `encSnap` a
   function of it) and `newFileEncoder.spec`'s `e ≠ null`.
 
+**W6, sixth session (branch `wal-save6`, 2026-11-13): the tail writer over a `WriteAt` contract.**
+- *A retry rewrites* (finding): the model's `PWriteFinish` may return `EINTR` with `k > 0` bytes landed
+  (`((k = |data| ∨ 0 < k) ∧ e = 0 ∨ e ≠ 0)`), and `WriteAt`'s loop then retries from `nn`, rewriting them. So
+  the steps are generalized (`TailStepPure.lean`, `TailWriter.lean`, proved): `wp_tailPWriteStart` takes a write
+  at `off ≤ wr` (the record's write position), its intended bytes from `off`, with `off = wr ∨` the program's
+  byte at `off` carries a candidate stamped positive (so `off` is past the synced bytes: `ByteOk.synced_stamps`,
+  a synced byte is `durB`); `walAbsD_announce` past `so`, at or below `wr` (`ByteOk.ann`: an announced
+  candidate of the intended value keeps an unsynced byte's `ByteOk`, written or not); `wp_tailPWriteFinish`
+  (any `wr ≥ fl.off`) leaves `max wr (fl.off + k)` and gives the range's positive candidates (`segFin_cand`);
+  `walAbsD_finish` derives `so ≤ fl.off` from the announced byte. The start's continuation gives `0 < off`.
+- *Proved over `wp_tailWriteAt`*: `wp_tailWrite` (`(*os.File).Write` on the tail, `Off.lean`'s `wp_long` with
+  the tail's `WriteAt`) and **`wal.tailWriter`** (the `writerStreamP` bridge, empty writes by `wp_empty`).
+  `walTailW`'s pure part gained `sz < 2 ^ 62 ∧ 0 ≤ fd.toInt` (the model's `Write` bound and an open fd):
+  **obligation** for `Create`/`ReadAll` when they build it (the size is at most ext4's `s_maxbytes`).
+- *`wp_tailWriteAt` is `sorry`*: the loop (Löb over attempts, chunks of `maxRW` by `ownSlice_slice`, the
+  invariant `off + nn ≤ wr ≤ off + nn + min (len - nn) 2^30`, `off + nn = wr ∨` a positive candidate at
+  `off + nn`, `TailMeta`, the size) is drafted, but `omega` explodes (> 14 GB) in the loop's contexts: the
+  facts on `sint.Z (nnv + W64 2^30)`/`sint.Z (sl.len - nnv)` (toInt of `BitVec` sums) make each call
+  case-split hugely; clearing them per call helped only partly. Next: every arithmetic step through top-level
+  `Nat` lemmas (`tw_minA`/`tw_minB` are the first), or clear the `BitVec` facts right after use. The draft is
+  the body of `wp_tailWriteAt` at commit `df9397b7b4` (`wal-save6`'s "tail WriteAt loop, WIP") plus the
+  isolation edits in this log.
+- *Repairs*: `walInvBody_tail`'s callers pass the name fact (`rfl`); my own `walParked` repair of `TailAcc`
+  was dropped for the owner's (`segResP`).
+- *Not done*: PageWriter/encoder over `writerStreamP` (`encode.specG`, `saveCrc.spec`), `newFileEncoder`'s
+  `e ≠ null`, the `SaveSnapshot` fix, the cuts budget (with the coordinator's requests: the handle should
+  carry `∀ b ∈ h.cuts, b < |H|`, needed by `cut.spec` with `walCutPos`), `saveEntry`/`saveState`/`sync`/
+  `Save`/`SaveSnapshot`/`Sync`.
+
 ## W3/W5 implementation log (branch `wal-read`, 2026-11-13)
 
 **Proved (no `sorry`, `lake build`):**
