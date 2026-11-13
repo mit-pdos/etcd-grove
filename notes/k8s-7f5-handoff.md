@@ -18,13 +18,42 @@ the worktree's untracked `questions.md` (decisions; never re-add it tracked).
   this stage's T5-c); 7f-0 partial (records only; the rest goes with 7f-6, Q7).
 - No Lean edited. Nothing built on this branch.
 
-## Progress of the S1 review fixes (second 7f-5 agent, 2026-11-13)
+## Handoff point (2026-11-13, second 7f-5 agent): S1 LANDED (lean `be36a0f818`); 7f-3a next
 
-Steps 1-4 below DONE in `0d873a9ee5` (the freeze note's "S1 review" section has each finding and its
-disposition). Deviation to report: the "before any Enabled" clause stays (Enabled's wand can be kept;
-scenario `enabled-kept-then-set`); no NoAlias test can fail without the Copy (FromOutgoingContext
-copies), so a no-Copy variant and a detector test instead. Step 5 (full build, tcb/collections update,
-gates, STATUS, land) in progress.
+S1 with the review's fixes landed (`0d873a9ee5`, `be36a0f818`; freeze note "S1 review"; gates all
+passed; trust base 869 axioms, 4 sorries). The branch `k8s-7f5` is lean now; continue on it.
+
+**Next: 7f-3a's statements, up to hard stop S2** (Scope §6 row 7f-3a; parent `notes/k8s-7f-scope.md`
+§2.3 1-2, §5.1). Nothing of 7f-3a written yet. In order:
+1. Translation config (no trust; from `/shared/tmp/k8s7f5/goose-dry-full.patch`):
+   - `Code/go_etcd_io/etcd/client/v3.toml`: add `WithPrevKV`, `WithRequireLeader` to `translate`;
+   - `Code/google_golang_org/grpc/metadata.toml`: `translate = ["!*", "NewOutgoingContext", "Pairs",
+     "MD.Copy", "MD.Set", "mdOutgoingKey", "rawMD", "copyOf"]` (**copyOf**: the S1 review),
+     `imports = ["!*", "context", "strings", "fmt"]`;
+   - `etc/goose.py --project etcd` (not with GOWORK=off), `--check`.
+   - Consequence to handle: `WithRequireLeader` is today names-only with an axiom
+     (`Proof/go_etcd_io/etcd/client/v3/WithRequireLeader.lean`, `Background()` only). Translated, that
+     axiom becomes a proof over `FromOutgoingContext` (existing spec), `Pairs`/`NewOutgoingContext`
+     (translated: `context.WithValue`) and `strings.ToLower` (trusted: some string): the trust base
+     loses an axiom (report it; `--check --update` after 81's review). The generalized triple over a
+     `watchCtx` parent (T5-a: every other key, Done/Err/Cause the parent's; the metadata "the
+     parent's plus one key") is a 7f-3a statement.
+2. The statements (Lean text in a Draft note, e.g. `notes/k8s-7f3a-draft.md`, for 81's S2 review;
+   no `sorry` under a linked result, so do not change linked definitions before the review):
+   - `OpFull.isRangeWatch` (`Proof/go_etcd_io/etcd/cache/v3/InvEtcdTxn.lean:1231`) drops
+     `o.base.prevKV = false`; `wrRO`'s `prevKV ↦□ false` (`client/v3/InvWatch.lean:846,859`) becomes
+     the model's value;
+   - `EvModel` (`cache/v3/InvStore.lean:185`) gains `prevKv : Loc` (null = none); `eventAt`
+     (`InvStore.lean:1214`) gains the `PrevKv` field; `eventIs` (`client/v3/WatchStateDefs.lean:102`)
+     gains: `prevKV = false → prevKv = null`; else null (always admitted:
+     `issues/etcd-watch-prevkv-before-created.md`), or, for a non-create, `kvValAt prevKv` of the
+     key's kv at `ev.rev - 1` (`σ.at (r-1)`, as `KVState.revEvents`); a create's is null;
+   - `rawRespOk` (`WatchStateDefs.lean:261`) the same at the server's level (`mvcc.stateAt L (r-1)`);
+   - the server: `swsMu` allows `prevKV` entries (`v3rpc/InvWatch.lean`), `recvLoop` records
+     `creq.PrevKv`, `sendLoop`'s branch `watch.go:442-455` (`watchable.Range` at `ModRevision - 1`).
+   - Callers passing `prevKV = false` must see no change (watchkv, cachekv, linkv3p `MainWatch`, the
+     compactor, `etcdstart.Collect`).
+3. STOP (S2): report the statements and the config's trust-base effect.
 
 ## Handoff point (2026-11-13, end of the first 7f-5 agent's context): S1 reviewed; fixes next
 
