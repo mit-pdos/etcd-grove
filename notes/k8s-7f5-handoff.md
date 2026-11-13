@@ -18,6 +18,14 @@ the worktree's untracked `questions.md` (decisions; never re-add it tracked).
   this stage's T5-c); 7f-0 partial (records only; the rest goes with 7f-6, Q7).
 - No Lean edited. Nothing built on this branch.
 
+## Progress of the S1 review fixes (second 7f-5 agent, 2026-11-13)
+
+Steps 1-4 below DONE in `0d873a9ee5` (the freeze note's "S1 review" section has each finding and its
+disposition). Deviation to report: the "before any Enabled" clause stays (Enabled's wand can be kept;
+scenario `enabled-kept-then-set`); no NoAlias test can fail without the Copy (FromOutgoingContext
+copies), so a no-Copy variant and a detector test instead. Step 5 (full build, tcb/collections update,
+gates, STATUS, land) in progress.
+
 ## Handoff point (2026-11-13, end of the first 7f-5 agent's context): S1 reviewed; fixes next
 
 S1 (`c46c52934c`) passed 81's axiom review with one MAJOR and minors. **Do these, in order** (81's

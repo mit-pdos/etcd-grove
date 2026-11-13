@@ -256,3 +256,14 @@ features `Init`'s doc (`etc/gen-init.py`) and `etcd3/Base.lean`'s `featuresInit`
   `TestNoStreaming` and `TestMainLinearizable`.
 - **Closed theorems:** no statement changed. `Main*`'s proofs take one more callee spec
   (`watchList.spec`), linked in `Link.lean`/`MainLinked.lean`.
+
+## Checks after the S1 review (2026-11-13, on `0d873a9ee5`)
+
+- Full build passes (17475 jobs, under flock and the 64G cap).
+- `etc/tcb-report.py --check`: the one expected difference, NEW axiom `k8sfeature.featureOn_persistent`;
+  baseline updated (869 axioms, 4 sorries). Collections: 54 of 55 match; `k8setcd3.txt` the same NEW
+  axiom, updated.
+- `etc/featuregate-check.py`: ok (66 hits, 3 closures); its two negative runs fail as they should.
+- Go: `examples/premisefix/watcherctx` all pass (new: `enabled-kept-then-set`, `TestWithRequireLeaderCause`,
+  `...NoAliasWithoutCopy`, `...NoAliasDetects`).
+- The gates: by `etc/land.sh`.
