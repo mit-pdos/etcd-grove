@@ -522,6 +522,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
       rw [hframe, ite_eq_right htl, ite_eq_right hnsd, hdata]
     have hys2l : ys2.length < 2 ^ 62 := by
       have := hpre2'.length_le; simp at this; omega
+    have hys2o : off + 8 + ys2.length < 2 ^ 62 := by
+      have := hpre2'.length_le; simp at this; omega
     wp_auto
     ihave %Hdl := ownSlice_len _ _ _ $$ Hdat
     ihave %Hdwf := ownSlice_wf _ _ _ $$ Hdat
@@ -593,7 +595,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
         | ok ei => exact ⟨ei, rfl⟩
         | nil => exact absurd rfl herr3
       wp_auto
-      wp_apply HTorn d sl off dsl ys2 (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) hoff hys2l
+      wp_apply HTorn d sl off dsl ys2 (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) hoff hys2o
         $$ [Hbrs Hoff Hdat] as ⟨Hbrs, Hoff, Hdat⟩
       · iframe
       rw [hlast]
@@ -690,7 +692,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
     wp_auto
     wp_apply HReset rp $$ [Hrec] as Hr
     · iapply ownRec_any; iexact Hrec
-    wp_apply HTorn d sl off dsl ys2 (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) hoff hys2l
+    wp_apply HTorn d sl off dsl ys2 (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) hoff hys2o
       $$ [Hbrs Hoff Hdat] as ⟨Hbrs, Hoff, Hdat⟩
     · iframe
     rw [hlast]
