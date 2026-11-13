@@ -812,7 +812,7 @@ out of `Abs.lean`; statement unchanged). Left: `walInv_alloc` (`sorry`).
   `decFile`, `ownFbr`, `ownDecoder`, `decEnv`, `decPost`, `stopErr`; walpb `ownRec`): proved
   `decodeFrameSize`, `readInt64`, `LastOffset`, `LastCRC`, `UpdateCRC`, `Decode` (over decodeRecord's
   spec), walpb `GetType`/`GetCrc`/`Validate`, fileutil `NewFileBufReader`/`FileInfo`/`Err`/`Read`.
-  `NewDecoder` proved (`wal-dec3`: the range loop builds `ownFbrs` by `ownFbrs_snoc`, each reader's `*FileBufReader` cell persisted; `sync.init_Mutex` for `d.mu`; the readers' slice persisted). `sorry`: `isTornEntry` (three loops: the sector split appending subslices of `data` to `chunks`, then two nested range loops with a `break`; the subslices alias `data`, so its fraction must be split per chunk, or the chunks read through `data` by index). `decodeRecord` proved (branch
+  `NewDecoder` proved (`wal-dec3`: the range loop builds `ownFbrs` by `ownFbrs_snoc`, each reader's `*FileBufReader` cell persisted; `sync.init_Mutex` for `d.mu`; the readers' slice persisted). `isTornEntry` proved (`wal-read`, 2026-11-13: the chunks as bounds `[a, b)` into `data`, `chunkBnds`; each chunk's points-to split out of `data` with `ownSlice_slice` around the inner loop and put back; premise now `off + 8 + len(data) < 2^62`, since `fileOff` is an `int64`: `decodeRecord` passes it). `decodeRecord` proved (branch
   `wal-dec2`, by induction on the files for its recursive call), over its lemmas in `DecLemmas.lean`
   (`fbr_readerStream`: a `*FileBufReader` as `io.Reader` is a stream reader of its file; the
   `decRecStep_*` equations by what the reads returned; `decPost_{stop,accept,ioe,cons_eof}`).
