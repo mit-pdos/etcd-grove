@@ -67,9 +67,9 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
   (`uint.Z cv.MaxSizePerMsg' ≤ 2^20`), which `rnRestartCfg` needs: `bootOkR`'s text must take
   `rnRestartCfg bv cv lok pv` (contract text: in the CP2 package; Go evidence as `rnStartCfg.maxMsg`'s
   docstring, both constructions call `raftConfig`, `TestMaxSizePerMsg`).
-- **Probes not yet checked by Lean**: `Scratch/S56Probe.lean`'s P1/P2/P6 sections were written while the
-  build ran and never elaborated. First thing: `LAKE_OPTS=--packages=/shared/tmp/manifest-ddc.json
-  etc/lean-check.py -a Scratch/S56Probe.lean` (under the 64G cap) and fix.
+- **Probes checked**: `etc/lean-check.py -a Scratch/S56Probe.lean`: 0 errors, no `sorryAx` (P1's
+  `restartOkD_start`, P2's `probe_P2_boot_storageR`, P6, P7). Pitfall: `$$ [H1 H2]` with persistent
+  hypotheses opens a framing side goal; write `$$ [$H1 $H2]`.
 - CP2 package draft (incomplete): `/shared/tmp/restart-s56/freeze-package.md` (HS1, the `bootOkR` slot +
   `rnRestartCfg`, srvRestartRows, H10's `cl.Recover` check done by reading, world assumptions). Missing:
   `NewServer.specR`'s Lean text, `srvBuiltR`, the A2 texts in tracked files, spec-reviewer, axiom skill.
