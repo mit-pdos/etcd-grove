@@ -55,6 +55,16 @@ def cutClaim (j : Ino) (X : List GoString) (hj : NamesH) (tmp bt : GoString) (i 
     Claim :=
   (j, .except X, hj.log x (renFileEnt j tmp j bt i hj s0) (<[bt := .file i]> hj.cur))
 
+/-- **`Create`'s claim of the area survives a claim of another directory replaced.** -/
+theorem walsCreateOk_cut {jr : Ino} {cl : List Claim} {c0 c1 : Claim} (h0 : c0.1 ≠ jr)
+    (h : WalsCreateOk jr cl) : WalsCreateOk jr (replClaim c0 c1 cl) := by
+  classical
+  intro nm hnm
+  obtain ⟨N, hN, hm, hMem⟩ := h nm hnm
+  refine ⟨N, hN, ?_, hMem⟩
+  have := mem_replClaim (c0 := c0) (c1 := c1) hm
+  rwa [if_neg (fun e => h0 (by rw [← e]))] at this
+
 /-- **The pure facts after a cut's rename commit** (see the file header). The old state: the
 invariant's pure conjuncts (`hW` … `hDK`, no cut pending), the WAL `d` of `dir` with its layout `lay`
 (the last segment `g0`), its key `(j, X)` and claim `(j, .except X, hj)`. The old tail synced and
@@ -96,7 +106,8 @@ theorem cutCommit_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {
         (replClaim (j, .except X, hj) (cutClaim j X hj tmp bt g.ino x s0) cl) n ∧
       DirKeysOk C Mr jr s (<[dir := cutLay lay d.H.length g wr]> Ls)
         (replClaim (j, .except X, hj) (cutClaim j X hj tmp bt g.ino x s0) cl) n K (some dir) := by
-  sorry
+  obtain ⟨-, -, -, -, hjjr, -⟩ := hDK.1 dir j X hK
+  exact ⟨sorry, walsCreateOk_cut hjjr hWC, sorry, sorry, sorry, sorry⟩
 
 end pure
 
