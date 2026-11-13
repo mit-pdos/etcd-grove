@@ -144,7 +144,7 @@ theorem restartCheck.wp_proof
   icases Hst with ⟨HmR, -, -, -⟩
   ihave #Hcm := Hcom
   iunfold etcdstart.commonPremises at Hcm
-  icases Hcm with ⟨-, -, -, #Hnrl⟩
+  icases Hcm with ⟨-, -, -⟩
   -- `serveClient(mR, client)`, with etcd's KV calls registered at the address
   haveI := Hms
   have Hrb48 := ReceiptBoundLe.le (GF := GF) (2 ^ 48)

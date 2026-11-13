@@ -61,7 +61,7 @@ abbrev Serve.spec : Prop :=
         threadBound GF ≤ 2 ^ 28⌝ ∗
       netAddrFree (GF := GF) addr ∗
       isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvAuthLb s E ∗
-      srvServeFacts s E cfg ∗ srvWatchBuilt s E ∗ v3rpc.runsNoRequireLeader ∗
+      srvServeFacts s E cfg ∗ srvWatchBuilt s E ∗
       srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
       (∀ (gs : Loc) (lis : GoInterface) (cid mid : w64) (R : v3rpc.WSrv GF),
         grpcUpM E.authOn s E ρ γr gs lis addr cid mid R ={⊤}=∗

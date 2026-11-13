@@ -1996,8 +1996,7 @@ theorem etcd_watch_served_chain (addr : GoString) (p : Loc) (R : WSrv GF) (W : S
 
 /-- **etcd's stream interceptor** (`newStreamInterceptor`, linked; the watch slice's unit W-W): it
 starts the leader monitor and returns a transparent stream interceptor (`srvStreamInterceptorOk`,
-no resource), under the premise `runsNoRequireLeader` (no client asks for a leader on a stream:
-a premise about the deployment, `InvStreamInterceptor.lean`). -/
+no resource) (until 2026-11-13, k8s 7f-4 step 6, under the deployment premise `runsNoRequireLeader`). -/
 theorem new_stream_interceptor :
     EtcdGrove.v3rpc.newStreamInterceptor.spec (GF := GF) (hG := hG) :=
   wp_newStreamInterceptor
@@ -2006,7 +2005,7 @@ theorem new_stream_interceptor :
 (`etcd_watch_served_chain` with its second interceptor the one `newStreamInterceptor(s)` returns,
 `new_stream_interceptor` discharging its contract): from `newStreamInterceptor`'s premises (the
 server's member id, `lead`, cluster, `GoAttach` slots, `stopping` channel, configuration fields,
-and `runsNoRequireLeader`), the call returns an interceptor `is` with the `GoAttach` slots back,
+), the call returns an interceptor `is` with the `GoAttach` slots back,
 and a gRPC server built with the chain `[im, is]` (grpc-prometheus's `im` still assumed
 transparent) and the `Watch` stream registered serves the method. -/
 theorem etcd_watch_served_etcd_chain (addr : GoString) (p : Loc) (R : WSrv GF) (W : SrvW GF)
@@ -2025,8 +2024,7 @@ theorem etcd_watch_served_etcd_chain (addr : GoString) (p : Loc) (R : WSrv GF) (
         srvMemberIDAddr s ↦□ mid ∗ srvLeadInv s ∗ srvClusterAddr s ↦□ c ∗
         membership.isRaftCluster c ∗ membership.localKept c ∗
         srvGoRes s ∗ srvLgReader s ∗ srvStoppingAddr s ↦□ ch ∗ stopChan ch ∗
-        cfgTickMsAddr (srvCfgAddr s) ↦□ tm ∗ cfgElectionTicksAddr (srvCfgAddr s) ↦□ et ∗
-        v3rpc.runsNoRequireLeader }}
+        cfgTickMsAddr (srvCfgAddr s) ↦□ tm ∗ cfgElectionTicksAddr (srvCfgAddr s) ↦□ et }}
       (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.newStreamInterceptor))
         (Val #s))
     {{ (is : GoFunc), RET #is; srvGoRes s ∗ srvLgReader s ∗

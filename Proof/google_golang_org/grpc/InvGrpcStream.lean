@@ -891,7 +891,7 @@ a handler `h`, it either calls `h` once on the same service value and a server e
 same stream with the same context (the same queues, tokens, contents and context `ci`, its
 descriptor possibly another: grpc-prometheus wraps `ss` in a counting `monitoredServerStream`
 whose `Context()` is `ss.Context()`; etcd's `newStreamInterceptor` passes `ss` unchanged when the
-client does not require a leader, `runsNoRequireLeader`; G2, 2026-10-30: until then the handler's
+client does not require a leader; G2, 2026-10-30: until then the handler's
 context was any, which a metadata-indexed stream spec cannot use) and returns its result, or returns a non-nil error without calling `h`; `R` comes back either way. The caller
 gives both continuations (`∧`: one is taken). The handler returns an `error` value (a
 deferred-call wrapper needs this, as `srvInterceptorOk` does) that grpc's `status` takes

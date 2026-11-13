@@ -37,7 +37,7 @@ trivial extension (`common/TrivialExt.lean`; the proofs are generic over the ext
   package assumptions), and `ContextReadErrs` (`context.Canceled`'s and `DeadlineExceeded`'s method
   facts from `context`'s package fact: the read package's initializer's premise class, item 8);
 * triples of functions the program calls, with fresh resources (`etcd_compacted.premises`: `bootstrap`'s
-  contract, the raft wrapper's names-only contracts, `Stop` of a started node,
+  contract, the raft wrapper's names-only contracts, `Stop` of a started node; until 2026-11-13 also
   `runsNoRequireLeader`), at every ghost-state instance;
 * (until 2026-10-20 also two marked hypotheses, false under the then Perennial pin,
   `EofFromIoInit` and `ClosedchanFromContextInit`: `io.EOF` and `context`'s `closedchan` now come

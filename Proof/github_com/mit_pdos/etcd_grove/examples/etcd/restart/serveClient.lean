@@ -31,7 +31,7 @@ theorem serveClient.wp_proof
     (wp_Serve : etcdstart.Serve.spec (GF := GF) (hG := hG)) :
     serveClient.spec (GF := GF) (hG := hG) := by
   intro CS m s pl addr E ρ γr cfg Q Htr Hpn Hms Hbuq Htb
-  wp_start as ⟨#Hzlg, Hm, Haddr, #Hreq, #Hrd, #Hsf, #Hwb, #Hnrl, Hlgr, Hbemu, Hgo, Hstep⟩
+  wp_start as ⟨#Hzlg, Hm, Haddr, #Hreq, #Hrd, #Hsf, #Hwb, Hlgr, Hbemu, Hgo, Hstep⟩
   ihave #Pcom : isPkgInit (PROP := IProp GF)
       pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart $$ []
   · iPkgInit

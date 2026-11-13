@@ -17,7 +17,7 @@ cluster's `urls3`: the member's peer and client URLs, the initial cluster's map 
 caller builds, the initial URLs by name), at the bound `N` and the directory `dir`.
 
 **The premises the members share** (`commonPremises`): the raft wrapper's trust-boundary contracts,
-`Stop` of a started node, and the deployment's `runsNoRequireLeader`.
+`Stop` of a started node (until 2026-11-13 also the deployment's `runsNoRequireLeader`).
 
 **A member built and started** (`memberBuilt`: `newServer`'s success, what `Start` takes;
 `memberUp`: `Start`'s, what serving it needs) and **what `NewServer` takes of the ghost state**
@@ -197,8 +197,7 @@ theorem bootPremise_of (N : Nat) (ps : List w64) (bootLog : List EntryM) (ctxs :
 
 /-- **The premises shared by the members** (see the file header). -/
 def commonPremises : IProp GF :=
-  iprop(rnLoggerZapOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk ∗
-    v3rpc.runsNoRequireLeader)
+  iprop(rnLoggerZapOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk)
 
 instance commonPremises_persistent : Persistent (commonPremises (GF := GF)) := by
   unfold commonPremises; infer_instance
