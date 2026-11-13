@@ -130,11 +130,11 @@ theorem dispatchCrev_noV3 (c : Chain) (rq : IRRModel) (crev : Int) :
 
 /-- **What a compaction request needs at the log `log`**: `cmpAdmitRev` at its revision; nothing
 for another kind. -/
-def cmpAdmit (kb : Option mvcc.KBReal) (log : mvcc.Log) (rq : IRRModel) : Prop :=
-  dispatchKind rq = .compaction → ∀ r, rq.compaction = some r → cmpAdmitRev kb log r
+def cmpAdmit (log : mvcc.Log) (rq : IRRModel) : Prop :=
+  dispatchKind rq = .compaction → ∀ r, rq.compaction = some r → cmpAdmitRev log r
 
-theorem cmpAdmit_nonCmp (kb : Option mvcc.KBReal) (log : mvcc.Log) (rq : IRRModel)
-    (h : dispatchKind rq ≠ .compaction) : cmpAdmit kb log rq := fun h' => absurd h' h
+theorem cmpAdmit_nonCmp (log : mvcc.Log) (rq : IRRModel)
+    (h : dispatchKind rq ≠ .compaction) : cmpAdmit log rq := fun h' => absurd h' h
 
 /-- What became of an entry in `apply.Apply`. -/
 inductive ApplyOut where
@@ -325,15 +325,20 @@ def dispatchAnswer (rq : IRRModel) (log : mvcc.Log) (skip : Bool) (resp err : Go
   | .clusterVersionSet | .clusterMemberAttrSet | .downgradeInfoSet | .downgradeVersionTest =>
       iprop(⌜resp = GoInterface.nil ∧ err = GoInterface.nil⌝)
   | .authEnable => iprop(∃ r : Loc,
-      ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.AuthEnableResponse.ty) #r⌝)
+      ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.AuthEnableResponse.ty) #r ∧
+        (err = GoInterface.nil → r ≠ null)⌝)
   | .authUserAdd => iprop(∃ r : Loc,
-      ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.AuthUserAddResponse.ty) #r⌝)
+      ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.AuthUserAddResponse.ty) #r ∧
+        (err = GoInterface.nil → r ≠ null)⌝)
   | .authRoleAdd => iprop(∃ r : Loc,
-      ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.AuthRoleAddResponse.ty) #r⌝)
+      ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.AuthRoleAddResponse.ty) #r ∧
+        (err = GoInterface.nil → r ≠ null)⌝)
   | .authUserGrantRole => iprop(∃ r : Loc,
-      ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.AuthUserGrantRoleResponse.ty) #r⌝)
+      ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.AuthUserGrantRoleResponse.ty) #r ∧
+        (err = GoInterface.nil → r ≠ null)⌝)
   | .authRoleGrantPermission => iprop(∃ r : Loc, ⌜resp =
-      interface.mkOk (go.GoType.PointerType etcdserverpb.AuthRoleGrantPermissionResponse.ty) #r⌝)
+      interface.mkOk (go.GoType.PointerType etcdserverpb.AuthRoleGrantPermissionResponse.ty) #r ∧
+        (err = GoInterface.nil → r ≠ null)⌝)
   | _ => iprop(True)
 
 /-- **Without an error the answer does not depend on the trace** (only a compaction's error arm

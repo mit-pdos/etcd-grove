@@ -4,6 +4,7 @@ lease). Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.client.v3.PerTypeLease
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient__LeaseRevoke
 public import Spec.google_golang_org.grpc.StaticMethod
 public import Spec.google_golang_org.grpc.ClientConn__Invoke
@@ -57,8 +58,9 @@ theorem leaseClient.LeaseRevoke.wp_proof
   ihave Hblank : pbLeaseRevokeResponse (GF := GF) |>.blank «$r0_ptr» $$ [«$r0»]
   · simp only [pbLeaseRevokeResponse]
     iexact «$r0»
-  have hI := etcdConn_Invoke wp_Invoke conn addr go!"/etcdserverpb.Lease/LeaseRevoke" pbLeaseRevokeRequest
-    pbLeaseRevokeResponse Spec req.ID' Q ctx cd inp «$r0_ptr» copts ([sm] ++ vs)
+  have hI := etcdConn_Invoke wp_Invoke conn addr go!"/etcdserverpb.Lease/LeaseRevoke" pbLeaseRevokeRequestT
+    pbLeaseRevokeResponseT pbLeaseRevokeRequestT_reg pbLeaseRevokeResponseT_reg Spec req.ID' Q ctx cd inp «$r0_ptr» copts ([sm] ++ vs)
+  simp only [pbLeaseRevokeRequestT, pbLeaseRevokeResponseT] at hI
   rw [show (pbLeaseRevokeRequest (GF := GF)).ty = etcdserverpb.LeaseRevokeRequest.ty from rfl,
     show (pbLeaseRevokeResponse (GF := GF)).ty = etcdserverpb.LeaseRevokeResponse.ty from rfl] at hI
   ihave Hpre' := reqPre_box conn _ addr ([sm] ++ vs) _ $$ Hpre

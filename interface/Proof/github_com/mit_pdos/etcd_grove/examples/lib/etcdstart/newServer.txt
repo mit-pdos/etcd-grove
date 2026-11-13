@@ -27,15 +27,15 @@ theorem etcdstart.newServer.wp_proof (wp_newServerMode : etcdstart.newServerMode
                                   { peer := [etcdstart.httpURL peerAddr], client := [etcdstart.httpURL client],
                                     initMap := M, initURLs := iu } →
                                 (∀ (k : GoString), (M !! k).isSome = true → utf8Valid k) →
-                                  lg ≠ null →
-                                    retention = W64 0 →
-                                      ckptEffectsOk →
-                                        authRecordsFit →
-                                          apply.backendUnderQuota →
-                                            storage.diskOk →
-                                              ⊢
-                                                ∀ Φ,
-                                                  isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
+                                  retention = W64 0 →
+                                    ckptEffectsOk →
+                                      authRecordsFit →
+                                        apply.backendUnderQuota →
+                                          storage.diskOk →
+                                            ⊢
+                                              ∀ Φ,
+                                                isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
+                                                    zapLoggerOk lg ∗
                                                       threadTok ∗
                                                         ownSlice peer [etcdstart.httpURL peerAddr] DFrac.discard ∗
                                                           ownMap cluster DFrac.discard M ∗
@@ -47,32 +47,32 @@ theorem etcdstart.newServer.wp_proof (wp_newServerMode : etcdstart.newServerMode
                                                                     etcdstart.memberBoot γ ctxs ρ E₀ Φs id cmp lm ∗
                                                                       netHttpOk γn id ∗
                                                                         etcdstart.memberFreshRes name { } γn -∗
-                                                    (▷
-                                                        ∀ s err,
-                                                          ⌜err ≠ GoInterface.nil⌝ ∗ threadTok ∨
-                                                              ⌜err = GoInterface.nil⌝ ∗
-                                                                threadTok ∗
-                                                                  etcdstart.memberBuilt s ρ E₀ lg γn id N false (W64 0)
-                                                                      (W64 0) (W64 0) bootKV lm ∗
-                                                                    leaseTTLRowR s ps ∗
-                                                                      srvDataDir s
-                                                                        (name ++ go!".etcd") -∗
-                                                            Φ (intoVal s, intoVal err)) -∗
-                                                      WP
-                                                        ((((((((((intoVal
-                                                                            (functions
-                                                                              github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.newServer
-                                                                              []))
-                                                                          (intoVal name))
-                                                                        (intoVal peer))
-                                                                      (intoVal client))
-                                                                    (intoVal cluster))
-                                                                  (intoVal token))
-                                                                (intoVal retention))
-                                                              (intoVal snapCount))
-                                                            (intoVal catchUp))
-                                                          (intoVal lg))
-                                                        {{ Φ }}
+                                                  (▷
+                                                      ∀ s err,
+                                                        ⌜err ≠ GoInterface.nil⌝ ∗ threadTok ∨
+                                                            ⌜err = GoInterface.nil⌝ ∗
+                                                              threadTok ∗
+                                                                etcdstart.memberBuilt s ρ E₀ lg γn id N false (W64 0)
+                                                                    (W64 0) (W64 0) bootKV lm ∗
+                                                                  leaseTTLRowR s ps ∗
+                                                                    srvDataDir s
+                                                                      (name ++ go!".etcd") -∗
+                                                          Φ (intoVal s, intoVal err)) -∗
+                                                    WP
+                                                      ((((((((((intoVal
+                                                                          (functions
+                                                                            github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.newServer
+                                                                            []))
+                                                                        (intoVal name))
+                                                                      (intoVal peer))
+                                                                    (intoVal client))
+                                                                  (intoVal cluster))
+                                                                (intoVal token))
+                                                              (intoVal retention))
+                                                            (intoVal snapCount))
+                                                          (intoVal catchUp))
+                                                        (intoVal lg))
+                                                      {{ Φ }}
 
 theorem etcdstart.memberBuilt.congr_simp (s s✝ : Loc) (e_s : s = s✝) (ρ ρ✝ : ReqNames) (e_ρ : ρ =
     ρ✝) (E₀ E₀✝ : apply.AEnv GF) (e_E₀ : E₀ = E₀✝) (lg lg✝ : Loc) (e_lg : lg = lg✝) (γn γn✝ :

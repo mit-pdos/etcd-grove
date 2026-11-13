@@ -112,7 +112,7 @@ theorem newCache.wp_proof
   -- the internal context
   wp_apply context.wp_Background
   wp_apply context.wp_WithCancel_Background iprop(True) $$ [$Hctxp $Hcci]
-    as %ictx %γi %cancel ⟨#Hcancel, #Hictx, #Hcc⟩
+    as %ictx %γi %cancel ⟨#Hcancel, #Hictx, #Hcc, -⟩
   ihave #Hcancel := context.cancel_spec_forget _ _ _ $$ Hcancel
   -- the client's fields
   ihave #Hcl' := Hcl

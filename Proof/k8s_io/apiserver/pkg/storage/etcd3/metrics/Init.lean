@@ -2,14 +2,16 @@
 Package initialization of `k8s_io.apiserver.pkg.storage.etcd3.metrics`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact (`metricsInit`, `storage/etcd3/Base.lean`): `ErrTransactionConflict` holds some
-error. Its initializer runs its variables' untranslated initializers (`metrics.go`); the
-trust-boundary axiom `ErrTransactionConflict_init` states the one the fact reads
-(`errors.New("transaction conflict")`), `opaqueInitsOk` the others.
+Its fact (`metricsInit`, `storage/etcd3/Base.lean`): `ErrTransactionConflict` holds an
+`errors.New("transaction conflict")` error (`EtcdGrove.errorsNewVar`). Its initializer runs its
+variables' untranslated initializers (`metrics.go`); the trust-boundary axiom `errorsNewVarsInit`
+states the one the fact reads (`metrics.go:42` at the apiserver pin `9c4ec15b8038`; checked by
+`examples/premisefix/recordetcdrequest`), `opaqueInitsOk` the others.
 -/
 module
 
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Base
+public import Proof.errors.NewVarCell
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -60,10 +62,12 @@ axiom opaqueInitsOk :
         «_».init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
-/-- `ErrTransactionConflict = errors.New("transaction conflict")` (`metrics.go`): an error. -/
-axiom ErrTransactionConflict_init :
-    {{ (True : IProp GF) }} (App (Val ErrTransactionConflict.init) (Val #()))
-    {{ RET #(); ∃ e : GoInterface, globalAddr ErrTransactionConflict ↦ e }}
+/-- **The trust boundary: `k8s_io.apiserver.pkg.storage.etcd3.metrics`'s variables initialized by `errors.New`.** Each
+listed `X.init` (untranslated) runs Go's `var X = errors.New(msg)`, as its Go source has
+it, the fresh `errorString`'s `s` field holding `msg` (`errStrCell`, D19k). -/
+axiom errorsNewVarsInit :
+    ∀ (init : val) (X msg : GoString), (init, X, msg) ∈ ([(ErrTransactionConflict.init, ErrTransactionConflict, go!"transaction conflict")] : List (val × GoString × GoString)) →
+    EtcdGrove.errorsNewVarInitC (GF := GF) init X msg
 
 end k8s_io.apiserver.pkg.storage.etcd3.metrics
 end opaqueInits
@@ -89,7 +93,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   iapply wp_fupd
-  wp_apply ErrTransactionConflict_init as ⟨%eErrTransactionConflict, HErrTransactionConflict⟩
+  wp_apply (errorsNewVarsInit ErrTransactionConflict.init ErrTransactionConflict go!"transaction conflict" (by mem_tac))
+    as ⟨%xErrTransactionConflict, HErrTransactionConflict, #MErrTransactionConflict, #CErrTransactionConflict⟩
   wp_apply (opaqueInitsOk etcdRequestLatency.init (by mem_tac))
   wp_apply (opaqueInitsOk etcdRequestCounts.init (by mem_tac))
   wp_apply (opaqueInitsOk etcdRequestErrorCounts.init (by mem_tac))
@@ -117,8 +122,10 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   is_pkg_init_finish
   try (isplitl []; · (imodintro; itrivial))
   imodintro
+  unfold k8s_io.apiserver.pkg.storage.etcd3.metricsInit EtcdGrove.errorsNewVar
   iexists _
-  iexact HErrTransactionConflict
+  iframe HErrTransactionConflict
+  iexact MErrTransactionConflict
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

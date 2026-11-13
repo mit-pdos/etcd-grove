@@ -298,7 +298,10 @@ traffic grows):
   (`validateMinimumResourceVersion`), so its RV modes are 7b's (the model's `get` has the
   minimum), not this stage's (corrected 2026-11-01).
 - **7d. The replay.** The verified porcupine returns its linearization; a Go copy of `Replay`
-  (or the real one, with 7g) in the driver's `Check`, proved against the history.
+  (or the real one, with 7g) in the driver's `Check`, proved against the history. (2026-11-07,
+  `notes/k8s-7d-scope.md`: stages 1-2 built, porcupine's `linInfoOk` and `lintest.RunLin`; the
+  driver's replay folded into 7e/7g, since for the current traffic it checks nothing porcupine
+  does not, and the failed-write trap of its §2 and §12 shapes 7e and 7g.)
 - **7e. `GetList`**, the paginated path (`EtcdRangeStream` off, so no `streamChunks`): a spec of
   `kubernetes.Client.List` (new; recursive ranges at a revision, limit, continue), `pagedChunks`'
   iterator, `appendChunk`/`processListItem` (`reflect`'s slice operations: `MakeSlice`, `Append`,
@@ -310,7 +313,17 @@ traffic grows):
 - **7f. Watches.** The etcd3 watcher (`watcher.go`; G1's alias fix in Goose first, a small
   Perennial change, `notes/perennial-changes.md`), over the etcd client's `Watch` (the watch
   specs of `watchkv`/G2), the test's watcher behaviours (slow, hiccup, stalled consumers), and the
-  watch validator. The largest stage; last.
+  watch validator. The largest stage; last. (2026-11-08, `notes/k8s-7f-scope.md`, to 81 for
+  review: G1's fix has landed, so only the two `etcd3.toml` exclusions go; watches become lintest
+  operations checked against 7e's per-configuration history; the store's watches need
+  `WithPrevKV` and `WithRequireLeader` through etcd's watch stack, the second making the premise
+  `runsNoRequireLeader` false; the watcher can deliver events after a `watch.Error`,
+  `nonissues/k8s-etcd3-watcher-events-after-error.md`; 10-16k Lean lines in 8 sub-stages.
+  Revision 2, 2026-11-08, after the review and the user's decisions: departures 1-4 accepted with
+  bookmarks bounded and foreign-object events rejected; `runsNoRequireLeader` deleted with no fork
+  change, through a weak handler context and a changed grpc stream-interceptor contract, Watch and
+  LeaseKeepAlive re-proved; 13-21k Lean lines. Approved by 81, 2026-11-08; 7f-1, `lintest.RunLin2`,
+  built on `k8s-7f`.)
 - **7g. The maintainers' checker.** Translate `correctness` itself (`Model`, `Replay`,
   `WatchValidator`) in place of the Go copy (D30m, "Open" below), with D30g's fix as a patch
   until upstream takes it; `reflect.DeepEqual` and the list/meta accessors at the trust boundary.
@@ -1422,6 +1435,52 @@ did not.) `Main.spec` keeps its premises.
 
 The size came in under the estimate: `MainCluster.lean` is ~330 lines, and Adequacy, Results and
 links ~200.
+
+### k8s etcd3 over cluster3, step 2: as built (2026-11-07, etcd-grove-56, branch `k8s-cluster-s2`; Draft rev 2 approved with fixes by the user via etcd-grove-82)
+
+**Go.** `MainPartition(clients, ops, sched)` in `k8setcd3.go` is `MainCluster` plus one step: before
+`Check`, it runs `go cluster3.Partitioner(srvs, brs, sched)`.
+
+Tests:
+- Every cluster test runs in a process of its own (`inChild`: `TestMainLinearizable`,
+  `TestMainCluster`, `TestMainPartition`, `TestPartitionFailures`). The parent removes the data
+  directory after the child exits. Removing it under a running member made the WAL's release fail
+  (`server.go:2157` panics), which the theorem excludes by its premise `storage.diskOk ∋ releaseOk`.
+- `TestMainPartition` runs five schedules: `isolate` (300ms cuts), `election` (3s cuts of each
+  member in turn), `blackhole` (member 0 for 10s), `drop` and `mixed` (one K6-like round).
+- `TestPartitionFailures` counts the failed writes and the leader changes.
+
+Runs, under a 32G cap:
+- `TestMainPartition`, the theorem's program, returned Ok in 25 of 25 runs (5 schedules × 5 runs),
+  with a peak RSS of 61-71 MiB.
+- The leader and failed-write counts come from 25 separate runs of the diagnostic
+  `TestPartitionFailures`:
+  - the election schedule had 2-3 distinct leaders in every run;
+  - 0-4 writes failed per run.
+- `inChild` requires the child's `--- PASS` line, so a child that ran no test fails.
+
+**Not verified.** An earlier doc comment on `MainPartition` said that a read is then retried on
+another endpoint. Nothing verified that claim, and the comment no longer says it.
+
+**Statements.** These are new; nothing on lean changes.
+- `MainPartition.spec` is `MainCluster.spec` with `sched ↦*□ steps` added.
+- `k8setcd3PProgram clients ops steps := initialize' #() ;; MainPartition #clients #ops (schedLit
+  steps)`.
+- `k8s_etcd3_partition_safe` (from `k8s_etcd3_partition_adequate`) holds for every `steps` with
+  `steps.length < 2^63`, under `k8s_etcd3_cluster_safe`'s hypotheses. Its adequacy allocates the
+  literal, as K6's does.
+
+**Proof.** K6's partition pattern: the Partitioner is forked after `etcd3.New`.
+- `PeerPausable` comes from `peerPausable_inst`.
+- `ownBridge … false` comes from `cluster3.clusterAt`.
+
+**Trust.** No new axiom or `sorry` in the baseline. The `k8setcd3` collection gains the three bridge
+axioms `bridge.bridge.{Blackhole,Unblackhole,DropConnections}.wp_proof`. Like every `_safe` theorem
+here:
+- the result is vacuous until `pbEnc_ok`'s per-type fix lands (`notes/pbenc-ok-inconsistent.md`);
+- it rests on false axioms until sweep repairs 1 land: `zap.Logger.{Debug,Error,Fatal,Info,Warn}`,
+  `errors.IsCtxErr`, `context.ValueStartTime`, `http.Handle_ok`, and the k8s
+  `DefaultFeatureGate`/`DefaultFeatureSupportChecker` initializers.
 
 ## What blocks where
 

@@ -140,7 +140,7 @@ theorem rafthttp.peer.send.wp_proof
     #Hlid, #Hpid, #Hr, #Hraft, #Hps, #Hpsok, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
     #Hmu⟩
   iunfold peerMsg at Hpm
-  icases Hpm with ⟨%st, #Hm, #HP, HO, %Hst⟩
+  icases Hpm with ⟨%st, #Hm, #Hbd, #HP, HO, %Hst⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
@@ -167,7 +167,7 @@ theorem rafthttp.peer.send.wp_proof
   icases Hraft with ⟨%ri, %Hri, -, -, #HRU, -⟩
   subst Hri
   icases Hwc with (⟨%γ, #Hb, %Hty⟩ | ⟨%γ, #Hb⟩ | ⟨%γ, #Hb⟩)
-  · ihave Hpay := swMsg_v2_of_peerMsg Rh lid pid ml st Hst Hty $$ Hm HP HO
+  · ihave Hpay := swMsg_v2_of_peerMsg Rh lid pid ml st Hst Hty $$ Hm Hbd HP HO
     send_sel
   · ihave Hpay : swMsg Rh .message lid pid ml $$ [HO]
     · iapply swMsg_message_of_peerMsg

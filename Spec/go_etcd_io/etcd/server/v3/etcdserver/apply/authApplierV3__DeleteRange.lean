@@ -32,11 +32,11 @@ abbrev apply.authApplierV3.DeleteRange.spec : Prop :=
     (Pre Q Post : IProp GF)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.authIs E p inner ∗ apply.applierSpec E c inner ∗
-      apply.deletePre E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info r rq o log Pre Q Post ∗ mvcc.idxCert E.γ.idx F }}
+      apply.deletePre E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info r rq o log Pre Q Post ∗ srvApi.kvLogLb E.γs F ∗ apply.applyTok E }}
     (App (Val (p @!! go.GoType.PointerType authApplierV3.ty @!! go!"DeleteRange")) (Val #r))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
       apply.kvPostF E (.auth E.authOn c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info rq log F (apply.deleteAnswerIs log o resp err) Pre Post ∗
-      apply.traceRes trace }}
+      apply.traceRes trace ∗ apply.applyTok E }}
 
 end spec
 

@@ -82,6 +82,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.withPre
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.workloadKeys
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.workloadVals
 public import Proof.go_uber_org.zap.NewNop
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Link
 public import Proof.go_etcd_io.etcd.client.v3.kubernetes.Link
@@ -412,9 +413,9 @@ theorem wp_newObj :
     EtcdGrove.k8s_etcd3.newObj.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.newObj.wp_proof
 
-theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.k8s_etcd3.Main.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.Main.wp_proof zap.wp_NewNop etcdstart.wp_StartServer etcdstart.wp_Serve kubernetes.wp_New wp_seed k8s.wp_New k8s.wp_NewDefaultLeaseManagerConfig wp_newObj runtime.wp_Encode codec.wp_Encode versioner.wp_UpdateObject versioner.wp_PrepareObjectForStorage versioner.wp_ObjectResourceVersion versioner.wp_ParseResourceVersion identity.wp_TransformFromStorage identity.wp_TransformToStorage decoder.wp_Decode runtime.wp_SetZeroValue Obj.wp_GetUID Obj.wp_GetResourceVersion wp_Check
+  EtcdGrove.k8s_etcd3.Main.wp_proof zap.wp_NewNop etcdstart.wp_StartServer etcdstart.wp_Serve kubernetes.wp_New wp_seed k8s.wp_New k8s.wp_NewDefaultLeaseManagerConfig wp_newObj runtime.wp_Encode codec.wp_Encode versioner.wp_UpdateObject versioner.wp_PrepareObjectForStorage versioner.wp_ObjectResourceVersion versioner.wp_ParseResourceVersion identity.wp_TransformFromStorage identity.wp_TransformToStorage decoder.wp_Decode runtime.wp_SetZeroValue Obj.wp_GetUID Obj.wp_GetResourceVersion wp_Check mvcc.api.mvccApi_names_nonempty_law_holds
 
 end links_hasLC
 

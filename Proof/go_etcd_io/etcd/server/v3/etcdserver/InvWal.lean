@@ -296,6 +296,9 @@ loop's "not stopped" token `ok`, the stop's claim and the apply thread's token (
 invariant once the stop took the records; round 2 review F4: each thread rules the taken state out
 with its token). -/
 structure WalNames where
+  /-- (Sweep repairs 1, W2) the WAL's location, which `rnDurInv` pins: what the snapshot batch's
+  `notifyc` payload names (`rnApSnap`'s `walBaseLb`), where the raft wrapper is not at hand. -/
+  loc : Loc
   view : GName
   cm : GName
   ok : GName
@@ -452,9 +455,9 @@ says (`walAsViewed`; the loop's `Save` moves the records and the view in one ste
 thread's own snapshot moves the records only). The node's durable state (`raftState`) is the
 loop's own, beside its view half (`rnLoopTokP`), not the invariant's. -/
 def rnDurInv (cl : Cluster) (ν : WalNames) (w : Loc) : IProp GF :=
-  inv rnDurN iprop((∃ v : WalView, ghostVar ν.view (1 : Qp).half v ∗
+  iprop(⌜ν.loc = w⌝ ∗ inv rnDurN iprop((∃ v : WalView, ghostVar ν.view (1 : Qp).half v ∗
       monoListAuthOwn ν.cm 1 v.l ∗ walAsViewed cl w v) ∨
-    (token ν.stop ∗ token ν.app ∗ token ν.ok))
+    (token ν.stop ∗ token ν.app ∗ token ν.ok)))
 
 instance rnDurInv_persistent (cl : Cluster) (ν : WalNames) (w : Loc) :
     Persistent (rnDurInv (GF := GF) cl ν w) := by
@@ -501,9 +504,11 @@ theorem rnDur_alloc (cl : Cluster) (w : Loc) :
     · intro i e _ he; simp at he
     · intro m hm; simp at hm
   imodintro
-  iexists ⟨γv, γc, γo, γs, γa⟩
+  iexists ⟨w, γv, γc, γo, γs, γa⟩
   iunfold rnDurInv
   iframe Hinv Hv2 Ho Hs Ha
+  isplitr
+  · ipureintro; rfl
   iunfold walCommitLb
   iexact Hcl
 
@@ -529,6 +534,7 @@ theorem rnDur_save_au (cl : Cluster) (ν : WalNames) (w : Loc) (v v' : WalView) 
   iauintro
   unfold atomic_acc
   iunfold rnDurInv at Hinv
+  icases Hinv with ⟨-, #Hinv⟩
   iinv Hinv with >Hi Hclose
   icases Hi with (⟨%v0, Hv0, Hcm, Hw⟩ | ⟨-, -, Hok'⟩)
   rotate_left
@@ -739,12 +745,15 @@ theorem rnDur_saveSnap_au (cl : Cluster) (ν : WalNames) (w : Loc) (v : WalView)
       AU <{ ∃∃ (σ : StorContents), walRecs w σ ∗
             ⌜uint.nat m.Index' = σ.b → m.Term' = σ.base.term'⌝ }> @ ⊤, ∅
         <{ walRecs w (walSaveSnap σ m),
-          COMM ghostVar ν.view (1 : Qp).half { v with pend := some m } ∗ token ν.ok }> := by
+          COMM ghostVar ν.view (1 : Qp).half { v with pend := some m } ∗ token ν.ok ∗
+            -- (sweep repairs 1, W2) the records start at or above the snapshot's index
+            walBaseLb w (uint.nat m.Index') }> := by
   obtain ⟨Hpn, Hstep⟩ := Hst
   iintro #Hinv Hv Hok #Hsv
   iauintro
   unfold atomic_acc
   iunfold rnDurInv at Hinv
+  icases Hinv with ⟨-, #Hinv⟩
   iinv Hinv with >Hi Hclose
   icases Hi with (⟨%v0, Hv0, Hcm, Hw⟩ | ⟨-, -, Hok'⟩)
   rotate_left
@@ -774,6 +783,7 @@ theorem rnDur_saveSnap_au (cl : Cluster) (ν : WalNames) (w : Loc) (v : WalView)
     imodintro
     iframe Hv Hok
   · iintro Hr
+    icases walRecs_saveSnap_baseLb w σ m $$ Hr with ⟨Hr, #Hblb⟩
     imod Hmask with -
     imod (ghostVar_update_halves { v with pend := some m } ν.view v v) $$ Hv Hv0 with ⟨Hv, Hv0⟩
     imod Hclose $$ [Hv0 Hcm Hr] with -
@@ -789,7 +799,7 @@ theorem rnDur_saveSnap_au (cl : Cluster) (ν : WalNames) (w : Loc) (v : WalView)
       · iapply walSnapCert_saveSnap; iframe Hc Hsv
       ipureintro; exact Hok1
     imodintro
-    iframe Hv Hok
+    iframe Hv Hok Hblb
 
 /-- (2026-11-03, R2b-1 stage 5) **The apply thread's own snapshot is a WAL step** (pure): a snapshot
 at an index of a handed log `l` (a prefix of the view's, `walCommitLb`), at the term `l` has there:
@@ -862,11 +872,14 @@ theorem rnDur_ownSnap_au (cl : Cluster) (ν : WalNames) (w : Loc) (md : Snapshot
       snapshotValid cl (SnapshotM.mk [] md) -∗
       AU <{ ∃∃ (σ : StorContents), walRecs w σ ∗
             ⌜uint.nat md.Index' = σ.b → md.Term' = σ.base.term'⌝ }> @ ⊤, ∅
-        <{ walRecs w (walSaveSnap σ md), COMM token ν.app }> := by
+        <{ walRecs w (walSaveSnap σ md), COMM token ν.app ∗
+          -- (sweep repairs 1, W2) the records start at or above the snapshot's index
+          walBaseLb w (uint.nat md.Index') }> := by
   iintro #Hinv Ha #Hlb #Hsv
   iauintro
   unfold atomic_acc
   iunfold rnDurInv at Hinv
+  icases Hinv with ⟨-, #Hinv⟩
   iinv Hinv with >Hi Hclose
   icases Hi with (⟨%v, Hv, Hcm, Hw⟩ | ⟨-, Ha', -⟩)
   rotate_left
@@ -892,6 +905,7 @@ theorem rnDur_ownSnap_au (cl : Cluster) (ν : WalNames) (w : Loc) (md : Snapshot
     imodintro
     iframe Ha
   · iintro Hr
+    icases walRecs_saveSnap_baseLb w _ md $$ Hr with ⟨Hr, #Hblb⟩
     imod Hmask with -
     imod Hclose $$ [Hv Hcm Hr] with -
     · inext; ileft; iexists v; iframe Hv Hcm; iunfold walAsViewed; iexists σ'
@@ -901,7 +915,7 @@ theorem rnDur_ownSnap_au (cl : Cluster) (ν : WalNames) (w : Loc) (md : Snapshot
       · iapply walSnapCert_saveSnap; iframe Hc Hsv
       ipureintro; exact Hok1
     imodintro
-    iframe Ha
+    iframe Ha Hblb
 
 /-- (2026-11-03, R2b-1 stage 6; the draft's `rnDurTake_stmt`, round 4) **The stop takes the records
 out** (`onStop`, the loop idle, its view at no pending snapshot): with the stop's claim, the apply
@@ -921,6 +935,7 @@ theorem rnDur_take (cl : Cluster) (ν : WalNames) (w : Loc) (v : WalView) (hp : 
         walSnapCert cl σ := by
   iintro #Hinv Hs Ha Hv Hok
   iunfold rnDurInv at Hinv
+  icases Hinv with ⟨-, #Hinv⟩
   iinv Hinv with >Hi Hclose
   icases Hi with (⟨%v0, Hv0, -, Hw⟩ | ⟨-, -, Hok'⟩)
   rotate_left

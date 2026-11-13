@@ -1,6 +1,6 @@
 /-
 `newServerMode(name, peer, client, cluster, token, mode, retention, snapCount, catchUp, lg)`
-(`examples/lib/etcdstart/etcdstart.go`; periodic mode, 2026-11-02): `newServer` with the auto-compactor's mode
+(`examples/lib/etcdstart/common.go`; periodic mode, 2026-11-02): `newServer` with the auto-compactor's mode
 a parameter -- member `name` of a new cluster with token `token` built, its configuration and
 `etcdserver.NewServer`. Lean-first (no Rocq counterpart).
 
@@ -52,12 +52,13 @@ abbrev newServerMode.spec : Prop :=
   -- (2026-11-02, the backend-auth-split stage, Q8) the initial cluster's names valid UTF-8,
   -- `bootPremise`'s condition
   (∀ k, (M.lookup k).isSome → utf8Valid k) →
-  lg ≠ null →
   -- the compactor's slot (`v3compactor.bootCfg`, `NewServer`'s premise; K1 of
   -- `notes/k8s-compactor-plan.md`): off in either compaction mode, or on in compaction mode
   v3compactor.bootCfg mode retention cmp ρ.rd.kv.cret →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
+      -- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
+      zapLoggerOk lg ∗
       -- (2026-11-02, the backend-auth-split stage) the thread's token, `NewServer`'s, given back
       threadTok ∗
       peer ↦*□ [httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗

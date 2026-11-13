@@ -43,7 +43,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Assu
 variable [NaInvG GF]
 
 /-- **`Main` does not panic** (`Link.lean`'s `etcd_txnlin.wp_Main`). -/
-theorem linkvtxn_Main [go_etcd_io.etcd.cache.v3.Assumptions] [Float64ToInt64Semantics]
+theorem linkvtxn_Main [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_txnlin.Main.spec (GF := GF) (hG := hG) :=
   etcd_txnlin.wp_Main
@@ -59,7 +59,7 @@ see the file header and `Adequacy.lean`). -/
 theorem etcd_txnlin_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC linkvtxnGF, ContextReadErrs (GF := linkvtxnGF) (hG := linkvtxnHeapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC linkvtxnGF, ContextErrsClient (GF := linkvtxnGF) (hG := linkvtxnHeapAt hG lctx))
@@ -72,8 +72,10 @@ theorem etcd_txnlin_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hmul : sint.Z clients * sint.Z ops < 2 ^ 60)
     (HNs : prometheus.namesUnclaimed (linkvtxnProgram clients ops) linkvtxnNames)
     (HAs : addrsUnclaimed (linkvtxnProgram clients ops) [go!"127.0.0.1:23796"])
-    -- (2026-11-03, the WAL's API, change 6) the member's WAL directory holds no WAL at start
-    (HDs : walDirsAbsent (linkvtxnProgram clients ops) [config.walDirOf go!"linkvtxn.etcd" go!""])
+    -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
+    (HDs : dataDirsAbsent (linkvtxnProgram clients ops) [go!"linkvtxn.etcd"])
+    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
+    (HEnv : verifyEnvOff (linkvtxnProgram clients ops))
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC linkvtxnGF,
       ⊢ etcd_txnlin.premises (GF := linkvtxnGF) (hG := linkvtxnHeapAt hG lctx) n id ctxs boot)
@@ -86,7 +88,7 @@ theorem etcd_txnlin_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
   etcd_txnlin_adequate Hctx Hcec id ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo clients ops Hc0 Hc31 Hops Hmul
-    HNs HAs HDs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
+    HNs HAs HDs HEnv n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 end adequacy
 

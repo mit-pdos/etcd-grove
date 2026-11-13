@@ -177,6 +177,40 @@ def longestOwn (longest : GoSlice) (n : Nat) : IProp GF :=
     [∗list] p ∈ ps, ⌜p = null⌝ ∨
       ∃ (sl : GoSlice) (xs : List w64), p ↦□ sl ∗ sl ↦*{DFrac.discard} xs)
 
+/-- A read-only `[]int` holding a linearization of `h` (non-negative operation ids). -/
+def linSlice (M : SeqModel σ OpV) (h : List (Theory.Op OpV)) (sl : GoSlice) : IProp GF :=
+  iprop(∃ xs : List w64, sl ↦*{DFrac.discard} xs ∗
+    ⌜(∀ x ∈ xs, 0 ≤ sint.Z x) ∧ IsLinearization M h (xs.map fun x => (sint.Z x).toNat)⌝)
+
+instance linSlice_persistent (M : SeqModel σ OpV) (h : List (Theory.Op OpV)) (sl : GoSlice) :
+    Persistent (linSlice (GF := GF) M h sl) := by unfold linSlice; infer_instance
+
+/-- `checkSingle`'s second result after an accepting search: every one of the `h.length` pointers
+is the same, to a linearization of `h`. -/
+def longestLin (M : SeqModel σ OpV) (longest : GoSlice) (h : List (Theory.Op OpV)) : IProp GF :=
+  iprop(∃ (p : Loc) (sl : GoSlice), longest ↦* List.replicate h.length p ∗ p ↦□ sl ∗
+    linSlice M h sl)
+
+/-- One partition's entry of `LinearizationInfo.partialLinearizations` (a `[][]int`): its
+linearizations, at least one if the partition is not empty. -/
+def partLins (M : SeqModel σ OpV) (h : List (Theory.Op OpV)) (psl : GoSlice) : IProp GF :=
+  iprop(∃ lsls : List GoSlice, psl ↦*{DFrac.discard} lsls ∗ ⌜h ≠ [] → lsls ≠ []⌝ ∗
+    [∗list] lsl ∈ lsls, linSlice M h lsl)
+
+instance partLins_persistent (M : SeqModel σ OpV) (h : List (Theory.Op OpV)) (psl : GoSlice) :
+    Persistent (partLins (GF := GF) M h psl) := by unfold partLins; infer_instance
+
+/-- `LinearizationInfo.partialLinearizations` of an `Ok` check of the partitions `hs`, read-only:
+for each partition, its linearizations (`partLins`). -/
+def linInfoOk (M : SeqModel σ OpV) (info : LinearizationInfo) (hs : List (List (Theory.Op OpV))) :
+    IProp GF :=
+  iprop(∃ psls : List GoSlice, info.partialLinearizations' ↦*{DFrac.discard} psls ∗
+    ⌜psls.length = hs.length⌝ ∗ [∗list] i ↦ psl ∈ psls, partLins M (hs.getD i []) psl)
+
+instance linInfoOk_persistent (M : SeqModel σ OpV) (info : LinearizationInfo)
+    (hs : List (List (Theory.Op OpV))) : Persistent (linInfoOk (GF := GF) M info hs) := by
+  unfold linInfoOk; infer_instance
+
 end defs
 
 /-! The model's specs that mention its context (`stepCtxSpec`), stated at

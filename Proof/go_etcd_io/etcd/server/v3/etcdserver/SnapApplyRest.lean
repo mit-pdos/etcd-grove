@@ -45,7 +45,7 @@ S2–S4, Probe 4, 2026-11-05) in a cluster that grants leases, with the apply th
 live set at the table's ids, the permits, the table's requests and its half of the ids the lessor
 ever had (`srvRest_close`). -/
 theorem snap_srvRest (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (ci : Loc)
-    (p' : mvcc.PhysNames) (g : GoFunc) (γB : backend.BNames) (d' : mvcc.KBReal) (γr : ReadNames)
+    (g : GoFunc) (γB : backend.BNames) (d' : mvcc.KBReal) (γr : ReadNames)
     (al ast lp cl : Loc) (bk : GMap GoString backend.BktData) (memI : GMap w64 apply.MemberM)
     (A' : List EntryModel) (hγB : d'.γB = γB) (f : w64 → w64)
     -- (P6.2, 2026-11-03) the rest model's buckets the image's at the cluster's and the rest
@@ -60,7 +60,7 @@ theorem snap_srvRest (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : MetaCI → IP
       alarmBeOn al d'.be ∗ authBeOn ast d'.be ∗ clusterBeOn cl d'.be ∗ lease.lessorBeOn lp d'.be ∗
       apply.ltHalf E (srvIds E (appliedTable γr A').ids) ∗ srvGrantIf E ∗
       srvReqsIf E (appliedTable γr A') ∗ srvEver E A' ⊢
-    srvRest (snapE E γ' TM' ci p' g γB al ast lp cl d'.be) γr A' := by
+    srvRest (snapE E γ' TM' ci d' g γB al ast lp cl d'.be) γr A' := by
   subst hγB
   iintro ⟨H0, H1, H2, H3, H4, H5, H6, HLt, #HG, #HQ, HU⟩
   iapply srvRest_close
@@ -73,14 +73,14 @@ theorem snap_srvRest (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : MetaCI → IP
   have hmi : memIdOk memI := hmem ▸ restModel_memIdOk' _ _ _
   have hrp : restPresent r.bk := hr ▸ restPresent_restLeasesWith _ _ _
     (restPresent_restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A'))
-  rw [show srvIds (snapE E γ' TM' ci p' g d'.γB al ast lp cl d'.be) (appliedTable γr A').ids =
+  rw [show srvIds (snapE E γ' TM' ci d' g d'.γB al ast lp cl d'.be) (appliedTable γr A').ids =
     srvIds E (appliedTable γr A').ids from rfl, hr, snapE_RO,
-    show apply.ltHalf (snapE E γ' TM' ci p' g d'.γB al ast lp cl d'.be)
+    show apply.ltHalf (snapE E γ' TM' ci d' g d'.γB al ast lp cl d'.be)
       (srvIds E (appliedTable γr A').ids) = apply.ltHalf E (srvIds E (appliedTable γr A').ids) from rfl,
-    show srvGrantIf (snapE E γ' TM' ci p' g d'.γB al ast lp cl d'.be) = srvGrantIf E from rfl,
-    show srvReqsIf (snapE E γ' TM' ci p' g d'.γB al ast lp cl d'.be) (appliedTable γr A') =
+    show srvGrantIf (snapE E γ' TM' ci d' g d'.γB al ast lp cl d'.be) = srvGrantIf E from rfl,
+    show srvReqsIf (snapE E γ' TM' ci d' g d'.γB al ast lp cl d'.be) (appliedTable γr A') =
       srvReqsIf E (appliedTable γr A') from rfl,
-    show srvEver (snapE E γ' TM' ci p' g d'.γB al ast lp cl d'.be) A' = srvEver E A' from rfl]
+    show srvEver (snapE E γ' TM' ci d' g d'.γB al ast lp cl d'.be) A' = srvEver E A' from rfl]
   iframe HLt HG HQ HU
   unfold srvRestOwnH srvRestOwn srvObjsOn
   rw [hrm]

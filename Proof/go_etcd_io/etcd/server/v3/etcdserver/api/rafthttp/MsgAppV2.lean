@@ -78,8 +78,12 @@ theorem entFrames_take_succ (E : List (List w8)) (i : Nat) (h : i < E.length) :
   rw [List.take_succ, List.getElem?_eq_getElem h, Option.toList_some, entFrames_append]
   simp [entFrames]
 
-/-- An entry's encoding, no longer than `2^63` bytes. -/
-def EntEnc (e : EntryM) (b : List w8) : Prop := EntWireOk e b ∧ b.length < 2 ^ 63
+/-- An entry's encoding, no longer than `2^63` bytes: the encoding of a wire content of the entry
+whose unknown fields are valid (stage A of the per-type models: the sender's content, so that the
+decoder's `MustUnmarshalMessage` gives it back, `proto.Unmarshal`'s D2). -/
+def EntEnc (e : EntryM) (b : List w8) : Prop :=
+  EntWireOk e b ∧ b.length < 2 ^ 63 ∧
+    ∃ c : EntryC, c.model = e ∧ ufWire entrySchema c.uf ∧ b = entryEncC c
 
 /-- **A msgappv2 frame** (see the file header). -/
 def V2Frame (frm to : w64) (cs : V2St) (w : MsgWire) (bs : List w8) (cs' : V2St) : Prop :=
@@ -89,7 +93,7 @@ def V2Frame (frm to : w64) (cs : V2St) (w : MsgWire) (bs : List w8) (cs' : V2St)
     bs = W8 1 :: (u64Be (W64 w.ents.length) ++ entFrames ebs ++ u64Be w.msg.Commit') ∧
     cs' = ⟨cs.term, cs.index + W64 w.ents.length⟩) ∨
   (∃ (st : MsgSt) (mbs : List w8), wireOf st = w ∧ MsgWireOk st mbs ∧ mbs.length < 2 ^ 63 ∧
-    bs = W8 2 :: msgFrame mbs ∧ cs' = ⟨w.msg.Term', lastIdx w⟩)
+    MsgEnc st mbs ∧ bs = W8 2 :: msgFrame mbs ∧ cs' = ⟨w.msg.Term', lastIdx w⟩)
 
 /-! ## Indices -/
 
@@ -167,7 +171,7 @@ theorem Forall₂_EntEnc_len {es : List EntryM} {ebs : List (List w8)}
     intro b hb
     simp only [List.mem_cons] at hb
     rcases hb with rfl | hb
-    · exact hx.2
+    · exact hx.2.1
     · exact ih b hb
 
 /-- Encodings determine the entries. -/
@@ -183,8 +187,8 @@ theorem Forall₂_EntEnc_inj {es es' : List EntryM} {ebs : List (List w8)}
 theorem V2Frame.unique {frm to : w64} {cs : V2St} {w1 w2 : MsgWire} {b1 b2 x y : List w8}
     {c1 c2 : V2St} (h1 : V2Frame frm to cs w1 b1 c1) (h2 : V2Frame frm to cs w2 b2 c2)
     (h : b1 ++ x = b2 ++ y) : w1 = w2 ∧ b1 = b2 ∧ c1 = c2 ∧ x = y := by
-  rcases h1 with ⟨rfl, rfl, rfl⟩ | ⟨e1, hw1, hf1, hn1, rfl, rfl⟩ | ⟨s1, m1, rfl, hm1, hl1, rfl, rfl⟩ <;>
-  rcases h2 with ⟨rfl, rfl, rfl⟩ | ⟨e2, hw2, hf2, hn2, rfl, rfl⟩ | ⟨s2, m2, rfl, hm2, hl2, rfl, rfl⟩ <;>
+  rcases h1 with ⟨rfl, rfl, rfl⟩ | ⟨e1, hw1, hf1, hn1, rfl, rfl⟩ | ⟨s1, m1, rfl, hm1, hl1, -, rfl, rfl⟩ <;>
+  rcases h2 with ⟨rfl, rfl, rfl⟩ | ⟨e2, hw2, hf2, hn2, rfl, rfl⟩ | ⟨s2, m2, rfl, hm2, hl2, -, rfl, rfl⟩ <;>
   simp only [List.cons_append, List.nil_append, List.cons.injEq] at h <;>
   (try (obtain ⟨h0, -⟩ := h; exact absurd h0 (by decide)))
   · exact ⟨rfl, rfl, rfl, h.2⟩
@@ -269,9 +273,9 @@ theorem V2EncOk.short_frame {frm to : w64} {st : MsgSt} {cs : V2St} {ebs : List 
 
 /-- Any message the encoder is given is an App frame of an encoding. -/
 theorem V2Frame.full {frm to : w64} {st : MsgSt} {mbs : List w8} (cs : V2St)
-    (hw : MsgWireOk st mbs) (hl : mbs.length < 2 ^ 63) :
+    (hw : MsgWireOk st mbs) (hl : mbs.length < 2 ^ 63) (he : MsgEnc st mbs) :
     V2Frame frm to cs (wireOf st) (W8 2 :: msgFrame mbs) ⟨st.msg.Term', lastIdx (wireOf st)⟩ :=
-  Or.inr (Or.inr ⟨st, mbs, rfl, hw, hl, rfl, rfl⟩)
+  Or.inr (Or.inr ⟨st, mbs, rfl, hw, hl, he, rfl, rfl⟩)
 
 /-! ## What the decoder knows: the bytes it reads are a prefix of a frame, or extend one -/
 
@@ -310,12 +314,12 @@ theorem V2Frame.tag {frm to : w64} {cs cs' : V2St} {w : MsgWire} {bs : List w8}
       List.Forall₂ EntEnc w.ents ebs ∧ w.ents.length < 2 ^ 63 ∧
       cs' = ⟨cs.term, cs.index + W64 w.ents.length⟩) ∨
     (∃ (st : MsgSt) (mbs : List w8), bs = W8 2 :: msgFrame mbs ∧ wireOf st = w ∧
-      MsgWireOk st mbs ∧ mbs.length < 2 ^ 63 ∧ cs' = ⟨w.msg.Term', lastIdx w⟩) := by
-  rcases h with ⟨hw, hb, hc⟩ | ⟨ebs, hw, hf, hn, hb, hc⟩ | ⟨st, mbs, hw, hm, hl, hb, hc⟩
+      MsgWireOk st mbs ∧ mbs.length < 2 ^ 63 ∧ MsgEnc st mbs ∧ cs' = ⟨w.msg.Term', lastIdx w⟩) := by
+  rcases h with ⟨hw, hb, hc⟩ | ⟨ebs, hw, hf, hn, hb, hc⟩ | ⟨st, mbs, hw, hm, hl, he, hb, hc⟩
   · exact Or.inl ⟨hb, hw, hc⟩
   · refine Or.inr (Or.inl ⟨ebs, ?_, hw, hf, hn, hc⟩)
     rw [hb, shortBytes, hf.length_eq]
-  · exact Or.inr (Or.inr ⟨st, mbs, hb, hw, hm, hl, hc⟩)
+  · exact Or.inr (Or.inr ⟨st, mbs, hb, hw, hm, hl, he, hc⟩)
 
 /-- The first byte the decoder reads is a frame's tag: `0` (and then the frame is the heartbeat's),
 `1` or `2`. -/
@@ -349,10 +353,10 @@ and the whole is the frame. -/
 theorem V2Compat.app {frm to : w64} {cs : V2St} {n : Nat} {yb : List w8}
     (h : V2Compat frm to cs (W8 2 :: (u64Be (W64 n) ++ yb))) (hn : n < 2 ^ 63)
     (hl : yb.length = n) :
-    ∃ st : MsgSt, MsgWireOk st yb ∧
+    ∃ st : MsgSt, MsgWireOk st yb ∧ MsgEnc st yb ∧
       V2Frame frm to cs (wireOf st) (W8 2 :: msgFrame yb) ⟨st.msg.Term', lastIdx (wireOf st)⟩ := by
   obtain ⟨w, bs, cs', z, z', hF, heq⟩ := h
-  rcases hF.tag with ⟨rfl, -⟩ | ⟨ebs, rfl, -⟩ | ⟨st, mbs, rfl, hw, hm, hml, hc⟩
+  rcases hF.tag with ⟨rfl, -⟩ | ⟨ebs, rfl, -⟩ | ⟨st, mbs, rfl, hw, hm, hml, he, hc⟩
   · simp at heq
   · simp only [shortBytes, List.cons_append, List.cons.injEq] at heq
     exact absurd heq.1 (by decide)
@@ -361,7 +365,7 @@ theorem V2Compat.app {frm to : w64} {cs : V2St} {n : Nat} {yb : List w8}
     have hnl := u64Be_len_inj hn hml h8
     obtain ⟨rfl, -⟩ := List.append_inj hr (by omega)
     subst hw hc
-    exact ⟨st, hm, hF⟩
+    exact ⟨st, hm, he, hF⟩
 
 /-- An AppEntries frame's count: what the decoder reads after the tag `1`. -/
 theorem V2Compat.short_count {frm to : w64} {cs : V2St} {c8 : List w8}
@@ -577,26 +581,22 @@ theorem msgOwn_ents (ml : Loc) (st : MsgSt) :
   iframe
   iexact Hents
 
-/-- The encodings of a message's entries (`pbEnc` of each, `pbEnc_ok`) are encodings of them. -/
-theorem ents_enc (els : List Loc) (ents : List EntryM) :
-    ([∗list] p;e ∈ els;ents, entRO (GF := GF) p e) ⊢
-      ⌜List.Forall₂ EntEnc ents (els.map (pbEnc raftpb.Entry.ty))⌝ := by
-  induction els generalizing ents with
-  | nil =>
-    iintro H
-    ihave %h := BigSepL2.bigSepL2_nil_inv_left $$ H
-    subst h
-    ipureintro; exact .nil
-  | cons p ps ih =>
-    iintro H
-    icases (BigSepL2.bigSepL2_cons_inv_left).1 $$ H with ⟨%e, %es, %heq, He, Hr⟩
-    subst heq
-    have Hpe := pbEnc_ok (pbEntry (GF := GF)) p e
-    simp only [pbEntry_ro, pbEntry_marshals, pbEntry_wire, pbEntry_ty] at Hpe
-    ihave %h1 := Hpe $$ He
-    ihave %h2 := ih es $$ Hr
+/-- **The encodings of a message's entries' contents are encodings of them** (`entryEncC_ok`, the
+unknown fields' validity from `pbMsg`), each of size below `2^63`. -/
+theorem ents_enc : ∀ (els : List Loc) (ecs : List EntryC), (∀ e ∈ ecs, entrySize e < 2 ^ 63) →
+    ([∗list] p;e ∈ els;ecs, entRoC (GF := GF) p e) ⊢
+      ⌜List.Forall₂ EntEnc (ecs.map EntryC.model) (ecs.map entryEncC)⌝
+  | [], [], _ => by iintro -; ipureintro; exact .nil
+  | [], _ :: _, _ => false_elim
+  | _ :: _, [], _ => false_elim
+  | p :: ps, e :: es, hs => by
+    iintro ⟨#H, #Hr⟩
+    ihave %hu := entRoC_uf p e $$ H
+    ihave %h2 := ents_enc ps es (fun e' h => hs e' (List.mem_cons_of_mem _ h)) $$ Hr
+    have hs1 := hs e (List.mem_cons_self ..)
+    have h1 := entryEncC_ok e hu hs1
     ipureintro
-    exact .cons ⟨h1.1 trivial, h1.2⟩ h2
+    exact .cons ⟨h1.1, by rw [h1.2]; exact hs1, e, rfl, hu, rfl⟩ h2
 
 end preds
 

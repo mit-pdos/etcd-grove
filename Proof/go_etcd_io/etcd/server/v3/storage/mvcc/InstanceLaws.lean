@@ -41,6 +41,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 @[simp] theorem kbNoCmp_some (d : KBReal) (γb : GName) :
     kbNoCmp (GF := GF) (some d) γb = bkNoCmp d.γB := rfl
 
+/-- The no-compaction flag at the real backend (`bkNoCmpF`). -/
+@[simp] theorem kbNoCmpF_some (d : KBReal) (γb : GName) :
+    kbNoCmpF (GF := GF) (some d) γb = bkNoCmpF d.γB := rfl
+
 /-- The right to register the store's lock resource at the real backend (`lateReg`). -/
 @[simp] theorem kbRegRight_some (d : KBReal) : kbRegRight (GF := GF) (some d) = lateReg d.gx := rfl
 
@@ -75,7 +79,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- The write-back supply's invariant name (`kbWTSupplyM_alloc`). -/
-abbrev wtSupplyN : Namespace := nroot.@"mvcc_wtSupply"
+abbrev wtSupplyN : Namespace := (nroot .@ "mvcc") .@ "wtSupply"
 
 /-- **The write-back supply from a stock** (Probe S1; persistent): `n` write-back tokens of the real
 backend `d`, under `receiptBound GF ≤ n + 1`, make the compaction's supply (`kbWTSupplyM`: a token for

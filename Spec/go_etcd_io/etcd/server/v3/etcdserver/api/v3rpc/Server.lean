@@ -63,7 +63,7 @@ abbrev v3rpc.Server.spec : Prop :=
       v3rpc.leaseServerAt pl s C.A lcid lmid ∗
       v3rpc.quotaKVServerAt q ⟨go.GoType.PointerType v3rpc.kvServer.ty, #p⟩ s ∗
       v3rpc.kvServerIs p s C.A cid mid C.n ∗
-      v3rpc.isWatchServer pw R ∗ ⌜R.s = s ∧ R.E = C.E ∧ R.wsl = C.wsl ∧ R.γ = C.γ⌝ ∗
+      v3rpc.isWatchServer pw R ∗ ⌜R.s = s ∧ R.E = C.E ∧ R.wsl = C.wsl ∧ R.tag = C.tag⌝ ∗
       (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk il (srvLgReader s) Q) ∗
       (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk im iprop(True) Q) ∗
       srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗

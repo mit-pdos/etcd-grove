@@ -76,11 +76,12 @@ theorem v3rpc.NewWatchServer.wp_proof
   ipersist ag
   ihave #Hok' := Hok
   iunfold v3rpc.watchSrvOk at Hok'
-  icases Hok' with ⟨-, -, -, -, #Hv, -⟩
+  icases Hok' with ⟨-, -, #Hv, -, -⟩
   wp_join iprop(srv_ptr ↦ «$r0_ptr» ∗ ∃ lg : Loc, ⌜lg ≠ null⌝ ∗
       typedPointsto (structFieldRef v3rpc.watchServer go!"lg" «$r0_ptr») lg (DFrac.own 1)) with [lg srv]
     as ⟨srv, %lg, %Hlg, lgf⟩
-  · wp_apply hNop as %l %Hl
+  · wp_apply hNop as %l #Hlz
+    ihave %Hl := zapLoggerOk_ne_null l $$ Hlz
     (try wp_auto)
     wp_join_done
     iframe

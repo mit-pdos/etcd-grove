@@ -1,0 +1,973 @@
+# The server's migration onto mvcc's API (strict M1): hand-off
+
+Scope: `server/v3/etcdserver` outside `txn/` and `api/`, and `server/v3/lease`. The frozen draft is
+`notes/mvcc-api-clients/ServerSpecs.lean` (with `clients-server.md`); its names are kept, namespace
+`srvApi`, a restated definition with the suffix `A`.
+
+## Done
+
+- **The lessor's specs restated** (`Spec/go_etcd_io/etcd/server/v3/lease/lessor__Revoke.lean`,
+  `lessor__Grant.lean`): `lease.lessor.Revoke.spec` and `lease.lessor.Grant.spec` are the draft's
+  `lessor.Revoke.specA`/`lessor.Grant.specA` word for word (Revoke: `mvccDeleter`, the backend share
+  and frozen hook, `csContractA`, one nested update `auBegin γ σ₀ (auEnd γ σ₀ dels Y)`, the sort
+  premise kept; Grant: only the contract). Both build.
+- **The update shapes** (`Proof/go_etcd_io/etcd/server/v3/lease/MvccShapes.lean`): `stAt`,
+  `auBegin`, `auRead`, `auEnd`, `auSnap`, `auCompact`, `auRestore`, `csContractA` (below the lessor,
+  whose `Revoke` takes them). `auSnap` without the draft's `σ.crev = -1` (the API's
+  `mvccImage_snapshot.law` dropped it; the draft's own header says the M1 proofs drop it). Builds.
+- **The store invariant and its builders, proved** (`Proof/go_etcd_io/etcd/server/v3/etcdserver/
+  KVStoreCore.lean`, builds, no `sorry`): the invariant generic in the raft witness `Nx` and the
+  permit `Cp` (`kvStoreInvG`; the draft's `kvStoreInv` is it at `kvNx γr on`, `crevOk γr`, by
+  `rfl`), `KVSNames`, `kvsN`, `kvLogLb`, `wSt`, `crOwn`, and every builder over mvcc's
+  `persistent.law` and `mvccState_reachable.law` as hypotheses: `au_begin`, `au_wread`, `au_snap`,
+  `au_end` (the two nested updates: the notify step moves the pending halves and the notified log,
+  its receipt mvcc's; the commit step the committed log), `au_compact` (the compaction revision's
+  three parts), `au_restore`, `au_read` (`kvReadAt`: floor, witness, receipt by `preceipt_mono`,
+  reachability), `writer_facts`, `kvAusG` (all together, `kvAus.law`'s shape), `kvPeekG`,
+  `histLb_bootG` (a reachable state's logs begin with `[[], []]`, `reach_prefix`), `bootStoreG`
+  (`⧖ 0` by `preceipt_zero`). The riskiest part of the server's side: no frozen statement found
+  false.
+- **The draft's statements** (`KVStoreApi.lean`: §2-§3d, §4 as `AEnvA` etc., §6) and their laws by
+  instantiation (`KVStoreLaws.lean`: `kvAus_holds`, `kvPeek_holds`, `crevOk_off_holds`,
+  `histLb_boot_holds`, `bootStore_holds`). **Not built yet**: their imports (`ServerOn`,
+  `InvImage`, `apply.Chain`) are red under strict M1 (`apply.Chain` and `apply.Contracts` use txn's
+  deleted sole-writer API: `txn.kvWriter`, `txn.Writer`), so the statements are the draft's text,
+  typechecked at `6cc29c14f0` by the draft's author, and the laws' proofs are one-line
+  instantiations of the core's, which builds.
+
+- **The lessor's writes over the API's `hookRun`** (by reference, builds): `leaseBatchTx`'s
+  `LockInsideApply` takes `csContractA P g …` at the hook `g` whose value its `f` is
+  (`⌜f = #g⌝ →`), so that a `nil` hook is the caller's view shift; `Lease.persistTo.spec` and
+  `lessor.Checkpoint.spec` restated like `Grant` (`f : GoFunc`, `lessorBackend … #f`,
+  `csContractA`); `lessor.Grant.wp_proof`, `lessor.Checkpoint.wp_proof`, `Lease.persistTo.wp_proof`
+  proved over them (no `sorry`).
+
+- **The apply chain's foundations, restated in place** (builds: `apply.Contracts`, `apply.Chain`,
+  `apply.InvUber`, `InvRequest`, `WorkloadDefs`, and every `Spec/.../etcdserver/apply/*.lean`):
+  - `apply.AEnv` has the draft's `AEnvA` fields (`kv`, `γ : MvccName`, `γs`, `Nx`, `Pk : BkRef →
+    IProp`, `f : GoFunc`, ..., `Cp`, `BkTie`); `kvOwn`, `mPre`, `certPre` (`E.Nx`), `cmpOwn`,
+    `leasesLive`, `envAus`, `kvBk`, `cmpChan` as drafted; `KVStoreApi.lean`'s `AEnvA`, `kvOwnA`,
+    ... are aliases of them.
+  - Choices "by reference" (the coordinator's decisions where given): `threadTok` beside `kvOwn` in
+    the KV, revoke and compaction triples (pre and post); the floors `kvLogLb E.γs F` in place of
+    `idxCert`; `putPre`/`deletePre`/`txnPre`/`revokePre` without `storeWT`, `txnPre` at txn's
+    `TxnPreA`, `rangeOk` without `sortOk` (txn's restated specs); `cmpAdmitRev log rev` = `1 ≤ rev ∧
+    rev < |log|` (no mode); `cmpTriple` at `E.Cp` with `threadTok` and, through a compacting chain,
+    `cmpChan`; `revokeRes` over `rdOwn`/`mvccDeleter`; the components' contracts (`isAuthStore`,
+    `isAlarmStore`, `isCluster`, `isApplyLessor`) over `Pk B`, `f`, the tie `BT`, and the backend
+    `B`'s `bkWT B`/`bkRT B` (`backend.wbTok`, `rdTok ∗ bOpen`) per write; the chain's methods whose
+    components write (`respMethods`, `resp0Methods`) take `mPreW` (mPre with `bkWT B ∗ bkRT B` at
+    the same `B`) and give `mPostW`; the cluster's `mPreV` carries them too; `uberApplier.Apply` and
+    `dispatch` take `kvOwnPre v3 E log Pre Q Post` (the KV resources with the contract at `kvBk`'s
+    backend) and give back `threadTok`, a reader token; `applierV3backend.newHeader` at the
+    thread's token and the writer's half; `isApplyKV kv γ := □ isMvcc kv γ`.
+  - `srvFloorFacts` over the store's committed-log lower bounds (`slog`, the draft's
+    `srvFloorFactsA`); `resultIs`/`srvAppliedBody` over `kvLogLb`, `resultIsW`'s certificate
+    `E.Nx`.
+  - `kvModelM` moved from `ServerOn` to `KVModelM.lean`; the draft's read-path definitions
+    (`srvRdCallA`, `rangeReadOkA`, `newHeaderPostA`, `logOk_of_receipt`, ...) to `KVStoreRead.lean`.
+
+- **Step 1 of the hand-off, done (2026-11-05, second session; builds, no `sorry`)**: `InvProposer`,
+  `InvApplier`, `KVModel`, `KVApply`, `KVChainOff`, `KVAuthModel`, `KVModelM`, `InvImage`,
+  `KVStoreApi`, `KVStoreLaws`, `apply.AuthDerive`, `apply.AuthLemmas`, `apply.AuthSteps`. Choices:
+  - `srvKVInvs E γr` (in `isServer`'s atomics) is `kvInv ∗ kvCertInv ∗ srvRaftLogInv ∗
+    □ kvStoreInvG E.kv E.γ E.Nx E.Cp E.γs ∗ ⌜cmp, cret ties ∧ envWitOk E⌝`: the draft's
+    `srvKVInvsA` without its ties of `E.kv`/`E.Nx`/`E.Cp` (they name `kvNx`, which needs the KV
+    model, above `InvApplier`), the store invariant boxed (its persistence is the API's
+    `persistent.law`, `isMvcc` being sealed), `envWitOk E` (the witness and permit persistent and
+    timeless, what `writer_facts` needs). `kvCertInv` (the server's own KV certificates' ghost
+    state) is kept: `kvApplied` still carries `kvCert`; removing it is a later cleanup.
+    `KVStoreLaws`: `srvKVInvsA_of` (`srvKVInvs` and the ties give the draft's `srvKVInvsA`),
+    `srvKVInvs_of` (the converse direction's builder, at `kvNx`/`crevOk`, with `kvCertInv`),
+    `kvNx_off` (`kvNx γr false = kvNxOff`, `rfl`), `envWitOk_srv`.
+  - **The backend over `BkRef`.** An epoch's environment fixes its backend through the tie:
+    `E.BkTie = srvBkTie B` (`⌜B' = B⌝`), in `srvEnvOk` (in place of `E.γ.kb = some d`; the two mode
+    clauses `E.γ.cm = E.cmp`, `d.cm = E.cmp` dropped: the API's backend always compacts, the store
+    has no mode; `srvEnvOk_kbCmp`/`_cm`/`_off` deleted, 3 users outside step 1). `srvFieldsAt`:
+    `E.Pk = fun _ => batchLockInv γ TM ∧ v.hook = #E.f`. `srvBeHooked` at `mvccW gx` (∃ gx),
+    `srvBeRO B := ∃ gx Pk, isBackend … (mvccW gx) Pk B.b`.
+  - **`E.γbe` records `bkKey B = (B.γB, B.b)`**, not the backend: a `BkRef`'s parameters hold
+    functions (not `Pos.Countable`), so agreement gives the names and location, not `P`. Enough for
+    the write budget (`srvWTStockInv` uses only `B.γB`). **Open**: the storage-version monitor's
+    checkout of `bkRT d` from `srvWTPool` gets the invariant's `d.P`; a proof that needs it equal to
+    its own backend's `P` needs `P` fixed (it is server-wide: `applySnapshot` keeps `d'.P = d.P`).
+  - `srvWT E` (`∃ d, ⌜E.BkTie = srvBkTie d⌝ ∗ bkWT d`) in place of `mvcc.storeWT E.γ` in the
+    budget's takes; `wbSupply_of_stock` (a backend-level supply) in place of `kbWTSupplyM_of_stock`.
+  - `srvApplyKV_writer` (in place of `srvApplyKV_idxCert`) and `srvApplyKV_small` (now a fupd)
+    take mvcc's `persistent.law`, `mvccState_reachable.law` (and `receiptBound GF ≤ 2 ^ 48` for the
+    small log) and `srvKVInvs`; `KVStoreCore.reach_len_logCh` (a reachable log has a revision per
+    change past its first two) replaces the sole writer's time receipts.
+  - `KVApply`: `kvNxOff γ γk l` (the off mode's raft witness, `= kvNx γr false`) replaces mvcc's
+    `certOk` (`kvCert_certOk` → `kvAppliedL_nx`); `kv_certPre` takes `E.Nx = kvNxOff γ γk`;
+    `kv_cert_floor` takes `kvNxOff` (no `kvCertInv`, `γs`, `hγ`, `hx2`); `kvEntry_len` takes
+    `x.log.length + 3 ≤ 2 ^ 63` (the writer's facts; `TxnPreA` has no size clause).
+  - `AuthSteps`: `isAuthSteps st P (f : GoFunc)` over `csContractA`; `backendAuthSteps` at every
+    backend's lock (`□ ∀ B, isAuthSteps … (E.Pk B) E.f …`); the step specs take and give
+    `threadTok` (`newHeader`'s); `mPre_split`; `isAuthSteps_of_authInv` takes `f ≠ func.nil` and
+    bridges to the auth store's specs, still over mvcc's internal `mvcc.csContract P #f`
+    (`csContractA_old`; the auth package is outside this track).
+  - `AuthLemmas`: `txnPermT`/`checkTxnReqs_of` at `MvccName`, `Pk`, `f : GoFunc`, `BT` (as
+    `checkTxnPermission.spec`); the rejection lemmas take `csContractA P E.f` at any `P`.
+  - Still on mvcc's internals but building (not API): `KVLemmas.kv_cert_read` (`mvcc.certOk`),
+    `InvImage` (`mvcc.keyImageM`, pure).
+
+- **Step 2 started (second session): the backend's writing methods proved over the API** (no
+  `sorry`): `applierV3backend.{Alarm, AuthStatus, AuthEnable, AuthDisable, Authenticate, LeaseGrant,
+  LeaseCheckpoint, UserAdd, UserDelete, UserChangePassword, UserGrantRole, UserRevokeRole, UserGet,
+  UserList, RoleAdd, RoleDelete, RoleGet, RoleList, RoleGrantPermission, RoleRevokePermission}`,
+  over `apply/WriteLemmas.lean` (`mPreW_split`: the writer's half, the contract at `B`'s lock,
+  `bkWT B`/`bkRT B`/`E.BkTie B`, the chain's resources, `kvRest`; `mPostW_backend`,
+  `kvOwn_of_split`). Choice (by reference, the draft's rule "threadTok beside the chain's KV
+  resources"): **every chain method that calls `newHeader` takes and gives `threadTok`** (its spec
+  has `threadTok ∗` before `mPre`/`mPreW`/`kvOwn`/`revokePre` and before the post's
+  `mPost`/`mPostW`/`kvOwn`/`kvPost`): the 20 `applierV3backend` specs above (but `Alarm`) and
+  `LeaseRevoke`, the wrappers `authApplierV3.{UserGet, RoleGet, LeaseRevoke}`,
+  `applierV3Capped.LeaseGrant`, `applierV3Corrupt.{LeaseGrant, LeaseRevoke}`,
+  `quotaApplierV3.LeaseGrant`, `uberApplier.Alarm`, and `applierSpec`'s generic triples of
+  `respMethods`, `resp0Methods` and `AuthStatus` (`Chain.lean`). Until then those specs had none,
+  and `newHeader.spec` (restated at the thread's token) was not callable from them.
+- Also proved: the cluster methods `applierV3backend.{ClusterVersionSet, ClusterMemberAttrSet,
+  DowngradeInfoSet}` over `mPreV` (`WriteLemmas.mPreV_split`, `mPostV_of`).
+- **Step 2 continued (third session, 2026-11-05)**, each building:
+  - `applierV3backend.Compaction` (no `sorry`): `KV.Compact.contract`/`KV.Range.contract` at the KV's
+    type from `shapes.law` (hypotheses `context.TODO`, `traceutil.EnsureTrace`, `shapes`), the
+    update by `envAus`'s compaction builder (`CompactArm.wSt_crOwn_agree`: the writer's half and
+    the compaction right at one revision), `commitReq_true`, `mvccInit`'s `ErrCompacted`;
+    `ErrFutureRev` excluded by `cmpAdmitRev`.
+  - `applierV3backend.newHeader` (no `sorry`): `KV.Rev.contract` at the writer's read update
+    (hypothesis `shapes`, in place of `mvcc.store.Rev`).
+  - `applierV3backend.{Put, DeleteRange, Range}` (no `sorry`), over txn's restated specs (hypotheses
+    `context.TODO` and txn's `Put`/`DeleteRange`/`Range`), their updates built from `envAus`
+    (`apply/KVBuild.lean`: `beginAU_of_auBegin`, `auEnd_wand`, `auRead_wand`, `commitAU_of_auEnd`);
+    `Put`'s update only for a live lease (txn's `if decide …`), the writer's half kept otherwise.
+  - `applierV3backend.Txn`, over `Txn.specSole`, **one `M1-REPLACE`** (see "Found", third session).
+  - `applierV3backend.LeaseRevoke`, over `revokeClause`, **one `M1-REPLACE`** (see "Found").
+  - `AuthSteps` over auth's restated specs (the auth track's `cca7e9a4a9`): `csContractA_old` and
+    `isAuthSteps_of_authInv`'s `hf` deleted (its callers `Results.lean`, `AuthSrv`, `ApplyNormalOn`
+    drop the `hf` argument when they are migrated).
+- **Choices (third session)**, minor, the draft leaving them open:
+  - `envAus` gains a last conjunct, **the writer's floor** `∀ log c F, wSt E.γs log c -∗
+    kvLogLb E.γs F ={⊤}=∗ wSt E.γs log c ∗ ⌜F <+: log⌝` (`KVStoreCore.writer_floor`, proved over the
+    store invariant): the KV methods' `kvPostF` floor `floorOkO`, which the sole writer's pin gave
+    until M1. Whoever builds `envAus` (from `kvAusG`) adds `writer_floor`.
+  - `applierV3backend.Range.spec` takes and gives `threadTok` (`KV.Range`'s; `applierTriples`' Range
+    triple already had it).
+  - `appliedHdr`'s room is `+3` (the writer's facts'; the draft's relaxation of `putOk`/`delOk`;
+    `TxnPreA` has no size clause). Breaks v3rpc's `ServerKV.lean:563` (`Hlen.2` at `+4`), outside
+    this track.
+  - `revokePre`'s pure part takes `(stateAfter log).length ≤ 2 ^ 62` (the lessor's sort premise in
+    `revokeClause`; the server derives it from `srvApplyKV_small`).
+- **The wrappers, proved (third session, no `sorry`)**: corrupt `{Put, DeleteRange, Txn, Range,
+  LeaseRevoke, LeaseGrant}`, capped `{Put, LeaseGrant, Txn}`, quota `{Put, Txn, LeaseGrant}`, auth
+  `{Put, Txn, DeleteRange, Range, LeaseRevoke, UserGet, RoleGet}`, `uberApplier.Alarm`,
+  `newApplierV3Backend`, over `apply/WriteLemmas.lean`'s splits of `mPre`/`mPreW` into the chain's
+  resources and the rest (`mPreRest`, `mPreWRest`: `_split_chain`, `_of_rest`, `_reject`,
+  `_reject_cs`, `_lend`, `_rd`). `authApplierV3.Range.spec` and `applierV3Corrupt.Range.spec` take
+  and give `threadTok` (as the backend's).
+- **The constructors, proved (third session, no `sorry`)**: `newApplierV3Capped`,
+  `newApplierV3Corrupt`, `newAuthApplierV3`, `newQuotaApplierV3`, `newApplierV3` (`WriteLemmas`:
+  `mPreVRest`, `mPreV_split_chain`, `mPreV_of_rest` for the cluster methods' pass-throughs). So every
+  `apply/` spec proof but `uberApplier.{Apply, dispatch}` builds over the API (with the two
+  placeholders above).
+- **Fourth session (2026-11-06)**, each building, no `sorry`:
+  - **The two decisions** ("Decisions (2026-11-06)" below): `LeaseRevoke` and `Txn` discharged.
+  - **`uberApplier.dispatch` and `uberApplier.Apply`** over `kvOwnPre` and the thread's token
+    (`WriteLemmas`: `kvOwnPre_kvOwn` for the reads, `AuthStatus` and the requests with nothing to
+    do, giving `kvOwn ∗ (∃ B, bkRT B) ∗ Pre`; `kvOwnPre_mPre` for `Put`/`DeleteRange`/`Txn`/
+    `Compaction`, the write-back token dropped, the reader token aside; `kvOwnPre_mPreV` for the
+    cluster methods (`kvOwnPre` is `mPreVRest`, by `rfl`); `rdLend_kvOwnPre`). So **every `apply/`
+    spec proof builds over the API, no `sorry`**.
+  - **`lease.lessor.Revoke`** (step 3) over the restated spec: `rd()` by `mvccDeleter` at the
+    caller's begin update (`R σ := ⌜σ = σ₀⌝ ∗ auEnd …`, `subst σ`), each `Txn.DeleteRange(key, nil)`
+    by `Txn.DeleteRange.contract` at the transaction's dynamic type (`shapes.law`'s third conjunct,
+    `persistent_entails_right`), the key alone by `txn.logOk_of_del` on the call's post then
+    `txn.delKeys_eq`; `le.b.BatchTx()` by `backend.backend.BatchTx.spec` over
+    `mvccBackend_isBackend.law`; `UnsafeDeleteLease` with its callback from `mvccTxn_leaseDelete.law`,
+    whose `End` triple runs at the caller's end update (`rw [hD]`: the deletions are the sorted
+    keys'). Hypotheses: `hKeys hSort hUDL hBT hsh hisB hLD` (was `hKeys hSort hUDL hDel hEnd`).
+  - **v3rpc's path (the coordinator's priority, 2026-11-06)**: `InvRead` restated (the draft's read
+    path; choices below), `KVApplyOn`, `InvApRes`, `apply.AuthFuel`, `apply.AuthApplyLatest`,
+    `AuthApplyRes`; `KVStoreRead` builds over them; `AuthReqDerive`'s `InvRead` import dropped.
+- **Choices (fourth session)**, minor:
+  - `InvRead`: `srvReadFieldsAt`'s KV is `□ isMvcc v.kv E.γ ∗ ⌜v.kv = E.kv⌝` (boxed: `persistent.law`),
+    the `ReadView` field and its conjuncts gone (the API's `KV.Rev.contract` is on the handle), the
+    lessor and auth store at `E.Pk`/`E.BkTie`, the floor `kvLogLb E.γs log₀`; `storeSmall` (and
+    `storeSmall_of_receipts`, `_of_read`, `_small`) **deleted** (every sort's premise is txn's
+    `stateOk`; the size facts come from the receipts, `logOk_of_receipt`); `srvRdCall` is the draft's
+    `srvRdCallA`; `rangeReadOk`/`txnReadOk` are the draft's `rangeReadOkA` at the mode off but with
+    the witness **`E.Nx log`** in place of `kvNx γr on log` (the two are equal by `srvKVInvsA`'s tie;
+    `E.Nx` is what `kvReadAt` gives from `srvKVInvs`, and `InvRead` need not import the KV model's
+    `kvNx`), with `⧖ (logCh log)` and `LogWf' log`; `txnAppliedOk` as `InvRequest`'s `resultIsW`
+    (`kvLogLb`, `E.Nx`); `readIndexOk_logR` over the floors (`mono_list_lb_valid`). `isServerRead`
+    now needs mvcc's `Assumptions` (`isMvcc`).
+  - `KVApplyOn.srvKVInvsOn`: as step 1's `srvKVInvs`, `□ kvStoreInvG E.kv E.γ E.Nx E.Cp E.γs ∗
+    ⌜envWitOk E⌝` in place of `⌜E.γ.cok = γr.kv.cok⌝ ∗ crevPermIs`.
+  - `InvApRes`: `srvApplyKV_rt`, `srvApplyKV_ua_rt` deleted (mvcc's `storeRT` was the sole writer's);
+    `srvApplyKV_ua_rt_pool` restated as `srvApplyKV_ua_pool` (the uber-applier and the backend's
+    reader pool `bkRPool d.γB d.P d.b`, `d` the tie's): a backend reader token comes from the pool.
+  - `AuthFuel`'s fuel specs take and give `threadTok` (as `AuthSteps`' step specs);
+    `AuthApplyLatest`'s `Range.specL`/`DeleteRange.specL` take and give `threadTok`, `DeleteRange`'s
+    floor `kvLogLb`, `certPreW` over `E.Nx`, `put/delete/txnPreW` without `storeWT` (`txnPreW` at
+    `TxnPreA`), `auth_reject_kvPostFL` at any batch-lock invariant `P` (as `auth_reject_kvPostF`).
+- **Fifth session (2026-11-06)**, each building, no `sorry` (commits `2af9be0883`, `539bc3eed8`,
+  `726ac24773` and later):
+  - **`ReadOn` builds** (v3rpc's path), with `EtcdServer.Range.spec` (statement only).
+  - **The coordinator's decision on `KVRead.readWit_fire`, applied**: the tie of the witness is a
+    pure conjunct of `srvKVInvs` (`⌜E.Nx = kvNxOff γr.raft γr.kv⌝`, its last; `kvNxOff` moved to
+    `InvRequest`, beside `kvModel`, so that `InvApplier` can name it) and of `srvKVInvsOn`
+    (`⌜E.Nx = kvNxOn γr.raft γr.kv st₀⌝`, `kvNxOn` new in `KVApplyOn`; `kvNx γr true` at
+    `srvAuthSt0`, by `rfl`). In `srvKVInvs`, not `srvEnvOk`: `srvKVInvs` has `γr`, and is in both
+    `isServer`'s atomics and `isServerRead`. `KVLemmas.kv_read_log` and `ReadOn.kv_read_logOn` are
+    over the witness (`kvLogAt -∗ kvNxOff/kvNxOn l`): no certificates' invariant, no short-log case.
+    `KVStoreLaws.srvKVInvs_of` is at the mode off (`hNx : E.Nx = kvNx γr false`).
+  - **`ServerOnDefs.lean` (new)**: `ServerOn`'s mode-indexed read-side vocabulary split off
+    (`kvLogAtM`, `kvLogsOkM`, `appliedPubM`, `kvLogsPubM`, `srvAppliedBodyM`, `srvAppliedInvM`,
+    `srvUberBase`, `srvLessorNil`, `srvUberOn`, `srvKVInvsM` and its lemmas, `kvCertInvM`; from
+    `AppliedOn`, `kvLogsPubM_ok`, `appliedLogAt_kvLogAtM`), unchanged but for the restatements
+    below, so that `ReadOn` and `ReqOn` import it and not the built part and the boot (`InvBuild`,
+    `BuildGap`, `BuildAlloc`, through `ServerOn`). `ReadOn` no longer imports `ServerOn`/`AppliedOn`
+    (it imports `ServerOnDefs`, `read.Inv`); `EtcdServer__Range` imports `ReqOn` itself.
+  - `ReadOn` restated as `InvRead` was: `srvReadFieldsAtM` over the store handle and `kvLogLb`;
+    `rangeReadOkM`/`txnReadOkM` with `E.Nx log`, `⧖ (logCh log)`, `LogWf'`; `srvKVCoreM true` at
+    `□ kvStoreInvG … ∗ ⌜envWitOk E⌝ ∗ ⌜E.Nx = kvNxOn …⌝`; **`srvKVCoreM_fire`,
+    `srvKVCoreM_keys`, `readM_keys`, `read_keys` take the witness `E.Nx L` alone** (no sealed logs,
+    no `certOk`, no floor `B`: the witness is a committed raft log's model); `readIndexOk_logM/RM`,
+    `readServed_logRM` over `kvLogLb`; `readWit_fireOn` over `E.Nx l`; **`srvKVCoreM_cperm`
+    deleted** (mvcc's `crevPermIs` is gone; its one user, client/v3's `InvWatch`, is outside).
+  - `ReqOn`'s results (`resultIsWOn`, `resPostM`, `appliedOkM`) over `kvLogLb E.γs` and `E.Nx`, as
+    `resultIsW`; `srvAppliedBodyM` over `kvLogLb`.
+  - `srvUberOn`/`srvUberOn_adm` and `StoreLatest.srvAuthApplyResB` at **the epoch's one batch-lock
+    invariant**: `∃ Pk, ⌜E.Pk = fun _ => Pk⌝ ∗ …` (as `srvFieldsAt`'s `E.Pk = fun _ => batchLockInv γ
+    TM`), the admin steps at `Pk`; `StoreLatest` at `f : GoFunc`, `BkRef` (the auth track's list).
+  - `KVRead` (`readServed_logR` over `kvLogLb`), `InvApplyAll` (`bemuP` over `BkRef`/`bkKey`;
+    `AEnv.onBe E BT Pk f ciC RO RW` sets the tie, the lock's invariant, the hook, keeps `kv`, `γ`, `γs`,
+    `Nx`, `Cp`: the store is restored in place), `apply.AdminChain` (`adminTriples` at `threadTok`),
+    `apply.AuthApplyLatestTxn` (`Txn.specL` at `threadTok` and `kvLogLb`), the apply package's
+    `DispatchKVL`, `ApplyKVL`, `ApplyFnKVL`, `DispatchAdmin`, `ApplyAdmin`, `ApplyFnAdmin`,
+    `ApplyAdminL`, `ApplyFnAdminL` (`kvOwnPre ∗ threadTok` in, `threadTok ∗ (∃ B, bkRT B)` out, as
+    `dispatch.spec`/`Apply.spec`; `Apply.kvSpecL`/`adminSpec` take `uberOwn ∗ kvOwnPre ∗ cmpOwn` in
+    place of the hook's triple and `applyKV`: whoever calls them builds `kvOwnPre`).
+  - **`SnapRO`**: the stores' contracts (`alarmApplyOk`, `authApplyOkM`, `authApplyOk`,
+    `clusterApplyOk`, `lessorApplyOk`) for every `d : BkRef` at `srvBkTie d` and `fun _ => Pk` (in
+    place of `∀ γ, γ.kb = some d`); `lessorApplyOk`'s reader `apply.bkRT d`; `authRecoverOk` over
+    `BkRef`; `srvRestOwnH_lens_revoke` gives `rbPart … (· = leaseName) ∗ ⌜leaseParams⌝ ∗ lessorBeOn`
+    (what `lessor.Revoke.spec` takes) in place of `storeRb`; `srvSnapRO` over `BkRef` (the tie), the
+    KV `srvKVAddr s ↦□ E.kv ∗ □ isMvcc E.kv E.γ`, the lessor at `mvccLeases E.γ`, without the
+    backend's mode and the watch flag; `srvSnapRO_succ` at the ties (`srvBkTie_inj`, new);
+    **`srvKVCloser`, `srvKVCloserW`, `srvKVCloserW_off` deleted**, `srvSnapRes` without the closer
+    (`Restore` takes `mvccOpen`, the apply thread's `cmpOwn`). The restated contracts are those of
+    trust-boundary axioms (`v3alarm.NewAlarmStore.spec`, `auth.NewAuthStore.spec`,
+    `lease.NewLessor.spec`, `EtcdServer.restoreAlarms.spec`): the same contracts at the API's
+    vocabulary, for review when those specs are restated (not yet).
+  - `InvRun`, `InvStart` (`srvFieldsBuilt`, `srvReadBuilt` as `srvFieldsAt`/`srvReadFieldsAt`),
+    `InvBuild` (**`envAgree E E' := E.γs = E'.γs ∧ E.Nx = E'.Nx ∧ E.γrev = E'.γrev ∧ E.cmp =
+    E'.cmp`**: what `srvC` reads; `envAgree_mode`/`_off`/`_on` deleted, the store having no mode;
+    the draft's "every field but `kv`, `γ`, `Nx`, `Pk`, `Cp`, `BkTie`" would not give `srvC_agree`,
+    whose results name `E.Nx`), `BuildGap`, `BuildAlloc` (`srvIndices_alloc` over `kvLogLb`),
+    `ServerOn` (`srvBuiltG`'s KV row the store handle, `#Hsmall` gone).
+  - Request-path statements restated (not yet built or proved): `EtcdServer.{Txn, Put,
+    DeleteRange}.spec` (the floor `kvLogLb E.γs F`; `Put`/`DeleteRange`'s post `kvLogLb E.γs x'.log ∗
+    … ∗ E.Nx x'.log`), `setAppliedIndex` (`kvLogLb`), `applyEntryNormal` (`srvWT E`), `applyAll`,
+    `snapshot` (the KV row the store handle), `applyConfChange` (`BkRef` at the tie, `bkWT d`/`bkRT d`,
+    `hookRun (E.Pk d) E.f`).
+- **Next**: see "Left (eighth session)" below.
+## Tenth session (2026-11-06): `restoreArgs.law`, the writes' receipts, `NewServer.spec`'s store premises, the reader slots, `applySnapshot`'s walk
+
+**Found and fixed (decided by the coordinator, 2026-11-06; mvcc's track A applies it).** The frozen
+`etcdStorage_open.law` consumed every counted reader slot of the new backend (`newPostKP`'s whole
+`rdStock` and `rdStockN × bOpen rdOpen`) and the API gave none back, while the server holds two
+long-lived reader tokens per backend, `apply.bkRT d = rdTok ∗ bOpen rdOpen`: the apply thread's
+(`srvBeOwn`; the components' writes under the batch lock take it) and the storage-version monitor's
+(`srvWTPool`), which before M1 came from the store's readers (`storeReader_retire`, `writerOwn_rt`).
+Fix: the store keeps two counted slots fewer: `etcdStorage_open.law` takes `rdStockN - 2` open shares
+and gives back two `rdTok γB P b`; `mvccStorageFor`/`storageRest` at `rdStockN - 2`; `mvccReaderN :=
+rdStockN - 5`. The server's `dbImageA_open.law`, `bootBackend.law` follow (`KVStoreApi`).
+
+**Done** (builds):
+- **`restoreArgs.law` proved** (`KVStoreLaws.restoreArgs_holds`, over `persistent.law`): `au_restore`
+  at `kvNx γr on` of `A'` and `crevOk γr` of its compaction revision; `kvModelM_prefix` (new, either
+  mode) and `crevOf_mono`; `isMvcc` from the store invariant; the commit request `commitReq_true`.
+  **`kvEntryOn_grow`, `kvRaftOfOn_extends`, `kvRaftOfOn_prefix` moved to `KVAuthModel`** (from
+  `KVApplyOn`/`KVReadOn`; statements unchanged).
+- **The writes' receipts (the client/v3 track's request, decided by the coordinator)**: `resultIsW`,
+  `resultIsWOn`, `resPostM` (the server's own predicates), and the proposer's answers `appliedOkM`
+  and `appliedOk` (what v3rpc's `putApplied`/`deleteApplied`/`txnAppliedAns` build on) give, for the
+  log after the write, `⧖ (mvcc.logCh y'.log) ∗ ⌜mvcc.LogWf' y'.log ∧ y'.log.length + 3 ≤ 2 ^ 63⌝`
+  (last conjunct). Made in `applyEntryNormal` from `applyKV_writer`'s receipt and reachability
+  (`mvcc.api.reach_logWf`); carried by `processInternalRaftRequestOnce`, `raftRequest`
+  (`rr_ok`), `ModeSpecs` (the off spec's `appliedOk`), `resultIsW_of_on`, `AuthnOn`.
+  `raftRequest`'s pattern `#Hok` (`E.Nx y'.log`, not persistent: red at HEAD) made spatial.
+- **`NewServer.spec`'s store premises restated** (the draft's §6; the three variants): `"Hkvs" ∷
+  srvApi.newServerStoreFreshA E₀.γs` in place of `mvcc.idxFresh E₀.γ.idx`; the KV certificates' map
+  `ghostMapAuth ρ.rd.kv.cok 1 ∅` (was `E₀.γ.cok`, with the premise `ρ.rd.kv.cok = E₀.γ.cok`, dropped);
+  the claims' key fact at `E₀.γs.slog` (was `E₀.γ.idx`). Its post is unchanged. `examples/common`'s
+  boot premises follow it: allocate `E₀.γs` (`newServerStoreFreshA`) and `ρ.rd.kv.cok`.
+
+- **`applySnapshot`'s walk migrated** (`SnapApplyWalk.applySnapshot_walk`, no `sorry`): the
+  registration from `mvccW_alloc.law` (`snap_create` at any write invariant `W`); `newPostKP`
+  taken apart for the opener's `K` (the announcement) and put back at `K := True`; after
+  `SetBackend`, the futures' payment rights split (`rdStock_split2`: `rdStockN - 2` shares to the
+  open, two for the server's readers; seven write-back tokens out, the rest the new backend's
+  stock, `wbSupply_of_stock`); `etcdStorage_open.law` (the new backend `d'`, compacting, at the
+  old one's parameters) and `backendRest_open.law`; the two returned slots the apply thread's and
+  the monitor's `apply.bkRT d'` (the latter into the write budget at the swap); the lessor's
+  `Recover` at `mvccLeases E.γ`; `kv.Restore` by `KV.Restore.contract` at the handle's dynamic
+  type (`shapes.law`) over `restoreArgs_holds`'s precondition (`f = nil`, `Pre = True`,
+  `Q' = Pk'`, `Ls = []`, the leased items none by the new premise below); the old backend closed
+  with `storageRest` (`rdStockN - 2` shares) and the server's two old readers' shares. Takes
+  `[mvcc.Assumptions]`, `persistent.law`, `shapes.law`, `mvccW_alloc.law`, `etcdStorage_open.law`,
+  `backendRest_open.law`; drops mvcc's `watchableStore.Restore.spec` and the backend's specs it
+  needed (`ConcurrentReadTx`, `ReadTx`, `BatchTx`, `ForceCommit`, `Size`, `SizeInUse`, the read
+  txs', `LockInsideApply`, `LockOutsideApply`, `UnsafeSeqPut`, `Unlock`, `UnsafeCreateBucket`,
+  `UnsafeDelete`, `LockForSafeRangeDelete`, `UnlockForSafeRangeDelete`).
+- **`snapWalkPost` restated** (`SnapApplyDefs`): the store's `mvccOpen E.γ`, `mvccBackend E.γ 1 d'
+  Pk'`, `wSt`/`crOwn` at `(kvModel A', crevOf A')`, the lessor's empty live set, the apply thread's
+  `apply.bkRT d'`; no `storeCloserM`, `writerFrag`, `watchWriter`, `writerOwn`, watchable store,
+  `kbWTSupplyM`. **`snapE` over `AEnv.onBe`** (`SnapApplyNames`: `E'.γ = E.γ`, `E'.BkTie =
+  srvBkTie d'`, `E'.Pk = fun _ => batchLockInv γ' TM'`, `E'.f = g`; `srvAtomics_snapE` by `rfl`).
+  Restated over it: `snap_isServer` (`SnapApplyIsServer`; takes `g ≠ nil`, `ciKeys d'.P`,
+  `hooksParams d'.P`), `snap_applyKV` (`SnapApplyKV`), `leasesKnown_noLease`
+  (`SnapApplyKVLemmas`), `snap_srvRest`, the store lemmas `snap_isAlarmStore`/`snap_isAuthStore`/
+  `snap_isCluster` (`SnapApplyOptsLemmas`, over `SnapRO`'s restated contracts).
+- **`applySnapshot.specSnap`'s new premise `hnl : mvcc.LogNoLease (kvModel γr.kv A')`** (the
+  server's own spec, minor): `KV.Restore.contract` asks every leased item of the restored history
+  a live lease; the image's history is the model of a plain log from the boot's two empty
+  revisions, so it puts none (`SnapImageFacts.nolease`, from `kv_log_plain` and
+  `kvRaftOf_restorable`, in `snapRecv_image`); `ApplyAllSnap` passes it.
+- **Deleted** (obsolete under `KV.Restore.contract`): `RestorePre`, `RestorePreM`, `SnapRestoreM`,
+  `SnapApplyCloser` (the KV's closer, gone with `srvKVCloserW`), the `M2*Draft*`/`M2ApplyProbe`
+  modules.
+
+**Built** (at the worktree's state, mvcc track A's `4bcd8499ea` included): `KVAuthModel`, `KVReadOn`,
+`KVStoreApi`, `KVStoreLaws`, `InvRequest`, `ReqOn`, `InvProposer`, `ModeSpecs`, `AuthnOn`, `AdminOn`,
+`EtcdServer__applyEntryNormal`, `SnapApplyOpen`, `SnapApplyDefs`, `SnapApplyNames`, **`SnapApplyWalk`**,
+`SnapApplyIsServer`, `SnapApplyKV`, `SnapApplyKVLemmas`, `SnapApplyRest`, `SnapRecvFacts`,
+`ApplyAllSnap`, `EtcdServer__applyAll` (its one `sorry` SNAPSHOT-SORRY #7-on, unchanged), the spec
+`EtcdServer__applySnapshot`. Red, in scope: `SnapApplyOptsLemmas` (from `snap_isApplyLessor` on),
+`SnapApplyOpts`, `SnapApplyPost`, `EtcdServer__applySnapshot` (proof), `apply.LessorDerive`, `NewServer`
+(spec: `NewAuthStore`'s module), `EtcdServer__raftRequest` (line 213: `trace.SpanFromContext`'s new
+premise `⌜ctx = trace.todoCtx⌝ ∨ trace.spanCtxOk ctx`, not this track's change; the receipts' part
+adapted).
+
+**Callers outside this track broken:** v3rpc (`api/**`): consumers of `appliedOkM`/`appliedOk`
+whose patterns stop at the last conjunct (`putApplied`'s builders in `EtcdServer.Put`/`DeleteRange`/
+`Txn` drop the rest with `-`, unchanged); `examples/common` (`NewServer.spec`'s premises);
+`Spec/go_etcd_io/etcd/server/v3/auth/NewAuthStore.lean` (red: `mvcc.api.BkRef`, gone from the API,
+so `NewServer.spec`'s module does not build yet); `etcdserver/Link.lean` (generated):
+`applySnapshot.wp_proof`'s hypotheses change once `EtcdServer__applySnapshot` is migrated (below).
+Not rebuilt here (their imports red before this session: `ProposerLemmas`): the proofs of
+`processInternalRaftRequestOnce`, `Put`, `DeleteRange`, `Txn`, `Compact`, whose patterns were
+adjusted by hand. **Placeholders:** none. **Axioms:** none changed.
+
+**`trace.SpanFromContext`'s fixed axiom followed** (the coordinator's message, `2f3adab337`,
+`85b7e736d0`): `trace.spanCtxOk ctx` after `context.isContext ctx cd` in `raftRequest.spec`,
+`processInternalRaftRequestOnce.spec`, `ModeSpecs`' `specM`/`specOff` of both, `AuthnOn`'s
+`Authenticate` triple and `AdminOn.adminPreOn` (so the auth methods' `specOn`s take it through
+`adminPreOn`); the proofs' patterns `#Hspc` (`raftRequest` checks; `processInternalRaftRequestOnce`
+not rebuilt, `ProposerLemmas` red). **For v3rpc** (its files): the KV and auth handlers supply
+`spanCtxOk` from `grpcRunCtx` (`spanCtxOk_of_runCtx`); and `EtcdServer.Put`/`DeleteRange`/`Txn` (the
+request track's, edited by others now) take the traced context's fact from `Tracer.Start`'s new post
+(`ihave #Hspc1 := Hspw $$ Hspc`; `Put`'s `WithValue` by `trace.spanCtxOk_valueCtx`).
+
+**Left, in order:**
+1. `applySnapshot`'s post assembly: `apply.LessorDerive.isApplyLessor_of_lessorInv` (red: over the
+   restated `isApplyLessor`/`revokeClause`, `γ : MvccName` in place of `s : Loc`, the lessor's
+   restated `Revoke`/`Grant`/`Checkpoint` specs), then `SnapApplyOpts.snap_backendOptsOk` (the KV
+   and hook clauses are the old environment's, `E'.γ = E.γ`, `E'.kv = E.kv`: take them from the old
+   applier's `backendOptsOk E opts`; the stores' from the restated lemmas; delete `snap_isApplyKV`,
+   `snap_hookOk`), `SnapApplyPost.srvSnapApplied_of_walk` over the restated `snapWalkPost` (no
+   closer step; `hookIs d' g` from `plHook_persist`; `snap_applyKV` with `hxl` from
+   `kvModelM_prefix`), and `EtcdServer__applySnapshot` (the walk's new hypotheses; then `#print
+   axioms`).
+2. The boot (`NewServer`, `InvBoot`, `SnapApplyOptsLemmas`): `NewAuthStore.spec` over a `KBReal`
+   first (auth's file), then `mvcc.api.New.spec` with `bootBackend.law` (stated; to prove from
+   `mvccImage_fresh.law` and `etcdStorage_open.law`).
+
+## Ninth session (2026-11-06): the snapshot send and receive over mvcc's API (C3)
+
+**The send, proved** (no `sorry`; `SnapSendBranch`'s `M1-REPLACE` removed):
+- **`InvImage.dbImage` restated in place as the draft's `dbImageA`** (`KVStoreApi.lean`'s `dbImageA`,
+  `imageRestAt` are now aliases): `∃ A u, srvRLogLb γ A ∗ ⌜i = ai0 + |A| ∧ imageRestAt … ∧
+  imageStOk (kvModel γk A) (crevOf γk A)⌝ ∗ mvccImage D (kvModel γk A) (crevOf γk A) u`. **Choice
+  (minor, the server's own certificate): the extra pure conjunct `imageStOk L c := MvccReachable
+  (stAt L c) ∧ L.length + 3 ≤ 2 ^ 63`**, the sender's writer's facts (`writer_facts`), carried to the
+  receiver: `KV.Restore.contract` takes the restored state reachable and the receiver's KV ghost-state
+  jump (`kv_cert_jump`) a length bound, and `mvccImage` (sealed) gives neither. In place of the
+  draft's `kvModel_reachable.law` (a model lemma over the committed log, not proved, not needed now);
+  the image's `IdxWf` conjunct played that part until M1. `srvImage` (the network's, `srvNet`'s `img`)
+  is unchanged over it; `dbImage_kv_congr` needs no mode, `dbImage_of_srvImage` (moved to `InvImage`,
+  no KV invariant) replaces `dbImage_of_srvImage_mode`. `imageAt` stays (the restart's, `InvRestart`).
+- `KVStoreLaws.snapImageG` (new): the API's `mvccImage_snapshot.law` at `au_snap`'s update from the
+  store invariant and the writer's half, which comes back with `imageStOk` (`writer_facts`), in either
+  compaction mode. **`senderImage.law` proved** (`senderImage_holds`, over it; takes
+  `mvccState_reachable.law`); `dbImageA_of_send` takes the `imageStOk` fact.
+- **`srvBeSnapOk`'s observation a resource** (`Qd : Data → IProp`, was `Prop`), and
+  **`createMergedSnapshotMessage.spec` restated** (post `Qd D` in place of `⌜Qd D⌝`; the server's own
+  spec, the image being mvcc's persistent `mvccImage` and the writer's half coming back with it); its
+  proof adapted (builds).
+- **`mergedCreate_window` proved** over `KV.Commit.contract` (`srvKVCommitOk_of_kv`) and `snapImageG`:
+  statement changed (the server's own lemma): takes `persistent.law`, `mvccState_reachable.law`,
+  `mvccImage_snapshot.law`, the apply goroutine's `threadTok` (the commit's; given back), one `⧗ 1 ∗ £ 1`
+  (the snapshot's write-back token; the commit takes none), no `appliedLogAt`/`srvRLogLb`/`hpos`/`hlen`;
+  gives `∃ Qd`, its back wand `∀ D, RS' -∗ Qd D -∗ …` returning `mergedImg γr ai A x.log x.crev D`
+  (persistent: `imageRestAt`, `imageStOk`, `mvccImage`; replaces the pure `mergedObs`). The store
+  invariant comes from `isServerM_kvStoreInv` (either auth mode, with `envWitOk`).
+  `snapObsA` (the window's observation without `backend.Snapshot`'s view) replaces `snapObs_window`;
+  `srvBeSnapOk_of_backend`, `srvBeSnapOk_window`, `srvBeSnapOk_mono`, `storeReq_freeze` deleted.
+- **`srvBeHooked` records `E.Pk B = batchLockInv γ (metaTM B.γB B.P)`** (pure; the server's own): the
+  window's commit request (`commitReq_freeze`) and observation are at that invariant, `mvccBackend`'s
+  at `E.Pk B`; nothing tied `TM` to the backend's `metaTM`. Its makers (`NewServer`,
+  `SnapApplyIsServer`, red) must add it (`E.Pk = fun _ => batchLockInv γ (metaTM d.γB d.P)` there).
+- `merged_image` over `mergedImg` (no receipt premise): `dbImage` at the fresh start, so `srvImage`.
+- `applyAll`'s two merge branches and `ApplyAllSnap`'s: lend `srvGoRes`'s `threadTok` to the window
+  and back; `wp_proofBatch`/`wp_proofOn`/`wp_proof`/`wp_proofSnap` take `hImg :
+  mvccImage_snapshot.law` (before `hSnap`). `#7-on` (the image with auth on) is unchanged.
+
+**The receive, restated** (statements; the proof of `applySnapshot` is not migrated):
+- **`applySnapshot.specSnap` restated** over the API (the server's own spec): `hkb : E.BkTie =
+  srvBkTie d` (was `E.γ.kb = some d`); `hwq`, `R`, `hpre`, `hRok`, `r`, `hcc`, `hkI` gone; new `A'`
+  (moved up), `u`, `hAA : A <+: A'`, `hxA : x.log = kvModel γr.kv A ∧ x.crev = crevOf γr.kv A`, `hst :
+  imageStOk (kvModel γr.kv A') (crevOf γr.kv A')`; resources: `srvKVCloserW`, the watchable store,
+  `certOk`, `restoreRcptM`, `crevPermAt` gone; `srvKVAddr s ↦□ E.kv`, `srvRLogLb γr.raft A'`,
+  `mvccImage D (kvModel A') (crevOf A') u`, `E.Cp (crevOf A')` new (what `dbImageA_open.law` and
+  `restoreArgs.law` take); the lessor's invariant at `mvccLeases E.γ`. No longer imports
+  `SnapApplyDefs` or mvcc's `RestoreImageOpen`.
+- **`srvSnapApplied` restated and moved to `SnapRO.lean`** (out of `SnapApplyDefs`, which the walk
+  keeps): `E'.BkTie = srvBkTie d'`, `x'.log = kvModel γr.kv A'`, `x'.crev = crevOf γr.kv A'`, no
+  `d'.cm`, no `srvKVCloserW`, the KV `∃ kv, srvKVAddr ↦□ kv ∗ □ isMvcc kv E'.γ ∗ ⌜kv = E'.kv⌝`.
+- **`SnapRecvFacts` restated**: `SnapImageFacts` without `log`/`hpre`/`hkI`/`crev`/`hRok`/`hlen`, with
+  `hst : imageStOk …`; `snapRecv_image` gives `∃ A' u`, the facts, `mvccImage …` and `E.Cp (crevOf
+  A')` (`crevOf_permit`, `crevOf_offM`); `snapRecv_kv_jump` without `certOk`; `kvApplied_facts` new;
+  `kvModel_split`, `kvModel_len_of_rok`, `image_restoreRes`, the KV-invariant `dbImage_of_srvImage`
+  deleted.
+- **`applyAll.specSnap` takes no `E.cmp = false`** (compacting stores covered); `run_job_snap`'s case
+  split and **`run_job_snap_cmp` (a `sorry`) deleted** (`EtcdServer__run.lean`, not built: `run` is
+  red on `specBatch`'s `receiptBound`, item 4 of the eighth session's list).
+- `ApplyAllSnap` over all of it (`srvSnapRO`'s restated pattern, `srvSnapRes` without the closer,
+  `srvSnapRO_succ` without the mode).
+
+**Built at the worktree's state** (mvcc's uncommitted edits included): `InvImage`, `KVStoreApi`,
+`KVStoreLaws`, `InvSnapSend`, `SnapSendBranch`, `createMergedSnapshotMessage` (spec, proof), `SnapRO`,
+`SnapRecvFacts`, `applySnapshot`'s spec, `ApplyAllSnap`, **`EtcdServer__applyAll`** (also fixed: two
+mis-indented `iunfold srvGoRes` lines and the KV's `⌜kv = E.kv⌝` pattern, the eighth session's unbuilt
+edits). `#print axioms`: `applyAll.wp_proof`, `wp_proofBatch`, `wp_proofSnap`,
+`createMergedSnapshotMessage.wp_proof`, `mergedCreate_window`, `merged_image`, `senderImage_holds`: no
+`sorryAx` (the type axioms only); `applyAll.wp_proofOn`: `sorryAx`, SNAPSHOT-SORRY #7-on (unchanged).
+`applyAll.wp_proof` takes `applySnapshot.spec` as a hypothesis, whose proof is not migrated (below).
+
+**Callers outside this track's scope broken:** `etcdserver/Link.lean` (generated, `etc/gen-link.py`):
+`applyAll.wp_proof` takes `hImg : mvccImage_snapshot.law` (before `hSnap`); `applySnapshot`'s proof red.
+None outside `etcdserver/`. In scope, red, not fixed: `Results.lean` (`applyAll.wp_proofOn`'s new
+argument), `NewServer`/`SnapApplyIsServer` (`srvBeHooked`'s new conjunct), the `SnapApply*` walk
+(`srvSnapApplied` moved and restated, `SnapImageFacts`), `EtcdServer__run` (edited, not built).
+
+**Placeholders:** none added; `run_job_snap_cmp`'s `sorry` deleted, `SnapSendBranch`'s `M1-REPLACE`
+discharged. No axiom; no trust-boundary axiom's conclusion restated.
+
+**The lessor's backend write gives `le.b`'s half back** (the coordinator's decision, 2026-11-06, from
+the tester track): `lease.lessorBackend lp P f T R Rb`'s lens of the lessor's `b` field is over the
+lent resource `R` (every write gives it back), no longer the write token `T` (`LockInsideApply`
+consumes it): a client lending `lessorBeOn` in `T` could `Grant` once and never `Revoke` after.
+`lessor.Grant.spec`, `lessor.Checkpoint.spec`, `Lease.persistTo.spec`, `lessor.Revoke.spec`:
+statements unchanged (generic in `T`, `R`; `Revoke` takes `lessorBeOn` itself and gives it back);
+`Grant`'s and `Checkpoint`'s proofs read `le.b` through `R`. The server's `lessorApplyOk` (`SnapRO`):
+`T := wbTok d.γB`, `R := bkRT d ∗ RW` (was `T := wbTok ∗ RW`, `R := bkRT d`); `apply.isApplyLessor`'s
+`Grant` and `Checkpoint` clauses give `RW` back (their consumers, `applierV3backend.LeaseGrant` and
+`LeaseCheckpoint`, drop it). **A trust-boundary conclusion restated, for review:** `lease.NewLessor.spec`
+gives `lessorApplyOk lp`, whose instantiation this changes (docstring updated). Its builders, red, to
+adapt: `apply.LessorDerive.isApplyLessor_of_lessorInv`, `SnapApplyOptsLemmas.snap_isApplyLessor`,
+`NewServer`, `Results.lean`. Outside this track: the tester's `examples/mvccrand/WriterLease.lean`
+(`lessorBackend lp True #f T R …`: put `lessorBeOn` in `R`).
+
+**Left, in order:**
+1. **`applySnapshot`'s proof** (`SnapApplyWalk`, `SnapApplyPost`, `SnapApplyOpen`, `SnapApplyKV*`,
+   `SnapApplyOpts*`, `SnapApplyIsServer`, `SnapApplyCloser`, `SnapApplyNames`, `SnapApplyRest`,
+   `SnapApplyDefs.snapWalkPost`, `RestorePre`, `RestorePreM`, `SnapRestoreM`: ~3k lines, red, over
+   mvcc's internal restore). Over the API: `mvccW_alloc.law` before `OpenSnapshotBackend` (at
+   `W := mvccW gx`), `dbImageA_open.law` at its `newPostKP` (with `bridgeParams`, `bk.cm = true`,
+   `keySized`, the payment rights from the new backend's `bFresh`), `KV.Restore.contract` at
+   `kvAus`' restore builder (`restoreArgs.law`, stated, to prove in `KVStoreLaws` from `au_restore`
+   at `kvNx γr on`/`crevOk γr`, with `crevOf_mono` and the models' prefix lemmas: off
+   `kvRaftOf_prefix`; on `kvRaftOfOn_prefix`/`kvRaftOfOn_extends`, which live in `KVReadOn`/`KVApplyOn`,
+   above `KVStoreLaws`: move them, with `kvEntryOn_grow`, down to `KVAuthModel`; its `pendItems`
+   premise from the plain log: no leased put), the old backend's `storageRest`
+   (reader slots' shares) to the closing goroutine, `srvBeHooked` at the new backend with the `E.Pk`
+   tie, `envWitOk` and the ties at `E'`. `RestorePre` (`restorePre_of_apply`, the sole writer's) and
+   `SnapRestoreM` are obsolete under it: delete with the walk's redesign. The `M2*Draft*` modules
+   likewise.
+2. The boot (item 3 of the task): not started.
+3. Callers (below).
+
+## Left (eighth session, 2026-11-06; in order)
+
+**Done** (commits `529b608f48` and the one after it; each builds at the worktree's state, mvcc's
+uncommitted edits of the time included):
+- `ReadOn` builds (re-checked after mvcc's `InvStore`/`BackendBridge` edits; the seventh session's
+  eight files were already committed, `b69fe8a429`).
+- **`EtcdServer.applyEntryNormal` proved, both modes** (`wp_proofOff`, `wp_proofOn`, `wp_proof`, no
+  `sorry`): they take `[mvcc.Assumptions]`, `mvcc.api.persistent.law`, `mvccState_reachable.law`
+  (as `EtcdServer.apply`'s; the spec itself is unchanged but for its docstring). Local lemmas in the
+  proof file: `applyKV_writer` (the writer's facts of an unpacked `apply.applyKV`, under the boxed
+  store invariant and `envWitOk`: the floor `kvLogLb`, `E.Nx`, the receipt, room; in place of
+  `applyKV_idxCert`), `kvAppliedL_nx'`/`kvAppliedLOn_nx` (the raft witnesses `kvNxOff`/`kvNxOn`,
+  the state kept), `bkToks_srv` (`apply.bkToks` from `bkWT d`, `bkRT d` and, with `v3`, the hook's
+  `hookRun (E.Pk d) E.f` and the update), `applyKV_kvOwnPre` (`kvSpecL`'s `∃ p, uberOwn ∗ kvOwnPre ∗
+  cmpOwn` from `applyKV`, `bkToks`, `Pre`). The apply thread's tokens: `srvBeOwn_pool` lends the
+  reader token, `srvWT_at` the write-back token, `bkRTOf_srv` gives the reader token back; the
+  thread's token is `srvGoRes`'s. The resulting `resultIsW` takes `kvLogLb E.γs x'.log` and
+  `E.Nx x'.log` from `applyKV_writer` at `x'`. The floor of an unclaimed id is `kvLogLb E.γs []`
+  (`monoListLbOwn_nil`).
+- **`EtcdServer.snapshot`'s `Commit()` over `KV.Commit.contract`** (`shapes.law` at the KV's dynamic
+  type; the request `storageReq (etcdStorage B) (E.Pk B) True True` by `etcdStorage_req` and
+  `backend.commitReq_true`): `snapshot.wp_proof` takes `[mvcc.Assumptions]` and `hsh : shapes.law`
+  in place of `mvcc.store.Commit.spec`. **Spec change (the server's own, minor): `snapshot.spec` and
+  `snapshotIfNeededAndCompactRaftLog.specBatch` (and `ModeSpecs`' `specOff`/`specOn`) take and give
+  `threadTok`** (the contract's; the draft's rule, `threadTok` beside the KV's resources); `applyAll`
+  lends it from `srvGoRes`. The write-back token `srvApplyKVCore_commit` takes from the budget is now
+  unused (the contract takes none; dropped).
+- `EtcdServer.Authenticate` builds (`srvReadFieldsAtM`'s new conjunct count); `AdminOn.adminPreOn`
+  and `AuthnOn.authnRaft_on` at the floor `kvLogLb E.γs F` (was `mvcc.idxCert`).
+- `SnapSendBranch` builds: `srvKVCommitOk_of_kv` restated and proved over `shapes.law`
+  (`KV.Commit.contract`: thread token, backend share, `storageReq`, frame); `soleWriter_idxWf` and
+  `srvBeSnapOk_cmpRecs` (SNAPSHOT-SORRY #7-cmp) deleted, their one user being
+  `mergedCreate_window`, whose statement is at `□ isMvcc kv E.γ` (was `txn.isKV`) and `hsh` (was
+  `hC`), **its body an `M1-REPLACE` `sorry`**: `mergedObs` names mvcc's key image
+  (`mvcc.keyImageM`), which the API's sealed `mvccImage` does not give; the send's redesign
+  (`KVStoreApi.lean` §3c: `senderImage.law`, `dbImageA` in place of `srvNet`'s image) restates it,
+  `merged_image` and `createMergedSnapshotMessage.spec`.
+- `applyAll`, restated and edited, **not built** (below): `specBatch` takes `receiptBound GF ≤ 2 ^ 48`
+  (first premise; `applyEntries`' in both modes); `wp_proofBatch`/`wp_proofOn`/`wp_proof` take
+  `[mvcc.Assumptions]`, `shapes.law`, `persistent.law`, `mvccState_reachable.law` in place of
+  `mvcc.store.Commit.spec`; the merged image's receipt from `srvApplyKV_writer` (was
+  `idxCert_rcpt`). `ApplyAllSnap` likewise (not built).
+
+**Since (same session, `52d72250bc`):** `InvWatchBuilt`, `InvServe` ("For v3rpc" below),
+`SnapApply` (`srv_be_swap` over the tie and `bkKey`), `BuildLemmas` (the internal `mvcc.New`
+bridges deleted), `SDSnapLemmas` build. **The next red layer under `applyAll`** is the snapshot
+receive's vocabulary, all over mvcc's internals: `RestorePre` (`restorePre_of_apply`: the sole
+writer, `srvKVCloser`, `mvcc.isWatchableStore`, `E.γ.watchQ`/`cm`; obsolete under
+`KV.Restore.contract`, whose `mvccOpen` is the apply thread's `cmpOwn`), `SnapApplyDefs` (imports
+`RestorePre`; `storeCloserM`, `writerFrag`, `watchWriter`, `withPhys`), `SnapRecvFacts`
+(`srvImage`/`keyImageM`, `crevPermIs`, `restoreRcptM`, `E.γ.kb`). `ApplyAllSnap` imports the last
+two, `applyAll` imports `ApplyAllSnap`. So `applyAll` builds only after the receive is restated over
+the draft's §3c-§3d (`dbImageA_open.law`, `restoreArgs.law`, `KV.Restore.contract`), which is coupled
+with the send (`srvNet`'s image to `dbImageA`, `senderImage.law`): one design step, next.
+
+**Left, in order:**
+1. **What blocks `applyAll`** (first written before `52d72250bc`; see "Since" above for what is
+   now done): its imports `SDSnapLemmas` and `ApplyAllSnap` reach the snapshot
+   receive and the boot's vocabulary, red: `SnapApply` (`E.γ.kb`), `InvWatchBuilt` and `InvServe`
+   (`E.s`, `mvcc.isWatchableStore wsl E.s γw`, `mvcc.watchReader`, `mvcc.storeReader E.s E.γ`:
+   the watch store and its readers to restate over the API's handle, `□ isMvcc kv E.γ ∗ ⌜kv =
+   E.kv⌝`, and `threadTok`; v3rpc reads `srvWatchBuilt`/`srvWatchReaders`, so coordinate),
+   `BuildLemmas` (`txn.isKV`, `txn.kvWriter`, `txn.storeWTs`: the boot's store, over
+   `mvccStorageFor`/`etcdStorage_open.law`; mvcc's `api.NewStore.wp_proof` now exists over
+   `mvccStorageFor`, the mvcc track's `1edcdfe707`). Then build `ApplyAllSnap`, `applyAll`.
+2. `SnapRestoreM` (the mvcc track's message, `1edcdfe707`): `kbRecs_empty`'s right side is now
+   `kbNoCmpF`, `keyCleanRead_of_backend`'s token the flag-only one, `restoreImageM`'s body groups the
+   records with their values (`restoreImageM_fkV`'s pattern should still match). Re-check once its
+   imports (`SnapApply`, `InvWatchBuilt`, `InvServe`, `BuildLemmas`) build.
+3. The boot (item 3 of "Left (fifth session)"), then the snapshot send (the `M1-REPLACE` above) and
+   receive (item 4).
+4. The callers whose statements moved: `run` (`EtcdServer__run.lean`: `applyAll.specBatch`'s new
+   first premise; `run` has `receiptBound`, `NewServer`'s), `Link.lean` (generated:
+   `applyEntryNormal.wp_proof`, `snapshot.wp_proof`, `applyAll.wp_proof` take mvcc's laws;
+   `etc/gen-link.py` must pass them, as for `EtcdServer.apply.wp_proof`), `Results.lean`.
+
+### For v3rpc (2026-11-06, the server track's eighth session; building)
+
+The watch store `NewServer` leaves, over mvcc's API (`InvWatchBuilt.lean`, `InvServe.lean`):
+
+```lean
+/-- (persistent) -/
+def srvWatchBuilt (s : Loc) (E : apply.AEnv GF) : IProp GF :=
+  iprop(∃ wsl : Loc, srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
+      go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
+    ⌜E.kv = interface.mkOk (go.GoType.PointerType
+      go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl⌝ ∗
+    □ mvcc.api.isMvcc E.kv E.γ)
+
+def srvServeFacts (s : Loc) (E : apply.AEnv GF) (cfg : ServerConfig) : IProp GF :=
+  iprop((∃ wsl : Loc, srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
+        go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl : GoInterface) ∗
+      ⌜E.kv = interface.mkOk (go.GoType.PointerType
+        go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl⌝ ∗
+      □ mvcc.api.isMvcc E.kv E.γ) ∗
+    srvServeCfg s cfg)
+
+def srvServeBuilt (s : Loc) (E : apply.AEnv GF) (cfg : ServerConfig) (K : Nat) : IProp GF :=
+  iprop(srvServeFacts s E cfg ∗ srvBemuReader s ∗
+    ([∗list] _x ∈ List.replicate K (), srvLeadTimeReader s) ∗
+    ([∗list] _x ∈ List.replicate K (), srvLgReader s) ∗
+    ([∗list] _x ∈ List.replicate K (), E.RD) ∗
+    ([∗list] _x ∈ List.replicate K (), srvBemuReader s))
+```
+
+- Gone: `mvcc.isWatchableStore wsl E.s γw`, `γw.st = E.γ`, `mvcc.watchTokPool γw`,
+  `auth.modeTag γw.tag E.authMode` (the API's names carry no tag: the auth mode is `E.authMode`'s),
+  **`srvWatchReaders`** (its `n` reader slots `mvcc.watchReader` of mvcc's locks), and
+  `srvServeBuilt`'s `K` slots of `mvcc.storeReader E.s E.γ`. Over the API a watch stream is made by
+  `WatchableKV.NewWatchStream.contract` (it needs only `isMvcc`; the contract at the watchable store's
+  type is `shapes.law`'s second conjunct), and every thread that calls the store holds its own
+  `threadTok` (the bounds plan: the token comes with the goroutine, not from the store).
+- Callers (outside the server track): `client/v3/ServeFromStart.lean` (`grpcCfgOk_of_started`,
+  `grpcCfgOk_of_started_w`), `ServeFromStartOn.lean`, `examples/common/Defs.lean`
+  (`srvWatchReaders s E 64`: drop it, `srvWatchBuilt` is persistent).
+
+**Placeholders:** one, `SnapSendBranch.mergedCreate_window`'s body (`M1-REPLACE`, above), in place of
+its proof over mvcc's internals; SNAPSHOT-SORRY #7-cmp (`srvBeSnapOk_cmpRecs`) deleted with it.
+`applyAll`'s SNAPSHOT-SORRY #7-on unchanged. No axiom.
+## Left (seventh session, 2026-11-06: the API over its storage abstraction; in order)
+
+**Done** (mvcc's phase A, `07c91fd2e3`..`8c5fe85d68`):
+- **The server's backend vocabulary at a real instance of etcd's backend.** `BkRef` is gone from the
+  server and the lessor: what was `B : BkRef` is `B : mvcc.KBReal` (the server chose etcd's backend),
+  `.b` → `.be`; mvcc's storage at it is `etcdStorage B`, written as a coercion `KBReal →
+  MvccStorage` (declared in `lease/MvccShapes.lean`, shown `↑B`), so `mvccBackend γ q B Pk`,
+  `hookIs B f` read as before. `apply.AEnv`'s `Pk`/`BkTie : KBReal → IProp`; `apply.bkWT`/`bkRT`,
+  `srvBkTie`, `srvBeOwn`, `srvWTStockInv`, `bkRTOf`, `bkToks` over `KBReal`. txn's vocabulary and specs
+  name no backend: `B : MvccStorage` (`txn.end_read`'s witness `etcdStorage ⟨…⟩`).
+- **Restated (the server's laws, `KVStoreApi.lean`):** `dbImageA_open.law` and `bootBackend.law` over
+  `etcdStorage_open.law`: at a real instance `bk` with `bridgeParams bk.P` and `bk.cm = true`,
+  `mvccStorageFor bk …` (was `mvccBackendFor ⟨γB, P, b⟩` with a separate `gx`; now `bk.gx`);
+  `restorePreA`/`restoreArgs.law` at `mvccStorageFor`. `KVStoreCore` at `persistent.law`'s new
+  order (its `mvccState` timelessness is the sixth conjunct).
+- **Changed (the server's own invariant):** `srvKVInvs` and `srvKVInvsOn` record the chain's
+  compaction permit, `E.Cp = kvCpOk γr.kv` (`kvCpOk`, new in `InvRequest`: never compacted or a
+  cluster permit, `-1` without compaction; `KVStoreApi`'s `crevOk γr` is it by `rfl`), in their pure
+  conjunct (`… ∧ envWitOk E ∧ E.Cp = kvCpOk γr.kv`, On: `envWitOk E ∧ E.Cp = …`): the apply thread
+  needs it for `cmpPermRq` (`E.Cp r`), which mvcc's `crevPermIs` gave until M1. `NewServer` must
+  supply it (`srvKVInvs_of` does, from `hCp`).
+- Building at the restated API: txn's specs and proofs (not `txn.Link`/`txn.Results`, below),
+  `lease.MvccShapes`, `lessor.Revoke` (spec and proof), `apply.*` (all but `Link`/`Results`, including
+  `ApplyRec`, now checked), `StoreLatest`, `InvApplier`, `InvApplyAll`, `KVStoreApi`, `KVStoreLaws`,
+  `SnapRO`, `ReadOn`, `applyConfChange`'s spec, and everything built last session (`ApplyEntryOn`,
+  `ApplyKVCore`, `StartOn`, `UberOn`, `ApplyNormalOn`, `UberKit`, `ModeSpecs`, `EtcdServer__apply`,
+  `KVOutcomeOn`); and, new, `ApplyCmpArm` (`kv_certPre_M` over `kvNxOff`, `cmpAdmit_of_entry` at the
+  log, `cmpPermRq_of_entry` from `E.Cp`) and `AdminEntryOn` (`adminEntryOn.spec` over `bkToks`,
+  `threadTok`/`bkRTOf`, the epoch's `Pk` with `E.Pk = fun _ => Pk`).
+
+**Left, in order:**
+1. `EtcdServer__applyEntryNormal` (both modes; ~40 places): `srvApplyKV(On)_writer` (with mvcc's
+   `persistent`/`reachable` laws as hypotheses, as `EtcdServer.apply`'s) for the floor and the room in
+   place of `idxCert`; `kv_certPre_M`/`kv_certPreVW_on`/`kv_certPre_keep` at their new arguments
+   (`kvNxOff`/`kvNxOn`, the ties `HNx`); `cmpAdmit_of_entry` without `kb`; `cmpPermRq_of_entry` from
+   `srvKVInvs`'s `E.Cp`; `specRec` over `bkToks` (built from `srvApplyKV_ua_rt`, `srvWT_at`, and
+   `hookSpec` with `E.f ≠ func.nil`), giving back `bkRTOf_srv`'s token; the hook's triple as
+   `mvcc.api.hookRun` (`if_neg HEnn`); `kvCert_certOk` → the raft witness `E.Nx`. Not started: the
+   build was blocked by the mvcc track's uncommitted `InvStore.lean` edit (`BackendBridge` red at the
+   time; `etc/lean-check.py` reported 0 errors on stale imports: trust only `lake build`).
+2. `ApplyAllSnap`, `applyAll` (`applyAll.specBatch` needs `receiptBound GF ≤ 2 ^ 48` off too).
+3. `txn.Link` is stale (generated before txn's M1 law hypotheses: `deleteRange.wp_proof` takes
+   `mvcc.api.shapes.law`, which `etc/gen-link.py --txn` does not supply), so `txn.Results` does not
+   build; the generator needs to pass the laws (the txn track's or the coordinator's call).
+4. Items 2-5 of "Left (fifth session)".
+
+**For the parallel tracks:** `api/v3rpc/InvWatch.lean` names `mvcc.api.BkRef` (two binders of
+`Pk`/`BT`): `mvcc.KBReal` there (v3rpc's file; left unchanged).
+
+**Placeholders:** none. No axiom.
+
+## Left (sixth session, 2026-11-06; in order)
+
+**Stopped by the API's restatement.** Mid-session the mvcc track began restating mvcc's API over its
+storage abstraction (the user's decision, `notes/decisions.md`, "mvcc's API over its storage
+abstraction, not etcd's backend"): uncommitted `Api.lean`/`ApiState.lean` edits replace `BkRef` by an
+opaque `MvccStorage`, `mvccBackendFor` by `mvccStorageFor`, drop `mvccW`/`backendRest`/`mvccImage`,
+and `KVStoreCore` (so every module above it) no longer builds against them. Everything below was
+built against the API as of `c472039823`; once the new API lands, the server's `BkRef`-shaped
+vocabulary (`apply.bkWT`/`bkRT` over `B.γB`/`B.b`, `srvBkTie`, `srvBeOwn`, `srvWTStockInv`) has to be
+restated over `MvccStorage` (the server keeps etcd's backend facts through the bridge,
+`bridgeParams d.P`, as the decision says).
+
+**Done (this session):**
+- **The apply thread's reader token** (item 1's question, settled as proposed): `srvBeOwn` holds
+  `apply.bkRT d` of the tie's backend (so `srvApplyKV`, `srvApplyKVCore`, `srvApplyKVOn` all carry
+  it); `srvBeOwn_pool` lends it with the pool, `srvApplyKV_ua_rt_pool`/`srvApplyKV_ua_rt` (and the
+  `On` ones) in place of `srvApplyKV_ua_pool`. **Found and fixed (the chain's own specs):** the chain
+  gave the token back as `∃ B, bkRT B`, which loses the backend, so the apply thread could not lend
+  it to the next entry. Now `apply.bkRTOf E := ∃ B, ⌜tieOk E B⌝ ∗ bkRT B` (`tieOk E B := ¬ (E.BkTie B
+  ⊢ False)`, derivable from the tie, `tieOk_of`/`bkRTOf_intro`), in `mPostW`, `mPostV`, `dispatch`'s
+  and `Apply`'s posts and `WriteLemmas`' builders; at the server's tie `bkRTOf_srv : bkRTOf E ⊢ bkRT
+  d` (`tieOk_srv`). All the apply package's modules rebuilt (but `ApplyRec`, below).
+  Where the slot comes from is still to write: one slot of `backend.rdStock` at `NewServer` (step 3),
+  the new backend's at `applySnapshot` (step 4), the old backend's token to the closing goroutine.
+- Building: `ApplyEntryOn`, `ApplyKVCore`, `StartOn`, `apply.UberAdmLBase`, `UberOn`, `ApplyNormalOn`,
+  `UberKit`, `ModeSpecs`, `EtcdServer__apply` (both modes), `KVOutcomeOn`; applyAll's spec.
+- `ApplyNormalOn`: `kvEntryOn_len` at the writer's room `+ 3`; `kv_certPre_keep` over `kvNxOn`;
+  `srvAuthApplyResB_open`/`srv_uberAuthStepsL_at` at the epoch's batch-lock invariant `Pk`
+  (`E.Pk = fun _ => Pk`); `srvApplyKVOn_writer`/`srvApplyKVOn_authOn` in place of `_idxCert`;
+  `srvApplyKVOn_small` over the writer's facts.
+- **Premises strengthened (the server's own specs):** `EtcdServer.apply.spec`, `applyEntries.spec`
+  (and `ModeSpecs`' `specOff`s) take `receiptBound GF ≤ 2 ^ 48` in both modes (was: with auth on
+  only): the log's smallness now comes from the writer's receipt (`srvApplyKV_small`), bounded only
+  under it (until M1 the sole writer's receipts carried their own bound). `applyAll.specBatch` and
+  `run` will need the same premise (NewServer has it). `EtcdServer.apply.wp_proof(Off/On)` take
+  mvcc's `persistent.law`/`mvccState_reachable.law` (and `mvcc.Assumptions`), for the writer's facts.
+- `srvFieldsAt` (and `srvFieldsAtM`, `InvBuild`'s, `InvStart`'s) record `E.f ≠ func.nil` (the
+  server's hook is `getTxPostLockInsideApplyHook`'s closure): `mvcc.api.hookRun` at a non-nil hook is
+  the triple `hookSpec` gives. `NewServer`/`applySnapshot` must supply it.
+- `srvBkTie_inj` moved from `SnapRO` to `InvApplier`; `srvWT_at : E.BkTie = srvBkTie d → srvWT E ⊢
+  bkWT d`.
+- `apply.Apply.specRec` restated (`apply.bkToks v3 E Pre Q Post`: for the tie's backend its tokens
+  and hook run, `kvOwnPre_of_toks`; `threadTok`; `bkRTOf E` back; the floor `kvLogLb`; `cmpAdmit` at
+  the log), `spec_rec` adapted: **not checked** (committed `0255e5d962` after the API began to move).
+
+**Left, in order (after the API's restatement is adapted to):** check `ApplyRec`;
+`EtcdServer__applyEntryNormal` (the server builds `bkToks` from `srvApplyKV_ua_rt`, `srvWT_at`,
+`hookSpec` with `E.f ≠ nil`; gives `bkRTOf_srv`'s token back; `srvApplyKV(On)_writer` for the floor;
+`kv_certPre_keep`'s new arguments); then `ApplyAllSnap`, `applyAll` (with `receiptBound` above), and
+items 2-5 of "Left (fifth session)".
+
+**Placeholders:** none added. No axiom.
+
+## Left (fifth session, 2026-11-06; in order)
+
+1. **The red layer below `applyAll`** (step 2). Built since the fifth session's last commit:
+   `ApplyEntryOn` (`kv_certPreW_on`/`kv_certPreVW_on` at `kvNxOn γ γk st₀` and the tie, in place of
+   `kvCert` and mvcc's `certOk`), `ApplyKVCore` (`srvApplyKVCore_commit` lends `kvBk`'s
+   `mvccBackend E.γ 1 B (E.Pk B) ∗ E.BkTie B` and `srvWT E`: `KV.Commit.contract`'s), `StartOn`,
+   `apply.UberAdmLBase` (if the last build's `mvcc.BackendBridge`, another track's, was green). Then:
+   `UberOn`, `UberKit`, `ApplyNormalOn` (`:794`: `srvApplyKVOn_ua_rt` over mvcc's `storeRT`),
+   `EtcdServer__apply` (`:539`: `srvApplyKV_ua_rt_pool`, now `srvApplyKV_ua_pool`), `KVOutcomeOn`,
+   `EtcdServer.applyEntryNormal`, `EtcdServer.apply`, `ApplyAllSnap`, `applyAll` (its commit over
+   `KV.Commit.contract`, the decision; `backend.Snapshot` over `mvccImage_snapshot.law`).
+   **To decide first (minor, the server's own design): where the apply thread's backend reader
+   token lives.** `kvOwnPre` (what `dispatch`/`Apply` take) carries `bkWT B ∗ bkRT B`, and
+   `applyConfChange.spec` (restated) takes `bkRT d`; `dispatch` gives a reader token back. The
+   write-back token comes from the budget (`srvWT E`, `srvWTPool_take`); the reader token has no
+   source in the apply thread's state any more (mvcc's `storeRT` was in the sole writer's
+   `writerOwn`). The natural fix: a conjunct `∃ d, ⌜E.BkTie = srvBkTie d⌝ ∗ apply.bkRT d` in
+   `srvApplyKV`/`srvApplyKVCore` (one reader slot of the counted stock, `backend.rdStock`, taken at
+   `NewServer`, the new backend's at `applySnapshot`), lent to each entry. Borrowing from the pool
+   (`rdTok_borrow`) would spend the thread token, which `Apply` needs too.
+2. **The auth follow-ups** (step 3): `AuthSrv`, `Results.lean`, `InvBoot` (`auth.authParams d.P` for
+   the restated `NewAuthStore.spec`), `apply.LessorDerive` (`isApplyLessor_of_lessorInv` over
+   `SnapRO.srvRestOwnH_lens_revoke`'s restated lens), and the trust-boundary specs whose contracts
+   `SnapRO` restated (`v3alarm.NewAlarmStore.spec`, `lease.NewLessor.spec`, `lessor.Recover.spec`,
+   `EtcdServer.restoreAlarms.spec`: `d : BkRef`, `d.b`).
+3. **The boot** (`NewServer`, `NewServerAlloc(On)`, `CmpSupply`, `BootBackend`, `InvBoot`):
+   `backendRest_open.law`, `mvccW_alloc.law`, `mvccImage_fresh.law`, `mvccBackendFor_open.law`;
+   `envAgree` as restated (above); the stand-in `E₀` from `names_nonempty.law`.
+4. **The snapshot path** (`SnapApply*`, `RestorePre(M)`, `SnapSendBranch`, `SnapRecvFacts`,
+   `ApplyAllSnap`, `EtcdServer.applySnapshot.spec`): over `KV.Restore.contract` (its `mvccOpen` is the
+   apply thread's `cmpOwn`; `srvKVCloser*` are gone), `mvccImage_snapshot.law`, the draft's §3c-§3d.
+   The `M2*Draft*` modules (mvcc-internal drafts) are to delete or redo.
+5. **The request path's proofs** (`EtcdServer__Range`, `__Txn`, `__Put`, `__DeleteRange`,
+   `__Compact`, `__newHeader`, `__raftRequest`, `__processInternalRaftRequestOnce`, `__LeaseLeases`,
+   `__Authenticate`, `ReadServer`, `LeaseCheck`, `ProposeOn`): their statements' floor is
+   `kvLogLb E.γs F` (Range, Txn, Put, DeleteRange, raftRequest, processInternalRaftRequestOnce,
+   Authenticate restated); still to restate: `Compact` (`storeReaderC` → `threadTok`, the draft),
+   `newHeader` (`storeReader` → `threadTok`, post `newHeaderPostA`), `LeaseLeases` (`storeReader`
+   → `threadTok`). The proofs follow `readWit_fire`/`readServed_logR` (restated) and
+   `KVStoreRead`'s `srvRdCallA`.
+
+## For the parallel tracks
+
+- v3rpc: `srvApi.histLb` (= `histLbG (kvNx γr on)`), `srvApi.kvPeek.law` (proved: `kvPeek_holds`),
+  `srvApi.histLb_model.law` (stated, not proved: it needs the KV invariant's claims),
+  `srvApi.srvKVInvsA` with the tie `E.kv = wsIfaceA wsl`; all in `KVStoreApi.lean`. Until the
+  server's foundations build, the generic forms in `KVStoreCore.lean` (which builds) are the ones a
+  proof can import: `kvPeekG`, `histLbG`, `histLb_bootG`.
+- `AEnvA` (§4) is the draft's separate structure for now; the plan is to restate `apply.AEnv` in
+  place with its fields (next step) and make `AEnvA` an alias.
+
+## Left (in order)
+
+1. (Done for the definitions, above; the frontier below them is next.) **The apply chain's foundations** (`apply/Chain.lean`, `apply/Contracts.lean`): `apply.AEnv`,
+   `kvOwn`, `cmpOwn`, `mPre`, `certPre`, `leasesLive` restated in place as the draft's `AEnvA`,
+   `kvOwnA`, ... (`threadTok` beside `kvOwn` in the chain's triples; `putPre`/`deletePre` without
+   `storeWT`; the floors `kvLogLb`; `revokeRes` over `rdOwn`/`mvccDeleter`); the components'
+   contracts (`isApplyKV` → `isMvcc ∗ ⌜kv = E.kv⌝ ∗ envAus E`; `isAuthStore`, `isAlarmStore`,
+   `isCluster`, `isApplyLessor` at `E.Pk B` of the current backend, without mvcc's `storeWT`/
+   `storeRT`: not drafted, "by reference"). This unblocks `InvRequest`, `InvImage`, `ServerOn`
+   and so `KVStoreApi`.
+2. The apply chain's proofs, `applyAll`; `lease.Revoke`'s proof over `mvccDeleter`,
+   `Txn.DeleteRange`, `mvccTxn_leaseDelete.law` and `Txn.End` (blocked: see "Found").
+3. The boot (`mvccW_alloc.law` now gives `mvccWReg gx ∗ mvccW gx`), the receipts for client/v3's
+   `kvLogOk` (`logOk_of_receipt`, proved in `KVStoreApi.lean`).
+4. The snapshot send and receive (`senderImage.law`, `dbImageA_open.law`, `restoreArgs.law`, stated).
+
+### Why the server's foundations are red, and what step 1 needs decided
+
+Every server module imports `apply.Chain` (through `wait.Defs`/`apply.Base`, `apply.InvUber`,
+`InvRequest`), and `apply.Chain`/`apply.Contracts` name txn's deleted sole-writer API
+(`txn.kvWriter`, `txn/Writer.lean`, which no longer builds) and mvcc's internals (`mvcc.storeReader`,
+`writerOwn`, `idxCert`, `certOk`, `crevPermAt`, `kbCmpM E.γ.kb`, `storeWT`/`storeRT`,
+`csContract … (f : val)`). So nothing above `apply.Chain` builds until step 1 is done, which is
+why `KVStoreApi`/`KVStoreLaws` are unbuilt and the builders were proved generically in
+`KVStoreCore`. The draft settles `AEnv`/`kvOwn`/`cmpOwn`/`mPre`/`certPre` (its `AEnvA` ... ,
+restate in place). Not drafted, to decide before step 1 (all "by reference" in
+`clients-server.md`):
+- the components' write budget: `isAuthStore`, `isAlarmStore`, `isCluster`, `isApplyLessor`'s
+  writing clauses take mvcc's `storeWT γ`/`storeRT γ`, which are the current backend's
+  `backend.wbTok`/`rdTok`; over the API they would take those of the backend `B` the clause writes
+  (`∀ B, E.BkTie B -∗ … wbTok B.γB …`?), with `csContractA (E.Pk B) E.f`; the draft only says
+  "move to `E.Pk B` at the current backend";
+- `txnPre`'s `txn.TxnPre log t` (deleted by the txn track: its premise is now `OpsOk`-like);
+- `cmpTriple`'s premise (see "Found": `1 ≤ rev`), `cmpPermRq` over `E.Cp`;
+- `revokeClause` over the restated `lessor.Revoke.spec` (blocked, "Found").
+
+## Placeholders
+
+None in the proved modules (both of the third session's discharged, "Decisions (2026-11-06)").
+No axiom.
+
+## Decisions (the coordinator, 2026-11-06)
+
+- **Finding (2), Revoke, applied (fourth session):** `lease.lessor.Revoke.spec` and `revokeClause`
+  take the begin update only for a live lease, `(if decide (id ∈ L) then auBegin γ σ₀ (auEnd γ σ₀
+  dels Y) else iprop(True))`, and the not-live arm does not give it back. `applierV3backend.LeaseRevoke`
+  builds the pair `(if … then update else True) ∗ (if … then True else wSt E.γs log c)` by cases on
+  `id ∈ L`, so the not-live arm keeps the writer's half: no `sorry`. Recorded in the draft
+  (`ServerSpecs.lean` §5's docstring and header, `clients-server.md`'s "Superseded (2026-11-06)").
+- **Finding (1), txn's `specSole`:** its write wand takes `⌜txn.PathsIgnOk (stateAfter log)
+  (t.branch (txnOk (stateAfter log) t))⌝ -∗ Qr σ -∗ …` (the txn track's `ffa7dc68fb`);
+  `applierV3backend.Txn`'s wand takes the fact (`iintro %σ %hig …`) and builds the end update with
+  `certPre`'s witness: no `sorry`. (`EtcdServer__Txn.lean` calls only the read-only `hTxn.2` and
+  is not migrated yet: no write wand there.)
+
+## Found (third session, 2026-11-05; both decided 2026-11-06, above)
+
+1. **`txn.Txn.specSole` (frozen, txn's) is too weak for the apply thread's caller.** Its write wand
+   `(if txn.txnReadonly t then True else ∀ σ, Qr σ -∗ txn.txnBeginAU γ log t Qw)` is given before
+   the call and not told that `checkTxn` passed. The server builds `txnBeginAU` from its end builder,
+   which needs the witness `E.Nx (commitLog log (txnChs log t))`; `certPre` gives it only for a
+   `backendStep` outcome, whose applied arm needs `txn.PathsIgnOk (stateAfter log) (t.branch
+   (txnOk (stateAfter log) t))`. When the paths miss a previous key-value the request is rejected
+   and `commitLog log (txnChs log t)` is no applied log: no witness, no wand. (Until M1 txn's spec
+   took `⌜PathsIgnOk …⌝ -∗ certOkNext …` for the same reason.) **Minimal fix** (txn's spec): the
+   wand takes the fact, `∀ σ, Qr σ -∗ ⌜txn.PathsIgnOk (stateAfter log) (t.branch (txnOk
+   (stateAfter log) t))⌝ -∗ txn.txnBeginAU γ log t Qw` (true where txn calls it: after `checkTxn`'s
+   success, whose post states `PathsIgnOk`).
+2. **`lease.lessor.Revoke.spec` (the draft's `specA`, as decided) and `revokeClause` are too weak in
+   the not-live arm.** The precondition takes `auBegin γ σ₀ (auEnd γ σ₀ dels Y)` always, the
+   not-live arm gives it back unused. The server can build that update only from its writer's half
+   (`envAus`' begin builder puts `wSt` in the update's private state), and no law recovers it from
+   an unused update (an atomic update's private state is hidden): after a not-live revocation the
+   apply thread has lost its half of the store's state. **Minimal fix** (the draft and
+   `revokeClause`, as txn's `Put` does for a lease): `(if decide (id ∈ L) then auBegin γ σ₀ (auEnd γ
+   σ₀ dels Y) else iprop(True))` in the precondition, and the not-live arm without it (the code
+   returns `ErrLeaseNotFound` before calling `rd()`, `lessor.go`'s `Revoke`). The caller knows `L`
+   (`leasesLive`).
+
+## For the parallel tracks (fifth session, 2026-11-06)
+
+- **`ReadOn` builds** (`726ac24773`), and with it `EtcdServer.Range.spec`, `ReqOn`, `ServerOn`;
+  `EtcdServer.{Txn, Put, DeleteRange}.spec` build (`cfa6a13f50`). The read side imports
+  `ServerOnDefs`, not the built part.
+- Restated names a client sees (old → new):
+  - `srvKVCoreM_fire on E γr γ hst L Q : srvKVCoreM on E γr -∗ E.Nx L -∗ □ AU … ={⊤}=∗ ∃ C, …`
+    (was: `hlog`, `idxSealed [[],[]]`, `idxSealed L`, `certOk E.γ L`);
+  - `srvKVCoreM_keys on E γr l : srvKVCoreM on E γr -∗ E.Nx l ={⊤}=∗ ⌜LogPutsLe etcdKeyMax l⌝`
+    (was: a sealed floor `B` and `certOk`); `readM_keys`/`read_keys`: `isServerRead… -∗ E.Nx l`;
+  - `srvKVCoreM_cperm` deleted; `srvKVInvs` has a last conjunct `⌜E.Nx = kvNxOff γr.raft γr.kv⌝`,
+    `srvKVInvsOn` `⌜E.Nx = kvNxOn γr.raft γr.kv st₀⌝` (patterns ending `%h⟩` need `, -⟩`);
+  - `readWit_fire`/`readWit_fireOn` take `E.Nx l` (was `certOk E.γ l`); `readServed_logR(M)`,
+    `readIndexOk_logRM` over `kvLogLb E.γs`;
+  - `envAgree` is `E.γs = E'.γs ∧ E.Nx = E'.Nx ∧ E.γrev = E'.γrev ∧ E.cmp = E'.cmp`;
+    `envAgree_mode`/`_off`/`_on` deleted (no store mode);
+  - `srvKVCloser`, `srvKVCloserW` deleted (`Restore` takes `mvccOpen`, in `cmpOwn`).
+- Callers outside this track that these break (not fixed): client/v3's `InvWatch`
+  (`srvKVCoreM_cperm`, `srvKVCoreM_keys`), `watcher__Watch`, `WatchFire`, `WatchLawsHist`
+  (`srvKVCoreM_fire`/`_keys`), `ServedOn` (`readM_keys`), `Results`, `InvServerKV` (`srvKVInvs`'s
+  patterns); v3rpc's `ClientModel`, `WatchApi` (`srvKVCoreM_keys`), `Results` (`read_keys`),
+  `ServerKVOn` (`rangeReadOkM`/`txnReadOkM`); the examples' `compactkv/NoDup`, `cachekv/NoDup`
+  (`srvKVCoreM_fire`), `compactkv/Main` (`srvKVInvs`), `watchkv/Main`, `authkv/Main`,
+  `linkv3p/startCluster` (`envAgree_off`); `etcdserver/Link.lean` (generated: the restated specs'
+  hypotheses).
+
+## For the parallel tracks (fourth session, 2026-11-06)
+
+- **`InvRead` builds** (`a25b814824`), with `KVApplyOn`, `InvApRes`, `apply.AuthFuel`,
+  `apply.AuthApplyLatest`, `AuthApplyRes` and `KVStoreRead`; then `apply.AuthStepsX`,
+  `apply.AuthApplyLatestPut` (`18f9b6c5a5`), `AuthGuard`, `AuthBound`, `AuthReqDerive`
+  (`f96caecb2f`).
+- **`ReadOn`'s remaining blockers** (red, next on v3rpc's path):
+  - `KVRead`: `readServed_logR` is mechanical (`idxCert` → `kvLogLb`, as `readIndexOk_logR`);
+    `readWit_fire` takes `mvcc.certOk E.γ l` and goes through `KVLemmas.kv_read_log` (still over
+    mvcc's `certOk`, with the removed tie `E.γ.cok = γr.kv.cok`). Over the API its certificate is
+    `E.Nx l`, and `kv_read_log` needs restating over `kvNxOff γr.raft γr.kv l` (`= kvNx γr false`),
+    which needs the tie `E.Nx = kvNxOff …`. `srvKVInvs` dropped that tie (step 1: it names the KV
+    model, above `InvApplier`). To decide: carry it in `srvEnvOk`/`isServerRead` as a pure
+    `E.Nx = kvNx γr on`, or restate `readWit_fire` at `kvNxOff`, with its callers passing the tie.
+  - `InvApplyAll`: `E.P`, `MvccName.withPhys`/`phys` (the old physical-backend renaming), `:72`'s
+    type.
+  - `apply.AdminChain:199`: `chainRes c.quota …` no longer gives the wand it expects
+    (the chain's restated `mPre`).
+- Callers outside this track that the restatements break (not fixed here): `Link.lean`s generated by
+  `etc/gen-link.py` (`etcdserver/Link.lean`, `client/v3/Link.lean`: `lessor.Revoke.wp_proof`'s new
+  hypotheses `hBT hsh hisB hLD` in place of `hDel hEnd`); `client/v3/lessor__Revoke.lean`; the users
+  of `InvRead`'s restated read path and of the deleted `storeSmall*`: v3rpc's `ServerKV`,
+  `ServerKVOn`, `ClientModel`, `Results`; client/v3's `InvServerKV`, `ServerKVGet`, `ServerKVPut`,
+  `ServerKVTxn`, `ServerWatcher`, `InvWatch`, `ServedOn`, `ServeFromStart(On)`, `Results`; txn's
+  `ClientLaws`; mvcc's `InvCompact`; the examples' `common/{Defs,Served,ServedLease,Serve}`,
+  `watchkv`, `linkv3p`, `restart3`, `cachekv`, `compactkv`.
+
+## For the parallel tracks (second session)
+
+- Callers outside this track that break on step 1's restatements: `client/v3/InvServerKV.lean`
+  (`kv_cert_floor`'s new signature), the `Results.lean`/`AuthSrv`/`ApplyNormalOn` users of
+  `isAuthSteps_of_authInv` (new `hf`), `srvEnvOk_kbCmp`'s three users.
+
+## Decisions (the coordinator, 2026-11-05)
+
+- `lessor.Revoke.spec` takes `⌜MvccReachable σ₀ ∧ σ₀.log.length + 3 ≤ 2 ^ 63⌝` (applied,
+  `Spec/.../lease/lessor__Revoke.lean`; the draft and `clients-server.md` record it superseded).
+- `applierV3backend.Compaction.spec` takes `⌜1 ≤ sint.Z rev⌝` (lands with the chain's
+  restatement; the draft records it).
+- The components' contracts (auth, alarm, cluster, lessor) take the current backend `B`'s
+  `backend.wbTok B.γB` / `backend.rdTok B.γB B.P B.b ∗ backend.bOpen B.γB backend.rdOpen` in place
+  of mvcc's `storeWT γ` / `storeRT γ` (which were exactly those of `γ`'s backend).
+- `txnPre` and `cmpTriple`'s premise follow txn's restated specs as landed in
+  `Spec/.../etcdserver/txn/`, else `notes/mvcc-api-clients/TxnSpecs.lean`.
+
+## Found (second session, 2026-11-05; not decided: Revoke's proof stopped)
+
+- **`lease.lessor.Revoke.spec` (as fixed) is unprovable over the frozen API: no backend fact for
+  `le.b.BatchTx()`.** After the deletes, `Revoke` runs `schema.UnsafeDeleteLease(le.b.BatchTx(),
+  …)`. `mvccTxn_leaseDelete.law` gives the WP of `UnsafeDelete` on the backend's batch transaction
+  `t` from `backend.bF go!"batchTx" B.b ↦□ t` (its premise), which only `backend.backend.BatchTx.spec`
+  gives, and that spec takes `backend.isBackend B.γB B.P W Pk' B.b` (some `W`, `Pk'`). Revoke's
+  precondition has `mvccBackend γ q B P` (sealed: its `□ isBackend … (mvccW gx) P B.b` is hidden),
+  `hookIs B f`, `lessorBeOn lp B.b` (only `le.b`'s field) and nothing else of `B`; no API law
+  exposes `isBackend` from `mvccBackend`. (The old proof took `BatchTx`'s triple from mvcc's
+  internal `bkBt`, inside the write transaction's facts.) **Minimal fix**, either:
+  (a) an API law `mvccBackend_isBackend.law : ∀ γ q B Pk, mvccBackend γ q B Pk ⊢
+      ∃ gx, □ backend.isBackend B.γB B.P (mvccW gx) Pk B.b` (true by `mvccBackend`'s body; the
+      server's other readers of `s.be` would use it too), or
+  (b) Revoke's precondition takes `□ backend.isBackend B.γB B.P W Pk' B.b` for some `W Pk'`
+      (both callers have one: the server's `srvBeRO B`, the tester's `backend.New`).
+  (a) is the API's; (b) a client-spec change. The Revoke proof is stopped until decided.
+
+## Found (both decided above)
+
+- **`lessor.Revoke.specA` (landed as drafted) is unprovable over the frozen API: it lacks the
+  begin state's reachability.** The proof must show that the loop's `Txn.DeleteRange(key, nil)`
+  calls, one per key of the lease's item set (`l.Keys()`, sorted), leave exactly `dels =
+  leaseDels (stateAfter σ₀.log) id` pending, since `End`'s update (`mvccTxn_leaseDelete.law`'s
+  triple, `Txn.End.contract`) commits `σ.notify pend` for the transaction's actual `pend` and the
+  caller's `auEnd γ σ₀ dels Y` takes `σ.notify dels`. Each call deletes
+  `delKeys σ₀.log pend true k []` (mvcc's index answer), which is `[k]` for a key of the state
+  only under `LogOk (σ₀.log ++ [pend])` and `σ₀.log ≠ []` (`txn.delKeys_eq`), i.e. `σ₀`'s log well
+  formed (`LogWf`, from `MvccReachable σ₀` by `reach_logWf`). The precondition gives only
+  `σ₀.pending = none ∧ (stateAfter σ₀.log).length ≤ 2 ^ 62`; the only API fact of reachability is
+  `mvccState_reachable.law`, which needs `isMvcc kv γ`, not in the precondition (`mvccDeleter rd γ`
+  has none), and the deleter's begin update gives the proof no access to the state. (True of every
+  run, since the begin update commits only at mvcc's real, reachable state; not provable from what
+  the API exports.) **Minimal fix**: add `MvccReachable σ₀ ∧ σ₀.log.length + 3 ≤ 2 ^ 63` (txn's
+  `Reach σ₀`) to the pure premise. Both callers have it: the server's apply thread from the
+  writer's facts (`kvAus.law`'s last conjunct gives exactly `MvccReachable (stAt log c) ∧ log.length
+  + 3 ≤ 2 ^ 63`), the tester from `mvccState_reachable.law` on the state it holds. (Alternatively
+  `mvccDeleter`'s triple could return the begin state's reachability with `R σ`.) The Revoke proof
+  is stopped until the user decides.
+
+- **`applierV3backend.Compaction.specA` is unprovable over the frozen `KV.Compact.contract`**
+  (not landed). The draft's precondition is `⌜sint.Z rev < log.length⌝ ∗ E.Cp (sint.Z rev)` with
+  `E.Cp = crevOk γr`, and `crevOk γr (-1)` holds (`⌜c = -1⌝` is its first disjunct), so the spec
+  admits `rev = -1`; but `KV.Compact.contract` takes `⌜1 ≤ sint.Z rev⌝` (added 2026-11-04,
+  `04dd363d79`, after the draft froze), so `Compaction`'s call of `KV.Compact` cannot be proved at
+  `rev = -1` (nor at `0`, which `crevOk` excludes). Minimal fix: the premise
+  `⌜1 ≤ sint.Z rev ∧ sint.Z rev < log.length⌝` (its caller has it: a compaction request's revision
+  is positive, `EtcdServer.Compact.spec` requires it); alternatively `E.Cp` the cluster permit
+  `kvCmpPermit γr.kv` (positive) rather than `crevOk`.

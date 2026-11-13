@@ -36,8 +36,8 @@ theorem mvcc.writeView.Put.wp_proof
     mvcc.writeView.Put.spec (GF := GF) (hG := hG) := by
   have hWrite := mvcc.store.Write.spec_R hWrite
   have hEnd := mvcc.metricsTxnWrite.End.spec_R hEnd
-  intro wv s γ P Pre Q Post f key value k v leaseID L I log
-  wp_start as ⟨#Hwv, Hrd, Htok, Hwt, Hhook, Hpin, Hcs, #Hfree, #Hkey, #Hval, %Hklen, Hown, #HI, %Hlease, %Hwq⟩
+  intro wv s γ P Pre Q Post f key value k v leaseID L I G R
+  wp_start as ⟨#Hwv, Hrd, Hwt, Hhook, Hcs, #Hfree, #Hkey, #Hval, %Hklen, Hown, #HI, %Hlease, %Hwq, HG, #HFG, Hcb⟩
   iunfold mvcc.isWriteView at Hwv
   iNamed Hwv
   iunfold mvcc.csContract at Hcs
@@ -50,8 +50,8 @@ theorem mvcc.writeView.Put.wp_proof
   wp_apply hTODO as %t ⟨%Ht, Htrc⟩
   (try wp_auto)
   -- `wv.kv.Write(t)`
-  wp_apply (hWrite s γ t P Pre Q f true log) $$ [$Hs $Hrd $Htok $Hwt $Hhook $Hpin $Hpre $Htr $Htrc]
-    as %mw ⟨⟨%ilog, %crev, Htx, -⟩, HQ, Hhook⟩
+  wp_apply (hWrite s γ t P Pre Q f true G) $$ [$Hs $Hrd $Hwt $Hhook $Hpre $Htr $Htrc $HG $HFG]
+    as %mw ⟨⟨%ilog, %crev, Htx, -⟩, HQ, Hhook, HG⟩
   · ipureintro; exact Ht
   -- the writer's hook back: its facts kept (D22 receiver epochs, S5b)
   icases (mvcc.hookIs_split γ P f).1 $$ Hhook with ⟨#HhookOk, Hfrag⟩
@@ -73,19 +73,25 @@ theorem mvcc.writeView.Put.wp_proof
       (W64 0 + (key.len + value.len))) crev $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
   ihave Htx' := mvcc.isTxn_toEnd _ _ _ _ crev $$ Htx'
+  ihave Htx' := mvcc.isTxnEnd_Y_write _ _ _ _ _ _ _ _ _ crev _ $$ Htx'
+  ihave Hcb := Hcb $$ %ilog %crev
   -- the caller's update: the lock's invariant back for `Unlock`
   imod Hupd $$ HQ with ⟨HP, HPost⟩
-  wp_apply (hEnd t mw s γ _) $$ [$Htx' Hhook HP] as ⟨Hrd, Hcert, -⟩
+  wp_apply (hEnd t mw s γ _ _ (mvcc.slotY γ ilog) G R) $$ [$Htx' Hhook HP HG Hcb] as ⟨Hrd, Hcert, -, HX⟩
   (try wp_auto)
-  · iapply mvcc.txnEndPre_write; iframe Hhook HP; rw [mvcc.logQPre_plain _ _ _ Hwq]
-    isplitl; · iapply mvcc.certFree_certOkNext $$ Hfree
-    itrivial
-  simp only [mvcc.txnEndPost, mvcc.commitLog, List.cons_ne_self, ↓reduceIte]
-  icases Hcert with ⟨Hcert, -, -, -, Hpin⟩
+  · isplitl [Hhook HP]
+    · iapply mvcc.txnEndPre_write; iframe Hhook HP; rw [mvcc.logQPre_plain _ _ _ Hwq]
+      isplitl; · iapply mvcc.certFree_certOkNext $$ Hfree
+      itrivial
+    simp only [mvcc.txnEndX]
+    iframe HG HFG Hcb
+  simp only [mvcc.txnEndPost, mvcc.txnEndXPost, mvcc.commitLog, List.cons_ne_self, ↓reduceIte]
+  icases Hcert with ⟨Hcert, -, -⟩
+  icases HX with ⟨HG, HR⟩
   iapply HΦ
-  iframe Hrd HPost
+  iframe Hrd HPost HG HR
   iexists ilog
-  iframe Hcert Hown Hpin
+  iframe Hcert Hown
   try (ipureintro; rfl)
 
 end proof

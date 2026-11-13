@@ -188,6 +188,21 @@ theorem bucketRange_eq_of_agree (m m' : GMap GoString GoString) (klo khi : GoStr
   · rintro ⟨h1, h2, h3⟩; exact ⟨hge k v h1 h2, h2, h3⟩
   · rintro ⟨h1, h2, h3⟩; exact ⟨hsub k v h1, h2, h3⟩
 
+/-- **A sub-map's range read is the map's, filtered to the sub-map's entries** (pure): what a thin
+snapshot's scan returns (`rangeEvents` on a compacted store). -/
+theorem bucketRange_sub (m m' : GMap GoString GoString) (klo khi : GoString)
+    (hsub : ∀ k v, m' !! k = some v → m !! k = some v) :
+    bucketRange m' klo khi =
+      (bucketRange m klo khi).filter (fun kv => decide (m' !! kv.1 = some kv.2)) := by
+  obtain ⟨hs, hmem⟩ := (bucketRange_eq_iff m klo khi (bucketRange m klo khi)).1 rfl
+  apply (bucketRange_eq_iff m' klo khi _).2
+  refine ⟨hs.sublist (List.filter_sublist.map _), fun k v => ?_⟩
+  rw [List.mem_filter, hmem]
+  simp only [decide_eq_true_eq]
+  constructor
+  · rintro ⟨⟨-, h2, h3⟩, h4⟩; exact ⟨h4, h2, h3⟩
+  · rintro ⟨h1, h2, h3⟩; exact ⟨⟨hsub k v h1, h2, h3⟩, h1⟩
+
 section scan
 open Iris Iris.BI Iris.ProofMode
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -268,6 +283,67 @@ theorem snapThin_scan (γ : StoreNames) (q : Qp) (c : Int) (log : Log) (m' : Buc
   rw [hnc.2] at hkdl
   exact not_KeyDel_of_noDup log ⟨hlen, hcs⟩ c (by omega) hnd ch.key r (by rw [hr]; exact hmem)
     (by rw [hr, hnz]; exact hnc.1) t' hkdl
+
+/-- **A thin snapshot misses only entries at or below the compaction revision** (watches across a
+compaction, per watcher; `notes/mvcc-api-invariants.md` §4.4): with a share of the compaction
+revision's authority at `c`, every entry of the bucket at a revision above `c` is in the thin
+snapshot `m'` (a key compaction may delete is at a certified compaction revision `c' ≤ c`). No
+premise on the revision `c`'s changes: what a watcher reading above `c` gets is exact even when
+revision `c` changes a key twice. -/
+theorem snapThin_missing_le (γ : StoreNames) (q : Qp) (c : Int) (m m' : Bucket) (hc : -1 ≤ c) :
+    crevUB (GF := GF) γ.idx q c ∗ snapThin m m' (delKey γ) ⊢
+      crevUB γ.idx q c ∗ ⌜∀ k v (r : Rev) (t : Bool), m !! k = some v → k = revBytes r t →
+        c < sint.Z r.main → m' !! k = some v⌝ := by
+  iintro ⟨Hu, Ht⟩
+  iunfold snapThin at Ht
+  icases Ht with ⟨%Hsub, #Hdel⟩
+  by_cases hall : ∀ k v (r : Rev) (t : Bool), m !! k = some v → k = revBytes r t →
+      c < sint.Z r.main → m' !! k = some v
+  · iframe Hu; ipureintro; exact hall
+  iexfalso
+  have hex : ∃ k v r t, m !! k = some v ∧ k = revBytes r t ∧
+      c < sint.Z r.main ∧ m' !! k ≠ some v :=
+    Classical.byContradiction fun hn => hall fun k v r t h1 h2 h3 =>
+      Classical.byContradiction fun h4 => hn ⟨k, v, r, t, h1, h2, h3, h4⟩
+  obtain ⟨k, v, r, t, hk, hkr, hcr, hne⟩ := hex
+  have hnone : m'.lookup k = none := by
+    cases h : m'.lookup k with
+    | none => rfl
+    | some v' =>
+      have := Hsub k v' h
+      rw [show m.lookup k = m !! k from rfl, hk] at this
+      cases this
+      exact absurd h hne
+  have hkn : m.lookup k = some v ∧ m'.lookup k = none := ⟨hk, hnone⟩
+  ihave #Hd := Hdel $$ %k %v %hkn
+  iunfold delKey at Hd
+  icases Hd with ⟨%c', %log', #Hlb, -, %Hkd⟩
+  obtain ⟨hc', -, r', t', hk', -, h1, -⟩ := Hkd
+  ihave %Hcc := crevUB_lb γ.idx q c c' hc hc' $$ Hu Hlb
+  have hr : r' = r := revBytes_rev_inj (hk'.symm.trans hkr)
+  subst hr
+  ipureintro
+  omega
+
+/-- **A thin snapshot's scan, in both cases** (see `snapThin_missing_le`, `snapThin_scan`): every
+entry above the compaction revision `c` is in the snapshot; and, when revision `c` changes each key
+once (or `c = -1`) and the scan starts at or above `c`, every entry of the scanned revisions. -/
+theorem snapThin_scan_full (γ : StoreNames) (q : Qp) (c : Int) (log : Log) (m' : Bucket) (lo : Nat)
+    (hwf : LogWf' log) (hlen : log.length < 2 ^ 63) (hcs : ∀ cs ∈ log, cs.length < 2 ^ 63)
+    (hc : -1 ≤ c) (hlo : lo < 2 ^ 63) :
+    crevUB (GF := GF) γ.idx q c ∗ snapThin (bucketMap log) m' (delKey γ) ∗ idxCert γ.idx log ⊢
+      crevUB γ.idx q c ∗
+      ⌜(∀ k v (r : Rev) (t : Bool), bucketMap log !! k = some v → k = revBytes r t →
+          c < sint.Z r.main → m' !! k = some v) ∧
+        ((c = -1 ∨ oneChangePerKeyAt log c) → c ≤ lo → ∀ k v, bucketMap log !! k = some v →
+          go.GoStringLe (revBytes ⟨W64 (lo : Int), W64 0⟩ false) k → m' !! k = some v)⌝ := by
+  iintro ⟨Hu, #Ht, #Hcert⟩
+  icases snapThin_missing_le γ q c (bucketMap log) m' hc $$ [$Hu $Ht] with ⟨Hu, %Hg⟩
+  by_cases hnd : (c = -1 ∨ oneChangePerKeyAt log c) ∧ c ≤ lo
+  · icases snapThin_scan γ q c log m' lo hwf hlen hcs hc hnd.2 hlo hnd.1 $$ [$Hu $Ht $Hcert]
+      with ⟨Hu, %Ha⟩
+    iframe Hu; ipureintro; exact ⟨Hg, fun _ _ => Ha⟩
+  · iframe Hu; ipureintro; exact ⟨Hg, fun h1 h2 => absurd ⟨h1, h2⟩ hnd⟩
 
 end scan
 

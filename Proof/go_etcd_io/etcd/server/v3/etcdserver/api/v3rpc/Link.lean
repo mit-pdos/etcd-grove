@@ -173,6 +173,7 @@ public import Proof.go_uber_org.zap.NewNop
 public import Proof.go_uber_org.zap.String
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base
 public import Perennial.Proof.errors.Link
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Link
@@ -830,9 +831,9 @@ theorem quotaLeaseServer.wp_LeaseGrant :
     EtcdGrove.v3rpc.quotaLeaseServer.LeaseGrant.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.quotaLeaseServer.LeaseGrant.wp_proof quotaAlarmer.wp_check
 
-theorem serverWatchStream.wp_close :
+theorem serverWatchStream.wp_close [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.v3rpc.serverWatchStream.close.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.serverWatchStream.close.wp_proof mvcc.watchStream.wp_Close
+  EtcdGrove.v3rpc.serverWatchStream.close.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds
 
 theorem serverWatchStream.wp_isWatchPermitted :
     EtcdGrove.v3rpc.serverWatchStream.isWatchPermitted.spec (GF := GF) (hG := hG) :=
@@ -846,17 +847,17 @@ theorem traceutil.Tracer.wp_Start :
     EtcdGrove.traceutil.Tracer.Start.spec (GF := GF) (hG := hG) :=
   EtcdGrove.traceutil.Tracer.Start.wp_proof
 
-theorem serverWatchStream.wp_recvLoop :
+theorem serverWatchStream.wp_recvLoop [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.v3rpc.serverWatchStream.recvLoop.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.serverWatchStream.recvLoop.wp_proof mvcc.watchStream.wp_Watch mvcc.watchStream.wp_Rev mvcc.watchStream.wp_Cancel mvcc.watchStream.wp_RequestProgressAll serverWatchStream.wp_isWatchPermitted serverWatchStream.wp_newResponseHeader wp_FiltersFromRequest errors.wp_Is traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_String «attribute».wp_Int64 «attribute».wp_Bool zap.Logger.wp_Error zap.wp_Error
+  EtcdGrove.v3rpc.serverWatchStream.recvLoop.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds serverWatchStream.wp_isWatchPermitted serverWatchStream.wp_newResponseHeader wp_FiltersFromRequest errors.wp_Is traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_String «attribute».wp_Int64 «attribute».wp_Bool zap.Logger.wp_Error zap.wp_Error
 
-theorem serverWatchStream.wp_sendLoop :
+theorem serverWatchStream.wp_sendLoop [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.v3rpc.serverWatchStream.sendLoop.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.serverWatchStream.sendLoop.wp_proof serverWatchStream.wp_newResponseHeader wp_GetProgressReportInterval wp_isClientCtxErr mvcc.watchStream.wp_RequestProgress verify.wp_Assert _root_.Perennial.time.wp_NewTicker _root_.Perennial.time.Ticker.wp_Stop time.Duration.wp_Seconds time.Duration.wp_Seconds_ptr zap.Logger.wp_Debug zap.Logger.wp_Warn zap.wp_Error prometheus.CounterVec.wp_WithLabelValues mvcc.watchStream.wp_Chan mvcc.wp_ReportEventReceived
+  EtcdGrove.v3rpc.serverWatchStream.sendLoop.wp_proof serverWatchStream.wp_newResponseHeader wp_GetProgressReportInterval wp_isClientCtxErr mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_wsChan_recv_law_holds mvcc.api.mvccApi_wsRecv_ok_law_holds mvcc.api.mvccApi_wsSentLb_zero_law_holds verify.wp_Assert _root_.Perennial.time.wp_NewTicker _root_.Perennial.time.Ticker.wp_Stop time.Duration.wp_Seconds time.Duration.wp_Seconds_ptr zap.Logger.wp_Debug zap.Logger.wp_Warn zap.wp_Error prometheus.CounterVec.wp_WithLabelValues mvcc.wp_ReportEventReceived
 
-theorem watchServer.wp_Watch :
+theorem watchServer.wp_Watch [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.v3rpc.watchServer.Watch.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.watchServer.Watch.wp_proof mvcc.watchableStore.wp_NewWatchStream serverWatchStream.wp_recvLoop serverWatchStream.wp_sendLoop serverWatchStream.wp_close wp_isClientCtxErr errors.wp_IsCtxErr zap.Logger.wp_Debug zap.Logger.wp_Warn zap.wp_Error prometheus.CounterVec.wp_WithLabelValues
+  EtcdGrove.v3rpc.watchServer.Watch.wp_proof mvcc.api.mvccApi_shapes_law mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccReaders_split_law_holds serverWatchStream.wp_recvLoop serverWatchStream.wp_sendLoop serverWatchStream.wp_close wp_isClientCtxErr errors.wp_IsCtxErr zap.Logger.wp_Debug zap.Logger.wp_Warn zap.wp_Error prometheus.CounterVec.wp_WithLabelValues
 
 end links_hasLC
 

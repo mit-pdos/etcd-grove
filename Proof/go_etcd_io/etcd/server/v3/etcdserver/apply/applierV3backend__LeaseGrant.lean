@@ -6,6 +6,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__LeaseGrant
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__newHeader
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.KVLemmas
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.WriteLemmas
 
 @[expose] public section
 
@@ -31,15 +32,15 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.LeaseGrant.spec (GF := GF) (hG := hG) := by
   intro E p r rq g log T rs U Pre Q Post info
-  wp_start as ⟨#Hb, Hgp⟩
+  -- `lean`'s proof (the lease-grant stage's triple) with the backend's tokens (`mPreW_split`,
+  -- `mPostW_backend`, `threadTok`, `newHeader`'s `E.Nx`)
+  wp_start as ⟨#Hb, Htt, Hgp⟩
   iunfold apply.grantPre at Hgp
-  icases Hgp with ⟨%Hrq, #Hr, #Hgr, HltT, HRO, Hwt, Hpre, -, HU, HUf⟩
+  icases Hgp with ⟨%Hrq, #Hr, #Hgr, HltT, HRO, Hpre, -, HU, HUf⟩
   obtain ⟨Hlg, Hg, Hk⟩ := Hrq
-  iunfold apply.mPre at Hpre
-  iunfold apply.kvOwn at Hpre
-  icases Hpre with ⟨⟨Hrd, Hsw, Hlive, Hard⟩, Hres, Hcs⟩
-  icases Hard with ⟨Hard, Hwo⟩
-  icases mvcc.writerOwn_rt _ $$ Hwo with ⟨Hrt, Hrdb⟩
+  icases apply.mPreW_split $$ Hpre with ⟨%cr, %B, Hsw, Hcs, Hwt, Hrt, Htie, Hres, Hkv⟩
+  iunfold apply.kvRest at Hkv
+  icases Hkv with ⟨Hbk, Hhk, Hlive, Hard⟩
   iunfold apply.leasesLive at Hlive
   icases Hlive with ⟨%L, #Hknown, Hu, HltL⟩
   ihave %HLT := apply.ltHalf_agree E L T Hlg $$ [HltL HltT]
@@ -51,7 +52,7 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
   iunfold apply.backendIs at Hb'
   icases Hb' with ⟨%opts, #Hopts, #Hok⟩
   iunfold apply.backendOptsOk at Hok
-  icases Hok with ⟨%Hlgn, -, -, #Hle, -⟩
+  icases Hok with ⟨%Hlgn, -, -, -, #Hle, -⟩
   iunfold apply.isApplyLessor at Hle
   icases Hle with ⟨-, %li, %Hli, #HGrant, -⟩
   ihave #Hr' := Hr
@@ -61,9 +62,8 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
   wp_auto
   rw [Hli]
   wp_auto
-  wp_apply HGrant $$ [$Hcs $HRO $Hown $Hrvk $Hwt $Hrt $Hgr $HU $HUf] as %l %err
-    ⟨Hrt, #HeI, Hres'⟩
-  ihave Hwo := Hrdb $$ Hrt
+  wp_apply HGrant $$ [$Hcs $HRO $Hown $Hrvk $Hwt $Hrt $Htie $Hgr $HU $HUf] as %l %err
+    ⟨Hrt, Htie, #HeI, Hres'⟩
   icases Hres' with (⟨%Hne, #HlE, HPre, Hown, Hrvk, HRO, HU⟩ |
     ⟨%Hok, HPost, Hown, Hrvk, #Hlease, #Hlf, HU, #Hreq, ⟨%t, #Hlt, %Htge, HRO⟩⟩)
   · ihave HPP : iprop(Post ∨ Pre) $$ [HPre]
@@ -80,11 +80,13 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
     | ok ei =>
       wp_auto
       iapply HΦ
+      iframe Htt
       iexists (Outcome.rejected .backend)
       iunfold apply.grantPost
-      isplitl [Hrd Hsw Hlive Hwo HPP Hres Hard]
-      · iapply apply.mPost_backend
-        iunfold apply.kvOwn
+      isplitl [Hsw Htie Hbk Hhk Hlive Hard HPP Hrt]
+      · iapply (apply.mPostW_backend _ _ _ _ _ B cr)
+        iframe Hsw Htie HPP Hrt
+        iunfold apply.kvRest
         iframe
       iframe HeI
       isplitr
@@ -132,9 +134,7 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
     wp_auto
     wp_apply HTTL as %tt -
     iapply wp_fupd
-    wp_apply hHdr $$ [$Hrd $Hsw] as %h ⟨Hrd, Hsw, %Hh, Hhf, Hrev, #Hcok, %Hlen⟩
-    · iexact Hb
-    ihave ⟨Hsw, #Hcert⟩ := txn.kvWriter_cert E.s E.γ log $$ Hsw
+    wp_apply (hHdr E p log cr) $$ [$Hpkg $Hb $Htt $Hsw] as %h ⟨Htt, Hsw, %Hh, Hhf, Hrev, Hnx, Hlbh, %Hlen⟩
     ipersist ID
     ipersist TTL
     ipersist Error
@@ -142,11 +142,13 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
     ipersist Hrev
     imodintro
     iapply HΦ
+    iframe Htt
     iexists (Outcome.applied log false)
     iunfold apply.grantPost
-    isplitl [Hrd Hsw Hlive Hwo HPP Hres Hard]
-    · iapply apply.mPost_backend
-      iunfold apply.kvOwn
+    isplitl [Hsw Htie Hbk Hhk Hlive Hard HPP Hrt]
+    · iapply (apply.mPostW_backend _ _ _ _ _ B cr)
+      iframe Hsw Htie HPP Hrt
+      iunfold apply.kvRest
       iframe
     isplitr
     · iapply applyErrIs_nil
@@ -173,7 +175,7 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
     ileft
     isplitr
     · ipureintro; rfl
-    isplitl [Hhf]
+    isplitl [Hhf Hnx Hlbh]
     · iunfold apply.grantRespIs
       isplitr
       · ipureintro; exact Hnn
@@ -193,7 +195,7 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
         iunfold apply.hdrFields at Hhf
         iexact Hhf
       iexists h, _
-      iframe Header Hrev Hcert Hcok
+      iframe Header Hrev Hnx Hlbh
       ipureintro
       refine ⟨?_, Hlen.1, Hlen.2⟩
       word

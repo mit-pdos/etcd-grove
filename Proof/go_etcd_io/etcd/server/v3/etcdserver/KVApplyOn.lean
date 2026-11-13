@@ -36,21 +36,6 @@ open Iris Iris.BI Iris.ProofMode Iris.Std go_etcd_io.etcd.server.v3.etcdserver
 section pure
 variable [GooseExts]
 
-/-- **A mode-`on` entry grows the log by at most one revision** (`kvEntry_grow`'s counterpart). -/
-theorem kvEntryOn_grow (c₀ : w64) (ch : apply.Chain) (s : auth.AuthState × mvcc.Log)
-    (m : EntryModel) :
-    (kvEntryOn c₀ ch s m).2 = s.2 ∨ ∃ cs, (kvEntryOn c₀ ch s m).2 = s.2 ++ [cs] := by
-  unfold kvEntryOn
-  split
-  · split
-    · split
-      · left; rfl
-      · split
-        · left; rfl
-        · exact kvEntry_grow c₀ ch [] s.2 m
-    · left; rfl
-  · exact kvEntry_grow c₀ ch [] s.2 m
-
 open Classical in
 /-- **What the apply thread may make of entry `m` at the state `s`, in the mode `on`** (the
 relation the auth applier's triples give, the auth plan's E2s): a normal entry with data that
@@ -164,18 +149,6 @@ theorem kvEntry_alarmChain_on (c₀ : w64) (lt : LeaseTable) (log : mvcc.Log) (e
       · rfl
   · rfl
 
-/-- **The mode-`on` model's log extends the start's** (`kvRaftOf_extends`'s counterpart). -/
-theorem kvRaftOfOn_extends (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthState × mvcc.Log)
-    (A : List EntryModel) : s₀.2 <+: (kvRaftOfOn c₀ ch s₀ A).2 := by
-  induction A generalizing s₀ with
-  | nil => exact List.prefix_refl _
-  | cons m A ih =>
-    show s₀.2 <+: (kvRaftOfOn c₀ ch (kvEntryOn c₀ ch s₀ m) A).2
-    refine List.IsPrefix.trans ?_ (ih _)
-    rcases kvEntryOn_grow c₀ ch s₀ m with h | ⟨cs, h⟩
-    · rw [h]; exact List.prefix_refl _
-    · rw [h]; exact List.prefix_append _ _
-
 /-- (2026-11-05, H-rr1) **The mode-`on` model grows by at most one revision per entry**
 (`kvRaftOf_length_le`'s counterpart). -/
 theorem kvRaftOfOn_length_le (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthState × mvcc.Log)
@@ -189,6 +162,28 @@ theorem kvRaftOfOn_length_le (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthSt
     · rw [he] at h; simp only [List.length_cons]; omega
     · rw [he] at h; simp only [List.length_append, List.length_singleton] at h
       simp only [List.length_cons]; omega
+
+/-- **The mode-`on` model of a log with short keys, from a start with none, has none**
+(`kvRaftOf_keys`'s: an admin step and a refused request keep the log). -/
+theorem kvRaftOfOn_keys (c₀ : w64) (ch : apply.Chain) :
+    ∀ (s₀ : auth.AuthState × mvcc.Log) (A : List EntryModel), logPutsOk A →
+      mvcc.LogPutsLe etcdKeyMax s₀.2 → mvcc.LogPutsLe etcdKeyMax (kvRaftOfOn c₀ ch s₀ A).2
+  | s₀, [], _, hl => hl
+  | s₀, m :: A, hA, hl => by
+    have hk : kvRaftOfOn c₀ ch s₀ (m :: A) = kvRaftOfOn c₀ ch (kvEntryOn c₀ ch s₀ m) A := rfl
+    rw [hk]
+    apply kvRaftOfOn_keys c₀ ch _ A (fun m' h => hA m' (by simp [h]))
+    have hm := hA m (by simp)
+    unfold kvEntryOn
+    split
+    · split
+      · split
+        · exact hl
+        · split
+          · exact hl
+          · exact kvEntry_keys c₀ ch [] s₀.2 m hm hl
+      · exact hl
+    · exact kvEntry_keys c₀ ch [] s₀.2 m hm hl
 
 end pure
 
@@ -315,16 +310,31 @@ instance authHistTie_persistent (E : apply.AEnv GF) (γr : ReadNames) (st₀ : a
     Persistent (authHistTie (GF := GF) E γr st₀) := by
   unfold authHistTie; split <;> infer_instance
 
+/-- **The log `l` is the mode-`on` model, from `st₀`, of a committed raft log** (persistent; strict
+M1, 2026-11-06: `kvNxOff`'s; `KVStoreApi.lean`'s `kvNx γr true` at `st₀ = srvAuthSt0`, by `rfl`). -/
+def kvNxOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) (l : mvcc.Log) : IProp GF :=
+  iprop(∃ A : List EntryModel, srvRLogLb γ A ∗ ⌜kvModelOn γk st₀ A = l ∧ mvcc.LogPutsLe etcdKeyMax l⌝)
+
+instance kvNxOn_persistent (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
+    (l : mvcc.Log) : Persistent (kvNxOn (GF := GF) γ γk st₀ l) := by
+  unfold kvNxOn; infer_instance
+
 /-- **The apply thread's KV invariants in the mode `on`** (`srvKVInvs`'s); (H5) with the auth
-store's history's tie to the log (`authHistTie`); (#7-on, 2026-11-03) the store's compaction mode
-off (`NewServer.spec`'s `E₀.cmp = false`, which a restore keeps): what the merged snapshot's image
-reads its compaction records with (`merged_imageOn`); (the lease-grant merge, 2026-11-03) and a
-cluster that grants no lease (`NewServer.spec`'s `on = true → ρ.rd.kv.lg = false`): what the
-snapshot install's revocable lessor reads (`applyAll.specSnapM`'s `γr.kv.lg = false`). -/
+store's history's tie to the log (`authHistTie`); (the lease-grant merge, 2026-11-03) a cluster that
+grants no lease (`NewServer.spec`'s `on = true → ρ.rd.kv.lg = false`): what the snapshot install's
+revocable lessor reads (`applyAll.specSnapM`'s `γr.kv.lg = false`). (Strict M1, 2026-11-06, as
+`srvKVInvs`: the tie `E.γ.cok = γr.kv.cok` and mvcc's permit invariant `crevPermIs` gone, the store
+invariant `kvStoreInvG` at the chain's witness and permit, boxed, with `envWitOk`, in their place; the
+witness tied to the mode's model, `kvNxOn`, as `srvKVInvs`' to `kvNxOff`. Merge of `lean`,
+2026-11-06: #7-on's `E.cmp = false` dropped, the API's image covering a compacting store; restored
+by R6, 2026-11-07, as `γr.kv.cmp = false`, `lean`'s scope restriction, dropped by accident: the
+on-mode image certificate is at `crevOf γr.kv A`, `-1`, which the apply thread's compaction
+revision meets only when the cluster never compacts, `kvCpOk`.) -/
 def srvKVInvsOn (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.AuthState) : IProp GF :=
   iprop(kvInvOn γr.raft γr.kv st₀ ∗ kvCertInvOn γr.raft γr.kv st₀ ∗ srvRaftLogInv γr.raft ∗
-    authHistTie E γr st₀ ∗ ⌜E.γ.cok = γr.kv.cok⌝ ∗ mvcc.crevPermIs E.γ (kvCmpPermit γr.kv) ∗
-    ⌜E.cmp = false ∧ γr.kv.lg = false⌝)
+    authHistTie E γr st₀ ∗ □ srvApi.kvStoreInvG E.kv E.γ E.Nx E.Cp E.γs ∗
+    ⌜envWitOk E ∧ E.Cp = kvCpOk γr.kv⌝ ∗
+    ⌜E.Nx = kvNxOn γr.raft γr.kv st₀⌝ ∗ ⌜γr.kv.cmp = false ∧ γr.kv.lg = false⌝)
 
 instance srvKVInvsOn_persistent (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.AuthState) :
     Persistent (srvKVInvsOn (GF := GF) E γr st₀) := by
@@ -425,7 +435,7 @@ theorem kv_applied_step_on (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.A
       kvAppliedLOn γr.raft γr.kv st₀ (A ++ [m]) (kvEntryOn γr.kv.c0 x.chain (st, x.log) m) := by
   iintro #Hinvs Ha #Hlb
   iunfold srvKVInvsOn at Hinvs
-  icases Hinvs with ⟨#HkI, #HcI, #HrI, -, %Hcok, -⟩
+  icases Hinvs with ⟨#HkI, #HcI, #HrI, -, -, -⟩
   iunfold kvAppliedOn at Ha
   icases Ha with ⟨Ha, %Hch⟩
   imod kv_log_plain_on γr.raft γr.kv st₀ (A ++ [m]) $$ HkI HrI Hlb with %Hpc
@@ -467,6 +477,55 @@ theorem kv_applied_out_on (E : apply.AEnv GF) (γr : ReadNames) (st₀ : auth.Au
   iframe Ha
   ipureintro
   exact ⟨Hpl, hch⟩
+
+/-- **A committed raft prefix's model has short keys** (R8, 2026-11-07: what the store's witness's
+producers prove its key bound with): the KV invariant keeps its work log's entries short
+(`kvWork`'s `logPutsOk`, from the start log's). -/
+theorem kvInv_keysA (γr : ReadNames) (A : List EntryModel) :
+    ⊢ kvInv (GF := GF) γr.raft γr.kv -∗ srvRaftLogInv γr.raft -∗ srvRLogLb γr.raft A ={⊤}=∗
+      ⌜mvcc.LogPutsLe etcdKeyMax (kvModel γr.kv A)⌝ := by
+  iintro #HkI #HrI #HA
+  iunfold kvInv at HkI
+  iinv HkI with >Hi Hclose
+  icases Hi with ⟨%Lf, HLf, Hσ', %Hok', #Hw, HG⟩
+  ihave #Hw2 := Hw
+  iunfold kvWork at Hw2
+  icases Hw2 with ⟨%Hws, -⟩
+  imod srvRLog_lb γr.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
+    Lf A $$ HrI HLf HA with ⟨HLf, %Hp⟩
+  ihave %HAi := srvRLogLb_idx γr.raft A $$ HA
+  imod Hclose $$ [HLf Hσ' HG] with -
+  · inext; iexists Lf; iframe HLf Hσ' Hw HG; ipureintro; exact Hok'
+  imodintro
+  ipureintro
+  obtain ⟨A', hA'L, hA'⟩ := srv_eqv_prefix γr.raft A Lf HAi Hp.1 Hp.2.1 Hp.2.2
+  rw [(kvModel_eqv γr.raft γr.kv A A' hA' Hok'.2.2.1).1]
+  unfold kvModel
+  exact kvRaftOf_keys _ _ _ A' (fun m hm => Hws.2.2.1 m (hA'L.subset hm)) Hws.2.2.2.1
+
+/-- `kvInv_keysA` in the mode `on`, at the start's auth state `st₀`. -/
+theorem kvInvOn_keysA (γr : ReadNames) (st₀ : auth.AuthState) (A : List EntryModel) :
+    ⊢ kvInvOn (GF := GF) γr.raft γr.kv st₀ -∗ srvRaftLogInv γr.raft -∗ srvRLogLb γr.raft A ={⊤}=∗
+      ⌜mvcc.LogPutsLe etcdKeyMax (kvModelOn γr.kv st₀ A)⌝ := by
+  iintro #HkI #HrI #HA
+  iunfold kvInvOn at HkI
+  iinv HkI with >Hi Hclose
+  icases Hi with ⟨%Lf, HLf, Hσ', Hh, %Hok', #Hw⟩
+  ihave #Hw2 := Hw
+  iunfold kvWorkOn at Hw2
+  icases Hw2 with ⟨%Hws, -⟩
+  imod srvRLog_lb γr.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
+    Lf A $$ HrI HLf HA with ⟨HLf, %Hp⟩
+  ihave %HAi := srvRLogLb_idx γr.raft A $$ HA
+  imod Hclose $$ [HLf Hσ' Hh] with -
+  · inext; iexists Lf; iframe HLf Hσ' Hh Hw; ipureintro; exact Hok'
+  imodintro
+  ipureintro
+  obtain ⟨L', hL', hAL⟩ := kvRaftOfOn_of_lb γr.raft γr.kv.c0 γr.kv.ch0
+    (st₀, γr.kv.log0) A Lf Hok'.2.2.2.1 HAi Hp.1 (fun m hm => (Hp.2.1 m hm).1) Hp.2.2
+  unfold kvModelOn
+  rw [hAL]
+  exact kvRaftOfOn_keys _ _ _ L' (fun m hm => Hws.2.2.1 m (hL'.subset hm)) Hws.2.2.2.1
 
 end lemmas
 

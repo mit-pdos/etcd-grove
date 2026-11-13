@@ -66,12 +66,12 @@ theorem backend.newBackend.wp_proof
     (hRun : backend.backend.run.spec (GF := GF) (hG := hG)) :
     backend.newBackend.spec (GF := GF) (hG := hG) := by
   intro _ cfg P D W Pk K
-  wp_start as ⟨Hfile, %HP, #Hhk, Hmk, Htok⟩
+  wp_start as ⟨Hfile, %HP, #Hhk, #Hvoff, Hmk, Htok⟩
   -- `boltOpenOptions`: the backend's package fact (item 8)
   ihave #Hboo : (boltOpenOptionsOk : IProp GF) $$ []
   · ihave Hbi : (go_etcd_io.etcd.server.v3.storage.backend.backendInit : IProp GF) $$ []
     · iapply isPkgInit_access $$ Hpkg
-    icases Hbi with ⟨-, -, -, -, #H⟩
+    icases Hbi with ⟨-, -, -, -, #H, -⟩
     iexact H
   iunfold boltOpenOptionsOk at Hboo
   icases Hboo with ⟨%p, #Hgp, #Hpo⟩
@@ -104,7 +104,8 @@ theorem backend.newBackend.wp_proof
   -- `bcfg.Logger = zap.NewNop()` when nil
   wp_join iprop(∃ lg : Loc, bcfg_ptr ↦ ({ cfg with Logger' := lg } : BackendConfig) ∗
     ⌜lg ≠ Loc.null⌝) with [bcfg] as ⟨%lg, bcfg, %Hlg⟩
-  · wp_apply hNop as %l %Hl
+  · wp_apply hNop as %l #Hlz
+    ihave %Hl := zapLoggerOk_ne_null l $$ Hlz
     iframe
     ipureintro; exact ⟨rfl, Hl⟩
   · iframe
@@ -158,8 +159,8 @@ theorem backend.newBackend.wp_proof
       iapply HΦ
       iright
       ipureintro
-      exact ⟨_, rfl⟩
-    · exact absurd rfl Herr
+      exact ⟨Herr.2, _, rfl⟩
+    · exact absurd rfl Herr.1
   subst Herr
   wp_auto
   -- the backend's structure

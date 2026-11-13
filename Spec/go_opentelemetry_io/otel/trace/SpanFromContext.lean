@@ -7,6 +7,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
 public import GeneratedProof.go_opentelemetry_io.otel.trace
+public import Proof.go_opentelemetry_io.otel.trace.Defs
 public import Perennial.Proof.context
 
 @[expose] public section
@@ -24,28 +25,29 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- `sp` is a `trace.Span` (persistent): a non-nil interface value whose `End()` returns
-(tracing has no effect here): `End(opts...)` (`options ...SpanEndOption`; `span.End()`, deferred
-in `Watch`'s cancel closure and the server's request path, passes the nil slice) and (2026-10-12,
-the server's request path) `AddEvent(name, opts...)` and `RecordError(err, opts...)`. -/
-def trace.isSpan (sp : GoInterface) : IProp GF :=
-  iprop(∃ si : GoInterfaceOk, ⌜sp = GoInterface.ok si⌝ ∗
-    □ (∀ (opts : GoSlice),
-      {{ True }} (App (Val #(methods si.ty go!"End" si.v)) (Val #opts)) {{ RET #(); True }}) ∗
-    □ (∀ (name : GoString) (opts : GoSlice),
-      {{ True }} (App (App (Val #(methods si.ty go!"AddEvent" si.v)) (Val #name)) (Val #opts))
-      {{ RET #(); True }}) ∗
-    □ (∀ (err : GoInterface) (opts : GoSlice),
-      {{ True }} (App (App (Val #(methods si.ty go!"RecordError" si.v)) (Val #err)) (Val #opts))
-      {{ RET #(); True }}))
+/-- `context.TODO()`'s value: a `todoCtx{}` as a `Context` (`Spec/context/TODO.lean`; mvcc's
+`todoCtxV`, the cache's `todoCtxVal`). Its `Done()` is `nil`, so it is not an `isContext`. -/
+abbrev trace.todoCtx : GoInterfaceOk :=
+  interface.mk context.todoCtx.ty #(zero_val context.todoCtx)
 
-instance trace.isSpan_persistent (sp : GoInterface) : Persistent (trace.isSpan (GF := GF) sp) := by
-  unfold trace.isSpan; infer_instance
-
-/-- `trace.SpanFromContext(ctx)` (a context) returns a span. -/
+/-- `trace.SpanFromContext(ctx)` (`context.TODO()`, or a context whose span is a span) returns a
+span. (2026-11-06, the user: weakened to admit `context.TODO()`, which the mvcc tester's `Watch`
+passes; then, the same day, the `isContext` arm found false and fixed, the user approving:
+`notes/axiom-review/otel-spanfromcontext-todo.md`, it takes `trace.spanCtxOk ctx`.) Faithful:
+otel's `SpanFromContext` (`trace/context.go`, v1.47.0) returns the no-op span `noopSpanInstance`
+for a nil context (excluded: `ctx` is an `ok` interface), else calls `ctx.Value(currentSpanKey)`
+once and returns its result if it is a `Span`, else `noopSpanInstance`. `noopSpanInstance` is
+`noopSpan{}` (`noop.go`), whose `End`, `AddEvent` and `RecordError` are empty: a span
+(`isPkgInit` covers its initializer). `context.TODO()` (`todoCtx{}`, whose promoted
+`emptyCtx.Value` returns `nil`) gives it. Otherwise `trace.spanCtxOk ctx` says `Value(currentSpanKey)`
+returns `nil` (not a `Span`: the no-op span) or a span (`isSpan`), which is returned. The
+`isContext` arm alone (before the fix) was false: `isContext` specifies `Value` only at
+`&cancelCtxKey`, and a program's own context type can answer otel's key with a span whose `End`
+panics. -/
 abbrev trace.SpanFromContext.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_opentelemetry_io.otel.trace ∗ context.isContext ctx cd }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_opentelemetry_io.otel.trace ∗
+      (⌜ctx = trace.todoCtx⌝ ∨ (context.isContext ctx cd ∗ trace.spanCtxOk ctx)) }}
     (App (Val (@! trace.SpanFromContext)) (Val #(GoInterface.ok ctx)))
   {{ (sp : GoInterface), RET #sp; trace.isSpan sp }}
 

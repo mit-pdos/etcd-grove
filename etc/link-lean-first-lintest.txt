@@ -4,7 +4,12 @@
 #
 # porcupine's entry point, linked in porcupine's `Link.lean`.
 CheckOperationsVerbose: @
+LinearizationInfo__PartialLinearizations: @
 # the driver (examples/lib/lintest/lintest.go)
 runClient:
-Run: runClient CheckOperationsVerbose
+orderByLinearization:
+groupOps:
+RunLin2: runClient CheckOperationsVerbose LinearizationInfo__PartialLinearizations orderByLinearization groupOps
+RunLin: RunLin2
+Run: RunLin
 CounterClock:

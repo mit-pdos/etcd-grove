@@ -29,7 +29,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.applierV3Corrupt.Range.wp_proof :
     apply.applierV3Corrupt.Range.spec (GF := GF) (hG := hG) := by
   intro E c inner p r rq o log info
-  wp_start as ⟨-, Hpre⟩
+  wp_start as ⟨-, Htt, Hpre⟩
   ihave Hai : (go_etcd_io.etcd.server.v3.etcdserver.apply.applyInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hai with ⟨-, -, #Hev⟩
@@ -38,6 +38,7 @@ theorem apply.applierV3Corrupt.Range.wp_proof :
   icases Hpre with ⟨%Hk, -, Hkv, Hres⟩
   wp_auto
   iapply HΦ
+  iframe Htt
   isplitl
   rotate_left
   · iapply apply.traceRes_null

@@ -30,8 +30,10 @@ stream (every byte until `io.EOF`, no other error before) is all the bytes writt
 close, of which the closer promised `Φ` (`CloseWithError`'s spec). One reader holds
 `readerStreams`, one writer `pipeW` (both exclusive), so the writes are serialized and nothing is
 written after the close. The hand-over `T`: the reader's `readerStreams` exists only once `T` is
-given up (the wand), and only its holder reads or closes the reader end (no other code has a
-contract for it), while a `Write` returns only after a read of its bytes or a close of the reader
+given up (the wand), and the reader end is read only by the holder of `readerStreams` and closed
+only through `rcCloseOk`, both given only for `T` (sweep repairs 1, S1: `(*PipeReader).Close` is
+`closeRead`, which records the error once, closes `done` under a `sync.Once` and returns nil, from any
+goroutine, any number of times), and no other spec gives a contract for it, while a `Write` returns only after a read of its bytes or a close of the reader
 end (`pipe.write` sends on the unbuffered `wrCh`, or sees `done` or the reader's close): so a
 writer whose `Write` has returned can take `T` (`CloseWithError`'s spec), which was given up
 before. What would discharge it: a model of `io/pipe.go` (its mutex, its two

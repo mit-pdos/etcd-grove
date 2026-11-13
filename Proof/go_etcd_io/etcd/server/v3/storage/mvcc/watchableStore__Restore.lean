@@ -3,6 +3,7 @@ Proof of the spec of the same name (D22 receiver epochs, S6). Lean-first (no Roc
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStore
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Restore
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__add
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.newWatcherGroup
@@ -243,9 +244,9 @@ theorem mvcc.watchableStore.Restore.wp_proof
     (hAdd : mvcc.watcherGroup.add.spec (GF := GF) (hG := hG)) :
     mvcc.watchableStore.Restore.spec (GF := GF) (hG := hG) := by
   have hAddG := mvcc.watcherGroup.add.spec_group hAdd
-  intro s st γ b' d' γb' P' L R c r hLR hR hcr hsn
-  wp_start as ⟨Hrc, HpF, HpC, #Hws, %Hkb, Hright, Hfrag, Hown, Hww, #Hok', HbkT, #HcrT, Himg, Hnd, Hrr,
-    Hreg, Htie, Hsr, Hwts, Hres, Hrts⟩
+  intro s st γ b' d' γb' P' R c r Ls Rr hkH dqh PreH QH PostH XH YH hR
+  wp_start as ⟨Hrc, HpF, HpC, #Hws, %Hkb, Hright, Hfrag, Hown, #Hok', HbkT, #HcrT, Himg, Hnd, Hrr,
+    Hreg, Hsr, Hwts, Hres, Hrts, HLo, %Hlok, Hfr, Hcb⟩
   ihave #HwsAll : mvcc.isWatchableStore s st γ $$ []
   · iexact Hws
   ihave #Hpkg0 : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
@@ -264,13 +265,10 @@ theorem mvcc.watchableStore.Restore.wp_proof
   iunfold mvcc.watchStoreBody at HP
   iNamed HP
   icases mvcc.watchBudget_bound _ _ _ $$ Hwt with ⟨Hwt, %HMb⟩
-  -- the sole writer's notified log is the lock's
-  iunfold mvcc.watchWriter at Hww
-  icases Hww with ⟨#HcL, Htoks, HwlW, Hpin⟩
+  -- the committed log is the lock's notified log (its certificate; 2026-11-06: no sole writer),
+  -- a prefix of the restored one (the caller's premise)
   iunfold mvcc.wlogQ at Hwlog
   icases Hwlog with ⟨HwlL, HlogQ⟩
-  ihave %HLL := monoListAuthOwn_agree γ.wlog _ _ _ _ $$ HwlW HwlL
-  obtain ⟨-, HLL⟩ := HLL
   -- the lock's share of the inner store's fields and its deposit (D22 receiver epochs, S5a/S5b)
   iunfold mvcc.wsFields at Hwsf
   icases Hwsf with ⟨%st', #Hst', Hfs, Hwsd⟩
@@ -280,25 +278,25 @@ theorem mvcc.watchableStore.Restore.wp_proof
   subst Hsteq
   -- `s.store.Restore(b)`
   (try wp_auto)
-  wp_apply (hRestore st γ.st b' d' γb' P' L R c r hLR hR hcr hsn) $$ [Hrc HpF HpC Hright Hfs Hwsd Hfrag
-      Hown Htoks HlogQ HbkT Himg Hnd Hrr Hreg Htie Hsr Hwts Hres Hrts Hpin]
-    as ⟨%p', %Hp', Hcl, Hfs, Hwsd, Hfrag, Hown, Hpin, #HhP, #HcL', Htoks, HlogQ, Hres, Hjob, Hold,
-      Hnew'⟩
-  · simp only [mvcc.wBudget, Hwq, ↓reduceIte]
-    iframe Hrc HpF HpC Hright Hfs Hfrag Hown Htoks HbkT Himg Hnd Hrr Hreg Htie Hsr Hwts Hres Hrts Hpin
+  wp_apply (hRestore st γ.st b' d' γb' P' σ.Lmu R c r Ls Rr hkH dqh PreH QH PostH XH YH hR) $$ [Hrc HpF HpC Hright Hfs Hwsd
+      Hfrag Hown HlogQ HbkT Himg Hnd Hrr Hreg Hsr Hwts Hres Hrts HLo Hfr Hcb]
+    as ⟨%p', %Hp', Hcl, Hfs, Hwsd, Hfrag, Hown, #HhP, #Hreg', #HcL', HlogQ, Hres, Hjob, Hold,
+      Hnew', HLo, Hfr, #HnlLb, HRr, %hLRw⟩
+  · simp only [Hwq, ↓reduceIte]
+    iframe Hrc HpF HpC Hright Hfs Hfrag Hown HbkT Himg Hnd Hrr Hreg Hsr Hwts Hres Hrts HLo Hfr Hcb
     iframe #
     isplitr
     · ipureintro; exact Hkb
     isplitl [Hwsd]
     · iunfold mvcc.wsDep; iexact Hwsd
     iunfold mvcc.logQ
-    rw [HLL]; iexact HlogQ
+    iframe HlogQ
+    ipureintro; exact Hlok
+  have hLR := hLRw Hwq
   simp only [Hwq, ↓reduceIte]
   obtain ⟨hbk', hkb'⟩ := Hp'
-  ihave Hpin : mvcc.writerPin (GF := GF) (γ.st.withPhys p') ([[], []] ++ R : mvcc.Log) $$ [Hpin]
-  · iexact Hpin
   generalize hL' : ([[], []] ++ R : mvcc.Log) = L' at *
-  have hLL' : σ.Lmu.length ≤ L'.length := by rw [← HLL]; exact hLR.length_le
+  have hLL' : σ.Lmu.length ≤ L'.length := hLR.length_le
   (try wp_auto)
   -- the synced watchers, to the unsynced group with their restore flag set
   icases mvcc.ownWatcherGroup_fixed (mvcc.syncedAddr s) σ.Ws $$ Hsynced with ⟨Hsynced, #Hfx⟩
@@ -434,10 +432,18 @@ theorem mvcc.watchableStore.Restore.wp_proof
   ihave Hsy := Hgv $$ %(mvcc.syncedAddr s) Hwg
   -- the lock's new state
   imod ghostVar_update (σ.restoreSt L') γ.wst σ $$ Hσ with Hσ
-  ihave HwlL : monoListAuthOwn γ.wlog (1 : Qp).half L $$ [HwlL]
-  · rw [HLL]; iexact HwlL
-  imod mvcc.wlog_update_halves γ L L' hLR $$ HwlW HwlL with ⟨HwlW, HwlL⟩
+  imod mvcc.wlog_update γ σ.Lmu L' hLR $$ HwlL with HwlL
+  iunfold mvcc.relAuth at Hrel
+  icases Hrel with ⟨Hrel, Hslot⟩
   imod mono_nat_own_update L'.length hLL' $$ Hrel with ⟨Hrel, -⟩
+  -- the API's slot at the restored log: the notified log's lower bound the client's step minted
+  ihave Hrel : mvcc.relAuth γ 1 L' $$ [Hrel Hslot]
+  · iunfold mvcc.relAuth; isplitl [Hrel]
+    · iexact Hrel
+    · iunfold mvcc.wsSlot at Hslot
+      iunfold mvcc.wsSlot
+      icases Hslot with ⟨Hp, -⟩
+      iframe Hp HnlLb
   ihave Hmem' : [∗map] w ↦ x ∈ (σ.restoreSt L').ST, mvcc.memberRes γ 1 (σ.restoreSt L') w x $$ [Hmem]
   · rw [show (σ.restoreSt L').ST = mvcc.gmapMapK (fun w st => if (σ.Ws !! w).isSome then
         mvcc.setRestore st else st) σ.ST from rfl]
@@ -479,12 +485,8 @@ theorem mvcc.watchableStore.Restore.wp_proof
   (try wp_auto)
   iapply HΦ
   iexists p'
-  iframe Hcl Hfrag Hown HhP Hold Hnew' Hres Hjob
-  isplitr
-  · ipureintro; exact ⟨hbk', hkb'⟩
-  iunfold mvcc.watchWriter
-  simp only [mvcc.wBudget, mvcc.idxCert_withPhys, mvcc.StoreNames.withPhys_revs]
-  iframe HcL' Htoks HwlW Hpin
+  iframe Hcl Hfrag Hown HhP Hreg' Hold Hnew' Hres Hjob HLo Hfr HRr
+  ipureintro; exact ⟨hbk', hkb'⟩
 
 end proof
 

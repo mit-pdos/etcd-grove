@@ -5,6 +5,7 @@ Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.PerTypeLeaseKeepAlive
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient__LeaseKeepAlive
 public import Spec.google_golang_org.grpc.StaticMethod
 public import Spec.google_golang_org.grpc.ClientConn__NewStream
@@ -82,9 +83,11 @@ theorem leaseClient.LeaseKeepAlive.wp_proof
   · iPkgInit
   wp_bind (App (App (App (App (Val _) _) _) _) _)
   -- (D32) the one-address case
-  iapply (wp_NewStream conn [addr] [ic] go!"/etcdserverpb.Lease/LeaseKeepAlive"
-    pbLeaseKeepAliveRequest pbLeaseKeepAliveResponse (fun _ => Up) (fun _ _ => Spec)
-    ctx cd _ copts ([sm] ++ vs))
+  have hNS := wp_NewStream conn [addr] [ic] go!"/etcdserverpb.Lease/LeaseKeepAlive"
+    pbLeaseKeepAliveRequestT pbLeaseKeepAliveResponseT pbLeaseKeepAliveRequestT_reg
+    pbLeaseKeepAliveResponseT_reg (fun _ => Up) (fun _ _ => Spec) ctx cd
+  simp only [pbLeaseKeepAliveRequestT, pbLeaseKeepAliveResponseT] at hNS
+  iapply (hNS _ copts ([sm] ++ vs))
   · iframe #
     iexists _
     simp only [show sint.Z (W64 0) = 0 from rfl]

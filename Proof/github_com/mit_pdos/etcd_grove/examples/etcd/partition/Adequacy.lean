@@ -139,7 +139,7 @@ the main thread has finished, its result is `Ok` (porcupine found the history li
 theorem etcd_partition_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.partition.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     -- (2026-10-24, rafthttp stage 6d) `*peer` implements `Pausable` (the partitioner's `CutPeer`)
     (Hctx : ∀ hG : HeapGS .hasLC linkvGF, ContextReadErrs (GF := linkvGF) (hG := linkvHeapAt hG lctx))
@@ -155,10 +155,11 @@ theorem etcd_partition_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hsteps : steps.length < 2 ^ 63)
     (HNs : prometheus.namesUnclaimed (linkv3pProgram clients ops steps) linkv3pNames)
     (HAs : addrsUnclaimed (linkv3pProgram clients ops steps) linkv3pAddrs)
-    -- (2026-11-03, the WAL's API, change 6) the members' WAL directories, distinct (`WALDir()` of
-    -- the members' distinct data directories: `filepath.Join` is opaque here), hold no WAL at start
-    (HDsNd : [config.walDirOf (etcd_partition.name₁ ++ go!".etcd") go!"", config.walDirOf (etcd_partition.name₂ ++ go!".etcd") go!"", config.walDirOf (etcd_partition.name₃ ++ go!".etcd") go!""].Nodup)
-    (HDs : walDirsAbsent (linkv3pProgram clients ops steps) [config.walDirOf (etcd_partition.name₁ ++ go!".etcd") go!"", config.walDirOf (etcd_partition.name₂ ++ go!".etcd") go!"", config.walDirOf (etcd_partition.name₃ ++ go!".etcd") go!""])
+    -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the members' data directories,
+    -- fresh at start (`dataDirsAbsent`; their distinctness is now `decide`d, no longer a hypothesis)
+    (HDs : dataDirsAbsent (linkv3pProgram clients ops steps) [(etcd_partition.name₁ ++ go!".etcd"), (etcd_partition.name₂ ++ go!".etcd"), (etcd_partition.name₃ ++ go!".etcd")])
+    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
+    (HEnv : verifyEnvOff (linkv3pProgram clients ops steps))
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC linkvGF,
       ⊢ etcd_partition.premises (GF := linkvGF) (hG := linkvHeapAt hG lctx) n id₁ id₂ id₃ ps ctxs boot)
@@ -170,11 +171,11 @@ theorem etcd_partition_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  refine etcd_adequate_members (GF := linkvGF) github_com.mit_pdos.etcd_grove.examples.etcd.partition.initialize'
+  refine etcd_adequate_members (GF := linkvGF) (hAsLit := by decide) (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.partition.initialize'
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.partition.Main)) (Val #clients))
       (Val #ops)) (schedLit steps))
     (fun v => v = #(go!"Ok") ∨ v = #(go!"Unknown")) (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
-      (fun h => intoVal_ne_PanicV _ p h.symm)) linkv3pAddrs (by decide) [config.walDirOf (etcd_partition.name₁ ++ go!".etcd") go!"", config.walDirOf (etcd_partition.name₂ ++ go!".etcd") go!"", config.walDirOf (etcd_partition.name₃ ++ go!".etcd") go!""] HDsNd
+      (fun h => intoVal_ne_PanicV _ p h.symm)) linkv3pAddrs (by decide) [(etcd_partition.name₁ ++ go!".etcd"), (etcd_partition.name₂ ++ go!".etcd"), (etcd_partition.name₃ ++ go!".etcd")] (by decide)
     -- (hub step 7's A3) the cluster's members and its bridges; the program's address list is theirs
     -- up to order (peers, then clients, then bridges)
     (cluster3.members etcd_partition.clusterCfg) (cluster3.bridges etcd_partition.clusterCfg) (by decide) (List.Perm.refl _) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs

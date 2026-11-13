@@ -33,7 +33,7 @@ abbrev apply.applierV3backend.ClusterMemberAttrSet.spec : Prop :=
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.backendIs E p ∗
       apply.memberAttrSetIs r mm ∗ ⌜(rs.mem.lookup mm.memberID).isSome = true⌝ ∗
-      apply.mPreV v3 E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post ∗ mvcc.storeWT E.γ ∗
+      apply.mPreV v3 E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post ∗
       E.RO rs }}
     (App (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"ClusterMemberAttrSet")) (Val #r)) (Val #v3))
   {{ RET #(); apply.mPostV v3 E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Post ∗

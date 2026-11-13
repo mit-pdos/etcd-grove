@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.authApplierV3.Range.wp_proof :
     apply.authApplierV3.Range.spec (GF := GF) (hG := hG) := by
   intro E c inner p r rq o log info
-  wp_start as ⟨#Hauth, #Hinner, Hpre⟩
+  wp_start as ⟨#Hauth, #Hinner, Htt, Hpre⟩
   iunfold apply.authIs at Hauth
   icases Hauth with ⟨#Happ, ⟨%st, #Hasf, #Hst⟩, -, -⟩
   iunfold apply.rangePre at Hpre
@@ -63,6 +63,7 @@ theorem apply.authApplierV3.Range.wp_proof :
     have hon : E.authOn = true := by cases h : E.authOn <;> first | rfl | cases Hoff h
     wp_auto
     iapply HΦ
+    iframe Htt
     isplitl
     rotate_left
     · iapply apply.traceRes_null
@@ -88,12 +89,14 @@ theorem apply.authApplierV3.Range.wp_proof :
   ihave #Hrc := apply.reqClass_range E.authMode info rq o Hk.1 Hk.2.1 $$ Hrc'
   iunfold apply.chainResAny at Hres
   icases Hres with ⟨%info', Hres⟩
-  wp_apply HRangeI $$ %r %rq %o %log %info' [Hkv Hres] as %resp %trace %err ⟨Hpost, Htrc⟩
-  · iunfold apply.rangePre
+  wp_apply HRangeI $$ %r %rq %o %log %info' [Htt Hkv Hres] as %resp %trace %err ⟨Hpost, Htrc, Htt⟩
+  · iframe Htt
+    iunfold apply.rangePre
     iframe
     iframe #
     ipureintro; exact Hk
   iapply HΦ
+  iframe Htt
   isplitr [Htrc]
   rotate_left
   · iexact Htrc

@@ -89,7 +89,6 @@ namespace EtcdGrove
 #print axioms proto.wp_CloneConfState
 #print axioms proto.wp_CloneEntry
 #print axioms proto.wp_CloneSnapshot
-#print axioms proto.wp_EqualConfState
 #print axioms proto.wp_MarshalConfChange
 #print axioms proto.wp_MarshalConfChangeV2
 #print axioms proto.wp_SizeEntry

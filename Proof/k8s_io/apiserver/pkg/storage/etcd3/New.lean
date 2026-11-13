@@ -60,11 +60,14 @@ theorem New.wp_proof
     New.spec (GF := GF) (hG := hG) := by
   intro _ _ Obj _ S kc cl ms V γh cmp codec nf nlf rkf pfx0 rp gr vi ti di lmc hp hrp hrp1
   wp_start as ⟨#Hkc, #Hnc, #Hwo, #Hregs, ⟨%cx, #Hcx⟩, #Hcon, #Hnf⟩
-  ihave #Pft : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.util.feature $$ []
+  ihave #Pft : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.features $$ []
   · iPkgInit
-  ihave #Hft : (k8s_io.apiserver.pkg.storage.etcd3.featureInit : IProp GF) $$ []
+  -- (sweep repairs 1, B5) the default gate's specs, `features`' fact
+  ihave #Hft : (k8s_io.apiserver.pkg.storage.etcd3.featuresInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Pft
-  icases Hft with ⟨%g, #Hg, #Hen⟩
+  icases Hft with ⟨%g, #Hg, #Hgate⟩
+  iunfold EtcdGrove.k8sfeature.featureGateOk at Hgate
+  icases Hgate with ⟨#Hen, -⟩
   ihave #Hkc' := Hkc
   iStructNamed Hkc'
   ihave #Psf : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.feature $$ []
@@ -108,7 +111,8 @@ theorem New.wp_proof
   -- the list error aggregator: the default, or (by the feature gate) the corrupt-object one
   try wp_pure
   (try wp_auto)
-  wp_apply Hen as %b
+  wp_apply Hen as %b -
+  · ipureintro; decide
   cases b
   case' true =>
     (try wp_auto)
@@ -149,7 +153,18 @@ theorem New.wp_proof
       ipersist Hst
       ihave #Hst' := Hst
       iStructNamed Hst'
-      wp_apply Chk
+      -- (sweep repairs 1, B5) `CheckClient(c.Ctx(), c, …)`: the constructed client and its context
+      wp_apply Chk $$ []
+      · icases EtcdGrove.isNewClient_ctxOk _ _ _ $$ Hnc with ⟨⟨%cx', #Hcx', %Hcxn⟩, #HF⟩
+        iunfold EtcdGrove.clientCheckFields at HF
+        icases HF with ⟨⟨%mp, #Hmp, %Hmpn⟩, ⟨%mu, #Hmu, %Hmun⟩⟩
+        icombine Hcx Hcx' gives %Hcxe
+        iunfold k8s_io.apiserver.pkg.storage.etcd3.checkClientOk
+        iexists kc, cl, mp, mu, _, cx
+        iframe #
+        ipureintro
+        refine ⟨rfl, rfl, ?_, Hmpn, Hmun⟩
+        first | (rw [Hcxe]; exact Hcxn) | (rw [Hcxe.2]; exact Hcxn) | exact Hcxe ▸ Hcxn
       (try wp_auto)
       iapply HΦ
       isplitr

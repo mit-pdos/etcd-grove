@@ -57,7 +57,7 @@ at the etcd pin):
   takes only at `on = true`: with `on = false` it stays disabled.
 * Each write method (the admin requests, `AuthDisable`) takes the batch lock inside the apply
   (`Lock` = `LockInsideApply`: the backend open, a share lent in `mvcc.bkRTx`, and the frozen hook
-  run under `Pk`, `csContract Pk f`), puts into the auth buckets (hook buckets for the readers'
+  run under `Pk`, `srvApi.csContractA Pk f`), puts into the auth buckets (hook buckets for the readers'
   view: unchanged), and unlocks with one write-back (its `Commit` and `AuthEnable`'s
   `ForceCommit` write none back; the backend's specs of `Commit`/`ForceCommit` charge a token, a
   coarser accounting than the code's). Its puts are into tracked buckets (D22, 2026-10-23): each
@@ -78,7 +78,7 @@ at the etcd pin):
   half; `Recover` (names-only) needs both halves, the write lock's and the caller's. Until S7c the
   contract was for `d` only, which `Recover` falsifies.
 * (D22 J1a, 2026-10-26; `notes/decisions.md`, "D22 J1a"; until then S8d's named premise
-  `srvAuthRecoverOk` of `applySnapshot.specSnap`) **`Recover` on a later backend**
+  `srvAuthRecoverOk` of `applySnapshot.specSnapM`) **`Recover` on a later backend**
   (`authRecoverOk stl`): `Recover(ab)` (`store.go:399-418`) takes `beMu`'s write lock to set
   `as.be` (the lock's half of `as.be` and the caller's, `authBeOn stl oldbe`, become the new
   backend's), then a read transaction of the new backend (`ReadTx`'s `RLock`/`RUnlock`: with a

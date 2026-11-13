@@ -7,7 +7,7 @@ axiom backend.ValidateCalledInsideUnittest.wp_proof : backend.ValidateCalledInsi
   ∀ (lg : Loc),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend -∗
+        isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ envVerifyOff -∗
           ▷ (True -∗ Φ (intoVal ())) -∗
             WP
               ((intoVal (functions go_etcd_io.etcd.server.v3.storage.backend.ValidateCalledInsideUnittest []))

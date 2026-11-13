@@ -24,6 +24,10 @@ request's `From` cell). So:
   unknown fields are the invariant's index because `proto.Equal` compares them
   (`ConfState.Equivalent`): a `ConfState` raft handles has none (`csPts`, below; the issue
   `raft-confstate-unknown-fields-panic`).
+  Since 2026-11-07 (per-type models, CP2) `pbMsg` also records that `uf` is as protobuf-go's
+  decoder leaves it at the type's schema (`ufWire (pbSchemaOf ty) uf`, `PbSchema.lean`; `T`'s Go
+  type from `PbGoType`): `pbMsg_alloc` takes it (every caller allocates with `[]`), and the
+  `proto.*` axioms whose posts hold a `pbMsg` claim it (D1, the Scope's `[v6a]` 3).
 
 The predicates, each composed structurally of its nested objects' (one `pbMsg` per object), with
 the model records of `PbModel.lean` as indices:
@@ -59,6 +63,7 @@ module
 public import Proof.go_etcd_io.raft.v3.Defs
 public import Proof.go_etcd_io.raft.v3.CCModel
 public import Proof.go_etcd_io.raft.v3.ProjSimps
+public import Proof.google_golang_org.protobuf.proto.PbSchema
 
 @[expose] public section
 
@@ -167,12 +172,14 @@ def pbN : Namespace := nroot.@"protobuf"
 
 /-- **The hidden fields** of the protobuf object at `l` of Go type `T` (the Lean struct of a
 generated message), its unknown fields' bytes `uf`: an invariant only the `proto.*` axioms take
-(see the file header). -/
-def pbMsg (T : Type) (l : Loc) (uf : List w8) : IProp GF :=
-  inv pbN iprop(∃ (st : google_golang_org.protobuf.internal.impl.MessageState) (sc : w32)
+(see the file header), and `uf` as protobuf-go's decoder leaves it at the type's schema
+(`ufWire (pbSchemaOf (PbGoType.goTy T)) uf`, `PbSchema.lean`; `[v6a]` 3): what a frozen message's
+wire content reads its unknown fields' validity from. -/
+def pbMsg (T : Type) [PbGoType T] (l : Loc) (uf : List w8) : IProp GF :=
+  iprop(inv pbN iprop(∃ (st : google_golang_org.protobuf.internal.impl.MessageState) (sc : w32)
       (us : GoSlice),
     l.[T, go!"state"] ↦ st ∗ l.[T, go!"sizeCache"] ↦ sc ∗ l.[T, go!"unknownFields"] ↦ us ∗
-      us ↦* uf)
+      us ↦* uf) ∗ ⌜ufWire (pbSchemaOf (PbGoType.goTy T)) uf⌝)
 
 instance cellRO_persistent {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Loc) (v : V) :
     Persistent (cellRO (GF := GF) p v) := by
@@ -190,9 +197,17 @@ theorem cellRO_null {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] :
     ⊢ cellRO (GF := GF) null (zero_val V) := by
   unfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩
 
-instance pbMsg_persistent (T : Type) (l : Loc) (uf : List w8) :
+instance pbMsg_persistent (T : Type) [PbGoType T] (l : Loc) (uf : List w8) :
     Persistent (pbMsg (GF := GF) T l uf) := by
   unfold pbMsg; infer_instance
+
+omit package_sem in
+/-- A message's unknown fields are as the decoder leaves them, at its type's schema. -/
+theorem pbMsg_ufWire (T : Type) [PbGoType T] (l : Loc) (uf : List w8) :
+    pbMsg (GF := GF) T l uf ⊢ ⌜ufWire (pbSchemaOf (PbGoType.goTy T)) uf⌝ := by
+  unfold pbMsg
+  iintro ⟨-, %H⟩
+  ipureintro; exact H
 
 /-! ## Entries -/
 
@@ -448,16 +463,26 @@ theorem cellRO_alloc_nn {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p :
   · ipureintro; exact Hn
 
 /-- The hidden fields of a protobuf object made into its invariant (once, at allocation). -/
-theorem pbMsg_alloc (T : Type) (l : Loc) (st : google_golang_org.protobuf.internal.impl.MessageState)
-    (sc : w32) (us : GoSlice) (uf : List w8) (E : CoPset) :
+theorem pbMsg_alloc (T : Type) [PbGoType T] (l : Loc)
+    (st : google_golang_org.protobuf.internal.impl.MessageState)
+    (sc : w32) (us : GoSlice) (uf : List w8) (E : CoPset)
+    (huf : ufWire (pbSchemaOf (PbGoType.goTy T)) uf) :
     (l.[T, go!"state"] ↦ st ∗ l.[T, go!"sizeCache"] ↦ sc ∗ l.[T, go!"unknownFields"] ↦ us ∗
       us ↦* uf : IProp GF) ⊢ |={E}=> pbMsg T l uf := by
   iintro ⟨H1, H2, H3, H4⟩
   unfold pbMsg
-  iapply inv_alloc
-  inext
-  iexists st, sc, us
-  iframe
+  ihave Hi : |={E}=> inv pbN iprop(∃ (st : google_golang_org.protobuf.internal.impl.MessageState)
+      (sc : w32) (us : GoSlice),
+    l.[T, go!"state"] ↦ st ∗ l.[T, go!"sizeCache"] ↦ sc ∗ l.[T, go!"unknownFields"] ↦ us ∗
+      us ↦* uf) $$ [H1 H2 H3 H4]
+  · iapply inv_alloc
+    inext
+    iexists st, sc, us
+    iframe
+  imod Hi with #Hi
+  imodintro
+  iframe Hi
+  ipureintro; exact huf
 
 /-! ### Entries -/
 
@@ -492,7 +517,7 @@ theorem entOwn_of_struct (l : Loc) (v : raftpb.Entry) (e : EntryM) (E : CoPset)
   rw [Hu]
   ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
   · iapply ownSlice_nil
-  imod pbMsg_alloc raftpb.Entry l v.state' v.sizeCache' slice.nil [] E $$ [state sizeCache unknownFields Hnil] with #Hpb
+  imod pbMsg_alloc raftpb.Entry l v.state' v.sizeCache' slice.nil [] E (ufWire_nil _) $$ [state sizeCache unknownFields Hnil] with #Hpb
   · iframe
   imodintro
   simp only [entOwn]
@@ -534,7 +559,7 @@ theorem csPts_of_struct (p : Loc) (v : raftpb.ConfState) (c : ConfStateM) (E : C
   rw [Hu]
   ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
   · iapply ownSlice_nil
-  imod pbMsg_alloc raftpb.ConfState p v.state' v.sizeCache' slice.nil [] E $$ [state sizeCache unknownFields Hnil] with #Hpb
+  imod pbMsg_alloc raftpb.ConfState p v.state' v.sizeCache' slice.nil [] E (ufWire_nil _) $$ [state sizeCache unknownFields Hnil] with #Hpb
   · iframe
   imodintro
   iunfold csPts
@@ -563,7 +588,7 @@ theorem csPts_of_struct_ro (p : Loc) (v : raftpb.ConfState) (c : ConfStateM) (E 
   rw [Hu]
   ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
   · iapply ownSlice_nil
-  imod pbMsg_alloc raftpb.ConfState p v.state' v.sizeCache' slice.nil [] E $$ [state sizeCache unknownFields Hnil] with #Hpb
+  imod pbMsg_alloc raftpb.ConfState p v.state' v.sizeCache' slice.nil [] E (ufWire_nil _) $$ [state sizeCache unknownFields Hnil] with #Hpb
   · iframe
   imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Voters with #Voters
   imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Learners with #Learners
@@ -645,7 +670,7 @@ theorem smPts_of_struct (p : Loc) (v : raftpb.SnapshotMetadata) (md : SnapshotMe
   rw [Hu]
   ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
   · iapply ownSlice_nil
-  imod pbMsg_alloc raftpb.SnapshotMetadata p v.state' v.sizeCache' slice.nil [] E $$ [state sizeCache unknownFields Hnil] with #Hpb
+  imod pbMsg_alloc raftpb.SnapshotMetadata p v.state' v.sizeCache' slice.nil [] E (ufWire_nil _) $$ [state sizeCache unknownFields Hnil] with #Hpb
   · iframe
   imodintro
   iunfold smPts
@@ -669,7 +694,7 @@ theorem ownSnapM_of_struct (p : Loc) (v : raftpb.Snapshot) (s : SnapshotM) (E : 
   rw [Hu]
   ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
   · iapply ownSlice_nil
-  imod pbMsg_alloc raftpb.Snapshot p v.state' v.sizeCache' slice.nil [] E $$ [state sizeCache unknownFields Hnil] with #Hpb
+  imod pbMsg_alloc raftpb.Snapshot p v.state' v.sizeCache' slice.nil [] E (ufWire_nil _) $$ [state sizeCache unknownFields Hnil] with #Hpb
   · iframe
   imodintro
   iunfold ownSnapM
@@ -693,7 +718,7 @@ theorem hsRO_of_struct (p : Loc) (v : raftpb.HardState) (hs : HardStateM) (E : C
   rw [Hu]
   ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
   · iapply ownSlice_nil
-  imod pbMsg_alloc raftpb.HardState p v.state' v.sizeCache' slice.nil [] E $$ [state sizeCache unknownFields Hnil] with #Hpb
+  imod pbMsg_alloc raftpb.HardState p v.state' v.sizeCache' slice.nil [] E (ufWire_nil _) $$ [state sizeCache unknownFields Hnil] with #Hpb
   · iframe
   imod (typedPointsto_dfractional (GF := GF) _ v.Term').dfractional_persist _ $$ Term with #Term
   imod (typedPointsto_dfractional (GF := GF) _ v.Vote').dfractional_persist _ $$ Vote with #Vote
@@ -721,7 +746,7 @@ theorem ccsRO_of_struct (p : Loc) (v : raftpb.ConfChangeSingle) (c : ConfChangeS
   rw [Hu]
   ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
   · iapply ownSlice_nil
-  imod pbMsg_alloc raftpb.ConfChangeSingle p v.state' v.sizeCache' slice.nil [] E $$ [state sizeCache unknownFields Hnil] with #Hpb
+  imod pbMsg_alloc raftpb.ConfChangeSingle p v.state' v.sizeCache' slice.nil [] E (ufWire_nil _) $$ [state sizeCache unknownFields Hnil] with #Hpb
   · iframe
   imod (typedPointsto_dfractional (GF := GF) _ v.Type').dfractional_persist _ $$ Ty with #HTy
   imod (typedPointsto_dfractional (GF := GF) _ v.NodeId').dfractional_persist _ $$ NodeId with #HN
@@ -748,7 +773,7 @@ theorem ownConfChangeV2_of_struct (p : Loc) (v : raftpb.ConfChangeV2) (m : ConfC
   rw [Hu]
   ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
   · iapply ownSlice_nil
-  imod pbMsg_alloc raftpb.ConfChangeV2 p v.state' v.sizeCache' slice.nil [] E $$ [state sizeCache unknownFields Hnil] with #Hpb
+  imod pbMsg_alloc raftpb.ConfChangeV2 p v.state' v.sizeCache' slice.nil [] E (ufWire_nil _) $$ [state sizeCache unknownFields Hnil] with #Hpb
   · iframe
   imodintro
   iunfold ownConfChangeV2
@@ -771,7 +796,7 @@ theorem ownConfChange_of_struct (p : Loc) (v : raftpb.ConfChange) (m : ConfChang
   rw [Hu]
   ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
   · iapply ownSlice_nil
-  imod pbMsg_alloc raftpb.ConfChange p v.state' v.sizeCache' slice.nil [] E $$ [state sizeCache unknownFields Hnil] with #Hpb
+  imod pbMsg_alloc raftpb.ConfChange p v.state' v.sizeCache' slice.nil [] E (ufWire_nil _) $$ [state sizeCache unknownFields Hnil] with #Hpb
   · iframe
   imodintro
   iunfold ownConfChange

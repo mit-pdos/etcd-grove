@@ -14,6 +14,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.WatchStep
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvWatchStream
 public import Proof.go_etcd_io.etcd.client.v3.WatchClientModel
+public import Proof.go_etcd_io.etcd.client.v3.WatchBridges
 
 @[expose] public section
 
@@ -391,10 +392,18 @@ theorem keyRangeUnder_key_ne {pfx key re : GoString} (h : KeyRangeUnder pfx key 
         simp [go.GoStringLt, List.Lex.nil]
   exact List.prefix_nil.1 (h [] hin)
 
-/-- The watcher's events received for it, then the new response's. -/
-theorem evs_after (Dm : List v3rpc.WatchRespM) (w : Loc) (rs : List mvcc.RespM) (ρ : mvcc.RespM)
-    (hfilt : v3rpc.sentEvsOf Dm w ++ [ρ] = rs.filter (fun x => decide (x.evs ≠ []))) :
-    (rs.map mvcc.RespM.evs).flatten = ((v3rpc.sentEvsOf Dm w).map mvcc.RespM.evs).flatten ++ ρ.evs := by
+/-- The events received so far of the watch id `X` (strict M1: by id). -/
+abbrev evsOf (Dm : List v3rpc.WatchRespM) (X : w64) : List mvcc.EvM :=
+  ((v3rpc.sentEvsOf Dm X).map mvcc.api.WResp.evs).flatten
+
+/-- **The watcher's events received for it, then the new response's** (strict M1: the received
+list's, `recvEvs`, from `mvccOk`'s forwarding fact). -/
+theorem evs_after (Dm : List v3rpc.WatchRespM) (X : w64) (pre : List mvcc.api.WResp)
+    (x : mvcc.api.WResp)
+    (hfilt : v3rpc.sentEvsOf Dm X ++ [x] =
+      ((pre ++ [x]).filter (fun y => decide (y.id = X))).filter (fun y => decide (y.evs ≠ []))) :
+    mvcc.api.recvEvs (pre ++ [x]) X = evsOf Dm X ++ x.evs := by
+  unfold mvcc.api.recvEvs evsOf
   rw [← flatten_evs_filter, ← hfilt]
   simp
 
@@ -406,61 +415,6 @@ theorem content_cut (L L1 : mvcc.Log) (rg : mvcc.WatchRange) (lo d d1 : Nat)
     d ≤ L.length ∧ lo ≤ d ∧ ∃ a, lo ≤ a ∧ (∀ e ∈ E, ∃ j, j < a ∧ e.kv.modRev = W64 (j : Int)) ∧
       evs = mvcc.watchEvents L rg a d :=
   cut_step L1 L hcmp rg lo d1 d E evs hcut hflat hdL hne
-
-/-- **A watcher with no filters**: what a client received for it, concatenated, are its range's
-events of revisions `[lo, d)` of a watched log (`mvcc.evLog`). -/
-theorem recv_unfiltered (γ : mvcc.WsNames) (w : Loc) (rs : List mvcc.RespM) (rg : mvcc.WatchRange)
-    (fcs : GoSlice) (lo : Nat) :
-    mvcc.watchRecvOk (GF := GF) γ w rs ∗ mvcc.watcherIs γ w rg fcs lo ∗ fcs ↦*□ ([] : List GoFunc) ⊢
-      ∃ (L : mvcc.Log) (d : Nat), mvcc.evLog γ.st L ∗ mvcc.relLb γ L.length ∗
-        ⌜(rs.map mvcc.RespM.evs).flatten = mvcc.watchEvents L rg lo d ∧ (d ≤ L.length ∨ d ≤ lo)⌝ := by
-  iintro ⟨#Hc, #Hw, #Hfcs⟩
-  unfold mvcc.watchRecvOk
-  icases Hc with ⟨%γw, %r, %fcs', %L, %D, %d, #Hm, #Hf, -, #HL, #Hrl, %HD, #HDf, -⟩
-  unfold mvcc.watcherIs
-  icases Hw with ⟨%γw0, %C, #Hm0, #Hf0, -, -, %Hlo⟩
-  ihave %Hag : iprop(⌜rg = r ∧ fcs = fcs'⌝) $$ []
-  · iapply mvcc.watcherFixed_agree
-    isplit
-    · iexact Hf0
-    · iexact Hf
-  obtain ⟨rfl, rfl⟩ := Hag
-  iunfold mvcc.watcherMeta at Hm
-  iunfold mvcc.watcherMeta at Hm0
-  ihave %Hmeq := ghostMapElem_agree _ _ _ _ _ _ $$ Hm Hm0
-  subst Hmeq
-  ihave %Hkeep : ⌜∀ dl ∈ D, dl.2 = dl.1⌝ $$ []
-  · iintro %dl %hdl
-    icases HDf $$ %dl %hdl with ⟨%fs, Hfi, %Hdl⟩
-    iunfold mvcc.filtersImpl at Hfi
-    icases Hfi with ⟨%fps, #Hfps, %Hlen, -⟩
-    ihave %Heq := ownSlice_agree _ _ _ _ _ $$ Hfps Hfcs
-    subst Heq
-    have hfs : fs = [] := List.eq_nil_of_length_eq_zero (by simpa using Hlen.symm)
-    subst hfs
-    ipureintro
-    rw [Hdl]
-    unfold mvcc.filtered
-    simp
-  iexists L, d
-  iframe HL Hrl
-  ipureintro
-  obtain ⟨h1, h2, h3, -⟩ := HD
-  rw [← Hlo.1]
-  refine ⟨?_, h3⟩
-  rw [h1, ← h2]
-  have hall : D.filter mvcc.Deliv.sent = D := by
-    rw [List.filter_eq_self]
-    intro dl hdl
-    simp only [mvcc.Deliv.sent, Hkeep dl hdl, Bool.or_eq_true, Bool.not_eq_eq_eq_not, Bool.not_true]
-    cases dl.1 <;> simp
-  rw [hall]
-  congr 1
-  exact List.map_congr_left Hkeep
-
-/-- The events received so far of the watcher `w`. -/
-abbrev evsOf (Dm : List v3rpc.WatchRespM) (w : Loc) : List mvcc.EvM :=
-  ((v3rpc.sentEvsOf Dm w).map mvcc.RespM.evs).flatten
 
 theorem zipWith_evModel_rev (evs : List mvcc.EvM) (kvs : List Loc) (h : kvs.length = evs.length) :
     (List.zipWith evModelOf evs kvs).map EvModel.rev = evs.map (fun e => e.kv.modRev) := by
@@ -481,55 +435,61 @@ theorem mem_zipWith_evModel {evs : List mvcc.EvM} {kvs : List Loc} {e : EvModel}
 
 /-- **The content of a dispatched mvcc response** (`recvElem`'s, `run`'s default case): its events,
 as the contract reads them, satisfy the contract from the dispatch cursor `hi`, and the cursor
-moves to the last one's revision, the events so far still a cut of the watcher's. -/
+moves to the last one's revision, the events so far still a cut of the watcher's. Strict M1: the
+response `x` (the `n`-th received) of the watch id `X` registered with the range `rg` and first
+revision `lo`; for one with events, its id's received events up to it the range's of `[lo, d)` of a
+certified log `L` (`recvEvents`), the events so far a cut of a certified log's (`□ V.W.histLb`, in
+place of mvcc's `idxSealed`), its id's responses with events sent before it, then `x`, those
+received (`mvccOk`'s, `hfilt`). -/
 theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (rr : w64) (srr : Bool) (hb : w64)
-    (Dm : List v3rpc.WatchRespM)
-    (m : v3rpc.WatchRespM) (ρ : mvcc.RespM) (rs : List mvcc.RespM) (X : w64) (w : Loc)
-    (rg : mvcc.WatchRange) (fcs : GoSlice) (lo : Nat) (hi : w64) (sl : GoSlice) (ps : List Loc)
-    (hdr : w64)
-    (hsrc : m.src = some ρ) (hρw : ρ.evs ≠ [] → ρ.w = w)
-    (hfilt : ρ.evs ≠ [] → v3rpc.sentEvsOf Dm w ++ [ρ] = rs.filter (fun x => decide (x.evs ≠ [])))
-    (hps : ps.length = ρ.evs.length) (hok : wsReqOk V.pfx P) (hpfx : V.pfx ≠ [])
-    (hst : V.R.γ.st = V.R.E.γ) (hcr : v3rpc.createRangeOk (createOf P.key P.ed rr P.pn srr P.bd) X rg)
-    (hrr : P.rev = W64 0 ∨ sint.Z P.rev ≤ sint.Z rr)
+    (Dm : List v3rpc.WatchRespM) (m : v3rpc.WatchRespM) (n : Nat) (x : mvcc.api.WResp)
+    (pre : List mvcc.api.WResp) (X : w64) (rg : mvcc.WatchRange) (lo : Nat) (hi : w64)
+    (sl : GoSlice) (ps : List Loc) (hdr : w64) (L : mvcc.Log) (d : Nat)
+    (hsrc : m.src = some (n, x)) (hxX : x.evs ≠ [] → x.id = X)
+    (hfilt : x.evs ≠ [] → v3rpc.sentEvsOf Dm X ++ [x] =
+      ((pre ++ [x]).filter (fun y => decide (y.id = X))).filter (fun y => decide (y.evs ≠ [])))
+    (hrecv : x.evs ≠ [] → mvcc.api.recvEvs (pre ++ [x]) X = mvcc.watchEvents L rg lo d ∧
+      d ≤ L.length)
+    (hps : ps.length = x.evs.length) (hok : wsReqOk V.pfx P) (hpfx : V.pfx ≠ [])
+    (hcr : v3rpc.createRangeOk (createOf P.key P.ed rr P.pn srr P.bd) X rg)
+    (hrr : P.rev = W64 0 ∨ sint.Z P.rev ≤ sint.Z rr) (hlor : sint.Z rr ≤ (lo : Int))
     (hhb : sint.Z hb < sint.Z rr ∨ sint.Z hb < 0)
-    (hhi : (evsOf Dm w = [] ∧ hi = hb) ∨
-      ∃ e, (evsOf Dm w).getLast? = some e ∧ hi = e.kv.modRev) :
-    srvLogsSmall V.R ∗ watchLaws V ∗ mvcc.watchRecvOk V.R.γ ρ.w rs ∗
-      mvcc.watcherIs V.R.γ w rg fcs lo ∗ fcs ↦*□ ([] : List GoFunc) ∗
-      (⌜evsOf Dm w = []⌝ ∨ ∃ (L1 : mvcc.Log) (d1 : Nat), mvcc.idxSealed V.R.γ.st.idx L1 ∗
-        ⌜evsOf Dm w = mvcc.watchEvents L1 rg lo d1 ∧ lo ≤ d1 ∧ d1 ≤ L1.length⌝) ∗
-      sl ↦*□ ps ∗ ([∗list] x ∈ ps.zip ρ.evs, mvcc.evIs (GF := GF) x.1 x.2) ⊢
-    |={⊤}=> ∃ es : List EvModel, eventsAt sl es ∗ ⌜es.length = ρ.evs.length⌝ ∗
+    (hhi : (evsOf Dm X = [] ∧ hi = hb) ∨
+      ∃ e, (evsOf Dm X).getLast? = some e ∧ hi = e.kv.modRev) :
+    srvWLaws V.W ∗ (⌜x.evs ≠ []⌝ -∗ □ V.W.histLb L) ∗
+      (⌜evsOf Dm X = []⌝ ∨ ∃ (L1 : mvcc.Log) (d1 : Nat), □ V.W.histLb L1 ∗
+        ⌜evsOf Dm X = mvcc.watchEvents L1 rg lo d1 ∧ lo ≤ d1 ∧ d1 ≤ L1.length⌝) ∗
+      sl ↦*□ ps ∗ ([∗list] y ∈ ps.zip x.evs, mvcc.evIs (GF := GF) y.1 y.2) ⊢
+    |={⊤}=> ∃ es : List EvModel, eventsAt sl es ∗ ⌜es.length = x.evs.length⌝ ∗
       ⌜dispOk P.rev hi ((es.getLast?.map EvModel.rev).getD hi) ⟨es, W64 0, false, false, hdr⟩⌝ ∗
-      ⌜(evsOf (Dm ++ [m]) w = [] ∧ (es.getLast?.map EvModel.rev).getD hi = hb) ∨
-        ∃ e, (evsOf (Dm ++ [m]) w).getLast? = some e ∧
+      ⌜(evsOf (Dm ++ [m]) X = [] ∧ (es.getLast?.map EvModel.rev).getD hi = hb) ∨
+        ∃ e, (evsOf (Dm ++ [m]) X).getLast? = some e ∧
           (es.getLast?.map EvModel.rev).getD hi = e.kv.modRev⌝ ∗
-      (⌜evsOf (Dm ++ [m]) w = []⌝ ∨ ∃ (L1 : mvcc.Log) (d1 : Nat), mvcc.idxSealed V.R.γ.st.idx L1 ∗
-        ⌜evsOf (Dm ++ [m]) w = mvcc.watchEvents L1 rg lo d1 ∧ lo ≤ d1 ∧ d1 ≤ L1.length⌝) ∗
-      (∃ kvs : List Loc, ⌜es = List.zipWith evModelOf ρ.evs kvs ∧ kvs.length = ρ.evs.length⌝ ∗
-        □ (∀ (k : Nat) (ev : mvcc.EvM) (kv : Loc), ⌜ρ.evs[k]? = some ev⌝ → ⌜kvs[k]? = some kv⌝ →
+      (⌜evsOf (Dm ++ [m]) X = []⌝ ∨ ∃ (L1 : mvcc.Log) (d1 : Nat), □ V.W.histLb L1 ∗
+        ⌜evsOf (Dm ++ [m]) X = mvcc.watchEvents L1 rg lo d1 ∧ lo ≤ d1 ∧ d1 ≤ L1.length⌝) ∗
+      (∃ kvs : List Loc, ⌜es = List.zipWith evModelOf x.evs kvs ∧ kvs.length = x.evs.length⌝ ∗
+        □ (∀ (k : Nat) (ev : mvcc.EvM) (kv : Loc), ⌜x.evs[k]? = some ev⌝ → ⌜kvs[k]? = some kv⌝ →
           mvcc.kvPtrFixed kv ev.kv)) := by
-  iintro ⟨#Hsm, #Hlaws, #Hrecv, #Hwi, #Hfcs, #Hcut, #Hsl, #Hevs⟩
-  ihave ⟨%kvs, %Hkvl, #Hea, #Hkv⟩ := evs_eventsAt sl ps ρ.evs hps $$ [Hsl Hevs]
+  iintro ⟨#Hlaws, HLw, #Hcut, #Hsl, #Hevs⟩
+  ihave ⟨%kvs, %Hkvl, #Hea, #Hkv⟩ := evs_eventsAt sl ps x.evs hps $$ [Hsl Hevs]
   · iframe #
-  have hsnoc : evsOf (Dm ++ [m]) w = evsOf Dm w ++ (if ρ.evs ≠ [] then ρ.evs else []) := by
+  have hsnoc : evsOf (Dm ++ [m]) X = evsOf Dm X ++ (if x.evs ≠ [] then x.evs else []) := by
     unfold evsOf
     rw [sentEvsOf_snoc, hsrc]
-    by_cases hne : ρ.evs ≠ []
-    · simp [hρw hne, hne]
+    by_cases hne : x.evs ≠ []
+    · simp [hxX hne, hne]
     · simp only [ne_eq, Decidable.not_not] at hne
       simp [hne]
-  iexists List.zipWith evModelOf ρ.evs kvs
+  iexists List.zipWith evModelOf x.evs kvs
   iframe Hea
   isplitr
   · ipureintro; simp [Hkvl]
-  by_cases hne : ρ.evs = []
+  by_cases hne : x.evs = []
   · -- no events: the cursor stands still
     imodintro
-    have hes : List.zipWith evModelOf ρ.evs kvs = [] := by rw [hne]; simp
+    have hes : List.zipWith evModelOf x.evs kvs = [] := by rw [hne]; simp
     rw [hes]
-    have hsn : evsOf (Dm ++ [m]) w = evsOf Dm w := by rw [hsnoc, if_neg (by simp [hne])]; simp
+    have hsn : evsOf (Dm ++ [m]) X = evsOf Dm X := by rw [hsnoc, if_neg (by simp [hne])]; simp
     rw [hsn]
     simp only [List.getLast?_nil, Option.map_none, Option.getD_none]
     isplitr
@@ -541,71 +501,44 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (rr : w64) (srr : Bool) (h
     iexists kvs
     iframe Hkv
     ipureintro; rw [hes]; exact ⟨rfl, Hkvl⟩
-  -- events: the sealed log, unfiltered
-  have hw := hρw hne
-  irevert Hrecv
-  rw [hw]
-  iintro #Hrecv
-  ihave ⟨%L, %d, #HLe, -, %HLd⟩ := recv_unfiltered V.R.γ w rs rg fcs lo $$ [Hrecv Hwi Hfcs]
-  · iframe #
-  ihave #HL := mvcc.evLog_sealed _ _ $$ HLe
-  obtain ⟨hflat, hdL⟩ := HLd
-  rw [evs_after Dm w rs ρ (hfilt hne)] at hflat
-  have hflat' : evsOf Dm w ++ ρ.evs = mvcc.watchEvents L rg lo d := hflat
-  ihave %HLw := v3rpc.sealed_pure _ L $$ HL
-  -- (W3) the watched log, as the contract's model sees it
-  ihave #Hsm' := Hsm
-  iunfold srvLogsSmall at Hsm'
-  ihave %HLs := Hsm' $$ %L HL
-  ihave #Hlaws' := Hlaws
-  iunfold watchLaws at Hlaws'
-  icases Hlaws' with ⟨-, -, -, #Hconv⟩
-  ihave HHWL0 := Hconv $$ %L HLe %HLs
-  imod HHWL0 with #HWL
+  -- events: the certified log's
+  ihave #HL := HLw $$ %hne
+  obtain ⟨hflat, hdL⟩ := hrecv hne
+  rw [evs_after Dm X pre x (hfilt hne)] at hflat
+  have hflat' : evsOf Dm X ++ x.evs = mvcc.watchEvents L rg lo d := hflat
+  ihave %HLw := srvWLaws_model V.W L $$ [$Hlaws $HL]
   imodintro
-  -- the start revision (D25: the registration's, at or above the watch's)
-  ihave %Hlor : ⌜sint.Z rr ≤ (lo : Int)⌝ $$ []
-  · unfold mvcc.watcherIs
-    icases Hwi with ⟨%γw0, %C, -, -, -, -, %Hlo⟩
-    ipureintro
-    obtain ⟨-, hsr, -, -⟩ := hcr
-    rw [Hlo.2, hsr]
-    show sint.Z rr ≤ ((if rr = W64 0 then C.length else (sint.Z rr).toNat : Nat) : Int)
-    split
-    · rename_i h; rw [h]; simp
-    · omega
   have Hlo : sint.Z P.rev ≤ (lo : Int) := by
     rcases hrr with h | h
     · rw [h]; simp
     · omega
   -- the cut
   ihave %Hcc : ⌜d ≤ L.length ∧ lo ≤ d ∧ ∃ a, lo ≤ a ∧
-      (∀ e ∈ evsOf Dm w, ∃ j, j < a ∧ e.kv.modRev = W64 (j : Int)) ∧
-      ρ.evs = mvcc.watchEvents L rg a d⌝ $$ []
+      (∀ e ∈ evsOf Dm X, ∃ j, j < a ∧ e.kv.modRev = W64 (j : Int)) ∧
+      x.evs = mvcc.watchEvents L rg a d⌝ $$ []
   · icases Hcut with (%HE | ⟨%L1, %d1, #HL1, %HE1⟩)
     · ipureintro
-      exact content_cut L L rg lo d 0 (evsOf Dm w) ρ.evs (Or.inl (List.prefix_refl _)) hflat' hdL
-        hne (Or.inl HE)
-    · ihave %Hc : iprop(⌜L1 <+: L ∨ L <+: L1⌝) $$ []
-      · iapply mvcc.idxSealed_prefix
-        isplit
-        · iexact HL1
-        · iexact HL
+      exact content_cut L L rg lo d 0 (evsOf Dm X) x.evs (Or.inl (List.prefix_refl _)) hflat'
+        (Or.inl hdL) hne (Or.inl HE)
+    · ihave #Hl' := Hlaws
+      iunfold srvWLaws at Hl'
+      icases Hl' with ⟨-, #Hcmp, -⟩
+      ihave %Hc := Hcmp $$ %L1 %L HL1 HL
       ipureintro
-      exact content_cut L L1 rg lo d d1 (evsOf Dm w) ρ.evs Hc hflat' hdL hne (Or.inr HE1)
+      exact content_cut L L1 rg lo d d1 (evsOf Dm X) x.evs Hc hflat' (Or.inl hdL) hne (Or.inr HE1)
   obtain ⟨hdd, hlod, a, hla, hEj, hevs⟩ := Hcc
-  have hLlen : L.length < 2 ^ 63 := HLw.2
-  have hmemrev : ∀ ev ∈ ρ.evs, ∃ j, a ≤ j ∧ j < d ∧ ev.kv.modRev = W64 (j : Int) := by
+  have hLlen : L.length < 2 ^ 63 := HLw.2.1
+  have hmemrev : ∀ ev ∈ x.evs, ∃ j, a ≤ j ∧ j < d ∧ ev.kv.modRev = W64 (j : Int) := by
     intro ev hev; rw [hevs] at hev; exact v3rpc.watchEvents_mem_rev L rg a d ev hev
-  have hsorted : EvRevSorted (List.zipWith evModelOf ρ.evs kvs) := by
+  have hsorted : EvRevSorted (List.zipWith evModelOf x.evs kvs) := by
     unfold EvRevSorted
     have h1 := watchEvents_sorted L hLlen rg a d
     rw [← hevs] at h1
-    have h2 : ((List.zipWith evModelOf ρ.evs kvs).map EvModel.rev).Pairwise
+    have h2 : ((List.zipWith evModelOf x.evs kvs).map EvModel.rev).Pairwise
         (fun x y => sint.Z x ≤ sint.Z y) := by
       rw [zipWith_evModel_rev _ _ Hkvl, List.pairwise_map]; exact h1
     exact (List.pairwise_map (f := EvModel.rev) (R := fun x y => sint.Z x ≤ sint.Z y)).1 h2
-  have hgt : ∀ e ∈ List.zipWith evModelOf ρ.evs kvs, sint.Z hi < sint.Z e.rev := by
+  have hgt : ∀ e ∈ List.zipWith evModelOf x.evs kvs, sint.Z hi < sint.Z e.rev := by
     intro e he
     obtain ⟨ev, hev, hre⟩ := mem_zipWith_evModel he
     obtain ⟨j, hj1, hj2, hj3⟩ := hmemrev ev hev
@@ -618,14 +551,14 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (rr : w64) (srr : Bool) (h
       rw [hj'2]
       have : sint.Z (W64 (j' : Int)) = j' := by word
       rw [this]; omega
-  have hlast : (List.zipWith evModelOf ρ.evs kvs).getLast?.map EvModel.rev =
-      ρ.evs.getLast?.map (fun e => e.kv.modRev) := by
+  have hlast : (List.zipWith evModelOf x.evs kvs).getLast?.map EvModel.rev =
+      x.evs.getLast?.map (fun e => e.kv.modRev) := by
     rw [← List.getLast?_map, zipWith_evModel_rev _ _ Hkvl, List.getLast?_map]
-  obtain ⟨elast, helast⟩ : ∃ e, ρ.evs.getLast? = some e := by
-    cases h : ρ.evs.getLast? with
+  obtain ⟨elast, helast⟩ : ∃ e, x.evs.getLast? = some e := by
+    cases h : x.evs.getLast? with
     | none => exact absurd (List.getLast?_eq_none_iff.1 h) hne
     | some e => exact ⟨e, rfl⟩
-  have hsn : evsOf (Dm ++ [m]) w = evsOf Dm w ++ ρ.evs := by
+  have hsn : evsOf (Dm ++ [m]) X = evsOf Dm X ++ x.evs := by
     rw [hsnoc, if_pos hne]
   isplitr
   · ipureintro

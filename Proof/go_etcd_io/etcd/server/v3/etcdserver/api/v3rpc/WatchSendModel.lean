@@ -10,7 +10,7 @@ Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStore
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState
 
 @[expose] public section
 
@@ -21,11 +21,11 @@ namespace EtcdGrove
 namespace v3rpc
 
 /-- The response at index `m` of `rcv` has the watch id `X`. -/
-def idOf (rcv : List mvcc.RespM) (X : w64) (m : Nat) : Bool :=
+def idOf (rcv : List mvcc.api.WResp) (X : w64) (m : Nat) : Bool :=
   decide ((rcv[m]?.map (·.id)) = some X)
 
 /-- The indices of the responses of `rcv` with the watch id `X`, in order. -/
-def idxOf (rcv : List mvcc.RespM) (X : w64) : List Nat :=
+def idxOf (rcv : List mvcc.api.WResp) (X : w64) : List Nat :=
   (List.range rcv.length).filter (idOf rcv X)
 
 /-- An update of a function at one point. -/
@@ -35,7 +35,7 @@ def upd {α : Type} (g : w64 → α) (X : w64) (a : α) : w64 → α :=
 /-- **The send loop's invariant** (see the file header): per id, the received indices are the
 sent ones, then the pending ones; an announced id (or `-1`) has nothing pending unless it is
 being flushed; every sent index is a received one. -/
-structure SendInv (rcv : List mvcc.RespM) (S : List Nat) (pend : w64 → List Nat)
+structure SendInv (rcv : List mvcc.api.WResp) (S : List Nat) (pend : w64 → List Nat)
     (ids : w64 → Bool) (ex : Option w64) : Prop where
   split : ∀ X, idxOf rcv X = S.filter (idOf rcv X) ++ pend X
   noPend : ∀ X, (ids X = true ∨ X = W64 (-1)) → ex ≠ some X → pend X = []
@@ -43,17 +43,17 @@ structure SendInv (rcv : List mvcc.RespM) (S : List Nat) (pend : w64 → List Na
 
 /-! ## Lemmas on indices -/
 
-theorem idOf_snoc_lt (rcv : List mvcc.RespM) (r : mvcc.RespM) (X : w64) {m : Nat}
+theorem idOf_snoc_lt (rcv : List mvcc.api.WResp) (r : mvcc.api.WResp) (X : w64) {m : Nat}
     (h : m < rcv.length) : idOf (rcv ++ [r]) X m = idOf rcv X m := by
   unfold idOf; rw [List.getElem?_append_left h]
 
-theorem idOf_snoc_len (rcv : List mvcc.RespM) (r : mvcc.RespM) (X : w64) :
+theorem idOf_snoc_len (rcv : List mvcc.api.WResp) (r : mvcc.api.WResp) (X : w64) :
     idOf (rcv ++ [r]) X rcv.length = decide (r.id = X) := by
   unfold idOf
   rw [List.getElem?_append_right (Nat.le_refl _)]
   simp
 
-theorem idxOf_snoc (rcv : List mvcc.RespM) (r : mvcc.RespM) (X : w64) :
+theorem idxOf_snoc (rcv : List mvcc.api.WResp) (r : mvcc.api.WResp) (X : w64) :
     idxOf (rcv ++ [r]) X = idxOf rcv X ++ (if r.id = X then [rcv.length] else []) := by
   unfold idxOf
   rw [List.length_append, List.length_singleton, List.range_succ, List.filter_append]
@@ -64,19 +64,19 @@ theorem idxOf_snoc (rcv : List mvcc.RespM) (r : mvcc.RespM) (X : w64) :
   · rw [List.filter_cons, idOf_snoc_len]
     by_cases h : r.id = X <;> simp [h]
 
-theorem filter_snoc_bound (rcv : List mvcc.RespM) (r : mvcc.RespM) (X : w64) (S : List Nat)
+theorem filter_snoc_bound (rcv : List mvcc.api.WResp) (r : mvcc.api.WResp) (X : w64) (S : List Nat)
     (hb : ∀ m ∈ S, m < rcv.length) : S.filter (idOf (rcv ++ [r]) X) = S.filter (idOf rcv X) := by
   apply List.filter_congr
   intro m hm
   exact idOf_snoc_lt rcv r X (hb m hm)
 
-theorem mem_idxOf {rcv : List mvcc.RespM} {X : w64} {m : Nat} (h : m ∈ idxOf rcv X) :
+theorem mem_idxOf {rcv : List mvcc.api.WResp} {X : w64} {m : Nat} (h : m ∈ idxOf rcv X) :
     m < rcv.length ∧ idOf rcv X m = true := by
   unfold idxOf at h
   rw [List.mem_filter, List.mem_range] at h
   exact h
 
-theorem idOf_eq_id {rcv : List mvcc.RespM} {X : w64} {m : Nat} (h : idOf rcv X m = true) :
+theorem idOf_eq_id {rcv : List mvcc.api.WResp} {X : w64} {m : Nat} (h : idOf rcv X m = true) :
     ∃ x, rcv[m]? = some x ∧ x.id = X := by
   unfold idOf at h
   have h := of_decide_eq_true h
@@ -84,13 +84,13 @@ theorem idOf_eq_id {rcv : List mvcc.RespM} {X : w64} {m : Nat} (h : idOf rcv X m
   | none => rw [hm] at h; cases h
   | some x => rw [hm] at h; exact ⟨x, rfl, by simpa using h⟩
 
-theorem idOf_unique {rcv : List mvcc.RespM} {X Y : w64} {m : Nat} (h1 : idOf rcv X m = true)
+theorem idOf_unique {rcv : List mvcc.api.WResp} {X Y : w64} {m : Nat} (h1 : idOf rcv X m = true)
     (h2 : idOf rcv Y m = true) : X = Y := by
   obtain ⟨x, hx, rfl⟩ := idOf_eq_id h1
   obtain ⟨y, hy, rfl⟩ := idOf_eq_id h2
   rw [hx] at hy; cases hy; rfl
 
-theorem idxOf_nodup (rcv : List mvcc.RespM) (X : w64) : (idxOf rcv X).Nodup :=
+theorem idxOf_nodup (rcv : List mvcc.api.WResp) (X : w64) : (idxOf rcv X).Nodup :=
   (List.nodup_range).filter _
 
 theorem range_filter_prefix (p : Nat → Bool) {k k' : Nat} (h : k ≤ k') :
@@ -138,7 +138,7 @@ theorem prefix_last_eq {l a b : List Nat} {x : Nat} (hl : l.Nodup) (ha : a ++ [x
   have hnb := not_mem_of_nodup (hu ▸ hl)
   exact cons_mid_eq (ht.trans hu.symm) hna hnb
 
-theorem take_eq_filterMap (rcv : List mvcc.RespM) :
+theorem take_eq_filterMap (rcv : List mvcc.api.WResp) :
     ∀ k, k ≤ rcv.length → rcv.take k = (List.range k).filterMap (fun m => rcv[m]?)
   | 0, _ => by simp
   | k + 1, h => by
@@ -167,8 +167,8 @@ theorem sendInv_nil (ids : w64 → Bool) : SendInv [] [] (fun _ => []) ids none 
   bound _ h := by cases h
 
 /-- A response received and sent at once (its id announced, or `-1`). -/
-theorem sendInv_recv_direct {rcv : List mvcc.RespM} {S : List Nat} {pend : w64 → List Nat}
-    {ids : w64 → Bool} {r : mvcc.RespM} (hI : SendInv rcv S pend ids none)
+theorem sendInv_recv_direct {rcv : List mvcc.api.WResp} {S : List Nat} {pend : w64 → List Nat}
+    {ids : w64 → Bool} {r : mvcc.api.WResp} (hI : SendInv rcv S pend ids none)
     (hd : ids r.id = true ∨ r.id = W64 (-1)) :
     SendInv (rcv ++ [r]) (S ++ [rcv.length]) pend ids none where
   split X := by
@@ -188,8 +188,8 @@ theorem sendInv_recv_direct {rcv : List mvcc.RespM} {S : List Nat} {pend : w64 �
     · simp
 
 /-- A response received and buffered (its id not announced). -/
-theorem sendInv_recv_pend {rcv : List mvcc.RespM} {S : List Nat} {pend : w64 → List Nat}
-    {ids : w64 → Bool} {r : mvcc.RespM} (hI : SendInv rcv S pend ids none)
+theorem sendInv_recv_pend {rcv : List mvcc.api.WResp} {S : List Nat} {pend : w64 → List Nat}
+    {ids : w64 → Bool} {r : mvcc.api.WResp} (hI : SendInv rcv S pend ids none)
     (hd : ¬(ids r.id = true ∨ r.id = W64 (-1))) :
     SendInv (rcv ++ [r]) S (upd pend r.id (pend r.id ++ [rcv.length])) ids none where
   split X := by
@@ -206,7 +206,7 @@ theorem sendInv_recv_pend {rcv : List mvcc.RespM} {S : List Nat} {pend : w64 →
   bound m hm := by have := hI.bound m hm; simp; omega
 
 /-- A created response for `X` sent: `X` announced, its pending responses to flush. -/
-theorem sendInv_created {rcv : List mvcc.RespM} {S : List Nat} {pend : w64 → List Nat}
+theorem sendInv_created {rcv : List mvcc.api.WResp} {S : List Nat} {pend : w64 → List Nat}
     {ids : w64 → Bool} (X : w64) (hI : SendInv rcv S pend ids none) :
     SendInv rcv S pend (upd ids X true) (some X) where
   split := hI.split
@@ -218,7 +218,7 @@ theorem sendInv_created {rcv : List mvcc.RespM} {S : List Nat} {pend : w64 → L
   bound := hI.bound
 
 /-- One pending response of the flushed id sent. -/
-theorem sendInv_flush {rcv : List mvcc.RespM} {S : List Nat} {pend : w64 → List Nat}
+theorem sendInv_flush {rcv : List mvcc.api.WResp} {S : List Nat} {pend : w64 → List Nat}
     {ids : w64 → Bool} {X : w64} {n : Nat} {P : List Nat} (hI : SendInv rcv S pend ids (some X))
     (hp : pend X = n :: P) : SendInv rcv (S ++ [n]) (upd pend X P) ids (some X) where
   split Y := by
@@ -246,7 +246,7 @@ theorem sendInv_flush {rcv : List mvcc.RespM} {S : List Nat} {pend : w64 → Lis
       exact (mem_idxOf hn).1
 
 /-- The flush of `X` done (nothing pending for it). -/
-theorem sendInv_flush_done {rcv : List mvcc.RespM} {S : List Nat} {pend : w64 → List Nat}
+theorem sendInv_flush_done {rcv : List mvcc.api.WResp} {S : List Nat} {pend : w64 → List Nat}
     {ids : w64 → Bool} {X : w64} (hI : SendInv rcv S pend ids (some X)) (hp : pend X = []) :
     SendInv rcv S pend ids none where
   split := hI.split
@@ -257,7 +257,7 @@ theorem sendInv_flush_done {rcv : List mvcc.RespM} {S : List Nat} {pend : w64 �
   bound := hI.bound
 
 /-- The flush of `X` done, after the Go code's `delete(pending, X)`. -/
-theorem sendInv_flush_done' {rcv : List mvcc.RespM} {S : List Nat} {pend : w64 → List Nat}
+theorem sendInv_flush_done' {rcv : List mvcc.api.WResp} {S : List Nat} {pend : w64 → List Nat}
     {ids : w64 → Bool} {X : w64} (hI : SendInv rcv S pend ids (some X)) (hp : pend X = []) :
     SendInv rcv S (upd pend X []) ids none := by
   have heq : upd pend X [] = pend := by
@@ -267,7 +267,7 @@ theorem sendInv_flush_done' {rcv : List mvcc.RespM} {S : List Nat} {pend : w64 �
   rw [heq]; exact sendInv_flush_done hI hp
 
 /-- A canceled response for `X` sent: `X` no longer announced. -/
-theorem sendInv_cancel {rcv : List mvcc.RespM} {S : List Nat} {pend : w64 → List Nat}
+theorem sendInv_cancel {rcv : List mvcc.api.WResp} {S : List Nat} {pend : w64 → List Nat}
     {ids : w64 → Bool} (X : w64) (hI : SendInv rcv S pend ids none) :
     SendInv rcv S pend (upd ids X false) none where
   split := hI.split
@@ -286,20 +286,20 @@ the responses `S`, provided the responses of `S` with `r`'s id, then `n`, are a 
 received with `r`'s id, and a watcher's responses with events all carry one id (`hsame`): `r`'s
 watcher's responses with events sent before, then `r`, are its responses with events received up
 to `n`. -/
-theorem send_claim (rcv : List mvcc.RespM) (S : List Nat) (n : Nat) (r : mvcc.RespM)
+theorem send_claim (rcv : List mvcc.api.WResp) (S : List Nat) (n : Nat) (r : mvcc.api.WResp)
     (hr : rcv[n]? = some r) (hpre : S.filter (idOf rcv r.id) ++ [n] <+: idxOf rcv r.id)
     (hev : r.evs ≠ [])
-    (hsame : ∀ (m1 m2 : Nat) (x1 x2 : mvcc.RespM), rcv[m1]? = some x1 → rcv[m2]? = some x2 →
-      x1.w = x2.w → x1.evs ≠ [] → x2.evs ≠ [] → x1.id = x2.id) :
-    ((S.filterMap (fun m => rcv[m]?)).filter (fun x => decide (x.w = r.w ∧ x.evs ≠ []))) ++ [r] =
-      ((rcv.take (n + 1)).filter (fun x => decide (x.w = r.w))).filter
+    (hsame : ∀ (m1 m2 : Nat) (x1 x2 : mvcc.api.WResp), rcv[m1]? = some x1 → rcv[m2]? = some x2 →
+      x1.id = x2.id → x1.evs ≠ [] → x2.evs ≠ [] → x1.id = x2.id) :
+    ((S.filterMap (fun m => rcv[m]?)).filter (fun x => decide (x.id = r.id ∧ x.evs ≠ []))) ++ [r] =
+      ((rcv.take (n + 1)).filter (fun x => decide (x.id = r.id))).filter
         (fun x => decide (x.evs ≠ [])) := by
   have hn : n < rcv.length := by
     rcases Nat.lt_or_ge n rcv.length with h | h
     · exact h
     · rw [List.getElem?_eq_none h] at hr; cases hr
-  let f : Nat → Option mvcc.RespM := fun m => rcv[m]?
-  let p : mvcc.RespM → Bool := fun x => decide (x.w = r.w ∧ x.evs ≠ [])
+  let f : Nat → Option mvcc.api.WResp := fun m => rcv[m]?
+  let p : mvcc.api.WResp → Bool := fun x => decide (x.id = r.id ∧ x.evs ≠ [])
   let q : Nat → Bool := fun m => (f m).any p
   have hq : ∀ m, q m = true → idOf rcv r.id m = true := by
     intro m hm
@@ -333,11 +333,11 @@ theorem send_claim (rcv : List mvcc.RespM) (S : List Nat) (n : Nat) (r : mvcc.Re
     rw [prefix_last_eq (idxOf_nodup rcv r.id) h1 hpre]
   have hL : (S.filterMap f).filter p = ((S.filter (idOf rcv r.id)).filter q).filterMap f := by
     rw [filter_filterMap]; exact congrArg (List.filterMap f) (hfilt S)
-  have hR : ((rcv.take (n + 1)).filter (fun x => decide (x.w = r.w))).filter
+  have hR : ((rcv.take (n + 1)).filter (fun x => decide (x.id = r.id))).filter
       (fun x => decide (x.evs ≠ [])) =
       ((S.filter (idOf rcv r.id) ++ [n]).filter q).filterMap f := by
     rw [List.filter_filter, take_eq_filterMap rcv (n + 1) (by omega)]
-    rw [show (fun x : mvcc.RespM => decide (x.evs ≠ []) && decide (x.w = r.w)) = p by
+    rw [show (fun x : mvcc.api.WResp => decide (x.evs ≠ []) && decide (x.id = r.id)) = p by
       funext x; simp [p, Bool.and_comm]]
     rw [filter_filterMap]
     exact congrArg (List.filterMap f) ((hfilt _).trans (congrArg (List.filter q) hA))
@@ -346,14 +346,14 @@ theorem send_claim (rcv : List mvcc.RespM) (S : List Nat) (n : Nat) (r : mvcc.Re
   simp [hqn, f, hr]
 
 /-- `send_claim` for a response sent at once on its receipt (`sendInv_recv_direct`). -/
-theorem send_claim_direct {rcv : List mvcc.RespM} {S : List Nat} {pend : w64 → List Nat}
-    {ids : w64 → Bool} {r : mvcc.RespM} (hI : SendInv rcv S pend ids none)
+theorem send_claim_direct {rcv : List mvcc.api.WResp} {S : List Nat} {pend : w64 → List Nat}
+    {ids : w64 → Bool} {r : mvcc.api.WResp} (hI : SendInv rcv S pend ids none)
     (hd : ids r.id = true ∨ r.id = W64 (-1)) (hev : r.evs ≠ [])
-    (hsame : ∀ (m1 m2 : Nat) (x1 x2 : mvcc.RespM), (rcv ++ [r])[m1]? = some x1 →
-      (rcv ++ [r])[m2]? = some x2 → x1.w = x2.w → x1.evs ≠ [] → x2.evs ≠ [] → x1.id = x2.id) :
+    (hsame : ∀ (m1 m2 : Nat) (x1 x2 : mvcc.api.WResp), (rcv ++ [r])[m1]? = some x1 →
+      (rcv ++ [r])[m2]? = some x2 → x1.id = x2.id → x1.evs ≠ [] → x2.evs ≠ [] → x1.id = x2.id) :
     ((S.filterMap (fun m => (rcv ++ [r])[m]?)).filter
-        (fun x => decide (x.w = r.w ∧ x.evs ≠ []))) ++ [r] =
-      ((rcv ++ [r]).filter (fun x => decide (x.w = r.w))).filter
+        (fun x => decide (x.id = r.id ∧ x.evs ≠ []))) ++ [r] =
+      ((rcv ++ [r]).filter (fun x => decide (x.id = r.id))).filter
         (fun x => decide (x.evs ≠ [])) := by
   have hr : (rcv ++ [r])[rcv.length]? = some r := by
     rw [List.getElem?_append_right (Nat.le_refl _)]; simp
@@ -365,15 +365,15 @@ theorem send_claim_direct {rcv : List mvcc.RespM} {S : List Nat} {pend : w64 →
   rw [this, show rcv.length + 1 = (rcv ++ [r]).length by simp, List.take_length]
 
 /-- `send_claim` for a pending response flushed (`sendInv_flush`). -/
-theorem send_claim_flush {rcv : List mvcc.RespM} {S : List Nat} {pend : w64 → List Nat}
-    {ids : w64 → Bool} {X : w64} {n : Nat} {P : List Nat} {r : mvcc.RespM}
+theorem send_claim_flush {rcv : List mvcc.api.WResp} {S : List Nat} {pend : w64 → List Nat}
+    {ids : w64 → Bool} {X : w64} {n : Nat} {P : List Nat} {r : mvcc.api.WResp}
     (hI : SendInv rcv S pend ids (some X)) (hp : pend X = n :: P) (hr : rcv[n]? = some r)
     (hev : r.evs ≠ [])
-    (hsame : ∀ (m1 m2 : Nat) (x1 x2 : mvcc.RespM), rcv[m1]? = some x1 → rcv[m2]? = some x2 →
-      x1.w = x2.w → x1.evs ≠ [] → x2.evs ≠ [] → x1.id = x2.id) :
+    (hsame : ∀ (m1 m2 : Nat) (x1 x2 : mvcc.api.WResp), rcv[m1]? = some x1 → rcv[m2]? = some x2 →
+      x1.id = x2.id → x1.evs ≠ [] → x2.evs ≠ [] → x1.id = x2.id) :
     r.id = X ∧
-    ((S.filterMap (fun m => rcv[m]?)).filter (fun x => decide (x.w = r.w ∧ x.evs ≠ []))) ++ [r] =
-      ((rcv.take (n + 1)).filter (fun x => decide (x.w = r.w))).filter
+    ((S.filterMap (fun m => rcv[m]?)).filter (fun x => decide (x.id = r.id ∧ x.evs ≠ []))) ++ [r] =
+      ((rcv.take (n + 1)).filter (fun x => decide (x.id = r.id))).filter
         (fun x => decide (x.evs ≠ [])) := by
   have hn : n ∈ idxOf rcv X := by rw [hI.split X, hp]; simp
   obtain ⟨x, hx, hxX⟩ := idOf_eq_id (mem_idxOf hn).2
@@ -400,9 +400,9 @@ theorem upd_self {α : Type} (g : w64 → α) (X : w64) : upd g X (g X) = g := b
   · simp [h]
 
 /-- The last of a response's watcher's responses received up to it is the response. -/
-theorem take_filter_getLast (rcv : List mvcc.RespM) {n : Nat} {x : mvcc.RespM}
+theorem take_filter_getLast (rcv : List mvcc.api.WResp) {n : Nat} {x : mvcc.api.WResp}
     (h : rcv[n]? = some x) :
-    ((rcv.take (n + 1)).filter (fun y => decide (y.w = x.w))).getLast? = some x := by
+    ((rcv.take (n + 1)).filter (fun y => decide (y.id = x.id))).getLast? = some x := by
   have hn : n < rcv.length := by
     rcases Nat.lt_or_ge n rcv.length with hl | hl
     · exact hl
@@ -411,7 +411,7 @@ theorem take_filter_getLast (rcv : List mvcc.RespM) {n : Nat} {x : mvcc.RespM}
   simp [List.filter_append, List.getLast?_append]
 
 /-- Indices below the length read the same after a receipt. -/
-theorem filterMap_snoc_bound (rcv : List mvcc.RespM) (r : mvcc.RespM) (S : List Nat)
+theorem filterMap_snoc_bound (rcv : List mvcc.api.WResp) (r : mvcc.api.WResp) (S : List Nat)
     (hb : ∀ m ∈ S, m < rcv.length) :
     S.filterMap (fun m => (rcv ++ [r])[m]?) = S.filterMap (fun m => rcv[m]?) := by
   induction S with
@@ -422,8 +422,8 @@ theorem filterMap_snoc_bound (rcv : List mvcc.RespM) (r : mvcc.RespM) (S : List 
       ih (fun m hm => hb m (List.mem_cons_of_mem _ hm))]
 
 /-- Buffered indices (all reading a response) read the same after a receipt. -/
-theorem map_snoc_some {β : Type} (rcv : List mvcc.RespM) (r : mvcc.RespM) (P : List Nat)
-    (xs : List β) (f : β → mvcc.RespM) (h : P.map (fun n => rcv[n]?) = xs.map (fun p => some (f p))) :
+theorem map_snoc_some {β : Type} (rcv : List mvcc.api.WResp) (r : mvcc.api.WResp) (P : List Nat)
+    (xs : List β) (f : β → mvcc.api.WResp) (h : P.map (fun n => rcv[n]?) = xs.map (fun p => some (f p))) :
     P.map (fun n => (rcv ++ [r])[n]?) = xs.map (fun p => some (f p)) := by
   rw [← h]
   apply List.map_congr_left
@@ -439,8 +439,8 @@ theorem map_snoc_some {β : Type} (rcv : List mvcc.RespM) (r : mvcc.RespM) (P : 
   · rw [List.getElem?_eq_none hl] at this; cases this
 
 /-- The `k`th buffered index reads the `k`th buffered response. -/
-theorem map_some_get {β : Type} (rcv : List mvcc.RespM) (P : List Nat) (xs : List β)
-    (f : β → mvcc.RespM) (h : P.map (fun n => rcv[n]?) = xs.map (fun p => some (f p)))
+theorem map_some_get {β : Type} (rcv : List mvcc.api.WResp) (P : List Nat) (xs : List β)
+    (f : β → mvcc.api.WResp) (h : P.map (fun n => rcv[n]?) = xs.map (fun p => some (f p)))
     {k n : Nat} {p : β} (hn : P[k]? = some n) (hp : xs[k]? = some p) : rcv[n]? = some (f p) := by
   have h1 : (P.map (fun n => rcv[n]?))[k]? = some rcv[n]? := by simp [hn]
   have h2 : (xs.map (fun p => some (f p)))[k]? = some (some (f p)) := by simp [hp]

@@ -1,0 +1,100 @@
+# mvcc's randomized tester (`examples/mvccrand`; all Lean-first), read by
+# `etc/gen-link.py --mvccrand`: `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`. The
+# results are in the namespace `mvccrand`. Not listed: the standard library's and goose's functions
+# with Perennial specs the proofs use directly (`sync`, channels, maps, slices, `strconv`).
+#
+# mvcc, through its API (`notes/mvcc-migration/mvccrand.md`): the API's laws and specs, given as
+# terms (`=`), from mvcc's `ApiResults.lean` (an extra import of the mode).
+#
+# The trust boundary and the callees linked elsewhere: zap's `NewNop` (an axiom), `context.TODO`,
+# traceutil's `TODO` (proved), the backend's `New`, `SetTxPostLockInsideApplyHook` and `BatchTx`
+# (`@`, the backend's `Link.lean`), `sort.StringSlice.Sort` (an axiom), schema's lease bucket's,
+# Perennial's `sort.Strings` (`=`), and `sort.Slice` (`?`: specified, no proof; a hypothesis of
+# the results reaching it, `Spec/sort/Slice.lean`).
+zap_NewNop:
+context_TODO:
+traceutil_TODO:
+backend_New: @
+backend__SetTxPostLockInsideApplyHook: @
+backend__Close: @
+backend__BatchTx: @
+sort_StringSlice__Sort:
+sort_Slice: ?
+#
+# the lessor (server/v3/lease), as the server's `Link.lean` links it (`etc/link-lean-first-server.txt`)
+lease_lessor__GetLease:
+lease_lessor__Lookup:
+lease_lessor__Attach:
+lease_lessor__Detach:
+lease_lessor__SetRangeDeleter:
+lease_lessor__Stop:
+heap_up:
+heap_down:
+heap_Push: heap_up
+heap_Fix: heap_down heap_up
+schema_MustUnsafePutLease:
+lease_LeaseQueue__Len:
+lease_LeaseQueue__Less:
+lease_LeaseQueue__Swap:
+lease_LeaseQueue__Push:
+lease_LeaseExpiredNotifier__RegisterOrUpdate: lease_LeaseQueue__Len lease_LeaseQueue__Less lease_LeaseQueue__Swap lease_LeaseQueue__Push heap_Fix heap_Push
+lease_NewLease:
+lease_Lease__getRemainingTTL:
+lease_Lease__refresh: lease_Lease__getRemainingTTL
+lease_Lease__forever:
+lease_Lease__persistTo: schema_MustUnsafePutLease
+lease_lessor__isPrimary:
+lease_lessor__scheduleCheckpointIfNeeded:
+lease_lessor__Grant: lease_NewLease lease_lessor__isPrimary lease_Lease__refresh lease_Lease__forever lease_Lease__persistTo lease_LeaseExpiredNotifier__RegisterOrUpdate lease_lessor__scheduleCheckpointIfNeeded
+lease_Lease__Keys:
+schema_UnsafeDeleteLease:
+lease_lessor__Revoke: lease_Lease__Keys sort_StringSlice__Sort schema_UnsafeDeleteLease backend__BatchTx =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_mvccBackend_isBackend_law_holds =mvcc.api.mvccApi_mvccTxn_leaseDelete_law_holds
+lease_NewLessor:
+#
+# the tester's functions (`examples/mvccrand/mvccrand.go`)
+check:
+inRange:
+itoa:
+copyState:
+noCluster__Version:
+watcher__advance:
+rng__next:
+rng__intn: rng__next
+rng__genKey: rng__intn
+rng__genEnd: rng__intn rng__genKey
+rng__genRange: rng__intn rng__genKey rng__genEnd
+checkKV: check
+checkRange: check inRange checkKV =mvcc.api.mvccApi_errVars_law_holds
+pending__put:
+pending__del: inRange
+newHistory:
+history__snapshot:
+history__appendRev:
+history__changesAt: check
+history__seen: check history__snapshot
+writer__cur:
+writer__checkHook: check
+writer__newVal: itoa
+writer__view: history__snapshot
+writer__begin: check history__snapshot writer__cur copyState
+writer__end: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds check history__appendRev
+writer__genLease: rng__intn sort_Slice
+writer__put: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds check writer__begin writer__checkHook writer__view writer__end rng__genKey writer__newVal writer__genLease pending__put checkRange traceutil_TODO context_TODO
+writer__deleteRange: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds check writer__begin writer__checkHook writer__view writer__end rng__genKey rng__genEnd pending__del checkRange traceutil_TODO context_TODO
+writer__writeOp: =mvcc.api.mvccApi_shapes_law check rng__intn rng__genKey rng__genEnd rng__genRange writer__newVal writer__genLease pending__put pending__del writer__view checkRange context_TODO
+writer__txn: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds check writer__cur writer__begin writer__checkHook writer__end writer__writeOp history__snapshot rng__intn rng__genKey rng__genRange checkRange traceutil_TODO context_TODO =mvcc.api.mvccApi_NewReadOnlyTxnWrite_wp_api
+writer__read: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds check writer__cur history__snapshot rng__genRange checkRange traceutil_TODO context_TODO
+writer__grant: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds check writer__cur writer__checkHook lease_lessor__Grant
+writer__revoke: =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds check writer__genLease writer__begin writer__end writer__checkHook lease_lessor__Revoke lease_lessor__Lookup
+writer__checkLeases: check history__snapshot lease_lessor__Lookup lease_lessor__GetLease lease_Lease__Keys =_root_.Perennial.sort.wp_Strings
+writer__run: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds rng__intn writer__cur writer__put writer__deleteRange writer__txn writer__grant writer__revoke writer__checkLeases writer__read
+reader: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds check history__seen history__snapshot rng__intn rng__genRange checkRange traceutil_TODO context_TODO =mvcc.api.mvccApi_NewReadOnlyTxnWrite_wp_api
+watchCheck__expect: history__changesAt inRange
+watchCheck__register: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_errVars_law_holds check rng__intn rng__genKey rng__genEnd context_TODO
+watchCheck__receive: =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_wsRecv_ok_law_holds check history__snapshot watchCheck__expect watcher__advance checkKV
+watchCheck__complete: watchCheck__expect
+runChecks: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_wsChan_recv_law_holds =mvcc.api.mvccApi_mvccW_alloc_law_holds =mvcc.api.mvccApi_mvccImage_fresh_law_holds =mvcc.api.mvccApi_etcdStorage_open_law_holds =mvcc.api.mvccApi_backendRest_open_law_holds =mvcc.api.mvccApi_mvccReaders_split_law_holds =mvcc.api.mvccApi_mvccClosed_rest_law_holds zap_NewNop backend_New backend__SetTxPostLockInsideApplyHook lease_NewLessor lease_lessor__GetLease lease_lessor__Attach lease_lessor__Detach lease_lessor__SetRangeDeleter =mvcc.api.mvccApi_New_wp_proof noCluster__Version check newHistory writer__run reader watchCheck__register watchCheck__receive watchCheck__complete
+#
+# the top level (2026-11-08, for the closed theorem): `Run` closes what `runChecks` opened
+Run: runChecks lease_lessor__Stop backend__Close check
+Main: Run

@@ -26,7 +26,7 @@ the one-shot part, `pipeDeposit`), and returns an error whose `Error()` returns;
 member's response is never a `403`, `raftProto`). -/
 abbrev rafthttp.pipeline.post.spec : Prop :=
   ∀ (Rh : RaftHttp GF) (p : Loc) (to : w64) (d : GoSlice) (bs : List w8) (st : MsgSt),
-  MsgWireOk st bs → st.msg.To' = to → st.msg.Type' ≠ MsgSnap → st.resps = [] →
+  MsgWireOk st bs → MsgEnc st bs → st.msg.To' = to → st.msg.Type' ≠ MsgSnap → st.resps = [] →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
       pipeSenderOk Rh p to ∗ d ↦* bs ∗ □ Rh.γn.N.P st ∗ Rh.γn.N.O st }}
     (App (Val (p @!! go.GoType.PointerType rafthttp.pipeline.ty @!! go!"post")) (Val #d))

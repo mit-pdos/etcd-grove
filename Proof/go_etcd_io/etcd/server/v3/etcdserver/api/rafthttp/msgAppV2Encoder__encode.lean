@@ -57,11 +57,7 @@ set_option hygiene false in
 /-- The App frame (`msgTypeApp`): the tag, then `messageEncoder`'s frame of the message, the
 state the message's term and its last entry's index. -/
 local macro "enc_full" : tactic => `(tactic| (
-  have Hpe := pbEnc_ok (pbMessage (GF := GF)) ml st
-  simp only [pbMessage_ro, pbMessage_marshals, pbMessage_wire, pbMessage_ty] at Hpe
-  ihave %Hp := Hpe $$ Hm
-  have Hwire := Hp.1 Hok.1
-  have Hfr := V2Frame.full (frm := frm) (to := to) cst Hwire Hp.2
+  have Hfr := V2Frame.full (frm := frm) (to := to) cst Hw0 (by omega) ⟨c, hcm, Hu, hcu, rfl⟩
   ihave #Hbin : isPkgInit (PROP := IProp GF) pkg_id.encoding.binary $$ []
   · iPkgInit
   ihave %Hbe := bigEndian_ne_null $$ Hbin
@@ -77,7 +73,7 @@ local macro "enc_full" : tactic => `(tactic| (
     ihave #HA1 : □ A (h ++ [W8 2]) $$ []
     · imodintro
       ihave H := HA $$ %_ %_ %1 %Hfr
-      rw [show h ++ [W8 2] = h ++ List.take 1 (W8 2 :: msgFrame (pbEnc raftpb.Message.ty ml))
+      rw [show h ++ [W8 2] = h ++ List.take 1 (W8 2 :: msgFrame (msgEncC c))
         from rfl]
       iexact H
     wp_apply Hwr $$ %sl %(DFrac.own 1) %([W8 2]) %h [Hsl HWr] as %n %err ⟨%k, -, HWr, %Hk, #Herr⟩
@@ -98,26 +94,27 @@ local macro "enc_full" : tactic => `(tactic| (
     (globalAddr encoding.binary.BigEndian) Hbe)
   iintro -
   (try wp_auto)
-  have wpS := wp_Size pbMessage ml st
-  simp only [pbMessage_ty, pbMessage_ro] at wpS
-  wp_apply wpS $$ [] as %n ⟨%Hn, -⟩
-  · iexact Hm
-  have hn : n = W64 (pbEnc raftpb.Message.ty ml).length := by word
+  have wpS := wp_Size pbMessageC pbMessageC_reg ml c
+  simp only [pbMessageC_ty, pbMessageC_roC, pbMessageC_size] at wpS
+  wp_apply wpS $$ [] as %n %Hn
+  · iexact Hc
+  have Hn := Hn (by omega)
+  have hn : n = W64 (msgEncC c).length := by word
   subst hn
-  ihave Hbw := wp_WriteUint64 wi (W64 (pbEnc raftpb.Message.ty ml).length)
+  ihave Hbw := wp_WriteUint64 wi (W64 (msgEncC c).length)
     iprop(Wr (h ++ [W8 2]))
     (fun n err => iprop(∃ k : Nat,
-      Wr (h ++ [W8 2] ++ (u64Be (W64 (pbEnc raftpb.Message.ty ml).length)).take k) ∗
+      Wr (h ++ [W8 2] ++ (u64Be (W64 (msgEncC c).length)).take k) ∗
       ⌜sint.Z n = k ∧ k ≤ 8 ∧ (err = GoInterface.nil → k = 8)⌝ ∗ http.errStrOk err)) $$ []
   · iintro !> %sl !> %Φ ⟨Hsl, HWr⟩ HΦ
-    ihave #HA1 : □ A (h ++ [W8 2] ++ u64Be (W64 (pbEnc raftpb.Message.ty ml).length)) $$ []
+    ihave #HA1 : □ A (h ++ [W8 2] ++ u64Be (W64 (msgEncC c).length)) $$ []
     · imodintro
       ihave H := HA $$ %_ %_ %9 %Hfr
-      rw [show h ++ [W8 2] ++ u64Be (W64 (pbEnc raftpb.Message.ty ml).length) =
-          h ++ List.take 9 (W8 2 :: msgFrame (pbEnc raftpb.Message.ty ml)) by
+      rw [show h ++ [W8 2] ++ u64Be (W64 (msgEncC c).length) =
+          h ++ List.take 9 (W8 2 :: msgFrame (msgEncC c)) by
         simp [msgFrame, List.take_append_of_le_length, u64Be_length]]
       iexact H
-    wp_apply Hwr $$ %sl %(DFrac.own 1) %(u64Be (W64 (pbEnc raftpb.Message.ty ml).length))
+    wp_apply Hwr $$ %sl %(DFrac.own 1) %(u64Be (W64 (msgEncC c).length))
       %(h ++ [W8 2]) [Hsl HWr] as %n %err ⟨%k, -, HWr, %Hk, #Herr⟩
     · iframe; iframe #
     iapply HΦ; iexists k; iframe; iframe #; ipureintro; simpa [u64Be_length] using Hk
@@ -130,31 +127,31 @@ local macro "enc_full" : tactic => `(tactic| (
   subst hk
   rw [List.take_of_length_le (by simp [u64Be_length])] at *
   (try wp_auto)
-  have wpM := wp_MustMarshalMessage pbMessage ml st Hok.1
-  simp only [pbMessage_ty, pbMessage_ro, pbMessage_wire] at wpM
+  have wpM := wp_MustMarshalMessage pbMessageC pbMessageC_reg ml c hm' (by simp; omega)
+  simp only [pbMessageC_ty, pbMessageC_roC, pbEncC_pbMessageC] at wpM
   wp_apply wpM $$ [] as %d ⟨Hd, -, -⟩
-  · iexact Hm
+  · iexact Hc
   (try wp_auto)
-  ihave #HA1 : □ A (h ++ [W8 2] ++ u64Be (W64 (pbEnc raftpb.Message.ty ml).length) ++
-      pbEnc raftpb.Message.ty ml) $$ []
+  ihave #HA1 : □ A (h ++ [W8 2] ++ u64Be (W64 (msgEncC c).length) ++
+      msgEncC c) $$ []
   · imodintro
-    ihave H := HA $$ %_ %_ %(9 + (pbEnc raftpb.Message.ty ml).length) %Hfr
-    rw [show h ++ [W8 2] ++ u64Be (W64 (pbEnc raftpb.Message.ty ml).length) ++
-          pbEnc raftpb.Message.ty ml =
-        h ++ List.take (9 + (pbEnc raftpb.Message.ty ml).length)
-          (W8 2 :: msgFrame (pbEnc raftpb.Message.ty ml)) by
+    ihave H := HA $$ %_ %_ %(9 + (msgEncC c).length) %Hfr
+    rw [show h ++ [W8 2] ++ u64Be (W64 (msgEncC c).length) ++
+          msgEncC c =
+        h ++ List.take (9 + (msgEncC c).length)
+          (W8 2 :: msgFrame (msgEncC c)) by
       rw [List.take_of_length_le (by simp [msgFrame, u64Be_length]; omega)]
       simp [msgFrame]]
     iexact H
-  wp_apply Hwr $$ %d %(DFrac.own 1) %(pbEnc raftpb.Message.ty ml)
-    %(h ++ [W8 2] ++ u64Be (W64 (pbEnc raftpb.Message.ty ml).length)) [Hd HWr]
+  wp_apply Hwr $$ %d %(DFrac.own 1) %(msgEncC c)
+    %(h ++ [W8 2] ++ u64Be (W64 (msgEncC c).length)) [Hd HWr]
     as %n %err ⟨%k, -, HWr, %Hk, #Herr⟩
   · iframe; iframe #
   (try wp_auto)
   cases err with
   | ok ei => enc_err
   | nil =>
-  have hk : k = (pbEnc raftpb.Message.ty ml).length := Hk.2.2 rfl
+  have hk : k = (msgEncC c).length := Hk.2.2 rfl
   subst hk
   rw [List.take_of_length_le (Nat.le_refl _)]
   (try wp_auto)
@@ -245,7 +242,16 @@ theorem rafthttp.msgAppV2Encoder.encode.wp_proof
     (wp_Succ : v2stats.FollowerStats.Succ.spec (GF := GF) (hG := hG)) :
     rafthttp.msgAppV2Encoder.encode.spec (GF := GF) (hG := hG) := by
   intro enc wi fs cst frm to ml st Wr A h Hok
-  wp_start as ⟨Henc, #Hwr, HWr, #Hm, #HA⟩
+  wp_start as ⟨Henc, #Hwr, HWr, #Hm, #Hb, #HA⟩
+  iunfold swMsgBound at Hb
+  icases Hb with ⟨%c, #Hc, %Hcb⟩
+  obtain ⟨hcm, hcu, hcs⟩ := Hcb
+  have hm' : MsgMarshals c.model := hcm ▸ Hok.1
+  ihave %Hp := msgRoC_enc ml c $$ Hc
+  obtain ⟨Hw0, hlenc, Hu⟩ := Hp hm' (by omega)
+  rw [hcm] at Hw0
+  have hents : st.ents = c.f.entries.map EntryC.model := by rw [← hcm]; rfl
+  have Hecl : c.f.entries.length = st.ents.length := by simp [hents]
   iunfold writerAt at Hwr
   iunfold v2EncOwn at Henc
   iNamed Henc
@@ -332,10 +338,14 @@ theorem rafthttp.msgAppV2Encoder.encode.wp_proof
         · rw [decide_eq_true (p := st.msg.LogTerm' = st.msg.Term') c3]
           wp_auto
           -- the AppEntries frame: its bytes, of the entries' encodings
-          ihave ⟨%es, %els, #HEs, #Hes, #Hents⟩ := msgOwn_ents ml st $$ Hm
+          ihave ⟨%es, %els, #HEs, #Hes, #HentsC⟩ := msgRoC_ents ml c $$ Hc
+          ihave #Hents : [∗list] p;e ∈ els;st.ents, entRO p e $$ [HentsC]
+          · rw [hents]; iapply entsRoC_entsRO $$ HentsC
           ihave %Hesl := ownSlice_len _ _ _ $$ Hes
           ihave %Hel := BigSepL2.bigSepL2_length $$ Hents
-          ihave %He := ents_enc els st.ents $$ Hents
+          ihave %He := ents_enc els c.f.entries
+            (fun e he => by have := entrySize_le_msgSize c e he; omega) $$ HentsC
+          rw [← hents] at He
           have Hn : st.ents.length < 2 ^ 63 := by
             have := Hesl.1; unfold sint.nat at this; word
           have Hfr := Hok.short_frame (cs := cst) hb c1 c2 c3 He Hn
@@ -356,7 +366,7 @@ theorem rafthttp.msgAppV2Encoder.encode.wp_proof
           ihave #HA0 : □ A (h ++ [W8 1]) $$ []
           · imodintro
             ihave H := HA $$ %_ %_ %1 %Hfr
-            rw [show h ++ [W8 1] = h ++ List.take 1 (shortBytes (els.map (pbEnc raftpb.Entry.ty)) st.msg.Commit') from rfl]
+            rw [show h ++ [W8 1] = h ++ List.take 1 (shortBytes (c.f.entries.map entryEncC) st.msg.Commit') from rfl]
             iexact H
           wp_apply Hwr $$ %s1 %(DFrac.own 1) %([W8 1]) %h [$Hs1s $HWr $HA0]
             as %n %err ⟨%k, Hs1s, HWr, %Hk, #Herr⟩
@@ -390,18 +400,18 @@ theorem rafthttp.msgAppV2Encoder.encode.wp_proof
           (try wp_auto)
           -- every prefix of the frame is permitted
           ihave #HAp : □ (∀ p : List w8,
-              ⌜p <+: shortBytes (els.map (pbEnc raftpb.Entry.ty)) st.msg.Commit'⌝ -∗ A (h ++ p)) $$ []
+              ⌜p <+: shortBytes (c.f.entries.map entryEncC) st.msg.Commit'⌝ -∗ A (h ++ p)) $$ []
           · iintro !> %p %hp
             rw [List.prefix_iff_eq_take.1 hp]
             iapply HA $$ %_ %_ %_ %Hfr
-          have hEl : (els.map (pbEnc raftpb.Entry.ty)).length = st.ents.length := by simp [Hel]
+          have hEl : (c.f.entries.map entryEncC).length = st.ents.length := by simp [Hecl]
           ihave #HA9 : □ A (h ++ [W8 1] ++ (u64Le (W64 st.ents.length)).reverse) $$ []
           · imodintro
             rw [List.append_assoc]
             iapply HAp
             ipureintro
             simp only [shortBytes, hEl]
-            exact ⟨entFrames (els.map (pbEnc raftpb.Entry.ty)) ++ u64Be st.msg.Commit',
+            exact ⟨entFrames (c.f.entries.map entryEncC) ++ u64Be st.msg.Commit',
               by simp [u64Be, List.append_assoc]⟩
           wp_apply Hwr $$ %s8 %(DFrac.own 1) %((u64Le (W64 st.ents.length)).reverse) %(h ++ [W8 1])
             [$Hs8s $HWr $HA9] as %n %err ⟨%k, Hs8s, HWr, %Hk, #Herr⟩
@@ -429,7 +439,7 @@ theorem rafthttp.msgAppV2Encoder.encode.wp_proof
           ihave HI : (∃ (j : Nat) (zs' x8' : List w8),
               "i" ∷ i_ptr ↦ W64 j ∗
               "HWr" ∷ Wr (h ++ [W8 1] ++ (u64Le (W64 st.ents.length)).reverse ++
-                entFrames ((els.map (pbEnc raftpb.Entry.ty)).take j)) ∗
+                entFrames ((c.f.entries.map entryEncC).take j)) ∗
               "Hindex" ∷ enc.[go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.msgAppV2Encoder,
                 go!"index"] ↦ (cst.index + W64 j) ∗
               "Hbufs" ∷ buf ↦* zs' ∗ "Hbufc" ∷ ownSliceCap w8 buf (DFrac.own 1) ∗
@@ -451,6 +461,13 @@ theorem rafthttp.msgAppV2Encoder.encode.wp_proof
             obtain ⟨p, Hp⟩ : ∃ p, els[j]? = some p := ⟨_, List.getElem?_eq_getElem (by omega)⟩
             obtain ⟨e, He'⟩ : ∃ e, st.ents[j]? = some e := ⟨_, List.getElem?_eq_getElem hj⟩
             ihave #Hep := BigSepL2.bigSepL2_lookup Hp He' $$ Hents
+            obtain ⟨ec, Hec⟩ : ∃ ec, c.f.entries[j]? = some ec :=
+              ⟨_, List.getElem?_eq_getElem (by omega)⟩
+            ihave #Hepc := BigSepL2.bigSepL2_lookup Hp Hec $$ HentsC
+            have hecs : entrySize ec < 2 ^ 47 :=
+              Nat.lt_of_le_of_lt (entrySize_le_msgSize c ec (List.mem_of_getElem? Hec)) hcs
+            ihave %hecu := entRoC_uf p ec $$ Hepc
+            have Hecok := entryEncC_ok ec hecu (by omega)
             (try wp_auto)
             have hjz : sint.Z (W64 (j : Int)) = j := by word
             rw [if_pos (by rw [hjz]; omega)]
@@ -458,43 +475,44 @@ theorem rafthttp.msgAppV2Encoder.encode.wp_proof
               $$ [Hes] as Hes
             · iframe; iframe #; ipureintro; rw [hjz]; exact Hp
             (try wp_auto)
-            have wpSE := wp_Size pbEntry p e
-            simp only [pbEntry_ty, pbEntry_ro] at wpSE
-            wp_apply wpSE $$ [] as %sz ⟨%Hsz, -⟩
-            · iexact Hep
+            have wpSE := wp_Size pbEntryC pbEntryC_reg p ec
+            simp only [pbEntryC_ty, pbEntryC_roC, pbEntryC_size] at wpSE
+            wp_apply wpSE $$ [] as %sz %Hsz
+            · iexact Hepc
+            have Hsz := Hsz (by omega)
             (try wp_auto)
             -- the facts of the `j`-th encoding
-            have HEj : (els.map (pbEnc raftpb.Entry.ty))[j]'(by simp [Hel]; omega) =
-                pbEnc raftpb.Entry.ty p := by
-              simp [List.getElem_map, (List.getElem?_eq_some_iff.1 Hp).2]
-            have hEj := shortBytes_split (els.map (pbEnc raftpb.Entry.ty)) st.msg.Commit' j
-              (by simp [Hel]; omega)
+            have HEj : (c.f.entries.map entryEncC)[j]'(by simp [Hecl]; omega) =
+                entryEncC ec := by
+              simp [List.getElem_map, (List.getElem?_eq_some_iff.1 Hec).2]
+            have hEj := shortBytes_split (c.f.entries.map entryEncC) st.msg.Commit' j
+              (by simp [Hecl]; omega)
             rw [HEj] at hEj
-            have hsz : sz = W64 (pbEnc raftpb.Entry.ty p).length := by word
+            have hsz : sz = W64 (entryEncC ec).length := by rw [Hecok.2]; word
             subst hsz
             wp_apply encoding.binary.wp_BigEndian_PutUint64 s8 x8' [] _ Hx8' $$ [Hs8s] as Hs8s
             · simp only [List.append_nil]; iexact Hs8s
             simp only [List.append_nil]
             (try wp_auto)
             ihave #HAs : □ A (h ++ [W8 1] ++ (u64Le (W64 st.ents.length)).reverse ++
-                entFrames ((els.map (pbEnc raftpb.Entry.ty)).take j) ++
-                (u64Le (W64 (pbEnc raftpb.Entry.ty p).length)).reverse) $$ []
+                entFrames ((c.f.entries.map entryEncC).take j) ++
+                (u64Le (W64 (entryEncC ec).length)).reverse) $$ []
             · imodintro
               ihave H := HAp $$ %([W8 1] ++ (u64Le (W64 st.ents.length)).reverse ++
-                entFrames ((els.map (pbEnc raftpb.Entry.ty)).take j) ++
-                (u64Le (W64 (pbEnc raftpb.Entry.ty p).length)).reverse) %(by
+                entFrames ((c.f.entries.map entryEncC).take j) ++
+                (u64Le (W64 (entryEncC ec).length)).reverse) %(by
                   rw [hEj, hEl]
-                  exact ⟨pbEnc raftpb.Entry.ty p ++
-                    entFrames ((els.map (pbEnc raftpb.Entry.ty)).drop (j + 1)) ++
+                  exact ⟨entryEncC ec ++
+                    entFrames ((c.f.entries.map entryEncC).drop (j + 1)) ++
                     u64Be st.msg.Commit', by simp [u64Be, List.append_assoc]⟩)
               simp only [List.append_assoc] at *
               iexact H
-            wp_apply Hwr $$ %s8 %(DFrac.own 1) %((u64Le (W64 (pbEnc raftpb.Entry.ty p).length)).reverse)
+            wp_apply Hwr $$ %s8 %(DFrac.own 1) %((u64Le (W64 (entryEncC ec).length)).reverse)
               %(h ++ [W8 1] ++ (u64Le (W64 st.ents.length)).reverse ++
-                entFrames ((els.map (pbEnc raftpb.Entry.ty)).take j)) [$Hs8s $HWr $HAs]
+                entFrames ((c.f.entries.map entryEncC).take j)) [$Hs8s $HWr $HAs]
               as %n %err ⟨%k, Hs8s, HWr, %Hk, #Herr⟩
             (try wp_auto)
-            have Hxs : ((u64Le (W64 (pbEnc raftpb.Entry.ty p).length)).reverse).length = 8 := by
+            have Hxs : ((u64Le (W64 (entryEncC ec).length)).reverse).length = 8 := by
               simp [u64Le_length]
             cases err with
             | ok ei =>
@@ -507,14 +525,14 @@ theorem rafthttp.msgAppV2Encoder.encode.wp_proof
               iframe HWr
               isplitl
               · iunfold v2EncOwn
-                iexists buf, s8, s1, zs', (u64Le (W64 (pbEnc raftpb.Entry.ty p).length)).reverse, [W8 1]
+                iexists buf, s8, s1, zs', (u64Le (W64 (entryEncC ec).length)).reverse, [W8 1]
                 iframe; iframe #; iframe %
               iintro %h0; cases h0
             | nil =>
             have hk : k = 8 := by
               have := Hk.2.2 rfl; simpa [List.length_reverse, u64Le_length] using this
             subst hk
-            rw [List.take_of_length_le (l := (u64Le (W64 (pbEnc raftpb.Entry.ty p).length)).reverse)
+            rw [List.take_of_length_le (l := (u64Le (W64 (entryEncC ec).length)).reverse)
               (by simp [List.length_reverse, u64Le_length])]
             wp_auto
             wp_if_destruct
@@ -532,44 +550,43 @@ theorem rafthttp.msgAppV2Encoder.encode.wp_proof
                 $$ [Hes] as Hes
               · iframe; iframe #; ipureintro; rw [hjz]; exact Hp
               (try wp_auto)
-              have hme : (pbEntry (GF := GF)).marshals e := trivial
-              have wpMA := wp_MarshalAppend pbEntry opts_ptr (DFrac.own 1) p e
-                (slice.slice buf w8 (W64 0) (W64 0)) [] hme
-              simp only [pbEntry_ty, pbEntry_ro, pbEntry_wire, List.nil_append] at wpMA
+              have wpMA := wp_MarshalAppend pbEntryC pbEntryC_reg opts_ptr (DFrac.own 1) p ec
+                (slice.slice buf w8 (W64 0) (W64 0)) [] trivial (by simp; omega)
+              simp only [pbEntryC_ty, pbEntryC_roC, pbEncC_pbEntryC, List.nil_append] at wpMA
               wp_apply wpMA $$ [$opts $Hb0 $Hb0c] as %b' ⟨opts, Hb', Hb'c, %Hb'⟩
-              · iexact Hep
+              · iexact Hepc
               (try wp_auto)
               ihave #HAe : □ A (h ++ [W8 1] ++ (u64Le (W64 st.ents.length)).reverse ++
-                  entFrames ((els.map (pbEnc raftpb.Entry.ty)).take j) ++
-                  (u64Le (W64 (pbEnc raftpb.Entry.ty p).length)).reverse ++ pbEnc raftpb.Entry.ty p) $$ []
+                  entFrames ((c.f.entries.map entryEncC).take j) ++
+                  (u64Le (W64 (entryEncC ec).length)).reverse ++ entryEncC ec) $$ []
               · imodintro
                 ihave H := HAp $$ %([W8 1] ++ (u64Le (W64 st.ents.length)).reverse ++
-                  entFrames ((els.map (pbEnc raftpb.Entry.ty)).take j) ++
-                  (u64Le (W64 (pbEnc raftpb.Entry.ty p).length)).reverse ++ pbEnc raftpb.Entry.ty p) %(by
+                  entFrames ((c.f.entries.map entryEncC).take j) ++
+                  (u64Le (W64 (entryEncC ec).length)).reverse ++ entryEncC ec) %(by
                     rw [hEj, hEl]
-                    exact ⟨entFrames ((els.map (pbEnc raftpb.Entry.ty)).drop (j + 1)) ++
+                    exact ⟨entFrames ((c.f.entries.map entryEncC).drop (j + 1)) ++
                       u64Be st.msg.Commit', by simp [u64Be, List.append_assoc]⟩)
                 simp only [List.append_assoc] at *
                 iexact H
-              wp_apply Hwr $$ %b' %(DFrac.own 1) %(pbEnc raftpb.Entry.ty p)
+              wp_apply Hwr $$ %b' %(DFrac.own 1) %(entryEncC ec)
                 %(h ++ [W8 1] ++ (u64Le (W64 st.ents.length)).reverse ++
-                  entFrames ((els.map (pbEnc raftpb.Entry.ty)).take j) ++
-                  (u64Le (W64 (pbEnc raftpb.Entry.ty p).length)).reverse) [$Hb' $HWr $HAe]
+                  entFrames ((c.f.entries.map entryEncC).take j) ++
+                  (u64Le (W64 (entryEncC ec).length)).reverse) [$Hb' $HWr $HAe]
                 as %n2 %err2 ⟨%k2, Hb', HWr, %Hk2, #Herr⟩
               -- the buffer back: `MarshalAppend` wrote within it
-              have hsmall : (pbEnc raftpb.Entry.ty p).length < 1048576 := by
+              have hsmall : (entryEncC ec).length < 1048576 := by
                 have : sint.Z (W64 1048576) = 1048576 := by word
-                have : sint.Z (W64 (pbEnc raftpb.Entry.ty p).length) =
-                  (pbEnc raftpb.Entry.ty p).length := by word
+                have : sint.Z (W64 (entryEncC ec).length) =
+                  (entryEncC ec).length := by word
                 omega
-              have hcapge : (pbEnc raftpb.Entry.ty p).length ≤
+              have hcapge : (entryEncC ec).length ≤
                   uint.nat (slice.slice buf w8 (W64 0) (W64 0)).cap := by
                 simp only [slice.slice]
                 exact uint_nat_ge_of_sint (by unfold v2BufSize at Hbuflen; omega)
-              obtain ⟨hptr, hcap⟩ := Hb'.2 hcapge
+              obtain ⟨hptr, hcap⟩ := Hb' hcapge
               ihave %Hb'l := ownSlice_len _ _ _ $$ Hb'
               ihave ⟨%vs, -, Hbufs, Hbufc⟩ := ownSlice_slice_into_capacity (V := w8) (W64 0) buf.len b'
-                (pbEnc raftpb.Entry.ty p) $$ [$Hb' $Hb'c]
+                (entryEncC ec) $$ [$Hb' $Hb'c]
               · ipureintro
                 simp only [hcap, slice.slice, h0]
                 unfold v2BufSize at Hbuflen
@@ -587,21 +604,21 @@ theorem rafthttp.msgAppV2Encoder.encode.wp_proof
                 iframe HWr
                 isplitl
                 · iunfold v2EncOwn
-                  iexists buf, s8, s1, (pbEnc raftpb.Entry.ty p ++ vs).drop (sint.nat (W64 0)),
-                    (u64Le (W64 (pbEnc raftpb.Entry.ty p).length)).reverse, [W8 1]
+                  iexists buf, s8, s1, (entryEncC ec ++ vs).drop (sint.nat (W64 0)),
+                    (u64Le (W64 (entryEncC ec).length)).reverse, [W8 1]
                   iframe; iframe #; iframe %
                 iintro %h0; cases h0
               | nil =>
-              have hk2 : k2 = (pbEnc raftpb.Entry.ty p).length := Hk2.2.2 rfl
+              have hk2 : k2 = (entryEncC ec).length := Hk2.2.2 rfl
               subst hk2
-              rw [List.take_of_length_le (l := pbEnc raftpb.Entry.ty p) (Nat.le_refl _)]
+              rw [List.take_of_length_le (l := entryEncC ec) (Nat.le_refl _)]
               wp_auto
               wp_for_post
               iframe
               iexists (j + 1), _, _
               rw [show W64 ((j + 1 : Nat) : Int) = W64 j + W64 1 by word,
                 show cst.index + (W64 j + W64 1) = cst.index + W64 j + W64 1 by word,
-                entFrames_take_succ _ j (by simp [Hel]; omega), HEj]
+                entFrames_take_succ _ j (by simp [Hecl]; omega), HEj]
               simp only [u64Be, List.append_assoc] at *
               iframe
               ipureintro
@@ -613,28 +630,27 @@ theorem rafthttp.msgAppV2Encoder.encode.wp_proof
                 $$ [Hes] as Hes
               · iframe; iframe #; ipureintro; rw [hjz]; exact Hp
               (try wp_auto)
-              have hme : (pbEntry (GF := GF)).marshals e := trivial
-              have wpMM := wp_MustMarshalMessage pbEntry p e hme
-              simp only [pbEntry_ty, pbEntry_ro, pbEntry_wire] at wpMM
+              have wpMM := wp_MustMarshalMessage pbEntryC pbEntryC_reg p ec trivial (by simp; omega)
+              simp only [pbEntryC_ty, pbEntryC_roC, pbEncC_pbEntryC] at wpMM
               wp_apply wpMM $$ [] as %d ⟨Hd, -, -⟩
-              · iexact Hep
+              · iexact Hepc
               (try wp_auto)
               ihave #HAe : □ A (h ++ [W8 1] ++ (u64Le (W64 st.ents.length)).reverse ++
-                  entFrames ((els.map (pbEnc raftpb.Entry.ty)).take j) ++
-                  (u64Le (W64 (pbEnc raftpb.Entry.ty p).length)).reverse ++ pbEnc raftpb.Entry.ty p) $$ []
+                  entFrames ((c.f.entries.map entryEncC).take j) ++
+                  (u64Le (W64 (entryEncC ec).length)).reverse ++ entryEncC ec) $$ []
               · imodintro
                 ihave H := HAp $$ %([W8 1] ++ (u64Le (W64 st.ents.length)).reverse ++
-                  entFrames ((els.map (pbEnc raftpb.Entry.ty)).take j) ++
-                  (u64Le (W64 (pbEnc raftpb.Entry.ty p).length)).reverse ++ pbEnc raftpb.Entry.ty p) %(by
+                  entFrames ((c.f.entries.map entryEncC).take j) ++
+                  (u64Le (W64 (entryEncC ec).length)).reverse ++ entryEncC ec) %(by
                     rw [hEj, hEl]
-                    exact ⟨entFrames ((els.map (pbEnc raftpb.Entry.ty)).drop (j + 1)) ++
+                    exact ⟨entFrames ((c.f.entries.map entryEncC).drop (j + 1)) ++
                       u64Be st.msg.Commit', by simp [u64Be, List.append_assoc]⟩)
                 simp only [List.append_assoc] at *
                 iexact H
-              wp_apply Hwr $$ %d %(DFrac.own 1) %(pbEnc raftpb.Entry.ty p)
+              wp_apply Hwr $$ %d %(DFrac.own 1) %(entryEncC ec)
                 %(h ++ [W8 1] ++ (u64Le (W64 st.ents.length)).reverse ++
-                  entFrames ((els.map (pbEnc raftpb.Entry.ty)).take j) ++
-                  (u64Le (W64 (pbEnc raftpb.Entry.ty p).length)).reverse) [$Hd $HWr $HAe]
+                  entFrames ((c.f.entries.map entryEncC).take j) ++
+                  (u64Le (W64 (entryEncC ec).length)).reverse) [$Hd $HWr $HAe]
                 as %n2 %err2 ⟨%k2, -, HWr, %Hk2, #Herr⟩
               (try wp_auto)
               cases err2 with
@@ -649,20 +665,20 @@ theorem rafthttp.msgAppV2Encoder.encode.wp_proof
                 isplitl
                 · iunfold v2EncOwn
                   iexists buf, s8, s1, zs',
-                    (u64Le (W64 (pbEnc raftpb.Entry.ty p).length)).reverse, [W8 1]
+                    (u64Le (W64 (entryEncC ec).length)).reverse, [W8 1]
                   iframe; iframe #; iframe %
                 iintro %h0; cases h0
               | nil =>
-              have hk2 : k2 = (pbEnc raftpb.Entry.ty p).length := Hk2.2.2 rfl
+              have hk2 : k2 = (entryEncC ec).length := Hk2.2.2 rfl
               subst hk2
-              rw [List.take_of_length_le (l := pbEnc raftpb.Entry.ty p) (Nat.le_refl _)]
+              rw [List.take_of_length_le (l := entryEncC ec) (Nat.le_refl _)]
               wp_auto
               wp_for_post
               iframe
               iexists (j + 1), _, _
               rw [show W64 ((j + 1 : Nat) : Int) = W64 j + W64 1 by word,
                 show cst.index + (W64 j + W64 1) = cst.index + W64 j + W64 1 by word,
-                entFrames_take_succ _ j (by simp [Hel]; omega), HEj]
+                entFrames_take_succ _ j (by simp [Hecl]; omega), HEj]
               simp only [u64Be, List.append_assoc] at *
               iframe
               ipureintro
@@ -672,7 +688,7 @@ theorem rafthttp.msgAppV2Encoder.encode.wp_proof
               have : sint.Z (W64 (j : Int)) = j := by word
               omega
             subst hjn
-            rw [List.take_of_length_le (by simp [Hel])]
+            rw [List.take_of_length_le (by simp [Hecl])]
             wp_apply wp_GetCommit.1 ml DFrac.discard DFrac.discard false st $$ [] as -
             · iexact Hm
             (try wp_auto)
@@ -682,7 +698,7 @@ theorem rafthttp.msgAppV2Encoder.encode.wp_proof
             simp only [List.append_nil]
             (try wp_auto)
             ihave #HAc : □ A (h ++ [W8 1] ++ (u64Le (W64 st.ents.length)).reverse ++
-                entFrames (els.map (pbEnc raftpb.Entry.ty)) ++ (u64Le st.msg.Commit').reverse) $$ []
+                entFrames (c.f.entries.map entryEncC) ++ (u64Le st.msg.Commit').reverse) $$ []
             · imodintro
               ihave H := HAp $$ %_ %(List.prefix_refl _)
               simp only [shortBytes, hEl, u64Be, List.append_assoc, List.cons_append,
@@ -690,7 +706,7 @@ theorem rafthttp.msgAppV2Encoder.encode.wp_proof
               iexact H
             wp_apply Hwr $$ %s8 %(DFrac.own 1) %((u64Le st.msg.Commit').reverse)
               %(h ++ [W8 1] ++ (u64Le (W64 st.ents.length)).reverse ++
-                entFrames (els.map (pbEnc raftpb.Entry.ty))) [$Hs8s $HWr $HAc]
+                entFrames (c.f.entries.map entryEncC)) [$Hs8s $HWr $HAc]
               as %n %err ⟨%k, Hs8s, HWr, %Hk, #Herr⟩
             (try wp_auto)
             have Hxc : ((u64Le st.msg.Commit').reverse).length = 8 := by simp [u64Le_length]

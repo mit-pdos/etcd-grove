@@ -52,7 +52,7 @@ abbrev EtcdServer.start.spec : Prop :=
     (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames) (b : GoInterface)
     (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      ⌜E.authMode = C.mode ∧ acReceiptOk (GF := GF) C ∧ receiptBound GF ≤ N + 1 ∧ ai₀ = W64 0⌝ ∗
+      ⌜E.authMode = C.mode ∧ receiptBound GF ≤ 2 ^ 48 ∧ receiptBound GF ≤ N + 1 ∧ ai₀ = W64 0⌝ ∗
       isServerBuiltC C s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ∗ acLessor C s }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"start")) (Val #()))
   {{ RET #(); ∃ γw : GName, isServerReqM C.isOn s E { ρ with wait := γw } ∗

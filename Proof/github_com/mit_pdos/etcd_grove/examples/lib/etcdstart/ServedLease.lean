@@ -21,7 +21,7 @@ that cluster, the plan's Q1). The grant handler calls the server's (`v3rpc.lesso
 pass 2(c), 2026-11-06): the same, with the member's `Watch` stream served at the address,
 `noRefusalAt` and `srvGoRes` (what `cluster3.memberServed` keeps in every lease mode).
 
-Why one member's lessor (review S5): the contracts name `E.γ.leases`, this member's, not a
+Why one member's lessor (review S5): the contracts name `(mvcc.api.mvccLeases E.γ)`, this member's, not a
 cluster-level certificate, because Go's listing is member-local: `LeaseLeases` reads the member's
 own lessor without a read index (`v3_server.go:737-749`), so a lagging member need not list a lease
 the cluster granted, and a cluster-level contract would be false. With several endpoints the client
@@ -57,46 +57,46 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- **`LeaseGrant` and `LeaseLeases` registered at the specs at the lessor `E.γ.leases`'s
+/-- **`LeaseGrant` and `LeaseLeases` registered at the specs at the lessor `(mvcc.api.mvccLeases E.γ)`'s
 history** (persistent). Per member, not per cluster: `LeaseLeases` is a member-local read (see
 the file header). -/
-def etcdLeaseGrantAt (addr : GoString) (E : apply.AEnv GF) : IProp GF :=
+def etcdLeaseGrantAt (addr : GoString) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
   iprop(isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseGrant"
-      (etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E) E.γ.leases) ∗
-    isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseLeases" (etcdLeaseLeasesSpec E.γ.leases))
+      (etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E γr false) (mvcc.api.mvccLeases E.γ)) ∗
+    isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseLeases" (etcdLeaseLeasesSpec (mvcc.api.mvccLeases E.γ)))
 
-instance etcdLeaseGrantAt_persistent (addr : GoString) (E : apply.AEnv GF) :
-    Persistent (etcdLeaseGrantAt addr E) := by
+instance etcdLeaseGrantAt_persistent (addr : GoString) (E : apply.AEnv GF) (γr : ReadNames) :
+    Persistent (etcdLeaseGrantAt addr E γr) := by
   unfold etcdLeaseGrantAt; infer_instance
 
 omit [HasExt idIssueExt] cache_sem in
 /-- **`etcdLeaseGrantAt` gives its two registrations** (lease-mono3's review r2, N1: the
 elimination a client uses in place of unfolding the definition). -/
-theorem etcdLeaseGrantAt_elim (addr : GoString) (E : apply.AEnv GF) :
-    etcdLeaseGrantAt addr E ⊢
+theorem etcdLeaseGrantAt_elim (addr : GoString) (E : apply.AEnv GF) (γr : ReadNames) :
+    etcdLeaseGrantAt addr E γr ⊢
       isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseGrant"
-          (etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E) E.γ.leases) ∗
-        isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseLeases" (etcdLeaseLeasesSpec E.γ.leases) := by
+          (etcdLeaseGrantSpec (EM := v3rpc.etcdModelOfServer E γr false) (mvcc.api.mvccLeases E.γ)) ∗
+        isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseLeases" (etcdLeaseLeasesSpec (mvcc.api.mvccLeases E.γ)) := by
   iintro #H
   iunfold etcdLeaseGrantAt at H
   iexact H
 
 /-- **`LeaseGrant`, `LeaseTimeToLive` and `LeaseLeases` registered at the revocable mode's specs**
 (persistent; the lease-expiry plan's X2, 2026-11-04, the reads since E3, 2026-11-05): a grant's reply
-carries its lease live in the lessor `E.γ.leases`'s history and its request, the requested TTL
+carries its lease live in the lessor `(mvcc.api.mvccLeases E.γ)`'s history and its request, the requested TTL
 (`etcdLeaseGrantSpecLive`; the lease-expiry plan's S2–S4, Q-S8; review r1 F12: until then the
 lease's read-only `ttl` field at least the request); a TTL reply, at the caller's lower bound of the history, the lease's TTL there or its absence, under the
 lease-TTL row of the server `s` (`etcdLeaseTTLSpecLive`); a listing, the lease ids of a snapshot no
 older than the caller's lower bound (`etcdLeaseLeasesSpecLive`: no grant listed, the lessor may have
 revoked it). -/
-def etcdLeaseGrantLiveAt (addr : GoString) (s : Loc) (E : apply.AEnv GF) : IProp GF :=
+def etcdLeaseGrantLiveAt (addr : GoString) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
   iprop(isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseGrant"
-      (etcdLeaseGrantSpecLive (EM := v3rpc.etcdModelOfServer E) E.γ.leases) ∗
-    isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseTimeToLive" (etcdLeaseTTLSpecLive E.γ.leases s) ∗
-    isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseLeases" (etcdLeaseLeasesSpecLive E.γ.leases))
+      (etcdLeaseGrantSpecLive (EM := v3rpc.etcdModelOfServer E γr false) (mvcc.api.mvccLeases E.γ)) ∗
+    isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseTimeToLive" (etcdLeaseTTLSpecLive (mvcc.api.mvccLeases E.γ) s) ∗
+    isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseLeases" (etcdLeaseLeasesSpecLive (mvcc.api.mvccLeases E.γ)))
 
-instance etcdLeaseGrantLiveAt_persistent (addr : GoString) (s : Loc) (E : apply.AEnv GF) :
-    Persistent (etcdLeaseGrantLiveAt addr s E) := by
+instance etcdLeaseGrantLiveAt_persistent (addr : GoString) (s : Loc) (E : apply.AEnv GF)
+    (γr : ReadNames) : Persistent (etcdLeaseGrantLiveAt addr s E γr) := by
   unfold etcdLeaseGrantLiveAt; infer_instance
 
 /-- **What a served member registers besides the lease reads, by its lease mode `m`** (the
@@ -108,8 +108,8 @@ def etcdLeaseServedAt (m : lease.Mode) (addr : GoString) (s : Loc) (E : apply.AE
     (ρ : ReqNames) (γr : ReadNames) (cid mid : w64) : IProp GF :=
   match m with
   | .none => etcdKVAt addr E ρ γr cid mid
-  | .mono => etcdLeaseGrantAt addr E
-  | .revocable => etcdLeaseGrantLiveAt addr s E
+  | .mono => etcdLeaseGrantAt addr E γr
+  | .revocable => etcdLeaseGrantLiveAt addr s E γr
 
 instance etcdLeaseServedAt_persistent (m : lease.Mode) (addr : GoString) (s : Loc)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cid mid : w64) :
@@ -128,7 +128,7 @@ omit [HasExt idIssueExt] cache_sem in
 history** (`rfl`; lease-mono3's review r2, N1). -/
 theorem etcdLeaseServedAt_mono (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (γr : ReadNames) (cid mid : w64) :
-    etcdLeaseServedAt .mono addr s E ρ γr cid mid = etcdLeaseGrantAt addr E := rfl
+    etcdLeaseServedAt .mono addr s E ρ γr cid mid = etcdLeaseGrantAt addr E γr := rfl
 
 /-- **`kv_lease_served`, with what the watch service needs** (lease-mono3's pass 2(c),
 2026-11-06): its post, and the `GoAttach` resources `grpcUp` holds (`srvGoRes`), the stream
@@ -151,7 +151,7 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
           ⌜v3rpc.watchSReg pw ∈ sregs ∧ R.s = s ∧ R.E = E⌝ ∗
           grpcStreamServerAt addr [ims, is] sregs ∗ v3rpc.isWatchServer pw R ∗
           srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorOk is iprop(True) ∗
-          [∗list] _x ∈ List.replicate 1 (), v3rpc.watchRunSlot R) ∗
+          mvcc.api.mvccReaders E.γ 64 ∗ E.RD) ∗
         client.etcdLeaseReadAt addr ∗ etcdLeaseServedAt m addr s E ρ γr cid mid := by
   iintro ⟨#Pv3, #Psrv, #Hreq, #Hrd, #Hlr, Htok, ⟨Hlts, Hlgs, Hrds, Hsts, Hrslots, Hbms⟩, Hup⟩
   iunfold grpcUp at Hup
@@ -161,19 +161,9 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
   -- the one gRPC slot, with the thread token
   icases replicate_take2 _ _ (by omega) $$ Hlts with ⟨-, -, Hlts⟩
   icases replicate_take2 _ _ (by omega) $$ Hrds with ⟨Hrd1, -, Hrds⟩
-  -- the watch service's one run slot: two of the watchable store's readers, one of the request
-  -- path's
-  ihave Hwslots := client.watchRunSlots_of R 1 64 1 (by omega) (by omega) $$ [HWRs Hrd1]
-  · rw [hRw, hRγ, hRE]
-    iframe HWRs
-    isplitl [Hrd1]
-    · simp only [List.replicate]
-      iapply BigSepL.bigSepL_cons.2
-      iframe Hrd1
-      iapply BigSepL.bigSepL_nil.2; itrivial
-    ipureintro
-    rw [sync.rwmutex.actualMaxReaders_unseal]
-    omega
+  -- the watch service's stock: the watchable store's reader tokens, one of the request path's
+  ihave Hwslots : iprop(mvcc.api.mvccReaders E.γ 64 ∗ E.RD) $$ [HWRs Hrd1]
+  · iframe
   ihave Hslots := client.etcdGrpcSlots_of_started s E γr 1 (64 - 2) 64
       memberReadN 64 (by omega) (by omega)
       one_le_memberReadN
@@ -200,24 +190,30 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
   · rw [Hoff, isServerReadM_false]; iexact Hrd
   ihave #HreqM : isServerReqM E.authOn s E ρ $$ []
   · rw [Hoff, isServerReqM_false]; iexact Hreq
+  -- (R9, the `lean` merge) the read view's witness, the model's tie (`E.Nx = kvNx γr false`)
+  ihave %hNx : ⌜E.Nx = srvApi.kvNx γr false⌝ $$ []
+  · ihave #Hinvs := srvKVInvs_of_read s E γr $$ Hrd
+    iunfold srvKVInvs at Hinvs
+    icases Hinvs with ⟨-, -, -, -, -, %h, -⟩
+    ipureintro; rw [h]; rfl
   ihave #HaLL := srvAuthLeaseLb_of_server s E γr (Or.inl hM) $$ []
   · iframe #
   icases v3rpc.srvHeaderFacts_server E.authOn s E ρ $$ HreqM with ⟨%cs, %ms, #Hhf⟩
   iunfold srvLeaseRd at Hlr
   icases Hlr with ⟨%on, #Hli⟩
   ihave ⟨#Hlrd, #Hpool⟩ := lease.srvInv_lessorRd on s E m $$ Hli
-  ihave #HLR := v3rpc.raftLeaseRead_server s E ρ γr E.γ.leases cs ms HT
+  ihave #HLR := v3rpc.raftLeaseRead_server s E ρ γr (mvcc.api.mvccLeases E.γ) cs ms HT
       (Nat.le_trans Hrb (Nat.pow_le_pow_right (by decide) (by decide))) hP $$ []
   · iframe #
   -- the lower bounds `0`
-  ihave #HRI : lease.lessorRdInv E.γ.leases $$ []
+  ihave #HRI : lease.lessorRdInv (mvcc.api.mvccLeases E.γ) $$ []
   · iunfold srvLessorRd at Hlrd
     icases Hlrd with ⟨%lp, -, #Hinv⟩
     iunfold lease.lessorInv at Hinv
     icases Hinv with ⟨-, -, -, #H⟩
     iexact H
-  imod (lease.lessorLb_get E.γ.leases ⊤ (fun _ _ => CoPset.mem_full)) $$ HRI with ⟨%m0, #Hlb⟩
-  ihave #Hlb0 := lease.lessorLb_le E.γ.leases 0 (Nat.zero_le _) $$ Hlb
+  imod (lease.lessorLb_get (mvcc.api.mvccLeases E.γ) ⊤ (fun _ _ => CoPset.mem_full)) $$ HRI with ⟨%m0, #Hlb⟩
+  ihave #Hlb0 := lease.lessorLb_le (mvcc.api.mvccLeases E.γ) 0 (Nat.zero_le _) $$ Hlb
   imod (authPubLbM_zero (GF := GF) E.authMode) with #Hpub
   -- the lease reads' meets, at the slot
   iunfold grpcLeaseUp at Hlu
@@ -228,7 +224,7 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
   cases m with
   | none =>
     -- the KV calls and the lease reads
-    ihave #Hlms := client.etcd_leaseReadMethodsOk pl ql s C.A lcid lmid E γr E.γ.leases il im iu
+    ihave #Hlms := client.etcd_leaseReadMethodsOk pl ql s C.A lcid lmid E γr (mvcc.api.mvccLeases E.γ) il im iu
         (by rw [HCA]; rfl) $$ []
     · iframe #
     rw [HCA]
@@ -252,7 +248,7 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
       imodintro
       iunfold idCred
       ipureintro; exact Hrb
-    simp only [client.etcdLeaseReadMethods]
+    simp only [client.etcdLeaseReadMethods, pbLeaseLeasesRequestT, pbLeaseLeasesResponseT, pbLeaseTimeToLiveRequestT, pbLeaseTimeToLiveResponseT]
     icases Hle with ⟨#H1, #H2, -⟩
     ihave #H1' := (isGrpcRpc_md _ _ _).2 $$ H1
     ihave #H2' := (isGrpcRpc_md _ _ _).2 $$ H2
@@ -284,12 +280,12 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
       iintro ⟨Hlt, Hrd⟩
       iframe
     ihave #Hlms := client.etcd_leaseGrantMethodsOk pl ql s C.A lcid lmid E γr il im iu
-        (by rw [HCA]; rfl) Hoff $$ []
+        (by rw [HCA]; rfl) Hoff hNx $$ []
     · iframe #
     rw [HCA]
     imod (client.etcd_kv_started_with addr gs q p s lis E ρ γr cid mid C.n il im iu ims is svcs regs
         sregs 1 iprop(client.etcdGrpcSlot s E γr ∗ threadTok) threadTok
-        (client.etcdLeaseGrantMethods ql E) (by iintro H; iexact H) (by iintro H; iexact H)
+        (client.etcdLeaseGrantMethods ql E γr) (by iintro H; iexact H) (by iintro H; iexact H)
         (by
           simp only [client.etcdKVMethods, client.etcdLeaseGrantMethods, List.map, List.cons_append,
             List.nil_append]
@@ -307,12 +303,12 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
       imodintro
       iunfold idCred
       ipureintro; exact Hrb
-    simp only [client.etcdLeaseGrantMethods]
+    simp only [client.etcdLeaseGrantMethods, pbLeaseGrantRequestT, pbLeaseGrantResponseT, pbLeaseLeasesRequestT, pbLeaseLeasesResponseT, pbLeaseTimeToLiveRequestT, pbLeaseTimeToLiveResponseT]
     icases Hle with ⟨#H1, #H2, #H3, -⟩
     ihave #H1' := (isGrpcRpc_md _ _ _).2 $$ H1
     ihave #H2' := (isGrpcRpc_md _ _ _).2 $$ H2
     ihave #H3' := (isGrpcRpc_md _ _ _).2 $$ H3
-    ihave #H2a := isGrpcRpc_leaseLeases_any addr E.γ.leases $$ H2'
+    ihave #H2a := isGrpcRpc_leaseLeases_any addr (mvcc.api.mvccLeases E.γ) $$ H2'
     imodintro
     iframe Hserv Hgo
     isplitl [Hss Hwslots]
@@ -342,12 +338,12 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
       iintro ⟨Hlt, Hrd⟩
       iframe
     ihave #Hlms := client.etcd_leaseGrantLiveMethodsOk pl ql s C.A lcid lmid E γr il im iu
-        (by rw [HCA]; rfl) Hoff $$ []
+        (by rw [HCA]; rfl) Hoff hNx $$ []
     · iframe #
     rw [HCA]
     imod (client.etcd_kv_started_with addr gs q p s lis E ρ γr cid mid C.n il im iu ims is svcs regs
         sregs 1 iprop(client.etcdGrpcSlot s E γr ∗ threadTok) threadTok
-        (client.etcdLeaseGrantLiveMethods ql s E) (by iintro H; iexact H) (by iintro H; iexact H)
+        (client.etcdLeaseGrantLiveMethods ql s E γr) (by iintro H; iexact H) (by iintro H; iexact H)
         (by
           simp only [client.etcdKVMethods, client.etcdLeaseGrantLiveMethods, List.map,
             List.cons_append, List.nil_append]
@@ -365,14 +361,14 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
       imodintro
       iunfold idCred
       ipureintro; exact Hrb
-    simp only [client.etcdLeaseGrantLiveMethods]
+    simp only [client.etcdLeaseGrantLiveMethods, pbLeaseGrantRequestT, pbLeaseGrantResponseT, pbLeaseLeasesRequestT, pbLeaseLeasesResponseT, pbLeaseTimeToLiveRequestT, pbLeaseTimeToLiveResponseT]
     icases Hle with ⟨#H1, #H2, #H3, -⟩
     ihave #H1' := (isGrpcRpc_md _ _ _).2 $$ H1
     ihave #H2' := (isGrpcRpc_md _ _ _).2 $$ H2
     ihave #H3' := (isGrpcRpc_md _ _ _).2 $$ H3
     -- the lease reads at the old specs, from the revocable mode's, at the lower bound `0`
-    ihave #H1a := isGrpcRpc_leaseTTL_live_any addr E.γ.leases s 0 $$ [$Hlb0 $H1']
-    ihave #H2a := isGrpcRpc_leaseLeases_live_any addr E.γ.leases 0 $$ [$Hlb0 $H2']
+    ihave #H1a := isGrpcRpc_leaseTTL_live_any addr (mvcc.api.mvccLeases E.γ) s 0 $$ [$Hlb0 $H1']
+    ihave #H2a := isGrpcRpc_leaseLeases_live_any addr (mvcc.api.mvccLeases E.γ) 0 $$ [$Hlb0 $H2']
     imodintro
     iframe Hserv Hgo
     isplitl [Hss Hwslots]
@@ -418,27 +414,30 @@ holds (`srvGoRes`, back to the caller), the lease reads and the mode's registrat
 (`etcdLeaseServedAt`), the watch server `R` with its `Watch` stream served at the address
 (`v3rpc.etcd_watch_served_chain`, at one watch run slot), and the address refusal-free
 (`grpcUp_noRefusal`: `etcd_noRefusal`, authentication off). -/
-theorem kv_lease_served_watch (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
+theorem kv_lease_served_watch (hRS : mvcc.api.mvccReaders_split.law (GF := GF)) (s : Loc)
+    (E : apply.AEnv GF) (ρ : ReqNames)
     (γr : ReadNames) (gs : Loc) (lis : GoInterface) (addr : GoString) (cid mid : w64)
     (R : v3rpc.WSrv GF) (Hrb : receiptBound GF ≤ 2 ^ 48) (HT : threadBound GF ≤ 2 ^ 30 - 1)
     (Hrf : grpcRepliesFit) (hP : leasePeersOk) (hρ : ρ.rd = γr) (m : lease.Mode)
     (hm : ρ.rd.kv.lm = m)
     (hset : go.typeSetContains
       (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty)
-      go_etcd_io.etcd.api.v3.etcdserverpb.WatchServer.ty = true) :
+      go_etcd_io.etcd.api.v3.etcdserverpb.WatchServer.ty = true)
+    -- (R9, the `lean` merge) the watch path's server facts at `W`, on the store's names
+    (W : v3rpc.SrvW GF) (hW : W.γm = E.γ) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ∗ srvLeaseRd s E m ∗ threadTok ∗
         kvServeStocks s E γr ∗
-        grpcUp s E ρ γr gs lis addr cid mid R ⊢
+        grpcUp s E ρ γr gs lis addr cid mid R ∗ v3rpc.srvWOk W R.wsl v3rpc.wsN ⊢
       |={⊤}=> grpcServeTok gs lis ∗ srvGoRes s ∗ client.etcdLeaseReadAt addr ∗
         etcdLeaseServedAt m addr s E ρ γr cid mid ∗
         (∃ pw : Loc, v3rpc.isWatchServer pw R) ∗ ⌜R.s = s ∧ R.E = E⌝ ∗
         isGrpcStreamMd (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) addr
           go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp R)
-          (fun md γs Dn => v3rpc.watchStreamSpec γs R.γ R.s (auth.mdTokenOf md) R.cid R.mid Dn) ∗
+          (fun md γs Dn => v3rpc.watchStreamSpec γs R W (auth.mdTokenOf md) Dn) ∗
         ⌜noRefusalAt addr⌝ := by
-  iintro ⟨#Pv3, #Psrv, #Hreq, #Hrd, Hlr, Htok, Hst, Hup⟩
+  iintro ⟨#Pv3, #Psrv, #Hreq, #Hrd, Hlr, Htok, Hst, Hup, HW⟩
   ihave %Hoff := isServerReq_authOff s E ρ $$ Hreq
   ihave ⟨Hup, %Hnr⟩ := grpcUp_noRefusal s E ρ γr gs lis addr cid mid R Hoff $$ [Hup]
   · iframe Hup; iframe #
@@ -449,7 +448,21 @@ theorem kv_lease_served_watch (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
   obtain ⟨Hwreg, hRs, hRE⟩ := HW
   ihave #Ppb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
   · iPkgInit
-  imod (v3rpc.etcd_watch_served_chain addr pw R ims is sregs 1 hset Hwreg) $$ [Hss Hwslots]
+  -- the one watch run slot: two of the store's reader tokens, one of the request path's
+  icases Hwslots with ⟨Hrds, Hrd1⟩
+  icases (hRS E.γ 2 62).1 $$ Hrds with ⟨Hrd2, -⟩
+  ihave Hslot := client.watchRunSlots_of hRS R W 1 1 (Nat.le_refl _) $$ [Hrd2 Hrd1]
+  · rw [hW, hRE]
+    iframe Hrd2
+    isplitl [Hrd1]
+    · simp only [List.replicate]
+      iapply BigSepL.bigSepL_cons.2
+      iframe Hrd1
+      iapply BigSepL.bigSepL_nil.2; itrivial
+    ipureintro
+    rw [sync.rwmutex.actualMaxReaders_unseal]
+    omega
+  imod (v3rpc.etcd_watch_served_chain addr pw R W ims is sregs 1 hset Hwreg) $$ [Hss Hslot HW]
     with #Hwst
   · iframe; iframe #
   imodintro

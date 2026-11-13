@@ -274,7 +274,7 @@ theorem kvRaftOf_restorable (c₀ : w64) (ch : apply.Chain) (log₀ : mvcc.Log) 
       ∀ cs ∈ (kvRaftOf c₀ ch log₀ A).drop log₀.length, cs ≠ [] :=
   kvRaftSt_restorable c₀ ch (log₀, []) A hA hl
 
-/-- **`restoreLogOk` of the KV model's tail** (`applySnapshot.specSnap`'s `hRok`): the model of a
+/-- **`restoreLogOk` of the KV model's tail** (`applySnapshot.specSnapM`'s `hRok`): the model of a
 plain log from `NewStore`'s two empty revisions, well formed as a store's committed log
 (`IdxWf`, the image's certificate's, from the sender's store). -/
 theorem restoreLogOk_kvRaftOf (c₀ : w64) (ch : apply.Chain) (A : List EntryModel)
@@ -284,13 +284,11 @@ theorem restoreLogOk_kvRaftOf (c₀ : w64) (ch : apply.Chain) (A : List EntryMod
   have hl0 : mvcc.LogNoLease ([[], []] : mvcc.Log) := by
     intro cs hcs c hc; simp only [List.mem_cons, List.not_mem_nil, or_false] at hcs
     rcases hcs with rfl | rfl <;> simp at hc
-  obtain ⟨hnl, hne⟩ := kvRaftOf_restorable c₀ ch [[], []] A hA hl0
+  obtain ⟨-, hne⟩ := kvRaftOf_restorable c₀ ch [[], []] A hA hl0
   obtain ⟨T, hT⟩ := kvRaftOf_extends c₀ ch [[], []] A
   have hsplit : [[], []] ++ (kvRaftOf c₀ ch [[], []] A).drop 2 = kvRaftOf c₀ ch [[], []] A := by
     rw [← hT]; simp
-  refine ⟨fun cs hcs => hne cs (by simpa using hcs), by rw [hsplit]; exact hwf, ?_⟩
-  intro cs hcs c hc k v l hcl
-  exact hnl cs (List.mem_of_mem_drop hcs) c hc k v l hcl
+  exact ⟨fun cs hcs => hne cs (by simpa using hcs), by rw [hsplit]; exact hwf⟩
 
 end EtcdGrove
 end Perennial

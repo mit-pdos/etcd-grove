@@ -10,6 +10,7 @@ is linked. `Results.lean` restates it.
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiry.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.go_etcd_io.etcd.client.v3.Link
@@ -41,17 +42,16 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiry.Assumptions]
 
 /-- **The adequacy example's `Main` does not panic** (see the file header;
-`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiry/Main.lean`), under the semantic premises of
-its callees' linked results: `int64(f)` of a `float64` (`Float64ToInt64Semantics`, the server's)
-and the client's `dialWithBalancer` body (`DialWithBalancerBody`). The expiry arm of `run` in a
+`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiry/Main.lean`), under the semantic premise of
+its callees' linked results: the client's `dialWithBalancer` body (`DialWithBalancerBody`). The expiry arm of `run` in a
 cluster whose leases expire is `revokeExpiredLeases`' linked result (`srvRevokeOpen_intro`;
 revoke-open pass 2, 2026-11-06: until then the `sorry` `srvRevokeOpen_open`). -/
-theorem etcd_leaseexpiry.wp_Main [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem etcd_leaseexpiry.wp_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_leaseexpiry.Main.spec (GF := GF) (hG := hG) :=
   etcd_leaseexpiry.Main.wp_proof zap.NewNop.wp_proof etcd_leaseexpiry.holdToken.wp_proof etcdstart.wp_StartServer etcdstart.wp_Serve
     etcdstart.wp_NewClient context.wp_Background context.WithTimeoutBackground.wp_proof
     context.wp_ErrAny time.wp_Sleep client.v3.lessor.wp_Grant client.v3.lessor.wp_TimeToLive
-    client.v3.lessor.wp_Leases (srvRevokeOpen_intro EtcdServer.wp_revokeExpiredLeases)
+    client.v3.lessor.wp_Leases (srvRevokeOpen_intro EtcdServer.wp_revokeExpiredLeases) mvcc.api.mvccApi_names_nonempty_law_holds
 
 end results
 

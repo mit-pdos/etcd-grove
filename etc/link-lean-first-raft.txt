@@ -66,7 +66,10 @@ raftpb_ConfChange__GetContext:
 raftpb_ConfChange__GetId:
 raftpb_ConfChange__GetNodeId:
 raftpb_ConfChange__GetType:
-raftpb_ConfState__Equivalent: proto_CloneConfState slices_Sort raftpb_ConfState__GetAutoLeave proto_EqualConfState
+raftpb_ConfState__Equivalent: proto_CloneConfState slices_Sort raftpb_ConfState__GetAutoLeave raftpb_confStatesEqual
+raftpb_confStatesEqual: raftpb_idsEqual raftpb_boolOf
+raftpb_idsEqual:
+raftpb_boolOf:
 raftpb_ConfState__GetAutoLeave:
 raftpb_ConfState__GetLearners:
 raftpb_ConfState__GetLearnersNext:
@@ -107,7 +110,6 @@ raftpb_Snapshot__GetMetadata:
 proto_CloneConfState:
 proto_CloneEntry:
 proto_CloneSnapshot:
-proto_EqualConfState:
 proto_MarshalConfChange:
 proto_MarshalConfChangeV2:
 proto_SizeEntry:

@@ -4,6 +4,7 @@ counterpart).
 -/
 module
 
+public import Proof.go_opentelemetry_io.otel.trace.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReqOn
 
@@ -44,8 +45,8 @@ abbrev EtcdServer.Put.spec : Prop :=
     (cd : context.ContextDesc (IProp GF)) (r : Loc) (op : OpFull)
     (Q : KVState → IProp GF) (F : mvcc.Log),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerReqM E.authOn s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗ context.isContext ctx cd ∗
-      txn.putRequestIs r op ∗ putPermitM E.authOn ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) op Q ∗ mvcc.idxCert E.γ.idx F }}
+      isServerReqM E.authOn s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗ context.isContext ctx cd ∗ trace.spanCtxOk ctx ∗
+      txn.putRequestIs r op ∗ putPermitM E.authOn ρ.raft ρ.kv (hdrBoundM true s E (GoInterface.ok ctx)) op Q ∗ srvApi.kvLogLb E.γs F }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Put"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD ∗
@@ -55,8 +56,10 @@ abbrev EtcdServer.Put.spec : Prop :=
             (∃ log', o = .applied log' false) ∧ F <+: x.log⌝ ∗
           apply.putOutcomeIs x.log op resp GoInterface.nil o ∗
           apply.appliedHdr x.log (structFieldRef etcdserverpb.PutResponse go!"Header" resp) ∗
-          mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit ρ.rd x'.log ∗
-          mvcc.certOk E.γ x'.log ∗ Q (kvStateOf x.log) ∗
+          srvApi.kvLogLb E.γs x'.log ∗ revMinted E x.log x'.log ∗ appliedWit ρ.rd x'.log ∗
+          E.Nx x'.log ∗
+          ⧖ (mvcc.logCh x'.log) ∗ ⌜mvcc.LogWf' x'.log ∧ x'.log.length + 3 ≤ 2 ^ 63⌝ ∗
+          Q (kvStateOf x.log) ∗
           hdrBoundM E.authOn s E (GoInterface.ok ctx) hm ∗
           □ (⌜E.authOn = true⌝ → ∃ L, ⌜grantedAt ρ.kv srvAuthSt0 (apply.withHeader (irrPut op) hm) L⌝ ∗
             pubAfterM true E ρ (apply.withHeader (irrPut op) hm) L)) ∨

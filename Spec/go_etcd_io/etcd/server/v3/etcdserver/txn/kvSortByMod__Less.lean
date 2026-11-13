@@ -1,5 +1,5 @@
 /-
-`kvSortByMod.Less` (`range.go`): Go's `(a - b) < 0` on the two `ModRevision`s, the signed order on non-negative values (`kvOk`: no overflow, `sub_neg_iff`). Lean-first; see `InvRange.lean`, `RangeModel.lean`.
+`kvSortByMod.Less` (`range.go`): Go's `(a - b) < 0` on the two `ModRevision`s, the signed order on the values safe to sort (`mvcc.api.kvSortOk`: positive, so no overflow, `sub_neg_iff`). Lean-first; see `InvRange.lean`, `RangeModel.lean`.
 -/
 module
 
@@ -32,7 +32,7 @@ abbrev txn.kvSortByMod.Less.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
       sp.[kvSortByMod, go!"kvSort"] ↦□ ks ∗ ks.[kvSort, go!"kvs"] ↦□ sl ∗
       sl ↦*{dq} l.map Prod.fst ∗ txn.kvsAt l ∗
-      ⌜0 ≤ sint.Z i ∧ 0 ≤ sint.Z j ∧ l[sint.nat i]? = some a ∧ l[sint.nat j]? = some b ∧ kvOk a.2 ∧ kvOk b.2⌝ }}
+      ⌜0 ≤ sint.Z i ∧ 0 ≤ sint.Z j ∧ l[sint.nat i]? = some a ∧ l[sint.nat j]? = some b ∧ mvcc.api.kvSortOk a.2 ∧ mvcc.api.kvSortOk b.2⌝ }}
     (App (App (Val (sp @!! go.GoType.PointerType kvSortByMod.ty @!! go!"Less")) (Val #i)) (Val #j))
   {{ RET #(txn.kvLtBy (W64 3) a.2 b.2); sl ↦*{dq} l.map Prod.fst ∗ txn.kvsAt l }}
 

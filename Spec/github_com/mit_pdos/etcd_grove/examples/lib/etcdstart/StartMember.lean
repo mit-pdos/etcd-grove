@@ -1,5 +1,5 @@
 /-
-`StartMember(name, peer, peerAddr, client, cluster, token, lg)` (`examples/lib/etcdstart/etcdstart.go`;
+`StartMember(name, peer, peerAddr, client, cluster, token, lg)` (`examples/lib/etcdstart/common.go`;
 2026-10-22, D33): member `name` of a new cluster started -- `NewMember` (the server, its raft
 handler served on a listener at its peer address), then `s.Start()`; putget3's and linkv3's
 `startMember`. Lean-first (no Rocq counterpart).
@@ -48,9 +48,10 @@ abbrev StartMember.spec : Prop :=
   -- (2026-11-02, the backend-auth-split stage, Q8) the initial cluster's names valid UTF-8,
   -- `bootPremise`'s condition
   (∀ k, (M.lookup k).isSome → utf8Valid k) →
-  lg ≠ null →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
+      -- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
+      zapLoggerOk lg ∗
       threadTok ∗
       peer ↦*□ [httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
       bootPremise N ps bootLog ctxs dir token name Uok id ∗ commonPremises ∗

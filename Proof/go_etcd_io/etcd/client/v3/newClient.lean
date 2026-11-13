@@ -70,8 +70,9 @@ theorem newClient.wp_proof
   ihave #Hvars : (clientNewVars : IProp GF) $$ []
   · iapply clientNewVars_of_init; iPkgInit
   iunfold clientCfgOk at Hcfg
-  icases Hcfg with ⟨#Heps, #Hdo, %Hc⟩
-  obtain ⟨Hplain, Htls, Htok, Hctx, Hlg, Hms, Hmr, Hrej, Has⟩ := Hc
+  icases Hcfg with ⟨#Heps, #Hdo, %Hc, #Hzlg⟩
+  obtain ⟨Hplain, Htls, Htok, Hctx, Hms, Hmr, Hrej, Has⟩ := Hc
+  ihave %Hlg := zapLoggerOk_ne_null _ $$ Hzlg
   ihave %Hpnn := typedPointsto_not_null _ _ _ $$ Hp
   ihave #Hpf := Hp
   iStructNamed Hpf
@@ -202,6 +203,8 @@ theorem newClient.wp_proof
   ipersist Token
   ipersist authTokenBundle
   ipersist callOpts
+  -- (sweep repairs 1, B5) the endpoints mutex is not nil (`clientCheckFields`)
+  icases typedPointsto_not_null_dup _ _ _ $$ «$v5» with ⟨«$v5», %Hv5nn⟩
   imod (sync.init_RWMutex (fun _ => iprop(True)) «$v5_ptr» (E := ⊤)) $$ [] «$v5» with Hslots
   · inext; itrivial
   icases sync.ownRWMutex_slots_guard _ _ $$ Hslots with ⟨-, #Hguard⟩
@@ -255,8 +258,10 @@ theorem newClient.wp_proof
       $$ [$Hpkg2 $conn $callOpts $Hcvs $Hcvok $HcLg'] as %wi ⟨%w, %wc, %wlg, %Hwi, #Hcw⟩
     · ipureintro; exact Hcnn
     wp_apply wp_NewAuth «$r0_ptr» conn $$ [$HkvS] as %va ⟨%ap, %Hva, #HapS⟩
-    wp_apply wp_NewMaintenance «$r0_ptr» $$ [$Hcore] as %vm -
-    subst Hvkv Hvl Hva
+    wp_apply wp_NewMaintenance «$r0_ptr» $$ [$Hcore] as %vm %Hvm
+    obtain ⟨mp, Hmpn, Hvm⟩ := Hvm
+    subst Hvkv Hvl Hva Hvm
+    ipersist Maintenance
     ipersist KV
     ipersist Watcher
     ipersist Lease
@@ -303,7 +308,7 @@ theorem newClient.wp_proof
         □ (∀ Φ : val → IProp GF, ▷ Φ #() -∗ WP (App (Val #cf) (Val #())) {{ Φ }}))
       with [client ctx cancel] as ⟨%cx, %cd, %cf, client, ctx, cancel, #Hcx, #Hcf⟩
     · wp_apply context.wp_WithTimeout ctx' _ cfg.DialTimeout' $$ [$Hctx']
-        as %cx2 %γ2 %cf2 %dl ⟨#Hcf2, #Hcx2⟩
+        as %cx2 %γ2 %cf2 %dl ⟨#Hcf2, #Hcx2, -⟩
       wp_join_done
       iexists cx2, _, cf2
       iframe client ctx cancel Hcx2
@@ -368,8 +373,16 @@ theorem newClient.wp_proof
       · iunfold clientEndpointsAt
         iexists cfg.Endpoints'
         iframe endpoints Heps
-      iexists _
-      iexact HcliCtx
+      isplitl []
+      · iexists _
+        iframe HcliCtx
+        -- (sweep repairs 1, B5) not nil: `WithCancel`'s context
+        ipureintro; first | (intro h; cases h) | simp
+      -- (sweep repairs 1, B5) `Maintenance` and `epMu`, read-only, not nil
+      iunfold clientCheckFields
+      isplitl []
+      · iexists mp; iframe Maintenance; ipureintro; exact Hmpn
+      iexists _; iframe epMu; ipureintro; exact Hv5nn
     -- (C1) its KV calls carry the credentials' tokens meeting `P`
     unfold clientTokAt
     iexists api, conn

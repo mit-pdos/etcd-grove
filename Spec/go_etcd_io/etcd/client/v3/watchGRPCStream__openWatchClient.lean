@@ -50,7 +50,7 @@ abbrev watchGRPCStream.openWatchClient.spec : Prop :=
         v3rpc.cliWatchStreamIs ws γs (v3rpc.watchUp (V.mem i).2) Dn cd' ∗
         cliSendTok (Req := v3rpc.pbWatchRequest) γs [] ∗
         cliRecvTok (Rep := v3rpc.pbWatchResponse) γs [] ∗
-        v3rpc.watchSpec (V.mem i).2 (auth.mdTokenOf md) γs Dn) ∨
+        v3rpc.watchSpec (V.mem i).2 (V.memW i) (auth.mdTokenOf md) γs Dn) ∨
       (⌜ws = GoInterface.nil ∧ err ≠ GoInterface.nil⌝ ∗ statusErrOk err) }}
 
 end spec

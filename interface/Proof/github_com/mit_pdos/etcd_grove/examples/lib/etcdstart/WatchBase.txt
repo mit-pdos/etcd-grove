@@ -22,7 +22,7 @@ def etcdstart.GenKv (keys : List GoString) (p : etcdstart.wkv) : Prop :=
   p.Key' ∈ keys ∧ p.Val' ∈ etcdstart.genVals
 
 def etcdstart.revAt (E : apply.AEnv GF) (r : Nat) (k v : GoString) : IProp GF :=
-  iprop(∃ L, mvcc.idxSealed E.γ.idx L ∗ ⌜L[r]? = some [mvcc.Change.put k v (W64 0)]⌝)
+  iprop(∃ L, srvApi.kvLogLb E.γs L ∗ ⌜L[r]? = some [mvcc.Change.put k v (W64 0)]⌝)
 
 def etcdstart.collectOk (R : Nat → GoString → GoString → IProp GF) (P : List (GoString × GoString))
     (upTo : w64) (evs : List etcdstart.wev) : IProp GF :=

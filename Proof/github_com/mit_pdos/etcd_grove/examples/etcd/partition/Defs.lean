@@ -152,9 +152,9 @@ def clusterUp (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (pfx : GoString)
     cluster3.clusterAt clusterCfg false id₁ id₂ id₃ bootLog srvs brs γ γn ρ₁ ρ₂ ρ₃ E₁ E₂ E₃
       cid₁ cid₂ cid₃ mid₁ mid₂ mid₃ R₁ R₂ R₃ s₁ s₂ s₃ br₁ br₂ br₃ ∗
     clis ↦*□ [cl₁, cl₂, cl₃] ∗
-    isNewClient cl₁ (cluster3.bridges clusterCfg) (cluster3.watchEnv clusterCfg R₁ R₂ R₃ ρ₁.rd pfx) ∗
-    isNewClient cl₂ (cluster3.bridges clusterCfg) (cluster3.watchEnv clusterCfg R₁ R₂ R₃ ρ₁.rd pfx) ∗
-    isNewClient cl₃ (cluster3.bridges clusterCfg) (cluster3.watchEnv clusterCfg R₁ R₂ R₃ ρ₁.rd pfx))
+    isNewClient cl₁ (cluster3.bridges clusterCfg) (cluster3.watchEnv clusterCfg R₁ R₂ R₃ (etcdstart.srvWOf E₁ ρ₁.rd false) (etcdstart.srvWOf E₂ ρ₂.rd false) (etcdstart.srvWOf E₃ ρ₃.rd false) ρ₁.rd pfx) ∗
+    isNewClient cl₂ (cluster3.bridges clusterCfg) (cluster3.watchEnv clusterCfg R₁ R₂ R₃ (etcdstart.srvWOf E₁ ρ₁.rd false) (etcdstart.srvWOf E₂ ρ₂.rd false) (etcdstart.srvWOf E₃ ρ₃.rd false) ρ₁.rd pfx) ∗
+    isNewClient cl₃ (cluster3.bridges clusterCfg) (cluster3.watchEnv clusterCfg R₁ R₂ R₃ (etcdstart.srvWOf E₁ ρ₁.rd false) (etcdstart.srvWOf E₂ ρ₂.rd false) (etcdstart.srvWOf E₃ ρ₃.rd false) ρ₁.rd pfx))
 
 end cluster
 

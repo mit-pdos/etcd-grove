@@ -406,15 +406,15 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h6, h4, h5, h44, True.intro⟩
-  have h46 : GetIsPkgInitProp pkg_id.k8s_io.apiserver.pkg.features (getIsPkgInit (GF := GF)) := by
+  have h46 : GetIsPkgInitProp pkg_id.k8s_io.component_base.featuregate (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h47 : GetIsPkgInitProp pkg_id.k8s_io.component_base.featuregate (getIsPkgInit (GF := GF)) := by
+  have h47 : GetIsPkgInitProp pkg_id.k8s_io.apiserver.pkg.util.feature (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact True.intro
-  have h48 : GetIsPkgInitProp pkg_id.k8s_io.apiserver.pkg.util.feature (getIsPkgInit (GF := GF)) := by
+    exact ⟨h46, True.intro⟩
+  have h48 : GetIsPkgInitProp pkg_id.k8s_io.apiserver.pkg.features (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h47, True.intro⟩
@@ -501,7 +501,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h69 : GetIsPkgInitProp pkg_id.k8s_io.apiserver.pkg.storage (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h11, h9, h58, h54, h59, h60, h61, h0, h63, h12, h56, h55, h6, h5, h64, h65, h50, h66, h67, h46, h48, h1, h68, True.intro⟩
+    exact ⟨h11, h9, h58, h54, h59, h60, h61, h0, h63, h12, h56, h55, h6, h5, h64, h65, h50, h66, h67, h48, h47, h1, h68, True.intro⟩
   have h70 : GetIsPkgInitProp pkg_id.k8s_io.apiserver.pkg.storage.value (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -585,7 +585,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h90 : GetIsPkgInitProp pkg_id.k8s_io.apiserver.pkg.storage.etcd3 (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h4, h5, h41, h43, h44, h6, h11, h9, h40, h45, h46, h48, h0, h49, h12, h56, h55, h54, h57, h69, h70, h53, h71, h32, h72, h21, h61, h73, h74, h1, h51, h75, h63, h52, h77, h78, h25, h31, h58, h79, h66, h80, h81, h82, h88, h89, True.intro⟩
+    exact ⟨h4, h5, h41, h43, h44, h6, h11, h9, h40, h45, h48, h47, h0, h49, h12, h56, h55, h54, h57, h69, h70, h53, h71, h32, h72, h21, h61, h73, h74, h1, h51, h75, h63, h52, h77, h78, h25, h31, h58, h79, h66, h80, h81, h82, h88, h89, True.intro⟩
   have h91 : GetIsPkgInitProp pkg_id.net.url (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl

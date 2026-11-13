@@ -4,6 +4,7 @@ Proof of the spec of the same name. Lean-first (no Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3Corrupt__LeaseRevoke
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.WriteLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
 
 @[expose] public section
@@ -29,16 +30,18 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.applierV3Corrupt.LeaseRevoke.wp_proof :
     apply.applierV3Corrupt.LeaseRevoke.spec (GF := GF) (hG := hG) := by
   intro E c inner p r rq id log T rs Pre Q Post info
-  wp_start as ⟨-, Hpre⟩
+  wp_start as ⟨-, Htt, Hpre⟩
   ihave Hai : (go_etcd_io.etcd.server.v3.etcdserver.apply.applyInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hai with ⟨-, -, #Hev⟩
   icases applyErrVars_corrupt $$ Hev with ⟨%eC, #HeC, #HeI⟩
   iunfold apply.revokePre at Hpre
-  iunfold apply.mPre at Hpre
-  icases Hpre with ⟨%Hk, -, -, -, ⟨Hkv, Hres, Hcs⟩, Hrr⟩
+  icases Hpre with ⟨%Hk, -, -, Hm, Hrr⟩
+  icases apply.mPre_split_chain _ _ _ _ _ _ _ _ $$ Hm with ⟨Hm, Hres⟩
+  icases apply.mPreRest_reject _ _ _ _ _ $$ Hm with ⟨Hkv, HPre⟩
   wp_auto
   iapply HΦ
+  iframe Htt
   iunfold apply.revokeRes at Hrr
   icases Hrr with ⟨Hrdat, Hrev, HltT, HRO, -⟩
   · ihave #Hcls : apply.chainClass (GF := GF) E.authMode info (.corrupt c) rq (.rejected .corrupt) $$ []
@@ -65,7 +68,7 @@ theorem apply.applierV3Corrupt.LeaseRevoke.wp_proof :
       iframe HeC
       ipureintro; rfl
     iright
-    iapply apply.csContract_pre $$ Hcs
+    iexact HPre
 
 end proof
 

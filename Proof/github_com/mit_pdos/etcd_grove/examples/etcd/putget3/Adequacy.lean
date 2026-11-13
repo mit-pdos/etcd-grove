@@ -110,7 +110,7 @@ thread is stuck; no thread has ended in a panic. -/
 theorem etcd_putget3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.putget3.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC putget3GF, ContextReadErrs (GF := putget3GF) (hG := heapAt3 hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC putget3GF, ContextErrsClient (GF := putget3GF) (hG := heapAt3 hG lctx))
@@ -120,10 +120,11 @@ theorem etcd_putget3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (HNs : prometheus.namesUnclaimed putget3Program putget3Names)
     (HAs : addrsUnclaimed putget3Program putget3Addrs)
-    -- (2026-11-03, the WAL's API, change 6) the members' WAL directories, distinct (`WALDir()` of
-    -- the members' distinct data directories: `filepath.Join` is opaque here), hold no WAL at start
-    (HDsNd : [config.walDirOf (etcd_putget3.name₁ ++ go!".etcd") go!"", config.walDirOf (etcd_putget3.name₂ ++ go!".etcd") go!"", config.walDirOf (etcd_putget3.name₃ ++ go!".etcd") go!""].Nodup)
-    (HDs : walDirsAbsent putget3Program [config.walDirOf (etcd_putget3.name₁ ++ go!".etcd") go!"", config.walDirOf (etcd_putget3.name₂ ++ go!".etcd") go!"", config.walDirOf (etcd_putget3.name₃ ++ go!".etcd") go!""])
+    -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the members' data directories,
+    -- fresh at start (`dataDirsAbsent`; their distinctness is now `decide`d, no longer a hypothesis)
+    (HDs : dataDirsAbsent putget3Program [(etcd_putget3.name₁ ++ go!".etcd"), (etcd_putget3.name₂ ++ go!".etcd"), (etcd_putget3.name₃ ++ go!".etcd")])
+    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
+    (HEnv : verifyEnvOff putget3Program)
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putget3GF,
       ⊢ etcd_putget3.premises (GF := putget3GF) (hG := heapAt3 hG lctx) n id₁ id₂ id₃ ps ctxs boot)
@@ -135,9 +136,9 @@ theorem etcd_putget3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  refine etcd_adequate_members (GF := putget3GF) github_com.mit_pdos.etcd_grove.examples.etcd.putget3.initialize'
+  refine etcd_adequate_members (GF := putget3GF) (hAsLit := by decide) (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.putget3.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.putget3.Main) #())
-    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) putget3Addrs (by decide) [config.walDirOf (etcd_putget3.name₁ ++ go!".etcd") go!"", config.walDirOf (etcd_putget3.name₂ ++ go!".etcd") go!"", config.walDirOf (etcd_putget3.name₃ ++ go!".etcd") go!""] HDsNd
+    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) putget3Addrs (by decide) [(etcd_putget3.name₁ ++ go!".etcd"), (etcd_putget3.name₂ ++ go!".etcd"), (etcd_putget3.name₃ ++ go!".etcd")] (by decide)
     -- (hub step 7) the members' start bundles: the three peers, member 1's client; the program's
     -- address list has member 1's client last (a permutation)
     [(etcd_putget3.name₁, ⟨some etcd_putget3.peerAddr₁, some etcd_putget3.clientAddr₁⟩),

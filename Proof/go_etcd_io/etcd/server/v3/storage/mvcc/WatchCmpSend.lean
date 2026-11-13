@@ -15,6 +15,7 @@ Lean-first (no Rocq counterpart).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WatchSendLemmas
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.WatchSendApi
 
 @[expose] public section
 
@@ -40,7 +41,7 @@ namespace mvcc
 names, fixed fields and filters, its channel's invariant, and its liveness fragment at `ql`. -/
 def cmpSendPre (γ : WsNames) (w : Loc) (ch : Loc) (ql : Qp) : IProp GF :=
   iprop(∃ (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice),
-    watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ filtersOk fcs ∗ watcherChan γ w γw ch ∗
+    watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ watcherFilters γw fcs ∗ watcherChan γ w γw ch ∗
     dghostVar γw.live (DFrac.own ql) true)
 
 /-- The compaction response's model: `w`'s, its id, no events, no revision, no coverage, at the
@@ -55,15 +56,15 @@ theorem cmp_send_inner (γ : WsNames) (w : Loc) (γw : WatcherNames) (r : WatchR
     (ch : Loc) (ql : Qp) (v : WatchResponse) (c : w64)
     (hv : v.WatchID' = r.id ∧ v.Revision' = W64 0 ∧ v.CompactRevision' = c ∧ v.Events' = slice.nil)
     (hcp : 0 < sint.Z c) (Φ : IProp GF) :
-    crevPermAt γ.st (sint.Z c) ∗ watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ filtersOk fcs ∗ watcherChan γ w γw ch ∗
+    cmpPerm γ (sint.Z c) ∗ watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ watcherFilters γw fcs ∗ watcherChan γ w γw ch ∗
       dghostVar γw.live (DFrac.own ql) true ∗ (dghostVar γw.live (DFrac.own ql) true -∗ Φ) ⊢
       nonblockingSendAuInner γw.wc.ch v Φ := by
   have hc : c ≠ W64 0 := by intro h; rw [h] at hcp; exact absurd hcp (by decide)
   iintro ⟨#Hperm, #Hmeta, #Hfix, #Hfok, #Hwc, Hlive, HΦ⟩
   iunfold watcherChan at Hwc
   icases Hwc with ⟨#Hisch, #Hinv, #Hregw⟩
-  iunfold filtersOk at Hfok
-  icases Hfok with ⟨%fs, #Hfi⟩
+  iunfold watcherFilters at Hfok
+  icases Hfok with ⟨%fs, #Hfi, #Hsf⟩
   unfold nonblockingSendAuInner
   iinv Hinv with Hi Hclose
   all_goals try exact CoPset.subseteq_top
@@ -92,7 +93,9 @@ theorem cmp_send_inner (γ : WsNames) (w : Loc) (γw : WatcherNames) (r : WatchR
     iunfold respRev
     isplitl []
     · iright; iright; ipureintro; exact ⟨hc, rfl⟩
-    iunfold cmpPermOf; simp only [cmpResp]; iright; iframe Hperm; ipureintro; exact hcp
+    isplitl
+    · iunfold cmpPermOf; simp only [cmpResp]; iright; iframe Hperm; ipureintro; exact hcp
+    · ileft; ipureintro; exact hc
   iexists s
   iframe Hch
   have hpre := Hpre.length_le
@@ -128,7 +131,7 @@ theorem cmp_send_inner (γ : WsNames) (w : Loc) (γw : WatcherNames) (r : WatchR
       ipureintro
       simp [Hrid]
     imod entries_deliver γ γw.wc _ sent L w γw r fcs fs [] 0 [] [] (cmpResp w r.id sent.length c)
-      Hnd.1 Hwl (by rfl) rfl rfl $$ Hmeta Hfix Hfi [] Hws with ⟨-, Hws⟩
+      Hnd.1 Hwl (by rfl) rfl rfl $$ Hmeta Hfix Hfi Hsf [] Hws with ⟨-, Hws⟩
     · simp only [↓reduceIte]; itrivial
     have hs2 : sent ++ (if Deliv.sent (([] : List EvM), ([] : List EvM)) then
         [cmpResp w r.id sent.length c] else []) = sent ++ [cmpResp w r.id sent.length c] := by
@@ -137,8 +140,21 @@ theorem cmp_send_inner (γ : WsNames) (w : Loc) (γw : WatcherNames) (r : WatchR
     ihave #Hvs' := respsIs_snoc vs sent recv.length hpre _ _ $$ [$Hvs $Hresp]
     imod sentAuth_snoc γ γw.wc sent L (cmpResp w r.id sent.length c)
       (fun h => absurd h Hrid) rfl $$ Hsentl Hrc with Hsentl
+    -- the send's premises on the stream's history (`stepOk`, stage 2)
+    ihave #Hok' : □ ([∗list] y ∈ sent ++ [cmpResp w r.id sent.length c], respOk y) $$ []
+    · iintro !>; iapply BigSepL.bigSepL_snoc.2; iframe Hok Hrok
+    ihave #Hcv : api.crevAtLeast γ.st.api (sint.Z c) $$ []
+    · iunfold cmpPerm at Hperm; icases Hperm with ⟨-, H⟩; iexact H
+    imod chanApi_send_cmp γ ch γw.wc _ sent recv L (cmpResp w r.id sent.length c) w c γw r fcs fs
+      rfl rfl Hwl
+      (fun y hy => by
+        rcases List.mem_append.1 hy with h | h
+        · exact Hnd.2 y h
+        · rw [List.mem_singleton] at h; subst h; exact Hwl)
+      rfl rfl rfl hcp
+      $$ [$Hapi $Hws $Hok' $Hrf $Hrt $Hmeta $Hfix $Hsf $Hcv] with ⟨Hapi, Hws⟩
     imod Hmask with -
-    imod Hclose $$ [Hchan Hrecv Hregl Hcl Hreg Hws Hsentl] with -
+    imod Hclose $$ [Hchan Hrecv Hregl Hcl Hreg Hws Hsentl Hapi] with -
     · inext
       iunfold watchChanInv
       iexists _, sent ++ [cmpResp w r.id sent.length c], recv, vs ++ [v], L
@@ -172,13 +188,17 @@ theorem cmp_send_inner (γ : WsNames) (w : Loc) (γw : WatcherNames) (r : WatchR
       isplitr
       · iexact Hrf
       isplitr
+      · iexact Hrt
+      isplitr
       · iintro !>
         iapply BigSepL.bigSepL_snoc.2
         iframe Hpf
         iintro %h; exact absurd h Hrid
       isplitl [Hsentl]
       · iexact Hsentl
-      iapply chanWatchers_congr γ γw.wc (by simp [EtcdGrove.chanIsClosed]) $$ Hws
+      isplitl [Hws]
+      · iapply chanWatchers_congr γ γw.wc (by simp [EtcdGrove.chanIsClosed]) $$ Hws
+      iexact Hapi
     imodintro
     iapply HΦ $$ Hlive
 

@@ -17,6 +17,8 @@ counterpart).
   sender passes its half of the backend snapshot this way (`T`: its share, after it read the
   snapshot's `Size`), so that the writer's goroutine closes the whole snapshot (`createMergedSnapshotMessage`,
   `newSnapshotReaderCloser`): the order Go gets from the pipe's blocking `Write`.
+* `rcCloseOk r` (persistent; sweep repairs 1, S1): `r`'s `Close` returns. The pipe's reader has it
+  with its `readerStreams`, for `T`; `snap.NewMessage` takes it of its reader.
 -/
 module
 
@@ -42,6 +44,21 @@ variable [sem : go.Semantics]
 written, `c` whether a `Write` has returned** (opaque, exclusive; see the file header). -/
 opaque pipeW (pw : Loc) (Φ : List w8 → Prop) (T : IProp GF) (c : Bool) (bs : List w8) :
   IProp GF
+
+/-- **The `io.Closer` `r`'s `Close` returns** (persistent; sweep repairs 1, S1, 2026-11-08,
+`notes/axiom-review/snap-stream.md`): `r` is a non-nil interface whose `Close()` returns (some
+error), from any goroutine, any number of times, concurrently with a `Read`. `io.Pipe`'s reader
+has it only with its `readerStreams`, once the pipe's hand-over `T` is given up (`Spec/io/Pipe.lean`):
+closing the reader end lets the writer's `Write` return, which hands `T` to the writer. What
+`snap.NewMessage` takes of its reader (the message's `CloseWithError` and its wrapper's `Close`
+close it). -/
+def rcCloseOk (r : GoInterface) : IProp GF :=
+  iprop(∃ ri : GoInterfaceOk, ⌜r = GoInterface.ok ri⌝ ∗
+    □ {{ (True : IProp GF) }} (App (Val #(methods ri.ty go!"Close" ri.v)) (Val #()))
+      {{ (err : GoInterface), RET #err; True }})
+
+instance rcCloseOk_persistent (r : GoInterface) : Persistent (rcCloseOk (GF := GF) r) := by
+  unfold rcCloseOk; infer_instance
 
 end defs
 

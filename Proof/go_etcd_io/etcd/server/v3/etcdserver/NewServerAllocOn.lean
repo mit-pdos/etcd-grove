@@ -52,7 +52,7 @@ cluster's read credits, its boot token and its snapshot directory. The pure prem
 `nonissues/etcd-request-id-member-prefix.md`): the members' ids' 16 low bits are distinct and not
 `0`; every bootstrap conf change of id `0`, one `applyConfChange` takes (`ccBootOk`). -/
 theorem srvClusterBootOn_alloc (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (xs : w64 → mvcc.IdxNames) (reg : GName)
+    (xs : w64 → GName) (reg : GName)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61)
     (HB : BootLog ps ctxs boot) (Hnd : ps.Nodup) (Hne : ps ≠ []) (Hnz : W64 0 ∉ ps)
     (hcc : ∀ e ∈ LogEntry.toEntries boot 0,

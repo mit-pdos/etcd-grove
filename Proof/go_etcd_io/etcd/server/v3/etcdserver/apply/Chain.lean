@@ -52,6 +52,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Contracts
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthClass
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Write
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApiVocab
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvRange
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvTxn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.TxnRun
@@ -72,6 +73,9 @@ namespace EtcdGrove
 namespace apply
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
+open mvcc.api (MvccName MvccState MvccReachable mvccLeases isMvcc mvccBackend hookIs
+  mvccDeleter mvccOpen compactChanOk)
+open srvApi (KVSNames wSt crOwn kvLogLb csContractA stAt auBegin auRead auEnd auCompact)
 
 /-! ## The chain, purely -/
 
@@ -239,9 +243,10 @@ store's write transaction now has it by its time receipts, `mvcc.storeTxnWriteIs
 def delOk (log : mvcc.Log) (_o : OpFull) : Prop :=
   log.length + 4 ≤ 2 ^ 63
 
-/-- A range's premises: room for the read, a valid sort target, the sort's premise. -/
+/-- A range's premises: room for the read, a valid sort target (strict M1, 2026-11-05: the sort's
+premise is `Txn.Range`'s `stateOk`, txn's restated specs). -/
 def rangeOk (log : mvcc.Log) (o : OpFull) : Prop :=
-  log.length + 3 ≤ 2 ^ 63 ∧ txn.validSortTarget o ∧ txn.sortOk o log
+  log.length + 3 ≤ 2 ^ 63 ∧ txn.validSortTarget o
 
 /-- **A lease grant the apply thread admits** (the lease-grant plan's D3, 2026-11-02; since its B1/B2
 commit 2 `rqOk`'s grant arm in a cluster that grants leases): a request dispatched to `LeaseGrant`,
@@ -277,18 +282,22 @@ and role's name within the key bound for `UserAdd`/`RoleAdd`). (The lease-grant 
 `KVNames.lg`), a grant the apply thread admits (`grantKindOk`); in one that grants none, no grant,
 as before (`rqOk_false_leaseGrant`), so `rqOk .none` means what `rqOk` meant until then. (X7 option
 (iii), 2026-11-04) Indexed by the cluster's lease mode `lm` (`KVNames.lm`), the grant arm at
-`lm ≠ .none`. -/
+`lm ≠ .none`. (The mvcc merge, 2026-11-06) The revocation arm also bounds the state's size
+(`(stateAfter log).length ≤ 2 ^ 62`, the lessor's sort premise, `lease.lessor.Revoke.spec`), as the
+transaction arm's `TxnPreA` bounds the log's changes: `dispatch` cannot derive it (the writer's
+receipt `⧖ (logCh log)` bounds it only under a bound on `receiptBound GF`, which no premise of
+`dispatch` or `Apply` states); the server derives it at its small log (`srvApplyKV_small`). -/
 def rqOk (lm : lease.Mode) (log : mvcc.Log) (rq : IRRModel) : Prop :=
   match dispatchKind rq with
   | .put => putOk log
   | .deleteRange => ∀ o, rq.deleteRange = some o → delOk log o
   | .range => ∀ o, rq.range = some o → rangeOk log o
-  | .txn => ∀ t, rq.txn = some t → txn.TxnPre log t
+  | .txn => ∀ t, rq.txn = some t → txn.TxnPreA log t ∧ putOk log
   | .leaseGrant => match lm with
     | .none => False
     | _ => grantKindOk rq
   | .leaseRevoke => match lm with
-    | .revocable => revokeKindOk rq ∧ putOk log
+    | .revocable => revokeKindOk rq ∧ putOk log ∧ (mvcc.stateAfter log).length ≤ 2 ^ 62
     | _ => False
   | .leaseCheckpoint => False
   | .clusterVersionSet => ∀ v, rq.clusterVersionSet = some v → semverValid v ∧ semverAtMostServer v
@@ -384,10 +393,11 @@ theorem rqOk_leaseGrant (lm : lease.Mode) (log : mvcc.Log) (rq : IRRModel)
   cases lm <;> simp [rqOk, hk]
 
 /-- **A revocation is admitted only at the revocable mode** (`rqOk`'s revocation arm; the lease-expiry
-plan's X7). -/
+plan's X7; the mvcc merge, 2026-11-06: with the state's size, the lessor's sort premise). -/
 theorem rqOk_leaseRevoke (lm : lease.Mode) (log : mvcc.Log) (rq : IRRModel)
     (hk : dispatchKind rq = .leaseRevoke) :
-    rqOk lm log rq ↔ lm = .revocable ∧ revokeKindOk rq ∧ putOk log := by
+    rqOk lm log rq ↔ lm = .revocable ∧ revokeKindOk rq ∧ putOk log ∧
+      (mvcc.stateAfter log).length ≤ 2 ^ 62 := by
   cases lm <;> simp [rqOk, hk]
 
 /-! ## The compaction arm, pure (M2, the apply side, 2026-10-31) -/
@@ -409,16 +419,13 @@ def cmpRevAfter (crev : Int) (rev : w64) : Int :=
 theorem cmpRevAfter_ge (crev : Int) (rev : w64) : crev ≤ cmpRevAfter crev rev := by
   unfold cmpRevAfter; split <;> omega
 
-/-- **What a compaction at `rev` needs at the log `log`** (pure; written once, review round 1's
-S-8): the store compacting (its backend in compaction mode: the KV invariant admits compaction
-entries only in the cluster's compaction mode, and `envAgree`/`srvEnvOkD` tie the store's mode to
-it) and the revision one of the log's (the committed log's claim, `cmpLogOk`). No `NoDelPutAt`:
-the fork has etcd-io/etcd#22377 (review round 1's F-5; mvcc's specs drop the premise before the
-switch). (F2, stage 2; the user's Q7, approved 2026-11-03) The revision at least `1`: the store's
-compaction's scope restriction (`store.Compact.spec`, `nonissues/etcd-restore-scheduled-compact-zero.md`),
-which the server's `EtcdServer.Compact.spec` (`1 ≤ r`) supplies. -/
-def cmpAdmitRev (kb : Option mvcc.KBReal) (log : mvcc.Log) (rev : w64) : Prop :=
-  mvcc.kbCmpM kb ∧ sint.Z rev < log.length ∧ 1 ≤ sint.Z rev
+/-- **What a compaction at `rev` needs at the log `log`** (pure; strict M1, 2026-11-05): a
+revision of at least `1` (`KV.Compact.contract`'s premise and `EtcdServer.Compact.spec`'s, decided
+by the coordinator; on `lean` the same conjunct came with F2, stage 2, the user's Q7, approved
+2026-11-03: `nonissues/etcd-restore-scheduled-compact-zero.md`) and one of the log's (the committed
+log's claim, `cmpLogOk`). The compaction mode's conjunct is gone: the API has no compaction mode. -/
+def cmpAdmitRev (log : mvcc.Log) (rev : w64) : Prop :=
+  1 ≤ sint.Z rev ∧ sint.Z rev < log.length
 
 theorem chainCompacts_auth (on : Bool) (c : Chain) : chainCompacts (.auth on c) = chainCompacts c := rfl
 theorem chainCompacts_quota (c : Chain) : chainCompacts (.quota c) = chainCompacts c := rfl
@@ -624,17 +631,23 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-! ## The environment and the thread's resources -/
 
-/-- **A chain's environment**: the store `s` (ghost names `γ`) the backend's KV is, its
-backend's batch lock's invariant `P` and post-lock hook `f`, the auth store's reader resource
-`RD` (see the file header); `γrev`, the ghost map of the
-revisions' tokens the server's apply thread mints as the KV's log grows (the clients'
-`etcdRevToken`, the vertical slice's unit V1: `InvRequest.lean`, `revTok`), which the apply package
-does not use. -/
+/-- **A chain's environment** (strict M1, 2026-11-05: the frozen draft's `AEnvA`,
+`notes/mvcc-api-clients/ServerSpecs.lean` §4, restated in place): the store handle `kv` the
+backend's KV is and its name `γ` (mvcc's API), the server's names of the store's state `γs`
+(`KVStoreCore.lean`), the raft witness of the logs `Nx` (the server's `kvNx`), the batch lock's
+invariant per backend `Pk` (`Restore` replaces the backend) and the post-lock hook `f`, frozen, the
+auth store's reader resource `RD` (see the file header); `γrev`, the ghost map of the revisions'
+tokens the server's apply thread mints as the KV's log grows (the clients' `etcdRevToken`, the
+vertical slice's unit V1: `InvRequest.lean`, `revTok`), which the apply package does not use; the
+compaction permit `Cp` (the server's `crevOk`); the backend tie `BkTie` (abstract to the apply
+package: the server's, that `B` is its current backend). -/
 structure AEnv (GF : BundledGFunctors) where
-  s : Loc
-  γ : mvcc.StoreNames
-  P : IProp GF
-  f : val
+  kv : GoInterface
+  γ : MvccName
+  γs : KVSNames
+  Nx : mvcc.Log → IProp GF
+  Pk : mvcc.KBReal → IProp GF
+  f : GoFunc
   RD : IProp GF
   γrev : GName
   /-- the auth store's mode (2026-10-14, unit T1, a boolean; 2026-10-23, the auth plan's A0,
@@ -660,14 +673,15 @@ structure AEnv (GF : BundledGFunctors) where
   /-- (D22 receiver epochs, S7b, 2026-10-23) the server's ghost variable of its current backend
   (`s.be`'s, `bemuP`), which the apply package does not use (as `γrev`) -/
   γbe : GName
-  /-- (M2, the storage side, 2026-10-30: review round 2's N1, the approval's item 9) the server's
-  compaction mode: whether its store compacts (the auto-compactor on), which `envAgree` ties to the
-  store's logical mode (`E.γ.cm`) and the stand-in `E₀` carries to the examples; the apply package
-  does not use it (as `γrev`) -/
+  /-- the compaction permit of a revision (the server's `crevOk`) -/
+  Cp : Int → IProp GF
+  /-- the backend tie (the server's: `B` is its current backend) -/
+  BkTie : mvcc.KBReal → IProp GF
+  /-- the server's compaction mode (whether its compactor runs), which the apply package does not
+  use (as `γrev`) -/
   cmp : Bool := false
   /-- (C3's server stage, 2026-11-02) the cluster's compaction retention (`KVNames.cret`, which
-  `srvKVInvs` ties it to): what the server's compactor's proposals must keep (`cret ≤` its
-  retention, `compactableOk_server`); the apply package does not use it -/
+  `srvKVInvsA` ties it to); the apply package does not use it -/
   cret : Nat := 0
   /-- (the lease-grant stage, B1, 2026-11-02) whether the cluster grants leases (`KVNames.lg`, which
   `srvKVInvs` ties it to): the per-request premise admits a grant only then (`rqOk`); the apply
@@ -745,11 +759,11 @@ theorem ltHalf_update (E : AEnv GF) (L T L' : List w64) :
     exact ghostVar_update_halves (GF := GF) L' E.γlt L T
 
 /-- **The apply thread's half of the ids the lessor ever had, `U`** (the lease-expiry plan's E3 (c),
-2026-11-05): in a cluster that grants leases (`E.lg`), `lease.leaseEver E.γ.leases U`; `True`
+2026-11-05): in a cluster that grants leases (`E.lg`), `lease.leaseEver (mvccLeases E.γ) U`; `True`
 otherwise. `dispatch` and `Apply` take it and give it back with an applied grant's id added
 (`grantIds`). -/
 def everOwn (E : AEnv GF) (U : List w64) : IProp GF :=
-  if E.lg then lease.leaseEver E.γ.leases U else iprop(True)
+  if E.lg then lease.leaseEver (mvccLeases E.γ) U else iprop(True)
 
 omit package_sem in
 theorem everOwn_false (E : AEnv GF) (U : List w64) (h : E.lg = false) :
@@ -758,17 +772,17 @@ theorem everOwn_false (E : AEnv GF) (U : List w64) (h : E.lg = false) :
 
 omit package_sem in
 theorem everOwn_true (E : AEnv GF) (U : List w64) (h : E.lg = true) :
-    everOwn E U = lease.leaseEver E.γ.leases U := by
+    everOwn E U = lease.leaseEver (mvccLeases E.γ) U := by
   unfold everOwn; rw [h]; rfl
 
 omit package_sem in
 theorem everOwn_of_lg (E : AEnv GF) (U : List w64) (h : E.lg = true) :
-    everOwn E U ⊢ lease.leaseEver E.γ.leases U := by
+    everOwn E U ⊢ lease.leaseEver (mvccLeases E.γ) U := by
   rw [everOwn_true E U h]
 
 omit package_sem in
 theorem everOwn_to_lg (E : AEnv GF) (U : List w64) (h : E.lg = true) :
-    lease.leaseEver E.γ.leases U ⊢ everOwn E U := by
+    lease.leaseEver (mvccLeases E.γ) U ⊢ everOwn E U := by
   rw [everOwn_true E U h]
 
 /-- **A request's grant id is new to `U`, unless the lessor is monotone** (E3 (c); persistent):
@@ -776,7 +790,7 @@ for a request dispatched as the grant `g`, the lessor monotone or `g.id ∉ U` (
 `lease.lessor.Grant.spec` takes); nothing for another kind. -/
 def grantFresh (E : AEnv GF) (rq : IRRModel) (U : List w64) : IProp GF :=
   iprop(□ (⌜dispatchKind rq = .leaseGrant⌝ → ∀ g : LeaseGrantModel, ⌜rq.leaseGrant = some g⌝ →
-    lease.lessorModeIs E.γ.leases true ∨ ⌜g.id ∉ U⌝))
+    lease.lessorModeIs (mvccLeases E.γ) true ∨ ⌜g.id ∉ U⌝))
 
 instance grantFresh_persistent (E : AEnv GF) (rq : IRRModel) (U : List w64) :
     Persistent (grantFresh (GF := GF) E rq U) := by
@@ -802,27 +816,73 @@ def hdrFields (h : Loc) : IProp GF :=
 /-- **The live leases of the state `s`** (2026-10-13, unit 8 of the backend): the lease owner's
 resource at some live set `L` (its half of the lessor's live set, a reader slot of its lock) of
 which every lease of `s` is; (unit T3, L2b, 2026-10-25) its item map `s`'s (each key's lease, the
-lessor's `itemMap` and the leases' item sets). -/
+lessor's `itemMap` and the leases' item sets); (the lease-grant stage, 2.0) the apply thread's half
+of the live set (`ltHalf`). Strict M1: at the store's lessor names `mvccLeases E.γ`. -/
 def leasesLive (E : AEnv GF) (s : List EtcdKv) : IProp GF :=
-  iprop(∃ L : List w64, txn.leasesKnown L s ∗ lease.lessorUser E.γ.leases L (mvcc.leaseItemsOf s) ∗
+  iprop(∃ L : List w64, txn.leasesKnown L s ∗ lease.lessorUser (mvccLeases E.γ) L (mvcc.leaseItemsOf s) ∗
     ltHalf E L)
 
-/-- **The apply thread's KV resources** at the committed log `log`: the store's reader slots,
-the KV's writer of `log` (`txn.kvWriter`: the sole writer, and for a watchable store the writer's
-half of its notified log; unit N4), every lease of its state live, the auth store's reader resource
-(`E.RD`, 2026-10-14, unit A2), and the sole writer's own resources on the store's backend
-(`mvcc.writerOwn`, D22 receiver epochs, S5a: its backend token, which the writes under the batch
-lock borrow; until then the reader slots' own). -/
+/-- **The builders the chain uses** (persistent; in `backendOptsOk`'s KV clause; the draft's
+`envAus`): `kvAus.law`'s apply-thread conjuncts at `E.Nx`/`E.Cp`, and (strict M1, 2026-11-05, the
+migration's choice: the KV methods' floor `floorOkO`, which the sole writer's pin gave until M1)
+the writer's floor: its log extends every floor `kvLogLb E.γs F` (`KVStoreCore.writer_floor`).
+(R8, 2026-11-07) The writer's facts include a floor of its log, `kvLogLb E.γs log`, as
+`KVStoreCore.writer_facts` gives, and the witness persistent (the server's `kvNx` is) (for
+`newHeader`'s, so the lease responses' headers, `grantHdr`, whose `srvRevLb` needs both). -/
+def envAus (E : AEnv GF) : IProp GF :=
+  iprop(□ (∀ log c (X : IProp GF), wSt E.γs log c -∗ (wSt E.γs log c -∗ X) -∗
+        auBegin E.γ (stAt log c) X) ∗
+    □ (∀ log c (X : IProp GF), wSt E.γs log c -∗ (wSt E.γs log c -∗ X) -∗
+        auRead E.γ (fun σ => iprop(⌜σ = stAt log c⌝ ∗ X))) ∗
+    □ (∀ log c pend, wSt E.γs log c -∗ E.Nx (mvcc.commitLog log pend) -∗
+        auEnd E.γ (stAt log c) pend (wSt E.γs (mvcc.commitLog log pend) c)) ∗
+    □ (∀ log c (rev : w64), ⌜sint.Z rev < log.length⌝ → wSt E.γs log c -∗ crOwn E.γs c -∗
+        E.Cp (sint.Z rev) -∗ auCompact E.γ rev (fun σ => iprop(⌜σ = stAt log c⌝ ∗
+          wSt E.γs log (cmpRevAfter c rev) ∗ crOwn E.γs (cmpRevAfter c rev)))) ∗
+    □ (∀ log c, wSt E.γs log c ={⊤}=∗ wSt E.γs log c ∗ kvLogLb E.γs log ∗ □ E.Nx log ∗
+        ⧖ (mvcc.logCh log) ∗ ⌜MvccReachable (stAt log c) ∧ log.length + 3 ≤ 2 ^ 63⌝) ∗
+    □ (∀ log c F, wSt E.γs log c -∗ kvLogLb E.γs F ={⊤}=∗ wSt E.γs log c ∗ ⌜F <+: log⌝))
+
+instance envAus_persistent (E : AEnv GF) : Persistent (envAus E) := by
+  unfold envAus; infer_instance
+
+/-- **The store's backend, as the apply thread holds it** (the draft's `kvBk`): the current
+backend `B` at its batch lock's invariant `E.Pk B`, the whole share, its hook `E.f` frozen, the
+server's tie. -/
+def kvBk (E : AEnv GF) : IProp GF :=
+  iprop(∃ B : mvcc.KBReal, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B)
+
+/-- **The lessor's range deleter, held** (the merge of `lean`, 2026-11-06: `lean`'s
+`lease.rdAt E.γ.leases E.s`, a deleter that is the `Write` of every watchable store over `E.s`,
+restated over the API): the owner's half of `le.rd` at a deleter that is the store's
+(`mvccDeleter`, keyed on the store's name alone, which `KV.Restore` keeps). What `revokeRes`,
+`revokeOwn` and `revokeResAfter` hold. -/
+def rdHeld (E : AEnv GF) : IProp GF :=
+  iprop(∃ rd : GoFunc, lease.rdOwn (mvccLeases E.γ) rd ∗ mvccDeleter rd E.γ)
+
+/-- **The apply thread's token for one call** (the reader tokens of mvcc's API, 2026-11-06): a
+reader token of the store (`mvccReaders E.γ 1`: `newHeader`'s `KV.Rev`, the KV methods'
+transactions and the lessor's range deleter each hold one while they read). Every chain triple
+takes it and gives it back; the server hands one per call. (Until R12, 2026-11-07, also the thread
+token `threadTok`, which only mvcc's contracts used: since mvcc's reader token carries the store's
+lock slots they take none.) -/
+def applyTok (E : AEnv GF) : IProp GF :=
+  iprop(mvcc.api.mvccReaders E.γ 1)
+
+/-- **The apply thread's KV resources** at the committed log `log` (strict M1, 2026-11-05: the
+draft's `kvOwnA`): its half of the store's state (`wSt`), the backend's share and hook (`kvBk`),
+every lease of its state live (with the apply thread's half of the lessor's live set, `leasesLive`),
+the auth store's reader resource (`E.RD`). The thread's tokens are not in it: the chain's triples
+take `applyTok E` beside it. -/
 def kvOwn (E : AEnv GF) (log : mvcc.Log) : IProp GF :=
-  iprop(mvcc.storeReader E.s E.γ ∗ txn.kvWriter E.s E.γ log ∗
-    leasesLive E (mvcc.stateAfter log) ∗ E.RD ∗ mvcc.writerOwn E.γ)
+  iprop((∃ c : Int, wSt E.γs log c) ∗ kvBk E ∗ leasesLive E (mvcc.stateAfter log) ∗ E.RD)
 
 open Iris.ProofMode in
 /-- The auth store's reader resource of the apply thread's KV resources, lent out (unit A2). -/
 theorem kvOwn_rd (E : AEnv GF) (log : mvcc.Log) :
     kvOwn E log ⊢ E.RD ∗ (E.RD -∗ kvOwn E log) := by
   unfold kvOwn
-  iintro ⟨Hsr, Hsw, Hll, Hrd, Hwo⟩
+  iintro ⟨Hw, Hbk, Hll, Hrd⟩
   iframe Hrd
   iintro Hrd
   iframe
@@ -868,27 +928,18 @@ open Iris.ProofMode in
 out (the lease-keys plan: the auth layer's checks read the item map). -/
 theorem kvOwn_lend (E : AEnv GF) (log : mvcc.Log) :
     kvOwn E log ⊢ E.RD ∗ ∃ L : List w64,
-      lease.lessorUser E.γ.leases L (mvcc.leaseItemsOf (mvcc.stateAfter log)) ∗
-      (E.RD -∗ lease.lessorUser E.γ.leases L (mvcc.leaseItemsOf (mvcc.stateAfter log)) -∗
+      lease.lessorUser (mvccLeases E.γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log)) ∗
+      (E.RD -∗ lease.lessorUser (mvccLeases E.γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log)) -∗
         kvOwn E log) := by
   unfold kvOwn leasesLive
-  iintro ⟨Hsr, Hsw, ⟨%L, #Hk, Hu, Hlt⟩, Hrd, Hwo⟩
+  iintro ⟨Hw, Hbk, ⟨%L, #Hk, Hu, Hlt⟩, Hrd⟩
   iframe Hrd
   iexists L
   iframe Hu
   iintro Hrd Hu
-  iframe Hsr Hsw Hrd Hwo
+  iframe Hw Hbk Hrd
   iexists L
   iframe Hk Hu Hlt
-
-/-- The KV's certificate of its log (persistent; the vertical slice's unit V2: the trivial
-floor). -/
-theorem kvOwn_cert (E : AEnv GF) (log : mvcc.Log) :
-    kvOwn E log ⊢ kvOwn E log ∗ mvcc.idxCert E.γ.idx log := by
-  unfold kvOwn
-  iintro ⟨Hrd, Hsw, Hll⟩
-  ihave ⟨Hsw, #Hc⟩ := txn.kvWriter_cert E.s E.γ log $$ Hsw
-  iframe Hrd Hsw Hll Hc
 
 /-- **The thread-owned resources of the chain `c`'s methods** at its value `a`, for the
 principal `info`: the outermost auth layer's `authInfo`, holding `info` (owned while the layer's
@@ -1223,7 +1274,9 @@ persistent): its four id fields (`txn.respHdrOwn`: the txn package allocated the
 layer's `header.fill` writes them), at a log of `NewStore`'s two revisions at least and room for
 the write (`putOk`/`delOk`: so the response's revision is not `0`). Beside the outcome's
 persistent answer (`putOutcomeIs`, ...) in `putAnswerIs`/`deleteAnswerIs` (2026-10-12, the
-request path's unit 3a). -/
+request path's unit 3a). Strict M1, 2026-11-05: room `+3` (the writer's facts'); R8, 2026-11-07: `+4` again, as on `lean`
+(`putOk`/`delOk`; a transaction's `rqOk` arm and `txnPre` carry `putOk` too, from the server's
+`rqSmall`), what the client's contracts need of the log a write met. -/
 def appliedHdr (log : mvcc.Log) (hf : Loc) : IProp GF :=
   iprop(txn.respHdrOwn hf ∗ ⌜2 ≤ log.length ∧ log.length + 4 ≤ 2 ^ 63⌝)
 
@@ -1270,12 +1323,15 @@ def revokeOutcomeIs (resp : Loc) (err : GoInterface) : Outcome → IProp GF
 
 /-- **A granted lease's response header** at the header field `hf` (the lease-grant stage, 2.6,
 2026-11-03): its id fields owned (`txn.respHdrOwn`) and its revision read-only, the last of the
-committed log `log`, which is certified (`idxCert`, `certOk`): what `newHeader` gives at the sole
-writer (2.11a). Not `appliedHdr` (`+ 4`), which no grant callee gives. -/
+committed log `log`, which is witnessed (`E.Nx`, the server's `kvNx`; the merge of `lean`,
+2026-11-06: in place of mvcc's `idxCert`, `certOk`, as `certPre`): what `newHeader` gives at the
+writer (2.11a). Not `appliedHdr` (`+ 4`), which no grant callee gives. (R8, 2026-11-07, the
+coordinator's decision on R6's blocker 3) Also the log a floor of the store's (`kvLogLb E.γs
+log`, `newHeader`'s): the server's lease responses' `srvRevLb` needs it. -/
 def grantHdr (E : AEnv GF) (log : mvcc.Log) (hf : Loc) : IProp GF :=
   iprop(txn.respHdrOwn hf ∗ ∃ (h : Loc) (rv : w64), hf ↦□ h ∗
     structFieldRef etcdserverpb.ResponseHeader go!"Revision" h ↦□ rv ∗
-    mvcc.idxCert E.γ.idx log ∗ mvcc.certOk E.γ log ∗
+    □ E.Nx log ∗ kvLogLb E.γs log ∗
     ⌜sint.Z rv = (log.length : Int) - 1 ∧ 2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63⌝)
 
 /-- **A granted lease's `*pb.LeaseGrantResponse` `r`** (2.6): its `ID` the grant's, its `TTL` and
@@ -1300,8 +1356,8 @@ def grantAnswer (E : AEnv GF) (rq : IRRModel) (resp err : GoInterface) : IProp G
   | some g => iprop(∃ r : Loc,
       ⌜resp = interface.mkOk (go.GoType.PointerType etcdserverpb.LeaseGrantResponse.ty) #r⌝ ∗
       ((⌜err = GoInterface.nil⌝ ∗ grantRespIs E r g ∗
-          ∃ (i : Nat) (l : Loc), lease.leaseLiveFrom E.γ.leases i g.id l ∗
-            lease.leaseReqIs E.γ.leases g.id g.ttl) ∨
+          ∃ (i : Nat) (l : Loc), lease.leaseLiveFrom (mvccLeases E.γ) i g.id l ∗
+            lease.leaseReqIs (mvccLeases E.γ) g.id g.ttl) ∨
         ⌜err ≠ GoInterface.nil⌝))
   | none => iprop(True)
 
@@ -1348,17 +1404,19 @@ KV methods (and the revocation, which deletes through the store) run the request
 the others leave the log as it is. A method that may write the backend takes the
 critical-section contract `csContract P f Pre Q Post` and returns `Post` (it wrote in one
 critical section of the batch lock, the hook first) or `Pre` (it did not). The methods that
-may open a store write transaction (`Put`, `DeleteRange`, `Txn`, `LeaseRevoke`) take a write
-token (`mvcc.storeWT E.γ`: the real backend's write-back budget) and spend it (2026-10-13,
-unit 6). -/
+may open a store write transaction (`Put`, `DeleteRange`, `Txn`, `LeaseRevoke`) take the
+backend's share (`mPre`; strict M1, 2026-11-05: until then a write token `mvcc.storeWT`), the
+components' writers the backend's tokens (`mPreW`). Every triple takes and gives back the thread's
+token (`applyTok E`: a reader token of the store). -/
 
 /-- **The certificates of the logs `rq` may commit** through the chain `c` at `log` (persistent;
 2026-10-14, unit T1): the store's caller certifies (`mvcc.certOk`) the log after every outcome of
-`chainStep` (the store's `txnEndPre` asks it of a commit). The KV methods take it; a layer that
-passes `rq` on passes it on for its inner chain (`certPre_mono`). The etcd server's: the log after
-`rq` is the KV model of the committed raft log through `rq`'s entry. -/
+`chainStep` (strict M1, 2026-11-05: the environment's witness `E.Nx`, the server's `kvNx`, which
+the end builder takes). The KV methods take it; a layer that passes `rq` on passes it on for its
+inner chain (`certPre_mono`). The etcd server's: the log after `rq` is the KV model of the committed
+raft log through `rq`'s entry. -/
 def certPre (E : AEnv GF) (c : Chain) (rq : IRRModel) (log : mvcc.Log) : IProp GF :=
-  iprop(□ ∀ oc : Outcome, ⌜chainStep backendStep c rq log oc⌝ -∗ mvcc.certOk E.γ (oc.logAfter log))
+  iprop(□ ∀ oc : Outcome, ⌜chainStep backendStep c rq log oc⌝ -∗ E.Nx (oc.logAfter log))
 
 instance certPre_persistent (E : AEnv GF) (c : Chain) (rq : IRRModel) (log : mvcc.Log) :
     Persistent (certPre E c rq log) := by
@@ -1406,28 +1464,58 @@ open Iris.ProofMode in
 /-- The backend's certificate of the log `log'` it commits. -/
 theorem certPre_backend_applied (E : AEnv GF) (rq : IRRModel) (log log' : mvcc.Log) (ns : Bool)
     (h : backendStep rq log (.applied log' ns)) :
-    certPre E .backend rq log ⊢ mvcc.certOk E.γ log' := by
+    certPre E .backend rq log ⊢ E.Nx log' := by
   unfold certPre
   iintro #H
   ihave Hc := H $$ %(Outcome.applied log' ns) %h
   simp only [Outcome.logAfter]
   iexact Hc
 
-open Iris.ProofMode in
-/-- A commit's certificate as the store's `txnEndPre` asks it (`certOkNext`). -/
-theorem certOkNext_of_commitLog (γ : mvcc.StoreNames) (log : mvcc.Log) (pend : List mvcc.Change) :
-    mvcc.certOk (GF := GF) γ (mvcc.commitLog log pend) ⊢ mvcc.certOkNext γ log pend := by
-  unfold mvcc.certOkNext
-  by_cases hp : pend = []
-  · iintro #H; ileft; ipureintro; exact hp
-  · have hc : mvcc.commitLog log pend = log ++ [pend] := by simp [mvcc.commitLog, hp]
-    rw [hc]
-    iintro #H; iright; iexact H
+/-- **A backend the tie does not refute** (2026-11-06, the server track's sixth session): the
+tie at `B` is not inconsistent. For the server's tie (`srvBkTie d`, `B = d`) this is `B = d`
+(`InvApplier.tieOk_srv`). A pure fact, so a method that hands the tie on (into `kvOwn`) can keep it
+beside the reader token it gives back (`bkRTOf`). -/
+def tieOk (E : AEnv GF) (B : mvcc.KBReal) : Prop := ¬ (E.BkTie B ⊢ iprop(False))
 
-/-- The common precondition of a writing method (`info`: the principal, A3). -/
+open Iris.ProofMode in
+/-- The tie at `B` gives `tieOk E B` (kept). -/
+theorem tieOk_of (E : AEnv GF) (B : mvcc.KBReal) : E.BkTie B ⊢ E.BkTie B ∗ ⌜tieOk E B⌝ := by
+  by_cases h : (E.BkTie B ⊢ iprop(False))
+  · iintro H
+    ihave Hf := h $$ H
+    iexfalso; iexact Hf
+  · iintro H
+    iframe H
+    ipureintro; exact h
+
+/-- **A reader token given back** (2026-11-06, the server track's sixth session; until then
+`∃ B, bkRT B`, which lost the backend, so the apply thread could not lend it to the next entry):
+the reader token of a backend `B` the tie does not refute (`tieOk`). The writing methods' and
+`dispatch`'s/`Apply`'s postconditions give it back. -/
+def bkRTOf (E : AEnv GF) : IProp GF := iprop(∃ B : mvcc.KBReal, ⌜tieOk E B⌝ ∗ bkRT B)
+
+open Iris.ProofMode in
+/-- The reader token of the tie's backend, given back. -/
+theorem bkRTOf_intro (E : AEnv GF) (B : mvcc.KBReal) :
+    E.BkTie B ∗ bkRT B ⊢ E.BkTie B ∗ bkRTOf E := by
+  iintro ⟨Ht, Hrt⟩
+  icases tieOk_of E B $$ Ht with ⟨Ht, %Hok⟩
+  iframe Ht
+  iunfold bkRTOf
+  iexists B
+  iframe Hrt
+  ipureintro; exact Hok
+
+/-- **The common precondition of a writing method** (`info`: the principal, A3; strict M1,
+2026-11-05: the draft's `mPreA`): the apply thread's resources without the backend's share, the
+chain's, and the backend's share with the critical-section contract at its lock's invariant, at
+the backend `B` the tie names. -/
 def mPre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
-  iprop(kvOwn E log ∗ chainRes c a info ∗ mvcc.csContract E.P E.f Pre Q Post)
+  iprop((∃ cr : Int, wSt E.γs log cr) ∗ leasesLive E (mvcc.stateAfter log) ∗ E.RD ∗
+    chainRes c a info ∗
+    ∃ B : mvcc.KBReal, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B ∗
+      csContractA (E.Pk B) E.f Pre Q Post)
 
 /-- The common postcondition of a writing method that leaves the log as it is (the chain's
 resources at some principal: `UserGet` and `RoleGet` reset the auth layer's `authInfo` when
@@ -1436,18 +1524,47 @@ def mPost (E : AEnv GF) (c : Chain) (a : GoInterface) (log : mvcc.Log)
     (Pre Post : IProp GF) : IProp GF :=
   iprop(kvOwn E log ∗ chainResAny c a ∗ (Post ∨ Pre))
 
+/-- **`mPre` with the backend's tokens** (strict M1, 2026-11-05, decided by the coordinator): for
+the methods whose components write the backend themselves (the lessor's grant and checkpoint, the
+alarm and auth stores), a write-back token and a reader token of the backend `B` (`bkWT`, `bkRT`,
+in place of mvcc's `storeWT`/`storeRT`). -/
+def mPreW (E : AEnv GF) (c : Chain) (a : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (log : mvcc.Log) (Pre Q Post : IProp GF) :
+    IProp GF :=
+  iprop((∃ cr : Int, wSt E.γs log cr) ∗ leasesLive E (mvcc.stateAfter log) ∗ E.RD ∗
+    chainRes c a info ∗
+    ∃ B : mvcc.KBReal, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B ∗ bkWT B ∗ bkRT B ∗
+      csContractA (E.Pk B) E.f Pre Q Post)
+
+/-- Its postcondition: `mPost`'s, and the reader token back. -/
+def mPostW (E : AEnv GF) (c : Chain) (a : GoInterface) (log : mvcc.Log)
+    (Pre Post : IProp GF) : IProp GF :=
+  iprop(mPost E c a log Pre Post ∗ bkRTOf E)
+
 /-- The precondition of a method that writes only with `shouldApplyV3` (`v3`: the cluster's):
-`cPre v3`, the critical-section contract with `v3`, else `Pre` alone. -/
+`cPre v3`, the critical-section contract with `v3`, else `Pre` alone, with the backend's tokens. -/
 def mPreV (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (log : mvcc.Log)
     (Pre Q Post : IProp GF) : IProp GF :=
-  iprop(kvOwn E log ∗ chainRes c a info ∗ cPre v3 E.P E.f Pre Q Post)
+  iprop((∃ cr : Int, wSt E.γs log cr) ∗ leasesLive E (mvcc.stateAfter log) ∗ E.RD ∗
+    chainRes c a info ∗
+    ∃ B : mvcc.KBReal, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B ∗ bkWT B ∗ bkRT B ∗
+      cPre v3 (E.Pk B) E.f Pre Q Post)
 
-/-- Its postcondition: `cPost v3` (`Post ∨ Pre` with `v3`, else `Pre`: no write). -/
+/-- Its postcondition: `cPost v3` (`Post ∨ Pre` with `v3`, else `Pre`: no write), the reader token
+back. -/
 def mPostV (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (log : mvcc.Log)
     (Pre Post : IProp GF) : IProp GF :=
-  iprop(kvOwn E log ∗ chainRes c a info ∗ cPost v3 Pre Post)
+  iprop(kvOwn E log ∗ chainRes c a info ∗ cPost v3 Pre Post ∗ bkRTOf E)
+
+/-- **The apply thread's resources at `log` with the contract of a write with `v3`**
+(`uberApplier.Apply`'s and `dispatch`'s, strict M1, 2026-11-05: `kvOwn` with the contract at the
+batch lock of the backend `kvBk` holds, and the backend's tokens for the components' writes). -/
+def kvOwnPre (v3 : Bool) (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
+  iprop((∃ cr : Int, wSt E.γs log cr) ∗ leasesLive E (mvcc.stateAfter log) ∗ E.RD ∗
+    ∃ B : mvcc.KBReal, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B ∗ bkWT B ∗ bkRT B ∗
+      cPre v3 (E.Pk B) E.f Pre Q Post)
 
 /-- The postcondition of a KV method on `rq`: an outcome of the chain, its answer `R`, the log
 it commits, and the request's class for the principal `info` (A3, `chainClass`) and its lease class
@@ -1476,15 +1593,13 @@ def kvPostF (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.
 def putPre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
   iprop(⌜rq.put = some o ∧ dispatchKind rq = .put ∧ putOk log⌝ ∗ certPre E c rq log ∗
-    txn.putRequestIs r o ∗
-    mvcc.storeWT E.γ ∗ mPre E c a info log Pre Q Post)
+    txn.putRequestIs r o ∗ mPre E c a info log Pre Q Post)
 
 /-- `DeleteRange(r)`'s precondition. -/
 def deletePre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
   iprop(⌜rq.deleteRange = some o ∧ dispatchKind rq = .deleteRange ∧ delOk log o⌝ ∗
-    certPre E c rq log ∗ txn.deleteRangeRequestIs r o ∗ mvcc.storeWT E.γ ∗
-    mPre E c a info log Pre Q Post)
+    certPre E c rq log ∗ txn.deleteRangeRequestIs r o ∗ mPre E c a info log Pre Q Post)
 
 /-- `Range(r)`'s precondition (a read: no contract). -/
 def rangePre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
@@ -1501,25 +1616,24 @@ def rangePost (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etc
 /-- `Txn(r, skip)`'s precondition. -/
 def txnPre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (r : Loc) (rq : IRRModel) (t : TxnModel) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
-  iprop(⌜rq.txn = some t ∧ dispatchKind rq = .txn ∧ txn.TxnPre log t⌝ ∗ certPre E c rq log ∗
-    txn.txnRequestIs r t ∗
-    mvcc.storeWT E.γ ∗ mPre E c a info log Pre Q Post)
+  iprop(⌜rq.txn = some t ∧ dispatchKind rq = .txn ∧ txn.TxnPreA log t ∧ putOk log⌝ ∗ certPre E c rq log ∗
+    txn.txnRequestIs r t ∗ mPre E c a info log Pre Q Post)
 
 /-- **What a revocation takes beside the method's resources** (the lease-revoke plan, D4): the
-range deleter held, the revocable lessor, the rest at `rs`; (the lease-expiry plan's X7, "the revoke
-post names the outcome", 2026-11-04) the apply thread's half of the live set at `T` (`ltHalf`, the
-other half is `kvOwn`'s `leasesLive`) and the revocable mode. (Until then a cluster that granted
-none, `E.lg = false`.) -/
+range deleter held (`rdHeld`), the revocable lessor, the rest at `rs`; (the lease-expiry plan's X7,
+"the revoke post names the outcome", 2026-11-04) the apply thread's half of the live set at `T`
+(`ltHalf`, the other half is `kvOwn`'s `leasesLive`) and the revocable mode. (Until then a cluster
+that granted none, `E.lg = false`.) -/
 def revokeRes (E : AEnv GF) (T : List w64) (rs : RestM) : IProp GF :=
-  iprop(lease.rdAt E.γ.leases E.s ∗ lease.lessorRevocable E.γ.leases ∗ ltHalf E T ∗ E.RO rs ∗
+  iprop(rdHeld E ∗ lease.lessorRevocable (mvccLeases E.γ) ∗ ltHalf E T ∗ E.RO rs ∗
     ⌜E.lm = .revocable⌝)
 
 /-- **What `dispatch` holds for a revocation** (the lease-expiry plan's X7, 2026-11-04): the
-lessor's range deleter (`rdAt`, the apply thread's) and its mode revocable, for a request
+lessor's range deleter (`rdHeld`, the apply thread's) and its mode revocable, for a request
 dispatched as a revocation; nothing otherwise. Taken and given back by `dispatch` and `Apply`. -/
 def revokeOwn (E : AEnv GF) (rq : IRRModel) : IProp GF :=
   if dispatchKind rq = .leaseRevoke then
-    iprop(lease.rdAt E.γ.leases E.s ∗ lease.lessorRevocable E.γ.leases)
+    iprop(rdHeld E ∗ lease.lessorRevocable (mvccLeases E.γ))
   else iprop(True)
 
 theorem revokeOwn_nonRevoke (E : AEnv GF) (rq : IRRModel) (h : dispatchKind rq ≠ .leaseRevoke) :
@@ -1532,21 +1646,24 @@ rest at `revokeRest` (the lease's record deleted when it was live, `id ∈ T`); 
 answer of the response `resp` and error `err` (`revokeAnswer`: without error, its header). -/
 def revokeResAfter (E : AEnv GF) (rq : IRRModel) (T : List w64) (rs : RestM) (resp : Loc)
     (err : GoInterface) (o : Outcome) : IProp GF :=
-  iprop(lease.rdAt E.γ.leases E.s ∗ lease.lessorRevocable E.γ.leases ∗
+  iprop(rdHeld E ∗ lease.lessorRevocable (mvccLeases E.γ) ∗
     ltHalf E (revokeIds rq true o T) ∗ E.RO (revokeRest T rq true o rs) ∗
     revokeAnswer E rq
       (interface.mkOk (go.GoType.PointerType etcdserverpb.LeaseRevokeResponse.ty) #resp) err)
 
 /-- `LeaseRevoke(r)`'s precondition (the lease-revoke plan, R3, 2026-10-31): the request's, room
 for a revision (`putOk`: `rqOk` keeps excluding the kind for `dispatch`), the certificate, the
-write token, the method's resources and the revocation's (`revokeRes`). -/
+write token, the method's resources and the revocation's (`revokeRes`). Strict M1, 2026-11-05 (the
+migration's choice): the state's size bound `(stateAfter log).length ≤ 2 ^ 62`, the lessor's sort
+premise (`revokeClause`), which the server derives from the writer's receipt
+(`srvApplyKV_small`: a live key-value is a change, `receiptBound ≤ 2 ^ 48`). -/
 def revokePre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (r : Loc) (rq : IRRModel) (id : w64) (log : mvcc.Log) (T : List w64) (rs : RestM)
     (Pre Q Post : IProp GF) : IProp GF :=
-  iprop(⌜rq.leaseRevoke = some id ∧ dispatchKind rq = .leaseRevoke ∧ putOk log⌝ ∗
+  iprop(⌜rq.leaseRevoke = some id ∧ dispatchKind rq = .leaseRevoke ∧ putOk log ∧
+      (mvcc.stateAfter log).length ≤ 2 ^ 62⌝ ∗
     certPre E c rq log ∗
-    leaseRevokeIs r id ∗
-    mvcc.storeWT E.γ ∗ mPre E c a info log Pre Q Post ∗ revokeRes E T rs)
+    leaseRevokeIs r id ∗ mPre E c a info log Pre Q Post ∗ revokeRes E T rs)
 
 /-! ### The backend's posts: no chain resources, the trivial class -/
 
@@ -1690,42 +1807,16 @@ theorem ciSplit_of_at (E : AEnv GF) (Pre : IProp GF) (x : w64) :
 
 /-! ## The apply thread's compaction resources -/
 
-/-- **The store's compaction right at `c`, by the mode**: a compacting store's restorable right
-(`mvcc.compactRightR`: half the compaction revision's authority, the jobs' queue, the closer's and
-the jobs' shares of the fields), at least `-1`; a store that does not compact, none, at `-1`. -/
-def cmpRight (E : AEnv GF) (c : Int) : IProp GF :=
-  if mvcc.kbCmpM E.γ.kb then iprop(mvcc.compactRightR E.s E.γ c ∗ ⌜-1 ≤ c⌝) else iprop(⌜c = -1⌝)
-
-/-- **The apply thread's compaction resources at `c`**: the right by the mode and the compaction's
-write-back supply (persistent; `True` off). -/
+/-- **The apply thread's compaction resources at `c`** (strict M1, 2026-11-05: the draft's
+`cmpOwnA`): the store's open token and the compaction right's quarter of the compaction
+revision. -/
 def cmpOwn (E : AEnv GF) (c : Int) : IProp GF :=
-  iprop(cmpRight E c ∗ mvcc.kbWTSupplyM E.γ.kb)
+  iprop(mvccOpen E.γ ∗ crOwn E.γs c)
 
-theorem cmpOwn_off (E : AEnv GF) (c : Int) (h : ¬ mvcc.kbCmpM E.γ.kb) :
-    cmpOwn (GF := GF) E c ⊢ ⌜c = -1⌝ := by
-  unfold cmpOwn cmpRight
-  simp only [h, ↓reduceIte]
-  iintro ⟨%hc, -⟩
-  ipureintro; exact hc
-
-/-- **At a store that does not compact, the resources are free at `-1`** (`cmpRight`'s off arm,
-`kbWTSupplyM`'s `True`): what a producer of the apply thread's state over such a store gives
-(the boot, the state after a snapshot's install). -/
-theorem cmpOwn_of_off (E : AEnv GF) (h : ¬ mvcc.kbCmpM E.γ.kb) : ⊢ cmpOwn (GF := GF) E (-1) := by
-  unfold cmpOwn cmpRight mvcc.kbWTSupplyM
-  simp only [h, ↓reduceIte]
-  iintro
-  isplitr
-  · ipureintro; trivial
-  itrivial
-
-theorem cmpOwn_ge (E : AEnv GF) (c : Int) : cmpOwn (GF := GF) E c ⊢ ⌜-1 ≤ c⌝ := by
-  unfold cmpOwn cmpRight
-  split
-  · iintro ⟨⟨-, %h⟩, -⟩; ipureintro; exact h
-  · iintro ⟨%h, -⟩; ipureintro; omega
-
-
+/-- **A successful compaction's channel fact** for the requester's `<-physc` (the draft's
+`cmpChanA`). -/
+def cmpChan (crev : Int) (rev : w64) (ch : GoChan) : IProp GF :=
+  iprop(⌜crev < sint.Z rev⌝ -∗ compactChanOk ch)
 
 /-- **A successful compaction's response** `rp` (owned: `EtcdServer.Compact` writes it): its
 header, owned (`Compaction`'s last lines, `rr.Rev` of `KV.Range(context.TODO(), "compaction", …)`).
@@ -1763,14 +1854,15 @@ Its proof for the backend rests on `store.Compact.spec` (F-1: no `ErrFutureRev` 
 def cmpTriple (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
   iprop(□ (∀ (cr : Loc) (rev : w64) (log : mvcc.Log) (crev : Int) (Pre Q Post : IProp GF)
         (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
-      {{ compactionIs cr rev ∗ ⌜cmpAdmitRev E.γ.kb log rev⌝ ∗ mvcc.crevPermAt E.γ (sint.Z rev) ∗
+      {{ compactionIs cr rev ∗ ⌜cmpAdmitRev log rev⌝ ∗ E.Cp (sint.Z rev) ∗ applyTok E ∗
           mPre E c (.ok ai) info log Pre Q Post ∗ cmpOwn E crev }}
         (App (Val #(methods ai.ty go!"Compaction" ai.v)) (Val #cr))
       {{ (resp : Loc) (ch : GoChan) (trace : Loc) (err : GoInterface),
           RET (PairV (PairV (PairV #resp #ch) #trace) #err);
-          kvOwn E log ∗ chainRes c (.ok ai) info ∗ (Post ∨ Pre) ∗
+          applyTok E ∗ kvOwn E log ∗ chainRes c (.ok ai) info ∗ (Post ∨ Pre) ∗
           cmpOwn E (if chainCompacts c then cmpRevAfter crev rev else crev) ∗
-          cmpAnswerIs c crev rev resp ch trace err }}))
+          cmpAnswerIs c crev rev resp ch trace err ∗
+          (if chainCompacts c then cmpChan crev rev ch else iprop(True)) }}))
 
 /-- **A request's compactions are permitted** (C3's server stage, 2026-11-02; persistent): its
 revision is one the store's compaction permit holds of (`mvcc.crevPermAt`, what `store.Compact`
@@ -1778,7 +1870,7 @@ takes), beside the pure facts `cmpAdmit`, as they gated by the kind. Free of a r
 kind. -/
 def cmpPermRq (E : AEnv GF) (rq : IRRModel) : IProp GF :=
   iprop(□ (⌜dispatchKind rq = .compaction⌝ → ∀ r : w64, ⌜rq.compaction = some r⌝ →
-    mvcc.crevPermAt E.γ (sint.Z r)))
+    E.Cp (sint.Z r)))
 
 instance cmpPermRq_persistent (E : AEnv GF) (rq : IRRModel) :
     Persistent (cmpPermRq (GF := GF) E rq) := by
@@ -1796,7 +1888,7 @@ another kind. (The lease-expiry plan's X2, 2026-11-04: until then also the lesso
 `lessorModeIs … true`.) -/
 def grantPermRq (E : AEnv GF) (rq : IRRModel) : IProp GF :=
   iprop(□ (⌜dispatchKind rq = .leaseGrant⌝ → ∀ g : LeaseGrantModel, ⌜rq.leaseGrant = some g⌝ →
-    lease.leaseGranted E.γ.leases g.id))
+    lease.leaseGranted (mvccLeases E.γ) g.id))
 
 instance grantPermRq_persistent (E : AEnv GF) (rq : IRRModel) :
     Persistent (grantPermRq (GF := GF) E rq) := by
@@ -1821,35 +1913,37 @@ instance cmpTriple_persistent (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) :
 /-- **The grant triple's precondition** (2.11): in a cluster that grants leases (`E.lg`, which
 `dispatch` has from `rqOk E.lg`'s grant arm: without it the two halves are `True` and do not tie the
 lessor's live set to `T`), a request dispatched as the grant `g` (its request `r`), the lease marked granted (`grantPermRq`'s; the lease-expiry plan's X2: no longer the lessor's mode), the
-apply thread's half of the live set `T`, the rest resource at `rs`, the store's write token, the
-common precondition and the consistent index's split; (the lease-expiry plan's E3 (c), 2026-11-05)
+apply thread's half of the live set `T`, the rest resource at `rs`, the common precondition with
+the backend's tokens (`mPreW`; strict M1: in place of the store's write token and `mPre`) and the
+consistent index's split; (the lease-expiry plan's E3 (c), 2026-11-05)
 the apply thread's half of the ids the lessor ever had, `U` (`lease.leaseEver`), and the grant's id
 new to them unless the lessor is monotone (`lease.lessor.Grant.spec`'s premise). -/
 def grantPre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (r : Loc) (rq : IRRModel) (g : LeaseGrantModel) (log : mvcc.Log) (T : List w64) (rs : RestM)
     (U : List w64) (Pre Q Post : IProp GF) : IProp GF :=
   iprop(⌜E.lg = true ∧ rq.leaseGrant = some g ∧ dispatchKind rq = .leaseGrant⌝ ∗ leaseGrantIs r g ∗
-    lease.leaseGranted E.γ.leases g.id ∗ ltHalf E T ∗
-    E.RO rs ∗ mvcc.storeWT E.γ ∗ mPre E c a info log Pre Q Post ∗ ciSplit E Pre ∗
-    lease.leaseEver E.γ.leases U ∗ (lease.lessorModeIs E.γ.leases true ∨ ⌜g.id ∉ U⌝))
+    lease.leaseGranted (mvccLeases E.γ) g.id ∗ ltHalf E T ∗
+    E.RO rs ∗ mPreW E c a info log Pre Q Post ∗ ciSplit E Pre ∗
+    lease.leaseEver (mvccLeases E.γ) U ∗ (lease.lessorModeIs (mvccLeases E.γ) true ∨ ⌜g.id ∉ U⌝))
 
 /-- **The grant triple's postcondition** (2.11) at the outcome `o`: the chain's step
 (`chainStep backendStep`), applied exactly without error, which is exactly when the chain lets the
 grant through and the lessor's condition holds at `T`; the half of the live set and the rest
 resource after it (`grantIds`, `grantRest`, the record's TTL `t` the lessor's, at least the request's,
 `grantTTLOk`: the lease-expiry plan's S2–S4, Q-S6 (A-ii); review r1 F14), the ids the lessor
-ever had after it (`grantIds` of `U`: the grant's id added exactly when applied), the answer. -/
+ever had after it (`grantIds` of `U`: the grant's id added exactly when applied), the answer; (strict
+M1) the backend's reader token back (`mPostW`). -/
 def grantPost (E : AEnv GF) (c : Chain) (a : GoInterface) (rq : IRRModel) (g : LeaseGrantModel)
     (log : mvcc.Log) (T : List w64) (rs : RestM) (U : List w64) (Pre Post : IProp GF) (resp : Loc)
     (err : GoInterface) (o : Outcome) : IProp GF :=
-  iprop(mPost E c a log Pre Post ∗ applyErrIs err ∗
+  iprop(mPostW E c a log Pre Post ∗ applyErrIs err ∗
     -- (amendment (E), 2026-11-03) the backend's rejection is the lessor's error
     (⌜o = .rejected .backend⌝ -∗ lease.lessorErrIs err) ∗
     ⌜chainStep backendStep c rq log o ∧ ((∃ l ns, o = .applied l ns) ↔ err = GoInterface.nil) ∧
       (err = GoInterface.nil ↔ grantGoes c rq = true ∧ grantIdsOk T g.id g.ttl)⌝ ∗
     ltHalf E (grantIds rq true o T) ∗
     (∃ t : w64, ⌜grantTTLOk rq t⌝ ∗ E.RO (grantRest t rq true o rs)) ∗
-    lease.leaseEver E.γ.leases (grantIds rq true o U) ∗
+    lease.leaseEver (mvccLeases E.γ) (grantIds rq true o U) ∗
     grantAnswer E rq (interface.mkOk (go.GoType.PointerType etcdserverpb.LeaseGrantResponse.ty) #resp) err)
 
 /-- **The method triples of the `applierV3` value `ai` of the chain `c`** in the environment
@@ -1862,66 +1956,67 @@ def applierTriples (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
     -- the KV methods
     □ (∀ (r : Loc) (rq : IRRModel) (o : OpFull) (log F : mvcc.Log) (Pre Q Post : IProp GF)
         (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
-      {{ putPre E c (.ok ai) info r rq o log Pre Q Post ∗ mvcc.idxCert E.γ.idx F }}
+      {{ applyTok E ∗ putPre E c (.ok ai) info r rq o log Pre Q Post ∗ kvLogLb E.γs F }}
         (App (Val #(methods ai.ty go!"Put" ai.v)) (Val #r))
       {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-          kvPostF E c (.ok ai) info rq log F (putAnswerIs log o resp err) Pre Post ∗ traceRes trace }}) ∗
+          kvPostF E c (.ok ai) info rq log F (putAnswerIs log o resp err) Pre Post ∗ traceRes trace ∗ applyTok E }}) ∗
     □ (∀ (r : Loc) (rq : IRRModel) (o : OpFull) (log F : mvcc.Log) (Pre Q Post : IProp GF)
         (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
-      {{ deletePre E c (.ok ai) info r rq o log Pre Q Post ∗ mvcc.idxCert E.γ.idx F }}
+      {{ applyTok E ∗ deletePre E c (.ok ai) info r rq o log Pre Q Post ∗ kvLogLb E.γs F }}
         (App (Val #(methods ai.ty go!"DeleteRange" ai.v)) (Val #r))
       {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-          kvPostF E c (.ok ai) info rq log F (deleteAnswerIs log o resp err) Pre Post ∗ traceRes trace }}) ∗
+          kvPostF E c (.ok ai) info rq log F (deleteAnswerIs log o resp err) Pre Post ∗ traceRes trace ∗ applyTok E }}) ∗
     □ (∀ (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log)
         (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
-      {{ rangePre E c (.ok ai) info r rq o log }}
+      {{ applyTok E ∗ rangePre E c (.ok ai) info r rq o log }}
         (App (Val #(methods ai.ty go!"Range" ai.v)) (Val #r))
       {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-          rangePost E c (.ok ai) info rq o log resp err ∗ traceRes trace }}) ∗
+          rangePost E c (.ok ai) info rq o log resp err ∗ traceRes trace ∗ applyTok E }}) ∗
     □ (∀ (r : Loc) (skip : Bool) (rq : IRRModel) (t : TxnModel) (log F : mvcc.Log)
         (Pre Q Post : IProp GF) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
-      {{ txnPre E c (.ok ai) info r rq t log Pre Q Post ∗ mvcc.idxCert E.γ.idx F }}
+      {{ applyTok E ∗ txnPre E c (.ok ai) info r rq t log Pre Q Post ∗ kvLogLb E.γs F }}
         (App (App (Val #(methods ai.ty go!"Txn" ai.v)) (Val #r)) (Val #skip))
       {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);
-          kvPostF E c (.ok ai) info rq log F (txnAnswerIs log t skip resp err) Pre Post ∗ traceRes trace }}) ∗
+          kvPostF E c (.ok ai) info rq log F (txnAnswerIs log t skip resp err) Pre Post ∗ traceRes trace ∗ applyTok E }}) ∗
     □ (∀ (r : Loc) (rq : IRRModel) (id : w64) (log : mvcc.Log) (T : List w64) (rs : RestM)
         (Pre Q Post : IProp GF) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
-      {{ revokePre E c (.ok ai) info r rq id log T rs Pre Q Post }}
+      {{ applyTok E ∗ revokePre E c (.ok ai) info r rq id log T rs Pre Q Post }}
         (App (Val #(methods ai.ty go!"LeaseRevoke" ai.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
           kvPost E c (.ok ai) info rq log
-            (fun o => iprop(revokeOutcomeIs resp err o ∗ revokeResAfter E rq T rs resp err o)) Pre Post }}) ∗
+            (fun o => iprop(revokeOutcomeIs resp err o ∗ revokeResAfter E rq T rs resp err o)) Pre Post ∗
+            applyTok E }}) ∗
     -- (the lease-grant stage, 2.11) `LeaseGrant`
     □ (∀ (r : Loc) (rq : IRRModel) (g : LeaseGrantModel) (log : mvcc.Log) (T : List w64)
         (rs : RestM) (U : List w64) (Pre Q Post : IProp GF)
         (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
-      {{ grantPre E c (.ok ai) info r rq g log T rs U Pre Q Post }}
+      {{ applyTok E ∗ grantPre E c (.ok ai) info r rq g log T rs U Pre Q Post }}
         (App (Val #(methods ai.ty go!"LeaseGrant" ai.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          ∃ o : Outcome, grantPost E c (.ok ai) rq g log T rs U Pre Post resp err o }}) ∗
+          applyTok E ∗ ∃ o : Outcome, grantPost E c (.ok ai) rq g log T rs U Pre Post resp err o }}) ∗
     -- the methods that leave the log as it is
     □ (∀ (m : GoString) (r : Loc) (log : mvcc.Log) (Pre Q Post : IProp GF)
         (info : go_etcd_io.etcd.server.v3.auth.AuthInfo), ⌜m ∈ respMethods⌝ -∗
-      {{ reqFacts E m r ∗ mPre E c (.ok ai) info log Pre Q Post ∗ mvcc.storeWT E.γ ∗ ciSplit E Pre }}
+      {{ applyTok E ∗ reqFacts E m r ∗ mPreW E c (.ok ai) info log Pre Q Post ∗ ciSplit E Pre }}
         (App (Val #(methods ai.ty m ai.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          mPost E c (.ok ai) log Pre Post ∗ applyErrIs err }}) ∗
+          applyTok E ∗ mPostW E c (.ok ai) log Pre Post ∗ applyErrIs err }}) ∗
     □ (∀ (m : GoString) (log : mvcc.Log) (Pre Q Post : IProp GF)
         (info : go_etcd_io.etcd.server.v3.auth.AuthInfo), ⌜m ∈ resp0Methods⌝ -∗
       ⌜(m = go!"AuthEnable" → E.authOn = true) ∧ adminAdmitted E.authMode⌝ -∗
-      {{ mPre E c (.ok ai) info log Pre Q Post ∗ mvcc.storeWT E.γ ∗ E.RW }}
+      {{ applyTok E ∗ mPreW E c (.ok ai) info log Pre Q Post ∗ E.RW }}
         (App (Val #(methods ai.ty m ai.v)) (Val #()))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          mPost E c (.ok ai) log Pre Post ∗ applyErrIs err }}) ∗
+          applyTok E ∗ mPostW E c (.ok ai) log Pre Post ∗ applyErrIs err }}) ∗
     □ (∀ (log : mvcc.Log) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
-      {{ kvOwn E log ∗ chainRes c (.ok ai) info }}
+      {{ applyTok E ∗ kvOwn E log ∗ chainRes c (.ok ai) info }}
         (App (Val #(methods ai.ty go!"AuthStatus" ai.v)) (Val #()))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          kvOwn E log ∗ chainRes c (.ok ai) info ∗ applyErrIs err }}) ∗
+          applyTok E ∗ kvOwn E log ∗ chainRes c (.ok ai) info ∗ applyErrIs err }}) ∗
     □ (∀ (m : GoString) (r : Loc) (v3 : Bool) (log : mvcc.Log) (Pre Q Post : IProp GF)
         (cr : ClusterReq) (rs : RestM) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
       ⌜m ∈ clusterMethods⌝ -∗
-      {{ clusterFacts E m cr r rs ∗ mPreV v3 E c (.ok ai) info log Pre Q Post ∗ mvcc.storeWT E.γ ∗ E.FS ∗
+      {{ clusterFacts E m cr r rs ∗ mPreV v3 E c (.ok ai) info log Pre Q Post ∗ E.FS ∗
           E.RO rs }}
         (App (App (Val #(methods ai.ty m ai.v)) (Val #r)) (Val #v3))
       {{ RET #(); mPostV v3 E c (.ok ai) info log Pre Post ∗ E.FS ∗ E.RO (cr.eff v3 rs) }}) ∗
@@ -1954,13 +2049,16 @@ instance applierSpec_persistent (E : AEnv GF) (c : Chain) (a : GoInterface) :
 
 /-! ## The layers' structs -/
 
-/-- **The backend's options** `opts` in the environment `E`: a logger, the KV (the store `E.s`,
-whose hook is `E.f` under `E.P`), and the components with their contracts. -/
+/-- **The backend's options** `opts` in the environment `E` (strict M1, 2026-11-05): a logger, the
+KV (a store handle of mvcc's API, `E.kv`, with the server's builders `envAus E`), and the
+components with their contracts at the batch lock `E.Pk B` of the current backend (tied by
+`E.BkTie`) and the hook `E.f`. -/
 def backendOptsOk (E : AEnv GF) (opts : ApplierOptions) : IProp GF :=
-  iprop(⌜opts.Logger' ≠ null⌝ ∗ isApplyKV opts.KV' E.s E.γ ∗ mvcc.hookOk E.γ E.P E.f ∗
-    isApplyLessor opts.Lessor' E.s E.γ E.P E.f E.RO E.RW ∗
-    isAuthStore opts.AuthStore' E.γ E.P E.f E.RD E.authMode E.RW ∗
-    isAlarmStore opts.AlarmStore' E.γ E.P E.f E.RW ∗ isCluster opts.Cluster' E.γ E.P E.f E.RO E.RW ∗
+  iprop(⌜opts.Logger' ≠ null⌝ ∗ isApplyKV opts.KV' E.γ ∗ ⌜opts.KV' = E.kv⌝ ∗ envAus E ∗
+    isApplyLessor opts.Lessor' E.γ E.Pk E.f E.BkTie E.RO E.RW ∗
+    isAuthStore opts.AuthStore' E.Pk E.f E.BkTie E.RD E.authMode E.RW ∗
+    isAlarmStore opts.AlarmStore' E.Pk E.f E.BkTie E.RW ∗
+    isCluster opts.Cluster' E.Pk E.f E.BkTie E.RO E.RW ∗
     isRaftStatus opts.RaftStatus' ∗ isSnapshotServer opts.SnapshotServer' E.FS ∗
     isConsistentIndexer opts.ConsistentIndex' E.ciC)
 
@@ -2016,9 +2114,9 @@ reader resource of the auth store, `E.RD`, unit A2, which `Apply` now borrows fr
 def authIs (E : AEnv GF) (p : Loc) (inner : GoInterface) : IProp GF :=
   iprop(structFieldRef authApplierV3 go!"applierV3" p ↦□ inner ∗
     (∃ st : GoInterface, structFieldRef authApplierV3 go!"as" p ↦□ st ∗
-      isAuthStore st E.γ E.P E.f E.RD E.authMode E.RW) ∗
+      isAuthStore st E.Pk E.f E.BkTie E.RD E.authMode E.RW) ∗
     (∃ le : GoInterface, structFieldRef authApplierV3 go!"lessor" p ↦□ le ∗
-      isApplyLessor le E.s E.γ E.P E.f E.RO E.RW) ∗
+      isApplyLessor le E.γ E.Pk E.f E.BkTie E.RO E.RW) ∗
     sync.isMutex (structFieldRef authApplierV3 go!"mu" p) (authInfoIdle p))
 
 instance authIs_persistent (E : AEnv GF) (p : Loc) (inner : GoInterface) :

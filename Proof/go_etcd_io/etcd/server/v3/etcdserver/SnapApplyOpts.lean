@@ -77,15 +77,14 @@ theorem snap_backendOptsOk
     (hTerm : EtcdServer.Term.spec (GF := GF) (hG := hG))
     (hFS : EtcdServer.ForceSnapshot.spec (GF := GF) (hG := hG))
     (hCIg : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG))
+    [bkSem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
     (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (π0 : ApplyPhys) (γB : backend.BNames) (P : backend.BParams)
-    (d' : mvcc.KBReal) (p' : mvcc.PhysNames) (γw : mvcc.WsNames) (ws : Loc) (g : GoFunc)
+    (d' : mvcc.KBReal) (W : IProp GF) (g : GoFunc)
     (opts' : apply.ApplierOptions) (lg : Loc) (al ast lp cl : Loc)
-    (hγB : d'.γB = γB) (hkb' : p'.kb = some d') (hγw : γw.st = E.γ) (hwq : E.γ.watchQ = true)
-    (hgnn : g ≠ func.nil)
+    (hγB : d'.γB = γB) (hgnn : g ≠ func.nil)
     (hlp : mvcc.leaseParams d'.P)
-    (hopts : opts'.Logger' = lg ∧
-      opts'.KV' = interface.mkOk go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty.PointerType #ws ∧
+    (hopts : opts'.Logger' = lg ∧ opts'.KV' = E.kv ∧
       opts'.AlarmStore' = al ∧ opts'.AuthStore' = auth.authIface ast ∧
       opts'.Lessor' = lease.lessorIface lp ∧ opts'.Cluster' = cl ∧
       opts'.ConsistentIndex' = ciIface ci ∧
@@ -94,48 +93,45 @@ theorem snap_backendOptsOk
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM E.authOn s γ ci TM E ρ γr ∗ srvLgAddr s ↦□ lg ∗
       isServerCI s (snapγ γ π0 γB) ci ∗
-      backend.isBackend d'.γB d'.P (mvcc.lateWD d')
-        (batchLockInv (snapγ γ π0 γB) (metaTM γB P)) d'.be ∗
+      backend.isBackend d'.γB d'.P W (batchLockInv (snapγ γ π0 γB) (metaTM γB P)) d'.be ∗
       backend.plHookRO γB g ∗
-      mvcc.hookP (γw.st.withPhys p') (batchLockInv (snapγ γ π0 γB) (metaTM γB P)) ∗
-      mvcc.isWatchableStore ws E.s γw ∗
+      □ mvcc.api.isMvcc E.kv E.γ ∗ apply.envAus E ∗
       alarmApplyOk al ∗ authApplyOkM E.authMode ast E.RD ∗ lessorApplyOk lp ∗ clusterApplyOk cl ∗
       lease.lessorCfg lp ∗ lessorLookupOk lp ∗ (∃ n : Loc, membership.rcVersionChangedAddr cl ↦□ n) ∗
-      lease.lessorInv lp E.γ.leases ⊢
-    apply.backendOptsOk (snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d'.be)
+      lease.lessorInv lp (mvcc.api.mvccLeases E.γ) ⊢
+    apply.backendOptsOk (snapE E (snapγ γ π0 γB) (metaTM γB P) ci d' g γB al ast lp cl d'.be)
       opts' := by
   subst hγB
   obtain ⟨Hu1, Hu2, Hu3, Hu4, Hu5, Hu6, Hu7, Hu8, Hu9⟩ := hopts
-  have hk : (E.γ.withPhys p').kb = some d' := hkb'
-  iintro ⟨#Hpkg, #HS, #Hlg, #HCI, #HB, #Hhook, #HhP, #Hws, #HalA, #HauA, #HleA, #HclA, #Hlcfg,
+  iintro ⟨#Hpkg, #HS, #Hlg, #HCI, #HB, #Hhook, #HisM, #Haus, #HalA, #HauA, #HleA, #HclA, #Hlcfg,
     #Hllk, #Hvcn, #Hlinv⟩
   iunfold apply.backendOptsOk
-  simp only [snapE_s, snapE_γ, snapE_P, snapE_f, snapE_RD, snapE_authMode, snapE_FS, snapE_ciC,
-    snapE_RO, snapE_RW]
+  simp only [snapE_kv, snapE_γ, snapE_Pk, snapE_f, snapE_BkTie, snapE_RD, snapE_authMode, snapE_FS,
+    snapE_ciC, snapE_RO, snapE_RW]
   rw [Hu1, Hu2, Hu3, Hu4, Hu5, Hu6, Hu7, Hu8, Hu9]
   isplitr
   · iapply snap_lg_nn E.authOn s γ ci TM E ρ γr lg $$ [$HS $Hlg]
   isplitr
-  · iapply snap_isApplyKV ws E.s γw p' E.γ hγw $$ Hws
+  · iunfold apply.isApplyKV; iexact HisM
   isplitr
-  · rw [← hγw]
-    iapply snap_hookOk γw.st p' d' hkb' _ g hgnn $$ [$HhP $Hhook]
+  · ipureintro; rfl
   isplitr
-  · ihave #Hhok : mvcc.hookOk (E.γ.withPhys p') _ #g $$ []
-    · rw [← hγw]
-      iapply snap_hookOk γw.st p' d' hkb' _ g hgnn $$ [$HhP $Hhook]
-    iapply snap_isApplyLessor hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv _ al ast lp cl E.s d'
-      (E.γ.withPhys p') hk _ g hgnn (by simp only [mvcc.StoreNames.withPhys_watchQ]; exact hwq) hlp
-    iframe Hpkg HleA Hlcfg Hllk HB Hhook Hhok
-    rw [mvcc.StoreNames.withPhys_leases]; iexact Hlinv
+  · iunfold apply.envAus
+    simp only [snapE_γ, snapE_γs, snapE_Nx, snapE_Cp]
+    iunfold apply.envAus at Haus
+    iexact Haus
   isplitr
-  · iapply snap_isAuthStore E.authMode al ast lp cl E.RD d' (E.γ.withPhys p') hk _ g hgnn
+  · iapply snap_isApplyLessor hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv _ al ast lp cl d' E.γ W _ g
+      hgnn hlp
+    iframe Hpkg HleA Hlcfg Hllk Hlinv HB Hhook
+  isplitr
+  · iapply snap_isAuthStore E.authMode al ast lp cl E.RD d' W _ g hgnn
     iframe HauA HB Hhook
   isplitr
-  · iapply snap_isAlarmStore al ast lp cl d' (E.γ.withPhys p') hk _ g hgnn
+  · iapply snap_isAlarmStore al ast lp cl d' W _ g hgnn
     iframe HalA HB Hhook
   isplitr
-  · iapply snap_isCluster _ al ast lp cl d' (E.γ.withPhys p') hk _ g hgnn
+  · iapply snap_isCluster _ al ast lp cl d' W _ g hgnn
     iframe HclA HB Hhook Hvcn
   isplitr
   · iapply snap_isRaftStatus hMID hLead hTerm E.authOn s γ ci TM E ρ γr $$ [$Hpkg $HS]

@@ -315,7 +315,7 @@ theorem rafthttp.snapshotHandler.ServeHTTP.wp_proof
         rw [show ((raftHttpNet Rh).proto a).sreq R γk Pre Φ = snapSReq Rh R γk Pre Φ from rfl]
         iunfold snapSReq at Hsreq
         icases Hsreq with ⟨%st0, %bs0, %sn, %D, %Hs0, #HP, #Hdep, #Himg⟩
-        obtain ⟨Hw0, Hbl0, Hto0, Hty0, Hsn0, Hrs0, HPre, HPhi⟩ := Hs0
+        obtain ⟨Hw0, Hwe0, Hbl0, Hto0, Hty0, Hsn0, Hrs0, HPre, HPhi⟩ := Hs0
         -- `dec := &messageDecoder{r: r.Body}`; `dec.decodeLimit(snapshotLimitByte)`
         iStructNamedSuffix «$r0» "_d"
         ipersist r_d
@@ -330,7 +330,7 @@ theorem rafthttp.snapshotHandler.ServeHTTP.wp_proof
           intro hl
           have := msgFrame_prefix_eq Hbl0 hl (HPre _ Hb)
           subst this
-          exact ⟨st0, Hw0⟩
+          exact ⟨st0, Hw0, Hwe0⟩
         ihave #Hzp : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
         · iPkgInit
         ihave #Hrpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
@@ -358,7 +358,7 @@ theorem rafthttp.snapshotHandler.ServeHTTP.wp_proof
         | nil =>
           ihave ⟨%bs, %st, %Hb, #HB, Hm⟩ := Hok $$ %rfl
           ihave %HBp := HB
-          obtain ⟨Hrs', Hbl, Hwire⟩ := Hb
+          obtain ⟨Hrs', Hbl, Hwire, -⟩ := Hb
           simp only [List.nil_append] at Hrs'
           subst Hrs'
           have hbs : bs = bs0 := msgFrame_prefix_eq Hbl0 (by word) (HPre _ HBp)

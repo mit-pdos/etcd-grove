@@ -22,7 +22,8 @@ variable [sem : go.Semantics]
 
 /-- **Trust boundary** (item 4, the server start): a stats handler is called around each call
 (`TagRPC` may return a derived context, `HandleRPC` observes): with `grpcStatsHandlerOk` (no value
-under etcd's keys, every call let run) what a run is given is as `grpcRunCtx` states. -/
+under etcd's keys, a genuine span or none under otel's, every call let run) what a run is given is
+as `grpcRunCtx` states (its `trace.spanCtxOk` since 2026-11-06). -/
 axiom grpc.StatsHandler.wp_proof : grpc.StatsHandler.spec (GF := GF) (hG := hG)
 
 end proof

@@ -17,6 +17,52 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `sort.Sort`'s size premise (2026-11-03, mvcc's API, branch `mvcc-api`)
+
+- **Missing.** Perennial's proof of `sort.Sort` (`Perennial/Proof/sort/Sort.lean`, over `pdqsort`)
+  requires at most `2 ^ 62` elements (its heapsort fallback's index arithmetic), a bound no Go
+  program needs (a slice that long cannot exist in memory).
+- **Needed by.** etcd's `sortRangeResults` (`txn/range.go:125`), through every spec that hands it a
+  range's results.
+- **Workaround here.** The size bound is stated once, locally, where a range's results are produced:
+  `stateOk` in mvcc's `Range` contracts (`Spec/go_etcd_io/etcd/server/v3/storage/mvcc/ApiState.lean`),
+  proved from the store's whole-history receipt; not a law of the store's state (the user,
+  2026-11-03: "we're going to ultimately get rid of the explicit size limit assumptions ... by
+  improving perennial itself, so I want those assumptions as local as possible").
+- **Proposed change.** Prove `sort.Sort` without the bound (from the slice's length being an `int`,
+  or the heap indices computed without overflow), then drop `stateOk`'s length conjunct.
+- **Status.** Not started.
+
+### Contexts derived from a parent that is not an `isContext` (2026-11-08, k8s 7f; to be decided in the 7f-4 Draft)
+
+- **Missing.** Two facts about contexts that etcd's require-leader stream handlers need, both
+  general, neither settled yet (`notes/k8s-7f-scope.md`, §3, revision 2):
+  - **(P-RL1)** a `Value` law for `WithCancel` over a general parent: for `k ≠ cancelCtxKeyAny`,
+    `(WP parent.Value(k) {Φ}) -∗ WP child.Value(k) {Φ}`. It needs a premise that the parent's
+    dynamic type is not one Go's `context.value` reads the fields of directly (`*valueCtx`,
+    `*timerCtx`, `withoutCancelCtx`), or a description of such a parent's fields. As first phrased
+    ("the child's `Value` is the parent's", any `isContext` parent) it was false: for
+    `&cancelCtxKey` the child returns itself, and grpc's stream context is a `*valueCtx` chain
+    (the 7f Scope review). `wp_WithCancel_any` already keeps the `ContextDesc`. The require-leader
+    handler may need only a fact about grpc's `metadata.incomingOf`, which is this repository's
+    (a reviewed trust-boundary fact), so P-RL1 may be unnecessary.
+  - **(P-RL2)** derivations (`WithValue`, `WithCancel`/`WithTimeout`) over a parent with a weak
+    contract: its `Done` as `isContext`'s, its `Err` any error after `Done` (etcd's
+    `cancellableContext` returns `ErrGRPCNoLeader`, which `isCtxErr` excludes). Go's child takes
+    `parent.Err()` on the parent's cancellation, so the child has the weak contract too. Natural
+    form: `isContext` generalized over the predicate its errors satisfy.
+- **Needed by.** The require-leader branch of etcd's stream interceptor, which Kubernetes' etcd3
+  store reaches on every watch (`clientv3.WithRequireLeader`), and the Watch and LeaseKeepAlive
+  handlers' derived contexts (`Tracer.Start`, `LeaseRenew`'s `WithTimeout`): stage 7f-4.
+- **Workaround here.** Today the premise `v3rpc.runsNoRequireLeader` excludes the branch; the user
+  decided (2026-11-08) to delete it, so 7f-4 needs these facts, as local lemmas until a Perennial
+  change lands.
+- **Status.** P-RL1 landed (2026-11-08) as `ctxValue`/`ctxValueFrom` (Perennial `ddc0f0acc`; see
+  "Landed", "`Context.Value` at keys other than `&cancelCtxKey`"): `ctxValueFrom parent child`
+  in `WithCancel`'s and the deadline constructors' posts, for any parent with a `ctxValue`; a
+  `*valueCtx` parent (grpc metadata) through `ctxValue_valueCtx` from its fields, which this
+  repository's `WithValue` spec would have to state. P-RL2 not started; the 7f-4 Draft states it.
+
 ### Fatal runtime errors are not in the model: `netpollinit` on file-descriptor exhaustion (2026-11-07, the review of `os-init-lean`)
 
 - **Missing.** Go has failures that are neither a panic nor an error result: `fatal error: ...`
@@ -1081,6 +1127,26 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 
 ## Landed
 
+### `Context.Value` at keys other than `&cancelCtxKey`; goose's multi-type type-switch case (landed 2026-11-08, Perennial `f137bdd8a` and `ddc0f0acc`; pin bumped 2026-11-08)
+
+- **Was missing.** (1) Perennial's `context` specs gave `Value` only at `&cancelCtxKey`, and
+  `WithCancel`'s posts dropped the new context's read-only parent field, so no proof could follow
+  `value(c.Context, key)` (sweep repairs 1 B2-F1; k8s 7f P-RL1). (2) goose translated a type-switch
+  case `case T1, ..., Tn:` testing `T1` twice and never `Tn` (`typeSwitchStmt`'s `getCond(i)` over
+  `c.List[1:]`), unsound when the case body panics; found writing (1).
+- **Landed in Perennial.** `f137bdd8a` (fix-semantics Case 35, signed off by the user): `getCond(i +
+  1)`, the semantics test `testTypeSwitchLastType`, the unittest `multiTypeSwitchLast`; only
+  `context.value` and goose's unittest re-translated (no translation in this repository has a
+  multi-type case: the pin bump's `etc/goose.py` changed no file). `ddc0f0acc`
+  (`docs/design/context-value.md`): `Proof/context/CtxValue.lean`, `ctxValue x k R` (`x.Value(k)`
+  and `context.value(x, k)` return a result in `R`), `wp_value`, `ctxValue_Value`, the laws
+  `ctxValue_{background,todo,cancel,timer,valueCtx,other}` (L2/L3 for a key that is not a `*int`,
+  `notIntPtrKey`), and `ctxValueFrom parent ctx'` in the posts of `WithCancel.spec`,
+  `wp_WithCancel_any`, `wp_WithCancel_Background`, `WithDeadlineCause`/`WithDeadline`/`WithTimeout`
+  and the `*_Background` deadline results.
+- **Here.** The pin bump adapted nine destructuring patterns (the posts' new trailing conjunct);
+  no statement changed. B2/B2b (the axioms `context.ValueStartTime`/`ValueKeepAlive`) use it next.
+
 ### Package initialization: a monotone package map; `os`'s initializers translated (landed 2026-11-03 to 2026-11-04; used here 2026-11-07)
 
 - **Was missing.** (1) Perennial's `wp_initialize'` theorems returned an arbitrary package map, so a
@@ -1810,6 +1876,27 @@ applying the instance by hand works. Met proving the oracles of porcupine PR #46
 `PorcupineDag/Proof/github_com/anishathalye/porcupine/Oracles.lean`). The general change: the
 field-load automation finding the instance at any fraction.
 
+## A slice literal of map literals (2026-11-06, the mvcc tester)
+
+`wp_slice_literal` (`Perennial/Golang/Theory/Slice.lean`) fixes the elements `l` before the array
+literal's WP runs, so a literal whose elements are themselves allocated by that WP
+(`[]map[string]kvRec{{}, {}}`, `examples/mvccrand`'s `newHistory`: each element a `make1`) cannot
+name them: the metavariable `?l` is created outside the scope of the maps' locations, and `rfl`
+fails. **Worked around locally** (2026-11-06): `wp_slice_literal_ex` in
+`Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/newHistory.lean`, a copy of
+`wp_slice_literal_nonnull`'s proof whose post takes the elements existentially
+(`∃ l, ⌜v = #(array.mk n l)⌝ ∗ …`), under `set_option goose.wp.unfoldSliceLiterals true` and
+Perennial's section variables (`[GoSemanticsFunctions] [go.PreSemantics]`); `newHistory` is proved
+over it. **The general change**: Perennial's `wp_slice_literal`(`_nonnull`) with `∃ l` in the array
+literal's post (the current statements are its instances at a fixed `l`), then delete the local copy.
+
+## `isSpsc`'s invariant at `nroot`; no `chan.wp_len` (2026-11-06, the mvcc tester)
+
+Met proving `examples/mvccrand`'s ticks channel (`WriterRun.lean`, `notes/mvcc-migration/mvccrand.md`):
+Perennial's single-producer channel `isSpsc` keeps its invariant at `nroot`, so a caller that holds
+another invariant open (the tester's, under its own namespace) cannot send on it; and there is no
+`chan.wp_len` wrapper beside `chan.wp_cap`. Local: the tester sends outside its invariant. The
+general changes: `isSpsc` parameterized by its namespace; a `chan.wp_len` lemma.
 ## `ownMap` is not `DFractional` (2026-11-04, bbolt batch 34)
 
 Perennial has `ownMap_fractional` (the `Fractional` form at `DFrac.own q`) but no `DFractional`
@@ -1999,3 +2086,45 @@ rewriting anything: the name `decide_true` it uses now resolves ambiguously (Lea
 Iris-Lean's `BI.decide_true`, both in scope there), and the macro wraps the rewrite in `try`, so the
 failure is silent. Worked around locally in that file. General fix to propose: qualify the lemma
 name in the macro (`_root_.decide_true`), and consider failing loudly instead of `try`.
+## An `RWMutex` can be made a lock only unlocked (2026-11-10, mvccfull F1's B3)
+
+- **What happened.** `mvcc.NewStore` locks `s.mu` while the store is still private memory and, in
+  compaction mode, `restore()` resumes a compaction (`compactLockfree`) before the deferred
+  `s.mu.Unlock()`. That call takes the store (`isStore`), whose `s.mu` must be a lock
+  (`isRWMutexGuard`); but `sync.init_RWMutex` takes an unlocked `RWMutex` (`zero_val`) and its
+  resource `▷ P 1`, which `NewStore` has only after `restore()` (the index it publishes, the fixed
+  registration).
+- **Local workaround.** `Proof/go_etcd_io/etcd/server/v3/storage/mvcc/RWMutexWLocked.lean`:
+  `init_RWMutex_wlocked P rw : rw ↦ rwW ={E}=∗ ownRWMutexWLocked rw P ∗ [∗list] … ownRWMutex rw P`
+  (every slot), from the write-locked memory `plain.wp_Lock` leaves; `P 1` is given at the unlock
+  (`RWMutex.wp_Unlock_guard`). Proved over Perennial's sealed RWMutex internals
+  (`rwmutex.ownRWMutexInvariant_unseal`, `isRWMutex_unseal`, `isLock_unseal`, `ownLock_unseal`,
+  `isMutex_unseal`, `ownMutex_unseal`, the guard's `invSt`), mirroring `rwmutex.init_RWMutex` at the
+  protocol's `Locked`/`IsLocked` state, with `init_lock_locked` for the inner `Mutex`. No axiom.
+- **Proposed (general).** `sync.init_RWMutex_wlocked` (and `init_Mutex_locked`) in Perennial, next to
+  `init_RWMutex`: a lock made by its holder.
+- **Status.** Local lemma; to be proposed.
+
+## `Int64.Load` with the fraction chosen inside the update (2026-11-10, mvccfull F1 Prove)
+
+- **Missing.** `sync.atomic.Int64.Load.spec` (and `LoadInt64.spec`) quantify the fraction `dq` before
+  the atomic update; a caller whose fraction is known only once it opens its invariant (the update's
+  `∃ dq x, ownInt64 u dq x ∗ …`) cannot use them, although their proofs open the update before the
+  load and would prove the stronger form unchanged.
+- **Needed by.** mvccfull's `inBounds.spec` (frozen): `check(v <= hi.Load())` with the caller's
+  accessor picking the fraction.
+- **Workaround here.** `Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/AtomicLoad.lean`:
+  `wp_LoadInt64_ex`, `wp_Int64_Load_ex`, Perennial's two proofs re-run with `∃ dq` inside the
+  update (`wp_load_bytes_typed`, the struct field). No axiom.
+- **Proposed (general).** State `LoadInt64`/`Int64.Load` (and the other atomic loads) with the
+  fraction inside the update, the current form a corollary.
+- **Status.** Local lemma; to be proposed.
+
+## `GoStringLe` as the negation of the converse `GoStringLt` (2026-11-10, mvccfull F1 Prove)
+
+- **Missing.** `go.GoStringLe a b ↔ ¬ go.GoStringLt b a`, a general fact about Perennial's string
+  order.
+- **Workaround here.** `goStringLe_iff_not_lt` in
+  `Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/inRange.lean`.
+- **Proposed (general).** The lemma next to `GoStringLe`'s definition in Perennial.
+- **Status.** Local lemma; to be proposed.

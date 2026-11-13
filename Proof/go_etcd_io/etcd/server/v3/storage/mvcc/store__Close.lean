@@ -1,7 +1,6 @@
 /-
 `store.Close` (`kvstore.go`, translated since 2026-10-22; the trust boundary until then): it closes
-the store's `stopc` and stops its scheduler (`fifoSched.Stop()`), returning `nil` and (R-D1) the last
-job's budget.
+the store's `stopc` and stops its scheduler (`fifoSched.Stop()`), returning `nil`.
 -/
 module
 
@@ -57,7 +56,7 @@ theorem mvcc.store.Close.wp_proof
   · imodintro; itrivial
   -- (M2, the storage side, item 34) the scheduler's payload: its stop channel closed
   ihave #Hsp := mvcc.stopPay_of_done γ.sx γ.sch ⟨b, ti, ssched, sstop⟩ γc $$ [$Hpay $Hdone]
-  wp_auto_lc 1
+  wp_auto_lc 2
   ihave #Hfifo' := HisSched
   iunfold schedule.isFifo at Hfifo'
   icases Hfifo' with ⟨%Hnn, -⟩
@@ -72,10 +71,12 @@ theorem mvcc.store.Close.wp_proof
   · iframe; iframe #
   imod mvcc.compactQueue_stopped γ c' Ps p Q R $$ HlastP HpQ HR HQR Hlc1 with Hct
   iunfold mvcc.compactTok at Hct
-  icases Hct with ⟨-, Hjob⟩
+  icases Hct with ⟨-, Hjob, -⟩
   (try wp_auto)
   iapply HΦ
-  iexact Hjob
+  iframe Hjob Hlc2
+  iexists _, _
+  iexact Hcur
 
 end proof
 

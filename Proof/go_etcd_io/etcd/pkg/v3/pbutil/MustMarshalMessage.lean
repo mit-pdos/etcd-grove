@@ -25,15 +25,16 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.pbutil.Assumptions]
 theorem pbutil.MustMarshalMessage.wp_proof
     (wp_Marshal : proto.MarshalPb.spec (GF := GF) (hG := hG)) :
     pbutil.MustMarshalMessage.spec (GF := GF) (hG := hG) := by
-  intro T l m hm
+  intro T hreg l c hm hs
   wp_start as #Hro
+  ihave %Hok := pbEncC_ok T l c $$ Hro
   wp_auto
-  wp_apply wp_Marshal T l m hm $$ [$Hro] as %d ⟨Hd, Hcap, %Hw⟩
+  wp_apply wp_Marshal T hreg l c hm hs $$ [$Hro] as %d ⟨Hd, Hcap⟩
   (try wp_auto)
   iapply HΦ
   iframe
   ipureintro
-  exact Hw
+  exact Hok hm (by omega)
 
 end proof
 

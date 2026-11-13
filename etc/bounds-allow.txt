@@ -19,6 +19,11 @@ stock ^Proof/go_etcd_io/etcd/server/v3/lease/RdPool\.lean$
 # `Close` returns, for `Cleanup` (R2b-3d stage 5c).
 stock ^Proof/go_etcd_io/etcd/server/v3/storage/mvcc/(ReaderRetire|InvWatchSync|WsCloserR)\.lean$
 stock ^(Spec|Proof)/go_etcd_io/etcd/server/v3/storage/mvcc/watchableStore__Close\.lean$
+# The store's readers, by their owner, mvcc's constructor (B3, mvccfull F1, 2026-11-10): `NewStore`
+# over an image builds the readers' pool and the locks' reader slots from the backend's counted
+# tokens (`NewStoreR`), and `s.mu`'s lock is made from its write-locked memory with every slot
+# (`RWMutexWLocked`'s `init_RWMutex_wlocked`, the lock's construction, as `sync.init_RWMutex`).
+stock ^Proof/go_etcd_io/etcd/server/v3/storage/mvcc/(NewStoreR|RWMutexWLocked)\.lean$
 # The auth store's readers, by their owner, auth (R-D2, 2026-11-04): the currency's invariant
 # (`curInv`) counts the readers' deposited tickets, and `authRd_abandon` takes every reader the
 # constructor made (`authRdTotal`'s count) to abandon the store, for `NewServer`'s error path.
@@ -33,3 +38,51 @@ stock ^Proof/go_etcd_io/etcd/server/v3/etcdserver/(InvRestart|StopApi|StopShutdo
 # their owner, the module that defines them, with their law into the store's readers (R2c review
 # round 2's N3, 2026-11-06).
 stock ^Proof/go_etcd_io/etcd/server/v3/etcdserver/InvWatchBuilt\.lean$
+# The store's reader tokens, by their owner, mvcc's API (the mvcc API, 2026-11-06/07: `mvccReaders γ n`,
+# client-held): the storage abstraction's sealed definitions hold the backend's counted reader slots
+# and open shares the store's pool is built from (`mvccStorageFor`, `storageRest`) and the bridge
+# that makes them from etcd's backend (`etcdStorage_open.law`, `etcdStorage_rest`); the API's proofs
+# build the pool (`RdSupply`'s `rdkPool`) from them at construction (`NewStoreApi`, `NewApi` over `ImageBridge`), and give them back
+# at `Restore` and at the close (`RestoreApi`, `ClosedLaw`).
+stock ^Spec/go_etcd_io/etcd/server/v3/storage/mvcc/(Api|EtcdBackend)\.lean$
+stock ^Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Api/(RdSupply|NewStoreApi|RestoreApi|ClosedLaw|ImageBridge)\.lean$
+# The randomized mvcc test's history lock, by its owner, the test (`examples/mvccrand`, 2026-11-07):
+# `RunChecksWorld` allocates the history's `RWMutex` and makes its reader handles (`histRd`, at most
+# the lock's slots), `runChecks` hands one to each reader goroutine it forks.
+stock ^Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/(RunChecksWorld|runChecks)\.lean$
+# The full tester's epoch tokens, by their owner, the tester (`examples/mvccfull`, 2026-11-10): the
+# writer lends its incarnation's per-stream parts (`epochTok`: a history reader slot and the
+# registrar's and receiver's `epRd`), one per stream, counted by `cfg.Streams` (bounded by `Run`'s
+# `runCfgOk`); `startEpoch` takes them, `endEpoch` gives them back, and `WriterShares` splits and
+# joins them with the writer's shares.
+stock ^(Spec|Proof)/github_com/mit_pdos/etcd_grove/examples/mvccfull/runner__(start|end)Epoch\.lean$
+stock ^Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/WriterShares\.lean$
+
+# mvccfull's writer owns its log and so its model's revisions (F1 Prove, 2026-11-10): the writer's
+# helpers `end` and `gen` take the member's revision with room for the next two (`rev + 2 < 2 ^ 63`),
+# which their caller, the writer, derives from its own bound on the log (`writerCtx`'s
+# `cfg.Ops < 2 ^ 38`; a member's revision is at most one per operation applied, `runM_hs_len`), not
+# from a callee: the revision is a counter of the tester's model, local to the writer.
+spec-rev ^Spec/github_com/mit_pdos/etcd_grove/examples/mvccfull/runner__(end|gen)\.lean$
+# The writer lends each incarnation's shares to its epoch's streams and gathers them back (`epochTok`
+# per stream, `shares_split`/`shares_join`): the owner of the lending.
+stock ^Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/WriterShares\.lean$
+# mvccfull's readers' epoch stock, by its owner (mvccfull F1 Prove, 2026-11-10): the writer lends an
+# epoch's `n = 2 * cfg.Readers` readers their parts (`rdStock`: `n` history reader slots, `n` store
+# reader tokens per member, the retirement-token and `kv` shares), `Readers.lean` defines the stock
+# and its split into the readers' parts at `q / n` (`rdStock_split`), and `startReaders`, which starts
+# the `n` goroutines, hands one part to each and lends the stock to the readers' wait group, whose
+# `Wait` (`stopReaders`) returns it whole. The count is the tester's configuration, fixed by `Run`.
+stock ^Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/(Readers|runner__startReaders)\.lean$
+# mvccfull's entry point, the owner of the run's history lock and of its incarnations' shares (F1
+# Prove, 2026-11-10): `Run` allocates the history's `RWMutex` and makes its reader handles
+# (`RunLemmas`' `hist_allocF`: `1 + 2·Readers + 2·Streams` of the lock's slots, bounded by
+# `runCfgOk`), and lends each member's per-stream `epochTok`s to its first epoch (`memW_lend`, at the
+# reverse `memW_gather`'s shares), as `WriterShares` does at a restart.
+stock ^Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/(Run|RunLemmas)\.lean$
+
+# The registered message models (per-type models, stage A, 2026-11-08): each instance's own file
+# owns its `wireLen` and proves, from it, rule 7's witness `∃ m, wireLen m < grpcMsgMax` and the
+# length bounds its `ReqSat` store needs (`wireLen m < grpcMsgMax` gives the key's length); only the
+# registered instances' files in their owner packages.
+wire-unfold ^Proof/go_etcd_io/etcd/(client/v3|api/v3/etcdserverpb|server/v3/etcdserver/api/v3rpc)/PerType[A-Za-z]*\.lean$

@@ -24,14 +24,20 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- **`MustUnmarshalMessage(um, data)`** of an encoding of some `m` into a zero `*T`: the `*T` holds
-a message of which the bytes are an encoding (it does not panic). -/
+/-- **`MustUnmarshalMessage(um, data)`** into a zero `*T` of a registered type, of the encoding of a
+wire content `c₀` that marshals with valid unknown fields (`pbEncC T c₀`): it does not panic, and
+the `*T` holds, owned, a message at `c₀`'s model (`proto.Unmarshal`'s D2: the decode gives `c₀`
+back, and `c₀` is one the type's `dec` describes, `decOk`; stage A of the per-type models: until
+then of any bytes that are an encoding of some model of any `PbType`). -/
 abbrev pbutil.MustUnmarshalMessagePb.spec : Prop :=
-  ∀ (T : PbType GF) (l : Loc) (d : GoSlice) (bs : List w8) (dq : DFrac) (m : T.M), T.wire m bs →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil ∗ d ↦*{dq} bs ∗ T.blank l }}
+  ∀ (T : PbTypeC GF), pbModelOf GF T.data.ty = some T →
+  ∀ (l : Loc) (d : GoSlice) (bs : List w8) (dq : DFrac) (c₀ : T.data.C),
+  T.data.marshals (T.data.modelOf c₀) → T.data.ufValid c₀ → T.data.decOk c₀ → bs = pbEncC T c₀ →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil ∗ d ↦*{dq} bs ∗
+      T.data.blank l }}
     (App (App (Val (@! pbutil.MustUnmarshalMessage))
-      (Val #(interface.mkOk (go.GoType.PointerType T.ty) #l))) (Val #d))
-  {{ RET #(); d ↦*{dq} bs ∗ ∃ m' : T.M, T.dec l m' ∗ ⌜T.wire m' bs⌝ }}
+      (Val #(interface.mkOk (go.GoType.PointerType T.data.ty) #l))) (Val #d))
+  {{ RET #(); d ↦*{dq} bs ∗ T.data.dec l (T.data.modelOf c₀) }}
 
 end spec
 

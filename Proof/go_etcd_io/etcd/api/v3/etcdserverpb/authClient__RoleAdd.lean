@@ -4,6 +4,7 @@ counterpart).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.client.v3.PerTypeAuth
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.authClient__RoleAdd
 public import Spec.google_golang_org.grpc.StaticMethod
 public import Spec.google_golang_org.grpc.ClientConn__Invoke
@@ -48,8 +49,9 @@ theorem etcdserverpb.authClient.RoleAdd.wp_proof
   ihave Hblank : pbAuthRoleAddResponse (GF := GF) |>.blank «$r0_ptr» $$ [«$r0»]
   · simp only [pbAuthRoleAddResponse]
     iexact «$r0»
-  have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.Auth/RoleAdd" pbAuthRoleAddRequest pbAuthRoleAddResponse Spec m Q ctx cd inp «$r0_ptr» copts
+  have hI := etcdConn_InvokeMd wp_Invoke conn addr go!"/etcdserverpb.Auth/RoleAdd" pbAuthRoleAddRequestT pbAuthRoleAddResponseT pbAuthRoleAddRequestT_reg pbAuthRoleAddResponseT_reg Spec m Q ctx cd inp «$r0_ptr» copts
     ([sm] ++ vs)
+  simp only [pbAuthRoleAddRequestT, pbAuthRoleAddResponseT] at hI
   rw [show (pbAuthRoleAddRequest (GF := GF)).ty = etcdserverpb.AuthRoleAddRequest.ty from rfl,
     show (pbAuthRoleAddResponse (GF := GF)).ty = etcdserverpb.AuthRoleAddResponse.ty from rfl] at hI
   ihave Hpre' : reqPre (GF := GF) conn go!"/etcdserverpb.Auth/RoleAdd" addr ([sm] ++ vs) (attemptPre conn (GoInterface.ok ctx) Spec m Q) $$ []

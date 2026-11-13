@@ -40,6 +40,12 @@ def backend.hookPre (P : backend.BParams) (st : backend.BSess) : Prop :=
 def backend.hkData (P : backend.BParams) (S : backend.Data) : GMap (GoString × GoString) GoString :=
   { lookup := fun nk => if P.hk nk.fst nk.snd = true then backend.dget S nk.fst nk.snd else none, finite := ⋯ }
 
+def backend.dlVd (P : backend.BParams) (vd L X : GMap (GoString × GoString) GoString) : Prop :=
+  (∀ (nk : GoString × GoString),
+      P.SB nk.fst = true → P.HB nk.fst = false → L !! nk ≠ none → vd !! nk = none → X !! nk ≠ none) ∧
+    ∀ (nk : GoString × GoString),
+      X !! nk ≠ none → P.SB nk.fst = true ∧ P.HB nk.fst = false ∧ vd !! nk = none ∧ L !! nk ≠ none
+
 def backend.rbuf_countable : Pos.Countable backend.RBuf :=
   countableOfLeftInverse (fun r => (r.bks, r.ver)) (fun p => { bks := p.fst, ver := p.snd })
     backend.rbuf_countable._proof_1
@@ -72,7 +78,7 @@ def backend.sData (P : backend.BParams) (S : backend.Data) : GMap (GoString × G
 
 def backend.BSess.create (st : backend.BSess) (bi : backend.BucketInfo) : backend.BSess :=
   { C := st.C, S := if st.S !! bi.name = none then <[bi.name := ∅]>st.S else st.S, R := st.R, W := st.W,
-    pend := st.pend + W64 1, ndel := st.ndel, tx := st.tx, cnt := st.cnt }
+    pend := st.pend + W64 1, ndel := st.ndel, tx := st.tx, cnt := st.cnt, dl := st.dl, win := st.win }
 
 def backend.VFun : Type :=
   GoString → GoString → Option GoString
@@ -134,6 +140,14 @@ def backend.ovB (BT : GMap GoString w64) (B : GMap w64 (List backend.Ent)) (base
     backend.VFun :=
   ((BT !! n).bind fun i => backend.lastVal (backend.bkOf B i) k).or (base n k)
 
+def backend.dlsOk (P : backend.BParams) (st : backend.BSess) (L : GMap (GoString × GoString)
+    GoString) : Prop :=
+  (∀ (nk : GoString × GoString),
+      P.SB nk.fst = true →
+        P.HB nk.fst = false → L !! nk ≠ none → backend.sData P st.S !! nk = none → st.dl !! nk ≠ none) ∧
+    ∀ (nk : GoString × GoString),
+      P.SB nk.fst = true → P.HB nk.fst = false → st.dl !! nk ≠ none → backend.sData P st.S !! nk = none ∧ L !! nk ≠ none
+
 def backend.fkAt (v : backend.FkVals) (k : GoString) : Option GoString :=
   if
       k =
@@ -165,6 +179,10 @@ def backend.fkAbsB (P : backend.BParams) (B : GMap w64 (List backend.Ent)) : Pro
   ∀ (n k : GoString) (i : w64),
     backend.fkKey n k → P.BT !! n = some i → ∀ (e : backend.Ent), e ∈ backend.bkOf B i → e.fst ≠ k
 
+def backend.dlsS (P : backend.BParams) (st : backend.BSess) : Prop :=
+  ∀ (nk : GoString × GoString),
+    P.SB nk.fst = true → P.HB nk.fst = false → st.dl !! nk ≠ none → backend.sData P st.S !! nk = none
+
 def backend.hookStep (P : backend.BParams) (st st' : backend.BSess) : Prop :=
   st'.C = st.C ∧
     st'.R = st.R ∧
@@ -174,7 +192,8 @@ def backend.hookStep (P : backend.BParams) (st st' : backend.BSess) : Prop :=
               P.BT !! n = some i → P.HB n = false → backend.bkOf st'.W.bks i = backend.bkOf st.W.bks i) ∧
             sint.Z st.pend ≤ sint.Z st'.pend ∧
               sint.Z st'.pend ≤ sint.Z st.pend + ↑P.hookMax ∧
-                sint.Z st.ndel ≤ sint.Z st'.ndel ∧ st'.tx = st.tx ∧ st'.cnt = st.cnt
+                sint.Z st.ndel ≤ sint.Z st'.ndel ∧
+                  st'.tx = st.tx ∧ st'.cnt = st.cnt ∧ backend.dlR P st'.dl = backend.dlR P st.dl ∧ st'.win = st.win
 
 def backend.fkKey (n k : GoString) : Prop :=
   n = go!"meta" ∧
@@ -212,7 +231,12 @@ def backend.fkAbsRv (P : backend.BParams) (rv : backend.RView) : Prop :=
 def backend.BSess.del (st : backend.BSess) (bi : backend.BucketInfo) (k : GoString) : backend.BSess
     :=
   { C := st.C, S := <[bi.name := GMap.delete k (backend.bktOf st.S bi.name)]>st.S, R := st.R, W := st.W,
-    pend := st.pend + W64 1, ndel := st.ndel + W64 1, tx := st.tx, cnt := st.cnt }
+    pend := st.pend + W64 1, ndel := st.ndel + W64 1, tx := st.tx, cnt := st.cnt,
+    dl :=
+      match backend.bktOf st.S bi.name !! k with
+      | some v => <[(bi.name, k) := v]>st.dl
+      | none => st.dl,
+    win := st.win }
 
 def backend.dKeys (D : backend.Data) : List (GoString × GoString) :=
   List.flatMap (fun nm => List.map (fun kv => (nm.fst, kv.fst)) (GMap.toList nm.snd)) (GMap.toList D)
@@ -224,7 +248,7 @@ def backend.BSess.put (st : backend.BSess) (bi : backend.BucketInfo) (k v : GoSt
     backend.BSess :=
   { C := st.C, S := <[bi.name := <[k := v]>(backend.bktOf st.S bi.name)]>st.S, R := st.R,
     W := if seq = true then st.W.putSeq bi.id (k, v) else st.W.put bi.id (k, v), pend := st.pend + W64 1, ndel := st.ndel,
-    tx := st.tx, cnt := st.cnt }
+    tx := st.tx, cnt := st.cnt, dl := st.dl, win := st.win }
 
 def backend.safeSt (P : backend.BParams) (st : backend.BSess) : Prop :=
   backend.safeRv P (st.C, st.R) ∧
@@ -249,6 +273,10 @@ def backend.fkVals (D : backend.Data) : backend.FkVals :=
     backend.dget D go!"meta"
       go!"scheduledCompactRev")
 
+def backend.dlR (P : backend.BParams) (X : GMap (GoString × GoString) GoString) : GMap (GoString ×
+    GoString) GoString :=
+  GMap.filter (fun nk x => P.SB nk.fst && !P.HB nk.fst) X
+
 theorem backend.rbData_delete_other {P : backend.BParams} {S : backend.Data} {n : GoString} (h :
     P.RB n = false) : backend.rbData P (GMap.delete n S) = backend.rbData P S
 
@@ -261,6 +289,8 @@ structure backend.BSess : Type where
   ndel : w64
   tx : Loc
   cnt : backend.BCnt
+  dl : GMap (GoString × GoString) GoString
+  win : Bool
 
 def backend.vOf (P : backend.BParams) (rv : backend.RView) : backend.VFun :=
   backend.ovB P.BT rv.snd.bks (backend.dget rv.fst)
@@ -297,10 +327,14 @@ theorem backend.lastVal_isSome_mem {l : List backend.Ent} {k : GoString} (h : (b
 
 def backend.BSess.delBucket (st : backend.BSess) (bi : backend.BucketInfo) : backend.BSess :=
   { C := st.C, S := GMap.delete bi.name st.S, R := st.R, W := st.W, pend := st.pend + W64 1, ndel := st.ndel + W64 1,
-    tx := st.tx, cnt := st.cnt }
+    tx := st.tx, cnt := st.cnt, dl := st.dl, win := st.win }
 
 def backend.BParams.hk (P : backend.BParams) (n k : GoString) : Bool :=
   P.HB n && P.HK n k
+
+def backend.dlsW (P : backend.BParams) (st : backend.BSess) (L : GMap (GoString × GoString)
+    GoString) : Prop :=
+  backend.dlsS P st ∧ (st.win = false → backend.dlsOk P st L) ∧ (st.cnt.hw = false → st.win = false)
 
 def backend.safeRv (P : backend.BParams) (rv : backend.RView) : Prop :=
   ∀ (n : GoString) (i : w64),

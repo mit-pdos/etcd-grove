@@ -1,0 +1,840 @@
+# Layout violations known (etc/gen-interface.py --layout --update); remove them,
+# don't add to them.
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BucketKeyToBytes Perennial.EtcdGrove.BucketKeyToBytes.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BucketKeyToBytes Perennial.EtcdGrove.mvcc.BucketKeyToBytes.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BytesToBucketKey Perennial.EtcdGrove.BytesToBucketKey.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BytesToBucketKey Perennial.EtcdGrove.mvcc.BytesToBucketKey.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BytesToRev Perennial.EtcdGrove.BytesToRev.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BytesToRev Perennial.EtcdGrove.mvcc.BytesToRev.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ChanBufLen Perennial.EtcdGrove.ChanBufLen.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ChanBufLen Perennial.EtcdGrove.mvcc.ChanBufLen.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.IsTombstone Perennial.EtcdGrove.IsTombstone.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.IsTombstone Perennial.EtcdGrove.mvcc.IsTombstone.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.New Perennial.EtcdGrove.New.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.New Perennial.EtcdGrove.mvcc.New.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.New Perennial.EtcdGrove.mvcc.slots_take2  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewHashStorage Perennial.EtcdGrove.NewHashStorage.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewHashStorage Perennial.EtcdGrove.mvcc.NewHashStorage.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewReadOnlyTxnWrite Perennial.EtcdGrove.NewReadOnlyTxnWrite.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewReadOnlyTxnWrite Perennial.EtcdGrove.mvcc.NewReadOnlyTxnWrite.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewRevBytes Perennial.EtcdGrove.NewRevBytes.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewRevBytes Perennial.EtcdGrove.mvcc.NewRevBytes.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewStore Perennial.EtcdGrove.NewStore.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewStore Perennial.EtcdGrove.mvcc.NewStore.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReportEventReceived Perennial.EtcdGrove.ReportEventReceived.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReportEventReceived Perennial.EtcdGrove.mvcc.ReportEventReceived.wp_proof  # exposed by a proof file (axiom)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RevToBytes Perennial.EtcdGrove.RevToBytes.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RevToBytes Perennial.EtcdGrove.mvcc.RevToBytes.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Revision__GreaterThan Perennial.EtcdGrove.Revision.GreaterThan.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Revision__GreaterThan Perennial.EtcdGrove.mvcc.Revision.GreaterThan.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.SetFinishedCompact Perennial.EtcdGrove.SetFinishedCompact.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.SetFinishedCompact Perennial.EtcdGrove.mvcc.SetFinishedCompact.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.SetScheduledCompact Perennial.EtcdGrove.SetScheduledCompact.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.SetScheduledCompact Perennial.EtcdGrove.mvcc.SetScheduledCompact.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeReadFinishedCompact Perennial.EtcdGrove.UnsafeReadFinishedCompact.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeReadFinishedCompact Perennial.EtcdGrove.mvcc.UnsafeReadFinishedCompact.specNC  # exposed by a proof file (def)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeReadFinishedCompact Perennial.EtcdGrove.mvcc.UnsafeReadFinishedCompact.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeReadFinishedCompact Perennial.EtcdGrove.mvcc.UnsafeReadFinishedCompact.wp_proofNC  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeReadScheduledCompact Perennial.EtcdGrove.UnsafeReadScheduledCompact.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeReadScheduledCompact Perennial.EtcdGrove.mvcc.UnsafeReadScheduledCompact.specNC  # exposed by a proof file (def)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeReadScheduledCompact Perennial.EtcdGrove.mvcc.UnsafeReadScheduledCompact.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeReadScheduledCompact Perennial.EtcdGrove.mvcc.UnsafeReadScheduledCompact.wp_proofNC  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeSetFinishedCompact Perennial.EtcdGrove.UnsafeSetFinishedCompact.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeSetFinishedCompact Perennial.EtcdGrove.mvcc.UnsafeSetFinishedCompact.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeSetScheduledCompact Perennial.EtcdGrove.UnsafeSetScheduledCompact.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeSetScheduledCompact Perennial.EtcdGrove.mvcc.UnsafeSetScheduledCompact.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.eventBatch__add Perennial.EtcdGrove.eventBatch.add.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.eventBatch__add Perennial.EtcdGrove.mvcc.eventBatch.add.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.generation__isEmpty Perennial.EtcdGrove.generation.isEmpty.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.generation__isEmpty Perennial.EtcdGrove.mvcc.generation.isEmpty.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.generation__isRecreatedAt Perennial.EtcdGrove.generation.isRecreatedAt.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.generation__isRecreatedAt Perennial.EtcdGrove.mvcc.generation.isRecreatedAt.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.generation__walk Perennial.EtcdGrove.generation.walk.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.generation__walk Perennial.EtcdGrove.mvcc.generation.walk.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.hashStorage__Store Perennial.EtcdGrove.hashStorage.Store.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.hashStorage__Store Perennial.EtcdGrove.mvcc.hashStorage.Store.wp_proof  # exposed by a proof file (axiom)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.isTombstone Perennial.EtcdGrove.isTombstone.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.isTombstone Perennial.EtcdGrove.mvcc.isTombstone.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__Less Perennial.EtcdGrove.compareResult_eq_neg1  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__Less Perennial.EtcdGrove.keyIndex.Less.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__Less Perennial.EtcdGrove.mvcc.keyIndex.Less.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__compact Perennial.EtcdGrove.keyIndex.compact.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__compact Perennial.EtcdGrove.mvcc.keyIndex.compact.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__compact Perennial.EtcdGrove.mvcc.ownGensL_drop  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__doCompact Perennial.EtcdGrove.keyIndex.doCompact.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__doCompact Perennial.EtcdGrove.mvcc.keyIndex.doCompact.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__findGeneration Perennial.EtcdGrove.keyIndex.findGeneration.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__findGeneration Perennial.EtcdGrove.mvcc.keyIndex.findGeneration.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__get Perennial.EtcdGrove.keyIndex.get.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__get Perennial.EtcdGrove.mvcc.keyIndex.get.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__isEmpty Perennial.EtcdGrove.keyIndex.isEmpty.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__isEmpty Perennial.EtcdGrove.mvcc.keyIndex.isEmpty.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__keep Perennial.EtcdGrove.keyIndex.keep.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__keep Perennial.EtcdGrove.mvcc.keyIndex.keep.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__put Perennial.EtcdGrove.keyIndex.put.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__put Perennial.EtcdGrove.mvcc.keyIndex.put.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__restore Perennial.EtcdGrove.keyIndex.restore.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__restore Perennial.EtcdGrove.mvcc.keyIndex.restore.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__restoreTombstone Perennial.EtcdGrove.keyIndex.restoreTombstone.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__restoreTombstone Perennial.EtcdGrove.mvcc.keyIndex.restoreTombstone.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__tombstone Perennial.EtcdGrove.keyIndex.tombstone.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__tombstone Perennial.EtcdGrove.mvcc.keyIndex.tombstone.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher__Hash Perennial.EtcdGrove.kvHasher.Hash.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher__Hash Perennial.EtcdGrove.mvcc.kvHasher.Hash.wp_proof  # exposed by a proof file (axiom)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher__WriteKeyValue Perennial.EtcdGrove.kvHasher.WriteKeyValue.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher__WriteKeyValue Perennial.EtcdGrove.mvcc.kvHasher.WriteKeyValue.wp_proof  # exposed by a proof file (axiom)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.kvsToEvents Perennial.EtcdGrove.kvsToEvents.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.kvsToEvents Perennial.EtcdGrove.mvcc.kvsToEvents.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Changes Perennial.EtcdGrove.metricsTxnWrite.Changes.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Changes Perennial.EtcdGrove.mvcc.metricsTxnWrite.Changes.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__DeleteRange Perennial.EtcdGrove.metricsTxnWrite.DeleteRange.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__DeleteRange Perennial.EtcdGrove.mvcc.metricsTxnWrite.DeleteRange.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__End Perennial.EtcdGrove.metricsTxnWrite.End.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__End Perennial.EtcdGrove.mvcc.metricsTxnWrite.End.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__FirstRev Perennial.EtcdGrove.metricsTxnWrite.FirstRev.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__FirstRev Perennial.EtcdGrove.mvcc.metricsTxnWrite.FirstRev.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Put Perennial.EtcdGrove.metricsTxnWrite.Put.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Put Perennial.EtcdGrove.mvcc.metricsTxnWrite.Put.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Range Perennial.EtcdGrove.metricsTxnWrite.Range.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Range Perennial.EtcdGrove.mvcc.metricsTxnWrite.Range.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Rev Perennial.EtcdGrove.metricsTxnWrite.Rev.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Rev Perennial.EtcdGrove.mvcc.metricsTxnWrite.Rev.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newBucketKey Perennial.EtcdGrove.mvcc.newBucketKey.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newBucketKey Perennial.EtcdGrove.newBucketKey.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newKVHasher Perennial.EtcdGrove.mvcc.newKVHasher.wp_proof  # exposed by a proof file (axiom)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newKVHasher Perennial.EtcdGrove.newKVHasher.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newMetricsTxnRead Perennial.EtcdGrove.mvcc.newMetricsTxnRead.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newMetricsTxnRead Perennial.EtcdGrove.newMetricsTxnRead.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newMetricsTxnWrite Perennial.EtcdGrove.mvcc.newMetricsTxnWrite.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newMetricsTxnWrite Perennial.EtcdGrove.newMetricsTxnWrite.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newTreeIndex Perennial.EtcdGrove.mvcc.newTreeIndex.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newTreeIndex Perennial.EtcdGrove.newTreeIndex.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newTreeIndex Perennial.EtcdGrove.ownBTree.congr_simp  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newWatchableStore Perennial.EtcdGrove.mvcc.newWatchableStore.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newWatchableStore Perennial.EtcdGrove.newWatchableStore.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newWatcherBatch Perennial.EtcdGrove.mvcc.newWatcherBatch.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newWatcherBatch Perennial.EtcdGrove.newWatcherBatch.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newWatcherGroup Perennial.EtcdGrove.mvcc.newWatcherGroup.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newWatcherGroup Perennial.EtcdGrove.newWatcherGroup.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.rangeEvents Perennial.EtcdGrove.mvcc.rangeEvents.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.rangeEvents Perennial.EtcdGrove.rangeEvents.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.readView__FirstRev Perennial.EtcdGrove.mvcc.readView.FirstRev.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.readView__FirstRev Perennial.EtcdGrove.readView.FirstRev.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.readView__Range Perennial.EtcdGrove.mvcc.readView.Range.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.readView__Range Perennial.EtcdGrove.readView.Range.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.readView__Rev Perennial.EtcdGrove.mvcc.readView.Rev.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.readView__Rev Perennial.EtcdGrove.readView.Rev.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.restoreChunk Perennial.EtcdGrove.mvcc.restoreChunk.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.restoreChunk Perennial.EtcdGrove.restoreChunk.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.restoreIntoIndex Perennial.EtcdGrove.mvcc.find?_of_mem_sorted  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.restoreIntoIndex Perennial.EtcdGrove.mvcc.idxRestore_take_succ  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.restoreIntoIndex Perennial.EtcdGrove.mvcc.itemsOfEntries_set_same  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.restoreIntoIndex Perennial.EtcdGrove.mvcc.restoreIntoIndex.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.restoreIntoIndex Perennial.EtcdGrove.mvcc.restoreLastRev_le  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.restoreIntoIndex Perennial.EtcdGrove.mvcc.restoreLastRev_take_succ  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.restoreIntoIndex Perennial.EtcdGrove.mvcc.rstCacheOk  # exposed by a proof file (def)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.restoreIntoIndex Perennial.EtcdGrove.mvcc.rstCacheOk_btInsert  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.restoreIntoIndex Perennial.EtcdGrove.mvcc.rstCacheOk_set  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.restoreIntoIndex Perennial.EtcdGrove.mvcc.rstLInv  # exposed by a proof file (def)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.restoreIntoIndex Perennial.EtcdGrove.mvcc.rstLInv_btInsert  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.restoreIntoIndex Perennial.EtcdGrove.mvcc.rstLInv_mono  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.restoreIntoIndex Perennial.EtcdGrove.mvcc.rstLInv_set  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.restoreIntoIndex Perennial.EtcdGrove.mvcc.rst_modified_lt  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.restoreIntoIndex Perennial.EtcdGrove.mvcc.take_succ_of_getElem?  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.restoreIntoIndex Perennial.EtcdGrove.ownBTree.congr_simp  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.restoreIntoIndex Perennial.EtcdGrove.restoreIntoIndex.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.resyncDelay Perennial.EtcdGrove.mvcc.resyncDelay.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.resyncDelay Perennial.EtcdGrove.resyncDelay.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.sliceCapWithLimit Perennial.EtcdGrove.mvcc.sliceCapWithLimit.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.sliceCapWithLimit Perennial.EtcdGrove.sliceCapWithLimit.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon__FirstRev Perennial.EtcdGrove.mvcc.storeTxnCommon.FirstRev.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon__FirstRev Perennial.EtcdGrove.storeTxnCommon.FirstRev.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon__Range Perennial.EtcdGrove.mvcc.storeTxnCommon.Range.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon__Range Perennial.EtcdGrove.storeTxnCommon.Range.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon__Rev Perennial.EtcdGrove.mvcc.storeTxnCommon.Rev.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon__Rev Perennial.EtcdGrove.storeTxnCommon.Rev.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon__rangeKeys Perennial.EtcdGrove.mvcc.storeTxnCommon.rangeKeys.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon__rangeKeys Perennial.EtcdGrove.storeTxnCommon.rangeKeys.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnRead__End Perennial.EtcdGrove.mvcc.storeTxnRead.End.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnRead__End Perennial.EtcdGrove.storeTxnRead.End.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__Changes Perennial.EtcdGrove.mvcc.storeTxnWrite.Changes.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__Changes Perennial.EtcdGrove.storeTxnWrite.Changes.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__DeleteRange Perennial.EtcdGrove.mvcc.storeTxnWrite.DeleteRange.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__DeleteRange Perennial.EtcdGrove.storeTxnWrite.DeleteRange.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__End Perennial.EtcdGrove.mvcc.storeTxnWrite.End.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__End Perennial.EtcdGrove.storeTxnWrite.End.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__Put Perennial.EtcdGrove.mvcc.storeTxnWrite.Put.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__Put Perennial.EtcdGrove.storeTxnWrite.Put.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__Range Perennial.EtcdGrove.mvcc.storeTxnWrite.Range.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__Range Perennial.EtcdGrove.storeTxnWrite.Range.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__Rev Perennial.EtcdGrove.mvcc.storeTxnWrite.Rev.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__Rev Perennial.EtcdGrove.storeTxnWrite.Rev.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__delete Perennial.EtcdGrove.mvcc.storeTxnWrite.delete.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__delete Perennial.EtcdGrove.storeTxnWrite.delete.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__deleteRange Perennial.EtcdGrove.mvcc.storeTxnWrite.deleteRange.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__deleteRange Perennial.EtcdGrove.storeTxnWrite.deleteRange.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__put Perennial.EtcdGrove.mvcc.storeTxnWrite.put.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__put Perennial.EtcdGrove.storeTxnWrite.put.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Close Perennial.EtcdGrove.mvcc.store.Close.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Close Perennial.EtcdGrove.store.Close.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Commit Perennial.EtcdGrove.mvcc.store.Commit.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Commit Perennial.EtcdGrove.store.Commit.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Compact Perennial.EtcdGrove.mvcc.store.Compact.core_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Compact Perennial.EtcdGrove.mvcc.store.Compact.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Compact Perennial.EtcdGrove.store.Compact.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__HashStorage Perennial.EtcdGrove.mvcc.store.HashStorage.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__HashStorage Perennial.EtcdGrove.store.HashStorage.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Read Perennial.EtcdGrove.mvcc.store.Read.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Read Perennial.EtcdGrove.store.Read.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Restore Perennial.EtcdGrove.mvcc.cmpOk_restored  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Restore Perennial.EtcdGrove.mvcc.cmpTrack_restored  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Restore Perennial.EtcdGrove.mvcc.store.Restore.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Restore Perennial.EtcdGrove.store.Restore.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Rev Perennial.EtcdGrove.mvcc.store.Rev.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Rev Perennial.EtcdGrove.store.Rev.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Write Perennial.EtcdGrove.mvcc.store.Write.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Write Perennial.EtcdGrove.store.Write.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__checkPrevCompactionCompleted Perennial.EtcdGrove.mvcc.store.checkPrevCompactionCompleted.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__checkPrevCompactionCompleted Perennial.EtcdGrove.store.checkPrevCompactionCompleted.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__compact Perennial.EtcdGrove.mvcc.store.compact.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__compact Perennial.EtcdGrove.mvcc.wp_context_TODO_body  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__compact Perennial.EtcdGrove.store.compact.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__compactBarrier Perennial.EtcdGrove.mvcc.store.compactBarrier.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__compactBarrier Perennial.EtcdGrove.store.compactBarrier.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__compactLockfree Perennial.EtcdGrove.mvcc.store.compactLockfree.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__compactLockfree Perennial.EtcdGrove.store.compactLockfree.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__restore Perennial.EtcdGrove.mvcc.store.restore.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__restore Perennial.EtcdGrove.store.restore.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__scheduleCompaction Perennial.EtcdGrove.mvcc.sc_bucketMap_key  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__scheduleCompaction Perennial.EtcdGrove.mvcc.sc_count  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__scheduleCompaction Perennial.EtcdGrove.mvcc.sc_entry  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__scheduleCompaction Perennial.EtcdGrove.mvcc.sc_keyDel  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__scheduleCompaction Perennial.EtcdGrove.mvcc.sc_mem  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__scheduleCompaction Perennial.EtcdGrove.mvcc.sc_mem_bucketOfRev  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__scheduleCompaction Perennial.EtcdGrove.mvcc.sc_not_lt_prefix  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__scheduleCompaction Perennial.EtcdGrove.mvcc.sc_space  # exposed by a proof file (def)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__scheduleCompaction Perennial.EtcdGrove.mvcc.sc_sum_range  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__scheduleCompaction Perennial.EtcdGrove.mvcc.sc_u64Be_lt_inv  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__scheduleCompaction Perennial.EtcdGrove.mvcc.store.scheduleCompaction.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__scheduleCompaction Perennial.EtcdGrove.store.scheduleCompaction.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__setupMetricsReporter Perennial.EtcdGrove.mvcc.store.setupMetricsReporter.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__setupMetricsReporter Perennial.EtcdGrove.store.setupMetricsReporter.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__updateCompactRev Perennial.EtcdGrove.mvcc.store.updateCompactRev.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__updateCompactRev Perennial.EtcdGrove.store.updateCompactRev.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Compact Perennial.EtcdGrove.mvcc.nodup_drop_ne  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Compact Perennial.EtcdGrove.mvcc.ptrs_eraseIdx  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Compact Perennial.EtcdGrove.mvcc.treeIndex.Compact.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Compact Perennial.EtcdGrove.ownBTree.congr_simp  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Compact Perennial.EtcdGrove.treeIndex.Compact.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__CountRevisions Perennial.EtcdGrove.mvcc.countInv  # exposed by a proof file (def)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__CountRevisions Perennial.EtcdGrove.mvcc.treeIndex.CountRevisions.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__CountRevisions Perennial.EtcdGrove.treeIndex.CountRevisions.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Get Perennial.EtcdGrove.mvcc.treeIndex.Get.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Get Perennial.EtcdGrove.treeIndex.Get.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Insert Perennial.EtcdGrove.mvcc.treeIndex.Insert.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Insert Perennial.EtcdGrove.treeIndex.Insert.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Keep Perennial.EtcdGrove.mvcc.treeIndex.Keep.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Keep Perennial.EtcdGrove.ownBTree.congr_simp  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Keep Perennial.EtcdGrove.treeIndex.Keep.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__KeyIndex Perennial.EtcdGrove.mvcc.treeIndex.KeyIndex.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__KeyIndex Perennial.EtcdGrove.treeIndex.KeyIndex.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Put Perennial.EtcdGrove.mvcc.treeIndex.Put.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Put Perennial.EtcdGrove.ownBTree.congr_simp  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Put Perennial.EtcdGrove.treeIndex.Put.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Put Perennial.EtcdGrove.writer_events  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Range Perennial.EtcdGrove.mvcc.ownKeys_snoc  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Range Perennial.EtcdGrove.mvcc.rangeInv  # exposed by a proof file (def)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Range Perennial.EtcdGrove.mvcc.treeIndex.Range.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Range Perennial.EtcdGrove.treeIndex.Range.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Revisions Perennial.EtcdGrove.mvcc.revisionsInv  # exposed by a proof file (def)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Revisions Perennial.EtcdGrove.mvcc.treeIndex.Revisions.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Revisions Perennial.EtcdGrove.treeIndex.Revisions.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Tombstone Perennial.EtcdGrove.mvcc.treeIndex.Tombstone.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Tombstone Perennial.EtcdGrove.ownBTree.congr_simp  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Tombstone Perennial.EtcdGrove.treeIndex.Tombstone.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__keyIndex Perennial.EtcdGrove.mvcc.treeIndex.keyIndex.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__keyIndex Perennial.EtcdGrove.treeIndex.keyIndex.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__unsafeGet Perennial.EtcdGrove.mvcc.treeIndex.unsafeGet.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__unsafeGet Perennial.EtcdGrove.ownBTree.congr_simp  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__unsafeGet Perennial.EtcdGrove.treeIndex.unsafeGet.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__unsafeVisit Perennial.EtcdGrove.mvcc.treeIndex.unsafeVisit.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__unsafeVisit Perennial.EtcdGrove.ownBTree.congr_simp  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__unsafeVisit Perennial.EtcdGrove.treeIndex.unsafeVisit.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Changes Perennial.EtcdGrove.mvcc.txnReadWrite.Changes.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Changes Perennial.EtcdGrove.txnReadWrite.Changes.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__DeleteRange Perennial.EtcdGrove.mvcc.txnReadWrite.DeleteRange.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__DeleteRange Perennial.EtcdGrove.txnReadWrite.DeleteRange.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__End Perennial.EtcdGrove.mvcc.txnReadWrite.End.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__End Perennial.EtcdGrove.txnReadWrite.End.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__FirstRev Perennial.EtcdGrove.mvcc.txnReadWrite.FirstRev.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__FirstRev Perennial.EtcdGrove.txnReadWrite.FirstRev.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Put Perennial.EtcdGrove.mvcc.txnReadWrite.Put.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Put Perennial.EtcdGrove.txnReadWrite.Put.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Range Perennial.EtcdGrove.mvcc.txnReadWrite.Range.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Range Perennial.EtcdGrove.txnReadWrite.Range.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Rev Perennial.EtcdGrove.mvcc.txnReadWrite.Rev.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Rev Perennial.EtcdGrove.txnReadWrite.Rev.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Cancel Perennial.EtcdGrove.mvcc.watchStream.Cancel.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Cancel Perennial.EtcdGrove.watchStream.Cancel.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Chan Perennial.EtcdGrove.mvcc.watchStream.Chan.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Chan Perennial.EtcdGrove.watchStream.Chan.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Close Perennial.EtcdGrove.mvcc.watchStream.Close.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Close Perennial.EtcdGrove.watchStream.Close.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__RequestProgress Perennial.EtcdGrove.mvcc.watchStream.RequestProgress.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__RequestProgress Perennial.EtcdGrove.watchStream.RequestProgress.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__RequestProgressAll Perennial.EtcdGrove.mvcc.watchStream.RequestProgressAll.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__RequestProgressAll Perennial.EtcdGrove.watchStream.RequestProgressAll.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Rev Perennial.EtcdGrove.mvcc.watchStream.Rev.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Rev Perennial.EtcdGrove.watchStream.Rev.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Watch Perennial.EtcdGrove.mvcc.watchStream.Watch.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Watch Perennial.EtcdGrove.watchStream.Watch.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStoreTxnWrite__End Perennial.EtcdGrove.mvcc.body_commit  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStoreTxnWrite__End Perennial.EtcdGrove.mvcc.body_pin  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStoreTxnWrite__End Perennial.EtcdGrove.mvcc.ownToks_join_pred  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStoreTxnWrite__End Perennial.EtcdGrove.mvcc.rest_shift  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStoreTxnWrite__End Perennial.EtcdGrove.mvcc.set_replicate_step  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStoreTxnWrite__End Perennial.EtcdGrove.mvcc.syncedBelow_of  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStoreTxnWrite__End Perennial.EtcdGrove.mvcc.watchableStoreTxnWrite.End.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStoreTxnWrite__End Perennial.EtcdGrove.watchableStoreTxnWrite.End.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Close Perennial.EtcdGrove.mvcc.watchableStore.Close.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Close Perennial.EtcdGrove.mvcc.wp_wsWg_Wait  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Close Perennial.EtcdGrove.watchableStore.Close.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__NewWatchStream Perennial.EtcdGrove.mvcc.isWatchable_store  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__NewWatchStream Perennial.EtcdGrove.mvcc.watchableStore.NewWatchStream.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__NewWatchStream Perennial.EtcdGrove.watchableStore.NewWatchStream.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Restore Perennial.EtcdGrove.mvcc.WsOk.restoreSt  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Restore Perennial.EtcdGrove.mvcc.WsState.restoreSt  # exposed by a proof file (def)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Restore Perennial.EtcdGrove.mvcc.WsState.restoreSt_E  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Restore Perennial.EtcdGrove.mvcc.WsState.restoreSt_ST  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Restore Perennial.EtcdGrove.mvcc.WsState.restoreSt_Wu  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Restore Perennial.EtcdGrove.mvcc.WsState.restoreSt_live  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Restore Perennial.EtcdGrove.mvcc.WsState.restoreSt_settled  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Restore Perennial.EtcdGrove.mvcc.WsState.restoreSt_srBelow  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Restore Perennial.EtcdGrove.mvcc.WsState.restoreSt_unsRst  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Restore Perennial.EtcdGrove.mvcc.WsState.restoreSt_victimOf  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Restore Perennial.EtcdGrove.mvcc.memberRes_restoreSt  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Restore Perennial.EtcdGrove.mvcc.rs_union_insert  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Restore Perennial.EtcdGrove.mvcc.setRestore  # exposed by a proof file (def)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Restore Perennial.EtcdGrove.mvcc.watchableStore.Restore.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Restore Perennial.EtcdGrove.watchableStore.Restore.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Write Perennial.EtcdGrove.mvcc.watchableStore.Write.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Write Perennial.EtcdGrove.watchableStore.Write.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__addVictim Perennial.EtcdGrove.mvcc.bag_nb_send_au  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__addVictim Perennial.EtcdGrove.mvcc.watchableStore.addVictim.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__addVictim Perennial.EtcdGrove.watchableStore.addVictim.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__cancelWatcher Perennial.EtcdGrove.mvcc.body_cancel  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__cancelWatcher Perennial.EtcdGrove.mvcc.cancelState  # exposed by a proof file (def)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__cancelWatcher Perennial.EtcdGrove.mvcc.cancelState_ok  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__cancelWatcher Perennial.EtcdGrove.mvcc.cancelState_settled  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__cancelWatcher Perennial.EtcdGrove.mvcc.cancelState_unsRst  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__cancelWatcher Perennial.EtcdGrove.mvcc.cancel_ghost  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__cancelWatcher Perennial.EtcdGrove.mvcc.delete_none  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__cancelWatcher Perennial.EtcdGrove.mvcc.findSome?_isSome_of  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__cancelWatcher Perennial.EtcdGrove.mvcc.findSome?_none_of  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__cancelWatcher Perennial.EtcdGrove.mvcc.findSome?_set_eq  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__cancelWatcher Perennial.EtcdGrove.mvcc.lookup_delete'  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__cancelWatcher Perennial.EtcdGrove.mvcc.lookup_insert'  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__cancelWatcher Perennial.EtcdGrove.mvcc.memberRes_cancel_intro  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__cancelWatcher Perennial.EtcdGrove.mvcc.memberRes_dead_elim  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__cancelWatcher Perennial.EtcdGrove.mvcc.memberRes_live_elim  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__cancelWatcher Perennial.EtcdGrove.mvcc.state_acc  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__cancelWatcher Perennial.EtcdGrove.mvcc.vb_delete  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__cancelWatcher Perennial.EtcdGrove.mvcc.watchableStore.cancelWatcher.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__cancelWatcher Perennial.EtcdGrove.mvcc.zip_set_right  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__cancelWatcher Perennial.EtcdGrove.watchableStore.cancelWatcher.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__moveVictims Perennial.EtcdGrove.mvcc.mv_send_inv_fail  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__moveVictims Perennial.EtcdGrove.mvcc.mv_send_inv_ok  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__moveVictims Perennial.EtcdGrove.mvcc.mv_take_succ  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__moveVictims Perennial.EtcdGrove.mvcc.watchableStore.moveVictims.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__moveVictims Perennial.EtcdGrove.watchableStore.moveVictims.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__notify Perennial.EtcdGrove.mvcc.NotifyRel  # exposed by a proof file (inductive)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__notify Perennial.EtcdGrove.mvcc.NotifyRel.step  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__notify Perennial.EtcdGrove.mvcc.WsOk_vs  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__notify Perennial.EtcdGrove.mvcc.batchOf_none  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__notify Perennial.EtcdGrove.mvcc.batchOf_some  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__notify Perennial.EtcdGrove.mvcc.batched_member  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__notify Perennial.EtcdGrove.mvcc.bigSepM_step  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__notify Perennial.EtcdGrove.mvcc.evsOfRevM_modRev  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__notify Perennial.EtcdGrove.mvcc.memberAt  # exposed by a proof file (def)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__notify Perennial.EtcdGrove.mvcc.memberAt_rest  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__notify Perennial.EtcdGrove.mvcc.memberAt_succ_key  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__notify Perennial.EtcdGrove.mvcc.memberAt_succ_ne  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__notify Perennial.EtcdGrove.mvcc.memberBatch_none_of_gt  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__notify Perennial.EtcdGrove.mvcc.memberBatch_one_rev  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__notify Perennial.EtcdGrove.mvcc.memberDone  # exposed by a proof file (def)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__notify Perennial.EtcdGrove.mvcc.memberRes_final  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__notify Perennial.EtcdGrove.mvcc.memberRes_synced  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__notify Perennial.EtcdGrove.mvcc.notifyState  # exposed by a proof file (def)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__notify Perennial.EtcdGrove.mvcc.notify_batch  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__notify Perennial.EtcdGrove.mvcc.notify_final  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__notify Perennial.EtcdGrove.mvcc.notify_settled  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__notify Perennial.EtcdGrove.mvcc.std_delete_eq  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__notify Perennial.EtcdGrove.mvcc.watchEvents_next  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__notify Perennial.EtcdGrove.mvcc.watchEvents_next_modRev  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__notify Perennial.EtcdGrove.mvcc.watchableStore.notify.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__notify Perennial.EtcdGrove.watchableStore.notify.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__progress Perennial.EtcdGrove.mvcc.watchableStore.progress.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__progress Perennial.EtcdGrove.watchableStore.progress.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__progressAll Perennial.EtcdGrove.mvcc.watchableStore.progressAll.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__progressAll Perennial.EtcdGrove.watchableStore.progressAll.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__progressIfSync Perennial.EtcdGrove.mvcc.covLent  # exposed by a proof file (def)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__progressIfSync Perennial.EtcdGrove.mvcc.cov_entries  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__progressIfSync Perennial.EtcdGrove.mvcc.cov_entry_synced  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__progressIfSync Perennial.EtcdGrove.mvcc.dedupL  # exposed by a proof file (def)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__progressIfSync Perennial.EtcdGrove.mvcc.dedupL.eq_def  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__progressIfSync Perennial.EtcdGrove.mvcc.mem_dedupL  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__progressIfSync Perennial.EtcdGrove.mvcc.memberFacts  # exposed by a proof file (def)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__progressIfSync Perennial.EtcdGrove.mvcc.memberFacts_of  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__progressIfSync Perennial.EtcdGrove.mvcc.memberFacts_persistent  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__progressIfSync Perennial.EtcdGrove.mvcc.memberRes_lend  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__progressIfSync Perennial.EtcdGrove.mvcc.members_lend  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__progressIfSync Perennial.EtcdGrove.mvcc.nodup_dedupL  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__progressIfSync Perennial.EtcdGrove.mvcc.ownWatcherGroup_watchers_frac  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__progressIfSync Perennial.EtcdGrove.mvcc.watchableStore.progressIfSync.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__progressIfSync Perennial.EtcdGrove.watchableStore.progressIfSync.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__rev Perennial.EtcdGrove.mvcc.watchableStore.rev.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__rev Perennial.EtcdGrove.watchableStore.rev.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__syncVictimsLoop Perennial.EtcdGrove.mvcc.watchableStore.syncVictimsLoop.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__syncVictimsLoop Perennial.EtcdGrove.watchableStore.syncVictimsLoop.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__syncWatchers Perennial.EtcdGrove.mvcc.sw_wp_max_int64  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__syncWatchers Perennial.EtcdGrove.mvcc.sw_wp_unsynced_delete  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__syncWatchers Perennial.EtcdGrove.mvcc.watchableStore.syncWatchers.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__syncWatchers Perennial.EtcdGrove.watchableStore.syncWatchers.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__syncWatchersLoop Perennial.EtcdGrove.mvcc.watchableStore.syncWatchersLoop.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__syncWatchersLoop Perennial.EtcdGrove.watchableStore.syncWatchersLoop.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__watch Perennial.EtcdGrove.mvcc.WsOk.addW  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__watch Perennial.EtcdGrove.mvcc.WsOk.fresh  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__watch Perennial.EtcdGrove.mvcc.WsState.addW  # exposed by a proof file (def)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__watch Perennial.EtcdGrove.mvcc.WsState.addW_Lmu  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__watch Perennial.EtcdGrove.mvcc.WsState.addW_M  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__watch Perennial.EtcdGrove.mvcc.WsState.addW_ST  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__watch Perennial.EtcdGrove.mvcc.WsState.addW_VB  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__watch Perennial.EtcdGrove.mvcc.WsState.addW_Wo  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__watch Perennial.EtcdGrove.mvcc.WsState.addW_Ws  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__watch Perennial.EtcdGrove.mvcc.WsState.addW_Wu  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__watch Perennial.EtcdGrove.mvcc.WsState.addW_live  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__watch Perennial.EtcdGrove.mvcc.WsState.addW_live_ne  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__watch Perennial.EtcdGrove.mvcc.WsState.addW_vbs  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__watch Perennial.EtcdGrove.mvcc.WsState.addW_vs  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__watch Perennial.EtcdGrove.mvcc.WsState.settled_addW  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__watch Perennial.EtcdGrove.mvcc.WsState.srBelow_addW  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__watch Perennial.EtcdGrove.mvcc.WsState.unsRst_addW  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__watch Perennial.EtcdGrove.mvcc.chanWatchers_named  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__watch Perennial.EtcdGrove.mvcc.filtersOk_of  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__watch Perennial.EtcdGrove.mvcc.filters_choose  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__watch Perennial.EtcdGrove.mvcc.isChan_ne_null  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__watch Perennial.EtcdGrove.mvcc.list_length_le_size  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__watch Perennial.EtcdGrove.mvcc.memberRes_addW_ne  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__watch Perennial.EtcdGrove.mvcc.outRes_addW_ne  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__watch Perennial.EtcdGrove.mvcc.slice_def_valid  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__watch Perennial.EtcdGrove.mvcc.watch_close_body  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__watch Perennial.EtcdGrove.mvcc.watch_key_fresh  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__watch Perennial.EtcdGrove.mvcc.watch_logAuth_prefix  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__watch Perennial.EtcdGrove.mvcc.watch_register  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__watch Perennial.EtcdGrove.mvcc.watchableStore.watch.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__watch Perennial.EtcdGrove.watchableStore.watch.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherBatch__add Perennial.EtcdGrove.mvcc.watcherBatch.add.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherBatch__add Perennial.EtcdGrove.watcherBatch.add.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__add Perennial.EtcdGrove.mvcc.watcherGroup.add.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__add Perennial.EtcdGrove.watcherGroup.add.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__choose Perennial.EtcdGrove.mvcc.watcherGroup.choose.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__choose Perennial.EtcdGrove.watcherGroup.choose.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__chooseAll Perennial.EtcdGrove.mvcc.ownWatcherGroupAt_struct  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__chooseAll Perennial.EtcdGrove.mvcc.stAfter  # exposed by a proof file (def)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__chooseAll Perennial.EtcdGrove.mvcc.wNotCm  # exposed by a proof file (def)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__chooseAll Perennial.EtcdGrove.mvcc.watcherGroup.chooseAll.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__chooseAll Perennial.EtcdGrove.watcherGroup.chooseAll.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__contains Perennial.EtcdGrove.mvcc.watcherGroup.contains.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__contains Perennial.EtcdGrove.watcherGroup.contains.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__delete Perennial.EtcdGrove.mvcc.watcherGroup.delete.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__delete Perennial.EtcdGrove.watcherGroup.delete.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__size Perennial.EtcdGrove.mvcc.watcherGroup.size.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__size Perennial.EtcdGrove.watcherGroup.size.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__watcherSetByKey Perennial.EtcdGrove.mvcc.watcherGroup.watcherSetByKey.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__watcherSetByKey Perennial.EtcdGrove.watcherGroup.watcherSetByKey.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherSetByKey__add Perennial.EtcdGrove.mvcc.watcherSetByKey.add.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherSetByKey__add Perennial.EtcdGrove.watcherSetByKey.add.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherSetByKey__delete Perennial.EtcdGrove.mvcc.watcherSetByKey.delete.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherSetByKey__delete Perennial.EtcdGrove.watcherSetByKey.delete.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherSet__add Perennial.EtcdGrove.mvcc.watcherSet.add.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherSet__add Perennial.EtcdGrove.watcherSet.add.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherSet__delete Perennial.EtcdGrove.mvcc.watcherSet.delete.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherSet__delete Perennial.EtcdGrove.watcherSet.delete.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherSet__union Perennial.EtcdGrove.mvcc.watcherSet.union.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcherSet__union Perennial.EtcdGrove.watcherSet.union.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcher__send Perennial.EtcdGrove.mvcc.evIs_filter  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcher__send Perennial.EtcdGrove.mvcc.keptPairs  # exposed by a proof file (def)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcher__send Perennial.EtcdGrove.mvcc.keptPairs_all  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcher__send Perennial.EtcdGrove.mvcc.keptPairs_snd  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcher__send Perennial.EtcdGrove.mvcc.keptPairs_succ  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcher__send Perennial.EtcdGrove.mvcc.watcher.send.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watcher__send Perennial.EtcdGrove.watcher.send.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.writeView__DeleteRange Perennial.EtcdGrove.mvcc.writeView.DeleteRange.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.writeView__DeleteRange Perennial.EtcdGrove.writeView.DeleteRange.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.writeView__Put Perennial.EtcdGrove.mvcc.writeView.Put.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.writeView__Put Perennial.EtcdGrove.writeView.Put.wp_proof  # missing: a proof file proves its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.ApiState.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.MTxn  # exposed by a spec file (inductive)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.MTxn.pend  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.MTxn.readLog  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.MTxn.readRev  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.MTxn.state  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.MvccReachable  # exposed by a spec file (inductive)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.MvccState  # exposed by a spec file (inductive)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.MvccState.commitPending  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.MvccState.compactTo  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.MvccState.notifiedLog  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.MvccState.notify  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.MvccState.notify_notifiedLog  # exposed by a spec file (theorem)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.MvccState.rev  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.StreamState  # exposed by a spec file (inductive)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.StreamState.cancel  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.StreamState.close  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.StreamState.register  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.WInfo  # exposed by a spec file (inductive)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.WResp  # exposed by a spec file (inductive)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.kvSortOk  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.logCh_append  # exposed by a spec file (theorem)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.logCh_append_nil  # exposed by a spec file (theorem)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.logCh_commitLog  # exposed by a spec file (theorem)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.mvccN  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.mvccStart  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.onceUpTo  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.pendItems_nil  # exposed by a spec file (theorem)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.reach_logWf  # exposed by a spec file (theorem)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.recvEvs  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.stateOk  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.watchLo  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.wsRecvOk  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.wsStart  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.BucketKeyToBytes Perennial.EtcdGrove.BucketKeyToBytes.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.BucketKeyToBytes Perennial.EtcdGrove.mvcc.BucketKeyToBytes.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.BytesToBucketKey Perennial.EtcdGrove.BytesToBucketKey.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.BytesToBucketKey Perennial.EtcdGrove.mvcc.BytesToBucketKey.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.BytesToRev Perennial.EtcdGrove.BytesToRev.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.BytesToRev Perennial.EtcdGrove.mvcc.BytesToRev.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ChanBufLen Perennial.EtcdGrove.ChanBufLen.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ChanBufLen Perennial.EtcdGrove.mvcc.ChanBufLen.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend Perennial.EtcdGrove.EtcdBackend.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend Perennial.EtcdGrove.mvcc.api.backendRest  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend Perennial.EtcdGrove.mvcc.api.backendRest_open.law  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend Perennial.EtcdGrove.mvcc.api.etcdStorage  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend Perennial.EtcdGrove.mvcc.api.etcdStorage_hook  # exposed by a spec file (theorem)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend Perennial.EtcdGrove.mvcc.api.etcdStorage_hookIs  # exposed by a spec file (theorem)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend Perennial.EtcdGrove.mvcc.api.etcdStorage_inj  # exposed by a spec file (theorem)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend Perennial.EtcdGrove.mvcc.api.etcdStorage_open.law  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend Perennial.EtcdGrove.mvcc.api.etcdStorage_req  # exposed by a spec file (theorem)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend Perennial.EtcdGrove.mvcc.api.etcdStorage_rest  # exposed by a spec file (theorem)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend Perennial.EtcdGrove.mvcc.api.etcdStorage_val  # exposed by a spec file (theorem)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend Perennial.EtcdGrove.mvcc.api.mvccBackend_isBackend.law  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend Perennial.EtcdGrove.mvcc.api.mvccImage  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend Perennial.EtcdGrove.mvcc.api.mvccImage_fresh.law  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend Perennial.EtcdGrove.mvcc.api.mvccImage_persistent  # exposed by a spec file (theorem)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend Perennial.EtcdGrove.mvcc.api.mvccImage_snapshot.law  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend Perennial.EtcdGrove.mvcc.api.mvccImage_stop.law  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend Perennial.EtcdGrove.mvcc.api.mvccReaderN_eq  # exposed by a spec file (theorem)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend Perennial.EtcdGrove.mvcc.api.mvccTxn_leaseDelete.law  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend Perennial.EtcdGrove.mvcc.api.mvccW  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend Perennial.EtcdGrove.mvcc.api.mvccWReg  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend Perennial.EtcdGrove.mvcc.api.mvccW_alloc.law  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.IsTombstone Perennial.EtcdGrove.IsTombstone.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.IsTombstone Perennial.EtcdGrove.mvcc.IsTombstone.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.New Perennial.EtcdGrove.New.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.New Perennial.EtcdGrove.mvcc.New.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.NewHashStorage Perennial.EtcdGrove.NewHashStorage.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.NewHashStorage Perennial.EtcdGrove.mvcc.NewHashStorage.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.NewReadOnlyTxnWrite Perennial.EtcdGrove.NewReadOnlyTxnWrite.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.NewReadOnlyTxnWrite Perennial.EtcdGrove.mvcc.NewReadOnlyTxnWrite.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.NewRevBytes Perennial.EtcdGrove.NewRevBytes.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.NewRevBytes Perennial.EtcdGrove.mvcc.NewRevBytes.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.NewStore Perennial.EtcdGrove.NewStore.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.NewStore Perennial.EtcdGrove.mvcc.NewStore.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ReportEventReceived Perennial.EtcdGrove.ReportEventReceived.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ReportEventReceived Perennial.EtcdGrove.mvcc.ReportEventReceived.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.RevToBytes Perennial.EtcdGrove.RevToBytes.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.RevToBytes Perennial.EtcdGrove.mvcc.RevToBytes.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Revision__GreaterThan Perennial.EtcdGrove.Revision.GreaterThan.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Revision__GreaterThan Perennial.EtcdGrove.mvcc.Revision.GreaterThan.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.SetFinishedCompact Perennial.EtcdGrove.SetFinishedCompact.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.SetFinishedCompact Perennial.EtcdGrove.mvcc.SetFinishedCompact.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.SetScheduledCompact Perennial.EtcdGrove.SetScheduledCompact.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.SetScheduledCompact Perennial.EtcdGrove.mvcc.SetScheduledCompact.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeReadFinishedCompact Perennial.EtcdGrove.UnsafeReadFinishedCompact.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeReadFinishedCompact Perennial.EtcdGrove.mvcc.UnsafeReadFinishedCompact.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeReadScheduledCompact Perennial.EtcdGrove.UnsafeReadScheduledCompact.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeReadScheduledCompact Perennial.EtcdGrove.mvcc.UnsafeReadScheduledCompact.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeSetFinishedCompact Perennial.EtcdGrove.UnsafeSetFinishedCompact.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeSetFinishedCompact Perennial.EtcdGrove.mvcc.UnsafeSetFinishedCompact.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeSetScheduledCompact Perennial.EtcdGrove.UnsafeSetScheduledCompact.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.UnsafeSetScheduledCompact Perennial.EtcdGrove.mvcc.UnsafeSetScheduledCompact.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.eventBatch__add Perennial.EtcdGrove.eventBatch.add.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.eventBatch__add Perennial.EtcdGrove.mvcc.eventBatch.add.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.generation__isEmpty Perennial.EtcdGrove.generation.isEmpty.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.generation__isEmpty Perennial.EtcdGrove.mvcc.generation.isEmpty.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.generation__isRecreatedAt Perennial.EtcdGrove.generation.isRecreatedAt.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.generation__isRecreatedAt Perennial.EtcdGrove.mvcc.generation.isRecreatedAt.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.generation__walk Perennial.EtcdGrove.generation.walk.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.generation__walk Perennial.EtcdGrove.mvcc.generation.walk.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.hashStorage__Store Perennial.EtcdGrove.hashStorage.Store.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.hashStorage__Store Perennial.EtcdGrove.mvcc.hashStorage.Store.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.isTombstone Perennial.EtcdGrove.isTombstone.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.isTombstone Perennial.EtcdGrove.mvcc.isTombstone.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__Less Perennial.EtcdGrove.keyIndex.Less.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__Less Perennial.EtcdGrove.mvcc.keyIndex.Less.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__compact Perennial.EtcdGrove.keyIndex.compact.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__compact Perennial.EtcdGrove.mvcc.keyIndex.compact.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__doCompact Perennial.EtcdGrove.keyIndex.doCompact.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__doCompact Perennial.EtcdGrove.mvcc.keyIndex.doCompact.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__findGeneration Perennial.EtcdGrove.keyIndex.findGeneration.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__findGeneration Perennial.EtcdGrove.mvcc.keyIndex.findGeneration.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__get Perennial.EtcdGrove.keyIndex.get.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__get Perennial.EtcdGrove.mvcc.keyIndex.get.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__isEmpty Perennial.EtcdGrove.keyIndex.isEmpty.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__isEmpty Perennial.EtcdGrove.mvcc.keyIndex.isEmpty.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__keep Perennial.EtcdGrove.keyIndex.keep.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__keep Perennial.EtcdGrove.mvcc.keyIndex.keep.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__put Perennial.EtcdGrove.keyIndex.put.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__put Perennial.EtcdGrove.mvcc.keyIndex.put.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__restore Perennial.EtcdGrove.keyIndex.restore.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__restore Perennial.EtcdGrove.mvcc.keyIndex.restore.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__restoreTombstone Perennial.EtcdGrove.keyIndex.restoreTombstone.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__restoreTombstone Perennial.EtcdGrove.mvcc.keyIndex.restoreTombstone.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__tombstone Perennial.EtcdGrove.keyIndex.tombstone.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.keyIndex__tombstone Perennial.EtcdGrove.mvcc.keyIndex.tombstone.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher__Hash Perennial.EtcdGrove.kvHasher.Hash.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher__Hash Perennial.EtcdGrove.mvcc.kvHasher.Hash.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher__WriteKeyValue Perennial.EtcdGrove.kvHasher.WriteKeyValue.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher__WriteKeyValue Perennial.EtcdGrove.mvcc.kvHasher.WriteKeyValue.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.kvsToEvents Perennial.EtcdGrove.kvsToEvents.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.kvsToEvents Perennial.EtcdGrove.mvcc.kvsToEvents.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Changes Perennial.EtcdGrove.metricsTxnWrite.Changes.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Changes Perennial.EtcdGrove.mvcc.metricsTxnWrite.Changes.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__DeleteRange Perennial.EtcdGrove.metricsTxnWrite.DeleteRange.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__DeleteRange Perennial.EtcdGrove.mvcc.metricsTxnWrite.DeleteRange.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__End Perennial.EtcdGrove.metricsTxnWrite.End.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__End Perennial.EtcdGrove.mvcc.metricsTxnWrite.End.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__FirstRev Perennial.EtcdGrove.metricsTxnWrite.FirstRev.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__FirstRev Perennial.EtcdGrove.mvcc.metricsTxnWrite.FirstRev.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Put Perennial.EtcdGrove.metricsTxnWrite.Put.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Put Perennial.EtcdGrove.mvcc.metricsTxnWrite.Put.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Range Perennial.EtcdGrove.metricsTxnWrite.Range.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Range Perennial.EtcdGrove.mvcc.metricsTxnWrite.Range.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Rev Perennial.EtcdGrove.metricsTxnWrite.Rev.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.metricsTxnWrite__Rev Perennial.EtcdGrove.mvcc.metricsTxnWrite.Rev.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.newBucketKey Perennial.EtcdGrove.mvcc.newBucketKey.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.newBucketKey Perennial.EtcdGrove.newBucketKey.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.newKVHasher Perennial.EtcdGrove.mvcc.newKVHasher.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.newKVHasher Perennial.EtcdGrove.newKVHasher.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.newMetricsTxnRead Perennial.EtcdGrove.mvcc.newMetricsTxnRead.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.newMetricsTxnRead Perennial.EtcdGrove.newMetricsTxnRead.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.newMetricsTxnWrite Perennial.EtcdGrove.mvcc.newMetricsTxnWrite.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.newMetricsTxnWrite Perennial.EtcdGrove.newMetricsTxnWrite.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.newTreeIndex Perennial.EtcdGrove.mvcc.newTreeIndex.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.newTreeIndex Perennial.EtcdGrove.newTreeIndex.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.newWatchableStore Perennial.EtcdGrove.mvcc.newWatchableStore.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.newWatchableStore Perennial.EtcdGrove.newWatchableStore.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.newWatcherBatch Perennial.EtcdGrove.mvcc.newWatcherBatch.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.newWatcherBatch Perennial.EtcdGrove.newWatcherBatch.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.newWatcherGroup Perennial.EtcdGrove.mvcc.newWatcherGroup.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.newWatcherGroup Perennial.EtcdGrove.newWatcherGroup.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.rangeEvents Perennial.EtcdGrove.mvcc.rangeEvents.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.rangeEvents Perennial.EtcdGrove.rangeEvents.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.readView__FirstRev Perennial.EtcdGrove.mvcc.readView.FirstRev.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.readView__FirstRev Perennial.EtcdGrove.readView.FirstRev.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.readView__Range Perennial.EtcdGrove.mvcc.readView.Range.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.readView__Range Perennial.EtcdGrove.readView.Range.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.readView__Rev Perennial.EtcdGrove.mvcc.readView.Rev.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.readView__Rev Perennial.EtcdGrove.readView.Rev.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.restoreChunk Perennial.EtcdGrove.mvcc.restoreChunk.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.restoreChunk Perennial.EtcdGrove.restoreChunk.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.restoreIntoIndex Perennial.EtcdGrove.mvcc.restoreIntoIndex.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.restoreIntoIndex Perennial.EtcdGrove.restoreIntoIndex.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.resyncDelay Perennial.EtcdGrove.mvcc.resyncDelay.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.resyncDelay Perennial.EtcdGrove.resyncDelay.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.sliceCapWithLimit Perennial.EtcdGrove.mvcc.sliceCapWithLimit.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.sliceCapWithLimit Perennial.EtcdGrove.sliceCapWithLimit.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon__FirstRev Perennial.EtcdGrove.mvcc.storeTxnCommon.FirstRev.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon__FirstRev Perennial.EtcdGrove.storeTxnCommon.FirstRev.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon__Range Perennial.EtcdGrove.mvcc.storeTxnCommon.Range.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon__Range Perennial.EtcdGrove.storeTxnCommon.Range.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon__Rev Perennial.EtcdGrove.mvcc.storeTxnCommon.Rev.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon__Rev Perennial.EtcdGrove.storeTxnCommon.Rev.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon__rangeKeys Perennial.EtcdGrove.mvcc.storeTxnCommon.rangeKeys.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon__rangeKeys Perennial.EtcdGrove.storeTxnCommon.rangeKeys.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnRead__End Perennial.EtcdGrove.mvcc.storeTxnRead.End.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnRead__End Perennial.EtcdGrove.storeTxnRead.End.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__Changes Perennial.EtcdGrove.mvcc.storeTxnWrite.Changes.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__Changes Perennial.EtcdGrove.storeTxnWrite.Changes.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__DeleteRange Perennial.EtcdGrove.mvcc.storeTxnWrite.DeleteRange.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__DeleteRange Perennial.EtcdGrove.storeTxnWrite.DeleteRange.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__End Perennial.EtcdGrove.mvcc.storeTxnWrite.End.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__End Perennial.EtcdGrove.storeTxnWrite.End.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__Put Perennial.EtcdGrove.mvcc.storeTxnWrite.Put.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__Put Perennial.EtcdGrove.storeTxnWrite.Put.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__Range Perennial.EtcdGrove.mvcc.storeTxnWrite.Range.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__Range Perennial.EtcdGrove.storeTxnWrite.Range.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__Rev Perennial.EtcdGrove.mvcc.storeTxnWrite.Rev.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__Rev Perennial.EtcdGrove.storeTxnWrite.Rev.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__delete Perennial.EtcdGrove.mvcc.storeTxnWrite.delete.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__delete Perennial.EtcdGrove.storeTxnWrite.delete.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__deleteRange Perennial.EtcdGrove.mvcc.storeTxnWrite.deleteRange.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__deleteRange Perennial.EtcdGrove.storeTxnWrite.deleteRange.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__put Perennial.EtcdGrove.mvcc.storeTxnWrite.put.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite__put Perennial.EtcdGrove.storeTxnWrite.put.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Close Perennial.EtcdGrove.mvcc.store.Close.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Close Perennial.EtcdGrove.store.Close.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Commit Perennial.EtcdGrove.mvcc.store.Commit.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Commit Perennial.EtcdGrove.store.Commit.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Compact Perennial.EtcdGrove.mvcc.store.Compact.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Compact Perennial.EtcdGrove.store.Compact.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__HashStorage Perennial.EtcdGrove.mvcc.store.HashStorage.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__HashStorage Perennial.EtcdGrove.store.HashStorage.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Read Perennial.EtcdGrove.mvcc.store.Read.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Read Perennial.EtcdGrove.store.Read.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Restore Perennial.EtcdGrove.mvcc.store.Restore.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Restore Perennial.EtcdGrove.store.Restore.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Rev Perennial.EtcdGrove.mvcc.store.Rev.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Rev Perennial.EtcdGrove.store.Rev.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Write Perennial.EtcdGrove.mvcc.store.Write.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Write Perennial.EtcdGrove.store.Write.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__checkPrevCompactionCompleted Perennial.EtcdGrove.mvcc.store.checkPrevCompactionCompleted.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__checkPrevCompactionCompleted Perennial.EtcdGrove.store.checkPrevCompactionCompleted.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__compact Perennial.EtcdGrove.mvcc.store.compact.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__compact Perennial.EtcdGrove.store.compact.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__compactBarrier Perennial.EtcdGrove.mvcc.store.compactBarrier.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__compactBarrier Perennial.EtcdGrove.store.compactBarrier.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__compactLockfree Perennial.EtcdGrove.mvcc.store.compactLockfree.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__compactLockfree Perennial.EtcdGrove.store.compactLockfree.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__restore Perennial.EtcdGrove.mvcc.store.restore.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__restore Perennial.EtcdGrove.store.restore.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__scheduleCompaction Perennial.EtcdGrove.mvcc.store.scheduleCompaction.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__scheduleCompaction Perennial.EtcdGrove.store.scheduleCompaction.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__setupMetricsReporter Perennial.EtcdGrove.mvcc.store.setupMetricsReporter.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__setupMetricsReporter Perennial.EtcdGrove.store.setupMetricsReporter.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__updateCompactRev Perennial.EtcdGrove.mvcc.store.updateCompactRev.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__updateCompactRev Perennial.EtcdGrove.store.updateCompactRev.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Compact Perennial.EtcdGrove.mvcc.treeIndex.Compact.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Compact Perennial.EtcdGrove.treeIndex.Compact.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__CountRevisions Perennial.EtcdGrove.mvcc.treeIndex.CountRevisions.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__CountRevisions Perennial.EtcdGrove.treeIndex.CountRevisions.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Get Perennial.EtcdGrove.mvcc.treeIndex.Get.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Get Perennial.EtcdGrove.treeIndex.Get.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Insert Perennial.EtcdGrove.mvcc.treeIndex.Insert.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Insert Perennial.EtcdGrove.treeIndex.Insert.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Keep Perennial.EtcdGrove.mvcc.treeIndex.Keep.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Keep Perennial.EtcdGrove.treeIndex.Keep.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__KeyIndex Perennial.EtcdGrove.mvcc.treeIndex.KeyIndex.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__KeyIndex Perennial.EtcdGrove.treeIndex.KeyIndex.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Put Perennial.EtcdGrove.mvcc.treeIndex.Put.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Put Perennial.EtcdGrove.treeIndex.Put.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Range Perennial.EtcdGrove.mvcc.ownKeys  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Range Perennial.EtcdGrove.mvcc.treeIndex.Range.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Range Perennial.EtcdGrove.treeIndex.Range.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Revisions Perennial.EtcdGrove.mvcc.treeIndex.Revisions.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Revisions Perennial.EtcdGrove.treeIndex.Revisions.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Tombstone Perennial.EtcdGrove.mvcc.treeIndex.Tombstone.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__Tombstone Perennial.EtcdGrove.treeIndex.Tombstone.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__keyIndex Perennial.EtcdGrove.mvcc.treeIndex.keyIndex.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__keyIndex Perennial.EtcdGrove.treeIndex.keyIndex.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__unsafeGet Perennial.EtcdGrove.mvcc.treeIndex.unsafeGet.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__unsafeGet Perennial.EtcdGrove.treeIndex.unsafeGet.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__unsafeVisit Perennial.EtcdGrove.mvcc.treeIndex.unsafeVisit.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__unsafeVisit Perennial.EtcdGrove.mvcc.visitSpec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__unsafeVisit Perennial.EtcdGrove.mvcc.visitSpec_persistent  # exposed by a spec file (theorem)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex__unsafeVisit Perennial.EtcdGrove.treeIndex.unsafeVisit.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Changes Perennial.EtcdGrove.mvcc.txnReadWrite.Changes.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Changes Perennial.EtcdGrove.txnReadWrite.Changes.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__DeleteRange Perennial.EtcdGrove.mvcc.txnReadWrite.DeleteRange.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__DeleteRange Perennial.EtcdGrove.txnReadWrite.DeleteRange.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__End Perennial.EtcdGrove.mvcc.txnReadWrite.End.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__End Perennial.EtcdGrove.txnReadWrite.End.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__FirstRev Perennial.EtcdGrove.mvcc.txnReadWrite.FirstRev.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__FirstRev Perennial.EtcdGrove.txnReadWrite.FirstRev.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Put Perennial.EtcdGrove.mvcc.txnReadWrite.Put.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Put Perennial.EtcdGrove.txnReadWrite.Put.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Range Perennial.EtcdGrove.mvcc.txnReadWrite.Range.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Range Perennial.EtcdGrove.txnReadWrite.Range.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Rev Perennial.EtcdGrove.mvcc.txnReadWrite.Rev.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.txnReadWrite__Rev Perennial.EtcdGrove.txnReadWrite.Rev.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Cancel Perennial.EtcdGrove.mvcc.watchStream.Cancel.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Cancel Perennial.EtcdGrove.watchStream.Cancel.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Chan Perennial.EtcdGrove.mvcc.watchStream.Chan.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Chan Perennial.EtcdGrove.watchStream.Chan.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Close Perennial.EtcdGrove.mvcc.watchStream.Close.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Close Perennial.EtcdGrove.watchStream.Close.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__RequestProgress Perennial.EtcdGrove.mvcc.watchStream.RequestProgress.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__RequestProgress Perennial.EtcdGrove.watchStream.RequestProgress.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__RequestProgressAll Perennial.EtcdGrove.mvcc.watchStream.RequestProgressAll.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__RequestProgressAll Perennial.EtcdGrove.watchStream.RequestProgressAll.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Rev Perennial.EtcdGrove.mvcc.watchStream.Rev.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Rev Perennial.EtcdGrove.watchStream.Rev.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Watch Perennial.EtcdGrove.mvcc.watchStream.Watch.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchStream__Watch Perennial.EtcdGrove.watchStream.Watch.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStoreTxnWrite__End Perennial.EtcdGrove.mvcc.watchableStoreTxnWrite.End.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStoreTxnWrite__End Perennial.EtcdGrove.watchableStoreTxnWrite.End.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Close Perennial.EtcdGrove.mvcc.watchableStore.Close.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Close Perennial.EtcdGrove.watchableStore.Close.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__NewWatchStream Perennial.EtcdGrove.mvcc.watchableStore.NewWatchStream.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__NewWatchStream Perennial.EtcdGrove.watchableStore.NewWatchStream.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Restore Perennial.EtcdGrove.mvcc.watchableStore.Restore.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Restore Perennial.EtcdGrove.watchableStore.Restore.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Write Perennial.EtcdGrove.mvcc.watchableStore.Write.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Write Perennial.EtcdGrove.watchableStore.Write.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__addVictim Perennial.EtcdGrove.mvcc.watchableStore.addVictim.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__addVictim Perennial.EtcdGrove.watchableStore.addVictim.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__cancelWatcher Perennial.EtcdGrove.mvcc.watchableStore.cancelWatcher.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__cancelWatcher Perennial.EtcdGrove.watchableStore.cancelWatcher.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__moveVictims Perennial.EtcdGrove.mvcc.watchableStore.moveVictims.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__moveVictims Perennial.EtcdGrove.watchableStore.moveVictims.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__notify Perennial.EtcdGrove.mvcc.watchableStore.notify.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__notify Perennial.EtcdGrove.watchableStore.notify.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__progress Perennial.EtcdGrove.mvcc.watchableStore.progress.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__progress Perennial.EtcdGrove.watchableStore.progress.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__progressAll Perennial.EtcdGrove.mvcc.watchableStore.progressAll.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__progressAll Perennial.EtcdGrove.watchableStore.progressAll.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__progressIfSync Perennial.EtcdGrove.mvcc.watchableStore.progressIfSync.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__progressIfSync Perennial.EtcdGrove.watchableStore.progressIfSync.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__rev Perennial.EtcdGrove.mvcc.watchableStore.rev.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__rev Perennial.EtcdGrove.watchableStore.rev.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__syncVictimsLoop Perennial.EtcdGrove.mvcc.watchableStore.syncVictimsLoop.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__syncVictimsLoop Perennial.EtcdGrove.watchableStore.syncVictimsLoop.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__syncWatchers Perennial.EtcdGrove.mvcc.watchableStore.syncWatchers.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__syncWatchers Perennial.EtcdGrove.watchableStore.syncWatchers.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__syncWatchersLoop Perennial.EtcdGrove.mvcc.watchableStore.syncWatchersLoop.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__syncWatchersLoop Perennial.EtcdGrove.watchableStore.syncWatchersLoop.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__watch Perennial.EtcdGrove.mvcc.watchableStore.watch.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__watch Perennial.EtcdGrove.watchableStore.watch.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcherBatch__add Perennial.EtcdGrove.mvcc.watcherBatch.add.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcherBatch__add Perennial.EtcdGrove.watcherBatch.add.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__add Perennial.EtcdGrove.mvcc.watcherGroup.add.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__add Perennial.EtcdGrove.mvcc.watcherGroup.add.spec_group  # exposed by a spec file (theorem)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__add Perennial.EtcdGrove.watcherGroup.add.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__choose Perennial.EtcdGrove.mvcc.watcherGroup.choose.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__choose Perennial.EtcdGrove.watcherGroup.choose.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__chooseAll Perennial.EtcdGrove.mvcc.watcherGroup.chooseAll.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__chooseAll Perennial.EtcdGrove.watcherGroup.chooseAll.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__contains Perennial.EtcdGrove.mvcc.watcherGroup.contains.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__contains Perennial.EtcdGrove.watcherGroup.contains.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__delete Perennial.EtcdGrove.mvcc.watcherGroup.delete.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__delete Perennial.EtcdGrove.mvcc.watcherGroup.delete.spec_group  # exposed by a spec file (theorem)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__delete Perennial.EtcdGrove.watcherGroup.delete.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__size Perennial.EtcdGrove.mvcc.watcherGroup.size.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__size Perennial.EtcdGrove.watcherGroup.size.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__watcherSetByKey Perennial.EtcdGrove.mvcc.watcherGroup.watcherSetByKey.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup__watcherSetByKey Perennial.EtcdGrove.watcherGroup.watcherSetByKey.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcherSetByKey__add Perennial.EtcdGrove.mvcc.watcherSetByKey.add.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcherSetByKey__add Perennial.EtcdGrove.watcherSetByKey.add.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcherSetByKey__delete Perennial.EtcdGrove.mvcc.watcherSetByKey.delete.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcherSetByKey__delete Perennial.EtcdGrove.watcherSetByKey.delete.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcherSet__add Perennial.EtcdGrove.mvcc.watcherSet.add.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcherSet__add Perennial.EtcdGrove.watcherSet.add.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcherSet__delete Perennial.EtcdGrove.mvcc.watcherSet.delete.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcherSet__delete Perennial.EtcdGrove.watcherSet.delete.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcherSet__union Perennial.EtcdGrove.mvcc.watcherSet.union.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcherSet__union Perennial.EtcdGrove.watcherSet.union.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcher__send Perennial.EtcdGrove.mvcc.watcher.send.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watcher__send Perennial.EtcdGrove.watcher.send.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.writeView__DeleteRange Perennial.EtcdGrove.mvcc.writeView.DeleteRange.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.writeView__DeleteRange Perennial.EtcdGrove.writeView.DeleteRange.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.writeView__Put Perennial.EtcdGrove.mvcc.writeView.Put.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.writeView__Put Perennial.EtcdGrove.writeView.Put.spec  # missing: a spec file declares its spec

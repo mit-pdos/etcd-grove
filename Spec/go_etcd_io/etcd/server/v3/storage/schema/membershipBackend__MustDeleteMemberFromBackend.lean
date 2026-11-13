@@ -34,24 +34,26 @@ puts `members_removed/<id> := "removed"` (`memberKey`, `removedVal`) in a part o
 (`rbOwnIn d.γB S`: the delete is pending at its `Unlock`, which commits it, and writes the put
 back, the Go basis: `TestBksDeleteThenRead`; 2026-11-01, the backend-auth-split stage: until then
 the whole writer's half `rbOwn`), and returns `Post`. Both buckets exist (`UnsafeDelete`/
-`UnsafePut` on a missing bucket is fatal). -/
+`UnsafePut` on a missing bucket is fatal). (R8, 2026-11-07: restated over mvcc's API, the same
+meaning, as `MustSaveMemberToBackend`'s.) -/
 abbrev schema.membershipBackend.MustDeleteMemberFromBackend.spec : Prop :=
-  ∀ (mb lg : Loc) (γ : mvcc.StoreNames) (d : mvcc.KBReal) (P : IProp GF) (f : val)
+  ∀ (mb lg : Loc) (d : mvcc.KBReal) (P : IProp GF) (f : GoFunc)
     (Pre Q Post : IProp GF) (S : GoString → Prop) (bk : GMap GoString backend.BktData) (id : w64)
-    (W Pk : IProp GF),
-  γ.kb = some d → (∀ n, membership.memberBkts n → S n) →
+    (W : IProp GF),
+  (∀ n, membership.memberBkts n → S n) →
   (bk.lookup go!"members").isSome → (bk.lookup go!"members_removed").isSome →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       schema.mbF go!"be" mb ↦□
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
           #d.be : GoInterface) ∗
       schema.mbF go!"lg" mb ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
-      mvcc.hookOk γ P f ∗ mvcc.csContract P f Pre Q Post ∗ mvcc.storeWT γ ∗ mvcc.storeRT γ ∗
-      backend.isBackend d.γB d.P W Pk d.be ∗ backend.rbPart d.γB S bk }}
+      backend.plHookRO d.γB f ∗ ⌜f ≠ func.nil⌝ ∗ srvApi.csContractA P f Pre Q Post ∗
+      apply.bkWT d ∗ apply.bkRT d ∗
+      backend.isBackend d.γB d.P W P d.be ∗ backend.rbPart d.γB S bk }}
     (App (Val (mb @!! go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.schema.membershipBackend.ty @!!
       go!"MustDeleteMemberFromBackend")) (Val #id))
-  {{ RET #(); Post ∗ mvcc.storeRT γ ∗
+  {{ RET #(); Post ∗ apply.bkRT d ∗
       backend.rbOwnIn d.γB S
         (apply.bkPut (apply.bkDel bk go!"members" (apply.memberKey id))
           go!"members_removed" (apply.memberKey id) membership.removedVal) }}
