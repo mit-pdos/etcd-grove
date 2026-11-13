@@ -193,6 +193,27 @@ process, but they are not the verified `Main*`.
 - flowcontrol's `WatchInitialized`/`initializationSignalFrom` (translated; their spec is 7f-5a-P's
   first leaf).
 
-## Checks
+## Checks (2026-11-13, on `f597058f4a` plus the SpecPlan PkgInit regeneration)
 
-(filled in after the build: see the handoff)
+- **Full build:** `etc/timed-build.py` passed (17475 jobs, build `20261113-180549-3823747`, under
+  flock and the 64G cap). The first run failed only at the generated
+  `SpecPlan/Spec/PkgInit/k8s_io/apiserver/pkg/util/flowcontrol.lean`, because flowcontrol now imports
+  `context`. It was regenerated with `etc/gen-specs-pkginit.py`, keeping only that file: the script's
+  other differences are older drift on lean, which this branch leaves alone.
+- **`etc/tcb-report.py --check`:** one difference, as expected: **NEW axiom
+  `k8sfeature.featureOn_persistent`**. The baseline is not updated (it waits for the review).
+- **Collections:** every collection matches its baseline except `k8setcd3.txt` (the same NEW
+  axiom; it is reached through `watchList`, which `Main*` call). Collections after `porcupine-dag`:
+  see the handoff.
+- **Generated files and gates:**
+  - `etc/gen-init.py --check` (228 up to date, after regeneration: flowcontrol's `Init` imports
+    `context`, and the two `PkgTable`s);
+  - `etc/gen-link.py --k8setcd3`/`--k8s-etcd3` reproduce;
+  - `etc/goose.py --check` passes;
+  - `etc/bounds-check.py --check` (330, baseline 330);
+  - `etc/issues-status.py --check`;
+  - every `etc/api/*.txt` interface `--check --layout` passes (no k8s package has an API list).
+- **Go:** `examples/premisefix/watcherctx` (all tests), and in `examples/k8s/etcd3` `TestWatchListOn`,
+  `TestNoStreaming` and `TestMainLinearizable`.
+- **Closed theorems:** no statement changed. `Main*`'s proofs take one more callee spec
+  (`watchList.spec`), linked in `Link.lean`/`MainLinked.lean`.
