@@ -37,7 +37,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.readInt64.spec : Prop :=
   ⊢ io.readerStream ri S E -∗
     {{ isPkgInit (PROP := IProp GF) pkg_id.io ∗ isPkgInit (PROP := IProp GF) pkg_id.encoding.binary ∗
         globalAddr _root_.Perennial.io.EOF ↦□ eof ∗
-        globalAddr _root_.Perennial.io.ErrUnexpectedEOF ↦□ ueof ∗ S r0 }}
+        globalAddr _root_.Perennial.io.ErrUnexpectedEOF ↦□ ueof ∗ ⌜r0.length + 8 < 2 ^ 62⌝ ∗ S r0 }}
       (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.readInt64)) (Val #(GoInterface.ok ri)))
     {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
         ∃ ys : List w8, ⌜io.readFullOk E eof ueof r0 ys 8 err ∧

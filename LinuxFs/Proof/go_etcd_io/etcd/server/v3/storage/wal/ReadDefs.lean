@@ -12,8 +12,8 @@ do not depend on their bodies.
   added by `os.OpenFile`), offset 0, its `fileutil.FileReader` (`*fileReader{f}`) and its lock
   (`TryLockFile`'s `*LockedFile` in write mode, nil in read mode).
 * `walFileS f fd i g r`: the stream state of such a file read as the segment `g` (`DecFile.S`, what
-  the `os.File`-as-`io.Reader` bridge must take): the file, the fd, the offset `|r|`, and the
-  program's halves of `g`'s `OsMeta` and bytes. With them the bytes the decoder reads
+  the `os.File`-as-`io.Reader` bridge takes, `ReadBridge.lean`): `r` a prefix of the bytes, the
+  file, the fd, the offset `|r|`, and the program's halves of `g`'s `OsMeta` and bytes. With them the bytes the decoder reads
   (`DecFile.bs`, the page cache's values of `g.bs`) cannot change during the read.
 * `walReadTie dir write fs lfs`: the decoder's files are the WAL's segments from the opened one on,
   each read through `walFileS`; the program's half of the WAL directory's claim (`WalDirClaim`), so
@@ -29,7 +29,7 @@ do not depend on their bodies.
 (`walUnlockedTok`: the parking flag `true`, so nothing is out), takes them out of `walInv`'s
 `walParked` (`Inv.lean`) and sets the flag to `false` (`walUnlockedTok_lock`; the handles hold
 `walLockedTok`); `ReadAll` puts them back when it returns the write handle (all but the tail's,
-which `walTailW` keeps), or `Close`/the failure does. Still open: the `os.File` reader bridge proving `decFile` of a `walFileS` stream.
+which `walTailW` keeps), or `Close`/the failure does. The `os.File` reader bridge proving `decFile` of a `walFileS` stream: `ReadBridge.lean`.
 -/
 module
 
@@ -72,7 +72,8 @@ def walOpenedFile (write : Bool) (dir b : GoString) (i : Ino) (fr : GoInterfaceO
 /-- See the file header. -/
 def walFileS (f : Loc) (fd : w64) (name : GoString) (fl : OsFd) (g : SegG) (r : List w8) :
     IProp GF :=
-  iprop(os.ownFile f fd name (DFrac.own 1) ∗ osFd fd (DFrac.own 1) fl ∗ os.ownOff f (W64 r.length) ∗
+  iprop(⌜r <+: g.bs.map Prod.fst⌝ ∗
+    os.ownFile f fd name (DFrac.own 1) ∗ osFd fd (DFrac.own 1) fl ∗ os.ownOff f (W64 r.length) ∗
     osMeta g.ino (DFrac.own (1 : Qp).half) g.om ∗ osBytes g.ino 0 (DFrac.own (1 : Qp).half) g.bs)
 
 /-- See the file header. -/

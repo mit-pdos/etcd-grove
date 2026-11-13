@@ -13,8 +13,9 @@ ghost state is the pure model's (`WalEncDecoder.lean`, `goDecode`): the files le
   passes on as it is).
 * `fileInfoOk fi n`: the `fs.FileInfo` `fi`'s `Size()` returns `n` and its `Name()` some string.
 * `decFile IoE eof F` (persistent): `F.fr` (a `fileutil.FileReader`) reads `F.bs` as the stream
-  `F.S` (each state a prefix of the bytes), its `FileInfo()` returns an `IoE` error or a file info
-  of size `|F.bs|`; `|F.bs| < 2^62`.
+  `F.S` (each state a prefix of the bytes), its `FileInfo()` (from any state, which it keeps)
+  returns an `IoE` error or a file info of size `|F.bs|`; `|F.bs| + 2^12 < 2^62` (a `bufio` refill reads 4 KiB past the position, at most
+  past the end: `io.readerStream`'s bound on each read).
 * `ownFbr fbr IoE eof F r`: the `*FileBufReader` at `fbr` over `F`, having delivered `r`.
 * `ownDecoder d IoE eof fs off c live`: the `*decoder` at `d` over the files `fs` left (its
   `brs`), `lastValidOff = off`, its CRC digest at `c` (over the WAL's Castagnoli table), the mutex
@@ -91,11 +92,11 @@ instance fileInfoOk_persistent (fi : GoInterface) (n : Nat) :
 def decFile (IoE : GoInterface → Prop) (eof : GoInterface) (F : DecFile GF) : IProp GF :=
   iprop(io.readerStream F.fr F.S (decRdErr F.bs eof IoE) ∗
     (□ ∀ r, F.S r -∗ ⌜r <+: F.bs⌝) ∗
-    (□ {{ (True : IProp GF) }} (App (Val #(methods F.fr.ty go!"FileInfo" F.fr.v)) (Val #()))
+    (□ ∀ r, {{ F.S r }} (App (Val #(methods F.fr.ty go!"FileInfo" F.fr.v)) (Val #()))
         {{ (fi : GoInterface) (err : GoInterface), RET (PairV #fi #err);
-            ⌜err ≠ GoInterface.nil → IoE err⌝ ∗
+            F.S r ∗ ⌜err ≠ GoInterface.nil → IoE err⌝ ∗
             (⌜err = GoInterface.nil⌝ -∗ fileInfoOk fi F.bs.length) }}) ∗
-    ⌜F.fr.ty ≠ go.GoType.PointerType _root_.Perennial.bufio.Reader.ty ∧ F.bs.length < 2 ^ 62⌝)
+    ⌜F.fr.ty ≠ go.GoType.PointerType _root_.Perennial.bufio.Reader.ty ∧ F.bs.length + 2 ^ 12 < 2 ^ 62⌝)
 
 instance decFile_persistent (IoE : GoInterface → Prop) (eof : GoInterface) (F : DecFile GF) :
     Persistent (decFile IoE eof F) := by

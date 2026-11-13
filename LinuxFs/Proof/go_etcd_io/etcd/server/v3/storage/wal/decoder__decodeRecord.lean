@@ -164,10 +164,15 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
     icases Heok with ⟨%Hneq, #Heok⟩
     ihave #Hrs := fbr_readerStream HRead IoE eof F fbr b fi GoInterface.nil $$ [Hf HF]
     · iframe Hf HF
+    ihave %HFp0 := decFile_pure IoE eof F $$ HF
     wp_apply HRI ⟨go.GoType.PointerType go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader.ty, #fbr⟩
       _ _ (F.bs.take off) eof ueof $$ Hrs [Hb] as %l %err ⟨%ys, %Hys, Hb⟩
     · iframe
       iframe Heof Hueof
+      ipureintro
+      have := HFp0.2
+      simp only [List.length_take]
+      omega
     ihave ⟨%Hpre, Hb⟩ := ownReader_prefix IoE eof F b _ _ $$ [HF Hb]
     · iframe HF Hb
     rw [← he]
@@ -438,6 +443,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
       _ _ (F.bs.take off ++ ys) dsl _ eof ueof $$ Hrs [Hb Hdat] as %n2 %err2 ⟨%ys2, %Hys2, Hdat, Hb⟩
     · iframe
       iframe Heof Hueof
+      ipureintro
+      have := HFp.2
+      simp only [List.length_append, List.length_take, List.length_replicate]
+      omega
     ihave ⟨%Hpre2, Hb⟩ := ownReader_prefix IoE eof F b _ _ $$ [HF Hb]
     · iframe HF Hb
     have Hok2 := Hys2.2.2
