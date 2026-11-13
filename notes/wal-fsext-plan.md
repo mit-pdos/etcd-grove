@@ -2672,3 +2672,44 @@ its last page).
   with `s.wal` through `walMapLe`), `walUnlockedTok_lock`, take the segments and directory claim out
   (`walParked`) and, in write mode, `walTmpParked_take` (the pipeline's `tmpClaim j (pipeTmp 0)` and the handle's
   `pipeTmp 1`); `o = none`: commit `Q none` and continue on `selectWALFiles.specAbsent` with the token back.
+
+**Eighth session (branch `wal-read8`, 2026-11-13): the pin, two gaps in the invariant; nothing proved.**
+Two facts the pin and the error arms need are not in `walInv`; both are invariant designs (W1's owner), not
+`openAtIndex`'s to make. No statement or proof changed this session.
+- **Gap A, the put-back (`openAtIndex`'s error arms, `Close`, a failed `ReadAll`).** After the pin, the error
+  arms (`selectWALFiles`' errors, e.g. no file at the snapshot's index; `openWALFiles`' `EMFILE`/`EIO`) must
+  return `walUnlockedTok`, i.e. turn the flag back to `true`, which needs `O = D = []` and `T = []` in
+  `walParked`. The program holds what *it* took, but nothing in the invariant says `O`, `D`, `T` are exactly
+  that: at the put-back `walParked`'s `O'`, `D'`, `T'` are existentials no resource of the program ties to
+  (another unit with the flag `false` could, as far as the invariant says, have taken more). Dropping halves
+  is no way out (they would be lost to the next `Open`). Needed: a ghost record of what is out with a
+  program-held half, e.g. `WalGS.γpo` holding `(O, D-keys, T)`, the invariant's half in `walParked`
+  (`b = true ↔ record = ([], [], [])`), the program's half in the handle (`walReadH`/`walOpenWF`/`walCreateP`:
+  sealed bodies, no client statement changes), `walUnlockedTok` holding the empty record's half. Every
+  unit that changes `O`/`D`/`T` then updates both halves: `Open`'s pin, `ReadAll`'s return, `cut`'s rename
+  (new tail in, old tail out, the claim's new history), `Create`'s commit, `Close`. Recording `D` by claim
+  key `(j, N)` rather than by value avoids an update at every directory step. (A weaker "everything out is
+  one WAL's" clause does not suffice: the put-back must supply `segResP g` for each out inode, so it needs
+  `O'` ⊆ what it holds.)
+- **Gap B, the parked segments are idle (the pin's exact halves).** The pin turns the parked `segResP g`
+  (any contents) into `segHalves g` (the layout's `g.om`, `g.bs`; `walDecFiles_mk` needs `g.om.size =
+  |g.bs|` from `WalAbsD.metas`) by agreement with `segResF F g` — only when `F !! g.ino = none`. Nothing in
+  `walInvBody` excludes a change in flight on a parked segment: in `segResF`'s in-flight cases the
+  invariant holds no `osMeta` (the token's `tokRes` holds it whole, in the extension's interpretation), so
+  the parked half contradicts it only through the state interpretation (`tokRes_meta_whole`,
+  `World.lean`). Two fixes: (1) pure, in the invariant: `∀ i, F !! i ≠ none → i ∈ O` (a change in flight
+  only on a segment taken out; `walParked` would need `F`, or a new last conjunct of `walInvBody` stating it
+  over `walParked`'s `O`, which then must be visible: same record as gap A); kept by the tail's writes and
+  `cut`'s truncate (their segment is out), established at `walInv_alloc` (`F = ∅`). (2) A step lemma giving
+  both `notCrashed` and the `fsExt` interpretation (`wp_notCrashed_acc` and Perennial's `wp_ext_acc` in
+  one; `goose_bstateInterp_eq`), then `gAuth_lookup` of the token and `tokRes_meta_whole` inside the pin's
+  update. Recommended: (1) with gap A's record (one design, no extension-level work).
+- *What the pin must take* (for when A and B land): the segments **from the selected position `k` on**
+  (`k = walSearch (lay.segs.map (walNameIdx ∘ name)) s.1`, a function of the layout, known at the pin), not
+  all of them: a handle cannot drop a parked half; the directory claim (`WalDirClaim lay.j hj cl`'s, into
+  `D`); write mode `walTmpParked_take`. If `walSearch` fails, the pin takes only the claim. Note for `Open`
+  (write mode, the coordinator's `wal-cut9` heads-up): a leftover `N.tmp` handed to `newFilePipeline` must
+  satisfy `trFile`'s new `cut = none ∧ lo ≤ size`, and the handle starts `walPipeH … h.pc` at `pc = 0`.
+- *Callees for `openAtIndex`'s write mode*: `os.File.Name` and `filepath.Base` have specs
+  (`LinuxFs/Spec/os/File__Name.lean`, `LinuxFs/Spec/path/filepath/Base.lean`); `*LockedFile`'s promoted
+  `Name` and `WAL.tail` over `walReadH`'s locks (`WAL__tail` is over the write handle) are to check.
