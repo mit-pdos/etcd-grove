@@ -230,8 +230,8 @@ theorem wp_osPathKind (p : GoString) (R : Roots) (V : Hist) (dq : DFrac)
         osTree (L := L) dq R V -∗ Φ (#k)) -∗
       WP (ExternalOp fsExt.name "PathKind" (Val (#p))) @ s; E {{ Φ }} := by
   iintro #Hinv Hh HΦ
-  iapply wp_fs_stepT "PathKind" _ Φ (by simp [val.isPanic]) hE $$ Hinv
-  iintro %st %Γb %Γm %Γf %Γt %V0 %Γdf %Γc %h Hw Hn
+  iapply wp_fs_stepT "PathKind" _ Φ (by simp [val.isPanic]) hE _ (legacyWit_tree _ _ _) $$ Hinv Hh
+  iintro Hh %st %Γb %Γm %Γf %Γt %V0 %Γdf %Γc %h Hw Hn
   unfold treeWorld
   icases Hn with ⟨%Hns, HAd, HAdf, HAc, Hrd, Hcr⟩
   obtain ⟨hw, hc⟩ := Hns

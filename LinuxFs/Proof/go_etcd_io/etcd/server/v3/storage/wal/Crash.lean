@@ -47,12 +47,13 @@ def laysFull (L : GooseLocalGS GF) (Ls : GMap GoString WalLay) : IProp GF :=
 /-- **The WAL's start in the generation `(L, W)`**, the WAL state being `s` and the tree `m`: the
 ghost authorities; the files `is`, each with its start resources (as a crash's `fileStart` gives
 them: `fo`); the layouts (`WalsStart`), every segment one of `is`, its `OsMeta` and bytes those of its
-file on disk. -/
+file on disk, the segments' inodes distinct. -/
 def walStart (L : GooseLocalGS GF) (W : WalGS GF) (C : WalCodec) (Mr : WalMarshal) (R : Roots)
     (jr : Ino) (r : GoString) (s : AbsDiskState) (m : Tree) : IProp GF :=
   iprop(∃ (Ls : GMap GoString WalLay) (is : List Ino) (fo : Ino → Option Fs.OsFile),
     walGhost (W := W) s ∗ ⌜s.area = r⌝ ∗ ([∗list] i ∈ is, osFileStartO (L := L) i (fo i)) ∗
-    ⌜is.Nodup ∧ WalsStart C Mr R jr s Ls m ∧ ∀ dir lay, Ls !! dir = some lay → ∀ g ∈ lay.segs,
+    ⌜is.Nodup ∧ ((segsAll Ls).map (·.ino)).Nodup ∧ WalsStart C Mr R jr s Ls m ∧
+      ∀ dir lay, Ls !! dir = some lay → ∀ g ∈ lay.segs,
       g.ino ∈ is ∧ ∃ f, fo g.ino = some f ∧ g.om = initMeta f ∧ g.bs = f.contents.map durB⌝)
 
 /-- **The crash view** (as `absDiskCrashWal`): the old generation's ghost authorities at the old
@@ -175,7 +176,7 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
   icases crashRest_take_files Q L L' [] false V' (segsAll Ls) (by simp) (walsOk_nodup Hok)
     (walsOk_cut Hok) $$ Hcr Hlays with ⟨%st, %st', %Hfs, Hstarts, Hcr, -⟩
   obtain ⟨hQs, htree, hfiles⟩ := Hfs
-  obtain ⟨s', Ls', hcrash, harea', hk', hstart, hsegs⟩ :=
+  obtain ⟨s', Ls', hcrash, harea', hk', hstart, hnd', hsegs⟩ :=
     walCrash_pure C hC Mr R jr s Ls cl n V'.now st st' Hok hk Hreg htree (hQ _ _ hQs) hfiles
   -- the new generation's ghost state
   imod walGhost_init hPre s' hk' with ⟨%W', Hg', HM', #Hp', Hu', Hc'⟩
@@ -193,22 +194,188 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
   iexists Ls', (segsAll Ls).map (·.ino), (fun i => st'.fs.files !! i)
   iframe Hg' Hstarts
   ipureintro
-  exact ⟨by rw [harea', Har], walsOk_nodup Hok, hstart, hsegs⟩
+  exact ⟨by rw [harea', Har], walsOk_nodup Hok, hnd', hstart, hsegs⟩
 
-/-- **The new generation's invariant**, in the tree's shared mode, from the WAL's start: the
-claims `cl` (whole) on each WAL directory's names and on the area's names of the WALs, as the
-shared mode's boot history `V` (nothing logged) has them; the invariant takes half of each, the
-program the other halves, the commit bound 0. -/
+/-- Every name of a set. -/
+theorem restrictN_all (e : Ents) : restrictN (.except []) e = e := by
+  apply GMap.ext; intro b
+  exact restrictN_lookup _ _ _ (by simp [NameSet.Mem])
+
+theorem entsOf_lookup (m : Tree) (j : Ino) (b : GoString) : entsOf m j !! b = m.entry j b := by
+  unfold entsOf Tree.entry
+  cases m !! j <;> rfl
+
+/-- A claim of a history with nothing logged: its names as the tree has them. -/
+theorem namesOf_nil {V : Hist} (hV : V.2 = []) (j : Ino) (N : NameSet) :
+    namesOf V j N = ⟨restrictN N (entsOf V.now j), [], restrictN N (entsOf V.now j)⟩ := by
+  have hnow : V.now = V.1 := by simp [Hist.now, Hist.ops, hV, replay]
+  unfold namesOf
+  simp [hV, hnow]
+
+/-- **What the invariant says of the WALs, at the start** (pure): from the start's static relation,
+claims with nothing logged on each WAL's area names (`harea`) and wholly on every directory at such
+a name (`hdirs`), and the durable directories' resolution (`hdok`). -/
+theorem walsOk_start (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots) (jr : Ino)
+    (s : AbsDiskState) (Ls : GMap GoString WalLay) (V : Hist) (cl : List Claim) (hV : V.2 = [])
+    (hcl : ∀ c ∈ cl, c.2.2 = namesOf V c.1 c.2.1)
+    (harea : ∃ N h, (jr, N, h) ∈ cl ∧ ∀ nm, walNameOk nm → N.Mem nm)
+    (hdirs : ∀ nm J, walNameOk nm → V.now.entry jr nm = some (.dir J) →
+      ∃ h, (J, NameSet.except [], h) ∈ cl)
+    (hdok : DirsOk R s cl 0) (hst : WalsStart C Mr R jr s Ls V.now)
+    (hnd : ((segsAll Ls).map (·.ino)).Nodup) (hcut : ∀ g ∈ segsAll Ls, g.om.cut = none) :
+    WalsOk C Mr R jr s Ls cl 0 := by
+  have hc : ∀ c ∈ cl, c.2.2 = ⟨restrictN c.2.1 (entsOf V.now c.1), [],
+      restrictN c.2.1 (entsOf V.now c.1)⟩ := fun c h => by rw [hcl c h, namesOf_nil hV]
+  have hlog : ∀ c ∈ cl, c.2.2.ents = [] := fun c h => by rw [hc c h]
+  obtain ⟨N, hN, hNm, hNall⟩ := harea
+  have hNb : hN.boot = restrictN N (entsOf V.now jr) := by
+    have h := hc _ hNm; simp only at h; rw [h]
+  -- the area's WAL names, after a crash the claims allow, are as at the start
+  have harea' : ∀ m', RegionCrashed cl 0 m' → ∀ nm, walNameOk nm →
+      m'.entry jr nm = V.now.entry jr nm := by
+    intro m' hreg nm hnm
+    obtain ⟨K, -, -, hval⟩ := hreg
+    rw [hval _ hNm nm (hNall nm hnm), valAfter_nil (hlog _ hNm), hNb,
+      restrictN_lookup _ _ _ (hNall nm hnm), entsOf_lookup]
+  -- a directory at such a name, wholly claimed, keeps its entries
+  have hdir' : ∀ m', RegionCrashed cl 0 m' → ∀ J h, (J, NameSet.except [], h) ∈ cl →
+      entsOf m' J = entsOf V.now J := by
+    intro m' hreg J h hJ
+    obtain ⟨K, -, -, hval⟩ := hreg
+    apply entsOf_eq_of_entry
+    intro b
+    rw [hval _ hJ b (by simp [NameSet.Mem]), valAfter_nil (hlog _ hJ)]
+    show h.boot !! b = _
+    rw [show h = _ from hc _ hJ]
+    simp only [restrictN_all]
+  refine ⟨fun dir d hd => ?_, hst.2.1, hnd, hcut, fun dir nm hin hnone m' hreg J hJ => ?_, hdok⟩
+  · obtain ⟨lay, nm, hL, hin, hjr, hnm, he, habs, hfit, h1, h2, h3, hlast⟩ := hst.1 dir d hd
+    obtain ⟨hj, hjm⟩ := hdirs nm lay.j hin.1 he
+    have hjc := hc _ hjm
+    simp only at hjc
+    refine ⟨lay, nm, hj, hL, hin, hjr, hnm, hjm, ?_, ?_⟩
+    · rw [hjc]; simp only [restrictN_all]; exact habs
+    · refine walAbs_crashOk_start C hC Mr d lay cl 0 (entsOf V.now lay.j) habs hfit hlog
+        ⟨hj, hjm, by rw [hjc]; simp only [restrictN_all]⟩ ?_ ⟨h1, h2, h3⟩ hlast
+      rw [hjr, hnm]
+      refine ⟨N, hN, hNm, hNall nm hin.1, ?_⟩
+      rw [hNb, restrictN_lookup _ _ _ (hNall nm hin.1), entsOf_lookup]
+      exact he
+  · rw [harea' m' hreg nm hin.1] at hJ
+    obtain ⟨hJc, hJm⟩ := hdirs nm J hin.1 hJ
+    rw [hdir' m' hreg J hJc hJm]
+    exact hst.2.2.1 dir nm hin hnone J hJ
+
+/-- A segment's start resources, its `OsMeta` and bytes those of the file, are its two halves. -/
+theorem segStart_halves (L : GooseLocalGS GF) (g : SegG) (f : Fs.OsFile) (hom : g.om = initMeta f)
+    (hbs : g.bs = f.contents.map durB) :
+    osFileStart (L := L) g.ino f ⊢ segRes (L := L) g ∗ segRes (L := L) g := by
+  unfold osFileStart segRes
+  rw [← hom, ← hbs]
+  have hm := gElem_split (gooseOsGS (L := L)) (gooseOsGS (L := L)).γm g.ino (1 : Qp).half
+    (1 : Qp).half g.om
+  rw [Qp.half_add_half] at hm
+  have hb : osBytes (L := L) g.ino 0 (DFrac.own 1) g.bs ⊢
+      osBytes (L := L) g.ino 0 (DFrac.own (1 : Qp).half) g.bs ∗
+        osBytes (L := L) g.ino 0 (DFrac.own (1 : Qp).half) g.bs := by
+    unfold osBytes bytesG
+    refine (BigSepL.bigSepL_mono_of_forall ?_).trans BigSepL.bigSepL_sep_eqv.1
+    intro k x
+    have h := gElem_split (gooseOsGS (L := L)) (gooseOsGS (L := L)).γb (g.ino, 0 + k)
+      (1 : Qp).half (1 : Qp).half x
+    rw [Qp.half_add_half] at h
+    exact h.1
+  unfold osMeta
+  iintro ⟨Hm, Hb⟩
+  icases hm.1 $$ Hm with ⟨Hm1, Hm2⟩
+  icases hb $$ Hb with ⟨Hb1, Hb2⟩
+  isplitl [Hm1 Hb1]
+  · iframe
+  · iframe
+
+/-- **The new generation's invariant**, in the tree's shared mode, from the WAL's start (`walStart`
+over the shared mode's boot tree `V.now`, nothing logged): the claims `cl` (whole) as the boot
+history has them, among them one on the area's WAL names (`harea`) and one on all names of every
+directory at such a name (`hdirs`: every WAL directory wholly), and the durable directories' resolution
+after any crash they allow (`hdok`); the invariant takes half of each claim, the commit bound 0 and
+half of each segment's resources; the program keeps the other halves, with the layouts. -/
 theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLocalGS GF)
     (W : WalGS GF) (R : Roots) (jr : Ino) (r : GoString) (s : AbsDiskState) (V : Hist)
     (cl : List Claim) (hV : V.2 = [])
     (hcl : ∀ c ∈ cl, c.2.2 = namesOf V c.1 c.2.1)
-    (hcov : ∀ lay ∈ (cl.map (·.1)), True) (E : CoPset) :
-    ⊢ osSharedInv (L := L) R -∗ walStart L W C Mr R jr r s V.now -∗
+    (harea : ∃ N h, (jr, N, h) ∈ cl ∧ ∀ nm, walNameOk nm → N.Mem nm)
+    (hdirs : ∀ nm J, walNameOk nm → V.now.entry jr nm = some (.dir J) →
+      ∃ h, (J, NameSet.except [], h) ∈ cl)
+    (hdok : DirsOk R s cl 0) (E : CoPset) :
+    ⊢ walStart L W C Mr R jr r s V.now -∗
       osClaims L (cl.map (fun c => (c, DFrac.own 1))) ={E}=∗
       walInv (L := L) (W := W) C Mr R jr r ∗
-      osClaims L (cl.map (fun c => (c, DFrac.own (1 : Qp).half))) := by
-  sorry
+      osClaims L (cl.map (fun c => (c, DFrac.own (1 : Qp).half))) ∗
+      ∃ Ls, ⌜WalsStart C Mr R jr s Ls V.now⌝ ∗ laysRes (L := L) Ls := by
+  iintro Hst Hcl
+  unfold walStart
+  icases Hst with ⟨%Ls, %is, %fo, Hg, %Har, Hfs, %Hp⟩
+  obtain ⟨-, hnd, hstart, hsegs⟩ := Hp
+  -- the segments' start resources, halved
+  have hsub : ((segsAll Ls).map (·.ino)) ⊆ is := fun i hi => by
+    obtain ⟨g, hg, rfl⟩ := List.mem_map.1 hi
+    obtain ⟨dir, lay, hl, hg'⟩ := segsAll_mem hg
+    exact (hsegs dir lay hl g hg').1
+  obtain ⟨l0, hp0, hs0⟩ := List.subperm_of_subset hnd hsub
+  obtain ⟨rest, hrest⟩ := hs0.exists_perm_append
+  have hperm : (((segsAll Ls).map (·.ino)) ++ rest).Perm is :=
+    (hp0.symm.append_right rest).trans hrest.symm
+  have hres : ([∗list] i ∈ is, osFileStartO (L := L) i (fo i)) ⊢
+      ([∗list] g ∈ segsAll Ls, segRes (L := L) g) ∗ ([∗list] g ∈ segsAll Ls, segRes (L := L) g) := by
+    refine (BigSepL.bigSepL_submseteq hperm).trans ?_
+    rw [BigSepL.bigSepL_map]
+    refine (BigSepL.bigSepL_mono (fun {k g} hk => ?_)).trans BigSepL.bigSepL_sep_eqv.1
+    obtain ⟨dir, lay, hl, hg'⟩ := segsAll_mem (List.mem_of_getElem? hk)
+    obtain ⟨-, f, hf, hom, hbs⟩ := hsegs dir lay hl g hg'
+    rw [hf]
+    exact segStart_halves L g f hom hbs
+  have hcut : ∀ g ∈ segsAll Ls, g.om.cut = none := by
+    intro g hg
+    obtain ⟨dir, lay, hl, hg'⟩ := segsAll_mem hg
+    obtain ⟨-, f, -, hom, -⟩ := hsegs dir lay hl g hg'
+    rw [hom]; rfl
+  -- the claims, halved
+  have hclh : osClaims L (cl.map (fun c => (c, DFrac.own 1))) ⊢
+      osClaims L (cl.map (fun c => (c, DFrac.own (1 : Qp).half))) ∗
+        osClaims L (cl.map (fun c => (c, DFrac.own (1 : Qp).half))) := by
+    unfold osClaims
+    rw [BigSepL.bigSepL_map, BigSepL.bigSepL_map]
+    refine (BigSepL.bigSepL_mono_of_forall ?_).trans BigSepL.bigSepL_sep_eqv.1
+    intro k c
+    have h := osNames_frac (L := L) c.1 c.2.1 (1 : Qp).half (1 : Qp).half c.2.2
+    rw [Qp.half_add_half] at h
+    exact h.1
+  icases hres $$ Hfs with ⟨Hi, Hp⟩
+  icases hclh $$ Hcl with ⟨Hc1, Hc2⟩
+  have hcm0 : ⊢ |==> osCommitLb (L := L) 0 := by
+    unfold osCommitLb gCommitLb
+    letI := (gooseOsGS (L := L)).osAllG
+    exact monoNatLbOwn_0 _
+  imod hcm0 with #Hcm
+  imod inv_alloc walN E (iprop((∃ s : AbsDiskState, walInvBody (L := L) (W := W) C Mr R jr r s) ∨
+      walCrashTok (W := W))) $$ [Hg Hc1 Hi] with #Hinv
+  · inext; ileft; iexists s
+    unfold walInvBody
+    iexists Ls, cl, 0
+    iframe Hg Hc1 Hcm
+    isplitr
+    · ipureintro; exact Har
+    isplitl [Hi]
+    · iapply (laysRes_list (L := L) Ls).2 $$ Hi
+    ipureintro
+    exact walsOk_start C hC Mr R jr s Ls V cl hV hcl harea hdirs hdok hstart hnd hcut
+  imodintro
+  unfold walInv
+  iframe Hinv Hc2
+  iexists Ls
+  isplitr
+  · ipureintro; exact hstart
+  iapply (laysRes_list (L := L) Ls).2 $$ Hp
 
 /-! ## The `_keep` lemmas (as `AbsDisk/Specs.lean`'s, over `walCrashWal`) -/
 
