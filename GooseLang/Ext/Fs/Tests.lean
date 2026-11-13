@@ -634,6 +634,8 @@ theorem cacheOk_step [GooseExts] [GoGlobalContext] {op : String} {v : val} {st s
     · exact cacheOk_setProc h _ rfl
   next => -- FdKind
     obtain ⟨-, -, rfl, -⟩ := hs; exact h
+  next => -- PathKind
+    obtain ⟨-, -, rfl, -⟩ := hs; exact h
   next => -- CallBegin
     obtain ⟨-, -, -, -, rfl, -⟩ := hs; exact cacheOk_setProc h _ rfl
   next => -- DirSync
