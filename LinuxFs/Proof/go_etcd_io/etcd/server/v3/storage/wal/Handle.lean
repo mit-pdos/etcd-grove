@@ -239,7 +239,9 @@ def walDirH (dir : GoString) (j : Ino) (dfd : w64) (ino : Ino) (name : GoString)
       (∃ sq ix : Nat, nm0 = walFileName sq ix ∧ sq + 1 < 2 ^ 64) ∧
       ∀ b n, hj.cur !! b = some n → walNameP b = true → b = nm0 ∨ go.GoStringLt b nm0⌝)
 
-/-- **The open WAL `w` of `dir`, in the state `h`** (see the file header). The pure facts: the
+/-- **The open WAL `w` of `dir`, in the state `h`** (see the file header). The metadata slice is
+non-nil (`recBytes … (some md)`: `cut` encodes it as a record's data, present, `recOf`; `Create`
+takes it non-nil). The pure facts: the
 stream split, the tail's offset inside its size (both below ext4's maximum offset, `Seek`'s), and
 the indices `enti`/`snapi` bounding every index of the history (`cut` names the next segment
 `max(enti, snapi) + 1`, above `walLastIdx`, without wrapping). -/
@@ -253,7 +255,7 @@ def walHandleIn (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ df ∗
     os.ownFile df dfd dnm (DFrac.own 1) ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"metadata" w ↦ mds ∗
-    mds ↦*□ h.md ∗
+    recBytes mds (some h.md) ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"state" w ↦ sp ∗
     P.hsIn sp h.st ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"decoder" w ↦ null ∗
