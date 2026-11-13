@@ -37,6 +37,7 @@ public import GooseLang.Ext.Fs.TreeSharedClaims
 public import GooseLang.Ext.Fs.TreeSharedDirFd
 public import GooseLang.Ext.Fs.TreeSharedCallEnd
 public import GooseLang.Ext.Fs.TreeSharedOpenDir
+public import GooseLang.Ext.Fs.TreeSharedMeta
 
 @[expose] public section
 
@@ -172,8 +173,8 @@ theorem wp_osUnlinkS (R : Roots) (d b : GoString) (j i : Ino) (dq : DFrac) (h : 
       (∀ e : w64, osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
         osNamesAfter (L := L) j (.only [b]) h ⟨.remove j b (.file i), s0⟩ (GMap.delete b h.cur)
           (e ≠ 0) -∗ Φ (#e)) -∗
-      WP (ExternalOp fsExt.name "Unlink" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} := by
-  sorry
+      WP (ExternalOp fsExt.name "Unlink" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} :=
+  wp_osUnlinkS' R d b j i dq h k s0 q hb hi hs hE hE' Φ
 
 /-- **`unlink(2)`** of a name holding nothing or a directory: an errno, no effect. -/
 theorem wp_osUnlinkS_none (R : Roots) (d b : GoString) (j : Ino) (dq dqn : DFrac) (h : NamesH)
@@ -206,8 +207,8 @@ theorem wp_osRenameFileS (R : Roots) (d bs d' bt : GoString) (j j' i : Ino) (N N
            osNames (L := L) j' N' (DFrac.own 1) (h'.log x (⟨.rename j bs j' bt (.file i) (h'.cur !! bt), s0⟩ : LogEntry) (<[bt := .file i]> h'.cur))) -∗
         Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Rename" (Val (PairV (osTokV k)
-        (PairV (#(child d bs)) (#(child d' bt)))))) @ s; E {{ Φ }} := by
-  sorry
+        (PairV (#(child d bs)) (#(child d' bt)))))) @ s; E {{ Φ }} :=
+  wp_osRenameFileS' R d bs d' bt j j' i N N' dq dq' h h' k s0 q hbs hbt hN hN' hkey hsrc htgt hs hs' hE hE' Φ
 
 /-- **`rename(2)`** of the file `d/bs` onto `d/bt`, both names in one claim. -/
 theorem wp_osRenameFileS1 (R : Roots) (d bs bt : GoString) (j i : Ino) (N : NameSet)
@@ -221,8 +222,8 @@ theorem wp_osRenameFileS1 (R : Roots) (d bs bt : GoString) (j i : Ino) (N : Name
         osNamesAfter (L := L) j N h ⟨.rename j bs j bt (.file i) (h.cur !! bt), s0⟩
           (<[bt := .file i]> (GMap.delete bs h.cur)) (e ≠ 0) -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Rename" (Val (PairV (osTokV k)
-        (PairV (#(child d bs)) (#(child d bt)))))) @ s; E {{ Φ }} := by
-  sorry
+        (PairV (#(child d bs)) (#(child d bt)))))) @ s; E {{ Φ }} :=
+  wp_osRenameFileS1' R d bs bt j i N dq h k s0 q hbs hbt hN hN' hne hsrc htgt hs hE hE' Φ
 
 /-- **`rename(2)`** of the directory `d/bs` (inode `J`) to the free name `d/bt`, by a call holding
 the whole call permission (no other call in flight, `DirOpExcl`). -/
@@ -236,8 +237,8 @@ theorem wp_osRenameDirS (R : Roots) (d bs bt : GoString) (j J : Ino) (N : NameSe
         osNamesAfter (L := L) j N h ⟨.rename j bs j bt (.dir J) none, s0⟩
           (<[bt := .dir J]> (GMap.delete bs h.cur)) (e ≠ 0) -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Rename" (Val (PairV (osTokV k)
-        (PairV (#(child d bs)) (#(child d bt)))))) @ s; E {{ Φ }} := by
-  sorry
+        (PairV (#(child d bs)) (#(child d bt)))))) @ s; E {{ Φ }} :=
+  wp_osRenameDirS' R d bs bt j J N dq h k s0 hbs hbt hN hN' hne hsrc htgt hE hE' Φ
 
 /-- **`rename(2)`** of a source naming nothing: an errno, no effect. -/
 theorem wp_osRenameAbsentS (R : Roots) (d bs d' bt : GoString) (j j' : Ino) (N : NameSet)
@@ -280,8 +281,8 @@ theorem wp_osRmdirS (R : Roots) (d b : GoString) (j J : Ino) (dq : DFrac) (h hJ 
         osNames (L := L) J (.except []) (DFrac.own 1) hJ -∗
         osNamesAfter (L := L) j (.only [b]) h ⟨.remove j b (.dir J), s0⟩ (GMap.delete b h.cur)
           (e ≠ 0) -∗ Φ (#e)) -∗
-      WP (ExternalOp fsExt.name "Rmdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} := by
-  sorry
+      WP (ExternalOp fsExt.name "Rmdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} :=
+  wp_osRmdirS' R d b j J dq h hJ k s0 hb hd he hE hE' Φ
 
 /-- **`rmdir(2)`** of a name holding nothing or a file: an errno, no effect. -/
 theorem wp_osRmdirS_none (R : Roots) (d b : GoString) (j : Ino) (dq dqn : DFrac) (h : NamesH)
