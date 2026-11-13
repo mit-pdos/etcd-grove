@@ -18,6 +18,23 @@ the worktree's untracked `questions.md` (decisions; never re-add it tracked).
   this stage's T5-c); 7f-0 partial (records only; the rest goes with 7f-6, Q7).
 - No Lean edited. Nothing built on this branch.
 
+## Handoff point (2026-11-13, end of the fourth 7f-5 agent): T5-a decomposed; land after 81 sees the flag
+
+81 decided (a): the axiom's `watchCtx ctx s -∗ watchCtx c s` decomposed (no trunc line). Done in
+`873034096c`: `Done()`/`Err()` WP transfers, **plus a `Value(&cancelCtxKey)` WP transfer (not in 81's
+list: needed for `#HCC`, whose result predicate `isCancelCtxAny` is not pure, so the pure-`R` `Value`
+transfer does not give it; flagged in the freeze note's T5-a review section)**, and
+`metadata.outgoingCtxOkC c`; law `WithRequireLeader.watchCtx_of_post`
+(`Proof/go_etcd_io/etcd/client/v3/WithRequireLeaderLaws.lean`, proved); `NewLeaseFromLeaseClient`'s
+pattern updated. The three holder findings (`backend.txLive/snapRO/rtxStats`) are not from this branch
+(it touches no backend file; they did not fail the gate). Build/tcb/axiom-tok results:
+`/shared/tmp/k8s7f3a/{full3,tcb3,atok3}.log`.
+
+Next, in order: 81's word on the third part; if the axiom-tok log is clean, `etc/land.sh` (with
+`LAKE_PACKAGES=/shared/tmp/manifest-ddc.json`, not under GOWORK=off; re-merge lean if refused: the
+etcd_auth_safe landing may be ahead); report the lean hash. Then 7f-3b per the design below (81
+approved: `wrespIs` itself carries `evOwn`; report the mvcc interface diff before landing 7f-3b).
+
 ## Handoff point (2026-11-13, fourth 7f-5 agent, later): T5-a approved; land BLOCKED by the axiom-tok gate
 
 81's review: approved as written (freeze note "T5-a review"); STATUS entry added; lean merged
