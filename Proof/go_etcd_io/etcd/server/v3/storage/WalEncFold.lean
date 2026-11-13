@@ -657,19 +657,62 @@ theorem readAllFold_of {U : WalUnmarshal} {s : w64 × w64} {write : Bool} {recs 
 `Spre ++ Ss`, the records read those after `Spre`'s (`walDecodeFiles_suffix`, with
 `Ss = Smid ++ [histCut M S n]`), the start the newest valid pair of the history from the read's
 position (`Open`'s, `walValidSnaps`). -/
+theorem recsOfSegs_drop_map (C : WalCodec) (M : WalMarshal) (md : List w8) {Spre : List WalHist}
+    (hpre : Spre ≠ []) (Ss : List WalHist) :
+    ((recsOfSegs C M md (Spre ++ Ss)).drop (recsOfSegs C M md Spre).length).map
+      (fun r => (r.typ, r.data)) = (segsDs M md false Spre.flatten Ss).flatten := by
+  rw [recsOfSegs_append C M md hpre, List.drop_left, chainRecs_map]
+
+theorem recsOfSegs_map (C : WalCodec) (M : WalMarshal) (md : List w8) (Ss : List WalHist) :
+    (recsOfSegs C M md Ss).map (fun r => (r.typ, r.data)) = (segsDs M md true [] Ss).flatten := by
+  rw [recsOfSegs, chainRecs_map]
+
+theorem flatten_append_drop {Spre Ss : List WalHist} :
+    (Spre ++ Ss).flatten.drop Spre.flatten.length = Ss.flatten := by
+  rw [List.flatten_append, List.drop_left]
+
+theorem flatten_append_take {Spre Ss : List WalHist} :
+    (Spre ++ Ss).flatten.take Spre.flatten.length = Spre.flatten := by
+  rw [List.flatten_append, List.take_left]
+
+/-- **From a cut file: `ReadAll` succeeds only with `walReadFrom`'s read**, and the metadata `md`.
+The WAL's segments are `Spre ++ Ss` (`Spre`'s operations not none), the records read those after
+`Spre`'s (`walDecodeFiles_suffix`, with `Ss = Smid ++ [histCut M S n]`), the start the newest valid
+pair of the history from the read's position (`Open`'s, `walValidSnaps`). -/
 theorem readAllFold_from {C : WalCodec} {M : WalMarshal} {U : WalUnmarshal} (hU : U.Ok M)
-    (md : List w8) (Spre Ss : List WalHist) (hpre : Spre ≠ []) (s : w64 × w64) (write : Bool)
+    (md : List w8) (Spre Ss : List WalHist) (hk : Spre.flatten ≠ []) (s : w64 × w64) (write : Bool)
     (stop : WalStop) (r : List w8 × HardStateM × List EntryM)
     (hs : some s = walNewestPair (walValidSnaps (Spre ++ Ss).flatten Spre.flatten.length))
     (hok : readAllFold U s write
       ((recsOfSegs C M md (Spre ++ Ss)).drop (recsOfSegs C M md Spre).length) stop = .ok r) :
     ∃ σ, walReadFrom (Spre ++ Ss).flatten Spre.flatten.length = some σ ∧ r = (md, σ.hs, σ.ents) := by
-  sorry
+  have hpre : Spre ≠ [] := by rintro rfl; exact hk rfl
+  have hk0 : Spre.flatten.length ≠ 0 := fun h0 => hk (List.eq_nil_of_length_eq_zero h0)
+  obtain ⟨hc, hle⟩ := validSnaps_bounds hs
+  rw [flatten_append_drop] at hle
+  obtain ⟨st, hfold, hm, rfl⟩ := readAllFold_ok hok
+  rw [recsOfSegs_drop_map C M md hpre] at hfold
+  have hnew := walNewest_eq_newestPair (Spre ++ Ss).flatten hk0
+  rw [← hs, flatten_append_drop] at hnew
+  unfold walReadFrom
+  simp only [flatten_append_drop, flatten_append_take]
+  cases hN : walNewest (Ss.flatten.filter (walKeep (uint.nat (walLastHS (Spre ++ Ss).flatten).Commit'))) with
+  | none => rw [hN] at hnew; cases hnew
+  | some m =>
+    rw [hN, Option.map_some, Option.some.injEq] at hnew
+    subst hnew
+    obtain ⟨σ', hf, he, hcase, -⟩ := raStep_segs_ok U M hU _ md _ hc Ss Spre.flatten raInit st
+      ⟨walLastHS Spre.flatten, some (SnapshotM.mk [] m), entryID.mk m.Term' m.Index', []⟩
+      rfl rfl rfl (Or.inr rfl) (Or.inl rfl) hle hfold
+    refine ⟨σ', hf, ?_⟩
+    rcases hcase with ⟨-, rfl, -⟩ | ⟨hh, hmd⟩
+    · simp [raInit] at hm
+    · rw [hmd, hh, he]; rfl
 
 /-- **… and it succeeds whenever `walReadFrom` does**, the stop accepted, unless a record of the
 start's index has another term (`ErrSnapshotMismatch`, which `walReadFrom` does not check). -/
 theorem readAllFold_from_complete {C : WalCodec} {M : WalMarshal} {U : WalUnmarshal} (hU : U.Ok M)
-    (md : List w8) (Spre Ss : List WalHist) (hpre : Spre ≠ []) (s : w64 × w64) (write : Bool)
+    (md : List w8) (Spre Ss : List WalHist) (hk : Spre.flatten ≠ []) (s : w64 × w64) (write : Bool)
     (stop : WalStop) (σ : StorContents)
     (hs : some s = walNewestPair (walValidSnaps (Spre ++ Ss).flatten Spre.flatten.length))
     (hterm : ∀ m, WalOpG.snap m ∈ Ss.flatten → m.Index' = s.1 → m.Term' = s.2)
@@ -678,7 +721,32 @@ theorem readAllFold_from_complete {C : WalCodec} {M : WalMarshal} {U : WalUnmars
     readAllFold U s write
       ((recsOfSegs C M md (Spre ++ Ss)).drop (recsOfSegs C M md Spre).length) stop =
       .ok (md, σ.hs, σ.ents) := by
-  sorry
+  have hpre : Spre ≠ [] := by rintro rfl; exact hk rfl
+  have hk0 : Spre.flatten.length ≠ 0 := fun h0 => hk (List.eq_nil_of_length_eq_zero h0)
+  obtain ⟨hc, hle⟩ := validSnaps_bounds hs
+  rw [flatten_append_drop] at hle
+  have hnew := walNewest_eq_newestPair (Spre ++ Ss).flatten hk0
+  rw [← hs, flatten_append_drop] at hnew
+  unfold walReadFrom at h
+  simp only [flatten_append_drop, flatten_append_take] at h
+  cases hN : walNewest (Ss.flatten.filter (walKeep (uint.nat (walLastHS (Spre ++ Ss).flatten).Commit'))) with
+  | none => rw [hN] at h; cases h
+  | some m =>
+    rw [hN] at h
+    rw [hN, Option.map_some, Option.some.injEq] at hnew
+    subst hnew
+    obtain ⟨st, hfold, he, hcase, hm'⟩ := raStep_segs_complete U M hU _ md _ hc Ss Spre.flatten
+      raInit _ σ rfl rfl rfl (Or.inr rfl) (Or.inl rfl) hle hterm h
+    obtain ⟨m', hm'mem, hidx⟩ := walNewest_mem hN
+    have hmatch : st.matched = true := by
+      rw [hm']
+      simp only [raInit, Bool.false_or, List.any_eq_true]
+      exact ⟨WalOpG.snap m', (List.mem_filter.1 hm'mem).1, by simp [snapAt, hidx]⟩
+    rcases hcase with ⟨rfl, -, -⟩ | ⟨hh, hmd⟩
+    · simp at hm'mem
+    · rw [readAllFold_of (by rw [recsOfSegs_drop_map C M md hpre]; exact hfold) hmatch hstop,
+        hmd, hh, he]
+      rfl
 
 /-- **From the first file: `ReadAll` succeeds only with the read at the fixed base `s`.** -/
 theorem readAllFold_zero {C : WalCodec} {M : WalMarshal} {U : WalUnmarshal} (hU : U.Ok M)
