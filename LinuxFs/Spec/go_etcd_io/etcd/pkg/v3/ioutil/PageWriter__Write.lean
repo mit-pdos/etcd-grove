@@ -6,8 +6,9 @@ are the old buffer then `xs`. On an error (a `Write` of `wi` failed: the buffer'
 pages') the buffer is empty and the writer is broken by that `Write`: `B (out ++ a) b`
 (`io.writerStream`), `a` the bytes it had accepted before, `b` the ones the failed `Write` was
 given, `a ++ b` a prefix of the old buffer then `xs`; the rest is lost. `p` is only read, at any fraction; its length is below
-`2^62` (`len(p) + bufferedBytes` must not overflow), and the writer's bytes, the buffer's and `p`'s
-fit the writer's bound `lim`. Proved in
+`2^62` (`len(p) + bufferedBytes` must not overflow), and the writer is a guarded stream
+(`io.writerStreamP wi ok W B`, `ok` prefix-closed) accepting the writer's bytes, the buffer's and
+`p`'s (`ok (out ++ pend ++ xs)`; a length bound is `io.writerStream_P`). Proved in
 `LinuxFs/Proof/go_etcd_io/etcd/pkg/v3/ioutil/PageWriter__Write.lean`. WAL W6, 2026-11-13; Lean-first.
 -/
 module
@@ -33,9 +34,9 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 /-- See the file header. -/
 abbrev go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Write.spec : Prop :=
   ∀ (pw : Loc) (wi : GoInterfaceOk) (W : List w8 → IProp GF) (B : List w8 → List w8 → IProp GF)
-    (lim : Nat) (out pend : List w8) (p : GoSlice) (xs : List w8) (dq : DFrac),
-  xs.length < 2 ^ 62 → out.length + pend.length + xs.length ≤ lim →
-  ⊢ io.writerStream wi lim W B -∗
+    (ok : List w8 → Prop) (out pend : List w8) (p : GoSlice) (xs : List w8) (dq : DFrac),
+  xs.length < 2 ^ 62 → (∀ ys zs, ys <+: zs → ok zs → ok ys) → ok (out ++ pend ++ xs) →
+  ⊢ io.writerStreamP wi ok W B -∗
     {{ ioutil.ownPageWriter pw wi pend ∗ W out ∗ p ↦*{dq} xs }}
       (App (Val (pw @!! go.GoType.PointerType go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.ty @!!
         go!"Write")) (Val #p))

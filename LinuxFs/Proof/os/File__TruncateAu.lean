@@ -1,9 +1,9 @@
 /-
 The proof of `Spec/os/File__TruncateAu.lean` (I3b), no `sorry`: `File__Truncate.lean`'s Löb loop, its state
-`ftStateH` at half (the caller's halves of an attempt's start state, `os.TruncFrom`), each attempt
-`wp_osFtruncateStart_au` with the supply's `os.truncAu` for that state, then
-`wp_osFtruncateFinish_au` with the commit's update; the outcome's halves (`os.truncOutH`) re-enter the
-loop on `EINTR` (`os.announce_idem`, `os.rsPost_announce`, `os.rsPost_rsPost`, `os.announce_rsPost`
+`ftStateH` at half (the caller's halves of an attempt's start state) and the tie `K`, each attempt
+`wp_osFtruncateStart_auW` with the supply's `os.truncAuW` for that state (the halves and `K` handed
+to it), then `wp_osFtruncateFinish_au` with the commit's update; the outcome's halves
+(`os.truncOutH`) and `K` re-enter the loop on `EINTR` (`os.announce_idem`, `os.rsPost_announce`, `os.rsPost_rsPost`, `os.announce_rsPost`
 relate the states to `m`'s). Lean-first.
 -/
 module
@@ -77,9 +77,10 @@ def ftStateH (p : Ino) (m : OsMeta) (tg : Nat) (xs : List ByteG) : IProp GF :=
     ∃ zs, os.ftDoneH p m tg zs)
 
 theorem os.File.Truncate.wp_proofAu : os.File.Truncate.specAu (GF := GF) (hG := hG) := by
-  intro f fd name dqf sz dq d m xs hfd0 hwr hsz hmaps hxs
+  intro f fd name dqf sz dq d m xs K hfd0 hwr hsz hmaps hxs
+  unfold os.truncSup
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hm, Hb, #Hsup⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hm, Hb, HK, #Hsup⟩
   unfold os.model.inner
   rw [os.file_ty_eq, os.File_ty_eq]
   try rw [os.file_ty_eq, os.File_ty_eq]
@@ -96,18 +97,21 @@ theorem os.File.Truncate.wp_proofAu : os.File.Truncate.specAu (GF := GF) (hG := 
   wp_auto
   ihave HS : ftStateH d.ino m sz.toNat xs $$ [Hm Hb]
   · unfold ftStateH; ileft; iexists m, xs; iframe; ipureintro; exact ⟨.inl rfl, rfl, hxs⟩
-  iloeb as IH generalizing HS Hosfd Hfd HΦ
+  iloeb as IH generalizing HS HK Hosfd Hfd HΦ
   unfold ftStateH
   icases HS with (⟨%m0, %xs0, %hm0, Hm, Hb⟩ | ⟨%zs, Hd⟩)
   · obtain ⟨hm0, hv, hl⟩ := hm0
     have hsz0 : m0.size = m.size := by rcases hm0 with rfl | rfl <;> simp
     have hmaps0 : m0.maps = m.maps := by rcases hm0 with rfl | rfl <;> simp
-    ihave Hau := Hsup $$ %m0 %xs0 %(Or.inl ⟨hm0, hv, hl⟩)
-    unfold os.truncAu
-    wp_apply wp_osFtruncateStart_au fd sz dq d m0 xs0 hwr hsz (by rw [hmaps0]; exact hmaps)
-      (by rw [hsz0]; exact hl) _ $$ Hinv Hosfd Hm [Hb] Hau as %t %n %- Hosfd Hau
+    rw [← hsz0] at hl
+    ihave Hb : osBytes d.ino (min m0.size sz.toNat) (DFrac.own (1 : Qp).half) xs0 $$ [Hb]
     · rw [hsz0]; iexact Hb
-    wp_apply wp_osFtruncateFinish_au t d.ino sz.toNat m0 xs0 n _ $$ Hinv Hau as %e Hr
+    ihave Hau := Hsup $$ %m0 %xs0 %hl HK Hm Hb
+    unfold os.truncAuW
+    wp_apply wp_osFtruncateStart_auW fd sz dq d m0 xs0 hwr hsz (by rw [hmaps0]; exact hmaps)
+      hl _ $$ Hinv Hosfd Hau as %t %n %- Hosfd Hau
+    wp_apply wp_osFtruncateFinish_au t d.ino sz.toNat m0 xs0 n _ $$ Hinv Hau as %e ⟨Hr, HK⟩
+    rw [hsz0] at hl
     have hann : m0.announce (min m0.size sz.toNat) (rsHi true m0.size sz.toNat) sz.toNat =
         m.announce (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat := by
       rw [hsz0]; rcases hm0 with rfl | rfl
@@ -137,7 +141,7 @@ theorem os.File.Truncate.wp_proofAu : os.File.Truncate.specAu (GF := GF) (hG := 
       wp_auto
       icases Hr with (⟨%he, -⟩ | ⟨-, HS⟩)
       · exact absurd (he4 ▸ he) (by decide)
-      iapply IH $$ [HS] Hosfd Hfd HΦ
+      iapply IH $$ [HS] HK Hosfd Hfd HΦ
       icases HS with (H | ⟨%xs1, %hxs1, Hm, Hb⟩)
       · iright; iexact H
       · ileft; iexists _, xs1; iframe; ipureintro; exact ⟨.inr rfl, hxs1⟩
@@ -178,21 +182,22 @@ theorem os.File.Truncate.wp_proofAu : os.File.Truncate.specAu (GF := GF) (hG := 
     icases Hd with ⟨%hzs, Hm, Hbs⟩
     have hdsz : (rsPost true m sz.toNat sz.toNat).size = sz.toNat := rfl
     have hdmaps : (rsPost true m sz.toNat sz.toNat).maps = m.maps := by simp [rsPost]
-    ihave Hau := Hsup $$ %(rsPost true m sz.toNat sz.toNat) %([] : List ByteG) %(Or.inr ⟨rfl, rfl⟩)
-    unfold os.truncAu
     ihave Hb0 : osBytes d.ino (min (rsPost true m sz.toNat sz.toNat).size sz.toNat)
         (DFrac.own (1 : Qp).half) [] $$ []
     · unfold osBytes; iapply (bytesG_nil _ _ _ _).2; iempintro
-    wp_apply wp_osFtruncateStart_au fd sz dq d (rsPost true m sz.toNat sz.toNat) [] hwr hsz
-      (by rw [hdmaps]; exact hmaps) (by rw [hdsz]; simp) _ $$ Hinv Hosfd Hm Hb0 Hau
+    ihave Hau := Hsup $$ %(rsPost true m sz.toNat sz.toNat) %([] : List ByteG)
+      %(by rw [hdsz]; simp) HK Hm Hb0
+    unfold os.truncAuW
+    wp_apply wp_osFtruncateStart_auW fd sz dq d (rsPost true m sz.toNat sz.toNat) [] hwr hsz
+      (by rw [hdmaps]; exact hmaps) (by rw [hdsz]; simp) _ $$ Hinv Hosfd Hau
       as %t %n %- Hosfd Hau
-    wp_apply wp_osFtruncateFinish_au t d.ino sz.toNat _ [] n _ $$ Hinv Hau as %e Hr
+    wp_apply wp_osFtruncateFinish_au t d.ino sz.toNat _ [] n _ $$ Hinv Hau as %e ⟨Hr, HK⟩
     ihave Hd : os.ftDoneH d.ino m sz.toNat zs $$ [Hr Hbs]
     · iapply os.truncOutH_again _ m sz.toNat n e zs hzs $$ [Hr Hbs]; iframe
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]
       wp_auto
-      iapply IH $$ [Hd] Hosfd Hfd HΦ
+      iapply IH $$ [Hd] HK Hosfd Hfd HΦ
       iright; iexists zs; iexact Hd
     · rw [decide_eq_false he4]
       wp_auto

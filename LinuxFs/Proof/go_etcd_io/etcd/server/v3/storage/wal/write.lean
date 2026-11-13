@@ -34,7 +34,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.write.wp_proof
     (wp_Since : time.Since.spec (GF := GF) (hG := hG))
     (wp_Seconds : time.Duration.Seconds.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.write.spec (GF := GF) (hG := hG) := by
-  intro pw wi W B lim out pend u us d ds dq lenField hus hds hlim
+  intro pw wi W B ok out pend u us d ds dq lenField hus hds hpc hok
   iintro #Hw
   wp_start as ⟨#Henv, Hpw, Hout, Hu, Hd⟩
   iunfold encEnv at Henv
@@ -47,8 +47,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.write.wp_proof
   rw [List.append_nil]
   wp_apply wp_Now as %t -
   have h8 : (u64Le lenField).length < 2 ^ 62 := by rw [u64Le_length]; decide
-  wp_apply (wp_PWrite pw wi W B lim out pend u (u64Le lenField) (DFrac.own 1) h8
-    (by rw [u64Le_length]; omega)) $$ [Hw] [Hpw Hout Hu]
+  wp_apply (wp_PWrite pw wi W B ok out pend u (u64Le lenField) (DFrac.own 1) h8 hpc
+    (hpc _ _ ⟨ds, rfl⟩ hok)) $$ [Hw] [Hpw Hout Hu]
     as %n %err ⟨%pend1, Hpw, Hu, Hres⟩
   · iexact Hw
   · iframe
@@ -72,9 +72,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.write.wp_proof
     exact ⟨fun h => (nomatch h), hp1, hab.trans (List.prefix_append _ _)⟩
   subst Herr
   wp_auto
-  wp_apply (wp_PWrite pw wi W B lim (out ++ ys) pend1 d ds dq hds (by
-    have := congrArg List.length hr1
-    simp only [List.length_append, u64Le_length] at this ⊢; omega)) $$ [Hw] [Hpw Hout Hd]
+  wp_apply (wp_PWrite pw wi W B ok (out ++ ys) pend1 d ds dq hds hpc (by
+    rw [show out ++ ys ++ pend1 ++ ds = out ++ (ys ++ pend1) ++ ds by simp only [List.append_assoc],
+      hr1, ← List.append_assoc out pend (u64Le lenField)]
+    exact hok)) $$ [Hw] [Hpw Hout Hd]
     as %n2 %err2 ⟨%pend2, Hpw, Hd, Hres2⟩
   · iexact Hw
   · iframe

@@ -36,7 +36,8 @@ past the size would be the source). The `Save` that crosses `SegmentSizeBytes` w
 Status: the two steps proved (over `walInvBody_tail`, `TailAcc.lean`, and the pure `walsOk_tail`,
 `walAbsD_announce`/`walAbsD_finish`, `TailStepPure.lean`); the program's tail facts `TailMeta` (no
 mappings, zeros past the size: `MetaOk`'s, which the invariant does not keep) come with `walTailW`.
-`wal.tailWriter` is `sorry` (plan above).
+`wp_tailWriteAt` (the model's `WriteAt` loop over the two steps; its arithmetic through the small
+`Nat` lemmas `tw_*`), `wp_tailWrite` and `wal.tailWriter` proved, no `sorry`.
 -/
 module
 
@@ -327,6 +328,95 @@ theorem wp_tailPWriteFinish (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStri
   iapply HΦ $$ %k %e %zs %hpost Hk Hv Hm1
   iexact Hb1
 
+/-! The arithmetic of `wp_tailWriteAt`'s loop, as small lemmas over `Nat` (an `omega` in the loop's
+context, next to its `BitVec` facts, blew up past 14 GB: W6 log, sixth session). -/
+
+theorem tw_toInt (x : w64) (h : x.toNat < 2 ^ 63) : sint.Z x = (x.toNat : Int) := by
+  simp only [sint.Z]; rw [BitVec.toInt_eq_toNat_of_lt (by omega)]
+
+theorem tw_nat (x : w64) (h : x.toNat < 2 ^ 63) : sint.nat x = x.toNat := by
+  simp [sint.nat, tw_toInt x h]
+
+theorem tw_len (len : w64) (L : Nat) (h : sint.Z len = (L : Int)) (hL : L < 2 ^ 63) :
+    len = W64 (L : Int) := by
+  apply BitVec.eq_of_toInt_eq
+  simp only [sint.Z] at h
+  rw [h, W64, BitVec.toInt_ofInt, Int.bmod]; split <;> omega
+
+theorem tw_addk (x : w64) (k : Nat) (h : x.toNat + k < 2 ^ 63) :
+    (x + W64 (k : Int)).toNat = x.toNat + k := by
+  have hk : (W64 (k : Int)).toNat = k := by simp only [W64]; rw [BitVec.toNat_ofInt]; omega
+  rw [BitVec.toNat_add, hk]; exact Nat.mod_eq_of_lt (by omega)
+
+theorem tw_Wk (k : Nat) (h : k < 2 ^ 63) : (W64 (k : Int)).toNat = k := by
+  simp only [W64]; rw [BitVec.toNat_ofInt]; omega
+
+theorem tw_sub (len x : w64) (L : Nat) (hl : sint.Z len = (L : Int)) (hx : x.toNat ≤ L)
+    (hL : L < 2 ^ 63) : sint.Z (len - x) = (L : Int) - (x.toNat : Int) := by
+  have hxz := tw_toInt x (by omega)
+  have h1 : sint.Z x ≤ sint.Z len := by rw [hxz, hl]; omega
+  have h2 : 0 ≤ sint.Z x := by rw [hxz]; omega
+  rw [← hxz, ← hl]; clear hxz hl hx; word
+
+theorem tw_addMax (x : w64) (h : x.toNat + 1073741824 < 2 ^ 63) :
+    sint.Z (x + W64 1073741824) = (x.toNat : Int) + 1073741824 := by
+  have e := tw_addk x 1073741824 h
+  rw [show (W64 1073741824 : w64) = W64 ((1073741824 : Nat) : Int) from rfl,
+    tw_toInt _ (by rw [e]; omega), e]
+  omega
+
+theorem tw_offAdd (off x : w64) (h : off.toNat + x.toNat < 2 ^ 63) :
+    (off + x).toNat = off.toNat + x.toNat ∧ 0 ≤ (off + x).toInt := by
+  have e : (off + x).toNat = off.toNat + x.toNat := by
+    rw [BitVec.toNat_add]; apply Nat.mod_eq_of_lt; omega
+  refine ⟨e, ?_⟩
+  rw [BitVec.toInt_eq_toNat_of_lt (by rw [e]; omega)]; omega
+
+theorem tw_full_iff (x : w64) (k L : Nat) (hx : x.toNat + k < 2 ^ 63) (hL : L < 2 ^ 63) :
+    x + W64 (k : Int) = W64 (L : Int) ↔ x.toNat + k = L := by
+  constructor
+  · intro h; have e := congrArg BitVec.toNat h; rw [tw_addk x k hx, tw_Wk L hL] at e; exact e
+  · intro h; apply BitVec.eq_of_toNat_eq; rw [tw_addk x k hx, tw_Wk L hL]; exact h
+
+theorem tw_dec (L a : Nat) : ((1073741824 : Int) < (L : Int) - (a : Int)) ↔ 1073741824 < L - a := by
+  omega
+
+theorem tw_sbBig (a L : Nat) (cap : Int) (hcap : (L : Int) ≤ cap) (h : 1073741824 < L - a) :
+    0 ≤ (a : Int) ∧ (a : Int) ≤ (a : Int) + 1073741824 ∧ (a : Int) + 1073741824 ≤ cap ∧
+      (a : Int) + 1073741824 ≤ (L : Int) := by omega
+
+theorem tw_sbSmall (a L : Nat) (cap : Int) (hcap : (L : Int) ≤ cap) (h : a < L) :
+    0 ≤ (a : Int) ∧ (a : Int) ≤ (L : Int) ∧ (L : Int) ≤ cap := by omega
+
+theorem tw_toNat_int (a : Int) (b : Nat) (h : a = (b : Int) + 1073741824) : a.toNat = b + 1073741824 := by
+  omega
+
+theorem tw_lenBig (a L : Nat) (h : 1073741824 < L - a) : min (a + 1073741824) L - a = 1073741824 := by
+  omega
+
+theorem tw_lenSmall (a L : Nat) (h : ¬ 1073741824 < L - a) : min L L - a = L - a := by omega
+
+theorem tw_max (wr x : Nat) : wr ≤ max wr x ∧ x ≤ max wr x ∧ (max wr x = wr ∨ max wr x = x) := by
+  omega
+
+/-- The loop's invariant after an attempt that `EINTR` stopped (`nn` unchanged). -/
+theorem tw_eintr (o a L wr k c w' : Nat) (h2 : o + a ≤ wr) (h3 : wr ≤ o + L)
+    (h4 : wr ≤ o + a + 1073741824) (hc1 : c ≤ L - a) (hc3 : c ≤ 1073741824) (hk : k ≤ c)
+    (hw1 : wr ≤ w') (hw2 : o + a + k ≤ w') (hw3 : w' = wr ∨ w' = o + a + k) (hc0 : 0 < c) :
+    o + a ≤ w' ∧ w' ≤ o + L ∧ w' ≤ o + a + 1073741824 ∧ o + a < o + a + c := by omega
+
+/-- The loop's invariant after a short write (`nn + k` written). -/
+theorem tw_short (o a L wr k c w' : Nat) (h1 : a < L) (h2 : o + a ≤ wr) (h3 : wr ≤ o + L)
+    (h4 : wr ≤ o + a + 1073741824) (hc1 : c ≤ L - a) (hc2 : c = L - a ∨ c = 1073741824)
+    (hk : k ≤ c) (hne : a + k ≠ L)
+    (hw1 : wr ≤ w') (hw2 : o + a + k ≤ w') (hw3 : w' = wr ∨ w' = o + a + k) :
+    a + k < L ∧ o + (a + k) ≤ w' ∧ w' ≤ o + L ∧ w' ≤ o + (a + k) + 1073741824 ∧
+      (o + (a + k) = w' ∨ (o + a ≤ o + a + k ∧ o + a + k < o + a + c)) := by omega
+
+/-- The write position after the last attempt. -/
+theorem tw_full (o a L wr k w' : Nat) (h3 : wr ≤ o + L) (hfk : a + k = L) (hw1 : wr ≤ w')
+    (hw2 : o + a + k ≤ w') (hw3 : w' = wr ∨ w' = o + a + k) : w' = o + L := by omega
+
 /-- **`(*os.File).WriteAt` on the tail** (the model's loop, `TrustedCode/os.lean`'s
 `File.WriteAt.impl`): its attempts are the two steps above, in chunks of at most `maxRW`, each from
 where the bytes written so far end (after a short write) or from where the last attempt started
@@ -353,9 +443,232 @@ theorem wp_tailWriteAt (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (
             ∃ (m' : OsMeta) (bs' : List ByteG), osMeta d.ino (DFrac.own (1 : Qp).half) m' ∗
               osBytes d.ino 0 (DFrac.own (1 : Qp).half) bs' ∗ ⌜TailMeta m' bs' ∧ m'.size = m.size⌝) ∨
          ⌜err ≠ interface.nil⌝) }} := by
-  -- the loop: Löb induction over the attempts (draft in the W6 log, sixth session: its `omega`
-  -- calls blow up next to the `BitVec` facts of the context; to be redone over isolated lemmas)
-  sorry
+  unfold os.ownFile
+  wp_start as ⟨#Harea, ⟨%inner, #Hf, Hfd, #Hn⟩, Hsl, Hosfd, Hk, Hv, Hm, Hb⟩
+  unfold os.model.inner
+  rw [os.file_ty_eq, os.File_ty_eq]
+  ihave #Hf2 := Hf
+  iStructNamed Hf2
+  icases ownSlice_len sl dqs data $$ Hsl with %Hlen
+  icases ownSlice_wf sl dqs data $$ Hsl with %Hwfs
+  wp_auto
+  have h0 : ¬ (sint.Z off < sint.Z (W64 0)) := by
+    rw [show sint.Z (W64 0) = 0 from rfl]; exact Int.not_lt.2 hoff0
+  rw [decide_eq_false h0]
+  wp_auto
+  have hl0 : sl.len ≠ W64 0 := by
+    intro h; have h1 := Hlen.1; rw [h, show sint.nat (W64 0) = 0 from rfl] at h1; omega
+  rw [decide_eq_false hl0]
+  wp_pure
+  wp_pure
+  have hslz : sint.Z sl.len = (data.length : Int) := by
+    have h1 := Hlen.1; have h2 := Hlen.2
+    simp only [sint.nat, sint.Z] at h1 h2 ⊢; omega
+  have hL63 : data.length < 2 ^ 63 := by omega
+  have hsln : sl.len = W64 (data.length : Int) := tw_len sl.len data.length hslz hL63
+  have hcap : (data.length : Int) ≤ sint.Z sl.cap := by rw [← hslz]; exact Hwfs.2
+  clear Hlen Hwfs h0 hl0
+  obtain ⟨nnv, hnnv⟩ : ∃ nnv : w64, nnv = W64 0 := ⟨_, rfl⟩
+  conv in (occs := 4) (#(W64 0) : val) => rw [← hnnv]
+  -- the loop's state: `nn` bytes written, the record's write position `wr` (at most one chunk
+  -- past them: an attempt that `EINTR` stopped may have written past `nn`), the tail `m'`, `bs'`
+  obtain ⟨m', hm'⟩ : ∃ m', m' = m := ⟨_, rfl⟩
+  obtain ⟨bs', hbs'⟩ : ∃ bs', bs' = bs := ⟨_, rfl⟩
+  obtain ⟨wr, hwr0⟩ : ∃ wr : Nat, wr = off.toNat := ⟨_, rfl⟩
+  have hW0 : (W64 0).toNat = 0 := rfl
+  have hnn : nnv.toNat < data.length := by subst hnnv; rw [hW0]; exact hn
+  have hwa : off.toNat + nnv.toNat ≤ wr := by subst hnnv hwr0; rw [hW0]; omega
+  have hwb : wr ≤ off.toNat + data.length := by subst hwr0; omega
+  have hwc : wr ≤ off.toNat + nnv.toNat + 1073741824 := by subst hnnv hwr0; rw [hW0]; omega
+  have hre : off.toNat + nnv.toNat = wr ∨
+      ∃ q ∈ (bs'.getD (off.toNat + nnv.toNat) (0, [])).2, 0 < q.2 := by
+    subst hnnv hwr0; left; rw [hW0]; rfl
+  have hm2 : TailMeta m' bs' ∧ m'.size = m.size := by subst hm' hbs'; exact ⟨hm, rfl⟩
+  ihave Hm := (show osMeta d.ino (DFrac.own (1 : Qp).half) m ⊢
+    osMeta d.ino (DFrac.own (1 : Qp).half) m' by rw [hm']) $$ Hm
+  ihave Hb := (show osBytes d.ino 0 (DFrac.own (1 : Qp).half) bs ⊢
+    osBytes d.ino 0 (DFrac.own (1 : Qp).half) bs' by rw [hbs']) $$ Hb
+  ihave Hv := (show tailVar (W := W) γ ((H, md, cuts, off.toNat, d.ino, none) : TailG) ⊢
+    tailVar (W := W) γ ((H, md, cuts, wr, d.ino, none) : TailG) by rw [hwr0]) $$ Hv
+  clear hm' hbs' hnnv hwr0 hW0
+  iloeb as IH generalizing %m' %bs' %nnv %wr %hnn %hwa %hwb %hwc %hre %hm2 Hm Hb Hv Hk Hosfd Hsl
+    Hfd HΦ
+  -- one attempt, from `nn`
+  have hnn63 : nnv.toNat < 2 ^ 63 := Nat.lt_trans hnn hL63
+  have hnnz := tw_toInt nnv hnn63
+  have hnnn := tw_nat nnv hnn63
+  have hsub := tw_sub sl.len nnv data.length hslz (Nat.le_of_lt hnn) hL63
+  wp_auto
+  by_cases hA : 1073741824 < data.length - nnv.toNat
+  rw [decide_eq_true (show sint.Z (W64 1073741824) < sint.Z (sl.len - nnv) by
+    rw [hsub, show sint.Z (W64 1073741824) = 1073741824 from rfl]; exact (tw_dec _ _).2 hA)]
+  wp_auto
+  have hmx := tw_addMax nnv (by omega)
+  obtain ⟨hs1, hs2, hs3, hs4⟩ := tw_sbBig nnv.toNat data.length _ hcap hA
+  have hsb : 0 ≤ sint.Z nnv ∧ sint.Z nnv ≤ sint.Z (nnv + W64 1073741824) ∧
+      sint.Z (nnv + W64 1073741824) ≤ sint.Z sl.cap := by
+    rw [hnnz, hmx]; exact ⟨hs1, hs2, hs3⟩
+  rw [if_pos hsb]
+  have hsb' : 0 ≤ sint.Z nnv ∧ sint.Z nnv ≤ sint.Z (nnv + W64 1073741824) ∧
+      sint.Z (nnv + W64 1073741824) ≤ sint.Z sl.len := by
+    rw [hnnz, hmx, hslz]; exact ⟨hs1, hs2, hs4⟩
+  ihave ⟨Hs0, Hs1, Hs2⟩ := (ownSlice_slice nnv (nnv + W64 1073741824) sl dqs data hsb').1 $$ Hsl
+  wp_apply wp_bytes_to_string _ _ dqs $$ Hs1 as Hs1
+  ihave Hsl := (ownSlice_slice nnv (nnv + W64 1073741824) sl dqs data hsb').2 $$ [Hs0 Hs1 Hs2]
+  · iframe
+  have hc : 0 < (subslice (sint.nat nnv) (sint.nat (nnv + W64 1073741824)) data).length ∧
+      (subslice (sint.nat nnv) (sint.nat (nnv + W64 1073741824)) data).length ≤
+        data.length - nnv.toNat ∧
+      ((subslice (sint.nat nnv) (sint.nat (nnv + W64 1073741824)) data).length =
+        data.length - nnv.toNat ∨
+       (subslice (sint.nat nnv) (sint.nat (nnv + W64 1073741824)) data).length = 1073741824) ∧
+      (subslice (sint.nat nnv) (sint.nat (nnv + W64 1073741824)) data).length ≤ 1073741824 := by
+    have e : sint.nat (nnv + W64 1073741824) = nnv.toNat + 1073741824 := by
+      show (sint.Z _).toNat = _; exact tw_toNat_int _ _ hmx
+    simp only [subslice, List.length_drop, List.length_take, hnnn, e]
+    rw [tw_lenBig _ _ hA]
+    exact ⟨by decide, Nat.le_of_lt hA, Or.inr rfl, Nat.le_refl _⟩
+  have hcp : subslice (sint.nat nnv) (sint.nat (nnv + W64 1073741824)) data <+:
+      data.drop nnv.toNat := by
+    simp only [subslice, hnnn]; rw [List.drop_take]; exact List.take_prefix _ _
+  clear hmx hs1 hs2 hs3 hs4 hsb hsb'
+  generalize subslice (sint.nat nnv) (sint.nat (nnv + W64 1073741824)) data = chunk at hc hcp ⊢
+  rotate_left
+  rw [decide_eq_false (show ¬ sint.Z (W64 1073741824) < sint.Z (sl.len - nnv) by
+    rw [hsub, show sint.Z (W64 1073741824) = 1073741824 from rfl]; exact mt (tw_dec _ _).1 hA)]
+  wp_auto
+  obtain ⟨hs1, hs2, hs3⟩ := tw_sbSmall nnv.toNat data.length _ hcap hnn
+  have hsb : 0 ≤ sint.Z nnv ∧ sint.Z nnv ≤ sint.Z sl.len ∧ sint.Z sl.len ≤ sint.Z sl.cap := by
+    rw [hnnz, hslz]; exact ⟨hs1, hs2, hs3⟩
+  rw [if_pos hsb]
+  have hsb' : 0 ≤ sint.Z nnv ∧ sint.Z nnv ≤ sint.Z sl.len ∧ sint.Z sl.len ≤ sint.Z sl.len := by
+    rw [hnnz, hslz]; exact ⟨hs1, hs2, Int.le_refl _⟩
+  ihave ⟨Hs0, Hs1, Hs2⟩ := (ownSlice_slice nnv sl.len sl dqs data hsb').1 $$ Hsl
+  wp_apply wp_bytes_to_string _ _ dqs $$ Hs1 as Hs1
+  ihave Hsl := (ownSlice_slice nnv sl.len sl dqs data hsb').2 $$ [Hs0 Hs1 Hs2]
+  · iframe
+  have hc : 0 < (subslice (sint.nat nnv) (sint.nat sl.len) data).length ∧
+      (subslice (sint.nat nnv) (sint.nat sl.len) data).length ≤ data.length - nnv.toNat ∧
+      ((subslice (sint.nat nnv) (sint.nat sl.len) data).length = data.length - nnv.toNat ∨
+       (subslice (sint.nat nnv) (sint.nat sl.len) data).length = 1073741824) ∧
+      (subslice (sint.nat nnv) (sint.nat sl.len) data).length ≤ 1073741824 := by
+    have e : sint.nat sl.len = data.length := by
+      show (sint.Z _).toNat = _; rw [hslz]; exact Int.toNat_natCast _
+    simp only [subslice, List.length_drop, List.length_take, hnnn, e]
+    rw [tw_lenSmall _ _ hA]
+    exact ⟨Nat.sub_pos_of_lt hnn, Nat.le_refl _, Or.inl rfl, Nat.le_of_not_lt hA⟩
+  have hcp : subslice (sint.nat nnv) (sint.nat sl.len) data <+: data.drop nnv.toNat := by
+    simp only [subslice, hnnn]; rw [List.drop_take]; exact List.take_prefix _ _
+  clear hs1 hs2 hs3 hsb hsb'
+  generalize subslice (sint.nat nnv) (sint.nat sl.len) data = chunk at hc hcp ⊢
+  all_goals
+    obtain ⟨hc0, hc1, hc2, hc3⟩ := hc
+    have hcne : chunk ≠ [] := List.ne_nil_of_length_pos hc0
+    obtain ⟨hoffv, hoffv'⟩ := tw_offAdd off nnv (by omega)
+    have hin' : (off + nnv).toNat + chunk.length ≤ m'.size := by rw [hoffv, hm2.2]; omega
+    have hS' : chunk <+: (tailStream Mr H md cuts).drop (off + nnv).toNat := by
+      obtain ⟨t, ht⟩ := hS
+      have e : (tailStream Mr H md cuts).drop (off + nnv).toNat = data.drop nnv.toNat ++ t := by
+        have e1 : ((tailStream Mr H md cuts).drop off.toNat).drop nnv.toNat =
+            (tailStream Mr H md cuts).drop (off + nnv).toNat := by
+          rw [List.drop_drop, hoffv]; try (congr 1; omega)
+        rw [← e1, ← ht, List.drop_append_of_le_length (by omega)]
+      rw [e]; exact hcp.trans (List.prefix_append _ _)
+    wp_apply wp_tailPWriteStart Mr R jr r dir γ H md cuts wr m' bs' fd (off + nnv) chunk dq d _ hwr
+      hoffv' (by rw [hoffv]; exact hwa) (by rw [hoffv]; exact hre) hcne hin' hS' hm2.1
+      $$ Harea Hosfd Hk Hv Hm Hb as %t %nst %hfr Hosfd Hfl
+    wp_apply wp_tailPWriteFinish Mr R jr r dir γ H md cuts wr d.ino
+      ⟨t, (off + nnv).toNat, chunk, nst, m', bs', none⟩ _ rfl hfr.1 hm2.1 hfr.2
+      (by show (off + nnv).toNat ≤ bs'.length; rw [hoffv, hm2.1.1, hm2.2]; omega)
+      (by show (off + nnv).toNat ≤ wr; rw [hoffv]; exact hwa)
+      $$ Harea Hfl as %k %e %zs %hke Hk Hv Hm Hb
+    dsimp only at hke
+    obtain ⟨hk, hke2, htm, hsz, hcand⟩ := hke
+    have hm2' : TailMeta (pwPost m' (off + nnv).toNat chunk.length k)
+        (finBytes m' bs' (off + nnv).toNat chunk k nst zs) ∧
+        (pwPost m' (off + nnv).toNat chunk.length k).size = m.size := ⟨htm, hsz.trans hm2.2⟩
+    clear htm hsz hS' hin' hfr
+    rw [hoffv] at hcand hm2' ⊢
+    obtain ⟨hx1, hx2, hx3⟩ := tw_max wr (off.toNat + nnv.toNat + k)
+    generalize max wr (off.toNat + nnv.toNat + k) = w' at hx1 hx2 hx3 ⊢
+    try wp_auto
+    by_cases he4 : e = W64 4
+    · -- `EINTR`: the attempt again, from `nn`
+      rw [decide_eq_true he4]
+      wp_pure
+      obtain ⟨i1, i2, i3, i4⟩ := tw_eintr _ _ _ _ _ _ _ hwa hwb hwc hc1 hc3 hk hx1 hx2 hx3 hc0
+      have hre' : off.toNat + nnv.toNat = w' ∨
+          ∃ q ∈ ((finBytes m' bs' (off.toNat + nnv.toNat) chunk k nst zs).getD
+            (off.toNat + nnv.toNat) (0, [])).2, 0 < q.2 :=
+        Or.inr (hcand _ (Nat.le_refl _) i4)
+      iapply IH $$ %(pwPost m' (off.toNat + nnv.toNat) chunk.length k)
+        %(finBytes m' bs' (off.toNat + nnv.toNat) chunk k nst zs) %nnv %w'
+        %hnn %i1 %i2 %i3 %hre' %hm2' Hm Hb Hv Hk Hosfd Hsl Hfd HΦ
+    · rw [decide_eq_false he4]
+      wp_auto
+      have hnk := tw_addk nnv k (by omega)
+      by_cases hfull : nnv.toNat + k = data.length
+      · rw [decide_eq_true (show nnv + W64 (k : Int) = sl.len by
+          rw [hsln]; exact (tw_full_iff nnv k data.length (by omega) hL63).2 hfull)]
+        wp_auto
+        by_cases he0 : e = W64 0
+        · rw [decide_eq_true he0]
+          wp_auto
+          have ew := tw_full _ _ _ _ _ _ hwb hfull hx1 hx2 hx3
+          subst ew
+          iapply HΦ
+          iframe Hsl
+          isplitl [Hfd]
+          · iexists inner; iframe; isplitl [] <;> iassumption
+          ileft
+          iframe Hosfd Hk Hv
+          isplitr
+          · ipureintro; exact ⟨rfl, rfl⟩
+          iexists _, _
+          iframe Hm Hb
+          ipureintro; exact hm2'
+        · rw [decide_eq_false he0]
+          wp_auto
+          simp only [decide_eq_false he0, Bool.not_false]
+          wp_auto
+          wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
+          iapply HΦ
+          iframe Hsl
+          isplitl [Hfd]
+          · iexists inner; iframe; isplitl [] <;> iassumption
+          iright
+          ipureintro; intro h; cases h
+      · rw [decide_eq_false (show ¬ nnv + W64 (k : Int) = sl.len by
+          rw [hsln]; exact mt (tw_full_iff nnv k data.length (by omega) hL63).1 hfull)]
+        wp_auto
+        by_cases he0 : e = W64 0
+        · -- a short write: the next attempt from `nn + k`
+          rw [decide_eq_true he0]
+          simp only [Bool.not_true]
+          wp_pure
+          obtain ⟨s1, s2, s3, s4, s5⟩ :=
+            tw_short _ _ _ _ _ _ _ hnn hwa hwb hwc hc1 hc2 hk hfull hx1 hx2 hx3
+          have hre' : off.toNat + (nnv + W64 (k : Int)).toNat = w' ∨
+              ∃ q ∈ ((finBytes m' bs' (off.toNat + nnv.toNat) chunk k nst zs).getD
+                (off.toNat + (nnv + W64 (k : Int)).toNat) (0, [])).2, 0 < q.2 := by
+            rw [hnk]
+            rcases s5 with h | ⟨h1, h2⟩
+            · exact Or.inl h
+            · right; rw [← Nat.add_assoc]; exact hcand _ h1 h2
+          iapply IH $$ %(pwPost m' (off.toNat + nnv.toNat) chunk.length k)
+            %(finBytes m' bs' (off.toNat + nnv.toNat) chunk k nst zs) %(nnv + W64 (k : Int)) %w'
+            %(by rw [hnk]; exact s1) %(by rw [hnk]; exact s2) %s3 %(by rw [hnk]; exact s4)
+            %hre' %hm2' Hm Hb Hv Hk Hosfd Hsl Hfd HΦ
+        · rw [decide_eq_false he0]
+          simp only [Bool.not_false]
+          wp_auto
+          wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
+          iapply HΦ
+          iframe Hsl
+          isplitl [Hfd]
+          · iexists inner; iframe; isplitl [] <;> iassumption
+          iright
+          ipureintro; intro h; cases h
 
 /-- **`(*os.File).Write` on the tail** (`Off.lean`'s `os.File.Write.wp_long` with
 `wp_tailWriteAt` for its `WriteAt`): a non-empty `b` at the offset `o`, the record's write position

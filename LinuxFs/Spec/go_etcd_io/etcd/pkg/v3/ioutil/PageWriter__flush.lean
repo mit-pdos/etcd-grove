@@ -2,7 +2,7 @@
 `pw.flush()` (pagewriter.go, private): hands the buffered bytes `pend` to the writer `wi` in one
 `Write` (none if `pend` is empty) and drops the buffer whatever it returns: on success the writer has
 all of `pend` and the count is `len(pend)`; on an error the writer is broken (`B out pend`, what
-`io.writerStream` gives of a failed write) and the count is the writer's, any. Proved in `LinuxFs/Proof/go_etcd_io/etcd/pkg/v3/ioutil/PageWriter__flush.lean`.
+`io.writerStream` gives of a failed write) and the count is the writer's, any. The writer is a guarded stream (`io.writerStreamP wi ok W B`, `ok` prefix-closed): what the page writer may hand it is a prefix of `out ++ pend`, which the premise guards (the WAL's tail accepts only its intended bytes; a length bound is `io.writerStream_P`). Proved in `LinuxFs/Proof/go_etcd_io/etcd/pkg/v3/ioutil/PageWriter__flush.lean`.
 WAL W6, 2026-11-13; Lean-first.
 -/
 module
@@ -28,9 +28,9 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 /-- See the file header. -/
 abbrev go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.flush.spec : Prop :=
   ∀ (pw : Loc) (wi : GoInterfaceOk) (W : List w8 → IProp GF) (B : List w8 → List w8 → IProp GF)
-    (lim : Nat) (out pend : List w8),
-  out.length + pend.length ≤ lim →
-  ⊢ io.writerStream wi lim W B -∗
+    (ok : List w8 → Prop) (out pend : List w8),
+  (∀ xs ys, xs <+: ys → ok ys → ok xs) → ok (out ++ pend) →
+  ⊢ io.writerStreamP wi ok W B -∗
     {{ ioutil.ownPageWriter pw wi pend ∗ W out }}
       (App (Val (pw @!! go.GoType.PointerType go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.ty @!!
         go!"flush")) (Val #()))
