@@ -822,3 +822,63 @@ Coordinator additions (for the `os` layer, branch `wal-osau`):
     `O_CREAT` set, `O_TRUNC` clear, in place of the fixed `flCreat`; the fds it gives are
     `openFd i fl` (the WAL creates with `O_WRONLY|O_CREATE`). `openCreateStep_cases`, `ocFd`,
     `ocGift` take `fl`; the two-region test passes `flCreat`.
+
+### Implementation log, the `os`-level shared specs, third part (branch `wal-osau3`, 2026-11-13)
+
+Done, proved (no `sorry`):
+
+- `syscall.FcntlFlock.wp_getlk` (`Proof/syscall/FileOps.lean`): `F_OFD_GETLK` (36) on any fd, `*lk`
+  whole (`lk ↦ v`); no extension step; `RET errnoErr e`, `*lk` some `v'` with the padding as it was
+  and `v' = v` on failure.
+- `Proof/os/StatS.lean` restructured: each case proved once for `os.model.stat` with any `Op`
+  (`os.model.wp_stat_dirS`/`_absentS`/`_fileS`), then for `Stat` and `Lstat`. New: `os.Stat.wp_fileS`
+  (a regular file: a fraction of a claim on its name and of its `OsMeta`; `ownFileStat fs (W64
+  m.size)` or an error), `os.Lstat.wp_dirS`, `os.Lstat.wp_absentS` (what `MkdirAll`'s fallback needs).
+- `O_CREAT|O_TRUNC` (coordinator's addition, for `filePipeline.alloc`): `wp_osOpenCreateS'`'s
+  `O_TRUNC` premise is now "clear, or the name absent" (`openCreateStep_cases` likewise; at an absent
+  name `OpenEffect` ignores `O_TRUNC`); `wp_osOpenCreateS` (`TreeShared.lean`) keeps its statement.
+  `os.OpenFile.specCreateTruncS` (`Spec/os/OpenFileTruncS.lean`): an absent name, logically atomic
+  as `specCreateS`; the new file goes to the caller as `trFile i (err = nil)` (`OsMeta`, bytes, the
+  mapped cells' halves; size 0 on success), so a retry after an effectful `EINTR` can truncate it.
+
+`sorry`:
+
+- **`wp_osOpenTruncS`** (`GooseLang/Ext/Fs/TreeSharedTrunc.lean`): `open(O_TRUNC)` of a name holding
+  the file `i`, with a fraction of a claim, `osMeta i 1 m`, `osBytes i 0 1 xs` (`|xs| = m.size`),
+  `mcellsAny m.maps 0 m.size`: no entry; truncated (`∃ n, rsDone i 0 0 m n`) or, on failure only,
+  as it was; the fd on success. Its proof needs the world update of a resize announced and landed in
+  one step (`OpenEffect`'s `stampFile i (fun n => (f.announce c n).land c c.hi 0)`): `osCoh_start`
+  and `resize_done_world` (`Truncate.lean`) composed through an intermediate state
+  (`startState … t`, then `doneInflight t`, which is the same `OsState`), the intermediate heap
+  rendering being the hard part. `specCreateTruncS` uses it only on the retry branch.
+  Not stated at the `os` level: the `O_TRUNC` open of a name already holding a file (a leftover
+  `N.tmp`); it is a plain triple over `wp_osOpenTruncS` with `trFile` (no claim changes).
+
+Not done:
+
+- **`os.MkdirAll`.** Plan: (1) `wp_osPathKindS` (shared mode: the roots are `R`, from `osSharedInv`
+  against `treeShared`'s `γs` authority; the legacy branch is excluded by `legacyHolds`' empty `γs`),
+  with the pure fact that a root is not a `TreeName` (`RootsOk`); (2) `model.mkdirAllParent` on
+  `child d b` returns `d` (a string loop, as `filepathlite.Base`'s proof); (3) `mkdirAllAbove`: no
+  step, `nil` or a `PathError` (Löb over the parent recursion, any string); (4) `IsDir` through the
+  `FileInfo` of a `*fileStat` (`fileStat.IsDir` → `FileMode.IsDir`, needs `io.fs.Assumptions`): some
+  boolean; (5) `MkdirAll` of an existing directory with a spine, by induction on the spine
+  (`Stat` dir, else the parent's `MkdirAll`, `mkdir` of a taken name `wp_osMkdirS_some`, `Lstat`);
+  (6) the one-component spec, `MkdirAll(d/b)`, `b` absent, `osCallPerm 1`, the claim split
+  caller/AU as `os.Mkdir.specS` (whose proof it calls), the AU committed with `none` by a fancy
+  update when `Mkdir` is never reached (the parent's `MkdirAll` failed). Multi-component paths
+  (`Stat` of a path below an absent component) are not needed by the WAL (its directory's parent
+  exists).
+- **`os.RemoveAll` is blocked by the logic, not by effort.** The model holds its guard `CallBegin`
+  for the whole call, so every inner `rmdir` (a directory operation) runs with another call in
+  flight; the shared logic gives a directory operation only to a call holding all of `osCallPerm`
+  (`wp_osRmdirS`, deviation 1), and `TreeCohS.after` requires every call in flight to have begun
+  after every directory operation, which the guard (begun before the `rmdir`) violates. The
+  semantics allows it (only a directory `Rename` with another call in flight is stuck), and the
+  crash argument (`DirOpExcl`) is about logged entries only, which the guard never makes. Proposed
+  (FS-level, untrusted): *guard calls*, calls that never log, tracked apart from `Γc` (or flagged in
+  it) and exempt from `after`/`whole`, holding no permission, ended only by a no-effect step
+  (`LstatDir`); `CallBegin` gives either kind. Then `RemoveAll`'s inner calls hold `osCallPerm 1`.
+  Until then no spec of `RemoveAll` of a directory is provable (of a file or an absent name it is:
+  no `rmdir` takes effect).
+- The `LinkError`/`PathError` `fmtErrorOkOrNil` facts.
