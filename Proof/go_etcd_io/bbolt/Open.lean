@@ -317,7 +317,7 @@ macro "open_tx_exit" : tactic => `(tactic| (
 the file there (`os.OpenFile.spec`), or creating it in its directory (`specCreate`, with the whole
 tree). The tree comes back, unchanged or with the create logged; on success the file opened, at
 `path` in the tree now. -/
-theorem wp_OpenFile_db [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+private theorem wp_OpenFile_db [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
     (hOpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
     (hCreate : os.OpenFile.specCreate (GF := GF) (hG := hG))
     (path : GoString) (perm : w32) (R : Roots) (V : Hist) (D : Data) :
