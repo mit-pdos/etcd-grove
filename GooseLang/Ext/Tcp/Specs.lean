@@ -1369,6 +1369,121 @@ theorem wp_tcp_Dial (a h : GoString) (Φ : val → IProp GF) :
     iapply wp_value'
     iexact HΦ
 
+
+theorem connCtx_accepted [AllG GF] (γ : ConnNames) (cn : TcpConn) (b : Bool) :
+    connCtx (GF := GF) γ { cn with accepted := b } = connCtx γ cn := rfl
+
+theorem connCtx_addr [AllG GF] (γ : ConnNames) (cn : TcpConn) :
+    connCtx (GF := GF) γ cn -∗ ⌜γ.addr = cn.addr⌝ := by
+  unfold connCtx
+  iintro ⟨%H, -, -⟩
+  ipureintro; exact H
+
+theorem tcpLocal_lookup (hL : TcpLocalGS GF) (σ : TcpLocal) (l : w64) (a : GoString) (o : Bool) :
+    tcpLocalCtx hL σ -∗ tcpLis hL l a o -∗ ⌜σ.lis !! l = some (a, o)⌝ := by
+  letI := hL.allG
+  unfold tcpLocalCtx tcpLis
+  iintro ⟨%Hhost, Hlis⟩ Hel
+  iapply ghost_map_lookup $$ Hlis Hel
+
+/-- `Accept` of the listener `l` at `a`: a failure; or a connection `c` pending at `a`, now
+accepted (taken out of `tcpPend`, by a logically atomic update). The update is used only when the
+accept returns a connection. -/
+theorem wp_tcp_Accept (l : w64) (a : GoString) (o : Bool) (Φ : val → IProp GF) :
+    tcpLis (tcpL (L := L)) l a o -∗
+    ((tcpLis (tcpL (L := L)) l a o -∗ Φ (PairV (#(W64 0)) (#false))) ∧
+      (|={E,∅}=> ∃ S, tcpPend tcpG a S ∗ ∀ c, ⌜c ∈ S⌝ -∗ tcpPend tcpG a (S \ {[c]}) ={∅,E}=∗
+        (tcpLis (tcpL (L := L)) l a o -∗ tcpConnAt tcpG c a -∗
+          Φ (PairV (#(endId c true)) (#true))))) -∗
+    WP (ExternalOp tcpExt.name "Accept" (Val (#l))) @ sk; E {{ Φ }} := by
+  letI := (tcpG (G := G)).allG
+  iloeb as IH
+  iintro Hel HΦ
+  iapply wp_extStep "Accept" (#l) Φ (by simp)
+  iintro %h %σ %g Hheap Hl Hg
+  icases (tcp_local_ctx_eq σ).mp $$ Hl with Hl
+  icases tcpLocal_lookup _ σ l a o $$ Hl Hel with %Hll
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hclose
+  isplitr
+  · ipureintro
+    exact ⟨_, h, σ, g, rfl, l, a, o, rfl, Hll, .inl ⟨rfl, rfl⟩, rfl⟩
+  inext
+  iintro %e' %h' %σ' %g' %Hst _
+  obtain ⟨rfl, l0, a0, o0, Hv, Hl0, Hcase, rfl⟩ := Hst
+  obtain rfl := go.intoVal_inj (V := w64) Hv
+  rw [Hll] at Hl0
+  obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj Hl0)
+  imod Hclose
+  rcases Hcase with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨-, c, cn, hcn, haddr, hacc, hb, rfl, rfl⟩
+  · -- it waits
+    imodintro
+    iframe Hheap
+    isplitl [Hl]
+    · iapply (tcp_local_ctx_eq _).mpr; iexact Hl
+    isplitl [Hg]
+    · iapply (tcp_global_ctx_eq _).mpr; iexact Hg
+    iapply IH $$ Hel HΦ
+  · -- a failure
+    icases HΦ with ⟨HΦ, -⟩
+    imodintro
+    iframe Hheap
+    isplitl [Hl]
+    · iapply (tcp_local_ctx_eq _).mpr; iexact Hl
+    isplitl [Hg]
+    · iapply (tcp_global_ctx_eq _).mpr; iexact Hg
+    iapply wp_value'
+    iapply HΦ $$ Hel
+  · -- the connection `c`
+    icases HΦ with ⟨-, HAU⟩
+    imod HAU with ⟨%S, Hpend, Hk⟩
+    icases (tcp_global_ctx_eq _).mp $$ Hg with Hg
+    unfold tcpCtx
+    icases Hg with ⟨%nm, %pm, Hn, Hpm, Hpl, %Hpure, Hconns⟩
+    obtain ⟨Hdom, Hpok⟩ := Hpure
+    unfold tcpPend
+    icases ghost_map_lookup $$ Hpm Hpend with %HS
+    have hcS : c ∈ S := (Hpok.2.1 a S c HS).2 ⟨cn, hcn, haddr, hacc⟩
+    imod ghost_map_update (S \ {[c]}) $$ Hpm Hpend with ⟨Hpm, Hpend⟩
+    icases BigSepM.bigSepM_insert_acc hcn $$ Hconns with ⟨⟨%γ, %Hγ, #Hn', Hcc⟩, Hcl⟩
+    icases connCtx_addr γ cn $$ Hcc with %Haddr
+    imod Hk $$ %c %hcS [Hpend] with HΦ
+    · iexact Hpend
+    imodintro
+    iframe Hheap
+    isplitl [Hl]
+    · iapply (tcp_local_ctx_eq _).mpr; iexact Hl
+    isplitr [HΦ Hel]
+    · iapply (tcp_global_ctx_eq _).mpr
+      unfold tcpCtx
+      iexists nm, pm.insert a (S \ {[c]})
+      rw [setConn_plan, setConn_conns]
+      iframe Hn Hpm Hpl
+      isplitr
+      · ipureintro
+        refine ⟨fun k => ?_, ?_⟩
+        · rw [Hdom k]; simp only [GMap.lookup_insert_eq_iff]
+          by_cases hk : c = k
+          · subst hk; simp [hcn]
+          · simp [hk]
+        · have := pendOk_accept (S := S) Hpok hcn (by rw [haddr]; exact HS)
+          rw [← haddr]; exact this
+      iapply Hcl
+      iexists γ
+      iframe Hn'
+      isplitr
+      · ipureintro; exact Hγ
+      rw [connCtx_accepted γ cn true]
+      iexact Hcc
+    iapply wp_value'
+    iapply HΦ $$ Hel
+    unfold tcpConnAt
+    iexists γ
+    unfold tcpNames
+    iframe Hn'
+    ipureintro
+    exact ⟨Haddr.trans haddr, hb⟩
+
 end lifting
 
 end Tcp
