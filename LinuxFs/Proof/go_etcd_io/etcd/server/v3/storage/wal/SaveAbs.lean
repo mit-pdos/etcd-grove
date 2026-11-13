@@ -162,6 +162,9 @@ theorem walAbsD_snoc {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay
   have htake : ∀ c, c ≤ d.H.length → (histM { d with H := d.H ++ [o] }).take c = (histM d).take c := by
     intro c hcl
     rw [histM_snoc, List.take_append_of_le_length (by simpa [histM] using hcl)]
+  obtain ⟨gl, hgl⟩ : ∃ g, lay.segs.getLast? = some g :=
+    ⟨_, List.getLast?_eq_some_getLast h.nonempty⟩
+  have hW := h.lastWin gl hgl
   obtain ⟨hn, hcs, hnb, hcut, hmeta, hint, hlast, hsyn, hls, -, hstop, hne⟩ := h
   refine ⟨hn, ⟨fun b hb => ?_, hcs.2⟩, ?_, hcut, hmeta, ?_, ?_, ?_, hls, hfit, ?_, hne⟩
   · rw [histM_snoc]; exact walCutPos_snoc _ (hcs.1 b hb)
@@ -174,7 +177,24 @@ theorem walAbsD_snoc {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay
     rw [hsegLt _ (by have := hcs.2.2; have := List.getElem?_eq_some_iff.1 hg; omega)]
     exact hint k g hk hg
   · intro g hg
-    obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := hlast g hg
+    refine ⟨fun hx => ?_, fun hx => ?_⟩
+    rotate_left
+    · obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := (hlast g hg).2 hx
+      unfold TailWin
+      simp only at h1 h2 h3 h4 h5 h6 h7 h8 ⊢
+      rw [hS]
+      refine ⟨h1, by simp; omega, h3, h4, fun b x hb hbw => ?_, h6, ?_, fun hz b hb1 hb2 => ?_⟩
+      · exact (h5 b x hb hbw).snoc (fun hw => by simp at hw; omega) (fun hs => by simp at hs; omega)
+      · rw [List.take_append_of_le_length (by omega)]; exact h7
+      · rcases Nat.lt_or_ge lay.z0 (segStream C Mr d lay.cuts lay.cuts.length).length with hlt | hge
+        · exact h8 hlt b hb1 hb2
+        · apply hZ _ b hb1 hb2
+          intro hnil
+          rw [hnil, List.length_nil, List.length_eq_zero_iff] at hX
+          subst hX
+          simp [recFrames, frames] at hz; omega
+    obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := (hlast g hg).1 hx
+    unfold TailLast
     simp only at h1 h2 h3 h4 h5 h6 h7 h8 ⊢
     rw [hS]
     refine ⟨h1, by simp; omega, h3, h4, fun b x hb => ?_, h6, ?_, fun hz b hb1 hb2 => ?_⟩
@@ -193,8 +213,8 @@ theorem walAbsD_snoc {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay
     exact h2
   · intro hz r len c'
     have hz' : recFrames C X = [] := by
-      have hwr := (hlast _ (List.getLast?_eq_some_getLast hne)).2.1
-      have hz0 := (hlast _ (List.getLast?_eq_some_getLast hne)).2.2.2.2.2.1
+      have hwr := hW.2.1
+      have hz0 := hW.2.2.2.2.2.1
       rw [hS, List.length_append] at hz
       apply List.eq_nil_of_length_eq_zero; omega
     have hX0 := recFrames_eq_nil hz'
@@ -251,8 +271,11 @@ theorem walAbsD_sync {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay
   · intro g hg
     simp only [syncLay, List.mem_map] at hg
     obtain ⟨g0, hg0, rfl⟩ := hg
-    have := hmeta g0 hg0
-    simpa [syncSeg] using this
+    obtain ⟨h1, h2, h3, h4, h5⟩ := hmeta g0 hg0
+    refine ⟨by simpa [syncSeg] using h1, h2, by simpa [syncSeg] using h3, by simpa [syncSeg] using h4, ?_⟩
+    rcases h5 with h5 | h5
+    · left; simp [syncLay, List.getLast?_map, h5]
+    · right; simpa [SegExact, syncSeg] using h5
   · intro k g hk hg
     simp only [syncLay, List.length_map, List.getElem?_map] at hk hg
     cases hk0 : lay.segs[k]? with
@@ -267,7 +290,23 @@ theorem walAbsD_sync {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay
     | none => rw [hl0] at hg; cases hg
     | some g0 =>
       rw [hl0] at hg; simp only [Option.map_some, Option.some.injEq] at hg; subst hg
-      obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := hlast g0 hl0
+      have hxe : SegExact (syncSeg g0) ↔ SegExact g0 := by simp [SegExact, syncSeg]
+      refine ⟨fun hx => ?_, fun hx => ?_⟩
+      rotate_left
+      · obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := (hlast g0 hl0).2 (fun h => hx (hxe.2 h))
+        unfold TailWin
+        simp only [syncLay] at h1 h2 h3 h4 h5 h6 h7 h8 ⊢
+        refine ⟨Nat.le_refl _, h2, by simp [syncSeg, h3], by simp [syncSeg]; omega,
+          fun b x hb hbw => ?_, h6, h7, h8⟩
+        simp only [syncSeg, List.getElem?_map] at hb
+        cases hb0 : g0.bs[b]? with
+        | none => rw [hb0] at hb; cases hb
+        | some y =>
+          rw [hb0] at hb; simp only [Option.map_some, Option.some.injEq] at hb; subst hb
+          exact byteOk_sync (h5 b y hb0 hbw)
+            (fun hs => decide_eq_true (Nat.lt_of_lt_of_le (of_decide_eq_true hs) h1))
+      obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := (hlast g0 hl0).1 (hxe.1 hx)
+      unfold TailLast
       simp only [syncLay] at h1 h2 h3 h4 h5 h6 h7 h8 ⊢
       refine ⟨Nat.le_refl _, h2, by simp [syncSeg, h3], h4, fun b x hb => ?_, h6, h7, h8⟩
       simp only [syncSeg, List.getElem?_map] at hb

@@ -70,7 +70,7 @@ theorem walAbs_crashOk_start (C : WalCodec) (_hC : C.Ok) (Mr : WalMarshal) (d : 
     (hr : ∃ N h, (lay.jr, N, h) ∈ cl ∧ N.Mem lay.nm ∧ h.boot !! lay.nm = some (.dir lay.j))
     (hdur : lay.wr = lay.so ∧ lay.wr = lay.z0 ∧
       lay.z0 = (segStream C Mr d lay.cuts lay.cuts.length).length)
-    (hlast : ∀ g, lay.segs.getLast? = some g → g.bs = lay.old.map durB) :
+    (hlast : ∀ g, lay.segs.getLast? = some g → g.bs = lay.old.map durB ∧ SegExact g) :
     CrashOk C Mr d lay cl n := by
   intro m' fo hreg hfc hnamed _
   right
@@ -92,7 +92,7 @@ theorem walAbs_crashOk_start (C : WalCodec) (_hC : C.Ok) (Mr : WalMarshal) (d : 
     have hc := hfc g hg
     rw [hf'] at hc ⊢
     rw [hxs] at hc
-    obtain ⟨-, -, hlo, hhi⟩ := habs.metas g hg
+    obtain ⟨-, -, hlo, hhi⟩ := habs.metasEx (fun g hg => (hlast g hg).2) g hg
     rw [hxs, List.length_map] at hlo hhi
     exact durable_img hc hlo hhi
   refine ⟨0, d.H, hjr, List.length_pos_iff.2 habs.nonempty, ?_,
@@ -109,9 +109,9 @@ theorem walAbs_crashOk_start (C : WalCodec) (_hC : C.Ok) (Mr : WalMarshal) (d : 
     have hk1 : k + 1 < lay.segs.length := by omega
     exact hfile g (List.mem_of_getElem? hk) _ (by rw [habs.intact k g hk1 hk, Nat.add_zero])
   · intro g hg
-    have hl := habs.last g hg
+    have hl := habs.lastEx (fun g hg => (hlast g hg).2) g hg
     obtain ⟨-, -, -, -, -, -, htake, -⟩ := hl
-    have himg := hfile g (List.mem_of_getLast? hg) lay.old (hlast g hg)
+    have himg := hfile g (List.mem_of_getLast? hg) lay.old (hlast g hg).1
     rw [himg]
     refine ⟨?_, ?_⟩
     · show segStream C Mr d lay.cuts lay.cuts.length <+: lay.old

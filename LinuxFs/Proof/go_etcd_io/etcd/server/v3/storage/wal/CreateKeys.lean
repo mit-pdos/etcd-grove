@@ -120,7 +120,7 @@ theorem dirKeysOk_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
     (htmp : ¬ walNameOk tmp) (htw : walNameP tmp = false)
     (hlay : lay.jr = jr ∧ lay.nm = nm ∧ lay.j = J)
     (hJcoh : ClaimCoh hJ J (.except X)) (hJs : hJ.next ≤ st) (hX : ∀ b ∈ X, walNameP b = false)
-    (habs : WalAbsD C Mr (walDurFresh md) lay hJ.cur)
+    (habs : WalAbsD C Mr (walDurFresh md) lay hJ.cur) (hexL : TailExact lay)
     (hdur : ∀ g ∈ lay.segs, ∀ y ∈ g.bs, y = durB y.1)
     (htail : lay.wr = (segStream C Mr (walDurFresh md) lay.cuts lay.cuts.length).length)
     (hold0 : ∀ b, lay.wr ≤ b → b < lay.old.length → lay.old.getD b 0 = 0)
@@ -180,7 +180,7 @@ theorem dirKeysOk_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
       simp only [Option.some.injEq] at hl'
       subst hd' hl'
       exact (crashOkA_none_iff _ _ _ _ _ _).2
-        (crashOk_create_new hc hnmN hlay hJcoh hJs hX habs hdur htail hold0 hz hgone)
+        (crashOk_create_new hc hnmN hlay hJcoh hJs hX habs hexL hdur htail hold0 hz hgone)
     · simp only [createSt, GMap.lookup_insert_ne _ _ (Ne.symm hdd)] at hd'
       rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)] at hl'
       obtain ⟨lay1, nm', hj', hL', hin', hjr', hnm', -, -, -⟩ := hok.1 dir' d' hd'

@@ -150,6 +150,43 @@ theorem ByteOk.snoc {S X : List w8} {y : w8} {w s : Bool} {g : ByteG} {b : Nat}
     subst hex
     exact ⟨[], h1, by simp, fun _ => rfl, h4⟩
 
+/-- A segment's `OsMeta` half bounds a crash's size to its bytes' (no resize window open on it). -/
+def SegExact (g : SegG) : Prop := g.om.lo = g.bs.length ∧ g.om.hi = g.bs.length
+
+/-- Every named segment of `lay` but the last is exact (`WalAbsD.metas`); the last too. -/
+def TailExact (lay : WalLay) : Prop := ∀ g, lay.segs.getLast? = some g → SegExact g
+
+/-- **The last segment `g`, no resize window open on it** (`WalAbsD.last`): its stream up to `wr`,
+`old` past it, each byte durable below `so`, written once since the sync between `so` and `wr`
+(`ByteOk`), `old` zeros past the start's frames once anything is appended. -/
+def TailLast (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (g : SegG) : Prop :=
+    let S := segStream C Mr d lay.cuts lay.cuts.length
+    lay.so ≤ lay.wr ∧ lay.wr ≤ S.length ∧ g.bs.length = lay.old.length ∧ lay.wr ≤ lay.old.length ∧
+    (∀ b (x : ByteG), g.bs[b]? = some x →
+      ByteOk (S.getD b 0) (lay.old.getD b 0) (decide (b < S.length)) (decide (b < lay.wr))
+        (decide (b < lay.so)) x) ∧
+    lay.z0 ≤ lay.wr ∧ (S.take lay.z0 = lay.old.take lay.z0) ∧
+    (lay.z0 < S.length → ∀ b, lay.z0 ≤ b → b < lay.old.length → lay.old.getD b 0 = 0)
+
+/-- **The last segment `g` in a resize window** (I3b; `WalAbsD.last`): `TailLast` below `wr` only;
+the segment between `wr` and `old` long (`cut` truncates it to `wr`, `ZeroToEnd` to the start's
+frames, then grows it back to its size); its bytes past `wr` are not constrained (a truncate's
+announced zeros, a growth's bytes with the candidates the file had past its size). -/
+def TailWin (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (g : SegG) : Prop :=
+    let S := segStream C Mr d lay.cuts lay.cuts.length
+    lay.so ≤ lay.wr ∧ lay.wr ≤ S.length ∧ g.bs.length ≤ lay.old.length ∧ lay.wr ≤ g.bs.length ∧
+    (∀ b (x : ByteG), g.bs[b]? = some x → b < lay.wr →
+      ByteOk (S.getD b 0) (lay.old.getD b 0) (decide (b < S.length)) (decide (b < lay.wr))
+        (decide (b < lay.so)) x) ∧
+    lay.z0 ≤ lay.wr ∧ (S.take lay.z0 = lay.old.take lay.z0) ∧
+    (lay.z0 < S.length → ∀ b, lay.z0 ≤ b → b < lay.old.length → lay.old.getD b 0 = 0)
+
+/-- `TailLast` gives `TailWin`. -/
+theorem TailLast.win {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {g : SegG}
+    (h : TailLast C Mr d lay g) : TailWin C Mr d lay g := by
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := h
+  exact ⟨h1, h2, by omega, by omega, fun b x hb _ => h5 b x hb, h6, h7, h8⟩
+
 /-- **The static relation of the WAL `d` and its layout `lay`**, the WAL directory's entries being
 `ents` (plan §2.1). -/
 structure WalAbsD (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (ents : Ents) :
@@ -166,21 +203,21 @@ structure WalAbsD (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (
     g.name = walFileName sq ix ∧ (0 < lay.first + k → walLastIdx ((histM d).take (segStart lay.cuts (lay.first + k))) + 1 ≤ ix)
   /-- What `Open` reads from, and what was purged. -/
   cut : d.cut = segStart lay.cuts lay.first ∧ (0 < lay.first → d.cut ≤ d.pur)
-  /-- Each segment's `OsMeta` half: its size is its bytes', no sync cut. -/
-  metas : ∀ g ∈ lay.segs, g.om.size = g.bs.length ∧ g.om.cut = none ∧ g.om.lo = g.bs.length ∧
-    g.om.hi = g.bs.length
+  /-- Each segment's `OsMeta` half: its size is its bytes', no sync cut, a crash leaves it with
+  a size around it (`lo ≤ |bs| ≤ hi`); exactly its size (`SegExact`) but for the last segment, whose
+  resizes (`cut`'s truncate, `ReadAll`'s `ZeroToEnd`) announce other sizes until the fdatasync after
+  them (I3b). -/
+  metas : ∀ g ∈ lay.segs, g.om.size = g.bs.length ∧ g.om.cut = none ∧ g.om.lo ≤ g.bs.length ∧
+    g.bs.length ≤ g.om.hi ∧ (lay.segs.getLast? = some g ∨ SegExact g)
   /-- Every named segment but the last holds exactly its frames, durable. -/
   intact : ∀ k (g : SegG), k + 1 < lay.segs.length → lay.segs[k]? = some g →
     g.bs = (segStream C Mr d lay.cuts (lay.first + k)).map durB
-  /-- The last segment: its stream up to `wr`, `old` past it, durable below `so`. -/
+  /-- The last segment: its stream up to `wr`, `old` past it, durable below `so`; while a resize
+  window is open on it (`¬ SegExact g`, I3b: from a resize's first step to the fdatasync after it),
+  only the bytes below `wr`, the segment no longer than `old` and at least `wr` long
+  (`TailWin`). -/
   last : ∀ g, lay.segs.getLast? = some g →
-    let S := segStream C Mr d lay.cuts lay.cuts.length
-    lay.so ≤ lay.wr ∧ lay.wr ≤ S.length ∧ g.bs.length = lay.old.length ∧ lay.wr ≤ lay.old.length ∧
-    (∀ b (x : ByteG), g.bs[b]? = some x →
-      ByteOk (S.getD b 0) (lay.old.getD b 0) (decide (b < S.length)) (decide (b < lay.wr))
-        (decide (b < lay.so)) x) ∧
-    lay.z0 ≤ lay.wr ∧ (S.take lay.z0 = lay.old.take lay.z0) ∧
-    (lay.z0 < S.length → ∀ b, lay.z0 ≤ b → b < lay.old.length → lay.old.getD b 0 = 0)
+    (SegExact g → TailLast C Mr d lay g) ∧ (¬ SegExact g → TailWin C Mr d lay g)
   /-- The synced operations' frames, in the last segment, are synced. -/
   synced : d.m ≤ d.H.length ∧
     (recFrames C ((segRecs C Mr { d with H := d.H.take d.m } lay.cuts).getD lay.cuts.length [])).length
@@ -197,6 +234,38 @@ structure WalAbsD (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (
   /-- There is a segment (`Create` makes the first; a purge keeps the last). -/
   nonempty : lay.segs ≠ []
 
+/-- **The last segment's facts, no resize window open on it.** -/
+theorem WalAbsD.lastEx {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
+    (h : WalAbsD C Mr d lay ents) (hex : TailExact lay) (g : SegG) (hg : lay.segs.getLast? = some g) :
+    TailLast C Mr d lay g :=
+  (h.last g hg).1 (hex g hg)
+
+/-- **The last segment's facts below `wr`**, a resize window open on it or not. -/
+theorem WalAbsD.lastWin {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
+    (h : WalAbsD C Mr d lay ents) (g : SegG) (hg : lay.segs.getLast? = some g) :
+    TailWin C Mr d lay g := by
+  by_cases hx : SegExact g
+  · exact ((h.last g hg).1 hx).win
+  · exact (h.last g hg).2 hx
+
+/-- **Every segment's `OsMeta` half exact**, no resize window open on the last (the form of
+`metas` before I3b). -/
+theorem WalAbsD.metasEx {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
+    (h : WalAbsD C Mr d lay ents) (hex : TailExact lay) (g : SegG) (hg : g ∈ lay.segs) :
+    g.om.size = g.bs.length ∧ g.om.cut = none ∧ g.om.lo = g.bs.length ∧ g.om.hi = g.bs.length := by
+  obtain ⟨h1, h2, -, -, h5⟩ := h.metas g hg
+  have : SegExact g := by rcases h5 with h5 | h5; exact hex g h5; exact h5
+  exact ⟨h1, h2, this.1, this.2⟩
+
+/-- The last segment's `OsMeta` and bytes decide whether a window is open: two layouts with the same
+last segment are exact together. -/
+theorem tailExact_of_last {lay lay' : WalLay} (h : lay'.segs.getLast? = lay.segs.getLast?)
+    (hex : TailExact lay) : TailExact lay' := fun g hg => hex g (h ▸ hg)
+
+/-- A segment whose `OsMeta` half is exact satisfies `metas`' last clause. -/
+theorem segExact_metas {g : SegG} {lay : WalLay} (h : SegExact g) :
+    lay.segs.getLast? = some g ∨ SegExact g := Or.inr h
+
 /-! ## W1 over the ghost candidates -/
 
 /-- The ghost form of `AsOfOne`: the image bytes `img` of `[o, o + len)` against the bytes `bs`'
@@ -208,12 +277,14 @@ def AsOfOneG (bs : List ByteG) (img : List w8) (o len : Nat) : Prop :=
 
 /-- **W1 over a crashed WAL directory**, from the ghost candidates: its `.wal` files `js` (in name
 order), their images `img`, read from any of them on with a fresh reader; a file that is a segment
-the invariant knows (`bsOf i = some bs`) has every accepted frame's core as of one change of `bs`'
-candidates. -/
+the invariant knows (`bsOf i = some bs`), its image no longer than its bytes, has every accepted
+frame's core as of one change of `bs`' candidates. (An image longer than the bytes the invariant knows
+is a crash in a resize window, I3b: the bytes past them are the state's, which the ghost state does not
+see.) -/
 def W1G (C : WalCodec) (js : List Ino) (img : Ino → List w8) (bsOf : Ino → Option (List ByteG)) :
     Prop :=
   ∀ k, ∀ p ∈ acceptsFiles C ((js.drop k).map img) 0#32, ∀ i bs, (js.drop k)[p.1]? = some i →
-    bsOf i = some bs → AsOfOneG bs (img i) p.2 (frameCore (img i) p.2)
+    bsOf i = some bs → (img i).length ≤ bs.length → AsOfOneG bs (img i) p.2 (frameCore (img i) p.2)
 
 /-- The ghost bytes of the segment of inode `i`, if it is one of the layout's. -/
 def segBytesOf (lay : WalLay) (i : Ino) : Option (List ByteG) :=
@@ -239,12 +310,12 @@ crashed tree is the state's, each segment's image no larger than its bytes the i
 candidates in the old state the ghost ones. -/
 theorem w1G_of_W1 (C : WalCodec) (st st' : Fs.OsState) (m' : Tree) (lay : WalLay)
     (hw1 : W1 C st st') (htree : st'.fs.treeDur = m')
-    (hsegs : ∀ g ∈ lay.segs, (∀ f', st'.fs.files !! g.ino = some f' → f'.size ≤ g.bs.length) ∧
+    (hsegs : ∀ g ∈ lay.segs,
       ∃ f, st.fs.files !! g.ino = some f ∧ ∀ b (y : ByteG), g.bs[b]? = some y → f.cand b = y.2) :
     W1G C (walInos (entsOf m' lay.j)) (fun i => imgOf (st'.fs.files !! i)) (segBytesOf lay) := by
-  intro k p hp i bs hi hbs
+  intro k p hp i bs hi hbs hsz
   obtain ⟨g, hg, rfl, rfl⟩ := segBytesOf_some hbs
-  obtain ⟨hsz, f, hf, hcand⟩ := hsegs g hg
+  obtain ⟨f, hf, hcand⟩ := hsegs g hg
   obtain ⟨x, hx, hb⟩ := acceptsFiles_bound C _ _ p hp
   rw [List.getElem?_map, hi] at hx
   simp only [Option.map_some, Option.some.injEq] at hx
@@ -276,7 +347,8 @@ theorem w1G_of_W1 (C : WalCodec) (st st' : Fs.OsState) (m' : Tree) (lay : WalLay
         intro b h1 h2
         have hbs : b < f'.size := by omega
         refine ⟨contents_getD f' b hbs, ?_⟩
-        have hbl : b < g.bs.length := Nat.lt_of_lt_of_le hbs (hsz f' hf')
+        have hbl : b < g.bs.length := by
+          simp only [hf', imgOf, Option.map_some, Option.getD_some, hlen] at hsz; omega
         rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hbl]
         exact (hcand b _ (List.getElem?_eq_getElem hbl)).symm
       rcases h1 with h1 | ⟨n, hn, h1⟩

@@ -309,11 +309,11 @@ theorem segBytesOf_mem {lay : WalLay} {g : SegG} (hnd : (lay.segs.map (·.ino)).
 /-- **The tail's candidates** (`TailCands`) from the static relation and F-Z. -/
 theorem tailCands_of_abs {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
     {g : SegG} (habs : WalAbsD C Mr d lay ents) (hZ : TailZeros lay)
-    (hg : lay.segs.getLast? = some g) :
+    (hg : lay.segs.getLast? = some g) (hex : SegExact g) :
     TailCands (fun b => (segStream C Mr d lay.cuts lay.cuts.length).getD b 0)
       (fun b => lay.old.getD b 0)
       (fun b => if b < g.bs.length then (g.bs.getD b (0, [])).2 else [(0, 0)]) lay.so lay.z0 := by
-  obtain ⟨hso, hwr, hlen, hwro, hbytes, hz0, htake, -⟩ := habs.last g hg
+  obtain ⟨hso, hwr, hlen, hwro, hbytes, hz0, htake, -⟩ := (habs.last g hg).1 hex
   generalize segStream C Mr d lay.cuts lay.cuts.length = S at hwr hbytes htake ⊢
   have hb : ∀ b, b < g.bs.length → ByteOk (S.getD b 0) (lay.old.getD b 0) (decide (b < S.length))
       (decide (b < lay.wr)) (decide (b < lay.so)) (g.bs.getD b (0, [])) := by
@@ -385,7 +385,7 @@ theorem lastRecs_length (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (cuts : Li
 theorem crashTo_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
     {ents : Ents} {m' : Tree} {fo fo0 : Ino → Option Fs.OsFile} {g : SegG}
     (habs : WalAbsD C Mr d lay ents) (hZ : TailZeros lay) (hB : TailBound C Mr d lay)
-    (hnd : (lay.segs.map (·.ino)).Nodup) (hg : lay.segs.getLast? = some g)
+    (hnd : (lay.segs.map (·.ino)).Nodup) (hg : lay.segs.getLast? = some g) (hex : SegExact g)
     (h0 : CrashTo C Mr d lay m' fo0) (hfo : ∀ i, i ≠ g.ino → fo0 i = fo i)
     (hfc : FileCrashedR g.om [(0, DFrac.own (1 : Qp).half, g.bs)] (fo g.ino))
     (hn : g.ino ∈ walInos (entsOf m' lay.j) → (fo g.ino).isSome)
@@ -404,13 +404,14 @@ theorem crashTo_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} {
     rw [hinos]; exact List.mem_map_of_mem (List.mem_of_getLast? hgq)
   obtain ⟨f, hf⟩ := Option.isSome_iff_exists.1 (hn hgin)
   obtain ⟨-, hlo, hhi, hrun, -⟩ := hfc f hf
-  obtain ⟨-, -, hmlo, hmhi⟩ := habs.metas g hgm
+  have hmlo := hex.1
+  have hmhi := hex.2
   have hsz : f.size = g.bs.length := by omega
-  obtain ⟨hso, hwr, hlen, hwro, -, hz0, -, -⟩ := habs.last g hg
+  obtain ⟨hso, hwr, hlen, hwro, -, hz0, -, -⟩ := (habs.last g hg).1 hex
   -- the decoding core
   generalize hR : lastRecs C Mr d lay.cuts = R
   have hRS : segStream C Mr d lay.cuts lay.cuts.length = recFrames C R := by rw [← hR]; rfl
-  have hT := tailCands_of_abs habs hZ hg
+  have hT := tailCands_of_abs habs hZ hg hex
   rw [hRS] at hT
   generalize hcs : (fun b => if b < g.bs.length then (g.bs.getD b (0, [])).2 else [(0, 0)]) = cs
     at hT
@@ -473,6 +474,7 @@ theorem crashTo_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} {
           Option.getD_some, List.mem_map]
         exact ⟨p, hp, rfl⟩
       have h1 := hw _ (0, p) hp' g.ino g.bs (by rw [hjs]; rfl) (segBytesOf_mem hnd hgm)
+        (by show (imgOf (fo g.ino)).length ≤ _; simp [imgOf, hf, contents_length, hsz])
       obtain ⟨x, hx, hxb⟩ := acceptsFiles_bound C _ _ _ hp'
       rw [hjs] at hx
       simp only [List.map_cons, List.map_nil, List.getElem?_cons_zero, imgOf, hf, Option.map_some,
@@ -627,7 +629,7 @@ theorem w1G_sync (C : WalCodec) (js : List Ino) (img : Ino → List w8)
     (h : ∀ i bs, bsOf i = some bs → ∀ b, b < (img i).length →
       (img i).getD b 0 = valAt (bs.getD b (0, [])).2 0) :
     W1G C js img bsOf := by
-  intro k p hp i bs hi hbs
+  intro k p hp i bs hi hbs _
   obtain ⟨x, hx, hb⟩ := acceptsFiles_bound C _ _ p hp
   rw [List.getElem?_map, hi] at hx
   simp only [Option.map_some, Option.some.injEq] at hx
@@ -689,7 +691,7 @@ theorem crashOkA_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur}
     (hs0 : lay0.segs = pre ++ [g0]) (hs : lay.segs = pre ++ [g]) (hino : g.ino = g0.ino)
     (hjr : lay.jr = lay0.jr) (hnm : lay.nm = lay0.nm) (hj : lay.j = lay0.j)
     (hcuts : lay.cuts = lay0.cuts) (hfirst : lay.first = lay0.first)
-    (hlen : g.bs.length = g0.bs.length) (hzf : ∀ z, g0.om.zf = some z → g0.bs.length ≤ z)
+    (hlen : g.bs.length = g0.bs.length) (hzf : (∀ z, g0.om.zf = some z → g0.bs.length ≤ z) ∧ SegExact g0 ∧ SegExact g)
     (halt : ∀ la, alt = some la → ∀ g' ∈ la.segs, g'.ino ≠ g.ino)
     (hok : CrashOkA C Mr d lay0 alt cl n) : CrashOkA C Mr d lay alt cl n := by
   intro m' fo hr hf hnmd hw
@@ -710,8 +712,8 @@ theorem crashOkA_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur}
     intro f' hf'
     obtain ⟨f, hf1, rfl⟩ := Option.map_eq_some_iff.1 hf'
     obtain ⟨-, hlo, hhi, -, -⟩ := hf g hgm f hf1
-    obtain ⟨-, -, hmlo, hmhi⟩ := habs.metas g hgm
-    obtain ⟨-, -, hmlo0, hmhi0⟩ := habs0.metas g0 (List.mem_of_getLast? hg0)
+    obtain ⟨hmlo, hmhi⟩ := hzf.2.2
+    obtain ⟨hmlo0, hmhi0⟩ := hzf.2.1
     have hsz : f.size = g0.bs.length := by omega
     have hsz' : (syncImg g0.bs f.size).size = g0.bs.length := hsz
     refine ⟨⟨_, rfl⟩, by omega, by omega, ?_, ?_⟩
@@ -719,14 +721,14 @@ theorem crashOkA_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur}
       rw [List.mem_singleton] at hr; subst hr
       simp only [Nat.zero_add] at hks ⊢
       rw [syncImg_cache g0.bs f.size k (show k < f.size from hks)]
-      obtain ⟨-, -, -, -, hbytes, -⟩ := habs0.last g0 hg0
+      obtain ⟨-, -, -, -, hbytes, -⟩ := (habs0.last g0 hg0).1 hzf.2.1
       have hb := hbytes k (g0.bs[k]'hk) (List.getElem?_eq_getElem hk)
       have e : g0.bs.getD k (0, []) = g0.bs[k]'hk := by
         rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hk, Option.getD_some]
       rw [e]
       exact .inl (valAt_mem0 hb.head0)
     · intro z hz b hzb hb
-      have := hzf z hz; omega
+      have := hzf.1 z hz; omega
   have hf0 : ∀ g' ∈ lay0.segs, FileCrashedR g'.om [(0, DFrac.own (1 : Qp).half, g'.bs)]
       (fo0 g'.ino) := by
     intro g' hg'
@@ -760,7 +762,8 @@ theorem crashOkA_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur}
       cases hfg : fo g'.ino with
       | none => simp [imgOf, hfg] at hb
       | some f' =>
-        have hm := habs0.metas g' hg'
+        have hm := habs0.metasEx (fun g1 hg1 => by
+          rw [hg0] at hg1; exact Option.some.inj hg1 ▸ hzf.2.1) g' hg'
         have hfc := hf g' (by rw [hs]; simp [hgp])
         rw [hfg] at hfc
         have hc := img_durable hfc hdur hm.2.2.1 hm.2.2.2
@@ -783,7 +786,7 @@ theorem crashOkA_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur}
   rcases hok m' fo0 hr hf0 hn0 hw0 with h | ⟨la, hla, h⟩
   · left
     have h' := crashTo_congr_lay hjr hnm hj hcuts hfirst hinos h
-    exact crashTo_tail hC habs hZ hB hnd hg h' hfo (hf g hgm) (hnmd g hgm) hw
+    exact crashTo_tail hC habs hZ hB hnd hg hzf.2.2 h' hfo (hf g hgm) (hnmd g hgm) hw
   · right
     exact ⟨la, hla, crashTo_congr_fo (fun g' hg' => hfo _ (halt la hla g' hg')) h⟩
 

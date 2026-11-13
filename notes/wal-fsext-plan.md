@@ -788,6 +788,51 @@ coordinator's decisions). Both separate; every lemma below builds, no `sorry`.
   `∀ m', RegionCrashed cl n m' → walInos (entsOf m' lay.j) = walInos ents` (`start_walEnt`, `walInos_congr`;
   `Crash.lean` imports `CutSynced`).
 
+**Ninth session (branch `wal-zte2`, 2026-11-13): `WalAbsD` relaxed for the tail's resize window** (the
+coordinator's decision of the I3b entry's open item 1; pure, every repaired module builds).
+- *The window* is read off the last segment's `OsMeta` half: **`SegExact g := g.om.lo = |g.bs| ∧ g.om.hi =
+  |g.bs|`** (a crash leaves the file at its size); a resize opens it (truncate in flight: `lo = tg`; landed:
+  `hi` the old size; a growth: `hi` the target, then `lo` the size before), the fdatasync after it closes it
+  (`OsMeta.synced`); writes inside the file keep it. No new layout field, no ghost flag.
+- *`WalAbsD`* (`Abs.lean`; same twelve fields, so positional patterns still match):
+  - `metas`: `size = |bs| ∧ cut = none ∧ lo ≤ |bs| ∧ |bs| ≤ hi ∧ (segs.getLast? = some g ∨ SegExact g)`
+    (every segment but the last exact);
+  - `last g`: `(SegExact g → TailLast …) ∧ (¬ SegExact g → TailWin …)`. `TailLast` is the old 8-tuple
+    unchanged; **`TailWin`** (the window) = `so ≤ wr ∧ wr ≤ |S| ∧ |bs| ≤ |old| ∧ wr ≤ |bs| ∧ ByteOk below wr only
+    ∧` the three `z0` facts. Bytes from `wr` on are unconstrained in the window (the coordinator's "zero
+    candidates past the stream" is subsumed: a growth's bytes carry the file's candidates past its size, not
+    `(y, 0)`, and its page cache is 0, not `old`; `ByteOk` itself unchanged, so `Save`'s `ByteOk.snoc` stands).
+  - Accessors: `WalAbsD.lastEx (hex : TailExact lay)` (the old `last`), `WalAbsD.lastWin` (`TailWin`, window
+    or not), `WalAbsD.metasEx hex` (the old `metas`); `TailExact lay := ∀ g, getLast? = some g → SegExact g`.
+- *`W1G`* takes `(img i).length ≤ bs.length →` (frames of an image longer than the bytes the ghost knows are
+  a window crash; `w1G_of_W1` no longer needs a size bound, so `crashGood_exists` holds in a window).
+- *Exactness supplied where the crash proofs need it* (statement changes):
+  - pure: `crashTo_synced`, `crashOkA_rename`, `cutLay_abs`, `crashOkA_cut` (`hex : TailExact lay`;
+    `crashOkA_cut` also `hexg : SegExact g`, the new segment), `crashTo_tail` and `tailCands_of_abs`
+    (`hex : SegExact g`), `walAbsD_tail`/`walAbsD_announce`/`walAbsD_finish` (`hex0 : SegExact g0`),
+    `crashOk_create_new`/`walsOk_create` (`CreateCommit`) and `dirKeysOk_create` (`hex`/`hexL`);
+  - the tail steps' `hzf` (`crashOkA_tail`, `crashOkW_tail`, `walsOk_tail`, `TailAcc`'s two lemmas and
+    `walInvBody_tail`'s continuation) is now `(∀ z, …) ∧ SegExact g0 ∧ SegExact g`;
+  - `WalsStart`'s, `CrashGood`'s and `crashTo_start`'s last-segment clause, and `walAbs_crashOk_start`'s
+    `hlast`: `g.bs = old.map durB ∧ SegExact g` (a crash's files are `initMeta`: exact);
+  - **`TailMeta`** (`Handle.lean`, the program's knowledge in `walTailW`) gains `m.lo = m.size ∧ m.hi = m.size`
+    (the program writes only outside a window): `TailWriter` derives `SegExact` from it at both steps and keeps
+    it (`pwPost` of a write inside the file).
+  - **`walCreate_osAUnc`** (`CreateAu`) takes `hgx : SegExact g` (the fresh segment's `OsMeta`, `initMeta`-like);
+    **`walCut_osAUnc`** (`CutAu`) takes `hm0x : m0.lo = m0.size ∧ m0.hi = m0.size` (the old tail's `OsMeta` after
+    the truncate's fdatasync), `cutCommit_pure` `hex0 : SegExact g0`.
+- *Build*: `lake build LinuxFs` at `wal-int` `1ac7232c86` plus this: every module builds but four that fail
+  without importing anything changed here (`bufio/Reader__Read` 217/259 "No goals", `wal/DecLemmas` 67,
+  `wal/ReadBridge` 79 `iintro` of a non-existential, `wal/checkWALNames` 120 `zapLoggerOk lg` not pure).
+- **Obligations**: `Create` (wal-create9): `hgx` for `walCreate_osAUnc`; `TailMeta`'s two new conjuncts where
+  `walTailW` is built (`Create`, `ReadAll`: after `ZeroToEnd` and its fdatasync, `OsMeta.synced` has `lo = hi =
+  size`). `cut` (wal-cut8): `crashOkA_cut`'s `hex` (the old tail after `cut`'s truncate and sync: exact again
+  once the sync's commit sets the invariant's `om` to the synced meta) and `hexg`; `cutLay_abs`'s `hex`.
+  Every resize step (`cut`'s truncate, `ZeroToEnd`) commits a layout in the window: `last`'s `TailWin` half
+  (`wr ≤ |bs|`: `cut` truncates to `wr`, `ZeroToEnd` to `z0 = wr`), and the sync's commit closing it must
+  give `TailLast` again (`|bs| = |old|`: `ReadAll`'s sync re-sets `old` to the zeroed bytes, `cut`'s to the
+  truncated ones).
+
 ## 9. The trusted-model drafts (2026-11-13, branch `wal-models`; pending the user's review [user])
 
 The WAL and fileutil retranslated from the fork's `goose-lean-walfs` (`f15d88841`, the two local fixes
