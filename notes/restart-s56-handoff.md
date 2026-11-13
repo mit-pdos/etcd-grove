@@ -48,6 +48,55 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
   and the risks R1-R5 (§7).
 - Decisions go in the worktree's `questions.md` (untracked).
 
+## S6a (decided 2026-11-13; `questions.md`): next agent starts here
+
+(b′) decided by 81. The `bootOk`/`bootOkR` conjunct `⌜snap.snapDBPath bs.ss' = snap.snapDBPathOf
+cfg.DataDir'⌝` was approved by the user (2026-11-13). Design and texts are in
+`/shared/tmp/restart-s56/freeze-s6a.md` §3.
+
+**S6a-1 (go; stay out of `NewServer.lean`, `AuthSrv.lean`, `InvStart.lean`, `ServerOn*.lean`,
+`AuthCompRows.lean`).** In order:
+1. `Proof/.../etcdserver/api/snap/Defs.lean`: `opaque snapDBPathOf [GooseExts] (dd : GoString) (id :
+   w64) : GoString`, with a docstring giving the Go evidence (`bootstrapSnapshot` returns
+   `snap.New(cfg.Logger, cfg.SnapDir())`, `bootstrap.go:252`; `SnapDir() = filepath.Join(MemberDir(),
+   "snap")` and `MemberDir() = datadir.ToMemberDir(DataDir)`, `config.go:300,309`;
+   `dbFilePath(id) = filepath.Join(s.dir, "%016x.snap.db")`, `db.go:117-119`; `s.dir` is set only in
+   `New`, `snapshotter.go:34-40`). `etc/tcb-report.py --check --update` will list the new opaque, so
+   record it in the package.
+2. `E/InvBoot.lean:260` (`bootOk`) and `E/InvRestart.lean:409` (`bootOkR`): add
+   `"%Hssp" ∷ ⌜snap.snapDBPath bs.ss' = snap.snapDBPathOf cfg.DataDir'⌝`. The text is approved
+   exactly as written. The first start's proof (`NewServer.lean`) just drops `%Hssp` until S6a-2;
+   check that the auth-fix files need no edit for that (an `icases` pattern may need `-`). If they do,
+   defer and tell 81.
+3. `E/SnapRO.lean`: `srvSnapRm γt γr` → `snapRmM γm j := monoNatLbOwn γm (uint.nat j + 1)`. In
+   `srvSnapRO`, `srvSnapBoot` and `srvSnapOwn`, `⌜nt ≤ ai⌝ ∗ monoNatAuthOwn γt 1 nt` →
+   `⌜c ≤ ai + 1⌝ ∗ monoNatAuthOwn γm 1 c`. Restate `snapDir_take` (it refutes `Rm i` for
+   `c ≤ a + 1 ≤ i`, then raises to `i + 1`). Check `srvSnapOwn_mono`.
+4. Follow the importers: `etc/importers.py --uses srvSnapRm --files` (`SnapTake`, `ApplyAllSnap`,
+   `SnapApplyWalk`, `InvRun`, `EtcdServer__snapshot` (`Release`'s `Rm j` by raising `γm` to `ai`, not
+   from `appliedAtLeast`), `Spec/.../EtcdServer__applySnapshot.lean:209` (a proved internal spec, a
+   form), `EtcdServer__applySnapshot`, `SnapApplyDefs`). **`NewServer.lean` also uses `srvSnapRm`**
+   (allocation): if the rename breaks it, keep a compatibility alias or defer that line to S6a-2, and
+   tell 81.
+5. The image: `srvDiskImage` (`E/InvRestart.lean:157`) gains `∃ ssₒ γm c, inv snapDirN (snapDirInv ssₒ
+   γd (srvImageM false γ) (snapRmM γm)) ∗ ⌜snap.snapDBPath ssₒ = snap.snapDBPathOf dd⌝ ∗
+   monoNatAuthOwn γm 1 c ∗ ⌜c ≤ uint.nat i + 1⌝`, with `γ.snapLoc id = some γd`. The stop chain
+   (`E/StopShutdown.lean`: `applyResStopR`, `stop_cleanup_image`) carries `srvSnapOwn`'s parts there.
+   The first start's `Hssp` reaches the image only through `NewServer` (S6a-2), so the stop needs it in
+   the apply thread's persistent bundle (`srvSnapRO`: add the equation there; it is filled in S6a-2).
+6. A lemma `snapDirInv_ss_congr : snapDBPath ss = snapDBPath ss' → snapDirInv ss … = snapDirInv ss' …`
+   (Net.lean, or a new file of the server, so that Net.lean is not touched).
+7. `etc/lean-check.py -a` on each file, then a full build under the lock and the cap. Then
+   `tcb-report --check` (expect +1 opaque, `snapDBPathOf`), `gen-interface --check` for the APIs, and
+   the gates. Then fill §3.2 of `freeze-s6a.md` with the final Lean texts and **STOP for 81's
+   `axiom`-skill review** (target: the unchanged `SaveDBFrom` with two incarnations' snapshotters of
+   one directory and a stale writer; `snapDBPathOf`).
+
+**Also: probes P1-P3 and P6** in `Scratch/S56Probe.lean` (plan §4 A1). They are independent of S6a, so
+do them while builds run.
+
+**S6a-2 and Phase B** wait until the auth fix lands.
+
 ## Next, in order (once approved)
 
 1. A0: baseline build done (clean).
