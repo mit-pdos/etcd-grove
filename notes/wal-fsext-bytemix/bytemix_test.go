@@ -49,6 +49,7 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
 
+	"go.etcd.io/etcd/client/pkg/v3/fileutil"
 	"go.etcd.io/etcd/pkg/v3/pbutil"
 	"go.etcd.io/etcd/server/v3/storage/wal/walpb"
 	"go.etcd.io/raft/v3/raftpb"
@@ -188,8 +189,8 @@ func bmFrames(t testing.TB, b []byte, size int64) ([]bmRec, []int64) {
 	return recs, ends
 }
 
-func bmDecode(b []byte, size int64) (recs []bmRec, ends []int64, err error) {
-	d := NewDecoder(&bmFile{b: b, size: size})
+func bmDecode(b []byte, size int64, pre ...[]byte) (recs []bmRec, ends []int64, err error) {
+	d := NewDecoder(bmReaders(b, size, pre)...)
 	rec := &walpb.Record{}
 	for err = d.Decode(rec); err == nil; err = d.Decode(rec) {
 		recs = append(recs, bmRec{rec.GetType(), rec.GetCrc(), append([]byte(nil), rec.Data...)})
@@ -233,12 +234,12 @@ func (o bmOutcome) key() string {
 }
 
 // bmVSE is validSnapshotEntries' loop (wal.go) over the in-memory image.
-func bmVSE(b []byte, size int64) ([]*walpb.Snapshot, error) {
+func bmVSE(b []byte, size int64, pre ...[]byte) ([]*walpb.Snapshot, error) {
 	var snaps []*walpb.Snapshot
 	state := &raftpb.HardState{}
 	var err error
 	rec := &walpb.Record{}
-	decoder := NewDecoder(&bmFile{b: b, size: size})
+	decoder := NewDecoder(bmReaders(b, size, pre)...)
 	for err = decoder.Decode(rec); err == nil; err = decoder.Decode(rec) {
 		switch rec.GetType() {
 		case SnapshotType:
@@ -268,16 +269,16 @@ func bmVSE(b []byte, size int64) ([]*walpb.Snapshot, error) {
 	return snaps[:n:n], nil
 }
 
-func bmRestartMem(b []byte, size int64) (o bmOutcome) {
+func bmRestartMem(b []byte, size int64, pre ...[]byte) (o bmOutcome) {
 	defer func() {
 		if r := recover(); r != nil {
 			o.kind, o.why = "panic", fmt.Sprint(r)
 		}
 	}()
-	recs, _, derr := bmDecode(b, size)
+	recs, _, derr := bmDecode(b, size, pre...)
 	o.recs = recs
 	o.stopOK = errors.Is(derr, io.EOF) || errors.Is(derr, io.ErrUnexpectedEOF)
-	snaps, err := bmVSE(b, size)
+	snaps, err := bmVSE(b, size, pre...)
 	if err != nil {
 		return bmOutcome{kind: "fatal", why: "vse: " + err.Error(), recs: recs, stopOK: o.stopOK}
 	}
@@ -285,7 +286,7 @@ func bmRestartMem(b []byte, size int64) (o bmOutcome) {
 	if len(snaps) > 0 {
 		start = snaps[len(snaps)-1]
 	}
-	w := &WAL{lg: zap.NewNop(), start: start.Clone(), decoder: NewDecoder(&bmFile{b: b, size: size})}
+	w := &WAL{lg: zap.NewNop(), start: start.Clone(), decoder: NewDecoder(bmReaders(b, size, pre)...)}
 	md, hs, ents, err := w.ReadAll()
 	if err != nil {
 		return bmOutcome{kind: "fatal", why: "readall: " + err.Error(), recs: recs, stopOK: o.stopOK}
@@ -744,4 +745,13 @@ func bmShort(o bmOutcome) string {
 		idx = append(idx, fmt.Sprintf("%d/%d/%d/%dB", e.GetIndex(), e.GetTerm(), e.GetType(), len(e.GetData())))
 	}
 	return fmt.Sprintf("hs={%s} start={%s} snaps=%d ents=[%s]", o.hs.String(), o.start.String(), len(o.snaps), strings.Join(idx, " "))
+}
+
+// bmReaders: the earlier segments (whole, synced) and the last one's image.
+func bmReaders(b []byte, size int64, pre [][]byte) []fileutil.FileReader {
+	var rs []fileutil.FileReader
+	for _, p := range pre {
+		rs = append(rs, &bmFile{b: p, size: int64(len(p))})
+	}
+	return append(rs, &bmFile{b: b, size: size})
 }
