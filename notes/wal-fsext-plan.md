@@ -851,6 +851,18 @@ coordinator's decision for the first, mine for the second).**
   (`walParked_lock`, `CreateKeys.lean`: flag to `false`, nothing out, `walTmpParked_unpark`). The drop's
   exclusion is `walUnlockedTok_excl`. `Close`'s exclusion of a non-empty map is `walLockedTok_unlocked_excl`.
 
+**Integration fixes (branch `wal-int2`, 2026-11-13):**
+- Merge `wal-zte2` into `wal-int` (with `wal-save8`): `crashTo_tailM` keeps the mark `m0` and takes `hex : SegExact g`;
+  `walAbsD_sync` (and `crashOk_sync`, `walsOk_sync`, `dirKeysOk_sync`, `walInvBody_sync`'s success wand) takes
+  `hex : SegExact g0` (the synced tail is exact, so its `TailLast` needs the tail exact before the sync; a sync closing
+  a resize window is still the obligation above), discharged in `wp_tailFsync` from `TailMeta`'s `lo = hi = size`;
+  `TailMeta.synced` gives the two new conjuncts; `wp_tailFsync`'s `hzf` reads `TailMeta`'s third conjunct.
+- `checkWALNames` (120): `zap.Logger.Warn`'s precondition is now `zapLoggerOk` (premise-fixes-6): `iexact Hlg`.
+- `bufio/Reader__Read` (217, 259), `wal/DecLemmas` (67), `wal/ReadBridge` (79): not merge breakage; a stale
+  `Proof/io/ReaderStream` `.olean` in the seeded `.lake` (without `io.readerStream`'s `2 ^ 62` bound). Deleting its
+  artifacts and rebuilding fixes all three, with no source change.
+- Merge `wal-create10`: notes conflict only; everything builds.
+
 ## 9. The trusted-model drafts (2026-11-13, branch `wal-models`; pending the user's review [user])
 
 The WAL and fileutil retranslated from the fork's `goose-lean-walfs` (`f15d88841`, the two local fixes
