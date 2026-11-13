@@ -666,6 +666,22 @@ theorem srvSnapOwn_of_boot (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (�
     ipureintro; exact Nat.zero_le _
   · iexists γm; iexact Hro
 
+/-- (Restart S6, CP2) **The persistent bundle of the apply thread's resources** (`start`'s, for
+`run`, from `isServerBuiltC`'s restart point since CP2). -/
+theorem srvSnapOwn_ro (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γA : ApplyNames)
+    (ai : w64) :
+    srvSnapOwn (GF := GF) s ci E γr γA ai ⊢
+      srvSnapOwn s ci E γr γA ai ∗ ∃ γm : GName, srvSnapRO s ci E γr γm := by
+  iintro H
+  iunfold srvSnapOwn at H
+  icases H with ⟨%γm, %c, #Hro, %Hc, Ha, Hres⟩
+  isplitl [Ha Hres]
+  · iunfold srvSnapOwn
+    iexists γm, c
+    iframe Hro Ha Hres
+    ipureintro; exact Hc
+  · iexists γm; iexact Hro
+
 /-- **What `applySnapshot` gives back after a non-empty snapshot** (`applySnapshot.spec`'s second
 part, S8d): `applyAll`'s post shape at the snapshot's backend `d'` (`beSucc`: the protocol's names
 `γ'` and the environment `E'` at it, the server's view `isServer` there, the apply thread's

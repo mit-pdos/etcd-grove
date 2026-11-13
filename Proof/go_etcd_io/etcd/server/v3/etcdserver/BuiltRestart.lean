@@ -6,11 +6,12 @@ and the restart's pure facts for `NodeStartSpecR` (probe P6) and `bootstrap`'s r
 cluster version, `restart_clusterVerLogOk`). Lean-first (no Rocq counterpart).
 
 `srvBuiltR` is `isServerBuiltC .off`'s rows less the stop's slot (`srvStop.slot`, which the post's
-`srvStop.keep` gives, as at a first start): a first start's `srvBuiltG false` and `srvBuildGap` reach
-`isServerBuiltC` only through `isServerBuiltC_of_gap`, which completes their KV rows (the
-uber-applier's field into `#Hfb`, `srv.kv` into `#Hrdb`) and moves the first-start snapshot and
-token rows into `HBr` at `P = []`; at a restart the construction gives the completed rows and `HBr`
-at the restart point (`srvBuiltRestartR`, restart S4) directly.
+`srvStop.keep` gives, as at a first start), `srvBuiltRC .off` (one text since CP2's review, finding
+3g): a first start's `srvBuiltG false` and `srvBuildGap` reach `isServerBuiltC` only through
+`isServerBuiltC_of_gap`, which completes their KV rows (the uber-applier's field into `#Hfb`,
+`srv.kv` into `#Hrdb`) and moves the first-start snapshot, token and snapshot-path rows into `HBr` at
+`P = []`; at a restart the construction gives the completed rows and `HBr` at the restart point
+(`srvBuiltRestartR`, restart S4) directly.
 -/
 module
 
@@ -44,97 +45,17 @@ asks of the state at `A` (`x.log = kvModel γk A`, `x.chain = γk.ch0`, `x.crev 
 def restartKV (γk : KVNames) (A : List EntryModel) : apply.ApplyKV :=
   ⟨kvModel γk A, γk.ch0, crevOf γk A⟩
 
-set_option linter.unusedVariables false in
-/-- **The built part at a restart** (see the file header): `isServerBuiltC .off`'s rows but the
-stop's slot, the restart point `HBr` (`srvBuiltRestartR .off`: the storage's snapshot at Go's
-`|P|`, the loop's and the apply side's tokens at `P`, the apply thread's resources at the backend's
-log `γn.a0`) in place of a first start's `Hsnap`/`Hloop`/`Happly`/`Happ`, `HEr` without `γn.a0 = []`,
-and `Hwpend` from `srvRestartRows`. (`N`, unused, as `isServerBuiltC`'s.) -/
+/-- **The built part at a restart** (see the file header): `start`'s construction premise less the
+stop's slot at auth off (`srvBuiltRC .off`; CP2 review finding 3g, 2026-11-13: until then a generated
+copy of `isServerBuiltC .off`'s rows, which could drift): the restart point `HBr`
+(`srvBuiltRestartR .off`: the storage's snapshot at Go's `|P|`, the loop's and the apply side's
+tokens at `P`, the apply thread's resources at the backend's log `γn.a0`, and, since CP2's finding 1,
+the snapshot path's resources at `|P|`, `srvSnapOwn`), `HEr` without `γn.a0 = []`, and `Hwpend` from
+`srvRestartRows`. -/
 def srvBuiltR (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
     (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) : IProp GF :=
-  iprop("#Hci" ∷ isServerCI s γ ci ∗
-    "#Hfb" ∷ (∃ v : SrvFields, srvFieldsBuilt s γ ci TM E v) ∗
-    "#Hreqb" ∷ (∃ v : ReqFields, srvReqBuiltM false s E ρ v) ∗
-    "#Hrdb" ∷ (∃ v : ReadFields, srvReadBuilt s E v) ∗
-    "#Hrunb" ∷ (∃ v : RunFields, srvRunBuilt s v) ∗
-    -- (M2, S4) the compactor's run, once (`start` spends it)
-    "Hcrun" ∷ (∃ c : GoInterface, srvCompactorAddr s ↦□ c ∗ compactorRun s E c) ∗
-    "#Hsab" ∷ srvApplyAllBuilt s γr ∗
-    "#Hai" ∷ srvAppliedInvM false s E γr ∗
-    "#Hkvi" ∷ srvKVInvsC .off s E γr ∗
-    "#Hti" ∷ inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗
-    "#Hci'" ∷ srvCommittedInv s γr ∗
-    "#Hrn" ∷ isRaftNode Er γn (srvRAddr s) ∗
-    -- (restart S4, 2026-11-12: R2d'a A6's `γn.a0 = []`, a first start, dropped; the restart point's
-    -- conjuncts are `HBr`'s)
-    "%HEr" ∷ ⌜Er.C = srvCM false ρ E ai₀ c₀ x₀ ∧ Er.γr = γr ∧
-      (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0)⌝ ∗
-    -- (R2d'a A7, A10 item 5, 2026-11-06; DRAFT, approved by 82) no merged snapshot sent at a new
-    -- raft term while the replay window is pending (`srvWinPend`; corrected 2026-11-07: false
-    -- whenever the restarted member is later elected and snapshots a follower, its `n` free; R2s
-    -- (restart S7) removes it; S1 removed row 3, so the restart meaning is limited by this premise
-    -- and by `rnRestartOk`'s graceful-only `|a0| ≤ commit0`; free at a first start, `srvWinPend_first`)
-    "Hwpend" ∷ srvWinPend s γr γn ∗
-    -- (2026-10-30, the repair) the apply side's half of the node's running token
-    "Hrunh" ∷ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half) ∗
-    -- (2026-10-31) the WAL's open token: the apply side's half (its disk snapshot's `SaveSnap`, which
-    -- `run` gives the raft loop with `raftNode.stop`) and the loop's (`raftNode.start`'s); the disk
-    -- cooperating (`storage.diskOk`, `NewServer`'s premise)
-    "Hwth" ∷ rnWalTokA γn (srvRAddr s) (1 : Qp).half ∗ "Hwtl" ∷ rnWalTokL γn (srvRAddr s) ∗
-    "%Hdisk" ∷ ⌜storage.diskOk⌝ ∗
-    -- (2026-11-02, the lease-grant plan's D2) in a cluster that grants leases, the open
-    -- cases (`srvGrantOpen`, `NewServer`'s precondition); (2026-11-04, the lease-expiry plan's
-    -- Part C) as the lease subsystem's sealed premise at some mode (`lease.runCfg`)
-    "%Hslg" ∷ ⌜∃ m : lease.Mode, lease.runCfg (GF := GF) γr.kv.lm m⌝ ∗
-    "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
-    -- (J8b, 2026-11-01) the server's member id is the raft node's (`applyAll.specSnapM`'s member id
-    -- against the snapshot payload's `nodeSnapLocal … γn.id`)
-    "#Hmid" ∷ srvMemberIDAddr s ↦□ γn.id ∗
-    -- (2026-11-02, the cluster-rows stage) the member id a voter (the monitors' permission,
-    -- `srvMonitorPermitM_of`: its attribute requests name it)
-    "%Hmidc" ∷ ⌜γn.id ∈ γr.raft.raft.cfg⌝ ∗
-    -- (J8b, 2026-11-01) the meta reads of the backends a snapshot opens (`bootOk`'s `#HmetaSnap`)
-    "#HmetaSnap" ∷ srvMetaSnap γ ∗
-    -- (restart S4, 2026-11-12) the restart point: the storage's snapshot, the loop's and the apply
-    -- side's tokens at `P`, the apply thread's resources at `γn.a0` (until then `Hsnap` (`rnSnapOnce`
-    -- at `ai₀`), `Hloop`/`Happly` at `[]` and `Happ` (`applyBuiltC`), a first start's)
-    "HBr" ∷ srvBuiltRestartR .off s γ ci b E γr γn ai₀ at₀ c₀ x₀ ∗
-    "Hsend" ∷ Er.S ∗
-    "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
-    "#HNR" ∷ □ (|==> idCred ρ.ids 1) ∗
-    "#Hcv" ∷ clusterVersionOk s ∗
-    "#Hcci" ∷ context.isClosedchanInit ∗
-    "#Hwci" ∷ waitClosecInit ∗
-    -- (the backend-auth-split stage, 2026-11-02) within the backend's pool of readers (`2 ^ 28`;
-    -- until then `2 ^ 31`, `GoAttach`'s)
-    "%Hbound" ∷ ⌜threadBound GF ≤ backend.rdPoolN⌝ ∗
-    -- (revoke-open, 2026-11-06) what `NewServer` built for the revocation
-    "#Hrvkb" ∷ srvRevokeBuilt s E ∗
-    "Hw" ∷ (∃ w : GoInterface, srvWAddr s ↦ w) ∗
-    "Haw" ∷ (∃ aw : GoInterface, srvApplyWaitAddr s ↦ aw) ∗
-    -- (auth-schema-fix S1 option A) the right to fire the token provider's readiness
-    "Htpp" ∷ srvTpPend s E.authMode ∗
-    "Hdone" ∷ (∃ c : Loc, srvDoneAddr s ↦ c) ∗
-    "Hstop" ∷ (∃ c : Loc, srvStopAddr s ↦ c) ∗
-    "Hstopping" ∷ (∃ c : Loc, srvStoppingAddr s ↦ c) ∗
-    "Hctx" ∷ (∃ c : GoInterface, srvCtxAddr s ↦ c) ∗
-    "Hcancel" ∷ (∃ c : GoFunc, srvCancelAddr s ↦ c) ∗
-    "Hread" ∷ (∃ r : Loc, srvReadAddr s ↦ r) ∗
-    "Hlc" ∷ (∃ n : Loc, srvLeaderChangedAddr s ↦ n) ∗
-    "Hsc" ∷ (∃ n : w64, srvSnapCountAddr s ↦ n) ∗
-    "Hscu" ∷ (∃ n : w64, srvSnapCatchUpAddr s ↦ n) ∗
-    "Hwg" ∷ srvWgAddr s ↦ (zero_val sync.WaitGroup) ∗
-    "HwgMu" ∷ srvWgMuAddr s ↦ (zero_val sync.RWMutex) ∗
-    "Hcomm" ∷ (∃ c : w64, srvCommittedOwn γr c) ∗
-    "Hnot" ∷ (∃ x : Loc × NeedNames, ghostVar γr.notifier 1 x) ∗
-    "Hlr" ∷ srvLgReader s ∗
-    "Hlrl" ∷ srvLgReader s ∗
-    "Hfcr" ∷ (∃ n : Loc, srvFirstCommitAddr s ↦□ n ∗ notifyReader n) ∗
-    "HWB" ∷ srvWTBudget E ∗
-    "Hwtok" ∷ idWaitTok ρ.ids ∗
-    -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction (`SnapRO.lean`)
-    "Hsnapb" ∷ srvSnapBoot s ci E γr γ)
+  srvBuiltRC .off s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N
 
 end defs
 
@@ -151,12 +72,8 @@ theorem srvBuiltR_C (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPro
     (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) :
     srvBuiltR (GF := GF) s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ∗ srvStop.slot s E γn Er ⊢
       isServerBuiltC .off s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N := by
-  iintro ⟨H, Hskeep⟩
-  iunfold srvBuiltR at H
-  iNamed H
-  iunfold isServerBuiltC
-  simp only [AuthC.isOn]
-  iframe % # ∗
+  unfold srvBuiltR isServerBuiltC
+  exact .rfl
 
 /-- (Probe P6) **The backend's conf state is within raft's bounds** (`NodeStartSpecR`'s size
 premise): a conf state of the simple membership of `vs`, with fewer than `2^62` voters. -/

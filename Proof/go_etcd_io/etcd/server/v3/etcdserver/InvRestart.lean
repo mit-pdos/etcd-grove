@@ -621,7 +621,9 @@ image, not assumed of the world). `bootstrap`'s `Finalize` runs `cl.Recover`, wh
 reads the `cluster` bucket's version (`ClusterVersionFromBackend`, `semver.MustParse` of the stored
 string) and the downgrade record (`DowngradeInfoFromBackend`, a JSON record whose target version must
 parse), and then `MustDetectDowngrade(lg, serverVersion, c.version)` panics if the stored version is
-above the binary's major.minor (`api/membership/cluster.go:256-279`, `schema/membership.go:190-240`,
+above the binary's `major.minor.0` (it truncates the server version to `semver.New(Major, Minor, 0)`
+and panics when that is below the stored one: on a `3.8.0-alpha.0` binary, a stored `3.8.1` panics;
+`semverAtMostServer`'s docstring; CP2 review, minor (c)) (`api/membership/cluster.go:256-279`, `schema/membership.go:190-240`,
 `version/downgrade.go:42-55`, at the fork's `2eaeb872b`). The image's `cluster` bucket is the model's at `L` (`imageRestAt`'s
 `bkRestAtL`, `restModel`: `restSetVersion` stores `semverNorm v` of each committed `ClusterVersionSet`
 `v`; the only other writer of the bucket, `SetDowngradeInfo`, is a `DowngradeInfoSet`'s), so the contract takes `clusterVerLogOk L`: every such `v` parses
@@ -631,7 +633,18 @@ incarnation wrote, so `semverAtMostServer` is about the same version; the restar
 the premise from the KV invariant's workload fact (`kv_log_verOk`, `SnapRecvFacts.lean`: only the
 monitors propose `ClusterVersionSet`, with the minimum of the members' versions, all the binary's), as
 `membership.clusterImageOk_restModel`'s callers do. (Until then nothing in the contract excluded
-`Recover`'s panic on a newer stored version; the CP2 package's §5 listed it as a world assumption.) -/
+`Recover`'s panic on a newer stored version; the CP2 package's §5 listed it as a world assumption.)
+
+**The WAL's read facts** (restart S6, CP2 review, minor (a), 2026-11-13). `bootOkR`'s WAL slot
+(`wal.restartOk`) includes `walReadFacts σ` (the WAL interface's I1-I4: entries consecutive from the
+base, the last index within raft's room `2^61 - 1`, base ≤ commit ≤ last, the snapshot record at the
+base). `bootstrap` neither establishes nor checks them, and the stopped member's image
+(`srvDiskImageAt`, `wal.stopImage`) does not carry all of them (I2's bound in particular rests on the
+first incarnation's lifetime bound, `receiptBound`, and is recorded nowhere in the image): they are
+the WAL interface's promise about the records any graceful stop leaves, trusted here as part of the
+contract, to be discharged by the WAL collaborator's crash-model spec (C6: `walReadCut_wf`,
+`walReadCut_last_le`, `walReadCut_b_le_commit`, `walReadCut_snapAtBase` of the server's history
+invariant; `notes/wal-crash-handoff/restart-wal-interface.md` §2). -/
 def bootstrapRestartContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
     (γ : SrvRaft) (id : w64) (N : Nat) (dir : w64 → List GoString) : IProp GF :=
   iprop(□ ∀ (σ : StorContents) (i : w64) (L : List EntryModel) (D : backend.Data)

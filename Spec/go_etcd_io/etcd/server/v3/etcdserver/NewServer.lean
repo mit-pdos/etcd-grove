@@ -117,6 +117,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRestart
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.BootCfg
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVStoreApi
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuiltRestart
+public import Proof.go_etcd_io.etcd.server.v3.lease.LessorRecover
 
 @[expose] public section
 
@@ -420,7 +421,12 @@ the storage registry `M`), in the stop's scope: auth off, no compaction mode (`s
 * the post: the built part's restart form (`srvBuiltR`, its law `srvBuiltR_C` to `start`'s
   `isServerBuiltC .off`) at the restart's apply state (`restartKV ρ.rd.kv A`: the KV model of `A`)
   and some snapshot term `at₀`, in place of `srvBuiltG` and `srvBuildGap`; no lease-TTL row
-  (`leaseTTLRowR`, a first start's: Q37 (a)); the auth-on conjunct gone; the rest `specG`'s. -/
+  (`leaseTTLRowR`, a first start's: Q37 (a)); the auth-on conjunct gone; (CP2 review finding 2,
+  2026-11-13) the lease subsystem's part with its lessor's history starting at the snapshot
+  `NewLessor` recovers from the image's `lease` bucket (`lease.srvInvAt`: the bucket's records `recs`,
+  one fresh lease of `ls` each, their TTLs raised to the lessor's minimum `mt`; `NewLessor.spec`'s
+  post), in place of `lease.srvInv`'s empty first snapshot, false at a restart of a cluster that
+  granted a live lease; the rest `specG`'s. -/
 abbrev NewServer.specR : Prop :=
   ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft)
     (id : w64) (ρ ρo : ReqNames) (E₀ : apply.AEnv GF) (N : Nat)
@@ -510,7 +516,12 @@ abbrev NewServer.specR : Prop :=
           srvReadyCloser srv ∗
           srvNetMember γn srv id τ ∗ srvTrTok γn τ ∗
           ([∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ) ∗
-          lease.srvInv false srv E m ∗
+          -- the lease subsystem's part, its lessor's history from the snapshot `NewLessor` recovers
+          -- of the image's `lease` bucket (CP2 review finding 2: a first start's is empty)
+          (∃ (recs : List (w64 × w64 × w64)) (ls : List Loc) (mt : w64),
+            ⌜backend.bktEnts ((D.lookup go!"lease").getD ∅) = recs.map lease.leaseRecEnc ∧
+              ls.length = recs.length⌝ ∗
+            lease.srvInvAt false srv E m (lease.recMap (recs.zip ls), ∅, lease.recTTLs mt recs)) ∗
           srvCfgFieldAddr srv go!"ClientCertAuthEnabled" ↦□ cfg.ClientCertAuthEnabled' ∗
           srvStop.keep srv cfg E γrn γk }}
 

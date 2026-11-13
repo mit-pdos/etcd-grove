@@ -48,6 +48,26 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
   and the risks R1-R5 (§7).
 - Decisions go in the worktree's `questions.md` (untracked).
 
+## CP2 review fixes (2026-11-13, the CP2-fix agent): next agent starts here
+
+81's decisions on the CP2 review (journal `wf_1e0c6340-ec5`); texts old → new in
+`/shared/tmp/restart-s56/freeze-package.md` §11. **STOP for 81's re-review.**
+- Finding 1 (BLOCKER), `start`'s side done: `srvBuiltRestartR` holds `srvSnapOwn s ci E γr γ (W64
+  P.length)` (the counter at most `|P| + 1`); `isServerBuiltC` lost `Hsnapb`; `srvBuiltRestartR_first`
+  takes `srvSnapBoot`; `srvSnapOwn_ro` (SnapRO); `start` adapted. **Open, decision needed**: B2 needs
+  `c ≤ σ.b + 1` from the image, which gives `c ≤ i + 1`; recommended route (A) in §11.1 (`srvSnapOwn`
+  carries `walBaseLb w (c - 1)`, the image gains `c ≤ σ.b + 1`, ~8 proof files).
+- Finding 2 (MAJOR): `lease.srvInvAt on s E m σ₀` (LeaseApi, sealed), `lease.srvInv := srvInvAt … (∅,∅,∅)`;
+  `specR`'s post at the recovered snapshot of the image's `lease` bucket.
+- Minors: (a) contract docstring "The WAL's read facts" + `walReadFacts`' docstring; (b) interface note
+  row I4 corrected (I4 unchanged); (c) `major.minor.0` (contract docstring, `clusterImageOk_restModel`'s
+  docstring); (d)-(f) freeze §1, §8, §11.4; (g) `srvBuiltRC` (AuthCompRows) is the one text,
+  `isServerBuiltC := srvBuiltRC ∗ "Hskeep" ∷ slot`, `srvBuiltR := srvBuiltRC .off` (the CP2 pitfall
+  about the generator is obsolete).
+- B2 additions: §11.4 (HS1's `Or.inr` or a widened `authStoreKit`; S8's `memberBuiltR` over `srvBuiltR`
+  and `srvInvAt`; finding 1's image half first).
+- Builds: `/shared/tmp/restart-s56/cp2fix/{targeted,full,tcb}.log`.
+
 ## CP2 (2026-11-13, the CP2 agent): next agent starts here
 
 - **CP2 texts in tracked files, commit `fbc609c3d1`** (on `0032b2e8f4`): `wal.restartOk` (sealed,
@@ -69,8 +89,7 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
   instead of `σ.b ≤ |A₀| ≤ σ.commit` (interface §4; not done in CP2); P5's phase-2 RestConf invariant for
   the contract's clause (G); P3's rows (`/shared/tmp/restart-s56/p3-rows.md`), the lease-granting `srvRest`
   branch the largest unknown; apply `restart_clusterVerLogOk` at the contract call.
-- Pitfall: `srvBuiltR` is generated; if `isServerBuiltC` changes, rerun the generator (its header and
-  law are in `/shared/tmp/restart-s56/cp2/{hdr,law}.lean`) or edit by hand.
+- (Obsolete since the CP2 fixes: `srvBuiltR` is `srvBuiltRC .off`, no generator.)
 
 ## Phase B progress (2026-11-13, the Phase B agent)
 

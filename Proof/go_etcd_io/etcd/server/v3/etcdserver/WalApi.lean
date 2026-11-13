@@ -408,7 +408,14 @@ room (I2, `σ.last ≤ 2^61 - 1`); the base at or below the commit and the commi
 index (I3: raft's `loadState` panics otherwise, `raft.go`'s "commit is out of range"); and (I4) either
 the fresh base `(0, 0)` with no snapshot record, or a data-less snapshot record at the base
 (`walSnapAtBase`'s form; both written out here, as `storage/WalHistLemmas.lean` states them: this
-module does not import the history model). I4 gives `NodeStartSpecR`'s snapshot-term premise (F3, `walReadFacts_F3`). -/
+module does not import the history model). I4 gives `NodeStartSpecR`'s snapshot-term premise (F3, `walReadFacts_F3`).
+I4 does not give `bootstrappedWAL.MemoryStorage.spec`'s premise that a base at index `0` has term
+`0` (F2's third clause): the WAL model's `walSaveSnap` at index `0` sets the snapshot's term, any term
+(`storage/WalRecs.lean`), so only the server's history (no `SaveSnap` at index `0`: `snapshot`'s
+`0 < ai`, raft's snapshots past its commit) excludes it (CP2 review, minor (b)). **Trusted, not
+checked** (CP2 review, minor (a)): `bootstrap` never checks these facts, and the stop's image does not
+carry them all (I2); they are the WAL interface's promise, inside the trusted restart contract's
+`bootOkR`, to be discharged by the WAL collaborator's crash-model spec (C6). -/
 def walReadFacts (σ : StorContents) : Prop :=
   (∀ (j : Nat) (e : EntryM), σ.ents[j]? = some e → uint.nat e.Index' = σ.b + 1 + j) ∧
     σ.last ≤ 2 ^ 61 - 1 ∧ σ.b ≤ σ.commit ∧ σ.commit ≤ σ.last ∧

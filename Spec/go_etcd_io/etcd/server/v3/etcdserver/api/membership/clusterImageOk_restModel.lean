@@ -83,7 +83,7 @@ unchanged, and `cluster.go` changes only in `IsLocalMemberLearner`, which no bul
   (`memBoot`; `restUpdateAttrs` adds no key; the conf changes are rejected).
   (Reviewed with the `axiom` skill: `notes/axiom-review/clusterimage-ids.md`, survives.)
 * *The cluster version passes `MustDetectDowngrade`.* `Recover` panics only if the version in
-  `cluster` is above the server's own major.minor (`downgrade.go:42-55`). Every `ClusterVersionSet`
+  `cluster` is above the server's own `major.minor.0` (`downgrade.go:42-55`). Every `ClusterVersionSet`
   of `L'` is `semverValid` and `semverAtMostServer`, and none is a `DowngradeInfoSet`
   (`clusterVerLogOk`, the premise; the only proposer of either is a member's
   `monitorClusterVersions`, `updateClusterVersionV3`, with `decideClusterVersion`'s minimum of the
