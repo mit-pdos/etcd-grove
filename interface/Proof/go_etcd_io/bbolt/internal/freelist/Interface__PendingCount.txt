@@ -8,8 +8,8 @@ theorem bbolt.FLImpl.mk.congr_simp (ity ity✝ : go.GoType) (e_ity : ity = ity�
     iv, own := own, hdl := hdl, hdl_persistent := hdl_persistent } = { ity := ity✝, iv := iv✝, own
     := own✝, hdl := hdl✝, hdl_persistent := ⋯ }
 
-theorem bbolt.internal.freelist.Interface.PendingCount.wp_proof [hos : HasExt osFsExt] :
-    bbolt.internal.freelist.Interface.PendingCount.spec
+theorem bbolt.internal.freelist.Interface.PendingCount.wp_proof [ExtSemantics Fs.fsExt] [Fs.FsSemOk]
+    [hos : HasExt Fs.fsExt] : bbolt.internal.freelist.Interface.PendingCount.spec
   -- `Perennial.EtcdGrove.bbolt.internal.freelist.Interface.PendingCount.spec`, unfolded:
   ∀ (fli : GoInterface) (fl : bbolt.FLPg),
     ⊢

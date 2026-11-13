@@ -2,20 +2,21 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.Cursor.node.spec.congr_simp [hos : HasExt osFsExt] : bbolt.Cursor.node.spec =
-    bbolt.Cursor.node.spec
+theorem bbolt.Cursor.node.spec.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] :
+    bbolt.Cursor.node.spec = bbolt.Cursor.node.spec
 
-theorem bbolt.Spill.rinv_spErr [hos : HasExt osFsExt] {X0 X : bbolt.WX} {w0 w : bbolt.WDb} {B0 :
-    bbolt.BRec} {keys : List GoString} {Lroot : List Nat} {st : List bbolt.FLStep} {Dc : GoString →
-    List Nat} {ks : GoString → bbolt.Spill.KSt} (hI : bbolt.Spill.RInv X0 w0 B0 keys Lroot X w st Dc
-    ks) : bbolt.Spill.spErr X0 X w0 w st
+theorem bbolt.Spill.rinv_spErr [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] {X0 X :
+    bbolt.WX} {w0 w : bbolt.WDb} {B0 : bbolt.BRec} {keys : List GoString} {Lroot : List Nat} {st :
+    List bbolt.FLStep} {Dc : GoString → List Nat} {ks : GoString → bbolt.Spill.KSt} (hI :
+    bbolt.Spill.RInv X0 w0 B0 keys Lroot X w st Dc ks) : bbolt.Spill.spErr X0 X w0 w st
 
-theorem bbolt.Bucket.spill.wp_proof [hos : HasExt osFsExt] (hNS : bbolt.Spill.node.spill.spec')
-    (hRoot : bbolt.node.root.spec) (hPgid : bbolt.internal.common.Meta.Pgid.spec) (hSRP :
-    bbolt.internal.common.InBucket.SetRootPage.spec) (hInl : bbolt.Bucket.inlineable.spec) (hCur :
-    bbolt.Bucket.Cursor_i.spec) (hSeek : bbolt.Cursor.seek_w.spec) (hNode : bbolt.Cursor.node.spec)
-    (hPut : bbolt.node.put.spec) (hEq : bytes.Equal.spec) (hFree : bbolt.Bucket.free.spec) (hWrite :
-    bbolt.Bucket.write.spec) : bbolt.Bucket.spill.spec
+theorem bbolt.Bucket.spill.wp_proof [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt]
+    (hNS : bbolt.Spill.node.spill.spec') (hRoot : bbolt.node.root.spec) (hPgid :
+    bbolt.internal.common.Meta.Pgid.spec) (hSRP : bbolt.internal.common.InBucket.SetRootPage.spec)
+    (hInl : bbolt.Bucket.inlineable.spec) (hCur : bbolt.Bucket.Cursor_i.spec) (hSeek :
+    bbolt.Cursor.seek_w.spec) (hNode : bbolt.Cursor.node.spec) (hPut : bbolt.node.put.spec) (hEq :
+    bytes.Equal.spec) (hFree : bbolt.Bucket.free.spec) (hWrite : bbolt.Bucket.write.spec) :
+    bbolt.Bucket.spill.spec
   -- `Perennial.EtcdGrove.bbolt.Bucket.spill.spec`, unfolded:
   ∀ (K : bbolt.BC) (tx : Loc) (r : bbolt.TxReg) (m : Bool) (X : bbolt.WX) (w : bbolt.WDb) (P : IProp GF),
     bbolt.spillPre X w.fl →
@@ -91,22 +92,22 @@ theorem bbolt.Bucket.spill.wp_proof [hos : HasExt osFsExt] (hNS : bbolt.Spill.no
                               (intoVal ()))
                             {{ Φ }}
 
-theorem bbolt.Spill.errFacts_of_spErr [hos : HasExt osFsExt] {X X' : bbolt.WX} {w w' : bbolt.WDb}
-    {st : List bbolt.FLStep} (h : bbolt.Spill.spErr X X' w w' st) (hr : (X.t.bs !! X.rl).isSome =
-    true) : w'.C = w.C ∧ w'.fl = w.fl.applySteps w.wtxid st ∧ X'.v.pages = X.v.pages ∧ X'.t.t =
-    X.t.t ∧ X'.rl = X.rl ∧ (X'.t.bs !! X'.rl).isSome = true ∧ X'.t.mv = have __src := X.t.mv; {
-    magic' := __src.magic', version' := __src.version', pageSize' := __src.pageSize', flags' :=
-    __src.flags', root' := __src.root', freelist' := __src.freelist', pgid' := X'.t.mv.pgid', txid'
-    := __src.txid', checksum' := __src.checksum' }
+theorem bbolt.Spill.errFacts_of_spErr [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt]
+    {X X' : bbolt.WX} {w w' : bbolt.WDb} {st : List bbolt.FLStep} (h : bbolt.Spill.spErr X X' w w'
+    st) (hr : (X.t.bs !! X.rl).isSome = true) : w'.C = w.C ∧ w'.fl = w.fl.applySteps w.wtxid st ∧
+    X'.v.pages = X.v.pages ∧ X'.t.t = X.t.t ∧ X'.rl = X.rl ∧ (X'.t.bs !! X'.rl).isSome = true ∧
+    X'.t.mv = have __src := X.t.mv; { magic' := __src.magic', version' := __src.version', pageSize'
+    := __src.pageSize', flags' := __src.flags', root' := __src.root', freelist' := __src.freelist',
+    pgid' := X'.t.mv.pgid', txid' := __src.txid', checksum' := __src.checksum' }
 
-theorem bbolt.Bucket.Cursor_i.spec.congr_simp [hos : HasExt osFsExt] : bbolt.Bucket.Cursor_i.spec =
-    bbolt.Bucket.Cursor_i.spec
+theorem bbolt.Bucket.Cursor_i.spec.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] :
+    bbolt.Bucket.Cursor_i.spec = bbolt.Bucket.Cursor_i.spec
 
-theorem bbolt.Bucket.free.spec.congr_simp [hos : HasExt osFsExt] : bbolt.Bucket.free.spec =
-    bbolt.Bucket.free.spec
+theorem bbolt.Bucket.free.spec.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] :
+    bbolt.Bucket.free.spec = bbolt.Bucket.free.spec
 
-def bbolt.Spill.spillPost [hos : HasExt osFsExt] (K : bbolt.BC) (tx : Loc) (r : bbolt.TxReg) (m :
-    Bool) (X : bbolt.WX) (w : bbolt.WDb) (err : GoInterface) : IProp GF :=
+def bbolt.Spill.spillPost [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] (K : bbolt.BC) (tx : Loc)
+    (r : bbolt.TxReg) (m : Bool) (X : bbolt.WX) (w : bbolt.WDb) (err : GoInterface) : IProp GF :=
   iprop((⌜err = GoInterface.nil⌝ ∗
         ∃ X' w',
           bbolt.wtxW K tx r m X' ∗
@@ -148,12 +149,13 @@ def bbolt.Spill.spillPost [hos : HasExt osFsExt] (K : bbolt.BC) (tx : Loc) (r : 
                                 pgid' := X'.t.mv.pgid', txid' := __src.txid', checksum' := __src.checksum' }⌝ ∗
               (bbolt.wtxW K tx r m X' ∗ bbolt.wdbW K tx X'.v w' ∨ bbolt.wtxLost K tx r m X' ∗ bbolt.wdbLost K tx X'.v w'))
 
-theorem bbolt.Cursor.seek_w.spec.congr_simp [hos : HasExt osFsExt] : bbolt.Cursor.seek_w.spec =
-    bbolt.Cursor.seek_w.spec
+theorem bbolt.Cursor.seek_w.spec.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] :
+    bbolt.Cursor.seek_w.spec = bbolt.Cursor.seek_w.spec
 
-def bbolt.Spill.loopP [hos : HasExt osFsExt] (K : bbolt.BC) (tx : Loc) (r : bbolt.TxReg) (m : Bool)
-    (X : bbolt.WX) (w : bbolt.WDb) (B0 : bbolt.BRec) (P : IProp GF) (Φ : val → IProp GF) (res bp cp
-    np : Loc) (keys : List GoString) (i : Nat) (m' : GMap GoString Loc) : IProp GF :=
+def bbolt.Spill.loopP [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] (K : bbolt.BC) (tx : Loc) (r :
+    bbolt.TxReg) (m : Bool) (X : bbolt.WX) (w : bbolt.WDb) (B0 : bbolt.BRec) (P : IProp GF) (Φ : val
+    → IProp GF) (res bp cp np : Loc) (keys : List GoString) (i : Nat) (m' : GMap GoString Loc) :
+    IProp GF :=
   iprop(⌜m' = B0.bm⌝ ∗
       (∀ err, bbolt.poolR K.B.bq K.N P -∗ bbolt.Spill.spillPost K tx r m X w err -∗ Φ (intoVal err)) ∗
         bbolt.poolR K.B.bq K.N P ∗
@@ -166,8 +168,8 @@ def bbolt.Spill.loopP [hos : HasExt osFsExt] (K : bbolt.BC) (tx : Loc) (r : bbol
                       bbolt.wdbW K tx X'.v w' ∗
                         ⌜bbolt.Spill.RInv X w B0 keys Lroot X' w' st Dc ks ∧ bbolt.Spill.ksAt keys i ks⌝)
 
-theorem bbolt.Spill.spillPost.congr_simp [hos : HasExt osFsExt] (K K✝ : bbolt.BC) (e_K : K = K✝) (tx
-    tx✝ : Loc) (e_tx : tx = tx✝) (r r✝ : bbolt.TxReg) (e_r : r = r✝) (m m✝ : Bool) (e_m : m = m✝) (X
-    X✝ : bbolt.WX) (e_X : X = X✝) (w w✝ : bbolt.WDb) (e_w : w = w✝) (err err✝ : GoInterface) (e_err
-    : err = err✝) : bbolt.Spill.spillPost K tx r m X w err = bbolt.Spill.spillPost K✝ tx✝ r✝ m✝ X✝
-    w✝ err✝
+theorem bbolt.Spill.spillPost.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] (K K✝ :
+    bbolt.BC) (e_K : K = K✝) (tx tx✝ : Loc) (e_tx : tx = tx✝) (r r✝ : bbolt.TxReg) (e_r : r = r✝) (m
+    m✝ : Bool) (e_m : m = m✝) (X X✝ : bbolt.WX) (e_X : X = X✝) (w w✝ : bbolt.WDb) (e_w : w = w✝)
+    (err err✝ : GoInterface) (e_err : err = err✝) : bbolt.Spill.spillPost K tx r m X w err =
+    bbolt.Spill.spillPost K✝ tx✝ r✝ m✝ X✝ w✝ err✝

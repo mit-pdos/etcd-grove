@@ -2,8 +2,8 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.Tx.allocate.spec_of_f [hos : HasExt osFsExt] (h : bbolt.Tx.allocate_f.spec) :
-    bbolt.Tx.allocate.spec
+theorem bbolt.Tx.allocate.spec_of_f [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (h
+    : bbolt.Tx.allocate_f.spec) : bbolt.Tx.allocate.spec
   -- `Perennial.EtcdGrove.bbolt.Tx.allocate.spec`, unfolded:
   ∀ (K : bbolt.BC) (tx : Loc) (r : bbolt.TxReg) (m : Bool) (X : bbolt.WX) (w : bbolt.WDb) (count : w64) (P : IProp GF),
     0 < sint.Z count →
@@ -43,10 +43,11 @@ theorem bbolt.Tx.allocate.spec_of_f [hos : HasExt osFsExt] (h : bbolt.Tx.allocat
                               (intoVal count))
                             {{ Φ }}
 
-theorem bbolt.Tx.allocate.wp_proof [hos : HasExt osFsExt] (hLogger : bbolt.DB.Logger.spec) (hAlloc :
-    bbolt.DB.allocate.spec) (hTxid : bbolt.internal.common.Meta.Txid.spec) (hId :
-    bbolt.internal.common.Page.Id.spec) (hCount : bbolt.TxStats.IncPageCount.spec) (hPAlloc :
-    bbolt.TxStats.IncPageAlloc.spec) : bbolt.Tx.allocate.spec
+theorem bbolt.Tx.allocate.wp_proof [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt]
+    (hLogger : bbolt.DB.Logger.spec) (hAlloc : bbolt.DB.allocate.spec) (hTxid :
+    bbolt.internal.common.Meta.Txid.spec) (hId : bbolt.internal.common.Page.Id.spec) (hCount :
+    bbolt.TxStats.IncPageCount.spec) (hPAlloc : bbolt.TxStats.IncPageAlloc.spec) :
+    bbolt.Tx.allocate.spec
   -- `Perennial.EtcdGrove.bbolt.Tx.allocate.spec`, unfolded:
   ∀ (K : bbolt.BC) (tx : Loc) (r : bbolt.TxReg) (m : Bool) (X : bbolt.WX) (w : bbolt.WDb) (count : w64) (P : IProp GF),
     0 < sint.Z count →

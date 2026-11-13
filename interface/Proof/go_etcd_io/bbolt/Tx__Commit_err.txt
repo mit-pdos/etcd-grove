@@ -2,43 +2,43 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.TxStats.IncWriteTime.spec.congr_simp [hos : HasExt osFsExt] :
+theorem bbolt.TxStats.IncWriteTime.spec.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] :
     bbolt.TxStats.IncWriteTime.spec = bbolt.TxStats.IncWriteTime.spec
 
-theorem bbolt.TxStats.IncSpillTime.spec.congr_simp [hos : HasExt osFsExt] :
+theorem bbolt.TxStats.IncSpillTime.spec.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] :
     bbolt.TxStats.IncSpillTime.spec = bbolt.TxStats.IncSpillTime.spec
 
-theorem bbolt.logArgOk_int (R : IProp GF) (v : w8) (n : w64) : ⊢ bbolt.logArgOk R v (interface.mkOk
-    go.int (intoVal n))
+theorem bbolt.logArgOk_int [ExtSemantics Fs.fsExt] [Fs.FsSemOk] (R : IProp GF) (v : w8) (n : w64) :
+    ⊢ bbolt.logArgOk R v (interface.mkOk go.int (intoVal n))
 
-theorem bbolt.Tx.close_w.spec.congr_simp [hos : HasExt osFsExt] : bbolt.Tx.close_w.spec =
-    bbolt.Tx.close_w.spec
+theorem bbolt.Tx.close_w.spec.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] :
+    bbolt.Tx.close_w.spec = bbolt.Tx.close_w.spec
 
-theorem bbolt.Bucket.rebalance.spec.congr_simp [hos : HasExt osFsExt] : bbolt.Bucket.rebalance.spec
-    = bbolt.Bucket.rebalance.spec
+theorem bbolt.Bucket.rebalance.spec.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] :
+    bbolt.Bucket.rebalance.spec = bbolt.Bucket.rebalance.spec
 
-theorem bbolt.TxStats.IncRebalanceTime.spec.congr_simp [hos : HasExt osFsExt] :
-    bbolt.TxStats.IncRebalanceTime.spec = bbolt.TxStats.IncRebalanceTime.spec
+theorem bbolt.TxStats.IncRebalanceTime.spec.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt
+    Fs.fsExt] : bbolt.TxStats.IncRebalanceTime.spec = bbolt.TxStats.IncRebalanceTime.spec
 
-theorem bbolt.Bucket.spill.spec.congr_simp [hos : HasExt osFsExt] : bbolt.Bucket.spill.spec =
-    bbolt.Bucket.spill.spec
+theorem bbolt.Bucket.spill.spec.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] :
+    bbolt.Bucket.spill.spec = bbolt.Bucket.spill.spec
 
-theorem bbolt.DB.grow.spec.congr_simp [hos : HasExt osFsExt] : bbolt.DB.grow.spec =
-    bbolt.DB.grow.spec
+theorem bbolt.DB.grow.spec.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] :
+    bbolt.DB.grow.spec = bbolt.DB.grow.spec
 
-theorem bbolt.TxStats.GetRebalance.spec.congr_simp [hos : HasExt osFsExt] :
+theorem bbolt.TxStats.GetRebalance.spec.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] :
     bbolt.TxStats.GetRebalance.spec = bbolt.TxStats.GetRebalance.spec
 
-theorem bbolt.wdbW.congr_simp [hos : HasExt osFsExt] (K K✝ : bbolt.BC) (e_K : K = K✝) (tx tx✝ : Loc)
-    (e_tx : tx = tx✝) (v v✝ : bbolt.View) (e_v : v = v✝) (w w✝ : bbolt.WDb) (e_w : w = w✝) :
-    bbolt.wdbW K tx v w = bbolt.wdbW K✝ tx✝ v✝ w✝
+theorem bbolt.wdbW.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] (K K✝ : bbolt.BC) (e_K
+    : K = K✝) (tx tx✝ : Loc) (e_tx : tx = tx✝) (v v✝ : bbolt.View) (e_v : v = v✝) (w w✝ : bbolt.WDb)
+    (e_w : w = w✝) : bbolt.wdbW K tx v w = bbolt.wdbW K✝ tx✝ v✝ w✝
 
-theorem bbolt.wdbLost.congr_simp [hos : HasExt osFsExt] (K K✝ : bbolt.BC) (e_K : K = K✝) (tx tx✝ :
-    Loc) (e_tx : tx = tx✝) (v v✝ : bbolt.View) (e_v : v = v✝) (w w✝ : bbolt.WDb) (e_w : w = w✝) :
-    bbolt.wdbLost K tx v w = bbolt.wdbLost K✝ tx✝ v✝ w✝
+theorem bbolt.wdbLost.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] (K K✝ : bbolt.BC)
+    (e_K : K = K✝) (tx tx✝ : Loc) (e_tx : tx = tx✝) (v v✝ : bbolt.View) (e_v : v = v✝) (w w✝ :
+    bbolt.WDb) (e_w : w = w✝) : bbolt.wdbLost K tx v w = bbolt.wdbLost K✝ tx✝ v✝ w✝
 
-theorem bbolt.Tx.Commit_err.wp_proof' [hos : HasExt osFsExt] (wp_Assert :
-    bbolt.internal.common.Assert.spec) (wp_ID : bbolt.Tx.ID.spec) (wp_rebalance :
+theorem bbolt.Tx.Commit_err.wp_proof' [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt]
+    (wp_Assert : bbolt.internal.common.Assert.spec) (wp_ID : bbolt.Tx.ID.spec) (wp_rebalance :
     bbolt.Bucket.rebalance.spec) (wp_spill : bbolt.Bucket.spill.spec) (wp_rollback_f :
     bbolt.Tx.rollback_f.spec) (wp_close : bbolt.Tx.close_w.spec) (wp_commitFreelist :
     bbolt.Tx.commitFreelist.spec) (wp_grow : bbolt.DB.grow.spec) (wp_write :
@@ -71,11 +71,11 @@ theorem bbolt.Tx.Commit_err.wp_proof' [hos : HasExt osFsExt] (wp_Assert :
 
 syntax bbolt.tacticCm_return
 
-theorem bbolt.Tx.writeMeta.spec.congr_simp [hos : HasExt osFsExt] : bbolt.Tx.writeMeta.spec =
-    bbolt.Tx.writeMeta.spec
+theorem bbolt.Tx.writeMeta.spec.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] :
+    bbolt.Tx.writeMeta.spec = bbolt.Tx.writeMeta.spec
 
-theorem bbolt.Tx.commitFreelist.spec.congr_simp [hos : HasExt osFsExt] :
+theorem bbolt.Tx.commitFreelist.spec.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] :
     bbolt.Tx.commitFreelist.spec = bbolt.Tx.commitFreelist.spec
 
-theorem bbolt.Tx.write_ext.spec.congr_simp [hos : HasExt osFsExt] : bbolt.Tx.write_ext.spec =
-    bbolt.Tx.write_ext.spec
+theorem bbolt.Tx.write_ext.spec.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] :
+    bbolt.Tx.write_ext.spec = bbolt.Tx.write_ext.spec

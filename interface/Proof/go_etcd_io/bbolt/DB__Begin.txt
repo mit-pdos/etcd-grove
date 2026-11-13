@@ -2,18 +2,19 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.boltTx.congr_simp [HasExt osFsExt] (tx tx✝ : Loc) (e_tx : tx = tx✝) (γ γ✝ :
-    bbolt.BoltName) (e_γ : γ = γ✝) (q q✝ : Qp) (e_q : q = q✝) (T T✝ : bbolt.TxView) (e_T : T = T✝) :
-    bbolt.boltTx tx γ q T = bbolt.boltTx tx✝ γ✝ q✝ T✝
+theorem bbolt.boltTx.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (tx tx✝ :
+    Loc) (e_tx : tx = tx✝) (γ γ✝ : bbolt.BoltName) (e_γ : γ = γ✝) (q q✝ : Qp) (e_q : q = q✝) (T T✝ :
+    bbolt.TxView) (e_T : T = T✝) : bbolt.boltTx tx γ q T = bbolt.boltTx tx✝ γ✝ q✝ T✝
 
-theorem bbolt.boltState.congr_simp [HasExt osFsExt] (γ γ✝ : bbolt.BoltName) (e_γ : γ = γ✝) (q q✝ :
-    Qp) (e_q : q = q✝) (D D✝ : bbolt.Data) (e_D : D = D✝) : bbolt.boltState γ q D = bbolt.boltState
-    γ✝ q✝ D✝
+theorem bbolt.boltState.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (γ γ✝ :
+    bbolt.BoltName) (e_γ : γ = γ✝) (q q✝ : Qp) (e_q : q = q✝) (D D✝ : bbolt.Data) (e_D : D = D✝) :
+    bbolt.boltState γ q D = bbolt.boltState γ✝ q✝ D✝
 
-theorem bbolt.DB.Begin.wp_proof (wp_Begin_err : ∀ [inst : HasExt osFsExt], bbolt.DB.Begin_err.spec)
-    : bbolt.DB.Begin.spec
+theorem bbolt.DB.Begin.wp_proof (wp_Begin_err : ∀ [inst : ExtSemantics Fs.fsExt] [inst_1 :
+    Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt], bbolt.DB.Begin_err.spec) : bbolt.DB.Begin.spec
   -- `Perennial.EtcdGrove.bbolt.DB.Begin.spec`, unfolded:
-  ∀ [inst : HasExt osFsExt] (db : Loc) (γ : bbolt.BoltName) (w : Bool) (Q : bbolt.Data → IProp GF),
+  ∀ [inst : ExtSemantics Fs.fsExt] [inst_1 : Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt] (db : Loc) (γ : bbolt.BoltName)
+    (w : Bool) (Q : bbolt.Data → IProp GF),
     ⊢
       ∀ Φ,
         (bbolt.isBolt db γ ∗
@@ -38,6 +39,6 @@ theorem bbolt.DB.Begin.wp_proof (wp_Begin_err : ∀ [inst : HasExt osFsExt], bbo
                 (intoVal w))
               {{ Φ }}
 
-theorem bbolt.txDB.congr_simp [HasExt osFsExt] (tx tx✝ : Loc) (e_tx : tx = tx✝) (γ γ✝ :
-    bbolt.BoltName) (e_γ : γ = γ✝) (db db✝ : Loc) (e_db : db = db✝) : bbolt.txDB tx γ db =
-    bbolt.txDB tx✝ γ✝ db✝
+theorem bbolt.txDB.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (tx tx✝ : Loc)
+    (e_tx : tx = tx✝) (γ γ✝ : bbolt.BoltName) (e_γ : γ = γ✝) (db db✝ : Loc) (e_db : db = db✝) :
+    bbolt.txDB tx γ db = bbolt.txDB tx✝ γ✝ db✝

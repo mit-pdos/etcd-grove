@@ -2,8 +2,9 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.Bucket.openBucket_r.wp_proof [hos : HasExt osFsExt] (hcl : bbolt.cloneBytes.spec) (hRP
-    : bbolt.internal.common.InBucket.RootPage.spec) : bbolt.Bucket.openBucket_r.spec
+theorem bbolt.Bucket.openBucket_r.wp_proof [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt
+    Fs.fsExt] (hcl : bbolt.cloneBytes.spec) (hRP : bbolt.internal.common.InBucket.RootPage.spec) :
+    bbolt.Bucket.openBucket_r.spec
   -- `Perennial.EtcdGrove.bbolt.Bucket.openBucket_r.spec`, unfolded:
   ∀ (K : bbolt.BC) (tx : Loc) (src : bbolt.PairSrc) (q : Qp) (T : bbolt.TxView) (v : bbolt.View) (b : Loc) (dq : DFrac)
     (bv : List w8) (ibp pp : Loc) (value : GoSlice) (vsr : bbolt.Src) (cv : List w8),
@@ -26,7 +27,7 @@ theorem bbolt.Bucket.openBucket_r.wp_proof [hos : HasExt osFsExt] (hcl : bbolt.c
                       (intoVal value))
                     {{ Φ }}
 
-theorem bbolt.rdTxK.congr_simp [hos : HasExt osFsExt] (K K✝ : bbolt.BC) (e_K : K = K✝) (tx tx✝ :
-    Loc) (e_tx : tx = tx✝) (src src✝ : bbolt.PairSrc) (e_src : src = src✝) (q q✝ : Qp) (e_q : q =
-    q✝) (T T✝ : bbolt.TxView) (e_T : T = T✝) (v v✝ : bbolt.View) (e_v : v = v✝) : bbolt.rdTxK K tx
-    src q T v = bbolt.rdTxK K✝ tx✝ src✝ q✝ T✝ v✝
+theorem bbolt.rdTxK.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] (K K✝ : bbolt.BC)
+    (e_K : K = K✝) (tx tx✝ : Loc) (e_tx : tx = tx✝) (src src✝ : bbolt.PairSrc) (e_src : src = src✝)
+    (q q✝ : Qp) (e_q : q = q✝) (T T✝ : bbolt.TxView) (e_T : T = T✝) (v v✝ : bbolt.View) (e_v : v =
+    v✝) : bbolt.rdTxK K tx src q T v = bbolt.rdTxK K✝ tx✝ src✝ q✝ T✝ v✝
