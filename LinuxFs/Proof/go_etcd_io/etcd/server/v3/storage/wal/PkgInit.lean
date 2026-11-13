@@ -6,10 +6,14 @@ specs read of its package variables, read-only for good.
   (`walCrcTable`, which the encoder's and decoder's specs take);
 * `walFsyncSec`, `walWriteSec`, `walWriteBytes` (metrics.go, untranslated `prometheus` constructors):
   metrics whose `Observe`/`Add` return (`wal.metricsInit`, `Metrics.lean`);
-* `SegmentSizeBytes` (wal.go, `64 * 1000 * 1000`, a `var` only tests assign): `64000000`.
+* `SegmentSizeBytes` (wal.go, `64 * 1000 * 1000`, a `var` only tests assign): `64000000`;
+* the error variables (`wal.errVar`: each holds an error whose `Error()` returns, `errOk`): those of
+  `errors.New` calls (`errBadWALName`, `ErrMetadataConflict`, `ErrFileNotFound`, `ErrSnapshotMismatch`,
+  `ErrSnapshotNotFound`, `ErrSliceOutOfRange`, `ErrDecoderNotFound`) and `ErrCRCMismatch`
+  (`walpb.ErrCRCMismatch`'s value, `walpbInit`). (Distinctness of the errors is not stated: no spec
+  compares them yet.)
 
-The error variables (`ErrMetadataConflict`, `ErrFileNotFound`, ...) are not in it: no spec reads
-them yet. Its `wp_initialize'`: `Init.lean` (`etc/gen-init.py`, `LFS_PKGS` and `LFS_SPECIAL`).
+`openWALFilesFn` (a function value) is not in it. Its `wp_initialize'`: `Init.lean` (`etc/gen-init.py`, `LFS_PKGS` and `LFS_SPECIAL`).
 WAL package init, 2026-11-13.
 -/
 module
@@ -17,6 +21,7 @@ module
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.DecDefs
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Metrics
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.DepsPkgInit
+public import LinuxFs.Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.PkgInit
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.walpb.PkgInit
 public import LinuxFs.Proof.go_etcd_io.etcd.pkg.v3.ioutil.PkgInit
 
@@ -38,10 +43,25 @@ variable [sem : go.Semantics]
 
 namespace EtcdGrove
 
-/-- `wal`'s fact: the CRC table, the metrics and the segment size, read-only. -/
+/-- The error variable `X` holds an error whose `Error()` returns, read-only. -/
+def wal.errVar (X : GoString) : IProp GF :=
+  iprop(∃ e : GoInterfaceOk, globalAddr X ↦□ GoInterface.ok e ∗ errOk e)
+
+instance wal.errVar_persistent (X : GoString) : Persistent (wal.errVar (GF := GF) X) := by
+  unfold wal.errVar; infer_instance
+
+/-- `wal`'s fact: the CRC table, the metrics, the segment size and the error variables, read-only. -/
 abbrev wal.walInit : IProp GF :=
   iprop(WalFs.walCrcTable ∗ wal.metricsInit ∗
-    globalAddr go_etcd_io.etcd.server.v3.storage.wal.SegmentSizeBytes ↦□ (W64 64000000))
+    globalAddr go_etcd_io.etcd.server.v3.storage.wal.SegmentSizeBytes ↦□ (W64 64000000) ∗
+    wal.errVar go_etcd_io.etcd.server.v3.storage.wal.errBadWALName ∗
+    wal.errVar go_etcd_io.etcd.server.v3.storage.wal.ErrMetadataConflict ∗
+    wal.errVar go_etcd_io.etcd.server.v3.storage.wal.ErrFileNotFound ∗
+    wal.errVar go_etcd_io.etcd.server.v3.storage.wal.ErrCRCMismatch ∗
+    wal.errVar go_etcd_io.etcd.server.v3.storage.wal.ErrSnapshotMismatch ∗
+    wal.errVar go_etcd_io.etcd.server.v3.storage.wal.ErrSnapshotNotFound ∗
+    wal.errVar go_etcd_io.etcd.server.v3.storage.wal.ErrSliceOutOfRange ∗
+    wal.errVar go_etcd_io.etcd.server.v3.storage.wal.ErrDecoderNotFound)
 
 end EtcdGrove
 

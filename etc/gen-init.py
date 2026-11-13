@@ -555,6 +555,103 @@ initializers of its protobuf descriptors and its `init` function, which the trus
         'imodintro', 'unfold EtcdGrove.walpb.walpbInit EtcdGrove.errOk', 'iexists _',
         'iframe HErrCRCMismatch', "iintro !> %Φ' HΦ'", 'iapply EC', 'inext', "iapply HΦ'"],
 )
+# (WAL package init, 2026-11-13) the part's `fileutil`: the lock functions, chosen by its `init`'s
+# `F_OFD_GETLK` probe (`syscall.FcntlFlock.wp_getlk`: any errno, so either), `wrlck`, `ErrLocked`
+LFS_SPECIAL['go_etcd_io.etcd.client.pkg.v3.fileutil'] = dict(
+    doc='''Its fact (`fileutilInit`, `PkgInit.lean`): the lock functions `linuxLockFile`/`linuxTryLockFile`
+(both OFD's or both `flock`'s), the write-lock description `wrlck` and `ErrLocked` (an error whose
+`Error()` returns), read-only for good. Its initializer stores `ErrLocked` (a translated `errors.New`),
+`wrlck` (a struct literal) and the `flock` functions, initializes its imports and runs its translated
+`init` function (lock_linux.go), which probes OFD locks with `F_OFD_GETLK` on fd 0 and switches both
+functions to OFD's on success: the probe's errno is any (`syscall.FcntlFlock.wp_getlk`), so either
+outcome.''',
+    imports=['Perennial.Proof.errors.NewVar', 'LinuxFs.Proof.syscall.FileOps'],
+    vars=['[ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]'],
+    alloc_types={'linuxLockFile': 'GoFunc', 'linuxTryLockFile': 'GoFunc', 'wrlck': 'syscall.Flock_t',
+                 'ErrLocked': 'GoInterface'},
+    before={'ErrLocked': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %xL #EL',
+                          'try wp_auto']},
+    after={'init.«0»': [
+        "wp_apply (_root_.Perennial.EtcdGrove.syscall.FcntlFlock.wp_getlk _ _ _) $$ getlk as %e ⟨%v', Hv, %hv⟩",
+        'try wp_auto', 'ipersist Hwrlck', 'ipersist HErrLocked',
+        'ihave #Hrest : (∃ e : GoInterfaceOk, globalAddr ErrLocked ↦□ GoInterface.ok e ∗ EtcdGrove.errOk e) ∗',
+        '    (∃ w : syscall.Flock_t, globalAddr wrlck ↦□ w ∗',
+        "      ⌜w.Type' = W16 1 ∧ w.Whence' = W16 0 ∧ w.Start' = W64 0 ∧ w.Len' = W64 0⌝) $$ []",
+        '· isplitl []', '  · unfold EtcdGrove.errOk', '    iexists _', '    iframe HErrLocked',
+        "    iintro !> %Φ' HΦ'", '    iapply EL', '    inext', "    iapply HΦ'",
+        '  · iexists _', '    iframe Hwrlck', '    ipureintro', '    exact ⟨rfl, rfl, rfl, rfl⟩',
+        'by_cases he : e = 0'] +
+        [l for ofd, eq, simps in
+         [('true', 'interface.nil', '↓reduceIte'),
+          ('false', 'interface.mkOk syscall.Errno.ty #e', '↓reduceIte, Bool.false_eq_true')]
+         for l in [f'· rw [show errnoErr e = {eq} from by unfold errnoErr; simp only [he, ↓reduceIte]]',
+                   '  wp_auto', '  ipersist HlinuxLockFile', '  ipersist HlinuxTryLockFile'] +
+                  ['  ' + x for x in FIN_PRE[:6]] +
+                  ['  imodintro', '  unfold EtcdGrove.fileutil.fileutilInit', '  icases Hrest with ⟨Hr1, Hr2⟩',
+                   '  iframe Hr1 Hr2', f'  iexists {ofd}',
+                   f'  simp only [EtcdGrove.fileutil.lockFn, EtcdGrove.fileutil.tryLockFn, {simps}]',
+                   '  iframe HlinuxLockFile HlinuxTryLockFile']]},
+    # (the `init` function's steps close the proof, in both branches)
+    finish=[],
+)
+# (WAL package init, 2026-11-13) the part's WAL: the CRC table, the metrics, the segment size, the
+# error variables
+_WAL_NEW_ERRS = [('errBadWALName', 'BW'), ('ErrMetadataConflict', 'MC'), ('ErrFileNotFound', 'FN'),
+                 ('ErrSnapshotMismatch', 'SM'), ('ErrSnapshotNotFound', 'SN'),
+                 ('ErrSliceOutOfRange', 'SO'), ('ErrDecoderNotFound', 'DN')]
+_WAL_ERRS = ['errBadWALName', 'ErrMetadataConflict', 'ErrFileNotFound', 'ErrCRCMismatch',
+             'ErrSnapshotMismatch', 'ErrSnapshotNotFound', 'ErrSliceOutOfRange', 'ErrDecoderNotFound']
+
+
+def _walErrVar(x, tag):
+    """The fact's clause of the error variable `x`, from `errors.New`'s `E<tag>`."""
+    return [f'ihave #V{x} : (EtcdGrove.wal.errVar {x} : IProp GF) $$ []',
+            '· unfold EtcdGrove.wal.errVar EtcdGrove.errOk', '  iexists _', f'  iframe H{x}',
+            "  iintro !> %Φ' HΦ'", f'  iapply E{tag}', '  inext', "  iapply HΦ'"]
+
+
+def _walMetric(x, spec):
+    return dict(doc=f'/-- `{x} = prometheus.New...(...)` (`metrics.go`): a metric whose method returns. -/',
+                post=f'∃ h : GoInterfaceOk, globalAddr {x} ↦ GoInterface.ok h ∗ EtcdGrove.wal.{spec} h',
+                pat='⟨%h@, H@, #S@⟩')
+
+
+LFS_SPECIAL['go_etcd_io.etcd.server.v3.storage.wal'] = dict(
+    doc='''Its fact (`walInit`, `PkgInit.lean`): `crcTable` holds the Castagnoli table (`walCrcTable`), the
+metrics `walFsyncSec`, `walWriteSec` (histograms) and `walWriteBytes` (a gauge) hold metrics whose
+`Observe`/`Add` return (`wal.metricsInit`), `SegmentSizeBytes` holds `64000000`, and every error
+variable an error whose `Error()` returns (`wal.errVar`), read-only for good. Its initializer
+allocates its variables, initializes its imports and runs their initializers: the metrics'
+untranslated `prometheus` constructors (the trust-boundary axioms `<X>_init`, metrics.go), the
+translated `errors.New` calls, `ErrCRCMismatch = walpb.ErrCRCMismatch` (`walpbInit`), `crcTable =
+crc32.MakeTable(crc32.Castagnoli)` (`hash.crc32.MakeTable.wp_proof`), and its untranslated `init`
+function (`prometheus.MustRegister` of the metrics), which the trust-boundary axiom `initFuncsOk`
+says returns.''',
+    imports=['Perennial.Proof.errors.NewVar', 'LinuxFs.Proof.hash.crc32.MakeTable'],
+    custom={'walFsyncSec': _walMetric('walFsyncSec', 'histSpec'),
+            'walWriteSec': _walMetric('walWriteSec', 'histSpec'),
+            'walWriteBytes': _walMetric('walWriteBytes', 'gaugeAddSpec')},
+    alloc_types=dict({x: 'GoInterface' for x in _WAL_ERRS}, crcTable='Loc', openWALFilesFn='GoFunc',
+                     SegmentSizeBytes='w64'),
+    before=dict({x: ['try wp_auto', f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{t} #E{t}',
+                     'try wp_auto'] for x, t in _WAL_NEW_ERRS},
+                ErrCRCMismatch=['try wp_auto',
+                    'ihave #Hpb : (EtcdGrove.walpb.walpbInit : IProp GF) $$ []',
+                    '· iapply isPkgInit_access $$ {Hd:go_etcd_io.etcd.server.v3.storage.wal.walpb}',
+                    'icases Hpb with ⟨%eC, #HpbC, #HpbOk⟩', 'try wp_auto'],
+                crcTable=['try wp_auto',
+                          'rw [show (W32 2197175160) = _root_.Perennial.hash.crc32.castagnoliPoly from rfl]',
+                          'wp_apply _root_.Perennial.EtcdGrove.hash.crc32.MakeTable.wp_proof as %tab #Htab',
+                          'try wp_auto']),
+    finish=[f'ipersist H{x}' for x in _WAL_ERRS + ['crcTable', 'SegmentSizeBytes', 'walFsyncSec',
+                                                    'walWriteSec', 'walWriteBytes']] +
+           [l for x, t in _WAL_NEW_ERRS for l in _walErrVar(x, t)] +
+           ['ihave #VErrCRCMismatch : (EtcdGrove.wal.errVar ErrCRCMismatch : IProp GF) $$ []',
+            '· unfold EtcdGrove.wal.errVar', '  iexists _', '  iframe HErrCRCMismatch HpbOk'] +
+           FIN_PRE[:6] +
+           ['imodintro', 'unfold EtcdGrove.wal.walInit EtcdGrove.WalFs.walCrcTable EtcdGrove.wal.metricsInit',
+            'iframe #'],
+)
 # (WAL package init, 2026-11-13) the part's raft root package (names-only): `emptyState`, a
 # translated `&pb.HardState{}`, not in its fact (`True`)
 LFS_SPECIAL['go_etcd_io.raft.v3'] = dict(
@@ -2438,7 +2535,7 @@ def gen(p, cfg=None):
     A('variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]')
     A('variable [sem : go.Semantics]')
     A(f'variable [package_sem : _root_.Perennial.{p}.Assumptions]')
-    _SP = SPECIAL
+    _SP = {**SPECIAL, **LFS_SPECIAL} if LFS_MODE else SPECIAL
     vs = list(cfg.get('vars', []))
     for q in sorted(cl):
         for v in _SP.get(q, {}).get('vars', []):

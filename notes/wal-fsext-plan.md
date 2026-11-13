@@ -591,6 +591,24 @@ the crash branch), so the invariant's second branch holds both:
   ∅}=> α ∗ notCrashed ∗ …`, `LinuxFs/Proof/os/SharedAu.lean`), so that the WAL's update, opened inside the
   `os` update, can call `walInv_open`. Not done here.
 
+**The part's WAL package init (branch `wal-nc`, 2026-11-13).** `etc/gen-init.py` generates the
+`wp_initialize'` of the WAL's whole import closure in the part (`LFS_PKGS`): the part's `wal`, `walpb`,
+`fileutil`, `crc`, `hash/crc32` and raft root package (names-only); the main-tree translations below them
+(`LFS_MAIN_CODE`: zap, zapcore, semver, prometheus, pbutil, `hash`, protobuf's pragma/protoreflect/impl/
+protoimpl), over the part's own instances (their main instances sit in modules reaching the main raft);
+raftpb/quorum/tracker/confchange/proto from `InitPb.lean`, a generated copy of the main raft
+`Init.lean`'s theorems (`lfs_raft_initpb`). Facts (`PkgInit.lean`s):
+- `wal.walInit`: `walCrcTable` (MakeTable's spec), `wal.metricsInit` (new trust-boundary axioms
+  `walFsyncSec_init`/`walWriteSec_init`/`walWriteBytes_init`, as the backend's), `SegmentSizeBytes ↦□
+  64000000`, and `wal.errVar X` (an `errOk` error, read-only) for the eight error variables
+  (`ErrCRCMismatch` from `walpbInit`). Not `openWALFilesFn`; no distinctness of the errors.
+- `walpb.walpbInit`: `ErrCRCMismatch` an `errOk` error.
+- `fileutil.fileutilInit`: `∃ ofd, linuxLockFile ↦□ lockFn ofd ∗ linuxTryLockFile ↦□ tryLockFn ofd`
+  (**both** outcomes: the `F_OFD_GETLK` probe's errno is arbitrary, `wp_getlk`; `ofd` the same for the
+  two), `wrlck` (`Type = F_WRLCK`, `Whence = Start = Len = 0`), `ErrLocked` an `errOk` error.
+- The others `True` (the part's raft root too: `emptyState`, which `IsEmptyHardState` reads, would join
+  when `Save` needs it). `Create`'s spec can now take `isPkgInit wal`.
+
 ## 9. The trusted-model drafts (2026-11-13, branch `wal-models`; pending the user's review [user])
 
 The WAL and fileutil retranslated from the fork's `goose-lean-walfs` (`f15d88841`, the two local fixes

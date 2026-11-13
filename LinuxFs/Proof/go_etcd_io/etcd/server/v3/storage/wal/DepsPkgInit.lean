@@ -1,11 +1,11 @@
 /-
 The package-initialization instances of the WAL's imports with no fact (`True`) in the part
-`LinuxFs/`: the part's translations of `client/pkg/v3/fileutil`, `pkg/v3/crc` and `hash/crc32`, and the
-main tree's (names-only) of zap, `zapcore`, semver, prometheus, `pkg/v3/pbutil` and `hash`, whose main
-instances (in the cache's, the lease's, the backend's and the apply layer's `Base.lean`, and
-`Proof/hash/PkgInit.lean`, over the main tree's raft through `PkgInitExt`) the part cannot import.
-`fileutil`'s variables (`linuxLockFile`, `linuxTryLockFile`, ...) are not in its fact: no spec of the part
-reads them yet. Their `wp_initialize'`: the generated `Init.lean`s (`etc/gen-init.py`, `LFS_PKGS`).
+`LinuxFs/`: the part's translations of `pkg/v3/crc` and `hash/crc32`, and the main tree's (names-only)
+of zap, `zapcore`, semver, prometheus, `pkg/v3/pbutil` and `hash`, whose main instances (in the cache's,
+the lease's, the backend's and the apply layer's `Base.lean`, and `Proof/hash/PkgInit.lean`, over the
+main tree's raft through `PkgInitExt`) the part cannot import. (`fileutil`'s, with a fact:
+`LinuxFs/Proof/go_etcd_io/etcd/client/pkg/v3/fileutil/PkgInit.lean`.) Their `wp_initialize'`: the
+generated `Init.lean`s (`etc/gen-init.py`, `LFS_PKGS`).
 WAL package init, 2026-11-13.
 -/
 module
@@ -88,12 +88,6 @@ instance crc32_get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.hash.crc
 instance crc_isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.crc :=
   define_is_pkg_init iprop(True)
 instance crc_get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.crc :=
-  build_get_is_pkg_init_wf
-instance fileutil_isPkgInit_inst :
-    IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.fileutil :=
-  define_is_pkg_init iprop(True)
-instance fileutil_get_isPkgInit_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.fileutil :=
   build_get_is_pkg_init_wf
 
 end go_etcd_io.etcd.server.v3.storage.wal
