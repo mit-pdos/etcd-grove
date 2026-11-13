@@ -239,6 +239,25 @@ theorem fin_agree (γ : GName) (bs : GoString) (f : Bool) (p : TcpPipe) :
   · icases dghostVar_agree $$ H1 H2 with %Hag
     ipureintro; simpa using Hag
 
+/-- A close (or a shutdown of the write side) by an end in state `st`: the FIN of its out-pipe
+`p`, unless the end is broken. -/
+theorem fin_close (γ : GName) (p : TcpPipe) (st : TcpEnd) :
+    (if p.fin then dghostVar (GF := GF) γ .discard (some p.sent)
+      else dghostVar γ (.own (1 : Qp).half) (none : Option GoString)) -∗ finCtx γ p ==∗
+    (if (p.fin || !st.broken) then dghostVar (GF := GF) γ .discard (some p.sent)
+      else dghostVar γ (.own (1 : Qp).half) (none : Option GoString)) ∗ finCtx γ (p.finIf st) := by
+  unfold finCtx TcpPipe.finIf
+  iintro H1 H2
+  cases hf : p.fin <;> cases hb : st.broken <;>
+    simp only [hf, hb, Bool.false_eq_true, ↓reduceIte, Bool.not_false, Bool.not_true,
+      Bool.or_true, Bool.or_false]
+  · imod dghostVar_update_halves (some p.sent) $$ H1 H2 with ⟨H1, H2⟩
+    imod dghostVar_persist $$ H1 with H1
+    imod dghostVar_persist $$ H2 with H2
+    imodintro
+    iframe H1 H2
+  all_goals (imodintro; iframe H1 H2)
+
 end endCtx
 
 /-! ## Opening the network -/
@@ -729,6 +748,167 @@ theorem wp_tcp_Write (c : Nat) (s : Bool) (a : GoString) (bs : GoString) (Φ : v
       simp only [List.length_append]; omega
     iapply wp_value'
     iexact HΦ
+
+/-- The outcomes of a close (`upd` sets the end's flag, `closed` or `wshut`) by an end in state
+`st` with FIN flag `f`: a failure that changes nothing (`canFail`: for a shutdown, always
+possible; for a close, only of a closed end), or the flag set, and the FIN sent unless the end is
+broken. -/
+def CloseRes (canFail : Bool) (upd : TcpEnd → TcpEnd) (st : TcpEnd) (f : Bool) (ok : Bool)
+    (st' : TcpEnd) (f' : Bool) : Prop :=
+  ((canFail = true ∨ st.closed = true) ∧ ok = false ∧ st' = st ∧ f' = f) ∨
+  (st.closed = false ∧ st' = upd st ∧ f' = (f || !st.broken))
+
+/-- The close-like steps' common part: the end's flag set (`upd`) and its FIN sent unless broken,
+with the result `ok`, or nothing changed and the result `false`. -/
+theorem wp_tcp_closeLike (o : String) (canFail : Bool) (upd : TcpEnd → TcpEnd)
+    (hupd : ∀ st : TcpEnd, (upd st).closed = true ∨ (upd st).wshut = true)
+    (hupdb : ∀ st : TcpEnd, (upd st).broken = st.broken)
+    (Hstep : ∀ (v : val) (h : GMap Loc (NonAtomic val)) (σ : TcpLocal) (g : TcpGlobal) (e' : Expr)
+        (h' : GMap Loc (NonAtomic val)) (σ' : TcpLocal) (g' : TcpGlobal) (c : Nat) (s : Bool)
+        (cn : TcpConn), v = #(endId c s) → 2 * c + 1 < 2 ^ 64 → g.conns !! c = some cn →
+      ExtSemantics.step (E := tcpExt) o v h σ g e' h' σ' g' →
+        h' = h ∧ σ' = σ ∧
+        (((canFail = true ∨ (cn.endSt s).closed = true) ∧ e' = Val (#false) ∧ g' = g) ∨
+         ((cn.endSt s).closed = false ∧ ∃ ok : Bool, e' = Val (#ok) ∧
+          g' = g.setConn c ((cn.setOut s ((cn.out s).finIf (cn.endSt s))).setEnd s
+            (upd (cn.endSt s))))))
+    (Hex : ∀ (v : val) (h : GMap Loc (NonAtomic val)) (σ : TcpLocal) (g : TcpGlobal) (c : Nat)
+        (s : Bool) (cn : TcpConn), v = #(endId c s) → 2 * c + 1 < 2 ^ 64 →
+        g.conns !! c = some cn →
+      ∃ e' g', ExtSemantics.step (E := tcpExt) o v h σ g e' h σ g')
+    (c : Nat) (s : Bool) (a : GoString) (Φ : val → IProp GF) :
+    tcpConnAt tcpG c a -∗
+    (|={E,∅}=> ∃ st r out f, tcpEnd tcpG c s st r ∗ tcpOut tcpG c s out f ∗
+      ∀ ok st' f', ⌜CloseRes canFail upd st f ok st' f'⌝ -∗ tcpEnd tcpG c s st' r -∗
+        tcpOut tcpG c s out f' ={∅,E}=∗ Φ (#ok)) -∗
+    WP (ExternalOp tcpExt.name o (Val (#(endId c s)))) @ sk; E {{ Φ }} := by
+  letI := (tcpG (G := G)).allG
+  iintro #Hat HAU
+  unfold tcpConnAt
+  icases Hat with ⟨%γ, #Hγ, %Hγa⟩
+  iapply wp_extStep o (#(endId c s)) Φ (by simp)
+  iintro %h %σ %g Hheap Hl Hg
+  icases (tcp_global_ctx_eq g).mp $$ Hg with Hg
+  imod HAU with ⟨%st, %r, %out, %f, Hend, Hout, Hk⟩
+  icases tcpCtx_acc _ g c γ $$ Hg Hγ with ⟨%cn, %hcn, Hcc, Hgclose⟩
+  icases (connCtx_ends γ cn s).mp $$ Hcc with ⟨%Haddr, Hes, Heo⟩
+  rw [endCtx_eq γ s cn]
+  icases Hes with ⟨Hgv, Hmono, Hfin, %Hpure⟩
+  icases tcpEnd_agree _ c s st r γ cn $$ Hγ Hend Hgv with ⟨%Hagr, Hv, Hgv⟩
+  obtain ⟨rfl, rfl⟩ := Hagr
+  icases tcpOut_elim _ c s out f $$ Hout with ⟨%γ', #Hγ', Hm, Hf⟩
+  icases tcpNames_agree _ c γ γ' $$ Hγ Hγ' with %Heq
+  subst Heq
+  icases monoListAuthOwn_agree _ _ _ out _ $$ Hm Hmono with %Hmag
+  obtain ⟨-, rfl⟩ := Hmag
+  icases fin_agree _ _ f _ $$ Hf Hfin with %Hfag
+  obtain ⟨rfl, -⟩ := Hfag
+  imodintro
+  isplitr
+  · ipureintro
+    obtain ⟨e', g', hst⟩ := Hex _ h σ g c s cn rfl Hγa.2 hcn
+    exact ⟨e', h, σ, g', hst⟩
+  inext
+  iintro %e' %h' %σ' %g' %Hst _
+  obtain ⟨rfl, rfl, Hcase⟩ := Hstep _ h σ g e' h' σ' g' c s cn rfl Hγa.2 hcn Hst
+  rcases Hcase with ⟨hcf, rfl, Hgg⟩ | ⟨hc, ok, rfl, rfl⟩
+  · -- nothing changed
+    imod Hk $$ %false %(cn.endSt s) %((cn.out s).fin) %(.inl ⟨hcf, rfl, rfl, rfl⟩) [Hv] [Hm Hf]
+      with HΦ
+    · iapply tcpEnd_intro $$ Hγ Hv
+    · iapply tcpOut_intro $$ Hγ Hm Hf
+    imodintro
+    iframe Hheap Hl
+    isplitr [HΦ]
+    · rw [Hgg]
+      iapply (tcp_global_ctx_eq _).mpr
+      iapply tcpCtx_of_eq _ (setConn_self hcn)
+      iapply Hgclose $$ %cn %(And.intro rfl rfl)
+      iapply (connCtx_ends γ _ s).mpr
+      rw [endCtx_eq γ s cn]
+      iframe Heo Hgv Hmono Hfin
+      ipureintro; exact ⟨Haddr, Hpure⟩
+    iapply wp_value'
+    iexact HΦ
+  · -- the flag set, and the FIN
+    imod ghostVar_update_halves (upd (cn.endSt s), (cn.out (!s)).rcvd) $$ Hv Hgv with ⟨Hv, Hgv⟩
+    imod fin_close _ (cn.out s) (cn.endSt s) $$ Hf Hfin with ⟨Hf, Hfin⟩
+    imod Hk $$ %ok %(upd (cn.endSt s)) %((cn.out s).fin || !(cn.endSt s).broken)
+      %(.inr ⟨hc, rfl, rfl⟩) [Hv] [Hm Hf] with HΦ
+    · iapply tcpEnd_intro $$ Hγ Hv
+    · iapply tcpOut_intro $$ Hγ Hm Hf
+    imodintro
+    iframe Hheap Hl
+    isplitr [HΦ]
+    · iapply (tcp_global_ctx_eq _).mpr
+      iapply Hgclose $$ %_ %(And.intro (by simp) (by simp))
+      iapply (connCtx_ends γ _ s).mpr
+      rw [endCtx_setOutEnd_other, endCtx_setOutEnd_self]
+      rw [endCtx_eq γ (!s) cn]
+      icases Heo with ⟨Hgvo, Hmonoo, Hfino, %Hpureo⟩
+      simp only [finIf_sent, finIf_rcvd, Bool.not_not] at Hpureo ⊢
+      iframe Hgv Hmono Hfin Hgvo Hmonoo Hfino
+      ipureintro
+      exact ⟨by simpa using Haddr, ⟨Hpure.1, fun _ => hupd _⟩, Hpureo⟩
+    iapply wp_value'
+    iexact HΦ
+
+/-- `Close` of the end `s` of `c`: a failure of a closed end; otherwise the end closed, and its
+FIN sent unless it is broken (`CloseRes`; the result may be a failure all the same). -/
+theorem wp_tcp_Close (c : Nat) (s : Bool) (a : GoString) (Φ : val → IProp GF) :
+    tcpConnAt tcpG c a -∗
+    (|={E,∅}=> ∃ st r out f, tcpEnd tcpG c s st r ∗ tcpOut tcpG c s out f ∗
+      ∀ ok st' f', ⌜CloseRes false (fun st => { st with closed := true }) st f ok st' f'⌝ -∗
+        tcpEnd tcpG c s st' r -∗ tcpOut tcpG c s out f' ={∅,E}=∗ Φ (#ok)) -∗
+    WP (ExternalOp tcpExt.name "Close" (Val (#(endId c s)))) @ sk; E {{ Φ }} := by
+  refine wp_tcp_closeLike "Close" false (fun st => { st with closed := true }) (fun _ => .inl rfl)
+    (fun _ => rfl) ?_ ?_ c s a Φ
+  · intro v h σ g e' h' σ' g' c s cn hv hb hcn hst
+    subst hv
+    obtain ⟨rfl, e0, c0, s0, hv, ⟨hb0, he0⟩, ⟨cn0, hcn0, hstep⟩, rfl⟩ := hst
+    obtain rfl := go.intoVal_inj (V := w64) hv
+    obtain ⟨rfl, rfl⟩ := endId_inj hb hb0 he0
+    rw [hcn] at hcn0; cases hcn0
+    refine ⟨rfl, rfl, ?_⟩
+    by_cases hc : (cn.endSt s).closed = true
+    · simp only [hc, ↓reduceIte] at hstep
+      exact .inl ⟨.inr hc, hstep⟩
+    · simp only [hc, Bool.false_eq_true, ↓reduceIte] at hstep
+      exact .inr ⟨by simpa using hc, hstep⟩
+  · intro v h σ g c s cn hv hb hcn
+    subst hv
+    by_cases hc : (cn.endSt s).closed = true
+    · refine ⟨Val (#false), g, rfl, endId c s, c, s, rfl, ⟨hb, rfl⟩, ⟨cn, hcn, ?_⟩, rfl⟩
+      simp [hc]
+    · refine ⟨Val (#true), g.setConn c ((cn.setOut s ((cn.out s).finIf (cn.endSt s))).setEnd s
+        { cn.endSt s with closed := true }), rfl, endId c s, c, s, rfl, ⟨hb, rfl⟩,
+        ⟨cn, hcn, ?_⟩, rfl⟩
+      simp only [hc, Bool.false_eq_true, ↓reduceIte]
+      exact ⟨true, rfl, trivial⟩
+
+/-- `CloseWrite` of the end `s` of `c`: a failure that changes nothing; or, unless the end is
+closed, its write side shut and its FIN sent unless it is broken (`CloseRes`). -/
+theorem wp_tcp_CloseWrite (c : Nat) (s : Bool) (a : GoString) (Φ : val → IProp GF) :
+    tcpConnAt tcpG c a -∗
+    (|={E,∅}=> ∃ st r out f, tcpEnd tcpG c s st r ∗ tcpOut tcpG c s out f ∗
+      ∀ ok st' f', ⌜CloseRes true (fun st => { st with wshut := true }) st f ok st' f'⌝ -∗
+        tcpEnd tcpG c s st' r -∗ tcpOut tcpG c s out f' ={∅,E}=∗ Φ (#ok)) -∗
+    WP (ExternalOp tcpExt.name "CloseWrite" (Val (#(endId c s)))) @ sk; E {{ Φ }} := by
+  refine wp_tcp_closeLike "CloseWrite" true (fun st => { st with wshut := true })
+    (fun _ => .inr rfl) (fun _ => rfl) ?_ ?_ c s a Φ
+  · intro v h σ g e' h' σ' g' c s cn hv hb hcn hst
+    subst hv
+    obtain ⟨rfl, e0, c0, s0, hv, ⟨hb0, he0⟩, ⟨cn0, hcn0, hstep⟩, rfl⟩ := hst
+    obtain rfl := go.intoVal_inj (V := w64) hv
+    obtain ⟨rfl, rfl⟩ := endId_inj hb hb0 he0
+    rw [hcn] at hcn0; cases hcn0
+    refine ⟨rfl, rfl, ?_⟩
+    rcases hstep with ⟨he, hg⟩ | ⟨hc, he, hg⟩
+    · exact .inl ⟨.inl rfl, he, hg⟩
+    · exact .inr ⟨hc, true, he, hg⟩
+  · intro v h σ g c s cn hv hb hcn
+    subst hv
+    exact ⟨Val (#false), g, rfl, endId c s, c, s, rfl, ⟨hb, rfl⟩, ⟨cn, hcn, .inl ⟨rfl, rfl⟩⟩, rfl⟩
 
 end lifting
 
