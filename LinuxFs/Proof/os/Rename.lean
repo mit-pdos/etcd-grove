@@ -187,10 +187,15 @@ theorem os.Rename.wp_proofFileS : os.Rename.specFileS (GF := GF) (hG := hG) := b
   iapply osAU_osAUnc $$ Hau
 
 theorem os.Rename.wp_proofDirSnc : os.Rename.specDirSnc (GF := GF) (hG := hG) := by
-  intro d bs bt j J N R qd h q r Q hbs hbt hN hN' hne hsrc htgt hq
-  wp_start as ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hau⟩
-  imod osNames_next R j N _ h CoPset.subseteq_top $$ Hsi Hn with ⟨Hn, #Hlb⟩
-  wp_apply wp_osCallBeginS R 1 h.next CoPset.subseteq_top CoPset.subseteq_top
+  intro d bs bt j J N R qd h q r lb Q hbs hbt hN hN' hne hsrc htgt hq
+  wp_start as ⟨#Hos, #Hsi, Hp, Hperm, #Hlb0, Hn, Hau⟩
+  imod osNames_next R j N _ h CoPset.subseteq_top $$ Hsi Hn with ⟨Hn, #Hlb1⟩
+  ihave #Hlb : osLogLb (max h.next lb) $$ []
+  · rcases Nat.le_total h.next lb with hle | hle
+    · rw [Nat.max_eq_right hle]; iexact Hlb0
+    · rw [Nat.max_eq_left hle]; iexact Hlb1
+  iclear Hlb0 Hlb1
+  wp_apply wp_osCallBeginS R 1 (max h.next lb) CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
   wp_apply wp_osLstatDirS_mem R d bt j N (DFrac.own qd) (DFrac.own q) h t s0 1 hbt hN'
@@ -199,18 +204,18 @@ theorem os.Rename.wp_proofDirSnc : os.Rename.specDirSnc (GF := GF) (hG := hG) :=
     obtain ⟨⟨J', hJ⟩, -⟩ := hd h1; rw [htgt] at hJ; cases hJ
   rw [decide_eq_false (show isDir ≠ W64 1 from hd1)]
   wp_auto
-  ihave HSt : iprop((osAUnc (osNames j N (DFrac.own r) h) (renDirOut j J N bs bt h (DFrac.own r)) Q ∗
+  ihave HSt : iprop((osAUnc (osNames j N (DFrac.own r) h) (renDirOut j J N bs bt h (DFrac.own r) lb) Q ∗
       osNames j N (DFrac.own q) h) ∨
-    (∃ xs, Q (some xs) ∗ renDirOut j J N bs bt h (DFrac.own q) (some xs)))
+    (∃ xs, Q (some xs) ∗ renDirOut j J N bs bt h (DFrac.own q) lb (some xs)))
     $$ [Hau Hn]
   · ileft; iframe
   iloeb as IH generalizing Hperm Hp HSt HΦ
-  wp_apply +noauto wp_osCallBeginS R 1 h.next CoPset.subseteq_top CoPset.subseteq_top
+  wp_apply +noauto wp_osCallBeginS R 1 (max h.next lb) CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
   icases HSt with (⟨Hau, Hn⟩ | ⟨%xs, HQ, Hout⟩)
   · wp_apply +noauto (wp_aunc_step "Rename" _ (osNames j N (DFrac.own r) h)
-      (renDirOut j J N bs bt h (DFrac.own r)) Q) $$ Hau [Hn Hk Hp HΦ]
+      (renDirOut j J N bs bt h (DFrac.own r) lb) Q) $$ Hau [Hn Hk Hp HΦ]
     iintro Hr
     ihave Hw := (osNames_join j N q r h hq).1 $$ [Hn Hr]
     · iframe
@@ -252,11 +257,11 @@ theorem os.Rename.wp_proofDirSnc : os.Rename.specDirSnc (GF := GF) (hG := hG) :=
       iexists some (x, s0)
       isplitl [Hr]
       · dsimp only [renDirOut, logOut, claimOut, osLogged, renDirEnt]; iframe; iframe #
-        ipureintro; exact ⟨Nat.zero_le _, hst⟩
+        ipureintro; exact ⟨(Nat.max_le.1 hs).2, hst⟩
       iintro HQ
-      ihave Hout : renDirOut j J N bs bt h (DFrac.own q) (some (x, s0)) $$ [Hn]
+      ihave Hout : renDirOut j J N bs bt h (DFrac.own q) lb (some (x, s0)) $$ [Hn]
       · dsimp only [renDirOut, logOut, claimOut, osLogged, renDirEnt]; iframe; iframe #
-        ipureintro; exact ⟨Nat.zero_le _, hst⟩
+        ipureintro; exact ⟨(Nat.max_le.1 hs).2, hst⟩
       wp_auto
       by_cases he4 : e = W64 4
       · rw [decide_eq_true he4]
@@ -297,7 +302,7 @@ theorem os.Rename.wp_proofDirSnc : os.Rename.specDirSnc (GF := GF) (hG := hG) :=
     ihave Hp := (osPathS_frac R d qd.half qd.half j).2 $$ [Hp1 Hp2]
     · iframe
     rw [Qp.half_add_half]
-    ihave Hout : renDirOut j J N bs bt h (DFrac.own q) (some (x, sx)) $$ [Hn]
+    ihave Hout : renDirOut j J N bs bt h (DFrac.own q) lb (some (x, sx)) $$ [Hn]
     · dsimp only [renDirOut, logOut, claimOut, osLogged]; iframe; iframe #
       ipureintro; exact ⟨hlo, hlo2⟩
     wp_auto
@@ -318,10 +323,10 @@ theorem os.Rename.wp_proofDirSnc : os.Rename.specDirSnc (GF := GF) (hG := hG) :=
 
 /-- `specDirS` from `specDirSnc`: an `osAU` is an `osAUnc`. -/
 theorem os.Rename.wp_proofDirS : os.Rename.specDirS (GF := GF) (hG := hG) := by
-  intro d bs bt j J N R qd h q r Q hbs hbt hN hN' hne hsrc htgt hq
-  iintro %Φ ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hau⟩ HΦ
-  iapply os.Rename.wp_proofDirSnc d bs bt j J N R qd h q r Q hbs hbt hN hN' hne hsrc htgt hq $$ [Hp Hperm Hn Hau] HΦ
-  iframe Hos Hsi Hp Hperm Hn
+  intro d bs bt j J N R qd h q r lb Q hbs hbt hN hN' hne hsrc htgt hq
+  iintro %Φ ⟨#Hos, #Hsi, Hp, Hperm, #Hlb, Hn, Hau⟩ HΦ
+  iapply os.Rename.wp_proofDirSnc d bs bt j J N R qd h q r lb Q hbs hbt hN hN' hne hsrc htgt hq $$ [Hp Hperm Hn Hau] HΦ
+  iframe Hos Hsi Hp Hperm Hn Hlb
   iapply osAU_osAUnc $$ Hau
 
 end proof

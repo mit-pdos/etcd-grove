@@ -974,6 +974,40 @@ name received before, via a ghost count), `errc`/`donec` invariants); `alloc`: t
 error; `Close`: the token → the pipeline's claims (and the file in flight removed). `cut`: within
 `Save`'s proof, the handle and `walInv`, `walSyncedLb |H|` preserved, the layout `cutLay`, `alt` back to
 `none` on success; on an error the handle is lost (§3's honest error posts), `CrashOkW` held throughout.
+
+**Second session (branch `wal-cut2`, 2026-11-13): the pipeline.**
+- *`HandshakeN.lean`* (generic, to propose to Perennial): an **indexed handshake** on an unbuffered
+  channel, `isHsn γ ch P Q` with `P : Nat → V → _`, `Q : Nat → _`, the sides' counts `hsnSnd γ n`/
+  `hsnRcv γ n` (ghost-variable halves, the other halves in the invariant; the side completing an
+  exchange finds the other's resource at its own index). `hsn_send_au`/`hsn_receive_au` (for
+  `select`), `wp_hsn_send`/`wp_hsn_receive`, `start_hsn`. Needed because the plain handshake's `Q` is
+  one proposition: `run` cannot know which claim it gets back, and no ghost token exchanged through
+  the plain idiom fixes that (each round both sides' tokens cross without meeting).
+- *`Pipe.lean`*, the predicate (replaces `walPipeH`'s placeholder): `filec` an indexed handshake
+  (`P n lf = pipeFile j dir n lf`: `N.tmp` locked, offset 0, `OsMeta`/zero bytes whole, no mappings,
+  its whole claim holding it; `Q n = pipeQ j n`: the claim on `pipeTmp (n+1)`, the name of file
+  `n-1`, and `n + 1 < 2^63`); `errc` Perennial's SPSC (its value: an error with `pipeLeft`, the
+  pipeline's half call permission, path fraction and claim; its close without a value: `pipeLeft`
+  and `pipeClosedW`); `donec` a broadcast carrying `pipeClosedW` (`dghostVar γ.a discard true`, from
+  the caller's alive flag `dghostVar γ.a (own 1) false`: an `Open` meeting `errc` closed and empty
+  is a contradiction). Tokens: `pipeMain γ n`, `pipeDead γ e`, `pipeRun fp γ … n`. `walPipeH fp dir k`
+  (`Handle.lean`): `isFilePipe`, `pipeMain γ n`, the claim on `pipeTmp (n+1)`, `n ≤ k`, with
+  `walHandleIn` passing `h.cuts.length`.
+- **Proved:** `filePipeline.Open`, `filePipeline.Close`. **Stated, `sorry`:** `alloc`, `run`,
+  `newFilePipeline` (plans in their proof files), `WAL.cut` (the steps and their needs in
+  `WAL__cut.lean`'s header).
+- **Statement change:** `WAL.cut.spec` takes `h.cuts.length + 2 < 2^63` (`count` is a Go `int` and
+  `count % 2` a signed remainder: after `2^63` files the name would be `-1.tmp`). Save's proof must
+  supply it (e.g. from a bound on the history; logged for W6).
+- **Gaps found (for the coordinator):** (1) the open specs' posts (`fileutil.openPost`, hence
+  `lockPost`, `crTr`) give no `os.ownOff f 0`, which `Preallocate`, `Seek` and `newFileEncoder` need
+  of a fresh file; (2) `m.maps = ∅` of a truncated file is not in `trFile`; (3) `filepath.Join` has no
+  spec; (4) `sync`/`saveState` are stated over `walHandleIn` whose tail is the crash-tracked last
+  segment, but `cut` runs them on the owned `N.tmp` (a second tail mode, or inline them in `cut`);
+  (5) `walHandleIn`'s non-tail locks hold an exclusive `LockedFile.File` field, `LockFile` gives the
+  persistent `lockedFile`; (6) task 2's `nc` variants: `specCreateTruncSnc` landed on `wal-int`
+  (`wal-osau4`); `os.File.Sync.specDirS` has no atomic update, so it needs none: `crashOk_dirSync`
+  is applied after the step, opening `walInv` with `wp_notCrashed_acc` before the next one.
 ## W4 implementation log (branch `wal-create`, 2026-11-13)
 
 **Statements (`sorry`-stubbed proofs):** `LinuxFs/Spec/.../storage/wal/Create.lean` (`wal.Create.spec C Mr`),
@@ -1117,6 +1151,54 @@ update: `s.wal dir := walDurFresh md`, the new layout and its `CrashOk`); then `
 - *Not done:* the commit lemma, `AbsentNone`; `wal.Create.wp_proof`,
   `fileutil.TouchDirAll.wp_proof`, `fileutil.CreateDirAll.wp_proof` (still `sorry`).
 
+**Third session (branch `wal-create3`, 2026-11-13).**
+- *`AbsentNone` and `DirsAvoid`* (`Inv.lean`): `walInvBody`'s last conjunct (after W6's `walTailsRes`) is
+  `⌜AbsentNone s jr cl n ∧ DirsAvoid R jr s⌝`. `AbsentNone`: a WAL name of the area with no WAL is absent,
+  in every area claim of `cl` holding it (now) and in every crash the claims allow. `DirsAvoid`: every
+  durable directory's lookup depends on no entry of `jr` at an `AreaSlot` name (a WAL name or `nm.<sfx>`),
+  so the rename leaves `DirsOk` true (a stronger reading of `dirDurable` the area's own durable directories
+  satisfy; nothing deposits one yet). `WalsStart`'s third conjunct is now "a WAL-less name of the area is
+  absent" (was "holds no `.wal` file"); `walCrash_pure` proves it from `AbsentNone` or `CrashTo`'s left
+  disjunct (`han` premise); `walInv_alloc` builds `AbsentNone` from it (`absentNone_start`) and takes
+  `hav : DirsAvoid R jr s`; `walInv_crash` returns `⌜s'.area = r ∧ DirsAvoid R jr s'⌝` (the crash keeps
+  `dirs`); `walInvBody_named` carries both (`absentNone_named`, `absentNone_mono`).
+- *`CreatingOk` strengthened*: an entry `dir ↦ (N, h)` is a claim `(jr, N, h)` of `cl`, **coherent**
+  (`ClaimCoh h jr N`), and **no other claim of `jr` in `cl` holds a name of `N`**. Both are facts of the
+  shared invariant (`NamesCoh`) the rename's commit cannot open (`osShN ∉ osAuMask`); they are checked
+  where the `walCreating` token is made (a step at `⊤`). A unit replacing a claim (`replClaim`, same key)
+  keeps them as long as it does not replace the creating claim (its key is `(jr, .only [...])`, never a
+  WAL directory's `(j, .except X)`).
+- *`os.Rename.specDirS`/`specDirSnc` take a log lower bound* `lb` (`osLogLb lb` in the pre; `renDirOut … lb`,
+  the call's start `≥ lb`; it was 0). The commit needs `hJ.next ≤ st` of the new directory's claim, which
+  the rename is not given (proof: `CallBeginS` at `max h.next lb`).
+- *`walsOk_create`* (`CreateCommit.lean`, proved, no `sorry`): from `WalsOk`, `AbsentNone`, `DirsAvoid`, the
+  WAL-less `dir = r/nm`, the area claim `(jr, N, h) ∈ cl` coherent, holding `nm` and `tmp` (`tmp ↦ dir J`),
+  exclusive on them (`hothers`), the call's start `st` with `h.next ≤ st ≤ x`, `J`'s claim `(J, except X,
+  hJ)` coherent with `hJ.next ≤ st`, `J ≠ jr`, the new layout `lay` (`jr`, `nm`, `J`; `WalAbsD` of
+  `walDurFresh md` over `hJ.cur`, every byte durable, stream then zeros, inodes distinct from `segsAll Ls`):
+  `WalsOk` and `AbsentNone` of `createSt s dir md`, `<[dir := lay]> Ls` and `createClaims` (the area claim
+  logged with `renDirEnt`/`renCur`, `J`'s appended). Pieces: `regionCrashedK_create_drop` (a crash dropping
+  the rename is one of `cl`), `regionCrashedK_create_keep` (keeping it: `treeUnren`, the tree with the rename
+  undone, is a crash of `cl`), `crashTo_congr`, `crashOkW_create_other`, `crashOk_create_new`
+  (`crashTo_synced`), `walDirClaim_create`, `absentNone_create`, `dirsOk_create`, `walsCreateOk_create`.
+- *`walOpenWF` gap (task 4, done)*: `walHandleIn`'s `⌜sp ≠ null⌝` dropped (W6's `Handle.lean`): `hsIn` reads
+  nil as the zero state, and the Go code is nil-safe (`Save` replaces a nil `w.state`; `saveState`'s
+  `IsEmptyHardState` reads through getters). Nothing used the conjunct.
+- **Open: the client update `walCreate_osAUnc`** (not written). Its opening opens `walInv`, finds the
+  claim by `walCreating`/`CreatingOk`, opens the client's update (`walAbsent dir`: `walOwn_agree` gives
+  `s.wal !! dir = none`), hands out the invariant's half of `(jr, N, h)`; its commit applies
+  `walsOk_create` and `walGhost_upd` (the client's `walDiskAt dir (walDurFresh md)`), deposits `J`'s half
+  and the segment's halves, deletes the `walCreating` entry. **One premise it cannot get**: `hdisj`, the
+  new segment's inode distinct from every `segsAll Ls` inode. With `walTailsRes`, a segment with a write in
+  flight is held in the invariant as a `pwTok` (no `osMeta`), so the validity argument (the program's whole
+  `osMeta` of the fresh inode against the invariant's half) covers only the segments with no write in
+  flight. Options: the invariant records that every segment inode is below the file system's next inode
+  (an `os` fact: a fragment of the inode allocator), or `segResF`'s in-flight case keeps half of `osMeta`.
+  For W6/the coordinator.
+- *Not done:* task 3 (the pre-rename `SaveSnapshot`/`encode` variant over `os.File.writerStream` and
+  `io.writerStreamP`), task 5 (`wal.Create.wp_proof`, `TouchDirAll`/`CreateDirAll` `wp_proof`s: still
+  `sorry`).
+
 ## 11. Coordinator decisions after W2 and W4 (2026-11-13)
 
 - **Q4 revised to (b)** (W4 found (a) unprovable: `cleanupWAL`'s rename to `dir.broken.*` is never fsynced,
@@ -1202,6 +1284,10 @@ keeps the static relation with `d.m := |H|` (`syncLay`, `walAbsD_sync`; its cras
   bridge for `walTailW` (program halves) needs a crash-aware `Write` that opens `walInv` around each
   `PWriteStart`/`PWriteFinish` (the in-flight write's token in `walTailsRes`), not this whole-resource bridge.
 
+- **(W4, branch `wal-create3`, 2026-11-13) `walHandleIn` no longer has `⌜sp ≠ null⌝`**: `Create` leaves
+  `w.state` nil and `hsIn` reads nil as the zero state, so `Create` can return `walOpenWF`; nothing used the
+  conjunct. A `cut`/`saveState` proof that wants a non-nil pointer gets it from `Save`'s nil check.
+
 ## fileutil, the rest (branch `wal-fu2`, 2026-11-13)
 
 Specs in `LinuxFs/Spec/go_etcd_io/etcd/client/pkg/v3/fileutil/` (and `wal/createNewWALFile.lean`), proofs
@@ -1231,3 +1317,45 @@ beside them in `LinuxFs/Proof/...`:
   `IsDirWriteable` (reached through `TouchDirAll`: `os.WriteFile`, `Remove`).
 - Build note: the seeded `.lake` replayed stale `Proof/.../storage/WalEncDecode` and
   `GooseLang/Ext/Fs/TreeSharedRes` artifacts after the `wal-int` merge; deleting them fixed it.
+
+**W6, second session (branch `wal-save2`, 2026-11-13): the tail's invariant conjunct and the writer
+contract.**
+- *`ByteOk` generalized* (`Abs.lean`): an unsynced byte is the candidate `(y, 0)` then candidates of
+  its intended value `x` stamped by the writes that announced it (any number: retries, a write in
+  flight, a write that stopped short), none past the stream (new `a` argument, `b < |S|`); written
+  ⇒ cache `x` and at least one. Lemmas `byteOk_durB`, `val_unw`, `val_w`, `ByteOk.snoc`,
+  `byteOk_sync`; CutLay/CutSynced/CrashPure/SaveAbs repaired.
+- *Writes in flight in `walInv`* (`Inv.lean`): `SegFl` (token, offset, data, change number, the
+  segment's `OsMeta`/bytes before it); `segResF F g` (idle: `segRes`; in flight: `pwTok` and the halves
+  around the range, as `cfInv`'s `invRes`), `laysResF F Ls` in place of `laysRes`, the layout holding
+  the segment *as announced* (`SegFl.Ok`: `cfMeta`, `pwAnn` in the range), so `WalAbsD`/`CrashOk` are
+  unchanged. `walInv_crash` takes segments with tokens (`CrashTakeSeg.lean`: `crashRestAt_take_tok`,
+  the fixed-crash `crashRest_take_tok_keep`; `crashRest_take_segs` replaces `crashRest_take_files`).
+  **In-size writes only** (`SegFl.Ok`: `off + |data| ≤ m.size`): a write in flight past the size has no
+  ghost candidates for the bytes it extends the file with; the `Save` crossing `SegmentSizeBytes`
+  writes there. Open (next unit): extend `old` with zeros at the announce, candidates from `OsMeta.pc`.
+- *`walTailsRes s Ls F`*, the last conjunct of `walInvBody` (after W4's `walCreating`): a new
+  `WalGS` field `γt`, the tails' authority `walTailsAuth T` (`dir ↦ γ`), the handle's `walTailKey dir
+  γ`; per open tail `ghostVar γ ½ (tailG d lay g.ino (F !! g.ino))` = `(H, md, cuts, wr, ino, write
+  in flight)`, the WAL, layout and last segment, and F-Z (`TailZeros`). The record replaces the
+  design's `γH`/`γS`/`γW` (one name; no mono list: the program's `H` ties the guard to the
+  invariant's history). `walTailsRes_mono` (CreateNamed's `setNamed`).
+- *The writer contract* (decision): a **pure guard**, `io.writerStreamP wi ok W B`
+  (`Proof/io/WriterStream.lean`; `io.writerStream_P`: the length bound is `ok ys := |ys| ≤ lim`), not
+  the Iris-guarded `writerStreamG` (removed). The tail: `ok := tailOk Mr H md cuts o0 sz` (a prefix of
+  the intended stream past `o0`, inside the preallocated size `sz`), `W := walTailW f fd name dir γ i
+  H md cuts o0 sz` (file, offset, program halves, key, the record at `wr = o0 + |out|`), `B := True`
+  (the handle is lost on an error). `encode.specG`/`saveCrc.spec` restated over `writerStreamP`
+  (`B` error form; `ok` prefix-closed): `cut`'s owned `N.tmp` instantiates them with
+  `os.File.writerStream` + `io.writerStream_P` (the coordinator's "second tail mode" is this: the
+  encoder specs are generic, only `walHandleIn` is the crash-tracked mode).
+- *Stated, `sorry`* (`TailWriter.lean`): `wp_tailPWriteStart`, `wp_tailPWriteFinish` (the two
+  `pwrite` steps opening `walInv`), `wal.tailWriter`. Plans in the file header. Needed below them:
+  the pure `walsOk_announce`/`walsOk_finish` (static relation and **the append's crash condition**,
+  the hard part), a `Write`-over-any-`WriteAt` lemma (`Off.lean`'s `Write.wp_spec` generalized), the
+  WAL copy of `WriteAt.wp_proof_crash`'s loop, and the page writer/encoder re-proved over
+  `writerStreamP` (mechanical: their length side conditions become `ok` of a prefix).
+- *Handle* (`Handle.lean`): `WalHS` has `γ` (tail record) and `sz` (tail size) in place of
+  `γH/γS/γW`; locks are `fileutil.lockedFile lf f` (persistent, `wal-fu2`'s) with the file whole.
+  Not yet: the `cuts.length + 2 < 2^63` bound `cut` needs (Save must carry it: a premise of `Save`, or
+  derived from the name bound); Save/saveEntry/saveState/sync/Sync/SaveSnapshot proofs (still `sorry`).

@@ -178,13 +178,7 @@ theorem walAbsD_snoc {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay
     simp only at h1 h2 h3 h4 h5 h6 h7 h8 ⊢
     rw [hS]
     refine ⟨h1, by simp; omega, h3, h4, fun b x hb => ?_, h6, ?_, fun hz b hb1 hb2 => ?_⟩
-    · have hx := h5 b x hb
-      by_cases hw : b < lay.wr
-      · rwa [List.getD_eq_getElem?_getD, List.getElem?_append_left (by omega),
-          ← List.getD_eq_getElem?_getD]
-      · have hs : ¬ b < lay.so := by omega
-        simp only [ByteOk, hw, hs, ite_false, decide_false, Bool.false_eq_true] at hx ⊢
-        exact hx
+    · exact (h5 b x hb).snoc (fun hw => by simp at hw; omega) (fun hs => by simp at hs; omega)
     · rw [List.take_append_of_le_length (by omega)]; exact h7
     · rcases Nat.lt_or_ge lay.z0 (segStream C Mr d lay.cuts lay.cuts.length).length with hlt | hge
       · exact h8 hlt b hb1 hb2
@@ -212,6 +206,21 @@ theorem walAbsD_snoc {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay
     exact hstop hz2 r len c'
 
 /-! ## The sync's commit -/
+
+/-- A byte after a successful fdatasync of the tail, every written byte now synced: durable at its
+value. -/
+theorem byteOk_sync {x y : w8} {a w s : Bool} {g : ByteG} (h : ByteOk x y a w s g)
+    (hsw : s = true → w = true) : ByteOk x y a w w (durB g.1) := by
+  cases w with
+  | true =>
+    have hv := h.val_w
+    simp only [ByteOk, ite_true]
+    rw [hv]
+  | false =>
+    have hs : s = false := by cases s; rfl; exact absurd (hsw rfl) (by simp)
+    subst hs
+    rw [h.val_unw]
+    exact byteOk_durB rfl rfl
 
 /-- A segment after a successful fdatasync: every byte durable at its value. -/
 def syncSeg (g : SegG) : SegG := { g with bs := g.bs.map (fun y => durB y.1) }
@@ -266,15 +275,8 @@ theorem walAbsD_sync {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay
       | none => rw [hb0] at hb; cases hb
       | some y =>
         rw [hb0] at hb; simp only [Option.map_some, Option.some.injEq] at hb; subst hb
-        have hy := h5 b y hb0
-        by_cases hw : b < lay.wr
-        · simp only [ByteOk, hw, decide_true, ite_true] at hy ⊢
-          by_cases hs : b < lay.so
-          · simp only [hs, decide_true, ite_true] at hy; rw [hy]; rfl
-          · simp only [hs, decide_false, Bool.false_eq_true, ite_false] at hy; rw [hy.1]; rfl
-        · have hs : ¬ b < lay.so := by omega
-          simp only [ByteOk, hw, hs, decide_false, Bool.false_eq_true, ite_false] at hy ⊢
-          rw [hy]
+        exact byteOk_sync (h5 b y hb0)
+          (fun hs => decide_eq_true (Nat.lt_of_lt_of_le (of_decide_eq_true hs) h1))
   · refine ⟨Nat.le_refl _, ?_⟩
     simp only [syncLay, List.take_length]
     rw [htail]; exact Nat.le_refl _

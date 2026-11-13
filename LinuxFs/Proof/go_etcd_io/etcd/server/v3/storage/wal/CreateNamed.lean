@@ -138,6 +138,26 @@ theorem walsOk_named {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s 
     rw [hdirs] at hdd
     exact h6 dd hdd m' hr
 
+/-- **Strong absence at a bigger commit bound.** -/
+theorem absentNone_mono {s : AbsDiskState} {jr : Ino} {cl : List Claim} {n0 n : Nat} (hn : n0 ≤ n)
+    (h : AbsentNone s jr cl n0) : AbsentNone s jr cl n := fun dir nm hin hnone =>
+  ⟨(h dir nm hin hnone).1, fun m' hr => (h dir nm hin hnone).2 m' (regionCrashed_mono hn hr)⟩
+
+/-- **Strong absence with the WAL in `dir` named** (its WAL-less names unchanged). -/
+theorem absentNone_named {s : AbsDiskState} {jr : Ino} {cl : List Claim} {n : Nat}
+    (h : AbsentNone s jr cl n) (dir : GoString) : AbsentNone (setNamed s dir) jr cl n := by
+  intro dir' nm hin hnone
+  rw [show (setNamed s dir).area = s.area from absDiskUpd_area s dir _] at hin
+  refine h dir' nm hin ?_
+  unfold setNamed absDiskUpd at hnone
+  cases hd : s.wal !! dir with
+  | none => rw [hd] at hnone; exact hnone
+  | some d =>
+    rw [hd] at hnone
+    by_cases he : dir' = dir
+    · subst he; rw [GMap.lookup_insert_eq] at hnone; cases hnone
+    · rwa [GMap.lookup_insert_ne _ _ (Ne.symm he)] at hnone
+
 theorem absLe_setNamed (s : AbsDiskState) (dir : GoString) : absLe s (setNamed s dir) :=
   absLe_upd s dir _ (fun d => ⟨Nat.le_refl _, Nat.le_refl _, fun _ => rfl⟩)
 
@@ -197,7 +217,7 @@ theorem walInvBody_named (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         walNamed (W := W) dir := by
   iintro Hb #Hsh Hn #Hc
   unfold walInvBody
-  icases Hb with ⟨%Ls, %cl, %n0, Hg, %Har, Hcl, #Hcm, Hlays, %Hok, %Hco, Hcr⟩
+  icases Hb with ⟨%Ls, %cl, %n0, %F, Hg, %Har, Hcl, #Hcm, Hlays, %Hok, %Hco, Hcr, Htl, %Han⟩
   obtain ⟨N', h', hc', hN'⟩ := Hco nm hin.1
   have hmem : ((jr, N', h'), DFrac.own (1 : Qp).half) ∈
       cl.map (fun c => (c, DFrac.own (1 : Qp).half)) := List.mem_map_of_mem hc'
@@ -214,8 +234,8 @@ theorem walInvBody_named (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   imod walGhost_upd_lag (W := W) s (setNamed s dir) (walMapLe_setNamed · s dir)
     (absLe_setNamed s dir) (walKeysInArea_upd s dir _) $$ Hg with ⟨Hg, #Hp⟩
   imodintro
-  isplitl [Hg Hcl Hlays Hcr]
-  · iexists Ls, cl, max n0 n
+  isplitl [Hg Hcl Hlays Hcr Htl]
+  · iexists Ls, cl, max n0 n, F
     iframe Hg Hcl Hlays
     isplitr
     · ipureintro; rw [show (setNamed s dir).area = s.area from absDiskUpd_area s dir _]; exact Har
@@ -227,7 +247,20 @@ theorem walInvBody_named (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     · ipureintro; exact hok'
     isplitr
     · ipureintro; exact Hco
-    iexact Hcr
+    iframe Hcr
+    isplitl [Htl]
+    · iapply walTailsRes_mono s (setNamed s dir) Ls F ?_ $$ Htl
+      intro dir' d' hd'
+      by_cases hdd : dir' = dir
+      · subst hdd; rw [hd] at hd'; cases hd'; exact ⟨_, hdn, rfl, rfl⟩
+      · refine ⟨d', ?_, rfl, rfl⟩
+        rw [show (setNamed s dir).wal = _ from absDiskUpd_wal s dir _ d hd,
+          GMap.lookup_insert_ne _ _ (Ne.symm hdd)]
+        exact hd'
+    ipureintro
+    refine ⟨absentNone_named (absentNone_mono (Nat.le_max_left _ _) Han.1) dir, fun dd hdd => Han.2 dd ?_⟩
+    have hdirs : (setNamed s dir).dirs = s.dirs := by unfold setNamed absDiskUpd; rw [hd]
+    rw [← hdirs]; exact hdd
   iframe Hn
   unfold walNamed
   iexists (setNamed s dir), { d with named := true }

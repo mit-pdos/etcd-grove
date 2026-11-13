@@ -258,7 +258,7 @@ theorem crashTo_start (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLa
           · have hbS' : ¬ b < (crashLay fo lay q S.length).so := hbS
             have hbS'' : ¬ b < (crashLay fo lay q S.length).wr := hbS
             simp only [hbS', hbS'', decide_false]
-            simp [List.getD_eq_getElem?_getD, hb]
+            refine ⟨[], ?_, by simp, fun _ => rfl, ?_⟩ <;> simp [List.getD_eq_getElem?_getD, hb]
       · rw [hold]
         obtain ⟨t, ht⟩ := hpreS
         show S.take S.length = f0.contents.take S.length
@@ -460,8 +460,8 @@ theorem gmapBind_lookup {K V V' : Type} [DecidableEq K] (m : GMap K V) (f : K �
 
 /-- **What a generation's start says of the WALs** (pure), the tree being `m` (nothing logged):
 each WAL of `s` has a layout whose directory is at its name in the area, with the static relation
-over the directory's entries, every segment's bytes durable and nothing appended; a directory of
-the area with no WAL holds no `.wal` file; every durable directory resolves. -/
+over the directory's entries, every segment's bytes durable and nothing appended; a WAL name of
+the area with no WAL is absent (`AbsentNone`); every durable directory resolves. -/
 def WalsStart (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (s : AbsDiskState)
     (Ls : GMap GoString WalLay) (m : Tree) : Prop :=
   (∀ dir d, s.wal !! dir = some d → ∃ lay nm, Ls !! dir = some lay ∧ InArea s.area dir nm ∧
@@ -471,20 +471,21 @@ def WalsStart (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (s : AbsDi
     lay.wr = lay.so ∧ lay.wr = lay.z0 ∧ lay.z0 = (segStream C Mr d lay.cuts lay.cuts.length).length ∧
     (∀ g, lay.segs.getLast? = some g → g.bs = lay.old.map durB)) ∧
   (∀ dir, s.wal !! dir = none → Ls !! dir = none) ∧
-  (∀ dir nm, InArea s.area dir nm → s.wal !! dir = none → ∀ J, m.entry jr nm = some (.dir J) →
-    walInos (entsOf m J) = []) ∧
+  (∀ dir nm, InArea s.area dir nm → s.wal !! dir = none → m.entry jr nm = none) ∧
   (∀ dd, s.dirs !! dd = some () → ∃ J, lookupH R (m, []) dd = some (.dir J))
 
 /-- **The crash's pure core** (plan §2.2): from what the invariant says of the WALs, what a crash of
 the claims allows of the tree (`m'`), what the crash did to each segment (`FileCrashedR` of its
 halves, its candidates the state's) and W1: the crashed WAL state `s'` (`walStCrash s s'`) and its
-layouts over `m'` and the crashed files. Each WAL's crash condition gives its `CrashTo` (W1 over the
+layouts over `m'` and the crashed files (a WAL-less name absent, as `AbsentNone` or `CrashTo`'s left
+disjunct leaves it). Each WAL's crash condition gives its `CrashTo` (W1 over the
 ghost candidates, `W1G`, from W1 over the state's: `w1G_of_W1`, the only place W1 enters); the new
 layout keeps the cuts, the kept segments with their files' start resources, the last file's image
 as the bytes under its stream (`crashTo_start`). -/
 theorem walCrash_pure (C : WalCodec) (_hC : C.Ok) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     (s : AbsDiskState) (Ls : GMap GoString WalLay) (cl : List Claim) (n : Nat) (m' : Tree)
-    (st st' : Fs.OsState) (hok : WalsOk C Mr R jr s Ls cl n) (hk : walKeysInArea s)
+    (st st' : Fs.OsState) (hok : WalsOk C Mr R jr s Ls cl n) (han : AbsentNone s jr cl n)
+    (hk : walKeysInArea s)
     (hreg : RegionCrashed cl n m') (htree : st'.fs.treeDur = m') (hw1 : W1 C st st')
     (hfiles : ∀ g ∈ segsAll Ls,
       FileCrashedR g.om [(0, DFrac.own (1 : Qp).half, g.bs)] (st'.fs.files !! g.ino) ∧
@@ -563,17 +564,17 @@ theorem walCrash_pure (C : WalCodec) (_hC : C.Ok) (Mr : WalMarshal) (R : Roots) 
       cases hFd : F dir d with
       | none => rfl
       | some p => rw [hFd] at h; cases h
-  · intro dir nm hin h J hJ
+  · intro dir nm hin h
     rw [hs'] at h
     cases hd : s.wal !! dir with
-    | none => exact hok.2.2.2.2.1 dir nm hin hd m' hreg J hJ
+    | none => exact (han dir nm hin hd).2 m' hreg
     | some d =>
       rw [hd] at h
       simp only [Option.bind_some] at h
       cases hFd : F dir d with
       | none =>
         obtain ⟨nm', hin', he⟩ := (hF dir d hd).2.1 hFd
-        rw [inArea_name hin hin', he] at hJ; cases hJ
+        rw [inArea_name hin hin', he]
       | some p => rw [hFd] at h; cases h
   · intro dd hdd
     exact hok.2.2.2.2.2 dd hdd m' hreg
