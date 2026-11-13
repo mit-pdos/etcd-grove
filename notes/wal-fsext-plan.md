@@ -447,3 +447,11 @@ it lands with the first proofs.
   records ≡ `walReadCut` (next unit). **Decision (stale `N.tmp`)**: no fork change (the code is correct,
   `nonissues/etcd-wal-cut-reuses-stale-tmp.md`); the stale clause is proved in W3 from concrete wire
   facts of `walpb.Record`/`HardState`'s marshalling model, which W3 registers anyway.
+- **ReadAll's fold** (`wal-fold`, `WalEncFold.lean`, no `sorry`): `readAllFold` (the loop, S/wal.go:505-676,
+  over decoded records, abstract `WalUnmarshal` with round-trip laws). From a cut file it is exactly
+  `walReadFrom` (`readAllFold_from`, `_complete`: success iff, but for `ErrSnapshotMismatch`); from the first
+  file it is the fold at the fixed base `s` (`walReadAt`), equal to `walRead` when `walRead` succeeds under
+  `walCommitLe` (`readAllFold_zero_eq`). **Spec deviation** (`readAllFold_zero_dev`): `Save({Term 1, Commit 5},
+  [entry 6])`, `SaveSnapshot({5, 1})`, restart at `(5, 1)`: `ReadAll` succeeds with `[entry 6]`, `walRead` is
+  `none` (its base is 0 at the entry), so `WAL__ReadAll.spec`'s success post (`walReadCut … = some σ`) is false
+  at `cut = 0` without a history premise (`walCommitLe` holds vacuously). `segsOf_flatten` (WalEncSegs).
