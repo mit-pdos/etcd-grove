@@ -470,9 +470,12 @@ theorem namesCoh_log {V : Hist} {Γn : GMap (Ino × NameSet) NamesH} (hcoh : Nam
 after the step. -/
 abbrev ClaimW := Ino × NameSet × NamesH × Ents
 
-/-- What the claims know of the tree of `st`. -/
-def ClaimsAt (st : OsState) (cl : List ClaimW) : Prop :=
-  ∀ c ∈ cl, ∀ b, c.2.1.Mem b → st.tree.entry c.1 b = c.2.2.1.cur !! b
+/-- What the claims know of the tree of `st`: their names' entries; no other name in what they
+know; two claims of one directory under distinct keys share no name. -/
+structure ClaimsAt (st : OsState) (cl : List ClaimW) : Prop where
+  ent : ∀ c ∈ cl, ∀ b, c.2.1.Mem b → st.tree.entry c.1 b = c.2.2.1.cur !! b
+  out : ∀ c ∈ cl, ∀ b, ¬ c.2.1.Mem b → c.2.2.1.cur !! b = none
+  disj : ∀ c ∈ cl, ∀ c' ∈ cl, c.1 = c'.1 → c.2.1 ≠ c'.2.1 → ∀ b, c.2.1.Mem b → ¬ c'.2.1.Mem b
 
 /-- `st'` is `st` after a step of the call `k` (begun at `s0`) that logged `o`, the next inode
 perhaps taken, the files as they were. -/
@@ -542,7 +545,8 @@ theorem claims_info {st : OsState} {Γn : GMap (Ino × NameSet) NamesH}
     ∀ cl : List ClaimW, (∀ c ∈ cl, c.2.1 ≠ .only []) →
     ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γn Γn -∗
       ([∗list] c ∈ cl, osNames (L := L) c.1 c.2.1 (DFrac.own 1) c.2.2.1) -∗
-      ⌜ClaimsAt st cl ∧ ∀ c ∈ cl, Γn !! (c.1, c.2.1) = some c.2.2.1 ∧
+      ⌜(∀ c ∈ cl, ∀ b, c.2.1.Mem b → st.tree.entry c.1 b = c.2.2.1.cur !! b) ∧
+        ∀ c ∈ cl, Γn !! (c.1, c.2.1) = some c.2.2.1 ∧
         c.2.2.1 = namesOf (st.fs.treeDur, st.fs.metaLog) c.1 c.2.1⌝
   | [], _ => by
     iintro _ _
@@ -672,9 +676,11 @@ theorem wp_logStepS (op : String) (v : val) (hv : v.isPanic = false) (R : Roots)
     (hadd : ∀ j b, b ∈ o.adds j → NameOk b)
     (hF : ∀ st Γn, st.fs.roots = R → NamesCoh (st.fs.treeDur, st.fs.metaLog) Γn →
       ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γn Γn -∗ F -∗ ⌜P st⌝)
-    (hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 → P st →
+    (hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
+      (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) → P st →
       ClaimsAt st cl → ∃ e' st', IsFsStep op v st e' st' ∧ FilesSame st st')
-    (hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 → P st →
+    (hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
+      (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) → P st →
       ClaimsAt st cl → IsFsStep op v st e' st' → ∃ w, e' = Val w ∧
         ((st' = st.metaEnd k ∧ W w false) ∨
          (LoggedFrom st st' k s0 o ∧ (∀ x, x ∈ o.apply st.tree → x < st'.fs.nextIno) ∧ W w true)))
@@ -716,12 +722,29 @@ theorem wp_logStepS (op : String) (v : val) (hv : v.isPanic = false) (R : Roots)
   obtain ⟨hR, rfl⟩ := hVs
   icases hF st Γn hR hcoh.2 $$ HAn HF with %hP
   icases claims_info hcoh.2 cl hne $$ HAn Hcl with %hci
-  obtain ⟨hat, hlk⟩ := hci
+  obtain ⟨hat0, hlk⟩ := hci
+  have hat : ClaimsAt st cl := by
+    refine ⟨hat0, fun c hc b hb => ?_, fun c hc c' hc' hj hN b hb hb' => ?_⟩
+    · rw [(hlk c hc).2]
+      exact restrictN_lookup_not _ _ _ hb
+    · have h2 := (hlk c' hc').1
+      rw [← hj] at h2
+      exact hcoh.2.disj c.1 c.2.1 c'.2.1 _ _ b (hlk c hc).1 h2 hN hb hb'
   unfold osCallS
   icases gAuth_lookup _ _ _ _ _ _ $$ Hacs Hk with %hk
   have hcall : st.proc.calls !! k = some s0 := by
     have := hc.calls k; rw [hk] at this; exact this.symm
   icases callResS_excl Γc k (s0, q) hk $$ Hcr with ⟨%hexcl, Hcr⟩
+  have hsole : q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k := by
+    intro hq k' s' hk'
+    refine Classical.byContradiction fun hne => ?_
+    have h1 := hc.calls k'
+    rw [hk'] at h1
+    cases hx : Γc !! k' with
+    | none => rw [hx] at h1; cases h1
+    | some x =>
+      have := (hexcl k' x hne hx).2
+      rw [hq] at this; exact absurd this (by simp)
   unfold osWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
@@ -729,14 +752,14 @@ theorem wp_logStepS (op : String) (v : val) (hv : v.isPanic = false) (R : Roots)
   iintro Hclose2
   isplitr
   · ipureintro
-    obtain ⟨e', st', hst, hfs⟩ := hprog st hw hR hcall hP hat
+    obtain ⟨e', st', hst, hfs⟩ := hprog st hw hR hcall hsole hP hat
     obtain ⟨hfr, hr⟩ := step_filesSame (h := h) Hwc.1 hfs Hag
     exact ⟨e', h, st', hst, hfr, hr⟩
   inext
   iintro %e' %h' %st' %Hst
   imod Hclose2
   obtain ⟨Hst, Hfr, Hr⟩ := Hst
-  obtain ⟨w, rfl, hres⟩ := hpost st e' st' hw hR hcall hP hat Hst
+  obtain ⟨w, rfl, hres⟩ := hpost st e' st' hw hR hcall hsole hP hat Hst
   unfold callResS
   icases (BigSepM.bigSepM_delete (M := GMap Nat)
     (Φ := fun (_t : Nat) (x : Nat × Qp) =>

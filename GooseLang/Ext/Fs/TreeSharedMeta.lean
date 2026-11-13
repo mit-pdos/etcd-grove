@@ -59,19 +59,21 @@ theorem wp_osUnlinkS' (R : Roots) (d b : GoString) (j i : Ino) (dq : DFrac) (h :
   let o : MetaOp := .remove j b (.file i)
   let cl : List ClaimW := [(j, .only [b], h, restrictN (.only [b]) (GMap.delete b h.cur))]
   have hent : ∀ st, ClaimsAt st cl → st.tree.entry j b = some (.file i) := by
-    intro st hat; rw [hat _ (List.mem_singleton_self _) b hbN]; exact hi
+    intro st hat; rw [hat.ent _ (List.mem_singleton_self _) b hbN]; exact hi
   have hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
+      (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) →
       st.lookup d = some (.dir j) → ClaimsAt st cl →
       ∃ e' st', IsFsStep "Unlink" (PairV (osTokV k) (#(child d b))) st e' st' ∧ FilesSame st st' :=
-    fun st _ _ hcall hp _ => ⟨_, st.metaEnd k, ⟨child d b, k, s0, rfl, treeName_child hp hb, hcall,
+    fun st _ _ hcall _ hp _ => ⟨_, st.metaEnd k, ⟨child d b, k, s0, rfl, treeName_child hp hb, hcall,
       Or.inr ⟨1, by decide, rfl, rfl⟩⟩, filesSame_metaEnd st k⟩
   have hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
+      (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) →
       st.lookup d = some (.dir j) → ClaimsAt st cl →
       IsFsStep "Unlink" (PairV (osTokV k) (#(child d b))) st e' st' → ∃ w, e' = Val w ∧
         ((st' = st.metaEnd k ∧ (fun w lg => ∃ e : w64, w = #e ∧ (lg = false → e ≠ 0)) w false) ∨
          (LoggedFrom st st' k s0 o ∧ (∀ x, x ∈ o.apply st.tree → x < st'.fs.nextIno) ∧
           (fun w lg => ∃ e : w64, w = #e ∧ (lg = false → e ≠ 0)) w true)) := by
-    intro st e' st' hw _ hcall hp hat Hst
+    intro st e' st' hw _ hcall _ hp hat Hst
     simp only [IsFsStep] at Hst
     obtain ⟨p', k', s', hv, -, hk', hres⟩ := Hst
     obtain ⟨rfl, rfl⟩ := tokPath_inj hv
