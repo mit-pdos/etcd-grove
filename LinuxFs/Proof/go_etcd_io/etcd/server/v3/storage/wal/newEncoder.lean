@@ -48,6 +48,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.newEncoder.wp_proof
   try wp_auto
   ihave %Hbl := ownSlice_len _ _ _ $$ Hb
   ihave %Hul := ownSlice_len _ _ _ $$ Hu
+  ihave ⟨«$r0», %Hen⟩ := typedPointsto_not_null_dup _ _ _ $$ «$r0»
   iStructNamed «$r0»
   have hbl2 : sint.Z b.len = 1048576 := by
     have := Hbl.1; rw [List.length_replicate] at this
@@ -61,6 +62,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.newEncoder.wp_proof
     «$r0_ptr».[go_etcd_io.etcd.server.v3.storage.wal.encoder, go!"mu"] $$ mu [] with #Hmu
   · inext; itrivial
   iapply HΦ
+  isplitr
+  rotate_left
+  · ipureintro; exact Hen
   iunfold ownEncoder
   iexists pw, _, b, u, _, _
   isplitl []

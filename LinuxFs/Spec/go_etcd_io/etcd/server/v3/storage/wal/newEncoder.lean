@@ -33,7 +33,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.newEncoder.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.ioutil ∗ walCrcTable }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.newEncoder))
       (Val #(GoInterface.ok wi))) (Val #prev)) (Val #off))
-  {{ (e : Loc), RET #e; ownEncoder e wi prev [] }}
+  {{ (e : Loc), RET #e; ownEncoder e wi prev [] ∗ ⌜e ≠ null⌝ }}
 
 end spec
 
