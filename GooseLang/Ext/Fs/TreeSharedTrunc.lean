@@ -14,10 +14,11 @@ off, the client's halves of the mapped cells) and gives back what its landing gi
 `O_CREAT|O_TRUNC` of an absent name is `wp_osOpenCreateS'` (`TreeSharedCreate.lean`), whose `O_TRUNC`
 premise is "clear, or the name absent".
 
-**`wp_osOpenTruncS` is `sorry`** (2026-11-13, branch `wal-osau3`): its proof needs the one-step
-world update of a landed resize (`osCoh_start` then `resize_done_world`, `Truncate.lean`, composed
-in one step, with the state `st.stampFile i (fun n => (f.announce c n).land c c.hi 0)`), on top of
-`wp_osOpenFileS'`'s tree part. `notes/wal-fsext-i2-design.md`, implementation log.
+The proof (2026-11-13, branch `wal-osau4`): `osWorld_trunc`, the world update of the truncation as
+the two steps of a resize to 0 (`resize_start_world`, `wp_osResizeStart`'s body as a world update,
+then `resize_done_world`) through the state between them (`startState`, a fresh token), whose heap
+is rendered for it (`heapRendered_mid`); `truncSt_eq` says the two steps make `OpenEffect`'s state.
+The tree's part is `wp_osOpenFileS'`'s, the truncation a `TreeFrame` step.
 -/
 module
 
@@ -77,6 +78,28 @@ theorem heapRendered_mid [GooseExts] [GoGlobalContext] {A B C : OsState}
   · exact absurd ((hMB l).2 ((hMC l).1 ⟨p, i, hpi⟩)) hn
   · exact absurd ((hMC l).2 ((hMB l).1 hmd)) hn
   · rw [hlk, dif_neg hn']; exact H4 l hn (fun h => hn' ((hMB l).2 h))
+
+open Classical in
+/-- `HeapRendered` sees the source state only through its mappings, and the target only through its
+files, changes in flight and mappings. -/
+theorem heapRendered_congr [GooseExts] [GoGlobalContext] {A A' C C' : OsState}
+    {h h' : GMap Loc (NonAtomic val)} (hA : A'.proc.maps = A.proc.maps)
+    (hf : C'.fs.files = C.fs.files) (hi : C'.proc.inflight = C.proc.inflight)
+    (hm : C'.proc.maps = C.proc.maps) (Hr : HeapRendered A C h h') : HeapRendered A' C' h h' := by
+  have e1 : ∀ l i b, MapsTo C' l i b ↔ MapsTo C l i b := by intro l i b; simp only [MapsTo, hm]
+  have e1' : ∀ l, Mapped C' l ↔ Mapped C l := fun l =>
+    ⟨fun ⟨i, b, h⟩ => ⟨i, b, (e1 l i b).1 h⟩, fun ⟨i, b, h⟩ => ⟨i, b, (e1 l i b).2 h⟩⟩
+  have e2 : ∀ l, Mapped A' l ↔ Mapped A l := by intro l; simp only [Mapped, MapsTo, hA]
+  have e3 : ∀ i b, cellVal C' i b = cellVal C i b := by
+    intro i b
+    have hfi : C'.file i = C.file i := by simp only [OsState.file, hf]
+    simp only [cellVal, hfi, inflightAt_congr hi]
+  obtain ⟨H1, H2, H3, H4⟩ := Hr
+  refine ⟨fun l i b h1 h2 => ?_, fun l i b h1 h2 => ?_, fun l h1 h2 => ?_, fun l h1 h2 => ?_⟩
+  · rw [e3]; exact H1 l i b ((e1 l i b).1 h1) ((e2 l).1 h2)
+  · rw [e3]; exact H2 l i b ((e1 l i b).1 h1) (fun h => h2 ((e2 l).2 h))
+  · exact H3 l (fun h => h1 ((e1' l).2 h)) ((e2 l).1 h2)
+  · exact H4 l (fun h => h1 ((e1' l).2 h)) (fun h => h2 ((e2 l).2 h))
 
 section specs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
@@ -229,6 +252,40 @@ theorem resize_start_world {st : OsState} {Γb Γm Γf Γt} {h : GMap Loc (NonAt
   unfold rsTok osTok
   iframe Ht; ipureintro; exact hlen
 
+/-- An fd added on an existing file, the heap unchanged. -/
+theorem osWorld_addFd0 {st : OsState} {Γb Γm Γf Γt} {h : GMap Loc (NonAtomic val)} {fd : w64}
+    {d : OsFd} (hfd : st.proc.fds !! fd = none) (hfile : ∃ f, st.file d.ino = some f) :
+    ⊢ osWorld (L := L) st Γb Γm Γf Γt h ==∗
+      osWorld (L := L) (st.setProc { st.proc with fds := <[fd := d]> st.proc.fds }) Γb Γm
+        (<[fd := d]> Γf) Γt h ∗ osFd (L := L) fd (DFrac.own 1) d := by
+  iintro Hw
+  icases (osWorld_unfold (L := L)).1 $$ Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
+  icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
+  obtain ⟨hfr, hr⟩ := step_filesSame (h := h) Hwc.1 (filesSame_refl st) Hag
+  ihave Hw : osWorld (L := L) st Γb Γm Γf Γt h $$ [HAb HAm HAf HAt Htok Hcells Hσ]
+  · iapply (osWorld_unfold (L := L)).2; iframe; ipureintro; exact Hwc
+  iapply osWorld_addFd (filesSame_refl st) hfd hfile
+    (heapRendered_congr rfl rfl rfl rfl hr) (mapsFresh_same rfl) $$ Hw
+
+/-- The facts of a whole `OsMeta` against the world: its entry, and no change in flight on it. -/
+theorem osMeta_whole_facts {st : OsState} {Γb Γm Γf Γt} {h : GMap Loc (NonAtomic val)} {i : Ino}
+    {m : OsMeta} :
+    ⊢ osWorld (L := L) st Γb Γm Γf Γt h -∗ osMeta (L := L) i (DFrac.own 1) m -∗
+      osWorld (L := L) st Γb Γm Γf Γt h ∗ osMeta (L := L) i (DFrac.own 1) m ∗
+      ⌜(∃ f, st.file i = some f ∧ f.size = m.size) ∧ ¬ BusyAt st i⌝ := by
+  iintro Hw Hm
+  icases (osWorld_unfold (L := L)).1 $$ Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
+  unfold osMeta
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAm Hm with %Hml
+  icases tokRes_meta_whole _ $$ Htok Hm with %Hnt
+  obtain ⟨f, hf, hmo⟩ := coh_meta Hwc.2 Hml
+  have hni := noInfl_of_noTok Hwc.2 Hnt
+  iframe Hm
+  isplitl
+  · iapply (osWorld_unfold (L := L)).2; iframe; ipureintro; exact Hwc
+  ipureintro
+  exact ⟨⟨f, hf, hmo.size.symm⟩, fun ⟨t, c, h1, h2⟩ => hni t c h1 h2⟩
+
 attribute [local instance] Classical.propDecidable in
 /-- **The files' world after an open's truncation of `i`** (`truncSt`): the two steps of a resize
 to 0 (`resize_start_world`, then `resize_done_world`) through a state between them, whose heap is
@@ -285,8 +342,7 @@ theorem osWorld_trunc {st : OsState} {Γb Γm Γf Γt} {h h' : GMap Loc (NonAtom
 /-- **`open(2)` with `O_TRUNC` of `d/b`, a name holding the file `i`** (shared mode; any access
 mode, with or without `O_CREAT`), with a fraction of a claim on names containing `b`, the file's
 `OsMeta` whole, its bytes and the client's halves of its mapped cells: no entry logged; the file
-truncated (`rsDone i 0 0 m n`), or, on failure only, left as it was; on success a fresh fd on `i`.
-**`sorry`** (the file header). -/
+truncated (`rsDone i 0 0 m n`), or, on failure only, left as it was; on success a fresh fd on `i`. -/
 theorem wp_osOpenTruncS (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (dq dqn : DFrac)
     (h : NamesH) (k s0 : Nat) (q : Qp) (fl : w64) (m : OsMeta) (xs : List ByteG)
     (hfl : OpenFlagsOk fl.toNat) (htr : fl.toNat / O_TRUNC % 2 = 1) (hb : NameOk b)
@@ -305,7 +361,171 @@ theorem wp_osOpenTruncS (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
         Φ (PairV (#fd) (#e))) -∗
       WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#(child d b)) (#fl)))))
         @ s; E {{ Φ }} := by
-  sorry
+  iintro #Hinv #Hsi Hp Hn Hk Hm Hbs Hc HΦ
+  iapply wp_fs_stepM "Open" _ Φ (by simp [val.isPanic]) hE $$ Hinv
+  iintro %st %Γb %Γm %Γf %Γt %h0 Hw Ht
+  unfold treeCtx
+  icases Ht with ⟨Htr, Hcm⟩
+  icases Htr with (Htr | Htr)
+  · iexfalso; iapply legacy_callS_excl st k s0 q $$ Hk Htr
+  unfold treeShared
+  icases Htr with ⟨%V0, %s1, %Γdf, %Γc, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr⟩
+  obtain ⟨hw, hc⟩ := hns
+  unfold osSharedInv
+  imod inv_acc (osShN_sub hE') $$ Hsi with ⟨Hi, Hclose⟩
+  icases Hi with >Hi
+  icases Hi with ⟨%Vs, %Γn, Hs, HAn, %hcoh, Halen, HAlog⟩
+  icases gAuth_lookup _ _ _ _ _ _ $$ Has Hs with %hVs
+  simp only [histMap, GMap.lookup_singleton_eq, Option.some.injEq, Prod.mk.injEq] at hVs
+  obtain ⟨hR, rfl⟩ := hVs
+  icases osPathS_lookup hR hcoh.2 d dq j $$ HAn Hp with %hl
+  icases osNames_entry hcoh.2 j N dqn h $$ HAn Hn with %hent
+  imod Hclose $$ [Hs HAn Halen HAlog] with -
+  · inext; iexists _, Γn; iframe; ipureintro; exact hcoh
+  have hen : st.tree.entry j b = some (.file i) := by rw [hent b hN]; exact hi
+  have hl' : st.lookup (child d b) = some (.file i) := by rw [lookup_child hw.roots hl hb]; exact hen
+  have hl0 : (st.metaEnd k).lookup (child d b) = some (.file i) := hl'
+  unfold osCallS
+  icases gAuth_lookup _ _ _ _ _ _ $$ Hacs Hk with %hk
+  have hcall : st.proc.calls !! k = some s0 := by
+    have := hc.calls k; rw [hk] at this; exact this.symm
+  icases osMeta_whole_facts $$ Hw Hm with ⟨Hw, Hm, %hmf⟩
+  obtain ⟨⟨f, hf, hfsz⟩, hnb⟩ := hmf
+  icases (osWorld_unfold (L := L)).1 $$ Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
+  icases cellsRes_lookup h0 _ $$ Hσ Hcells with %Hag
+  have htr' : decide ((fl.toNat / O_TRUNC) % 2 = 1) = true := by simp [htr]
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ E \ ↑osN from Std.LawfulSet.empty_subset)
+  iintro Hclose2
+  isplitr
+  · ipureintro
+    obtain ⟨hfr, hr⟩ := step_filesSame (h := h0) Hwc.1 (filesSame_metaEnd st k) Hag
+    exact ⟨_, h0, _, ⟨child d b, fl, k, s0, rfl, treePath_of_lookup hl', hfl, hcall,
+      ⟨fun _ i' hi' => by rw [hl0] at hi'; cases hi'; exact hnb, .inr ⟨1, by decide, rfl, .inl rfl⟩⟩⟩,
+      hfr, hr⟩
+  inext
+  iintro %e' %h' %st' %Hst
+  imod Hclose2
+  obtain ⟨Hst, Hfr, Hr⟩ := Hst
+  simp only [IsFsStep] at Hst
+  obtain ⟨p', fl', k', s', hv, -, -, hk', hres⟩ := Hst
+  obtain ⟨rfl, rfl, rfl⟩ := tokPathFl_inj hv
+  rw [hcall] at hk'; cases hk'
+  simp only [htr'] at hres
+  unfold callResS
+  icases (BigSepM.bigSepM_delete (M := GMap Nat)
+    (Φ := fun (_t : Nat) (x : Nat × Qp) =>
+      gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm () (DFrac.own x.2) ()) hk).1 $$ Hcr
+    with ⟨Hq, Hcr⟩
+  imod gAuth_delete _ _ _ _ _ $$ Hacs Hk with Hacs
+  -- the world at the call's end, the heap unchanged
+  obtain ⟨hfr0, hr0⟩ := step_filesSame (h := h0) Hwc.1 (filesSame_metaEnd st k) Hag
+  ihave Hw : osWorld (L := L) st Γb Γm Γf Γt h0 $$ [HAb HAm HAf HAt Htok Hcells Hσ]
+  · unfold osWorld; iframe; ipureintro; exact Hwc
+  imod osWorld_filesSame (filesSame_metaEnd st k) hr0 hfr0 $$ Hw with Hw
+  have hf0 : (st.metaEnd k).file i = some f := hf
+  have hframe : TreeFrame (st.metaEnd k) (truncSt (st.metaEnd k) i f) :=
+    treeFrame_stampFile _ i _ f hf0
+  have hw1 : FsTreeWf (truncSt (st.metaEnd k) i f) := hframe.wf (fsTreeWf_metaEnd hw k)
+  have hc1 : TreeCohS (truncSt (st.metaEnd k) i f) s1 Γdf (GMap.delete k Γc) :=
+    (treeCohS_metaEnd hc k).congr rfl rfl rfl rfl
+  obtain ⟨-, hres⟩ := hres
+  rcases hres with ⟨st1, tgt, fd, heff, hfree, hst, rfl⟩ | ⟨e, he, rfl, hst⟩
+  · unfold OpenEffect at heff
+    rw [hl0] at heff
+    obtain ⟨⟨f', hf', hst1⟩, rfl⟩ := heff
+    rw [hf0, Option.some.injEq] at hf'; subst hf'
+    simp only [↓reduceIte] at hst1
+    subst st1
+    obtain ⟨hfd0, hfdn, hdfn⟩ := hfree
+    have hst'' : st' = (truncSt (st.metaEnd k) i f).setProc
+        { (truncSt (st.metaEnd k) i f).proc with
+          fds := <[fd := openFd i fl]> (truncSt (st.metaEnd k) i f).proc.fds } := hst
+    subst hst''
+    imod osWorld_trunc (st := st.metaEnd k) hf0 hlen
+      (heapRendered_congr rfl rfl rfl rfl Hr) $$ Hw Hm Hbs Hc with ⟨⟨%Γb1, %Γm1, %Γf1, %Γt1, Hw⟩, Hrs⟩
+    imod osWorld_addFd0 (st := truncSt (st.metaEnd k) i f) (d := openFd i fl) hfdn
+      ⟨_, by simp [truncSt, OsState.stampFile, OsState.file, openFd]; rfl⟩ $$ Hw
+      with ⟨Hw, Hfd⟩
+    imodintro
+    iexists Γb1, Γm1, <[fd := openFd i fl]> Γf1, Γt1
+    isplitl [Hw]
+    · iexact Hw
+    isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr Hcm]
+    · try unfold treeCtx
+      isplitr [Hcm]
+      rotate_left
+      · iapply commitRes_grow (gooseOsGS (L := L)) (st := st)
+          (st' := (truncSt (st.metaEnd k) i f).setProc { (truncSt (st.metaEnd k) i f).proc with
+            fds := <[fd := openFd i fl]> (truncSt (st.metaEnd k) i f).proc.fds })
+          (commitGrows_of_eq rfl) $$ Hcm
+      iright
+      simp only [truncSt, OsState.stampFile, OsState.metaEnd, OsState.setProc]
+      try unfold treeShared
+      iexists V0, s1, Γdf, GMap.delete k Γc
+      iframe
+      ipureintro
+      exact ⟨fsTreeWf_addFd hw1 hdfn, hc1.congr rfl rfl rfl rfl⟩
+    iapply wp_value'
+    iapply HΦ $$ %fd %0 %(.inl ⟨rfl, hfd0⟩) [Hq] Hp Hn [Hrs]
+    · unfold osCallPerm; iexact Hq
+    · iright; iexact Hrs
+    rw [if_pos rfl]; iexact Hfd
+  · rcases hst with rfl | ⟨tgt, heff⟩
+    · -- no effect
+      imod osWorld_filesSame (filesSame_refl _) (heapRendered_congr rfl rfl rfl rfl Hr) Hfr $$ Hw
+        with Hw
+      imodintro
+      iexists Γb, Γm, Γf, Γt
+      isplitl [Hw]
+      · unfold osWorld; iexact Hw
+      isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr Hcm]
+      · try unfold treeCtx
+        isplitr [Hcm]
+        rotate_left
+        · iapply commitRes_grow (gooseOsGS (L := L)) (st := st) (st' := st.metaEnd k)
+            (commitGrows_of_eq rfl) $$ Hcm
+        iright
+        simp only [OsState.metaEnd]
+        try unfold treeShared
+        iexists V0, s1, Γdf, GMap.delete k Γc
+        iframe
+        ipureintro; exact ⟨fsTreeWf_metaEnd hw k, treeCohS_metaEnd hc k⟩
+      iapply wp_value'
+      iapply HΦ $$ %(-1) %e %(.inr ⟨he, rfl⟩) [Hq] Hp Hn [Hm Hbs Hc]
+      · unfold osCallPerm; iexact Hq
+      · ileft; iframe; ipureintro; exact he
+      rw [if_neg he]; iempintro
+    · -- truncated, and failed
+      unfold OpenEffect at heff; rw [hl0] at heff
+      obtain ⟨⟨f', hf', hst1⟩, -⟩ := heff
+      rw [hf0, Option.some.injEq] at hf'; subst hf'
+      simp only [↓reduceIte] at hst1
+      have hst'' : st' = truncSt (st.metaEnd k) i f := hst1
+      subst hst''
+      imod osWorld_trunc (st := st.metaEnd k) hf0 hlen
+        (heapRendered_congr rfl rfl rfl rfl Hr) $$ Hw Hm Hbs Hc
+        with ⟨⟨%Γb1, %Γm1, %Γf1, %Γt1, Hw⟩, Hrs⟩
+      imodintro
+      iexists Γb1, Γm1, Γf1, Γt1
+      isplitl [Hw]
+      · iexact Hw
+      isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr Hcm]
+      · try unfold treeCtx
+        isplitr [Hcm]
+        rotate_left
+        · iapply commitRes_grow (gooseOsGS (L := L)) (st := st) (st' := truncSt (st.metaEnd k) i f)
+            (commitGrows_of_eq rfl) $$ Hcm
+        iright
+        simp only [truncSt, OsState.stampFile, OsState.metaEnd]
+        try unfold treeShared
+        iexists V0, s1, Γdf, GMap.delete k Γc
+        iframe
+        ipureintro; exact ⟨hw1, hc1⟩
+      iapply wp_value'
+      iapply HΦ $$ %(-1) %e %(.inr ⟨he, rfl⟩) [Hq] Hp Hn [Hrs]
+      · unfold osCallPerm; iexact Hq
+      · iright; iexact Hrs
+      rw [if_neg he]; iempintro
 
 end specs
 
