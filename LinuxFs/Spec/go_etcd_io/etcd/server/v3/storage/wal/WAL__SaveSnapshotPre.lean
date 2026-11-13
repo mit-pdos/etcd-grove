@@ -16,6 +16,7 @@ module
 
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.encoder__encodeG
 public import LinuxFs.Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.DepsPkgInit
 
 @[expose] public section
 
@@ -35,8 +36,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 
 /-- **`Create`'s `w` before the rename** (S/wal.go:164-175): its logger, directory and metadata, no
-fsync skipping, its mutex, `snapi`/`enti`, the encoder `e`, and one locked file `lt` (of the
-`*os.File` `f`) in `locks`. -/
+fsync skipping, its mutex, `snapi`/`enti`, the encoder `e` (non-nil: `sync` flushes it only then),
+and one locked file `lt` (of the `*os.File` `f`) in `locks`. -/
 def walPreIn (w lg : Loc) (dir : GoString) (mds : GoSlice) (md : List w8) (e lt f : Loc)
     (snapi enti : w64) : IProp GF :=
   iprop(∃ locks : GoSlice,
@@ -48,7 +49,7 @@ def walPreIn (w lg : Loc) (dir : GoString) (mds : GoSlice) (md : List w8) (e lt 
       (BI.pure True : IProp GF) ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"enti" w ↦ enti ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"snapi" w ↦ snapi ∗
-    structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"encoder" w ↦ e ∗
+    structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"encoder" w ↦ e ∗ ⌜e ≠ null⌝ ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks ∗
     locks ↦* [lt] ∗ ownSliceCap Loc locks (DFrac.own 1) ∗ fileutil.lockedFile lt f)
 
@@ -73,8 +74,8 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specPre : Prop :=
     (lim : Nat) (out pend : List w8) (c : w32),
   out.length + pend.length ≤ lim → walPreSyncOk f W S →
   ⊢ io.writerStream (wal.fileWi f) lim W B -∗
-    {{ encEnv ∗ walPreIn w lg dir mds md e lt f snapi enti ∗ ownEncoder e (wal.fileWi f) c pend ∗
-        W out }}
+    {{ encEnv ∗ isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap ∗
+        walPreIn w lg dir mds md e lt f snapi enti ∗ ownEncoder e (wal.fileWi f) c pend ∗ W out }}
       (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!!
         go!"sync")) (Val #()))
     {{ (err : GoInterface), RET #err;
@@ -84,7 +85,8 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specPre : Prop :=
 
 /-- **`w.SaveSnapshot(e)` before the rename** (S/wal.go:1137-1162): the snapshot record of `sm`
 (`ValidateSnapshotForWrite`: its conf state non-nil unless the index is 0) encoded after what the
-encoder holds, then `sync`. Success: the encoder empty, its CRC after the record, everything
+encoder holds, then `sync` (the record within the encoder's `2^47` bound: `lim < 2^47`, `Create`'s
+segment size). Success: the encoder empty, its CRC after the record, everything
 accepted and synced (`S`). Error: the encoder holds anything, the writer in some broken or accepted
 state (`Create` only closes the file then). `snapi`/`enti` raised to the index. -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.specPre (Mr : WalMarshal) : Prop :=
@@ -92,9 +94,11 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.specPre (Mr : WalM
     (W : List w8 → IProp GF) (B : List w8 → List w8 → IProp GF) (S : List w8 → IProp GF)
     (lim : Nat) (out pend : List w8) (c : w32) (sp : Loc) (sm : SnapshotMetadataM) (cs : Bool),
   (sm.Index' = W64 0 ∨ cs = true) →
-  (out ++ pend ++ snapFrame Mr c sm).length ≤ lim → walPreSyncOk f W S →
+  (out ++ pend ++ snapFrame Mr c sm).length ≤ lim → lim < 2 ^ 47 → walPreSyncOk f W S →
   ⊢ io.writerStream (wal.fileWi f) lim W B -∗
-    {{ encEnv ∗ walPreIn w lg dir mds md e lt f snapi enti ∗ ownEncoder e (wal.fileWi f) c pend ∗
+    {{ encEnv ∗ isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil ∗
+        walPreIn w lg dir mds md e lt f snapi enti ∗ ownEncoder e (wal.fileWi f) c pend ∗
         W out ∗ walSnapAt sp sm cs }}
       (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!!
         go!"SaveSnapshot")) (Val #sp))
