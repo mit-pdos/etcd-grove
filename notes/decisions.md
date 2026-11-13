@@ -35466,3 +35466,38 @@ blocker).**
   `2^58 - hookMax` threaded through the put clauses, met by the store from `authSmall`'s revision
   bound), or charges a time receipt per put. Not needed by any result today: the contract is
   trusted until D22.
+
+**The review's MAJ-1/MAJ-2 (2026-11-13, decided by etcd-grove-81; `notes/auth-unknown-fields-nested.md`).**
+M1 above left the nested messages' unknown fields free, which was wrong both ways: garbage there is
+stored and makes the next read panic (MAJ-1, the permissions and `Options`), and a client's valid
+unknown fields in `Options` round-trip, so one `UserRec` had two encodings and no `userEncode` could
+meet both `authBucketsAre` and `UnmarshalUser.spec` (MAJ-2). Go tests:
+`/shared/tmp/coord-81/authfix-review/r3/server/storage/schema/zz_review_{garbage,optsuf}_test.go`.
+- *MAJ-1, stored permissions (trusted tightening).* New `auth.ownPermS` (`Buckets.lean`): as
+  `ownPermW` with `unknownFields` nil; `ownRole` holds its permissions as `ownPermS`, and `ownPermX`
+  (`ownRoleX`'s, what `UnmarshalRole` returns) fixes `unknownFields` nil too (`ownPermX_persist`
+  gives `ownPermS`). `ownPermW` stays the request's permission (`roleGrantPermissionReqIs`, the
+  client's `InvAuthConn`/`PerTypeAuth`), whose unknown fields a decoded request may fill: fixing them
+  there would make the decode claims false. `RoleGrantPermission` builds `newPerm` fresh (store.go),
+  which gives `ownPermS`; `ownPermS_W` weakens a stored permission to `ownPermW` where a lemma reads
+  one (`wp_permW_key`) and for `RoleGet`'s reply (`roleGetOut` unchanged). `Requests.lean`'s header no
+  longer says the store puts the request's permission in "as it is" (it copies three fields).
+- *MAJ-2, the Options' unknown fields part of the record (trusted change).* `UserRec` gains
+  `optsUF : Option GoString` (none: nil `Options`, encoded without field 5; `some u`: a message whose
+  unknown fields are `u`) and `optsOk : userOptsUfOk optsUF` (`u` is `ufWire userOptsSchema u`,
+  `userOptsSchema = [(1, [0])]`: what protobuf-go's decoder leaves, so Unmarshal∘Marshal keeps it).
+  The validity is a field of the record (a proof), so every record is valid and `UnmarshalUser.spec`
+  stays true for every `x` without a new premise. `userOptsIs o b ou` (new) ties the message at `o`
+  to `NoPassword = b` and the bytes `ou` (`uf ↦*□ u`); `ownUser`/`ownUserX` use it with the record's
+  `optsUF`. The request side keeps `userOptsAt o b`, now `∃ ou, ⌜userOptsUfOk ou⌝ ∗ userOptsIs o b ou`
+  (a trusted strengthening of the decode claims behind `authUserAddIs`: the decoded `Options`' unknown
+  fields are valid wire format, true of protobuf-go's decoder, `UfWire.lean`); clients build theirs
+  fresh (`some []`). `UserAdd` stores the request's `Options` (its `ou`) or a fresh empty one
+  (`some []`); the other puts copy the stored record (`{ ur with … }`). The `Option` is needed: a nil
+  and an empty `Options` are different bytes (Go test). `userEncode : UserRec → GoString` keeps its
+  type. No spec of the store's methods changes (the model keeps no user fields but roles).
+  Go control: `/shared/tmp/auth-safe/fix-tests/zz_authfix_optsuf_test.go`
+  (`TestAuthFixOptionsUnknownRoundTrip`: valid unknown fields survive the raft entry, `UserAdd`, the
+  read and every later put, the read does not panic, re-encoding a read user gives the stored
+  bytes; nil vs empty `Options` differ; `UserAdd` with nil `Options` stores an empty one.
+  `TestAuthFixGrantPermissionFresh`: a request's permission with unknown fields is stored without).

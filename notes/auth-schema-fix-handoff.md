@@ -1,3 +1,26 @@
+# auth-schema-fix: handoff (2026-11-13, fifth step: 81's MAJ-1/MAJ-2 fixed, checking)
+
+## State (read this first)
+
+The fixes of 81's NO GO are committed (3c3d2e6819 the Lean, then the notes): MAJ-1 `auth.ownPermS`
+(stored permissions, nil unknown fields) in `ownRole`, `ownPermX` nil too, `ownPermW` kept for the
+request; MAJ-2 `UserRec.optsUF : Option GoString` + `optsOk : userOptsUfOk optsUF` (`ufWire
+userOptsSchema`), `userOptsIs` in `ownUser`/`ownUserX`, request-side `userOptsAt := ∃ ou, valid ∗
+userOptsIs`; MINOR reworded in `notes/auth-validspec-false.md`. Recorded: `notes/decisions.md`
+(auth-schema-fix, "The review's MAJ-1/MAJ-2"), Freeze package `/shared/tmp/auth-safe/freeze-fix.md`
+(R2-MAJ-1, R2-MAJ-2, R2-MINOR), `notes/auth-unknown-fields-nested.md` status, STATUS entry. Go control
+`/shared/tmp/auth-safe/fix-tests/zz_authfix_optsuf_test.go` passes (run in
+`/shared/tmp/authfix-81/etcd/server`, c90b03b56, `GOWORK=off GOTOOLCHAIN=go1.27.3 go test
+./storage/schema/ -run 'TestAuthFix(OptionsUnknownRoundTrip|GrantPermissionFresh)' -v`).
+Check status: see "Check (fifth step)" below. Then STOP for 81's re-review; land only on 81's go
+(command in "Finish done" further down).
+
+## Check (fifth step)
+
+CHECK_PLACEHOLDER
+
+---- older handoff below ----
+
 # auth-schema-fix: handoff (2026-11-13, fourth step: 81's NO GO, two MAJORs to fix)
 
 ## State (read this first)

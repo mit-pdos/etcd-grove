@@ -1,4 +1,4 @@
-# The auth messages' nested unknown fields (spec-side flaw, found 2026-11-13; open)
+# The auth messages' nested unknown fields (spec-side flaw, found 2026-11-13; fixed on auth-schema-fix, awaiting 81's re-review)
 
 Found by etcd-grove-81's independent review of auth-schema-fix (journal
 `/root/.claude-csail/projects/-shared-etcd-grove/c04a65b0-a272-4ae4-94c7-91aa4a20ea30/subagents/workflows/wf_c53ac11b-636/journal.jsonl`;
@@ -25,4 +25,13 @@ permissions (etcd builds them fresh, store.go:839-842); (2) Options: the raw unk
 of the record (`UserRec` gains e.g. `optsUF : GoString` with a valid-wire-format premise), `userEncode`
 takes them, `userOptsAt` ties `uf` to them, `userAddReqIs` carries them from the request, every later
 put of the user carries the stored value; a Go control: valid unknown fields in Options round-trip and
-the read does not panic. Status: not done; `notes/auth-schema-fix-handoff.md` has the plan.
+the read does not panic.
+
+Status (2026-11-13): fixed on branch `auth-schema-fix`, not landed. (1) `ownPermS` (stored
+permissions, `unknownFields` nil) in `ownRole`; `ownPermX` nil too; `ownPermW` unchanged for the
+request. (2) `UserRec.optsUF : Option GoString` with `optsOk : userOptsUfOk optsUF` (a field: every
+record valid), `userOptsIs` in `ownUser`/`ownUserX`, the request side's `userOptsAt` = `∃ ou` valid.
+The `Option` covers a second pair of encodings the review did not name: nil vs empty `Options`.
+(3) the MINOR reworded. Details: `notes/decisions.md` (auth-schema-fix, "The review's MAJ-1/MAJ-2");
+Freeze package `/shared/tmp/auth-safe/freeze-fix.md` (R2-*); Go control
+`/shared/tmp/auth-safe/fix-tests/zz_authfix_optsuf_test.go` (passes).

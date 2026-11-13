@@ -48,8 +48,12 @@ or premise replaces it.
   quantified `γy`, a premise (the waiter's contract `□ (⌜on⌝ → ∀ idx, {{ tpShot γy }} iw idx
   {{ anyRecv }})`) and a post conjunct `γa.rdy = γy`: a different statement, true of Go, not a
   strengthening (`ValidSpec` stood in for the waiter's contract, so the old one asked nothing of
-  `iw`). `NewServer` discharges the new premise through `srvTpInv`, so `server_new_auth_on` and the
-  authkv results are strictly stronger. (Re-review 2026-11-13, M3; M1-M2: `newAuthStore_boot` and
+  `iw`). `NewServer` discharges the new premise through `srvTpInv`, so for `ValidSpec` `server_new_auth_on`
+  and the authkv results lose a premise; they are not strictly stronger overall, because the same
+  branch's unknown-fields tightening (R-M1, and the review's MAJ-1/MAJ-2) makes their premise D22
+  (`authSchemaSrv`) harder to meet on reads: the read contract now promises messages without
+  unknown fields (and stored permissions without any, `Options` holding the record's bytes), which
+  the real backend's derivation must show. (Re-review 2026-11-13, M3; M1-M2: `newAuthStore_boot` and
   `auth_store_boot_on` take the readiness cell's name `γy` and return `γa.rdy = γy`, and
   `simpleWaitOk`, `token_simple_new`/`token_simple_ok` are keyed by the cell's name, `tpShot γy`,
   instead of a mode.)
