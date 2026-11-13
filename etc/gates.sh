@@ -112,6 +112,12 @@ if python3 etc/gen-init.py --check > "$tmp/init.log" 2>&1; then
 else
   echo "gen-init: FAILED"; tail -10 "$tmp/init.log"; fail=1
 fi
+# the part LinuxFs/'s generated copies of main modules (notes/wal-fsext-plan.md, §8, "part copies")
+if python3 etc/gen-part-copies.py --check > "$tmp/copies.log" 2>&1; then
+  echo "gen-part-copies: ok"
+else
+  echo "gen-part-copies: FAILED"; tail -10 "$tmp/copies.log"; fail=1
+fi
 # every axiom returning holding an RWMutex reader slot charges a token (begin-tok; reads the sources,
 # and the Go sources in .lake/goose that goose.py above clones: so after it, in this section)
 python3 etc/reader-slot-check.py || fail=1
