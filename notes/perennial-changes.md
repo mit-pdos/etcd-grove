@@ -17,6 +17,27 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `notCrashed` before a step: `wp_notCrashed_acc`, `wp_atomic_nc` (2026-11-13, branch `wal-ncau`)
+
+- **The gap.** The generation's `notCrashed` is in the bounded language's state interpretation
+  (`gooseBstateInterp`, `Lifting.lean:752`), and no lifting lemma lets the update before a step use
+  it (as `wp_ext_acc` does for an extension's state). An invariant whose crash branch is
+  `crashed ∗ tok` (the WAL's `walInv`) can then be opened only inside a physical step's own proof,
+  not by a client's atomic update opened (`wp_atomic`) around an `os` call's step.
+- **Who needs it.** Every WAL unit over `fsExt` that opens `walInv` in a client update nested in an
+  `os` spec's atomic update (`notes/wal-fsext-plan.md`, W1 log, fourth and fifth sessions); also the
+  older entry "No WP step lemma refutes the generation's `crashed`" below (its `wp_crashed_elim`
+  follows from `wp_notCrashed_acc` and `notCrashed_crashed`).
+- **Local workaround (proved, no axiom).** `GooseLang/Ext/Fs/NotCrashedAcc.lean`: for a non-value `e`,
+  `wp_notCrashed_acc : (notCrashed -∗ |={E}=> notCrashed ∗ WP e @ s; E {{Φ}}) ⊢ WP e @ s; E {{Φ}}`,
+  and `wp_atomic_nc [Atomic ↑s e] : (notCrashed -∗ |={E1,E2}=> notCrashed ∗ WP e @ s; E2 {{v, |={E2,E1}=>
+  Φ v}}) ⊢ WP e @ s; E1 {{Φ}}` (iris's `wp_atomic`'s proof, with the token taken out of the first
+  step's state interpretation and put back). Over them, `osAUnc`/`wp_aunc_step`
+  (`LinuxFs/Proof/os/SharedAu.lean`).
+- **Proposed.** Both lemmas in Perennial's `GooseLang/Lifting.lean`, beside `wp_ext_acc` (they use
+  only `goose_bstateInterp_eq` and iris's `wp_unfold`); generic, nothing about `fsExt`.
+- **Status.** Recorded; the local copies go when the pin has them.
+
 ### No translation of `hash/crc32`, `bufio`, `path/filepath`; no models of `io.ReadFull`/`io.Copy`, `fmt.Sscanf`, `strings.HasSuffix` (2026-11-13, branch `wal-fsext-translate`)
 
 etcd's real WAL over `fsExt` (the part `LinuxFs/`) calls `crc32.MakeTable(crc32.Castagnoli)` and
@@ -2325,7 +2346,8 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
   `wp_crashed_elim : ¬ IsValue e → crashed ⊢ WP e @ s; E {{ Φ }}` (the first step's state
   interpretation gives `notCrashed`, hence `False`), and its atomic-step form for a step proof that
   opens an invariant holding a `token ∨ crashed` disjunction.
-- **Status.** Recorded only.
+- **Status.** Recorded only. 2026-11-13: the atomic-step form is proved locally (`wp_atomic_nc`,
+  `wp_notCrashed_acc`; the entry "`notCrashed` before a step" under "Open").
 
 ## No specs of `fmt.Fprintf` / `strings.Builder` (2026-11-09, branch `specs-only`)
 

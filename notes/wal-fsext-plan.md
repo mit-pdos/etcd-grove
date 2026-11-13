@@ -591,6 +591,27 @@ the crash branch), so the invariant's second branch holds both:
   ∅}=> α ∗ notCrashed ∗ …`, `LinuxFs/Proof/os/SharedAu.lean`), so that the WAL's update, opened inside the
   `os` update, can call `walInv_open`. Not done here.
 
+**Fifth session (branch `wal-ncau`, 2026-11-13): the open point closed (proved, no axiom).**
+- *Lifting* (`GooseLang/Ext/Fs/NotCrashedAcc.lean`): `wp_notCrashed_acc` (non-value `e`, mask kept)
+  and `wp_atomic_nc : (notCrashed -∗ |={E1,E2}=> notCrashed ∗ WP e @ s; E2 {{v, |={E2,E1}=> Φ v}}) ⊢
+  WP e @ s; E1 {{Φ}}` (`Atomic ↑s e`, `toVal e = none`): iris's `wp_atomic` with the token taken from
+  the first step's state interpretation. Proposed upstream (`notes/perennial-changes.md`).
+- *`osAUnc`* (`LinuxFs/Proof/os/SharedAu.lean`): a greatest fixpoint whose accessor is `notCrashed -∗
+  |={osAuMask, ∅}=> α ∗ notCrashed ∗ ((α ={∅,osAuMask}=∗ osAUnc …) ∧ (∀ o, β o ={∅,osAuMask}=∗ Q o))`;
+  `osAU_osAUnc` (every `osAU` is one), `osAUnc_coiter` (how a client builds one), `wp_aunc_step`
+  (`wp_au_step` for it, over `wp_atomic_nc`). The token is needed only at the opening: `walInv_open`
+  returns it at once, and the invariant stays open across the step until the abort or the commit.
+- *`os.Rename.specFileSnc`* (`Spec/os/Rename.lean`): `specFileS` with `osAUnc`; its proof is the old
+  one (`wp_au_step` → `wp_aunc_step`), and `specFileS` is now derived from it (statement unchanged).
+  The other shared `os` specs (`specDirS`, `Remove`, `Mkdir`, `OpenFile*S`) get the same treatment
+  when a W-unit needs them: rename the proof to the `nc` variant and derive the old spec.
+- *Test* (`wal/InvOpenTest.lean`): `walN_sub_au` (`↑walN ⊆ osAuMask`); `walInv_osAUnc`, a client update
+  that opens `walInv` with `walInv_open` at its opening, reads the area's name from the contents and
+  closes it at the abort or the commit; `walToy_rename`, `specFileSnc` with it. **Convention for the
+  W-units:** a WAL client update `AU <{…}> @ walAuMask, ∅` is turned into an `osAUnc` by opening
+  `walInv` (`osAuMask → walAuMask`) and then the client's update (`walAuMask → ∅`) in `osAUnc`'s
+  accessor.
+
 **The part's WAL package init (branch `wal-nc`, 2026-11-13).** `etc/gen-init.py` generates the
 `wp_initialize'` of the WAL's whole import closure in the part (`LFS_PKGS`): the part's `wal`, `walpb`,
 `fileutil`, `crc`, `hash/crc32` and raft root package (names-only); the main-tree translations below them
