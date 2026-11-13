@@ -118,6 +118,92 @@ theorem walMapLe_setNamed (G : GMap GoString WalDur) (s : AbsDiskState) (dir : G
 
 end pure
 
+section iris
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+  [GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
+  [W : WalGS GF]
+
+theorem nameSet_ne_empty {N : NameSet} {b : GoString} (hb : N.Mem b) : N ≠ .only [] := by
+  rintro rfl; simp [NameSet.Mem] at hb
+
+/-- **Two claims of one directory holding one name are one claim** (`NamesCoh.disj`). -/
+theorem osNames_same_name (R : Roots) (j : Ino) (N N' : NameSet) (dq dq' : DFrac) (h h' : NamesH)
+    (b : GoString) (hb : N.Mem b) (hb' : N'.Mem b) {Em : CoPset} (hE : ↑osShN ⊆ Em) :
+    ⊢ osSharedInv (L := L) R -∗ osNames (L := L) j N dq h -∗ osNames (L := L) j N' dq' h' ={Em}=∗
+      ⌜N = N' ∧ h = h'⌝ ∗ osNames (L := L) j N dq h ∗ osNames (L := L) j N' dq' h' := by
+  rw [osNames_of_ne dq h (nameSet_ne_empty hb), osNames_of_ne dq' h' (nameSet_ne_empty hb')]
+  unfold osSharedInv
+  iintro #Hsi H H'
+  imod inv_acc hE $$ Hsi with ⟨Hi, Hclose⟩
+  icases Hi with >Hi
+  icases Hi with ⟨%Vs, %Γn, Hs, HAn, %hcoh, Halen, HAlog⟩
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAn H with %h1
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAn H' with %h2
+  have hN : N = N' := Classical.byContradiction fun hne =>
+    hcoh.2.disj j N N' h h' b h1 h2 hne hb hb'
+  subst hN
+  rw [h1] at h2
+  cases h2
+  imod Hclose $$ [Hs HAn Halen HAlog] with -
+  · inext; iexists Vs, Γn; iframe; ipureintro; exact hcoh
+  imodintro
+  iframe
+  ipureintro; exact ⟨rfl, rfl⟩
+
+/-- **The parent's fsync after `Create`'s rename: the WAL becomes named.** The invariant's contents
+at `s` (the WAL in `dir = r/nm` present), the program's claim (a fraction) on names `N ∋ nm` whose last
+writer of `nm` is the entry `x`, after which `nm` held a directory, and the commit bound `n > x`: the
+contents at `setNamed s dir`, and `walNamed dir`. -/
+theorem walInvBody_named (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+    (s : AbsDiskState) (dir nm : GoString) (d : WalDur) (N : NameSet) (dq : DFrac) (h : NamesH)
+    (x : Nat) (e : LogEntry) (E : Ents) (J : Ino) (n : Nat) {Em : CoPset}
+    (hd : s.wal !! dir = some d) (hin : InArea r dir nm) (hN : N.Mem nm)
+    (hl : LastWrite h jr nm x e E) (hx : x < n) (hJ : E !! nm = some (.dir J))
+    (hE : ↑osShN ⊆ Em) :
+    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ osSharedInv (L := L) R -∗
+      osNames (L := L) jr N dq h -∗ osCommitLb (L := L) n ={Em}=∗
+      walInvBody (L := L) (W := W) C Mr R jr r (setNamed s dir) ∗ osNames (L := L) jr N dq h ∗
+        walNamed (W := W) dir := by
+  iintro Hb #Hsh Hn #Hc
+  unfold walInvBody
+  icases Hb with ⟨%Ls, %cl, %n0, Hg, %Har, Hcl, #Hcm, Hlays, %Hok, %Hco⟩
+  obtain ⟨N', h', hc', hN'⟩ := Hco nm hin.1
+  have hmem : ((jr, N', h'), DFrac.own (1 : Qp).half) ∈
+      cl.map (fun c => (c, DFrac.own (1 : Qp).half)) := List.mem_map_of_mem hc'
+  unfold osClaims
+  icases (BigSepL.bigSepL_mem_acc hmem) $$ Hcl with ⟨Hi, Hcl⟩
+  imod osNames_same_name R jr N N' dq _ h h' nm hN hN' hE $$ Hsh Hn Hi with ⟨%Hk, Hn, Hi⟩
+  obtain ⟨rfl, rfl⟩ := Hk
+  ihave Hcl := Hcl $$ Hi
+  have hin' : InArea s.area dir nm := by rw [Har]; exact hin
+  have hok' := walsOk_named (n := max n0 n) (Nat.le_max_left _ _) Hok hd hin' hc' hN hl
+    (Nat.lt_of_lt_of_le hx (Nat.le_max_right _ _)) hJ
+  have hdn : (setNamed s dir).wal !! dir = some { d with named := true } := by
+    rw [show (setNamed s dir).wal = _ from absDiskUpd_wal s dir _ d hd, GMap.lookup_insert_eq]
+  imod walGhost_upd_lag (W := W) s (setNamed s dir) (walMapLe_setNamed · s dir)
+    (absLe_setNamed s dir) (walKeysInArea_upd s dir _) $$ Hg with ⟨Hg, #Hp⟩
+  imodintro
+  isplitl [Hg Hcl Hlays]
+  · iexists Ls, cl, max n0 n
+    iframe Hg Hcl Hlays
+    isplitr
+    · ipureintro; rw [show (setNamed s dir).area = s.area from absDiskUpd_area s dir _]; exact Har
+    isplitr
+    · rcases Nat.le_total n0 n with hle | hle
+      · rw [Nat.max_eq_right hle]; iexact Hc
+      · rw [Nat.max_eq_left hle]; iexact Hcm
+    isplitr
+    · ipureintro; exact hok'
+    · ipureintro; exact Hco
+  iframe Hn
+  unfold walNamed
+  iexists (setNamed s dir), { d with named := true }
+  iframe Hp
+  ipureintro; exact ⟨hdn, rfl⟩
+
+end iris
+
 end WalFs
 end EtcdGrove
 end Perennial
