@@ -36,8 +36,10 @@ Done (on `k8s-7f5`, not landed):
   (one restated axiom). (2) 7f-3b: the send loop writes `PrevKv` into mvcc's events, which mvcc's
   API gives read-only (`evIs`): an mvcc API ownership change.
 
-Next (after 81's decisions D1-D3): the full build of this config (not yet run; targeted builds
-pass), then 7f-3b (mvcc event ownership, v3rpc recvLoop/sendLoop), 7f-3c (client, swap, users).
+Checks: full build passes (16 min, `/shared/tmp/k8s7f3a/full.log`); `etc/tcb-report.py --check`
+matches the baseline (869 axioms, 4 sorries); `etc/goose.py --check` passes.
+
+Next (after 81's decisions D1-D3): 7f-3b (mvcc event ownership, v3rpc recvLoop/sendLoop), 7f-3c (client, swap, users).
 
 ## Handoff point (2026-11-13, second 7f-5 agent): S1 LANDED (lean `be36a0f818`); 7f-3a next
 
