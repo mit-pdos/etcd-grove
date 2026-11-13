@@ -812,7 +812,7 @@ out of `Abs.lean`; statement unchanged). Left: `walInv_alloc` (`sorry`).
   `decFile`, `ownFbr`, `ownDecoder`, `decEnv`, `decPost`, `stopErr`; walpb `ownRec`): proved
   `decodeFrameSize`, `readInt64`, `LastOffset`, `LastCRC`, `UpdateCRC`, `Decode` (over decodeRecord's
   spec), walpb `GetType`/`GetCrc`/`Validate`, fileutil `NewFileBufReader`/`FileInfo`/`Err`/`Read`.
-  `NewDecoder` proved (`wal-dec3`: the range loop builds `ownFbrs` by `ownFbrs_snoc`, each reader's `*FileBufReader` cell persisted; `sync.init_Mutex` for `d.mu`; the readers' slice persisted). `sorry`: `isTornEntry` (three loops: the sector split appending subslices of `data` to `chunks`, then two nested range loops with a `break`; the subslices alias `data`, so its fraction must be split per chunk, or the chunks read through `data` by index). `decodeRecord` proved (branch
+  `NewDecoder` proved (`wal-dec3`: the range loop builds `ownFbrs` by `ownFbrs_snoc`, each reader's `*FileBufReader` cell persisted; `sync.init_Mutex` for `d.mu`; the readers' slice persisted). `isTornEntry` proved (`wal-read`, 2026-11-13: the chunks as bounds `[a, b)` into `data`, `chunkBnds`; each chunk's points-to split out of `data` with `ownSlice_slice` around the inner loop and put back; premise now `off + 8 + len(data) < 2^62`, since `fileOff` is an `int64`: `decodeRecord` passes it). `decodeRecord` proved (branch
   `wal-dec2`, by induction on the files for its recursive call), over its lemmas in `DecLemmas.lean`
   (`fbr_readerStream`: a `*FileBufReader` as `io.Reader` is a stream reader of its file; the
   `decRecStep_*` equations by what the reads returned; `decPost_{stop,accept,ioe,cons_eof}`).
@@ -1359,3 +1359,55 @@ contract.**
   `γH/γS/γW`; locks are `fileutil.lockedFile lf f` (persistent, `wal-fu2`'s) with the file whole.
   Not yet: the `cuts.length + 2 < 2^63` bound `cut` needs (Save must carry it: a premise of `Save`, or
   derived from the name bound); Save/saveEntry/saveState/sync/Sync/SaveSnapshot proofs (still `sorry`).
+
+## W3/W5 implementation log (branch `wal-read`, 2026-11-13)
+
+**Proved (no `sorry`, `lake build`):**
+- `decoder.isTornEntry` (the decoder's last `sorry`; W3a above). Its premise is now
+  `off + 8 + len(data) < 2^62` (was `len(data) < 2^62`): `fileOff = lastValidOff + 8` advances by
+  each chunk as an `int64`, so the old premises allowed an overflow by up to 6. `decodeRecord` passes
+  it (`hys2o`, from the frame being a prefix of the file). Proof: the chunks as bounds into `data`
+  (`chunkBnds`, `chunkBnds_map`: their contents are `sectorChunks`), each chunk's points-to split out
+  of `data` with `ownSlice_slice` around the inner loop (`wp_join` at the inner loop) and put back.
+  Gotcha: `ys[k]'h` terms in an Iris goal gave kernel "application type mismatch" errors in
+  `_proof_` auxiliaries under `lake build` too (not only `lean-check`): use `ys[k]? = some b`.
+- `parseWALName` (over `strings.HasSuffix.spec` and `fmt.SscanfWalName.spec`, hypotheses),
+  `searchIndex` (`walSearch`: the last position whose index is at most `index`), `isValidSeq`
+  (`walSeqOk 0`, Go's `lastSeq != 0` quirk kept): both over names that are segments'
+  (`fmt.walNameStr`), so their `lg.Panic`s are unreachable (`walNameStr_suffix`,
+  `fmt.scanWalName_walNameStr`).
+
+**Specs (statements; proofs `sorry`):** `LinuxFs/Spec/.../wal/{Open,WAL__ReadAll}.lean`.
+- Both as the main tree's with §3's binders: `walAreaOk walCodec Mr R jr r`, the update at
+  `walAuMask`, `InArea r dir nm`/`cleanAbsPath r`, the area's spine `osPathS R r (own qp) jr` framed.
+  `Open` takes `walAreaRes jr` (framed) and `osCallPerm 1`, returns `walOpeningF w dir s` and
+  `osCallPerm ½` (the pipeline's half, as `Create`), or the token and the permission back.
+  `ReadAll` takes a call permission fraction (framed: `syncDir` of the area) and `walOpeningF`;
+  success: `walReadAllOk` (the ledger's restated post), `P.hsIn hp σ.hs`, `walEntsIn P esL σ.ents`
+  (the main tree's `walSaveEnts false`, and I9, do not arise: `entIn` has no size flag),
+  `mdp ↦*□ d.metadata`, **`walOpenWF P Mr w dir`** (W6's write-mode handle), `walNamed`,
+  `walSyncedLb dir |H|`, `walLenLb`, `walPurgeW`; error: `walReadFailedF w dir`. Both arms `Q d`
+  (the history does not change; the update commits wherever the proof reads it).
+- New vocabulary `ReadDefs.lean`: `walOpeningF`/`walReadFailedF`, sealed, program-level
+  counterparts of the ghost `walOpening`/`walReadFailed`. **Draft bodies**: the ghost handle and
+  the fields `lg`/`dir`/`start`; the decoder (`ownDecoder` over `DecFile`s tied to the segments'
+  program halves), the locks, the pipeline, `dirFile` are for `Open`'s and `ReadAll`'s proofs to add
+  (no client statement changes). Note `WAL.decoder` is the `Decoder` *interface*.
+- Not specified: `OpenForRead` (read mode: no locks, no pipeline, `ReadAll` tolerating
+  `ErrUnexpectedEOF`; VSE/`Verify` use it, W8), `openAtIndex`/`selectWALFiles`/`openWALFiles`/
+  `readWALNames` (internal; their shapes follow from the design point below).
+
+**Open design points (for `Open`'s and `ReadAll`'s proofs):**
+1. *Reading the WAL directory*: `readWALNames` → `fileutil.ReadDir` takes an `osNames` fraction of
+   the directory's claim non-atomically, but the WAL directory's claim is the invariant's
+   (`WalDirClaim`). Needed: an atomic (`osAUnc`) readdir spec, or a read-only fraction of the claim
+   held by the open handle (then `cut`'s rename must reassemble it).
+2. *The decoder's files*: `DecFile.bs` is fixed; the segments' bytes are split between the
+   invariant and the program (halves). The read handle must own the program halves of the files
+   from the opened one on (the last one's is the tail's: `walTailsRes`), so that the bytes cannot
+   change during the read; the non-tail files' halves come from the invariant (W1 `laysRes`).
+3. *ReadAll's establishment of `walTailsRes`* (W6, merged in `f5de562941`): after `ZeroToEnd`
+   + `Fdatasync`, the tail's record with `TailZeros` past `z0` = the decoder's `LastOffset`; the
+   commit is a ghost update inside the fdatasync's step (`wp_atomic_nc`).
+4. *F-N4*: `Fsync(w.dirFile)` and `syncDir(filepath.Dir(dir))` give `osCommitLb`; `walNamed` by
+   `walInvBody_named` (W4) needs the last writer of `nm` below the commit bound.
