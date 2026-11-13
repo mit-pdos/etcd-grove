@@ -440,3 +440,10 @@ it lands with the first proofs.
 - **I2 design**: `notes/wal-fsext-i2-design.md` (no semantics change; a shared mode entered at a
   `CallBegin`; region ownership; a new per-name ordering premise; ~4 agent-weeks), under independent review.
 - Integration branch `wal-int` (notes + translation + I1 + nonissues): wave 2's base.
+- **Encoding layer, part 2** (`wal-enc`, `6a3c72dd5e`, merged): `WalEncSegs` (cut headers, decode∘encode
+  across files, `walDecodeFiles_streamFiles`), `WalEncSegsImg` (`walDecodeFiles_walImg`: intact earlier
+  files and an image of the last give `walImg`), `WalEncSuffix` (`walDecodeFiles_suffix`: the read from a
+  later file, CRC 0 start). Open: `(segsOf H cuts).flatten = H`; the fold of `ReadAll` over decoded
+  records ≡ `walReadCut` (next unit). **Decision (stale `N.tmp`)**: no fork change (the code is correct,
+  `nonissues/etcd-wal-cut-reuses-stale-tmp.md`); the stale clause is proved in W3 from concrete wire
+  facts of `walpb.Record`/`HardState`'s marshalling model, which W3 registers anyway.
