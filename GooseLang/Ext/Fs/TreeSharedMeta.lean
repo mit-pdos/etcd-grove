@@ -146,6 +146,241 @@ theorem wp_osUnlinkS' (R : Roots) (d b : GoString) (j i : Ino) (dq : DFrac) (h :
     · iexact Hlg
     · iapply (BigSepL.bigSepL_singleton).1 $$ Hl
 
+/-- A rename's failing step, with no effect (the source no directory, or no other call). -/
+theorem renameStep_err {st : OsState} {d bs d' bt : GoString} {j j' : Ino} {k s0 : Nat}
+    (hd : st.lookup d = some (.dir j)) (hd' : st.lookup d' = some (.dir j')) (hbs : NameOk bs)
+    (hbt : NameOk bt) (hcall : st.proc.calls !! k = some s0)
+    (hex : (∃ J, st.lookup (child d bs) = some (.dir J)) →
+      ∀ k' s', st.proc.calls !! k' = some s' → k' = k) :
+    IsFsStep "Rename" (PairV (osTokV k) (PairV (#(child d bs)) (#(child d' bt)))) st
+      (Val (#(1 : w64))) (st.metaEnd k) :=
+  ⟨child d bs, child d' bt, k, s0, rfl, treeName_child hd hbs, treeName_child hd' hbt, hcall, hex,
+    .inr (.inr ⟨1, by decide, rfl, rfl⟩)⟩
+
+/-- A rename's step, the source the node `n`, the names distinct: an errno with no effect, or the
+rename logged. -/
+theorem renameStep_cases {st : OsState} {d bs d' bt : GoString} {j j' : Ino} {n : Node}
+    {k s0 : Nat} {e' : Expr} {st' : OsState} (hw : FsTreeWf st)
+    (hcall : st.proc.calls !! k = some s0)
+    (hd : st.lookup d = some (.dir j)) (hd' : st.lookup d' = some (.dir j')) (hbs : NameOk bs)
+    (hbt : NameOk bt) (hsrc : st.tree.entry j bs = some n) (hne : child d bs ≠ child d' bt)
+    (Hst : IsFsStep "Rename" (PairV (osTokV k) (PairV (#(child d bs)) (#(child d' bt)))) st e' st') :
+    ∃ e : w64, e' = Val (#e) ∧ ((st' = st.metaEnd k ∧ e ≠ 0) ∨
+      st' = (st.metaEnd k).metaDo (.rename j bs j' bt n (st.tree.entry j' bt)) s0) := by
+  simp only [IsFsStep] at Hst
+  obtain ⟨s1, t1, k', start, hv, -, -, hk', -, hres⟩ := Hst
+  obtain ⟨rfl, rfl, rfl⟩ := tokPair_inj hv
+  rw [calls_start hcall hk'] at hres
+  rcases hres with ⟨-, o, ho, hr⟩ | ⟨hst, -, -, -⟩ | ⟨e, he, rfl, rfl⟩
+  · obtain ⟨js, bs', jt, bt', n', h1, h2, h3, rfl⟩ := ho
+    rw [parent_child hd hbs] at h1; rw [parent_child hd' hbt] at h2
+    obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj h1)
+    obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj h2)
+    rw [lookup_child hw.roots hd hbs, hsrc] at h3; cases h3
+    rw [lookup_child hw.roots hd' hbt] at hr
+    rcases hr with ⟨rfl, rfl⟩ | ⟨e, he, rfl, rfl | rfl⟩
+    · exact ⟨0, rfl, .inr rfl⟩
+    · exact ⟨e, rfl, .inl ⟨rfl, he⟩⟩
+    · exact ⟨e, rfl, .inr rfl⟩
+  · exact absurd hst hne
+  · exact ⟨e, rfl, .inl ⟨rfl, he⟩⟩
+
+/-- Two children of directories, equal: the same directory and name. -/
+theorem child_eq {d bs d' bt : GoString} (hbs : NameOk bs) (hbt : NameOk bt)
+    (h : child d bs = child d' bt) : d = d' ∧ bs = bt := by
+  have h1 := congrArg parentOf h; rw [parentOf_child' _ _ hbs, parentOf_child' _ _ hbt] at h1
+  have h2 := congrArg baseOf h; rw [baseOf_child' _ _ hbs, baseOf_child' _ _ hbt] at h2
+  exact ⟨Option.some.inj h1, h2⟩
+
+theorem wp_osRenameFileS' (R : Roots) (d bs d' bt : GoString) (j j' i : Ino) (N N' : NameSet)
+    (dq dq' : DFrac) (h h' : NamesH) (k s0 : Nat) (q : Qp) (hbs : NameOk bs) (hbt : NameOk bt)
+    (hN : N.Mem bs) (hN' : N'.Mem bt) (hkey : (j, N) ≠ (j', N'))
+    (hsrc : h.cur !! bs = some (.file i)) (htgt : ∀ J, h'.cur !! bt ≠ some (.dir J))
+    (hs : h.next ≤ s0) (hs' : h'.next ≤ s0) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E)
+    (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
+      osPathS (L := L) R d' dq' j' -∗
+      osNames (L := L) j N (DFrac.own 1) h -∗ osNames (L := L) j' N' (DFrac.own 1) h' -∗
+      osCallS (L := L) k s0 q -∗
+      (∀ e : w64, osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
+        osPathS (L := L) R d' dq' j' -∗
+                ((⌜e ≠ 0⌝ ∗ osNames (L := L) j N (DFrac.own 1) h ∗ osNames (L := L) j' N' (DFrac.own 1) h') ∨
+         ∃ x, osLogged (L := L) x (⟨.rename j bs j' bt (.file i) (h'.cur !! bt), s0⟩ : LogEntry) ∗
+           osNames (L := L) j N (DFrac.own 1) (h.log x (⟨.rename j bs j' bt (.file i) (h'.cur !! bt), s0⟩ : LogEntry) (GMap.delete bs h.cur)) ∗
+           osNames (L := L) j' N' (DFrac.own 1) (h'.log x (⟨.rename j bs j' bt (.file i) (h'.cur !! bt), s0⟩ : LogEntry) (<[bt := .file i]> h'.cur))) -∗
+        Φ (#e)) -∗
+      WP (ExternalOp fsExt.name "Rename" (Val (PairV (osTokV k)
+        (PairV (#(child d bs)) (#(child d' bt)))))) @ s; E {{ Φ }} := by
+  have hNe : N ≠ .only [] := fun h0 => by rw [h0] at hN; simp [NameSet.Mem] at hN
+  have hN'e : N' ≠ .only [] := fun h0 => by rw [h0] at hN'; simp [NameSet.Mem] at hN'
+  let o : MetaOp := .rename j bs j' bt (.file i) (h'.cur !! bt)
+  let cl : List ClaimW := [(j, N, h, GMap.delete bs h.cur), (j', N', h', <[bt := .file i]> h'.cur)]
+  let P : OsState → Prop := fun st => st.lookup d = some (.dir j) ∧ st.lookup d' = some (.dir j')
+  have hcl : ∀ c, c ∈ cl ↔ c = (j, N, h, GMap.delete bs h.cur) ∨
+      c = (j', N', h', <[bt := .file i]> h'.cur) := by
+    intro c; simp [cl]
+  have hm1 : (j, N, h, GMap.delete bs h.cur) ∈ cl := (hcl _).2 (.inl rfl)
+  have hm2 : (j', N', h', <[bt := .file i]> h'.cur) ∈ cl := (hcl _).2 (.inr rfl)
+  have hsrcE : ∀ st, ClaimsAt st cl → st.tree.entry j bs = some (.file i) := fun st hat => by
+    rw [hat.ent _ hm1 bs hN]; exact hsrc
+  have htgtE : ∀ st, ClaimsAt st cl → st.tree.entry j' bt = h'.cur !! bt := fun st hat =>
+    hat.ent _ hm2 bt hN'
+  have hdisj : ∀ st, ClaimsAt st cl → j = j' → ∀ b, N.Mem b → ¬ N'.Mem b :=
+    fun st hat hj b hb hb' => hat.disj _ hm1 _ hm2 hj (fun hNN => hkey (by simp only at hNN; rw [hj, hNN])) b hb hb'
+  have hneq : ∀ st, P st → ClaimsAt st cl → child d bs ≠ child d' bt := by
+    intro st hp hat heq
+    obtain ⟨rfl, rfl⟩ := child_eq hbs hbt heq
+    have hjj : j = j' := by
+      have := hp.1.symm.trans hp.2; simp at this; exact this
+    exact hdisj st hat hjj bs hN hN'
+  have hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
+      (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) → P st → ClaimsAt st cl →
+      ∃ e' st', IsFsStep "Rename" (PairV (osTokV k) (PairV (#(child d bs)) (#(child d' bt)))) st
+        e' st' ∧ FilesSame st st' := by
+    intro st hw _ hcall _ hp hat
+    refine ⟨_, _, renameStep_err hp.1 hp.2 hbs hbt hcall (fun ⟨J, hJ⟩ => ?_),
+      filesSame_metaEnd st k⟩
+    rw [lookup_child hw.roots hp.1 hbs, hsrcE st hat] at hJ; cases hJ
+  have hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
+      (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) → P st → ClaimsAt st cl →
+      IsFsStep "Rename" (PairV (osTokV k) (PairV (#(child d bs)) (#(child d' bt)))) st e' st' →
+      ∃ w, e' = Val w ∧
+        ((st' = st.metaEnd k ∧ (fun w lg => ∃ e : w64, w = #e ∧ (lg = false → e ≠ 0)) w false) ∨
+         (LoggedFrom st st' k s0 o ∧ (∀ x, x ∈ o.apply st.tree → x < st'.fs.nextIno) ∧
+          (fun w lg => ∃ e : w64, w = #e ∧ (lg = false → e ≠ 0)) w true)) := by
+    intro st e' st' hw _ hcall _ hp hat Hst
+    obtain ⟨htw, -, hlt⟩ := wf_tree hw
+    obtain ⟨e, rfl, hr⟩ := renameStep_cases hw hcall hp.1 hp.2 hbs hbt (hsrcE st hat)
+      (hneq st hp hat) Hst
+    rw [htgtE st hat] at hr
+    rcases hr with ⟨rfl, he⟩ | rfl
+    · exact ⟨_, rfl, .inl ⟨rfl, e, rfl, fun _ => he⟩⟩
+    · refine ⟨_, rfl, .inr ⟨loggedFrom_metaDo st k s0 o, fun x hx => ?_, e, rfl, by simp⟩⟩
+      rcases mem_rename _ _ _ _ _ _ _ _ hx with rfl | rfl | hx
+      · exact hlt _ (mem_of_reach htw (reach_of_lookup hp.1))
+      · exact hlt _ (mem_of_reach htw (reach_of_lookup hp.2))
+      · exact hlt _ hx
+  have htree : ∀ st, FsTreeWf st → st.fs.roots = R → P st → ClaimsAt st cl →
+      TreeWf R (o.apply st.tree) ∧ (∀ i, Named (o.apply st.tree) i → Named st.tree i) ∧
+      (∀ x, x ∈ o.apply st.tree → x ∈ st.tree ∨ x ∈ o.newDirs) ∧
+      (∀ J ∈ o.newDirs, J ∉ st.tree) ∧
+      (¬ o.IsDirOp → OpOk st.tree o ∧ ∀ j b i, o = .create j b i → ∀ t,
+        t ≤ st.fs.metaLog.length → ¬ Named (prefTree st.fs.treeDur st.fs.metaLog t) i) ∧
+      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = c.2.2.2) := by
+    intro st hw hR hp hat
+    obtain ⟨htw, -, -⟩ := wf_tree hw
+    have hjm := mem_of_reach htw (reach_of_lookup hp.1)
+    have hjm' := mem_of_reach htw (reach_of_lookup hp.2)
+    have hnt : ∀ J, st.tree.entry j' bt ≠ some (.dir J) := fun J => by
+      rw [htgtE st hat]; exact htgt J
+    refine ⟨hR ▸ treeWf_renameFile htw (reach_of_lookup hp.1) (reach_of_lookup hp.2) hbt
+        (hsrcE st hat) hnt _ _,
+      named_rename _ _ _ _ _ _ _, fun x hx => ?_, fun J hJ => by simp [o, MetaOp.newDirs] at hJ,
+      fun _ => ⟨⟨hjm, hjm', hsrcE st hat, htgtE st hat⟩, fun _ _ _ he => by simp [o] at he⟩,
+      fun c hc => ?_⟩
+    · rcases mem_rename _ _ _ _ _ _ _ _ hx with rfl | rfl | hx
+      · exact .inl hjm
+      · exact .inl hjm'
+      · exact .inl hx
+    · apply GMap.ext; intro b
+      show restrictN c.2.1 (entsOf (o.apply st.tree) c.1) !! b = c.2.2.2 !! b
+      have hap : ∀ b, (o.apply st.tree).entry j b = (if j' = j ∧ bt = b then some (.file i)
+          else if j = j ∧ bs = b then none else st.tree.entry j b) := by
+        intro b; rw [entry_rename, hsrcE st hat]
+      have hap' : ∀ b, (o.apply st.tree).entry j' b = (if j' = j' ∧ bt = b then some (.file i)
+          else if j = j' ∧ bs = b then none else st.tree.entry j' b) := by
+        intro b; rw [entry_rename, hsrcE st hat]
+      rcases (hcl c).1 hc with rfl | rfl
+      · by_cases hb : N.Mem b
+        · rw [restrictN_lookup _ _ _ hb, entsOf_lookup, hap]
+          by_cases hbt' : j' = j ∧ bt = b
+          · obtain ⟨rfl, rfl⟩ := hbt'; exact absurd hN' (hdisj st hat rfl bt hb)
+          · rw [if_neg hbt']
+            by_cases hbs' : bs = b
+            · subst hbs'; simp
+            · rw [if_neg (fun h0 => hbs' h0.2), GMap.lookup_delete_ne _ hbs', hat.ent _ hm1 b hb]
+        · rw [restrictN_lookup_not _ _ _ hb]
+          have hbs' : bs ≠ b := fun h0 => hb (h0 ▸ hN)
+          rw [GMap.lookup_delete_ne _ hbs', hat.out _ hm1 b hb]
+      · by_cases hb : N'.Mem b
+        · rw [restrictN_lookup _ _ _ hb, entsOf_lookup, hap']
+          by_cases hbt' : bt = b
+          · subst hbt'; rw [if_pos ⟨rfl, rfl⟩, GMap.lookup_insert]
+          · rw [if_neg (fun h0 => hbt' h0.2), GMap.lookup_insert_ne _ _ hbt']
+            by_cases hbs' : j = j' ∧ bs = b
+            · obtain ⟨hj, rfl⟩ := hbs'; exact absurd hb (hdisj st hat hj bs hN)
+            · rw [if_neg hbs', hat.ent _ hm2 b hb]
+        · rw [restrictN_lookup_not _ _ _ hb]
+          have hbt' : bt ≠ b := fun h0 => hb (h0 ▸ hN')
+          rw [GMap.lookup_insert_ne _ _ hbt', hat.out _ hm2 b hb]
+  iintro #Hinv #Hsi Hp Hp' Hn Hn' Hk HΦ
+  iapply wp_logStepS "Rename" _ (by simp [val.isPanic]) R k s0 q o cl
+    iprop(osPathS (L := L) R d dq j ∗ osPathS (L := L) R d' dq' j') P
+    (fun w lg => ∃ e : w64, w = #e ∧ (lg = false → e ≠ 0))
+    (fun c hc => by
+      rcases (hcl c).1 hc with rfl | rfl
+      · exact hNe
+      · exact hN'e)
+    (fun c hc => by
+      rcases (hcl c).1 hc with rfl | rfl
+      · exact ⟨bs, hN, .inl (by simp [o, MetaOp.slots])⟩
+      · exact ⟨bt, hN', .inl (by simp [o, MetaOp.slots])⟩)
+    (fun sl hsl => by
+      simp only [o, MetaOp.slots, List.mem_cons, List.mem_nil_iff, or_false] at hsl
+      rcases hsl with rfl | rfl
+      · exact ⟨_, hm1, rfl, hN⟩
+      · exact ⟨_, hm2, rfl, hN'⟩)
+    (fun c hc => by
+      rcases (hcl c).1 hc with rfl | rfl
+      · exact .inl hs
+      · exact .inl hs')
+    (fun hd => by
+      simp only [o, MetaOp.IsDirOp] at hd
+      rcases hd with ⟨J, hJ⟩ | ⟨J, hJ⟩
+      · cases hJ
+      · exact absurd hJ (htgt J))
+    (fun j0 b hb => by
+      simp only [o, MetaOp.adds] at hb
+      split at hb
+      · simp at hb; subst hb; exact hbt
+      · simp at hb)
+    (fun st Γn hR hcoh => by
+      iintro HA ⟨Hp, Hp'⟩
+      icases pathS_of R d dq j st Γn hR hcoh $$ HA Hp with %h1
+      icases pathS_of R d' dq' j' st Γn hR hcoh $$ HA Hp' with %h2
+      ipureintro; exact ⟨h1, h2⟩)
+    hprog hpost htree hE hE' Φ $$ Hinv Hsi [Hp Hp'] [Hn Hn'] Hk
+  · isplitl [Hp]
+    · iexact Hp
+    · iexact Hp'
+  · iapply (BigSepL.bigSepL_cons).2
+    isplitl [Hn]
+    · iexact Hn
+    · iapply (BigSepL.bigSepL_singleton).2; iexact Hn'
+  iintro %w Hq ⟨Hp, Hp'⟩ Hpost
+  icases Hpost with (⟨%hW, Hl⟩ | ⟨%hW, %x, Hlg, Hl, -⟩)
+  · obtain ⟨e, rfl, he⟩ := hW
+    icases (BigSepL.bigSepL_cons).1 $$ Hl with ⟨Hn, Hl⟩
+    icases (BigSepL.bigSepL_singleton).1 $$ Hl with Hn'
+    iapply HΦ $$ %e Hq Hp Hp'
+    ileft
+    isplitr
+    · ipureintro; exact he rfl
+    isplitl [Hn]
+    · iexact Hn
+    · iexact Hn'
+  · obtain ⟨e, rfl, -⟩ := hW
+    icases (BigSepL.bigSepL_cons).1 $$ Hl with ⟨Hn, Hl⟩
+    icases (BigSepL.bigSepL_singleton).1 $$ Hl with Hn'
+    iapply HΦ $$ %e Hq Hp Hp'
+    iright
+    iexists x
+    isplitl [Hlg]
+    · iexact Hlg
+    isplitl [Hn]
+    · iexact Hn
+    · iexact Hn'
+
 end specs
 
 end Fs
