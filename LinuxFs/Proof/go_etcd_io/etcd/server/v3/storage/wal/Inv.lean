@@ -94,6 +94,14 @@ structure SegFl where
   m : OsMeta
   bs : List ByteG
 
+instance SegFl.countable : Pos.Countable SegFl :=
+  Pos.Countable.ofInjective
+    (fun fl => Pos.Countable.encode (fl.t, fl.off, fl.data, fl.n, fl.m, fl.bs))
+    (fun a b h => by
+      have h := Pos.encode_inj h
+      cases a; cases b; simp only [Prod.mk.injEq] at h
+      obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h; subst h1 h2 h3 h4 h5 h6; rfl)
+
 /-- **The segment `g` as the write in flight `fl` announced it**: the write inside the segment
 (the WAL writes its tail inside the preallocated file), not empty; `g`'s `OsMeta` the token's
 (`cfMeta`), its bytes `fl.bs` with the data's candidates added to the written range (`pwAnn`). -/
@@ -105,11 +113,12 @@ def SegFl.Ok (fl : SegFl) (g : SegG) : Prop :=
     fl.bs.drop (cfHi fl.m fl.off fl.data.length)
 
 /-- **What the program and the invariant share of an open handle's tail** (half each): the history,
-the metadata, the cuts, the write position, the tail's inode. -/
-abbrev TailG := List (WalOpG WalEnt) × List w8 × List Nat × Nat × Ino
+the metadata, the cuts, the write position, the tail's inode, the write in flight on it if any. -/
+abbrev TailG := List (WalOpG WalEnt) × List w8 × List Nat × Nat × Ino × Option SegFl
 
 /-- The tail of the layout `lay` of the WAL `d` as `TailG`. -/
-def tailG (d : WalDur) (lay : WalLay) (i : Ino) : TailG := (d.H, d.metadata, lay.cuts, lay.wr, i)
+def tailG (d : WalDur) (lay : WalLay) (i : Ino) (fl : Option SegFl) : TailG :=
+  (d.H, d.metadata, lay.cuts, lay.wr, i, fl)
 
 /-- **F-Z**: past the frames found at the generation's start, the tail is zeros (`ReadAll`'s
 `ZeroToEnd` and fdatasync; a segment this generation created is zeros past its headers). -/
@@ -182,30 +191,31 @@ instance segResF_timeless (F : GMap Ino SegFl) (g : SegG) : Timeless (segResF (L
 
 /-- **The open handles' tails** (W6): the tails' authority, and for each directory with an open
 handle, its WAL and layout, the last segment, F-Z, and the invariant's half of the tail. -/
-def walTailsRes (s : AbsDiskState) (Ls : GMap GoString WalLay) : IProp GF :=
+def walTailsRes (s : AbsDiskState) (Ls : GMap GoString WalLay) (F : GMap Ino SegFl) : IProp GF :=
   letI := walAllG (W := W)
   iprop(∃ T : GMap GoString GName, walTailsAuth (W := W) T ∗
     [∗map] dir ↦ γ ∈ T, ∃ (d : WalDur) (lay : WalLay) (g : SegG),
       ⌜s.wal !! dir = some d ∧ Ls !! dir = some lay ∧ lay.segs.getLast? = some g ∧ TailZeros lay⌝ ∗
-      ghostVar γ (1 : Qp).half (tailG d lay g.ino))
+      ghostVar γ (1 : Qp).half (tailG d lay g.ino (F !! g.ino)))
 
-instance walTailsRes_timeless (s : AbsDiskState) (Ls : GMap GoString WalLay) :
-    Timeless (walTailsRes (W := W) s Ls) := by
+instance walTailsRes_timeless (s : AbsDiskState) (Ls : GMap GoString WalLay) (F : GMap Ino SegFl) :
+    Timeless (walTailsRes (W := W) s Ls F) := by
   unfold walTailsRes
   letI := walAllG (W := W)
   haveI : ∀ (γ : GName) (x : TailG), Timeless (ghostVar (GF := GF) γ (1 : Qp).half x) :=
     fun _ _ => inferInstance
   haveI : ∀ (dir : GoString) (γ : GName), Timeless (iprop(∃ (d : WalDur) (lay : WalLay) (g : SegG),
       ⌜s.wal !! dir = some d ∧ Ls !! dir = some lay ∧ lay.segs.getLast? = some g ∧ TailZeros lay⌝ ∗
-      ghostVar (GF := GF) γ (1 : Qp).half (tailG d lay g.ino))) := fun _ _ => inferInstance
+      ghostVar (GF := GF) γ (1 : Qp).half (tailG d lay g.ino (F !! g.ino)))) :=
+      fun _ _ => inferInstance
   infer_instance
 
 /-- **The tails as the WAL state changes elsewhere than the histories and metadata** (`named`, the
 mark, the purge bounds). -/
-theorem walTailsRes_mono (s s' : AbsDiskState) (Ls : GMap GoString WalLay)
+theorem walTailsRes_mono (s s' : AbsDiskState) (Ls : GMap GoString WalLay) (F : GMap Ino SegFl)
     (h : ∀ dir d, s.wal !! dir = some d →
       ∃ d', s'.wal !! dir = some d' ∧ d'.H = d.H ∧ d'.metadata = d.metadata) :
-    walTailsRes (W := W) s Ls ⊢ walTailsRes (W := W) s' Ls := by
+    walTailsRes (W := W) s Ls F ⊢ walTailsRes (W := W) s' Ls F := by
   unfold walTailsRes
   letI := walAllG (W := W)
   iintro ⟨%T, Ha, Hm⟩
@@ -216,7 +226,8 @@ theorem walTailsRes_mono (s s' : AbsDiskState) (Ls : GMap GoString WalLay)
   iintro ⟨%d, %lay, %g, %hp, Hv⟩
   obtain ⟨d', hd', hH, hmd⟩ := h dir d hp.1
   iexists d', lay, g
-  have e : tailG d' lay g.ino = tailG d lay g.ino := by simp [tailG, hH, hmd]
+  have e : tailG d' lay g.ino (F !! g.ino) = tailG d lay g.ino (F !! g.ino) := by
+    simp [tailG, hH, hmd]
   rw [e]
   iframe Hv
   ipureintro; exact ⟨hd', hp.2⟩
@@ -228,7 +239,7 @@ def walInvBody (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoSt
     walGhost (W := W) s ∗ ⌜s.area = r⌝ ∗
     osClaims L (cl.map (fun c => (c, DFrac.own (1 : Qp).half))) ∗ osCommitLb (L := L) n ∗
     laysResF (L := L) F Ls ∗ ⌜WalsOk C Mr R jr s Ls cl n⌝ ∗ ⌜WalsCreateOk jr cl⌝ ∗
-    (∃ CR, walCreatingAuth (W := W) CR ∗ ⌜CreatingOk jr cl CR⌝) ∗ walTailsRes (W := W) s Ls)
+    (∃ CR, walCreatingAuth (W := W) CR ∗ ⌜CreatingOk jr cl CR⌝) ∗ walTailsRes (W := W) s Ls F)
 
 instance walInvBody_timeless (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (s : AbsDiskState) : Timeless (walInvBody (L := L) (W := W) C Mr R jr r s) := by
