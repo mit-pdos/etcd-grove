@@ -555,6 +555,119 @@ theorem wp_osRenameDirS' (R : Roots) (d bs bt : GoString) (j J : Ino) (N : NameS
         (fun h0 => hne h0.2) (.inl htg) hnot _ _)
     hE hE' Φ
 
+theorem wp_osRmdirS' (R : Roots) (d b : GoString) (j J : Ino) (dq : DFrac) (h hJ : NamesH)
+    (k s0 : Nat) (hb : NameOk b) (hd : h.cur !! b = some (.dir J)) (he : hJ.cur = ∅)
+    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
+      osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗
+      osNames (L := L) J (.except []) (DFrac.own 1) hJ -∗ osCallS (L := L) k s0 1 -∗
+      (∀ e : w64, osCallPerm (L := L) 1 -∗ osPathS (L := L) R d dq j -∗
+        osNames (L := L) J (.except []) (DFrac.own 1) hJ -∗
+        osNamesAfter (L := L) j (.only [b]) h ⟨.remove j b (.dir J), s0⟩ (GMap.delete b h.cur)
+          (e ≠ 0) -∗ Φ (#e)) -∗
+      WP (ExternalOp fsExt.name "Rmdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} := by
+  have hbN : (NameSet.only [b]).Mem b := by simp [NameSet.Mem]
+  have hbN' : ∀ b', (NameSet.only [b]).Mem b' → b' = b := by simp [NameSet.Mem]
+  let o : MetaOp := .remove j b (.dir J)
+  let cl : List ClaimW := [(j, .only [b], h, restrictN (.only [b]) (GMap.delete b h.cur))]
+  let P : OsState → Prop := fun st => st.lookup d = some (.dir j) ∧ ∀ c, st.tree.entry J c = none
+  have hent : ∀ st, ClaimsAt st cl → st.tree.entry j b = some (.dir J) := by
+    intro st hat; rw [hat.ent _ (List.mem_singleton_self _) b hbN]; exact hd
+  have hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
+      ((1 : Qp) = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) → P st → ClaimsAt st cl →
+      ∃ e' st', IsFsStep "Rmdir" (PairV (osTokV k) (#(child d b))) st e' st' ∧ FilesSame st st' :=
+    fun st _ _ hcall _ hp _ => ⟨_, st.metaEnd k, ⟨child d b, k, s0, rfl, treeName_child hp.1 hb, hcall,
+      Or.inr ⟨1, by decide, rfl, rfl⟩⟩, filesSame_metaEnd st k⟩
+  have hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
+      ((1 : Qp) = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) → P st → ClaimsAt st cl →
+      IsFsStep "Rmdir" (PairV (osTokV k) (#(child d b))) st e' st' → ∃ w, e' = Val w ∧
+        ((st' = st.metaEnd k ∧ (fun w lg => ∃ e : w64, w = #e ∧ (lg = false → e ≠ 0)) w false) ∨
+         (LoggedFrom st st' k s0 o ∧ (∀ x, x ∈ o.apply st.tree → x < st'.fs.nextIno) ∧
+          (fun w lg => ∃ e : w64, w = #e ∧ (lg = false → e ≠ 0)) w true)) := by
+    intro st e' st' hw _ hcall _ hp hat Hst
+    simp only [IsFsStep] at Hst
+    obtain ⟨p', k', s', hv, -, hk', hres⟩ := Hst
+    obtain ⟨rfl, rfl⟩ := tokPath_inj hv
+    rw [calls_start hcall hk'] at hres
+    obtain ⟨htw, -, hlt⟩ := wf_tree hw
+    have hlt' : ∀ x, x ∈ o.apply st.tree → x < ((st.metaEnd k).metaDo o s0).fs.nextIno := by
+      intro x hx
+      rcases mem_remove _ _ _ _ _ hx with rfl | hx
+      · exact hlt _ (mem_of_reach htw (reach_of_lookup hp.1))
+      · exact hlt _ hx
+    rcases hres with ⟨J', j0, b0, ⟨hJ', -⟩, hpar, hr⟩ | ⟨e, he, rfl, rfl⟩
+    · rw [parent_child hp.1 hb] at hpar
+      obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj hpar)
+      rw [lookup_child hw.roots hp.1 hb, hent st hat] at hJ'
+      cases Option.some.inj hJ'
+      rcases hr with ⟨rfl, rfl⟩ | ⟨e, he, rfl, rfl | rfl⟩
+      · exact ⟨_, rfl, .inr ⟨loggedFrom_metaDo st k s0 o, hlt', 0, rfl, by simp⟩⟩
+      · exact ⟨_, rfl, .inl ⟨rfl, e, rfl, fun _ => he⟩⟩
+      · exact ⟨_, rfl, .inr ⟨loggedFrom_metaDo st k s0 o, hlt', e, rfl, by simp⟩⟩
+    · exact ⟨_, rfl, .inl ⟨rfl, e, rfl, fun _ => he⟩⟩
+  have htree : ∀ st, FsTreeWf st → st.fs.roots = R → P st → ClaimsAt st cl →
+      TreeWf R (o.apply st.tree) ∧ (∀ i, Named (o.apply st.tree) i → Named st.tree i) ∧
+      (∀ x, x ∈ o.apply st.tree → x ∈ st.tree ∨ x ∈ o.newDirs) ∧
+      (∀ J ∈ o.newDirs, J ∉ st.tree) ∧
+      (¬ o.IsDirOp → OpOk st.tree o ∧ ∀ j b i, o = .create j b i → ∀ t,
+        t ≤ st.fs.metaLog.length → ¬ Named (prefTree st.fs.treeDur st.fs.metaLog t) i) ∧
+      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = c.2.2.2) := by
+    intro st hw hR hp hat
+    obtain ⟨htw, -, -⟩ := wf_tree hw
+    have hjm : j ∈ st.tree := mem_of_reach htw (reach_of_lookup hp.1)
+    refine ⟨hR ▸ treeWf_rmdir htw (reach_of_lookup hp.1) (hent st hat) hp.2 _,
+      named_remove _ _ _ _, fun x hx => ?_, fun J hJ => by simp [o, MetaOp.newDirs] at hJ,
+      fun hnd => absurd ⟨J, rfl⟩ hnd, fun c hc => ?_⟩
+    · rcases mem_remove _ _ _ _ _ hx with rfl | hx
+      · exact .inl hjm
+      · exact .inl hx
+    · rw [List.mem_singleton] at hc; subst hc
+      apply restrictN_eq_of
+      intro b' hb'
+      obtain rfl := hbN' b' hb'
+      rw [entsOf_lookup, entry_remove]; simp
+  iintro #Hinv #Hsi Hp Hn HJ Hk HΦ
+  iapply wp_logStepS "Rmdir" _ (by simp [val.isPanic]) R k s0 1 o cl
+    iprop(osPathS (L := L) R d dq j ∗ osNames (L := L) J (.except []) (DFrac.own 1) hJ) P
+    (fun w lg => ∃ e : w64, w = #e ∧ (lg = false → e ≠ 0))
+    (by simp [cl])
+    (fun c hc => by
+      rw [List.mem_singleton] at hc; subst hc
+      exact ⟨b, hbN, .inl (by simp [o, MetaOp.slots])⟩)
+    (by intro sl hsl; simp [o, MetaOp.slots] at hsl; subst hsl
+        exact ⟨_, List.mem_singleton_self _, rfl, hbN⟩)
+    (fun _ _ => .inr rfl) (fun _ => rfl) (by intro j b hb; simp [o, MetaOp.adds] at hb)
+    (fun st Γn hR hcoh => by
+      iintro HA ⟨Hp, HJ⟩
+      icases pathS_of R d dq j st Γn hR hcoh $$ HA Hp with %h1
+      icases osNames_entry hcoh J (.except []) _ hJ $$ HA HJ with %h2
+      ipureintro
+      refine ⟨h1, fun c => ?_⟩
+      rw [h2 c (by simp [NameSet.Mem]), he]; rfl)
+    hprog hpost htree hE hE' Φ
+    $$ Hinv Hsi [Hp HJ] [Hn] Hk
+  · isplitl [Hp]
+    · iexact Hp
+    · iexact HJ
+  · iapply (BigSepL.bigSepL_singleton).2; iexact Hn
+  iintro %w Hq ⟨Hp, HJ⟩ Hpost
+  icases Hpost with (⟨%hW, Hl⟩ | ⟨%hW, %x, Hlg, Hl, -⟩)
+  · obtain ⟨e, rfl, he⟩ := hW
+    iapply HΦ $$ %e Hq Hp HJ
+    unfold osNamesAfter
+    ileft
+    isplitr
+    · ipureintro; exact he rfl
+    · iapply (BigSepL.bigSepL_singleton).1 $$ Hl
+  · obtain ⟨e, rfl, -⟩ := hW
+    iapply HΦ $$ %e Hq Hp HJ
+    unfold osNamesAfter
+    iright
+    iexists x
+    isplitl [Hlg]
+    · iexact Hlg
+    · iapply (BigSepL.bigSepL_singleton).1 $$ Hl
+
 end specs
 
 end Fs
