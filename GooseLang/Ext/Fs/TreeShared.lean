@@ -30,125 +30,21 @@ public import GooseLang.Ext.Fs.TreeCrashCommit
 public import GooseLang.Ext.Fs.TreeSpecsOpen
 public import GooseLang.Ext.Fs.TreeSpecsMeta
 public import GooseLang.Ext.Fs.TreeCutProof
+public import GooseLang.Ext.Fs.TreeSharedSwitch
+public import GooseLang.Ext.Fs.TreeSharedCrash
+public import GooseLang.Ext.Fs.TreeSharedLaws
 
 @[expose] public section
 
 noncomputable section
+
+set_option autoImplicit false
 
 namespace Perennial
 namespace Fs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
 
-/-! ## What the claims know, as a function of the history -/
-
-open Classical in
-/-- The claim on the names `N` of the directory `j`, as the history `V` has them: their entries at
-boot, each entry writing one of them (with their entries right after), their entries now. -/
-def namesOf (V : Hist) (j : Ino) (N : NameSet) : NamesH where
-  boot := restrictN N (entsOf V.1 j)
-  ents := (List.range V.2.length).filterMap (fun x => match V.2[x]? with
-    | some e => if ∃ b, N.Mem b ∧ e.op.Writes j b then
-        some (x, e, restrictN N (entsOf (prefTree V.1 V.2 (x + 1)) j)) else none
-    | none => none)
-  cur := restrictN N (entsOf V.now j)
-
-/-- The claims' coherence with the shared history `V`: each claim's history is the history's; the
-claims of a directory are disjoint; every name of every directory of the tree is claimed. -/
-structure NamesCoh (V : Hist) (Γn : GMap (Ino × NameSet) NamesH) : Prop where
-  hist : ∀ j N h, Γn !! (j, N) = some h → h = namesOf V j N
-  disj : ∀ j N N' h h' b, Γn !! (j, N) = some h → Γn !! (j, N') = some h' → N ≠ N' →
-    N.Mem b → ¬ N'.Mem b
-  cover : ∀ j b, j ∈ V.now → ∃ N h, Γn !! (j, N) = some h ∧ N.Mem b
-
-/-- The log's entries, as a map. -/
-def logMap (log : List LogEntry) : GMap Nat LogEntry :=
-  (List.range log.length).foldl (fun m x => match log[x]? with
-    | some e => <[x := e]> m
-    | none => m) ∅
-
-section resources
-variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
-  [GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
-
-/-- The namespace of the shared mode's invariant (disjoint from `osN`). -/
-def osShN : Namespace := nroot .@ "osfsShared"
-
-/-- A claim on the names `N` of the directory `j`, `h` what is known of them. -/
-def osNames (j : Ino) (N : NameSet) (dq : DFrac) (h : NamesH) : IProp GF :=
-  gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γn (j, N) dq h
-
-/-- A fraction `q` of the call permission. -/
-def osCallPerm (q : Qp) : IProp GF :=
-  gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm () (DFrac.own q) ()
-
-/-- The shared call `t` is in flight, begun when the log had `s` entries, holding `q` of the call
-permission (in the state interpretation), which its step gives back. -/
-def osCallS (t s : Nat) (q : Qp) : IProp GF :=
-  gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γcS t (DFrac.own 1) (s, q)
-
-/-- The log has at least `n` entries (persistent). -/
-def osLogLb (n : Nat) : IProp GF :=
-  letI := (gooseOsGS (L := L)).osAllG; monoNatLbOwn (gooseOsGS (L := L)).γlen n
-
-/-- The entry `x` of the log is `e` (persistent). -/
-def osLogEnt (x : Nat) (e : LogEntry) : IProp GF :=
-  gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γlog x DFrac.discard e
-
-/-- The shared directory fd `fd`, on the directory `j`, its read at `ph`. -/
-def osDirFdS (fd : w64) (j : Ino) (ph : DirPhS) : IProp GF :=
-  gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γdfS fd (DFrac.own 1) (j, ph)
-
-/-- The components `cs` lead from the directory `j` to the directory `j'`: fractions `dq` of the
-claim on each component's name, which names the next directory. -/
-def osSpine : Ino → List GoString → DFrac → Ino → IProp GF
-  | j, [], _, j' => iprop(⌜j = j'⌝)
-  | j, c :: cs, dq, j' => iprop(∃ (h : NamesH) (J : Ino),
-      osNames j (.only [c]) dq h ∗ ⌜h.cur !! c = some (.dir J)⌝ ∗ osSpine J cs dq j')
-
-/-- The path `p` names the directory `j`: a root of `R` followed by components, each held by a
-fraction of its claim. -/
-def osPathS (R : Roots) (p : GoString) (dq : DFrac) (j : Ino) : IProp GF :=
-  iprop(∃ (r : GoString) (j0 : Ino) (cs : List GoString),
-    ⌜(r, j0) ∈ R ∧ (∀ c ∈ cs, NameOk c) ∧ p = joinPath r cs⌝ ∗ osSpine j0 cs dq j)
-
-/-- **The shared mode's invariant**, on the roots `R`: the shared history `Vs`, whole; the claims'
-authority, coherent with it; the log's length and entries. -/
-def osSharedInv (R : Roots) : IProp GF :=
-  inv osShN iprop(∃ (Vs : Hist) (Γn : GMap (Ino × NameSet) NamesH),
-    gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γs () (DFrac.own 1) (R, Vs) ∗
-    gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γn Γn ∗ ⌜RootsOk R ∧ NamesCoh Vs Γn⌝ ∗
-    (letI := (gooseOsGS (L := L)).osAllG; monoNatAuthOwn (gooseOsGS (L := L)).γlen 1 Vs.2.length) ∗
-    gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γlog (logMap Vs.2))
-
-instance osSharedInv_persistent (R : Roots) : Persistent (osSharedInv (L := L) R) := by
-  unfold osSharedInv; infer_instance
-instance osLogLb_persistent (n : Nat) : Persistent (osLogLb (L := L) n) := by
-  unfold osLogLb; letI := (gooseOsGS (L := L)).osAllG; infer_instance
-instance osLogEnt_persistent (x : Nat) (e : LogEntry) : Persistent (osLogEnt (L := L) x e) := by
-  unfold osLogEnt gElem; letI := (gooseOsGS (L := L)).osAllG; infer_instance
-instance osNames_timeless (j : Ino) (N : NameSet) (dq : DFrac) (h : NamesH) :
-    Timeless (osNames (L := L) j N dq h) := by unfold osNames; infer_instance
-instance osCallPerm_timeless (q : Qp) : Timeless (osCallPerm (L := L) q) := by
-  unfold osCallPerm; infer_instance
-instance osCallS_timeless (t s : Nat) (q : Qp) : Timeless (osCallS (L := L) t s q) := by
-  unfold osCallS; infer_instance
-instance osDirFdS_timeless (fd : w64) (j : Ino) (ph : DirPhS) :
-    Timeless (osDirFdS (L := L) fd j ph) := by unfold osDirFdS; infer_instance
-
-/-- An entry logged at `x ≥ s` by a call begun at `s`: its record, and the log's new length. -/
-def osLogged (x : Nat) (e : LogEntry) : IProp GF :=
-  iprop(⌜e.start ≤ x⌝ ∗ osLogEnt (L := L) x e ∗ osLogLb (L := L) (x + 1))
-
-/-- A claim after a step that may log `e`: as it was (only if `may` allows no effect), or the entry
-logged, the names now `c`. -/
-def osNamesAfter (j : Ino) (N : NameSet) (h : NamesH) (e : LogEntry) (c : Ents) (none_ok : Prop) :
-    IProp GF :=
-  iprop((⌜none_ok⌝ ∗ osNames (L := L) j N (DFrac.own 1) h) ∨
-    ∃ x, osLogged (L := L) x e ∗ osNames (L := L) j N (DFrac.own 1) (h.log x e (restrictN N c)))
-
-end resources
 
 /-! ## The laws of the resources (fancy updates in the shared invariant) -/
 
@@ -163,19 +59,36 @@ theorem osCallPerm_split (q1 q2 : Qp) :
   unfold osCallPerm; exact gElem_split _ _ _ q1 q2 ()
 
 theorem osCallPerm_valid (q : Qp) : osCallPerm (L := L) q ⊢ ⌜q ≤ 1⌝ := by
-  sorry
+  unfold osCallPerm
+  iintro H
+  icases gElem_valid _ _ _ _ _ $$ H with %hv
+  ipureintro; exact DFrac.valid_own.1 hv
 
 theorem osNames_frac (j : Ino) (N : NameSet) (q1 q2 : Qp) (h : NamesH) :
     osNames (L := L) j N (DFrac.own (q1 + q2)) h ⊣⊢
       osNames (L := L) j N (DFrac.own q1) h ∗ osNames (L := L) j N (DFrac.own q2) h := by
-  unfold osNames; exact gElem_split _ _ _ q1 q2 h
+  by_cases hN : N = .only []
+  · subst hN
+    unfold osNames
+    simp only [if_pos]
+    constructor
+    · iintro %H; isplitl [] <;> ipureintro <;> exact H
+    · iintro ⟨%H, -⟩; ipureintro; exact H
+  · rw [osNames_of_ne _ _ hN, osNames_of_ne _ _ hN, osNames_of_ne _ _ hN]
+    exact gElem_split _ _ _ q1 q2 h
 
 theorem osNames_agree (j : Ino) (N : NameSet) (dq1 dq2 : DFrac) (h1 h2 : NamesH) :
     osNames (L := L) j N dq1 h1 -∗ osNames (L := L) j N dq2 h2 -∗ ⌜h1 = h2⌝ := by
-  unfold osNames
-  iintro H1 H2
-  icases gElem_valid_2 _ _ _ _ _ _ _ $$ H1 H2 with %hv
-  ipureintro; exact hv.2
+  by_cases hN : N = .only []
+  · subst hN
+    unfold osNames
+    simp only [if_pos]
+    iintro %H1 %H2
+    ipureintro; rw [H1, H2]
+  · rw [osNames_of_ne _ _ hN, osNames_of_ne _ _ hN]
+    iintro H1 H2
+    icases gElem_valid_2 _ _ _ _ _ _ _ $$ H1 H2 with %hv
+    ipureintro; exact hv.2
 
 /-- Splitting a claim along a finite set of names `M`. -/
 theorem osNames_split (R : Roots) (j : Ino) (N : NameSet) (M : List GoString) (h : NamesH)
@@ -206,8 +119,8 @@ theorem osNames_rekey (R : Roots) (j : Ino) (N N' : NameSet) (h : NamesH) (hN : 
 theorem osNames_next (R : Roots) (j : Ino) (N : NameSet) (dq : DFrac) (h : NamesH)
     (hE : ↑osShN ⊆ E) :
     osSharedInv (L := L) R -∗ osNames (L := L) j N dq h ={E}=∗
-      osNames (L := L) j N dq h ∗ osLogLb (L := L) h.next := by
-  sorry
+      osNames (L := L) j N dq h ∗ osLogLb (L := L) h.next :=
+  osNames_next' R j N dq h hE
 
 theorem osLogLb_le {n : Nat} (n' : Nat) (h : n' ≤ n) :
     osLogLb (L := L) n ⊢ osLogLb (L := L) n' := by
@@ -249,8 +162,8 @@ theorem wp_osShare (R : Roots) (V : Hist) (op : String) (v : val) (hv : v.isPani
         ([∗list] j ∈ (GMap.toList V.now).map (·.1),
           osNames (L := L) j (.except []) (DFrac.own 1) (namesOf V j (.except []))) -∗
         WP (ExternalOp fsExt.name op (Val v)) @ s; E {{ Φ }}) -∗
-      WP (ExternalOp fsExt.name op (Val v)) @ s; E {{ Φ }} := by
-  sorry
+      WP (ExternalOp fsExt.name op (Val v)) @ s; E {{ Φ }} :=
+  wp_osShare' R V op v hE Φ
 
 /-- **`CallBegin()`** in the shared mode, with a fraction `q` of the call permission: a call in
 flight holding it, begun at a log length `s0` at least any the caller knew. -/
@@ -259,8 +172,8 @@ theorem wp_osCallBeginS (R : Roots) (q : Qp) (n : Nat) (hE : ↑osN ⊆ E) (hE' 
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osCallPerm (L := L) q -∗ osLogLb (L := L) n -∗
       (∀ (t s0 : Nat), ⌜n ≤ s0⌝ -∗ osCallS (L := L) t s0 q -∗ osLogLb (L := L) s0 -∗
         Φ (osTokV t)) -∗
-      WP (ExternalOp fsExt.name "CallBegin" (Val (#()))) @ s; E {{ Φ }} := by
-  sorry
+      WP (ExternalOp fsExt.name "CallBegin" (Val (#()))) @ s; E {{ Φ }} :=
+  wp_osCallBeginS' R q n hE hE' Φ
 
 /-! ## Metadata steps. Each ends its call (`osCallPerm q` back); a claim written whole, with
 `h.next ≤ s0`. -/
@@ -365,7 +278,8 @@ theorem wp_osMkdirS (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : Nam
         ((⌜e ≠ 0⌝ ∗ osNames (L := L) j (.only [b]) (DFrac.own 1) h) ∨
          ∃ x J, osLogged (L := L) x (⟨.mkdir j b J, s0⟩ : LogEntry) ∗
            osNames (L := L) j (.only [b]) (DFrac.own 1) (h.log x (⟨.mkdir j b J, s0⟩ : LogEntry) (<[b := .dir J]> h.cur)) ∗
-           osNames (L := L) J (.except []) (DFrac.own 1) ⟨∅, [(x, o, ∅)], ∅⟩) -∗ Φ (#e)) -∗
+           osNames (L := L) J (.except []) (DFrac.own 1)
+             ⟨∅, [(x, (⟨.mkdir j b J, s0⟩ : LogEntry), ∅)], ∅⟩) -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Mkdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} := by
   sorry
 
@@ -507,10 +421,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
   [GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF]
 
-/-- The claims of a list, each with its fraction. -/
-def osClaims (L : GooseLocalGS GF) (cl : List (Claim × DFrac)) : IProp GF :=
-  iprop([∗list] c ∈ cl, osNames (L := L) c.1.1 c.1.2.1 c.2 c.1.2.2)
-
 /-- **What a region concludes of a crash** of a generation `L` in the shared mode: from its claims
 and a lower bound on the committed prefix, `RegionCrashed` of the new generation's tree. -/
 theorem crashRest_region (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF) (D : List Ino)
@@ -519,8 +429,8 @@ theorem crashRest_region (Q : OsState → OsState → Prop) (L L' : GooseLocalGS
     ⊢ osSharedInv (L := L) R -∗ crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D tt V' -∗
       osClaims L cl -∗ osCommitLb (L := L) n ={E}=∗
       ⌜RegionCrashed (cl.map (·.1)) n V'.now⌝ ∗
-      crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D tt V' ∗ osClaims L cl := by
-  sorry
+      crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D tt V' ∗ osClaims L cl :=
+  crashRest_region' Q L L' D tt V' R cl n E hE
 
 /-- **The tree after a crash, in the shared mode**: the new generation's history, whole (the new
 generation starts in the legacy mode), the crashed tree with the shared invariant's roots. -/
@@ -529,8 +439,8 @@ theorem crashRest_treeS (Q : OsState → OsState → Prop) (L L' : GooseLocalGS 
     ⊢ osSharedInv (L := L) R -∗
       crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D false V' ={E}=∗
       ⌜V'.2 = []⌝ ∗ osTree (L := L') (DFrac.own 1) R V' ∗
-      crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D true V' := by
-  sorry
+      crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D true V' :=
+  crashRest_treeS' Q L L' D V' R E hE
 
 end crash
 

@@ -57,21 +57,25 @@ theorem crashRest_lb (Q : OsState → OsState → Prop) (hL' : OsGS GF) (D : Lis
   icases gAuth_lookup hL _ _ _ _ _ $$ HAd Hd with %hh
   simp only [histMap, GMap.lookup_singleton_eq, Option.some.injEq, Prod.mk.injEq] at hh
   obtain ⟨hR, rfl⟩ := hh
-  unfold crashCommit commitRes
-  icases Hcc with ⟨%hlb, %c, %hc, Ha⟩
-  icases gCommitLb_valid hL c n $$ Ha Hlb with %hn
-  iframe Hd
-  isplitr
-  · ipureintro; exact (hlb c hc).mono hn
-  iexists Γb, Γm, F, st, st', Γf, Γt, V
-  iframe Hab Ham Hfs HAt Htok HAd Htl
-  isplitr
-  · ipureintro; exact hrel
-  isplitr
-  · ipureintro; exact hlb
-  iexists c
-  iframe Ha
-  ipureintro; exact hc
+  unfold crashMode crashShared crashCommit commitRes
+  icases Hcc with (⟨⟨%hlb, %c, %hc, Ha⟩, Has⟩ | ⟨Hd1, -⟩)
+  · icases gCommitLb_valid hL c n $$ Ha Hlb with %hn
+    iframe Hd
+    isplitr
+    · ipureintro; exact (hlb c hc).mono hn
+    iexists Γb, Γm, F, st, st', Γf, Γt, V
+    iframe Hab Ham Hfs HAt Htok HAd Htl
+    isplitr
+    · ipureintro; exact hrel
+    ileft
+    iframe Has
+    isplitr
+    · ipureintro; exact hlb
+    iexists c
+    iframe Ha
+    ipureintro; exact hc
+  · icases gElem_valid_2 _ _ _ _ _ _ _ $$ Hd Hd1 with %Hv
+    exact absurd (DFrac.valid_op_own Hv.1) (by simp)
 
 end crash
 

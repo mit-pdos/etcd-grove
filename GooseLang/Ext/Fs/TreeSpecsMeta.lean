@@ -252,8 +252,8 @@ theorem wp_metaStep (op : String) (v : val) (hv : v.isPanic = false) (R : Roots)
       (∀ (e : w64) (V' : Hist), ⌜Q e V'⌝ -∗ osTree (L := L) (DFrac.own 1) R V' -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name op (Val v)) @ s; E {{ Φ }} := by
   iintro #Hinv Hh Hk HΦ
-  iapply wp_fs_stepT op _ Φ hv hE $$ Hinv
-  iintro %st %Γb %Γm %Γf %Γt %V0 %Γdf %Γc %h Hw Hn
+  iapply wp_fs_stepT op _ Φ hv hE _ (legacyWit_call _ _ _) $$ Hinv Hk
+  iintro Hk %st %Γb %Γm %Γf %Γt %V0 %Γdf %Γc %h Hw Hn
   unfold osWorld treeWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   icases Hn with ⟨%Hns, HAd, HAdf, HAc, Hrd, Hcr⟩

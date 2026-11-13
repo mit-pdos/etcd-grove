@@ -239,8 +239,8 @@ theorem wp_osOpenDir (p : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s0 : N
       WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#p) (#flRO))))) @ s; E
         {{ Φ }} := by
   iintro #Hinv Hh Hk HΦ
-  iapply wp_fs_stepT "Open" _ Φ (by simp [val.isPanic]) hE $$ Hinv
-  iintro %st %Γb %Γm %Γf %Γt %V0 %Γdf %Γc %h Hw Hn
+  iapply wp_fs_stepT "Open" _ Φ (by simp [val.isPanic]) hE _ (legacyWit_call _ _ _) $$ Hinv Hk
+  iintro Hk %st %Γb %Γm %Γf %Γt %V0 %Γdf %Γc %h Hw Hn
   unfold treeWorld
   icases Hn with ⟨%Hns, HAd, HAdf, HAc, Hrd, Hcr⟩
   obtain ⟨hw, hc⟩ := Hns
@@ -363,8 +363,8 @@ theorem wp_osOpenFile (p : GoString) (fl : w64) (R : Roots) (V : Hist) (q1 q : Q
       WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#p) (#fl))))) @ s; E
         {{ Φ }} := by
   iintro #Hinv Hh Hk HΦ
-  iapply wp_fs_stepT "Open" _ Φ (by simp [val.isPanic]) hE $$ Hinv
-  iintro %st %Γb %Γm %Γf %Γt %V0 %Γdf %Γc %h Hw Hn
+  iapply wp_fs_stepT "Open" _ Φ (by simp [val.isPanic]) hE _ (legacyWit_call _ _ _) $$ Hinv Hk
+  iintro Hk %st %Γb %Γm %Γf %Γt %V0 %Γdf %Γc %h Hw Hn
   unfold treeWorld
   icases Hn with ⟨%Hns, HAd, HAdf, HAc, Hrd, Hcr⟩
   obtain ⟨hw, hc⟩ := Hns
@@ -600,8 +600,8 @@ theorem wp_osOpenCreate (d b : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s
       WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#(child d b)) (#flCreat)))))
         @ s; E {{ Φ }} := by
   iintro #Hinv Hh Hk HΦ
-  iapply wp_fs_stepT "Open" _ Φ (by simp [val.isPanic]) hE $$ Hinv
-  iintro %st %Γb %Γm %Γf %Γt %V0 %Γdf %Γc %h Hw Hn
+  iapply wp_fs_stepT "Open" _ Φ (by simp [val.isPanic]) hE _ (legacyWit_call _ _ _) $$ Hinv Hk
+  iintro Hk %st %Γb %Γm %Γf %Γt %V0 %Γdf %Γc %h Hw Hn
   unfold treeWorld
   icases Hn with ⟨%Hns, HAd, HAdf, HAc, Hrd, Hcr⟩
   obtain ⟨hw, hc⟩ := Hns

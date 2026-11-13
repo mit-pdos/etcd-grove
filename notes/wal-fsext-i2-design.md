@@ -549,3 +549,48 @@ Still to do, in order: the mode split (`treeCtx`'s shared branch with `TreeCohS`
 `PerSlotSeq`, `DirOpExcl _ s0`, `LogValid _ _ s0`, calls/dfds coherence; the legacy branch owning the
 shared authorities and the whole `γperm` token, M3), `crashRest`'s shared branch and `osCrash_rel` via
 `closed_cut`, the laws, the step specs, the `os` wrappers, the two-region test.
+
+### Implementation log, second session (2026-11-13)
+
+Done (no `sorry`): the mode split, the switch, `CallBegin`, the crash lemmas, some laws.
+
+- `Ghost.lean`: `treeCtx := (treeLegacy ∨ treeShared) ∗ commitRes`. `treeLegacy` is the old body plus
+  `legacyHolds` (the shared authorities empty, the log's length `0`, the whole `γperm` element: M3).
+  `treeShared` holds the legacy history frozen and whole (`γd` auth + element 1, `γdf`/`γc` empty), the
+  shared history's authority (the state's), `γdfS`/`γcS` and `callResS` (each call's permission
+  fraction). `TreeCohS st s0 Γdf Γc`: `Starts`, `PerSlotSeq`, `DirOpExcl _ s0`, `LogValid _ _ s0`,
+  `s0 ≤ len`, dfds/calls mirrored, `PhOkS` (a shared read's bits are the state's while nothing from
+  `r0` on wrote a name of `N`), `callsLe`, `whole` (a call holding all of the permission began now),
+  `after` (every call began after every directory operation and every legacy entry).
+- `World.lean`: `wp_fs_stepT` takes a legacy resource `W` with `LegacyWit W` (`legacyWit_tree`,
+  `_call`, `_dirFd`; `treeCtx_legacy`): **its statement changed** (internal to FS/; 13 call sites
+  edited, each passes its `osTree`/`osCall`/`osDirFd`; also `wp_fs_stepTC`). `wp_fs_stepM`: the
+  mode-generic lifting, whose continuation may open invariants across the step (`E \ osN → ∅ → ...`).
+- `CrashTok.lean`: `crashRest`'s `crashCommit` became `crashMode` = `(crashCommit ∗ γs auth empty) ∨
+  crashShared` (the legacy history whole, the shared history's authority, the kept closed set with the
+  commits and slots, `commitRes`). `os_local_crash` in the shared mode updates `γd` to the crashed tree
+  (so `TreeCrashed V V'` holds trivially) and gets `FsInit` from `osCrash_relS` (`CrashFiles.lean`,
+  via `closed_cut`). `crashRest_lb` gained the case split.
+- New modules: `TreeSharedRes` (the resource definitions, moved out of `TreeShared`, names unchanged),
+  `TreeSharedSwitch` (`wp_osShare'` via `wp_ext_acc`, `wp_osCallBeginS'`), `TreeSharedCrash`
+  (`crashRest_region'`, `crashRest_treeS'`), `TreeSharedLaws` (`osNames_next'`). `TreeShared.lean`
+  keeps every statement and proves them from these. `CrashRegion` now imports `TreeSharedRes`.
+- The LinuxFs leaves (walfs, crashlog, bboltfs Results) build on the mode split (checked at
+  `e4542a9983`).
+
+Deviations (for the WAL invariant's author):
+
+7. **`osNames_split` was unsound**: a split producing an empty part gives the key `.only []`; two
+   such splits gave two whole elements of one ghost-map key, so `False`. Fixed by a definition
+   change, not a statement change: `osNames j (.only []) dq h := ⌜h = NamesH.empty⌝` (the claim on no
+   name is no resource; `namesOf V j (.only []) = NamesH.empty`). Laws: `osNames_of_ne`,
+   `osNames_except`, `osNames_auth`.
+8. **`wp_osMkdirS`'s post named an auto-bound `o`** (`⟨∅, [(x, o, ∅)], ∅⟩`, i.e. any entry: unprovable).
+   Now `(⟨.mkdir j b J, s0⟩ : LogEntry)`. `autoImplicit` is off in the `TreeShared*` modules.
+9. **`osPathS_frac` is unprovable as stated** (right to left needs one split of the path among the
+   roots, which needs `RootsOk R`; `osPathS` does not record it). Proposed: add `RootsOk R` to
+   `osPathS`'s pure part and a law `osPathS_root` (from `osSharedInv`); not done yet.
+
+Still `sorry`: `osNames_split`/`merge`/`rekey`, `osPathS_frac`/`child`, every extension-level step spec
+(Unlink, Rename ×4, Mkdir, Rmdir ×2, LstatDir, OpenCreate, OpenDir, DirSync, DirClose, FdKind,
+DirReadNext, blind DirReadNext), the `os`-level logically atomic specs, the two-region test.

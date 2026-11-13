@@ -487,23 +487,65 @@ theorem wp_os_step (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPani
   iintro %e' %h' %st' %Hst
   iapply Hc $$ %e' %h' %st' %Hst.1
 
-/-- The lifting of any operation: as `wp_os_step`, with the tree's world too (`treeWorld`). -/
+/-- A resource of the legacy mode: with the shared mode's interpretation, a contradiction. A legacy
+step's proof holds one (`osTree`, `osCall`, `osDirFd`), which tells it the mode. -/
+def LegacyWit (W : IProp GF) : Prop := ∀ st, W ∗ treeShared (gooseOsGS (L := L)) st ⊢ False
+
+theorem legacyWit_tree (dq : DFrac) (R : Roots) (V : Hist) :
+    LegacyWit (L := L) (osTree (L := L) dq R V) := by
+  intro st
+  unfold treeShared osTree
+  iintro ⟨H, %V0, %s0, %Γdf, %Γc, %hw, -, Hd, -⟩
+  icases gElem_valid_2 _ _ _ _ _ _ _ $$ H Hd with %Hv
+  exact absurd (DFrac.valid_op_own Hv.1) (by simp)
+
+theorem legacyWit_call (t s : Nat) (q : Qp) : LegacyWit (L := L) (osCall (L := L) t s q) := by
+  intro st
+  unfold treeShared osCall
+  iintro ⟨H, %V0, %s0, %Γdf, %Γc, %hw, -, -, -, Hac, -⟩
+  icases gAuth_lookup _ _ _ _ _ _ $$ Hac H with %Hv
+  simp at Hv
+
+theorem legacyWit_dirFd (fd : w64) (dq : DFrac) (x : Ino × DirPh) :
+    LegacyWit (L := L) (osDirFd (L := L) fd dq x) := by
+  intro st
+  unfold treeShared osDirFd
+  iintro ⟨H, %V0, %s0, %Γdf, %Γc, %hw, -, -, Haf, -⟩
+  icases gAuth_lookup _ _ _ _ _ _ $$ Haf H with %Hv
+  simp at Hv
+
+/-- With a legacy resource, the tree's interpretation is the legacy mode's. -/
+theorem treeCtx_legacy (W : IProp GF) (hW : LegacyWit (L := L) W) (st : OsState) :
+    ⊢ W -∗ treeCtx (gooseOsGS (L := L)) st -∗
+      W ∗ treeLegacy (gooseOsGS (L := L)) st ∗ commitRes (gooseOsGS (L := L)) st := by
+  unfold treeCtx
+  iintro HW ⟨Hm, Hcm⟩
+  icases Hm with (Hm | Hm)
+  · iframe
+  · iexfalso
+    iapply hW st
+    iframe
+
+/-- The lifting of any operation of the legacy mode (`W`: a resource of it): as `wp_os_step`, with
+the tree's world too (`treeWorld`). -/
 theorem wp_fs_stepT (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPanic = false)
-    (hE : ↑osN ⊆ E) :
-    ⊢ osInv (L := L) -∗
-      (∀ st Γb Γm Γf Γt V Γdf Γc h, osWorld st Γb Γm Γf Γt h -∗ treeWorld st V Γdf Γc ==∗
+    (hE : ↑osN ⊆ E) (W : IProp GF) (hW : LegacyWit (L := L) W) :
+    ⊢ osInv (L := L) -∗ W -∗
+      (W -∗ ∀ st Γb Γm Γf Γt V Γdf Γc h, osWorld st Γb Γm Γf Γt h -∗ treeWorld st V Γdf Γc ==∗
         ⌜∃ e' h' st', FsStep o v h st () e' h' st' ()⌝ ∗
         ▷ ∀ e' h' st', ⌜FsStep o v h st () e' h' st' ()⌝ ==∗
           ∃ Γb' Γm' Γf' Γt' V' Γdf' Γc', osWorld st' Γb' Γm' Γf' Γt' h' ∗
             treeWorld st' V' Γdf' Γc' ∗ WP e' @ s; E {{ Φ }}) -∗
       WP (ExternalOp fsExt.name o (Val v)) @ s; E {{ Φ }} := by
-  iintro #Hinv HF
+  iintro #Hinv HW HF
   iapply wp_extStep o v Φ hv
   iintro %h %σ %g Hheap Hl -
   icases (os_local_ctx_eq σ).mp $$ Hl with Hl
-  unfold osCtx osCtxF treeCtx
-  icases Hl with ⟨⟨%Γb, %Γm, %Γf, %Γt, %Hwc, HAb, HAm, HAf, HAt, Htok, Hv⟩,
-    ⟨%V, %Γdf, %Γc, %Hns, HAd, HAdf, HAc, Hrd, Hcr, Hcm⟩⟩
+  unfold osCtx osCtxF
+  icases Hl with ⟨⟨%Γb, %Γm, %Γf, %Γt, %Hwc, HAb, HAm, HAf, HAt, Htok, Hv⟩, Hns⟩
+  icases treeCtx_legacy W hW σ $$ HW Hns with ⟨HW, Hns, Hcm⟩
+  unfold treeLegacy
+  icases Hns with ⟨%V, %Γdf, %Γc, %Hns, HAd, HAdf, HAc, Hrd, Hcr, Hlh⟩
   unfold osInv
   imod inv_acc hE $$ Hinv with ⟨Hi, Hclose⟩
   icases Hi with >Hi
@@ -511,7 +553,7 @@ theorem wp_fs_stepT (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPan
   icases gVar_agree _ _ _ _ _ $$ Hv Hv' with %Heq
   simp only [Prod.mk.injEq] at Heq
   obtain ⟨rfl, rfl⟩ := Heq
-  imod HF $$ %σ %Γb %Γm %Γf %Γt %V %Γdf %Γc %h [HAb HAm HAf HAt Htok Hcells Hheap]
+  imod HF $$ HW %σ %Γb %Γm %Γf %Γt %V %Γdf %Γc %h [HAb HAm HAf HAt Htok Hcells Hheap]
     [HAd HAdf HAc Hrd Hcr] with ⟨%Hex, Hcont⟩
   · unfold osWorld; iframe; ipureintro; exact Hwc
   · unfold treeWorld; iframe; ipureintro; exact Hns
@@ -534,7 +576,7 @@ theorem wp_fs_stepT (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPan
   · inext; iexists (cellView σ'), (GMap.size σ'.proc.inflight); iframe
   imodintro
   iframe Hheap Hwp
-  isplitl [HAb HAm HAf HAt Htok Hv Hn Hcm]
+  isplitl [HAb HAm HAf HAt Htok Hv Hn Hcm Hlh]
   · iapply (os_local_ctx_eq σ').mpr
     unfold osCtx osCtxF treeCtx
     isplitl [HAb HAm HAf HAt Htok Hv]
@@ -543,11 +585,70 @@ theorem wp_fs_stepT (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPan
       ipureintro; exact Hwc'
     · unfold treeWorld
       icases Hn with ⟨%Hns', HAd, HAdf, HAc, Hrd, Hcr⟩
-      iexists V', Γdf', Γc'
-      iframe HAd HAdf HAc Hrd Hcr
-      isplitr
-      · ipureintro; exact Hns'
+      isplitl [HAd HAdf HAc Hrd Hcr Hlh]
+      · ileft
+        unfold treeLegacy
+        iexists V', Γdf', Γc'
+        iframe HAd HAdf HAc Hrd Hcr Hlh
+        ipureintro; exact Hns'
       · iapply commitRes_grow _ (fsStep_commitGrows Hst) $$ Hcm
+  · have : (ExtInterp.globalCtx (E := fsExt) (extGlobalGS fsExt) g' : IProp GF) =
+        iprop(True) := rfl
+    rw [this]; itrivial
+
+/-- **The lifting of any operation, in either mode**: from the files' world and the tree's whole
+interpretation before the step (the shared mode's invariant may be opened across it: the mask goes
+to `∅` and back), the step exists, and every step leads to a world and an interpretation after it,
+and the rest of the program. -/
+theorem wp_fs_stepM (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPanic = false)
+    (hE : ↑osN ⊆ E) :
+    ⊢ osInv (L := L) -∗
+      (∀ st Γb Γm Γf Γt h, osWorld st Γb Γm Γf Γt h -∗ treeCtx (gooseOsGS (L := L)) st
+        ={E \ ↑osN, ∅}=∗
+        ⌜∃ e' h' st', FsStep o v h st () e' h' st' ()⌝ ∗
+        ▷ ∀ e' h' st', ⌜FsStep o v h st () e' h' st' ()⌝ ={∅, E \ ↑osN}=∗
+          ∃ Γb' Γm' Γf' Γt', osWorld st' Γb' Γm' Γf' Γt' h' ∗
+            treeCtx (gooseOsGS (L := L)) st' ∗ WP e' @ s; E {{ Φ }}) -∗
+      WP (ExternalOp fsExt.name o (Val v)) @ s; E {{ Φ }} := by
+  iintro #Hinv HF
+  iapply wp_extStep o v Φ hv
+  iintro %h %σ %g Hheap Hl -
+  icases (os_local_ctx_eq σ).mp $$ Hl with Hl
+  unfold osCtx osCtxF
+  icases Hl with ⟨⟨%Γb, %Γm, %Γf, %Γt, %Hwc, HAb, HAm, HAf, HAt, Htok, Hv⟩, Hns⟩
+  unfold osInv
+  imod inv_acc hE $$ Hinv with ⟨Hi, Hclose⟩
+  icases Hi with >Hi
+  icases Hi with ⟨%cv, %n, Hv', Hcells⟩
+  icases gVar_agree _ _ _ _ _ $$ Hv Hv' with %Heq
+  simp only [Prod.mk.injEq] at Heq
+  obtain ⟨rfl, rfl⟩ := Heq
+  imod HF $$ %σ %Γb %Γm %Γf %Γt %h [HAb HAm HAf HAt Htok Hcells Hheap] Hns with ⟨%Hex, Hcont⟩
+  · unfold osWorld; iframe; ipureintro; exact Hwc
+  imodintro
+  isplitr
+  · ipureintro
+    obtain ⟨e', h', st', Hst⟩ := Hex
+    exact FsSemOk.step_ex _ _ _ _ g _ _ _ ()
+      (fun _ _ _ _ _ h1 h2 => mapsTo_unique Hwc.1 h1 h2) Hst
+  inext
+  iintro %e' %h' %σ' %g' %Hst -
+  have Hst := FsSemOk.step_sub _ _ _ _ _ _ _ _ _ Hst
+  imod Hcont $$ %e' %h' %σ' %Hst with ⟨%Γb', %Γm', %Γf', %Γt', Hw, Hn, Hwp⟩
+  unfold osWorld
+  icases Hw with ⟨%Hwc', HAb, HAm, HAf, HAt, Htok, Hcells, Hheap⟩
+  imod gVar_update _ _ _ (cellView σ', GMap.size σ'.proc.inflight) $$ Hv Hv' with ⟨Hv, Hv'⟩
+  imod Hclose $$ [Hv' Hcells] with -
+  · inext; iexists (cellView σ'), (GMap.size σ'.proc.inflight); iframe
+  imodintro
+  iframe Hheap Hwp
+  isplitl [HAb HAm HAf HAt Htok Hv Hn]
+  · iapply (os_local_ctx_eq σ').mpr
+    unfold osCtx osCtxF
+    iframe Hn
+    iexists Γb', Γm', Γf', Γt'
+    iframe
+    ipureintro; exact Hwc'
   · have : (ExtInterp.globalCtx (E := fsExt) (extGlobalGS fsExt) g' : IProp GF) =
         iprop(True) := rfl
     rw [this]; itrivial
