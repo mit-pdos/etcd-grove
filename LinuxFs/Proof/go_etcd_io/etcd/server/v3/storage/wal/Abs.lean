@@ -127,7 +127,8 @@ structure WalAbsD (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (
   /-- What `Open` reads from, and what was purged. -/
   cut : d.cut = segStart lay.cuts lay.first ∧ (0 < lay.first → d.cut ≤ d.pur)
   /-- Each segment's `OsMeta` half: its size is its bytes', no sync cut. -/
-  metas : ∀ g ∈ lay.segs, g.om.size = g.bs.length ∧ g.om.cut = none
+  metas : ∀ g ∈ lay.segs, g.om.size = g.bs.length ∧ g.om.cut = none ∧ g.om.lo = g.bs.length ∧
+    g.om.hi = g.bs.length
   /-- Every named segment but the last holds exactly its frames, durable. -/
   intact : ∀ k (g : SegG), k + 1 < lay.segs.length → lay.segs[k]? = some g →
     g.bs = (segStream C Mr d lay.cuts (lay.first + k)).map durB
@@ -175,10 +176,73 @@ def W1G (C : WalCodec) (js : List Ino) (img : Ino → List w8) (bsOf : Ino → O
 def segBytesOf (lay : WalLay) (i : Ino) : Option (List ByteG) :=
   (lay.segs.find? (fun g => decide (g.ino = i))).map (·.bs)
 
-/-! ## The crash condition -/
-
 /-- The image of a file a crash left (empty if none). -/
 def imgOf (fo : Option Fs.OsFile) : List w8 := (fo.map Fs.OsFile.contents).getD []
+
+theorem segBytesOf_some {lay : WalLay} {i : Ino} {bs : List ByteG} (h : segBytesOf lay i = some bs) :
+    ∃ g ∈ lay.segs, g.ino = i ∧ g.bs = bs := by
+  unfold segBytesOf at h
+  cases hf : lay.segs.find? (fun g => decide (g.ino = i)) with
+  | none => simp [hf] at h
+  | some g =>
+    simp only [hf, Option.map_some, Option.some.injEq] at h
+    exact ⟨g, List.mem_of_find?_eq_some hf, by simpa using List.find?_some hf, h⟩
+
+theorem contents_getD (f : Fs.OsFile) (b : Nat) (hb : b < f.size) : f.contents.getD b 0 = f.cache b := by
+  simp [Fs.OsFile.contents, List.getD_eq_getElem?_getD, hb]
+
+/-- **W1 over the state gives W1 over the ghost candidates** of a WAL directory's segments: the
+crashed tree is the state's, each segment's image no larger than its bytes the invariant knows, its
+candidates in the old state the ghost ones. -/
+theorem w1G_of_W1 (C : WalCodec) (st st' : Fs.OsState) (m' : Tree) (lay : WalLay)
+    (hw1 : W1 C st st') (htree : st'.fs.treeDur = m')
+    (hsegs : ∀ g ∈ lay.segs, (∀ f', st'.fs.files !! g.ino = some f' → f'.size ≤ g.bs.length) ∧
+      ∃ f, st.fs.files !! g.ino = some f ∧ ∀ b (y : ByteG), g.bs[b]? = some y → f.cand b = y.2) :
+    W1G C (walInos (entsOf m' lay.j)) (fun i => imgOf (st'.fs.files !! i)) (segBytesOf lay) := by
+  intro k p hp i bs hi hbs
+  obtain ⟨g, hg, rfl, rfl⟩ := segBytesOf_some hbs
+  obtain ⟨hsz, f, hf, hcand⟩ := hsegs g hg
+  obtain ⟨x, hx, hb⟩ := acceptsFiles_bound C _ _ p hp
+  rw [List.getElem?_map, hi] at hx
+  simp only [Option.map_some, Option.some.injEq] at hx
+  subst hx
+  cases hm : m' !! lay.j with
+  | none =>
+    have : walInos (entsOf m' lay.j) = [] := by
+      simp [entsOf, hm, walInos, walNames, GMap.toList]
+    rw [this] at hi; simp at hi
+  | some d =>
+    have hent : entsOf m' lay.j = d := by simp [entsOf, hm]
+    rw [hent] at hp hi
+    cases hf' : st'.fs.files !! g.ino with
+    | none =>
+      simp only [hf', imgOf, Option.map_none, Option.getD_none, List.length_nil] at hb
+      unfold frameCore at hb; omega
+    | some f' =>
+      have hfun : (fun i => imgOf (st'.fs.files !! i)) = contentsOf st'.fs.files := rfl
+      have h1 := hw1 lay.j d (by rw [htree]; exact hm) k p (by rw [← hfun]; exact hp)
+        g.ino f f' hi hf hf'
+      have hfs : ((((walInos d).drop k).map (contentsOf st'.fs.files)).getD p.1 []) =
+          imgOf (st'.fs.files !! g.ino) := by
+        rw [List.getD_eq_getElem?_getD, List.getElem?_map, hi]; rfl
+      rw [hfs] at h1
+      simp only [hf', imgOf, Option.map_some, Option.getD_some] at hb h1 ⊢
+      have hlen : f'.contents.length = f'.size := by simp [Fs.OsFile.contents]
+      have hbyte : ∀ b, p.2 ≤ b → b < p.2 + frameCore f'.contents p.2 →
+          f'.contents.getD b 0 = f'.cache b ∧ (g.bs.getD b (0, [])).2 = f.cand b := by
+        intro b h1 h2
+        have hbs : b < f'.size := by omega
+        refine ⟨contents_getD f' b hbs, ?_⟩
+        have hbl : b < g.bs.length := Nat.lt_of_lt_of_le hbs (hsz f' hf')
+        rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hbl]
+        exact (hcand b _ (List.getElem?_eq_getElem hbl)).symm
+      rcases h1 with h1 | ⟨n, hn, h1⟩
+      · left; intro b hb1 hb2
+        rw [(hbyte b hb1 hb2).1, (hbyte b hb1 hb2).2]; exact h1 b hb1 hb2
+      · right; refine ⟨n, hn, fun b hb1 hb2 => ?_⟩
+        rw [(hbyte b hb1 hb2).1, (hbyte b hb1 hb2).2]; exact h1 b hb1 hb2
+
+/-! ## The crash condition -/
 
 /-- **What a crash of the WAL `d` with the layout `lay` must leave** (plan §2.2), the crashed tree
 being `m'` and the files `fo`: the WAL directory absent, only if `d` is not `named`; or present, its

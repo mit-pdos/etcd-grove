@@ -128,8 +128,7 @@ theorem walsOk_nodup {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s 
 
 theorem walsOk_cut {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s : AbsDiskState}
     {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat} (h : WalsOk C Mr R jr s Ls cl n) :
-    ∀ g ∈ segsAll Ls, g.om.cut = none := by
-  sorry
+    ∀ g ∈ segsAll Ls, g.om.cut = none := h.2.2.2.1
 
 /-- **The WAL's crash** (plan §2.2): from the old generation's invariant, its crash token, the shared
 mode's invariant, the generation's `crashRest` (the tree untaken) and W1 (`hQ`): a new generation of
@@ -138,7 +137,7 @@ tokens, and `crashRest` back (the segments taken, the tree not). -/
 theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsState → Fs.OsState → Prop)
     (hQ : ∀ st st', Q st st' → W1 C st st') (hPre : AbsDiskGpreS GF) (L L' : GooseLocalGS GF)
     (W : WalGS GF) (R : Roots) (jr : Ino) (r : GoString) (V' : Hist) (E : CoPset)
-    (hE : ↑walN ⊆ E) (hE' : ↑osShN ⊆ E) (hdisj : walN ## osShN) :
+    (hE : ↑walN ⊆ E) (hE' : ↑osShN ⊆ E) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ walCrashTok (W := W) -∗ osSharedInv (L := L) R -∗
       crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) [] false V' ={E}=∗
       ∃ (W' : WalGS GF) (s' : AbsDiskState) (D : List Ino),

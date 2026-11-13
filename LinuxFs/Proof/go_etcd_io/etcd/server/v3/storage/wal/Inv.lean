@@ -65,7 +65,7 @@ def WalsOk (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (s : AbsDiskS
     lay.jr = jr ∧ lay.nm = nm ∧ (lay.j, NameSet.except [], hj) ∈ cl ∧
     WalAbsD C Mr d lay hj.cur ∧ CrashOk C Mr d lay cl n) ∧
   (∀ dir, s.wal !! dir = none → Ls !! dir = none) ∧
-  ((segsAll Ls).map (·.ino)).Nodup ∧
+  ((segsAll Ls).map (·.ino)).Nodup ∧ (∀ g ∈ segsAll Ls, g.om.cut = none) ∧
   AbsentOk s jr cl n ∧ DirsOk R s cl n
 
 end pure

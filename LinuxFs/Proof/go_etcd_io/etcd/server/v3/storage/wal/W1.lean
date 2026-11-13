@@ -85,6 +85,63 @@ def acceptsFiles (C : WalCodec) : List (List w8) → w32 → List (Nat × Nat)
         (acceptsFiles C (g :: fs) (walDecodeFrom C false f 0 c).crc).map (fun p => (p.1 + 1, p.2))
       else [])
 
+/-- An accepted frame's core lies in the file. -/
+theorem decStep_core_bound {C : WalCodec} {last : Bool} {bs : List w8} {off : Nat} {c : w32}
+    {r : WalRec} {len : Nat} {c' : w32} (h : decStep C last bs off c = .accept r len c') :
+    off + frameCore bs off ≤ bs.length := by
+  unfold decStep at h
+  unfold frameCore
+  simp only at h
+  split at h; · cases h
+  split at h; · cases h
+  split at h; · cases h
+  split at h; · cases h
+  split at h; · cases h
+  rename_i h5
+  simp only [Nat.not_lt, List.length_drop] at h5
+  omega
+
+theorem acceptsFrom_unfold (C : WalCodec) (last : Bool) (bs : List w8) (off : Nat) (c : w32) :
+    acceptsFrom C last bs off c =
+      match decStep C last bs off c with
+      | .stop _ => []
+      | .accept _ len c' => off :: acceptsFrom C last bs (off + len) c' := by
+  rw [acceptsFrom]; split <;> simp_all
+
+theorem acceptsFrom_bound (C : WalCodec) (last : Bool) (bs : List w8) (off : Nat) (c : w32) :
+    ∀ o ∈ acceptsFrom C last bs off c, o + frameCore bs o ≤ bs.length := by
+  rw [acceptsFrom_unfold]
+  split
+  · simp
+  · rename_i r len c' h
+    intro o ho
+    rcases List.mem_cons.1 ho with rfl | ho
+    · exact decStep_core_bound h
+    · exact acceptsFrom_bound C last bs (off + len) c' o ho
+termination_by bs.length - off
+decreasing_by
+  have := decStep_rec_bound ‹decStep C last bs off c = DecStep.accept _ _ _›
+  omega
+
+theorem acceptsFiles_bound (C : WalCodec) :
+    ∀ (fs : List (List w8)) (c : w32), ∀ p ∈ acceptsFiles C fs c,
+      ∃ x, fs[p.1]? = some x ∧ p.2 + frameCore x p.2 ≤ x.length
+  | [], _, p, hp => by simp [acceptsFiles] at hp
+  | [f], c, p, hp => by
+    simp only [acceptsFiles, List.mem_map] at hp
+    obtain ⟨o, ho, rfl⟩ := hp
+    exact ⟨f, rfl, acceptsFrom_bound C true f 0 c o ho⟩
+  | f :: g :: fs, c, p, hp => by
+    simp only [acceptsFiles, List.mem_append, List.mem_map] at hp
+    rcases hp with ⟨o, ho, rfl⟩ | hp
+    · exact ⟨f, rfl, acceptsFrom_bound C false f 0 c o ho⟩
+    · split at hp
+      · simp only [List.mem_map] at hp
+        obtain ⟨q, hq, rfl⟩ := hp
+        obtain ⟨x, hx, hb⟩ := acceptsFiles_bound C (g :: fs) _ q hq
+        exact ⟨x, by simpa using hx, hb⟩
+      · simp at hp
+
 /-! ## A directory's WAL files -/
 
 /-- The name ends in `.wal`. -/
