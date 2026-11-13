@@ -115,6 +115,63 @@ theorem crcAfter_cutHdrs (Mr : WalMarshal) (md : List w8) (hs : HardStateM) (c :
   unfold cutHdrDs
   split <;> simp [crcAfter, walCodec]
 
+/-- The encoder's CRC of a quiescent handle: the chain's end over every record. -/
+theorem WalHS.crc_done (Mr : WalMarshal) (h : WalHS) (hr : h.rest = 0) :
+    WalHS.crc Mr h = tailCrc Mr h.H h.md h.cuts := by
+  unfold WalHS.crc tailCrc allRecs
+  rw [hr, Nat.sub_zero, List.take_length]
+
+theorem varintSize_le_succ' : ∀ n : Nat, varintSize n ≤ n + 1 := by
+  intro n
+  induction n using Nat.strongRecOn with
+  | _ n ih =>
+    unfold varintSize
+    rw [varintEnc]
+    split
+    · simp
+    · simp only [List.length_cons]
+      have := ih (n / 128) (by omega)
+      unfold varintSize at this
+      omega
+
+/-- A record of a small type, any CRC, and data `d`: its size at most twice `d`'s and `2^34`. -/
+theorem recSize_le (t : w64) (k : w32) (d : List w8) (ht : uint.nat t < 2 ^ 8) :
+    recSize (recOf ⟨t, k, d⟩) ≤ 2 * d.length + 2 ^ 34 := by
+  have h1 := varintSize_le_succ' (uint.nat t)
+  have h2 := varintSize_le_succ' (uint.nat k)
+  have h3 := varintSize_le_succ' d.length
+  have h4 : uint.nat k < 2 ^ 32 := by unfold uint.nat; exact BitVec.isLt _
+  by_cases hc : t = crcType ∧ d = []
+  · simp only [recSize, recOf, if_pos hc, List.length_nil]; omega
+  · simp only [recSize, recOf, if_neg hc, List.length_nil]; omega
+
+/-- Its frame. -/
+theorem frame_walRecEnc_le (t : w64) (k : w32) (d : List w8) (ht : uint.nat t < 2 ^ 8) :
+    (frame (walRecEnc ⟨t, k, d⟩)).length ≤ 2 * d.length + 2 ^ 34 + 16 := by
+  have := recSize_le t k d ht
+  rw [frame_length, walRecEnc, recEnc_length]
+  have h2 := framePad_lt (recSize (recOf ⟨t, k, d⟩))
+  omega
+
+/-- **The headers fit** the encoder's record bound and the writer's. -/
+theorem cutHdrs_fit (Mr : WalMarshal) (md : List w8) (hs : HardStateM) (c : w32)
+    (hsz : md.length + (Mr.encState hs).length < 2 ^ 45) :
+    (recFrames walCodec (chainRecs walCodec c (cutHdrDs Mr md hs))).length < 2 ^ 47 := by
+  rw [cutHdrRecs_frames]
+  have h1 := frame_walRecEnc_le crcType (hash.crc32.crc32c c []) [] (by decide)
+  have h2 := frame_walRecEnc_le metadataType (hash.crc32.crc32c (hash.crc32.crc32c c []) md) md
+    (by decide)
+  have h3 := frame_walRecEnc_le stateType (hash.crc32.crc32c (hash.crc32.crc32c
+    (hash.crc32.crc32c c []) md) (Mr.encState hs)) (Mr.encState hs) (by decide)
+  simp only [List.length_nil] at h1
+  split <;> simp only [List.length_append, List.length_nil] <;> omega
+
+/-- A header record's size, below the encoder's bound. -/
+theorem recSize_hdr (t : w64) (k : w32) (d : List w8) (ht : uint.nat t < 2 ^ 8)
+    (hd : d.length < 2 ^ 45) : recSize (recOf ⟨t, k, d⟩) < 2 ^ 47 := by
+  have := recSize_le t k d ht
+  omega
+
 end pure
 
 end WalFs
