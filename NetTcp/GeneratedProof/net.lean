@@ -1463,25 +1463,6 @@ noncomputable instance UnixListener_into_val_typed :
 end def_
 end UnixListener
 
-namespace «_»
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.Assumptions]
-
-noncomputable instance __typed_pointsto :
-    TypedPointsto (GF := GF) net.«_» :=
-  sorry -- axiomatized type
-
-noncomputable instance __into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.«_» net.«_».underlying :=
-  sorry -- axiomatized type
-
-end def_
-end «_»
-
 namespace _Ctype__GoString_
 section def_
 

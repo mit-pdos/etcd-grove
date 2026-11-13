@@ -330,6 +330,96 @@ noncomputable def OpError.Timeout.impl : val :=
 noncomputable def OpError.Temporary.impl : val :=
   λ: "e" <>, ExternalOp Tcp.tcpExt.name "AnyBool" #()
 
+
+/-- No type of `net` is named `_`: goose takes every trusted name for a possible type too, and the
+blank variables' name `_` is trusted (below), so it asks for an underlying type, which nothing
+uses. -/
+@[reducible] def «_».underlying : go.GoType := go.GoType.StructType []
+
+/-! ## The package variables
+
+`net`'s variables (the DNS configuration, the error values, the test hooks, the cgo
+functions, ...) are trusted, each initializer a model that does nothing: the variable is not
+allocated, so code that loads it is stuck (has no proof), where Go reads its value. Neither the
+models above nor the examples read any (`NetTcp/Code/net.toml`). The models give a proof less
+than Go does, never more. -/
+
+def rfc6724policyTable.init : val := λ: <>, #()
+def confVal.init : val := λ: <>, #()
+def netdns.init : val := λ: <>, #()
+def multipathtcp.init : val := λ: <>, #()
+def errLameReferral.init : val := λ: <>, #()
+def errCannotUnmarshalDNSMessage.init : val := λ: <>, #()
+def errCannotMarshalDNSMessage.init : val := λ: <>, #()
+def errServerMisbehaving.init : val := λ: <>, #()
+def errInvalidDNSResponse.init : val := λ: <>, #()
+def errNoAnswerFromDNSServer.init : val := λ: <>, #()
+def errServerTemporarilyMisbehaving.init : val := λ: <>, #()
+def netedns0.init : val := λ: <>, #()
+def distantFuture.init : val := λ: <>, #()
+def lookupOrderName.init : val := λ: <>, #()
+def defaultNS.init : val := λ: <>, #()
+def getHostname.init : val := λ: <>, #()
+def testHookLookupIP.init : val := λ: <>, #()
+def testPreHookSetKeepAlive.init : val := λ: <>, #()
+def testHookSetKeepAlive.init : val := λ: <>, #()
+def testHookStepTime.init : val := λ: <>, #()
+def testHookCanceledDial.init : val := λ: <>, #()
+def hostsFilePath.init : val := λ: <>, #()
+def socketFunc.init : val := λ: <>, #()
+def connectFunc.init : val := λ: <>, #()
+def listenFunc.init : val := λ: <>, #()
+def getsockoptIntFunc.init : val := λ: <>, #()
+def errInvalidInterface.init : val := λ: <>, #()
+def errInvalidInterfaceIndex.init : val := λ: <>, #()
+def errInvalidInterfaceName.init : val := λ: <>, #()
+def errNoSuchInterface.init : val := λ: <>, #()
+def errNoSuchMulticastInterface.init : val := λ: <>, #()
+def flagNames.init : val := λ: <>, #()
+def zoneCache.init : val := λ: <>, #()
+def v4InV6Prefix.init : val := λ: <>, #()
+def IPv4bcast.init : val := λ: <>, #()
+def IPv4allsys.init : val := λ: <>, #()
+def IPv4allrouter.init : val := λ: <>, #()
+def IPv4zero.init : val := λ: <>, #()
+def IPv6zero.init : val := λ: <>, #()
+def IPv6unspecified.init : val := λ: <>, #()
+def IPv6loopback.init : val := λ: <>, #()
+def IPv6interfacelocalallnodes.init : val := λ: <>, #()
+def IPv6linklocalallnodes.init : val := λ: <>, #()
+def IPv6linklocalallrouters.init : val := λ: <>, #()
+def classAMask.init : val := λ: <>, #()
+def classBMask.init : val := λ: <>, #()
+def classCMask.init : val := λ: <>, #()
+def protocols.init : val := λ: <>, #()
+def services.init : val := λ: <>, #()
+def DefaultResolver.init : val := λ: <>, #()
+def «_».init : val := λ: <>, #()
+def errMalformedDNSRecordsDetail.init : val := λ: <>, #()
+def readProtocolsOnce.init : val := λ: <>, #()
+def errNoSuitableAddress.init : val := λ: <>, #()
+def errMissingAddress.init : val := λ: <>, #()
+def errCanceled.init : val := λ: <>, #()
+def ErrWriteToConnected.init : val := λ: <>, #()
+def aLongTimeAgo.init : val := λ: <>, #()
+def noDeadline.init : val := λ: <>, #()
+def noCancel.init : val := λ: <>, #()
+def errTimeout.init : val := λ: <>, #()
+def errNoSuchHost.init : val := λ: <>, #()
+def errUnknownPort.init : val := λ: <>, #()
+def errClosed.init : val := λ: <>, #()
+def ErrClosed.init : val := λ: <>, #()
+def pollSplice.init : val := λ: <>, #()
+def _cgo_77133bf98b3a_C2func_getaddrinfo.init : val := λ: <>, #()
+def _cgo_77133bf98b3a_C2func_getnameinfo.init : val := λ: <>, #()
+def _cgo_77133bf98b3a_Cfunc_free.init : val := λ: <>, #()
+def _cgo_77133bf98b3a_Cfunc_freeaddrinfo.init : val := λ: <>, #()
+def _cgo_77133bf98b3a_Cfunc_gai_strerror.init : val := λ: <>, #()
+def _cgo_77133bf98b3a_Cfunc_getaddrinfo.init : val := λ: <>, #()
+def _cgo_77133bf98b3a_Cfunc_getnameinfo.init : val := λ: <>, #()
+def _cgo_77133bf98b3a_Cfunc_res_search.init : val := λ: <>, #()
+def _cgo_77133bf98b3a_Cfunc__Cmalloc.init : val := λ: <>, #()
+
 end code
 
 end net

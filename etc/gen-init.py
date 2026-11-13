@@ -2928,6 +2928,48 @@ def lfs_inits(ext_txt):
     return outs
 
 
+# The part `NetTcp/` (the TCP extension's `net` and the programs over it, `examples/net/`; project
+# nettcp): `net` is a Go path the main tree translates too (names only), so the part's packages'
+# initializers are generated as `LinuxFs/`'s, from the part's translation and instances, with the
+# imports of the part's modules prefixed, and a `PkgInitExt` without raft.
+NT_ROOT = 'NetTcp'
+NT_PKGS = ['net', 'github_com.mit_pdos.etcd_grove.examples.net.wire',
+           'github_com.mit_pdos.etcd_grove.examples.net.echo']
+
+
+def nt_prefix(txt):
+    """`txt` with its imports of the part's modules (those with a file under `NT_ROOT`) prefixed."""
+    def imp(m):
+        x = m.group(2)
+        if os.path.exists(f'{NT_ROOT}/{x.replace(".", "/")}.lean') or x == 'Proof.runtime.PkgInitExt':
+            x = f'{NT_ROOT}.{x}'
+        return m.group(1) + x
+    return re.sub(r'(?m)^(public import )(\S+)', imp, txt)
+
+
+def nt_inits(ext_txt):
+    """The part's `Init.lean` files and `PkgInitExt.lean`."""
+    global inv, inst
+    saved = inv, inst
+    outs = []
+    try:
+        inv = inventory(f'{NT_ROOT}/Code')
+        inst = instances(f'{NT_ROOT}/Proof/')
+        for p in NT_PKGS:
+            if os.path.exists(f'{NT_ROOT}/Code/{dirof(p)}.lean'):
+                path, txt = gen(p, SPECIAL.get(p))
+                outs.append((f'{NT_ROOT}/{path}', nt_prefix(txt)))
+    finally:
+        inv, inst = saved
+    drop = ('go_etcd_io.raft', 'go_etcd_io_raft', 'google_golang_org', 'k8s_io')
+    ext = '\n'.join(l for l in ext_txt.split('\n') if not any(d in l for d in drop))
+    i = ext.index('\nmodule\n') + 1
+    note = (f'-- The copy for the part `{NT_ROOT}/` of `Proof/runtime/PkgInitExt.lean` (`etc/gen-init.py`):\n'
+            f'-- the same, without raft, protobuf and the B-tree (which the part does not import).\n')
+    outs.append((f'{NT_ROOT}/Proof/runtime/PkgInitExt.lean', ext[:i] + note + ext[i:]))
+    return outs
+
+
 def main(argv):
     check = '--check' in argv
     pkgs = [a for a in argv if not a.startswith('--')] or packages()
@@ -2940,6 +2982,7 @@ def main(argv):
     if not [a for a in argv if not a.startswith('--')]:
         outs += [dag_closures(), dag_init()]
         outs += lfs_inits(next(t for p, t in outs if p == 'Proof/runtime/PkgInitExt.lean'))
+        outs += nt_inits(next(t for p, t in outs if p == 'Proof/runtime/PkgInitExt.lean'))
     for path, txt in outs:
         old = open(path).read() if os.path.exists(path) else None
         if old == txt:

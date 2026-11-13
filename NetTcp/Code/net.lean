@@ -655,8 +655,6 @@ axiom UnixConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 axiom UnixListener.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom «_».underlying [GooseExts] [GoGlobalContext] : go.GoType
-
 axiom _Ctype__GoString_.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 axiom _Ctype___socklen_t [GooseExts] [GoGlobalContext] : go.GoType
@@ -902,65 +900,41 @@ axiom _C_SOCK_STREAM [GooseExts] [GoGlobalContext] : val
 noncomputable def rfc6724policyTable [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.rfc6724policyTable"
 
-axiom rfc6724policyTable.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def confOnce [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.confOnce"
 
 noncomputable def confVal [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.confVal"
 
-axiom confVal.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def netdns [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.netdns"
-
-axiom netdns.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def multipathtcp [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.multipathtcp"
 
-axiom multipathtcp.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def errLameReferral [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errLameReferral"
-
-axiom errLameReferral.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errCannotUnmarshalDNSMessage [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errCannotUnmarshalDNSMessage"
 
-axiom errCannotUnmarshalDNSMessage.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def errCannotMarshalDNSMessage [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errCannotMarshalDNSMessage"
-
-axiom errCannotMarshalDNSMessage.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errServerMisbehaving [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errServerMisbehaving"
 
-axiom errServerMisbehaving.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def errInvalidDNSResponse [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errInvalidDNSResponse"
-
-axiom errInvalidDNSResponse.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errNoAnswerFromDNSServer [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errNoAnswerFromDNSServer"
 
-axiom errNoAnswerFromDNSServer.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def errServerTemporarilyMisbehaving [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errServerTemporarilyMisbehaving"
 
-axiom errServerTemporarilyMisbehaving.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def netedns0 [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.netedns0"
-
-axiom netedns0.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def resolvConf [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.resolvConf"
@@ -968,22 +942,14 @@ noncomputable def resolvConf [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def distantFuture [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.distantFuture"
 
-axiom distantFuture.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def lookupOrderName [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.lookupOrderName"
-
-axiom lookupOrderName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultNS [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.defaultNS"
 
-axiom defaultNS.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def getHostname [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.getHostname"
-
-axiom getHostname.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def testHookDialTCP [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.testHookDialTCP"
@@ -991,52 +957,32 @@ noncomputable def testHookDialTCP [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def testHookLookupIP [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.testHookLookupIP"
 
-axiom testHookLookupIP.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def testPreHookSetKeepAlive [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.testPreHookSetKeepAlive"
-
-axiom testPreHookSetKeepAlive.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def testHookSetKeepAlive [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.testHookSetKeepAlive"
 
-axiom testHookSetKeepAlive.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def testHookStepTime [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.testHookStepTime"
-
-axiom testHookStepTime.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def testHookCanceledDial [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.testHookCanceledDial"
 
-axiom testHookCanceledDial.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def hostsFilePath [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.hostsFilePath"
-
-axiom hostsFilePath.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def socketFunc [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.socketFunc"
 
-axiom socketFunc.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def connectFunc [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.connectFunc"
-
-axiom connectFunc.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def listenFunc [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.listenFunc"
 
-axiom listenFunc.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def getsockoptIntFunc [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.getsockoptIntFunc"
-
-axiom getsockoptIntFunc.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def hosts [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.hosts"
@@ -1044,107 +990,65 @@ noncomputable def hosts [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def errInvalidInterface [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errInvalidInterface"
 
-axiom errInvalidInterface.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def errInvalidInterfaceIndex [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errInvalidInterfaceIndex"
-
-axiom errInvalidInterfaceIndex.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errInvalidInterfaceName [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errInvalidInterfaceName"
 
-axiom errInvalidInterfaceName.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def errNoSuchInterface [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errNoSuchInterface"
-
-axiom errNoSuchInterface.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errNoSuchMulticastInterface [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errNoSuchMulticastInterface"
 
-axiom errNoSuchMulticastInterface.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def flagNames [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.flagNames"
-
-axiom flagNames.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def zoneCache [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.zoneCache"
 
-axiom zoneCache.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def v4InV6Prefix [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.v4InV6Prefix"
-
-axiom v4InV6Prefix.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def IPv4bcast [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.IPv4bcast"
 
-axiom IPv4bcast.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def IPv4allsys [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.IPv4allsys"
-
-axiom IPv4allsys.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def IPv4allrouter [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.IPv4allrouter"
 
-axiom IPv4allrouter.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def IPv4zero [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.IPv4zero"
-
-axiom IPv4zero.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def IPv6zero [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.IPv6zero"
 
-axiom IPv6zero.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def IPv6unspecified [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.IPv6unspecified"
-
-axiom IPv6unspecified.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def IPv6loopback [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.IPv6loopback"
 
-axiom IPv6loopback.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def IPv6interfacelocalallnodes [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.IPv6interfacelocalallnodes"
-
-axiom IPv6interfacelocalallnodes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def IPv6linklocalallnodes [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.IPv6linklocalallnodes"
 
-axiom IPv6linklocalallnodes.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def IPv6linklocalallrouters [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.IPv6linklocalallrouters"
-
-axiom IPv6linklocalallrouters.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def classAMask [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.classAMask"
 
-axiom classAMask.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def classBMask [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.classBMask"
 
-axiom classBMask.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def classCMask [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.classCMask"
-
-axiom classCMask.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ipStackCaps [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.ipStackCaps"
@@ -1152,12 +1056,8 @@ noncomputable def ipStackCaps [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def protocols [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.protocols"
 
-axiom protocols.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def services [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.services"
-
-axiom services.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def dnsWaitGroup [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.dnsWaitGroup"
@@ -1165,17 +1065,11 @@ noncomputable def dnsWaitGroup [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def DefaultResolver [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.DefaultResolver"
 
-axiom DefaultResolver.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def errMalformedDNSRecordsDetail [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errMalformedDNSRecordsDetail"
 
-axiom errMalformedDNSRecordsDetail.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def readProtocolsOnce [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.readProtocolsOnce"
-
-axiom readProtocolsOnce.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def mptcpOnce [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.mptcpOnce"
@@ -1192,62 +1086,38 @@ noncomputable def listenerBacklogCache [GooseExts] [GoGlobalContext] : GoString 
 noncomputable def errNoSuitableAddress [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errNoSuitableAddress"
 
-axiom errNoSuitableAddress.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def errMissingAddress [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errMissingAddress"
-
-axiom errMissingAddress.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errCanceled [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errCanceled"
 
-axiom errCanceled.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrWriteToConnected [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.ErrWriteToConnected"
-
-axiom ErrWriteToConnected.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def aLongTimeAgo [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.aLongTimeAgo"
 
-axiom aLongTimeAgo.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def noDeadline [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.noDeadline"
-
-axiom noDeadline.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def noCancel [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.noCancel"
 
-axiom noCancel.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def errTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errTimeout"
-
-axiom errTimeout.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errNoSuchHost [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errNoSuchHost"
 
-axiom errNoSuchHost.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def errUnknownPort [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errUnknownPort"
-
-axiom errUnknownPort.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errClosed [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.errClosed"
 
-axiom errClosed.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrClosed [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.ErrClosed"
-
-axiom ErrClosed.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def threadLimit [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.threadLimit"
@@ -1267,8 +1137,6 @@ noncomputable def testHookSupportsSendfile [GooseExts] [GoGlobalContext] : GoStr
 noncomputable def pollSplice [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.pollSplice"
 
-axiom pollSplice.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def _Cgo_always_false [GooseExts] [GoGlobalContext] : GoString :=
   go!"net._Cgo_always_false"
 
@@ -1278,15 +1146,11 @@ noncomputable def __cgofn__cgo_77133bf98b3a_C2func_getaddrinfo [GooseExts] [GoGl
 noncomputable def _cgo_77133bf98b3a_C2func_getaddrinfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"net._cgo_77133bf98b3a_C2func_getaddrinfo"
 
-axiom _cgo_77133bf98b3a_C2func_getaddrinfo.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def __cgofn__cgo_77133bf98b3a_C2func_getnameinfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.__cgofn__cgo_77133bf98b3a_C2func_getnameinfo"
 
 noncomputable def _cgo_77133bf98b3a_C2func_getnameinfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"net._cgo_77133bf98b3a_C2func_getnameinfo"
-
-axiom _cgo_77133bf98b3a_C2func_getnameinfo.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def __cgofn__cgo_77133bf98b3a_Cfunc_free [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.__cgofn__cgo_77133bf98b3a_Cfunc_free"
@@ -1294,15 +1158,11 @@ noncomputable def __cgofn__cgo_77133bf98b3a_Cfunc_free [GooseExts] [GoGlobalCont
 noncomputable def _cgo_77133bf98b3a_Cfunc_free [GooseExts] [GoGlobalContext] : GoString :=
   go!"net._cgo_77133bf98b3a_Cfunc_free"
 
-axiom _cgo_77133bf98b3a_Cfunc_free.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def __cgofn__cgo_77133bf98b3a_Cfunc_freeaddrinfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.__cgofn__cgo_77133bf98b3a_Cfunc_freeaddrinfo"
 
 noncomputable def _cgo_77133bf98b3a_Cfunc_freeaddrinfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"net._cgo_77133bf98b3a_Cfunc_freeaddrinfo"
-
-axiom _cgo_77133bf98b3a_Cfunc_freeaddrinfo.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def __cgofn__cgo_77133bf98b3a_Cfunc_gai_strerror [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.__cgofn__cgo_77133bf98b3a_Cfunc_gai_strerror"
@@ -1310,15 +1170,11 @@ noncomputable def __cgofn__cgo_77133bf98b3a_Cfunc_gai_strerror [GooseExts] [GoGl
 noncomputable def _cgo_77133bf98b3a_Cfunc_gai_strerror [GooseExts] [GoGlobalContext] : GoString :=
   go!"net._cgo_77133bf98b3a_Cfunc_gai_strerror"
 
-axiom _cgo_77133bf98b3a_Cfunc_gai_strerror.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def __cgofn__cgo_77133bf98b3a_Cfunc_getaddrinfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.__cgofn__cgo_77133bf98b3a_Cfunc_getaddrinfo"
 
 noncomputable def _cgo_77133bf98b3a_Cfunc_getaddrinfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"net._cgo_77133bf98b3a_Cfunc_getaddrinfo"
-
-axiom _cgo_77133bf98b3a_Cfunc_getaddrinfo.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def __cgofn__cgo_77133bf98b3a_Cfunc_getnameinfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.__cgofn__cgo_77133bf98b3a_Cfunc_getnameinfo"
@@ -1326,23 +1182,17 @@ noncomputable def __cgofn__cgo_77133bf98b3a_Cfunc_getnameinfo [GooseExts] [GoGlo
 noncomputable def _cgo_77133bf98b3a_Cfunc_getnameinfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"net._cgo_77133bf98b3a_Cfunc_getnameinfo"
 
-axiom _cgo_77133bf98b3a_Cfunc_getnameinfo.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def __cgofn__cgo_77133bf98b3a_Cfunc_res_search [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.__cgofn__cgo_77133bf98b3a_Cfunc_res_search"
 
 noncomputable def _cgo_77133bf98b3a_Cfunc_res_search [GooseExts] [GoGlobalContext] : GoString :=
   go!"net._cgo_77133bf98b3a_Cfunc_res_search"
 
-axiom _cgo_77133bf98b3a_Cfunc_res_search.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def __cgofn__cgo_77133bf98b3a_Cfunc__Cmalloc [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.__cgofn__cgo_77133bf98b3a_Cfunc__Cmalloc"
 
 noncomputable def _cgo_77133bf98b3a_Cfunc__Cmalloc [GooseExts] [GoGlobalContext] : GoString :=
   go!"net._cgo_77133bf98b3a_Cfunc__Cmalloc"
-
-axiom _cgo_77133bf98b3a_Cfunc__Cmalloc.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def sortByRFC6724 [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.sortByRFC6724"
@@ -2189,8 +2039,6 @@ noncomputable def _C_res_nsearch [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable instance info' : PkgInfo pkg_id.net where
   pkgImportedPkgs := [pkg_id.time, pkg_id.io]
-
-axiom «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -3870,20 +3718,12 @@ attribute [instance] UnixListener.TypeAssumptions.type_repr
   UnixListener.TypeAssumptions.method_set
   UnixListener.TypeAssumptions.ptr_method_set
 
-axiom «_» : Type
-axiom «_».zero_val : ZeroVal «_»
-attribute [instance] «_».zero_val
-
 class «_».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying «_».underlying «_»
   underlying : go.UnderlyingDirectedEq «_».ty «_».underlying
-  isUnderlying : go.IsUnderlying «_».underlying «_».underlying
   method_set : go.MethodSetIs «_».ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType «_».ty) []
 
-attribute [instance] «_».TypeAssumptions.type_repr
-  «_».TypeAssumptions.underlying
-  «_».TypeAssumptions.isUnderlying
+attribute [instance] «_».TypeAssumptions.underlying
   «_».TypeAssumptions.method_set
   «_».TypeAssumptions.ptr_method_set
 

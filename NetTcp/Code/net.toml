@@ -3,6 +3,10 @@
 # (Code/net.toml, names only), whose axioms etcd's server proofs use: the two are never in one
 # import closure.
 #
+# `net`'s package variables are trusted too, each with an initializer that does nothing (as
+# LinuxFs's `os.Stdin`, `Stdout`): the variables are not allocated, so code that reads one is stuck;
+# neither the models nor the examples read any.
+#
 # Translated: the interfaces (`Conn`, `Listener`, `Addr`, `Error`). Trusted
 # (NetTcp/TrustedCode/net.lean): `conn`, `TCPConn` (Go's `struct{ conn }`, so `*TCPConn`'s method
 # set is Go's, with `conn`'s methods promoted), `TCPListener` and `OpError` with the layouts the
@@ -20,4 +24,24 @@ trusted = ["conn", "TCPConn", "TCPListener", "OpError",
   "conn.SetDeadline", "conn.SetReadDeadline", "conn.SetWriteDeadline",
   "TCPConn.CloseWrite",
   "TCPListener.Accept", "TCPListener.Close",
-  "OpError.Error", "OpError.Timeout", "OpError.Temporary"]
+  "OpError.Error", "OpError.Timeout", "OpError.Temporary",
+  # (the package variables: their initializers do nothing, below)
+  "rfc6724policyTable", "confVal", "netdns", "multipathtcp", "errLameReferral",
+  "errCannotUnmarshalDNSMessage", "errCannotMarshalDNSMessage", "errServerMisbehaving",
+  "errInvalidDNSResponse", "errNoAnswerFromDNSServer", "errServerTemporarilyMisbehaving",
+  "netedns0", "distantFuture", "lookupOrderName", "defaultNS", "getHostname", "testHookLookupIP",
+  "testPreHookSetKeepAlive", "testHookSetKeepAlive", "testHookStepTime", "testHookCanceledDial",
+  "hostsFilePath", "socketFunc", "connectFunc", "listenFunc", "getsockoptIntFunc",
+  "errInvalidInterface", "errInvalidInterfaceIndex", "errInvalidInterfaceName",
+  "errNoSuchInterface", "errNoSuchMulticastInterface", "flagNames", "zoneCache", "v4InV6Prefix",
+  "IPv4bcast", "IPv4allsys", "IPv4allrouter", "IPv4zero", "IPv6zero", "IPv6unspecified",
+  "IPv6loopback", "IPv6interfacelocalallnodes", "IPv6linklocalallnodes",
+  "IPv6linklocalallrouters", "classAMask", "classBMask", "classCMask", "protocols", "services",
+  "DefaultResolver", "_", "errMalformedDNSRecordsDetail", "readProtocolsOnce",
+  "errNoSuitableAddress", "errMissingAddress", "errCanceled", "ErrWriteToConnected",
+  "aLongTimeAgo", "noDeadline", "noCancel", "errTimeout", "errNoSuchHost", "errUnknownPort",
+  "errClosed", "ErrClosed", "pollSplice", "_cgo_77133bf98b3a_C2func_getaddrinfo",
+  "_cgo_77133bf98b3a_C2func_getnameinfo", "_cgo_77133bf98b3a_Cfunc_free",
+  "_cgo_77133bf98b3a_Cfunc_freeaddrinfo", "_cgo_77133bf98b3a_Cfunc_gai_strerror",
+  "_cgo_77133bf98b3a_Cfunc_getaddrinfo", "_cgo_77133bf98b3a_Cfunc_getnameinfo",
+  "_cgo_77133bf98b3a_Cfunc_res_search", "_cgo_77133bf98b3a_Cfunc__Cmalloc"]
