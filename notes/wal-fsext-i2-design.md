@@ -754,3 +754,15 @@ Statement changes:
     `wp_logStepS` keep their statements as corollaries. No other `TreeShared.lean` statement changed.
 
 Not begun: the `os`-level logically atomic specs (M1; another agent, `LinuxFs/`).
+
+Coordinator additions (for the `os` layer, branch `wal-osau`):
+
+20. **`wp_osOpenFileS`** (new, `TreeShared.lean`, proof `wp_osOpenFileS'` in `TreeSharedCreate`):
+    `open(2)` of a name holding a file, without `O_TRUNC` (any access mode, with or without
+    `O_CREAT`), with a fraction of a claim whose `N` contains the name; logs nothing (over
+    `wp_fs_stepM` directly, as `wp_osOpenDirS`); the fd is `openFd i fl`. The statement is the one
+    `wal-osau` had with `sorry` in `LinuxFs/Proof/os/SharedExt.lean` (that copy can go).
+21. **`wp_osOpenCreateS` takes the flags** (statement change): `fl` with `OpenFlagsOk fl.toNat`,
+    `O_CREAT` set, `O_TRUNC` clear, in place of the fixed `flCreat`; the fds it gives are
+    `openFd i fl` (the WAL creates with `O_WRONLY|O_CREATE`). `openCreateStep_cases`, `ocFd`,
+    `ocGift` take `fl`; the two-region test passes `flCreat`.
