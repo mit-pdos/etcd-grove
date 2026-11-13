@@ -108,6 +108,109 @@ theorem segRecs_snoc_op (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (cuts : Li
     simp only [c0, hd, B, Ds, S0, crcAfter_append]
   · exact length_chainRecs _ _ _
 
+/-! ## The static relation -/
+
+theorem walCutPos_le {H : WalHist} {b : Nat} (h : walCutPos H b) : b ≤ H.length := by
+  rcases h with rfl | ⟨hh, es, hb, -⟩
+  · exact Nat.zero_le _
+  · rcases Nat.lt_or_ge (b - 1) H.length with h | h
+    · omega
+    · rw [List.getElem?_eq_none h] at hb; cases hb
+
+theorem walCutPos_snoc {H : WalHist} {b : Nat} (x : WalOp) (h : walCutPos H b) :
+    walCutPos (H ++ [x]) b := by
+  rcases h with rfl | ⟨hh, es, hb, hne⟩
+  · exact Or.inl rfl
+  · have hl : b - 1 < H.length := by
+      rcases Nat.lt_or_ge (b - 1) H.length with h | h
+      · exact h
+      · rw [List.getElem?_eq_none h] at hb; cases hb
+    exact Or.inr ⟨hh, es, by rw [List.getElem?_append_left hl]; exact hb, hne⟩
+
+theorem recFrames_eq_nil {C : WalCodec} {X : List WalRec} (h : recFrames C X = []) : X = [] := by
+  cases X with
+  | nil => rfl
+  | cons r X =>
+    have := congrArg List.length h
+    simp [recFrames, frames] at this
+
+/-- **`Save`'s commit keeps the static relation**, the layout unchanged: given that, if the
+operation adds a record, the bytes under the tail's stream from the start's frames on are zeros
+(`hZ`), and that the new records fit a frame (`hfit`). -/
+theorem walAbsD_snoc {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
+    (o : WalOpG WalEnt) (h : WalAbsD C Mr d lay ents)
+    (hZ : opDs Mr o.toM ≠ [] → ∀ b, lay.z0 ≤ b → b < lay.old.length → lay.old.getD b 0 = 0)
+    (hfit : RecsFit C (recsOfSegs C Mr d.metadata
+      (segsOf (histM { d with H := d.H ++ [o] }) lay.cuts))) :
+    WalAbsD C Mr { d with H := d.H ++ [o] } lay ents := by
+  have hc : ∀ b ∈ lay.cuts, b ≤ d.H.length := fun b hb => by
+    have := walCutPos_le (h.cuts.1 b hb); simpa [histM] using this
+  have hc' : ∀ b ∈ lay.cuts, b ≤ (histM d).length := by simpa [histM] using hc
+  obtain ⟨A, L, X, hA, hd, hd', hall, hX⟩ := segRecs_snoc_op C Mr d lay.cuts o hc
+  have hsegLt : ∀ k, k < lay.cuts.length →
+      segStream C Mr { d with H := d.H ++ [o] } lay.cuts k = segStream C Mr d lay.cuts k := by
+    intro k hk
+    unfold segStream
+    rw [hd, hd', List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD,
+      List.getElem?_append_left (by omega), List.getElem?_append_left (by omega)]
+  have hS : segStream C Mr { d with H := d.H ++ [o] } lay.cuts lay.cuts.length =
+      segStream C Mr d lay.cuts lay.cuts.length ++ recFrames C X := by
+    unfold segStream
+    rw [hd, hd', List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD,
+      List.getElem?_append_right (by omega), List.getElem?_append_right (by omega)]
+    simp [hA, recFrames_append]
+  have htake : ∀ c, c ≤ d.H.length → (histM { d with H := d.H ++ [o] }).take c = (histM d).take c := by
+    intro c hcl
+    rw [histM_snoc, List.take_append_of_le_length (by simpa [histM] using hcl)]
+  obtain ⟨hn, hcs, hnb, hcut, hmeta, hint, hlast, hsyn, hls, -, hstop, hne⟩ := h
+  refine ⟨hn, ⟨fun b hb => ?_, hcs.2⟩, ?_, hcut, hmeta, ?_, ?_, ?_, hls, hfit, ?_, hne⟩
+  · rw [histM_snoc]; exact walCutPos_snoc _ (hcs.1 b hb)
+  · intro k g hk
+    obtain ⟨sq, ix, hnm, hb⟩ := hnb k g hk
+    refine ⟨sq, ix, hnm, fun hpos => ?_⟩
+    rw [htake _ (segStart_le hc _)]
+    exact hb hpos
+  · intro k g hk hg
+    rw [hsegLt _ (by have := hcs.2.2; have := List.getElem?_eq_some_iff.1 hg; omega)]
+    exact hint k g hk hg
+  · intro g hg
+    obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := hlast g hg
+    simp only at h1 h2 h3 h4 h5 h6 h7 h8 ⊢
+    rw [hS]
+    refine ⟨h1, by simp; omega, h3, h4, fun b x hb => ?_, h6, ?_, fun hz b hb1 hb2 => ?_⟩
+    · have hx := h5 b x hb
+      by_cases hw : b < lay.wr
+      · rwa [List.getD_eq_getElem?_getD, List.getElem?_append_left (by omega),
+          ← List.getD_eq_getElem?_getD]
+      · have hs : ¬ b < lay.so := by omega
+        simp only [ByteOk, hw, hs, ite_false, decide_false, Bool.false_eq_true] at hx ⊢
+        exact hx
+    · rw [List.take_append_of_le_length (by omega)]; exact h7
+    · rcases Nat.lt_or_ge lay.z0 (segStream C Mr d lay.cuts lay.cuts.length).length with hlt | hge
+      · exact h8 hlt b hb1 hb2
+      · apply hZ _ b hb1 hb2
+        intro hnil
+        rw [hnil, List.length_nil, List.length_eq_zero_iff] at hX
+        subst hX
+        simp [recFrames, frames] at hz; omega
+  · refine ⟨by simp; omega, ?_⟩
+    have h2 := hsyn.2
+    simp only [List.take_append_of_le_length hsyn.1]
+    exact h2
+  · intro hz r len c'
+    have hz' : recFrames C X = [] := by
+      have hwr := (hlast _ (List.getLast?_eq_some_getLast hne)).2.1
+      have hz0 := (hlast _ (List.getLast?_eq_some_getLast hne)).2.2.2.2.2.1
+      rw [hS, List.length_append] at hz
+      apply List.eq_nil_of_length_eq_zero; omega
+    have hX0 := recFrames_eq_nil hz'
+    subst hX0
+    have hz2 : lay.z0 = (segStream C Mr d lay.cuts lay.cuts.length).length := by
+      rw [hS] at hz; simpa [recFrames, frames] using hz
+    simp only at hall ⊢
+    rw [hall, List.append_nil]
+    exact hstop hz2 r len c'
+
 end snoc
 
 end WalFs
