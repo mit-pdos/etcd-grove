@@ -17,6 +17,19 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### No translation of `hash/crc32`, `bufio`, `path/filepath`; no models of `io.ReadFull`/`io.Copy`, `fmt.Sscanf`, `strings.HasSuffix` (2026-11-13, branch `wal-fsext-translate`)
+
+etcd's real WAL over `fsExt` (the part `LinuxFs/`) calls `crc32.MakeTable(crc32.Castagnoli)` and
+`crc32.Update` (`pkg/v3/crc`), `bufio.NewReader` and `*bufio.Reader`'s methods (`fileutil.FileBufReader`,
+the decoder), `filepath.Join/Base/Dir/Clean/Ext/Abs/Walk`, `io.ReadFull` (decoder.go:117), `io.Copy`
+(repair.go:81), `fmt.Sscanf` (util.go:112, `parseWALName`) and `strings.HasSuffix`. Perennial
+translates none of the first three (the default root `Perennial` names modules that do not exist),
+and has the others names only. Workaround here: names-only translations in the part
+(`LinuxFs/Code/{hash/crc32,bufio,path/filepath}.toml`, project etcd's part). Proposed: Perennial
+translations with bodies (crc32's generic table path, bufio's `Reader`, filepath over `path`'s
+lexical functions and `os` for `Abs`/`Walk`) and specs; `io.ReadFull`/`io.Copy` with bodies over the
+`Reader` interface. Not yet proposed; the trust decision is open (no model was written).
+
 ### `sort.Sort`'s spec as a function of its input (2026-11-09, specs-only batch 3b)
 
 Perennial's `sort.Sort`/`sort.Slice` specs say only that the result is some sorted permutation of
