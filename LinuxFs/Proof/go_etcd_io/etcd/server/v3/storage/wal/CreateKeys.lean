@@ -325,7 +325,15 @@ theorem walsAt_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s
     rw [hl'] at hl''; cases hl''
     rw [hnm']
     exact ⟨inArea_ne hin hin' hdd, not_inArea_tmp hin' htmp⟩
-  intro dir' lay' hl' N' h' hm hN'
+  intro dir' lay' hl'
+  refine ⟨?_, fun N' h' hm hN' => ?_⟩
+  · by_cases hdd : dir' = dir
+    · subst hdd
+      rw [GMap.lookup_insert_eq] at hl'
+      cases hl'
+      rw [hlay.2.2]; exact hJjr
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)] at hl'
+      exact hA.ne hl'
   rcases mem_createClaims_cases hm with he | he | ⟨hm', hne⟩
   · simp only [Prod.mk.injEq] at he; exact absurd he.1 (Ne.symm hJjr)
   · cases he
@@ -340,7 +348,7 @@ theorem walsAt_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)] at hl'
       obtain ⟨h1, h2⟩ := hnms dir' lay' hdd hl'
       rw [GMap.lookup_insert_ne _ _ (Ne.symm h1), GMap.lookup_delete_ne _ (Ne.symm h2)]
-      exact hA dir' lay' hl' N h hc hN'
+      exact hA.at hl' hc hN'
   · by_cases hdd : dir' = dir
     · subst hdd
       rw [GMap.lookup_insert_eq] at hl'
@@ -348,7 +356,7 @@ theorem walsAt_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s
       rw [hlay.2.1] at hN'
       exact absurd hN' (hothers _ hm' hne rfl).1
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)] at hl'
-      exact hA dir' lay' hl' N' h' hm' hN'
+      exact hA.at hl' hm' hN'
 
 /-- **`WalsAt` after a cut's commit** (W3/W5's gap 1): the WAL directory's claim replaced by
 another of the same directory (not the area's), the layout by one of the same name and directory. -/

@@ -54,13 +54,14 @@ affected: the claim's remaining names keep their entries). -/
 theorem walsAt_drop {jr : Ino} {Ls : GMap GoString WalLay} {cl : List Claim} {N : NameSet}
     {h : NamesH} {b : GoString} (hA : WalsAt jr Ls cl) (hm : (jr, N, h) ∈ cl) :
     WalsAt jr Ls (dropClaims cl jr N h b) := by
-  intro dir lay hl N' h' hc hN'
+  intro dir lay hl
+  refine ⟨hA.ne hl, fun N' h' hc hN' => ?_⟩
   rcases mem_dropClaims hc with he | ⟨hc', -⟩
   · cases he
     show restrictN (N.diff [b]) h.cur !! lay.nm = _
     rw [restrictN_lookup _ _ _ hN']
-    exact hA dir lay hl N h hm ((NameSet.mem_diff N [b] lay.nm).1 hN').1
-  · exact hA dir lay hl N' h' hc' hN'
+    exact hA.at hl hm ((NameSet.mem_diff N [b] lay.nm).1 hN').1
+  · exact hA.at hl hc' hN'
 
 end walsAt
 

@@ -485,7 +485,8 @@ def WalsStart (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (s : AbsDi
   (∀ dir, s.wal !! dir = none → Ls !! dir = none) ∧
   (∀ dir nm, InArea s.area dir nm → s.wal !! dir = none → m.entry jr nm = none) ∧
   (∀ dd, s.dirs !! dd = some () → ∃ J, lookupH R (m, []) dd = some (.dir J)) ∧
-  (∀ dir lay, Ls !! dir = some lay → SegsNamed lay.segs (entsOf m lay.j))
+  (∀ dir lay, Ls !! dir = some lay → SegsNamed lay.segs (entsOf m lay.j)) ∧
+  (∀ dir lay, Ls !! dir = some lay → lay.j ≠ jr)
 
 /-- **The crash's pure core** (plan §2.2): from what the invariant says of the WALs, what a crash of
 the claims allows of the tree (`m'`), what the crash did to each segment (`FileCrashedR` of its
@@ -499,6 +500,7 @@ theorem walCrash_pure (C : WalCodec) (_hC : C.Ok) (Mr : WalMarshal) (R : Roots) 
     (s : AbsDiskState) (Ls : GMap GoString WalLay) (cl : List Claim) (n : Nat) (m' : Tree)
     (st st' : Fs.OsState) (hok : WalsOk C Mr R jr s Ls cl n) (han : AbsentNone s jr cl n)
     (hnm : WalsNamed Ls cl n) (hk : walKeysInArea s)
+    (hjne : ∀ dir lay, Ls !! dir = some lay → lay.j ≠ jr)
     (hreg : RegionCrashed cl n m') (htree : st'.fs.treeDur = m') (hw1 : W1 C st st')
     (hfiles : ∀ g ∈ segsAll Ls,
       FileCrashedR g.om [(0, DFrac.own (1 : Qp).half, g.bs)] (st'.fs.files !! g.ino) ∧
@@ -555,7 +557,7 @@ theorem walCrash_pure (C : WalCodec) (_hC : C.Ok) (Mr : WalMarshal) (R : Roots) 
         rw [hFd] at h
         simp only [Option.map_some, Option.some.injEq] at h
         exact ⟨d, p.1, rfl, by rw [hFd, ← h]⟩
-  refine ⟨s', Ls', ⟨rfl, rfl, fun dir d hd => ?_, fun dir hd => ?_⟩, rfl, ?_, ⟨?_, ?_, ?_, ?_, ?_⟩, ?_, ?_⟩
+  refine ⟨s', Ls', ⟨rfl, rfl, fun dir d hd => ?_, fun dir hd => ?_⟩, rfl, ?_, ⟨?_, ?_, ?_, ?_, ?_, ?_⟩, ?_, ?_⟩
   · rw [hs', hd]; exact (hF dir d hd).1
   · rw [hs', hd]; rfl
   · intro k d' h
@@ -606,6 +608,13 @@ theorem walCrash_pure (C : WalCodec) (_hC : C.Ok) (Mr : WalMarshal) (R : Roots) 
     obtain ⟨hw, hent⟩ := hC1 g1 hg1
     rw [← e1, ← e2]
     exact ⟨hw, hent (by rw [e2]; exact hin)⟩
+  · -- no WAL's directory is the area's (the crash keeps each layout's directory)
+    intro dir lay' h
+    obtain ⟨d, d', hd, hFd⟩ := hsomeL dir lay' h
+    obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, hn⟩ := (hF dir d hd).2.2 d' lay' hFd
+    obtain ⟨lay, -, -, hLs, -⟩ := hok.1 dir d hd
+    rw [(hn lay hLs).1]
+    exact hjne dir lay hLs
   · refine segsAll_nodup_sub hok.2.2.1 (fun dir lay h => ?_)
     obtain ⟨d, d', hd, hFd⟩ := hsomeL dir lay h
     obtain ⟨-, -, -, -, -, -, -, -, -, -, -, h5, -, -⟩ := (hF dir d hd).2.2 d' lay hFd
