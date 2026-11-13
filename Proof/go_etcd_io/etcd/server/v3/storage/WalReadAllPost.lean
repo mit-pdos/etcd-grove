@@ -187,6 +187,48 @@ theorem walReadsBack_snap {I : WalHist} (m : SnapshotMetadataM) (h : walReadsBac
     exact ⟨hcl, σ, hr⟩
 
 
+/-- **`Save(h, es)` keeps the history reading back** when it raises the commit past no snapshot
+record above the old one (`hfilt`: true between Readies, every record then being at or below the
+commit; not for the `Save` right after a received snapshot's `SaveSnapshot`), its entries apply to
+the read (`hent`: raft's `Ready` entries start at most one past the last index and above the base,
+`WalSaveOk`), and its commit is within the resulting last index (`hcl'`: raft's
+`committed ≤ lastIndex`). -/
+theorem walReadsBack_save {I : WalHist} (h : HardStateM) (es : List EntryM) (hb : walReadsBack I)
+    (hfilt : ∀ m, WalOpG.snap m ∈ I →
+      (uint.nat m.Index' ≤ uint.nat (walLastHS (I ++ [WalOpG.save h es])).Commit' ↔
+        uint.nat m.Index' ≤ uint.nat (walLastHS I).Commit'))
+    (hent : ∀ σ, walRead I = some σ → ∃ ents, es.foldlM (fun ents e => readEnt σ.b ents e) σ.ents = some ents ∧
+      uint.nat (phsNext σ.hs h).Commit' ≤ σ.b + ents.length) :
+    walReadsBack (I ++ [WalOpG.save h es]) := by
+  obtain ⟨hcl, σ, hr⟩ := hb
+  obtain ⟨ents, hf, hcl'⟩ := hent σ hr
+  unfold walReadsBack walCommitLe walRead
+  unfold walRead at hr
+  unfold walCommitLe at hcl
+  have hF : (I ++ [WalOpG.save h es]).filter
+      (walKeep (uint.nat (walLastHS (I ++ [WalOpG.save h es])).Commit')) =
+      I.filter (walKeep (uint.nat (walLastHS I).Commit')) ++ [WalOpG.save h es] := by
+    rw [List.filter_append]
+    congr 1
+    · apply List.filter_congr
+      intro o ho
+      cases o with
+      | save _ _ => rfl
+      | snap m => simp only [walKeep, decide_eq_decide]; exact hfilt m ho
+  rw [hF]
+  generalize hL : I.filter (walKeep (uint.nat (walLastHS I).Commit')) = L at hr hcl ⊢
+  have hstep : walFoldChkFrom σ [WalOpG.save h es] = some { σ with hs := phsNext σ.hs h, ents := ents } := by
+    simp [walFoldChkFrom, hf]
+  refine ⟨?_, _, by rw [walFoldChkFrom_append, hr, Option.bind_some]; exact hstep⟩
+  intro n τ' hτ
+  by_cases hn : n ≤ L.length
+  · rw [List.take_append_of_le_length hn] at hτ
+    exact hcl n τ' hτ
+  · rw [List.take_of_length_le (by simp; omega), walFoldChkFrom_append, hr, Option.bind_some, hstep,
+      Option.some.injEq] at hτ
+    subst hτ
+    exact hcl'
+
 end post
 
 end WalEnc
