@@ -211,12 +211,35 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
 
 variable (W W' : WalGS GF)
 
+/-- The program's copy of the WAL in `dir` is below a real one. -/
+theorem walDiskAt_crash_real {M : GMap GoString WalDur} {s : AbsDiskState} {dir : GoString}
+    {d : WalDur} (HMd : walOptLe (some d) (M !! dir)) (HMs : walMapLe M s.wal) :
+    ∃ dr, s.wal !! dir = some dr ∧ walDurLe d dr := by
+  obtain ⟨dg, hdg, hle1⟩ := (walOptLe_some_iff d _).1 HMd
+  have h2 := HMs dir
+  rw [hdg] at h2
+  obtain ⟨dr, hdr, hle2⟩ := (walOptLe_some_iff dg _).1 h2
+  exact ⟨dr, hdr, walDurLe_trans hle1 hle2⟩
+
+/-- A crash's new WAL is above the program's copy with the crash's fields. -/
+theorem walDurLe_crash {d dr : WalDur} {I : List (WalOpG WalEnt)} {k : Nat} (hle : walDurLe d dr) :
+    walDurLe { d with H := I, cut := k, unl := min d.unl I.length, pur := min d.pur I.length }
+      { dr with H := I, cut := k, unl := min dr.unl I.length, pur := min dr.pur I.length } :=
+  ⟨rfl, by simp only [hle.2.1], by simp only [hle.2.2.1], rfl, hle.2.2.2.2.1, hle.2.2.2.2.2.1,
+    hle.2.2.2.2.2.2.1, hle.2.2.2.2.2.2.2⟩
+
 /-- **The crash view, keeping the old program's map.** -/
 theorem walCrash_view_keep (M : GMap GoString WalDur) :
     ⊢@{IProp GF} walCrashWal W W' -∗ walOwn (W := W) M -∗ walOwn (W := W) M ∗
       ∃ s s' : AbsDiskState, ⌜walStCrash s s' ∧ walMapLe M s.wal⌝ ∗
         walGhost (W := W) s ∗ walOwn (W := W') s'.wal ∗ walPast (W := W') s' := by
-  sorry
+  unfold walCrashWal
+  iintro ⟨%s, %s', %hc, Hg, HM', Hp'⟩ HM
+  icases walOwn_agree (W := W) s M $$ Hg HM with %HMs
+  iframe HM
+  iexists s, s'
+  iframe Hg HM' Hp'
+  ipureintro; exact ⟨hc, HMs⟩
 
 theorem walDiskAt_crash_keep (dir : GoString) (d : WalDur) (n : Nat) :
     ⊢@{IProp GF} walCrashWal W W' -∗
@@ -225,7 +248,35 @@ theorem walDiskAt_crash_keep (dir : GoString) (d : WalDur) (n : Nat) :
         ⌜walImg d.H n I ∧ k ≤ min d.pur I.length⌝ ∗
         walDiskAt (W := W') dir { d with H := I, cut := k, unl := min d.unl I.length, pur := min d.pur I.length } ∗
         walSyncedLb (W := W') dir n ∗ walNamed (W := W') dir := by
-  sorry
+  unfold walDiskAt walDirIs walSyncedLb walNamed
+  iintro Hcs ⟨%M, HM, %HMd⟩ ⟨%p, %dp, Hp, %Hdp⟩ ⟨%q, %dq, Hq, %Hdq⟩
+  icases walCrash_view_keep W W' M $$ Hcs HM with ⟨HM, %s, %s', ⟨%hc, %HMs⟩, HP, HM', #Hp'⟩
+  obtain ⟨dr, hdr, hle⟩ := walDiskAt_crash_real HMd HMs
+  icases walPast_ghost_le (W := W) s p $$ HP Hp with %Hlp
+  icases walPast_ghost_le (W := W) s q $$ HP Hq with %Hlq
+  obtain ⟨d1, h1, hm1, -, -⟩ := Hlp.2.2 dir dp Hdp.1
+  obtain ⟨d2, h2, -, -, hn2⟩ := Hlq.2.2 dir dq Hdq.1
+  rw [hdr] at h1 h2; cases h1; cases h2
+  have hn : n ≤ dr.m := Nat.le_trans Hdp.2 hm1
+  have hnamed : dr.named = true := hn2 Hdq.2
+  obtain ⟨-, -, hcw, -⟩ := hc
+  rcases hcw dir dr hdr with ⟨hnf, -⟩ | ⟨I, k, hI, hk, hs'⟩
+  · rw [hnamed] at hnf; cases hnf
+  obtain ⟨j, hj1, hj2, hj3⟩ := hI
+  isplitl [HM]
+  · iexists M; iframe HM; ipureintro; exact HMd
+  iexists I, k
+  isplitr
+  · ipureintro
+    refine ⟨⟨j, Nat.le_trans hn hj1, ?_, ?_⟩, ?_⟩
+    · rw [hle.1]; exact hj2
+    · rw [hle.1]; exact hj3
+    · rw [hle.2.2.1]; exact hk
+  isplitl [HM']
+  · iexists s'.wal; iframe HM'; ipureintro; rw [hs']; exact walDurLe_crash hle
+  isplitr
+  · iexists s', _; iframe Hp'; ipureintro; exact ⟨hs', hn⟩
+  · iexists s', _; iframe Hp'; ipureintro; exact ⟨hs', hnamed⟩
 
 theorem walDiskAt_crash_any_keep (dir : GoString) (d : WalDur) (n : Nat) :
     ⊢@{IProp GF} walCrashWal W W' -∗
@@ -233,7 +284,37 @@ theorem walDiskAt_crash_any_keep (dir : GoString) (d : WalDur) (n : Nat) :
       walDiskAt (W := W) dir d ∗ ((walAbsent (W := W') dir ∗ ⌜d.named = false⌝) ∨
         ∃ (I : List (WalOpG WalEnt)) (k : Nat), ⌜walImg d.H n I ∧ k ≤ min d.pur I.length⌝ ∗
           walDiskAt (W := W') dir { d with H := I, cut := k, unl := min d.unl I.length, pur := min d.pur I.length } ∗ walSyncedLb (W := W') dir n) := by
-  sorry
+  unfold walDiskAt walAbsent walDirIs walSyncedLb
+  iintro Hcs ⟨%M, HM, %HMd⟩ ⟨%p, %dp, Hp, %Hdp⟩
+  icases walCrash_view_keep W W' M $$ Hcs HM with ⟨HM, %s, %s', ⟨%hc, %HMs⟩, HP, HM', #Hp'⟩
+  obtain ⟨dr, hdr, hle⟩ := walDiskAt_crash_real HMd HMs
+  icases walPast_ghost_le (W := W) s p $$ HP Hp with %Hlp
+  obtain ⟨d1, h1, hm1, -, -⟩ := Hlp.2.2 dir dp Hdp.1
+  rw [hdr] at h1; cases h1
+  have hn : n ≤ dr.m := Nat.le_trans Hdp.2 hm1
+  obtain ⟨-, -, hcw, -⟩ := hc
+  isplitl [HM]
+  · iexists M; iframe HM; ipureintro; exact HMd
+  rcases hcw dir dr hdr with ⟨hnf, hnone⟩ | ⟨I, k, hI, hk, hs'⟩
+  · ileft
+    isplitl [HM']
+    · iexists s'.wal; iframe HM'; ipureintro; rw [hnone]; trivial
+    · ipureintro
+      cases hdn : d.named
+      · rfl
+      · rw [hle.2.2.2.2.2.2.2 hdn] at hnf; cases hnf
+  obtain ⟨j, hj1, hj2, hj3⟩ := hI
+  iright
+  iexists I, k
+  isplitr
+  · ipureintro
+    refine ⟨⟨j, Nat.le_trans hn hj1, ?_, ?_⟩, ?_⟩
+    · rw [hle.1]; exact hj2
+    · rw [hle.1]; exact hj3
+    · rw [hle.2.2.1]; exact hk
+  isplitl [HM']
+  · iexists s'.wal; iframe HM'; ipureintro; rw [hs']; exact walDurLe_crash hle
+  · iexists s', _; iframe Hp'; ipureintro; exact ⟨hs', hn⟩
 
 theorem walDiskAt_crash_any_keep0 (dir : GoString) (d : WalDur) :
     ⊢@{IProp GF} walCrashWal W W' -∗
@@ -241,22 +322,65 @@ theorem walDiskAt_crash_any_keep0 (dir : GoString) (d : WalDur) :
       walDiskAt (W := W) dir d ∗ ((walAbsent (W := W') dir ∗ ⌜d.named = false⌝) ∨
         ∃ (I : List (WalOpG WalEnt)) (k : Nat), ⌜walImg d.H 0 I ∧ k ≤ min d.pur I.length⌝ ∗
           walDiskAt (W := W') dir { d with H := I, cut := k, unl := min d.unl I.length, pur := min d.pur I.length }) := by
-  sorry
+  unfold walDiskAt walAbsent walDirIs
+  iintro Hcs ⟨%M, HM, %HMd⟩
+  icases walCrash_view_keep W W' M $$ Hcs HM with ⟨HM, %s, %s', ⟨%hc, %HMs⟩, -, HM', -⟩
+  obtain ⟨dr, hdr, hle⟩ := walDiskAt_crash_real HMd HMs
+  obtain ⟨-, -, hcw, -⟩ := hc
+  isplitl [HM]
+  · iexists M; iframe HM; ipureintro; exact HMd
+  rcases hcw dir dr hdr with ⟨hnf, hnone⟩ | ⟨I, k, hI, hk, hs'⟩
+  · ileft
+    isplitl [HM']
+    · iexists s'.wal; iframe HM'; ipureintro; rw [hnone]; trivial
+    · ipureintro
+      cases hdn : d.named
+      · rfl
+      · rw [hle.2.2.2.2.2.2.2 hdn] at hnf; cases hnf
+  obtain ⟨j, -, hj2, hj3⟩ := hI
+  iright
+  iexists I, k
+  isplitr
+  · ipureintro
+    refine ⟨⟨j, Nat.zero_le _, ?_, ?_⟩, ?_⟩
+    · rw [hle.1]; exact hj2
+    · rw [hle.1]; exact hj3
+    · rw [hle.2.2.1]; exact hk
+  iexists s'.wal; iframe HM'; ipureintro; rw [hs']; exact walDurLe_crash hle
 
 theorem walAbsent_crash_keep (dir : GoString) :
     ⊢@{IProp GF} walCrashWal W W' -∗
       walAbsent (W := W) dir -∗ walAbsent (W := W) dir ∗ walAbsent (W := W') dir := by
-  sorry
+  unfold walAbsent walDirIs
+  iintro Hcs ⟨%M, HM, %HMd⟩
+  icases walCrash_view_keep W W' M $$ Hcs HM with ⟨HM, %s, %s', ⟨%hc, %HMs⟩, -, HM', -⟩
+  have hs : s.wal !! dir = none := by
+    have h := HMs dir
+    rw [(walOptLe_none_iff _).1 HMd] at h
+    exact (walOptLe_none_iff _).1 h
+  isplitl [HM]
+  · iexists M; iframe HM; ipureintro; exact HMd
+  iexists s'.wal; iframe HM'; ipureintro; rw [hc.2.2.2 dir hs]; trivial
 
 theorem dirDurable_crash_keep (d : GoString) :
     ⊢@{IProp GF} walCrashWal W W' -∗ dirDurable (W := W) d -∗
       walCrashWal W W' ∗ dirDurable (W := W') d := by
-  sorry
+  unfold walCrashWal dirDurable
+  iintro ⟨%s, %s', %hc, HG, HM', #Hp'⟩ ⟨%p, Hp, %Hd⟩
+  icases walPast_ghost_le (W := W) s p $$ HG Hp with %Hlp
+  isplitl [HG HM']
+  · iexists s, s'; iframe HG HM' Hp'; ipureintro; exact hc
+  · iexists s'; iframe Hp'; ipureintro; rw [hc.2.1]; exact Hlp.2.1 d Hd
 
 theorem walArea_crash_keep (r : GoString) :
     ⊢@{IProp GF} walCrashWal W W' -∗ walArea (W := W) r -∗
       walCrashWal W W' ∗ walArea (W := W') r := by
-  sorry
+  unfold walCrashWal walArea
+  iintro ⟨%s, %s', %hc, HG, HM', #Hp'⟩ ⟨%p, Hp, %Hr⟩
+  icases walPast_ghost_le (W := W) s p $$ HG Hp with %Hlp
+  isplitl [HG HM']
+  · iexists s, s'; iframe HG HM' Hp'; ipureintro; exact hc
+  · iexists s'; iframe Hp'; ipureintro; rw [hc.1, Hlp.1, Hr]
 
 end crash
 
