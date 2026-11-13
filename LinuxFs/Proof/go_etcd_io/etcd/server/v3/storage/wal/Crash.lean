@@ -408,8 +408,8 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     isplitr
     · ipureintro; intro _; exact ⟨rfl, rfl⟩
     have hpk : ∀ (k : Nat) (g : SegG), segRes (L := L) g ⊢
-        (if g.ino ∈ ([] : List Ino) then emp else segRes (L := L) g) := fun _ g => by
-      rw [if_neg List.not_mem_nil]
+        (if g.ino ∈ ([] : List Ino) then emp else segResP (L := L) g) := fun _ g => by
+      rw [if_neg List.not_mem_nil]; exact segRes_segResP g
     iapply BigSepL.bigSepL_mono_of_forall (fun {k} {g} => hpk k g) $$ Hp
   imodintro
   unfold walInv

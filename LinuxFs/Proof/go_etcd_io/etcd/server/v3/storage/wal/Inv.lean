@@ -378,8 +378,24 @@ theorem walTailsRes_mono (C : WalCodec) (Mr : WalMarshal) (s s' : AbsDiskState) 
   ipureintro
   exact ⟨hd', hp.2.1, hp.2.2.1, hp.2.2.2.1, hp.2.2.2.2.congr hH hmd⟩
 
+/-- **A segment's program halves, parked** (`walParked`): of its inode's `OsMeta` and of bytes from
+0 on, as many as the segment's. Not `segRes g` itself: the contents are the segment's (by agreement
+with the invariant's halves, `segResF`) only while no change is in flight on it, and an open handle
+changes its tail's contents in the layout (`walInvBody_tail`, `TailAcc.lean`) with the tail's halves
+out, so the parked entry of a segment must not depend on its contents. -/
+def segResP (g : SegG) : IProp GF :=
+  iprop(∃ (m : OsMeta) (bs : List ByteG), osMeta (L := L) g.ino (DFrac.own (1 : Qp).half) m ∗
+    osBytes (L := L) g.ino 0 (DFrac.own (1 : Qp).half) bs ∗ ⌜bs.length = g.bs.length⌝)
+
+theorem segRes_segResP (g : SegG) : segRes (L := L) g ⊢ segResP (L := L) g := by
+  unfold segRes segResP
+  iintro ⟨Hm, Hb⟩
+  iexists g.om, g.bs
+  iframe Hm Hb
+  ipureintro; rfl
+
 /-- **The program's halves, parked** (W3/W5's gap 2, framed): the parking flag's invariant half
-(`walParkAuth b`, `Ghost.lean`); every segment's program halves (`segRes`) but those of the inodes
+(`walParkAuth b`, `Ghost.lean`); every segment's program halves (`segResP`) but those of the inodes
 `O`, and the program's half of every WAL directory's claim (`WalDirClaimOf`) but the claims `D`;
 with the flag `true` (the lock token free: no handle) nothing is out. A handle (the flag `false`)
 takes what it needs (`Open`: the opened WAL's segments and directory claim) and puts back what it
@@ -388,19 +404,19 @@ contradicts). -/
 def walParked (Ls : GMap GoString WalLay) (cl : List Claim) : IProp GF :=
   iprop(∃ (b : Bool) (O : List Ino) (D : List Claim), walParkAuth (W := W) b ∗
     ⌜b = true → O = [] ∧ D = []⌝ ∗
-    ([∗list] g ∈ segsAll Ls, if g.ino ∈ O then emp else segRes (L := L) g) ∗
+    ([∗list] g ∈ segsAll Ls, if g.ino ∈ O then emp else segResP (L := L) g) ∗
     [∗list] c ∈ cl, if ParkedClaim Ls D c then
       osNames (L := L) c.1 c.2.1 (DFrac.own (1 : Qp).half) c.2.2 else emp)
 
 instance walParked_timeless (Ls : GMap GoString WalLay) (cl : List Claim) :
     Timeless (walParked (L := L) (W := W) Ls cl) := by
-  haveI : ∀ g : SegG, Timeless (segRes (L := L) g) := fun g => by
-    unfold segRes osMeta; infer_instance
+  haveI : ∀ g : SegG, Timeless (segResP (L := L) g) := fun g => by
+    unfold segResP osMeta; infer_instance
   haveI : ∀ (j : Ino) (N : NameSet) (q : DFrac) (h : NamesH), Timeless (osNames (L := L) j N q h) :=
     fun _ _ _ _ => by unfold osNames; split <;> infer_instance
   unfold walParked
   haveI : ∀ (O : List Ino) (g : SegG),
-      Timeless (iprop(if g.ino ∈ O then iprop(emp) else segRes (L := L) g) : IProp GF) :=
+      Timeless (iprop(if g.ino ∈ O then iprop(emp) else segResP (L := L) g) : IProp GF) :=
     fun O g => by split <;> infer_instance
   haveI : ∀ (D : List Claim) (c : Claim), Timeless (iprop(if ParkedClaim Ls D c then
       osNames (L := L) c.1 c.2.1 (DFrac.own (1 : Qp).half) c.2.2 else iprop(emp)) : IProp GF) :=

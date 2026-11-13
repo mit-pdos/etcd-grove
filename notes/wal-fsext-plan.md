@@ -643,6 +643,19 @@ gaps 1 and 2), appended last: `⌜WalsNamed Ls cl n⌝ ∗ walParked Ls cl` (`In
     claim's new history is no WAL directory's, a third half contradicts).
   - `Close` (W10): parks what the handle holds and returns `walUnlockedTok` (`walLockedTok_unlock`).
 
+**Seventh session (branch `wal-owner`, 2026-11-13; the invariant's owner): `wal-int` as merged built.**
+Three modules failed at `497f88bb04` (`wal-save5` merged); fixed:
+- `filePipeline__alloc` (136), `checkWALNames` (119): `zap.Logger.{Error,Warn}.spec` take `zapLoggerOk l`
+  (premise fixes 6, from `lean`) in place of `⌜l ≠ null⌝`; `wp_apply` frames the `□ zap.loggerRaw` part
+  from the persistent `zapLoggerOk lg` and leaves `⌜lg ≠ null⌝`: `iapply zapLoggerOk_ne_null`.
+- `TailAcc` (`walInvBody_tail`, W6) did not carry `wal-read3`'s `WalsNamed`/`walParked`. Carried
+  (`walsNamed_tail`, `walParked_tail`); the continuation's premise gains `g.name = g0.name` (its two callers in
+  `TailWriter`: `rfl`). **`walParked`'s segment entry changed** to `segResP g` (the program's halves of the
+  inode's `OsMeta` and of bytes as many as `g.bs`, any contents; `segRes_segResP`): an open handle changes
+  its tail's contents in the layout with its halves out, and the parked entry of the tail (out, but not known
+  to be out inside the lemma: the program's half that would contradict a parked one is not the lemma's)
+  must survive that. Open recovers the exact halves by agreement with the invariant's (`segResF`, idle).
+
 **The part's WAL package init (branch `wal-nc`, 2026-11-13).** `etc/gen-init.py` generates the
 `wp_initialize'` of the WAL's whole import closure in the part (`LFS_PKGS`): the part's `wal`, `walpb`,
 `fileutil`, `crc`, `hash/crc32` and raft root package (names-only); the main-tree translations below them
