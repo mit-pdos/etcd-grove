@@ -18,7 +18,7 @@ the worktree's untracked `questions.md` (decisions; never re-add it tracked).
   this stage's T5-c); 7f-0 partial (records only; the rest goes with 7f-6, Q7).
 - No Lean edited. Nothing built on this branch.
 
-## Handoff point (2026-11-13, fifth 7f-5 agent, final): 7f-3b mvcc part LANDED; v3rpc part next
+## Handoff point (2026-11-13, fifth 7f-5 agent, final): 7f-3b mvcc part LANDED (lean `570cea0725`); v3rpc part next
 
 Done (`3e90b6e741` on `k8s-7f5`; full build passes, 17487 jobs; tcb matches 870/4; gates all ok after
 the interfaces were regenerated, log `/shared/tmp/k8s7f3b/gates.log`):
@@ -43,8 +43,8 @@ the interfaces were regenerated, log `/shared/tmp/k8s7f3b/gates.log`):
   read-only form over `mvcc.evIs`) and `wrespIs_ro : wrespIs ⊢ |==> wrespRO`, applied at the send
   loop's two receipts. The v3rpc part of 7f-3b replaces this by the `PrevKv` write.
 
-81 approved the interface diff and accepted `wrespRO` as temporary; landed on lean (hash in the next
-handoff line / STATUS). **Next, a fresh agent: the v3rpc part of 7f-3b**, in this order (statements in
+81 approved the interface diff and accepted `wrespRO` as temporary; landed on lean `570cea0725`
+(gates all passed, `/shared/tmp/k8s7f3b/land.log`). **Next, a fresh agent: the v3rpc part of 7f-3b**, in this order (statements in
 `Draft7f3a.lean`: `swsMuP`, `watchReqOkP`, `client.rawRespOkP`, `prevKvLogOk`):
 1. `recvLoop` records `creq.PrevKv` in the `prevKV` map (`watch.go:342-349`): `swsMu` → `swsMuP`
    (entries allowed in `prevKV`, `fragment` still empty).
