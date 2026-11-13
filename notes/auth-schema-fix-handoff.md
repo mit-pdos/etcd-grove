@@ -12,12 +12,16 @@ userOptsIs`; MINOR reworded in `notes/auth-validspec-false.md`. Recorded: `notes
 `/shared/tmp/auth-safe/fix-tests/zz_authfix_optsuf_test.go` passes (run in
 `/shared/tmp/authfix-81/etcd/server`, c90b03b56, `GOWORK=off GOTOOLCHAIN=go1.27.3 go test
 ./storage/schema/ -run 'TestAuthFix(OptionsUnknownRoundTrip|GrantPermissionFresh)' -v`).
-Check status: see "Check (fifth step)" below. Then STOP for 81's re-review; land only on 81's go
+Checks passed (below). Then STOP for 81's re-review; land only on 81's go
 (command in "Finish done" further down).
 
 ## Check (fifth step)
 
-CHECK_PLACEHOLDER
+Done 2026-11-13: full build ok (17473 jobs, `/shared/tmp/authfix-81/full-build2.log`); `etc/gates.sh`
+all passed (`/shared/tmp/authfix-81/gates2.log`: tcb matches the baseline, 869 axioms, 4 sorries, no
+update; 55 collections match; interfaces ok, no diff; goose, pbschema, model-param, axiom-tok ok).
+STOPPED for 81's re-review. Pitfall seen: running `lake build` while `etc/lean-check.py` rebuilds
+imports truncates `.lake/build/ir/*.setup.json` ("unexpected end of input"): never both at once.
 
 ---- older handoff below ----
 
