@@ -68,7 +68,7 @@ theorem runsCover_fl {fl : SegFl} {g : SegG} (h : fl.Ok g) :
       (0, DFrac.own (1 : Qp).half, fl.bs.take (cfLo fl.m fl.off)),
       (cfHi fl.m fl.off fl.data.length, DFrac.own (1 : Qp).half,
         fl.bs.drop (cfHi fl.m fl.off fl.data.length))] g.bs := by
-  obtain ⟨hin, -, hlen, -, -, hbs⟩ := h
+  obtain ⟨hin, -, hlen, -, -, hbs, -⟩ := h
   have hlo : cfLo fl.m fl.off = fl.off := by unfold cfLo; omega
   have hhi : cfHi fl.m fl.off fl.data.length = fl.off + fl.data.length := by unfold cfHi; omega
   have hA : (pwAnn fl.data fl.n (cfRange fl.m fl.bs fl.off fl.data.length)).length = fl.data.length := by
