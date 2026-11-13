@@ -63,6 +63,8 @@ public import LinuxFs.Spec.go_etcd_io.etcd.pkg.v3.crc.digest__Sum32
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.PreSync
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutHdr
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutHdrStream
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutRen
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutAu
 
 @[expose] public section
 
@@ -544,6 +546,56 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   wp_apply (os.File.Seek.wp_cur f2 fd2 _ (DFrac.own 1) _ hfd2 hoS1 hoS2) $$ [$Hf2 $Hoff2]
     as ⟨Hf2, Hoff2⟩
   (try wp_auto)
+  -- step 6: `os.Rename(newTail.Name(), fpath)`
+  wp_method_call
+  wp_call
+  (try wp_auto)
+  wp_apply wp_Name f2 fd2 _ _ $$ [$Hf2] as Hf2
+  (try wp_auto)
+  -- the new segment
+  have hz0 : ∀ x ∈ zs2.map (fun c => ((0 : w8), c)), x.1 = 0 := by
+    intro x hx; obtain ⟨c, -, rfl⟩ := List.mem_map.1 hx; rfl
+  obtain ⟨hbsS, hLle⟩ := streamOk_vals hokS hz0
+  have hcutS : mS.cut = none := by rw [metaChain_cut hokS.2.1]; exact hcut2
+  have hszS : mS.size = max m2.size (0 + (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length) :=
+    metaChain_size hokS.2.1 (Nat.zero_le _)
+  have hysS : ysS.length = mS.size := by have := hokS.2.2.2.2.2.2.1; omega
+  generalize hg : (⟨walFileName (sq + 1) (max (uint.nat h.enti) (uint.nat h.snapi) + 1), i2, mS.synced,
+    ysS.map (fun x => durB x.1)⟩ : SegG) = g
+  have hgbsL : g.bs.length = ysS.length := by rw [← hg]; simp
+  have hgbs : g.bs = (tailStream Mr h.H h.md (h.cuts ++ [h.H.length]) ++ List.replicate
+      (g.bs.length - (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length) 0).map durB ∧
+      (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length ≤ g.bs.length := by
+    rw [hgbsL]; rw [← hg]; exact ⟨hbsS, hLle⟩
+  have hgmeta : g.om.size = g.bs.length ∧ g.om.cut = none ∧ g.om.lo = g.bs.length ∧
+      g.om.hi = g.bs.length := by
+    rw [hgbsL, hysS, ← hg]; simp [OsMeta.synced, hcutS]
+  have hL8 := recFrames_mod8 walCodec (tailRecs Mr h.H h.md (h.cuts ++ [h.H.length]))
+  rw [← tailStream_recs] at hL8
+  have hgz : g.bs.length - (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length = 0 ∨
+      8 ≤ g.bs.length - (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length := by
+    rw [hgbsL, hysS, hszS]; exact cutHdrZeros _ _ hsz8 hL8
+  have hLpos : 8 ≤ (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length := by
+    rw [hFr]; simp only [List.length_append, WalEnc.frame_length]; omega
+  have hgne : g.bs ≠ [] := by
+    intro h0; have h2 := hgbs.2; rw [h0, List.length_nil] at h2; omega
+  have hfitH : RecsFit walCodec (chainRecs walCodec (tailCrc Mr h.H h.md h.cuts)
+      (cutHdrDs Mr h.md (walLastHS (h.H.map WalOpG.toM)))) := by
+    apply recsFit_of_frames
+    rw [← tailRecs_cut Mr h.H h.md h.cuts hsorted' hle', ← tailStream_recs]; omega
+  -- the old tail
+  rw [h1H, h1enti, h1snapi] at hidx
+  have hbs0 : bs.length = (tailStream Mr h.H h.md h.cuts).length ∧ bs.length = m.size := by
+    have := tailStream_len_split Mr h1 hsplit (by rw [h1rest, hrest]) h1pend
+    rw [h1H, h1md, h1cuts] at this
+    refine ⟨?_, hmb.2.1.1⟩
+    rw [this, hmb.2.1.1, hmb.1, h1sz]
+  have hm0x : m.lo = m.size ∧ m.hi = m.size := ⟨hmb.2.1.2.2.2.1, hmb.2.1.2.2.2.2⟩
+  -- the name
+  have hlt : go.GoStringLt nm0 (walFileName (sq + 1) (max (uint.nat h.enti) (uint.nat h.snapi) + 1)) := by
+    rw [hnm0]; exact walFileName_lt sq ix (sq + 1) _ (by omega) hsq
+  have hbtw := walNameP_walFileName (sq + 1) (max (uint.nat h.enti) (uint.nat h.snapi) + 1)
+  have hcurbt := cutName_free hlargest hlt hbtw
   sorry
 
 end proof

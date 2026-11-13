@@ -145,7 +145,7 @@ theorem cutCommit_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {
   have hsn : SegsNamed lay.segs hj.cur := (hNm dir lay hl).1 hj ⟨X, hX, hcl, hcoh1⟩
   have hg0mem : g0 ∈ lay.segs := List.mem_of_getLast? hg0
   have hnm0e : nm0 = g0.name :=
-    walName_unique hnd0 hnm0.1 (hsn.1 g0 hg0mem).1 hnm0.2 (hsn.1 g0 hg0mem).2
+    walName_unique_nd hnd0 hnm0.1 (hsn.1 g0 hg0mem).1 hnm0.2 (hsn.1 g0 hg0mem).2
   -- `bt` is the largest `.wal` name
   have hlt : ∀ g' ∈ lay.segs, go.GoStringLt g'.name bt := by
     intro g' hg'
@@ -158,7 +158,7 @@ theorem cutCommit_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {
     have hi := mem_walInos hb he
     rw [habs.names.1] at hi
     obtain ⟨g', hg', rfl⟩ := List.mem_map.1 hi
-    have : b = g'.name := walName_unique hnd0 hb (hsn.1 g' hg').1 he (hsn.1 g' hg').2
+    have : b = g'.name := walName_unique_nd hnd0 hb (hsn.1 g' hg').1 he (hsn.1 g' hg').2
     rw [this]; exact hlt g' hg'
   have hexL : TailExact lay := fun g1 hg1 => by rw [hg0] at hg1; exact Option.some.inj hg1 ▸ hex0
   have habs' : WalAbsD C Mr d (cutLay lay d.H.length g wr) (<[bt := Node.file g.ino]> hj.cur) :=
