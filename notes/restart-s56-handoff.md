@@ -48,6 +48,26 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
   and the risks R1-R5 (§7).
 - Decisions go in the worktree's `questions.md` (untracked).
 
+## S6a: fork fix and step 5's image (2026-11-13, the S6 agent, fresh): next agent starts here
+
+- **Fork fix (the user's decision via 81).** upamanyus/etcd@2eaeb872b (`goose-lean-snaplink`, local
+  clone `/shared/tmp/restart-s56/etcd-fork`, on 0b50f0426 = origin `goose-lean`; **not pushed**):
+  `SaveDBFrom` links (`os.Link`), `ErrExist` = kept file. Test `TestSaveDBFromConcurrentSameIndex`
+  fails at 0b50f0426, passes at 2eaeb872b (`go test ./etcdserver/...` all ok). Pin bumped in
+  `etc/goose.py` and the three examples' go.mod/go.sum (hashes computed from the local clone through
+  `GIT_CONFIG_GLOBAL=/shared/tmp/restart-s56/gitconfig-fork GOPRIVATE=github.com/upamanyus/etcd`, an
+  `insteadOf` to the clone); retranslation: 0 files. `goose.py --check --src
+  etcd=/shared/tmp/restart-s56/etcd-fork` passes (`/shared/tmp/restart-s56/goose-check-snaplink.log`).
+  **Until the user pushes the fork branch, run gates/goose with `ETCD_SRC=/shared/tmp/restart-s56/etcd-fork`.**
+  Docstring, nonissue (fixed in the fork, `blocks-proof: yes`), decisions.md, freeze-s6a.md: updated.
+- **Step 5's remaining part, done except the equation (S6a-2):** `srvDiskImage` carries the member's
+  directory invariant at `γ.snapLoc id`, the removal counter's authority, `c ≤ i + 1`
+  (`InvRestart.lean`); `stop_cleanup_image` builds it from `srvSnapOwn`'s `srvSnapRO`; the member-id
+  link is a new premise of `stopCleanupImage.spec` (`srvMemberIDAddr C.s ↦□ C.rn.id`), which `run`
+  discharges from `srvSnapBagN`. Forms in `questions.md`.
+- Next (after the auth fix lands): S6a-2 (`m1-s6a2.patch`, the `srvSnapRO` and image equation, the
+  NewServer comment), then Phase B.
+
 ## S6a item 4: soundness finding (2026-11-13, the S6 agent): next agent starts here
 
 81 accepted the M1 forms (snapDirIs inside snapDirInv, snapDirOwn a definition, purgeFile unchanged,

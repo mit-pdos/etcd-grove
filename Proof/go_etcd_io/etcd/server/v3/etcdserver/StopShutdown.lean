@@ -370,6 +370,9 @@ abbrev stopCleanupImage.spec : Prop :=
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerC K C.s C.γ C.ci TM C.E C.ρ C.γr ∗
         isRaftNode Er C.rn (srvRAddr C.s) ∗
+        -- (restart S6a) the member id is the raft node's (`isServerRunC`'s `Hmid`): the image's
+        -- snapshot directory is at raft's names for it
+        srvMemberIDAddr C.s ↦□ C.rn.id ∗
         srvRunFieldsAt C.s C.γr γg γcx v SP ∗
         applyResStopR K C rp A ∗
         srvStop.cleanupPart C.s C.E ∗ srvStop.censusPart C.s C.E ∗ srvStop.imagePart C.s cfg C.rn ∗
@@ -420,7 +423,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
     (Hr : mvcc.api.mvccState_reachable.law (GF := GF)) :
     stopCleanupImage.spec (GF := GF) (hG := hG) := by
   intro K C rp A Er γg γcx v SP TM cfg dd hM hoff hEr hdisk hcmp
-  iintro %Φ ⟨#Hpkg, #Hsrv0, #Hrn, #Hrf, Hres, Hclp, Hcsp, Himp, #Hdd, Hrds, #Hba, Hvac,
+  iintro %Φ ⟨#Hpkg, #Hsrv0, #Hrn, #Hmidr, #Hrf, Hres, Hclp, Hcsp, Himp, #Hdd, Hrds, #Hba, Hvac,
     ⟨%S, %σ, Hrst, Hwc, %hσ, #Hσc⟩, #Hpool, #Hsa, Hlc, #Hreg, Hwd⟩ HΦ
   -- auth off
   cases K with
@@ -496,7 +499,14 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   -- the snapshot path's resources at the current backend: its stop channels at the store's write
   -- invariant, the constructors' half of the open token, the backend's file and its directory entry
   iunfold srvSnapOwn at Hso
-  icases Hso with ⟨%γt, %nt, -, -, -, Hsr⟩
+  icases Hso with ⟨%γm, %cm, #Hsro, %hcm, Hγm, Hsr⟩
+  -- (restart S6a) the member's snapshot directory, at raft's names for the member
+  iunfold srvSnapRO at Hsro
+  icases Hsro with ⟨%cfgs, %sso, %-, %-, %-, %γdo, %idm, %-, %-, %-, %-, %-, %-, %-, %Hsrop,
+    -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmidm, #Hsdinv, -⟩
+  icombine Hmidr Hmidm gives %hidm
+  have hloc : C.γr.raft.raft.snapLoc C.rn.id = some γdo := by
+    rw [hidm]; exact Hsrop.2.2.2.2.2.1
   iunfold srvSnapRes at Hsr
   icases Hsr with ⟨%d2, %al2, %dd2, %hd2, #Hsch, Hhalf, -, #Hdd2, Hpath, #Hbf⟩
   have hd2' : d2 = d := srvBkTie_inj d2 d (hd2.symm.trans hBT)
@@ -715,8 +725,22 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
     exact ⟨by rw [hk0.2]; exact h1, himg⟩
   isplitr
   · iexists u'; iexact Him'
-  ipureintro
-  exact ⟨by rw [HbL]; omega, hconf⟩
+  isplitr
+  · ipureintro; rw [HbL]; omega
+  isplitr
+  · ipureintro; exact hconf
+  -- (restart S6a) the snapshot directory: the apply thread's counter, at most past the ghost index
+  have hai0g : uint.nat ai0g ≤ uint.nat ai := by
+    have e1 := hp.2.1
+    have e2 := hp.2.2.2.2.2.1
+    word
+  iexists sso, γdo, γm, cm
+  isplitr
+  · ipureintro; exact ⟨hloc, by omega⟩
+  isplitr
+  · rw [show (fun j : w64 => monoNatLbOwn (GF := GF) γm (uint.nat j + 1)) = snapRmM γm from rfl]
+    iexact Hsdinv
+  iexact Hγm
 
 end proof
 

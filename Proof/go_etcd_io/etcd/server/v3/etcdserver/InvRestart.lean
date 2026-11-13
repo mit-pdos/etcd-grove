@@ -148,7 +148,13 @@ carries and this predicate does not yet.) (R6, 2026-11-07, the `lean` merge: the
 over mvcc's API, as `dbImage`'s since strict M1: the server's parts `imageRestAt`, the state reachable
 and short `imageStOk`, and mvcc's `mvccImage` of the KV model's history at its compaction revision
 (the receipt inside), in place of `imageAt`'s key image `keyImageM` and `IdxWf`, mvcc's internals;
-which also settles RESTART-RCPT's receipt.) -/
+which also settles RESTART-RCPT's receipt.) (Restart S6a, (b′), decided by etcd-grove-81 2026-11-13:
+the member's snapshot directory, so that a restart reuses the first start's invariant, which a
+stopped incarnation's snapshot handler may still update: the invariant over some snapshotter `ssₒ` of
+the stopped incarnation at `γ.snapLoc id` (`srvSnapRO`'s), and the removal counter's authority
+(`snapRmM γm`, written out: this module does not import `SnapRO`), at most `i + 1`, from the apply
+thread's `srvSnapOwn` at the graceful stop's applied index. The equation tying `ssₒ`'s paths to `dd`
+(`snapDBPathOf`) comes with S6a-2.) -/
 def srvDiskImage (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) : IProp GF :=
   iprop(∃ (S : RaftState) (σ : StorContents) (i : w64) (A : List EntryModel)
       (D : backend.Data) (m : Membership) (M : GMap Loc MemStorNamesRec),
@@ -164,7 +170,14 @@ def srvDiskImage (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) : IPr
     -- and the records' snapshot certificate (Q14 (a); its margin, a static cluster, in its docstring)
     wal.stopImage γ.cl S σ i ∗
     (letI : MemStorReg GF := ⟨γ.reg⟩; memStorRegAuth M) ∗
-    srvFiles dd id σ D ∗ backend.pathOwn (config.backendPathOf dd))
+    srvFiles dd id σ D ∗ backend.pathOwn (config.backendPathOf dd) ∗
+    -- (restart S6a, (b′)) the member's snapshot directory: the invariant its first start allocated
+    -- (at raft's names for the member, its images' certificate the cluster's auth mode's), and the
+    -- member's removal counter, at most one past the image's index
+    (∃ (ssₒ : Loc) (γd γm : GName) (c : Nat), ⌜γ.snapLoc id = some γd ∧ c ≤ uint.nat i + 1⌝ ∗
+      inv snapDirN (snapDirInv ssₒ γd (srvImageM γ.authOn γ)
+        (fun j => monoNatLbOwn γm (uint.nat j + 1))) ∗
+      monoNatAuthOwn γm 1 c))
 
 /-- The image records the raft names it is at (`ρ.rd.raft.raft = γ`). -/
 theorem srvDiskImage_raft (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) :
