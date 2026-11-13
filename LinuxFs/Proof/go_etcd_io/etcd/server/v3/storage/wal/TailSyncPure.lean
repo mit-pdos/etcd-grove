@@ -49,7 +49,7 @@ theorem tailBound_sync {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalL
     (htail : lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length) :
     TailBound C Mr { d with m := d.H.length } (syncLay lay pre g0) := by
   have hg0 : lay.segs.getLast? = some g0 := by rw [hs]; simp
-  obtain ⟨-, -, -, -, -, hz0, -, -⟩ := habs.last g0 hg0
+  obtain ⟨-, -, -, -, -, hz0, -, -⟩ := habs.lastWin g0 hg0
   refine ⟨((segRecs C Mr { d with m := d.H.length } lay.cuts).getD lay.cuts.length []).length,
     Nat.le_refl _, ?_⟩
   show (recFrames C (((segRecs C Mr d lay.cuts).getD lay.cuts.length []).take
@@ -64,16 +64,19 @@ theorem crashOk_sync {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} {
     (habs0 : WalAbsD C Mr d lay ents) (hs0 : lay.segs = pre ++ [g0])
     (htail : lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length)
     (hZ : TailZeros lay) (hnd0 : (lay.segs.map (·.ino)).Nodup)
-    (hzf : ∀ z, g0.om.zf = some z → g0.bs.length ≤ z)
+    (hzf : ∀ z, g0.om.zf = some z → g0.bs.length ≤ z) (hex : SegExact g0)
     (hok : CrashOk C Mr d lay cl n) :
     CrashOk C Mr { d with m := d.H.length } (syncLay lay pre g0) cl n := by
-  have habs := walAbsD_sync habs0 hs0 htail
+  have habs := walAbsD_sync habs0 hs0 hex htail
   have hB := tailBound_sync habs0 hs0 htail
   intro m' fo hr hf hnmd hw
   have hs : (syncLay lay pre g0).segs = pre ++ [syncTail g0] := rfl
   have hgm : syncTail g0 ∈ (syncLay lay pre g0).segs := by rw [hs]; simp
   have hg : (syncLay lay pre g0).segs.getLast? = some (syncTail g0) := by rw [hs]; simp
   have hg0 : lay.segs.getLast? = some g0 := by rw [hs0]; simp
+  have hTE : TailExact lay := fun g hg => by rw [hg0] at hg; cases hg; exact hex
+  have hxs : SegExact (syncTail g0) := by
+    simp [SegExact, syncTail, OsMeta.synced, (habs0.metas g0 (List.mem_of_getLast? hg0)).1]
   have hino : (syncTail g0).ino = g0.ino := rfl
   have hinos : (syncLay lay pre g0).segs.map (·.ino) = lay.segs.map (·.ino) := by
     rw [hs, hs0]; simp [hino]
@@ -93,8 +96,10 @@ theorem crashOk_sync {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} {
     intro f' hf'
     obtain ⟨f, hf1, rfl⟩ := Option.map_eq_some_iff.1 hf'
     obtain ⟨-, hlo, hhi, -, -⟩ := hf (syncTail g0) hgm f hf1
-    obtain ⟨-, -, hmlo, hmhi⟩ := habs.metas (syncTail g0) hgm
-    obtain ⟨-, -, hmlo0, hmhi0⟩ := habs0.metas g0 (List.mem_of_getLast? hg0)
+    have hmlo := hxs.1
+    have hmhi := hxs.2
+    have hmlo0 := hex.1
+    have hmhi0 := hex.2
     rw [hlen0] at hmlo hmhi
     have hsz : f.size = g0.bs.length := by omega
     have hsz' : (syncImg g0.bs f.size).size = g0.bs.length := hsz
@@ -103,7 +108,7 @@ theorem crashOk_sync {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} {
       rw [List.mem_singleton] at hr; subst hr
       simp only [Nat.zero_add] at hks ⊢
       rw [syncImg_cache g0.bs f.size k (show k < f.size from hks)]
-      obtain ⟨-, -, -, -, hbytes, -⟩ := habs0.last g0 hg0
+      obtain ⟨-, -, -, -, hbytes, -⟩ := (habs0.last g0 hg0).1 hex
       have hb := hbytes k (g0.bs[k]'hk) (List.getElem?_eq_getElem hk)
       have e : g0.bs.getD k (0, []) = g0.bs[k]'hk := by
         rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hk, Option.getD_some]
@@ -143,7 +148,7 @@ theorem crashOk_sync {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} {
       cases hfg : fo g'.ino with
       | none => simp [imgOf, hfg] at hb
       | some f' =>
-        have hm := habs0.metas g' hg'
+        have hm := habs0.metasEx hTE g' hg'
         have hfc := hf g' (by rw [hs]; simp [hgp])
         rw [hfg] at hfc
         have hc := img_durable hfc hdur hm.2.2.1 hm.2.2.2
@@ -163,7 +168,7 @@ theorem crashOk_sync {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} {
   have h0 := hok m' fo0 hr hf0 hn0 hw0
   have h' : CrashTo C Mr d (syncLay lay pre g0) m' fo0 :=
     crashTo_congr_lay (lay := lay) (lay' := syncLay lay pre g0) rfl rfl rfl rfl rfl hinos h0
-  exact crashTo_tailM hC habs hZ hB hnd hg d.m habs0.lastSynced h' hfo (hf _ hgm) (hnmd _ hgm) hw
+  exact crashTo_tailM hC habs hZ hB hnd hg hxs d.m habs0.lastSynced h' hfo (hf _ hgm) (hnmd _ hgm) hw
 
 /-- `syncLay` keeps the inodes. -/
 theorem syncLay_inos (lay : WalLay) (pre : List SegG) (g0 : SegG) (hs : lay.segs = pre ++ [g0]) :
@@ -178,7 +183,8 @@ theorem walsOk_sync {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} {jr
     (hW : WalsOk C Mr R jr s Ls cl n) (hd : s.wal !! dir = some d) (hl : Ls !! dir = some lay)
     (hs : lay.segs = pre ++ [g0])
     (htail : lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length) (hZ : TailZeros lay)
-    (hzf : ∀ z, g0.om.zf = some z → g0.bs.length ≤ z) (hok : CrashOk C Mr d lay cl n) :
+    (hzf : ∀ z, g0.om.zf = some z → g0.bs.length ≤ z) (hex : SegExact g0)
+    (hok : CrashOk C Mr d lay cl n) :
     WalsOk C Mr R jr (walSyncS s dir d) (<[dir := syncLay lay pre g0]> Ls) cl n := by
   obtain ⟨h1, h2, h3, h4, h5, h6⟩ := hW
   have hsub : ∀ dir' lay', (<[dir := syncLay lay pre g0]> Ls) !! dir' = some lay' →
@@ -200,9 +206,9 @@ theorem walsOk_sync {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} {jr
       rw [e] at hjr hnm hc habs
       have hnd : (lay.segs.map (·.ino)).Nodup := ((segsAll_nodup_iff Ls).1 h3).1 dir' lay hl
       exact ⟨syncLay lay pre g0, nm, hj, GMap.lookup_insert _ _ _, hA, hjr, hnm, hc,
-        walAbsD_sync habs hs htail,
+        walAbsD_sync habs hs hex htail,
         ⟨none, (fun _ h => nomatch h), (crashOkA_none_iff _ _ _ _ _ _).2
-          (crashOk_sync hC habs hs htail hZ hnd hzf hok)⟩⟩
+          (crashOk_sync hC habs hs htail hZ hnd hzf hex hok)⟩⟩
     · rw [walSyncS_lookup_ne s dir d e] at hd'
       obtain ⟨lay1, nm, hj, hl1, rest⟩ := h1 dir' d' hd'
       exact ⟨lay1, nm, hj, by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hl1, rest⟩
@@ -231,7 +237,7 @@ theorem dirKeysOk_sync {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} 
     (hW : WalsOk C Mr R jr s Ls cl n) (hd : s.wal !! dir = some d) (hl : Ls !! dir = some lay)
     (hs : lay.segs = pre ++ [g0])
     (htail : lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length) (hZ : TailZeros lay)
-    (hzf : ∀ z, g0.om.zf = some z → g0.bs.length ≤ z)
+    (hzf : ∀ z, g0.om.zf = some z → g0.bs.length ≤ z) (hex : SegExact g0)
     (h : DirKeysOk C Mr jr s Ls cl n K none) :
     DirKeysOk C Mr jr (walSyncS s dir d) (<[dir := syncLay lay pre g0]> Ls) cl n K none := by
   obtain ⟨h1, h2⟩ := h
@@ -250,7 +256,7 @@ theorem dirKeysOk_sync {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} 
       have hnd : (lay.segs.map (·.ino)).Nodup :=
         ((segsAll_nodup_iff Ls).1 hW.2.2.1).1 dir' lay hl
       have hok := (crashOkA_none_iff _ _ _ _ _ _).1 (h2 dir' d lay hd hl (by simp))
-      exact (crashOkA_none_iff _ _ _ _ _ _).2 (crashOk_sync hC habs hs htail hZ hnd hzf hok)
+      exact (crashOkA_none_iff _ _ _ _ _ _).2 (crashOk_sync hC habs hs htail hZ hnd hzf hex hok)
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hl'
       rw [walSyncS_lookup_ne s dir d e] at hd'
       exact h2 dir' d' lay' hd' hl' hc

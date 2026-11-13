@@ -44,7 +44,7 @@ theorem walDirAt_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s
     have := hin'.2.symm.trans hin.2
     exact (List.append_cancel_left this)
   subst e
-  exact ⟨lay, hl, hnm, by rw [← hnm] at hN ⊢; exact hA dir lay hl N h hc hN⟩
+  exact ⟨lay, hl, hnm, by rw [← hnm] at hN ⊢; exact hA.at hl hc hN⟩
 
 end pure
 
