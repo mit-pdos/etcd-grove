@@ -72,6 +72,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
+/-- The remaining length after a chunk, as a word (stated apart: `word` inside the write loop's
+context, with its byte lists, ran out of memory). -/
+theorem wr_rem_sub (a w cs : Nat) (h : w + cs ≤ a) :
+    W64 ((a - w : Nat) : Int) - W64 ((cs : Nat) : Int) = W64 ((a - (w + cs) : Nat) : Int) := by
+  rw [show ((a - (w + cs) : Nat) : Int) = ((a - w : Nat) : Int) - ((cs : Nat) : Int) by omega]
+  word
+
 set_option maxHeartbeats 0 in
 set_option maxRecDepth 20000 in
 /-- **`tx.write()` with the pages anywhere in the mapping** (`Tx.write_ext.spec`; see the file
@@ -628,7 +635,8 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
             show w + cs - w = cs by omega]
           iframe
         have hremv2 : W64 ((c.2.2.length - w : Nat) : Int) - W64 ((cs : Nat) : Int) =
-            W64 ((c.2.2.length - (w + cs) : Nat) : Int) := by word
+            W64 ((c.2.2.length - (w + cs) : Nat) : Int) :=
+          wr_rem_sub c.2.2.length w cs (by omega)
         rw [hremv2]
         wp_if_destruct
         · -- the page is written
