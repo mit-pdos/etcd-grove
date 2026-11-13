@@ -245,6 +245,13 @@ theorem crashOkA_cut (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay
     have := hX b hbX
     rw [hb] at this; cases this
 
+/-- **The layout before the cut is an alternative to the layout after it** (`AltOk`): the same WAL
+directory, its segments a strict prefix. -/
+theorem altOk_cut (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (ents : Ents)
+    (b : Nat) (g : SegG) (wr : Nat) (habs : WalAbsD C Mr d lay ents) :
+    AltOk C Mr d (cutLay lay b g wr) lay :=
+  ⟨⟨ents, habs⟩, rfl, rfl, rfl, ⟨[g], rfl⟩, by simp [cutLay]⟩
+
 end cutlay
 
 end WalFs

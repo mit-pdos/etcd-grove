@@ -6,7 +6,7 @@ The proof of `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__cut.lean` 
    write, `wal-save2`; the stream stops at its end with or without the zeros after it).
 2. `w.sync()` (`WAL.sync.spec`): `walSyncedLb |H|`, the layout's synced offset raised.
 3. the name: `w.seq()`, `max(w.enti, w.snapi) + 1`, `walName` (`fmt.SprintfWalName`), `filepath.Join`.
-4. `w.fp.Open()` (`filePipeline.Open.spec`, proved): `pipeQ j n` from the handle's `walPipeH`
+4. `w.fp.Open()` (`CutPipe.lean`'s `wp_walPipeH_open`, over `filePipeline.Open.spec`, proved): `pipeQ j n` from the handle's `walPipeH`
    (the claim on `pipeTmp (n + 1)`, `n + 1 < 2^63` from the spec's bound and `n ≤ cuts.length`),
    giving `pipeFile j dir n lf` (`N.tmp` whole, zeros, its claim) and `pipeMain γ (n + 1)`.
 5. `w.locks = append(...)`, `newFileEncoder(N.tmp, prevCrc)`, `saveCrc`, `encode(Metadata)`,
@@ -23,7 +23,8 @@ The proof of `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__cut.lean` 
 8. `newTail.Close()`, `fileutil.LockFile(fpath, O_WRONLY)` (an open of an existing `.wal` file in
    shared mode: `os.OpenFile.wp_fileS`), `Seek(off)`, `w.locks[last] = newTail`,
    `newFileEncoder`, the log line.
-The handle after: `walPipeH fp dir (cuts.length + 1)` from `pipeMain γ (n + 1)` and the claim the
+The handle after (`walPipeH_next`, `tmpClaim_absent`): `walPipeH fp dir (cuts.length + 1)` from
+`pipeMain γ (n + 1)` and the claim the
 next `Open` hands back, on `pipeTmp (n + 2) = pipeTmp n` (`pipeTmp_add_two`): the renamed name's,
 now absent, which is what the rename leaves.
 Also open: `walHandleIn`'s non-tail locks (`walLockH`: an exclusive `LockedFile.File` field) versus

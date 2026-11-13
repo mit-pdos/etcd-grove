@@ -175,15 +175,15 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 
 /-- **The tail's writer state after accepting `out`** (`W` of the tail's `io.writerStreamP`, see
-the file header): the file `f` (fd `fd`, write-only, of inode `i`), its offset at `o0 + |out|`, the
-program's halves of the tail's `OsMeta` (of size `sz`) and bytes, the handle's key to its tail
+the file header): the file `f` (fd `fd` of inode `i`, with write access: `Create` opens it
+write-only, `ReadAll` read-write), its offset at `o0 + |out|`, the program's halves of the tail's `OsMeta` (of size `sz`) and bytes, the handle's key to its tail
 record `γ` in `dir`, and its half of the record: history `H`, metadata `md`, cuts, write position
 `o0 + |out|`, inode `i`, no write in flight. -/
 def walTailW (f : Loc) (fd : w64) (name : GoString) (dir : GoString) (γ : GName) (i : Ino)
     (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (o0 sz : Nat) (out : List w8) :
     IProp GF :=
   letI := walAllG (W := W)
-  iprop(os.ownFile f fd name (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨i, false, true⟩ ∗
+  iprop(os.ownFile f fd name (DFrac.own 1) ∗ (∃ rd : Bool, osFd fd (DFrac.own 1) ⟨i, rd, true⟩) ∗
     os.ownOff f (W64 (o0 + out.length)) ∗ walTailKey (W := W) dir γ ∗
     ∃ (m : OsMeta) (bs : List ByteG),
     osMeta i (DFrac.own (1 : Qp).half) m ∗ osBytes i 0 (DFrac.own (1 : Qp).half) bs ∗

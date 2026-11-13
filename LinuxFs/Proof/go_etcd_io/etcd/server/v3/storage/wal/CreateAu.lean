@@ -342,7 +342,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
           iframe Hcra
           ipureintro; exact creatingOk_create hco Hcr hnmN hJjr
         isplitl [Htl]
-        · iapply walTailsRes_create s Ls F _ dir md lay hsd hF $$ Htl
+        · iapply walTailsRes_create C Mr s Ls F _ dir md lay hsd hF $$ Htl
         ipureintro; exact ⟨han', Han.2⟩
       imodintro
       dsimp only [walCreateQ]

@@ -1026,6 +1026,33 @@ error; `Close`: the token → the pipeline's claims (and the file in flight remo
   `etc/gen-link.py`'s `SEM_PREMISES` when filepath is linked.
 - Not done: `fileutil.ReadDir` (still wholly `sorry`), `filepathlite.Dir`/`IsAbs`.
 
+**Third session (branch `wal-cut3`, 2026-11-13): the pipeline proved.**
+- **Proved (no `sorry`):** `filePipeline.alloc`, `filePipeline.run`, `newFilePipeline` (with `Open`/`Close`
+  from the second session, the whole pipeline). Helpers in `PipeLemmas.lean`: `pipeTmp_sprintf`
+  (`Sprintf("%d.tmp", count % 2)` of `count < 2^63`), `osPathS_cleanAbs`/`join_child` (a directory with a
+  shared-mode path is a clean absolute path, so `filepath.Join(dir, b) = child dir b`), `osAUnc_triv` (the
+  trivial update of a caller holding the whole claim), `wp_createTmp` (`createNewWALFile(dir/b, true)` over
+  `os.OpenFile.specCreateTruncSnc` for an absent name, `os.OpenFile.wp_truncS` for a leftover file),
+  `wp_removeTmp`, `zerosA_trFile`. `CutPipe.lean`: `wp_walPipeH_open` (cut's step 4 from the handle),
+  `walPipeH_next` (the handle's pipeline after the rename), `tmpClaim_absent`. `CutLay.lean`: `altOk_cut`.
+- **Statement changes:** `tmpClaim j b` now owns what the name holds (`tmpEnt`: nothing, or a leftover
+  file whole, `trFile i False`; a directory excluded), since `alloc`'s `O_TRUNC` open of a leftover `N.tmp`
+  (`wp_truncS`) takes the file whole: the producer of the first claims (W5's `Open` after a crash) must hand
+  over a leftover tmp file's `OsMeta`/bytes with its claim. `isFilePipe` and `newFilePipeline.spec` carry
+  `dir.length < 2^61` (`filepath.Join`'s premise). `run.wp_proof` takes `os.Remove.specFileSnc` (was
+  `specFileS`); `alloc.wp_proof` takes `[os.file.FieldAssumptions]` (`wp_truncS`) and the open/Join/zap/
+  Close specs; both take `[fileutil.Assumptions]` (the promoted `LockedFile` methods).
+- **`AltOk`** gains `lay0.segs.length < lay.segs.length` (W6's decision); `crashOk_of_alt`,
+  `crashOk_dirSync`, `crashOkA_rename` unchanged; `CrashPure`'s `crashGood_exists` takes the prefix part.
+- **`cut` not started** (still `sorry`). What it needs beyond the pipeline: a crash-aware truncate of the
+  tail (step 1; no spec on `wal-int`); the header phase over the owned `N.tmp` (step 5): `walPreIn`
+  (W4's pre-rename `sync.specPre`) fixes `locks = [lt]` and lacks `dirFile`/`fp`/`state`, so `cut` needs
+  a generalized pre-rename handle (the old segments' locks and the WAL's other fields framed) and a
+  pre-rename `saveState`; the rename's client update `walCut_osAUnc` (as `walCreate_osAUnc`: opens
+  `walInv`, layout to `cutLay` with `alt = some lay` by `crashOkA_cut`/`altOk_cut`, deposits `N.tmp`'s
+  halves, and moves the tail record of `walTailsRes` to the new segment, establishing `TailBound`); the
+  dir sync then `crashOk_dirSync`; the re-lock (`LockFile` of an existing `.wal`, `os.OpenFile.wp_fileS`).
+
 ## W4 implementation log (branch `wal-create`, 2026-11-13)
 
 **Statements (`sorry`-stubbed proofs):** `LinuxFs/Spec/.../storage/wal/Create.lean` (`wal.Create.spec C Mr`),
@@ -1467,12 +1494,48 @@ contract.**
      fine. **For the coordinator** (trusted-semantics question, [user]): either the model's truncate and
      sync zero the page past the size (ext4 does: `block_truncate_page`, writeback zeroes past `i_size`),
      or the WAL's proof needs `pageUp size = size` of a reopened tail, which it cannot establish.
+     *Answered 2026-11-13* (`notes/axiom-review/eof-page.md`, branch `wal-eof`): ext4 zeroes the tail at every
+     `ftruncate` (not at a sync: a clean page keeps a stale tail), so the model is loose; proposal P2
+     (`ftruncate` announces zeros to the end of the old end's page) gives every byte from `off` on the one
+     candidate `(0, 0)` after `ZeroToEnd` and its `Fdatasync`; and a soundness gap found there (P1: writeback
+     zeroes the tail, a byte at or past `sizeLo` may come back zero). Both pending the user [user].
   So task 1 changes `WalAbsD.metas` and `SegG` (W1/W2/W4's files: `CrashPure`, `CrashStart`, `CutLay`,
   `CutSynced`, `CreateCommit`, `CrashTakeSeg`) and waits on item 3; not started, to avoid conflicts with
   the concurrent branches.
 - *Not done this session*: the step specs (`wp_tailPWriteStart`/`Finish`), `wal.tailWriter`, PageWriter and
   encoder over `writerStreamP`, the cuts budget, `saveEntry`/`saveState`/`sync`/`Save`/`SaveSnapshot`/`Sync`
   (all still `sorry`).
+
+**W6, fourth session (branch `wal-save4`, 2026-11-13): the record boundary and the append's crash
+condition lifted to `CrashOkA`.**
+- *`TailBound`* (`Inv.lean`, decided): `walTailsRes` takes `C Mr` and its per-tail pure part gained
+  `TailBound C Mr d lay` beside `TailZeros`: some `jE ≤ |R|` (`R` the last segment's records) with
+  `|recFrames (R.take jE)| = max so z0`. Depends on `d` only through `H`/`metadata` (`TailBound.congr`), so
+  `walTailsRes_mono`/`walTailsRes_create` carry it. **Obligations it adds**: whoever adds a tail record
+  (`Create`, `ReadAll`) and whoever moves `so`/`z0`/the tail (`sync`'s commit: `so := wr` with `pend = []`,
+  `jE = |R|`; `cut`'s new segment) proves it.
+- *Proved, pure, no `sorry`* (`TailCrash.lean`): `lastRecs`/`lastC0`/`lastHdr`/`lastOps` (the last segment's
+  records split off, `lastRecs_eq`, `allRecs_split`, `chainEnd_allRecs_split`, `chainOk_lastRecs`);
+  `tailImg Mr d cuts n` (the history before the last cut, then `histCut` of the last segment: a `walImg`
+  when `n` covers the synced records, `tailImg_walImg`; its last records are the first `|hdr| + n`,
+  `lastRecs_tailImg`; `walImg_toRaw`); **`crashTo_tail`** (the reader's `j` from `tail_decode` to
+  `CrashTo`, the tree part from a `CrashTo` over any other image `fo0` of the tail; the fresh reader of W1G
+  and the chained one agree since a cut segment starts with its CRC record, intact below `so`,
+  `acceptsFrom_crc0`); **`crashOkA_tail`** (a step changing only the tail's bytes and `wr` keeps
+  `CrashOkA`: the old condition applied with the tail imaged as of the last sync, `syncImg`, on which W1G
+  holds by itself, `w1G_sync`); `walAbsD_so_pos` (for `SegFl.Ok`'s `0 < off`, `wal-create4`).
+- *`crashOkA_tail`'s hypotheses the step proofs must discharge*: the tail's `OsMeta.zf` is none or at least
+  its length (`MetaOk.zf` gives it from the state); the tail's length unchanged (in-size writes); **no
+  alternative layout holds the tail** (`halt`): true in practice (a cut's alternative is the layout
+  before its rename, whose segments are the new one's but the last), but `AltOk` says only "a prefix";
+  proposed: `AltOk` gains `lay0.segs.length < lay.segs.length` (`crashOkA_cut` has it from `cutLay`), a W2
+  file, not changed here.
+- *`walTailW`* (`Handle.lean`): the fd is any with write access (`∃ rd, osFd fd 1 ⟨i, rd, true⟩`;
+  `ReadAll`'s tail is `O_RDWR`).
+- *Not done*: the Iris step specs (`wp_tailPWriteStart`/`Finish`: open `walInv` via `wp_atomic_nc`, update
+  `F`/`Ls`, `crashOkA_tail` for the crash part, `walAbsD` of the announced layout), `wal.tailWriter`, the
+  PageWriter/encoder over `writerStreamP`, the cuts budget, `saveEntry`/`saveState`/`sync`/`Save`/
+  `SaveSnapshot`/`Sync` (still `sorry`).
 
 ## W3/W5 implementation log (branch `wal-read`, 2026-11-13)
 
