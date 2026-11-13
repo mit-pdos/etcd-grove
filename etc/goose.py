@@ -292,7 +292,7 @@ PROJECTS = [
                     "go.etcd.io/bbolt=", "go.opentelemetry.io=", "os=", "io/fs=",
                     "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=", "net/http=",
                     "github.com/jonboulle/clockwork=",
-                    "net=", "hash=", "path=", "internal/bytealg=",
+                    "net=", "hash=", "path=", "internal/bytealg=", "internal/nettrace=",
                     "encoding/hex=", "container/heap=", "unicode/utf8=",
                     "github.com/Masterminds/semver=", "go.etcd.io/raft/v3=",
                     "golang.org/x/time=", "golang.org/x/crypto=", "github.com/xiang90/probing=",
@@ -504,13 +504,18 @@ PROJECTS = [
             # transport.TLSInfo's crypto/tls types, crypto/tls listed above), so that those
             # structs are translated (NewServer splits the configuration; unit N4, 2026-10-17)
             "net/url",
+            # types only (k8s 7f-4, Addendum T-h0): the context keys net/http's client reads
+            # (`httptrace.clientEventContextKey`, `nettrace.TraceKey`,
+            # `nettrace.LookupIPAltResolverKey`), named by `leasehttp.RenewHTTP.spec`'s premise
+            "net/http/httptrace",
+            "internal/nettrace",
         ],
         owned=[os.path.join("go_etcd_io", "etcd"),
                os.path.join("github_com", "prometheus"),
                os.path.join("github_com", "Masterminds"),
                os.path.join("k8s_io", "utils", "third_party"), "google_golang_org", "go_uber_org",
                "go_opentelemetry_io",
-               "net", "hash", "path", os.path.join("internal", "bytealg"), os.path.join("encoding", "hex"),
+               "net", "hash", "path", os.path.join("internal", "bytealg"), os.path.join("internal", "nettrace"), os.path.join("encoding", "hex"),
                os.path.join("crypto", "tls"),
                os.path.join("container", "heap"), os.path.join("unicode", "utf8"),
                os.path.join("github_com", "dustin"), os.path.join("github_com", "jonboulle"),
