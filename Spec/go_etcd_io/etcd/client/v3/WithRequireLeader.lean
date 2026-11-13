@@ -32,9 +32,12 @@ the caller's outgoing metadata copied, or new, with `hasleader` set; `NewOutgoin
 the fallback to translating it; `notes/k8s-7f5-freeze.md`, "T5-a addendum"), in `withVersion.spec`'s
 pattern, for a parent the client's watch takes (`watchCtx ctx s`) or `Background()`. The result `c`:
 
-* is a context the watch takes, at the parent's descriptor (`watchCtx c s`: its `Done`, `Err` and
-  `Value(&cancelCtxKey)` are the parent's, so its `Cause` is too; its outgoing metadata is one grpc
-  stored, `metadata.outgoingCtxOkC`);
+* has the parent's `Done()`, `Err()` and `Value(&cancelCtxKey)` (the first two promoted from the
+  embedded parent, the third `valueCtx.Value` walking to the parent: whatever a call of the
+  parent's does, the child's call does), and outgoing metadata grpc stored
+  (`metadata.outgoingCtxOkC c`); so a context the watch takes at the parent's descriptor (`watchCtx c s`, the proved law
+  `WithRequireLeader.watchCtx_of_post`; stated as these parts, not as `watchCtx`, because the
+  axiom-tok gate cannot walk `isContextDone` over the caller's `s`);
 * answers every key whose type is not grpc's `mdOutgoingKey` as the parent does, in the WP form
   (`c.Value(k)`, from the parent's `ctx.Value(k)` triple) and in the chain form
   (`context.ctxValue`, what a descendant's walk of `context.value` and `WithCancel` carry);
@@ -55,7 +58,18 @@ abbrev WithRequireLeader.spec : Prop :=
       (EtcdGrove.context.watchCtx ctx s ∨ ⌜ctx = _root_.Perennial.context.backgroundCtxVal⌝) }}
     (App (Val (@! go_etcd_io.etcd.client.v3.WithRequireLeader)) (Val #(GoInterface.ok ctx)))
   {{ (c : GoInterfaceOk), RET #(GoInterface.ok c);
-      (EtcdGrove.context.watchCtx ctx s -∗ EtcdGrove.context.watchCtx c s) ∗
+      □ (∀ Φ : val → IProp GF,
+          WP (App (Val #(methods ctx.ty go!"Done" ctx.v)) (Val #())) {{ Φ }} -∗
+          WP (App (Val #(methods c.ty go!"Done" c.v)) (Val #())) {{ Φ }}) ∗
+      □ (∀ Φ : val → IProp GF,
+          WP (App (Val #(methods ctx.ty go!"Err" ctx.v)) (Val #())) {{ Φ }} -∗
+          WP (App (Val #(methods c.ty go!"Err" c.v)) (Val #())) {{ Φ }}) ∗
+      □ (∀ Φ : val → IProp GF,
+          WP (App (Val #(methods ctx.ty go!"Value" ctx.v))
+            (Val #_root_.Perennial.context.cancelCtxKeyAny)) {{ Φ }} -∗
+          WP (App (Val #(methods c.ty go!"Value" c.v))
+            (Val #_root_.Perennial.context.cancelCtxKeyAny)) {{ Φ }}) ∗
+      metadata.outgoingCtxOkC c ∗
       □ (∀ (k : GoInterface) (R : GoInterface → Prop),
           ⌜∀ k' : GoInterfaceOk, k = GoInterface.ok k' →
             k'.ty ≠ google_golang_org.grpc.metadata.mdOutgoingKey.ty⌝ -∗

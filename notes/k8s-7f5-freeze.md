@@ -366,3 +366,28 @@ Approved as written: the disjunctive precondition (`watchCtx ctx s ∨ ⌜ctx = 
 `/shared/tmp/coord-81/t5a-review/adv/adv_test.go` (adversarial parents and keys) and
 `/shared/tmp/coord-81/t5a-review/rl_test.go`. No change to the text; the baseline needs no update
 (the axiom's name is unchanged, 869 axioms, 4 sorries).
+
+### The text decomposed for the axiom-tok gate (2026-11-13, decided by etcd-grove-81, no new review)
+
+`etc/land.sh` failed at axiom-tok: the walk of `WithRequireLeader.wp_proof` truncated at
+`isContextDone` inside the post's `watchCtx ctx s -∗ watchCtx c s` (the caller's `s`), and no `trunc`
+line may be added. 81's decision: decompose that clause into its parts, each of which the review
+checked separately (`Done`/`Err` promoted from the embedded parent; `#HOut`, grpc's `rawMD` stored by
+`NewOutgoingContext`), approved without a new review; `watchCtx ctx s -∗ watchCtx c s` becomes the
+proved law `WithRequireLeader.watchCtx_of_post` (`Proof/go_etcd_io/etcd/client/v3/WithRequireLeaderLaws.lean`).
+The clause is now:
+
+```lean
+□ (∀ Φ, WP ctx.Done() {{Φ}} -∗ WP c.Done() {{Φ}}) ∗
+□ (∀ Φ, WP ctx.Err() {{Φ}} -∗ WP c.Err() {{Φ}}) ∗
+□ (∀ Φ, WP ctx.Value(&cancelCtxKey) {{Φ}} -∗ WP c.Value(&cancelCtxKey) {{Φ}}) ∗
+metadata.outgoingCtxOkC c
+```
+
+**Flag for 81 (the agent's correction of its own claim):** the third part was not in 81's list. The
+agent had said `watchCtx`'s `#HCC` was already given by the `Value` transfer; it is not: that
+transfer's result predicate `R` is pure, and `#HCC`'s is `isCancelCtxAny v` (an Iris predicate: a
+`*cancelCtx` result is a valid one, `isCancelCtx c`). So the law needs `#HCC`'s own transfer, which is
+the reviewed `watchCtx c s`'s `Value(&cancelCtxKey)` clause (the review's "`Value(&cancelCtxKey)` the
+parent's"), stated over any `Φ`. Go evidence: `TestWithRequireLeaderCancelPropagates` and
+`TestWithRequireLeaderOtherKeys` (`Cause` and `WithCancel(c)` read `c.Value(&cancelCtxKey)`).

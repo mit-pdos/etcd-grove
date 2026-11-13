@@ -55,7 +55,7 @@ theorem NewLeaseFromLeaseClient.wp_proof
     wp_apply context.wp_Background
     have wp_WRL := wp_WithRequireLeader _root_.Perennial.context.backgroundCtxVal
       { Values := ∅, Deadline := none, Done_gn := ⟨0, 0⟩, PDone := iprop(True) }
-    wp_apply wp_WRL as %rc ⟨-, -, -, HWCb⟩
+    wp_apply wp_WRL as %rc ⟨-, -, -, -, -, -, HWCb⟩
     · iright; ipureintro; trivial
     ispecialize HWCb $$ %trivial
     icases HWCb with #HWC
@@ -102,7 +102,7 @@ theorem NewLeaseFromLeaseClient.wp_proof
     wp_apply context.wp_Background
     have wp_WRL := wp_WithRequireLeader _root_.Perennial.context.backgroundCtxVal
       { Values := ∅, Deadline := none, Done_gn := ⟨0, 0⟩, PDone := iprop(True) }
-    wp_apply wp_WRL as %rc ⟨-, -, -, HWCb⟩
+    wp_apply wp_WRL as %rc ⟨-, -, -, -, -, -, HWCb⟩
     · iright; ipureintro; trivial
     ispecialize HWCb $$ %trivial
     icases HWCb with #HWC
