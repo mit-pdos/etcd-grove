@@ -15,6 +15,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Main
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Check
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.seed
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.noStreaming
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.watchList
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.newObj
 public import Spec.go_etcd_io.etcd.client.v3.kubernetes.New
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.New
@@ -64,6 +65,7 @@ theorem Main.wp_proof
     (wp_kNew : kubernetes.New.spec (GF := GF) (hG := hG))
     (wp_seed : seed.spec (GF := GF) (hG := hG))
     (wp_noStreaming : noStreaming.spec (GF := GF) (hG := hG))
+    (wp_watchList : watchList.spec (GF := GF) (hG := hG))
     (wp_sNew : k8s.New.spec (GF := GF) (hG := hG))
     (wp_lmc : k8s.NewDefaultLeaseManagerConfig.spec (GF := GF) (hG := hG))
     (wp_newObj : newObj.spec (GF := GF) (hG := hG))
@@ -266,6 +268,14 @@ theorem Main.wp_proof
   | true =>
   ihave #Hrs : (k8s.rangeStreamOff : IProp GF) $$ [Hb]
   · iExactEq Hb; rfl
+  wp_auto
+  -- (k8s 7f-5, T5-c) `watchList()`: `WatchList` on, unused until the store's watch (7f-6)
+  wp_apply wp_watchList as %b2 -
+  cases b2 with
+  | false =>
+    wp_auto
+    iapply HΦ; ipureintro; right; rfl
+  | true =>
   wp_auto
   iclear Hregs1 Hsi1
   imod (seedInv_cancel γs ρ.rd.kv σs2) $$ [Hs] with Hetcd

@@ -525,6 +525,7 @@ axiom io.MultiReader.wp_proof
 axiom io.Pipe.wp_proof
 axiom io.PipeWriter.CloseWithError.wp_proof
 axiom k8sfeature.featureOff_persistent
+axiom k8sfeature.featureOn_persistent
 axiom klog.V.wp_proof
 axiom klog.Verbose.Infof.wp_proof
 axiom labels.Everything.wp_proof

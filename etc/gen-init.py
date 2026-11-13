@@ -737,7 +737,7 @@ untranslated `init` functions the trust-boundary axiom `initFuncsOk` says return
 SPECIAL['k8s_io.apiserver.pkg.features'] = dict(
     doc='''Its fact (`featuresInit`, `storage/etcd3/Base.lean`): `DefaultFeatureGate` holds a gate with
 the specs of `k8sfeature.featureGateOk` (`util/feature/Gate.lean`: `Enabled` of the queried
-features, `Set` of one to `false`). Its initializer initializes its import (`util/feature`, whose
+features, `Set` of one to its `k8sSetValue`). Its initializer initializes its import (`util/feature`, whose
 fact gives the gate) and runs its variable's untranslated initializer (`opaqueInitsOk`) and its
 untranslated `init` (`kube_features.go:347-350`, `DefaultMutableFeatureGate.AddVersioned(...)` and
 `zpagesfeatures.AddFeatureGates(...)` under `runtime.Must`), whose trust-boundary axiom
