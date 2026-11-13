@@ -567,6 +567,14 @@ holds some mode). Nothing proves the new models yet.
   replaced: `io.ReadFull`/`binary.Read` by translations of their Go bodies (Perennial: `io` is
   names-only there), the `fmt` ones by a Perennial `Sprintf`/`Sscanf` model of `%0Nx`, `Time.Format` by
   a model returning any string.
+- **`wal-leaf-std2`** (2026-11-13): `(*bufio.Reader).Read` proved over its translated body (every
+  branch: an empty `p`, a pending error, the large read straight into `p`, the one-read refill, the
+  copy out of the buffer; `LinuxFs/Proof/bufio/Reader__Read.lean`). `io.ReadFull`/`binary.Read`: not
+  translatable in the part (a part-local `io` would clash with Perennial's `io`, which the part's other
+  standard-library imports reach), so the two axioms stay until Perennial translates the bodies
+  (`notes/perennial-changes.md`, "`io.ReadFull`/`ReadAtLeast` and `binary.Read`'s fast path without
+  bodies"); the `fmt`/`time` ones likewise ("`Sprintf`'s `%0Nx`, ..."), with Go evidence for all three
+  in `examples/stdlib/{fmtwalname,timeformat}/`.
 
 **Pending the user's review (trusted or axiomatic), all off `lean`:** the fork fixes (§8,
 `notes/wal-fsext-fork/`); W1 (the crash premise, `LinuxFs/.../wal/W1.lean`; the open question of torn
