@@ -18,6 +18,26 @@ the worktree's untracked `questions.md` (decisions; never re-add it tracked).
   this stage's T5-c); 7f-0 partial (records only; the rest goes with 7f-6, Q7).
 - No Lean edited. Nothing built on this branch.
 
+## Handoff point (2026-11-13, fourth 7f-5 agent): T5-a fallback done; STOPPED for 81's axiom review
+
+Done (on `k8s-7f5`, not landed; lean has moved on, merge it before landing):
+- `17c793098e`: translation of `WithRequireLeader` and grpc metadata's helpers
+  reverted, `WithPrevKV` kept; `etc/goose.py --project etcd`, `--check` pass; `etc/gen-init.py`
+  (`--check` passes; metadata `Init` and the `PkgTable`s back to lean's); metadata's SpecPlan PkgInit
+  back. Untracked SpecPlan PkgInit files the generator created (older drift on lean, listed in
+  `/shared/tmp/k8s7f3a/specplan-untracked-drift.txt`) are left untracked, not committed.
+- `fddf2cdf9b`: `WithRequireLeader.spec` restated (pre `watchCtx ctx s ∨ ⌜ctx = backgroundCtxVal⌝`;
+  post `watchCtx ctx s -∗ watchCtx c s`, the WP and chain `Value` transfers for keys not of
+  `mdOutgoingKey`'s type, and the old `WithCancel(c)` triple under `⌜ctx = backgroundCtxVal⌝`);
+  `NewLeaseFromLeaseClient` adjusted (an arbitrary `s`, the right disjunct); `specGen` removed from
+  `Draft7f3a.lean`; Go tests `examples/premisefix/watcherctx/requireleader_spec_test.go` (all pass);
+  freeze note "T5-a addendum"; Scope §8 Q2 superseded; questions.md entries.
+- Build and tcb results: the freeze note's "T5-a addendum", "Checks".
+
+Next: 81's axiom review of the T5-a addendum; apply its fixes; `etc/tcb-report.py --check --update`
+only if the text changed the baseline (expected: no line change, the axiom's name is the same);
+merge lean; land on 81's go. Then 7f-3b (D2: mvcc's response contract hands over an owned `PrevKv`).
+
 ## Handoff point (2026-11-13, end of the third 7f-5 agent): S2 decided; T5-a fallback next
 
 81's S2 decisions (2026-11-13, also in questions.md):
