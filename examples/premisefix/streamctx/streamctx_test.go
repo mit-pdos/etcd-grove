@@ -32,6 +32,11 @@
 //     (T-h5, a nil *cancelCtx at &cancelCtxKey: hence context.madeCancelCtx) and
 //     TestRenewHTTPAfterFuncPanics (T-j, no *cancelCtx found and a panicking AfterFunc: hence
 //     ctxDoneErr keeps #HParentCC).
+//   - T-k (TestRunCtxChain, TestRunCtxChainUnary, TestCauseCancellable): context.Cause of grpc's run
+//     context, once the call ends, is a context error (grpcRunCtx's v3rpc.ctxCauseOk); of etcd's
+//     wrapper and of WithTimeout/WithCancelCause/WithValue children of it, nil, a context error or
+//     ErrGRPCNoLeader at every point (v3rpc.ctxCauseOk_cancellable, wp_WithTimeout_weak's post).
+//     TestRenewHTTPCausePanics: what ctxCauseOk excludes (a WithDeadlineCause cause).
 package streamctx
 
 import (
@@ -218,12 +223,15 @@ func TestRunCtxChain(t *testing.T) {
 					}
 					got := make(chan []string, 1)
 					keys := make(chan []string, 1)
+					ctxs := make(chan context.Context, 1)
 					cc := start(t, opts, func(_ any, ss grpc.ServerStream) error {
 						got <- chain(ss.Context())
 						keys <- chainKeys(ss.Context())
+						ctxs <- ss.Context()
 						return nil
 					})
 					runStream(t, cc, dl)
+					checkCauseAfter(t, name, <-ctxs)
 					tys := <-got
 					for _, k := range <-keys {
 						if netKeyTys[k] {
@@ -256,6 +264,7 @@ func TestRunCtxChainUnary(t *testing.T) {
 		}
 		got := make(chan []string, 1)
 		keys := make(chan []string, 1)
+		ctxs := make(chan context.Context, 1)
 		s := grpc.NewServer(opts...)
 		s.RegisterService(&grpc.ServiceDesc{ServiceName: "t.U", HandlerType: (*any)(nil),
 			Methods: []grpc.MethodDesc{{MethodName: "M", Handler: func(_ any, ctx context.Context,
@@ -266,6 +275,7 @@ func TestRunCtxChainUnary(t *testing.T) {
 				}
 				got <- chain(ctx)
 				keys <- chainKeys(ctx)
+				ctxs <- ctx
 				return new(emptypb.Empty), nil
 			}}}}, struct{}{})
 		l, err := net.Listen("tcp", "127.0.0.1:0")
@@ -281,6 +291,7 @@ func TestRunCtxChainUnary(t *testing.T) {
 			t.Fatal(err)
 		}
 		tys, ks := <-got, <-keys
+		checkCauseAfter(t, fmt.Sprintf("unary otel=%v", otel), <-ctxs)
 		for _, k := range ks {
 			if netKeyTys[k] {
 				t.Errorf("otel=%v: a link at net/http's key %s", otel, k)
@@ -824,5 +835,119 @@ func TestRenewHTTPCausePanics(t *testing.T) {
 			t.Fatalf("live=%v: errors.Is did not panic (T-k no longer holds: update the notes)", live)
 		}
 		t.Logf("live=%v: err=%v; recovered: %v", live, err, r)
+	}
+}
+
+// checkCauseAfter: once the call has ended, the handler's context is done and context.Cause of it
+// is a context error (Addendum T-k, grpcRunCtx's v3rpc.ctxCauseOk).
+func checkCauseAfter(t *testing.T, name string, ctx context.Context) {
+	t.Helper()
+	select {
+	case <-ctx.Done():
+	case <-time.After(10 * time.Second):
+		t.Fatalf("%s: the handler's context is not done after the call", name)
+	}
+	if c := context.Cause(ctx); c != context.Canceled && c != context.DeadlineExceeded {
+		t.Errorf("%s: Cause of the run context is %T %v", name, c, c)
+	}
+}
+
+// causeOk: nil, a context error or ErrGRPCNoLeader (v3rpc.ctxCauseOk's set).
+func causeOk(c error) bool {
+	return c == nil || c == context.Canceled || c == context.DeadlineExceeded || c == rpctypes.ErrGRPCNoLeader
+}
+
+func newWrapperOf(parent context.Context) *cancellableContext {
+	inner, cancel := context.WithCancel(parent)
+	return &cancellableContext{Context: inner, cancel: cancel}
+}
+
+// TestCauseCancellable (Addendum T-k): context.Cause of etcd's require-leader wrapper and of the
+// children context makes over it (WithTimeout, as LeaseRenew; WithCancelCause, as net/http's
+// transport; through a WithValue, as Tracer.Start) is nil, a context error or ErrGRPCNoLeader:
+// before any cancel; in the window between Cancel's reason and its cancel() (Cause returns the
+// reason, ErrGRPCNoLeader); after Cancel(ErrGRPCNoLeader) (Canceled, the inner cancelCtx's cause);
+// after the run context's cancel; and on a child's own timeout.
+func TestCauseCancellable(t *testing.T) {
+	type kv struct{}
+	check := func(what string, ctx context.Context, want error) {
+		t.Helper()
+		c := context.Cause(ctx)
+		if !causeOk(c) {
+			t.Errorf("%s: Cause %T %v outside the set", what, c, c)
+		}
+		if c != want {
+			t.Errorf("%s: Cause %v, want %v", what, c, want)
+		}
+	}
+	// the window: the reason stored, cancel() not yet called
+	{
+		w := newWrapperOf(context.Background())
+		check("live wrapper", w, nil)
+		w.mu.Lock()
+		w.cancelReason = rpctypes.ErrGRPCNoLeader
+		w.mu.Unlock()
+		check("wrapper in Cancel's window", w, rpctypes.ErrGRPCNoLeader)
+		c1, cancel1 := context.WithTimeout(w, time.Hour)
+		defer cancel1()
+		check("WithTimeout child made in the window (registered, live)", c1, nil)
+		w.cancel()
+		check("wrapper after the window", w, context.Canceled)
+		<-c1.Done()
+		check("child after the window", c1, context.Canceled)
+	}
+	// Cancel(ErrGRPCNoLeader), children made before and after
+	{
+		parent, pcancel := context.WithCancel(context.Background())
+		defer pcancel()
+		w := newWrapperOf(parent)
+		before, cb := context.WithTimeout(context.WithValue(w, kv{}, 1), time.Hour)
+		defer cb()
+		beforeC, cbc := context.WithCancelCause(w)
+		defer cbc(nil)
+		w.Cancel(rpctypes.ErrGRPCNoLeader)
+		check("wrapper after Cancel(ErrGRPCNoLeader)", w, context.Canceled)
+		<-before.Done()
+		check("WithTimeout child made before", before, context.Canceled)
+		<-beforeC.Done()
+		check("WithCancelCause child made before", beforeC, context.Canceled)
+		after, ca := context.WithTimeout(context.WithValue(w, kv{}, 1), time.Hour)
+		defer ca()
+		check("WithTimeout child made after", after, context.Canceled)
+		if after.Err() != rpctypes.ErrGRPCNoLeader {
+			t.Errorf("child made after: Err %v, want ErrGRPCNoLeader", after.Err())
+		}
+		afterC, cac := context.WithCancelCause(w)
+		defer cac(nil)
+		check("WithCancelCause child made after", afterC, context.Canceled)
+	}
+	// the run context cancelled
+	{
+		parent, pcancel := context.WithTimeout(context.Background(), time.Hour)
+		w := newWrapperOf(parent)
+		ch, cc := context.WithTimeout(w, time.Hour)
+		defer cc()
+		pcancel()
+		<-w.Done()
+		<-ch.Done()
+		check("wrapper after the run context's cancel", w, context.Canceled)
+		check("its child", ch, context.Canceled)
+		p2, p2cancel := context.WithTimeout(context.Background(), time.Millisecond)
+		defer p2cancel()
+		w2 := newWrapperOf(p2)
+		<-w2.Done()
+		check("wrapper after the run context's deadline", w2, context.DeadlineExceeded)
+	}
+	// the child's own timeout and cancel
+	{
+		w := newWrapperOf(context.Background())
+		ch, cc := context.WithTimeout(w, time.Millisecond)
+		defer cc()
+		<-ch.Done()
+		check("child's own timeout", ch, context.DeadlineExceeded)
+		check("wrapper meanwhile", w, nil)
+		ch2, cc2 := context.WithTimeout(w, time.Hour)
+		cc2()
+		check("child's own cancel", ch2, context.Canceled)
 	}
 }
