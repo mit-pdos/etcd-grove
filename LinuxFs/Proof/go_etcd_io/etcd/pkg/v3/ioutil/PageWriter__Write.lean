@@ -46,7 +46,8 @@ theorem ioutil.wp_Write_fits (pw : Loc) (wi : GoInterfaceOk) (W : List w8 → IP
   ihave %Hbwf := ownSlice_wf _ _ _ $$ Hbuf
   ihave %Hplen := ownSlice_len _ _ _ $$ Hp
   ihave %Hpwf := ownSlice_wf _ _ _ $$ Hp
-  obtain ⟨hpB, hpBle, hoff0, hoff1, hbb0, hbbw, hlen⟩ := Hok
+  have hbbw := ioutil.pwOk_bb_le Hok
+  obtain ⟨hpB, hpBle, hoff0, hoff1, hbb0, -, -, hlen⟩ := Hok
   simp only [ioutil.wmBytes] at hpBle hbbw hlen
   have hbl : sint.Z buf.len = 131072 + sint.Z pB := by
     have := Hblen.1; word
@@ -56,7 +57,7 @@ theorem ioutil.wp_Write_fits (pw : Loc) (wi : GoInterfaceOk) (W : List w8 → IP
   have hm1 := Int.emod_lt_of_pos (sint.Z off + sint.Z bb) hpB
   have hbbn : (sint.nat bb : Int) = sint.Z bb := by
     have : sint.nat bb = (sint.Z bb).toNat := rfl; omega
-  have hbblt : sint.Z bb < (bs.length : Int) := by omega
+  have hbblt : sint.Z bb ≤ (bs.length : Int) := by omega
   have htk : (bs.take (sint.nat bb)).length = sint.nat bb := by
     rw [List.length_take]; omega
   rw [htk] at hfit
@@ -89,9 +90,7 @@ theorem ioutil.wp_Write_fits (pw : Loc) (wi : GoInterfaceOk) (W : List w8 → IP
     dsimp only
     iframe
     ipureintro
-    refine ⟨rfl, rfl, ⟨hpB, hpBle, hoff0, hoff1, by omega, ?_, ?_⟩, ?_⟩
-    · have := Int.emod_nonneg (sint.Z off + sint.Z (bb + p.len)) (by omega : sint.Z pB ≠ 0)
-      simp only [ioutil.wmBytes]; omega
+    refine ⟨rfl, rfl, ioutil.pwOk_of_le hpB hpBle hoff0 hoff1 (by omega) (by simp only [ioutil.wmBytes]; omega) ?_, ?_⟩
     · simp only [List.length_append, List.length_take, List.length_drop, ioutil.wmBytes]; omega
     · rw [hsumn, ← List.append_assoc]
       exact (List.take_left' (by rw [List.length_append, htk])).symm
@@ -101,6 +100,52 @@ theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Write.wp_proof
     (wp_Flush : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Flush.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Write.spec (GF := GF) (hG := hG) := by
   intro pw wi W out pend p xs dq hxs
+  by_cases hfit : pend.length + xs.length ≤ 131072
+  · iintro #Hw
+    ihave #Hf := ioutil.wp_Write_fits pw wi W out pend p xs dq hxs hfit $$ Hw
+    iintro !> %Φ Hpre HΦ
+    iapply Hf $$ Hpre
+    iintro !> %n %err ⟨%Hr, Hout, Hpw, Hp⟩
+    iapply HΦ
+    iexists [], pend ++ xs
+    rw [List.append_nil]
+    iframe
+    ipureintro
+    refine ⟨fun _ => ⟨rfl, Hr.2⟩, fun h => absurd Hr.1 h⟩
+  iintro #Hw
+  wp_start as ⟨Hpw, Hout, Hp⟩
+  iunfold ioutil.ownPageWriter at Hpw
+  icases Hpw with ⟨%v, %bs, Hv, Hbuf, %Hwf⟩
+  obtain ⟨Hwv, Hwm, Hok, Hpend⟩ := Hwf
+  obtain ⟨w, off, pB, bb, buf, wm⟩ := v
+  simp only at Hwv Hwm Hok Hpend
+  subst Hwv Hwm Hpend
+  dsimp only
+  ihave %Hblen := ownSlice_len _ _ _ $$ Hbuf
+  ihave %Hbwf := ownSlice_wf _ _ _ $$ Hbuf
+  ihave %Hplen := ownSlice_len _ _ _ $$ Hp
+  ihave %Hpwf := ownSlice_wf _ _ _ $$ Hp
+  have hbbw := ioutil.pwOk_bb_le Hok
+  obtain ⟨hpB, hpBle, hoff0, hoff1, hbb0, -, -, hlen⟩ := Hok
+  simp only [ioutil.wmBytes] at hpBle hbbw hlen
+  have hbl : sint.Z buf.len = 131072 + sint.Z pB := by
+    have := Hblen.1; word
+  have hpl : sint.Z p.len = xs.length := by
+    have := Hplen.1; word
+  have hm0 := Int.emod_nonneg (sint.Z off + sint.Z bb) (by omega : sint.Z pB ≠ 0)
+  have hm1 := Int.emod_lt_of_pos (sint.Z off + sint.Z bb) hpB
+  have hbbn : (sint.nat bb : Int) = sint.Z bb := by
+    have : sint.nat bb = (sint.Z bb).toNat := rfl; omega
+  have hbblt : sint.Z bb ≤ (bs.length : Int) := by omega
+  have htk : (bs.take (sint.nat bb)).length = sint.nat bb := by
+    rw [List.length_take]; omega
+  rw [htk] at hfit
+  wp_auto
+  wp_if_destruct
+  · exfalso; apply hfit
+    have h : sint.Z (p.len + bb) = xs.length + sint.Z bb := by word
+    have h2 : sint.Z (W64 131072) = 131072 := by decide
+    omega
   sorry
 
 end proof

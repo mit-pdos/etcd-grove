@@ -35,7 +35,8 @@ theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.flush.wp_proof :
   ihave %Hblen := ownSlice_len _ _ _ $$ Hbuf
   ihave %Hbwf := ownSlice_wf _ _ _ $$ Hbuf
   simp only at Hblen Hbwf
-  obtain ⟨hpB, hpBle, hoff0, hoff1, hbb0, hbbw, hlen⟩ := Hok
+  have hbbw := ioutil.pwOk_bb_le Hok
+  obtain ⟨hpB, hpBle, hoff0, hoff1, hbb0, -, -, hlen⟩ := Hok
   simp only [ioutil.wmBytes] at hpBle hbbw hlen
   have hbl : sint.Z buf.len = 131072 + sint.Z pB := by
     have := Hblen.1; word
@@ -53,7 +54,7 @@ theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.flush.wp_proof :
     dsimp only
     iframe
     ipureintro
-    refine ⟨rfl, rfl, ⟨hpB, hpBle, hoff0, hoff1, by word, by word, hlen⟩, by simp⟩
+    refine ⟨rfl, rfl, ioutil.pwOk_of_le hpB hpBle hoff0 hoff1 (by word) (by word) hlen, by simp⟩
   · have hbblen : sint.Z bb ≤ sint.Z buf.len := by
       have := Int.emod_nonneg (sint.Z off + sint.Z bb) (by omega : sint.Z pB ≠ 0)
       have := Int.emod_lt_of_pos (sint.Z off + sint.Z bb) hpB
@@ -83,12 +84,8 @@ theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.flush.wp_proof :
     dsimp only
     iframe
     ipureintro
-    refine ⟨rfl, rfl, ⟨hpB, hpBle, by omega, by omega, by word, ?_, hlen⟩, by simp⟩
-    rw [hsrem]
-    simp only [ioutil.wmBytes]
-    have h0 : sint.Z (W64 0) = 0 := by decide
-    rw [h0, Int.add_zero, Int.emod_emod_of_dvd _ (Int.dvd_refl _)]
-    omega
+    refine ⟨rfl, rfl, ioutil.pwOk_of_le hpB hpBle (by omega) (by omega) (by word) (by word) hlen,
+      by simp⟩
 
 end proof
 
