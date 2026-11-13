@@ -1109,7 +1109,12 @@ update: `s.wal dir := walDurFresh md`, the new layout and its `CrashOk`); then `
   file's naming), the WALs' directories distinct from `jr`; (c) `Nodup` of the inodes by the meta
   halves' validity. Not stated yet (its `AbsentNone` premise and the claim's agreement need the two
   conjuncts above first).
-- *Not done:* the commit lemma, `AbsentNone`, `walCreatingAuth`; `wal.Create.wp_proof`,
+- **`walCreating` in (coordinator's decision, same session):** `WalGS.γcr`; `walCreatingAuth CR` (the
+  invariant's, a ghost map `dir ↦ (N, h)`) and `walCreating dir N h` (the program's whole element),
+  `Ghost.lean`; `walInvBody`'s last conjunct `∃ CR, walCreatingAuth CR ∗ ⌜CreatingOk jr cl CR⌝`
+  (`Inv.lean`: every entry a claim `(jr, N, h)` of `cl`); `walGhost_init` allocates it empty, `walStart`
+  carries it, `walInv_alloc` puts it in, `walInv_crash` drops the old one. No other statement changed.
+- *Not done:* the commit lemma, `AbsentNone`; `wal.Create.wp_proof`,
   `fileutil.TouchDirAll.wp_proof`, `fileutil.CreateDirAll.wp_proof` (still `sorry`).
 
 ## 11. Coordinator decisions after W2 and W4 (2026-11-13)

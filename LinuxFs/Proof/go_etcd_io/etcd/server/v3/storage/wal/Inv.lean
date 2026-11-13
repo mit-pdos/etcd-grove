@@ -12,7 +12,9 @@ roots `R`), in the tree's shared mode (`notes/wal-fsext-i2-design.md`). It holds
 * the static relation (`WalAbsD`) and the crash condition (`CrashOk`) of every WAL;
 * that a directory of the area with no WAL has none after any crash its claims allow (`AbsentOk`),
   and that a durable directory (`dirDurable`) resolves after any crash (`DirsOk`);
-* `Create`'s framed part (`WalsCreateOk`, W4): a claim of the area holds every WAL name.
+* `Create`'s framed part (`WalsCreateOk`, W4): a claim of the area holds every WAL name; and the
+  creating map's authority (`walCreatingAuth`, `CreatingOk`): each `Create` in progress's area claim,
+  among the invariant's (the program's `walCreating` token names it).
 
 W2 (`Cut.lean`): the WAL directory's claim leaves out the pipeline's names (`WalDirClaim`, the
 `N.tmp` claims are the pipeline's) and is coherent; the crash condition may carry the layout before
@@ -79,6 +81,11 @@ to be one the invariant has the other half of (`NamesCoh.disj`), whose crashes i
 def WalsCreateOk (jr : Ino) (cl : List Claim) : Prop :=
   ∀ nm, walNameOk nm → ∃ N h, (jr, N, h) ∈ cl ∧ N.Mem nm
 
+/-- **The WALs being created are renamed in claims the invariant holds** (W4, framed): each entry
+`dir ↦ (N, h)` of the creating map is a claim `(jr, N, h)` of the area directory among `cl`. -/
+def CreatingOk (jr : Ino) (cl : List Claim) (CR : GMap GoString (NameSet × NamesH)) : Prop :=
+  ∀ dir N h, CR !! dir = some (N, h) → (jr, N, h) ∈ cl
+
 end pure
 
 section inv
@@ -111,7 +118,8 @@ def walInvBody (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoSt
   iprop(∃ (Ls : GMap GoString WalLay) (cl : List Claim) (n : Nat),
     walGhost (W := W) s ∗ ⌜s.area = r⌝ ∗
     osClaims L (cl.map (fun c => (c, DFrac.own (1 : Qp).half))) ∗ osCommitLb (L := L) n ∗
-    laysRes (L := L) Ls ∗ ⌜WalsOk C Mr R jr s Ls cl n⌝ ∗ ⌜WalsCreateOk jr cl⌝)
+    laysRes (L := L) Ls ∗ ⌜WalsOk C Mr R jr s Ls cl n⌝ ∗ ⌜WalsCreateOk jr cl⌝ ∗
+    ∃ CR, walCreatingAuth (W := W) CR ∗ ⌜CreatingOk jr cl CR⌝)
 
 instance walInvBody_timeless (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (s : AbsDiskState) : Timeless (walInvBody (L := L) (W := W) C Mr R jr r s) := by

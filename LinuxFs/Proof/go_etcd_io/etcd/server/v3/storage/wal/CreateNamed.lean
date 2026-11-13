@@ -197,7 +197,7 @@ theorem walInvBody_named (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         walNamed (W := W) dir := by
   iintro Hb #Hsh Hn #Hc
   unfold walInvBody
-  icases Hb with ⟨%Ls, %cl, %n0, Hg, %Har, Hcl, #Hcm, Hlays, %Hok, %Hco⟩
+  icases Hb with ⟨%Ls, %cl, %n0, Hg, %Har, Hcl, #Hcm, Hlays, %Hok, %Hco, Hcr⟩
   obtain ⟨N', h', hc', hN'⟩ := Hco nm hin.1
   have hmem : ((jr, N', h'), DFrac.own (1 : Qp).half) ∈
       cl.map (fun c => (c, DFrac.own (1 : Qp).half)) := List.mem_map_of_mem hc'
@@ -214,7 +214,7 @@ theorem walInvBody_named (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   imod walGhost_upd_lag (W := W) s (setNamed s dir) (walMapLe_setNamed · s dir)
     (absLe_setNamed s dir) (walKeysInArea_upd s dir _) $$ Hg with ⟨Hg, #Hp⟩
   imodintro
-  isplitl [Hg Hcl Hlays]
+  isplitl [Hg Hcl Hlays Hcr]
   · iexists Ls, cl, max n0 n
     iframe Hg Hcl Hlays
     isplitr
@@ -225,7 +225,9 @@ theorem walInvBody_named (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       · rw [Nat.max_eq_left hle]; iexact Hcm
     isplitr
     · ipureintro; exact hok'
+    isplitr
     · ipureintro; exact Hco
+    iexact Hcr
   iframe Hn
   unfold walNamed
   iexists (setNamed s dir), { d with named := true }
