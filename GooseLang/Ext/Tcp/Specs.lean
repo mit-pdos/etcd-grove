@@ -910,6 +910,224 @@ theorem wp_tcp_CloseWrite (c : Nat) (s : Bool) (a : GoString) (Φ : val → IPro
     subst hv
     exact ⟨Val (#false), g, rfl, endId c s, c, s, rfl, ⟨hb, rfl⟩, ⟨cn, hcn, .inl ⟨rfl, rfl⟩⟩, rfl⟩
 
+/-- `SetDeadline` of the end `s` of `c`: a failure of a closed end; otherwise a deadline recorded. -/
+theorem wp_tcp_SetDeadline (c : Nat) (s : Bool) (a : GoString) (Φ : val → IProp GF) :
+    tcpConnAt tcpG c a -∗
+    (|={E,∅}=> ∃ st r, tcpEnd tcpG c s st r ∗
+      ∀ ok st', ⌜(st.closed = true ∧ ok = false ∧ st' = st) ∨
+          (st.closed = false ∧ ok = true ∧ st' = { st with dl := true })⌝ -∗
+        tcpEnd tcpG c s st' r ={∅,E}=∗ Φ (#ok)) -∗
+    WP (ExternalOp tcpExt.name "SetDeadline" (Val (#(endId c s)))) @ sk; E {{ Φ }} := by
+  letI := (tcpG (G := G)).allG
+  iintro #Hat HAU
+  unfold tcpConnAt
+  icases Hat with ⟨%γ, #Hγ, %Hγa⟩
+  iapply wp_extStep "SetDeadline" (#(endId c s)) Φ (by simp)
+  iintro %h %σ %g Hheap Hl Hg
+  icases (tcp_global_ctx_eq g).mp $$ Hg with Hg
+  imod HAU with ⟨%st, %r, Hend, Hk⟩
+  icases tcpCtx_acc _ g c γ $$ Hg Hγ with ⟨%cn, %hcn, Hcc, Hgclose⟩
+  icases (connCtx_ends γ cn s).mp $$ Hcc with ⟨%Haddr, Hes, Heo⟩
+  rw [endCtx_eq γ s cn]
+  icases Hes with ⟨Hgv, Hmono, Hfin, %Hpure⟩
+  icases tcpEnd_agree _ c s st r γ cn $$ Hγ Hend Hgv with ⟨%Hagr, Hv, Hgv⟩
+  obtain ⟨rfl, rfl⟩ := Hagr
+  imodintro
+  isplitr
+  · ipureintro
+    by_cases hc : (cn.endSt s).closed = true
+    · refine ⟨Val (#false), h, σ, g, rfl, endId c s, c, s, rfl, ⟨Hγa.2, rfl⟩, ⟨cn, hcn, ?_⟩, rfl⟩
+      simp [hc]
+    · refine ⟨Val (#true), h, σ, g.setConn c (cn.setEnd s { cn.endSt s with dl := true }), rfl,
+        endId c s, c, s, rfl, ⟨Hγa.2, rfl⟩, ⟨cn, hcn, ?_⟩, rfl⟩
+      simp [hc]
+  inext
+  iintro %e' %h' %σ' %g' %Hst _
+  obtain ⟨rfl, e0, c0, s0, Hv0, ⟨Hb0, He0⟩, ⟨cn0, hcn0, Hcase⟩, rfl⟩ := Hst
+  obtain rfl := go.intoVal_inj (V := w64) Hv0
+  obtain ⟨rfl, rfl⟩ := endId_inj Hγa.2 Hb0 He0
+  rw [hcn] at hcn0; cases hcn0
+  by_cases hc : (cn.endSt s).closed = true
+  · simp only [hc, ↓reduceIte] at Hcase
+    obtain ⟨rfl, Hgg⟩ := Hcase
+    imod Hk $$ %false %(cn.endSt s) %(.inl ⟨hc, rfl, rfl⟩) [Hv] with HΦ
+    · iapply tcpEnd_intro $$ Hγ Hv
+    imodintro
+    iframe Hheap Hl
+    isplitr [HΦ]
+    · rw [Hgg]
+      iapply (tcp_global_ctx_eq _).mpr
+      iapply tcpCtx_of_eq _ (setConn_self hcn)
+      iapply Hgclose $$ %cn %(And.intro rfl rfl)
+      iapply (connCtx_ends γ _ s).mpr
+      rw [endCtx_eq γ s cn]
+      iframe Heo Hgv Hmono Hfin
+      ipureintro; exact ⟨Haddr, Hpure⟩
+    iapply wp_value'
+    iexact HΦ
+  · rw [if_neg hc] at Hcase
+    obtain ⟨rfl, rfl⟩ := Hcase
+    imod ghostVar_update_halves ({ cn.endSt s with dl := true }, (cn.out (!s)).rcvd) $$ Hv Hgv
+      with ⟨Hv, Hgv⟩
+    imod Hk $$ %true %({ cn.endSt s with dl := true }) %(.inr ⟨by simpa using hc, rfl, rfl⟩) [Hv]
+      with HΦ
+    · iapply tcpEnd_intro $$ Hγ Hv
+    imodintro
+    iframe Hheap Hl
+    isplitr [HΦ]
+    · iapply (tcp_global_ctx_eq _).mpr
+      iapply Hgclose $$ %_ %(And.intro (by simp) (by simp))
+      iapply (connCtx_ends γ _ s).mpr
+      rw [endCtx_setEnd_other, endCtx_setEnd_self]
+      dsimp only
+      iframe Heo Hgv Hmono Hfin
+      ipureintro
+      exact ⟨by simpa using Haddr, Hpure.1, fun hf => by simpa using Hpure.2 hf⟩
+    iapply wp_value'
+    iexact HΦ
+
+/-- `AnyBool`: an arbitrary boolean. -/
+theorem wp_tcp_AnyBool (Φ : val → IProp GF) :
+    (∀ b : Bool, Φ (#b)) -∗ WP (ExternalOp tcpExt.name "AnyBool" (Val (#()))) @ sk; E {{ Φ }} := by
+  iintro HΦ
+  iapply wp_extStep "AnyBool" (#()) Φ (by simp)
+  iintro %h %σ %g Hheap Hl Hg
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hclose
+  isplitr
+  · ipureintro; exact ⟨_, h, σ, g, rfl, rfl, ⟨true, rfl⟩, rfl, rfl⟩
+  inext
+  iintro %e' %h' %σ' %g' %Hst _
+  obtain ⟨rfl, -, ⟨b, rfl⟩, rfl, rfl⟩ := Hst
+  imod Hclose
+  imodintro
+  iframe Hheap Hl Hg
+  iapply wp_value'
+  iapply HΦ
+
+/-- `AnyString`: an arbitrary string. -/
+theorem wp_tcp_AnyString (Φ : val → IProp GF) :
+    (∀ str : GoString, Φ (#str)) -∗
+      WP (ExternalOp tcpExt.name "AnyString" (Val (#()))) @ sk; E {{ Φ }} := by
+  iintro HΦ
+  iapply wp_extStep "AnyString" (#()) Φ (by simp)
+  iintro %h %σ %g Hheap Hl Hg
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hclose
+  isplitr
+  · ipureintro; exact ⟨_, h, σ, g, rfl, rfl, ⟨[], rfl⟩, rfl, rfl⟩
+  inext
+  iintro %e' %h' %σ' %g' %Hst _
+  obtain ⟨rfl, -, ⟨str, rfl⟩, rfl, rfl⟩ := Hst
+  imod Hclose
+  imodintro
+  iframe Hheap Hl Hg
+  iapply wp_value'
+  iapply HΦ
+
+/-- The plan has `a` at `h` (the context is kept). -/
+theorem tcpCtx_plan (hG : TcpGS GF) (g : TcpGlobal) (a h : GoString) :
+    tcpCtx hG g -∗ tcpPlan hG a h -∗ ⌜g.plan !! a = some h⌝ := by
+  letI := hG.allG
+  unfold tcpCtx tcpPlan
+  iintro ⟨%nm, %pm, Hn, Hp, Hl, %Hpure, Hconns⟩ #Ha
+  iapply ghost_map_lookup $$ Hl Ha
+
+/-- `Listen` at `a`, an address of this node's host in the plan: a failure, or a new open
+listener. -/
+theorem wp_tcp_Listen (a : GoString) (Φ : val → IProp GF) :
+    tcpPlan tcpG a (tcpL (L := L)).host -∗
+    (Φ (PairV (#(W64 0)) (#false)) ∧ ∀ l : w64, tcpLis (tcpL (L := L)) l a true -∗
+      Φ (PairV (#l) (#true))) -∗
+    WP (ExternalOp tcpExt.name "Listen" (Val (#a))) @ sk; E {{ Φ }} := by
+  letI := (tcpL (L := L)).allG
+  iintro #Hp HΦ
+  iapply wp_extStep "Listen" (#a) Φ (by simp)
+  iintro %h %σ %g Hheap Hl Hg
+  icases (tcp_global_ctx_eq g).mp $$ Hg with Hg
+  icases (tcp_local_ctx_eq σ).mp $$ Hl with Hl
+  icases tcpCtx_plan _ g a _ $$ Hg Hp with %Hpa
+  unfold tcpLocalCtx
+  icases Hl with ⟨%Hhost, Hlis⟩
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hclose
+  isplitr
+  · ipureintro
+    exact ⟨_, h, σ, g, rfl, a, rfl, ⟨by rw [Hpa, Hhost], .inl ⟨rfl, rfl⟩⟩, rfl⟩
+  inext
+  iintro %e' %h' %σ' %g' %Hst _
+  obtain ⟨rfl, a0, Hv, ⟨-, Hcase⟩, rfl⟩ := Hst
+  obtain rfl := go.intoVal_inj (V := GoString) Hv
+  imod Hclose
+  rcases Hcase with ⟨rfl, rfl⟩ | ⟨-, l, hl, rfl, rfl⟩
+  · icases HΦ with ⟨HΦ, -⟩
+    imodintro
+    iframe Hheap
+    isplitl [Hlis]
+    · iapply (tcp_local_ctx_eq _).mpr; unfold tcpLocalCtx; iframe Hlis; ipureintro; exact Hhost
+    isplitl [Hg]
+    · iapply (tcp_global_ctx_eq _).mpr; iexact Hg
+    iapply wp_value'
+    iexact HΦ
+  · imod ghost_map_insert l (a, true) hl $$ Hlis with ⟨Hlis, Hel⟩
+    icases HΦ with ⟨-, HΦ⟩
+    imodintro
+    iframe Hheap
+    isplitl [Hlis]
+    · iapply (tcp_local_ctx_eq _).mpr; unfold tcpLocalCtx; iframe Hlis; ipureintro; exact Hhost
+    isplitl [Hg]
+    · iapply (tcp_global_ctx_eq _).mpr; iexact Hg
+    iapply wp_value'
+    iapply HΦ
+    unfold tcpLis
+    iexact Hel
+
+/-- `LisClose` of the listener `l`: closed; the result is whether it was open. -/
+theorem wp_tcp_LisClose (l : w64) (a : GoString) (o : Bool) (Φ : val → IProp GF) :
+    tcpLis (tcpL (L := L)) l a o -∗ (tcpLis (tcpL (L := L)) l a false -∗ Φ (#o)) -∗
+    WP (ExternalOp tcpExt.name "LisClose" (Val (#l))) @ sk; E {{ Φ }} := by
+  letI := (tcpL (L := L)).allG
+  iintro Hel HΦ
+  iapply wp_extStep "LisClose" (#l) Φ (by simp)
+  iintro %h %σ %g Hheap Hl Hg
+  icases (tcp_local_ctx_eq σ).mp $$ Hl with Hl
+  unfold tcpLocalCtx tcpLis
+  icases Hl with ⟨%Hhost, Hlis⟩
+  icases ghost_map_lookup $$ Hlis Hel with %Hll
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hclose
+  isplitr
+  · ipureintro
+    cases o
+    · exact ⟨Val (#false), h, σ, g, rfl, l, a, false, rfl, Hll, rfl, by simp⟩
+    · exact ⟨Val (#true), h, { σ with lis := σ.lis.insert l (a, false) }, g, rfl, l, a, true, rfl,
+        Hll, rfl, by simp⟩
+  inext
+  iintro %e' %h' %σ' %g' %Hst _
+  obtain ⟨rfl, l0, a0, o0, Hv, Hl0, rfl, Hcase⟩ := Hst
+  obtain rfl := go.intoVal_inj (V := w64) Hv
+  rw [Hll] at Hl0
+  obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj Hl0)
+  imod Hclose
+  cases o
+  · simp only [Bool.false_eq_true, ↓reduceIte] at Hcase
+    obtain ⟨rfl, rfl⟩ := Hcase
+    imodintro
+    iframe Hheap Hg
+    isplitl [Hlis]
+    · iapply (tcp_local_ctx_eq _).mpr; unfold tcpLocalCtx; iframe Hlis; ipureintro; exact Hhost
+    iapply wp_value'
+    iapply HΦ $$ Hel
+  · simp only [↓reduceIte] at Hcase
+    obtain ⟨rfl, rfl⟩ := Hcase
+    imod ghost_map_update (a, false) $$ Hlis Hel with ⟨Hlis, Hel⟩
+    imodintro
+    iframe Hheap Hg
+    isplitl [Hlis]
+    · iapply (tcp_local_ctx_eq _).mpr; unfold tcpLocalCtx; iframe Hlis; ipureintro; exact Hhost
+    iapply wp_value'
+    iapply HΦ $$ Hel
+
 end lifting
 
 end Tcp
