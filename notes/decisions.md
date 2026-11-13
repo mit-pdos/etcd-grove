@@ -38866,3 +38866,17 @@ independent review).
 Trust base: `ErrTransactionConflict_init` → `metrics.errorsNewVarsInit`, `value_typed_pointsto` →
 `value_intoVal_inj`; count unchanged. Gates: step 9 (premise-fixes-1's text, skipped when the
 examples module holds no premisefix package) and 9b (each Go module under `examples/premisefix`).
+
+## The harness's `proto.Clone` after `lean`'s per-type `ClonePb` (2026-11-13 · `lean` merge, stage 1; decided by the coordinator, the trust-base change approved by the user)
+
+`lean`'s per-type stage A restated the trusted `proto.ClonePb.spec` over a registered `PbTypeC`
+(`pbModelOf GF I.data.ty = some I`) instead of any `PbType`, so the tracecheck harness's two clones
+of a raft message (`ProbeA.probeA_cloneStep`, `Cluster.app`) no longer typechecked. Chosen: one
+adapter, `ProbeA.wp_Clone_msg`, which gives the old triple for a frozen message without responses
+(`msgOwn l □ st` in, `msgPtsC l' 1 1 true st'` with `pbMessage`'s `eqv` out) from `ClonePb` at
+rafthttp's `pbMessageC` (`pbMessageC_reg`), by `msgOwn_msgRoC`; the original marshals (no
+responses), so the clone is at the same content and `decOk` holds. The call sites change one line
+each, and stage 2 (out_size, which rewrites the messages `Ready` hands out) can replace the adapter
+without touching them again. Rejected: restating the harness over `msgRoC`/`MsgC` (more churn, redone
+in stage 2). The tracecheck collection gains `pbMessageC_reg` and `msgEncC_ok` and loses
+`proto.EqualConfState.wp_proof` (raft's fourth fix): the user approved it on 2026-11-13.
