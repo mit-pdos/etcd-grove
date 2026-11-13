@@ -173,7 +173,8 @@ def crashCommit (hL : OsGS GF) (st : OsState) (V V' : Hist) : IProp GF :=
 history being `V'`: the crashed state `st`, coherent with the old generation's ghost maps, which a
 crash (and `Q`) made the new state `st'` of; the old maps' authorities and the resources of the
 changes in flight; the new generation's files not taken, which are the new state's; the old
-history's authority and the new history, until taken. -/
+history's authority and the new history, until taken. The new state's tree is the new history's
+(`st'.fs.treeDur = V'.now`: the crash starts it with nothing logged). -/
 def crashRest (Q : OsState → OsState → Prop) (hL hL' : OsGS GF) (D : List Ino) (tt : Bool)
     (V' : Hist) : IProp GF :=
   iprop(∃ (Γb : GMap (Ino × Nat) ByteG) (Γm : GMap Ino OsMeta) (F : GMap Ino OsFile)
@@ -181,7 +182,7 @@ def crashRest (Q : OsState → OsState → Prop) (hL hL' : OsGS GF) (D : List In
     ⌜OsWf st ∧ OsCoh st Γb Γm Γf Γt ∧ OsCrash st st' ∧ Q st st' ∧
       (∀ i, i ∉ D → F !! i = st'.fs.files !! i) ∧
       st'.fs.roots = st.fs.roots ∧ TreeCrashed V V' ∧
-      (∀ i, Named V'.now i → (st'.fs.files !! i).isSome)⌝ ∗
+      (∀ i, Named V'.now i → (st'.fs.files !! i).isSome) ∧ st'.fs.treeDur = V'.now⌝ ∗
     gAuth hL hL.γb Γb ∗ gAuth hL hL.γm Γm ∗ ([∗map] i ↦ f ∈ F, fileStart hL' i f) ∗
     gAuth hL hL.γt Γt ∗ tokRes hL Γt ∗
     gAuth hL hL.γd (histMap (st.fs.roots, V)) ∗ treeLeft hL' st.fs.roots V' tt ∗
@@ -247,7 +248,7 @@ theorem crashRest_take_runs_keep (Q : OsState → OsState → Prop) (hL' : OsGS 
   unfold crashRest
   iintro ⟨%Γb, %Γm, %F, %st, %st', %Γf, %Γt, %V, %hrel, Hab, Ham, Hfs, HAt, Htok, HAd, Ht⟩
     Hm Hbs
-  obtain ⟨hwf, hcoh, hcr, hQ, hF, hroots, htc, hnamed⟩ := hrel
+  obtain ⟨hwf, hcoh, hcr, hQ, hF, hroots, htc, hnamed, htd⟩ := hrel
   icases gAuth_lookup hL _ _ _ _ _ $$ Ham Hm with %hmo
   icases bytesG_lookup_runs hL i Γb rs $$ Hab Hbs with %hxs
   icases tokRes_meta_whole hL $$ Htok Hm with %hnt
@@ -264,7 +265,7 @@ theorem crashRest_take_runs_keep (Q : OsState → OsState → Prop) (hL' : OsGS 
   iexists Γb, Γm, GMap.delete i F, st, st', Γf, Γt, V
   iframe Hab Ham Hfs HAt Htok HAd Ht
   ipureintro
-  exact ⟨hwf, hcoh, hcr, hQ, crashRest_files_delete hF, hroots, htc, hnamed⟩
+  exact ⟨hwf, hcoh, hcr, hQ, crashRest_files_delete hF, hroots, htc, hnamed, htd⟩
 
 /-- **Taking the file a change in flight is on**, with its token, giving back the token: the
 change holds the file's `OsMeta` and the bytes it announced below the size (a run at `ti.lo`). -/
@@ -283,7 +284,7 @@ theorem crashRest_take_tok_keep (Q : OsState → OsState → Prop) (hL' : OsGS G
   unfold crashRest
   icases Hr with ⟨%Γb, %Γm, %F, %st, %st', %Γf, %Γt, %V, %hrel, Hab, Ham, Hfs, HAt, Htok,
     HAd, Htl⟩
-  obtain ⟨hwf, hcoh, hcr, hQ, hF, hroots, htc, hnamed⟩ := hrel
+  obtain ⟨hwf, hcoh, hcr, hQ, hF, hroots, htc, hnamed, htd⟩ := hrel
   icases gAuth_lookup hL _ _ _ _ _ $$ HAt Ht with %hti
   unfold tokRes
   icases (BigSepM.bigSepM_delete (Φ := fun _ (ti : TokInfo) => iprop(
@@ -312,7 +313,7 @@ theorem crashRest_take_tok_keep (Q : OsState → OsState → Prop) (hL' : OsGS G
   iframe Hab Ham Hfs HAt HAd Htl
   isplitr
   · ipureintro
-    exact ⟨hwf, hcoh, hcr, hQ, crashRest_files_delete hF, hroots, htc, hnamed⟩
+    exact ⟨hwf, hcoh, hcr, hQ, crashRest_files_delete hF, hroots, htc, hnamed, htd⟩
   iapply (BigSepM.bigSepM_delete (Φ := fun _ (ti : TokInfo) => iprop(
       gElem hL hL.γm ti.ino (DFrac.own 1) ti.meta ∗
       bytesG hL ti.ino ti.lo (DFrac.own 1) ti.saved)) hti).2
@@ -367,7 +368,7 @@ theorem os_local_crash (Q : OsState → OsState → Prop) (hPre : OsGpreS GF) (s
   iframe Hab Ham Hfs HAt Htok HAd Hd
   isplitr
   · ipureintro
-    exact ⟨hwc.1, hwc.2, hc, hQ, fun _ _ => rfl, rfl, hcr, hnamed⟩
+    exact ⟨hwc.1, hwc.2, hc, hQ, fun _ _ => rfl, rfl, hcr, hnamed, rfl⟩
   unfold crashCommit
   iframe Hcm
   ipureintro
