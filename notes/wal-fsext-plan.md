@@ -1422,6 +1422,11 @@ contract.**
      fine. **For the coordinator** (trusted-semantics question, [user]): either the model's truncate and
      sync zero the page past the size (ext4 does: `block_truncate_page`, writeback zeroes past `i_size`),
      or the WAL's proof needs `pageUp size = size` of a reopened tail, which it cannot establish.
+     *Answered 2026-11-13* (`notes/axiom-review/eof-page.md`, branch `wal-eof`): ext4 zeroes the tail at every
+     `ftruncate` (not at a sync: a clean page keeps a stale tail), so the model is loose; proposal P2
+     (`ftruncate` announces zeros to the end of the old end's page) gives every byte from `off` on the one
+     candidate `(0, 0)` after `ZeroToEnd` and its `Fdatasync`; and a soundness gap found there (P1: writeback
+     zeroes the tail, a byte at or past `sizeLo` may come back zero). Both pending the user [user].
   So task 1 changes `WalAbsD.metas` and `SegG` (W1/W2/W4's files: `CrashPure`, `CrashStart`, `CutLay`,
   `CutSynced`, `CreateCommit`, `CrashTakeSeg`) and waits on item 3; not started, to avoid conflicts with
   the concurrent branches.
