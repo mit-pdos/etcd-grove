@@ -3,7 +3,7 @@
 
 The specs of `encoder.go` (`LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/`) are stated over an
 encoder writing through a `*ioutil.PageWriter` (`ioutil.ownPageWriter`) over a stream writer
-(`io.writerStream wi W`, the client's file): the bytes the encoder has accepted are the writer's
+(`io.writerStream wi W B`, the client's file): the bytes the encoder has accepted are the writer's
 (`W out`) followed by the page writer's pending ones (`pend`).
 
 * `ownEncoder e wi c pend`: the `*encoder` at `e`: its page writer over `wi` holding `pend`, its CRC

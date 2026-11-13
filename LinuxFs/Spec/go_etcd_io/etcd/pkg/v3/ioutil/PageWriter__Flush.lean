@@ -1,8 +1,7 @@
 /-
 `pw.Flush()` (pagewriter.go): `flush`'s spec without the count: hands the buffered bytes `pend` to
 the writer `wi` in one `Write` (none if `pend` is empty) and drops the buffer whatever it returns: on
-an error, the writer has a prefix `ys` of `pend` (what `io.writerStream` allows) and the rest is
-lost. Proved in `LinuxFs/Proof/go_etcd_io/etcd/pkg/v3/ioutil/PageWriter__Flush.lean`.
+success the writer has all of `pend`; on an error it is broken (`B out pend`, `io.writerStream`). Proved in `LinuxFs/Proof/go_etcd_io/etcd/pkg/v3/ioutil/PageWriter__Flush.lean`.
 WAL W6, 2026-11-13; Lean-first.
 -/
 module
@@ -27,14 +26,16 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 
 /-- See the file header. -/
 abbrev go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Flush.spec : Prop :=
-  ∀ (pw : Loc) (wi : GoInterfaceOk) (W : List w8 → IProp GF) (out pend : List w8),
-  ⊢ io.writerStream wi W -∗
+  ∀ (pw : Loc) (wi : GoInterfaceOk) (W : List w8 → IProp GF) (B : List w8 → List w8 → IProp GF)
+    (lim : Nat) (out pend : List w8),
+  out.length + pend.length ≤ lim →
+  ⊢ io.writerStream wi lim W B -∗
     {{ ioutil.ownPageWriter pw wi pend ∗ W out }}
       (App (Val (pw @!! go.GoType.PointerType go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.ty @!!
         go!"Flush")) (Val #()))
     {{ (err : GoInterface), RET #err;
-        ∃ ys : List w8, ⌜ys <+: pend ∧ (err = GoInterface.nil → ys = pend)⌝ ∗
-        W (out ++ ys) ∗ ioutil.ownPageWriter pw wi [] }}
+        ioutil.ownPageWriter pw wi [] ∗
+        ((⌜err = GoInterface.nil⌝ ∗ W (out ++ pend)) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ B out pend)) }}
 
 end spec
 

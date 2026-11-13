@@ -1077,3 +1077,17 @@ keeps the static relation with `d.m := |H|` (`syncLay`, `walAbsD_sync`; its cras
 `CrashTo` of any image mixing old zeros and the new frames under W1G, via the encoding layer's prefix lemma); the
 `walTailsRes` conjunct and its repair of the W1 lemmas that destructure `walInvBody`; the Iris proofs of
 `sync`, `saveEntry`, `saveState`, `Save`, `SaveSnapshot`, `Sync`; NC tokens once `wal-nc` lands.
+- **W6, the file as a stream writer** (`wal-bridge`, 2026-11-13). `io.writerStream wi lim W B`: on
+  success all of `p` and `n = len(p)`; on an error the broken state `B out xs` and **any count**
+  (`os.File`'s trusted `Write` returns `ArbitraryInt` and sets the offset to `-1` on an error, so
+  "the count is the bytes written" is unprovable over the unchanged model); `lim` bounds the total
+  (`o0 + lim < 2^62`, the model's `offMax` panic). PageWriter/encoder specs and proofs follow (their
+  error posts: `B (out ++ a) b`, `a ++ b` a prefix of pending ++ input). `os.File.WriteAt.specLong`
+  (any length, chunks of `maxRW`; premise `m.lo ≤ m.size`; post `pwPost m off A j`, `PwOutA`):
+  proved up to 1 GiB, **`sorry` past it** (`Proof/os/WriteLong.lean`, plan in its header).
+  `os.File.Write.wp_empty`/`wp_long` (`OffLong.lean`) and the bridge `os.File.writerStream`
+  (`Proof/os/WriterStream.lean`: `fileW`/`fileB` over `StreamOk`, whole resources) proved.
+  **Open:** `wal-save`'s `io.writerStreamG` keeps the old error clause (`W (out ++ ys)`, `n = |ys|`),
+  which no `os.File` can meet (offset `-1`, arbitrary count): it needs the `B` form. And the guarded
+  bridge for `walTailW` (program halves) needs a crash-aware `Write` that opens `walInv` around each
+  `PWriteStart`/`PWriteFinish` (the in-flight write's token in `walTailsRes`), not this whole-resource bridge.
