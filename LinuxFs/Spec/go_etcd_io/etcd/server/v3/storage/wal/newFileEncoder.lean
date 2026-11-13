@@ -4,7 +4,8 @@
 `os.File.Seek.wp_cur`: an open fd, `0 ≤ o ≤` ext4's maximum), its CRC at `prevCrc`, nothing pending;
 `f`'s handle and offset are handed back (the client's stream predicate over the file, `W` of
 `io.writerStream`, holds the offset; `os.File.writerStream` is the bridge). Seek cannot fail there,
-so the error is `nil`. Proved in
+so the error is `nil`; the encoder is a fresh allocation, `e ≠ null` (`w.encoder`'s, which `cut` and
+`sync` test). Proved in
 `LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/newFileEncoder.lean`. W6; Lean-first.
 -/
 module
@@ -43,7 +44,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.newFileEncoder.spec : Prop :=
     (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.newFileEncoder)) (Val #f))
       (Val #prev))
   {{ (e : Loc), RET (PairV #e #GoInterface.nil);
-      ownEncoder e (wal.fileWi f) prev [] ∗ os.ownFile f fd name dqf ∗ os.ownOff f o }}
+      ownEncoder e (wal.fileWi f) prev [] ∗ os.ownFile f fd name dqf ∗ os.ownOff f o ∗ ⌜e ≠ null⌝ }}
 
 end spec
 
