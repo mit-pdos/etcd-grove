@@ -255,7 +255,9 @@ axiom kindNoPoll [GooseExts] [GoGlobalContext] : val
 
 axiom DevNull [GooseExts] [GoGlobalContext] : val
 
-axiom PathSeparator [GooseExts] [GoGlobalContext] : val
+/-- OS-specific path separator -/
+@[reducible] noncomputable def PathSeparator [GooseExts] [GoGlobalContext] : val :=
+  #(47 : Int)
 
 axiom PathListSeparator [GooseExts] [GoGlobalContext] : val
 
