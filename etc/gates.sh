@@ -154,6 +154,9 @@ fi
 python3 etc/errorf-wrap-check.py || fail=1
 # every trusted statement about an error's description is reviewed for stability (fromerror-stable)
 python3 etc/errdesc-check.py || fail=1
+# the pinned Perennial has no WithCancelCause spec, which context.bgCancelChild's soundness needs
+# (k8s 7f-4, Addendum T-i; reads the sources only)
+python3 etc/bgcancel-check.py || fail=1
 return $fail
 }
 

@@ -326,8 +326,10 @@ opaque reqCtxRaw (r : Loc) (ctx : GoInterfaceOk) : IProp GF
 
 /-- **The request at `r` has the context `ctx`** (persistent; k8s 7f-4, Addendum T-i,
 `notes/roundtripper-ctx-refuted.md`): what `r.WithContext(ctx)` returns (`WithContext_spec`). A
-request's context is its unexported `ctx` field, which only `WithContext`, `NewRequestWithContext`
-and `Clone` set, each on a new request; nothing changes it afterwards (no spec here gives a whole
+request's context is its unexported `ctx` field, set on a new request by `WithContext`,
+`NewRequestWithContext` and `Clone` (net/http's own internal writes, in `Client.send`'s
+`setRequestCancel` and the server's `readRequest`, touch only requests it allocates); nothing changes
+it afterwards on a request the program holds (no spec here gives a whole
 `Request`'s points-to, so a program cannot overwrite the struct). -/
 def reqCtx (r : Loc) (ctx : GoInterfaceOk) : IProp GF := iprop(□ reqCtxRaw r ctx)
 
@@ -496,7 +498,9 @@ request body's reader's errors; what rafthttp concludes of it is `rafthttp.netEr
 (it is not rafthttp's `errMemberRemoved`). (k8s 7f-4, Addendum T-i) It may also be the cause of the
 request's context, which a round tripper returns once the context is done (go1.27.3
 `net/http/transport.go:698`) and a body read after that: for the contexts `RoundTrip` takes
-(`reqCtxBg`), `context.Canceled` (`TestRoundTripBgCancel`, `examples/premisefix/rtctx`). -/
+(`reqCtxBg`), `context.Canceled` (`TestRoundTripBgCancel`, `examples/premisefix/rtctx`). So `netErr`
+includes `context.Canceled` itself: no law may separate `netErr` from `Canceled` (that a `netErr`
+is not `Canceled`, or that `errors.Is(e, Canceled)` is false of it). -/
 def netErr (e : GoInterface) : IProp GF := iprop(□ netErrRaw e)
 
 instance netErr_persistent (e : GoInterface) : Persistent (netErr (GF := GF) e) := by

@@ -30,7 +30,11 @@ In Go such a context answers `Value` at every key but `&cancelCtxKey` with `Back
 then `context.Canceled` once its `cancel` runs (its parent is never done). The one other Go
 function that makes a `*cancelCtx` over `Background()` is `WithCancelCause`, whose cancel stores the
 caller's cause; Perennial has no spec of it, so a verified program cannot make one; a spec of it
-must not give this fact. -/
+must not give this fact (`etc/bgcancel-check.py`, run by `etc/gates.sh`, fails if the pinned Perennial
+gains one). The `cancelCtx` embedded in a `*timerCtx` also has a `ctxField ↦□` fact in Perennial's
+`ctxChain` (its parent may be `Background()`, with `WithDeadlineCause`'s program cause), but as an
+interface value of type `*cancelCtx` it exists only as `Value(&cancelCtxKey)`'s answer, and that key is
+unexported, so a program outside `context` cannot hold it as a context (k8s 7f-4, T-i review, m2). -/
 def context.bgCancelChild (ctx : GoInterfaceOk) : IProp GF :=
   iprop(∃ c : Loc, ⌜ctx = interface.mk (go.GoType.PointerType _root_.Perennial.context.cancelCtx.ty) #c⌝ ∗
     _root_.Perennial.context.ctxField c ↦□

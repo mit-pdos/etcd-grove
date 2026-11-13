@@ -1,7 +1,8 @@
 /-
-`context.WithCancel(context.Background())` (rafthttp's `pipeline.post`; stage 4d): the trust
-boundary, as `WithCancelTodo`. Perennial specifies `WithCancel` of an `isContext` parent only;
-`Background()` is none (its `Done()` is `nil`). Lean-first.
+`context.WithCancel(context.Background())` (rafthttp's `pipeline.post`; stage 4d). Perennial's
+`wp_WithCancel` takes an `isContext` parent, which `Background()` is not (its `Done()` is `nil`); a
+trust-boundary axiom until k8s 7f-4's Addendum T-i (2026-11-13), now proved from Perennial's
+`wp_WithCancel_gen` (`Proof/context/WithCancelBackground.lean`). Lean-first.
 -/
 module
 

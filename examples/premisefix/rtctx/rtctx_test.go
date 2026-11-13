@@ -15,7 +15,8 @@
 //     the program's cause (context.Cause), so the premise names WithCancel(Background()).
 //   - The fixed premise (TestRoundTripBgCancel): over a WithCancel(Background()) context,
 //     RoundTrip of both round trippers returns a response, or an error net/http made (a dial
-//     error), or context.Canceled itself once the context is cancelled (in flight or before).
+//     error), or context.Canceled itself once the context is cancelled (in flight or before);
+//     over TLS too (TestRoundTripBgCancelTLS: cancelled before the call or during the handshake).
 package rtctx
 
 import (
@@ -203,5 +204,51 @@ func TestRoundTripBgCancel(t *testing.T) {
 			t.Fatalf("%s: before: %T %v", name, err, err)
 		}
 		t.Logf("%s: live 204; dial %T; cancelled: %v", name, oe, err)
+	}
+}
+
+// TestRoundTripBgCancelTLS: the TLS handshake path (HandshakeContext reads the request's context):
+// over a WithCancel(Background()) context, a TLS round trip succeeds; cancelled before the call, or
+// during a handshake the peer never answers, RoundTrip returns context.Canceled itself. (The
+// ProxyFromEnvironment CONNECT path is argued from the code, not tested: Addendum T-i.)
+func TestRoundTripBgCancelTLS(t *testing.T) {
+	hs := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(204) }))
+	defer hs.Close()
+	rt, err := rafthttp.NewRoundTripper(transport.TLSInfo{InsecureSkipVerify: true}, time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	resp, err := rt.RoundTrip(newReq(t, hs.URL, ctx))
+	if err != nil || resp.StatusCode != 204 {
+		t.Fatalf("live: %v %v", resp, err)
+	}
+	resp.Body.Close()
+	// a peer that accepts TCP and never answers the handshake; cancel during it
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer ln.Close()
+	stop := make(chan struct{})
+	defer close(stop)
+	go func() {
+		for {
+			c, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			go func() { <-stop; c.Close() }()
+		}
+	}()
+	rt2, _ := rafthttp.NewRoundTripper(transport.TLSInfo{InsecureSkipVerify: true}, time.Second)
+	go func() { time.Sleep(100 * time.Millisecond); cancel() }()
+	_, err = rt2.RoundTrip(newReq(t, "https://"+ln.Addr().String(), ctx))
+	if err != context.Canceled {
+		t.Fatalf("during handshake: %T %v", err, err)
+	}
+	_, err = rt.RoundTrip(newReq(t, hs.URL, ctx))
+	if err != context.Canceled {
+		t.Fatalf("before: %T %v", err, err)
 	}
 }

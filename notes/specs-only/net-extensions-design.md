@@ -53,7 +53,9 @@ chained interceptor; `ServerStream.{SendMsg,RecvMsg,Context}`; `metadata.FromInc
 `corrupt.go`, `leasehttp/http.go`): `http.NewRequest`, `Request.WithContext`, `Header.{Set,Get}`;
 `RoundTripper.RoundTrip` on the `*http.Transport` built by `transport.NewTimeoutTransport`/
 `NewTransport` (`client/pkg/transport/timeout_transport.go`: `Dial` is `rwTimeoutDialer.Dial`,
-which wraps `net.Dialer.Dial`'s connection in `timeoutConn`, `timeout_dialer.go`), and
+which wraps `net.Dialer.Dial`'s connection in `timeoutConn`, `timeout_dialer.go`; but `NewTransport`
+also sets `DialContext`, which net/http prefers, so the timeout dialer never runs and connections are
+`net.Dialer.DialContext`'s, unwrapped: `issues/etcd-timeout-transport-rw-timeouts-unused.md`), and
 `(*http.Client).{Do,Get}` over such a transport; `Response.{StatusCode,Header,Body}`, `Body.
 {Read,Close}`, `io.ReadAll`; `Transport.CloseIdleConnections`.
 
