@@ -33,6 +33,16 @@ the worktree's untracked `questions.md` (decisions), `/shared/tmp/coord-81/commo
     Nothing used it.
   - freeze §2's "T-e'" section (marked draft).
 
+## Tenth agent, continued (2026-11-13): T-k landed (lean `3d0966ffdc`); step 5's LeaseKeepAlive over the weak end
+
+`e13ec16980`: `LeaseServer.LeaseKeepAlive`/`leaseKeepAlive` take grpc's weak stream end (`srvStreamIs`, which
+gains `http.netCtxOkC ci`, carried from `srvRawStreamIsW` by `srvStreamIs_of_raw`); `srvStreamIsStrong`
+deleted (MINOR f's temporary state gone: the premises now come from the weak end); the loop's context
+`Err()` (stream-error logging) and `LeaseKeepAlive`'s `Err()` after `Done` are paid with the level token
+(`LeaseKeepAlive.spec` takes and returns `levelTok v3rpc.ctxErrLvl`, as `Watch.spec`). Proofs only: no
+axiom, opaque or trusted text changed. **Next:** step 6 (deleting `runsNoRequireLeader`) is a hard stop:
+report to 81 before starting it.
+
 ## Tenth agent (2026-11-13): T-k written and built; STOPPED for 81's axiom review
 
 `684f8ffda2` (Lean), `236001ff3b` (Go evidence), merged with lean `709538af50` (the CI layout fix).
