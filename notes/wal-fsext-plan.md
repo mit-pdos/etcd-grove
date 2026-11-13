@@ -2258,3 +2258,50 @@ The W3/W5 log's gap 4 (`ZeroToEnd` on the tail; `cut`'s truncate of the old tail
 - *Coordinator messages noted*: `walHandleIn`'s new `walDirH` conjunct is `ReadAll`'s to provide (not done
   here); the known-zero lemma after `ZeroToEnd` (branch `wal-kz`) stays a hypothesis of `ReadAll` until it
   lands.
+
+**Sixth session (branch `wal-read6`, 2026-11-13).**
+- *Proved* (no `sorry`, `lake build`): `openWALFiles` (read mode: `os.OpenFile.wp_fileS` at `O_RDONLY`, its
+  error made `errOk` by the local `walOpen_errOk`; the error arm `closeAll` and `Errorf` with `%q` of the
+  path, `argWf_string`, and `%w`). New modules, proved: `HandleAlloc.lean` (`import all` of `Ghost.lean`:
+  `walHandle_alloc`, `walHandleP_mint`/`walOpening_mint` (a handle from `walHandleAuth` and `walLockedTok`),
+  `walHandleP_set` (`ReadAll`: `opening` to `append`/`failed`), `walGhost_handleAuth`); `OpenFiles.lean`
+  (`walDecFiles_mk`: `openWALFiles`' `walOpenedFile`s and the opened segments' program halves `segHalves`
+  give `NewDecoder`'s `[∗list] F ∈ fs, decFile IoE eof F ∗ F.S []`, `fs.map (·.fr)` the readers, and
+  `WalDecTie` (`walReadTie`'s per-file facts) and the locks; over `walDecFile_ok`); `OpenNames.lean` (pure:
+  `walFileName_walNameStr` (`hex16 = fmt.hexPad 16`, last 16 digits), `walName_unique`/`walName_seg` (a
+  present `.wal` name is a segment's, the inodes distinct), `walDirNamesOk_of` (`selectWALFiles`' premise from
+  `SegsNamed`, `WalAbsD.names`, `nameBound`), `walNamesOut_segs` (`readWALNames`' names are exactly
+  `lay.segs.map name`, by `Perm.eq_of_pairwise`), `walOpenNames_ok` (`openWALFiles`' name premise from the
+  selected position; names are 37 bytes)).
+- **Statement change, `openAtIndex`'s read mode**: its read-mode success returned
+  `walUnlockedTok`, but `walReadH false` holds the program's halves of the WAL's files and directory claim
+  (`walReadTie`), which only a `walLockedTok` holder may have out of `walParked`; `walReadOnlyF` already
+  holds `walLockedTok`. The read-mode success now returns `walLockedTok` (`OpenForRead`'s statement does not
+  change).
+- **Gaps found (`openAtIndex`'s pinning step; for the invariant's owner):**
+  1. *The WAL directory's path.* `readWALNames`/`openWALFiles`/the pipeline need `osPathS R dir dq j` with
+     `j = lay.j`: from the area's spine `osPathS R r qp jr` and the program's half of the area claim
+     (`walAreaRes`: `osNames jr N ½ h`) it needs `h.cur !! nm = some (.dir lay.j)` for a present WAL. The
+     invariant does not say it: `WalsOk` has `InArea s.area dir nm ∧ lay.nm = nm` only, `AbsentNone` is the
+     absent case. Proposed: a framed pure conjunct (or a `WalsNamed` clause) `∀ dir lay, Ls !! dir = some
+     lay → ∀ N h, (lay.jr, N, h) ∈ cl → N.Mem lay.nm → h.cur !! lay.nm = some (.dir lay.j)`, with the
+     agreement of the program's area claim with the invariant's (`WalsCreateOk`'s claim holding `nm`, the
+     same key by the shared invariant's disjointness, a step at `⊤`). Kept by `cut` (area untouched),
+     `Create`'s commit (the rename sets `nm ↦ J`), the crash (`WalsStart`'s `m.entry jr nm = .dir lay.j`).
+  2. *The absent case* (`o = none`): `os.Open(dir)` must fail; `readWALNames`' spec takes the directory's
+     claim, so `selectWALFiles` needs a variant for a missing directory (`AbsentNone`: the area claim
+     holds no `nm`), or the pin must find the directory present.
+  3. *The pipeline's claims* (write mode): `newFilePipeline` takes `tmpClaim j (pipeTmp 0)` (the whole claim
+     on `0.tmp`, and a leftover file whole); the `N.tmp` claims are outside `WalDirClaim` and not in
+     `walParked`: where `walInv_alloc` puts them (half the invariant's, half returned to the program) they
+     must reach `Open` whole.
+  4. *`decFile`'s size bound* `|g.bs| + 2^12 < 2^62` and `os.fileStat.Name.spec` (`wal-above`), and
+     `isEofOk IoE eof ueof` for `IoE` the pointer errors (`errors.Is` of a `*PathError` against `io.EOF`:
+     Perennial's `errors.Is` spec), are hypotheses-to-be of `openAtIndex`.
+- *Plan for `openAtIndex`* (not started in the proof file): the pin at the call's first step
+  (`wp_notCrashed_acc`, mask unchanged: open `walInv`, `walUnlockedTok_lock`, the AU's commit, the WAL's
+  segments into `O` and its claim into `D`, exact halves by agreement with `segResF` (idle: the flag was
+  `true`, no handle, so no write in flight), write mode `walOpening_mint` from `walGhost_handleAuth`); then
+  `selectWALFiles` (premise `WalDirNamesOk` from `WalsNamed`), `openWALFiles` (names from the selected
+  position: `walNamesOut_segs`, `walOpenNames_ok`), `walDecFiles_mk`, `NewDecoder`, the struct; the error arms unpin at a later step (the `Errorf`
+  call) with `walLockedTok_unlock`.

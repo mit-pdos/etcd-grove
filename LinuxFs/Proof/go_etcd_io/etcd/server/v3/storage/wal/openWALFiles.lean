@@ -1,6 +1,7 @@
 /-
 The proof of `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/openWALFiles.lean` (W5 of
-`notes/wal-fsext-plan.md`; `sorry`: the callees `fileutil.TryLockFile`, `fileutil.NewFileReader`, `filepath.Join`, `closeAll` have no spec yet).
+`notes/wal-fsext-plan.md`), over the callees' specs (`fileutil.TryLockFile`, `fileutil.NewFileReader`,
+`filepath.Join`, `closeAll`, `fmt.ErrorfErrs`: hypotheses).
 -/
 module
 
@@ -179,6 +180,15 @@ theorem walOpen_eq_sub (jj k len : w64) (hk0 : 0 ≤ sint.Z k) (hkz : sint.Z k �
 theorem walOpen_succ (jj : w64) (n : Nat) (hj0 : 0 ≤ sint.Z jj) (hn : n < 2 ^ 63)
     (h : sint.nat jj < n) : sint.nat (jj + W64 1) = sint.nat jj + 1 := by word
 
+/-- A `fmtErrorOk` error is `errOk` (as `fileutil.errOk_of_fmtErrorOk`, a proof file's lemma). -/
+theorem walOpen_errOk (e : GoInterfaceOk) :
+    fmtErrorOkOrNil (GF := GF) (GoInterface.ok e) ⊢ errOk e := by
+  unfold fmtErrorOkOrNil fmtErrorOk
+  iintro ⟨-, H⟩
+  unfold errOk
+  rw [fmt.stringMethodSpec_unfold]
+  iexact H
+
 /-- `os.OpenFile(d/b, flag, 0600)` of a file `b` of a claim, as `TryLockFile` takes it: the
 claim's resources lent and given back, the inode `i`. -/
 theorem walOpen_triple [os.Assumptions] [os.file.FieldAssumptions] (R : Roots) (d b : GoString) (dq : DFrac) (j i : Ino)
@@ -298,7 +308,113 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
     ihave #Hfu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.fileutil $$ []
     · iPkgInit
     cases write
-    · sorry
+    · (try wp_auto)
+      wp_apply os.OpenFile.wp_fileS d b (W64 0) (W32 384) R j i N dq dqn h qc
+          (by simp only [OpenFlagsOk, O_CREAT, O_TRUNC, O_CLOEXEC]; decide) (by decide) hbok hbN hbi
+        $$ [Hp Hn Hperm] as %f %err ⟨Hp, Hn, Hperm, Hr⟩
+      · isplitl []; · iexact Hinv
+        isplitl []; · iexact Hsi
+        iframe
+      icases Hr with (⟨%fd, %hh, Hf, Ho, Hfd⟩ | ⟨%hh, Herr⟩)
+      · obtain ⟨rfl, hfd0⟩ := hh
+        (try wp_auto)
+        wp_apply wp_slice_literal (V := Loc) [null]
+        isplitr
+        · ipureintro; rfl
+        iintro %l1 ⟨Hl1, -⟩
+        wp_apply wp_slice_append $$ [$Hls $Hlsc $Hl1] as %lssl' ⟨Hls, Hlsc, -⟩
+        (try wp_auto)
+        wp_apply wp_slice_literal (V := GoInterface)
+          [interface.mkOk (go.GoType.PointerType os.File.ty) #f]
+        isplitr
+        · ipureintro; rfl
+        iintro %r1 ⟨Hr1, -⟩
+        wp_apply wp_slice_append $$ [$Hrc $Hrcc $Hr1] as %rcsl' ⟨Hrc, Hrcc, -⟩
+        (try wp_auto)
+        wp_apply wp_NewFileReader f as %rl Hrl
+        ihave Hrl2 := (dfractional_update_into_persistently
+          (typedPointsto (GF := GF) rl
+            (go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader.mk f) (DFrac.own 1))
+          (fun dq => typedPointsto (GF := GF) rl
+            (go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader.mk f) dq)
+          (DFrac.own 1)).update_into_persistently $$ Hrl
+        iapply wp_fupd
+        imod Hrl2 with #Hrl
+        (try wp_auto)
+        wp_apply wp_slice_literal (V := GoInterface)
+          [interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader.ty) #rl]
+        isplitr
+        · ipureintro; rfl
+        iintro %s1 ⟨Hs1, -⟩
+        wp_apply wp_slice_append $$ [$Hrs $Hrsc $Hs1] as %rssl' ⟨Hrs, Hrsc, -⟩
+        (try wp_auto)
+        imodintro
+        wp_for_post
+        iframe
+        iexists jj + W64 1, b, rcsl', rssl', lssl',
+          frs ++ [⟨go.GoType.PointerType go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader.ty, #rl⟩],
+          lfs ++ [null],
+          rcs ++ [interface.mkOk (go.GoType.PointerType os.File.ty) #f]
+        simp only [named, List.map_append, List.map_cons, List.map_nil]
+        iframe
+        have hj1 : sint.nat (jj + W64 1) = sint.nat jj + 1 :=
+          walOpen_succ jj ns.length Hj0 hns62 hjlt
+        rw [hj1]
+        isplitl [Hop Hf Ho Hfd]
+        · iapply (walOpenedRcs_snoc false d ns is (sint.nat jj) i frs lfs rcs _ null _ hi ⟨Hfl, Hll, Hrl⟩)
+          iframe Hop
+          rw [List.getD_eq_getElem?_getD, hb, Option.getD_some]
+          iunfold walOpenedRc
+          iexists f, fd, rl
+          iframe
+          simp only [Bool.false_eq_true, ↓reduceIte, walReadFlag]
+          iframe
+          isplitr
+          · ipureintro; exact hfd0
+          isplitr
+          · ipureintro; trivial
+          isplitr
+          · iexact Hrl
+          ipureintro; simp
+        ipureintro
+        simp only [List.length_append, List.length_singleton]
+        refine ⟨by word, by omega, by omega, by omega, by omega⟩
+      · obtain ⟨hne, rfl⟩ := hh
+        cases err with
+        | nil => exact (hne rfl).elim
+        | ok e =>
+        ihave #Hok := walOpen_errOk e $$ Herr
+        (try wp_auto)
+        wp_apply wp_closeAll lg rcsl rcs (DFrac.own 1) $$ [Hrc Hop] as %e2 ⟨Hrc, -⟩
+        · iframe
+          isplitl []; · iexact Hlg
+          isplitl []; · iexact Hinv
+          iapply (walOpenedRcs_close false d ns is (sint.nat jj) frs lfs rcs Hrl (by omega)) $$ Hop
+        (try wp_auto)
+        wp_apply wp_slice_literal (V := GoAny) [interface.mkOk go.string #(child d b), interface.ok e]
+        isplitr
+        · ipureintro; rfl
+        iintro %asl ⟨Hasl, -⟩
+        wp_apply wp_Errorf _ _ [interface.mkOk go.string #(child d b), interface.ok e] [e] (by
+            intro ii hii
+            simp only [List.mem_cons, List.not_mem_nil, or_false] at hii
+            rcases hii with hii | hii
+            · left; cases hii; exact argWf_string _
+            · right; cases hii; simp) $$ [Hasl] as %e1 #He1
+        · iframe
+          iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
+          iexact Hok
+        (try wp_auto)
+        wp_for_post
+        (try wp_auto)
+        iapply HΦ
+        ihave Hsl := (ownSlice_slice k sl.len sl dqs names ⟨hk0, hkz, Int.le_refl _⟩).2 $$ [Hw1 Hw2 Hw3]
+        · rw [hsub, hns]; iframe
+        iframe
+        iright
+        iexists e1
+        iframe He1
+        ipureintro; rfl
     · (try wp_auto)
       wp_apply wp_TryLock (child d b) (W64 2) (W32 384) _ Unit _ _
           (walOpen_triple R d b dq j i N dqn h qc (W64 2)

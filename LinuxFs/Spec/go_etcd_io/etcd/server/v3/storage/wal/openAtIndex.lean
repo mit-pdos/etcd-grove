@@ -7,7 +7,8 @@ halves of the segments from the opened one on, and of the WAL directory's claim,
 the plan's W3/W5 log, decision 2), raising `unl` to `walOpenPos` in write mode (bookkeeping until the
 lock model) and changing nothing in read mode. *Success*: write mode, the ghost `walOpening` and the
 handle's fields (`walReadH true`), half the call permission (the pipeline holds the other); read
-mode, the token and `walReadH false` and the whole permission; `dirFile` nil in both. *Error*: the
+mode, the lock token taken (`walLockedTok`: the handle holds the WAL's halves out of `walParked`) and
+`walReadH false` and the whole permission; `dirFile` nil in both. *Error*: the
 token and the permission back. Lean-first; proof `sorry`
 (`LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/openAtIndex.lean`). W5 of
 `notes/wal-fsext-plan.md`.
@@ -55,7 +56,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.spec (Mr : WalMarshal) 
         structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ (null : Loc) ∗
         if write then iprop(WalFs.walOpening w dir s ∗ walReadH true w dir s ∗
           osCallPerm (1 : Qp).half)
-        else iprop(WalFs.walUnlockedTok ∗ walReadH false w dir s ∗ osCallPerm 1))) }}
+        else iprop(WalFs.walLockedTok ∗ walReadH false w dir s ∗ osCallPerm 1))) }}
 
 end spec
 
