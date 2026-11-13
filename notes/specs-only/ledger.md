@@ -225,6 +225,6 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `io.EOF` (`decRdErr`), and the decoder goes on in the next file, which `goDecode` does not say.
 - **Evidence.** The proof of `decoder.decodeRecord` (branch `wal-dec2`): the three cases are where it stuck.
 - **Proposed change.** `isEofOk` also covers `e = nil` and carries `⌜eof ≠ ueof ∧ ¬ IoE eof⌝`; all three are
-  true of Go (`errors.Is(nil, t)` is `nil == t`; the two `errors.New` allocations differ; the client's `IoE`
-  are `*fs.PathError`s), a client obligation like the rest of `isEofOk`.
+  true of Go (`errors.Is(nil, t)` is `nil == t`; the two `errors.New` allocations differ; the client's `IoE`, the
+  `os` file errors, are expected not to include `io.EOF`), a client obligation like the rest of `isEofOk`.
 - **Decision.** Adopted (proof agent, minor: an intermediate client obligation, no ghost state).
