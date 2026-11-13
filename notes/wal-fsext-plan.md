@@ -548,3 +548,29 @@ fails on this branch). Drafted in `LinuxFs/` (each with its Go example in `examp
 
 Proofs repaired: `LinuxFs/Proof/os/{Base,File__Stat,File__Close,fileStat__Size}.lean` (`ownFileStat`
 holds some mode). Nothing proves the new models yet.
+
+## 10. Leaf specs (2026-11-13) and the trust-base additions pending the user's review
+
+- **Encoding leaves** (`wal-leaf-enc`, continuing): CRC-32C as a trusted GooseLang model of `hash/crc32`'s
+  `Update`/`MakeTable(Castagnoli)` (`LinuxFs/TrustedCode/hash/crc32.lean`, a Lean `crc32c` checked by
+  `decide` on the check vector; Go evidence `examples/stdlib/crc32/`, 20,000 random inputs against
+  SSE4.2); `pkg/crc` proved over it. Decided: `walpb.Record`/`Snapshot` registered as raft's messages
+  are (`enc_ok` + `pbModelOf`, two axioms each), with a transparent encoder and a Go round-trip test.
+- **Standard-library leaves** (`wal-leaf-std`, merged): `bufio` and `path/filepath` (over a part
+  `internal/filepathlite`) translated with bodies; `bufio.NewReader` and `Sprintf("%d.tmp")` proved;
+  axioms (temporary trust boundary, to be replaced): `io.ReadFull`, `binary.ReadInt64LE`,
+  `fmt.SscanfWalName`, `fmt.SprintfWalName` (beyond Perennial's `Sprintf` model, which does not format
+  `%0Nx`: a Perennial change to propose), `time.Time.Format`; generated init axioms for bufio's
+  `errorRune` and filepath's `SkipDir`/`SkipAll`/`lstat`. Open: `bufio.Reader.Read`'s proof,
+  `filepath`'s specs.
+- **Per the closed-theorem rule** (no Iris axioms in the end state), the axioms above are to be
+  replaced: `io.ReadFull`/`binary.Read` by translations of their Go bodies (Perennial: `io` is
+  names-only there), the `fmt` ones by a Perennial `Sprintf`/`Sscanf` model of `%0Nx`, `Time.Format` by
+  a model returning any string.
+
+**Pending the user's review (trusted or axiomatic), all off `lean`:** the fork fixes (§8,
+`notes/wal-fsext-fork/`); W1 (the crash premise, `LinuxFs/.../wal/W1.lean`; the open question of torn
+non-`Data` bytes, under investigation on `wal-bytemix`); the new `os`/`syscall` models and the
+`PathKind` query in `GooseLang/Ext/Fs/Impl.lean` (§9, `notes/wal-fsext-models-review.md`); the
+crc32 model; the `walpb` registrations; the leaf axioms above; the restated `ReadAll` post
+(`notes/specs-only/ledger.md`, 2026-11-13).
