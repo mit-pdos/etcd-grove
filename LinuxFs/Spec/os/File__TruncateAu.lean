@@ -2,19 +2,24 @@
 `f.Truncate(sz)` on an unmapped file whose resources are **split between the caller and atomic
 updates** (I3b of `notes/wal-fsext-plan.md`), as the WAL's tail is between its handle and `walInv`:
 `os.File.Truncate.spec` (`File__Truncate.lean`) with the caller's halves of the `OsMeta` and of the
-bytes cut off, and a persistent supply of updates (`os.truncAu`), one pair per attempt of the model's
-`EINTR` loop, for each state an attempt may start from (`os.TruncFrom`: no attempt landed, the
-`OsMeta` `m` or as an attempt announced it; or one did, a resize to the size the file has). Each
-attempt's first update lends the other halves at `FtruncateStart` and commits with the token
-(`rsTok`, kept by the update's owner while the change is in flight); its commit is the second, which
-lends the token at `FtruncateFinish` and commits with what the step left (`rsOutT`, whole), giving
-the caller its halves (`os.truncOutH`). The post is `File__Truncate.lean`'s at half (`os.ftDoneH`,
-`os.ftUndoneH`). Proof: `Proof/os/File__TruncateAu.lean` (proved: the loop of
-`File__Truncate.lean`'s proof over `wp_osFtruncateStart_au`/`Finish_au`). Lean-first.
+bytes cut off, a tie `K` the caller holds between attempts (the WAL: its half of the tail record),
+and a persistent supply of updates (`os.truncSup`), one pair per attempt of the model's `EINTR` loop.
+Each attempt hands the supply the caller's halves and `K`: the first update (`os.truncAuW`) lends the
+whole `OsMeta` and bytes cut off at `FtruncateStart` (its owner knows the state from the caller's
+halves, by agreement with its own) and commits with the token (`rsTok`, kept by the update's owner
+while the change is in flight); its commit is the second, which lends the token at `FtruncateFinish`
+and commits with what the step left (`rsOutT`, whole), giving the caller its halves (`os.truncOutH`)
+and `K` back. The post is `File__Truncate.lean`'s at half (`os.ftDoneH`, `os.ftUndoneH`), with `K`.
+Proof: `Proof/os/File__TruncateAu.lean` (proved: the loop of `File__Truncate.lean`'s proof over
+`wp_osFtruncateStart_auW`/`wp_osFtruncateFinish_au`). Lean-first.
+
+(The first form, 2026-11-13 `wal-kz`, had the update lend only the other halves, for states the
+caller named: an invariant cannot supply that, as it does not see the caller's halves; and without a
+tie the second update cannot find its token in the invariant.)
 -/
 module
 
-public import LinuxFs.Proof.os.ResizeAu
+public import LinuxFs.Proof.os.ResizeAuW
 public import Spec.fmt.ErrorOk
 
 @[expose] public section
@@ -53,34 +58,38 @@ def os.truncOutH (p : Ino) (tg : Nat) (m0 : OsMeta) (xs0 : List ByteG) (n : Nat)
   iprop((⌜e = 0⌝ ∗ ∃ zs, os.ftDoneH p m0 tg zs) ∨
     (⌜e ≠ 0⌝ ∗ ((∃ zs, os.ftDoneH p m0 tg zs) ∨ os.ftUndoneH p m0 tg (rsAnn n xs0))))
 
-/-- **The updates of one attempt** of a resize of `p` to `tg` from `m0`, `xs0`: the start's (the
-other halves lent for the token), whose commit is the finish's (the token lent for the outcome,
-the caller's halves of it back). -/
-def os.truncAu (p : Ino) (tg : Nat) (m0 : OsMeta) (xs0 : List ByteG) : IProp GF :=
+/-- **The updates of one attempt** of a resize of `p` to `tg` from `m0`, `xs0`, the caller's tie `K`:
+the start's (the whole `OsMeta` and bytes cut off lent for the token), whose commit is the finish's
+(the token lent for the outcome, the caller's halves of it and `K` back). -/
+def os.truncAuW (K : IProp GF) (p : Ino) (tg : Nat) (m0 : OsMeta) (xs0 : List ByteG) : IProp GF :=
   osAUnc (A := Nat × Nat)
-    iprop(osMeta p (DFrac.own (1 : Qp).half) m0 ∗
-      osBytes p (min m0.size tg) (DFrac.own (1 : Qp).half) xs0)
+    iprop(osMeta p (DFrac.own 1) m0 ∗ osBytes p (min m0.size tg) (DFrac.own 1) xs0)
     (fun tn => rsTok true tn.1 p tg m0 xs0 tn.2)
     (fun tn => osAUnc (A := w64) (rsTok true tn.1 p tg m0 xs0 tn.2) (rsOutT p tg m0 xs0 tn.2)
-      (os.truncOutH p tg m0 xs0 tn.2))
+      (fun e => iprop(os.truncOutH p tg m0 xs0 tn.2 e ∗ K)))
 
-/-- The states an attempt of a resize from `m`, `xs` to `tg` may start from. -/
-def os.TruncFrom (m : OsMeta) (xs : List ByteG) (tg : Nat) (m0 : OsMeta) (xs0 : List ByteG) : Prop :=
-  ((m0 = m ∨ m0 = m.announce (min m.size tg) (rsHi true m.size tg) tg) ∧
-    xs0.map Prod.fst = xs.map Prod.fst ∧ xs0.length = m.size - tg) ∨
-  (m0 = rsPost true m tg tg ∧ xs0 = [])
+/-- **The supply of a resize of `p` to `tg`**, the caller's tie `K` (persistent): for any state, the
+caller's halves and `K` make the attempt's updates. -/
+def os.truncSup (K : IProp GF) (p : Ino) (tg : Nat) : IProp GF :=
+  iprop(□ ∀ (m0 : OsMeta) (xs0 : List ByteG), ⌜xs0.length = m0.size - tg⌝ -∗ K -∗
+    osMeta p (DFrac.own (1 : Qp).half) m0 -∗
+    osBytes p (min m0.size tg) (DFrac.own (1 : Qp).half) xs0 -∗ os.truncAuW K p tg m0 xs0)
+
+instance os.truncSup_persistent (K : IProp GF) (p : Ino) (tg : Nat) :
+    Persistent (os.truncSup (GF := GF) K p tg) := by
+  unfold os.truncSup; infer_instance
 
 /-- See the file header. -/
 abbrev os.File.Truncate.specAu : Prop :=
   ∀ (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sz : w64) (dq : DFrac) (d : OsFd)
-    (m : OsMeta) (xs : List ByteG),
+    (m : OsMeta) (xs : List ByteG) (K : IProp GF),
   0 ≤ fd.toInt → d.writable = true → 0 ≤ sz.toInt → m.maps = ∅ → xs.length = m.size - sz.toNat →
   {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ osFd (GF := GF) fd dq d ∗
       osMeta (GF := GF) d.ino (DFrac.own (1 : Qp).half) m ∗
       osBytes (GF := GF) d.ino (min m.size sz.toNat) (DFrac.own (1 : Qp).half) xs ∗
-      □ (∀ m0 xs0, ⌜os.TruncFrom m xs sz.toNat m0 xs0⌝ -∗ os.truncAu (GF := GF) d.ino sz.toNat m0 xs0) }}
+      K ∗ os.truncSup (GF := GF) K d.ino sz.toNat }}
     (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Truncate")) (Val #sz))
-  {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ osFd fd dq d ∗
+  {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ osFd fd dq d ∗ K ∗
       ((⌜err = interface.nil⌝ ∗ ∃ zs, os.ftDoneH d.ino m sz.toNat zs) ∨
        (⌜err ≠ interface.nil⌝ ∗
          ((∃ zs, os.ftDoneH d.ino m sz.toNat zs) ∨
