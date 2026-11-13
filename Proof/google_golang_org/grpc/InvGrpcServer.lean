@@ -316,7 +316,8 @@ replies are small outright.
 - putget, putget3, putgetc: one point `Get`;
 - linkvtxn, and linkv3p's `Main` (linkvtxn's workload over three members, through bridges): point
   operations, flat transactions of at most three point operations, and one bounded range;
-- authkv: fixed literals, its one nested transaction a write;
+- authkv: fixed literals, its one nested transaction a write; root's watch of every key from
+  revision 1, whose replies batch the run's few small writes (a watch reply at most 1000 revisions);
 - k8setcd3: a bounded loop. k8s' keys-only `getKeys` runs only with the cacher's size estimation,
   which this program never builds;
 - the watch examples (watchkv, cachekv, linkv3p's `MainWatch`): small literal prefixes; a watch

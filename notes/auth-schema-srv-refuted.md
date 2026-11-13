@@ -3,7 +3,7 @@ title: authSchemaSrv is false (lend grants writes; write-back budget; two encodi
 found: 2026-11-12
 by: S0 of the etcd_auth_safe Scope, axiom-skill review (report /shared/tmp/auth-safe/s0/report.md, Go tests /shared/tmp/auth-safe/s0/tests/)
 blocks-proof: yes (for an auth closed theorem); no closed *_safe theorem rests on it
-status: fixed on branch auth-schema-fix (2026-11-12; F3 e450457d89, F2 350380537e, F4 350baf65a5, F1 398c6dc09f + 10da96a817); not landed, pending etcd-grove-81's axiom re-review
+status: fixed and landed (auth-schema-fix, lean 51ee20f154, 2026-11-13; F3 e450457d89, F2 350380537e, F4 350baf65a5, F1 398c6dc09f + 10da96a817); etcd-grove-81's axiom re-review READY WITH CHANGES (unknown fields nil in the stored user and role messages, non-empty names, the per-batch put count recorded for D22), then its review's MAJ-1/MAJ-2 (nested unknown fields, `notes/auth-unknown-fields-nested.md`) fixed and re-reviewed GO; open follow-ups (a) `sizeCache` under `↦□`, (b) the client send's `wireLen` there
 ---
 # `authSchemaSrv` is false
 

@@ -1,5 +1,5 @@
 /-
-The authentication example's results (`examples/etcd/auth/etcd_auth.go`; the auth plan's E2b), restated,
+The authentication example's results (`examples/etcd/auth/authkv.go`; the auth plan's E2b), restated,
 with the trust base of each printed in the build log (`#print axioms`). Lean-first (no Rocq
 counterpart).
 
@@ -169,7 +169,22 @@ see `Adequacy.lean`'s header for the program and the hypotheses).
 * not exercised: a wrong password, token expiry, admin requests by non-root users after enable,
   role or permission changes during the workload (`ErrAuthOldRevision`), auth disable, watches
   inside `[a, b)` by `v` or the unauthenticated principals, the kind of error returned; the
-  set-up's puts are admitted at any revision (`SetupWrite`). -/
+  set-up's puts are admitted at any revision (`SetupWrite`);
+* `u`'s permitted requests need not succeed: a server that refuses every workload request still
+  returns `Ok` (`authkv_test.go`'s `TestMainRun` shows they succeed in practice; the theorem does
+  not);
+* password checking is not verified: `bcrypt.CompareHashAndPassword`'s axiom promises nothing
+  about its answer (D-AU6), so `Authenticate` may accept or refuse any password as far as the
+  proof knows;
+* only the simple token provider (`AuthToken = "simple"`), not JWT;
+* client-certificate (TLS) authentication is off: the server's TLS identity is absent
+  (`srvTLSId_false`);
+* the check that a refused principal's watch reports nothing sees only the events delivered
+  before `refusedWatchTimeout` (2 s);
+* the history's check attributes a write to the principal its key names (`writerK`, the `who` of
+  `x/<who>/…`), not to the client that sent it: sound because the workload writes only its own
+  principal's keys (`keyOf x who n`), so a write of `x/<who>/…` in the history was sent by `who`
+  (or is a set-up put) and checking it against `who`'s permissions checks its sender's. -/
 theorem etcd_auth_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
