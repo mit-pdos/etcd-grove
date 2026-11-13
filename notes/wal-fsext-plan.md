@@ -1395,6 +1395,47 @@ hypotheses; step 3's pure part.**
   `osPathS_frac`), 7 (`walInvBody_cutSynced` under `wp_notCrashed_acc`; the rename's `logOut` for the
   `osLogLb`), 8 (re-lock, `walHandleIn` at the new claim history, `walOpenW_cut` back).
 
+**Eighth session (branch `wal-cut8`, 2026-11-13): steps 3-4 proved; step 5's lemmas; what step 5 still needs.**
+- **Statement change (the coordinator's decision): the pipeline's count in the handle.** `WalHS` gains `pc`
+  (the files the handle's pipeline has handed over since this `Open`/`Create`; the pipeline's `count`
+  restarts at 0 with each, while `cuts` counts the WAL read back too); `walHandleIn` holds `walPipeH fp dir j
+  h.pc` (was `h.cuts.length`; `ReadDefs`' `walPipeH fp dir 0` is `pc = 0`). `cut.spec` takes `h.pc + 2 <
+  2^63` (was `h.cuts.length + 2 < 2^63`) and gives `h'.pc = h.pc + 1`. W6 supplies the bound (per-lifetime
+  receipts, `notes/bounds-plan.md`).
+- *`cut.wp_proof`, steps 3-4* (proved, `sorry` from step 5 on): `w.seq()` inline (`os.File.Name.spec`,
+  `filepath.Base.spec`, `parseWALName.spec`; the `lg.Fatal` arm unreachable), `next` joined with `wp_join`
+  (`uint.nat nx = max(enti, snapi)`), `walName` over `fmt.SprintfWalName.spec` (`cutName_str`: the name is
+  `walFileName (sq + 1) (max(enti, snapi) + 1)`, no wrap from the handle's bounds), `filepath.Join` (`dir`'s
+  length from `isFilePipe`, `join_child`, `walFileName_nameOk`); `wp_walPipeH_open` with its error exit.
+  New hypotheses of the theorem: `os.File.Name.spec`, `filepath.Base.spec`, `parseWALName.spec`,
+  `fmt.SprintfWalName.spec`, `filepath.Join.spec`.
+- *`PreSync.lean`* (proved, shareable with W4's `Create`): `io.writerStream_frame` (a persistent frame in a
+  stream's states), `os.fileWI`/`os.fileBI` (`os.fileW`/`fileB` from offset 0 with `osInv`: `walPreSyncOk`'s
+  hypothesis triple has no other place for it), `os.File.writerStreamI`, `os.fileS` (the state after a
+  successful fdatasync: `OsMeta` synced, bytes durable), **`os.fileWI_preSyncOk`** (`walPreSyncOk f (fileWI
+  …) (fileS …)` over `fileutil.Fdatasync.spec`).
+- *`CutHdr.lean`* (pure, proved): `metaChain_cut` (writes keep `OsMeta.cut`), `metaChain_size` (the size
+  grows to `max m0.size (o0 + a)`), `streamOk_vals` (over zeros: the bytes are the stream's then zeros).
+  *`CutName.lean`*: `walFileName_nameOk`, `cutName_str`.
+- **Step 5 needs three facts `pipeFile` does not record** (found writing it; a cascade through `os`/`fileutil`
+  specs, not done): `walCut_osAUnc` asks `g.om.cut = none` and the zero tail `0` or `≥ 8` bytes, and
+  `os.fileW_start` asks `m0.lo ≤ m0.size`. Proposed: `pipeFile` gains `m.cut = none ∧ m.lo ≤ m.size ∧ m.size %
+  8 = 0` (`walCut_osAUnc`'s `hz` then follows: the headers' frames are 8-aligned, so `max(size, wr) - wr` is a
+  multiple of 8); `isFilePipe` gains `sz.toInt % 8 = 0` (`newFilePipeline.spec`'s premise; etcd's
+  `SegmentSizeBytes` is 64·10^6); `trFile` (`Spec/os/OpenFileTruncS.lean`) gains `m.cut = none ∧ m.lo ≤
+  m.size` (a new file's `newMeta`, a truncation's `rsPost` keeps `cut` and sets `lo` to 0; a leftover tmp
+  file's producer, W5's `Open`, must give them); `preGrown` (`fileutil/Defs.lean`) gains `m'.cut = m.cut ∧
+  m'.lo ≤ m'.size` (the growth's `rsPost`: `lo := min m.lo tg`). Then `alloc` proves the new `pipeFile`.
+- *Step 5's plan* (with the above): unfold `pipeFile`; `append(w.locks, newTail)` (`wp_slice_append`);
+  `prevCrc` (unfold `ownEncoder`/`ownDecCrc`, `digest.Sum32.spec`, as `decoder.LastCRC`); `w.tail()` at the
+  locks `ls ++ [lt] ++ [newTail]`; `newFileEncoder(newTail.File, prevCrc)` (offset 0); the stream
+  `os.File.writerStreamI` at `lim` the headers' length, `os.fileW_start` over the zeros (`osZerosA_unfold`);
+  `saveCrc.spec`, `encode.specG` (metadata, through `io.writerStream_P`), `saveState.specPre`,
+  `sync.specPreL` over `walPreInL … (ls ++ [lt]) newTail …` with `os.fileWI_preSyncOk`; then `Seek` and
+  `os.fileS` → the new segment `g` (`om := m.synced`, `bs := ys.map durB`) for `walCut_osAUnc`
+  (`streamOk_vals`, `metaChain_*`; the headers' frames = `tailStream Mr H md (cuts ++ [|H|])` from
+  `cutHdrDs` and `h.st = walLastHS`).
+
 ## W4 implementation log (branch `wal-create`, 2026-11-13)
 
 **Statements (`sorry`-stubbed proofs):** `LinuxFs/Spec/.../storage/wal/Create.lean` (`wal.Create.spec C Mr`),
@@ -2218,6 +2259,46 @@ stream.**
      needs.
   4. `SaveSnapshot`'s `walpb.Snapshot` registration not started.
 
+**W6, eighth session (branch `wal-save8`, 2026-11-13): the tail's fdatasync, proved down to `fileutil.Fdatasync`.**
+`wal-zte2` (the `WalAbsD` relaxation) was not pushed during the session, so task 1 (writes past the
+size) did not start; the session did the fdatasync half of `sync`, which every remaining unit needs.
+- *`syncLay` reshaped* (`SaveAbs.lean`, W6's own; no other user): `syncLay lay pre g0` replaces only the
+  tail, by `syncTail g0` (its `OsMeta` `om.synced` — the invariant's half must be the state's — and every
+  byte `durB`); the earlier segments are untouched (durable already, `intact`). `walAbsD_sync` restated
+  over it (`hs : lay.segs = pre ++ [g0]`), its proof by named fields (`refine { names := …, … }`), so the
+  `metas` field is the only place `wal-zte2`'s relaxation touches it.
+- *`crashTo_tailM`* (`TailCrash.lean`): `crashTo_tail` with the tree part taken from a `CrashTo` of the
+  WAL at any mark `m0` covering the earlier segments (`{ d with m := m0 }`); `crashTo_tail` is the
+  wrapper at `d.m` (callers unchanged).
+- *Pure, no `sorry`* (`TailSyncPure.lean`): `walSyncS s dir d` (the mark at `|H|`); `tailBound_sync` (the
+  record boundary is the stream's end: `jE = |R|`, `max wr z0 = wr`); **`crashOk_sync`** (as
+  `crashOkA_tail`: the old condition with the tail imaged as of the last sync, then `crashTo_tailM` at the
+  raised mark: a crash after the sync reads the whole history); `walsOk_sync`, `dirKeysOk_sync` (no cut
+  pending), `absentNone_sync`, `dirsAvoid_sync`, `walsNamed_relay`.
+- *Iris, no `sorry`* (`TailSync.lean`): **`walInvBody_sync`** — with `walTailKey`, the tail record's half
+  and `walCutFrag none` (the lock token's: no cut's rename pending, so `CrashOkA … none`), the tail's part
+  out, and *two* closings as an `∧`: the success (`F !! ino = none`, `wr` the stream's end, `zf`; the
+  synced tail's `segRes`) to `walInvBody (walSyncS s dir d) ∗ walPast …`, and the unchanged one
+  (`segResF F g0 -∗ walInvBody s`) for a failed fdatasync. Helpers: `walTailsRes_zeros` (F-Z and the
+  record boundary from the tail record), `segsAll_sep_relay`, `walParked_relay` (any relayout with the
+  same directory and tail inode/length), `walMapLe_sync`, `absLe_sync`, `walKeysInArea_sync`.
+- *Steps, no `sorry`*: **`wp_tailFsync`** (`TailFsync.lean`, the extension's `Fsync` with `walInv` open:
+  halves joined, `wp_osFsync`, success gives the program's synced halves and `walSyncedLb dir |H|`, failure
+  nothing); `syscall.Fdatasync.wp_tail` and **`fileutil.Fdatasync.wp_tail`** (`TailFdatasync.lean`, over
+  `walTailW` with `o0 + |out| = |tailStream|`; takes `os.File.Fd.spec`; `TailMeta.synced`).
+- *What `sync.wp_proof` still needs*: (a) `encoder.flush.specP` over `wal.tailWriter` with the guard
+  `tailOk … (out ++ pend)`: **blocked on writes past the size** (the page writer's pending bytes may pass
+  `sz` even when `curOff < SegmentSizeBytes`), task 1 once `wal-zte2` lands; (b) the handle's
+  `walCutFrag none` (inside the sealed `walOpenW`'s `walLockedTok`: the proof unseals with `import all`
+  of `Ghost.lean`); (c) the leaf calls `time.Now`/`Since`, `Duration.Seconds`, `zap.Duration`,
+  `Logger.Warn`, `walFsyncSec.Observe` (`wal.metricsInit`, `Metrics.lean`); (d) `o0 + |out ++ pend| =
+  |tailStream|` from `WalHS.Split` at `rest = 0`.
+- *Not done*: tasks 1-4 of the brief (writes past the size; the handle facts `∀ b ∈ cuts, b ≤ |H|` and
+  `walLastIdx` only when `Done` — note for whoever does it: `saveEntry`/`saveState` then need a premise
+  covering the case their post is `Done`, e.g. `rest = 1 → walLastIdx H ≤ max(e.Index, snapi)`, which
+  `Save` must supply from a `snapi`-bounds fact the handle does not carry today; the cuts budget; the
+  `walpb.Snapshot` registration).
+
 ## W3/W5 implementation log (branch `wal-read`, 2026-11-13)
 
 **Proved (no `sorry`, `lake build`):**
@@ -2631,3 +2712,44 @@ its last page).
   with `s.wal` through `walMapLe`), `walUnlockedTok_lock`, take the segments and directory claim out
   (`walParked`) and, in write mode, `walTmpParked_take` (the pipeline's `tmpClaim j (pipeTmp 0)` and the handle's
   `pipeTmp 1`); `o = none`: commit `Q none` and continue on `selectWALFiles.specAbsent` with the token back.
+
+**Eighth session (branch `wal-read8`, 2026-11-13): the pin, two gaps in the invariant; nothing proved.**
+Two facts the pin and the error arms need are not in `walInv`; both are invariant designs (W1's owner), not
+`openAtIndex`'s to make. No statement or proof changed this session.
+- **Gap A, the put-back (`openAtIndex`'s error arms, `Close`, a failed `ReadAll`).** After the pin, the error
+  arms (`selectWALFiles`' errors, e.g. no file at the snapshot's index; `openWALFiles`' `EMFILE`/`EIO`) must
+  return `walUnlockedTok`, i.e. turn the flag back to `true`, which needs `O = D = []` and `T = []` in
+  `walParked`. The program holds what *it* took, but nothing in the invariant says `O`, `D`, `T` are exactly
+  that: at the put-back `walParked`'s `O'`, `D'`, `T'` are existentials no resource of the program ties to
+  (another unit with the flag `false` could, as far as the invariant says, have taken more). Dropping halves
+  is no way out (they would be lost to the next `Open`). Needed: a ghost record of what is out with a
+  program-held half, e.g. `WalGS.γpo` holding `(O, D-keys, T)`, the invariant's half in `walParked`
+  (`b = true ↔ record = ([], [], [])`), the program's half in the handle (`walReadH`/`walOpenWF`/`walCreateP`:
+  sealed bodies, no client statement changes), `walUnlockedTok` holding the empty record's half. Every
+  unit that changes `O`/`D`/`T` then updates both halves: `Open`'s pin, `ReadAll`'s return, `cut`'s rename
+  (new tail in, old tail out, the claim's new history), `Create`'s commit, `Close`. Recording `D` by claim
+  key `(j, N)` rather than by value avoids an update at every directory step. (A weaker "everything out is
+  one WAL's" clause does not suffice: the put-back must supply `segResP g` for each out inode, so it needs
+  `O'` ⊆ what it holds.)
+- **Gap B, the parked segments are idle (the pin's exact halves).** The pin turns the parked `segResP g`
+  (any contents) into `segHalves g` (the layout's `g.om`, `g.bs`; `walDecFiles_mk` needs `g.om.size =
+  |g.bs|` from `WalAbsD.metas`) by agreement with `segResF F g` — only when `F !! g.ino = none`. Nothing in
+  `walInvBody` excludes a change in flight on a parked segment: in `segResF`'s in-flight cases the
+  invariant holds no `osMeta` (the token's `tokRes` holds it whole, in the extension's interpretation), so
+  the parked half contradicts it only through the state interpretation (`tokRes_meta_whole`,
+  `World.lean`). Two fixes: (1) pure, in the invariant: `∀ i, F !! i ≠ none → i ∈ O` (a change in flight
+  only on a segment taken out; `walParked` would need `F`, or a new last conjunct of `walInvBody` stating it
+  over `walParked`'s `O`, which then must be visible: same record as gap A); kept by the tail's writes and
+  `cut`'s truncate (their segment is out), established at `walInv_alloc` (`F = ∅`). (2) A step lemma giving
+  both `notCrashed` and the `fsExt` interpretation (`wp_notCrashed_acc` and Perennial's `wp_ext_acc` in
+  one; `goose_bstateInterp_eq`), then `gAuth_lookup` of the token and `tokRes_meta_whole` inside the pin's
+  update. Recommended: (1) with gap A's record (one design, no extension-level work).
+- *What the pin must take* (for when A and B land): the segments **from the selected position `k` on**
+  (`k = walSearch (lay.segs.map (walNameIdx ∘ name)) s.1`, a function of the layout, known at the pin), not
+  all of them: a handle cannot drop a parked half; the directory claim (`WalDirClaim lay.j hj cl`'s, into
+  `D`); write mode `walTmpParked_take`. If `walSearch` fails, the pin takes only the claim. Note for `Open`
+  (write mode, the coordinator's `wal-cut9` heads-up): a leftover `N.tmp` handed to `newFilePipeline` must
+  satisfy `trFile`'s new `cut = none ∧ lo ≤ size`, and the handle starts `walPipeH … h.pc` at `pc = 0`.
+- *Callees for `openAtIndex`'s write mode*: `os.File.Name` and `filepath.Base` have specs
+  (`LinuxFs/Spec/os/File__Name.lean`, `LinuxFs/Spec/path/filepath/Base.lean`); `*LockedFile`'s promoted
+  `Name` and `WAL.tail` over `walReadH`'s locks (`WAL__tail` is over the write handle) are to check.

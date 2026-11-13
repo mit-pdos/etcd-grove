@@ -262,3 +262,19 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Proposed change.** On error, `Sync` consumes the handle (as `Save`'s and `SaveSnapshot`'s error arms
   do, plan §3); etcd's callers stop on that error (`Fatal`).
 - **Decision.** Adopted (the coordinator, the user away; an intermediate spec, every client stops there).
+
+## 2026-11-13: `wal.WAL.SaveSnapshot.spec` -- a snapshot's index must not be below an earlier snapshot record's
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__SaveSnapshot.lean` (the W4a axiom; its proved
+  replacement over `fsExt`, `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/`).
+- **Defect.** `SaveSnapshot` sets `w.snapi` to the saved snapshot's index (not the maximum), and `cut` names
+  the next segment after `max(w.enti, w.snapi) + 1`, which must exceed every index in the history
+  (`walLastIdx`) for the segment names to stay increasing; a snapshot saved below an earlier one breaks
+  it (the W6/W2 proofs, `notes/wal-fsext-plan.md`).
+- **Evidence.** The handle fact `walLastIdx H ≤ max(enti, snapi)` (W2, `wal-cut7`) cannot be kept by
+  `SaveSnapshot` otherwise (W6, `wal-save8`'s log).
+- **Proposed change.** `SaveSnapshot.spec` takes `∀ s ∈ snapshot records of H, s.Index ≤ m.Index`. etcd
+  saves the snapshots raft hands it (received, above the committed index) and its own (at the applied
+  index, at least every snapshot applied before): monotone, to be checked at C6.
+- **Decision.** Adopted provisionally (the coordinator, the user away); **for the user's review**: a new
+  client obligation on the server (C6).

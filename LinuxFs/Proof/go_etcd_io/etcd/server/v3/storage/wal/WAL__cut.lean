@@ -1,10 +1,13 @@
 /-
 The proof of `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__cut.lean` (W2).
-**Unfinished (`sorry` after step 2).** Done: steps 1 (`Seek`, `os.File.Truncate.specWalTail`) and 2
-(`WAL.sync.specCut`), both hypotheses (`WAL__cutTail.lean`), with their error exits. Next: step 3 over
-`CutName.lean` (`w.seq()` inline: `tail`, `Name`, `filepath.Base` = `baseModel_child_walFileName`,
-`parseWALName` = `scanWalName_walFileName`, the `lg.Fatal` branch unreachable; `walName` over
-`fmt.SprintfWalName.spec`; `filepath.Join` = `child dir bt`, `join_child`). The steps (S/wal.go:875-965)
+**Unfinished (`sorry` after step 4).** Done: steps 1 (`Seek`, `os.File.Truncate.specWalTail`) and 2
+(`WAL.sync.specCut`), both hypotheses (`WAL__cutTail.lean`), with their error exits; 3 (`w.seq()` inline:
+`File.Name`, `filepath.Base` = `baseModel_child_walFileName`, `parseWALName` = `scanWalName_walFileName`;
+`next` joined by `wp_join`; `walName` over `fmt.SprintfWalName.spec`, `cutName_str`; `filepath.Join` =
+`child dir bt`, `join_child`/`walFileName_nameOk`); 4 (`wp_walPipeH_open`, its error exit). Next: step 5
+(`PreSync.lean`'s `os.fileWI`/`os.fileWI_preSyncOk` for the stream over `N.tmp`, `CutHdr.lean`'s
+`metaChain_cut`/`_size`/`streamOk_vals` for the bytes after it; blocked on `pipeFile` facts, the W2 log's
+eighth session). The steps (S/wal.go:875-965)
 and what each needs:
 1. `w.tail().Seek(0, SeekCurrent)`, `Truncate(off)`: the tail's whole `OsMeta`, half of which is
    `walInv`'s (`segRes`): a crash-aware truncate opening `walInv` around the step (W6's tail
@@ -48,6 +51,13 @@ public import LinuxFs.Spec.os.File__SyncS
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__cutTail
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__tail
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutName
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutPipe
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.PipeLemmas
+public import LinuxFs.Spec.os.File__Name
+public import LinuxFs.Spec.path.filepath.Base
+public import LinuxFs.Spec.path.filepath.Join
+public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.parseWALName
+public import Spec.fmt.SprintfWalName
 
 @[expose] public section
 
@@ -86,7 +96,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     (_wp_encode : go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.specG (GF := GF) (hG := hG))
     (_wp_Open : go_etcd_io.etcd.server.v3.storage.wal.filePipeline.Open.spec (GF := GF) (hG := hG))
     (_wp_Rename : os.Rename.specFileSnc (GF := GF) (hG := hG))
-    (_wp_SyncDir : os.File.Sync.specDirS (GF := GF) (hG := hG)) :
+    (_wp_SyncDir : os.File.Sync.specDirS (GF := GF) (hG := hG))
+    (wp_Name : os.File.Name.spec (GF := GF) (hG := hG))
+    (wp_Base : filepath.Base.spec (GF := GF) (hG := hG))
+    (wp_parse : go_etcd_io.etcd.server.v3.storage.wal.parseWALName.spec (GF := GF) (hG := hG))
+    (wp_SprintfWal : fmt.SprintfWalName.spec (GF := GF) (hG := hG))
+    (wp_Join : filepath.Join.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.spec (W := W) P Mr := by
   intro R jr r w dir h hrest hst hcnt hcuts hcpos
   wp_start as ⟨#Harea, Hh⟩
@@ -160,6 +175,99 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     iright; ipureintro; exact he
   subst he
   wp_auto
+  -- step 3: the name
+  iunfold walHandleIn at Hh
+  icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j,
+    %rc, Hlg, #Hzap, Hdir, Hdf, Hdff, Hmd, #Hmds, Hsp, #Hst, Hdec, Hrc, Hns, #Hmu, Henti, Hsnapi,
+    He, Henc, Htw, Hdh, Hlocks, Hls, Hcap, %Hlt, Hlks, #Hltf, Hfp, Hpipe, #Henv, #Hcrc, Hopen, %Hpure⟩
+  obtain ⟨hsplit, hfd, hoff, hsz, hpend, hidx, hidx1⟩ := Hpure
+  obtain ⟨ls, rfl⟩ := List.getLast?_eq_some_iff.1 Hlt
+  iunfold walDirH at Hdh
+  icases Hdh with ⟨%Rd, %qd, %X, %hj, %nm0, %ph, #Hdk, Hcl, Hpd, #Hsid, Hperm, Hdfd, %hdh⟩
+  obtain ⟨hnm0w, hnm0c, hname, htmps, ⟨sq, ix, hnm0, hsq⟩, hlargest⟩ := hdh
+  iunfold walPipeH at Hpipe
+  icases Hpipe with ⟨%γp, %Rp, %dqp, %szp, %np, #Hisfp, Hmain, Hpc, %hnp⟩
+  ihave #Hisfp' := Hisfp
+  iunfold isFilePipe at Hisfp'
+  icases Hisfp' with ⟨%plg, -, -, -, -, -, -, -, -, -, -, #Hos, -, #Hpkg, %hszp⟩
+  ihave %hclean := osPathS_cleanAbs Rd dir (DFrac.own qd) j $$ Hpd
+  wp_auto
+  wp_join iprop(∃ nx : w64, next_ptr ↦ nx ∗ w_ptr ↦ w ∗
+      structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"snapi" w ↦ h.snapi ∗
+      ⌜uint.nat nx = max (uint.nat h.enti) (uint.nat h.snapi)⌝)
+    with [next w Hsnapi] as ⟨%nx, next, w, Hsnapi, %hnx⟩
+  · iexists _; iframe; ipureintro; word
+  · iexists _; iframe; ipureintro; word
+  -- `w.seq()`, inline
+  wp_method_call
+  wp_call
+  (try wp_auto)
+  wp_apply (wp_tail w locks ls lt (DFrac.own 1) (DFrac.own 1)) $$ [Hlocks Hls] as ⟨Hlocks, Hls⟩
+  · iframe
+  iclear Hlt0 File
+  ihave #Hlt1 := Hltf
+  iunfold fileutil.lockedFile at Hlt1
+  ihave %hltn := typedPointsto_not_null lt _ _ $$ Hlt1
+  iStructNamed Hlt1
+  simp only [decide_eq_false hltn]
+  (try wp_auto)
+  iunfold walTailW at Htw
+  icases Htw with ⟨Hf, Hfdo, Hoff, Htk, %m, %bs, Hm, Hbs, %hmb, Hv⟩
+  wp_method_call
+  wp_call
+  (try wp_auto)
+  wp_apply wp_Name f fd _ _ $$ [$Hf] as Hf
+  (try wp_auto)
+  wp_apply wp_Base as %bn %hbn
+  rw [hname, hnm0, baseModel_child_walFileName] at hbn
+  subst hbn
+  (try wp_auto)
+  obtain ⟨hsuf, hscan⟩ := scanWalName_walFileName sq ix
+  wp_apply wp_parse as %sq' %ix' %perr %hpe
+  obtain ⟨rfl, rfl, rfl⟩ := hpe.1 _ _ hsuf hscan
+  (try wp_auto)
+  -- `walName(seq + 1, next + 1)`
+  wp_func_call
+  wp_call
+  (try wp_auto)
+  wp_apply wp_slice_literal (V := GoInterface)
+    [interface.mkOk go.uint64 #(W64 sq + W64 1), interface.mkOk go.uint64 #(nx + W64 1)]
+  isplitr
+  · ipureintro; rfl
+  iintro %asl ⟨Hasl, -⟩
+  (try wp_auto)
+  wp_apply wp_SprintfWal _ _ _ _ $$ [$Hasl] as %bt ⟨-, %hbt⟩
+  have hmx : max (uint.nat h.enti) (uint.nat h.snapi) + 1 < 2 ^ 64 := hidx1
+  rw [cutName_str sq _ nx hsq hmx hnx] at hbt
+  subst hbt
+  (try wp_auto)
+  wp_apply wp_slice_literal (V := GoString)
+    [dir, walFileName (sq + 1) (max (uint.nat h.enti) (uint.nat h.snapi) + 1)]
+  isplitr
+  · ipureintro; rfl
+  iintro %jsl ⟨Hjsl, -⟩
+  (try wp_auto)
+  wp_apply wp_Join _ _ _ (by simp [walFileName_length]; omega) $$ [$Hjsl] as %fpath ⟨%hfpath, -⟩
+  rw [join_child hclean (walFileName_nameOk _ _)] at hfpath
+  subst hfpath
+  (try wp_auto)
+  -- step 4: `w.fp.Open()`
+  ihave Hpipe : walPipeH fp dir j h.pc $$ [Hmain Hpc]
+  · iunfold walPipeH
+    iexists γp, Rp, dqp, szp, np
+    iframe Hmain Hpc Hisfp
+    ipureintro; exact hnp
+  wp_apply (wp_walPipeH_open _wp_Open fp dir j h.pc hcnt) $$ [$Hpipe] as %ntl %oerr Hop
+  icases Hop with (⟨%he, %γp, %Rp, %dqp, %szp, %np, #Hisfp, Hmain, Hpf, %hnp⟩ | %he)
+  rotate_left
+  · rcases oerr with ei | _
+    rotate_left
+    · exact absurd rfl he
+    (try wp_auto)
+    iapply HΦ
+    iright; ipureintro; exact he
+  subst he
+  (try wp_auto)
   sorry
 
 end proof

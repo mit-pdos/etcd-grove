@@ -91,7 +91,10 @@ last `rest` records not yet encoded: `Save` commits its operation before encodin
 metadata, the cuts, the tail's inode, the encoder's start offset `o0` in the tail, the bytes its
 writer has accepted (`out`) and its page writer's pending bytes (`pend`), the hard state at
 `w.state` (`st`), the ghost name of the tail's record (`γ`, `walTailsRes`), the tail's size `sz`
-(preallocated), and the indices `enti`/`snapi`. -/
+(preallocated), the indices `enti`/`snapi`, and the files the handle's pipeline has handed over
+(`pc`: its `count`, which restarts at 0 with each `Open`/`Create`, unlike `cuts`, which counts the
+cuts of the WAL read back too; `cut` names its file `count % 2`, a signed remainder, so needs
+`pc + 2 < 2^63`). -/
 structure WalHS where
   H : List (WalOpG WalEnt)
   md : List w8
@@ -106,6 +109,7 @@ structure WalHS where
   sz : Nat
   enti : w64
   snapi : w64
+  pc : Nat
 
 /-- The tail's records encoded so far (all but the last `rest`). -/
 def WalHS.encRecs (Mr : WalMarshal) (h : WalHS) : List WalRec :=
@@ -199,7 +203,8 @@ def walTailW (f : Loc) (fd : w64) (name : GoString) (dir : GoString) (γ : GName
     ⌜m.size = sz ∧ TailMeta m bs ∧ sz < 2 ^ 62 ∧ 0 ≤ fd.toInt⌝ ∗
     ghostVar γ (1 : Qp).half ((H, md, cuts, o0 + out.length, i, none) : TailG))
 
-/-- **The pipeline `w.fp` of the WAL in `dir`** (`Pipe.lean`), the handle having made `k` cuts:
+/-- **The pipeline `w.fp` of the WAL in `dir`** (`Pipe.lean`), the handle having taken at most `k`
+files from it (`WalHS.pc`):
 the pipeline (over the directory's inode `j`, the handle's `walDirH`'s; roots `R`, path fraction `dq`,
 file size `sz`), the
 caller's token after `n ≤ k` files received, and the claim on the name the next `Open` hands back
@@ -266,7 +271,7 @@ def walHandleIn (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h
     locks ↦* lfs ∗ ownSliceCap Loc locks (DFrac.own 1) ∗ ⌜lfs.getLast? = some lt⌝ ∗
     ([∗list] lf ∈ lfs.dropLast, walLockH lf) ∗
     fileutil.lockedFile lt f ∗
-    structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ fp ∗ walPipeH fp dir j h.cuts.length ∗
+    structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ fp ∗ walPipeH fp dir j h.pc ∗
     encEnv ∗ walCrcTable ∗
     walOpenW (W := W) w dir ∗
     ⌜WalHS.Split Mr h ∧ 0 ≤ fd.toInt ∧ h.o0 + h.out.length ≤ h.sz ∧ h.sz ≤ 0xffffffff000 ∧
