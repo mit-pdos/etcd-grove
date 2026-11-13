@@ -6,7 +6,8 @@
 //   - T-a (TestRunCtxChain): the context a stream handler's ServerStream returns is a chain of
 //     *context.valueCtx, *context.cancelCtx and *context.timerCtx links over Background(), which
 //     context.value() walks, so the chain form of its library values (ctxValue) holds; with and
-//     without TLS, otelgrpc's stats handler, a client deadline and grpc-prometheus's interceptor.
+//     without TLS, otelgrpc's stats handler, a client deadline and grpc-prometheus's interceptor;
+//     no link is at one of the keys net/http's client reads (T-h0, http.netCtxOkC).
 //   - T-b, as revised (TestIncomingOfValue; Revision 1 of the freeze note, B1): a *cancelCtx has
 //     its parent's incoming metadata (metadata.incomingOf_cancelCtx), and etcd's require-leader
 //     wrapper (*cancellableContext) its embedded context's (v3rpc.incomingOf_cancellableContext),
@@ -155,6 +156,35 @@ func chain(ctx context.Context) []string {
 	return tys
 }
 
+// chainKeys lists the dynamic types of the keys of ctx's *context.valueCtx links (as chain walks).
+func chainKeys(ctx context.Context) []string {
+	var tys []string
+	for ctx != nil {
+		v := reflect.ValueOf(ctx)
+		switch fmt.Sprintf("%T", ctx) {
+		case "*context.valueCtx":
+			k, _ := field(v.Elem(), "key")
+			tys = append(tys, fmt.Sprintf("%T", k.Interface()))
+			p, _ := field(v.Elem(), "Context")
+			ctx, _ = p.Interface().(context.Context)
+		case "*context.cancelCtx":
+			p, _ := field(v.Elem(), "Context")
+			ctx, _ = p.Interface().(context.Context)
+		case "*context.timerCtx":
+			cc, _ := field(v.Elem(), "cancelCtx")
+			p, _ := field(cc, "Context")
+			ctx, _ = p.Interface().(context.Context)
+		default:
+			return tys
+		}
+	}
+	return tys
+}
+
+// netKeyTys are the key types net/http's client reads (Addendum T-h0, http.netCtxOkC).
+var netKeyTys = map[string]bool{"httptrace.clientEventContextKey": true, "nettrace.TraceKey": true,
+	"nettrace.LookupIPAltResolverKey": true}
+
 var chainTys = map[string]bool{"*context.valueCtx": true, "*context.cancelCtx": true,
 	"*context.timerCtx": true, "context.backgroundCtx": true}
 
@@ -172,12 +202,19 @@ func TestRunCtxChain(t *testing.T) {
 						otelgrpc.WithTracerProvider(sdktrace.NewTracerProvider()))))
 				}
 				got := make(chan []string, 1)
+				keys := make(chan []string, 1)
 				cc := startServer(t, opts, func(_ any, ss grpc.ServerStream) error {
 					got <- chain(ss.Context())
+					keys <- chainKeys(ss.Context())
 					return nil
 				})
 				runStream(t, cc, dl)
 				tys := <-got
+				for _, k := range <-keys {
+					if netKeyTys[k] {
+						t.Errorf("%s: a link at net/http's key %s", name, k)
+					}
+				}
 				if tys[len(tys)-1] != "context.backgroundCtx" {
 					t.Errorf("%s: chain does not end at Background(): %v", name, tys)
 				}
