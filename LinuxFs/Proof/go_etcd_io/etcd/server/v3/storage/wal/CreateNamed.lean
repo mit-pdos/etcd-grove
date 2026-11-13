@@ -38,6 +38,43 @@ theorem crashOk_mono {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay
     {n0 n : Nat} (hn : n0 ≤ n) (h : CrashOk C Mr d lay cl n0) : CrashOk C Mr d lay cl n :=
   fun m' fo hr => h m' fo (regionCrashed_mono hn hr)
 
+/-- The static relation does not depend on `named`. -/
+theorem walAbsD_named {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
+    (b : Bool) (h : WalAbsD C Mr d lay ents) : WalAbsD C Mr { d with named := b } lay ents := by
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12⟩ := h
+  exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12⟩
+
+theorem crashOkW_mono {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
+    {cl : List Claim} {n0 n : Nat} (hn : n0 ≤ n) (h : CrashOkW C Mr d lay cl n0) :
+    CrashOkW C Mr d lay cl n := by
+  obtain ⟨alt, halt, h⟩ := h
+  exact ⟨alt, halt, fun m' fo hr => h m' fo (regionCrashed_mono hn hr)⟩
+
+/-- `CrashTo` with `named` raised, the WAL's name holding a directory in the crashed tree. -/
+theorem crashTo_named {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {m' : Tree}
+    {fo : Ino → Option Fs.OsFile} (hct : CrashTo C Mr d lay m' fo)
+    (hJ : ∃ J, m'.entry lay.jr lay.nm = some (.dir J)) :
+    CrashTo C Mr { d with named := true } lay m' fo := by
+  rcases hct with ⟨-, hnone⟩ | hright
+  · obtain ⟨J, hJ⟩ := hJ; rw [hnone] at hJ; cases hJ
+  · exact Or.inr hright
+
+/-- **The crash condition (with a pending cut's alternative) with `named` raised**, the WAL's name
+decided as a directory in every crash the claims allow with the bound `n`. -/
+theorem crashOkW_named {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
+    {cl : List Claim} {n0 n : Nat} (hn : n0 ≤ n) (hok : CrashOkW C Mr d lay cl n0)
+    (hname : ∀ m', RegionCrashed cl n m' → ∃ J, m'.entry lay.jr lay.nm = some (.dir J)) :
+    CrashOkW C Mr { d with named := true } lay cl n := by
+  obtain ⟨alt, halt, h⟩ := hok
+  refine ⟨alt, fun lay0 h0 => ?_, fun m' fo hr hf hnm hw1 => ?_⟩
+  · obtain ⟨⟨ents0, ha⟩, h1, h2, h3, h4⟩ := halt lay0 h0
+    exact ⟨⟨ents0, walAbsD_named true ha⟩, h1, h2, h3, h4⟩
+  · rcases h m' fo (regionCrashed_mono hn hr) hf hnm hw1 with hct | ⟨lay0, h0, hct⟩
+    · exact Or.inl (crashTo_named hct (hname m' hr))
+    · obtain ⟨-, h1, h2, -, -⟩ := halt lay0 h0
+      refine Or.inr ⟨lay0, h0, crashTo_named hct ?_⟩
+      rw [h1, h2]; exact hname m' hr
+
 /-- **The invariant's pure facts at a bigger commit bound.** -/
 theorem walsOk_mono {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s : AbsDiskState}
     {Ls : GMap GoString WalLay} {cl : List Claim} {n0 n : Nat} (hn : n0 ≤ n)
@@ -46,13 +83,7 @@ theorem walsOk_mono {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s :
   refine ⟨fun dir d hd => ?_, h2, h3, h4, fun dir nm hin hn' m' hr => h5 dir nm hin hn' m'
     (regionCrashed_mono hn hr), fun dd hdd m' hr => h6 dd hdd m' (regionCrashed_mono hn hr)⟩
   obtain ⟨lay, nm, hj, hl, hin, hjr, hnm, hc, ha, hok⟩ := h1 dir d hd
-  exact ⟨lay, nm, hj, hl, hin, hjr, hnm, hc, ha, crashOk_mono hn hok⟩
-
-/-- The static relation does not depend on `named`. -/
-theorem walAbsD_named {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
-    (b : Bool) (h : WalAbsD C Mr d lay ents) : WalAbsD C Mr { d with named := b } lay ents := by
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12⟩ := h
-  exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12⟩
+  exact ⟨lay, nm, hj, hl, hin, hjr, hnm, hc, ha, crashOkW_mono hn hok⟩
 
 /-- The step raising `named` of the WAL in `dir`. -/
 def setNamed (s : AbsDiskState) (dir : GoString) : AbsDiskState :=
@@ -87,9 +118,8 @@ theorem walsOk_named {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s 
       obtain ⟨lay0, nm0, hj0, hlay0, hin0, hjr0, hnm0, -, -, hco⟩ := hok0
       rw [hlay] at hlay0; cases hlay0
       refine ⟨lay, nm', hj, hlay, by rw [harea]; exact hin', hjr, hnm, hcl, walAbsD_named true ha, ?_⟩
-      refine crashOk_named_of_lastWrite C Mr d lay cl n0 n hn hco (N := N) (h := h) (x := x) (e := e)
-        (E := E) (J := J) (by rw [hjr]; exact hc) (by rw [hnm]; exact hN)
-        (by rw [hjr, hnm]; exact hl) hx (by rw [hnm]; exact hJ)
+      refine crashOkW_named hn hco fun m' hr => ⟨J, ?_⟩
+      rw [hjr, hnm, regionCrashed_lastWrite hc hN hl hx hr, hJ]
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm he)] at hd'
       obtain ⟨lay, nm', hj, hlay, hin', rest⟩ := h1 dir' d' hd'
       exact ⟨lay, nm', hj, hlay, by rw [harea]; exact hin', rest⟩
