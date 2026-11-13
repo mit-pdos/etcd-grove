@@ -306,7 +306,21 @@ sealed): quiescent (`WalHS.Done`). The history is the program's copy's (`walDisk
 `Save` moves both). -/
 @[no_expose] def walOpenWF (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) :
     IProp GF :=
-  iprop(∃ h : WalHS, walHandleIn (W := W) P Mr w dir h ∗ ⌜h.Done⌝)
+  iprop(∃ h : WalHS, walHandleIn (W := W) P Mr w dir h ∗ ⌜h.Done⌝ ∗ ⧗ h.pc)
+
+/-- **The cuts budget** (`notes/bounds-plan.md`: the counter's owner turns the global receipt bound into
+its bound): with the area's `ReceiptBoundLe GF (2 ^ 62)`, `⧗ (pc + 1)` (the handle's `⧗ pc` and the receipt
+of a step of the `Save` about to cut) bounds the pipeline's count as `cut` needs (`cut.spec`'s
+`pc + 2 < 2 ^ 63`). -/
+theorem walPc_bound (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (n : Nat) :
+    ⊢@{IProp GF} walAreaOk C Mr R jr r -∗ ⧗ (n + 1) -∗ ⌜n + 2 < 2 ^ 63⌝ := by
+  iintro #Harea Hr
+  unfold walAreaOk
+  icases Harea with ⟨-, -, -, %hb⟩
+  ihave %hl := receipt_lt (n + 1) $$ Hr
+  ipureintro
+  have := hb.receiptBound_le
+  omega
 
 end handle
 

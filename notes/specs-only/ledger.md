@@ -278,3 +278,23 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   index, at least every snapshot applied before): monotone, to be checked at C6.
 - **Decision.** Adopted provisionally (the coordinator, the user away); **for the user's review**: a new
   client obligation on the server (C6).
+
+## 2026-11-13: `wal.WAL.SaveSnapshot.spec` -- the index premise above is not needed (withdrawn); the handle's snapshot bound is
+
+- **Spec.** The previous entry (`SaveSnapshot.spec`'s proposed `∀ s ∈ snapshot records of H, s.Index ≤ m.Index`);
+  `walHandleIn` (`LinuxFs/Proof/.../wal/Handle.lean`).
+- **Defect.** The previous entry's defect does not hold at the pin: the translated `SaveSnapshot` (fork
+  `0b50f0426`, S/wal.go:1161-1167) raises `w.snapi` and `w.enti` to the snapshot's index only when it is
+  larger, so `walLastIdx (H ++ [snap m]) ≤ max(enti', snapi')` follows from the old bound with no premise.
+  The real gap is elsewhere: `Save` of entries below an earlier snapshot record (`saveEntry` *sets* `w.enti`,
+  S/wal.go:1086) needs `walMaxSnapIdx H ≤ snapi`, which the handle did not carry (with `enti = 120`,
+  `snapi = 50`, a snapshot record of 100 read back, a `Save` of entries 60-70 would leave `walLastIdx = 100 >
+  max(70, 50)`).
+- **Evidence.** The W6 proofs (`wal-save9`): `walLastIdx_snap`, the Go code above.
+- **Proposed change.** No premise on `SaveSnapshot`. `walHandleIn`'s index facts become `(rest = 0 →
+  walLastIdx H ≤ max(enti, snapi)) ∧ walMaxSnapIdx H ≤ snapi` (internal; `saveEntry`/`saveState` take the
+  `rest = 1` case as a premise, which `Save` supplies). Obligation for `ReadAll` (W3/W5) and `Create` (W4) when
+  they build the handle: `walMaxSnapIdx H ≤ snapi` (`ReadAll`: every snapshot record before its first segment
+  is below that segment's name index, at most the target snapshot's, which it reads; `Create`: 0).
+- **Decision.** Adopted (proof agent; withdraws a provisional client obligation, so nothing for the user to
+  approve; flagged in the W6 log).
