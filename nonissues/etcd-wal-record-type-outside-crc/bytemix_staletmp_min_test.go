@@ -17,6 +17,7 @@ package wal
 import (
 	"bytes"
 	"math/rand"
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -28,13 +29,15 @@ import (
 )
 
 // TestWALTypeTearStaleTmp: the fork's own case of TestWALTypeTearStale. After an interrupted cut
-// and a restart, the next cut writes its headers over the reused 0.tmp, and the stale remnant of the
-// old hard-state frame stays after them (nonissues/etcd-wal-cut-reuses-stale-tmp). The first Save
-// after the cut appends an entry record over that remnant. If the remnant's byte under the entry
-// frame's Type value is 3 (StateType) or 5 (SnapshotType), a power loss that keeps every byte of
-// the Save but that one makes the restart read the entry's bytes as a hard state (or a snapshot
-// record), with a valid CRC. The test searches hard states (a vote for a member ID, a commit) whose
-// old frame puts such a byte there, and runs the restart on that image.
+// and a restart, the next cut writes its headers over the reused 0.tmp
+// (nonissues/etcd-wal-cut-reuses-stale-tmp). Were 0.tmp reused as it was, the stale remnant of the
+// old hard-state frame would stay after the new headers, and the first Save after the cut would
+// append an entry record over it. When the remnant's byte under the entry frame's Type value is 3
+// (StateType) or 5 (SnapshotType), a power loss that keeps every byte of the Save but that one
+// would make the restart read the entry's bytes as a hard state (or a snapshot record), with a
+// valid CRC. The test searches hard states (a vote for a member ID, a commit) whose old frame puts
+// such a byte there, and runs the restart on that image: it must fail or read only records the WAL
+// wrote there. (The pipeline truncates N.tmp: the byte under the Type is 0 and ReadAll fails.)
 func TestWALTypeTearStaleTmp(t *testing.T) {
 	rnd := rand.New(rand.NewSource(3))
 	frameLen := func(data []byte, crcv uint32) int {
@@ -61,14 +64,14 @@ func TestWALTypeTearStaleTmp(t *testing.T) {
 		require.NoError(t, enc.flush())
 		old := buf.Bytes()
 		// the new headers' CRC field encodes in 4 or 5 bytes (unknown before the run)
-		pos := -1
+		var poss []int
 		for _, crcv := range []uint32{1 << 31, 1 << 22} {
 			p := hsStart + frameLen(pbutil.MustMarshalMessage(newHS), crcv) + 9 // the first appended frame's Type
 			if p < len(old) && (old[p] == byte(StateType) || old[p] == byte(SnapshotType)) {
-				pos = p
+				poss = append(poss, p)
 			}
 		}
-		if pos < 0 {
+		if len(poss) == 0 {
 			continue
 		}
 		cands++
@@ -77,21 +80,23 @@ func TestWALTypeTearStaleTmp(t *testing.T) {
 		seg0, before, after, size := bmStaleTmp(t, oldHS, newHS, saveHS, prev, ents)
 		written, ends, _ := bmDecode(after, size, seg0)
 		s := ends[len(ends)-3] // the entry frame (then the state frame)
-		if before[s+9] != old[pos] {
+		if !slices.Contains(poss, int(s)+9) {
 			shifted++
-			continue // the new headers' CRC encoded shorter than assumed
+			continue // the new headers' CRC encoded otherwise than assumed
 		}
 		found++
 		img := append([]byte(nil), after...)
 		img[s+9] = before[s+9] // one byte: the Type value as it was before the Save
 		o := bmRestartMem(img, size, seg0)
 		t.Logf("old %v new %v: entry Type byte %#x -> %#x: %s %s %s", oldHS, newHS, after[s+9], before[s+9], o.kind, o.why, bmShort(o))
+		if o.kind != "ok" {
+			continue // a failed restart is allowed
+		}
 		prefix := len(o.recs) <= len(written)
 		for j := 0; prefix && j < len(o.recs); j++ {
 			prefix = o.recs[j].eq(written[j])
 		}
-		require.False(t, prefix, "the restart reads records the WAL never wrote there")
-		require.Equal(t, int64(before[s+9]), o.recs[len(written)-2].typ)
+		require.True(t, prefix, "the restart reads records the WAL never wrote there")
 	}
 	t.Logf("candidates %d, shifted %d, found %d", cands, shifted, found)
 	require.Positive(t, found)

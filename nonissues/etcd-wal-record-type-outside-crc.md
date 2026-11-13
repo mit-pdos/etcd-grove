@@ -32,7 +32,7 @@ Shown on constructed images at the fork's `f15d88841` and at upstream main `1b96
   `nonissues/etcd-wal-readall-zero-unsynced.md`). The restart succeeds with entry 2, synced and
   committed (normal, 40 bytes), replaced by `Entry{ConfChange, Term 1, Index 2}` with no data, and
   entry 3 dropped.
-- `TestWALTypeTearStaleTmp` (the fork, which syncs the zeroing): after an interrupted cut, the next
+- `TestWALTypeTearStaleTmp` (the fork before its `O_TRUNC` fix, which syncs the zeroing; the test now asserts the safe outcome and fails there): after an interrupted cut, the next
   cut writes shorter headers over the reused `0.tmp`
   (`nonissues/etcd-wal-cut-reuses-stale-tmp.md`); when the old hard state's vote is a 10-byte member
   ID, the new headers' CRC field encodes in 4 bytes and the old commit's last byte is 3 or 5, the
@@ -47,10 +47,31 @@ CRC-32C collision.
 
 ## Proof
 
-yes: W1 (`LinuxFs/.../wal/W1.lean`, a world premise) excludes these crashes, and the CRC evidence
-does not justify that for the Type byte. Narrowing W1 to `Data` (below) needs the fork's `alloc` to
-open `N.tmp` with `O_TRUNC` (then every byte under a fresh frame is zero and a torn Type is 0, an
-error every read spec allows), or a second premise on the Type byte.
+yes (a fork fix, below): W1 (`LinuxFs/.../wal/W1.lean`, a world premise) as first stated excludes
+these crashes, and the CRC evidence does not justify that for the Type byte. With the fork's `alloc`
+opening `N.tmp` with `O_TRUNC`, every byte under a fresh frame is zero and a torn Type is 0, an error
+every read spec allows, so W1 narrows to "no CRC-32C collision on the `Data` of a frame whose bytes
+under it were zero" and the finding no longer blocks the proof once the fork fix is pinned (until
+then the WAL is translated from the local fork checkout). The rejected alternative, a premise that
+frame bytes 8-15 come back whole, contradicts `fsExt`'s per-byte crash model
+(`notes/decisions.md`, "WAL over fsExt: `N.tmp` opened with `O_TRUNC`").
+
+## Fix in the fork
+
+`goose-lean-walfs`, commit `6dff53e17` ("wal: truncate a reused N.tmp in the file pipeline";
+`notes/wal-fsext-fork/0004-*.patch`): `filePipeline.alloc` calls `createNewWALFile(fpath, true)`, which
+adds `O_TRUNC` to the `OpenFile` flags (`fileutil.LockFile` passes the flags through; the file is
+then locked and preallocated, so it reads as zeros to the segment size). `TestWALTypeTearStaleTmp`
+now asserts the safe outcome (the restart fails or reads only written records) and fails before the
+fix (the restart accepts `HardState{term 686, vote 2, commit 3}` with entry 4 lost) and passes after
+(each instance: "unexpected block type 0"); `TestFilePipelineTruncatesStaleTmp` checks that a
+reused `0.tmp` comes back all zeros. `go test ./server/storage/wal/... ./client/pkg/fileutil/...`
+passes. Not pushed (pending the user).
+
+Upstream main (`1b969e26a2c6`, unchanged 2026-11-13) opens `N.tmp` the same way, but its other source
+of stale bytes under a fresh frame, `ReadAll`'s unsynced `ZeroToEnd` (etcd-io/etcd#22709), would
+remain after the same change; and both need the single-byte tear above, which no measured mechanism
+leaves. No upstream issue: this stays a nonissue.
 
 ## Notes
 
