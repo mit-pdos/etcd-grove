@@ -327,3 +327,24 @@ statements) can run in parallel with 7f-3b/3c, in a second worktree. 7f-5a-P lin
   with 7e. What is left (`watch.go`, `KWatch`'s step, `Check` through `RunLin2`, `Main*` with
   watchers) **is recommended to go with 7f-6**, not 7f-5, except `Set("WatchList=true")`. That call
   goes in S0, so that T5-c's evidence runs on the real driver.
+
+## 8. Decisions (etcd-grove-81, 2026-11-13: every recommendation of §7)
+
+- **Q1** (a): 7f-3's statements first. Then 7f-5a's Draft in parallel with 7f-3's proofs, in a
+  second worktree. No `sorry` under a linked result.
+- **Q2**: translate `WithRequireLeader` and grpc metadata's helpers. The restated F2 triple is
+  only a fallback.
+- **Q3** (a): the APF signal key holds nil, or a value that is not a signal, for now.
+- **Q4**: `Set("WatchList=true")`. B5's assumption is restated to one `Set` per feature, before
+  any `Enabled`, with Go evidence for the restatement.
+- **Q5**: accepted. `PrevKv` may be missing without compaction
+  (`issues/etcd-watch-prevkv-before-created.md`).
+- **Q6**: accepted. A temporary, named premise (`ConcurrentWatchObjectDecode` off) on
+  `store.Watch.spec`, listed in STATUS as temporary. 7f-6's Freeze requires 7f-5b.
+- **Q7**: accepted. The rest of 7f-0 goes with 7f-6. `Set("WatchList=true")` goes into the driver
+  in S0.
+- **Next:**
+  - S0: the enumeration, `examples/premisefix/watcherctx`, and `Set("WatchList=true")` in the
+    driver;
+  - then S1's trusted package, written in Lean and built;
+  - STOP for 81's axiom review before any proof uses it.
