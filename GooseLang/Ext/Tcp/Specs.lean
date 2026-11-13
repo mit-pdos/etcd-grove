@@ -467,7 +467,7 @@ theorem tcpOut_lb_prefix (hG : TcpGS GF) (c : Nat) (s : Bool) (bs : GoString) (f
     tcpOut hG c s bs f -∗ tcpOutLb hG c s l -∗ ⌜l <+: bs⌝ := by
   letI := hG.allG
   unfold tcpOut tcpOutLb
-  iintro ⟨%γ1, #H1, M, -⟩ ⟨%γ2, #H2, #L⟩
+  iintro ⟨%γ1, #H1, M, -, -⟩ ⟨%γ2, #H2, #L⟩
   icases tcpNames_agree hG c γ1 γ2 $$ H1 H2 with %e
   subst e
   icases mono_list_auth_lb_valid $$ M L with %h
@@ -478,7 +478,7 @@ theorem tcpOut_lb (hG : TcpGS GF) (c : Nat) (s : Bool) (bs : GoString) (f : Bool
     tcpOut hG c s bs f -∗ tcpOutLb hG c s bs := by
   letI := hG.allG
   unfold tcpOut tcpOutLb
-  iintro ⟨%γ, #H, M, -⟩
+  iintro ⟨%γ, #H, M, -, -⟩
   iexists γ
   iframe H
   iapply monoListLbOwn_get $$ M
@@ -500,7 +500,7 @@ theorem tcpOut_fin (hG : TcpGS GF) (c : Nat) (s : Bool) (bs : GoString) (f : Boo
     tcpOut hG c s bs f -∗ tcpFin hG c s bs' -∗ ⌜f = true ∧ bs' = bs⌝ := by
   letI := hG.allG
   unfold tcpOut tcpFin
-  iintro ⟨%γ1, #H1, -, Hf⟩ ⟨%γ2, #H2, #F⟩
+  iintro ⟨%γ1, #H1, -, Hf, -⟩ ⟨%γ2, #H2, #F⟩
   icases tcpNames_agree hG c γ1 γ2 $$ H1 H2 with %e
   subst e
   cases f
@@ -510,13 +510,23 @@ theorem tcpOut_fin (hG : TcpGS GF) (c : Nat) (s : Bool) (bs : GoString) (f : Boo
     icases dghostVar_agree $$ Hf F with %h
     ipureintro; exact ⟨trivial, (Option.some.inj h).symm⟩
 
+/-- An end's written bytes are owned once. -/
+theorem tcpOut_excl (hG : TcpGS GF) (c : Nat) (s : Bool) (bs bs' : GoString) (f f' : Bool) :
+    tcpOut hG c s bs f -∗ tcpOut hG c s bs' f' -∗ False := by
+  letI := hG.allG
+  unfold tcpOut
+  iintro ⟨%γ1, #H1, -, -, T1⟩ ⟨%γ2, #H2, -, -, T2⟩
+  icases tcpNames_agree hG c γ1 γ2 $$ H1 H2 with %e
+  subst e
+  iapply token_exclusive $$ T1 T2
+
 /-- An end that has sent its FIN: the FIN, after its bytes. -/
 theorem tcpOut_fin_intro (hG : TcpGS GF) (c : Nat) (s : Bool) (bs : GoString) :
     tcpOut hG c s bs true -∗ tcpFin hG c s bs := by
   letI := hG.allG
   unfold tcpOut tcpFin
   simp only [↓reduceIte]
-  iintro ⟨%γ, #H, -, #F⟩
+  iintro ⟨%γ, #H, -, #F, -⟩
   iexists γ
   iframe H F
 
@@ -791,18 +801,20 @@ theorem tcpOut_intro (hG : TcpGS GF) (c : Nat) (s : Bool) (bs : GoString) (f : B
     tcpNames hG c γ -∗ @monoListAuthOwn GF hG.allG _ _ (γ.out s) (1 : Qp).half bs -∗
       (if f then @dghostVar GF hG.allG _ _ (γ.fin s) .discard (some bs)
         else @dghostVar GF hG.allG _ _ (γ.fin s) (.own (1 : Qp).half) (none : Option GoString)) -∗
+      @token GF hG.allG (γ.tk s) -∗
       tcpOut hG c s bs f := by
   letI := hG.allG
   unfold tcpOut
-  iintro #Hγ Hm Hf
+  iintro #Hγ Hm Hf Htk
   iexists γ
-  iframe Hγ Hm Hf
+  iframe Hγ Hm Hf Htk
 
 theorem tcpOut_elim (hG : TcpGS GF) (c : Nat) (s : Bool) (bs : GoString) (f : Bool) :
     tcpOut hG c s bs f ⊢ ∃ γ, tcpNames hG c γ ∗
       @monoListAuthOwn GF hG.allG _ _ (γ.out s) (1 : Qp).half bs ∗
       (if f then @dghostVar GF hG.allG _ _ (γ.fin s) .discard (some bs)
-        else @dghostVar GF hG.allG _ _ (γ.fin s) (.own (1 : Qp).half) (none : Option GoString)) :=
+        else @dghostVar GF hG.allG _ _ (γ.fin s) (.own (1 : Qp).half) (none : Option GoString)) ∗
+      @token GF hG.allG (γ.tk s) :=
   .rfl
 
 theorem setEnd_endSt_setOut (cn : TcpConn) (s : Bool) (p : TcpPipe) :
@@ -835,7 +847,7 @@ theorem wp_tcp_Write (c : Nat) (s : Bool) (a : GoString) (bs : GoString) (Φ : v
   icases Hes with ⟨Hgv, Hmono, Hfin, %Hpure⟩
   icases tcpEnd_agree _ c s st r γ cn $$ Hγ Hend Hgv with ⟨%Hagr, Hv, Hgv⟩
   obtain ⟨rfl, rfl⟩ := Hagr
-  icases tcpOut_elim _ c s out f $$ Hout with ⟨%γ', #Hγ', Hm, Hf⟩
+  icases tcpOut_elim _ c s out f $$ Hout with ⟨%γ', #Hγ', Hm, Hf, Htk⟩
   icases tcpNames_agree _ c γ γ' $$ Hγ Hγ' with %Heq
   subst Heq
   icases monoListAuthOwn_agree _ _ _ out _ $$ Hm Hmono with %Hmag
@@ -867,10 +879,10 @@ theorem wp_tcp_Write (c : Nat) (s : Bool) (a : GoString) (bs : GoString) (Φ : v
   · -- blocked: nothing written
     simp only [hb, ↓reduceIte] at Hcase
     obtain ⟨rfl, Hgg⟩ := Hcase
-    imod Hk $$ %0 %false %(cn.endSt s) %(.inl ⟨hb, rfl, rfl, rfl⟩) [Hv] [Hm Hf] with HΦ
+    imod Hk $$ %0 %false %(cn.endSt s) %(.inl ⟨hb, rfl, rfl, rfl⟩) [Hv] [Hm Hf Htk] with HΦ
     · iapply tcpEnd_intro $$ Hγ Hv
     · rw [List.take_zero, List.append_nil]
-      iapply tcpOut_intro $$ Hγ Hm Hf
+      iapply tcpOut_intro $$ Hγ Hm Hf Htk
     imodintro
     iframe Hheap Hl
     isplitr [HΦ]
@@ -904,9 +916,9 @@ theorem wp_tcp_Write (c : Nat) (s : Bool) (a : GoString) (bs : GoString) (Φ : v
     imod ghostVar_update_halves (st', (cn.out (!s)).rcvd) $$ Hv Hgv with ⟨Hv, Hgv⟩
     ihave Hf := ite_false_ent (R := dghostVar (γ.fin s) .discard
       (some ((cn.out s).sent ++ bs.take k))) hnf $$ Hf
-    imod Hk $$ %k %ok %st' %hwr [Hv] [Hm Hf] with HΦ
+    imod Hk $$ %k %ok %st' %hwr [Hv] [Hm Hf Htk] with HΦ
     · iapply tcpEnd_intro $$ Hγ Hv
-    · iapply tcpOut_intro $$ Hγ Hm Hf
+    · iapply tcpOut_intro $$ Hγ Hm Hf Htk
     imodintro
     iframe Hheap Hl
     isplitr [HΦ]
@@ -975,7 +987,7 @@ theorem wp_tcp_closeLike (o : String) (canFail : Bool) (upd : TcpEnd → TcpEnd)
   icases Hes with ⟨Hgv, Hmono, Hfin, %Hpure⟩
   icases tcpEnd_agree _ c s st r γ cn $$ Hγ Hend Hgv with ⟨%Hagr, Hv, Hgv⟩
   obtain ⟨rfl, rfl⟩ := Hagr
-  icases tcpOut_elim _ c s out f $$ Hout with ⟨%γ', #Hγ', Hm, Hf⟩
+  icases tcpOut_elim _ c s out f $$ Hout with ⟨%γ', #Hγ', Hm, Hf, Htk⟩
   icases tcpNames_agree _ c γ γ' $$ Hγ Hγ' with %Heq
   subst Heq
   icases monoListAuthOwn_agree _ _ _ out _ $$ Hm Hmono with %Hmag
@@ -992,10 +1004,10 @@ theorem wp_tcp_closeLike (o : String) (canFail : Bool) (upd : TcpEnd → TcpEnd)
   obtain ⟨rfl, rfl, Hcase⟩ := Hstep _ h σ g e' h' σ' g' c s cn rfl Hγa.2 hcn Hst
   rcases Hcase with ⟨hcf, rfl, Hgg⟩ | ⟨hc, ok, rfl, rfl⟩
   · -- nothing changed
-    imod Hk $$ %false %(cn.endSt s) %((cn.out s).fin) %(.inl ⟨hcf, rfl, rfl, rfl⟩) [Hv] [Hm Hf]
+    imod Hk $$ %false %(cn.endSt s) %((cn.out s).fin) %(.inl ⟨hcf, rfl, rfl, rfl⟩) [Hv] [Hm Hf Htk]
       with HΦ
     · iapply tcpEnd_intro $$ Hγ Hv
-    · iapply tcpOut_intro $$ Hγ Hm Hf
+    · iapply tcpOut_intro $$ Hγ Hm Hf Htk
     imodintro
     iframe Hheap Hl
     isplitr [HΦ]
@@ -1013,9 +1025,9 @@ theorem wp_tcp_closeLike (o : String) (canFail : Bool) (upd : TcpEnd → TcpEnd)
     imod ghostVar_update_halves (upd (cn.endSt s), (cn.out (!s)).rcvd) $$ Hv Hgv with ⟨Hv, Hgv⟩
     imod fin_close _ (cn.out s) (cn.endSt s) $$ Hf Hfin with ⟨Hf, Hfin⟩
     imod Hk $$ %ok %(upd (cn.endSt s)) %((cn.out s).fin || !(cn.endSt s).broken)
-      %(.inr ⟨hc, rfl, rfl⟩) [Hv] [Hm Hf] with HΦ
+      %(.inr ⟨hc, rfl, rfl⟩) [Hv] [Hm Hf Htk] with HΦ
     · iapply tcpEnd_intro $$ Hγ Hv
-    · iapply tcpOut_intro $$ Hγ Hm Hf
+    · iapply tcpOut_intro $$ Hγ Hm Hf Htk
     imodintro
     iframe Hheap Hl
     isplitr [HΦ]
@@ -1312,19 +1324,20 @@ theorem wp_tcp_LisClose (l : w64) (a : GoString) (o : Bool) (Φ : val → IProp 
 def tcpFreshEnd (hG : TcpGS GF) (c : Nat) (s : Bool) : IProp GF :=
   iprop(tcpEnd hG c s TcpEnd.fresh 0 ∗ tcpOut hG c s [] false)
 
-theorem tcpFresh_intro (hG : TcpGS GF) (c : Nat) (s : Bool) (γ : ConnNames) (gv go gf : GName)
-    (hv : γ.v s = gv) (ho : γ.out s = go) (hf : γ.fin s = gf) :
+theorem tcpFresh_intro (hG : TcpGS GF) (c : Nat) (s : Bool) (γ : ConnNames) (gv go gf gt : GName)
+    (hv : γ.v s = gv) (ho : γ.out s = go) (hf : γ.fin s = gf) (ht : γ.tk s = gt) :
     tcpNames hG c γ -∗ @ghostVar GF hG.allG _ _ gv (1 : Qp).half (TcpEnd.fresh, 0) -∗
       @monoListAuthOwn GF hG.allG _ _ go (1 : Qp).half ([] : GoString) -∗
       @dghostVar GF hG.allG _ _ gf (.own (1 : Qp).half) (none : Option GoString) -∗
+      @token GF hG.allG gt -∗
       tcpFreshEnd hG c s := by
   letI := hG.allG
-  subst hv ho hf
+  subst hv ho hf ht
   unfold tcpFreshEnd tcpEnd tcpOut
-  iintro #Hγ Hv Ho Hf
+  iintro #Hγ Hv Ho Hf Ht
   isplitl [Hv]
   · iexists γ; iframe Hγ Hv
-  · iexists γ; iframe Hγ Ho; simp only [Bool.false_eq_true, ↓reduceIte]; iexact Hf
+  · iexists γ; iframe Hγ Ho Ht; simp only [Bool.false_eq_true, ↓reduceIte]; iexact Hf
 
 theorem connCtx_fresh_intro (hG : TcpGS GF) (a : GoString) (γ : ConnNames)
     (gv0 gv1 go0 go1 gf0 gf1 : GName) (ha : γ.addr = a) (hv0 : γ.v false = gv0)
@@ -1401,16 +1414,18 @@ theorem wp_tcp_Dial (a h : GoString) (Φ : val → IProp GF) :
     imod mono_alloc_halves ([] : GoString) with ⟨%γo1, Ho1, Ho1'⟩
     imod dghostVar_alloc_halves (none : Option GoString) with ⟨%γf0, Hf0, Hf0'⟩
     imod dghostVar_alloc_halves (none : Option GoString) with ⟨%γf1, Hf1, Hf1'⟩
-    let γ : ConnNames := ⟨a, γv0, γv1, γo0, γo1, γf0, γf1⟩
+    imod token_alloc (GF := GF) with ⟨%γt0, Ht0⟩
+    imod token_alloc (GF := GF) with ⟨%γt1, Ht1⟩
+    let γ : ConnNames := ⟨a, γv0, γv1, γo0, γo1, γf0, γf1, γt0, γt1⟩
     imod ghost_map_insert_persist c γ hnm $$ Hn with ⟨Hn, #Hγ⟩
     imod ghost_map_update (S ∪ {[c]}) $$ Hpm Hpend with ⟨Hpm, Hpend⟩
     have Hat : 2 * c + 1 < 2 ^ 64 := hb
-    imod Hk $$ %c %hcS [Hpend] [] [Hv0 Ho0 Hf0] [Hv1 Ho1 Hf1] with HΦ
+    imod Hk $$ %c %hcS [Hpend] [] [Hv0 Ho0 Hf0 Ht0] [Hv1 Ho1 Hf1 Ht1] with HΦ
     · iexact Hpend
     · unfold tcpConnAt tcpNames; iexists γ; iframe Hγ; ipureintro; exact ⟨rfl, Hat⟩
-    · iapply tcpFresh_intro _ c false γ γv0 γo0 γf0 rfl rfl rfl $$ [] Hv0 Ho0 Hf0
+    · iapply tcpFresh_intro _ c false γ γv0 γo0 γf0 γt0 rfl rfl rfl rfl $$ [] Hv0 Ho0 Hf0 Ht0
       unfold tcpNames; iexact Hγ
-    · iapply tcpFresh_intro _ c true γ γv1 γo1 γf1 rfl rfl rfl $$ [] Hv1 Ho1 Hf1
+    · iapply tcpFresh_intro _ c true γ γv1 γo1 γf1 γt1 rfl rfl rfl rfl $$ [] Hv1 Ho1 Hf1 Ht1
       unfold tcpNames; iexact Hγ
     imodintro
     iframe Hheap Hl

@@ -31,6 +31,7 @@ public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.GhostVar
 public import Perennial.Ghost.DGhostVar
 public import Perennial.Ghost.MonoList
+public import Perennial.Ghost.Token
 public import GooseLang.Ext.Tcp.Impl
 
 @[expose] public section
@@ -54,16 +55,18 @@ structure ConnNames where
   out1 : GName
   fin0 : GName
   fin1 : GName
+  tk0 : GName
+  tk1 : GName
 deriving DecidableEq
 
 def ConnNames.enc (γ : ConnNames) :=
-  (γ.addr, γ.v0, γ.v1, γ.out0, γ.out1, γ.fin0, γ.fin1)
+  (γ.addr, γ.v0, γ.v1, γ.out0, γ.out1, γ.fin0, γ.fin1, γ.tk0, γ.tk1)
 
 instance ConnNames.countable : Pos.Countable ConnNames :=
   .ofInjective (fun γ => Pos.Countable.encode γ.enc) (fun a b h => by
     have h' := Pos.encode_inj h
     cases a; cases b; simp only [ConnNames.enc, Prod.mk.injEq] at h'
-    obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := h'; rfl)
+    obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := h'; rfl)
 
 def ConnNames.v (γ : ConnNames) : Bool → GName
   | false => γ.v0
@@ -76,6 +79,10 @@ def ConnNames.out (γ : ConnNames) : Bool → GName
 def ConnNames.fin (γ : ConnNames) : Bool → GName
   | false => γ.fin0
   | true => γ.fin1
+
+def ConnNames.tk (γ : ConnNames) : Bool → GName
+  | false => γ.tk0
+  | true => γ.tk1
 
 instance TcpEnd.countable : Pos.Countable TcpEnd :=
   .ofInjective (fun st : TcpEnd => Pos.Countable.encode (st.closed, st.wshut, st.broken, st.dl))
@@ -159,12 +166,14 @@ def tcpEnd (hG : TcpGS GF) (c : Nat) (s : Bool) (st : TcpEnd) (r : Nat) : IProp 
   letI := hG.allG
   iprop(∃ γ, tcpNames hG c γ ∗ ghostVar (γ.v s) (1 : Qp).half (st, r))
 
-/-- The bytes `bs` written by the end `s` of `c`, and whether it has sent its FIN. -/
+/-- The bytes `bs` written by the end `s` of `c`, and whether it has sent its FIN. Exclusive
+(the end's token, `γ.tk s`, which only this resource holds). -/
 def tcpOut (hG : TcpGS GF) (c : Nat) (s : Bool) (bs : GoString) (f : Bool) : IProp GF :=
   letI := hG.allG
   iprop(∃ γ, tcpNames hG c γ ∗ monoListAuthOwn (γ.out s) (1 : Qp).half bs ∗
-    if f then dghostVar (γ.fin s) .discard (some bs)
-    else dghostVar (γ.fin s) (.own (1 : Qp).half) (none : Option GoString))
+    (if f then dghostVar (γ.fin s) .discard (some bs)
+     else dghostVar (γ.fin s) (.own (1 : Qp).half) (none : Option GoString)) ∗
+    token (γ.tk s))
 
 /-- The end `s` of `c` has written at least `bs`. -/
 def tcpOutLb (hG : TcpGS GF) (c : Nat) (s : Bool) (bs : GoString) : IProp GF :=
