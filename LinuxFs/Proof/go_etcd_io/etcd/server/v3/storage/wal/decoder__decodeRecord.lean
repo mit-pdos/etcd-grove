@@ -409,7 +409,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
         iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
         iexact HUerr
       have hstep : decRecStep C fs.isEmpty F.bs off c = .stop .tooLarge c := by
-        rw [hframe, if_pos htl]
+        rw [hframe, ite_eq_left htl]
       iapply HΦ
       iapply decPost_stop C d rp IoE eof ueof F fs off c c _ .tooLarge hstep (by simp [stopErr])
       isplitl [Hr]
@@ -473,7 +473,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
         simp only [List.length_append, List.length_take, List.length_drop] at this ⊢
         omega
       have hstep : decRecStep C fs.isEmpty F.bs off c = .stop .shortData c := by
-        rw [hframe, if_neg htl, if_pos hsd]
+        rw [hframe, ite_eq_right htl, ite_eq_left hsd]
       rcases hc2 with ⟨h1, _⟩ | ⟨h1, _⟩
       all_goals first
         | rw [decide_eq_true h1]
@@ -516,7 +516,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
     have hdata : ((F.bs.drop off).drop 8).take (rb + pad) = ys2 := by
       obtain ⟨t, ht⟩ := hpre2'; rw [← ht, ← h8, ← hlen2]; simp
     have hstep0 : decRecStep C fs.isEmpty F.bs off c = decRecData C fs.isEmpty off c rb pad ys2 := by
-      rw [hframe, if_neg htl, if_neg hnsd, hdata]
+      rw [hframe, ite_eq_right htl, ite_eq_right hnsd, hdata]
     have hys2l : ys2.length < 2 ^ 62 := by
       have := hpre2'.length_le; simp at this; omega
     wp_auto
@@ -682,7 +682,68 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
       iapply ownFbr_intro
       iframe
       iframe Hf HF Hfio
-    sorry
+    -- a CRC mismatch
+    subst he4
+    wp_auto
+    wp_apply HReset rp $$ [Hrec] as Hr
+    · iapply ownRec_any; iexact Hrec
+    wp_apply HTorn d sl off dsl ys2 (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) hoff hys2l
+      $$ [Hbrs Hoff Hdat] as ⟨Hbrs, Hoff, Hdat⟩
+    · iframe
+    rw [hlast]
+    have hstep : decRecStep C fs.isEmpty F.bs off c =
+        .stop (.crcErr (isTorn fs.isEmpty off ys2)) (hash.crc32.crc32c c r.data) := by
+      rw [hstep0]; unfold decRecData; rw [hdec]; simp [hct, hCc, hne]
+    cases ht : isTorn fs.isEmpty off ys2
+    all_goals rw [ht] at hstep
+    all_goals wp_pures
+    all_goals
+      wp_auto
+      wp_apply HFI fbr b _ GoInterface.nil DFrac.discard $$ [Hf] as -
+      · iexact Hf
+      wp_auto
+      wp_apply HName as %nm -
+      wp_apply wp_slice_literal
+      isplitr
+      · ipureintro; rfl
+      iintro %asl ⟨Hasl, -⟩
+    all_goals first
+      | (wp_apply HErrorf _ _ [GoInterface.ok ei4, interface.mkOk go.string #nm,
+            interface.mkOk go.int64 #(W64 off)] [ei4] (by
+            intro ii hii
+            simp only [List.mem_cons, List.not_mem_nil, or_false] at hii
+            rcases hii with h | h | h
+            · cases h; exact Or.inr (by simp)
+            · rw [interface.mkOk] at h; cases h; exact Or.inl (argWf_string _)
+            · rw [interface.mkOk] at h; cases h; exact Or.inl (argWf_int64 _)) $$ [Hasl] as %e5 -
+         · iframe
+           iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
+           iexact Hei4)
+      | (wp_apply HErrorf _ _ [interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x2,
+            interface.mkOk go.string #nm, interface.mkOk go.int64 #(W64 off)]
+            [⟨go.GoType.PointerType errors.errorString.ty, #x2⟩] (by
+            intro ii hii
+            simp only [List.mem_cons, List.not_mem_nil, or_false] at hii
+            rcases hii with h | h | h
+            · rw [interface.mkOk] at h; cases h; exact Or.inr (by simp)
+            · rw [interface.mkOk] at h; cases h; exact Or.inl (argWf_string _)
+            · rw [interface.mkOk] at h; cases h; exact Or.inl (argWf_int64 _)) $$ [Hasl] as %e5 -
+         · iframe
+           iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
+           iexact HUerr)
+    all_goals
+      iapply HΦ
+      iapply decPost_stop C d rp IoE eof ueof F fs off c _ _ _ hstep (by simp [stopErr])
+      isplitl [Hr]
+      · iunfold ownRecAny; iexists _; iexact Hr
+      iapply Hown _ _ (by simp)
+      iframe
+      iframe Hmu Hf HF Hsl Hfio
+      iunfold ownDecCrc
+      iexists lc, tab
+      iframe
+      iframe Htab
+      ipureintro; rfl
 
 end proof
 

@@ -258,14 +258,14 @@ theorem decRecStep_shortLen {C : WalCodec} {last : Bool} {bs : List w8} {off : N
     decRecStep C last bs off c = .stop .shortLen c := by
   unfold decRecStep
   simp only
-  rw [if_neg (by omega), if_pos h2]
+  rw [ite_eq_right (by omega), ite_eq_left h2]
 
 theorem decRecStep_zero {C : WalCodec} {last : Bool} {bs : List w8} {off : Nat} {c : w32}
     (h1 : 8 ≤ (bs.drop off).length) (h : leToU64 ((bs.drop off).take 8) = 0#64) :
     decRecStep C last bs off c = .eof := by
   unfold decRecStep
   simp only
-  rw [if_neg (by omega), if_neg (by omega), if_pos h]
+  rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_left h]
 
 theorem decRecStep_frame {C : WalCodec} {last : Bool} {bs : List w8} {off : Nat} {c : w32}
     (h1 : 8 ≤ (bs.drop off).length) (h : leToU64 ((bs.drop off).take 8) ≠ 0#64) :
@@ -278,7 +278,7 @@ theorem decRecStep_frame {C : WalCodec} {last : Bool} {bs : List w8} {off : Nat}
       else decRecData C last off c rb pad (((bs.drop off).drop 8).take (rb + pad)) := by
   unfold decRecStep decRecData
   simp only
-  rw [if_neg (by omega), if_neg (by omega), if_neg h]
+  rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right h]
   rfl
 
 theorem goDecode_eof_next {C : WalCodec} {f : List w8} {fs : List (List w8)} {off : Nat} {c : w32}
