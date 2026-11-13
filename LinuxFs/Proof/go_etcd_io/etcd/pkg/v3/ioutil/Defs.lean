@@ -70,6 +70,12 @@ theorem ioutil.sint_srem (a b : w64) (ha : 0 ≤ sint.Z a) :
   rw [show sint.Z (BitVec.srem a b) = (BitVec.srem a b).toInt from rfl, BitVec.toInt_srem]
   exact Int.tmod_eq_emod_of_nonneg ha
 
+/-- Filling the last page reaches a page boundary. -/
+theorem ioutil.emod_add_fill (a p : Int) : (a + (p - a % p)) % p = 0 := by
+  have e : a + (p - a % p) = p * (a / p + 1) := by
+    rw [Int.mul_add, Int.mul_one]; have := Int.emod_add_mul_ediv a p; omega
+  rw [e, Int.mul_emod_right]
+
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]

@@ -125,9 +125,10 @@ theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Write.wp_proof
   ihave %Hbwf := ownSlice_wf _ _ _ $$ Hbuf
   ihave %Hplen := ownSlice_len _ _ _ $$ Hp
   ihave %Hpwf := ownSlice_wf _ _ _ $$ Hp
+  have Hok0 := Hok
   have hbbw := ioutil.pwOk_bb_le Hok
-  obtain ⟨hpB, hpBle, hoff0, hoff1, hbb0, -, -, hlen⟩ := Hok
-  simp only [ioutil.wmBytes] at hpBle hbbw hlen
+  obtain ⟨hpB, hpBle, hoff0, hoff1, hbb0, hal, hun, hlen⟩ := Hok
+  simp only [ioutil.wmBytes] at hpBle hbbw hlen hal hun
   have hbl : sint.Z buf.len = 131072 + sint.Z pB := by
     have := Hblen.1; word
   have hpl : sint.Z p.len = xs.length := by
@@ -146,6 +147,155 @@ theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Write.wp_proof
     have h : sint.Z (p.len + bb) = xs.length + sint.Z bb := by word
     have h2 : sint.Z (W64 131072) = 131072 := by decide
     omega
+  simp only [show ¬ (sint.Z pB = 0) by omega, ↓reduceIte]
+  wp_auto
+  have hsrem : sint.Z (BitVec.srem (off + bb) pB) = (sint.Z off + sint.Z bb) % sint.Z pB := by
+    rw [ioutil.sint_srem _ _ (by word)]; congr 1; word
+  wp_join (Q := fun v => iprop(
+      (⌜v = executeVal⌝ ∗ ∃ (k : Nat) (nk : w64) (s' : GoSlice),
+        ⌜k ≤ xs.length ∧ sint.Z nk = k⌝ ∗
+        n_ptr ↦ nk ∗ p_ptr ↦ s' ∗ s' ↦*{dq} xs.drop k ∗
+        (s' ↦*{dq} xs.drop k -∗ p ↦*{dq} xs) ∗
+        ioutil.ownPageWriter pw wi (bs.take (sint.nat bb) ++ xs.take k) ∗ W out ∗
+        err_ptr ↦ GoInterface.nil ∗ pw_ptr ↦ pw) ∨
+      (⌜v = returnVal #()⌝ ∗ n_ptr ↦ (W64 xs.length) ∗ err_ptr ↦ GoInterface.nil ∗ W out ∗
+        pw_ptr ↦ pw ∗
+        ioutil.ownPageWriter pw wi (bs.take (sint.nat bb) ++ xs) ∗ p ↦*{dq} xs)))
+    with [Hv Hbuf Hp Hout n p slack err pw]
+  · ileft
+    isplitl []
+    · itrivial
+    iexists 0, (zero_val w64 : w64), p
+    rw [List.drop_zero, List.take_zero, List.append_nil]
+    iframe n
+    iframe p
+    iframe Hp
+    iframe Hout
+    iframe err
+    iframe pw
+    isplitr
+    · ipureintro; exact ⟨by omega, by decide⟩
+    isplitr
+    · iintro H; iexact H
+    iunfold ioutil.ownPageWriter
+    iexists _, bs
+    iframe Hv
+    dsimp only
+    iframe
+    ipureintro
+    exact ⟨rfl, rfl, Hok0, rfl⟩
+  · have hm : (sint.Z off + sint.Z bb) % sint.Z pB ≠ 0 := by
+      intro h; apply Hif
+      have : sint.Z (BitVec.srem (off + bb) pB) = 0 := by rw [hsrem, h]
+      word
+    have hbm := hun hm
+    have hsl0 : sint.Z (pB - BitVec.srem (off + bb) pB) =
+        sint.Z pB - (sint.Z off + sint.Z bb) % sint.Z pB := by word
+    wp_join (iprop(∃ sl : w64, slack_ptr ↦ sl ∗ p_ptr ↦ p ∗
+        ⌜sint.Z sl = min (sint.Z pB - (sint.Z off + sint.Z bb) % sint.Z pB) xs.length⌝))
+      with [slack p] as ⟨%sl, slack, p, %Hsl⟩
+    · iexists p.len; iframe; ipureintro; omega
+    · iexists _; iframe; ipureintro; omega
+    have hsl1 : sint.Z sl ≤ xs.length := by omega
+    have hsl2 : 0 ≤ sint.Z sl := by omega
+    have hroom : sint.Z bb + sint.Z sl ≤ sint.Z buf.len := by omega
+    rw [ite_eq_left_of_eq_true _ _ (eq_true (show 0 ≤ sint.Z bb ∧ sint.Z bb ≤ sint.Z buf.len ∧
+      sint.Z buf.len ≤ sint.Z buf.cap by omega))]
+    wp_auto
+    rw [ite_eq_left_of_eq_true _ _ (eq_true (show 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) ≤ sint.Z sl ∧
+      sint.Z sl ≤ sint.Z p.cap by refine ⟨by decide, by word, by omega⟩))]
+    have hsp : 0 ≤ sint.Z bb ∧ sint.Z bb ≤ sint.Z buf.len := ⟨hbb0, by omega⟩
+    have hpsp : 0 ≤ sint.Z sl ∧ sint.Z sl ≤ sint.Z p.len := ⟨hsl2, by omega⟩
+    have hsln : (sint.nat sl : Int) = sint.Z sl := by
+      have : sint.nat sl = (sint.Z sl).toNat := rfl; omega
+    have htks : (xs.take (sint.nat sl)).length = sint.nat sl := by
+      rw [List.length_take]; omega
+    icases (ownSlice_split_all (V := w8) bb buf _ bs hsp).1 $$ Hbuf with ⟨Hb1, Hb2⟩
+    icases (ownSlice_split_all (V := w8) sl p _ xs hpsp).1 $$ Hp with ⟨Hp1, Hp2⟩
+    try wp_auto
+    wp_apply wp_slice_copy (V := w8) _ _ _ _ dq $$ [Hb2 Hp1] as %c ⟨%Hc, Hb2, Hp1⟩
+    · iframe
+    have hdl : (xs.take (sint.nat sl)).length ≤ (bs.drop (sint.nat bb)).length := by
+      rw [htks, List.length_drop]; omega
+    rw [List.take_of_length_le hdl, htks]
+    ihave Hbuf := (ownSlice_split_all (V := w8) bb buf _ (bs.take (sint.nat bb) ++
+      (xs.take (sint.nat sl) ++ (bs.drop (sint.nat bb)).drop (sint.nat sl))) hsp).2 $$ [Hb1 Hb2]
+    · rw [List.take_left' htk, List.drop_left' htk]; iframe
+    wp_auto
+    rw [ite_eq_left_of_eq_true _ _ (eq_true (show 0 ≤ sint.Z sl ∧ sint.Z sl ≤ sint.Z p.len ∧
+      sint.Z p.len ≤ sint.Z p.cap by omega))]
+    wp_auto
+    dsimp only
+    have hbbsl : sint.Z (bb + sl) = sint.Z bb + sint.Z sl := by word
+    have hbbsln : sint.nat (bb + sl) = sint.nat bb + sint.nat sl := by
+      have : sint.nat (bb + sl) = (sint.Z (bb + sl)).toNat := rfl; omega
+    have hbs'len : (bs.take (sint.nat bb) ++
+        (xs.take (sint.nat sl) ++ (bs.drop (sint.nat bb)).drop (sint.nat sl))).length =
+        bs.length := by
+      simp only [List.length_append, List.length_take, List.length_drop]; omega
+    have htake' : (bs.take (sint.nat bb) ++
+        (xs.take (sint.nat sl) ++ (bs.drop (sint.nat bb)).drop (sint.nat sl))).take
+          (sint.nat (bb + sl)) = bs.take (sint.nat bb) ++ xs.take (sint.nat sl) := by
+      rw [hbbsln, ← List.append_assoc]
+      exact List.take_left' (by rw [List.length_append, htk, htks])
+    wp_if_destruct
+    · -- partial: all of `p` buffered, return
+      have hslL : sint.Z sl = xs.length := by omega
+      have hslx : xs.take (sint.nat sl) = xs := List.take_of_length_le (by omega)
+      have hslw : sl = W64 xs.length := by word
+      have hm' : (sint.Z off + sint.Z (bb + sl)) % sint.Z pB =
+          (sint.Z off + sint.Z bb) % sint.Z pB + sint.Z sl := by
+        rw [hbbsl, ← Int.add_assoc]; exact ioutil.emod_add_small _ _ _ hpB hsl2 (by omega)
+      have hm0' := Int.emod_nonneg (sint.Z off + sint.Z bb) (by omega : sint.Z pB ≠ 0)
+      iright
+      isplitl []
+      · itrivial
+      rw [← hslw]
+      iframe n
+      iframe err
+      iframe Hout
+      iframe pw
+      isplitl [Hv Hbuf]
+      · iunfold ioutil.ownPageWriter
+        iexists _, _
+        iframe Hv
+        dsimp only
+        iframe
+        ipureintro
+        refine ⟨rfl, rfl, ⟨hpB, hpBle, hoff0, hoff1, by omega,
+          fun h => by simp only [ioutil.wmBytes]; omega, fun _ => by simp only [ioutil.wmBytes]; omega,
+          by rw [hbs'len]; simp only [ioutil.wmBytes]; omega⟩, ?_⟩
+        rw [htake', hslx]
+      · iapply (ownSlice_split_all (V := w8) sl p _ xs hpsp).2
+        iframe
+    · have hslv : sint.Z sl = sint.Z pB - (sint.Z off + sint.Z bb) % sint.Z pB := by omega
+      have hm' : (sint.Z off + sint.Z (bb + sl)) % sint.Z pB = 0 := by
+        rw [hbbsl, ← Int.add_assoc, hslv]; exact ioutil.emod_add_fill _ _
+      ileft
+      isplitl []
+      · itrivial
+      iexists sint.nat sl, sl, slice.slice p w8 sl p.len
+      iframe n
+      iframe p
+      iframe Hp2
+      iframe Hout
+      iframe err
+      iframe pw
+      isplitr
+      · ipureintro; exact ⟨by omega, by omega⟩
+      isplitl [Hp1]
+      · iintro H
+        iapply (ownSlice_split_all (V := w8) sl p _ xs hpsp).2
+        iframe
+      iunfold ioutil.ownPageWriter
+      iexists _, _
+      iframe Hv
+      dsimp only
+      iframe
+      ipureintro
+      refine ⟨rfl, rfl, ⟨hpB, hpBle, hoff0, hoff1, by omega,
+        fun _ => by simp only [ioutil.wmBytes]; omega, fun h => absurd hm' h,
+        by rw [hbs'len]; simp only [ioutil.wmBytes]; omega⟩, htake'.symm⟩
   sorry
 
 end proof
