@@ -19,9 +19,11 @@ the worktree's untracked `questions.md` (decisions; never re-add it tracked).
 - No Lean edited. Nothing built on this branch.
 
 ## Next, in order
-1. S1 built (full build), tcb --check (report the diff, no --update), gen-init/gen-link/goose --check,
-   interfaces; then STOP for 81's axiom review of S1 (`notes/k8s-7f5-freeze.md`).
-2. After the review: land S1 (81's go). Then 7f-3a statements (with T5-a's translation: the dry-run
+1. DONE (`23af282dca`): S1 built (full build passes), checks in `notes/k8s-7f5-freeze.md` "Checks"
+   (tcb: NEW `k8sfeature.featureOn_persistent`, also in collection k8setcd3; not updated). STOPPED for
+   81's axiom review of S1.
+2. After the review: apply its fixes; `etc/tcb-report.py --check --update` and the k8setcd3
+   collection's `--update`; STATUS entry; merge lean; land S1 via etc/land.sh (81's go). Then 7f-3a statements (with T5-a's translation: the dry-run
    patch `/shared/tmp/k8s7f5/goose-dry-full.patch` has the client/metadata toml lines), STOP (S2).
 3. 7f-3b/3c, and 7f-5a's Draft in parallel (Q1), STOP (S3) at the Draft.
 4. Left from S0: the many-watches check (Scope §5: `isClientWatcher` persistent, repeated `Watch`).

@@ -203,8 +203,7 @@ process, but they are not the verified `Main*`.
 - **`etc/tcb-report.py --check`:** one difference, as expected: **NEW axiom
   `k8sfeature.featureOn_persistent`**. The baseline is not updated (it waits for the review).
 - **Collections:** every collection matches its baseline except `k8setcd3.txt` (the same NEW
-  axiom; it is reached through `watchList`, which `Main*` call). Collections after `porcupine-dag`:
-  see the handoff.
+  axiom; it is reached through `watchList`, which `Main*` call). All 55 collections were checked.
 - **Generated files and gates:**
   - `etc/gen-init.py --check` (228 up to date, after regeneration: flowcontrol's `Init` imports
     `context`, and the two `PkgTable`s);
