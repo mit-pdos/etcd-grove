@@ -553,6 +553,30 @@ theorem crashTo_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} {
     have := hrej r len c'
     rwa [← e2] at this
 
+/-- **The synced offset is past the start of the tail**: the headers are synced (a tail write lands
+after them: `SegFl.Ok`'s `0 < fl.off`). -/
+theorem walAbsD_so_pos {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
+    (habs : WalAbsD C Mr d lay ents) : 0 < lay.so := by
+  have hs := habs.synced.2
+  have e : (segRecs C Mr { d with H := d.H.take d.m } lay.cuts).getD lay.cuts.length [] =
+      (lastRecs C Mr d lay.cuts).take ((lastHdr Mr d lay.cuts).length +
+        (((lastOps d lay.cuts).take (d.m - segStart lay.cuts lay.cuts.length)).flatMap
+          (opDs Mr)).length) :=
+    lastRecs_synced C Mr d habs.cuts.2.1 habs.lastSynced
+  rw [e] at hs
+  have h1 := lastHdr_pos Mr d lay.cuts
+  have hR := lastRecs_length C Mr d lay.cuts
+  generalize lastRecs C Mr d lay.cuts = R at hs hR
+  obtain ⟨k, hk⟩ : ∃ k, (lastHdr Mr d lay.cuts).length + (((lastOps d lay.cuts).take
+      (d.m - segStart lay.cuts lay.cuts.length)).flatMap (opDs Mr)).length = k + 1 :=
+    ⟨_, (Nat.succ_pred_eq_of_pos (by omega)).symm⟩
+  rw [hk] at hs
+  cases R with
+  | nil => simp at hR; omega
+  | cons r rs =>
+    rw [List.take_succ_cons, recFrames_cons, List.length_append] at hs
+    have := frame_length_ge (C.encRec r); omega
+
 end crash
 
 end WalFs
