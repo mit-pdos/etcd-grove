@@ -1151,6 +1151,54 @@ update: `s.wal dir := walDurFresh md`, the new layout and its `CrashOk`); then `
 - *Not done:* the commit lemma, `AbsentNone`; `wal.Create.wp_proof`,
   `fileutil.TouchDirAll.wp_proof`, `fileutil.CreateDirAll.wp_proof` (still `sorry`).
 
+**Third session (branch `wal-create3`, 2026-11-13).**
+- *`AbsentNone` and `DirsAvoid`* (`Inv.lean`): `walInvBody`'s last conjunct (after W6's `walTailsRes`) is
+  `⌜AbsentNone s jr cl n ∧ DirsAvoid R jr s⌝`. `AbsentNone`: a WAL name of the area with no WAL is absent,
+  in every area claim of `cl` holding it (now) and in every crash the claims allow. `DirsAvoid`: every
+  durable directory's lookup depends on no entry of `jr` at an `AreaSlot` name (a WAL name or `nm.<sfx>`),
+  so the rename leaves `DirsOk` true (a stronger reading of `dirDurable` the area's own durable directories
+  satisfy; nothing deposits one yet). `WalsStart`'s third conjunct is now "a WAL-less name of the area is
+  absent" (was "holds no `.wal` file"); `walCrash_pure` proves it from `AbsentNone` or `CrashTo`'s left
+  disjunct (`han` premise); `walInv_alloc` builds `AbsentNone` from it (`absentNone_start`) and takes
+  `hav : DirsAvoid R jr s`; `walInv_crash` returns `⌜s'.area = r ∧ DirsAvoid R jr s'⌝` (the crash keeps
+  `dirs`); `walInvBody_named` carries both (`absentNone_named`, `absentNone_mono`).
+- *`CreatingOk` strengthened*: an entry `dir ↦ (N, h)` is a claim `(jr, N, h)` of `cl`, **coherent**
+  (`ClaimCoh h jr N`), and **no other claim of `jr` in `cl` holds a name of `N`**. Both are facts of the
+  shared invariant (`NamesCoh`) the rename's commit cannot open (`osShN ∉ osAuMask`); they are checked
+  where the `walCreating` token is made (a step at `⊤`). A unit replacing a claim (`replClaim`, same key)
+  keeps them as long as it does not replace the creating claim (its key is `(jr, .only [...])`, never a
+  WAL directory's `(j, .except X)`).
+- *`os.Rename.specDirS`/`specDirSnc` take a log lower bound* `lb` (`osLogLb lb` in the pre; `renDirOut … lb`,
+  the call's start `≥ lb`; it was 0). The commit needs `hJ.next ≤ st` of the new directory's claim, which
+  the rename is not given (proof: `CallBeginS` at `max h.next lb`).
+- *`walsOk_create`* (`CreateCommit.lean`, proved, no `sorry`): from `WalsOk`, `AbsentNone`, `DirsAvoid`, the
+  WAL-less `dir = r/nm`, the area claim `(jr, N, h) ∈ cl` coherent, holding `nm` and `tmp` (`tmp ↦ dir J`),
+  exclusive on them (`hothers`), the call's start `st` with `h.next ≤ st ≤ x`, `J`'s claim `(J, except X,
+  hJ)` coherent with `hJ.next ≤ st`, `J ≠ jr`, the new layout `lay` (`jr`, `nm`, `J`; `WalAbsD` of
+  `walDurFresh md` over `hJ.cur`, every byte durable, stream then zeros, inodes distinct from `segsAll Ls`):
+  `WalsOk` and `AbsentNone` of `createSt s dir md`, `<[dir := lay]> Ls` and `createClaims` (the area claim
+  logged with `renDirEnt`/`renCur`, `J`'s appended). Pieces: `regionCrashedK_create_drop` (a crash dropping
+  the rename is one of `cl`), `regionCrashedK_create_keep` (keeping it: `treeUnren`, the tree with the rename
+  undone, is a crash of `cl`), `crashTo_congr`, `crashOkW_create_other`, `crashOk_create_new`
+  (`crashTo_synced`), `walDirClaim_create`, `absentNone_create`, `dirsOk_create`, `walsCreateOk_create`.
+- *`walOpenWF` gap (task 4, done)*: `walHandleIn`'s `⌜sp ≠ null⌝` dropped (W6's `Handle.lean`): `hsIn` reads
+  nil as the zero state, and the Go code is nil-safe (`Save` replaces a nil `w.state`; `saveState`'s
+  `IsEmptyHardState` reads through getters). Nothing used the conjunct.
+- **Open: the client update `walCreate_osAUnc`** (not written). Its opening opens `walInv`, finds the
+  claim by `walCreating`/`CreatingOk`, opens the client's update (`walAbsent dir`: `walOwn_agree` gives
+  `s.wal !! dir = none`), hands out the invariant's half of `(jr, N, h)`; its commit applies
+  `walsOk_create` and `walGhost_upd` (the client's `walDiskAt dir (walDurFresh md)`), deposits `J`'s half
+  and the segment's halves, deletes the `walCreating` entry. **One premise it cannot get**: `hdisj`, the
+  new segment's inode distinct from every `segsAll Ls` inode. With `walTailsRes`, a segment with a write in
+  flight is held in the invariant as a `pwTok` (no `osMeta`), so the validity argument (the program's whole
+  `osMeta` of the fresh inode against the invariant's half) covers only the segments with no write in
+  flight. Options: the invariant records that every segment inode is below the file system's next inode
+  (an `os` fact: a fragment of the inode allocator), or `segResF`'s in-flight case keeps half of `osMeta`.
+  For W6/the coordinator.
+- *Not done:* task 3 (the pre-rename `SaveSnapshot`/`encode` variant over `os.File.writerStream` and
+  `io.writerStreamP`), task 5 (`wal.Create.wp_proof`, `TouchDirAll`/`CreateDirAll` `wp_proof`s: still
+  `sorry`).
+
 ## 11. Coordinator decisions after W2 and W4 (2026-11-13)
 
 - **Q4 revised to (b)** (W4 found (a) unprovable: `cleanupWAL`'s rename to `dir.broken.*` is never fsynced,
@@ -1235,6 +1283,10 @@ keeps the static relation with `d.m := |H|` (`syncLay`, `walAbsD_sync`; its cras
   which no `os.File` can meet (offset `-1`, arbitrary count): it needs the `B` form. And the guarded
   bridge for `walTailW` (program halves) needs a crash-aware `Write` that opens `walInv` around each
   `PWriteStart`/`PWriteFinish` (the in-flight write's token in `walTailsRes`), not this whole-resource bridge.
+
+- **(W4, branch `wal-create3`, 2026-11-13) `walHandleIn` no longer has `⌜sp ≠ null⌝`**: `Create` leaves
+  `w.state` nil and `hsIn` reads nil as the zero state, so `Create` can return `walOpenWF`; nothing used the
+  conjunct. A `cut`/`saveState` proof that wants a non-nil pointer gets it from `Save`'s nil check.
 
 ## fileutil, the rest (branch `wal-fu2`, 2026-11-13)
 
