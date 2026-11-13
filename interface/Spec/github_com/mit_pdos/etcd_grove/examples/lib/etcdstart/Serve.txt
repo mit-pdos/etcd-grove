@@ -19,13 +19,12 @@ def etcdstart.Serve.spec : Prop :=
                       srvAuthLb s E ∗
                         srvServeFacts s E cfg ∗
                           srvWatchBuilt s E ∗
-                            v3rpc.runsNoRequireLeader ∗
-                              srvLgReader s ∗
-                                srvBemuReader s ∗
-                                  srvGoRes s ∗
-                                    ∀ gs lis cid mid R,
-                                      etcdstart.grpcUpM E.authOn s E ρ γr gs lis addr cid mid R ={⊤}=∗
-                                        (∃ γ, grpcServeTok gs lis γ) ∗ Q cid mid R) -∗
+                            srvLgReader s ∗
+                              srvBemuReader s ∗
+                                srvGoRes s ∗
+                                  ∀ gs lis cid mid R,
+                                    etcdstart.grpcUpM E.authOn s E ρ γr gs lis addr cid mid R ={⊤}=∗
+                                      (∃ γ, grpcServeTok gs lis γ) ∗ Q cid mid R) -∗
           (▷ ∀ err, (⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ ∃ cid mid R, Q cid mid R) -∗ Φ (intoVal err)) -∗
             WP
               (((intoVal (functions github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Serve [])) (intoVal s))
