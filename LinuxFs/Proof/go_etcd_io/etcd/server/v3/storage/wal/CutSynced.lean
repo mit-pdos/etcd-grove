@@ -116,7 +116,7 @@ theorem crashTo_synced (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalL
     (hdir : (d.named = false ∧ m'.entry lay.jr lay.nm = none) ∨
       m'.entry lay.jr lay.nm = some (.dir lay.j))
     (hfc : ∀ g ∈ lay.segs, FileCrashedR g.om [(0, DFrac.own (1 : Qp).half, g.bs)] (fo g.ino))
-    (hnamed : ∀ g ∈ lay.segs, Named m' g.ino → (fo g.ino).isSome) :
+    (hnamed : ∀ g ∈ lay.segs, g.ino ∈ walInos (entsOf m' lay.j) → (fo g.ino).isSome) :
     CrashTo C Mr d lay m' fo := by
   rcases hdir with hl | hent
   · exact Or.inl hl
@@ -126,8 +126,8 @@ theorem crashTo_synced (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalL
   -- every segment's file is there, its image its bytes
   have hsome : ∀ g ∈ lay.segs, ∃ f, fo g.ino = some f ∧ f.contents = g.bs.map (·.1) := by
     intro g hg
-    have hn : Named m' g.ino :=
-      named_of_mem_walInos (J := lay.j) (by rw [hinos]; exact List.mem_map_of_mem hg)
+    have hn : g.ino ∈ walInos (entsOf m' lay.j) := by
+      rw [hinos]; exact List.mem_map_of_mem hg
     obtain ⟨f, hf⟩ := Option.isSome_iff_exists.1 (hnamed g hg hn)
     have hm' := habs.metas g hg
     refine ⟨f, hf, img_durable (by rw [← hf]; exact hfc g hg) (hdur g hg) hm'.2.2.1 hm'.2.2.2⟩

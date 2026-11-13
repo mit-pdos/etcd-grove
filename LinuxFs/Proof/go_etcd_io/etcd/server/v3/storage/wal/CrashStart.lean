@@ -88,8 +88,7 @@ theorem walAbs_crashOk_start (C : WalCodec) (_hC : C.Ok) (Mr : WalMarshal) (d : 
   -- each segment's file is there, and holds its bytes
   have hfile : ∀ g ∈ lay.segs, ∀ xs, g.bs = xs.map durB → imgOf (fo g.ino) = xs := by
     intro g hg xs hxs
-    have hn : Named m' g.ino := by
-      apply named_of_mem_walInos (J := lay.j)
+    have hn : g.ino ∈ walInos (entsOf m' lay.j) := by
       rw [hents, habs.names.1]; exact List.mem_map_of_mem hg
     obtain ⟨f', hf'⟩ := Option.isSome_iff_exists.1 (hnamed g hg hn)
     have hc := hfc g hg

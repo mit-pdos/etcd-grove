@@ -286,7 +286,7 @@ theorem crashOkW_create_other {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay
         (treeUnren m' jr tmp nm J).entry jr b = m'.entry jr b := fun b h1 h2 =>
       treeUnren_entry_other hne (fun ⟨_, h3⟩ => h3.elim h2 h1)
     rcases hcr (treeUnren m' jr tmp nm J) fo ((regionCrashed_iff _ _ _).2 ⟨K, hK'⟩) hf
-      (fun g hg hnmd => hn g hg (named_treeUnren hne hnmd)) (by rw [hwi]; exact hw)
+      (fun g hg hin => hn g hg (by rw [← hwi]; exact hin)) (by rw [hwi]; exact hw)
       with hct | ⟨lay0, h0, hct⟩
     · left
       exact crashTo_congr (by rw [hjr]; exact hent _ hnm1 hnm2) hwi hct

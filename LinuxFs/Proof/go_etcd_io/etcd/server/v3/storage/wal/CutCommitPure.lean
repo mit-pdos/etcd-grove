@@ -315,7 +315,7 @@ theorem crashOkA_cut_other {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : 
       rw [entsOf_treeDel_ne m' bt hlj]
     have hent : (treeDel m' j bt).entry lay.jr lay.nm = m'.entry lay.jr lay.nm := by
       rw [treeDel_entry]; simp [hljr]
-    rcases hok (treeDel m' j bt) fo hr' hf (fun g hg hnmd => hn g hg (named_treeDel hnmd))
+    rcases hok (treeDel m' j bt) fo hr' hf (fun g hg hin => hn g hg (by rw [← hwi]; exact hin))
       (by rw [hwi]; exact hw) with hct | ⟨lay0, h0, hct⟩
     · exact Or.inl (crashTo_congr hent hwi hct)
     · obtain ⟨h1, h2, h3⟩ := halt lay0 h0
