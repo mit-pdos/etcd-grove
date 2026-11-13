@@ -163,7 +163,7 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
   · inext; iright; iframe Hcrd Htok
   icases Hb with ⟨%s, >Hb⟩
   iunfold walInvBody at Hb
-  icases Hb with ⟨%Ls, %cl, %n, Hg, %Har, Hcl, #Hcm, Hlays, %Hok, -⟩
+  icases Hb with ⟨%Ls, %cl, %n, Hg, %Har, Hcl, #Hcm, Hlays, %Hok, -, -, %Han⟩
   icases walGhost_keys_keep (W := W) s $$ Hg with ⟨Hg, %hk⟩
   -- the tree: what the claims allow
   imod crashRest_region Q L L' [] false V' R (cl.map (fun c => (c, DFrac.own (1 : Qp).half))) n E
@@ -180,7 +180,7 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
     (walsOk_cut Hok) $$ Hcr Hlays with ⟨%st, %st', %Hfs, Hstarts, Hcr, -⟩
   obtain ⟨hQs, htree, hfiles⟩ := Hfs
   obtain ⟨s', Ls', hcrash, harea', hk', hstart, hnd', hsegs⟩ :=
-    walCrash_pure C hC Mr R jr s Ls cl n V'.now st st' Hok hk Hreg htree (hQ _ _ hQs) hfiles
+    walCrash_pure C hC Mr R jr s Ls cl n V'.now st st' Hok Han hk Hreg htree (hQ _ _ hQs) hfiles
   -- the new generation's ghost state
   imod walGhost_init hPre s' hk' with ⟨%W', Hg', HM', #Hp', Hu', Hc', Hcr'⟩
   imodintro
@@ -215,6 +215,32 @@ theorem namesOf_nil {V : Hist} (hV : V.2 = []) (j : Ino) (N : NameSet) :
   unfold namesOf
   simp [hV, hnow]
 
+/-- **Strong absence at the start** (pure): the boot tree has no entry at a WAL-less name of the
+area (`WalsStart`), the claims as the boot history has them, one of them on the area's WAL names. -/
+theorem absentNone_start (s : AbsDiskState) (jr : Ino) (V : Hist) (cl : List Claim) (hV : V.2 = [])
+    (hcl : ∀ c ∈ cl, c.2.2 = namesOf V c.1 c.2.1)
+    (harea : ∃ N h, (jr, N, h) ∈ cl ∧ ∀ nm, walNameOk nm → N.Mem nm)
+    (habs : ∀ dir nm, InArea s.area dir nm → s.wal !! dir = none → V.now.entry jr nm = none) :
+    AbsentNone s jr cl 0 := by
+  intro dir nm hin hnone
+  have he := habs dir nm hin hnone
+  refine ⟨fun N h hc hN => ?_, fun m' hreg => ?_⟩
+  · have h1 := hcl _ hc
+    simp only at h1
+    rw [h1, namesOf_nil hV]
+    show restrictN N (entsOf V.now jr) !! nm = none
+    rw [restrictN_lookup _ _ _ hN, entsOf_lookup]; exact he
+  · obtain ⟨N, h, hc, hN⟩ := harea
+    have h1 := hcl _ hc
+    simp only at h1
+    rw [namesOf_nil hV] at h1
+    obtain ⟨K, -, -, hval⟩ := hreg
+    rw [hval _ hc nm (hN nm hin.1), valAfter_nil (by rw [h1])]
+    show h.boot !! nm = none
+    rw [h1]
+    show restrictN N (entsOf V.now jr) !! nm = none
+    rw [restrictN_lookup _ _ _ (hN nm hin.1), entsOf_lookup]; exact he
+
 /-- **What the invariant says of the WALs, at the start** (pure): from the start's static relation,
 claims with nothing logged on each WAL's area names (`harea`) and wholly on every directory at such
 a name (`hdirs`), and the durable directories' resolution (`hdok`). -/
@@ -240,17 +266,6 @@ theorem walsOk_start (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots) (j
     obtain ⟨K, -, -, hval⟩ := hreg
     rw [hval _ hNm nm (hNall nm hnm), valAfter_nil (hlog _ hNm), hNb,
       restrictN_lookup _ _ _ (hNall nm hnm), entsOf_lookup]
-  -- a directory at such a name, wholly claimed, keeps its entries
-  have hdir' : ∀ m', RegionCrashed cl 0 m' → ∀ J h, (J, NameSet.except [], h) ∈ cl →
-      entsOf m' J = entsOf V.now J := by
-    intro m' hreg J h hJ
-    obtain ⟨K, -, -, hval⟩ := hreg
-    apply entsOf_eq_of_entry
-    intro b
-    rw [hval _ hJ b (by simp [NameSet.Mem]), valAfter_nil (hlog _ hJ)]
-    show h.boot !! b = _
-    rw [show h = _ from hc _ hJ]
-    simp only [restrictN_all]
   refine ⟨fun dir d hd => ?_, hst.2.1, hnd, hcut, fun dir nm hin hnone m' hreg J hJ => ?_, hdok⟩
   · obtain ⟨lay, nm, hL, hin, hjr, hnm, he, habs, hfit, h1, h2, h3, hlast⟩ := hst.1 dir d hd
     obtain ⟨hj, hjm⟩ := hdirs nm lay.j hin.1 he
@@ -265,10 +280,8 @@ theorem walsOk_start (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots) (j
       refine ⟨N, hN, hNm, hNall nm hin.1, ?_⟩
       rw [hNb, restrictN_lookup _ _ _ (hNall nm hin.1), entsOf_lookup]
       exact he
-  · rw [harea' m' hreg nm hin.1] at hJ
-    obtain ⟨hJc, hJm⟩ := hdirs nm J hin.1 hJ
-    rw [hdir' m' hreg J hJc hJm]
-    exact hst.2.2.1 dir nm hin hnone J hJ
+  · rw [harea' m' hreg nm hin.1, hst.2.2.1 dir nm hin hnone] at hJ
+    cases hJ
 
 /-- A segment's start resources, its `OsMeta` and bytes those of the file, are its two halves. -/
 theorem segStart_halves (L : GooseLocalGS GF) (g : SegG) (f : Fs.OsFile) (hom : g.om = initMeta f)
@@ -379,11 +392,14 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
       intro nm hnm
       obtain ⟨N, h, hc, hN⟩ := harea
       exact ⟨N, h, hc, hN nm hnm⟩
-    iexists ∅
-    iframe Hcr
+    isplitl [Hcr]
+    · iexists ∅
+      iframe Hcr
+      ipureintro
+      intro dir N h hd
+      simp at hd
     ipureintro
-    intro dir N h hd
-    simp at hd
+    exact absentNone_start s jr V cl hV hcl harea hstart.2.2.1
   imodintro
   unfold walInv
   iframe Hinv Hc2

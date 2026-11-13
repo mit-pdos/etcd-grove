@@ -14,7 +14,8 @@ roots `R`), in the tree's shared mode (`notes/wal-fsext-i2-design.md`). It holds
   and that a durable directory (`dirDurable`) resolves after any crash (`DirsOk`);
 * `Create`'s framed part (`WalsCreateOk`, W4): a claim of the area holds every WAL name; and the
   creating map's authority (`walCreatingAuth`, `CreatingOk`): each `Create` in progress's area claim,
-  among the invariant's (the program's `walCreating` token names it).
+  among the invariant's (the program's `walCreating` token names it); and that a WAL name with no WAL
+  is absent, now and after every crash (`AbsentNone`).
 
 W2 (`Cut.lean`): the WAL directory's claim leaves out the pipeline's names (`WalDirClaim`, the
 `N.tmp` claims are the pipeline's) and is coherent; the crash condition may carry the layout before
@@ -86,6 +87,17 @@ def WalsCreateOk (jr : Ino) (cl : List Claim) : Prop :=
 def CreatingOk (jr : Ino) (cl : List Claim) (CR : GMap GoString (NameSet × NamesH)) : Prop :=
   ∀ dir N h, CR !! dir = some (N, h) → (jr, N, h) ∈ cl
 
+/-- **A WAL name of the area with no WAL is absent** (W4, framed; strong absence, against `AbsentOk`'s
+"no `.wal` file"): in every claim of the area directory holding it, now, and after every crash the
+claims allow. `Create` relies on it twice: `renameWAL`'s `os.RemoveAll(dir)` finds nothing to remove,
+and a crash dropping the rename that committed a fresh WAL leaves its name absent (`CrashTo`'s left
+disjunct). Established at the start from the boot tree (`WalsStart`: the crash leaves a WAL-less name
+absent, `walCrash_pure`). -/
+def AbsentNone (s : AbsDiskState) (jr : Ino) (cl : List Claim) (n : Nat) : Prop :=
+  ∀ dir nm, InArea s.area dir nm → s.wal !! dir = none →
+    (∀ N h, (jr, N, h) ∈ cl → N.Mem nm → h.cur !! nm = none) ∧
+    ∀ m', RegionCrashed cl n m' → m'.entry jr nm = none
+
 end pure
 
 section inv
@@ -119,7 +131,7 @@ def walInvBody (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoSt
     walGhost (W := W) s ∗ ⌜s.area = r⌝ ∗
     osClaims L (cl.map (fun c => (c, DFrac.own (1 : Qp).half))) ∗ osCommitLb (L := L) n ∗
     laysRes (L := L) Ls ∗ ⌜WalsOk C Mr R jr s Ls cl n⌝ ∗ ⌜WalsCreateOk jr cl⌝ ∗
-    ∃ CR, walCreatingAuth (W := W) CR ∗ ⌜CreatingOk jr cl CR⌝)
+    (∃ CR, walCreatingAuth (W := W) CR ∗ ⌜CreatingOk jr cl CR⌝) ∗ ⌜AbsentNone s jr cl n⌝)
 
 instance walInvBody_timeless (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (s : AbsDiskState) : Timeless (walInvBody (L := L) (W := W) C Mr R jr r s) := by
