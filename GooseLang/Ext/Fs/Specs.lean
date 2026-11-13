@@ -35,7 +35,7 @@ theorem osWf_fds {st : OsState} (hwf : OsWf st) (X : GMap w64 OsFd)
 
 theorem MetaOk.fds {st : OsState} {p : Ino} {m : OsMeta} {f : OsFile} (X : GMap w64 OsFd)
     (h : MetaOk st p m f) : MetaOk (st.setProc { st.proc with fds := X }) p m f :=
-  ⟨h.size, h.lo, h.hi, h.maps, h.targets, h.dur, h.zf, h.tail⟩
+  ⟨h.size, h.lo, h.hi, h.maps, h.targets, h.dur, h.zf, h.tail, h.cz⟩
 
 theorem osCoh_fds {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) (X : GMap w64 OsFd) :
     OsCoh (st.setProc { st.proc with fds := X }) Γb Γm X Γt :=
@@ -534,11 +534,27 @@ theorem wp_osPRead_racy_list (fd off n : w64) (dq : DFrac) (d : OsFd)
     %(fun he ht x hx k hk h1 h2 => by
       have h := (key x hx k hk h1 h2).1; rw [hemp he ht] at h; simp at h) Hfd Hbs
 
-/-- The `OsMeta` after a successful sync: the size is durable, every byte is durable, zeros from the
-end of the size's last page on (`OsFile.synced`). -/
+/-- Where a sync makes zeros known from: the size if the page cache is known zero from it to the end
+of its page (`cz`), else the end of that page (`OsFile.synced`: past it the disk holds zeros). -/
+def OsMeta.syncZ (m : OsMeta) : Nat := if pageEnd m.size ≤ m.cz then m.size else pageEnd m.size
+
+/-- The `OsMeta` after a successful sync: the size is durable, every byte is durable, zeros from
+`syncZ` on (`OsFile.synced`: the end of the size's last page, or the size itself if the page cache is
+known zero to that end). -/
 def OsMeta.synced (m : OsMeta) : OsMeta :=
   { m with
-    lo := m.size, hi := m.size, dlo := 0, dhi := 0, zf := some (pageEnd m.size), tc := ∅ }
+    lo := m.size, hi := m.size, dlo := 0, dhi := 0, zf := some m.syncZ, tc := ∅ }
+
+theorem OsMeta.size_le_syncZ (m : OsMeta) : m.size ≤ m.syncZ := by
+  unfold OsMeta.syncZ; have := le_pageEnd m.size; split <;> omega
+
+theorem OsMeta.syncZ_le (m : OsMeta) : m.syncZ ≤ pageEnd m.size := by
+  unfold OsMeta.syncZ; have := le_pageEnd m.size; split <;> omega
+
+/-- A sync of a file whose page cache is known zero from its size to the end of its page makes the
+zeros known from the size on. -/
+theorem OsMeta.synced_zf_size (m : OsMeta) (h : pageEnd m.size ≤ m.cz) : m.synced.zf = some m.size := by
+  simp [OsMeta.synced, OsMeta.syncZ, h]
 
 /-- The `n` bytes from `lo` hold every byte below the size that `m` says may not be durable (those
 in `[dlo, dhi)`). -/
@@ -636,15 +652,33 @@ theorem wp_osFsync2 (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat) (
       · refine ⟨by simp [OsMeta.synced, hmo.size, f', synced_size],
           by simp [OsMeta.synced, f', OsFile.synced, hmo.size],
           by simp [OsMeta.synced, f', OsFile.synced, hmo.size], hmo.maps,
-          fun t c ht hc => absurd hc (hni t c ht), ?_, ?_, ?_⟩
+          fun t c ht hc => absurd hc (hni t c ht), ?_, ?_, ?_, ?_⟩
         · intro b _ _; exact synced_cand f _ b (hnoI b)
         · intro z hz
           simp only [OsMeta.synced, Option.some.injEq] at hz; subst hz
-          refine ⟨by rw [hmo.size]; exact le_pageEnd _, fun b hb => ?_⟩
+          have hsz := hmo.size
+          refine ⟨by have := m.size_le_syncZ; simp only [synced_size]; omega, fun b hb => ?_⟩
           rw [synced_cand f _ b (hnoI b)]
           simp only [f', OsFile.synced, if_neg (hnoI b)]
-          rw [diskByte_past (by rw [← hmo.size]; exact hb)]
+          by_cases hpb : pageEnd m.size ≤ b
+          · rw [diskByte_past (by rw [← hsz]; exact hpb)]
+          · unfold OsMeta.syncZ at hb
+            split at hb
+            · rename_i hcz
+              have h0 : diskByte f.cache f.size b = 0 := by
+                unfold diskByte; split
+                · exact hmo.cz b (by omega) (by omega)
+                · rfl
+              rw [h0]
+            · omega
         · intro b c _ hc; simp [OsMeta.synced] at hc
+        · intro b hb hbz
+          have hsz := hmo.size
+          simp only [f', OsFile.synced, if_neg (hnoI b)]
+          simp only [OsMeta.synced] at hbz
+          unfold diskByte; split
+          · exact hmo.cz b (by simp only [f', synced_size] at hb; omega) hbz
+          · rfl
       · intro b x hx
         rw [lookup_insertBytes] at hx
         split at hx
@@ -853,7 +887,7 @@ theorem wp_osFsyncB (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (hE : ↑osN
       · refine ⟨by simp [OsMeta.bsynced, hmo.size, f', synced_size],
           by simp only [OsMeta.bsynced, f', OsFile.synced]; have := hmo.lo; omega,
           by simp only [OsMeta.bsynced, f', OsFile.synced]; have := hmo.hi; omega, hmo.maps,
-          fun t c ht hc => absurd hc (hni t c ht), ?_, ?_, ?_⟩
+          fun t c ht hc => absurd hc (hni t c ht), ?_, ?_, ?_, ?_⟩
         · intro b _ _; exact synced_cand f _ b (hnoI b)
         · intro z hz
           simp only [OsMeta.bsynced, Option.some.injEq] at hz; subst hz
@@ -862,6 +896,13 @@ theorem wp_osFsyncB (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (hE : ↑osN
           simp only [f', OsFile.synced, if_neg (hnoI b)]
           rw [diskByte_past (by rw [← hmo.size]; exact hb)]
         · intro b c _ hc; simp [OsMeta.bsynced] at hc
+        · intro b hb hbz
+          have hsz := hmo.size
+          simp only [f', OsFile.synced, if_neg (hnoI b)]
+          simp only [OsMeta.bsynced] at hbz
+          unfold diskByte; split
+          · exact hmo.cz b (by simp only [f', synced_size] at hb; omega) hbz
+          · rfl
       · intro b x hx
         obtain ⟨f1, hf1, hb, hx1, hmem, hrel⟩ := hcoh.bytes _ _ _ hx
         rw [hf] at hf1; cases hf1
