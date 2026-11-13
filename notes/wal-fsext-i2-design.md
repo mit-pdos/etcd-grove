@@ -708,3 +708,24 @@ Still `sorry` in `TreeShared.lean`: `wp_osMkdirS` (16, 17), `wp_osOpenCreateS` (
 `wp_osDirReadNextS` (over `wp_dirReadS`; needs a pure `WN n` of the log's length in the generic
 post, for the fresh read's `h.next ≤ r0'`, and the claim's `h = namesOf` to show nothing wrote `N`
 since `r0`). Not begun: the `os`-level logically atomic specs (M1), the two-region test.
+
+### Implementation log, the `os`-level shared specs (M1; branch `wal-osau`, 2026-11-13)
+
+The shape (`LinuxFs/Proof/os/SharedAu.lean`): the caller keeps a fraction `q` of each claim the call
+writes and gives the rest (`r`, `q + r = 1`) to an atomic update `osAU α β Q` at mask
+`osAuMask = (⊤ \ osN) \ osShN`, whose outcome is `Option (index, start, …)`. It commits at the step
+that logs the entry, or at the step that ends the call with an error and no effect; an `EINTR`
+with no effect aborts it (`wp_au_step` opens it around one extension step). The caller's fraction
+is what makes the model's retries provable: after an attempt that took effect and returned
+`EINTR`, the retry sees (with the fraction alone) the name as the effect left it. A step that
+changes no claim (a directory fd's `Sync`) is a plain triple. Done, proved: `os.Rename.specFileS`
+(a file over two claims of distinct keys, the WAL's cut), `os.Rename.specDirS` (a directory, one
+claim, `osCallPerm 1`), `os.File.Sync.specDirS` (`osCommitLb n`), `os.OpenFile.specCreateS`
+(flags `O_RDWR|O_CREATE`, over a new sorry'd extension-level `wp_osOpenFileS`, `SharedExt.lean`:
+an open of a name holding a file with a fraction of the claim; to be proved in `TreeShared`).
+
+Found: the WAL creates with `O_WRONLY|O_CREATE` (`createNewWALFile`), which `wp_osOpenCreateS`
+(fixed to `flCreat = O_RDWR|O_CREAT|O_CLOEXEC`) does not cover: it wants a flag parameter (`fl`
+with `O_CREAT`, no `O_TRUNC`; the fd `openFd i fl`). The `os` specs omit `fmtErrorOkOrNil` (no
+`LinkError` lemma yet). Not yet done: `Remove`, `Mkdir`, `MkdirAll`, `RemoveAll`, `Stat`, `Open` of
+a directory, `Readdirnames`, a directory's `Close`, the file-data calls.
