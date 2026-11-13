@@ -23,20 +23,24 @@ variable [go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions]
 
 theorem go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.GetIndex.wp_proof :
     go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.GetIndex.spec (GF := GF) (hG := hG) := by
-  intro sp sm cs
+  intro sp s
   wp_start as Hs
+  iunfold walSnapIdTerm at Hs
+  icases Hs with ⟨%md, %cs, Hs, %hs⟩
   iunfold walSnapAt at Hs
-  icases Hs with ⟨%s, #Hsp, #Hi, #Ht, %Hcs⟩
-  ihave %Hn := typedPointsto_not_null sp _ _ $$ Hsp
-  ihave %Hin := typedPointsto_not_null s.Index' _ _ $$ Hi
-  iStructNamed Hsp
+  icases Hs with ⟨%v, #Hp, #Hi, #Ht, %hc⟩
+  ihave %Hn := typedPointsto_not_null sp _ _ $$ Hp
+  ihave %Hn' := typedPointsto_not_null v.Index' _ _ $$ Hi
+  ihave #Hp2 := Hp
+  iStructNamed Hp2
   wp_auto
   simp only [decide_eq_false Hn]
   wp_auto
-  wp_if_destruct
-  · exact absurd (by simpa using Hif) Hin
-  · iapply HΦ
-    itrivial
+  simp only [decide_eq_false Hn']
+  wp_auto
+  rw [← hs]
+  iapply HΦ
+  ipureintro; trivial
 
 end proof
 

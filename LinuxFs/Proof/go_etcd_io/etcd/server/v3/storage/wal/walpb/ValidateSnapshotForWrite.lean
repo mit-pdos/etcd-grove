@@ -46,8 +46,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.walpb.ValidateSnapshotForWrite.wp_
       rcases hcs with h | h
       · exact h
       · subst h; simp [Hif] at Hcs
-    wp_apply (wp_GetIndex sp sm cs) $$ []
-    · iexact Hs0
+    wp_apply (wp_GetIndex sp (sm.Index', sm.Term')) $$ []
+    · iunfold walSnapIdTerm
+      iexists sm, cs
+      iframe Hs0
+      ipureintro; rfl
     rw [hi]
     wp_auto
     iapply HΦ

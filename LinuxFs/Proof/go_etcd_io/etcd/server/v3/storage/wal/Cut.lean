@@ -111,10 +111,11 @@ def WalDirClaim (j : Ino) (h : NamesH) (cl : List Claim) : Prop :=
 
 /-- **The layout before a cut's rename** (`lay0`), an alternative to `lay` while the rename may not
 survive a crash: its own static relation (over the directory's names before the rename), the same
-WAL directory, its segments a prefix of `lay`'s. -/
+WAL directory, its segments a strict prefix of `lay`'s (so it never holds `lay`'s tail; W6's
+decision of 2026-11-13). -/
 def AltOk (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay lay0 : WalLay) : Prop :=
   (∃ ents0, WalAbsD C Mr d lay0 ents0) ∧ lay0.jr = lay.jr ∧ lay0.nm = lay.nm ∧ lay0.j = lay.j ∧
-    lay0.segs <+: lay.segs
+    lay0.segs <+: lay.segs ∧ lay0.segs.length < lay.segs.length
 
 /-- **The crash condition, with an alternative layout** (`CrashOk` when `alt = none`): every crash
 the claims and `lay`'s halves allow leaves `CrashTo` of `lay` or of the alternative. -/

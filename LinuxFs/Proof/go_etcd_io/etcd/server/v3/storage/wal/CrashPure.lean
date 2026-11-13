@@ -425,7 +425,7 @@ theorem crashGood_exists (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     rcases hct with h | ⟨l0, hl0, h⟩
     · exact ⟨lay, _, habs, rfl, rfl, List.prefix_refl _, h⟩
     · obtain ⟨⟨e0, ha0⟩, h1, h2, -, h3⟩ := halt l0 hl0
-      exact ⟨l0, e0, ha0, h1, h2, h3, h⟩
+      exact ⟨l0, e0, ha0, h1, h2, h3.1, h⟩
   rcases crashTo_start C Mr d lay0 _ m' (fun i => st'.fs.files !! i) habs0
     (fun g hg => (hf g (hpre.subset hg)).2.1) hct0 with ⟨hn, he⟩ | ⟨d', lay', hc, hjr', hnm', he, hrest⟩
   · refine ⟨none, Or.inl ⟨hn, rfl⟩, ⟨fun _ => ⟨nm, hin, ?_⟩, fun _ _ h => by cases h⟩⟩
