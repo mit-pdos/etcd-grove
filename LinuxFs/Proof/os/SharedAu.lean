@@ -118,6 +118,34 @@ theorem wp_au_step {A : Type} (op : String) (v : val) (α : IProp GF) (β Q : A 
     imodintro
     iapply Hw $$ HQ
 
+/-- A claim split between the caller (`q`) and the atomic update (`r`). -/
+theorem osNames_join (j : Ino) (N : NameSet) (q r : Qp) (h : NamesH) (hq : q + r = 1) :
+    osNames (L := L) j N (DFrac.own q) h ∗ osNames (L := L) j N (DFrac.own r) h ⊣⊢
+      osNames (L := L) j N (DFrac.own 1) h := by
+  rw [← hq]; exact (osNames_frac j N q r h).symm
+
+theorem osLogLb_max (a b : Nat) :
+    osLogLb (L := L) a ∗ osLogLb (L := L) b ⊢ osLogLb (L := L) (max a b) := by
+  rcases Nat.le_total a b with hle | hle
+  · rw [Nat.max_eq_right hle]; iintro ⟨-, H⟩; iexact H
+  · rw [Nat.max_eq_left hle]; iintro ⟨H, -⟩; iexact H
+
+/-- What an outcome says of the log: nothing (no effect), or the entry `ent s` logged at `x`, by
+a call begun at `s ≥ lb`. -/
+def logOut (lb : Nat) (ent : Nat → LogEntry) : Option (Nat × Nat) → IProp GF
+  | none => iprop(emp)
+  | some (x, s) => iprop(⌜lb ≤ s⌝ ∗ osLogged (L := L) x (ent s))
+
+/-- A claim after an outcome: as it was (no effect), or with the entry logged, its names now `c`. -/
+def claimOut (j : Ino) (N : NameSet) (dq : DFrac) (h : NamesH) (ent : Nat → LogEntry) (c : Ents) :
+    Option (Nat × Nat) → IProp GF
+  | none => osNames (L := L) j N dq h
+  | some (x, s) => osNames (L := L) j N dq (h.log x (ent s) c)
+
+instance logOut_persistent (lb : Nat) (ent : Nat → LogEntry) (o : Option (Nat × Nat)) :
+    Persistent (logOut (L := L) lb ent o) := by
+  unfold logOut osLogged; split <;> infer_instance
+
 end step
 
 /-! ## `LstatDir` with a claim on any names containing the last component -/
