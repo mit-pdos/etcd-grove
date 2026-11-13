@@ -114,6 +114,8 @@ theorem os.File.Close.wp_dir (f : Loc) (fd : w64) (name : GoString) (x : Ino × 
   rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
   iStructNamed Hf2
+  ihave %hnn := typedPointsto_not_null _ _ _ $$ Hf
+  rw [decide_eq_false hnn]
   wp_auto
   wp_apply wp_osFdKindDir fd (DFrac.own 1) x CoPset.subseteq_top $$ Hinv Hosfd as Hosfd
   wp_apply wp_osDirClose fd x CoPset.subseteq_top $$ Hinv Hosfd as %e Hb

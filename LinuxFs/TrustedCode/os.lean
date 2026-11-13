@@ -22,7 +22,8 @@ nil. `Name` is translated, the real `return f.name`, over this layout; so is `fi
 operations, and with Go's retries of `EINTR` (`ignoringEINTR`, `ignoringEINTR2`, `Pwrite`'s loop)
 kept. Errors are as Go makes them: `&PathError{Op, Path: f.name, Err: Errno(e)}` (`wrapErr`), and
 `io.EOF` unwrapped. The model is less defined than Go (stuck) where Go's answer depends on what is
-not modelled: a nil `*File` or a zero `File` (Go returns `ErrInvalid` or `EINVAL`), and a closed
+not modelled: a nil `*File` (but in `Close`, which returns Go's `ErrInvalid`) or a zero `File` (Go
+returns `ErrInvalid` or `EINVAL`), and a closed
 file (`Close` sets `fd` to -1, as Go's `pfd.destroy` sets `Sysfd`; Go then returns `ErrClosed`,
 while the extension is stuck on fd -1, and the methods that answer without it, `Seek`, `Write`,
 `Read` and `Truncate`, panic first: not modelled), including a method racing `Close` (Go's reference count
@@ -55,12 +56,13 @@ structure file where
 
 instance file.zero_val : ZeroVal file := ⟨file.mk zeroValDef zeroValDef zeroValDef⟩
 
-/-- The model's `fileStat` (`fileStat.underlying`): the size. -/
+/-- The model's `fileStat` (`fileStat.underlying`): the size and the mode. -/
 structure fileStat where
   mk ::
   size' : w64
+  mode' : w32
 
-instance fileStat.zero_val : ZeroVal fileStat := ⟨fileStat.mk zeroValDef⟩
+instance fileStat.zero_val : ZeroVal fileStat := ⟨fileStat.mk zeroValDef zeroValDef⟩
 
 section code
 variable [GooseExts] [GoGlobalContext]
@@ -72,10 +74,13 @@ module docstring says why the other fields are not needed). An open file's `off`
   go.GoType.StructType [go.field_decl.FieldDecl go!"fd" go.int,
     go.field_decl.FieldDecl go!"name" go.string, go.field_decl.FieldDecl go!"off" go.int64]
 
-/-- `fileStat` (`types_unix.go`): only `size`. A `fileStat` is made only by `Stat.impl`, and its
-methods but `Size` (`Name`, `Mode`, `ModTime`, `IsDir`, `Sys`) are not translated (stuck). -/
-@[reducible] def fileStat.underlying : go.GoType :=
-  go.GoType.StructType [go.field_decl.FieldDecl go!"size" go.int64]
+/-- `fileStat` (`types_unix.go`): only `size` and `mode` (an `io/fs.FileMode`). A `fileStat` is
+made only by `File.Stat.impl` and `model.stat` (`Stat`, `Lstat`); its methods `Size`, `Mode` and
+`IsDir` are translated (`return fs.size`, `return fs.mode`, `return fs.Mode().IsDir()`), the
+others (`Name`, `ModTime`, `Sys`) are not (stuck). -/
+@[reducible] noncomputable def fileStat.underlying : go.GoType :=
+  go.GoType.StructType [go.field_decl.FieldDecl go!"size" go.int64,
+    go.field_decl.FieldDecl go!"mode" io.fs.FileMode.ty]
 
 /-- The struct-field facts goose emits for every translated struct (as `File.TypeAssumptions`'s
 `get_file`/`set_file` in `Code.os`), stated by hand for `file`: goose cannot see the trusted
@@ -106,11 +111,17 @@ class fileStat.FieldAssumptions [GoLocalContext] [GoSemanticsFunctions] : Prop w
   set_size : ∀ (x : fileStat) (y : w64), go.IsGoStepPureDetTagged Tag.under
     (StructFieldSet fileStat.underlying go!"size") (PairV #x #y)
     (Val #(({ x with size' := y } : fileStat)))
+  get_mode : ∀ (x : fileStat), go.IsGoStepPureDetTagged Tag.under
+    (StructFieldGet fileStat.underlying go!"mode") #x (Val #(x.mode'))
+  set_mode : ∀ (x : fileStat) (y : w32), go.IsGoStepPureDetTagged Tag.under
+    (StructFieldSet fileStat.underlying go!"mode") (PairV #x #y)
+    (Val #(({ x with mode' := y } : fileStat)))
 
 attribute [instance] file.FieldAssumptions.get_fd file.FieldAssumptions.set_fd
   file.FieldAssumptions.get_name file.FieldAssumptions.set_name
   file.FieldAssumptions.get_off file.FieldAssumptions.set_off
   fileStat.FieldAssumptions.get_size fileStat.FieldAssumptions.set_size
+  fileStat.FieldAssumptions.get_mode fileStat.FieldAssumptions.set_mode
 
 /-! The types as goose names them (their `.ty` is in `Code.os`, which imports this file), and
 helpers of the models (not Go functions). -/
@@ -131,6 +142,22 @@ noncomputable def model.pathError : val :=
     StructFieldRef io.fs.PathError.ty go!"Path" "pe" <-[go.string] "path" ;;
     StructFieldRef io.fs.PathError.ty go!"Err" "pe" <-[go.error] "err" ;;
     Convert (go.PointerType io.fs.PathError.ty) go.error "pe"
+
+/-- `FileMode` as goose names it. -/
+@[reducible] noncomputable def model.FileMode : go.GoType := io.fs.FileMode.ty
+
+/-- The bits of a `FileMode` that `fillFileStatFromSys` (`stat_linux.go`) sets from `st_mode`
+other than the type: the permissions (`0777`), `ModeSetuid` (`1 << 23`), `ModeSetgid` (`1 << 22`)
+and `ModeSticky` (`1 << 20`). -/
+abbrev model.modeOtherBits : w32 := W32 0xD001FF
+
+/-- A mode `fillFileStatFromSys` can make for a file of type `ty` (0 for a regular file,
+`ModeDir`, `1 << 31`, for a directory: the only types in the roots' trees, the extension's
+environment): the type, and arbitrary other bits (the extension does not model permissions, so
+any of them may be set). -/
+noncomputable def model.arbitraryMode : val :=
+  λ: "ty", "ty" |⟨model.FileMode⟩
+    (Convert go.uint64 model.FileMode ArbitraryInt &⟨model.FileMode⟩ #model.modeOtherBits)
 
 /-- `f.wrapErr(op, Errno(e))` for an errno `e ≠ 0` of the file at `inner`. -/
 noncomputable def model.wrapErrno : val :=
@@ -188,9 +215,15 @@ noncomputable def File.Fd.impl : val :=
 closes the fd (`close(2)`, not retried on `EINTR`: Linux frees the fd whatever the errno) and sets
 `Sysfd` to -1; an error is `&PathError{"close", name, Errno(e)}`. The extension's `Close` frees the
 fd whatever the errno it returns; `DirClose` for a directory's fd (the model asks which, `FdKind`, a
-query of the model's state, not a system call). -/
+query of the model's state, not a system call). A nil `*File` returns `ErrInvalid` without a system
+call (`file_posix.go`: `if f == nil { return ErrInvalid }`; 2026-11-13, the WAL's `Open` error path
+closes a WAL whose `dirFile` is nil: `notes/wal-fsext-plan.md`, item 6; Go example
+`examples/osfs/semantics/model_os_close_nil.go`). -/
 noncomputable def File.Close.impl : val :=
   λ: "f" <>,
+    if: "f" =⟨go.PointerType model.File⟩ #null then
+      ![go.error] (GlobalVarAddr go!"os.ErrInvalid" #())
+    else
     let: "inner" := model.inner "f" in
     let: "fd" := ![go.int] (StructFieldRef model.file go!"fd" "inner") in
     let: "kind" := ExternalOp Fs.fsExt.name "FdKind" "fd" in
@@ -399,9 +432,15 @@ by a failing one makes positive), which the model's `WriteAt` does not keep: the
 count (`ArbitraryInt`), and the offset is unknown (`off` set to -1): a later `Write`, `Read` or
 `SEEK_CUR` is not modelled (a panic; a `SEEK_SET` sets a known offset again). A write reaching
 `model.offMax` is not modelled. Not modelled either (a panic): a closed file (fd -1: Go returns
-`ErrClosed`), and an empty `b`, for which Go (with no empty-buffer shortcut in `poll.FD.Write`)
+`ErrClosed`). An empty `b`, for which Go (with no empty-buffer shortcut in `poll.FD.Write`)
 issues a zero-byte `write(2)` whose answer depends on the fd's mode (`EBADF` on a read-only fd,
-measured on C, `notes/axiom-review/fs-v2-r8/`). -/
+measured on C, `notes/axiom-review/fs-v2-r8/`), returns `(0, nil)` or `(0, &PathError{"write",
+name, Errno(e)})` for any errno, with no extension step and the offset unchanged: a zero-byte
+`write(2)` on a regular file changes nothing (POSIX: "if count is zero and fd refers to a regular
+file, write() may detect the errors ... and otherwise returns 0 without any other effect"; measured,
+`TestEmptyWrite`), and the model does not know the fd's mode, so it allows both answers
+(2026-11-13: `os.WriteFile(f, []byte(""), ...)`, fileutil's `IsDirWriteable`; until then a panic;
+Go example `examples/osfs/semantics/model_os_writefile.go`). -/
 noncomputable def File.Write.impl : val :=
   λ: "f" "b",
     let: "inner" := model.inner "f" in
@@ -409,7 +448,10 @@ noncomputable def File.Write.impl : val :=
     let: "off" := ![go.int64] (StructFieldRef model.file go!"off" "inner") in
     let: "len" := (FuncResolve go.len [go.GoType.SliceType go.byte]) #() "b" in
     if: "fd" <⟨go.int⟩ #(W64 0) then Panic "os: Write of a closed file not modelled"
-    else if: "len" =⟨go.int⟩ #(W64 0) then Panic "os: an empty Write not modelled"
+    else if: "len" =⟨go.int⟩ #(W64 0) then
+      (let: "e" := ArbitraryInt in
+       if: "e" =⟨go.uintptr⟩ #(W64 0) then (#(W64 0), #GoInterface.nil)
+       else (#(W64 0), model.wrapErrno #"write" "inner" "e"))
     else if: "off" <⟨go.int64⟩ #(W64 0) then Panic "os: Write at an unknown offset not modelled"
     else if: #model.offMax ≤⟨go.int64⟩ ("off" +⟨go.int64⟩ Convert go.int go.int64 "len") then
       Panic "os: Write past 2^62 not modelled"
@@ -460,8 +502,10 @@ noncomputable def File.Read.impl : val :=
 
 /-- `(*File).Stat() (FileInfo, error)` (`stat_unix.go`): `pfd.Fstat` (`fstat(2)`, `EINTR`
 retried) into a fresh `fileStat`, an error being `&PathError{"stat", name, Errno(e)}`. The
-extension's `Fstat` gives only the size (`fd ↦ (size, errno)`), which is all the model's
-`fileStat` holds; it is returned as a `FileInfo` (`&fs`), whose `Size()` reads it. -/
+extension's `Fstat` gives only the size (`fd ↦ (size, errno)`), stored in a fresh `fileStat`
+with a regular file's mode of arbitrary permission bits (`model.arbitraryMode`: the extension's
+`Fstat` is stuck on a directory's fd, so the fd is a regular file's); it is returned as a `FileInfo`
+(`&fs`), whose `Size()` and `Mode()` read it. -/
 noncomputable def File.Stat.impl : val :=
   λ: "f" <>,
     let: "inner" := model.inner "f" in
@@ -474,6 +518,8 @@ noncomputable def File.Stat.impl : val :=
       else
         let: "fs" := GoAlloc model.fileStat (GoZeroVal model.fileStat #()) in
         StructFieldRef model.fileStat go!"size" "fs" <-[go.int64] Fst "r" ;;
+        StructFieldRef model.fileStat go!"mode" "fs" <-[model.FileMode]
+          model.arbitraryMode #(W32 0) ;;
         (Convert (go.PointerType model.fileStat) io.fs.FileInfo.ty "fs", #GoInterface.nil)) #()
 
 /-- `(*File).Truncate(size int64) error` (`file_posix.go`, `poll.FD.Ftruncate`): `ftruncate(2)`,
@@ -658,6 +704,421 @@ noncomputable def File.Readdirnames.impl : val :=
               (LiteralValue [KeyedElement none (ElementExpression go.string (Var "nm"))]))))
         (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string))))
           (LiteralValue []))
+
+/-! ## Path lookups and recursive tree changes (2026-11-13, the WAL over `fsExt`:
+`notes/wal-fsext-plan.md`, section 4.3; drafts pending the user's review) -/
+
+/-- `Stat(name)`'s and `Lstat(name)`'s body (`stat_unix.go`'s `statNolog`/`lstatNolog`): one
+`stat(2)` (or `lstat(2)`) of the path, `EINTR` retried, into a fresh `fileStat`
+(`fillFileStatFromSys`); an error is `&PathError{op, name, Errno(e)}` with a nil `FileInfo`.
+
+The extension has no `stat` of a path (its `LstatDir` answers only `os.Rename`'s question, and
+only with an error for a directory), so the model asks what a `stat` would by the steps it has: an
+`open(name, O_RDONLY|O_CLOEXEC)` (the extension's `Open`, after its own `CallBegin`), whose fd says
+whether the path is a file or a directory (`FdKind`), the size of a file (`Fstat`), and the fd is
+closed at once (`Close`/`DirClose`, whose errno is ignored). Why this contains every answer of
+Linux's `stat`: an `open` without `O_CREAT`/`O_TRUNC` changes no state but the fd table (the
+`OpenEffect` of an existing path is none, and the fd is freed by the close before the model
+returns; fd numbers are chosen arbitrarily by the extension anyway, so no other thread can tell);
+where `stat` succeeds the path exists (in the roots' trees every entry is a regular file or a
+directory, and there are no symlinks, so `stat` and `lstat` agree), and the extension's `Open`,
+`FdKind` and `Fstat` can succeed with its kind and size (permissions are not modelled, so a
+mode-000 file that `open` refuses with `EACCES` and `stat` does not still opens in the model);
+where it fails, `Open` can fail with the same errno. The model has more answers than Linux (any
+errno, `EMFILE` included, on an existing path), which only weakens what a proof shows. The mode
+is the type (0 for a regular file, `ModeDir` for a directory) with arbitrary permission,
+`setuid`, `setgid` and sticky bits (`model.arbitraryMode`; permissions are not modelled), and a
+directory's size is arbitrary (Linux reports its blocks' bytes, which the extension does not
+model). As every step on a path, the model is stuck on a path outside the roots' trees (Linux
+answers there). The `CallBegin` makes a directory rename by another thread stuck until the `open`
+(as for every path call), so `stat`'s walk never meets a moved directory. Go example:
+`examples/osfs/semantics/model_os_stat.go`. -/
+noncomputable def model.stat : val :=
+  λ: "op" "name",
+    (rec: "stat" <> :=
+      let: "c" := ExternalOp Fs.fsExt.name "CallBegin" #() in
+      let: "r" := ExternalOp Fs.fsExt.name "Open" ("c", ("name", #(W64 0x80000))) in
+      if: Snd "r" =⟨go.uintptr⟩ #(W64 4) then "stat" #() -- EINTR
+      else if: Snd "r" ≠⟨go.uintptr⟩ #(W64 0) then
+        (GoZeroVal io.fs.FileInfo.ty #(),
+         model.pathError "op" "name" (syscall.model.errno (Snd "r")))
+      else
+        let: "fd" := Fst "r" in
+        let: "kind" := ExternalOp Fs.fsExt.name "FdKind" "fd" in
+        let: "z" := if: "kind" =⟨go.uintptr⟩ #(W64 0) then ExternalOp Fs.fsExt.name "Fstat" "fd"
+          else (ArbitraryInt, #(W64 0)) in
+        (if: "kind" =⟨go.uintptr⟩ #(W64 0) then ExternalOp Fs.fsExt.name "Close" "fd"
+         else ExternalOp Fs.fsExt.name "DirClose" "fd") ;;
+        if: Snd "z" =⟨go.uintptr⟩ #(W64 4) then "stat" #() -- EINTR
+        else if: Snd "z" ≠⟨go.uintptr⟩ #(W64 0) then
+          (GoZeroVal io.fs.FileInfo.ty #(),
+           model.pathError "op" "name" (syscall.model.errno (Snd "z")))
+        else
+          let: "fs" := GoAlloc model.fileStat (GoZeroVal model.fileStat #()) in
+          StructFieldRef model.fileStat go!"size" "fs" <-[go.int64] Fst "z" ;;
+          StructFieldRef model.fileStat go!"mode" "fs" <-[model.FileMode]
+            model.arbitraryMode (if: "kind" =⟨go.uintptr⟩ #(W64 0) then #(W32 0)
+              else #(W32 0x80000000)) ;;
+          (Convert (go.PointerType model.fileStat) io.fs.FileInfo.ty "fs", #GoInterface.nil)) #()
+
+/-- `Stat(name string) (FileInfo, error)` (`stat.go`: `testlog.Stat(name)`, a no-op outside
+`go test`'s logging, then `statNolog`): `model.stat` with `Op` "stat". -/
+noncomputable def Stat.impl : val :=
+  λ: "name", model.stat #"stat" "name"
+
+/-- `Lstat(name string) (FileInfo, error)` (`stat.go`, `lstatNolog`): `model.stat` with `Op`
+"lstat". In the roots' trees there are no symlinks (the extension's environment), so `lstat`
+answers as `stat` does. -/
+noncomputable def Lstat.impl : val :=
+  λ: "name", model.stat #"lstat" "name"
+
+/-- `MkdirAll(path string, perm FileMode) error` (`path.go`): Go's body, as goose would translate
+it, but for `len(filepathlite.VolumeName(path))`, which is 0 on Linux (`volumeNameLen` returns 0
+in `internal/filepathlite`'s `path_unix.go`; `FromSlash` of the empty string is itself), so the
+model writes 0 (`internal/filepathlite` is translated nowhere, which is why `MkdirAll` is a model):
+
+```go
+	dir, err := Stat(path)
+	if err == nil {
+		if dir.IsDir() {
+			return nil
+		}
+		return &PathError{Op: "mkdir", Path: path, Err: syscall.ENOTDIR}
+	}
+	i := len(path) - 1
+	for i >= 0 && IsPathSeparator(path[i]) {
+		i--
+	}
+	for i >= 0 && !IsPathSeparator(path[i]) {
+		i--
+	}
+	if i < 0 {
+		i = 0
+	}
+	if parent := path[:i]; len(parent) > len(filepathlite.VolumeName(path)) {
+		err = MkdirAll(parent, perm)
+		if err != nil {
+			return err
+		}
+	}
+	err = Mkdir(path, perm)
+	if err != nil {
+		dir, err1 := Lstat(path)
+		if err1 == nil && dir.IsDir() {
+			return nil
+		}
+		return err
+	}
+	return nil
+```
+
+`Stat`, `Lstat`, `Mkdir`, `IsPathSeparator` and the recursive `MkdirAll` are called as Go calls
+them (the models above, the translated `IsPathSeparator`), and `IsDir` through the `FileInfo`.
+Go example: `examples/osfs/semantics/model_os_mkdirall.go`. -/
+noncomputable def MkdirAll.impl : val :=
+  λ: "path" "perm",
+    let: "st" := (FuncResolve go!"os.Stat" []) #() "path" in
+    if: Snd "st" =⟨go.error⟩ #GoInterface.nil then
+      (if: (MethodResolve io.fs.FileInfo.ty go!"IsDir") (Fst "st") #() then #GoInterface.nil
+       else model.pathError #"mkdir" "path" (syscall.model.errno #(W64 20))) -- ENOTDIR
+    else
+      let: "len" := (FuncResolve go.len [go.string]) #() "path" in
+      let: "i" := (rec: "trail" "i" :=
+          if: ("i" ≥⟨go.int⟩ #(W64 0)) &&
+              ((FuncResolve go!"os.IsPathSeparator" []) #() (Index go.string ("path", "i")))
+          then "trail" ("i" -⟨go.int⟩ #(W64 1)) else "i") ("len" -⟨go.int⟩ #(W64 1)) in
+      let: "i" := (rec: "back" "i" :=
+          if: ("i" ≥⟨go.int⟩ #(W64 0)) &&
+              (⟨go.bool⟩! ((FuncResolve go!"os.IsPathSeparator" []) #()
+                (Index go.string ("path", "i"))))
+          then "back" ("i" -⟨go.int⟩ #(W64 1)) else "i") "i" in
+      let: "i" := if: "i" <⟨go.int⟩ #(W64 0) then #(W64 0) else "i" in
+      let: "parent" := Slice go.string ("path", #(W64 0), "i") in
+      let: "e" := if: (FuncResolve go.len [go.string]) #() "parent" >⟨go.int⟩ #(W64 0)
+        then (FuncResolve go!"os.MkdirAll" []) #() "parent" "perm" else #GoInterface.nil in
+      if: "e" ≠⟨go.error⟩ #GoInterface.nil then "e"
+      else
+        let: "e" := (FuncResolve go!"os.Mkdir" []) #() "path" "perm" in
+        if: "e" =⟨go.error⟩ #GoInterface.nil then #GoInterface.nil
+        else
+          let: "l" := (FuncResolve go!"os.Lstat" []) #() "path" in
+          if: (Snd "l" =⟨go.error⟩ #GoInterface.nil) &&
+              ((MethodResolve io.fs.FileInfo.ty go!"IsDir") (Fst "l") #())
+          then #GoInterface.nil else "e"
+
+/-- `&PathError{Op: op, Path: path, Err: err}`, the pointer (`model.pathError` converts it to an
+`error`): `RemoveAll`'s model changes its `Path` after making it, as Go does. -/
+noncomputable def model.pathErrorPtr : val :=
+  λ: "op" "path" "err",
+    let: "pe" := GoAlloc io.fs.PathError.ty (GoZeroVal io.fs.PathError.ty #()) in
+    StructFieldRef io.fs.PathError.ty go!"Op" "pe" <-[go.string] "op" ;;
+    StructFieldRef io.fs.PathError.ty go!"Path" "pe" <-[go.string] "path" ;;
+    StructFieldRef io.fs.PathError.ty go!"Err" "pe" <-[go.error] "err" ;;
+    "pe"
+
+/-- `pe.Path = pre + "/" + pe.Path` for a non-nil `*PathError` `pe` (`removeall_at.go`). -/
+noncomputable def model.prefixPath : val :=
+  λ: "pe" "pre",
+    if: "pe" =⟨go.PointerType io.fs.PathError.ty⟩ #null then #()
+    else
+      StructFieldRef io.fs.PathError.ty go!"Path" "pe" <-[go.string]
+        ("pre" +⟨go.string⟩ #"/" +⟨go.string⟩
+          ![go.string] (StructFieldRef io.fs.PathError.ty go!"Path" "pe"))
+
+/-- `unlink(2)` of `p`, each attempt after its own `CallBegin`, `EINTR` retried: the errno. -/
+noncomputable def model.unlinkLoop : val :=
+  λ: "p", (rec: "unlink" <> :=
+    let: "c" := ExternalOp Fs.fsExt.name "CallBegin" #() in
+    let: "e" := ExternalOp Fs.fsExt.name "Unlink" ("c", "p") in
+    if: "e" =⟨go.uintptr⟩ #(W64 4) then "unlink" #() else "e") #()
+
+/-- `rmdir(2)` of `p`, each attempt after its own `CallBegin`, `EINTR` retried: the errno. -/
+noncomputable def model.rmdirLoop : val :=
+  λ: "p", (rec: "rmdir" <> :=
+    let: "c" := ExternalOp Fs.fsExt.name "CallBegin" #() in
+    let: "e" := ExternalOp Fs.fsExt.name "Rmdir" ("c", "p") in
+    if: "e" =⟨go.uintptr⟩ #(W64 4) then "rmdir" #() else "e") #()
+
+/-- `open(p, O_RDONLY|O_CLOEXEC)`, each attempt after its own `CallBegin`, `EINTR` retried:
+`(fd, errno)`. -/
+noncomputable def model.openLoop : val :=
+  λ: "p", (rec: "open" <> :=
+    let: "c" := ExternalOp Fs.fsExt.name "CallBegin" #() in
+    let: "r" := ExternalOp Fs.fsExt.name "Open" ("c", ("p", #(W64 0x80000))) in
+    if: Snd "r" =⟨go.uintptr⟩ #(W64 4) then "open" #() else "r") #()
+
+/-- Close the fd `fd` of a file or of a directory (`FdKind`), ignoring the errno. -/
+noncomputable def model.closeFd : val :=
+  λ: "fd",
+    if: ExternalOp Fs.fsExt.name "FdKind" "fd" =⟨go.uintptr⟩ #(W64 0) then
+      ExternalOp Fs.fsExt.name "Close" "fd" ;; #()
+    else ExternalOp Fs.fsExt.name "DirClose" "fd" ;; #()
+
+/-- `removeAllFrom(parentFd, base)` (`removeall_at.go`), with the entry named by its path
+`parent + "/" + base` instead of `base` under the fd of `parent` (`RemoveAll.impl` says why that
+is faithful): the result is a `*PathError` (nil for success) whose `Path` is relative to `parent`,
+as Go's.
+
+```go
+	err := removefileat(parentFd, base)          // unlinkat(parentFd, base, 0), EINTR retried
+	if err == nil || IsNotExist(err) {
+		return nil
+	}
+	if err != syscall.EISDIR && err != syscall.EPERM && err != syscall.EACCES {
+		return &PathError{Op: "unlinkat", Path: base, Err: err}
+	}
+	uErr := err
+	var recurseErr error
+	for {
+		const reqSize = 1024
+		var respSize int
+		file, err := openDirAt(parentFd, base)   // openat(O_DIRECTORY|O_NOFOLLOW|O_CLOEXEC)
+		if err != nil {
+			if IsNotExist(err) {
+				return nil
+			}
+			if err == syscall.ENOTDIR {
+				return &PathError{Op: "unlinkat", Path: base, Err: uErr}
+			}
+			...                                   // errSymlink: no symlinks in the roots' trees
+			recurseErr = &PathError{Op: "openfdat", Path: base, Err: err}
+			break
+		}
+		for {
+			numErr := 0
+			names, readErr := file.Readdirnames(reqSize)
+			if readErr != nil && readErr != io.EOF {
+				file.Close()
+				if IsNotExist(readErr) {
+					return nil
+				}
+				return &PathError{Op: "readdirnames", Path: base, Err: readErr}
+			}
+			respSize = len(names)
+			for _, name := range names {
+				err := removeAllFrom(sysfdType(file.Fd()), name)
+				if err != nil {
+					if pathErr, ok := err.(*PathError); ok {
+						pathErr.Path = base + string(PathSeparator) + pathErr.Path
+					}
+					numErr++
+					if recurseErr == nil {
+						recurseErr = err
+					}
+				}
+			}
+			if numErr != reqSize {
+				break
+			}
+		}
+		file.Close()
+		if respSize < reqSize {
+			break
+		}
+	}
+	unlinkError := removedirat(parentFd, base)   // unlinkat(parentFd, base, AT_REMOVEDIR)
+	if unlinkError == nil || IsNotExist(unlinkError) {
+		return nil
+	}
+	if recurseErr != nil {
+		return recurseErr
+	}
+	return &PathError{Op: "unlinkat", Path: base, Err: unlinkError}
+```
+
+The `unlinkat`s are the extension's `Unlink` and `Rmdir` of the path, and `openDirAt` its `Open`
+of the path (`O_RDONLY|O_CLOEXEC`: the extension does not take `O_DIRECTORY`; an fd of a file,
+`FdKind`, is closed and answered as `ENOTDIR`, which Linux returns without opening). The reads of
+a pass are one `Readdirnames(-1)` of the directory (the extension's `DirReadNext` until the end,
+`EINTR` retried, as `File.Readdirnames.impl`; an error is `&PathError{"readdirent", base,
+Errno(e)}`, as Go's `readdir` makes it), all of whose names are then removed; Go's chunks of 1024
+names, and its reading of the next chunk when every removal of one failed, read the same names
+across the pass (the extension's `readdir` returns, by the end, every name present throughout the
+read: POSIX's guarantee, which is all Go's chunked reads have too). Whether another pass follows is
+arbitrary (`ArbitraryInt`): Go makes one more exactly when a chunk was full, which depends on the
+directory's size and on entries added meanwhile; the model allows every number of passes. Errors
+are Go's (`ENOENT` is `IsNotExist`'s errno; `ENOTDIR` 20, `EISDIR` 21, `EPERM` 1, `EACCES` 13). -/
+noncomputable def model.removeAllFrom : val :=
+  rec: "from" "parent" "base" :=
+    let: "p" := "parent" +⟨go.string⟩ #"/" +⟨go.string⟩ "base" in
+    let: "e" := model.unlinkLoop "p" in
+    if: ("e" =⟨go.uintptr⟩ #(W64 0)) || ("e" =⟨go.uintptr⟩ #(W64 2)) then #null
+    else if: ("e" ≠⟨go.uintptr⟩ #(W64 21)) && ("e" ≠⟨go.uintptr⟩ #(W64 1)) &&
+        ("e" ≠⟨go.uintptr⟩ #(W64 13)) then
+      model.pathErrorPtr #"unlinkat" "base" (syscall.model.errno "e")
+    else
+      -- the passes: `(#0, pe)` returns `pe` at once, `(#1, recurseErr)` goes on to the `rmdir`
+      let: "res" := (rec: "pass" "rerr" :=
+        let: "o" := model.openLoop "p" in
+        if: Snd "o" ≠⟨go.uintptr⟩ #(W64 0) then
+          (if: Snd "o" =⟨go.uintptr⟩ #(W64 2) then (#(W64 0), #null)
+           else if: Snd "o" =⟨go.uintptr⟩ #(W64 20) then
+             (#(W64 0), model.pathErrorPtr #"unlinkat" "base" (syscall.model.errno "e"))
+           else (#(W64 1), model.pathErrorPtr #"openfdat" "base" (syscall.model.errno (Snd "o"))))
+        else
+          let: "fd" := Fst "o" in
+          if: ExternalOp Fs.fsExt.name "FdKind" "fd" =⟨go.uintptr⟩ #(W64 0) then
+            ExternalOp Fs.fsExt.name "Close" "fd" ;;
+            (#(W64 0), model.pathErrorPtr #"unlinkat" "base" (syscall.model.errno "e"))
+          else
+            let: "rd" := (rec: "read" "names" :=
+              let: "r" := ExternalOp Fs.fsExt.name "DirReadNext" "fd" in
+              let: "re" := Snd (Snd "r") in
+              if: "re" =⟨go.uintptr⟩ #(W64 4) then "read" "names" -- EINTR
+              else if: "re" ≠⟨go.uintptr⟩ #(W64 0) then ("names", "re")
+              else if: Fst (Snd "r") =⟨go.uintptr⟩ #(W64 1) then ("names", #(W64 0))
+              else
+                let: "nm" := Fst "r" in
+                "read" ((FuncResolve go.append [go.GoType.SliceType go.string]) #() "names"
+                  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string))))
+                    (LiteralValue [KeyedElement none (ElementExpression go.string (Var "nm"))]))))
+              (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string))))
+                (LiteralValue [])) in
+            if: Snd "rd" ≠⟨go.uintptr⟩ #(W64 0) then
+              ExternalOp Fs.fsExt.name "DirClose" "fd" ;;
+              (if: Snd "rd" =⟨go.uintptr⟩ #(W64 2) then (#(W64 0), #null)
+               else (#(W64 0), model.pathErrorPtr #"readdirnames" "base"
+                 (model.pathError #"readdirent" "base" (syscall.model.errno (Snd "rd")))))
+            else
+              let: "names" := Fst "rd" in
+              let: "n" := (FuncResolve go.len [go.GoType.SliceType go.string]) #() "names" in
+              let: "rerr" := (rec: "each" "k" "rerr" :=
+                if: "k" =⟨go.int⟩ "n" then "rerr"
+                else
+                  let: "pe" := "from" "p"
+                    (![go.string] (IndexRef (go.GoType.SliceType go.string) ("names", "k"))) in
+                  model.prefixPath "pe" "base" ;;
+                  "each" ("k" +⟨go.int⟩ #(W64 1))
+                    (if: "rerr" =⟨go.PointerType io.fs.PathError.ty⟩ #null then "pe" else "rerr"))
+                #(W64 0) "rerr" in
+              ExternalOp Fs.fsExt.name "DirClose" "fd" ;;
+              if: ArbitraryInt =⟨go.uint64⟩ #(W64 0) then (#(W64 1), "rerr") else "pass" "rerr")
+        #null in
+      if: Fst "res" =⟨go.uint64⟩ #(W64 0) then Snd "res"
+      else
+        let: "e4" := model.rmdirLoop "p" in
+        if: ("e4" =⟨go.uintptr⟩ #(W64 0)) || ("e4" =⟨go.uintptr⟩ #(W64 2)) then #null
+        else if: Snd "res" ≠⟨go.PointerType io.fs.PathError.ty⟩ #null then Snd "res"
+        else model.pathErrorPtr #"unlinkat" "base" (syscall.model.errno "e4")
+
+/-- `RemoveAll(path string) error` (`path.go`, `removeall_at.go`'s `removeAll`):
+
+```go
+	if path == "" {
+		return nil
+	}
+	if endsWithDot(path) {
+		return &PathError{Op: "RemoveAll", Path: path, Err: syscall.EINVAL}
+	}
+	err := Remove(path)
+	if err == nil || IsNotExist(err) {
+		return nil
+	}
+	parentDir, base := splitPath(path)
+	parent, err := OpenFile(parentDir, O_RDONLY, 0)
+	if IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	defer parent.Close()
+	if err := removeAllFrom(sysfdType(parent.Fd()), base); err != nil {
+		if pathErr, ok := err.(*PathError); ok {
+			pathErr.Path = parentDir + string(PathSeparator) + pathErr.Path
+			err = pathErr
+		}
+		return err
+	}
+	return nil
+```
+
+Go's body is not translated: below `Remove` it is over the `*at` system calls (`unlinkat`,
+`openat` relative to a directory's fd), which the extension does not have (its steps name paths).
+The model is that body over paths: `Remove` as `Remove.impl` (inlined, for its errno), the parent
+opened as `OpenFile` does (and closed), and `removeAllFrom` with each entry named by its path
+(`model.removeAllFrom`). A path and a name under an open directory's fd name the same entry as long
+as no directory above it is moved: the model takes a `CallBegin` at its start and ends it at its
+return (with a `LstatDir` of `path`, a step without effect), so that every rename of a directory by
+another thread is stuck while it runs (the extension's `Rename`), and the proved programs, which are
+never stuck, have no such rename. What is left is a directory above it removed and another made
+in its place by another thread (Go's `*at` calls then act on the removed one, which no path names,
+and fail or change nothing a path can see; the model's calls on the new one may fail with any errno
+and no effect, which is the outcome Linux's leave visible). `IsNotExist` of these errors is an
+errno of `ENOENT` (2); `ENOTDIR` 20; `EINVAL` 22. `splitPath` and `endsWithDot` are the translated
+Go helpers. Go example: `examples/osfs/semantics/model_os_removeall.go`. -/
+noncomputable def RemoveAll.impl : val :=
+  λ: "path",
+    if: "path" =⟨go.string⟩ #"" then #GoInterface.nil
+    else if: (FuncResolve go!"os.endsWithDot" []) #() "path" then
+      model.pathError #"RemoveAll" "path" (syscall.model.errno #(W64 22))
+    else
+      let: "g" := ExternalOp Fs.fsExt.name "CallBegin" #() in
+      let: "r" :=
+        (let: "e" := model.unlinkLoop "path" in
+         if: "e" =⟨go.uintptr⟩ #(W64 0) then #GoInterface.nil
+         else
+           let: "e1" := model.rmdirLoop "path" in
+           if: "e1" =⟨go.uintptr⟩ #(W64 0) then #GoInterface.nil
+           else
+             let: "e" := if: "e1" ≠⟨go.uintptr⟩ #(W64 20) then "e1" else "e" in
+             if: "e" =⟨go.uintptr⟩ #(W64 2) then #GoInterface.nil
+             else
+               let: "sp" := (FuncResolve go!"os.splitPath" []) #() "path" in
+               let: "parentDir" := Fst "sp" in
+               let: "o" := model.openLoop "parentDir" in
+               if: Snd "o" =⟨go.uintptr⟩ #(W64 2) then #GoInterface.nil
+               else if: Snd "o" ≠⟨go.uintptr⟩ #(W64 0) then
+                 model.pathError #"open" "parentDir" (syscall.model.errno (Snd "o"))
+               else
+                 let: "pe" := model.removeAllFrom "parentDir" (Snd "sp") in
+                 model.closeFd (Fst "o") ;;
+                 if: "pe" =⟨go.PointerType io.fs.PathError.ty⟩ #null then #GoInterface.nil
+                 else
+                   model.prefixPath "pe" "parentDir" ;;
+                   Convert (go.PointerType io.fs.PathError.ty) go.error "pe") in
+      ExternalOp Fs.fsExt.name "LstatDir" ("g", "path") ;;
+      "r"
 
 /-! ## The initializer's untranslated pieces (2026-11-07, as Perennial's `TrustedCode/os.lean`) -/
 

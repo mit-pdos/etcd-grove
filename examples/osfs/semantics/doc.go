@@ -9,7 +9,8 @@
 // (measured, documented with a citation, or assumed), and which client needs
 // it; then a function shows the scenario, with "crash here" and the outcomes.
 // The functions are illustrations: nothing calls them, and no Goose
-// translation or proof covers this package. Every claim is about the target
+// translation or proof covers this package (models_test.go runs the
+// measurements the model_*.go files cite). Every claim is about the target
 // configuration C (env_config.go); the measurements cited were made on C with
 // the scripts in notes/axiom-review/fs-config/ (and fs-v2-f3/, fs-v2-r4/,
 // fs-v2-r6/).
@@ -51,6 +52,17 @@
 //	meta_file_fsync.go            a file fsync commits no name       Fsync, DirSync
 //	meta_wal_create.go            wal.Create's directory swap        DirSync, Follows
 //	meta_readdir.go               readdir racing changes             OsDirRead, DirReadNext
+//
+// Trusted models of the Go wrappers (drafts of 2026-11-13, pending review;
+// models_test.go holds their measurements, run on this machine):
+//
+//	model_syscall_fallocate.go    syscall.Fallocate as unix's        syscall.lean: Fallocate.impl
+//	model_syscall_fcntlflock.go   lock commands; F_OFD_GETLK on any  syscall.lean: FcntlFlock.impl
+//	model_os_close_nil.go         nil *File Close: ErrInvalid        os.lean: File.Close.impl
+//	model_os_stat.go              Stat/Lstat as open+fstat+close     os.lean: model.stat, arbitraryMode
+//	model_os_mkdirall.go          MkdirAll: Go's body over models    os.lean: MkdirAll.impl
+//	model_os_removeall.go         RemoveAll over paths, rename-free  os.lean: RemoveAll.impl, removeAllFrom
+//	model_os_writefile.go         WriteFile; an empty Write          os.lean: File.Write.impl; WriteFile
 //
 // Client premises (not part of the semantics; a theorem states them):
 //

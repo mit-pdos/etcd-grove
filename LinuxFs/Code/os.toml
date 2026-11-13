@@ -26,7 +26,13 @@ translate = ["!*", "O_RDONLY", "O_WRONLY", "O_RDWR", "O_APPEND", "O_CREATE", "O_
   "pollCopyFileRange", "pollSplice",
   "Args", "init.0",
   # real Go over OpenFile (`return OpenFile(name, O_RDONLY, 0)`); the error type of Rename
-  "Open", "LinkError"]
+  "Open", "LinkError",
+  # (2026-11-13, the WAL over fsExt) real Go over the trusted layout of `fileStat`
+  # (`return fs.mode`, `return fs.Mode().IsDir()`), and over the models of OpenFile, File.Write and
+  # File.Close (`WriteFile`, fileutil's IsDirWriteable)
+  "fileStat.Mode", "fileStat.IsDir", "WriteFile",
+  # pure helpers the models of MkdirAll and RemoveAll call (path.go, path_unix.go)
+  "IsPathSeparator", "endsWithDot", "splitPath"]
 # what the models use: errors.New, io.EOF, fs.PathError and FileInfo, syscall.Errno
 imports = ["!*", "errors", "io", "io/fs", "syscall", "sync", "internal/poll"]
 # The functions and methods minibolt calls, modeled by the Linux file extension fsExt
@@ -42,7 +48,12 @@ trusted = ["file", "fileStat", "OpenFile", "File.WriteAt", "File.ReadAt", "File.
   # fix-semantics Case 33; TrustedCode/os.lean): `runtime_args` (a linkname, no Go body) an
   # arbitrary `[]string`; `Stdin`/`Stdout` do nothing (variables not allocated); `Stderr` allocates
   # its variable and stores an arbitrary in-range address with no cell, not reserved (`GoPrealloc`).
-  "runtime_args", "Stdin", "Stdout", "Stderr"]
+  "runtime_args", "Stdin", "Stdout", "Stderr",
+  # (2026-11-13, the WAL over fsExt: notes/wal-fsext-plan.md, section 4.3; drafts pending the user's
+  # review) `Stat`/`Lstat` (fileutil's Exist, CheckDirPermission), `MkdirAll` (TouchDirAll: Go's body
+  # calls internal/filepathlite, which nothing translates) and `RemoveAll` (the WAL's Create and
+  # Open: Go's body is over the *at system calls, which the extension does not have)
+  "Stat", "Lstat", "MkdirAll", "RemoveAll"]
 
 # (2026-11-07) every type declaration goose supports, as Perennial's: the `var _ I = ...`
 # assertions convert to interface types

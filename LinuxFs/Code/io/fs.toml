@@ -9,7 +9,9 @@ translate = ["!*", "FileInfo", "FileMode", "PathError",
   # as Perennial's io/fs.toml: what importing io/fs runs
   "ErrInvalid", "ErrPermission", "ErrExist", "ErrNotExist", "ErrClosed",
   "errInvalid", "errPermission", "errExist", "errNotExist", "errClosed",
-  "SkipDir", "SkipAll", "_"]
+  "SkipDir", "SkipAll", "_",
+  # (2026-11-13) what os's `fileStat.IsDir` and fileutil's CheckDirPermission call
+  "FileMode.IsDir", "FileMode.Perm"]
 imports = ["!*", "errors", "internal/oserror", "io", "time"]
 
 # (2026-11-07) every type declaration goose supports, as Perennial's: the `var _ I = ...`

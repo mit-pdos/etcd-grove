@@ -25,9 +25,12 @@ variable [os.Assumptions]
 theorem os.fileStat.Size.wp_proof : os.fileStat.Size.spec (GF := GF) (hG := hG) := by
   intro fs sz
   unfold os.ownFileStat
-  wp_start as #Hs
+  wp_start as ⟨#Hs, %mode, #Hm⟩
   wp_auto
   iapply HΦ
+  isplitl []
+  · iassumption
+  iexists mode
   iassumption
 
 end proof
