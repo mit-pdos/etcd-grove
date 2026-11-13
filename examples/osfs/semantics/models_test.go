@@ -306,3 +306,32 @@ func TestStatOpenAboveRoot(t *testing.T) {
 		t.Fatalf("Stat(link): %v %v", fi, err)
 	}
 }
+
+// model_os_filestat_name.go: Name is the base name of the path given to Stat, "/" for "/", and
+// the base name of the *File's name for File.Stat.
+func TestFileStatName(t *testing.T) {
+	d, err := filepath.Abs(extDir(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(d+"/wal", 0o700); err != nil {
+		t.Fatal(err)
+	}
+	f, err := os.Create(d + "/wal/0000-0000.wal")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	if fi, err := os.Stat(d + "/wal"); err != nil || fi.Name() != "wal" {
+		t.Fatalf("Stat(wal): %v %v", fi, err)
+	}
+	if fi, err := os.Lstat(d + "/wal"); err != nil || fi.Name() != "wal" {
+		t.Fatalf("Lstat(wal): %v %v", fi, err)
+	}
+	if fi, err := os.Stat("/"); err != nil || fi.Name() != "/" {
+		t.Fatalf("Stat(/): %v %v", fi, err)
+	}
+	if fi, err := f.Stat(); err != nil || fi.Name() != "0000-0000.wal" {
+		t.Fatalf("File.Stat: %v %v", fi, err)
+	}
+}
