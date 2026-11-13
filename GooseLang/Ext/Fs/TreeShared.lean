@@ -32,6 +32,7 @@ public import GooseLang.Ext.Fs.TreeSpecsMeta
 public import GooseLang.Ext.Fs.TreeCutProof
 public import GooseLang.Ext.Fs.TreeSharedSwitch
 public import GooseLang.Ext.Fs.TreeSharedCrash
+public import GooseLang.Ext.Fs.TreeSharedLaws
 
 @[expose] public section
 
@@ -118,8 +119,8 @@ theorem osNames_rekey (R : Roots) (j : Ino) (N N' : NameSet) (h : NamesH) (hN : 
 theorem osNames_next (R : Roots) (j : Ino) (N : NameSet) (dq : DFrac) (h : NamesH)
     (hE : ↑osShN ⊆ E) :
     osSharedInv (L := L) R -∗ osNames (L := L) j N dq h ={E}=∗
-      osNames (L := L) j N dq h ∗ osLogLb (L := L) h.next := by
-  sorry
+      osNames (L := L) j N dq h ∗ osLogLb (L := L) h.next :=
+  osNames_next' R j N dq h hE
 
 theorem osLogLb_le {n : Nat} (n' : Nat) (h : n' ≤ n) :
     osLogLb (L := L) n ⊢ osLogLb (L := L) n' := by
