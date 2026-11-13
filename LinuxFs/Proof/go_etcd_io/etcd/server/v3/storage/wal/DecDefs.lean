@@ -139,6 +139,16 @@ def ownDecoder (d : Loc) (IoE : GoInterface → Prop) (eof : GoInterface) (fs : 
     ownFbrs IoE eof fbrs fs rs ∗
     ⌜off < 2 ^ 62 ∧ (live → rs = liveRs fs off)⌝)
 
+/-- The WAL's CRC table (`crcTable = crc32.MakeTable(crc32.Castagnoli)`, decoder.go's package
+variable, wal.go:69): the Castagnoli table, read-only. -/
+def walCrcTable : IProp GF :=
+  iprop(∃ tab : Loc,
+    globalAddr go_etcd_io.etcd.server.v3.storage.wal.crcTable ↦□ tab ∗
+    tab ↦□ hash.crc32.castagnoliTableArr)
+
+instance walCrcTable_persistent : Persistent (walCrcTable (GF := GF)) := by
+  unfold walCrcTable; infer_instance
+
 /-- See the file header. -/
 def isEofOk (IoE : GoInterface → Prop) (eof ueof : GoInterface) : IProp GF :=
   iprop(□ ∀ e : GoInterface, ⌜e = eof ∨ e = ueof ∨ IoE e⌝ →
