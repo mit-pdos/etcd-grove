@@ -470,15 +470,15 @@ theorem tokenSimple_enable (hRun : RunSpec (GF := GF) (hG := hG))
 /-- **The simple provider meets the token provider's contract** in the mode `on γa`, with the admin
 side's resource `simpleAdmin p` (the auth plan's S5d): `info` on the contract's context
 (`auth.ctxDoneRecv`, `tokenSimple_info_ctx`; auth-schema-fix S1: until then over the false
-hypothesis `ValidSpec`), with the provider's index waiter (`simpleWaitOk`, once the provider is
-ready: `tpReady`, S1 option A), `enable` over
+hypothesis `ValidSpec`, deleted), with the provider's index waiter (`simpleWaitOk` at the names'
+readiness cell `γa.rdy`, once it is shot: `tpReady`, S1 option A), `enable` over
 `RunSpec`, `disable`, `invalidateUser`, `assign`. -/
 theorem tokenSimple_okA (hRun : RunSpec (GF := GF) (hG := hG))
     (h_Debug : zap.Logger.Debug.spec (GF := GF) (hG := hG))
     (h_String : zap.String.spec (GF := GF) (hG := hG))
     (h_GTP : tokenSimple.genTokenPrefix.spec (GF := GF) (hG := hG)) (p : Loc) (γa : AuthNames) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ simpleOk p γa.tok γa.fresh ∗
-        simpleWaitOk p (.on γa) ⊢
+        simpleWaitOk p γa.rdy ⊢
       tokenProviderOkA (interface.mkOk (go.GoType.PointerType tokenSimple.ty) #p) (.on γa) (simpleAdmin p) := by
   iintro ⟨#Hpkg, #Hok, #Hw⟩
   iunfold tokenProviderOkA

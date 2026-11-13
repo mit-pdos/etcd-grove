@@ -154,7 +154,9 @@ set_option maxRecDepth 16384 in
 header): the names allocated over the boot state, the store's invariant, the admin side's write
 resource, the provider's share and the admin side's authority at the history `[bootState, bump
 bootState]` (the constructor's `commitRevision` of the revision `0`), with the names' token parts
-the provider's. It takes four write-back tokens `Wb` (`CreateAuthBuckets` one, the batch
+the provider's and the readiness cell at the caller's `γy` (auth-schema-fix S1: the token
+provider's request side waits for its shot, `tpReady`; a caller holding a readiness invariant at
+`γy` can use the store's request side, the S1 re-review's M1). It takes four write-back tokens `Wb` (`CreateAuthBuckets` one, the batch
 transaction's `Unlock` two, `ForceCommit` one: auth-schema-fix F1). -/
 theorem newAuthStore_boot
     (h_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG))
@@ -163,7 +165,7 @@ theorem newAuthStore_boot
     (h_commit : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))
     (h_metrics : auth.authStore.setupMetricsReporter.spec (GF := GF) (hG := hG))
     (h_refresh : auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG))
-    (lg : Loc) (ab tp : GoInterface) (cost : w64) (bi : GoInterfaceOk) (γt γf : GName)
+    (lg : Loc) (ab tp : GoInterface) (cost : w64) (bi : GoInterfaceOk) (γt γf γy : GName)
     (R P : IProp GF) (f : GoFunc) (T Wb A Pre Q Post : IProp GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ zapLoggerOk lg ∗
         ⌜ab = GoInterface.ok bi⌝ ∗ authSchemaBoot ab bi γt γf R P f T Wb ∗
@@ -171,7 +173,7 @@ theorem newAuthStore_boot
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.NewAuthStore)) (Val #lg))
         (Val #ab)) (Val #tp)) (Val #cost))
     {{ (st : GoInterface), RET #st; ∃ (γa : AuthNames) (stp : Loc),
-        ⌜γa.tok = γt ∧ γa.fresh = γf⌝ ∗ ⌜st = authIface stp⌝ ∗ authInv stp R (.on γa) ∗
+        ⌜γa.tok = γt ∧ γa.fresh = γf ∧ γa.rdy = γy⌝ ∗ ⌜st = authIface stp⌝ ∗ authInv stp R (.on γa) ∗
         authWR stp (.on γa) P f T Wb ∗ tpAdmin stp (.on γa) ∗ Post ∗
         authOwn (.on γa) [bootState, bump bootState] ∗ capAuth γa [bootState, bump bootState] ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
@@ -179,8 +181,7 @@ theorem newAuthStore_boot
   wp_start_folded as ⟨#Hlg, %Hab, HD, HT, Hw1, Hw2, Hw3, Hw4, Hcs, #Htp, HA⟩
   ihave #Hpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []
   · iPkgInit
-  -- (auth-schema-fix S1) the readiness cell's name is unconstrained here: the token names only
-  imod (authBoot_alloc (GF := GF) γt γf γt) with
+  imod (authBoot_alloc (GF := GF) γt γf γy) with
     ⟨%γa, %Hγ3, Hown, Hcur, HI, Hcap, #Hcn, ⟨%γ0, Hbk⟩, -, -⟩
   have Hγ : γa.tok = γt ∧ γa.fresh = γf := ⟨Hγ3.1, Hγ3.2.1⟩
   iunfold authSchemaBoot at HD
@@ -213,7 +214,7 @@ theorem newAuthStore_boot
   iapply HΦ
   iexists γa, stp
   iframe Hinv HWR HtpAd HPost Hown' Hslots Hcap
-  ipureintro; exact ⟨Hγ, Hst⟩
+  ipureintro; exact ⟨Hγ3, Hst⟩
 
 end proof
 

@@ -75,12 +75,27 @@ gives back the open share and the hook; and the snapshot clause at `R`. It takes
 half of the (empty) auth buckets (decision 1: their write authority stays with the realization; the
 client keeps the others') and the succession right (one live backend).
 
-Today's five refutations, against this text: (1) the latest clause takes `T`; (2) the published
-index's authority is shared with the realization, publication needs `T`; (3) no `rbOwn` of the auth
-buckets comes back; (4) `Cu`/`T` stand for an open share the realization keeps until both are
-surrendered; (5) `T` and `Cu` are functions of `γc`, which `beP` and the apply thread share. Review
-rounds A1/A2: the auth buckets taken idle (no pending write: the readers see `r`); the succession
-right taken (one live backend). -/
+**Write-back** (auth-schema-fix F1, decided by etcd-grove-81, 2026-11-12): the realization owns no
+backend write-back tokens and makes none; each write spends the server's (`Wb := backend.wbTok d.γB`,
+paid from the apply loop's receipts and, at boot, `NewServer`'s): a batch `Unlock` two (schema's
+`authBatchTx.Unlock` is the backend batch's `Unlock` then `Commit`), `ForceCommit` one,
+`CreateAuthBuckets` one, `GetAllRoles` two (a batch). Until F1 the premise handed it a bag of two
+tokens (`ownToks d.γB.wb 2`) for every batch it would ever commit.
+**The lend** (`authBkLend`, F2): a read-only observation of the auth buckets (an abstract `RL` with a
+law against the batch lock's `rbOwn`), with no write authority; until F2 it lent the buckets'
+`rbPart`, through which a client could write them.
+**The write contract's text** (`auth.authBatchTxLkR`): `GetAllRoles` lists only `auth.roleListed`
+names (F3: Go's range `[0x00, 0xff)`); `UnsafePutUser` takes valid UTF-8 roles (F4: a proto3
+`string`); both puts take a non-empty name of a message without unknown fields (the axiom
+re-review's m1 and M1, 2026-11-13).
+
+Refutations fixed against earlier texts: S0's four (`notes/auth-schema-srv-refuted.md`, F1-F4, the
+four above); before them, five: (1) the latest clause took `T`; (2) the published index's authority
+was shared with the realization, publication needed `T`; (3) no `rbOwn` of the auth buckets came
+back; (4) `Cu`/`T` stood for an open share the realization keeps until both are surrendered; (5) `T`
+and `Cu` were functions of `γc`, which `beP` and the apply thread share. Review rounds A1/A2: the
+auth buckets taken idle (no pending write: the readers see `r`); the succession right taken (one
+live backend). -/
 def authSchemaSrv : IProp GF :=
   iprop(□ ∀ (γa : auth.AuthNames) (lg abl : Loc) (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp)
       (r : GMap GoString backend.BktData),
@@ -686,7 +701,7 @@ theorem authSrvTP_on (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
   obtain ⟨hγt, hγf, hγy⟩ := Hγ
   subst hγt hγf hγy
   -- (auth-schema-fix S1 option A) the provider's index waiter: the caller's waiter, once ready
-  ihave #Hwok : auth.simpleWaitOk p (.on γa) $$ []
+  ihave #Hwok : auth.simpleWaitOk p γa.rdy $$ []
   · iunfold auth.simpleWaitOk
     iexists iw
     iframe Hiwf
@@ -694,7 +709,6 @@ theorem authSrvTP_on (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
     ihave #Ht := Hiw $$ []
     · ipureintro; rfl
     ihave #Ht2 := Ht $$ %idx
-    simp only [auth.tpReady]
     iexact Ht2
   ihave #HtpA := auth.tokenSimple_okA_run h_Debug h_String h_GTP p γa $$ [$Hpkg $Hok $Hwok]
   imodintro

@@ -43,4 +43,13 @@ or premise replaces it.
   its `isWaitTime`) and proves the closure's contract under it; `start` fires the shot after it
   sets `s.applyWait`. Holders from before `start` carry `□ (auth.tpReady M -∗ …)`.
 - `authSrvTP_on`, `srv_auth_tp_on`, `server_new_auth_on` and examples/etcd/auth's results drop
-  `hValid` (strictly stronger statements).
+  `hValid`. In its place the server supplies the index waiter's contract, which holds once the
+  readiness cell is shot: `authSrvTP true` (the conclusion of `srv_auth_tp_on`) gained a universally
+  quantified `γy`, a premise (the waiter's contract `□ (⌜on⌝ → ∀ idx, {{ tpShot γy }} iw idx
+  {{ anyRecv }})`) and a post conjunct `γa.rdy = γy`: a different statement, true of Go, not a
+  strengthening (`ValidSpec` stood in for the waiter's contract, so the old one asked nothing of
+  `iw`). `NewServer` discharges the new premise through `srvTpInv`, so `server_new_auth_on` and the
+  authkv results are strictly stronger. (Re-review 2026-11-13, M3; M1-M2: `newAuthStore_boot` and
+  `auth_store_boot_on` take the readiness cell's name `γy` and return `γa.rdy = γy`, and
+  `simpleWaitOk`, `token_simple_new`/`token_simple_ok` are keyed by the cell's name, `tpShot γy`,
+  instead of a mode.)

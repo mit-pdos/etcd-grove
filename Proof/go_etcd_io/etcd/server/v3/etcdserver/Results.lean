@@ -1923,17 +1923,18 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **The simple token provider's constructor** (`newTokenProviderSimple`, the auth plan's S5e;
 `auth/TokenKeeperRun.lean`): the provider's facts, its index waiter, the admin side's share and the
 authority over the rights to issue tokens, under fresh names; the index waiter's contract once the
-provider is ready in a mode `M` (`auth.tpReady M`, auth-schema-fix S1 option A). -/
+readiness cell `γy` is shot (`auth.tpShot γy`, auth-schema-fix S1 option A; `token_simple_ok` takes
+it at the auth names' `γa.rdy`). -/
 theorem token_simple_new (lg : Loc) (iw : GoFunc) (ttl : time.Duration) (hpos : 0 < sint.Z ttl)
-    (M : auth.AuthMode) :
+    (γy : GName) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ zapLoggerOrNil lg ∗
-        □ (∀ idx : w64, {{ auth.tpReady M }} (App (Val #iw) (Val #idx))
+        □ (∀ idx : w64, {{ auth.tpShot γy }} (App (Val #iw) (Val #idx))
           {{ (ch : Loc), RET #ch; auth.anyRecv ch }}) }}
       (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.newTokenProviderSimple)) (Val #lg)) (Val #iw))
         (Val #ttl))
-    {{ (p : Loc), RET #p; ∃ γt γf : GName, auth.simpleOk p γt γf ∗ auth.simpleWaitOk p M ∗
+    {{ (p : Loc), RET #p; ∃ γt γf : GName, auth.simpleOk p γt γf ∗ auth.simpleWaitOk p γy ∗
         auth.simpleAdmin p ∗ ghostMapAuth γf 1 (∅ : GMap GoString Unit) }} :=
-  auth.tokenSimple_new zap.NewNop.wp_proof lg iw ttl hpos M
+  auth.tokenSimple_new zap.NewNop.wp_proof lg iw ttl hpos γy
 
 /-- **The simple token provider meets the token contract** (`auth.tokenProviderOkA`, whose `info`
 takes a context with `auth.ctxDoneAny` since auth-schema-fix S1; until then the context-premised
@@ -1941,7 +1942,7 @@ form `tokenProviderOkCtx`, S5e), in the mode `on γa`, with the admin side's sha
 hypothesis on the provider (the keeper's goroutine proved, `keeper_run`). -/
 theorem token_simple_ok (p : Loc) (γa : auth.AuthNames) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.simpleOk p γa.tok γa.fresh ∗
-        auth.simpleWaitOk p (.on γa) ⊢
+        auth.simpleWaitOk p γa.rdy ⊢
       auth.tokenProviderOkA (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.auth.tokenSimple.ty) #p)
         (.on γa) (auth.simpleAdmin p) :=
   auth.tokenSimple_okA_run zap.Logger.Debug.wp_proof zap.String.wp_proof
@@ -1992,16 +1993,17 @@ allocated over the boot state with the token provider's names, the batch lock's 
 handed to the backend, whose contracts for the new names are the named premise D22 discharges
 (`auth.authSchemaBoot`); the store's invariant, the admin side's write resource, the provider's
 share, the admin side's authority at `[bootState, bump bootState]` and the cap of the history at it
-(H5). -/
+(H5); the names' readiness cell at the caller's `γy` (auth-schema-fix S1). -/
 theorem auth_store_boot_on (lg : Loc) (ab tp : GoInterface) (cost : w64) (bi : GoInterfaceOk)
-    (γt γf : GName) (R P : IProp GF) (f : GoFunc) (T Wb A Pre Q Post : IProp GF) :
+    (γt γf γy : GName) (R P : IProp GF) (f : GoFunc) (T Wb A Pre Q Post : IProp GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ zapLoggerOk lg ∗
         ⌜ab = GoInterface.ok bi⌝ ∗ auth.authSchemaBoot ab bi γt γf R P f T Wb ∗
         T ∗ Wb ∗ Wb ∗ Wb ∗ Wb ∗ srvApi.csContractA P f Pre Q Post ∗ auth.tokenProviderBoot tp γt γf A ∗ A }}
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.NewAuthStore)) (Val #lg))
         (Val #ab)) (Val #tp)) (Val #cost))
     {{ (st : GoInterface), RET #st; ∃ (γa : auth.AuthNames) (stp : Loc),
-        ⌜γa.tok = γt ∧ γa.fresh = γf⌝ ∗ ⌜st = auth.authIface stp⌝ ∗ auth.authInv stp R (.on γa) ∗
+        ⌜γa.tok = γt ∧ γa.fresh = γf ∧ γa.rdy = γy⌝ ∗ ⌜st = auth.authIface stp⌝ ∗
+        auth.authInv stp R (.on γa) ∗
         auth.authWR stp (.on γa) P f T Wb ∗ auth.tpAdmin stp (.on γa) ∗ Post ∗
         auth.authOwn (.on γa) [auth.bootState, auth.bump auth.bootState] ∗
         auth.capAuth γa [auth.bootState, auth.bump auth.bootState] ∗
@@ -2009,7 +2011,7 @@ theorem auth_store_boot_on (lg : Loc) (ab tp : GoInterface) (cost : w64) (bi : G
           auth.enabledRd stp (.on γa) ∗ auth.cacheRd stp (.on γa) ∗ auth.beRd stp R (.on γa)) }} :=
   auth.newAuthStore_boot zap.Logger.wp_Warn zap.Int'.wp_proof auth.authStore.wp_Revision
     auth.authStore.wp_commitRevision auth.authStore.wp_setupMetricsReporter
-    auth.authStore.wp_refreshRangePermCache lg ab tp cost bi γt γf R P f T Wb A Pre Q Post
+    auth.authStore.wp_refreshRangePermCache lg ab tp cost bi γt γf γy R P f T Wb A Pre Q Post
 
 /-- **The server's bound request side, of the real store** (the auth plan's E2e;
 `srvAuthBound_of_authInv`, `AuthBound.lean`): `srvAuthBound` from the store's invariant in the

@@ -61,7 +61,7 @@ watcher__Watch: @
 etcdstart_Collect: @
 auth_Work: auth_keyOf auth_reqCtx auth_refused auth_checkKVs auth_checkTxnReads auth_Permitted context_WithTimeoutBackgroundMd context_ErrAny metadata_AppendToOutgoingContext OpPut OpGet OpTxn v3_Compare Value WithRange WithPrefix WithRev watcher__Watch
 # `Main`'s start (2026-10-30): the logger, the member with auth on (`startServer`, pending here:
-# its proof takes the named premises `auth.ValidSpec` and `authSchemaSrv`, `Results.lean`'s
+# its proof takes the named premise `authSchemaSrv` (until auth-schema-fix S1 also the false `auth.ValidSpec`), `Results.lean`'s
 # `auth_startServer`), `Serve` (its one spec, at the server's mode since the auth component's stage 5), the
 # client, and the auth store's `BcryptCost` (the server's `Link.lean`)
 zap_NewNop:
