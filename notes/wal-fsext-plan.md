@@ -868,6 +868,17 @@ vocabulary would fix the wrong statement):
 - **an `O_CREAT|O_TRUNC` shared-mode open** (`alloc` now opens `N.tmp` with `O_TRUNC`, decision of
   2026-11-13; `os.OpenFile.specCreateS`/`wp_osOpenCreateS` exclude `O_TRUNC`): an `os`/I2 unit;
 - a zero-run byte resource (I4) for the 64 MB preallocation (CLAUDE.md, "Large contexts").
+**I4 and fileutil (branch `wal-zr`, 2026-11-13).** I4 done: `GooseLang/Ext/Fs/Zeros.lean`, `osZeros i lo
+n dq cs` (sealed `osBytes` of `List.replicate n (0, cs)`) and `osZerosA i lo n dq` (zeros, each with
+its own candidates), laws over a symbolic length only: `_add` (split/merge), `_take` (a prefix as
+`osBytes`, for a write), `_frac`, `zrun_synced`/`zcands_synced` (a sync gives durable zeros),
+`rsDone_zeros` (a growth with `m.zf` known, candidates `zcs n`), `rsDone_zerosA`, `zcs_crash`/
+`zrun_crash`. fileutil (no `sorry`): `Fsync`, `Fdatasync`, `preallocExtendTrunc`, `preallocExtend`,
+`preallocFixed`, `Preallocate` (extending: `preGrown`, the growth as an `osZerosA` run; premise the
+file at most `sizeInBytes`, `nonissues/etcd-fileutil-prealloc-fallback-shrinks.md`; `os.File.Seek.
+wp_endOff` added). Not done: `LockFile`/`TryLockFile` (need a `fileutil` package fact for
+`linuxLockFile`, set by `init`: no `PkgInit.lean`/`Init.lean` for the part's `fileutil` yet),
+`LockedFile`, `ZeroToEnd`, `ReadDir`, `Exist`, `createNewWALFile`.
 Planned shape: the pipeline's predicate `isFilePipeline fp dir j γ` (persistent: the fields, `filec` a
 rendezvous handshake (Perennial `Chan/Idioms/Handshake`, `P` the handed file, `Q` the claim on the
 name received before, via a ghost count), `errc`/`donec` invariants); `alloc`: the claim on
