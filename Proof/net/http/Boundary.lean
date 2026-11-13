@@ -58,6 +58,7 @@ structs): the predicates speak of their fields' addresses.
 module
 
 public import Proof.net.InvNet
+public import Proof.context.BgCancel
 public import GeneratedProof.net.http
 public import GeneratedProof.net.url
 public import Perennial.Code.io
@@ -320,6 +321,36 @@ the map `hm`, whose `Set`s before `RoundTrip` build `R.hdr`. -/
 def reqOwn (r : Loc) (R : HReq) : IProp GF :=
   iprop(∃ hm : Loc, reqF go!"Header" r ↦□ hm ∗ hdrOwn hm R.hdr ∗ reqRest r R)
 
+/-- `reqCtx`'s fact, raw (opaque). -/
+opaque reqCtxRaw (r : Loc) (ctx : GoInterfaceOk) : IProp GF
+
+/-- **The request at `r` has the context `ctx`** (persistent; k8s 7f-4, Addendum T-i,
+`notes/roundtripper-ctx-refuted.md`): what `r.WithContext(ctx)` returns (`WithContext_spec`). A
+request's context is its unexported `ctx` field, which only `WithContext`, `NewRequestWithContext`
+and `Clone` set, each on a new request; nothing changes it afterwards (no spec here gives a whole
+`Request`'s points-to, so a program cannot overwrite the struct). -/
+def reqCtx (r : Loc) (ctx : GoInterfaceOk) : IProp GF := iprop(□ reqCtxRaw r ctx)
+
+instance reqCtx_persistent (r : Loc) (ctx : GoInterfaceOk) : Persistent (reqCtx (GF := GF) r ctx) := by
+  unfold reqCtx; infer_instance
+
+/-- **The request at `r` has a context a round tripper can take** (persistent; k8s 7f-4, Addendum
+T-i): a `*cancelCtx` child of `Background()` (`context.bgCancelChild`), what rafthttp's three senders
+pass (`pipeline.post`, `snapshotSender.post`, `streamReader.dial`: `context.WithCancel(
+context.Background())`). A `*http.Transport` reads the request's context
+(`notes/roundtripper-ctx-refuted.md`): `Value` at `httptrace`'s key (go1.27.3
+`net/http/transport.go:614`; a `*ClientTrace` there runs the program's hooks) and at `nettrace`'s two
+(the dial), `Value(&cancelCtxKey)`, `Done`, `Err` and `Deadline`, and on `Done` it returns
+`context.Cause` of it (`:698`); such a context answers `nil` at every key but `&cancelCtxKey`, has no
+deadline, and its cause is `context.Canceled`. A weaker `isContext ∗ netCtxOk` would admit
+`WithDeadlineCause(Background(), d, cause)`, whose program cause `RoundTrip` returns
+(`TestRoundTripDeadlineCause`, `examples/premisefix/rtctx`). -/
+def reqCtxBg (r : Loc) : IProp GF :=
+  iprop(∃ ctx : GoInterfaceOk, reqCtx r ctx ∗ context.bgCancelChild ctx)
+
+instance reqCtxBg_persistent (r : Loc) : Persistent (reqCtxBg (GF := GF) r) := by
+  unfold reqCtxBg; infer_instance
+
 /-- **An error `ei` is of a well-formed error tree** (persistent; Perennial's `errors.errorIsTree`):
 for a pointer target, it is in a tree `S` whose `Is` and `Unwrap` methods return, and whose errors
 of the target's type hold pointers (`errors.TreeTyped`, Go's typing): what `errors.Is(err, target)`
@@ -462,7 +493,10 @@ opaque netErrRaw (e : GoInterface) : IProp GF
 /-- **An error net/http made** (persistent; 2026-10-24, rafthttp stage 7d): `RoundTrip`'s, a
 response body read's (`ReadAll_any_spec`). Such an error wraps nothing of the program's but its
 request body's reader's errors; what rafthttp concludes of it is `rafthttp.netErrNotRemoved_spec`
-(it is not rafthttp's `errMemberRemoved`). -/
+(it is not rafthttp's `errMemberRemoved`). (k8s 7f-4, Addendum T-i) It may also be the cause of the
+request's context, which a round tripper returns once the context is done (go1.27.3
+`net/http/transport.go:698`) and a body read after that: for the contexts `RoundTrip` takes
+(`reqCtxBg`), `context.Canceled` (`TestRoundTripBgCancel`, `examples/premisefix/rtctx`). -/
 def netErr (e : GoInterface) : IProp GF := iprop(□ netErrRaw e)
 
 instance netErr_persistent (e : GoInterface) : Persistent (netErr (GF := GF) e) := by
@@ -476,11 +510,14 @@ streamed body's stream, `reqStream`, which `RoundTrip` consumes), either fails (
 net/http's, `netErr`: stage 7d) or returns a response whose status
 `st` is the handler's (with `□ ∃ w, resp R γk st w`) and whose body reader starts at `[]`, with
 the right to close the body (`respCloser`, 2026-10-23, stage 5e-3); the request is the caller's
-again (`RoundTrip` must not modify it). -/
+again (`RoundTrip` must not modify it). (k8s 7f-4, Addendum T-i, the fix of a refutation:
+`notes/roundtripper-ctx-refuted.md`) The request's context is a `*cancelCtx` child of `Background()`
+(`reqCtxBg`): without it, a context whose `Value` panics at `httptrace`'s key, or holds a
+`*ClientTrace`, made `RoundTrip` panic, and a done context's own error came back. -/
 def roundTripperOk (H : HttpNet GF) (rt : GoInterface) : IProp GF :=
   iprop(∃ ti : GoInterfaceOk, ⌜rt = GoInterface.ok ti⌝ ∗
     □ (∀ (r : Loc) (R : HReq) (γk : GName) (K : Body),
-      {{ reqOwn r R ∗ reqStream r K ∗ reqSendOk H R γk K ∗ reqTicket γk ∗
+      {{ reqOwn r R ∗ reqStream r K ∗ reqCtxBg r ∗ reqSendOk H R γk K ∗ reqTicket γk ∗
           httpProtoAt R.host (H.proto R.host) ∗ □ (H.proto R.host).req R γk }}
         (App (Val #(methods ti.ty go!"RoundTrip" ti.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); reqOwn r R ∗
@@ -800,13 +837,15 @@ def NewBuffer_spec : Prop :=
           readerHas (interface.mkOk (go.GoType.PointerType _root_.Perennial.bytes.Buffer.ty) #rd) bs }}
 
 /-- `r.WithContext(ctx)` of a request being built: a shallow copy, the same request (for a
-non-`nil` context); (D42) its body too (a streamed body's stream, `reqStream`). -/
+non-`nil` context); (D42) its body too (a streamed body's stream, `reqStream`). (k8s 7f-4,
+Addendum T-i) The copy's context is `ctx` (`reqCtx`), which `RoundTrip` needs a fact of
+(`roundTripperOk`, `reqCtxBg`); `WithContext` itself only stores it. -/
 def WithContext_spec : Prop :=
   ∀ (r : Loc) (R : HReq) (K : Body) (ctx : GoInterfaceOk),
     ⊢ {{ reqOwn (GF := GF) r R ∗ reqStream r K }}
         (App (Val (r @!! go.GoType.PointerType _root_.Perennial.net.http.Request.ty @!! go!"WithContext"))
           (Val #(GoInterface.ok ctx)))
-      {{ (r' : Loc), RET #r'; reqOwn r' R ∗ reqStream r' K }}
+      {{ (r' : Loc), RET #r'; reqOwn r' R ∗ reqStream r' K ∗ reqCtx r' ctx }}
 
 /-- `io.ReadAll(rd)` of a response body: some bytes read (a prefix of what the handler wrote,
 `respRead_spec`'s), or an error. -/

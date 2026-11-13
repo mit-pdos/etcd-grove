@@ -245,7 +245,7 @@ theorem rafthttp.startPeer.wp_proof
   ihave #Hctxp : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
   wp_apply hBackground
-  wp_apply hWithCancel as %ctx' %γc %cancel ⟨#Hcancel, #Hctx⟩
+  wp_apply hWithCancel as %ctx' %γc %cancel ⟨#Hcancel, #Hctx, -⟩
   (try wp_auto)
   ipersist cancelQ
   ihave #Hraft0 := Hraft
