@@ -571,3 +571,33 @@ gap), `ofWrite_isG`, `pwFile_sizeG`/`pwFile_cacheG`, `pwValsG`; the old `wp_osPW
 (`pwBytesG_eq`, `pwPostKG_eq`, `mcells_congr`). `Proof/os/WriteChunks.lean` rewritten over fsExt
 (`pwValsG_chunk`, `pwPost_chunk`, `pwChunk_end`, `osBytes_split3_range`/`osBytes_app3` by inode,
 `wp_osPWriteFinishG`); `os.WaCut` in `Proof/os/Base.lean`. minibolt, crashlog, walfs build unchanged.
+
+**2026-11-13, the port (branch `worktree-bbolt-fs-port`).** Step 0: the split of `780c767146`
+reverted (`003d52e8ff`): the per-byte extension's `os`/`syscall`/`unix`/`io/fs`/`internal/*` and
+minibolt/crashlog/walfs back in the main tree (`LinuxFs/` gone; its files were this branch's modulo
+the prefix), real bbolt the wip's files; v1's `GooseLang/Ext/OsFs` kept in the main tree only for
+`SpecPlan/`'s statements; `old/osfs-v1` stays deleted. Built after it: minibolt/crashlog/walfs
+`Results`, raft's `Base` (main and witness), the server's `storage.Init`/`OpenSnapshotBackend`, the
+k8s inits; `gen-init --check` up to date. Then bbolt:
+- **The file parameter is a record `BFile := {path, ino}`** (`Inv/Locks.lean`; deviation from the
+  entry above, which kept `BC.p` and added `BC.i`): every invariant keeps one file parameter `p`,
+  resources take `p.ino`, `fileOwn`/`db.path` take `p.path`; `BC.p : BFile`.
+  `etc/fs-port/bbolt-bfile.py` did the mechanical part.
+- `fdatasync`/`DB.grow` over byte-less syncs: new `syscall.Fdatasync.specB`, `os.File.Sync.specB`
+  (proved, over `wp_osFsyncB`); `DB.grow` over the new `Truncate` (cut or grow; on an error either
+  size: `grow_finish` or `grow_finish_same`), zeros as `zBytes`.
+- `Open` over `osTree`/`pathHolds` (`wp_OpenFile_db` splits existing/create; `pathHolds`'s no-file
+  case takes `RootsOk R`, which `lookupH_create` needs); `openedF`, `fileHolds_opened`, `new_opened`.
+- `os.File.WriteAt.specExt` (any offset, the gap zero-filled; any length, Go's chunk loop): its
+  landed prefix is a page cut or a multiple of `2^30` (`WaCut`), its metadata `pwPost m off a j`
+  (`a` the last chunk attempted). `Tx.write`/`write_ext` take it; `Tx.writeMeta` keeps
+  `WriteAt.spec` (one aligned page, all or nothing from `PwCut`).
+- Specs unchanged but `pathHolds`; `Tx.Writable` added (convergence S1,
+  `notes/bbolt-specplan-convergence.md`).
+**Not done:** `Commit/WriteExtRun.lean` (`Tx.write_ext_gen`, 880 lines, one proof) and so
+`Tx__write_ext`, `Link`, `Results` and the gates. Its elaboration needs more memory than this
+machine has free (killed at 48-56 GB; v1's needed about 40 GB); its errors at 569-688 are fixed but
+unchecked, and line 929's `iframe` (`statsTok`) undiagnosed. Next: split `Tx.write_ext_gen` at its
+loops (the page-collection loop to line ~175, the write loop, the sync tail) into lemmas, then
+`etc/gen-link.py --bbolt` (its `etc/link_bbolt.py` takes the three instance binders now) and
+`--results`, `gen-interface etc/api/bbolt.txt` (`pathHolds` changed), `tcb-report --check`.
