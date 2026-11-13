@@ -270,3 +270,8 @@ converts its one mapping (`mcells(Any)_single_past`).
 `zf := some size`) and its upkeep in `MetaOk` wherever it is re-established (start, landing, sync,
 crash). Next unit; with it `ZeroToEnd` (whose `ftruncate` from `lenf` zeroes `[off, pageEnd lenf)`)
 followed by `Fdatasync` gives the WAL every byte from `off` on durable zero.
+
+*Done* (branch `wal-kz`, 2026-11-13): `OsMeta.cz` (the page cache known zero on `[size, cz)`), raised
+by an `ftruncate`'s landing (`rsPost`), kept by every other step; a sync gives `zf := some size` when
+`pageEnd size ≤ cz` (`OsMeta.synced_zf_size`); `os.zeroToEnd_synced_zf` for `ZeroToEnd`'s resizes
+(`notes/wal-fsext-plan.md`, I3b, "The known-zero tail").

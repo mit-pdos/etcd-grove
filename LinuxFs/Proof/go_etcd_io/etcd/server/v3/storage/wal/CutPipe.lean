@@ -3,7 +3,7 @@
 # The cut's use of the file pipeline (W2 of `notes/wal-fsext-plan.md`, `WAL__cut.lean`'s steps 4
 and 6)
 
-* `wp_walPipeH_open`: `w.fp.Open()` from the handle's pipeline (`walPipeH fp dir k`, `k` cuts made,
+* `wp_walPipeH_open`: `w.fp.Open()` from the handle's pipeline (`walPipeH fp dir j k`, `k` cuts made,
   `k + 2 < 2^63`): the file `n` (`pipeFile`: `pipeTmp n` whole, zeros, its claim), the caller's
   token after `n + 1` files; on an error nothing (the cut's error loses the handle).
 * `walPipeH_next`: after the cut renamed the file away, its claim (on `pipeTmp n`, now absent:
@@ -47,18 +47,18 @@ theorem tmpClaim_absent (j : Ino) (b : GoString) (h : NamesH) (hb : h.cur !! b =
 /-- **`w.fp.Open()` from the handle's pipeline.** -/
 theorem wp_walPipeH_open
     (wp_Open : go_etcd_io.etcd.server.v3.storage.wal.filePipeline.Open.spec (GF := GF) (hG := hG))
-    (fp : Loc) (dir : GoString) (k : Nat) (hk : k + 2 < 2 ^ 63) :
-    {{ walPipeH (GF := GF) fp dir k }}
+    (fp : Loc) (dir : GoString) (j : Ino) (k : Nat) (hk : k + 2 < 2 ^ 63) :
+    {{ walPipeH (GF := GF) fp dir j k }}
       (App (Val (fp @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.filePipeline.ty
         @!! go!"Open")) (Val #()))
     {{ (lf : Loc) (err : GoInterface), RET (PairV #lf #err);
-        (⌜err = interface.nil⌝ ∗ ∃ (γ : PipeNames) (R : Roots) (dq : DFrac) (j : Ino) (sz : w64)
+        (⌜err = interface.nil⌝ ∗ ∃ (γ : PipeNames) (R : Roots) (dq : DFrac) (sz : w64)
             (n : Nat), isFilePipe fp γ R dir dq j sz ∗ pipeMain γ (n + 1) ∗ pipeFile j dir n lf ∗
             ⌜n ≤ k⌝) ∨
         ⌜err ≠ interface.nil⌝ }} := by
   iintro %Φ Hp HΦ
   iunfold walPipeH at Hp
-  icases Hp with ⟨%γ, %R, %dq, %j, %sz, %n, #Hfp, Hmain, Hc, %hn⟩
+  icases Hp with ⟨%γ, %R, %dq, %sz, %n, #Hfp, Hmain, Hc, %hn⟩
   iapply wp_Open fp γ R dir dq j sz n $$ [$Hfp $Hmain Hc]
   · iunfold pipeQ
     iframe Hc
@@ -70,7 +70,7 @@ theorem wp_walPipeH_open
   · ileft
     isplitr
     · ipureintro; exact he
-    iexists γ, R, dq, j, sz, n
+    iexists γ, R, dq, sz, n
     iframe
     isplitl []
     · iexact Hfp
@@ -83,10 +83,10 @@ the one the next `Open` hands back. -/
 theorem walPipeH_next (fp : Loc) (dir : GoString) (k : Nat) (γ : PipeNames) (R : Roots)
     (dq : DFrac) (j : Ino) (sz : w64) (n : Nat) (hn : n ≤ k) :
     isFilePipe (GF := GF) fp γ R dir dq j sz ∗ pipeMain γ (n + 1) ∗ tmpClaim j (pipeTmp n) ⊢
-      walPipeH fp dir (k + 1) := by
+      walPipeH fp dir j (k + 1) := by
   iintro ⟨#Hfp, Hmain, Hc⟩
   iunfold walPipeH
-  iexists γ, R, dq, j, sz, n + 1
+  iexists γ, R, dq, sz, n + 1
   iframe Hfp Hmain
   rw [show n + 1 + 1 = n + 2 by omega, pipeTmp_add_two]
   iframe Hc

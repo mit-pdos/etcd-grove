@@ -82,6 +82,7 @@ theorem pwPost_step (m : OsMeta) (off n nn j k : Nat) (hoff : off ≤ m.size) (h
     simp only [pwPost, announce_tc, announce_size, hm1, inRange, Bool.and_eq_true, decide_eq_true_eq]
     (repeat' split) <;> first | rfl | omega
   · simp [pwPost]
+  · simp [pwPost]
 
 /-- The bytes after a write's next attempt, from `nn ≤ j` (where a short attempt stopped), over
 the bytes as the first `j` bytes left them: as the first `max j (nn + k)` bytes leave them. -/

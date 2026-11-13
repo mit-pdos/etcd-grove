@@ -121,7 +121,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.alloc.wp_proof
       · iexact Hlf
       isplitl [Hz]
       · rw [hm'.1]; iexact Hz
-      ipureintro; exact ⟨hfd, hm'.2.trans hmaps, hcur⟩
+      ipureintro; exact ⟨hfd, hm'.2.1.trans hmaps, hcur⟩
     | ok ei =>
       (try wp_auto)
       wp_apply wp_Int64 as %f1 -
@@ -159,9 +159,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.alloc.wp_proof
       iexists m', zs.map (fun c => ((0 : w8), c))
       iframe Hm' Hz
       isplitl []
-      · iapply mcellsAny_empty m'.maps (hm'.2.trans hmaps)
+      · iapply mcellsAny_empty m'.maps (hm'.2.1.trans hmaps)
       ipureintro
-      refine ⟨by simp [hzs, hm'.1], fun h => h.elim, hm'.2.trans hmaps⟩
+      refine ⟨by simp [hzs, hm'.1], fun h => h.elim, hm'.2.1.trans hmaps⟩
   · cases e with
     | nil => exact absurd rfl he
     | ok ei =>

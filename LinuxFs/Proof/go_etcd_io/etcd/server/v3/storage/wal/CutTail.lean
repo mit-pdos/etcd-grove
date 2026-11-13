@@ -58,6 +58,28 @@ theorem tailG_cut (d : WalDur) (lay : WalLay) (g : SegG) (wr : Nat) :
     tailG d (cutLay lay d.H.length g wr) g.ino none =
       (d.H, d.metadata, lay.cuts ++ [d.H.length], wr, g.ino, none) := rfl
 
+/-- **A synced WAL's last segment, sized to its stream, is its stream durable** (`cut` after its
+truncate and `sync`: `walCut_osAUnc`'s old tail). -/
+theorem lastSeg_synced_durable {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
+    {ents : Ents} {g : SegG} (habs : WalAbsD C Mr d lay ents) (hg : lay.segs.getLast? = some g)
+    (hm : d.m = d.H.length)
+    (hlen : g.bs.length = (segStream C Mr d lay.cuts lay.cuts.length).length) :
+    g.bs = (segStream C Mr d lay.cuts lay.cuts.length).map durB := by
+  have hso : (segStream C Mr d lay.cuts lay.cuts.length).length ≤ lay.so := by
+    have h2 := habs.synced.2
+    rw [hm, List.take_length] at h2
+    exact h2
+  obtain ⟨-, -, -, -, hb, -⟩ := habs.last g hg
+  apply List.ext_getElem (by rw [List.length_map]; exact hlen)
+  intro b h1 h2
+  have hx := hb b g.bs[b] (List.getElem?_eq_getElem h1)
+  have hs : decide (b < lay.so) = true := by simp; omega
+  rw [hs] at hx
+  unfold ByteOk at hx
+  simp only [if_true] at hx
+  rw [hx, List.getElem_map, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega),
+    Option.getD_some]
+
 end cuttail
 
 end WalFs

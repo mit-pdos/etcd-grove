@@ -57,6 +57,13 @@ theorem WReach.cut {m : OsMeta} {bs : List ByteG} {off : Nat} {data : List w8} {
   | refl => rfl
   | step _ _ _ _ _ _ _ _ _ _ _ ih => simp [pwPostK, pwPost, OsMeta.announce, ih]
 
+/-- A state the loop reached has the start's page cache known zero past the size (writes keep it). -/
+theorem WReach.cz {m : OsMeta} {bs : List ByteG} {off : Nat} {data : List w8} {nn : Nat}
+    {m' : OsMeta} {bs' : List ByteG} (h : WReach m bs off data nn m' bs') : m'.cz = m.cz := by
+  induction h with
+  | refl => rfl
+  | step _ _ _ _ _ _ _ _ _ _ _ ih => simp [pwPostK, pwPost, ih]
+
 /-- **A state the loop reached is one the write may pass through** (`WIn`), and the bytes written
 so far are inside it. -/
 theorem WReach.wIn {m : OsMeta} {bs : List ByteG} {off : Nat} {data : List w8} {nn : Nat}
