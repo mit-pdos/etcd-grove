@@ -46,6 +46,17 @@ theorem segFl_take_cons {fl : SegFl} {g : SegG} (h : fl.Ok g) :
     rw [hk]
     exact ⟨y, ys.take k, rfl⟩
 
+/-- A resize in flight leaves byte 0 to the halves below it (I3b). -/
+theorem segFlR_take_cons {fl : SegFl} {tg : Nat} {g : SegG} (h : fl.OkR tg g) :
+    ∃ y ys, fl.bs.take (min fl.m.size tg) = y :: ys := by
+  obtain ⟨hlen, -, -, -, hpos⟩ := h
+  cases hb : fl.bs with
+  | nil => rw [hb] at hlen; simp at hlen; omega
+  | cons y ys =>
+    obtain ⟨k, hk⟩ : ∃ k, min fl.m.size tg = k + 1 := ⟨min fl.m.size tg - 1, by omega⟩
+    rw [hk]
+    exact ⟨y, ys.take k, rfl⟩
+
 /-- **The invariant's part of a segment excludes the program's whole file of the same inode** (its
 `OsMeta` and byte 0, both whole). -/
 theorem segResF_ino_ne (F : GMap Ino SegFl) (g : SegG) (m : OsMeta) (x : ByteG) (xs : List ByteG) :
@@ -60,14 +71,24 @@ theorem segResF_ino_ne (F : GMap Ino SegFl) (g : SegG) (m : OsMeta) (x : ByteG) 
     icases gElem_valid_2 _ _ _ _ _ _ _ $$ Hm Hm' with %Hv
     exact absurd (DFrac.valid_own_op Hv.1) (by simp)
   · rename_i fl _
-    icases Hs with ⟨-, Hb0, -, %Hok⟩
-    obtain ⟨y, ys, hy⟩ := segFl_take_cons Hok
-    rw [hy]
-    unfold osBytes
-    icases (bytesG_cons _ _ _ _ _ _).1 $$ Hb with ⟨Hx, -⟩
-    icases (bytesG_cons _ _ _ _ _ _).1 $$ Hb0 with ⟨Hy, -⟩
-    icases gElem_valid_2 _ _ _ _ _ _ _ $$ Hx Hy with %Hv
-    exact absurd (DFrac.valid_own_op Hv.1) (by simp)
+    split
+    · icases Hs with ⟨-, Hb0, -, %Hok⟩
+      obtain ⟨y, ys, hy⟩ := segFl_take_cons Hok
+      rw [hy]
+      unfold osBytes
+      icases (bytesG_cons _ _ _ _ _ _).1 $$ Hb with ⟨Hx, -⟩
+      icases (bytesG_cons _ _ _ _ _ _).1 $$ Hb0 with ⟨Hy, -⟩
+      icases gElem_valid_2 _ _ _ _ _ _ _ $$ Hx Hy with %Hv
+      exact absurd (DFrac.valid_own_op Hv.1) (by simp)
+    · rename_i tg _
+      icases Hs with ⟨-, Hb0, %Hok⟩
+      obtain ⟨y, ys, hy⟩ := segFlR_take_cons Hok
+      rw [hy]
+      unfold osBytes
+      icases (bytesG_cons _ _ _ _ _ _).1 $$ Hb with ⟨Hx, -⟩
+      icases (bytesG_cons _ _ _ _ _ _).1 $$ Hb0 with ⟨Hy, -⟩
+      icases gElem_valid_2 _ _ _ _ _ _ _ $$ Hx Hy with %Hv
+      exact absurd (DFrac.valid_own_op Hv.1) (by simp)
 
 /-- **A file the program holds wholly (its `OsMeta`, byte 0) is no segment of the invariant's
 layouts.** -/

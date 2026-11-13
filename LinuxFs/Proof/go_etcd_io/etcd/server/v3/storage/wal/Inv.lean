@@ -87,8 +87,10 @@ def WalsOk (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (s : AbsDiskS
   ((segsAll Ls).map (·.ino)).Nodup ∧ (∀ g ∈ segsAll Ls, g.om.cut = none) ∧
   AbsentOk s jr cl n ∧ DirsOk R s cl n
 
-/-- **A write in flight on a segment** (W6): its token `t`, offset `off`, data and change number
-`n` (`wp_osPWriteStart`'s), and the segment's `OsMeta` `m` and bytes `bs` before it. -/
+/-- **A change in flight on a segment** (W6; I3b): its token `t` and change number `n`, and the
+segment's `OsMeta` `m` and bytes `bs` before it; a write (`rz = none`, `wp_osPWriteStart`'s: its
+offset `off` and data), or a resize to `tg` (`rz = some tg`, `wp_osResizeStart`'s: `ftruncate`, or
+`fallocate`'s growth; `off` and `data` unused, `[]` by convention). -/
 structure SegFl where
   t : Nat
   off : Nat
@@ -96,14 +98,15 @@ structure SegFl where
   n : Nat
   m : OsMeta
   bs : List ByteG
+  rz : Option Nat := none
 
 instance SegFl.countable : Pos.Countable SegFl :=
   Pos.Countable.ofInjective
-    (fun fl => Pos.Countable.encode (fl.t, fl.off, fl.data, fl.n, fl.m, fl.bs))
+    (fun fl => Pos.Countable.encode (fl.t, fl.off, fl.data, fl.n, fl.m, fl.bs, fl.rz))
     (fun a b h => by
       have h := Pos.encode_inj h
       cases a; cases b; simp only [Prod.mk.injEq] at h
-      obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h; subst h1 h2 h3 h4 h5 h6; rfl)
+      obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := h; subst h1 h2 h3 h4 h5 h6 h7; rfl)
 
 /-- **The segment `g` as the write in flight `fl` announced it**: the write inside the segment
 (the WAL writes its tail inside the preallocated file), not empty; `g`'s `OsMeta` the token's
@@ -119,6 +122,17 @@ def SegFl.Ok (fl : SegFl) (g : SegG) : Prop :=
   g.bs = fl.bs.take (cfLo fl.m fl.off) ++
     pwAnn fl.data fl.n (cfRange fl.m fl.bs fl.off fl.data.length) ++
     fl.bs.drop (cfHi fl.m fl.off fl.data.length) ∧ 0 < fl.off
+
+/-- **The segment `g` as the resize in flight `fl` to `tg` announced it** (I3b; `wp_osResizeStart`):
+`g`'s `OsMeta` the token's (`TokInfo.meta`: `m` with `[min size tg, max size tg)` announced, the
+target `tg`), its bytes `fl.bs` with zero added as a candidate of each byte cut off (`rsAnn`; none
+if it grows the file); the resize keeps byte 0 (`0 < min size tg`), so that the invariant keeps
+half of it, as `SegFl.Ok`'s `0 < fl.off`. -/
+def SegFl.OkR (fl : SegFl) (tg : Nat) (g : SegG) : Prop :=
+  fl.bs.length = fl.m.size ∧ fl.m.cut = none ∧
+  g.om = fl.m.announce (min fl.m.size tg) (max fl.m.size tg) tg ∧
+  g.bs = fl.bs.take (min fl.m.size tg) ++ rsAnn fl.n (fl.bs.drop (min fl.m.size tg)) ∧
+  0 < min fl.m.size tg
 
 /-- **What the program and the invariant share of an open handle's tail** (half each): the history,
 the metadata, the cuts, the write position, the tail's inode, the write in flight on it if any. -/
@@ -279,17 +293,23 @@ theorem laysRes_list (Ls : GMap GoString WalLay) :
   rw [BigSepL.bigSepL_flatMap]
   exact BigSepM.bigSepM_toList
 
-/-- **The invariant's part of a segment, a write maybe in flight on it** (`F` by inode): idle, its
+/-- **The invariant's part of a segment, a change maybe in flight on it** (`F` by inode): idle, its
 halves (`segRes`); with a write in flight, the write's token and the halves of the bytes around it,
-the layout holding the segment as the write announced it (`SegFl.Ok`). -/
+the layout holding the segment as the write announced it (`SegFl.Ok`); with a resize in flight
+(I3b), its token (`rsTok`, holding the bytes it cuts off) and the halves of the bytes below, the
+layout holding the segment as the resize announced it (`SegFl.OkR`). -/
 def segResF (F : GMap Ino SegFl) (g : SegG) : IProp GF :=
   match F !! g.ino with
   | none => segRes (L := L) g
-  | some fl => iprop(pwTok (L := L) fl.t g.ino fl.off fl.data fl.m
-        (cfRange fl.m fl.bs fl.off fl.data.length) fl.n ∗
-      osBytes (L := L) g.ino 0 (DFrac.own (1 : Qp).half) (fl.bs.take (cfLo fl.m fl.off)) ∗
-      osBytes (L := L) g.ino (cfHi fl.m fl.off fl.data.length) (DFrac.own (1 : Qp).half)
-        (fl.bs.drop (cfHi fl.m fl.off fl.data.length)) ∗ ⌜fl.Ok g⌝)
+  | some fl => match fl.rz with
+    | none => iprop(pwTok (L := L) fl.t g.ino fl.off fl.data fl.m
+          (cfRange fl.m fl.bs fl.off fl.data.length) fl.n ∗
+        osBytes (L := L) g.ino 0 (DFrac.own (1 : Qp).half) (fl.bs.take (cfLo fl.m fl.off)) ∗
+        osBytes (L := L) g.ino (cfHi fl.m fl.off fl.data.length) (DFrac.own (1 : Qp).half)
+          (fl.bs.drop (cfHi fl.m fl.off fl.data.length)) ∗ ⌜fl.Ok g⌝)
+    | some tg => iprop(rsTok (L := L) fl.t g.ino tg fl.m (fl.bs.drop (min fl.m.size tg)) fl.n ∗
+        osBytes (L := L) g.ino 0 (DFrac.own (1 : Qp).half) (fl.bs.take (min fl.m.size tg)) ∗
+        ⌜fl.OkR tg g⌝)
 
 /-- The invariant's parts of every named segment of every WAL, the writes in flight `F`. -/
 def laysResF (F : GMap Ino SegFl) (Ls : GMap GoString WalLay) : IProp GF :=
@@ -304,7 +324,10 @@ theorem laysResF_empty (Ls : GMap GoString WalLay) :
   exact .rfl
 
 instance segResF_timeless (F : GMap Ino SegFl) (g : SegG) : Timeless (segResF (L := L) F g) := by
-  unfold segResF segRes pwTok osTok osMeta; split <;> infer_instance
+  unfold segResF segRes pwTok rsTok osTok osMeta
+  split
+  · infer_instance
+  · split <;> infer_instance
 
 /-- **The open handles' tails** (W6): the tails' authority, and for each directory with an open
 handle, its WAL and layout, the last segment, F-Z, the record boundary (`TailBound`), and the
