@@ -34,6 +34,7 @@ public import LinuxFs.Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.LockDefs
 public import LinuxFs.Proof.os.Off
 public import LinuxFs.Proof.os.SharedAu
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.createNewWALFile
+public import LinuxFs.Spec.os.OpenFileTruncS
 public import LinuxFs.GeneratedProof.go_etcd_io.etcd.server.v3.storage.wal
 public import Spec.go_uber_org.zap.Defs
 public import Perennial.Golang.Theory.Chan.Idioms.Spsc
@@ -81,11 +82,18 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions]
 
-/-- **A whole claim on the name `b` of the directory `j`, holding no directory** (absent or a
-file: `alloc`'s `O_CREAT|O_TRUNC` open makes it a fresh, empty file either way). -/
+/-- What a name of the pipeline holds, owned with its claim: nothing, or a file, whole (`trFile`:
+a leftover `N.tmp`, which `alloc`'s `O_TRUNC` open takes whole, `os.OpenFile.wp_truncS`); never a
+directory. -/
+def tmpEnt : Option Node → IProp GF
+  | none => iprop(emp)
+  | some (.file i) => trFile i False
+  | some (.dir _) => iprop(False)
+
+/-- **A whole claim on the name `b` of the directory `j`, holding no directory**, with what it holds
+(absent or a file: `alloc`'s `O_CREAT|O_TRUNC` open makes it a fresh, empty file either way). -/
 def tmpClaim (j : Ino) (b : GoString) : IProp GF :=
-  iprop(∃ h : NamesH, osNames j (.only [b]) (DFrac.own 1) h ∗
-    ⌜∀ J, h.cur !! b ≠ some (.dir J)⌝)
+  iprop(∃ h : NamesH, osNames j (.only [b]) (DFrac.own 1) h ∗ tmpEnt (h.cur !! b))
 
 /-- **The `n`-th file of the pipeline of the directory `dir` (inode `j`), at `lf`**: a locked file
 on the name `pipeTmp n`, open write-only at offset 0, its `OsMeta` (no mappings) and its bytes
@@ -129,7 +137,7 @@ def pipeErrR (γ : PipeNames) (R : Roots) (dir : GoString) (dq : DFrac) (j : Ino
 
 /-- **The pipeline `fp` of the directory `dir` (inode `j`, path fraction `dq` under the roots
 `R`)** (persistent): its read-only fields, the three channels' protocols, and the environment
-`run` needs. -/
+`run` needs, and a bound on the directory's length (`filepath.Join`'s premise). -/
 def isFilePipe (fp : Loc) (γ : PipeNames) (R : Roots) (dir : GoString) (dq : DFrac) (j : Ino)
     (sz : w64) : IProp GF :=
   iprop(∃ lg : Loc,
@@ -144,7 +152,7 @@ def isFilePipe (fp : Loc) (γ : PipeNames) (R : Roots) (dir : GoString) (dq : DF
     ownBroadcastChan γ.dc γ.d (pipeClosedW γ) .Unknown ∗
     zapLoggerOk lg ∗ osInv (GF := GF) ∗ osSharedInv R ∗
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
-    ⌜0 ≤ sz.toInt ∧ sz.toInt ≤ 0xffffffff000⌝)
+    ⌜0 ≤ sz.toInt ∧ sz.toInt ≤ 0xffffffff000 ∧ dir.length < 2 ^ 61⌝)
 
 instance isFilePipe_persistent (fp : Loc) (γ : PipeNames) (R : Roots) (dir : GoString) (dq : DFrac)
     (j : Ino) (sz : w64) : Persistent (isFilePipe (GF := GF) fp γ R dir dq j sz) := by

@@ -28,7 +28,8 @@ LinuxFs/Proof/os/CrashFile.lean), the layout then holding the segment as the wri
 (`SegFl.Ok`: the token's `OsMeta`, the bytes with the write's candidates added), so that the static
 relation and the crash condition are unchanged; and each WAL with an open handle shares with it
 its tail (`walTailsRes`: the history, metadata, cuts, write position and tail inode, half each;
-past the frames found at the generation's start the tail is zeros, F-Z).
+past the frames found at the generation's start the tail is zeros, F-Z; the larger of the synced
+offset and that end is a record boundary, `TailBound`).
 
 **Not yet here**: `Create`'s `dir.tmp`; a write past the tail's size (`SegFl.Ok`'s first clause:
 the writes stay inside the preallocated file).
@@ -131,6 +132,25 @@ def tailG (d : WalDur) (lay : WalLay) (i : Ino) (fl : Option SegFl) : TailG :=
 `ZeroToEnd` and fdatasync; a segment this generation created is zeros past its headers). -/
 def TailZeros (lay : WalLay) : Prop :=
   ∀ b, lay.z0 ≤ b → b < lay.old.length → lay.old.getD b 0 = 0
+
+/-- **The tail's record boundary** (W6): the larger of the synced offset and the end of the frames
+found at the generation's start ends a record of the last segment's intended records. `z0` ends the
+frames `ReadAll` found (0 for a segment this generation created); a tail's fdatasync comes after the
+encoder's flush, at the end of the records encoded (`sync`'s commit re-establishes it from the
+handle's `pend = []`; `cut`'s and `ReadAll`'s syncs end at a boundary too). The crash of an append
+rests on it (`tail_decode`'s `hEb`, `TailCrashPure.lean`): a frame the reader accepts at a boundary
+is the intended one. It depends on the WAL only through its history and metadata. -/
+def TailBound (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) : Prop :=
+  ∃ jE, jE ≤ ((segRecs C Mr d lay.cuts).getD lay.cuts.length []).length ∧
+    (recFrames C (((segRecs C Mr d lay.cuts).getD lay.cuts.length []).take jE)).length =
+      max lay.so lay.z0
+
+theorem TailBound.congr {C : WalCodec} {Mr : WalMarshal} {d d' : WalDur} {lay : WalLay}
+    (hH : d'.H = d.H) (hmd : d'.metadata = d.metadata) (h : TailBound C Mr d lay) :
+    TailBound C Mr d' lay := by
+  have e : segRecs C Mr d' lay.cuts = segRecs C Mr d lay.cuts := by
+    simp [segRecs, histM, hH, hmd]
+  unfold TailBound; rw [e]; exact h
 
 /-- **`Create`'s part of the invariant** (W4, framed apart from `WalsOk`): a claim of the area
 directory among `cl` holds every WAL name, so that a claim the program holds on a WAL name is known
@@ -261,32 +281,37 @@ instance segResF_timeless (F : GMap Ino SegFl) (g : SegG) : Timeless (segResF (L
   unfold segResF segRes pwTok osTok osMeta; split <;> infer_instance
 
 /-- **The open handles' tails** (W6): the tails' authority, and for each directory with an open
-handle, its WAL and layout, the last segment, F-Z, and the invariant's half of the tail. -/
-def walTailsRes (s : AbsDiskState) (Ls : GMap GoString WalLay) (F : GMap Ino SegFl) : IProp GF :=
+handle, its WAL and layout, the last segment, F-Z, the record boundary (`TailBound`), and the
+invariant's half of the tail. -/
+def walTailsRes (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (Ls : GMap GoString WalLay)
+    (F : GMap Ino SegFl) : IProp GF :=
   letI := walAllG (W := W)
   iprop(∃ T : GMap GoString GName, walTailsAuth (W := W) T ∗
     [∗map] dir ↦ γ ∈ T, ∃ (d : WalDur) (lay : WalLay) (g : SegG),
-      ⌜s.wal !! dir = some d ∧ Ls !! dir = some lay ∧ lay.segs.getLast? = some g ∧ TailZeros lay⌝ ∗
+      ⌜s.wal !! dir = some d ∧ Ls !! dir = some lay ∧ lay.segs.getLast? = some g ∧ TailZeros lay ∧
+        TailBound C Mr d lay⌝ ∗
       ghostVar γ (1 : Qp).half (tailG d lay g.ino (F !! g.ino)))
 
-instance walTailsRes_timeless (s : AbsDiskState) (Ls : GMap GoString WalLay) (F : GMap Ino SegFl) :
-    Timeless (walTailsRes (W := W) s Ls F) := by
+instance walTailsRes_timeless (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState)
+    (Ls : GMap GoString WalLay) (F : GMap Ino SegFl) :
+    Timeless (walTailsRes (W := W) C Mr s Ls F) := by
   unfold walTailsRes
   letI := walAllG (W := W)
   haveI : ∀ (γ : GName) (x : TailG), Timeless (ghostVar (GF := GF) γ (1 : Qp).half x) :=
     fun _ _ => inferInstance
   haveI : ∀ (dir : GoString) (γ : GName), Timeless (iprop(∃ (d : WalDur) (lay : WalLay) (g : SegG),
-      ⌜s.wal !! dir = some d ∧ Ls !! dir = some lay ∧ lay.segs.getLast? = some g ∧ TailZeros lay⌝ ∗
+      ⌜s.wal !! dir = some d ∧ Ls !! dir = some lay ∧ lay.segs.getLast? = some g ∧ TailZeros lay ∧
+        TailBound C Mr d lay⌝ ∗
       ghostVar (GF := GF) γ (1 : Qp).half (tailG d lay g.ino (F !! g.ino)))) :=
       fun _ _ => inferInstance
   infer_instance
 
 /-- **The tails as the WAL state changes elsewhere than the histories and metadata** (`named`, the
 mark, the purge bounds). -/
-theorem walTailsRes_mono (s s' : AbsDiskState) (Ls : GMap GoString WalLay) (F : GMap Ino SegFl)
+theorem walTailsRes_mono (C : WalCodec) (Mr : WalMarshal) (s s' : AbsDiskState) (Ls : GMap GoString WalLay) (F : GMap Ino SegFl)
     (h : ∀ dir d, s.wal !! dir = some d →
       ∃ d', s'.wal !! dir = some d' ∧ d'.H = d.H ∧ d'.metadata = d.metadata) :
-    walTailsRes (W := W) s Ls F ⊢ walTailsRes (W := W) s' Ls F := by
+    walTailsRes (W := W) C Mr s Ls F ⊢ walTailsRes (W := W) C Mr s' Ls F := by
   unfold walTailsRes
   letI := walAllG (W := W)
   iintro ⟨%T, Ha, Hm⟩
@@ -301,7 +326,8 @@ theorem walTailsRes_mono (s s' : AbsDiskState) (Ls : GMap GoString WalLay) (F : 
     simp [tailG, hH, hmd]
   rw [e]
   iframe Hv
-  ipureintro; exact ⟨hd', hp.2⟩
+  ipureintro
+  exact ⟨hd', hp.2.1, hp.2.2.1, hp.2.2.2.1, hp.2.2.2.2.congr hH hmd⟩
 
 instance walIte_timeless {p : Prop} [Decidable p] (P Q : IProp GF) [Timeless P] [Timeless Q] :
     Timeless (if p then P else Q) := by
@@ -345,7 +371,7 @@ def walInvBody (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoSt
     walGhost (W := W) s ∗ ⌜s.area = r⌝ ∗
     osClaims L (cl.map (fun c => (c, DFrac.own (1 : Qp).half))) ∗ osCommitLb (L := L) n ∗
     laysResF (L := L) F Ls ∗ ⌜WalsOk C Mr R jr s Ls cl n⌝ ∗ ⌜WalsCreateOk jr cl⌝ ∗
-    (∃ CR, walCreatingAuth (W := W) CR ∗ ⌜CreatingOk jr cl CR⌝) ∗ walTailsRes (W := W) s Ls F ∗
+    (∃ CR, walCreatingAuth (W := W) CR ∗ ⌜CreatingOk jr cl CR⌝) ∗ walTailsRes (W := W) C Mr s Ls F ∗
     ⌜AbsentNone s jr cl n ∧ DirsAvoid R jr s⌝ ∗ ⌜WalsNamed Ls cl n⌝ ∗ walParked (L := L) (W := W) Ls cl)
 
 instance walInvBody_timeless (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
