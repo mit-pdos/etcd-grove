@@ -12,9 +12,10 @@ only the file's data.
   caller as `trFile i P`: its `OsMeta` whole, its bytes, the client's halves of its mapped cells,
   and on success (`P`: the error is nil) its size 0.
 
-Proved in `Proof/os/OpenFileTruncS.lean`, over `wp_osOpenCreateS'` and `wp_osOpenTruncS` (the latter
-`sorry`, `GooseLang/Ext/Fs/TreeSharedTrunc.lean`). The open of a name holding a file with `O_TRUNC`
-(a leftover `N.tmp`) is not yet stated at the `os` level. Lean-first (no Rocq counterpart).
+Proved in `Proof/os/OpenFileTruncS.lean`, over `wp_osOpenCreateS'` and `wp_osOpenTruncS`
+(`GooseLang/Ext/Fs/TreeSharedTrunc.lean`). The open of a name holding a file with `O_TRUNC` (a
+leftover `N.tmp`) changes no claim: a plain triple, `os.OpenFile.wp_truncS` in the same proof file.
+Lean-first (no Rocq counterpart).
 -/
 module
 
