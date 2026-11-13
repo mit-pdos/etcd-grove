@@ -35389,7 +35389,7 @@ of their own refuted `tracing.Start.spec`. Approved by etcd-grove-81:
 3. **The processors' exporters return** (`ExportSpans`, `Shutdown`): the Simple processor exports inside
    `End`, so a panicking exporter would refute "`End` returns", beyond the context keys.
 
-## auth-schema-fix (2026-11-12 · decided by etcd-grove-81 under the user's delegation; forms decided by the agent, reviewed at checkpoint (`questions.md`) · branch `auth-schema-fix`; the new trusted text awaits etcd-grove-81's axiom re-review, `/shared/tmp/auth-safe/freeze-fix.md`)
+## auth-schema-fix (2026-11-12 · decided by etcd-grove-81 under the user's delegation; forms decided by the agent, reviewed at checkpoint (`questions.md`) · branch `auth-schema-fix`; the trusted text re-reviewed by etcd-grove-81, READY WITH CHANGES, applied below, `/shared/tmp/auth-safe/freeze-fix.md`)
 
 The auth results (`srv_auth_tp_on`, `server_new_auth_on`, `authkv_startServer`, `authkv_Main`) took
 two false premises: `auth.ValidSpec` (`notes/auth-validspec-false.md`) and `authSchemaSrv`, refuted

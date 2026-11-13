@@ -15,17 +15,14 @@ methods, Fuel/Boot/Token*, apply AuthFuel/AuthSteps(X)/Contracts, etcdserver Sna
 KVAuthModel, InvAuthBackend). The lost helper's 254a2a6e4f/8b5b18ab8b/d2519c5729 were not re-checked
 separately: the full build, tcb --check and gates below check them.
 
-## Next, in order
+## Finish done (2026-11-13), STOPPED for 81 before land.sh
 
-1. Full build (running/redo: `flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p
-   MemoryMax=64G python3 etc/timed-build.py --packages=/shared/tmp/manifest-ddc.json`, log
-   `/shared/tmp/authfix-81/full-build1.log`).
-2. `LAKE_OPTS=--packages=/shared/tmp/manifest-ddc.json etc/tcb-report.py --check` (and collections);
-   update baselines only for intended changes (expected: none beyond 8b5b18ab8b's +1 axiom).
-3. Gates as etc/gates.sh runs them (GOWORK unset), gen-interface --check --layout for every
-   etc/api/*.txt; regenerate and commit interfaces if they moved.
-4. STATUS entry (rewrite this branch's front entry, dated 2026-11-13), then REPORT to 81; land only
-   on 81's go.
+Full build ok (17473 jobs, `/shared/tmp/authfix-81/full-build1.log`); etc/gates.sh all passed
+(`/shared/tmp/authfix-81/gates1.log`: tcb 869 axioms, 4 sorries, matches baseline; 55 collections
+match; interfaces ok, no interface diff: auth/etcdserver are not API packages). STATUS entry
+rewritten (2026-11-13). Next: 81's go, then (GOWORK unset)
+`LAKE_PACKAGES=/shared/tmp/manifest-ddc.json PERENNIAL_CHECKOUT=/shared/perennial-ddc0f0acc etc/land.sh`
+(merge lean first if it moved; recheck STATUS's ten entries and status-history's `wc -l`).
 
 ---- older handoff below ----
 
