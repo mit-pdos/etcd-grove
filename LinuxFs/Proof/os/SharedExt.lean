@@ -6,6 +6,7 @@ Extension-level steps of the tree's shared mode that the `os`-level shared specs
   fraction of a claim on names containing it: an errno, no effect (the semantics' `Mkdir` takes
   effect only on an absent name). `os.Mkdir`'s retry after an attempt that made the directory and
   returned `EINTR` meets it.
+* `osLogLb_0`: a lower bound on the log's length to begin a call with.
 -/
 module
 
@@ -68,6 +69,19 @@ theorem wp_osMkdirS_some (R : Roots) (d b : GoString) (j : Ino) (N : NameSet) (d
   iapply HΦ $$ %e %he Hq Hp Hn
 
 end specs
+
+section lb
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+  [GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
+
+/-- The log has at least no entries. -/
+theorem osLogLb_0 : ⊢ |==> osLogLb (L := L) 0 := by
+  unfold osLogLb
+  letI := (gooseOsGS (L := L)).osAllG
+  exact monoNatLbOwn_0 _
+
+end lb
 
 end Fs
 end Perennial
