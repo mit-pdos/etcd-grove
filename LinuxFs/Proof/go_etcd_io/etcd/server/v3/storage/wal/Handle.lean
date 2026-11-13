@@ -219,16 +219,23 @@ invariant holds the claim `(j, .except X, hj)` once, `DirKeysOk`), the program's
 directory's path and the shared invariant of its roots, half of the call permission (the file
 pipeline holds the other, plan §11), the directory's open fd `dfd` (`w.dirFile`, which `cut`
 fsyncs: `os.File.Sync.specDirS`), and the tail's name: the `.wal` name `nm0` holding the tail's
-inode `ino`, the tail file's name `child dir nm0` (`w.seq()` parses it). The claim leaves out the
-pipeline's names (`walTmps ⊆ X`: the pipeline holds their claims). -/
+inode `ino`, the tail file's name `child dir nm0` (`w.seq()` parses it: `walFileName sq ix`, its
+sequence below `2^64 - 1`, which `cut` increments), the largest `.wal` name of the directory (the
+invariant's: the last segment's, `WalAbsD.names`; stable while the handle holds half the claim). The
+claim leaves out the pipeline's names (`walTmps ⊆ X`: the pipeline holds their claims). -/
 def walDirH (dir : GoString) (j : Ino) (dfd : w64) (ino : Ino) (name : GoString) : IProp GF :=
   iprop(∃ (R : Roots) (q : Qp) (X : List GoString) (hj : NamesH) (nm0 : GoString) (ph : DirPhS),
     walDirKey (W := W) dir j X ∗ osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
     osPathS R dir (DFrac.own q) j ∗ osSharedInv R ∗ osCallPerm (1 : Qp).half ∗ osDirFdS dfd j ph ∗
     ⌜walNameP nm0 = true ∧ hj.cur !! nm0 = some (.file ino) ∧ name = child dir nm0 ∧
-      ∀ t ∈ walTmps, t ∈ X⌝)
+      (∀ t ∈ walTmps, t ∈ X) ∧
+      (∃ sq ix : Nat, nm0 = walFileName sq ix ∧ sq + 1 < 2 ^ 64) ∧
+      ∀ b n, hj.cur !! b = some n → walNameP b = true → b = nm0 ∨ go.GoStringLt b nm0⌝)
 
-/-- **The open WAL `w` of `dir`, in the state `h`** (see the file header). -/
+/-- **The open WAL `w` of `dir`, in the state `h`** (see the file header). The pure facts: the
+stream split, the tail's offset inside its size (both below ext4's maximum offset, `Seek`'s), and
+the indices `enti`/`snapi` bounding every index of the history (`cut` names the next segment
+`max(enti, snapi) + 1`, above `walLastIdx`, without wrapping). -/
 def walHandleIn (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h : WalHS) :
     IProp GF :=
   letI := walAllG (W := W)
@@ -260,7 +267,10 @@ def walHandleIn (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ fp ∗ walPipeH fp dir j h.cuts.length ∗
     encEnv ∗ walCrcTable ∗
     walOpenW (W := W) w dir ∗
-    ⌜WalHS.Split Mr h ∧ 0 ≤ fd.toInt⌝)
+    ⌜WalHS.Split Mr h ∧ 0 ≤ fd.toInt ∧ h.o0 + h.out.length ≤ h.sz ∧ h.sz ≤ 0xffffffff000 ∧
+      h.o0 + h.out.length + h.pend.length ≤ 0xffffffff000 ∧
+      walLastIdx (h.H.map WalOpG.toM) ≤ max (uint.nat h.enti) (uint.nat h.snapi) ∧
+      max (uint.nat h.enti) (uint.nat h.snapi) + 1 < 2 ^ 64⌝)
 
 /-- **`w` is the WAL opened in `dir`, ready to append, its history `H`** (the specs' handle;
 sealed): quiescent (`WalHS.Done`). The history is the program's copy's (`walDiskAt dir d` has `d.H = H`, the update of
