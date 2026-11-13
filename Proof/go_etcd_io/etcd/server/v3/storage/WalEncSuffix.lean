@@ -1,0 +1,181 @@
+/-
+**The read from a later file** (pure; W1 of `notes/wal-fsext-plan.md`; `Open` at a snapshot in a
+later file after a purge, `openAtIndex`/`selectWALFiles`, wal.go:396-450). The reader is a fresh
+decoder (`NewDecoder`: CRC 0, decoder.go:60-74) over the files from the `k`-th on. Their first
+record is a cut's CRC record, carrying the chain's CRC at the cut; at CRC 0 the reader does not
+check it and takes its CRC (`crc != 0 && …`, then `UpdateCRC`, wal.go:556-564), so from there on it
+reads as the reader from the start does.
+-/
+module
+
+public import Proof.go_etcd_io.etcd.server.v3.storage.WalEncSegsImg
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace WalEnc
+
+open go_etcd_io.raft.v3
+
+/-- A CRC record the reader accepts at some CRC is accepted at CRC 0, with the same result. -/
+theorem decStep_crc0 {C : WalCodec} {last : Bool} {bs : List w8} {off : Nat} {c : w32}
+    {r : WalRec} {len : Nat} {c' : w32} (ht : r.typ = crcType)
+    (h : decStep C last bs off c = .accept r len c') : decStep C last bs off 0#32 = .accept r len c' := by
+  unfold decStep at h ⊢
+  simp only at h ⊢
+  split at h; · cases h
+  rename_i h1; rw [ite_eq_right h1]
+  split at h; · cases h
+  rename_i h2; rw [ite_eq_right h2]
+  split at h; · cases h
+  rename_i h3; rw [ite_eq_right h3]
+  split at h; · cases h
+  rename_i h4; rw [ite_eq_right h4]
+  split at h; · cases h
+  rename_i h5; rw [ite_eq_right h5]
+  split at h
+  · cases h
+  · split at h
+    · split at h
+      · injection h with e1 e2 e3; subst e1; exact absurd ht (by assumption)
+      · cases h
+    · rename_i hty
+      split at h; · cases h
+      rw [ite_eq_right hty, ite_eq_right (by intro ⟨h0, _⟩; exact h0 rfl)]
+      exact h
+
+/-- **A fresh reader reads files starting with a CRC record as the chained one does.** -/
+theorem walDecodeFrom_crc0 {C : WalCodec} {last : Bool} {bs : List w8} {c : w32}
+    {r : WalRec} {len : Nat} {c' : w32} (ht : r.typ = crcType)
+    (h : decStep C last bs 0 c = .accept r len c') :
+    walDecodeFrom C last bs 0 0#32 = walDecodeFrom C last bs 0 c := by
+  rw [walDecodeFrom_unfold C last bs 0 0#32, walDecodeFrom_unfold C last bs 0 c, h,
+    decStep_crc0 ht h]
+
+theorem walDecodeFiles_crc0 {C : WalCodec} {f : List w8} {fs : List (List w8)} {c : w32}
+    {r : WalRec} {len : Nat} {c' : w32} (ht : r.typ = crcType)
+    (h : decStep C fs.isEmpty f 0 c = .accept r len c') :
+    walDecodeFiles C (f :: fs) 0#32 = walDecodeFiles C (f :: fs) c := by
+  cases fs with
+  | nil => exact walDecodeFrom_crc0 ht h
+  | cons g gs =>
+    simp only [List.isEmpty_cons] at h
+    simp only [walDecodeFiles, walDecodeFrom_crc0 ht h]
+
+section suffix
+variable [GooseExts]
+
+theorem recsOfSegs_append (C : WalCodec) (M : WalMarshal) (md : List w8) {Spre : List WalHist}
+    (hpre : Spre ≠ []) (X : List WalHist) :
+    recsOfSegs C M md (Spre ++ X) = recsOfSegs C M md Spre ++
+      chainRecs C (crcAfter C 0#32 (segsDs M md true [] Spre).flatten)
+        (segsDs M md false Spre.flatten X).flatten := by
+  unfold recsOfSegs
+  rw [segsDs_append, ite_eq_right hpre, List.flatten_append, chainRecs_append]
+  simp
+
+/-- The first frame of a cut file is its CRC record, which the reader accepts at the chain's CRC. -/
+theorem decStep_cutFile {C : WalCodec} (hC : C.Ok) (last : Bool) (M : WalMarshal) (md : List w8)
+    (P : WalHist) (c : w32) (E : List (w64 × List w8)) (n : Nat) {f : List w8}
+    (hfit : RecsFit C (chainRecs C c (segHdrDs M md false P ++ E))) (hn : 1 ≤ n)
+    (hf : recFrames C ((chainRecs C c (segHdrDs M md false P ++ E)).take n) <+: f) :
+    decStep C last f 0 c = .accept ⟨crcType, C.crc32c c [], []⟩
+      (frame (C.encRec ⟨crcType, C.crc32c c [], []⟩)).length (C.crc32c c []) := by
+  obtain ⟨rest, hrest⟩ := hf
+  have hch : chainRecs C c (segHdrDs M md false P ++ E) =
+      ⟨crcType, C.crc32c c [], []⟩ :: chainRecs C (C.crc32c c []) ((segHdrDs M md false P ++ E).tail) := by
+    simp [segHdrDs, cutHdrDs, chainRecs]
+  rw [hch] at hrest hfit
+  obtain ⟨n', rfl⟩ : ∃ n', n = n' + 1 := ⟨n - 1, by omega⟩
+  rw [List.take_succ_cons, recFrames_cons, List.append_assoc] at hrest
+  have := decStep_frame hC last (r := ⟨crcType, C.crc32c c [], []⟩) (bs := f) (off := 0) (c := c)
+    (hfit _ List.mem_cons_self) (by rw [List.drop_zero, ← hrest])
+    (by unfold CrcOk; simp only [ne_eq, not_true_eq_false, ite_false]; exact Or.inr (hC.crc_nil c))
+  rw [this]
+  unfold crcNext; simp
+
+/-- **The read from a later file**: the WAL's segments are `Spre ++ Smid ++ S :: Spost`, the files
+of `Spre` purged, those of `Smid` intact, then an image `last` of `S`'s file as in
+`walDecodeFiles_walImg`, nothing after it. A fresh reader of the files from `Smid`'s first
+(`Smid ++ [S]` nonempty, `Spre` nonempty) reads the records of the WAL with segments
+`Spre ++ Smid ++ [J]` after those of `Spre`, for a `J` keeping the synced operations of `S`. -/
+theorem walDecodeFiles_suffix {C : WalCodec} (hC : C.Ok) (M : WalMarshal) (md : List w8)
+    (Spre Smid : List WalHist) (S : WalHist) (Spost : List WalHist) (zs : List Nat)
+    (last : List w8) (m' : Nat) (hpre : Spre ≠ []) (hzl : zs.length = Smid.length)
+    (hz : ∀ z ∈ zs, z = 0 ∨ 8 ≤ z)
+    (hfit : RecsFit C (recsOfSegs C M md (Spre ++ Smid ++ S :: Spost)))
+    (hlast :
+      let c' := crcAfter C 0#32 (segsDs M md true [] (Spre ++ Smid)).flatten
+      let P' := (Spre ++ Smid).flatten
+      let D := segHdrDs M md false P' ++ S.flatMap (opDs M)
+      recFrames C ((chainRecs C c' D).take ((segHdrDs M md false P').length +
+          ((S.take m').flatMap (opDs M)).length)) <+: last ∧
+      NoCollisionFrom C c' (chainRecs C c' D) last) :
+    ∃ n, ((S.take m').flatMap (opDs M)).length ≤ n ∧
+      (walDecodeFiles C (intactFiles C M md false Spre.flatten
+          (crcAfter C 0#32 (segsDs M md true [] Spre).flatten) Smid zs ++ [last]) 0#32).recs =
+        (recsOfSegs C M md (Spre ++ Smid ++ [histCut M S n])).drop
+          (recsOfSegs C M md Spre).length := by
+  obtain ⟨c0, hc0⟩ : ∃ c0, c0 = crcAfter C 0#32 (segsDs M md true [] Spre).flatten := ⟨_, rfl⟩
+  rw [← hc0]
+  simp only at hlast
+  have hc' : crcAfter C 0#32 (segsDs M md true [] (Spre ++ Smid)).flatten =
+      crcAfter C c0 (segsDs M md false Spre.flatten Smid).flatten := by
+    rw [segsDs_append, ite_eq_right hpre, List.flatten_append, crcAfter_append, hc0, List.nil_append]
+  rw [hc', List.flatten_append] at hlast
+  have hfitc : RecsFit C (chainRecs C c0 (segsDs M md false Spre.flatten (Smid ++ [S])).flatten) := by
+    intro r hr; apply hfit
+    rw [show Spre ++ Smid ++ S :: Spost = Spre ++ ((Smid ++ [S]) ++ Spost) by simp,
+      recsOfSegs_append C M md hpre, ← hc0]
+    apply List.mem_append_right
+    rw [segsDs_append, List.flatten_append, chainRecs_append]
+    exact List.mem_append_left _ hr
+  obtain ⟨n, hn, hdec⟩ := walDecodeFiles_core hC M md S m' last Smid zs false Spre.flatten c0 hzl hz
+    hfitc (by simpa using hlast)
+  refine ⟨n, hn, ?_⟩
+  rw [List.append_assoc, recsOfSegs_append C M md hpre, ← hc0, List.drop_left, ← hdec]
+  have hhdr : 1 ≤ (segHdrDs M md false (Spre.flatten ++ Smid.flatten)).length := by
+    simp [segHdrDs, cutHdrDs]
+  cases Smid with
+  | nil =>
+    have hzs : zs = [] := List.eq_nil_of_length_eq_zero hzl
+    subst hzs
+    simp only [List.flatten_nil, List.append_nil, List.nil_append, segsDs, crcAfter, List.foldl_nil,
+      List.flatten_cons] at hlast hfitc hhdr
+    have h0 := decStep_cutFile hC ([] : List (List w8)).isEmpty M md Spre.flatten c0
+      (S.flatMap (opDs M)) _ hfitc (by omega) hlast.1
+    have := walDecodeFiles_crc0 (fs := []) rfl h0
+    simpa [intactFiles, segsDs, chainSegs] using congrArg DecOut.recs this
+  | cons S0 Smid' =>
+    obtain ⟨z, zs', rfl⟩ : ∃ z zs', zs = z :: zs' := by
+      cases zs with
+      | nil => simp at hzl
+      | cons z zs' => exact ⟨z, zs', rfl⟩
+    have hfit0 : RecsFit C (chainRecs C c0 (segHdrDs M md false Spre.flatten ++ S0.flatMap (opDs M))) :=
+      fun r hr => hfitc r (by
+        simp only [List.cons_append, segsDs, List.flatten_cons]
+        rw [chainRecs_append]; exact List.mem_append_left _ hr)
+    have hf : intactFiles C M md false Spre.flatten c0 (S0 :: Smid') (z :: zs') ++ [last] =
+        segFile C (chainRecs C c0 (segHdrDs M md false Spre.flatten ++ S0.flatMap (opDs M))) z ::
+          (intactFiles C M md false (Spre.flatten ++ S0)
+            (crcAfter C c0 (segHdrDs M md false Spre.flatten ++ S0.flatMap (opDs M))) Smid' zs' ++
+            [last]) := by
+      simp [intactFiles, segsDs, chainSegs]
+    have h0 := decStep_cutFile hC (intactFiles C M md false (Spre.flatten ++ S0)
+        (crcAfter C c0 (segHdrDs M md false Spre.flatten ++ S0.flatMap (opDs M))) Smid' zs' ++
+        [last]).isEmpty M md Spre.flatten c0 (S0.flatMap (opDs M))
+      (f := segFile C (chainRecs C c0 (segHdrDs M md false Spre.flatten ++ S0.flatMap (opDs M))) z)
+      (chainRecs C c0 (segHdrDs M md false Spre.flatten ++ S0.flatMap (opDs M))).length hfit0
+      (by simp [length_chainRecs, segHdrDs, cutHdrDs])
+      (by rw [List.take_length]; unfold segFile; exact List.prefix_append _ _)
+    rw [hf]
+    rw [walDecodeFiles_crc0 rfl h0]
+
+end suffix
+
+end WalEnc
+end EtcdGrove
+end Perennial
