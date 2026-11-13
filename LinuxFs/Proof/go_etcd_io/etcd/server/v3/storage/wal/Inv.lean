@@ -107,13 +107,18 @@ instance SegFl.countable : Pos.Countable SegFl :=
 
 /-- **The segment `g` as the write in flight `fl` announced it**: the write inside the segment
 (the WAL writes its tail inside the preallocated file), not empty; `g`'s `OsMeta` the token's
-(`cfMeta`), its bytes `fl.bs` with the data's candidates added to the written range (`pwAnn`). -/
+(`cfMeta`), its bytes `fl.bs` with the data's candidates added to the written range (`pwAnn`); and
+the write past the segment's first byte (`0 < fl.off`: the tail's writes come after its header
+records, synced when the segment was named), so that the invariant keeps half of byte 0 of every
+segment, idle or written to: a file the program holds byte 0 of wholly (a segment it creates) is
+none of them (`laysResF_ino_ne`, `InvInos.lean`; the inode-clash gap of `Create`'s and `cut`'s
+commits). -/
 def SegFl.Ok (fl : SegFl) (g : SegG) : Prop :=
   fl.off + fl.data.length ≤ fl.m.size ∧ fl.data ≠ [] ∧ fl.bs.length = fl.m.size ∧
   fl.m.cut = none ∧ g.om = cfMeta fl.m fl.off fl.data.length ∧
   g.bs = fl.bs.take (cfLo fl.m fl.off) ++
     pwAnn fl.data fl.n (cfRange fl.m fl.bs fl.off fl.data.length) ++
-    fl.bs.drop (cfHi fl.m fl.off fl.data.length)
+    fl.bs.drop (cfHi fl.m fl.off fl.data.length) ∧ 0 < fl.off
 
 /-- **What the program and the invariant share of an open handle's tail** (half each): the history,
 the metadata, the cuts, the write position, the tail's inode, the write in flight on it if any. -/
@@ -153,14 +158,22 @@ to be one the invariant has the other half of (`NamesCoh.disj`), whose crashes i
 def WalsCreateOk (jr : Ino) (cl : List Claim) : Prop :=
   ∀ nm, walNameOk nm → ∃ N h, (jr, N, h) ∈ cl ∧ N.Mem nm
 
+/-- The claim `c` occurs once in `cl`. -/
+def ClaimOnce (c : Claim) (cl : List Claim) : Prop :=
+  ∃ l1 l2, cl = l1 ++ c :: l2 ∧ c ∉ l1 ∧ c ∉ l2
+
 /-- **The WALs being created are renamed in claims the invariant holds** (W4, framed): each entry
 `dir ↦ (N, h)` of the creating map is a claim `(jr, N, h)` of the area directory among `cl`,
 coherent, and no other claim of `jr` among `cl` holds one of its names (what the file system's
 shared invariant says of claims, `NamesCoh.disj`, recorded where the token is made: the rename's
-commit, inside an `os` call's update, cannot open that invariant). -/
+commit, inside an `os` call's update, cannot open that invariant); the claim occurs once in `cl`
+(the commit replaces that one occurrence) and is no other entry's (the commit deletes only its own
+entry). A new entry's claim is split off the area claim where its token is made, so it is in no
+claim of `cl` before. -/
 def CreatingOk (jr : Ino) (cl : List Claim) (CR : GMap GoString (NameSet × NamesH)) : Prop :=
   ∀ dir N h, CR !! dir = some (N, h) → (jr, N, h) ∈ cl ∧ ClaimCoh h jr N ∧
-    ∀ c ∈ cl, c ≠ (jr, N, h) → c.1 = jr → ∀ b, N.Mem b → ¬ c.2.1.Mem b
+    (∀ c ∈ cl, c ≠ (jr, N, h) → c.1 = jr → ∀ b, N.Mem b → ¬ c.2.1.Mem b) ∧
+    ClaimOnce (jr, N, h) cl ∧ ∀ dir', dir' ≠ dir → CR !! dir' ≠ some (N, h)
 
 /-- **A WAL name of the area with no WAL is absent** (W4, framed; strong absence, against `AbsentOk`'s
 "no `.wal` file"): in every claim of the area directory holding it, now, and after every crash the

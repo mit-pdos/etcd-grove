@@ -1217,6 +1217,51 @@ update: `s.wal dir := walDurFresh md`, the new layout and its `CrashOk`); then `
   `io.writerStreamP`), task 5 (`wal.Create.wp_proof`, `TouchDirAll`/`CreateDirAll` `wp_proof`s: still
   `sorry`).
 
+**Fourth session (branch `wal-create4`, 2026-11-13).**
+- *The inode-clash gap, closed without an allocator fact.* Neither option of the third session works as
+  stated: the shared mode exposes no fragment of the inode allocator (a create takes `st.fs.nextIno`, a
+  fresh key of the `OsMeta` map, `TreeSharedCreate.lean`), and a write in flight's `pwTok` holds the
+  segment's `OsMeta` *whole* (`wp_osPWriteStart` takes it), so no half of it can stay in the invariant.
+  Instead **`SegFl.Ok` gains a last conjunct `0 < fl.off`** (the tail's writes come after its header
+  records, synced when the segment was named): the invariant then keeps half of byte 0 of every segment
+  with a write in flight (`segResF`'s `osBytes … 0 ½ (bs.take off)`, nonempty), and half of the `OsMeta`
+  of every idle one. `InvInos.lean`: `segResF_ino_ne`, **`laysResF_ino_ne`** (a file the program holds
+  wholly, its `OsMeta` and byte 0, is no segment of the layouts). Nothing to establish at
+  `walInv_alloc` (no writes in flight) or carry through the crash (`F` starts empty). **For W6**: the
+  announce step (`wp_tailPWriteStart`) must show `0 < off`; it follows from `WalAbsD.synced` (the last
+  segment's synced frames, its header records among them, end at or below `so ≤ wr = off`), a lemma
+  `walAbsD_so_pos` not yet written. `cut`'s deposit of its `N.tmp` (W2) gets its inode's distinctness
+  from the same lemma (the pipeline's file is preallocated, so it holds byte 0).
+- *`CreatingOk` strengthened* (internal): an entry's claim occurs **once** in the claims (`ClaimOnce`,
+  so the commit's `replClaim` replaces exactly the occurrence the update took) and is **no other entry's**
+  (the commit deletes only its own). Both hold where a token is made (the claim is split off the area
+  claim then, a key not in `cl` before); `walInv_alloc` unchanged (empty map).
+- *`walN_sub_au`* moved from `InvOpenTest.lean` to `CreateDefs.lean` (next to `walAuMask`).
+- *`walCreate_osAUnc`* (**proved**, `CreateAu.lean`; lemmas `CreateAuLemmas.lean`): `Create`'s update for
+  `os.Rename.specDirSnc` (α = the invariant's half of the area claim, `r = ½`, `renDirOut … lb`), from
+  `walInv` and `walCreateP` (the `walCreating` token, the client's update, half of `J`'s claim, the
+  segment whole). Abort / no effect: everything back. Commit: `walOwn_agree` gives `s.wal !! dir = none`,
+  `laysResF_ino_ne` the inode's distinctness, `walsOk_create` the pure facts (`st := s0`, `lb ≤ s0` from
+  `logOut`, `s0 ≤ x` from `osLogged`), `walGhost_upd` and the client's commit to `walDiskAt dir
+  (walDurFresh md)`, the creating entry deleted, the claims rebuilt (`osClaims_create`), the layout
+  inserted with `F` minus the new inode (`laysResF_insert`, `laysResF_congr`, `walTailsRes_create`).
+  `walCreateQ (some _)`: `Q`, the segment's other halves, a past state with the fresh WAL in `dir`.
+  Premises the body must establish: `J ≠ jr`, `h.next ≤ lb`, `hJ.next ≤ lb`, the layout's facts
+  (`WalAbsD` over `hJ.cur`, `lay.segs = [g]`, `g.bs ≠ []`, every byte durable, stream then zeros).
+- *Task 3, statements* (`Spec/.../wal/WAL__SaveSnapshotPre.lean`, built; proofs not started):
+  `walPreIn` (the pre-rename `w`'s fields: no `dirFile`/`fp`/`state`, one lock), `snapFrame`,
+  `walPreSyncOk f W S` (the fdatasync as a hypothesis triple: `W out` to `S out`, or back),
+  **`WAL.sync.specPre`** and **`WAL.SaveSnapshot.specPre Mr`**, over `io.writerStream (wal.fileWi f) lim
+  W B` (whole-resource mode; `Create` takes `os.File.writerStream` with `os.fileW`/`os.fileB`, and
+  `encode.specG` through `io.writerStream_P`). On an error the file comes back in a writer state, for
+  `Create`'s deferred `f.Close()`.
+- *Not done:* the proofs of the two `specPre`s (callees: `encoder.flush`, `encode.specG`,
+  `ValidateSnapshotForWrite`, `MustMarshalMessage`, `time.Now`/`Since`, zap `Warn`, `Observe`,
+  `w.tail()`), `wal.Create.wp_proof`, `TouchDirAll`/`CreateDirAll` (their translation calls
+  `syncDir(filepath.Dir(filepath.Clean(dir)))`, F-N2, and `IsDirWriteable` → `os.WriteFile`/`Remove`/
+  `filepath.Abs`, none specified over `fsExt` yet), and the step at `⊤` that makes the `walCreating`
+  token (split `(jr, .only [nm, nm.tmp])` off the area claim, both halves).
+
 ## 11. Coordinator decisions after W2 and W4 (2026-11-13)
 
 - **Q4 revised to (b)** (W4 found (a) unprovable: `cleanupWAL`'s rename to `dir.broken.*` is never fsynced,
