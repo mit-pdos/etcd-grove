@@ -185,7 +185,9 @@ the file header): the file `f` (fd `fd` of inode `i`, with write access: `Create
 write-only, `ReadAll` read-write), its offset at `o0 + |out|`, the program's halves of the tail's `OsMeta` (of size `sz`) and bytes, the handle's key to its tail
 record `γ` in `dir`, and its half of the record: history `H`, metadata `md`, cuts, write position
 `o0 + |out|`, inode `i`, no write in flight; and what the program knows of the tail's `OsMeta`
-(`TailMeta`: all its bytes, no mappings, its zeros past the size). -/
+(`TailMeta`: all its bytes, no mappings, its zeros past the size), the size below `2^62` (the
+model's `Write` bound: whoever builds it, `Create` and `ReadAll`, knows the size, at most
+ext4's `s_maxbytes`) and the fd open. -/
 def walTailW (f : Loc) (fd : w64) (name : GoString) (dir : GoString) (γ : GName) (i : Ino)
     (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (o0 sz : Nat) (out : List w8) :
     IProp GF :=
@@ -194,7 +196,7 @@ def walTailW (f : Loc) (fd : w64) (name : GoString) (dir : GoString) (γ : GName
     os.ownOff f (W64 (o0 + out.length)) ∗ walTailKey (W := W) dir γ ∗
     ∃ (m : OsMeta) (bs : List ByteG),
     osMeta i (DFrac.own (1 : Qp).half) m ∗ osBytes i 0 (DFrac.own (1 : Qp).half) bs ∗
-    ⌜m.size = sz ∧ TailMeta m bs⌝ ∗
+    ⌜m.size = sz ∧ TailMeta m bs ∧ sz < 2 ^ 62 ∧ 0 ≤ fd.toInt⌝ ∗
     ghostVar γ (1 : Qp).half ((H, md, cuts, o0 + out.length, i, none) : TailG))
 
 /-- **The pipeline `w.fp` of the WAL in `dir`** (`Pipe.lean`), the handle having made `k` cuts:
