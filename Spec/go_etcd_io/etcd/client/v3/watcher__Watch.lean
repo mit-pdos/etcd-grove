@@ -39,6 +39,11 @@ single-key watch") was dropped once unused (2026-10-30).
 grpc's send side"): the key and the range end at most `2 ^ 30` bytes together (`watchSizeOk`), so
 that the create request the watch sends stays below the bound the stream's `Send` takes
 (`grpcMsgMax`).
+
+**The context** (`watchCtx`): its `Done()`, `Err()`, grpc's outgoing metadata, and (the context
+sweep's fixes, 2026-11-13, `notes/ctx-sweep-fixes.md`) `Value(&cancelCtxKey)` as `isContext` says
+(it returns, and a `*cancelCtx` it returns is a valid one): `newWatcherGRPCStream` runs
+`WithCancel(&valCtx{ctx})` on the caller's goroutine, whose `parentCancelCtx` calls it.
 -/
 module
 

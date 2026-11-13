@@ -1112,7 +1112,10 @@ PROJECTS = [
                     "golang.org/x/time=", "container/heap=", "github.com/go-logr=",
                     # pflag, names only: `FlagSet`, which featuregate's `MutableFeatureGate.AddFlag`
                     # names (so that goose translates the interface: the driver's noStreaming)
-                    "github.com/spf13="],
+                    "github.com/spf13=",
+                    # types only (the context sweep's fixes, 2026-11-13): runtime/trace's context
+                    # key and `Task`, which `k8sctx.k8sCtxOk` names (Code/runtime/trace.toml)
+                    "runtime/trace="],
         packages=[
             ".",
             "k8s.io/apiserver/pkg/storage/etcd3",
@@ -1254,6 +1257,8 @@ PROJECTS = [
             "k8s.io/utils/trace",
             "encoding/json",
             "encoding/base64",
+            # types only (the context sweep's fixes, 2026-11-13): runtime/trace's context key
+            "runtime/trace",
             # (`path` is the etcd project's, with the bodies rafthttp needs: `Code/path.toml`)
             # types and names only: what the DaemonSet controller and its example name beyond the
             # above (project k8s-daemonset translates the controller; notes/k8s-daemonset-goose.md),
@@ -1303,6 +1308,7 @@ PROJECTS = [
                os.path.join("github_com", "go_logr"),
                os.path.join("github_com", "spf13"),
                os.path.join("encoding", "base64"),
+               os.path.join("runtime", "trace"),
                os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8s", "etcd3")],
         counted_modules=["k8s.io/apiserver"],
     ),
