@@ -108,7 +108,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   iunfold walHandleIn at Hh
   icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j,
     %rc, Hlg, #Hzap, Hdir, Hdf, Hdff, Hmd, #Hmds, Hsp, #Hst, Hdec, Hrc, Hns, #Hmu, Henti, Hsnapi,
-    He, Henc, Htw, Hdh, Hlocks, Hls, Hcap, %Hlt, Hlks, #Hltf, Hfp, Hpipe, #Henv, #Hcrc, Hopen, %Hpure⟩
+    He, %Hen, Henc, Htw, Hdh, Hlocks, Hls, Hcap, %Hlt, Hlks, #Hltf, Hfp, Hpipe, #Henv, #Hcrc, #Hwpk, Hopen, %Hpure⟩
   obtain ⟨hsplit, hfd, hoff, hsz, hpend, hidx, hidx1⟩ := Hpure
   obtain ⟨ls, rfl⟩ := List.getLast?_eq_some_iff.1 Hlt
   rw [List.dropLast_concat]
@@ -160,11 +160,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     rw [show WalHS.crc Mr { h with sz := h.o0 + h.out.length } = WalHS.crc Mr h from rfl]
     simp only
     iframe Hlg Hzap Hdir Hdf Hdff Hmd Hmds Hsp Hst Hdec Hrc Hns Hmu Henti Hsnapi He Henc Htw Hdh
-      Hlocks Hls Hcap Hltf Hfp Hpipe Henv Hcrc Hopen
+      Hlocks Hls Hcap Hltf Hfp Hpipe Henv Hcrc Hwpk Hopen
     rw [List.dropLast_concat]
     iframe Hlks
     ipureintro
-    exact ⟨by simp, hsplit, hfd, Nat.le_refl _, by omega, by omega, hidx, hidx1⟩
+    exact ⟨Hen, by simp, hsplit, hfd, Nat.le_refl _, by omega, by omega, hidx, hidx1⟩
   icases Hsy with (⟨%he, Hh, #Hsyn⟩ | %he)
   rotate_left
   · rcases serr with ei | _
@@ -179,7 +179,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   iunfold walHandleIn at Hh
   icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j,
     %rc, Hlg, #Hzap, Hdir, Hdf, Hdff, Hmd, #Hmds, Hsp, #Hst, Hdec, Hrc, Hns, #Hmu, Henti, Hsnapi,
-    He, Henc, Htw, Hdh, Hlocks, Hls, Hcap, %Hlt, Hlks, #Hltf, Hfp, Hpipe, #Henv, #Hcrc, Hopen, %Hpure⟩
+    He, %Hen, Henc, Htw, Hdh, Hlocks, Hls, Hcap, %Hlt, Hlks, #Hltf, Hfp, Hpipe, #Henv, #Hcrc, #Hwpk, Hopen, %Hpure⟩
   obtain ⟨hsplit, hfd, hoff, hsz, hpend, hidx, hidx1⟩ := Hpure
   obtain ⟨ls, rfl⟩ := List.getLast?_eq_some_iff.1 Hlt
   iunfold walDirH at Hdh

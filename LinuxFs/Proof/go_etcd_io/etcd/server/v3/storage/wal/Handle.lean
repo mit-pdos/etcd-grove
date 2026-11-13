@@ -43,6 +43,7 @@ public import LinuxFs.GeneratedProof.go_etcd_io.etcd.server.v3.storage.wal
 public import Spec.go_uber_org.zap.Defs
 public import LinuxFs.Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.LockDefs
 public import Perennial.Ghost.GhostVar
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.PkgInit
 
 @[expose] public section
 
@@ -128,6 +129,20 @@ def WalHS.Split (Mr : WalMarshal) (h : WalHS) : Prop :=
 
 /-- **A quiescent handle**: every record encoded, `w.state` the last saved hard state. -/
 def WalHS.Done (h : WalHS) : Prop := h.rest = 0 ∧ h.st = walLastHS (h.H.map WalOpG.toM)
+
+/-- **The highest snapshot record's index of `P`** (0 if none): `walLastIdx`'s second fold
+(`walLastIdx_snap`). `w.snapi` bounds it in every state of the handle (`SaveSnapshot` raises
+`w.snapi` to the maximum, S/wal.go:1161; `ReadAll` to every snapshot record it reads, :576, which
+are all those above the first segment it reads, the names being increasing). -/
+def walMaxSnapIdx (P : WalHist) : Nat :=
+  P.foldl (fun x o => match o with
+    | .save _ _ => x
+    | .snap m => max x (uint.nat m.Index')) 0
+
+theorem walLastIdx_snap (P : WalHist) :
+    walLastIdx P = max (P.foldl (fun x o => match o with
+      | .save _ es => (es.getLast?.map (fun e => uint.nat e.Index')).getD x
+      | .snap _ => x) 0) (walMaxSnapIdx P) := rfl
 
 end pure
 
@@ -244,7 +259,11 @@ def walDirH (dir : GoString) (j : Ino) (dfd : w64) (ino : Ino) (name : GoString)
 /-- **The open WAL `w` of `dir`, in the state `h`** (see the file header). The pure facts: the
 stream split, the tail's offset inside its size (both below ext4's maximum offset, `Seek`'s), and
 the indices `enti`/`snapi` bounding every index of the history (`cut` names the next segment
-`max(enti, snapi) + 1`, above `walLastIdx`, without wrapping). -/
+`max(enti, snapi) + 1`, above `walLastIdx`, without wrapping): the bound on `walLastIdx` only of a
+handle with every record encoded (`rest = 0`: `saveEntry` sets `w.enti` to each entry's index in
+turn, S/wal.go:1086), the one on the snapshot records (`walMaxSnapIdx ≤ snapi`) always (`Save`
+needs it when its entries go back below an earlier snapshot record). The encoder non-nil (`sync`
+tests it, S/wal.go:968). -/
 def walHandleIn (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h : WalHS) :
     IProp GF :=
   letI := walAllG (W := W)
@@ -265,7 +284,7 @@ def walHandleIn (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h
       (BI.pure True : IProp GF) ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"enti" w ↦ h.enti ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"snapi" w ↦ h.snapi ∗
-    structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"encoder" w ↦ e ∗
+    structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"encoder" w ↦ e ∗ ⌜e ≠ null⌝ ∗
     ownEncoder e (wal.fileWi f) (h.crc Mr) h.pend ∗
     walTailW (W := W) f fd name dir h.γ h.ino h.H h.md h.cuts h.o0 h.sz h.out ∗
     walDirH (W := W) dir j dfd h.ino name ∗
@@ -274,11 +293,12 @@ def walHandleIn (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h
     ([∗list] lf ∈ lfs.dropLast, walLockH lf) ∗
     fileutil.lockedFile lt f ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ fp ∗ walPipeH fp dir j h.pc ∗
-    encEnv ∗ walCrcTable ∗
+    encEnv ∗ walCrcTable ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
     walOpenW (W := W) w dir ∗
     ⌜WalHS.Split Mr h ∧ 0 ≤ fd.toInt ∧ h.o0 + h.out.length ≤ h.sz ∧ h.sz ≤ 0xffffffff000 ∧
       h.o0 + h.out.length + h.pend.length ≤ 0xffffffff000 ∧
-      walLastIdx (h.H.map WalOpG.toM) ≤ max (uint.nat h.enti) (uint.nat h.snapi) ∧
+      ((h.rest = 0 → walLastIdx (h.H.map WalOpG.toM) ≤ max (uint.nat h.enti) (uint.nat h.snapi)) ∧
+        walMaxSnapIdx (h.H.map WalOpG.toM) ≤ uint.nat h.snapi) ∧
       max (uint.nat h.enti) (uint.nat h.snapi) + 1 < 2 ^ 64⌝)
 
 /-- **`w` is the WAL opened in `dir`, ready to append, its history `H`** (the specs' handle;
@@ -286,7 +306,21 @@ sealed): quiescent (`WalHS.Done`). The history is the program's copy's (`walDisk
 `Save` moves both). -/
 @[no_expose] def walOpenWF (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) :
     IProp GF :=
-  iprop(∃ h : WalHS, walHandleIn (W := W) P Mr w dir h ∗ ⌜h.Done⌝)
+  iprop(∃ h : WalHS, walHandleIn (W := W) P Mr w dir h ∗ ⌜h.Done⌝ ∗ ⧗ h.pc)
+
+/-- **The cuts budget** (`notes/bounds-plan.md`: the counter's owner turns the global receipt bound into
+its bound): with the area's `ReceiptBoundLe GF (2 ^ 62)`, `⧗ (pc + 1)` (the handle's `⧗ pc` and the receipt
+of a step of the `Save` about to cut) bounds the pipeline's count as `cut` needs (`cut.spec`'s
+`pc + 2 < 2 ^ 63`). -/
+theorem walPc_bound (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (n : Nat) :
+    ⊢@{IProp GF} walAreaOk C Mr R jr r -∗ ⧗ (n + 1) -∗ ⌜n + 2 < 2 ^ 63⌝ := by
+  iintro #Harea Hr
+  unfold walAreaOk
+  icases Harea with ⟨-, -, -, %hb⟩
+  ihave %hl := receipt_lt (n + 1) $$ Hr
+  ipureintro
+  have := hb.receiptBound_le
+  omega
 
 end handle
 
