@@ -40,6 +40,9 @@ public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.encoder__encode
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.filePipeline__Open
 public import LinuxFs.Spec.os.Rename
 public import LinuxFs.Spec.os.File__SyncS
+public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__cutTail
+public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__tail
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutName
 
 @[expose] public section
 
@@ -59,7 +62,19 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 
-theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
+/-- An offset below ext4's maximum, as a signed word. -/
+theorem cut_off_toInt (a b : Nat) (h : a + b ≤ 0xffffffff000) :
+    0 ≤ (W64 ((a : Int) + (b : Int))).toInt ∧ (W64 ((a : Int) + (b : Int))).toInt ≤ 0xffffffff000 ∧
+      (W64 ((a : Int) + (b : Int))).toInt = a + b := by
+  have : (W64 ((a : Int) + (b : Int))).toInt = a + b := by
+    word
+  omega
+
+theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAssumptions]
+    [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions] (P : WalPbIn GF) (Mr : WalMarshal)
+    (wp_tail : go_etcd_io.etcd.server.v3.storage.wal.WAL.tail.spec (GF := GF) (hG := hG))
+    (wp_TruncTail : os.File.Truncate.specWalTail (W := W) Mr)
+    (wp_syncCut : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specCut (W := W) P Mr)
     (_wp_sync : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.spec (W := W) P Mr)
     (_wp_saveState : go_etcd_io.etcd.server.v3.storage.wal.WAL.saveState.spec (W := W) P Mr)
     (_wp_saveCrc : go_etcd_io.etcd.server.v3.storage.wal.WAL.saveCrc.spec (GF := GF) (hG := hG))
@@ -68,6 +83,54 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof (P : WalPbIn GF) 
     (_wp_Rename : os.Rename.specFileSnc (GF := GF) (hG := hG))
     (_wp_SyncDir : os.File.Sync.specDirS (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.spec (W := W) P Mr := by
+  intro R jr r w dir h hrest hst hcnt hcuts hcpos
+  wp_start as ⟨#Harea, Hh⟩
+  iunfold walHandleIn at Hh
+  icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j,
+    %rc, Hlg, #Hzap, Hdir, Hdf, Hdff, Hmd, #Hmds, Hsp, #Hst, Hdec, Hrc, Hns, #Hmu, Henti, Hsnapi,
+    He, Henc, Htw, Hdh, Hlocks, Hls, Hcap, %Hlt, Hlks, #Hltf, Hfp, Hpipe, #Henv, #Hcrc, Hopen, %Hpure⟩
+  obtain ⟨hsplit, hfd, hoff, hsz, hpend, hidx, hidx1⟩ := Hpure
+  obtain ⟨ls, rfl⟩ := List.getLast?_eq_some_iff.1 Hlt
+  rw [List.dropLast_concat]
+  wp_auto
+  -- step 1: the tail's offset, its truncate
+  wp_apply (wp_tail w locks ls lt (DFrac.own 1) (DFrac.own 1)) $$ [Hlocks Hls] as ⟨Hlocks, Hls⟩
+  · iframe
+  ihave #Hlt0 := Hltf
+  iunfold fileutil.lockedFile at Hlt0
+  iStructNamed Hlt0
+  wp_method_call
+  wp_call
+  (try wp_auto)
+  iunfold walTailW at Htw
+  icases Htw with ⟨Hf, Hfdo, Hoff, Htk, %m, %bs, Hm, Hbs, %hmb, Hv⟩
+  obtain ⟨ho1, ho2, ho3⟩ := cut_off_toInt h.o0 h.out.length (by omega)
+  wp_apply (os.File.Seek.wp_cur f fd name (DFrac.own 1) _ hfd ho1 ho2) $$ [$Hf $Hoff] as ⟨Hf, Hoff⟩
+  (try wp_auto)
+  wp_apply (wp_tail w locks ls lt (DFrac.own 1) (DFrac.own 1)) $$ [Hlocks Hls] as ⟨Hlocks, Hls⟩
+  · iframe
+  wp_method_call
+  wp_call
+  (try wp_auto)
+  wp_apply (wp_TruncTail R jr r f fd name dir h.γ h.ino h.H h.md h.cuts h.o0 h.sz h.out hoff)
+    $$ [Hf Hfdo Hoff Htk Hm Hbs Hv] as %terr Htr
+  · iframe Harea
+    iunfold walTailW
+    iframe Hf Hfdo Hoff Htk
+    iexists m, bs
+    iframe Hm Hbs Hv
+    ipureintro; exact hmb
+  icases Htr with (⟨%he, Htw⟩ | %he)
+  rotate_left
+  · rcases terr with ei | _
+    rotate_left
+    · exact absurd rfl he
+    wp_auto
+    iapply HΦ
+    iright; ipureintro; exact he
+  subst he
+  wp_auto
+  -- step 2: sync
   sorry
 
 end proof
