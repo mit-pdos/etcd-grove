@@ -36,6 +36,7 @@ public import GooseLang.Ext.Fs.TreeSharedLaws
 public import GooseLang.Ext.Fs.TreeSharedClaims
 public import GooseLang.Ext.Fs.TreeSharedDirFd
 public import GooseLang.Ext.Fs.TreeSharedCallEnd
+public import GooseLang.Ext.Fs.TreeSharedOpenDir
 
 @[expose] public section
 
@@ -337,8 +338,8 @@ theorem wp_osOpenDirS (R : Roots) (p : GoString) (j : Ino) (dq : DFrac) (k s0 : 
         osPathS (L := L) R p dq j -∗ (⌜e = 0⌝ -∗ osDirFdS (L := L) fd j .idle) -∗
         Φ (PairV (#fd) (#e))) -∗
       WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#p) (#flRO))))) @ s; E
-        {{ Φ }} := by
-  sorry
+        {{ Φ }} :=
+  wp_osOpenDirS' R p j dq k s0 q hE hE' Φ
 
 /-! ## Shared directory fds -/
 
