@@ -18,6 +18,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvWatchStore
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Read
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.TxnSteps
 
 @[expose] public section
 
@@ -220,8 +221,15 @@ theorem kvOver_Read (hRead : mvcc.store.Read.spec (GF := GF) (hG := hG))
   iintro %Φ ⟨#Hpkg, #Hk, #Hs, Hrd, #HZ, Hm, #Hc0, #Hlb, %Ht, Htrc, Hla⟩ HΦ
   iapply kvOver_read_wp ty v s mode trace
   iframe Hk
-  iapply (hRead s γ mode trace m log₀ te c Z oa) $$ [Hrd Hm Htrc Hla] HΦ
-  iframe Hrd Hm Htrc Hla; iframe #; ipureintro; exact Ht
+  ihave Hcb := mvcc.readCbC_true (GF := GF) γ
+  iapply (hRead s γ mode trace m log₀ te c Z oa) $$ [Hrd Hm Htrc Hla Hcb]
+  · iframe Hrd Hm Htrc Hla Hcb; iframe #; ipureintro; exact Ht
+  inext
+  iintro %mw ⟨%log, %rev, %crev, Htx, Htrc, Hm, Hlb, Hp, Hok, Hpure, Hla, Hoa, -⟩
+  ihave Htx := mvcc.isTxnRead_ofT _ _ _ _ _ _ _ _ _ _ $$ [$Htx $Htrc]
+  iapply HΦ
+  iexists log, rev, crev
+  iframe Htx Hm Hlb Hp Hok Hpure Hla Hoa
 
 /-! ## The write transaction -/
 

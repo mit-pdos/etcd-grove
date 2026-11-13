@@ -44,13 +44,13 @@ structure DsId where
   u : GoString
 
 /-- The pending creates as `acct`'s predicate. -/
-def pendOf (P : GMap (Key × Nat) (Nat × GoString)) (k : Key) (c : Nat) : Prop :=
+def pendOf (P : GMap (apimodel.Key × Nat) (Nat × GoString)) (k : apimodel.Key) (c : Nat) : Prop :=
   (P !! (k, c)).isSome
 
 /-- **The claimed nodes are free**: every pod of `u` on a claimed node `n` is pending under the
 claimant's permit (an entry of `P` for its key and version, with the permit and `n`). -/
 def claimsOk (σ : St) (u : GoString) (C : GMap GoString Nat)
-    (P : GMap (Key × Nat) (Nat × GoString)) : Prop :=
+    (P : GMap (apimodel.Key × Nat) (Nat × GoString)) : Prop :=
   ∀ n i, C !! n = some i → ∀ k o, σ.pods.objs !! k = some o → dsPodOn keyName opIn u n o →
     ∃ c, addedRv σ.pods.log k = some c ∧ P !! (k, c) = some (i, n)
 
@@ -60,7 +60,7 @@ def recOk (rc : Option consistency.Rec) (u : GoString) : Prop :=
 
 /-- **The pure invariant.** -/
 structure s1Ok (d : DsId) (σ : St) (M : GMap Owner consistency.Rec) (L : Nat)
-    (P : GMap (Key × Nat) (Nat × GoString)) (C : GMap GoString Nat) : Prop where
+    (P : GMap (apimodel.Key × Nat) (Nat × GoString)) (C : GMap GoString Nat) : Prop where
   s1 : S1 keyName opIn σ d.u
   acct : acct σ d.u L (M !! d.o) (pendOf P)
   recok : recOk (M !! d.o) d.u
@@ -75,7 +75,7 @@ theorem dsPodOn_node_unique {K Op u n n' : GoString} {o : Obj} (h1 : dsPodOn K O
 
 /-! ### The log's `ADDED` changes -/
 
-theorem addedRv_snoc_added (l : List Change) (c : Change) (k : Key) (hc : c.typ = .added) :
+theorem addedRv_snoc_added (l : List Change) (c : Change) (k : apimodel.Key) (hc : c.typ = .added) :
     addedRv (l ++ [c]) k = if c.obj.key = k then some c.rv.toNat else addedRv l k := by
   unfold addedRv
   rw [List.filter_append]
@@ -88,7 +88,7 @@ theorem addedRv_snoc_added (l : List Change) (c : Change) (k : Key) (hc : c.typ 
 /-- **A create by the claimant of node `n`** (permit `i`, deposited in no entry): the new pod
 pending, under `(i, n)`. -/
 theorem create_step (d : DsId) (σ : St) (M : GMap Owner consistency.Rec) (L : Nat)
-    (P : GMap (Key × Nat) (Nat × GoString)) (C : GMap GoString Nat) (n : GoString) (i : Nat)
+    (P : GMap (apimodel.Key × Nat) (Nat × GoString)) (C : GMap GoString Nat) (n : GoString) (i : Nat)
     (ns : GoString) (dp : kd.core.Pod) (t : k8s_io.apimachinery.pkg.apis.«meta».v1.Time)
     (h : s1Ok d σ M L P C) (hC : C !! n = some i) (hfree : ∀ kc v, P !! kc = some v → v.1 ≠ i)
     (hpod : newPodOk keyName opIn d.u n dp) (herr : createErr .pods ns (.pod dp) σ = none) :
@@ -190,8 +190,8 @@ theorem create_step (d : DsId) (σ : St) (M : GMap Owner consistency.Rec) (L : N
 /-- **The claimant's `WroteAt`** of its pod's version `rvStr c`, for the DaemonSet's owner and
 UID: the entry and the claim go; the record covers the pod. -/
 theorem wrote_step (d : DsId) (σ : St) (M : GMap Owner consistency.Rec) (L : Nat)
-    (P : GMap (Key × Nat) (Nat × GoString)) (C : GMap GoString Nat) (n : GoString) (i : Nat)
-    (k : Key) (c : w64) (h : s1Ok d σ M L P C) (hP : P !! (k, c.toNat) = some (i, n))
+    (P : GMap (apimodel.Key × Nat) (Nat × GoString)) (C : GMap GoString Nat) (n : GoString) (i : Nat)
+    (k : apimodel.Key) (c : w64) (h : s1Ok d σ M L P C) (hP : P !! (k, c.toNat) = some (i, n))
     (hc : 1 ≤ c.toNat) :
     s1Ok d σ (wroteAtM M d.o d.u podGR (rvStr c)) L (GMap.delete (k, c.toNat) P)
       (GMap.delete n C) := by

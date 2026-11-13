@@ -14,6 +14,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
 public import Perennial.Proof.context
 public import Proof.google_golang_org.grpc.metadata.Incoming
+public import Proof.go_opentelemetry_io.otel.trace.Defs
 
 @[expose] public section
 
@@ -37,7 +38,8 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.traceutil.Assumptions]
 or not as `e`), the fields owned: a context like `ctx` (an `isContext` of `ctx` stays one),
 carrying the trace `t` returned, owned, not empty: the caller's if not empty, else a new one; and
 (2026-10-28, the auth plan's E3zb) `ctx`'s incoming gRPC metadata (`metadata.incomingOf`: `ctx`
-itself, or a `context.WithValue` of it). -/
+itself, or a `context.WithValue` of it); and (R8, 2026-11-07) `ctx`'s span fact
+(`trace.spanCtxOk`: `WithValue` at `TraceKey{}`, not otel's key, delegates otel's key to `ctx`). -/
 abbrev traceutil.EnsureTrace.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (o : Option Loc) (e : Bool)
     (lg : Loc) (op : GoString) (fields : GoSlice),
@@ -51,7 +53,8 @@ abbrev traceutil.EnsureTrace.spec : Prop :=
       ⌜metadata.incomingOf (GoInterface.ok ctx') = metadata.incomingOf (GoInterface.ok ctx)⌝ ∗
       ∃ vs : GMap GoInterface GoInterface,
         mvcc.txnCtx ctx' { cd with Values := vs } ∗
-        (context.isContext ctx cd -∗ context.isContext ctx' { cd with Values := vs }) }}
+        (context.isContext ctx cd -∗ context.isContext ctx' { cd with Values := vs }) ∗
+        □ (trace.spanCtxOk ctx -∗ trace.spanCtxOk ctx') }}
 
 end spec
 

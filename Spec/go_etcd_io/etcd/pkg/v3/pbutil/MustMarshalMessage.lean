@@ -23,15 +23,20 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- **`MustMarshalMessage(m)`** of a read-only-for-good `*T` holding `m`, a message that
-`marshals`: a fresh slice of its encoding (`proto.Marshal`'s; it never panics). -/
+/-- **`MustMarshalMessage(m)` of a frozen `*T` of a registered type holding the wire content `c`**,
+which marshals, of size below `2^48` (`proto.Marshal`'s allocation, Go's `maxAlloc`): a fresh slice
+of its encoding (`pbEncC T c`, `proto.Marshal`'s; it never panics), an encoding of `c`'s model of
+exactly `c`'s size (stage A of the per-type models: until then over any `PbType`, at the address's
+encoding `pbEnc`). -/
 abbrev pbutil.MustMarshalMessage.spec : Prop :=
-  ∀ (T : PbType GF) (l : Loc) (m : T.M), T.marshals m →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil ∗ T.ro l m }}
+  ∀ (T : PbTypeC GF), pbModelOf GF T.data.ty = some T →
+  ∀ (l : Loc) (c : T.data.C), T.data.marshals (T.data.modelOf c) → T.data.size c < 2 ^ 48 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil ∗ T.data.roC l c }}
     (App (Val (@! pbutil.MustMarshalMessage))
-      (Val #(interface.mkOk (go.GoType.PointerType T.ty) #l)))
+      (Val #(interface.mkOk (go.GoType.PointerType T.data.ty) #l)))
   {{ (d : GoSlice), RET #d;
-      d ↦* pbEnc T.ty l ∗ ownSliceCap w8 d (DFrac.own 1) ∗ ⌜T.wire m (pbEnc T.ty l)⌝ }}
+      d ↦* pbEncC T c ∗ ownSliceCap w8 d (DFrac.own 1) ∗
+      ⌜T.data.wire (T.data.modelOf c) (pbEncC T c) ∧ (pbEncC T c).length = T.data.size c⌝ }}
 
 end spec
 

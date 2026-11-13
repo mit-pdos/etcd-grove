@@ -1,5 +1,5 @@
 /-
-`NewClients(eps, lg)` (`examples/lib/etcdstart/etcdstart.go`; 2026-10-23, `notes/client-timeouts-plan.md` D-T1;
+`NewClients(eps, lg)` (`examples/lib/etcdstart/common.go`; 2026-10-23, `notes/client-timeouts-plan.md` D-T1;
 linkv3p's `newClient` until then, D27-D29): `clientv3.New` of a configuration with the endpoints
 `eps`, the logger `lg`, the examples' timeouts (`DialTimeout`, the keepalive pair `KeepAliveTime`/
 `KeepAliveTimeout`: etcdctl's defaults) and etcd's default retries. Lean-first (no Rocq counterpart).
@@ -39,8 +39,10 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.As
 /-- See the file header. -/
 abbrev NewClients.spec : Prop :=
   ∀ (eps : GoSlice) (addrs : List GoString) (lg : Loc) (V : client.WEnv GF),
-  threadBound GF ≤ 2 ^ 31 → lg ≠ null → plainEndpoints addrs →
+  threadBound GF ≤ 2 ^ 31 → plainEndpoints addrs →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
+      -- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
+      zapLoggerOk lg ∗
       eps ↦*□ addrs }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewClients)) (Val #eps))
       (Val #lg))

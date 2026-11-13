@@ -5,6 +5,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__LeaseCheckpoint
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__newHeader
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.WriteLemmas
 
 @[expose] public section
 
@@ -30,15 +31,13 @@ theorem apply.applierV3backend.LeaseCheckpoint.wp_proof
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.LeaseCheckpoint.spec (GF := GF) (hG := hG) := by
   intro E p r log Pre Q Post info
-  wp_start as ⟨#Hb, ⟨⟨%cms, #Hr, %Hlen1⟩, HRW⟩, Hpre, Hwt⟩
-  iunfold apply.mPre at Hpre
-  iunfold apply.kvOwn at Hpre
-  icases Hpre with ⟨⟨Hrd, Hsw, Hknown, Hard⟩, Hres, Hcs⟩
+  wp_start as ⟨#Hb, ⟨⟨%cms, #Hr, %Hlen1⟩, HRW⟩, Htt, Hpre⟩
+  icases apply.mPreW_split $$ Hpre with ⟨%cr, %B, Hsw, Hcs, Hwt, Hrt, Htie, Hres, Hkv⟩
   ihave #Hb' := Hb
   iunfold apply.backendIs at Hb'
   icases Hb' with ⟨%opts, #Hopts, #Hok⟩
   iunfold apply.backendOptsOk at Hok
-  icases Hok with ⟨%Hlg, -, -, #Hle, -⟩
+  icases Hok with ⟨%Hlg, -, -, -, #Hle, -⟩
   iunfold apply.isApplyLessor at Hle
   icases Hle with ⟨-, %li, %Hli, -, -, #HCk, -⟩
   iunfold apply.leaseCheckpointIs at Hr
@@ -49,7 +48,7 @@ theorem apply.applierV3backend.LeaseCheckpoint.wp_proof
   ihave IH : iprop(∃ (n : w64) (c0 : Loc),
       "i" ∷ i_ptr ↦ n ∗ "c" ∷ c_ptr ↦ c0 ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (ps.length : Int)⌝ ∗
-      "Hst" ∷ ((⌜n = W64 0⌝ ∗ mvcc.csContract E.P E.f Pre Q Post ∗ mvcc.storeWT E.γ ∗ E.RW) ∨
+      "Hst" ∷ ((⌜n = W64 0⌝ ∗ srvApi.csContractA (E.Pk B) E.f Pre Q Post ∗ apply.bkWT B ∗ E.RW) ∨
         (⌜n ≠ W64 0⌝ ∗ (Post ∨ Pre)))) $$ [i c Hcs Hwt HRW]
   · iexists W64 0, _
     simp only [named]
@@ -91,12 +90,7 @@ theorem apply.applierV3backend.LeaseCheckpoint.wp_proof
     wp_auto
     rw [Hli]
     wp_auto
-    icases Hard with ⟨Hard, Hwo⟩
-    icases mvcc.writerOwn_rt _ $$ Hwo with ⟨Hrt, Hrdb⟩
-    wp_apply HCk $$ [$Hcs $HRW $Hwt $Hrt] as %err ⟨HPP, Hrt, #HeI⟩
-    ihave Hwo := Hrdb $$ Hrt
-    ihave Hard : iprop(E.RD ∗ mvcc.writerOwn E.γ) $$ [Hard Hwo]
-    · iframe Hard Hwo
+    wp_apply HCk $$ [$Hcs $HRW $Hwt $Hrt $Htie] as %err ⟨HPP, Hrt, Htie, -, #HeI⟩
     cases err with
     | nil =>
       wp_auto
@@ -112,31 +106,31 @@ theorem apply.applierV3backend.LeaseCheckpoint.wp_proof
       ipureintro; decide
     | ok ei =>
       wp_auto
-      wp_apply hHdr $$ [$Hrd $Hsw] as %h ⟨Hrd, Hsw, %Hh, -⟩
-      · iexact Hb
+      wp_apply (hHdr E p log cr) $$ [$Hpkg $Hb $Htt $Hsw] as %h ⟨Htt, Hsw, %Hh, -⟩
       irename «$r0» => Hresp
       generalize «$r0_ptr» = resp at *
       wp_for_post
       iapply HΦ
+      isplitl [Htt]
+      · iexact Htt
       isplitl; rotate_left
       · first | iexact HeI | iapply applyErrIs_nil
-      iapply apply.mPost_backend
-      iunfold apply.kvOwn
+      iapply (apply.mPostW_backend _ _ _ _ _ B cr)
       iframe
   · -- the loop is done
     ihave HPP : iprop(Post ∨ Pre) $$ [Hst]
     · icases Hst with (⟨-, Hcs, -, -⟩ | ⟨-, HPP⟩)
       · iright; iapply apply.csContract_pre $$ Hcs
       · iexact HPP
-    wp_apply hHdr $$ [$Hrd $Hsw] as %h ⟨Hrd, Hsw, %Hh, -⟩
-    · iexact Hb
+    wp_apply (hHdr E p log cr) $$ [$Hpkg $Hb $Htt $Hsw] as %h ⟨Htt, Hsw, %Hh, -⟩
     irename «$r0» => Hresp
     generalize «$r0_ptr» = resp at *
     iapply HΦ
+    isplitl [Htt]
+    · iexact Htt
     isplitl; rotate_left
     · first | iexact HeI | iapply applyErrIs_nil
-    iapply apply.mPost_backend
-    iunfold apply.kvOwn
+    iapply (apply.mPostW_backend _ _ _ _ _ B cr)
     iframe
 
 end proof

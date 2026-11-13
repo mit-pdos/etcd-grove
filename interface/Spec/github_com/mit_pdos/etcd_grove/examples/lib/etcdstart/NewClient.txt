@@ -4,19 +4,18 @@
 
 def etcdstart.NewClient.spec : Prop :=
   ∀ (addr : GoString) (lg : Loc) (V : client.WEnv GF),
-    lg ≠ null →
-      plainEndpoint addr →
-        threadBound GF ≤ 2 ^ 31 →
-          ⊢
-            ∀ Φ,
-              isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart -∗
-                (▷
-                    ∀ cl err,
-                      (⌜err = GoInterface.nil⌝ ∗ isNewClient cl [addr] V ∗ clientTokAt cl [addr] fun x => iprop(False)) ∨
-                          ⌜err ≠ GoInterface.nil ∧ cl = null⌝ -∗
-                        Φ (intoVal cl, intoVal err)) -∗
-                  WP
-                    (((intoVal (functions github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewClient []))
-                        (intoVal addr))
-                      (intoVal lg))
-                    {{ Φ }}
+    plainEndpoint addr →
+      threadBound GF ≤ 2 ^ 31 →
+        ⊢
+          ∀ Φ,
+            isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗ zapLoggerOk lg -∗
+              (▷
+                  ∀ cl err,
+                    (⌜err = GoInterface.nil⌝ ∗ isNewClient cl [addr] V ∗ clientTokAt cl [addr] fun x => iprop(False)) ∨
+                        ⌜err ≠ GoInterface.nil ∧ cl = null⌝ -∗
+                      Φ (intoVal cl, intoVal err)) -∗
+                WP
+                  (((intoVal (functions github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewClient []))
+                      (intoVal addr))
+                    (intoVal lg))
+                  {{ Φ }}

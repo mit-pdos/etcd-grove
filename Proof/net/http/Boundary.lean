@@ -361,7 +361,11 @@ def prefixClosed (Pre : List w8 → Prop) : Prop := Pre [] ∧ ∀ a b, Pre (a +
 /-- **A reader of a stream in `Pre` and `Φ`** (persistent, D42): its `Read` from a state `Src r`
 (`r` read so far; `io.EOF`'s value `e`) reads `ys` with `r ++ ys` in `Pre`, and returns `EOF` only
 at a complete stream, in `Φ`. The contract of a streamed body's reader on either side of the
-connection (`streamHas`, `bodyStream_streamReaderOk`), and of a reader wrapping one. -/
+connection (`streamHas`, `bodyStream_streamReaderOk`), and of a reader wrapping one. (Sweep repairs
+1, S3, 2026-11-08) The bytes of `p` past `n` are unspecified: Go's `io.Reader` lets a `Read` use all
+of `p` as scratch space during the call (`io/io.go:59`), and the snapshot body's exact-size reader
+reads into `p` and then returns `0, ErrExpectEOF`, which `MultiReader` passes on; until then the
+tail was claimed unchanged (`notes/axiom-review/snap-stream.md`, Scratch). -/
 def streamReaderOk (rd : GoInterface) (Src : List w8 → IProp GF) (Pre Φ : List w8 → Prop)
     (e : GoInterface) : IProp GF :=
   iprop(∃ ri : GoInterfaceOk, ⌜rd = GoInterface.ok ri⌝ ∗
@@ -369,8 +373,9 @@ def streamReaderOk (rd : GoInterface) (Src : List w8 → IProp GF) (Pre Φ : Lis
       {{ Src r ∗ p ↦* xs ∗ ioEOF e }}
         (App (Val #(methods ri.ty go!"Read" ri.v)) (Val #p))
       {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
-          ∃ ys : List w8, ⌜ys.length = sint.nat n ∧ Pre (r ++ ys) ∧ (err = e → Φ (r ++ ys))⌝ ∗
-          p ↦* (ys ++ xs.drop ys.length) ∗ Src (r ++ ys) }}))
+          ∃ ys zs : List w8, ⌜ys.length = sint.nat n ∧ zs.length = xs.length - ys.length ∧
+            Pre (r ++ ys) ∧ (err = e → Φ (r ++ ys))⌝ ∗
+          p ↦* (ys ++ zs) ∗ Src (r ++ ys) }}))
 
 instance streamReaderOk_persistent (rd : GoInterface) (Src : List w8 → IProp GF)
     (Pre Φ : List w8 → Prop) (e : GoInterface) : Persistent (streamReaderOk rd Src Pre Φ e) := by
@@ -886,11 +891,35 @@ def NewServeMux_spec : Prop :=
       (App (Val (@! _root_.Perennial.net.http.NewServeMux)) (Val #()))
     {{ (m : Loc), RET #m; muxOwn m [] }}
 
-/-- `m.Handle(pat, h)`: the registration appended (a pattern registered twice panics in Go; the
-callers register distinct ones, which the precondition states). -/
+/-- **A literal path pattern** of `ServeMux` (sweep repairs 1, B3): non-empty, starting with `/`,
+without a space or tab (no method), `{` (no wildcard) or `%` (no escape: `parsePattern` unescapes
+literal segments, so `/%61` and `/a` conflict). Go's `parsePattern` accepts it as a pattern of
+literal segments, which the string determines; so two distinct ones never conflict (a literal
+pattern is either disjoint from another or more specific), under the 1.22 mux and under
+`GODEBUG=httpmuxgo121=1` (exact map keys). -/
+def litPathPat (pat : GoString) : Prop :=
+  pat.head? = some (W8 47) ∧ ∀ c ∈ pat, c ≠ W8 32 ∧ c ≠ W8 9 ∧ c ≠ W8 123 ∧ c ≠ W8 37
+
+/-- **A handler `Handle` accepts** (sweep repairs 1, B3): not `nil`, and not a `HandlerFunc` (whose
+`nil` value `register` refuses; the callers' handlers are pointers). -/
+def handlerRegOk (h : GoInterface) : Prop :=
+  ∃ hi : GoInterfaceOk, h = GoInterface.ok hi ∧ hi.ty ≠ _root_.Perennial.net.http.HandlerFunc.ty
+
+/-- A pointer handler is one `Handle` accepts. -/
+theorem handlerRegOk_ptr (t : go.GoType) (l : Loc) :
+    handlerRegOk (interface.mkOk (go.GoType.PointerType t) #l) := by
+  refine ⟨_, rfl, ?_⟩
+  unfold _root_.Perennial.net.http.HandlerFunc.ty
+  intro h; cases h
+
+/-- `m.Handle(pat, h)`: the registration appended, for a literal path pattern not yet registered
+and a handler `Handle` accepts. (Sweep repairs 1, B3, 2026-11-08: until then any pattern and
+handler; Go's `register` panics on an empty, unparsable or conflicting pattern and on a nil handler,
+`notes/axiom-review/http-handle.md`. The mux holds only patterns this spec admitted, `muxOwn` being
+opaque and made only by `NewServeMux_spec`, so a distinct literal one does not conflict.) -/
 def Handle_spec : Prop :=
   ∀ (m : Loc) (regs : List (GoString × GoInterface)) (pat : GoString) (h : GoInterface),
-    ⊢ {{ muxOwn (GF := GF) m regs ∗ ⌜pat ∉ regs.map Prod.fst⌝ }}
+    ⊢ {{ muxOwn (GF := GF) m regs ∗ ⌜litPathPat pat ∧ handlerRegOk h ∧ pat ∉ regs.map Prod.fst⌝ }}
         (App (App (Val (m @!! go.GoType.PointerType _root_.Perennial.net.http.ServeMux.ty @!!
           go!"Handle")) (Val #pat)) (Val #h))
       {{ RET #(); muxOwn m (regs ++ [(pat, h)]) }}
@@ -1024,7 +1053,13 @@ theorem bodyStream_streamReaderOk (hR : bodyStreamRead_spec (GF := GF)) (rd : Go
     · ipureintro; rfl
     iintro !> %r %p %xs %Ψ !> ⟨Hs, Hp, #He⟩ HΨ
     iapply (hR _ ri Pre Φ r p xs e rfl) $$ [$Hs $Hp $He]
-    iexact HΨ
+    -- (sweep repairs 1, S3) the strong post (the tail unchanged) gives the weaker one
+    iintro !> %n %err ⟨%ys, %Hy, Hp, Hs⟩
+    iapply HΨ
+    iexists ys, xs.drop ys.length
+    iframe
+    ipureintro
+    exact ⟨Hy.1, List.length_drop .., Hy.2⟩
 
 end defs
 

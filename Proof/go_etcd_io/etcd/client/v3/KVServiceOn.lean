@@ -50,7 +50,7 @@ grant. (DRAFT, k8s etcd3 7c-1b, HS-4: the caller's error outcome at every descri
 def etcdPutSpecOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (cid mid : w64) :
     GrpcSpecMd (GF := GF) pbPutRequest pbPutResponse :=
   fun md (o : OpFull) (Φ : PutRespM → IProp GF) (Ψe : GoString → IProp GF) =>
-    iprop((□ ∀ d, Ψe d) ∗ ∃ F : mvcc.Log, mvcc.idxCert E.γ.idx F ∗
+    iprop((□ ∀ d, Ψe d) ∗ ∃ F : mvcc.Log, srvApi.kvLogLb E.γs F ∗
       ∃ Q : KVState → IProp GF, ⌜o.leaseID = W64 0⌝ ∗
         v3rpc.kvOpAuOn s E ρ (auth.mdTokenOf md) (.put o) Q ∗
         ∀ m : PutRespM, putReplied E ρ.rd F o Q cid mid m -∗
@@ -62,7 +62,7 @@ the reply also with the grant. (DRAFT, k8s etcd3 7c-1b, HS-4: the caller's error
 def etcdDeleteSpecOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (cid mid : w64) :
     GrpcSpecMd (GF := GF) pbDeleteRangeRequest pbDeleteRangeResponse :=
   fun md (o : OpFull) (Φ : DelRespM → IProp GF) (Ψe : GoString → IProp GF) =>
-    iprop((□ ∀ d, Ψe d) ∗ ⌜auth.reqShape o.key o.base.rangeEnd⌝ ∗ ∃ F : mvcc.Log, mvcc.idxCert E.γ.idx F ∗
+    iprop((□ ∀ d, Ψe d) ∗ ⌜auth.reqShape o.key o.base.rangeEnd⌝ ∗ ∃ F : mvcc.Log, srvApi.kvLogLb E.γs F ∗
       ∃ Q : KVState → IProp GF, ⌜o.base.rangeEnd ≠ [W8 0]⌝ ∗
         v3rpc.kvOpAuOn s E ρ (auth.mdTokenOf md) (.deleteRange o) Q ∗
         ∀ m : DelRespM, deleteReplied E ρ.rd F o Q cid mid m -∗
@@ -75,7 +75,7 @@ def etcdRangeSpecOn (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w
     GrpcSpecMd (GF := GF) pbRangeRequest pbRangeResponse :=
   fun md (o : OpFull) (Φ : RangeRespM → IProp GF) (Ψe : GoString → IProp GF) =>
     iprop((□ ∀ d, Ψe d) ∗ ∃ (c : w64) (F : mvcc.Log) (Q : KVState → IProp GF) (n : Nat), committedAtLeast γr c ∗
-      mvcc.idxCert E.γ.idx F ∗ auth.authPubLbM E.authMode n ∗
+      srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode n ∗
       (⌜Q = fun _ => iprop(True)⌝ ∨ (⌜o.base.serializable = false⌝ ∗ kvReadAu γr.kv Q)) ∗
       ∀ m : RangeRespM, rangeReplyOk E γr c F o cid mid Q m -∗
         v3rpc.rangeAuthed s E γr c n (auth.mdTokenOf md) o -∗ Φ m)
@@ -315,7 +315,7 @@ def etcdTxnSpecOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames
         (⌜txn.txnReadonly t = false ∧ txn.txnPlain t ∧ txnNoZeroEnd t ∧ txnNestOk t⌝ ∗
           v3rpc.kvOpAuOn s E ρ (auth.mdTokenOf md) (.txn t) Q)) ∗
       ∃ (c : w64) (F : mvcc.Log) (n : Nat), committedAtLeast γr c ∗
-      mvcc.idxCert E.γ.idx F ∗ auth.authPubLbM E.authMode n ∗
+      srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode n ∗
       ∀ m : TxnRespM, txnReplied E ρ.rd γr c F t Q cid mid m -∗
         txnAuthOn s E ρ γr c n (auth.mdTokenOf md) t -∗ Φ m)
 
@@ -331,7 +331,7 @@ revision's lower bound with auth off, with the put's grant with auth on. (DRAFT,
 def etcdPutSpecM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (cid mid : w64) :
     GrpcSpecMd (GF := GF) pbPutRequest pbPutResponse :=
   fun md (o : OpFull) (Φ : PutRespM → IProp GF) (Ψe : GoString → IProp GF) =>
-    iprop((□ ∀ d, Ψe d) ∗ ∃ F : mvcc.Log, mvcc.idxCert E.γ.idx F ∗
+    iprop((□ ∀ d, Ψe d) ∗ ∃ F : mvcc.Log, srvApi.kvLogLb E.γs F ∗
       ∃ Q : KVState → IProp GF, ⌜o.leaseID = W64 0⌝ ∗
         v3rpc.kvOpAuM on s E ρ (auth.mdTokenOf md) (.put o) Q ∗
         ∀ m : PutRespM, putReplied E ρ.rd F o Q cid mid m -∗
@@ -344,7 +344,7 @@ grant with auth on. (DRAFT, k8s etcd3 7c-1b, HS-4: the caller's error outcome at
 def etcdDeleteSpecM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (cid mid : w64) :
     GrpcSpecMd (GF := GF) pbDeleteRangeRequest pbDeleteRangeResponse :=
   fun md (o : OpFull) (Φ : DelRespM → IProp GF) (Ψe : GoString → IProp GF) =>
-    iprop((□ ∀ d, Ψe d) ∗ ⌜on = true → auth.reqShape o.key o.base.rangeEnd⌝ ∗ ∃ F : mvcc.Log, mvcc.idxCert E.γ.idx F ∗
+    iprop((□ ∀ d, Ψe d) ∗ ⌜on = true → auth.reqShape o.key o.base.rangeEnd⌝ ∗ ∃ F : mvcc.Log, srvApi.kvLogLb E.γs F ∗
       ∃ Q : KVState → IProp GF, ⌜o.base.rangeEnd ≠ [W8 0]⌝ ∗
         v3rpc.kvOpAuM on s E ρ (auth.mdTokenOf md) (.deleteRange o) Q ∗
         ∀ m : DelRespM, deleteReplied E ρ.rd F o Q cid mid m -∗
@@ -354,12 +354,15 @@ def etcdDeleteSpecM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (c
 the caller learns when `Range` fails with mvcc's future-revision or compacted error, `P` the
 condition (`rangeFutureAt`, `rangeCompactedAt`): `rangeReplyOk`'s facts of the log read without a
 reply, a certified log `log` extending the floor `F`, the compaction revision `crev` read with it
-(`mvcc.crevLb`), read after the read index unless serializable, the read's `□ Q` there. -/
+(its permit `E.Cp crev`; R8, 2026-11-08, the second `lean` merge: over mvcc's API as
+`rangeReplyOk`, in place of `lean`'s `idxCert`/`certOk`/`crevLb`), read after the read index unless
+serializable, the read's `□ Q` there. -/
 def rangeErrReply (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log) (o : OpFull)
     (Q : KVState → IProp GF) (P : mvcc.Log → Int → Prop) : IProp GF :=
-  iprop(∃ (log : mvcc.Log) (crev : Int), mvcc.idxCert E.γ.idx log ∗ mvcc.certOk E.γ log ∗
-    mvcc.crevLb E.γ.idx crev ∗
-    ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log ∧ -1 ≤ crev ∧ P log crev⌝ ∗
+  iprop(∃ (log : mvcc.Log) (crev : Int), srvApi.kvLogLb E.γs log ∗ □ E.Nx log ∗
+    ⧖ (mvcc.logCh log) ∗ □ E.Cp crev ∗
+    ⌜mvcc.LogWf' log ∧ 2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log ∧ -1 ≤ crev ∧
+      P log crev⌝ ∗
     (if o.base.serializable then iprop(True) else readLogOk γr c log) ∗
     (if o.base.serializable then iprop(True) else □ Q (kvStateOf log)))
 
@@ -377,7 +380,7 @@ def etcdRangeSpecM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (
     GrpcSpecMd (GF := GF) pbRangeRequest pbRangeResponse :=
   fun md (o : OpFull) (Φ : RangeRespM → IProp GF) (Ψe : GoString → IProp GF) =>
     iprop(∃ (c : w64) (F : mvcc.Log) (Q : KVState → IProp GF) (n : Nat), committedAtLeast γr c ∗
-      mvcc.idxCert E.γ.idx F ∗ auth.authPubLbM E.authMode n ∗
+      srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode n ∗
       (⌜Q = fun _ => iprop(True)⌝ ∨ (⌜o.base.serializable = false⌝ ∗ kvReadAu γr.kv Q)) ∗
       (⌜v3rpc.rangeCheck o ≠ none⌝ -∗ □ ∀ d, Ψe d) ∗
       ((rangeErrReply E γr c F o Q (rangeFutureAt o) -∗ Ψe go_etcd_io.etcd.cache.v3.futureRevDesc) ∧
@@ -400,7 +403,7 @@ def etcdTxnSpecM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
         (⌜txn.txnReadonly t = false ∧ txn.txnPlain t ∧ txnNoZeroEnd t ∧ txnNestOk t⌝ ∗
           v3rpc.kvOpAuM on s E ρ (auth.mdTokenOf md) (.txn t) Q)) ∗
       ∃ (c : w64) (F : mvcc.Log) (n : Nat), committedAtLeast γr c ∗
-      mvcc.idxCert E.γ.idx F ∗ auth.authPubLbM E.authMode n ∗
+      srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode n ∗
       ∀ m : TxnRespM, txnReplied E ρ.rd γr c F t Q cid mid m -∗
         (⌜on = false⌝ → txnRevLb ρ.rd.kv t m) -∗
         (⌜on = true⌝ → txnAuthOn s E ρ γr c n (auth.mdTokenOf md) t) -∗ Φ m)

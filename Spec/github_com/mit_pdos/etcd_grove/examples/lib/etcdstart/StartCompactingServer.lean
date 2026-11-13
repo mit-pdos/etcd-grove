@@ -1,5 +1,5 @@
 /-
-`StartCompactingServer(name, peerAddr, clientAddr, retention, lg)` (`examples/lib/etcdstart/etcdstart.go`;
+`StartCompactingServer(name, peerAddr, clientAddr, retention, lg)` (`examples/lib/etcdstart/common.go`;
 M2, 2026-10-27, `notes/m2-plan.md`): `StartServer` with the auto-compactor on, in revision mode,
 keeping `retention` revisions -- `newServer` with that retention, `s.Start()`; `putgetc`'s start.
 Lean-first (no Rocq counterpart).
@@ -51,11 +51,13 @@ abbrev StartCompactingServer.spec : Prop :=
   utf8Valid name →
   -- (K3 of the k8s compactor plan, 2026-11-04) the retention positive, or `0`: etcd's compactor
   -- off, every compaction a client's (Kubernetes' deployment; `v3compactor.bootCfg`'s off case)
-  lg ≠ null → 0 ≤ sint.Z retention →
+  0 ≤ sint.Z retention →
   -- (C3's server stage, 2026-11-02) the cluster's retention at most the compactor's
   (ρ.rd.kv.cret : Int) ≤ sint.Z retention →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.diskOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
+      -- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
+      zapLoggerOk lg ∗
       threadTok ∗
       -- (M2's item 15, stage B3) at `N` write tokens (`N + N` from M2 until then: `N` more, the
       -- compaction's write-back stock)

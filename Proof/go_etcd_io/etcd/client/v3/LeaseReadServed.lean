@@ -21,6 +21,7 @@ lessor's history (`grpcHandlerOk_slot` rearranges a run's slot into it).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.client.v3.PerTypeLease
 public import Proof.go_etcd_io.etcd.client.v3.Results
 public import Proof.go_etcd_io.etcd.client.v3.InvLeaseRead
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb._Lease_LeaseTimeToLive_Handler
@@ -339,14 +340,14 @@ theorem etcd_leaseLeasesMethodOk (q : Loc)
 /-- **etcd's lease reads** as registered: `LeaseTimeToLive` and `LeaseLeases`, the generated
 handlers of `Lease_ServiceDesc` with the `*quotaLeaseServer` `q`, with etcd's specs. -/
 def etcdLeaseReadMethods (q : Loc) : List (GrpcMethod GF) :=
-  [⟨go!"/etcdserverpb.Lease/LeaseTimeToLive", pbLeaseTimeToLiveRequest, pbLeaseTimeToLiveResponse,
+  [⟨go!"/etcdserverpb.Lease/LeaseTimeToLive", pbLeaseTimeToLiveRequestT, pbLeaseTimeToLiveResponseT,
      GrpcSpec.md etcdLeaseTTLSpec, (@! etcdserverpb._Lease_LeaseTimeToLive_Handler),
      interface.mkOk (go.GoType.PointerType
-       go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty) #q⟩,
-   ⟨go!"/etcdserverpb.Lease/LeaseLeases", pbLeaseLeasesRequest, pbLeaseLeasesResponse,
+       go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty) #q, pbLeaseTimeToLiveRequestT_reg, pbLeaseTimeToLiveResponseT_reg⟩,
+   ⟨go!"/etcdserverpb.Lease/LeaseLeases", pbLeaseLeasesRequestT, pbLeaseLeasesResponseT,
      GrpcSpec.md etcdLeaseLeasesSpecAny, (@! etcdserverpb._Lease_LeaseLeases_Handler),
      interface.mkOk (go.GoType.PointerType
-       go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty) #q⟩]
+       go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty) #q, pbLeaseLeasesRequestT_reg, pbLeaseLeasesResponseT_reg⟩]
 
 /-- **The lease reads as grpc runs them, at the KV's run slot with a thread token**
 (`etcdGrpcSlot s E γr ∗ threadTok`, the one slot of a server serving both): the handler meets at
@@ -355,10 +356,10 @@ rearranged (`grpcHandlerOk_slot`), promoted through the `*quotaLeaseServer` `q`,
 interceptors. -/
 theorem etcd_leaseReadMethodsOk (lp q s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64)
     (E : apply.AEnv GF) (γr : ReadNames) (γl : GName) (il im iu : GoFunc)
-    (hA : A.revR = mvcc.storeReader E.s E.γ) :
+    (hA : A.revR = mvcc.api.mvccReaders E.γ 1) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         v3rpc.leaseServerAt lp s A cid mid ∗
-        v3rpc.raftLeaseRead s E γl iprop(E.RD ∗ threadTok) (mvcc.storeReader E.s E.γ) ∗
+        v3rpc.raftLeaseRead s E γl iprop(E.RD ∗ threadTok) (mvcc.api.mvccReaders E.γ 1) ∗
         auth.authPubLbM E.authMode 0 ∗ lease.lessorLb γl 0 ∗
         v3rpc.quotaLeaseServerAt q
           ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty, #lp⟩ s ∗
@@ -420,7 +421,7 @@ theorem etcd_leaseReadMethodsOk (lp q s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
   ihave #Hml' := (grpcMethodOk_md _ _ _ _ _).1 $$ Hml
   ihave #Hmt'' := grpcMethodOkMd_slot _ _ _ _ _ _ _ h3 h4 $$ Hmt'
   ihave #Hml'' := grpcMethodOkMd_slot _ _ _ _ _ _ _ h3 h4 $$ Hml'
-  simp only [etcdLeaseReadMethods]
+  simp only [etcdLeaseReadMethods, pbLeaseLeasesRequestT, pbLeaseLeasesResponseT, pbLeaseTimeToLiveRequestT, pbLeaseTimeToLiveResponseT]
   iframe #
   iapply BigSepL.bigSepL_nil.2
   itrivial

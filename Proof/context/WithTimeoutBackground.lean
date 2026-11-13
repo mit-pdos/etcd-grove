@@ -33,7 +33,7 @@ theorem context.WithTimeoutBackground.wp_proof :
   intro d
   iintro %Φ ⟨#Hpkg, -⟩ HΦ
   wp_apply (_root_.Perennial.context.wp_WithTimeout_Background d) $$ []
-    as %ctx' %γ' %cancel %dl ⟨#Hcancel, #Hctx⟩
+    as %ctx' %γ' %cancel %dl ⟨#Hcancel, #Hctx, -⟩
   iapply HΦ
   iframe #
 

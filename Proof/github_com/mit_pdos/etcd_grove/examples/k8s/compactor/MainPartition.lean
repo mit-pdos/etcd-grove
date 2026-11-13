@@ -66,9 +66,10 @@ theorem memberWatch_of_cinv (γr : ReadNames) (s : Loc) (E : apply.AEnv GF) (ρ 
     (R : v3rpc.WSrv GF) (γc : CNames) (hR : R.E = E) (hm : v3rpc.memberOf γr.raft γr.kv ρ.rd)
     (hst : kvSame ρ.rd.kv γr.kv) (hlog : ρ.rd.kv.log0 = [[], []])
     (hrb : receiptBound GF ≤ 2 ^ 62) :
-    isServerRead s E ρ.rd ∗ (∃ pw : Loc, v3rpc.isWatchServer pw R) ∗ cinv γr.kv γc ⊢
+    isServerRead s E ρ.rd ∗ (∃ pw : Loc, v3rpc.isWatchServer pw R) ∗
+      client.srvWLaws (etcdstart.srvWOf E ρ.rd false) ∗ cinv γr.kv γc ⊢
       cluster3.memberWatch γr s E ρ R := by
-  iintro ⟨#Hrd, ⟨%pw, #Hws⟩, #Hinv⟩
+  iintro ⟨#Hrd, ⟨%pw, #Hws⟩, #Hwl, #Hinv⟩
   iunfold cluster3.memberWatch
   isplitr
   · iexact Hrd
@@ -76,16 +77,13 @@ theorem memberWatch_of_cinv (γr : ReadNames) (s : Loc) (E : apply.AEnv GF) (ρ 
   · iexists pw; iexact Hws
   isplitr
   · ipureintro; exact ⟨hR, hm, hst⟩
+  iframe Hwl
   subst hR
-  iunfold mvcc.watchNoDup; iright
-  iapply (noDupKeys_of_one (client.srvWEnv R go!"" [] null null go!"" null γr.kv) γr.kv rfl)
+  -- (R9) the watch condition: no revision writes a key twice (each has one change)
+  iapply (srvOnce_of_one (client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd go!"" [] null null go!"" null γr.kv) γr.kv rfl)
   isplitr
-  · iapply client.srvKVFacts_of_off (client.srvWEnv R go!"" [] null null go!"" null γr.kv) ρ.rd
-      hst hlog hrb
-    isplitr
-    · iapply srvKVInvs_of_read s R.E ρ.rd $$ Hrd
-    iapply mvcc.idxCert_sealed
-    iapply cluster3.cert0_of_server pw R $$ Hws
+  · iapply client.srvKVFacts_of_off (client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd go!"" [] null null go!"" null γr.kv) ρ.rd hst hlog hrb rfl rfl
+    iapply srvKVInvs_of_read s R.E ρ.rd $$ Hrd
   iapply oneChangeAu $$ Hinv
 
 set_option maxHeartbeats 3200000 in
@@ -126,13 +124,14 @@ theorem MainPartition.wp_proof
       pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.cluster3 $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_NewNop as %lg %Hlg
+  wp_apply wp_NewNop as %lg #Hlgz
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hlgz
   (try wp_auto)
   -- `cfg := clusterConfig()`
   wp_apply wp_clusterConfig
   (try wp_auto)
   -- `cluster3.StartCluster(cfg, lg)`, in compaction mode
-  wp_apply (wp_StartCluster clusterCfg N id₁ id₂ id₃ ps ctxs boot lg true .none clusterCfg_ok Hbf Hlg Htb
+  wp_apply (wp_StartCluster clusterCfg N id₁ id₂ id₃ ps ctxs boot lg true .none clusterCfg_ok Hbf Htb
       Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo Hms lease.runCfg_none (by decide) (fun h => absurd rfl h))
     $$ [Hstart Htok] as %srvs %brs %ok Hup
   · iframe; iframe #
@@ -151,11 +150,11 @@ theorem MainPartition.wp_proof
   obtain ⟨hst₂, hst₃, hkc, hkr⟩ := Hal
   isimp only [cluster3.memberAt_none] at Hm₁ Hm₂ Hm₃
   icases Hm₁ with ⟨#Hfw₁, #Hrd₁, #HPut₁, #HRange₁, #HDel₁, #HTxn₁, #HCmp₁, %Hnr₁, #Hws₁,
-    %HR₁, #Hstr₁, %Hp₁⟩
+    %HR₁, #Hwl₁, #Hstr₁, %Hp₁⟩
   icases Hm₂ with ⟨#Hfw₂, #Hrd₂, #HPut₂, #HRange₂, #HDel₂, #HTxn₂, #HCmp₂, %Hnr₂, #Hws₂,
-    %HR₂, #Hstr₂, %Hp₂⟩
+    %HR₂, #Hwl₂, #Hstr₂, %Hp₂⟩
   icases Hm₃ with ⟨#Hfw₃, #Hrd₃, #HPut₃, #HRange₃, #HDel₃, #HTxn₃, #HCmp₃, %Hnr₃, #Hws₃,
-    %HR₃, #Hstr₃, %Hp₃⟩
+    %HR₃, #Hwl₃, #Hstr₃, %Hp₃⟩
   obtain ⟨hr₁, hc₁, hch₁, hlog₁, -⟩ := Hp₁
   obtain ⟨hr₂, hc₂, hch₂, hlog₂, -⟩ := Hp₂
   obtain ⟨hr₃, hc₃, hch₃, hlog₃, -⟩ := Hp₃
@@ -180,13 +179,13 @@ theorem MainPartition.wp_proof
   imod (cinv_alloc ρ₁.rd.kv ⊤) $$ Hetcd with ⟨%γc, #Hinv⟩
   -- each member's watch facts, and its `Watch` stream at its bridge
   ihave #Hmw₁ := memberWatch_of_cinv ρ₁.rd s₁ E₁ ρ₁ R₁ γc HR₁.2 hm₁ (kvSame_refl _) hlog₁ hrb
-    $$ [Hrd₁ Hws₁ Hinv]
+    $$ [Hrd₁ Hws₁ Hwl₁ Hinv]
   · iframe #
   ihave #Hmw₂ := memberWatch_of_cinv ρ₁.rd s₂ E₂ ρ₂ R₂ γc HR₂.2 hm₂ hst₂ hlog₂ hrb
-    $$ [Hrd₂ Hws₂ Hinv]
+    $$ [Hrd₂ Hws₂ Hwl₂ Hinv]
   · iframe #
   ihave #Hmw₃ := memberWatch_of_cinv ρ₁.rd s₃ E₃ ρ₃ R₃ γc HR₃.2 hm₃ hst₃ hlog₃ hrb
-    $$ [Hrd₃ Hws₃ Hinv]
+    $$ [Hrd₃ Hws₃ Hwl₃ Hinv]
   · iframe #
   ihave #Hb₁ := cluster3.isGrpcStream_forwards clusterCfg.Bridge1' clusterCfg.Client1' _ _ _
     $$ [Hfw₁ Hstr₁]
@@ -198,9 +197,9 @@ theorem MainPartition.wp_proof
     $$ [Hfw₃ Hstr₃]
   · iframe #
   -- the watcher's facts at every connection to the bridges
-  let V := cluster3.watchEnv clusterCfg R₁ R₂ R₃ ρ₁.rd go!"k"
+  let V := cluster3.watchEnv clusterCfg R₁ R₂ R₃ (etcdstart.srvWOf E₁ ρ₁.rd false) (etcdstart.srvWOf E₂ ρ₂.rd false) (etcdstart.srvWOf E₃ ρ₃.rd false) ρ₁.rd go!"k"
   ihave #Hconn := cluster3.watchEnv_conn wp_ErrAny hAs clusterCfg clusterCfg_ok R₁ R₂ R₃ ρ₁.rd
-    go!"k" (by decide) hlog₁ hrb s₁ s₂ s₃ E₁ E₂ E₃ ρ₁ ρ₂ ρ₃
+    go!"k" (by decide) hlog₁ hrb s₁ s₂ s₃ E₁ E₂ E₃ ρ₁ ρ₂ ρ₃ HR₁.2 HR₂.2 HR₃.2
     $$ [Pcli Ppb Pctx Heo Hmw₁ Hmw₂ Hmw₃ Hb₁ Hb₂ Hb₃]
   · iframe #
   -- the members at their bridges: their registrations there, their starts, refusal-free (D29)
@@ -273,7 +272,8 @@ theorem MainPartition.wp_proof
   iunfold srvKVInvs at Hinvs
   icases Hinvs with ⟨#Hkvi, -⟩
   -- `wcli, err := cluster3.NewClient(cfg, lg)`
-  wp_apply (wp_NewClient clusterCfg lg V clusterCfg_ok htb Hlg) as %wcl %werr Hwc
+  wp_apply (wp_NewClient clusterCfg lg V clusterCfg_ok htb) as %wcl %werr Hwc
+  · iframe #
   icases Hwc with (⟨%Hwerr, #Hwnc, -⟩ | %Hwfail)
   rotate_left
   · obtain ⟨Hwerr, -⟩ := Hwfail
@@ -377,7 +377,8 @@ theorem MainPartition.wp_proof
   wp_for IH
   wp_if_destruct
   · -- `cli, err := cluster3.NewClient(cfg, lg)`
-    wp_apply (wp_NewClient clusterCfg lg V clusterCfg_ok htb Hlg) as %cl %cerr Hc
+    wp_apply (wp_NewClient clusterCfg lg V clusterCfg_ok htb) as %cl %cerr Hc
+    · iframe #
     icases Hc with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
     rotate_left
     · obtain ⟨Hcerr, -⟩ := Hcfail

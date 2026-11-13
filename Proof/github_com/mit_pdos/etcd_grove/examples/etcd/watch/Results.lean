@@ -40,7 +40,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.watch.Assumptions]
 
 /-- **`Main` does not panic** (`Link.lean`'s `etcd_watch.wp_Main`). -/
-theorem watchkv_Main [go_etcd_io.etcd.cache.v3.Assumptions] [Float64ToInt64Semantics]
+theorem watchkv_Main [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_watch.Main.spec (GF := GF) (hG := hG) :=
   etcd_watch.wp_Main
@@ -58,7 +58,7 @@ theorem etcd_watch_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC putgetGF, ContextReadErrs (GF := putgetGF) (hG := heapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC putgetGF, ContextErrsClient (GF := putgetGF) (hG := heapAt hG lctx))
@@ -71,8 +71,10 @@ theorem etcd_watch_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hmul : sint.Z nw * sint.Z nops < 2 ^ 62)
     (HNs : prometheus.namesUnclaimed (watchkvProgram nw nops) watchkvNames)
     (HAs : addrsUnclaimed (watchkvProgram nw nops) [go!"127.0.0.1:23872"])
-    -- (2026-11-03, the WAL's API, change 6) the member's WAL directory holds no WAL at start
-    (HDs : walDirsAbsent (watchkvProgram nw nops) [config.walDirOf go!"watchkv.etcd" go!""])
+    -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
+    (HDs : dataDirsAbsent (watchkvProgram nw nops) [go!"watchkv.etcd"])
+    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
+    (HEnv : verifyEnvOff (watchkvProgram nw nops))
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetGF,
       ⊢ etcd_watch.premises (GF := putgetGF) (hG := heapAt hG lctx) n id ctxs boot)
@@ -85,7 +87,7 @@ theorem etcd_watch_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
   etcd_watch_adequate Hctx Hcec id ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo nw nops H0 H31 Hops Hmul
-    HNs HAs HDs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
+    HNs HAs HDs HEnv n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 end adequacy
 

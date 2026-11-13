@@ -30,8 +30,9 @@ appended to from the context's `rawMD`), each of its values a fresh slice of str
 none included). grpc's code reads the context's `Value(mdOutgoingKey{})` (an unexported key: only
 grpc's `NewOutgoingContext`/`AppendToOutgoingContext` store a `rawMD` under it) and asserts it
 with `, ok`; its panic on an odd-length `added` list is unreachable (`AppendToOutgoingContext`
-panics first on an odd number of arguments). Like `context.ValueKeepAlive`, it assumes the
-context's `Value` returns at a key it does not know. -/
+panics first on an odd number of arguments). It assumes the context's `Value` returns at a key it
+does not know (as `context.ValueKeepAlive` did until sweep repairs 1's B2b, now a theorem over
+`keepAliveOk`). -/
 abbrev metadata.FromOutgoingContext.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.metadata ∗ context.isContext ctx cd }}

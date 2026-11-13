@@ -125,11 +125,14 @@ PROJECTS = [
         # D21 M3): branch raft37-goose-lean-a1 of the etcd fork (raft37-goose-lean, 509271dac,
         # plus the second fix); and (2026-10-28) a third, the configuration switched to a
         # snapshot's when it is applied, not restored (issues/raft-snapshot-during-apply-stale-confchange.md):
-        # branch raft37-goose-lean-a2, 565c2bd on a1. (The raft proof was ported to it in a parallel tree, the module root Raft37,
+        # branch raft37-goose-lean-a2, 565c2bd on a1; and (2026-11-10, premise fixes 2) a fourth,
+        # `ConfState.Equivalent` comparing the configurations, not the messages (`proto.Equal`
+        # compared unknown fields: nonissues/raft-confstate-unknown-fields-panic.md), d2c16c5 on
+        # a2. (The raft proof was ported to it in a parallel tree, the module root Raft37,
         # stages R0-R5 of notes/raft-retarget-plan.md; stage R6 made it the raft tree, 2026-10-16.)
         # Modules Code.go_etcd_io.raft.v3*, GeneratedProof.go_etcd_io.raft.v3*.
         repo="https://github.com/upamanyus/etcd",
-        rev="565c2bda9e6dd2c41fa0dcc598bdbc52f2d64885",
+        rev="d2c16c558247d0a07b96986fc348a003dad80f6e",
         # raft's `proto` import is the names-only `Code.google_golang_org.protobuf.proto`
         # of the etcd project (as the protobuf runtime types raftpb's messages hold).
         # (`os`, `io/fs`: this repository's translations, project bboltfs's, not Perennial's; every
@@ -251,11 +254,14 @@ PROJECTS = [
         # `goose-lean-noproph2` (on 323320bb8): bc9c3868c reverted (673da07c8), its prophecy now the
         # prophecy patch etc/proph-patches/etcd/01-client-get-revision.patch (notes/decisions.md,
         # "Prophecies as patches of the Go code"); the fork carries no code for verification only.
+        # Then (sweep repairs 1, R1-3, 2026-11-08) a4d2bb172 on `goose-lean`: `purgeFile` no longer
+        # purges `.snap.db` files (`ReleaseSnapDBs` removes the ones below an opened or taken
+        # snapshot; nonissues/etcd-purge-snapdb-unopened.md, the user's option A via etcd-grove-82).
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="673da07c8fabc5a544d0017ff0cc241802bcd9b1",
+        rev="a4d2bb1720b9ab0c44919b5c032f3a8cc7511692",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
@@ -812,6 +818,38 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "partition")],
     ),
     Project(
+        name="mvccrand",
+        # mvcc's randomized tester (notes/mvccrand.md): the watchable store over a real backend and
+        # lessor with a post-lock hook, one writer, concurrent floored readers and a watch stream,
+        # each result checked against the history. A package of the examples' Go module
+        # (examples/go.mod); its imports are the etcd project's translations (names reached through
+        # the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "mvccrand"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "github.com/Masterminds/semver=",
+                    "go.etcd.io/etcd=", "go.etcd.io/raft/v3=", "go.uber.org=", "google.golang.org=",
+                    "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "mvccrand")],
+    ),
+    Project(
+        name="mvccfull",
+        # mvcc's full tester (notes/mvccfull.md): two members over real backends and lessors,
+        # one log with compactions, snapshot installs and restarts, concurrent readers, hash
+        # checks and watch streams, every choice from primitive.RandomUint64. A package of the
+        # examples' Go module (examples/go.mod); its imports are the etcd project's translations
+        # (names reached through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "mvccfull"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "github.com/Masterminds/semver=",
+                    "go.etcd.io/etcd=", "go.etcd.io/raft/v3=", "go.uber.org=", "google.golang.org=",
+                    "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "mvccfull")],
+    ),
+    Project(
         name="watchkv",
         # The watch example: one member started in-process, as in putget, a prefix watch from
         # revision 1, writer goroutines putting random keys under the prefix, and a check of the
@@ -950,11 +988,12 @@ PROJECTS = [
         # fork, etcd-io/raft#168 rebased onto raft37-goose-lean-a1 (project raft's pin) with
         # the fixes of notes/raft-witness-vs-pr168.md, at 99cb9e2d9 (a witness shared by both
         # halves of a joint configuration is sent an entry only if both replicate to it;
-        # notes/raft-witness-reconfig.md). Translated into the parallel tree RaftWitness
+        # notes/raft-witness-reconfig.md), then (2026-11-10, premise fixes 2) project raft's fourth fix, `ConfState.Equivalent`
+        # comparing configurations, at 3e3ed2d. Translated into the parallel tree RaftWitness
         # (modules RaftWitness.Code.go_etcd_io.raft.v3*, ...), which nothing outside it imports;
         # the same packages as project raft, configured by RaftWitness/Code/**.toml.
         repo="https://github.com/upamanyus/etcd",
-        rev="99cb9e2d98d40d423aa7e7ec1f12f0877a45570e",
+        rev="3e3ed2d2974287a24803a1772d1a4216cc5aee05",
         root="RaftWitness",
         # raft's `proto` import is the main tree's names-only `Code.google_golang_org.protobuf.proto`
         lean_roots=["go.etcd.io/raft/v3=RaftWitness", "google.golang.org=", "os=", "io/fs="],

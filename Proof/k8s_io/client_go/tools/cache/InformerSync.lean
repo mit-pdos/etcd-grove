@@ -47,7 +47,7 @@ def syncOk (q : cache.FQ) (pd : List cache.FD) (ap : Bool) (s : InfP) (f : Optio
 
 /-- **A relist applied**: the store's version is at least its version after the deltas through it. -/
 theorem replaced_applied (l : List Change) (hs : l.Pairwise (fun a b => a.rv.toNat < b.rv.toNat)) :
-    ∀ (st : View) (ds rest : List Delta) (w : Option Nat) (M : GMap Key Obj) (v : Nat),
+    ∀ (st : View) (ds rest : List Delta) (w : Option Nat) (M : GMap apimodel.Key Obj) (v : Nat),
       Inf.ok l ⟨st, ds ++ rest, w⟩ → Delta.replaced M v ∈ ds → v ≤ rvNat (st.applyAll ds).rv
   | _, [], _, _, _, _, _, hm => by simp at hm
   | st, d :: ds, rest, w, M, v, h, hm => by
@@ -181,7 +181,7 @@ theorem sync_populated (q : cache.FQ) (pd : List cache.FD) (ap : Bool) (s : InfP
 /-- **The first relist**: the queue, empty, holds the relist, the count `1`; its version the first
 list's. -/
 theorem sync_replace_first (q : cache.FQ) (pd : List cache.FD) (ap : Bool) (s : InfP)
-    (f : Option Nat) (xs : List GoInterface) (rvs : GoString) (M : GMap Key Obj) (w : Nat)
+    (f : Option Nat) (xs : List GoInterface) (rvs : GoString) (M : GMap apimodel.Key Obj) (w : Nat)
     (h : syncOk q pd ap s f) (hq : q.populated = false) (hfifo0 : s.fifo = [])
     (hpop0 : s.popped = []) :
     syncOk (q.replace xs rvs) pd ap ⟨s.store, s.popped, s.fifo ++ [.replaced M w], some w⟩

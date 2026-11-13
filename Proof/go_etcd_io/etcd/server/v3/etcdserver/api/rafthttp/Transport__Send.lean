@@ -106,7 +106,7 @@ theorem rafthttp.Transport.Send.wp_proof
     subst Hr
     icases BigSepL.bigSepL_cons.1 $$ Hms with ⟨Hm1, Hms⟩
     iunfold sendMsg at Hm1
-    icases Hm1 with ⟨%st, #Hmo, #HP, HO, %Hst⟩
+    icases Hm1 with ⟨%st, #Hmo, #Hbd, #HP, HO, %Hst⟩
     wp_apply hGetTo.1 ml _ _ _ st $$ [] as -
     · iframe #
     (try wp_auto)
@@ -164,7 +164,7 @@ theorem rafthttp.Transport.Send.wp_proof
         wp_apply hPeerSend Rh lid st.msg.To' γd R pp ml $$ [HO]
         · iframe #
           iunfold peerMsg; iexists st; iframe; iframe #; ipureintro
-          exact ⟨Hst.1, rfl, Hst.2.1, Hst.2.2.1, Hst.2.2.2.1, Hst.2.2.2.2⟩
+          exact ⟨Hst.1, rfl, Hst.2.1, Hst.2.2.1, Hst.2.2.2⟩
         (try wp_auto)
         next_msg
       · rw [_root_.decide_eq_false ha]
@@ -172,7 +172,7 @@ theorem rafthttp.Transport.Send.wp_proof
         wp_apply hPeerSend Rh lid st.msg.To' γd R pp ml $$ [HO]
         · iframe #
           iunfold peerMsg; iexists st; iframe; iframe #; ipureintro
-          exact ⟨Hst.1, rfl, Hst.2.1, Hst.2.2.1, Hst.2.2.2.1, Hst.2.2.2.2⟩
+          exact ⟨Hst.1, rfl, Hst.2.1, Hst.2.2.1, Hst.2.2.2⟩
         (try wp_auto)
         next_msg
     | none =>

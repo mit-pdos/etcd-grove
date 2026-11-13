@@ -88,10 +88,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- **Revision `r` of the store is the put of `k ↦ v`** (persistent): a sealed log of the store
-`E.γ` has it. -/
+/-- **Revision `r` of the store is the put of `k ↦ v`** (persistent): a floor of the store's
+committed log has it (R9, the `lean` merge: the server's floor `kvLogLb E.γs`; until then a sealed
+log of mvcc's index, `idxSealed E.γ.idx`). -/
 def revAt (E : apply.AEnv GF) (r : Nat) (k v : GoString) : IProp GF :=
-  iprop(∃ L : mvcc.Log, mvcc.idxSealed E.γ.idx L ∗ ⌜L[r]? = some [mvcc.Change.put k v (W64 0)]⌝)
+  iprop(∃ L : mvcc.Log, srvApi.kvLogLb E.γs L ∗ ⌜L[r]? = some [mvcc.Change.put k v (W64 0)]⌝)
 
 instance revAt_persistent (E : apply.AEnv GF) (r : Nat) (k v : GoString) :
     Persistent (revAt (GF := GF) E r k v) := by
@@ -102,10 +103,9 @@ theorem revAt_agree (E : apply.AEnv GF) (r : Nat) (k v k' v' : GoString) :
     revAt (GF := GF) E r k v ∗ revAt E r k' v' ⊢ ⌜k = k' ∧ v = v'⌝ := by
   unfold revAt
   iintro ⟨⟨%L, #H, %h⟩, ⟨%L', #H', %h'⟩⟩
-  ihave %Hp := mvcc.idxSealed_prefix E.γ.idx L L' $$ [H H']
-  · isplit
-    · iexact H
-    · iexact H'
+  iunfold srvApi.kvLogLb at H
+  iunfold srvApi.kvLogLb at H'
+  ihave %Hp := mono_list_lb_valid E.γs.slog L L' $$ H H'
   ipureintro
   have hrL : r < L.length := (List.getElem?_eq_some_iff.mp h).1
   have hrL' : r < L'.length := (List.getElem?_eq_some_iff.mp h').1

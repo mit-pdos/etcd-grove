@@ -86,7 +86,7 @@ theorem client_Watch_field (wp_Watch : watcher.Watch.spec (GF := GF) (hG := hG))
           go!"Watch")) (Val #(GoInterface.ok ctx))) (Val #key)) (Val #sl))
     {{ (ch : Loc) (γw : EtcdWatchNames), RET #ch;
         isSpsc γw.spsc ch (watchStateElem V.kv γw (opWatchModel key opts).watchNorm Q
-          iprop(□ (⌜V.nm = 1⌝ → client.watchCheckOk (V.mem 0).2.γ (V.mem 0).2.s V.conn
+          iprop(□ (⌜V.nm = 1⌝ → client.watchCheckOk (V.mem 0).2.tag (V.mem 0).2.s V.conn
             (GoInterface.ok ctx) n (opWatchModel key opts).key
             (opWatchModel key opts).base.rangeEnd)))
           (fun _ => iprop(True)) ∗

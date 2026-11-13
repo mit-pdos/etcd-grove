@@ -51,7 +51,7 @@ theorem apply.newApplierV3.wp_proof
   · iintro !> %E #Hopts
     ihave #Hok := Hopts
     iunfold apply.backendOptsOk at Hok
-    icases Hok with ⟨-, -, -, #Hle, #Has, -⟩
+    icases Hok with ⟨-, -, -, -, #Hle, #Has, -⟩
     ihave #Hb' := Hb $$ %E Hopts
     ihave #Hq' := Hq $$ %E %.backend Hb'
     simp only [apply.baseChain]
@@ -60,7 +60,7 @@ theorem apply.newApplierV3.wp_proof
   iintro !> %E #Hopts
   ihave #Hok := Hopts
   iunfold apply.backendOptsOk at Hok
-  icases Hok with ⟨-, -, -, #Hle, #Has, -⟩
+  icases Hok with ⟨-, -, -, -, #Hle, #Has, -⟩
   ihave #Hb' := Hb $$ %E Hopts
   ihave #Hq' := Hq $$ %E %.backend Hb'
   ihave #HA := HpA $$ %E Has Hle

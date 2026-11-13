@@ -1,4 +1,4 @@
-From e8f9566f8c00ca3518178b44f62782e13f0ab72c Mon Sep 17 00:00:00 2001
+From 5c85de5bd9797688bb5758a50d6d71447e72b060 Mon Sep 17 00:00:00 2001
 From: Joseph Tassarotti <jt4767@nyu.edu>
 Date: Sun, 8 Nov 2026 02:52:38 +0000
 Subject: [PATCH] raft: trace hooks under the goose tag (Goose translates the

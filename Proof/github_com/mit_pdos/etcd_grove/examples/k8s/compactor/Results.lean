@@ -5,7 +5,7 @@
 
 * **`k8s_compactor_Main`** (`MainLinked.lean`): `Main` does not panic. From `isPkgInit`, the right
   to listen on the client address, the main thread's token, the member's start premises
-  (`etcdstart.premises`), a fresh WAL directory and the compactor registry's authority with no
+  (`etcdstart.premises`), a fresh data directory and the compactor registry's authority with no
   endpoint claimed (`regAuth ∅`), under the named hypothesis of
   `clock.RealClock.After`.
 * **`k8s_compactor_safe`** (`Adequacy.lean`'s `k8s_compactor_adequate`): the closed theorem. Every
@@ -15,7 +15,7 @@
 * **`k8s_compactor_MainPartition`** (`MainLinked.lean`; K6): `MainPartition(sched)` does not panic.
   From `isPkgInit`, the right to listen on the nine addresses of `clusterCfg` (the members' peer
   addresses with their HTTP rights), the schedule read-only (any steps), the main thread's token,
-  the cluster's premises (`cluster3.premises`), fresh WAL directories and `regAuth ∅`, under the
+  the cluster's premises (`cluster3.premises`), fresh data directories and `regAuth ∅`, under the
   named hypothesis of `clock.RealClock.After`.
 * **`k8s_compactor_partition_safe`** (`Adequacy.lean`'s `k8s_compactor_partition_adequate`; K6): the
   closed theorem of the example's initialization followed by `MainPartition(sched)`, the schedule
@@ -49,13 +49,13 @@ variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Assumptions]
 
 /-- **`Main` does not panic** (`MainLinked.lean`'s `k8s_compactor.wp_Main`). -/
-theorem k8s_compactor_Main [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+theorem k8s_compactor_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     (h_After : EtcdGrove.clock.RealClock.After.spec (GF := GF) (hG := hG)) :
     k8s_compactor.Main.spec (GF := GF) (hG := hG) :=
   k8s_compactor.wp_Main h_After
 
 /-- **`MainPartition` does not panic** (`MainLinked.lean`'s `k8s_compactor.wp_MainPartition`). -/
-theorem k8s_compactor_MainPartition [go_etcd_io.etcd.cache.v3.Assumptions] [Float64ToInt64Semantics]
+theorem k8s_compactor_MainPartition [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     (h_After : EtcdGrove.clock.RealClock.After.spec (GF := GF) (hG := hG)) :
     k8s_compactor.MainPartition.spec (GF := GF) (hG := hG) :=
@@ -72,7 +72,7 @@ the file header and `Adequacy.lean`). -/
 theorem k8s_compactor_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC k8scompactorGF,
       ContextReadErrs (GF := k8scompactorGF) (hG := heapAtKc hG lctx))
@@ -84,7 +84,9 @@ theorem k8s_compactor_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (HNs : prometheus.namesUnclaimed k8scompactorProgram k8scompactorNames)
     (HAs : addrsUnclaimed k8scompactorProgram [go!"127.0.0.1:23976"])
-    (HDs : walDirsAbsent k8scompactorProgram [config.walDirOf go!"k8scompactor.etcd" go!""])
+    (HDs : dataDirsAbsent k8scompactorProgram [go!"k8scompactor.etcd"])
+    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
+    (HEnv : verifyEnvOff k8scompactorProgram)
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC k8scompactorGF,
       ⊢ etcdstart.premises (GF := k8scompactorGF) (hG := heapAtKc hG lctx) go!"k8scompactor"
@@ -99,7 +101,7 @@ theorem k8s_compactor_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  k8s_compactor_adequate Hctx Hcec id ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo HNs HAs HDs n Hprem Hafter
+  k8s_compactor_adequate Hctx Hcec id ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo HNs HAs HDs HEnv n Hprem Hafter
     σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 /-- **The compactor example on three members under partitions is safe, in the operational
@@ -107,7 +109,7 @@ semantics** (`k8s_compactor_partition_adequate`, see the file header and `Adequa
 theorem k8s_compactor_partition_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC k8scompactorGF,
       ContextReadErrs (GF := k8scompactorGF) (hG := heapAtKc hG lctx))
@@ -121,8 +123,9 @@ theorem k8s_compactor_partition_safe [lctx : GoLocalContext] [sem : go.Semantics
     (Hsteps : steps.length < 2 ^ 63)
     (HNs : prometheus.namesUnclaimed (k8scompactorPProgram steps) k8scompactorNames)
     (HAs : addrsUnclaimed (k8scompactorPProgram steps) k8scompactorPAddrs)
-    (HDsNd : k8scompactorPWalDirs.Nodup)
-    (HDs : walDirsAbsent (k8scompactorPProgram steps) k8scompactorPWalDirs)
+    (HDs : dataDirsAbsent (k8scompactorPProgram steps) k8scompactorPDataDirs)
+    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
+    (HEnv : verifyEnvOff (k8scompactorPProgram steps))
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC k8scompactorGF,
       ⊢ cluster3.premises (GF := k8scompactorGF) (hG := heapAtKc hG lctx) k8s_compactor.clusterCfg n
@@ -138,7 +141,7 @@ theorem k8s_compactor_partition_safe [lctx : GoLocalContext] [sem : go.Semantics
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
   k8s_compactor_partition_adequate Hctx Hcec id₁ id₂ id₃ ps ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo steps
-    Hsteps HNs HAs HDsNd HDs n Hprem Hafter σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
+    Hsteps HNs HAs HDs HEnv n Hprem Hafter σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
 
 end adequacy
 

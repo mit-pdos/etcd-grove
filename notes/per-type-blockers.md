@@ -62,3 +62,45 @@ range, which Go's real layout satisfies.
 
 **The fix**, in the per-type stage: key the encoding on the frozen wire content (the model plus the
 unknown fields), not on the address. Derive `pbEnc_ok` from one `_sat` axiom per registered type.
+
+## `UnmarshalPb` at `pbMessage` claims a decoded `ConfState` has no unknown fields (found 2026-11-07, stage A Draft CP1)
+
+**The false statement.** `proto.UnmarshalPb.spec` (`Spec/google_golang_org/protobuf/proto/UnmarshalPb.lean:30-37`),
+at the genuine `pbMessage` (`rafthttp/PbMessage.lean:78`), gives a successful decode the post
+`T.dec l m`. That is `msgPtsC l (own 1) (own 1) true m`, and its snapshot's `ConfState` is owned
+through `csPts`, which fixes the `ConfState`'s unknown fields to `[]` (`raft/v3/InvPb.lean`).
+
+Go's decoder succeeds on peer bytes whose snapshot `ConfState` carries an unknown field, and it
+keeps that field. So the post is false of such bytes. This is the trusted fact behind
+`messageDecoder.decodeLimit`, `pipelineHandler.ServeHTTP` and `msgAppV2Decoder.decode`.
+
+**What it allows.** The Go consequence is `nonissues/raft-confstate-unknown-fields-panic.md`:
+- `ConfState.Equivalent` compares unknown fields;
+- the follower that restores such a snapshot panics;
+- `csPts`'s "no unknown fields" is what lets raft's restore proof skip that panic.
+
+That nonissue's "Proof: no" holds for raft's API, whose callers build the `ConfState`. It does not
+hold for the receive path's trusted decoder spec, which hands a peer's bytes to raft.
+
+**Reach.** It is subsumed today: every result that reaches these decoders already rests on the
+inconsistent `pbEnc_ok` and the refuted generic `*Pb` specs (the sections above), so it adds no new
+vacuity. It is recorded so that the per-type stage does not carry it over.
+
+**The fix (stage A Draft, branch `per-type-models`).**
+- `pbMessageC`'s content `MsgC` has the `ConfState`'s unknown fields at their level
+  (`PerTypeMessage.lean`).
+- The bridge to today's ownership, `msgRoC_msgOwn`, takes `c.csUfNil`.
+- On the receive path, `csUfNil` comes from the sender's content, not from the decoder. The
+  sender is raft, which builds the `ConfState` with `csPts` (no unknown fields), and `D2` (decoding
+  `enc c` gives `c` back exactly) carries it to the receiver. This is the same route as
+  `resps = []` (raft-entsize r3 [r3b]).
+- A message from outside the cluster is not covered, as today: peers are trusted.
+- **Corrected at the re-freeze (2026-11-09; the first Freeze package did not fix it).** The
+  content-level fix never reached the decoder's post, which handed back `dec` at the model, i.e.
+  `msgPtsC` with `csPts`' `uf = []`. Now `PbModelC` has `decOk` (`MsgC.csUfNil` for `Message`),
+  `proto.UnmarshalPb`/`ClonePb` give `⌜decOk c⌝ -∗ dec l (modelOf c)`, and the receivers get
+  `decOk` from the sender's frame (`MsgEnc` carries `csUfNil`) through `D2`. The same review found
+  that `Message`'s D1 `wire` claimed `resps = []` (Go decodes `Responses`, field 14): `wire` is now
+  `MsgDecOk` (`msgDecode bs = some (wireOf st)`), and `resps = []` comes from the sender through
+  `D2`. Review: `/shared/tmp/pertype-stageA-freeze-review.md`; checked by the D1 harness
+  (`72 00` decodes with one response; `4a 08 12 06 0a 04 08 01 30 00` has `decOk` false).

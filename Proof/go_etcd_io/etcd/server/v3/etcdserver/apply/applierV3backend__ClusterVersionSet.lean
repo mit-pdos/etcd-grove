@@ -9,6 +9,7 @@ public import Spec.github_com.Masterminds.semver.v3.Version__LessThan
 public import Spec.github_com.Masterminds.semver.v3.Version__String
 public import Spec.go_uber_org.zap.String
 public import Spec.go_uber_org.zap.Logger__Info
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.WriteLemmas
 
 @[expose] public section
 
@@ -39,17 +40,12 @@ theorem apply.applierV3backend.ClusterVersionSet.wp_proof
     (hInfo : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.ClusterVersionSet.spec (GF := GF) (hG := hG) := by
   intro E p r v3 log Pre Q Post ver rs info
-  wp_start as ⟨#Hb, #Hr, %Hvalid, Hpre, Hwt, HFSt, HRO⟩
-  iunfold apply.mPreV at Hpre
-  icases Hpre with ⟨Hkv, Hres, Hcs⟩
-  iunfold apply.kvOwn at Hkv
-  icases Hkv with ⟨Hrd, Hsw, Hknown, Hard⟩
-  icases Hard with ⟨Hard, Hwo⟩
-  icases mvcc.writerOwn_rt _ $$ Hwo with ⟨Hrt, Hrdb⟩
+  wp_start as ⟨#Hb, #Hr, %Hvalid, Hpre, HFSt, HRO⟩
+  icases apply.mPreV_split $$ Hpre with ⟨%cr, %B, Hsw, Hcs, Hwt, Hrt, Htie, Hres, Hkv⟩
   iunfold apply.backendIs at Hb
   icases Hb with ⟨%opts, #Hopts, #Hok⟩
   iunfold apply.backendOptsOk at Hok
-  icases Hok with ⟨%Hlg, -, -, -, -, -, #Hc, -, #Hss, -⟩
+  icases Hok with ⟨%Hlg, -, -, -, -, -, -, #Hc, -, #Hss, -⟩
   iunfold apply.isCluster at Hc
   icases Hc with ⟨%Hcnn, #HVer, -, #HSV, -⟩
   iunfold apply.isSnapshotServer at Hss
@@ -69,18 +65,15 @@ theorem apply.applierV3backend.ClusterVersionSet.wp_proof
   · iPkgInit
   ihave #Hpapi : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api $$ []
   · iPkgInit
-  wp_apply HSV $$ [$Hpmb $Hpapi $Hcs $Hwt $Hrt $Hsv $HRO] as ⟨HPP, Hrt, HRO⟩
+  wp_apply HSV $$ [$Hpmb $Hpapi $Hcs $Hwt $Hrt $Htie $Hsv $HRO] as ⟨HPP, Hrt, Htie, HRO⟩
   · isplitr
     · ipureintro; exact Hnv
     ipureintro; exact Hvalid.2
-  ihave Hwo := Hrdb $$ Hrt
-  ihave Hkv : apply.kvOwn E log $$ [Hrd Hsw Hknown Hard Hwo]
-  · iunfold apply.kvOwn; iframe
   wp_if_destruct
   · -- no previous version
     iapply HΦ
-    iunfold apply.mPostV
-    iframe HRO
+    iframe HRO HFSt
+    iapply (apply.mPostV_of _ _ _ _ _ _ _ _ B cr)
     iframe
   wp_apply hLT as %b -
   · ipureintro; exact ⟨Hnv, Hif⟩
@@ -88,8 +81,8 @@ theorem apply.applierV3backend.ClusterVersionSet.wp_proof
   wp_if_destruct
   · -- not a downgrade
     iapply HΦ
-    iunfold apply.mPostV
-    iframe HRO
+    iframe HRO HFSt
+    iapply (apply.mPostV_of _ _ _ _ _ _ _ _ B cr)
     iframe
   -- a downgrade: logged, a snapshot forced
   wp_if_destruct
@@ -115,8 +108,8 @@ theorem apply.applierV3backend.ClusterVersionSet.wp_proof
   iintro HFSt
   (try wp_auto)
   iapply HΦ
-  iunfold apply.mPostV
-  iframe HRO
+  iframe HRO HFSt
+  iapply (apply.mPostV_of _ _ _ _ _ _ _ _ B cr)
   iframe
 
 end proof

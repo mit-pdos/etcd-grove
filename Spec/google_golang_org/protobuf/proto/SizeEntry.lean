@@ -30,7 +30,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `proto.Size(e)` of a `*pb.Entry` holding `e` (at any fraction) returns some `int` at least `0`;
 no spec fixes a size (the specs of `entsSize`/`limitSize` leave sizes unspecified).
 
-Against protobuf-go v1.36.11 (`proto/size.go`, `internal/impl/encode.go:118-129`): `Size` is the
+Against protobuf-go v1.36.12 (`proto/size.go`, `internal/impl/encode.go:118-129`): `Size` is the
 length of the wire encoding, a non-negative `int`; it reads the message and stores the size cache
 atomically (`atomic.StoreInt32`): a write to the hidden fields only, which the hidden-field
 invariant (`pbMsg`, inside `entPts`) owns. -/

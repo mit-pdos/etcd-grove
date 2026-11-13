@@ -29,8 +29,9 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Ass
 
 theorem NewClient.wp_proof (wp_NewClients : etcdstart.NewClients.spec (GF := GF) (hG := hG)) :
     NewClient.spec (GF := GF) (hG := hG) := by
-  intro cfg lg V Hcfg Htb Hlg
-  wp_start
+  intro cfg lg V Hcfg Htb
+  wp_start as #Hzlg
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   wp_auto
   wp_apply wp_slice_literal (V := GoString) (l := bridges cfg)
   try (isplitr; (ipureintro; rfl))
@@ -38,7 +39,7 @@ theorem NewClient.wp_proof (wp_NewClients : etcdstart.NewClients.spec (GF := GF)
   simp only [go.arrayLiteralSize, List.foldl]
   (try wp_auto)
   imod ownSlice_persist _ _ _ $$ Heps with #Heps
-  wp_apply (wp_NewClients _ (bridges cfg) lg V Htb Hlg Hcfg.plainBridges) $$ [] as %cl %cerr Hcl
+  wp_apply (wp_NewClients _ (bridges cfg) lg V Htb Hcfg.plainBridges) $$ [] as %cl %cerr Hcl
   · iframe #
   (try wp_auto)
   iapply HΦ

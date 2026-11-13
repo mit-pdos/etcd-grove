@@ -84,14 +84,14 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.partition.A
 variable [NaInvG GF]
 
 /-- **`Main` does not panic, for every schedule** (`Link.lean`'s `etcd_partition.wp_Main`). -/
-theorem linkv3p_Main [go_etcd_io.etcd.cache.v3.Assumptions] [Float64ToInt64Semantics]
+theorem linkv3p_Main [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_partition.Main.spec (GF := GF) (hG := hG) :=
   etcd_partition.wp_Main
 
 /-- **`MainWatch` does not panic, for every schedule** (`Link.lean`'s `etcd_partition.wp_MainWatch`; W4
 of `notes/watch-cut-plan.md`). -/
-theorem linkv3p_MainWatch [go_etcd_io.etcd.cache.v3.Assumptions] [Float64ToInt64Semantics]
+theorem linkv3p_MainWatch [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_partition.MainWatch.spec (GF := GF) (hG := hG) :=
   etcd_partition.wp_MainWatch
@@ -107,7 +107,7 @@ variable [go_gctx : GoGlobalContext]
 theorem etcd_partition_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.partition.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     -- (2026-10-24, rafthttp stage 6d) `*peer` implements `Pausable` (the partitioner's `CutPeer`)
     (Hctx : ∀ hG : HeapGS .hasLC linkvGF, ContextReadErrs (GF := linkvGF) (hG := linkvHeapAt hG lctx))
@@ -123,10 +123,11 @@ theorem etcd_partition_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hsteps : steps.length < 2 ^ 63)
     (HNs : prometheus.namesUnclaimed (linkv3pProgram clients ops steps) linkv3pNames)
     (HAs : addrsUnclaimed (linkv3pProgram clients ops steps) linkv3pAddrs)
-    -- (2026-11-03, the WAL's API, change 6) the members' WAL directories, distinct (`WALDir()` of
-    -- the members' distinct data directories: `filepath.Join` is opaque here), hold no WAL at start
-    (HDsNd : [config.walDirOf (etcd_partition.name₁ ++ go!".etcd") go!"", config.walDirOf (etcd_partition.name₂ ++ go!".etcd") go!"", config.walDirOf (etcd_partition.name₃ ++ go!".etcd") go!""].Nodup)
-    (HDs : walDirsAbsent (linkv3pProgram clients ops steps) [config.walDirOf (etcd_partition.name₁ ++ go!".etcd") go!"", config.walDirOf (etcd_partition.name₂ ++ go!".etcd") go!"", config.walDirOf (etcd_partition.name₃ ++ go!".etcd") go!""])
+    -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the members' data directories,
+    -- fresh at start (`dataDirsAbsent`; their distinctness is now `decide`d, no longer a hypothesis)
+    (HDs : dataDirsAbsent (linkv3pProgram clients ops steps) [(etcd_partition.name₁ ++ go!".etcd"), (etcd_partition.name₂ ++ go!".etcd"), (etcd_partition.name₃ ++ go!".etcd")])
+    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
+    (HEnv : verifyEnvOff (linkv3pProgram clients ops steps))
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC linkvGF,
       ⊢ etcd_partition.premises (GF := linkvGF) (hG := linkvHeapAt hG lctx) n id₁ id₂ id₃ ps ctxs boot)
@@ -139,7 +140,7 @@ theorem etcd_partition_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
   etcd_partition_adequate Hctx Hcec id₁ id₂ id₃ ps ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo clients ops Hc0 Hc31 Hops
-    Hmul steps Hsteps HNs HAs HDsNd HDs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
+    Hmul steps Hsteps HNs HAs HDs HEnv n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
 
 /-- **The watch run over the partitioned cluster is safe, in the operational semantics**
 (`etcd_partition_watch_adequate`, see the file header and `AdequacyWatch.lean`). -/
@@ -148,7 +149,7 @@ theorem etcd_partition_watch_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     -- (2026-10-24, rafthttp stage 6d) `*peer` implements `Pausable` (the partitioner's `CutPeer`)
     (Hctx : ∀ hG : HeapGS .hasLC linkvGF, ContextReadErrs (GF := linkvGF) (hG := linkvHeapAt hG lctx))
@@ -165,10 +166,11 @@ theorem etcd_partition_watch_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hsteps : steps.length < 2 ^ 63)
     (HNs : prometheus.namesUnclaimed (linkv3pWatchProgram nw nops steps) linkv3pNames)
     (HAs : addrsUnclaimed (linkv3pWatchProgram nw nops steps) linkv3pAddrs)
-    -- (2026-11-03, the WAL's API, change 6) the members' WAL directories, distinct (`WALDir()` of
-    -- the members' distinct data directories: `filepath.Join` is opaque here), hold no WAL at start
-    (HDsNd : [config.walDirOf (etcd_partition.name₁ ++ go!".etcd") go!"", config.walDirOf (etcd_partition.name₂ ++ go!".etcd") go!"", config.walDirOf (etcd_partition.name₃ ++ go!".etcd") go!""].Nodup)
-    (HDs : walDirsAbsent (linkv3pWatchProgram nw nops steps) [config.walDirOf (etcd_partition.name₁ ++ go!".etcd") go!"", config.walDirOf (etcd_partition.name₂ ++ go!".etcd") go!"", config.walDirOf (etcd_partition.name₃ ++ go!".etcd") go!""])
+    -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the members' data directories,
+    -- fresh at start (`dataDirsAbsent`; their distinctness is now `decide`d, no longer a hypothesis)
+    (HDs : dataDirsAbsent (linkv3pWatchProgram nw nops steps) [(etcd_partition.name₁ ++ go!".etcd"), (etcd_partition.name₂ ++ go!".etcd"), (etcd_partition.name₃ ++ go!".etcd")])
+    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
+    (HEnv : verifyEnvOff (linkv3pWatchProgram nw nops steps))
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC linkvGF,
       ⊢ etcd_partition.premises (GF := linkvGF) (hG := linkvHeapAt hG lctx) n id₁ id₂ id₃ ps ctxs boot)
@@ -181,7 +183,7 @@ theorem etcd_partition_watch_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
   etcd_partition_watch_adequate Hctx Hcec id₁ id₂ id₃ ps ctxs boot Hbf Hck Haf Hbuq Hrf Hdbo nw nops H0 H31
-    Hops Hmul steps Hsteps HNs HAs HDsNd HDs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
+    Hops Hmul steps Hsteps HNs HAs HDs HEnv n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
 
 end adequacy
 

@@ -33,3 +33,5 @@ checkOperations: fillDefault makeEntries checkParallel
 CheckOperations: checkOperations
 CheckOperationsTimeout: checkOperations
 CheckOperationsVerbose: checkOperations
+# the linearization an Ok verbose check found (what lintest.RunLin reads)
+LinearizationInfo__PartialLinearizations:

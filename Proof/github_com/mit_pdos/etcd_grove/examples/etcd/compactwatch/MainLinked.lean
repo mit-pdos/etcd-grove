@@ -14,6 +14,7 @@ is linked. `Results.lean` restates it.
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.checkCompactRev
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
@@ -53,15 +54,16 @@ theorem etcd_compactwatch.wp_checkCompactRev [go_etcd_io.etcd.client.v3.DialWith
     context.wp_ErrAny WithRev.wp_proof client.v3.watcher.wp_Watch etcdstart.wp_CompactRev
 
 /-- **The adequacy example's `Main` does not panic** (see the file header;
-`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/compactwatch/Main.lean`), under the semantic premises of
-its callees' linked results: `int64(f)` of a `float64` (`Float64ToInt64Semantics`, the server's)
-and the client's `dialWithBalancer` body (`DialWithBalancerBody`). -/
-theorem etcd_compactwatch.wp_Main [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/compactwatch/Main.lean`), under the semantic premise of
+its callees' linked results: the client's `dialWithBalancer` body (`DialWithBalancerBody`). -/
+theorem etcd_compactwatch.wp_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_compactwatch.Main.spec (GF := GF) (hG := hG) :=
   etcd_compactwatch.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_StartCompactingServer etcdstart.wp_Serve
     etcdstart.wp_NewClient context.wp_Background context.WithTimeoutBackground.wp_proof
     context.wp_ErrAny WithRev.wp_proof client.v3.watcher.wp_Watch etcdstart.wp_Collect
-    etcd_compactwatch.wp_checkCompactRev
+    etcd_compactwatch.wp_checkCompactRev mvcc.api.mvccApi_names_nonempty_law_holds
+    mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds
+    mvcc.api.mvccApi_mvccReaders_split_law_holds
 
 end results
 

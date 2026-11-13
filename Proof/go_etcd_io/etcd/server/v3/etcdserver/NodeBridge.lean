@@ -538,12 +538,23 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
     icases Hbusy with ⟨Hbusy, HrS⟩
     iunfold rnAdvReceipt at Hrcpt
     iunfold rnCfgAt at Hcv
+    icases Hcv with ⟨Hcv, #Hrok⟩
+    iunfold rnView at Hcv
     iunfold srvCfgView at Hcv
     icases Hcv with ⟨%v, Hcfg, %Hok⟩
+    -- (R2d'a A6) the view is over the ghost log, of which the log handed out is a prefix
     have Hnc : NoConfChangeIn (srvLE γ.srv (d ++ ce)) v.applied (srvLE γ.srv (d ++ ce)).length := by
       have h := Hok.2.1
-      simp only [srvLE, List.length_map] at h ⊢
-      exact h
+      have e : (([] : List EntryModel) ++ rnGhost γ (d ++ ce)).map EntryModel.toLE =
+          srvLE γ.srv (d ++ ce) ++
+            (γ.a0.drop (γ.pre ++ (d ++ ce)).length).map EntryModel.toLE := by
+        simp [rnGhost, srvLE]
+      have el : (([] : List EntryModel) ++ rnGhost γ (d ++ ce)).length =
+          (srvLE γ.srv (d ++ ce) ++
+            (γ.a0.drop (γ.pre ++ (d ++ ce)).length).map EntryModel.toLE).length := by
+        rw [← e, List.length_map]
+      rw [e, el] at h
+      exact NoConfChangeIn_prefix _ _ _ h
     ihave #Hsk := skippedIn_noConf γ.node.cl (srvLE γ.srv (d ++ ce)) v.applied _ Hnc
     wp_apply (wp_Advance γ.nl γ.node.cl srvClusterN γ.id
         ⟨memStorIface γ.ms, srvLE γ.srv (d ++ ce), p, some (es.map EntryModel.toM, none), γ.key, S, r⟩
@@ -560,6 +571,8 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
         · iExactEq Hdrv; rfl
         iframe HrS
         iunfold rnCfgAt
+        iframe Hrok
+        iunfold rnView
         iunfold srvCfgView
         iexists v
         iframe Hcfg
@@ -574,8 +587,14 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
     iintro !> %d %A' %es %p %l %S %r %Φ !> ⟨Hbusy, Hrc, #Hcert, Hrun⟩ HΦ
     iunfold rnBusyS at Hbusy
     icases Hbusy with ⟨⟨Hdrv, HrS⟩, Hcv, %Hsn⟩
-    obtain ⟨hA', hd, hdl, hpos, h61⟩ := Hsn
+    obtain ⟨hA', hd, hdl, hpos, h61, hwa⟩ := Hsn
     iunfold rnCfgAt at Hcv
+    icases Hcv with ⟨Hcv, #Hrok⟩
+    -- (R2d'a A6) at a restart, the snapshot at or above the backend's log (R2d'a's A8,
+    -- `rnWinInstallAbove`, recorded at the receive: `rnBusyS`'s pure, R2d'a task 4)
+    have Hab : γ.a0 = [] ∨ γ.a0.length ≤ uint.nat l.snap.Metadata'.Index' :=
+      hwa.imp_right Nat.le_of_lt
+    iunfold rnView at Hcv
     iunfold srvCfgView at Hcv
     icases Hcv with ⟨%v, Hcfg, %Hok⟩
     obtain ⟨hva, -, W, hW, -, -, hW0, hWs⟩ := Hok
@@ -593,6 +612,19 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
       have h := hd.length_le
       simp only [srvLE, strip, List.length_map] at h
       omega
+    -- (R2d'a A6) the ghost log before within the snapshot, and at the snapshot the log handed out
+    have hgd : (([] : List EntryModel) ++ rnGhost γ d).length ≤
+        uint.nat l.snap.Metadata'.Index' := by
+      simp only [rnGhost, List.nil_append, List.length_append, List.length_drop]
+      simp only [List.length_append] at hld
+      rcases Hab with h | h
+      · rw [h]; simp only [List.length_nil]; omega
+      · omega
+    have hgA : rnGhost γ A' = γ.pre ++ A' := by
+      unfold rnGhost
+      rcases Hab with h | h
+      · rw [h]; simp
+      · rw [List.drop_eq_nil_of_le (by omega), List.append_nil]
     -- the voters' membership at every index of the snapshot's committed log (D3)
     have Hsimp : ∀ k, k ≤ ls.length →
         srvRaftLogInv (GF := GF) E.γr.raft ∗ isCommittedLogLb γ.node.cl ls ⊢
@@ -634,10 +666,14 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
         · iExactEq Hdrv; rfl
         iframe HrS
         iunfold rnCfgAt
+        iframe Hrok
+        iunfold rnView
+        rw [hgA]
         iunfold srvCfgView
         iexists ⟨uint.nat l.snap.Metadata'.Index', m⟩
         iframe Hcfg
         ipureintro
+        rw [List.nil_append]
         have hm : m = Membership.simple γ.node.cfg := Hm'.trans Hms
         subst hm
         refine ⟨by simp only [List.length_map]; omega, ?_, γ.node.cfg, rfl, fun _ h => h,

@@ -37,12 +37,15 @@ theorem progressRequest.toPB.wp_proof : progressRequest.toPB.spec (GF := GF) (hG
   irename : (ow ↦ (_ : etcdserverpb.WatchRequest_ProgressRequest) : IProp GF) => How
   irename : (cr ↦ zero_val etcdserverpb.WatchProgressRequest : IProp GF) => Hcr
   ihave %Hcrn := typedPointsto_not_null _ _ _ $$ Hcr
+  ihave %Hpn := typedPointsto_not_null _ _ _ $$ Hp
   iStructNamed Hp
   iStructNamed How
   ipersist RequestUnion; ipersist ProgressRequest
   imodintro
   iapply HΦ
   unfold v3rpc.watchReqSend v3rpc.oneofProgress
+  isplitl []
+  · ipureintro; exact Hpn
   iexists _
   iframe #
   iexists cr

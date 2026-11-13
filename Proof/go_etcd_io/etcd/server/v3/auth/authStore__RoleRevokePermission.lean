@@ -116,7 +116,7 @@ end auth
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
@@ -182,7 +182,7 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
     · iunfold authWRx; iframe HT Hfl Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
-      · ipureintro; intro _; rfl
+      · ipureintro; exact ⟨fun _ => rfl, fun h => by cases h⟩
       · ileft; ipureintro; rfl
     iunfold adminOutP
     iright
@@ -201,6 +201,7 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
   obtain ⟨Hlook, Hrrn, Hrrps⟩ := Hrr
   iunfold ownRole at Hrole
   icases Hrole with ⟨%rms, %rnm, %rkp, %pps, %ruf, %rsc, Hrp, #Hrnm, #Hrkp, %Hplen, #Hperms⟩
+  ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hrp
   icases typedPointsto_split _ _ _ $$ Hrp with Hrp
   simp only [TypedPointsto.typedPointstoDef]
   iNamed Hrp
@@ -259,6 +260,7 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
     ihave #Hpw2 := Hpw
     iunfold ownPermW at Hpw2
     icases Hpw2 with ⟨%Hppnn, %pms, %kk, %kre, %puf, %psc, #Hpp, #Hkk, #Hkre⟩
+    ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hpp
     icases typedPointsto_split _ _ _ $$ Hpp with Hpp
     simp only [TypedPointsto.typedPointstoDef]
     iNamed Hpp
@@ -379,7 +381,7 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
     · iunfold authWRx; iframe HT Hfl Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
-      · ipureintro; intro _; rfl
+      · ipureintro; exact ⟨fun _ => rfl, fun h => by cases h⟩
       · ileft; ipureintro; rfl
     iunfold adminOutP
     iright
@@ -477,6 +479,7 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
   (try wp_auto)
   irename «$r0» => Hresp
   generalize «$r0_ptr» = resp at *
+  ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hresp
   icases typedPointsto_split _ _ _ $$ Hresp with Hresp
   simp only [TypedPointsto.typedPointstoDef]
   iNamed Hresp
@@ -496,7 +499,7 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
   · iunfold authWRx; iframe HT Hfl Hev Hca Hsnap; iexists (GoInterface.ok bi); iframe Hbe Hbeok
   isplitl [Header]
   · iunfold respOk; isplitr
-    · ipureintro; intro h; exact absurd rfl h
+    · ipureintro; exact ⟨fun h => absurd rfl h, fun _ => by assumption⟩
     · iright; iexists _; iexact Header
   iunfold adminOutP
   iright

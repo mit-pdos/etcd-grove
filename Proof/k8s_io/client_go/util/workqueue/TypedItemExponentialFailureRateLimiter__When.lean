@@ -6,7 +6,6 @@ module
 public import Spec.k8s_io.client_go.util.workqueue.TypedItemExponentialFailureRateLimiter__When
 public import Spec.time.Duration__Nanoseconds_ptr
 public import Spec.math.Pow
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.FloatToInt
 public import Proof.k8s_io.client_go.util.workqueue.UntypedIntToFloat
 
 @[expose] public section
@@ -28,7 +27,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.util.workqueue.Assumptions]
 
-theorem TypedItemExponentialFailureRateLimiter.When.wp_proof [EtcdGrove.Float64ToInt64Semantics] [EtcdGrove.UntypedIntToFloat64Semantics]
+theorem TypedItemExponentialFailureRateLimiter.When.wp_proof [EtcdGrove.UntypedIntToFloat64Semantics]
     (wp_Nanoseconds : time.Duration.Nanoseconds_ptr.spec (GF := GF) (hG := hG))
     (wp_Pow : math.Pow.spec (GF := GF) (hG := hG)) :
     TypedItemExponentialFailureRateLimiter.When.spec (GF := GF) (hG := hG) := by
@@ -57,7 +56,10 @@ theorem TypedItemExponentialFailureRateLimiter.When.wp_proof [EtcdGrove.Float64T
   generalize (float64Mul (int64ToFloat64 base) p) = bf
   generalize (W64 4890909195324358656) = mf
   cases hb : (float64Leb mf bf && !float64Eq bf mf)
-  · -- not above `MaxInt64`: the conversion
+  · -- not above `MaxInt64`: the conversion, an arbitrary `int64` (Perennial's
+    -- `Float64Semantics.convert_float64_to_integer`)
+    try wp_auto
+    wp_apply wp_ArbitraryInt as %bd -
     try wp_auto
     wp_if_destruct
     · wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hm]

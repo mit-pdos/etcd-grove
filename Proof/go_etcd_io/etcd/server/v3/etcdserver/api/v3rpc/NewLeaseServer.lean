@@ -57,7 +57,8 @@ theorem v3rpc.NewLeaseServer.wp_proof
       typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer go!"lg"
         «$r0_ptr») lg (DFrac.own 1)) with [lg srv]
     as ⟨srv, %lg, %Hlg, lgf⟩
-  · wp_apply hNop as %l %Hl
+  · wp_apply hNop as %l #Hlz
+    ihave %Hl := zapLoggerOk_ne_null l $$ Hlz
     (try wp_auto)
     wp_join_done
     iframe

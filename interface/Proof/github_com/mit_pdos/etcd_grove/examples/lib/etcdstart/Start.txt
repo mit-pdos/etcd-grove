@@ -14,9 +14,9 @@ theorem isServerBuiltC.congr_simp (C C✝ : AuthC) (e_C : C = C✝) (s s✝ : Lo
 theorem etcdstart.wp_Start_built [v3rpc_sem :
     go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (wp_Start : EtcdServer.Start.spec)
     (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF) (id : w64) (N : Nat)
-    (sv : Bool) (HrbN : receiptBound GF ≤ N + 1) (m : lease.Mode := lease.Mode.none) : ⊢ ∀ Φ,
-    isPkgInit pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ etcdstart.memberBuilt s ρ E₀ lg γn id N
-    sv (W64 0) (W64 0) (W64 0) bootKV m ∗ threadTok -∗ ▷ (etcdstart.memberUp s ρ E₀ lg γn id m -∗ Φ
-    (intoVal ())) -∗ WP ((intoVal (methods
+    (sv : Bool) (HrbN : receiptBound GF ≤ N + 1) (m : lease.Mode := lease.Mode.none) (Hrb48 :
+    receiptBound GF ≤ 2 ^ 48) : ⊢ ∀ Φ, isPkgInit pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+    etcdstart.memberBuilt s ρ E₀ lg γn id N sv (W64 0) (W64 0) (W64 0) bootKV m ∗ threadTok -∗ ▷
+    (etcdstart.memberUp s ρ E₀ lg γn id m -∗ Φ (intoVal ())) -∗ WP ((intoVal (methods
     go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty.PointerType go!"Start" (intoVal s))) (intoVal
     ())) {{ Φ }}

@@ -28,7 +28,8 @@ variable [sem : go.Semantics]
 
 /-- `io.Pipe()`, for any promise `Φ` on the reader's complete streams and any hand-over `T`: the
 reader `pr` (as an `io.ReadCloser`, read by one reader whose complete streams satisfy `Φ`:
-`readerStreams`, given for `T`) and the writer `pw`, with the writer's contract (`writerOk` over
+`readerStreams`, and closed by anyone holding its close contract `rcCloseOk`: both given for `T`;
+sweep repairs 1, S1, 2026-11-08) and the writer `pw`, with the writer's contract (`writerOk` over
 `pipeW pw Φ T`) at no bytes written and no `Write` returned. -/
 abbrev io.Pipe.spec : Prop :=
   ∀ (Φ : List w8 → Prop) (T : IProp GF),
@@ -39,7 +40,9 @@ abbrev io.Pipe.spec : Prop :=
         (io.pipeW pw Φ T) ∗
       io.pipeW pw Φ T false [] ∗
       (T -∗ backend.readerStreams
-        (interface.mkOk (go.GoType.PointerType _root_.Perennial.io.PipeReader.ty) #pr) Φ) }}
+          (interface.mkOk (go.GoType.PointerType _root_.Perennial.io.PipeReader.ty) #pr) Φ ∗
+        io.rcCloseOk
+          (interface.mkOk (go.GoType.PointerType _root_.Perennial.io.PipeReader.ty) #pr)) }}
 
 end spec
 

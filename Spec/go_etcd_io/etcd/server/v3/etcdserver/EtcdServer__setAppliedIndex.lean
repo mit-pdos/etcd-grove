@@ -23,7 +23,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- `s.setAppliedIndex(v')`, by the apply thread (the only writer), right after applying the entry
-at index `v'`, with mvcc's certificate of the KV log `L` it left (the request path's unit 4b): it
+at index `v'`, with the store's lower bound of the KV log `L` it left (`srvApi.kvLogLb`) (the request path's unit 4b): it
 stores `v'` into the atomic `s.appliedIndex` and, at that point, raises the ghost applied index to
 `v'` and makes `L` the current applied log. Since 2026-10-14 (unit C2a) the log `L` is deposited
 ahead as the log applied through `v' = v + 1` (`srvAppliedPre γr v v' L`, `applied_predeposit`:
@@ -43,7 +43,7 @@ abbrev EtcdServer.setAppliedIndex.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvAppliedInvM E.authOn s E γr ∗
       (if rep then srvAppliedOwn γr v ∗ ⌜uint.Z v' ≤ uint.Z v⌝ else
-        srvAppliedPre γr v v' L ∗ mvcc.idxCert E.γ.idx L ∗ appliedPubM E.authOn E γr v') }}
+        srvAppliedPre γr v v' L ∗ srvApi.kvLogLb E.γs L ∗ appliedPubM E.authOn E γr v') }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"setAppliedIndex")) (Val #v'))
   {{ RET #(); if rep then srvAppliedOwn γr v else
       srvAppliedOwn γr v' ∗ appliedAtLeast γr v' ∗ appliedLogAt γr v' L }}

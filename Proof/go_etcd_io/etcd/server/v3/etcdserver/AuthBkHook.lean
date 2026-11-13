@@ -53,7 +53,7 @@ instance ablOn_persistent (abl be lg : Loc) : Persistent (ablOn (GF := GF) abl b
 def authWAtHook (γa : auth.AuthNames) (d : mvcc.KBReal) (γc : auth.AuthBkNames) : IProp GF :=
   iprop(□ ∀ (abl' lg' : Loc) (W' Pk' : IProp GF) (f' : GoFunc),
     ablOn abl' d.be lg' -∗ backend.isBackend d.γB d.P W' Pk' d.be -∗ backend.plHookRO d.γB f' -∗
-    ⌜f' ≠ func.nil⌝ -∗ auth.authWBackendOkR (authBkIface abl') (.on γa) Pk' #f' (auth.authWTok γc))
+    ⌜f' ≠ func.nil⌝ -∗ auth.authWBackendOkR (authBkIface abl') (.on γa) Pk' f' (auth.authWTok γc))
 
 instance authWAtHook_persistent (γa : auth.AuthNames) (d : mvcc.KBReal) (γc : auth.AuthBkNames) :
     Persistent (authWAtHook (GF := GF) γa d γc) := by
@@ -78,12 +78,12 @@ instance authBkLend_persistent (γa : auth.AuthNames) (γc : auth.AuthBkNames) (
   unfold authBkLend; infer_instance
 
 /-- **A lend of tracked buckets of the environment's backend** (#7-on, 2026-11-03): at the
-backend `d` of `E`'s store, a part of the buckets `SA` at contents `r` with `QA r`, given back for
+backend `d` of `E`'s tie (`E.BkTie = srvBkTie d`), a part of the buckets `SA` at contents `r` with `QA r`, given back for
 `RA`. What the merged snapshot's window observes the auth buckets with in the mode `on`
 (`srvAuthApplyResB_lend`, from `authBkLend`); nothing in the mode `off` (`bkLendW_none`). -/
 def bkLendW (E : apply.AEnv GF) (SA : GoString → Prop) (QA : GMap GoString backend.BktData → Prop)
     (RA : IProp GF) : IProp GF :=
-  iprop(∀ d : mvcc.KBReal, ⌜E.γ.kb = some d⌝ ={⊤}=∗ ∃ r : GMap GoString backend.BktData,
+  iprop(∀ d : mvcc.KBReal, ⌜E.BkTie = srvBkTie d⌝ ={⊤}=∗ ∃ r : GMap GoString backend.BktData,
     ⌜QA r⌝ ∗ backend.rbPart d.γB SA r ∗ (backend.rbPart d.γB SA r ={⊤}=∗ RA))
 
 end defs

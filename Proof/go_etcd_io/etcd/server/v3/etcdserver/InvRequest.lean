@@ -282,6 +282,18 @@ instance etcdKV_timeless (γk : KVNames) (σ : KVState) : Timeless (etcdKV (GF :
 /-- **The KV model of the committed log `L`** (the fold of `kvEntry` from the start state). -/
 def kvModel (γk : KVNames) (L : List EntryModel) : mvcc.Log := kvRaftOf γk.c0 γk.ch0 γk.log0 L
 
+/-- **The log `l` is the off model of a committed raft log** (persistent; strict M1, 2026-11-05):
+`KVStoreApi.lean`'s raft witness `kvNx γr false`, by `rfl` (`kvNx_off`), stated here below the
+model's other mode; the chain's `E.Nx` in the mode off (`srvKVInvs`' tie). Here, beside the model, since 2026-11-06
+(the tie needs it below `InvApplier`). Replaces mvcc's certificate `certOk`, which
+the KV certificate `kvCert` gave (`kvCert_certOk`). -/
+def kvNxOff (γ : ServerRaftNames) (γk : KVNames) (l : mvcc.Log) : IProp GF :=
+  iprop(∃ A : List EntryModel, srvRLogLb γ A ∗ ⌜kvModel γk A = l ∧ mvcc.LogPutsLe etcdKeyMax l⌝)
+
+instance kvNxOff_persistent (γ : ServerRaftNames) (γk : KVNames) (l : mvcc.Log) :
+    Persistent (kvNxOff (GF := GF) γ γk l) := by
+  unfold kvNxOff; infer_instance
+
 /-- **The lease table of the committed log `L`** (unit T3, L3a: the fold of `kvTable` from the
 empty table). -/
 def kvLeases (γk : KVNames) (L : List EntryModel) : LeaseTable := kvTableOf γk.c0 γk.ch0 [] L
@@ -968,7 +980,7 @@ theorem crevOf_pos (γk : KVNames) (cmp : Bool) (A : List EntryModel) (h : plain
         (kvCrevEntry_pos _ _ cmp c m (hB m (List.mem_cons_self)) hc)
   exact key A h (-1) (Or.inl rfl)
 
-/-- **`specSnap`'s `hcc`** from the records' revision: the apply thread's compaction revision is
+/-- **`specSnapM`'s `hcc`** from the records' revision: the apply thread's compaction revision is
 its applied log's (`kvApplied`'s), below the image's log `A'`, whose compaction revision the
 records carry (`imageAt`'s). -/
 theorem crev_hcc (γk : KVNames) (A A' : List EntryModel) (crev : Int) (rcrev : Int)
@@ -1129,6 +1141,12 @@ revision at least the retention `cret` behind a revision the cluster's KV has re
 server's store keeps it of its compaction revision (`mvcc.crevPermIs`). -/
 def kvCmpPermit (γk : KVNames) (c : Int) : IProp GF :=
   iprop(⌜0 < c⌝ ∗ kvRevLbZ γk (c + γk.cret))
+
+/-- **The compaction revision `c` is permitted** (persistent; strict M1, 2026-11-06: what the
+server's chain permit `E.Cp` is, `srvKVInvs`/`srvKVInvsOn`; `KVStoreApi`'s `crevOk γr` is it at
+`γr.kv`): never compacted (`-1`) or a cluster permit, and `-1` in a cluster that never compacts. -/
+def kvCpOk (γk : KVNames) (c : Int) : IProp GF :=
+  iprop((⌜c = -1⌝ ∨ kvCmpPermit γk c) ∗ ⌜γk.cmp = false → c = -1⌝)
 
 /-- A permit at a positive revision below a permitted one (#7-cmp's Freeze: the restored finished
 record's, below the scheduled one's). -/
@@ -1748,18 +1766,19 @@ instance idxNames_countable : Pos.Countable mvcc.IdxNames :=
 
 /-- **The server's claimers' facts, by store** (the cluster's family of facts, `idClusterInv`'s
 `Φs`; R2c, 2026-11-02): a claim's ghost name records a floor certified in the store index `idx`
-its claimer's incarnation registered (`idKeyFactAt`). -/
-def srvFloorFacts (idx : mvcc.IdxNames) (_id : w64) (_d : List w8) (γf : GName) : IProp GF :=
-  iprop(∃ F : mvcc.Log, floorAt γf F ∗ mvcc.idxCert idx F)
+its claimer's incarnation registered (`idKeyFactAt`); strict M1, 2026-11-05: the floor a lower
+bound of the store's committed log `slog` (the draft's `srvFloorFactsA`). -/
+def srvFloorFacts (slog : GName) (_id : w64) (_d : List w8) (γf : GName) : IProp GF :=
+  iprop(∃ F : mvcc.Log, floorAt γf F ∗ monoListLbOwn slog F)
 
 /-- **The server's claimers' fact** (the id generator's `Φ`, `idGen ρ.ids g (srvFloorFact E)`):
 a claim's ghost name records a certified floor (`srvFloorFacts` at the store's index). -/
 def srvFloorFact (E : apply.AEnv GF) (id : w64) (d : List w8) (γf : GName) : IProp GF :=
-  srvFloorFacts E.γ.idx id d γf
+  srvFloorFacts E.γs.slog id d γf
 
 instance srvFloorFact_timeless (E : apply.AEnv GF) (id : w64) (d : List w8) (γf : GName) :
     Timeless (srvFloorFact (GF := GF) E id d γf) := by
-  unfold srvFloorFact srvFloorFacts floorAt mvcc.idxCert; infer_instance
+  unfold srvFloorFact srvFloorFacts floorAt; infer_instance
 
 /-- **The result `ar` of applying `rq`**: a non-nil `*apply.Result` of applying `rq` (with `v3`)
 at some KV state `y`, to `y'` (`apply.applyStep`, `apply.applyResultIs`), with mvcc's
@@ -1771,7 +1790,7 @@ def resultIs (E : apply.AEnv GF) (rq : apply.IRRModel) (F : mvcc.Log) (ar : Loc)
     ∃ (y y' : apply.ApplyKV) (out : apply.ApplyOut),
       ⌜apply.applyStep rq true y y' out ∧ apply.applyFloorOk rq true F y.log out⌝ ∗
       apply.applyResultIs rq true y.log ar out ∗
-      mvcc.idxCert E.γ.idx y'.log ∗ revMinted E y.log y'.log)
+      srvApi.kvLogLb E.γs y'.log ∗ revMinted E y.log y'.log)
 
 /-- **A dispatched grant's answer through the result `ar`** (the lease-grant plan's 2.6, the
 `authnArM` pattern): for a request dispatched as a grant, the result's `Resp` and `Err` answer it
@@ -1928,7 +1947,10 @@ entry met is `lb` (`y.log`: the proposer ties it to the raft prefix its update f
 `entryWit`) and the log after is certified (`certOk`: the KV model of a committed raft prefix,
 what makes its revisions reached in the clients' model). Since linkv-txn stage B1 (2026-10-20)
 the outcome is not waived (`out.waived = false`: the apply thread found the id registered, so a
-transaction's ranges were run): a result reaches the registered proposer only then. -/
+transaction's ranges were run): a result reaches the registered proposer only then. (Strict M1,
+2026-11-06, the client/v3 track's request, decided by the coordinator) The log after's receipt
+`⧖ (logCh y'.log)`, well formed and short (the writer's facts, `srvApi.writer_facts`): what the
+clients' `kvLogOk` of the state after a write takes. -/
 def resultIsW (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (F : mvcc.Log)
     (ar : Loc) (lb : mvcc.Log) : IProp GF :=
   iprop(⌜ar ≠ null⌝ ∗
@@ -1936,8 +1958,10 @@ def resultIsW (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRModel) (F : m
       ⌜apply.applyStep rq true y y' out ∧ apply.applyFloorOk rq true F y.log out ∧ y.log = lb ∧
         out.waived = false⌝ ∗
       apply.applyResultIs rq true y.log ar out ∗
-      mvcc.idxCert E.γ.idx y'.log ∗ revMinted E y.log y'.log ∗ appliedWit γr y'.log ∗
-      mvcc.certOk E.γ y'.log ∗ grantArM E ar rq out ∗ revokeArM E ar rq out)
+      srvApi.kvLogLb E.γs y'.log ∗ revMinted E y.log y'.log ∗ appliedWit γr y'.log ∗
+      E.Nx y'.log ∗
+      ⧖ (mvcc.logCh y'.log) ∗ ⌜mvcc.LogWf' y'.log ∧ y'.log.length + 3 ≤ 2 ^ 63⌝ ∗
+      grantArM E ar rq out ∗ revokeArM E ar rq out)
 
 /-- **The committed entry a result is of** (persistent; 2026-10-14, unit T1): an entry `e` at
 position `m` of a committed log `L`, normal, its data claimed under the id of `rq` (with some
@@ -2184,7 +2208,7 @@ def srvAppliedBody (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
     monoNatAuthOwn γr.applied (1 : Qp).half (uint.nat a) ∗
     ghostMapAuth γr.logs 1 M ∗ ghostVar γr.pend (1 : Qp).half p ∗
     ⌜uint.Z v ≤ uint.Z a ∧ appliedKeysOk M a p ∧ appliedMonoMap M⌝ ∗
-    appliedLogAt γr a L ∗ mvcc.idxCert E.γ.idx L ∗ kvLogsOk γr M)
+    appliedLogAt γr a L ∗ srvApi.kvLogLb E.γs L ∗ kvLogsOk γr M)
 
 /-- The applied index's invariant: `srvAppliedBody` (see there). -/
 def srvAppliedInv (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
@@ -2312,7 +2336,7 @@ until the next entry's `setAppliedIndex`. -/
 theorem applied_jump (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (a i : w64)
     (L₀ L : mvcc.Log) (hi : uint.Z a < uint.Z i) (hp : L₀ <+: L) :
     ⊢ srvAppliedInv (GF := GF) s E γr -∗ srvAppliedOwn γr a -∗ appliedLogAt γr a L₀ -∗
-      kvLogAt γr i L -∗ mvcc.idxCert E.γ.idx L ={⊤}=∗
+      kvLogAt γr i L -∗ srvApi.kvLogLb E.γs L ={⊤}=∗
       srvAppliedOwn γr i ∗ appliedAtLeast γr i ∗ appliedLogAt γr i L := by
   iintro #Hinv Hown #HL₀ #HkA #HcL
   iunfold srvAppliedInv at Hinv
@@ -2490,7 +2514,7 @@ through the current applied index `v ≥ ci₀`, with mvcc's certificate. -/
 theorem readIndexOk_log (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) :
     ⊢ srvAppliedInv s E γr -∗ readIndexOk γr c ={⊤}=∗
       ∃ (ci₀ : w64) (L₀ : mvcc.Log), ⌜uint.Z c ≤ uint.Z ci₀⌝ ∗ appliedLogAt γr ci₀ L₀ ∗
-        mvcc.idxCert E.γ.idx L₀ := by
+        srvApi.kvLogLb E.γs L₀ := by
   iintro #Hinv #Hok
   iunfold readIndexOk at Hok
   icases Hok with ⟨%ci, %Hci, #Hlb⟩

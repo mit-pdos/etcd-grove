@@ -78,11 +78,13 @@ def pbAuthenticateRequest : ProtoMsg GF where
   own l := iprop(∃ v : etcdserverpb.AuthenticateRequest, l ↦ v)
   blank_own l := by iintro H; iexists _; iexact H
 
-/-- **A `*pb.AuthenticateResponse`** on the wire: its token. -/
+/-- **A `*pb.AuthenticateResponse`** on the wire: its token; the sender's has no unknown fields
+(the stage A Freeze review's A2: the server's is fresh). -/
 def pbAuthenticateResponse : ProtoMsg GF where
   ty := etcdserverpb.AuthenticateResponse.ty
   M := GoString
-  send r t := iprop(∃ v : etcdserverpb.AuthenticateResponse, r ↦ v ∗ ⌜v.Token' = t⌝)
+  send r t := iprop(∃ v : etcdserverpb.AuthenticateResponse, r ↦ v ∗
+    ⌜v.Token' = t ∧ v.unknownFields' = slice.nil⌝)
   recv r t := iprop(⌜r ≠ null⌝ ∗
     structFieldRef etcdserverpb.AuthenticateResponse go!"Token" r ↦□ t)
   recv_persistent _ _ := inferInstance

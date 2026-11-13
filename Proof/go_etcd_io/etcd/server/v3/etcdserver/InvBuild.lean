@@ -59,28 +59,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-! ## The names chosen before the call (D13a) -/
 
 /-- **Two apply environments agree on the names** the raft contract's `E.C` reads (`srvC`: the
-store's index names, through the results' certificates `idxCert`; its certificate map, `certOk`;
-the revisions' tokens, `revMinted`), and (M2, the storage side, review round 2's N1, the
-approval's item 10) on the compaction mode, the first one's mode its store's (`E.γ.cm = E.cmp`:
-one reading of the mode, the store's logical one, which a restore keeps). -/
+results' floors `kvLogLb E.γs` and the store's witness `E.Nx`; the revisions' tokens, `revMinted`),
+and on the compaction mode. (Strict M1, 2026-11-06: until then the store's index names and
+certificate map, `idxCert`/`certOk`, and the store's logical mode `E.γ.cm`, gone with mvcc's
+internals: the API's store has no mode, so `envAgree_mode`, `envAgree_off`, `envAgree_on` are
+deleted; their users read the server's mode `E.cmp` off `envAgree`'s last conjunct.) -/
 def envAgree (E E' : apply.AEnv GF) : Prop :=
-  E.γ.idx = E'.γ.idx ∧ E.γ.cok = E'.γ.cok ∧ E.γrev = E'.γrev ∧ E.cmp = E'.cmp ∧ E.γ.cm = E.cmp
-
-/-- **The mode, read at the stand-in** (N1): the server's store compacts exactly when the stand-in
-says so. -/
-theorem envAgree_mode (E E₀ : apply.AEnv GF) (h : envAgree E E₀) : E.γ.cm = E₀.cmp := by
-  rw [h.2.2.2.2, h.2.2.2.1]
-
-/-- **An off stand-in, an off server** (N1: what the watching examples read off `memberUp`'s
-`envAgree E E₀`, with `E₀.cmp = false` from the member's boot bundle). -/
-theorem envAgree_off (E E₀ : apply.AEnv GF) (h : envAgree E E₀) (h0 : E₀.cmp = false) :
-    E.γ.cm = false := by
-  rw [envAgree_mode E E₀ h, h0]
-
-/-- A compacting stand-in, a compacting server. -/
-theorem envAgree_on (E E₀ : apply.AEnv GF) (h : envAgree E E₀) (h0 : E₀.cmp = true) :
-    E.γ.cm = true := by
-  rw [envAgree_mode E E₀ h, h0]
+  E.γs = E'.γs ∧ E.Nx = E'.Nx ∧ E.γrev = E'.γrev ∧ E.cmp = E'.cmp
 
 /-- **The start of a new cluster's apply thread** (`x₀`): `NewStore`'s two empty revisions, the
 base chain with auth disabled and no alarm, no compaction yet (`-1`). -/
@@ -245,7 +230,7 @@ had the uber-applier, `srvUberApplyAddr`, `applierFor`, a KV row of `srvBuildGap
 def srvFieldsBuiltNA (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (v : SrvFields) : IProp GF :=
   iprop(srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
-      ⌜E.P = batchLockInv γ TM ∧ E.f = v.hook⌝ ∗ ⌜srvEnvOk s γ ci E v.cluster⌝ ∗
+      ⌜E.Pk = (fun _ => batchLockInv γ TM) ∧ v.hook = #E.f ∧ E.f ≠ func.nil⌝ ∗ ⌜srvEnvOk s γ ci E v.cluster⌝ ∗
       hookSpec γ ci TM v.hook ∗
       srvLessorAddr s ↦□ v.lessor ∗ lessorOk E.lg E.authMode.isOn v.lessor ∗
       srvFirstCommitAddr s ↦□ v.firstCommit ∗ srvAlarmStoreAddr s ↦□ v.alarmStore ∗
@@ -261,15 +246,14 @@ instance srvFieldsBuiltNA_persistent (s : Loc) (γ : ApplyNames) (ci : Loc)
     Persistent (srvFieldsBuiltNA s γ ci TM E v) := by
   unfold srvFieldsBuiltNA; infer_instance
 
-/-- `srvReadBuilt` without the KV rows (`srvKVAddr`, `txn.isKV`, the store's read view,
-`storeSmall`: `srvBuildGap`). -/
+/-- `srvReadBuilt` without the KV rows (`srvKVAddr` and the store's handle: `srvBuildGap`). -/
 def srvReadBuiltNK (s : Loc) (E : apply.AEnv GF) (v : ReadFields) : IProp GF :=
-  iprop(srvLessorAddr s ↦□ v.lessor ∗ apply.isApplyLessor v.lessor E.s E.γ E.P E.f E.RO E.RW ∗
-    srvAuthStoreAddr s ↦□ v.auth ∗ apply.isAuthStore v.auth E.γ E.P E.f E.RD E.authMode E.RW ∗
+  iprop(srvLessorAddr s ↦□ v.lessor ∗ apply.isApplyLessor v.lessor E.γ E.Pk E.f E.BkTie E.RO E.RW ∗
+    srvAuthStoreAddr s ↦□ v.auth ∗ apply.isAuthStore v.auth E.Pk E.f E.BkTie E.RD E.authMode E.RW ∗
     srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
     srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ v.wad ∗
     inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗
-    (∃ log₀ : mvcc.Log, mvcc.idxCert E.γ.idx log₀ ∗
+    (∃ log₀ : mvcc.Log, srvApi.kvLogLb E.γs log₀ ∗
       ⌜2 ≤ log₀.length ∧ mvcc.LogPutsLe etcdKeyMax log₀⌝) ∗
     srvFirstCommitAddr s ↦□ v.fc)
 
@@ -282,10 +266,10 @@ def applyBuiltNA (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : a
     (γr : ReadNames) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV) : IProp GF :=
   iprop(∃ (st₀ : ApplyState) (a t : w64) (f : Bool),
     applyThread γ st₀ ∗ ⌜loopOk γ st₀ ai₀ ∧ c₀ = ciEff γ st₀.k⌝ ∗ applyBackend γ ci b ∗
-    ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ srvBeOwn s E ∗
-    revAuth E x₀.log ∗ srvAuthApplyRes s E ∗
+    ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ mvcc.api.mvccReaders E.γ 1 ∗
+    srvBeOwn s E ∗ revAuth E x₀.log ∗ srvAuthApplyRes s E ∗
     -- (2026-11-04, the lease-expiry plan's step 2) the lessor's range deleter (`mvcc.New`'s)
-    lease.rdAt E.γ.leases E.s ∗
+    (∃ rd : GoFunc, lease.rdOwn (mvcc.api.mvccLeases E.γ) rd ∗ mvcc.api.mvccDeleter rd E.γ) ∗
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRun γr ai₀ c₀ [] x₀ ∗ srvRest E γr [] ∗
     srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f)
 
@@ -313,7 +297,15 @@ def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     -- (D43 M3, 2026-10-25) a fresh start: no entry replayed (2026-10-30, the repair: in every
     -- cluster, raft's one mode; until then in its dynamic mode)
     "%HEr" ∷ ⌜Er.C = srvC ρ E ai₀ c₀ x₀ ∧ Er.γr = γr ∧
-      (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0)⌝ ∗
+      (uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0) ∧
+      -- (R2d'a A6, DRAFT) a first start: the restart point's backend log `γn.a0` empty
+      γn.a0 = []⌝ ∗
+    -- (R2d'a A7, A10 item 5, 2026-11-06; DRAFT, approved by 82) no merged snapshot sent at a new
+    -- raft term while the replay window is pending (`srvWinPend`; corrected 2026-11-07: false
+    -- whenever the restarted member is later elected and snapshots a follower, its `n` free; R2d'b
+    -- restates it, R2s removes it; with row 3 false on most restarts, the restart meaning is vacuous
+    -- until R2d'b; free at a first start, `srvWinPend_first`)
+    "Hwpend" ∷ srvWinPend s γr γn ∗
     -- (2026-10-30, the repair) the apply side's half of the node's running token (`dvRun`), which
     -- `run` gives the raft loop with `raftNode.stop` (`rnStopBag`)
     "Hrunh" ∷ (letI := srvStor (GF := GF) γn.node; nodeRunning γn.nl γn.node.cl srvClusterN (1 : Qp).half) ∗
@@ -358,13 +350,8 @@ def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     "Hlr" ∷ srvLgReader s ∗
     "Hlrl" ∷ srvLgReader s ∗
     "Hfcr" ∷ (∃ n : Loc, srvFirstCommitAddr s ↦□ n ∗ notifyReader n) ∗
-    "#Hkv" ∷ (∃ (kv : GoInterface) (rv : Loc), srvKVAddr s ↦□ kv ∗ txn.isKV kv E.s E.γ ∗
-      E.s.[go_etcd_io.etcd.server.v3.storage.mvcc.store, go!"ReadView"] ↦□
-        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.readView.ty)
-          #rv : GoInterface) ∗
-      mvcc.isReadView rv E.s E.γ) ∗
+    "#Hkv" ∷ (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ □ mvcc.api.isMvcc kv E.γ ∗ ⌜kv = E.kv⌝) ∗
     "HWB" ∷ srvWTBudget E ∗
-    "#Hsmall" ∷ storeSmall E.γ ∗
     "#HNR" ∷ □ (|==> idCred ρ.ids 1) ∗
     "#Hcv" ∷ clusterVersionOk s ∗
     -- (the backend-auth-split stage, 2026-11-02) within the backend's pool of readers (`2 ^ 28`;

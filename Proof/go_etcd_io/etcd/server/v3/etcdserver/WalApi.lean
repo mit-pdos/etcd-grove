@@ -12,7 +12,7 @@ NOT YET IN USE: R2b-1's next stage puts `isWalStorage` in place of today's `isRN
 (`InvRaftNode.lean`) in `NewStorage`'s contract (`rnNewStorageOk`), and `walOpened` in `bootstrap`'s
 (`bootOk`), with the durability invariant the raft loop and the apply thread keep
 (`InvWal.lean`), as the user approved (2026-11-03): (1) `NewStorage`'s contract gives this one;
-(2) `bootstrap`'s first start takes `walDirFresh` and gives `walOpened … walFresh` and
+(2) `bootstrap`'s first start takes `dataDirFresh` (`wal.bootRes`) and gives `walOpened … walFresh` and
 `walPurgeRight`, the restart takes `walFiles` and gives `walOpened … σ` and `walPurgeRight` (scope:
 `ForceNewCluster` off); (3) `srvFiles` is `∃ cid, walFiles (config.walDirOf dd "") id cid σ ∗` the
 backend file; (4) `storage.Release` takes `walBaseLb`; (5) `purgeFile` takes and returns
@@ -190,17 +190,20 @@ these, sealed: a change to what the WAL takes or gives at boot changes their bod
 the hub's text. No `wal.bootCfg` (the WAL places no condition on the configuration); `wal.Names`
 and `wal.srvInv` come with the raft loop's durability invariant (R2b-1 stages 3c/4). -/
 
-/-- **What a caller of `bootstrap` (through `NewServer`) hands the WAL**: the configuration's WAL
-directory (`cfg.WALDir()`) fresh, a first start's (from program start, `startRights`). -/
+/-- **What a caller of `bootstrap` (through `NewServer`) hands the WAL and the backend**: the
+configuration's data directory fresh, a first start's (no WAL, no backend file; from program
+start, `startRights`), with no dedicated WAL directory: the scope in which the data directory holds
+the WAL, every starter's configuration. (Sweep repairs 1, W3/W4, 2026-11-07: until then the WAL
+directory's `walDirFresh`, which said nothing of the backend file a first start opens.) -/
 @[no_expose] def wal.bootRes (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : IProp GF :=
-  iprop(walDirFresh (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir'))
+  iprop(dataDirFresh cfg.DataDir' ∗ ⌜cfg.DedicatedWALDir' = go!""⌝)
 
-/-- `wal.bootRes`'s intro: a configuration whose data directory is `d` and dedicated WAL
-directory `w` takes the token of `config.walDirOf d w`. -/
-theorem wal.bootRes_intro (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (d w : GoString)
-    (hd : cfg.DataDir' = d) (hw : cfg.DedicatedWALDir' = w) :
-    walDirFresh (GF := GF) (config.walDirOf d w) ⊢ wal.bootRes cfg := by
-  unfold wal.bootRes; subst hd; subst hw; iintro H; iexact H
+/-- `wal.bootRes`'s intro: a configuration whose data directory is `d`, with no dedicated WAL
+directory, takes `d`'s token. -/
+theorem wal.bootRes_intro (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (d : GoString)
+    (hd : cfg.DataDir' = d) (hw : cfg.DedicatedWALDir' = go!"") :
+    dataDirFresh (GF := GF) d ⊢ wal.bootRes cfg := by
+  unfold wal.bootRes; subst hd; iintro H; iframe H; ipureintro; exact hw
 
 /-- **What `bootstrap` gives the WAL** (its contract's `bootOk`): the new WAL `w` opened in the
 configuration's WAL directory with the member's metadata and no records (`walOpened … walFresh`),

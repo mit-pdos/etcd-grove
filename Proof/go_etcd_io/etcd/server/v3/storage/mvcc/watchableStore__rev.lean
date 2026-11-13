@@ -33,8 +33,8 @@ theorem mvcc.watchableStore.rev.wp_proof
     (hRev : mvcc.storeTxnCommon.Rev.spec (GF := GF) (hG := hG))
     (hEnd : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG := hG)) :
     mvcc.watchableStore.rev.spec (GF := GF) (hG := hG) := by
-  intro s st γ oa
-  wp_start as ⟨#Hws, Hrd, HoA⟩
+  intro s st γ oa F
+  wp_start as ⟨#Hws, Hrd, HoA, Hcb⟩
   iunfold mvcc.isWatchableStore at Hws
   iNamed Hws
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
@@ -56,12 +56,15 @@ theorem mvcc.watchableStore.rev.wp_proof
   iunfold mvcc.isStore at Hs'
   iNamedSuffix Hs' "S"
   imod mvcc.crevLb_neg γ.st.idx with #Hlbn
-  wp_apply (hRead st γ.st _ t 0 [[], []] true (-1) iprop(True) oa) $$ [$Hs $Hrd $Hnone $Hc0S $Hlbn $Htrc $HoA]
-    as %mw ⟨%log, %rev, %crev, Htx, -, -, -, -, %Hpre0, HoA, %HoaL⟩
+  ihave Hcb := mvcc.readCbC_of γ.st F $$ Hcb
+  wp_apply (hRead st γ.st _ t 0 [[], []] true (-1) iprop(True) oa (fun L _ => F L))
+      $$ [$Hs $Hrd $Hnone $Hc0S $Hlbn $Htrc $HoA $Hcb]
+    as %mw ⟨%log, %rev, %crev, Htx, Htrc, -, -, -, -, %Hpre0, HoA, %HoaL, HF⟩
   · isplitr
     · iintro !>; itrivial
     ipureintro; exact Ht
   (try wp_auto)
+  ihave Htx := mvcc.isTxnRead_ofT _ _ _ _ _ _ _ _ _ _ $$ [$Htx $Htrc]
   iunfold mvcc.isTxnRead at Htx
   iNamed Htx
   ihave #HtrT := Htr
@@ -83,13 +86,18 @@ theorem mvcc.watchableStore.rev.wp_proof
   ihave Htx' : mvcc.isTxn mw st γ.st t (.read log rev) crev iprop(True) $$ [Htx]
   · simp only [mvcc.isTxn]; iexact Htx
   ihave Htx' := mvcc.isTxn_toEnd _ _ _ _ crev iprop(True) $$ Htx'
-  ihave Hep : mvcc.txnEndPre γ.st (.read log rev) $$ []
-  · simp only [mvcc.txnEndPre]; itrivial
-  wp_apply (hEnd t mw st γ.st (.read log rev) crev iprop(True)) $$ [$Htx' $Hep] as ⟨Hrd, -, -, -⟩
+  ihave Hep : mvcc.txnEndPreH γ.st (.read log rev) $$ []
+  · simp only [mvcc.txnEndPreH]; itrivial
+  ihave Htx' := mvcc.isTxnEnd_Y_read _ _ _ _ _ _ crev iprop(True) iprop(True) $$ Htx'
+  ihave Hx : mvcc.txnEndX γ.st (.read log rev) crev iprop(True) iprop(True) iprop(True) $$ []
+  · simp only [mvcc.txnEndX]; itrivial
+  wp_apply (hEnd t mw st γ.st (.read log rev) crev iprop(True) iprop(True) iprop(True) iprop(True)) $$ [$Htx' $Hep $Hx]
+    as ⟨Hrd, -, -, -, -⟩
   (try wp_auto)
   iapply HΦ
   iframe Hrd HoA
   iexists log
+  iframe HF
   withPhys_simp
   iframe HcertT
   ipureintro

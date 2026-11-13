@@ -50,7 +50,7 @@ theorem Reflector.watchWithResync.wp_proof
   ihave #HerrCh : errChOk ech $$ []
   · unfold errChOk; iexists γe; iframe #
   (try wp_auto)
-  wp_apply (context.wp_WithCancel_any ctx cs) $$ [$Hctxp $Hctx] as %ctx' %γ' %cancel ⟨#Hcancel, #Hctx'⟩
+  wp_apply (context.wp_WithCancel_any ctx cs) $$ [$Hctxp $Hctx] as %ctx' %γ' %cancel ⟨#Hcancel, #Hctx', -⟩
   (try wp_auto)
   ipersist r
   ipersist cancelCtx

@@ -36,7 +36,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.auth auth go_etcd_io.
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
@@ -73,6 +73,7 @@ theorem auth.wp_permX_key (p : Loc) (w : PermW) :
   wp_start as Hp
   iunfold ownPermX at Hp
   icases Hp with ⟨%Hpn, %st, %k, %re, %uf, %sc, Hm, #Hk, #Hre⟩
+  ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hm
   icases typedPointsto_split _ _ _ $$ Hm with Hm
   simp only [TypedPointsto.typedPointstoDef]
   iNamed Hm
@@ -97,6 +98,7 @@ theorem auth.wp_permX_rangeEnd (p : Loc) (w : PermW) :
   wp_start as Hp
   iunfold ownPermX at Hp
   icases Hp with ⟨%Hpn, %st, %k, %re, %uf, %sc, Hm, #Hk, #Hre⟩
+  ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hm
   icases typedPointsto_split _ _ _ $$ Hm with Hm
   simp only [TypedPointsto.typedPointstoDef]
   iNamed Hm
@@ -153,6 +155,7 @@ theorem auth.wp_permX_setTy (p : Loc) (w : PermW) (ty : w32) :
   wp_start as Hp
   iunfold ownPermX at Hp
   icases Hp with ⟨%Hpn, %st, %k, %re, %uf, %sc, Hm, #Hk, #Hre⟩
+  ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hm
   icases typedPointsto_split _ _ _ $$ Hm with Hm
   simp only [TypedPointsto.typedPointstoDef]
   iNamed Hm
@@ -217,7 +220,7 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
     · iunfold authWRxB; iframe HT Hfl Hev Hca Hcsn; iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
-      · ipureintro; intro _; rfl
+      · ipureintro; exact ⟨fun _ => rfl, fun h => by cases h⟩
       · ileft; ipureintro; rfl
     iunfold adminOutP
     iright
@@ -257,7 +260,7 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
       · iunfold authWRxB; iframe HT Hfl Hev Hca Hcsn; iframe Hbe Hbeok
       isplitr
       · iunfold respOk; isplitr
-        · ipureintro; intro _; rfl
+        · ipureintro; exact ⟨fun _ => rfl, fun h => by cases h⟩
         · ileft; ipureintro; rfl
       iunfold adminOutP
       iright
@@ -310,7 +313,7 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
       · iunfold authWRxB; iframe HT Hfl Hev Hca Hcsn; iframe Hbe Hbeok
       isplitr
       · iunfold respOk; isplitr
-        · ipureintro; intro _; rfl
+        · ipureintro; exact ⟨fun _ => rfl, fun h => by cases h⟩
         · ileft; ipureintro; rfl
       iunfold adminOutP
       iright
@@ -329,6 +332,7 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
     obtain ⟨Hlook, Hrrn, Hrrp⟩ := Hrr
     iunfold ownRoleX at Hrm
     icases Hrm with ⟨%rst, %rnm, %kp, %locs, %ruf, %rsc, Hrp, #Hrnm, Hkp, Hkpc, %Hlocs, Hperms⟩
+    ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hrp
     icases typedPointsto_split _ _ _ $$ Hrp with Hrp
     simp only [TypedPointsto.typedPointstoDef]
     iNamed Hrp
@@ -607,6 +611,7 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
       (try wp_auto)
       irename «$r0» => Hresp
       generalize «$r0_ptr» = resp at *
+      ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hresp
       icases typedPointsto_split _ _ _ $$ Hresp with Hresp
       simp only [TypedPointsto.typedPointstoDef]
       iNamed Hresp
@@ -626,7 +631,7 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
       · iunfold authWRxB; iframe HT Hfl Hev Hca Hsnap; iframe Hbe Hbeok
       isplitl [Header]
       · iunfold respOk; isplitr
-        · ipureintro; intro h; exact absurd rfl h
+        · ipureintro; exact ⟨fun h => absurd rfl h, fun _ => by assumption⟩
         · iright; iexists _; iexact Header
       iunfold adminOutP
       iright

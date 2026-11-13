@@ -142,11 +142,13 @@ def pbAuthEnableRequest : ProtoMsg GF where
   own l := iprop(∃ v : etcdserverpb.AuthEnableRequest, l ↦ v)
   blank_own l := by iintro H; iexists _; iexact H
 
-/-- **A `*pb.AuthUserAddResponse`** on the wire: nothing the client reads. -/
+/-- **A `*pb.AuthUserAddResponse`** on the wire: nothing the client reads; the sender's is not `nil`
+(stage A of the per-type models: what a registered model's `RepSat` needs, `send null m ⊢ False`;
+etcd's handlers return a fresh response). -/
 def pbAuthUserAddResponse : ProtoMsg GF where
   ty := etcdserverpb.AuthUserAddResponse.ty
   M := Unit
-  send _ _ := iprop(True)
+  send l _ := iprop(⌜l ≠ null⌝)
   recv _ _ := iprop(True)
   recv_persistent _ _ := inferInstance
   blank l := iprop(l ↦ (zero_val etcdserverpb.AuthUserAddResponse))
@@ -157,7 +159,7 @@ def pbAuthUserAddResponse : ProtoMsg GF where
 def pbAuthUserGrantRoleResponse : ProtoMsg GF where
   ty := etcdserverpb.AuthUserGrantRoleResponse.ty
   M := Unit
-  send _ _ := iprop(True)
+  send l _ := iprop(⌜l ≠ null⌝)
   recv _ _ := iprop(True)
   recv_persistent _ _ := inferInstance
   blank l := iprop(l ↦ (zero_val etcdserverpb.AuthUserGrantRoleResponse))
@@ -168,7 +170,7 @@ def pbAuthUserGrantRoleResponse : ProtoMsg GF where
 def pbAuthRoleAddResponse : ProtoMsg GF where
   ty := etcdserverpb.AuthRoleAddResponse.ty
   M := Unit
-  send _ _ := iprop(True)
+  send l _ := iprop(⌜l ≠ null⌝)
   recv _ _ := iprop(True)
   recv_persistent _ _ := inferInstance
   blank l := iprop(l ↦ (zero_val etcdserverpb.AuthRoleAddResponse))
@@ -179,7 +181,7 @@ def pbAuthRoleAddResponse : ProtoMsg GF where
 def pbAuthRoleGrantPermissionResponse : ProtoMsg GF where
   ty := etcdserverpb.AuthRoleGrantPermissionResponse.ty
   M := Unit
-  send _ _ := iprop(True)
+  send l _ := iprop(⌜l ≠ null⌝)
   recv _ _ := iprop(True)
   recv_persistent _ _ := inferInstance
   blank l := iprop(l ↦ (zero_val etcdserverpb.AuthRoleGrantPermissionResponse))
@@ -190,7 +192,7 @@ def pbAuthRoleGrantPermissionResponse : ProtoMsg GF where
 def pbAuthEnableResponse : ProtoMsg GF where
   ty := etcdserverpb.AuthEnableResponse.ty
   M := Unit
-  send _ _ := iprop(True)
+  send l _ := iprop(⌜l ≠ null⌝)
   recv _ _ := iprop(True)
   recv_persistent _ _ := inferInstance
   blank l := iprop(l ↦ (zero_val etcdserverpb.AuthEnableResponse))

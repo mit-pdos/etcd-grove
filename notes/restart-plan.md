@@ -2292,6 +2292,7 @@ change goes in a named conjunct of its own, and the proofs use laws, not positio
 ### R2d Draft, round 2: the window form and Q14 (2026-11-06, branch `r2d`)
 
 *Superseded in part (2026-11-06, "R2d cut (Q21)" below): the window form (Q13 (a)) moved from R2d to R2d'; Q14 stays in R2d.*
+*Reorganized (2026-11-06) by "R2d' Scope (approved 2026-11-06)" below: its R2d' contents are now that section's R2d'a/R2d'b items; where they differ, that section holds.*
 
 **The split (Q15 (c), decided by etcd-grove-82 under the user's delegation, pending the user's
 review): R2d / R2d' / R2e.** Supersedes the Scope's S1 split (`notes/decisions.md`, "R2d: the split
@@ -2408,6 +2409,7 @@ freezes entries only through Go's end, a restarted `MemoryStorage` only up to it
 ### R2d Draft, round 3: R2s, the Q16-3 review, R2d-2's statements (2026-11-06, branch `r2d`)
 
 *Superseded in part (2026-11-06, "R2d cut (Q21)" below): the window-form apply chain, `winNoConf`, `winNoMergedSend` (and its hub conjunct), Q19, F2, F4 and finding 6 moved from R2d to R2d'; the restage's R2d list is now the cut's.*
+*Reorganized (2026-11-06) by "R2d' Scope (approved 2026-11-06)" below: its R2d' contents are now that section's R2d'a/R2d'b items; where they differ, that section holds.*
 
 **R2s, "snapshots across windows"** (the Q16-3 review's item 1, decided by etcd-grove-82 under the
 user's delegation, pending the user's review; supersedes Q16 (3) and Q18's R2d-3m; `notes/decisions.md`,
@@ -2555,6 +2557,8 @@ split of Q18; `notes/decisions.md`, "R2d restaged: the restart's prerequisites")
 
 ### R2d cut (Q21): the window-form apply chain moves to R2d' (2026-11-06, branch `r2d`)
 
+*Reorganized (2026-11-06) by "R2d' Scope (approved 2026-11-06)" below: its "To R2d'" list and its two constraints are met there by the restart point over Go's log (the `W`/`D` lists dropped), the per-entry `v3 = false` cases and `winNoConf`'s discharge.*
+
 **Decided by etcd-grove-82 under the user's delegation (user offline), 2026-11-06, pending the user's
 review** (Q21 (b); `notes/decisions.md`, "R2d cut: the window-form apply chain moves to R2d'"). The
 post-Freeze proof round found `apply.wp_proof`'s and `applyEntries.wp_proofBatch`'s window forms
@@ -2596,3 +2600,1690 @@ unprovable as frozen. R2d lands without the window form:
 **The lesson for R2d''s Scope.** The window failed three probes when designed from the apply chain
 upward. Design it from `run`'s window downward, with a probe through `run`'s restart batch before any
 spec is frozen.
+
+### R2d' Scope (approved 2026-11-06)
+
+**The design and the hard stops H1-H10 are decided by etcd-grove-82 under the user's delegation
+(user offline), 2026-11-06, pending the user's review** (the worktree's `questions.md`, "R2d' Scope";
+the plan in full, with every citation: `/shared/tmp/r2d-prime-scope.md`; `notes/decisions.md`, "R2d':
+the restart window as a restart point over Go's log"). This section reorganizes the earlier R2d'
+contents of this plan ("R2d Draft, round 2"'s R2d' bullets, the restage's R2d' list in "R2d Draft,
+round 3", the "To R2d'" list and the constraints of "R2d cut (Q21)"): where they differ, this section
+holds. Go is cited at the etcd pin `673da07c8`, raft at `565c2bd`.
+
+**The design: from `run` downward** (the lesson of Q21: three probes failed when the window was
+designed from the apply chain upward).
+- `run`'s loop is indexed by **Go's log** `G`, the log raft handed (as `RunWindow.lean` on branch
+  `r2d-prime` already is). Every callee down the chain takes Go's log as its log.
+- A restart adds one constant per incarnation, the **restart point** `rp = ⟨b, A₀⟩`: Go's start
+  index `σ.b` (the WAL snapshot's) and the backend's ghost log `A₀` through the consistent index `i`.
+- The ghost log is derived: `ghostOf rp G = G ++ A₀.drop |G|`; so are the pending replays
+  (`A₀.drop |G|`) and the done ones (`G.drop b`, while pending). At a first start `rp = ⟨0, []⟩` and
+  `ghostOf rp G = G`: a law gives today's text.
+- Go's rows (`ep.appliedi`/`appliedt`, `loopOk`, `srvSnapState`, raft's rows of `run_job_body`) keep
+  lean's text; only the ghost rows (`srvAppliedOwn`, `appliedLogAt`, `kvRunM`, `srvApRes`, `epCsAt`,
+  `ciJ`) move to `ghostOf`; the rest row is `srvRestR` (`restReplay A₀ (G.drop b)` while the window is
+  pending, `srvRest` after); the driver's view is over the ghost (finding 1).
+- `winOk`, `winAgree`, `W`, `D`, `winDone` and the F2 premise go away (`r2d-window-full`'s lists):
+  what they stated follows from the committed log's uniqueness and `ciJ` (`ciEff = |Γ|` pins every
+  replay at or below the consistent index). Q16 (1), F4 and finding 6 stop being changes: they are
+  lean's text with `A` read as Go's log.
+- **Per-entry replay**, at Go's index with the ghost unchanged: a `v3 = false` case of
+  `applyEntryNormal.spec` (no ghost rows; the rest resource stepped by `restEntry`, `srvApplyKVM` by
+  `entryStep m false`) and of `applyConfChange.spec` (`dv = some n → (v3 = true → srvCCPre …)`; at
+  `v3 = false` the view unchanged and `csl = cs`), with R2d's `setAppliedIndex` `rep` case. `apply`,
+  `applyEntries` and `applyAll` keep one spec each, because a batch can straddle `i` (raft's
+  `MaxCommittedSizePerReady` splits the first committed entries; `bootstrap.go:580-599`).
+- **`winNoConf` is discharged, not carried**: by `applyConfChange`'s `v3 = false` case and the pure
+  lemma `restReplay_close` (replaying any suffix of the committed log v2-only on `restModel L` gives
+  `restModel L`), from the static-membership facts every closed theorem already rests on (`ccApplyOk`,
+  `attrLogOk`, the boot prefix, `membersDecode_restModel`'s argument). Q21's counterexample
+  `D = [attr(X,a), add X]` is not a log those facts allow. `srvRestartPt` loses its `winNoConf`
+  conjunct.
+
+**Scope items.**
+
+| # | Item | Kind | Est. |
+|---|---|---|---|
+| A1 | Window vocabulary: `RestartPt ⟨b, A₀⟩`, `ghostOf`, `srvRestR`, the KV facts over new entries; the first-start laws (replaces `r2d-window-full`'s `ApplyWindow.lean` lists) | new | 2-3 d (est.) |
+| A2 | `restReplay_close` | new (pure) | 3-5 d (est.) |
+| A3 | `applyEntryNormal.spec`'s `v3 = false` case (the `v3 = true` text unchanged) | frozen, internal | 2-3 d (est.) |
+| A4 | `applyConfChange.spec`'s `v3 = false` case (with A2, discharges `winNoConf`) | frozen, internal | 3-4 d (est.) |
+| A5 | `apply.spec`, `applyEntries.specBatch`, `applyAll.specBatch` over `(rp, G)`; new premises `rp.b ≤ |G|`, `srvRLogLb γ A₀`; `dvOk` at `|ghostOf rp G| + 1` (Q19) | frozen, internal (lean's text at `⟨0, []⟩` by a law) | statements 2 d; proofs `apply` 5-7 d, `applyEntries` 2 d, `applyAll` 3-5 d (est.) |
+| A6 | The driver's view over the ghost (finding 1, H4 V1): `dvView`/`dvRes`/the `notifyc` payload, the raft loop's `rnCfgAt` and the `rnApR_dv` bridge with `A₀` | hub | 4-6 d (est.) |
+| A7 | `winNoMergedSend` as frozen at `r2d-freeze1`, with the `isServerApplyAll`/`srvApplyAllBuilt` member-id conjunct; its supply at `run`'s restart branch (H6: the token wand) | hub; restart-only assumption | 1-2 d (est.) |
+| A8 | An install inside a restart window (finding 2): `winInstallAbove` (H5 (a)) | restart-only assumption | 1 d (est.) |
+| A9 | R2d-2's hub edit: `isServerRunC`/`isServerBuiltC`'s `%HEr` (`γn.pre = []` → `P <+: A₀` with `rp`), `Hsnap`'s restart form (`rnSnapOnce` at `|P|`, `P`'s term, `epCsVoters`, the storage's snapshot token named by raft's `MemoryStorage` API), `Hstart` = `srvRestartAt` | hub | 3-5 d (est.) |
+| A10 | R2d-5: `run.wp_proof`'s restart branch (`applyResR`, its start, normal and snapshot jobs in a window, the merged-send supply, the stop at a restart: `σ'.b ≤ Go ≤ i' ≤ σ'.commit`); `run.spec`'s text unchanged, its docstring's "Scope: a first start" updated | frozen (scope widens through `isServerRunC`) | 2-3 wk (est.) |
+| A11 | Freeze package, a fresh `spec-reviewer` round | — | 3-4 d (est.) |
+
+**R2d'a (A1-A11): 5-7 weeks (est.), the probe included.** It lands with no producer of the restart
+form (`NewServer` still builds a first start through the laws); the first-start closed theorems are
+unchanged and reach no DRAFT `sorry` (the hub edit lands with A10's proof, Q20's condition); the
+trust base is unchanged but for A7/A8, which no closed theorem reaches.
+
+**R2d'b, `NewServer` at a restart: not started: after the user's review or R2d'a's Freeze, 82
+decides** (H8; the estimate went from 5-7 weeks for all of R2d' to 10-14 (est.)).
+
+| # | Item | Kind | Est. |
+|---|---|---|---|
+| B1 | R2d-6: `memStorRestarted` defined over `walSnapCert`; `newRaftNode`'s `RestartNode` path at `a = i`, `nodeConfig ⟨i, m⟩` | new; trusted `bootOkR` text over it | 1 wk (est.) |
+| B2 | Q15's B1: `mvcc.lateWB`'s unregistered arm `pvckEmpty` → `pvckOwn`; `lateWBR` merged away (H7 (a): the trusted claim weakens; the `axiom` skill before the Freeze) | trusted | 3-5 d (est.) |
+| B3 | `mvcc.New`/`NewStore`'s restoring case (**taken by mvccfull's F1**, 2026-11-09, the user: one spec for both clients, `notes/mvccfull-proof-plan.md`, branch `worktree-mvcc-full-tester`) | frozen | 1.5-2 wk (est.) |
+| B4 | HS1 re-applied (`/shared/tmp/r2d-hs1.patch`) | trusted | 0.5 d (est.) |
+| B5 | R2d-7: `NewServer.specG`'s restart branch builds `isServerBuiltC`'s restart form from `bootOkR`; H10's check first | hub | 2-3 wk (est.) |
+| B6 | R2d-8: etcdstart over both boots | frozen | 0.5-1 wk (est.) |
+| B7 | Freeze, review | — | 3 d (est.) |
+
+R2d'b: 5-7 weeks (est.); R2d' in all 10-14 weeks (est.). What the earlier 5-7 did not count: the
+per-entry replay specs (A3, A4), the view at a restart (A6), the install in a window (A8),
+`NewStore`'s restoring proof at its size (B3) and the probe. H10 (before R2d'b's Freeze): whether
+`cl.Recover`'s in-memory members equal `restModel A₀`'s `mem`, attributes included; if the trusted
+restart contract does not already say so, a JSON round-trip fact for `MemberM` is new trust, a hard
+stop.
+
+**The probe (H9, first; 7-10 days (est.)).** A restarted member's **first batch, straddling `i`**:
+its replayed part holds a normal entry with a `ClusterMemberAttrSet`, an empty entry and a boot
+`AddNode` (a restart with `σ.b < bootLen ≤ i`); entry `i` closes the window; one new entry follows.
+Proved, top to bottom:
+1. `restReplay_close` (pure);
+2. `apply.wp_proof`'s window form, over the drafted `v3 = false` cases of `applyEntryNormal.spec` and
+   `applyConfChange.spec` taken as hypotheses;
+3. `applyEntries.wp_proofBatch`'s window form;
+4. `run_job_bodyR` (the restart form of `run_job_body`) over the drafted `applyAll.specBatch`, for two
+   consecutive batches, this one and one after the window: `applyResR` re-established in both arms,
+   the second reducing to the first-start text;
+5. `applyResR_start` (`applyResCW_start` in the `rp` form), over a drafted `Hsnap` restart form;
+6. the view's round trip for the replayed conf entry, over a drafted ghost-indexed `rnCfgAt`.
+
+Pass: all sorry-free, with the two leaf specs and `applyAll.specBatch` as hypotheses only. Left out:
+`applyAll.wp_proofBatch` (adapted after), snapshot jobs in a window, the stop at a restart,
+`NewServer`. **H9's rule: on a gap, stop with a proposal, and freeze nothing.**
+
+**Two new findings.**
+1. **The driver's view at a restart.** `RestartNode`'s view is `⟨a, m⟩` with `a ∈ [max σ.b Applied,
+   σ.commit]`; `a` must be `i` (Go skips every conf entry in `(σ.b, i]`, and `ApplyConfChange` may
+   skip only conf entries below the view, `skippedIn_noConf`). Then `srvCfgOk` over Go's log is false
+   while `|G| < i`, and the raft loop's `rnCfgAt` bridges to the apply side by `rnApR_dv`/`rnApGive_dv`,
+   which need `γn.pre = γs.pre` (`InvRaftLoop.lean:218-240`), false at a restart. So the view is
+   stated over the ghost log on both sides, `A₀` in the raft loop's restart data (A6; H4 V1, approved
+   by 82 as hub-plan owner on condition that the first-start statements and closed theorems stay
+   unchanged).
+2. **An install inside a restart window** needs the snapshot's index above the *ghost* index `i`
+   (the receive proofs jump the monotone ghost, `applied_jump`). Raft gives it (`restore` refuses
+   `index <= committed`, `raft.go:1876-1880`, and `i ≤ σ.commit`), but no Lean statement does; Go
+   checks only `sIdx > ep.appliedi` (`server.go:1051-1059`). `run`'s snapshot jobs can run while the
+   window is pending (a split first batch, a snapshot between). A8 (H5 (a)).
+
+**The carried restart-only assumptions**, with their honest costs (R2s discharges both; R2e carries
+neither, nor `winNoConf`. For A7, superseded 2026-11-06 by the R2d'a review, finding 3: its supply
+`Hwpend` is false of some Go runs with default flags (replays over 1 MB with a mid-replay election);
+R2s must REMOVE it by following the merged snapshot in the ghost, not discharge it):
+- **A7, `winNoMergedSend`'s supply** (H6: a persistent wand guarded by an exclusive "window pending"
+  token the apply thread holds until the window closes: while it is held, member `id` has no
+  `MsgSnap` at a term `≥ T₀`). Cost, as N1's honest reading: it excludes runs where member `id` has a
+  `MsgSnap` at a term `≥ T₀` while the window is pending, including an earlier incarnation's sends at
+  the restart term (`sentMsg` is incarnation-blind). No wider than the frozen premise.
+- **A8, `winInstallAbove`**: a snapshot raft hands this incarnation is above `i`. True of every Go
+  execution (`raft.go:1877` with `i ≤ σ.commit`); its cost is that raft's API does not yet say so
+  (H5 (b), the raft fact, is R2s's).
+
+**A Go finding** (nothing for `issues/`): replaying an older `ClusterVersionSet` after an upgrade
+inside the window logs a spurious "downgrade detected", forces a disk snapshot and briefly lowers
+the in-memory cluster version (`nonissues/etcd-cluster-version-restart-replay-downgrade.md`); the
+rest model has no in-memory version, so the proof is unaffected.
+
+#### Probe (2026-11-06, branch `r2dp`; DRAFT, nothing frozen)
+
+The probe of (c) above (`/shared/tmp/r2d-prime-scope.md`, (c)), steps 1-2 of 5 done sorry-free, no new
+axiom; steps 3-5 not reached in the session (no gap found; what is left is listed below).
+
+- **Step 1, `restReplay_close`** (`RestReplay.lean`, proved): replaying any suffix of the committed log
+  v2-only on its rest model gives it back. Over the server's facts (`ApplyRDefs.lean`'s
+  `restReplay_closeI`: `srvRaftLogInv`, `srvRLogLb A₀`, `srv_committed_ccBoot`) it needs two premises
+  the plan did not list: `c0 ≤ ai0` (so `c0 = 0`; `run`'s `hc0`) and **every entry of `A₀` normal or a
+  v1 conf change** (`srvLogCore` gives `ccPolOk` for type-1 entries only; an entry of another type
+  whose bytes decode as a v1 change is not excluded). Both are restart-point facts (`kvBatchR`).
+- **Step 2, `apply` and `applyEntries` over `(rp, G)`** (`ApplyR.lean`'s `apply.wp_proofROff`,
+  `ApplyEntriesR.lean`'s `applyEntries.wp_proofBatchROff`, proved, auth off), over two hypothesized
+  replay specs (`ApplyRDefs.lean`): `applyEntryNormal.specRepOff` (the image `r` to `restEntryV2 m r`, the
+  KV kept, the voters in `r.mem`) and `applyConfChange.specRep` (a replayed `AddNode`: no backend, no
+  raft, no view, `ep.confState` kept, the peers kept). The loop invariant gains one variable, the ghost
+  log `Γ = ghostOf rp (G ++ ms.take j)`; only `apply`'s `v3 = false` branch splits (replay or past the
+  window); past the window `subst Γ` turns every row into lean's text and `wp_proofOff`'s code runs
+  unchanged. The window closes inside the replay branch (`restReplay_closeI`, one `imod`). 1168 lines
+  (about 180 new), 31 s to build.
+- **What it shows for the design.**
+  - The replay specs are smaller than A3/A4 assumed: `applyConfChange`'s replay needs none of the `v3`
+    rows (`E.RO`, validation, `dvCCPre`), so A4 is a `v3 = false` case with no `dv` resources at all.
+  - Under `kvBatchR` (`c0 ≤ ai0`, the batch's `v3` the model's past the window) **every entry past the
+    window is `v3`**, so `applyEntryNormal.spec`'s ghost-advancing `v3 = false` case (an entry at or
+    below `c0`) is dead in the window form: A3 can replace it by the replay case if `apply.spec` takes
+    `c0 ≤ ai0` (which `run` has), keeping one spec split on `v3`.
+  - `dvOk` at the ghost index (`g + 1`, Q19) refutes a past-window `v3 = false` conf entry as lean's
+    does at `f0`; `dvRes` stays over Go's log, `dvView` over the ghost. A replayed conf entry needs a
+    view (`dvOk`'s first clause), which the one-mode repair gives.
+  - F2 needs no premise beyond `ai0 + |A₀| ≤ ciEff` (in `kvBatchR`); no `winNoConf`.
+- **Not reached.** Step 3 (`applyResR`, `applyAll.specBatchR` hypothesized, `run_job_bodyR` for the
+  straddling batch and the next, the law `applyResR` = `applyResC` past the window), step 4
+  (`applyResR_start` over a drafted `Hsnap` restart form), step 5 (the view's round trip over a
+  ghost-indexed `rnCfgAt`, finding 1); and the auth-on copy of `apply`'s proof (the same edit).
+  **Est.: 4-6 d (est.)** for steps 3-5.
+- **Steps 3-5 (done the same day, the second session; sorry-free, no new axiom, `applyAll.specBatchR`
+  the only hypothesis).** This supersedes "Not reached" above, except for the auth-on copy of
+  `apply`'s proof, which is still not done.
+  - **Step 3** (`RunR.lean`). `applyResR K C rp A` is `applyResC` with these changes: the ghost rows
+    at `ghostOf rp A` (`g`, `kvRunM`, `epCsAt`, `srvApRes`); `srvRestR`; `srvRLogLb A₀`; and the
+    pure rows `uint.Z g = ai₀ + |ghostOf rp A|`, `ciJ`/`≤` at `g`, `rp.b ≤ |A|`, `A₀`'s types,
+    `ai₀ + |A₀| ≤ ciEff` and `ai₀ + |A₀| + 1 < 2^64`. `applyAll.specBatchR` is the hypothesis:
+    `specBatch` over the ghost, plus `winNoMergedSendR` (a DRAFT copy of `r2d-prime`'s
+    `winNoMergedSend`, which is not on `lean`). `run_job_bodyR` is proved for any batch: inside,
+    straddling or past the window. `applyResR_past` turns `applyResR` back into `applyResC` once
+    `|A₀| ≤ |A|`, and `applyResR_first` turns `applyResC` into `applyResR` at `⟨0, []⟩`.
+    Findings:
+    - (a) The row `ai₀ + |A₀| + 1 < 2^64` is new. `dvOk` at `g + 1` needs it inside the window,
+      where `srvIdxOk` bounds only Go's log. It is a restart-point fact: raft's next index after
+      `A₀` fits.
+    - (b) `applyAll`'s post keeps Go's `max ciEff ai'` form. `ciJ` steps at the ghost because
+      `ai₀ + |A₀| ≤ ciEff` gives `max ciEff ai' = max ciEff g'`.
+    - (c) `run_job_bodyR` keeps `run_job_body`'s `ai₀ = 0` and `γr.raft.pre = []`. Go's log `A`
+      includes the handed prefix `P`, so the ghost log counts from index 1.
+    - (d) A `match dv` written in a new declaration gets its own matcher, which `iframe` does not
+      unify with the spec's. It is converted with `iExactEq H; cases dv <;> rfl`.
+  - **Step 4** (`StartR.lean`). `rnSnapOnceR` is `Hsnap`'s restart form. It is `rnSnapOnce` at a
+    given index and term, and its continuation gets `epCsAt γ A₀ cs` and `|==> memSnapLb γs 0` in
+    place of `memSnapNone`. `rnSnapOnceR_first` shows today's `Hsnap` gives it at `A₀ = []`.
+    `srvRestartAtR` is `applyStartC`'s restart form: the ghost index `g₀ = ciEff = ai₀ + |A₀|`, the
+    rest buckets `srvRest A₀`, and Go's rows at `ai`. `srvRestartAtR_first` derives it from
+    `applyStartC` given `c₀ = ai₀`. `applyResR_start` is proved: from these and `ep`'s fields it
+    gives `applyResR` at `P`, with `rp = ⟨|P|, A₀⟩` and `P <+: A₀`. Findings:
+    - (e) The start needs only `memSnapLb γs 0` of the storage. The restarted storage's token
+      (B1's `memStorRestarted`) is a matter for the snapshot jobs, not for the start.
+    - (f) `srvRestR` at `P` is `srvRest A₀` (`srvRestR_start`). `restReplay` replays nothing at
+      `G = P`.
+    - (g) The conf state's voters at `A₀` are the one new thing `Hsnap` must give.
+  - **Step 5** (`ViewR.lean`). `rnCfgAtR γ rp L := srvCfgView γ.srv γ.nl [] (ghostOf rp (γ.pre ++
+    L))`, which is `rnCfgAt` at a first start for any `pre`. `rnApGiveR`/`rnApRR` are the
+    restart forms of `rnApGive`/`rnApR`. The bridges `rnApGiveR_dv`/`rnApRR_dv` replace
+    `γ.pre = γs.pre` with the apply side's `pre = []`. `rnCfgR_replay` is the round trip: a batch
+    inside the window leaves the ghost log unchanged (`ghostOf_replay`), so the view the apply
+    thread got is the view it hands back. `rnCfgAtR_back_true` follows. Finding (h): A6's hub edit
+    still needs the raft loop's names to carry `rp`. It also needs `rnCfgAt_normal`'s restart form
+    (normal batches across the window), which needs the handed log to agree with `A₀` on the
+    overlap, as `srvRLogLb` gives.
+  - Builds: `RunR` about 7 s, `StartR` and `ViewR` about 2 s each. No gap was found and nothing
+    was frozen.
+  - **Revised R2d'a (est.):**
+    - A6: 2-4 d. Its laws are drafted; the hub edit and the normal-batch law remain.
+    - A9: 2-3 d. `Hsnap`'s form is drafted.
+    - A10: 1.5-2.5 wk. The job body and the start's glue are done; still to do are the run loop's
+      wiring, the snapshot jobs in a window, and the stop.
+    - R2d'a in all: **4.5-6.5 weeks (est.)**.
+
+#### R2d'a Draft (2026-11-06, branch `r2dp`; DRAFT, nothing frozen)
+
+Tasks A3, A4, A5, then the auth-on copies. A4 is proved. A3 and A5 stopped under H9, each with a
+proposal below. The auth-on copies were not started, because their replay hypothesis is A3's
+statement. Lean was frozen, so nothing landed.
+
+- **A4, proved** (`ApplyConfChangeR.lean`, `EtcdServer.applyConfChange.wp_proofRep`, from the body
+  over the callee specs of lean's `applyConfChange.wp_proof`). Go at `673da07c8`: the validation
+  returns `nil` without reading (`membership/cluster.go:306-309`), raft is not called
+  (`server.go:2053-2059`), `SetConfState(ep.confState)`, the context unmarshalled, `AddMember(…,
+  false)` (`cluster.go:395-424`) and `AddPeer` of a known peer. **DRAFT statement change**
+  (`specRep`, a premise the caller already had): `E.RO rs` in and out, with the frozen spec's
+  `HRO` shape, and the members' size bound. `ValidateConfigurationChange.spec` and
+  `AddMember.spec` take the cluster's `be` field even at `v3 = false`, and `AddMember` takes its
+  in-memory members (`clusterMem`) and their bound. Only `E.RO` holds them. The caller
+  (`ApplyR.lean`'s replay branch) supplies them through `srvRestRp_ro`, and the bound through
+  `srvApRes_ccRep`, whose pure conjunct now also gives the bound for any image with the keys of
+  `restModel A₀` (`restReplay_memKeys`). `ApplyR`, `ApplyEntriesR`, `RunR`, `StartR`, `ViewR`
+  rebuilt. `#print axioms`: no `sorryAx`; the axioms are a subset of lean's
+  `applyConfChange.wp_proof`'s (`apply.wp_proofROff` adds three that are already in
+  `etc/tcb-baseline.txt`).
+- **A3, STOPPED (H9): `applyEntryNormal.specRepOff` cannot be proved from the frozen leaf
+  specs.** `apply.Apply.specRec` (`apply/ApplyRec.lean:67`), `uberApplier.Apply.spec` and
+  `uberApplier.dispatch.spec` require these premises at every `v3`: `grantFresh E rq U` (the
+  request's grant id not in the lessor's ever-ids `U`, unless the lessor is monotone),
+  `cmpAdmit`, `cmpPermRq` and `grantPermRq`. Go at `v3 = false` reads none of them:
+  `dispatch` returns `nil` after its first `switch` (`apply/uber_applier.go:117-119`), and the
+  proof of `dispatch` uses them only in its `v3` branch (`uberApplier__dispatch.lean:389`, then
+  :549, :608-613). For a replayed revocable-mode `LeaseGrant`, `grantFresh` is **false**:
+  `everOwn E U` is the exact half of the lessor's ever-set (`lease.leaseEver`, a ghost variable),
+  and the replayed grant's lease, when it is still live, is in that set. No premise the caller has
+  can give it. `cmpAdmit` and `cmpPermRq` of a replayed compaction would also need the KV model
+  (`kvApplied` at the ghost log, `kv_entry_claim` for an entry inside the log), which
+  `specRepOff`'s pre does not take. The other premises have sources: `rqOk`/`dispatchOk` from
+  `entryOk`, `restReqOk` from the members premise (`restLeasesWith_mem`), `ltHalf`/`everOwn` from
+  `srvRestRp`'s `srvRestAt`/`srvEver`, `revokeOwn` from `srvApplyKV`.
+  - Options. **(a)** Guard the four premises by `v3` (`if v3 then … else True`) in
+    `dispatch.spec`, `uberApplier.Apply.spec` and `Apply.specRec`. These are frozen, internal
+    statements, and the change only weakens their preconditions. The proof edits are small:
+    `dispatch` already splits on `v3` first, the other two pass the premises through, and the
+    callers (`applyEntryNormal`'s off/on proofs, which reach these specs through `spec_rec`)
+    weaken with one lemma per premise. Est. 1-1.5 d plus the Freeze review. **(b)** New
+    `v3 = false` triples (`dispatch.specV2`, `uberApplier.Apply.specV2`, `Apply.specRecV2`) proved
+    beside the frozen ones, with no frozen statement changed. This duplicates `dispatch`'s first
+    `switch` (about 200 lines) and two pass-through proofs. Est. 2-2.5 d. **(c)** Exclude
+    replayed revocable grants from `specRepOff`. This is false of Go runs; rejected.
+  - **Recommendation: (a).** It states what Go does: a `v2`-only apply reads no grant,
+    compaction or permission state. It fits H2's one `applyEntryNormal.spec` with a `v3` case,
+    and it costs least. It needs 82's go, since it edits frozen statements.
+- **A5, STOPPED (the brief's rule: the merged-send branch needs more than `winNoMergedSendR`).**
+  The branch's message comes from `msgSnapC`'s bag (`isRNMsgSnapC γm`, `rnSnapMsg`). It is a
+  `MsgSnap` that `γm.id` sent (`sentMsg … γm.id st`). `winNoMergedSendR` speaks of the
+  messages of `id` with `srvMemberIDAddr s ↦□ id`. On `lean`, `isServerApplyAll`
+  (`InvApplyAll.lean:119-147`) relates `γm` to the server only by `γm.node = γr.raft.raft`, and
+  nothing in `specBatchR`'s pre ties `γm.id` to the member id (the transport's `lid` is not tied
+  either). So the merged-send branch inside a window cannot use the premise. This is A7's
+  "member-id conjunct" (frozen at `r2d-freeze1`, not on `lean`). Options:
+  - **(a)** Bring A7's `isServerApplyAll`/`srvApplyAllBuilt` conjunct `γm.id = memberID` into
+    this branch: a hub edit, which `NewServer` already knows (est. 0.5-1 d with its supply).
+  - **(b)** State `winNoMergedSendR` over the bag's names (`∀ γm, γm.node = γ → isRNMsgSnapC γm
+    msc → …γm.id…`). This moves the same fact to A7's supplier at `run`, which needs the same
+    link. Not simpler.
+  - **(c)** Quantify over every sender. This would say no member sends a `MsgSnap` at `rt` while
+    the window is pending, which is false (the leader does). Rejected.
+  - **Recommendation: (a).** Two more facts, needed outside the window as well: lean's proof of
+    the merged branch (`EtcdServer__applyAll.lean:375-450`) uses the KV at Go's index (`hciE`,
+    `merged_imageC` at `A ++ batch`). It therefore applies unchanged only once the window closes
+    after the batch. That is exactly when `winNoMergedSendR` is `R = []`, and there
+    `ghostOf_past` and `srvRestR_past` turn every row into lean's. `snapshotIfNeeded…`'s spec
+    (`hSINC`) takes Go's rows only (`srvSnapStor` at `A ++ batch`, `ai' ≤ ciEff`, which holds
+    inside the window since `ai' ≤ g' ≤ ciEff`). Separately, `applyAll`'s R proof also needs a
+    mode-generic `applyEntries.specBatchR`, the window form of `specBatch` (`ApplyEntriesR.lean`
+    has only the off form). Its proof from the off and on forms is `wp_proofBatch`'s case split
+    (about 60 lines).
+- **The auth-on copies (`apply.specROn`, `applyEntries.specBatchROn`): not started.** They take a
+  hypothesized auth-on replay spec, `applyEntryNormal.specRepOn`. With A3's recommended shape,
+  that becomes one mode-generic statement (H2), so drafting an on-only copy now would be redone.
+  The copy itself is mechanical: lean's `apply.wp_proofOn` (`EtcdServer__apply.lean:1005`, 830
+  lines) with the probe's ~180-line window edit. Est. 2-3 d.
+- **The row `ai₀ + |A₀| + 1 < 2^64` (`applyResR`; the coordinator's question): no existing
+  statement supplies it at a restart.**
+  - `bootstrapRestartContract` (`InvRestart.lean:563-583`) gives the image's consistent index `i`
+    as a `w64` with `uint.nat i ≤ σ.commit` (:567-570). So `ai₀ + |A₀| = i < 2^64`, but not `+ 1`.
+    `imageAt` (`InvImage.lean:114-119`) adds nothing about indices.
+  - `srvIdxOk` (`KVModelDefs.lean:249-250`, `ai₀ + 1 + |L| < 2^64`) holds only of logs raft hands
+    (`rnEnvOk`'s `E.C`, `InvRaftNode.lean:483-486`). `A₀` is handed only when Go's log reaches
+    `i`, which closes the window. Inside the window it bounds only Go's shorter log.
+  - `srvRLogLb` (`SrvRaftLog.lean:395-396`) carries only `srvIdxOkW` (consecutive indices).
+  - The cindex specs bound nothing. `NewServer`'s restart branch is R2d'b (B5) and does not
+    exist yet.
+  - The candidates: a premise of `bootstrapRestartContract` (`uint.Z i + 1 < 2^64`, a fact about
+    the data directory, like `N + 7 + bootWB ≤ wbInit`), or the raft loop's restart data (raft
+    must already prove `E.C`'s introduction law, `ai₀ + 1 + |L| < 2^64`, for the log through
+    `σ.commit ≥ i` that it will hand). The second is cheaper to justify, since it is raft's own
+    obligation.
+- **Revised R2d'a (est.):** A3 with (a) 1-1.5 d; the on copies 2-3 d; A5 0.5-1 d for the A7
+  conjunct plus 3-4 d for the proof (lean's 420 lines and the merged `applyEntries.specBatchR`);
+  the rest as in "Revised R2d'a" above. **R2d'a in all: 4.5-6.5 weeks (est.), unchanged.** The
+  stops add no new work item; they move A7's conjunct earlier.
+
+##### R2d'a Draft, pass 2 (2026-11-06, after 82's decisions: A7's conjunct now, A3 with the user)
+
+- **A7's conjunct, in (DRAFT hub edit, 82's go).** `isServerApplyAll` (`InvApplyAll.lean`) and
+  `srvApplyAllBuilt` (`InvStart.lean`): `(∃ γm : RNNames, ⌜γm.node = γr.raft.raft⌝ ∗
+  isRNMsgSnapC γm msc) ∗` → `(∃ γm : RNNames, ⌜γm.node = γr.raft.raft⌝ ∗ srvMemberIDAddr s ↦□
+  γm.id ∗ isRNMsgSnapC γm msc) ∗` (`r2d-window-full`'s text). `NewServer` produces it from its
+  `memberID` field (`γrn.id = id`). `start` copies the conjunct whole. `ApplyAllSnap`,
+  `ApplyAllSnapOn` and `EtcdServer__applyAll` destructure one more item. No first-start statement,
+  closed theorem or caller premise changed. The 23 modules that mention the two predicates were
+  rebuilt; the full build is the check of the closed theorems.
+- **A5, proved** (`ApplyAllR.lean`). `applyEntries.specBatchRAt P` is the mode-generic window form
+  of `specBatch`. `specBatchR` is the form at `· ≠ .any`, and `applyEntries.wp_proofBatchR` proves
+  it from `specBatchROff` (proved, `ApplyEntriesR.lean`) and **`specBatchROn` (HYPOTHESIZED; it
+  waits for A3's on copy)**. `applyAll.wp_proofBatchR : applyAll.specBatchR` takes lean's
+  hypotheses, but `applyEntries.specBatchR` in place of `specBatch`. The proof is lean's
+  `wp_proofBatch` with these changes: the ghost index `g'` comes from the batch's post;
+  `Trigger(ai')` gets `appliedAtLeast ai'` from `g' ≥ ai'` (`monoNatLbOwn_le`); and the merged
+  send uses `winNoMergedSendR` with the new conjunct. Either the window has closed after the
+  batch, or the message (this member's `MsgSnap`) is not at the batch's term `rt`. In the branch
+  where `Term = rt`, the window is closed: `ghostOf_past`/`srvRestR_past` turn every row into
+  lean's, and `g' = ai'`. No other DRAFT statement change.
+- **A6's normal-batch law, restart form** (`ViewR.lean`). `rnCfgAtR_normal`: a batch of normal
+  entries keeps `rnCfgAtR γ rp L` → `rnCfgAtR γ rp (L ++ ce)`, given that Go's log through the
+  batch and `A₀` are prefix-comparable (`ghostOf_batch`: the ghost log grows by a suffix of the
+  batch). `rnCfgAtR_back_false` is `rnCfgAt_back_false`'s analog (`ccIn ce = false`).
+- `#print axioms` (`applyAll.wp_proofBatchR`, `applyEntries.wp_proofBatchR`, `rnCfgAtR_normal`,
+  `rnCfgAtR_back_false`, `ghostOf_batch`): no `sorryAx`, and no axiom outside lean's
+  `applyAll.wp_proofBatch`'s.
+- Left: A3 (with the user), then `specBatchROn`'s and `apply.specROn`'s proofs (2-3 d after A3).
+
+##### A9: stopped before the hub edit (Q20; 2026-11-06)
+
+`run.wp_proof` (`EtcdServer__run.lean`) reads `%HEr`'s first-start conjuncts, `γn.pre = []` and
+`ai₀ = 0`, in every job arm. The snapshot arm (:1129-1130), the normal arm (:1206-1212, `hdvs`'s
+`ρ.raft.pre = []`) and the batch arm (:1242-1243, `rnAdvChan`'s `uint.nat ai₀ + |A ++ ce| = |γn.pre
+++ A ++ ce|`) all use them. So do `run`'s helpers (:86, :301, :508, :685: `hpre : γn.pre = []`,
+`ha00`) and `RunOn.lean:99-100`. With `%HEr` at `P <+: A₀` and `Hstart = srvRestartAtR`, the proof
+would have to handle every `A₀`, which is A10. So the hub edit cannot land without A10's proof
+unless `run` reaches a DRAFT `sorry`, which Q20 forbids. Not edited. The plan: A9's texts
+(`InvRun.lean:53-54`, `InvStart.lean:240-241`, `RunOn.lean:99-100`, `Hsnap`, `Hstart`) are written
+together with A10's restart branch of `run.wp_proof`, and both land as one change. The
+first-start supply goes through `rnSnapOnceR_first`/`srvRestartAtR_first` (`StartR.lean`) at
+`⟨0, []⟩`. The bound `ai₀ + |A₀| + 1 < 2^64` becomes a conjunct of the raft side's restart data in
+the same edit. Then A3 was unblocked (Q22 (1) (a), user-approved) and took priority.
+
+##### A3 (Q22 (1) (a), user-approved; 2026-11-06)
+
+- **Step 1: the frozen specs weakened** (DRAFT, for the Freeze package). In `dispatch.spec`
+  (`Spec/…/apply/uberApplier__dispatch.lean`) and `uberApplier.Apply.spec`
+  (`Spec/…/apply/uberApplier__Apply.lean`), with `L` = `log` and `x.log` respectively:
+  - old: `⌜apply.rqOk E.lm L rq ∧ apply.dispatchOk E.authOn rq ∧ apply.cmpAdmit E.γ.kb L rq⌝ ∗
+    apply.cmpPermRq E rq ∗ apply.grantPermRq E rq ∗ apply.ltHalf E T ∗ apply.everOwn E U ∗
+    apply.grantFresh E rq U ∗`
+  - new: `⌜apply.rqOk E.lm L rq ∧ apply.dispatchOk E.authOn rq ∧ (v3 = true → apply.cmpAdmit
+    E.γ.kb L rq)⌝ ∗ □ (⌜v3 = true⌝ → apply.cmpPermRq E rq) ∗ □ (⌜v3 = true⌝ →
+    apply.grantPermRq E rq) ∗ apply.ltHalf E T ∗ apply.everOwn E U ∗ □ (⌜v3 = true⌝ →
+    apply.grantFresh E rq U) ∗`
+
+  In `Apply.specRec` (`Proof/…/apply/ApplyRec.lean`):
+  - old: `… apply.dispatchOk E.authOn rq ∧ apply.cmpAdmit E.γ.kb x.log rq ∧ apply.restReqOk rq rs⌝ ∗
+    apply.cmpPermRq E rq ∗ apply.grantPermRq E rq ∗ apply.ltHalf E T ∗ apply.everOwn E U ∗
+    apply.grantFresh E rq U ∗`
+  - new: `… apply.dispatchOk E.authOn rq ∧ (v3 = true → apply.cmpAdmit E.γ.kb x.log rq) ∧
+    apply.restReqOk rq rs⌝ ∗ □ (⌜v3 = true⌝ → apply.cmpPermRq E rq) ∗ □ (⌜v3 = true⌝ →
+    apply.grantPermRq E rq) ∗ apply.ltHalf E T ∗ apply.everOwn E U ∗ □ (⌜v3 = true⌝ →
+    apply.grantFresh E rq U) ∗`
+
+  The edit only weakens preconditions. Why the `□ (⌜v3 = true⌝ → …)` form: the three are
+  persistent, and the form keeps the callers' `#` patterns. `dispatch`'s proof takes them at
+  `v3 = true` (four lines in its `v3` branch); `Apply`'s and `spec_rec`'s pass them on unchanged.
+  `applyEntryNormal`'s four call sites gate what they had (`apply.v3Gate`, `ApplyRec.lean`). None of
+  the three is in a package with a committed interface (`etc/api/` has `raft`, `backend` and
+  `etcdstart` only), so `gen-interface --check` does not apply.
+- **Step 2: the replay proved.** In `ApplyEntryNormalR.lean`, `applyEntryNormal.wp_proofRepOff :
+  specRepOff` and `wp_proofRepOn : specRepOn`.
+  - **DRAFT fix to `specRepOff`**: `srvRLogLb γr.raft A₀ ∗ ⌜m ∈ A₀⌝`, which the caller has
+    (`kvBatchR`'s `HlbA0`, and `hpA` gives `m ∈ A₀`). The KV invariant's shape of a committed entry
+    (`kv_log_plain`) is what makes a skipped or rejected request leave the members, as
+    `restEntryV2` says.
+  - **`specRepOn` is new.** It has `specRepOff`'s rows in mode `on`: `isServerM true`,
+    `srvApplyKVOn` at a kept auth state, `⧗ 1`, the receipts' bound, and `x.chain = γr.kv.ch0`. An
+    admin request runs `adminEntryOn` at `v3 = false`, which needs the chain. The caller's
+    `kvAppliedM` gives it.
+  - **Two mode-specific specs, not one mode-generic `specRep`**: the replay's resources differ by
+    mode (the auth row and its state, the credit, the chain), and so do its callers, the off and
+    on loops (`apply.specROff`, the future `apply.specROn`), as lean's `applyEntryNormal.specOff`
+    and `specOn` do. A generic statement would only be unfolded again at each caller. Merging the
+    replay into the frozen `applyEntryNormal.spec` as its `v3 = false` case would not fit either:
+    that spec's `v3 = false` case is the first start's (ghost rows stepped, `srvRest` at `A ++ [m]`).
+- **Step 3, the on copies (`apply.specROn`, `applyEntries.specBatchROn`): not done.**
+  - The plan for `apply.specROn`: `git merge-file` of lean's `apply.wp_proofOff` → `wp_proofOn` diff
+    onto `ApplyR`'s `wp_proofROff` leaves 14 conflict hunks, all in the invariant's rows and the
+    `iexists` lists, each a mechanical union of the two sides.
+  - What a merge does not give:
+    - the replay branch in mode `on`: `hAENR` → `specRepOn`, which needs a `⧗ 1` (a second
+      `wp_go_step_receipt'` before the call, as the normal branch's) and the chain fact from `Hka`;
+    - `ApplyR`'s copies of the conf-change macros in their `On` forms (`cc_kv_appliedOn`,
+      `cc_respondOn`, local to `EtcdServer__apply.lean`).
+  - `applyEntries.specBatchROn` is then `ApplyEntriesR`'s 220 lines merged the same way. Est. 2-3 d
+    (unchanged). Until then `applyEntries.wp_proofBatchR` takes `specBatchROn` as its one hypothesis.
+- `#print axioms` (`applyAll.wp_proofBatchR`, `applyEntries.wp_proofBatchR(Off)`,
+  `apply.wp_proofROff`, `applyEntryNormal.wp_proofRep{Off,On}`, `applyConfChange.wp_proofRep`,
+  `rnCfgAtR_normal`, `rnCfgAtR_back_false`): no `sorryAx`, and nothing outside lean's
+  `applyAll.wp_proofBatch`'s, except `apply.wp_proofROff`'s three (`apply.memberKey_inj`,
+  `membership.membersOfBk_empty`, `membership.membersOf_decode`), which are in
+  `etc/tcb-baseline.txt`.
+
+##### Step 3 done: the on copies (2026-11-06, branch `r2dp`; DRAFT)
+
+- **`apply.specROn`/`wp_proofROn`** (`ApplyROn.lean`, new): `specROff` in mode `on`, as lean's
+  `apply.specOn` is `specOff`'s (binders `γa sa`; premises `E.authMode = .on γa`, the receipts'
+  bound, `logShapeOn`; `isServerM true`, `srvLessorNil`, `srvApplyKVOn`, `kvAppliedOn`, the token
+  rights in and out, the auth state `sa'` in the post). The proof is the merge planned above (its 14
+  hunks resolved by hand) plus what the merge does not give:
+  - the replay's normal branch calls `specRepOn` (the `⧗ 1` from the loop's receipt, the chain
+    from unfolding `kvAppliedOn`); both replay branches carry the token rights over `stLoaded`;
+  - `setAppliedIndex`'s replay case gets `srvAppliedInvM` from `srvAtomicsM` at `authOn = true`;
+  - the conf-change macros' `On` forms (`cc_kv_appliedOn`, `cc_respondOn`) are copied, local to
+    the file, from `EtcdServer__apply.lean`.
+- **`applyEntries.specBatchROnC`/`wp_proofBatchROnC`** (`ApplyEntriesROn.lean`, new):
+  `specBatchROff` in mode `on`. Its proof is `ApplyEntriesR`'s merged with lean's
+  `applyEntries.wp_proofOff` → `wp_proofOn` diff (3 hunks: the intro and `wp_start`, the call to
+  `apply.specROn`, the closing).
+- **`applyEntries.wp_proofBatchR`** (`ApplyAllR.lean`) no longer has a hypothesized spec. Its
+  `on` case is `specBatchROnC`, rewritten as lean's `wp_proofBatch` does. `specBatchROn` (the
+  mode-indexed form) stays as an abbreviation; nothing uses it.
+- The replays still use the two Q23 specs (`specRepOff`, `specRepOn`). If 82 folds them, the
+  callers in `ApplyR`/`ApplyROn` change; nothing else does.
+- `#print axioms` of `apply.wp_proofROn`, `applyEntries.wp_proofBatchROnC`,
+  `applyEntries.wp_proofBatchR`, `applyAll.wp_proofBatchR` and `applyEntryNormal.wp_proofRepOn`:
+  no `sorryAx`. Their repository axioms are all in `etc/tcb-baseline.txt`; no axiom was added.
+
+##### A9 + A10: stopped at a gap before any edit (2026-11-06)
+
+**The gap.** In `RunR`/`StartR`/`ViewR`, the apply side counts the restart from index 1:
+`ai₀ = 0`, the apply side's `γr.raft.pre = []`, and Go's log `A` includes the prefix `P` handed
+before the start (`run_job_bodyR`'s `ha00`/`hpre`, `applyResR_start`'s `ai = ai₀ + |P|`). A
+restarted raft node's loop starts after its snapshot: `γn.pre = P`, `|P| = σ.b`. But the raft
+side's environment ties the two together. `rnEnvOk` (`InvRaftNode.lean:472-484`) has
+`E.γr.raft.pre = γ.pre ∧ uint.Z E.γr.raft.ai0 = |γ.pre|`, and `run.wp_proof` reads both (`Hnm`):
+`Hpre0`, `hpre : γn.pre = ρ.raft.pre` for `rnApR_dv`/`rnApGive_dv`, `hdvs`. Every handout the
+loop receives is stated after `γ.pre`:
+- `rnApplyTok_recv` gives `□ E.C (A ++ ce)`, and `E.C` is over the apply side's log after its
+  `pre`;
+- `rnAdvChan` is at `(γ.pre ++ A ++ ce).length`.
+
+So with `σ.b > 0`, `γn.pre = P` forces `ai₀ = |P|` and the apply side's `pre = P`. That
+contradicts the drafted design. A10, as scoped (`run.wp_proof` and `isServerRunC`'s texts only),
+cannot hold both. The drafts' other premise, a conf entry's view only at `pre = [] ∧ ai0 = 0`
+(`hdvs`, the one-mode repair), is why they chose `ai₀ = 0`.
+
+Checked on the way: `Hsnap`'s restart form is true of Go. At a restart, the snapshot's
+`ConfState` is rebuilt from the backend's members (`bootstrap.go:107-116`,
+`buildConfStateFromV3store`, even with no WAL snapshot). `epCsAt γ A₀ cs` therefore holds, even
+though a replayed conf entry does not update `ep.confState` (`server.go:2051-2054`).
+
+**Options.**
+- (a) **The raft side's restart data, as drafted.** `rnEnvOk` at a restart:
+  `E.γr.raft.pre = []`, `ai0 = 0`, `γ.pre <+: A₀`, and the bound `|A₀| + 1 < 2^64`. The loop's
+  handouts are restated at the apply side's log `γ.pre ++ L`: `rnApplyTok_recv`'s `E.C`, the
+  snapshot arm, `rnApR`/`rnApGive` → `ViewR`'s `rnApRR`/`rnApGiveR`, and `NodeBridge`'s and
+  `InvRaftNode`'s readers of `Henv`. This touches `raftNode.start`'s proof (1800 lines, 25 uses
+  of `.pre`) and `InvRaftNode`/`InvRaftLoop` (about 40). It is A6's hub part, finding (h). Est.
+  1.5-2.5 wk (est.) on top of A10.
+- (b) **Re-base the drafts on `pre = P`** (`ai₀ = |P|`, Go's log after `P`, `rp = ⟨0, A₀ after
+  P⟩`). `rnEnvOk` and the raft loop stay. But every conf entry after a restart with `σ.b > 0`
+  then needs the view at `pre ≠ []`. That means generalizing `hdvs`, `dvOk` and `applyConfChange`'s
+  view rows, which are frozen specs. Est. 2-3 wk (est.), and it reworks the probe's drafts.
+- (c) **R2d'a at `σ.b = 0` only** (a restart before the first WAL snapshot, so `P = []`): the
+  recommendation. `rnEnvOk` holds unchanged (`γn.pre = [] = ` the apply side's, `ai₀ = 0`), and
+  `RunR`/`StartR` apply as drafted (`rp = ⟨0, A₀⟩`). A9's texts:
+  - `%HEr`: today's conjuncts plus `∃ A₀`, its types normal or conf, and `ai₀ + |A₀| + 1 < 2^64`;
+  - `Hsnap` = `rnSnapOnceR … 0 0 γr.raft A₀`;
+  - `Hstart` = `srvRestartAtR … A₀ 0`;
+  - the first-start laws at `A₀ = []`: `rnSnapOnceR_first`, `srvRestartAtR_first`.
+
+  A10 is then `run.wp_proof` over `applyResR` with no raft-side change. `σ.b > 0` goes to a later
+  item, (a), with R2d'b's `RestartNode`. Est.: A10 as estimated (1.5-2.5 wk (est.)).
+
+##### Q23 (a): one replay spec (2026-11-06, branch `r2dp`; DRAFT, for the Freeze package)
+
+- **`applyEntryNormal.spec`** (`Spec/…/EtcdServer__applyEntryNormal.lean`) is now `isPkgInit ∗ (if v3
+  then … else …)` in and `… ∗ srvFS s ∗ (if v3 then … else …)` out, with two new binders `A₀ r`.
+  The `v3` case is the old text at `v3 = true`, row for row: `v3 = decide (c0 < m.index)` becomes
+  `uint.Z γr.kv.c0 < uint.Z m.index`, `(if v3 then iprop(ciApplying … ∗ ⌜…⌝) else True)` becomes
+  `(ciApplying … ∗ ⌜…⌝)`, `entryStep m v3` becomes `entryStep m true`, and the posts' `if v3` rows
+  their `then` sides. The `else` case is the replay, the old `specRepOff`/`specRepOn` in one
+  mode-generic text: `isServerM E.authOn`, `srvApplyKVM E.authOn … x sa` (kept at `sa` in the
+  post), `entryOkM`, `(if E.authOn then ⧗ 1 else True)`, and the pure `(E.authOn = true →
+  receiptBound GF ≤ 2 ^ 48 ∧ x.chain = γr.kv.ch0)`. The old `v3 = false` case (the first start's,
+  ghost rows stepped) is gone: it was never reachable, since `kvInv`/`kvInvOn` hold `c0 ≤ ai0`, so
+  an entry after the applied index (`m.index = ai0 + |A| + 1`) is above `c0`.
+- **`apply.spec` is unchanged.** The brief's premise `c0 ≤ ai0` is not needed: `isServerM`'s KV
+  invariant gives it, as the new law `isServerM_c0_le` (`ModeSpecs.lean`, both modes). `apply`'s
+  proofs (`wp_proofOff`/`wp_proofOn`) take it once and close the `ApplyV2storeOnly` branch by
+  contradiction (the old replay arms, about 240 lines, deleted); `applyEntryNormal` is called only
+  in its `v3` case. No caller of `apply.spec` changes.
+- **Proofs.** `ApplyEntryNormalR.lean` is deleted. Its two proofs are the `v3 = false` branches of
+  `applyEntryNormal.wp_proofOff`/`wp_proofOn`, and its four lemmas and two macros moved with them.
+  The old ghost-advancing `v3 = false` branches are deleted. `ModeSpecs`' `specOff`/`specOn` follow
+  the new text, and so do their corollaries `spec_off`/`spec_on`. `ApplyR`/`ApplyROn` take both
+  cases from `spec_off`/`spec_on`, and no longer take the `hAENR` hypothesis. Their past-window
+  `v3 = false` arms are closed by `kvBatchR`'s `c0 ≤ ai0`. `request_delivered` (`Results.lean`)
+  keeps its statement: its `v3 = false` case is vacuous by `isServerM_c0_le`.
+- `Link.lean` is unchanged (`gen-link.py --server`). The axioms of `wp_applyEntryNormal`, `wp_apply`
+  and `request_delivered` are unchanged; there is no `sorry`. Targeted builds pass: `Results`
+  (6227 jobs) and `ApplyAllR`.
+
+##### A9 + A10 (Q24 (c)): stopped at a gap before any edit (2026-11-06)
+
+Q24 (c) took R2d'a to `σ.b = 0` and said no raft-side change was needed. That is true of `pre` and
+`ai0`: at `σ.b = 0`, `γn.pre = [] =` the apply side's `pre`, and `rnEnvOk` holds unchanged. It is
+**not true of the driver's view**. Finding 1 and A6 ("the driver's view over the ghost", a hub on the
+raft loop's side; ViewR's finding (h)) still apply at `σ.b = 0`. Nothing was edited: no hub, no
+proof, no statement. Step 0's full build of the merged tree (`c30b39864d`) is reported below.
+
+**The gap: `run`'s batch arm inside the window.**
+- **What `run_job_bodyR` needs.** `applyAll.specBatchR` takes the view over the ghost log
+  (`dvView ρ.raft dv (ghostOf rp A)`, `RunR.lean:203`). It deposits the view on `notifyc` over the
+  ghost too (`isNotify γnc nc (dvView ρ.raft dv (ghostOf rp (A ++ ce)))`, `RunR.lean:193`). That
+  follows the Scope's design (`dvOk` at `g + 1`, Q19).
+- **What the raft loop hands.** `rnApplyTok_recv` (`InvRaftLoop.lean:87-108`) gives `rnApGive γn A
+  ce`, the view `rnCfgAt γn A = srvCfgView γn.srv γn.nl γn.pre A` over **Go's** log
+  (`InvRaftNode.lean:350`). It waits for `rnApR γn A ce = rnCfgAt γn (A ++ ce)`, also over Go's log.
+  `rnApR_dv`/`rnApGive_dv` (`InvRaftLoop.lean:218-245`) turn these into `dvView … A`/`… (A ++ ce)`.
+- **The two do not meet inside the window.** `srvCfgOk V D v` (`InvCfgView.lean:150`) requires
+  `v.applied ≤ |D|` and no conf entry of `D` past `v.applied`. Neither direction holds:
+  - Go-log view → ghost view: from `srvCfgOk V A v`, you cannot derive `srvCfgOk V (ghostOf rp A) v`.
+    `A₀` has conf entries past `|A|`.
+  - The return trip over Go's log: after a replayed conf entry, Go calls no `ApplyConfChange`
+    (`server.go:2053-2058`), so the view stays `v`. But `srvCfgOk V (A ++ ce) v` is false when `ce`
+    holds a conf entry past `v.applied ≤ |A|`.
+  - ViewR's `rnCfgR_replay` closes the trip only over `rnCfgAtR`, the ghost-indexed loop names.
+- **It is the common case at `σ.b = 0`.** The window is `(0, i]`. Every committed log starts with the
+  boot log, whose entries are the initial members' `AddNode`s at indices `1..` (`srv_committed_ccBoot`,
+  `SrvRaftLog.lean:1003`). So for every restart with `i ≥ 1`, the first batch has a conf entry inside
+  the window: `rnHands` is true, and the view goes along.
+- **The raft-side names are also false at a real restart.** `RestartNode`'s view is at `i` (finding
+  1; `ViewR.lean`'s header). So `rnCfgAt γn []`, which is part of the loop token `rnLoopTok γn []`
+  (`rnDrv`, `InvRaftNode.lean:367-371`), has `v.applied = i > 0` and is false. R2d'b's `NewServer`
+  could not build it. A restart branch proved over today's raft-loop names would be vacuous for
+  every restart with `i ≥ 1`.
+
+**Options.**
+- **(a) A6's raft-side view now, at `σ.b = 0` only. Recommended.**
+  - `rnCfgAt` becomes the ghost-indexed `rnCfgAtR`. Its name and arguments stay, so the text of
+    `isRaftNode`, `rnLoopTok` and `raftNode.start.spec` is unchanged; only definitions under them
+    change.
+  - `A₀` goes in the raft loop's names, for instance a field of `RNNames` (an anonymous-constructor
+    sweep), with `srvRLogLb` of it as persistent restart data.
+  - `rnApGive`/`rnApR` become ViewR's `rnApGiveR`/`rnApRR`, and the bridges become
+    `rnApGiveR_dv`/`rnApRR_dv` (already proved).
+  - The raft loop's laws take the prefix-comparability premise (`rnCfgAtR_normal`/`_back_false`,
+    proved). Its source is the handed log's `E.C` with `srvRLogLb A₀`.
+  - `NodeBridge`'s snapshot/`Advance` step (`NodeBridge.lean:516-612`) is past the window, since the
+    snapshot is above `i` (A8).
+  - `NodeStart`/`newRaftNode` set `A₀ = []` (`rnCfgAtR_first`).
+  - `rnEnvOk` is untouched.
+  - Uses touched: `InvRaftNode` 17, `InvRaftLoop` 22, `raftNode__start` 8, `NodeBridge` 4,
+    `NodeStart` 1, `newRaftNode` 1.
+  - It is a raft-side change, which Q24's answer excluded, so it needs the user's go (through 82).
+  - **Est. 3-5 d (est.)**, before A10's batch arm.
+- **(b) Restrict R2d'a further, to restarts with no conf entry in the window.** At `σ.b = 0` that
+  means `i = 0`, which is a first start. The branch would be vacuous. Rejected.
+- **(c) Do Q24's item (a) now, the whole raft-side restart data (`σ.b > 0` too) together with the
+  view.** It removes the `σ.b = 0` cut, but costs 1.5-2.5 wk (est.) on top of A10.
+
+**A10's other parts are unchanged** (part of A10's scope, not new gaps; listed for the estimate):
+- **The snapshot jobs in a window.** The frozen `applyAll.specSnapM` has `uint.Z ai = |A|` and
+  `ciEff ≤ ai`, with the ghost rows at `ai`. Inside the window, Go's `ai = |A|` is below the ghost's
+  `g = |A₀| ≤ ciEff`. So the jobs need a window form of `specSnapM`: Go's rows at `ai`, the ghost
+  rows at `g`, and A8's `winInstallAbove`. Its proof is `ApplyAllSnap`/`ApplyAllSnapOn`'s.
+- **The stop at a restart.** `stop_split`/`applyResStop` (`StopShutdown.lean:114`) are over
+  `applyResC` at Go's log.
+- **A7's supply: the "window pending" token wand (H6 (a)).** It is a hub conjunct beside `%HEr`.
+
+A10's estimate (1.5-2.5 wk (est.)) stands. With (a): **R2d'a's remainder is about 2-3 wk (est.)**.
+
+**Step 0** (before any edit): the full build of the merged tree (`c30b39864d`, which merged lean's
+`3f9a18065c` revoke-open) passed: 13378 jobs, no error, and no merge fallout to fix. `etc/tcb-report.py
+--check` matches `etc/tcb-baseline.txt` (817 axioms, 4 sorries).
+
+##### A6 (approved by 82): stopped before any edit; the first start's `A₀ = []` has no source in the six files (2026-11-06)
+
+82 approved option (a) above: A6's raft-side view at `σ.b = 0`, with the edit kept to `InvRaftNode`,
+`InvRaftLoop`, `raftNode__start`, `NodeBridge`, `NodeStart` and `newRaftNode` "plus following uses",
+and A6 committed separately from A9 + A10. Nothing was edited, because of what A6 then forces
+elsewhere:
+
+- **The design inside the six files works.**
+  - `RNNames` gains a field `a0`, which only `newRaftNode.lean:131` constructs.
+  - `rnCfgAt γ L` becomes the view over `(γ.pre ++ L) ++ γ.a0.drop |γ.pre ++ L|` (ViewR's
+    `rnCfgAtR`), plus the restart data, which is persistent: `⌜γ.a0 = []⌝ ∨ (⌜γ.pre = []⌝ ∗
+    srvRLogLb γ.srv γ.a0)`.
+  - `rnApGive`/`rnApR` use the bare view (`rnApGiveR`/`rnApRR`).
+  - `rnCfgAt_back_false` takes the batch's `srvRLogLb E.γr.raft (L ++ ce)`, the loop's `HLb`
+    (`raftNode__start.lean:1242`), with `rnEnvOk`'s name equations, so that `srvRLogLb_prefix`
+    gives prefix-comparability.
+  - `rnCfgAt_back_true` takes the restart data, copied out of `Hcv` at `raftNode__start.lean:1207`.
+  - `NodeBridge`'s `Advance` (`:510-545`) needs no comparability: Go's log is a prefix of the ghost
+    one, so `NoConfChangeIn` restricts to it.
+  - `NodeStart` builds the view at `a0 = []` (`srvCfgOk_nil`).
+- **But `run` loses its first start.** The apply side's bridges become `rnApR γ A ce = dvView γs
+  dv (ghost …)` (`rnApR_dv`, and likewise `rnApGive_dv`). Today's `run.wp_proof`
+  (`EtcdServer__run.lean:610-612`) then needs `γn.a0 = []` to turn that into the first start's
+  `dvView … (A ++ ce)`. Nothing states it:
+  - `newRaftNode`'s value of the field is hidden behind `bootstrappedRaft.newRaftNode.spec`'s `∃ γw`,
+    whose post fixes `γw.pre = pre` but cannot mention a field that does not exist today
+    (`Spec/…/bootstrappedRaft__newRaftNode.lean:99-101`);
+  - `NewServer`/`InvBuild` would carry it to `isServerBuiltC`'s `%HEr`, `start`
+    (`StartOn`/`ServerOn`) to `isServerRunC`'s `%HEr`, and `run` would read it.
+  - No representation avoids this. `rnCfgAt` sees only `γ` and `L`, so `A₀` must live in `RNNames`,
+    and only `newRaftNode` knows its value. An existential `A₀` inside `rnCfgAt` would not be pinned
+    to the apply side's.
+- **So A6 cannot be committed alone.** Even in the final A9 + A10 form, `start` needs `γn.a0 = []` to
+  use the first-start laws (`rnSnapOnceR_first`, `srvRestartAtR_first`) at `A₀ = γn.a0`.
+
+**What is needed beyond the six files** (one pure conjunct, threaded):
+- `bootstrappedRaft.newRaftNode.spec` (frozen) gets `γw.a0 = []` beside `γw.pre = pre`, and its
+  proof is one line;
+- `NewServer`/`InvBuild` thread it;
+- `isServerBuiltC`'s and `isServerRunC`'s `%HEr` get `γn.a0 = []` (hub; in A9, `isServerRunC`'s
+  becomes `∃ A₀, γn.a0 = A₀ ∧ …`); so do the old `isServerBuilt`/`isServerRun`/`isServerRunOn` if they
+  are still built;
+- `StartOn`/`ServerOn`/`start` pass it, and `run` uses it in `rnApR_dv`/`rnApGive_dv`'s first-start
+  forms.
+
+That is about 12 files: `Spec/…/bootstrappedRaft__newRaftNode.lean`, `bootstrappedRaft__newRaftNode.lean`,
+`InvBuild`, `NewServer`, `AuthCompRows`, `InvStart`, `InvRun`, `RunOn`, `StartOn`, `ServerOn`, `start`'s
+proof and `EtcdServer__run`.
+
+**Options.**
+- **(a) Approve those edits as A6's following uses.** One frozen spec gains a pure conjunct, and the
+  two hubs' `%HEr` gain `γn.a0 = []`. A6 lands as one commit with them, and A9 later turns
+  `isServerRunC`'s into `∃ A₀`. Est. +1 d (est.) over A6's 3-5 d.
+- **(b) Do A6 + A9 + A10 as one commit** (the same edits, with `isServerRunC` at `∃ A₀` directly).
+  This drops the "A6 separately" condition.
+
+**Recommendation: (a).**
+
+### R2d'a A6 (approved by 82, option (a)): done, DRAFT (2026-11-06)
+
+A6 is one commit: the raft side's view is over the ghost log, `σ.b = 0` only (Q24 (c)); the first
+start is the case `γ.a0 = []`.
+
+**Raft side (the six files).**
+- `RNNames` gains `a0 : List EntryModel`, the restart point's backend log (`[]` at a first start:
+  `newRaftNode`'s literals).
+- `rnCfgAt γ L` was `srvCfgView γ.srv γ.nl γ.pre L`. It is now `rnView γ L ∗ rnRestartOk γ`:
+  - `rnView γ L := srvCfgView γ.srv γ.nl [] (rnGhost γ L)`;
+  - `rnGhost γ L := (γ.pre ++ L) ++ γ.a0.drop (γ.pre ++ L).length`;
+  - `rnRestartOk γ := ⌜γ.a0 = []⌝ ∨ (⌜γ.pre = []⌝ ∗ srvRLogLb γ.srv γ.a0 ∗ rnWinInstallAbove γ)`
+    is persistent restart data;
+  - `rnWinInstallAbove` is A8's premise on the raft side: a snapshot `Advance` inside a window
+    installs at or above `|A₀|`.
+- `rnApR`/`rnApGive` are over `rnView` (the "R" forms, under their old names).
+- `rnView_first` (in `InvRaftNode`) proves that at `γ.a0 = []` the three are the old ones. It is
+  the Freeze package's citation.
+- `isRaftNode`, `rnLoopTok`, `raftNode.start.spec` and `rnEnvOk` keep their texts.
+- New premises in the loop's lemmas:
+  - `rnCfgAt_normal` and `rnCfgAt_back_false` take `srvRLogLb γs (L ++ ce)` (the loop holds it as
+    `HLb`) and `rnEnvOk`'s names facts;
+  - `rnCfgAt_back_true` takes `rnRestartOk γ`;
+  - `rnApR_dv`/`rnApGive_dv` take `γ.a0 = []`.
+
+**Following uses.**
+- `bootstrappedRaft.newRaftNode.spec` (frozen; approved via 82) and `newRaftNode.spec`'s post gain
+  `γ.a0 = []`.
+- `NodeStartSpec`'s post (exported `server_raft_node_start`) gains `γw.a0 = []` after
+  `γw.wal = ν`. This is a strengthened post that threads the frozen addition to `NewServer`.
+- `%HEr` gains a fourth conjunct `γn.a0 = []` in `isServerBuiltC`, `isServerRunC` (`AuthCompRows`),
+  `isServerBuilt` (`InvBuild`), the old `InvStart`/`InvRun` hubs, `RunOn`, `StartOn` and `ServerOn`.
+- `NewServer` proves it from `NodeStartSpec`'s post. `run` reads it for `rnApR_dv`/`rnApGive_dv`.
+- `ViewR`'s `_first` lemmas are restated:
+  - `rnCfgAtR_first` is now `= srvCfgView γ.srv γ.nl γ.pre L`;
+  - `rnApRR_first` and `rnApGiveR_first` take `γ.a0 = []`.
+- No sorry and no axiom were added.
+
+**Next:** A9 turns `isServerRunC`'s conjunct into `∃ A₀, γn.a0 = A₀ ∧ …`.
+
+### R2d'a A9 + A10 (Q24 (c)), checkpoint 1 (2026-11-06; DRAFT, sorry-free)
+
+After A6 (`65f183f051`), 82 approved two more statement changes: `NodeStartSpec`'s and
+`newRaftNode.spec`'s `a0 = []`. This checkpoint has no `sorry` and changes no hub or frozen
+statement. Under Q20, the hub edit lands only with A10's proof of `run`'s restart branch. So A9's
+texts are drafted as a definition beside the hub.
+
+- **A9's texts** (`StartR.lean`): `srvRunRestartR C s γ ci b E ρ γr Er γn ai₀ at₀ c₀ x₀ γw`. It
+  replaces three of `isServerRunC`'s conjuncts:
+  - `%HEr`: `∃ A₀`, with today's conjuncts, `γn.a0 = A₀` (was `γn.a0 = []`), `A₀`'s entries of
+    type 0 or 1, and `uint.Z ai₀ + |A₀| + 1 < 2^64`;
+  - `Hsnap`: `rnSnapOnceR γn.node.reg γn.node.cl γn.key ms γn.γs ai₀ at₀ γr.raft A₀`;
+  - `Hstart`: `srvRestartAtR C s γ ci b E γr ai₀ c₀ x₀ γw A₀ ai₀`.
+
+  The restriction `σ.b = 0` is in the text (`γn.pre = [] ∧ ai₀ = W64 0` stay) and in the
+  docstring. `Hsnap`'s term stays `at₀`, as today; the brief's `0 0` is `ai₀ = 0` and `at₀`. The
+  first-start law, proved: `srvRunRestartR_first`. From today's `%HEr` (with A6's `γn.a0 = []`),
+  `Hsnap` and `Hstart` it gives `srvRunRestartR` at `A₀ = []`, through `rnSnapOnceR_first`,
+  `srvRestartAtR_first` and `c₀ = 0`.
+- **A10, batch arm's bridges** (`ViewR.lean`, proved).
+  - `rnView_R`, `rnApR_R` and `rnApGive_R` state that A6's `rnView`/`rnApR`/`rnApGive` are
+    `rnCfgAtR`/`rnApRR`/`rnApGiveR` at `⟨b, γ.a0⟩`, by `rfl`.
+  - From them: `rnApR_dvG`, `rnApGive_dvG` and `rnCfg_replayG`. These are `run`'s bridges over
+    the ghost log, with no `γ.a0 = []`.
+- **Left for A10** (est. as before, 1.5-2.5 wk (est.)):
+  - `run.wp_proof`'s restart branch over `applyResR` from `applyResR_start` at `P = []`;
+  - the window form of `applyAll.specSnapM` (Go's rows at `ai`, the ghost rows at `g`, A8's
+    `winInstallAbove`), with its `ApplyAllSnap`/`ApplyAllSnapOn` proof;
+  - the stop arm (`stop_split`/`applyResStop` over `applyResR`);
+  - A7's "window pending" token-wand supply, which is a hub conjunct;
+  - then the hub edit: `isServerRunC`'s three conjuncts become `srvRunRestartR`'s.
+
+### R2d'a A10: `Hwpend` approved; the snapshot jobs' window form needs `applySnapshot`'s (2026-11-06)
+
+**A7's hub conjunct `Hwpend`: approved by 82 as written.** It goes in at item 5, together with A9's
+hub edit, once `run`'s restart branch is proved. Its text:
+```
+"Hwpend" ∷ (∃ γwp : GName, token γwp ∗
+   □ (∀ (rt : w64) (n : Nat), token γwp -∗ ⌜n < γn.a0.length⌝ -∗ rnRtOk γn rt n -∗
+        ∀ (id : w64) (m : Loc) (st : MsgSt),
+          srvMemberIDAddr s ↦□ id -∗ msgOwn m (DFrac.own 1) st -∗ sentMsg γr.raft.cl srvClusterN id st -∗
+            ⌜st.msg.Type' = MsgSnap → st.msg.Term' ≠ rt⌝ ∗ msgOwn m (DFrac.own 1) st ∗ token γwp))
+```
+It goes in `isServerRunC` and `isServerBuiltC`, and is passed through `InvBuild`, `InvStart`,
+`InvRun`, `RunOn`, `StartOn` and `ServerOn`.
+
+82's conditions:
+1. Prove `srvWinPend_first` (at `γn.a0 = []` the wand is vacuous), and have `NewServer` allocate
+   `γwp`. No closed theorem's premise may grow.
+2. Stop if it needs any file beyond A6's list.
+3. Record these three points about the premise:
+   - **R2s discharges it.** (superseded 2026-11-06 by the R2d'a review, finding 3: `Hwpend` is false of some Go runs with default flags (replays over 1 MB with a mid-replay election); R2s must REMOVE it by following the merged snapshot in the ghost; no producer can discharge it: the table in "R2d'a restart-only premises")
+   - **R2e's closed theorem must not carry it.**
+   - **It gets an `axiom`-skill attack before R2d'b's Freeze.** One target: a former leader that
+     sent a `MsgSnap` at term `rt` and then restarted with its first window batch at `rt`
+     (`sentMsg` is persistent and keyed by member id, not incarnation; N1).
+
+**Finding: the window form of `applyAll.specSnapM` also needs a restart form of
+`applySnapshot.specSnapM`.** It needs no frozen change, but it is one more DRAFT copy than A10's
+estimate counted.
+- **What decouples.** The frozen `applySnapshot.specSnapM`
+  (`Spec/…/EtcdServer__applySnapshot.lean:75`) takes Go's `ai` only in `hi : ai < snapIdx` and
+  `ep`'s field, and the log `A` separately. So `applyAll`'s window form can call it with Go's `ai`
+  and `A :=` the ghost log `ghostOf rp A`.
+- **What does not.** Its pre has `srvRest E γr A`, the rest buckets at `restModel (pre ++ A)`.
+  Inside the window, `applyResR` holds `srvRestR … rp A = srvRestRp E γr A₀ (restReplay γr rp A)`
+  (`ApplyRDefs.lean:69`), at the replay image, which is not the model at `A₀`.
+- **How it is used.** `applySnapshot`'s proof opens `srvRest` (`srvRest_open`,
+  `EtcdServer__applySnapshot.lean:157`). It passes the model to `applySnapshot_walk` as an explicit
+  argument (:261), which appears to be generic in it.
+- **The plan.** A DRAFT `applySnapshot.specSnapMR`, beside the frozen one, with
+  `srvRestRp E γr A₀ r` in place of `srvRest E γr A`. Its proof is a copy of the 450-line proof,
+  with an `srvRestRp_open` analog. `applyAll.specSnapMR` is then `ApplyAllSnap`/`ApplyAllSnapOn`'s
+  proof:
+  - Go's rows at `ai`, the ghost rows at `g = ai₀ + |ghostOf rp A|`;
+  - `ciEff ≤ snapIdx` and `g ≤ snapIdx` from A8 (`rnWinInstallAbove`);
+  - the post as the frozen one's, with `ghostOf rp A <+: A'`.
+- **Est. +1.5-2.5 d (est.)** over A10's 1.5-2.5 wk.
+
+### R2d'a A10, items 1-2: item 1 done; item 2 stopped at a trust-base gap (2026-11-06; DRAFT)
+
+**Item 1, done** (`ApplySnapshotR.lean`, new, DRAFT, sorry-free, no new axiom). `applySnapshot.specSnapMR`
+is the frozen `specSnapM` with one more binder `r0 : apply.RestM` and `srvRestRp E γr A r0` in place of
+`srvRest E γr A`; every other row and the post are `specSnapM`'s (the text is generated from the frozen
+one). `wp_proof_snapMR` is `wp_proof_snapM`'s proof with the rest opened by the new law
+`srvRestRp_open` (and `srvRestRp_false`), and the image `r0` passed to `applySnapshot_walk`, which was
+already generic in it. At `r0 =` the model of `A` it is the frozen spec (`srvRestRp_model`). Builds in
+6 s; no frozen file touched; nothing imports it yet.
+
+**Item 2 (`applyAll.specSnapMR`): stopped before any edit, two findings.** The frozen proofs
+(`ApplyAllSnap.wp_proofSnap`, `ApplyAllSnapOn.wp_proofSnapM`) do not carry over as planned: their
+receive steps take ghost-side resources that a window does not have.
+
+1. **The members premise of a trust-boundary axiom (the stop).** Both arms get the image's facts from
+   `snapRecv_image`/`snapRecv_imageOn` (`SnapRecvFacts.lean:505`, `SnapRecvOn.lean:424`). These take
+   `srvRest E γr A` and open it to read the cluster's in-memory members `clusterMem cl (restModel …
+   (pre ++ A)).mem`, which they pass to the axiom `membership.clusterImageOk_restModel`
+   (`Spec/…/api/membership/clusterImageOk_restModel.lean:75`): `clusterMem c (restModel c0 boot L).mem
+   -∗ clusterMem c … ∗ ⌜clusterImageOk c (restModel L').bk (restModel L').mem⌝` for a committed
+   `L' ⊇ L`. Inside the window the rest is `srvRestRp E γr A₀ (restReplay γr rp G)`, whose members are
+   the replay's: `restEntryV2` replays a `ClusterMemberAttrSet` in memory (`UpdateAttributes(…, false)`,
+   `membership/cluster.go:467-496` at `673da07c8`), so mid-window a member holds an older entry's
+   attributes than `restModel A₀`'s. Those members are not the model of any log, so the axiom cannot
+   be instantiated. (Item 1 is unaffected: `applySnapshot` itself reads the old image only through
+   `E.RO r0`.) The axiom's justification uses only the members' **ids** ("`c`'s local member … is
+   one": `c.localID ∈ c.members`, whose keys are the boot members), and the replay keeps the ids
+   (`restReplay_memKeys`), so the fact is true of Go. But using it needs a changed axiom.
+2. **A8 is stated `≤`; the receive needs `<`.** `snapDir_take` (`SnapRO.lean:360`), `snapRecv_image(On)`
+   (`hi`) and `applied_jump(M)` (`AppliedOn.lean:157`) all take the ghost applied index strictly below
+   the snapshot's index. A6's `rnWinInstallAbove` (`InvRaftNode.lean:371-376`, DRAFT) gives
+   `|a0| ≤ snapIdx`, so at `σ.b = 0` only `g ≤ snapIdx`. The Scope's A8 says "above `i`" (strict), and
+   raft gives strict (`restore` refuses `index <= committed`, `raft.go:1876-1880`, and `i ≤ σ.commit`),
+   so A6's text is weaker than the Scope's. At `g = snapIdx` the ghost does not jump, and the
+   directory's file at `g` is not guaranteed (`srvSnapRm`): no lemma covers it.
+
+**Options for finding 1.**
+- **(a) Recommended: weaken `clusterImageOk_restModel`'s members premise to the ids.** Replace
+  `membership.clusterMem c (restModel c0 γ.raft.boot L).mem` (in and out) by `membership.clusterMem c m`
+  with `⌜∀ k, (m.lookup k).isSome = ((restModel c0 γ.raft.boot L).mem.lookup k).isSome⌝`. Today's
+  callers instantiate `m :=` the model (`rfl`). The docstring's argument already uses only the ids.
+  It is a trust-base change: an axiom whose premise is weaker, so it says more. It needs the user's go
+  (through 82) and an `axiom`-skill attack before the Freeze (target: a replayed `ClusterMemberAttrSet`
+  whose older attributes reach a `memberEnc` comparison; the axiom's conclusion is about `L'`'s model
+  only, so the members' values are not read). Then:
+  - window copies of `snapRecv_image`/`snapRecv_imageOn` over `srvRestRp E γr Γ r` with the members'
+    ids (`restReplay_memKeys`), 1 d (est.);
+  - `applyAll.specSnapMR` (both arms, ~1000 lines copied, the ghost rows at `g`/`Γ`), 2-3 d (est.).
+  - Est. 0.5 d for the axiom edit plus its review, then 3-4 d (est.).
+- **(b) A DRAFT restart-only copy of the axiom** (ids form), beside the frozen one, used only by the
+  window lemmas. No frozen change, but it is a new axiom, which this stage's rules exclude, and two
+  axioms state one fact. Not recommended.
+- **(c) Cut: no snapshot install while the window is pending** (a third restart-only premise: the
+  raft loop hands no snapshot while Go's log is below `|A₀|`). False of Go runs: a restarted follower
+  still replaying can be sent a `MsgSnap` (the Scope's finding 2 says so), and A8 exists for that case.
+  It would add carried trust and make the restart branch vacuous for those runs. Rejected.
+
+**For finding 2:** correct `rnWinInstallAbove` to `γ.a0.length < uint.nat l.snap.Metadata'.Index'`, the
+Scope's "above `i`". It is a DRAFT text (A6, approved by 82 with `≤`), not frozen or exported; its
+only producer is the first start's disjunct (`a0 = []`), where it is vacuous, and no proof reads its
+bound yet. The premise gets stronger, matching the Go fact the Scope cites. It needs 82's sign-off
+since 82 approved the `≤` text. Est. 0.5 h, rebuilding A6's six files.
+
+**Not affected:** item 3 (the stop arm over `applyResR`) and item 4's batch arm do not touch the
+snapshot receive. Item 4's snapshot arm and item 5 wait for item 2.
+
+**Revised A10 (est.):** with (a) and the A8 fix, items 2-5 take 2-2.5 wk (est.), as before plus
+0.5-1 d for the axiom edit and the receive copies.
+
+#### Hwpend: the Go probe and the narrowing (2026-11-06)
+
+82 approved narrowing `Hwpend` to `rt = 0 ∨ rt >` the restart's restored HardState term (via the main
+session). Nothing goes into a hub until 82 approves the narrowed text below.
+
+- **The probe.** `notes/restart-probe/` (`sim.go`, `probe_test.go`, its `README.md`; until 2026-11-06
+  in `/shared/tmp/winpend-probe`). Rerun: `cd notes/restart-probe && PATH=/usr/local/go/bin:$PATH
+  GOTOOLCHAIN=go1.27.3 TMPDIR=/shared/tmp GOFLAGS=-mod=mod go test -count=1 -v -run
+  'Scenario|Randomized|ZZZ' .`
+- **The harness.** It has 3 members on `RawNode` + `MemoryStorage`, driven like etcd's raft loop, with:
+  - per-incarnation `raftTerm` and persist-before-`Advance`;
+  - snapshots at scaled-down counts (`SnapshotCount` 20, catch-up 5);
+  - `MsgSnap` only to followers lagging past the compaction;
+  - kill/restart with `Applied = 0`;
+  - PreVote and CheckQuorum on.
+
+  It does not model wall-clock time, conf changes, the merge itself, real entry sizes or fsync.
+- **Numbers.**
+  - Etcd-like (drained) handout: 0 of about 4250 former-leader restarts fail the operational premise.
+  - Slow handout (one entry per `Ready`): 2-3%, and about 3% without PreVote.
+  - The old text's proxy fails about 99% (drained), and 49-77% (slow).
+  - No etcd/raft bug was found.
+  - (2026-11-06, the R2d'a review, finding 3) **The drained 0 understates it**: the probe hands out
+    by entry count, not bytes, so it never splits a replay as etcd's 1 MB `MaxSizePerMsg` does. With
+    default flags a replay over 1 MB, split by `MaxCommittedSizePerReady`, with a snapshot inside the
+    window and a mid-replay election above `t0`, then a `MsgSnap` merged by `server.go:1018`, fails it.
+- **Why `rt = T` can't happen** (the main session's reading). `rt` is `toApply.raftTerm`: etcd
+  `raft.go:79-81`, `:183` (`raftTerm := 0` per loop), `:222-224`, `:234`. The merge check is at
+  `server.go:1009-1021`. raft v3.7.0's `rawnode.go:59` means the first `Ready` after `RestartNode` carries
+  an empty HardState. So the replay's `rt` is 0, and a new `rt` is above the restored term.
+  - **Correction (this session, from `raft.go:222-224`).** `raftTerm` is set by *any* non-empty
+    HardState, and a commit-only change at the restored term `T₀` is non-empty.
+    - When another member leads `T₀`, a restarted follower's `MsgApp` at `T₀` with a higher commit gives
+      `rt = T₀`. With a split handout, that can happen while the replay is still pending.
+    - When this member led `T₀`, nobody else leads `T₀`, it restarts as a follower, and its vote is
+      already itself, so its HardState cannot change at `T₀`.
+    - So Go's fact is `rt = 0 ∨ T₀ ≤ rt`, with `rt = T₀` only when this member did not lead `T₀`.
+    - The narrowed text below therefore bounds this incarnation's `MsgSnap`s (`> T₀`), and its wand
+      covers only `rt > T₀`.
+- **Point 1: an earlier incarnation's `MsgSnap` at `t` implies a persisted HardState term `≥ t`.**
+  Checked by the main session at etcd `673da07c8` and raft v3.7.0:
+  - Only a leader sends `MsgSnap`, and leadership at `t` requires `becomeCandidate` at `t`
+    (`raft.go:902-911`, `r.reset(r.Term + 1)`).
+  - A candidate is not a leader, so etcd's loop sends its messages, including `MsgVote` at `t`, only after
+    `r.storage.Save(rd.HardState, …)` (etcd `raft.go:264`, the save; `:302-329`, the `!islead` send after
+    it). So term `t` is in the WAL before any vote leaves.
+  - PreVote: `becomePreCandidate` (`raft.go:917-927`) changes neither `r.Term` nor `r.Vote`, so it does
+    not matter.
+  - The leader's early send (etcd `raft.go:248-250`, `islead`, before the save) covers only `Ready`s after
+    leadership. One exception: a single-voter campaign becomes leader at `t` within one step, so its first
+    leader `Ready` can carry the unsaved HardState `t`.
+    - But that `Ready`'s messages are `MsgApp`, not `MsgSnap`: `becomeLeader` resets every progress to
+      `Next = lastIndex+1`, whose term is in storage.
+    - A `MsgSnap` needs a later reject, which arrives in a later `Ready`, after this `Ready`'s `Save` (the
+      loop is sequential).
+  - So every `MsgSnap` at `t` follows a durable HardState term `≥ t`.
+- **R2s's target.** The remaining case: the restarted member is elected at `T' > T₀` while raft is still
+  handing out the replay, then sends a `MsgSnap` at `T'`. That is 2-3% of runs with a slow handout and 0
+  with a drained one, and it is what R2s must discharge (superseded 2026-11-06 by the R2d'a review, finding 3: `Hwpend` is false of some Go runs with default flags (replays over 1 MB with a mid-replay election); R2s must REMOVE it by following the merged snapshot in the ghost; no producer can discharge it: the table in "R2d'a restart-only premises"). R2e's closed theorem must not carry `Hwpend`.
+- **(A) Where the loop gets the fact about `rt`: nowhere today.**
+  - `rnRtOk` (`InvRaftNode.lean:1576`) is `rt = 0 ∨ ∃ c, committedAtTerm rt c ∗ n ≤ c`.
+  - `RNNames` has no restored HardState term, and `RestartNode` is R2d'b's B1.
+  - The driver's `phs`/`hlb` record the last hard state, not the start's.
+- **The narrowed text, as sent to the main session for 82** (all DRAFT, nothing frozen):
+  1. `RNNames` gains `t0 : w64`, the restored HardState term (`W64 0` at a first start, `newRaftNode`'s
+     literal).
+  2. `rnSnapMsg` (`InvRaftNode.lean:189-192`): `⌜st.msg.Type' = MsgSnap⌝` →
+     `⌜st.msg.Type' = MsgSnap ∧ uint.Z γ.t0 < uint.Z st.msg.Term'⌝`.
+     - Go reason: a restarted node leads only after `becomeCandidate` at `T₀+1` or later.
+     - At `t0 = 0` it follows from the message's nonzero term (`sentMsg_shape`).
+     - At a restart it is new raft-side text: `RestartNode`'s, in R2d'b, or a restart-only premise
+       carried in `rnRestartOk`'s restart disjunct until then.
+  3. `Hwpend`'s guard: `⌜n < γn.a0.length⌝` → `⌜n < γn.a0.length ∧ uint.Z γn.t0 < uint.Z rt⌝` (the rest
+     of the approved text unchanged). The use site:
+     - `rt ≤ t0`: by (2), the bag's message has `Term > t0 ≥ rt`;
+     - `rt > t0`: the wand.
+- **82's decisions (2026-11-06, as hub owner, via the main session).**
+  - Draft 1-3 above is approved: `RNNames.t0`, `rnSnapMsg`'s `t0 < Term'`, and `Hwpend`'s guard
+    `n < |a0| ∧ t0 < rt`.
+  - (2)'s restart fact is carried in `rnRestartOk`'s restart disjunct until R2d'b's `RestartNode`
+    supplies it; at `t0 = 0` it is proved, not assumed.
+  - `rnWinInstallAbove` `≤` → `<` is approved.
+  - All of these go in at item 5.
+  - **The restart-only premises, and who discharges them:**
+    - `Hwpend` (A7): R2s;
+    - `rnWinInstallAbove` (A8, now strict): R2s, or raft's API;
+    - the `MsgSnap` term bound of (2): R2d'b's `RestartNode`.
+
+    R2e's closed theorem carries none of them.
+
+#### Q26: the axiom question, answered (2026-11-06; read-only, no edits)
+
+- **(1) `c0` and `pre`.** At `σ.b = 0`, A9's `%HEr` keeps `c₀ ≤ ai₀ ∧ ai₀ = 0`, and `kvRunM_split` gives
+  `γr.kv.c0 = C.c₀`. So the axiom's `γ.pre = []` and `c0 = W64 0` hold at the window call site, with
+  `L := pre ++ Γ` and `Γ = A₀` inside the window. The restored consistent index lives only in `rp`
+  (`ai₀ + |A₀| ≤ ciEff`). `clusterImageOk` (`InvRest.lean:615`) is the opaque `memBucketsOk c ms …` at the
+  image's members; the current members enter only through the axiom's `clusterMem` premise. So the
+  ids form is the whole generalization.
+- **(2a) A proved lemma without the axiom: not possible.** The replay's members are `restModel A₀`'s,
+  overwritten by `G`'s `ClusterMemberAttrSet`s, which is generally not the model of any prefix.
+  - Counterexample: `A₀ = [boot, attr(Y,c), attr(Y,d), attr(X,b)]`, `G = [boot, attr(Y,c)]`. The replay
+    has `X=b, Y=c`, and every prefix with `X=b` has `Y=d`.
+  - `clusterMem` is the real Go map, and `clusterImageOk` is opaque.
+- **(2b) The cut (no install while the window is pending): 0.5-1 d, but it only defers.**
+  - The premise: `rnWinInstallAbove` also requires `|a0| ≤` the delivered log at the snapshot's
+    `Advance`. The snapshot arm then runs past the window (`applyResR_past`, the frozen
+    `run_job_snapC`).
+  - It cuts the split-replay restarts (`MaxCommittedSizePerReady`, 1 MB by default) that receive a
+    `MsgSnap` mid-replay, the usual case after a long outage with a large log. The probe does not
+    measure this.
+  - It is false of those runs, so R2d'b would owe the window snapshot arm, item 2 again.
+  - Recommendation unchanged: (a), the ids form of the axiom.
+
+#### Item 3 (the stop arm): stopped at a frozen statement (2026-11-06)
+
+- **The gap.** At a stop inside the window, `stopCleanupImage` must give `srvDiskImage`, which holds
+  `wal.stopImage … σ i` with `i ≤ σ.commit` (`InvRestart.lean:131-142`) at the backend's index
+  `i = ai₀ + |ghostOf rp A| = |A₀|`.
+  - `raftNode.stop.spec`'s post (frozen, `Spec/…/raftNode__stop.lean:55`) gives only
+    `(γ.pre ++ A).length ≤ σ.commit` for Go's handed log `A`, which is shorter than `A₀`.
+  - No raft law bounds `raftState`'s commit from below: `StorageHolds` has `σ.commit ≤ S.commit` and
+    `wcommit ≤ σ.commit`.
+  - Go: `σ.commit` is monotone from the restored commit, which is `≥ i` (`bootstrapRestartContract`).
+- **Options.**
+  - **(i) Recommended.** `raftNode.stop.spec`'s post gains `⌜γ.a0.length ≤ σ.commit⌝` (a frozen
+    change). It is proved from the loop's records and a restart-data fact in `rnRestartOk` (the WAL's
+    stored commit `≥ |a0|`), carried until R2d'b's `RestartNode` and trivial at `a0 = []`. Est.
+    1-1.5 d. Then `applyResStopR`, `stop_splitR` and a restart form of `stopCleanupImage` (the image
+    at the ghost rows): about 1 d (est.).
+  - **(ii) Cut: no stop while the window is pending.** False of Go (a member can be stopped
+    mid-replay). Rejected.
+- Sent to the main session for 82.
+
+#### Item 4 (`run`'s restart branch, DRAFT `run.wp_proofR`): next steps (2026-11-06, not started)
+
+Not started in this session (context). Items 2 and 3 are held for decisions. The plan, against
+`EtcdServer__run.lean` at `f643b739ee`:
+
+1. **The DRAFT statement** (new file, for instance `RunRestart.lean`, imported by no closed theorem):
+   - `isServerRunCR`: a copy of `isServerRunC` (`AuthCompRows.lean:216-260`) with `%HEr`, `Hsnap` and
+     `Hstart` replaced by `srvRunRestartR` (`StartR.lean:127`), plus the approved narrowed `Hwpend`;
+   - `run.specR`: `run.spec` over `isServerRunCR`.
+2. **A dependency found while planning: `winNoMergedSendR` must be narrowed first.**
+   `run_job_bodyR`/`applyAll.specBatchR` take `winNoMergedSendR … rt` for every `rt`, but the
+   approved `Hwpend` covers only `t0 < rt`.
+   - Change `winNoMergedSendR` (`RunR.lean:43`, DRAFT) to take `⌜uint.Z γn.t0 < uint.Z rt⌝` as a
+     disjunct (or its guard).
+   - `applyAll.wp_proofBatchR`'s merged branch (`ApplyAllR.lean`) then closes the case `rt ≤ t0` with
+     `rnSnapMsg`'s bound (`t0 < Term'`).
+
+   This needs item 5's `RNNames.t0` and `rnSnapMsg` edit, so it lands with them. In the DRAFT, take
+   that bound as a hypothesis of `run.wp_proofR`.
+3. **The proof.** Copy `run.wp_proofG` (`:727-1450`) and change:
+   - **The start** (`:1003-1060`). `Hsnap` → `rnSnapOnceR`: its continuation gives
+     `epCsAt γ A₀ cs` and `memSnapLb γs 0` in place of `memSnapNone`. `Hstart` → `srvRestartAtR`. The
+     hand-built `HR0 : applyResC … []` becomes `applyResR_start` at `P = []`, `rp = ⟨0, γn.a0⟩`.
+   - **The loop invariant `HI`** (`:1063`): `applyResC C … A` → `applyResR C … ⟨0, γn.a0⟩ A`, in
+     `HQR` and in every `savedProp_alloc`/`Schedule` text (`:1130-1165`, `:1217-1283`).
+   - **The batch arm** (`:1166-1283`):
+     - `rnApR_dv`/`rnApGive_dv` (`:1178-1181`) → `rnApR_dvG`/`rnApGive_dvG` (`ViewR.lean:243-252`),
+       with no `Ha0n`;
+     - `hdvs` unchanged (`pre = []`, `ai0 = 0` still hold at `σ.b = 0`);
+     - `run_job_body hAA.1` (`:1244`) → `run_job_bodyR (applyAll.wp_proofBatchR …)`, with
+       `winNoMergedSendR` from `Hwpend`'s wand for `t0 < rt`;
+     - the window's token: `Hwpend`'s `token γwp` is held while `|A| < |a0|`, and given up through
+       `winNoMergedSendR_nil` once past the window;
+     - the job's post: `applyResR … (A ++ ce)`.
+   - **The snapshot arm** (`:1107-1165`): `sorry` (item 2, held). Past the window it is
+     `applyResR_past` and the frozen `run_job_snapC`. Only the in-window case waits for item 2.
+   - **The stop arm** (`:1351-1450`): `sorry` (item 3, held).
+   - **The lease-expiry arm** (`:1285-1335`) and `errorc`: check whether they read the loop's `R`. They
+     should carry `applyResR` unchanged.
+   - Memory: no bare `iframe` there (the reader pools' `List.replicate 2^28`); frame explicitly.
+4. **Check:** `etc/tcb-report.py --check` (still 817/4: the new sorries are in a file no root imports),
+   and `#print axioms run.wp_proofR` shows only those `sorryAx`s.
+
+**Where R2d'a stands (2026-11-06).**
+- Item 1: done (`de71f8502b`).
+- Item 2: held (axiom ids form, with the user).
+- Item 3: held (`raftNode.stop`'s commit bound, frozen).
+- Item 4: planned above.
+- Item 5: after 2-4, with the approved hub texts (`t0`, `rnSnapMsg`, narrowed `Hwpend`,
+  `rnWinInstallAbove` `<`).
+
+#### R2d'a A10 item 5, part 1: the approved texts without the `MsgSnap` bound; item 2 of it stopped at a frozen post (2026-11-06; DRAFT)
+
+**In** (one commit on `r2dp`, sorry-free, no new axiom):
+- `RNNames.t0 : w64` (the restored `HardState` term), `W64 0` in `newRaftNode`'s literals (the
+  only anonymous constructors).
+- `rnWinInstallAbove` strict (`γ.a0.length < snapIdx`), with the docstring of why `<` is true of
+  Go (the main session's probe: `a0` a committed prefix of the node's own WAL log; at `snapIdx ≤
+  |a0|` raft fast-forwards its commit and installs nothing, `raft.go:1912-1918`) and R2d'b's
+  obligation (`RestartNode` supplies that `a0` is a committed prefix of the restored WAL log).
+  `NodeBridge`'s one reader weakens it back to `≤` (`Nat.le_of_lt`), as before.
+- `Hwpend` (A7), the narrowed approved text, as `srvWinPend s γr γn` (`InvRun.lean`, the lowest
+  hub module), in `isServerRunC`/`isServerBuiltC` and passed through `isServerRun` (`InvRun`),
+  `isServerRunOn` (`RunOn`), `isServerBuilt` (`InvStart`), `isServerBuiltOn` (`StartOn`),
+  `srvBuilt` (`InvBuild`), `srvBuiltG` (`ServerOn`). One spelling fix: the approved text's
+  `sentMsg γr.raft.cl` is `sentMsg γr.raft.raft.cl` under `letI := srvStor γr.raft.raft` (the
+  `SrvRaft` `winNoMergedSendR` is applied at; `ServerRaftNames` has no `cl`). Docstring: the
+  excluded runs (elected at `T' > T₀` mid-replay, then a `MsgSnap` at `T'`), R2s discharges it (superseded 2026-11-06 by the R2d'a review, finding 3: `Hwpend` is false of some Go runs with default flags (replays over 1 MB with a mid-replay election); R2s must REMOVE it by following the merged snapshot in the ghost; no producer can discharge it: the table in "R2d'a restart-only premises"),
+  R2e must not carry it, the `axiom` attack target. `srvWinPend_first` (proved): at `a0 = []` a
+  token gives it. `NewServer` allocates `γwp`; `start` passes it to `run`; `run.wp_proofG` drops it.
+
+**Stopped: item 2, `rnSnapMsg`'s `t0 < Term'`, needs `t0 = 0` at a first start through a frozen
+post.** The producer (`rnMsgOk_of_api`, called from `raftNode.start`) can only learn `γ.t0 = 0`
+from `rnRestartOk`'s first-start disjunct, which would become `⌜γ.a0 = [] ∧ γ.t0 = W64 0⌝`. That
+disjunct is built in `rnToks_of_start`, called by `raftNode_of_StartNode` (`NodeStart.lean:530`) on
+the `γw` of the frozen `bootstrappedRaft.newRaftNode.spec`'s post, whose only facts about `γw` are
+the pure conjunct (`… ∧ γw.a0 = []`) and `rnBuilt E γw r …` (`InvNodeStart.lean`). So `t0 = 0`
+cannot reach it without one of:
+- **(i) recommended**: `bootstrappedRaft.newRaftNode.spec`'s and `newRaftNode.spec`'s posts gain
+  `∧ γw.t0 = W64 0` / `∧ γ.t0 = W64 0` (frozen texts; A6's `a0 = []` precedent, approved via 82),
+  proved from `newRaftNode`'s literal; `rnToks_of_start` takes it; `NodeStartSpec` (exported) does
+  not change. `rnView_first`'s part 1 (`rnCfgAt ⊣⊢ srvCfgView`) also takes `t0 = 0`; its parts 2-3
+  (used by `rnApR_dv`/`rnApGive_dv`) do not. Est. 0.5 d with item 5's rest.
+- (ii) `rnBuilt` carries `⌜γ.t0 = W64 0⌝` (no frozen text changes, but the frozen post's meaning
+  does, and `InvNodeStart.lean` is outside A6's list). Not recommended: a hidden strengthening.
+- A pin `a0 = [] → t0 = 0` as an `RNNames` field was considered and rejected: a restart whose
+  backend applied nothing (`a0 = []`, `T₀ > 0`) could not be named.
+
+Waiting with it: the rest of item 2 (the restart conjunct of `rnRestartOk`, "this incarnation's
+`MsgSnap`s are above `t0`", R2d'b's discharge target), item 5's `winNoMergedSendR` narrowing (its
+`rt ≤ t0` case reads `rnSnapMsg`'s bound), and Task B (`run.wp_proofR`, whose batch arm needs the
+narrowed `winNoMergedSendR`).
+
+**Probe follow-ups** (the main session, 2026-11-06):
+- (i) 0 of ~7,300 `MsgSnap`s per run from restarted incarnations had `Term ≤` the restored term.
+- (ii) Of ~400 in-window installs per run, measured against the restored log's last index: 23-35
+  below, 0-4 equal, 360-402 above. Measured against the commit at restart: 0 at or below.
+- The equal and below cases come only from the uncommitted WAL tail (trace: seed 356). Rerun in
+  `notes/restart-probe/` with `go test -count=1 -v -run 'Scenario|Randomized|ZZZ' .` (its `README.md`)
+
+**R2d'b discharge targets (restart-only premises)** (the main session, 2026-11-06):
+- `Hwpend` (`srvWinPend`, A7): R2s, the elected-at-`T' > T₀` case (superseded 2026-11-06 by the R2d'a review, finding 3: `Hwpend` is false of some Go runs with default flags (replays over 1 MB with a mid-replay election); R2s must REMOVE it by following the merged snapshot in the ghost; no producer can discharge it: the table in "R2d'a restart-only premises");
+- `rnWinInstallAbove` (`<`, A8);
+- the `MsgSnap` term bound `t0 < Term'` (`rnSnapMsg`; not in yet, item 2 of item 5 above);
+- the WAL's stored commit `≥ |a0|` (Q27 (i), for `raftNode.stop.spec`'s new post; not in yet);
+- `a0`, a committed prefix of the restarted node's own WAL log (`RestartNode`).
+
+**Decisions relayed after this pass (2026-11-06), queued behind the `t0` stop above:** Q27 (i)
+approved (`raftNode.stop.spec`'s post gains `⌜γ.a0.length ≤ σ.commit⌝`, with the restart conjunct
+"the WAL's stored commit ≥ |a0|", then item 3); Q26 (a) approved and cleared by the axiom attack
+(`/shared/tmp/axiom-review-clusterimage-ids.md`, survives), then item 2 with the axiom's ids form.
+Order: Task A's rest, Task B (`run.wp_proofR`), item 3, item 2.
+
+#### R2d'a A10 item 3 (the stop arm's pieces): done, DRAFT, sorry-free; no frozen text changed (2026-11-06)
+
+- **No change to `raftNode.stop.spec`.** Q27 (i) approved its post gaining `⌜γ.a0.length ≤ σ.commit⌝`,
+  but its proof cannot reach the restart data: `rnRestartOk` lives in the loop's view (`rnCfgAt`,
+  inside `rnLoopTok`/`rnDrv`), and neither `raftNode.stop`'s precondition (`isRaftNode`, `E.ST`, the
+  running half, `rnWalTokA`, `rnStopClaim`, `rnApplyTok`) nor `onStop`'s reaches it. Proving that
+  post would need one more statement change (`rnRestartOk` in `raftNode.stop.spec`'s or
+  `onStop.spec`'s pre, or in `isRaftNode`). It is not needed: the unchanged post already gives
+  `raftState S` and `StorageHolds S σ`, so `run` derives the bound itself from the restart data
+  (`rnRestartOk_commit`), which it reads from the loop's token before handing it to
+  `raftNode.start` (`rnLoopTok_restartOk`).
+- **The restart conjunct** (`InvRaftNode.lean`): `rnWalCommitAbove γ := □ ∀ S σ, raftState γ.node.cl
+  γ.id S -∗ ⌜StorageHolds S σ⌝ -∗ raftState … S ∗ ⌜γ.a0.length ≤ σ.commit⌝`, the fourth conjunct of
+  `rnRestartOk`'s restart disjunct. Its docstring names it R2d'b's target. `rnRestartOk_commit` gives
+  the bound and is trivial at `a0 = []`.
+- **`StopR.lean`** (new, DRAFT, imported by nothing):
+  - `applyResStopR` and `stop_splitR`: `applyResStop`/`stop_split` over `applyResR`;
+  - `restReplay_bk` and `restLeasesWith_bk_congr`: the replay changes only the members, so the
+    backend's buckets stay the model's at `A₀`;
+  - `stopCleanupImageR.spec` and `stop_cleanup_imageR`: the frozen proof at the ghost rows, inside
+    the window (`|A| < |A₀|`). It takes Go's log committed (`srvRLogLb C.ρ.raft A`, so `A <+: A₀`)
+    and `|A₀| ≤ σ.commit`, and gives the image at `A₀` and the backend's index. Past the window the
+    stop arm is the frozen path (`applyResR_past`, `stop_split`, `stopCleanupImage.spec`).
+- **For `run.wp_proofR`'s stop arm:**
+  - read `rnLoopTok_restartOk` before `raftNode.start`;
+  - at the stop, split on `|A| < |A₀|`. In the window: `stop_splitR`, `raftNode.stop.spec`, then
+    `rnRestartOk_commit` for `|A₀| ≤ σ.commit`, and `stop_cleanup_imageR` with `srvRLogLb A` (from
+    the loop's lb on the handed log). Past it: the frozen path.
+
+#### R2d'a A10 item 5, part 2 (`rnSnapMsg`'s `t0 < Term'`): stopped at the restart conjunct's form (2026-11-06)
+
+Q28 (i) is approved: `t0 = W64 0` in the two frozen posts, and `⌜γ.a0 = [] ∧ γ.t0 = W64 0⌝` as the
+first-start disjunct. Not started: the restart conjunct ("this incarnation's `MsgSnap`s are above
+`t0`") has no sound form over what the producer holds.
+- **What the producer holds.** It is `rnMsgOk_of_api`, by way of `rnRawMsgs_sent`/`_leader` at
+  `raftNode.start`'s `Ready`. Each message comes with `msgOwn q.loc (readyDq q.st) q.st`,
+  `msgCredits` and `sentMsg`/`readyMsgs … γ.id`. All of these are per member id, not per
+  incarnation. `NodeDriverState` (the one per-incarnation resource, `nodeDriver γ.nl`) records no
+  messages.
+- **Why the obvious forms are false of Go.** A premise such as `□ ∀ st, sentMsg … γ.id st -∗
+  ⌜MsgSnap → t0 < Term'⌝`, or one over a whole `msgOwn` with it, is also met by an earlier
+  incarnation's `MsgSnap` at a term `≤ T₀` (point 1 of the probe section). That is 82's attack
+  target, and it would make the restart branch vacuous.
+- **Options:**
+  - (a) A raft-side fact at the `Ready` receive: a `MsgSnap` in a `Ready` is at the driver's
+    `hardState` term, the role is leader, and this incarnation's driver leads only above `T₀`.
+    That is a `node.Ready.spec` post addition (raft's API) or a restart premise over `nodeDriver
+    γ.nl` (per incarnation): `□ ∀ st, nodeDriver γ.nl … st -∗ ⌜leader⌝ -∗ nodeDriver … st ∗
+    ⌜t0 < st.hardState.Term'⌝`, plus the raft fact relating the messages to that term.
+  - (b) A per-incarnation ghost tag on the `Ready`'s messages: a change to raft's node API.
+  - (c) Leave `rnSnapMsg` unbounded, and close the `rt ≤ t0` case of `winNoMergedSendR` with
+    `Hwpend` widened back to `rt ≤ t0`. Reverts 82's narrowing.
+  - Needs the user's or 82's choice.
+
+#### R2d'a A10 item 5, part 2 done: Q28 (i) and Q29 (d) in, `winNoMergedSendR` narrowed (2026-11-06; DRAFT)
+
+- **Q28 (i).** `bootstrappedRaft.newRaftNode.spec`'s post gains `∧ γw.t0 = W64 0`, `newRaftNode.spec`'s
+  `∧ γ.t0 = W64 0` (proved from `newRaftNode`'s literal); `NodeStartSpec` unchanged. `rnRestartOk`'s
+  first-start disjunct is `⌜γ.a0 = [] ∧ γ.t0 = W64 0⌝`; `rnToks_of_start` takes `t0 = 0`; `rnView_first`'s
+  part 1 takes it (`γ.t0 = W64 0 → ∀ L, …`).
+- **Q29 (d).** `rnRestartOk`'s restart disjunct gains a fifth conjunct, `rnSnapTermAbove γ`
+  (`InvRaftNode.lean`). **One deviation from the approved text, forced:** the approved form took
+  `nodeDriver γ.nl … st` beside `readyRest … st …`, but the two are never held together: the receive
+  (`isReadyChan_recvAu`) consumes the `nodeDriver` and gives `readyGot` (which holds the `readyRest`),
+  and *enter* gives the driver back only after the `readyRest` is taken apart. So the premise is
+  anchored at the driver state the receive was at instead: `readyRest γ.node.cl srvClusterN γ.id rd
+  (rnDrvSt γ L p S r) … ms …`, whose storage `memStorIface γ.ms` and key `γ.key` are this
+  incarnation's (an earlier incarnation's `Ready` is at another storage). Same binders as
+  `readyRest` (`InvNode.lean:612`), same conclusion
+  (`⌜∀ q ∈ ms, q.st.msg.Type' = MsgSnap → uint.Z γ.t0 < uint.Z q.st.msg.Term'⌝`). For 82 to confirm.
+  - `rn_ready_recv` applies it to the receive's `readyRest` (`rnRestartOk_snapTerm`, from the view's
+    restart data, `rnCfgAt_restartOk`) and records the result in `rnRawMsgs` as the pure
+    `rnSnapTermOk γ ms` (`t0 = 0`, or every `MsgSnap` above `t0`).
+  - `rnMsgOk_of_api` combines the two cases: at `t0 = 0` the `MsgSnap`'s nonzero term
+    (`sentMsg_shape`, `msgSnap_not_termless`), at a restart the premise's bound.
+  - `rnSnapMsg`'s pure is `⌜st.msg.Type' = MsgSnap ∧ uint.Z γ.t0 < uint.Z st.msg.Term'⌝`, the approved
+    text; its readers (`applyAll`, `ApplyAllSnap(On)`, `processMessages`) take the first half.
+- **`winNoMergedSendR` narrowed** (`RunR.lean`): it takes `t0` and its wand is guarded by
+  `⌜uint.Z t0 < uint.Z rt⌝`; `applyAll.specBatchR` and `run_job_bodyR` pass `γn.t0`. **One more DRAFT
+  conjunct, found while proving the `rt ≤ t0` case:** `isServerApplyAll`'s bag names `γm` are
+  existential (`InvApplyAll.lean:128`, a frozen spec's precondition), so its `MsgSnap`s are above
+  `γm.t0`, not `γn.t0`. `applyAll.specBatchR` and `run_job_bodyR` take `srvSnapBagN s γn` (persistent:
+  `srvMemberIDAddr s ↦□ γn.id`, and `msgSnapC` the node's bag of `rnSnapMsg γn`), which `run` has from
+  `isServerRunC`'s `#Hmid` and `#Hrn` (`isRaftNode`'s `#Hmsc`/`#Hmsci`). `wp_proofBatchR` receives
+  through that bag (the same channel: `typedPointsto_agree_wand`); at `rt ≤ γn.t0` the message's term is
+  above `γn.t0`, so not `rt`. No frozen text changes; not a restart-only premise (true at every start).
+- **`Hwpend`'s token across the window's batches (found for Task B).** `Hwpend`'s wand takes the
+  token and gives it back, but `winNoMergedSendR` held its wand alone, so a batch would consume the
+  token and a later batch in the window would have none. `winNoMergedSendR γ s t0 T R rt` is now
+  persistent over a borrowed resource `T` (`□ (⌜t0 < rt⌝ -∗ T -∗ ∀ id m st, … -∗ ⌜…⌝ ∗ msgOwn … ∗ T)`);
+  `applyAll.specBatchR` and `run_job_bodyR` take `T` and give it back (`T := token γwp` in `run`).
+  DRAFT files only (`RunR.lean`, `ApplyAllR.lean`).
+
+### R2d'a restart-only premises (2026-11-06; 82's condition; eight rows since the Freeze fixes, 2026-11-07)
+
+Every restart-only premise R2d'a carries, in one place: eight (rows 6-8 added 2026-11-07 by the Freeze fixes, the Freeze review's two moderate findings and 82's 2^64 row; until then "five"). None is reached by a closed theorem; R2e's
+closed theorem carries none. At a first start each is proved or vacuous.
+
+| Premise | Text | Go evidence | At a first start | Discharge (est.) |
+|---|---|---|---|---|
+| (1) `Hwpend` (A7) | `srvWinPend s γr γn` (`InvRun.lean:57`): a `token γwp` and `□ ∀ rt n, token -∗ ⌜n < \|a0\| ∧ uint.Z γn.t0 < uint.Z rt⌝ -∗ rnRtOk γn rt n -∗ ∀ id m st, … -∗ ⌜MsgSnap → Term ≠ rt⌝ ∗ …`, in `isServerRunC`/`isServerBuiltC` and the hubs | **(Corrected 2026-11-07: the runs below are a small part of the false ones; see the note under the table.)** **False of some Go runs with default flags (replays over 1 MB with a mid-replay election)** (the R2d'a review, finding 3). Trace: a replay over 1 MB is split by `MaxCommittedSizePerReady` (unset in etcd, so `MaxSizePerMsg`, 1 MB); a snapshot inside the window compacts the raft log (e.g. the forced one of a replayed `ClusterVersionSet`, at Go's applied index above `SnapshotCatchUpEntries` 5000); the member is elected above `t0` mid-replay; a lagging follower gets a `MsgSnap` at the new term, merged by `server.go:1018` inside the window. Go is correct there (nothing for `issues/`). The probe (`notes/restart-probe/`): 0 of ~4250 former-leader restarts fail it with a drained handout; 2-3% with a slow handout (one entry per `Ready`), ~3% without PreVote; the failing runs are elected at `T' > T₀` mid-replay, then a `MsgSnap` at `T'`. **The drained 0 understates it**: the probe hands out by entry count, not bytes, so it never splits a replay as 1 MB does | `srvWinPend_first` (`InvRun.lean:69`): at `a0 = []` the guard `n < 0` is false, a token gives it | **(Corrected 2026-11-07, see the note under the table: false of every restarted run (`A₀ ≠ []`) in which the member is later elected, at any term above `t0` and at any time in the incarnation, and snapshots a follower; `n` is free and the token never consumed. R2d'b restates it with its window tied to the replay; R2s removes it.)** Superseded text: **False of some default-flag Go runs (replays over 1 MB with a mid-replay election); R2s removes it (not R2d'b)**: no producer can supply it; R2s removes it by following the merged snapshot in the ghost (modelling the merge inside a window; R2s's Scope, no estimate yet); R2e's closed theorem must not carry it; `axiom`-skill attack before R2d'b's Freeze |
+| (2) `rnWinInstallAbove` (A8, strict; task 4: at the receive's `readyRest`, 82's hub decision) | `InvRaftNode.lean:426`: `□ ∀ rd L p S r ce es h Lo ms ss, readyRest γ.node.cl srvClusterN γ.id rd (rnDrvSt γ L p S r) ce es h Lo ms ss -∗ readyRest … ∗ ⌜∀ l, Lo = some l → \|γ.a0\| < snapIdx⌝` (was: `□ ∀ st es l, ⌜st.handling = some (es, some l)⌝ -∗ nodeDriver γ.nl … st -∗ nodeDriver … st ∗ ⌜\|γ.a0\| < snapIdx⌝`) | probe follow-up (ii): of ~400 in-window installs per run, 0 at or below the commit at restart (23-35 below / 0-4 equal to the restored log's last index, all from its uncommitted tail, seed 356); raft's commit at restart is `≥ \|a0\|` and `restore` rejects a snapshot at or below committed (raft v3.7.0 `raft.go:1861`, the fork `565c2bd`'s `:1877`); a term-matching snapshot only fast-forwards the commit (v3.7.0 `raft.go:1912-1918`) | vacuous: `rnRestartOk`'s first disjunct (`a0 = []`) is taken; `NodeBridge` reads `a0 = []` there | **(Corrected 2026-11-07: true of Go after a graceful stop, the crash case open (a commit-only WAL record lost without `MustSync`), but not derivable from raft's API; R2d'b derives it.)** **R2s or raft's API** (H5 (b), the raft fact "a snapshot's index is above the receiver's commit"), with R2d'b's `RestartNode` supplying raft's commit at the start `≥ \|a0\|` (row 5); no estimate yet (R2s's Scope) |
+| (3) `rnWalCommitAbove` (Q27 (i)) | `InvRaftNode.lean:393`: `□ ∀ S σ, raftState γ.node.cl γ.id S -∗ ⌜StorageHolds S σ⌝ -∗ raftState … S ∗ ⌜\|γ.a0\| ≤ σ.commit⌝` | **(Corrected 2026-11-07: false at the start of almost every restart after a quiet stop; see the note under the table.)** Superseded text: not probed; Go: the restored WAL's commit is at least the backend's consistent index (`bootstrapRestartContract`), `σ.commit ≥ S.wcommit`, and the commit raft writes only grows | trivial: `rnRestartOk_commit`'s first case (`a0 = []`) | **(Corrected 2026-11-07: not dischargeable as written; R2d'b restates it, Q31, as a fact about the restored `σ`'s commit or the loop fact `rnRestartOk_commit` needs.)** Superseded text: **R2d'b** (`RestartNode` supplies it from the restored records; within B1, 1 wk (est.)) |
+| (4) snap-term bound (Q29 (d)) | `rnSnapTermAbove γ` (`InvRaftNode.lean:453`): `□ ∀ rd L p S r ce es h Lo ms ss, readyRest γ.node.cl srvClusterN γ.id rd (rnDrvSt γ L p S r) ce es h Lo ms ss -∗ readyRest … ∗ ⌜∀ q ∈ ms, MsgSnap → uint.Z γ.t0 < uint.Z q.st.msg.Term'⌝` (anchored at the driver state, not `nodeDriver`: see part 2 above) | probe follow-up (i): 0 of ~7,300 `MsgSnap`s per run from restarted incarnations had `Term ≤` the restored term | not used: the first disjunct has `t0 = 0`, and `rnMsgOk_of_api` bounds the `MsgSnap` by its nonzero term (`sentMsg_shape`) | **(Corrected 2026-11-07: true of Go, not derivable from raft's API, which has no per-incarnation law; R2d'b derives it.)** **R2d'b**: every `MsgSnap` an instance puts in a `Ready` has `Term >` its start term; needs a raft-struct invariant (`reset(term)` does not clear `r.msgs`) and a `StartNode`/`RestartNode` post change, 5-8 d (est.) |
+| (5) raft's commit at the start `≥ \|a0\|` (was: own-WAL committed prefix; the R2d'a review, finding 6) | no Lean conjunct of its own: the one restart fact from which both `rnWalCommitAbove` and `rnWinInstallAbove` (with raft's H5 (b)) follow, cited by `rnWinInstallAbove`'s docstring (`InvRaftNode.lean:407-425`); it is this member's raft commit, not row 8's `srvRLogLb γ.srv γ.a0` (which has a conjunct of its own and says `A₀` is cluster-committed, not that this member's commit covers it) | probe follow-up (ii) above: measured against the commit at restart, 0 installs at or below; the equal/below cases against the restored log's last index come only from its uncommitted tail | vacuous (`a0 = []`) | **R2d'b**'s `RestartNode` (the restored `HardState`'s commit `σ.commit ≥ \|a0\|`), within B1, 1 wk (est.) |
+| (6) room past the replayed log (Q22 (3); 82 sent the row to the user, 2026-11-06) | `srvRunRestartR`'s pure part (`AuthCompRows.lean`): `uint.Z ai₀ + A₀.length + 1 < 2 ^ 64` (in `isServerRunC`'s `HRr`) | raft indices are `uint64`; at `σ.b = 0` (`ai₀ = 0`) it says the backend's log is shorter than `2^64 - 1` entries, which no run reaches (the replay's next index `\|A₀\| + 1` does not wrap) | trivial (`A₀ = []`) | **R2d'b**: its restart `start`, from raft's restart data (the restored log's last index), within B1 |
+| (7) `A₀`'s entry types (the Freeze review, moderate) | `srvRunRestartR`'s pure part (`AuthCompRows.lean`): `∀ m ∈ A₀, m.typ = W32 0 ∨ m.typ = W32 1` (`EntryNormal`/`EntryConfChange`; no `EntryConfChangeV2`); threaded through `ApplyRDefs.lean`, `EtcdServer__run.lean`, `StopShutdown.lean` | etcd at `673da07c8` writes no other type: every conf change goes through `configure` (`server.go:1784-1790`), which calls `s.r.ProposeConfChange(ctx, cc)` with a v1 `*raftpb.ConfChange` built by `AddMember` (`:1427`), `RemoveMember` (`:1480`), `PromoteMember` (`:1557`) and `UpdateMember` (`:1690`); requests are `Propose`d (`EntryNormal`); raft's own entries are the new leader's empty `EntryNormal` and the bootstrap's v1 `ConfChangeAddNode`s; `--force-new-cluster`'s (`storage/util.go:63,83`) and `etcdutl snapshot restore`'s (`etcdutl/snapshot/v3_snapshot.go:556`) are `EntryConfChange`; raft's auto-leave `EntryConfChangeV2` (raft `raft.go:742` at `565c2bd`) is appended only in a joint configuration, which a v1 change never enters (its `AsV2` is one change with transition auto: `EnterJoint` false). And `applyEntries`' switch panics on any other type (`server.go:1962-1968`, "unknown entry type; must be either EntryNormal or EntryConfChange"), at the replay too. **Not true of every WAL**: a data directory whose WAL another tool wrote (another raft application, a hand-made WAL) can hold an `EntryConfChangeV2`; Go panics on it when it applies it, so such runs are outside the premise but also panic | trivial (`A₀ = []`) | **R2d'b**: from the WAL's records (the backend's applied log is a prefix of what this member's earlier incarnations applied, each through the switch above), within B1 |
+| (8) `A₀` cluster-committed (the Freeze review, moderate) | `rnRestartOk`'s restart disjunct (`InvRaftNode.lean`): `srvRLogLb γ.srv γ.a0` (`SrvRaftLog.lean`: `isCommittedLogLb γ.raft.cl (srvLE γ A₀)` and the indices consecutive after `ai0`) | the backend applied only entries raft handed it as `Ready.CommittedEntries`, so `A₀`, the log applied through the consistent index, is a prefix of the cluster's committed log | vacuous: `rnRestartOk`'s first disjunct (`a0 = []`) | **R2d'b**, from the WAL's committed prefix: raft's fact that the restored storage's entries through its `HardState` commit are committed in the cluster (the node API's `isCommittedLogLb` of the previous incarnation's log through `σ.commit`), with `\|A₀\| ≤ σ.commit` (rows 3 and 5) and `A₀` that log's prefix; within B1 |
+
+*Correction (2026-11-07, etcd-grove-83; the user's decision via etcd-grove-82: correct now, fix in
+R2d'b).* The table's disclosure for rows 1-4 was wrong (`notes/r2db-scope.md` §10 on branch `r2db`;
+`notes/decisions.md`, "R2d'a's disclosure corrected (2026-11-07)"). **R2d'a's restart triple is
+vacuous on most restarts.**
+- **Row 3** is false at the start of any restart whose stopping incarnation applied past the commit
+  of its last entry-writing `Ready`. Its `∀ σ` ranges over every `σ` with `StorageHolds S σ`, which
+  allows `σ.commit = S.wcommit` (`NodeApiVocab.lean:155`), and a commit-only `Ready` (a heartbeat's
+  `commitTo`, the leader's `maybeCommit`) keeps `wcommit` (`RaftState.next`) while the apply thread
+  applies through the new commit; `RestartNode.spec` leaves `S` unchanged, so the start owns
+  `raftState S` with `S.wcommit < |a0|` and refutes the premise. That is almost every restart after
+  a quiet stop. R2d'b restates it (Q31).
+- **Row 1 (`Hwpend`)** is false of every restarted run (`A₀ ≠ []`) in which the member is later
+  elected, at any term `T > t0` and at any time in the incarnation, and sends a `MsgSnap` to a lagging
+  follower (`raft.go:666,689`; diverted to `msgSnapC`, merged at `server.go:1019`). Its `n` is free
+  (`n = 0 < |a0|`, `rnRtOk γn T 0` from the leader's committed empty entry) and the token is never
+  consumed (`run`'s loop invariant keeps it), so nothing ties it to the replay window. The "replays
+  over 1 MB with a mid-replay election" runs are a small part of these. R2d'b restates it with `n`
+  tied to the batch being applied and the token consumed when the window closes; R2s removes it.
+- **Rows 2 and 4** are true of Go (row 2 after a graceful stop; after a crash the commit-only record
+  can be lost, `wal.go:1047,1064`, and the case is open) but not derivable from raft's API; R2d'b
+  derives them (row 4 with a raft API change).
+- Rows 5-8 are R2d'b's, as the table says. A first start (`a0 = []`) is unaffected, and no closed
+  theorem carries these premises.
+
+*Note (the snap-term row).* A `MsgSnap` queued at `T` by a leader that then steps down still has
+`T > t0`: it led at `T`, and leading needs `becomeCandidate` at a term above `t0` (`raft.go:902-911`,
+`r.reset(r.Term + 1)` from at least `T₀`), so `T ≥ t0 + 1`. The step-down (`becomeFollower`'s
+`reset`) does not clear `r.msgs`, which is why the bound is per message, not per role.
+
+#### R2d'a A10 item 4 / task B: DRAFT `run.wp_proofR` (2026-11-06; DRAFT, one `sorry`)
+
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/RunRestart.lean` (new; no closed theorem imports it):
+`isServerRunCR` (`isServerRunC` with `%HEr`, `Hsnap`, `Hstart` replaced by A9's `srvRunRestartR`; the
+hub is untouched, Q20), `EtcdServer.run.specR` and `EtcdServer.run.wp_proofR`, the proof generated from
+`run.wp_proofG`'s text and adapted:
+- start: `srvRunRestartR` unfolded, `srvSnapBagN s γn` built from the member-id cell and γn's bag,
+  `Hwpend` opened (`token γwp`, its □ wand), `rnLoopTok_restartOk` before `hRS`, the loop resources
+  from `applyResR_start … ⟨0, A₀⟩`;
+- the loop invariant: `applyResR C ctx ⟨0, A₀⟩ A ∗ nodeRunning … ∗ token γwp`, and `#HlbA :
+  srvRLogLb ρ.raft A` (Go's handed log committed, for the stop inside the window);
+- batch arm: `run_job_bodyR hAB … (token γwp)` (the token is the `T` frame of `winNoMergedSendR`),
+  `#Hwnm` from `Hwpend`'s wand;
+- stop arm: inside the window (`A.length < A₀.length`) `stop_splitR`, `raftNode.stop.spec` (unchanged),
+  `rnRestartOk_commit`, `stopCleanupImageR.spec` (`hClR`); past it `applyResR_past` and the frozen path;
+- **the one `sorry`: the snapshot arm** (`RunRestart.lean`, `rotate_left` after `rnApplyTok_recv`),
+  closed by task 4 (`applyAll.specSnapMR` over the ids-only `clusterImageOk_restModel`).
+
+#### R2d'a task 4: the axiom's ids form and the window receive in; `applyAll.specSnapMR` next (2026-11-06; checkpoint)
+
+**In** (branch `r2dp`):
+- `bf5e464d84`: `membership.clusterImageOk_restModel`'s members premise is ids-only (Q26 (a)). After
+  the `ccBootOk` premise: `∀ mem, (∀ k, (mem !! k).isSome = ((restModel c0 γ.raft.boot L).mem !!
+  k).isSome) → ⊢ … clusterMem c mem -∗ clusterMem c mem ∗ ⌜…⌝`. The docstring has the review's
+  bullet verbatim and cites `notes/axiom-review/clusterimage-ids.md` (copied in, README row; new
+  `notes/audit.md` row in the `etcdserver` table, since there was none). Callers
+  (`snapRecv_image`, `snapRecv_imageOn`) pass `_ (fun _ => rfl)`. No interface file covers it.
+  `etc/tcb-baseline.txt` and the collections list only the name, so they do not change.
+- `c1df9d8c71`: `srvRestRp_close`, `snapRecv_imageR`, `snapRecv_imageOnR` (`ApplyAllR.lean`,
+  section `recvR`). These are the frozen proofs over `srvRestRp E γr A r0` with
+  `hids : ∀ k, (r0.mem !! k).isSome = ((restModel … (pre ++ A)).mem !! k).isSome`. Inside the
+  window `r0 = restReplay γr rp G` and `hids` is `restReplay_memKeys` (at `A := rp.A₀`).
+
+**Next: `applyAll.specSnapMR` and its proof** (in `ApplyAllR.lean`, which now imports
+`ApplySnapshotR` and `SnapRecvOn`). The design point found while scoping it: **inside the window
+the applied index splits.**
+- `applyResR` keeps Go's index `ai = ai₀ + |G|` in `epAppliedI`, `srvSnapState` and `srvSnapOwn`.
+- It keeps the ghost index `g = ai₀ + |A₀|` in `srvAppliedOwn` and `appliedLogAt`.
+- `specSnapM` has one `ai` for all five.
+
+So `specSnapMR` = `specSnapM` with these changes:
+- binders `g` and `r0`;
+- `srvAppliedOwn γr g ∗ appliedLogAt γr g x.log`;
+- `uint.Z g = A.length` (`A` the ghost log `A₀`) and `uint.Z ai ≤ uint.Z g`;
+- `uint.Z g < uint.Z sv.Metadata'.Index'`, from `rnWinInstallAbove`'s `<` (the receive's strict
+  bound, finding 2 of items 1-2);
+- `srvRestRp E γr A r0` with `hids`.
+
+The post is `specSnapM`'s: past the window, every index is the snapshot's.
+
+The proof copies `ApplyAllSnap.wp_proofSnap` (off) and `ApplyAllSnapOn.wp_proofSnapM` (on), and in
+the copies:
+- `snapDir_take` at `g` (`hnt'` from `nt ≤ ai ≤ g < i`);
+- `snapRecv_imageR`/`snapRecv_imageOnR` at `ai := g`, `r0`, `hids`;
+- `hASnap` := `applySnapshot.wp_proof_snapMR` at Go's `ai` (its `hi` from `ai ≤ g < i`) and `r0`;
+- the `applied_jump(M)` step from `g`.
+
+The text can be generated from the frozen ones as `ApplySnapshotR`'s was. Est. 1.5-2 d.
+
+**Then the snapshot arm of `run.wp_proofR`** (`RunRestart.lean`, the one `sorry`):
+- **Past the window** (`A₀.length ≤ A.length`): `applyResR_past`, then the frozen `run_job_snapC`.
+  It needs `applyResR` back from `applyResC` past the window (the converse of `applyResR_past`;
+  write it if missing).
+- **Inside the window**: a copy `run_job_snapCR` of `run_job_snapC`/`run_job_snap`/`run_snap_jobOn`
+  (`EtcdServer__run.lean:285-720`) over `applyResR` and `specSnapMR`. It opens
+  `srvRestR … rp A` to `srvRestRp … A₀ (restReplay …)`. Its post is `applyResR … ⟨0, A₀⟩ A'` past
+  the window (`|A₀| < snapIdx = |A'|`), with Go's `A <+: A₀ <+: A'`.
+- The `rnWinInstallAbove` bound reaches the arm through `#Hrok` (`rnRestartOk`'s restart disjunct;
+  at the first start `a0 = []`, so there is no window).
+- Est. 1-1.5 d.
+
+#### R2d'a task 4, steps 1-3: the snapshot arm in; one pure `sorry` left, a gap in the payload (2026-11-06; DRAFT)
+
+**In** (branch `r2dp`, three commits, no frozen file touched, no new axiom):
+- `ApplyAllSnapR.lean` (new): `applyAll.specSnapMR` and `wp_proofSnapMR`, sorry-free. The frozen
+  `specSnapM` with the applied index split: binders `g` (ghost) and `r0` (the rest's image); `ai ≤ g`,
+  `g < snapIdx`, `uint.Z g = |A|`, `ciEff ≤ g`, `hids` (the image's members have the model's ids);
+  `srvAppliedOwn γr g ∗ appliedLogAt γr g x.log`, `srvRestRp E γr A r0`. Go's `ai` stays in
+  `epAppliedI`, `srvSnapState`, `srvSnapOwn`. The post is `specSnapM`'s. The proof is generated from
+  `ApplyAllSnap.wp_proofSnap` (off) and `ApplyAllSnapOn.wp_proofSnapM` (on) by text replacements
+  (`snapDir_take` at `g`, `snapRecv_imageR`/`snapRecv_imageOnR` at `g`/`r0`/`hids`,
+  `applySnapshot.specSnapMR` at Go's `ai` and `r0`, `applied_jump(M)` from `g`; on, the cluster's
+  `E.lg = false` read off the lease mode instead of `srvRest_revocable`). After c9's threadTok fix
+  lands, regenerate it the same way from the new frozen text (the replacements are listed in the file's
+  header; the generator was a throwaway script).
+- `RunSnapR.lean` (new): `run_job_snapCR`, sorry-free, one proof over the component `K` (rows through
+  `isServerM_C`/`srvApplyKVM_C`/`kvRunM_split`, token rights `acTok_mono`, the start chain
+  `isServerC_ch0`), inside the window and past it: `srvRestR_img` puts the rest at an image of the ghost
+  log with the model's ids (inside, `restReplay` of `A₀`; past, the model). Pre: `applyResR K C rp A`,
+  Go's handed log committed (`srvRLogLb ρ.raft A`, the loop's `#HlbA`), and `hwin : |ghostOf rp A| <
+  |A'|`. Post: `applyResR K C rp A'` (Go past the window).
+- `RunRestart.lean`: the snapshot arm (the frozen arm's text over `run_job_snapCR`, `Hwpend`'s token
+  in the saved prop), `run.wp_proofR` takes `hAS : applyAll.specSnapMR`.
+
+**The one `sorry` left: `hwin`'s in-window case, the pure fact `|A₀| < |A'|`** (`RunRestart.lean`,
+the snapshot arm, `have hab : A₀.length < A'.length := sorry`). **A gap, not closable in the R-files.**
+A8's bound (`rnWinInstallAbove`) needs `nodeDriver γ.nl … st` at a snapshot `Ready`; the raft loop
+holds that (`NodeBridge`'s `Advance`, and `raftNode__start.lean`'s `Ready`-snapshot branch, where
+`rnBusySP`'s `Hpend`/`Hbcv` give the driver and `#Hrok`), but the payload it sends on `applyc`,
+`rnApSnap` (`InvRaftNode.lean:1936`), carries no fact about `γ.a0`, so the apply thread
+(`rnApplyTok_recv`'s snapshot disjunct) cannot learn it; the checkpoint's "through `#Hrok`" does not
+work (the apply thread has no `nodeDriver`). Not a new premise: A8 is true at the producer. Fix
+(recommended): `rnApSnap`'s pure gains `⌜γ.a0 = [] ∨ γ.a0.length < (γ.pre ++ A').length⌝`, proved in
+`raftNode__start.lean` at the `rnApSnap` send from `rnRestartOk` (`rnCfgAt`'s `#Hrok`, first case
+`a0 = []`) and `rnWinInstallAbove` on the busy driver (as `NodeBridge.lean:570-578` does, with
+`hlenA`); `rnApplyTok_recv` passes it through; `newRaftNode.lean`'s unfold and `rnApP_rtOk` unchanged
+in substance. Files: `InvRaftNode.lean`, `raftNode__start.lean`, `InvRaftLoop.lean` (frozen raft-node
+texts, beyond the R-files: stopped here, for 82/the user). Est. 0.5 d. Then the arm's `sorry` is
+`Hab'.resolve_left` with `Ha0`.
+
+**Checks:** targeted builds of the three files; `#print axioms`: `run_job_snapCR` and
+`wp_proofSnapMR` have no `sorryAx`; `run.wp_proofR` has the one above. Full build: clean (13400
+jobs). `etc/tcb-report.py --check`: matches the baseline (817 axioms, 4 sorries).
+
+**c9's threadTok fix (begin-tok), after its merge:** the call sites to thread, kept at the frozen
+proofs' structure: `ApplyAllSnapR.lean` `wp_apply (hCM …)` (off, ~l. 594; on, ~l. 1076) and
+`mergedCreate_window … hSnap …` (l. 587, 1069; unchanged signature, but `backend.Snapshot.spec`'s);
+`ApplySnapshotR.lean`'s `applySnapshot_walk … hOSB …` (l. 424, 515: OpenSnapshotBackend's
+`ThreadBoundLe` instance, inside the walk). `RunSnapR.lean` calls none. Simplest: regenerate
+`ApplyAllSnapR.lean` from the merged frozen files with the header's replacements.
+
+**The final hub edit, as seen from the finished `run.wp_proofR`** (not applied; after c9's merge):
+- `isServerRunC`'s `%HEr`, `Hsnap`, `Hstart` → `"HRr" ∷ srvRunRestartR C s γ ci b E ρ γr Er γn ai₀
+  at₀ c₀ x₀ ρ.wait` (A9's `∃ A₀`, `StartR.lean:127`); its producers (`isServerRunC`'s builders in
+  `AuthCompRows.lean`/`RunOn`/`StartOn`/`start`) give it at a first start by `srvRunRestartR_first`.
+- `srvSnapBagN`: **no hub supply needed**: `run.wp_proofR` builds it from `isServerRunC`'s `#Hmid`
+  and `#Hrn` (`isRaftNode`'s `#Hmsc`/`#Hmsci`).
+- `Hwpend`: already in `isServerRunC`/`isServerBuiltC` and passed through (item 5); `run.wp_proofR`
+  opens it (`token γwp` and its wand). Nothing more.
+- `run.wp_proof` := `run.wp_proofR`, its new hypotheses linked: `applyAll.specBatchR`
+  (`wp_proofBatchR`), `applyAll.specSnapMR` (`wp_proofSnapMR`, whose callees are `wp_proofSnapM`'s
+  minus `hSnapOff`, with `applySnapshot.specSnapMR` from `wp_proof_snapMR`), `stopCleanupImageR.spec`
+  (`stop_cleanup_imageR`); `etc/gen-link.py --server`'s config gains them.
+
+#### R2d'a task 4, the `hab` fix (82's go): stopped before any edit, the producer has no busy driver at the send (2026-11-06)
+
+The approved fix proves `⌜γ.a0 = [] ∨ γ.a0.length < (γ.pre ++ A').length⌝` at the `rnApSnap` send in
+`raftNode__start.lean` from `#Hrok` and `rnWinInstallAbove` on the busy driver. **At the send there is
+no busy driver.** Go sends the payload on `applyc` before `SaveSnap`/`Save` (`raft.go:256-342`), and
+the proof follows: the send is at `raftNode__start.lean:~541`, while the driver is still
+`rnBusySP`'s pending `rnPendEnter … (rnBusyStS γ A' es p' l S' r')` (`readyEnter`: a wand that yields
+`nodeDriver … st'` only when fired, `InvNode.lean:664`); *enter* fires at `rn_enterS` (`:635`), after
+the `Save` (it moves `raftState` to the saved `S'`), so it cannot be fired earlier. `NodeBridge`'s use
+is at `Advance`, long after. So `rnWinInstallAbove` (stated on `nodeDriver`) cannot be applied where
+the payload is built, within the three files.
+
+**Option (recommended, needs a go):** restate A8 the way Q29 (d)'s `rnSnapTermAbove` is (82 confirmed
+that deviation): anchored at the receive's `readyRest` at the idle driver state `rnDrvSt γ L p S r`,
+`□ ∀ rd L p S r ce es h Lo ms ss, readyRest … (rnDrvSt γ L p S r) ce es h Lo ms ss -∗ readyRest … ∗
+⌜∀ l, Lo = some l → γ.a0.length < uint.nat l.snap.Metadata'.Index'⌝`. `rn_ready_recv`
+(`InvRaftNode.lean:~1160`, beside `rnRestartOk_snapTerm`) applies it and records the pure in its
+snapshot disjunct (`rnBusySP`'s pure, or a new conjunct), from which `raftNode__start.lean` proves
+`rnApSnap`'s new pure; `NodeBridge.lean:~570-578` reads the bound from `rnBusyS`'s pure instead of
+`nodeDriver`. Same Go fact (the snapshot a `Ready` carries is the one the driver installs). Files:
+`InvRaftNode.lean` (A8's text, `rnBusySP`/`rnBusyS` pure, `rn_ready_recv`, `rnApSnap`),
+`raftNode__start.lean`, `InvRaftLoop.lean`, `NodeBridge.lean`, `RunRestart.lean`. Est. 0.5-1 d.
+Nothing edited; `run.wp_proofR` keeps its one `sorry` (`hab`).
+
+#### R2d'a task 4, `hab` closed: A8 at the receive's `readyRest` (82's hub decision; 2026-11-06; DRAFT)
+
+- **A8 restated** (`InvRaftNode.lean`, `rnWinInstallAbove`, moved after `rnDrvSt`), as `rnSnapTermAbove`
+  is: old `□ ∀ (st : NodeDriverState) (es : List EntryM) (l : SnapLoan), ⌜st.handling = some (es, some
+  l)⌝ -∗ nodeDriver γ.nl γ.node.cl srvClusterN st -∗ nodeDriver γ.nl γ.node.cl srvClusterN st ∗
+  ⌜γ.a0.length < uint.nat l.snap.Metadata'.Index'⌝` → new `□ ∀ (rd : Ready) (L : List EntryModel) (p :
+  HardStateM) (S : RaftState) (r : StateType) (ce : List LogEntry) (es : List EntryM) (h : HardStateM)
+  (Lo : Option SnapLoan) (ms : List QMsg) (ss : Option (w64 × StateType)), readyRest γ.node.cl
+  srvClusterN γ.id rd (rnDrvSt γ L p S r) ce es h Lo ms ss -∗ readyRest … ∗ ⌜∀ l, Lo = some l →
+  γ.a0.length < uint.nat l.snap.Metadata'.Index'⌝`. Docstring kept (Go argument, R2d'b's obligation),
+  with why the anchor moved. Still five restart-only premises (the table's A8 row updated).
+- `rnRestartOk_winAbove` (new, beside `rnRestartOk_snapTerm`); `rn_ready_recv` applies it and records
+  `γ.a0 = [] ∨ |γ.a0| < snapIdx` as a sixth conjunct of `rnBusySP`'s (and `rnBusyS`'s) pure.
+- `rnApSnap`'s pure gains `∧ (γ.a0 = [] ∨ γ.a0.length < (γ.pre ++ A').length)` (proved at the send in
+  `raftNode__start.lean` from `rnBusySP`'s conjunct and `hlenA`).
+- `InvRaftLoop.lean`: `rnApplyTok_recv` keeps its statement (its frozen consumer
+  `EtcdServer__run.lean` destructures four conjuncts; it drops the new one); `rnApplyTok_recvR` (new,
+  its copy) passes the conjunct through; `run.wp_proofR` uses it.
+- `NodeBridge.lean`: the `Advance`-after-snapshot reads the bound from `rnBusyS`'s pure (no more
+  `nodeDriver` use of A8).
+- `RunRestart.lean`: `hab` closed (`a0 = []` contradicts the window; else `Ha0`, `hp0`).
+- Checks: full build clean (13400 jobs); `etc/tcb-report.py --check` matches the baseline (817 axioms,
+  4 sorries); `#print axioms EtcdServer.run.wp_proofR`: no `sorryAx`. `run.wp_proofR` is sorry-free.
+
+#### R2d'b items from the R2d'a review (2026-11-06; the review `/shared/tmp/r2dpa-review.md`)
+
+Deferred to R2d'b (approved by etcd-grove-82; not done at R2d'a):
+- **Review 4: `newRaftNode.spec`'s post pins `γ.a0 = [] ∧ γ.t0 = W64 0`**
+  (`Spec/go_etcd_io/etcd/server/v3/etcdserver/newRaftNode.lean:60`), though Go's `newRaftNode(cfg)` is
+  the same call for `StartNode` and `RestartNode` (`bootstrap.go:578-599`) and its proof does not
+  depend on them. Take `a0` and `t0` as caller parameters (as `pre`, `key`, `wal`), post `γ.a0 = a0 ∧
+  γ.t0 = t0`; `bootstrappedRaft.newRaftNode.spec` and `NodeStartSpec` (first-start only) instantiate
+  them at `[]` and `0` (and `NodeStartSpec` then exposes `t0 = 0` too). Otherwise B1's `RestartNode`
+  path changes this frozen post again.
+- **Review 5: the restart data sits in the configuration view.** `rnCfgAt γ L := rnView γ L ∗
+  rnRestartOk γ` (`InvRaftNode.lean`), though `rnRestartOk` is persistent, fixed per incarnation and not
+  about the configuration. That placement is why `raftNode.stop.spec` could not prove `|a0| ≤
+  σ.commit` (Q27 (i): its precondition, `isRaftNode` …, cannot reach the loop's view) and why `run`
+  reads it out of the loop token (`rnLoopTok_restartOk`). Move it into `isRaftNode Er γn` (or
+  `rnBuilt`); `rnCfgAt` becomes `rnView`, and `rnLoopTok_restartOk` and `rnCfgAt_back_true`'s extra
+  premise go.
+- **`isServerBuiltC` keeps the first-start `%HEr` and `Hsnap`** (`AuthCompRows.lean:139-142`: `γn.a0 =
+  []`; `:167`: `rnSnapOnce`), while `isServerRunCR` has their restart forms (`srvRunRestartR`). R2d'b's
+  restart `start` needs their restart forms in `isServerBuiltC` too (and in the hubs above it).
+
+Also from the review, done at R2d'a (this pass): F2 (`srvRestartAtR`'s auth state existential,
+`∃ sa₀`), F3 (`Hwpend` stated as false of some Go runs, to be removed by R2s, not discharged), F6
+(`rnWinInstallAbove`'s Go argument from raft's commit at restart), F8 (the replay's receipt per entry
+in `applyEntryNormal.spec`'s docstring), F9 (the axiom's pins); the probe is in
+`notes/restart-probe/`. Not done: F1 (the swap of the restart specs, its own task) and F7 (`Hwpend`
+in the first-start hubs, with A9's swap).
+
+#### Swap batch 1: applyConfChange (2026-11-06; review F1, the swap the user approved)
+
+`EtcdServer.applyConfChange.spec` (`Spec/.../EtcdServer__applyConfChange.lean`) is one triple with a
+`v3` case, as `applyEntryNormal.spec` (Q23 (a)): its pre and post are `if v3 then (the old `v3 = true`
+case) else (the replay, `specRep`'s)`. The old `v3 = false` case was vacuous (`dv ≠ none` and `dv =
+some n → v3 = true`). The pure premises: `ccApplyOkM`, `E.RO`'s shape, the peer, `RemoveNode` and size
+premises are common (the replay's peer and size premises were the old ones under `ccApplyOkM`'s
+`m.type = 0`); the `v3`-only ones (`E.γ.kb = some d`, `d.γB = γB`, `dv ≠ none`, the view's
+`srvCCPre`, the two buckets present) are one premise `v3 = true → …`. The replay's `E.RO` is at `d.be`
+(was a free `be`). At `v3 = true` the old statement's meaning is unchanged (its `v3 = true ∧` dropped,
+`ccRest v3`/`ccPeersAfter v3` at `true`, the nested `if v3` of `Pre`/`Post ∨ Adv` gone).
+- Proof: `wp_proof`'s `v3 = false` branch is `wp_proofRep`'s proof, moved in. `specRep`
+  (`ApplyRDefs.lean`), `wp_proofRep` and `ApplyConfChangeR.lean` are deleted.
+- Callers: `apply.wp_proofOff`/`On` and `ApplyR`/`ApplyROn` specialize `hACC` to `true` at the top
+  (the premise arguments regrouped; the frame frames `storeWT` and the hook rows flat); `ApplyR`/
+  `ApplyROn` derive the replay case `hACCR` from `hACC` at `false` (no `hACCR` hypothesis).
+- `Link.lean` unchanged (callee list the same). No exported result restates `applyConfChange.spec`.
+
+#### Swap batch 2: the leaves `rnApplyTok_recv`, `applySnapshot.specSnapM`, `applyAll.specSnapM` (2026-11-06; review F1, the swap the user approved)
+
+Step 0, begin-tok's `threadTok` ported into the restart copies (`8da52a8cfd`): `ApplyAllR.lean`'s
+merged-send branch and `ApplyAllSnapR.lean`'s two `wp_apply (hCM …)` sites lend `srvGoRes`'s token as
+the frozen proofs do; `mergedCreate_window`'s statement did not change; `ApplySnapshotR.lean` needed
+nothing (`SnapApplyWalk`'s `ThreadBoundLe` instance is inside the walk).
+
+The swap (`040ea7f5e0`), each R statement under the frozen name, the frozen proof deleted:
+- **`rnApplyTok_recv`** (`InvRaftLoop.lean`) is `rnApplyTok_recvR`'s statement: the snapshot case's
+  pure gains `∧ (γ.a0 = [] ∨ γ.a0.length < (γ.pre ++ A').length)` (A8's bound, from `rnApSnap`).
+  `rnApplyTok_recvR` is deleted; the frozen `EtcdServer__run.lean` drops the conjunct (`-`).
+- **`applySnapshot.specSnapM`** (Spec): binder `r0 : apply.RestM` after `A`, `srvRestRp E γr A r0`
+  in place of `srvRest E γr A`. Its proof `wp_proof_snapM` is the R proof (`srvRestRp_open`, the walk
+  at `r0`). `ApplySnapshotR.lean` is deleted; `srvRestRp_open`, `srvRestRp_false` (from it) and
+  `srvRestRp_close` (from `ApplyAllR.lean`) are in `ApplyRDefs.lean`.
+- **`applyAll.specSnapM`** (Spec): binders `g`, `r0`; `ai ≤ g`, `g < snapIdx` (was `ai < snapIdx`),
+  `uint.Z g = |A|`, `ciEff ≤ g`, `hids`; `srvAppliedOwn γr g ∗ appliedLogAt γr g x.log`,
+  `srvRestRp E γr A r0`; post unchanged. Its proof `wp_proofSnapM` (one proof, both modes) is the R
+  proof, in `ApplyAllSnap.lean` with `kvAppliedOn_sa` and `snapRecv_imageR`/`snapRecv_imageOnR`
+  (moved from `ApplyAllSnapOn.lean`/`ApplyAllR.lean`). The frozen `wp_proofSnap` (off),
+  `wp_proofSnapM` (on, over `hSnapOff`), `ApplyAllSnapOn.lean` and `ApplyAllSnapR.lean` are deleted.
+  `applyAll.wp_proof` is `⟨wp_proofBatch …, wp_proofSnapM hASnap.2 …⟩`.
+- **Kept**: `applyAll.specSnap` and `specSnap_of_M` (`ModeSpecs.lean`): the frozen `run_job_snap`
+  (off) takes `specSnap`; they go with the run swap (pair 9).
+- **First-start callers** (`specSnap_of_M`, `run_snap_jobOn`): `g := ai`, `r0 :=` the model of `A`,
+  `hids := fun _ => rfl`, `Int.le_refl`, then `rw [srvRestRp_model]` (no new law needed).
+- `run_job_snapCR`, `run.wp_proofR` take `applyAll.specSnapM` (renamed); `RunSnapR` imports `ApplyAllR`.
+- `Link.lean`: `etc/gen-link.py --server`'s output is identical to the committed file (the callee lists
+  did not change). `Results.lean`: `server_apply_all_snap_m`'s text (`EtcdServer.applyAll.specSnapM`,
+  `EtcdServer.wp_applyAll.2`) unchanged, its meaning the restart form (strictly stronger; docstring
+  updated); its import `ApplyAllSnapOn` → `ApplyAllSnap`. No closed theorem's statement changed.
+- `etc/mode-allow.txt`: the deleted `ApplyAllSnapOn.lean`'s line removed. `etc/mode-check.py --check`
+  fails before and after this batch (the R drafts' `isServerM true` in `ApplyROn`/`ApplyEntriesROn`,
+  297 → 295 against the baseline's 291); not this batch's to fix, for the batch-chain swap (pairs 5-6).
+
+Next: the batch chain (pairs 5-7), the merged `stopCleanupImage` (pair 8), the run swap with the hub
+edit (pair 9), as in `/shared/tmp/r2dpa-swap-estimate.md`.
+
+#### Swap batch 3: the batch chain `apply`, `applyEntries`, `applyAll.specBatch` (2026-11-06; review F1, the swap the user approved)
+
+Each restart statement under the frozen name, its frozen proof replaced by the R proof:
+- **`apply.spec`** (Spec) is `apply.specAt (· ≠ .any)`, `specAt P` the one mode-generic restart text
+  (the old `ApplyR`'s `specROff`/`ApplyROn`'s `specROn` merged over `E.authOn`, no literal mode):
+  binders `rp : RestartPt`, `g : w64` added; premise `P E.authMode` (was `E.authMode ≠ .any`);
+  `dvOk … (g + 1) ms` (was `f0`); pre `epCsAt (ghostOf rp A)`, `srvAppliedOwn γr g`,
+  `appliedLogAt γr g x.log`, `kvAppliedM … (ghostOf rp A)`, `srvRestR E γr rp A`,
+  `kvBatchR γr (ciEff γ st.k) (f0 - 1) rp A ms`, `⌜uint.Z g = ai0 + |ghostOf rp A|⌝`, the view and
+  `srvApRes` at the ghost log; post `∃ … g'`, `uint.Z g' = ai0 + |ghostOf rp (A ++ ms)|`. Proof
+  (`Proof/…/EtcdServer__apply.lean`): `wp_proofOff : specAt (· = .off)` (ApplyR's body, after
+  `isServerM_false`/`srvLessorNilM_false`/`srvApplyKVM_false`/`kvAppliedM_false`/`logShapeM_false`),
+  `wp_proofOn : specAt (∃ γa, · = .on γa)` (ApplyROn's, the `_true` laws), `wp_proof` by cases on
+  `E.authMode`. **Why stronger**: `rp := RestartPt.first`, `g := f0 - 1` gives the old text:
+  `ghostOf_first` (ghost log = `A`), `srvRestR_first` (`srvRest`), `kvBatchR_first` (from `kvBatch`
+  and `srvRLogLb γr.raft []`, given `c0 ≤ ai0 ≤ ciEff`, a first start's `ai0 = 0`), the ghost
+  index's equation `uint.Z (f0 - 1) = ai0 + |A|` (`kvBatch`'s), `dvOk` at `(f0 - 1) + 1 = f0`; after,
+  `g'` is the last index (`srvIdxOk_batch_last`).
+- **`apply.specOff`/`specOn`, `spec_off`/`spec_on`** (`ModeSpecs.lean`): deleted, no caller left.
+  **Why stronger**: they are `specAt (· = .off)`/`specAt (∃ γa, · = .on γa)` at `rp := first`,
+  `g := f0 - 1` as above, with the mode laws (`isServerM_false`, `srvLessorNilM_false/_true`,
+  `srvApplyKVM_false/_true`, `kvAppliedM_false/_true`, `logShapeM_false/_true`) rewriting the rows.
+- **`applyEntries.specBatch`** (Spec) is `applyEntries.specBatchAt (· ≠ .any)`, the old
+  `specBatchRAt` with `srvRunH` written as its match and `⌜uint.Z g = ai0 + |ghostOf rp A|⌝`;
+  `specNil`, `spec` unchanged. One proof `wp_proofBatch (hApply : apply.spec)` (ApplyEntriesROn's
+  body, generic); the frozen `wp_proofOff/On/Batch` and `ModeSpecs`' `applyEntries.specOff/specOn`
+  deleted. **Why stronger**: `rp := first`, `g := ai` (Go's applied index), as for `apply`.
+- **`applyAll.specBatch`** (Spec) is RunR's `specBatchR`: binders `rp g T`, pre
+  `winNoMergedSendR … T (rp.A₀.drop |A ++ ce|) rt ∗ T ∗ srvSnapBagN s γn`, the ghost rows at
+  `ghostOf rp`, `kvBatchR`, `srvRestR`; post `T` and `g'`. Proof: ApplyAllR's `wp_proofBatchR`,
+  renamed `wp_proofBatch`. **Why stronger**: `rp := first`, `g := ai`, `T := True`:
+  `winNoMergedSendR_nil` (`[].drop _ = []`), `kvBatchR_first`, `srvSnapBagN` built by the frozen
+  `run.wp_proofG` from the hub's `#Hmid` and `isRaftNode`'s rows (as `RunRestart` does), so `run`'s
+  statement is unchanged.
+- **Exported results**, texts unchanged, meaning the restart form (docstrings updated):
+  `applied_log_at` (`apply.spec`: instance `rp := first`, `g := f0 - 1`), `applyEntries_model`
+  (`applyEntries.spec`, whose `specBatch` instance is `rp := first`, `g := ai`), `applyAll_model`
+  (`applyAll.spec`, `specBatch` at `rp := first`, `g := ai`, `T := True`).
+- **New law** `kvBatchR_first` (`ApplyRDefs.lean`): `kvBatch γr c ai G ms ∗ srvRLogLb γr.raft [] ⊢
+  kvBatchR γr c ai RestartPt.first G ms` under `c0 ≤ ai0 ≤ c`. Moved to `ApplyRDefs.lean` from RunR:
+  `winNoMergedSendR` (+ `_nil`), `srvSnapBagN`, `ghostOf_length`.
+- **Deleted**: `ApplyR.lean` (1102 lines), `ApplyROn.lean` (1100), `ApplyEntriesR.lean` (302),
+  `ApplyEntriesROn.lean` (304), `ApplyAllR.lean` (670); `ModeSpecs.lean` −282+; net 4522 − 1108 lines.
+- **Callers**: the frozen `EtcdServer__run.lean` (`run_job_body` at `RestartPt.first`, `True`,
+  `Hwnm`/`HkbR`/`Hbagn` built; `run.wp_proofG` builds `#Hbagn`), `RunR` (`run_job_bodyR` over
+  `applyAll.specBatch`; its spec section gone), `RunRestart` (`hAB : applyAll.specBatch`,
+  `run_job_bodyR_match` over `run_job_bodyR.match_1`), `RunSnapR` (import), `SDRun` (match lemmas
+  renamed). `Link.lean`: `etc/gen-link.py --server`'s output identical to the committed file.
+- **Checks**: full build ok; `tcb-report --check` 817 axioms, 4 sorries (baseline); api, import-all ok.
+  `etc/mode-check.py --check` FAILS: 290 against 289 after lowering lit-mode 146→145 and twin
+  17→16 (this batch's decrease); match-mode 70 > 69, from `applyEntryNormal.spec`'s two
+  `if E.authOn` (Q23(a), lines 83/99), not this batch's. `etc/bounds-check.py --check` FAILS on this
+  branch before this batch too: stock +1 (`StopR.lean`'s `List.replicate (64 + 64)`, A10 item 3),
+  spec-receipt +1 (`applyEntryNormal.spec`'s `receiptBound`, Q23(a)).
+
+Next: the merged `stopCleanupImage` (pair 8), the run swap with the hub edit (pair 9); before landing,
+the match-mode and the two bounds rows above.
+
+#### Swap batch 4: the merged `stopCleanupImage` (pair 8), and batch 3's three gate rows (2026-11-07; review F1, the swap the user approved)
+
+The gate rows first (the coordinator's go):
+- **`applyEntryNormal.spec`** (Spec), a statement-only rewrite with the same meaning: the auth-on-only
+  rows go outside the `if v3`, once, shared by both cases. Old: each case had
+  `(if E.authOn then ⧗ 1 else True)` and `(E.authOn = true → receiptBound GF ≤ 2 ^ 48)` (the
+  replay's `(… → receiptBound … ∧ x.chain = ch0)`); new: `isPkgInit ∗ (if E.authOn then ⧗ 1 else
+  True) ∗ ⌜E.authOn = true → receiptBound GF ≤ 2 ^ 48⌝ ∗ (if v3 then … else …)`, the replay keeping
+  `(E.authOn = true → x.chain = ch0)`. Same meaning: `P ∗ (if v3 then X ∗ R else Y ∗ R) ⊣⊢ P ∗ R ∗
+  (if v3 then X else Y)`, and an implication into a conjunction splits. Old and new side by side:
+  `/shared/tmp/aen_spec_batch4_oldnew.md`. Only the adapters changed: `applyEntryNormal.wp_proof`
+  (from `specOff`/`specOn`) and `ModeSpecs`' `spec_off`/`spec_on` (their patterns); `specOff`/`specOn`,
+  the mode proofs and `apply`'s callers unchanged.
+- **`StopR.lean`'s stock** (`List.replicate (64 + 64)`): gone with its spec (below); the merged spec
+  names the stop's owner predicate `srvStopReaders C.E` (`InvRestart.lean`, the abbrev of that
+  literal), not the count.
+
+The merge, the restart statement under the frozen name:
+- **`stopCleanupImage.spec`** (`StopShutdown.lean`): binder `rp : RestartPt` after `C`; pre
+  `applyResStopR K C rp A` (was `applyResStop K C A`: the ghost rows at `ghostOf rp A`, the ghost
+  index `g`, `srvRestR`, the backend's log `rp.A₀` committed), `srvStopReaders C.E` (was its literal),
+  the records' commit `(C.rn.pre ++ ghostOf rp A).length ≤ σ.commit` (was `(C.rn.pre ++ A)`); post
+  unchanged (the image at the ghost log). No window premise and no `srvRLogLb C.ρ.raft A` (the R
+  spec's): inside the window the ghost log and `A₀` are both committed (`kvRunM_lbR`, `applyResStopR`'s
+  lb) and of one length, so equal. **Why stronger**: at `rp := RestartPt.first` it is the old text
+  (`stopCleanupImage.spec_first : spec → specFirst`, `specFirst` the old text verbatim: `ghostOf_first`,
+  and the new law `applyResStop_first : applyResStop K C A ⊢ applyResStopR K C RestartPt.first A`
+  given `C.ai₀ = 0`, the backend's `[]` committed from the KV's log); and it is the R spec without its
+  window premise and `srvRLogLb A`.
+- **Proof** `stop_cleanup_image`: StopR's, one tail over `G := ghostOf rp A` (`generalize`): the rest
+  buckets at an image `rG` whose buckets are the model's at `G` (inside the window `restReplay`,
+  `restReplay_bk`; past it the model, `srvRestRp_model`). The frozen proof and `StopR`'s
+  `stopCleanupImageR.spec`/`stop_cleanup_imageR` deleted.
+- **Moved** to `StopShutdown.lean`: `applyResStopR`, `restReplay_bk`, `restLeasesWith_bk_congr` (from
+  `StopR`), `kvRunM_lbR` (from `StartR`). `StopR.lean` keeps `stop_splitR` (it needs `applyResR`,
+  `RunR`).
+- **Callers**: the frozen `run.wp_proofG` (`EtcdServer__run.lean`, one line) takes
+  `stopCleanupImage.spec_first hCl` until the run swap; `run.wp_proofR` (`RunRestart`): the stop arm is
+  one arm (`stop_splitR`, `raftNode.stop.spec`, the commit bound from `rnRestartOk_commit` and
+  `raftNode.stop`'s post, `hCl` at `⟨0, A₀⟩`), the past-the-window arm (`applyResR_past`,
+  `stop_split`, the frozen spec) and `hClR` gone. `raftNode.stop.spec` unchanged.
+- No exported result restates `stopCleanupImage.spec`; `Link.lean` unchanged (callee lists the same).
+- **Checks**: full build ok (13398 jobs); `tcb-report --check` 817 axioms, 4 sorries (baseline), the
+  53 collections unchanged; `etc/mode-check.py --check` ok, 289 against 289 (match-mode 70 → 69);
+  `etc/bounds-check.py --check` ok, 389 against 389 (spec-receipt 10 → 9, stock 36 → 35 in
+  etcdserver); api-check (every `etc/api/*.txt`), `import-all-check`, `gen-interface --check`
+  (etcdstart, backend) ok; `etc/gen-link.py --server`'s output identical to `Link.lean`.
+- **Deleted**: `StopR.lean`'s `stopCleanupImageR.spec`, `stop_cleanup_imageR` (and the frozen
+  `stop_cleanup_image`'s first-start proof, replaced); `StopR.lean` 457 → 50 lines; no file deleted.
+
+Next: the run swap with the hub edit (pair 9, batch 5): `run.wp_proof := ` the R proof, then
+`specFirst`/`spec_first`, `applyResStop`, `stop_split`, `applyResR_past` lose their last users.
+
+#### Swap batch 5: the run swap with the hub edit (pair 9), the last swap batch of R2d'a (2026-11-07; review F1, the swap the user approved; the hub edit approved by etcd-grove-82)
+
+The hub edit (old text: `/shared/tmp/r2dpa-batch5-hub-old.lean`; old vs new and the producers:
+`/shared/tmp/r2dpa-batch5-hub-diff.md`):
+- **`isServerRunC`** (`AuthCompRows.lean`): `"HRr" ∷ srvRunRestartR C s γ ci b E ρ γr Er γn ai₀ at₀ c₀
+  x₀ ρ.wait` replaces `%HEr` (with `γn.a0 = []`), `Hsnap` (`rnSnapOnce`) and `Hstart` (`applyStartC`).
+  `srvRunRestartR`, `rnSnapOnceR`, `srvRestartAtR` and their `_first` laws moved verbatim from
+  `StartR.lean` into `AuthCompRows.lean`. `run.spec`'s text is unchanged; its meaning is the restart
+  form (`σ.b = 0`), a first start its instance `A₀ = []`.
+- **Derived forms**: `isServerRun_C`, `isServerRunOn_C` (`isServerRun(On) ∗ srvStop.slot ⊣⊢
+  isServerRunC …`) deleted: no caller, and only `⊢` holds now. `isServerRun`/`isServerRunOn` unchanged
+  (now unreferenced). `isServerBuiltC` and the hubs above it unchanged (the R2d'b item above).
+- **Producer**: `start.wp_proof` builds `HRr` by `srvRunRestartR_first` from `isServerBuiltC`'s
+  `%HEr`, `Hsnap` and its `applyStartC`; `start.spec`, `Start`, `NewServer` unchanged.
+
+The run swap:
+- **`run.wp_proofG`** is `RunRestart.lean`'s `run.wp_proofR` (over `run.spec` and `isServerRunC`);
+  `run.wp_proof` passes `hAA.1`/`hAA.2` (`applyAll.specBatch`/`specSnapM`), callee list unchanged.
+- **Moved into `EtcdServer__run.lean`** (the drafts deleted): `applyResR` (RunR), `run_job_bodyR` →
+  `run_job_body`, `run_job_snapCR` → `run_job_snapC`, `srvRestR_img`, `isServerC_ch0` (RunSnapR),
+  `srvRestR_start`, `applyResR_start` (StartR), `stop_splitR` → `stop_split` (StopR), and of ViewR only
+  `rnApR_dvG`/`rnApGive_dvG`, proved directly over `rnView` (no `rnCfgAtR`/`rnApRR`/`rnApGiveR`) and
+  named `rnApR_dv`/`rnApGive_dv`, replacing `InvRaftLoop.lean`'s first-start forms of those names
+  (premise `γ.a0 = []`, `γ.pre = γs.pre`; their only caller was the frozen proof).
+- **Deleted, first-start only**: the frozen `run_job_body`, `run_job_snap`, `run_snap_jobOn`,
+  `run_job_snapC`, `run.wp_proofG` (first start); `applyAll.specSnap` (Spec; its prose moved into
+  `specSnapM`'s docstring), `applyAll.specSnap_of_M` (ModeSpecs); `stopCleanupImage.specFirst`,
+  `stopCleanupImage.spec_first`, `applyResStop`, `applyResStop_first`, the first-start `stop_split`
+  (StopShutdown); `applyResR_past`, `applyResR_first` (RunR). Of ViewR, unused: `rnCfgAtR(_first)`,
+  `rnApRR(_first, _dv)`, `rnApGiveR(_first, _dv)`, `ghostOf_replay`, `rnCfgR_replay`,
+  `rnCfgAtR_back_true/_false/_normal`, `srvCfgView_normal(1)`, `ghostOf_batch` (ViewR's copy),
+  `rnView_R`, `rnApR_R`, `rnApGive_R`, `rnCfg_replayG`; RunRestart's `isServerRunCR`, `run.specR`,
+  `run_job_bodyR_match` (now `run_job_body_match`).
+- **Files deleted**: `RunR.lean`, `RunRestart.lean`, `RunSnapR.lean`, `StartR.lean`, `ViewR.lean`,
+  `StopR.lean`. `ApplyRDefs.lean` stays (the frozen specs' vocabulary: `srvRestR`, `kvBatchR`,
+  `winNoMergedSendR`, `srvSnapBagN`).
+- **Docstrings**: `run.spec`'s states the scope (`σ.b = 0`), the five (eight since the Freeze fixes, 2026-11-07) restart-only premises (`Hwpend`
+  false of some default-flag Go runs, R2s removes it) and the vacuity (`pbEnc_ok`, the grpc message
+  models).
+- `applyResC` (`AuthCompRows.lean`) and its bridges are now unreferenced by `run`; kept (hub file).
+- **Checks**: full build ok (13392 jobs); `tcb-report --check` 817 axioms, 4 sorries (baseline), the 53
+  collections unchanged; `etc/mode-check.py --check` ok (289/289), `etc/bounds-check.py --check` ok
+  (389/389); api-check (every `etc/api/*.txt`), `import-all-check`, `gen-interface --check`
+  (etcdstart, backend, raft, bbolt), `gen-init --check`, `issues-status --check` ok;
+  `etc/gen-link.py --server`'s output identical to `Link.lean`; the 49 files declaring a `_safe`/
+  `_adequate` theorem unchanged against `lean`.
+- **Left**: no DRAFT duplicate of `run` remains. R2d'b's items above (`isServerBuiltC`'s restart forms,
+  `newRaftNode.spec`'s `a0`/`t0`, `rnRestartOk`'s placement) and R2s (`Hwpend`).
+
+#### R2d'a Freeze fixes (2026-11-07; the user's "freeze after fixes", via etcd-grove-82)
+
+The Freeze review (82's workflow `wf_8b64621f-2ff`, `/shared/tmp/r2dpa-freeze-review.md`) recommended
+"Freeze after fixes"; the user approved. Applied on `r2dp` (no statement change but the deletion in 7;
+no axiom, no `sorry`, no baseline change):
+1. **Eight restart-only premises** (were five): the table "R2d'a restart-only premises" gains (6)
+   `ai₀ + |A₀| + 1 < 2^64` and (7) `A₀`'s entries `EntryNormal`/`EntryConfChange` (both in
+   `srvRunRestartR`; producer R2d'b; 7's Go evidence: etcd proposes only v1 `ConfChange`s,
+   `configure`'s `ProposeConfChange`, and Go panics on any other type) and (8) `srvRLogLb γ.srv γ.a0`
+   (`rnRestartOk`'s restart disjunct; producer R2d'b, from the WAL's committed prefix); row 1 now
+   reads "false of some default-flag Go runs (replays over 1 MB with a mid-replay election); R2s
+   removes it (not R2d'b)"; row 5's text says it is not row 8's fact. `run.spec`'s, `srvRunRestartR`'s
+   and `rnRestartOk`'s docstrings list the eight.
+2-3, 6. The package (`/shared/tmp/r2dpa-freeze-package.md`) gives `run.wp_proofG`'s and
+   `applyAll.wp_proofSnapM`'s changed hypotheses, `applyEntryNormal.specOff`/`specOn`, and the internal
+   statement changes, old → new verbatim; §7 pastes the axiom's premise. The ids axiom's docstring
+   names `673da07c8` as the pin of every Go line it cites (all rechecked there; docstring only).
+4. `apply.spec`'s and `applyEntries.specBatch`'s docstrings (and `Results.lean`'s three) no longer say
+   "strictly stronger": stronger at every caller with `ai0 ≤ ciEff` (every existing caller).
+5. The six `Hwpend` hub comments (`isServerRunC` and the five built hubs): "false of some
+   default-flag Go runs (replays over 1 MB with a mid-replay election); R2s removes it".
+7. `applyResC`, `applyResC_off`, `applyResC_on` deleted (`AuthCompRows.lean`; unused; old text
+   `/shared/tmp/r2dpa-applyResC-old.lean`).
+8. `notes/STATUS.md`: the section "R2d'a: a restart at σ.b = 0 (frozen pending the tag)".
+
+Checks: targeted build of the 12 changed modules and their importers through `Link`/`Results` (52
+modules built, ok); `etc/mode-check.py --check`, `etc/bounds-check.py --check`,
+`etc/issues-status.py --check` ok. Not run (the coordinator's): the lean merge, `etc/gates.sh`, the
+full build.

@@ -3,7 +3,8 @@ Package initialization of `go_etcd_io.etcd.server.v3.storage.backend`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
 Its fact (`backendInit`, `Base.lean`): the commit's histograms `rebalanceSec`,
-`spillSec`, `writeSec`, `commitSec` hold `Histogram`s whose `Observe` returns, and `boltOpenOptions` (`boltOpenOptionsOk`). Its initializer
+`spillSec`, `writeSec`, `commitSec` hold `Histogram`s whose `Observe` returns, and `boltOpenOptions` (`boltOpenOptionsOk`), and `defaultBatchInterval`,
+`defaultBatchLimit`, `InitialMmapSize` their translated initializers' constants. Its initializer
 allocates and sets its translated constants, initializes its imports and runs its variables'
 untranslated initializers; the trust-boundary axioms `<X>_init` state the four the fact reads
 (`metrics.go`: `prometheus.NewHistogram(...)`), `opaqueInitsOk` the others.
@@ -171,6 +172,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HspillSec
   ipersist HwriteSec
   ipersist HboltOpenOptions
+  ipersist HdefaultBatchInterval
+  ipersist HdefaultBatchLimit
+  ipersist HInitialMmapSize
   iframe Hown
   imodintro
   isplitr
@@ -180,6 +184,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   imodintro
   unfold backendInit EtcdGrove.backend.boltOpenOptionsOk
   iframe #
+  rw [show (W64 100000000 : w64) = W64 100 * W64 1000000 from by decide]
+  iexact HdefaultBatchInterval
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

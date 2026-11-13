@@ -7,6 +7,7 @@ transaction's `storeTxnWrite.Rev`). Lean-first
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.TxnSteps
 
 @[expose] public section
 
@@ -28,11 +29,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 read transaction's revision, a write transaction's committed log's last). -/
 abbrev mvcc.metricsTxnWrite.Rev.spec : Prop :=
   ∀ (trace : Loc) (mw s : Loc) (γ : mvcc.StoreNames) (kind : mvcc.TxnKind) (crev : Int)
-    (Z : IProp GF),
+    (Z Tr : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isTxn mw s γ trace kind crev Z }}
+      mvcc.isTxnT mw s γ trace kind crev Z Tr }}
     (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"Rev")) (Val #()))
-  {{ RET #(kind.beginRev : w64); mvcc.isTxn mw s γ trace kind crev Z }}
+  {{ RET #(kind.beginRev : w64); mvcc.isTxnT mw s γ trace kind crev Z Tr }}
 
 end spec
 

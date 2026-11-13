@@ -4,6 +4,7 @@ Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.context.ReqKeys
 public import Spec.go_etcd_io.etcd.client.v3.lessor__KeepAlive
 public import Spec.go_etcd_io.etcd.client.v3.lessor__keepAliveCtxCloser
 public import Spec.go_etcd_io.etcd.client.v3.lessor__recvKeepAliveLoop
@@ -102,10 +103,21 @@ theorem lessor.KeepAlive.wp_proof
     (try wp_auto)
     wp_apply (wp_WithValue ctx ⟨go_etcd_io.etcd.client.v3.keepAliveCtxKey.ty,
         #(zero_val go_etcd_io.etcd.client.v3.keepAliveCtxKey)⟩ _) $$ []
-      as %c ⟨%Hcnn, -, -, %c', %vs, %Hc, -, -, #Hic, -, -⟩
+      as %c ⟨%Hcnn, -, -, %c', %vs, %Hc, -, -, #Hic, -, -, #HVk⟩
     · iframe #; ipureintro; right; right; right; right; rfl
     subst Hc
     ihave #Hctx' := Hic $$ %cd Hctx
+    -- (sweep repairs 1, B2b) the stored context's keep-alive key answers `&ctx`, a `*context.Context`
+    ihave #Hka' : context.keepAliveOk c' $$ []
+    · iunfold context.keepAliveOk
+      imodintro
+      iintro %Φ' HΦ'
+      iapply HVk $$ %keepAliveKeyAny %keepAliveRes
+      · ipureintro; left; rfl
+      · ipureintro; intro _; right; exact ⟨_, rfl⟩
+      · iintro %hne; exact absurd rfl hne
+      · itrivial
+      · iexact HΦ'
     (try wp_auto)
     -- register the pair `(ch, c')` at `&ctx` (the variable is not written again)
     imod lessorReg_register ⊤ γr ctx_ptr ch (GoInterface.ok c') $$ [$Hreg $ctx] with ⟨Hreg, #Hkr, #ctx⟩

@@ -35,9 +35,9 @@ variable [sem : go.Semantics]
 /-- **With auth off, the store's exact triples are the lease checks' at any lower bound**: the
 lower-bound verdicts' mode-off bodies are the exact ones' (auth disabled, every check passing), and
 `IsAdminPermitted`'s pass gives `authApplyErrIs` (`authApplyErrIs_nil`). -/
-theorem isAuthStoreLeaseLb_off (st : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : val)
-    (RD RW : IProp GF) (n : Nat) :
-    apply.isAuthStore (GF := GF) st γ P f RD .off RW ⊢ isAuthStoreLeaseLb st RD .off n := by
+theorem isAuthStoreLeaseLb_off (st : GoInterface) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc)
+    (BT : mvcc.KBReal → IProp GF) (RD RW : IProp GF) (n : Nat) :
+    apply.isAuthStore (GF := GF) st Pk f BT RD .off RW ⊢ isAuthStoreLeaseLb st RD .off n := by
   iintro #H
   iunfold apply.isAuthStore at H
   icases H with ⟨%ai, %Hai, #HPut, #HRng, -, #HAdm, -, #HEn, #HRev, -⟩
@@ -105,7 +105,7 @@ theorem srvAuthLeaseLb_of_server (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
   rcases hM with hoff | ⟨γa, hon⟩
   · unfold isServerReadM srvReadFieldsAtM srvAuthLeaseLb
     rw [hoff]
-    iintro ⟨⟨%v, ⟨-, -, -, -, -, -, -, -, #Ha, #Has, -⟩⟩, -⟩
+    iintro ⟨⟨%v, ⟨-, -, -, -, -, -, -, #Ha, #Has, -⟩⟩, -⟩
     iexists v.auth
     iframe Ha
     iintro !> %n -

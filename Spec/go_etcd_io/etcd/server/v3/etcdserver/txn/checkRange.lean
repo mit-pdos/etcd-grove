@@ -4,11 +4,12 @@ Lean-first; see `InvRange.lean`, `RangeModel.lean`.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InvRange
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApiVocab
 
 @[expose] public section
 
 set_option linter.unusedSectionVars false
+set_option linter.unusedVariables false
 
 noncomputable section
 
@@ -17,6 +18,7 @@ namespace EtcdGrove
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3.etcdserver.txn
   go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v3.storage.mvcc
+open mvcc.api (MvccState MTxn MvccReachable MvccName MvccStorage mvccN mvccLeases)
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -25,18 +27,19 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
-/-- `checkRange(rv, req)` on a read transaction (the `mvcc.ReadView` whose dynamic type is
-`*metricsTxnWrite`, of the committed log `log` at revision `rev`; its first revision is `-1`):
-`checkRangeErr`. -/
+local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn
+
+/-- `checkRange(rv, req)` on a read transaction at `σ`.
+
+(Strict M1, 2026-11-05: restated over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean`
+drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`. With `⌜txn.Reach σ⌝` added, decided by
+the coordinator, 2026-11-05: `FirstRev`'s `W64 σ.crev` is `σ.crev` only for a reachable state.) -/
 abbrev txn.checkRange.spec : Prop :=
-  ∀ (trace : Loc) (mw s : Loc) (γ : mvcc.StoreNames) (log : mvcc.Log) (rev : w64) (req : Loc) (o : OpFull)
-    (crev : Int),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn ∗
-      mvcc.isTxnRead mw s γ trace log rev crev ∗ txn.rangeRequestIs req o }}
-    (App (App (Val (@! txn.checkRange))
-      (Val #(interface.mkOk (go.GoType.PointerType metricsTxnWrite.ty) #mw : GoInterface)))
-      (Val #req))
-  {{ (err : GoInterface), RET #err; mvcc.isTxnRead mw s γ trace log rev crev ∗ txn.checkRangeErr rev crev o err }}
+  ∀ (t : GoInterface) (γ : MvccName) (trace : Loc) (σ : MvccState) (req : Loc) (o : OpFull),
+  {{ pkgInit ∗ mvcc.api.mvccTxn t γ trace (.read σ) ∗ ⌜txn.Reach σ⌝ ∗ txn.rangeRequestIs req o }}
+    (App (App (Val (@! txn.checkRange)) (Val #t)) (Val #req))
+  {{ (err : GoInterface), RET #err; mvcc.api.mvccTxn t γ trace (.read σ) ∗
+      txn.checkRangeErr (W64 (σ.rev : Int)) σ.crev o err }}
 
 end spec
 

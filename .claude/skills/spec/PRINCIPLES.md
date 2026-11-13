@@ -15,6 +15,14 @@ These judgments are for specs that cross a package boundary: what another packag
 internal helper's spec, used only inside its own package, may simply mirror its code.
 (`notes/spec-first-plan.md`, Review)
 
+**A smaller API is not a narrower scope.** A redesigned API keeps a spec for every function that
+already has a proved spec (a linked result: the package's `Link.lean`), and for every feature those
+specs cover (watch filters), whether or not today's clients call it. Minimizing the vocabulary is a
+choice among specs of the same functions; dropping a verified function to save a predicate makes
+verified code unverified. Functions with no proof today may be left out, marked as such. (The mvcc
+API's round 10, 2026-11-02: it left out `NewStore`, `Restore`, the store's views and watch filters,
+all verified; the user: "Do not leave out any methods that we have verified previously.")
+
 ## Hard rules
 
 A spec that breaks one of these is wrong, whatever else it does well, and is not done.
@@ -51,6 +59,14 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   (an `isContext` or a quiet context), approved, while its one caller passes
   `wait.ContextForChannel(stopCh)`, which is neither (K4, `notes/decisions.md`, "A context outside
   Perennial's model", 2026-11-04).
+- **An unsound candidate is replaced by a sound one, not dropped**: every function in the scope
+  keeps a spec. When a candidate turns out false (it lets a client reach a path that breaks
+  another spec's guarantee), find what is true of the function: often a precondition that names
+  the case the code handles (a mode of the object, a token only the safe path produces), not the
+  removal of the function from the API, which leaves its callers with nothing. (The mvcc candidate
+  API, round 2, 2026-11-01: `store.Write`'s candidate let a watched store commit without notifying
+  its watchers, and was removed; the user: "If one possible spec was unsound, that just means we
+  need a better spec.")
 - **Local**: a spec is about its function's footprint, the state that function touches, and nothing
   else, so that a change elsewhere (a new feature, a conjunct added to some other component's
   predicate) leaves the spec and every proof that uses it untouched. Take the footprint, not an
@@ -90,6 +106,7 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   check Go's stack and memory there too (a recursion per level of a deep message). (`irr-depth.md`) (`watcher.Watch` with auth on, G2, 2026-10-30: `examples/watch-auth.md`.)
 - **A law over a free mode (or any index) holds at every value of it**: check it at each literal against the variance of every resource it mentions. An atomic update's grant is the committer's to supply (contravariant: `kvAu1G G ⊢ kvAu1G G'` needs `G' ⊢ G`), so a gated grant `⌜on = true⌝ → X` can be added at any mode, removed only at `false`, and identified with `X` only at `true`. A law that holds at one mode only is stated at that literal, where the mode gate counts it, not over a free `on` with an `(h : on = b)` premise. (The auth component's stage 4, round 3: three "any `on`" laws false at one mode; `examples/auth-component.md`, stage 4.) The premise is not a way to lower the gate's count: the count is the gate's measure of what still depends on one mode, and the literal is that dependence (stage 5: the 5-2 laws took `(hon : on = false)`, the count fell below the plan's, and 5-4 had to restate them; `examples/auth-component.md`, stage 5).
 - **A bridge between two statements is stated from its consumer's goal**, not from the direction the author has in mind: write down the goal of the proof that applies it, and check the law it rests on for variance (`raftKV_mono s A A' : raftKV s A' ⊢ raftKV s A` is contravariant in the answers). (The auth component's stage 5, round 4: `raftKV_srvKVAnsM_false` stated old → merged where its consumer needed merged → old; `examples/auth-component.md`, stage 5.)
+- **A premise stated with a □∀ over states must be checked against the reachable states it does not pin down**, not against the state its author had in mind: for each universally quantified binder, ask which values a run can give it, and try the worst one the guard and the relations allow. A free `σ` under a relation ranges over everything the relation admits, not the disk's one image: `rnWalCommitAbove`'s `□ ∀ S σ, raftState S -∗ ⌜StorageHolds S σ⌝ -∗ ⌜|a0| ≤ σ.commit⌝` was meant as "the restored WAL's commit covers the applied log", but `StorageHolds` admits `σ.commit = S.wcommit`, which a commit-only `Ready` leaves below the applied index, so the premise is false at the start of almost every restart. A free `n` under a window guard is not tied to the window: `srvWinPend`'s `∀ rt n, ⌜n < |a0| ∧ t0 < rt⌝ -∗ …` was meant as "while the replay is handed out", but `n = 0` meets the guard at any time, and its token, meant to mark the window, is never consumed, so it forbids every later snapshot at a new term. Tie such a binder to the state it is about (the restored records, the batch being applied) and consume a window's token when the window closes. A probe of the intended reading is no evidence for the text: both premises passed probes that measured the story. (R2d'a's restart premises, 2026-11-07: `notes/decisions.md`, "R2d'a's disclosure corrected (2026-11-07)".)
 
 ## Asking the user
 
@@ -107,6 +124,21 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
 - **No disjunction of alternative specs** (a precondition "trivial result, or the caller's atomic
   update"): keep the stronger, the other is a layer. A case split on the input is not one.
   (`range.md`, critique 2)
+- **Two incomparable specs often have a common generalization: look for it before choosing.** When
+  two candidates differ in which share of a resource they take (an owned half that can still change,
+  a frozen persistent fraction), one spec over the share, given back unchanged, has both as
+  instances and is stronger than each. Put the options to the user as statements side by side,
+  checked, with which is stronger by the layering test. (mvcc's `Restore` and the new backend's
+  post-lock hook, `plHookAt B'.γB dq f`, 2026-11-03: the user chose it over the owned-`nil` loan and
+  a frozen-hook contract.)
+- **No disjunction a proof must handle twice**: a condition a guarantee holds under is one
+  condition, not "this case or that case" each of which the implementation's proof, or a client's,
+  would establish by a near-copy of the other's argument. Find the single condition the code's
+  behavior turns on (the mvcc watch guarantee under compaction: "every revision from the watcher's
+  first up to the compaction revision changes each key at most once", which is vacuous below the
+  compaction revision, in place of "the compaction revision is below the watcher's first, or no
+  revision changes a key twice"). An assumption is acceptable when it does not split the proof.
+  (The mvcc API, round 11, the user, 2026-11-03.)
 - **No vacuous guarantee.** For each disjunction, ask whether its weak side is ever false: one that
   always holds makes the statement say nothing (`put.md`, critique 1). A parameter that appears only
   in a precondition, chosen by the caller per call, constrains nothing (`pilot-review-3.md`). If every
@@ -114,6 +146,17 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   nothing (`pilot-review-1.md`).
 - **The postcondition says what the caller inspects**: not a constant when the caller tests the error
   or destructures the result. (`pilot-review-1.md`)
+- **Do not overspecialize a spec to its users.** State what is true and generally useful of the
+  function and its object, not the shape one client happens to consume today; a client's need is a
+  test of completeness, not the spec's design. (The user, 2026-11-03.)
+- **Keep a tool's temporary limitation as local as possible.** An assumption that exists only
+  because a dependency's spec is too weak today (Perennial's sort needs at most `2 ^ 62` elements:
+  a size bound no Go program needs, to be removed by improving Perennial) goes where the limited
+  spec is used, so that removing it later touches one place: not a law about the object's state that
+  every client threads. Without such a reason, a general law may well be the better spec. (The mvcc
+  API, round 15, 2026-11-03: the sort's size facts at the `Range` contracts, `stateOk`, not a size
+  law on the store's state; the user: "we're going to ultimately get rid of the explicit size limit
+  assumptions ... so I want those assumptions as local as possible".)
 - **Facts that can be combined**: a fact at an unknown point (a clock reading) that is not related to
   what the caller already holds can never be chained with another. (`pilot-review-1.md`)
 - **Know the margin**: where the postcondition is weaker than what the code guarantees, say what the
@@ -142,8 +185,27 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   fractions, helper definitions that hide part of the statement, internal records or fields,
   internal namespaces in masks, or the implementation's own logs and certificates. (`put.md`,
   critique 2; `notes/spec-first-plan.md`, Review)
+- **An API is stated over the abstractions it builds on, not over its dependencies' implementations**:
+  where a package assumes a contract of a dependency (mvcc of its storage: `isKeyBackendG`), its
+  API's statements take that contract, never the concrete dependency's predicates or configuration
+  (`backend.newPostKP γB P …`, `bridgeParams P`); so the package works over any implementation
+  meeting the contract, and the client that chooses the implementation discharges the contract for
+  it (the server proves mvcc's storage contract for etcd's backend through the bridge, from the
+  `bridgeParams d.P` it holds). A premise about the concrete dependency appearing in the API is the
+  symptom. (The mvcc API's open law, the user, 2026-11-06: "mvcc should respect the abstractions it
+  builds on.")
 - **The vocabulary is part of the spec**: improving a spec includes replacing the predicates it is
   written in, not only rearranging them. (`put.md`, critique 2)
+- **Canonical specs are per (concrete type, method); an interface value gets a bundle.** The
+  canonicity that matters is a plain mapping from a concrete type and a method name (a promoted
+  method included: Go puts it in the type's method set) to its one spec, in its spec file. A client
+  holding an interface value whose dynamic type it does not track gets a separate predicate for it
+  that bundles its interface's method triples, as Perennial's `sync.isLocker`
+  (`Perennial/Proof/sync/Base.lean`), proved once from the concrete specs (as `Mutex_is_Locker`).
+  Stating the API's specs on interface calls instead breaks the mapping; stating them on concrete
+  methods and making clients unwrap fields (dispatch laws) costs glue in every client. One way to
+  keep the text single: write each interface method's contract once at a receiver `(ty, v)` and make
+  each concrete spec its instance. (The mvcc API, round 11, the user, 2026-11-03.)
 - **A client does not unfold the spec's definitions, or any other module's**: each unfold is a
   missing law of the owning module, even when both modules are in one package (a module of the
   cache unfolding another's predicate, `InvCache` unfolding `InvEtcd`'s `etcdQuiet` or `InvDemux`'s
@@ -318,6 +380,14 @@ renders it), or in its callers' proofs. Each is a cost; lower is better among sp
 hard rules. (`notes/spec-first-plan.md`,
 Review)
 
+- **Abstractions**: the opaque predicates (and the resources) an API introduces, counted over the
+  whole API, not per spec. The goal is that future proofs over the API succeed quickly: each
+  abstraction is something every client proof must learn, thread and combine. Prefer one
+  abstraction that subsumes several (the client-owned `mvccState` replaced the log's
+  certificates, the revision tokens and the reader's floor), and a field of an existing state or a
+  resource clients already hold (a thread token) over a new predicate. Judge each candidate
+  abstraction by two questions: is the API strong enough for its reasonable users without it, and
+  can an existing one carry it? (The user, 2026-11-02, on the mvcc candidate API's decisions.)
 - **Coupling**: the other packages' predicates and definitions the statement mentions. Each is a
   place where a change in that package forces this spec, and its callers' proofs, to change: in this
   repository's history the main cause of spec revisions.

@@ -42,11 +42,12 @@ theorem Main.wp_proof
       pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_NewNop as %lg %Hlg
+  wp_apply wp_NewNop as %lg #Hlgz
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hlgz
   (try wp_auto)
   wp_apply (wp_run N id₁ id₂ id₃ ps ctxs boot lg) $$ [Hstart Htok] as %r -
   · iframe; iframe #
-    ipureintro; exact ⟨Hbf, Hlg, Hp₂, Hp₃, Hp₄, Hp₅⟩
+    ipureintro; exact ⟨Hbf, Hp₂, Hp₃, Hp₄, Hp₅⟩
   (try wp_auto)
   iapply HΦ; itrivial
 

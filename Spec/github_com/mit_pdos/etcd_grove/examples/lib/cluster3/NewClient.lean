@@ -37,8 +37,10 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Ass
 abbrev NewClient.spec : Prop :=
   ∀ (cfg : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (lg : Loc)
     (V : client.WEnv GF),
-  cfgOk cfg → threadBound GF ≤ 2 ^ 31 → lg ≠ null →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.cluster3 }}
+  cfgOk cfg → threadBound GF ≤ 2 ^ 31 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.cluster3 ∗
+      -- (sweep repairs 1, R1-2) the logger a zap logger (until then `lg ≠ null`)
+      zapLoggerOk lg }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.cluster3.NewClient)) (Val #cfg))
       (Val #lg))
   {{ (cl : Loc) (err : GoInterface), RET (PairV #cl #err);

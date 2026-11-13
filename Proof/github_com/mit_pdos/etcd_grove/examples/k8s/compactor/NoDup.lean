@@ -9,7 +9,7 @@ compacting store), as `compactwatch`'s `noDupKeys_of_rounds`: the invariant's re
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Aus
-public import Proof.go_etcd_io.etcd.client.v3.WatchFire
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.OnceUpTo
 
 @[expose] public section
 
@@ -30,28 +30,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- See the file header. -/
-theorem noDupKeys_of_one [go_etcd_io.raft.v3.Assumptions] [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+theorem srvOnce_of_one [go_etcd_io.raft.v3.Assumptions] [go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+    [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (V : client.WEnv GF) (γ : KVNames) (hst : γ.st = V.kst) :
-    client.srvKVFacts V ∗ kvReadAu γ (fun σ => iprop(⌜OneChange σ⌝)) ⊢
-      mvcc.noDupKeys V.R.E.γ := by
-  iintro ⟨#Hkf, #Hau⟩
-  iunfold client.srvKVFacts at Hkf
-  icases Hkf with ⟨%on, %γr, #Hinvs, #H00, %Hkr, -⟩
-  iunfold mvcc.noDupKeys
-  iintro !> %log #Hev
-  iunfold mvcc.evLog at Hev
-  icases Hev with ⟨#Hs, #Hc⟩
-  ihave #Hs' := Hs
-  iunfold mvcc.idxSealed at Hs'
-  icases Hs' with ⟨-, %Hwf, -⟩
-  iunfold kvReadAu at Hau
-  iunfold kvAu at Hau
-  imod (srvKVCoreM_fire on V.R.E γr γ (by rw [hst, Hkr.1]) Hkr.2.1 log
-      (fun σ => iprop(⌜OneChange σ⌝))) $$ Hinvs H00 Hs Hc Hau with ⟨%C, #HQ, %Hp⟩
-  icases HQ with %Hov
-  imodintro
-  ipureintro
-  exact oneChangePerKey_of_one log C Hov Hp Hwf.1
+    client.srvKVFacts V ∗ kvReadAu γ (fun σ => iprop(⌜OneChange σ⌝)) ⊢ v3rpc.srvOnce V.W :=
+  etcdstart.srvOnce_of_plan V γ hst (fun ch => ∀ cs ∈ ch, cs.length ≤ 1) (fun _ h cs hcs => by
+    have := h cs hcs
+    match cs, this with
+    | [], _ => simp
+    | [_], _ => simp)
 
 end proof
 

@@ -28,7 +28,7 @@ trivial extension (`common/TrivialExt.lean`; the proofs are generic over the ext
   time-receipt bounds; it also gives `n + 7 ≤ backend.wbInit`, the backend's write-back budget
   `bootstrap`'s contract takes, since 2026-11-01 derived instead of assumed);
 * the semantics: `go.Semantics`, the package assumptions (`leasekv`'s, the cache's), and the
-  model classes the proofs take (`Float64ToInt64Semantics`, `DialWithBalancerBody`,
+  model classes the proofs take (`DialWithBalancerBody`,
   `log.NewModel`; the method-set facts, `v3rpc.ServerMethodSets`, `errors.AsTarget` of
   `rpctypes.EtcdError`, `ErrorStringLeaf`, `RpctypesEtcdErrorMethods`, are theorems of the
   package assumptions), and `ContextReadErrs` (`context.Canceled`'s and `DeadlineExceeded`'s method
@@ -118,7 +118,7 @@ thread is stuck; no thread has ended in a panic. -/
 theorem etcd_lease_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.lease.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC leasekvGF, ContextReadErrs (GF := leasekvGF) (hG := heapAtLkv hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC leasekvGF, ContextErrsClient (GF := leasekvGF) (hG := heapAtLkv hG lctx))
@@ -129,8 +129,10 @@ theorem etcd_lease_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hlp : leasePeersOk)
     (HNs : prometheus.namesUnclaimed leasekvProgram leasekvNames)
     (HAs : addrsUnclaimed leasekvProgram [go!"127.0.0.1:23936"])
-    -- (2026-11-03, the WAL's API, change 6) the member's WAL directory holds no WAL at start
-    (HDs : walDirsAbsent leasekvProgram [config.walDirOf go!"leasekv.etcd" go!""])
+    -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
+    (HDs : dataDirsAbsent leasekvProgram [go!"leasekv.etcd"])
+    -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
+    (HEnv : verifyEnvOff leasekvProgram)
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC leasekvGF,
       ⊢ etcd_lease.premises (GF := leasekvGF) (hG := heapAtLkv hG lctx) n id ctxs boot)
@@ -142,10 +144,10 @@ theorem etcd_lease_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  refine etcd_adequate_members (GF := leasekvGF) github_com.mit_pdos.etcd_grove.examples.etcd.lease.initialize'
+  refine etcd_adequate_members (GF := leasekvGF) (hAsLit := by decide) (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.lease.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.lease.Main) #())
-    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23936"] (by decide) [config.walDirOf go!"leasekv.etcd" go!""] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
-    -- (hub step 7) the one member's start bundle: its client address, its WAL directory
+    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23936"] (by decide) [go!"leasekv.etcd"] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
+    -- (hub step 7) the one member's start bundle: its client address, its data directory
     [(go!"leasekv", ⟨none, some go!"127.0.0.1:23936"⟩)] [] (List.Perm.refl _) (List.Perm.refl _) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
     n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC leasekvGF := heapAtLkv hG lctx

@@ -44,19 +44,17 @@ def StreamTy.str : StreamTy → GoString
   | .msgAppV2 => go!"msgappv2"
   | .message => go!"message"
 
-/-- A message's encoding is below `2^50` bytes (see `swMsg`). -/
-def swMsgBound (ml : Loc) : Prop := (pbEnc raftpb.Message.ty ml).length < 2 ^ 50
-
 /-- **A message for the stream writer of type `ty` from `lid` to `pid`** (`msgc`'s): `pipeMsg`'s
 (read-only, marshalable, for `pid`, not a snapshot, without responses, with its bundle), and for the
 msgappv2 stream an `MsgApp` of raft's shape from `lid` to `pid` (`V2EncOk`: `peer.pick` sends only
-those there); (stage 5b) its encoding below `2^50` bytes (`swMsgBound`: the writer sums the sizes
-of up to 2049 messages into an `int` it adds to a counter, which must not be negative; for stage 6
-to establish, or to replace by a physical bound). -/
+those there); (stage 5b) its wire content, of size below `2^47` bytes (`swMsgBound`, restated over
+the content in stage A of the per-type models: the writer sizes and marshals the content, and sums
+the sizes of up to 2049 messages into an `int` it adds to a counter, which must not be negative). -/
 def swMsg (Rh : RaftHttp GF) (ty : StreamTy) (lid pid : w64) (ml : Loc) : IProp GF :=
-  iprop(∃ st : MsgSt, msgOwn ml DFrac.discard st ∗ □ Rh.γn.N.P st ∗ Rh.γn.N.O st ∗
+  iprop(∃ st : MsgSt, msgOwn ml DFrac.discard st ∗ swMsgBound ml st ∗ □ Rh.γn.N.P st ∗
+    Rh.γn.N.O st ∗
     ⌜MsgMarshals st ∧ st.msg.To' = pid ∧ st.msg.Type' ≠ MsgSnap ∧ st.resps = [] ∧
-      (ty = .msgAppV2 → V2EncOk lid pid st) ∧ swMsgBound ml⌝)
+      (ty = .msgAppV2 → V2EncOk lid pid st)⌝)
 
 /-- **The right to close `cl` once** (exclusive), giving it `Q`: its `Close()` returns some error. -/
 def closeRight (cl : GoInterface) (Q : IProp GF) : IProp GF :=

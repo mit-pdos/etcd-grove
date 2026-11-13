@@ -78,6 +78,12 @@ content. -/
 def MsgWireOk (st : MsgSt) (bs : List w8) : Prop :=
   MsgMarshals st ∧ msgDecode bs = some (wireOf st)
 
+/-- **`bs` decodes to the message `st`'s wire content** (what any successful decode is: the
+registered `pbMessageM`'s `wire`; Go decodes `responses`, field 14, so a decoded message need not
+marshal: `MsgWireOk` adds that it does). -/
+def MsgDecOk (st : MsgSt) (bs : List w8) : Prop :=
+  msgDecode bs = some (wireOf st)
+
 /-- **A `*raftpb.Message` at the bytes** (a trusted wire model, see the file header): read-only
 for good, a frozen message (`msgOwn` at `□`); decoded, an owned message with its `Entries`
 capacity (what `netRecv` hands `Process`); blank, a zero struct. -/

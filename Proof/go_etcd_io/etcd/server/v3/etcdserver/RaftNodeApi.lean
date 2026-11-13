@@ -32,7 +32,7 @@ variable [go_gctx : GoGlobalContext]
 @[no_expose] def raftNode.bootCfg (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop :=
   0 < sint.Z (cfg.TickMs' * W64 1000000)
 
-/-- `raftNode.bootCfg` at the examples' clock (`TickMs = 100`, `examples/lib/etcdstart/etcdstart.go`). -/
+/-- `raftNode.bootCfg` at the examples' clock (`TickMs = 100`, `examples/lib/etcdstart/common.go`). -/
 theorem raftNode.bootCfg_of (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
     (htk : cfg.TickMs' = W64 100) : raftNode.bootCfg cfg := by
   unfold raftNode.bootCfg; rw [htk]; decide

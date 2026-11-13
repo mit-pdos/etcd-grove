@@ -360,6 +360,15 @@ noncomputable def ConfChangesFromString [GooseExts] [GoGlobalContext] : GoString
 noncomputable def ConfChangesToString [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.ConfChangesToString"
 
+noncomputable def confStatesEqual [GooseExts] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/raft/v3/raftpb.confStatesEqual"
+
+noncomputable def boolOf [GooseExts] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/raft/v3/raftpb.boolOf"
+
+noncomputable def idsEqual [GooseExts] [GoGlobalContext] : GoString :=
+  go!"go.etcd.io/raft/v3/raftpb.idsEqual"
+
 noncomputable def file_raft_proto_rawDescGZIP [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.file_raft_proto_rawDescGZIP"
 
@@ -881,9 +890,9 @@ noncomputable def ConfState.Equivalent.impl [GooseExts] [GoGlobalContext] : val 
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType ConfState.ty) _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConfState.ty)))) (Var "cs1v")))
-  (Let "$a1" (App (Val (GoInstruction (Convert (go.GoType.PointerType ConfState.ty) _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConfState.ty)))) (Var "cs2v")))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.google_golang_org.protobuf.proto.Equal []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConfState.ty)))) (Var "cs1v"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConfState.ty)))) (Var "cs2v"))
+  (App (App (App (Val (GoInstruction (FuncResolve confStatesEqual []))) (Val #())) (Var "$a0")) (Var "$a1")))))
   (Let "$r0" (Let "$a0" (Val #(go!"ConfStates not equivalent after sorting:\n%+#v\n%+#v\nInputs were:\n%+#v\n%+#v"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert (go.GoType.PointerType ConfState.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConfState.ty)))) (Var "cs1v")))
   (Let "$sl1" (App (Val (GoInstruction (Convert (go.GoType.PointerType ConfState.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConfState.ty)))) (Var "cs2v")))
@@ -955,6 +964,100 @@ noncomputable def ConfState.Equivalent.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val doExecute)
   (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
+
+/-- confStatesEqual reports whether two ConfStates, their id slices sorted and
+    their AutoLeave set, hold the same configuration.
+
+    go: confstate.go:60:6 -/
+noncomputable def confStatesEqual.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "a"
+  (Lam "b"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ConfState.ty)))) (Var "b"))
+  (Let "a" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ConfState.ty)))) (Var "a"))
+  (Let "$r0" (If (If (If (If (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (StructFieldRef ConfState.ty go!"Voters"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConfState.ty)))) (Var "a"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (StructFieldRef ConfState.ty go!"Voters"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConfState.ty)))) (Var "b"))))
+  (App (App (App (Val (GoInstruction (FuncResolve idsEqual []))) (Val #())) (Var "$a0")) (Var "$a1")))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (StructFieldRef ConfState.ty go!"Learners"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConfState.ty)))) (Var "a"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (StructFieldRef ConfState.ty go!"Learners"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConfState.ty)))) (Var "b"))))
+  (App (App (App (Val (GoInstruction (FuncResolve idsEqual []))) (Val #())) (Var "$a0")) (Var "$a1")))) (Val #false)) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (StructFieldRef ConfState.ty go!"VotersOutgoing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConfState.ty)))) (Var "a"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (StructFieldRef ConfState.ty go!"VotersOutgoing"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConfState.ty)))) (Var "b"))))
+  (App (App (App (Val (GoInstruction (FuncResolve idsEqual []))) (Val #())) (Var "$a0")) (Var "$a1")))) (Val #false)) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (StructFieldRef ConfState.ty go!"LearnersNext"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConfState.ty)))) (Var "a"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (App (Val (GoInstruction (StructFieldRef ConfState.ty go!"LearnersNext"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConfState.ty)))) (Var "b"))))
+  (App (App (App (Val (GoInstruction (FuncResolve idsEqual []))) (Val #())) (Var "$a0")) (Var "$a1")))) (Val #false)) (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.bool)))) (App (Val (GoInstruction (StructFieldRef ConfState.ty go!"AutoLeave"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConfState.ty)))) (Var "a"))))
+  (App (App (Val (GoInstruction (FuncResolve boolOf []))) (Val #())) (Var "$a0"))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.bool)))) (App (Val (GoInstruction (StructFieldRef ConfState.ty go!"AutoLeave"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ConfState.ty)))) (Var "b"))))
+  (App (App (Val (GoInstruction (FuncResolve boolOf []))) (Val #())) (Var "$a0"))))) (Val #false))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
+/-- boolOf reads an optional bool field, an unset one as false.
+
+    go: confstate.go:68:6 -/
+noncomputable def boolOf.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType go.bool)))) (Var "p"))
+  (Let "$r0" (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType go.bool)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.bool)))) (Var "p")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType go.bool)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.bool)))) (Var "p"))) (Val #false))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
+
+/-- idsEqual reports whether two id slices hold the same ids in the same order
+    (a nil and an empty slice alike).
+
+    go: confstate.go:74:6 -/
+noncomputable def idsEqual.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "a"
+  (Lam "b"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.uint64)))) (Var "b"))
+  (Let "a" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.uint64)))) (Var "a"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (Var "a"))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val (slice.forRange go.uint64)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.uint64)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (Var "a")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.uint64)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (Var "b")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (Var "a"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.uint64)]))) (Val #())) (Var "$a0"))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (Var "b"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.uint64)]))) (Val #())) (Var "$a0")))))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
 /-- go: raft.pb.go:47:20 -/
 noncomputable def EntryType.Enum.impl [GooseExts] [GoGlobalContext] : val :=
@@ -3415,6 +3518,9 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   MarshalConfChange_unfold : FuncUnfold MarshalConfChange [] MarshalConfChange.impl
   ConfChangesFromString_unfold : FuncUnfold ConfChangesFromString [] ConfChangesFromString.impl
   ConfChangesToString_unfold : FuncUnfold ConfChangesToString [] ConfChangesToString.impl
+  confStatesEqual_unfold : FuncUnfold confStatesEqual [] confStatesEqual.impl
+  boolOf_unfold : FuncUnfold boolOf [] boolOf.impl
+  idsEqual_unfold : FuncUnfold idsEqual [] idsEqual.impl
   «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   EnsureConfState_unfold : FuncUnfold EnsureConfState [] EnsureConfState.impl
   EnsureSnapshotMetadata_unfold : FuncUnfold EnsureSnapshotMetadata [] EnsureSnapshotMetadata.impl
@@ -3444,6 +3550,9 @@ attribute [instance] Assumptions.ConfChangeI_instance
   Assumptions.MarshalConfChange_unfold
   Assumptions.ConfChangesFromString_unfold
   Assumptions.ConfChangesToString_unfold
+  Assumptions.confStatesEqual_unfold
+  Assumptions.boolOf_unfold
+  Assumptions.idsEqual_unfold
   Assumptions.«init.0_unfold»
   Assumptions.EnsureConfState_unfold
   Assumptions.EnsureSnapshotMetadata_unfold

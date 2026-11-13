@@ -1,0 +1,143 @@
+# mvcc's full tester (`examples/mvccfull`; all Lean-first), read by `etc/gen-link.py --mvccfull`:
+# `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`. The results are in the namespace
+# `mvccfull`. Not listed: the standard library's and goose's functions with Perennial specs the
+# proofs use directly (`sync`, `atomic`, channels, maps, slices, `strconv`). Draft (F1, 2026-11-09):
+# every proof but the glue (`notes/mvccfull-proof-plan.md`, "Draft: the glue list") is `sorry`.
+#
+# mvcc, through its API: the API's laws and specs, given as terms (`=`), from mvcc's
+# `ApiResults.lean` (an extra import of the mode), as mvccrand's.
+#
+# (mvccfull's Freeze, 2026-11-10: the side-by-side candidates `api.New.specR` and
+# `lease.NewLessor.specR`, hypotheses here until then, are now `New.spec` and `NewLessor.spec`.)
+lease_NewLessor:
+#
+# The trust boundary and the callees linked elsewhere (as mvccrand's): zap's `NewNop` (an axiom),
+# `context.TODO`, traceutil's `TODO`, the backend's (`@`, the backend's `Link.lean`), Perennial's
+# `time.Sleep` and `sort.Strings` (`=`).
+zap_NewNop:
+context_TODO:
+traceutil_TODO:
+backend_New: @
+backend__SetTxPostLockInsideApplyHook: @
+backend__Close: @
+backend__BatchTx: @
+backend__ForceCommit: @
+batchTxBuffered__LockOutsideApply: @
+batchTxBuffered__UnsafeCreateBucket: @
+batchTxBuffered__Unlock: @
+sort_StringSlice__Sort:
+#
+# the lessor (server/v3/lease), as the server's `Link.lean` links it (`etc/link-lean-first-server.txt`)
+lease_lessor__GetLease:
+lease_lessor__Lookup:
+lease_lessor__Attach:
+lease_lessor__Detach:
+lease_lessor__SetRangeDeleter:
+lease_lessor__Stop:
+heap_up:
+heap_down:
+heap_Push: heap_up
+heap_Fix: heap_down heap_up
+heap_Init_:
+schema_MustUnsafePutLease:
+schema_UnsafeDeleteLease:
+schema_MustUnsafeGetAllLeases:
+schema_UnsafeCreateLeaseBucket:
+schema_bucket__ID:
+schema_bucket__Name:
+schema_bucket__IsSafeRangeBucket:
+time_Time__IsZero:
+lease_LeaseQueue__Len:
+lease_LeaseQueue__Less:
+lease_LeaseQueue__Swap:
+lease_LeaseQueue__Push:
+lease_LeaseExpiredNotifier__RegisterOrUpdate: lease_LeaseQueue__Len lease_LeaseQueue__Less lease_LeaseQueue__Swap lease_LeaseQueue__Push heap_Fix heap_Push
+lease_LeaseExpiredNotifier__Init: lease_LeaseQueue__Len lease_LeaseQueue__Less lease_LeaseQueue__Swap lease_LeaseQueue__Push heap_Init_
+lease_NewLease:
+lease_Lease__getRemainingTTL:
+lease_Lease__refresh: lease_Lease__getRemainingTTL
+lease_Lease__forever:
+lease_Lease__persistTo: schema_MustUnsafePutLease
+lease_Lease__Keys:
+lease_Lease__Remaining: time_Time__IsZero
+lease_lessor__isPrimary:
+lease_lessor__scheduleCheckpointIfNeeded:
+lease_lessor__Grant: lease_NewLease lease_lessor__isPrimary lease_Lease__refresh lease_Lease__forever lease_Lease__persistTo lease_LeaseExpiredNotifier__RegisterOrUpdate lease_lessor__scheduleCheckpointIfNeeded
+lease_lessor__Revoke: lease_Lease__Keys sort_StringSlice__Sort schema_UnsafeDeleteLease backend__BatchTx =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_mvccBackend_isBackend_law_holds =mvcc.api.mvccApi_mvccTxn_leaseDelete_law_holds
+lease_lessor__unsafeLeases:
+lease_leasesByExpiry__Len:
+lease_leasesByExpiry__Less: lease_Lease__Remaining
+lease_leasesByExpiry__Swap:
+lease_lessor__Leases: lease_lessor__unsafeLeases =EtcdGrove.sort.«Sort».wp_anyLess lease_leasesByExpiry__Len lease_leasesByExpiry__Less lease_leasesByExpiry__Swap
+lease_lessor__initAndRecover: backend__BatchTx batchTxBuffered__LockOutsideApply batchTxBuffered__UnsafeCreateBucket schema_UnsafeCreateLeaseBucket schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket schema_MustUnsafeGetAllLeases batchTxBuffered__Unlock lease_LeaseQueue__Len lease_LeaseQueue__Less lease_LeaseQueue__Swap lease_LeaseQueue__Push heap_Init_ lease_LeaseExpiredNotifier__Init backend__ForceCommit
+lease_lessor__Recover: lease_lessor__initAndRecover
+#
+# the tester's functions (`examples/mvccfull/{mvccfull,config}.go`; F2's hash checks not yet: `hashing`
+# is, `Run`'s test that skips them)
+FilePaths: memberPath buildPath
+Main: MainConfig Run
+MainConfig: 
+Run: =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccReaders_split_law_holds normalize walkKeys zap_NewNop memberPath runner__newMember runner__startEpoch runner__startReaders runner__write runner__stopReaders hashing runner__endEpoch runner__shut runner__open runner__checkAll
+buildPath: itoa
+check: 
+checkKV: check
+checkRangeAt: check inRange checkKV =mvcc.api.mvccApi_errVars_law_holds
+choose: 
+copyState: 
+history__addComp: 
+history__appendRev: 
+history__changesAt: check
+history__snapshot: 
+hashing: 
+inBounds: check
+inRange: 
+itoa: 
+memberPath: itoa
+noCluster__Version: 
+normalize: 
+pending__del: inRange
+pending__put: 
+pick: choose
+pick+W: choose
+runner__apply: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_mvccReaders_split_law_holds traceutil_TODO runner__begin runner__checkHook check runner__writeRange pending__put runner__end runner__writeSub runner__txn lease_lessor__Grant lease_lessor__Revoke lease_lessor__Lookup runner__compact history__snapshot context_TODO checkRangeAt runner__checkLeases
+runner__begin: =mvcc.api.mvccApi_persistent_law_holds history__snapshot copyState
+runner__checkAll: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccReaders_split_law_holds history__snapshot traceutil_TODO context_TODO checkRangeAt
+runner__checkHook: check
+runner__checkLeases: history__snapshot lease_lessor__GetLease check lease_lessor__Leases lease_lessor__Lookup lease_Lease__Keys =_root_.Perennial.sort.wp_Strings
+runner__checkStoreRange: =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_errVars_law_holds check inBounds history__snapshot checkRangeAt
+runner__compact: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_errVars_law_holds =mvcc.api.mvccApi_compactChan_law_holds traceutil_TODO check history__addComp
+runner__end: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds history__snapshot check history__appendRev
+runner__endEpoch: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_errVars_law_holds =mvcc.api.mvccApi_mvccReaders_split_law_holds stream__complete =_root_.Perennial.time.wp_Sleep context_TODO runner__genKey check
+runner__gen: pick runner__genKey runner__newVal runner__genLease runner__genEnd choose runner__genSubs runner__genRange
+runner__genEnd: choose runner__genKey
+runner__genKey: choose
+runner__genLease: choose
+runner__genRange: runner__genKey runner__genEnd choose pick
+runner__genSubs: choose runner__genKey inRange runner__newVal runner__genLease runner__genEnd runner__genRange
+runner__newMember: =mvcc.api.mvccApi_mvccImage_fresh_law_holds runner__open
+runner__newVal: choose itoa
+runner__open: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_mvccW_alloc_law_holds =mvcc.api.mvccApi_etcdStorage_open_law_holds =mvcc.api.mvccApi_backendRest_open_law_holds =mvcc.api.mvccApi_mvccClosed_rest_law_holds runner__openBackend noCluster__Version lease_NewLessor =mvcc.api.mvccApi_New_wp_proof backend__SetTxPostLockInsideApplyHook check traceutil_TODO runner__checkLeases =mvcc.api.mvccApi_mvccReaders_split_law_holds lease_lessor__GetLease lease_lessor__Attach lease_lessor__Detach lease_lessor__SetRangeDeleter
+runner__openBackend: backend_New
+runner__readOne: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds pick+W inBounds traceutil_TODO history__snapshot choose runner__genRange context_TODO checkRangeAt =mvcc.api.mvccApi_NewReadOnlyTxnWrite_wp_api check runner__checkStoreRange
+runner__restart: =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccReaders_split_law_holds runner__stopReaders runner__endEpoch runner__shut runner__open runner__startEpoch runner__startReaders
+runner__restore: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_mvccW_alloc_law_holds =mvcc.api.mvccApi_etcdStorage_open_law_holds =mvcc.api.mvccApi_backendRest_open_law_holds =mvcc.api.mvccApi_mvccClosed_rest_law_holds =mvcc.api.mvccApi_mvccReaders_split_law_holds buildPath runner__newMember runner__apply runner__shut runner__openBackend lease_lessor__Recover traceutil_TODO check backend__SetTxPostLockInsideApplyHook backend__Close runner__checkLeases
+runner__shut: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccClosed_rest_law_holds =mvcc.api.mvccApi_mvccImage_stop_law_holds check lease_lessor__Stop backend__Close
+runner__startEpoch: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccReaders_split_law_holds stream__recvOne =_root_.Perennial.time.wp_Sleep stream__act
+runner__startReaders: =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccReaders_split_law_holds =_root_.Perennial.time.wp_Sleep runner__readOne
+runner__stopReaders: 
+runner__txn: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_mvccReaders_split_law_holds traceutil_TODO check history__snapshot =mvcc.api.mvccApi_NewReadOnlyTxnWrite_wp_api context_TODO checkRangeAt runner__begin runner__checkHook runner__writeRange runner__writeSub runner__end
+runner__view: history__snapshot
+runner__write: pick runner__gen runner__apply runner__restore runner__restart runner__checkLeases
+runner__writeRange: =mvcc.api.mvccApi_shapes_law runner__view context_TODO checkRangeAt
+runner__writeSub: =mvcc.api.mvccApi_shapes_law pending__put check pending__del runner__writeRange
+stream__act: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_errVars_law_holds =_root_.Perennial.EtcdGrove.mvccfull.wp_pick stream__watch stream__cancel stream__pick inBounds runner__genKey context_TODO check
+stream__cancel: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_errVars_law_holds stream__pick check
+stream__complete: stream__expect
+stream__covered: stream__expect check
+stream__expect: history__changesAt watcher__matches
+stream__pick: choose
+stream__receive: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_excl_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_wsRecv_ok_law_holds check stream__covered stream__expect checkKV choose context_TODO runner__checkStoreRange
+stream__recvOne: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_wsChan_recv_law_holds =mvcc.api.mvccApi_wsSentLb_zero_law_holds stream__receive
+stream__watch: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds =mvcc.api.mvccApi_errVars_law_holds runner__genKey runner__genEnd choose pick context_TODO check
+walkKeys: 
+watcher__matches: inRange

@@ -1,16 +1,15 @@
 /-
-Proof of the spec of the same name. Lean-first (no Rocq counterpart).
+Proof of the spec of the same name. Lean-first (no Rocq counterpart). (Strict M1, 2026-11-05: over
+mvcc's API, `KV.Compact.contract` and `KV.Range.contract` at the KV's type, from `shapes.law`.)
 -/
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend__Compaction
 public import Spec.context.TODO
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.EnsureTrace
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Compact
-public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.readView__Range
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.KVView
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.KVLemmas
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.KVWrite
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.WriteLemmas
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.ApiLemmas
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend
 
 @[expose] public section
 
@@ -24,6 +23,7 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.api.v3
+open mvcc.api (MvccState)
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -31,60 +31,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
-
-/-- `store.Compact.spec` at a KV over the store (`kvOver_compact_wp`). -/
-private theorem kvOver_Compact (hCompact : mvcc.store.Compact.spec (GF := GF) (hG := hG))
-    (ty : go.GoType) (v : val) (s : Loc) (γ : mvcc.StoreNames) (trace : Loc) (rev : w64) (c : Int)
-    (P : IProp GF) (f : val) (Pre Q Post : IProp GF) (log : mvcc.Log) (te : Bool)
-    (ht : trace ≠ null) (hc : mvcc.storeCmp γ) (hc1 : -1 ≤ c) (hr1 : 1 ≤ sint.Z rev) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-        mvcc.kvOver (interface.mkOk ty v) s ∗
-        mvcc.isStore s γ ∗ mvcc.compactRightR s γ c ∗ mvcc.crevPermAt γ (sint.Z rev) ∗
-        mvcc.idxCert γ.idx log ∗ ⌜sint.Z rev < log.length⌝ ∗
-        mvcc.hookIs γ P f ∗
-        mvcc.csContract P f Pre Q Post ∗ traceutil.ownTrace trace te ∗ mvcc.storeRT γ ∗
-        mvcc.kbWTSupplyM γ.kb }}
-      (App (App (Val #(methods ty go!"Compact" v)) (Val #trace)) (Val #rev))
-    {{ (ch : GoChan) (err : GoInterface), RET (PairV #ch #err); traceutil.ownTrace trace te ∗
-        mvcc.storeRT γ ∗ mvcc.hookIs γ P f ∗
-        ((⌜err = GoInterface.nil ∧ c < sint.Z rev⌝ ∗ mvcc.compactRightR s γ (sint.Z rev) ∗
-          mvcc.crevLb γ.idx (sint.Z rev) ∗ Post ∗ mvcc.compactChan ch (mvcc.compactDone s γ (sint.Z rev))) ∨
-        (⌜sint.Z rev ≤ c⌝ ∗
-          (∃ ec : GoInterfaceOk, globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted ↦□
-            GoInterface.ok ec ∗ ⌜err = GoInterface.ok ec⌝) ∗
-          mvcc.compactRightR s γ c ∗ Pre ∗ mvcc.compactChan ch iprop(True))) }} := by
-  iintro %Φ ⟨#Hpkg, #Hk, #Hs, Hr, #Hperm, #Hc, %Hl, Hhi, Hcs, Htrc, Hrt, #Hsup⟩ HΦ
-  iapply mvcc.kvOver_compact_wp ty v s trace rev
-  iframe Hk
-  iapply (hCompact s γ trace rev c P f Pre Q Post log te ht hc hc1 hr1) $$ [Hr Hhi Hcs Htrc Hrt] HΦ
-  iframe Hr Hhi Hcs Htrc Hrt; iframe #; ipureintro; exact Hl
-
-/-- `readView.Range.spec` at a KV over the store (`kvOver_range_wp`, through the store's
-`ReadView`). -/
-private theorem kvOver_Range (hRange : mvcc.readView.Range.spec (GF := GF) (hG := hG))
-    (ty : go.GoType) (v : val) (s rv : Loc) (γ : mvcc.StoreNames)
-    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (todo : Bool) (key endk : GoSlice)
-    (k e : GoString) (ro : go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions) (c : Int) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-        mvcc.kvOver (interface.mkOk ty v) s ∗
-        structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store go!"ReadView" s ↦□
-          (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.readView.ty)
-            #rv : GoInterface) ∗
-        mvcc.isReadView rv s γ ∗ mvcc.storeReaderC s γ ∗ mvcc.crevLb γ.idx c ∗
-        mvcc.rangeCtx todo ctx cd ∗ key ↦*□ k ∗ endk ↦*□ e }}
-      (App (App (App (App (Val #(methods ty go!"Range" v)) (Val #(GoInterface.ok ctx))) (Val #key))
-        (Val #endk)) (Val #ro))
-    {{ (r : Loc) (err : GoInterface), RET (PairV #r #err);
-        ⌜todo = true → r ≠ null⌝ ∗ mvcc.storeReaderC s γ ∗
-        ∃ (log : mvcc.Log) (rev : w64) (crev : Int), mvcc.idxCert γ.idx log ∗ mvcc.crevLb γ.idx crev ∗
-          mvcc.crevPermAt γ crev ∗
-          ⌜log ≠ [] ∧ rev = W64 ((log.length : Int) - 1) ∧ c ≤ crev ∧ -1 ≤ crev⌝ ∗
-          mvcc.rangeOutcomeC r err log rev crev (decide (endk = slice.nil)) k e ro }} := by
-  iintro %Φ ⟨#Hpkg, #Hk, #HrvA, #Hrv, Hrd, #Hc, #Hctx, #Hkey, #Hend⟩ HΦ
-  iapply mvcc.kvOver_range_wp ty v s rv (GoInterface.ok ctx) key endk ro
-  iframe Hk HrvA
-  iapply (hRange rv s γ ctx cd todo key endk k e ro c) $$ [Hrd] HΦ
-  iframe Hrd; iframe #
 
 /-- A range's result that is not `nil` is owned (whichever outcome; `CountOnly` false). -/
 private theorem rangeOutcomeC_res (r : Loc) (err : GoInterface) (log : mvcc.Log) (rev : w64) (c : Int)
@@ -103,18 +49,27 @@ private theorem rangeOutcomeC_res (r : Loc) (err : GoInterface) (log : mvcc.Log)
 theorem apply.applierV3backend.Compaction.wp_proof
     (hTODO : context.TODO.spec (GF := GF) (hG := hG))
     (hEnsure : traceutil.EnsureTrace.spec (GF := GF) (hG := hG))
-    (hCompact : mvcc.store.Compact.spec (GF := GF) (hG := hG))
-    (hRange : mvcc.readView.Range.spec (GF := GF) (hG := hG)) :
+    (hsh : mvcc.api.shapes.law (GF := GF) (hG := hG)) :
     apply.applierV3backend.Compaction.spec (GF := GF) (hG := hG) := by
   intro E p cr rev log crev Pre Q Post info
-  wp_start as ⟨#Hb, #Hcr, %Hadm, #Hperm, Hpre, Hc⟩
+  wp_start as ⟨#Hb, #Hcr, %Hadm, HCp, Htt, Hpre, Hc⟩
+  iunfold apply.applyTok at Htt
+  icases Htt with Hmr
   iunfold apply.backendIs at Hb
   icases Hb with ⟨%opts, #Hopts, #Hok⟩
   ihave #Hok' := Hok
   iunfold apply.backendOptsOk at Hok'
-  icases Hok' with ⟨%Hlg, #Hkv, #Hhk, -⟩
+  icases Hok' with ⟨%Hlg, #Hkv, %HkvE, #Haus, -⟩
   iunfold apply.mPre at Hpre
-  icases Hpre with ⟨Hkvo, -, Hcs⟩
+  icases Hpre with ⟨⟨%cr0, Hw⟩, Hll, Hrd, -, %B, Hbk, #Hhk, Htie, Hcs⟩
+  iunfold apply.cmpOwn at Hc
+  icases Hc with ⟨Hopen, Hcro⟩
+  icases apply.wSt_crOwn_agree E.γs log cr0 crev $$ [$Hw $Hcro] with ⟨%Hcc, Hw, Hcro⟩
+  subst cr0
+  iunfold apply.envAus at Haus
+  icases Haus with ⟨-, #HauR, -, #HauC, -⟩
+  iunfold srvApi.csContractA at Hcs
+  icases Hcs with ⟨HPre, Hhr, Hfin⟩
   iunfold apply.compactionIs at Hcr
   icases Hcr with ⟨%Hcrn, #Hrev⟩
   iStructNamed Hopts
@@ -141,27 +96,42 @@ theorem apply.applierV3backend.Compaction.wp_proof
     iframe Hfl Hflc
     ipureintro
     exact traceutil.fieldsWf_cons_int _ _ _ (.int64 _) _ traceutil.fieldsWf_nil
-  -- `a.kv.Compact(trace, rev)`: the store's (`store.Compact.spec`), its precondition from the
-  -- apply thread's KV and compaction resources (`cmp_store_pre`)
+  -- `a.kv.Compact(trace, rev)`: `KV.Compact.contract` at the KV's type, by the builder's update
   iunfold apply.isApplyKV at Hkv
-  icases Hkv with ⟨#Hkv, %rv, #HrvA, #Hrv⟩
-  ihave ⟨#Hko, #Hs⟩ := txn.isKV_kvOver _ E.s E.γ $$ Hkv
-  ihave %Hkvok := mvcc.kvOver_ok _ E.s $$ Hko
-  obtain ⟨kty, kvv, Hkveq⟩ := Hkvok
-  ihave %Hcge := apply.cmpOwn_ge E crev $$ Hc
-  ihave ⟨Hr, %Hc1, #Hcert, Hhi, Hrt, #Hsup, Hback⟩ :=
-    apply.cmp_store_pre E log crev Hadm.1 $$ [$Hkvo $Hc $Hhk]
-  rw [Hkveq]
-  simp only [interface.mkOk]
+  icases Hkv with #Hkv
+  icases txn.isMvcc_shape hsh opts.KV' E.γ $$ Hkv with ⟨%Hsh, -⟩
+  obtain ⟨kty, kvv, Hkveq, -, -, -, -, hRangeC, -, -, hCompactC, -⟩ := Hsh
   ihave #Hmi : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
   · iPkgInit
-  wp_apply (kvOver_Compact hCompact kty kvv E.s E.γ trc rev crev E.P E.f Pre Q Post log false
-      Htrcnn Hadm.1 Hc1 Hadm.2.2) $$ [$Hr $Hhi $Hcs $Htrc $Hrt] as %ch %err ⟨Htrc, Hrt, Hhi, Hout⟩
-  · iframe #; ipureintro; exact Hadm.2.1
-  icases Hout with (⟨%Herr, Hr, #Hlb, HPost, -⟩ | ⟨%Hle, ⟨%ec, #Hec, %Herr⟩, Hr, HPre, -⟩)
-  · -- compacted: `KV.Range(context.TODO(), "compaction", nil, {})` for the header
-    obtain ⟨Herr, Hlt⟩ := Herr
+  ihave Hinit : (go_etcd_io.etcd.server.v3.storage.mvcc.mvccInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hmi
+  icases Hinit with ⟨-, ⟨%ec, #HeC⟩, -⟩
+  ihave Hau := HauC $$ %log %crev %rev %Hadm.2 Hw Hcro HCp
+  iunfold srvApi.auCompact at Hau
+  ihave #Hcq : mvcc.api.storageReq B (E.Pk B) iprop(True) iprop(True) $$ []
+  · rw [mvcc.api.etcdStorage_req]; iapply backend.commitReq_true
+  ihave Hkv' : □ mvcc.api.isMvcc (interface.mkOk kty kvv) E.γ $$ []
+  · rw [← Hkveq]; imodintro; iexact Hkv
+  icases Hkv' with #Hkv'
+  rw [Hkveq]
+  simp only [interface.mkOk]
+  wp_apply (hCompactC E.γ trc false rev 1 B (E.Pk B) E.f Pre Q Post iprop(True) iprop(True) _)
+    $$ [$Hkv' $Hopen $Htrc $Hbk $HPre $Hhr $Hfin $Hau]
+    as %ch %err ⟨Hopen, Htrc, Hbk, %σ, ⟨%Hσ, Hw, Hcro⟩, Hout⟩
+  · iframe #
+    isplitr
+    · ipureintro; exact Htrcnn
+    ipureintro; exact Hadm.1
+  subst Hσ
+  have hrv : ((srvApi.stAt log crev).rev : Int) = (log.length : Int) - 1 := by
+    have := Hadm.1; have := Hadm.2
+    simp only [srvApi.stAt, mvcc.api.MvccState.rev]; omega
+  have hcrv : (srvApi.stAt log crev).crev = crev := rfl
+  icases Hout with (⟨⟨%Herr, %Hlt, -⟩, HPost, -, Hch⟩ | ⟨%Hle, #Herr, HPre, -, -⟩ |
+    ⟨⟨%Hfut, -⟩, -, -, -⟩)
+  · -- compacted: `KV.Range(ctx, "compaction", nil, {})` for the header
     subst Herr
+    rw [hcrv] at Hlt
     wp_auto
     -- the context `EnsureTrace` returned is never done (`TODO`'s, with the trace)
     ihave #Hnd : mvcc.neverDone
@@ -175,67 +145,80 @@ theorem apply.applierV3backend.Compaction.wp_proof
     ihave ⟨%td, %Htd, #Hrc⟩ := mvcc.txnCtx_rangeCtx true ctx2 _ $$ Hctx2t Hnd'
     have htd : td = true := Htd rfl
     subst htd
-    ihave Hkvo := Hback $$ Hr [] Hhi Hrt
-    · ipureintro; omega
-    icases Hkvo with ⟨Hkvo, Hc⟩
-    iunfold apply.kvOwn at Hkvo
-    icases Hkvo with ⟨Hsr, Hkvo⟩
-    ihave Hsr := mvcc.storeReader_toC E.s E.γ $$ Hsr
+    have hra : apply.cmpRevAfter crev rev = sint.Z rev := by
+      unfold apply.cmpRevAfter; simp [Hlt]
+    ihave HauR' := HauR $$ %log %(apply.cmpRevAfter crev rev)
+      %(srvApi.wSt E.γs log (apply.cmpRevAfter crev rev)) Hw []
+    · iintro Hw; iexact Hw
+    iunfold srvApi.auRead at HauR'
     wp_apply wp_string_to_bytes as %ksl ⟨Hks, -⟩
     imod ownSlice_persist _ _ _ $$ Hks with #Hks
     ihave #Hes : (slice.nil ↦*□ ([] : List w8) : IProp GF) $$ []
     · iapply ownSlice_nil
-    imod mvcc.crevLb_neg E.γ.idx with #Hlb0
-    wp_apply (kvOver_Range hRange kty kvv E.s rv E.γ ctx2 _ true ksl slice.nil _ []
-        (zero_val go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions) (-1)) $$ [$Hsr]
-      as %rr %rerr ⟨%Hrrn, Hsr, %rlog, %rrev, %rcrev, -, -, -, -, Hrout⟩
+    wp_apply (hRangeC E.γ ctx2 _ true ksl slice.nil _ []
+        (zero_val go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions) _)
+      $$ [$Hkv' $Hmr $HauR']
+      as %rr %rerr ⟨Hmr, %Hrrn, %σr, ⟨-, Hw⟩, Hrout, -⟩
     · iframe #
-    ihave ⟨%rv0, Hrr⟩ := rangeOutcomeC_res rr rerr rlog rrev rcrev _ _ _ _ rfl (Hrrn rfl) $$ Hrout
-    ihave Hsr := mvcc.storeReader_of E.s E.γ $$ Hsr
+    ihave ⟨%rv0, Hrr⟩ := rangeOutcomeC_res rr rerr σr.log _ σr.crev _ _ _ _ rfl (Hrrn rfl) $$ Hrout
     wp_auto
     iapply HΦ
-    isplitl [Hsr Hkvo]
-    · iunfold apply.kvOwn; iframe Hsr Hkvo
+    iunfold apply.applyTok
+    iframe Hmr
+    isplitl [Hw Htie Hbk Hll Hrd]
+    · iapply (apply.kvOwn_of_split E log B (apply.cmpRevAfter crev rev))
+      iframe Hw Htie
+      iunfold apply.kvRest; iframe Hbk Hll Hrd Hhk
     isplitl [HPost]
     · ileft; iexact HPost
-    have hra : apply.cmpRevAfter crev rev = sint.Z rev := by
-      unfold apply.cmpRevAfter; simp [Hlt]
-    rw [hra]
-    iframe Hc
-    simp only [apply.cmpAnswerIs, apply.chainCompacts, ↓reduceIte]
-    ileft
-    isplitr
-    · ipureintro; simp [Hlt]
-    isplitr [Htrc]
-    · iunfold apply.cmpRespOk
+    isplitl [Hopen Hcro]
+    · iunfold apply.cmpOwn; iframe
+    isplitl [Hresp0 «$r0» Htrc]
+    · simp only [apply.cmpAnswerIs, apply.chainCompacts, ↓reduceIte]
+      ileft
       isplitr
-      · ipureintro; exact Hrespn
-      iexists _
-      iframe Hresp0
-      iexists _
-      iframe «$r0»
-    · iunfold apply.traceRes; iright; iexists false; iexact Htrc
+      · ipureintro; simp [Hlt]
+      isplitr [Htrc]
+      · iunfold apply.cmpRespOk
+        isplitr
+        · ipureintro; exact Hrespn
+        iexists _
+        iframe Hresp0
+        iexists _
+        iframe «$r0»
+      · iunfold apply.traceRes; iright; iexists false; iexact Htrc
+    · iunfold apply.cmpChan; iintro -; iexact Hch
   · -- `ErrCompacted`: no response, no trace
-    subst Herr
+    rw [hcrv] at Hle
+    icombine HeC Herr gives %Hee
+    subst Hee
     wp_auto
-    ihave Hkvo := Hback $$ Hr %Hc1 Hhi Hrt
-    icases Hkvo with ⟨Hkvo, Hc⟩
-    ihave #HeC : txn.errVarIs go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted
-        (GoInterface.ok ec) $$ []
-    · iunfold txn.errVarIs; iexists ec; iframe Hec; ipureintro; rfl
-    iapply HΦ
-    iframe Hkvo
-    isplitr [Hc]
-    · iright; iexact HPre
     have hra : apply.cmpRevAfter crev rev = crev := by
       unfold apply.cmpRevAfter; split <;> omega
-    rw [hra]
-    iframe Hc
-    simp only [apply.cmpAnswerIs, apply.chainCompacts, ↓reduceIte]
-    iright
-    iframe HeC
-    ipureintro
-    refine ⟨Hle, ?_, ?_, ?_⟩ <;> simp
+    iapply HΦ
+    iunfold apply.applyTok
+    iframe Hmr
+    isplitl [Hw Htie Hbk Hll Hrd]
+    · iapply (apply.kvOwn_of_split E log B (apply.cmpRevAfter crev rev))
+      iframe Hw Htie
+      iunfold apply.kvRest; iframe Hbk Hll Hrd Hhk
+    isplitl [HPre]
+    · iright; iexact HPre
+    isplitl [Hopen Hcro]
+    · iunfold apply.cmpOwn; iframe
+    isplitr
+    · simp only [apply.cmpAnswerIs, apply.chainCompacts, ↓reduceIte]
+      iright
+      isplitr
+      · ipureintro; refine ⟨Hle, ?_, ?_, ?_⟩ <;> simp
+      iunfold txn.errVarIs; iexists ec; iframe HeC; ipureintro; rfl
+    · iunfold apply.cmpChan; iintro %Hlt; exact absurd Hlt (by omega)
+  · -- `ErrFutureRev`: excluded, the revision is the log's
+    exfalso
+    rw [hrv] at Hfut
+    have := Hadm.2
+    have := Hadm.1
+    omega
 
 end proof
 

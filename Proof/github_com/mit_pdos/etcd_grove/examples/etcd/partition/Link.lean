@@ -99,11 +99,11 @@ theorem wp_config :
     EtcdGrove.etcd_partition.config.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcd_partition.config.wp_proof
 
-theorem wp_startCluster [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem wp_startCluster [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.etcd_partition.startCluster.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcd_partition.startCluster.wp_proof wp_config cluster3.wp_StartCluster cluster3.wp_NewClient
 
-theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.etcd_partition.Main.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcd_partition.Main.wp_proof zap.wp_NewNop wp_startCluster cluster3.wp_Partitioner wp_Check
 
@@ -111,7 +111,7 @@ theorem wp_writer :
     EtcdGrove.etcd_partition.writer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcd_partition.writer.wp_proof context.wp_WithTimeoutBackground context.wp_ErrAny
 
-theorem wp_MainWatch [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem wp_MainWatch [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.etcd_partition.MainWatch.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcd_partition.MainWatch.wp_proof etcdstart.wp_GenAll zap.wp_NewNop wp_startCluster cluster3.wp_Partitioner wp_writer etcdstart.wp_MaxRev etcdstart.wp_Collect etcdstart.wp_Check context.wp_ErrAny client.v3.watcher.wp_Watch v3.wp_WithPrefix v3.wp_WithRev v3.wp_WithProgressNotify v3.wp_WithCreatedNotify
 

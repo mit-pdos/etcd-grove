@@ -244,7 +244,7 @@ theorem lessor.closeRequireLeader.wp_proof
       (try wp_auto)
       ihave #Hco := BigSepL.bigSepL_lookup (Φ := fun _ c => kaCtxOk (GF := GF) c) Hc $$ Hctxok
       iunfold kaCtxOk at Hco
-      icases Hco with ⟨%ci, %cdi, %Hcieq, #Hci⟩
+      icases Hco with ⟨%ci, %cdi, %Hcieq, #Hci, -⟩
       rw [Hcieq]
       (try wp_auto)
       wp_apply wp_FromOutgoing ci cdi $$ [$Hmd $Hci] as %md %ok Hres

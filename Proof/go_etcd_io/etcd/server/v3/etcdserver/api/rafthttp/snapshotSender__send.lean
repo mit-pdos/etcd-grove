@@ -172,7 +172,7 @@ theorem rafthttp.snapshotSender.send.wp_proof
   (try wp_auto)
   wp_apply hIDString as %ts %Hts
   (try wp_auto)
-  wp_apply hBody lg m ml rc st _ Hlgnn Hrsp $$ [$Hrs] as %body ⟨%bs, %bi, ⟨%Hbi, %Hwire, %Hbl⟩, Hbody, #Hbc⟩
+  wp_apply hBody lg m ml rc st _ Hlgnn Hrsp $$ [$Hrs] as %body ⟨%bs, %bi, ⟨%Hbi, %Hwire, %Hwe, %Hbl⟩, Hbody, #Hbc⟩
   · iframe #
   subst Hbi
   (try wp_auto)
@@ -206,7 +206,7 @@ theorem rafthttp.snapshotSender.send.wp_proof
     iexists st, bs, sn, D
     iframe #
     ipureintro
-    refine ⟨Hwire, Hbl, by rw [Hto]; exact Hu.2.symm, Hsnap, Hsn, Hrsp, fun x hx => hx,
+    refine ⟨Hwire, Hwe, Hbl, by rw [Hto]; exact Hu.2.symm, Hsnap, Hsn, Hrsp, fun x hx => hx,
       fun x hx => hx⟩
   ihave #Hso : http.reqSendOk (raftHttpNet Rh) ⟨go!"POST", u.Host', go!"/raft/snapshot", hdrs, []⟩ γk
       (.stream (snapPre bs) (snapPhi bs (fun t => backend.boltImage t D))) $$ []

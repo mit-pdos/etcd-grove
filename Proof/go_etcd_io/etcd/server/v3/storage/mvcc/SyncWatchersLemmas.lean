@@ -622,7 +622,7 @@ theorem sw_memberRes_unsynced (γ : WsNames) (q : Qp) (σ : WsState) (w : Loc) (
     memberRes (GF := GF) γ q σ w st ⊢ ∃ (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice)
       (evsw : List EvM),
       ⌜σ.M !! w = some γw⌝ ∗ watcherMeta γ w γw ∗ watcherFixed w r fcs ∗
-      watcherChan γ w γw st.ch ∗ filtersOk fcs ∗ ⌜sint.Z r.startRev ≤ (γw.lo : Int)⌝ ∗
+      watcherChan γ w γw st.ch ∗ watcherFilters γw fcs ∗ ⌜sint.Z r.startRev ≤ (γw.lo : Int)⌝ ∗
       ⌜σ.E !! w = some (evsw, sint.nat st.minRev)⌝ ∗ monoListAuthOwn γw.evs q.half evsw ∗
       dghostVar γw.live (DFrac.own q.half) true ∗ ⌜(γw.lo : Int) ≤ sint.Z st.minRev⌝ ∗
       evsWf γ r γw.lo evsw (sint.nat st.minRev) ∗
@@ -643,7 +643,7 @@ theorem sw_memberRes_intro (γ : WsNames) (σ : WsState) (w : Loc) (st : Watcher
     (hl : σ.live w) (γw : WatcherNames) (r : WatchRange) (fcs : GoSlice) (evsw : List EvM) (d : Nat)
     (hM : σ.M !! w = some γw) (hE : σ.E !! w = some (evsw, d))
     (hsr : sint.Z r.startRev ≤ (γw.lo : Int)) :
-    watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ watcherChan γ w γw st.ch ∗ filtersOk fcs ∗
+    watcherMeta γ w γw ∗ watcherFixed w r fcs ∗ watcherChan γ w γw st.ch ∗ watcherFilters γw fcs ∗
       monoListAuthOwn γw.evs (1 : Qp).half evsw ∗ dghostVar γw.live (DFrac.own (1 : Qp).half) true ∗
       popFacts γ σ w r γw.lo st evsw d ⊢
     memberRes (GF := GF) γ 1 σ w st := by
@@ -730,21 +730,82 @@ theorem sw_bigSepM_step {V : Type} {Φ Ψ : Loc → V → IProp GF} (m : GMap Lo
 /-- A watcher's delivered events extended with the range's events of a certified log from where
 they stopped (the caller's certificate of it, `certOk`, with it: unit W-M3). -/
 theorem sw_evsWf_extend (γ : WsNames) (r : WatchRange) (lo : Nat) (evsw : List EvM) (m D : Nat)
-    (C : Log) (hm : m ≤ D) (hD : D ≤ C.length) (hlo : lo ≤ m) :
-    evsWf (GF := GF) γ r lo evsw m ∗ idxCert γ.st.idx C ∗ certOk γ.st C ∗ relLb γ C.length ⊢
+    (C : Log) (hm : m ≤ D) (hD : D ≤ C.length) (hlo : lo ≤ m) (hrb : receiptBound GF ≤ 2 ^ 48) :
+    evsWf (GF := GF) γ r lo evsw m ∗ idxCert γ.st.idx C ∗ certOk γ.st C ∗ api.nlLb γ.st.api C ∗ relLb γ C.length ⊢
       evsWf γ r lo (evsw ++ watchEvents C r m D) D := by
-  iintro ⟨Hwf, #HC, #HokC, #HrlC⟩
+  iintro ⟨Hwf, #HC, #HokC, #HnC, #HrlC⟩
   iunfold evsWf at Hwf
-  icases Hwf with ⟨%L, #HlbL, -, %HL⟩
-  ihave #HlbC := evLog_of_cert _ _ $$ [$HC $HokC]
+  icases Hwf with ⟨%L, #HlbL, -, %Hb, #He⟩
+  ihave #HlbC := evLog_of_cert _ _ hrb $$ [$HC $HokC $HnC]
+  ihave %HposC := evLog_pos _ _ $$ HlbC
   ihave %hcmp := evLog_cmp _ _ _ $$ HlbC HlbL
   iunfold evsWf
   iexists C
   iframe HlbC HrlC
-  ipureintro
-  refine ⟨?_, Or.inl hD⟩
-  rw [HL.1, watchEvents_cmp hcmp.symm r HL.2 (Or.inl (by omega)),
-    ← watchEvents_append C r hlo hm]
+  isplitr
+  · ipureintro; exact Or.inl hD
+  iapply evsExactOr_mono γ lo (fun h => by
+    rw [h, watchEvents_cmp hcmp.symm r Hb (Or.inl (by omega)), ← watchEvents_append C r hlo hm])
+    (fun hn => ⟨fun hne => by
+      by_cases he : evsw = []
+      · rw [he, List.nil_append] at hne
+        have := watchEvents_ne_lo C r m D hne; omega
+      · have := hn.1 he; omega,
+      fun ev hev => by
+        rcases List.mem_append.1 hev with h | h
+        · exact hn.2 ev h
+        · exact HposC r m D ev h⟩) $$ He
+
+/-- A doomed watcher's delivered events, any events added (`syncWatchers`' read from a compaction
+revision that changes a key twice: per watcher, 2026-11-05). -/
+theorem sw_evsWf_doom (γ : WsNames) (r : WatchRange) (lo : Nat) (evs : List EvM) (D : Nat)
+    (C : Log) (hD : D ≤ C.length) (hne : evs ≠ [] → lo < D) (hpos : ∀ ev ∈ evs, evPos ev)
+    (hrb : receiptBound GF ≤ 2 ^ 48) :
+    idxCert (GF := GF) γ.st.idx C ∗ certOk γ.st C ∗ api.nlLb γ.st.api C ∗ relLb γ C.length ∗ doomed γ lo ⊢
+      evsWf γ r lo evs D := by
+  iintro ⟨#HC, #HokC, #HnC, #HrlC, #Hd⟩
+  ihave #HlbC := evLog_of_cert _ _ hrb $$ [$HC $HokC $HnC]
+  iapply evsWf_doomed γ r lo evs D C (Or.inl hD) hne hpos $$ [$HlbC $HrlC $Hd]
+
+/-- **A watcher's step in `syncWatchers`, exact or doomed** (per watcher, 2026-11-05): its
+delivered events extended with its batch, the range's events of `[m, X)` (the scan kept them all),
+or a sub-list of them when the watcher is past its exactness condition (`Dm`, the scan from a
+compaction revision that changes a key twice). -/
+theorem sw_evsWf_step (γ : WsNames) (r : WatchRange) (lo : Nat) (evsw evs : List EvM) (m X : Nat)
+    (C : Log) (Dm : Prop) (hm : m ≤ X) (hX : X ≤ C.length) (hlo : lo ≤ m)
+    (hcase : evs = watchEvents C r m X ∨ (Dm ∧ List.Sublist evs (watchEvents C r m X)))
+    (hrb : receiptBound GF ≤ 2 ^ 48) :
+    evsWf (GF := GF) γ r lo evsw m ∗ idxCert γ.st.idx C ∗ certOk γ.st C ∗ api.nlLb γ.st.api C ∗ relLb γ C.length ∗
+      □ (⌜Dm⌝ -∗ doomed γ lo) ⊢ evsWf γ r lo (evsw ++ evs) X := by
+  iintro ⟨#Hwf, #HC, #HokC, #HnC, #HrlC, #Hdm⟩
+  rcases hcase with rfl | ⟨hD, hsub⟩
+  · iapply sw_evsWf_extend γ r lo evsw m X C hm hX hlo hrb $$ [$Hwf $HC $HokC $HnC $HrlC]
+  · ihave %Hne := evsWf_ne_lo γ r lo evsw m $$ Hwf
+    ihave %Hpw := evsWf_pos γ r lo evsw m $$ Hwf
+    ihave #HlbC := evLog_of_cert _ _ hrb $$ [$HC $HokC $HnC]
+    ihave %HposC := evLog_pos _ _ $$ HlbC
+    ihave #Hd := Hdm $$ %hD
+    iapply sw_evsWf_doom γ r lo (evsw ++ evs) X C hX (fun hne => by
+      by_cases he : evsw = []
+      · rw [he, List.nil_append] at hne
+        have hw : watchEvents C r m X ≠ [] := fun h => hne (List.eq_nil_of_sublist_nil (h ▸ hsub))
+        have := watchEvents_ne_lo C r m X hw; omega
+      · have := Hne he; omega)
+      (fun ev hev => by
+        rcases List.mem_append.1 hev with h | h
+        · exact Hpw ev h
+        · exact HposC r m X ev (hsub.subset h)) hrb $$ [$HC $HokC $HnC $HrlC $Hd]
+
+/-- **Revision `c` changing a key twice dooms a watcher reading from it** (pure): a watcher from
+`lo ≤ c` is past its exactness condition at `c`. -/
+theorem sw_not_once (C : Log) (c : Int) (lo : Nat) (hlo : (lo : Int) ≤ c)
+    (hnd : ¬ oneChangePerKeyAt C c) : ¬ api.onceUpTo C lo c := by
+  intro hon
+  apply hnd
+  intro cs hc0 hcs
+  have := hon c.toNat (by omega) (by omega)
+  rwa [List.getD_eq_getElem?_getD, hcs] at this
+
 
 /-- The lock's resources of the members after a step: the stepped member's new ones. -/
 theorem sw_res_step (γ : WsNames) (σ : WsState) (v : SyncVars) (key : Loc) (r : WatchRange)
@@ -767,7 +828,7 @@ theorem sw_memberRes_new_synced (γ : WsNames) (σ : WsState) (v : SyncVars) (ke
     (r : WatchRange) (st' : WatcherSt) (γw : WatcherNames) (fcs : GoSlice) (evsw : List EvM)
     (D : Nat) (hM : σ.M !! key = some γw) (hsr : sint.Z r.startRev ≤ (γw.lo : Int))
     (hlo : (γw.lo : Int) ≤ sint.Z st'.minRev ∧ sint.Z st'.minRev ≤ D) :
-    watcherMeta γ key γw ∗ watcherFixed key r fcs ∗ watcherChan γ key γw st'.ch ∗ filtersOk fcs ∗
+    watcherMeta γ key γw ∗ watcherFixed key r fcs ∗ watcherChan γ key γw st'.ch ∗ watcherFilters γw fcs ∗
       monoListAuthOwn γw.evs (1 : Qp).half evsw ∗ dghostVar γw.live (DFrac.own (1 : Qp).half) true ∗
       evsWf γ r γw.lo evsw D ∗ evsWf γ r γw.lo evsw (sint.nat st'.minRev) ⊢
     memberRes (GF := GF) γ 1 ((v.step key r .synced st' (evsw, D)).st σ) key st' := by
@@ -787,7 +848,7 @@ theorem sw_memberRes_new_unsynced (γ : WsNames) (σ : WsState) (v : SyncVars) (
     (hWs0 : v.Ws !! key = none) (hWu0 : v.Wu !! key = some r)
     (hlo : (γw.lo : Int) ≤ sint.Z st'.minRev ∧ D = sint.nat st'.minRev)
     (hLc : sint.nat st'.minRev ≤ max γw.lo Lc.length) (hcp : st'.compacted = false) :
-    watcherMeta γ key γw ∗ watcherFixed key r fcs ∗ watcherChan γ key γw st'.ch ∗ filtersOk fcs ∗
+    watcherMeta γ key γw ∗ watcherFixed key r fcs ∗ watcherChan γ key γw st'.ch ∗ watcherFilters γw fcs ∗
       monoListAuthOwn γw.evs (1 : Qp).half evsw ∗ dghostVar γw.live (DFrac.own (1 : Qp).half) true ∗
       evsWf γ r γw.lo evsw D ∗ idxCert γ.st.idx Lc ⊢
     memberRes (GF := GF) γ 1 ((v.step key r .unsynced st' (evsw, D)).st σ) key st' := by
@@ -816,7 +877,7 @@ theorem sw_memberRes_new_victim (γ : WsNames) (σ : WsState) (v : SyncVars) (ke
     (hvo : σ.victimOf key = none)
     (hlo : (γw.lo : Int) ≤ sint.Z st'.minRev ∧ D = sint.nat st'.minRev ∧ victimBatchOk γw.lo st' B ∧
       B.evs ≠ []) :
-    watcherMeta γ key γw ∗ watcherFixed key r fcs ∗ watcherChan γ key γw st'.ch ∗ filtersOk fcs ∗
+    watcherMeta γ key γw ∗ watcherFixed key r fcs ∗ watcherChan γ key γw st'.ch ∗ watcherFilters γw fcs ∗
       monoListAuthOwn γw.evs (1 : Qp).half evsw ∗ dghostVar γw.live (DFrac.own (1 : Qp).half) true ∗
       evsWf γ r γw.lo (evsw ++ B.evs) D ⊢
     memberRes (GF := GF) γ 1 ((v.step key r (.victim B) st' (evsw, D)).st σ) key st' := by

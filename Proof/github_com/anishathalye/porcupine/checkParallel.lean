@@ -47,13 +47,23 @@ theorem checkParallel.wp_proof
   wp_if_destruct
   · simp only [github_com.anishathalye.porcupine.Ok]
     wp_auto
-    iapply HΦ
-    ipureintro
-    left
-    refine ⟨rfl, fun h hh => ?_⟩
     have hs0 : hs.length = 0 := by rw [← Hlen, Hslen.1, Hif]; rfl
-    rw [List.eq_nil_of_length_eq_zero hs0] at hh
-    cases hh
+    have hsn : hs = [] := List.eq_nil_of_length_eq_zero hs0
+    subst hsn
+    iapply HΦ
+    isplitr
+    · ipureintro
+      left
+      refine ⟨rfl, fun h hh => ?_⟩
+      cases hh
+    iintro -
+    iunfold linInfoOk
+    iexists []
+    isplitr
+    · iapply ownSlice_nil
+    isplitr
+    · ipureintro; rfl
+    iapply BigSepL.bigSepL_nil.2; iempintro
   have Hn0 : 0 < sint.Z hsl.len := by
     have : sint.Z hsl.len ≠ 0 := fun h => Hif (by word)
     omega
@@ -121,7 +131,7 @@ theorem checkParallel.wp_proof
     · wp_auto
       wp_apply wp_checkSingle σ S m ctx'
         { Values := ∅, Deadline := none, Done_gn := γ', PDone := dghostVar γc DFrac.discard () }
-        slj es DFrac.discard h cp Hhes.2.1 (by have := Hhes.2.2; omega) $$ [] as %b %l ⟨Hdisj, Hlo⟩
+        slj es DFrac.discard h cp Hhes.2.1 (by have := Hhes.2.2; omega) $$ [] as %b %l Hpost
       · iframe #
       have hb2 : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z lsl.len := by
         simp at Hllen; constructor <;> word
@@ -131,7 +141,7 @@ theorem checkParallel.wp_proof
         (sliceIndexRef GoSlice ((sint.nat j : Nat) : Int) lsl) (zero_val GoSlice) l) $$ [$Hcj] as Hcj2
       imod (typedPointsto_dfractional (GF := GF) (sliceIndexRef GoSlice ((sint.nat j : Nat) : Int) lsl) l).dfractional_persist (DFrac.own 1) $$ Hcj2
         with #Hcj
-      imod longestOwn_persist _ _ $$ Hlo with #Hlo
+      imod checkSingle_post S.M l h b (dghostVar γc DFrac.discard ()) $$ Hpost with ⟨#Hlo, #Hlc, Hdisj⟩
       wp_apply wp_bag_send γr rch b (resultP S hs γt lsl (dghostVar γc DFrac.discard ()))
         $$ [$Hbag Htj Hdisj]
       · unfold resultP
@@ -140,7 +150,9 @@ theorem checkParallel.wp_proof
         isplitr
         · ipureintro; rw [Hlen']; word
         isplitr
-        · unfold cellDone; iexists l; iframe #
+        · have Hgd : hs.getD (sint.nat j) [] = h := by
+            simp [List.getD_eq_getElem?_getD, Hhes.1]
+          unfold cellDone; iexists l; rw [Hgd]; iframe #
         icases Hdisj with (%Hb | ⟨%Hbf, (%Hb | #Hb)⟩)
         · ileft; ipureintro; exact ⟨Hb.1, h, Hhes.1, Hb.2⟩
         · iright
@@ -192,13 +204,14 @@ theorem checkParallel.wp_proof
       "timedOut" ∷ timedOut_ptr ↦ tov ∗
       "%HR" ∷ ⌜sint.Z c = R.length ∧ R.Nodup ∧ ∀ i ∈ R, i < hs.length⌝ ∗
       "Htoks" ∷ ([∗list] i ∈ R, ghostMapElem γt i (DFrac.own 1) ()) ∗
-      "#Hcd" ∷ □ (∀ i, ⌜i ∈ R⌝ -∗ cellDone lsl i) ∗
+      "#Hcd" ∷ □ (∀ i, ⌜i ∈ R⌝ -∗ cellDone S.M hs (dghostVar γc DFrac.discard ()) lsl i) ∗
       "%Hok" ∷ ⌜(∀ h ∈ hs, Linearizable S.M h) → okv = true⌝ ∗
       "%Hsnd" ∷ ⌜okv = true → ∀ i ∈ R, ∀ h, hs[i]? = some h → Linearizable S.M h⌝ ∗
       "%Hfull" ∷ ⌜donev = true → okv = true → tov = false → hs.length ≤ R.length⌝ ∗
       "%Hto" ∷ ⌜tov = true → 0 < sint.Z dur⌝ ∗
       "Hcan" ∷ ((⌜donev = false⌝ ∗ dghostVar γc (DFrac.own 1) ()) ∨
-        (⌜donev = true⌝ ∗ (dghostVar γc (DFrac.own 1) () ∨ □ dghostVar γc DFrac.discard ())))
+        (⌜donev = true⌝ ∗ (dghostVar γc (DFrac.own 1) () ∨
+          (□ dghostVar γc DFrac.discard () ∗ ⌜okv = false ∨ tov = true⌝))))
       : IProp GF) $$ [count ok done timedOut Htok]
   · iexists W64 0, true, false, false, []
     iframe
@@ -270,7 +283,8 @@ theorem checkParallel.wp_proof
           ⌜dn = true → k = true → (hs.length : Int) ≤ sint.Z (c + W64 1)⌝ ∗
           done_ptr ↦ dn ∗ cancel_ptr ↦ cancel ∗ count_ptr ↦ (c + W64 1) ∗
           ((⌜dn = false⌝ ∗ dghostVar γc (DFrac.own 1) ()) ∨
-            (⌜dn = true⌝ ∗ (dghostVar γc (DFrac.own 1) () ∨ □ dghostVar γc DFrac.discard ()))))
+            (⌜dn = true⌝ ∗ (dghostVar γc (DFrac.own 1) () ∨
+              (□ dghostVar γc DFrac.discard () ∗ ⌜k = false ∨ tov = true⌝)))))
         at (if: _ then _ else _) with [done Htok cancel count]
         as ⟨%dn, %Hdn, done, cancel, count, Hcan⟩
       · rcases (show (k = true) ∨ (k = false ∧ cp = true) ∨ (k = false ∧ cp = false) by
@@ -292,7 +306,9 @@ theorem checkParallel.wp_proof
           isplitr
           · ipureintro; rfl
           iright
-          iexact HPD
+          isplitr
+          · iexact HPD
+          · ipureintro; left; rfl
         all_goals
           wp_auto
           wp_if_destruct
@@ -319,7 +335,7 @@ theorem checkParallel.wp_proof
       wp_for_post
       ihave Htoks' : ([∗list] j ∈ i :: R, ghostMapElem γt j (DFrac.own 1) ()) $$ [Hti Htoks]
       · iapply BigSepL.bigSepL_cons.2; iframe
-      ihave #Hcd' : (□ ∀ j, ⌜j ∈ i :: R⌝ -∗ cellDone lsl j) $$ []
+      ihave #Hcd' : (□ ∀ j, ⌜j ∈ i :: R⌝ -∗ cellDone S.M hs (dghostVar γc DFrac.discard ()) lsl j) $$ []
       · imodintro
         iintro %j %hj
         rcases List.mem_cons.1 hj with rfl | hj
@@ -378,7 +394,10 @@ theorem checkParallel.wp_proof
         iright
         isplitr
         · ipureintro; rfl
-        iright; iexact HPD
+        iright
+        isplitr
+        · iexact HPD
+        · ipureintro; right; rfl
     iapply BigAndL.bigAndL_nil.2
     itrivial
   -- the loop is done
@@ -389,14 +408,18 @@ theorem checkParallel.wp_proof
   rw [show decide ((#(!true) : val) = #false) = true by simp]
   simp only [↓reduceIte]
   wp_auto
-  wp_join iprop(∃ inf : LinearizationInfo, info_ptr ↦ inf) with [info count Htoks]
-    as ⟨%inf, info⟩
+  wp_join iprop(∃ inf : LinearizationInfo, info_ptr ↦ inf ∗
+      (⌜cp = true⌝ -∗ ∃ psls : List GoSlice, inf.partialLinearizations' ↦* psls ∗
+        ⌜psls.length = hs.length⌝ ∗
+        [∗list] i ↦ psl ∈ psls, partD S.M (hs.getD i []) (dghostVar γc DFrac.discard ()) psl))
+    with [info count Htoks] as ⟨%inf, info, Hinf⟩
+  · iexists _; iframe; iintro %Hf; cases Hf
   · -- `computeInfo`: wait for every goroutine
     ihave HD : (∃ (c : w64) (R : List Nat),
         "count" ∷ count_ptr ↦ c ∗
         "%HR" ∷ ⌜sint.Z c = R.length ∧ R.Nodup ∧ ∀ i ∈ R, i < hs.length⌝ ∗
         "Htoks" ∷ ([∗list] i ∈ R, ghostMapElem γt i (DFrac.own 1) ()) ∗
-        "#Hcd" ∷ □ (∀ i, ⌜i ∈ R⌝ -∗ cellDone lsl i) : IProp GF) $$ [count Htoks]
+        "#Hcd" ∷ □ (∀ i, ⌜i ∈ R⌝ -∗ cellDone S.M hs (dghostVar γc DFrac.discard ()) lsl i) : IProp GF) $$ [count Htoks]
     · iexists c, R
       iframe
       iframe #
@@ -413,7 +436,7 @@ theorem checkParallel.wp_proof
       wp_for_post
       ihave Htoks' : ([∗list] j ∈ i :: R, ghostMapElem γt j (DFrac.own 1) ()) $$ [Hti Htoks]
       · iapply BigSepL.bigSepL_cons.2; iframe
-      ihave #Hcd' : (□ ∀ j, ⌜j ∈ i :: R⌝ -∗ cellDone lsl j) $$ []
+      ihave #Hcd' : (□ ∀ j, ⌜j ∈ i :: R⌝ -∗ cellDone S.M hs (dghostVar γc DFrac.discard ()) lsl j) $$ []
       · imodintro
         iintro %j %hj
         rcases List.mem_cons.1 hj with rfl | hj
@@ -443,18 +466,24 @@ theorem checkParallel.wp_proof
     iclear Htoks
     ihave HO : (∃ (iv : w64) (pls : List GoSlice),
         "i" ∷ i_ptr ↦ iv ∗ "Hpl" ∷ plsl ↦* pls ∗
-        "%Hiv" ∷ ⌜pls.length = hs.length ∧ 0 ≤ sint.Z iv ∧ sint.Z iv ≤ sint.Z hsl.len⌝ : IProp GF)
+        "%Hiv" ∷ ⌜pls.length = hs.length ∧ 0 ≤ sint.Z iv ∧ sint.Z iv ≤ sint.Z hsl.len⌝ ∗
+        "#Hpo" ∷ □ (∀ (i : Nat) (psl : GoSlice), ⌜i < sint.nat iv ∧ pls[i]? = some psl⌝ →
+          partD S.M (hs.getD i []) (dghostVar γc DFrac.discard ()) psl) : IProp GF)
       $$ [i Hpl]
     · iexists W64 0, _
       iframe
-      ipureintro
-      refine ⟨by rw [List.length_replicate, Hlen'], by word, by word⟩
+      isplitr
+      · ipureintro
+        refine ⟨by rw [List.length_replicate, Hlen'], by word, by word⟩
+      imodintro
+      iintro %i %psl %Hi
+      exfalso; have := Hi.1; word
     wp_for HO
     wp_if_destruct
     · have Hivn : sint.nat iv < hs.length := by rw [Hlen']; word
       ihave Hcdi := Hcd $$ %(sint.nat iv) %(Hall _ Hivn)
       iunfold cellDone at Hcdi
-      icases Hcdi with ⟨%l, #Hcell, #Hlp⟩
+      icases Hcdi with ⟨%l, #Hcell, #Hlp, #Hlc⟩
       wp_apply (wp_map_make1 (K := Loc) (V := Unit)) as %setm Hset
       have hb : 0 ≤ sint.Z iv ∧ sint.Z iv < sint.Z lsl.len := by
         simp at Hllen; constructor <;> word
@@ -469,11 +498,12 @@ theorem checkParallel.wp_proof
       ihave HV : (∃ (j : w64) (vv : Loc) (Ms : GMap Loc Unit),
           "i" ∷ i_ptr ↦ j ∗ "v" ∷ v_ptr ↦ vv ∗ "Hset" ∷ setm ↦$ Ms ∗
           "%HMs" ∷ ⌜∀ k, (Ms !! k).isSome → k ∈ ps ∧ k ≠ null⌝ ∗
+          "%HMs2" ∷ ⌜∀ k' q, k' < sint.nat j → ps[k']? = some q → q ≠ null → (Ms !! q).isSome⌝ ∗
           "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z l.len⌝ : IProp GF) $$ [i v Hset]
       · iexists W64 0, _, ∅
         iframe
         ipureintro
-        refine ⟨by simp, by word, by word⟩
+        refine ⟨by simp, fun k' q hk => absurd hk (by word), by word, by word⟩
       wp_for HV
       wp_if_destruct
       · have hb : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z l.len := ⟨Hj.1, Hif⟩
@@ -490,7 +520,10 @@ theorem checkParallel.wp_proof
           iexists j + W64 1, null, Ms
           iframe
           ipureintro
-          exact ⟨HMs, by word, by word⟩
+          refine ⟨HMs, fun k' q hk hq hqn => ?_, by word, by word⟩
+          by_cases hkj : k' = sint.nat j
+          · subst hkj; rw [Hp_lookup] at hq; cases hq; exact absurd hp hqn
+          · exact HMs2 k' q (by word) hq hqn
         · simp only [hp, decide_false, Bool.not_false]
           wp_auto
           wp_apply (wp_mapInsert go.int.SliceType.PointerType setm Ms p ()) $$ [$Hset] as Hset
@@ -499,24 +532,37 @@ theorem checkParallel.wp_proof
           iexists j + W64 1, p, <[p := ()]> Ms
           iframe
           ipureintro
-          refine ⟨fun k hk => ?_, by word, by word⟩
-          by_cases hkp : p = k
-          · subst hkp; exact ⟨Hpm, hp⟩
-          · rw [GMap.lookup_insert_ne _ _ hkp] at hk; exact HMs k hk
+          refine ⟨fun k hk => ?_, fun k' q hk hq hqn => ?_, by word, by word⟩
+          · by_cases hkp : p = k
+            · subst hkp; exact ⟨Hpm, hp⟩
+            · rw [GMap.lookup_insert_ne _ _ hkp] at hk; exact HMs k hk
+          · by_cases hqp : p = q
+            · subst hqp; simp
+            · rw [GMap.lookup_insert_ne _ _ hqp]
+              by_cases hkj : k' = sint.nat j
+              · subst hkj; rw [Hp_lookup] at hq; cases hq; exact absurd rfl hqp
+              · exact HMs2 k' q (by word) hq hqn
       -- the set's keys: copies of the partial linearizations
       wp_func_lits
       wp_bind (App (App (Val (map.forRange _ _)) _) _)
-      iapply wp_map_for_range (fun (keys : List Loc) (_ : Int) => iprop(
+      iapply wp_map_for_range (fun (keys : List Loc) (ik : Int) => iprop(
           ∃ (psl : GoSlice) (xs : List GoSlice) (kv : Loc),
           "partials" ∷ partials_ptr ↦ psl ∗ "Hpsl" ∷ psl ↦* xs ∗
-          "Hcap" ∷ ownSliceCap GoSlice psl (DFrac.own 1) ∗ "k" ∷ k_ptr ↦ kv)) $$ Hset
+          "Hcap" ∷ ownSliceCap GoSlice psl (DFrac.own 1) ∗ "k" ∷ k_ptr ↦ kv ∗
+          "%Hxl" ∷ ⌜(xs.length : Int) = ik⌝ ∗
+          "#Hxd" ∷ ((⌜¬ Linearizable S.M (hs.getD (sint.nat iv) [])⌝ ∨ □ (dghostVar γc DFrac.discard ())) ∨
+            [∗list] x ∈ xs, linSlice S.M (hs.getD (sint.nat iv) []) x))) $$ Hset
       iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
       isplitl [partials k]
       · iexists slice.nil, [], _
         iframe
         isplitr
         · iapply ownSlice_nil
-        iapply ownSliceCap_nil
+        isplitr
+        · iapply ownSliceCap_nil
+        isplitr
+        · ipureintro; rfl
+        iright; iapply BigSepL.bigSepL_nil.2; iempintro
       isplitr
       · imodintro
         iintro %ik %key %vv ⟨%Hkey, %Hvv⟩ HP
@@ -529,7 +575,17 @@ theorem checkParallel.wp_proof
         wp_auto
         wp_apply wp_slice_make2 (V := w64) ksl.len as %arr ⟨Harr, -⟩
         · ipureintro; word
-        wp_apply wp_slice_copy arr _ ksl kxs DFrac.discard $$ [$Harr $Hksl] as %nc ⟨-, -, -⟩
+        wp_apply wp_slice_copy arr _ ksl kxs DFrac.discard $$ [$Harr $Hksl] as %nc ⟨-, Harr, -⟩
+        have Hcpy : kxs.take (List.replicate (sint.nat ksl.len) (zero_val w64)).length ++
+            (List.replicate (sint.nat ksl.len) (zero_val w64)).drop kxs.length = kxs := by
+          rw [List.length_replicate, ← Hksllen.1, List.take_length,
+            List.drop_eq_nil_of_le (by simp [Hksllen.1]), List.append_nil]
+        imod ownSlice_persist arr _ _ $$ Harr with #Harr
+        ihave #Harr' : (arr ↦*{DFrac.discard} kxs : IProp GF) $$ []
+        · iapply ((fun Y (h : Y = kxs) => by rw [h] : ∀ Y : List w64, Y = kxs →
+            (arr ↦*{DFrac.discard} Y : IProp GF) ⊢ arr ↦*{DFrac.discard} kxs) _ Hcpy)
+          iexact Harr
+        iclear Harr
         wp_apply wp_slice_literal (V := GoSlice) [arr]
         isplitr
         · ipureintro; rfl
@@ -542,59 +598,177 @@ theorem checkParallel.wp_proof
         · ipureintro; rfl
         iexists s', _, key
         iframe
+        isplitr
+        · ipureintro; simp only [List.length_append, List.length_singleton]; push_cast; rw [Hxl]
+        icases Hxd with (#HD | #Hls)
+        · ileft; iexact HD
+        iunfold linCell at Hlc
+        icases Hlc with (#Hlin | #HD)
+        · iunfold longestLinP at Hlin
+          icases Hlin with ⟨%p0, %sl0, #Hl0, #Hp0, #Hsl0⟩
+          ihave %Hpsrep := ownSlice_agree l _ _ ps _ $$ Hps Hl0
+          have Hkey : key = p0 := by rw [Hpsrep] at Hkps; exact List.eq_of_mem_replicate Hkps.1
+          subst Hkey
+          ihave %Hksl0 := typedPointsto_agree_wand key _ _ ksl sl0 $$ Hk Hp0
+          subst Hksl0
+          iunfold linSlice at Hsl0
+          icases Hsl0 with ⟨%xs0, #Hxs0, %Hlin0⟩
+          ihave %Hkx := ownSlice_agree ksl _ _ kxs xs0 $$ Hksl Hxs0
+          subst Hkx
+          iright
+          iapply BigSepL.bigSepL_snoc.2
+          iframe Hls
+          iunfold linSlice; iexists kxs; iframe Harr'; ipureintro; exact Hlin0
+        · ileft; iexact HD
       iintro HP Hset
       iNamed HP
+      imod ownSlice_persist psl _ _ $$ Hpsl with #Hpsl
+      ihave #Hpd : partD S.M (hs.getD (sint.nat iv) []) (dghostVar γc DFrac.discard ()) psl $$ []
+      · iunfold partD
+        icases Hxd with (#HD | #Hls)
+        · iright; iexact HD
+        iunfold linCell at Hlc
+        icases Hlc with (#Hlin | #HD)
+        · ileft; iunfold partLins; iexists xs; iframe Hpsl Hls
+          iunfold longestLinP at Hlin
+          icases Hlin with ⟨%p0, %sl0, #Hl0, #Hp0, -⟩
+          ihave %Hpsrep := ownSlice_agree l _ _ ps _ $$ Hps Hl0
+          ihave %Hp0n := typedPointsto_not_null $$ Hp0
+          ipureintro
+          intro hne
+          have hps0 : ps[0]? = some p0 := by
+            rw [Hpsrep]; exact List.getElem?_replicate_of_lt (List.length_pos_iff.mpr hne)
+          have hjl : 0 < sint.nat j := by
+            have : ps.length = sint.nat l.len := Hpslen.1
+            have : 0 < ps.length := by rw [Hpsrep, List.length_replicate]; exact List.length_pos_iff.mpr hne
+            have : ¬ (sint.Z j < sint.Z l.len) := Hif
+            word
+          have hin : p0 ∈ keys := (Hkset p0).2 (HMs2 0 p0 hjl hps0 Hp0n)
+          intro hxs
+          rw [hxs] at Hxl
+          have : 0 < keys.length := List.length_pos_of_mem hin
+          simp at Hxl
+          omega
+        · iright; iexact HD
       wp_auto
       ihave %Hpllen := ownSlice_len _ _ _ $$ Hpl
       have hb' : 0 ≤ sint.Z iv ∧ sint.Z iv < sint.Z plsl.len := by
         constructor <;> word
-      simp only [hb', and_self, ↓reduceIte]
+      simp only [hb', _root_.and_self, ↓reduceIte]
       wp_apply wp_store_slice_index plsl (sint.Z iv) pls psl $$ [Hpl] as Hpl
       · iframe; ipureintro; constructor <;> word
       wp_for_post
       iframe
       iexists iv + W64 1, _
       iframe
-      ipureintro
-      refine ⟨by rw [List.length_set]; exact Hiv.1, by word, by word⟩
+      isplitr
+      · ipureintro
+        refine ⟨by rw [List.length_set]; exact Hiv.1, by word, by word⟩
+      imodintro
+      iintro %i %psl' %Hi
+      obtain ⟨hi, hpi⟩ := Hi
+      by_cases hiv : i = sint.nat iv
+      · subst hiv
+        rw [show (sint.Z iv).toNat = sint.nat iv by word,
+          List.getElem?_set_self (by rw [Hiv.1]; exact Hivn)] at hpi
+        cases hpi; iexact Hpd
+      · rw [List.getElem?_set_ne (by intro h; apply hiv; word)] at hpi
+        iapply Hpo
+        ipureintro; exact ⟨by word, hpi⟩
     isplitr
     · ipureintro; trivial
     iexists _
     iframe
-  imod tok_or_pd_persist γc $$ Hcan with #HPD
+    iintro %_
+    iexists pls
+    simp only
+    iframe Hpl
+    isplitr
+    · ipureintro; exact Hiv.1
+    iapply (BigSepL.bigSepL_intro (P := iprop(□ (∀ (i : Nat) (psl : GoSlice),
+        ⌜i < sint.nat iv ∧ pls[i]? = some psl⌝ → partD S.M (hs.getD i []) (dghostVar γc DFrac.discard ()) psl) : IProp GF))
+      (fun k x hx => by
+        iintro #H
+        iapply H
+        ipureintro
+        refine ⟨?_, hx⟩
+        have := (List.getElem?_eq_some_iff.1 hx).1
+        have : ¬ (sint.Z iv < sint.Z hsl.len) := Hif
+        rw [Hiv.1, Hlen'] at *
+        word))
+    iexact Hpo
   simp only [github_com.anishathalye.porcupine.Illegal, github_com.anishathalye.porcupine.Ok,
     github_com.anishathalye.porcupine.Unknown]
   cases okv
-  · wp_auto
+  · imod tok_or_pd_persist' γc _ $$ Hcan with #HPD
+    wp_auto
     wp_apply Hcancel' $$ [HPD]
     · iexact HPD
     iapply HΦ
-    ipureintro
-    right; left
-    exact ⟨rfl, fun Hall => absurd (Hok Hall) (by simp)⟩
+    isplitr
+    · ipureintro
+      right; left
+      exact ⟨rfl, fun Hall => absurd (Hok Hall) (by simp)⟩
+    iintro %Hc
+    exact absurd Hc.1 (by decide)
   · cases tov
-    · wp_auto
+    · have Hall : ∀ h ∈ hs, Linearizable S.M h := by
+        intro h hh
+        have HRle : R.length ≤ hs.length := by
+          have h3 := (HR.2.1).length_le_of_subset (l₂ := List.range hs.length)
+            (fun x hx => List.mem_range.2 (HR.2.2 x hx))
+          simpa only [List.length_range] using h3
+        have HRn : R.length = hs.length := Nat.le_antisymm HRle (Hfull rfl rfl rfl)
+        obtain ⟨j, hjl, hje⟩ := List.getElem_of_mem hh
+        exact Hsnd rfl j (nodup_all_mem HR.2.1 HR.2.2 HRn j hjl) h
+          (by rw [List.getElem?_eq_getElem hjl, hje])
+      have Hall' : ∀ i, Linearizable S.M (hs.getD i []) := by
+        intro i
+        rw [List.getD_eq_getElem?_getD]
+        cases hi : hs[i]? with
+        | none => exact linearizable_nil S.M
+        | some h => exact Hall h (List.mem_of_getElem? hi)
+      icases Hcan with (Htok | ⟨-, %Hc⟩)
+      rotate_left
+      · exfalso; simp at Hc
+      cases cp
+      · imod dghostVar_persist γc 1 () $$ Htok with #HPD
+        wp_auto
+        wp_apply Hcancel' $$ [HPD]
+        · iexact HPD
+        iapply HΦ
+        isplitr
+        · ipureintro; left; exact ⟨rfl, Hall⟩
+        iintro %Hc; exact absurd Hc.2 (by decide)
+      · ihave Hinf2 := Hinf $$ %rfl
+        icases Hinf2 with ⟨%psls, Hpsls, %Hpl, #Hparts⟩
+        imod ownSlice_persist _ _ _ $$ Hpsls with #Hpsls
+        icases partDs_or S.M (dghostVar γc DFrac.discard ()) psls (fun i => hs.getD i []) Hall'
+          $$ Hparts with (#HPD' | #Hlins)
+        · iexfalso; iapply tok_pd_false $$ Htok HPD'
+        imod dghostVar_persist γc 1 () $$ Htok with #HPD
+        wp_auto
+        wp_apply Hcancel' $$ [HPD]
+        · iexact HPD
+        iapply HΦ
+        isplitr
+        · ipureintro; left; exact ⟨rfl, Hall⟩
+        iintro -
+        iunfold linInfoOk
+        iexists psls
+        iframe Hpsls Hlins
+        ipureintro; exact Hpl
+    · imod tok_or_pd_persist' γc _ $$ Hcan with #HPD
+      wp_auto
       wp_apply Hcancel' $$ [HPD]
       · iexact HPD
       iapply HΦ
-      ipureintro
-      left
-      refine ⟨rfl, fun h hh => ?_⟩
-      have HRle : R.length ≤ hs.length := by
-        have h3 := (HR.2.1).length_le_of_subset (l₂ := List.range hs.length)
-          (fun x hx => List.mem_range.2 (HR.2.2 x hx))
-        simpa only [List.length_range] using h3
-      have HRn : R.length = hs.length := Nat.le_antisymm HRle (Hfull rfl rfl rfl)
-      obtain ⟨j, hjl, hje⟩ := List.getElem_of_mem hh
-      exact Hsnd rfl j (nodup_all_mem HR.2.1 HR.2.2 HRn j hjl) h
-        (by rw [List.getElem?_eq_getElem hjl, hje])
-    · wp_auto
-      wp_apply Hcancel' $$ [HPD]
-      · iexact HPD
-      iapply HΦ
-      ipureintro
-      right; right
-      exact ⟨rfl, Hto rfl⟩
+      isplitr
+      · ipureintro
+        right; right
+        exact ⟨rfl, Hto rfl⟩
+      iintro %Hc
+      exact absurd Hc.1 (by decide)
 
 end proof
 

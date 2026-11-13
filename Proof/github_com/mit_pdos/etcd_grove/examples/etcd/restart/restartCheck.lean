@@ -66,9 +66,10 @@ theorem restartCheck.wp_proof
     restartCheck.spec (GF := GF) (hG := hG) := by
   intro CS CRE CEC cl ep V E₁ γr γf cid mid m s pl ρ N name peerAddr caddr peer cluster lg M iu
     Uok ps bootLog ctxs dir id γ γn ThB RcB RcN HwbN Hst hvs hrule hboot hblen hb3 Hγn1 Hγn2 Hdirok Hdir Hdirps HU
-    Hpe Hlg Hck Haf Hbuq Hrf Hdbo Hms hAs
-  wp_start as ⟨Hmst, Hmsr, #Hcl, #Hregs, #Hinv, Hca, Htok, #Hpeer, #Hclu, #Hsls, #HbR, #Hcom,
+    Hpe Hck Haf Hbuq Hrf Hdbo Hms hAs
+  wp_start as ⟨#Hzlg, Hmst, Hmsr, #Hcl, #Hregs, #Hinv, Hca, Htok, #Hpeer, #Hclu, #Hsls, #HbR, #Hcom,
     #Hcci, #Hnet⟩
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   ihave #Pcli : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
@@ -125,7 +126,7 @@ theorem restartCheck.wp_proof
   -- the stopped member started again
   have Hu : Uok ⟨[etcdstart.httpURL peerAddr], [etcdstart.httpURL caddr], M, iu⟩ := HU
   wp_apply (wp_startMemberR N name peerAddr caddr peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ γn
-      HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps Hu Hlg Hck Haf Hbuq Hdbo)
+      HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps Hu Hck Haf Hbuq Hdbo)
     $$ [Htok Hrr] as %mR %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, %sR, %plR, %ρ', %E₀', %Hρ', Hup, Hst⟩)
@@ -170,8 +171,9 @@ theorem restartCheck.wp_proof
   -- `NewClient(client, lg)`
   have Htb := ThreadBoundLe.le (GF := GF) (2 ^ 28)
   wp_apply (wp_NewClient caddr lg
-      (EtcdGrove.client.srvWEnv R caddr [] null null [] null default) Hlg Hpe (by omega))
+      (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E γr false) γr caddr [] null null [] null default) Hpe (by omega))
     as %clR %cerr Hcl'
+  · iframe #
   icases Hcl' with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail
@@ -194,7 +196,7 @@ theorem restartCheck.wp_proof
   · rw [putGetInv_st ρ'.rd γr (by rw [Hst', Hst]) γf]
     iexact Hinv
   imod monoNatLbOwn_0 (GF := GF) ρ'.rd.committed with #Hc0
-  imod mvcc.idxCert_nil (GF := GF) E'.γ.idx with #HF0
+  imod v3rpc.kvLogLb_nil (GF := GF) E'.γs with #HF0
   ihave #Hnil : optsAt (GF := GF) slice.nil [] $$ []
   · iunfold optsAt
     iexists ([] : List GoFunc)

@@ -23,6 +23,7 @@ the gRPC server's one slot; in the mode `none` that token is dropped.
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WatchSrv
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartMember
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewMember
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Start
@@ -40,7 +41,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.holdToke
 
 set_option linter.unusedSectionVars false
 set_option synthInstance.maxSize 4096
-set_option synthInstance.maxHeartbeats 400000
+set_option synthInstance.maxHeartbeats 1600000
 
 noncomputable section
 
@@ -81,13 +82,16 @@ theorem StartMember.wp_proof
     (wp_KEP : grpc.KeepaliveEnforcementPolicy.spec (GF := GF) (hG := hG))
     (wp_Server : v3rpc.Server.spec (GF := GF) (hG := hG))
     (wp_GServe : grpc.Server.Serve.spec (GF := GF) (hG := hG))
-    (wp_holdToken : holdToken.spec (GF := GF) (hG := hG)) :
+    (wp_holdToken : holdToken.spec (GF := GF) (hG := hG))
+    (hP : mvcc.api.persistent.law (GF := GF)) (hR : mvcc.api.mvccState_reachable.law (GF := GF))
+    (hRS : mvcc.api.mvccReaders_split.law (GF := GF)) :
     StartMember.spec (GF := GF) (hG := hG) := by
   intro CS cfg N name peerAddr client peer cluster lg sl₁ sl₂ sl₃ ps bootLog ctxs dir id γ ρ E₀
     Φs γn cmp lm Hcfg
-    Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps Hlg Hck Haf Hbuq Hrf Hdbo Hms
+    Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps Hck Haf Hbuq Hrf Hdbo Hms
     HlP
-  wp_start as ⟨Htok, #Hpeer, #Hcl, #Hs1, #Hs2, #Hs3, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
+  wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hs1, #Hs2, #Hs3, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
   -- (lease-mono3) the KV names' lease mode, out of the boot bundle (`kv_lease_served_watch`'s)
   iunfold memberBoot at Hmb
   icases Hmb with ⟨%Hp, Hmb⟩
@@ -132,7 +136,7 @@ theorem StartMember.wp_proof
       (by omega) Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps
       ⟨rfl, rfl, ⟨_, _, _, rfl⟩, rfl⟩
       (etcdstart.utf8Keys_insert _ _ _ Hcfg.utf3 (etcdstart.utf8Keys_insert _ _ _ Hcfg.utf2
-        (etcdstart.utf8Keys_insert _ _ _ Hcfg.utf1 etcdstart.utf8Keys_empty))) Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh] as %srv %err Hres
+        (etcdstart.utf8Keys_insert _ _ _ Hcfg.utf1 etcdstart.utf8Keys_empty))) Hck Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh] as %srv %err Hres
   · iframe; iframe #
   icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb⟩)
   · -- `NewMember` failed: the error returned
@@ -156,19 +160,16 @@ theorem StartMember.wp_proof
   subst Hcerr
   wp_auto
   -- `s.Start()`
-  wp_apply (etcdstart.wp_Start_built wp_Start srv ρ E₀ lg γn id N _ HrbN lm) $$ [Hmb Htok] as Hup
+  wp_apply (etcdstart.wp_Start_built wp_Start srv ρ E₀ lg γn id N _ HrbN lm Hrb48) $$ [Hmb Htok] as Hup
   · iframe
   (try wp_auto)
   icases etcdstart.memberUp_served _ _ _ _ _ _ _ $$ Hup with ⟨%E, %cfg, %γw, %HEc, #Hreq, #Hrd,
     #Hsf, Hgo, Hlg3, Hbemu, HWR, ⟨Hlts, Hlgs, Hrds, Hsts, Hrslots, Hbms⟩, Hctl, #HLR⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HEc
   -- `v3rpc.Server(s, nil, nil, opt)`: its configuration from `NewServer`'s and `Start`'s
-  ihave ⟨%C, #Hgc, %HC, HWRs⟩ : ∃ C : v3rpc.GrpcCfg GF, v3rpc.grpcCfgOk srv C ∗
-      ⌜C.A = v3rpc.srvKVAns srv E { ρ with wait := γw } ρ.rd (W64 0) [] .none ∧ C.E = E⌝ ∗
-      [∗list] _x ∈ List.replicate 64 (), mvcc.watchReader C.wsl E.s C.γ $$ [HWR]
-  · iapply (EtcdGrove.client.grpcCfgOk_of_started_w srv E { ρ with wait := γw } ρ.rd cfg []
-      (by rw [HElg]; exact Hlg) 64)
-    iframe; iframe #
+  imod (EtcdGrove.client.grpcCfgOk_of_started_w srv E { ρ with wait := γw } ρ.rd cfg []
+      (by rw [HElg]; exact Hlg) 64) $$ [HWR] with ⟨%C, #Hgc, %HC, HWRs⟩
+  · iframe; iframe #
     rw [HEtr]
     iapply ownSlice_nil
   -- (2026-10-21, D28) the server option: the keepalive policy, neutral
@@ -220,9 +221,16 @@ theorem StartMember.wp_proof
       iframe; iframe #
       ipureintro
       exact ⟨HC.1, HC.2, Hregs.1, Hregs.2.1, hRs, by rw [hRE, HC.2], hRw, hRγ⟩
-    imod (etcdstart.kv_lease_served_watch srv E { ρ with wait := γw } ρ.rd gs clis client cid mid R
-        Hrb48 (by omega) Hrf (HlP hlm) rfl lm hm Hms.watch_impl)
-      $$ [Hlts Hlgs Hrds Hsts Hrslots Hbms Htok2 Hup]
+    -- (R9) the watch path's server facts
+    haveI := v3rpc.srvWOk_persistent hP (etcdstart.srvWOf E ρ.rd false) R.wsl v3rpc.wsN
+    ihave #HWok : v3rpc.srvWOk (etcdstart.srvWOf E ρ.rd false) R.wsl v3rpc.wsN $$ []
+    · rw [hRw]
+      iapply (etcdstart.srvWOk_of_up hP hR srv E ρ.rd cfg C (by omega))
+      iframe #
+    ihave #HWl := EtcdGrove.client.srvWLaws_of_ok (etcdstart.srvWOf E ρ.rd false) R.wsl v3rpc.wsN $$ HWok
+    imod (etcdstart.kv_lease_served_watch hRS srv E { ρ with wait := γw } ρ.rd gs clis client cid mid R
+        Hrb48 (by omega) Hrf (HlP hlm) rfl lm hm Hms.watch_impl (etcdstart.srvWOf E ρ.rd false) rfl)
+      $$ [Hlts Hlgs Hrds Hsts Hrslots Hbms Htok2 Hup HWok]
       with ⟨Hserv, Hgo, #Hlr, Hls, ⟨%pw', #Hws'⟩, %HR', #Hstr, %Hnr⟩
     · unfold etcdstart.kvServeStocks
       iframe; iframe #
@@ -266,9 +274,12 @@ theorem StartMember.wp_proof
   -- watchable store's readers, one of the request path's (watchkv's)
   obtain ⟨hRs, hRE, hRw, hRγ⟩ := HR
   rw [HC.2] at hRE
-  ihave Hwslots := EtcdGrove.client.watchRunSlots_of R 1 64 1 (by omega) (by omega) $$ [HWRs Hrd1]
-  · rw [hRw, hRγ, hRE]
-    iframe HWRs
+  icases (hRS E.γ 2 62).1 $$ HWRs with ⟨HWR2, -⟩
+  ihave Hwslots := EtcdGrove.client.watchRunSlots_of hRS R (etcdstart.srvWOf E ρ.rd false) 1 1 (Nat.le_refl _)
+      $$ [HWR2 Hrd1]
+  · simp only [etcdstart.srvWOf, Nat.mul_one]
+    rw [hRE]
+    iframe HWR2
     isplitl [Hrd1]
     · simp only [List.replicate]
       iapply BigSepL.bigSepL_cons.2
@@ -296,8 +307,14 @@ theorem StartMember.wp_proof
   -- (W2) the `Watch` stream served at the client address
   ihave #Ppb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
   · iPkgInit
-  imod (EtcdGrove.v3rpc.etcd_watch_served_chain client pw R ims is sregs 1 Hms.watch_impl Hregs.2.1)
-    $$ [Hss Hwslots] with #Hwst
+  haveI := v3rpc.srvWOk_persistent hP (etcdstart.srvWOf E ρ.rd false) R.wsl v3rpc.wsN
+  ihave #HWok : v3rpc.srvWOk (etcdstart.srvWOf E ρ.rd false) R.wsl v3rpc.wsN $$ []
+  · rw [hRw]
+    iapply (etcdstart.srvWOk_of_up hP hR srv E ρ.rd cfg C (by omega))
+    iframe #
+  ihave #HWl := EtcdGrove.client.srvWLaws_of_ok (etcdstart.srvWOf E ρ.rd false) R.wsl v3rpc.wsN $$ HWok
+  imod (EtcdGrove.v3rpc.etcd_watch_served_chain client pw R (etcdstart.srvWOf E ρ.rd false) ims is sregs 1 Hms.watch_impl Hregs.2.1)
+    $$ [Hss Hwslots HWok] with #Hwst
   · iframe; iframe #
   -- `go gs.Serve(l)`
   wp_apply wp_fork $$ [Hserv]

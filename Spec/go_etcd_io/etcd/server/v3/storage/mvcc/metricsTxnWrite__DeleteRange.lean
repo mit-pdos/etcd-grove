@@ -3,7 +3,7 @@
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.TxnSteps
 
 @[expose] public section
 
@@ -26,16 +26,16 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 abbrev mvcc.metricsTxnWrite.DeleteRange.spec : Prop :=
   ∀ (trace : Loc) (mw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
     (puts deletes putSize : w64) (key endk : GoSlice) (k e : GoString) (L : List w64) (crev : Int)
-    (Z : IProp GF),
+    (Z Tr : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.isTxnWrite mw s γ trace ilog pend puts deletes putSize crev Z ∗ key ↦*□ k ∗ endk ↦*□ e ∗
+      mvcc.isTxnWriteT mw s γ trace ilog pend puts deletes putSize crev Z false Tr ∗ key ↦*□ k ∗ endk ↦*□ e ∗
       lease.leaseOwn γ.leases L (mvcc.pendItems ilog pend) }}
     (App (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"DeleteRange"))
       (Val #key)) (Val #endk))
   {{ (n rev : w64), RET (PairV #n #rev);
-      mvcc.isTxnWrite mw s γ trace ilog
+      mvcc.isTxnWriteT mw s γ trace ilog
         (pend ++ (mvcc.delKeys ilog pend (decide (endk = slice.nil)) k e).map .del)
-        puts (deletes + W64 1) putSize crev Z ∗
+        puts (deletes + W64 1) putSize crev Z false Tr ∗
       lease.leaseOwn γ.leases L (mvcc.pendItems ilog (pend ++ (mvcc.delKeys ilog pend (decide (endk = slice.nil)) k e).map .del)) ∗
       ⌜n = W64 ((mvcc.delKeys ilog pend (decide (endk = slice.nil)) k e).length : Int) ∧
         rev = W64 ((mvcc.writeRev ilog

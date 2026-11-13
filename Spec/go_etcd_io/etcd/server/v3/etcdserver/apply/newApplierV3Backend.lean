@@ -26,7 +26,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
-/-- **`newApplierV3Backend(opts)`**: the backend applier over the options `opts` (a logger, the KV `E.s`, the components with their contracts): an applier value of the chain `backend`. -/
+/-- **`newApplierV3Backend(opts)`**: the backend applier over the options `opts` (a logger, the KV `E.kv`, the components with their contracts): an applier value of the chain `backend`. -/
 abbrev apply.newApplierV3Backend.spec : Prop :=
   ∀ (opts : ApplierOptions),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply }}

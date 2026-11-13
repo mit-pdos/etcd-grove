@@ -77,7 +77,8 @@ theorem Main.wp_proof
     -- the open case of `run`'s expiry arm (`srvRevokeOpen`): this example's names grant revocable
     -- leases (until the lease-expiry plan's S2–S4, also `srvGrantOpen`, a granting cluster's
     -- snapshot job)
-    (hrev : srvRevokeOpen (GF := GF) (hG := hG)) :
+    (hrev : srvRevokeOpen (GF := GF) (hG := hG))
+    (hne : mvcc.api.names_nonempty.law) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS CRE CEC N id ctxs boot Hbf Htb Hlev Hrb48 HrbN HwbN Hck Haf Hbuq Hrf Hdbo HlP Hms hAs
   wp_start as ⟨Hstart, Htok, #Hprem⟩
@@ -110,11 +111,12 @@ theorem Main.wp_proof
   ihave #Ptime : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_NewNop as %lg %Hlg
+  wp_apply wp_NewNop as %lg #Hlgz
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hlgz
   (try wp_auto)
   -- the ghost state `NewServer` takes (`alloc1`), at KV names whose lessor is revocable
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
-  imod (etcdstart.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc Hbf.urls (leaseexpiryDir id)
+  imod (etcdstart.alloc1 hne id ctxs boot Hbf.idLow Hbf.boot Hbf.cc Hbf.urls (leaseexpiryDir id)
       (dirOne_member id _) (by omega) (by omega) false 0 .revocable .revocable
       (lease.runCfg_revocable Hlev hrev)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, -⟩
@@ -129,7 +131,7 @@ theorem Main.wp_proof
   wp_apply (wp_StartServer N go!"leaseexpiry" go!"127.0.0.1:23986" go!"127.0.0.1:23976" lg
       (LogEntry.toEntries boot 0) ctxs (leaseexpiryDir id) id γ ρ E₀ Φs γn .revocable Htb Hrb48
       HrbN HwbN hvs hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [leaseexpiryDir, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) Hlg Hck Haf Hbuq
+      (by simp [leaseexpiryDir, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) Hck Haf Hbuq
       Hdbo) $$ [Htok Hmb Hfresh]
     as %srv %err Hr
   · iframe; iframe #
@@ -156,7 +158,7 @@ theorem Main.wp_proof
   icases Hslr with ⟨%lpl, -, #Hlinv⟩
   iunfold lease.lessorInv at Hlinv
   icases Hlinv with ⟨-, -, -, #HrdInv⟩
-  ihave #Hrow2 := leaseTTLRow_intro srv id E.γ.leases $$ [Hrow Hfirst]
+  ihave #Hrow2 := leaseTTLRow_intro srv id (mvcc.api.mvccLeases E.γ) $$ [Hrow Hfirst]
   · iframe #
   -- `go holdToken()`: the forked goroutine never returns; its token stays with `Main`
   ihave #Plk : isPkgInit (PROP := IProp GF)
@@ -175,7 +177,7 @@ theorem Main.wp_proof
   · iframe #
   wp_apply (wp_Serve srv go!"127.0.0.1:23976" E { ρ with wait := γw } ρ.rd cfg
       (fun _ _ _ => iprop(client.etcdLeaseReadAt (GF := GF) go!"127.0.0.1:23976" ∗
-        etcdstart.etcdLeaseGrantLiveAt go!"127.0.0.1:23976" srv E)))
+        etcdstart.etcdLeaseGrantLiveAt go!"127.0.0.1:23976" srv E ρ.rd)))
     $$ [Haddr Hlg3 Hbemu Hgo HWR Hlts Hlgs Hrds Hsts Hrslots Hbms Htok2] as %serr Hs
   · iframe; iframe #
     isplitr
@@ -202,8 +204,9 @@ theorem Main.wp_proof
   icases Hga with ⟨#Hrg, #Hrttl, #Hrls⟩
   -- `NewClient(clientAddr, lg)`
   wp_apply (wp_NewClient go!"127.0.0.1:23976" lg
-      (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23976" [] null null [] null default) Hlg
+      (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd go!"127.0.0.1:23976" [] null null [] null default)
       (by unfold plainEndpoint; decide) (by omega)) as %cl %cerr Hcl
+  · iframe #
   icases Hcl with (⟨%Hcerr, #Hnc, -⟩ | %Hcfail)
   rotate_left
   · obtain ⟨Hcerr, -⟩ := Hcfail
@@ -227,9 +230,9 @@ theorem Main.wp_proof
   -- `cli.Lease.Grant(gctx, grantTTL)`, `Q`: the lease live in the history from an index, its
   -- request `1`
   wp_apply (wp_Grant lp [go!"127.0.0.1:23976"]
-      (etcdLeaseGrantSpecLive (EM := v3rpc.etcdModelOfServer E) E.γ.leases)
-      (fun m => iprop(∃ (i : Nat) (l : Loc), lease.leaseLiveFrom E.γ.leases i m.id l ∗
-        lease.leaseReqIs E.γ.leases m.id (W64 1))) gctx gcd) as %gr %gerr Hgr
+      (etcdLeaseGrantSpecLive (EM := v3rpc.etcdModelOfServer E ρ.rd false) (mvcc.api.mvccLeases E.γ))
+      (fun m => iprop(∃ (i : Nat) (l : Loc), lease.leaseLiveFrom (mvcc.api.mvccLeases E.γ) i m.id l ∗
+        lease.leaseReqIs (mvcc.api.mvccLeases E.γ) m.id (W64 1))) gctx gcd) as %gr %gerr Hgr
   · iframe #
     imodintro; inext
     iunfold etcdLeaseGrantSpecLive
@@ -256,10 +259,10 @@ theorem Main.wp_proof
   ihave #Hlive' := Hlive
   iunfold lease.leaseLiveFrom at Hlive'
   icases Hlive' with ⟨%i0, %σg, %Hσg, #Hσat⟩
-  ihave #Hlb0 := lease.lessorAt_lb E.γ.leases i0 σg $$ Hσat
+  ihave #Hlb0 := lease.lessorAt_lb (mvcc.api.mvccLeases E.γ) i0 σg $$ Hσat
   -- the poll loop: `gone` once the lease is found absent from the history after the grant
   ihave IO : (∃ (n : w64) (b : Bool), "i" ∷ i_ptr ↦ n ∗ "gone" ∷ gone_ptr ↦ b ∗
-      "#Hb" ∷ (if b then lease.leaseAbsentFrom (GF := GF) E.γ.leases i0 mg.id else iprop(True)) :
+      "#Hb" ∷ (if b then lease.leaseAbsentFrom (GF := GF) (mvcc.api.mvccLeases E.γ) i0 mg.id else iprop(True)) :
       IProp GF) $$ [i gone]
   · iexists W64 0, false
     simp only [named, Bool.false_eq_true, ↓reduceIte]
@@ -280,11 +283,11 @@ theorem Main.wp_proof
       as %tctx %tcd %tcancel ⟨#Htcancel, #Htctx, #Htce, -⟩
     (try wp_auto)
     -- `cli.Lease.TimeToLive(tctx, g.ID)` at the grant's index
-    wp_apply (wp_TimeToLive lp [go!"127.0.0.1:23976"] (etcdLeaseTTLSpecLive E.γ.leases srv)
+    wp_apply (wp_TimeToLive lp [go!"127.0.0.1:23976"] (etcdLeaseTTLSpecLive (mvcc.api.mvccLeases E.γ) srv)
         (fun m => iprop(⌜m.id = mg.id⌝ ∗
-          □ (leaseTTLRow srv E.γ.leases -∗
-            (∃ i : Nat, ⌜i0 ≤ i⌝ ∗ lease.leaseTTLAt E.γ.leases i m.id m.grantedTtl) ∨
-            lease.leaseAbsentFrom E.γ.leases i0 m.id)))
+          □ (leaseTTLRow srv (mvcc.api.mvccLeases E.γ) -∗
+            (∃ i : Nat, ⌜i0 ≤ i⌝ ∗ lease.leaseTTLAt (mvcc.api.mvccLeases E.γ) i m.id m.grantedTtl) ∨
+            lease.leaseAbsentFrom (mvcc.api.mvccLeases E.γ) i0 m.id)))
         tctx tcd mg.id slice.nil []) as %tr %terr Htl
     · iframe #
       isplitl
@@ -322,11 +325,11 @@ theorem Main.wp_proof
     -- the answer's case, under the row: its `GrantedTTL` is the lease's `ttl` (not `0`), or the
     -- lease is absent from the history after the grant
     ihave Hcase : iprop(|={⊤}=> (⌜mt.grantedTtl ≠ W64 0⌝ ∨
-        lease.leaseAbsentFrom E.γ.leases i0 mg.id)) $$ []
+        lease.leaseAbsentFrom (mvcc.api.mvccLeases E.γ) i0 mg.id)) $$ []
     · ihave Hdis := Hmt $$ Hrow2
       icases Hdis with (⟨%j, %Hj, #Httl0⟩ | #Habs)
       · -- (the lease-expiry plan's S2–S4, Q-S8) every TTL of the lease at least its request, `1`
-        imod lease.leaseTTLAt_ge_req E.γ.leases j mt.id (W64 1) mt.grantedTtl ⊤ (by simp)
+        imod lease.leaseTTLAt_ge_req (mvcc.api.mvccLeases E.γ) j mt.id (W64 1) mt.grantedTtl ⊤ (by simp)
           $$ [HrdInv Hgreq Httl0] with %Hge
         · rw [Hmid]; iframe #
         imodintro; ileft; ipureintro
@@ -379,7 +382,7 @@ theorem Main.wp_proof
     (try simp only [↓reduceIte])
     iunfold lease.leaseAbsentFrom at Hb
     icases Hb with ⟨%k, %ρa, %Hρa, #Hρat⟩
-    ihave #Hlbk := lease.lessorAt_lb E.γ.leases k ρa $$ Hρat
+    ihave #Hlbk := lease.lessorAt_lb (mvcc.api.mvccLeases E.γ) k ρa $$ Hρat
     -- `lctx, lcancel := context.WithTimeout(context.Background(), etcdstart.RequestTimeout)`
     wp_apply wp_Background
     (try wp_auto)
@@ -387,8 +390,8 @@ theorem Main.wp_proof
       as %lctx %lcd %lcancel ⟨#Hlcancel, #Hlctx, #Hlce, -⟩
     (try wp_auto)
     -- `cli.Lease.Leases(lctx)` at the absence's index: `Q`, a snapshot at or after it
-    wp_apply (wp_Leases lp [go!"127.0.0.1:23976"] (etcdLeaseLeasesSpecLive E.γ.leases)
-        (fun m => iprop(∃ j : Nat, ⌜k ≤ j⌝ ∗ lease.leaseIdsAt E.γ.leases j m.ids)) lctx lcd)
+    wp_apply (wp_Leases lp [go!"127.0.0.1:23976"] (etcdLeaseLeasesSpecLive (mvcc.api.mvccLeases E.γ))
+        (fun m => iprop(∃ j : Nat, ⌜k ≤ j⌝ ∗ lease.leaseIdsAt (mvcc.api.mvccLeases E.γ) j m.ids)) lctx lcd)
         as %lsr %lerr Hls
     · iframe #
       imodintro; inext
@@ -414,7 +417,7 @@ theorem Main.wp_proof
     -- the listing is a snapshot where the lease is still absent
     iunfold lease.leaseIdsAt at Hids
     icases Hids with ⟨%τ, %Hτ, #Hτat⟩
-    imod lease.lessorAt_absent_stays E.γ.leases i0 k j σg ρa τ mg.id ⊤ (by simp)
+    imod lease.lessorAt_absent_stays (mvcc.api.mvccLeases E.γ) i0 k j σg ρa τ mg.id ⊤ (by simp)
         (by rw [Hσg.2]; rfl) Hρa.1 Hρa.2 Hkj $$ [HrdInv Hσat Hρat Hτat] with %Hτn
     · iframe #
     have Hnot : mg.id ∉ m.ids := by

@@ -219,7 +219,7 @@ theorem raftNode.start.wp_proof
         icases Hsnap with ⟨%es, %A', %p', %l, %S', %r', %qms, Hdata, Hbusy, #Hhsc, %HidxN⟩
         iunfold rnBusySP at Hbusy
         icases Hbusy with ⟨Hpend, Hbcv, %Hbs⟩
-        obtain ⟨HbA, HbPre, HbD, HbPos, Hb61⟩ := Hbs
+        obtain ⟨HbA, HbPre, HbD, HbPos, Hb61, Hbwa⟩ := Hbs
         icases rnReadySnap_bootLen E γ _ _ _ _ _ _ _ $$ Henv Hdata with ⟨Hdata, %Hbb⟩
         iunfold rnReadySnap at Hdata
         icases Hdata with ⟨%ceL, %esL, %msL, %hs, ⟨%S1, %r1, HrSn⟩, %HwSteps, #Hce, #Hcea, %HA', #HC, #HsvV, #Hes, #Hesa,
@@ -461,7 +461,10 @@ theorem raftNode.start.wp_proof
         -- two-receive notify, `NotifyC2.lean`), `raftAdvancedC`
         wp_apply chan.wp_make2 (V := Unit) $$ [] as %nc %γnc0 ⟨#Hncch, %Hncap, Hncown⟩
         · ipureintro; decide
-        imod start_notify2 iprop(True) iprop(True) nc γnc0 (by rw [Hncap]; rfl) $$ Hncch Hncown with
+        -- (sweep repairs 1, W2) the first send's payload: the WAL's records at or above the
+        -- snapshot's index, from its `SaveSnap` (`rnApSnap`'s)
+        imod start_notify2 (walBaseLb γ.wal.loc (uint.nat l.snap.Metadata'.Index')) iprop(True) nc γnc0
+          (by rw [Hncap]; rfl) $$ Hncch Hncown with
           ⟨%γnc, %Hγnc, #Hncb, Hnsnd, Hnrcv⟩
         wp_apply chan.wp_make2 (V := Unit) $$ [] as %ac %γac ⟨#Hacch, -, Hacown⟩
         · ipureintro; decide
@@ -543,7 +546,7 @@ theorem raftNode.start.wp_proof
             simp only [Int.toNat_natCast]
             iframe Hcn Hcn1 HC Hc2M Hcert HsnLoc Hcal
             isplitr
-            · ipureintro; exact ⟨HLA, hlenA, Hb61, Hbb⟩
+            · ipureintro; exact ⟨HLA, hlenA, Hb61, Hbb, Hbwa.imp_right (fun h => by rw [hlenA]; exact h)⟩
             isplitr
             · ihave %HceL : iprop(⌜ceL.length = ([] : List EntryModel).length⌝) $$ []
               · iunfold entriesAt at Hcea; icases Hcea with ⟨%H, -⟩; ipureintro; exact H
@@ -606,7 +609,7 @@ theorem raftNode.start.wp_proof
           -- (R2b-1 stage 4) the received snapshot's `SaveSnap` (`rnDur_saveSnap_au`)
           ihave #HSaveSnap := walSaveSnap_spec _ si rfl (1 : Qp).half _ _ _ _ _ _ $$ Hsti
           wp_apply HSaveSnap $$ [$Hwo $HM1 $Hm1 $HAU] as %err ⟨Hwo, -, -, Hres⟩
-          icases Hres with (⟨%Herr, Hwv, Hwok⟩ | %Hbad)
+          icases Hres with (⟨%Herr, Hwv, Hwok, #Hwblb⟩ | %Hbad)
           rotate_left
           · exact absurd Hwso Hbad
           subst Herr
@@ -672,7 +675,11 @@ theorem raftNode.start.wp_proof
             iexact Hf
           wp_auto
           -- `notifyc <- struct{}{}`: the first send
+          ihave #Hdur2 := Hdur
+          iunfold rnDurInv at Hdur2
+          icases Hdur2 with ⟨%Hwloc, -⟩
           wp_apply wp_notify2_send1 γnc nc _ _ $$ [$Hncb $Hnsnd] as Hnsnd
+          · rw [Hwloc]; iexact Hwblb
           (try wp_auto)
           -- `r.raftStorage.ApplySnapshot(raftSnap)`: at node `id`'s justifications
           ihave #Hinit := isInitialized_access $$ Hrpkg
@@ -751,7 +758,7 @@ theorem raftNode.start.wp_proof
               (by simp only [List.length_append] at hlenA; omega) Hlast
             iframe HcpS Hdum
           ihave Hbusy : rnBusyS γ L' A' es p' l S' r' $$ [Hbdrv Hbcv]
-          · iunfold rnBusyS; iframe Hbdrv Hbcv; ipureintro; exact ⟨HbA, HbPre, HbD, HbPos, Hb61⟩
+          · iunfold rnBusyS; iframe Hbdrv Hbcv; ipureintro; exact ⟨HbA, HbPre, HbD, HbPos, Hb61, Hbwa⟩
           -- the confChange scan (`confChanged` only decides an extra `notifyc` send)
           ihave %Hcelen := ownSlice_len _ _ _ $$ Hce
           ihave #Hcea' := Hcea
@@ -1204,12 +1211,14 @@ theorem raftNode.start.wp_proof
         ⟨%γnc, %Hγnc, #Hncb, Hnsnd, Hnrcv⟩
       -- (D43 M3) the view: with the batch if `rnHands` (with the committed log handed out), else
       -- kept
+      -- (R2d'a A6) the restart data kept (`rnRestartOk`, persistent), the view handed or kept
+      icases rnCfgAt_restart γ L' $$ Hcv with ⟨Hcv, #Hrok⟩
       ihave Hgive : iprop(rnApGive γ L' ce ∗ (if rnHands γ ce then iprop(True) else rnCfgAt γ L'))
         $$ [Hcv]
       · unfold rnApGive
         split
         · iframe Hcv Hdlb
-        · iframe Hcv
+        · iunfold rnCfgAt; iframe Hcv Hrok
       icases Hgive with ⟨Hgive, Hkeep⟩
       wp_apply chan.wp_make2 (V := Unit) $$ [] as %ac %γac ⟨#Hacch, -, Hacown⟩
       · ipureintro; decide
@@ -1238,7 +1247,7 @@ theorem raftNode.start.wp_proof
       -- the batch's committed log and indices, from `E.C` (`rnEnvOk`)
       ihave #Henv' := Henv
       iunfold rnEnvOk at Henv'
-      icases Henv' with ⟨-, -, -, -, -, -, #HCback, -⟩
+      icases Henv' with ⟨-, %Hnm, -, -, -, -, #HCback, -⟩
       ihave #HCl := HCback $$ %(L' ++ ce) HC
       icases HCl with ⟨#HLb, %HidxOk⟩
       wp_bind (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.updateCommittedIndex))
@@ -1487,7 +1496,7 @@ theorem raftNode.start.wp_proof
             rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"Advance")]
             wp_auto
             -- (D43 M3) the view after the batch: no conf entry, the loop's own
-            ihave Hcv' := rnCfgAt_back_false γ _ L' ce HidxOk.2 Hcc.symm $$ Hkeep
+            ihave Hcv' := rnCfgAt_back_false γ E.γr.raft _ L' ce Hnm HidxOk.2 Hcc.symm $$ [$HLb $Hkeep]
             ihave HAdv' := HAdv $$ %L' %ce %es %p'
             wp_apply HAdv' $$ [$Hbusy $Hcv' $Hrcpt $Hrun] as ⟨Hdrv, Hrun, #Hfl⟩
             ihave ⟨Hdrv, #HcA⟩ := rn_storDL γ (L' ++ ce) p' _ _ $$ Hdrv
@@ -1547,7 +1556,7 @@ theorem raftNode.start.wp_proof
               rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"Advance")]
               wp_auto
               -- (D43 M3) the view after the batch: the second send's, or the loop's own (static)
-              ihave Hcv' := rnCfgAt_back_true γ L' ce Hcc.symm $$ [$Hkeep $HRr]
+              ihave Hcv' := rnCfgAt_back_true γ L' ce Hcc.symm $$ [$Hrok $Hkeep $HRr]
               ihave HAdv' := HAdv $$ %L' %ce %es %p'
               wp_apply HAdv' $$ [$Hbusy $Hcv' $Hrcpt $Hrun] as ⟨Hdrv, Hrun, #Hfl⟩
               ihave ⟨Hdrv, #HcA⟩ := rn_storDL γ (L' ++ ce) p' _ _ $$ Hdrv
@@ -1620,7 +1629,7 @@ theorem raftNode.start.wp_proof
             rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"Advance")]
             wp_auto
             -- (D43 M3) the view after the batch: no conf entry, the loop's own
-            ihave Hcv' := rnCfgAt_back_false γ _ L' ce HidxOk.2 Hcc.symm $$ Hkeep
+            ihave Hcv' := rnCfgAt_back_false γ E.γr.raft _ L' ce Hnm HidxOk.2 Hcc.symm $$ [$HLb $Hkeep]
             ihave HAdv' := HAdv $$ %L' %ce %es %p'
             wp_apply HAdv' $$ [$Hbusy $Hcv' $Hrcpt $Hrun] as ⟨Hdrv, Hrun, #Hfl⟩
             ihave ⟨Hdrv, #HcA⟩ := rn_storDL γ (L' ++ ce) p' _ _ $$ Hdrv
@@ -1674,7 +1683,7 @@ theorem raftNode.start.wp_proof
               rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"Advance")]
               wp_auto
               -- (D43 M3) the view after the batch: the second send's, or the loop's own (static)
-              ihave Hcv' := rnCfgAt_back_true γ L' ce Hcc.symm $$ [$Hkeep $HRr]
+              ihave Hcv' := rnCfgAt_back_true γ L' ce Hcc.symm $$ [$Hrok $Hkeep $HRr]
               ihave HAdv' := HAdv $$ %L' %ce %es %p'
               wp_apply HAdv' $$ [$Hbusy $Hcv' $Hrcpt $Hrun] as ⟨Hdrv, Hrun, #Hfl⟩
               ihave ⟨Hdrv, #HcA⟩ := rn_storDL γ (L' ++ ce) p' _ _ $$ Hdrv

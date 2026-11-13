@@ -93,10 +93,10 @@ theorem mvcc.watchableStore.Close.wp_proof
   wp_apply mvcc.wp_wsWg_Wait s st γ.st γwg γd γw $$ [$Htok $Hγw] as Hrds
   · iframe #
   (try wp_auto)
-  wp_apply hClose st γ.st c $$ [$Hsc] as Hjob
+  wp_apply hClose st γ.st c $$ [$Hsc] as ⟨Hjob, Hlc, Hcur⟩
   · iframe #
   iapply HΦ
-  iframe Hrds Hjob
+  iframe Hrds Hjob Hlc Hcur
 
 end proof
 
