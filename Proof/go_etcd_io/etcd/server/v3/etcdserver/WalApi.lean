@@ -394,6 +394,108 @@ theorem wal.stopImage_elim (cl : Cluster) (S : RaftState) (σ : StorContents) (i
         (∃ l', isCommittedLogLb cl l' ∗ ⌜σ.b ≤ l'.length ∧ DurAgrees S l'⌝) := by
   unfold wal.stopImage; iintro H; iexact H
 
+/-! ### The WAL's slot in a restart's boot hub
+
+(Restart S6, 2026-11-13; D2, approved by the user via etcd-grove-81, 2026-11-12;
+`notes/wal-crash-handoff/restart-wal-interface.md` §2, §5.) What a restart's `bootstrap` gives the
+WAL, sealed: the restart proofs use only its two laws (`wal.restartOk_facts`, `wal.restartOk_start`),
+so that the crash-model WAL (C6, the WAL collaborator's) can replace the body and re-prove the laws
+without touching them. -/
+
+/-- **What a restart's read of the WAL returns, as facts of the records `σ`** (the interface's
+I1-I4; pure): the entries consecutive from the base (I1, the history model's `walEntsWf`); the last index within raft's
+room (I2, `σ.last ≤ 2^61 - 1`); the base at or below the commit and the commit at or below the last
+index (I3: raft's `loadState` panics otherwise, `raft.go`'s "commit is out of range"); and (I4) either
+the fresh base `(0, 0)` with no snapshot record, or a data-less snapshot record at the base
+(`walSnapAtBase`'s form; both written out here, as `storage/WalHistLemmas.lean` states them: this
+module does not import the history model). I4 gives `NodeStartSpecR`'s snapshot-term premise (F3, `walReadFacts_F3`). -/
+def walReadFacts (σ : StorContents) : Prop :=
+  (∀ (j : Nat) (e : EntryM), σ.ents[j]? = some e → uint.nat e.Index' = σ.b + 1 + j) ∧
+    σ.last ≤ 2 ^ 61 - 1 ∧ σ.b ≤ σ.commit ∧ σ.commit ≤ σ.last ∧
+    ((σ.snap = none ∧ σ.base = entryID.mk (W64 0) (W64 0)) ∨
+      ∃ m, σ.snap = some (SnapshotM.mk [] m) ∧ σ.base = entryID.mk m.Term' m.Index')
+
+/-- I4 gives F3: a snapshot record's term is the base's. -/
+theorem walReadFacts_F3 (σ : StorContents) (h : walReadFacts σ) :
+    ∀ m' : SnapshotMetadataM, σ.snap = some (SnapshotM.mk [] m') → m'.Term' = σ.base.term' := by
+  intro m' hm
+  rcases h.2.2.2.2 with ⟨hn, -⟩ | ⟨m, hs, hb⟩
+  · rw [hn] at hm; cases hm
+  · rw [hs] at hm; cases hm; rw [hb]
+
+/-- `DurAgrees` passes to a prefix of the committed log. -/
+theorem durAgrees_prefix (S : RaftState) (l l' : List LogEntry) (hp : l <+: l')
+    (h : DurAgrees S l') : DurAgrees S l := by
+  intro i e hi he
+  obtain ⟨t, rfl⟩ := hp
+  exact h i e hi (by rw [List.getElem?_append_left (List.getElem?_eq_some_iff.1 he).1]; exact he)
+
+/-- **What a restart's `bootstrap` gives the WAL** (its contract's `bootOkR`; D2): `wal.Open` and
+`ReadAll` of the stopped member's files (`srvFiles`' `walFiles`) leave the WAL `w` open in the
+configuration's WAL directory, read (`walReady`), its records exactly `σ`, sized (the files' flag,
+`walFiles … true`, kept: no `walRecs_unsize` on the restart path), with the member's metadata
+(`id`, `cid`), and the right to close it with its files kept (`walPurgeRight`); and `σ` meets I1-I4
+(`walReadFacts`). The graceful model's body: what `walFiles` describes, read back (the files of one
+process's graceful stop). C6 replaces it by the crash model's (`ReadAll`'s post, `walCrashKeeps` and
+the server's history invariant) and re-proves the two laws. -/
+@[no_expose] def wal.restartOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id cid : w64)
+    (w : Loc) (σ : StorContents) : IProp GF :=
+  iprop(walOpened w (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir') id cid σ true ∗
+    walPurgeRight (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir') ∗ ⌜walReadFacts σ⌝)
+
+/-- **The read's pure facts** (I1-I4; the slot kept). -/
+theorem wal.restartOk_facts (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id cid : w64)
+    (w : Loc) (σ : StorContents) :
+    wal.restartOk (GF := GF) cfg id cid w σ ⊢ wal.restartOk cfg id cid w σ ∗ ⌜walReadFacts σ⌝ := by
+  unfold wal.restartOk
+  iintro ⟨Hw, Hp, %Hf⟩
+  iframe Hw Hp
+  ipureintro; exact ⟨Hf, Hf⟩
+
+/-- **What the restarted server takes from `wal.restartOk`** (`wal.bootOk_start`'s restart form):
+the WAL's durability allocated at the restart's view `⟨S, σ.hs, none, l₀⟩`, for the durable state `S`
+the stopped member's image holds (`wal.stopImage`: `StorageHolds S σ`, the records' certificate, a
+committed log the durable log agrees with) and a committed log `l₀` reaching the records' base
+(`rnDur_alloc_view`, `viewOk_restart`; `DurAgrees S l₀` by prefix); the image's WAL slot given back;
+and what `NewStorage` and `Close` take, as at a first start. -/
+theorem wal.restartOk_start (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id cid : w64)
+    (w : Loc) (σ : StorContents) (cl : Cluster) (S : RaftState) (i : w64) (l₀ : List LogEntry)
+    (hl : l₀.length = σ.b) :
+    wal.restartOk (GF := GF) cfg id cid w σ ∗ wal.stopImage cl S σ i ∗ isCommittedLogLb cl l₀ ⊢
+      |={⊤}=> ∃ ν : WalNames, rnDurInv cl ν w ∗
+        ghostVar ν.view (1 : Qp).half (⟨S, σ.hs, none, l₀⟩ : WalView) ∗
+        token ν.ok ∗ token ν.stop ∗ token ν.app ∗ walCommitLb ν l₀ ∗
+        wal.stopImage cl S σ i ∗
+        storage.walOpen w 1 ∗ ⌜storage.walReady w⌝ ∗ walMetaIs w id cid ∗
+        walPurgeRight (walDirOf w) ∗
+        ⌜walDirOf w = config.walDirOf cfg.DataDir' cfg.DedicatedWALDir'⌝ := by
+  unfold wal.restartOk
+  iintro ⟨⟨Hw, Hp, %Hf⟩, Hsi, #Hl0⟩
+  icases wal.stopImage_elim cl S σ i $$ Hsi with ⟨%Hs, #Hcert, ⟨%l', #Hl', %Hl'b, %Hag⟩⟩
+  icases isCommittedLogLb_agree cl l₀ l' $$ [$Hl0 $Hl'] with %Hpre
+  have hpre : l₀ <+: l' := by
+    rcases Hpre with h | h
+    · exact h
+    · have := h.length_le
+      have heq : l' = l₀ := h.eq_of_length (by omega)
+      rw [heq]; exact List.prefix_refl _
+  have hag0 : DurAgrees S l₀ := durAgrees_prefix S l₀ l' hpre Hag
+  have hv : ViewOk ⟨S, σ.hs, none, l₀⟩ σ :=
+    viewOk_restart S σ l₀ Hs.1 (by omega) (by rw [hl]; exact Hf.2.2.1) hag0
+  icases walOpened_elim _ _ _ _ _ _ $$ Hw with ⟨Ho, Hr, Hm, %Hrd⟩
+  imod rnDur_alloc_view cl w σ _ hv rfl $$ [Hr Hcert] with ⟨%ν, #Hinv, Hv, Hok, Hst, Hap, #Hlb⟩
+  · iframe Hr Hcert
+  ihave Hsi2 := wal.stopImage_intro cl S σ i Hs.1 Hs.2.1 Hs.2.2 $$ [Hcert Hl']
+  · iframe Hcert
+    iexists l'
+    iframe Hl'
+    ipureintro; exact ⟨Hl'b, Hag⟩
+  imodintro
+  iexists ν
+  rw [Hrd.2]
+  iframe Hinv Hv Hok Hst Hap Hlb Hsi2 Ho Hm Hp
+  ipureintro; exact ⟨Hrd.1, rfl⟩
+
 
 end defs
 

@@ -417,12 +417,13 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     -- forwards a follower's renewal through (`srvPeerRt`)
     "%Hprt" ∷ ⌜∃ t : Loc, bs.prt' =
       GoInterface.ok ⟨go.GoType.PointerType _root_.Perennial.net.http.Transport.ty, #t⟩⌝ ∗
-    -- (2026-10-31, `notes/axiom-review/savesnap.md`) the WAL read (`bootstrapWAL`'s `ReadAll`),
-    -- which `NewStorage`'s contract takes
-    "%HwalR" ∷ ⌜storage.walReady bw.w'⌝ ∗
-    -- (2026-10-31, the user's decision) and its open token, whole: the WAL `bootstrap` opened is the
-    -- server's (`storage.walOpen`; the raft loop's `Save`s and `Close`, the apply thread's `SaveSnap`)
-    "Hwalo" ∷ storage.walOpen bw.w' 1 ∗
+    -- (restart S6, 2026-11-13; D2, approved by the user via etcd-grove-81, 2026-11-12) the WAL
+    -- `bootstrapWAL` opened and read (`wal.Open`, `ReadAll`), in its slot (`wal.restartOk`, sealed,
+    -- `WalApi.lean`): open, read, its records exactly the files' `σ`, sized, the member's metadata
+    -- (the cluster id `#Hcid`'s), the purge right, and `σ`'s read facts (the interface's I1-I4).
+    -- Until then `"%HwalR" ∷ ⌜storage.walReady bw.w'⌝ ∗ "Hwalo" ∷ storage.walOpen bw.w' 1`
+    -- (2026-10-31), which gave no records, so no source for the durability at the restart's view
+    "Hwal" ∷ wal.restartOk cfg id cid bw.w' σ ∗
     -- (D22 S-i, 2026-10-19) the snapshotter (`bootstrapSnapshot`'s `snap.New(lg, cfg.SnapDir())`,
     -- its fields set once), which the transport's snapshot handler and `applySnapshot` use
     "#Hss" ∷ snap.isSnapshotter bs.ss' ∗
@@ -433,18 +434,16 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     -- `b.raft`: the raft configuration (as `bootOk`'s, but `RestartNode`'s path: no peers)
     -- (2026-11-03, S2: until then `heartbeat ≠ 0`) the heartbeat as Go computes it
     -- (`bootstrap.go:574`, wrapping)
-    "%Hraft" ∷ ⌜bv.lg' ≠ null ∧ bv.heartbeat' = cfg.TickMs' * W64 1000000 ∧
-      ConfigValid cv ∧ cv.Logger' = interface.ok lok ∧
-      cv.Storage' = memStorIface bv.storage' ∧
-      sint.Z cv.MaxInflightMsgs' < 2 ^ 62 ∧
-      cv.DisableProposalForwarding' = false ∧ cv.ReadOnlyOption' = W64 0 ∧
-      cv.DisableConfChangeValidation' = false ∧
-      (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) ∧
-      cv.AsyncStorageWrites' = false ∧ cv.Applied' = W64 0 ∧
-      cv.ID' = id ∧
-      -- [R2c] no peers: `bootstrapRaftFromWAL` sets none, so `newRaftNode` calls `RestartNode`
-      -- (`len(b.peers) == 0`); `ps` is the cluster's members (`Hmembers`), not peers
-      pv = [] ∧ ps ≠ [] ∧ ps.Nodup ∧ W64 0 ∉ ps ∧
+    -- (restart S6, 2026-11-13, CP2: the restart's configuration `rnRestartCfg`, `InvNodeStart.lean`,
+    -- in place of its conjuncts spelled out, which lacked `maxMsg`, `uint.Z cv.MaxSizePerMsg' ≤
+    -- 2^20`: both constructions build `b.config` with `raftConfig`, `bootstrap.go:580-592` at the
+    -- fork's `2eaeb872b`, whose `MaxSizePerMsg` is `maxSizePerMsg`, 1 MiB, `raft.go:38`, as
+    -- `rnStartCfg.maxMsg`'s; checked by
+    -- `examples/entsize`'s `TestMaxSizePerMsg`, in `etc/gates.sh`; `rnRestartCfg`'s `peersNil` is
+    -- `pv = []`: [R2c] no peers, `bootstrapRaftFromWAL` sets none, so `newRaftNode` calls
+    -- `RestartNode`, `len(b.peers) == 0`; `ps` is the cluster's members, `Hmembers`, not peers)
+    "%Hraft" ∷ ⌜rnRestartCfg bv cv lok pv ∧ bv.heartbeat' = cfg.TickMs' * W64 1000000 ∧
+      cv.ID' = id ∧ ps ≠ [] ∧ ps.Nodup ∧ W64 0 ∉ ps ∧
       cv.ID' ∈ ps ∧ γ.vs = ps ∧ srvBootLogOk ps γ.boot⌝ ∗
     "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
     "#Hreg" ∷ memStorReg bv.storage' γs ∗
@@ -615,7 +614,24 @@ does nothing more: it does not promise the restart succeeds (R2c review, second 
 (#7-cmp's Freeze: `imageAt` by the mode, in place; the compaction-mode receipt, RESTART-RCPT, as
 `srvDiskImage`'s.) (R6, 2026-11-07: the image as `srvDiskImage`'s, over mvcc's API: the store's part,
 `mvccImage` at some image names `γk` and log `A`, with the server's parts; until then `imageAt`
-inside the pure premise.) -/
+inside the pure premise.)
+
+**The cluster version** (restart S6, 2026-11-13, CP2; decided by etcd-grove-81: derived from the
+image, not assumed of the world). `bootstrap`'s `Finalize` runs `cl.Recover`, whose `UnsafeLoad`
+reads the `cluster` bucket's version (`ClusterVersionFromBackend`, `semver.MustParse` of the stored
+string) and the downgrade record (`DowngradeInfoFromBackend`, a JSON record whose target version must
+parse), and then `MustDetectDowngrade(lg, serverVersion, c.version)` panics if the stored version is
+above the binary's major.minor (`api/membership/cluster.go:256-279`, `schema/membership.go:190-240`,
+`version/downgrade.go:42-55`, at the fork's `2eaeb872b`). The image's `cluster` bucket is the model's at `L` (`imageRestAt`'s
+`bkRestAtL`, `restModel`: `restSetVersion` stores `semverNorm v` of each committed `ClusterVersionSet`
+`v`; the only other writer of the bucket, `SetDowngradeInfo`, is a `DowngradeInfoSet`'s), so the contract takes `clusterVerLogOk L`: every such `v` parses
+and is not above the server's version (`semverValid`, `semverAtMostServer`), and no committed request is
+a `DowngradeInfoSet`. The restart restarts the same binary on the data directory its own earlier
+incarnation wrote, so `semverAtMostServer` is about the same version; the restart's caller derives
+the premise from the KV invariant's workload fact (`kv_log_verOk`, `SnapRecvFacts.lean`: only the
+monitors propose `ClusterVersionSet`, with the minimum of the members' versions, all the binary's), as
+`membership.clusterImageOk_restModel`'s callers do. (Until then nothing in the contract excluded
+`Recover`'s panic on a newer stored version; the CP2 package's §5 listed it as a world assumption.) -/
 def bootstrapRestartContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
     (γ : SrvRaft) (id : w64) (N : Nat) (dir : w64 → List GoString) : IProp GF :=
   iprop(□ ∀ (σ : StorContents) (i : w64) (L : List EntryModel) (D : backend.Data)
@@ -631,7 +647,11 @@ def bootstrapRestartContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfi
       storage.walSaveOk ∧
       N + 7 + bootWB ≤ backend.wbInit ∧
       (∀ f, ((restModel (W64 0) γ.boot L).mem.lookup f).map apply.MemberM.peerURLs =
-        ((memBoot γ.boot).lookup f).map apply.MemberM.peerURLs)⌝ -∗
+        ((memBoot γ.boot).lookup f).map apply.MemberM.peerURLs) ∧
+      -- (restart S6, 2026-11-13, CP2; etcd-grove-81's decision: derived, not a world assumption)
+      -- the image's committed log's cluster requests are ones `Recover` accepts
+      -- (`clusterVerLogOk`): see the docstring, "The cluster version"
+      clusterVerLogOk L⌝ -∗
     (∃ (γk : KVNames) (A : List EntryModel) (u : Bool),
       ⌜γk.c0 = W64 0 ∧ imageRestAt γk γ.boot i L D ∧ imageStOk (kvModel γk A) (crevOf γk A)⌝ ∗
       mvcc.api.mvccImage D (kvModel γk A) (crevOf γk A) u) -∗
@@ -646,6 +666,22 @@ def bootstrapRestartContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfi
       (App (Val (@! bootstrap)) (Val #cfg))
     {{ (b : Loc) (err : GoInterface), RET (PairV #b #err);
         ⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ bootOkR cfg γ id N dir σ i L D M b }})
+
+/-- **The restart-only rows** (restart S6, 2026-11-13; D3, approved by the user via etcd-grove-81,
+2026-11-12; a premise of `NewServer.specR` only, at the image's witnesses `A` and `σ`; S7 deletes it):
+once `NewServer` has the restarted node's names `γn` (`NodeStartSpecR`'s: the cluster's raft names
+`γ`, the member `id`, no start log, the restart point's backend log the image's `A`, the start term
+the records' hard state's) and its read names `γr` at `γ`, a ghost update gives row 4
+(`rnSnapTermAbove γn`, which `NodeStartSpecR`'s installer takes) and row 1 (`srvWinPend s γr γn`,
+`isServerBuiltC`'s `Hwpend`), each with the frozen text R2d'a gave it. One-shot. **Row 4 is true of
+Go but not provable from raft's API** (`rnSnapTermAbove`'s docstring: R2d'b's target). **Row 1 is
+false on a disclosed class** (`srvWinPend`'s docstring: a restarted member later elected that
+snapshots a lagging follower). So a `NewServer.specR` with this premise is honest only as an open
+triple: it is linked into no closed theorem, and S7 (R2s) deletes both rows and this premise. -/
+def srvRestartRows (γ : SrvRaft) (id : w64) (A : List EntryModel) (σ : StorContents) : IProp GF :=
+  iprop(∀ (s : Loc) (γr : ReadNames) (γn : RNNames),
+    ⌜γn.node = γ ∧ γn.id = id ∧ γn.pre = [] ∧ γn.a0 = A ∧ γn.t0 = σ.hs.Term' ∧ γr.raft.raft = γ⌝ -∗
+    |==> rnSnapTermAbove γn ∗ srvWinPend s γr γn)
 
 end boot
 
