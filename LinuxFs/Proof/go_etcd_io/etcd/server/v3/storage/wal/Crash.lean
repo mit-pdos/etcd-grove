@@ -3,9 +3,9 @@
 # The WAL's crash lemma over `fsExt` (`notes/wal-fsext-plan.md`, §2.2; W1)
 
 `walInv_crash`: what a client's crash obligation (at `⊤`, `goose_crash_adequacy`) gets of the WAL
-from the old generation's invariant (`walInv`, opened with the generation's crash token, so that it
-stays closed with the token), the generation's `crashRest` (the tree untaken) and W1 (the crash
-premise `Q` implies it): a fresh generation of the WAL's ghost names, the crash view
+from the old generation's invariant (`walInv`, opened with the generation's `crashed`, which the
+crash adequacy theorem gives, and the WAL's crash token, so that it stays closed with them), the
+generation's `crashRest` (the tree untaken) and W1 (the crash premise `Q` implies it): a fresh generation of the WAL's ghost names, the crash view
 (`walCrashWal`: the old ghost authorities at the old real state `s`, the new program's map at the
 crashed state `s'`, `walStCrash s s'`: each WAL a `walCrash` of its old state, which is no longer a
 trusted relation), the new generation's start (`walStart`: its ghost authorities, every segment's
@@ -135,29 +135,31 @@ theorem walsOk_cut {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s : 
     {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat} (h : WalsOk C Mr R jr s Ls cl n) :
     ∀ g ∈ segsAll Ls, g.om.cut = none := h.2.2.2.1
 
-/-- **The WAL's crash** (plan §2.2): from the old generation's invariant, its crash token, the shared
-mode's invariant, the generation's `crashRest` (the tree untaken) and W1 (`hQ`): a new generation of
-the WAL's names, the crash view, the new generation's start over the crashed tree, its lock and crash
-tokens, and `crashRest` back (the segments taken, the tree not). -/
+/-- **The WAL's crash** (plan §2.2): from the old generation's invariant, its `crashed` (from the
+crash adequacy theorem) and the WAL's crash token, the shared mode's invariant, the generation's
+`crashRest` (the tree untaken) and W1 (`hQ`): a new generation of the WAL's names, the crash view,
+the new generation's start over the crashed tree, its lock and crash tokens, and `crashRest` back
+(the segments taken, the tree not). -/
 theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsState → Fs.OsState → Prop)
     (hQ : ∀ st st', Q st st' → W1 C st st') (hPre : AbsDiskGpreS GF) (L L' : GooseLocalGS GF)
     (W : WalGS GF) (R : Roots) (jr : Ino) (r : GoString) (V' : Hist) (E : CoPset)
     (hE : ↑walN ⊆ E) (hE' : ↑osShN ⊆ E) :
-    ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ walCrashTok (W := W) -∗ osSharedInv (L := L) R -∗
+    ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ crashed (hC := L.goose_crashGS) -∗
+      walCrashTok (W := W) -∗ osSharedInv (L := L) R -∗
       crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) [] false V' ={E}=∗
       ∃ (W' : WalGS GF) (s' : AbsDiskState) (D : List Ino),
         walCrashWal W W' ∗ ⌜s'.area = r⌝ ∗ walStart L' W' C Mr R jr r s' V'.now ∗
         walPast (W := W') s' ∗ walUnlockedTok (W := W') ∗ walCrashTok (W := W') ∗
         crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D false V' := by
-  iintro #Hinv Htok #Hsh Hcr
-  -- open the old invariant and close it with the crash token
+  iintro #Hinv #Hcrd Htok #Hsh Hcr
+  -- open the old invariant and close it with the crash tokens
   unfold walInv
   imod inv_acc (E := E) hE $$ Hinv with ⟨Hi, Hclose⟩
-  icases Hi with (Hb | >Ht)
+  icases Hi with (Hb | ⟨-, >Ht⟩)
   rotate_left
   · iexfalso; iapply walCrashTok_excl $$ Htok Ht
   imod Hclose $$ [Htok] with -
-  · inext; iright; iexact Htok
+  · inext; iright; iframe Hcrd Htok
   icases Hb with ⟨%s, >Hb⟩
   iunfold walInvBody at Hb
   icases Hb with ⟨%Ls, %cl, %n, Hg, %Har, Hcl, #Hcm, Hlays, %Hok, -⟩
@@ -359,7 +361,7 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     exact monoNatLbOwn_0 _
   imod hcm0 with #Hcm
   imod inv_alloc walN E (iprop((∃ s : AbsDiskState, walInvBody (L := L) (W := W) C Mr R jr r s) ∨
-      walCrashTok (W := W))) $$ [Hg Hc1 Hi] with #Hinv
+      (crashed (hC := L.goose_crashGS) ∗ walCrashTok (W := W)))) $$ [Hg Hc1 Hi] with #Hinv
   · inext; ileft; iexists s
     unfold walInvBody
     iexists Ls, cl, 0

@@ -571,6 +571,44 @@ The integration build of `wal-int` needed two fixes: `crashRestAt` (CrashTakeFil
   `CrashGood` record each new layout's inodes a sublist of the old one's; `segsAll_nodup_iff`/`_sub`).
 
 
+**Fourth session (branch `wal-nc`, 2026-11-13): `walInv` with Perennial's crash token (§11).** Perennial's
+Lean port has no fractional `NC q`/`C`: its crash token is `notCrashed` (whole, owned by the state
+interpretation, `gooseBstateInterp`) and the persistent `crashed` (`Perennial/GooseLang/CrashToken.lean`;
+`goose_crash_adequacy` hands the old generation's `crashed` to the crash obligation). `crashed` alone cannot
+replace the WAL's token in the invariant (it is persistent, so it would not stop `walInv_crash` from finding
+the crash branch), so the invariant's second branch holds both:
+`walInv := inv walN ((∃ s, walInvBody s) ∨ (crashed (hC := L.goose_crashGS) ∗ walCrashTok))`.
+- `walInv_open` (new, `Inv.lean`): `walInv -∗ notCrashed ={E, E \ ↑walN}=∗ (∃ s, walInvBody s) ∗ notCrashed
+  ∗ ((∃ s, walInvBody s) ={E \ ↑walN, E}=∗ True)` (`notCrashed_crashed` excludes the crash branch).
+- `walInv_crash` takes `crashed` (old generation) beside `walCrashTok`, and closes the invariant with both;
+  `walInv_alloc` allocates the new shape; the `_keep` lemmas and `walInvBody_named` are unchanged (not over
+  `walInv`).
+- **Open (for every W-unit that opens `walInv`):** an operation has `notCrashed` only inside a step (the
+  state interpretation), and the `os` specs' atomic updates (`osAU`, `wp_au_step`) are opened by
+  `wp_atomic` before the step, without it. Needed: a lifting lemma giving a step's pre-update access to
+  `notCrashed` (for a non-value `e`: `(notCrashed -∗ |={E}=> notCrashed ∗ WP e @ E {{Φ}}) ⊢ WP e @ E {{Φ}}`,
+  from the WP's unfolding; Perennial) and an `osAU` whose opening receives it (`notCrashed -∗ |={osAuMask,
+  ∅}=> α ∗ notCrashed ∗ …`, `LinuxFs/Proof/os/SharedAu.lean`), so that the WAL's update, opened inside the
+  `os` update, can call `walInv_open`. Not done here.
+
+**The part's WAL package init (branch `wal-nc`, 2026-11-13).** `etc/gen-init.py` generates the
+`wp_initialize'` of the WAL's whole import closure in the part (`LFS_PKGS`): the part's `wal`, `walpb`,
+`fileutil`, `crc`, `hash/crc32` and raft root package (names-only); the main-tree translations below them
+(`LFS_MAIN_CODE`: zap, zapcore, semver, prometheus, pbutil, `hash`, protobuf's pragma/protoreflect/impl/
+protoimpl), over the part's own instances (their main instances sit in modules reaching the main raft);
+raftpb/quorum/tracker/confchange/proto from `InitPb.lean`, a generated copy of the main raft
+`Init.lean`'s theorems (`lfs_raft_initpb`). Facts (`PkgInit.lean`s):
+- `wal.walInit`: `walCrcTable` (MakeTable's spec), `wal.metricsInit` (new trust-boundary axioms
+  `walFsyncSec_init`/`walWriteSec_init`/`walWriteBytes_init`, as the backend's), `SegmentSizeBytes ↦□
+  64000000`, and `wal.errVar X` (an `errOk` error, read-only) for the eight error variables
+  (`ErrCRCMismatch` from `walpbInit`). Not `openWALFilesFn`; no distinctness of the errors.
+- `walpb.walpbInit`: `ErrCRCMismatch` an `errOk` error.
+- `fileutil.fileutilInit`: `∃ ofd, linuxLockFile ↦□ lockFn ofd ∗ linuxTryLockFile ↦□ tryLockFn ofd`
+  (**both** outcomes: the `F_OFD_GETLK` probe's errno is arbitrary, `wp_getlk`; `ofd` the same for the
+  two), `wrlck` (`Type = F_WRLCK`, `Whence = Start = Len = 0`), `ErrLocked` an `errOk` error.
+- The others `True` (the part's raft root too: `emptyState`, which `IsEmptyHardState` reads, would join
+  when `Save` needs it). `Create`'s spec can now take `isPkgInit wal`.
+
 ## 9. The trusted-model drafts (2026-11-13, branch `wal-models`; pending the user's review [user])
 
 The WAL and fileutil retranslated from the fork's `goose-lean-walfs` (`f15d88841`, the two local fixes
