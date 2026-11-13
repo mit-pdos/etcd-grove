@@ -131,6 +131,30 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   subst he
   wp_auto
   -- step 2: sync
+  wp_apply (wp_syncCut R jr r w dir { h with sz := h.o0 + h.out.length } hrest rfl)
+    $$ [Hlg Hdir Hdf Hdff Hmd Hsp Hdec Hrc Hns Henti Hsnapi He Henc Htw Hdh Hlocks Hls Hcap Hlks Hfp
+      Hpipe Hopen] as %serr Hsy
+  · iframe Harea
+    iunfold walHandleIn
+    iexists lg, df, sp, e, fp, lt, f, mds, locks, ls ++ [lt], fd, dfd, name, dnm, j, rc
+    rw [show WalHS.crc Mr { h with sz := h.o0 + h.out.length } = WalHS.crc Mr h from rfl]
+    simp only
+    iframe Hlg Hzap Hdir Hdf Hdff Hmd Hmds Hsp Hst Hdec Hrc Hns Hmu Henti Hsnapi He Henc Htw Hdh
+      Hlocks Hls Hcap Hltf Hfp Hpipe Henv Hcrc Hopen
+    rw [List.dropLast_concat]
+    iframe Hlks
+    ipureintro
+    exact ⟨by simp, hsplit, hfd, Nat.le_refl _, by omega, by omega, hidx, hidx1⟩
+  icases Hsy with (⟨%he, Hh, #Hsyn⟩ | %he)
+  rotate_left
+  · rcases serr with ei | _
+    rotate_left
+    · exact absurd rfl he
+    wp_auto
+    iapply HΦ
+    iright; ipureintro; exact he
+  subst he
+  wp_auto
   sorry
 
 end proof
