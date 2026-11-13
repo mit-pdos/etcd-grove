@@ -984,3 +984,57 @@ update: `s.wal dir := walDurFresh md`, the new layout and its `CrashOk`); then `
   `Close` (W2, W10).
 - **Invariant extensions** are separate conjuncts of `walInvBody` (W4's `WalsCreateOk`, then W2's, W6's), so
   the units merge.
+
+## W6 implementation log (branch `wal-save`, 2026-11-13)
+
+**Statements (stubs, `sorry` proofs, pushed first for W2):** in `LinuxFs/Spec/.../wal/`, spec names under the
+full Go path (`go_etcd_io.etcd.server.v3.storage.wal.WAL.<M>.spec P Mr`, the main tree's `wal.WAL.<M>.spec`
+being another name): `Save`, `SaveSnapshot`, `Sync` (client: `walAreaOk walCodec Mr R jr r`, the sealed handle
+`walOpenWF P Mr w dir`, the update at `walAuMask`, plan §11); `sync`, `saveEntry`, `saveState`, `cut` (internal,
+over `walHandleIn P Mr w dir h`); `encoder.encode.specG` and `WAL.saveCrc.spec` (`encoder__encodeG.lean`, over a
+guarded writer). Proof stubs `LinuxFs/Proof/.../wal/WAL__{Save,SaveSnapshot,Sync,sync,saveEntry,saveState}.lean`
+take their callees' specs as hypotheses (`cut`'s is W2's to prove or restate).
+
+**Vocabulary** (`Handle.lean`):
+- `WalHS`: the program's knowledge of its open WAL (history `H`, metadata, cuts, tail inode, encoder start
+  offset `o0`, writer bytes `out`, pending `pend`, records of the last operation not yet encoded `rest`, the
+  hard state at `w.state` `st`, ghost names `γH`/`γS`/`γW`, `enti`/`snapi`). `walHandleIn`: the struct's
+  fields, the encoder with CRC `h.crc` (chain end after the encoded records), the tail's lock and file
+  (O_WRONLY fd), `walTailW` (offset, the program's halves of the tail's `OsMeta`/bytes, its half of the write
+  position `γW`), the tail's guarded writer, `ghostVar γH ½ (H, md, cuts)` (to agree with the invariant),
+  `walPipeH` (W2's placeholder: the pointer only), `walOpenW` (the ghost handle). `walOpenWF := ∃ h,
+  walHandleIn h ∗ ⌜h.Done⌝` (sealed; `Done`: `rest = 0`, `st = walLastHS H`). **Create/ReadAll should return
+  `walOpenWF`** (W4's spec returns the ghost-only `walOpenW`).
+- **`io.writerStreamG wi W G`** (finding): `io.writerStream`'s `Write(p)` quantifies over every `p`; for the
+  crash-tracked tail no `W` makes it true (a write of non-stream bytes breaks `CrashOk`, and the bridge cannot
+  know `p` is the stream). The guarded contract adds `G (out ++ p)`, `G` persistent and prefix-closed: the
+  tail's `G` is a mono-list lower bound of its intended stream (`walTailG γS`), grown at `Save`'s commit. The
+  page writer's and encoder's proofs need re-running over it (`encode.specG` is a hypothesis till then); the
+  bridge (`wal-bridge`) should prove `io.writerStreamG (wal.fileWi f) (walTailW f i γW o0) (walTailG γS)`.
+- `WalPbIn` (the raft messages `Save` reads: `hsIn`, `entIn`): the part cannot import the main tree's
+  `hsRO`/`entRoC` (the raft-root clash, §10); clients instantiate it, the proofs will take the laws
+  (`MustMarshalMessage`, `GetIndex`, `IsEmptyHardState`, `MustSync`) as hypotheses.
+- Package init: no `isPkgInit wal` (the part's `wal` has none, as `Create`); `encEnv`/`walCrcTable` in the handle.
+
+**Spec decisions:** Save/SaveSnapshot's error arm `∃ d, Q d` (committed, handle lost: Q6). **`Sync`'s error arm
+loses the handle** (deviation from the main tree, which kept it): `sync` flushes the page writer first, and a
+failed flush leaves part of `pend` written with the buffer emptied. Spec defects for the ledger: this one.
+
+**Invariant extension (designed, not yet in `walInvBody`):** a conjunct `walTailsRes s Ls` (after W4's and W2's):
+per WAL with an open handle, `ghostVar γH ½ (d.H, d.metadata, lay.cuts)`, `monoListAuthOwn γS 1 (segStream …
+last)` (the tail's intended stream), `ghostVar γW ½ lay.wr`, the names keyed by the tail's inode; plus a write in
+flight's `pwTok` in place of the tail's `segRes` halves between `PWriteStart` and `PWriteFinish` (the bridge's;
+the crash lemma must then take files with tokens, I3). Also needed in it: F-Z's fact that `old` is zeros from
+`z0` on (`walAbsD_snoc`'s `hZ`).
+
+**Proved (pure, no `sorry`):** `SaveRecs.lean`: `tailRecs_snoc`, `allRecs_snoc`, `tailStream_snoc` (an appended
+operation's records extend the tail's and the WAL's, chained from the CRC after all records). `SaveAbs.lean`:
+the commit keeps the crash condition (`walImg_snoc`, `crashTo_snoc`, `crashOkA_snoc`, `crashOk_snoc`) and the
+static relation (`walAbsD_snoc`, premises `hZ` and the new records' fit); `segRecs_snoc_op`; the sync's commit
+keeps the static relation with `d.m := |H|` (`syncLay`, `walAbsD_sync`; its crash condition is W2's
+`crashTo_synced`).
+
+**Left (hardest first):** the append's crash condition (bytes `[wr, wr+k)` from `durB old` to `[(old,0),(x,n)]`:
+`CrashTo` of any image mixing old zeros and the new frames under W1G, via the encoding layer's prefix lemma); the
+`walTailsRes` conjunct and its repair of the W1 lemmas that destructure `walInvBody`; the Iris proofs of
+`sync`, `saveEntry`, `saveState`, `Save`, `SaveSnapshot`, `Sync`; NC tokens once `wal-nc` lands.
