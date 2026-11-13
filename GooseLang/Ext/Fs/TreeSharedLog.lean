@@ -664,16 +664,18 @@ authority; `ClaimsAt`: what the claims know) and what it returns (`W w logged`).
 each claim is written and every slot `o` writes is in one; the claims' `next` bound the call's
 start (or the call holds the whole permission); a directory operation holds the whole permission;
 the tree after `o` is well formed, names no new file, has the old directories and the new ones
-(fresh), `o` is applicable if a file operation, and the claims' entries after `o` are as given. -/
-theorem wp_logStepS (op : String) (v : val) (hv : v.isPanic = false) (R : Roots) (k s0 : Nat)
-    (q : Qp) (o : MetaOp) (cl : List ClaimW) (F : IProp GF) (P : OsState → Prop)
-    (W : val → Bool → Prop)
+(fresh), `o` is applicable if a file operation, and the claims' entries after `o` are as given.
+The operation `oF n` and the claims' new entries `curF n` are functions of the step's fresh inode
+`n` (the state's `nextIno`, which the logic does not track: `mkdir`, `open(O_CREAT)`). -/
+theorem wp_logStepSN (op : String) (v : val) (hv : v.isPanic = false) (R : Roots) (k s0 : Nat)
+    (q : Qp) (oF : Nat → MetaOp) (cl : List ClaimW) (curF : Nat → ClaimW → Ents) (F : IProp GF)
+    (P : OsState → Prop) (W : val → Bool → Prop)
     (hne : ∀ c ∈ cl, c.2.1 ≠ .only [])
-    (hwr : ∀ c ∈ cl, ∃ b, c.2.1.Mem b ∧ o.Writes c.1 b)
-    (hslots : ∀ sl ∈ o.slots, ∃ c ∈ cl, c.1 = sl.1 ∧ c.2.1.Mem sl.2)
+    (hwr : ∀ n, ∀ c ∈ cl, ∃ b, c.2.1.Mem b ∧ (oF n).Writes c.1 b)
+    (hslots : ∀ n, ∀ sl ∈ (oF n).slots, ∃ c ∈ cl, c.1 = sl.1 ∧ c.2.1.Mem sl.2)
     (hnext : ∀ c ∈ cl, c.2.2.1.next ≤ s0 ∨ q = 1)
-    (hdir : o.IsDirOp → q = 1)
-    (hadd : ∀ j b, b ∈ o.adds j → NameOk b)
+    (hdir : ∀ n, (oF n).IsDirOp → q = 1)
+    (hadd : ∀ n j b, b ∈ (oF n).adds j → NameOk b)
     (hF : ∀ st Γn, st.fs.roots = R → NamesCoh (st.fs.treeDur, st.fs.metaLog) Γn →
       ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γn Γn -∗ F -∗ ⌜P st⌝)
     (hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
@@ -683,29 +685,55 @@ theorem wp_logStepS (op : String) (v : val) (hv : v.isPanic = false) (R : Roots)
       (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) → P st →
       ClaimsAt st cl → IsFsStep op v st e' st' → ∃ w, e' = Val w ∧
         ((st' = st.metaEnd k ∧ W w false) ∨
-         (LoggedFrom st st' k s0 o ∧ (∀ x, x ∈ o.apply st.tree → x < st'.fs.nextIno) ∧ W w true)))
+         (LoggedFrom st st' k s0 (oF st.fs.nextIno) ∧
+          (∀ x, x ∈ (oF st.fs.nextIno).apply st.tree → x < st'.fs.nextIno) ∧ W w true)))
     (htree : ∀ st, FsTreeWf st → st.fs.roots = R → P st → ClaimsAt st cl →
+      let o := oF st.fs.nextIno
       TreeWf R (o.apply st.tree) ∧ (∀ i, Named (o.apply st.tree) i → Named st.tree i) ∧
       (∀ x, x ∈ o.apply st.tree → x ∈ st.tree ∨ x ∈ o.newDirs) ∧
       (∀ J ∈ o.newDirs, J ∉ st.tree) ∧
       (¬ o.IsDirOp → OpOk st.tree o ∧ ∀ j b i, o = .create j b i → ∀ t,
         t ≤ st.fs.metaLog.length → ¬ Named (prefTree st.fs.treeDur st.fs.metaLog t) i) ∧
-      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = c.2.2.2))
+      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = curF st.fs.nextIno c))
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ F -∗
       ([∗list] c ∈ cl, osNames (L := L) c.1 c.2.1 (DFrac.own 1) c.2.2.1) -∗
       osCallS (L := L) k s0 q -∗
       (∀ w, osCallPerm (L := L) q -∗ F -∗
         ((⌜W w false⌝ ∗ [∗list] c ∈ cl, osNames (L := L) c.1 c.2.1 (DFrac.own 1) c.2.2.1) ∨
-         (⌜W w true⌝ ∗ ∃ x, osLogged (L := L) x ⟨o, s0⟩ ∗
+         (⌜W w true⌝ ∗ ∃ n x, osLogged (L := L) x ⟨oF n, s0⟩ ∗
            ([∗list] c ∈ cl, osNames (L := L) c.1 c.2.1 (DFrac.own 1)
-             (c.2.2.1.log x ⟨o, s0⟩ c.2.2.2)) ∗
-           [∗list] J ∈ o.newDirs, ∃ hJ, osNames (L := L) J (.except []) (DFrac.own 1) hJ ∗
+             (c.2.2.1.log x ⟨oF n, s0⟩ (curF n c))) ∗
+           [∗list] J ∈ (oF n).newDirs, ∃ hJ, osNames (L := L) J (.except []) (DFrac.own 1) hJ ∗
              ⌜hJ.cur = ∅ ∧ hJ.next = x + 1⌝)) -∗ Φ w) -∗
       WP (ExternalOp fsExt.name op (Val v)) @ s; E {{ Φ }} := by
-  iintro #Hinv #Hsi HF Hcl Hk HΦ
+  iintro #Hinv #Hsi HF Hcl Hk HΦ1
   iapply wp_fs_stepM op _ Φ hv hE $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw Ht
+  ihave HΦ : (∀ w, osCallPerm (L := L) q -∗ F -∗
+        ((⌜W w false⌝ ∗ [∗list] c ∈ cl, osNames (L := L) c.1 c.2.1 (DFrac.own 1) c.2.2.1) ∨
+         (⌜W w true⌝ ∗ ∃ x, osLogged (L := L) x ⟨oF st.fs.nextIno, s0⟩ ∗
+           ([∗list] c ∈ cl, osNames (L := L) c.1 c.2.1 (DFrac.own 1)
+             (c.2.2.1.log x ⟨oF st.fs.nextIno, s0⟩ (curF st.fs.nextIno c))) ∗
+           [∗list] J ∈ (oF st.fs.nextIno).newDirs, ∃ hJ, osNames (L := L) J (.except []) (DFrac.own 1) hJ ∗
+             ⌜hJ.cur = ∅ ∧ hJ.next = x + 1⌝)) -∗ Φ w) $$ [HΦ1]
+  · iintro %w Hq HF Hp
+    iapply HΦ1 $$ %w Hq HF
+    icases Hp with (Hp | ⟨%hW, %x, Hp⟩)
+    · ileft; iexact Hp
+    · iright
+      isplitr
+      · ipureintro; exact hW
+      · iexists st.fs.nextIno, x; iexact Hp
+  have hwr := hwr st.fs.nextIno
+  have hslots := hslots st.fs.nextIno
+  have hdir := hdir st.fs.nextIno
+  have hadd := hadd st.fs.nextIno
+  have hpost0 := hpost st
+  have htree0 := htree st
+  clear hpost htree
+  generalize oF st.fs.nextIno = o at hwr hslots hdir hadd hpost0 htree0 ⊢
+  generalize curF st.fs.nextIno = cur at htree0 ⊢
   unfold treeCtx
   icases Ht with ⟨Hm, Hcm⟩
   icases Hm with (Hm | Hm)
@@ -759,7 +787,7 @@ theorem wp_logStepS (op : String) (v : val) (hv : v.isPanic = false) (R : Roots)
   iintro %e' %h' %st' %Hst
   imod Hclose2
   obtain ⟨Hst, Hfr, Hr⟩ := Hst
-  obtain ⟨w, rfl, hres⟩ := hpost st e' st' hw hR hcall hsole hP hat Hst
+  obtain ⟨w, rfl, hres⟩ := hpost0 e' st' hw hR hcall hsole hP hat Hst
   unfold callResS
   icases (BigSepM.bigSepM_delete (M := GMap Nat)
     (Φ := fun (_t : Nat) (x : Nat × Qp) =>
@@ -798,7 +826,7 @@ theorem wp_logStepS (op : String) (v : val) (hv : v.isPanic = false) (R : Roots)
     · ipureintro; exact hW
     · iexact Hcl
   · -- logged
-    obtain ⟨htw, hnm, hdirs, hnew, hok, hcur⟩ := htree st hw hR hP hat
+    obtain ⟨htw, hnm, hdirs, hnew, hok, hcur⟩ := htree0 hw hR hP hat
     have htr := hlf.tree
     have hwf' : FsTreeWf st' := hlf.wf hw (hR ▸ htw) hnm hlt
     have hpss : ∀ y (ey : LogEntry), st.fs.metaLog[y]? = some ey →
@@ -824,7 +852,7 @@ theorem wp_logStepS (op : String) (v : val) (hv : v.isPanic = false) (R : Roots)
         obtain ⟨c, hcm, hc1, hc2⟩ := hslots sl hsl
         exact ⟨(c.1, c.2.1), List.mem_map.2 ⟨c, hcm, rfl⟩, hc1, hc2⟩)
       hnew hdirs
-    have hcl' : ∀ c ∈ cl, c.2.2.1.log st.fs.metaLog.length ⟨o, s0⟩ c.2.2.2 =
+    have hcl' : ∀ c ∈ cl, c.2.2.1.log st.fs.metaLog.length ⟨o, s0⟩ (cur c) =
         namesOf (st.fs.treeDur, st.fs.metaLog ++ [⟨o, s0⟩]) c.1 c.2.1 := by
       intro c hcm
       have hsw := namesOf_snoc_written (st.fs.treeDur, st.fs.metaLog) ⟨o, s0⟩ c.1 c.2.1 (hwr c hcm)
@@ -842,7 +870,7 @@ theorem wp_logStepS (op : String) (v : val) (hv : v.isPanic = false) (R : Roots)
       (by rw [logMap_lookup]; simp) $$ HAlog with ⟨HAlog, Hent⟩
     imod logEnt_persist _ _ $$ Hent with #Hent
     imod claims_upd (st.fs.treeDur, st.fs.metaLog ++ [⟨o, s0⟩])
-      (fun c => c.2.2.1.log st.fs.metaLog.length ⟨o, s0⟩ c.2.2.2) cl Γn hne hcl' $$ HAn Hcl
+      (fun c => c.2.2.1.log st.fs.metaLog.length ⟨o, s0⟩ (cur c)) cl Γn hne hcl' $$ HAn Hcl
       with ⟨HAn, Hcl⟩
     imod osWorld_filesSame (st := st) (st' := st') hlf.same Hr Hfr
       $$ [HAb HAm HAf HAt Htok Hcells Hσ] with Hw
@@ -970,6 +998,60 @@ theorem wp_logStepS (op : String) (v : val) (hv : v.isPanic = false) (R : Roots)
           exact ⟨namesOf_newDir_cur (st.fs.treeDur, st.fs.metaLog) j0 b0 J s0,
             namesOf_newDir_next (st.fs.treeDur, st.fs.metaLog) j0 b0 J s0⟩
       · iapply (BigSepL.bigSepL_nil).2; iempintro
+
+
+/-- **A step that logs `o` for the call `k`** (`wp_logStepSN` with the operation and the claims'
+new entries independent of the fresh inode). -/
+theorem wp_logStepS (op : String) (v : val) (hv : v.isPanic = false) (R : Roots) (k s0 : Nat)
+    (q : Qp) (o : MetaOp) (cl : List ClaimW) (F : IProp GF) (P : OsState → Prop)
+    (W : val → Bool → Prop)
+    (hne : ∀ c ∈ cl, c.2.1 ≠ .only [])
+    (hwr : ∀ c ∈ cl, ∃ b, c.2.1.Mem b ∧ o.Writes c.1 b)
+    (hslots : ∀ sl ∈ o.slots, ∃ c ∈ cl, c.1 = sl.1 ∧ c.2.1.Mem sl.2)
+    (hnext : ∀ c ∈ cl, c.2.2.1.next ≤ s0 ∨ q = 1)
+    (hdir : o.IsDirOp → q = 1)
+    (hadd : ∀ j b, b ∈ o.adds j → NameOk b)
+    (hF : ∀ st Γn, st.fs.roots = R → NamesCoh (st.fs.treeDur, st.fs.metaLog) Γn →
+      ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γn Γn -∗ F -∗ ⌜P st⌝)
+    (hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
+      (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) → P st →
+      ClaimsAt st cl → ∃ e' st', IsFsStep op v st e' st' ∧ FilesSame st st')
+    (hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
+      (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) → P st →
+      ClaimsAt st cl → IsFsStep op v st e' st' → ∃ w, e' = Val w ∧
+        ((st' = st.metaEnd k ∧ W w false) ∨
+         (LoggedFrom st st' k s0 o ∧ (∀ x, x ∈ o.apply st.tree → x < st'.fs.nextIno) ∧ W w true)))
+    (htree : ∀ st, FsTreeWf st → st.fs.roots = R → P st → ClaimsAt st cl →
+      TreeWf R (o.apply st.tree) ∧ (∀ i, Named (o.apply st.tree) i → Named st.tree i) ∧
+      (∀ x, x ∈ o.apply st.tree → x ∈ st.tree ∨ x ∈ o.newDirs) ∧
+      (∀ J ∈ o.newDirs, J ∉ st.tree) ∧
+      (¬ o.IsDirOp → OpOk st.tree o ∧ ∀ j b i, o = .create j b i → ∀ t,
+        t ≤ st.fs.metaLog.length → ¬ Named (prefTree st.fs.treeDur st.fs.metaLog t) i) ∧
+      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = c.2.2.2))
+    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ F -∗
+      ([∗list] c ∈ cl, osNames (L := L) c.1 c.2.1 (DFrac.own 1) c.2.2.1) -∗
+      osCallS (L := L) k s0 q -∗
+      (∀ w, osCallPerm (L := L) q -∗ F -∗
+        ((⌜W w false⌝ ∗ [∗list] c ∈ cl, osNames (L := L) c.1 c.2.1 (DFrac.own 1) c.2.2.1) ∨
+         (⌜W w true⌝ ∗ ∃ x, osLogged (L := L) x ⟨o, s0⟩ ∗
+           ([∗list] c ∈ cl, osNames (L := L) c.1 c.2.1 (DFrac.own 1)
+             (c.2.2.1.log x ⟨o, s0⟩ c.2.2.2)) ∗
+           [∗list] J ∈ o.newDirs, ∃ hJ, osNames (L := L) J (.except []) (DFrac.own 1) hJ ∗
+             ⌜hJ.cur = ∅ ∧ hJ.next = x + 1⌝)) -∗ Φ w) -∗
+      WP (ExternalOp fsExt.name op (Val v)) @ s; E {{ Φ }} := by
+  iintro #Hinv #Hsi HF Hcl Hk HΦ
+  iapply wp_logStepSN op v hv R k s0 q (fun _ => o) cl (fun _ c => c.2.2.2) F P W hne
+    (fun _ => hwr) (fun _ => hslots) hnext (fun _ => hdir) (fun _ => hadd) hF hprog hpost htree
+    hE hE' Φ $$ Hinv Hsi HF Hcl Hk
+  iintro %w Hq HF Hp
+  iapply HΦ $$ %w Hq HF
+  icases Hp with (Hp | ⟨%hW, %n, %x, Hp⟩)
+  · ileft; iexact Hp
+  · iright
+    isplitr
+    · ipureintro; exact hW
+    · iexists x; iexact Hp
 
 end specs
 
