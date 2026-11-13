@@ -42,7 +42,7 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
     (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
     EtcdServer.LeaseTimeToLive.spec (GF := GF) (hG := hG) := by
   intro Hpeers s E ρ γr γl ctx cd r dq v n m
-  wp_start as ⟨#Hq, #Hr, #Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, #Hlib, HRD, #Hpool, Htok, %Hbound, Hreq⟩
+  wp_start as ⟨#Hq, #Hr, #Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, #Hlib, #Hnet, HRD, #Hpool, Htok, %Hbound, Hreq⟩
   ihave ⟨%st, %cca, #Has, #Hreqa, #Hreqb, #Hcca, #HLb⟩ := leaseCheckSetup s E n $$ [$Hau $Hlb $Hpub]
   iunfold isAuthStoreLeaseLb at HLb
   icases HLb with ⟨%ai, %Hai, #HEn, #HRev, -, -, -⟩

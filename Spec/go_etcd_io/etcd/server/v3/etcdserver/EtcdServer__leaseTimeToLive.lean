@@ -5,6 +5,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRead
+public import Proof.net.http.NetCtx
 
 @[expose] public section
 
@@ -87,7 +88,15 @@ forwarded reply (`404`, which the examples' raft-only peer listeners answer,
 arm (Go's returned errors are leaves: `errIsTrue` with `ErrLeaseNotFound` means `err` is it).
 Without the row both are false (a follower forwards to another member's lessor; a restarted member
 applies replayed grants before its election and forwards: review round 3, R7). A change admitting
-configuration changes or restarts with leases must revisit this spec. -/
+configuration changes or restarts with leases must revisit this spec.
+(k8s 7f-4, Addendum T-h6, the fix of a refutation found by etcd-grove-81's context-key sweep:
+`notes/leasetimetolive-value-refuted.md`) The context holds nothing at the keys net/http's client reads
+(`http.netCtxOk ctx`): on a follower it runs `cctx := context.WithTimeout(ctx, ...)` and
+`leasehttp.TimeToLiveHTTP(cctx, ...)` over a `*http.Transport`, whose `roundTrip` calls
+`httptrace.ContextClientTrace(cctx)` (go1.27.3 `net/http/transport.go:614`), a `Value` call the
+`*timerCtx` answers as `ctx` (its `value()` walk); the dial and lookup paths read the two `nettrace`
+keys. Without it a context whose `Value` panics at the first key met the premise and the call panicked
+(`TestLeaseTimeToLiveFollowerValuePanics`, `examples/etcd/lease/ctxsweep_test.go`). -/
 abbrev EtcdServer.leaseTimeToLive.spec : Prop :=
   leasePeersOk →
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (γl : GName)
@@ -95,7 +104,7 @@ abbrev EtcdServer.leaseTimeToLive.spec : Prop :=
     (v : etcdserverpb.LeaseTimeToLiveRequest) (m : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvLessorRd s γl ∗
-      context.isContext ctx cd ∗ lease.lessorRdPool γl ∗ levelTok lease.lessorLvl ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗
+      context.isContext ctx cd ∗ http.netCtxOk ctx ∗ lease.lessorRdPool γl ∗ levelTok lease.lessorLvl ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗
       lease.lessorLb γl m ∗ r ↦{dq} v }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"leaseTimeToLive"))
       (Val #(GoInterface.ok ctx))) (Val #r))

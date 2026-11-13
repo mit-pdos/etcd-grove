@@ -608,6 +608,27 @@ Written (T-h0's fix; steps 1, 2, 4's `RenewHTTP` part, 6, 7 of the handoff):
 Not written (T-h5): `v3rpc.ctxDoneErr`, `v3rpc.ctxChildErr`, `v3rpc.wp_WithTimeout_weak`, `waitLeader`'s
 premise change.
 
+### T-h6 (2026-11-13, etcd-grove-81's context-key sweep). `leaseTimeToLive` refuted; fixed with `http.netCtxOk`
+
+`notes/leasetimetolive-value-refuted.md`: the landed axiom `EtcdServer.leaseTimeToLive.spec` (premise
+`isContext`) runs, on a follower, `WithTimeout(ctx)` then `TimeToLiveHTTP(cctx)` over a `*http.Transport`,
+whose `roundTrip` reads `Value` at `httptrace`'s key (`TestLeaseTimeToLiveFollowerValuePanics`,
+`examples/etcd/lease/ctxsweep_test.go`, passes). Written:
+- **Axiom, changed:** `EtcdServer.leaseTimeToLive.spec` takes `http.netCtxOk ctx` (the WP form suffices
+  inside the axiom: the `*timerCtx`'s `value()` walk answers as `ctx.Value`).
+- **Trusted, changed:** grpc's `grpcRunCtx` gains `http.netCtxOk ci` (same justification as T-h0's
+  `srvRawStreamIs` clause), law `netCtxOk_of_runCtx`. Every axiom whose post holds `grpcRunCtx` claims it.
+- Not trusted: `EtcdServer.LeaseTimeToLive.spec`, `v3rpc.lessorTTLOk`,
+  `v3rpc.LeaseServer.LeaseTimeToLive.spec` take `http.netCtxOk`; the client's served-handler proofs
+  (`LeaseGrantServed`, `LeaseReadServed`) discharge it from the run context.
+
+**Next (not written; etcd-grove-81's item 2):** `http.WithContext_ok` with `rafthttp.NewRoundTripper` /
+`newStreamRoundTripper` (`roundTripperOk`): `RoundTrip`'s contract never mentions the request's context;
+record it (`reqCtx` in `reqOwn`, or a persistent `reqCtxIs`), `WithContext_spec` takes `isContext ∗
+http.netCtxOk` (or a Background chain: all callers pass `WithCancel(Background())`), `roundTripperOk`'s
+`RoundTrip` uses it; widen `netErr`/`errStrOk` if the done-context error comes back (the sweep's finding,
+etcd-grove-81's workflow journal `wf_91727eee-383`).
+
 ### Checks run, Revision 2 (2026-11-12, merged with lean `219ddbbb83`)
 
 Full build passes (17490 jobs); `tcb-report --check` matches the baseline unchanged (865 axioms, 5

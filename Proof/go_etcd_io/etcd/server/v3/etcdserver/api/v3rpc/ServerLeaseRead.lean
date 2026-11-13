@@ -55,7 +55,7 @@ theorem raftLeaseRead_of_server (hTTL : EtcdServer.LeaseTimeToLive.spec (GF := G
   iunfold raftLeaseRead
   isplitr
   · iunfold lessorTTLOk
-    iintro %ci %cd %r %dq %v %n %m !> %Φ ⟨⟨HRD, Htok⟩, HR, #Hctx, #Hlib, #Hpub, #Hllb, Hr⟩ HΦ
+    iintro %ci %cd %r %dq %v %n %m !> %Φ ⟨⟨HRD, Htok⟩, HR, #Hctx, #Hlib, #Hnet, #Hpub, #Hllb, Hr⟩ HΦ
     wp_apply (hTTL hP s E ρ γr γl ci cd r dq v n m) $$ [HRD Htok Hr]
       as %resp %err ⟨HRD, Htok, Hr, Hans⟩
     · iframe; iframe #; ipureintro; exact hT

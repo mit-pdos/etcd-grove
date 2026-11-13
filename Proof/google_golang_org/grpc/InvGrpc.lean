@@ -65,6 +65,7 @@ public import Perennial.Proof.context
 public import Proof.go_opentelemetry_io.otel.trace.Defs
 public import Proof.context.LibKeys
 public import Proof.context.LibKeysChain
+public import Proof.net.http.NetCtx
 public import Proof.go_etcd_io.etcd.client.v3.ClientErr
 public import GeneratedProof.google_golang_org.grpc.peer
 public import Proof.google_golang_org.grpc.metadata.Outgoing
@@ -199,13 +200,18 @@ well formed (`context.libCtxOk`, `Proof/context/LibKeys.lean`): grpc's server st
 run's context), and under otel's `currentSpanKey` nothing or otelgrpc's span (`otelSpan`). (k8s
 7f-4, Revision 1, m1) Of etcd's configuration: no `GRPCAdditionalServerOptions`
 (`server/embed/etcd.go:789`) adds interceptors or stats handlers that store values at these keys, as
-in the etcd binary (`etcdmain` never sets it). -/
+in the etcd binary (`etcdmain` never sets it). (k8s 7f-4, Addendum T-h6) It holds nothing at the keys
+net/http's client reads (`http.netCtxOk`: `nil` at `httptrace`'s `clientEventContextKey{}`,
+`nettrace.TraceKey{}`, `nettrace.LookupIPAltResolverKey{}`): unexported standard-library types, stored only
+by `httptrace.WithClientTrace` and `net`'s internal tests, which neither grpc's server, otelgrpc's stats
+handler nor etcd's interceptors call (the run context's chain: `TestRunCtxChain`,
+`examples/premisefix/streamctx`). -/
 def grpcRunCtx (ci : GoInterfaceOk) : IProp GF :=
   iprop((□ ∀ (n : GoString) (x : val) (Φ : val → IProp GF), ⌜etcdPkgPrefix <+: n⌝ →
     ▷ Φ #GoInterface.nil -∗
     WP (App (Val #(methods ci.ty go!"Value" ci.v))
       (Val #(interface.mkOk (go.GoType.Named n []) x : GoInterface))) {{ Φ }}) ∗
-    trace.spanCtxOk ci ∗ context.libCtxOk ci)
+    trace.spanCtxOk ci ∗ context.libCtxOk ci ∗ http.netCtxOk ci)
 
 instance grpcRunCtx_persistent (ci : GoInterfaceOk) : Persistent (grpcRunCtx (GF := GF) ci) := by
   unfold grpcRunCtx; infer_instance
@@ -224,7 +230,15 @@ theorem libCtxOk_of_runCtx (ci : GoInterfaceOk) :
     grpcRunCtx (GF := GF) ci ⊢ context.libCtxOk ci := by
   iintro #H
   iunfold grpcRunCtx at H
-  icases H with ⟨-, -, #H⟩
+  icases H with ⟨-, -, #H, -⟩
+  iexact H
+
+/-- **A run's context holds nothing at net/http's keys** (`grpcRunCtx`'s fourth part; T-h6). -/
+theorem netCtxOk_of_runCtx (ci : GoInterfaceOk) :
+    grpcRunCtx (GF := GF) ci ⊢ http.netCtxOk ci := by
+  iintro #H
+  iunfold grpcRunCtx at H
+  icases H with ⟨-, -, -, #H⟩
   iexact H
 
 /-- **A service method `h` meets `Spec` with the per-run resource `S`** (persistent; see the file
