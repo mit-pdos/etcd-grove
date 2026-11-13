@@ -75,6 +75,72 @@ theorem fbr_readerStream
   ipureintro
   exact Hys
 
+theorem decFile_pure (IoE : GoInterface → Prop) (eof : GoInterface) (F : DecFile GF) :
+    decFile IoE eof F ⊢
+      ⌜F.fr.ty ≠ go.GoType.PointerType _root_.Perennial.bufio.Reader.ty ∧ F.bs.length < 2 ^ 62⌝ := by
+  iintro HF
+  iunfold decFile at HF
+  icases HF with ⟨-, -, -, %h⟩
+  ipureintro; exact h
+
+/-- A decoder's reader, from its parts (its `FileInfo` taken). -/
+theorem ownFbr_intro (fbr b : Loc) (fi : GoInterface) (IoE : GoInterface → Prop) (eof : GoInterface)
+    (F : DecFile GF) (r : List w8) :
+    (fbr ↦□ go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader.mk b fi GoInterface.nil : IProp GF) ∗
+      decFile IoE eof F ∗ bufio.ownReader b F.fr F.S (decRdErr F.bs eof IoE) r ∗
+      fileInfoOk fi F.bs.length ⊢
+      ownFbr fbr IoE eof F r := by
+  iintro ⟨#Hf, #HF, Hb, #Hfi⟩
+  iunfold ownFbr
+  iexists b, fi, GoInterface.nil
+  iframe
+  iframe Hf HF
+  isplitl []
+  · ipureintro; intro h; exact absurd rfl h
+  · iintro -; iexact Hfi
+
+/-- A decoder whose first reader has delivered `r`, the others nothing, from its parts. -/
+theorem ownDecoder_intro (d : Loc) (IoE : GoInterface → Prop) (eof : GoInterface) (sl : GoSlice)
+    (fbr : Loc) (fbrs : List Loc) (h : GoInterface) (F : DecFile GF) (fs : List (DecFile GF))
+    (r : List w8) (off : Nat) (c : w32) (live : Bool) (hoff : off < 2 ^ 62)
+    (hlive : live → r = F.bs.take off) :
+    sync.isMutex (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.decoder go!"mu" d) (BI.pure True : IProp GF) ∗
+      structFieldRef go_etcd_io.etcd.server.v3.storage.wal.decoder go!"brs" d ↦ sl ∗
+      sl ↦*□ (fbr :: fbrs) ∗
+      structFieldRef go_etcd_io.etcd.server.v3.storage.wal.decoder go!"lastValidOff" d ↦ W64 off ∗
+      structFieldRef go_etcd_io.etcd.server.v3.storage.wal.decoder go!"crc" d ↦ h ∗
+      structFieldRef go_etcd_io.etcd.server.v3.storage.wal.decoder go!"continueOnCrcError" d ↦ false ∗
+      ownDecCrc h c ∗ ownFbr fbr IoE eof F r ∗ ownFbrs IoE eof fbrs fs (fs.map (fun _ => [])) ⊢
+      ownDecoder d IoE eof (F :: fs) off c live := by
+  iintro ⟨#Hmu, Hbrs, #Hsl, Hoff, Hcrc, Hcont, Hdc, Hfbr, Hfbrs⟩
+  iunfold ownDecoder
+  iexists sl, fbr :: fbrs, h, (r :: fs.map (fun _ => []))
+  iframe
+  iframe Hmu Hsl
+  isplitl [Hfbr Hfbrs]
+  · simp only [ownFbrs]
+    iframe
+  ipureintro
+  refine ⟨hoff, fun hl => ?_⟩
+  simp [liveRs, hlive hl]
+
+/-- An `errors.New` error variable's error is a well-behaved error (`errOk`). -/
+theorem errOk_newVar (X msg : GoString) :
+    errors.newVar (GF := GF) X msg ⊢
+      ∃ x : Loc, globalAddr X ↦□ interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x ∗
+        errOk ⟨go.GoType.PointerType errors.errorString.ty, #x⟩ := by
+  iintro H
+  iunfold errors.newVar at H
+  icases H with ⟨%x, #Hx, #HE⟩
+  iexists x
+  iframe Hx
+  iunfold errOk
+  imodintro
+  iintro %Φ HΦ
+  iapply HE
+  inext
+  iapply HΦ
+
 /-- The readers, the files and what they delivered are lists of the same length. -/
 theorem ownFbrs_len (IoE : GoInterface → Prop) (eof : GoInterface) :
     ∀ (fbrs : List Loc) (fs : List (DecFile GF)) (rs : List (List w8)),

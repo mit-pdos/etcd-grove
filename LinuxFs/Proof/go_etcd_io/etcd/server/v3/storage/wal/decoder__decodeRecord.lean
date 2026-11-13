@@ -351,6 +351,39 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
     have h8 := hnil8 rfl
     have hl := Hys.2 rfl
     wp_auto
+    rw [decide_eq_false hl0]
+    wp_auto
+    ihave %HFp := decFile_pure IoE eof F $$ HF
+    obtain ⟨hle, hpre8⟩ := take_append_prefix Hpre (by intro h; rw [h] at h8; simp at h8)
+    have htk : (F.bs.drop off).take 8 = ys := by
+      obtain ⟨t, ht⟩ := hpre8; rw [← ht, ← h8]; simp
+    have hrest8 : 8 ≤ (F.bs.drop off).length := by simp; omega
+    have hframe := decRecStep_frame (C := C) (last := fs.isEmpty) (c := c) hrest8
+      (by rw [htk, ← hl]; exact hl0)
+    rw [htk, ← hl] at hframe
+    have hrb := decodeFrameSize_fst_lt l
+    have hpad := decodeFrameSize_snd_lt l
+    wp_apply +noauto HDFS l
+    generalize hrbd : (decodeFrameSize l).1 = rb at hframe hrb ⊢
+    generalize hpadd : (decodeFrameSize l).2 = pad at hframe hpad ⊢
+    wp_auto
+    wp_apply HFI fbr b fi GoInterface.nil DFrac.discard $$ [Hf] as -
+    · iexact Hf
+    iunfold fileInfoOk at Hfio
+    icases Hfio with ⟨%fii, %Hfii, #HSize, #HName⟩
+    subst Hfii
+    wp_auto
+    wp_apply HSize
+    have hcmp : sint.Z (W64 F.bs.length - W64 off - W64 pad) < sint.Z (W64 rb) ↔
+        F.bs.length < off + pad + rb := by
+      have := HFp.2
+      constructor <;> intro h <;> word
+    by_cases htl : F.bs.length < off + pad + rb
+    · rw [decide_eq_true (hcmp.mpr htl)]
+      wp_auto
+      sorry
+    rw [decide_eq_false (fun h => htl (hcmp.mp h))]
+    wp_auto
     sorry
 
 end proof
