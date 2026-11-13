@@ -15,11 +15,12 @@ The proof of `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__cut.lean` 
    "(b) the cut's `N.tmp`, owned wholly"), or the cut's proof inlines them over
    `encoder.encode.specG`/`saveCrc.spec` with the whole-resource bridge `os.File.writerStream`
    and `Fdatasync` (zeros `zrun_synced`).
-6. `os.Rename(N.tmp, fpath)` (`os.Rename.specFileSnc`, two claims: `pipeTmp n`'s and the WAL
+6. `os.Rename(N.tmp, fpath)` (`os.Rename.specFileSnc` with `CutAu.lean`'s `walCut_osAUnc`, proved; two claims: `pipeTmp n`'s and the WAL
    directory's `WalDirClaim`): the client update opens `walInv` and takes the layout to `cutLay`
    with `alt = some lay` (`crashOkA_cut`, `cutLay_abs`); `N.tmp`'s halves deposited (`segRes`).
 7. `fileutil.Fsync(w.dirFile)` (`os.File.Sync.specDirS`: `osCommitLb n`): `walInv` opened after
-   the step (`wp_notCrashed_acc`) to drop `alt` (`crashOk_dirSync`).
+   the step (`wp_notCrashed_acc`) to drop `alt` and clear the pending-cut flag: `CutSync.lean`'s
+   `walInvBody_cutSynced` (proved; takes the claim's ¼, the key, the tail record and `walCutFrag (some dir)`).
 8. `newTail.Close()`, `fileutil.LockFile(fpath, O_WRONLY)` (an open of an existing `.wal` file in
    shared mode: `os.OpenFile.wp_fileS`), `Seek(off)`, `w.locks[last] = newTail`,
    `newFileEncoder`, the log line.

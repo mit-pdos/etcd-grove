@@ -597,7 +597,7 @@ theorem walCrash_pure (C : WalCodec) (_hC : C.Ok) (Mr : WalMarshal) (R : Roots) 
     obtain ⟨-, -, -, -, -, ha, -, -, -, -, -, -, -, hn⟩ := (hF dir d hd).2.2 d' lay' hFd
     obtain ⟨lay, -, -, hLs, -⟩ := hok.1 dir d hd
     obtain ⟨hj, hg⟩ := hn lay hLs
-    obtain ⟨hC1, hC2⟩ := (hnm dir lay hLs).2 m' hreg
+    obtain ⟨hC1, hC2, -⟩ := (hnm dir lay hLs).2 m' hreg
     rw [hj]
     refine ⟨fun g hg' => ?_, hC2⟩
     obtain ⟨g1, hg1, e1, e2⟩ := hg g hg'

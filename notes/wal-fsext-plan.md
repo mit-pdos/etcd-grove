@@ -504,7 +504,7 @@ Everything under `LinuxFs/` and `GooseLang/Ext/Fs/` builds (3019 jobs); `etc/gen
 module; the bboltfs/crashlog/walfs examples and the generated translations not listed):
 - `wal/`: `Create.wp_proof` (`Create.lean`), `Open.wp_proof`, `OpenForRead.wp_proof`, `openAtIndex.wp_proof`,
   `openWALFiles.wp_proof`, `WAL.ReadAll.wp_proof`, `WAL.Save.wp_proof`, `WAL.SaveSnapshot.wp_proof`,
-  `WAL.Sync.wp_proof`, `WAL.cut.wp_proof`, `cutCommit_pure` (`CutCommit.lean`), `WAL.saveEntry.wp_proof`, `WAL.saveState.wp_proof`,
+  `WAL.Sync.wp_proof`, `WAL.cut.wp_proof`, `WAL.saveEntry.wp_proof`, `WAL.saveState.wp_proof`,
   `WAL.sync.wp_proof`, `wal.tailWriter` (`TailWriter.lean`);
 - `fileutil/`: `ReadDir.wp_proof` (`TouchDirAll`/`CreateDirAll` proved, `wal-create7`, over the above-root hypotheses);
 - `os/`: `File.Truncate.wp_proofAu` (`File__TruncateAu.lean`), `File.WriteAt.wp_proof_long` (`WriteLong.lean`,
@@ -1263,6 +1263,46 @@ on three facts the invariant does not record.**
 - *`(*WAL).cut`*: still `sorry`. Its rename step is now `os.Rename.specFileSnc` with
   `walCut_osAUnc` (q1 = ½, q2 = ¼); the dir sync then `crashOk_dirSync` with `walCut_set` back to
   `none` (a lemma opening `walInv` via `wp_notCrashed_acc`, the analog of this one, not written).
+
+**Sixth session (branch `wal-cut6`, 2026-11-13): `cutCommit_pure` proved.**
+- *`cutCommit_pure`* (`CutCommit.lean`, **no `sorry`**), over `CutCommitPure.lean` (the rename's writes,
+  `replClaim` membership and `ClaimOnce`, `walClaim_eq` (the keyed claim is `j`'s only claim on `.wal`
+  names), `walName_unique` (distinct files, one `.wal` name each), `walInos_insert_last` (`bt` above every
+  name: its file last), `regionCrashed_cut` (a crash of the new claims is one of the old, on the tree or
+  on `treeDel m' j bt`), `lookupH_treeDel`, `crashOkA_cut_other`) and `CutCommitLemmas.lean`
+  (`walsOk_dir_ne`: another WAL's directory is not `j`; `creatingOk_cut`, `absentNone_cut`, `dirsOk_cut`,
+  `walsNamed_cut`, `dirKeysOk_cut`). `nm0` is the last segment's name by `walName_unique`; `bt` the
+  largest by the segments' names sorted.
+- **Invariant change: `SegsNamedC` gains a third clause** (`Inv.lean`): every file at a `.wal` name after
+  a crash is a segment's (`∀ i ∈ walInos ents, i ∈ segs.map (·.ino)`). `WalsNamed`'s crash clause for a
+  crash dropping the cut's rename must say the new segment is at no `.wal` name; the old crash condition
+  says so only for crashes whose files `FileCrashedR` allows, and no such files can be produced purely
+  (an old segment's `zf` is not recorded: a durable nonzero byte past a `zf` below the size would admit
+  none). Re-proved: `SegsNamed.crash` (takes the clause), `walsNamed_start` (`WalAbsD.names`),
+  `walsNamed_tail`/`segsNamedC_congr` (the inodes kept), `segsNamedC_congr_ents`, `walCrash_pure`.
+  **For W4 (`wal-create7`)**: `walCreate_osAUnc`'s `hJC` now asks the clause too (after any crash of `J`'s
+  claim, its `.wal` files are the new segment's: the claim's boot holds no `.wal` file, its entries are
+  the segment's create).
+- **Statement change**: `cutCommit_pure` and `walCut_osAUnc` take `walCutPos (H.map toM) |H|` (`cutLay_abs`'s
+  `hcut`: the new segment starts at a cut position, i.e. after a `Save` that wrote a record), so `cut.spec`
+  needs it from `Save` (with the cuts below `|H|`).
+- **`cut.spec` premises added** (`wal-save6` had not added the handle bound): `∀ b ∈ h.cuts, b < h.H.length`
+  and `walCutPos (h.H.map WalOpG.toM) h.H.length`. `Save`'s proof (W6) supplies them: the cut follows the
+  `Save` that wrote a record, after every earlier cut.
+- *`CutSync.lean`* (proved): `walInvBody_cutSynced`, step 7's update (after `os.File.Sync.specDirS`'s
+  `osCommitLb n`, `x < n`, the program opening `walInv` with `wp_notCrashed_acc`): the program's fraction
+  of the WAL claim agrees with the invariant's (history ending with the rename), the tail record names
+  the layout's last segment `i` (`walTailsRes_lookup`), so the alternative's segments, a strict prefix,
+  miss `i` and `crashOk_dirSync` drops it; the flag back to `none` (`dirKeysOk_cutSynced`, at `max n0 n`).
+- *`(*WAL).cut`*: still `sorry`. Done of its steps: 4 (`wp_walPipeH_open`), 6 (`walCut_osAUnc`), 7
+  (`walInvBody_cutSynced`). Left: 1 (split-form `os.File.Truncate.specAu`, its proof `sorry`, on the
+  tail's `walTailW`), 2 (`sync.spec` on the truncated tail, then the `walSyncedLb |H|` and the durable
+  bytes `walCut_osAUnc` needs), 3 (`w.seq()`: `filepath.Base`/`parseWALName` of `Name()`; the
+  `max(enti, snapi) + 1` naming and `walLastIdx` bound from the handle), 5 (the header phase over the
+  owned `N.tmp`: `newFileEncoder`, `saveCrc`, `encode(Metadata)`, `saveState.specPre`, `sync.specPreL`
+  over `walPreInL` with the old locks in `ls`), 8 (`Close`, `LockFile` of the renamed `.wal`
+  (`os.OpenFile.wp_fileS`), `Seek`, `newFileEncoder`), and rebuilding `walHandleIn` (with `walDirH` at
+  the new claim history, `walPipeH_next`).
 
 ## W4 implementation log (branch `wal-create`, 2026-11-13)
 

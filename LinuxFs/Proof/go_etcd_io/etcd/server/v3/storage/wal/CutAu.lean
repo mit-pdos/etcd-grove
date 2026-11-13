@@ -120,6 +120,7 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (γ : GName) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (wr0 : Nat) (i0 : Ino)
     (m0 : OsMeta) (bs0 : List ByteG) (g : SegG) (bt nm0 : GoString) (wr sq ix : Nat)
     (htmpX : tmp ∈ X) (hcuts : ∀ b ∈ cuts, b < H.length)
+    (hcpos : walCutPos (H.map WalOpG.toM) H.length)
     (hnm0 : walNameP nm0 = true ∧ hj.cur !! nm0 = some (.file i0))
     (hbt : bt = walFileName sq ix ∧ walLastIdx (H.map WalOpG.toM) + 1 ≤ ix ∧ go.GoStringLt nm0 bt)
     (hbtw : walNameP bt = true) (hcur : hj.cur !! bt = none)
@@ -313,7 +314,7 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
         exact hexcl _ hmem hne rfl bt hbtw hbX
       obtain ⟨hok', hco', hcro', han', hnm', hdko'⟩ := cutCommit_pure (x := x) (s0 := s0)
         ⟨hW1, hW2, hW3, hW4, hW5, hW6⟩ Hco Hcro Han.1 Han.2 Hnm Hdko HK hd hl1 hg0
-        ⟨l1, l2, rfl, hn1, hn2⟩ hm (hnmd d hd) hlast0 hcuts hnm0 hbt hbtw hcur hwr' hbs' hmeta hfit hz
+        ⟨l1, l2, rfl, hn1, hn2⟩ hm (hnmd d hd) hlast0 hcuts hcpos hnm0 hbt hbtw hcur hwr' hbs' hmeta hfit hz
         hino hgname htmpX (Nat.le_trans (Nat.le_max_right _ _) hls) hsx
       -- the tail record moved, the flag, the parked halves
       imod tailVar_upd γ _ _ (tailG d (cutLay lay1 d.H.length g wr) g.ino none) $$ Hv Hvi with ⟨Hv, Hvi⟩
