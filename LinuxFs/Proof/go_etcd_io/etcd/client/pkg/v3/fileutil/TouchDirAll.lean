@@ -167,6 +167,23 @@ theorem osSubtreeH_dir (j : Ino) (b : GoString) (h : NamesH) (J : Ino) (hJ : Nam
     iempintro
   ipureintro; rw [hb]; exact subCover_noDirs J hJ hno
 
+/-- A directory's claim merged from its `.only [b]` and `.except [b]` parts: each name's entry is the
+part's holding it. -/
+theorem merged_cur (hm hT hR : NamesH) (J : Ino) (b c : GoString)
+    (h1 : hm.restrict J (.only [b]) = hT.restrict J (.only [b]))
+    (h2 : hm.restrict J (.except [b]) = hR.restrict J (.except [b])) :
+    hm.cur !! c = if c = b then hT.cur !! c else hR.cur !! c := by
+  by_cases hc : c = b
+  · subst hc
+    have := congrArg (fun x => x.cur !! c) h1
+    simp only [NamesH.restrict] at this
+    rw [restrictN_lookup _ _ _ (by simp [NameSet.Mem]), restrictN_lookup _ _ _ (by simp [NameSet.Mem])] at this
+    simp [this]
+  · have := congrArg (fun x => x.cur !! c) h2
+    simp only [NamesH.restrict] at this
+    rw [restrictN_lookup _ _ _ (by simp [NameSet.Mem, hc]), restrictN_lookup _ _ _ (by simp [NameSet.Mem, hc])] at this
+    simp [hc, this]
+
 theorem fileutil.TouchDirAll.wp_proof
     (wp_Exist : go_etcd_io.etcd.client.pkg.v3.fileutil.Exist.spec (GF := GF) (hG := hG))
     (wp_Clean : filepath.Clean.spec (GF := GF) (hG := hG))
@@ -398,7 +415,73 @@ theorem fileutil.TouchDirAll.wp_proof
             · iexact Hcm
         ipureintro
         refine ⟨by word, by omega⟩
-    · sorry
+    · icases Hc with (%hc | #Hcm)
+      · exfalso; rw [Hlen.1] at hc; word
+      ihave Hp := (os.osPathS_joinPath R (joinPath [] rcs) j0 cs (DFrac.own qp) jp hR hm hcs).2 $$ Hs
+      obtain ⟨ε, a', b', hqd, hqq⟩ := os.qp_common qp 1
+      subst hqd
+      icases (osPathS_frac R (joinPath (joinPath [] rcs) cs) ε a' jp).1 $$ Hp with ⟨Hpe, Hpa⟩
+      icases (osNames_join jp (.only [name]) ε b' h1 hqq).2 $$ Hn1 with ⟨Hne, Hnb⟩
+      ihave Hpc := osPathS_child R _ name (DFrac.own ε) jp J h1 hname hcur1 $$ Hpe Hne
+      imod osNames_split R J (.except []) [go!".touch"] hJ CoPset.subseteq_top $$ Hsi HJ with ⟨Ht, Hrest⟩
+      rw [show (NameSet.except []).inter [go!".touch"] = .only [go!".touch"] by simp [NameSet.inter],
+        show (NameSet.except []).diff [go!".touch"] = .except [go!".touch"] by simp [NameSet.diff]]
+      have hTn : (hJ.restrict J (.only [go!".touch"])).cur !! go!".touch" = none := by
+        simp only [NamesH.restrict]
+        rw [restrictN_lookup _ _ _ (by simp [NameSet.Mem]), hJc.1]
+        simp
+      wp_apply wp_IsDirWriteable (child (joinPath (joinPath [] rcs) cs) name) R J (DFrac.own ε) _ 1 hlen hTn
+        $$ [Hpc Hperm Ht]
+      · iframe; isplitl [] <;> iassumption
+      iintro %err ⟨Hpc, Hperm, %hT, HT, %hTf⟩
+      icases os.osPathS_unchild R _ name jp J ε a' hname $$ [Hpc Hpa] with ⟨%h'', Hp, Hne, %-⟩
+      · iframe
+      icases osNames_agree jp (.only [name]) _ _ h'' h1 $$ Hne Hnb with %he
+      subst he
+      ihave Hn1 := (osNames_join jp (.only [name]) ε b' h'' hqq).1 $$ [Hne Hnb]
+      · iframe
+      imod osNames_merge R J (.only [go!".touch"]) (.except [go!".touch"]) (.except []) hT _
+        (by intro b; simp only [NameSet.Mem]; by_cases hb : b = go!".touch" <;> simp [hb])
+        CoPset.subseteq_top $$ Hsi HT Hrest with ⟨%hM, HM, %hMf⟩
+      have hMc := fun c => merged_cur hM hT _ J go!".touch" c hMf.1 hMf.2.1
+      have hRc : ∀ c, (hJ.restrict J (.except [go!".touch"])).cur !! c = none := by
+        intro c; simp only [NamesH.restrict]
+        by_cases hc : c = go!".touch"
+        · subst hc; rw [restrictN_lookup_not _ _ _ (by simp [NameSet.Mem])]
+        · rw [restrictN_lookup _ _ _ (by simp [NameSet.Mem, hc]), hJc.1]; simp
+      have hnoM : ∀ (c : GoString) J', hM.cur !! c ≠ some (.dir J') := by
+        intro c J' hc
+        rw [hMc c] at hc
+        split at hc
+        · subst_vars; exact hTf.2 J' hc
+        · rw [hRc] at hc; cases hc
+      wp_auto
+      iapply HΦ
+      iframe
+      cases err with
+      | ok e =>
+        ileft
+        isplitr
+        · ipureintro; intro hc; cases hc
+        iexists h''
+        iapply osSubtreeH_dir jp name h'' J hM hcur1 hnoM $$ [Hn1 HM]
+        iframe
+      | nil =>
+        iright
+        isplitr
+        · ipureintro; rfl
+        iexists h'', hM, J, h''.next
+        iframe
+        isplitl []
+        rotate_left
+        · iexact Hcm
+        ipureintro
+        refine ⟨hcur1, Nat.le_refl _, ?_⟩
+        apply GMap.ext; intro c
+        rw [hMc c]
+        split
+        · subst_vars; rw [hTf.1 rfl]; simp
+        · rw [hRc]; simp
 
 theorem fileutil.CreateDirAll.wp_proof (hT : fileutil.TouchDirAll.spec (GF := GF)) :
     fileutil.CreateDirAll.spec (GF := GF) := by
