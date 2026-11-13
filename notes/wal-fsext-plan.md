@@ -521,6 +521,24 @@ clamped}` (right), so `walStCrash s s'`; the new layout keeps the cuts, `segs.dr
 |S'|`. Lemmas needed: `walCutPos` and `walLastIdx` under a prefix of the history, the last segment's
 records of `I.take m` a prefix of `I`'s, `RecsFit` of a prefix.
 
+**Third session (branch `wal-int-w1c`, 2026-11-13): `walInv_alloc` proved; the W1 layer has no `sorry`.**
+The integration build of `wal-int` needed two fixes: `crashRestAt` (CrashTakeFiles) over I2's
+`crashMode` in place of `crashCommit`, and `wp_osPathKind` (models branch) taking `osTree` as its
+`LegacyWit`. Statement changes (the five points the coordinator adopted):
+- `walInv_alloc`: premises `hV : V.2 = []`, `hcl` (each claim as the boot history has it), `harea : ∃ N h,
+  (jr, N, h) ∈ cl ∧ ∀ nm, walNameOk nm → N.Mem nm` (one claim on all the area's WAL names), `hdirs : ∀ nm J,
+  walNameOk nm → V.now.entry jr nm = some (.dir J) → ∃ h, (J, .except [], h) ∈ cl` (every directory at a
+  WAL name, WAL or not, wholly: `AbsentOk` needs the non-WAL ones too), `hdok : DirsOk R s cl 0`. No
+  `osSharedInv` (unused). The commit bound is 0 (`osCommitLb 0`, for free). Returns, beside `walInv` and the
+  claims' halves, `∃ Ls, ⌜WalsStart … Ls V.now⌝ ∗ laysRes Ls` (the program's halves of the segments). The
+  start's files that are no segment are dropped.
+- `walAbs_crashOk_start`: `hj : ∃ h, (lay.j, .except [], h) ∈ cl ∧ h.boot = ents`, `hr : ∃ N h, (lay.jr, N, h)
+  ∈ cl ∧ N.Mem lay.nm ∧ h.boot !! lay.nm = some (.dir lay.j)` (any claim on the name, the area's whole one
+  included).
+- `walStart` records `((segsAll Ls).map (·.ino)).Nodup`; `walCrash_pure` proves it (`crashTo_start` and
+  `CrashGood` record each new layout's inodes a sublist of the old one's; `segsAll_nodup_iff`/`_sub`).
+
+
 ## 9. The trusted-model drafts (2026-11-13, branch `wal-models`; pending the user's review [user])
 
 The WAL and fileutil retranslated from the fork's `goose-lean-walfs` (`f15d88841`, the two local fixes
@@ -602,3 +620,76 @@ out of `Abs.lean`; statement unchanged). Left: `walInv_alloc` (`sorry`).
   `walCrash_pure` from the old one: per-key nodup and cross-key disjointness of `segsAll`, each new
   layout's inodes among its old one's); (4) `osCommitLb 0`; (5) the program's halves of the segments
   are dropped (or returned, once W2 needs them).
+- **Leaf units, encoding** (`wal-leaf-enc`, 2026-11-13): `encodeFrameSize` proved (no `sorry`).
+  `WalPbWire.lean` (main tree, pure): `walpb.Record`'s wire format as a transparent function (`RecC`,
+  `recEnc`, `recSize`, `recEnc_length`), the WAL's record content `recOf` (`Data` nil exactly for a CRC
+  record without data: Create/cut build it without `Data`; every other record's data is a `Marshal`
+  result, never nil, or the caller's metadata, which the WAL's specs must take non-nil, since a nil
+  metadata encodes without field 3), and the two stale-`N.tmp` wire facts: `recEnc_blk` (a record with
+  data empty or a block has no two adjacent zeros and a non-zero first byte) and `window_len_or_zeros`
+  (a length word read inside such bytes followed by zeros has byte 3 or 4 non-zero, i.e. a length
+  `≥ 2^24`, or everything from its byte 3 on is zero). Go check `examples/stdlib/walpb` (encoder, size,
+  `MarshalAppend` with `UseCachedSize`, round trip, descriptor). In the part: `walpb.Record` registered
+  (`PbRecord.lean`; axioms `recEncC_ok`, `pbRecordC_reg`, **pending review**), the new
+  `proto.MarshalAppendCachedRecord.spec` (axiom, **pending review**; stated at `walpb.Record` only: a
+  stale size cache changes nested messages' length prefixes), part copies of `InvProto` and of the
+  `SizePb`/`MarshalPb`/`UnmarshalPb` axioms, the proto package instance; `walCodec`, `walCodec_ok`
+  (`WalCodec.Ok.dec_enc` now only for records under `2^56` bytes, which `decStep_frame` has).
+- **Blocker found (import clash)**: the part cannot import anything over the main raft root package
+  (`Code.go_etcd_io.raft.v3`), whose names its own raft root copy declares: raft's `Base` (hence the main
+  `InvProto`, every main proto spec, `pbMsg`), `PbModel` (`EntryM`, `HardStateM`), so also `WalRecs`,
+  `WalHist`, `WalEncRecs`, `WalEncFold`, `WalReadAllPost` and the WAL's specs (`SW/`). The real WAL's
+  proofs live in the part, so they cannot state their posts over that layer today, and `WalMarshal`/
+  `WalUnmarshal` cannot be instantiated there (Entry's encoder `entryEncC` is in raft's `PbEntryType`).
+  Options: (a) give the part no raft root copy (the main raft root's only reason was the main `os`
+  import: translate raft's root with the part's `os` mapped, or split `IsEmptyHardState`/`MustSync`
+  out); (b) make `PbModel`/`Base`-free cores of the WAL layer (`PbModel` imports the raft root only for
+  types: move `EntryM`/`HardStateM`/`SnapshotMetadataM` to a module over `raftpb`); (c) part copies (as
+  done here for `InvProto`, cheap only for leaves). (b) for `PbModel` and dropping `InvProto`'s
+  `raft.v3.Base` import (it compiles without it: the part copy) are the cheapest, but each rebuilds
+  ~1400 main-tree modules. **Decided (coordinator): (b), "raft-free cores"** (branch `wal-rfc`):
+  the cores moved to raft-root-free modules re-exported by the old ones, no statement changes.
+- **(b) cannot reach the WAL vocabulary** (`wal-rfc`, 2026-11-13, before any edit): `StorContents.base`
+  (`NodeApiVocab`) is `entryID`, a Goose struct of the raft root package itself
+  (`Code/go_etcd_io/raft/v3.lean:14735`), which the part's raft root copy declares too
+  (`LinuxFs/Code/go_etcd_io/raft/v3.lean:2230`, `translate_types = true`); `walFresh`, `walRead`,
+  `walReadFrom` (`entryID.mk`), hence `WalRecs`, `WalHist`, `WalEncRecs`, `WalEncFold`, mention it. No
+  raft-root-free core of them exists without a statement change. Measured: a module importing
+  `LinuxFs.Code.go_etcd_io.raft.v3` and `Code.go_etcd_io.raft.v3.raftpb` builds (raftpb is shared);
+  with `Code.go_etcd_io.raft.v3` it fails (`Code.io.fs` vs `LinuxFs.Code.io.fs`). The other edges
+  from the WAL vocabulary into the main tree (all would need cores too): `WalRecs` → `InvOpen` (the
+  server, backend, bbolt: main `golang.org/x/sys/unix`), `NodeApiVocab`, `Protocol.CommitWit`
+  (`phsNext`, `hsZero`), `Protocol.RaftState` (`appendEnts`, over `Plog`); `GooseLang.Ext.AbsDisk.Impl`
+  → `PbModel`; `WalHistLemmas` → `WalDisk` → main `walpb` translation (only its `pure` section is
+  needed). What does work without statement changes: `PbModel` (raftpb only), and the proto specs
+  (`InvProto` drops raft's `Base`; the `proto` package instances move out of `Base`), which would
+  retire the part's copies of `InvProto` and the `SizePb`/`MarshalPb`/`UnmarshalPb` axioms. The WAL
+  vocabulary needs (a): one raft root for both trees, i.e. a main raft root without the main `os`
+  (its only `os` uses are the logger's `os.Stderr`/`os.Exit`: a translation change of the main raft,
+  trusted logger models), or the part's `os` becoming the main tree's. **Decided (coordinator, 2026-11-13): part copies** (the
+  `RaftWitness` pattern): the pure WAL vocabulary the WAL's code proofs need is copied into `LinuxFs/`
+  over the part's raft root, generated by a script with `--check` (no hand-kept duplicates), main modules
+  split (re-exported, no statement changes) only where a copy would drag too much; the copies go when
+  the `os` promotion dissolves the part. Rejected: (a), a raft trust-base and `Assumptions` change that
+  rebuilds everything under other sessions' raft work, with the user away; waiting for the promotion
+  (weeks).
+- **Part copies carried out** (branch `wal-copies`, 2026-11-13): `etc/gen-part-copies.py` (`--check`:
+  a copy differs, or a copy's main-tree import reaches a module the part declares again) writes
+  `LinuxFs/<path>` copies, each headed "GENERATED ... from `<path>`". *Whole copies* (imports of copied
+  modules and of the part's own translations, `LinuxFs/{Code,GeneratedProof,...}`, pointed at the
+  part's): `PbModel`, `AbsDisk/{Impl,Specs}`, `WalHist`, `WalDisk`, `WalHistLemmas`, `WalViews`,
+  `WalEnc{Recs,Segs,SegsImg,Suffix,Fold}`, `WalReadAllPost`, and the `proto` vocabulary (`InvProto`
+  without raft's `Base`, the `Size`/`Marshal`/`Unmarshal` specs and axioms; the hand-kept copies before).
+  *Extracts* (named top-level declarations, verbatim with their docstrings, in a frame of given imports,
+  `open`s and `variable`s): `NodeApiVocab`'s `StorContents` (and `.b`/`.last`/`.commit`), `CommitWit`'s
+  `hardStateM_countable`/`hsZero`/`phsNext` (+ lemmas), `WalRecs`'s `walFresh`/`walSaveSnap`/
+  `walSaveSnap_base_ge` (not the server's ghost state, not the `walFiles` axiom). **No main-tree split**:
+  a split of `NodeApiVocab`/`CommitWit`/`RaftState`/`WalRecs` changes their public `.olean` and rebuilds
+  2202/2733/4750/1253 modules (`etc/importers.py --count`); an extract rebuilds none. Not copied:
+  `walSave` (needs `appendEnts`, `RaftState` over `Protocol.Model`; no WAL module uses it), the
+  `StorContents` countable instance (needs raft's `entryID`/`EntryM`/`SnapshotM` instances; unused). The
+  modules that do not reach the clash (`WalEncFrame`/`Decode`/`Files`, `WalPbWire`, `AbsDisk/Paths`)
+  are imported from the main tree. The W1 layer imports the copies; `wal/ImportCheck.lean` (the WAL
+  translation with the vocabulary, the fold, the W1 layer and the `proto` copies) builds. Adding a
+  module: append it to `COPIES` (an extract when its imports are heavy). The copies go with the `os`
+  promotion.

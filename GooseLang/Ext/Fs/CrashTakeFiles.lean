@@ -36,7 +36,7 @@ def crashRestAt (Q : OsState → OsState → Prop) (hL hL' : OsGS GF) (D : List 
     gAuth hL hL.γb Γb ∗ gAuth hL hL.γm Γm ∗ ([∗map] i ↦ f ∈ F, fileStart hL' i f) ∗
     gAuth hL hL.γt Γt ∗ tokRes hL Γt ∗
     gAuth hL hL.γd (histMap (st.fs.roots, V)) ∗ treeLeft hL' st.fs.roots V' tt ∗
-    crashCommit hL st V V')
+    crashMode hL st V V')
 
 /-- What the crash from `st` to `st'` did to the file `i`, the old generation knowing its `OsMeta`
 as `m` and its bytes as the runs `rs`: `FileCrashedR`; named in the new tree, it is there; it was a

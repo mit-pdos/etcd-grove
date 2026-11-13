@@ -47,11 +47,12 @@ structure WalCodec where
   encRec : WalRec → List w8
   decRec : List w8 → Option WalRec
 
-/-- **The codec's laws** (all the layer uses). `dec_enc`: `Unmarshal ∘ Marshal = id` on records;
+/-- **The codec's laws** (all the layer uses). `dec_enc`: `Unmarshal ∘ Marshal = id` on records whose encoding fits a frame (below `2^56`
+bytes, the frame length word's 56 bits: an unbounded record has no Go encoding);
 `enc_ne`: a record's encoding is not empty (its type is always set: `encode` refuses a nil type,
 encoder.go:67-69, and a set field is marshalled); `crc_nil`: `crc32.Update(c, tab, nil) = c`. -/
 structure WalCodec.Ok (C : WalCodec) : Prop where
-  dec_enc : ∀ r, C.decRec (C.encRec r) = some r
+  dec_enc : ∀ r, (C.encRec r).length < 2 ^ 56 → C.decRec (C.encRec r) = some r
   enc_ne : ∀ r, C.encRec r ≠ []
   crc_nil : ∀ c, C.crc32c c [] = c
 
@@ -250,7 +251,7 @@ theorem decStep_frame {C : WalCodec} (hC : C.Ok) (last : Bool) {bs : List w8} {o
   have hfs := decodeFrameSize_encode _ hfit
   have hne := encodeFrameSize_ne_zero _ hfit hn0
   unfold decStep
-  simp only [htake, u64Le_to_word, hfs, hdata, hdata', hC.dec_enc]
+  simp only [htake, u64Le_to_word, hfs, hdata, hdata', hC.dec_enc r hfit]
   rw [frame_length]
   unfold CrcOk at hcrc
   unfold crcNext

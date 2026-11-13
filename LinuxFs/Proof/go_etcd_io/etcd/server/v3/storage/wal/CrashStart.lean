@@ -37,6 +37,17 @@ theorem durable_img {om : OsMeta} {dq : DFrac} {xs : List w8} {f' : Fs.OsFile}
   simp only [List.getElem_map, durB, List.mem_singleton, Prod.mk.injEq, Nat.zero_add] at hs
   simp [Fs.OsFile.contents, hs.1]
 
+/-- A directory whose entries are those of `e`, by name, has the entries `e`. -/
+theorem entsOf_eq_of_entry {m : Tree} {j : Ino} {e : Ents} (h : ∀ b, m.entry j b = e !! b) :
+    entsOf m j = e := by
+  apply GMap.map_eq; intro b
+  have := h b
+  unfold Tree.entry at this
+  unfold entsOf
+  cases hm : m !! j with
+  | none => rw [hm] at this; simp only [Option.bind_none] at this; rw [← this]; rfl
+  | some D => rw [hm] at this; simpa using this
+
 /-- A claim whose history is empty: a crash leaves its names as at boot. -/
 theorem valAfter_nil {h : NamesH} (hh : h.ents = []) (j : Ino) (K : Nat → Prop) (b : GoString) :
     h.valAfter j K b = h.boot !! b := by
@@ -52,10 +63,9 @@ theorem walAbs_crashOk_start (C : WalCodec) (_hC : C.Ok) (Mr : WalMarshal) (d : 
     (lay : WalLay) (cl : List Claim) (n : Nat) (ents : Ents)
     (habs : WalAbsD C Mr d lay ents)
     (_hfit : RecsFit C (recsOfSegs C Mr d.metadata (segsOf (histM d) lay.cuts)))
-    (_hlog : ∀ c ∈ cl, c.2.2.ents = [])
-    (hj : (lay.j, NameSet.except [], ⟨ents, [], ents⟩) ∈ cl)
-    (hr : ∃ N, (lay.jr, N, ⟨{[lay.nm := Node.dir lay.j]}, [], {[lay.nm := Node.dir lay.j]}⟩) ∈ cl ∧
-      ∀ b, N.Mem b ↔ b = lay.nm)
+    (hlog : ∀ c ∈ cl, c.2.2.ents = [])
+    (hj : ∃ h, (lay.j, NameSet.except [], h) ∈ cl ∧ h.boot = ents)
+    (hr : ∃ N h, (lay.jr, N, h) ∈ cl ∧ N.Mem lay.nm ∧ h.boot !! lay.nm = some (.dir lay.j))
     (hdur : lay.wr = lay.so ∧ lay.wr = lay.z0 ∧
       lay.z0 = (segStream C Mr d lay.cuts lay.cuts.length).length)
     (hlast : ∀ g, lay.segs.getLast? = some g → g.bs = lay.old.map durB) :
@@ -63,20 +73,14 @@ theorem walAbs_crashOk_start (C : WalCodec) (_hC : C.Ok) (Mr : WalMarshal) (d : 
   intro m' fo hreg hfc hnamed _
   right
   obtain ⟨K, -, -, hval⟩ := hreg
+  obtain ⟨hJ, hJm, hJb⟩ := hj
   have hjent : ∀ b, m'.entry lay.j b = ents !! b := fun b => by
-    rw [hval _ hj b (by simp [NameSet.Mem]), valAfter_nil rfl]
-  obtain ⟨N, hN, hNm⟩ := hr
+    rw [hval _ hJm b (by simp [NameSet.Mem]), valAfter_nil (hlog _ hJm), hJb]
+  obtain ⟨N, hN, hNm, hNin, hNb⟩ := hr
   have hjr : m'.entry lay.jr lay.nm = some (.dir lay.j) := by
-    rw [hval _ hN lay.nm ((hNm _).2 rfl), valAfter_nil rfl]
-    simp
-  have hents : entsOf m' lay.j = ents := by
-    apply GMap.map_eq; intro b
-    have := hjent b
-    unfold Tree.entry at this
-    unfold entsOf
-    cases hm : m' !! lay.j with
-    | none => rw [hm] at this; simp only [Option.bind_none] at this; rw [← this]; rfl
-    | some D => rw [hm] at this; simpa using this
+    rw [hval _ hNm lay.nm hNin, valAfter_nil (hlog _ hNm)]
+    exact hNb
+  have hents : entsOf m' lay.j = ents := entsOf_eq_of_entry hjent
   have hsorted := habs.cuts.2.1
   have hcutsLen := habs.cuts.2.2
   have hHm := habs.synced.1
