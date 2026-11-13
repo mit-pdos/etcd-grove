@@ -22,9 +22,10 @@ may read; no auth fact is needed, a refused watch having no events), and the loo
 checks, which never panics; every error's return of `Failed`, a watch that ends early
 `WatchEnded`.
 
-What the result still rests on (`etc/tcb-collections/etcd_auth.txt`): `startServer`, linked as pending
-(`Results.lean`'s `authkv_Main` takes its premises); and the server's apply thread and raft node
-loop.
+What the result rests on (`etc/tcb-collections/authkv.txt`; no `sorry` since 2026-11-13): the
+trust-boundary axioms its callees' proofs reach, and `startServer`'s spec, a premise here, linked in
+`Results.lean` (`authkv_startServer`, at D22's named hypothesis `authSchemaSrv`), and so in the
+closed theorem (`Adequacy.lean`).
 -/
 module
 
