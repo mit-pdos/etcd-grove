@@ -160,7 +160,7 @@ variable {s : Stuckness} {E : CoPset}
 
 theorem osCallPerm_split (q1 q2 : Qp) :
     osCallPerm (L := L) (q1 + q2) ⊣⊢ osCallPerm (L := L) q1 ∗ osCallPerm (L := L) q2 := by
-  sorry
+  unfold osCallPerm; exact gElem_split _ _ _ q1 q2 ()
 
 theorem osCallPerm_valid (q : Qp) : osCallPerm (L := L) q ⊢ ⌜q ≤ 1⌝ := by
   sorry
@@ -168,11 +168,14 @@ theorem osCallPerm_valid (q : Qp) : osCallPerm (L := L) q ⊢ ⌜q ≤ 1⌝ := b
 theorem osNames_frac (j : Ino) (N : NameSet) (q1 q2 : Qp) (h : NamesH) :
     osNames (L := L) j N (DFrac.own (q1 + q2)) h ⊣⊢
       osNames (L := L) j N (DFrac.own q1) h ∗ osNames (L := L) j N (DFrac.own q2) h := by
-  sorry
+  unfold osNames; exact gElem_split _ _ _ q1 q2 h
 
 theorem osNames_agree (j : Ino) (N : NameSet) (dq1 dq2 : DFrac) (h1 h2 : NamesH) :
     osNames (L := L) j N dq1 h1 -∗ osNames (L := L) j N dq2 h2 -∗ ⌜h1 = h2⌝ := by
-  sorry
+  unfold osNames
+  iintro H1 H2
+  icases gElem_valid_2 _ _ _ _ _ _ _ $$ H1 H2 with %hv
+  ipureintro; exact hv.2
 
 /-- Splitting a claim along a finite set of names `M`. -/
 theorem osNames_split (R : Roots) (j : Ino) (N : NameSet) (M : List GoString) (h : NamesH)
@@ -208,7 +211,10 @@ theorem osNames_next (R : Roots) (j : Ino) (N : NameSet) (dq : DFrac) (h : Names
 
 theorem osLogLb_le {n : Nat} (n' : Nat) (h : n' ≤ n) :
     osLogLb (L := L) n ⊢ osLogLb (L := L) n' := by
-  sorry
+  unfold osLogLb
+  letI := (gooseOsGS (L := L)).osAllG
+  iintro H
+  iapply monoNatLbOwn_le n' h $$ H
 
 /-- A spine's claims split. -/
 theorem osPathS_frac (R : Roots) (p : GoString) (q1 q2 : Qp) (j : Ino) :
