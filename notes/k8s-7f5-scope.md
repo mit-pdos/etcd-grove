@@ -340,8 +340,14 @@ statements) can run in parallel with 7f-3b/3c, in a second worktree. 7f-5a-P lin
 
 - **Q1** (a): 7f-3's statements first. Then 7f-5a's Draft in parallel with 7f-3's proofs, in a
   second worktree. No `sorry` under a linked result.
-- **Q2**: translate `WithRequireLeader` and grpc metadata's helpers. The restated F2 triple is
-  only a fallback.
+- **Q2**: ~~translate `WithRequireLeader` and grpc metadata's helpers. The restated F2 triple is
+  only a fallback.~~ **Superseded (etcd-grove-81, 2026-11-13, 7f-3a decision D1):** the fallback.
+  `WithRequireLeader.wp_proof` is restated over a `watchCtx` parent (withVersion's pattern, the
+  `Background()` clause kept), with Go tests; the translation of `WithRequireLeader` and grpc
+  metadata's helpers is reverted (`WithPrevKV` kept). Reason: translated, it needs three or four
+  trusted changes (`WithValue` at grpc's key, an intro law for `builtRawMD`, `FromOutgoingContext`
+  over a non-`isContext` parent, `strings.ToLower`) against one restated axiom
+  (`notes/k8s-7f3a-draft.md` §6; `notes/k8s-7f5-freeze.md`, "T5-a addendum").
 - **Q3** (a): the APF signal key holds nil, or a value that is not a signal, for now.
 - **Q4**: `Set("WatchList=true")`. B5's assumption is restated to one `Set` per feature, before
   any `Enabled`, with Go evidence for the restatement.

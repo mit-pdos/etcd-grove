@@ -6627,6 +6627,28 @@ noncomputable def WithCreatedNotify.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore OpOption.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val (GoInstruction (GoLoad OpOption.ty))) (Var "$res0")))))
 
+/-- WithPrevKV gets the previous key-value pair before the event happens. If the previous KV is already compacted,
+    nothing will be returned.
+
+    go: op.go:542:6 -/
+noncomputable def WithPrevKV.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc OpOption.ty))) (App (Val (GoInstruction (GoZeroVal OpOption.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (Lam "op"
+  (Seq (App (Val exceptionDo)
+  (Let "op" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Op.ty)))) (Var "op"))
+  (Let "$r0" (Val #true)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef Op.ty go!"prevKV"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Op.ty)))) (Var "op"))) (Var "$r0")))))))
+  (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore OpOption.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad OpOption.ty))) (Var "$res0")))))
+
 /-- WithIgnoreLease updates the key using its current lease.
     This option can not be combined with WithLease.
     Returns an error if the key does not exist.

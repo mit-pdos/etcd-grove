@@ -53,7 +53,12 @@ theorem NewLeaseFromLeaseClient.wp_proof
     · iframe #
     (try wp_auto)
     wp_apply context.wp_Background
-    wp_apply wp_WithRequireLeader as %rc #HWC
+    have wp_WRL := wp_WithRequireLeader _root_.Perennial.context.backgroundCtxVal
+      { Values := ∅, Deadline := none, Done_gn := ⟨0, 0⟩, PDone := iprop(True) }
+    wp_apply wp_WRL as %rc ⟨-, -, -, -, -, -, HWCb⟩
+    · iright; ipureintro; trivial
+    ispecialize HWCb $$ %trivial
+    icases HWCb with #HWC
     (try wp_auto)
     ihave #Hctxp : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
     · iPkgInit
@@ -95,7 +100,12 @@ theorem NewLeaseFromLeaseClient.wp_proof
     · iframe #
     (try wp_auto)
     wp_apply context.wp_Background
-    wp_apply wp_WithRequireLeader as %rc #HWC
+    have wp_WRL := wp_WithRequireLeader _root_.Perennial.context.backgroundCtxVal
+      { Values := ∅, Deadline := none, Done_gn := ⟨0, 0⟩, PDone := iprop(True) }
+    wp_apply wp_WRL as %rc ⟨-, -, -, -, -, -, HWCb⟩
+    · iright; ipureintro; trivial
+    ispecialize HWCb $$ %trivial
+    icases HWCb with #HWC
     (try wp_auto)
     ihave #Hctxp : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
     · iPkgInit

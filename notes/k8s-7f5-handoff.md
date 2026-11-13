@@ -18,13 +18,182 @@ the worktree's untracked `questions.md` (decisions; never re-add it tracked).
   this stage's T5-c); 7f-0 partial (records only; the rest goes with 7f-6, Q7).
 - No Lean edited. Nothing built on this branch.
 
-## Progress of the S1 review fixes (second 7f-5 agent, 2026-11-13)
+## Handoff point (2026-11-13, end of the fourth 7f-5 agent): T5-a decomposed; land after 81 sees the flag
 
-Steps 1-4 below DONE in `0d873a9ee5` (the freeze note's "S1 review" section has each finding and its
-disposition). Deviation to report: the "before any Enabled" clause stays (Enabled's wand can be kept;
-scenario `enabled-kept-then-set`); no NoAlias test can fail without the Copy (FromOutgoingContext
-copies), so a no-Copy variant and a detector test instead. Step 5 (full build, tcb/collections update,
-gates, STATUS, land) in progress.
+81 decided (a): the axiom's `watchCtx ctx s -∗ watchCtx c s` decomposed (no trunc line). Done in
+`873034096c`: `Done()`/`Err()` WP transfers, **plus a `Value(&cancelCtxKey)` WP transfer (not in 81's
+list: needed for `#HCC`, whose result predicate `isCancelCtxAny` is not pure, so the pure-`R` `Value`
+transfer does not give it; flagged in the freeze note's T5-a review section)**, and
+`metadata.outgoingCtxOkC c`; law `WithRequireLeader.watchCtx_of_post`
+(`Proof/go_etcd_io/etcd/client/v3/WithRequireLeaderLaws.lean`, proved); `NewLeaseFromLeaseClient`'s
+pattern updated. The three holder findings (`backend.txLive/snapRO/rtxStats`) are not from this branch
+(it touches no backend file; they did not fail the gate). Build/tcb/axiom-tok results:
+`/shared/tmp/k8s7f3a/{full3,tcb3,atok3}.log`: full build passes (17486 jobs), tcb matches (870/4), axiom-tok ok (0 unknown, 0 truncated).
+
+Next, in order: 81's word on the third part; if the axiom-tok log is clean, `etc/land.sh` (with
+`LAKE_PACKAGES=/shared/tmp/manifest-ddc.json`, not under GOWORK=off; re-merge lean if refused: the
+etcd_auth_safe landing may be ahead); report the lean hash. Then 7f-3b per the design below (81
+approved: `wrespIs` itself carries `evOwn`; report the mvcc interface diff before landing 7f-3b).
+
+## Handoff point (2026-11-13, fourth 7f-5 agent, later): T5-a approved; land BLOCKED by the axiom-tok gate
+
+81's review: approved as written (freeze note "T5-a review"); STATUS entry added; lean merged
+(`51ee20f154`, clean; the merge adds no trusted text but ours). `etc/land.sh` (log
+`/shared/tmp/k8s7f3a/land.log`): build, links, tcb (870/4 after lean's auth-schema-fix), 55 collections
+ok, but **axiom-tok FAILED**: `WithRequireLeader.wp_proof`'s walk truncates ("stuck:
+Perennial.context.isContextDone", inside `watchCtx`'s `#HDone` over the program-picked `s`), and
+`etc/axiom-tok-allow.txt` says no `trunc` line may be added. lean unchanged. STOPPED for 81:
+- (recommended) restate the axiom's first clause without `watchCtx`: `□ (∀ Φ, WP ctx.Done() {{Φ}} -∗
+  WP c.Done() {{Φ}})`, the same for `Err()`, and `metadata.outgoingCtxOkC c` (the `#HCC` part is
+  already the `Value` transfer at `&cancelCtxKey`); `watchCtx ctx s -∗ watchCtx c s` then a proved
+  lemma outside the axiom. A trusted-text change (same meaning, more direct): needs 81's review.
+- or a `trunc` entry for it (against the ratchet's rule).
+
+7f-3b: design drafted (below), no Lean written.
+
+## 7f-3b design (D2), started 2026-11-13 by the fourth 7f-5 agent; no Lean written yet
+
+Go (fork pin 0b50f0426): `newWatcherBatch` (`watcher_group.go:79-96`) allocates a fresh
+`&mvccpb.Event{Type, Kv, PrevKv}` per (watcher, event); the three send sites
+(`watchable_store.go:309` moveVictims, `:401` syncWatchers, `:490` notify) send `eb.evs`, the batch's
+own copies; v3rpc's `sendWatch` (`watch.go:437-455`) writes `events[i].PrevKv = r.KVs[0]` into
+those copies (`events[i] = evs[i]` copies the pointer only). So each event a watcher receives is
+owned by that watcher's response, but the Kv it points at is shared.
+
+Proposed vocabulary (mvcc, `InvWatchBatch.lean`, exported through `Spec/.../mvcc/Api.lean`):
+- `evRd e ev` (persistent): `e ≠ null`, every field but `PrevKv` `↦□` (state, Type = evType ev,
+  Kv = p ≠ null, unknownFields, sizeCache), `kvPtrFixed p ev.kv`. Law `evIs e ev ⊢ evRd e ev`.
+- `evPk e ev` (owned): `∃ q, PrevKv-field ↦ q ∗ (match ev.prevKv with none => q = null | some pk => kvPtrFixed q pk)`.
+- `evOwn e ev := evRd e ev ∗ evPk e ev`; law: `evOwn e ev` with the field discarded gives back
+  `evIs e ev'` (struct recombination: typedPointsto combine), for the send loop's handover to grpc.
+The store's shared events (`kvsToEvents`, `rangeEvents`, `End`, the `notify`/`syncWatchers`
+arguments) stay `evIs`; `newWatcherBatch`'s post, `eventBatch.add`/`watcherBatch.add`,
+`ownEventBatch` (and the victims), `watcher.send`'s pre (events owned; on success handed to the
+channel, on failure kept) and `wrespIs` (mvcc API: the channel's responses) take `evOwn`.
+Readers of the fields (`IsCreateEvent`, `filterNoPut`/`filterNoDelete`, `eventBatch.add`'s
+`Kv.ModRevision`, client `WatchContent.evIs_facts`) move to `evRd`.
+
+Files (from grep of evIs/wrespIs/ownEventBatch/ownWatcherBatch): mvcc `InvWatchBatch`, `InvWatchFrac`,
+`InvWatchStore`, `MoveVictimsLemmas`, `WatchSendLemmas`, `eventBatch__add`, `watcherBatch__add`,
+`newWatcherBatch`, `watcher__send`, `watchableStore__{notify,syncWatchers,moveVictims,cancelWatcher,watch}`,
+`watchableStoreTxnWrite__End`, `kvsToEvents`, `Api/WatchLaws`, `Spec/.../mvcc/Api.lean` (wrespIs: the
+API change, interface diff); v3rpc `WatchApi`, `serverWatchStream__sendLoop`, `PerTypeWatch`,
+`InvWatchStream`, `WatchLemmas`, `filterNoPut/Delete`, `IsCreateEvent` (specs); examples mvccfull
+`stream__receive`/`stream__watch`, mvccrand `watchCheck__receive`; client `WatchContent`, `WatchRun`.
+
+Open question for 81 (recommend (a)): (a) `wrespIs` carries `evOwn` (non-persistent; the channel's
+element predicate hands it over), or (b) a second response predicate for the PrevKv fields beside a
+persistent `wrespIs`. Order: vocabulary + laws first (built), then mvcc proofs bottom-up, then the
+interface diff (STOP before landing per 81), then v3rpc's recvLoop/sendLoop with `swsMuP`.
+
+## Handoff point (2026-11-13, fourth 7f-5 agent): T5-a fallback done; STOPPED for 81's axiom review
+
+Done (on `k8s-7f5`, not landed; lean has moved on, merge it before landing):
+- `17c793098e`: translation of `WithRequireLeader` and grpc metadata's helpers
+  reverted, `WithPrevKV` kept; `etc/goose.py --project etcd`, `--check` pass; `etc/gen-init.py`
+  (`--check` passes; metadata `Init` and the `PkgTable`s back to lean's); metadata's SpecPlan PkgInit
+  back. Untracked SpecPlan PkgInit files the generator created (older drift on lean, listed in
+  `/shared/tmp/k8s7f3a/specplan-untracked-drift.txt`) are left untracked, not committed.
+- `fddf2cdf9b`: `WithRequireLeader.spec` restated (pre `watchCtx ctx s ∨ ⌜ctx = backgroundCtxVal⌝`;
+  post `watchCtx ctx s -∗ watchCtx c s`, the WP and chain `Value` transfers for keys not of
+  `mdOutgoingKey`'s type, and the old `WithCancel(c)` triple under `⌜ctx = backgroundCtxVal⌝`);
+  `NewLeaseFromLeaseClient` adjusted (an arbitrary `s`, the right disjunct); `specGen` removed from
+  `Draft7f3a.lean`; Go tests `examples/premisefix/watcherctx/requireleader_spec_test.go` (all pass);
+  freeze note "T5-a addendum"; Scope §8 Q2 superseded; questions.md entries.
+- Full build passes; `etc/tcb-report.py --check` matches (869/4; the axiom's name unchanged, its text
+  changed); details in the freeze note's "T5-a addendum", "Checks". STOPPED for 81's axiom review.
+
+Next: 81's axiom review of the T5-a addendum; apply its fixes; `etc/tcb-report.py --check --update`
+only if the text changed the baseline (expected: no line change, the axiom's name is the same);
+merge lean; land on 81's go. Then 7f-3b (D2: mvcc's response contract hands over an owned `PrevKv`).
+
+## Handoff point (2026-11-13, end of the third 7f-5 agent): S2 decided; T5-a fallback next
+
+81's S2 decisions (2026-11-13, also in questions.md):
+- **D1 fallback.** Restate `WithRequireLeader.wp_proof` (`Proof/go_etcd_io/etcd/client/v3/WithRequireLeader.lean`,
+  spec `Spec/.../WithRequireLeader.lean`) to `specGen` (now in `Draft7f3a.lean`; move it into the Spec
+  file) in `withVersion.spec`'s pattern. Keep the old `Background()` clauses (`libCtxOk`, `outgoingCtxOkC`
+  after `WithCancel`) as a proved corollary, or keep them in the axiom if a corollary is not derivable;
+  the lessor's caller must keep working. Go tests in `examples/premisefix/watcherctx` or a sibling:
+  every key that is not `mdOutgoingKey` answers as the parent does, through `Value` and the chain;
+  Done/Err/Cause are the parent's; same descriptor. Supersede Q2 in questions.md and in
+  `notes/k8s-7f5-scope.md` §8 (reason: translation needs 3-4 trusted changes vs 1).
+- **Revert the translation** of `WithRequireLeader` and grpc metadata's helpers (`NewOutgoingContext`,
+  `Pairs`, `MD.Copy`, `MD.Set`, `copyOf`, `mdOutgoingKey`, `rawMD`, and the imports): restore
+  `Code/google_golang_org/grpc/metadata.toml` to lean's, drop `WithRequireLeader` from
+  `Code/go_etcd_io/etcd/client/v3.toml`, **keep `WithPrevKV`**; then `etc/goose.py --project etcd`,
+  `--check`, `etc/gen-init.py` (metadata Init + PkgTables go back), metadata's SpecPlan PkgInit
+  (`etc/gen-specs-pkginit.py`, keep only that file's change). Nothing else needs them (checked: only
+  `WithRequireLeader` calls them).
+- **D2 yes:** in 7f-3b the mvcc response contract hands over an owned `PrevKv` field per event; list the
+  interface diff for review at landing.
+- **D3 yes:** `specGen` without the metadata content.
+- S1-S9 stay as drafted (`Draft7f3a.lean`, unlinked).
+
+Next, in order: revert the translation as above; the restated axiom with its Go tests (Addendum in
+`notes/k8s-7f5-freeze.md`, "T5-a"); build (targeted, then full under flock); `etc/tcb-report.py --check`
+(expected: same count, `WithRequireLeader.wp_proof` changed text; collections that reach it);
+STOP for 81's axiom review. Then 7f-3b.
+
+## Handoff point (2026-11-13, third 7f-5 agent): 7f-3a at S2 (STOPPED for 81's review)
+
+Done (on `k8s-7f5`, not landed):
+- Translation config (Q2) applied: client `WithPrevKV`/`WithRequireLeader`; grpc metadata's
+  `NewOutgoingContext`, `Pairs`, `MD.Copy`, `MD.Set`, `copyOf` (imports context/strings/fmt);
+  `etc/goose.py --project etcd`, `--check` passes; `etc/gen-init.py` (metadata Init + 17 PkgTables);
+  SpecPlan PkgInit for metadata only (the generator's other drift is lean's, ungated, left alone).
+  The axiom `WithRequireLeader.wp_proof` still stands over the translated function.
+- `EvModel` gains `prevKv : Loc := null` (InvStore.lean; InvWatcher's countable instance updated).
+- The statements: `Proof/go_etcd_io/etcd/client/v3/Draft7f3a.lean` (unlinked; `P`-suffixed new
+  forms + `WithRequireLeader.specGen`; laws proved, no sorry/axiom), the Draft
+  `notes/k8s-7f3a-draft.md` (table old → new, findings, plan, decisions D1-D3).
+- Findings: (1) Q2's "no new axiom" is false: translating WithRequireLeader needs WithValue.spec
+  at grpc's key (+ valueCtx fields, watchCtx), an intro law for opaque builtRawMD (ToLower too weak
+  for its case clause), FromOutgoingContext over a non-isContext parent; recommended the fallback
+  (one restated axiom). (2) 7f-3b: the send loop writes `PrevKv` into mvcc's events, which mvcc's
+  API gives read-only (`evIs`): an mvcc API ownership change.
+
+Checks: full build passes (16 min, `/shared/tmp/k8s7f3a/full.log`); `etc/tcb-report.py --check`
+matches the baseline (869 axioms, 4 sorries); `etc/goose.py --check` passes.
+
+Next (after 81's decisions D1-D3): 7f-3b (mvcc event ownership, v3rpc recvLoop/sendLoop), 7f-3c (client, swap, users).
+
+## Handoff point (2026-11-13, second 7f-5 agent): S1 LANDED (lean `be36a0f818`); 7f-3a next
+
+S1 with the review's fixes landed (`0d873a9ee5`, `be36a0f818`; freeze note "S1 review"; gates all
+passed; trust base 869 axioms, 4 sorries). The branch `k8s-7f5` is lean now; continue on it.
+
+**Next: 7f-3a's statements, up to hard stop S2** (Scope §6 row 7f-3a; parent `notes/k8s-7f-scope.md`
+§2.3 1-2, §5.1). Nothing of 7f-3a written yet. In order:
+1. Translation config (no trust; from `/shared/tmp/k8s7f5/goose-dry-full.patch`):
+   - `Code/go_etcd_io/etcd/client/v3.toml`: add `WithPrevKV`, `WithRequireLeader` to `translate`;
+   - `Code/google_golang_org/grpc/metadata.toml`: `translate = ["!*", "NewOutgoingContext", "Pairs",
+     "MD.Copy", "MD.Set", "mdOutgoingKey", "rawMD", "copyOf"]` (**copyOf**: the S1 review),
+     `imports = ["!*", "context", "strings", "fmt"]`;
+   - `etc/goose.py --project etcd` (not with GOWORK=off), `--check`.
+   - Consequence to handle: `WithRequireLeader` is today names-only with an axiom
+     (`Proof/go_etcd_io/etcd/client/v3/WithRequireLeader.lean`, `Background()` only). Translated, that
+     axiom becomes a proof over `FromOutgoingContext` (existing spec), `Pairs`/`NewOutgoingContext`
+     (translated: `context.WithValue`) and `strings.ToLower` (trusted: some string): the trust base
+     loses an axiom (report it; `--check --update` after 81's review). The generalized triple over a
+     `watchCtx` parent (T5-a: every other key, Done/Err/Cause the parent's; the metadata "the
+     parent's plus one key") is a 7f-3a statement.
+2. The statements (Lean text in a Draft note, e.g. `notes/k8s-7f3a-draft.md`, for 81's S2 review;
+   no `sorry` under a linked result, so do not change linked definitions before the review):
+   - `OpFull.isRangeWatch` (`Proof/go_etcd_io/etcd/cache/v3/InvEtcdTxn.lean:1231`) drops
+     `o.base.prevKV = false`; `wrRO`'s `prevKV ↦□ false` (`client/v3/InvWatch.lean:846,859`) becomes
+     the model's value;
+   - `EvModel` (`cache/v3/InvStore.lean:185`) gains `prevKv : Loc` (null = none); `eventAt`
+     (`InvStore.lean:1214`) gains the `PrevKv` field; `eventIs` (`client/v3/WatchStateDefs.lean:102`)
+     gains: `prevKV = false → prevKv = null`; else null (always admitted:
+     `issues/etcd-watch-prevkv-before-created.md`), or, for a non-create, `kvValAt prevKv` of the
+     key's kv at `ev.rev - 1` (`σ.at (r-1)`, as `KVState.revEvents`); a create's is null;
+   - `rawRespOk` (`WatchStateDefs.lean:261`) the same at the server's level (`mvcc.stateAt L (r-1)`);
+   - the server: `swsMu` allows `prevKV` entries (`v3rpc/InvWatch.lean`), `recvLoop` records
+     `creq.PrevKv`, `sendLoop`'s branch `watch.go:442-455` (`watchable.Range` at `ModRevision - 1`).
+   - Callers passing `prevKV = false` must see no change (watchkv, cachekv, linkv3p `MainWatch`, the
+     compactor, `etcdstart.Collect`).
+3. STOP (S2): report the statements and the config's trust-base effect.
 
 ## Handoff point (2026-11-13, end of the first 7f-5 agent's context): S1 reviewed; fixes next
 
