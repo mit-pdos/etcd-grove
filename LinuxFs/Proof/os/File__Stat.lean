@@ -5,6 +5,7 @@ needs `fileStat.FieldAssumptions` (`TrustedCode/os.lean`).
 module
 
 public import LinuxFs.Proof.os.ErrorOk
+public import LinuxFs.Proof.os.PathParent
 public import LinuxFs.Spec.os.File__Stat
 
 @[expose] public section
@@ -48,8 +49,11 @@ theorem os.File.Stat.wp_proof : os.File.Stat.spec (GF := GF) (hG := hG) := by
       iapply wp_fupd
       wp_auto
       iStructNamed fs
-      wp_auto
+      try wp_auto
+      wp_apply os.model.wp_base as %nm _
+      try wp_auto
       wp_apply wp_ArbitraryInt as %x _
+      ipersist name
       ipersist size
       ipersist mode
       imodintro
@@ -69,6 +73,8 @@ theorem os.File.Stat.wp_proof : os.File.Stat.spec (GF := GF) (hG := hG) := by
       · ipureintro; exact ⟨rfl, rfl⟩
       isplitl []
       · iassumption
+      isplitl []
+      · iexists _; iassumption
       iexists _
       iassumption
     · have he0' : ¬ e = W64 0 := he0

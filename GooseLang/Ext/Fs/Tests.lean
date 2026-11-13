@@ -627,14 +627,17 @@ theorem cacheOk_step [GooseExts] [GoGlobalContext] {op : String} {v : val} {st s
   unfold IsFsStep at hs
   split at hs
   next => -- Open
-    obtain ⟨p, fl, t, start, -, -, -, -, hr⟩ := hs
-    dsimp only at hr
-    obtain ⟨hg, hr⟩ := hr
-    rcases hr with ⟨st1, tgt, fd, he, -, rfl, -⟩ | ⟨e, -, -, rfl | ⟨tgt, he⟩⟩
-    · have h1 := cacheOk_openEffect (cacheOk_metaEnd h t) hg he
-      cases tgt <;> exact cacheOk_setProc h1 _ rfl
-    · exact cacheOk_metaEnd h t
-    · exact cacheOk_openEffect (cacheOk_metaEnd h t) hg he
+    rcases hs with ⟨p, fl, t, start, -, -, -, -, hr⟩ | ⟨p, fl, t, start, -, -, -, -, -, hr⟩
+    · dsimp only at hr
+      obtain ⟨hg, hr⟩ := hr
+      rcases hr with ⟨st1, tgt, fd, he, -, rfl, -⟩ | ⟨e, -, -, rfl | ⟨tgt, he⟩⟩
+      · have h1 := cacheOk_openEffect (cacheOk_metaEnd h t) hg he
+        cases tgt <;> exact cacheOk_setProc h1 _ rfl
+      · exact cacheOk_metaEnd h t
+      · exact cacheOk_openEffect (cacheOk_metaEnd h t) hg he
+    · rcases hr with ⟨fd, -, rfl, -⟩ | ⟨e, -, rfl, -⟩
+      · exact cacheOk_setProc (cacheOk_metaEnd h t) _ rfl
+      · exact cacheOk_metaEnd h t
   next => -- PRead
     obtain ⟨-, -, -, -, -, -, -, -, -, -, rfl, -⟩ := hs; exact h
   next => -- PWriteStart
@@ -688,6 +691,10 @@ theorem cacheOk_step [GooseExts] [GoGlobalContext] {op : String} {v : val} {st s
     · exact cacheOk_setProc h _ rfl
   next => -- FdKind
     obtain ⟨-, -, rfl, -⟩ := hs; exact h
+  next => -- OutSync
+    obtain ⟨-, -, -, -, rfl, -⟩ := hs; exact h
+  next => -- OutClose
+    obtain ⟨-, -, -, -, rfl, -⟩ := hs; exact cacheOk_setProc h _ rfl
   next => -- PathKind
     obtain ⟨-, -, rfl, -⟩ := hs; exact h
   next => -- CallBegin

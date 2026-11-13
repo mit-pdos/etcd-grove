@@ -69,9 +69,11 @@ instance file_fields_unfold :
   ⟨rfl⟩
 
 instance fileStat_fields_unfold :
-    EqualsUnfold [go.field_decl.FieldDecl go!"size" go.int64,
+    EqualsUnfold [go.field_decl.FieldDecl go!"name" go.string,
+        go.field_decl.FieldDecl go!"size" go.int64,
         go.field_decl.FieldDecl go!"mode" io.fs.FileMode.ty]
-      [go.field_decl.FieldDecl go!"size" go.int64,
+      [go.field_decl.FieldDecl go!"name" go.string,
+        go.field_decl.FieldDecl go!"size" go.int64,
         go.field_decl.FieldDecl go!"mode" io.fs.FileMode.ty] :=
   ⟨rfl⟩
 
@@ -91,6 +93,7 @@ noncomputable instance file_into_val_typed [os.file.FieldAssumptions] :
 
 noncomputable instance fileStat_typed_pointsto : TypedPointsto (GF := GF) os.fileStat where
   typedPointstoDef l v dq := iprop(
+    "name" ∷ typedPointsto (structFieldRef os.fileStat go!"name" l) v.name' dq ∗
     "size" ∷ typedPointsto (structFieldRef os.fileStat go!"size" l) v.size' dq ∗
     "mode" ∷ typedPointsto (structFieldRef os.fileStat go!"mode" l) v.mode' dq ∗
     "_" ∷ True)
@@ -112,10 +115,11 @@ def ownFile (f : Loc) (fd : w64) (name : GoString) (dq : DFrac) : IProp GF :=
 
 include sem package_sem' in
 /-- The `fileStat` at `fs` (what `(*File).Stat` returns, as a `FileInfo`) holds the size `sz`, and
-some mode. -/
+some mode and name. -/
 def ownFileStat (fs : Loc) (sz : w64) : IProp GF :=
   iprop(structFieldRef os.fileStat go!"size" fs ↦□ sz ∗
-    ∃ mode : w32, structFieldRef os.fileStat go!"mode" fs ↦□ mode)
+    (∃ mode : w32, structFieldRef os.fileStat go!"mode" fs ↦□ mode) ∗
+    ∃ name : GoString, structFieldRef os.fileStat go!"name" fs ↦□ name)
 
 /-- One of the ranges `rs` of bytes held (each `(off, dq, xs)`: `osBytes p off dq xs`) says that
 byte `i` of the file is `b`. -/

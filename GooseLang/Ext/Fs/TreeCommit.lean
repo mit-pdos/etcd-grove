@@ -48,7 +48,8 @@ theorem osCommitLb_zero : ⊢ |==> osCommitLb (L := L) 0 := by
 
 /-- `wp_fs_stepT`, with the committed prefix's authoritative bound too (`commitRes`). -/
 theorem wp_fs_stepTC (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPanic = false)
-    (hE : ↑osN ⊆ E) (W : IProp GF) (hW : LegacyWit (L := L) W) :
+    (hE : ↑osN ⊆ E) (W : IProp GF) (hW : LegacyWit (L := L) W)
+    (hO : o ≠ "OutClose" := by decide) :
     ⊢ osInv (L := L) -∗ W -∗
       (W -∗ ∀ st Γb Γm Γf Γt V Γdf Γc h, osWorld st Γb Γm Γf Γt h -∗ treeWorld st V Γdf Γc -∗
           commitRes (gooseOsGS (L := L)) st ==∗
@@ -63,7 +64,7 @@ theorem wp_fs_stepTC (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPa
   iintro %h %σ %g Hheap Hl -
   icases (os_local_ctx_eq σ).mp $$ Hl with Hl
   unfold osCtx osCtxF
-  icases Hl with ⟨⟨%Γb, %Γm, %Γf, %Γt, %Hwc, HAb, HAm, HAf, HAt, Htok, Hv⟩, Hns⟩
+  icases Hl with ⟨⟨%Γb, %Γm, %Γf, %Γt, %Hwc, HAb, HAm, HAf, HAt, Htok, Hv⟩, Hns, Hof⟩
   icases treeCtx_legacy W hW σ $$ HW Hns with ⟨HW, Hns, Hcm⟩
   unfold treeLegacy
   icases Hns with ⟨%V, %Γdf, %Γc, %Hns, HAd, HAdf, HAc, Hrd, Hcr, Hlh⟩
@@ -96,15 +97,17 @@ theorem wp_fs_stepTC (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPa
   imod gVar_update _ _ _ (cellView σ', GMap.size σ'.proc.inflight) $$ Hv Hv' with ⟨Hv, Hv'⟩
   imod Hclose $$ [Hv' Hcells] with -
   · inext; iexists (cellView σ'), (GMap.size σ'.proc.inflight); iframe
+  imod ofdCtx_step _ Hst.1 hO $$ Hof with Hof
   imodintro
   iframe Hheap Hwp
-  isplitl [HAb HAm HAf HAt Htok Hv Hn Hcm Hlh]
+  isplitl [HAb HAm HAf HAt Htok Hv Hn Hcm Hlh Hof]
   · iapply (os_local_ctx_eq σ').mpr
     unfold osCtx osCtxF treeCtx
     isplitl [HAb HAm HAf HAt Htok Hv]
     · iexists Γb', Γm', Γf', Γt'
       iframe
       ipureintro; exact Hwc'
+    iframe Hof
     · unfold treeWorld
       icases Hn with ⟨%Hns', HAd, HAdf, HAc, Hrd, Hcr⟩
       iframe Hcm

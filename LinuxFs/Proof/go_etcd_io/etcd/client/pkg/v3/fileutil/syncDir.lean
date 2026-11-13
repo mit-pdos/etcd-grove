@@ -7,6 +7,7 @@ module
 public import LinuxFs.Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.syncDir
 public import LinuxFs.Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir
 public import LinuxFs.Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.FsyncS
+public import LinuxFs.Proof.os.NsAbove
 
 @[expose] public section
 
@@ -70,6 +71,43 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.syncDir.wp_proof
       iapply HΦ
       iframe
       ileft; ipureintro; exact herr
+
+/-- `syncDir` of a strict ancestor of a root: `OpenDir`'s outside fd (`OpenDir.specAboveRoot`), its
+`Sync` (`fileutil.Fsync` is `f.Sync()`) and `Close` (`os.File.Sync.wp_outS`, `Close.wp_outS`). -/
+theorem go_etcd_io.etcd.client.pkg.v3.fileutil.syncDir.wp_proofAboveRoot
+    (wp_OpenDir : go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir.specAboveRoot (GF := GF) (hG := hG))
+    (wp_Fsync : go_etcd_io.etcd.client.pkg.v3.fileutil.Fsync.specOutS (GF := GF) (hG := hG)) :
+    go_etcd_io.etcd.client.pkg.v3.fileutil.syncDir.specAboveRoot (GF := GF) (hG := hG) := by
+  intro p R qc hp
+  wp_start as ⟨#Hinv, #Hsi, Hperm⟩
+  wp_auto
+  wp_apply wp_OpenDir p R qc hp $$ [Hperm] as %f %err ⟨Hperm, Hr⟩
+  · iframe; isplitl [] <;> iassumption
+  icases Hr with (⟨%fd, %herr, Hf, Hfd⟩ | %herr)
+  · subst herr
+    wp_auto
+    wp_apply wp_Fsync f fd p (DFrac.own 1) $$ [Hf Hfd] as %e ⟨Hf, Hfd⟩
+    · iframe; iassumption
+    cases e with
+    | ok i =>
+      wp_auto
+      wp_apply os.File.Close.wp_outS f fd p $$ [Hf Hfd] as %e' -
+      · iframe; iassumption
+      iapply HΦ
+      iframe
+    | nil =>
+      wp_auto
+      wp_apply os.File.Close.wp_outS f fd p $$ [Hf Hfd] as %e' -
+      · iframe; iassumption
+      iapply HΦ
+      iframe
+  · obtain ⟨herr, rfl⟩ := herr
+    cases err with
+    | nil => exact absurd rfl herr
+    | ok i =>
+      wp_auto
+      iapply HΦ
+      iframe
 
 end proof
 

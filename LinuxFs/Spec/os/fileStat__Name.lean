@@ -1,11 +1,9 @@
 /-
-`fs.Name()` on the `*fileStat` that `(*os.File).Stat` returns: some string. **No proof**: the
-trusted `os` model's `fileStat` has no `name` field and `Name` no body (its method set lists it, with
-no unfold), so a call is stuck. Go's is `return fs.name` (`types_unix.go`), the base name `Stat`
-stored. A hypothesis of the WAL's `os.File`-reader bridge (the decoder's `decFile` asks
-`FileInfo().Name()` to return, for its "frame too large" error message); discharging it needs the
-model to keep the name (a trusted change: `notes/wal-fsext-plan.md`, W3/W5 log, `wal-read5`).
-Lean-first (no Rocq counterpart).
+`fs.Name()` on the `*fileStat` that `(*os.File).Stat`, `os.Stat` or `os.Lstat` returns: some string.
+`Name` is translated (`return fs.name`) over the model's layout of `fileStat`, whose `name` the models
+set to the base name of the path (`model.base`; 2026-11-13, pending the user's review,
+`examples/osfs/semantics/model_os_filestat_name.go`). Used by the WAL's `os.File`-reader bridge (the
+decoder's "frame too large" error). Proved in `Proof/os/fileStat__Name.lean`. Lean-first.
 -/
 module
 
