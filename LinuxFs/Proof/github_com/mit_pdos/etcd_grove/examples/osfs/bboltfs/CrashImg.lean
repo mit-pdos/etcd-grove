@@ -320,7 +320,7 @@ theorem kc_below {s : CSt} {b : Nat} {x : ByteG} (hb : b < s.m.size) (hx : s.bs[
     (hout : match s.busy with
       | .idle => True
       | .write _ off data _ => ¬ inRange (min off s.m.size) (off + data.length) b = true
-      | .trunc _ sz _ => ¬ inRange (min s.m.size sz) (max s.m.size sz) b = true) :
+      | .trunc _ sz _ => ¬ inRange (min s.m.size sz) (rsHi true s.m.size sz) b = true) :
     s.kc b = some x.2 := by
   have hbase : s.baseC b = some x.2 := by
     unfold CSt.baseC; rw [if_pos hb, hx]; rfl
@@ -559,7 +559,7 @@ def _root_.Perennial.CSt.Misses (s : CSt) (b : Nat) : Prop :=
   match s.busy with
   | .idle => True
   | .write _ off data _ => ¬ inRange (min off s.m.size) (off + data.length) b = true
-  | .trunc _ sz _ => ¬ inRange (min s.m.size sz) (max s.m.size sz) b = true
+  | .trunc _ sz _ => ¬ inRange (min s.m.size sz) (rsHi true s.m.size sz) b = true
 
 /-- A durable byte of the state, which its change in flight misses, is known clean. -/
 theorem kc_dur {s : CSt} {b : Nat} {x : w8} (hb : b < s.m.size) (hx : s.bs[b]? = some (durB x))

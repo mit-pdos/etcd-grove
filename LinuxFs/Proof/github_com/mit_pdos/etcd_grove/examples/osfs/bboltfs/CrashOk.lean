@@ -50,7 +50,7 @@ def _root_.Perennial.CSt.kc (s : CSt) (b : Nat) : Option Cands :=
       (s.baseC b).map (· ++ [(if off ≤ b then data.getD (b - off) 0 else 0, n)])
     else s.baseC b
   | .trunc _ sz n =>
-    if inRange (min s.m.size sz) (max s.m.size sz) b then (s.baseC b).map (· ++ [((0 : w8), n)])
+    if inRange (min s.m.size sz) (rsHi true s.m.size sz) b then (s.baseC b).map (· ++ [((0 : w8), n)])
     else s.baseC b
 
 section pure
@@ -192,19 +192,18 @@ theorem kc_cand {Q : OsState → OsState → Prop} {i : Ino} {s : CSt} {fo : Opt
     have hgrow : s.m.size ≤ sz := by have := hwf.2.2.2; simp only [hbs] at this; exact this
     split at hc
     · rename_i hr
-      simp only [inRange, Bool.and_eq_true, decide_eq_true_eq, Nat.min_eq_left hgrow,
-        Nat.max_eq_right hgrow] at hr
+      simp only [inRange, Bool.and_eq_true, decide_eq_true_eq, Nat.min_eq_left hgrow] at hr
       obtain ⟨c1, hc1, rfl⟩ := Option.map_eq_some_iff.1 hc
-      obtain ⟨f1, hf1, hcand⟩ := htok t ⟨i, .truncate sz, n, s.m, rsAnn n []⟩
+      obtain ⟨f1, hf1, hcand⟩ := htok t ⟨i, rsKind true sz, n, s.m, rsAnn n []⟩
         (by simp [CSt.toks, hbs])
       simp only at hf1
       rw [hf] at hf1; cases hf1
       obtain ⟨c0, h1, h2⟩ := hcand b (by
-        simp only [TokInfo.lo, TokInfo.hi, inRange, Bool.and_eq_true, decide_eq_true_eq,
-          Nat.min_eq_left hgrow, Nat.max_eq_right hgrow]; omega)
+        simp only [rsKind_lo, rsKind_hi, inRange, Bool.and_eq_true, decide_eq_true_eq,
+          Nat.min_eq_left hgrow]; omega)
       unfold CSt.baseC at hc1; rw [if_neg (by omega)] at hc1
       rw [h1, h2 c1 (by simp only; omega) hc1]
-      simp only [TokInfo.val]
+      simp only [rsKind_val]
     · rename_i hr
       by_cases hb : b < s.m.size
       · exact hown b hb (by simp [CSt.taken, hbs]) c hc
