@@ -1566,6 +1566,38 @@ condition lifted to `CrashOkA`.**
   PageWriter/encoder over `writerStreamP`, the cuts budget, `saveEntry`/`saveState`/`sync`/`Save`/
   `SaveSnapshot`/`Sync` (still `sorry`).
 
+**W6, fifth session (branch `wal-save5`, 2026-11-13): the tail's two `pwrite` steps proved.**
+- *Pure* (`TailStepPure.lean`, no `sorry`): `tailLay lay pre g wr` (the layout with the tail and write
+  position replaced), `segAnn` (the tail as a write's first step announces it; `segAnn_ok`: its
+  `SegFl.Ok`) and `segFin` (as the second step leaves it, `finBytes`); `walAbsD_tail` (the static
+  relation from the new tail's `ByteOk`), `walAbsD_announce` (needs the change number `n > 0`),
+  `walAbsD_finish` (the written bytes' intended values come from the announced candidates:
+  `n > 0` puts `(data_j, n)` among the stamped ones); `crashOkW_tail` (`crashOkA_tail`; the
+  alternative's segments are a prefix of `pre` by `wal-cut3`'s strict `AltOk`, merged here);
+  `walsOk_tail` (the invariant's `WalsOk` with the layout replaced).
+- *Iris* (`TailAcc.lean`, no `sorry`): `walInvBody_tail`, the handle's access to its tail (with
+  `walTailKey` and its half of the record: the WAL, layout, tail's `segResF`, the other half; given
+  back with any tail, write position and writes in flight changed on the tail only, given the new
+  layout's static relation); `osBytes_agree`; `tailVar` (a tail record's half with the WAL's camera:
+  `ghostVar` without `letI := walAllG` resolves another `AllG` instance, so the specs use `tailVar`).
+- *Proved* (`TailWriter.lean`): `wp_tailPWriteStart` and `wp_tailPWriteFinish` (each opens `walInv`
+  with `wp_atomic_nc` + `walInv_open`). Statement changes: the record halves are `tailVar`; the start
+  takes `TailMeta m bs` and gives `0 < n`; the finish takes `fl.rz = none`, `0 < fl.n`,
+  `TailMeta fl.m fl.bs` and gives `TailMeta` of the result and its unchanged size.
+- *`TailMeta m bs`* (`Handle.lean`, in `walTailW`, decided): the program's tail facts the invariant
+  does not keep: `|bs| = m.size` (byte agreement needs equal lengths), `m.maps = ∅` (`wp_osPWriteStart`'s
+  cells), `zf ≥ size` (`MetaOk.zf`, a fact of the state only a step sees; `crashOkA_tail`'s `hzf`).
+  **Obligation** for whoever builds `walTailW` (`Create`, `ReadAll`): prove it of the tail's concrete
+  `OsMeta`.
+- *Writes past the preallocated size*: still a hypothesis (`tailOk`'s size clause; `SegFl.Ok`); untouched
+  pending `wal-p12`.
+- *Not done*: `wal.tailWriter` (`sorry`; plan: a tail `WriteAt` from `Crash.lean`'s
+  `WriteAt.wp_proof_crash` loop with these steps, maxRW chunks up to 1 GiB as there, then `Off.lean`'s
+  `Write.wp_spec` over it, then the `writerStreamP` bridge as `os.File.writerStream`); PageWriter/encoder
+  over `writerStreamP`; the cuts budget; `saveEntry`/`saveState`/`sync`/`Save`/`SaveSnapshot`/`Sync`;
+  the coordinator's `SaveSnapshot` fix (`walSnapAt` with the full protobuf content model, `encSnap` a
+  function of it) and `newFileEncoder.spec`'s `e ≠ null`.
+
 ## W3/W5 implementation log (branch `wal-read`, 2026-11-13)
 
 **Proved (no `sorry`, `lake build`):**
