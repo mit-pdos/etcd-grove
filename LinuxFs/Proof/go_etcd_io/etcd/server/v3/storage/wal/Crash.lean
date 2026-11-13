@@ -54,7 +54,8 @@ def walStart (L : GooseLocalGS GF) (W : WalGS GF) (C : WalCodec) (Mr : WalMarsha
     (jr : Ino) (r : GoString) (s : AbsDiskState) (m : Tree) : IProp GF :=
   iprop(∃ (Ls : GMap GoString WalLay) (is : List Ino) (fo : Ino → Option Fs.OsFile),
     walGhost (W := W) s ∗ walCreatingAuth (W := W) ∅ ∗ walTailsAuth (W := W) ∅ ∗
-    walParkAuth (W := W) true ∗ walDirKeysAuth (W := W) ∅ ∗ walCutAuth (W := W) none ∗ ⌜s.area = r⌝ ∗
+    walParkAuth (W := W) true ∗ walDirKeysAuth (W := W) ∅ ∗ walCutAuth (W := W) none ∗
+    walOutAuth (W := W) WalOut.empty ∗ ⌜s.area = r⌝ ∗
     ([∗list] i ∈ is, osFileStartO (L := L) i (fo i)) ∗
     ⌜is.Nodup ∧ ((segsAll Ls).map (·.ino)).Nodup ∧ WalsStart C Mr R jr s Ls m ∧
       ∀ dir lay, Ls !! dir = some lay → ∀ g ∈ lay.segs,
@@ -120,7 +121,7 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
   obtain ⟨s', Ls', hcrash, harea', hk', hstart, hnd', hsegs⟩ :=
     walCrash_pure C hC Mr R jr s Ls cl n V'.now st st' Hok Han.1 Hnm hk (fun _ _ hl => HAt.ne hl) Hreg htree (hQ _ _ hQs) hfiles
   -- the new generation's ghost state
-  imod walGhost_init hPre s' hk' with ⟨%W', Hg', HM', #Hp', Hu', Hc', Hcr', Ht', Hpk', Hdk', Hcp'⟩
+  imod walGhost_init hPre s' hk' with ⟨%W', Hg', HM', #Hp', Hu', Hc', Hcr', Ht', Hpk', Hdk', Hcp', Hpo'⟩
   imodintro
   iexists W', s', ((segsAll Ls).map (·.ino) ++ [])
   iframe Hu' Hc' Hcr Hp'
@@ -135,7 +136,7 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
     rw [← hcrash.2.1]; exact hdd
   unfold walStart
   iexists Ls', (segsAll Ls).map (·.ino), (fun i => st'.fs.files !! i)
-  iframe Hg' Hstarts Hcr' Ht' Hpk' Hdk' Hcp'
+  iframe Hg' Hstarts Hcr' Ht' Hpk' Hdk' Hcp' Hpo'
   ipureintro
   exact ⟨by rw [harea', Har], walsOk_nodup Hok, hnd', hstart, hsegs⟩
 
@@ -383,7 +384,7 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
           osNames (L := L) c.1 c.2.1 (DFrac.own (1 : Qp).half) c.2.2 := by
   iintro Hst Hcl Htmp
   unfold walStart
-  icases Hst with ⟨%Ls, %is, %fo, Hg, Hcr, Htl, Hpk, Hdk, Hcp, %Har, Hfs, %Hp⟩
+  icases Hst with ⟨%Ls, %is, %fo, Hg, Hcr, Htl, Hpk, Hdk, Hcp, Hpo, %Har, Hfs, %Hp⟩
   obtain ⟨-, hnd, hstart, hsegs⟩ := Hp
   -- the segments' start resources, halved
   have hsub : ((segsAll Ls).map (·.ino)) ⊆ is := fun i hi => by
@@ -443,7 +444,7 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     exact monoNatLbOwn_0 _
   imod hcm0 with #Hcm
   imod inv_alloc walN E (iprop((∃ s : AbsDiskState, walInvBody (L := L) (W := W) C Mr R jr r s) ∨
-      (crashed (hC := L.goose_crashGS) ∗ walCrashTok (W := W)))) $$ [Hg Hc1 Hi Hcr Htl Hpk Hp Hc2 Hdk Hcp Htmp]
+      (crashed (hC := L.goose_crashGS) ∗ walCrashTok (W := W)))) $$ [Hg Hc1 Hi Hcr Htl Hpk Hpo Hp Hc2 Hdk Hcp Htmp]
       with #Hinv
   · inext; ileft; iexists s
     unfold walInvBody
@@ -479,22 +480,23 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     isplitr
     · ipureintro
       exact walsNamed_start C Mr R jr s Ls V cl hV hcl hdirs hstart
-    isplitl [Hpk Hc2 Hp Htmp]
+    isplitl [Hpk Hpo Hc2 Hp Htmp]
     · unfold walParked
-      iexists true, [], []
-      iframe Hpk Hc2
+      iexists true, WalOut.empty
+      dsimp only [WalOut.empty]
+      iframe Hpk Hpo Hc2
       isplitr
-      · ipureintro; intro _; exact ⟨rfl, rfl⟩
+      · ipureintro; intro i hi; simp at hi
       have hpk : ∀ (k : Nat) (g : SegG), segRes (L := L) g ⊢
           (if g.ino ∈ ([] : List Ino) then emp else segResP (L := L) g) := fun _ g => by
         rw [if_neg List.not_mem_nil]; exact segRes_segResP g
       isplitl [Hp]
       · iapply BigSepL.bigSepL_mono_of_forall (fun {k} {g} => hpk k g) $$ Hp
       unfold walTmpParked
-      iexists Jm, []
+      iexists Jm
       isplitr
       · ipureintro
-        refine ⟨fun _ => rfl, fun dir lay hl => ?_⟩
+        intro dir lay hl
         obtain ⟨d, hd⟩ : ∃ d, s.wal !! dir = some d := by
           cases h : s.wal !! dir with
           | none => rw [hstart.2.1 dir h] at hl; cases hl
