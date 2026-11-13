@@ -11,8 +11,8 @@ error); an `EINTR` with no effect aborts it. An attempt that created the file an
 is retried, and opens the file it made. The new file's `OsMeta` (empty) goes to the caller.
 
 * `os.OpenFile.specCreateS`: `b` holds a file or nothing in `d`'s directory `j`. On success a
-  fresh `*os.File` on a fresh fd, with the access mode of `flag` (`openFd`), on the file the
-  outcome left at `b`.
+  fresh `*os.File` on a fresh fd, at offset 0 (`os.ownOff`), with the access mode of `flag`
+  (`openFd`), on the file the outcome left at `b`.
 
 Proved in `Proof/os/OpenFileS.lean`, over `wp_osOpenCreateS` and `wp_osOpenFileS`. Lean-first (no
 Rocq counterpart).
@@ -20,6 +20,7 @@ Rocq counterpart).
 module
 
 public import LinuxFs.Proof.os.SharedAu
+public import LinuxFs.Proof.os.Off
 public import Spec.fmt.ErrorOk
 
 @[expose] public section
@@ -72,7 +73,8 @@ abbrev os.OpenFile.specCreateS : Prop :=
   {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R d dq j ∗ osCallPerm qc ∗
       ∃ o, Q o ∗ crOut j b h (DFrac.own q) o ∗ crMeta o ∗
         ((∃ (fd : w64) (i : Ino), ⌜err = interface.nil ∧ 0 ≤ fd.toInt ∧ crIno b h o i⌝ ∗
-            os.ownFile f fd (child d b) (DFrac.own 1) ∗ osFd fd (DFrac.own 1) (openFd i (flag ||| W64 0x80000))) ∨
+            os.ownFile f fd (child d b) (DFrac.own 1) ∗ os.ownOff f (W64 0) ∗
+            osFd fd (DFrac.own 1) (openFd i (flag ||| W64 0x80000))) ∨
          ⌜err ≠ interface.nil ∧ f = null⌝ ∗ fmtErrorOkOrNil err) }}
 
 /-- `specCreateS` with `osAUnc` (`Proof/os/SharedAu.lean`): its opening gets the generation's
@@ -91,8 +93,9 @@ abbrev os.OpenFile.specCreateSnc : Prop :=
   {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R d dq j ∗ osCallPerm qc ∗
       ∃ o, Q o ∗ crOut j b h (DFrac.own q) o ∗ crMeta o ∗
         ((∃ (fd : w64) (i : Ino), ⌜err = interface.nil ∧ 0 ≤ fd.toInt ∧ crIno b h o i⌝ ∗
-            os.ownFile f fd (child d b) (DFrac.own 1) ∗ osFd fd (DFrac.own 1) (openFd i (flag ||| W64 0x80000))) ∨
-         ⌜err ≠ interface.nil ∧ f = null⌝) }}
+            os.ownFile f fd (child d b) (DFrac.own 1) ∗ os.ownOff f (W64 0) ∗
+            osFd fd (DFrac.own 1) (openFd i (flag ||| W64 0x80000))) ∨
+         ⌜err ≠ interface.nil ∧ f = null⌝ ∗ fmtErrorOkOrNil err) }}
 
 end spec
 

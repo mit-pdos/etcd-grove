@@ -33,7 +33,7 @@ theorem trFile_mono (i : Ino) (P P' : Prop) (hP : P' → P) :
   iintro ⟨%m, %xs, Hm, Hb, Hc, %hh⟩
   iexists m, xs
   iframe
-  ipureintro; exact ⟨hh.1, fun h => hh.2 (hP h)⟩
+  ipureintro; exact ⟨hh.1, fun h => hh.2.1 (hP h), hh.2.2⟩
 
 theorem osBytes_nil (i : Ino) (off : Nat) (dq : DFrac) : ⊢ osBytes (GF := GF) i off dq [] := by
   unfold osBytes bytesG
@@ -52,10 +52,10 @@ theorem trFile_new (i : Ino) (P : Prop) :
   · iapply osBytes_nil
   isplitl []
   · iapply (mcellsAny_empty (GF := GF) newMeta.maps 0)
-  ipureintro; exact ⟨rfl, fun _ => rfl⟩
+  ipureintro; exact ⟨rfl, fun _ => rfl, rfl⟩
 
 /-- A file truncated to 0 is a `trFile`, of size 0. -/
-theorem trFile_of_rsDone (i : Ino) (m : OsMeta) (n : Nat) (P : Prop) :
+theorem trFile_of_rsDone (i : Ino) (m : OsMeta) (n : Nat) (P : Prop) (hmp : m.maps = ∅) :
     rsDone (GF := GF) i 0 0 m n ⊢ trFile i P := by
   unfold rsDone trFile
   iintro ⟨%zs, %hz, Hm, -, -⟩
@@ -67,7 +67,7 @@ theorem trFile_of_rsDone (i : Ino) (m : OsMeta) (n : Nat) (P : Prop) :
   · iapply osBytes_nil
   isplitl []
   · iapply (mcellsAny_empty (GF := GF) (rsPost m 0 0).maps 0)
-  ipureintro; exact ⟨rfl, fun _ => rfl⟩
+  ipureintro; exact ⟨rfl, fun _ => rfl, by simp only [rsPost, announce_maps]; exact hmp⟩
 
 end lemmas
 
@@ -162,10 +162,14 @@ theorem os.OpenFile.wp_proofCreateTruncSnc : os.OpenFile.specCreateTruncSnc (GF 
         iframe
         isplitr
         · ipureintro; exact ⟨rfl, hfd0, rfl⟩
-        unfold os.ownFile
-        iexists inner_ptr
-        iframe
-        isplitl [] <;> iassumption
+        unfold os.ownFile os.ownOff
+        isplitr [off]
+        · iexists inner_ptr
+          iframe
+          isplitl [] <;> iassumption
+        · iexists inner_ptr
+          iframe
+          iassumption
     · -- an error, no effect
       icases (osNames_join j _ q r h hq).2 $$ Hw with ⟨Hn, Hr'⟩
       by_cases he4 : e = W64 4
@@ -235,23 +239,27 @@ theorem os.OpenFile.wp_proofCreateTruncSnc : os.OpenFile.specCreateTruncSnc (GF 
       try dsimp only [crTr]
       iframe
       isplitl [Hd]
-      · iapply trFile_of_rsDone i m n _ $$ Hd
+      · iapply trFile_of_rsDone i m n _ hmb.2.2 $$ Hd
       ileft
       iexists fd, i
       iframe
       isplitr
       · ipureintro; exact ⟨rfl, hfd0, rfl⟩
-      unfold os.ownFile
-      iexists inner_ptr
-      iframe
-      isplitl [] <;> iassumption
+      unfold os.ownFile os.ownOff
+      isplitr [off]
+      · iexists inner_ptr
+        iframe
+        isplitl [] <;> iassumption
+      · iexists inner_ptr
+        iframe
+        iassumption
     · iclear Hfd
       have hfd : fd = -1 := by rcases hres with ⟨h, -⟩ | ⟨-, h⟩; exact absurd h he0; exact h
       subst hfd
       ihave Hm : trFile i False $$ [Htr]
       · icases Htr with (⟨-, Hm, Hb, Hc⟩ | ⟨%n, Hd⟩)
-        · unfold trFile; iexists m, bs; iframe; ipureintro; exact ⟨hmb.1, False.elim⟩
-        · iapply trFile_of_rsDone i m n False $$ Hd
+        · unfold trFile; iexists m, bs; iframe; ipureintro; exact ⟨hmb.1, False.elim, hmb.2.2⟩
+        · iapply trFile_of_rsDone i m n False hmb.2.2 $$ Hd
       wp_auto
       rw [decide_eq_false (show e ≠ W64 0 from he0)]
       wp_auto
@@ -291,6 +299,7 @@ theorem os.OpenFile.wp_truncS (d b : GoString) (flag : w64) (perm : w32) (R : Ro
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R d dq j ∗ osNames j N dqn h ∗
         osCallPerm qc ∗ trFile i (err = interface.nil) ∗
         ((∃ fd : w64, ⌜err = interface.nil ∧ 0 ≤ fd.toInt⌝ ∗ os.ownFile f fd (child d b) (DFrac.own 1) ∗
+            os.ownOff f (W64 0) ∗
             osFd fd (DFrac.own 1) (openFd i (flag ||| W64 0x80000))) ∨
          ⌜err ≠ interface.nil ∧ f = null⌝ ∗ fmtErrorOkOrNil err) }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm, Hf⟩
@@ -328,23 +337,27 @@ theorem os.OpenFile.wp_truncS (d b : GoString) (flag : w64) (perm : w32) (R : Ro
     iapply HΦ
     iframe
     isplitl [Hd]
-    · iapply trFile_of_rsDone i m n _ $$ Hd
+    · iapply trFile_of_rsDone i m n _ hmb.2.2 $$ Hd
     ileft
     iexists fd
     iframe
     isplitr
     · ipureintro; exact ⟨rfl, hfd0⟩
-    unfold os.ownFile
-    iexists inner_ptr
-    iframe
-    isplitl [] <;> iassumption
+    unfold os.ownFile os.ownOff
+    isplitr [off]
+    · iexists inner_ptr
+      iframe
+      isplitl [] <;> iassumption
+    · iexists inner_ptr
+      iframe
+      iassumption
   · iclear Hfd
     have hfd : fd = -1 := by rcases hres with ⟨h, -⟩ | ⟨-, h⟩; exact absurd h he0; exact h
     subst hfd
     ihave Hm : trFile i False $$ [Htr]
     · icases Htr with (⟨-, Hm, Hb, Hc⟩ | ⟨%n, Hd⟩)
-      · unfold trFile; iexists m, bs; iframe; ipureintro; exact ⟨hmb.1, False.elim⟩
-      · iapply trFile_of_rsDone i m n False $$ Hd
+      · unfold trFile; iexists m, bs; iframe; ipureintro; exact ⟨hmb.1, False.elim, hmb.2.2⟩
+      · iapply trFile_of_rsDone i m n False hmb.2.2 $$ Hd
     wp_auto
     rw [decide_eq_false (show e ≠ W64 0 from he0)]
     wp_auto
