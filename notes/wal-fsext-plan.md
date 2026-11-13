@@ -1447,6 +1447,57 @@ update: `s.wal dir := walDurFresh md`, the new layout and its `CrashOk`); then `
   `wal-cut3`'s `newFilePipeline.spec`, which needs `dir.length < 2^61`), `TouchDirAll`/`CreateDirAll`
   `wp_proof`s: still `sorry`.
 
+**Sixth session (branch `wal-create6`, 2026-11-13).**
+- *Proved (no `sorry`):* `fileutil.Fsync.specDirS` (`FsyncS.lean`, over `os.File.Sync.specDirS`);
+  **`fileutil.syncDir`** (`syncDir.lean`: spine fraction and call permission fraction, `osLogLb n` →
+  `osCommitLb n` on success; note Go returns `Close`'s error after a successful fsync, so success = both);
+  **`os.WriteFile.specEmptyS`** (`LinuxFs/{Spec,Proof}/os/WriteFile.lean`: an empty file at an absent name
+  whose claim the caller holds whole; outcome `crOut`, success ⇒ created), with `os.osAU_triv` (the
+  update of a caller holding all of `α`) and `os.crOut_join`; **`fileutil.IsDirWriteable`**
+  (`IsDirWriteable.lean`: `.touch` absent in the directory, its `.only [.touch]` claim whole; success ⇒
+  absent again), with `os.rmFileOut_join`, `osPathS_cleanAbs_keep` (the pure fact without consuming the
+  spine), `abs_child`; `TouchLemmas.lean`: `os.ancPath` (`/` or `/c₁/…/cₖ`) `Clean`/`Dir` facts
+  (`dir_take`, `dir_take_ne`), `osSpine_app`/`osSpine_split`, **`wp_statAnc`/`wp_syncDirAnc`** (`Stat`/
+  `syncDir` of any ancestor of `parent`: a borrowed spine prefix below the root, the hypotheses above).
+- *Model finding (for the coordinator, [user]):* **`os.Stat` and `os.Open` of a strict ancestor of a root
+  are stuck** (the extension's `Open` needs `TreePath`; `model.stat` does not ask `PathKind` as
+  `MkdirAll`'s model does). `TouchDirAll`'s `Exist` loop climbs while `Stat` fails, and the model lets
+  `Stat` of the root fail (any errno), so it can reach the root's parent; its last loop then `syncDir`s it.
+  Proposed: `model.stat` (and `fileutil.OpenDir`'s `Open` of a directory, for `syncDir`) answer at
+  `PathKind 0` with no step (stat: a directory; open: any errno, or an fd the extension cannot fsync —
+  the simplest is an error). Until then the proof takes **`os.Stat.specAboveRoot`** and
+  **`fileutil.syncDir.specAboveRoot`** (`LinuxFs/Spec/os/StatAbove.lean`, `syncDir.lean`: any result,
+  nothing changed) as hypotheses, unprovable against the current model.
+- *Statement changes (`TouchDirAll.spec`, `CreateDirAll.spec`):* (1) **`name` absent**
+  (`h.cur !! name = none`, the claim `osNames jp (.only [name]) 1 h` in place of `osSubtreeH`): the os
+  layer has no spec of `OpenFile(O_TRUNC)` over an existing `.touch` (it needs the file's `OsMeta`, which
+  a subtree of claims does not hold), nor of `Stat`/`MkdirAll` of an existing name; (2) the old premise
+  `("/", j0) ∈ R` was **vacuous** (`RootForm` needs at least one component: `/` is never a root), dropped;
+  (3) `isPkgInit fileutil` (`filepath`'s calls), `d.length < 2^60` (`filepath.Join`); (4) success post
+  concrete: `name ↦ dir J`, the claim on `name` and `J`'s whole claim with `hJ.cur = ∅`, `osCommitLb n`,
+  `h'.next ≤ n` (as `CreateDirAll`'s). **Consequence for `Create`:** it must reach `CreateDirAll` with
+  `nm.tmp` absent: `RemoveAll(dir.tmp)` (`specDirS` needs `FilesOnly`, from `wal-owner` via
+  `walAreaRes`, a hypothesis until then) when `Exist` says it exists; but `Exist` may answer `false` for
+  an existing `dir.tmp` (a `Stat` error), and then `CreateDirAll` runs on an existing name: `Create`'s
+  proof needs `CreateDirAll` on an existing directory of files too (spec: error, or success with it
+  emptied — not available from the os layer), or a `Stat` spec that a success-free error on an existing
+  name is excluded. Open.
+- *`TouchDirAll`'s proof plan* (statement above; callees: `Exist.spec` over `wp_absentS`/`wp_statAnc`,
+  `filepath.Clean`/`Dir`, `MkdirAll.specS` with `osAU_triv`, `wp_syncDirAnc`, `IsDirWriteable.spec`, a
+  local `verify.Assert(true)` lemma): decompose the spine once (`osPathS` → root `/rcs`, `cs`;
+  `parent = ancPath (rcs ++ cs)`, `d = ancPath full`, `full = rcs ++ cs ++ [name]`, `n = |full|`);
+  `Exist(d)` false (absent); loop 1 invariant `d ↦ ancPath (full.take k)`, `created ↦* (range' (k+1)
+  (n-k)).map (ancPath ∘ full.take)` (`k = n` uses `wp_absentS`, `k < n` `wp_statAnc`; break at `k = 0`
+  by `dir_take`/`dir_take_ne`); `MkdirAll` (error: `osSubtreeH` with `cl = []` or `[(J, except [], hJ)]`,
+  `SubCover` since `J` holds no directory); `osLogLb h'.next`; loop 2 over `created` (element `m`:
+  `syncDir(ancPath (full.take (m-1)))`, invariant `i < |created| ∨ osCommitLb`; the last element's sync is
+  below the root, so it commits); `IsDirWriteable` with the spine of `d` (`osPathS_child`: a common
+  fraction of the spine and the claim, `qp` may exceed 1 when `parent` is a root) and `J`'s claim split
+  at `.touch` (`osNames_split`/`rekey`/`merge`; success: the merged `cur = ∅`). **Needed first:**
+  `IsDirWriteable`'s post must also say `.touch` holds no directory (for the error arm's `SubCover`).
+- *Not done:* `TouchDirAll`/`CreateDirAll` `wp_proof`s (`sorry`), the `walCreating` minting step,
+  `wal.Create.wp_proof`.
+
 **For `wal-create6` (the invariant's owner, 2026-11-13).** (1) `walAreaRes jr` gains `⌜∀ nm J, walNameOk nm →
 h.cur !! tmpName nm = some (.dir J) → ∀ hJ, (J, NameSet.except [], hJ) ∈ cl → FilesOnly hJ.cur⌝` (a leftover
 `nm.tmp` holds only files; `CreateDefs.lean`, importing `LinuxFs.Spec.os.RemoveAll`), for `os.RemoveAll.specDirS`
@@ -1902,3 +1953,40 @@ The W3/W5 log's gap 4 (`ZeroToEnd` on the tail; `cut`'s truncate of the old tail
   must hand over a leftover `N.tmp`'s resources with its claim.
 - *Build note*: `filePipeline__alloc` fails at `wal-int` `6f367bb4bf` merged here (`wp_LError ... cannot frame
   zapLoggerOk lg`, line 136; not touched here, nor are its imports' statements).
+
+**Fourth session (branch `wal-read4`, 2026-11-13).**
+- *Proved* (no `sorry`, `lake build`): `fileutil.TryLockFile` (as `LockFile`, post `lockPost` plus an
+  `errOk` error, which `openWALFiles` wraps with `%w`); `wal.closeAll` (over `wal.rcFile`, `CloseDefs.lean`:
+  an `*os.File` or a `*LockedFile` with the file and fd whole, consumed; error `nil` or `errOk`);
+  `walpb.Snapshot.Clone` (over `walSnapIdTerm`).
+- *New hypotheses* (spec files, not axioms; to discharge when linking):
+  - `errors.IsErrno.spec` (`LinuxFs/Spec/errors/IsErrno.lean`): `errors.Is(errno, errno)` returns. Perennial's
+    `errors.Is` admits only pointer targets (`notes/perennial-changes.md`, 2026-11-13).
+  - `proto.CloneWalSnap.spec` (`LinuxFs/Spec/google_golang_org/protobuf/proto/CloneWalSnap.lean`): `proto.Clone`
+    of a `*walpb.Snapshot` keeps `walSnapIdTerm`. It is `proto.ClonePb.spec` at `walpb.Snapshot` once that type
+    is registered in the part with `walSnapAt` over its content model (W6's `SaveSnapshot` fix); not done here
+    to avoid a second registration (and its two trusted axioms) racing W6's.
+- **Finding, blocks the `os.File`-reader bridge** (for the coordinator): `decFile`'s `io.readerStream`
+  quantifies over every buffer `p`, and the trusted `os.File.Read` model panics when `off + len(p) ≥ 2^62`
+  (`model.offMax`, "not modelled"), so `decFile` of an `*os.File` reader is unprovable as stated (a GooseLang
+  slice may be that long). The decoder never reads past the file (frame checks; `bufio`'s 4 KiB buffer), so
+  either (a) `io.readerStream` takes `r.length + xs.length < 2^62` (its clients: `bufio.Reader.Read`'s proof,
+  `io.ReadFull`, the decoder's specs: each read is inside the file or one buffer past it, with `|F.bs| + 2^12 <
+  2^62` in `decFile`), or (b) the trusted `Read` model reads `min(len, offMax - off)` instead of panicking (a
+  trusted change: the user's review). Recommended (a). Also needed for the bridge, either way: an EOF-aware
+  `os.File.Read` spec (`wp_osPRead` already allows `xs.length = min n (size - off)`, `k = 0` at the end;
+  `Off.lean`'s `Read.wp_spec` requires the read inside the file): `0 < k` bytes and `nil`, or `0, io.EOF` at
+  `off = size`, or a `*PathError`.
+- *Statement change* (`openWALFiles`): `filepath.Join(dir, name)` needs `CleanAbs dir` (from
+  `osPathS_cleanAbs`) and `|dir| + |name| + 2 < 2^62`: the spec takes `d.length < 2^61` and, per name,
+  `b.length < 2^61` (`openAtIndex` has both: the pipeline's `dir.length < 2^61`, the names `walNameStr`s).
+- *`openWALFiles`, started* (proof still `sorry`): `walOpenedRc` (an opened file with the closer it
+  collected), `walOpenedRc_file`/`_rcFile`, `walOpenedRcs` (by position over `is.take j`) with `_snoc` and
+  `_close` (to `closeAll`'s `[∗list] rc ∈ rcs, wal.rcFile rc`), proved. Plan for the rest: three `make2`s,
+  `ownSlice_slice` on `names[k:]` (as `selectWALFiles`), the range loop with the invariant `walOpenedRcs ... j
+  frs lfs rcs` and the three slices; per name `Join` (`join_child`), then `TryLockFile` with `OpenTriple`
+  from `os.OpenFile.wp_fileS` (flag 2, `X := Unit`, `C _ i' := i' = i`) or `wp_fileS` (flag 0), `NewFileReader`
+  (persist `rl ↦`), three appends; on an error `walOpenedRcs_close` → `closeAll`, `ErrorfErrs` of the error.
+  The proof takes `[os.Assumptions] [os.file.FieldAssumptions] [fileutil.Assumptions]`.
+- *Not done*: `openWALFiles`' loop, `openAtIndex`, `OpenForRead`, `Open`, `ReadAll` (blocked on the bridge
+  above for the decoder's `decFile`s).
