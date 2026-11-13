@@ -57,6 +57,11 @@ Background: `ctxValue_background` + `http.netCtxOkC_from`), `roundTripperOk`'s `
 (a T-h7 section), audit row. Then build, tcb --check (report, no --update; collections only after
 81's review), axiom-tok, model-param, gen-interface --check, goose --check; STOP for 81's axiom review.
 Gates script: `/shared/tmp/k8s7f4/gates/run.sh` (outputs in its directory).
+Checks on `6d7f05f9aa` (T-h0 + T-h6): full build green (20261113-012612, 17567 jobs); `tcb-report --check`
+matches the baseline (867 axioms, 4 sorries: no axiom added or removed, only restated); every collection
+matches; axiom-tok ok (813 walked, 779 pass, 34 by an entry) and selftest; model-param, errdesc ok;
+gen-interface --check on every API list: no diff; goose --check ok; Go tests pass
+(`examples/premisefix/streamctx`, `examples/etcd/lease` T-h6 test).
 Pitfall: inside `local macro` tactic quotations (`renew_forward`), `ihave #X := lemma $$ [...]` names do
 not resolve later (hygiene); use the `ihave #X : P $$ []` form and `$Name` is an antiquotation there.
 
