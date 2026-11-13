@@ -138,7 +138,11 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   so the part declares the same names and nothing outside it imports it. It also holds etcd's real
   WAL with bodies (`wal`, `walpb`, `fileutil`, `pkg/v3/ioutil`, `pkg/v3/crc`; names-only `hash/crc32`,
   `bufio`, `path/filepath`; raft's root package), over the part's `os` (the main tree's names-only
-  WAL stays, for the server). Translated by project
+  WAL stays, for the server). The WAL vocabulary its proofs are stated in (`WalHist`, `WalEnc*`,
+  `WalReadAllPost`, `AbsDisk`, `PbModel`, the `proto` specs, ...) reaches the main raft root and `os`,
+  so the part has generated copies of those modules at `LinuxFs/<path>` (same names, imports pointed
+  at the part's; extracts of single declarations where the module is heavy): `etc/gen-part-copies.py`
+  (`--check`), never edited by hand. Translated by project
   bboltfs's part, projects crashlog and walfs and projects etcd's and raft's parts
   (`LinuxFs/Code/**.toml`); package initializers by
   `etc/gen-init.py` (`LFS_PKGS`, and a `PkgInitExt` without raft). Links: `etc/gen-link.py
