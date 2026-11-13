@@ -307,6 +307,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         simp only [createSt, GMap.lookup_insert_eq]
         exact walDurLe_refl _
       imod walCreating_delete CR dir N h J $$ Hcra Htok with ⟨-, Hcra, HLk⟩
+      imod walParked_lock (W := W) Ls _ $$ Hpk HLk with ⟨Hpk, HLk⟩
       icases (osMeta_halves g.ino g.om).1 $$ Hm with ⟨Hm1, Hm2⟩
       icases (osBytes_halves g.ino 0 (y :: ys)).1 $$ Hbs with ⟨Hb1, Hb2⟩
       have hF : ∀ g' ∈ segsAll Ls, (GMap.delete g.ino F) !! g'.ino = F !! g'.ino := fun g' hg' =>

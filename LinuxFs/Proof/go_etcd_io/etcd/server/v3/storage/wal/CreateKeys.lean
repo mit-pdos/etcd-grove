@@ -325,7 +325,15 @@ theorem walsAt_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s
     rw [hl'] at hl''; cases hl''
     rw [hnm']
     exact ⟨inArea_ne hin hin' hdd, not_inArea_tmp hin' htmp⟩
-  intro dir' lay' hl' N' h' hm hN'
+  intro dir' lay' hl'
+  refine ⟨?_, fun N' h' hm hN' => ?_⟩
+  · by_cases hdd : dir' = dir
+    · subst hdd
+      rw [GMap.lookup_insert_eq] at hl'
+      cases hl'
+      rw [hlay.2.2]; exact hJjr
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)] at hl'
+      exact hA.ne hl'
   rcases mem_createClaims_cases hm with he | he | ⟨hm', hne⟩
   · simp only [Prod.mk.injEq] at he; exact absurd he.1 (Ne.symm hJjr)
   · cases he
@@ -340,7 +348,7 @@ theorem walsAt_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)] at hl'
       obtain ⟨h1, h2⟩ := hnms dir' lay' hdd hl'
       rw [GMap.lookup_insert_ne _ _ (Ne.symm h1), GMap.lookup_delete_ne _ (Ne.symm h2)]
-      exact hA dir' lay' hl' N h hc hN'
+      exact hA.at hl' hc hN'
   · by_cases hdd : dir' = dir
     · subst hdd
       rw [GMap.lookup_insert_eq] at hl'
@@ -348,7 +356,7 @@ theorem walsAt_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s
       rw [hlay.2.1] at hN'
       exact absurd hN' (hothers _ hm' hne rfl).1
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)] at hl'
-      exact hA dir' lay' hl' N' h' hm' hN'
+      exact hA.at hl' hm' hN'
 
 /-- **`WalsAt` after a cut's commit** (W3/W5's gap 1): the WAL directory's claim replaced by
 another of the same directory (not the area's), the layout by one of the same name and directory. -/
@@ -378,6 +386,35 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
   [GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
   [W : WalGS GF]
+
+/-- The pipeline names parked with the flag `true` are parked with it `false`. -/
+theorem walTmpParked_unpark (Ls : GMap GoString WalLay) :
+    walTmpParked (G := G) (L := L) Ls true ⊢ walTmpParked (G := G) (L := L) Ls false := by
+  unfold walTmpParked
+  iintro ⟨%Jt, %T, %hp, Hm⟩
+  iexists Jt, T
+  iframe Hm
+  ipureintro
+  exact ⟨fun h => (by cases h), hp.2⟩
+
+/-- **Taking the lock with everything parked** (`Create`'s commit, the creating entry's free lock
+token back): the flag goes `false`, nothing out yet. -/
+theorem walParked_lock (Ls : GMap GoString WalLay) (cl : List Claim) :
+    ⊢ walParked (L := L) (W := W) Ls cl -∗ walUnlockedTok (W := W) ==∗
+      walParked (L := L) (W := W) Ls cl ∗ walLockedTok (W := W) := by
+  unfold walParked
+  iintro ⟨%b, %O, %D, Ha, %hb, Hs, Hc, Ht⟩ Hu
+  imod walUnlockedTok_lock (W := W) b $$ Ha Hu with ⟨%hbt, Ha, Hl⟩
+  subst hbt
+  obtain ⟨rfl, rfl⟩ := hb rfl
+  imodintro
+  iframe Hl
+  iexists false, [], []
+  iframe Ha Hs Hc
+  isplitr
+  · ipureintro; intro h; cases h
+  iapply walTmpParked_unpark
+  iexact Ht
 
 /-- **The parked halves after the commit** (the lock token's flag `false`): the new segment's
 inode and `J`'s claim out (`O`, `D`), the rest as before. -/
