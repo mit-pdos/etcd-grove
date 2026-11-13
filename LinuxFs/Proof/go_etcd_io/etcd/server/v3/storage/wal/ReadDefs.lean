@@ -110,7 +110,7 @@ def walReadH (write : Bool) (w : Loc) (dir : GoString) (s : w64 × w64) : IProp 
     locks ↦* lfs ∗ ownSliceCap Loc locks (DFrac.own 1) ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"readClose" w ↦ rc ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ fp ∗
-    (if write then iprop(⌜rc = zero_val GoFunc⌝ ∗ walPipeH fp dir 0) else ⌜fp = null⌝) ∗
+    (if write then iprop(⌜rc = zero_val GoFunc⌝ ∗ ∃ j, walPipeH fp dir j 0) else ⌜fp = null⌝) ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"encoder" w ↦ (null : Loc) ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"state" w ↦ (null : Loc) ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"metadata" w ↦ slice.nil ∗
