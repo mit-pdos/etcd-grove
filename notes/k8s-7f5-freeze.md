@@ -346,3 +346,13 @@ int, nil, a pointer, an error value, an uncomparable-typed key `[]int`, and a lo
   empty).
 
 The older tests (`requireleader_test.go`: `...Values`, `...Cause`, `...NoAlias*`) still pass.
+
+### Checks (2026-11-13, on `fddf2cdf9b`)
+
+- `etc/goose.py --check` (project etcd) and `etc/gen-init.py --check` pass after the revert.
+- Targeted build (`client/v3`'s `Link`, `Draft7f3a`), then the full build under flock and the 64G cap:
+  passes (17485 jobs, `/shared/tmp/k8s7f3a/full2.log`).
+- `etc/tcb-report.py --check`: matches the baseline (869 axioms, 4 sorries). Same count, as expected:
+  `WithRequireLeader.wp_proof` keeps its name, only its statement changed (the baseline lists names,
+  so the change is not visible there). Baseline not updated.
+- Go: `examples/premisefix/watcherctx`, all tests pass (GOWORK=off, 32G cap).

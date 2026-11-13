@@ -32,7 +32,8 @@ Done (on `k8s-7f5`, not landed; lean has moved on, merge it before landing):
   `NewLeaseFromLeaseClient` adjusted (an arbitrary `s`, the right disjunct); `specGen` removed from
   `Draft7f3a.lean`; Go tests `examples/premisefix/watcherctx/requireleader_spec_test.go` (all pass);
   freeze note "T5-a addendum"; Scope §8 Q2 superseded; questions.md entries.
-- Build and tcb results: the freeze note's "T5-a addendum", "Checks".
+- Full build passes; `etc/tcb-report.py --check` matches (869/4; the axiom's name unchanged, its text
+  changed); details in the freeze note's "T5-a addendum", "Checks". STOPPED for 81's axiom review.
 
 Next: 81's axiom review of the T5-a addendum; apply its fixes; `etc/tcb-report.py --check --update`
 only if the text changed the baseline (expected: no line change, the axiom's name is the same);
