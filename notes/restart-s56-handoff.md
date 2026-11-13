@@ -50,7 +50,7 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
 
 ## S6a-1 progress (2026-11-13, the S6a-1 agent): next agent starts here
 
-Done (full build clean, 17552 jobs, `/shared/tmp/restart-s56/s6a1-full.log`; `tcb-report --check` matches the baseline: the opaque adds no axiom, and the baseline lists axioms and sorries only; `gen-interface --check` clean for every `etc/api` list): steps 1, 2, 3, 4 and 6 of the list
+Done (full build clean, 17552 jobs, `/shared/tmp/restart-s56/s6a1-full.log`; `tcb-report --check` matches the baseline: the opaque adds no axiom, and the baseline lists axioms and sorries only; `gen-interface --check` clean for every `etc/api` list; `etc/gates.sh` all passed, `/shared/tmp/restart-s56/s6a1-gates.log`): steps 1, 2, 3, 4 and 6 of the list
 below; targeted builds clean (`SnapRO`, `SnapTake`, `InvBoot`, `InvRestart`, `InvRun`,
 `EtcdServer__snapshot`, `…snapshotIfNeededAndCompactRaftLog`, `SnapApplyWalk`,
 `EtcdServer__applySnapshot`, `ApplyAllSnap`, `EtcdServer__applyAll`, `EtcdServer__run`, `StopShutdown`,
