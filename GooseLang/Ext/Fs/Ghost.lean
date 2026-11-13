@@ -26,6 +26,7 @@ public import Perennial.Ghost.GhostMap
 public import Perennial.Ghost.GhostVar
 public import Perennial.Ghost.MonoNat
 public import GooseLang.Ext.Fs.TreeGhost
+public import GooseLang.Ext.Fs.NamesGhost
 public import GooseLang.Ext.Fs.Bridge
 public import GooseLang.Ext.Fs.Crash
 public import GooseLang.Ext.Fs.SemOk
@@ -573,6 +574,18 @@ structure OsGS (GF : BundledGFunctors) where
   γc : GName
   /-- A lower bound on the committed prefix of the tree's log (`commitRes`). -/
   γcm : GName
+  /-- The shared mode's (`notes/wal-fsext-i2-design.md`, §2): its history (a map of one entry,
+  `Unit ↦ Roots × Hist`), its directory fds (`w64 ↦ Ino × DirPhS`), its calls in flight
+  (`Nat ↦ Nat × Qp`), the call permission (`Unit ↦ Unit`, fractional), the name claims
+  (`Ino × NameSet ↦ NamesH`), the log's length (a mono nat) and its entries (`Nat ↦ LogEntry`,
+  persistent). Allocated at boot, used from the mode switch on. -/
+  γs : GName
+  γdfS : GName
+  γcS : GName
+  γperm : GName
+  γn : GName
+  γlen : GName
+  γlog : GName
 
 /-! ### The ghost maps of a ghost state `hL`, with the `AllG` of `hL` -/
 
@@ -1127,8 +1140,16 @@ theorem os_local_init {GF : BundledGFunctors} (hPre : OsGpreS GF) (st : OsState)
   imod ghost_map_alloc (GF := GF) (∅ : GMap w64 (Ino × DirPh)) with ⟨%γdf, Hadf, -⟩
   imod ghost_map_alloc (GF := GF) (∅ : GMap Nat (Nat × Qp)) with ⟨%γc, Hac, -⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γcm, Hcm, -⟩
+  imod ghost_map_alloc (GF := GF) (∅ : GMap Unit (Roots × Hist)) with ⟨%γs, -, -⟩
+  imod ghost_map_alloc (GF := GF) (∅ : GMap w64 (Ino × DirPhS)) with ⟨%γdfS, -, -⟩
+  imod ghost_map_alloc (GF := GF) (∅ : GMap Nat (Nat × Qp)) with ⟨%γcS, -, -⟩
+  imod ghost_map_alloc (GF := GF) (∅ : GMap Unit Unit) with ⟨%γperm, -, -⟩
+  imod ghost_map_alloc (GF := GF) (∅ : GMap (Ino × NameSet) NamesH) with ⟨%γn, -, -⟩
+  imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γlen, -, -⟩
+  imod ghost_map_alloc (GF := GF) (∅ : GMap Nat LogEntry) with ⟨%γlog, -, -⟩
   imodintro
-  iexists (⟨hPre.osPreAllG, γb, γm, γf, γt, γv, γd, γdf, γc, γcm⟩ : OsGS GF)
+  iexists (⟨hPre.osPreAllG, γb, γm, γf, γt, γv, γd, γdf, γc, γcm, γs, γdfS, γcS, γperm, γn, γlen,
+    γlog⟩ : OsGS GF)
   isplitl [Hab Ham Haf Hat Hv1 Had Hadf Hac Hcm]
   · unfold osCtx osCtxF treeCtx tokRes rdRes gAuth gVar commitRes gCommit
     isplitl [Hab Ham Haf Hat Hv1]
