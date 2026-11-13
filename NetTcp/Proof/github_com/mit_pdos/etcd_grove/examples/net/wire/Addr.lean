@@ -159,6 +159,49 @@ theorem addrInv_alloc (N : Namespace) (a : GoString) (Φ : Nat → IProp GF) :
   iapply BigSepM.bigSepM_empty.2
   iempintro
 
+
+/-- A write by an end its thread owns: the update of `net.Conn.Write`, which hands back the end's
+state and bytes after the write. -/
+theorem owned_write_au (c : Nat) (s : Bool) (st : TcpEnd) (r : Nat) (out : GoString) (f : Bool)
+    (bs : GoString) :
+    ⊢ tcpEnd G c s st r -∗ tcpOut (G (hG := hG)) c s out f -∗
+      |={⊤,∅}=> ∃ st0 r0 out0 f0, tcpEnd G c s st0 r0 ∗ tcpOut G c s out0 f0 ∗
+        ∀ k ok st', ⌜WriteRes st0 bs k ok st'⌝ -∗ tcpEnd G c s st' r0 -∗
+          tcpOut G c s (out0 ++ bs.take k) f0 ={∅,⊤}=∗
+          ∃ st'', ⌜WriteRes st bs k ok st''⌝ ∗ tcpEnd G c s st'' r ∗
+            tcpOut G c s (out ++ bs.take k) f := by
+  iintro Hend Hout
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  iexists st, r, out, f
+  iframe Hend Hout
+  iintro %k %ok %st' %Hwr Hend Hout
+  imod Hmask
+  imodintro
+  iexists st'
+  iframe Hend Hout
+  ipureintro; exact Hwr
+
+/-- A close by an end its thread owns: the update of `net.Conn.Close`. -/
+theorem owned_close_au (c : Nat) (s : Bool) (st : TcpEnd) (r : Nat) (out : GoString) (f : Bool) :
+    ⊢ tcpEnd G c s st r -∗ tcpOut (G (hG := hG)) c s out f -∗
+      |={⊤,∅}=> ∃ st0 r0 out0 f0, tcpEnd G c s st0 r0 ∗ tcpOut G c s out0 f0 ∗
+        ∀ ok st' f', ⌜CloseRes false (fun st => { st with closed := true }) st0 f0 ok st' f'⌝ -∗
+          tcpEnd G c s st' r0 -∗ tcpOut G c s out0 f' ={∅,⊤}=∗
+          ∃ st'' f'', ⌜CloseRes false (fun st => { st with closed := true }) st f ok st'' f''⌝ ∗
+            tcpEnd G c s st'' r ∗ tcpOut G c s out f'' := by
+  iintro Hend Hout
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  iexists st, r, out, f
+  iframe Hend Hout
+  iintro %ok %st' %f' %Hcr Hend Hout
+  imod Hmask
+  imodintro
+  iexists st', f'
+  iframe Hend Hout
+  ipureintro; exact Hcr
+
 end wps
 
 end github_com.mit_pdos.etcd_grove.examples.net.wire
