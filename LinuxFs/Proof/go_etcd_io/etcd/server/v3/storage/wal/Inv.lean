@@ -53,6 +53,9 @@ def DirsOk (R : Roots) (s : AbsDiskState) (cl : List Claim) (n : Nat) : Prop :=
   ∀ dd, s.dirs !! dd = some () → ∀ m', RegionCrashed cl n m' →
     ∃ J, lookupH R (m', []) dd = some (.dir J)
 
+/-- All the named segments of the layouts. -/
+def segsAll (Ls : GMap GoString WalLay) : List SegG := (toList Ls).flatMap (fun kv => kv.2.segs)
+
 /-- **What the invariant says of the WALs** (pure): each WAL of `s` has a layout, its directory at
 its name in the area, its claims among `cl` with the static relation over the directory's names,
 and its crash condition. -/
@@ -62,6 +65,7 @@ def WalsOk (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (s : AbsDiskS
     lay.jr = jr ∧ lay.nm = nm ∧ (lay.j, NameSet.except [], hj) ∈ cl ∧
     WalAbsD C Mr d lay hj.cur ∧ CrashOk C Mr d lay cl n) ∧
   (∀ dir, s.wal !! dir = none → Ls !! dir = none) ∧
+  ((segsAll Ls).map (·.ino)).Nodup ∧
   AbsentOk s jr cl n ∧ DirsOk R s cl n
 
 end pure
@@ -72,6 +76,9 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
   [W : WalGS GF]
 
+instance walOsBytes_timeless (i : Ino) (off : Nat) (dq : DFrac) (xs : List ByteG) :
+    Timeless (osBytes (L := L) i off dq xs) := by unfold osBytes; infer_instance
+
 /-- The invariant's halves of a named segment: of its `OsMeta` and of all its bytes. -/
 def segRes (g : SegG) : IProp GF :=
   iprop(osMeta (L := L) g.ino (DFrac.own (1 : Qp).half) g.om ∗
@@ -81,6 +88,12 @@ def segRes (g : SegG) : IProp GF :=
 def laysRes (Ls : GMap GoString WalLay) : IProp GF :=
   iprop([∗map] _dir ↦ lay ∈ Ls, [∗list] g ∈ lay.segs, segRes (L := L) g)
 
+theorem laysRes_list (Ls : GMap GoString WalLay) :
+    laysRes (L := L) Ls ⊣⊢ [∗list] g ∈ segsAll Ls, segRes (L := L) g := by
+  unfold laysRes segsAll
+  rw [BigSepL.bigSepL_flatMap]
+  exact BigSepM.bigSepM_toList
+
 /-- **The WAL invariant's contents**, the real WAL state being `s`. -/
 def walInvBody (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (s : AbsDiskState) : IProp GF :=
@@ -88,6 +101,10 @@ def walInvBody (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoSt
     walGhost (W := W) s ∗ ⌜s.area = r⌝ ∗
     osClaims L (cl.map (fun c => (c, DFrac.own (1 : Qp).half))) ∗ osCommitLb (L := L) n ∗
     laysRes (L := L) Ls ∗ ⌜WalsOk C Mr R jr s Ls cl n⌝)
+
+instance walInvBody_timeless (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+    (s : AbsDiskState) : Timeless (walInvBody (L := L) (W := W) C Mr R jr r s) := by
+  unfold walInvBody laysRes segRes osClaims; infer_instance
 
 /-- **The WAL invariant** of the area `r`, the directory `jr` under the roots `R`: its contents, or
 the generation's crash token (once `walInv_crash` has taken them). -/

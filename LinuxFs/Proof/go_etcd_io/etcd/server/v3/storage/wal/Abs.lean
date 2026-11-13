@@ -143,6 +143,10 @@ structure WalAbsD (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (
   synced : d.m ≤ d.H.length ∧
     (recFrames C ((segRecs C Mr { d with H := d.H.take d.m } lay.cuts).getD lay.cuts.length [])).length
       ≤ lay.so
+  /-- Every segment but the last is synced (`cut` fdatasyncs a segment before it starts the next). -/
+  lastSynced : segStart lay.cuts lay.cuts.length ≤ d.m
+  /-- Every record fits a frame. -/
+  fit : RecsFit C (recsOfSegs C Mr d.metadata (segsOf (histM d) lay.cuts))
   /-- Nothing appended this generation: the reader of the last file stops after its frames (at the
   chain's CRC after all the WAL's records). -/
   tailStop : lay.z0 = (segStream C Mr d lay.cuts lay.cuts.length).length → ∀ r len c',
@@ -178,21 +182,27 @@ def imgOf (fo : Option Fs.OsFile) : List w8 := (fo.map Fs.OsFile.contents).getD 
 
 /-- **What a crash of the WAL `d` with the layout `lay` must leave** (plan §2.2), the crashed tree
 being `m'` and the files `fo`: the WAL directory absent, only if `d` is not `named`; or present, its
-`.wal` files a suffix of the named segments (from the `q`-th on), and a fresh reader over them reads
-the records of the WAL with segments `Ss'` after those of the purged segments, where `Ss'` are the
-segments of an image `I` of the history (`walImg d.H d.m I`, `Ss'.flatten = I`) and the first file
-read starts at a position at most `min d.pur |I|`. -/
+`.wal` files the named segments from the `q`-th on, and an image `I` of the history
+(`walImg d.H d.m I`, at least the last segment's start, so the cuts stay) such that, the WAL being
+`d` with history `I` (`d'`): each kept segment but the last holds exactly `d'`'s frames of it; the
+last starts with `d'`'s frames of it, and the reader stops after them (at the chain's CRC after
+`d'`'s records); the first kept segment starts at most at `min d.pur |I|`. (So a fresh reader from
+the first kept file reads `d'`'s records after the purged ones: `crashTo_decode`.) -/
 def CrashTo (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (m' : Tree)
     (fo : Ino → Option Fs.OsFile) : Prop :=
   (d.named = false ∧ m'.entry lay.jr lay.nm = none) ∨
-  ∃ (q : Nat) (I : List (WalOpG WalEnt)) (Ss' : List WalHist),
+  ∃ (q : Nat) (I : List (WalOpG WalEnt)),
     m'.entry lay.jr lay.nm = some (.dir lay.j) ∧ q < lay.segs.length ∧
     walInos (entsOf m' lay.j) = (lay.segs.drop q).map (·.ino) ∧
-    walImg d.H d.m I ∧ Ss'.flatten = I.map WalOpG.toM ∧ Ss'.length = lay.first + lay.segs.length ∧
+    walImg d.H d.m I ∧ segStart lay.cuts lay.cuts.length ≤ I.length ∧
     segStart lay.cuts (lay.first + q) ≤ min d.pur I.length ∧
-    (walDecodeFiles C ((lay.segs.drop q).map (fun g => imgOf (fo g.ino))) 0#32).recs =
-      (recsOfSegs C Mr d.metadata Ss').drop
-        (recsOfSegs C Mr d.metadata (Ss'.take (lay.first + q))).length
+    (∀ k (g : SegG), (lay.segs.drop q)[k]? = some g → lay.first + q + k < lay.cuts.length →
+      imgOf (fo g.ino) = segStream C Mr { d with H := I } lay.cuts (lay.first + q + k)) ∧
+    (∀ g, lay.segs.getLast? = some g →
+      let S := segStream C Mr { d with H := I } lay.cuts lay.cuts.length
+      S <+: imgOf (fo g.ino) ∧ ∀ r len c', decStep C true (imgOf (fo g.ino)) S.length
+        (WalEnc.chainEnd C 0#32 (recsOfSegs C Mr d.metadata (segsOf (histM { d with H := I }) lay.cuts)))
+          ≠ .accept r len c')
 
 /-- **The crash condition** (plan §2.2): for every crashed tree the WAL's claims allow
 (`RegionCrashed` of the claims `cl` with the commit bound `n`) and every image of each segment its

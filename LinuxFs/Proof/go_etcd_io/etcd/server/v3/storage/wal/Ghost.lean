@@ -87,6 +87,12 @@ def walGhost (s : AbsDiskState) : IProp GF :=
   iprop((∃ G : GMap GoString WalDur, ghostVar W.hA.γs (1 : Qp).half G ∗ ⌜walMapLe G s.wal⌝) ∗
     absPastAuth W.hA s ∗ walHandleAuth (W := W) ∗ ⌜walKeysInArea s⌝)
 
+instance walHandleAuth_timeless : Timeless (walHandleAuth (W := W)) := by
+  unfold walHandleAuth; infer_instance
+
+instance walGhost_timeless (s : AbsDiskState) : Timeless (walGhost (W := W) s) := by
+  unfold walGhost absPastAuth; infer_instance
+
 /-- **The WAL area is `r`** (persistent). -/
 def walArea (r : GoString) : IProp GF :=
   iprop(∃ s : AbsDiskState, walPast (W := W) s ∗ ⌜s.area = r⌝)
@@ -143,6 +149,13 @@ def walCrashTok : IProp GF :=
 
 instance walCrashTok_timeless : Timeless (walCrashTok (W := W)) := by
   unfold walCrashTok; infer_instance
+
+theorem walCrashTok_excl :
+    ⊢@{IProp GF} walCrashTok (W := W) -∗ walCrashTok (W := W) -∗ False := by
+  unfold walCrashTok
+  letI := walAllG (W := W)
+  iintro H1 H2
+  iapply token_exclusive $$ H1 H2
 
 /-- **`w` is a handle of `dir` in mode `m`, with its purge right and the lock token.** Sealed. -/
 @[no_expose] def walHandleP (w : Loc) (dir : GoString) (m : WalMode) : IProp GF :=
@@ -319,6 +332,13 @@ theorem walGhost_keys (s : AbsDiskState) :
   ipureintro; exact hk
 
 /-- **One purge right per handle.** -/
+theorem walGhost_keys_keep (s : AbsDiskState) :
+    ⊢@{IProp GF} walGhost (W := W) s -∗ walGhost (W := W) s ∗ ⌜walKeysInArea s⌝ := by
+  unfold walGhost
+  iintro ⟨Hs, HP, Hh, %hk⟩
+  iframe Hs HP Hh
+  isplitl <;> ipureintro <;> exact hk
+
 theorem walPurgeW_excl (γ : GName) :
     ⊢@{IProp GF} (letI := walAllG (W := W); γ ↪[W.γhp] ()) -∗
       (letI := walAllG (W := W); γ ↪[W.γhp] ()) -∗ False := by

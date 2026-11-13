@@ -66,11 +66,15 @@ def laysFull (L : GooseLocalGS GF) (Ls : GMap GoString WalLay) : IProp GF :=
     osMeta (L := L) g.ino (DFrac.own 1) g.om ∗ osBytes (L := L) g.ino 0 (DFrac.own 1) g.bs)
 
 /-- **The WAL's start in the generation `(L, W)`**, the WAL state being `s` and the tree `m`: the
-ghost authorities, the segments' whole resources, the layouts (`WalsStart`). -/
+ghost authorities; the files `is`, each with its start resources (as a crash's `fileStart` gives
+them: `fo`); the layouts (`WalsStart`), every segment one of `is`, its `OsMeta` and bytes those of its
+file on disk. -/
 def walStart (L : GooseLocalGS GF) (W : WalGS GF) (C : WalCodec) (Mr : WalMarshal) (R : Roots)
     (jr : Ino) (r : GoString) (s : AbsDiskState) (m : Tree) : IProp GF :=
-  iprop(∃ Ls : GMap GoString WalLay, walGhost (W := W) s ∗ ⌜s.area = r⌝ ∗ laysFull L Ls ∗
-    ⌜WalsStart C Mr R jr s Ls m⌝)
+  iprop(∃ (Ls : GMap GoString WalLay) (is : List Ino) (fo : Ino → Option Fs.OsFile),
+    walGhost (W := W) s ∗ ⌜s.area = r⌝ ∗ ([∗list] i ∈ is, osFileStartO (L := L) i (fo i)) ∗
+    ⌜is.Nodup ∧ WalsStart C Mr R jr s Ls m ∧ ∀ dir lay, Ls !! dir = some lay → ∀ g ∈ lay.segs,
+      g.ino ∈ is ∧ ∃ f, fo g.ino = some f ∧ g.om = initMeta f ∧ g.bs = f.contents.map durB⌝)
 
 /-- **The crash view** (as `absDiskCrashWal`): the old generation's ghost authorities at the old
 real state `s`, the new generation's program map at the crashed state `s'` and its fact. -/
@@ -85,19 +89,46 @@ for all of them, the crash premise `Q` of it, its tree the new history's, each f
 resources. `crashRest_take_runs_keep` gives each file its own existential state, which a premise
 over several files (W1) cannot use. Belongs in `GooseLang/Ext/Fs/CrashTok.lean`. -/
 theorem crashRest_take_files (Q : Fs.OsState → Fs.OsState → Prop) (L L' : GooseLocalGS GF)
-    (D : List Ino) (tt : Bool) (V' : Hist) (gs : List (Ino × OsMeta × List ByteG))
-    (hD : ∀ x ∈ gs, x.1 ∉ D) (hnd : (gs.map (·.1)).Nodup) (hcut : ∀ x ∈ gs, x.2.1.cut = none) :
+    (D : List Ino) (tt : Bool) (V' : Hist) (gs : List SegG)
+    (hD : ∀ g ∈ gs, g.ino ∉ D) (hnd : (gs.map (·.ino)).Nodup) (hcut : ∀ g ∈ gs, g.om.cut = none) :
     ⊢ crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D tt V' -∗
-      ([∗list] x ∈ gs, osMeta (L := L) x.1 (DFrac.own (1 : Qp).half) x.2.1 ∗
-        osBytes (L := L) x.1 0 (DFrac.own (1 : Qp).half) x.2.2) -∗
+      ([∗list] g ∈ gs, segRes (L := L) g) -∗
       ∃ (st st' : Fs.OsState), ⌜Q st st' ∧ st'.fs.treeDur = V'.now ∧
-          ∀ x ∈ gs, FileCrashedR x.2.1 [(0, DFrac.own (1 : Qp).half, x.2.2)] (st'.fs.files !! x.1) ∧
-            (Named V'.now x.1 → (st'.fs.files !! x.1).isSome) ∧
-            ∃ f, st.fs.files !! x.1 = some f ∧ ∀ b (y : ByteG), x.2.2[b]? = some y → f.cand b = y.2⌝ ∗
-        ([∗list] x ∈ gs, osFileStartO (L := L') x.1 (st'.fs.files !! x.1)) ∗
-        crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) (gs.map (·.1) ++ D) tt V' ∗
-        ([∗list] x ∈ gs, osMeta (L := L) x.1 (DFrac.own (1 : Qp).half) x.2.1 ∗
-          osBytes (L := L) x.1 0 (DFrac.own (1 : Qp).half) x.2.2) := by
+          ∀ g ∈ gs, FileCrashedR g.om [(0, DFrac.own (1 : Qp).half, g.bs)] (st'.fs.files !! g.ino) ∧
+            (Named V'.now g.ino → (st'.fs.files !! g.ino).isSome) ∧
+            ∃ f, st.fs.files !! g.ino = some f ∧ ∀ b (y : ByteG), g.bs[b]? = some y → f.cand b = y.2⌝ ∗
+        ([∗list] i ∈ gs.map (·.ino), osFileStartO (L := L') i (st'.fs.files !! i)) ∗
+        crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) (gs.map (·.ino) ++ D) tt V' ∗
+        ([∗list] g ∈ gs, segRes (L := L) g) := by
+  sorry
+
+/-- **The crash's pure core** (plan §2.2): from what the invariant says of the WALs, what a crash of
+the claims allows of the tree (`m'`), what the crash did to each segment (`FileCrashedR` of its
+halves, its candidates the state's) and W1: the crashed WAL state `s'` (`walStCrash s s'`) and its
+layouts over `m'` and the crashed files. Each WAL's crash condition gives its `CrashTo` (W1 over the
+ghost candidates, `W1G`, from W1 over the state's); the new layout keeps the cuts, the kept segments
+with their files' start resources, the last file's image as the bytes under its stream. -/
+theorem walCrash_pure (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots) (jr : Ino)
+    (s : AbsDiskState) (Ls : GMap GoString WalLay) (cl : List Claim) (n : Nat) (m' : Tree)
+    (st st' : Fs.OsState) (hok : WalsOk C Mr R jr s Ls cl n) (hk : walKeysInArea s)
+    (hreg : RegionCrashed cl n m') (htree : st'.fs.treeDur = m') (hw1 : W1 C st st')
+    (hfiles : ∀ g ∈ segsAll Ls,
+      FileCrashedR g.om [(0, DFrac.own (1 : Qp).half, g.bs)] (st'.fs.files !! g.ino) ∧
+      (Named m' g.ino → (st'.fs.files !! g.ino).isSome) ∧
+      ∃ f, st.fs.files !! g.ino = some f ∧ ∀ b (y : ByteG), g.bs[b]? = some y → f.cand b = y.2) :
+    ∃ (s' : AbsDiskState) (Ls' : GMap GoString WalLay), walStCrash s s' ∧ s'.area = s.area ∧
+      walKeysInArea s' ∧ WalsStart C Mr R jr s' Ls' m' ∧
+      ∀ dir lay, Ls' !! dir = some lay → ∀ g ∈ lay.segs, g.ino ∈ (segsAll Ls).map (·.ino) ∧
+        ∃ f, st'.fs.files !! g.ino = some f ∧ g.om = initMeta f ∧ g.bs = f.contents.map durB := by
+  sorry
+
+theorem walsOk_nodup {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s : AbsDiskState}
+    {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat} (h : WalsOk C Mr R jr s Ls cl n) :
+    ((segsAll Ls).map (·.ino)).Nodup := h.2.2.1
+
+theorem walsOk_cut {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s : AbsDiskState}
+    {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat} (h : WalsOk C Mr R jr s Ls cl n) :
+    ∀ g ∈ segsAll Ls, g.om.cut = none := by
   sorry
 
 /-- **The WAL's crash** (plan §2.2): from the old generation's invariant, its crash token, the shared
@@ -114,7 +145,52 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
         walCrashWal W W' ∗ ⌜s'.area = r⌝ ∗ walStart L' W' C Mr R jr r s' V'.now ∗
         walPast (W := W') s' ∗ walUnlockedTok (W := W') ∗ walCrashTok (W := W') ∗
         crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D false V' := by
-  sorry
+  iintro #Hinv Htok #Hsh Hcr
+  -- open the old invariant and close it with the crash token
+  unfold walInv
+  imod inv_acc (E := E) hE $$ Hinv with ⟨Hi, Hclose⟩
+  icases Hi with (Hb | >Ht)
+  rotate_left
+  · iexfalso; iapply walCrashTok_excl $$ Htok Ht
+  imod Hclose $$ [Htok] with -
+  · inext; iright; iexact Htok
+  icases Hb with ⟨%s, >Hb⟩
+  iunfold walInvBody at Hb
+  icases Hb with ⟨%Ls, %cl, %n, Hg, %Har, Hcl, #Hcm, Hlays, %Hok⟩
+  icases walGhost_keys_keep (W := W) s $$ Hg with ⟨Hg, %hk⟩
+  -- the tree: what the claims allow
+  imod crashRest_region Q L L' [] false V' R (cl.map (fun c => (c, DFrac.own (1 : Qp).half))) n E
+    hE' $$ Hsh Hcr Hcl Hcm with ⟨%Hreg, Hcr, -⟩
+  have hcl : ∀ l : List Claim, (l.map (fun c => (c, DFrac.own (1 : Qp).half))).map (·.1) = l :=
+    fun l => by
+      induction l with
+      | nil => rfl
+      | cons c l ih => simp only [List.map_cons]; rw [ih]
+  rw [hcl cl] at Hreg
+  -- the segments
+  icases (laysRes_list (L := L) Ls).1 $$ Hlays with Hlays
+  icases crashRest_take_files Q L L' [] false V' (segsAll Ls) (by simp) (walsOk_nodup Hok)
+    (walsOk_cut Hok) $$ Hcr Hlays with ⟨%st, %st', %Hfs, Hstarts, Hcr, -⟩
+  obtain ⟨hQs, htree, hfiles⟩ := Hfs
+  obtain ⟨s', Ls', hcrash, harea', hk', hstart, hsegs⟩ :=
+    walCrash_pure C hC Mr R jr s Ls cl n V'.now st st' Hok hk Hreg htree (hQ _ _ hQs) hfiles
+  -- the new generation's ghost state
+  imod walGhost_init hPre s' hk' with ⟨%W', Hg', HM', #Hp', Hu', Hc'⟩
+  imodintro
+  iexists W', s', ((segsAll Ls).map (·.ino) ++ [])
+  iframe Hu' Hc' Hcr Hp'
+  isplitl [Hg HM']
+  · unfold walCrashWal
+    iexists s, s'
+    iframe Hg HM' Hp'
+    ipureintro; exact hcrash
+  isplitr
+  · ipureintro; rw [harea', Har]
+  unfold walStart
+  iexists Ls', (segsAll Ls).map (·.ino), (fun i => st'.fs.files !! i)
+  iframe Hg' Hstarts
+  ipureintro
+  exact ⟨by rw [harea', Har], walsOk_nodup Hok, hstart, hsegs⟩
 
 /-- **The new generation's invariant**, in the tree's shared mode, from the WAL's start: the
 claims `cl` (whole) on each WAL directory's names and on the area's names of the WALs, as the
