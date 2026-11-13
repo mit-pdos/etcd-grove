@@ -244,7 +244,10 @@ noncomputable def fileReader.FileInfo.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore _root_.Perennial.io.fs.FileInfo.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.io.fs.FileInfo.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
-/-- go: filereader.go:48:6 -/
+/-- NewFileBufReader wraps fr in a buffered reader and takes its file info. If fr.FileInfo fails
+    (an fstat error), the error is kept: Err returns it, and FileInfo returns nil.
+
+    go: filereader.go:51:6 -/
 noncomputable def NewFileBufReader.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fr"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType FileBufReader.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType FileBufReader.ty)))) (Val #())))
@@ -263,21 +266,15 @@ noncomputable def NewFileBufReader.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "fi" (App (Val (GoInstruction (GoAlloc _root_.Perennial.io.fs.FileInfo.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.io.fs.FileInfo.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoAlloc FileBufReader.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)))) (Var "bufReader"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad _root_.Perennial.io.fs.FileInfo.ty))) (Var "fi"))
-  (App (Val (GoInstruction (CompositeLiteral FileBufReader.ty))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) (Var "$v0"))), (KeyedElement none (ElementExpression _root_.Perennial.io.fs.FileInfo.ty (Var "$v1")))])))))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (Val (GoInstruction (CompositeLiteral FileBufReader.ty))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) (Var "$v0"))), (KeyedElement none (ElementExpression _root_.Perennial.io.fs.FileInfo.ty (Var "$v1"))), (KeyedElement none (ElementExpression go.error (Var "$v2")))]))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType FileBufReader.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert go.error (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
-  (App (Val doExecute)
-  (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
@@ -286,7 +283,9 @@ noncomputable def NewFileBufReader.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)))) (Pair (Var "bufReader") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType FileBufReader.ty)))) (Var "$res0")))))
 
-/-- go: filereader.go:58:27 -/
+/-- FileInfo returns the file info taken by NewFileBufReader, nil if Err is not nil.
+
+    go: filereader.go:58:27 -/
 noncomputable def FileBufReader.FileInfo.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fbr"
   (Lam BAnon
@@ -300,6 +299,23 @@ noncomputable def FileBufReader.FileInfo.impl [GooseExts] [GoGlobalContext] : va
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.io.fs.FileInfo.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.io.fs.FileInfo.ty))) (Var "$res0"))))))
+
+/-- Err returns the error of taking the file info in NewFileBufReader, if any.
+
+    go: filereader.go:63:27 -/
+noncomputable def FileBufReader.Err.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "fbr"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "fbr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType FileBufReader.ty)))) (Var "fbr"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (StructFieldRef FileBufReader.ty go!"err"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType FileBufReader.ty)))) (Var "fbr"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
 /-- IsDirWriteable checks if dir is writable by writing and removing a file
     to dir. It returns nil if dir is writable.
@@ -2827,13 +2843,15 @@ structure FileBufReader [GooseExts] where
   mk ::
   Reader' : Loc
   fi' : _root_.Perennial.io.fs.FileInfo
+  err' : GoError
 
 noncomputable instance FileBufReader.zero_val [GooseExts] : ZeroVal FileBufReader :=
-  ⟨FileBufReader.mk zeroValDef zeroValDef⟩
+  ⟨FileBufReader.mk zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] noncomputable def FileBufReader.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"Reader" (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)),
-(go.field_decl.FieldDecl go!"fi" _root_.Perennial.io.fs.FileInfo.ty)]
+(go.field_decl.FieldDecl go!"fi" _root_.Perennial.io.fs.FileInfo.ty),
+(go.field_decl.FieldDecl go!"err" go.error)]
 
 @[irreducible] noncomputable def FileBufReader.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   FileBufReader.fieldsUnsealed
@@ -2852,8 +2870,10 @@ class FileBufReader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   set_Reader : ∀ (x : FileBufReader) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet FileBufReader.underlying go!"Reader") (PairV #x #y) (Val #(({ x with Reader' := y } : FileBufReader)))
   get_fi : ∀ (x : FileBufReader), go.IsGoStepPureDetTagged under (StructFieldGet FileBufReader.underlying go!"fi") #x (Val #(x.fi'))
   set_fi : ∀ (x : FileBufReader) (y : _root_.Perennial.io.fs.FileInfo), go.IsGoStepPureDetTagged under (StructFieldSet FileBufReader.underlying go!"fi") (PairV #x #y) (Val #(({ x with fi' := y } : FileBufReader)))
+  get_err : ∀ (x : FileBufReader), go.IsGoStepPureDetTagged under (StructFieldGet FileBufReader.underlying go!"err") #x (Val #(x.err'))
+  set_err : ∀ (x : FileBufReader) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet FileBufReader.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : FileBufReader)))
   method_set : go.MethodSetIs FileBufReader.ty [(go!"Buffered", (some (go.signature.Signature [] false [go.int]))), (go!"Discard", (some (go.signature.Signature [go.int] false [go.int, go.error]))), (go!"Peek", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadByte", (some (go.signature.Signature [] false [go.byte, go.error]))), (go!"ReadBytes", (some (go.signature.Signature [go.byte] false [(go.GoType.SliceType go.byte), go.error]))), (go!"ReadLine", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.bool, go.error]))), (go!"ReadRune", (some (go.signature.Signature [] false [go.rune, go.int, go.error]))), (go!"ReadSlice", (some (go.signature.Signature [go.byte] false [(go.GoType.SliceType go.byte), go.error]))), (go!"ReadString", (some (go.signature.Signature [go.byte] false [go.string, go.error]))), (go!"Reset", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"UnreadByte", (some (go.signature.Signature [] false [go.error]))), (go!"UnreadRune", (some (go.signature.Signature [] false [go.error]))), (go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error]))), (go!"bufio.collectFragments", (some (go.signature.Signature [go.byte] false [(go.GoType.SliceType (go.GoType.SliceType go.byte)), (go.GoType.SliceType go.byte), go.int, go.error]))), (go!"bufio.fill", (some (go.signature.Signature [] false []))), (go!"bufio.readErr", (some (go.signature.Signature [] false [go.error]))), (go!"bufio.reset", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.io.Reader.ty] false []))), (go!"bufio.writeBuf", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType FileBufReader.ty) [(go!"Buffered", (some (go.signature.Signature [] false [go.int]))), (go!"Discard", (some (go.signature.Signature [go.int] false [go.int, go.error]))), (go!"FileInfo", (some (go.signature.Signature [] false [_root_.Perennial.io.fs.FileInfo.ty]))), (go!"Peek", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadByte", (some (go.signature.Signature [] false [go.byte, go.error]))), (go!"ReadBytes", (some (go.signature.Signature [go.byte] false [(go.GoType.SliceType go.byte), go.error]))), (go!"ReadLine", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.bool, go.error]))), (go!"ReadRune", (some (go.signature.Signature [] false [go.rune, go.int, go.error]))), (go!"ReadSlice", (some (go.signature.Signature [go.byte] false [(go.GoType.SliceType go.byte), go.error]))), (go!"ReadString", (some (go.signature.Signature [go.byte] false [go.string, go.error]))), (go!"Reset", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"UnreadByte", (some (go.signature.Signature [] false [go.error]))), (go!"UnreadRune", (some (go.signature.Signature [] false [go.error]))), (go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error]))), (go!"bufio.collectFragments", (some (go.signature.Signature [go.byte] false [(go.GoType.SliceType (go.GoType.SliceType go.byte)), (go.GoType.SliceType go.byte), go.int, go.error]))), (go!"bufio.fill", (some (go.signature.Signature [] false []))), (go!"bufio.readErr", (some (go.signature.Signature [] false [go.error]))), (go!"bufio.reset", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.io.Reader.ty] false []))), (go!"bufio.writeBuf", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType FileBufReader.ty) [(go!"Buffered", (some (go.signature.Signature [] false [go.int]))), (go!"Discard", (some (go.signature.Signature [go.int] false [go.int, go.error]))), (go!"Err", (some (go.signature.Signature [] false [go.error]))), (go!"FileInfo", (some (go.signature.Signature [] false [_root_.Perennial.io.fs.FileInfo.ty]))), (go!"Peek", (some (go.signature.Signature [go.int] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadByte", (some (go.signature.Signature [] false [go.byte, go.error]))), (go!"ReadBytes", (some (go.signature.Signature [go.byte] false [(go.GoType.SliceType go.byte), go.error]))), (go!"ReadLine", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.bool, go.error]))), (go!"ReadRune", (some (go.signature.Signature [] false [go.rune, go.int, go.error]))), (go!"ReadSlice", (some (go.signature.Signature [go.byte] false [(go.GoType.SliceType go.byte), go.error]))), (go!"ReadString", (some (go.signature.Signature [go.byte] false [go.string, go.error]))), (go!"Reset", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"UnreadByte", (some (go.signature.Signature [] false [go.error]))), (go!"UnreadRune", (some (go.signature.Signature [] false [go.error]))), (go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error]))), (go!"bufio.collectFragments", (some (go.signature.Signature [go.byte] false [(go.GoType.SliceType (go.GoType.SliceType go.byte)), (go.GoType.SliceType go.byte), go.int, go.error]))), (go!"bufio.fill", (some (go.signature.Signature [] false []))), (go!"bufio.readErr", (some (go.signature.Signature [] false [go.error]))), (go!"bufio.reset", (some (go.signature.Signature [(go.GoType.SliceType go.byte), _root_.Perennial.io.Reader.ty] false []))), (go!"bufio.writeBuf", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error])))]
   Buffered_unfold : MethodUnfold FileBufReader.ty go!"Buffered" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"Buffered"))) (App (Val (GoInstruction (StructFieldGet FileBufReader.ty go!"Reader"))) (Var "$r"))))
   Discard_unfold : MethodUnfold FileBufReader.ty go!"Discard" (LamV "$r"
@@ -2898,6 +2918,7 @@ class FileBufReader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"Buffered"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)))) (App (Val (GoInstruction (StructFieldRef FileBufReader.ty go!"Reader"))) (Var "$r")))))
   ptr_Discard_unfold : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"Discard" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"Discard"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)))) (App (Val (GoInstruction (StructFieldRef FileBufReader.ty go!"Reader"))) (Var "$r")))))
+  ptr_Err_unfold : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"Err" FileBufReader.Err.impl
   ptr_FileInfo_unfold : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"FileInfo" FileBufReader.FileInfo.impl
   ptr_Peek_unfold : MethodUnfold (go.GoType.PointerType FileBufReader.ty) go!"Peek" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"Peek"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)))) (App (Val (GoInstruction (StructFieldRef FileBufReader.ty go!"Reader"))) (Var "$r")))))
@@ -2942,6 +2963,8 @@ attribute [instance] FileBufReader.TypeAssumptions.type_repr
   FileBufReader.TypeAssumptions.set_Reader
   FileBufReader.TypeAssumptions.get_fi
   FileBufReader.TypeAssumptions.set_fi
+  FileBufReader.TypeAssumptions.get_err
+  FileBufReader.TypeAssumptions.set_err
   FileBufReader.TypeAssumptions.method_set
   FileBufReader.TypeAssumptions.ptr_method_set
   FileBufReader.TypeAssumptions.Buffered_unfold
@@ -2966,6 +2989,7 @@ attribute [instance] FileBufReader.TypeAssumptions.type_repr
   FileBufReader.TypeAssumptions.writeBuf_unfold
   FileBufReader.TypeAssumptions.ptr_Buffered_unfold
   FileBufReader.TypeAssumptions.ptr_Discard_unfold
+  FileBufReader.TypeAssumptions.ptr_Err_unfold
   FileBufReader.TypeAssumptions.ptr_FileInfo_unfold
   FileBufReader.TypeAssumptions.ptr_Peek_unfold
   FileBufReader.TypeAssumptions.ptr_Read_unfold

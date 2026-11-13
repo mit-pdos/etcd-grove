@@ -1,6 +1,6 @@
 /-
 WP specs of the steps on a directory fd (`Impl.lean`): `FdKind` of a directory fd, `DirSync`,
-`DirClose`, `DirReadNext`; and the state facts that adding, moving on and removing a directory fd
+`DirClose`, `DirReadNext`; the query `PathKind` of a path; and the state facts that adding, moving on and removing a directory fd
 keep (used by `TreeSpecsOpen.lean` too). A directory fd holds a fraction of the tree's history from its
 open to its close (`rdRes`), of which its phase's view `g` is the directory's (`dview`). Untrusted.
 -/
@@ -217,6 +217,62 @@ theorem wp_osFdKindDir (fd : w64) (dq : DFrac) (x : Ino × DirPh) (hE : ↑osN �
   · iexact Hn
   iapply wp_value'
   iapply HΦ; (try unfold osDirFd); iexact Hfd
+
+/-- **`PathKind(p)`**, the query of where a path is, with a fraction of the tree's roots `R` and
+history `V`, for a path strictly below a root or at or above one: `#1` for a `TreeName`, `#0`
+otherwise; nothing changes. -/
+theorem wp_osPathKind (p : GoString) (R : Roots) (V : Hist) (dq : DFrac)
+    (hp : (Hist.st R V).TreeName p ∨ (Hist.st R V).AtOrAboveRoot p) (hE : ↑osN ⊆ E)
+    (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osTree (L := L) dq R V -∗
+      (∀ k : w64, ⌜(Hist.st R V).TreeName p ∧ k = 1 ∨
+          ¬ (Hist.st R V).TreeName p ∧ (Hist.st R V).AtOrAboveRoot p ∧ k = 0⌝ -∗
+        osTree (L := L) dq R V -∗ Φ (#k)) -∗
+      WP (ExternalOp fsExt.name "PathKind" (Val (#p))) @ s; E {{ Φ }} := by
+  iintro #Hinv Hh HΦ
+  iapply wp_fs_stepT "PathKind" _ Φ (by simp [val.isPanic]) hE $$ Hinv
+  iintro %st %Γb %Γm %Γf %Γt %V0 %Γdf %Γc %h Hw Hn
+  unfold treeWorld
+  icases Hn with ⟨%Hns, HAd, HAdf, HAc, Hrd, Hcr⟩
+  obtain ⟨hw, hc⟩ := Hns
+  icases osTree_auth _ _ _ _ _ $$ HAd Hh with %Heq
+  obtain ⟨rfl, rfl⟩ := Heq
+  unfold osWorld
+  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
+  icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
+  have hstep : ∃ e', IsFsStep "PathKind" (#p) st e' st := by
+    by_cases ht : st.TreeName p
+    · exact ⟨_, p, rfl, rfl, .inl ⟨ht, rfl⟩⟩
+    · exact ⟨_, p, rfl, rfl, .inr ⟨ht, hp.resolve_left ht, rfl⟩⟩
+  imodintro
+  isplitr
+  · ipureintro
+    obtain ⟨e0, he0⟩ := hstep
+    obtain ⟨hfr, hr⟩ := step_filesSame (h := h) Hwc.1 (filesSame_refl st) Hag
+    exact ⟨_, h, st, he0, hfr, hr⟩
+  inext
+  iintro %e' %h' %st' %Hst
+  obtain ⟨Hst, Hfr, Hr⟩ := Hst
+  simp only [IsFsStep] at Hst
+  obtain ⟨p', hv, hst, hres⟩ := Hst
+  subst st'
+  cases go.intoVal_inj hv
+  imod worlds_close (filesSame_refl st) Hr Hfr rfl hw hc $$ [HAb HAm HAf HAt Htok Hcells Hσ]
+    HAd HAdf HAc Hrd Hcr with ⟨Hw, Hn⟩
+  · unfold osWorld; iframe; ipureintro; exact Hwc
+  imodintro
+  iexists Γb, Γm, Γf, Γt, V, Γdf, Γc
+  try unfold osWorld
+  try unfold treeWorld
+  isplitl [Hw]
+  · iexact Hw
+  isplitl [Hn]
+  · iexact Hn
+  rcases hres with ⟨ht, rfl⟩ | ⟨ht, ha, rfl⟩
+  · iapply wp_value'
+    iapply HΦ $$ %(1 : w64) %(.inl ⟨ht, rfl⟩) Hh
+  · iapply wp_value'
+    iapply HΦ $$ %(0 : w64) %(.inr ⟨ht, ha, rfl⟩) Hh
 
 /-- **`fsync(2)` of a directory fd**: any errno; the ghost state as it was (a commit only narrows
 what a crash may leave). -/

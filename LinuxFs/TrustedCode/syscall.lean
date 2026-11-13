@@ -70,6 +70,98 @@ model's. -/
 noncomputable def Errno.Error.impl : val :=
   λ: "e" <>, _root_.Perennial.fmt.arbitraryString #()
 
+/-! ## fileutil's calls (2026-11-13, the WAL over `fsExt`; drafts pending the user's review) -/
+
+/-- `Fallocate(fd int, mode uint32, off int64, len int64) error` (`zsyscall_linux_amd64.go`: one
+`fallocate(2)`, `Syscall6(SYS_FALLOCATE, ...)` and `errnoErr`, `EINTR` not retried): the same system
+call stub as `golang.org/x/sys/unix.Fallocate`, and the same model
+(`TrustedCode/golang_org/x/sys/unix.lean`, which imports this file, so the body is repeated here).
+Mode 0 is the extension's `FallocStart`, a resize to `max size (off + len)` in flight, and
+`FallocFinish` (on failure, any size between); `FALLOC_FL_KEEP_SIZE` (1) is `FallocKeep`, no
+visible change, any errno. Both are stuck on a negative `off` or a `len` not above 0 (Linux:
+`EINVAL`: misuse) and on an fd that is not a writable file's. Other modes (punching or zeroing a
+range, collapsing, inserting) are not modelled: a panic, never reached by a proved program.
+fileutil's `Preallocate` (`preallocate_unix.go`) issues modes 0 and 1 only. Go example:
+`examples/osfs/semantics/model_syscall_fallocate.go`. -/
+noncomputable def Fallocate.impl : val :=
+  λ: "fd" "mode" "off" "len",
+    if: "mode" =⟨go.uint32⟩ #(W32 0) then
+      model.errno (ExternalOp Fs.fsExt.name "FallocFinish"
+        (ExternalOp Fs.fsExt.name "FallocStart" ("fd", ("off", "len"))))
+    else if: "mode" =⟨go.uint32⟩ #(W32 1) then
+      model.errno (ExternalOp Fs.fsExt.name "FallocKeep" ("fd", ("off", "len")))
+    else Panic "syscall.Fallocate: mode not modelled"
+
+/-- `syscall.Flock_t` as goose names it (its `.ty` is in `Code.syscall`, which imports this file). -/
+@[reducible] def model.Flock_t : go.GoType := go.GoType.Named go!"syscall.Flock_t" []
+
+/-- The type of `Flock_t`'s padding fields `Pad_cgo_0` and `Pad_cgo_1`, `[4]byte`. -/
+@[reducible] def model.flockPad : go.GoType := go.GoType.ArrayType 4 go.byte
+
+/-- `FcntlFlock(fd uintptr, cmd int, lk *Flock_t) error` (`flock_linux.go`):
+
+```go
+	_, _, errno := Syscall(fcntl64Syscall, fd, uintptr(cmd), uintptr(unsafe.Pointer(lk)))
+	if errno == 0 {
+		return nil
+	}
+	return errno
+```
+
+one `fcntl(2)` with the lock description `lk` (`fcntl64Syscall` is `SYS_FCNTL` on amd64). As
+`golang.org/x/sys/unix.FcntlFlock`'s model for the commands that set a lock, `F_SETLK` (6),
+`F_SETLKW` (7), `F_OFD_SETLK` (37) and `F_OFD_SETLKW` (38): the extension's `OfdLock`, trivial (any
+errno; the lock state is not modelled, `notes/osfs-ext-plan.md` D7, `notes/walfs-ext-plan.md`;
+the user's decision on lock state is pending, `notes/wal-fsext-plan.md` Q1), stuck on an fd that is
+not a file's; `lk` is not read.
+
+`F_OFD_GETLK` (36), the query fileutil's package initializer makes on fd 0 (`lock_linux.go`'s
+`init`, to choose OFD locks over `flock`), on any fd, one the process opened or not (fd 0 is
+whatever the process inherited: a terminal, `/dev/null`, a pipe, or closed): no extension step (a
+query changes no state the model has), and the result is `nil` or any nonzero errno
+(`ArbitraryInt`; Linux answers `EBADF` on a closed fd, `EINVAL` for a bad `l_type`, ...). On the
+call Linux copies the whole struct in (`do_fcntl`: `copy_from_user(&flock, argp, sizeof flock)`),
+and on success it copies the whole struct back (`copy_to_user(argp, &flock, sizeof flock)`): the
+lock description (`l_type = F_UNLCK` if nothing conflicts, else the conflicting lock's type, range
+and `l_pid = -1`) and the padding as it was read. So the model loads all seven fields of `*lk` at
+entry and, on success, stores all seven: arbitrary values in `Type`, `Whence`, `Start`, `Len` and
+`Pid`, and the padding (`Pad_cgo_0`, `Pad_cgo_1`) as loaded (measured with no concurrent writer,
+`TestOFDGetlkPadding`); a concurrent access to any field is then a race, which a proof must
+exclude (a write of the padding by another goroutine during the call could be reverted by Linux).
+On failure `*lk` is unchanged (the errors come before the copy-out: `EBADF`, `EINVAL`; `EFAULT`
+needs a bad `lk`, which a Go pointer is not; the model loads it anyway, which only adds races). A nil `lk` is
+stuck (Linux: `EFAULT`). Any other command (`F_GETLK`, or one that is not about locks) is not
+modelled: a panic, never reached by a proved program. Go example:
+`examples/osfs/semantics/model_syscall_fcntlflock.go`. -/
+noncomputable def FcntlFlock.impl : val :=
+  λ: "fd" "cmd" "lk",
+    if: ("cmd" =⟨go.int⟩ #(W64 6)) || ("cmd" =⟨go.int⟩ #(W64 7)) ||
+        ("cmd" =⟨go.int⟩ #(W64 37)) || ("cmd" =⟨go.int⟩ #(W64 38)) then
+      model.errno (ExternalOp Fs.fsExt.name "OfdLock" ("fd", "cmd"))
+    else if: "cmd" =⟨go.int⟩ #(W64 36) then
+      -- copy_from_user: the whole struct
+      ![go.int16] (StructFieldRef model.Flock_t go!"Type" "lk") ;;
+      ![go.int16] (StructFieldRef model.Flock_t go!"Whence" "lk") ;;
+      let: "p0" := ![model.flockPad] (StructFieldRef model.Flock_t go!"Pad_cgo_0" "lk") in
+      ![go.int64] (StructFieldRef model.Flock_t go!"Start" "lk") ;;
+      ![go.int64] (StructFieldRef model.Flock_t go!"Len" "lk") ;;
+      ![go.int32] (StructFieldRef model.Flock_t go!"Pid" "lk") ;;
+      let: "p1" := ![model.flockPad] (StructFieldRef model.Flock_t go!"Pad_cgo_1" "lk") in
+      let: "e" := ArbitraryInt in
+      if: "e" =⟨go.uintptr⟩ #(W64 0) then
+        -- copy_to_user: the whole struct, the padding as read
+        StructFieldRef model.Flock_t go!"Type" "lk" <-[go.int16] Convert go.uint64 go.int16 ArbitraryInt ;;
+        StructFieldRef model.Flock_t go!"Whence" "lk" <-[go.int16]
+          Convert go.uint64 go.int16 ArbitraryInt ;;
+        StructFieldRef model.Flock_t go!"Pad_cgo_0" "lk" <-[model.flockPad] "p0" ;;
+        StructFieldRef model.Flock_t go!"Start" "lk" <-[go.int64] ArbitraryInt ;;
+        StructFieldRef model.Flock_t go!"Len" "lk" <-[go.int64] ArbitraryInt ;;
+        StructFieldRef model.Flock_t go!"Pid" "lk" <-[go.int32] Convert go.uint64 go.int32 ArbitraryInt ;;
+        StructFieldRef model.Flock_t go!"Pad_cgo_1" "lk" <-[model.flockPad] "p1" ;;
+        #GoInterface.nil
+      else model.errno "e"
+    else Panic "syscall.FcntlFlock: a command that sets no lock, other than F_OFD_GETLK, is not modelled"
+
 /-! ## The initializer's untranslated pieces (2026-11-07, as Perennial's `TrustedCode/syscall.lean`) -/
 
 /-- An arbitrary `[]string`: the model of a `go:linkname` into the runtime that returns the

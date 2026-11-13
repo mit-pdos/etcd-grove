@@ -520,3 +520,31 @@ clamped}` (right), so `walStCrash s s'`; the new layout keeps the cuts, `segs.dr
 `contents.map durB` of each kept file (named in `m'`, so `isSome`), `old` the last image, `wr = so = z0 =
 |S'|`. Lemmas needed: `walCutPos` and `walLastIdx` under a prefix of the history, the last segment's
 records of `I.take m` a prefix of `I`'s, `RecsFit` of a prefix.
+
+## 9. The trusted-model drafts (2026-11-13, branch `wal-models`; pending the user's review [user])
+
+The WAL and fileutil retranslated from the fork's `goose-lean-walfs` (`f15d88841`, the two local fixes
+of §8; the pin stays `0b50f0426` until the user pushes them, so `goose.py --check` of project etcd
+fails on this branch). Drafted in `LinuxFs/` (each with its Go example in `examples/osfs/semantics/`,
+`model_*.go`, indexed in `doc.go`; measurements in `models_test.go`, run on this machine):
+
+- `syscall.Fallocate`: `unix.Fallocate`'s model (`FallocStart`/`FallocFinish`, `FallocKeep`).
+- `syscall.FcntlFlock`: `unix.FcntlFlock`'s (`OfdLock`), plus `F_OFD_GETLK` (36) on any fd: no
+  extension step, `nil` or any errno, on success arbitrary values in `Type`/`Whence`/`Start`/`Len`/
+  `Pid`. Lock state still not modelled (Q1).
+- `os.Stat`/`os.Lstat`: an `Open(O_RDONLY|O_CLOEXEC)` + `FdKind` + `Fstat` + close (the extension has
+  no path `stat`); mode = type with arbitrary permission/setuid/setgid/sticky bits. `fileStat` gained a
+  `mode` field (`File.Stat` stores a regular file's arbitrary mode); `fileStat.Mode`/`IsDir` and
+  `FileMode.IsDir`/`Perm` translated.
+- `os.MkdirAll`: Go's body over the models, `VolumeName` as 0 (`internal/filepathlite` is translated
+  nowhere).
+- `os.RemoveAll`: Go's `removeall_at.go` body over paths, a `CallBegin` held for the call (directory
+  renames by other threads stuck), passes nondeterministic.
+- `(*File).Close` on a nil receiver: `ErrInvalid`. An empty `File.Write`: `(0, nil)` or any errno, no
+  step (was a panic). `os.WriteFile` translated.
+- Not modelled: `File.WriteTo`/`ReadFrom` (and `io.Copy`, names-only in Perennial's `io`): Go's path
+  for `*File`→`*File` is `copy_file_range` (`zero_copy_linux.go`, with fallbacks on ENOSYS/EXDEV/...),
+  whose errors are `*os.SyscallError`s; a model needs `io.Copy` translated first (a Perennial change).
+
+Proofs repaired: `LinuxFs/Proof/os/{Base,File__Stat,File__Close,fileStat__Size}.lean` (`ownFileStat`
+holds some mode). Nothing proves the new models yet.

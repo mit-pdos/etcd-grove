@@ -83,6 +83,7 @@ noncomputable instance FileBufReader_typed_pointsto :
   typedPointstoDef l v dq := iprop(
     "Reader" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"Reader" l) v.Reader' dq ∗
     "fi" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"fi" l) v.fi' dq ∗
+    "err" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"err" l) v.err' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -121,6 +122,22 @@ noncomputable instance FileBufReader_access_store_fi (l : Loc) (v : go_etcd_io.e
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"fi" l) v.fi' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"fi" l) fi' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fi' := fi' } : go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance FileBufReader_access_load_err (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"err" l) v.err' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"err" l) v.err' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance FileBufReader_access_store_err (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader) (err' : GoError) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"err" l) v.err' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"err" l) err' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := err' } : go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

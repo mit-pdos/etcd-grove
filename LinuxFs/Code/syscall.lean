@@ -105,7 +105,9 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   pollFd_instance : pollFd.TypeAssumptions
   Termios_instance : Termios.TypeAssumptions
   runtime_envs_unfold : FuncUnfold runtime_envs [] runtime_envs.impl
+  FcntlFlock_unfold : FuncUnfold FcntlFlock [] FcntlFlock.impl
   «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
+  Fallocate_unfold : FuncUnfold Fallocate [] Fallocate.impl
   Fdatasync_unfold : FuncUnfold Fdatasync [] Fdatasync.impl
   Flock_unfold : FuncUnfold Flock [] Flock.impl
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
@@ -195,7 +197,9 @@ attribute [instance] Assumptions.SysProcIDMap_instance
   Assumptions.pollFd_instance
   Assumptions.Termios_instance
   Assumptions.runtime_envs_unfold
+  Assumptions.FcntlFlock_unfold
   Assumptions.«init.0_unfold»
+  Assumptions.Fallocate_unfold
   Assumptions.Fdatasync_unfold
   Assumptions.Flock_unfold
   Assumptions.import_sync_Assumption

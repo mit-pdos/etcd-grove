@@ -208,3 +208,46 @@ claim holds.
     excluded. The WAL's uses are sequential.
 - **nil `File.Close`** returns `os.ErrInvalid` (the global is translated). **`WriteFile`** is
   translated as Go 1.27.3's body.
+
+---
+
+## Dispositions (2026-11-13, branch `wal-models`)
+
+The trusted changes below are **pending the user's review** (marked so in their docstrings).
+
+1. **MkdirAll above the roots (serious): fixed** (`03de18e9ca`). The extension gains a query that is
+   not a system call, `PathKind` (`GooseLang/Ext/Fs/Impl.lean`): `#p ↦ #1` for a `TreeName`, `#0`
+   for a root or an ancestor of one (`OsState.AtOrAboveRoot p := p ≠ [] ∧ ∃ rj ∈ roots, IsUnder p
+   rj.1`), stuck otherwise; `st' = st`. `MkdirAll.impl` asks it first; at `0` it runs
+   `model.mkdirAllAbove`, Go's body with no extension step (`Stat` a directory or any error; the
+   recursion on the parent; `Mkdir` failing; `Lstat` a directory, or `&PathError{"mkdir", path,
+   Errno(e)}`, `e` any nonzero errno). The parent computation is shared (`model.mkdirAllParent`).
+   The environment (the header) now says the roots and their ancestors are existing directories
+   throughout, a root no symlink. Go example `model_os_mkdirall_above.go` (and `env_roots_only.go`),
+   measured by `TestMkdirAllAboveRoot`. WP spec `wp_osPathKind` (`TreeSpecsDirFd.lean`), proved.
+   `Stat`/`Lstat` at a root already answer (`Open` takes a `TreePath`); above a root they are
+   stuck as every step on a path outside the trees, which no model now reaches on its own: left as
+   is. `RemoveAll` at or above a root stays stuck (Linux would delete the root's tree, and maybe
+   the root, which the environment excludes); documented.
+2. **`F_OFD_GETLK` padding: fixed** (`5284132963`). The model loads all seven fields of `*lk` at
+   entry and on success stores all seven, the padding as loaded (`model.flockPad`); docstring and
+   `model_syscall_fcntlflock.go` cite `do_fcntl`'s whole-struct copies.
+3. **RemoveAll's justification: fixed** (`13787b01ae`). The docstring of `model.removeAllFrom` now
+   describes Go's chunk-then-reopen passes and gives the load-bearing reason: the extension's
+   `Unlink`/`Rmdir` may fail with `ENOENT` and no effect, which is success here; it warns that
+   tightening those failure branches would make the model unsound. The more faithful chunked model
+   was not adopted.
+4. **Stale header line: fixed** (`8408ca3774`).
+5. **Non-canonical paths: documented** (`03de18e9ca`): in `model.stat`, `MkdirAll.impl`,
+   `RemoveAll.impl` (with the `RemoveAll("<d>/f/")` example) and `env_roots_only.go`. The WAL's calls
+   (`wal.go`: `os.RemoveAll(tmpdirpath)`, `os.RemoveAll(w.dir)`, `fileutil.CreateDirAll(tmpdirpath)`,
+   `Exist`/`TouchDirAll(dir)`) are on its directory and `filepath.Clean(dirpath) + ".tmp"`,
+   canonical when its directory is: the vacuity is not reached.
+6. **`Lstat = Stat` at a root: fixed by the environment** (`03de18e9ca`): "a root is no symlink"
+   (ancestors may be, which `mkdirAllAbove`'s error outcome covers).
+7. **`models_test.go` on C: fixed** (`03de18e9ca`). `run-models-on-c.sh` makes a filesystem with
+   `mkfs-mount.sh`, records `check.sh`'s output and runs the tests there (`$SEMANTICS_C_DIR`). Run
+   2026-11-13: "check: /tmp/…/mnt is C (kernel 7.0.0-38-generic, ext4, block size 4096, …)"; all 8
+   tests pass (needs `sudo`, which this machine has).
+8. **Lock commands return where Linux blocks: no change** (sound; Q1 stays deferred).
+9. **Extra outcomes of an empty `Write`: no change** (sound).

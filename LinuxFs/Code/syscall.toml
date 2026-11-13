@@ -27,7 +27,10 @@ trusted = ["Fdatasync", "Flock",
   # Case 33; TrustedCode/syscall.lean): `runtime_envs` (a linkname, no Go body) an arbitrary
   # `[]string`; `init.0` (the RLIMIT_NOFILE raise through raw `prlimit`) a no-op, `exec` being
   # outside what Perennial models
-  "runtime_envs", "init.0"]
+  "runtime_envs", "init.0",
+  # (2026-11-13, the WAL over fsExt; drafts pending the user's review) fileutil's calls
+  # (preallocate_unix.go, lock_linux.go): as golang.org/x/sys/unix's models, plus F_OFD_GETLK
+  "Fallocate", "FcntlFlock"]
 
 # (2026-11-07) every type declaration goose supports, as Perennial's: the initializers build
 # `mmapper` and `sync.Pool` literals
