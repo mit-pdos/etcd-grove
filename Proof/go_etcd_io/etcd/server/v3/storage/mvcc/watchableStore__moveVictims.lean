@@ -266,7 +266,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
       iunfold mvcc.watcherOwn at Hown
       icases Hown with ⟨HminRev, Hvict, Hcomp, Hres, Hchf⟩
       iunfold mvcc.ownEventBatch at HB
-      icases HB with ⟨%sl, %ps, Heb, Hsl, Hcap, %Hlen, #HevB⟩
+      icases HB with ⟨%sl, %ps, Heb, Hsl, Hcap, %Hlen, HevB⟩
       ihave #Hf0 := Hf
       iunfold mvcc.watcherFixed at Hf0
       icases Hf0 with ⟨%Hwnn, %ks, %es', #Hk, #Hks, #He, #Hes, #Hsr', #Hid, #Hfcs⟩
@@ -307,7 +307,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
       icases mvcc.mv_ev_pre γ γw r evsw b.evs (sint.nat stw.minRev) $$ [$Hev $Hwf] with ⟨HevS, HevK⟩
       icases (mvcc.mv_covAuth key γw r fcs evsw b.evs (sint.nat stw.minRev)).1 $$ HevK with HevK
       wp_apply (hSend γ key γw r fcs stw.ch (1 : Qp).half (1 : Qp).half evsw (sint.nat stw.minRev) _ ps
-          b.evs (DFrac.own 1) cs (1 : Qp).half none iprop(True)) $$ [Hchf Hl HevS Hsl HevK]
+          b.evs (DFrac.own 1) cs (1 : Qp).half none iprop(True)) $$ [Hchf Hl HevS Hsl HevK HevB]
           as %ok ⟨Hchf, Hl, Hsl, HevS, HevK, -, -⟩
       · iframe Hm Hf Hfo Hc Hchf Hl HevS Hsl HevB HevK
         isplitr
@@ -344,6 +344,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
       cases ok
       · -- the channel is full: the batch goes to `newVictim`
         simp only [Bool.false_eq_true, ↓reduceIte]
+        icases Hsl with ⟨Hsl, HevB⟩
         wp_auto
         wp_join iprop(∃ nm : GoMap, newVictim_ptr ↦ nm ∗ nm ↦$ GMap.fmap mvcc.NvEnt.eb NV') with
             [newVictim Hnvm] as ⟨%nm, newVictim, Hnm⟩
@@ -376,7 +377,7 @@ theorem mvcc.watchableStore.moveVictims.wp_proof
         isplitl [Hnm]
         · iright
           rw [GMap.fmap_insert]; iexact Hnm
-        isplitl [Hnvb Heb Hsl Hcap]
+        isplitl [Hnvb Heb Hsl Hcap HevB]
         · iapply (BigSepM.bigSepM_insert (m := NV') hnvk).2
           iframe Hnvb
           iunfold mvcc.ownEventBatch

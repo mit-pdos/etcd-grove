@@ -1078,7 +1078,7 @@ theorem mvcc.watchableStore.notify.wp_proof
           · rw [hB] at h; exact HposN r' _ _ ev h⟩) $$ HLe
     subst hB
     iunfold mvcc.ownEventBatch at HB
-    icases HB with ⟨%sl, %ps, Heb, Hsl, Hcap, %Hlen, #HevB⟩
+    icases HB with ⟨%sl, %ps, Heb, Hsl, Hcap, %Hlen, HevB⟩
     iunfold mvcc.watcherOwn at Hstw
     icases Hstw with ⟨HminRev, Hvict, Hcomp, Hrest, Hchf⟩
     ihave #Hfx0 := Hfx
@@ -1091,7 +1091,7 @@ theorem mvcc.watchableStore.notify.wp_proof
     ihave #HnlN := mvcc.evLog_nlLb γ.st _ $$ Hlb
     wp_apply (hSend γ key γw r' fcs stw.ch 1 (Qp.half 1) evsw (N + 1) _ ps
         (mvcc.watchEvents (ilog ++ [pend]) r' N (N + 1)) (DFrac.own 1) [] 1 none iprop(True))
-      $$ [Hchf Hl Ha Hsl] as %b ⟨Hchf, Hl, Hsl, Ha, -, -, -⟩
+      $$ [Hchf Hl Ha Hsl HevB] as %b ⟨Hchf, Hl, Hsl, Ha, -, -, -⟩
     · rw [if_neg hwEne]
       simp only at Hlen
       iframe Hmeta Hfx Hfo Hch Hchf Hl Ha Hwf' Hsl HevB
@@ -1141,6 +1141,7 @@ theorem mvcc.watchableStore.notify.wp_proof
     cases b
     · -- the channel is full: a victim
       simp only [if_neg hwEne, Bool.false_eq_true, ↓reduceIte]
+      icases Hsl with ⟨Hsl, HevB⟩
       wp_auto
       wp_apply wp_mapInsert $$ Hvm as Hvm
       (try wp_auto)
@@ -1174,7 +1175,7 @@ theorem mvcc.watchableStore.notify.wp_proof
         iframe Hmeta Hfx Hch Hfo Ha Hl Hwf'
         ipureintro
         refine ⟨hM, Hsr, by rw [hZ]; omega, hZ⟩
-      isplitl [Hbv Heb Hsl Hcap]
+      isplitl [Hbv Heb Hsl Hcap HevB]
       · iapply (BigSepM.bigSepM_insert hPBv0).2
         iframe Hbv
         isplitr

@@ -82,9 +82,19 @@ theorem wsSentLb_zero.law_holds : wsSentLb_zero.law (GF := GF) := by
 
 /-- A response received is, as the client sees it, the value received. -/
 theorem respIs_wrespIs (v : WatchResponse) (r : RespM) :
-    respIs (GF := GF) v r ⊢ wrespIs v r.toW := by
-  unfold respIs wrespIs RespM.toW
-  iintro H; iexact H
+    respIs (GF := GF) v r ∗ respPk v r ⊢ wrespIs v r.toW := by
+  unfold respIs respPk wrespIs RespM.toW
+  iintro ⟨⟨%Hf, %ps, #Hs, %Hl, #Hrd⟩, ⟨%ps', #Hs', Hpk⟩⟩
+  ihave %Heq := ownSlice_agree _ _ _ _ _ $$ Hs Hs'
+  subst Heq
+  isplitr
+  · ipureintro; exact Hf
+  iexists ps
+  iframe Hs
+  isplitr
+  · ipureintro; exact Hl
+  iapply (evOwns_split _ 1).2
+  iframe Hrd Hpk
 
 /-- The receive's result, as `wsChan_recv.law` gives it to the client. -/
 theorem recvResult_api (γw : WsNames) (ch : Loc) (γc : WatchChanNames) (ms : List RespM)
@@ -108,9 +118,9 @@ theorem recvResult_api (γw : WsNames) (ch : Loc) (γc : WatchChanNames) (ms : L
     · ipureintro; exact Hp
     iexists ms; iframe Hm; ipureintro; rfl
   · simp only [↓reduceIte]
-    iintro ⟨Hrx, -, -, -, %r, Hc, #Hr, -, #Hlb, -⟩
+    iintro ⟨Hrx, -, -, -, %r, Hc, #Hr, Hrpk, -, #Hlb, -⟩
     iexists r.toW
-    ihave #Hw := respIs_wrespIs v r $$ Hr
+    ihave Hw := respIs_wrespIs v r $$ [$Hr $Hrpk]
     iframe Hw
     unfold watchConsumer wsRecvI apiRecvLb
     rw [show (wsAbsOf γw ch γc).rcv = γc.arcv from rfl, show (wsAbsOf γw ch γc).crecv = γc.recv from rfl,

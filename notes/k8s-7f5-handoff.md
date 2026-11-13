@@ -18,6 +18,41 @@ the worktree's untracked `questions.md` (decisions; never re-add it tracked).
   this stage's T5-c); 7f-0 partial (records only; the rest goes with 7f-6, Q7).
 - No Lean edited. Nothing built on this branch.
 
+## Handoff point (2026-11-13, fifth 7f-5 agent): 7f-3b mvcc part written; STOP before landing
+
+Done (uncommitted until the full build passes, then one commit on `k8s-7f5`):
+- mvcc vocabulary (`InvWatchBatch.lean`): `prevKvIs`, `evRd` (field-wise, persistent: every field but
+  `PrevKv`, the key-value `kvPtrFixed`), `evPk e ev q` (the `PrevKv` field owned at a fraction: the
+  lock invariant is fractional), `evOwn := evRd ∗ evPk`; laws `evIs_evRd`, `evOwn_intro` (the
+  allocated copy), `evOwn_persist`/`evOwns_persist` (give the copies up: back to `evIs`),
+  `evOwn_rd`, `evOwns_split`, `evRd_modRev`, `bigSepL_filter_drop`; `evPk_fractional`,
+  `evOwn_fractional` (`InvWatchFrac`).
+- `ownEventBatch` holds `evOwn`; `eventBatch.add`/`watcherBatch.add` take `evOwn`; `newWatcherBatch`
+  makes each copy `evOwn` (`evOwn_intro`); `watcher.send` takes the copies `evOwn` and gives them back
+  on `false` (post `if b then ↦*□ else ↦* ∗ [∗list] evOwn`); notify/syncWatchers/moveVictims keep
+  them in the victim batches.
+- Internally `respIs` keeps `evRd` (persistent); the channel invariant `watchChanInv` gains
+  `"Hpk" ∷ respsPk vs (sent.drop recv.length)` (the in-flight responses' `PrevKv` fields);
+  `watchRecvResult` carries `respPk v r`; every `imod Hclose` passes `Hpk`.
+- API: `mvcc.api.wrespIs` carries `evOwn` (81: D2, wrespIs itself); `respIs_wrespIs` takes
+  `respIs ∗ respPk`.
+- Readers: `filterSpec`, v3rpc `filterNoPut`/`filterNoDelete` take `evRd`; the examples
+  (`mvccfull` `stream__receive`/`stream__watch`, `mvccrand` `watchCheck__receive`) read `evRd`.
+- v3rpc stopgap: `WatchApi.wrespIs_persistent` (false now) replaced by `v3rpc.wrespRO` (the old
+  read-only form over `mvcc.evIs`) and `wrespIs_ro : wrespIs ⊢ |==> wrespRO`, applied at the send
+  loop's two receipts. The v3rpc part of 7f-3b replaces this by the `PrevKv` write.
+
+Next: full build, interface diff (`etc/gen-interface.py etc/api/mvcc.txt`), tcb `--check`, gates; STOP
+for 81 (exported statements changed: `wrespIs`, the importable `InvWatchBatch`/`InvWatchStore`
+vocabulary). After 81's go: land; then v3rpc (`recvLoop`'s `prevKV` entry/`swsMuP`, `sendLoop`'s
+create check and `Range` at `ModRevision - 1` writing into `evPk`, `IsCreateEvent` on `evRd`,
+`rawRespOkP`, `watchReqOkP`); then the client (7f-3c).
+
+Pitfall found: after a failing bullet inside `wp_join`, later goals carry unassigned metavariables
+and `wp_for`'s clean-up silently fails (`Hif : #(decide …) = #true` undecoded, `word` fails): fix the
+FIRST error before reading later ones. `etc/lean-check.py` incremental runs once gave a spurious
+`(kernel) application type mismatch` on `moveVictims` that `lake build` did not.
+
 ## Handoff point (2026-11-13, fourth 7f-5 agent, final): T5-a LANDED (lean `7112e7c0d6`); 7f-3b next
 
 T5-a landed via `etc/land.sh` (gates all passed, `/shared/tmp/k8s7f3a/land3.log`): the translation of

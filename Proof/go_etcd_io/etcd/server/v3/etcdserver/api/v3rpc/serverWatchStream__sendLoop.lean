@@ -530,8 +530,9 @@ local macro "send_return" : tactic => `(tactic| (
     iapply HΦ
     iexact Htt
   simp only [↓reduceIte]
-  icases Hres with ⟨%x, Hwc, #HrIR⟩
-  iunfold mvcc.api.wrespIs at HrIR
+  icases Hres with ⟨%x, Hwc, HrIR⟩
+  imod v3rpc.wrespIs_ro _ _ $$ HrIR with #HrIR
+  iunfold v3rpc.wrespRO at HrIR
   icases HrIR with ⟨-, %psR, #HpsR, -⟩
   ihave %HlR := ownSlice_len _ _ _ $$ HpsR
   wp_auto
@@ -669,7 +670,8 @@ loop's `watchStream.Chan()` case and the drain before a `Created` response, unit
 `HsW`), from the receive (`Hres`) to the closure's result: `true` (`Htrue`, with the responses
 sent `Dn`) or, a send failed, `false` (`Hfalse`). -/
 local macro "watch_resp" : tactic => `(tactic| (
-  icases Hres with ⟨%x, Hwc, #HrI⟩
+  icases Hres with ⟨%x, Hwc, HrI⟩
+  imod v3rpc.wrespIs_ro _ _ $$ HrI with #HrI
   -- the received list's authority, and its lower bound, at the receipt
   imod (monoListAuthOwn_update_app (γ := r.γr) [x]) $$ HA with ⟨HA, #Hlbx0⟩
   ihave #Hlbx : v3rpc.rcvLb (GF := GF) r.γr (rcv ++ [x]) $$ []
@@ -689,7 +691,7 @@ local macro "watch_resp" : tactic => `(tactic| (
   · iframe Hrok Hlbx
     iintro !>; iunfold v3rpc.rcvSnap; iexact Hsnap
   ihave #HrI' := HrI
-  iunfold mvcc.api.wrespIs at HrI'
+  iunfold v3rpc.wrespRO at HrI'
   icases HrI' with ⟨%HwvI, %ps, #Hps, %Hpsl, #Hevs⟩
   ihave %Hpsn := ownSlice_len _ _ _ $$ Hps
   wp_auto

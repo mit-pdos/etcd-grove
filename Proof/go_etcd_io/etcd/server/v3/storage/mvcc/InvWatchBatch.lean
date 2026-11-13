@@ -12,10 +12,12 @@ event's key in the map's order) compute it whatever the order (`batchStepL_looku
 `batchOf_snoc`). `chooseAll`'s result is `minRevOf`: the least `minRev` of the members
 (`2^63 - 1` if none), whatever the order (`minRevL_eq`).
 
-**Representation.** An event is a persistent fact of its pointer (`evIs`: its fields, the
-key-value read-only for good, `kvPtrFixed`): events are shared by the batches of all watchers.
-`ownEventBatch eb B` owns the batch struct and its slice; `ownWatcherBatch wb Bm` the map and
-each batch. The members' mutable fields are the caller's (`ownStates ST`).
+**Representation.** The store's events are a persistent fact of their pointers (`evIs`: their
+fields, the key-value read-only for good, `kvPtrFixed`). A batch holds its watcher's own copies
+(`evOwn`, k8s 7f-3b: `newWatcherBatch` copies each event per watcher): the fields read-only
+(`evRd`), the `PrevKv` field owned (`evPk`), which the response hands to its receiver.
+`ownEventBatch eb B` owns the batch struct, its slice and its copies; `ownWatcherBatch wb Bm` the
+map and each batch. The members' mutable fields are the caller's (`ownStates ST`).
 -/
 module
 
@@ -366,15 +368,182 @@ instance evIs_persistent (e : Loc) (ev : EvM) : Persistent (evIs (GF := GF) e ev
   unfold evIs
   cases ev.prevKv <;> infer_instance
 
+/-! ### A watcher's own copy of an event (k8s 7f-3b)
+
+`newWatcherBatch` (`watcher_group.go:79-96`) allocates a fresh `&mvccpb.Event{Type, Kv, PrevKv}`
+per (watcher, event), and the batch's responses carry those copies; v3rpc's `sendWatch`
+(`watch.go:447-455`) writes `PrevKv` into them. So a copy's `PrevKv` field is owned (`evPk`) by
+whoever holds the copy (the batch, then the response), while its other fields and the key-value it
+shares with the store's event are read-only for good (`evRd`). -/
+
+/-- The `PrevKv` pointer `q` of an event whose previous key-value is `pk`: `nil` for none. -/
+def prevKvIs (q : Loc) (pk : Option EtcdKv) : IProp GF :=
+  match pk with
+  | none => iprop(⌜q = null⌝)
+  | some k => kvPtrFixed q k
+
+instance prevKvIs_persistent (q : Loc) (pk : Option EtcdKv) :
+    Persistent (prevKvIs (GF := GF) q pk) := by
+  unfold prevKvIs; cases pk <;> infer_instance
+
+/-- **An event's fields but `PrevKv`, read-only for good** (persistent): its type, its key-value
+(a non-nil pointer, `kvPtrFixed`) and its protobuf bookkeeping. What the readers of an event
+(`eventBatch.add`, the filters, `IsCreateEvent`) need. -/
+def evRd (e : Loc) (ev : EvM) : IProp GF :=
+  iprop(∃ (p : Loc) (st : google_golang_org.protobuf.internal.impl.MessageState)
+    (uf : GoSlice) (sc : w32), ⌜e ≠ null ∧ p ≠ null⌝ ∗
+    e.[go_etcd_io.etcd.api.v3.mvccpb.Event, go!"state"] ↦□ st ∗
+    e.[go_etcd_io.etcd.api.v3.mvccpb.Event, go!"Type"] ↦□ evType ev ∗
+    e.[go_etcd_io.etcd.api.v3.mvccpb.Event, go!"Kv"] ↦□ p ∗
+    e.[go_etcd_io.etcd.api.v3.mvccpb.Event, go!"unknownFields"] ↦□ uf ∗
+    e.[go_etcd_io.etcd.api.v3.mvccpb.Event, go!"sizeCache"] ↦□ sc ∗
+    kvPtrFixed p ev.kv)
+
+instance evRd_persistent (e : Loc) (ev : EvM) : Persistent (evRd (GF := GF) e ev) := by
+  unfold evRd; infer_instance
+
+/-- **An event's `PrevKv` field, owned** (at the fraction `q`: a victim batch, under the watchable
+store's lock): its pointer is `ev`'s previous key-value (`prevKvIs`). -/
+def evPk (e : Loc) (ev : EvM) (q : Qp := 1) : IProp GF :=
+  iprop(∃ pq : Loc, e.[go_etcd_io.etcd.api.v3.mvccpb.Event, go!"PrevKv"] ↦{DFrac.own q} pq ∗
+    prevKvIs pq ev.prevKv)
+
+/-- **A watcher's own copy of an event**: its fields read-only (`evRd`) and its `PrevKv` field
+owned (`evPk`). -/
+def evOwn (e : Loc) (ev : EvM) (q : Qp := 1) : IProp GF :=
+  iprop(evRd e ev ∗ evPk e ev q)
+
+/-- A copy's read-only fields, kept. -/
+theorem evOwn_rd (e : Loc) (ev : EvM) (q : Qp) :
+    evOwn (GF := GF) e ev q ⊢ evOwn e ev q ∗ evRd e ev := by
+  iintro H
+  iunfold evOwn at H
+  icases H with ⟨#Hr, Hp⟩
+  iunfold evOwn
+  iframe Hr Hp
+
+/-- Copies, as their read-only fields and their `PrevKv` fields. -/
+theorem evOwns_split (l : List (Loc × EvM)) (q : Qp) :
+    ([∗list] x ∈ l, evOwn (GF := GF) x.1 x.2 q) ⊣⊢
+      ([∗list] x ∈ l, evRd x.1 x.2) ∗ [∗list] x ∈ l, evPk x.1 x.2 q := by
+  unfold evOwn; exact BigSepL.bigSepL_sep_eqv
+
+/-- A big separating conjunction, some of its elements dropped. -/
+theorem bigSepL_filter_drop {A : Type} (p : A → Bool) (Φ : A → IProp GF) (l : List A) :
+    ([∗list] x ∈ l, Φ x) ⊢ [∗list] x ∈ l.filter p, Φ x := by
+  induction l with
+  | nil => exact .rfl
+  | cons a l ih =>
+    rw [List.filter_cons]
+    split
+    · exact (BigSepL.bigSepL_cons (Φ := fun _ x => Φ x)).1.trans
+        ((sep_mono_right ih).trans (BigSepL.bigSepL_cons (Φ := fun _ x => Φ x)).2)
+    · exact (BigSepL.bigSepL_cons (Φ := fun _ x => Φ x)).1.trans (sep_elim_right.trans ih)
+
+/-- An event's key-value pointer and its mod revision, read-only. -/
+theorem evRd_modRev (e : Loc) (ev : EvM) :
+    evRd (GF := GF) e ev ⊢ ∃ p : Loc,
+      e.[go_etcd_io.etcd.api.v3.mvccpb.Event, go!"Kv"] ↦□ p ∗
+      p.[go_etcd_io.etcd.api.v3.mvccpb.KeyValue, go!"ModRevision"] ↦□ ev.kv.modRev := by
+  iintro #H
+  iunfold evRd at H
+  icases H with ⟨%p, %st, %uf, %sc, %Hnn, -, -, #Hk, -, -, #Hkv⟩
+  iunfold kvPtrFixed at Hkv
+  icases Hkv with ⟨%ks, %vs, %kst, %kuf, %ksc, -, -, #Hkp⟩
+  icases kv_fields _ _ _ $$ Hkp with ⟨-, #HkM⟩
+  iexists p
+  iframe Hk HkM
+
+/-- A shared event's fields but `PrevKv`. -/
+theorem evIs_evRd (e : Loc) (ev : EvM) : evIs (GF := GF) e ev ⊢ evRd e ev := by
+  iintro #H
+  iunfold evIs at H
+  icases H with ⟨%p, %q, %st, %uf, %sc, %Hnn, #Hev, #Hkv, -⟩
+  icases typedPointsto_split _ _ _ $$ Hev with Hev
+  simp only [TypedPointsto.typedPointstoDef]
+  iNamed Hev
+  iunfold evRd
+  iexists p, st, uf, sc
+  iframe state Type' Kv unknownFields sizeCache Hkv
+  ipureintro; exact Hnn
+
+/-- A watcher's copy, as allocated (`&mvccpb.Event{Type, Kv, PrevKv}`): its fields but `PrevKv`
+made read-only for good. -/
+theorem evOwn_intro (e p q : Loc) (st : google_golang_org.protobuf.internal.impl.MessageState)
+    (uf : GoSlice) (sc : w32) (ev : EvM) (hp : p ≠ null) :
+    (e ↦ ({ state' := st, Type' := evType ev, Kv' := p, PrevKv' := q, unknownFields' := uf,
+            sizeCache' := sc } : go_etcd_io.etcd.api.v3.mvccpb.Event) : IProp GF) ∗
+      kvPtrFixed p ev.kv ∗ prevKvIs q ev.prevKv ⊢ |==> evOwn e ev := by
+  iintro ⟨He, #Hkv, #Hq⟩
+  ihave %Hnn := typedPointsto_not_null $$ He
+  icases typedPointsto_split _ _ _ $$ He with He
+  simp only [TypedPointsto.typedPointstoDef]
+  iNamed He
+  ipersist state
+  ipersist Type'
+  ipersist Kv
+  ipersist unknownFields
+  ipersist sizeCache
+  imodintro
+  iunfold evOwn
+  isplitr
+  · iunfold evRd
+    iexists p, st, uf, sc
+    iframe state Type' Kv unknownFields sizeCache Hkv
+    ipureintro; exact ⟨Hnn, hp⟩
+  · iunfold evPk
+    iexists q
+    iframe PrevKv Hq
+
+/-- A watcher's copy given up for good (handed to a reader that needs no write): the shared
+event's form, its `PrevKv` field made read-only too. -/
+theorem evOwn_persist (e : Loc) (ev : EvM) (q : Qp) :
+    evOwn (GF := GF) e ev q ⊢ |==> evIs e ev := by
+  iintro H
+  iunfold evOwn at H
+  icases H with ⟨#Hr, Hp⟩
+  iunfold evRd at Hr
+  icases Hr with ⟨%p, %st, %uf, %sc, %Hnn, #Hs, #Ht, #Hk, #Hu, #Hz, #Hkv⟩
+  iunfold evPk at Hp
+  icases Hp with ⟨%pq, Hpk, #Hq⟩
+  ipersist Hpk
+  imodintro
+  iunfold evIs
+  iexists p, pq, st, uf, sc
+  isplitr
+  · ipureintro; exact Hnn
+  isplitr
+  · iapply typedPointsto_combine _ _ _ Hnn.1
+    simp only [TypedPointsto.typedPointstoDef]
+    simp only [named]
+    iframe Hs Ht Hk Hpk Hu Hz
+  iframe Hkv
+  iunfold prevKvIs at Hq
+  cases ev.prevKv <;> iexact Hq
+
+/-- Copies given up for good. -/
+theorem evOwns_persist (l : List (Loc × EvM)) (q : Qp) :
+    ([∗list] x ∈ l, evOwn (GF := GF) x.1 x.2 q) ⊢ |==> [∗list] x ∈ l, evIs x.1 x.2 := by
+  induction l with
+  | nil => iintro -; imodintro; iapply BigSepL.bigSepL_nil.2; iempintro
+  | cons a l ih =>
+    iintro H
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨Ha, H⟩
+    imod evOwn_persist a.1 a.2 q $$ Ha with #Ha
+    imod ih $$ H with #H
+    imodintro
+    iapply BigSepL.bigSepL_cons.2
+    iframe Ha H
+
 /-- The batch at `eb` holds `B`: its fields, its slice of events (owned, with its capacity),
-each event's pointer `evIs` of its model; at the fraction `q` (a victim batch, under the
-watchable store's lock). -/
+each event a copy of its own (`evOwn`, k8s 7f-3b: `newWatcherBatch` copies them); at the fraction
+`q` (a victim batch, under the watchable store's lock). -/
 def ownEventBatch (eb : Loc) (B : EventBatch) (q : Qp := 1) : IProp GF :=
   iprop(∃ (s : GoSlice) (ps : List Loc),
     typedPointsto eb ({ evs' := s, revs' := B.revs, moreRev' := B.moreRev } : eventBatch)
       (DFrac.own q) ∗
     ownSlice s ps (DFrac.own q) ∗ ownSliceCap Loc s (DFrac.own q) ∗ ⌜ps.length = B.evs.length⌝ ∗
-    [∗list] x ∈ ps.zip B.evs, evIs x.1 x.2)
+    [∗list] x ∈ ps.zip B.evs, evOwn x.1 x.2 q)
 
 /-- The watcher batch `wb` (a `map[*watcher]*eventBatch`) holds `Bm`: each member's batch,
 owned, at a non-nil pointer. -/

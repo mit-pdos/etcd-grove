@@ -223,10 +223,31 @@ def watchQ (W : SrvW GF) (ι : mvcc.api.WsName) (γreg γtok : GName) (kk e : Li
 
 /-! ## The laws as instances (from `persistent.law`) -/
 
-/-- A received response's fields (`wrespIs`, the API's definition) are persistent. -/
-instance wrespIs_persistent (v : go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse)
-    (x : mvcc.api.WResp) : Persistent (mvcc.api.wrespIs (GF := GF) v x) := by
-  unfold mvcc.api.wrespIs; infer_instance
+/-- **A received response, read-only for good** (k8s 7f-3b): `wrespIs` with each event's `PrevKv`
+field given up (`mvcc.evIs`, the store's form). What the send loop reads of a response until it
+writes `PrevKv` (the v3rpc part of 7f-3b). -/
+def wrespRO (v : go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse) (r : mvcc.api.WResp) :
+    IProp GF :=
+  iprop(⌜v.WatchID' = r.id ∧ v.Revision' = r.rev ∧ v.CompactRevision' = r.compactRev⌝ ∗
+    ∃ ps : List Loc, v.Events' ↦*□ ps ∗ ⌜ps.length = r.evs.length⌝ ∗
+      [∗list] x ∈ ps.zip r.evs, mvcc.evIs x.1 x.2)
+
+instance wrespRO_persistent (v : go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse)
+    (x : mvcc.api.WResp) : Persistent (wrespRO (GF := GF) v x) := by
+  unfold wrespRO; infer_instance
+
+/-- A received response's copies given up for good. -/
+theorem wrespIs_ro (v : go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse) (x : mvcc.api.WResp) :
+    mvcc.api.wrespIs (GF := GF) v x ⊢ |==> wrespRO v x := by
+  unfold mvcc.api.wrespIs wrespRO
+  iintro ⟨%Hf, %ps, #Hs, %Hl, Hevs⟩
+  imod mvcc.evOwns_persist _ 1 $$ Hevs with #Hevs
+  imodintro
+  isplitr
+  · ipureintro; exact Hf
+  iexists ps
+  iframe Hs Hevs
+  ipureintro; exact Hl
 
 theorem wsInvG_timeless (hP : mvcc.api.persistent.law (GF := GF)) (ι : mvcc.api.WsName)
     (γreg γtok γcl : GName) (cq : w64 → IProp GF) [∀ id, Timeless (cq id)] :

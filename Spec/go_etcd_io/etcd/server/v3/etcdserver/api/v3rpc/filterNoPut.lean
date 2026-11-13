@@ -30,7 +30,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 /-- **`filterNoPut(e)`**: the event is a put (the filter drops it). -/
 abbrev v3rpc.filterNoPut.spec : Prop :=
   ∀ (e : Loc) (ev : mvcc.EvM),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ mvcc.evIs e ev }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ mvcc.evRd e ev }}
     (App (Val (@! v3rpc.filterNoPut)) (Val #e))
   {{ (b : Bool), RET #b; ⌜b = !ev.del⌝ }}
 

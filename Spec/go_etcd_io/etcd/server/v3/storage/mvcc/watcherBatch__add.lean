@@ -26,7 +26,7 @@ batch if it had none. -/
 abbrev mvcc.watcherBatch.add.spec : Prop :=
   ∀ (wb : GoMap) (Bm : GMap Loc mvcc.EventBatch) (w : Loc) (e : Loc) (ev : mvcc.EvM),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.ownWatcherBatch wb Bm ∗ mvcc.evIs e ev }}
+      mvcc.ownWatcherBatch wb Bm ∗ mvcc.evOwn e ev }}
     (App (App (Val (wb @!! watcherBatch.ty @!! go!"add")) (Val #w)) (Val #e))
   {{ RET #(); mvcc.ownWatcherBatch wb
       (<[w := mvcc.ebAdd ((Bm !! w).getD mvcc.EventBatch.empty) ev]> Bm) }}
