@@ -175,6 +175,36 @@ theorem os.osPathS_joinPath (R : Roots) (r : GoString) (j0 : Ino) (cs : List GoS
     iframe
     ipureintro; exact ⟨hR, hm, hcs, rfl⟩
 
+/-- A spine to `d/b` and a spine to `d` give back a whole spine to `d` and the claim on `b`. -/
+theorem os.osPathS_unchild (R : Roots) (d b : GoString) (j J : Ino) (e a : Qp) (hb : NameOk b) :
+    osPathS (GF := GF) R (child d b) (DFrac.own e) J ∗ osPathS R d (DFrac.own a) j ⊢
+      ∃ h, osPathS R d (DFrac.own (e + a)) j ∗ osNames j (.only [b]) (DFrac.own e) h ∗
+        ⌜h.cur !! b = some (.dir J)⌝ := by
+  unfold osPathS
+  iintro ⟨⟨%r, %j0, %cs, %hp, Hs⟩, ⟨%r', %j0', %cs', %hp', Hs'⟩⟩
+  obtain ⟨hR, hm, hcs, he⟩ := hp
+  obtain ⟨-, hm', hcs', rfl⟩ := hp'
+  rw [← joinPath_snoc] at he
+  have hcsb : ∀ x ∈ cs' ++ [b], NameOk x := by
+    intro x hx; simp only [List.mem_append, List.mem_singleton] at hx
+    rcases hx with hx | rfl
+    · exact hcs' x hx
+    · exact hb
+  obtain ⟨hrj, rfl⟩ := root_split_unique hR hm' hm hcsb hcs he
+  simp only [Prod.mk.injEq] at hrj
+  obtain ⟨rfl, rfl⟩ := hrj
+  icases os.osSpine_unsnoc cs' b j0' (DFrac.own e) J $$ Hs with ⟨%j'', %h, Hs, Hn, %hJ⟩
+  icases osSpine_join cs' j0' e a j'' j $$ [Hs Hs'] with ⟨%hj, Hs⟩
+  · isplitl [Hs]; iexact Hs; iexact Hs'
+  subst hj
+  iexists h
+  isplitl [Hs]
+  · iexists _, _, cs'
+    iframe
+    ipureintro; exact ⟨hR, hm', hcs', rfl⟩
+  iframe
+  ipureintro; exact hJ
+
 /-- `os.Mkdir(d/b)` of a name holding something (a fraction of a claim on names containing `b`), with
 a fraction of the call permission: an error, no effect. -/
 theorem os.Mkdir.wp_takenS (d b : GoString) (perm : w32) (R : Roots) (j : Ino) (N : NameSet)
