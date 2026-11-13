@@ -193,6 +193,15 @@ returns the same `ρ`, then the same stop.
    needs a "durable but never synced as this file's stream" clause, which `OsState` cannot
    express), or the fork opens with `O_TRUNC`. See Q3.
 
+7. **A torn Type byte** (2026-11-13, `nonissues/etcd-wal-record-type-outside-crc.md`). The CRC
+   covers `Data` only; a crash keeping a frame but its Type byte (frame byte 9) gives a record of the
+   type under it, CRC valid. Over zeros: type 0, a `ReadAll` error (allowed). Over a stale byte (only
+   a reused `N.tmp`'s remnant in the fork; `TestWALTypeTearStaleTmp` builds one): an entry read as a
+   hard state or snapshot record, **wrong content with no collision**. W1 as stated excludes it; the
+   narrowest justified premise is "an accepted frame carries the intended `Data`" plus `O_TRUNC` in
+   `alloc` (or "frame bytes 8-15 come back whole"). Byte-mix enumeration over zero old bytes: no other
+   wrong acceptance (3.5 M images).
+
 Past the synced offset each byte's candidates are `[(0,0)]` or `[(0,0),(x,s)]`, `x` the intended
 byte (each offset written once per epoch). This needs no write after a failed write (§3).
 
