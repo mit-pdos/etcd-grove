@@ -29,7 +29,8 @@ slices, its `KeyPermission` slice owned with its capacity and its permission mes
 likes; the auth plan's S4c, 2026-10-24: Go's decoder allocates them; fewer than `2^62` permissions,
 S4d: each takes at least two bytes of the encoding, a slice below `2^63` bytes; its unknown fields nil: `Unmarshal` resets the message, and the encoding of a
 record carries no unknown field of the message itself, auth-schema-fix's unknown-fields tightening,
-Go test `TestAuthFixUnknownFields`) and returns `nil`. -/
+Go test `TestAuthFixUnknownFields`; nor of its permission messages, `ownPermX`: a `RoleRec`'s
+permissions carry none, the review's MAJ-1) and returns `nil`. -/
 abbrev proto.UnmarshalRole.spec : Prop :=
   ∀ (b : GoSlice) (x : auth.RoleRec) (p : Loc) (v : authpb.Role) (dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗

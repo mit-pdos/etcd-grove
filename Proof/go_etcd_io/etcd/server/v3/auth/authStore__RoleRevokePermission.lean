@@ -224,7 +224,7 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
       "Hsl" ∷ sl ↦* ((((pps.zip rr.perms).take (sint.nat n)).filter keepP).map Prod.fst) ∗
       "Hslc" ∷ ownSliceCap Loc sl (DFrac.own 1) ∗
       "#Hkept" ∷ ([∗list] x ∈ ((pps.zip rr.perms).take (sint.nat n)).filter keepP,
-        ownPermW x.1 x.2) ∗
+        ownPermS x.1 x.2) ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.nat n ≤ pps.length⌝)
     $$ [i perm Huu]
   · iexists W64 0, _, slice.nil
@@ -255,11 +255,11 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
     wp_apply wp_load_slice_index rkp (sint.Z n) pps .discard pp Hn.1 $$ [$Hrkp] as -
     · iframe; ipureintro; exact hpp
     ihave #Hpw := BigSepL.bigSepL_lookup (Φ := fun (_ : Nat) (x : Loc × PermW) =>
-      ownPermW (GF := GF) x.1 x.2) (l := pps.zip rr.perms) (i := sint.nat n) (x := (pp, w)) hz
+      ownPermS (GF := GF) x.1 x.2) (l := pps.zip rr.perms) (i := sint.nat n) (x := (pp, w)) hz
       $$ Hperms
     ihave #Hpw2 := Hpw
-    iunfold ownPermW at Hpw2
-    icases Hpw2 with ⟨%Hppnn, %pms, %kk, %kre, %puf, %psc, #Hpp, #Hkk, #Hkre⟩
+    iunfold ownPermS at Hpw2
+    icases Hpw2 with ⟨%Hppnn, %pms, %kk, %kre, %psc, #Hpp, #Hkk, #Hkre⟩
     ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hpp
     icases typedPointsto_split _ _ _ $$ Hpp with Hpp
     simp only [TypedPointsto.typedPointstoDef]
@@ -352,7 +352,7 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
   obtain ⟨kept, hkept⟩ : ∃ l, l = (pps.zip rr.perms).filter keepP := ⟨_, rfl⟩
   ihave Hsl : sl ↦* kept.map Prod.fst $$ [Hsl]
   · rw [hkept]; iexact Hsl
-  ihave #Hkept : [∗list] x ∈ kept, ownPermW x.1 x.2 $$ []
+  ihave #Hkept : [∗list] x ∈ kept, ownPermS x.1 x.2 $$ []
   · rw [hkept]; iexact Hkept
   ihave %Hsll := ownSlice_len _ _ _ $$ Hsl
   have hsnd : kept.map Prod.snd = rr.perms.filter (auth.keepW key rangeEnd) := by

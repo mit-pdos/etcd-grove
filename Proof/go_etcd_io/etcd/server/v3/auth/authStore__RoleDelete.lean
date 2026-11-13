@@ -426,7 +426,7 @@ theorem auth.authStore.RoleDelete.wp_tie
     have hnmlen : nm.length ≤ backend.maxKeySize := Hnames st0 Hl0 nm (by simp [hlook0])
     wp_bind (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #uu))
     iapply HPutU $$ %sk %Post %uu
-      %({ name := ur.name, password := ur.password, roles := roles', noPassword := ur.noPassword } : UserRec)
+      %({ ur with roles := roles' } : UserRec)
       [HL Huu]
     · iframe HL
       isplitl [Huu]

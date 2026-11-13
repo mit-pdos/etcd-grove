@@ -301,7 +301,7 @@ theorem auth.authStore.UserGrantRole.wp_tieB
       · iapply typedPointsto_combine u _ _ hunn
         simp only [TypedPointsto.typedPointstoDef]
         iframe
-      let urN : UserRec := UserRec.mk ur.name ur.password xs' ur.noPassword
+      let urN : UserRec := { ur with roles := xs' }
       have hstepR : userGrantRoleR user rn0 st0 (.next (bump (putUser st0 user xs'))) := by
         simp only [userGrantRoleR, Hlook]
         have hnin' : rn0 ∉ roles := Hurr ▸ hnin

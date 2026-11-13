@@ -110,8 +110,8 @@ theorem auth.authStore.CheckPassword.wp_proof
   iNamed Hp
   ipersist Password
   ipersist Options
-  iunfold userOptsAt at Ho
-  icases Ho with (%Ho | ⟨%Hon, %s2, %uf2, %sc2, #Hov⟩)
+  iunfold userOptsIs at Ho
+  icases Ho with (%Ho | ⟨%Hon, %s2, %uf2, %sc2, %u2, -, #Hov, -⟩)
   · obtain ⟨Ho, -⟩ := Ho
     subst Ho
     (try wp_auto)

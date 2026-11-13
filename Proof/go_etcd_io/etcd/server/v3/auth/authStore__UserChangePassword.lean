@@ -134,8 +134,8 @@ theorem auth.authStore.UserChangePassword.wp_tie
     at (if: _ then #true else _) with [user Options] as ⟨%Hv, user, Options⟩
   · wp_if_destruct
     · iframe; ipureintro; simp
-    · iunfold userOptsAt at Huo
-      icases Huo with (%Hn | ⟨%Honn, ⟨%oms, %ouf, %osc, #Hom⟩⟩)
+    · iunfold userOptsIs at Huo
+      icases Huo with (%Hn | ⟨%Honn, %oms, %ouf, %osc, %ou, -, #Hom, -⟩)
       · exact absurd Hn.1 Hif
       ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hom
       icases typedPointsto_split _ _ _ $$ Hom with Homf
@@ -188,7 +188,7 @@ theorem auth.authStore.UserChangePassword.wp_tie
       wp_apply wp_string_to_bytes as %nsl ⟨Hnsl, -⟩
       ipersist Hnsl
       (try wp_auto)
-      let urN : UserRec := ⟨name, pwb, ur.roles, ur.noPassword⟩
+      let urN : UserRec := ⟨name, pwb, ur.roles, ur.noPassword, ur.optsUF, ur.optsOk⟩
       ihave Hnu : ownUser «$r0_ptr» urN $$ [«$r0»]
       · iunfold ownUser
         iexists _, _, _, _, _, _
@@ -308,7 +308,7 @@ theorem auth.authStore.UserChangePassword.wp_tie
     wp_apply wp_string_to_bytes as %nsl ⟨Hnsl, -⟩
     ipersist Hnsl
     (try wp_auto)
-    let urN : UserRec := ⟨name, [], ur.roles, ur.noPassword⟩
+    let urN : UserRec := ⟨name, [], ur.roles, ur.noPassword, ur.optsUF, ur.optsOk⟩
     ihave Hnu : ownUser «$r0_ptr» urN $$ [«$r0»]
     · iunfold ownUser
       iexists _, _, _, _, _, _

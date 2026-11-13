@@ -135,9 +135,10 @@ theorem auth.authStore.RoleGet.wp_proof :
   iright
   iexists pl, rr.perms
   simp only [List.nil_append]
-  iframe Hsl Hperms
-  ipureintro
-  exact ⟨Hpl, Hrrp⟩
+  iframe Hsl
+  isplitr
+  · ipureintro; exact ⟨Hpl, Hrrp⟩
+  iapply (BigSepL.bigSepL_mono (fun {_ x} _ => ownPermS_W (GF := GF) x.1 x.2)) $$ Hperms
 
 end proof
 

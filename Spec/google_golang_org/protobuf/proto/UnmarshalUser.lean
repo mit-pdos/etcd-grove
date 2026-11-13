@@ -28,7 +28,10 @@ variable [sem : go.Semantics]
 slices, its `Roles` slice owned with its capacity, the message's internal fields as it
 likes; the auth plan's S4c, 2026-10-24: Go's decoder allocates them; its unknown fields nil: `Unmarshal` resets the message, and the encoding of a
 record carries no unknown field of the message itself, auth-schema-fix's unknown-fields tightening,
-Go test `TestAuthFixUnknownFields`) and returns `nil`. -/
+Go test `TestAuthFixUnknownFields`; its `Options` as the record's `optsUF` says, nil or a message
+whose unknown fields are the record's bytes: valid wire format, `UserRec.optsOk`, so the decoder
+keeps them as they are, the review's MAJ-2, Go test `TestAuthFixOptionsUnknownRoundTrip`) and
+returns `nil`. -/
 abbrev proto.UnmarshalUser.spec : Prop :=
   ∀ (b : GoSlice) (x : auth.UserRec) (p : Loc) (v : authpb.User) (dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗

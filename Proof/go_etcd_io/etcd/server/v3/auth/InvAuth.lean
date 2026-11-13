@@ -1324,11 +1324,13 @@ D14f) and the mode `M`:
   promises), whose name fits a bbolt key (`issues/etcd-auth-useradd-long-name-fatal.md`) and is
   not empty (the axiom re-review of auth-schema-fix, m1: bbolt's `Put` refuses an empty key, which
   the backend's `unsafePut` makes fatal; etcd never puts one, `namesOk`), whose message has no
-  unknown fields (`ownUser`, the re-review's M1), and
+  unknown fields (`ownUser`, the re-review's M1) and whose `Options`' unknown fields are the
+  record's, valid wire format (`userOptsIs`, `UserRec.optsUF`, the review's MAJ-2), and
   whose roles are valid UTF-8 (S0's F4, 2026-11-12: `authpb.User.roles` is a proto3 `repeated
   string`, which protobuf-go's `Marshal` refuses otherwise, and `UnsafePutUser` then panics,
   `nonissues/etcd-auth-putuser-invalid-utf8-role.md`) puts the user (`putUser`; the message kept), `UnsafeDeleteUser(name)` deletes it, likewise the
-  roles; `UnsafeSaveAuthEnabled(b)` and `UnsafeSaveAuthRevision(rev)` set the flag and the
+  roles (`ownRole`: no unknown fields in the role's message nor in its permissions', `ownPermS`,
+  the review's MAJ-1); `UnsafeSaveAuthEnabled(b)` and `UnsafeSaveAuthRevision(rev)` set the flag and the
   revision;
 - `Unlock()`, with the whole authority at a history whose latest state is the token's (the
   admin side appends the step's state before unlocking) and two write-back tokens `Wb`: `X`, the

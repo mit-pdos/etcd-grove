@@ -72,7 +72,7 @@ theorem auth.wp_permX_key (p : Loc) (w : PermW) :
     {{ (k : GoSlice), RET #k; ownPermX p w ∗ k ↦*□ w.key }} := by
   wp_start as Hp
   iunfold ownPermX at Hp
-  icases Hp with ⟨%Hpn, %st, %k, %re, %uf, %sc, Hm, #Hk, #Hre⟩
+  icases Hp with ⟨%Hpn, %st, %k, %re, %sc, Hm, #Hk, #Hre⟩
   ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hm
   icases typedPointsto_split _ _ _ $$ Hm with Hm
   simp only [TypedPointsto.typedPointstoDef]
@@ -83,7 +83,7 @@ theorem auth.wp_permX_key (p : Loc) (w : PermW) :
   iunfold ownPermX
   isplitr
   · ipureintro; exact Hpn
-  iexists st, k, re, uf, sc
+  iexists st, k, re, sc
   iframe Hk Hre
   iapply typedPointsto_combine p _ _ Hpn.1
   simp only [TypedPointsto.typedPointstoDef]
@@ -97,7 +97,7 @@ theorem auth.wp_permX_rangeEnd (p : Loc) (w : PermW) :
     {{ (k : GoSlice), RET #k; ownPermX p w ∗ k ↦*□ w.rangeEnd }} := by
   wp_start as Hp
   iunfold ownPermX at Hp
-  icases Hp with ⟨%Hpn, %st, %k, %re, %uf, %sc, Hm, #Hk, #Hre⟩
+  icases Hp with ⟨%Hpn, %st, %k, %re, %sc, Hm, #Hk, #Hre⟩
   ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hm
   icases typedPointsto_split _ _ _ $$ Hm with Hm
   simp only [TypedPointsto.typedPointstoDef]
@@ -108,7 +108,7 @@ theorem auth.wp_permX_rangeEnd (p : Loc) (w : PermW) :
   iunfold ownPermX
   isplitr
   · ipureintro; exact Hpn
-  iexists st, k, re, uf, sc
+  iexists st, k, re, sc
   iframe Hk Hre
   iapply typedPointsto_combine p _ _ Hpn.1
   simp only [TypedPointsto.typedPointstoDef]
@@ -154,7 +154,7 @@ theorem auth.wp_permX_setTy (p : Loc) (w : PermW) (ty : w32) :
     {{ RET #(); ownPermX p { w with ty := ty } }} := by
   wp_start as Hp
   iunfold ownPermX at Hp
-  icases Hp with ⟨%Hpn, %st, %k, %re, %uf, %sc, Hm, #Hk, #Hre⟩
+  icases Hp with ⟨%Hpn, %st, %k, %re, %sc, Hm, #Hk, #Hre⟩
   ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hm
   icases typedPointsto_split _ _ _ $$ Hm with Hm
   simp only [TypedPointsto.typedPointstoDef]
@@ -165,7 +165,7 @@ theorem auth.wp_permX_setTy (p : Loc) (w : PermW) (ty : w32) :
   iunfold ownPermX
   isplitr
   · ipureintro; exact Hpn
-  iexists st, k, re, uf, sc
+  iexists st, k, re, sc
   iframe Hk Hre
   iapply typedPointsto_combine p _ _ Hpn.1
   simp only [TypedPointsto.typedPointstoDef]
@@ -339,14 +339,14 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
     ihave %Hkpl := ownSlice_len _ _ _ $$ Hkp
     have hzl' : locs.length = rr.perms.length := Hlocs.1
     -- the permission messages are only read from here on (the fork's code writes none)
-    ihave Hperms' : |==> [∗list] x ∈ locs.zip rr.perms, ownPermW x.1 x.2 $$ [Hperms]
+    ihave Hperms' : |==> [∗list] x ∈ locs.zip rr.perms, ownPermS x.1 x.2 $$ [Hperms]
     · iapply BigSepL.bigSepL_bupd
       iapply (BigSepL.bigSepL_mono (fun {_ x} _ => ownPermX_persist x.1 x.2)) $$ Hperms
     imod Hperms' with #Hperms'
-    ihave #Hpw : □ (∀ x : Loc × PermW, ⌜x ∈ locs.zip rr.perms⌝ → ownPermW x.1 x.2) $$ []
+    ihave #Hpw : □ (∀ x : Loc × PermW, ⌜x ∈ locs.zip rr.perms⌝ → ownPermS x.1 x.2) $$ []
     · iintro !> %x %Hx
       obtain ⟨i, hi⟩ := List.mem_iff_getElem?.mp Hx
-      iapply (BigSepL.bigSepL_lookup (Φ := fun _ x => iprop(ownPermW (GF := GF) x.1 x.2)) hi)
+      iapply (BigSepL.bigSepL_lookup (Φ := fun _ x => iprop(ownPermS (GF := GF) x.1 x.2)) hi)
       iexact Hperms'
     (try wp_auto)
     -- the loop: the pairs kept so far are those of the first `n` off `w`'s range
@@ -383,7 +383,8 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
         simp [List.getElem?_zip_eq_some, hlc, hq]
       wp_apply wp_load_slice_index kp (sint.Z n) locs (DFrac.own 1) lc Hn.1 $$ [Hkp] as Hkp
       · iframe; ipureintro; exact hlc
-      ihave #Hq := Hpw $$ %(lc, q) %(List.mem_of_getElem? hz)
+      ihave #Hq0 := Hpw $$ %(lc, q) %(List.mem_of_getElem? hz)
+      ihave #Hq := ownPermS_W lc q $$ Hq0
       (try wp_auto)
       wp_apply auth.wp_permW_key lc q $$ [$Hq] as %qk #Hqk
       (try wp_auto)
@@ -477,11 +478,11 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
       (try wp_auto)
       ihave %Hnpn := typedPointsto_not_null $$ «$r0»
       ipersist «$r0»
-      ihave #Hnpw : ownPermW «$r0_ptr» w $$ []
-      · iunfold ownPermW
+      ihave #Hnpw : ownPermS «$r0_ptr» w $$ []
+      · iunfold ownPermS
         isplitr
         · ipureintro; exact ⟨Hnpn, Hwp.2⟩
-        iexists _, wk, wre, _, _
+        iexists _, wk, wre, _
         iframe Hwk Hwre
         iexact «$r0»
       wp_apply wp_slice_literal (V := Loc) [«$r0_ptr»]
@@ -530,8 +531,8 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
         simp only
         rw [hzz]
         have hintro := BigSepL.bigSepL_intro (PROP := IProp GF) (l := xs')
-          (P := iprop(□ (∀ x : Loc × PermW, ⌜x ∈ xs'⌝ → ownPermW (GF := GF) x.1 x.2)))
-          (Φ := fun (_ : Nat) (x : Loc × PermW) => iprop(ownPermW (GF := GF) x.1 x.2))
+          (P := iprop(□ (∀ x : Loc × PermW, ⌜x ∈ xs'⌝ → ownPermS (GF := GF) x.1 x.2)))
+          (Φ := fun (_ : Nat) (x : Loc × PermW) => iprop(ownPermS (GF := GF) x.1 x.2))
           (fun k x hk => by
             iintro #H
             iapply H; ipureintro; exact List.mem_of_getElem? hk)

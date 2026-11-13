@@ -111,7 +111,8 @@ structure ProtoMsg (GF : BundledGFunctors) where
   against `send`: every wire field must be pinned by `send`. Scope: the unknown fields of the
   messages `send` holds field by field (inside `txnReqAt` at every nested level, `createReqSend`,
   `userOptsAt`, `ownPermW`, the Lease replies' headers and `LeaseStatus` elements, and the watch
-  stream's outer, cancel and progress messages) are not pinned; translated code never sets unknown fields (`SetUnknown` is not
+  stream's outer, cancel and progress messages) are not pinned to none (`userOptsAt` holds them as
+  some valid bytes, auth-schema-fix MAJ-2); translated code never sets unknown fields (`SetUnknown` is not
   translated; requests are struct literals), so the bound is claimed for messages without them
   (the whole-struct sends pin them; the rest is to come, `notes/decisions.md`, "The encoded-size
   bound at grpc's send side"). `grpcMsgMax` or more: no bound known (the default; responses),

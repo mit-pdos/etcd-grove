@@ -311,7 +311,7 @@ theorem auth.authStore.UserRevokeRole.wp_tie
   have hsorted' : roles'.Pairwise go.GoStringLt := by rw [hroles']; exact (Hurr ▸ Hsorted).filter _
   wp_bind (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #uu))
   iapply HPutU $$ %st0 %Post %uu
-    %({ name := ur.name, password := ur.password, roles := roles', noPassword := ur.noPassword } : UserRec)
+    %({ ur with roles := roles' } : UserRec)
     [HL Huu]
   · iframe HL
     isplitl [Huu]

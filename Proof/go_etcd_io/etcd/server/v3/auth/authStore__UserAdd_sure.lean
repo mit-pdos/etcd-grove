@@ -38,12 +38,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 theorem userOptsAt_agree (o : Loc) (b1 b2 : Bool) :
     userOptsAt (GF := GF) o b1 ⊢ userOptsAt o b2 -∗ ⌜b1 = b2⌝ := by
   iunfold userOptsAt
-  iintro H1 H2
-  icases H1 with (%H1 | ⟨%Hnn1, %ms1, %uf1, %sc1, H1⟩)
+  iintro ⟨%ou1, -, H1⟩ ⟨%ou2, -, H2⟩
+  iunfold userOptsIs at H1
+  iunfold userOptsIs at H2
+  icases H1 with (%H1 | ⟨%Hnn1, %ms1, %uf1, %sc1, %u1, -, H1, -⟩)
   · icases H2 with (%H2 | ⟨%Hnn2, -⟩)
-    · ipureintro; rw [H1.2, H2.2]
+    · ipureintro; rw [H1.2.1, H2.2.1]
     · exact absurd H1.1 Hnn2
-  · icases H2 with (%H2 | ⟨%Hnn2, %ms2, %uf2, %sc2, H2⟩)
+  · icases H2 with (%H2 | ⟨%Hnn2, %ms2, %uf2, %sc2, %u2, -, H2, -⟩)
     · exact absurd H2.1 Hnn1
     · icombine H1 H2 gives %h
       ipureintro
@@ -161,31 +163,41 @@ theorem auth.authStore.UserAdd.wp_sure
     iframe Hown
     iexists eUAE; iframe HeUAE; ipureintro; rfl
   ihave %Hnone := userOut_null st0 name $$ Hu
-  wp_join iprop(∃ (o' : Loc) (b : Bool) (ms : google_golang_org.protobuf.internal.impl.MessageState)
-      (uf : GoSlice) (sc : w32) (dq : DFrac), options_ptr ↦ o' ∗ ⌜o' ≠ null⌝ ∗
+  wp_join iprop(∃ (o' : Loc) (b : Bool) (ou : Option GoString)
+      (ms : google_golang_org.protobuf.internal.impl.MessageState)
+      (uf : GoSlice) (sc : w32) (dq : DFrac) (u : GoString), options_ptr ↦ o' ∗
+      ⌜o' ≠ null ∧ ou = some u ∧ userOptsUfOk ou⌝ ∗
       o' ↦{dq} ({ state' := ms, NoPassword' := b, unknownFields' := uf, sizeCache' := sc } :
-        authpb.UserAddOptions) ∗ ⌜b = nob⌝)
-    with [options] as ⟨%o', %b, %ms, %uf, %sc, %dq, options, %Ho'nn, Hom, %Hbnob⟩
+        authpb.UserAddOptions) ∗ uf ↦*□ u ∗ ⌜b = nob⌝)
+    with [options] as ⟨%o', %b, %ou, %ms, %uf, %sc, %dq, %u, options, %Ho'nn, Hom, #Huf, %Hbnob⟩
   · -- nil options: `&authpb.UserAddOptions{NoPassword: false}`
     ihave %Hpnn := typedPointsto_not_null _ _ _ $$ «$r0»
-    iexists «$r0_ptr», false, _, _, _, _
+    iexists «$r0_ptr», false, some [], _, _, _, _, []
     iframe options «$r0»
+    isplitr
+    · ipureintro; exact ⟨Hpnn, rfl, userOptsUfOk_empty⟩
+    isplitr
+    · iapply ownSlice_nil
     iunfold userOptsAt at Hopts
+    icases Hopts with ⟨%ou, -, Hopts⟩
+    iunfold userOptsIs at Hopts
     icases Hopts with (%Hn | ⟨%Honn, -⟩)
-    · ipureintro; exact ⟨Hpnn, Hn.2.symm⟩
+    · ipureintro; exact Hn.2.1.symm
     · exact absurd rfl Honn
   · -- the request's options
     iunfold userOptsAt at Hopts
-    icases Hopts with (%Hn | ⟨%Honn, ⟨%ms, %uf, %sc, Hm⟩⟩)
+    icases Hopts with ⟨%ou, %Hou, Hopts⟩
+    iunfold userOptsIs at Hopts
+    icases Hopts with (%Hn | ⟨%Honn, %ms, %uf, %sc, %u, %Hu, #Hm, #Huf⟩)
     · exact absurd Hn.1 Hif
-    iexists o, nob, ms, uf, sc, DFrac.discard
-    iframe options Hm
-    ipureintro; exact ⟨Honn, rfl⟩
+    iexists o, nob, ou, ms, uf, sc, DFrac.discard, u
+    iframe options Hm Huf
+    ipureintro; exact ⟨⟨Honn, Hu, Hou⟩, rfl⟩
   ipersist Hom
-  ihave #Hopts' : userOptsAt o' b $$ []
-  · iunfold userOptsAt; iright; isplitr
-    · ipureintro; exact Ho'nn
-    iexists ms, uf, sc; iexact Hom
+  ihave #Hopts' : userOptsIs o' b ou $$ []
+  · iunfold userOptsIs; iright; isplitr
+    · ipureintro; exact Ho'nn.1
+    iexists ms, uf, sc, u; iframe Hom Huf; ipureintro; exact Ho'nn.2.1
   ihave Homf := typedPointsto_split _ _ _ $$ Hom
   simp only [TypedPointsto.typedPointstoDef]
   iNamed Homf
@@ -217,7 +229,7 @@ theorem auth.authStore.UserAdd.wp_sure
       wp_apply wp_string_to_bytes as %nsl ⟨Hnsl, -⟩
       ipersist Hnsl
       (try wp_auto)
-      let urN : UserRec := ⟨name, pwb, [], false⟩
+      let urN : UserRec := ⟨name, pwb, [], false, ou, Ho'nn.2.2⟩
       ihave Hnu : ownUser «$r0_ptr» urN $$ [«$r0»]
       · iunfold ownUser
         iexists _, _, _, _, _, _
@@ -312,7 +324,7 @@ theorem auth.authStore.UserAdd.wp_sure
     wp_apply wp_string_to_bytes as %nsl ⟨Hnsl, -⟩
     ipersist Hnsl
     (try wp_auto)
-    let urN : UserRec := ⟨name, [], [], true⟩
+    let urN : UserRec := ⟨name, [], [], true, ou, Ho'nn.2.2⟩
     ihave Hnu : ownUser «$r0_ptr» urN $$ [«$r0»]
     · iunfold ownUser
       iexists _, _, _, _, _, _

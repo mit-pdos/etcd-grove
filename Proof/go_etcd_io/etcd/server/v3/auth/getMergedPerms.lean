@@ -207,10 +207,10 @@ theorem auth.getMergedPerms.wp_proof
               wp_apply wp_load_slice_index kp (sint.Z m) pps .discard pp' Hm.1 $$ [$Hkp] as -
               · iframe; ipureintro; exact hpp
               ihave #Hpw := BigSepL.bigSepL_lookup (Φ := fun (_ : Nat) (x : Loc × PermW) =>
-                ownPermW (GF := GF) x.1 x.2) (l := pps.zip rr.perms) (i := sint.nat m) (x := (pp', w))
+                ownPermS (GF := GF) x.1 x.2) (l := pps.zip rr.perms) (i := sint.nat m) (x := (pp', w))
                 (by rw [List.getElem?_zip_eq_some]; exact ⟨hpp, hw⟩) $$ Hperms
-              iunfold ownPermW at Hpw
-              icases Hpw with ⟨%Hppnn, %pms, %kk, %kre, %puf, %psc, #Hpp, #Hkk, #Hkre⟩
+              iunfold ownPermS at Hpw
+              icases Hpw with ⟨%Hppnn, %pms, %kk, %kre, %psc, #Hpp, #Hkk, #Hkre⟩
               dsimp only
               dsimp only at Hppnn
               obtain ⟨Hppnn, Hklen⟩ := Hppnn
