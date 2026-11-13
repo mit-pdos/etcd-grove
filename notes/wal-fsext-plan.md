@@ -1289,6 +1289,35 @@ update: `s.wal dir := walDurFresh md`, the new layout and its `CrashOk`); then `
   `filepath.Abs`, none specified over `fsExt` yet), and the step at `⊤` that makes the `walCreating`
   token (split `(jr, .only [nm, nm.tmp])` off the area claim, both halves).
 
+**Fifth session (branch `wal-create5`, 2026-11-13).**
+- *Proved (no `sorry`):* `WAL.sync.wp_proofPre` and `WAL.SaveSnapshot.wp_proofPre`
+  (`Proof/.../wal/WAL__SaveSnapshotPre.lean`, over their callees' specs as hypotheses); `WAL.tail`
+  (`WAL__tail.lean`: `locks ↦* (ls ++ [lt])` gives `lt`); `walpb.ValidateSnapshotForWrite` (over
+  `walSnapAt`, conf state non-nil unless the index is 0: `nil`). `walpb.Snapshot.GetIndex` is
+  `wal-int`'s (W5, over `walSnapIdTerm`; mine dropped at the merge).
+- *Leaf specs added:* the part's copies of zap's `Logger.Warn`, `Duration`, `String`, `Error`, `Int64`
+  and of `time.Duration.Seconds_ptr` (`etc/gen-part-copies.py`: their main modules import the cache's
+  `Base`/the server's `BaseApply` for instances only); `pbutil.MustMarshalMessage.specWalSnap Mr`
+  (`LinuxFs/Spec/go_etcd_io/etcd/pkg/v3/pbutil/MustMarshalMessageWalSnap.lean`): the marshalling law,
+  a hypothesis: a fresh non-nil slice of `Mr.encSnap sm`. **Open (W6/W11):** `walSnapAt sp sm cs`
+  does not determine the encoding (the conf state's content, unknown fields), so the law over-constrains
+  `Mr` (W6's `SaveSnapshot.spec` has the same gap); `Create`'s snapshot (`Index: 0, Term: 0`) is
+  determined. `time.Now`/`Since` are Perennial's, `Observe` is `wal.histSpec` (from `encEnv`), `flush`
+  was proved.
+- *Spec changes (`WAL__SaveSnapshotPre.lean`, minor):* `walPreIn` gains `⌜e ≠ null⌝` (`sync` flushes
+  only a non-nil encoder; no `structFieldRef` fact gives it); both `specPre`s take `isPkgInit zap`
+  (the slow-fdatasync warning), `SaveSnapshot.specPre` also `isPkgInit pbutil` and `lim < 2^47`
+  (`encode`'s record bound; `Create`'s `lim` is the segment size). **For `Create`:** `e ≠ null` needs
+  `newFileEncoder.spec`'s post to say it (`newEncoder` allocates `e`: `typedPointsto_not_null` before
+  `iStructNamed`), and the two package facts come from `isPkgInit wal`'s dependencies.
+- *Tactic note:* `wp_apply` of a hypothesis triple introduced by `intro` from the spec's binders
+  (`walPreSyncOk`) fails with "unknown free variable" (plain `wp_apply` then leaves the goal untouched,
+  no error at the call); `ihave H := hs $$ [..]` then `wp_apply H` works.
+- *Not done:* the leaves of `TouchDirAll`/`CreateDirAll` (`syncDir`, `IsDirWriteable`, `os.WriteFile`,
+  `os.Remove`, `filepath.Abs`); the `walCreating` minting step; `wal.Create.wp_proof` (now with
+  `wal-cut3`'s `newFilePipeline.spec`, which needs `dir.length < 2^61`), `TouchDirAll`/`CreateDirAll`
+  `wp_proof`s: still `sorry`.
+
 ## 11. Coordinator decisions after W2 and W4 (2026-11-13)
 
 - **Q4 revised to (b)** (W4 found (a) unprovable: `cleanupWAL`'s rename to `dir.broken.*` is never fsynced,
