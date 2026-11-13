@@ -35350,7 +35350,8 @@ two majors, both older than S6a, which (b′)'s "one directory invariant per mem
   which encloses it the same way (no invariant without it) and leaves the axioms', the transport's
   and `srvSnapRO`'s statements as they are. `purgeFile` needs nothing: it no longer removes
   `.snap.db` files (sweep repairs 1, R1-3).
-- **M2: two saves of one index both rename** (`Exist` then `Rename`, no lock; the review's Go test:
+- **M2: two saves of one index both rename** (*superseded* by "Restart S6a: SaveDBFrom links" below: the
+  justification's premise (1) is false) (`Exist` then `Rename`, no lock; the review's Go test:
   both rename in 788, and in our rerun 2749, of 3000 iterations). **Decision (the user):** no code
   change; `nonissues/etcd-snap-savedbfrom-concurrent-rename.md` records it with the test, and
   `SaveDBFrom`'s docstring restates the justification of its ghost steps for a rename over an existing
@@ -35362,3 +35363,21 @@ two majors, both older than S6a, which (b′)'s "one directory invariant per mem
   the path-aliasing assumption (equal strings name one file), as for `backendPathOf`/`pathOwn`. m3:
   no change; in S6a-2 the image's `c ≤ i + 1` stays tied to the graceful stop's index, and `specR`'s
   restart configuration has `cfg.DataDir' = dd` at the image's `dd`.
+
+## Restart S6a: SaveDBFrom links (2026-11-13 · decided by the user via etcd-grove-81 · branch `restart-s56`)
+
+Supersedes the M2 decision above. Its justification of the axiom's ghost steps under a double rename
+assumed that the image certificate determines the data (`img i D ∧ img i D' → D = D'`). It does not:
+`srvImageM`'s `mvccImage` leaves the Key bucket's compaction progress, the compaction records and the
+resume flag free, and the term key is existential; in Go, `scheduleCompaction` deletes in committed
+batches without moving the applied index, so two merged snapshots at one index can carry different
+data (`/shared/tmp/restart-s56/s6a-imgfun-finding.md`). The second rename then left a file whose data
+is not the one `snapDirInv` records. No refutation was found (every reader sees the data only through
+the persistent `img` and then the file), but an unobservability argument would be informal and
+fragile. **Decision (the user):** fix it in the etcd fork: upamanyus/etcd@2eaeb872b
+(`goose-lean-snaplink`) links the temporary file to the path (`os.Link` never replaces) and takes
+`ErrExist` as the kept file, so exactly one save of an index puts its file in place and the axiom's
+ghost steps (add at the link, nothing at a kept file) are literally the code's. Cost: the pin bump
+(`etc/goose.py`, the examples' go.mod/go.sum); `db.go` is not translated, so no Lean changes; the
+docstring cites the commit; the nonissue is fixed in the fork (`blocks-proof: yes`). Not an upstream
+report: upstream shows no wrong result (both files are valid snapshots of the index).
