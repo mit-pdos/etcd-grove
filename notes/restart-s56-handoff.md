@@ -63,8 +63,15 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
 - `idm = C.rn.id` was already closed by step 5 (`f14b569984`): `stopCleanupImage.spec` takes
   `srvMemberIDAddr C.s ↦□ C.rn.id`, `run` passes `srvSnapBagN`'s, `stop_cleanup_image` combines it
   with `srvSnapRO`'s `srvMemberIDAddr s ↦□ idm`.
-- Then: full build, `tcb-report --check`, gen-interface, gates; STOP for 81 before `etc/land.sh`
-  (step 5 + S6a-2 change statements). Phase B only after 81's go.
+- Verified at `615233ed56`: full build clean (17475 jobs, `/shared/tmp/restart-s56/s6a2-full.log`);
+  `tcb-report --check` matches the baseline (870 axioms, 4 sorries: `lean`'s, no change;
+  `/shared/tmp/restart-s56/s6a2-tcb.log`); `gen-interface --check` clean for every `etc/api` list.
+  `etc/gates.sh`: everything passed but `featuregate` (lean's new k8s 7f-5 gate): its allow list
+  named the etcd modules at the old pin 0b50f0426; updated to 2eaeb872b (the fork change touches only
+  `snap/db.go`, `feature_gate.go` identical), `etc/featuregate-check.py` ok; gates rerun
+  (`/shared/tmp/restart-s56/s6a2-gates2.log`).
+- Final texts: `/shared/tmp/restart-s56/freeze-s6a.md` §3.2-S6a-2. **STOPPED for 81** before
+  `etc/land.sh` (step 5 + S6a-2 change statements). Phase B only after 81's go.
 
 ## S6a: fork fix and step 5's image (2026-11-13, the S6 agent, fresh): next agent starts here
 
