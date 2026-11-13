@@ -25,6 +25,33 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 open Fs
 
+/-- What a growth keeps of the `OsMeta` `m` in `m'`: the cut (`OsMeta.cut`), and a crash's lower size
+bound at most the size, if it was. -/
+def GrowMeta (m m' : OsMeta) : Prop := m'.cut = m.cut ∧ (m.lo ≤ m.size → m'.lo ≤ m'.size)
+
+theorem GrowMeta.refl (m : OsMeta) : GrowMeta m m := ⟨rfl, id⟩
+
+theorem GrowMeta.trans {m m1 m' : OsMeta} (h1 : GrowMeta m m1) (h2 : GrowMeta m1 m') :
+    GrowMeta m m' := ⟨h2.1.trans h1.1, fun h => h2.2 (h1.2 h)⟩
+
+theorem touch_size' (m : OsMeta) (lo hi : Nat) : (m.touch lo hi).size = m.size := by
+  unfold OsMeta.touch; split
+  · rfl
+  · split <;> rfl
+
+/-- A change's first step keeps the cut, and the lower bound below the size. -/
+theorem growMeta_announce (m : OsMeta) (lo hi tg : Nat) : GrowMeta m (m.announce lo hi tg) := by
+  refine ⟨by simp, fun h => ?_⟩
+  simp only [OsMeta.announce, touch_size']
+  omega
+
+/-- A resize that landed with a size `sz'` past the old one, or at its target. -/
+theorem growMeta_rsPost (tr : Bool) (m : OsMeta) (tg sz' : Nat) (hsz : m.size ≤ sz' ∨ sz' = tg) :
+    GrowMeta m (rsPost tr m tg sz') := by
+  refine ⟨by simp [rsPost], fun h => ?_⟩
+  simp only [rsPost, OsMeta.announce]
+  omega
+
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
 variable [go_gctx : GoGlobalContext]
@@ -35,11 +62,12 @@ variable [sem : go.Semantics]
 `m`'s mappings, the page cache known zero past the size at least as far) and its new bytes,
 zeros. -/
 def preGrown (i : Ino) (m : OsMeta) (w : Nat) : IProp GF :=
-  iprop(∃ m' : OsMeta, ⌜m'.size = w ∧ m'.maps = m.maps ∧ m.cz ≤ m'.cz⌝ ∗ osMeta i (DFrac.own 1) m' ∗
-    osZerosA i m.size (w - m.size) (DFrac.own 1))
+  iprop(∃ m' : OsMeta, ⌜m'.size = w ∧ m'.maps = m.maps ∧ m.cz ≤ m'.cz ∧ GrowMeta m m'⌝ ∗
+    osMeta i (DFrac.own 1) m' ∗ osZerosA i m.size (w - m.size) (DFrac.own 1))
 
 theorem preGrown_unfold (i : Ino) (m : OsMeta) (w : Nat) :
-    preGrown (GF := GF) i m w ⊣⊢ ∃ m' : OsMeta, ⌜m'.size = w ∧ m'.maps = m.maps ∧ m.cz ≤ m'.cz⌝ ∗
+    preGrown (GF := GF) i m w ⊣⊢ ∃ m' : OsMeta,
+      ⌜m'.size = w ∧ m'.maps = m.maps ∧ m.cz ≤ m'.cz ∧ GrowMeta m m'⌝ ∗
       osMeta i (DFrac.own 1) m' ∗ osZerosA i m.size (w - m.size) (DFrac.own 1) := .rfl
 
 /-- Not grown. -/
@@ -50,7 +78,7 @@ theorem preGrown_same (i : Ino) (m : OsMeta) :
   iexists m
   iframe Hm
   isplitr
-  · ipureintro; exact ⟨rfl, rfl, Nat.le_refl _⟩
+  · ipureintro; exact ⟨rfl, rfl, Nat.le_refl _, GrowMeta.refl m⟩
   rw [Nat.sub_self]
   iapply (osZerosA_unfold i m.size 0 _).2
   iexists []
@@ -60,7 +88,7 @@ theorem preGrown_same (i : Ino) (m : OsMeta) :
 
 /-- Two growths in a row are one. -/
 theorem preGrown_trans (i : Ino) (m m1 : OsMeta) (w : Nat) (h1 : m.size ≤ m1.size)
-    (h2 : m1.size ≤ w) (hmaps : m1.maps = m.maps) (hcz : m.cz ≤ m1.cz) :
+    (h2 : m1.size ≤ w) (hmaps : m1.maps = m.maps) (hcz : m.cz ≤ m1.cz) (hg : GrowMeta m m1) :
     osZerosA (GF := GF) i m.size (m1.size - m.size) (DFrac.own 1) ∗ preGrown i m1 w ⊢
       preGrown i m w := by
   iintro ⟨Hz, Hg⟩
@@ -69,7 +97,7 @@ theorem preGrown_trans (i : Ino) (m m1 : OsMeta) (w : Nat) (h1 : m.size ≤ m1.s
   iexists m'
   iframe Hm
   isplitr
-  · ipureintro; exact ⟨hm'.1, hm'.2.1.trans hmaps, Nat.le_trans hcz hm'.2.2⟩
+  · ipureintro; exact ⟨hm'.1, hm'.2.1.trans hmaps, Nat.le_trans hcz hm'.2.2.1, hg.trans hm'.2.2.2⟩
   have hw : w - m.size = (m1.size - m.size) + (w - m1.size) := by omega
   rw [hw]
   iapply (osZerosA_add i m.size _ _ _).2
@@ -77,7 +105,8 @@ theorem preGrown_trans (i : Ino) (m m1 : OsMeta) (w : Nat) (h1 : m.size ≤ m1.s
   iframe
 
 /-- A resize that grew the file landed (`rsDone`): grown. -/
-theorem rsDone_preGrown {tr : Bool} (p : Ino) (tg sz' : Nat) (m : OsMeta) (n : Nat) :
+theorem rsDone_preGrown {tr : Bool} (p : Ino) (tg sz' : Nat) (m : OsMeta) (n : Nat)
+    (hsz : m.size ≤ sz' ∨ sz' = tg) :
     rsDone (GF := GF) tr p tg sz' m n ⊢ preGrown (GF := GF) p m sz' := by
   iintro H
   icases rsDone_zerosA tr p tg sz' m n $$ H with ⟨Hm, Hz, -⟩
@@ -85,7 +114,7 @@ theorem rsDone_preGrown {tr : Bool} (p : Ino) (tg sz' : Nat) (m : OsMeta) (n : N
   iexists rsPost tr m tg sz'
   iframe
   ipureintro
-  refine ⟨rfl, ?_, ?_⟩
+  refine ⟨rfl, ?_, ?_, growMeta_rsPost tr m tg sz' hsz⟩
   · simp [rsPost, OsMeta.announce, OsMeta.touch]; split <;> (try split) <;> rfl
   · simp only [rsPost, rsCz]; split <;> omega
 
@@ -98,7 +127,9 @@ theorem rsUndone_preGrown {tr : Bool} (p : Ino) (tg : Nat) (m : OsMeta) (n : Nat
   iexists m.announce (min m.size tg) (rsHi tr m.size tg) tg
   iframe Hm
   isplitr
-  · ipureintro; simp [OsMeta.announce, OsMeta.touch]; split <;> (try split) <;> simp
+  · ipureintro
+    suffices h : _ ∧ _ ∧ _ from ⟨h.1, h.2.1, h.2.2, growMeta_announce ..⟩
+    simp [OsMeta.announce, OsMeta.touch]; split <;> (try split) <;> simp
   rw [Nat.sub_self]
   iapply (osZerosA_unfold p m.size 0 _).2
   iexists []
@@ -116,7 +147,7 @@ theorem ftDone_preGrown (p : Ino) (m : OsMeta) (tg : Nat) :
   iframe Hm
   isplitr
   · ipureintro
-    refine ⟨rfl, ?_, ?_⟩
+    refine ⟨rfl, ?_, ?_, growMeta_rsPost true m tg tg (Or.inr rfl)⟩
     · simp [rsPost, OsMeta.announce, OsMeta.touch]; split <;> (try split) <;> rfl
     · simp only [rsPost, rsCz, if_true]; omega
   iapply (osZerosA_unfold p m.size _ _).2
@@ -133,7 +164,9 @@ theorem ftUndone_preGrown (p : Ino) (m : OsMeta) (tg : Nat) :
   iexists m.announce (min m.size tg) (rsHi true m.size tg) tg
   iframe Hm
   isplitr
-  · ipureintro; simp [OsMeta.announce, OsMeta.touch]; split <;> (try split) <;> simp
+  · ipureintro
+    suffices h : _ ∧ _ ∧ _ from ⟨h.1, h.2.1, h.2.2, growMeta_announce ..⟩
+    simp [OsMeta.announce, OsMeta.touch]; split <;> (try split) <;> simp
   rw [Nat.sub_self]
   iapply (osZerosA_unfold p m.size 0 _).2
   iexists []

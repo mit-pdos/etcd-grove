@@ -31,7 +31,7 @@ variable [os_sem : os.Assumptions]
 /-- See the file header. -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.newFilePipeline.spec : Prop :=
   ∀ (lg : Loc) (dir : GoString) (sz : w64) (R : Roots) (dq : DFrac) (j : Ino),
-  0 ≤ sz.toInt → sz.toInt ≤ 0xffffffff000 → dir.length < 2 ^ 61 →
+  0 ≤ sz.toInt → sz.toInt ≤ 0xffffffff000 → dir.length < 2 ^ 61 → sz.toInt % 8 = 0 →
   {{ zapLoggerOk (GF := GF) lg ∗ osInv (GF := GF) ∗ osSharedInv R ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
       pipeRes R dir dq j ∗ tmpClaim j (pipeTmp 0) }}

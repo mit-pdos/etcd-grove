@@ -359,7 +359,8 @@ theorem wp_createTmp [os.file.FieldAssumptions]
 
 
 /-- A file's `OsMeta` and zero bytes (no mappings): the file whole, any size (`trFile i False`). -/
-theorem zerosA_trFile (i : Ino) (m : OsMeta) (hm : m.maps = ∅) :
+theorem zerosA_trFile (i : Ino) (m : OsMeta) (hm : m.maps = ∅) (hcut : m.cut = none)
+    (hlo : m.lo ≤ m.size) :
     osMeta (GF := GF) i (DFrac.own 1) m ∗ osZerosA i 0 m.size (DFrac.own 1) ⊢ trFile i False := by
   iintro ⟨Hm, Hz⟩
   icases (osZerosA_unfold i 0 m.size (DFrac.own 1)).1 $$ Hz with ⟨%zs, %hzs, Hz⟩
@@ -369,7 +370,7 @@ theorem zerosA_trFile (i : Ino) (m : OsMeta) (hm : m.maps = ∅) :
   isplitl []
   · iapply mcellsAny_empty m.maps hm
   ipureintro
-  exact ⟨by simp [hzs], fun h => h.elim, hm⟩
+  exact ⟨by simp [hzs], fun h => h.elim, hm, hcut, hlo⟩
 
 /-- **After an unlink of the pipeline's file** (both halves of the outcome), with the file: the
 claim, the name absent (the file dropped), or still the file. -/
