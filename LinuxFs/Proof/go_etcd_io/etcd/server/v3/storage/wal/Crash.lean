@@ -21,7 +21,8 @@ the WAL's names are claimed (`wp_osShare`, `osNames_split`).
 -/
 module
 
-public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Inv
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CrashStart
+public import GooseLang.Ext.Fs.CrashTakeFiles
 
 @[expose] public section
 
@@ -32,28 +33,6 @@ namespace EtcdGrove
 namespace WalFs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Fs WalEnc
-
-section pure
-variable [GooseExts]
-
-/-- **What a generation's start says of the WALs** (pure), the tree being `m` (nothing logged):
-each WAL of `s` has a layout whose directory is at its name in the area, with the static relation
-over the directory's entries, every segment's bytes durable and nothing appended; a directory of
-the area with no WAL holds no `.wal` file; every durable directory resolves. -/
-def WalsStart (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (s : AbsDiskState)
-    (Ls : GMap GoString WalLay) (m : Tree) : Prop :=
-  (∀ dir d, s.wal !! dir = some d → ∃ lay nm, Ls !! dir = some lay ∧ InArea s.area dir nm ∧
-    lay.jr = jr ∧ lay.nm = nm ∧ m.entry jr nm = some (.dir lay.j) ∧
-    WalAbsD C Mr d lay (entsOf m lay.j) ∧
-    RecsFit C (recsOfSegs C Mr d.metadata (segsOf (histM d) lay.cuts)) ∧
-    lay.wr = lay.so ∧ lay.wr = lay.z0 ∧ lay.z0 = (segStream C Mr d lay.cuts lay.cuts.length).length ∧
-    (∀ g, lay.segs.getLast? = some g → g.bs = lay.old.map durB)) ∧
-  (∀ dir, s.wal !! dir = none → Ls !! dir = none) ∧
-  (∀ dir nm, InArea s.area dir nm → s.wal !! dir = none → ∀ J, m.entry jr nm = some (.dir J) →
-    walInos (entsOf m J) = []) ∧
-  (∀ dd, s.dirs !! dd = some () → ∃ J, lookupH R (m, []) dd = some (.dir J))
-
-end pure
 
 section crash
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
@@ -100,27 +79,52 @@ theorem crashRest_take_files (Q : Fs.OsState → Fs.OsState → Prop) (L L' : Go
         ([∗list] i ∈ gs.map (·.ino), osFileStartO (L := L') i (st'.fs.files !! i)) ∗
         crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) (gs.map (·.ino) ++ D) tt V' ∗
         ([∗list] g ∈ gs, segRes (L := L) g) := by
-  sorry
-
-/-- **The crash's pure core** (plan §2.2): from what the invariant says of the WALs, what a crash of
-the claims allows of the tree (`m'`), what the crash did to each segment (`FileCrashedR` of its
-halves, its candidates the state's) and W1: the crashed WAL state `s'` (`walStCrash s s'`) and its
-layouts over `m'` and the crashed files. Each WAL's crash condition gives its `CrashTo` (W1 over the
-ghost candidates, `W1G`, from W1 over the state's); the new layout keeps the cuts, the kept segments
-with their files' start resources, the last file's image as the bytes under its stream. -/
-theorem walCrash_pure (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots) (jr : Ino)
-    (s : AbsDiskState) (Ls : GMap GoString WalLay) (cl : List Claim) (n : Nat) (m' : Tree)
-    (st st' : Fs.OsState) (hok : WalsOk C Mr R jr s Ls cl n) (hk : walKeysInArea s)
-    (hreg : RegionCrashed cl n m') (htree : st'.fs.treeDur = m') (hw1 : W1 C st st')
-    (hfiles : ∀ g ∈ segsAll Ls,
-      FileCrashedR g.om [(0, DFrac.own (1 : Qp).half, g.bs)] (st'.fs.files !! g.ino) ∧
-      (Named m' g.ino → (st'.fs.files !! g.ino).isSome) ∧
-      ∃ f, st.fs.files !! g.ino = some f ∧ ∀ b (y : ByteG), g.bs[b]? = some y → f.cand b = y.2) :
-    ∃ (s' : AbsDiskState) (Ls' : GMap GoString WalLay), walStCrash s s' ∧ s'.area = s.area ∧
-      walKeysInArea s' ∧ WalsStart C Mr R jr s' Ls' m' ∧
-      ∀ dir lay, Ls' !! dir = some lay → ∀ g ∈ lay.segs, g.ino ∈ (segsAll Ls).map (·.ino) ∧
-        ∃ f, st'.fs.files !! g.ino = some f ∧ g.om = initMeta f ∧ g.bs = f.contents.map durB := by
-  sorry
+  let xOf : SegG → Ino × DFrac × OsMeta × List (Nat × DFrac × List ByteG) :=
+    fun g => (g.ino, DFrac.own (1 : Qp).half, g.om, [(0, DFrac.own (1 : Qp).half, g.bs)])
+  have hsr : ∀ g, segRes (L := L) g ⊣⊢ fileOld (gooseOsGS (L := L)) (xOf g) := by
+    intro g
+    unfold segRes fileOld osMeta osBytes
+    simp only [xOf]
+    have hs := BigSepL.bigSepL_singleton (PROP := IProp GF) (Φ := fun _ (r : Nat × DFrac × List ByteG) => bytesG (gooseOsGS (L := L)) g.ino r.1 r.2.1 r.2.2) (x := (0, DFrac.own (1 : Qp).half, g.bs))
+    exact ⟨sep_mono_right hs.2, sep_mono_right hs.1⟩
+  have e1 : ([∗list] g ∈ gs, segRes (L := L) g) ⊣⊢
+      [∗list] x ∈ gs.map xOf, fileOld (gooseOsGS (L := L)) x := by
+    rw [BigSepL.bigSepL_map]
+    exact ⟨BigSepL.bigSepL_mono_of_forall (fun {_ x} => (hsr x).1),
+      BigSepL.bigSepL_mono_of_forall (fun {_ x} => (hsr x).2)⟩
+  have e2 : (gs.map xOf).map (·.1) = gs.map (·.ino) := by simp [xOf]
+  have hstarts : ∀ st' : Fs.OsState, ([∗list] x ∈ gs.map xOf, fileStartO (gooseOsGS (L := L')) x.1
+      (st'.fs.files !! x.1)) ⊢ [∗list] i ∈ gs.map (·.ino), osFileStartO (L := L') i (st'.fs.files !! i) := by
+    intro st'
+    rw [BigSepL.bigSepL_map, BigSepL.bigSepL_map]
+    exact BigSepL.bigSepL_mono_of_forall (fun {_ x} => (fileStartO_eq (L := L') x.ino _).1)
+  have hD' : ∀ x ∈ gs.map xOf, x.1 ∉ D := by
+    intro x hx; obtain ⟨g, hg, rfl⟩ := List.mem_map.1 hx; exact hD g hg
+  have hnd' : ((gs.map xOf).map (·.1)).Nodup := by rw [e2]; exact hnd
+  iintro Hr Hs
+  icases e1.1 $$ Hs with Hs
+  have H := crashRest_take_list (gooseOsGS (L := L)) Q (gooseOsGS (L := L')) D tt V' (gs.map xOf)
+    hD' hnd'
+  rw [e2] at H
+  icases H $$ Hr Hs with ⟨%st, %st', %h, Hf, Hr, Hs⟩
+  iexists st, st'
+  iframe Hr
+  isplitr
+  · ipureintro
+    refine ⟨h.1, h.2.1, fun g hg => ?_⟩
+    obtain ⟨h1, h2, f, hf, h3⟩ := h.2.2 (xOf g) (List.mem_map_of_mem hg)
+    refine ⟨h1, h2, f, hf, fun b y hb => ?_⟩
+    have hbl : b < g.bs.length := by
+      rcases Nat.lt_or_ge b g.bs.length with h | h
+      · exact h
+      · rw [List.getElem?_eq_none h] at hb; cases hb
+    have := h3 (hcut g hg) _ (List.mem_singleton_self _) b hbl
+    rw [List.getElem?_eq_getElem hbl] at hb
+    cases hb
+    simpa using this
+  isplitl [Hf]
+  · iapply hstarts st' $$ Hf
+  iapply e1.2 $$ Hs
 
 theorem walsOk_nodup {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s : AbsDiskState}
     {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat} (h : WalsOk C Mr R jr s Ls cl n) :

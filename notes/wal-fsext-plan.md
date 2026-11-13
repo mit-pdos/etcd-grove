@@ -574,3 +574,31 @@ non-`Data` bytes, under investigation on `wal-bytemix`); the new `os`/`syscall` 
 `PathKind` query in `GooseLang/Ext/Fs/Impl.lean` (§9, `notes/wal-fsext-models-review.md`); the
 crc32 model; the `walpb` registrations; the leaf axioms above; the restated `ReadAll` post
 (`notes/specs-only/ledger.md`, 2026-11-13).
+**Second session (2026-11-13, branch `wal-inv`).** Proved: `walCrash_pure` (`CrashPure.lean`, with
+`WalsStart` moved there; statement unchanged), `crashRest_take_files` (`Crash.lean`, over the new
+FS module `GooseLang/Ext/Fs/CrashTakeFiles.lean`), `walAbs_crashOk_start` (`CrashStart.lean`, moved
+out of `Abs.lean`; statement unchanged). Left: `walInv_alloc` (`sorry`).
+- *Modules*: `SegPre` (pure: the segments of a history agreeing with another up to the last cut,
+  `segs_pre`; `walImg_segPre`, `take_segPre`; `walCutPos`/`walLastIdx` under such a prefix);
+  `CrashPure` (`crashTo_start`: one WAL's `CrashTo` → `walCrash d (some d')` and the new layout
+  `crashLay`; `crashGood_exists`, `walCrash_pure`: the choice per WAL, the maps by `gmapBind`);
+  `CrashStart`.
+- *Where W1 enters*: only `w1G_of_W1` (called in `crashGood_exists`), feeding `CrashOk`'s `W1G`
+  premise. `crashTo_start` and `walAbs_crashOk_start` do not use W1. The "accepted frames are the
+  intended frames" step lives in the proofs that each operation keeps `CrashOk` (W2-W6): a narrowed
+  W1 changes `W1G`/`w1G_of_W1` and those proofs, nothing here.
+- *Definition changes*: `WalAbsD.nonempty` (a WAL has a segment; else `CrashTo` is unprovable);
+  `CrashOk` takes "a segment the crashed tree names is there" (`FileCrashedR` allows a missing file);
+  `crashRest` (`CrashTok.lean`) records `st'.fs.treeDur = V'.now` (true at `os_local_crash`, kept by
+  every take; the three destructurings in `CrashTok.lean` gained a name; no theorem statement moved;
+  **the bbolt port may meet a merge conflict there**). `crashRestAt` (`crashRest` with `st`, `st'`
+  fixed, `crashRest_at`) gives one crash for several files (`crashRest_take_list`, `FileCrashAt`).
+- *`walInv_alloc`'s statement needs rework* (its `hcov` is a placeholder): (1) the claims must cover,
+  wholly and with empty histories, each WAL directory (`(lay.j, except [], namesOf V lay.j _)`, whose
+  `cur` must be shown `entsOf V.now lay.j`) and the area directory's WAL names (generalize
+  `walAbs_crashOk_start`'s `hr` to any claim on `jr` holding `nm` with an empty history: a whole-area
+  claim then serves `AbsentOk` too); (2) `DirsOk R s cl 0` is a path-walking fact over the claims, best
+  a premise; (3) `walStart` must also record `((segsAll Ls).map (·.ino)).Nodup` (provable in
+  `walCrash_pure` from the old one: per-key nodup and cross-key disjointness of `segsAll`, each new
+  layout's inodes among its old one's); (4) `osCommitLb 0`; (5) the program's halves of the segments
+  are dropped (or returned, once W2 needs them).
