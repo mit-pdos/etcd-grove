@@ -72,7 +72,7 @@ addresses again. The host is kept.
 
 **What is not modeled.** A process that exits: Go's runtime closes its sockets, which FINs them; the
 programs proved over this model never exit (every node's boot program ends by blocking forever,
-`examples/net/doc.go`), and a theorem says nothing of one that does. Addresses are the plan's
+`examples/net/README.md`), and a theorem says nothing of one that does. Addresses are the plan's
 strings, compared as strings: the plan's strings must name distinct sockets (no two strings for one
 `host:port`), an assumption of the deployment; `Listen` or `Dial` of any other string is stuck.
 Ports `0`, TLS, UDP, Unix sockets, `LocalAddr`/`RemoteAddr`, the deadlines' times, keepalives: not

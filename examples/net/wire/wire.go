@@ -1,7 +1,7 @@
 // Package wire holds the helpers the net examples share: reading a buffer in
 // full from a net.Conn (io.ReadFull's loop, which grpc and net/http use to
 // read frames and fixed-size headers), and blocking forever (the end of every
-// node's boot program: a node's process never exits, see examples/net/doc.go).
+// node's boot program: a node's process never exits, see examples/net/README.md).
 package wire
 
 import "net"

@@ -680,7 +680,8 @@ PROJECTS = [
         local=os.path.join("examples", "net"),
         root="NetTcp",
         lean_roots=["github.com/mit-pdos/etcd-grove=NetTcp", "net=NetTcp"],
-        packages=["net", "./wire", "./echo"],
+        packages=["net", "./wire", "./echo", "./framed", "./acceptloop", "./duplex", "./halfclose",
+                  "./shutdown", "./preface"],
         owned=["net", os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "net")],
     ),
     Project(

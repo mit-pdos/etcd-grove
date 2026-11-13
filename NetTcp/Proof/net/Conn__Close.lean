@@ -1,0 +1,73 @@
+/-
+The proof of `NetTcp/Spec/net/Conn__Close.lean`: the interface call resolves to
+`conn.Close.impl` (`*TCPConn`'s promoted `Close`), the extension's `Close`, taking the caller's
+update (`Tcp.wp_tcp_Close`).
+-/
+module
+
+public import NetTcp.Spec.net.Conn__Close
+
+@[expose] public section
+
+set_option linter.iris.style.nameCheck false
+
+noncomputable section
+
+namespace Perennial
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Tcp
+
+namespace net
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt tcpExt] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
+variable [go.BasicIntoValInj]
+
+theorem Conn.Close.wp_proof : Conn.Close.spec (GF := GF) (hG := hG) := by
+  intro c cn s a Q
+  unfold isConn
+  wp_start as ⟨⟨%t, %Hc, #Ht, #Hat⟩, HAU⟩
+  subst Hc
+  wp_auto
+  wp_method_call
+  wp_auto
+  wp_method_call
+  unfold conn.Close.impl model.connId
+  rw [conn_ty_eq']
+  ihave #Ht2 := Ht
+  iStructNamed Ht2
+  iStructNamed conn
+  wp_auto
+  wp_bind (ExternalOp _ _ _)
+  iapply wp_tcp_Close cn s a $$ Hat
+  imod HAU with ⟨%st, %r, %out, %f, Hend, Hout, Hk⟩
+  imodintro
+  iexists st, r, out, f
+  iframe Hend Hout
+  iintro %ok %st' %f' %Hcr Hend Hout
+  imod Hk $$ %ok %st' %f' %Hcr Hend Hout with HQ
+  imodintro
+  cases ok
+  · wp_auto
+    unfold model.opError
+    rw [OpError_ty_eq]
+    wp_auto
+    iapply HΦ
+    iexists false
+    iframe HQ
+    ipureintro
+    exact ⟨by simp, fun _ => ⟨_, rfl⟩⟩
+  · wp_auto
+    iapply HΦ
+    iexists true
+    iframe HQ
+    ipureintro
+    exact ⟨fun _ => rfl, by simp⟩
+
+end proof
+
+end net
+end Perennial
