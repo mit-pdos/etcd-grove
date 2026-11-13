@@ -29,8 +29,8 @@ models come with W3).
 module
 
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.W1
-public import Proof.go_etcd_io.etcd.server.v3.storage.WalEncSuffix
-public import Proof.go_etcd_io.etcd.server.v3.storage.WalDisk
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.WalEncSuffix
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.WalDisk
 public import GooseLang.Ext.Fs.NamesGhost
 public import GooseLang.Ext.Fs.CrashFiles
 

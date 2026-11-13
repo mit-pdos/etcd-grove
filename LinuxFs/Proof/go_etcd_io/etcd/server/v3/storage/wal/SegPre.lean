@@ -11,7 +11,7 @@ the same.
 module
 
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Abs
-public import Proof.go_etcd_io.etcd.server.v3.storage.WalHistLemmas
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.WalHistLemmas
 
 @[expose] public section
 

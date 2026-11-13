@@ -19,7 +19,8 @@ proof layer: the same predicates with the same laws, over ghost state the WAL's 
   `walReadFailed`): the bodies of `AbsDisk/Specs.lean`'s, over these names.
 
 **Reuse (W1 implementation log, `notes/wal-fsext-plan.md`).** The generic parts of `AbsDisk/Specs.lean`
-are imported, not copied: the state's order (`AbsDiskState`, `absLe`, `walMapLe`, `walDurLe`,
+are imported (through the part's generated copy, `LinuxFs/GooseLang/Ext/AbsDisk/Specs.lean`,
+`etc/gen-part-copies.py`), not restated: the state's order (`AbsDiskState`, `absLe`, `walMapLe`, `walDurLe`,
 `walOptLe`, `walKeysInArea`, `WalMode`) and the generation-generic ghost pieces stated for any
 `hL : AbsDiskGS GF` (`walOwnAt`, `absPastAt`, `absPastAuth`, `absPast_le`/`_grow`/`_snap`,
 `absDisk_local_init`). Nothing of the extension's steps or interpretation is used. When `AbsDisk/`
@@ -27,7 +28,7 @@ is deleted, these move here.
 -/
 module
 
-public import GooseLang.Ext.AbsDisk.Specs
+public import LinuxFs.GooseLang.Ext.AbsDisk.Specs
 
 @[expose] public section
 
