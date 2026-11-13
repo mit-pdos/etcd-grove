@@ -249,20 +249,20 @@ def slotV (t : Nat) (j : Ino) (b : GoString) : Option Node :=
 end run
 
 section cut
-variable {T0 : Tree} {log : List LogEntry} {S : Nat → Prop}
+variable {T0 : Tree} {log : List LogEntry} {S : Nat → Prop} {s0 : Nat}
 
 /-- An earlier writer of a slot a kept entry writes is kept. -/
-theorem kept_writer (hps : PerSlotSeq log) (hdx : DirOpExcl log) (hc : Closed log S) {x y : Nat}
+theorem kept_writer (hps : PerSlotSeq log) (hdx : DirOpExcl log s0) (hc : Closed log S) {x y : Nat}
     {ex ey : LogEntry} (hx : log[x]? = some ex) (hy : log[y]? = some ey) (hSx : S x) (hyx : y < x)
     {sl : Slot} (hsl : sl ∈ ex.op.slots) (hw : ey.op.Writes sl.1 sl.2) : S y := by
   refine hc x y hSx ⟨hyx, ex, hx, ?_⟩
   rcases hw with h | ⟨j0, b0, h⟩
   · exact hps x y ex ey hyx hx hy ⟨sl, hsl, h⟩
-  · exact (hdx y ey hy (by rw [h]; trivial)).2 x ex hyx hx
+  · exact (hdx y ey hy (.inl (by rw [h]; trivial))).2 x ex hyx hx
 
 /-- A kept entry's slots hold, in the replay of the kept entries before it, what they held in the
 run when it took effect. -/
-theorem kept_reads (hps : PerSlotSeq log) (hdx : DirOpExcl log) (hc : Closed log S) {x : Nat}
+theorem kept_reads (hps : PerSlotSeq log) (hdx : DirOpExcl log s0) (hc : Closed log S) {x : Nat}
     {ex : LogEntry} (hx : log[x]? = some ex) (hSx : S x)
     (hA : ∀ j b, (replay (keptUpTo log S x) T0).entry j b = slotV T0 log S x j b)
     (sl : Slot) (hsl : sl ∈ ex.op.slots) :
@@ -289,7 +289,7 @@ theorem kept_reads (hps : PerSlotSeq log) (hdx : DirOpExcl log) (hc : Closed log
 
 /-- **The slots of the replay** of the kept entries below `t`: as right after their last kept
 writer. -/
-theorem kept_entry (hps : PerSlotSeq log) (hdx : DirOpExcl log) (hc : Closed log S) :
+theorem kept_entry (hps : PerSlotSeq log) (hdx : DirOpExcl log s0) (hc : Closed log S) :
     ∀ t, t ≤ log.length → ∀ j b,
       (replay (keptUpTo log S t) T0).entry j b = slotV T0 log S t j b
   | 0, _, j, b => by simp [keptUpTo, replay, slotV, lastW]
@@ -398,12 +398,12 @@ theorem exists_greatest (P : Nat → Prop) : ∀ n, (∃ x, x ≤ n ∧ P x) →
       · rw [show y = n + 1 by omega] at hpy; exact absurd hpy hn
 
 /-- Some `a`: every entry below it kept; from it to any kept entry, only file operations. -/
-theorem cut_base (hdx : DirOpExcl log) (hc : Closed log S) (hS : ∀ x, S x → x < log.length) :
+theorem cut_base (hdx : DirOpExcl log s0) (hc : Closed log S) (hS : ∀ x, S x → x < log.length) :
     ∃ a, a ≤ log.length ∧ (∀ y, y < a → S y) ∧
-      ∀ z x (ez : LogEntry), a ≤ z → z ≤ x → S x → log[z]? = some ez → ¬ ez.op.IsDirOp := by
-  let D : Nat → Prop := fun x => x < log.length ∧ S x ∧ ∃ e, log[x]? = some e ∧ e.op.IsDirOp
+      ∀ z x (ez : LogEntry), a ≤ z → z ≤ x → S x → log[z]? = some ez → ¬ (ez.op.IsDirOp ∨ z < s0) := by
+  let D : Nat → Prop := fun x => x < log.length ∧ S x ∧ ∃ e, log[x]? = some e ∧ (e.op.IsDirOp ∨ x < s0)
   -- a kept entry after a directory operation keeps it
-  have hkeep : ∀ z x (ez : LogEntry), z ≤ x → S x → log[z]? = some ez → ez.op.IsDirOp → D z := by
+  have hkeep : ∀ z x (ez : LogEntry), z ≤ x → S x → log[z]? = some ez → (ez.op.IsDirOp ∨ z < s0) → D z := by
     intro z x ez hzx hSx hz hd
     have hzL : z < log.length := (List.getElem?_eq_some_iff.1 hz).1
     refine ⟨hzL, ?_, ez, hz, hd⟩
@@ -429,9 +429,9 @@ theorem cut_base (hdx : DirOpExcl log) (hc : Closed log S) (hS : ∀ x, S x → 
 /-! ## The replay from `a` on -/
 
 /-- From `a`, a run of file operations keeps the entries naming directories and the keys. -/
-theorem run_dirs (hv : LogValid T0 log) {a : Nat} :
+theorem run_dirs (hv : LogValid T0 log s0) {a : Nat} :
     ∀ u, a ≤ u → u ≤ log.length →
-      (∀ z (ez : LogEntry), a ≤ z → z < u → log[z]? = some ez → ¬ ez.op.IsDirOp) →
+      (∀ z (ez : LogEntry), a ≤ z → z < u → log[z]? = some ez → ¬ (ez.op.IsDirOp ∨ z < s0)) →
       (∀ j b J, (prefTree T0 log u).entry j b = some (.dir J) ↔
         (prefTree T0 log a).entry j b = some (.dir J)) ∧
       (∀ x, x ∈ prefTree T0 log u ↔ x ∈ prefTree T0 log a)
@@ -440,8 +440,9 @@ theorem run_dirs (hv : LogValid T0 log) {a : Nat} :
     rcases Nat.lt_or_ge u a with h | h
     · rw [show a = u + 1 by omega]; exact ⟨fun _ _ _ => Iff.rfl, fun _ => Iff.rfl⟩
     obtain ⟨e, he⟩ : ∃ e, log[u]? = some e := ⟨_, List.getElem?_eq_getElem (by omega)⟩
-    have hnd := hf u e h (Nat.lt_succ_self _) he
-    have hok := (hv u e he hnd).1
+    have hnx := hf u e h (Nat.lt_succ_self _) he
+    have hnd : ¬ e.op.IsDirOp := fun h' => hnx (.inl h')
+    have hok := (hv u e he hnx).1
     obtain ⟨ih1, ih2⟩ := run_dirs hv u h (by omega) (fun z ez h1 h2 hz => hf z ez h1 (by omega) hz)
     rw [prefTree_succ T0 log he]
     exact ⟨fun j b J => (fileOp_dirs hnd hok j b J).trans (ih1 j b J),
@@ -458,12 +459,12 @@ theorem kept_prefix {a : Nat} (ha : ∀ y, y < a → S y) :
 
 /-- The replay's slot, as some tree of the run from `a` on (with file operations only from `a` to
 it) has it. -/
-theorem kept_slot (hps : PerSlotSeq log) (hdx : DirOpExcl log) (hc : Closed log S) {a : Nat}
+theorem kept_slot (hps : PerSlotSeq log) (hdx : DirOpExcl log s0) (hc : Closed log S) {a : Nat}
     (haL : a ≤ log.length) (ha : ∀ y, y < a → S y)
-    (hb : ∀ z x (ez : LogEntry), a ≤ z → z ≤ x → S x → log[z]? = some ez → ¬ ez.op.IsDirOp)
+    (hb : ∀ z x (ez : LogEntry), a ≤ z → z ≤ x → S x → log[z]? = some ez → ¬ (ez.op.IsDirOp ∨ z < s0))
     (j : Ino) (b : GoString) :
     ∃ g, a ≤ g ∧ g ≤ log.length ∧
-      (∀ z (ez : LogEntry), a ≤ z → z < g → log[z]? = some ez → ¬ ez.op.IsDirOp) ∧
+      (∀ z (ez : LogEntry), a ≤ z → z < g → log[z]? = some ez → ¬ (ez.op.IsDirOp ∨ z < s0)) ∧
       (replay (keptUpTo log S log.length) T0).entry j b = (prefTree T0 log g).entry j b := by
   rw [kept_entry hps hdx hc log.length (Nat.le_refl _)]
   unfold slotV
@@ -487,7 +488,7 @@ theorem kept_slot (hps : PerSlotSeq log) (hdx : DirOpExcl log) (hc : Closed log 
     rw [hfr 0 (Nat.zero_le _) (fun y _ h2 => hk y h2), prefTree_zero]
 
 /-- Some tree of the run, not later than `t`, has the replay's slot. -/
-theorem kept_slot_le (hps : PerSlotSeq log) (hdx : DirOpExcl log) (hc : Closed log S) {t : Nat}
+theorem kept_slot_le (hps : PerSlotSeq log) (hdx : DirOpExcl log s0) (hc : Closed log S) {t : Nat}
     (ht : t ≤ log.length) (j : Ino) (b : GoString) :
     ∃ g, g ≤ t ∧ (replay (keptUpTo log S t) T0).entry j b = (prefTree T0 log g).entry j b := by
   rw [kept_entry hps hdx hc t ht]
@@ -499,8 +500,8 @@ theorem kept_slot_le (hps : PerSlotSeq log) (hdx : DirOpExcl log) (hc : Closed l
   | none => intro _; exact ⟨0, Nat.zero_le _, by rw [prefTree_zero]⟩
 
 /-- From `a` on, the replay has the directory keys of `T a`. -/
-theorem kept_keys (hv : LogValid T0 log) {a : Nat} (ha : ∀ y, y < a → S y)
-    (hb : ∀ z x (ez : LogEntry), a ≤ z → z ≤ x → S x → log[z]? = some ez → ¬ ez.op.IsDirOp) :
+theorem kept_keys (hv : LogValid T0 log s0) {a : Nat} (ha : ∀ y, y < a → S y)
+    (hb : ∀ z x (ez : LogEntry), a ≤ z → z ≤ x → S x → log[z]? = some ez → ¬ (ez.op.IsDirOp ∨ z < s0)) :
     ∀ t, a ≤ t → t ≤ log.length → ∀ x,
       x ∈ replay (keptUpTo log S t) T0 ↔ x ∈ prefTree T0 log a
   | 0, hat, hL => by
@@ -513,8 +514,9 @@ theorem kept_keys (hv : LogValid T0 log) {a : Nat} (ha : ∀ y, y < a → S y)
     rw [kept_succ T0 log S he]
     by_cases hS : S t
     · rw [if_pos hS]
-      have hnd := hb t t e h (Nat.le_refl _) hS he
-      have hok := (hv t e he hnd).1
+      have hnx := hb t t e h (Nat.le_refl _) hS he
+      have hnd : ¬ e.op.IsDirOp := fun h' => hnx (.inl h')
+      have hok := (hv t e he hnx).1
       have hrd := (run_dirs hv t h (by omega)
         (fun z ez h1 h2 hz => hb z t ez h1 (by omega) hS hz)).2
       intro x
@@ -523,10 +525,10 @@ theorem kept_keys (hv : LogValid T0 log) {a : Nat} (ha : ∀ y, y < a → S y)
     · rw [if_neg hS]; exact ih
 
 /-- From `a` on, the replay names each file once. -/
-theorem kept_inj (hps : PerSlotSeq log) (hdx : DirOpExcl log) (hv : LogValid T0 log)
+theorem kept_inj (hps : PerSlotSeq log) (hdx : DirOpExcl log s0) (hv : LogValid T0 log s0)
     {R : List (GoString × Ino)} (hwf : ∀ t, t ≤ log.length → TreeWf R (prefTree T0 log t))
     (hc : Closed log S) {a : Nat} (ha : ∀ y, y < a → S y)
-    (hb : ∀ z x (ez : LogEntry), a ≤ z → z ≤ x → S x → log[z]? = some ez → ¬ ez.op.IsDirOp) :
+    (hb : ∀ z x (ez : LogEntry), a ≤ z → z ≤ x → S x → log[z]? = some ez → ¬ (ez.op.IsDirOp ∨ z < s0)) :
     ∀ t, a ≤ t → t ≤ log.length → ∀ j1 b1 j2 b2 i,
       (replay (keptUpTo log S t) T0).entry j1 b1 = some (.file i) →
       (replay (keptUpTo log S t) T0).entry j2 b2 = some (.file i) → j1 = j2 ∧ b1 = b2
@@ -542,8 +544,9 @@ theorem kept_inj (hps : PerSlotSeq log) (hdx : DirOpExcl log) (hv : LogValid T0 
     rw [kept_succ T0 log S he]
     by_cases hS : S t
     · rw [if_pos hS]
-      have hnd := hb t t e h (Nat.le_refl _) hS he
-      have hval := hv t e he hnd
+      have hnx := hb t t e h (Nat.le_refl _) hS he
+      have hnd : ¬ e.op.IsDirOp := fun h' => hnx (.inl h')
+      have hval := hv t e he hnx
       have hA := kept_entry hps hdx hc (T0 := T0) t (by omega)
       have hrd := kept_reads hps hdx hc he hS hA
       have hfresh : ∀ j0 b0 i0, e.op = .create j0 b0 i0 → ∀ j b,
@@ -607,7 +610,7 @@ theorem kept_inj (hps : PerSlotSeq log) (hdx : DirOpExcl log) (hv : LogValid T0 
 
 /-- **The consistent-cut theorem** (`TreeCut.lean` states the disciplines). -/
 theorem closed_cut {R : List (GoString × Ino)}
-    (_hst : Starts log) (hps : PerSlotSeq log) (hdx : DirOpExcl log) (hv : LogValid T0 log)
+    (_hst : Starts log) (hps : PerSlotSeq log) (hdx : DirOpExcl log s0) (hv : LogValid T0 log s0)
     (hwf : ∀ t, t ≤ log.length → TreeWf R (prefTree T0 log t))
     (hS : ∀ x, S x → x < log.length) (hc : Closed log S) :
     TreeWf R (replay (keptOps log S) T0) ∧
