@@ -468,7 +468,7 @@ def grpcUp (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs :
     (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk il (srvLgReader s) Q) ∗
     (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk im iprop(True) Q) ∗
     srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
-    srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorOk is iprop(True) ∗
+    srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is iprop(True) ∗
     srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
     netListenerAt lis addr ∗ grpcLeaseUp s C.A regs)
 
@@ -566,7 +566,7 @@ def grpcUpOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs
     (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk il (srvLgReader s) Q) ∗
     (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk im iprop(True) Q) ∗
     srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
-    srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorOk is iprop(True) ∗
+    srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is iprop(True) ∗
     srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
     netListenerAt lis addr)
 
@@ -593,7 +593,7 @@ def grpcUpM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Rea
     (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk il (srvLgReader s) Q) ∗
     (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk im iprop(True) Q) ∗
     srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
-    srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorOk is iprop(True) ∗
+    srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is iprop(True) ∗
     srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
     netListenerAt lis addr ∗ grpcLeaseUp s C.A regs)
 

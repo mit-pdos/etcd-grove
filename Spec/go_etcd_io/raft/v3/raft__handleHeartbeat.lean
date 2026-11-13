@@ -80,6 +80,9 @@ abbrev raft.handleHeartbeat.spec : Prop :=
   m.From' ≠ id →
   -- (2026-10-29, stage U7) the term past `0` that `send` stamps (`SentMsgShape`)
   s.term ≠ W64 0 →
+  -- (out_size C3) the context echoed back is short under the node's flag (from `raft.Step`'s
+  -- `msgInC`): the response raft queues is of bounded size
+  (s.gh.sn.sz = true → cl.length ≤ entBytesMax) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hm" ∷ msgPtsC ml dq dqe cap ⟨m, ents, sn, cl, rs⟩ }}

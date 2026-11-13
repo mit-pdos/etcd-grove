@@ -4,11 +4,11 @@
 
 theorem readOnly.AckedIndex.wp_proof [package_sem : Assumptions] : readOnly.AckedIndex.spec
   -- `Perennial.EtcdGrove.readOnly.AckedIndex.spec`, unfolded:
-  ∀ (ro : Loc) (r : ReadOnly) (voterID : w64),
+  ∀ (sz : Bool) (ro : Loc) (r : ReadOnly) (voterID : w64),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hown" ∷ ownReadOnly ro r -∗
-          ▷ (ownReadOnly ro r -∗ Φ (intoVal ((r.acks !! voterID).getD (W64 0)), intoVal (r.acks !! voterID).isSome)) -∗
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hown" ∷ ownReadOnly sz ro r -∗
+          ▷ (ownReadOnly sz ro r -∗ Φ (intoVal ((r.acks !! voterID).getD (W64 0)), intoVal (r.acks !! voterID).isSome)) -∗
             WP
               ((intoVal
                   (methods readOnly.ty.PointerType go!"AckedIndex"

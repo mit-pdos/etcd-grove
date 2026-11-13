@@ -46,7 +46,9 @@ def ConfigPreserved (cv cv' : Config) : Prop :=
   cv'.DisableConfChangeValidation' = cv.DisableConfChangeValidation' ∧
   -- read by `newRaft` (2026-10-14, reconfiguration stage B7 part 2: a dynamic `RawNode` needs
   -- it on)
-  cv'.StepDownOnRemoval' = cv.StepDownOnRemoval'
+  cv'.StepDownOnRemoval' = cv.StepDownOnRemoval' ∧
+  -- (out_size C3) read by `newRaft` into `maxMsgSize` (`ownRaftPhys`'s bound)
+  cv'.MaxSizePerMsg' = cv.MaxSizePerMsg'
 
 end defs
 

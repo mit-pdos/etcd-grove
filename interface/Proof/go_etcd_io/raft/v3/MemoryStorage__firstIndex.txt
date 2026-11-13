@@ -5,12 +5,12 @@
 theorem MemoryStorage.firstIndex.wp_proof [package_sem : Assumptions] (wp_GetIndex :
     raftpb.Entry.GetIndex.spec) : MemoryStorage.firstIndex.spec
   -- `Perennial.EtcdGrove.MemoryStorage.firstIndex.spec`, unfolded:
-  ∀ (ms : Loc) (σ : StorState),
+  ∀ (ms : Loc) (sz : Bool) (σ : StorState),
     uint.Z σ.prev.index' + ↑σ.ents.length < 2 ^ 61 →
       ⊢
         ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hf" ∷ memstorageFields ms σ -∗
-            (▷ ∀ fi, ⌜uint.Z fi = uint.Z σ.prev.index' + 1⌝ ∗ memstorageFields ms σ -∗ Φ (intoVal fi)) -∗
+          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hf" ∷ memstorageFields ms sz σ -∗
+            (▷ ∀ fi, ⌜uint.Z fi = uint.Z σ.prev.index' + 1⌝ ∗ memstorageFields ms sz σ -∗ Φ (intoVal fi)) -∗
               WP
                 ((intoVal
                     (methods MemoryStorage.ty.PointerType

@@ -145,7 +145,7 @@ theorem Cluster.start.wp_proof
   try wp_auto
   wp_apply (lc := 2) wp_fileOf γ vs dir c id $$ [$Hc]
   try wp_auto
-  wp_apply wp_newStorage bp $$ [$Hpkg] as %s0 ⟨%ms0, %ip0, %γs0, HmsF0, #Hsb0, #Himg0, Himage0,
+  wp_apply wp_newStorage bp $$ [$Hpkg] as %s0 ⟨%ms0, %ip0, %γs0, %Hsz0, HmsF0, #Hsb0, #Himg0, Himage0,
     #Hl0, #Hd00, Hend0, Hsn0, Hmeta0, Hfresh0⟩
   try wp_auto
   wp_bind (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.durable.Read)) _)
@@ -196,7 +196,7 @@ theorem Cluster.start.wp_proof
   · cases o' with
     | none =>
       simp only [kdFileVal, Option.isSome_none, Option.map_none]
-      imod kdStor_register s0 ms0 γs0 ⊤ (fun _ _ => CoPset.mem_full) $$ HstorInv HmsF0 with #Hrec0
+      imod kdStor_register s0 ms0 γs0 ⊤ (fun _ _ => CoPset.mem_full) Hsz0 $$ HstorInv HmsF0 with #Hrec0
       imod memSnapNone_open γs0 $$ Hsn0 with #Hslb0
       try wp_auto
       isplitr
@@ -430,7 +430,7 @@ theorem Cluster.start.wp_proof
   obtain ⟨HcID, HcSt, HcLg, HcV, HcM, HcDP, HcRO, HcDC, HcSz, HcAS, HcAp⟩ := Hcfg
   ihave Hrs := kd_restartStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
     wp_Entries s ms bp γs F (raft_kvreconf.bootCS vs) e0 γ.r.cluster (uint.nat ap0)
-    (fun K => iprop(memStorMeta ms γs F.hs ∗ memStorInvP ms γs (kdJ γ.r.cluster K))) HFok He0
+    (fun K => iprop(memStorMeta ms γs F.hs ∗ memStorInvP ms γs (kdJ γ.r.cluster K))) Hmd HFok He0
     (by word) Hsc
     $$ Hpkg Hrec Hsb Hl Hfresh Hmeta Hd0 Hfro Hents Hend Hcmp Hval []
   · iintro %K Hm Hi; iframe Hm Hi

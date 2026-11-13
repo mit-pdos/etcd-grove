@@ -35,6 +35,11 @@ theorem ccPtsCC_own (c : GoInterface) (dq : DFrac) (cc : ConfChangeIC) : ccPtsCC
 theorem csPtsCC_discard_persistent (p : Loc) (c : CSC) (al : Bool) : Persistent (csPtsCC p
     DFrac.discard c al)
 
+theorem varintSize_le_of_lt (k n : Nat) : n < 2 ^ (7 * (k + 1)) → varintSize n ≤ k + 1
+
+def fieldVarintSize (n : Nat) : Nat :=
+  1 + varintSize n
+
 theorem bytesCC_persist (ds : GoSlice) (dq : DFrac) (o : Option (List w8)) : bytesCC ds dq o ⊢ |==>
     bytesCC ds DFrac.discard o
 
@@ -74,6 +79,8 @@ def ccPtsCC (c : GoInterface) (dq : DFrac) : ConfChangeIC → IProp GF :=
 theorem smPtsCC_discard_persistent (p : Loc) (m : SnapMetaC) : Persistent (smPtsCC p DFrac.discard
     m)
 
+theorem ccLenMax_le (cc : ConfChangeIC) (h : ccSize cc + 64 < 2 ^ 63) : ccLenMax cc ≤ ccSize cc + 64
+
 theorem ccsROs_ccsRoCs (ls : List Loc) (cs : List ConfChangeSingleM) : ([∗list] q;c ∈ ls;cs, ccsRO q
     c) ⊢ ∃ chs, ([∗list] q;ch ∈ ls;chs, ccsRoC q ch.fst ch.snd) ∗ ⌜List.map Prod.fst chs = cs⌝
 
@@ -95,17 +102,27 @@ def smPtsCC (p : Loc) (dq : DFrac) (m : SnapMetaC) : IProp GF :=
                 typedPointsto (structFieldRef raftpb.SnapshotMetadata go!"Term" p) pt dq ∗
                   optCell pt m.term ∗ pbMsg raftpb.SnapshotMetadata p m.uf)
 
+theorem ccPtsCCo_own (c : GoInterface) (dq : DFrac) (oc : Option ConfChangeIC) : ccPtsCCo c dq oc ⊢
+    ownConfChangeI c dq (Option.map ConfChangeIC.model oc)
+
 theorem msgPtsCC_msgPtsC (l : Loc) (dq dqe : DFrac) (cap : Bool) (c : MsgC) (h : c.csUfNil) :
     msgPtsCC l dq dqe cap c ⊢ msgPtsC l dq dqe cap c.model
 
 theorem snapOptCC_persist (p : Loc) (dq : DFrac) (o : Option SnapC) : snapOptCC p dq o ⊢ |==>
     snapOptCC p DFrac.discard o
 
+def ccPtsCCo (c : GoInterface) (dq : DFrac) : Option ConfChangeIC → IProp GF :=
+  match x✝ with
+  | none => iprop(⌜c = GoInterface.nil⌝)
+  | some cc => ccPtsCC c dq cc
+
 theorem smPtsCC_persist (p : Loc) (dq : DFrac) (m : SnapMetaC) : smPtsCC p dq m ⊢ |==> smPtsCC p
     DFrac.discard m
 
 theorem csOptA_csOptCC (p : Loc) (dq : DFrac) (c : ConfStateM) : csOptA p dq c ⊢ ∃ o, csOptCC p dq o
     ∗ ⌜(Option.map CSC.model o).getD csZero = c ∧ ∀ (cc : CSC), cc ∈ o → cc.uf = []⌝
+
+theorem varintSize_le_9_of_lt (n : Nat) (h : n < 2 ^ 63) : varintSize n ≤ 9
 
 def msgPtsCC (l : Loc) (dq dqe : DFrac) (cap : Bool) (c : MsgC) : IProp GF :=
   iprop(∃ pty pto pfr pte plt pix pco pvo prj prh es els ps cs rs,
@@ -169,11 +186,16 @@ theorem smOpt_smOptCC (p : Loc) (dq : DFrac) (md : SnapshotMetadataM) : smOpt p 
     p dq o ∗ ⌜(Option.map SnapMetaC.model o).getD metaZero = md ∧ ∀ (m : SnapMetaC), m ∈ o → ∀ (cs :
     CSC), cs ∈ m.confState → cs.uf = []⌝
 
+theorem varintSize_le_10_of_lt (n : Nat) (h : n < 2 ^ 64) : varintSize n ≤ 10
+
 theorem smOptCC_discard_persistent (p : Loc) (o : Option SnapMetaC) : Persistent (smOptCC p
     DFrac.discard o)
 
 theorem bytesCC_discard_persistent (ds : GoSlice) (o : Option (List w8)) : Persistent (bytesCC ds
     DFrac.discard o)
+
+def enumWire (t : w32) : Nat :=
+  (uint.Z (W64 (sint.Z t))).toNat
 
 def csPtsCC (p : Loc) (dq : DFrac) (c : CSC) (al : Bool) : IProp GF :=
   iprop(∃ sv sl so sn pa,
@@ -202,6 +224,8 @@ def csPtsCC (p : Loc) (dq : DFrac) (c : CSC) (al : Bool) : IProp GF :=
 theorem msgPtsC_msgPtsCC (l : Loc) (dq dqe : DFrac) (cap : Bool) (st : MsgSt) : msgPtsC l dq dqe cap
     st ⊢ ∃ c, msgPtsCC l dq dqe cap c ∗ ⌜c.model = st ∧ c.csUfNil⌝
 
+theorem lenSize_le_of_lt (n : Nat) (h : n < 2 ^ 63) : lenSize n ≤ n + 10
+
 theorem snapOpt_snapOptCC (p : Loc) (dq : DFrac) (o : Option SnapshotM) : snapOpt p dq o ⊢ ∃ oc,
     snapOptCC p dq oc ∗ ⌜Option.map SnapC.model oc = o ∧ ∀ (s : SnapC), s ∈ oc → ∀ (m : SnapMetaC),
     m ∈ s.metadata → ∀ (cs : CSC), cs ∈ m.confState → cs.uf = []⌝
@@ -221,6 +245,9 @@ theorem smPts_smPtsCC (p : Loc) (dq : DFrac) (md : SnapshotMetadataM) : smPts p 
 theorem smPtsCC_smPts (p : Loc) (dq : DFrac) (m : SnapMetaC) (h : ∀ (cs : CSC), cs ∈ m.confState →
     cs.uf = []) : smPtsCC p dq m ⊢ smPts p dq m.model
 
+theorem own_ccPtsCCo (c : GoInterface) (dq : DFrac) (o : Option ConfChangeIM) : ownConfChangeI c dq
+    o ⊢ ∃ oc, ccPtsCCo c dq oc ∗ ⌜Option.map ConfChangeIC.model oc = o⌝
+
 theorem own_ccPtsCC (c : GoInterface) (dq : DFrac) (o : ConfChangeIM) : ownConfChangeI c dq (some o)
     ⊢ ∃ cc, ccPtsCC c dq cc ∗ ⌜cc.model = o⌝
 
@@ -234,6 +261,22 @@ def ccsRoC (p : Loc) (c : ConfChangeSingleM) (uf : List w8) : IProp GF :=
               cellRO pn c.NodeId' ∗ pbMsg raftpb.ConfChangeSingle p uf)
 
 theorem entPtsCC_discard_persistent (l : Loc) (c : EntryC) : Persistent (entPtsCC l DFrac.discard c)
+
+def ccLenMax : ConfChangeIC → Nat :=
+  match x✝ with
+  | ConfChangeIC.v1 m uf =>
+    fieldVarintSize (uint.nat m.id) + fieldVarintSize (enumWire m.type) + fieldVarintSize (uint.nat m.nodeId) +
+        lenSize m.context.length +
+      uf.length
+  | ConfChangeIC.v2 t chs ctx uf =>
+    fieldVarintSize (enumWire t) +
+          (List.map
+              (fun ch =>
+                lenSize
+                  (fieldVarintSize (enumWire ch.fst.Type') + fieldVarintSize (uint.nat ch.fst.NodeId') + ch.snd.length))
+              chs).sum +
+        lenSize ctx.length +
+      uf.length
 
 def bytesCC (ds : GoSlice) (dq : DFrac) : Option (List w8) → IProp GF :=
   match x✝ with
@@ -303,11 +346,15 @@ theorem snapOptCC_snapOpt (p : Loc) (dq : DFrac) (o : Option SnapC) (h : ∀ (s 
     : SnapMetaC), m ∈ s.metadata → ∀ (cs : CSC), cs ∈ m.confState → cs.uf = []) : snapOptCC p dq o ⊢
     snapOpt p dq (Option.map SnapC.model o)
 
+theorem fieldVarintSize_enum (t : w32) : fieldVarintSize (enumWire t) ≤ 11
+
 theorem msgPtsC_iff_CC (l : Loc) (dq dqe : DFrac) (cap : Bool) (st : MsgSt) : msgPtsC l dq dqe cap
     st ⊣⊢ ∃ c, msgPtsCC l dq dqe cap c ∗ ⌜c.model = st ∧ c.csUfNil⌝
 
 theorem csPts_csPtsCC (p : Loc) (dq : DFrac) (c : ConfStateM) (al : Bool) : csPts p dq c al ⊢ ∃ cc,
     csPtsCC p dq cc al ∗ ⌜cc.model = c ∧ cc.uf = []⌝
+
+theorem fieldVarintSize_w64 (v : w64) : fieldVarintSize (uint.nat v) ≤ 11
 
 theorem smOptCC_persist (p : Loc) (dq : DFrac) (o : Option SnapMetaC) : smOptCC p dq o ⊢ |==>
     smOptCC p DFrac.discard o

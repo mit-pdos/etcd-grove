@@ -9,7 +9,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                produces from the pinned Go source.  Also exit 1 if the examples'
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
-  --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putgetc, putget3,
+  --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putgetc, putget3, etcd-wal,
                linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, k8s-apiserver,
                k8s-daemonset, k8s-compactor, bbolt-bank or bbolttest; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
@@ -292,7 +292,7 @@ PROJECTS = [
                     "go.etcd.io/bbolt=", "go.opentelemetry.io=", "os=", "io/fs=",
                     "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=", "net/http=",
                     "github.com/jonboulle/clockwork=",
-                    "net=", "hash=", "path=", "internal/bytealg=",
+                    "net=", "hash=", "path=", "internal/bytealg=", "internal/nettrace=",
                     "encoding/hex=", "container/heap=", "unicode/utf8=",
                     "github.com/Masterminds/semver=", "go.etcd.io/raft/v3=",
                     "golang.org/x/time=", "golang.org/x/crypto=", "github.com/xiang90/probing=",
@@ -504,13 +504,18 @@ PROJECTS = [
             # transport.TLSInfo's crypto/tls types, crypto/tls listed above), so that those
             # structs are translated (NewServer splits the configuration; unit N4, 2026-10-17)
             "net/url",
+            # types only (k8s 7f-4, Addendum T-h0): the context keys net/http's client reads
+            # (`httptrace.clientEventContextKey`, `nettrace.TraceKey`,
+            # `nettrace.LookupIPAltResolverKey`), named by `leasehttp.RenewHTTP.spec`'s premise
+            "net/http/httptrace",
+            "internal/nettrace",
         ],
         owned=[os.path.join("go_etcd_io", "etcd"),
                os.path.join("github_com", "prometheus"),
                os.path.join("github_com", "Masterminds"),
                os.path.join("k8s_io", "utils", "third_party"), "google_golang_org", "go_uber_org",
                "go_opentelemetry_io",
-               "net", "hash", "path", os.path.join("internal", "bytealg"), os.path.join("encoding", "hex"),
+               "net", "hash", "path", os.path.join("internal", "bytealg"), os.path.join("internal", "nettrace"), os.path.join("encoding", "hex"),
                os.path.join("crypto", "tls"),
                os.path.join("container", "heap"), os.path.join("unicode", "utf8"),
                os.path.join("github_com", "dustin"), os.path.join("github_com", "jonboulle"),
@@ -966,6 +971,24 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "restart")],
     ),
     Project(
+        name="etcd-wal",
+        # The WAL robustness tester (WAL W4c; `etcd_wal_safe`, notes/decisions.md "WAL W4c"): one
+        # incarnation of a member's WAL per run (`Main`, rerun after every crash), checking each
+        # restart's read against the crash-aware WAL spec, with its reference state in a durable
+        # file (lib/durable). A package of the examples' Go module (examples/go.mod); its imports
+        # are the etcd project's translations (`wal`, `walpb`, `fileutil` names-only). Its crash
+        # driver (`*_test.go`, `crashtest/`) is Go-only.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "etcd", "wal"),
+        # `os` and `io/fs` are this repository's (as the etcd project's), so that the translation
+        # and the WAL's specs can be imported together
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "os=", "io/fs="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "wal")],
+    ),
+    Project(
         name="porcupine",
         # The linearizability checker of etcd's robustness tests (github.com/anishathalye/
         # porcupine v1.3.1, the version in etcd's tests/go.mod), vendored with the one change
@@ -1072,7 +1095,10 @@ PROJECTS = [
                     "golang.org/x/time=", "container/heap=", "github.com/go-logr=",
                     # pflag, names only: `FlagSet`, which featuregate's `MutableFeatureGate.AddFlag`
                     # names (so that goose translates the interface: the driver's noStreaming)
-                    "github.com/spf13="],
+                    "github.com/spf13=",
+                    # types only (the context sweep's fixes, 2026-11-13): runtime/trace's context
+                    # key and `Task`, which `k8sctx.k8sCtxOk` names (Code/runtime/trace.toml)
+                    "runtime/trace="],
         packages=[
             ".",
             "k8s.io/apiserver/pkg/storage/etcd3",
@@ -1214,6 +1240,8 @@ PROJECTS = [
             "k8s.io/utils/trace",
             "encoding/json",
             "encoding/base64",
+            # types only (the context sweep's fixes, 2026-11-13): runtime/trace's context key
+            "runtime/trace",
             # (`path` is the etcd project's, with the bodies rafthttp needs: `Code/path.toml`)
             # types and names only: what the DaemonSet controller and its example name beyond the
             # above (project k8s-daemonset translates the controller; notes/k8s-daemonset-goose.md),
@@ -1263,6 +1291,7 @@ PROJECTS = [
                os.path.join("github_com", "go_logr"),
                os.path.join("github_com", "spf13"),
                os.path.join("encoding", "base64"),
+               os.path.join("runtime", "trace"),
                os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8s", "etcd3")],
         counted_modules=["k8s.io/apiserver"],
     ),

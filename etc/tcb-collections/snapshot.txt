@@ -82,7 +82,6 @@ axiom binary.WriteUint64.wp_proof
 axiom binary.WriteUint8.wp_proof
 axiom ccDecodeV2_nil
 axiom config.ServerConfig.BackendPath.wp_proof
-axiom context.WithCancelBackground.wp_proof
 axiom context.WithValue.wp_proof
 axiom entryEncC_ok
 axiom envVerifyOffTok

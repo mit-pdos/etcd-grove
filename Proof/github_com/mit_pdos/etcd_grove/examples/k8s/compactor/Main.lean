@@ -177,7 +177,7 @@ theorem Main.wp_proof
     $$ [Haddr Hlg3 Hbemu Hgo Hstk] as %serr Hs
   · iframe; iframe #
     isplitr
-    · ipureintro; exact ⟨HEtr, HEw, Hms, Hbuq, HsvOff.2⟩
+    · ipureintro; exact ⟨HEtr, HEw, Hms, Hbuq, HsvOff.2, Htb⟩
     iintro %gs %lis %cid %mid %R Hg
     rw [HsvOff.1]
     ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg

@@ -120,14 +120,15 @@ abbrev RawNode.Ready.spec : Prop :=
       "#Hss" ∷ softStateIs rd.SoftState' ss ∗
       "#Hce" ∷ entsRO rd.CommittedEntries' ce ∗
       "#Hcommitted" ∷ isCommitted γ (rs.delivered ++ ce) ∗
-      "#Hents" ∷ entsRO rd.Entries' es ∗
+      -- (out_size C3, 2026-11-12; until then `entsRO`) at contents of bounded size in a cluster
+      -- bounding proposed data (`entsROz`)
+      "#Hents" ∷ entsROz γ.maxData.isSome rd.Entries' es ∗
       "Hmsgs" ∷ rd.Messages' ↦* ms.map QMsg.loc ∗
       "Hmsgs_cap" ∷ ownSliceCap Loc rd.Messages' (DFrac.own 1) ∗
       -- (2026-10-16, stage R5, D8) the messages, a response at half
-      "Hmsgs_own" ∷ ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st) ∗
-      -- (raft-entsize §2, 2026-11-09) a `MsgSnap`'s top-level unknown fields none: the `pbMsg` of
-      -- the literal `maybeSendSnapshot` built (`snapUf`), for the content a `Ready` pins
-      "#Hmsgs_uf" ∷ ([∗list] q ∈ ms, snapUf q.loc q.st) ∗
+      -- (out_size C3, 2026-11-12; until then `msgOwn` and each one's `snapUf`) at a content
+      -- (`msgOwnZ`): pinned (`sentOk`) and, in a cluster bounding proposed data, of bounded size
+      "Hmsgs_own" ∷ ([∗list] q ∈ ms, msgOwnZ γ.maxData.isSome q.loc (readyDq q.st) q.st) ∗
       -- each message's read credit (2026-10-13)
       "Hmsgs_cred" ∷ ([∗list] q ∈ ms,
         rdCred γ (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) ∗

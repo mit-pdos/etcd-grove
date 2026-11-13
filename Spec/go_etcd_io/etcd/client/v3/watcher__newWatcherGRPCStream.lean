@@ -1,5 +1,7 @@
 /-
 `(*clientv3.watcher).newWatcherGRPCStream(inctx)` (`client/v3/watch.go`; (the watch slice's unit W-C). Lean-first (no Rocq counterpart).
+Its premise on `inctx`, `watchCtx`, includes `Value(&cancelCtxKey)` (the context sweep's fixes,
+2026-11-13): `WithCancel(&valCtx{inctx})` calls it (`WithCancelValCtx`).
 -/
 module
 

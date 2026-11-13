@@ -1,0 +1,9 @@
+# Types only (the context sweep's fixes, 2026-11-13, decided by etcd-grove-81;
+# notes/ctx-sweep-fixes.md): runtime/trace's context key `traceContextKey` and `Task`, which
+# `k8sctx.k8sCtxOk` names (the otel SDK's `runtimeTrace` calls `trace.NewTask(ctx, ...)`, which reads
+# `ctx.Value(traceContextKey{})`).
+translate = ["!*"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

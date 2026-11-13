@@ -359,7 +359,7 @@ theorem EtcdServer.snapshot.wp_proof
         (memSnapMade ai at' c []).Metadata'
         iprop(token γn.wal.app ∗ walBaseLb (storage.walOf (interface.mkOk (go.GoType.PointerType
           go_etcd_io.etcd.server.v3.storage.storage.ty) #stp))
-          (uint.nat (memSnapMade ai at' c []).Metadata'.Index')) $$ Hsave
+          (uint.nat (memSnapMade ai at' c []).Metadata'.Index')) true $$ Hsave
       simp only [interface.mkOk, GoInterface.ok.injEq] at Hsieq
       subst Hsieq
       iunfold rnWalTokA at Hwt

@@ -427,7 +427,6 @@ axiom clockwork.stampAt_elim
 axiom clockwork.stampAt_persistent
 axiom config.ServerConfig.BackendPath.wp_proof
 axiom config.ServerConfig.PeerDialTimeout.wp_proof
-axiom context.WithCancelBackground.wp_proof
 axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithTimeoutBackgroundMd.wp_proof
@@ -570,6 +569,7 @@ axiom http.respWriteHeader_ok
 axiom http.respWrite_ok
 axiom httpProtoFree
 axiom httputil.GracefulClose.wp_proof
+axiom incomingOf_cancelCtx
 axiom insecure.NewCredentials.wp_proof
 axiom io.MultiReader.wp_proof
 axiom io.Pipe.wp_proof
@@ -830,10 +830,13 @@ axiom v3alarm.AlarmStore.restore.wp_proof
 axiom v3alarm.NewAlarmStore.wp_proof
 axiom v3rpc.NewMaintenanceServer.wp_proof
 axiom v3rpc.codec_proto
+axiom v3rpc.ctxCauseOk_cancellable
+axiom v3rpc.incomingOf_cancellableContext
 axiom v3rpc.isClientCtxErr.wp_proof
 axiom v3rpc.logUnaryRequestStats.wp_proof
 axiom v3rpc.pbWatchRequestT_reg
 axiom v3rpc.pbWatchResponseT_reg
+axiom v3rpc.wp_WithTimeout_weak
 axiom verify.Verify.wp_proof
 axiom verifyEnvOff
 axiom version.Cluster.wp_proof
@@ -868,4 +871,3 @@ sorry Perennial.go_etcd_io.bbolt.Options.Options_into_val_typed
 sorry Perennial.go_etcd_io.bbolt.Options.Options_typed_pointsto
 sorry Perennial.reflect.Type'.Type'_into_val_typed
 sorry Perennial.reflect.Type'.Type'_typed_pointsto
-sorry out_size

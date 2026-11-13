@@ -30,7 +30,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 /-- **`ls.LeaseKeepAlive(stream)`**: `leaseKeepAlive`'s premises; it runs the loop on a goroutine
 and returns the loop's error, or the stream's context's error if the context is done first (the
 goroutine then keeps running, with `S' ∗ A.revR`). It returns with the stream specification, as
-`watchServer.Watch`. -/
+`watchServer.Watch`. (k8s 7f-4, Addendum T-k) The loop's goroutine lends a level of its own thread
+token to the renewals (`levelTok v3rpc.ctxErrLvl`, the contract's weak context), which needs
+`5 ≤ threadBound` (as `watchServer.Watch`'s send loop). -/
 abbrev v3rpc.LeaseServer.LeaseKeepAlive.spec : Prop :=
   ∀ (p s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64) (E : apply.AEnv GF) (γl : GName)
     (S' : IProp GF) (st : GoInterface) (γs : StreamNames)
@@ -38,11 +40,11 @@ abbrev v3rpc.LeaseServer.LeaseKeepAlive.spec : Prop :=
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       v3rpc.leaseServerAt p s A cid mid ∗ v3rpc.raftLeaseRenew s E γl S' ∗
-      srvStreamIs st γs pbLeaseKeepAliveRequest pbLeaseKeepAliveResponse Up Dn ci cd ∗
+      srvStreamIsStrong st γs pbLeaseKeepAliveRequest pbLeaseKeepAliveResponse Up Dn ci cd ∗
       v3rpc.kaStreamSpec s E γl γs (auth.ctxTokenOf (GoInterface.ok ci)) Dn ∗
       v3rpc.kaUpOk E γl Up ∗
       srvRecvTok (Req := pbLeaseKeepAliveRequest) γs [] ∗
-      srvSendTok (Rep := pbLeaseKeepAliveResponse) γs [] ∗ S' ∗ A.revR }}
+      srvSendTok (Rep := pbLeaseKeepAliveResponse) γs [] ∗ S' ∗ A.revR ∗ ⌜5 ≤ threadBound GF⌝ }}
     (App (Val (p @!! go.GoType.PointerType v3rpc.LeaseServer.ty @!! go!"LeaseKeepAlive")) (Val #st))
   {{ (err : GoInterface), RET #err;
       v3rpc.kaStreamSpec s E γl γs (auth.ctxTokenOf (GoInterface.ok ci)) Dn }}

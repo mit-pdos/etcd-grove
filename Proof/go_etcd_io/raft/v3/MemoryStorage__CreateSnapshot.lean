@@ -148,21 +148,21 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
   have Hhi : uint.Z i ≤ uint.Z σp.prev.index' + (σp.ents.length : Int) := by word
   obtain ⟨Hd0i, Hd0t⟩ := Hdummy
   icases Hents with #Hents
-  ihave %Hcl := entsRO_cons_len $$ Hents
-  icases entsRO_lookup es (dummy :: σp.ents) 0 dummy rfl $$ Hents
+  ihave %Hcl := entsROz_cons_len _ _ _ _ $$ Hents
+  icases entsROz_lookup _ es (dummy :: σp.ents) 0 dummy rfl $$ Hents
     with ⟨%ls, %l0, #Hls, #He0, %Hl0⟩
   rw [ite_eq_left ⟨by word, by word⟩]
   wp_apply wp_load_slice_index es (sint.Z (W64 0)) ls DFrac.discard l0 (by word) $$ [Hls] with -
   · iframe Hls; ipureintro; exact Hl0.1
   wp_apply wp_GetIndex.1 l0 DFrac.discard dummy $$ [He0] with -
   · iframe He0
-  ihave Hf : memstorageFields ms σp $$ [HhardState Hents_f Hents_cap
+  ihave Hf : memstorageFields ms γs.sz σp $$ [HhardState Hents_f Hents_cap
       Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
   · unfold memstorageFields
     iexists hp, es, dummy, nfi, nli, nen, nte, nsn
     iframe # ∗
     ipureintro; exact ⟨Hd0i, Hd0t⟩
-  wp_apply wp_MemoryStorage_lastIndex ms σp Hpb_inv $$ [$Hf] as %li ⟨%Hli, Hf⟩
+  wp_apply wp_MemoryStorage_lastIndex ms γs.sz σp Hpb_inv $$ [$Hf] as %li ⟨%Hli, Hf⟩
   wp_if_destruct
   · exfalso; word
   iunfold memstorageFields at Hf
@@ -171,7 +171,7 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
   obtain ⟨Hd1i, Hd1t⟩ := Hdummy_1
   icases Hents_1 with #Hents_1
   clear Hcl Hl0
-  ihave %Hcl := entsRO_cons_len $$ Hents_1
+  ihave %Hcl := entsROz_cons_len _ _ _ _ $$ Hents_1
   -- the storage's snapshot, made whole in place
   wp_apply wp_EnsureSnapshot.1 sp0 (some sv0) $$ [Hsnap0] as %r ⟨Hr, %Hrsp⟩
   · simp only [snapOpt]; iexact Hsnap0
@@ -191,7 +191,7 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
     rw [show (uint.Z i - uint.Z σp.prev.index').toNat =
       (uint.nat i - uint.nat σp.prev.index' - 1) + 1 by word, List.getElem?_cons_succ]
     exact HMe
-  icases entsRO_lookup es1 (dummy1 :: σp.ents) _ e (by rw [← Hk] at He; exact He) $$ Hents_1
+  icases entsROz_lookup _ es1 (dummy1 :: σp.ents) _ e (by rw [← Hk] at He; exact He) $$ Hents_1
     with ⟨%ls1, %lk, #Hls1, #Hek, %Hlk⟩
   rw [ite_eq_left ⟨by word, by word⟩]
   wp_apply wp_load_slice_index es1 (sint.Z (i - σp.prev.index')) ls1 DFrac.discard lk (by word) $$ [Hls1] with -

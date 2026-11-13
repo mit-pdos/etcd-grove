@@ -614,9 +614,13 @@ def storBnd (γ : Cluster) (K : GName) (c : Nat) : IProp GF :=
 -- given at the attach, before anything is delivered.
 
 /-- **The storage contract of the storage `st` of key `K`** (persistent; the frozen design's §2,
-`isStorageP` at the cluster's pieces). (2026-11-01, durability stage I-4: keyed by `K`.) -/
+`isStorageP` at the cluster's pieces). (2026-11-01, durability stage I-4: keyed by `K`.)
+(out_size C2) **Sized when the cluster bounds proposed data** (`γ.maxData ≠ none`): `Entries`
+returns objects at contents of bounded size, cut at `maxSize` when `maxSize ≤ 2^20` (`isStorageP`'s
+flag); what raft's `MsgApp` size bound and the handed-out entries' (`Cluster.outEnt_size`) rest on.
+A cluster without the bound (`maxData = none`, kv's) asks nothing more of its storage. -/
 def isStorage (γ : Cluster) (K : GName) (st : Storage) : IProp GF :=
-  isStorageP (snapshotValid γ) (storBnd γ K) (nodeCommitLb γ K) st
+  isStorageP γ.maxData.isSome (snapshotValid γ) (storBnd γ K) (nodeCommitLb γ K) st
 
 /-- (2026-11-01, durability stage I-4) **The storage `st` holds the contents `σ`**, as the storage
 contract states its log: compacted at the base, the base's entry (of the base's term) frozen, the

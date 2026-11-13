@@ -9,27 +9,30 @@ theorem raft.responseToReadIndexReq.wp_proof [package_sem : Assumptions] (wp_Mes
   -- `Perennial.EtcdGrove.raft.responseToReadIndexReq.spec`, unfolded:
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (req : Loc) (m : MessageM) (idx : w64) (e : EntryM) (es : List EntryM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc),
-    ⊢
-      ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-            "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-              "#Hreq" ∷ msgOwn req DFrac.discard { msg := m, ents := e :: es, snap := sn, ctx := ctx, resps := rs } -∗
-          (▷
-              ∀ resp,
-                (if m.From' = W64 0 ∨ m.From' = id then
-                    ownRaftPhysCV c c.voters r id (addReadState s idx e.Data') ∗
-                      msgOwn resp (DFrac.own 1)
-                        { msg := zero_val MessageM, ents := [], snap := none, ctx := [], resps := [] }
-                  else
-                    ownRaftPhysCV c c.voters r id s ∗
-                      msgOwn resp (DFrac.own 1)
-                        { msg := readIndexRespMsg m idx, ents := e :: es, snap := none, ctx := [], resps := [] }) -∗
-                  Φ (intoVal resp)) -∗
-            WP
-              (((intoVal
-                    (methods raft.ty.PointerType
-                      go!"responseToReadIndexReq"
-                      (intoVal r)))
-                  (intoVal req))
-                (intoVal idx))
-              {{ Φ }}
+    m.Type' ≠ MsgSnap →
+      ⊢
+        ∀ Φ,
+          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+              "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+                "#Hreq" ∷
+                  msgOwnZ s.gh.sn.sz req DFrac.discard
+                    { msg := m, ents := e :: es, snap := sn, ctx := ctx, resps := rs } -∗
+            (▷
+                ∀ resp,
+                  (if m.From' = W64 0 ∨ m.From' = id then
+                      ownRaftPhysCV c c.voters r id (addReadState s idx e.Data') ∗
+                        msgOwn resp (DFrac.own 1)
+                          { msg := zero_val MessageM, ents := [], snap := none, ctx := [], resps := [] }
+                    else
+                      ownRaftPhysCV c c.voters r id s ∗
+                        msgOwnZ s.gh.sn.sz resp (DFrac.own 1)
+                          { msg := readIndexRespMsg m idx, ents := e :: es, snap := none, ctx := [], resps := [] }) -∗
+                    Φ (intoVal resp)) -∗
+              WP
+                (((intoVal
+                      (methods raft.ty.PointerType
+                        go!"responseToReadIndexReq"
+                        (intoVal r)))
+                    (intoVal req))
+                  (intoVal idx))
+                {{ Φ }}

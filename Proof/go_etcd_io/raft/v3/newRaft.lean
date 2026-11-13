@@ -253,7 +253,7 @@ private theorem wp_lastIndex_w (l : Loc) (lv : raftLog) (si : GoInterfaceOk) (sn
   wp_auto
   rw [Hsn]
   wp_auto
-  ihave #Hsto : isStorageWith (ownStorage sn (interface.ok si)) (storCut (interface.ok si))
+  ihave #Hsto : isStorageWith sn.sz (ownStorage sn (interface.ok si)) (storCut (interface.ok si))
     (svCert sn) (interface.ok si) $$ [HisSto]
   · unfold isStorageD; iexact HisSto
   unfold isStorageWith
@@ -284,7 +284,7 @@ private theorem wp_firstIndex_w (l : Loc) (lv : raftLog) (si : GoInterfaceOk) (s
   wp_auto
   rw [Hsn]
   wp_auto
-  ihave #Hsto : isStorageWith (ownStorage sn (interface.ok si)) (storCut (interface.ok si))
+  ihave #Hsto : isStorageWith sn.sz (ownStorage sn (interface.ok si)) (storCut (interface.ok si))
     (svCert sn) (interface.ok si) $$ [HisSto]
   · unfold isStorageD; iexact HisSto
   unfold isStorageWith
@@ -326,7 +326,7 @@ private theorem wp_lastEntryID_w (l : Loc) (lv : raftLog) (si : GoInterfaceOk) (
   wp_auto
   rw [Hsn]
   wp_auto
-  ihave #Hsto : isStorageWith (ownStorage sn (interface.ok si)) (storCut (interface.ok si))
+  ihave #Hsto : isStorageWith sn.sz (ownStorage sn (interface.ok si)) (storCut (interface.ok si))
     (svCert sn) (interface.ok si) $$ [HisSto]
   · unfold isStorageD; iexact HisSto
   unfold isStorageWith
@@ -618,7 +618,7 @@ theorem newRaft.wp_proof
     (wp_fmt_Sprintf : fmt.Sprintf.spec (GF := GF) (hG := hG))
     (wp_strings_Join : strings.Join.spec (GF := GF) (hG := hG)) :
     newRaft.spec (GF := GF) (hG := hG) := by
-  intro c cv lok si sn σ hs csm R R' cs' Hvalid Hlok Hsto HmaxInfl Hdpf Hros Hdccv Hmcs Hidx Hpend
+  intro c cv lok si sn σ hs csm R R' cs' Hvalid Hlok Hsto HmaxInfl Hdpf Hros Hdccv Hmcs Hmms Hidx Hpend
     Hfr1 Hfr2 Hfl0 Hsg0 Hdt Hwrap Hrec Hhs Happ Hres Hlen Hcsok
   obtain ⟨HvID, HvID1, HvID2, Hticks, HvSt, HvInfl, HvIB, HvLog, HvRO⟩ := Hvalid
   -- the restored commit `C`, the applied index `A'` the node starts at, the base `b`
@@ -636,7 +636,7 @@ theorem newRaft.wp_proof
   wp_apply wp_Config_validate _ _ ⟨HvID, HvID1, HvID2, Hticks, HvSt, HvInfl, HvIB, HvLog, HvRO⟩
     $$ [$Hc] as %cv' ⟨Hc, %Hpres⟩
   obtain ⟨HpID, HpET, HpHT, HpSt, HpAp, HpMI, HpCQ, HpPV, HpDPF, HpLg, HpMC, HpAW, HpRO, HpDCC,
-    HpSDR⟩ := Hpres
+    HpSDR, HpMSP⟩ := Hpres
   rw [HpSt, Hsto, HpLg, Hlok]
   have Hmcs' : 0 < uint.Z cv'.MaxCommittedSizePerReady' := by
     rw [HpMC]
@@ -690,7 +690,7 @@ theorem newRaft.wp_proof
   -- the struct
   wp_apply wp_MakeProgressTracker as %tv0 %v0 ⟨%Htv0, Hv0, Hvotes, Hprs0⟩
   obtain ⟨Htv0mi, Htv0mb, Htv0arr, Htv0l, Htv0ln, Htv0al⟩ := Htv0
-  wp_apply wp_newReadOnly _ (HpRO.trans Hros) as %ro Hro
+  wp_apply wp_newReadOnly sn.sz _ (HpRO.trans Hros) as %ro Hro
   imod raftOwn_of_pts «$r0_ptr» _ $$ «$r0» with «$r0»
   wp_apply wp_traceInitState
   have HA0C : sn.a0 ≤ uint.nat (committedAfter σ.prev hs) := by
@@ -813,7 +813,7 @@ theorem newRaft.wp_proof
     %(by exact ⟨rfl, rfl, Hidx, Hpend, Hfr1, Hfr2, Hsg0, by omega, by omega, by omega, by omega, HMk⟩)
     Hl HisSto HSto
   -- the struct, sealed at `Restore`'s configuration
-  ihave Hmisc : ownRaftMisc (GF := GF) slice.nil ro slice.nil ({} : RdState) $$ [Hro]
+  ihave Hmisc : ownRaftMisc (GF := GF) sn.sz slice.nil ro slice.nil ({} : RdState) $$ [Hro]
   · unfold ownRaftMisc
     simp only [named]
     isplitr
@@ -883,7 +883,8 @@ theorem newRaft.wp_proof
       sdr := cv'.StepDownOnRemoval', cq := cv.CheckQuorum' }
   ihave Hphys := ownRaftPhysCV_intro cs'.cfg cs'.cfg.voters «$r0_ptr» cv.ID' s2 rv2 [] [] lok
     HpID rfl rfl rfl rfl rfl ⟨HpPV, fun h => absurd h (by simp only [s2]; decide)⟩
-    (by simp only [rv2]; rw [HpDPF, Hdpf]) (by simp only [rv2]; rw [HpDCC, Hdccv])
+    (by simp only [rv2]; rw [HpDPF, Hdpf]) (fun h => by simp only [rv2]; rw [HpMSP]; exact Hmms h)
+    (by simp only [rv2]; rw [HpDCC, Hdccv])
     HpCQ
     rfl ⟨rfl, fun h => HvID h.symm⟩ rfl rfl HvID
     (by show 0 < sint.Z cv'.ElectionTick'; rw [HpET]; omega) (by simp only [rv2]; rw [HpLg, Hlok])

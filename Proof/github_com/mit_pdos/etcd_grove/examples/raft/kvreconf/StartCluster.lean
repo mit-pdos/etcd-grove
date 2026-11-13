@@ -238,17 +238,17 @@ theorem StartCluster.wp_proof
     rw [life_drop_cons _ _ _ Hget, show uint.nat k - 1 + 1 = uint.nat k from by omega]
     icases Htodo with ⟨⟨⟨HrS, Hvac⟩, Hseq⟩, Htodo⟩
     try wp_auto
-    wp_apply wp_NewMemoryStorage $$ [$Hraft] as %ms %γs' ⟨#Hml, #Hmlog, Hmend, Hmsnap, Hmeta, Hfresh⟩
+    wp_apply wp_NewMemoryStorage false $$ [$Hraft] as %ms %γs' ⟨%Hsz, #Hml, #Hmlog, Hmend, Hmsnap, Hmeta, Hfresh⟩
     try wp_auto
     iStructNamed «$r0»
     imod kvrStor_alloc «$r0_ptr» ms «$v3_ptr» γs' (bootCS (bootVoters (uint.nat o.Voters'))) ⊤
-      (fun _ _ => CoPset.mem_full) $$ HstorInv MemoryStorage boot HbootCS with ⟨#Hsrec, #Hsboot⟩
+      (fun _ _ => CoPset.mem_full) Hsz $$ HstorInv MemoryStorage boot HbootCS with ⟨#Hsrec, #Hsboot⟩
     wp_apply wp_config γr _ cl k «$r0_ptr» Hnid0 (by word) $$ [$Hc] as %cp ⟨%cv, Hcv, %Hcfg⟩
     obtain ⟨HcID, HcSt, HcLg, HcV, HcM, HcDP, HcRO, HcDC, HcSz, HcAS, HcAp⟩ := Hcfg
     ihave Hboot := kvr_bootStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
       wp_Entries «$r0_ptr» ms «$v3_ptr» γs' _ (bootCS (bootVoters (uint.nat o.Voters'))) γr.cluster
       (fun K => iprop(memStorMeta ms γs' (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
-        memStorInvP ms γs' (kvrJ γr.cluster K)))
+        memStorInvP ms γs' (kvrJ γr.cluster K))) Hmd
       $$ Hpkg Hsrec Hsboot Hml Hfresh Hmeta Hmlog Hmend []
     · iintro %K Hm Hi; iframe Hm Hi
     ihave Hau := kvr_restartAu γr.cluster kvrRaftN k kvrBootContents kvrBoot_holds $$ [HrS]

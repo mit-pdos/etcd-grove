@@ -67,29 +67,36 @@ theorem RawNode.Propose.wp_proof
   have Hsz : go.arrayLiteralSize [KeyedElement none (ElementLiteralValue
       [KeyedElement (some (KeyField go!"Data")) (ElementExpression go.byte.SliceType #data_sl)])] = 1 := rfl
   simp only [Hsz]
-  imod entOwn_of_struct l0 (⟨zero_val _, null, null, null, data_sl, slice.nil, 0⟩ : raftpb.Entry)
-      (propEntryM data) ⊤ rfl $$ [Hl0] with He
+  -- (out_size C3) the entry at its content, within the bound when the node is sized: the data
+  -- within the cluster's bound (`Hmd`), itself at most `2^31` (`certLink`)
+  icases ownStepGhost_certLink γ _ cf id s $$ Hghost with ⟨#Hlink, Hghost⟩
+  iunfold certLink at Hlink
+  icases Hlink with ⟨-, -, %Hszl, %Hmb⟩
+  have Hdsz : s.gh.sn.sz = true → (propEntryM data).Data'.length ≤ entBytesMax := fun hs => by
+    rw [Hszl] at hs
+    obtain ⟨b, hb⟩ := Option.isSome_iff_exists.1 hs
+    have := Hmd b hb; have := (Hmb b hb).1
+    simp only [propEntryM, entBytesMax]; omega
+  imod entRZ_of_struct s.gh.sn.sz l0 (⟨zero_val _, null, null, null, data_sl, slice.nil, 0⟩ : raftpb.Entry)
+      (propEntryM data) ⊤ rfl Hdsz $$ [Hl0] with #He
   · iframe Hl0
     simp only [propEntryM]
     iframe Hdata
     repeat (isplitr; · iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩)
     iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩
-  imod entOwn_freeze $$ He with #He
   wp_auto
   imod cellRO_alloc $$ «$v1» with #cFr
   ihave #Hnilb := ownSlice_nil (V := w8) (GF := GF) DFrac.discard
-  imod msgPtsC_of_struct «$a0_ptr» (⟨zero_val _, pty, null, «$v1_ptr», null, null, null,
+  imod msgInC_of_struct s.gh.sn.sz «$a0_ptr» (⟨zero_val _, pty, null, «$v1_ptr», null, null, null,
       slice.mk slp (W64 1) (W64 1), null, null, null, null, null, slice.nil, slice.nil, slice.nil,
-      0⟩ : raftpb.Message) (DFrac.own 1) false [l0]
+      0⟩ : raftpb.Message) (DFrac.own 1) [l0]
       ⟨{ (zero_val MessageM) with Type' := W32 2, From' := id }, [propEntryM data], none, [], []⟩
-      ⊤ rfl $$ [«$a0» Hsl] with Hm
+      ⊤ rfl rfl rfl rfl rfl (fun _ => ⟨by simp, by simp [entBytesMax]⟩) $$ [«$a0» Hsl] with Hm
   · iframe «$a0» Hsl Hnilb cTy cFr
     msg_nulls
-    simp only [Bool.false_eq_true, ↓reduceIte, snapOpt]
-    iframe He
-    isplitl []; · iapply entsBig_nil
-    isplitl []; · iempintro
-    isplitl []; · ipureintro; trivial
+    isplitl []
+    · iapply (BigSepL2.bigSepL2_singleton (Φ := fun _ p e => entRZ (GF := GF) s.gh.sn.sz p e)).2
+      iexact He
     iapply ownSlice_nil
   have HmC : needsCap ({ (zero_val MessageM) with Type' := W32 2, From' := id } : MessageM) = false := rfl
   imod rdCred_zero_upd (GF := GF) γ with Hcr
@@ -115,7 +122,7 @@ theorem RawNode.Propose.wp_proof
     isplitl [Hm Htk]
     · simp only [named]
       isplitl [Hm]
-      · simp only [msgIn, HmC]; iexact Hm
+      · rw [flag_moves (by decide : movesB (W32 2) = true)]; iexact Hm
       isplitl [Htk]
       · isplitr
         · iexists ([propEntryM data].map fun _ => none)

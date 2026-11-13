@@ -731,6 +731,17 @@ theorem readyEnts_entsRO (γ : Cluster) (s : GoSlice) (es : List EntryM) :
   unfold readyEnts Cluster.outEnt
   exact ApiImpl.readyEntsU_entsRO γ s es
 
+/-- (out_size C3) **A `Ready`'s entries are sized** in a cluster with a bound on proposed data
+(from `Cluster.outEnt_size`): the slice of objects frozen at contents of bounded size. -/
+theorem readyEnts_sized (γ : Cluster) (s : GoSlice) (es : List EntryM) (b : Nat)
+    (hmd : γ.maxData = some b) :
+    readyEnts (GF := GF) γ s es ⊢
+      ∃ (ls : List Loc) (cs : List EntryC), s ↦*□ ls ∗ ([∗list] l;c ∈ ls;cs, entRoC l c) ∗
+        ⌜cs.map EntryC.model = es ∧ ∀ c ∈ cs, entSizeOk c⌝ := by
+  unfold readyEnts Cluster.outEnt
+  unfold Cluster.maxData at hmd
+  exact ApiImpl.readyEntsU_sized γ s es b hmd
+
 /-- (open) **The rest of a `Ready`** after its committed entries `ce` and read states, at the loop's
 state `st` (today's `readyDataL` without them; the storage's part in the storage contract's
 vocabulary, `appendRight`, `readyOut`): the entries `es` to persist, the messages `ms` (each owned

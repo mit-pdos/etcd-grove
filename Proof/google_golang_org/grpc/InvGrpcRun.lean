@@ -307,14 +307,15 @@ theorem srvStreamChainWP_wand (info : val) (ics : List GoFunc) (h srv st : val)
     iapply H $$ %h' Hh'
 
 /-- **The stream adapter** (Scope r5 §3.4; B1b): a stream handler proved against
-`grpcStreamMethodOk` at a bundle `levelTok 0 ∗ R₁ ∗ R₂ ∗ R₃` (the run's own level 0, B3, and three
-leveled pools, levels 1, 2, 3), which it returns, meets the stream run contract: the run borrows each pool with its token's level, strips the
-joined later with the run's one credit, runs the chain, and gives the loans back. Generic in the
-pools, as `grpcRunOkMd_of_pools`. -/
+`grpcStreamMethodOk` at a bundle `levelTok 0 ∗ levelTok 4 ∗ R₁ ∗ R₂ ∗ R₃` (the run's own level 0,
+B3; its level 4, which the handler lends a weak context's `Err()`, k8s 7f-4, Freeze addendum T-f';
+and three leveled pools, levels 1, 2, 3), which it returns, meets the stream run contract: the run
+borrows each pool with its token's level, strips the joined later with the run's one credit, runs
+the chain, and gives the loans back. Generic in the pools, as `grpcRunOkMd_of_pools`. -/
 theorem grpcStreamRunOk_of_pools {Req Rep : StreamMsg GF} (mh : val) (srv : GoInterface)
     (sics : List GoFunc) (Up : Nat → Req.M → IProp GF) (Spec : GrpcMd → StreamSpec Rep)
-    (R₁ R₂ R₃ : IProp GF) (N₁ N₂ N₃ : Namespace) (γ₁ γ₂ γ₃ : GName) (HT : 4 ≤ threadBound GF) :
-    □ grpcStreamMethodOk mh srv sics iprop(levelTok 0 ∗ R₁ ∗ R₂ ∗ R₃) Up Spec ∗
+    (R₁ R₂ R₃ : IProp GF) (N₁ N₂ N₃ : Namespace) (γ₁ γ₂ γ₃ : GName) (HT : 5 ≤ threadBound GF) :
+    □ grpcStreamMethodOk mh srv sics iprop(levelTok 0 ∗ levelTok 4 ∗ R₁ ∗ R₂ ∗ R₃) Up Spec ∗
       threadPool.isThreadPoolL N₁ 1 γ₁ R₁ ∗ threadPool.isThreadPoolL N₂ 2 γ₂ R₂ ∗
       threadPool.isThreadPoolL N₃ 3 γ₃ R₃ ⊢
     grpcStreamRunOk mh srv sics Up Spec := by
@@ -325,7 +326,8 @@ theorem grpcStreamRunOk_of_pools {Req Rep : StreamMsg GF} (mh : val) (srv : GoIn
   iframe Hs
   iintro !> %γ %Dn %ci %cd %st %info HSp Htok Hlc Hraw HR HT' Ha Hi
   iapply srvStreamChainWP_fupd
-  icases (threadTok_levels0123 (GF := GF) HT).1 $$ Htok with ⟨H0, H1, H2, H3, H4⟩
+  icases (threadTok_levels0123 (GF := GF) (by omega)).1 $$ Htok with ⟨H0, H1, H2, H3, H4⟩
+  icases (threadTokFrom_succ (GF := GF) 4 (by omega)).1 $$ H4 with ⟨H4, H5⟩
   imod threadPool.borrowL N₁ 1 γ₁ R₁ ⊤ (fun _ _ => CoPset.mem_full) $$ [Hp1 H1] with ⟨HR1, Hl1⟩
   · iframe; iframe #
   imod threadPool.borrowL N₂ 2 γ₂ R₂ ⊤ (fun _ _ => CoPset.mem_full) $$ [Hp2 H2] with ⟨HR2, Hl2⟩
@@ -337,11 +339,11 @@ theorem grpcStreamRunOk_of_pools {Req Rep : StreamMsg GF} (mh : val) (srv : GoIn
   imod lc_fupd_elim_later (E := ⊤) $$ Hlc HRs with HRs
   imodintro
   iapply srvStreamChainWP_wand
-  ihave HRs : iprop(levelTok 0 ∗ R₁ ∗ R₂ ∗ R₃) $$ [H0 HRs]
+  ihave HRs : iprop(levelTok 0 ∗ levelTok 4 ∗ R₁ ∗ R₂ ∗ R₃) $$ [H0 H4 HRs]
   · iframe
   isplitl [HSp HRs Hraw HR HT' Ha Hi]
   · iapply Hr $$ HSp HRs Hraw HR HT' Ha Hi
-  iintro %v ⟨%err, %Hv, #Hse, ⟨H0, HB1, HB2, HB3⟩⟩
+  iintro %v ⟨%err, %Hv, #Hse, ⟨H0, H4, HB1, HB2, HB3⟩⟩
   imod threadPool.giveBackL N₁ 1 γ₁ R₁ ⊤ (fun _ _ => CoPset.mem_full) $$ [Hp1 Hl1 HB1] with H1
   · iframe; iframe #
   imod threadPool.giveBackL N₂ 2 γ₂ R₂ ⊤ (fun _ _ => CoPset.mem_full) $$ [Hp2 Hl2 HB2] with H2
@@ -353,7 +355,9 @@ theorem grpcStreamRunOk_of_pools {Req Rep : StreamMsg GF} (mh : val) (srv : GoIn
   isplitr
   · ipureintro; exact Hv
   iframe Hse
-  iapply (threadTok_levels0123 (GF := GF) HT).2
+  iapply (threadTok_levels0123 (GF := GF) (by omega)).2
+  iframe
+  iapply (threadTokFrom_succ (GF := GF) 4 (by omega)).2
   iframe
 
 end adapt

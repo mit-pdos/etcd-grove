@@ -140,10 +140,12 @@ theorem raft.appliedTo.wp_proof
           rw [decide_eq_true (show stateW64 s1.role = W64 2 by rw [Hrl]; rfl)]
           try wp_auto
           icases ownRaftPhysC_last_bound c r id s1 $$ Hphys with ⟨%HL1, Hphys⟩
-          wp_apply wp_confChangeToMsg interface.nil none DFrac.discard $$ []
+          wp_apply wp_confChangeToMsg interface.nil none DFrac.discard s1.gh.sn.sz $$ []
             as %ml %bs ⟨-, Hm, %Hbs⟩
-          · unfold ownConfChangeI; ipureintro; rfl
-          simp only [MarshalsConfChange] at Hbs
+          · isplitr
+            · simp only [ccPtsCCo]; ipureintro; trivial
+            ipureintro; intro _ cc h; cases h
+          simp only [Option.map_none, MarshalsConfChange] at Hbs ⊢
           subst Hbs
           try wp_auto
           ihave #Hcc := ccEntsOk_leave (GF := GF)

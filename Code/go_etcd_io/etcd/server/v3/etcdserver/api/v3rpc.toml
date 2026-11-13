@@ -33,6 +33,11 @@ translate = ["!*",
   "newStreamInterceptor", "monitorLeader", "streamsMap", "cancellableContext",
   "newCancellableContext", "cancellableContext.Cancel", "cancellableContext.Err",
   "serverStreamWithCtx", "serverStreamWithCtx.Context", "maxNoLeaderCnt", "snapshotMethod",
+  # k8s 7f-4: the wrapper's promoted methods (the require-leader branch's context and stream: the
+  # embedded `WithCancel` child's `Deadline`/`Done`/`Value`, the embedded raw stream's
+  # `RecvMsg`/`SendMsg`, which the generated handler calls)
+  "cancellableContext.Deadline", "cancellableContext.Done", "cancellableContext.Value",
+  "serverStreamWithCtx.RecvMsg", "serverStreamWithCtx.SendMsg",
   # item 4 (server start): grpc.go's Server and getServerMetrics, the constructors of the other
   # services it registers, the health notifier
   "Server", "getServerMetrics", "maxSendBytes", "metricsServerLock", "metricsServerCached",

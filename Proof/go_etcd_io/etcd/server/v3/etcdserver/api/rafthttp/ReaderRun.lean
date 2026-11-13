@@ -127,8 +127,8 @@ variable [sem : go.Semantics]
 theorem srFixed_intro (Rh : RaftHttp GF) (lid pid : w64) (γd : GName) (cr : Loc)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
     ⊢ srFixed0 Rh lid pid γd cr -∗ cr.[rafthttp.streamReader, go!"ctx"] ↦□ GoInterface.ok ctx -∗
-      context.isContext ctx cd -∗ srFixed Rh lid pid γd cr := by
-  iintro #H0 #Hc #Hctx
+      context.isContext ctx cd -∗ context.bgCancelChild ctx -∗ srFixed Rh lid pid γd cr := by
+  iintro #H0 #Hc #Hctx #Hbg
   iunfold srFixed0 at H0
   icases H0 with ⟨%lg, %tr, %ps, %rc, %pc, %γr, %γp, #H1, #H2, #H3, #H4, #H5, #H6, #H7, #H8, #H9,
     #H10, #H11, #H12⟩

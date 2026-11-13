@@ -13,6 +13,8 @@ public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverWatchStr
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.isClientCtxErr
 public import Spec.errors.IsCtxErr
 public import Spec.errors.Is
+public import Spec.errors.IsStatusErr
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.SrvCtxWeakLaws
 public import Spec.go_uber_org.zap.Logger__Debug
 public import Spec.go_uber_org.zap.Logger__Warn
 public import Spec.go_uber_org.zap.Error
@@ -43,7 +45,7 @@ local macro "watch_tail" : tactic => `(tactic| (
   icases HP with ⟨-, HrdS⟩
   imodintro
   iapply HΦ
-  iframe Hspec HrdS
+  iframe Hspec HrdS Hl4
   first | iexact HsvW | iexact HsvE | iexact HsvC))
 
 set_option hygiene false in
@@ -75,6 +77,7 @@ theorem v3rpc.watchServer.Watch.wp_proof
     (hICE : v3rpc.isClientCtxErr.spec (GF := GF) (hG := hG))
     (hIs : errors.IsCtxErr.spec (GF := GF) (hG := hG))
     (hIsT : errors.Is.spec (GF := GF) (hG := hG))
+    (hIsS : errors.IsStatusErr.spec (GF := GF) (hG := hG))
     (hZD : zap.Logger.Debug.spec (GF := GF) (hG := hG))
     (hZW : zap.Logger.Warn.spec (GF := GF) (hG := hG))
     (hZE : zap.Error.spec (GF := GF) (hG := hG))
@@ -86,7 +89,7 @@ theorem v3rpc.watchServer.Watch.wp_proof
   have := v3rpc.srvWOk_persistent hP W R.wsl v3rpc.wsN
   have := v3rpc.swsIs_persistent (GF := GF) hP
   have : ∀ γ n, Timeless (mvcc.api.mvccReaders (GF := GF) γ n) := hP.2.2.2.2.2.2.2.1
-  wp_start as ⟨#HWS, #HW, #Hstream, #Hspec, #Hup, Hrt, Hst, HAux, %Htb4, #Hp2, #Hp3, HrdS⟩
+  wp_start as ⟨#HWS, #HW, #Hstream, #Hspec, #Hup, Hrt, Hst, HAux, %Htb4, #Hp2, #Hp3, HrdS, Hl4⟩
   obtain ⟨Htb, HT4⟩ := Htb4
   ihave #HWS' := HWS
   iunfold v3rpc.isWatchServer at HWS'
@@ -182,17 +185,17 @@ theorem v3rpc.watchServer.Watch.wp_proof
   · iintro Htt
     wp_apply hSend sws_ptr r Up Dn st ci cd $$ [$Hst $Hcons' $Hrcv $HA $Hmutok $Htt $HrdS]
       as ⟨Htt, HrdS⟩
-    · iframe #; ipureintro; exact Htb
+    · iframe #; ipureintro; exact ⟨Htb, HT4⟩
     wp_apply sync.join.WaitGroup.wp_Done (mvcc.api.mvccReaders W.γm 1) (v3rpc.swsF sws_ptr go!"wg")
       $$ [$Hdone $HrdS]
     · iframe #; try iexact Htt
   -- the stream's methods and its context
   ihave #Hstream' := Hstream
   iunfold v3rpc.srvStreamIs at Hstream'
-  icases Hstream' with ⟨%si, %Hsi, #HRecv, #HSend, #HCtx, #Hctxis, #Hrunctx⟩
-  ihave #Hctx2 := Hctxis
+  icases Hstream' with ⟨%si, %Hsi, #HRecv, #HSend, #HCtx, #Hctxw, #Hlibc, #Hspanc, -⟩
+  ihave #Hctx2 := Hctxw
+  iunfold srvCtxWeak at Hctx2
   iNamed Hctx2
-  ihave #HErrU := HErr $$ %Broadcast.Unknown
   ipersist stream
   iunfold v3rpc.watchVars at Hvars
   icases Hvars with ⟨#Heof, #Hwpv⟩
@@ -266,7 +269,9 @@ theorem v3rpc.watchServer.Watch.wp_proof
       · itrivial
       iintro !> -
       wp_auto
-      wp_apply +noauto HErrU $$ [] as %cerr - -
+      icases (threadTok_lend4 (GF := GF) HT4) $$ Htt with ⟨Hl4r, Hback⟩
+      wp_apply +noauto HErr $$ [$Hl4r] as %cerr Hl4r
+      ihave Htt := Hback $$ Hl4r
       wp_auto
       wp_apply hICE as %b -
       wp_if_destruct
@@ -388,12 +393,21 @@ theorem v3rpc.watchServer.Watch.wp_proof
     · itrivial
     iintro !> -
     wp_auto
-    wp_apply +noauto HErrDone $$ [$HCC] as %cerr %- #HcE
-    ihave #HsvC := applyErrIs_srvErrOk $$ [HCtxE HcE]
-    · iapply HCtxE $$ HcE
-
+    wp_apply +noauto HErrDone $$ [$HCC] [$Hl4] as %cerr %- #HcE Hl4
+    ihave #HsvC := v3rpc.srvErrOk_of_weakErr $$ [] %cerr HcE
+    · iframe #
     wp_auto
-    canceled_check cerr
+    icases HcE with (#HcE | #HcE)
+    · canceled_check cerr
+      all_goals watch_tail
+    -- etcd's no-leader error: `errors.Is` on a status error
+    ihave #HcS := v3rpc.statusErrOk_of_noLeaderErr $$ [] %cerr HcE
+    · iframe #
+    wp_apply hIsS cerr (GoInterface.ok eC) (Or.inr (Or.inl ⟨eC, rfl, HeCp⟩)) $$ [] as %bC -
+    · iframe #
+    wp_if_destruct
+    rotate_left
+    all_goals try wp_auto
     all_goals watch_tail
   iapply BigAndL.bigAndL_nil.2
   itrivial

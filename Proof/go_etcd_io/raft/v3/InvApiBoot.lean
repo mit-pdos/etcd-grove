@@ -169,7 +169,13 @@ theorem cluster_alloc_boot_impl (N : Namespace) (vs : List w64) (ctxs : List (Li
     isplitr
     · unfold clusterInv
       iframe Hcinv Hinv HspT
-      ipureintro; exact HNs
+      isplitr
+      · ipureintro; exact HNs
+      ipureintro; intro b hb
+      refine ⟨Hmxd b (Hmxd' ▸ hb), fun e he => ?_⟩
+      rw [HbootL] at he
+      obtain ⟨e0, he0, hd⟩ := toEntries_data_mem he
+      rw [hd]; exact HmxdB b (Hmxd' ▸ hb) e0 he0
     iframe Hpool
     ipureintro; exact Hrb
   imodintro

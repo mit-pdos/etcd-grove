@@ -282,6 +282,10 @@ structure StorNames where
   (index, term) pairs (`raftDL`'s third reading: a valid snapshot at a recorded index has the
   recorded term) -/
   ct : List (Nat × w64) := []
+  /-- (out_size C2) the storage is sized (`isStorageP`'s flag): its `Entries` returns entry objects
+  at contents of bounded size, cut at `maxSize` (`entsPtsC`, `entsCut`). The node pins it to
+  `γ.maxData.isSome` (the node API's `isStorage`); `false` for a storage of no such contract. -/
+  sz : Bool := false
 
 /-- (durability stage I-6) The same names with no attach record: raft's view of its storage before
 it has caught up with the record (`newRaft`'s window between `InitialState` and `appliedTo`: the

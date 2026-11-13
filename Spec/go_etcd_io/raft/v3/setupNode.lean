@@ -56,8 +56,10 @@ abbrev setupNode.spec : Prop :=
   (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
   cv.AsyncStorageWrites' = false →
   -- (raft-entsize §3, 2026-11-09) in a cluster with a bound on proposed data, a `MsgApp`'s entries
-  -- cut at `MaxSizePerMsg ≤ 2^20` (the size law's)
-  (γ.maxData ≠ none → uint.Z cv.MaxSizePerMsg' ≤ 2 ^ 20) →
+  -- cut at `MaxSizePerMsg ≤ entsCutMax` (`2^20`, the size law's)
+  (γ.maxData ≠ none → uint.Z cv.MaxSizePerMsg' ≤ entsCutMax) →
+  -- (out_size C3) the storage names' flag is the cluster's (`certLink`'s pin)
+  sn.sz = γ.maxData.isSome →
   cv.Applied' = W64 0 →
   σ.prev = entryID.mk (W64 0) (W64 0) → σ.ents = [] → σ.pend = [] →
   σ.fr = 0 → σ.sg = 0 → σ.dt = ∅ →

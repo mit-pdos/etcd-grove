@@ -21,7 +21,7 @@ public import Spec.go_uber_org.zap.Logger__Warn
 public import Spec.go_uber_org.zap.String
 public import Spec.go_uber_org.zap.Bool
 public import Proof.github_com.mit_pdos.etcd_grove.FirstCallee
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.MsgRead
+public import Proof.go_etcd_io.raft.v3.MsgRead
 
 @[expose] public section
 
@@ -364,7 +364,7 @@ theorem rafthttp.streamReader.decodeLoop.wp_proof
   ihave #Hf' := Hf
   iunfold srFixed at Hf'
   icases Hf' with ⟨%lg, %tr, %ps, %rcv, %pcv, %γr, %γp, %ctx, %cd, #Hlg, #Hlgz, #Hpid, #Htr,
-    #Hlid, #Hps, #Hpsok, #Hrcv, #Hrbag, #Hpcv, #Hpbag, #Hmu, #Hctxf, #Hctx⟩
+    #Hlid, #Hps, #Hpsok, #Hrcv, #Hrbag, #Hpcv, #Hpbag, #Hmu, #Hctxf, #Hctx, #Hbgc⟩
   ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

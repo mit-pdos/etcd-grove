@@ -14,6 +14,8 @@ def snapUfT (l : Loc) (ty : w32) : IProp GF :=
 def EntryC.countable : Pos.Countable EntryC :=
   Pos.Countable.ofInjective (fun c => Pos.Countable.encode (c.term, c.index, c.type, c.data, c.uf)) ⋯
 
+theorem varintSize_le_succ (n : Nat) : varintSize n ≤ n + 1
+
 def outSizeOk : Loc × MsgC ⊕ Loc × EntryC → Prop :=
   match x✝ with
   | Sum.inl (fst, c) => c.model.msg.Type' ≠ MsgSnap → msgSizeOk c
@@ -26,8 +28,17 @@ theorem msgPtsC_msgPtsCC_uf (l : Loc) (dq dqe : DFrac) (cap : Bool) (st : MsgSt)
 def outEntR (γ : RaftNames) (e : Loc) (c : EntryC) : IProp GF :=
   outSetR γ (Sum.inr (e, c))
 
+theorem lenSize_le (n : Nat) : lenSize n ≤ 2 * n + 2
+
+theorem entrySize_lt_of_ok (e : EntryC) (h : entSizeOk e) : entrySize e < 2 ^ 33
+
 theorem snapUf_congr (l : Loc) (st st' : MsgSt) (h : st'.msg.Type' = st.msg.Type') : snapUf l st ⊢
     snapUf l st'
+
+theorem nat_le_sum_of_mem' {l : List Nat} {a : Nat} (h : a ∈ l) : a ≤ l.sum
+
+theorem sum_map_mul {α : Type} (l : List α) (f : α → Nat) (k : Nat) : (List.map (fun x => k * f x)
+    l).sum = k * (List.map f l).sum
 
 def optSnapSize : Option SnapC → Nat :=
   match x✝ with
@@ -46,14 +57,22 @@ def CSC.countable : Pos.Countable CSC :=
   Pos.Countable.ofInjective
     (fun c => Pos.Countable.encode (c.voters, c.learners, c.votersOutgoing, c.learnersNext, c.autoLeave, c.uf)) ⋯
 
+theorem entBytes_le_entrySize (e : EntryC) : entBytes e ≤ entrySize e
+
 def msgSizeOk (c : MsgC) : Prop :=
   c.resps = [] ∧
-    hdrBytes c ≤ 2 ^ 31 ∧
-      (∀ (e : EntryC), e ∈ c.f.entries → entBytes e ≤ 2 ^ 31) ∧
+    hdrBytes c ≤ entBytesMax ∧
+      (∀ (e : EntryC), e ∈ c.f.entries → entBytes e ≤ entBytesMax) ∧
         (List.map (fun e => entBytes e + 64) c.f.entries).sum ≤ 2 ^ 36
+
+theorem optBytesSize_ge (o : Option (List w8)) : (o.getD []).length ≤ optBytesSize o
 
 theorem msgOwn_snapUf_CC (l : Loc) (dq : DFrac) (st : MsgSt) : msgOwn l dq st ∗ snapUf l st ⊢ ∃ c,
     msgPtsCC l dq DFrac.discard false c ∗ ⌜c.model = st ∧ c.sentOk⌝
+
+theorem optW64Size_le (o : Option w64) : optW64Size o ≤ 11
+
+theorem optBytesSize_le (o : Option (List w8)) : optBytesSize o ≤ 2 * (o.getD []).length + 2
 
 def SnapMetaC.countable : Pos.Countable SnapMetaC :=
   Pos.Countable.ofInjective (fun c => Pos.Countable.encode (c.confState, c.index, c.term, c.uf)) ⋯
@@ -62,6 +81,8 @@ def outKey : Loc × MsgC ⊕ Loc × EntryC → Loc × MsgFC × List Loc ⊕ Loc 
   match x✝ with
   | Sum.inl (m, c) => Sum.inl (m, c.f, List.map Prod.fst c.resps)
   | Sum.inr x => Sum.inr x
+
+theorem entrySize_le_entBytes (e : EntryC) : entrySize e ≤ 2 * entBytes e + 35
 
 def MsgFC.countable : Pos.Countable MsgFC :=
   Pos.Countable.ofInjective
@@ -77,14 +98,21 @@ def msgOutR (γ : RaftNames) (l : Loc) (dq : DFrac) (st : MsgSt) : IProp GF :=
 theorem outObjR_size (γ : RaftNames) (m : Loc) (c : MsgC) (b : Nat) : outObjR γ m c ⊢ ⌜γ.maxData =
     some b → c.model.msg.Type' ≠ MsgSnap → msgSizeOk c⌝
 
+theorem lenSize_ge (n : Nat) : n + 2 ≤ lenSize n
+
 def outSetR (γ : RaftNames) (x : Loc × MsgC ⊕ Loc × EntryC) : IProp GF :=
-  Pos.Countable.encode (outKey x) ↪[γ.out]□ ()
+  iprop(Pos.Countable.encode (outKey x) ↪[γ.out]□ () ∗ ⌜∀ (b : Nat), γ.maxData = some b → outSizeOk x⌝)
 
 def SnapC.countable : Pos.Countable SnapC :=
   Pos.Countable.ofInjective (fun c => Pos.Countable.encode (c.data, c.metadata, c.uf)) ⋯
 
+theorem varintSize_le_ten (n : Nat) (h : n < 2 ^ 64) : varintSize n ≤ 10
+
 def hdrBytes (c : MsgC) : Nat :=
   (c.f.context.getD []).length + c.f.uf.length + optSnapSize c.f.snapshot
+
+theorem optVarintSize_le_type {T : Type} (o : Option T) (f : T → w64) : optVarintSize (Option.map
+    (fun t => (uint.Z (f t)).toNat) o) ≤ 11
 
 theorem outSetR_persistent (γ : RaftNames) (x : Loc × MsgC ⊕ Loc × EntryC) : Persistent (outSetR γ
     x)
@@ -94,9 +122,24 @@ def snapUf (l : Loc) (st : MsgSt) : IProp GF :=
 
 theorem snapUfT_ne (l : Loc) (ty : w32) (h : ty ≠ MsgSnap) : ⊢ snapUfT l ty
 
+theorem varintSize_pos (n : Nat) : 1 ≤ varintSize n
+
+theorem sum_map_le_sum_map {α : Type} (l : List α) (f g : α → Nat) (h : ∀ (x : α), x ∈ l → f x ≤ g
+    x) : (List.map f l).sum ≤ (List.map g l).sum
+
+theorem msgSizeOk_of_size (c : MsgC) (hs : msgSize c ≤ 2 ^ 30) (hr : c.resps = []) : msgSizeOk c
+
 theorem msgOutR_snap (γ : RaftNames) (l : Loc) (dq : DFrac) (st : MsgSt) : msgOutR γ l dq st ⊢ ∃ c,
     msgPtsCC l dq DFrac.discard false c ∗ outObjR γ l c ∗ ⌜c.model = st ∧ c.csUfNil ∧ (st.msg.Type'
     = MsgSnap → c.f.uf = [])⌝
+
+theorem msgSize_lt_of_ok (c : MsgC) (h : msgSizeOk c) : msgSize c < 2 ^ 47
+
+theorem respsSize.eq_def (x✝ : List (Loc × MsgC)) : respsSize x✝ = match x✝ with | [] => 0 | (fst,
+    c) :: rs => lenSize (msgSize c) + respsSize rs
+
+theorem msgSize.eq_def (x✝ : MsgC) : msgSize x✝ = match x✝ with | MsgC.mk f rs => f.size + respsSize
+    rs
 
 theorem outEntR_size (γ : RaftNames) (e : Loc) (c : EntryC) (b : Nat) : outEntR γ e c ⊢ ⌜γ.maxData =
     some b → entSizeOk c⌝

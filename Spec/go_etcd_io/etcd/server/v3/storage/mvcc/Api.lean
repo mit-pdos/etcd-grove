@@ -755,7 +755,10 @@ the stream's: closed, unchanged (`ErrEmptyWatcherRange`); open, a watcher regist
 id, of the range, filtered by `fs`, from `watchLo σ startRev`, after the `k` responses sent so far,
 live. The update is asked only for a non-empty range (`⌜empty⌝ ∨ au`: the range check is `Watch`'s
 first statement, before the lock, `watcher.go` l.118-120; mvccfull's Freeze, 2026-11-10: until then
-`au` was asked always and handed back unused on an empty range). -/
+`au` was asked always and handed back unused on an empty range). The context: `context.TODO()` or
+one whose span is a span (`trace.spanCtxOk`; `Watch` reads only `trace.SpanFromContext(ctx)`; k8s
+7f-4, Addendum T-g: no `isContext`, the binder `cd` kept, so that etcd's stream handlers may pass a
+weak context). -/
 abbrev WatchStream.Watch.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : MvccName) (ι : WsName) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key endk fcs : GoSlice) (kk e : List w8) (fs : List (EvM → Bool)) (startRev : w64)
@@ -770,7 +773,7 @@ abbrev WatchStream.Watch.contract (ty : go.GoType) (v : val) : Prop :=
       COMM Q σ S id }>)
   {{ pkgInit ∗ isMvccWatchStream (interface.mkOk ty v) γ ι ∗ mvccReaders γ 1 ∗
       (⌜ctx = interface.mk context.todoCtx.ty #(zero_val context.todoCtx)⌝ ∨
-        (context.isContext ctx cd ∗ trace.spanCtxOk ctx)) ∗
+        trace.spanCtxOk ctx) ∗
       key ↦*□ kk ∗ endk ↦*□ e ∗ filtersImpl fcs fs ∗ ⌜0 ≤ sint.Z startRev⌝ ∗
       (⌜e ≠ [] ∧ ¬ go.GoStringLt kk e⌝ ∨ au) }}
     (App (App (App (App (App (App (Val #(methods ty go!"Watch" v)) (Val #(GoInterface.ok ctx)))

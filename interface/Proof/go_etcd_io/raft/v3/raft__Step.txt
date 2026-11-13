@@ -88,7 +88,7 @@ theorem raft.Step.wp_proof [package_sem : Assumptions] (wp_raft_hup : raft.hup.s
                                                                   isLeader γ id m.Term') ∗
                                                             "Hm" ∷
                                                                 ("Hmsg_in" ∷
-                                                                    msgIn ml
+                                                                    msgInC (s.gh.sn.sz && movesB m.Type') ml
                                                                       (if m.Type' = MsgProp then DFrac.own 1
                                                                       else DFrac.discard)
                                                                       { msg := m, ents := ents, snap := sn, ctx := ctx,

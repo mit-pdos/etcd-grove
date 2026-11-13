@@ -32,7 +32,7 @@ abbrev newStorage.spec : Prop :=
   ∀ (bp : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.newStorage)) (Val #bp))
-  {{ (s : Loc), RET #s; ∃ (ms ip : Loc) (γs : MemStorNames),
+  {{ (s : Loc), RET #s; ∃ (ms ip : Loc) (γs : MemStorNames), ⌜γs.sz = false⌝ ∗
       s.[KStorage, go!"MemoryStorage"] ↦ ms ∗ s.[KStorage, go!"boot"] ↦□ bp ∗
       s.[KStorage, go!"img"] ↦□ ip ∗ ownImage ip imgEmpty ∗
       memStorLock ms γs ∗ memLog γs 0 DFrac.discard [zero_val EntryM] ∗ memEnd γs 1 ∗

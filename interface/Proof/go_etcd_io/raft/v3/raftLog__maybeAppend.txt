@@ -17,7 +17,7 @@ theorem raftLog.maybeAppend.wp_proof [package_sem : Assumptions] (wp_raftLog_mat
               ∀ Φ,
                 isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
                     "Hlog" ∷ ownRaftLog l ls ∗
-                      "#Hents" ∷ entsRO a.entries' ents ∗ "Hcap" ∷ ownSliceCap Loc a.entries' (DFrac.own 1) -∗
+                      "#Hents" ∷ entsROz ls.sn.sz a.entries' ents ∗ "Hcap" ∷ ownSliceCap Loc a.entries' (DFrac.own 1) -∗
                   (▷
                       ∀ lastnewi ok ls',
                         ownRaftLog l ls' ∗
