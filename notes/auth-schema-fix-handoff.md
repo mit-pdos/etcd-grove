@@ -1,3 +1,34 @@
+# auth-schema-fix: handoff (2026-11-13, third agent: re-review changes done, finishing)
+
+## State (read this first)
+
+Branch `auth-schema-fix`. Since the previous handoff (below): lean 222c3fcff7 merged (f884b4616c;
+STATUS one copy per entry, the oldest to status-history; examples/etcd/auth/Defs.lean merged without
+conflict, `runsNoRequireLeader` gone); re-review changes committed: 9317630050 (M1 unknown fields nil in
+`ownUser`/`ownRole`/`ownUserX`/`ownRoleX`, a trusted tightening; m1 `0 < name.length` in both put
+clauses with `auth.namesOk` in `authSmall`/`stepOk`; m2 recorded for D22 in decisions.md),
+8b20ea1ef3 (m3 authSchemaSrv's docstring; ValidSpec lens M1-M4). Go evidence for M1:
+`/shared/tmp/auth-safe/fix-tests/zz_authfix_unknown_test.go` (passes; run in the clone
+`/shared/tmp/authfix-81/etcd` at c90b03b56). Freeze package: `/shared/tmp/auth-safe/freeze-fix.md`
+(sections R-M1, R-m1, R-m2). Forms: questions.md, last entry. Targeted builds pass (auth store
+methods, Fuel/Boot/Token*, apply AuthFuel/AuthSteps(X)/Contracts, etcdserver SnapAuthRecover,
+KVAuthModel, InvAuthBackend). The lost helper's 254a2a6e4f/8b5b18ab8b/d2519c5729 were not re-checked
+separately: the full build, tcb --check and gates below check them.
+
+## Next, in order
+
+1. Full build (running/redo: `flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p
+   MemoryMax=64G python3 etc/timed-build.py --packages=/shared/tmp/manifest-ddc.json`, log
+   `/shared/tmp/authfix-81/full-build1.log`).
+2. `LAKE_OPTS=--packages=/shared/tmp/manifest-ddc.json etc/tcb-report.py --check` (and collections);
+   update baselines only for intended changes (expected: none beyond 8b5b18ab8b's +1 axiom).
+3. Gates as etc/gates.sh runs them (GOWORK unset), gen-interface --check --layout for every
+   etc/api/*.txt; regenerate and commit interfaces if they moved.
+4. STATUS entry (rewrite this branch's front entry, dated 2026-11-13), then REPORT to 81; land only
+   on 81's go.
+
+---- older handoff below ----
+
 # auth-schema-fix: handoff (2026-11-13, after F1, S1 option A and the first finish)
 
 ## State (read this first)
