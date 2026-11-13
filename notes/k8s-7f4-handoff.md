@@ -33,6 +33,43 @@ the worktree's untracked `questions.md` (decisions), `/shared/tmp/coord-81/commo
     Nothing used it.
   - freeze §2's "T-e'" section (marked draft).
 
+## Handoff point (2026-11-13, end of the eighth agent's context): T-i landed; LeaseKeepAlive next
+
+Landed: lean `7b414c87f3` (T-i with the review's m1-m7: `etc/bgcancel-check.py` in `etc/gates.sh`;
+`issues/etcd-timeout-transport-rw-timeouts-unused.md`; baselines without
+`context.WithCancelBackground.wp_proof`, 866 axiom lines). Nothing unlanded on the branch.
+
+**Next, in order** (81: "LeaseKeepAlive with T-h5's option (A); its trusted texts stop for my review"):
+1. Trusted texts, as a new Addendum (T-j) in `notes/k8s-7f4-freeze.md`, written in Lean, built, then
+   **STOP for 81's review** before any proof relies on them (T-h2 and T-h5 of the freeze note give the
+   design):
+   - `context.madeCancelCtx c` (new opaque, trusted: "allocated by `context`'s constructors, fields
+     written only by `context`'s code") and the trusted law `madeCancelCtx_of_isCancelCtx`
+     (Perennial's `isCancelCtx` holds only of the constructors' contexts);
+   - `v3rpc.ctxDoneErr c s` (`SrvCtxWeak.lean`): `srvCtxWeak` without `#HParentCC`, `#HValue` at
+     `&cancelCtxKey` returning nil, another dynamic type, or a `*cancelCtx` with `madeCancelCtx`
+     (option (A); NOT T-h2's `#HValueAny`, refuted by `TestRenewHTTPNilCancelCtxPanics`);
+     `v3rpc.ctxChildErr` (no token, `Err` nil or `isCtxErr ∨ noLeaderErr`); laws
+     `ctxDoneErr_of_srvCtxWeak` (needs `madeCancelCtx_of_isCancelCtx`), `ctxDoneErr_of_child`;
+   - the marked local axiom `v3rpc.wp_WithTimeout_weak` (new `v3rpc/WithTimeoutWeak.lean`, header
+     "TRUST BOUNDARY, local, delete when notes/perennial-changes.md's 'context model over an error
+     predicate' lands"): T-h2's statement, its post also `madeCancelCtx` of the child's embedded
+     `*cancelCtx` via `ctxChildErr`; no netCtxOk wand needed (`ctxValueFrom parent ctx'` carries the
+     chain form, T-h as written);
+   - `waitLeader.spec`/`RenewHTTP.spec` move to `ctxDoneErr` (weaker premises); Go evidence: the
+     existing `TestWithTimeoutWeak`, `TestNoLeaderTyped`, `TestRenewHTTPNilCancelCtxPanics` in
+     `examples/premisefix/streamctx`, plus a test that a `madeCancelCtx`-shaped value (a real child)
+     is fine.
+   Gates for the review: build, `tcb-report --check` (report, no `--update`), collections, axiom-tok
+   (entries for the new axiom's level token, as T-f'), model-param, gen-interface `--check`.
+2. After the review: `LeaseKeepAlive`/`leaseKeepAlive` re-proved over the weak stream end (drop the
+   temporary `srvStreamIsStrong`), `LeaseRenew` on `wp_WithTimeout_weak`; stop before step 6 (a hard
+   stop; report the closed theorems it reaches).
+
+Build: targeted `lake build --packages=/shared/tmp/manifest-ddc.json <modules>` under
+`systemd-run --scope -q -p MemoryMax=64G`, then the full one with `etc/timed-build.py` under
+`flock /shared/tmp/etcd-grove-build.lock`; land only via `etc/land.sh` (GOWORK unset), after 81's go.
+
 ## Eighth agent (2026-11-13): T-h0 + T-h6 landed; T-i written; STOPPED for 81's axiom review
 
 Landed: lean `9c583ebbcf` (T-h0 + T-h6 with the T-h review's minors m1-m4, `ee11f69d91`; merged with
