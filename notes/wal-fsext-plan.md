@@ -1571,6 +1571,43 @@ update: `s.wal dir := walDurFresh md`, the new layout and its `CrashOk`); then `
 - *Not done:* `TouchDirAll`/`CreateDirAll` `wp_proof`s (`sorry`), the `walCreating` minting step,
   `wal.Create.wp_proof`.
 
+**Seventh session (branch `wal-create7`, 2026-11-13).**
+- *Proved (no `sorry`):* **`fileutil.TouchDirAll.wp_proof`** and **`fileutil.CreateDirAll.wp_proof`**
+  (`LinuxFs/Proof/.../fileutil/TouchDirAll.lean`), over hypotheses `Exist.spec`, `filepath.Clean`/`Dir`,
+  `os.MkdirAll.specS`, `IsDirWriteable.spec`, `syncDir.spec`, `ReadDir.spec` (CreateDirAll) and the two
+  above-root hypotheses (`os.Stat.specAboveRoot`, `syncDir.specAboveRoot`; `wal-above` replaces them).
+  Structure: `wp_existAnc` (`Exist` of the path of the first `k` components of `rcs ++ cs ++ [name]`:
+  `false` at `k = |full|`), the first loop as a `wp_join` at the `doFor` (invariant `d = ancPath (full.take
+  k)`, `created ↦* touchC full (k+1)`), `MkdirAll` with `osAU_triv` (`mkOut_join`), the second loop
+  (`forRange`; invariant `i < |created| ∨ osCommitLb h1.next`: the last element's `syncDir` is the parent's,
+  below the root), `IsDirWriteable` on `J`'s claim split at `.touch` and merged back (`merged_cur`); error
+  arms through `osSubtreeH_none`/`osSubtreeH_dir` (`subCover_noDirs`). `CreateDirAll`: `ReadDir` of the
+  fresh directory finds `[]` (its claim's `cur = ∅`), so the `fmt.Errorf` branch is unreachable.
+- *Spec change (minor):* `IsDirWriteable`'s post also says `.touch` holds no directory (`∀ J', hJ'.cur !!
+  .touch ≠ some (.dir J')`; `os.rmFileOut_join` gives the entry kept or deleted), for the error arm's
+  `SubCover`.
+- **Finding (task 2, for the invariant's owner/coordinator): `CreatingNew`'s third clause cannot be
+  established at the minting.** "No other creating entry's directory is `J`" needs, at the step at `⊤`
+  that mints `walCreating dir N h J`, that every entry `dir' ↦ (_, _, J')` of `CR` has `J' ≠ J`. Nothing the
+  program or the invariant holds says so: the invariant records no fragment of `J'`'s claim, and the
+  program's whole `J` claim can be compared (`NamesCoh`) only with fragments it holds. Only one `Create` is
+  ever in progress (it holds `osCallPerm 1` and the lock token throughout), so the fix is to know `CR = ∅` at
+  the minting. Proposed (internal ghost, no client-visible change): a conjunct tying `CR` to the parking flag
+  (`CR ≠ ∅ → CR` a singleton `∧` the parking flag `false`), the minting doing `walUnlockedTok_lock` (which
+  `walCreateP`'s `walLockedTok` needs anyway; `b = true ⇒ CR = ∅`) and inserting the entry; the abort path
+  (an unminting step: claims merged back, entry deleted, `walLockedTok_unlock`) restoring `CR = ∅`; `Close`
+  (W10, not yet stated) needing `CR = ∅` when it unparks: an open handle's `walHandleDir` (registered after
+  `Create`'s commit / at `Open`) could witness it (`CR ≠ ∅ →` no handle registered). The other three clauses
+  and `CreatingOk`'s facts are the shared invariant's at the minting (as designed). Also needed by the
+  minting (not written): the claim split's preservation of `WalsOk`/`AbsentNone`/`WalsNamed`/`walParked`/
+  `DirKeysOk` (replacing `(jr, N0, h0)` in `cl` by its `.inter [nm, nm.tmp]` and `.diff` parts:
+  `RegionCrashed` is the same for both claim lists under `ClaimCoh h0 jr N0`, since every logged entry of
+  `h0` writes a name of one part and `valAfter` of a part agrees with `h0`'s on its names), and for the
+  success post's `walAreaRes jr` the reverse merge after the parent fsync. Not started.
+- *Not done:* the minting step (above), `wal.Create.wp_proof` (`sorry`). For `Create`'s handle: `walHandleIn`
+  now has `walDirH` (`wal-cut5`): `Create` must give the key `walDirKey dir J X` (from `walCreateQ`), half of
+  `J`'s claim, a path fraction to `dir`, half the call permission and the tail's name.
+
 **For `wal-create6` (the invariant's owner, 2026-11-13).** (1) `walAreaRes jr` gains `⌜∀ nm J, walNameOk nm →
 h.cur !! tmpName nm = some (.dir J) → ∀ hJ, (J, NameSet.except [], hJ) ∈ cl → FilesOnly hJ.cur⌝` (a leftover
 `nm.tmp` holds only files; `CreateDefs.lean`, importing `LinuxFs.Spec.os.RemoveAll`), for `os.RemoveAll.specDirS`
