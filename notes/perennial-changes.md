@@ -30,6 +30,21 @@ translations with bodies (crc32's generic table path, bufio's `Reader`, filepath
 lexical functions and `os` for `Abs`/`Walk`) and specs; `io.ReadFull`/`io.Copy` with bodies over the
 `Reader` interface. Not yet proposed; the trust decision is open (no model was written).
 
+**`hash/crc32` (2026-11-13, branch `wal-leaf-enc`): a trusted model, pending the user's review.**
+`LinuxFs/TrustedCode/hash/crc32.lean` models `MakeTable` and `Update` (`trusted` in
+`LinuxFs/Code/hash/crc32.toml`) as Go's portable code: `MakeTable(Castagnoli)` allocates the table of
+`simplePopulateTable(Castagnoli)` (a Lean constant computed bitwise, `castagnoliTableArr`), any other
+polynomial panics; `Update` is `simpleUpdate` reading the table it is given. The pure vocabulary is
+`LinuxFs/Spec/hash/crc32/Model.lean` (`crc32c`, with the check vector proved by kernel evaluation,
+table-driven and bitwise). Evidence: `examples/stdlib/crc32/crc32_test.go` (go1.27.3 linux/amd64:
+the whole table, the check vector, 20,000 random inputs and splits against Go's SSE4.2 path).
+Deviations, documented in the model: other polynomials panic; `MakeTable(Castagnoli)` allocates a
+fresh table where Go returns one shared pointer. **Proposed upstream**: the same model in Perennial's
+`TrustedCode/hash/crc32.lean` (with `crc32.toml`'s `trusted`), generalized to every polynomial by a
+GooseLang `simplePopulateTable` (or by translating `crc32_generic.go` with bodies and trusting only
+`Update`'s dispatch to it), with `IEEE` alongside; then this part's names-only `hash/crc32` and the
+local model go.
+
 ### `sort.Sort`'s spec as a function of its input (2026-11-09, specs-only batch 3b)
 
 Perennial's `sort.Sort`/`sort.Slice` specs say only that the result is some sorted permutation of
