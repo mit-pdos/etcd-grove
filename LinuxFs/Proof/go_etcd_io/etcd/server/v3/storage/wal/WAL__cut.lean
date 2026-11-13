@@ -622,6 +622,22 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     · iunfold tailVar; iexact Hv
     rw [← hg]
     iframe
+  -- the rename
+  ihave Hpd' : osPathS Rd dir (DFrac.own (qd.half + qd.half)) j $$ [Hpd]
+  · rw [Qp.half_add_half]; iexact Hpd
+  icases (osPathS_frac Rd dir qd.half qd.half j).1 $$ Hpd' with ⟨Hpd1, Hpd2⟩
+  have hgi : g.ino = i2 := by rw [← hg]
+  have hbX : (NameSet.except X).Mem (walFileName (sq + 1) (max (uint.nat h.enti) (uint.nat h.snapi) + 1)) :=
+    fun hb => by rw [hXw _ hb] at hbtw; cases hbtw
+  wp_apply (_wp_Rename dir (pipeTmp np) dir
+      (walFileName (sq + 1) (max (uint.nat h.enti) (uint.nat h.snapi) + 1)) j j g.ino
+      (.only [pipeTmp np]) (.except X) Rd (DFrac.own qd.half) (DFrac.own qd.half) ht hj
+      (1 : Qp).half (1 : Qp).half qQuarter ((1 : Qp).half + qQuarter) (1 : Qp).half _
+      (pipeTmp_nameOk np) (walFileName_nameOk _ _) (by simp [NameSet.Mem]) hbX (by simp)
+      (by rw [hgi]; exact hcur2) (fun J hJ => by rw [hcurbt] at hJ; cases hJ)
+      (Qp.half_add_half 1) hq3)
+    $$ [Hpd1 Hpd2 Hperm Hn2b Hcl2 Hau] as %rerr ⟨Hpd1, Hpd2, Hperm, %ro, %hro, HQ, Hro⟩
+  · iframe; iframe #
   sorry
 
 end proof
