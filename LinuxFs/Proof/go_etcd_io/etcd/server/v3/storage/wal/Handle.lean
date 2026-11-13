@@ -21,7 +21,7 @@ their helpers (`saveEntry`, `saveState`, `saveCrc`, `sync`, `cut`).
 * **The handle** (`walHandleIn Mr w dir h`, `h : WalHS`): the struct's fields, the encoder over
   the tail with its CRC at `tailCrc` and its pending bytes, the stream split
   `take o0 ++ out ++ pend = tailStream`, the tail's lock and file, the last hard state at
-  `w.state`, the indices `enti`/`snapi`, the pipeline (`walPipeH`, W2's), and the ghost handle
+  `w.state`, the indices `enti`/`snapi`, the pipeline (`walPipeH`, `Pipe.lean`), and the ghost handle
   (`walOpenW`). `walOpenWF Mr w dir` seals it: the client-facing handle of the specs.
 * **The raft messages** `Save` reads (`WalPbIn`): the part cannot import the main tree's `hsRO`/
   `entRoC` (the raft-root clash, plan §10), so the specs are over predicates a client
@@ -34,6 +34,7 @@ their helpers (`saveEntry`, `saveState`, `saveCrc`, `sync`, `cut`).
 module
 
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateDefs
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Pipe
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.EncDefs
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Codec
 public import LinuxFs.Proof.os.Off
@@ -205,9 +206,13 @@ def walTailW (f : Loc) (i : Ino) (γW : GName) (o0 : Nat) (out : List w8) : IPro
     os.ownOff f (W64 (o0 + out.length)) ∗ osMeta i (DFrac.own (1 : Qp).half) m ∗
     osBytes i 0 (DFrac.own (1 : Qp).half) bs ∗ ghostVar γW (1 : Qp).half (o0 + out.length))
 
-/-- The pipeline `w.fp` of the WAL in `dir` (W2's `isFilePipeline`; until W2 states it, the
-pointer only). -/
-def walPipeH (fp : Loc) (_dir : GoString) : IProp GF := iprop(⌜fp ≠ null⌝)
+/-- **The pipeline `w.fp` of the WAL in `dir`** (`Pipe.lean`), the handle having made `k` cuts:
+the pipeline (some directory inode `j`, roots `R`, path fraction `dq`, file size `sz`), the
+caller's token after `n ≤ k` files received, and the claim on the name the next `Open` hands back
+(`pipeTmp (n + 1)`: the name of the file received last, renamed away by its cut). -/
+def walPipeH (fp : Loc) (dir : GoString) (k : Nat) : IProp GF :=
+  iprop(∃ (γ : PipeNames) (R : Roots) (dq : DFrac) (j : Ino) (sz : w64) (n : Nat),
+    isFilePipe fp γ R dir dq j sz ∗ pipeMain γ n ∗ tmpClaim j (pipeTmp (n + 1)) ∗ ⌜n ≤ k⌝)
 
 /-- A non-tail lock: a `*fileutil.LockedFile` and its open file. -/
 def walLockH (lf : Loc) : IProp GF :=
@@ -247,7 +252,7 @@ def walHandleIn (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h
     ([∗list] lf ∈ lfs.dropLast, walLockH lf) ∗
     structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile go!"File" lt ↦ f ∗
     os.ownFile f fd name (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨h.ino, false, true⟩ ∗
-    structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ fp ∗ walPipeH fp dir ∗
+    structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ fp ∗ walPipeH fp dir h.cuts.length ∗
     encEnv ∗ walCrcTable ∗
     walOpenW (W := W) w dir ∗
     ⌜WalHS.Split Mr h ∧ 0 ≤ fd.toInt⌝)
