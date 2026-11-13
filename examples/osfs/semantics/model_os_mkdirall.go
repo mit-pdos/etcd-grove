@@ -9,14 +9,17 @@ import (
 // os.MkdirAll is Go's body over the models of Stat, Mkdir and Lstat (trusted
 // model; a draft pending review, 2026-11-13).
 //
-// Decision: MkdirAll(path, perm) is Go's path.go body (the fast-path Stat, the
+// Decision: for a path strictly below a root (the extension's query PathKind
+// is 1; at a root or above one, model_os_mkdirall_above.go), MkdirAll(path,
+// perm) is Go's path.go body (the fast-path Stat, the
 // recursion on the parent, Mkdir, the Lstat after a failed Mkdir), calling the
 // models of Stat, Lstat and Mkdir and the translated IsPathSeparator, with
 // len(filepathlite.VolumeName(path)) written as 0 (its value on Linux:
 // internal/filepathlite, which nothing translates, is why MkdirAll is a model
 // and not a translation).
 //
-// Lean: LinuxFs/TrustedCode/os.lean: MkdirAll.impl, model.stat, Mkdir.impl.
+// Lean: LinuxFs/TrustedCode/os.lean: MkdirAll.impl, model.mkdirAllParent,
+// model.stat, Mkdir.impl; Impl.lean: PathKind.
 //
 // Allowed: below, a, a/b and a/b/c made in that order, each Mkdir an entry of
 // the log after the previous one; an error at any step stops the rest (any

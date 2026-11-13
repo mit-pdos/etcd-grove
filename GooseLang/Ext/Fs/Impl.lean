@@ -21,7 +21,10 @@ filesystems, options and kernels are outside the model until tested on their own
 **Environment** (hypotheses of the adequacy statement, not of this file). The roots (`FsState.roots`)
 name distinct directories of the filesystem, none in another's tree; every entry in their trees is
 a regular file or a directory (no symlink, mount point, device, FIFO or socket) and no file is a
-hard link of another; no other process changes their trees or moves a directory above a root; the
+hard link of another; no other process changes their trees or moves a directory above a root; **the
+roots and their ancestors are existing directories throughout** (an ancestor may be a symlink to
+one, a root is none: so a root's `lstat` answers as its `stat`, and `mkdir` of either fails with no
+effect; `PathKind`; the program never removes, renames or replaces one either, as no step can); the
 filesystem has no error or shutdown event (then an `fsync` may return 0 without committing); the
 tree at boot is their trees' entries. The journal (jbd2) commits whole transactions, in order; a
 metadata call joins a transaction no earlier than those of the calls that returned before it
@@ -465,6 +468,12 @@ def OsState.TreeName (st : OsState) (p : GoString) : Prop := ∃ rj ∈ st.fs.ro
 def OsState.TreePath (st : OsState) (p : GoString) : Prop :=
   (∃ rj ∈ st.fs.roots, rj.1 = p) ∨ st.TreeName p
 
+/-- `p` is a root or an ancestor of one: not empty, and a root is `p` or below it, textually
+(`IsUnder`; the roots being canonical and absolute, `RootForm`, such a `p` is `/c₁/…/cₖ`, a prefix of
+a root's components). The environment (the header) keeps each an existing directory. -/
+def OsState.AtOrAboveRoot (st : OsState) (p : GoString) : Prop :=
+  p ≠ [] ∧ ∃ rj ∈ st.fs.roots, IsUnder p rj.1
+
 /-- The directory `p` is in (its inode) and `p`'s last component, if that directory exists. -/
 def OsState.parent (st : OsState) (p : GoString) : Option (Ino × GoString) :=
   match parentOf p with
@@ -718,6 +727,16 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   (inside Go's `EINTR` retry loop), before the attempt enters the kernel, and passes its token to
   that attempt's step only. A model that returns without the step leaves the call in flight for
   good, which makes every later directory rename stuck. -/
+  /- Where the path `p` is: `#p ↦ #1` for a `TreeName` (strictly below a root), `#0` for a root or
+  an ancestor of one (`AtOrAboveRoot`); stuck on any other path. A query of the model, not a system
+  call (no state changes): `os.MkdirAll`'s model asks it, so that above a `TreeName` it runs Go's
+  body with no step on the paths the extension gives no meaning (the roots and their ancestors are
+  existing directories, the environment: Go's `stat` there succeeds, its `mkdir` fails, neither
+  changes anything). **Pending the user's review** (2026-11-13, `notes/wal-fsext-models-review.md`,
+  finding 1). Go example: `examples/osfs/semantics/model_os_mkdirall_above.go`. -/
+  | "PathKind" => ∃ p : GoString, v = #p ∧ st' = st ∧
+      (st.TreeName p ∧ e' = Val (#(1 : w64)) ∨
+       ¬ st.TreeName p ∧ st.AtOrAboveRoot p ∧ e' = Val (#(0 : w64)))
   | "CallBegin" => ∃ t : Nat, v = #() ∧ st.proc.calls !! t = none ∧
       st.proc.inflight !! t = none ∧
       st' = st.setProc { st.proc with calls := <[t := st.fs.metaLog.length]> st.proc.calls } ∧

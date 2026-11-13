@@ -2,24 +2,32 @@
 
 package semantics
 
-// Measurements behind the trusted models' Go examples (model_*.go), run on
-// this machine (Linux 7.0, ext4 with its defaults: configuration C,
-// env_config.go). The tests make their files in a directory under the working
-// directory (the package's, on ext4), not in $TMPDIR (often a tmpfs).
+// Measurements behind the trusted models' Go examples (model_*.go), on
+// configuration C (env_config.go): run-models-on-c.sh makes and mounts a C
+// filesystem with notes/axiom-review/fs-config/mkfs-mount.sh, checks it with
+// check.sh (its output is the record) and runs these tests in it
+// ($SEMANTICS_C_DIR). Run with plain `go test`, they use a directory under the
+// working directory, not $TMPDIR (often a tmpfs).
 
 import (
 	"errors"
 	"os"
+	"path/filepath"
 	"syscall"
 	"testing"
 
 	"golang.org/x/sys/unix"
 )
 
-// extDir is a fresh directory under the working directory, removed after the test.
+// extDir is a fresh directory under $SEMANTICS_C_DIR (a configuration-C mount made by
+// run-models-on-c.sh) or, if unset, under the working directory, removed after the test.
 func extDir(t *testing.T) string {
 	t.Helper()
-	d, err := os.MkdirTemp(".", "models-test-")
+	base := os.Getenv("SEMANTICS_C_DIR")
+	if base == "" {
+		base = "."
+	}
+	d, err := os.MkdirTemp(base, "models-test-")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -204,5 +212,41 @@ func TestMkdirAllRemoveAll(t *testing.T) {
 	var pe *os.PathError
 	if err := os.RemoveAll(d + "/."); !errors.As(err, &pe) || pe.Op != "RemoveAll" || !errors.Is(err, syscall.EINVAL) {
 		t.Fatalf("dot: %v", err)
+	}
+}
+
+// model_os_mkdirall_above.go: at an existing directory (a root) and at its parent (an
+// ancestor), Stat succeeds with a directory, Mkdir fails with EEXIST and changes nothing, and
+// MkdirAll returns nil.
+func TestMkdirAllAboveRoot(t *testing.T) {
+	d, err := filepath.Abs(extDir(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f, _ := os.Create(d + "/f")
+	f.Close()
+	for _, p := range []string{d, filepath.Dir(d)} {
+		var before syscall.Stat_t
+		if err := syscall.Stat(p, &before); err != nil {
+			t.Fatal(err)
+		}
+		names0, _ := os.ReadDir(p)
+		if fi, err := os.Stat(p); err != nil || !fi.IsDir() {
+			t.Fatalf("Stat(%s): %v %v", p, fi, err)
+		}
+		if err := os.Mkdir(p, 0o700); !errors.Is(err, syscall.EEXIST) {
+			t.Fatalf("Mkdir(%s): %v, want EEXIST", p, err)
+		}
+		if err := os.MkdirAll(p, 0o700); err != nil {
+			t.Fatalf("MkdirAll(%s): %v", p, err)
+		}
+		var after syscall.Stat_t
+		if err := syscall.Stat(p, &after); err != nil || after.Ino != before.Ino || after.Nlink != before.Nlink {
+			t.Fatalf("%s changed: ino %d->%d nlink %d->%d (%v)", p, before.Ino, after.Ino, before.Nlink, after.Nlink, err)
+		}
+		names1, _ := os.ReadDir(p)
+		if p == d && len(names1) != len(names0) {
+			t.Fatalf("%s: entries %d -> %d", p, len(names0), len(names1))
+		}
 	}
 }

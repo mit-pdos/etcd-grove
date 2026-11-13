@@ -26,7 +26,7 @@
 //	env_durable_at_first_start.go durable at first start (F2)        FsInit
 //	env_restarts.go               restarts are machine crashes       OsCrash := MachineCrash
 //	env_journal_order.go          metadata in journal order          Follows, Closed, MachineCrash, DirSync
-//	env_roots_only.go             only the roots' trees              TreeName, TreePath, CanonBelow, RootsOk
+//	env_roots_only.go             only the roots' trees              TreeName, TreePath, AtOrAboveRoot, CanonBelow, RootsOk
 //
 // File contents and sizes:
 //
@@ -54,13 +54,14 @@
 //	meta_readdir.go               readdir racing changes             OsDirRead, DirReadNext
 //
 // Trusted models of the Go wrappers (drafts of 2026-11-13, pending review;
-// models_test.go holds their measurements, run on this machine):
+// models_test.go holds their measurements, run on C by run-models-on-c.sh):
 //
 //	model_syscall_fallocate.go    syscall.Fallocate as unix's        syscall.lean: Fallocate.impl
 //	model_syscall_fcntlflock.go   lock commands; F_OFD_GETLK on any  syscall.lean: FcntlFlock.impl
 //	model_os_close_nil.go         nil *File Close: ErrInvalid        os.lean: File.Close.impl
 //	model_os_stat.go              Stat/Lstat as open+fstat+close     os.lean: model.stat, arbitraryMode
 //	model_os_mkdirall.go          MkdirAll: Go's body over models    os.lean: MkdirAll.impl
+//	model_os_mkdirall_above.go    MkdirAll at or above a root        Impl.lean: PathKind; os.lean: mkdirAllAbove
 //	model_os_removeall.go         RemoveAll over paths, rename-free  os.lean: RemoveAll.impl, removeAllFrom
 //	model_os_writefile.go         WriteFile; an empty Write          os.lean: File.Write.impl; WriteFile
 //

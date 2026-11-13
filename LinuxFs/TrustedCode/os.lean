@@ -729,8 +729,10 @@ errno, `EMFILE` included, on an existing path), which only weakens what a proof 
 is the type (0 for a regular file, `ModeDir` for a directory) with arbitrary permission,
 `setuid`, `setgid` and sticky bits (`model.arbitraryMode`; permissions are not modelled), and a
 directory's size is arbitrary (Linux reports its blocks' bytes, which the extension does not
-model). As every step on a path, the model is stuck on a path outside the roots' trees (Linux
-answers there). The `CallBegin` makes a directory rename by another thread stuck until the `open`
+model). As every step on a path, the model is stuck on a path outside the roots' trees and on a
+path that is not canonical (`a/`, `a//b`, relative; Linux answers there). At a root it answers
+(`Open` takes a root), and `Lstat` as `Stat` is right there too (the environment: no root is a
+symlink). The `CallBegin` makes a directory rename by another thread stuck until the `open`
 (as for every path call), so `stat`'s walk never meets a moved directory. Go example:
 `examples/osfs/semantics/model_os_stat.go`. -/
 noncomputable def model.stat : val :=
@@ -767,10 +769,70 @@ noncomputable def Stat.impl : val :=
   λ: "name", model.stat #"stat" "name"
 
 /-- `Lstat(name string) (FileInfo, error)` (`stat.go`, `lstatNolog`): `model.stat` with `Op`
-"lstat". In the roots' trees there are no symlinks (the extension's environment), so `lstat`
-answers as `stat` does. -/
+"lstat". In the roots' trees there are no symlinks, and no root is one (the extension's
+environment), so `lstat` answers as `stat` does on every path the model takes. -/
 noncomputable def Lstat.impl : val :=
   λ: "name", model.stat #"lstat" "name"
+
+/-- `MkdirAll`'s `parent` of `path` (`path.go`): `path` up to the last separator before its last
+component (trailing separators skipped), empty if there is none:
+
+```go
+	i := len(path) - 1
+	for i >= 0 && IsPathSeparator(path[i]) {
+		i--
+	}
+	for i >= 0 && !IsPathSeparator(path[i]) {
+		i--
+	}
+	if i < 0 {
+		i = 0
+	}
+	parent := path[:i]
+``` -/
+noncomputable def model.mkdirAllParent : val :=
+  λ: "path",
+    let: "len" := (FuncResolve go.len [go.string]) #() "path" in
+    let: "i" := (rec: "trail" "i" :=
+        if: ("i" ≥⟨go.int⟩ #(W64 0)) &&
+            ((FuncResolve go!"os.IsPathSeparator" []) #() (Index go.string ("path", "i")))
+        then "trail" ("i" -⟨go.int⟩ #(W64 1)) else "i") ("len" -⟨go.int⟩ #(W64 1)) in
+    let: "i" := (rec: "back" "i" :=
+        if: ("i" ≥⟨go.int⟩ #(W64 0)) &&
+            (⟨go.bool⟩! ((FuncResolve go!"os.IsPathSeparator" []) #()
+              (Index go.string ("path", "i"))))
+        then "back" ("i" -⟨go.int⟩ #(W64 1)) else "i") "i" in
+    let: "i" := if: "i" <⟨go.int⟩ #(W64 0) then #(W64 0) else "i" in
+    Slice go.string ("path", #(W64 0), "i")
+
+/-- `MkdirAll(path, perm)` at a root or an ancestor of one (the extension's `PathKind` is `0`):
+Go's body (`MkdirAll.impl`) with no extension step, its calls answered as Linux answers them on an
+existing directory that no thread changes (the environment: the roots and their ancestors are
+existing directories throughout, a root is no symlink, no other process moves them, and no step of
+the program can remove or rename one). `Stat(path)` succeeds with a directory (`nil` returned) or
+fails with any errno (`ArbitraryInt`); then the recursion on the parent, which is again a root's
+ancestor or empty (the parent of a canonical absolute `/c₁/…/cₖ` is `/c₁/…/cₖ₋₁`, and that of
+`/c₁` is empty, which Go does not recurse on); then `Mkdir(path)`, which fails (the path exists:
+`EEXIST`, or any other errno), and `Lstat(path)`, which sees a directory (`nil` returned) or
+fails, and then the `Mkdir`'s error, `&PathError{"mkdir", path, Errno(e)}`, is returned, `e` any
+nonzero errno (`EEXIST` on Linux; a symlink ancestor's `lstat` sees no directory, which is
+this outcome too). No extension step: none is needed (these answers change nothing), and the
+extension has none on these paths. **Pending the user's review** (2026-11-13,
+`notes/wal-fsext-models-review.md`, finding 1). Go example:
+`examples/osfs/semantics/model_os_mkdirall_above.go`. -/
+noncomputable def model.mkdirAllAbove : val :=
+  rec: "above" "path" :=
+    if: ArbitraryInt =⟨go.uint64⟩ #(W64 0) then #GoInterface.nil -- Stat: a directory
+    else
+      let: "parent" := model.mkdirAllParent "path" in
+      let: "e" := if: (FuncResolve go.len [go.string]) #() "parent" >⟨go.int⟩ #(W64 0)
+        then "above" "parent" else #GoInterface.nil in
+      if: "e" ≠⟨go.error⟩ #GoInterface.nil then "e"
+      else if: ArbitraryInt =⟨go.uint64⟩ #(W64 0) then #GoInterface.nil -- Lstat: a directory
+      else
+        let: "m" := ArbitraryInt in
+        model.pathError #"mkdir" "path"
+          (syscall.model.errno (if: "m" =⟨go.uint64⟩ #(W64 0) then #(W64 17) else "m"))
 
 /-- `MkdirAll(path string, perm FileMode) error` (`path.go`): Go's body, as goose would translate
 it, but for `len(filepathlite.VolumeName(path))`, which is 0 on Linux (`volumeNameLen` returns 0
@@ -813,27 +875,29 @@ model writes 0 (`internal/filepathlite` is translated nowhere, which is why `Mkd
 ```
 
 `Stat`, `Lstat`, `Mkdir`, `IsPathSeparator` and the recursive `MkdirAll` are called as Go calls
-them (the models above, the translated `IsPathSeparator`), and `IsDir` through the `FileInfo`.
-Go example: `examples/osfs/semantics/model_os_mkdirall.go`. -/
+them (the models above, the translated `IsPathSeparator`), and `IsDir` through the `FileInfo`,
+when `path` is strictly below a root (the extension's query `PathKind`, which changes nothing, is
+`1`: a `TreeName`). At a root or an ancestor of one (`PathKind` `0`), where the extension gives a
+path no meaning, the body runs with no extension step: `model.mkdirAllAbove`. Go's recursion
+reaches such a path from every call, after `Stat` failures (each may fail with any errno, the
+extension's environmental failure), so without it no call could be proved. On any other path
+(outside the roots' trees, or not canonical: `a/`, `a//b`, a relative path) the model is stuck, as
+every path step is; Go would answer (Linux resolves `a/` to `a`), and a caller must pass clean
+absolute paths (the WAL's, through `fileutil.TouchDirAll`/`CreateDirAll`, are its directory and
+`filepath.Clean(dirpath) + ".tmp"`, canonical when its directory is).
+Go example: `examples/osfs/semantics/model_os_mkdirall.go`,
+`model_os_mkdirall_above.go`. -/
 noncomputable def MkdirAll.impl : val :=
   λ: "path" "perm",
+    if: ExternalOp Fs.fsExt.name "PathKind" "path" =⟨go.uintptr⟩ #(W64 0) then
+      model.mkdirAllAbove "path"
+    else
     let: "st" := (FuncResolve go!"os.Stat" []) #() "path" in
     if: Snd "st" =⟨go.error⟩ #GoInterface.nil then
       (if: (MethodResolve io.fs.FileInfo.ty go!"IsDir") (Fst "st") #() then #GoInterface.nil
        else model.pathError #"mkdir" "path" (syscall.model.errno #(W64 20))) -- ENOTDIR
     else
-      let: "len" := (FuncResolve go.len [go.string]) #() "path" in
-      let: "i" := (rec: "trail" "i" :=
-          if: ("i" ≥⟨go.int⟩ #(W64 0)) &&
-              ((FuncResolve go!"os.IsPathSeparator" []) #() (Index go.string ("path", "i")))
-          then "trail" ("i" -⟨go.int⟩ #(W64 1)) else "i") ("len" -⟨go.int⟩ #(W64 1)) in
-      let: "i" := (rec: "back" "i" :=
-          if: ("i" ≥⟨go.int⟩ #(W64 0)) &&
-              (⟨go.bool⟩! ((FuncResolve go!"os.IsPathSeparator" []) #()
-                (Index go.string ("path", "i"))))
-          then "back" ("i" -⟨go.int⟩ #(W64 1)) else "i") "i" in
-      let: "i" := if: "i" <⟨go.int⟩ #(W64 0) then #(W64 0) else "i" in
-      let: "parent" := Slice go.string ("path", #(W64 0), "i") in
+      let: "parent" := model.mkdirAllParent "path" in
       let: "e" := if: (FuncResolve go.len [go.string]) #() "parent" >⟨go.int⟩ #(W64 0)
         then (FuncResolve go!"os.MkdirAll" []) #() "parent" "perm" else #GoInterface.nil in
       if: "e" ≠⟨go.error⟩ #GoInterface.nil then "e"
@@ -1096,7 +1160,13 @@ in its place by another thread (Go's `*at` calls then act on the removed one, wh
 and fail or change nothing a path can see; the model's calls on the new one may fail with any errno
 and no effect, which is the outcome Linux's leave visible). `IsNotExist` of these errors is an
 errno of `ENOENT` (2); `ENOTDIR` 20; `EINVAL` 22. `splitPath` and `endsWithDot` are the translated
-Go helpers. Go example: `examples/osfs/semantics/model_os_removeall.go`. -/
+Go helpers. `path` must be strictly below a root and canonical: the model is stuck on any other
+(as every path step): at a root (its `unlink` is stuck; Linux would remove the root's tree and
+then, with `rmdir`, perhaps the root, which the environment excludes), above one, outside the
+roots' trees, or not canonical (`RemoveAll("<d>/f/")` with `f` a file removes `f` on Linux, through
+`splitPath`; the model's `unlink` of `<d>/f/` is stuck). The WAL's calls are on its directory
+`w.dir` and `filepath.Clean(dirpath) + ".tmp"` (`wal.go`'s `Create` and `renameWAL`), canonical
+and below a root when its directory is (the WAL spec's area). Go example: `examples/osfs/semantics/model_os_removeall.go`. -/
 noncomputable def RemoveAll.impl : val :=
   λ: "path",
     if: "path" =⟨go.string⟩ #"" then #GoInterface.nil
