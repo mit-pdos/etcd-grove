@@ -222,14 +222,21 @@ theorem walCrashTok_excl :
     walLockedTok (W := W))
 
 /-- **The authority of the WALs being created** (the invariant's): each directory `Create` works on,
-with the names `N` and history `h` of the area directory's claim it renames in. -/
+with the names `N` and history `h` of the area directory's claim it renames in. **At most one**, and
+while there is one the invariant holds the lock token (`walLockedTok`: the parking flag `false`), which
+`Create` took (`walUnlockedTok_lock`) where it made the entry (`walCreating_mint`) and gets back where
+the entry goes (`walCreating_delete`: the commit, or the abort). So the map is empty wherever a program
+holds the lock token: at the minting (no other entry, so none with the same directory, `CreatingNew`),
+and at `Close`'s unparking (W4 log, eighth session). -/
 def walCreatingAuth (CR : GMap GoString (Fs.NameSet × Fs.NamesH × Fs.Ino)) : IProp GF :=
   letI := walAllG (W := W)
-  ghostMapAuth W.γcr 1 CR
+  iprop(ghostMapAuth W.γcr 1 CR ∗
+    (⌜CR = ∅⌝ ∨ ⌜∃ d x, CR = <[d := x]> (∅ : GMap GoString (Fs.NameSet × Fs.NamesH × Fs.Ino))⌝ ∗
+      walLockedTok (W := W)))
 
 instance walCreatingAuth_timeless (CR : GMap GoString (Fs.NameSet × Fs.NamesH × Fs.Ino)) :
     Timeless (walCreatingAuth (W := W) CR) := by
-  unfold walCreatingAuth; infer_instance
+  unfold walCreatingAuth walLockedTok walParkFrag walCutFrag; infer_instance
 
 /-- **`Create` of `dir` is renaming in the area claim of names `N`, history `h`** (exclusive, the
 program's): the invariant holds half of that claim (`walInvBody`'s `CreatingOk`), so a client update
@@ -410,6 +417,92 @@ theorem walLockedTok_unlock (b : Bool) :
   imodintro
   iframe Ha Ht Hf Hc
   ipureintro; exact hb
+
+/-- The lock token held twice: impossible (one token). -/
+theorem walLockedTok_unlocked_excl :
+    ⊢@{IProp GF} walLockedTok (W := W) -∗ walUnlockedTok (W := W) -∗ False := by
+  unfold walUnlockedTok walLockedTok
+  letI := walAllG (W := W)
+  iintro ⟨H1, -⟩ ⟨H2, -⟩
+  iapply token_exclusive $$ H1 H2
+
+/-- The lock token held twice: impossible (one token). -/
+theorem walLockedTok_excl :
+    ⊢@{IProp GF} walLockedTok (W := W) -∗ walLockedTok (W := W) -∗ False := by
+  unfold walLockedTok
+  letI := walAllG (W := W)
+  iintro ⟨H1, -⟩ ⟨H2, -⟩
+  iapply token_exclusive $$ H1 H2
+
+/-- **Minting `Create`'s creating token** (W4 log, eighth session): with the lock token free
+(`walUnlockedTok`, whose flag the invariant's half `b` agrees with), the creating map is empty (a
+non-empty one holds the lock token); the lock is taken (the flag `false`) and its token deposited
+with the map's one entry `dir ↦ (N, h, J)`. -/
+theorem walCreating_mint (CR : GMap GoString (Fs.NameSet × Fs.NamesH × Fs.Ino)) (b : Bool)
+    (dir : GoString) (N : Fs.NameSet) (h : Fs.NamesH) (J : Fs.Ino) :
+    ⊢@{IProp GF} walCreatingAuth (W := W) CR -∗ walParkAuth (W := W) b -∗ walUnlockedTok (W := W) ==∗
+      ⌜CR = ∅ ∧ b = true⌝ ∗
+      walCreatingAuth (W := W) (<[dir := (N, h, J)]> (∅ : GMap GoString (Fs.NameSet × Fs.NamesH × Fs.Ino))) ∗
+      walParkAuth (W := W) false ∗ walCreating (W := W) dir N h J := by
+  unfold walCreatingAuth
+  iintro ⟨Ha, Hor⟩ Hpa Hu
+  icases Hor with (%hCR | ⟨-, Hl⟩)
+  · subst hCR
+    imod walUnlockedTok_lock (W := W) b $$ Hpa Hu with ⟨%hb, Hpa, Hl⟩
+    unfold walCreating
+    letI := walAllG (W := W)
+    imod ghost_map_insert (γ := W.γcr) dir (N, h, J) (by rfl) $$ Ha with ⟨Ha, Ht⟩
+    imodintro
+    iframe Hpa Ht
+    isplitr
+    · ipureintro; exact ⟨rfl, hb⟩
+    iframe Ha
+    iright
+    iframe Hl
+    ipureintro; exact ⟨dir, (N, h, J), rfl⟩
+  · iexfalso
+    iapply walLockedTok_unlocked_excl $$ Hl Hu
+
+/-- The creating token's entry in the authority. -/
+theorem walCreating_lookup (CR : GMap GoString (Fs.NameSet × Fs.NamesH × Fs.Ino)) (dir : GoString)
+    (N : Fs.NameSet) (h : Fs.NamesH) (J : Fs.Ino) :
+    ⊢@{IProp GF} walCreatingAuth (W := W) CR -∗ walCreating (W := W) dir N h J -∗
+      ⌜CR !! dir = some (N, h, J)⌝ ∗ walCreatingAuth (W := W) CR ∗ walCreating (W := W) dir N h J := by
+  unfold walCreatingAuth walCreating
+  letI := walAllG (W := W)
+  iintro ⟨Ha, Hor⟩ Ht
+  icases ghost_map_lookup $$ Ha Ht with %H
+  iframe Ha Ht Hor
+  ipureintro; exact H
+
+/-- **Deleting the creating token's entry** (`Create`'s commit, or its abort before the rename):
+the map's one entry, so the map is empty again; the lock token back. -/
+theorem walCreating_delete (CR : GMap GoString (Fs.NameSet × Fs.NamesH × Fs.Ino)) (dir : GoString)
+    (N : Fs.NameSet) (h : Fs.NamesH) (J : Fs.Ino) :
+    ⊢@{IProp GF} walCreatingAuth (W := W) CR -∗ walCreating (W := W) dir N h J ==∗
+      ⌜GMap.delete dir CR = ∅⌝ ∗ walCreatingAuth (W := W) (GMap.delete dir CR) ∗ walLockedTok (W := W) := by
+  unfold walCreatingAuth walCreating
+  letI := walAllG (W := W)
+  iintro ⟨Ha, Hor⟩ Ht
+  icases ghost_map_lookup $$ Ha Ht with %Hl
+  icases Hor with (%hCR | ⟨%hs, Hk⟩)
+  · subst hCR; simp at Hl
+  · obtain ⟨d, x, rfl⟩ := hs
+    have hd : d = dir := by
+      by_cases hne : d = dir
+      · exact hne
+      · rw [GMap.lookup_insert_ne _ _ hne] at Hl
+        simp at Hl
+    subst hd
+    have he : GMap.delete d (<[d := x]> (∅ : GMap GoString (Fs.NameSet × Fs.NamesH × Fs.Ino))) = ∅ :=
+      GMap.delete_insert _ _ _ (by rfl)
+    imod ghost_map_delete $$ Ha Ht with Ha
+    imodintro
+    rw [he]
+    iframe Ha Hk
+    isplitr
+    · ipureintro; rfl
+    ileft; ipureintro; rfl
 
 /-- The pending-cut flag's halves agree. -/
 theorem walCut_agree (c c' : Option GoString) :
@@ -652,10 +745,12 @@ theorem walGhost_init (hPre : AbsDiskGpreS GF) (s : AbsDiskState) (hk : walKeysI
     walParkFrag walParkAuth walDirKeysAuth walCutFrag walCutAuth walAllG
   iframe Hs HP HM Hp Hu Hc Hcr Ht Hpk1 Hpk2 Hdk Hcp1 Hcp2
   isplitl [Hh Hhd Hhp]
-  · iexists 0, ∅, ∅, ∅
-    iframe Hh Hhd Hhp
-    ipureintro; intro k _; exact ⟨rfl, rfl, rfl⟩
-  · ipureintro; exact hk
+  · isplitl [Hh Hhd Hhp]
+    · iexists 0, ∅, ∅, ∅
+      iframe Hh Hhd Hhp
+      ipureintro; intro k _; exact ⟨rfl, rfl, rfl⟩
+    · ipureintro; exact hk
+  · ileft; ipureintro; rfl
 
 end init
 
