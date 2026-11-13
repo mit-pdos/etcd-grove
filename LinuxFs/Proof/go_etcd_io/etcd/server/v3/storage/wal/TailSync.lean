@@ -124,7 +124,7 @@ theorem walParked_relay (Ls : GMap GoString WalLay) (cl : List Claim) (dir : GoS
 theorem walTailsRes_zeros (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState)
     (Ls : GMap GoString WalLay) (F : GMap Ino SegFl) (dir : GoString) (γ : GName) (tg : TailG) :
     ⊢ walTailsRes (W := W) C Mr s Ls F -∗ walTailKey (W := W) dir γ -∗
-      ⌜∀ lay, Ls !! dir = some lay → TailZeros lay⌝ ∗
+      ⌜∀ d lay, s.wal !! dir = some d → Ls !! dir = some lay → TailZeros lay ∧ TailBound C Mr d lay⌝ ∗
         walTailsRes (W := W) C Mr s Ls F ∗ walTailKey (W := W) dir γ := by
   letI := walAllG (W := W)
   unfold walTailsRes
@@ -138,9 +138,10 @@ theorem walTailsRes_zeros (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState)
   icases Hent with ⟨%d, %lay, %g0, %hp, Hv'⟩
   isplitr
   · ipureintro
-    intro lay' hl'
+    intro d' lay' hd' hl'
     rw [hp.2.1] at hl'; cases hl'
-    exact hp.2.2.2.1
+    rw [hp.1] at hd'; cases hd'
+    exact ⟨hp.2.2.2.1, hp.2.2.2.2⟩
   iframe Hk
   iexists T
   iframe HTa
@@ -168,7 +169,8 @@ theorem walInvBody_sync (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
             (∀ z, g0.om.zf = some z → g0.bs.length ≤ z)⌝ -∗
           segRes (L := L) (syncTail g0) ==∗
           walInvBody (L := L) (W := W) C Mr R jr r (walSyncS s dir d) ∗
-            walPast (W := W) (walSyncS s dir d)) := by
+            walPast (W := W) (walSyncS s dir d)) ∧
+        (segResF (L := L) F g0 -∗ walInvBody (L := L) (W := W) C Mr R jr r s) := by
   letI := walAllG (W := W)
   iintro Hb Hk Hv Hcf
   unfold walInvBody
@@ -191,9 +193,44 @@ theorem walInvBody_sync (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
   isplitr
   · ipureintro; exact ⟨hd, hs, htg, ⟨_, habs⟩⟩
   iframe Hlast Hk Hv Hcf
+  have hZB := HZs d lay hd hl
+  isplit; rotate_left
+  · -- the step failed: everything back as it was
+    iintro Hlast
+    have eL : <[dir := lay]> Ls = Ls := GMap.insert_id Ls dir lay hl
+    iexists Ls, cl, n, F
+    iframe Hg Hcl Hn HCR Hpk
+    isplitr
+    · ipureintro; exact Har
+    isplitl [Hpre Hlast Hrest]
+    · iapply (laysResF_del (L := L) F Ls dir lay hl).2
+      iframe Hrest
+      rw [hs]
+      iapply (BigSepL.bigSepL_append (PROP := IProp GF)).2
+      iframe Hpre
+      iapply (BigSepL.bigSepL_singleton (PROP := IProp GF)).2
+      iexact Hlast
+    isplitr
+    · ipureintro; exact HW
+    isplitr
+    · ipureintro; exact HWC
+    isplitl [Htlc Hv']
+    · iapply (show walTailsRes (W := W) C Mr s (<[dir := lay]> Ls) F ⊢ walTailsRes (W := W) C Mr s Ls F by rw [eL])
+      iapply Htlc $$ %lay %g0 %F [] [Hv']
+      · ipureintro; exact ⟨hg, hZB.1, hZB.2, fun _ _ _ _ _ _ => rfl⟩
+      · rw [← htg]; iexact Hv'
+    isplitr
+    · ipureintro; exact Hab
+    isplitr
+    · ipureintro; exact HNm
+    isplitl [Hdk Hcp]
+    · iexists K, none
+      iframe Hdk Hcp
+      ipureintro; exact Hdko
+    ipureintro; exact HAt
   iintro ⟨%hF, %htail, %hzf⟩ Hseg
   -- F-Z, from the tail record's entry (kept by `walTailsRes_cut`'s premise)
-  have hZ : TailZeros lay := HZs lay hl
+  have hZ : TailZeros lay := hZB.1
   have hnd : (lay.segs.map (·.ino)).Nodup := ((segsAll_nodup_iff Ls).1 HW.2.2.1).1 dir lay hl
   have hmH : d.m ≤ d.H.length := habs.synced.1
   have hok : CrashOk C Mr d lay cl n :=
