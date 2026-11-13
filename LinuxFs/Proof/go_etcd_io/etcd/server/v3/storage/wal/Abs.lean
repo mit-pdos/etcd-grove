@@ -313,13 +313,15 @@ def CrashTo (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (m' : T
 
 /-- **The crash condition** (plan §2.2): for every crashed tree the WAL's claims allow
 (`RegionCrashed` of the claims `cl` with the commit bound `n`) and every image of each segment its
-halves allow (`FileCrashedR`), there if the crashed tree names it, on which W1 holds (`W1G`),
+halves allow (`FileCrashedR`), there if the crashed tree lists it among the WAL directory's `.wal`
+files (a weaker premise than its being named anywhere: so the condition carries across a change of
+any other name, `Create`'s drop of `nm.tmp`), on which W1 holds (`W1G`),
 `CrashTo`. -/
 def CrashOk (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (cl : List Claim)
     (n : Nat) : Prop :=
   ∀ (m' : Tree) (fo : Ino → Option Fs.OsFile), RegionCrashed cl n m' →
     (∀ g ∈ lay.segs, FileCrashedR g.om [(0, DFrac.own (1 : Qp).half, g.bs)] (fo g.ino)) →
-    (∀ g ∈ lay.segs, Named m' g.ino → (fo g.ino).isSome) →
+    (∀ g ∈ lay.segs, g.ino ∈ walInos (entsOf m' lay.j) → (fo g.ino).isSome) →
     W1G C (walInos (entsOf m' lay.j)) (fun i => imgOf (fo i)) (segBytesOf lay) →
     CrashTo C Mr d lay m' fo
 

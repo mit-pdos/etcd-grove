@@ -388,7 +388,7 @@ theorem crashTo_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} {
     (hnd : (lay.segs.map (·.ino)).Nodup) (hg : lay.segs.getLast? = some g)
     (h0 : CrashTo C Mr d lay m' fo0) (hfo : ∀ i, i ≠ g.ino → fo0 i = fo i)
     (hfc : FileCrashedR g.om [(0, DFrac.own (1 : Qp).half, g.bs)] (fo g.ino))
-    (hn : Named m' g.ino → (fo g.ino).isSome)
+    (hn : g.ino ∈ walInos (entsOf m' lay.j) → (fo g.ino).isSome)
     (hw : W1G C (walInos (entsOf m' lay.j)) (fun i => imgOf (fo i)) (segBytesOf lay)) :
     CrashTo C Mr d lay m' fo := by
   rcases h0 with hl | ⟨q, I0, hent, hq, hinos, hI0, hLI0, hpur, hmid, -⟩
@@ -402,7 +402,7 @@ theorem crashTo_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} {
     rw [List.getLast?_drop, if_neg (by omega), hg]
   have hgin : g.ino ∈ walInos (entsOf m' lay.j) := by
     rw [hinos]; exact List.mem_map_of_mem (List.mem_of_getLast? hgq)
-  obtain ⟨f, hf⟩ := Option.isSome_iff_exists.1 (hn (named_of_mem_walInos hgin))
+  obtain ⟨f, hf⟩ := Option.isSome_iff_exists.1 (hn hgin)
   obtain ⟨-, hlo, hhi, hrun, -⟩ := hfc f hf
   obtain ⟨-, -, hmlo, hmhi⟩ := habs.metas g hgm
   have hsz : f.size = g.bs.length := by omega
@@ -734,12 +734,12 @@ theorem crashOkA_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur}
     rcases hg' with hg' | rfl
     · rw [hfo _ (hpre g' hg')]; exact hf g' (by rw [hs]; simp [hg'])
     · exact hfc0
-  have hn0 : ∀ g' ∈ lay0.segs, Named m' g'.ino → (fo0 g'.ino).isSome := by
+  have hn0 : ∀ g' ∈ lay0.segs, g'.ino ∈ walInos (entsOf m' lay0.j) → (fo0 g'.ino).isSome := by
     intro g' hg' hnd'
     rw [hs0, List.mem_append, List.mem_singleton] at hg'
     rcases hg' with hg' | rfl
-    · rw [hfo _ (hpre g' hg')]; exact hnmd g' (by rw [hs]; simp [hg']) hnd'
-    · rw [← hino, hfo0g, Option.isSome_map]; exact hnmd g hgm (by rw [hino]; exact hnd')
+    · rw [hfo _ (hpre g' hg')]; exact hnmd g' (by rw [hs]; simp [hg']) (by rw [hj]; exact hnd')
+    · rw [← hino, hfo0g, Option.isSome_map]; exact hnmd g hgm (by rw [hino, hj]; exact hnd')
   have hw0 : W1G C (walInos (entsOf m' lay0.j)) (fun i => imgOf (fo0 i)) (segBytesOf lay0) := by
     apply w1G_sync
     intro i bs hbs b hb

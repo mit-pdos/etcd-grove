@@ -478,7 +478,8 @@ theorem namesCoh_log {V : Hist} {Γn : GMap (Ino × NameSet) NamesH} (hcoh : Nam
     (hin : ∀ k ∈ ks, ∃ h, Γn !! k = some h)
     (hslots : ∀ sl ∈ e.op.slots, ∃ k ∈ ks, k.1 = sl.1 ∧ k.2.Mem sl.2)
     (hnew : ∀ J ∈ e.op.newDirs, J ∉ V.now)
-    (hdirs : ∀ x, x ∈ e.op.apply V.now → x ∈ V.now ∨ x ∈ e.op.newDirs) :
+    (hdirs : ∀ x, x ∈ e.op.apply V.now → x ∈ V.now ∨ x ∈ e.op.newDirs)
+    (hst : e.start ≤ V.2.length) :
     NamesCoh (V.1, V.2 ++ [e]) (insKeys (V.1, V.2 ++ [e]) (newKeys e.op ++ ks) Γn) := by
   have hnowV : Hist.now (V.1, V.2 ++ [e]) = e.op.apply V.now := hist_now_snoc V e
   have hnk : ∀ k ∈ newKeys e.op, k.2 = .except [] ∧ k.1 ∈ e.op.newDirs := by
@@ -495,7 +496,7 @@ theorem namesCoh_log {V : Hist} {Γn : GMap (Ino × NameSet) NamesH} (hcoh : Nam
       · exact .inr hk
       · exact .inl (hin k hk)
     · exact .inl ⟨h, hl⟩
-  refine ⟨?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_⟩
   · intro j N h hl
     rw [insKeys_lookup] at hl
     split at hl
@@ -537,6 +538,10 @@ theorem namesCoh_log {V : Hist} {Γn : GMap (Ino × NameSet) NamesH} (hcoh : Nam
     rcases horig _ _ hl with ⟨h0, hl0⟩ | hk
     · exact mem_apply_of_mem _ _ _ (hcoh.dirs j N h0 hl0)
     · exact mem_apply_newDirs _ _ _ (hnk _ hk).2
+  · intro x e' hx
+    rcases getElem?_snoc_cases hx with ⟨-, hx⟩ | ⟨rfl, rfl⟩
+    · exact hcoh.starts x e' hx
+    · exact hst
 
 /-! ## The step -/
 
@@ -1091,7 +1096,7 @@ theorem wp_logStepSWG (op : String) (v : val) (hv : v.isPanic = false) (R : Root
       (fun sl hsl => by
         obtain ⟨c, hcm, hc1, hc2⟩ := hslots sl hsl
         exact ⟨(c.1, c.2.1), List.mem_map.2 ⟨c, hcm, rfl⟩, hc1, hc2⟩)
-      hnew hdirs
+      hnew hdirs (hc.callsLe k _ hk)
     have hcl' : ∀ c ∈ cl, c.2.2.1.log st.fs.metaLog.length ⟨o, s0⟩ (cur c) =
         namesOf (st.fs.treeDur, st.fs.metaLog ++ [⟨o, s0⟩]) c.1 c.2.1 := by
       intro c hcm
