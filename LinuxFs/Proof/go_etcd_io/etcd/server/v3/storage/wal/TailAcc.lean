@@ -44,11 +44,15 @@ theorem segsNamed_congr {segs segs' : List SegG} {ents : Ents}
   rw [← hn, ← hi]; exact hs.1 g hg
 
 theorem segsNamedC_congr {segs segs' : List SegG} {ents : Ents}
-    (h : ∀ g' ∈ segs', ∃ g ∈ segs, g.name = g'.name ∧ g.ino = g'.ino) (hs : SegsNamedC segs ents) :
+    (h : ∀ g' ∈ segs', ∃ g ∈ segs, g.name = g'.name ∧ g.ino = g'.ino)
+    (h' : ∀ g ∈ segs, ∃ g' ∈ segs', g'.ino = g.ino) (hs : SegsNamedC segs ents) :
     SegsNamedC segs' ents := by
-  refine ⟨fun g' hg' => ?_, hs.2⟩
-  obtain ⟨g, hg, hn, hi⟩ := h g' hg'
-  rw [← hn, ← hi]; exact hs.1 g hg
+  refine ⟨fun g' hg' => ?_, hs.2.1, fun i hi => ?_⟩
+  · obtain ⟨g, hg, hn, hi⟩ := h g' hg'
+    rw [← hn, ← hi]; exact hs.1 g hg
+  · obtain ⟨g, hg, rfl⟩ := List.mem_map.1 (hs.2.2 i hi)
+    obtain ⟨g', hg', e⟩ := h' g hg
+    exact List.mem_map.2 ⟨g', hg', e⟩
 
 /-- **`WalsNamed` with a tail replaced** by one of the same name and inode. -/
 theorem walsNamed_tail {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat} {dir : GoString}
@@ -65,9 +69,16 @@ theorem walsNamed_tail {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat} {
       rcases hx with hx | rfl
       · exact ⟨x, by rw [hs]; exact List.mem_append_left _ hx, rfl, rfl⟩
       · exact ⟨g0, by rw [hs]; simp, hname.symm, hino.symm⟩
+    have hsub' : ∀ y ∈ lay.segs, ∃ x ∈ (tailLay lay pre g wr').segs, x.ino = y.ino := by
+      intro y hy
+      rw [hs] at hy
+      simp only [tailLay, List.mem_append, List.mem_singleton] at hy ⊢
+      rcases hy with hy | rfl
+      · exact ⟨y, Or.inl hy, rfl⟩
+      · exact ⟨g, Or.inr rfl, hino⟩
     obtain ⟨h1, h2⟩ := h dir' lay hl
     exact ⟨fun hj hw => segsNamed_congr hsub (h1 hj hw),
-      fun m' hr => segsNamedC_congr hsub (h2 m' hr)⟩
+      fun m' hr => segsNamedC_congr hsub hsub' (h2 m' hr)⟩
   · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hl'
     exact h dir' lay' hl'
 

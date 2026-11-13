@@ -251,10 +251,13 @@ def SegsNamed (segs : List SegG) (ents : Ents) : Prop :=
   ∀ b e, walNameP b = true → ents !! b = some e → ∃ i, e = .file i
 
 /-- **`SegsNamed` after a crash**: the segments the crash kept named (their files among the
-directory's `.wal` files) are at their names; every `.wal` entry is a file. -/
+directory's `.wal` files) are at their names; every `.wal` entry is a file, and a segment's (a crash
+names no other file at a `.wal` name: `cut`'s rename dropped by a crash leaves its new segment at
+no `.wal` name, W2). -/
 def SegsNamedC (segs : List SegG) (ents : Ents) : Prop :=
   (∀ g ∈ segs, walNameP g.name = true ∧ (g.ino ∈ walInos ents → ents !! g.name = some (.file g.ino))) ∧
-  ∀ b e, walNameP b = true → ents !! b = some e → ∃ i, e = .file i
+  (∀ b e, walNameP b = true → ents !! b = some e → ∃ i, e = .file i) ∧
+  ∀ i ∈ walInos ents, i ∈ segs.map (·.ino)
 
 /-- **Every WAL's segments are at their names** (framed; W3/W5): now, in every claim of its
 directory the invariant holds (`WalDirClaim`), and after every crash the claims allow. Established
@@ -265,9 +268,9 @@ def WalsNamed (Ls : GMap GoString WalLay) (cl : List Claim) (n : Nat) : Prop :=
     (∀ hj, WalDirClaim lay.j hj cl → SegsNamed lay.segs hj.cur) ∧
     ∀ m', RegionCrashed cl n m' → SegsNamedC lay.segs (entsOf m' lay.j)
 
-theorem SegsNamed.crash {segs : List SegG} {ents : Ents} (h : SegsNamed segs ents) :
-    SegsNamedC segs ents :=
-  ⟨fun g hg => ⟨(h.1 g hg).1, fun _ => (h.1 g hg).2⟩, h.2⟩
+theorem SegsNamed.crash {segs : List SegG} {ents : Ents} (h : SegsNamed segs ents)
+    (hsub : ∀ i ∈ walInos ents, i ∈ segs.map (·.ino)) : SegsNamedC segs ents :=
+  ⟨fun g hg => ⟨(h.1 g hg).1, fun _ => (h.1 g hg).2⟩, h.2, hsub⟩
 
 /-- `SegsNamed` of a claim's view of the directory, its names all but non-`.wal` ones. -/
 theorem SegsNamed.restrict {segs : List SegG} {ents : Ents} {X : List GoString}
