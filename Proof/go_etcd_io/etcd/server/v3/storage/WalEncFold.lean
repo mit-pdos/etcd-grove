@@ -119,14 +119,12 @@ write mode (`write`, `w.tail() != nil`) or read mode: the loop, the stop check (
 `io.EOF`, :606-611; read mode: `io.EOF` or `io.ErrUnexpectedEOF`, :600-605), then
 `ErrSnapshotNotFound` without a match. Success returns `(metadata, state, ents)`. -/
 def readAllFold (U : WalUnmarshal) (s : w64 × w64) (write : Bool) (recs : List WalRec)
-    (stop : WalStop) : Except ReadAllErr (List w8 × HardStateM × List EntryM) := do
-  let st ← (recs.map (fun r => (r.typ, r.data))).foldlM (raStep U s) raInit
-  if write then
-    if stop ≠ .eof then throw (.stop stop)
-  else
-    if stop ≠ .eof ∧ stop.unexpectedEOF = false then throw (.stop stop)
-  if st.matched = false then throw .snapshotNotFound
-  return (st.md.getD [], st.hs, st.ents)
+    (stop : WalStop) : Except ReadAllErr (List w8 × HardStateM × List EntryM) :=
+  (recs.map (fun r => (r.typ, r.data))).foldlM (raStep U s) raInit >>= fun st =>
+  if (if write then stop ≠ .eof else stop ≠ .eof ∧ stop.unexpectedEOF = false) then
+    .error (.stop stop)
+  else if st.matched = false then .error .snapshotNotFound
+  else .ok (st.md.getD [], st.hs, st.ents)
 
 /-- **The read at the fixed base `s` from position `k`** (what `ReadAll` computes, with the files
 from position `k` and the start `s`): the fold of `walReadFrom`, from `s` rather than from the
@@ -527,6 +525,131 @@ theorem raStep_segs_ok (U : WalUnmarshal) (M : WalMarshal) (hU : U.Ok M) (s : w6
       · exact ⟨hr2.1, hmd2⟩
       · exact hcase
     · rw [hm', hm2, List.flatten_cons, List.any_append, Bool.or_assoc]
+
+/-- **… and it succeeds whenever the fold does**, no record of the start's index with another term. -/
+theorem raStep_segs_complete (U : WalUnmarshal) (M : WalMarshal) (hU : U.Ok M) (s : w64 × w64)
+    (md : List w8) (c : Nat) (hc : uint.nat s.1 ≤ c) :
+    ∀ (Ss : List WalHist) (P : WalHist) (st : RAState) (σ σ' : StorContents),
+    st.ents = σ.ents → σ.b = uint.nat s.1 → σ.hs = walLastHS P →
+    (st.hs = walLastHS P ∨ st.hs = hsZero) → (st.md = none ∨ st.md = some md) →
+    (∀ m, WalOpG.snap m ∈ Ss.flatten → uint.nat m.Index' ≤ c → uint.nat m.Index' ≤ uint.nat s.1) →
+    (∀ m, WalOpG.snap m ∈ Ss.flatten → m.Index' = s.1 → m.Term' = s.2) →
+    walFoldChkFrom σ (Ss.flatten.filter (walKeep c)) = some σ' →
+    ∃ st', (segsDs M md false P Ss).flatten.foldlM (raStep U s) st = .ok st' ∧ st'.ents = σ'.ents ∧
+      ((Ss = [] ∧ st' = st ∧ σ' = σ) ∨ (st'.hs = σ'.hs ∧ st'.md = some md)) ∧
+      st'.matched = (st.matched || Ss.flatten.any (snapAt s.1)) := by
+  intro Ss
+  induction Ss with
+  | nil =>
+    intro P st σ σ' he _ _ _ _ _ _ h
+    simp only [List.flatten_nil, List.filter_nil, walFoldChkFrom, Option.some.injEq] at h
+    subst h
+    exact ⟨st, rfl, he, Or.inl ⟨rfl, rfl, rfl⟩, by simp⟩
+  | cons S Ss ih =>
+    intro P st σ σ' he hb hσ hst hmd hle hterm h
+    rw [List.flatten_cons, List.filter_append, walFoldChkFrom_append, Option.bind_eq_some_iff] at h
+    obtain ⟨σ1, hf1, h⟩ := h
+    have hle1 : ∀ m, WalOpG.snap m ∈ S → uint.nat m.Index' ≤ c → uint.nat m.Index' ≤ uint.nat s.1 :=
+      fun m hm => hle m (List.mem_append_left _ hm)
+    have hle2 : ∀ m, WalOpG.snap m ∈ Ss.flatten → uint.nat m.Index' ≤ c →
+        uint.nat m.Index' ≤ uint.nat s.1 :=
+      fun m hm => hle m (List.mem_append_right _ hm)
+    have ht1 : ∀ m, WalOpG.snap m ∈ S → m.Index' = s.1 → m.Term' = s.2 :=
+      fun m hm => hterm m (List.mem_append_left _ hm)
+    have ht2 : ∀ m, WalOpG.snap m ∈ Ss.flatten → m.Index' = s.1 → m.Term' = s.2 :=
+      fun m hm => hterm m (List.mem_append_right _ hm)
+    have hr1 : RARel s { st with md := some md,
+                                     hs := if hsEmptyP (walLastHS P) then st.hs else walLastHS P } σ := by
+      refine ⟨?_, he, hb⟩
+      show (if hsEmptyP (walLastHS P) then st.hs else walLastHS P) = σ.hs
+      rw [hσ]
+      by_cases hE : hsEmptyP (walLastHS P)
+      · rw [if_pos hE]
+        rcases hst with h0 | h0
+        · exact h0
+        · rw [h0, hsEmptyP_eq hE]
+      · rw [if_neg hE]
+    have h2 := goOp_sim_complete s c hc S _ σ σ1 hr1 hle1 ht1 hf1
+    have hσ1 : σ1.hs = walLastHS (P ++ S) := walFoldChkFrom_lastHS hσ hf1
+    have hb1 : σ1.b = uint.nat s.1 := by
+      obtain ⟨σ'', hf'', hr'', -⟩ := goOp_sim_ok s c hc S _ _ σ hr1 hle1 h2
+      rw [hf1, Option.some.injEq] at hf''
+      subst hf''; exact hr''.2.2
+    obtain ⟨st', hfold, he', hcase, hm'⟩ := ih (P ++ S)
+      ⟨some md, σ1.hs, σ1.ents, _⟩ σ1 σ' rfl hb1 hσ1
+      (Or.inl hσ1) (Or.inr rfl) hle2 ht2 h
+    refine ⟨st', ?_, he', ?_, ?_⟩
+    · simp only [segsDs, segHdrDs, Bool.false_eq_true, ite_false, List.flatten_cons,
+        List.foldlM_append, raStep_cutHdr U M hU s md _ st hmd, except_ok_bind,
+        raStep_flatMap U M hU, h2]
+      exact hfold
+    · right
+      rcases hcase with ⟨-, rfl, rfl⟩ | hcase
+      · exact ⟨rfl, rfl⟩
+      · exact hcase
+    · rw [hm', List.flatten_cons, List.any_append, ← Bool.or_assoc]
+
+/-- **The start `Open` chose bounds the snapshot records the read keeps**: the newest valid pair is
+within the commit, and every kept record from the read's position is at most its index. -/
+theorem validSnaps_bounds {I : WalHist} {k : Nat} {s : w64 × w64}
+    (hs : some s = walNewestPair (walValidSnaps I k)) :
+    uint.nat s.1 ≤ uint.nat (walLastHS I).Commit' ∧
+    ∀ m, WalOpG.snap m ∈ I.drop k → uint.nat m.Index' ≤ uint.nat (walLastHS I).Commit' →
+      uint.nat m.Index' ≤ uint.nat s.1 := by
+  refine ⟨?_, fun m hm hmc => walNewestPair_max hs.symm (m.Index', m.Term') ?_⟩
+  · have hmem := walNewestPair_mem hs.symm
+    unfold walValidSnaps at hmem
+    rcases List.mem_append.1 hmem with h0 | h0
+    · split at h0
+      · simp only [List.mem_cons, List.not_mem_nil, or_false] at h0
+        subst h0; simp
+      · cases h0
+    · obtain ⟨o, -, ho⟩ := List.mem_filterMap.1 h0
+      cases o with
+      | save _ _ => cases ho
+      | snap m' =>
+        simp only at ho
+        split at ho
+        · next hle => simp only [Option.some.injEq] at ho; subst ho; exact hle
+        · cases ho
+  · unfold walValidSnaps
+    apply List.mem_append_right
+    exact List.mem_filterMap.2 ⟨WalOpG.snap m, hm, by simp [hmc]⟩
+
+/-! ## The tail of `ReadAll` -/
+
+/-- What a successful `ReadAll` returns: a match, and the loop's variables. -/
+theorem readAllFold_ok {U : WalUnmarshal} {s : w64 × w64} {write : Bool} {recs : List WalRec}
+    {stop : WalStop} {r : List w8 × HardStateM × List EntryM}
+    (h : readAllFold U s write recs stop = .ok r) :
+    ∃ st, (recs.map (fun r => (r.typ, r.data))).foldlM (raStep U s) raInit = .ok st ∧
+      st.matched = true ∧ r = (st.md.getD [], st.hs, st.ents) := by
+  unfold readAllFold at h
+  rw [except_bind_ok] at h
+  obtain ⟨st, h1, h⟩ := h
+  refine ⟨st, h1, ?_⟩
+  by_cases hc : (if write then stop ≠ .eof else stop ≠ .eof ∧ stop.unexpectedEOF = false)
+  · rw [if_pos hc] at h; cases h
+  · rw [if_neg hc] at h
+    by_cases hm : st.matched = false
+    · rw [if_pos hm] at h; cases h
+    · rw [if_neg hm] at h
+      simp only [Except.ok.injEq] at h
+      exact ⟨by simpa using hm, h.symm⟩
+
+/-- `ReadAll` succeeds when the loop does with a match, the stop accepted. -/
+theorem readAllFold_of {U : WalUnmarshal} {s : w64 × w64} {write : Bool} {recs : List WalRec}
+    {stop : WalStop} {st : RAState}
+    (h : (recs.map (fun r => (r.typ, r.data))).foldlM (raStep U s) raInit = .ok st)
+    (hm : st.matched = true) (hstop : stop = .eof ∨ (write = false ∧ stop.unexpectedEOF = true)) :
+    readAllFold U s write recs stop = .ok (st.md.getD [], st.hs, st.ents) := by
+  unfold readAllFold
+  rw [h, except_ok_bind]
+  have hc : ¬ (if write then stop ≠ .eof else stop ≠ .eof ∧ stop.unexpectedEOF = false) := by
+    rcases hstop with h0 | ⟨h1, h2⟩
+    · subst h0; cases write <;> simp
+    · subst h1; simp [h2]
+  rw [if_neg hc, if_neg (by simp [hm])]
 
 /-! ## The main theorems -/
 
