@@ -865,6 +865,29 @@ Statement decisions (against the old axiom and plan §3):
   the rename: `RegionCrashed`'s `K` holds every claimed entry below `n`, and the rename is `nm`'s last
   writer), giving `walNamed dir`.
 
+**Done (no `sorry`):**
+- `Inv.lean`: **`WalsCreateOk jr cl`**, the framed `Create` part of `walInvBody` (a new last conjunct
+  `⌜WalsCreateOk jr cl⌝`, apart from `WalsOk`): a claim of the area among `cl` holds every WAL name.
+  `walInv_alloc` establishes it from `harea`; `walInv_crash` drops it (`Crash.lean`, two pattern edits).
+  W2's extension: add its own conjunct after it.
+- `CreateNamedPure.lean`: `regionCrashed_mono`, `LastWrite` (the claim's last entry writing a name),
+  `regionCrashed_lastWrite` (a committed last writer decides its name in every crash), `crashOk_named`,
+  `crashOk_named_of_lastWrite`.
+- `CreateNamed.lean`: `crashOk_mono`, `walsOk_mono`, `walAbsD_named`, `setNamed`, `walsOk_named`;
+  `osNames_same_name` (two claims of one directory holding a name are one: same key, same history);
+  **`walInvBody_named`** (the parent fsync's commit point: the invariant's contents at `s`, the program's
+  claim fraction on `N ∋ nm` whose last writer of `nm` (`x`) left a directory, `osCommitLb n` with
+  `x < n` ⟹ the contents at `setNamed s dir` and `walNamed dir`).
+
+**Open, for the coordinator:** (i) every WAL operation opening `walInv` meets the `walCrashTok` branch,
+which nothing the program holds excludes; `walInvBody_named` is stated on the contents for that reason.
+A program-side exclusion (e.g. a fraction of a generation token the crash takes whole) is needed by every
+W-unit. (ii) Q4 (a) (above). (iii) `AbsentNone` (strong absence) not yet added.
+
+**Next:** the commit at the rename (`osAU` for `os.Rename.specDirS` built from `walInv` and the client's
+update: `s.wal dir := walDurFresh md`, the new layout and its `CrashOk`); then `syncDir`, `renameWAL`,
+`cleanupWAL`, `Create`'s body; `TouchDirAll`/`CreateDirAll`.
+
 **Hypotheses the proof will take** (callee specs not yet over `fsExt`): `os.RemoveAll`, `os.MkdirAll`
 (`wal-osau3`), `os.Stat` of a regular file, `fileutil.LockFile`/`FcntlFlock`, `fileutil.Preallocate`,
 `File.Seek`, `newFileEncoder`/`encode`/`saveCrc` (`wal-enc4`), `WAL.SaveSnapshot` (W6/W11), `WAL.Close`
