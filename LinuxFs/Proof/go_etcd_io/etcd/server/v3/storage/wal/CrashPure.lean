@@ -295,6 +295,208 @@ theorem crashTo_start (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLa
     obtain ⟨g1, hg1, f, hf, rfl⟩ := hmem g hg
     exact ⟨List.mem_map_of_mem (f := (·.ino)) (List.mem_of_mem_drop hg1), f, hf, rfl, rfl⟩
 
+/-! ## All the WALs -/
+
+theorem mem_segsAll {Ls : GMap GoString WalLay} {dir : GoString} {lay : WalLay}
+    (h : Ls !! dir = some lay) {g : SegG} (hg : g ∈ lay.segs) : g ∈ segsAll Ls := by
+  unfold segsAll
+  exact List.mem_flatMap.2 ⟨(dir, lay), (GMap.mem_toList Ls dir lay).2 h, hg⟩
+
+theorem inArea_name {r dir nm nm' : GoString} (h : InArea r dir nm) (h' : InArea r dir nm') :
+    nm = nm' := by
+  have e := h.2.symm.trans h'.2
+  exact List.append_cancel_left e
+
+/-- What the crash leaves of the WAL in `dir` (`d` its state): its crashed state and next layout. -/
+def CrashGood (C : WalCodec) (Mr : WalMarshal) (jr : Ino) (s : AbsDiskState)
+    (Ls : GMap GoString WalLay) (m' : Tree) (st' : Fs.OsState) (dir : GoString) (d : WalDur)
+    (o : Option (WalDur × WalLay)) : Prop :=
+  walCrash d (o.map Prod.fst) ∧
+  (o = none → ∃ nm, InArea s.area dir nm ∧ m'.entry jr nm = none) ∧
+  (∀ d' lay', o = some (d', lay') → ∃ nm, InArea s.area dir nm ∧
+    lay'.jr = jr ∧ lay'.nm = nm ∧ m'.entry jr nm = some (.dir lay'.j) ∧
+    WalAbsD C Mr d' lay' (entsOf m' lay'.j) ∧
+    RecsFit C (recsOfSegs C Mr d'.metadata (segsOf (histM d') lay'.cuts)) ∧
+    lay'.wr = lay'.so ∧ lay'.wr = lay'.z0 ∧
+    lay'.z0 = (segStream C Mr d' lay'.cuts lay'.cuts.length).length ∧
+    (∀ g, lay'.segs.getLast? = some g → g.bs = lay'.old.map durB) ∧
+    ∀ g ∈ lay'.segs, g.ino ∈ (segsAll Ls).map (·.ino) ∧
+      ∃ f, st'.fs.files !! g.ino = some f ∧ g.om = initMeta f ∧ g.bs = f.contents.map durB)
+
+theorem crashGood_exists (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
+    (s : AbsDiskState) (Ls : GMap GoString WalLay) (cl : List Claim) (n : Nat) (m' : Tree)
+    (st st' : Fs.OsState) (hok : WalsOk C Mr R jr s Ls cl n)
+    (hreg : RegionCrashed cl n m') (htree : st'.fs.treeDur = m') (hw1 : W1 C st st')
+    (hfiles : ∀ g ∈ segsAll Ls,
+      FileCrashedR g.om [(0, DFrac.own (1 : Qp).half, g.bs)] (st'.fs.files !! g.ino) ∧
+      (Named m' g.ino → (st'.fs.files !! g.ino).isSome) ∧
+      ∃ f, st.fs.files !! g.ino = some f ∧ ∀ b (y : ByteG), g.bs[b]? = some y → f.cand b = y.2)
+    (dir : GoString) (d : WalDur) (hd : s.wal !! dir = some d) :
+    ∃ o, CrashGood C Mr jr s Ls m' st' dir d o := by
+  obtain ⟨lay, nm, hj, hLs, hin, hjr, hnm, -, habs, hcok⟩ := hok.1 dir d hd
+  have hf : ∀ g ∈ lay.segs, _ := fun g hg => hfiles g (mem_segsAll hLs hg)
+  have hw1G := w1G_of_W1 C st st' m' lay hw1 htree (fun g hg => by
+    obtain ⟨hcr, -, hc⟩ := hf g hg
+    refine ⟨fun f' hf' => ?_, hc⟩
+    have := (hcr f' hf').2.2.1
+    rw [(habs.metas g hg).2.2.2] at this
+    exact this)
+  have hct := hcok m' (fun i => st'.fs.files !! i) hreg (fun g hg => (hf g hg).1) hw1G
+  rcases crashTo_start C Mr d lay _ m' (fun i => st'.fs.files !! i) habs
+    (fun g hg => (hf g hg).2.1) hct with ⟨hn, he⟩ | ⟨d', lay', hc, hjr', hnm', he, hrest⟩
+  · refine ⟨none, Or.inl ⟨hn, rfl⟩, ⟨fun _ => ⟨nm, hin, ?_⟩, fun _ _ h => by cases h⟩⟩
+    rw [← hjr, ← hnm]; exact he
+  · refine ⟨some (d', lay'), hc, ⟨fun h => (by cases h), fun d1 l1 h => ?_⟩⟩
+    simp only [Option.some.injEq, Prod.mk.injEq] at h
+    obtain ⟨rfl, rfl⟩ := h
+    obtain ⟨ha, hfit, h1, h2, h3, h4, h5⟩ := hrest
+    refine ⟨nm, hin, by rw [hjr', hjr], by rw [hnm', hnm], by rw [← hjr, ← hnm]; exact he, ha, hfit,
+      h1, h2, h3, h4, fun g hg => ?_⟩
+    obtain ⟨hi, hrest⟩ := h5 g hg
+    refine ⟨?_, hrest⟩
+    obtain ⟨g1, hg1, he1⟩ := List.mem_map.1 hi
+    rw [← he1]
+    exact List.mem_map_of_mem (f := (·.ino)) (mem_segsAll hLs hg1)
+
+/-- A map with the keys of `m`, each value given by `f`. -/
+def gmapBind {K V V' : Type} [DecidableEq K] (m : GMap K V) (f : K → V → Option V') : GMap K V' :=
+  ⟨fun k => (m !! k).bind (f k), by
+    obtain ⟨l, hl⟩ := m.finite
+    refine ⟨l, fun k h => hl k ?_⟩
+    cases hm : m.lookup k with
+    | none =>
+      exfalso
+      have : (m !! k) = none := hm
+      simp [this] at h
+    | some v => rfl⟩
+
+theorem gmapBind_lookup {K V V' : Type} [DecidableEq K] (m : GMap K V) (f : K → V → Option V')
+    (k : K) : gmapBind m f !! k = (m !! k).bind (f k) := rfl
+
+/-- **What a generation's start says of the WALs** (pure), the tree being `m` (nothing logged):
+each WAL of `s` has a layout whose directory is at its name in the area, with the static relation
+over the directory's entries, every segment's bytes durable and nothing appended; a directory of
+the area with no WAL holds no `.wal` file; every durable directory resolves. -/
+def WalsStart (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (s : AbsDiskState)
+    (Ls : GMap GoString WalLay) (m : Tree) : Prop :=
+  (∀ dir d, s.wal !! dir = some d → ∃ lay nm, Ls !! dir = some lay ∧ InArea s.area dir nm ∧
+    lay.jr = jr ∧ lay.nm = nm ∧ m.entry jr nm = some (.dir lay.j) ∧
+    WalAbsD C Mr d lay (entsOf m lay.j) ∧
+    RecsFit C (recsOfSegs C Mr d.metadata (segsOf (histM d) lay.cuts)) ∧
+    lay.wr = lay.so ∧ lay.wr = lay.z0 ∧ lay.z0 = (segStream C Mr d lay.cuts lay.cuts.length).length ∧
+    (∀ g, lay.segs.getLast? = some g → g.bs = lay.old.map durB)) ∧
+  (∀ dir, s.wal !! dir = none → Ls !! dir = none) ∧
+  (∀ dir nm, InArea s.area dir nm → s.wal !! dir = none → ∀ J, m.entry jr nm = some (.dir J) →
+    walInos (entsOf m J) = []) ∧
+  (∀ dd, s.dirs !! dd = some () → ∃ J, lookupH R (m, []) dd = some (.dir J))
+
+/-- **The crash's pure core** (plan §2.2): from what the invariant says of the WALs, what a crash of
+the claims allows of the tree (`m'`), what the crash did to each segment (`FileCrashedR` of its
+halves, its candidates the state's) and W1: the crashed WAL state `s'` (`walStCrash s s'`) and its
+layouts over `m'` and the crashed files. Each WAL's crash condition gives its `CrashTo` (W1 over the
+ghost candidates, `W1G`, from W1 over the state's: `w1G_of_W1`, the only place W1 enters); the new
+layout keeps the cuts, the kept segments with their files' start resources, the last file's image
+as the bytes under its stream (`crashTo_start`). -/
+theorem walCrash_pure (C : WalCodec) (_hC : C.Ok) (Mr : WalMarshal) (R : Roots) (jr : Ino)
+    (s : AbsDiskState) (Ls : GMap GoString WalLay) (cl : List Claim) (n : Nat) (m' : Tree)
+    (st st' : Fs.OsState) (hok : WalsOk C Mr R jr s Ls cl n) (hk : walKeysInArea s)
+    (hreg : RegionCrashed cl n m') (htree : st'.fs.treeDur = m') (hw1 : W1 C st st')
+    (hfiles : ∀ g ∈ segsAll Ls,
+      FileCrashedR g.om [(0, DFrac.own (1 : Qp).half, g.bs)] (st'.fs.files !! g.ino) ∧
+      (Named m' g.ino → (st'.fs.files !! g.ino).isSome) ∧
+      ∃ f, st.fs.files !! g.ino = some f ∧ ∀ b (y : ByteG), g.bs[b]? = some y → f.cand b = y.2) :
+    ∃ (s' : AbsDiskState) (Ls' : GMap GoString WalLay), walStCrash s s' ∧ s'.area = s.area ∧
+      walKeysInArea s' ∧ WalsStart C Mr R jr s' Ls' m' ∧
+      ∀ dir lay, Ls' !! dir = some lay → ∀ g ∈ lay.segs, g.ino ∈ (segsAll Ls).map (·.ino) ∧
+        ∃ f, st'.fs.files !! g.ino = some f ∧ g.om = initMeta f ∧ g.bs = f.contents.map durB := by
+  classical
+  let G := CrashGood C Mr jr s Ls m' st'
+  let F : GoString → WalDur → Option (WalDur × WalLay) := fun dir d =>
+    if h : ∃ o, G dir d o then Classical.choose h else none
+  have hF : ∀ dir d, s.wal !! dir = some d → G dir d (F dir d) := by
+    intro dir d hd
+    have h := crashGood_exists C Mr R jr s Ls cl n m' st st' hok hreg htree hw1 hfiles dir d hd
+    show G dir d (if h : ∃ o, G dir d o then Classical.choose h else none)
+    rw [dite_eq_left h]
+    exact Classical.choose_spec h
+  let s' : AbsDiskState := { s with wal := gmapBind s.wal (fun k d => (F k d).map Prod.fst) }
+  let Ls' : GMap GoString WalLay := gmapBind s.wal (fun k d => (F k d).map Prod.snd)
+  have hs' : ∀ dir, s'.wal !! dir = (s.wal !! dir).bind (fun d => (F dir d).map Prod.fst) :=
+    fun dir => gmapBind_lookup _ _ _
+  have hLs' : ∀ dir, Ls' !! dir = (s.wal !! dir).bind (fun d => (F dir d).map Prod.snd) :=
+    fun dir => gmapBind_lookup _ _ _
+  -- the new WALs, from their old ones
+  have hsome : ∀ dir d', s'.wal !! dir = some d' → ∃ d lay, s.wal !! dir = some d ∧
+      F dir d = some (d', lay) := by
+    intro dir d' h
+    rw [hs'] at h
+    cases hd : s.wal !! dir with
+    | none => rw [hd] at h; cases h
+    | some d =>
+      rw [hd] at h
+      simp only [Option.bind_some] at h
+      cases hFd : F dir d with
+      | none => rw [hFd] at h; cases h
+      | some p =>
+        rw [hFd] at h
+        simp only [Option.map_some, Option.some.injEq] at h
+        exact ⟨d, p.2, rfl, by rw [hFd, ← h]⟩
+  have hsomeL : ∀ dir lay, Ls' !! dir = some lay → ∃ d d', s.wal !! dir = some d ∧
+      F dir d = some (d', lay) := by
+    intro dir lay h
+    rw [hLs'] at h
+    cases hd : s.wal !! dir with
+    | none => rw [hd] at h; cases h
+    | some d =>
+      rw [hd] at h
+      simp only [Option.bind_some] at h
+      cases hFd : F dir d with
+      | none => rw [hFd] at h; cases h
+      | some p =>
+        rw [hFd] at h
+        simp only [Option.map_some, Option.some.injEq] at h
+        exact ⟨d, p.1, rfl, by rw [hFd, ← h]⟩
+  refine ⟨s', Ls', ⟨rfl, rfl, fun dir d hd => ?_, fun dir hd => ?_⟩, rfl, ?_, ⟨?_, ?_, ?_, ?_⟩, ?_⟩
+  · rw [hs', hd]; exact (hF dir d hd).1
+  · rw [hs', hd]; rfl
+  · intro k d' h
+    obtain ⟨d, -, hd, -⟩ := hsome k d' h
+    exact hk k d hd
+  · intro dir d' h
+    obtain ⟨d, lay, hd, hFd⟩ := hsome dir d' h
+    obtain ⟨nm, hin, hjr, hnm, he, ha, hfit, h1, h2, h3, h4, -⟩ := (hF dir d hd).2.2 d' lay hFd
+    refine ⟨lay, nm, ?_, hin, hjr, hnm, he, ha, hfit, h1, h2, h3, h4⟩
+    rw [hLs', hd]; simp [hFd]
+  · intro dir h
+    rw [hLs']
+    rw [hs'] at h
+    cases hd : s.wal !! dir with
+    | none => rfl
+    | some d =>
+      rw [hd] at h
+      simp only [Option.bind_some] at h ⊢
+      cases hFd : F dir d with
+      | none => rfl
+      | some p => rw [hFd] at h; cases h
+  · intro dir nm hin h J hJ
+    rw [hs'] at h
+    cases hd : s.wal !! dir with
+    | none => exact hok.2.2.2.2.1 dir nm hin hd m' hreg J hJ
+    | some d =>
+      rw [hd] at h
+      simp only [Option.bind_some] at h
+      cases hFd : F dir d with
+      | none =>
+        obtain ⟨nm', hin', he⟩ := (hF dir d hd).2.1 hFd
+        rw [inArea_name hin hin', he] at hJ; cases hJ
+      | some p => rw [hFd] at h; cases h
+  · intro dd hdd
+    exact hok.2.2.2.2.2 dd hdd m' hreg
+  · intro dir lay h
+    obtain ⟨d, d', hd, hFd⟩ := hsomeL dir lay h
+    obtain ⟨-, -, -, -, -, -, -, -, -, -, -, h5⟩ := (hF dir d hd).2.2 d' lay hFd
+    exact h5
+
 end crashpure
 
 end WalFs

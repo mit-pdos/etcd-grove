@@ -21,7 +21,7 @@ the WAL's names are claimed (`wp_osShare`, `osNames_split`).
 -/
 module
 
-public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Inv
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CrashPure
 
 @[expose] public section
 
@@ -32,28 +32,6 @@ namespace EtcdGrove
 namespace WalFs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Fs WalEnc
-
-section pure
-variable [GooseExts]
-
-/-- **What a generation's start says of the WALs** (pure), the tree being `m` (nothing logged):
-each WAL of `s` has a layout whose directory is at its name in the area, with the static relation
-over the directory's entries, every segment's bytes durable and nothing appended; a directory of
-the area with no WAL holds no `.wal` file; every durable directory resolves. -/
-def WalsStart (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (s : AbsDiskState)
-    (Ls : GMap GoString WalLay) (m : Tree) : Prop :=
-  (∀ dir d, s.wal !! dir = some d → ∃ lay nm, Ls !! dir = some lay ∧ InArea s.area dir nm ∧
-    lay.jr = jr ∧ lay.nm = nm ∧ m.entry jr nm = some (.dir lay.j) ∧
-    WalAbsD C Mr d lay (entsOf m lay.j) ∧
-    RecsFit C (recsOfSegs C Mr d.metadata (segsOf (histM d) lay.cuts)) ∧
-    lay.wr = lay.so ∧ lay.wr = lay.z0 ∧ lay.z0 = (segStream C Mr d lay.cuts lay.cuts.length).length ∧
-    (∀ g, lay.segs.getLast? = some g → g.bs = lay.old.map durB)) ∧
-  (∀ dir, s.wal !! dir = none → Ls !! dir = none) ∧
-  (∀ dir nm, InArea s.area dir nm → s.wal !! dir = none → ∀ J, m.entry jr nm = some (.dir J) →
-    walInos (entsOf m J) = []) ∧
-  (∀ dd, s.dirs !! dd = some () → ∃ J, lookupH R (m, []) dd = some (.dir J))
-
-end pure
 
 section crash
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
@@ -100,26 +78,6 @@ theorem crashRest_take_files (Q : Fs.OsState → Fs.OsState → Prop) (L L' : Go
         ([∗list] i ∈ gs.map (·.ino), osFileStartO (L := L') i (st'.fs.files !! i)) ∗
         crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) (gs.map (·.ino) ++ D) tt V' ∗
         ([∗list] g ∈ gs, segRes (L := L) g) := by
-  sorry
-
-/-- **The crash's pure core** (plan §2.2): from what the invariant says of the WALs, what a crash of
-the claims allows of the tree (`m'`), what the crash did to each segment (`FileCrashedR` of its
-halves, its candidates the state's) and W1: the crashed WAL state `s'` (`walStCrash s s'`) and its
-layouts over `m'` and the crashed files. Each WAL's crash condition gives its `CrashTo` (W1 over the
-ghost candidates, `W1G`, from W1 over the state's); the new layout keeps the cuts, the kept segments
-with their files' start resources, the last file's image as the bytes under its stream. -/
-theorem walCrash_pure (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots) (jr : Ino)
-    (s : AbsDiskState) (Ls : GMap GoString WalLay) (cl : List Claim) (n : Nat) (m' : Tree)
-    (st st' : Fs.OsState) (hok : WalsOk C Mr R jr s Ls cl n) (hk : walKeysInArea s)
-    (hreg : RegionCrashed cl n m') (htree : st'.fs.treeDur = m') (hw1 : W1 C st st')
-    (hfiles : ∀ g ∈ segsAll Ls,
-      FileCrashedR g.om [(0, DFrac.own (1 : Qp).half, g.bs)] (st'.fs.files !! g.ino) ∧
-      (Named m' g.ino → (st'.fs.files !! g.ino).isSome) ∧
-      ∃ f, st.fs.files !! g.ino = some f ∧ ∀ b (y : ByteG), g.bs[b]? = some y → f.cand b = y.2) :
-    ∃ (s' : AbsDiskState) (Ls' : GMap GoString WalLay), walStCrash s s' ∧ s'.area = s.area ∧
-      walKeysInArea s' ∧ WalsStart C Mr R jr s' Ls' m' ∧
-      ∀ dir lay, Ls' !! dir = some lay → ∀ g ∈ lay.segs, g.ino ∈ (segsAll Ls).map (·.ino) ∧
-        ∃ f, st'.fs.files !! g.ino = some f ∧ g.om = initMeta f ∧ g.bs = f.contents.map durB := by
   sorry
 
 theorem walsOk_nodup {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s : AbsDiskState}
