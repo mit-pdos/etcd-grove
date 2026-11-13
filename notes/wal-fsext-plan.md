@@ -1196,3 +1196,33 @@ keeps the static relation with `d.m := |H|` (`syncLay`, `walAbsD_sync`; its cras
   which no `os.File` can meet (offset `-1`, arbitrary count): it needs the `B` form. And the guarded
   bridge for `walTailW` (program halves) needs a crash-aware `Write` that opens `walInv` around each
   `PWriteStart`/`PWriteFinish` (the in-flight write's token in `walTailsRes`), not this whole-resource bridge.
+
+## fileutil, the rest (branch `wal-fu2`, 2026-11-13)
+
+Specs in `LinuxFs/Spec/go_etcd_io/etcd/client/pkg/v3/fileutil/` (and `wal/createNewWALFile.lean`), proofs
+beside them in `LinuxFs/Proof/...`:
+- **`ZeroToEnd`** (proved): pre the offset `o ≤ size`, the file unmapped, whole `OsMeta` and the bytes
+  `[o, size)`; success: offset `o`, same size and mappings, `[o, size)` an `osZerosA` run; error: some
+  offset, some size `w ≥ o`, some `w - o` bytes from `o`. Callees `os.File.Truncate.spec`, `Preallocate.spec`.
+- **`LockFile`** (proved, ofd and flock variants over the package fact `fileutilInit`): **generic in
+  the open spec** (decision: one statement for every open variant instead of one spec each):
+  `fileutil.OpenTriple P path flag perm A C` (`LockDefs.lean`) is the premise, `{{P}} os.OpenFile
+  {{ fileutil.openPost A C }}`, the shape of `specCreateS`/`specCreateTruncS`/`wp_fileS` (outcome `x`,
+  resources `A x ok`, on success a fresh file and fd on `i` with `C x i`); post `fileutil.lockPost`
+  (the locked file `fileutil.lockedFile lf f`, persistent, with the file and fd whole; on an error a
+  nil pointer and `∃ b, A x b`: a lock error closes the file it opened). Callees `os.File.Fd`,
+  `Close`, `syscall.Flock`, `fmt.ErrorfErrs` (`ofdLockFile` wraps the open error with `%w`).
+  **Open, blocking instantiation:** `openPost`'s error branch needs `fmtErrorOkOrNil err` (for that
+  `%w`), which the part's open specs do not give yet: add it to `os.OpenFile.specCreateS`,
+  `specCreateTruncS` and `wp_fileS`'s error posts (their model's error is `pathError "open" name
+  (errno e)`; `os.wp_wrapErrno_ok`'s argument, `pathError_fmtErrorOk` + `errnoErr_fmtErrorOk`).
+- **`createNewWALFile`** (proved, `wal/`): `specLocked` (`LockFile`'s post) and `specFile`
+  (the open's), generic the same way at `wal.walOpenFlag forceNew` (`0x41`/`0x241`), mode `0600`.
+- **`Exist`** (proved): generic in the `Stat` spec. **`WithExt`** (proved): `fileutil.withExtFn g ext`
+  (persistent closure contract).
+- **`ReadDir`**: spec over `Open/Readdirnames/Close.wp_dirS` (result `fileutil.ReadDirOut names
+  (optsExt es) rs`: sorted, filtered); **proof `sorry`** (two loops left).
+- Not done: `TryLockFile` (the WAL does not call it; needs `errors.Is(err, EWOULDBLOCK)`),
+  `IsDirWriteable` (reached through `TouchDirAll`: `os.WriteFile`, `Remove`).
+- Build note: the seeded `.lake` replayed stale `Proof/.../storage/WalEncDecode` and
+  `GooseLang/Ext/Fs/TreeSharedRes` artifacts after the `wal-int` merge; deleting them fixed it.
