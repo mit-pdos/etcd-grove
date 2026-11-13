@@ -22,7 +22,7 @@ The resources (all of the generation's ghost state):
 * `osLogLb n`, `osLogEnt x e`: the log has at least `n` entries; its entry `x` is `e` (persistent).
 * `osDirFdS fd j ph`: the shared directory fd `fd`, on the directory `j`, its read at `ph`.
 
-Statements only for now: every proof is `sorry` (filled in `TreeShared*.lean` as they come).
+Every statement is proved in a `TreeShared*.lean` module.
 -/
 module
 
@@ -39,6 +39,7 @@ public import GooseLang.Ext.Fs.TreeSharedCallEnd
 public import GooseLang.Ext.Fs.TreeSharedOpenDir
 public import GooseLang.Ext.Fs.TreeSharedMeta
 public import GooseLang.Ext.Fs.TreeSharedRead
+public import GooseLang.Ext.Fs.TreeSharedCreate
 
 @[expose] public section
 
@@ -255,7 +256,8 @@ theorem wp_osRenameAbsentS (R : Roots) (d bs d' bt : GoString) (j j' : Ino) (N :
   wp_osRenameAbsentS' R d bs d' bt j j' N dq dq' dqn h k s0 q hbs hbt hN hsrc hE hE' Φ
 
 /-- **`mkdir(2)`** of the free name `d/b`, by a call holding the whole call permission: the new
-directory `J` comes with a claim on all its names. -/
+directory `J` comes with a claim on all its names, empty, that no call begun before the `mkdir`
+can use (`hJ.next = x + 1`). -/
 theorem wp_osMkdirS (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : NamesH) (k s0 : Nat)
     (hb : NameOk b) (hn : h.cur !! b = none) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E)
     (Φ : val → IProp GF) :
@@ -265,10 +267,10 @@ theorem wp_osMkdirS (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : Nam
         ((⌜e ≠ 0⌝ ∗ osNames (L := L) j (.only [b]) (DFrac.own 1) h) ∨
          ∃ x J, osLogged (L := L) x (⟨.mkdir j b J, s0⟩ : LogEntry) ∗
            osNames (L := L) j (.only [b]) (DFrac.own 1) (h.log x (⟨.mkdir j b J, s0⟩ : LogEntry) (<[b := .dir J]> h.cur)) ∗
-           osNames (L := L) J (.except []) (DFrac.own 1)
-             ⟨∅, [(x, (⟨.mkdir j b J, s0⟩ : LogEntry), ∅)], ∅⟩) -∗ Φ (#e)) -∗
-      WP (ExternalOp fsExt.name "Mkdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} := by
-  sorry
+           ∃ hJ, osNames (L := L) J (.except []) (DFrac.own 1) hJ ∗ ⌜hJ.cur = ∅ ∧ hJ.next = x + 1⌝) -∗
+        Φ (#e)) -∗
+      WP (ExternalOp fsExt.name "Mkdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} :=
+  wp_osMkdirS' R d b j dq h k s0 hb hn hE hE' Φ
 
 /-- **`rmdir(2)`** of the directory `d/b` (inode `J`), empty (its whole claim, with no name), by a
 call holding the whole call permission. -/
@@ -311,25 +313,43 @@ theorem wp_osLstatDirS (R : Roots) (d b : GoString) (j : Ino) (dq dqn : DFrac) (
 
 /-! ## Opens -/
 
-/-- **`open(2)` with `O_RDWR | O_CREAT`** of `d/b`, a name holding a file or nothing: the file, or
+/-- **`open(2)` with `O_CREAT`, without `O_TRUNC`** (flags `fl`), of `d/b`, a name holding a file or nothing: the file, or
 a new one (its `create` logged; on failure perhaps). -/
 theorem wp_osOpenCreateS (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : NamesH)
-    (k s0 : Nat) (q : Qp) (hb : NameOk b) (hnd : ∀ J, h.cur !! b ≠ some (.dir J))
+    (k s0 : Nat) (q : Qp) (fl : w64) (hfl : OpenFlagsOk fl.toNat) (hcr : fl.toNat / O_CREAT % 2 = 1)
+    (htr : fl.toNat / O_TRUNC % 2 = 0) (hb : NameOk b) (hnd : ∀ J, h.cur !! b ≠ some (.dir J))
     (hs : h.next ≤ s0) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗ osCallS (L := L) k s0 q -∗
       (∀ fd : w64, ∀ e : w64, osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
         ((∃ i, ⌜h.cur !! b = some (.file i)⌝ ∗ osNames (L := L) j (.only [b]) (DFrac.own 1) h ∗
-            (⌜e ≠ 0 ∧ fd = -1⌝ ∨ ⌜e = 0 ∧ 0 ≤ fd.toInt⌝ ∗ osFd (L := L) fd (DFrac.own 1) ⟨i, true, true⟩)) ∨
+            (⌜e ≠ 0 ∧ fd = -1⌝ ∨ ⌜e = 0 ∧ 0 ≤ fd.toInt⌝ ∗ osFd (L := L) fd (DFrac.own 1) (openFd i fl))) ∨
          (⌜h.cur !! b = none⌝ ∗ ∃ x i, osLogged (L := L) x (⟨.create j b i, s0⟩ : LogEntry) ∗
             osNames (L := L) j (.only [b]) (DFrac.own 1) (h.log x (⟨.create j b i, s0⟩ : LogEntry) (<[b := .file i]> h.cur)) ∗
             osMeta (L := L) i (DFrac.own 1) newMeta ∗
-            (⌜e ≠ 0 ∧ fd = -1⌝ ∨ ⌜e = 0 ∧ 0 ≤ fd.toInt⌝ ∗ osFd (L := L) fd (DFrac.own 1) ⟨i, true, true⟩)) ∨
+            (⌜e ≠ 0 ∧ fd = -1⌝ ∨ ⌜e = 0 ∧ 0 ≤ fd.toInt⌝ ∗ osFd (L := L) fd (DFrac.own 1) (openFd i fl))) ∨
          (⌜e ≠ 0 ∧ fd = -1⌝ ∗ osNames (L := L) j (.only [b]) (DFrac.own 1) h)) -∗
         Φ (PairV (#fd) (#e))) -∗
-      WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#(child d b)) (#flCreat)))))
-        @ s; E {{ Φ }} := by
-  sorry
+      WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#(child d b)) (#fl)))))
+        @ s; E {{ Φ }} :=
+  wp_osOpenCreateS' R d b j dq h k s0 q fl hfl hcr htr hb hnd hs hE hE' Φ
+
+/-- **`open(2)` of `d/b`, a name holding the file `i`, without `O_TRUNC`** (with or without
+`O_CREAT`, any access mode), with a fraction of a claim on names containing `b`: no entry; on
+success a fresh fd on `i`. -/
+theorem wp_osOpenFileS (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (dq dqn : DFrac)
+    (h : NamesH) (k s0 : Nat) (q : Qp) (fl : w64) (hfl : OpenFlagsOk fl.toNat)
+    (htr : fl.toNat / O_TRUNC % 2 = 0) (hb : NameOk b) (hN : N.Mem b)
+    (hi : h.cur !! b = some (.file i)) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
+      osNames (L := L) j N dqn h -∗ osCallS (L := L) k s0 q -∗
+      (∀ fd : w64, ∀ e : w64, ⌜(e = 0 ∧ 0 ≤ fd.toInt) ∨ (e ≠ 0 ∧ fd = -1)⌝ -∗
+        osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗ osNames (L := L) j N dqn h -∗
+        (if e = 0 then osFd (L := L) fd (DFrac.own 1) (openFd i fl) else emp) -∗
+        Φ (PairV (#fd) (#e))) -∗
+      WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#(child d b)) (#fl)))))
+        @ s; E {{ Φ }} :=
+  wp_osOpenFileS' R d b j i N dq dqn h k s0 q fl hfl htr hb hN hi hE hE' Φ
 
 /-- **`open(2)` of a directory, read-only**: a shared directory fd, holding nothing. -/
 theorem wp_osOpenDirS (R : Roots) (p : GoString) (j : Ino) (dq : DFrac) (k s0 : Nat) (q : Qp)
@@ -384,8 +404,8 @@ theorem wp_osDirReadNextS (R : Roots) (fd : w64) (j : Ino) (N : NameSet) (r0 : N
               osDirFdS (L := L) fd j .done) ∨
            (∃ e : w64, ⌜e ≠ 0 ∧ v = rdErr e⌝ ∗ osDirFdS (L := L) fd j (.reading N r0' rs)))) -∗
         Φ v) -∗
-      WP (ExternalOp fsExt.name "DirReadNext" (Val (#fd))) @ s; E {{ Φ }} := by
-  sorry
+      WP (ExternalOp fsExt.name "DirReadNext" (Val (#fd))) @ s; E {{ Φ }} :=
+  wp_osDirReadNextS' R fd j N r0 rs fresh dq h hfr hr0 hE hE' Φ
 
 /-- **One step of a blind read of a shared directory fd** (no claim): a valid name, the end, or an
 errno. -/
