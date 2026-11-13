@@ -207,8 +207,8 @@ theorem CohEx.of_coh {V : Hist} {Γn : GMap (Ino × NameSet) NamesH} (h : NamesC
     fun _ h => h.elim⟩
 
 theorem CohEx.coh {V : Hist} {Γn : GMap (Ino × NameSet) NamesH} {j : Ino} {U : GoString → Prop}
-    (h : CohEx V Γn j U) (hU : ∀ b, ¬ U b) : NamesCoh V Γn :=
-  ⟨h.hist, h.disj, fun j' b hj => h.cover j' b hj (fun hh => hU b hh.2), h.dirs⟩
+    (h : CohEx V Γn j U) (hs : Starts V.2) (hU : ∀ b, ¬ U b) : NamesCoh V Γn :=
+  ⟨h.hist, h.disj, fun j' b hj => h.cover j' b hj (fun hh => hU b hh.2), h.dirs, hs⟩
 
 theorem CohEx.iff {V : Hist} {Γn : GMap (Ino × NameSet) NamesH} {j : Ino} {U U' : GoString → Prop}
     (h : CohEx V Γn j U) (hU : ∀ b, U b ↔ U' b) : CohEx V Γn j U' :=
@@ -436,7 +436,7 @@ theorem osNames_split' (R : Roots) (j : Ino) (N : NameSet) (M : List GoString) (
     with ⟨%Γ3, %hc3, HAn, H2⟩
   imod Hclose $$ [Hs HAn Halen HAlog] with -
   · inext; iexists Vs, Γ3; iframe; ipureintro
-    refine ⟨hcoh.1, hc3.coh ?_⟩
+    refine ⟨hcoh.1, hc3.coh hcoh.2.starts ?_⟩
     rintro b ⟨⟨hu | hu, hi⟩, hd⟩
     · exact hu
     · by_cases hbM : b ∈ M
@@ -470,7 +470,7 @@ theorem osNames_merge' (R : Roots) (j : Ino) (N N' N'' : NameSet) (h h' : NamesH
     with ⟨%Γ3, %hc3, HAn, H''⟩
   imod Hclose $$ [Hs HAn Halen HAlog] with -
   · inext; iexists Vs, Γ3; iframe; ipureintro
-    refine ⟨hcoh.1, hc3.coh ?_⟩
+    refine ⟨hcoh.1, hc3.coh hcoh.2.starts ?_⟩
     rintro b ⟨(hu | hu) | hu, hn⟩
     · exact hu
     · exact hn ((hN b).2 (Or.inl hu))
@@ -497,7 +497,7 @@ theorem osNames_rekey' (R : Roots) (j : Ino) (N N' : NameSet) (h : NamesH) (hN :
   imod osNames_ins hc1 N' (fun b hb => Or.inr ((hN b).2 hb)) $$ HAn with ⟨%Γ2, %hc2, HAn, H'⟩
   imod Hclose $$ [Hs HAn Halen HAlog] with -
   · inext; iexists Vs, Γ2; iframe; ipureintro
-    refine ⟨hcoh.1, hc2.coh ?_⟩
+    refine ⟨hcoh.1, hc2.coh hcoh.2.starts ?_⟩
     rintro b ⟨hu | hu, hn⟩
     · exact hu
     · exact hn ((hN b).1 hu)

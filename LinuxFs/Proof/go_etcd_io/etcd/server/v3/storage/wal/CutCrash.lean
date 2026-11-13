@@ -238,6 +238,37 @@ theorem w1G_prefix {C : WalCodec} {js : List Ino} {img : Ino → List w8} {lay l
 
 /-! ## The rename -/
 
+/-- A `.wal` name of `E` holding the file `i`: `i` is among `E`'s `.wal` files. -/
+theorem mem_walInos {E : Ents} {b : GoString} {i : Ino} (hb : walNameP b = true)
+    (he : E !! b = some (.file i)) : i ∈ walInos E := by
+  unfold walInos walNames
+  refine List.mem_filterMap.2 ⟨b, ?_, by rw [he]⟩
+  refine (List.mergeSort_perm _ _).mem_iff.2 (List.mem_filter.2 ⟨?_, hb⟩)
+  exact List.mem_map.2 ⟨(b, .file i), (GMap.mem_toList _ _ _).2 he, rfl⟩
+
+theorem entsOf_lookup_entry (m : Tree) (j : Ino) (b : GoString) : entsOf m j !! b = m.entry j b := by
+  unfold entsOf Tree.entry
+  cases m !! j <;> rfl
+
+/-- A listed `.wal` file is a file at a `.wal` name. -/
+theorem walInos_mem_inv {E : Ents} {i : Ino} (h : i ∈ walInos E) :
+    ∃ b, walNameP b = true ∧ E !! b = some (.file i) := by
+  unfold walInos at h
+  obtain ⟨b, hbm, hb⟩ := List.mem_filterMap.1 h
+  refine ⟨b, ?_, ?_⟩
+  · unfold walNames at hbm
+    exact (List.mem_filter.1 (List.mem_mergeSort.1 hbm)).2
+  · split at hb <;> simp_all
+
+/-- Deleting a name lists no new `.wal` file. -/
+theorem mem_walInos_treeDel {m' : Tree} {j J : Ino} {bt : GoString} {i : Ino}
+    (h : i ∈ walInos (entsOf (treeDel m' j bt) J)) : i ∈ walInos (entsOf m' J) := by
+  obtain ⟨b, hb, he⟩ := walInos_mem_inv h
+  rw [entsOf_lookup_entry, treeDel_entry] at he
+  split at he
+  · cases he
+  · exact mem_walInos hb (by rw [entsOf_lookup_entry]; exact he)
+
 /-- **A cut's rename keeps the crash condition, with the old layout as the alternative.** Before
 the rename: the crash condition `hok` of `lay` over the claims `cl`, its static relation `habs` (for
 the sizes), every byte of its segments durable (`hdur`: the old tail truncated and synced), the
@@ -260,7 +291,7 @@ theorem crashOkA_rename (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay lay' 
     (hpre : lay.segs <+: lay'.segs) (hj' : lay'.j = lay.j)
     (hkept : ∀ (m' : Tree) (fo : Ino → Option Fs.OsFile),
       (∀ g ∈ lay'.segs, FileCrashedR g.om [(0, DFrac.own (1 : Qp).half, g.bs)] (fo g.ino)) →
-      (∀ g ∈ lay'.segs, Named m' g.ino → (fo g.ino).isSome) →
+      (∀ g ∈ lay'.segs, g.ino ∈ walInos (entsOf m' lay'.j) → (fo g.ino).isSome) →
       (∀ b, (NameSet.except X).Mem b → m'.entry lay.j b = c !! b) →
       ((d.named = false ∧ m'.entry lay.jr lay.nm = none) ∨
         m'.entry lay.jr lay.nm = some (.dir lay.j)) →
@@ -290,7 +321,7 @@ theorem crashOkA_rename (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay lay' 
       · exact hx
     · -- where the WAL directory is: the old crash condition, over the tree without `bt`
       have hct := hok (treeDel m' lay.j bt) fo ((regionCrashed_iff _ _ _).2 ⟨K, hK'⟩) hfo
-        (fun g hg hnm => hn g (hpre.subset hg) (named_treeDel hnm))
+        (fun g hg hin => hn g (hpre.subset hg) (by rw [hj']; exact mem_walInos_treeDel hin))
         (w1G_durable C _ _ _ (fun i bs hb => by
           obtain ⟨g, hg, rfl, rfl⟩ := segBytesOf_some hb
           refine ⟨hdur g hg, ?_⟩
@@ -318,19 +349,12 @@ theorem crashOkA_rename (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay lay' 
   · -- the rename dropped: a crash of the claims before it, the old layout's
     right
     refine ⟨lay, rfl, hok m' fo ((regionCrashed_iff _ _ _).2 ⟨K, regionCrashedK_unlog cl n m' K
-      lay.j _ h x e c hK hx⟩) hfo (fun g hg => hn g (hpre.subset hg)) ?_⟩
+      lay.j _ h x e c hK hx⟩) hfo
+      (fun g hg hin => hn g (hpre.subset hg) (by rw [hj']; exact hin)) ?_⟩
     rw [hj'] at hw
     exact w1G_prefix hpre hw
 
 /-! ## The directory's fsync -/
-
-/-- A `.wal` name of `E` holding the file `i`: `i` is among `E`'s `.wal` files. -/
-theorem mem_walInos {E : Ents} {b : GoString} {i : Ino} (hb : walNameP b = true)
-    (he : E !! b = some (.file i)) : i ∈ walInos E := by
-  unfold walInos walNames
-  refine List.mem_filterMap.2 ⟨b, ?_, by rw [he]⟩
-  refine (List.mergeSort_perm _ _).mem_iff.2 (List.mem_filter.2 ⟨?_, hb⟩)
-  exact List.mem_map.2 ⟨(b, .file i), (GMap.mem_toList _ _ _).2 he, rfl⟩
 
 /-- **The directory's fsync drops the alternative**: a commit bound past the rename (logged at `x`
 in the claim `(j, except X, h.log x e c)`, the new segment `i` at the `.wal` name `bt`) makes every

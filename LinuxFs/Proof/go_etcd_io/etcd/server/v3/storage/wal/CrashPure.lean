@@ -424,7 +424,7 @@ theorem crashGood_exists (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     rw [(habs.metas g hg).2.2.2] at this
     exact this)
   have hct := hcok m' (fun i => st'.fs.files !! i) hreg (fun g hg => (hf g hg).1)
-    (fun g hg => (hf g hg).2.1) hw1G
+    (fun g hg hin => (hf g hg).2.1 (named_of_mem_walInos hin)) hw1G
   -- the layout whose `CrashTo` the crash gives: `lay`, or the one before a pending cut's rename
   obtain ⟨lay0, ents0, habs0, hjr0, hnm0, hj0, hpre, hct0⟩ : ∃ lay0 ents0, WalAbsD C Mr d lay0 ents0 ∧
       lay0.jr = lay.jr ∧ lay0.nm = lay.nm ∧ lay0.j = lay.j ∧ lay0.segs <+: lay.segs ∧

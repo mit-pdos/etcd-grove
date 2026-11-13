@@ -51,6 +51,32 @@ theorem claims_lookup (L : GooseLocalGS GF) {V : Hist} {Γn : GMap (Ino × NameS
     iapply (osClaims_cons L c cl).2
     iframe
 
+/-- The claims held are one log's (their entries its entries), a log whose entries' calls began no
+later than they took effect (`NamesCoh.starts`). -/
+theorem osClaims_log' (L : GooseLocalGS GF) (R : Roots) (cl : List (Claim × DFrac)) (E : CoPset)
+    (hE : ↑osShN ⊆ E) :
+    osSharedInv (L := L) R -∗ osClaims L cl ={E}=∗ osClaims L cl ∗
+      ⌜∃ log : List LogEntry, Starts log ∧
+        ∀ c ∈ cl, ∀ x e Es, (x, e, Es) ∈ c.1.2.2.ents → log[x]? = some e⌝ := by
+  unfold osSharedInv
+  iintro #Hsi Hc
+  imod inv_acc hE $$ Hsi with ⟨Hi, Hclose⟩
+  icases Hi with >Hi
+  icases Hi with ⟨%Vs, %Γn, Hs, HAn, %hcoh, Halen, HAlog⟩
+  icases claims_lookup L hcoh.2 cl $$ HAn Hc with ⟨%hcl, HAn, Hc⟩
+  imod Hclose $$ [Hs HAn Halen HAlog] with -
+  · inext; iexists Vs, Γn; iframe; ipureintro; exact hcoh
+  imodintro
+  iframe Hc
+  ipureintro
+  refine ⟨Vs.2, hcoh.2.starts, fun c hc x e Es hx => ?_⟩
+  rw [hcl c hc, namesOf_ents] at hx
+  obtain ⟨x0, hx0, hxe⟩ := List.mem_map.1 hx
+  simp only [Prod.mk.injEq] at hxe
+  obtain ⟨rfl, rfl, -⟩ := hxe
+  have hxL : x0 < Vs.2.length := List.mem_range.1 (List.mem_filter.1 hx0).1
+  simp [List.getElem?_eq_getElem hxL]
+
 /-- In the legacy mode the restart holds the shared history's authority empty: no shared
 invariant is the generation's. -/
 theorem sharedInv_legacy_excl (L : GooseLocalGS GF) (R : Roots) (E : CoPset) (hE : ↑osShN ⊆ E) :
