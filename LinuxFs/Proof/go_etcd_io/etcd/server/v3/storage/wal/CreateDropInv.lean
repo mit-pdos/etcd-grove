@@ -263,7 +263,7 @@ theorem absentNone_drop {s : AbsDiskState} {jr : Ino} {cl : List Claim} {n : Nat
     exact h2 _ hr1
 
 /-- `SegsNamedC` reads only `.wal` names. -/
-theorem segsNamedC_congr {segs : List SegG} {E1 E2 : Ents}
+theorem segsNamedC_of_walEq {segs : List SegG} {E1 E2 : Ents}
     (he : ∀ b, walNameP b = true → E1 !! b = E2 !! b) (h : SegsNamedC segs E1) :
     SegsNamedC segs E2 := by
   have hw := walInos_congr he
@@ -282,7 +282,7 @@ theorem walsNamed_drop {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat} {
   obtain ⟨h1, h2⟩ := hok dir lay hl
   refine ⟨fun hj hw => h1 hj (walDirClaim_of_drop hbw hnW hl hw), fun m' hr => ?_⟩
   obtain ⟨v, hr1⟩ := hd.crash hr
-  refine segsNamedC_congr (fun b' hb' => ?_) (h2 _ hr1)
+  refine segsNamedC_of_walEq (fun b' hb' => ?_) (h2 _ hr1)
   rw [entsOf_entry, entsOf_entry, treeSetE_entry_ne]
   rintro ⟨-, rfl⟩
   rw [hbw] at hb'; cases hb'
