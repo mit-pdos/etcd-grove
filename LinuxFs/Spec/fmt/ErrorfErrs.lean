@@ -47,7 +47,26 @@ abbrev fmt.ErrorfErrs.spec : Prop :=
       (App (App (Val (@! _root_.Perennial.fmt.Errorf)) (Val #format)) (Val #args_sl))
     {{ (err : GoInterfaceOk), RET #(interface.ok err); errOk err }}
 
+
+theorem argWf_uint32 (v : w32) : fmt.ArgWf (interface.mk go.uint32 #v) :=
+  ⟨fun h => by simp [go.uint32, go.string] at h, fun _ => ⟨_, .uint32 v⟩,
+    Or.inl (Or.inr (Or.inr (Or.inl (by simp [fmt.IsIntType]))))⟩
+
+theorem argWf_int64 (v : w64) : fmt.ArgWf (interface.mk go.int64 #v) :=
+  ⟨fun h => by simp [go.int64, go.string] at h, fun _ => ⟨_, .int64 v⟩,
+    Or.inl (Or.inr (Or.inr (Or.inl (by simp [fmt.IsIntType]))))⟩
+
+theorem argWf_string (x : GoString) : fmt.ArgWf (interface.mk go.string #x) := by
+  have hu : underlying go.string = go.string := go.IsUnderlying.is_underlying
+  refine ⟨fun _ => ⟨x, rfl⟩, fun h => ?_, Or.inl (Or.inl rfl)⟩
+  exfalso
+  simp only [fmt.IsIntArgType, hu] at h
+  rcases h with h | ⟨h, _⟩ <;>
+    simp [fmt.IsIntType, go.string, go.int, go.int64, go.int32, go.int16, go.int8, go.uint,
+      go.uint64, go.uint32, go.uint16, go.uint8] at h
+
 end spec
+
 
 end EtcdGrove
 end Perennial
