@@ -48,6 +48,25 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
   and the risks R1-R5 (§7).
 - Decisions go in the worktree's `questions.md` (untracked).
 
+## Phase B progress (2026-11-13, the Phase B agent): next agent starts here
+
+- **Step 1 (forms) done, commit `800a0789bc`**: `lateWBR` deleted (`bootOkR`'s `Hnew` at `fun _ =>
+  mvcc.api.mvccW d.gx`); `srvDiskImageAt γ ρ id dd S σ i A D m M` holds the old body verbatim,
+  `srvDiskImage := ∃ S σ i A D m M, srvDiskImageAt …` (`srvDiskImage_raft` and `stop_cleanup_image`
+  unfold both); `wal.stopImage` gains `∃ l', isCommittedLogLb cl l' ∗ ⌜σ.b ≤ l'.length ∧ DurAgrees S
+  l'⌝` (intro/elim restated), `stopCleanupImage.spec`'s `∃ S σ` block gains it, `run` passes
+  `raftNode.stop`'s (`#Hdag`). Full build clean (17476 jobs, `/shared/tmp/restart-s56/phaseB-forms-full.log`);
+  tcb/interfaces/gates: see the landing line below.
+- **Probes** (`Scratch/S56Probe.lean`, untracked): P1 (`restartOkD`, `restartOkD_facts`,
+  `restartOkD_start`, `walReadFactsD` with I4 as `(snap = none ∧ base = (0,0)) ∨ walSnapAtBase σ`),
+  P2 (`probe_P2_boot_storageR`: `boot_storage` with the image's `mvccImage D L c u` in place of the
+  fresh law), P6 (`probe_P6_cs`, `probe_P6_idx`); P3 by reading, `/shared/tmp/restart-s56/p3-rows.md`.
+  **P6 finding**: `bootOkR`'s `%Hraft` spells out `rnStartCfg`'s conjuncts but lacks `maxMsg`
+  (`uint.Z cv.MaxSizePerMsg' ≤ 2^20`), which `rnRestartCfg` needs: `bootOkR`'s text must take
+  `rnRestartCfg bv cv lok pv` (contract text: in the CP2 package; Go evidence as `rnStartCfg.maxMsg`'s
+  docstring, both constructions call `raftConfig`, `TestMaxSizePerMsg`).
+- Next: A2 texts, then the CP2 Freeze package (`/shared/tmp/restart-s56/freeze-package.md`).
+
 ## Phase B (go from etcd-grove-81, 2026-11-13): next agent starts here
 
 S6a (step 5 + S6a-2) **landed: `lean` 1c3e201cd1** (approved by 81; merged `lean` d922d242f3 first,
