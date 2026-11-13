@@ -7,6 +7,7 @@ fdatasync is the spec's hypothesis triple; `MustMarshalMessage` the WAL's marsha
 module
 
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__SaveSnapshotPre
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.WAL__cutPre
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__tail
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.encoder__flush
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.encoder__encode
@@ -38,7 +39,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 
-theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofPre
+/-- `sync` before a rename, any locks (`walPreInL`, `WAL__cutPre.lean`). -/
+theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofPreL
     (wp_tail : go_etcd_io.etcd.server.v3.storage.wal.WAL.tail.spec (GF := GF) (hG := hG))
     (wp_flush : go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.spec (GF := GF) (hG := hG))
     (wp_Now : time.Now.spec (GF := GF) (hG := hG))
@@ -46,11 +48,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofPre
     (wp_Seconds_ptr : time.Duration.Seconds_ptr.spec (GF := GF) (hG := hG))
     (wp_Duration : zap.Duration.spec (GF := GF) (hG := hG))
     (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
-    go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specPre (GF := GF) := by
-  intro w lg dir mds md e lt f snapi enti W B S lim out pend c hlim hsync
+    go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specPreL (GF := GF) := by
+  intro w lg dir mds md e ls lt f snapi enti W B S lim out pend c hlim hsync
   iintro #Hw
   wp_start as ⟨#Henv, #Hzap, Hpre, He, Hout⟩
-  iunfold walPreIn at Hpre
+  iunfold walPreInL at Hpre
   icases Hpre with ⟨%locks, Hlg, #Hlgok, Hdir, Hmd, #Hmds, Hns, #Hmu, Henti, Hsnapi, Hfe, %Hen,
     Hlocks, Hls, Hcap, #Hlt⟩
   wp_auto
@@ -70,7 +72,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofPre
     iapply HΦ
     iframe He
     isplitl [Hlg Hdir Hmd Hns Henti Hsnapi Hfe Hlocks Hls Hcap]
-    · iunfold walPreIn
+    · iunfold walPreInL
       iexists locks
       iframe; iframe #; ipureintro; exact Hen
     iright
@@ -80,7 +82,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofPre
   subst Herr
   wp_auto
   wp_apply wp_Now as %t -
-  wp_apply (wp_tail w locks [] lt (DFrac.own 1) (DFrac.own 1)) $$ [Hlocks Hls] as ⟨Hlocks, Hls⟩
+  wp_apply (wp_tail w locks ls lt (DFrac.own 1) (DFrac.own 1)) $$ [Hlocks Hls] as ⟨Hlocks, Hls⟩
   · iframe
   ihave #Hlt0 := Hlt
   iunfold fileutil.lockedFile at Hlt
@@ -119,7 +121,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofPre
     iapply HΦ
     iframe He
     isplitl [Hlg Hdir Hmd Hns Henti Hsnapi Hfe Hlocks Hls Hcap]
-    · iunfold walPreIn
+    · iunfold walPreInL
       iexists locks
       iframe; iframe #; ipureintro; exact Hen
     icases Hsy with (⟨%H0, HS⟩ | ⟨%H0, HW⟩)
@@ -134,12 +136,25 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofPre
     iapply HΦ
     iframe He
     isplitl [Hlg Hdir Hmd Hns Henti Hsnapi Hfe Hlocks Hls Hcap]
-    · iunfold walPreIn
+    · iunfold walPreInL
       iexists locks
       iframe; iframe #; ipureintro; exact Hen
     icases Hsy with (⟨%H0, HS⟩ | ⟨%H0, HW⟩)
     · ileft; iframe HS; ipureintro; subst H0; rfl
     · iright; iframe HW; ipureintro; unfold errnoErr; simp; exact H0
+
+/-- W4's `sync` before the rename, one lock: the corollary of `wp_proofPreL`. -/
+theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofPre
+    (wp_tail : go_etcd_io.etcd.server.v3.storage.wal.WAL.tail.spec (GF := GF) (hG := hG))
+    (wp_flush : go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.spec (GF := GF) (hG := hG))
+    (wp_Now : time.Now.spec (GF := GF) (hG := hG))
+    (wp_Since : time.Since.spec (GF := GF) (hG := hG))
+    (wp_Seconds_ptr : time.Duration.Seconds_ptr.spec (GF := GF) (hG := hG))
+    (wp_Duration : zap.Duration.spec (GF := GF) (hG := hG))
+    (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
+    go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specPre (GF := GF) :=
+  go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specPre_of_L
+    (go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofPreL wp_tail wp_flush wp_Now wp_Since wp_Seconds_ptr wp_Duration wp_Warn)
 
 theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_proofPre (Mr : WalMarshal)
     (wp_sync : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specPre (GF := GF))

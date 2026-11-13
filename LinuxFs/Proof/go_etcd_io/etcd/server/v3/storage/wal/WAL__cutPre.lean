@@ -30,16 +30,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 theorem walPreIn_L (w lg : Loc) (dir : GoString) (mds : GoSlice) (md : List w8) (e lt f : Loc)
     (snapi enti : w64) :
     walPreIn (GF := GF) w lg dir mds md e lt f snapi enti ⊣⊢
-      walPreInL (GF := GF) w lg dir mds md e [lt] lt f snapi enti := by
+      walPreInL (GF := GF) w lg dir mds md e [] lt f snapi enti := by
   unfold walPreIn walPreInL
-  constructor
-  · iintro ⟨%locks, H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14⟩
-    iexists locks
-    iframe
-    ipureintro; rfl
-  · iintro ⟨%locks, H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, -, H15⟩
-    iexists locks
-    iframe
+  exact .rfl
 
 /-- **W4's `sync.specPre` is `specPreL` at one lock.** -/
 theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specPre_of_L
@@ -48,9 +41,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specPre_of_L
   intro w lg dir mds md e lt f snapi enti W B S lim out pend c hlim hS
   iintro #Hw
   imodintro
-  iintro %Φ ⟨#Henv, Hp, He, Hout⟩ HΦ
-  iapply h w lg dir mds md e [lt] lt f snapi enti W B S lim out pend c hlim hS $$ Hw [Hp He Hout]
-  · iframe Henv He Hout
+  iintro %Φ ⟨#Henv, #Hzap, Hp, He, Hout⟩ HΦ
+  iapply h w lg dir mds md e [] lt f snapi enti W B S lim out pend c hlim hS $$ Hw [Hp He Hout]
+  · iframe Henv Hzap He Hout
     iapply (walPreIn_L w lg dir mds md e lt f snapi enti).1 $$ Hp
   · inext
     iintro %err ⟨Hp, He, Hr⟩

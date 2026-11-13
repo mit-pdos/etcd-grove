@@ -5,9 +5,9 @@ program owns wholly (no WAL layout tracks it before the rename), on its own `w`:
 segments' then `N.tmp`'s), `dirFile`, `fp` and `state` set. These generalize W4's pre-rename specs
 (`WAL__SaveSnapshotPre.lean`, `Create`'s `w`: one lock, no `dirFile`/`fp`/`state`):
 
-* `walPreInL`: W4's `walPreIn` with the locks any list whose last is the tail's (`w.tail()`); the
+* `walPreInL`: W4's `walPreIn` with the locks any list ending with the tail's (`ls ++ [lt]`, `w.tail()`); the
   fields `sync` and `SaveSnapshot` do not read (`dirFile`, `fp`, `state`, `decoder`, ...) are the
-  caller's frame. `walPreIn` is its instance at `[lt]` (`walPreIn_L`, the proof file), and W4's
+  caller's frame. `walPreIn` is its instance at `ls = []` (`walPreIn_L`, the proof file), and W4's
   `WAL.sync.specPre` a corollary of `WAL.sync.specPreL` (`WAL.sync.specPre_of_L`).
 * `WAL.saveState.specPre`: over the two fields it touches (`state`, `encoder`) and any guarded writer
   (`io.writerStreamP`, as `encoder.encode.specG`): `cut` instantiates it with `os.File.writerStream`
@@ -41,8 +41,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 
 /-- **A `w` before a rename, its tail the locked file `lt` (of `f`)** (see the file header): the
-fields `sync`/`SaveSnapshot` read, the locks `lfs` (the tail `lt` last). -/
-def walPreInL (w lg : Loc) (dir : GoString) (mds : GoSlice) (md : List w8) (e : Loc) (lfs : List Loc)
+fields `sync`/`SaveSnapshot` read, the locks `ls ++ [lt]` (the old segments', then the tail's). -/
+def walPreInL (w lg : Loc) (dir : GoString) (mds : GoSlice) (md : List w8) (e : Loc) (ls : List Loc)
     (lt f : Loc) (snapi enti : w64) : IProp GF :=
   iprop(∃ locks : GoSlice,
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"lg" w ↦ lg ∗ zapLoggerOk lg ∗
@@ -53,26 +53,25 @@ def walPreInL (w lg : Loc) (dir : GoString) (mds : GoSlice) (md : List w8) (e : 
       (BI.pure True : IProp GF) ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"enti" w ↦ enti ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"snapi" w ↦ snapi ∗
-    structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"encoder" w ↦ e ∗
+    structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"encoder" w ↦ e ∗ ⌜e ≠ null⌝ ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks ∗
-    locks ↦* lfs ∗ ownSliceCap Loc locks (DFrac.own 1) ∗ ⌜lfs.getLast? = some lt⌝ ∗
-    fileutil.lockedFile lt f)
+    locks ↦* (ls ++ [lt]) ∗ ownSliceCap Loc locks (DFrac.own 1) ∗ fileutil.lockedFile lt f)
 
 /-- **`w.sync()` before a rename** (S/wal.go:967-992): W4's `WAL.sync.specPre` over `walPreInL` (any
 locks, the tail last). -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specPreL : Prop :=
-  ∀ (w lg : Loc) (dir : GoString) (mds : GoSlice) (md : List w8) (e : Loc) (lfs : List Loc)
+  ∀ (w lg : Loc) (dir : GoString) (mds : GoSlice) (md : List w8) (e : Loc) (ls : List Loc)
     (lt f : Loc) (snapi enti : w64)
     (W : List w8 → IProp GF) (B : List w8 → List w8 → IProp GF) (S : List w8 → IProp GF)
     (lim : Nat) (out pend : List w8) (c : w32),
   out.length + pend.length ≤ lim → walPreSyncOk f W S →
   ⊢ io.writerStream (wal.fileWi f) lim W B -∗
-    {{ encEnv ∗ walPreInL w lg dir mds md e lfs lt f snapi enti ∗ ownEncoder e (wal.fileWi f) c pend ∗
-        W out }}
+    {{ encEnv ∗ isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap ∗
+        walPreInL w lg dir mds md e ls lt f snapi enti ∗ ownEncoder e (wal.fileWi f) c pend ∗ W out }}
       (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!!
         go!"sync")) (Val #()))
     {{ (err : GoInterface), RET #err;
-        walPreInL w lg dir mds md e lfs lt f snapi enti ∗ ownEncoder e (wal.fileWi f) c [] ∗
+        walPreInL w lg dir mds md e ls lt f snapi enti ∗ ownEncoder e (wal.fileWi f) c [] ∗
         ((⌜err = GoInterface.nil⌝ ∗ S (out ++ pend)) ∨
          (⌜err ≠ GoInterface.nil⌝ ∗ (B out pend ∨ W (out ++ pend)))) }}
 
