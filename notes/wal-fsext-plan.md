@@ -2077,6 +2077,46 @@ condition lifted to `CrashOkA`.**
   carry `∀ b ∈ h.cuts, b < |H|`, needed by `cut.spec` with `walCutPos`), `saveEntry`/`saveState`/`sync`/
   `Save`/`SaveSnapshot`/`Sync`.
 
+**W6, seventh session (branch `wal-save7`, 2026-11-13): the tail `WriteAt` loop; the encoder over the guarded
+stream.**
+- *`wp_tailWriteAt` proved* (`TailWriter.lean`; with it `wp_tailWrite` and `wal.tailWriter`, no `sorry` in the
+  file). The loop's arithmetic goes through small top-level lemmas over `Nat` (`tw_*`: `tw_sub`, `tw_addMax`,
+  `tw_offAdd`, `tw_full_iff` for the `BitVec` conversions, each proved in an empty context; `tw_eintr`,
+  `tw_short`, `tw_full` for the invariant), the invariant written without `min` (`wr ≤ off + len`,
+  `wr ≤ off + nn + 2^30`) and the `max` of the finish generalized to a variable with its three facts
+  (`tw_max`). No `omega`/`word` in the loop's context but on linear facts; peak memory stayed low (the
+  check ran under a 12 GB cgroup, `systemd-run --user --scope -p MemoryMax=12G`, a guard worth keeping).
+- *The page writer and the encoder over `io.writerStreamP`* (statement changes, internal): `PageWriter.{flush,
+  Flush,Write}.spec` and `wal.write.spec` now take a prefix-closed guard `ok` (premise `ok (out ++ pend [++ xs])`)
+  in place of the length bound `lim` (the bound is the instance `io.writerStream_P`); the proofs' writes are
+  prefixes of `out ++ pend ++ xs`. `encoder.encode.wp_proofG : encode.specG` and `encoder.flush.specP` /
+  `wp_proofP` (new) are the main proofs; `encode.spec`/`flush.spec` (length-bounded, used by `SaveSnapshotPre`,
+  `cutPre`) are derived (`wp_proof` from the guarded one), unchanged. Gotcha: `wp_auto` unfolds
+  `encodeFrameSize`'s length word into an `if`; to pass it by name, fold it back (`efs_fst_eq`) and
+  `generalize` it before `wp_auto`.
+- *`WAL.saveCrc.spec` proved* (`WAL__saveCrc.lean`, over `encode.specG`; `recSize_crc`, with a local copy of
+  raft's `varintSize_le_succ`, which the part cannot import).
+- *`newEncoder`/`newFileEncoder` give `e ≠ null`* (post conjunct at the end; no user had destructured it).
+- *Merged `wal-int` (`wal-cut7`)*; everything above builds against it.
+- *Findings for the remaining units* (not done):
+  1. **`sync`, `saveEntry`, `saveState` are blocked on writes past the tail's size** as stated: the tail's guard
+     `tailOk` needs `o0 + |out ++ written| ≤ sz`, and nothing in `walHandleIn` bounds `o0 + |out| + |pend|` (or
+     the next frame) by `sz` (only by `0xffffffff000`); a `Save` that crosses `SegmentSizeBytes`, and
+     `sync.specCut` (`wal-cut7`: pending bytes past the truncated size), write there. These wait for
+     `wal-zte`'s past-size design; with an in-size premise they are provable now over `tailWriter`.
+  2. **The cut bound is `≤`, not `<`**: right after `cut`, `h'.cuts = h.cuts ++ [|H|]`, so the handle can carry
+     only `∀ b ∈ h.cuts, b ≤ |H|`; `Save` gets `cut.spec`'s strict premise after its append (`|H| + 1`). Not yet
+     added to `walHandleIn` (it changes the pure conjunct `wal-cut7` just edited; to add with the next `cut`
+     merge: `cut`'s post keeps it, `Create`/`ReadAll` establish it).
+  3. **The cuts budget does not fit receipts as such**: a handle could hold `⧗ k` (one receipt per cut of this
+     lifetime, `[ReceiptBoundLe GF (2^62)]`, `receipt_lt`), but `ReadAll`'s handle starts with the cuts of the
+     WAL it read (`c0`, bounded only by a slice length, `< 2^63`), and `c0 + k` can pass `2^63 - 2`. Options: bound
+     `c0` by the tail name's sequence (an invariant fact `cuts.length ≤ sq`, then `sq + 1 < 2^64` is still too
+     weak for `2^63`), or weaken `cut.spec`'s `cuts.length + 2 < 2^63` (where `cut` needs it: the `int`
+     arithmetic on the sequence?) to what the name bound gives. For the coordinator: which bound `cut` really
+     needs.
+  4. `SaveSnapshot`'s `walpb.Snapshot` registration not started.
+
 ## W3/W5 implementation log (branch `wal-read`, 2026-11-13)
 
 **Proved (no `sorry`, `lake build`):**
