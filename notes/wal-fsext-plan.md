@@ -1053,6 +1053,60 @@ error; `Close`: the token → the pipeline's claims (and the file in flight remo
   halves, and moves the tail record of `walTailsRes` to the new segment, establishing `TailBound`); the
   dir sync then `crashOk_dirSync`; the re-lock (`LockFile` of an existing `.wal`, `os.OpenFile.wp_fileS`).
 
+**Fourth session (branch `wal-cut4`, 2026-11-13): the pre-rename header phase; the rename's update blocked
+on three facts the invariant does not record.**
+- *Done (no `sorry`):* `walPreInL w lg dir mds md e ls lt f snapi enti` (`Spec/.../wal/WAL__cutPre.lean`): W4's
+  `walPreIn` with the locks `ls ++ [lt]` (cut's `w`: the old segments' locks, then `N.tmp`'s); `dirFile`,
+  `fp`, `state` are the caller's frame (`sync` does not read them). `walPreIn ⊣⊢ walPreInL … [] …`
+  (`walPreIn_L`, definitional). **`WAL.sync.wp_proofPreL`** (W4's fifth-session proof generalized, in
+  `WAL__SaveSnapshotPre.lean`; `wp_tail` at `ls`), and W4's `sync.wp_proofPre` now its corollary
+  (`sync.specPre_of_L`): one proof, both statements unchanged. **`WAL.saveState.specPre P Mr`** (only the
+  `state`/`encoder` fields, any guarded writer `io.writerStreamP`, post as `encode.specG`'s with the state
+  frame `stateFrame Mr c hs`) **proved** (`saveState.wp_proofPre`) over `encode.specG` and two laws over the
+  client's `P.hsIn`, hypotheses like `pbutil.MustMarshalMessage.specWalSnap`: `WalPbIn.IsEmptyLaw` (result a
+  `Bool` `b` with `b = true ↔ hsEmptyP hs`: `wp_if_destruct` does not take `#(decide _)` from a hypothesis
+  triple) and `WalPbIn.MarshalHsLaw` (a non-empty state marshals to a non-nil slice of `Mr.encState hs`).
+  `CutTail.lean` (pure): `tailZeros_cut`, `tailBound_cut` (the new segment's `TailBound`: `jE` all its
+  records, `max so z0 = wr`), `cutLay_last`, `tailG_cut` (the tail record's value after the cut).
+- **Blocked: `walCut_osAUnc`** (the update for `os.Rename.specFileSnc`). Like `Create`'s, its opening cannot
+  open `osSharedInv` (`osShN ∉ osAuMask`), so it can only use facts `walInv` records, and three it needs are
+  not recorded anywhere:
+  1. *The WAL directory claim's key.* `specFileSnc` takes the program's fraction `osNames j' N' q2 h'` and
+     the update must hand out the rest *of the same key and history*. `walHandleIn` holds no fraction of its
+     directory's claim at all (`walReadTie`, `ReadDefs.lean`, does: the read handle's half), and the
+     invariant's `WalDirClaim lay.j hj cl` is `∃ X`: from the handle nothing ties `(j', N')` to
+     `(lay.j, .except X)` (fragments of different keys do not contradict; the tail record has no `j`/`X`).
+  2. *Exclusivity on the new name* (`crashOkA_cut`'s `hothers`: no other claim of `lay.j` in `cl` holds
+     `bt`): a fact of `NamesCoh.disj` only, as `CreatingOk`'s for `Create`.
+  3. *`alt = none` at the cut* (`crashOkA_cut` needs `CrashOk lay`, i.e. no earlier cut's rename still
+     pending): `CrashOkW` is `∃ alt`; the previous cut's `crashOk_dirSync` step makes it `none` but nothing
+     keeps it so.
+  **Proposed (for the coordinator; internal ghost state, the W4 `walCreating` pattern):** a `WalGS` field
+  `γdk` and a framed `walInvBody` conjunct `∃ K, walDirKeysAuth K ∗ ⌜DirKeysOk Ls cl n K⌝`, `K : dir ↦ (j, X)`
+  with persistent elements `walDirKey dir j X` (in `walHandleIn`, with the handle's half `osNames j
+  (.except X) ½ hj` and `hj` in `WalHS`): `DirKeysOk`: each entry's WAL has a layout with `lay.j = j`, its
+  claim `(j, .except X, hj)` once in `cl`, coherent, `X` without `.wal` names, no other claim of `j` holding
+  a `.wal` name, and `CrashOkW` at `alt = none` unless the handle's tail record says a rename is pending
+  (or: record the pending flag in the tail record, `TailG`). Producers: `Create`'s commit and `ReadAll`;
+  preservation by `Create`'s commit needs `J ≠ j` for every entry, which `CreatingOk` could carry from the
+  token-making step (W4's unwritten step at `⊤`: the program holds `J`'s claim whole, so no claim of `J` in
+  the invariant holds a `.wal` name, by `NamesCoh.disj`). Not implemented: it changes `Ghost.lean`,
+  `walInvBody` and every unit destructuring it, under five concurrent branches.
+- *With them, the update's commit* (designed): open `walInv`, look the tail record up (`walTailKey`,
+  agreement with the program's half: `H`, `cuts`, `wr`, the old tail inode), the old tail's halves against
+  the program's (its bytes all `durB` and sized after step 1's truncate and the fdatasync: `hdur`, `hm`),
+  `cutLay_abs`/`crashOkA_cut`/`altOk_cut` for the WAL, a `walsOk_cut` for the rest (the other WALs, `AbsentOk`,
+  `DirsOk`, `AbsentNone`, `DirsAvoid`, `WalsCreateOk`, `CreatingOk` under the `replClaim` of the directory's
+  claim, as `walsOk_create`'s pieces: not written), `laysResF_insert` of `g`'s halves (its inode new by
+  `laysResF_ino_ne`), the tail record moved (`tailG_cut`, `tailBound_cut`, `tailZeros_cut`); `Q` the
+  program's new record half and `g`'s other halves.
+- *`(*WAL).cut`* (still `sorry`): beyond the update it needs `wal-i3b`'s crash-aware truncate (step 1, not
+  landed), `w.seq()` (`filepath.Base`, `parseWALName` of the tail's `Name()`: no `Name`/`Base` spec over the
+  part), `fileutil.LockFile` of an existing `.wal` (`wp_fileS`), `newFileEncoder`, the encoder over
+  `os.File.writerStream` for `saveCrc`/`encode(Metadata)`/`saveState.specPre`/`sync.specPreL`, and the cuts
+  budget (W6). The order the proof must take: the header phase over `walPreInL` with the old segments'
+  locks in `ls`, `encode.specG`/`saveCrc.spec` (both still unproved over `writerStreamP`).
+
 ## W4 implementation log (branch `wal-create`, 2026-11-13)
 
 **Statements (`sorry`-stubbed proofs):** `LinuxFs/Spec/.../storage/wal/Create.lean` (`wal.Create.spec C Mr`),
