@@ -629,6 +629,21 @@ http.netCtxOk` (or a Background chain: all callers pass `WithCancel(Background()
 `RoundTrip` uses it; widen `netErr`/`errStrOk` if the done-context error comes back (the sweep's finding,
 etcd-grove-81's workflow journal `wf_91727eee-383`).
 
+### The T-h0 + T-h6 review (2026-11-13): READY, minors applied (decided by etcd-grove-81)
+
+The axiom review (key set complete at go1.27.3, `tLogKey` dead code; run-context claims hold on the
+stream path through Serve and ServeHTTP and on unary handlers; the chain-form `Tracer.Start` wand
+holds for the no-op and SDK tracers; T-h0 closes the refutation; T-h5 does not touch the landed
+`RenewHTTP`) found four minors, applied: **m1** `TestRunCtxChain` checks the net keys through
+ServeHTTP too (and the chain shape there), and `TestRunCtxChainUnary` a unary handler's context
+(with and without otelgrpc); **m2** the `nettrace.TraceKey` wording in `srvRawStreamIs`'s and
+`grpcRunCtx`'s docstrings (`net`'s `DialContext` stores it on a context it derives, `net/dial.go:539`);
+**m3** `Tracer.Start`'s docstring: the SDK claims hold with Go's execution tracer off (the
+`runtime/trace` key; unreachable in the model, the tracer is the no-op one; what to add if
+`traceutil.Init` gets a spec); **m4** `RenewHTTP`'s docstring: the `*http.Transport` premise admits a
+panicking hook in Go, unreachable since `http.Transport` is axiomatized (zero value only). The
+chain-form wand deviation is accepted. Docstrings only; no statement changed.
+
 ### Checks run, Revision 2 (2026-11-12, merged with lean `219ddbbb83`)
 
 Full build passes (17490 jobs); `tcb-report --check` matches the baseline unchanged (865 axioms, 5

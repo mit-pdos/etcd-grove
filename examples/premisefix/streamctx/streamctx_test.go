@@ -7,7 +7,9 @@
 //     *context.valueCtx, *context.cancelCtx and *context.timerCtx links over Background(), which
 //     context.value() walks, so the chain form of its library values (ctxValue) holds; with and
 //     without TLS, otelgrpc's stats handler, a client deadline and grpc-prometheus's interceptor;
-//     no link is at one of the keys net/http's client reads (T-h0, http.netCtxOkC).
+//     no link is at one of the keys net/http's client reads (T-h0, http.netCtxOkC), through Serve
+//     and through ServeHTTP; nor in a unary handler's context (TestRunCtxChainUnary, T-h6's
+//     grpcRunCtx clause).
 //   - T-b, as revised (TestIncomingOfValue; Revision 1 of the freeze note, B1): a *cancelCtx has
 //     its parent's incoming metadata (metadata.incomingOf_cancelCtx), and etcd's require-leader
 //     wrapper (*cancellableContext) its embedded context's (v3rpc.incomingOf_cancellableContext),
@@ -189,43 +191,96 @@ var chainTys = map[string]bool{"*context.valueCtx": true, "*context.cancelCtx": 
 	"*context.timerCtx": true, "context.backgroundCtx": true}
 
 func TestRunCtxChain(t *testing.T) {
-	for _, prom := range []bool{false, true} {
-		for _, otel := range []bool{false, true} {
-			for _, dl := range []bool{false, true} {
-				name := fmt.Sprintf("prom=%v otel=%v deadline=%v", prom, otel, dl)
-				var opts []grpc.ServerOption
-				if prom {
-					opts = append(opts, grpc.ChainStreamInterceptor(grpcprom.NewServerMetrics().StreamServerInterceptor()))
-				}
-				if otel {
-					opts = append(opts, grpc.StatsHandler(otelgrpc.NewServerHandler(
-						otelgrpc.WithTracerProvider(sdktrace.NewTracerProvider()))))
-				}
-				got := make(chan []string, 1)
-				keys := make(chan []string, 1)
-				cc := startServer(t, opts, func(_ any, ss grpc.ServerStream) error {
-					got <- chain(ss.Context())
-					keys <- chainKeys(ss.Context())
-					return nil
-				})
-				runStream(t, cc, dl)
-				tys := <-got
-				for _, k := range <-keys {
-					if netKeyTys[k] {
-						t.Errorf("%s: a link at net/http's key %s", name, k)
+	for _, viaHTTP := range []bool{false, true} {
+		for _, prom := range []bool{false, true} {
+			for _, otel := range []bool{false, true} {
+				for _, dl := range []bool{false, true} {
+					name := fmt.Sprintf("http=%v prom=%v otel=%v deadline=%v", viaHTTP, prom, otel, dl)
+					start := startServer
+					if viaHTTP {
+						start = startServerHTTP
 					}
-				}
-				if tys[len(tys)-1] != "context.backgroundCtx" {
-					t.Errorf("%s: chain does not end at Background(): %v", name, tys)
-				}
-				for _, ty := range tys {
-					if !chainTys[ty] {
-						t.Errorf("%s: link of type %s: %v", name, ty, tys)
+					var opts []grpc.ServerOption
+					if prom {
+						opts = append(opts, grpc.ChainStreamInterceptor(grpcprom.NewServerMetrics().StreamServerInterceptor()))
 					}
+					if otel {
+						opts = append(opts, grpc.StatsHandler(otelgrpc.NewServerHandler(
+							otelgrpc.WithTracerProvider(sdktrace.NewTracerProvider()))))
+					}
+					got := make(chan []string, 1)
+					keys := make(chan []string, 1)
+					cc := start(t, opts, func(_ any, ss grpc.ServerStream) error {
+						got <- chain(ss.Context())
+						keys <- chainKeys(ss.Context())
+						return nil
+					})
+					runStream(t, cc, dl)
+					tys := <-got
+					for _, k := range <-keys {
+						if netKeyTys[k] {
+							t.Errorf("%s: a link at net/http's key %s", name, k)
+						}
+					}
+					if tys[len(tys)-1] != "context.backgroundCtx" {
+						t.Errorf("%s: chain does not end at Background(): %v", name, tys)
+					}
+					for _, ty := range tys {
+						if !chainTys[ty] {
+							t.Errorf("%s: link of type %s: %v", name, ty, tys)
+						}
+					}
+					t.Logf("%s: %v", name, tys)
 				}
-				t.Logf("%s: %v", name, tys)
 			}
 		}
+	}
+}
+
+// TestRunCtxChainUnary: a unary handler's context (grpcRunCtx's unary claim, T-h6) has no link at
+// one of net/http's client keys either, with and without otelgrpc's stats handler.
+func TestRunCtxChainUnary(t *testing.T) {
+	for _, otel := range []bool{false, true} {
+		var opts []grpc.ServerOption
+		if otel {
+			opts = append(opts, grpc.StatsHandler(otelgrpc.NewServerHandler(
+				otelgrpc.WithTracerProvider(sdktrace.NewTracerProvider()))))
+		}
+		got := make(chan []string, 1)
+		keys := make(chan []string, 1)
+		s := grpc.NewServer(opts...)
+		s.RegisterService(&grpc.ServiceDesc{ServiceName: "t.U", HandlerType: (*any)(nil),
+			Methods: []grpc.MethodDesc{{MethodName: "M", Handler: func(_ any, ctx context.Context,
+				dec func(any) error, _ grpc.UnaryServerInterceptor) (any, error) {
+				in := new(emptypb.Empty)
+				if err := dec(in); err != nil {
+					return nil, err
+				}
+				got <- chain(ctx)
+				keys <- chainKeys(ctx)
+				return new(emptypb.Empty), nil
+			}}}}, struct{}{})
+		l, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			t.Fatal(err)
+		}
+		go s.Serve(l)
+		cc, err := grpc.NewClient(l.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := cc.Invoke(context.Background(), "/t.U/M", new(emptypb.Empty), new(emptypb.Empty)); err != nil {
+			t.Fatal(err)
+		}
+		tys, ks := <-got, <-keys
+		for _, k := range ks {
+			if netKeyTys[k] {
+				t.Errorf("otel=%v: a link at net/http's key %s", otel, k)
+			}
+		}
+		t.Logf("otel=%v: chain %v keys %v", otel, tys, ks)
+		cc.Close()
+		s.Stop()
 	}
 }
 

@@ -51,7 +51,13 @@ does (checked against the noop and the SDK tracer, `examples/sweeprepairs/tracer
 grpc's keys (`mdIncomingKey{}`, `mdOutgoingKey{}`, `peerKey{}`, not otel's key's type) it answers as
 `ctx` does, and at otel's `currentSpanKey` either `ctx`'s value or the span the tracer made, one of
 otel's (`trace.otelSpan`) (checked against the noop and the SDK tracers,
-`examples/premisefix/tracerctx`).
+`examples/premisefix/tracerctx`). The SDK claims hold with Go's execution tracer off: with it on
+(`runtime/trace.Start`, e.g. pprof's `/debug/pprof/trace`), the SDK tracer's `Start` also reads
+`ctx.Value(runtime/trace.traceContextKey{})` (`runtime/trace.NewTask`, sdk/trace v1.47.0
+`span.go:844-856`), a key the premise does not constrain. Not reachable in the model: the `Tracer`
+points-to comes only from `Tracer_init`, the no-op tracer, and `traceutil.Init` has no spec; if it
+gets one, add a premise that the runtime/trace key holds `nil` (true of grpc's run context) or
+restrict the tracer to the no-op one (k8s 7f-4, Addendum T-h review, m3).
 (k8s 7f-4, Revisions 1-2, decided by etcd-grove-81, 2026-11-12) `ctx`'s span is otel's
 (`trace.spanValOk ctx`, in the premise: `Value(currentSpanKey)` returns nil or `trace.otelSpan`, a
 span whose methods return, `SpanContext` and `IsRecording` among them): the tracers call

@@ -413,8 +413,9 @@ could wrap the stream in a non-pointer value or store values at grpc's or otel's
 Addendum T-h0) `ci` holds nothing at net/http's keys (`http.netCtxOkC`, the chain form:
 `httptrace`'s `clientEventContextKey{}`, `nettrace.TraceKey{}`, `nettrace.LookupIPAltResolverKey{}`,
 which a `*http.Transport` reads of a request's context): those keys are unexported types of the
-standard library, stored only by `httptrace.WithClientTrace` and by `net`'s internal tests, which
-neither grpc's server, otelgrpc's stats handler nor etcd's interceptors call; the run context's
+standard library, stored only by `httptrace.WithClientTrace`, by `net`'s tests, and by `net`'s
+`Dialer.DialContext` on a context it derives internally (go1.27.3 `net/dial.go:539`, never the
+caller's), which neither grpc's server, otelgrpc's stats handler nor etcd's interceptors call; the run context's
 chain holds only grpc's, otel's and the transport's links (`TestRunCtxChain`). -/
 def srvRawStreamIs (st : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
     (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF) (ci : GoInterfaceOk)

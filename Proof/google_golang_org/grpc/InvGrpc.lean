@@ -203,7 +203,8 @@ run's context), and under otel's `currentSpanKey` nothing or otelgrpc's span (`o
 in the etcd binary (`etcdmain` never sets it). (k8s 7f-4, Addendum T-h6) It holds nothing at the keys
 net/http's client reads (`http.netCtxOk`: `nil` at `httptrace`'s `clientEventContextKey{}`,
 `nettrace.TraceKey{}`, `nettrace.LookupIPAltResolverKey{}`): unexported standard-library types, stored only
-by `httptrace.WithClientTrace` and `net`'s internal tests, which neither grpc's server, otelgrpc's stats
+by `httptrace.WithClientTrace`, `net`'s tests, and `net`'s `Dialer.DialContext` on a context it derives
+internally (go1.27.3 `net/dial.go:539`, never the caller's), which neither grpc's server, otelgrpc's stats
 handler nor etcd's interceptors call (the run context's chain: `TestRunCtxChain`,
 `examples/premisefix/streamctx`). -/
 def grpcRunCtx (ci : GoInterfaceOk) : IProp GF :=

@@ -70,7 +70,12 @@ keys net/http reads of a request's context (`http.netCtxOk ctx`: `nil` at `httpt
 `net/http/transport.go:614`) and the dial and lookup paths read the other two (`net/dial.go:535,
 778`, `net/lookup.go:313, 321`); without it, a context whose `Value` panics at the first key met the
 premise and `RenewHTTP` panicked (`TestRenewHTTPValuePanics`), and a non-nil value there would run
-the caller's hooks or resolver. -/
+the caller's hooks or resolver. (k8s 7f-4, Addendum T-h review, m4) The transport premise
+(`rt` any `*http.Transport`) is wider than its justification: in Go, a `Transport` whose `Proxy`,
+`DialContext` or another hook panics meets it and `RenewHTTP` panics. A verified program cannot
+build one: `http.Transport` is an axiomatized type (`Code/net/http.lean`), so a program allocates
+only its zero value, whose hooks are `nil`; the residual rests on that opacity (a later fix: an
+opaque fact, e.g. a persistent `rafthttp.peerTransport rt`, from `NewRoundTripper`'s spec). -/
 abbrev leasehttp.RenewHTTP.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (id : w64) (url : GoString)
     (rt : GoInterface),
