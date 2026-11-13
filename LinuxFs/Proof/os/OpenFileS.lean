@@ -113,10 +113,14 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
         iframe
         isplitr
         · ipureintro; exact ⟨rfl, hfd0, hi⟩
-        unfold os.ownFile
-        iexists inner_ptr
-        iframe
-        isplitl [] <;> iassumption
+        unfold os.ownFile os.ownOff
+        isplitr [off]
+        · iexists inner_ptr
+          iframe
+          isplitl [] <;> iassumption
+        · iexists inner_ptr
+          iframe
+          iassumption
     · -- the file created
       icases (osNames_join j _ q r _ hq).2 $$ Hw with ⟨Hn, Hr'⟩
       unfold osLogged
@@ -168,10 +172,14 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
         iframe
         isplitr
         · ipureintro; exact ⟨rfl, hfd0, rfl⟩
-        unfold os.ownFile
-        iexists inner_ptr
-        iframe
-        isplitl [] <;> iassumption
+        unfold os.ownFile os.ownOff
+        isplitr [off]
+        · iexists inner_ptr
+          iframe
+          isplitl [] <;> iassumption
+        · iexists inner_ptr
+          iframe
+          iassumption
     · -- an error, no effect
       icases (osNames_join j _ q r h hq).2 $$ Hw with ⟨Hn, Hr'⟩
       by_cases he4 : e = W64 4
@@ -240,10 +248,14 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
       iframe
       isplitr
       · ipureintro; exact ⟨rfl, hfd0, rfl⟩
-      unfold os.ownFile
-      iexists inner_ptr
-      iframe
-      isplitl [] <;> iassumption
+      unfold os.ownFile os.ownOff
+      isplitr [off]
+      · iexists inner_ptr
+        iframe
+        isplitl [] <;> iassumption
+      · iexists inner_ptr
+        iframe
+        iassumption
     · iclear Hfd
       have hfd : fd = -1 := by rcases hres with ⟨h, -⟩ | ⟨-, h⟩; exact absurd h he0; exact h
       subst hfd

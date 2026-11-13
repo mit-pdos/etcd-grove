@@ -40,11 +40,13 @@ variable [sem : go.Semantics]
 variable [os.Assumptions]
 
 /-- The file `i`, held whole by its owner: its `OsMeta`, its bytes, the client's halves of its
-mapped cells; its size 0 if `P`. What an `O_TRUNC` open takes and gives. -/
+mapped cells (none: the file is not mapped, `m.maps = ∅`, as a file this process created and never
+mmapped; a truncation keeps the mappings); its size 0 if `P`. What an `O_TRUNC` open takes and
+gives. -/
 def trFile (i : Ino) (P : Prop) : IProp GF :=
   iprop(∃ (m : OsMeta) (xs : List ByteG), osMeta i (DFrac.own 1) m ∗
     osBytes i 0 (DFrac.own 1) xs ∗ mcellsAny (GF := GF) m.maps 0 m.size ∗
-    ⌜xs.length = m.size ∧ (P → m.size = 0)⌝)
+    ⌜xs.length = m.size ∧ (P → m.size = 0) ∧ m.maps = ∅⌝)
 
 /-- The new file after an outcome. -/
 def crTr (P : Prop) : Option (Nat × Nat × Ino) → IProp GF
@@ -65,7 +67,7 @@ abbrev os.OpenFile.specCreateTruncS : Prop :=
   {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R d dq j ∗ osCallPerm qc ∗
       ∃ o, Q o ∗ crOut j b h (DFrac.own q) o ∗ crTr (err = interface.nil) o ∗
         ((∃ (fd : w64) (i : Ino), ⌜err = interface.nil ∧ 0 ≤ fd.toInt ∧ crIno b h o i⌝ ∗
-            os.ownFile f fd (child d b) (DFrac.own 1) ∗
+            os.ownFile f fd (child d b) (DFrac.own 1) ∗ os.ownOff f (W64 0) ∗
             osFd fd (DFrac.own 1) (openFd i (flag ||| W64 0x80000))) ∨
          ⌜err ≠ interface.nil ∧ f = null⌝ ∗ fmtErrorOkOrNil err) }}
 
@@ -85,9 +87,9 @@ abbrev os.OpenFile.specCreateTruncSnc : Prop :=
   {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R d dq j ∗ osCallPerm qc ∗
       ∃ o, Q o ∗ crOut j b h (DFrac.own q) o ∗ crTr (err = interface.nil) o ∗
         ((∃ (fd : w64) (i : Ino), ⌜err = interface.nil ∧ 0 ≤ fd.toInt ∧ crIno b h o i⌝ ∗
-            os.ownFile f fd (child d b) (DFrac.own 1) ∗
+            os.ownFile f fd (child d b) (DFrac.own 1) ∗ os.ownOff f (W64 0) ∗
             osFd fd (DFrac.own 1) (openFd i (flag ||| W64 0x80000))) ∨
-         ⌜err ≠ interface.nil ∧ f = null⌝) }}
+         ⌜err ≠ interface.nil ∧ f = null⌝ ∗ fmtErrorOkOrNil err) }}
 
 end spec
 
