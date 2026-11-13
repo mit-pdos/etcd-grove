@@ -223,6 +223,31 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   wp_apply wp_parse as %sq' %ix' %perr %hpe
   obtain ⟨rfl, rfl, rfl⟩ := hpe.1 _ _ hsuf hscan
   (try wp_auto)
+  -- `walName(seq + 1, next + 1)`
+  wp_func_call
+  wp_call
+  (try wp_auto)
+  wp_apply wp_slice_literal (V := GoInterface)
+    [interface.mkOk go.uint64 #(W64 sq + W64 1), interface.mkOk go.uint64 #(nx + W64 1)]
+  isplitr
+  · ipureintro; rfl
+  iintro %asl ⟨Hasl, -⟩
+  (try wp_auto)
+  wp_apply wp_SprintfWal _ _ _ _ $$ [$Hasl] as %bt ⟨-, %hbt⟩
+  have hmx : max (uint.nat h.enti) (uint.nat h.snapi) + 1 < 2 ^ 64 := hidx1
+  rw [cutName_str sq _ nx hsq hmx hnx] at hbt
+  subst hbt
+  (try wp_auto)
+  wp_apply wp_slice_literal (V := GoString)
+    [dir, walFileName (sq + 1) (max (uint.nat h.enti) (uint.nat h.snapi) + 1)]
+  isplitr
+  · ipureintro; rfl
+  iintro %jsl ⟨Hjsl, -⟩
+  (try wp_auto)
+  wp_apply wp_Join _ _ _ (by simp [walFileName_length]; omega) $$ [$Hjsl] as %fpath ⟨%hfpath, -⟩
+  rw [join_child hclean (walFileName_nameOk _ _)] at hfpath
+  subst hfpath
+  (try wp_auto)
   sorry
 
 end proof
