@@ -284,7 +284,7 @@ theorem wp_osShare' (R : Roots) (V : Hist) (op : String) (v : val) (hE : ↑osN 
   iintro %σ %g Hl Hg
   icases (os_local_ctx_eq σ).mp $$ Hl with Hl
   unfold osCtx
-  icases Hl with ⟨HF, Ht⟩
+  icases Hl with ⟨HF, Ht, Hof⟩
   icases treeCtx_legacy _ (legacyWit_tree _ _ _) σ $$ Hh Ht with ⟨Hh, Ht, Hcm⟩
   unfold treeLegacy legacyHolds
   icases Ht with ⟨%V0, %Γdf, %Γc, %hns, HAd, HAdf, HAc, Hrd, Hcr, Has, Hadfs, Hacs, Hperm, Han,
@@ -314,10 +314,10 @@ theorem wp_osShare' (R : Roots) (V : Hist) (op : String) (v : val) (hE : ↑osN 
     iframe Hs Han Halen Halog
     ipureintro; exact ⟨hns.1.roots, namesCoh_init V⟩
   imodintro
-  isplitl [HF Hh HAd HAdf HAc Has Hadfs Hacs Hag Hcm]
+  isplitl [HF Hh HAd HAdf HAc Has Hadfs Hacs Hag Hcm Hof]
   · iapply (os_local_ctx_eq σ).mpr
     unfold osCtx treeCtx
-    iframe HF Hcm
+    iframe HF Hcm Hof
     iright
     unfold treeShared
     iexists V, σ.fs.metaLog.length, ∅, ∅, ∅

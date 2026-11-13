@@ -212,7 +212,7 @@ theorem wp_osFdKind (fd : w64) (dq : DFrac) (d : OsFd) (hE : ↑osN ⊆ E) (Φ :
   simp only [IsFsStep] at Hst
   obtain ⟨fd', hv, rfl, hres⟩ := Hst
   cases go.intoVal_inj hv
-  rcases hres with ⟨-, rfl⟩ | ⟨hn, -, -⟩
+  rcases hres with ⟨-, rfl⟩ | ⟨hn, -, -⟩ | ⟨hn, -⟩
   · imod cells_same hwf hwf Hr Hfr rfl rfl $$ [Hσ Hcells] with ⟨Hσ, Hcells⟩
     · iframe
     imodintro
@@ -222,6 +222,7 @@ theorem wp_osFdKind (fd : w64) (dq : DFrac) (d : OsFd) (hE : ↑osN ⊆ E) (Φ :
     · ipureintro; exact ⟨hwf, hcoh⟩
     iapply wp_value'
     iapply HΦ $$ Hfd
+  · rw [hfd] at hn; cases hn
   · rw [hfd] at hn; cases hn
 
 /-- `fstat(fd)`'s size, with a fraction of the file's `OsMeta`: its size, or an errno. -/
@@ -1315,7 +1316,7 @@ theorem osCell_agree (e : Expr) (htv : toVal e = none) (p : Ino) (dqm : DFrac) (
   iintro %σ %g Hl Hg
   icases (os_local_ctx_eq σ).mp $$ Hl with Hl
   unfold osCtx osCtxF
-  icases Hl with ⟨⟨%Γb, %Γm, %Γf, %Γt, %Hwc, HAb, HAm, HAf, HAt, Htok, Hv⟩, Hns⟩
+  icases Hl with ⟨⟨%Γb, %Γm, %Γf, %Γt, %Hwc, HAb, HAm, HAf, HAt, Htok, Hv⟩, Hns, Hof⟩
   obtain ⟨hwf, hcoh⟩ := Hwc
   unfold osInv
   imod inv_acc hE $$ Hinv with ⟨Hi, Hclose⟩
@@ -1343,10 +1344,10 @@ theorem osCell_agree (e : Expr) (htv : toVal e = none) (p : Ino) (dqm : DFrac) (
   imod Hclose $$ [Hv' Hcells] with -
   · inext; iexists (cellView σ), (GMap.size σ.proc.inflight); iframe
   imodintro
-  isplitl [HAb HAm HAf HAt Htok Hv Hns]
+  isplitl [HAb HAm HAf HAt Htok Hv Hns Hof]
   · iapply (os_local_ctx_eq σ).mpr
     unfold osCtx osCtxF
-    iframe Hns
+    iframe Hns Hof
     iexists Γb, Γm, Γf, Γt
     iframe
     ipureintro; exact ⟨hwf, hcoh⟩

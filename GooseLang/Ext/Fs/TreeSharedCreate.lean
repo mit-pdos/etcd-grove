@@ -152,6 +152,7 @@ theorem openCreateStep_cases [GooseExts] [GoGlobalContext] [go.BasicIntoValInj] 
       st' = (createdSt st k j b s0).setProc { (createdSt st k j b s0).proc with
         fds := <[fd := openFd st.fs.nextIno fl]> (createdSt st k j b s0).proc.fds }) := by
   simp only [IsFsStep] at Hst
+  replace Hst := open_inTree Hst (.inr (treeName_child hp hb))
   obtain ⟨p', fl', k', s', hv, -, -, hk', hres⟩ := Hst
   obtain ⟨rfl, rfl, rfl⟩ := tokPathFl_inj hv
   rw [hcall] at hk'; cases hk'
@@ -289,7 +290,7 @@ theorem wp_osOpenCreateS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h
       ∃ e' st', IsFsStep "Open" (PairV (osTokV k) (PairV (#(child d b)) (#fl))) st e' st' ∧
         FilesSame st st' := by
     intro st hw _ hcall _ hp hat
-    refine ⟨_, st.metaEnd k, ⟨child d b, fl, k, s0, rfl, .inr (treeName_child hp hb), hfl,
+    refine ⟨_, st.metaEnd k, .inl ⟨child d b, fl, k, s0, rfl, .inr (treeName_child hp hb), hfl,
       hcall, ⟨fun htr1 i hl => ?_, .inr ⟨1, by decide, rfl, .inl rfl⟩⟩⟩, filesSame_metaEnd st k⟩
     rcases htr with htr | hnone
     · have htr' : decide ((fl.toNat / O_TRUNC) % 2 = 1) = false := by simp [htr]
@@ -309,12 +310,12 @@ theorem wp_osOpenCreateS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h
       ⟨e, -, rfl, rfl⟩ | ⟨i, fd, -, hfree, rfl, rfl⟩ | ⟨hen, e, -, rfl, rfl⟩ | ⟨hen, fd, hfree, rfl, rfl⟩
     · exact ⟨_, rfl, fsTreeWf_metaEnd hw k,
         .inl ⟨endedT_metaEnd st k, _, _, rfl, fun h => by cases h⟩⟩
-    · exact ⟨_, rfl, fsTreeWf_addFd (fsTreeWf_metaEnd hw k) hfree.2.2,
+    · exact ⟨_, rfl, fsTreeWf_addFd (fsTreeWf_metaEnd hw k) hfree.2.2.1,
         .inl ⟨⟨rfl, rfl, rfl, rfl, rfl, rfl⟩, _, _, rfl, fun h => by cases h⟩⟩
     · exact ⟨_, rfl, fsTreeWf_created hw k s0 (reach_of_lookup hp) hb hen,
         .inr ⟨⟨rfl, rfl, rfl, rfl, rfl, rfl⟩, _, _, rfl, fun _ => (hentE st hat).symm.trans hen⟩⟩
     · exact ⟨_, rfl, fsTreeWf_addFd (fsTreeWf_created hw k s0 (reach_of_lookup hp) hb hen)
-          (createdSt_dfds_none hfree.2.2),
+          (createdSt_dfds_none hfree.2.2.1),
         .inr ⟨⟨rfl, rfl, rfl, rfl, rfl, rfl⟩, _, _, rfl, fun _ => (hentE st hat).symm.trans hen⟩⟩
   have hworld : ∀ st e' st' (hh hh' : GMap Loc (NonAtomic val)) Γb Γm Γf Γt w lg, FsTreeWf st →
       st.fs.roots = R → st.proc.calls !! k = some s0 →
@@ -572,13 +573,14 @@ theorem wp_osOpenFileS' (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
   isplitr
   · ipureintro
     obtain ⟨hfr, hr⟩ := step_filesSame (h := h0) Hwc.1 (filesSame_metaEnd st k) Hag
-    exact ⟨_, h0, _, ⟨child d b, fl, k, s0, rfl, treePath_of_lookup hl', hfl, hcall,
+    exact ⟨_, h0, _, .inl ⟨child d b, fl, k, s0, rfl, treePath_of_lookup hl', hfl, hcall,
       ⟨fun h => absurd h (by simp [htr']), .inr ⟨1, by decide, rfl, .inl rfl⟩⟩⟩, hfr, hr⟩
   inext
   iintro %e' %h' %st' %Hst
   imod Hclose2
   obtain ⟨Hst, Hfr, Hr⟩ := Hst
   simp only [IsFsStep] at Hst
+  replace Hst := open_inTree Hst (treePath_of_lookup hl')
   obtain ⟨p', fl', k', s', hv, -, -, hk', hres⟩ := Hst
   obtain ⟨rfl, rfl, rfl⟩ := tokPathFl_inj hv
   rw [hcall] at hk'; cases hk'
@@ -598,7 +600,7 @@ theorem wp_osOpenFileS' (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
     obtain ⟨⟨f', -, hst1⟩, rfl⟩ := heff
     simp only [htr', Bool.false_eq_true, ↓reduceIte] at hst1
     subst st1
-    obtain ⟨hfd0, hfdn, hdfn⟩ := hfree
+    obtain ⟨hfd0, hfdn, hdfn, -⟩ := hfree
     have hst'' : st' = (st.metaEnd k).setProc { (st.metaEnd k).proc with
         fds := <[fd := openFd i fl]> (st.metaEnd k).proc.fds } := hst
     subst hst''

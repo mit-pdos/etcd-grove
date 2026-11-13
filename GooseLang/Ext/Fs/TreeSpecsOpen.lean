@@ -261,12 +261,13 @@ theorem wp_osOpenDir (p : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s0 : N
   isplitr
   · ipureintro
     obtain ⟨hfr, hr⟩ := step_filesSame (h := h) Hwc.1 (filesSame_metaEnd st k) Hag
-    exact ⟨_, h, _, ⟨p, flRO, k, s0, rfl, treePath_of_lookup hl', flRO_ok, hcall,
+    exact ⟨_, h, _, .inl ⟨p, flRO, k, s0, rfl, treePath_of_lookup hl', flRO_ok, hcall,
       ⟨fun h => (Bool.false_ne_true (htr.symm.trans h)).elim, .inr ⟨1, by decide, rfl, .inl rfl⟩⟩⟩, hfr, hr⟩
   inext
   iintro %e' %h' %st' %Hst
   obtain ⟨Hst, Hfr, Hr⟩ := Hst
   simp only [IsFsStep] at Hst
+  replace Hst := open_inTree Hst (treePath_of_lookup hl')
   obtain ⟨p', fl, k', s', hv, -, -, hk', hres⟩ := Hst
   injection hv with hv1 hv2
   have hkk : k' = k := by injection hv1 with h1; exact (extVal_inj h1).symm
@@ -285,7 +286,7 @@ theorem wp_osOpenDir (p : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s0 : N
     rw [hl0] at heff
     obtain ⟨-, -, -, hst1, rfl⟩ := heff
     subst st1
-    obtain ⟨hfd0, hfdn, hdfn⟩ := hfree
+    obtain ⟨hfd0, hfdn, hdfn, -⟩ := hfree
     have hΓ : Γdf !! fd = none := by
       have := hc.fds fd; rw [hdfn] at this
       cases h0 : Γdf !! fd with
@@ -384,12 +385,13 @@ theorem wp_osOpenFile (p : GoString) (fl : w64) (R : Roots) (V : Hist) (q1 q : Q
   isplitr
   · ipureintro
     obtain ⟨hfr, hr⟩ := step_filesSame (h := h) Hwc.1 (filesSame_metaEnd st k) Hag
-    exact ⟨_, h, _, ⟨p, fl, k, s0, rfl, treePath_of_lookup hl', hfl, hcall,
+    exact ⟨_, h, _, .inl ⟨p, fl, k, s0, rfl, treePath_of_lookup hl', hfl, hcall,
       ⟨fun h => absurd h (by simp [htr']), .inr ⟨1, by decide, rfl, .inl rfl⟩⟩⟩, hfr, hr⟩
   inext
   iintro %e' %h' %st' %Hst
   obtain ⟨Hst, Hfr, Hr⟩ := Hst
   simp only [IsFsStep] at Hst
+  replace Hst := open_inTree Hst (treePath_of_lookup hl')
   obtain ⟨p', fl, k', s', hv, -, -, hk', hres⟩ := Hst
   injection hv with hv1 hv2
   have hkk : k' = k := by injection hv1 with h1; exact (extVal_inj h1).symm
@@ -412,7 +414,7 @@ theorem wp_osOpenFile (p : GoString) (fl : w64) (R : Roots) (V : Hist) (q1 q : Q
     obtain ⟨⟨f', -, hst1⟩, rfl⟩ := heff
     simp only [htr', Bool.false_eq_true, ↓reduceIte] at hst1
     subst st1
-    obtain ⟨hfd0, hfdn, hdfn⟩ := hfree
+    obtain ⟨hfd0, hfdn, hdfn, -⟩ := hfree
     have hst'' : st' = (st.metaEnd k').setProc { (st.metaEnd k').proc with
         fds := <[fd := openFd i fl]> (st.metaEnd k').proc.fds } := hst
     subst hst''
@@ -627,12 +629,13 @@ theorem wp_osOpenCreate (d b : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s
   isplitr
   · ipureintro
     obtain ⟨hfr, hr⟩ := step_filesSame (h := h) hwf (filesSame_metaEnd st k) Hag
-    exact ⟨_, h, _, ⟨child d b, flCreat, k, s0, rfl, .inr (treeName_child hl hb), flCreat_ok, hcall,
+    exact ⟨_, h, _, .inl ⟨child d b, flCreat, k, s0, rfl, .inr (treeName_child hl hb), flCreat_ok, hcall,
       ⟨fun h => (Bool.false_ne_true (htr.symm.trans h)).elim, .inr ⟨1, by decide, rfl, .inl rfl⟩⟩⟩, hfr, hr⟩
   inext
   iintro %e' %h' %st' %Hst
   obtain ⟨Hst, Hfr, Hr⟩ := Hst
   simp only [IsFsStep] at Hst
+  replace Hst := open_inTree Hst (.inr (treeName_child hl hb))
   obtain ⟨p', fl', k', s', hv, -, -, hk', hres⟩ := Hst
   injection hv with hv1 hv2
   have hkk : k' = k := by injection hv1 with h1; exact (extVal_inj h1).symm
@@ -689,7 +692,7 @@ theorem wp_osOpenCreate (d b : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s
   rcases hres with ⟨st1, tgt, fd, heff, hfree, hst, rfl⟩ | ⟨e, he, rfl, hst | ⟨tgt, heff⟩⟩
   · -- success
     obtain ⟨rfl, rfl⟩ := heffect st1 tgt heff
-    obtain ⟨hfd0, hfdn, hdfn⟩ := hfree
+    obtain ⟨hfd0, hfdn, hdfn, -⟩ := hfree
     have hst'' : st' = (createdSt st k' j b s0).setProc { (createdSt st k' j b s0).proc with
         fds := <[fd := ⟨st.fs.nextIno, true, true⟩]> (createdSt st k' j b s0).proc.fds } := by
       rw [hst]; simp [O_WRONLY, O_RDONLY]

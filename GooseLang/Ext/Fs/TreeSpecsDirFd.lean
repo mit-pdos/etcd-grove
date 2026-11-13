@@ -192,7 +192,7 @@ theorem wp_osFdKindDir (fd : w64) (dq : DFrac) (x : Ino × DirPh) (hE : ↑osN �
   isplitr
   · ipureintro
     obtain ⟨hfr, hr⟩ := step_filesSame (h := h) Hwc.1 (filesSame_refl st) Hag
-    exact ⟨_, h, st, ⟨fd, rfl, rfl, .inr ⟨hnf, ⟨df, hdf⟩, rfl⟩⟩, hfr, hr⟩
+    exact ⟨_, h, st, ⟨fd, rfl, rfl, .inr (.inl ⟨hnf, ⟨df, hdf⟩, rfl⟩)⟩, hfr, hr⟩
   inext
   iintro %e' %h' %st' %Hst
   obtain ⟨Hst, Hfr, Hr⟩ := Hst
@@ -200,8 +200,10 @@ theorem wp_osFdKindDir (fd : w64) (dq : DFrac) (x : Ino × DirPh) (hE : ↑osN �
   obtain ⟨fd', hv, hst, hres⟩ := Hst
   subst st'
   cases go.intoVal_inj hv
-  rcases hres with ⟨⟨d, hd⟩, -⟩ | ⟨-, -, rfl⟩
+  rcases hres with ⟨⟨d, hd⟩, -⟩ | ⟨-, -, rfl⟩ | ⟨-, hd, -⟩
   · rw [hnf] at hd; cases hd
+  rotate_left
+  · rw [hdf] at hd; cases hd
   imod worlds_close (filesSame_refl st) Hr Hfr rfl hw hc $$ [HAb HAm HAf HAt Htok Hcells Hσ]
     HAd HAdf HAc Hrd Hcr with ⟨Hw, Hn⟩
   · unfold osWorld; iframe; ipureintro; exact Hwc
@@ -218,15 +220,19 @@ theorem wp_osFdKindDir (fd : w64) (dq : DFrac) (x : Ino × DirPh) (hE : ↑osN �
   iapply wp_value'
   iapply HΦ; (try unfold osDirFd); iexact Hfd
 
+/-- What `PathKind(p)` answers in `st` (`IsFsStep`): `1` for a `TreeName`, `0` for a root, `2` for
+a strict ancestor of a root. -/
+def PathKindIs (st : OsState) (p : GoString) (k : w64) : Prop :=
+  st.TreeName p ∧ k = 1 ∨ ¬ st.TreeName p ∧ (∃ rj ∈ st.fs.roots, rj.1 = p) ∧ k = 0 ∨
+    ¬ st.TreePath p ∧ st.AboveRoot p ∧ k = 2
+
 /-- **`PathKind(p)`**, the query of where a path is, with a fraction of the tree's roots `R` and
-history `V`, for a path strictly below a root or at or above one: `#1` for a `TreeName`, `#0`
-otherwise; nothing changes. -/
+history `V`, for a path it answers on (`PathKindIs`); nothing changes. -/
 theorem wp_osPathKind (p : GoString) (R : Roots) (V : Hist) (dq : DFrac)
-    (hp : (Hist.st R V).TreeName p ∨ (Hist.st R V).AtOrAboveRoot p) (hE : ↑osN ⊆ E)
+    (hp : ∃ k, PathKindIs (Hist.st R V) p k) (hE : ↑osN ⊆ E)
     (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osTree (L := L) dq R V -∗
-      (∀ k : w64, ⌜(Hist.st R V).TreeName p ∧ k = 1 ∨
-          ¬ (Hist.st R V).TreeName p ∧ (Hist.st R V).AtOrAboveRoot p ∧ k = 0⌝ -∗
+      (∀ k : w64, ⌜PathKindIs (Hist.st R V) p k⌝ -∗
         osTree (L := L) dq R V -∗ Φ (#k)) -∗
       WP (ExternalOp fsExt.name "PathKind" (Val (#p))) @ s; E {{ Φ }} := by
   iintro #Hinv Hh HΦ
@@ -241,9 +247,11 @@ theorem wp_osPathKind (p : GoString) (R : Roots) (V : Hist) (dq : DFrac)
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
   have hstep : ∃ e', IsFsStep "PathKind" (#p) st e' st := by
-    by_cases ht : st.TreeName p
+    obtain ⟨k, hk⟩ := hp
+    rcases hk with ⟨ht, -⟩ | ⟨ht, hr, -⟩ | ⟨ht, ha, -⟩
     · exact ⟨_, p, rfl, rfl, .inl ⟨ht, rfl⟩⟩
-    · exact ⟨_, p, rfl, rfl, .inr ⟨ht, hp.resolve_left ht, rfl⟩⟩
+    · exact ⟨_, p, rfl, rfl, .inr (.inl ⟨ht, hr, rfl⟩)⟩
+    · exact ⟨_, p, rfl, rfl, .inr (.inr ⟨ht, ha, rfl⟩)⟩
   imodintro
   isplitr
   · ipureintro
@@ -268,11 +276,13 @@ theorem wp_osPathKind (p : GoString) (R : Roots) (V : Hist) (dq : DFrac)
   · iexact Hw
   isplitl [Hn]
   · iexact Hn
-  rcases hres with ⟨ht, rfl⟩ | ⟨ht, ha, rfl⟩
+  rcases hres with ⟨ht, rfl⟩ | ⟨ht, ha, rfl⟩ | ⟨ht, ha, rfl⟩
   · iapply wp_value'
     iapply HΦ $$ %(1 : w64) %(.inl ⟨ht, rfl⟩) Hh
   · iapply wp_value'
-    iapply HΦ $$ %(0 : w64) %(.inr ⟨ht, ha, rfl⟩) Hh
+    iapply HΦ $$ %(0 : w64) %(.inr (.inl ⟨ht, ha, rfl⟩)) Hh
+  · iapply wp_value'
+    iapply HΦ $$ %(2 : w64) %(.inr (.inr ⟨ht, ha, rfl⟩)) Hh
 
 /-- **`fsync(2)` of a directory fd**: any errno; the ghost state as it was (a commit only narrows
 what a crash may leave). -/

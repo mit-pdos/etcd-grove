@@ -247,12 +247,12 @@ theorem wp_metaStep (op : String) (v : val) (hv : v.isPanic = false) (R : Roots)
     (hprog : ∀ st, MetaPre st R V k s' → ∃ e' st', IsFsStep op v st e' st' ∧ FilesSame st st')
     (hpost : ∀ st e' st', MetaPre st R V k s' → IsFsStep op v st e' st' →
       ∃ e : w64, e' = Val (#e) ∧ MetaPost st st' ∧ Q e (st'.fs.treeDur, st'.fs.metaLog))
-    (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
+    (hE : ↑osN ⊆ E) (Φ : val → IProp GF) (hO : op ≠ "OutClose" := by decide) :
     ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own q1) R V -∗ osCall (L := L) k s' q -∗
       (∀ (e : w64) (V' : Hist), ⌜Q e V'⌝ -∗ osTree (L := L) (DFrac.own 1) R V' -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name op (Val v)) @ s; E {{ Φ }} := by
   iintro #Hinv Hh Hk HΦ
-  iapply wp_fs_stepT op _ Φ hv hE _ (legacyWit_call _ _ _) $$ Hinv Hk
+  iapply wp_fs_stepT op _ Φ hv hE _ (legacyWit_call _ _ _) hO $$ Hinv Hk
   iintro Hk %st %Γb %Γm %Γf %Γt %V0 %Γdf %Γc %h Hw Hn
   unfold osWorld treeWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩

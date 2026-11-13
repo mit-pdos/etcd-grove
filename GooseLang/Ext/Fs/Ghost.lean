@@ -590,6 +590,9 @@ structure OsGS (GF : BundledGFunctors) where
   calls"): calls that never log, each holding a fraction of the call permission (`Nat ↦ Nat × Qp`:
   begun at that log length, holding that fraction), apart from the logging calls of `γcS`. -/
   γg : GName
+  /-- The fds of directories outside the roots' trees (`ProcState.ofds`, `w64 ↦ Unit`), each held
+  whole by its owner (`osOutFd`). -/
+  γo : GName
 
 /-! ### The ghost maps of a ghost state `hL`, with the `AllG` of `hL` -/
 
@@ -1123,9 +1126,27 @@ def osCtxF (hL : OsGS GF) (st : OsState) : IProp GF :=
     tokRes hL Γt ∗
     gVar hL (1 : Qp).half (cellView st, GMap.size st.proc.inflight))
 
-/-- The interpretation of the state `st`: its files and its tree. -/
+/-- The interpretation of the fds of directories outside the roots' trees: their authoritative map,
+and no other fd has the number of one. -/
+def ofdCtx (hL : OsGS GF) (st : OsState) : IProp GF :=
+  iprop(⌜OfdDisj st⌝ ∗ gAuth hL hL.γo st.proc.ofds)
+
+/-- A step other than `OutClose` keeps the outside fds' interpretation (a fresh fd's ghost entry,
+when it opens one, is made and dropped: only `Open`'s outside case's own spec keeps it). -/
+theorem ofdCtx_step [GooseExts] [GoGlobalContext] (hL : OsGS GF) {o : String} {v : val}
+    {st st' : OsState} {e' : Expr} (h : IsFsStep o v st e' st') (ho : o ≠ "OutClose") :
+    ofdCtx hL st ⊢ |==> ofdCtx hL st' := by
+  unfold ofdCtx
+  iintro ⟨%hd, Ha⟩
+  obtain ⟨hd', hk | ⟨fd, hfree, hk⟩⟩ := isFsStep_ofd h ho hd
+  · rw [hk]; imodintro; iframe Ha; ipureintro; exact hd'
+  · rw [hk]
+    imod gAuth_insert hL _ _ fd () hfree.2.2.2 $$ Ha with ⟨Ha, -⟩
+    imodintro; iframe Ha; ipureintro; exact hd'
+
+/-- The interpretation of the state `st`: its files, its tree, and the outside fds. -/
 def osCtx (hL : OsGS GF) (st : OsState) : IProp GF :=
-  iprop(osCtxF hL st ∗ treeCtx hL st)
+  iprop(osCtxF hL st ∗ treeCtx hL st ∗ ofdCtx hL st)
 
 /-- The start resources for a state with no fd, change or mapping: every file and byte, whole, and
 the half of the cells' view that the invariant takes (`osInv_alloc`). -/
@@ -1265,11 +1286,12 @@ theorem os_local_init {GF : BundledGFunctors} (hPre : OsGpreS GF) (st : OsState)
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γlen, Halen, -⟩
   imod ghost_map_alloc (GF := GF) (∅ : GMap Nat LogEntry) with ⟨%γlog, Halog, -⟩
   imod ghost_map_alloc (GF := GF) (∅ : GMap Nat (Nat × Qp)) with ⟨%γg, Hag, -⟩
+  imod ghost_map_alloc (GF := GF) (∅ : GMap w64 Unit) with ⟨%γo, Hao, -⟩
   imodintro
   iexists (⟨hPre.osPreAllG, γb, γm, γf, γt, γv, γd, γdf, γc, γcm, γs, γdfS, γcS, γperm, γn, γlen,
-    γlog, γg⟩ : OsGS GF)
-  isplitl [Hab Ham Haf Hat Hv1 Had Hadf Hac Hcm Has Hadfs Hacs Hperm Han Halen Halog Hag]
-  · unfold osCtx osCtxF treeCtx tokRes gAuth gVar commitRes gCommit
+    γlog, γg, γo⟩ : OsGS GF)
+  isplitl [Hab Ham Haf Hat Hv1 Had Hadf Hac Hcm Has Hadfs Hacs Hperm Han Halen Halog Hag Hao]
+  · unfold osCtx osCtxF treeCtx tokRes gAuth gVar commitRes gCommit ofdCtx
     isplitl [Hab Ham Haf Hat Hv1]
     · iexists (bytesMap st), (metaMap st), ∅, ∅
       rw [cellView_of_maps_empty (by rw [hproc]; rfl),
@@ -1278,20 +1300,25 @@ theorem os_local_init {GF : BundledGFunctors} (hPre : OsGpreS GF) (st : OsState)
       isplitr
       · ipureintro; exact ⟨hwf, hcoh⟩
       · iapply BigSepM.bigSepM_empty.2; itrivial
-    · isplitl [Had Hadf Hac Has Hadfs Hacs Hperm Han Halen Halog Hag]
-      · ileft
-        unfold treeLegacy legacyHolds gAuth gElem
-        iexists ((st.fs.treeDur, ([] : List LogEntry)) : Hist), ∅, ∅
-        iframe Had Hadf Hac Has Hadfs Hacs Hperm Han Halen Halog Hag
-        isplitr
-        · ipureintro; exact ⟨htw, htc⟩
-        unfold callRes rdRes
-        isplitl []
-        · iapply BigSepM.bigSepM_empty.2; itrivial
-        · iapply BigSepM.bigSepM_empty.2; itrivial
-      iexists 0
-      iframe Hcm
-      ipureintro; intro y hy; exact absurd hy (Nat.not_lt_zero _)
+    · isplitl [Had Hadf Hac Has Hadfs Hacs Hperm Han Halen Halog Hag Hcm]
+      · isplitl [Had Hadf Hac Has Hadfs Hacs Hperm Han Halen Halog Hag]
+        · ileft
+          unfold treeLegacy legacyHolds gAuth gElem
+          iexists ((st.fs.treeDur, ([] : List LogEntry)) : Hist), ∅, ∅
+          iframe Had Hadf Hac Has Hadfs Hacs Hperm Han Halen Halog Hag
+          isplitr
+          · ipureintro; exact ⟨htw, htc⟩
+          unfold callRes rdRes
+          isplitl []
+          · iapply BigSepM.bigSepM_empty.2; itrivial
+          · iapply BigSepM.bigSepM_empty.2; itrivial
+        iexists 0
+        iframe Hcm
+        ipureintro; intro y hy; exact absurd hy (Nat.not_lt_zero _)
+      rw [show st.proc.ofds = ∅ by rw [hproc]; rfl]
+      unfold gAuth
+      iframe Hao
+      ipureintro; intro fd hfd; simp [hproc, ProcState.empty] at hfd
   · unfold osStart osStartF treeStart gElem gVar histMap
     ihave Hd := (show ([∗map] k ↦ v ∈ ({[() := (st.fs.roots,
           ((st.fs.treeDur, ([] : List LogEntry)) : Hist))]} : GMap Unit (Roots × Hist)),

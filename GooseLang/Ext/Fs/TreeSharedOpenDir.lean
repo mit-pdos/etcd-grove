@@ -87,7 +87,7 @@ theorem wp_osOpenDirS' (R : Roots) (p : GoString) (j : Ino) (dq : DFrac) (k s0 :
   isplitr
   · ipureintro
     obtain ⟨hfr, hr⟩ := step_filesSame (h := h) Hwc.1 (filesSame_metaEnd st k) Hag
-    exact ⟨_, h, _, ⟨p, flRO, k, s0, rfl, treePath_of_lookup hl, flRO_ok, hcall,
+    exact ⟨_, h, _, .inl ⟨p, flRO, k, s0, rfl, treePath_of_lookup hl, flRO_ok, hcall,
       ⟨fun h => (Bool.false_ne_true (htr.symm.trans h)).elim,
         .inr ⟨1, by decide, rfl, .inl rfl⟩⟩⟩, hfr, hr⟩
   inext
@@ -95,6 +95,7 @@ theorem wp_osOpenDirS' (R : Roots) (p : GoString) (j : Ino) (dq : DFrac) (k s0 :
   imod Hclose2
   obtain ⟨Hst, Hfr, Hr⟩ := Hst
   simp only [IsFsStep] at Hst
+  replace Hst := open_inTree Hst (treePath_of_lookup hl)
   obtain ⟨p', fl, k', s', hv, -, -, hk', hres⟩ := Hst
   injection hv with hv1 hv2
   have hkk : k' = k := by injection hv1 with h1; exact (extVal_inj h1).symm
@@ -116,7 +117,7 @@ theorem wp_osOpenDirS' (R : Roots) (p : GoString) (j : Ino) (dq : DFrac) (k s0 :
     rw [hl0] at heff
     obtain ⟨-, -, -, hst1, rfl⟩ := heff
     subst st1
-    obtain ⟨hfd0, hfdn, hdfn⟩ := hfree
+    obtain ⟨hfd0, hfdn, hdfn, -⟩ := hfree
     have hΓ : Γdf !! fd = none := by
       have := hc.fds fd; rw [hdfn] at this
       cases h0 : Γdf !! fd with

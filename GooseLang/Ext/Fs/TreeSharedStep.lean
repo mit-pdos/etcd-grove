@@ -167,12 +167,12 @@ theorem wp_callEndS (op : String) (v : val) (hv : v.isPanic = false) (R : Roots)
       ∃ e', IsFsStep op v st e' (st.metaEnd k))
     (hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 → P st →
       IsFsStep op v st e' st' → st' = st.metaEnd k ∧ ∃ w, e' = Val w ∧ W w)
-    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) (hO : op ≠ "OutClose" := by decide) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ F -∗ osCallS (L := L) k s0 q -∗
       (∀ w, ⌜W w⌝ -∗ osCallPerm (L := L) q -∗ F -∗ Φ w) -∗
       WP (ExternalOp fsExt.name op (Val v)) @ s; E {{ Φ }} := by
   iintro #Hinv #Hsi HF Hk HΦ
-  iapply wp_fs_stepM op _ Φ hv hE $$ Hinv
+  iapply wp_fs_stepM op _ Φ hv hE hO $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw Ht
   unfold treeCtx
   icases Ht with ⟨Hm, Hcm⟩
