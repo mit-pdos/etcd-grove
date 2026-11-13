@@ -177,6 +177,136 @@ theorem os.Rename.wp_proofFileS : os.Rename.specFileS (GF := GF) (hG := hG) := b
     iframe
     ipureintro; intro _; rfl
 
+theorem os.Rename.wp_proofDirS : os.Rename.specDirS (GF := GF) (hG := hG) := by
+  intro d bs bt j J N R qd h q r Q hbs hbt hN hN' hne hsrc htgt hq
+  wp_start as ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hau⟩
+  imod osNames_next R j N _ h CoPset.subseteq_top $$ Hsi Hn with ⟨Hn, #Hlb⟩
+  wp_apply wp_osCallBeginS R 1 h.next CoPset.subseteq_top CoPset.subseteq_top
+    $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
+  iclear Hls
+  wp_apply wp_osLstatDirS_mem R d bt j N (DFrac.own qd) (DFrac.own q) h t s0 1 hbt hN'
+    CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi Hp Hn Hk as %isDir %e %hd Hperm Hp Hn
+  have hd1 : isDir ≠ 1 := fun h1 => by
+    obtain ⟨⟨J', hJ⟩, -⟩ := hd h1; rw [htgt] at hJ; cases hJ
+  rw [decide_eq_false (show isDir ≠ W64 1 from hd1)]
+  wp_auto
+  ihave HSt : iprop((osAU (osNames j N (DFrac.own r) h) (renDirOut j J N bs bt h (DFrac.own r)) Q ∗
+      osNames j N (DFrac.own q) h) ∨
+    (∃ xs, Q (some xs) ∗ renDirOut j J N bs bt h (DFrac.own q) (some xs)))
+    $$ [Hau Hn]
+  · ileft; iframe
+  iloeb as IH generalizing Hperm Hp HSt HΦ
+  wp_apply +noauto wp_osCallBeginS R 1 h.next CoPset.subseteq_top CoPset.subseteq_top
+    $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
+  iclear Hls
+  icases HSt with (⟨Hau, Hn⟩ | ⟨%xs, HQ, Hout⟩)
+  · wp_apply +noauto (wp_au_step "Rename" _ (osNames j N (DFrac.own r) h)
+      (renDirOut j J N bs bt h (DFrac.own r)) Q) $$ Hau [Hn Hk Hp HΦ]
+    iintro Hr
+    ihave Hw := (osNames_join j N q r h hq).1 $$ [Hn Hr]
+    · iframe
+    iapply wp_osRenameDirS R d bs bt j J N (DFrac.own qd) h t s0 hbs hbt hN hN' hne hsrc htgt
+      osN_sub_au osShN_sub_au $$ Hos Hsi Hp Hw Hk
+    iintro %e Hperm Hp Hres
+    unfold osNamesAfter
+    icases Hres with (⟨%he, Hw⟩ | ⟨%x, Hlog, Hw⟩)
+    · icases (osNames_join j N q r h hq).2 $$ Hw with ⟨Hn, Hr⟩
+      by_cases he4 : e = W64 4
+      · ileft
+        iframe Hr
+        iintro Hau
+        subst he4
+        wp_auto
+        iapply IH $$ Hperm Hp [Hau Hn] HΦ
+        ileft; iframe
+      · iright
+        iexists none
+        isplitl [Hr]
+        · unfold renDirOut logOut claimOut; iframe
+        iintro HQ
+        wp_auto
+        rw [decide_eq_false (show e ≠ W64 4 from he4)]
+        wp_auto
+        rw [decide_eq_false (show e ≠ W64 0 from he)]
+        wp_auto
+        wp_apply wp_linkError
+        iintro %le
+        iapply HΦ
+        iframe
+        isplitr
+        · ipureintro; intro hc; cases hc
+        unfold renDirOut logOut claimOut; iframe
+    · icases (osNames_join j N q r _ hq).2 $$ Hw with ⟨Hn, Hr⟩
+      unfold osLogged
+      icases Hlog with ⟨%hst, #He, #Hl⟩
+      iright
+      iexists some (x, s0)
+      isplitl [Hr]
+      · dsimp only [renDirOut, logOut, claimOut, osLogged, renDirEnt]; iframe; iframe #
+        ipureintro; exact ⟨Nat.zero_le _, hst⟩
+      iintro HQ
+      ihave Hout : renDirOut j J N bs bt h (DFrac.own q) (some (x, s0)) $$ [Hn]
+      · dsimp only [renDirOut, logOut, claimOut, osLogged, renDirEnt]; iframe; iframe #
+        ipureintro; exact ⟨Nat.zero_le _, hst⟩
+      wp_auto
+      by_cases he4 : e = W64 4
+      · rw [decide_eq_true he4]
+        wp_auto
+        iapply IH $$ Hperm Hp [HQ Hout] HΦ
+        iright; iexists (x, s0); iframe
+      rw [decide_eq_false (show e ≠ W64 4 from he4)]
+      wp_auto
+      by_cases he0 : e = W64 0
+      · rw [decide_eq_true he0]
+        wp_auto
+        iapply HΦ
+        iframe
+        ipureintro; intro _; rfl
+      rw [decide_eq_false (show e ≠ W64 0 from he0)]
+      wp_auto
+      wp_apply wp_linkError
+      iintro %le
+      iapply HΦ
+      iframe
+      ipureintro; intro _; rfl
+  · obtain ⟨x, sx⟩ := xs
+    isimp only [renDirOut, logOut, claimOut] at Hout
+    icases Hout with ⟨⟨%hlo, Hlo⟩, Hn⟩
+    unfold osLogged
+    icases Hlo with ⟨%hlo2, #Hle, #Hll⟩
+    have habs : (h.log x (renDirEnt j bs bt J sx)
+        (restrictN N (<[bt := .dir J]> (GMap.delete bs h.cur)))).cur !! bs = none := by
+      simp only [NamesH.log]
+      rw [restrictN_lookup N _ bs hN, GMap.lookup_insert_ne _ _ (Ne.symm hne)]
+      exact GMap.lookup_delete _ _
+    ihave Hpp := (osPathS_frac R d qd.half qd.half j).1 $$ [Hp]
+    · rw [Qp.half_add_half]; iexact Hp
+    icases Hpp with ⟨Hp1, Hp2⟩
+    wp_apply +noauto wp_osRenameAbsentS R d bs d bt j j N (DFrac.own qd.half) (DFrac.own qd.half)
+      (DFrac.own q) _ t s0 1 hbs hbt hN habs CoPset.subseteq_top CoPset.subseteq_top
+      $$ Hos Hsi Hp1 Hp2 Hn Hk as %e %he Hperm Hp1 Hp2 Hn
+    ihave Hp := (osPathS_frac R d qd.half qd.half j).2 $$ [Hp1 Hp2]
+    · iframe
+    rw [Qp.half_add_half]
+    ihave Hout : renDirOut j J N bs bt h (DFrac.own q) (some (x, sx)) $$ [Hn]
+    · dsimp only [renDirOut, logOut, claimOut, osLogged]; iframe; iframe #
+      ipureintro; exact ⟨hlo, hlo2⟩
+    wp_auto
+    by_cases he4 : e = W64 4
+    · rw [decide_eq_true he4]
+      wp_auto
+      iapply IH $$ Hperm Hp [HQ Hout] HΦ
+      iright; iexists (x, sx); iframe
+    rw [decide_eq_false (show e ≠ W64 4 from he4)]
+    wp_auto
+    rw [decide_eq_false (show e ≠ W64 0 from he)]
+    wp_auto
+    wp_apply wp_linkError
+    iintro %le
+    iapply HΦ
+    iframe
+    ipureintro; intro _; rfl
+
 end proof
 
 end EtcdGrove

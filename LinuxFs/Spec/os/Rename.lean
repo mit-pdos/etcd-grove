@@ -81,15 +81,15 @@ def renDirOut (j J : Ino) (N : NameSet) (bs bt : GoString) (h : NamesH) (dq : DF
 
 /-- See the file header. -/
 abbrev os.Rename.specDirS : Prop :=
-  ∀ (d bs bt : GoString) (j J : Ino) (N : NameSet) (R : Roots) (dq : DFrac) (h : NamesH)
+  ∀ (d bs bt : GoString) (j J : Ino) (N : NameSet) (R : Roots) (qd : Qp) (h : NamesH)
     (q r : Qp) (Q : Option (Nat × Nat) → IProp GF),
   NameOk bs → NameOk bt → N.Mem bs → N.Mem bt → bs ≠ bt →
   h.cur !! bs = some (.dir J) → h.cur !! bt = none → q + r = 1 →
-  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm 1 ∗
+  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ osCallPerm 1 ∗
       osNames j N (DFrac.own q) h ∗
       osAU (osNames j N (DFrac.own r) h) (renDirOut j J N bs bt h (DFrac.own r)) Q }}
     (App (App (Val (@! os.Rename)) (Val #(child d bs))) (Val #(child d bt)))
-  {{ (err : GoInterface), RET #err; osPathS R d dq j ∗ osCallPerm 1 ∗
+  {{ (err : GoInterface), RET #err; osPathS R d (DFrac.own qd) j ∗ osCallPerm 1 ∗
       ∃ o, ⌜err = interface.nil → o.isSome⌝ ∗ Q o ∗ renDirOut j J N bs bt h (DFrac.own q) o }}
 
 end spec
