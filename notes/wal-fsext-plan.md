@@ -693,3 +693,31 @@ out of `Abs.lean`; statement unchanged). Left: `walInv_alloc` (`sorry`).
   translation with the vocabulary, the fold, the W1 layer and the `proto` copies) builds. Adding a
   module: append it to `COPIES` (an extract when its imports are heavy). The copies go with the `os`
   promotion.
+
+## W3a: the decoder (branch `wal-dec`, 2026-11-13)
+
+- **Pure** (`Proof/.../storage/WalEncDecoder.lean`, no `sorry`): the Go decoder's own step
+  (`decRecStep`, `goDecode` over the state `(files left, lastValidOff, crc)`), `decStep_eq` (the
+  reader's step = the decoder's step + the CRC-record check), and the **loop lemma**: `ReaderRun`
+  (the readers' `Decode` loop with the CRC-record check and `UpdateCRC`) computes `walDecodeFiles`
+  (`readerRun_start`: same records, same stop, same `LastOffset`/`LastCRC` at `io.EOF`).
+- **Deviations Go vs `decStep`** (all accounted for in `decStep_eq`/`rdRest_*`): (1) the decoder accepts a
+  CRC record unchecked and leaves its CRC; the reader checks and calls `UpdateCRC` (modelled in
+  `decStep` as one step); (2) after a CRC mismatch Go's CRC has the bad data written in
+  (`walDecodeFrom` keeps the old CRC; `DecOut.crc` differs only then); (3) after the reader's
+  `crcRec` stop Go's `lastValidOff` is past the record, `walDecodeFrom`'s `off` before it (off/crc agree
+  at every stop but `crcErr`/`crcRec`); (4) the end of the last file leaves `lastValidOff` (no reset).
+  (5) Not in `WalStop`: a failed `FileInfo` (the fork fix) or a failed read returns that error (`IoE`
+  outcome of `decPost`, the decoder no longer live).
+- **Iris** (`LinuxFs/{Spec,Proof}/go_etcd_io/etcd/server/v3/storage/wal/`; vocabulary `DecDefs.lean`:
+  `decFile`, `ownFbr`, `ownDecoder`, `decEnv`, `decPost`, `stopErr`; walpb `ownRec`): proved
+  `decodeFrameSize`, `readInt64`, `LastOffset`, `LastCRC`, `UpdateCRC`, `Decode` (over decodeRecord's
+  spec), walpb `GetType`/`GetCrc`/`Validate`, fileutil `NewFileBufReader`/`FileInfo`/`Err`/`Read`.
+  `sorry`: `decodeRecord`, `isTornEntry`, `NewDecoder` (started, to the range loop).
+- **Hypotheses** (theorem parameters, not axioms): `proto.UnmarshalWalRecord.spec C` (stated over
+  `C.decRec`; to derive from the walpb registration), `walpb.Record.Reset.spec` (names-only),
+  `fmt.ErrorfErrs.spec` (Perennial's `Errorf` spec refuses error arguments, `ArgsWf`; Perennial
+  change to propose), and in `decEnv` the client's `isEofOk` (`errors.Is(e, io.EOF)` on the readers'
+  errors). **Gap**: Perennial's `Errorf` model does not wrap, so `errors.Is(err, io.ErrUnexpectedEOF)`
+  of the `tooLarge`/`crcErr` errors is false in the model (Go: true); `stopErr` says only `≠ nil` for
+  them. ReadAll's read-mode branch tests exactly that.
