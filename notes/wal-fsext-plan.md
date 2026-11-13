@@ -1304,6 +1304,43 @@ on three facts the invariant does not record.**
   (`os.OpenFile.wp_fileS`), `Seek`, `newFileEncoder`), and rebuilding `walHandleIn` (with `walDirH` at
   the new claim history, `walPipeH_next`).
 
+**Seventh session (branch `wal-cut7`, 2026-11-13): `cut`'s statements settled for its body; steps 1-2 as
+hypotheses; step 3's pure part.**
+- **`walHandleIn` changes** (`Handle.lean`; no producer was proved, nothing destructured it): `walDirH dir j dfd ino
+  name` takes the directory's inode `j` (shared with the pipeline: `walPipeH fp dir j k`, so the rename's two
+  claims are of one directory) and holds `w.dirFile`'s fd as `osDirFdS dfd j ph` (was `osFd dfd (own 1) dd`, which
+  `os.File.Sync.specDirS` cannot take); `walTmps ⊆ X` (the rename's `tmp ∈ X`); the tail's name `walFileName sq
+  ix` with `sq + 1 < 2^64` (the next sequence does not wrap); `nm0` the largest `.wal` name of `hj.cur` (so the
+  new name is free: `walCut_osAUnc`'s `hcur`; producers know it from `WalAbsD.names`). The handle's pure part:
+  `o0 + |out| ≤ sz ≤ 0xffffffff000`, `o0 + |out| + |pend| ≤ 0xffffffff000` (`Seek`'s bounds),
+  `walLastIdx H ≤ max(enti, snapi)` and `max(enti, snapi) + 1 < 2^64` (the new name above `walLastIdx`, no
+  wrap). **For W5/W6** (producers: `ReadAll`, `Create`, `Save`'s preservation): the index bound needs `snapi`
+  the largest snapshot index saved (`SaveSnapshot` sets `w.snapi = e.Index`, not a max: true while snapshots
+  are saved in increasing order; else a premise).
+- **`cut.spec`** takes `h.st = walLastHS (H.map toM)` (the new segment's headers hold `w.state`, `cutHdrDs`;
+  `Save` has it: `WalHS.Done`).
+- **`walCut_osAUnc`'s premise weakened**: the old tail's bytes only sized to its stream (`bs0.length =
+  |tailStream|`), not durable: durability is the invariant's (`CutTail.lastSeg_synced_durable`: a synced WAL's
+  last segment, sized to its stream, is its stream durable, from `WalAbsD.synced`/`last`).
+- **Steps 1-2 as hypotheses** (`Spec/.../wal/WAL__cutTail.lean`, not axioms): `os.File.Truncate.specWalTail Mr`
+  (the tail truncated at its write position: `walTailW` at `sz := o0 + |out|`; from `Truncate.specAu` and the
+  `walInv` supply of branch `wal-zte`, the coordinator's decision) and `WAL.sync.specCut P Mr` (`sync` of the
+  truncated handle: the pending bytes written past the size, the tail sized to its stream, `cutSynced h`,
+  `walSyncedLb |H|`; to prove with W6's `sync`, whose writer then accepts writes past the size).
+- *`CutName.lean`* (pure, proved): `walFileName_lt` (a larger sequence sorts after: `hexPad_lt`, fixed-width
+  hexadecimal byte-wise), `cleanSeg_walFileName`, `baseModel_child_walFileName` (`filepath.Base` of the tail's
+  path), `scanWalName_walFileName` (`parseWALName` reads it back). `walName` is `fmt.Sprintf("%016x-%016x.wal")`:
+  `fmt.SprintfWalName.spec` (the main tree's trust-boundary axiom) as a hypothesis.
+- *`cut.wp_proof`*: steps 1-2 written (the handle opened, `Seek` by `os.File.Seek.wp_cur`, the truncate, the
+  handle refolded at `sz := o0 + |out|` for `sync.specCut`, the error exits); `sorry` from step 3 on. The
+  theorem takes `[os.file.FieldAssumptions]`, `[fileutil.Assumptions]` (`Seek`, the promoted methods).
+  Order for the next session: step 3 (above), 4 (`wp_walPipeH_open` at the handle's `j`), 5 (the header phase:
+  `os.File.writerStream` over the first bytes of `N.tmp` split off its `osZerosA` run; a `walPreSyncOk` for
+  a preallocated owned file, the zeros synced by `zrun_synced`, shareable with W4's `Create`), 6
+  (`walCut_osAUnc`: split the handle's ½ of the WAL claim into ¼ + ¼, the path fraction in halves,
+  `osPathS_frac`), 7 (`walInvBody_cutSynced` under `wp_notCrashed_acc`; the rename's `logOut` for the
+  `osLogLb`), 8 (re-lock, `walHandleIn` at the new claim history, `walOpenW_cut` back).
+
 ## W4 implementation log (branch `wal-create`, 2026-11-13)
 
 **Statements (`sorry`-stubbed proofs):** `LinuxFs/Spec/.../storage/wal/Create.lean` (`wal.Create.spec C Mr`),
