@@ -180,6 +180,144 @@ theorem osNames_three_halves (j : Ino) (N : NameSet) (h1 h2 h3 : NamesH) (hN : N
   have := DFrac.valid_own_op hv.1
   simp at this
 
+/-- The lock free: the invariant's parking flag is `true`. -/
+theorem walUnlocked_park (b : Bool) :
+    ⊢@{IProp GF} walParkAuth (W := W) b -∗ walUnlockedTok (W := W) -∗
+      ⌜b = true⌝ ∗ walParkAuth (W := W) b ∗ walUnlockedTok (W := W) := by
+  unfold walUnlockedTok
+  iintro Ha ⟨Ht, Hf, Hc⟩
+  icases walPark_agree (W := W) b true $$ Ha Hf with %hb
+  iframe
+  ipureintro; exact hb
+
+/-- The parked halves after the drop (neither the area claim nor its part is a WAL directory's). -/
+theorem parked_drop (Ls : GMap GoString WalLay) (cl : List Claim) (jr : Ino) (N : NameSet)
+    (h : NamesH) (b : GoString) (hbw : walNameP b = false) (hW : ¬ WalDirClaimOf Ls (jr, N, h)) :
+    ([∗list] c ∈ cl, if ParkedClaim Ls [] c then
+        osNames (L := L) c.1 c.2.1 (DFrac.own (1 : Qp).half) c.2.2 else emp) ⊢
+      [∗list] c ∈ dropClaims cl jr N h b, if ParkedClaim Ls [] c then
+        osNames (L := L) c.1 c.2.1 (DFrac.own (1 : Qp).half) c.2.2 else emp := by
+  classical
+  unfold dropClaims replClaim
+  rw [BigSepL.bigSepL_map]
+  refine BigSepL.bigSepL_mono (fun {k x} _ => ?_)
+  by_cases hx : x = (jr, N, h)
+  · subst hx
+    simp only [if_true]
+    rw [if_neg (fun hp => hW hp.1), if_neg (fun hp => not_walDirClaimOf_diff hbw hW hp.1)]
+  · rw [if_neg hx]
+
+/-- **The drop of the name `b` off the area claim** (see the file header): the program's half of
+the area claim `(jr, N, h)` (holding the WAL name `nm` and `b`, no WAL name nor `.wal` name, an area
+slot), the lock free; the invariant's contents keep the claim's part off `b`, the program gets the
+whole claim on `b` and keeps its half of the rest. -/
+theorem walInvBody_drop (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+    (s : AbsDiskState) (N : NameSet) (h : NamesH) (nm b : GoString) {Em : CoPset}
+    (hnm : walNameOk nm) (hNnm : N.Mem nm) (hb : N.Mem b) (hbw : walNameP b = false)
+    (hbn : ¬ walNameOk b) (hbs : AreaSlot b) (hE : ↑osShN ⊆ Em) :
+    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ osSharedInv (L := L) R -∗
+      walUnlockedTok (W := W) -∗ osNames (L := L) jr N (DFrac.own (1 : Qp).half) h ={Em}=∗
+      walInvBody (L := L) (W := W) C Mr R jr r s ∗ walUnlockedTok (W := W) ∗
+      osNames (L := L) jr (N.diff [b]) (DFrac.own (1 : Qp).half) (h.restrict jr (N.diff [b])) ∗
+      osNames (L := L) jr (.only [b]) (DFrac.own 1) (h.restrict jr (N.inter [b])) := by
+  classical
+  have hNe : N ≠ .only [] := nameSet_ne_empty hb
+  have hbnm : nm ≠ b := fun he => hbn (he ▸ hnm)
+  have hDe : N.diff [b] ≠ .only [] :=
+    nameSet_ne_empty ((N.mem_diff [b] nm).2 ⟨hNnm, by simpa using hbnm⟩)
+  have hSame : (N.inter [b]).Same (.only [b]) := fun b' => by
+    rw [N.mem_inter]
+    simp only [NameSet.Mem, List.mem_singleton]
+    constructor
+    · exact fun h' => h'.2
+    · rintro rfl; exact ⟨hb, rfl⟩
+  unfold walInvBody
+  iintro Hb #Hsi Hu H
+  icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %hr, Hcl, Hn, HF, %hwo, %hwc, ⟨%CR, HCRa, %hCR⟩, Ht, %hab,
+    %hwn, Hpk, ⟨%K, %cc, HK, Hcc, %hdk⟩⟩
+  unfold walCreatingAuth
+  icases HCRa with ⟨HCRa, Hor⟩
+  icases Hor with (%hCR0 | ⟨-, Hl⟩)
+  rotate_left
+  · iexfalso; iapply walLockedTok_unlocked_excl $$ Hl Hu
+  subst hCR0
+  unfold walParked
+  icases Hpk with ⟨%bp, %O, %D, Hpa, %hOD, Hsegs, Hpc⟩
+  icases walUnlocked_park bp $$ Hpa Hu with ⟨%hbp, Hpa, Hu⟩
+  obtain ⟨hO, hD⟩ := hOD hbp
+  subst hO hD hbp
+  imod osClaims_log (L := L) R _ hE $$ Hsi Hcl with ⟨Hcl, %hlog⟩
+  imod osClaims_keys R jr N _ h _ hNe hE $$ Hsi H Hcl with ⟨H, Hcl, %hkeys⟩
+  imod osNames_self R jr N _ h hE $$ Hsi H with ⟨H, %hself⟩
+  obtain ⟨N1, h1, hm1, hN1⟩ := hwc nm hnm
+  obtain ⟨rfl, rfl⟩ := hkeys ((jr, N1, h1), _) (List.mem_map_of_mem hm1) rfl nm hNnm hN1
+  have hd : DropOk cl jr N1 h1 b := by
+    obtain ⟨log, hst, hl⟩ := hlog
+    refine ⟨⟨log, hst, fun c hc x e Es hx => hl (c, _) (List.mem_map_of_mem hc) x e Es hx⟩, hm1,
+      hself, hb, fun c hc hne hj hcb => hne ?_⟩
+    obtain ⟨e1, e2⟩ := hkeys (c, _) (List.mem_map_of_mem hc) hj b hb hcb
+    obtain ⟨c1, c2, c3⟩ := c
+    simp only at hj e1 e2
+    rw [hj, e1, e2]
+  obtain ⟨l1, l2, rfl, hl1⟩ := List.split_first hm1
+  icases (osClaims_split (L := L) l1 l2 (jr, N1, h1) _).1 $$ Hcl with ⟨H1, Hc0, H2⟩
+  by_cases hl2 : (jr, N1, h1) ∈ l2
+  · obtain ⟨m1, m2, rfl, -⟩ := List.split_first hl2
+    icases (osClaims_split (L := L) m1 m2 (jr, N1, h1) _).1 $$ H2 with ⟨-, Hc1, -⟩
+    iexfalso
+    iapply osNames_three_halves jr N1 h1 h1 h1 hNe $$ H Hc0 Hc1
+  by_cases hW : WalDirClaimOf Ls (jr, N1, h1)
+  · icases (BigSepL.bigSepL_append).1 $$ Hpc with ⟨-, Hpc⟩
+    icases (BigSepL.bigSepL_cons).1 $$ Hpc with ⟨Hp0, -⟩
+    ihave Hp0 := (show (if ParkedClaim Ls [] (jr, N1, h1) then
+        osNames (L := L) jr N1 (DFrac.own (1 : Qp).half) h1 else emp : IProp GF) ⊢
+        osNames (L := L) jr N1 (DFrac.own (1 : Qp).half) h1 from by
+      rw [if_pos ⟨hW, List.not_mem_nil⟩]) $$ Hp0
+    iexfalso
+    iapply osNames_three_halves jr N1 h1 h1 h1 hNe $$ H Hc0 Hp0
+  icases osNames_halves jr N1 h1 h1 hNe $$ Hc0 H with ⟨-, Hw⟩
+  imod osNames_split (L := L) R jr N1 [b] h1 hE $$ Hsi Hw with ⟨HI, HD⟩
+  imod osNames_rekey (L := L) R jr (N1.inter [b]) (.only [b]) _ hSame hE $$ Hsi HI with HI
+  icases osNames_halve jr (N1.diff [b]) _ hDe $$ HD with ⟨HD1, HD2⟩
+  ihave Hpc := parked_drop (L := L) Ls _ jr N1 h1 b hbw hW $$ Hpc
+  have hw : ∀ dir d, s.wal !! dir = some d → ∃ lay nm, Ls !! dir = some lay ∧
+      InArea s.area dir nm ∧ lay.jr = jr ∧ lay.nm = nm := fun dir d hd' => by
+    obtain ⟨lay, nm', hj, hl, hia, hjr, hnm', -⟩ := hwo.1 dir d hd'
+    exact ⟨lay, nm', hl, hia, hjr, hnm'⟩
+  imodintro
+  iframe Hu HI HD2
+  iexists Ls, dropClaims (l1 ++ (jr, N1, h1) :: l2) jr N1 h1 b, n, F
+  iframe Hg Hn HF Ht
+  isplitr
+  · ipureintro; exact hr
+  isplitl [H1 HD1 H2]
+  · unfold dropClaims
+    rw [replClaim_split hl1 hl2]
+    iapply (osClaims_split (L := L) l1 l2 _ _).2
+    iframe
+  isplitr
+  · ipureintro; exact walsOk_drop hd hbw hbn hbs hab.2 hW hwo
+  isplitr
+  · ipureintro; exact walsCreateOk_drop hd.mem hbn hwc
+  isplitl [HCRa]
+  · iexists ∅
+    iframe HCRa
+    isplitl
+    · ileft; ipureintro; rfl
+    · ipureintro; intro dir N' h' J' hl; simp at hl
+  isplitr
+  · ipureintro; exact ⟨absentNone_drop hd hbn hab.1, hab.2⟩
+  isplitr
+  · ipureintro; exact walsNamed_drop hd hbw hW hwn
+  isplitl [Hpa Hsegs Hpc]
+  · iexists true, [], []
+    iframe Hpa Hsegs Hpc
+    ipureintro; intro _; exact ⟨rfl, rfl⟩
+  iexists K, cc
+  iframe HK Hcc
+  ipureintro
+  exact dirKeysOk_drop hd hbw hbn hw hdk
+
 end iris
 
 end WalFs
