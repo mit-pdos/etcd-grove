@@ -385,8 +385,8 @@ theorem wp_osDirReadNextS (R : Roots) (fd : w64) (j : Ino) (N : NameSet) (r0 : N
               osDirFdS (L := L) fd j .done) ∨
            (∃ e : w64, ⌜e ≠ 0 ∧ v = rdErr e⌝ ∗ osDirFdS (L := L) fd j (.reading N r0' rs)))) -∗
         Φ v) -∗
-      WP (ExternalOp fsExt.name "DirReadNext" (Val (#fd))) @ s; E {{ Φ }} := by
-  sorry
+      WP (ExternalOp fsExt.name "DirReadNext" (Val (#fd))) @ s; E {{ Φ }} :=
+  wp_osDirReadNextS' R fd j N r0 rs fresh dq h hfr hr0 hE hE' Φ
 
 /-- **One step of a blind read of a shared directory fd** (no claim): a valid name, the end, or an
 errno. -/
