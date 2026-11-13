@@ -98,6 +98,26 @@ theorem cleanSeg_walFileName (sq ix : Nat) : path.cleanSeg (walFileName sq ix) :
   · exact hex16_ne_slash ix c h
   · simp at h; rcases h with h | h | h | h <;> (subst h; decide)
 
+theorem hexDigit_ne_nul : ∀ k : Fin 16, hexDigit k.val ≠ (0 : w8) := by decide
+
+theorem hex16_ne_nul (n : Nat) : ∀ c ∈ hex16 n, c ≠ (0 : w8) := by
+  intro c hc
+  unfold hex16 at hc
+  obtain ⟨i, -, rfl⟩ := List.mem_map.1 hc
+  exact hexDigit_ne_nul ⟨_, Nat.mod_lt _ (by decide)⟩
+
+/-- **A segment name is a valid directory entry name** (`NameOk`: `filepath.Join`, the rename). -/
+theorem walFileName_nameOk (sq ix : Nat) : NameOk (walFileName sq ix) := by
+  obtain ⟨h1, h2, h3, h4⟩ := cleanSeg_walFileName sq ix
+  refine ⟨h1, h3, h4, fun h => h2 _ h rfl, fun hc => ?_⟩
+  unfold walFileName at hc
+  simp only [List.mem_append] at hc
+  rcases hc with ((h | h) | h) | h
+  · exact hex16_ne_nul sq _ h rfl
+  · simp at h; exact absurd h (by decide)
+  · exact hex16_ne_nul ix _ h rfl
+  · simp at h; rcases h with h | h | h | h <;> exact absurd h (by decide)
+
 /-- **`filepath.Base` of a segment's path** in the directory `dir`: the segment name. -/
 theorem baseModel_child_walFileName (dir : GoString) (sq ix : Nat) :
     path.baseModel (child dir (walFileName sq ix)) = walFileName sq ix := by
