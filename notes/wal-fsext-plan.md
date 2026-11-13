@@ -693,3 +693,26 @@ out of `Abs.lean`; statement unchanged). Left: `walInv_alloc` (`sorry`).
   translation with the vocabulary, the fold, the W1 layer and the `proto` copies) builds. Adding a
   module: append it to `COPIES` (an extract when its imports are heavy). The copies go with the `os`
   promotion.
+- **W6, the page writer** (`wal-enc3`, 2026-11-13, no `sorry`): `pkg/v3/ioutil`'s package init in the
+  part (`etc/gen-init.py`: `LFS_PKGS` gains `ioutil` and `client/pkg/v3/verify`, the latter generated
+  from the main translation, `LFS_MAIN_CODE`, over a part instance, since the main one is in the
+  backend's `Base` over the main `os`; `LFS_SPECIAL` for a part package whose main namesake differs;
+  fact `ioutilInit`: `defaultBufferBytes ↦□ 131072`). `io.writerStream wi W` (`Proof/io/WriterStream.lean`,
+  persistent, the `io.Writer` contract: accepts a prefix of `p`, all unless it errs) and
+  `ioutil.ownPageWriter pw wi pend` (ghost buffer `pend`; `pwOk`: the next page boundary fits in the
+  buffer, so a full last page of `watermark + pageBytes` bytes is allowed, which `Write` reaches before
+  flushing). Proved: `NewPageWriter` (`0 < pageBytes ≤ 128 KiB`, `0 ≤ pageOffset < 2^62`), `flush`,
+  `Flush`, `Write` (success: writer's new bytes ++ new buffer = old buffer ++ `xs`; error: buffer empty,
+  the writer has a prefix of old buffer ++ `xs`; premise `len(p) < 2^62`, else `len(p) + bufferedBytes`
+  overflows). `Write`'s self-call is the fitting case (`ioutil.wp_Write_fits`), so no recursion. Not
+  linked yet (no `Link` covers `ioutil`/`crc`). Gotcha: `etc/lean-check.py` reported a kernel
+  "application type mismatch" in auxiliary `_proof_` terms of these proofs that `lake build` does not.
+- **W6, the encoder: blocked on the `MarshalAppend` axiom's ownership** (open). `encode` passes
+  `e.buf[:0]` (1 MiB, reused across calls) to `MarshalAppendCachedRecord`, whose spec consumes the
+  buffer's capacity and returns only `b'` (may or may not alias it). The encoder then cannot own
+  `e.buf` for the next `encode`. Proposed amendment of that pending axiom (trusted, for the user):
+  add to its post `⌜b'.ptr = b.ptr ∧ b'.cap = b.cap⌝ ∨ ∃ ys, b ↦* ys ∗ ownSliceCap w8 b 1` (the old
+  array comes back, contents arbitrary, when the result was reallocated; protobuf-go only `append`s,
+  so the old array is referenced by nobody else). With it the encoder's invariant owns `e.buf` whole
+  and the padding `append` (fits or grows) keeps it. Also needed: `recSize < 2^47` (data below
+  `2^46` bytes) for `MarshalAppend`/`Marshal`'s premises.
