@@ -463,3 +463,31 @@ it lands with the first proofs.
   whose entries apply to the read with commit ≤ last; the received-snapshot `Save` (the one raising the commit
   to the snapshot just saved) is not covered yet. The tester's generator (opEntries/opResend/opRecvSnap) only
   saves entries contiguous with its log, so it never produces the deviating order (CP1 saw none).
+- **Leaf units, encoding** (`wal-leaf-enc`, 2026-11-13): `encodeFrameSize` proved (no `sorry`).
+  `WalPbWire.lean` (main tree, pure): `walpb.Record`'s wire format as a transparent function (`RecC`,
+  `recEnc`, `recSize`, `recEnc_length`), the WAL's record content `recOf` (`Data` nil exactly for a CRC
+  record without data: Create/cut build it without `Data`; every other record's data is a `Marshal`
+  result, never nil, or the caller's metadata, which the WAL's specs must take non-nil, since a nil
+  metadata encodes without field 3), and the two stale-`N.tmp` wire facts: `recEnc_blk` (a record with
+  data empty or a block has no two adjacent zeros and a non-zero first byte) and `window_len_or_zeros`
+  (a length word read inside such bytes followed by zeros has byte 3 or 4 non-zero, i.e. a length
+  `≥ 2^24`, or everything from its byte 3 on is zero). Go check `examples/stdlib/walpb` (encoder, size,
+  `MarshalAppend` with `UseCachedSize`, round trip, descriptor). In the part: `walpb.Record` registered
+  (`PbRecord.lean`; axioms `recEncC_ok`, `pbRecordC_reg`, **pending review**), the new
+  `proto.MarshalAppendCachedRecord.spec` (axiom, **pending review**; stated at `walpb.Record` only: a
+  stale size cache changes nested messages' length prefixes), part copies of `InvProto` and of the
+  `SizePb`/`MarshalPb`/`UnmarshalPb` axioms, the proto package instance; `walCodec`, `walCodec_ok`
+  (`WalCodec.Ok.dec_enc` now only for records under `2^56` bytes, which `decStep_frame` has).
+- **Blocker found (import clash)**: the part cannot import anything over the main raft root package
+  (`Code.go_etcd_io.raft.v3`), whose names its own raft root copy declares: raft's `Base` (hence the main
+  `InvProto`, every main proto spec, `pbMsg`), `PbModel` (`EntryM`, `HardStateM`), so also `WalRecs`,
+  `WalHist`, `WalEncRecs`, `WalEncFold`, `WalReadAllPost` and the WAL's specs (`SW/`). The real WAL's
+  proofs live in the part, so they cannot state their posts over that layer today, and `WalMarshal`/
+  `WalUnmarshal` cannot be instantiated there (Entry's encoder `entryEncC` is in raft's `PbEntryType`).
+  Options: (a) give the part no raft root copy (the main raft root's only reason was the main `os`
+  import: translate raft's root with the part's `os` mapped, or split `IsEmptyHardState`/`MustSync`
+  out); (b) make `PbModel`/`Base`-free cores of the WAL layer (`PbModel` imports the raft root only for
+  types: move `EntryM`/`HardStateM`/`SnapshotMetadataM` to a module over `raftpb`); (c) part copies (as
+  done here for `InvProto`, cheap only for leaves). (b) for `PbModel` and dropping `InvProto`'s
+  `raft.v3.Base` import (it compiles without it: the part copy) are the cheapest, but each rebuilds
+  ~1400 main-tree modules. Undecided [coordinator].
