@@ -381,12 +381,14 @@ theorem lastRecs_length (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (cuts : Li
   rw [lastRecs_eq, length_chainRecs, List.length_append]
 
 /-- **The crash of a tail written this generation** (see the file header): the tree part from a
-`CrashTo` of the layout over another image `fo0` of the tail. -/
-theorem crashTo_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
+`CrashTo` of the layout over another image `fo0` of the tail, for the WAL at any synced mark `m0`
+covering the earlier segments (a sync's commit raises the mark: `crashOk_sync`). -/
+theorem crashTo_tailM {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
     {ents : Ents} {m' : Tree} {fo fo0 : Ino → Option Fs.OsFile} {g : SegG}
     (habs : WalAbsD C Mr d lay ents) (hZ : TailZeros lay) (hB : TailBound C Mr d lay)
-    (hnd : (lay.segs.map (·.ino)).Nodup) (hg : lay.segs.getLast? = some g)
-    (h0 : CrashTo C Mr d lay m' fo0) (hfo : ∀ i, i ≠ g.ino → fo0 i = fo i)
+    (hnd : (lay.segs.map (·.ino)).Nodup) (hg : lay.segs.getLast? = some g) (m0 : Nat)
+    (hm0 : segStart lay.cuts lay.cuts.length ≤ m0)
+    (h0 : CrashTo C Mr { d with m := m0 } lay m' fo0) (hfo : ∀ i, i ≠ g.ino → fo0 i = fo i)
     (hfc : FileCrashedR g.om [(0, DFrac.own (1 : Qp).half, g.bs)] (fo g.ino))
     (hn : g.ino ∈ walInos (entsOf m' lay.j) → (fo g.ino).isSome)
     (hw : W1G C (walInos (entsOf m' lay.j)) (fun i => imgOf (fo i)) (segBytesOf lay)) :
@@ -514,7 +516,7 @@ theorem crashTo_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} {
   have hIL := walImg_length_ge hIimg
   have hiI := initSegs_tailImg Mr d nI hsorted hLH
   have hiI0 : initSegs { d with H := I0 } lay.cuts = initSegs d lay.cuts :=
-    initSegs_of_take hsorted (walImg_take hI0 hLm)
+    initSegs_of_take hsorted (walImg_take hI0 hm0)
   have hlastI : lastRecs C Mr { d with H := tailImg Mr d lay.cuts nI } lay.cuts = R.take j := by
     rw [lastRecs_tailImg C Mr d _ hsorted hLH, hR, hnI, Nat.add_sub_cancel' hhdr]
   refine Or.inr ⟨q, tailImg Mr d lay.cuts nI, hent, hq, hinos,
@@ -536,6 +538,7 @@ theorem crashTo_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} {
       have := hnd.eq_of_getElem?_eq hi1 (h1.trans h2.symm)
       omega
     rw [← hfo g'.ino hne, hmid k g' hk hkc]
+    change segStream C Mr { d with H := I0 } lay.cuts (lay.first + q + k) = _
     unfold segStream
     rw [segRecs_init_congr C Mr (d := { d with H := I0 })
       (d' := { d with H := tailImg Mr d lay.cuts nI }) rfl
@@ -555,6 +558,18 @@ theorem crashTo_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} {
     refine ⟨hpre, fun r len c' => ?_⟩
     have := hrej r len c'
     rwa [← e2] at this
+
+/-- **The crash of a tail written this generation** (`crashTo_tailM` at the WAL's own mark). -/
+theorem crashTo_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
+    {ents : Ents} {m' : Tree} {fo fo0 : Ino → Option Fs.OsFile} {g : SegG}
+    (habs : WalAbsD C Mr d lay ents) (hZ : TailZeros lay) (hB : TailBound C Mr d lay)
+    (hnd : (lay.segs.map (·.ino)).Nodup) (hg : lay.segs.getLast? = some g)
+    (h0 : CrashTo C Mr d lay m' fo0) (hfo : ∀ i, i ≠ g.ino → fo0 i = fo i)
+    (hfc : FileCrashedR g.om [(0, DFrac.own (1 : Qp).half, g.bs)] (fo g.ino))
+    (hn : g.ino ∈ walInos (entsOf m' lay.j) → (fo g.ino).isSome)
+    (hw : W1G C (walInos (entsOf m' lay.j)) (fun i => imgOf (fo i)) (segBytesOf lay)) :
+    CrashTo C Mr d lay m' fo :=
+  crashTo_tailM hC habs hZ hB hnd hg d.m habs.lastSynced h0 hfo hfc hn hw
 
 /-- **The synced offset is past the start of the tail**: the headers are synced (a tail write lands
 after them: `SegFl.Ok`'s `0 < fl.off`). -/
