@@ -275,7 +275,7 @@ theorem restReplay_closeI (γr : ReadNames) (rp : RestartPt) (Em : CoPset) (hL :
   · -- past the bootstrap log
     rw [← hR]
     obtain ⟨hne, hnd, hbo⟩ := Hok
-    refine restReplay_close γr.raft.raft.vs γr.raft.raft.boot R rp.b hbo hnd Hurl ?_ ?_
+    refine restReplay_close γr.raft.raft.vs γr.raft.raft.boot R rp.b hbo hnd Hurl.1 ?_ ?_
     · intro e he cc hd
       have hm : EntryModel.ofM e ∈ rp.A₀ := by
         rw [← hR]; exact List.mem_append_left _ (List.mem_map_of_mem he)
