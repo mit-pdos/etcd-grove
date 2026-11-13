@@ -36,6 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/storage"
 	"k8s.io/apiserver/pkg/storage/etcd3"
 	"k8s.io/apiserver/pkg/storage/value"
@@ -233,6 +234,17 @@ func TestWatchStrictControl(t *testing.T) {
 		}
 		w.Stop()
 		for range w.ResultChan() {
+		}
+	}
+}
+
+// T5-d: wait.Jitter(d, f) (apimachinery pkg/util/wait/wait.go:92) returns a duration in
+// [d, d + f*d] for f > 0 (d for f <= 0 replaced by f = 1): "some duration", what the local spec says.
+func TestJitter(t *testing.T) {
+	for i := 0; i < 1000; i++ {
+		j := wait.Jitter(time.Second, 3)
+		if j < time.Second || j > 4*time.Second {
+			t.Fatalf("Jitter(1s, 3) = %v", j)
 		}
 	}
 }

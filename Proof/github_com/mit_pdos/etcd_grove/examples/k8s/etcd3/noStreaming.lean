@@ -42,17 +42,21 @@ theorem noStreaming.wp_proof : noStreaming.spec (GF := GF) (hG := hG) := by
   iunfold EtcdGrove.k8sfeature.featureGateOk at Hgate
   icases Hgate with ⟨-, #Hset⟩
   wp_auto
-  rw [show go!"EtcdRangeStream=false" = go!"EtcdRangeStream" ++ go!"=false" from rfl]
+  rw [show go!"EtcdRangeStream=false" = EtcdGrove.k8sfeature.setArg go!"EtcdRangeStream" false from rfl]
   wp_apply Hset as %err Herr
   · ipureintro; simp [EtcdGrove.k8sfeature.k8sQueriedFeatures]
   icases Herr with (⟨%Hn, #Hoff⟩ | %Hn)
   · subst Hn
+    iunfold EtcdGrove.k8sfeature.featureSet at Hoff
     wp_auto
     iapply HΦ
     simp only [ite_true]
     iunfold rangeStreamOff
     iexists g
-    iframe #
+    isplitl []
+    · iexact Hg
+    iExactEq Hoff
+    simp
   · cases err with
     | nil => exact absurd rfl Hn
     | ok i => ?_

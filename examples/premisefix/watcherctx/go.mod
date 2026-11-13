@@ -16,6 +16,7 @@ replace go.etcd.io/raft/v3 => github.com/upamanyus/etcd/v3 v3.0.0-20261110053807
 
 require (
 	go.etcd.io/etcd/client/v3 v3.8.0-alpha.0
+	go.opentelemetry.io/otel/sdk v1.47.0
 	go.uber.org/zap v1.28.0
 	google.golang.org/grpc v1.84.0
 	k8s.io/apimachinery v0.0.0-20261021173754-0b7d352f711c
@@ -64,7 +65,6 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.47.0 // indirect
 	go.opentelemetry.io/otel/log v1.47.0 // indirect
 	go.opentelemetry.io/otel/metric v1.47.0 // indirect
-	go.opentelemetry.io/otel/sdk v1.47.0 // indirect
 	go.opentelemetry.io/otel/trace v1.47.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.11.1 // indirect
 	go.uber.org/multierr v1.11.0 // indirect

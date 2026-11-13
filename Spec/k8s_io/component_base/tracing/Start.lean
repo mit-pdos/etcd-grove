@@ -36,6 +36,13 @@ a non-nil one): with an SDK span in the context and Go's execution tracer on, th
 answers a typed-nil `*Task`, met the premise and made `Start` panic
 (`examples/premisefix/k8sctx`'s `TestStartRuntimeTraceKeyPanics`). The returned context answers there
 `NewTask`'s fresh `*Task` (tracer on) or the parent's answer (`TestStartRuntimeTraceTask`).
+
+(k8s 7f-5, T5-b) `k8sCtxOk` includes the APF initialization-signal key (`flowcontrol.initSignalKeyAny`,
+`flowcontrol.initSignalRes`: nil or not an `InitializationSignal`). `Start` reads nothing there (no
+component on its path reads that key), and the post's `k8sCtxOk ci'` claims the returned context
+answers there as the parent does: every context `Start` returns is a `WithValue` chain over `ci`
+(otel's `ContextWithSpan`, utiltrace's `ContextWithTrace`, `runtime/trace`'s task) at other keys
+(`examples/premisefix/watcherctx`'s `TestTracingStartKeepsAPFKey`, tracer on and off).
 -/
 module
 

@@ -1689,6 +1689,14 @@ func noStreaming() bool {
 	return utilfeature.DefaultMutableFeatureGate.Set("EtcdRangeStream=false") == nil
 }
 
+// watchList turns the store's WatchList feature on (a watch-list request gets its initial events and
+// the initial-events-end bookmark; notes/k8s-7f-scope.md §2.2, notes/k8s-7f5-scope.md Q4), or
+// returns false. Its default at the pinned binary version is on (1.34+); the driver sets it so that
+// no fact about the emulated version is needed.
+func watchList() bool {
+	return utilfeature.DefaultMutableFeatureGate.Set("WatchList=true") == nil
+}
+
 // The client address: the string net.Listen is given is the client's endpoint, verbatim (a plain
 // host:port, no scheme). Not the other examples', so that their tests can run at once.
 const clientAddr = "127.0.0.1:23896"
@@ -1718,7 +1726,7 @@ func Main(clients int, ops int) porcupine.CheckResult {
 		return porcupine.Unknown
 	}
 	st0, h0, ok := seed(kc.Client)
-	if !ok || !noStreaming() {
+	if !ok || !noStreaming() || !watchList() {
 		return porcupine.Unknown
 	}
 	s, err := etcd3.New(kc, noCompactor{}, codec{}, newObj, nil, nil, Prefix, ResourcePrefix,
@@ -1770,7 +1778,7 @@ func MainCluster(clients int, ops int) porcupine.CheckResult {
 		return porcupine.Unknown
 	}
 	st0, h0, ok := seed(kc.Client)
-	if !ok || !noStreaming() {
+	if !ok || !noStreaming() || !watchList() {
 		return porcupine.Unknown
 	}
 	s, err := etcd3.New(kc, noCompactor{}, codec{}, newObj, nil, nil, Prefix, ResourcePrefix,
@@ -1809,7 +1817,7 @@ func MainPartition(clients int, ops int, sched []cluster3.Step) porcupine.CheckR
 		return porcupine.Unknown
 	}
 	st0, h0, ok := seed(kc.Client)
-	if !ok || !noStreaming() {
+	if !ok || !noStreaming() || !watchList() {
 		return porcupine.Unknown
 	}
 	s, err := etcd3.New(kc, noCompactor{}, codec{}, newObj, nil, nil, Prefix, ResourcePrefix,

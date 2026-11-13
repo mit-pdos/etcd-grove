@@ -14,11 +14,20 @@ for `k` if any, else the default at the emulated version, and of an unregistered
 no check failed (`SetFromMapWithLogger`, `:507-511`); it fails for an unknown key, a feature locked
 to its default, a feature `PreAlpha` at the emulated version, or a dependency check.
 
-The environment assumption (checked over the examples' compiled closure, 2026-11-08: `b5-r1.md`,
-"The no-other-mutator check"): no code of the program other than the `Set(s=false)` calls these
-specs cover changes the gate's set values (`Set` with `true`, `SetFromMap`, `SetEmulationVersion*`,
-`OverrideDefault*`, `Add*` after registration, `DeepCopyAndReset`-and-replace, `featuregatetesting`)
-or reassigns either variable.
+`Set("k=true")` (k8s 7f-5, T5-c, `notes/k8s-7f5-freeze.md`): the same, with `true`; the driver turns
+`WatchList` on so (`watchList`, after `noStreaming`). A `Set` of another feature keeps an earlier
+one's value: `SetFromMapWithLogger` re-applies every pair set before (`enabledRaw`).
+
+**The environment assumption** (restated by k8s 7f-5, T5-c, decided by etcd-grove-81, Q4; checked
+over the examples' compiled closure, 2026-11-08 `b5-r1.md` "The no-other-mutator check" and again
+2026-11-13, `notes/k8s-7f5-freeze.md` §S0.4): **no code of the program changes the gate's set values
+except at most one `Set(s=b)` per feature `s`, made before any `Enabled(s)`**; nothing else changes
+them (`SetFromMap`, `SetEmulationVersion*`, `OverrideDefault*`, `Add*` after registration,
+`DeepCopyAndReset`-and-replace, `featuregatetesting`) or reassigns either variable. The specs below
+rely on it: `featureOn g s` and `featureOff g s` would both be given by a `Set(s=true)` and a later
+`Set(s=false)`, after which `Enabled(s)` answers `false` in Go (`examples/premisefix/watcherctx`,
+scenario `true-then-false`) while the `featureOn` law says `true`; and an `Enabled(s)` before the
+`Set` answers the default at the emulated version, which no fact gives (scenario `enabled-then-set`).
 -/
 module
 
@@ -60,24 +69,50 @@ axiom featureOff_persistent (g : GoInterfaceOk) (s : GoString) :
 
 attribute [instance] featureOff_persistent
 
+/-- **`Set(s=true)` succeeded on the gate `g`** (opaque, persistent; k8s 7f-5, T5-c): `g`'s set value
+of `s` is `true`, for the rest of the run (the file header's assumption: no other `Set(s=…)`). Given
+only by `featureGateOk`'s `Set` triple. -/
+opaque featureOn (g : GoInterfaceOk) (s : GoString) : IProp GF
+
+/-- It is persistent (a fact of the run, once true). -/
+axiom featureOn_persistent (g : GoInterfaceOk) (s : GoString) :
+    Persistent (featureOn (GF := GF) g s)
+
+attribute [instance] featureOn_persistent
+
+/-- What `Set(s ++ "=" ++ b)` gives: `featureOn` for `true`, `featureOff` for `false`. -/
+def featureSet (g : GoInterfaceOk) (s : GoString) (b : Bool) : IProp GF :=
+  if b then featureOn g s else featureOff g s
+
+instance featureSet_persistent (g : GoInterfaceOk) (s : GoString) (b : Bool) :
+    Persistent (featureSet (GF := GF) g s b) := by
+  unfold featureSet; split <;> infer_instance
+
+/-- The string `Set` parses as the pair `(s, b)`. -/
+def setArg (s : GoString) (b : Bool) : GoString :=
+  s ++ (if b then go!"=true" else go!"=false")
+
 /-- **`g` is the process's default feature gate, its features registered** (persistent): the
 `*featureGate` `util/feature`'s `DefaultMutableFeatureGate` and `DefaultFeatureGate` both hold
 (`GoInterface.ok g`), after `k8s.io/apiserver/pkg/features`' `init` registered its features.
-- `Enabled(s)`, for `s ∈ k8sQueriedFeatures`, returns some `bool`, and `false` once
-  `featureOff g s` holds.
-- `Set(s ++ "=false")`, for `s ∈ k8sQueriedFeatures`, returns `nil` and gives `featureOff g s`, or
-  returns a non-nil error (and changes nothing `Enabled` reads).
+- `Enabled(s)`, for `s ∈ k8sQueriedFeatures`, returns some `bool`: `false` once `featureOff g s`
+  holds, `true` once `featureOn g s` holds.
+- `Set(s ++ "=false")` / `Set(s ++ "=true")` (`setArg s b`), for `s ∈ k8sQueriedFeatures`, returns
+  `nil` and gives `featureOff g s` / `featureOn g s` (`featureSet g s b`), or returns a non-nil error
+  (and changes nothing `Enabled` reads).
 Under the file header's environment assumption. (Until sweep repairs 1, B5: `Enabled` answered any
-`bool` for any key, false of an unregistered one, and nothing was said of `Set`.) -/
+`bool` for any key, false of an unregistered one, and nothing was said of `Set`. Until k8s 7f-5:
+only `Set(s=false)` and `featureOff`.) -/
 def featureGateOk (g : GoInterfaceOk) : IProp GF :=
   iprop(
     (□ ∀ (s : GoString) (Φ : val → IProp GF), ⌜s ∈ k8sQueriedFeatures⌝ →
-        ▷ (∀ b : Bool, (featureOff g s -∗ ⌜b = false⌝) -∗ Φ #b) -∗
+        ▷ (∀ b : Bool, ((featureOff g s -∗ ⌜b = false⌝) ∧ (featureOn g s -∗ ⌜b = true⌝)) -∗
+          Φ #b) -∗
         WP (App (Val #(methods g.ty go!"Enabled" g.v)) (Val #s)) {{ Φ }}) ∗
-    (□ ∀ (s : GoString) (Φ : val → IProp GF), ⌜s ∈ k8sQueriedFeatures⌝ →
+    (□ ∀ (s : GoString) (b : Bool) (Φ : val → IProp GF), ⌜s ∈ k8sQueriedFeatures⌝ →
         ▷ (∀ err : GoInterface,
-            (⌜err = GoInterface.nil⌝ ∗ featureOff g s ∨ ⌜err ≠ GoInterface.nil⌝) -∗ Φ #err) -∗
-        WP (App (Val #(methods g.ty go!"Set" g.v)) (Val #(s ++ go!"=false"))) {{ Φ }}))
+            (⌜err = GoInterface.nil⌝ ∗ featureSet g s b ∨ ⌜err ≠ GoInterface.nil⌝) -∗ Φ #err) -∗
+        WP (App (Val #(methods g.ty go!"Set" g.v)) (Val #(setArg s b))) {{ Φ }}))
 
 instance featureGateOk_persistent (g : GoInterfaceOk) :
     Persistent (featureGateOk (GF := GF) g) := by
