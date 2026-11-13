@@ -529,6 +529,18 @@ for _p, _k in [('internal.filepathlite', '$end'), ('path.filepath', 'SkipDir')]:
         finish=['iframe Hown', 'is_pkg_init_finish'],
     )
 
+# (WAL W6, 2026-11-13) the part's `pkg/v3/ioutil` (the page writer): `defaultBufferBytes`, a
+# translated `var` (`128 * 1024`), read-only for good (`PkgInit.lean`)
+LFS_SPECIAL = {}  # the part's packages whose main-tree namesake has another configuration
+LFS_SPECIAL['go_etcd_io.etcd.pkg.v3.ioutil'] = dict(
+    doc='''Its fact (`ioutilInit`, `PkgInit.lean`): `defaultBufferBytes` holds `128 * 1024`, read-only for
+good. Its initializer stores that value and runs the untranslated initializers of its other variables
+(`X.init`, axioms of the translation), which the trust-boundary axiom `opaqueInitsOk` says run without
+panicking.''',
+    alloc_types={'defaultBufferBytes': 'w64'},
+    finish=['ipersist HdefaultBufferBytes'] + FIN_PRE[:-2],
+)
+
 SPECIAL['internal.poll'] = dict(
     doc='''Its fact (`PkgInit.lean`): `ErrNoDeadline` and `ErrDeadlineExceeded`, which `os`'s
 initializer copies, hold some error for good. Its initializer runs its variables' translated
@@ -2914,7 +2926,14 @@ def dag_init():
 # translation imports the main tree's `os`).
 LFS_ROOT = 'LinuxFs'
 LFS_PKGS = ['os', 'syscall', 'io.fs', 'internal.poll', 'internal.syscall.unix', 'golang_org.x.sys.unix',
-            'bufio', 'internal.filepathlite', 'path.filepath']
+            'bufio', 'internal.filepathlite', 'path.filepath',
+            # (WAL W6, 2026-11-13) the WAL's page writer, and `verify` (main tree's translation, which
+            # it imports: its main instance is in the backend's `Base`, over the main `os`, so the part
+            # has its own, `LFS_MAIN_CODE`)
+            'go_etcd_io.etcd.client.pkg.v3.verify', 'go_etcd_io.etcd.pkg.v3.ioutil']
+# Packages of `LFS_PKGS` translated in the main tree only (no `os` below them): the part's `Init.lean`
+# is generated from the main translation, over the part's instance.
+LFS_MAIN_CODE = {'go_etcd_io.etcd.client.pkg.v3.verify'}
 
 
 def lfs_prefix(txt):
@@ -2934,11 +2953,14 @@ def lfs_inits(ext_txt):
     outs = []
     extra = []  # (WAL leaf specs, 2026-11-13) Perennial packages only the part's import
     try:
+        main_inv = inv
         inv = inventory(f'{LFS_ROOT}/Code')
+        for q in LFS_MAIN_CODE:
+            inv.setdefault(q, main_inv[q])
         inst = instances(f'{LFS_ROOT}/Proof/')
         for p in LFS_PKGS:
-            if os.path.exists(f'{LFS_ROOT}/Code/{dirof(p)}.lean'):
-                path, txt = gen(p, SPECIAL.get(p))
+            if os.path.exists(f'{LFS_ROOT}/Code/{dirof(p)}.lean') or p in LFS_MAIN_CODE:
+                path, txt = gen(p, LFS_SPECIAL.get(p, SPECIAL.get(p)))
                 outs.append((f'{LFS_ROOT}/{path}', lfs_prefix(txt)))
                 for x in inv[p]['imports']:
                     if external(x) and f'| {ext_ctor(x)} :' not in ext_txt and x not in [q for q, _ in extra]:
