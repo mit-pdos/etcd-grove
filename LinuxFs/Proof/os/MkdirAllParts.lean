@@ -86,12 +86,126 @@ theorem os.parentModel_child (d b : GoString) (hb : NameOk b) : os.parentModel (
   rw [ht, hlen, os.backIdx_child d b hs b.length (Nat.le_refl _)]
   simp [child]
 
+/-- Two fractions have a common part. -/
+theorem os.qp_common (a b : Qp) : ∃ e a' b' : Qp, e + a' = a ∧ e + b' = b := by
+  have ha := a.2
+  have hb := b.2
+  let e : Qp := (if a.val ≤ b.val then a else b).half
+  have hea : e < a := by
+    simp only [Qp.lt_iff, e, Qp.val_half]
+    by_cases h : a.val ≤ b.val <;> simp only [h, ↓reduceIte] <;> grind
+  have heb : e < b := by
+    simp only [Qp.lt_iff, e, Qp.val_half]
+    by_cases h : a.val ≤ b.val <;> simp only [h, ↓reduceIte] <;> grind
+  obtain ⟨a', ha'⟩ := Qp.lt_iff_exists_add.mp hea
+  obtain ⟨b', hb'⟩ := Qp.lt_iff_exists_add.mp heb
+  exact ⟨e, a', b', ha', hb'⟩
+
+/-- A root of well-formed roots is not strictly below a root. -/
+theorem os.not_treeName_root {R : Roots} (hR : RootsOk R) {r : GoString} {j0 : Ino} (hm : (r, j0) ∈ R) :
+    ¬ RootsTreeName R r := by
+  rintro ⟨r', hr', cs, hne, -, hp⟩
+  have hu : IsUnder r'.1 r := by
+    rcases cs with _ | ⟨c, cs⟩
+    · exact absurd rfl hne
+    · right; exact ⟨c ++ cs.flatMap (slashB :: ·), by rw [hp]; simp [joinPath]⟩
+  by_cases he : r'.1 = r
+  · have hl := congrArg List.length hp
+    rw [he] at hl
+    rcases cs with _ | ⟨c, cs⟩
+    · exact hne rfl
+    · simp [joinPath] at hl
+  · exact (hR.2.2 r' hr').2 (r, j0) hm he hu
+
+/-- A path of a root and components, at least one, is strictly below the root. -/
+theorem os.treeName_snoc {R : Roots} {r : GoString} {j0 : Ino} (hm : (r, j0) ∈ R)
+    {cs : List GoString} {c : GoString} (hcs : ∀ x ∈ cs ++ [c], NameOk x) :
+    RootsTreeName R (joinPath r (cs ++ [c])) :=
+  ⟨(r, j0), hm, cs ++ [c], by simp, hcs, rfl⟩
+
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [os.Assumptions]
+
+/-- A spine ends with its last component's claim. -/
+theorem os.osSpine_unsnoc (cs : List GoString) (c : GoString) (j0 : Ino) (dq : DFrac) (J : Ino) :
+    osSpine (GF := GF) j0 (cs ++ [c]) dq J ⊢ ∃ (j : Ino) (h : NamesH), osSpine j0 cs dq j ∗
+      osNames j (.only [c]) dq h ∗ ⌜h.cur !! c = some (.dir J)⌝ := by
+  induction cs generalizing j0 with
+  | nil =>
+    rw [List.nil_append, osSpine_cons]
+    iintro ⟨%h, %J', Hn, %hJ, Hs⟩
+    isimp only [osSpine_nil] at Hs
+    icases Hs with %he
+    subst he
+    iexists j0, h
+    rw [osSpine_nil]
+    iframe
+    isplitl [] <;> ipureintro
+    · rfl
+    · exact hJ
+  | cons x cs ih =>
+    rw [List.cons_append, osSpine_cons]
+    iintro ⟨%h, %J', Hn, %hJ, Hs⟩
+    icases ih J' $$ Hs with ⟨%j, %h', Hs, Hn', %hc⟩
+    iexists j, h'
+    rw [osSpine_cons]
+    iframe
+    isplitl [] <;> ipureintro
+    · exact hJ
+    · exact hc
+
+/-- The path of a root and components is held by the spine of the components. -/
+theorem os.osPathS_joinPath (R : Roots) (r : GoString) (j0 : Ino) (cs : List GoString) (dq : DFrac)
+    (J : Ino) (hR : RootsOk R) (hm : (r, j0) ∈ R) (hcs : ∀ c ∈ cs, NameOk c) :
+    osPathS (GF := GF) R (joinPath r cs) dq J ⊣⊢ osSpine j0 cs dq J := by
+  unfold osPathS
+  constructor
+  · iintro ⟨%r', %j0', %cs', %hp, Hs⟩
+    obtain ⟨-, hm', hcs', he⟩ := hp
+    obtain ⟨hrj, rfl⟩ := root_split_unique hR hm hm' hcs hcs' he
+    simp only [Prod.mk.injEq] at hrj
+    obtain ⟨rfl, rfl⟩ := hrj
+    iexact Hs
+  · iintro Hs
+    iexists r, j0, cs
+    iframe
+    ipureintro; exact ⟨hR, hm, hcs, rfl⟩
+
+/-- `os.Mkdir(d/b)` of a name holding something (a fraction of a claim on names containing `b`), with
+a fraction of the call permission: an error, no effect. -/
+theorem os.Mkdir.wp_takenS (d b : GoString) (perm : w32) (R : Roots) (j : Ino) (N : NameSet)
+    (dq dqn : DFrac) (h : NamesH) (qc : Qp) (hb : NameOk b) (hN : N.Mem b)
+    (hi : (h.cur !! b).isSome) :
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm qc }}
+      (App (App (Val (@! os.Mkdir)) (Val #(child d b))) (Val #perm))
+    {{ (err : GoInterface), RET #err; osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm qc ∗
+        ⌜err ≠ interface.nil⌝ }} := by
+  wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
+  imod osLogLb_0 with #Hlb
+  iloeb as IH generalizing Hperm Hp Hn HΦ
+  wp_apply +noauto wp_osCallBeginS R qc 0 CoPset.subseteq_top CoPset.subseteq_top
+    $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
+  iclear Hls
+  wp_apply +noauto wp_osMkdirS_some R d b j N dq dqn h t s0 qc hb hN hi
+    CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi Hp Hn Hk as %e %he Hperm Hp Hn
+  wp_auto
+  by_cases he4 : e = W64 4
+  · rw [decide_eq_true he4]
+    wp_auto
+    iapply IH $$ Hperm Hp Hn HΦ
+  rw [decide_eq_false (show e ≠ W64 4 from he4)]
+  wp_auto
+  rw [decide_eq_false (show e ≠ W64 0 from he)]
+  wp_auto
+  unfold os.model.pathError
+  wp_apply wp_errno
+  iapply HΦ
+  iframe
+  ipureintro; intro hc; cases hc
 
 /-- `os.IsPathSeparator(c)`: whether `c` is `'/'`. -/
 theorem os.wp_IsPathSeparator (c : w8) :
