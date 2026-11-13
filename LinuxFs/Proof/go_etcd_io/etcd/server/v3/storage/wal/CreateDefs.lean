@@ -42,6 +42,14 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Fs WalEnc
 the WAL invariant (an update commits inside an `os` call's step, the WAL invariant open). -/
 def walAuMask : CoPset := osAuMask \ ↑walN
 
+/-- The WAL's invariant is in the `os` updates' mask. -/
+theorem walN_sub_au : (↑walN : CoPset) ⊆ osAuMask := by
+  have h1 : (↑walN : CoPset) ## ↑osN := ndot_ne_disjoint nroot (by decide)
+  have h2 : (↑walN : CoPset) ## ↑osShN := ndot_ne_disjoint nroot (by decide)
+  intro p hp
+  exact LawfulSet.mem_diff.2
+    ⟨LawfulSet.mem_diff.2 ⟨CoPset.mem_full, fun hn => h1 p ⟨hp, hn⟩⟩, fun hn => h2 p ⟨hp, hn⟩⟩
+
 /-- **`J'` is a directory under `J` through the claims `cl`**: each step a name of a directory whose
 whole claim (`except []`) is in `cl` holding the next directory. -/
 inductive ClReach (cl : List Claim) : Ino → Ino → Prop
