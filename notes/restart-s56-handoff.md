@@ -48,6 +48,30 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
   and the risks R1-R5 (§7).
 - Decisions go in the worktree's `questions.md` (untracked).
 
+## Route (A) for finding 1: not started, STOPPED (2026-11-13, the CP2-fix agent)
+
+81 approved route (A) (and the forms; the obsolete generator is deleted). Before any edit, reading
+the sites showed (A) is not the small change §11.1 estimated:
+1. `applyAll` raises the counter to Go's new applied index `ai'` after **every** batch
+   (`EtcdServer__applyAll.lean:172`, `snapRm_raise`, for a possible `snapshot`'s `Release`), not only
+   when a disk snapshot is taken: in the ghost state `c` tracks the applied index, so `c - 1 ≤ WAL
+   base` is false. (A) must first move the raise into `snapshot.spec` (the counter's authority in
+   and out, raised after `SaveSnap`), and through `snapshotIfNeededAndCompactRaftLog.spec`.
+2. The stop cannot compare: `Close` consumes `walRecs` (the trusted `isWalStorage` law), inside the
+   raft loop's `onStop` (`raftNode__onStop.lean:73`), and `rnWalClosed` is the opaque `walFiles`. The
+   apply thread's `walBaseLb` would have to be handed to `onStop` through `raftNode.stop`'s
+   protocol (`rnWalTokA`/`rnStopClaim`/`rnDurInv`) to get `⌜k ≤ σ.b⌝` into the stop's escrow.
+Proposed instead, route (C): index `srvSnapOwn`'s bound by the apply thread's **ghost** index `g`
+(`c ≤ g + 1`) in place of Go's `ai`. Every use holds: `applySnapshot` already has the snapshot strictly
+above `g` (`applyAll.specSnapM`'s `uint.Z g < uint.Z sv.Index`, `hgi`), so `snapDir_take`'s `c ≤ j`
+follows; `applyAll`'s raise to `max c ai'` stays `≤ g' + 1` (`ai' ≤ g'`); the stop's image already
+uses the ghost index (`c ≤ i + 1`, `i` the ghost index); at a restart `g₀ = |A| = i`, so the image's
+bound is exactly what `start` needs: B2 provable with the image unchanged, no WAL link, no raft-loop
+change, nothing trusted. Cost: `srvSnapOwn`'s index argument moves from Go's `ai` to `g` at its uses
+(SnapRO, applyAll, ApplyAllSnap, InvRunRes's `applyRes`, `srvRestartAtR`, `srvBuiltRestartR`'s row at
+`ai₀ + |γn.a0|`, start, run, RunOn, StopShutdown). **Waiting for 81's decision: (C) or (A) with the
+two extensions above.**
+
 ## CP2 review fixes (2026-11-13, the CP2-fix agent): next agent starts here
 
 81's decisions on the CP2 review (journal `wf_1e0c6340-ec5`); texts old → new in
