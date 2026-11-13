@@ -66,7 +66,7 @@ now asserts the safe outcome (the restart fails or reads only written records) a
 fix (the restart accepts `HardState{term 686, vote 2, commit 3}` with entry 4 lost) and passes after
 (each instance: "unexpected block type 0"); `TestFilePipelineTruncatesStaleTmp` checks that a
 reused `0.tmp` comes back all zeros. `go test ./server/storage/wal/... ./client/pkg/fileutil/...`
-passes. Not pushed (pending the user).
+passes (`-timeout 40m`: `TestWALByteMixStaleTmp` takes 624s and now sees no stale remnant under the Save in 400 cases), but for `TestWALByteMix`, which by design reports the synthetic stale-old-byte mixes (808 and 50 wrong, as before the fix; 0 over zero old bytes) and runs `-short`. Not pushed (pending the user).
 
 Upstream main (`1b969e26a2c6`, unchanged 2026-11-13) opens `N.tmp` the same way, but its other source
 of stale bytes under a fresh frame, `ReadAll`'s unsynced `ZeroToEnd` (etcd-io/etcd#22709), would
