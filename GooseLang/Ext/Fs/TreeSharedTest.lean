@@ -58,7 +58,7 @@ theorem region_create (R : Roots) (d b : GoString) (j : Ino) (q : Qp) (h : Names
       WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#(child d b)) (#flCreat)))))
         @ s; E {{ createPost (L := L) j b h s0 c }} := by
   iintro #Hinv #Hsi Hp Hn Hk
-  iapply wp_osOpenCreateS R d b j (DFrac.own q) h k s0 c hb (by rw [hn]; intro J hJ; cases hJ) hs
+  iapply wp_osOpenCreateS R d b j (DFrac.own q) h k s0 c flCreat flCreat_ok (by decide) (by decide) hb (by rw [hn]; intro J hJ; cases hJ) hs
     hE hE' _ $$ Hinv Hsi Hp Hn Hk
   iintro %fd %e Hq - Hpost
   unfold createPost

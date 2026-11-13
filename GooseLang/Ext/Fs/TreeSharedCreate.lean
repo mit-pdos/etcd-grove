@@ -132,31 +132,31 @@ theorem not_endedT_snoc {st st' : OsState} {k : Nat} (h : EndedT st st' k) {e : 
     (hl : st'.fs.metaLog = st.fs.metaLog ++ [e]) : False := by
   have := congrArg List.length (h.log.symm.trans hl); simp at this
 
-/-- **The outcomes of `open(O_RDWR | O_CREAT)` of `d/b`** (`d` the directory `j`, `b` no
+/-- **The outcomes of `open(2)` with `O_CREAT`, without `O_TRUNC`, of `d/b`** (`d` the directory `j`, `b` no
 directory): a failure with no effect; the file there opened; a new file created, with or
 without its fd. -/
 theorem openCreateStep_cases [GooseExts] [GoGlobalContext] [go.BasicIntoValInj] {st : OsState}
-    {d b : GoString} {j : Ino} {k s0 : Nat} {e' : Expr} {st' : OsState} (hw : FsTreeWf st)
+    {d b : GoString} {j : Ino} {k s0 : Nat} {fl : w64} {e' : Expr} {st' : OsState}
+    (hcr : fl.toNat / O_CREAT % 2 = 1) (htr : fl.toNat / O_TRUNC % 2 = 0) (hw : FsTreeWf st)
     (hcall : st.proc.calls !! k = some s0) (hp : st.lookup d = some (.dir j)) (hb : NameOk b)
     (hnd : ∀ J, st.tree.entry j b ≠ some (.dir J))
-    (Hst : IsFsStep "Open" (PairV (osTokV k) (PairV (#(child d b)) (#flCreat))) st e' st') :
+    (Hst : IsFsStep "Open" (PairV (osTokV k) (PairV (#(child d b)) (#fl))) st e' st') :
     (∃ e : w64, e ≠ 0 ∧ e' = osRes (#(-1 : w64)) e ∧ st' = st.metaEnd k) ∨
     (∃ i fd, st.tree.entry j b = some (.file i) ∧ FdFree st fd ∧ e' = osRes (#fd) 0 ∧
       st' = (st.metaEnd k).setProc { (st.metaEnd k).proc with
-        fds := <[fd := ⟨i, true, true⟩]> (st.metaEnd k).proc.fds }) ∨
+        fds := <[fd := openFd i fl]> (st.metaEnd k).proc.fds }) ∨
     (st.tree.entry j b = none ∧ ∃ e : w64, e ≠ 0 ∧ e' = osRes (#(-1 : w64)) e ∧
       st' = createdSt st k j b s0) ∨
     (st.tree.entry j b = none ∧ ∃ fd, FdFree st fd ∧ e' = osRes (#fd) 0 ∧
       st' = (createdSt st k j b s0).setProc { (createdSt st k j b s0).proc with
-        fds := <[fd := ⟨st.fs.nextIno, true, true⟩]> (createdSt st k j b s0).proc.fds }) := by
+        fds := <[fd := openFd st.fs.nextIno fl]> (createdSt st k j b s0).proc.fds }) := by
   simp only [IsFsStep] at Hst
   obtain ⟨p', fl', k', s', hv, -, -, hk', hres⟩ := Hst
   obtain ⟨rfl, rfl, rfl⟩ := tokPathFl_inj hv
   rw [hcall] at hk'; cases hk'
-  have hcr : decide ((flCreat.toNat / O_CREAT) % 2 = 1) = true := by decide
-  have htr : decide ((flCreat.toNat / O_TRUNC) % 2 = 1) = false := by decide
-  have hacc : flCreat.toNat % 4 = 2 := by decide
-  simp only [hcr, htr, hacc] at hres
+  have hcr' : decide ((fl.toNat / O_CREAT) % 2 = 1) = true := by simp [hcr]
+  have htr' : decide ((fl.toNat / O_TRUNC) % 2 = 1) = false := by simp [htr]
+  simp only [hcr', htr'] at hres
   obtain ⟨-, hres⟩ := hres
   have hl : (st.metaEnd k).lookup (child d b) = st.tree.entry j b := lookup_child hw.roots hp hb
   have hpar : (st.metaEnd k).parent (child d b) = some (j, b) := parent_child hp hb
@@ -237,33 +237,34 @@ theorem osWorld_created {st : OsState} {Γb Γm Γf Γt} {h : GMap Loc (NonAtomi
     osCoh_filesSame hsA (osCoh_create hwf0 hcoh0 hfn0)⟩
 
 /-- What an `open(O_CREAT)` gives of a file `i`: a failure, or an fd. -/
-def ocFd (fd e : w64) (i : Ino) : IProp GF :=
-  iprop(⌜e ≠ 0 ∧ fd = -1⌝ ∨ ⌜e = 0 ∧ 0 ≤ fd.toInt⌝ ∗ osFd (L := L) fd (DFrac.own 1) ⟨i, true, true⟩)
+def ocFd (fl fd e : w64) (i : Ino) : IProp GF :=
+  iprop(⌜e ≠ 0 ∧ fd = -1⌝ ∨ ⌜e = 0 ∧ 0 ≤ fd.toInt⌝ ∗ osFd (L := L) fd (DFrac.own 1) (openFd i fl))
 
 /-- What an `open(O_CREAT)` of `b` (the claim's entries `cur`) gives of the files' world: a created
 file `n` (logged), its `OsMeta` and perhaps an fd; or (not logged) the file there and perhaps an fd,
 or a failure. -/
-def ocGift (cur : Ents) (b : GoString) (n : Nat) (w : val) (lg : Bool) : IProp GF :=
+def ocGift (fl : w64) (cur : Ents) (b : GoString) (n : Nat) (w : val) (lg : Bool) : IProp GF :=
   iprop(∃ fd e : w64, ⌜w = PairV (#fd) (#e)⌝ ∗
-    ((⌜lg = true⌝ ∗ osMeta (L := L) n (DFrac.own 1) newMeta ∗ ocFd (L := L) fd e n) ∨
-     (⌜lg = false⌝ ∗ ((∃ i, ⌜cur !! b = some (.file i)⌝ ∗ ocFd (L := L) fd e i) ∨
+    ((⌜lg = true⌝ ∗ osMeta (L := L) n (DFrac.own 1) newMeta ∗ ocFd (L := L) fl fd e n) ∨
+     (⌜lg = false⌝ ∗ ((∃ i, ⌜cur !! b = some (.file i)⌝ ∗ ocFd (L := L) fl fd e i) ∨
        ⌜e ≠ 0 ∧ fd = -1⌝))))
 
 theorem wp_osOpenCreateS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : NamesH)
-    (k s0 : Nat) (q : Qp) (hb : NameOk b) (hnd : ∀ J, h.cur !! b ≠ some (.dir J))
+    (k s0 : Nat) (q : Qp) (fl : w64) (hfl : OpenFlagsOk fl.toNat) (hcr : fl.toNat / O_CREAT % 2 = 1)
+    (htr : fl.toNat / O_TRUNC % 2 = 0) (hb : NameOk b) (hnd : ∀ J, h.cur !! b ≠ some (.dir J))
     (hs : h.next ≤ s0) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗ osCallS (L := L) k s0 q -∗
       (∀ fd : w64, ∀ e : w64, osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
         ((∃ i, ⌜h.cur !! b = some (.file i)⌝ ∗ osNames (L := L) j (.only [b]) (DFrac.own 1) h ∗
-            (⌜e ≠ 0 ∧ fd = -1⌝ ∨ ⌜e = 0 ∧ 0 ≤ fd.toInt⌝ ∗ osFd (L := L) fd (DFrac.own 1) ⟨i, true, true⟩)) ∨
+            (⌜e ≠ 0 ∧ fd = -1⌝ ∨ ⌜e = 0 ∧ 0 ≤ fd.toInt⌝ ∗ osFd (L := L) fd (DFrac.own 1) (openFd i fl))) ∨
          (⌜h.cur !! b = none⌝ ∗ ∃ x i, osLogged (L := L) x (⟨.create j b i, s0⟩ : LogEntry) ∗
             osNames (L := L) j (.only [b]) (DFrac.own 1) (h.log x (⟨.create j b i, s0⟩ : LogEntry) (<[b := .file i]> h.cur)) ∗
             osMeta (L := L) i (DFrac.own 1) newMeta ∗
-            (⌜e ≠ 0 ∧ fd = -1⌝ ∨ ⌜e = 0 ∧ 0 ≤ fd.toInt⌝ ∗ osFd (L := L) fd (DFrac.own 1) ⟨i, true, true⟩)) ∨
+            (⌜e ≠ 0 ∧ fd = -1⌝ ∨ ⌜e = 0 ∧ 0 ≤ fd.toInt⌝ ∗ osFd (L := L) fd (DFrac.own 1) (openFd i fl))) ∨
          (⌜e ≠ 0 ∧ fd = -1⌝ ∗ osNames (L := L) j (.only [b]) (DFrac.own 1) h)) -∗
         Φ (PairV (#fd) (#e))) -∗
-      WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#(child d b)) (#flCreat)))))
+      WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#(child d b)) (#fl)))))
         @ s; E {{ Φ }} := by
   have hbN : (NameSet.only [b]).Mem b := by simp [NameSet.Mem]
   have hbN' : ∀ b', (NameSet.only [b]).Mem b' → b' = b := by simp [NameSet.Mem]
@@ -279,21 +280,21 @@ theorem wp_osOpenCreateS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h
   have hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
       (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) →
       st.lookup d = some (.dir j) → ClaimsAt st cl →
-      ∃ e' st', IsFsStep "Open" (PairV (osTokV k) (PairV (#(child d b)) (#flCreat))) st e' st' ∧
+      ∃ e' st', IsFsStep "Open" (PairV (osTokV k) (PairV (#(child d b)) (#fl))) st e' st' ∧
         FilesSame st st' := by
     intro st _ _ hcall _ hp _
-    have htr : decide ((flCreat.toNat / O_TRUNC) % 2 = 1) = false := by decide
-    exact ⟨_, st.metaEnd k, ⟨child d b, flCreat, k, s0, rfl, .inr (treeName_child hp hb), flCreat_ok,
-      hcall, ⟨fun h => (Bool.false_ne_true (htr.symm.trans h)).elim,
+    have htr' : decide ((fl.toNat / O_TRUNC) % 2 = 1) = false := by simp [htr]
+    exact ⟨_, st.metaEnd k, ⟨child d b, fl, k, s0, rfl, .inr (treeName_child hp hb), hfl,
+      hcall, ⟨fun h => (Bool.false_ne_true (htr'.symm.trans h)).elim,
         .inr ⟨1, by decide, rfl, .inl rfl⟩⟩⟩, filesSame_metaEnd st k⟩
   have hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
       (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) →
       st.lookup d = some (.dir j) → ClaimsAt st cl →
-      IsFsStep "Open" (PairV (osTokV k) (PairV (#(child d b)) (#flCreat))) st e' st' →
+      IsFsStep "Open" (PairV (osTokV k) (PairV (#(child d b)) (#fl))) st e' st' →
       ∃ w, e' = Val w ∧ FsTreeWf st' ∧
         ((EndedT st st' k ∧ W w false) ∨ (LoggedT st st' k s0 (oF st.fs.nextIno) ∧ W w true)) := by
     intro st e' st' hw _ hcall _ hp hat Hst
-    rcases openCreateStep_cases hw hcall hp hb (hndE st hat) Hst with
+    rcases openCreateStep_cases hcr htr hw hcall hp hb (hndE st hat) Hst with
       ⟨e, -, rfl, rfl⟩ | ⟨i, fd, -, hfree, rfl, rfl⟩ | ⟨hen, e, -, rfl, rfl⟩ | ⟨hen, fd, hfree, rfl, rfl⟩
     · exact ⟨_, rfl, fsTreeWf_metaEnd hw k,
         .inl ⟨endedT_metaEnd st k, _, _, rfl, fun h => by cases h⟩⟩
@@ -308,14 +309,14 @@ theorem wp_osOpenCreateS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h
       st.fs.roots = R → st.proc.calls !! k = some s0 →
       (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) →
       st.lookup d = some (.dir j) → ClaimsAt st cl →
-      IsFsStep "Open" (PairV (osTokV k) (PairV (#(child d b)) (#flCreat))) st e' st' →
+      IsFsStep "Open" (PairV (osTokV k) (PairV (#(child d b)) (#fl))) st e' st' →
       e' = Val w → W w lg → (lg = false → EndedT st st' k) →
       (lg = true → LoggedT st st' k s0 (oF st.fs.nextIno)) →
       HeapRendered st st' hh hh' → MapsFresh st st' hh →
       ⊢ osWorld (L := L) st Γb Γm Γf Γt hh ==∗ ∃ Γb' Γm' Γf' Γt',
-        osWorld (L := L) st' Γb' Γm' Γf' Γt' hh' ∗ ocGift (L := L) h.cur b st.fs.nextIno w lg := by
+        osWorld (L := L) st' Γb' Γm' Γf' Γt' hh' ∗ ocGift (L := L) fl h.cur b st.fs.nextIno w lg := by
     intro st e' st' hh hh' Γb Γm Γf Γt w lg hw _ hcall _ hp hat Hst hew _ hend hlog Hr Hfr
-    rcases openCreateStep_cases hw hcall hp hb (hndE st hat) Hst with
+    rcases openCreateStep_cases hcr htr hw hcall hp hb (hndE st hat) Hst with
       ⟨e, he, rfl, rfl⟩ | ⟨i, fd, hen, hfree, rfl, rfl⟩ | ⟨hen, e, he, rfl, rfl⟩ | ⟨hen, fd, hfree, rfl, rfl⟩
     · cases lg with
       | true => exact absurd (hlog rfl) (fun h' => not_loggedT_same h' rfl)
@@ -339,7 +340,7 @@ theorem wp_osOpenCreateS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h
       | false =>
         injection hew with hew; subst hew
         iintro Hw
-        imod osWorld_addFd (filesSame_metaEnd st k) (d := ⟨i, true, true⟩) hfree.2.1
+        imod osWorld_addFd (filesSame_metaEnd st k) (d := openFd i fl) hfree.2.1
           (file_of_entry hw hen) Hr Hfr $$ Hw with ⟨Hw, Hfd⟩
         imodintro
         iexists Γb, Γm, _, Γt
@@ -388,7 +389,7 @@ theorem wp_osOpenCreateS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h
         iintro Hw
         imod osWorld_created hw k j b s0 $$ Hw with ⟨Hw, Hm⟩
         imod osWorld_addFd (st := createdSt st k j b s0) (filesSame_refl _) (fd := fd)
-          (d := ⟨st.fs.nextIno, true, true⟩) hfree.2.1 ⟨_, file_setFile_eq _ _ _⟩ Hr Hfr
+          (d := openFd st.fs.nextIno fl) hfree.2.1 ⟨_, file_setFile_eq _ _ _⟩ Hr Hfr
           $$ Hw with ⟨Hw, Hfd⟩
         imodintro
         iexists Γb, _, _, Γt
@@ -410,7 +411,7 @@ theorem wp_osOpenCreateS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h
         · iexact Hfd
   have htree : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
       st.lookup d = some (.dir j) → ClaimsAt st cl →
-      IsFsStep "Open" (PairV (osTokV k) (PairV (#(child d b)) (#flCreat))) st e' st' →
+      IsFsStep "Open" (PairV (osTokV k) (PairV (#(child d b)) (#fl))) st e' st' →
       LoggedT st st' k s0 (oF st.fs.nextIno) →
       let o := oF st.fs.nextIno
       (∀ x, x ∈ o.apply st.tree → x ∈ st.tree ∨ x ∈ o.newDirs) ∧
@@ -420,7 +421,7 @@ theorem wp_osOpenCreateS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h
       (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = curF st.fs.nextIno c) := by
     intro st e' st' hw _ hcall hp hat Hst hlf
     have hen : st.tree.entry j b = none := by
-      rcases openCreateStep_cases hw hcall hp hb (hndE st hat) Hst with
+      rcases openCreateStep_cases hcr htr hw hcall hp hb (hndE st hat) Hst with
         ⟨_e, _he, _he', hst'⟩ | ⟨_i, _fd, _h1, _h2, _h3, hst'⟩ | ⟨hen, -⟩ | ⟨hen, -⟩
       · exact absurd hlf (fun h' => not_loggedT_same h' (by rw [hst']; rfl))
       · exact absurd hlf (fun h' => not_loggedT_same h' (by rw [hst']; rfl))
@@ -454,7 +455,7 @@ theorem wp_osOpenCreateS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h
         exact (hat.out _ (List.mem_singleton_self _) b' hb').symm
   iintro #Hinv #Hsi Hp Hn Hk HΦ
   iapply wp_logStepSW "Open" _ (by simp [val.isPanic]) R k s0 q oF cl curF
-    (osPathS (L := L) R d dq j) (fun st => st.lookup d = some (.dir j)) W (ocGift (L := L) h.cur b)
+    (osPathS (L := L) R d dq j) (fun st => st.lookup d = some (.dir j)) W (ocGift (L := L) fl h.cur b)
     (by simp [cl]) (fun _ c hc => by
       rw [List.mem_singleton] at hc; subst hc
       exact ⟨b, hbN, .inl (by simp [oF, MetaOp.slots])⟩)
@@ -508,6 +509,141 @@ theorem wp_osOpenCreateS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h
       · iexact Hm
       unfold ocFd; iexact HG
     · cases hlg
+
+/-- **`open(2)` of `d/b`, a name holding the file `i`, without `O_TRUNC`** (shared mode), with a
+fraction of a claim on names containing `b`: no entry; on success a fresh fd on `i`. -/
+theorem wp_osOpenFileS' (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (dq dqn : DFrac)
+    (h : NamesH) (k s0 : Nat) (q : Qp) (fl : w64) (hfl : OpenFlagsOk fl.toNat)
+    (htr : fl.toNat / O_TRUNC % 2 = 0) (hb : NameOk b) (hN : N.Mem b)
+    (hi : h.cur !! b = some (.file i)) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
+      osNames (L := L) j N dqn h -∗ osCallS (L := L) k s0 q -∗
+      (∀ fd : w64, ∀ e : w64, ⌜(e = 0 ∧ 0 ≤ fd.toInt) ∨ (e ≠ 0 ∧ fd = -1)⌝ -∗
+        osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗ osNames (L := L) j N dqn h -∗
+        (if e = 0 then osFd (L := L) fd (DFrac.own 1) (openFd i fl) else emp) -∗
+        Φ (PairV (#fd) (#e))) -∗
+      WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#(child d b)) (#fl)))))
+        @ s; E {{ Φ }} := by
+  iintro #Hinv #Hsi Hp Hn Hk HΦ
+  iapply wp_fs_stepM "Open" _ Φ (by simp [val.isPanic]) hE $$ Hinv
+  iintro %st %Γb %Γm %Γf %Γt %h0 Hw Ht
+  unfold treeCtx
+  icases Ht with ⟨Hm, Hcm⟩
+  icases Hm with (Hm | Hm)
+  · iexfalso; iapply legacy_callS_excl st k s0 q $$ Hk Hm
+  unfold treeShared
+  icases Hm with ⟨%V0, %s1, %Γdf, %Γc, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr⟩
+  obtain ⟨hw, hc⟩ := hns
+  unfold osSharedInv
+  imod inv_acc (osShN_sub hE') $$ Hsi with ⟨Hi, Hclose⟩
+  icases Hi with >Hi
+  icases Hi with ⟨%Vs, %Γn, Hs, HAn, %hcoh, Halen, HAlog⟩
+  icases gAuth_lookup _ _ _ _ _ _ $$ Has Hs with %hVs
+  simp only [histMap, GMap.lookup_singleton_eq, Option.some.injEq, Prod.mk.injEq] at hVs
+  obtain ⟨hR, rfl⟩ := hVs
+  icases osPathS_lookup hR hcoh.2 d dq j $$ HAn Hp with %hl
+  icases osNames_entry hcoh.2 j N dqn h $$ HAn Hn with %hent
+  imod Hclose $$ [Hs HAn Halen HAlog] with -
+  · inext; iexists _, Γn; iframe; ipureintro; exact hcoh
+  have hen : st.tree.entry j b = some (.file i) := by rw [hent b hN]; exact hi
+  have hl' : st.lookup (child d b) = some (.file i) := by rw [lookup_child hw.roots hl hb]; exact hen
+  have hl0 : (st.metaEnd k).lookup (child d b) = some (.file i) := hl'
+  unfold osCallS
+  icases gAuth_lookup _ _ _ _ _ _ $$ Hacs Hk with %hk
+  have hcall : st.proc.calls !! k = some s0 := by
+    have := hc.calls k; rw [hk] at this; exact this.symm
+  unfold osWorld
+  icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
+  icases cellsRes_lookup h0 _ $$ Hσ Hcells with %Hag
+  have htr' : decide ((fl.toNat / O_TRUNC) % 2 = 1) = false := by simp [htr]
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ E \ ↑osN from Std.LawfulSet.empty_subset)
+  iintro Hclose2
+  isplitr
+  · ipureintro
+    obtain ⟨hfr, hr⟩ := step_filesSame (h := h0) Hwc.1 (filesSame_metaEnd st k) Hag
+    exact ⟨_, h0, _, ⟨child d b, fl, k, s0, rfl, treePath_of_lookup hl', hfl, hcall,
+      ⟨fun h => absurd h (by simp [htr']), .inr ⟨1, by decide, rfl, .inl rfl⟩⟩⟩, hfr, hr⟩
+  inext
+  iintro %e' %h' %st' %Hst
+  imod Hclose2
+  obtain ⟨Hst, Hfr, Hr⟩ := Hst
+  simp only [IsFsStep] at Hst
+  obtain ⟨p', fl', k', s', hv, -, -, hk', hres⟩ := Hst
+  obtain ⟨rfl, rfl, rfl⟩ := tokPathFl_inj hv
+  rw [hcall] at hk'; cases hk'
+  simp only [htr', Bool.false_eq_true, ↓reduceIte] at hres
+  unfold callResS
+  icases (BigSepM.bigSepM_delete (M := GMap Nat)
+    (Φ := fun (_t : Nat) (x : Nat × Qp) =>
+      gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm () (DFrac.own x.2) ()) hk).1 $$ Hcr
+    with ⟨Hq, Hcr⟩
+  imod gAuth_delete _ _ _ _ _ $$ Hacs Hk with Hacs
+  ihave Hw : osWorld (L := L) st Γb Γm Γf Γt h0 $$ [HAb HAm HAf HAt Htok Hcells Hσ]
+  · unfold osWorld; iframe; ipureintro; exact Hwc
+  obtain ⟨-, hres⟩ := hres
+  rcases hres with ⟨st1, tgt, fd, heff, hfree, hst, rfl⟩ | ⟨e, he, rfl, hst⟩
+  · unfold OpenEffect at heff
+    rw [hl0] at heff
+    obtain ⟨⟨f', -, hst1⟩, rfl⟩ := heff
+    simp only [htr', Bool.false_eq_true, ↓reduceIte] at hst1
+    subst st1
+    obtain ⟨hfd0, hfdn, hdfn⟩ := hfree
+    have hst'' : st' = (st.metaEnd k).setProc { (st.metaEnd k).proc with
+        fds := <[fd := openFd i fl]> (st.metaEnd k).proc.fds } := hst
+    subst hst''
+    imod osWorld_addFd (filesSame_metaEnd st k) (d := openFd i fl) hfdn (file_of_entry hw hen)
+      Hr Hfr $$ Hw with ⟨Hw, Hfd⟩
+    imodintro
+    iexists Γb, Γm, <[fd := openFd i fl]> Γf, Γt
+    isplitl [Hw]
+    · unfold osWorld; iexact Hw
+    isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr Hcm]
+    · try unfold treeCtx
+      isplitr [Hcm]
+      rotate_left
+      · iapply commitRes_grow (gooseOsGS (L := L)) (st := st)
+          (st' := (st.metaEnd k).setProc { (st.metaEnd k).proc with
+            fds := <[fd := openFd i fl]> (st.metaEnd k).proc.fds }) (commitGrows_of_eq rfl) $$ Hcm
+      iright
+      simp only [OsState.metaEnd, OsState.setProc]
+      try unfold treeShared
+      iexists V0, s1, Γdf, GMap.delete k Γc
+      iframe
+      ipureintro
+      exact ⟨fsTreeWf_addFd (fsTreeWf_metaEnd hw k) hdfn,
+        (treeCohS_metaEnd hc k).congr rfl rfl rfl rfl⟩
+    iapply wp_value'
+    iapply HΦ $$ %fd %0 %(.inl ⟨rfl, hfd0⟩) [Hq] Hp Hn
+    · unfold osCallPerm; iexact Hq
+    rw [if_pos rfl]; iexact Hfd
+  · have hst' : st' = st.metaEnd k := by
+      rcases hst with rfl | ⟨tgt, heff⟩
+      · rfl
+      · unfold OpenEffect at heff; rw [hl0] at heff
+        obtain ⟨⟨f', -, h1⟩, -⟩ := heff
+        simpa [htr'] using h1
+    subst hst'
+    imod osWorld_filesSame (filesSame_metaEnd st k) Hr Hfr $$ Hw with Hw
+    imodintro
+    iexists Γb, Γm, Γf, Γt
+    isplitl [Hw]
+    · unfold osWorld; iexact Hw
+    isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr Hcm]
+    · try unfold treeCtx
+      isplitr [Hcm]
+      rotate_left
+      · iapply commitRes_grow (gooseOsGS (L := L)) (st := st) (st' := st.metaEnd k)
+          (commitGrows_of_eq rfl) $$ Hcm
+      iright
+      simp only [OsState.metaEnd]
+      try unfold treeShared
+      iexists V0, s1, Γdf, GMap.delete k Γc
+      iframe
+      ipureintro; exact ⟨fsTreeWf_metaEnd hw k, treeCohS_metaEnd hc k⟩
+    iapply wp_value'
+    iapply HΦ $$ %(-1) %e %(.inr ⟨he, rfl⟩) [Hq] Hp Hn
+    · unfold osCallPerm; iexact Hq
+    rw [if_neg he]; iempintro
 
 end specs
 
