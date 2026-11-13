@@ -146,11 +146,11 @@ theorem walInvBody_cutSynced (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : 
   iintro Hb #Hkey Hq Hk Hv Hcf #Hc
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n0, %F, Hg, %Har, Hcl0, #Hcm, Hlays, %Hok, %Hco, Hcr, Htl, %Han, %Hnm,
-    Hpk, ⟨%K, %cp, Hdk, Hcp, %Hdko⟩⟩
+    Hpk, ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt⟩
   icases walDirKey_lookup K dir j X $$ Hdk Hkey with %HK
   icases walCut_agree cp (some dir) $$ Hcp Hcf with %Hcpe
   subst Hcpe
-  obtain ⟨lay1, hj1, hl1, hj1j, -, -, honce, -, -⟩ := Hdko.1 dir j X HK
+  obtain ⟨lay1, hj1, hl1, hj1j, hjjr, -, honce, -, -⟩ := Hdko.1 dir j X HK
   subst hj1j
   obtain ⟨l1, l2, hcl, -, -⟩ := honce
   subst hcl
@@ -185,11 +185,14 @@ theorem walInvBody_cutSynced (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : 
   · ipureintro; exact ⟨absentNone_mono (Nat.le_max_left _ _) Han.1, Han.2⟩
   isplitr
   · ipureintro; exact walsNamed_mono (Nat.le_max_left _ _) Hnm
-  iexists K, none
-  iframe Hdk Hcp
+  isplitl [Hdk Hcp]
+  · iexists K, none
+    iframe Hdk Hcp
+    ipureintro
+    exact dirKeysOk_cutSynced (Nat.le_max_left _ _) (Nat.lt_of_lt_of_le hx (Nat.le_max_right _ _))
+      Hok Hdko HK hd hl1 hg0 (hj := hj) (List.mem_append_right _ (List.mem_cons_self ..)) hw hwal hc
   ipureintro
-  exact dirKeysOk_cutSynced (Nat.le_max_left _ _) (Nat.lt_of_lt_of_le hx (Nat.le_max_right _ _))
-    Hok Hdko HK hd hl1 hg0 (hj := hj) (List.mem_append_right _ (List.mem_cons_self ..)) hw hwal hc
+  exact walsAt_mid hjjr HAt
 
 end iris
 
