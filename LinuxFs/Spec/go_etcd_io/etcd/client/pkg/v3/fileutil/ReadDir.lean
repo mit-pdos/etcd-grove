@@ -9,7 +9,8 @@ Over the part's shared-mode directory specs (`os.Open.wp_dirS`, `File.Readdirnam
 `File.Close.wp_dirS`): `d` the directory `j` (`osPathS`), a fraction of a claim on names `N` of
 `j` (`osNames`, unchanged). On success the names read, `names`, are `Readdirnames`'s (valid; a name
 of `N` is among them iff `j` has it, at most once) and the result is `fileutil.ReadDirOut names ext`
-(sorted, filtered by the extension); on an error nothing. The option slice and its closures are
+(sorted, filtered by the extension); on an error an error `fmt.Errorf` may wrap (`fmtErrorOkOrNil`:
+`readWALNames` wraps it with `%w`; 2026-11-13, `wal-read2`). The option slice and its closures are
 given back. Proved in `LinuxFs/Proof/go_etcd_io/etcd/client/pkg/v3/fileutil/ReadDir.lean`.
 Lean-first.
 -/
@@ -64,7 +65,7 @@ abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.spec : Prop :=
             (∀ b, N.Mem b → ((h.cur !! b).isSome ↔ b ∈ names)) ∧
             (∀ b, N.Mem b → names.count b ≤ 1) ∧ fileutil.ReadDirOut names (fileutil.optsExt es) rs⌝ ∗
           r ↦* rs) ∨
-       ⌜err ≠ interface.nil⌝) }}
+       ⌜err ≠ interface.nil⌝ ∗ fmtErrorOkOrNil err) }}
 
 end spec
 
