@@ -364,7 +364,7 @@ batch to the apply thread before it saves the batch's `HardState` (`r.applyc <- 
 `673da07c8`), finishes that `Save` before it can observe `stopped`; `r.stop()` waits for the loop to
 end (`:425-435`), and the stop commits the backend after it (`s.r.stop()` then `s.Cleanup()`,
 `server.go:831-833`): so the order holds at a graceful stop, not at every instant); the first so
-that `bootstrap` keeps the backend file; and their snapshot certificate (`walSnapCert`, Q14 (a)): at index `0`, or their snapshot, of no data at their base, valid.
+that `bootstrap` keeps the backend file; and their snapshot certificate (`walSnapCert`, Q14 (a)): at index `0`, or their snapshot, of no data at their base, valid; (restart S6) a committed log reaching their base, which `S`'s log agrees with.
 
 **Margin.** The certificate is of the records' snapshot. `bootstrap` replaces that snapshot's
 `ConfState` by the backend's at `i` (`bootstrap.go:107-115`, `buildConfStateFromV3store`) before
@@ -372,19 +372,26 @@ the restarted storage applies it, so it certifies the restarted storage's snapsh
 two conf states agree: in a static cluster (HS2's caveat (ii), `notes/restart-plan.md`). -/
 @[no_expose] def wal.stopImage (cl : Cluster) (S : RaftState) (σ : StorContents) (i : w64) :
     IProp GF :=
-  iprop(⌜StorageHolds S σ ∧ σ.b ≤ uint.nat i ∧ uint.nat i ≤ σ.commit⌝ ∗ walSnapCert cl σ)
+  iprop(⌜StorageHolds S σ ∧ σ.b ≤ uint.nat i ∧ uint.nat i ≤ σ.commit⌝ ∗ walSnapCert cl σ ∗
+    -- (restart S6, 2026-11-13; S1's, r2db §4.1) a committed log reaching the records' base, which
+    -- the durable state's log agrees with (`raftNode.stop`'s `DurAgrees`): for `wal.restartOk_start`
+    (∃ l', isCommittedLogLb cl l' ∗ ⌜σ.b ≤ l'.length ∧ DurAgrees S l'⌝))
 
 /-- `wal.stopImage`'s intro, from the stop's facts. -/
 theorem wal.stopImage_intro (cl : Cluster) (S : RaftState) (σ : StorContents) (i : w64)
     (hS : StorageHolds S σ) (hb : σ.b ≤ uint.nat i) (hc : uint.nat i ≤ σ.commit) :
-    walSnapCert (GF := GF) cl σ ⊢ wal.stopImage cl S σ i := by
-  unfold wal.stopImage; iintro H; iframe H; ipureintro; exact ⟨hS, hb, hc⟩
+    walSnapCert (GF := GF) cl σ ∗
+        (∃ l', isCommittedLogLb cl l' ∗ ⌜σ.b ≤ l'.length ∧ DurAgrees S l'⌝) ⊢
+      wal.stopImage cl S σ i := by
+  unfold wal.stopImage; iintro ⟨H, Hl⟩; iframe H Hl; ipureintro; exact ⟨hS, hb, hc⟩
 
-/-- `wal.stopImage`'s elimination: the stop's facts and the snapshot certificate (the Freeze 1
-review's F5, for its R2d' consumer, the restart's `bootstrap`). -/
+/-- `wal.stopImage`'s elimination: the stop's facts, the snapshot certificate (the Freeze 1
+review's F5, for its R2d' consumer, the restart's `bootstrap`) and the committed log the durable
+state agrees with (restart S6). -/
 theorem wal.stopImage_elim (cl : Cluster) (S : RaftState) (σ : StorContents) (i : w64) :
     wal.stopImage (GF := GF) cl S σ i ⊢
-      ⌜StorageHolds S σ ∧ σ.b ≤ uint.nat i ∧ uint.nat i ≤ σ.commit⌝ ∗ walSnapCert cl σ := by
+      ⌜StorageHolds S σ ∧ σ.b ≤ uint.nat i ∧ uint.nat i ≤ σ.commit⌝ ∗ walSnapCert cl σ ∗
+        (∃ l', isCommittedLogLb cl l' ∗ ⌜σ.b ≤ l'.length ∧ DurAgrees S l'⌝) := by
   unfold wal.stopImage; iintro H; iexact H
 
 
