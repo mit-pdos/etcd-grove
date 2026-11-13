@@ -17,6 +17,16 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### An indexed handshake idiom (2026-11-13, branch `wal-cut2`)
+
+- **The gap.** `Chan/Idioms/Handshake` hands the sender one proposition `Q` for every exchange, so a
+  protocol whose returned resource depends on the round (the WAL's file pipeline: file `n` for the
+  claim on the name of file `n + 1`) cannot be stated over it.
+- **Local workaround.** `LinuxFs/Proof/.../storage/wal/HandshakeN.lean`: `isHsn γ ch P Q`, `P` and `Q`
+  indexed by the exchange, each side's count a ghost-variable half (`hsnSnd`, `hsnRcv`).
+- **Proposed change.** Move it to `Chan/Idioms/` (the plain handshake is the case of constant
+  `P`, `Q` with the counts dropped).
+
 ### `notCrashed` before a step: `wp_notCrashed_acc`, `wp_atomic_nc` (2026-11-13, branch `wal-ncau`)
 
 - **The gap.** The generation's `notCrashed` is in the bounded language's state interpretation
