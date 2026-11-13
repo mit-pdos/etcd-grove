@@ -296,7 +296,93 @@ theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Write.wp_proof
       refine ⟨rfl, rfl, ⟨hpB, hpBle, hoff0, hoff1, by omega,
         fun _ => by simp only [ioutil.wmBytes]; omega, fun h => absurd hm' h,
         by rw [hbs'len]; simp only [ioutil.wmBytes]; omega⟩, htake'.symm⟩
-  sorry
+  iintro HQ
+  icases HQ with (⟨%Hv0, %k, %nk, %s', %Hk, n, p, Hs', Hback, Hpw, Hout, err, pw⟩ |
+    ⟨%Hret, n, err, Hout, pw, Hpw, Hp⟩)
+  · subst Hv0
+    wp_auto
+    wp_apply (wp_Flush pw wi W out _) $$ [Hw] [Hpw Hout] as %err0 ⟨%ys, %Hys, Hout, Hpw⟩
+    · iexact Hw
+    · iframe
+    rcases err0 with ei | _
+    · -- the flush failed
+      wp_auto
+      iapply HΦ
+      iexists ys, []
+      iframe Hout
+      iframe Hpw
+      isplitl [Hback Hs']
+      · iapply Hback; iexact Hs'
+      ipureintro
+      exact ⟨fun h => (nomatch h), fun _ => ⟨rfl, Hys.1.trans
+        ((List.prefix_append_right_inj _).2 (List.take_prefix _ _))⟩⟩
+    wp_auto
+    have hys := Hys.2 rfl
+    iunfold ioutil.ownPageWriter at Hpw
+    icases Hpw with ⟨%v2, %bs2, Hv, Hbuf, %Hwf2⟩
+    obtain ⟨Hwv2, Hwm2, Hok2, Hpend2⟩ := Hwf2
+    obtain ⟨w2, off2, pB2, bb2, buf2, wm2⟩ := v2
+    simp only at Hwv2 Hwm2 Hok2 Hpend2
+    subst Hwv2 Hwm2
+    have Hok20 := Hok2
+    obtain ⟨hpB2, hpBle2, -, -, hbb20, -, -, hlen2⟩ := Hok2
+    simp only [ioutil.wmBytes] at hpBle2 hlen2
+    have hbb2 : bb2 = W64 0 := by
+      have h0 : sint.nat bb2 = 0 := by
+        rcases Nat.eq_zero_or_pos (sint.nat bb2) with h | h
+        · exact h
+        · exfalso
+          have := congrArg List.length Hpend2
+          simp only [List.length_take, List.length_nil] at this
+          omega
+      have : sint.nat bb2 = (sint.Z bb2).toNat := rfl
+      have : sint.Z bb2 = 0 := by omega
+      word
+    subst hbb2
+    ihave %Hslen := ownSlice_len _ _ _ $$ Hs'
+    ihave %Hswf := ownSlice_wf _ _ _ $$ Hs'
+    have hsl' : sint.Z s'.len = xs.length - k := by
+      have := Hslen.1; rw [List.length_drop] at this; word
+    wp_auto
+    have hdk : (xs.drop k).length = xs.length - k := List.length_drop
+    wp_if_destruct
+    · sorry
+    · -- the rest fits in the buffer
+      have hfit2 : ([] : List w8).length + (xs.drop k).length ≤ 131072 := by
+        rw [List.length_nil, hdk]; omega
+      ihave Hpw : ioutil.ownPageWriter pw wi [] $$ [Hv Hbuf]
+      · iunfold ioutil.ownPageWriter
+        iexists _, bs2
+        iframe Hv
+        dsimp only
+        iframe
+        ipureintro
+        exact ⟨rfl, rfl, Hok20, Hpend2⟩
+      wp_apply (ioutil.wp_Write_fits pw wi W (out ++ ys) [] s' (xs.drop k) dq
+          (by rw [hdk]; omega) hfit2) $$ [Hw] [Hpw Hout Hs'] as %c %werr ⟨%Hc, Hout, Hpw, Hs'⟩
+      · iexact Hw
+      · iframe
+      obtain ⟨rfl, hc⟩ := Hc
+      iapply HΦ
+      iexists ys, _
+      iframe Hout
+      iframe Hpw
+      isplitl [Hback Hs']
+      · iapply Hback; iexact Hs'
+      ipureintro
+      refine ⟨fun _ => ⟨?_, ?_⟩, fun h => absurd rfl h⟩
+      · rw [hys, List.nil_append, List.append_assoc, List.take_append_drop]
+      · rw [hdk] at hc
+        have := Hk.2
+        word
+  · subst Hret
+    wp_auto
+    iapply HΦ
+    iexists [], _
+    rw [List.append_nil]
+    iframe
+    ipureintro
+    exact ⟨fun _ => ⟨by simp, by word⟩, fun h => absurd rfl h⟩
 
 end proof
 
