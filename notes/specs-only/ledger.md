@@ -249,3 +249,16 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   the registered `decC` owns the decoded record whole (trusted, pending the user's review with the
   registration).
 - **Decision.** Adopted (the coordinator for the model; proof agent for the `decC` ownership, flagged for review).
+
+## 2026-11-13: `wal.WAL.Sync.spec` -- the error arm keeps the handle, though a failed flush leaves a partial write
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__Sync.lean` (the W4a axiom; its proved replacement
+  over `fsExt`, `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/`, branch `wal-save`).
+- **Defect.** Unprovable: `sync` flushes the encoder's page writer first; a failed flush drops the pending
+  buffer after part of it reached the file, so the handle's state no longer matches the file and no
+  later operation on it can be proved.
+- **Evidence.** The W6 proof attempt (`notes/wal-fsext-plan.md`, W6 log); `ioutil.PageWriter.Flush.spec`'s
+  error post (proved, branch `wal-enc3`).
+- **Proposed change.** On error, `Sync` consumes the handle (as `Save`'s and `SaveSnapshot`'s error arms
+  do, plan §3); etcd's callers stop on that error (`Fatal`).
+- **Decision.** Adopted (the coordinator, the user away; an intermediate spec, every client stops there).
