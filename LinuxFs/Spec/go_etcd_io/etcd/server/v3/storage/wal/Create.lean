@@ -8,6 +8,7 @@ To be proved in `LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/Create.lean
 module
 
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateDefs
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.PkgInit
 public import LinuxFs.GeneratedProof.go_etcd_io.etcd.server.v3.storage.wal
 public import Spec.go_uber_org.zap.Defs
 
@@ -31,9 +32,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 /-- **`Create(lg, dir, md)`** (S/wal.go:102-262): a fresh WAL with metadata `md` (a non-nil slice:
 its record's `Data`) in `dir = r/nm`, a WAL directory of the area `r` (the directory `jr`, durable).
 
-*Package initialization*: not yet a premise. The part's `wal` package has no `IsPkgInit` instance
-(`etc/gen-init.py`'s `LFS_PKGS` does not list it); `Create` reads `SegmentSizeBytes` and `walFsyncSec`,
-so the premise comes back when it does (W4 implementation log, open items).
+*Package initialization*: `isPkgInit wal` (`PkgInit.lean`: `SegmentSizeBytes`, the metrics `Create`
+observes, the CRC table its encoder takes).
 
 *Resources.* The area's invariants (`walAreaOk`), a fraction of the spine to the area, the program's
 part of the area (`walAreaRes`: from it `Create` takes the claims on `nm`, `nm.tmp` and a cleanup's
@@ -68,7 +68,7 @@ abbrev wal.Create.spec (C : WalCodec) (Mr : WalMarshal) : Prop :=
   ∀ (lg : Loc) (R : Roots) (jr : Ino) (r dir nm : GoString) (mp : GoSlice) (md : List w8) (qp : Qp)
     (Q : IProp GF),
   InArea r dir nm → cleanAbsPath r → mp ≠ slice.nil →
-  {{ zapLoggerOk (GF := GF) lg ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗
       mp ↦*□ md ∗ WalFs.walAreaOk C Mr R jr r ∗ WalFs.dirDurable r ∗ osPathS R r (DFrac.own qp) jr ∗
       walAreaRes jr ∗ osCallPerm 1 ∗ WalFs.walUnlockedTok ∗
       AU <{ WalFs.walAbsent dir }> @ walAuMask, ∅ <{ WalFs.walDiskAt dir (walDurFresh md), COMM Q }> }}
