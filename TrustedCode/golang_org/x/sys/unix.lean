@@ -1,7 +1,7 @@
 /-
 Trusted Go model of `golang.org/x/sys/unix` (namespace of the generated package; project bboltfs
 of `etc/goose.py`, `Code/golang_org/x/sys/unix.toml`), in terms of the Linux file extension of
-`GooseLang.Ext.OsFs.Impl` (`osFsExt`), for any program whose extensions include it.
+`GooseLang.Ext.Fs.Impl` (`Fs.fsExt`), for any program whose extensions include it.
 linux/amd64, `golang.org/x/sys` v0.48.0 (`examples/go.mod`).
 
 `unix.Errno` is an alias of `syscall.Errno`, and `errnoErr` boxes it as `syscall`'s does
@@ -10,7 +10,7 @@ linux/amd64, `golang.org/x/sys` v0.48.0 (`examples/go.mod`).
 module
 
 public import Perennial.Golang.Defn
-public import GooseLang.Ext.OsFs.Impl
+public import GooseLang.Ext.Fs.Impl
 public import TrustedCode.syscall
 
 @[expose] public section
@@ -51,7 +51,7 @@ noncomputable def Mmap.impl : val :=
   λ: "fd" "offset" "length" "prot" "flags",
     if: "length" ≤⟨go.int⟩ #(W64 0) then (#slice.nil, syscall.model.errno #(W64 22)) -- EINVAL
     else
-      let: "r" := ExternalOp osFsExt.name "Mmap" ("fd", ("offset", ("length", ("prot", "flags")))) in
+      let: "r" := ExternalOp Fs.fsExt.name "Mmap" ("fd", ("offset", ("length", ("prot", "flags")))) in
       if: Snd "r" ≠⟨go.uintptr⟩ #(W64 0) then (#slice.nil, syscall.model.errno (Snd "r"))
       else
         ((FuncResolve «unsafe».Slice [go.byte, go.int]) #()
@@ -89,7 +89,7 @@ noncomputable def Munmap.impl : val :=
     if: ("len" =⟨go.int⟩ #(W64 0)) || ("len" ≠⟨go.int⟩ "cap") then
       syscall.model.errno #(W64 22) -- EINVAL
     else
-      syscall.model.errno (ExternalOp osFsExt.name "Munmap"
+      syscall.model.errno (ExternalOp Fs.fsExt.name "Munmap"
         (Convert (go.PointerType go.byte) «unsafe».Pointer
           (IndexRef (go.GoType.SliceType go.byte) ("b", #(W64 0))), ("len", "cap")))
 
@@ -102,6 +102,36 @@ noncomputable def Madvise.impl : val :=
   λ: "b" "advice",
     if: "advice" ≤⟨go.uint64⟩ #(W64 3) then syscall.model.errno ArbitraryInt
     else Panic "golang.org/x/sys/unix.Madvise: advice not modelled"
+
+/-- `Fallocate(fd int, mode uint32, off int64, len int64) error` (`zsyscall_linux_amd64.go`: one
+`fallocate(2)`, `EINTR` not retried). Mode 0 is the extension's `FallocStart`, a truncate to
+`max size (off + len)` in flight, and `FallocFinish` (on failure, any size between);
+`FALLOC_FL_KEEP_SIZE` (1) is `FallocKeep`, no visible change, any errno
+(`notes/walfs-ext-plan.md`). Both are stuck on a negative `off` or a `len` not above 0 (Linux:
+`EINVAL`, after the fd's checks: misuse, D6). Other modes (punching or zeroing a range,
+collapsing, inserting) are not modelled: a panic, never reached by a proved program. -/
+noncomputable def Fallocate.impl : val :=
+  λ: "fd" "mode" "off" "len",
+    if: "mode" =⟨go.uint32⟩ #(W32 0) then
+      syscall.model.errno (ExternalOp Fs.fsExt.name "FallocFinish"
+        (ExternalOp Fs.fsExt.name "FallocStart" ("fd", ("off", "len"))))
+    else if: "mode" =⟨go.uint32⟩ #(W32 1) then
+      syscall.model.errno (ExternalOp Fs.fsExt.name "FallocKeep" ("fd", ("off", "len")))
+    else Panic "golang.org/x/sys/unix.Fallocate: mode not modelled"
+
+/-- `FcntlFlock(fd uintptr, cmd int, lk *Flock_t) error` (`fcntl.go`: one `fcntl(2)` with the
+lock description `lk`) for the commands that set a lock, `F_SETLK` (6), `F_SETLKW` (7),
+`F_OFD_SETLK` (37) and `F_OFD_SETLKW` (38): the extension's `OfdLock`, trivial (any errno; the lock
+state is not modelled, `notes/osfs-ext-plan.md` D7, `notes/walfs-ext-plan.md`), stuck on an fd that
+is not a file's. `lk` is not read: no outcome depends on it. Any other command (a lock query, which
+writes `lk`, or one that is not about locks at all) is not modelled: a panic, never reached by a
+proved program. -/
+noncomputable def FcntlFlock.impl : val :=
+  λ: "fd" "cmd" "lk",
+    if: ("cmd" =⟨go.int⟩ #(W64 6)) || ("cmd" =⟨go.int⟩ #(W64 7)) ||
+        ("cmd" =⟨go.int⟩ #(W64 37)) || ("cmd" =⟨go.int⟩ #(W64 38)) then
+      syscall.model.errno (ExternalOp Fs.fsExt.name "OfdLock" ("fd", "cmd"))
+    else Panic "golang.org/x/sys/unix.FcntlFlock: a command that sets no lock is not modelled"
 
 end code
 end golang_org.x.sys.unix

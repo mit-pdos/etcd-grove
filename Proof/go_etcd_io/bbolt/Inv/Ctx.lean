@@ -23,22 +23,26 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 /-- **A database's parameters** (what `isBoltCoreP` takes): its decoded names, the client's
-namespace, its location, its file's path, its statistics pointer and its receipts' base. -/
+namespace, its location, its file's path (the name `db.path` and the `*os.File` hold) and inode
+(what the file extension's resources are keyed by), its statistics pointer and its receipts'
+base. -/
 structure BC where
   B : BNs
   N : Namespace
   db : Loc
-  p : GoString
+  p : BFile
   sp : Loc
   t0 : Nat
 
 section ctx
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
@@ -232,7 +236,7 @@ instance reg_persistent' (tx : Loc) (B : BNs) (r : TxReg) :
     Persistent (reg (GF := GF) tx B r) := by
   unfold reg; infer_instance
 
-private theorem isBoltCoreP_pkgInit (B : BNs) (N : Namespace) (db : Loc) (p : GoString) (sp : Loc)
+private theorem isBoltCoreP_pkgInit (B : BNs) (N : Namespace) (db : Loc) (p : BFile) (sp : Loc)
     (t0 : Nat) :
     isBoltCoreP (GF := GF) B N db p sp t0 ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt := by
   unfold isBoltCoreP
@@ -407,7 +411,7 @@ theorem viewCells_slices_acc (q : Qp) (v : View) (L : List (GoSlice × List w8))
 -- (`Rebalance/Heap.lean`); `wtxHeap_bkt_acc` (with the new record's `tx` field): U5's
 -- `Txn/Heap.lean` (batch 11).
 
-private instance isBoltP_persistent_c (B : BNs) (N : Namespace) (db : Loc) (p : GoString)
+private instance isBoltP_persistent_c (B : BNs) (N : Namespace) (db : Loc) (p : BFile)
     (sp : Loc) (t0 : Nat) : Persistent (isBoltP (GF := GF) B N db p sp t0) := by
   unfold isBoltP; infer_instance
 

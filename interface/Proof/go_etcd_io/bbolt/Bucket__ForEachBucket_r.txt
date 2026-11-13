@@ -2,9 +2,9 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.Bucket.ForEachBucket_r.wp_proof [hos : HasExt osFsExt] (hcur :
-    bbolt.Bucket.Cursor_i.spec) (hfst : bbolt.Cursor.first_r.spec) (hnx : bbolt.Cursor.next_r.spec)
-    : bbolt.Bucket.ForEachBucket_r.spec
+theorem bbolt.Bucket.ForEachBucket_r.wp_proof [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt
+    Fs.fsExt] (hcur : bbolt.Bucket.Cursor_i.spec) (hfst : bbolt.Cursor.first_r.spec) (hnx :
+    bbolt.Cursor.next_r.spec) : bbolt.Bucket.ForEachBucket_r.spec
   -- `Perennial.EtcdGrove.bbolt.Bucket.ForEachBucket_r.spec`, unfolded:
   ∀ (K : bbolt.BC) (tx : Loc) (src : bbolt.PairSrc) (q : Qp) (T : bbolt.TxView) (v : bbolt.View) (b : Loc) (dq : DFrac)
     (bv : List w8) (ibp pp : Loc) (fn : GoFunc) (I : Nat → IProp GF) (E : GoInterface → IProp GF),

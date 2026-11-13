@@ -2,8 +2,8 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.internal.freelist.Interface.FreeCount.wp_proof [hos : HasExt osFsExt] (hFC : ∀ (I :
-    bbolt.FLImpl) (a : Loc), I.IsImpl a → I.FreeCountSpec) :
+theorem bbolt.internal.freelist.Interface.FreeCount.wp_proof [ExtSemantics Fs.fsExt] [Fs.FsSemOk]
+    [hos : HasExt Fs.fsExt] (hFC : ∀ (I : bbolt.FLImpl) (a : Loc), I.IsImpl a → I.FreeCountSpec) :
     bbolt.internal.freelist.Interface.FreeCount.spec
   -- `Perennial.EtcdGrove.bbolt.internal.freelist.Interface.FreeCount.spec`, unfolded:
   ∀ (fli : GoInterface) (fl : bbolt.FLPg),

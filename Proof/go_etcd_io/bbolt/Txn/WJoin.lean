@@ -17,12 +17,14 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section wjoin
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 
 /-- The `W` slots' bytes `wb` with the slots `S`' bytes `bs` in place. -/
@@ -31,7 +33,7 @@ def mergeWb (S : List Nat) (bs wb : Nat → List w8) : Nat → List w8 :=
 
 /-- **Slots `S` join the `W` slots**: `S` disjoint from `W`, each slot of `S` whole inside the
 file and the mapping, its bytes a page. -/
-theorem wjoin (p : GoString) (ms : MapSt) (W S : List Nat) (wb bs : Nat → List w8) (size : Nat)
+theorem wjoin (p : BFile) (ms : MapSt) (W S : List Nat) (wb bs : Nat → List w8) (size : Nat)
     (hdisj : ∀ s ∈ S, s ∉ W)
     (hS : ∀ s ∈ S, 4096 * (s + 1) ≤ size ∧ (∀ b l, ms = some (b, l) → 4096 * (s + 1) ≤ l) ∧
       (bs s).length = 4096) :
@@ -47,10 +49,10 @@ theorem wjoin (p : GoString) (ms : MapSt) (W S : List Nat) (wb bs : Nat → List
   -- the bytes of `S`
   have hSb : ([∗list] s ∈ S, osSlot (GF := GF) p s (bs s)) ⊢
       [∗list] s ∈ S, (if 4096 * (s + 1) ≤ size then
-        iprop(∃ xs : List (w8 × Bool), osBytes p (4096 * s) (DFrac.own 1) xs ∗
+        iprop(∃ xs : List ByteG, osBytes p.ino (4096 * s) (DFrac.own 1) xs ∗
           ⌜xs.map Prod.fst = mergeWb S bs wb s⌝)
         else if 4096 * s < size then
-          iprop(∃ xs : List (w8 × Bool), osBytes p (4096 * s) (DFrac.own 1) xs ∗
+          iprop(∃ xs : List ByteG, osBytes p.ino (4096 * s) (DFrac.own 1) xs ∗
             ⌜xs.map Prod.fst = (mergeWb S bs wb s).take (size - 4096 * s)⌝)
         else iprop(emp)) := by
     refine BigSepL.bigSepL_mono fun {k x} hk => ?_

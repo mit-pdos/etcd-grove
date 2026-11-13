@@ -4,7 +4,8 @@
 
 theorem bbolt.Tx.DB.wp_proof : bbolt.Tx.DB.spec
   -- `Perennial.EtcdGrove.bbolt.Tx.DB.spec`, unfolded:
-  ∀ [inst : HasExt osFsExt] (tx db : Loc) (γ : bbolt.BoltName) (q : Qp) (T : bbolt.TxView),
+  ∀ [inst : ExtSemantics Fs.fsExt] [inst_1 : Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt] (tx db : Loc) (γ : bbolt.BoltName)
+    (q : Qp) (T : bbolt.TxView),
     ⊢
       ∀ Φ,
         bbolt.boltTx tx γ q T ∗ bbolt.txDB tx γ db -∗

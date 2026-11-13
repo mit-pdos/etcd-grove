@@ -19,6 +19,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 set_option linter.unusedSectionVars false
@@ -62,7 +64,7 @@ end bufsnd
 section wslots
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 
 /-- `W`'s slots but `S`. -/
@@ -76,12 +78,12 @@ private abbrev wcF (b : Loc) (len : Nat) (s : Nat) : IProp GF :=
   if 4096 * (s + 1) ≤ len then iprop(∃ vf, cellsR b (4096 * s) 4096 vf) else iprop(emp)
 
 /-- The per-slot body of `wBytes`. -/
-private abbrev wbG (p : GoString) (wb : Nat → List w8) (size : Nat) (s : Nat) : IProp GF :=
+private abbrev wbG (p : BFile) (wb : Nat → List w8) (size : Nat) (s : Nat) : IProp GF :=
   if 4096 * (s + 1) ≤ size then
-    iprop(∃ xs : List (w8 × Bool), osBytes p (4096 * s) (DFrac.own 1) xs ∗
+    iprop(∃ xs : List ByteG, osBytes p.ino (4096 * s) (DFrac.own 1) xs ∗
       ⌜xs.map Prod.fst = wb s⌝)
   else if 4096 * s < size then
-    iprop(∃ xs : List (w8 × Bool), osBytes p (4096 * s) (DFrac.own 1) xs ∗
+    iprop(∃ xs : List ByteG, osBytes p.ino (4096 * s) (DFrac.own 1) xs ∗
       ⌜xs.map Prod.fst = (wb s).take (size - 4096 * s)⌝)
   else iprop(emp)
 
@@ -91,7 +93,7 @@ private theorem wCells_eq (b : Loc) (len : Nat) (W : List Nat) :
       ([∗list] s ∈ W, wcF b len s) ∗ ∃ vf, cellsR b (4096 * (len / 4096)) (len % 4096) vf := by
   unfold wCells; exact .rfl
 
-private theorem wBytes_eq (p : GoString) (W : List Nat) (wb : Nat → List w8) (size : Nat) :
+private theorem wBytes_eq (p : BFile) (W : List Nat) (wb : Nat → List w8) (size : Nat) :
     wBytes (GF := GF) p W wb size ⊣⊢ [∗list] s ∈ W, wbG p wb size s := by
   unfold wBytes; exact .rfl
 
@@ -119,7 +121,7 @@ private theorem bsplit {Φ : Nat → IProp GF} {l l1 l2 : List Nat} (h : l.Perm 
 
 /-- **Carving the target slots out of the `W` slots**: `S` (no duplicates, `W` slots, each whole
 inside the mapping and the file) as `wrSlots`, the rest `W \ S`. -/
-theorem wSlots_carve (b : Loc) (len : Nat) (p : GoString) (W S : List Nat) (wb : Nat → List w8)
+theorem wSlots_carve (b : Loc) (len : Nat) (p : BFile) (W S : List Nat) (wb : Nat → List w8)
     (size : Nat) (hnd : S.Nodup) (hsub : ∀ s ∈ S, s ∈ W)
     (hin : ∀ s ∈ S, 4096 * (s + 1) ≤ len ∧ 4096 * (s + 1) ≤ size) :
     wCells (GF := GF) (some (b, len)) W ∗ wBytes p W wb size ⊢
@@ -161,7 +163,7 @@ def wbUpd (S : List Nat) (wb' wb : Nat → List w8) (s : Nat) : List w8 :=
 
 /-- **Putting the target slots back** (after a failed write): `S ++ W'` (the same slots as `W` when
 `W' = wMinus W S` and `S ⊆ W`), the slots of `S` holding their new bytes. -/
-theorem wSlots_return (b : Loc) (len : Nat) (p : GoString) (W' S : List Nat)
+theorem wSlots_return (b : Loc) (len : Nat) (p : BFile) (W' S : List Nat)
     (wb wb' : Nat → List w8) (size : Nat) (hdisj : ∀ s ∈ W', s ∉ S)
     (hin : ∀ s ∈ S, 4096 * (s + 1) ≤ len ∧ 4096 * (s + 1) ≤ size) :
     wrSlots (GF := GF) b p S wb' ∗ wCells (some (b, len)) W' ∗ wBytes p W' wb size ⊢
@@ -208,11 +210,11 @@ across the end its part, a slot past the end nothing) and their mapped cells' cl
 values). `wrSlots` when every slot of `S` is inside the file (`wrSlotsSz_in`); what
 `wSlots_carveSz` takes out of the writer's `W` slots without a size premise
 (`Tx.write_ext.spec`). -/
-def wrSlotsSz (b : Loc) (p : GoString) (S : List Nat) (wb : Nat → List w8) (size : Nat) :
+def wrSlotsSz (b : Loc) (p : BFile) (S : List Nat) (wb : Nat → List w8) (size : Nat) :
     IProp GF :=
   iprop(wBytes p S wb size ∗ [∗list] s ∈ S, ∃ vf, cellsR b (4096 * s) 4096 vf)
 
-theorem wrSlotsSz_app (b : Loc) (p : GoString) (S T : List Nat) (wb : Nat → List w8)
+theorem wrSlotsSz_app (b : Loc) (p : BFile) (S T : List Nat) (wb : Nat → List w8)
     (size : Nat) :
     wrSlotsSz (GF := GF) b p (S ++ T) wb size ⊣⊢ wrSlotsSz b p S wb size ∗ wrSlotsSz b p T wb size := by
   unfold wrSlotsSz wBytes
@@ -227,7 +229,7 @@ theorem wrSlotsSz_app (b : Loc) (p : GoString) (S T : List Nat) (wb : Nat → Li
     · iapply BigSepL.bigSepL_append.2; iframe
 
 /-- `wrSlotsSz` only reads `wb` on its slots. -/
-theorem wrSlotsSz_congr (b : Loc) (p : GoString) (S : List Nat) (wb wb' : Nat → List w8)
+theorem wrSlotsSz_congr (b : Loc) (p : BFile) (S : List Nat) (wb wb' : Nat → List w8)
     (size : Nat) (h : ∀ s ∈ S, wb s = wb' s) :
     wrSlotsSz (GF := GF) b p S wb size ⊢ wrSlotsSz b p S wb' size := by
   unfold wrSlotsSz
@@ -243,7 +245,7 @@ theorem wrSlotsSz_congr (b : Loc) (p : GoString) (S : List Nat) (wb wb' : Nat �
   exact .rfl
 
 /-- A slot inside the file at `size` is inside it at a larger `size'`, with the same bytes. -/
-theorem wrSlotsSz_grow (b : Loc) (p : GoString) (S : List Nat) (wb : Nat → List w8)
+theorem wrSlotsSz_grow (b : Loc) (p : BFile) (S : List Nat) (wb : Nat → List w8)
     (size size' : Nat) (hle : size ≤ size') (hin : ∀ s ∈ S, 4096 * (s + 1) ≤ size) :
     wrSlotsSz (GF := GF) b p S wb size ⊢ wrSlotsSz b p S wb size' := by
   unfold wrSlotsSz
@@ -260,7 +262,7 @@ theorem wrSlotsSz_grow (b : Loc) (p : GoString) (S : List Nat) (wb : Nat → Lis
   exact .rfl
 
 /-- **`wrSlotsSz` of slots inside the file is `wrSlots`.** -/
-theorem wrSlotsSz_in (b : Loc) (p : GoString) (S : List Nat) (wb : Nat → List w8) (size : Nat)
+theorem wrSlotsSz_in (b : Loc) (p : BFile) (S : List Nat) (wb : Nat → List w8) (size : Nat)
     (hin : ∀ s ∈ S, 4096 * (s + 1) ≤ size) :
     wrSlotsSz (GF := GF) b p S wb size ⊣⊢ wrSlots b p S wb := by
   have hb : wBytes (GF := GF) p S wb size ⊣⊢ [∗list] s ∈ S, osSlot p s (wb s) := by
@@ -278,7 +280,7 @@ theorem wrSlotsSz_in (b : Loc) (p : GoString) (S : List Nat) (wb : Nat → List 
 /-- **Carving the target slots out of the `W` slots, at the file's size**: `S` (no duplicates,
 `W` slots, each whole inside the mapping, anywhere relative to the file) as `wrSlotsSz`, the rest
 `W \ S`. -/
-theorem wSlots_carveSz (b : Loc) (len : Nat) (p : GoString) (W S : List Nat) (wb : Nat → List w8)
+theorem wSlots_carveSz (b : Loc) (len : Nat) (p : BFile) (W S : List Nat) (wb : Nat → List w8)
     (size : Nat) (hnd : S.Nodup) (hsub : ∀ s ∈ S, s ∈ W) (hin : ∀ s ∈ S, 4096 * (s + 1) ≤ len) :
     wCells (GF := GF) (some (b, len)) W ∗ wBytes p W wb size ⊢
       wrSlotsSz b p S wb size ∗ wCells (some (b, len)) (wMinus W S) ∗ wBytes p (wMinus W S) wb size := by
@@ -310,7 +312,7 @@ theorem wSlots_carveSz (b : Loc) (len : Nat) (p : GoString) (W S : List Nat) (wb
 /-- **Putting slots back at the file's (new) size** (after `Tx.write_ext`: the failed write's
 slots, or the tail on success): `S ++ W'`, the slots of `S` holding their new bytes `wb'`; the
 other slots `W'` lie inside the old file (`size ≤ size'`). -/
-theorem wSlots_returnSz (b : Loc) (len : Nat) (p : GoString) (W' S : List Nat)
+theorem wSlots_returnSz (b : Loc) (len : Nat) (p : BFile) (W' S : List Nat)
     (wb wb' : Nat → List w8) (size size' : Nat) (hdisj : ∀ s ∈ W', s ∉ S)
     (hinS : ∀ s ∈ S, 4096 * (s + 1) ≤ len) (hinW : ∀ s ∈ W', 4096 * (s + 1) ≤ size)
     (hle : size ≤ size') :
@@ -357,12 +359,12 @@ variable [sem : go.Semantics] {s : Stuckness} {E : CoPset}
 
 /-- **The written slots read back** (the list form of `cellsR_agree_bytes`): `wrSlots` whose
 page-cache bytes are whole pages inside the mapping `b` are `slotsOwn`, around any step `e`. -/
-theorem wrSlots_agree (e : Expr) (htv : toVal e = none) (p : GoString) (dqm : DFrac) (m : OsMeta)
+theorem wrSlots_agree (e : Expr) (htv : toVal e = none) (p : BFile) (dqm : DFrac) (m : OsMeta)
     (b : Loc) (len : Nat) (hb : m.maps !! b = some len) (hE : ↑osN ⊆ E) (wb : Nat → List w8)
     (Φ : val → IProp GF) :
     ∀ (S : List Nat), (∀ t ∈ S, 4096 * (t + 1) ≤ len ∧ (wb t).length = 4096) →
-    ⊢ osInv (GF := GF) -∗ osMeta p dqm (some m) -∗ wrSlots b p S wb -∗
-      (osMeta p dqm (some m) -∗ slotsOwn (some (b, len)) p S wb -∗ WP e @ s; E {{ Φ }}) -∗
+    ⊢ osInv (GF := GF) -∗ osMeta p.ino dqm m -∗ wrSlots b p S wb -∗
+      (osMeta p.ino dqm m -∗ slotsOwn (some (b, len)) p S wb -∗ WP e @ s; E {{ Φ }}) -∗
       WP e @ s; E {{ Φ }}
   | [], _ => by
     iintro #Hinv Hm _ HΦ
@@ -373,8 +375,8 @@ theorem wrSlots_agree (e : Expr) (htv : toVal e = none) (p : GoString) (dqm : DF
     iintro #Hinv Hm Hs HΦ
     unfold wrSlots
     icases BigSepL.bigSepL_cons.1 $$ Hs with ⟨⟨Hx, %vf, Hcx⟩, Hs⟩
-    icases (show osSlot (GF := GF) p t (wb t) ⊢ ∃ xs : List (w8 × Bool),
-        osBytes p (4096 * t) (DFrac.own 1) xs ∗ ⌜xs.map Prod.fst = wb t⌝ by
+    icases (show osSlot (GF := GF) p t (wb t) ⊢ ∃ xs : List ByteG,
+        osBytes p.ino (4096 * t) (DFrac.own 1) xs ∗ ⌜xs.map Prod.fst = wb t⌝ by
         unfold osSlot; exact .rfl) $$ Hx with ⟨%xs, Hx, %Hxs⟩
     obtain ⟨ht1, ht2⟩ := hS t (List.mem_cons_self ..)
     have hxl : xs.length = 4096 := by rw [← ht2, ← Hxs, List.length_map]
@@ -396,7 +398,7 @@ theorem wrSlots_agree (e : Expr) (htv : toVal e = none) (p : GoString) (dqm : DF
     isplitl [Hx Hcx]
     · rw [Hxs]
       iframe Hcx
-      iapply (show (∃ xs : List (w8 × Bool), osBytes p (4096 * t) (DFrac.own 1) xs ∗
+      iapply (show (∃ xs : List ByteG, osBytes p.ino (4096 * t) (DFrac.own 1) xs ∗
           ⌜xs.map Prod.fst = wb t⌝) ⊢ osSlot (GF := GF) p t (wb t) by unfold osSlot; exact .rfl)
       iexists xs; iframe; ipureintro; exact Hxs
     · iexact Ho

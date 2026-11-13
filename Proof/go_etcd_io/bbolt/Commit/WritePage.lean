@@ -21,24 +21,26 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section res
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.internal.common.Assumptions]
 
 /-- A dirty page `e = (id, buffer, bytes)` waiting to be written: its bytes after the header,
 its slots holding anything. -/
-def pgRest (b : Loc) (p : GoString) (e : w64 × Loc × List w8) : IProp GF :=
+def pgRest (b : Loc) (p : BFile) (e : w64 × Loc × List w8) : IProp GF :=
   iprop(⌜0 < e.2.1.addr⌝ ∗ bytesPointsto (e.2.1 +ₗ 16) (DFrac.own 1) (e.2.2.drop 16) ∗
     [∗list] s ∈ List.range' e.1.toNat (1 + pageOverflow e.2.2), slotAny b p s)
 
 /-- A dirty page written: its bytes after the header, its slots holding its chunks. -/
-def pgDone (b : Loc) (p : GoString) (e : w64 × Loc × List w8) : IProp GF :=
+def pgDone (b : Loc) (p : BFile) (e : w64 × Loc × List w8) : IProp GF :=
   iprop(⌜0 < e.2.1.addr⌝ ∗ bytesPointsto (e.2.1 +ₗ 16) (DFrac.own 1) (e.2.2.drop 16) ∗
     [∗list] s ∈ List.range' e.1.toNat (1 + pageOverflow e.2.2),
       slotDone b p s (pageChunk e.2.2 (s - e.1.toNat)))
@@ -58,7 +60,7 @@ theorem page_split (l : Loc) (bs : List w8) (h : 16 ≤ bs.length) (hp : 0 < l.a
   exact e
 
 /-- **A dirty page, per key**: its buffer's header and the rest, its slots. -/
-theorem wr_entry (b : Loc) (p : GoString) (pm : GMap w64 Loc) (bufs : GMap w64 (List w8))
+theorem wr_entry (b : Loc) (p : BFile) (pm : GMap w64 Loc) (bufs : GMap w64 (List w8))
     (lim : Nat) (hok : bufsOK bufs lim) (key : w64) (v : Loc) (hv : pm !! key = some v) :
     (∃ pl, ⌜pm !! key = some pl⌝ ∗ ∃ bs, ⌜bufs !! key = some bs⌝ ∗
         bytesPointsto (GF := GF) pl (DFrac.own 1) bs) ∗
@@ -83,7 +85,7 @@ theorem wr_entry (b : Loc) (p : GoString) (pm : GMap w64 Loc) (bufs : GMap w64 (
 
 /-- **A waiting page, with its header, for its write**: its whole buffer, and its slots as one
 run. -/
-theorem rest_run (b : Loc) (p : GoString) (e : w64 × Loc × List w8) (h16 : 16 ≤ e.2.2.length) :
+theorem rest_run (b : Loc) (p : BFile) (e : w64 × Loc × List w8) (h16 : 16 ≤ e.2.2.length) :
     e.2.1 ↦ pageHdr e.2.2 ∗ pgRest (GF := GF) b p e ⊢
       ⌜0 < e.2.1.addr⌝ ∗ bytesPointsto e.2.1 (DFrac.own 1) e.2.2 ∗
         oAny p (4096 * e.1.toNat) (4096 * (1 + pageOverflow e.2.2)) ∗
@@ -97,11 +99,11 @@ theorem rest_run (b : Loc) (p : GoString) (e : w64 × Loc × List w8) (h16 : 16 
   iapply (slotsAny_run b p _ _).1; iexact Hs
 
 /-- **A written page**: its header back, and its slots each holding its chunk. -/
-theorem run_pgDone (b : Loc) (p : GoString) (e : w64 × Loc × List w8) (ys : List (w8 × Bool))
+theorem run_pgDone (b : Loc) (p : BFile) (e : w64 × Loc × List w8) (ys : List ByteG)
     (hy : ys.map Prod.fst = e.2.2) (hl : e.2.2.length = 4096 * (1 + pageOverflow e.2.2))
     (hp : 0 < e.2.1.addr) :
     bytesPointsto (GF := GF) e.2.1 (DFrac.own 1) e.2.2 ∗
-      osBytes p (4096 * e.1.toNat) (DFrac.own 1) ys ∗
+      osBytes p.ino (4096 * e.1.toNat) (DFrac.own 1) ys ∗
       bytesPointsto (b +ₗ ((4096 * e.1.toNat : Nat) : Int)) (DFrac.own (1 : Qp).half) e.2.2 ⊢
       e.2.1 ↦ pageHdr e.2.2 ∗ pgDone b p e := by
   iintro ⟨Hb, Hy, Hc⟩
@@ -115,7 +117,7 @@ theorem run_pgDone (b : Loc) (p : GoString) (e : w64 × Loc × List w8) (ys : Li
   iframe
 
 /-- A written page's slots, holding anything. -/
-theorem pgDone_any (b : Loc) (p : GoString) (e : w64 × Loc × List w8)
+theorem pgDone_any (b : Loc) (p : BFile) (e : w64 × Loc × List w8)
     (hl : e.2.2.length = 4096 * (1 + pageOverflow e.2.2)) :
     pgDone (GF := GF) b p e ⊢
       [∗list] s ∈ List.range' e.1.toNat (1 + pageOverflow e.2.2), slotAny b p s := by
@@ -127,7 +129,7 @@ theorem pgDone_any (b : Loc) (p : GoString) (e : w64 × Loc × List w8)
   exact slotDone_any b p s _ (pageChunk_length _ _ _ hl (by omega))
 
 /-- A waiting page's slots. -/
-theorem pgRest_any (b : Loc) (p : GoString) (e : w64 × Loc × List w8) :
+theorem pgRest_any (b : Loc) (p : BFile) (e : w64 × Loc × List w8) :
     pgRest (GF := GF) b p e ⊢
       [∗list] s ∈ List.range' e.1.toNat (1 + pageOverflow e.2.2), slotAny b p s := by
   unfold pgRest
@@ -136,7 +138,7 @@ theorem pgRest_any (b : Loc) (p : GoString) (e : w64 × Loc × List w8) :
 
 /-- **On an error at the page `j`**: the written pages, the page `j`'s slots and the waiting
 pages are every page's slots. -/
-theorem err_assemble (b : Loc) (p : GoString) (L : List (w64 × Loc × List w8)) (j : Nat)
+theorem err_assemble (b : Loc) (p : BFile) (L : List (w64 × Loc × List w8)) (j : Nat)
     (c : w64 × Loc × List w8) (hc : L[j]? = some c)
     (hl : ∀ e ∈ L, e.2.2.length = 4096 * (1 + pageOverflow e.2.2)) :
     ([∗list] e ∈ L.take j, pgDone (GF := GF) b p e) ∗

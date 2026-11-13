@@ -15,7 +15,7 @@ import (
 // one change. The general crash rule allows any byte-wise mix of a slot's states
 // (data_crash_candidates.go); the premise removes only the mixes that validate.
 //
-// Lean: LinuxFs/Proof/github_com/mit_pdos/etcd_grove/examples/osfs/bboltfs/BootP1.lean:
+// Lean: Proof/github_com/mit_pdos/etcd_grove/examples/osfs/bboltfs/BootP1.lean:
 // P1, BootCrashSafety; P1Sat.lean: p1_crash_exists (a crash satisfying it always
 // exists), p1_untouched (a file no change touched never makes it fail); valAt
 // (Premises.lean).

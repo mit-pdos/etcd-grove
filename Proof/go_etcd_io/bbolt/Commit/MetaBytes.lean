@@ -20,6 +20,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 theorem publish_slot [GooseExts] (C : CommitSt) (buf : List w8) (m : Meta) (pages : Pages) (i : Nat) :
@@ -32,16 +34,16 @@ theorem publish_slot [GooseExts] (C : CommitSt) (buf : List w8) (m : Meta) (page
 section bytes
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- Two halves of the same bytes of a file, as the whole (they agree). -/
-theorem osBytes_join_h (p : GoString) :
-    ∀ (xs ys : List (w8 × Bool)) (off : Nat), xs.length = ys.length →
-    osBytes (GF := GF) p off (DFrac.own (1 : Qp).half) xs ∗
-      osBytes (GF := GF) p off (DFrac.own (1 : Qp).half) ys ⊢
-      osBytes (GF := GF) p off (DFrac.own 1) xs
+theorem osBytes_join_h (p : BFile) :
+    ∀ (xs ys : List ByteG) (off : Nat), xs.length = ys.length →
+    osBytes (GF := GF) p.ino off (DFrac.own (1 : Qp).half) xs ∗
+      osBytes (GF := GF) p.ino off (DFrac.own (1 : Qp).half) ys ⊢
+      osBytes (GF := GF) p.ino off (DFrac.own 1) xs
   | [], _, off, _ => by
     iintro -; iapply (osBytes_nil' (GF := GF) p off _).2; iempintro
   | x :: xs, [], _, h => by simp at h
@@ -59,20 +61,20 @@ theorem osBytes_join_h (p : GoString) :
     · iapply osBytes_join_h p xs ys (off + 1) (by simpa using h); iframe
 
 omit sem in
-theorem osBytes_halves_h (p : GoString) (off : Nat) (xs : List (w8 × Bool)) :
-    osBytes (GF := GF) p off (DFrac.own 1) xs ⊢
-      osBytes (GF := GF) p off (DFrac.own (1 : Qp).half) xs ∗
-        osBytes (GF := GF) p off (DFrac.own (1 : Qp).half) xs :=
-  (osBytes_halves p off xs).1
+theorem osBytes_halves_h (p : BFile) (off : Nat) (xs : List ByteG) :
+    osBytes (GF := GF) p.ino off (DFrac.own 1) xs ⊢
+      osBytes (GF := GF) p.ino off (DFrac.own (1 : Qp).half) xs ∗
+        osBytes (GF := GF) p.ino off (DFrac.own (1 : Qp).half) xs :=
+  (osBytes_halves p.ino off xs).1
 
 /-- **The meta slots' page-cache bytes, whole, as slot `s` and the other slot** (from the two
 halves: `metalock`'s and the writer's). -/
-theorem metaOsBytes_take (p : GoString) (C : CommitSt) (s : Nat) (hs : s < 2)
+theorem metaOsBytes_take (p : BFile) (C : CommitSt) (s : Nat) (hs : s < 2)
     (h0 : C.m0.length = 4096) (h1 : C.m1.length = 4096) :
     metaOsBytes (GF := GF) p (DFrac.own (1 : Qp).half) C ∗
       metaOsBytes (GF := GF) p (DFrac.own (1 : Qp).half) C ⊢
-    ∃ xa xb : List (w8 × Bool), osBytes p (4096 * s) (DFrac.own 1) xa ∗
-      osBytes p (4096 * (1 - s)) (DFrac.own 1) xb ∗
+    ∃ xa xb : List ByteG, osBytes p.ino (4096 * s) (DFrac.own 1) xa ∗
+      osBytes p.ino (4096 * (1 - s)) (DFrac.own 1) xb ∗
       ⌜xa.map Prod.fst = C.slot s ∧ xb.map Prod.fst = C.slot (s + 1)⌝ := by
   unfold metaOsBytes
   iintro ⟨⟨%xs, H1, %hx⟩, ⟨%ys, H2, %hy⟩⟩
@@ -82,7 +84,7 @@ theorem metaOsBytes_take (p : GoString) (C : CommitSt) (s : Nat) (hs : s < 2)
     have := congrArg List.length hy; simp only [List.length_map, List.length_append] at this; omega
   ihave H := osBytes_join_h p xs ys 0 (by omega) $$ [H1 H2]
   · iframe
-  icases (osBytes_take_drop p 0 _ xs 4096 (by omega)).1 $$ H with ⟨Ha, Hb⟩
+  icases (osBytes_take_drop p.ino 0 _ xs 4096 (by omega)).1 $$ H with ⟨Ha, Hb⟩
   have e0 : (xs.take 4096).map Prod.fst = C.m0 := by
     rw [List.map_take, hx, List.take_left' h0]
   have e1 : (xs.drop 4096).map Prod.fst = C.m1 := by
@@ -96,11 +98,11 @@ theorem metaOsBytes_take (p : GoString) (C : CommitSt) (s : Nat) (hs : s < 2)
     ipureintro; simp [CommitSt.slot, e0, e1]
 
 /-- **The meta slots' bytes back as the two halves**, holding `C`. -/
-theorem metaOsBytes_put (p : GoString) (C : CommitSt) (s : Nat) (hs : s < 2)
-    (h0 : C.m0.length = 4096) (h1 : C.m1.length = 4096) (xa xb : List (w8 × Bool))
+theorem metaOsBytes_put (p : BFile) (C : CommitSt) (s : Nat) (hs : s < 2)
+    (h0 : C.m0.length = 4096) (h1 : C.m1.length = 4096) (xa xb : List ByteG)
     (ha : xa.map Prod.fst = C.slot s) (hb : xb.map Prod.fst = C.slot (s + 1)) :
-    osBytes (GF := GF) p (4096 * s) (DFrac.own 1) xa ∗
-      osBytes (GF := GF) p (4096 * (1 - s)) (DFrac.own 1) xb ⊢
+    osBytes (GF := GF) p.ino (4096 * s) (DFrac.own 1) xa ∗
+      osBytes (GF := GF) p.ino (4096 * (1 - s)) (DFrac.own 1) xb ⊢
     metaOsBytes (GF := GF) p (DFrac.own (1 : Qp).half) C ∗
       metaOsBytes (GF := GF) p (DFrac.own (1 : Qp).half) C := by
   have hla := congrArg List.length ha
@@ -112,8 +114,8 @@ theorem metaOsBytes_put (p : GoString) (C : CommitSt) (s : Nat) (hs : s < 2)
       show (1 : Nat) ≠ 0 from by decide] at ha hb hla hlb
     rw [show 4096 * 0 = 0 from rfl, show 4096 * (1 - 0) = 4096 from rfl]
     iintro ⟨Ha, Hb⟩
-    ihave H : osBytes p 0 (DFrac.own 1) (xa ++ xb) $$ [Ha Hb]
-    · iapply (osBytes_take_drop p 0 _ (xa ++ xb) 4096 (by simp; omega)).2
+    ihave H : osBytes p.ino 0 (DFrac.own 1) (xa ++ xb) $$ [Ha Hb]
+    · iapply (osBytes_take_drop p.ino 0 _ (xa ++ xb) 4096 (by simp; omega)).2
       rw [List.take_left' (by omega), List.drop_left' (by omega)]
       iframe
     icases osBytes_halves_h p 0 _ $$ H with ⟨H1, H2⟩
@@ -125,8 +127,8 @@ theorem metaOsBytes_put (p : GoString) (C : CommitSt) (s : Nat) (hs : s < 2)
       show (1 : Nat) ≠ 0 from by decide] at ha hb hla hlb
     rw [show 4096 * 1 = 4096 from rfl, show 4096 * (1 - 1) = 0 from rfl]
     iintro ⟨Ha, Hb⟩
-    ihave H : osBytes p 0 (DFrac.own 1) (xb ++ xa) $$ [Ha Hb]
-    · iapply (osBytes_take_drop p 0 _ (xb ++ xa) 4096 (by simp; omega)).2
+    ihave H : osBytes p.ino 0 (DFrac.own 1) (xb ++ xa) $$ [Ha Hb]
+    · iapply (osBytes_take_drop p.ino 0 _ (xb ++ xa) 4096 (by simp; omega)).2
       rw [List.take_left' (by omega), List.drop_left' (by omega)]
       iframe
     icases osBytes_halves_h p 0 _ $$ H with ⟨H1, H2⟩

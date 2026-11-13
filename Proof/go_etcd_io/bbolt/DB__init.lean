@@ -13,7 +13,6 @@ public import Proof.go_etcd_io.bbolt.Inv.Locks
 public import Proof.go_etcd_io.bbolt.Mmap.Logger
 public import Proof.go_etcd_io.bbolt.Mmap.Infra
 public import Proof.go_etcd_io.bbolt.Commit.MetaPage
-public import Proof.go_etcd_io.bbolt.Commit.PwMeta
 public import Spec.go_etcd_io.bbolt.DB__pageInBuffer
 public import Spec.go_etcd_io.bbolt.fdatasync
 public import Spec.go_etcd_io.bbolt.internal.common.Page__SetId
@@ -41,12 +40,14 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
@@ -54,25 +55,25 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- **`db.init()` on an empty, unmapped file** `p` (`Open`'s fresh case): on success the file
 holds `initImg` (still unmapped); on an error (`fmt` formats it) only its `OsMeta` is left. -/
 abbrev DB.init.spec : Prop :=
-  ∀ (db f : Loc) (fd : w64) (p : GoString) (lg : GoInterface) (m : OsMeta) (dqf dqw : DFrac),
+  ∀ (db f : Loc) (fd : w64) (p : BFile) (lg : GoInterface) (m : OsMeta) (dqf dqw : DFrac),
   db ≠ null → m.size = 0 → m.maps = ∅ →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
       db.[DB, go!"pageSize"] ↦□ W64 4096 ∗ db.[DB, go!"logger"] ↦□ lg ∗ boltLogger lg ∗
       (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{dqw}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
-      db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p (DFrac.own 1) ∗
-      osFd fd (DFrac.own 1) ⟨p, true, true⟩ ∗ osMeta p (DFrac.own 1) (some m) ∗
-      osBytes p 0 (DFrac.own 1) [] }}
+      db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p.path (DFrac.own 1) ∗
+      osFd fd (DFrac.own 1) ⟨p.ino, true, true⟩ ∗ osMeta p.ino (DFrac.own 1) m ∗
+      osBytes p.ino 0 (DFrac.own 1) [] }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"init")) (Val #()))
   {{ (err : GoInterface), RET #err;
       (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{dqw}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
-      db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p (DFrac.own 1) ∗
-      osFd fd (DFrac.own 1) ⟨p, true, true⟩ ∗
-      ((⌜err = interface.nil⌝ ∗ ∃ (m' : OsMeta) (xs : List (w8 × Bool)),
-          osMeta p (DFrac.own 1) (some m') ∗ osBytes p 0 (DFrac.own 1) xs ∗
+      db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p.path (DFrac.own 1) ∗
+      osFd fd (DFrac.own 1) ⟨p.ino, true, true⟩ ∗
+      ((⌜err = interface.nil⌝ ∗ ∃ (m' : OsMeta) (xs : List ByteG),
+          osMeta p.ino (DFrac.own 1) m' ∗ osBytes p.ino 0 (DFrac.own 1) xs ∗
           ⌜m'.maps = ∅ ∧ xs.length = m'.size ∧ xs.map Prod.fst = initImg⌝) ∨
-       (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗ ∃ m' : OsMeta, osMeta p (DFrac.own 1) (some m'))) }}
+       (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗ ∃ m' : OsMeta, osMeta p.ino (DFrac.own 1) m')) }}
 
 end spec
 
@@ -153,22 +154,22 @@ theorem copy_result (E : List w8) (hE : E.length = 8192) :
     List.append_nil, ← hE, List.take_length]
 
 omit [GooseExts] in
-/-- **A `pwrite` of all of `data` to an empty file**: the file's bytes are `data`. -/
-theorem pwBytes_fresh (data : List w8) (h : 0 < data.length) :
-    (pwBytes 0 0 data data.length []).map Prod.fst = data := by
-  have hs : pwSize 0 0 data.length = data.length := by unfold pwSize; split <;> omega
-  unfold pwBytes
-  rw [hs, show min (0 + data.length) data.length - min 0 0 = data.length by omega]
-  apply List.ext_getElem
-  · simp
-  · intro i h1 h2
-    simp only [List.getElem_map, List.getElem_range]
-    unfold pwByte
-    simp only [Nat.not_lt_zero, ↓reduceIte, Nat.zero_add, Nat.sub_zero, Nat.min_self]
-    have hi : i < data.length := by simp at h1; omega
-    simp only [hi, ↓reduceIte]
-    rw [List.getD_eq_getElem?_getD,
-      List.getElem?_eq_getElem (by simp at h1; omega), Option.getD_some]
+/-- **A `pwrite` that wrote all of `data`** (`os.PwOut` with `j = len(data) > 0`): the range's
+bytes are `data`. -/
+theorem pwOut_full {m : OsMeta} {off : Nat} {data : List w8} {xs ys : List ByteG}
+    (h : os.PwOut m off data data.length xs ys) (h0 : 0 < data.length) :
+    ys.length = data.length ∧ ys.map Prod.fst = data := by
+  obtain ⟨hl, hv⟩ := h
+  have hl' : ys.length = data.length := by
+    rw [hl]; unfold pwSize; simp only [show ¬ data.length = 0 by omega, ↓reduceIte]; omega
+  refine ⟨hl', ?_⟩
+  apply List.ext_getElem (by simp [hl'])
+  intro i h1 h2
+  simp only [List.getElem_map]
+  rw [(hv i (by simpa using h1)).1]
+  have hi : i < data.length := by simpa [hl'] using h1
+  simp only [pwByte, show off + i < off + data.length by omega, ↓reduceIte, Nat.add_sub_cancel_left,
+    List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hi, Option.getD_some]
 
 omit [GooseExts] in
 theorem pwSize_fresh (n : Nat) (h : 0 < n) : pwSize 0 0 n = n := by
@@ -243,16 +244,16 @@ end heap
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 omit package_sem go_gctx sem in
 /-- A file's page-cache bytes, cut in two. -/
-theorem osBytes_app (p : GoString) (off : Nat) (dq : DFrac) (xs ys : List (w8 × Bool)) :
-    osBytes (GF := GF) p off dq (xs ++ ys) ⊣⊢
-      osBytes (GF := GF) p off dq xs ∗ osBytes (GF := GF) p (off + xs.length) dq ys := by
+theorem osBytes_app (p : BFile) (off : Nat) (dq : DFrac) (xs ys : List ByteG) :
+    osBytes (GF := GF) p.ino off dq (xs ++ ys) ⊣⊢
+      osBytes (GF := GF) p.ino off dq xs ∗ osBytes (GF := GF) p.ino (off + xs.length) dq ys := by
   unfold osBytes; exact bytesG_append _ _ _ _ _ _
 
 theorem DB.init.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
@@ -504,15 +505,15 @@ theorem DB.init.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     try wp_auto
     -- the first write: the freelist and root pages, the meta slots zero
     have hm0 : min (W64 0).toNat m.size = 0 := by rw [hsz]; simp
-    wp_apply hWriteAt f fd p (DFrac.own 1) pg initPages (DFrac.own 1) (W64 0) (DFrac.own 1)
-      ⟨p, true, true⟩ 1 m [] rfl (by decide) (by rw [initPages_length]; decide)
-      (by rw [initPages_length]; decide) (by rw [hsz]; simp) (fun _ => rfl)
-      $$ [Hfo Hpg Hfd Hm Hxs] as %n %err ⟨Hfo, Hpg, Hfd, %j, %ys, %h, %Hj, Hm, Hys, Hc, Herr⟩
+    wp_apply hWriteAt f fd p.path (DFrac.own 1) pg initPages (DFrac.own 1) (W64 0) (DFrac.own 1)
+      ⟨p.ino, true, true⟩ m [] rfl (by decide) (by simp) (by rw [initPages_length]; decide)
+      (by rw [initPages_length]; decide) (by rw [initPages_length]; decide) (by rw [hsz]; simp)
+      $$ [Hfo Hpg Hfd Hm Hxs] as %n %err ⟨Hfo, Hpg, Hfd, %j, %ys, %Hj, Hm, Hys, Hc, Herr⟩
     · iframe #
-      rw [← fileOwn_eq, hm0]
+      rw [← fileOwn_eq, show (W64 0).toNat = 0 from rfl]
       iframe Hfo Hpg Hfd Hm Hxs
       rw [hmaps]; unfold mcellsAny; iapply BigSepM.bigSepM_empty.2; iempintro
-    obtain ⟨hjle, hysp, -, -, hres⟩ := Hj
+    obtain ⟨hjle, hysp, -, hres⟩ := Hj
     cases lg with
     | nil => unfold boltLogger; iexfalso; iexact Hlgok
     | ok li =>
@@ -555,19 +556,20 @@ theorem DB.init.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         · exact h1
         · exact absurd rfl h2
       subst hj
-      rw [hsz, show (W64 0).toNat = 0 from rfl,
-        pwBytes_fresh _ (by rw [initPages_length]; decide)] at hysp
-      rw [hsz, show (W64 0).toNat = 0 from rfl, pwSize_fresh _ (by rw [initPages_length]; decide),
-        initPages_length] at *
-      rw [show min 0 0 = 0 from rfl] at *
-      have hysl : ys.length = 16384 := by
-        have := congrArg List.length hysp; simp only [List.length_map] at this
-        rw [this, initPages_length]
+      obtain ⟨hysl, hysp⟩ := pwOut_full hysp (by rw [initPages_length]; decide)
+      rw [initPages_length] at hysl
+      have hpsz : (pwPost m 0 initPages.length initPages.length).size = 16384 := by
+        simp only [pwPost]
+        rw [hsz, pwSize_fresh _ (by rw [initPages_length]; decide),
+          initPages_length]
+      have hpmaps : (pwPost m 0 initPages.length initPages.length).maps = m.maps := by
+        simp only [pwPost, announce_maps]
+      generalize pwPost m 0 initPages.length initPages.length = m1 at hpsz hpmaps ⊢
       try wp_auto
       -- the first sync
-      ihave Hfo : fileOwn f fd p (DFrac.own 1) $$ [Hfo]
+      ihave Hfo : fileOwn f fd p.path (DFrac.own 1) $$ [Hfo]
       · rw [fileOwn_eq]; iexact Hfo
-      wp_apply hSync db f fd p _ dqf (DFrac.own 1) $$ [Hf Hfo Hfd Hm]
+      wp_apply hSync db f fd p p.ino _ dqf (DFrac.own 1) $$ [Hf Hfo Hfd Hm]
         as %e2 ⟨Hf, Hfo, Hfd, ⟨%m2, Hm, %Hm2⟩, Hr⟩
       · iframe #; iframe
       icases Hr with (%He | ⟨%He, #Hfe⟩)
@@ -612,8 +614,8 @@ theorem DB.init.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       subst He
       try wp_auto
       -- the second write: the two meta pages
-      have hm2s : m2.size = 16384 := by rw [Hm2.1]
-      have hm2m : m2.maps = ∅ := by rw [Hm2.2]; exact hmaps
+      have hm2s : m2.size = 16384 := by rw [Hm2.1, hpsz]
+      have hm2m : m2.maps = ∅ := by rw [Hm2.2, hpmaps]; exact hmaps
       rw [show W64 4096 * W64 2 = W64 8192 from rfl]
       have hc8 : sint.Z (W64 8192) ≤ sint.Z sl.cap := by
         have h := Hbcw.2; rw [show sint.Z (W64 16384) = 16384 from rfl] at h
@@ -624,23 +626,23 @@ theorem DB.init.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       icases (ownSlice_slice (W64 0) (W64 8192) sl (DFrac.own 1) _
         ⟨by decide, by decide, by rw [hsl]; decide⟩).1 $$ Hsl with ⟨HsA, HsB, HsC⟩
       rw [hfh.1, hfh.2]
-      ihave Hys : osBytes p 0 (DFrac.own 1) (ys.take 8192 ++ ys.drop 8192) $$ [Hys]
+      ihave Hys : osBytes p.ino 0 (DFrac.own 1) (ys.take 8192 ++ ys.drop 8192) $$ [Hys]
       · rw [List.take_append_drop]; iexact Hys
       icases (osBytes_app p 0 (DFrac.own 1) (ys.take 8192) (ys.drop 8192)).1 $$ Hys
         with ⟨Hy1, Hy2⟩
       have hy1 : (ys.take 8192).length = 8192 := by simp [hysl]
       have hm20 : min (W64 0).toNat m2.size = 0 := by simp
-      wp_apply hWriteAt f fd p (DFrac.own 1) _ (metaBuf (initMv 0) ++ metaBuf (initMv 1))
-        (DFrac.own 1) (W64 0) (DFrac.own 1) ⟨p, true, true⟩ 1 m2 (ys.take 8192) rfl (by decide)
-        (by rw [metaBufs_length]; decide) (by rw [metaBufs_length]; decide)
-        (by rw [hy1, metaBufs_length, hm2s]; simp) (fun _ => rfl)
-        $$ [Hfo HsB Hfd Hm Hy1] as %n2 %err2 ⟨Hfo, HsB, Hfd, %j2, %ys2, %h2, %Hj2, Hm, Hys2, Hc,
+      wp_apply hWriteAt f fd p.path (DFrac.own 1) _ (metaBuf (initMv 0) ++ metaBuf (initMv 1))
+        (DFrac.own 1) (W64 0) (DFrac.own 1) ⟨p.ino, true, true⟩ m2 (ys.take 8192) rfl (by decide)
+        (by simp) (by rw [metaBufs_length]; decide) (by rw [metaBufs_length]; decide)
+        (by rw [metaBufs_length]; decide) (by rw [hy1, metaBufs_length, hm2s]; simp)
+        $$ [Hfo HsB Hfd Hm Hy1] as %n2 %err2 ⟨Hfo, HsB, Hfd, %j2, %ys2, %Hj2, Hm, Hys2, Hc,
           Herr2⟩
       · iframe #
-        rw [← fileOwn_eq, hm20]
+        rw [← fileOwn_eq, show (W64 0).toNat = 0 from rfl]
         iframe Hfo HsB Hfd Hm Hy1
         rw [hm2m]; unfold mcellsAny; iapply BigSepM.bigSepM_empty.2; iempintro
-      obtain ⟨hjle2, hysp2, -, -, hres2⟩ := Hj2
+      obtain ⟨hjle2, hysp2, -, hres2⟩ := Hj2
       cases err2 with
       | ok ei =>
         -- the write failed: log, return the error
@@ -680,24 +682,20 @@ theorem DB.init.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           rcases hres2 with ⟨h1, -, -⟩ | ⟨-, h2⟩
           · exact h1
           · exact absurd rfl h2
-        have hys2 : ys2.map Prod.fst = metaBuf (initMv 0) ++ metaBuf (initMv 1) := by
-          rw [hysp2]
-          have := pwBytes_inside_fst m2.size (W64 0).toNat (metaBuf (initMv 0) ++ metaBuf (initMv 1))
-            j2 (ys.take 8192) (by rw [metaBufs_length, hm2s]; decide)
-            (by rw [hy1, metaBufs_length]) (Or.inr hj2)
-          rw [this, if_neg (by rw [hj2, metaBufs_length]; decide)]
-        have hys2l : ys2.length = 8192 := by
-          have := congrArg List.length hys2; simp only [List.length_map] at this
-          rw [this, metaBufs_length]
-        have hsz2 : pwSize m2.size (W64 0).toNat j2 = 16384 := by
-          rw [hm2s]; exact pwSize_inside _ _ _ 8192 (by rw [hj2, metaBufs_length]; exact Nat.le_refl _) (by decide)
-        have hsz2' : pwSize m2.size 0 j2 = 16384 := by simpa using hsz2
-        rw [hsz2, hm20] at *
+        subst hj2
+        obtain ⟨hys2l, hys2⟩ := pwOut_full hysp2 (by rw [metaBufs_length]; decide)
+        rw [metaBufs_length] at hys2l
+        have hsz2' : (pwPost m2 0 (metaBuf (initMv 0) ++ metaBuf (initMv 1)).length
+            (metaBuf (initMv 0) ++ metaBuf (initMv 1)).length).size = 16384 := by
+          simp only [pwPost, pwSize, hm2s, metaBufs_length]; decide
+        have hpmaps2 : (pwPost m2 0 (metaBuf (initMv 0) ++ metaBuf (initMv 1)).length
+            (metaBuf (initMv 0) ++ metaBuf (initMv 1)).length).maps = m2.maps := by
+          simp only [pwPost, announce_maps]
         try wp_auto
         -- the second sync
-        ihave Hfo : fileOwn f fd p (DFrac.own 1) $$ [Hfo]
+        ihave Hfo : fileOwn f fd p.path (DFrac.own 1) $$ [Hfo]
         · rw [fileOwn_eq]; iexact Hfo
-        wp_apply hSync db f fd p _ dqf (DFrac.own 1) $$ [Hf Hfo Hfd Hm]
+        wp_apply hSync db f fd p p.ino _ dqf (DFrac.own 1) $$ [Hf Hfo Hfd Hm]
           as %e3 ⟨Hf, Hfo, Hfd, ⟨%m3, Hm, %Hm3⟩, Hr⟩
         · iframe #; iframe
         icases Hr with (%He | ⟨%He, #Hfe⟩)
@@ -755,8 +753,8 @@ theorem DB.init.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           rw [hy1] at *
           iframe
         ipureintro
-        refine ⟨by rw [Hm3.2, Hm2.2]; exact hmaps, ?_, ?_⟩
-        · rw [Hm3.1]; simp [hys2l, hysl, hsz2']
+        refine ⟨by rw [Hm3.2, hpmaps2]; exact hm2m, ?_, ?_⟩
+        · rw [Hm3.1, hsz2']; simp [hys2l, hysl]
         · rw [List.map_append, hys2, List.map_drop, hysp, initImg_join, initImg_split]
 
 end proof

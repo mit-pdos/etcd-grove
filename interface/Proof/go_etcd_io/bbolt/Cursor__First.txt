@@ -2,27 +2,29 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.Cursor.First.wp_reader [HasExt osFsExt] (hA : bbolt.internal.common.Assert.spec)
-    (hfirst : bbolt.Cursor.first_r.spec) (tx c : Loc) (γ : bbolt.BoltName) (q : Qp) (T :
-    bbolt.TxView) (es : List bbolt.BoltEnt) (pos : Option Nat) (hro : T.rw = false) : ⊢ ∀ Φ,
-    bbolt.boltTx tx γ q T ∗ bbolt.boltCur tx γ c T es pos -∗ (▷ ∀ k v, bbolt.boltTx tx γ q T ∗
-    bbolt.boltCur tx γ c T es (some 0) ∗ bbolt.curAt tx γ es 0 k v -∗ Φ (intoVal k, intoVal v)) -∗
-    WP ((intoVal (methods go_etcd_io.bbolt.Cursor.ty.PointerType go!"First" (intoVal c))) (intoVal
-    ())) {{ Φ }}
+theorem bbolt.Cursor.First.wp_reader [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (hA :
+    bbolt.internal.common.Assert.spec) (hfirst : bbolt.Cursor.first_r.spec) (tx c : Loc) (γ :
+    bbolt.BoltName) (q : Qp) (T : bbolt.TxView) (es : List bbolt.BoltEnt) (pos : Option Nat) (hro :
+    T.rw = false) : ⊢ ∀ Φ, bbolt.boltTx tx γ q T ∗ bbolt.boltCur tx γ c T es pos -∗ (▷ ∀ k v,
+    bbolt.boltTx tx γ q T ∗ bbolt.boltCur tx γ c T es (some 0) ∗ bbolt.curAt tx γ es 0 k v -∗ Φ
+    (intoVal k, intoVal v)) -∗ WP ((intoVal (methods go_etcd_io.bbolt.Cursor.ty.PointerType
+    go!"First" (intoVal c))) (intoVal ())) {{ Φ }}
 
-theorem bbolt.Cursor.First.wp_writer [HasExt osFsExt] (hA : bbolt.internal.common.Assert.spec) (hfw
-    : bbolt.Cursor.first_w.specQ) (tx c : Loc) (γ : bbolt.BoltName) (q : Qp) (T : bbolt.TxView) (es
-    : List bbolt.BoltEnt) (pos : Option Nat) (hrw : T.rw = true) : ⊢ ∀ Φ, bbolt.boltTx tx γ q T ∗
-    bbolt.boltCur tx γ c T es pos -∗ (▷ ∀ k v, bbolt.boltTx tx γ q T ∗ bbolt.boltCur tx γ c T es
-    (some 0) ∗ bbolt.curAt tx γ es 0 k v -∗ Φ (intoVal k, intoVal v)) -∗ WP ((intoVal (methods
-    go_etcd_io.bbolt.Cursor.ty.PointerType go!"First" (intoVal c))) (intoVal ())) {{ Φ }}
+theorem bbolt.Cursor.First.wp_writer [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (hA :
+    bbolt.internal.common.Assert.spec) (hfw : bbolt.Cursor.first_w.specQ) (tx c : Loc) (γ :
+    bbolt.BoltName) (q : Qp) (T : bbolt.TxView) (es : List bbolt.BoltEnt) (pos : Option Nat) (hrw :
+    T.rw = true) : ⊢ ∀ Φ, bbolt.boltTx tx γ q T ∗ bbolt.boltCur tx γ c T es pos -∗ (▷ ∀ k v,
+    bbolt.boltTx tx γ q T ∗ bbolt.boltCur tx γ c T es (some 0) ∗ bbolt.curAt tx γ es 0 k v -∗ Φ
+    (intoVal k, intoVal v)) -∗ WP ((intoVal (methods go_etcd_io.bbolt.Cursor.ty.PointerType
+    go!"First" (intoVal c))) (intoVal ())) {{ Φ }}
 
 theorem bbolt.Cursor.First.wp_proof (hA : bbolt.internal.common.Assert.spec) (hfirst : ∀ [inst :
-    HasExt osFsExt], bbolt.Cursor.first_r.spec) (hfw : ∀ [inst : HasExt osFsExt],
+    ExtSemantics Fs.fsExt] [Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt], bbolt.Cursor.first_r.spec) (hfw
+    : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt],
     bbolt.Cursor.first_w.specQ) : bbolt.Cursor.First.spec
   -- `Perennial.EtcdGrove.bbolt.Cursor.First.spec`, unfolded:
-  ∀ [inst : HasExt osFsExt] (tx c : Loc) (γ : bbolt.BoltName) (q : Qp) (T : bbolt.TxView) (es : List bbolt.BoltEnt)
-    (pos : Option Nat),
+  ∀ [inst : ExtSemantics Fs.fsExt] [inst_1 : Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt] (tx c : Loc) (γ : bbolt.BoltName)
+    (q : Qp) (T : bbolt.TxView) (es : List bbolt.BoltEnt) (pos : Option Nat),
     ⊢
       ∀ Φ,
         bbolt.boltTx tx γ q T ∗ bbolt.boltCur tx γ c T es pos -∗

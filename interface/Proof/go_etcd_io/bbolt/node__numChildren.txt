@@ -2,7 +2,8 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.node.numChildren.wp_proof [hos : HasExt osFsExt] : bbolt.node.numChildren.spec
+theorem bbolt.node.numChildren.wp_proof [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt]
+    : bbolt.node.numChildren.spec
   -- `Perennial.EtcdGrove.bbolt.node.numChildren.spec`, unfolded:
   ∀ (n : Loc) (nv : go_etcd_io.bbolt.node) (dq : DFrac),
     ⊢

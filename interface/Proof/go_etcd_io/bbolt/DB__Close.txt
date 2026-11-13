@@ -4,38 +4,38 @@
 
 theorem bbolt.Pm_timeless' (B : bbolt.BNs) (db : Loc) (q : Qp) : Timeless (bbolt.Pm B db q)
 
-theorem bbolt.close_res [hos : HasExt osFsExt] (B : bbolt.BNs) (N : Namespace) (p : GoString) (w :
-    bbolt.WDb) (hok : bbolt.wdbOK w) (hL : ∀ (b : Loc) (l : Nat), w.ms = some (b, l) → 8192 ≤ l) : ⊢
-    inv (bbolt.pagesN N) (bbolt.pagesInv B p) -∗ ghostVar B.cur (Qp.half 1).half w.C -∗ ghostVar
-    B.fl (Qp.half 1) w.fl -∗ ghostVar B.map (Qp.half 1) w.ms -∗ ghostVar B.map (Qp.half 1).half w.ms
-    -∗ ghostVar B.mtok 1 () -∗ ghostVar B.wv (Qp.half 1) bbolt.wIdle -∗ ghostVar B.out (Qp.half 1)
-    false -∗ bbolt.metaCellsQ (Qp.half 1).half w.ms w.C -∗ bbolt.wCells w.ms w.W -∗ osMeta p
-    (DFrac.own 1) (some w.m) ={⊤}=∗ bbolt.closeMapRes p w.ms ∗ ghostVar B.cur (Qp.half 1).half w.C ∗
-    ghostVar B.fl (Qp.half 1) w.fl ∗ ghostVar B.map (Qp.half 1) none ∗ ghostVar B.map (Qp.half
-    1).half none ∗ ghostVar B.mtok 1 () ∗ ghostVar B.wv (Qp.half 1) bbolt.wIdle ∗ ghostVar B.out
-    (Qp.half 1) false
+theorem bbolt.close_res [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (B : bbolt.BNs)
+    (N : Namespace) (p : bbolt.BFile) (w : bbolt.WDb) (hok : bbolt.wdbOK w) (hL : ∀ (b : Loc) (l :
+    Nat), w.ms = some (b, l) → 8192 ≤ l) : ⊢ inv (bbolt.pagesN N) (bbolt.pagesInv B p) -∗ ghostVar
+    B.cur (Qp.half 1).half w.C -∗ ghostVar B.fl (Qp.half 1) w.fl -∗ ghostVar B.map (Qp.half 1) w.ms
+    -∗ ghostVar B.map (Qp.half 1).half w.ms -∗ ghostVar B.mtok 1 () -∗ ghostVar B.wv (Qp.half 1)
+    bbolt.wIdle -∗ ghostVar B.out (Qp.half 1) false -∗ bbolt.metaCellsQ (Qp.half 1).half w.ms w.C -∗
+    bbolt.wCells w.ms w.W -∗ Fs.osMeta p.ino (DFrac.own 1) w.m ={⊤}=∗ bbolt.closeMapRes p w.ms ∗
+    ghostVar B.cur (Qp.half 1).half w.C ∗ ghostVar B.fl (Qp.half 1) w.fl ∗ ghostVar B.map (Qp.half
+    1) none ∗ ghostVar B.map (Qp.half 1).half none ∗ ghostVar B.mtok 1 () ∗ ghostVar B.wv (Qp.half
+    1) bbolt.wIdle ∗ ghostVar B.out (Qp.half 1) false
 
-theorem bbolt.mapFields_join2 [hos : HasExt osFsExt] (db : Loc) (ms : bbolt.MapSt) : bbolt.mapFields
-    db (DFrac.own (Qp.half 1)) ms ∗ bbolt.mapFields db (DFrac.own (Qp.half 1)) ms ⊣⊢ bbolt.mapFields
-    db (DFrac.own 1) ms
+theorem bbolt.mapFields_join2 [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (db :
+    Loc) (ms : bbolt.MapSt) : bbolt.mapFields db (DFrac.own (Qp.half 1)) ms ∗ bbolt.mapFields db
+    (DFrac.own (Qp.half 1)) ms ⊣⊢ bbolt.mapFields db (DFrac.own 1) ms
 
 theorem bbolt.pt_join {V : Type} [TypedPointsto V] (l : Loc) (v : V) : typedPointsto l v (DFrac.own
     (Qp.half 1)) ∗ typedPointsto l v (DFrac.own (Qp.half 1)) ⊢ typedPointsto l v (DFrac.own 1)
 
-theorem bbolt.close_gather [hos : HasExt osFsExt] (B : bbolt.BNs) (N : Namespace) (p : GoString) (w
-    : bbolt.WDb) (b : Loc) (L : Nat) (hok : bbolt.wdbOK w) (hms : w.ms = some (b, L)) (hL : 8192 ≤
-    L) : ⊢ inv (bbolt.pagesN N) (bbolt.pagesInv B p) -∗ ghostVar B.cur (Qp.half 1).half w.C -∗
-    ghostVar B.fl (Qp.half 1) w.fl -∗ ghostVar B.map (Qp.half 1) (some (b, L)) -∗ ghostVar B.map
-    (Qp.half 1).half (some (b, L)) -∗ ghostVar B.mtok 1 () -∗ ghostVar B.wv (Qp.half 1) bbolt.wIdle
-    -∗ ghostVar B.out (Qp.half 1) false -∗ bbolt.metaCellsQ (Qp.half 1).half (some (b, L)) w.C -∗
-    bbolt.wCells (some (b, L)) w.W ={⊤}=∗ (∃ vf, cellsR b 0 L vf) ∗ ghostVar B.cur (Qp.half 1).half
-    w.C ∗ ghostVar B.fl (Qp.half 1) w.fl ∗ ghostVar B.map (Qp.half 1) none ∗ ghostVar B.map (Qp.half
-    1).half none ∗ ghostVar B.mtok 1 () ∗ ghostVar B.wv (Qp.half 1) bbolt.wIdle ∗ ghostVar B.out
-    (Qp.half 1) false
+theorem bbolt.close_gather [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (B :
+    bbolt.BNs) (N : Namespace) (p : bbolt.BFile) (w : bbolt.WDb) (b : Loc) (L : Nat) (hok :
+    bbolt.wdbOK w) (hms : w.ms = some (b, L)) (hL : 8192 ≤ L) : ⊢ inv (bbolt.pagesN N)
+    (bbolt.pagesInv B p) -∗ ghostVar B.cur (Qp.half 1).half w.C -∗ ghostVar B.fl (Qp.half 1) w.fl -∗
+    ghostVar B.map (Qp.half 1) (some (b, L)) -∗ ghostVar B.map (Qp.half 1).half (some (b, L)) -∗
+    ghostVar B.mtok 1 () -∗ ghostVar B.wv (Qp.half 1) bbolt.wIdle -∗ ghostVar B.out (Qp.half 1)
+    false -∗ bbolt.metaCellsQ (Qp.half 1).half (some (b, L)) w.C -∗ bbolt.wCells (some (b, L)) w.W
+    ={⊤}=∗ (∃ vf, Fs.cellsR b 0 L vf) ∗ ghostVar B.cur (Qp.half 1).half w.C ∗ ghostVar B.fl (Qp.half
+    1) w.fl ∗ ghostVar B.map (Qp.half 1) none ∗ ghostVar B.map (Qp.half 1).half none ∗ ghostVar
+    B.mtok 1 () ∗ ghostVar B.wv (Qp.half 1) bbolt.wIdle ∗ ghostVar B.out (Qp.half 1) false
 
-theorem bbolt.metaR.congr_simp [hos : HasExt osFsExt] (B B✝ : bbolt.BNs) (e_B : B = B✝) (db db✝ :
-    Loc) (e_db : db = db✝) (p p✝ : GoString) (e_p : p = p✝) : bbolt.metaR B db p = bbolt.metaR B✝
-    db✝ p✝
+theorem bbolt.metaR.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] (B B✝ : bbolt.BNs)
+    (e_B : B = B✝) (db db✝ : Loc) (e_db : db = db✝) (p p✝ : bbolt.BFile) (e_p : p = p✝) :
+    bbolt.metaR B db p = bbolt.metaR B✝ db✝ p✝
 
 theorem bbolt.pt_split {V : Type} [TypedPointsto V] (l : Loc) (v : V) : typedPointsto l v (DFrac.own
     1) ⊢ typedPointsto l v (DFrac.own (Qp.half 1)) ∗ typedPointsto l v (DFrac.own (Qp.half 1))
@@ -43,10 +43,10 @@ theorem bbolt.pt_split {V : Type} [TypedPointsto V] (l : Loc) (v : V) : typedPoi
 theorem bbolt.treeOK_root' (C : bbolt.CommitSt) (htree : bbolt.treeOK C) : 2 ≤ C.root ∧ C.root <
     C.hwm
 
-theorem bbolt.DB.Close.wp_proof [hos : HasExt osFsExt] (hOwned : bbolt.DB.close.spec_owned) :
-    bbolt.DB.Close.spec
+theorem bbolt.DB.Close.wp_proof (hOwned : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [inst_2 :
+    HasExt Fs.fsExt], bbolt.DB.close.spec_owned) : bbolt.DB.Close.spec
   -- `Perennial.EtcdGrove.bbolt.DB.Close.spec`, unfolded:
-  ∀ [inst : HasExt osFsExt] (db : Loc) (γ : bbolt.BoltName),
+  ∀ [inst : ExtSemantics Fs.fsExt] [inst_1 : Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt] (db : Loc) (γ : bbolt.BoltName),
     ⊢
       ∀ Φ,
         bbolt.isBolt db γ -∗
@@ -56,6 +56,6 @@ theorem bbolt.DB.Close.wp_proof [hos : HasExt osFsExt] (hOwned : bbolt.DB.close.
                 (intoVal ()))
               {{ Φ }}
 
-theorem bbolt.metaOsBytes.congr_simp [hos : HasExt osFsExt] (p p✝ : GoString) (e_p : p = p✝) (dq dq✝
-    : DFrac) (e_dq : dq = dq✝) (C C✝ : bbolt.CommitSt) (e_C : C = C✝) : bbolt.metaOsBytes p dq C =
-    bbolt.metaOsBytes p✝ dq✝ C✝
+theorem bbolt.metaOsBytes.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] (p p✝ :
+    bbolt.BFile) (e_p : p = p✝) (dq dq✝ : DFrac) (e_dq : dq = dq✝) (C C✝ : bbolt.CommitSt) (e_C : C
+    = C✝) : bbolt.metaOsBytes p dq C = bbolt.metaOsBytes p✝ dq✝ C✝

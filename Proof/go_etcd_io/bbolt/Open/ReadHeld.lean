@@ -1,6 +1,6 @@
 /-
 `Open`'s reads of the file's meta pages (U11, `notes/bbolt-proof-plan.md`): `os.File.ReadAt` of
-bytes the reader holds whole (`osBytes p 0 dq xs`), without the file's `OsMeta`, from the racing
+bytes the reader holds whole (`osBytes p.ino 0 dq xs`), without the file's `OsMeta`, from the racing
 read's spec, strengthened (`os.File.ReadAt.specRacyLt`, `Spec/os/File__ReadAt.lean`, batch 36).
 
 **Why not `os.File.ReadAt.spec`/`specRacy` as they are** (reported to the maintainer): both allow an
@@ -24,9 +24,10 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode
+open Fs
 
 section spec
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -37,16 +38,16 @@ omit osA in
 `0` (no `OsMeta`): all of them, exactly (`n = len(b)`), or a `*PathError` (`fmt` formats it). -/
 theorem os.File.ReadAt.wp_held (hRead : os.File.ReadAt.specRacyLt (GF := GF) (hG := hG))
     (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice) (vs : List w8)
-    (off : w64) (dq dqb : DFrac) (d : OsFd) (xs : List (w8 × Bool)) (eof : GoInterface)
+    (off : w64) (dq dqb : DFrac) (d : OsFd) (xs : List ByteG) (eof : GoInterface)
     (hrd : d.readable = true) (hoff : 0 ≤ off.toInt) (hn : vs.length ≤ 0x40000000)
     (hin : off.toNat + vs.length ≤ xs.length) (hx : xs.length < 2 ^ 63) :
     {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ sl ↦* vs ∗
-        osFd (GF := GF) fd dq d ∗ osBytes (GF := GF) d.path 0 dqb xs ∗
+        osFd (GF := GF) fd dq d ∗ osBytes (GF := GF) d.ino 0 dqb xs ∗
         globalAddr io.EOF ↦□ eof }}
       (App (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"ReadAt")) (Val #sl))
         (Val #off))
     {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
-        os.ownFile f fd name dqf ∗ osFd fd dq d ∗ osBytes d.path 0 dqb xs ∗
+        os.ownFile f fd name dqf ∗ osFd fd dq d ∗ osBytes d.ino 0 dqb xs ∗
         ∃ vs' : List w8, sl ↦* vs' ∗
           ⌜(err = interface.nil ∧ n = W64 (vs.length : Int) ∧
               vs' = ((xs.map Prod.fst).drop off.toNat).take vs.length) ∨

@@ -14,12 +14,14 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section base
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
@@ -40,7 +42,7 @@ theorem mapFields_base_nonnull (db : Loc) (dq : DFrac) (b : Loc) (l : Nat) :
   iintro ⟨-, -, -, -, %H⟩
   ipureintro; exact H.2.1
 
-theorem isBoltCoreP_pageSize (B : BNs) (N : Namespace) (db : Loc) (p : GoString) (sp : Loc)
+theorem isBoltCoreP_pageSize (B : BNs) (N : Namespace) (db : Loc) (p : BFile) (sp : Loc)
     (t0 : Nat) :
     isBoltCoreP (GF := GF) B N db p sp t0 ⊢ db.[DB, go!"pageSize"] ↦□ W64 4096 := by
   unfold isBoltCoreP dbFixed
@@ -51,7 +53,7 @@ theorem BC.core_pageSize (K : BC) :
     K.core (GF := GF) ⊢ K.db.[DB, go!"pageSize"] ↦□ W64 4096 :=
   isBoltCoreP_pageSize K.B K.N K.db K.p K.sp K.t0
 
-theorem isBoltCoreP_pkgInit' (B : BNs) (N : Namespace) (db : Loc) (p : GoString) (sp : Loc)
+theorem isBoltCoreP_pkgInit' (B : BNs) (N : Namespace) (db : Loc) (p : BFile) (sp : Loc)
     (t0 : Nat) :
     isBoltCoreP (GF := GF) B N db p sp t0 ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt := by
   unfold isBoltCoreP
