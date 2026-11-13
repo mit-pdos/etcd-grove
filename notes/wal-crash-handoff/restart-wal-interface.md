@@ -179,3 +179,13 @@ not part of this interface.
   `ReadAll` sized gap (I9).
 
 Once both are done, S6/S7 should need no change beyond the slot's body.
+
+## 5. Who owns `wal.restartOk` (2026-11-12, restart S6; lands with S6)
+
+S6 introduces `wal.restartOk` in `Proof/go_etcd_io/etcd/server/v3/etcdserver/WalApi.lean`, beside
+`wal.bootOk`. It has a defined sealed body over the graceful model
+(`walOpened w dir id cid σ true ∗ walPurgeRight dir ∗ ⌜walReadFacts σ⌝`, with I1-I4 as
+`walReadFacts`) and two proved laws, `wal.restartOk_facts` and `wal.restartOk_start`, and it
+replaces `bootOkR`'s two WAL rows (`HwalR`, `Hwalo`). No axiom or opaque is added. After S6, C6
+owns the body: it rebases the body on `ReadAll` + `walCrashKeeps` + the server's invariant (a)-(c)
+and re-proves the two laws. The restart proofs use only the laws, so they should need no change.

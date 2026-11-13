@@ -1637,12 +1637,16 @@ theorem EtcdServer.run.wp_proofG
       refine ⟨Hsh.1, Hsh.2.1, ?_⟩
       simp only [ghostOf, hp0, List.nil_append, List.length_append, List.length_drop] at hc1 ⊢
       omega
-    -- `s.Cleanup()`: the backend closed, the image at the ghost log
+    -- `s.Cleanup()`: the backend closed, the image at the ghost log; (restart S6a) the member id the
+    -- raft node's (`srvSnapBagN`'s)
+    ihave #Hbg := Hbagn
+    iunfold srvSnapBagN at Hbg
+    icases Hbg with ⟨#HmidN, -⟩
     (try wp_auto)
     wp_apply hCl C
         (⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ, γn⟩ : ApplyCtx GF)
         ⟨P.length, A₀⟩ A Er γg γcx v _ TM cfg dd hM hoff ⟨HEC, HEγr, Hc0a⟩ Hdisk hcmp
-      $$ [$Hpkg $Hsrv $Hrn $Hrf $Hres $Hclp $Hcsp $Himp $Hdd $Hrds $HSP $Hvac $Hrst $HWB $Hsa
+      $$ [$Hpkg $Hsrv $Hrn $HmidN $Hrf $Hres $Hclp $Hcsp $Himp $Hdd $Hrds $HSP $Hvac $Hrst $HWB $Hsa
         Hlc2 Hlc3 $HWreg $Hgw] as Himg
     · iapply (lc_split (n := 1) (m := 1)).2; iframe Hlc2 Hlc3
     -- `close(s.done)`, the image escrowed (`srvDoneInv`)

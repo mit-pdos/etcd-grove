@@ -2,9 +2,9 @@
 # (etc/featuregate-check.py; Gate.lean's environment assumption; notes/k8s-7f5-freeze.md S0.4).
 # <class>\t<path>\t<line, whitespace collapsed>\t<reason>; class inert | driver | outside.
 # A new hit needs an entry with a reason checked against the code; an entry no program hits fails (stale).
-inert	mod:github.com/upamanyus/etcd/pkg/v3@v3.0.0-20261112123031-0b50f04262d9/featuregate/feature_gate.go	OverrideDefault(name Feature, override bool) error	etcd's own feature gate (a different gate than util/feature's), its definitions
-inert	mod:github.com/upamanyus/etcd/pkg/v3@v3.0.0-20261112123031-0b50f04262d9/featuregate/feature_gate.go	func (f *featureGate) OverrideDefault(name Feature, override bool) error {	etcd's own feature gate (a different gate than util/feature's), its definitions
-inert	mod:github.com/upamanyus/etcd/pkg/v3@v3.0.0-20261112123031-0b50f04262d9/featuregate/feature_gate.go	return f.SetFromMap(m)	etcd's own feature gate (a different gate than util/feature's), its definitions
+inert	mod:github.com/upamanyus/etcd/pkg/v3@v3.0.0-20261113113003-2eaeb872bce9/featuregate/feature_gate.go	OverrideDefault(name Feature, override bool) error	etcd's own feature gate (a different gate than util/feature's), its definitions
+inert	mod:github.com/upamanyus/etcd/pkg/v3@v3.0.0-20261113113003-2eaeb872bce9/featuregate/feature_gate.go	func (f *featureGate) OverrideDefault(name Feature, override bool) error {	etcd's own feature gate (a different gate than util/feature's), its definitions
+inert	mod:github.com/upamanyus/etcd/pkg/v3@v3.0.0-20261113113003-2eaeb872bce9/featuregate/feature_gate.go	return f.SetFromMap(m)	etcd's own feature gate (a different gate than util/feature's), its definitions
 outside	mod:k8s.io/apiextensions-apiserver@v0.0.0-20261021192051-3da7cab8aae0/pkg/features/kube_features.go	runtime.Must(utilfeature.DefaultMutableFeatureGate.AddVersioned(defaultVersionedKubernetesFeatureGates))	apiextensions-apiserver's features init registers its features with the default gate
 inert	mod:k8s.io/apiserver@v0.0.0-20261021221356-9c4ec15b8038/pkg/features/kube_features.go	runtime.Must(utilfeature.DefaultMutableFeatureGate.AddVersioned(defaultVersionedKubernetesFeatureGates))	apiserver features' init: the registration features.init_0_ok models, before main
 inert	mod:k8s.io/apiserver@v0.0.0-20261021221356-9c4ec15b8038/pkg/features/kube_features.go	runtime.Must(zpagesfeatures.AddFeatureGates(utilfeature.DefaultMutableFeatureGate))	apiserver features' init: the registration features.init_0_ok models, before main

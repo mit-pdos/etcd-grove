@@ -148,7 +148,14 @@ carries and this predicate does not yet.) (R6, 2026-11-07, the `lean` merge: the
 over mvcc's API, as `dbImage`'s since strict M1: the server's parts `imageRestAt`, the state reachable
 and short `imageStOk`, and mvcc's `mvccImage` of the KV model's history at its compaction revision
 (the receipt inside), in place of `imageAt`'s key image `keyImageM` and `IdxWf`, mvcc's internals;
-which also settles RESTART-RCPT's receipt.) -/
+which also settles RESTART-RCPT's receipt.) (Restart S6a, (b′), decided by etcd-grove-81 2026-11-13:
+the member's snapshot directory, so that a restart reuses the first start's invariant, which a
+stopped incarnation's snapshot handler may still update: the invariant over some snapshotter `ssₒ` of
+the stopped incarnation at `γ.snapLoc id` (`srvSnapRO`'s), and the removal counter's authority
+(`snapRmM γm`, written out: this module does not import `SnapRO`), at most `i + 1`, from the apply
+thread's `srvSnapOwn` at the graceful stop's applied index; (S6a-2) `ssₒ`'s paths are `dd`'s
+(`snap.snapDBPathOf dd`, from `srvSnapRO`, `bootOk`'s `Hssp`), so that the restart reuses the
+invariant at its own snapshotter, `snapDirInv_ss_congr` with `bootOkR`'s equation.) -/
 def srvDiskImage (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) : IProp GF :=
   iprop(∃ (S : RaftState) (σ : StorContents) (i : w64) (A : List EntryModel)
       (D : backend.Data) (m : Membership) (M : GMap Loc MemStorNamesRec),
@@ -164,7 +171,16 @@ def srvDiskImage (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) : IPr
     -- and the records' snapshot certificate (Q14 (a); its margin, a static cluster, in its docstring)
     wal.stopImage γ.cl S σ i ∗
     (letI : MemStorReg GF := ⟨γ.reg⟩; memStorRegAuth M) ∗
-    srvFiles dd id σ D ∗ backend.pathOwn (config.backendPathOf dd))
+    srvFiles dd id σ D ∗ backend.pathOwn (config.backendPathOf dd) ∗
+    -- (restart S6a, (b′)) the member's snapshot directory: the invariant its first start allocated
+    -- (at raft's names for the member, its images' certificate the cluster's auth mode's), and the
+    -- member's removal counter, at most one past the image's index; (S6a-2) the invariant's
+    -- snapshotter's paths the data directory `dd`'s, which a restarted snapshotter's are (`bootOkR`)
+    (∃ (ssₒ : Loc) (γd γm : GName) (c : Nat),
+      ⌜γ.snapLoc id = some γd ∧ snap.snapDBPath ssₒ = snap.snapDBPathOf dd ∧ c ≤ uint.nat i + 1⌝ ∗
+      inv snapDirN (snapDirInv ssₒ γd (srvImageM γ.authOn γ)
+        (fun j => monoNatLbOwn γm (uint.nat j + 1))) ∗
+      monoNatAuthOwn γm 1 c))
 
 /-- The image records the raft names it is at (`ρ.rd.raft.raft = γ`). -/
 theorem srvDiskImage_raft (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) :
@@ -407,6 +423,10 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     -- (D22 S-i, 2026-10-19) the snapshotter (`bootstrapSnapshot`'s `snap.New(lg, cfg.SnapDir())`,
     -- its fields set once), which the transport's snapshot handler and `applySnapshot` use
     "#Hss" ∷ snap.isSnapshotter bs.ss' ∗
+    -- (restart S6a, approved by the user 2026-11-13 via etcd-grove-81) in the data directory's
+    -- snapshot directory (`cfg.SnapDir()`, a function of `DataDir`: `snap.snapDBPathOf`), so that a
+    -- restart's snapshotter writes the files of the first start's
+    "%Hssp" ∷ ⌜snap.snapDBPath bs.ss' = snap.snapDBPathOf cfg.DataDir'⌝ ∗
     -- `b.raft`: the raft configuration (as `bootOk`'s, but `RestartNode`'s path: no peers)
     -- (2026-11-03, S2: until then `heartbeat ≠ 0`) the heartbeat as Go computes it
     -- (`bootstrap.go:574`, wrapping)

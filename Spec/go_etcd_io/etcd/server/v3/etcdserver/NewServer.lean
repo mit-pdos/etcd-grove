@@ -304,7 +304,10 @@ abbrev NewServer.specG (on cmp : Bool) : Prop :=
       "#Hnet" ∷ netHttpOk γn id ∗ "%Hγn" ∷ ⌜γn.N = srvNet γ ∧ γn.dir = dir⌝ ∗
       -- (2026-10-26, D22 J2, R-loc) the member's snapshot directory, empty, at the names the
       -- cluster gives the member (raft's `RaftNames.reSnapLoc` until 2026-10-27; until then `NewServer` allocated it,
-      -- `snapDir_alloc`; 2026-10-27: at the server's `SrvRaft.snapLoc`)
+      -- `snapDir_alloc`; 2026-10-27: at the server's `SrvRaft.snapLoc`). This is the ghost map's
+      -- authority only; the directory itself (no `.snap.db` file yet, no writer but the server's
+      -- snapshotters) is `bootOk`'s `Hsdo` (`snap.snapDirOwn`, restart S6a M1), which names this map
+      -- in the directory's invariant (`snapDir_init`); `snapDir_alloc` is deleted.
       "%Hsloc" ∷ ⌜γ.snapLoc id = some γd⌝ ∗ "Hsdir" ∷ ghostMapAuth γd 1 (∅ : GMap w64 Unit) ∗
       -- the named premises of the constructors' axioms (D14e, unit N4): the auth store's record
       -- bound (until 2026-11-12 also the lessor's checkpointer's effects, through `lease.bootCfg`)

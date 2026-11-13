@@ -10,11 +10,12 @@ with the names it is stated over (`srvSnapBoot`):
   over the consistent index, the raft storage over the snapshotter (`storage.storageSnap`, from
   `NewStorage`'s contract `rnNewStorageOk`), the member's snapshot directory's invariant at the
   names raft's names give the member (`SrvRaft.snapLoc`) with the server's removal fact
-  `srvSnapRm` (J0 item 3), the stores and their contracts on whichever backend (the alarm store's,
+  `snapRmM` (restart S6a; J0 item 3's `srvSnapRm` until then), the stores and their contracts on whichever backend (the alarm store's,
   the auth store's in the environment's mode and, in the mode `off`, its `Recover`, the lessor's,
   the cluster's), the cluster's `Members()` (`srvMembersDir`, `bootOk`'s `Hmembers`), and the
   Key bucket's size bound of every backend at the boot parameters (`keySized`, proved since premise fixes 5: `mvcc.keySized_at`);
-* the snapshot-taken counter's authority at `0` (`γt`, the removal fact's);
+* the removal counter's authority at `0` (`γm`, the removal fact's; restart S6a: the member's,
+  until then the snapshot-taken counter `γt`);
 * (until J8a-6, 2026-11-01) a reader-slot stock (`srvSnapStock`): `lgMu`'s reader slots for the
   snapshots' `AddPeer`s (and until J8a-1 the auth store's reader resource `E.RD`, which the
   snapshots' `NewUberApplier` took until the auth layer's `Apply` borrowed its caller's). Gone: the
@@ -341,60 +342,63 @@ def lessorLookupOk (lp : Loc) : IProp GF :=
 instance lessorLookupOk_persistent (lp : Loc) : Persistent (lessorLookupOk (GF := GF) lp) := by
   unfold lessorLookupOk; infer_instance
 
-/-- **The removal fact of the server's snapshot directory** (D22 J0 item 3, J1a; `snapDirInv`'s
-`Rm`): a `.snap.db` file of index `j` may be gone once a snapshot at `j` or above was opened
-(`snapTakenLb γt j`: `applySnapshot(i)`'s own `Release`, after the open, removes the files below
-`i`) or the apply thread has applied past `j` (`γr.applied` at least `j + 1`, as a natural number:
-`snapshot`'s `Release` at the applied index removes files saved but never opened). Both are
-refuted for the file `applySnapshot(i)` opens, with the apply thread's authorities (`γt` at most its
-applied index, which is below `i`). Supersedes S8d's `snapTakenLb γt`. -/
-def srvSnapRm (γt : GName) (γr : ReadNames) (j : w64) : IProp GF :=
-  iprop(snapTakenLb γt j ∨ monoNatLbOwn γr.applied (uint.nat j + 1))
+/-- **The removal fact of the member's snapshot directory** (restart S6a, 2026-11-13, decided by
+etcd-grove-81 (b′); `snapDirInv`'s `Rm`): a `.snap.db` file of index `j` may be gone once the
+member-level removal counter `γm` is past `j` (at least `j + 1`). The apply thread holds the
+counter's authority at most its applied index plus one (`srvSnapOwn`): `applySnapshot(i)` raises it
+to `i + 1` when it takes the file out (`snapDir_take`; its own `Release` then removes the files below
+`i`), and `snapshot`'s `Release` at the applied index `ai` raises it to `ai`. The counter is the
+member's, not an incarnation's: the directory's invariant is allocated once, at the first start, and
+a restarted incarnation's apply thread reuses it (`srvDiskImage` carries it), while a stopped
+incarnation's snapshot handler may still write to it. Supersedes J1a's `srvSnapRm γt γr`
+(`snapTakenLb γt j ∨ monoNatLbOwn γr.applied (j + 1)`, over an incarnation's names). -/
+def snapRmM (γm : GName) (j : w64) : IProp GF := monoNatLbOwn γm (uint.nat j + 1)
 
-instance srvSnapRm_persistent (γt : GName) (γr : ReadNames) (j : w64) :
-    Persistent (srvSnapRm (GF := GF) γt γr j) := by
-  unfold srvSnapRm; infer_instance
+instance snapRmM_persistent (γm : GName) (j : w64) : Persistent (snapRmM (GF := GF) γm j) := by
+  unfold snapRmM; infer_instance
+
+/-- (restart S6a) **The directory's invariant reads its snapshotter only through its paths**: two
+snapshotters with the same database-snapshot paths (`snapDBPath`; a restart's and the first start's,
+both `snapDBPathOf` of the data directory by the bootstrap contracts) have the same invariant. -/
+theorem snapDirInv_ss_congr {ss ss' : Loc} (h : snap.snapDBPath ss = snap.snapDBPath ss')
+    (γd : GName) (img : w64 → backend.Data → IProp GF) (Rm : w64 → IProp GF) :
+    snapDirInv (GF := GF) ss γd img Rm = snapDirInv ss' γd img Rm := by
+  unfold snapDirInv; rw [h]
 
 /-- (2026-11-01, J8a-5) **The snapshot's file taken from the directory** (`applyAll`'s, before
-`applySnapshot(i)`, whose `OpenSnapshotBackend` renames it): a saved index `i` above the counter's
-`nt` and the applied index `a` is present, its removal fact (`srvSnapRm γt γr i`) refuted by the
-apply thread's authorities; the counter raised to `i` gives that fact, so the file leaves the
-directory, with its certificate. A later credit strips the invariant's later (`fileHolds` is not
-timeless). -/
-theorem snapDir_take (ss : Loc) (γd γt : GName) (γr : ReadNames)
-    (img : w64 → backend.Data → IProp GF) (i a : w64) (nt : Nat) (hnt : nt < uint.nat i)
-    (ha : uint.Z a < uint.Z i) :
-    ⊢ £ 1 -∗ inv snapDirN (snapDirInv ss γd img (srvSnapRm γt γr)) -∗ snapSaved γd i -∗
-      monoNatAuthOwn γt 1 nt -∗ srvAppliedOwn γr a ={⊤}=∗
-      monoNatAuthOwn γt 1 (uint.nat i) ∗ srvAppliedOwn γr a ∗
+`applySnapshot(i)`, whose `OpenSnapshotBackend` renames it): a saved index `i` at or above the
+removal counter `c` (restart S6a: `c ≤ ai + 1 ≤ i` at the applied index `ai < i`) is present, its
+removal fact (`snapRmM γm i`, the counter past `i`) refuted by the counter's authority; the counter
+raised to `i + 1` gives that fact, so the file leaves the directory, with its certificate. A later
+credit strips the invariant's later (`fileHolds` is not timeless). -/
+theorem snapDir_take (ss : Loc) (γd γm : GName)
+    (img : w64 → backend.Data → IProp GF) (i : w64) (c : Nat) (hc : c ≤ uint.nat i) :
+    ⊢ £ 1 -∗ inv snapDirN (snapDirInv ss γd img (snapRmM γm)) -∗ snapSaved γd i -∗
+      monoNatAuthOwn γm 1 c ={⊤}=∗
+      monoNatAuthOwn γm 1 (uint.nat i + 1) ∗
       ∃ D : backend.Data, backend.fileHolds (snap.snapDBPath ss i) D ∗ □ img i D := by
-  iintro Hlc #Hinv #Hsv Hγt Hao
+  iintro Hlc #Hinv #Hsv Hγm
   iinv Hinv with Hi Hclose
-  imod (lc_fupd_elim_later (P := snapDirInv ss γd img (srvSnapRm γt γr))) $$ Hlc Hi with Hi
+  imod (lc_fupd_elim_later (P := snapDirInv ss γd img (snapRmM γm))) $$ Hlc Hi with Hi
   iunfold snapDirInv at Hi
-  icases Hi with ⟨%M, %Es, Ha, %HME, HM, #HEs, #HRm⟩
+  icases Hi with ⟨#Hdi, %M, %Es, Ha, %HME, HM, #HEs, #HRm⟩
   iunfold snapSaved at Hsv
   ihave %HEi := ghost_map_lookup $$ Ha Hsv
   cases hMi : M.lookup i with
   | none =>
     have hp : Es.lookup i ≠ none ∧ M.lookup i = none := ⟨by simp [HEi], hMi⟩
     ihave #Hr := HRm $$ %i %hp
-    iunfold srvSnapRm at Hr
-    icases Hr with (#Hr | #Hr)
-    · iunfold snapTakenLb at Hr
-      ihave %Hv := monoNatLbOwn_valid γt 1 nt (uint.nat i) $$ Hγt Hr
-      exfalso; omega
-    · iunfold srvAppliedOwn at Hao
-      icases Hao with ⟨Hao1, -⟩
-      ihave %Hv := monoNatLbOwn_valid γr.applied _ _ _ $$ Hao1 Hr
-      exfalso; have := Hv.2; word
+    iunfold snapRmM at Hr
+    ihave %Hv := monoNatLbOwn_valid γm 1 c (uint.nat i + 1) $$ Hγm Hr
+    exfalso; omega
   | some D =>
-    imod (mono_nat_own_update (uint.nat i) (by omega)) $$ Hγt with ⟨Hγt, #Htk⟩
+    imod (mono_nat_own_update (uint.nat i + 1) (by omega)) $$ Hγm with ⟨Hγm, #Htk⟩
     icases (BigSepM.bigSepM_delete (Φ := fun (j : w64) (D : backend.Data) => iprop(backend.fileHolds
       (snap.snapDBPath ss j) D ∗ □ img j D)) hMi).1 $$ HM with ⟨⟨Hf, #Himg⟩, HM⟩
     imod Hclose $$ [Ha HM] with -
     · inext
       iunfold snapDirInv
+      iframe Hdi
       iexists GMap.delete i M, Es
       iframe Ha HM HEs
       isplitr
@@ -406,18 +410,33 @@ theorem snapDir_take (ss : Loc) (γd γt : GName) (γr : ReadNames)
       iintro !> %j %hj
       by_cases hji : i = j
       · subst hji
-        iunfold srvSnapRm; ileft; iunfold snapTakenLb; iexact Htk
+        iunfold snapRmM; iexact Htk
       · rw [GMap.lookup_delete_ne M hji] at hj
         iapply HRm $$ %j %hj
     imodintro
-    iframe Hγt Hao
+    iframe Hγm
     iexists D
     iframe Hf Himg
 
+/-- (restart S6a) **The removal facts below `ai`, from the counter's authority** (`snapshot`'s
+`Release` at the applied index `ai`): the counter, at most `ai + 1`, raised to at least `ai`, stays at
+most `ai + 1` and is past every `j < ai`. -/
+theorem snapRm_raise (γm : GName) (ai : w64) (c : Nat) (hc : c ≤ uint.nat ai + 1) :
+    ⊢ monoNatAuthOwn (GF := GF) γm 1 c ==∗
+      ∃ c' : Nat, ⌜c' ≤ uint.nat ai + 1⌝ ∗ monoNatAuthOwn γm 1 c' ∗ monoNatLbOwn γm (uint.nat ai) := by
+  iintro Hγm
+  imod (mono_nat_own_update (max c (uint.nat ai)) (Nat.le_max_left _ _)) $$ Hγm with ⟨Hγm, #Hlb⟩
+  imodintro
+  iexists max c (uint.nat ai)
+  iframe Hγm
+  isplitr
+  · ipureintro; omega
+  · iapply monoNatLbOwn_le (uint.nat ai) (Nat.le_max_right _ _) $$ Hlb
+
 /-- **The snapshot path's persistent bundle** (see the file header) of the server `s` with the
-consistent index `ci`, the apply environment `E` and the read names `γr`, the snapshot-taken
-counter `γt`. -/
-def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γt : GName) : IProp GF :=
+consistent index `ci`, the apply environment `E` and the read names `γr`, the member's removal
+counter `γm` (restart S6a; until then the snapshot-taken counter `γt`). -/
+def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γm : GName) : IProp GF :=
   iprop(□ ∃ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (ss hk lgh stp : Loc) (γd : GName)
       (idm : w64) (al ast lp cl : Loc) (ps : List w64) (dir : w64 → List GoString)
       (d : mvcc.KBReal),
@@ -436,7 +455,11 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γt : GName) :
       (d.P.has mvcc.alarmBI ∧
         d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧ d.P.has mvcc.authRolesBI) ∧
       E.RO = srvRestOwnH E.authMode d.γB cl (srvObjsOn al ast lp cl d.be) ∧
-      receiptBound GF ≤ backend.wbInit - 6⌝ ∗
+      receiptBound GF ≤ backend.wbInit - 6 ∧
+      -- (restart S6a-2) the snapshotter's paths, the data directory's (`bootOk`'s `Hssp`): what the
+      -- stop hands to the image (`srvDiskImage`), so that a restarted incarnation's snapshotter,
+      -- at the same data directory, finds this directory's invariant
+      snap.snapDBPath ss = snap.snapDBPathOf cfg.DataDir'⌝ ∗
     -- the configuration's fields the snapshot path reads, its feature gate
     -- (premise-fixes-6: until then `cfg.Logger' ≠ null` in the pure part) a zap logger
     srvCfgFieldAddr s go!"Logger" ↦□ cfg.Logger' ∗ zapLoggerOk cfg.Logger' ∗
@@ -457,7 +480,7 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γt : GName) :
     -- the member's snapshot directory, at raft's names for the member (D22 J2), its images'
     -- certificate the cluster's auth mode's (the auth-on pair's F8, `srvNet`'s)
     srvMemberIDAddr s ↦□ idm ∗
-    inv snapDirN (snapDirInv ss γd (srvImageM γr.raft.raft.authOn γr.raft.raft) (srvSnapRm γt γr)) ∗
+    inv snapDirN (snapDirInv ss γd (srvImageM γr.raft.raft.authOn γr.raft.raft) (snapRmM γm)) ∗
     -- the stores and their contracts on whichever backend
     srvAlarmStoreAddr s ↦□ al ∗ srvAuthStoreAddr s ↦□ auth.authIface ast ∗
     srvLessorAddr s ↦□ lease.lessorIface lp ∗ srvClusterAddr s ↦□ cl ∗
@@ -493,8 +516,8 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γt : GName) :
     -- `RaftCluster.Recover` logs through
     (∃ lgc : Loc, membership.rcLgAddr cl ↦□ lgc ∗ zapLoggerOk lgc))
 
-instance srvSnapRO_persistent (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γt : GName) :
-    Persistent (srvSnapRO (GF := GF) s ci E γr γt) := by
+instance srvSnapRO_persistent (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γm : GName) :
+    Persistent (srvSnapRO (GF := GF) s ci E γr γm) := by
   unfold srvSnapRO; infer_instance
 
 /-- (2026-11-01, J8a-1, item 7) **The auth store's contract mode off, from auth off**: `authOn` is the
@@ -528,7 +551,7 @@ theorem srvSnapRO_succ {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (s ci : Loc)
   icombine Hcl H17 gives %e4
   simp only [auth.authIface, lease.lessorIface, interface_mkOk_inj] at e2 e3
   obtain ⟨hkb0, hstp, hdbo, hmm, hbuq, hsl, hdir, hsop, hbr, hci, hhk, hwf, hlim, hlp, halbi,
-    -, hrb⟩ := Hp
+    -, hrb, hsp⟩ := Hp
   rw [hkb] at hkb0
   obtain rfl := srvBkTie_inj d d0 hkb0
   have e2' : ast = ast0 := by
@@ -542,7 +565,7 @@ theorem srvSnapRO_succ {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (s ci : Loc)
   isplitr
   · ipureintro
     refine ⟨hkb', hstp, hdbo, hmm, hbuq, hsl, hdir, hsop, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
-      hRO, hrb⟩ <;> rw [hP] <;> assumption
+      hRO, hrb, hsp⟩ <;> rw [hP] <;> assumption
   have e5 : (E.onBe b P f c RO RW).authMode = E.authMode := rfl
   have e6 : (E.onBe b P f c RO RW).RD = E.RD := rfl
   have e7 : (E.onBe b P f c RO RW).γ = E.γ := rfl
@@ -596,21 +619,22 @@ def srvSnapRes (s : Loc) (E : apply.AEnv GF) (γA : ApplyNames) : IProp GF :=
     backend.bFile d.γB (config.backendPathOf dd))
 
 /-- **What `NewServer` hands the snapshot path** (see the file header): the bundle at a fresh
-snapshot-taken counter, its authority at `0` (until J8a-6, 2026-11-01, the reader-slot stock);
+removal counter (restart S6a; until then the snapshot-taken counter), its authority at `0` (until J8a-6, 2026-11-01, the reader-slot stock);
 (D22 J1b) the backend's own resources (`srvSnapRes`). -/
 def srvSnapBoot (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γA : ApplyNames) : IProp GF :=
-  iprop(∃ γt : GName, srvSnapRO s ci E γr γt ∗ monoNatAuthOwn γt 1 0 ∗ srvSnapRes s E γA)
+  iprop(∃ γm : GName, srvSnapRO s ci E γr γm ∗ monoNatAuthOwn γm 1 0 ∗ srvSnapRes s E γA)
 
 /-- **The apply thread's snapshot resources at the applied index `ai`** (D22 J1b, 2026-10-31;
-`notes/snapshot-sj-plan.md`, J1b; spatial): the persistent bundle at the snapshot-taken counter
-`γt`, the counter's authority at most `ai` (`specSnapM`'s `hnt`) and the backend's own resources
+`notes/snapshot-sj-plan.md`, J1b; spatial): the persistent bundle at the member's removal counter
+`γm`, the counter's authority at most `ai + 1` (restart S6a; until then the snapshot-taken counter
+`γt` at most `ai`: `specSnapM`'s `hnt`) and the backend's own resources
 (`srvSnapRes`; until J8a-6, 2026-11-01, also the reader-slot stock for the installs'
 `AddPeer`s). `run`'s loop invariant holds it (`applyRes`), at the current backend's environment
 `E`; `applyAll` passes it through a batch. The transport's live state is `srvApRes`'s (J-T). -/
 def srvSnapOwn (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γA : ApplyNames) (ai : w64) :
     IProp GF :=
-  iprop(∃ (γt : GName) (nt : Nat), srvSnapRO s ci E γr γt ∗ ⌜nt ≤ uint.nat ai⌝ ∗
-    monoNatAuthOwn γt 1 nt ∗ srvSnapRes s E γA)
+  iprop(∃ (γm : GName) (c : Nat), srvSnapRO s ci E γr γm ∗ ⌜c ≤ uint.nat ai + 1⌝ ∗
+    monoNatAuthOwn γm 1 c ∗ srvSnapRes s E γA)
 
 /-- The resources hold at any larger applied index. -/
 theorem srvSnapOwn_mono (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γA : ApplyNames)
@@ -618,9 +642,9 @@ theorem srvSnapOwn_mono (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γA 
     srvSnapOwn (GF := GF) s ci E γr γA ai ⊢ srvSnapOwn s ci E γr γA ai' := by
   iintro H
   iunfold srvSnapOwn at H
-  icases H with ⟨%γt, %nt, #Hro, %Hnt, Ha, Hres⟩
+  icases H with ⟨%γm, %c, #Hro, %Hc, Ha, Hres⟩
   iunfold srvSnapOwn
-  iexists γt, nt
+  iexists γm, c
   iframe Hro Ha Hres
   ipureintro
   have : uint.nat ai ≤ uint.nat ai' := by word
@@ -631,16 +655,16 @@ applied index (the counter at `0`), and the persistent bundle. -/
 theorem srvSnapOwn_of_boot (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γA : ApplyNames)
     (ai : w64) :
     srvSnapBoot (GF := GF) s ci E γr γA ⊢
-      srvSnapOwn s ci E γr γA ai ∗ ∃ γt : GName, srvSnapRO s ci E γr γt := by
+      srvSnapOwn s ci E γr γA ai ∗ ∃ γm : GName, srvSnapRO s ci E γr γm := by
   iintro H
   iunfold srvSnapBoot at H
-  icases H with ⟨%γt, #Hro, Ha, Hres⟩
+  icases H with ⟨%γm, #Hro, Ha, Hres⟩
   isplitl [Ha Hres]
   · iunfold srvSnapOwn
-    iexists γt, 0
+    iexists γm, 0
     iframe Hro Ha Hres
     ipureintro; exact Nat.zero_le _
-  · iexists γt; iexact Hro
+  · iexists γm; iexact Hro
 
 /-- **What `applySnapshot` gives back after a non-empty snapshot** (`applySnapshot.spec`'s second
 part, S8d): `applyAll`'s post shape at the snapshot's backend `d'` (`beSucc`: the protocol's names
@@ -648,7 +672,8 @@ part, S8d): `applyAll`'s post shape at the snapshot's backend `d'` (`beSucc`: th
 resources with the applied index at the snapshot's `sv.Metadata'.Index'` and the KV at the image's
 model `kvModel γr.kv A'`, its compaction revision the model's, the rest buckets at the snapshot's
 entries `A'`), and what the next snapshot takes again at the new backend: its stop channels and the
-constructors' half of its open token (W7), the snapshot-taken counter at the snapshot's index, the
+constructors' half of its open token (W7), the removal counter past the snapshot's index (restart
+S6a: at the index plus one; until then the snapshot-taken counter at the index), the
 backend's path `bp` (2026-10-31, `os.Rename` restated: until then the snapshot file's) with the
 backend's file there (`bFile`, the restart plan's R2d) and the transport's live state (W8: with
 every other member re-added, `L`). The new backend at the old one's parameters (`d'.P = d.P`); the new applier's chain with no alarm
@@ -664,7 +689,7 @@ token, the apply thread's `cmpOwn`; the KV `□ isMvcc` in place of `txn.isKV`. 
 `srvSnapAppliedM`. -/
 def srvSnapApplied (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (d : mvcc.KBReal) (A' : List EntryModel)
-    (ss : Loc) (bp : GoString) (γt : GName) (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds)
+    (ss : Loc) (bp : GoString) (γm : GName) (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds)
     (idm : w64) (lp al ast cl : Loc) : IProp GF :=
   iprop(∃ (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (E' : apply.AEnv GF) (b' : GoInterface)
       (st' : ApplyState) (d' : mvcc.KBReal) (x' : apply.ApplyKV) (cs' : Loc) (L : List w64),
@@ -683,7 +708,7 @@ def srvSnapApplied (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E
     -- MERGE-TODO(close): `lean`'s `srvKVCloserW s E'` was here (the KV's closer; over the API, the
     -- apply thread's `mvccOpen E'.γ` in `srvApplyKV`)
     srvStopChans γ' d' ∗ backend.bOpen d'.γB (1 : Qp).half ∗
-    monoNatAuthOwn γt 1 (uint.nat sv.Metadata'.Index') ∗
+    monoNatAuthOwn γm 1 (uint.nat sv.Metadata'.Index' + 1) ∗
     backend.pathOwn bp ∗ backend.bFile d'.γB bp ∗
     trLive γn t c L ∗
     (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ □ isMvcc kv E'.γ ∗ ⌜kv = E'.kv⌝))

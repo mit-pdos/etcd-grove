@@ -166,6 +166,13 @@ theorem EtcdServer.applyAll.wp_proofBatch
   have Hai' : uint.Z ai ≤ uint.Z ai' := by rw [hai']; exact Int.le_max_left _ _
   -- (D22 J1b) the snapshot resources at the new applied index
   ihave Hso := srvSnapOwn_mono s ci E γr _ ai ai' Hai' $$ Hso
+  -- (restart S6a) the removal counter raised to the new applied index (`snapshot`'s `Release`)
+  iunfold srvSnapOwn at Hso
+  icases Hso with ⟨%γm, %c, #Hsro, %Hc, Hγm, Hsres⟩
+  imod snapRm_raise γm ai' c Hc $$ Hγm with ⟨%c', %Hc', Hγm, #Hrmlb⟩
+  ihave #Hsdir := srvSnapDir_of_RO s ci E γr γm $$ Hsro
+  ihave Hso : srvSnapOwn s ci E γr γ ai' $$ [Hγm Hsres]
+  · iunfold srvSnapOwn; iexists γm, c'; iframe Hsro Hγm Hsres; ipureintro; exact Hc'
   ihave Hss : srvSnapState s ep mst γs ai' (W64 0) $$ [Hsd0 Hsm0 Hsf1]
   · iunfold srvSnapState; iexists _, _, _; iframe Hsd0 Hsm0 Hsf1 Hmst Hslb0
     ipureintro; exact ⟨by have := Hdm0.1; omega, by have := Hdm0.2; omega⟩
@@ -301,7 +308,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
       iapply epCsAt_ne _ _ _ (by unfold ghostOf; exact List.append_ne_nil_of_left_ne_nil hL _) $$ Hcv'
   -- `s.snapshotIfNeededAndCompactRaftLog(ep)`
   have hS1 := hSINC.1 s E ρ.wait γ ci b γr ep st' ai' at' cs' a' t' x' mst γs nk γp
-    (w + (unapplied ai ms).length) TM ρ sa' q γn
+    (w + (unapplied ai ms).length) TM ρ sa' q γn γm
   rw [hon] at hS1
   -- the apply thread's tokens (`apply.applyTok`: its reader token of the store)
   ihave Htt : apply.applyTok (GF := GF) E $$ [Hmr]
