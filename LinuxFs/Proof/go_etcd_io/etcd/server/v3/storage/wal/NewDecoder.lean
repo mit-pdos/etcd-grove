@@ -31,6 +31,14 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.NewDecoder.wp_proof
     go_etcd_io.etcd.server.v3.storage.wal.NewDecoder.spec (GF := GF) (hG := hG) := by
   intro sl fs IoE eof
   wp_start as ⟨#Htab, Hsl, Hfs⟩
+  wp_auto
+  wp_func_call
+  wp_call
+  try wp_auto
+  ihave %Hlen := ownSlice_len _ _ _ $$ Hsl
+  wp_apply (wp_slice_make2 (V := Loc) sl.len) as %rd ⟨Hrd, -⟩
+  · ipureintro; word
+  try wp_auto
   sorry
 
 end proof

@@ -122,6 +122,27 @@ def ownFbrs (IoE : GoInterface → Prop) (eof : GoInterface) :
   | fbr :: fbrs, F :: fs, r :: rs => iprop(ownFbr fbr IoE eof F r ∗ ownFbrs IoE eof fbrs fs rs)
   | _, _, _ => iprop(False)
 
+theorem ownFbrs_snoc (IoE : GoInterface → Prop) (eof : GoInterface) (x : Loc) (F : DecFile GF)
+    (r : List w8) :
+    ∀ (fbrs : List Loc) (fs : List (DecFile GF)) (rs : List (List w8)),
+    fbrs.length = fs.length → fs.length = rs.length →
+    ownFbrs IoE eof fbrs fs rs ∗ ownFbr x IoE eof F r ⊢
+      ownFbrs IoE eof (fbrs ++ [x]) (fs ++ [F]) (rs ++ [r])
+  | [], [], [], _, _ => by
+    simp only [ownFbrs, List.nil_append]
+    iintro ⟨-, H⟩
+    iframe
+  | b :: bs, G :: gs, q :: qs, h1, h2 => by
+    simp only [List.cons_append, ownFbrs]
+    iintro ⟨⟨Hb, Hbs⟩, H⟩
+    iframe
+    iapply ownFbrs_snoc IoE eof x F r bs gs qs (by simpa using h1) (by simpa using h2)
+    iframe
+  | [], _ :: _, _, h1, _ => by simp at h1
+  | _ :: _, [], _, h1, _ => by simp at h1
+  | _, [], _ :: _, _, h2 => by simp at h2
+  | _, _ :: _, [], _, h2 => by simp at h2
+
 /-- What the files' readers have delivered when the decoder is live at `off`. -/
 def liveRs : List (DecFile GF) → Nat → List (List w8)
   | [], _ => []
