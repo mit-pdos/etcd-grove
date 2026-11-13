@@ -405,21 +405,21 @@ theorem namesCoh_log {V : Hist} {Γn : GMap (Ino × NameSet) NamesH} (hcoh : Nam
     (hslots : ∀ sl ∈ e.op.slots, ∃ k ∈ ks, k.1 = sl.1 ∧ k.2.Mem sl.2)
     (hnew : ∀ J ∈ e.op.newDirs, J ∉ V.now)
     (hdirs : ∀ x, x ∈ e.op.apply V.now → x ∈ V.now ∨ x ∈ e.op.newDirs) :
-    NamesCoh (V.1, V.2 ++ [e]) (insKeys (V.1, V.2 ++ [e]) (ks ++ newKeys e.op) Γn) := by
+    NamesCoh (V.1, V.2 ++ [e]) (insKeys (V.1, V.2 ++ [e]) (newKeys e.op ++ ks) Γn) := by
   have hnowV : Hist.now (V.1, V.2 ++ [e]) = e.op.apply V.now := hist_now_snoc V e
   have hnk : ∀ k ∈ newKeys e.op, k.2 = .except [] ∧ k.1 ∈ e.op.newDirs := by
     intro k hk
     obtain ⟨J, hJ, rfl⟩ := List.mem_map.1 hk
     exact ⟨rfl, hJ⟩
-  have horig : ∀ k h, insKeys (V.1, V.2 ++ [e]) (ks ++ newKeys e.op) Γn !! k = some h →
+  have horig : ∀ k h, insKeys (V.1, V.2 ++ [e]) (newKeys e.op ++ ks) Γn !! k = some h →
       (∃ h0, Γn !! k = some h0) ∨ k ∈ newKeys e.op := by
     intro k h hl
     rw [insKeys_lookup] at hl
     split at hl
     · rename_i hk
       rcases List.mem_append.1 hk with hk | hk
-      · exact .inl (hin k hk)
       · exact .inr hk
+      · exact .inl (hin k hk)
     · exact .inl ⟨h, hl⟩
   refine ⟨?_, ?_, ?_, ?_⟩
   · intro j N h hl
@@ -436,7 +436,7 @@ theorem namesCoh_log {V : Hist} {Γn : GMap (Ino × NameSet) NamesH} (hcoh : Nam
         obtain ⟨h', hl'⟩ := hin k' hk'
         have hk'e : k' = (j, k'.2) := by simp only at hk1; rw [← hk1]
         by_cases hN : k'.2 = N
-        · exact hk (List.mem_append.2 (.inl (by rw [hk'e, hN] at hk'; exact hk')))
+        · exact hk (List.mem_append.2 (.inr (by rw [hk'e, hN] at hk'; exact hk')))
         · rw [hk'e] at hl'
           exact hcoh.disj j k'.2 N h' h b hl' hl hN hk2 hb
       · exact hnew j hd (hcoh.dirs j N h hl)
@@ -452,17 +452,183 @@ theorem namesCoh_log {V : Hist} {Γn : GMap (Ino × NameSet) NamesH} (hcoh : Nam
     rw [hnowV] at hj
     rcases hdirs j hj with hj | hj
     · obtain ⟨N, h, hl, hm⟩ := hcoh.cover j b hj
-      by_cases hk : (j, N) ∈ ks ++ newKeys e.op
+      by_cases hk : (j, N) ∈ newKeys e.op ++ ks
       · exact ⟨N, _, by rw [insKeys_lookup, if_pos hk], hm⟩
       · exact ⟨N, h, by rw [insKeys_lookup, if_neg hk]; exact hl, hm⟩
     · refine ⟨.except [], namesOf (V.1, V.2 ++ [e]) j (.except []), ?_, by simp [NameSet.Mem]⟩
-      rw [insKeys_lookup, if_pos (List.mem_append.2 (.inr (show (j, NameSet.except []) ∈ newKeys e.op from List.mem_map.2 ⟨j, hj, rfl⟩)))]
+      rw [insKeys_lookup, if_pos (List.mem_append.2 (.inl (show (j, NameSet.except []) ∈ newKeys e.op from List.mem_map.2 ⟨j, hj, rfl⟩)))]
   · intro j N h hl
     show j ∈ Hist.now (V.1, V.2 ++ [e])
     rw [hnowV]
     rcases horig _ _ hl with ⟨h0, hl0⟩ | hk
     · exact mem_apply_of_mem _ _ _ (hcoh.dirs j N h0 hl0)
     · exact mem_apply_newDirs _ _ _ (hnk _ hk).2
+
+/-! ## The step -/
+
+/-- A claim a logging step writes: its directory, its names, what it knows, and its names' entries
+after the step. -/
+abbrev ClaimW := Ino × NameSet × NamesH × Ents
+
+/-- What the claims know of the tree of `st`. -/
+def ClaimsAt (st : OsState) (cl : List ClaimW) : Prop :=
+  ∀ c ∈ cl, ∀ b, c.2.1.Mem b → st.tree.entry c.1 b = c.2.2.1.cur !! b
+
+/-- `st'` is `st` after a step of the call `k` (begun at `s0`) that logged `o`, the next inode
+perhaps taken, the files as they were. -/
+structure LoggedFrom (st st' : OsState) (k s0 : Nat) (o : MetaOp) : Prop where
+  roots : st'.fs.roots = st.fs.roots
+  dur : st'.fs.treeDur = st.fs.treeDur
+  log : st'.fs.metaLog = st.fs.metaLog ++ [⟨o, s0⟩]
+  committed : st'.fs.committed = st.fs.committed
+  dfds : st'.proc.dfds = GMap.fmap (·.note o) st.proc.dfds
+  calls : st'.proc.calls = GMap.delete k st.proc.calls
+  next : st.fs.nextIno ≤ st'.fs.nextIno
+  same : FilesSame st st'
+
+theorem loggedFrom_metaDo (st : OsState) (k s0 : Nat) (o : MetaOp) :
+    LoggedFrom st ((st.metaEnd k).metaDo o s0) k s0 o :=
+  ⟨rfl, rfl, rfl, rfl, rfl, rfl, Nat.le_refl _, ⟨rfl, rfl, rfl, rfl, rfl⟩⟩
+
+theorem loggedFrom_metaDoIno (st : OsState) (k s0 : Nat) (o : MetaOp) :
+    LoggedFrom st ((st.metaEnd k).takeIno.metaDo o s0) k s0 o :=
+  ⟨rfl, rfl, rfl, rfl, rfl, rfl, Nat.le_succ _, ⟨rfl, rfl, rfl, rfl, rfl⟩⟩
+
+theorem LoggedFrom.tree {st st' : OsState} {k s0 : Nat} {o : MetaOp} (h : LoggedFrom st st' k s0 o) :
+    st'.tree = o.apply st.tree := by
+  simp only [OsState.tree, h.dur, h.log, List.map_append, List.map_cons, List.map_nil]
+  rw [replay_snoc]
+
+theorem LoggedFrom.wf {st st' : OsState} {k s0 : Nat} {o : MetaOp} (h : LoggedFrom st st' k s0 o)
+    (hw : FsTreeWf st) (htw : TreeWf st.fs.roots (o.apply st.tree))
+    (hnm : ∀ i, Named (o.apply st.tree) i → Named st.tree i)
+    (hlt : ∀ x, x ∈ o.apply st.tree → x < st'.fs.nextIno) : FsTreeWf st' := by
+  obtain ⟨-, hnamed, -⟩ := wf_tree hw
+  refine fsTreeWf_meta hw h.roots h.dur h.log (fun i f hf => ⟨f, by rw [h.same.1]; exact hf⟩)
+    h.next htw (fun i hi => by
+      obtain ⟨f, hf⟩ := hnamed i (hnm i hi)
+      exact ⟨f, by rw [h.same.1]; exact hf⟩) hlt (fun fd df hdf => ?_) (fun fd hfd => ?_)
+    (fun i hi => ?_)
+  · rw [h.dfds, GMap.lookup_fmap] at hdf
+    cases hd : st.proc.dfds !! fd with
+    | none => rw [hd] at hdf; simp at hdf
+    | some df0 =>
+      rw [hd] at hdf; simp only [Option.map_some, Option.some.injEq] at hdf
+      subst hdf; rw [note_ino]; exact hw.dfds fd df0 hd
+  · rw [h.dfds, GMap.lookup_fmap, hw.disj fd (by rw [← h.same.2.1]; exact hfd)]; rfl
+  · rw [h.same.1] at hi; exact Nat.lt_of_lt_of_le (hw.files_lt i hi) h.next
+
+theorem histMap_insert (RV RV' : Roots × Hist) : <[() := RV']> (histMap RV) = histMap RV' := by
+  apply GMap.ext; intro u
+  cases u
+  show (<[() := RV']> (histMap RV)) !! () = histMap RV' !! ()
+  rw [GMap.lookup_insert]; simp [histMap]
+
+section ghost
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+  [GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
+
+theorem logEnt_persist (x : Nat) (e : LogEntry) :
+    ⊢ gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γlog x (DFrac.own 1) e ==∗
+      osLogEnt (L := L) x e := by
+  unfold osLogEnt gElem
+  letI := (gooseOsGS (L := L)).osAllG
+  exact ghostMapElem_persist _ _ _ _
+
+/-- The claims a step is shown: what they know of the state, and their entries in the authority. -/
+theorem claims_info {st : OsState} {Γn : GMap (Ino × NameSet) NamesH}
+    (hcoh : NamesCoh (st.fs.treeDur, st.fs.metaLog) Γn) :
+    ∀ cl : List ClaimW, (∀ c ∈ cl, c.2.1 ≠ .only []) →
+    ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γn Γn -∗
+      ([∗list] c ∈ cl, osNames (L := L) c.1 c.2.1 (DFrac.own 1) c.2.2.1) -∗
+      ⌜ClaimsAt st cl ∧ ∀ c ∈ cl, Γn !! (c.1, c.2.1) = some c.2.2.1 ∧
+        c.2.2.1 = namesOf (st.fs.treeDur, st.fs.metaLog) c.1 c.2.1⌝
+  | [], _ => by
+    iintro _ _
+    ipureintro
+    exact ⟨fun c hc => by simp at hc, fun c hc => by simp at hc⟩
+  | c :: cl, hne => by
+    iintro HA Hl
+    icases (BigSepL.bigSepL_cons).1 $$ Hl with ⟨H, Hl⟩
+    icases claims_info hcoh cl (fun c' h => hne c' (List.mem_cons_of_mem _ h)) $$ HA Hl with %ih
+    icases osNames_entry hcoh c.1 c.2.1 _ c.2.2.1 $$ HA H with %he
+    icases osNames_auth L hcoh c.1 c.2.1 _ c.2.2.1 $$ HA H with %hh
+    rw [osNames_of_ne _ _ (hne c (by simp))]
+    icases gAuth_lookup _ _ _ _ _ _ $$ HA H with %hl
+    ipureintro
+    refine ⟨fun c' hc' => ?_, fun c' hc' => ?_⟩
+    · rcases List.mem_cons.1 hc' with rfl | hc'
+      · exact he
+      · exact ih.1 c' hc'
+    · rcases List.mem_cons.1 hc' with rfl | hc'
+      · exact ⟨hl, hh⟩
+      · exact ih.2 c' hc'
+
+/-- The claims a step wrote, updated in the authority. -/
+theorem claims_upd (V' : Hist) (f : ClaimW → NamesH) :
+    ∀ (cl : List ClaimW) (Γn : GMap (Ino × NameSet) NamesH),
+    (∀ c ∈ cl, c.2.1 ≠ .only []) → (∀ c ∈ cl, f c = namesOf V' c.1 c.2.1) →
+    ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γn Γn -∗
+      ([∗list] c ∈ cl, osNames (L := L) c.1 c.2.1 (DFrac.own 1) c.2.2.1) ==∗
+      gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γn
+          (insKeys V' (cl.map (fun c => (c.1, c.2.1))) Γn) ∗
+        [∗list] c ∈ cl, osNames (L := L) c.1 c.2.1 (DFrac.own 1) (f c)
+  | [], Γn, _, _ => by
+    iintro HA -
+    imodintro
+    isplitl [HA]
+    · rw [show insKeys V' (([] : List ClaimW).map (fun c => (c.1, c.2.1))) Γn = Γn from rfl]
+      iexact HA
+    · iapply (BigSepL.bigSepL_nil).2; iempintro
+  | c :: cl, Γn, hne, hf => by
+    iintro HA Hl
+    icases (BigSepL.bigSepL_cons).1 $$ Hl with ⟨H, Hl⟩
+    imod claims_upd V' f cl Γn (fun c' h => hne c' (List.mem_cons_of_mem _ h))
+      (fun c' h => hf c' (List.mem_cons_of_mem _ h)) $$ HA Hl with ⟨HA, Hl⟩
+    rw [osNames_of_ne _ _ (hne c (by simp))]
+    imod gAuth_update _ _ _ _ _ (namesOf V' c.1 c.2.1) $$ HA H with ⟨HA, H⟩
+    imodintro
+    isplitl [HA]
+    · rw [show insKeys V' ((c :: cl).map (fun c => (c.1, c.2.1))) Γn =
+          <[(c.1, c.2.1) := namesOf V' c.1 c.2.1]> (insKeys V' (cl.map (fun c => (c.1, c.2.1))) Γn)
+          from rfl]
+      iexact HA
+    · iapply (BigSepL.bigSepL_cons).2
+      isplitl [H]
+      · rw [osNames_of_ne _ _ (hne c (by simp)), hf c (by simp)]; iexact H
+      · iexact Hl
+
+/-- The calls in flight other than `k`, each with its fraction of the permission, and `k`'s:
+neither is the whole permission. -/
+theorem callResS_excl (Γc : GMap Nat (Nat × Qp)) (k : Nat) (x0 : Nat × Qp) (hk : Γc !! k = some x0) :
+    ⊢ callResS (gooseOsGS (L := L)) Γc -∗
+      ⌜∀ t x, t ≠ k → Γc !! t = some x → x.2.val < 1 ∧ x0.2.val < 1⌝ ∗
+        callResS (gooseOsGS (L := L)) Γc := by
+  iintro H
+  by_cases hP : ∀ t x, t ≠ k → Γc !! t = some x → x.2.val < 1 ∧ x0.2.val < 1
+  · isplitr
+    · ipureintro; exact hP
+    · iexact H
+  · have : ∃ t x, t ≠ k ∧ Γc !! t = some x ∧ ¬ (x.2.val < 1 ∧ x0.2.val < 1) :=
+      Classical.byContradiction fun hn => hP fun t x hne ht =>
+        Classical.byContradiction fun hv => hn ⟨t, x, hne, ht, hv⟩
+    obtain ⟨t, x, hne, ht, hv⟩ := this
+    unfold callResS
+    icases (BigSepM.bigSepM_delete (M := GMap Nat)
+      (Φ := fun (_t : Nat) (x : Nat × Qp) =>
+        gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm () (DFrac.own x.2) ()) hk).1 $$ H
+      with ⟨Hq, H⟩
+    have ht' : (GMap.delete k Γc) !! t = some x := by
+      rw [GMap.lookup_delete_ne _ (Ne.symm hne)]; exact ht
+    icases (BigSepM.bigSepM_lookup (M := GMap Nat)
+      (Φ := fun (_t : Nat) (x : Nat × Qp) =>
+        gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm () (DFrac.own x.2) ()) ht') $$ H
+      with Ht
+    icases gElem_valid_2 _ _ _ _ _ _ _ $$ Hq Ht with %Hv
+    exact absurd ⟨DFrac.valid_op_own Hv.1, DFrac.valid_own_op Hv.1⟩ hv
+
+end ghost
 
 end Fs
 end Perennial
