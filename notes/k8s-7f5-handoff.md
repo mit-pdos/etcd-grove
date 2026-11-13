@@ -18,6 +18,52 @@ the worktree's untracked `questions.md` (decisions; never re-add it tracked).
   this stage's T5-c); 7f-0 partial (records only; the rest goes with 7f-6, Q7).
 - No Lean edited. Nothing built on this branch.
 
+## Handoff point (2026-11-13, end of the first 7f-5 agent's context): S1 reviewed; fixes next
+
+S1 (`c46c52934c`) passed 81's axiom review with one MAJOR and minors. **Do these, in order** (81's
+decisions, verbatim in the worktree's `questions.md`, last entry; review journal
+`/root/.claude-csail/projects/-shared-etcd-grove/c04a65b0-a272-4ae4-94c7-91aa4a20ea30/subagents/workflows/wf_115e23d1-72c/journal.jsonl`):
+
+1. **T5-c (MAJOR).** In `Proof/k8s_io/apiserver/pkg/util/feature/Gate.lean`, do not quantify the `Set`
+   triple over every `b`. Add a table in the trusted text giving one fixed value per feature
+   (`WatchList ↦ true`, every feature B5 covers ↦ `false`, e.g. `k8sSetValue : GoString → Option Bool`
+   or two lists), and specify `Set(setArg s v)` only for `s` with its table value `v`. Then
+   `featureOn`/`featureOff` of one feature are unreachable by construction (`featureSet g s v` for the
+   one `v`). Restate the header's assumption: no other mutator runs; repeats of the same value are
+   harmless. Drop "before any Enabled" if no triple needs it (none should). Callers to adjust:
+   `noStreaming.lean`, `watchList.lean` (the side condition becomes the table lookup).
+   Add `ResetFeatureValueToDefault` and `AddDependencies` to the mutator lists (Gate.lean header,
+   freeze note S0.4, the grep). Make the closure check cover `examples/k8s/daemonset/dsmain` too, or
+   state with evidence why it is outside. Turn the check into a script (e.g. `etc/featuregate-check.py`:
+   `go list -deps` of the k8s examples, grep the mutators, compare to an allow-list with each hit's
+   verdict) and wire it into `etc/gates.sh` (B5 has no gate today, as far as this agent saw; add one
+   for both). The S0.4 grep command is in this agent's history: closure via `go list -deps -f` with
+   GoFiles, regex over `DefaultMutableFeatureGate\.(Set|SetFromMap|OverrideDefault|SetEmulationVersion|Add)|\.SetFromMap(WithLogger)?\(|OverrideDefault(AtVersion)?\(|SetEmulationVersion|DeepCopyAndReset|featuregatetesting|ReplaceFeatureGates|AddFeaturesToExistingFeatureGates|DefaultMutableFeatureGate *=|DefaultFeatureGate *=`
+   (hits saved in `/shared/tmp/k8s7f5/k8s-mutator-hits.txt`).
+2. **T5-c docstring (minor 3).** Gate.lean's `Set` error branch says "changes nothing `Enabled`
+   reads": inaccurate in Go (a failed `Set` stores the raw pair in `enabledRaw`, poisoning later
+   `Set`s: `feature_gate.go:500-504`; `watcherctx` scenario `failed-set`). Reword (what is true: the
+   map `Enabled` reads, `enabled`, is not stored; `enabledRaw` is).
+3. **T5-a (minor 2).** Add grpc metadata's `copyOf` to the translation config (in the dry-run patch
+   `/shared/tmp/k8s7f5/goose-dry-full.patch` for 7f-3a; no new trust). State the Lean result honestly
+   ("parent's metadata plus one key": `strings.ToLower` is trusted to return some string), or fix it.
+   Strengthen `examples/premisefix/watcherctx/requireleader_test.go`: a non-trivial `Cause` (a parent
+   cancelled with `WithCancelCause(errX)`: the child's `Cause` is `errX`), and a NoAlias test that would
+   fail without `Copy` (e.g. a parent `MD` whose `hasleader` key exists with another value, or check
+   that writing the child's `MD` slice does not change the parent's).
+4. **S0.1 (minor 4).** In `notes/k8s-7f5-freeze.md` §S0.1, add the row `getCurrentStorageRV(ctxRL)`
+   (`watcher.go:146,193-209`; `store.go:240,735`: with RV 0, WatchList on and SendInitialEvents false,
+   `getStartWatchResourceVersion` calls it on `ctxRL` before `createWatchChan`). Say that the strict
+   control covers only RV > 0 with a fake watcher, and cite the reviewer's real-member recording test
+   `/shared/tmp/coord-81/k8s7f5-review/clientkeys/keys_test.go` (or extend the control).
+5. Rebuild (targeted, then the full build under flock and the cap), `etc/tcb-report.py --check
+   --update` (one new axiom expected, `k8sfeature.featureOn_persistent`; report if it changes), the
+   collections (`--collection etc/tcb-collections/k8setcd3.txt --check --update`; check all 55: the
+   loop must not be cut by `head`), gates. Add an "S1 review" section to the freeze note (each finding,
+   the fix). Add a STATUS entry (oldest moved to status-history's list, append only, `wc -l` check),
+   noting the temporary premise of Q6 is not yet introduced (7f-5a). Merge lean, land via
+   `etc/land.sh` on 81's go, report.
+
 ## Next, in order
 1. DONE (`23af282dca`): S1 built (full build passes), checks in `notes/k8s-7f5-freeze.md` "Checks"
    (tcb: NEW `k8sfeature.featureOn_persistent`, also in collection k8setcd3; not updated). STOPPED for
