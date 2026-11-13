@@ -88,9 +88,13 @@ theorem rafthttp.snapshotSender.post.wp_proof
   wp_apply hBackground
   ihave #Hctxp : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
-  wp_apply hWithCancel as %ctx' %γc %cancel ⟨#Hcancel, #Hctx⟩
+  wp_apply hWithCancel as %ctx' %γc %cancel ⟨#Hcancel, #Hctx, #Hbgc⟩
   (try wp_auto)
-  wp_apply hWithContext req _ (.stream Pre Φs) ctx' $$ [$Hreq $Hstr] as %req' ⟨Hreq, Hstr⟩
+  wp_apply hWithContext req _ (.stream Pre Φs) ctx' $$ [$Hreq $Hstr] as %req' ⟨Hreq, Hstr, #Hrctx⟩
+  ihave #Hrbg : http.reqCtxBg req' $$ []
+  · iunfold http.reqCtxBg
+    iexists ctx'
+    iframe #
   (try wp_auto)
   wp_apply (chan.wp_make2 (V := go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.responseAndError)
     (W64 1))
@@ -118,7 +122,7 @@ theorem rafthttp.snapshotSender.post.wp_proof
     ihave #Hrq' : ((raftHttpNet Rh).proto R.host).req R γk $$ []
     · rw [show (raftHttpNet Rh).proto R.host = raftProto Rh from rfl]
       iexact Hrq
-    wp_apply HRT $$ [$Hreq $Hstr $Hso $Htk $Hpa $Hrq'] as %resp %rerr ⟨Hreq, Hres⟩
+    wp_apply HRT $$ [$Hreq $Hstr $Hrbg $Hso $Htk $Hpa $Hrq'] as %resp %rerr ⟨Hreq, Hres⟩
     (try wp_auto)
     icases Hres with (⟨%Herr, #HerrS, #HerrN⟩ | ⟨%Hnil, %rst, %rd, #Hra, #Hrw, Hrr, #Hrc⟩)
     · -- the round trip failed: its error

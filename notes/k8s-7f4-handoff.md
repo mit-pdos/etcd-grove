@@ -33,6 +33,20 @@ the worktree's untracked `questions.md` (decisions), `/shared/tmp/coord-81/commo
     Nothing used it.
   - freeze §2's "T-e'" section (marked draft).
 
+## Eighth agent (2026-11-13): T-h0 + T-h6 landed; T-i written; STOPPED for 81's axiom review
+
+Landed: lean `9c583ebbcf` (T-h0 + T-h6 with the T-h review's minors m1-m4, `ee11f69d91`; merged with
+ctx-sweep fixes). **T-i** (`47ef0d7df0`, Addendum T-i of `notes/k8s-7f4-freeze.md`,
+`notes/roundtripper-ctx-refuted.md`, audit row, Go tests `examples/premisefix/rtctx`): `http.WithContext_ok`
+with rafthttp's round trippers refuted; fix: `WithContext_spec`'s post `http.reqCtx r' ctx` (opaque,
+persistent), `roundTripperOk`'s `RoundTrip` takes `http.reqCtxBg r` (`context.bgCancelChild`,
+`Proof/context/BgCancel.lean`: a `*cancelCtx` whose parent field is `Background()`), `netErr`'s
+docstring names `context.Canceled`; `context.WithCancelBackground.spec`'s post gains `bgCancelChild` and
+its axiom is now a proof (trust base: one axiom fewer); `srFixed` carries `bgCancelChild`.
+**Next, after 81's review of T-i:** tcb/collection baselines (`--check --update`, axiom removed),
+land; then T-h5 (`ctxDoneErr`, `ctxChildErr`, `wp_WithTimeout_weak` with option (A)) with
+LeaseKeepAlive.
+
 ## Seventh agent (2026-11-13): T-h0's fix written; T-h5 soundness finding; STOPPED for 81
 
 Done (each lean-checked `-a`, 0 errors): `da77c070e5` T-h0's fix (handoff steps 1, 2, 4's `RenewHTTP`
