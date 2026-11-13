@@ -440,3 +440,104 @@ func TestSpanFromContextValueOnly(t *testing.T) {
 		t.Fatalf("span value: got %v, want %v", got, want)
 	}
 }
+
+// panicTraceCtx (T-h0): a context whose every method delegates to a real WithCancel child, except
+// Value at net/http's httptrace key, which panics. It meets isContext's and srvCtxWeak's clauses
+// (their Value clause speaks only of &cancelCtxKey).
+type panicTraceCtx struct{ context.Context }
+
+func (c panicTraceCtx) Value(k any) any {
+	if fmt.Sprintf("%T", k) == "httptrace.clientEventContextKey" {
+		panic("Value(httptrace key)")
+	}
+	return c.Context.Value(k)
+}
+
+// TestRenewHTTPValuePanics (T-h0, the refutation of RenewHTTP.spec as landed): RenewHTTP panics on
+// such a context (net/http's Transport.roundTrip calls httptrace.ContextClientTrace(ctx)).
+func TestRenewHTTPValuePanics(t *testing.T) {
+	hs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	defer hs.Close()
+	inner, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("RenewHTTP did not panic (T-h0 no longer holds: update the notes)")
+		}
+		t.Logf("recovered: %v", r)
+	}()
+	leasehttp.RenewHTTP(panicTraceCtx{inner}, lease.LeaseID(1), hs.URL+"/leases", &http.Transport{})
+}
+
+type thKey struct{}
+
+func newWrapper() *cancellableContext {
+	inner, cancel := context.WithCancel(context.Background())
+	return &cancellableContext{Context: inner, cancel: cancel}
+}
+
+// TestWithTimeoutWeak (T-h3): context.WithTimeout over etcd's wrapper (directly, and under a
+// WithValue, Tracer.Start's link). Already cancelled with ErrGRPCNoLeader: the child is done, its
+// Err() is ErrGRPCNoLeader (propagateCancel's already-done arm), not Canceled or DeadlineExceeded,
+// and cancel() keeps it. Not yet done: the child registers with the wrapper's inner *cancelCtx, so
+// the wrapper's Cancel(ErrGRPCNoLeader) gives it Canceled; its own timeout DeadlineExceeded, its
+// cancel() Canceled.
+func TestWithTimeoutWeak(t *testing.T) {
+	for _, val := range []bool{false, true} {
+		wrap := func(w *cancellableContext) context.Context {
+			if val {
+				return context.WithValue(w, thKey{}, 1)
+			}
+			return w
+		}
+		w := newWrapper()
+		w.Cancel(rpctypes.ErrGRPCNoLeader)
+		c, cancel := context.WithTimeout(wrap(w), time.Minute)
+		<-c.Done()
+		if c.Err() != rpctypes.ErrGRPCNoLeader || errors.Is(c.Err(), context.Canceled) ||
+			errors.Is(c.Err(), context.DeadlineExceeded) {
+			t.Fatalf("val=%v already done: %v", val, c.Err())
+		}
+		cancel()
+		if c.Err() != rpctypes.ErrGRPCNoLeader {
+			t.Fatalf("val=%v: cancel() changed Err to %v", val, c.Err())
+		}
+		w = newWrapper()
+		c, cancel = context.WithTimeout(wrap(w), time.Minute)
+		if c.Err() != nil {
+			t.Fatalf("val=%v: Err before done: %v", val, c.Err())
+		}
+		w.Cancel(rpctypes.ErrGRPCNoLeader)
+		<-c.Done()
+		if c.Err() != context.Canceled {
+			t.Fatalf("val=%v registered: %v", val, c.Err())
+		}
+		cancel()
+		w = newWrapper()
+		c, cancel = context.WithTimeout(wrap(w), time.Millisecond)
+		<-c.Done()
+		if c.Err() != context.DeadlineExceeded {
+			t.Fatalf("val=%v timeout: %v", val, c.Err())
+		}
+		cancel()
+		w = newWrapper()
+		c, cancel = context.WithTimeout(wrap(w), time.Minute)
+		cancel()
+		if c.Err() != context.Canceled {
+			t.Fatalf("val=%v cancel: %v", val, c.Err())
+		}
+	}
+}
+
+// TestNoLeaderTyped (T-h2): ErrGRPCNoLeader is a *status.Error, an error.
+func TestNoLeaderTyped(t *testing.T) {
+	var a any = rpctypes.ErrGRPCNoLeader
+	e, ok := a.(error)
+	if !ok || e == nil {
+		t.Fatal("ErrGRPCNoLeader is not an error")
+	}
+	if got := fmt.Sprintf("%T", e); got != "*status.Error" {
+		t.Fatalf("dynamic type %s", got)
+	}
+}

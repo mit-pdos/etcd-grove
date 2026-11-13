@@ -33,6 +33,22 @@ the worktree's untracked `questions.md` (decisions), `/shared/tmp/coord-81/commo
     Nothing used it.
   - freeze §2's "T-e'" section (marked draft).
 
+## Sixth agent, continued (2026-11-13): landed; Addendum T-h written; STOPPED for 81's axiom review
+
+**Landed: lean `bc86a6f6aa`** (`etc/land.sh`, all gates, after 81 accepted the bounds-allow entries).
+81 decided option (c) for `WithTimeout` (questions.md). Writing it found (freeze note, Addendum T-h):
+T-h0, a **refutation of the landed `leasehttp.RenewHTTP.spec`** (a context whose `Value` at net/http's
+`httptrace` key panics meets `isContext`/`srvCtxWeak`; `TestRenewHTTPValuePanics`); T-h1, the child
+of a weak parent cannot be `srvCtxWeak` (its `#HValue`/`#HParentCC` would claim Perennial's cancelCtx
+invariant of a `*cancelCtx` storing `ErrGRPCNoLeader`); T-h2 the proposed texts (`ctxDoneErr`,
+`ctxChildErr`, the axiom `v3rpc.wp_WithTimeout_weak`, `waitLeader`/`RenewHTTP` premises,
+`isTypedErr` recommended not added); T-h3 Go tests (`TestWithTimeoutWeak`, `TestNoLeaderTyped`);
+T-h4 `LeaseRenew`'s default arm reachable. `notes/perennial-changes.md`: "The context model over an
+error predicate". **No Lean written for T-h.** Next after 81's review: the Lean texts, then
+`LeaseRenew` (over `srvCtxWeak ∗ levelTok 4`, the axiom, the default arm's log), `raftLeaseRenew`,
+`leaseKeepAlive`/`LeaseKeepAlive` over the weak end (the forked loop lends level 4 from its own
+thread token, `threadTok_lend4`, as Watch's recvLoop), drop `srvStreamIsStrong`; stop before step 6.
+
 ## Sixth agent (2026-11-12): the T-g review applied, landing; LeaseKeepAlive's `WithTimeout` blocked
 
 81's decisions on the T-g review (READY WITH CHANGES; questions.md): done in `7e10aa6b66` (M1: the
