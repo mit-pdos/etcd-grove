@@ -11,7 +11,8 @@
 * **`walAreaOk`** (persistent): the WAL invariant of the area and the file system's invariants. Its old
   `durableResvD` (the `lib/durable` reservation) is gone (plan §3).
 * **`walAreaRes jr`** (exclusive, the program's): its half of the area directory's claim on names `N`
-  containing every WAL name (the invariant holds the other half: `walInv_alloc`'s `harea`), and the
+  containing every WAL name and every `nm.<sfx>` of one (the invariant holds the other half:
+  `walInv_alloc`'s `harea`), and the
   whole claims of every directory reachable from a non-WAL name of `N` (`SubCover`). From it a WAL
   function takes the claims it writes in the area (`n.tmp`, `n.broken.*`, `n`), giving back the
   invariant's halves. `N` is cofinite (`NameSet`), so it cannot exclude the infinitely many cleanup
@@ -82,11 +83,13 @@ instance walAreaOk_persistent (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr :
   unfold walAreaOk; infer_instance
 
 /-- **The program's part of the WAL area's directory `jr`** (exclusive): its half of the claim on
-names `N` containing every WAL name (the invariant holds the other half), and the whole claims of
-every directory under a non-WAL name of `N`. -/
+names `N` containing every WAL name and every name `nm.<sfx>` of one (`Create`'s `nm.tmp`, the cleanup's
+`nm.broken.<time>`; the invariant holds the other half), and the whole claims of every directory under
+a non-WAL name of `N`. -/
 def walAreaRes (jr : Ino) : IProp GF :=
   iprop(∃ (N : NameSet) (h : NamesH) (cl : List Claim),
     osNames (L := L) jr N (DFrac.own (1 : Qp).half) h ∗ ⌜∀ nm, walNameOk nm → N.Mem nm⌝ ∗
+    ⌜∀ nm sfx, walNameOk nm → N.Mem (nm ++ go!"." ++ sfx)⌝ ∗
     osClaims L (cl.map (fun c => (c, DFrac.own 1))) ∗
     ⌜∀ b, N.Mem b → ¬ walNameOk b → SubCover cl (h.cur !! b)⌝)
 

@@ -186,7 +186,7 @@ theorem os.Rename.wp_proofFileS : os.Rename.specFileS (GF := GF) (hG := hG) := b
   iframe Hos Hsi Hp Hp' Hperm Hn1 Hn2
   iapply osAU_osAUnc $$ Hau
 
-theorem os.Rename.wp_proofDirS : os.Rename.specDirS (GF := GF) (hG := hG) := by
+theorem os.Rename.wp_proofDirSnc : os.Rename.specDirSnc (GF := GF) (hG := hG) := by
   intro d bs bt j J N R qd h q r Q hbs hbt hN hN' hne hsrc htgt hq
   wp_start as ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hau⟩
   imod osNames_next R j N _ h CoPset.subseteq_top $$ Hsi Hn with ⟨Hn, #Hlb⟩
@@ -199,7 +199,7 @@ theorem os.Rename.wp_proofDirS : os.Rename.specDirS (GF := GF) (hG := hG) := by
     obtain ⟨⟨J', hJ⟩, -⟩ := hd h1; rw [htgt] at hJ; cases hJ
   rw [decide_eq_false (show isDir ≠ W64 1 from hd1)]
   wp_auto
-  ihave HSt : iprop((osAU (osNames j N (DFrac.own r) h) (renDirOut j J N bs bt h (DFrac.own r)) Q ∗
+  ihave HSt : iprop((osAUnc (osNames j N (DFrac.own r) h) (renDirOut j J N bs bt h (DFrac.own r)) Q ∗
       osNames j N (DFrac.own q) h) ∨
     (∃ xs, Q (some xs) ∗ renDirOut j J N bs bt h (DFrac.own q) (some xs)))
     $$ [Hau Hn]
@@ -209,7 +209,7 @@ theorem os.Rename.wp_proofDirS : os.Rename.specDirS (GF := GF) (hG := hG) := by
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
   icases HSt with (⟨Hau, Hn⟩ | ⟨%xs, HQ, Hout⟩)
-  · wp_apply +noauto (wp_au_step "Rename" _ (osNames j N (DFrac.own r) h)
+  · wp_apply +noauto (wp_aunc_step "Rename" _ (osNames j N (DFrac.own r) h)
       (renDirOut j J N bs bt h (DFrac.own r)) Q) $$ Hau [Hn Hk Hp HΦ]
     iintro Hr
     ihave Hw := (osNames_join j N q r h hq).1 $$ [Hn Hr]
@@ -315,6 +315,14 @@ theorem os.Rename.wp_proofDirS : os.Rename.specDirS (GF := GF) (hG := hG) := by
     iapply HΦ
     iframe
     ipureintro; intro _; rfl
+
+/-- `specDirS` from `specDirSnc`: an `osAU` is an `osAUnc`. -/
+theorem os.Rename.wp_proofDirS : os.Rename.specDirS (GF := GF) (hG := hG) := by
+  intro d bs bt j J N R qd h q r Q hbs hbt hN hN' hne hsrc htgt hq
+  iintro %Φ ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hau⟩ HΦ
+  iapply os.Rename.wp_proofDirSnc d bs bt j J N R qd h q r Q hbs hbt hN hN' hne hsrc htgt hq $$ [Hp Hperm Hn Hau] HΦ
+  iframe Hos Hsi Hp Hperm Hn
+  iapply osAU_osAUnc $$ Hau
 
 end proof
 

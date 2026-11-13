@@ -78,13 +78,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [os.Assumptions] [os.file.FieldAssumptions]
 
-theorem os.OpenFile.wp_proofCreateTruncS : os.OpenFile.specCreateTruncS (GF := GF) (hG := hG) := by
+theorem os.OpenFile.wp_proofCreateTruncSnc : os.OpenFile.specCreateTruncSnc (GF := GF) (hG := hG) := by
   intro d b flag perm R j dq h q r qc Q hfl hcr htr hb hn hq
   generalize hfl' : flag ||| W64 0x80000 = fl at hfl hcr htr ⊢
   have hnd : ∀ J, h.cur !! b ≠ some (.dir J) := by intro J; rw [hn]; simp
   wp_start as ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hau⟩
   imod osNames_next R j _ _ h CoPset.subseteq_top $$ Hsi Hn with ⟨Hn, #Hlb⟩
-  ihave HSt : iprop((osAU (osNames j (.only [b]) (DFrac.own r) h) (crOut j b h (DFrac.own r)) Q ∗
+  ihave HSt : iprop((osAUnc (osNames j (.only [b]) (DFrac.own r) h) (crOut j b h (DFrac.own r)) Q ∗
       osNames j (.only [b]) (DFrac.own q) h) ∨
     (∃ xs, Q (some xs) ∗ crOut j b h (DFrac.own q) (some xs) ∗ crTr False (some xs)))
     $$ [Hau Hn]
@@ -96,7 +96,7 @@ theorem os.OpenFile.wp_proofCreateTruncS : os.OpenFile.specCreateTruncS (GF := G
   rw [os.file_ty_eq, os.File_ty_eq, show flag ||| W64 524288 = fl from hfl']
   (try wp_auto)
   icases HSt with (⟨Hau, Hn⟩ | ⟨%xs, HQ, Hout, Hm⟩)
-  · wp_apply +noauto (wp_au_step "Open" _ (osNames j (.only [b]) (DFrac.own r) h)
+  · wp_apply +noauto (wp_aunc_step "Open" _ (osNames j (.only [b]) (DFrac.own r) h)
       (crOut j b h (DFrac.own r)) Q) $$ Hau [Hn Hk Hp HΦ]
     iintro Hr
     ihave Hw := (osNames_join j _ q r h hq).1 $$ [Hn Hr]
@@ -365,6 +365,14 @@ theorem os.OpenFile.wp_truncS (d b : GoString) (flag : w64) (perm : w32) (R : Ro
     isplitr
     · ipureintro; exact ⟨(fun h => by cases h), rfl⟩
     iapply (EtcdGrove.fmtErrorOkOrNil_of _) $$ Hok
+
+/-- `specCreateTruncS` from `specCreateTruncSnc`: an `osAU` is an `osAUnc`. -/
+theorem os.OpenFile.wp_proofCreateTruncS : os.OpenFile.specCreateTruncS (GF := GF) (hG := hG) := by
+  intro d b flag perm R j dq h q r qc Q hfl hcr htr hb hn hq
+  iintro %Φ ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hau⟩ HΦ
+  iapply os.OpenFile.wp_proofCreateTruncSnc d b flag perm R j dq h q r qc Q hfl hcr htr hb hn hq $$ [Hp Hperm Hn Hau] HΦ
+  iframe Hos Hsi Hp Hperm Hn
+  iapply osAU_osAUnc $$ Hau
 
 end proof
 

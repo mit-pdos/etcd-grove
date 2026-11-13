@@ -69,6 +69,26 @@ abbrev os.OpenFile.specCreateTruncS : Prop :=
             osFd fd (DFrac.own 1) (openFd i (flag ||| W64 0x80000))) ∨
          ⌜err ≠ interface.nil ∧ f = null⌝ ∗ fmtErrorOkOrNil err) }}
 
+/-- `specCreateTruncS` with `osAUnc` (`Proof/os/SharedAu.lean`): its opening gets the generation's
+`notCrashed`, so a client can open an invariant with a crash branch (the WAL's `walInv`) at it; it
+gives `specCreateTruncS` (`osAU_osAUnc`). -/
+abbrev os.OpenFile.specCreateTruncSnc : Prop :=
+  ∀ (d b : GoString) (flag : w64) (perm : w32) (R : Roots) (j : Ino) (dq : DFrac) (h : NamesH)
+    (q r qc : Qp) (Q : Option (Nat × Nat × Ino) → IProp GF),
+  OpenFlagsOk (flag ||| W64 0x80000).toNat → (flag ||| W64 0x80000).toNat / O_CREAT % 2 = 1 →
+  (flag ||| W64 0x80000).toNat / O_TRUNC % 2 = 1 →
+  NameOk b → h.cur !! b = none → q + r = 1 →
+  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm qc ∗
+      osNames j (.only [b]) (DFrac.own q) h ∗
+      osAUnc (osNames j (.only [b]) (DFrac.own r) h) (crOut j b h (DFrac.own r)) Q }}
+    (App (App (App (Val (@! os.OpenFile)) (Val #(child d b))) (Val #flag)) (Val #perm))
+  {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R d dq j ∗ osCallPerm qc ∗
+      ∃ o, Q o ∗ crOut j b h (DFrac.own q) o ∗ crTr (err = interface.nil) o ∗
+        ((∃ (fd : w64) (i : Ino), ⌜err = interface.nil ∧ 0 ≤ fd.toInt ∧ crIno b h o i⌝ ∗
+            os.ownFile f fd (child d b) (DFrac.own 1) ∗
+            osFd fd (DFrac.own 1) (openFd i (flag ||| W64 0x80000))) ∨
+         ⌜err ≠ interface.nil ∧ f = null⌝) }}
+
 end spec
 
 end EtcdGrove
