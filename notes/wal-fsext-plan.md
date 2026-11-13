@@ -1023,3 +1023,17 @@ update: `s.wal dir := walDurFresh md`, the new layout and its `CrashOk`); then `
   `Close` (W2, W10).
 - **Invariant extensions** are separate conjuncts of `walInvBody` (W4's `WalsCreateOk`, then W2's, W6's), so
   the units merge.
+- **W6, the file as a stream writer** (`wal-bridge`, 2026-11-13). `io.writerStream wi lim W B`: on
+  success all of `p` and `n = len(p)`; on an error the broken state `B out xs` and **any count**
+  (`os.File`'s trusted `Write` returns `ArbitraryInt` and sets the offset to `-1` on an error, so
+  "the count is the bytes written" is unprovable over the unchanged model); `lim` bounds the total
+  (`o0 + lim < 2^62`, the model's `offMax` panic). PageWriter/encoder specs and proofs follow (their
+  error posts: `B (out ++ a) b`, `a ++ b` a prefix of pending ++ input). `os.File.WriteAt.specLong`
+  (any length, chunks of `maxRW`; premise `m.lo ≤ m.size`; post `pwPost m off A j`, `PwOutA`):
+  proved up to 1 GiB, **`sorry` past it** (`Proof/os/WriteLong.lean`, plan in its header).
+  `os.File.Write.wp_empty`/`wp_long` (`OffLong.lean`) and the bridge `os.File.writerStream`
+  (`Proof/os/WriterStream.lean`: `fileW`/`fileB` over `StreamOk`, whole resources) proved.
+  **Open:** `wal-save`'s `io.writerStreamG` keeps the old error clause (`W (out ++ ys)`, `n = |ys|`),
+  which no `os.File` can meet (offset `-1`, arbitrary count): it needs the `B` form. And the guarded
+  bridge for `walTailW` (program halves) needs a crash-aware `Write` that opens `walInv` around each
+  `PWriteStart`/`PWriteFinish` (the in-flight write's token in `walTailsRes`), not this whole-resource bridge.
