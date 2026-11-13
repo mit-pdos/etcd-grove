@@ -154,9 +154,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
     ihave #HI := io.isInit_access $$ Hio
     icases HI with ⟨-, -, -, -, #HE1, #HU1, -⟩
     iunfold errors.newVar at HE1
-    iunfold errors.newVar at HU1
     icases HE1 with ⟨%x1, #Hx1, -⟩
-    icases HU1 with ⟨%x2, #Hx2, -⟩
+    ihave ⟨%x2, #Hx2, #HUerr⟩ := errOk_newVar _ _ $$ HU1
     icombine Heof Hx1 gives %he
     icombine Hueof Hx2 gives %hu
     have heofn : eof ≠ GoInterface.nil := by rw [he]; simp [interface.mkOk]
@@ -361,6 +360,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
     have hframe := decRecStep_frame (C := C) (last := fs.isEmpty) (c := c) hrest8
       (by rw [htk, ← hl]; exact hl0)
     rw [htk, ← hl] at hframe
+    simp only at hframe
     have hrb := decodeFrameSize_fst_lt l
     have hpad := decodeFrameSize_snd_lt l
     wp_apply +noauto HDFS l
@@ -381,7 +381,50 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
     by_cases htl : F.bs.length < off + pad + rb
     · rw [decide_eq_true (hcmp.mpr htl)]
       wp_auto
-      sorry
+      wp_apply HFI fbr b _ GoInterface.nil DFrac.discard $$ [Hf] as -
+      · iexact Hf
+      wp_auto
+      wp_apply HName as %nm -
+      wp_apply HFI fbr b _ GoInterface.nil DFrac.discard $$ [Hf] as -
+      · iexact Hf
+      wp_auto
+      wp_apply HSize
+      wp_apply wp_slice_literal
+      isplitr
+      · ipureintro; rfl
+      iintro %asl ⟨Hasl, -⟩
+      wp_apply HErrorf _ _ [interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x2,
+          interface.mkOk go.string #nm, interface.mkOk go.int64 #(W64 rb),
+          interface.mkOk go.int64 #(W64 F.bs.length), interface.mkOk go.int64 #(W64 off),
+          interface.mkOk go.int64 #(W64 pad),
+          interface.mkOk go.int64 #(W64 F.bs.length - W64 off - W64 pad)]
+          [⟨go.GoType.PointerType errors.errorString.ty, #x2⟩] (by
+          intro ii hii
+          simp only [List.mem_cons, List.not_mem_nil, or_false] at hii
+          rcases hii with h | h | h | h | h | h | h <;> rw [interface.mkOk] at h <;> cases h
+          · exact Or.inr (by simp)
+          · exact Or.inl (argWf_string _)
+          all_goals exact Or.inl (argWf_int64 _)) $$ [Hasl] as %e1 -
+      · iframe
+        iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
+        iexact HUerr
+      have hstep : decRecStep C fs.isEmpty F.bs off c = .stop .tooLarge c := by
+        rw [hframe, if_pos htl]
+      iapply HΦ
+      iapply decPost_stop C d rp IoE eof ueof F fs off c c _ .tooLarge hstep (by simp [stopErr])
+      isplitl [Hr]
+      · iunfold ownRecAny; iexists _; iexact Hr
+      iapply ownDecoder_intro d IoE eof sl fbr fbrs h F fs (F.bs.take off ++ ys) off c _ hoff
+        (by simp)
+      iframe
+      iframe Hmu Hsl
+      iapply ownFbr_intro
+      iframe
+      iframe Hf HF
+      iunfold fileInfoOk
+      iexists fii
+      iframe HSize HName
+      ipureintro; rfl
     rw [decide_eq_false (fun h => htl (hcmp.mp h))]
     wp_auto
     sorry

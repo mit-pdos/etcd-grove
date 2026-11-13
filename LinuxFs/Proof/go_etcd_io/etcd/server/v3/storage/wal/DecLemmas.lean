@@ -319,6 +319,58 @@ theorem decPost_cons_eof (C : WalCodec) (d rp : Loc) (IoE : GoInterface → Prop
   · iright
     iexact H
 
+/-- A stop in the first file. -/
+theorem decPost_stop (C : WalCodec) (d rp : Loc) (IoE : GoInterface → Prop)
+    (eof ueof : GoInterface) (F : DecFile GF) (fs : List (DecFile GF)) (off : Nat) (c c' : w32)
+    (err : GoInterface) (s : WalStop) (h : decRecStep C fs.isEmpty F.bs off c = .stop s c')
+    (herr : stopErr eof ueof s err) :
+    ownRecAny rp ∗ ownDecoder d IoE eof (F :: fs) off c' (decide (s = .eof)) ⊢
+      decPost C d rp IoE eof ueof (F :: fs) off c err := by
+  have hg : goDecode C ((F :: fs).map (·.bs)) off c = .stop s ((F :: fs).map (·.bs)) off c' := by
+    have h' : decRecStep C (fs.map (·.bs)).isEmpty F.bs off c = .stop s c' := by simpa using h
+    simp only [List.map_cons]; unfold goDecode; rw [h']
+  unfold decPost
+  rw [hg]
+  iintro ⟨Hr, Hd⟩
+  ileft
+  iexists 0
+  simp only [List.drop_zero]
+  iframe
+  ipureintro
+  exact ⟨herr, trivial⟩
+
+/-- A record accepted in the first file. -/
+theorem decPost_accept (C : WalCodec) (d rp : Loc) (IoE : GoInterface → Prop)
+    (eof ueof : GoInterface) (F : DecFile GF) (fs : List (DecFile GF)) (off : Nat) (c c' : w32)
+    (r : WalRec) (len : Nat) (h : decRecStep C fs.isEmpty F.bs off c = .accept r len c') :
+    ownRec rp r ∗ ownDecoder d IoE eof (F :: fs) (off + len) c' true ⊢
+      decPost C d rp IoE eof ueof (F :: fs) off c GoInterface.nil := by
+  have hg : goDecode C ((F :: fs).map (·.bs)) off c = .ok r ((F :: fs).map (·.bs)) (off + len) c' := by
+    have h' : decRecStep C (fs.map (·.bs)).isEmpty F.bs off c = .accept r len c' := by simpa using h
+    simp only [List.map_cons]; unfold goDecode; rw [h']
+  unfold decPost
+  rw [hg]
+  iintro ⟨Hr, Hd⟩
+  ileft
+  iexists 0
+  simp only [List.drop_zero]
+  iframe
+  ipureintro
+  exact ⟨trivial, trivial⟩
+
+/-- An I/O error. -/
+theorem decPost_ioe (C : WalCodec) (d rp : Loc) (IoE : GoInterface → Prop)
+    (eof ueof : GoInterface) (fs fs' : List (DecFile GF)) (off off' : Nat) (c c' : w32)
+    (err : GoInterface) (hI : IoE err) :
+    ownRecAny rp ∗ ownDecoder d IoE eof fs' off' c' false ⊢
+      decPost C d rp IoE eof ueof fs off c err := by
+  iintro ⟨Hr, Hd⟩
+  unfold decPost
+  iright
+  isplitl []
+  · ipureintro; exact hI
+  iframe
+
 end post
 
 end WalFs
