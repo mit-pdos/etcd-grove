@@ -56,7 +56,8 @@ theorem synced_good (m : OsMeta) (hsz : m.size = 8) (ys : List ByteG)
   refine ⟨h8, fun b hb => ?_⟩
   have hyb : b < ys.length := by omega
   rw [crashed_dur hfc (List.mem_singleton_self _) (b := b) (x := (ys[b]'hyb).1) (Nat.zero_le _)
-    (by simpa using hyb) (by simp) (by omega), ← hys, List.getElem?_map,
+    (by simpa using hyb) (by simp) (by omega) (by simp only [OsMeta.synced]; omega), ← hys,
+    List.getElem?_map,
     List.getElem?_eq_getElem hyb]; rfl
 
 theorem newMeta_size : newMeta.size = 0 := rfl
@@ -100,7 +101,7 @@ theorem dataGood_start {f : OsFile} (h : DataGood (some f)) :
         have e := contents_getElem?_of_lt (f := f) (show b < f.size by omega)
         rw [List.getElem?_eq_getElem (by rw [contents_length]; omega), Option.some.injEq] at e
         simp [e])
-      (by omega), ← hb b hb8, contents_getElem?_of_lt (by omega)]
+      (by omega) (by simp only [initMeta]; omega), ← hb b hb8, contents_getElem?_of_lt (by omega)]
 
 section res
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [GoGlobalContext]

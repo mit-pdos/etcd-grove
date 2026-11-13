@@ -140,24 +140,28 @@ def TokInfo.lo (ti : TokInfo) : Nat :=
   match ti.kind with
   | .write off _ => min off ti.m0.size
   | .truncate sz => min ti.m0.size sz
+  | .falloc sz => min ti.m0.size sz
 
 /-- The end of the bytes the change announced. -/
 def TokInfo.hi (ti : TokInfo) : Nat :=
   match ti.kind with
   | .write off data => off + data.length
-  | .truncate sz => max ti.m0.size sz
+  | .truncate sz => pageEnd (max ti.m0.size sz)
+  | .falloc sz => max ti.m0.size sz
 
 /-- The value the change announced for byte `b` (in its range). -/
 def TokInfo.val (ti : TokInfo) (b : Nat) : w8 :=
   match ti.kind with
   | .write off data => if off ≤ b then data.getD (b - off) 0 else 0
   | .truncate _ => 0
+  | .falloc _ => 0
 
 /-- The size the change leaves the file with. -/
 def TokInfo.target (ti : TokInfo) : Nat :=
   match ti.kind with
   | .write off data => max ti.m0.size (off + data.length)
   | .truncate sz => sz
+  | .falloc sz => sz
 
 /-- `m` as a change's first step leaves it, which announced `[lo, hi)` with the target `tg`: the
 bytes it announced below the size may no longer be durable; past the zeros known, they no longer
@@ -242,9 +246,10 @@ instance OsFd.countable : Pos.Countable OsFd :=
       cases a; cases b; simp only [Prod.mk.injEq] at h
       obtain ⟨h1, h2, h3⟩ := h; subst h1 h2 h3; rfl)
 
-def OsChangeKind.enc : OsChangeKind → (Nat × List w8) ⊕ Nat
+def OsChangeKind.enc : OsChangeKind → (Nat × List w8) ⊕ (Bool × Nat)
   | .write off data => .inl (off, data)
-  | .truncate sz => .inr sz
+  | .truncate sz => .inr (true, sz)
+  | .falloc sz => .inr (false, sz)
 
 instance OsChangeKind.countable : Pos.Countable OsChangeKind :=
   Pos.Countable.ofInjective (fun k => Pos.Countable.encode k.enc)
@@ -848,14 +853,14 @@ end bytes
 
 /-- The candidates of the bytes of `f` past its size in its size's last page. -/
 def tailMap (f : OsFile) : GMap Nat Cands :=
-  ⟨fun b => if f.size ≤ b ∧ b < pageUp f.size then some (f.cand b) else none,
-   ⟨List.range (pageUp f.size), fun k h => by
-     by_cases hk : f.size ≤ k ∧ k < pageUp f.size
+  ⟨fun b => if f.size ≤ b ∧ b < pageEnd f.size then some (f.cand b) else none,
+   ⟨List.range (pageEnd f.size), fun k h => by
+     by_cases hk : f.size ≤ k ∧ k < pageEnd f.size
      · exact List.mem_range.2 hk.2
      · simp [hk] at h⟩⟩
 
 theorem tailMap_lookup (f : OsFile) (b : Nat) :
-    tailMap f !! b = if f.size ≤ b ∧ b < pageUp f.size then some (f.cand b) else none := rfl
+    tailMap f !! b = if f.size ≤ b ∧ b < pageEnd f.size then some (f.cand b) else none := rfl
 
 /-- What `tailMap` records is the file's candidates. -/
 theorem tailMap_cand (f : OsFile) (b : Nat) (c : Cands) (h : tailMap f !! b = some c) :
@@ -868,7 +873,7 @@ theorem tailMap_cand (f : OsFile) (b : Nat) (c : Cands) (h : tailMap f !! b = so
 /-- The ghost `OsMeta` of a file as on disk: all of it durable, zeros past its last page (durable
 zeros), and the candidates of the bytes past its size in its last page (`tailMap`). -/
 def initMeta (f : OsFile) : OsMeta :=
-  ⟨f.size, f.size, f.size, ∅, 0, 0, some (pageUp f.size), tailMap f, none⟩
+  ⟨f.size, f.size, f.size, ∅, 0, 0, some (pageEnd f.size), tailMap f, none⟩
 
 /-- The bytes of the files of `st`, each as the state has it. -/
 def bytesMapF (F : GMap Ino OsFile) : GMap (Ino × Nat) ByteG :=
@@ -1143,7 +1148,7 @@ theorem ofDisk_cand_lt (img : Nat → w8) (sz b : Nat) (hb : b < sz) :
     (OsFile.ofDisk img sz).cand b = [((OsFile.ofDisk img sz).cache b, 0)] := by
   simp [OsFile.ofDisk]
 
-theorem ofDisk_cand_past (img : Nat → w8) (sz b : Nat) (hb : pageUp sz ≤ b) :
+theorem ofDisk_cand_past (img : Nat → w8) (sz b : Nat) (hb : pageEnd sz ≤ b) :
     (OsFile.ofDisk img sz).cand b = [(0, 0)] := by
   simp [OsFile.ofDisk, diskByte_past hb]
 
@@ -1163,7 +1168,7 @@ theorem metaOk_ofDisk {st : OsState} {i : Ino} (img : Nat → w8) (sz : Nat)
   · intro b hb _; exact ofDisk_cand_lt img sz b hb
   · intro z hz
     simp only [initMeta, Option.some.injEq] at hz; subst hz
-    refine ⟨le_pageUp _, fun b hb => ofDisk_cand_past img sz b hb⟩
+    refine ⟨le_pageEnd _, fun b hb => ofDisk_cand_past img sz b hb⟩
 
 theorem osInit_wf_coh {st : OsState} (h : FsInit st) :
     OsWf st ∧ OsCoh st (bytesMap st) (metaMap st) ∅ ∅ := by

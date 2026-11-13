@@ -33,7 +33,8 @@ theorem durable_img {om : OsMeta} {dq : DFrac} {xs : List w8} {f' : Fs.OsFile}
   have hsz : f'.size = xs.length := by omega
   apply List.ext_getElem (by rw [contents_length, hsz])
   intro k hk1 hk2
-  obtain ⟨s, hs⟩ := hrun _ (List.mem_singleton_self _) k (by simpa using hk2) (by omega)
+  obtain ⟨s, hs⟩ | ⟨h0, -⟩ := hrun _ (List.mem_singleton_self _) k (by simpa using hk2) (by omega)
+  rotate_left; · omega
   simp only [List.getElem_map, durB, List.mem_singleton, Prod.mk.injEq, Nat.zero_add] at hs
   simp [Fs.OsFile.contents, hs.1]
 

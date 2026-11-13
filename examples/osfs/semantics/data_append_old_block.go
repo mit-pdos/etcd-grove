@@ -12,7 +12,8 @@ import (
 // Decision: the page that holds the file's end keeps its bytes past the size
 // as they are on disk (OsFile.ofDisk: diskByte gives img b for a page with a
 // byte below the size), stale bytes a crash left there included; a crash may
-// keep a grown size with those bytes' synced values.
+// keep a grown size with those bytes' synced values, or zero, once a writeback
+// of the page has zeroed them (data_writeback_tail_zeros.go).
 //
 // Lean: Impl.lean: diskByte, OsFile.ofDisk, CrashFile; Tests.lean:
 // crash_append_old_block.

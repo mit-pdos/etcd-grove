@@ -258,7 +258,7 @@ theorem crashRestAt_take_seg (Q : OsState → OsState → Prop) (L L' : GooseLoc
       icases Ht with ⟨Ht, %hxl⟩
       have hcut0 : fl.m.cut = none := hok.2.1
       icases crashRestAt_take_tok (gooseOsGS (L := L)) Q (gooseOsGS (L := L')) D tt V' st st' fl.t
-        ⟨g.ino, .truncate tg, fl.n, fl.m, rsAnn fl.n (fl.bs.drop (min fl.m.size tg))⟩
+        ⟨g.ino, rsKind true tg, fl.n, fl.m, rsAnn fl.n (fl.bs.drop (min fl.m.size tg))⟩
         hi [(0, DFrac.own (1 : Qp).half, fl.bs.take (min fl.m.size tg))]
         $$ Hr Ht [Hb1] with ⟨%hfc, Hf, Hr, Ht, Hbs⟩
       · iapply BigSepL.bigSepL_singleton.2; iexact Hb1
@@ -266,7 +266,7 @@ theorem crashRestAt_take_seg (Q : OsState → OsState → Prop) (L L' : GooseLoc
       obtain ⟨h1, h2, f, hf, h3⟩ := hfc
       have hcov := runsCover_rz hok
       have hmeta : g.om = TokInfo.meta
-          ⟨g.ino, .truncate tg, fl.n, fl.m, rsAnn fl.n (fl.bs.drop (min fl.m.size tg))⟩ :=
+          ⟨g.ino, rsKind true tg, fl.n, fl.m, rsAnn fl.n (fl.bs.drop (min fl.m.size tg))⟩ :=
         hok.2.2.1
       iframe Hr Hb1
       isplitr
