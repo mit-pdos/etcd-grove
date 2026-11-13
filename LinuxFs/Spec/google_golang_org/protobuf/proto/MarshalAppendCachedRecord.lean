@@ -32,9 +32,21 @@ def cachedSizeOpts [GooseExts] : google_golang_org.protobuf.proto.MarshalOptions
 /-- **`o.MarshalAppend(b, m)`, `o` holding `{UseCachedSize: true}`, of a frozen `*walpb.Record` holding
 the wire content `c`** (the registered pair `I` of `walpb.Record`), with the result's length below
 `2^47`: appends `c`'s encoding to `b` and returns the result and `nil`. As
-`proto.MarshalAppendPb.spec` (the zero options), at this one type, without its in-place clause: a
-stale cached size can make `marshal` reallocate though the result fits (`encode` uses the returned
-slice, never `b`'s array).
+`proto.MarshalAppendPb.spec` (the zero options), at this one type, with a weaker in-place clause: a
+stale cached size can make `marshal` reallocate though the result fits. **Ownership of `b`'s array**:
+either the result reuses it (`b'.ptr = b.ptr`, `b'.cap = b.cap`; the points-to of `b'` covers it), or
+the result is a fresh array and `b`'s whole array comes back to the caller, its contents arbitrary
+(`∃ ys, b ↦* ys ∗ ownSliceCap w8 b 1`: with a stale size, `marshal` may append into `b`'s capacity
+before Go's `append` reallocates; `b`'s first `len b` bytes are in fact unchanged, not claimed).
+`encode` needs this to keep its 1 MiB `e.buf` across calls (`encoder.go:89`). Against protobuf-go
+v1.36.12: `MarshalAppend` (`proto/encode.go:153-161`) returns `marshal(b, …).Buf`; `marshal`
+(`:174-210`) passes `b` itself, or a fresh `make` + `copy` of it when `cap(b) < len(b) + size`
+(`:189-192`), to the generated fast path (`internal/impl/encode.go:135-146`,
+`marshalAppendPointer`), which only appends (Go's `append`, `protowire.Append*`) and returns the
+slice; no []byte argument is stored anywhere. Measured: `examples/stdlib/walpb/marshalappend_test.go`
+(`TestMarshalAppendOwnership`: 50,000 random records and buffers, the result is in `b`'s array with
+`b`'s capacity or shares nothing with it, and in place whenever it fits with an up-to-date cache;
+`TestMarshalAppendStaleCache`: a stale size, `b`'s array written past `len b`, then a fresh result).
 
 Against protobuf-go v1.36.12 (`proto/encode.go:153`, `:174`; `internal/impl/encode.go`,
 `sizePointer`): `UseCachedSize` makes the sizer return the size cached in the message's
@@ -58,7 +70,9 @@ abbrev proto.MarshalAppendCachedRecord.spec : Prop :=
       (Val #(interface.mkOk (go.GoType.PointerType I.data.ty) #l)))
   {{ (b' : GoSlice), RET (PairV #b' #(GoInterface.nil));
       o ↦{dq} cachedSizeOpts ∗
-      b' ↦* (xs ++ pbEncC I c) ∗ ownSliceCap w8 b' (DFrac.own 1) }}
+      b' ↦* (xs ++ pbEncC I c) ∗ ownSliceCap w8 b' (DFrac.own 1) ∗
+      (⌜b'.ptr = b.ptr ∧ b'.cap = b.cap⌝ ∨
+        ∃ ys : List w8, b ↦* ys ∗ ownSliceCap w8 b (DFrac.own 1)) }}
 
 end spec
 

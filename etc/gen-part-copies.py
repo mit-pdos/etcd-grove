@@ -92,6 +92,10 @@ COPIES = [
     Whole('Proof/google_golang_org/protobuf/proto/SizePb.lean'),
     Whole('Proof/google_golang_org/protobuf/proto/MarshalPb.lean'),
     Whole('Proof/google_golang_org/protobuf/proto/UnmarshalPb.lean'),
+    # `time.Duration.Seconds`'s spec (the WAL encoder's `write` observes a duration; its main module
+    # imports the server's `BaseApply` for nothing but the frame)
+    Whole('Spec/time/Duration__Seconds.lean',
+          drop=['Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply'], add=['Perennial.Proof.time']),
 ]
 
 IMPORT_RE = re.compile(r'^((?:public\s+)?(?:meta\s+)?import\s+(?:all\s+)?)(\S+)(.*)$')
@@ -131,6 +135,7 @@ def gen_whole(c):
     for line in src:
         m = IMPORT_RE.match(line)
         if m and m.group(2) in c.drop:
+            last_import = len(out) - 1  # an added import may take a dropped one's place
             continue
         if m:
             line = m.group(1) + target(m.group(2)) + m.group(3)
