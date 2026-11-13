@@ -179,6 +179,34 @@ def DirsAvoid (R : Roots) (jr : Ino) (s : AbsDiskState) : Prop :=
     (∀ j b, ¬ (j = jr ∧ AreaSlot b) → m1.entry j b = m2.entry j b) →
     lookupH R (m1, []) dd = lookupH R (m2, []) dd
 
+/-- **A WAL directory's segments are at their names** (`ents` its entries): each segment's name
+is a `.wal` name, the entry at it the segment's file; every `.wal` entry is a file (W3/W5's gap 1:
+`Open` reads the names, `searchIndex` picks a file by them). -/
+def SegsNamed (segs : List SegG) (ents : Ents) : Prop :=
+  (∀ g ∈ segs, walNameP g.name = true ∧ ents !! g.name = some (.file g.ino)) ∧
+  ∀ b e, walNameP b = true → ents !! b = some e → ∃ i, e = .file i
+
+/-- **`SegsNamed` after a crash**: the segments the crash kept named (their files among the
+directory's `.wal` files) are at their names; every `.wal` entry is a file. -/
+def SegsNamedC (segs : List SegG) (ents : Ents) : Prop :=
+  (∀ g ∈ segs, walNameP g.name = true ∧ (g.ino ∈ walInos ents → ents !! g.name = some (.file g.ino))) ∧
+  ∀ b e, walNameP b = true → ents !! b = some e → ∃ i, e = .file i
+
+/-- **Every WAL's segments are at their names** (framed; W3/W5): now, in every claim of its
+directory the invariant holds (`WalDirClaim`), and after every crash the claims allow. Established
+at the start (`WalsStart`'s, from the crash: `walCrash_pure`); `cut`'s rename and `Create` must keep
+it. -/
+def WalsNamed (Ls : GMap GoString WalLay) (cl : List Claim) (n : Nat) : Prop :=
+  ∀ dir lay, Ls !! dir = some lay →
+    (∀ hj, WalDirClaim lay.j hj cl → SegsNamed lay.segs hj.cur) ∧
+    ∀ m', RegionCrashed cl n m' → SegsNamedC lay.segs (entsOf m' lay.j)
+
+/-- The claim `c` is one of a WAL directory's, as `WalDirClaim` has them: on the directory of a
+layout of `Ls`, on all names but non-`.wal` ones. -/
+def WalDirClaimOf (Ls : GMap GoString WalLay) (c : Claim) : Prop :=
+  ∃ dir lay, Ls !! dir = some lay ∧ c.1 = lay.j ∧
+    ∃ X : List GoString, c.2.1 = .except X ∧ ∀ b ∈ X, walNameP b = false
+
 end pure
 
 section inv
@@ -275,6 +303,41 @@ theorem walTailsRes_mono (s s' : AbsDiskState) (Ls : GMap GoString WalLay) (F : 
   iframe Hv
   ipureintro; exact ⟨hd', hp.2⟩
 
+instance walIte_timeless {p : Prop} [Decidable p] (P Q : IProp GF) [Timeless P] [Timeless Q] :
+    Timeless (if p then P else Q) := by
+  split <;> infer_instance
+
+open Classical in
+/-- **The program's halves, parked** (W3/W5's gap 2, framed): the parking flag's invariant half
+(`walParkAuth b`, `Ghost.lean`); every segment's program halves (`segRes`) but those of the inodes
+`O`, and the program's half of every WAL directory's claim (`WalDirClaimOf`) but the claims `D`;
+with the flag `true` (the lock token free: no handle) nothing is out. A handle (the flag `false`)
+takes what it needs (`Open`: the opened WAL's segments and directory claim) and puts back what it
+does not keep (`ReadAll`: all but the tail's); returning a half needs no token (a third half
+contradicts). -/
+def walParked (Ls : GMap GoString WalLay) (cl : List Claim) : IProp GF :=
+  iprop(∃ (b : Bool) (O : List Ino) (D : List Claim), walParkAuth (W := W) b ∗
+    ⌜b = true → O = [] ∧ D = []⌝ ∗
+    ([∗list] g ∈ segsAll Ls, if g.ino ∈ O then emp else segRes (L := L) g) ∗
+    [∗list] c ∈ cl, if WalDirClaimOf Ls c ∧ c ∉ D then
+      osNames (L := L) c.1 c.2.1 (DFrac.own (1 : Qp).half) c.2.2 else emp)
+
+open Classical in
+instance walParked_timeless (Ls : GMap GoString WalLay) (cl : List Claim) :
+    Timeless (walParked (L := L) (W := W) Ls cl) := by
+  haveI : ∀ g : SegG, Timeless (segRes (L := L) g) := fun g => by
+    unfold segRes osMeta; infer_instance
+  haveI : ∀ (j : Ino) (N : NameSet) (q : DFrac) (h : NamesH), Timeless (osNames (L := L) j N q h) :=
+    fun _ _ _ _ => by unfold osNames; split <;> infer_instance
+  unfold walParked
+  haveI : ∀ (O : List Ino) (g : SegG),
+      Timeless (iprop(if g.ino ∈ O then iprop(emp) else segRes (L := L) g) : IProp GF) :=
+    fun O g => by split <;> infer_instance
+  haveI : ∀ (D : List Claim) (c : Claim), Timeless (iprop(if WalDirClaimOf Ls c ∧ c ∉ D then
+      osNames (L := L) c.1 c.2.1 (DFrac.own (1 : Qp).half) c.2.2 else iprop(emp)) : IProp GF) :=
+    fun D c => by split <;> infer_instance
+  infer_instance
+
 /-- **The WAL invariant's contents**, the real WAL state being `s`. -/
 def walInvBody (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (s : AbsDiskState) : IProp GF :=
@@ -283,7 +346,7 @@ def walInvBody (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoSt
     osClaims L (cl.map (fun c => (c, DFrac.own (1 : Qp).half))) ∗ osCommitLb (L := L) n ∗
     laysResF (L := L) F Ls ∗ ⌜WalsOk C Mr R jr s Ls cl n⌝ ∗ ⌜WalsCreateOk jr cl⌝ ∗
     (∃ CR, walCreatingAuth (W := W) CR ∗ ⌜CreatingOk jr cl CR⌝) ∗ walTailsRes (W := W) s Ls F ∗
-    ⌜AbsentNone s jr cl n ∧ DirsAvoid R jr s⌝)
+    ⌜AbsentNone s jr cl n ∧ DirsAvoid R jr s⌝ ∗ ⌜WalsNamed Ls cl n⌝ ∗ walParked (L := L) (W := W) Ls cl)
 
 instance walInvBody_timeless (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (s : AbsDiskState) : Timeless (walInvBody (L := L) (W := W) C Mr R jr r s) := by
