@@ -135,7 +135,7 @@ theorem os.model.wp_openLoop_leaf (p c : GoString) (R : Roots) (J : Ino) (dq dqn
         osNames J (.only [c]) dqn hc ∗ osCallPerm qc }}
       (App (Val os.model.openLoop) (Val #(child p c)))
     {{ (fd e : w64), RET (PairV #fd #e); osPathS R p dq J ∗ osNames J (.only [c]) dqn hc ∗
-        osCallPerm qc ∗
+        osCallPerm qc ∗ ⌜hc.cur !! c = none → e ≠ 0⌝ ∗
         (⌜e ≠ 0⌝ ∨ ⌜e = 0⌝ ∗ ∃ i, osFd fd (DFrac.own 1) (openFd i flRO)) }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
   have hcN' : (NameSet.only [c]).Mem c := by simp [NameSet.Mem]
@@ -158,6 +158,8 @@ theorem os.model.wp_openLoop_leaf (p c : GoString) (R : Roots) (J : Ino) (dq dqn
     wp_auto
     iapply HΦ
     iframe
+    isplitr
+    · ipureintro; intro _; exact he
     ileft; ipureintro; exact he
   · obtain ⟨i, rfl⟩ : ∃ i, n = .file i := by
       cases n with
@@ -178,6 +180,8 @@ theorem os.model.wp_openLoop_leaf (p c : GoString) (R : Roots) (J : Ino) (dq dqn
       wp_auto
       iapply HΦ
       iframe
+      isplitr
+      · ipureintro; intro h; cases h
       iright
       isplitr
       · ipureintro; rfl
@@ -191,6 +195,8 @@ theorem os.model.wp_openLoop_leaf (p c : GoString) (R : Roots) (J : Ino) (dq dqn
       wp_auto
       iapply HΦ
       iframe
+      isplitr
+      · ipureintro; intro h; cases h
       ileft; ipureintro; exact he0
 
 /-- `rmdir` loop on a name holding no directory (a fraction of the claim on it): an errno. -/
@@ -274,7 +280,7 @@ theorem os.model.wp_removeAllFrom_leaf (p c : GoString) (R : Roots) (J : Ino) (d
   rcases hcls with rfl | rfl | rfl <;> wp_auto
   all_goals
     wp_apply os.model.wp_openLoop_leaf p c R J dq dqn hc' qc hcN hcf' $$ [Hp Hn Hperm]
-      as %fd %e' ⟨Hp, Hn, Hperm, Hr⟩
+      as %fd %e' ⟨Hp, Hn, Hperm, -, Hr⟩
     · iframe; iframe #
     icases Hr with (%he' | ⟨%he', %i, Hfd⟩)
     · simp only [decide_eq_false (show e' ≠ W64 0 from he'), Bool.not_false]
