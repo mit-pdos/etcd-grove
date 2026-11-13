@@ -2,7 +2,7 @@
 # The checks a branch passes before it lands on `lean`, in one run (the ones CI runs, plus the
 # trust base's and every generator's): the full build, every generated Link.lean, the trust base
 # and every collection, the axiom-tok gate, the translations (and the examples' go.mod pins), the generated
-# initializers, the issues' front matter, the bounds and auth-mode checks, the packages' imports. Prints one line per check and exits 1 if any fails.
+# initializers, the issues' front matter, the bounds and auth-mode checks, the packages' imports and interfaces. Prints one line per check and exits 1 if any fails.
 #
 #   etc/gates.sh                     in a checkout whose .lake/packages holds the pinned Perennial
 #   LAKE_PACKAGES=.lake/manifest-stdinit.json PERENNIAL_CHECKOUT=/shared/perennial-std-init \
@@ -206,6 +206,22 @@ fi
 return $fail
 }
 
+sec_iface() {
+fail=0
+# 8b. the checked-in interfaces (`interface/`) are what the build exports, with no new layout
+# violation: CI's "Check the packages' interfaces" loop, verbatim (reads the build; `$LAKE_OPTS`
+# carries `--packages`). Added 2026-11-13: CI failed on it since a1e57a9676 while land.sh passed.
+iface=ok
+for c in etc/api/*.txt; do
+  case "$c" in *-layout.txt) continue ;; esac
+  if ! python3 etc/gen-interface.py "$c" --check --layout > "$tmp/iface.log" 2>&1; then
+    echo "interface $c: FAILED"; tail -20 "$tmp/iface.log"; iface=FAILED
+  fi
+done
+echo "interfaces: $iface"; [ "$iface" = ok ] || fail=1
+return $fail
+}
+
 sec_premisefix() {
 fail=0
 # 9. the Go tests behind the closed theorems' premise fixes (examples/premisefix: Go's behavior a
@@ -308,7 +324,7 @@ return $fail
 }
 
 link_perennial
-secs=(links tcb goose models issues bounds mode api premisefix k8s7e)
+secs=(links tcb goose models issues bounds mode api iface premisefix k8s7e)
 start=$(date +%s)
 for s in "${secs[@]}"; do
   mkdir -p "$tmp/sec.$s"
