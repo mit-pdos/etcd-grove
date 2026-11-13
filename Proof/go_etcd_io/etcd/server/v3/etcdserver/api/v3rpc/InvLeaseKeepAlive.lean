@@ -31,6 +31,7 @@ public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveMsg
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthReqDerive
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthBound
 public import Proof.net.http.NetCtx
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.SrvCtxWeak
 
 @[expose] public section
 
@@ -137,12 +138,16 @@ def renewAns (s : Loc) (E : apply.AEnv GF) (γl : GName) (ctx : GoInterfaceOk) (
       (fun info => leaseKeysVerdictFrom E.authMode n info γl m id .write)) ∨
     (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err))
 
-/-- **The server's `LeaseRenew`** (the keep-alive's contract, persistent; see the file header). -/
+/-- **The server's `LeaseRenew`** (the keep-alive's contract, persistent; see the file header). (k8s
+7f-4, Addendum T-k) At a weak context (`srvCtxWeak`, the caller lending `levelTok v3rpc.ctxErrLvl`,
+returned) whose causes are context errors or etcd's no-leader error (`v3rpc.ctxCauseOk`), as
+`EtcdServer.LeaseRenew.spec`. -/
 def raftLeaseRenew (s : Loc) (E : apply.AEnv GF) (γl : GName) (S' : IProp GF) : IProp GF :=
   iprop(∀ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (id : w64) (n m : Nat),
-    {{ S' ∗ context.isContext ci cd ∗ context.libCtxOk ci ∗ http.netCtxOkC ci ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m }}
+    {{ S' ∗ srvCtxWeak ci cd ∗ levelTok v3rpc.ctxErrLvl ∗ context.libCtxOk ci ∗ http.netCtxOkC ci ∗
+        v3rpc.ctxCauseOk ci ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m }}
       (App (App (Val (srvM s go!"LeaseRenew")) (Val #(GoInterface.ok ci))) (Val #id))
-    {{ (ttl : w64) (err : GoInterface), RET (PairV #ttl #err); S' ∗
+    {{ (ttl : w64) (err : GoInterface), RET (PairV #ttl #err); S' ∗ levelTok v3rpc.ctxErrLvl ∗
         renewAns s E γl ci n m id err }})
 
 instance raftLeaseRenew_persistent (s : Loc) (E : apply.AEnv GF) (γl : GName) (S' : IProp GF) :

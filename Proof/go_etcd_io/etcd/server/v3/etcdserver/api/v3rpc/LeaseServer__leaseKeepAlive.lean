@@ -159,7 +159,7 @@ theorem v3rpc.LeaseServer.leaseKeepAlive.wp_proof
     (hCV : prometheus.CounterVec.WithLabelValues.spec (GF := GF) (hG := hG)) :
     v3rpc.LeaseServer.leaseKeepAlive.spec (GF := GF) (hG := hG) := by
   intro p s A cid mid E γl S' st γs Up Dn ci cd
-  wp_start as ⟨#Hls, #HRn, #Hst, #Hspec, #HUp, Hrt, Hstt, HS, HR⟩
+  wp_start as ⟨#Hls, #HRn, #Hst, #Hspec, #HUp, Hrt, Hstt, HS, HR, HE⟩
   ihave #Hls' := Hls
   iunfold v3rpc.leaseServerAt at Hls'
   icases Hls' with ⟨%Hpn, #Hhdr, #Hle, %lg, #Hlg, #Hlgf⟩
@@ -190,13 +190,16 @@ theorem v3rpc.LeaseServer.leaseKeepAlive.wp_proof
   · iPkgInit
   ihave #Hctx2 := Hctxis
   ihave #Hlibk := libCtxOk_of_runCtx ci $$ Hrunctx
+  ihave #Hwkk := srvCtxWeak_of_isContext ci cd $$ Hctxis
+  ihave #Hcausek := ctxCauseOk_of_runCtx ci $$ Hrunctx
   iNamed Hctx2
   ihave #HErrU := HErr $$ %Broadcast.Unknown
   wp_auto
   ihave Hinv : iprop(∃ (L : List KaReqM) (Ld : List (w64 × w64)),
       "Hrt" ∷ srvRecvTok (Req := pbLeaseKeepAliveRequest) γs L ∗
       "Hstt" ∷ srvSendTok (Rep := pbLeaseKeepAliveResponse) γs Ld ∗
-      "%Hlen" ∷ ⌜Ld.length = L.length⌝ ∗ "HS" ∷ S' ∗ "HR" ∷ A.revR) $$ [Hrt Hstt HS HR]
+      "%Hlen" ∷ ⌜Ld.length = L.length⌝ ∗ "HS" ∷ S' ∗ "HR" ∷ A.revR ∗
+      "HE" ∷ levelTok v3rpc.ctxErrLvl) $$ [Hrt Hstt HS HR HE]
   · iexists [], []; iframe; ipureintro; rfl
   wp_for Hinv
   rw [Hsi]
@@ -243,7 +246,7 @@ theorem v3rpc.LeaseServer.leaseKeepAlive.wp_proof
     iunfold v3rpc.kaUp at HUq
     icases HUq with ⟨#Hnb, #Hmb⟩
     ihave #HRn' := HRn $$ %ci %cd %v.ID' %q.nb %q.mb
-    wp_apply HRn' $$ [HS] as %ttl %rerr ⟨HS, Hans⟩
+    wp_apply HRn' $$ [HS HE] as %ttl %rerr ⟨HS, HE, Hans⟩
     · iframe; iframe #
     (try wp_auto)
     ihave ⟨Hrt, #Hupq⟩ := srvRecvTok_upAtK γs L q $$ Hrt

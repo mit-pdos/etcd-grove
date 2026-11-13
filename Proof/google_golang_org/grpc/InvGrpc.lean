@@ -66,6 +66,7 @@ public import Proof.go_opentelemetry_io.otel.trace.Defs
 public import Proof.context.LibKeys
 public import Proof.context.LibKeysChain
 public import Proof.net.http.NetCtx
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.SrvCtxWeak
 public import Proof.go_etcd_io.etcd.client.v3.ClientErr
 public import GeneratedProof.google_golang_org.grpc.peer
 public import Proof.google_golang_org.grpc.metadata.Outgoing
@@ -208,13 +209,23 @@ net/http's client reads (`http.netCtxOk`: `nil` at `httptrace`'s `clientEventCon
 by `httptrace.WithClientTrace`, `net`'s tests, and `net`'s `Dialer.DialContext` on a context it derives
 internally (go1.27.3 `net/dial.go:539`, never the caller's), which neither grpc's server, otelgrpc's stats
 handler nor etcd's interceptors call (the run context's chain: `TestRunCtxChain`,
-`examples/premisefix/streamctx`). -/
+`examples/premisefix/streamctx`). (k8s 7f-4, Addendum T-k) Its causes are context errors
+(`v3rpc.ctxCauseOk`): grpc v1.84.0 makes the run's contexts with `WithCancel`, `WithTimeout` and
+`WithValue` only (`internal/transport/http2_server.go:537-539`, `handler_server.go:396-398`,
+`server.go:1637, 1787`; no `WithCancelCause`, `WithDeadlineCause`, `WithTimeoutCause` or
+`context.Cause` in its non-test sources), over `Background()` or, through `ServeHTTP`, net/http's
+server's request context (`WithCancel`/`WithValue` of its base context; net/http's only cause variant is
+the client transport's own child, `transport.go:675`, `clientconn.go:403`); otelgrpc's stats handler and
+etcd's unary interceptors add `WithValue` links only. Each such context's `cause` is its `err`
+(`cancel` stores `err` when the cause is nil), `Canceled` or `DeadlineExceeded`, and every `Err()` is
+one of them (`TestRunCtxChain`, `TestRunCtxChainUnary`: `context.Cause` of the handler's context once
+the call ends is `context.Canceled`). -/
 def grpcRunCtx (ci : GoInterfaceOk) : IProp GF :=
   iprop((□ ∀ (n : GoString) (x : val) (Φ : val → IProp GF), ⌜etcdPkgPrefix <+: n⌝ →
     ▷ Φ #GoInterface.nil -∗
     WP (App (Val #(methods ci.ty go!"Value" ci.v))
       (Val #(interface.mkOk (go.GoType.Named n []) x : GoInterface))) {{ Φ }}) ∗
-    trace.spanCtxOk ci ∗ context.libCtxOk ci ∗ http.netCtxOk ci)
+    trace.spanCtxOk ci ∗ context.libCtxOk ci ∗ http.netCtxOk ci ∗ v3rpc.ctxCauseOk ci)
 
 instance grpcRunCtx_persistent (ci : GoInterfaceOk) : Persistent (grpcRunCtx (GF := GF) ci) := by
   unfold grpcRunCtx; infer_instance
@@ -225,7 +236,7 @@ theorem spanCtxOk_of_runCtx (ci : GoInterfaceOk) :
     grpcRunCtx (GF := GF) ci ⊢ trace.spanCtxOk ci := by
   iintro #H
   iunfold grpcRunCtx at H
-  icases H with ⟨-, #H, -⟩
+  icases H with ⟨-, #H, -, -, -⟩
   iexact H
 
 /-- **A run's context's library values are well formed** (`grpcRunCtx`'s third part). -/
@@ -233,7 +244,7 @@ theorem libCtxOk_of_runCtx (ci : GoInterfaceOk) :
     grpcRunCtx (GF := GF) ci ⊢ context.libCtxOk ci := by
   iintro #H
   iunfold grpcRunCtx at H
-  icases H with ⟨-, -, #H, -⟩
+  icases H with ⟨-, -, #H, -, -⟩
   iexact H
 
 /-- **A run's context holds nothing at net/http's keys** (`grpcRunCtx`'s fourth part; T-h6). -/
@@ -241,7 +252,15 @@ theorem netCtxOk_of_runCtx (ci : GoInterfaceOk) :
     grpcRunCtx (GF := GF) ci ⊢ http.netCtxOk ci := by
   iintro #H
   iunfold grpcRunCtx at H
-  icases H with ⟨-, -, -, #H⟩
+  icases H with ⟨-, -, -, #H, -⟩
+  iexact H
+
+/-- **A run's context's causes are context errors** (`grpcRunCtx`'s fifth part; Addendum T-k). -/
+theorem ctxCauseOk_of_runCtx (ci : GoInterfaceOk) :
+    grpcRunCtx (GF := GF) ci ⊢ v3rpc.ctxCauseOk ci := by
+  iintro #H
+  iunfold grpcRunCtx at H
+  icases H with ⟨-, -, -, -, #H⟩
   iexact H
 
 /-- **A service method `h` meets `Spec` with the per-run resource `S`** (persistent; see the file

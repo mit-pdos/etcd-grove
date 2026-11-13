@@ -210,7 +210,7 @@ theorem v3rpc.serverWatchStream.recvLoop.wp_proof
   rw [hws]
   ihave #Hstream' := Hstream
   iunfold v3rpc.srvStreamIs at Hstream'
-  icases Hstream' with ⟨%si, %Hsi, #HRecv, #HSend, #HCtx, #Hctxw, #Hlibc, #Hspanc⟩
+  icases Hstream' with ⟨%si, %Hsi, #HRecv, #HSend, #HCtx, #Hctxw, #Hlibc, #Hspanc, -⟩
   iunfold v3rpc.upOk at Hup
   iunfold v3rpc.watchSrvOk at Hsrv
   icases Hsrv with ⟨#Hrso, #Hauth, #Hvars, #Htag, #HaLb⟩

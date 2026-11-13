@@ -58,6 +58,45 @@ def noLeaderErr (err : GoInterface) : IProp GF :=
 instance noLeaderErr_persistent (err : GoInterface) : Persistent (noLeaderErr (GF := GF) err) := by
   unfold noLeaderErr; infer_instance
 
+/-- `ctxCauseOk`'s fact, raw (opaque). -/
+opaque v3rpc.ctxCauseOkRaw (c : GoInterfaceOk) : IProp GF
+
+/-- **The causes of the context `c` are context errors or etcd's no-leader error** (persistent,
+opaque; TRUSTED; k8s 7f-4, Addendum T-k, decided by etcd-grove-81 with the user's approval,
+2026-11-13). Its meaning in Go (go1.27.3 `src/context/context.go`), "a cause error" being `nil`,
+`context.Canceled`'s value, `context.DeadlineExceeded`'s value or `rpctypes.ErrGRPCNoLeader`'s value:
+* (i) the `cause` field of the `*cancelCtx` that `c.Value(&cancelCtxKey)` returns, if it returns one
+  (the one `parentCancelCtx(c)` finds, then), holds only cause errors, at every time;
+* (ii) a non-nil error `c.Err()` returns while that field holds `nil`, or when `c.Value(&cancelCtxKey)`
+  returns no `*cancelCtx`, is a cause error;
+so (iii) every call of `context.Cause(c)` (`c.Err()`; `nil` if it is; else the found `*cancelCtx`'s
+`cause` if non-nil; else that error, `:289-307`) returns a cause error, and so does every cause a
+context `context` makes over `c` stores (`propagateCancel`'s arms: `Cause(c)` when `c` is done, the found
+`*cancelCtx`'s `cause` when it is cancelled, `:476-528, 550-575`; its own `cancel`, `Canceled`; its
+timer, `DeadlineExceeded`).
+
+It says nothing of whether those calls return (the context's own facts say that: `"#HErr"`,
+`"#HValue"` of `ctxDoneErr`), only of the errors that come out. What it excludes: a context made by
+`WithCancelCause`, `WithDeadlineCause` or `WithTimeoutCause` with another cause, or a context of the
+program's own whose `Err()` returns another error with no `*cancelCtx` under it: `net/http`'s transport
+returns `context.Cause` of its child of the request's context (go1.27.3 `net/http/transport.go:675, 698`),
+so over such a context `RenewHTTP` returned an error whose `Is` method panics
+(`notes/renewhttp-cause-refuted.md`, `TestRenewHTTPCausePanics`, `TestLeaseTimeToLiveFollowerCausePanics`).
+Perennial's model does not track causes (`cancelCtxLockInv`'s `cause`, no fact), so no proof can derive
+this; it is claimed where contexts are made and carried.
+
+Given by: grpc's run model (`grpcRunCtx`, so `srvRawStreamIs`: grpc v1.84.0 and net/http's server make
+their contexts with `WithCancel`, `WithTimeout` and `WithValue` only, never a cause variant), the law
+`v3rpc.ctxCauseOk_cancellable` (etcd's `*cancellableContext`), `traceutil.Tracer.Start.spec`'s post
+(a `valueCtx` over `c`, or `c`), and the local axiom `v3rpc.wp_WithTimeout_weak`'s post (the
+`*timerCtx` over `c`). No other spec may give it. Taken by `leasehttp.RenewHTTP.spec` and
+`EtcdServer.leaseTimeToLive.spec`. -/
+def v3rpc.ctxCauseOk (c : GoInterfaceOk) : IProp GF := iprop(□ v3rpc.ctxCauseOkRaw c)
+
+instance v3rpc.ctxCauseOk_persistent (c : GoInterfaceOk) :
+    Persistent (v3rpc.ctxCauseOk (GF := GF) c) := by
+  unfold v3rpc.ctxCauseOk; infer_instance
+
 /-- **A stream handler's context** `c` described by `s` (persistent; k8s 7f-4, T-f): `isContext c s`
 (`Perennial/Proof/context/Base.lean`, `isContextDef`) with its `Err()` clauses weakened:
 * `"#HErr"`: `Err()` returns some error, nil or not, at any time (the Err-before-Done window:

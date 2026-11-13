@@ -480,6 +480,7 @@ theorem etcd_leaseTTLHandlerOkLive (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : 
   iapply wp_fupd
   ihave #Hlibc := libCtxOk_of_runCtx ci $$ Hrc
   ihave #Hnetc := netCtxOk_of_runCtx ci $$ Hrc
+  ihave #Hcausec := ctxCauseOk_of_runCtx ci $$ Hrc
   iapply (v3rpc.LeaseServer.wp_LeaseTimeToLive lp s A cid mid E γl S ci cd r DFrac.discard v n m)
     $$ [HS Hrev]
   · iframe; iframe #

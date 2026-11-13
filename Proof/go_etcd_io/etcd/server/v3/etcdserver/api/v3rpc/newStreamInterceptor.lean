@@ -91,7 +91,9 @@ theorem v3rpc.streamKeysOk_delete (m : GMap GoInterface Unit) (k : GoInterface) 
 context** (`srvRawStreamIsW`): its promoted `RecvMsg`/`SendMsg` are `ss`'s, its `Context()` returns
 the `*cancellableContext` `l`, a weak context (`v3rpc.srvCtxWeak_cc`) whose library values and span
 are well formed (`v3rpc.wrapperLibCtx`, from `ci`'s chain forms) and which holds nothing at
-net/http's keys (`v3rpc.wrapperNetCtx`). -/
+net/http's keys (`v3rpc.wrapperNetCtx`) and whose causes are context errors or etcd's no-leader error
+(`v3rpc.ctxCauseOk_cancellable`, from `ci`'s, grpc's run context's, and `c`'s parent field, Addendum
+T-k). -/
 theorem v3rpc.wrapper_rawW
     (wp_Err : v3rpc.cancellableContext.Err.spec (GF := GF) (hG := hG))
     {Req Rep : StreamMsg GF} (si : GoInterfaceOk) (γ : StreamNames) (Up : Nat → Req.M → IProp GF)
@@ -102,18 +104,22 @@ theorem v3rpc.wrapper_rawW
       srvRawStreamIs (GoInterface.ok si) γ Req Rep Up Dn ci cd ∗
       v3rpc.ccHandle l (interface.mk (go.GoType.PointerType _root_.Perennial.context.cancelCtx.ty) #c) cd' ∗
       _root_.Perennial.context.ctxValueFrom ci
-        (interface.mk (go.GoType.PointerType _root_.Perennial.context.cancelCtx.ty) #c) ⊢
+        (interface.mk (go.GoType.PointerType _root_.Perennial.context.cancelCtx.ty) #c) ∗
+      _root_.Perennial.context.ctxField c ↦□ (interface.ok ci : GoInterface) ⊢
     srvRawStreamIsW (interface.mkOk go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverStreamWithCtx.ty
         #(go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverStreamWithCtx.mk (GoInterface.ok si) l))
       γ Req Rep Up Dn (v3rpc.ccCtx l) cd' := by
-  iintro ⟨#Hpkg, #Hpc, #Hss, #Hcc, #Hvf⟩
+  iintro ⟨#Hpkg, #Hpc, #Hss, #Hcc, #Hvf, #Hcf⟩
   ihave #Hw := v3rpc.srvCtxWeak_cc wp_Err l _ cd' $$ [Hpkg Hcc]
   · iframe #
   ihave #Hcc' := Hcc
   iunfold v3rpc.ccHandle at Hcc'
   icases Hcc' with ⟨%c0, %γ0, %cancel, %e, %γp, %Hc1, -, #Hfield, -⟩
   iunfold srvRawStreamIs at Hss
-  icases Hss with ⟨%si', %Hsi, -, #HRecv, #HSend, -, -, -, #HlibC, #HspC, #HnetC⟩
+  icases Hss with ⟨%si', %Hsi, -, #HRecv, #HSend, -, -, #Hrc, #HlibC, #HspC, #HnetC⟩
+  ihave #Hcause := v3rpc.ctxCauseOk_cancellable l c ci cd' $$ [Hcc Hcf]
+  · iframe #
+    iapply ctxCauseOk_of_runCtx; iexact Hrc
   cases Hsi
   ihave ⟨#Hlib, #Hspan⟩ := v3rpc.wrapperLibCtx l _ ci $$ [Hfield Hvf HlibC HspC]
   · iframe #
@@ -354,7 +360,7 @@ theorem v3rpc.newStreamInterceptor.wp_proof
         wp_apply HCtx
         wp_apply (wp_newCC ci cd) $$ [] as %l %c %γ' ⟨#Hcc, #Hvf, #Hcf⟩
         · iframe #; ipureintro; exact Htb
-        ihave #HrawW := v3rpc.wrapper_rawW wp_Err si γ Up Dn ci cd _ l c $$ [Hss Hcc Hvf]
+        ihave #HrawW := v3rpc.wrapper_rawW wp_Err si γ Up Dn ci cd _ l c $$ [Hss Hcc Hvf Hcf]
         · iframe #
           iPkgInit
         ihave #Hcc' := Hcc

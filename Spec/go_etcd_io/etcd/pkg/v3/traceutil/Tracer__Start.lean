@@ -83,7 +83,11 @@ Addendum T-h0) It holds nothing at net/http's keys, in the chain form, if `ctx` 
 (`http.netCtxOkC`): `ContextWithSpan(ctx, s)` is a `*valueCtx` at otel's `currentSpanKey`, a key of
 another type than `httptrace`'s and `nettrace`'s, whose `context.value()` walk goes on to `ctx`
 (Perennial's `ctxValue_valueCtx`), or `ctx` itself (the no-op tracer); what carries the fact to
-`LeaseRenew`'s `WithTimeout` child (`ctxValueFrom`) and from there to `RenewHTTP`. -/
+`LeaseRenew`'s `WithTimeout` child (`ctxValueFrom`) and from there to `RenewHTTP`. (k8s 7f-4, Addendum
+T-k) Its causes are context errors or etcd's no-leader error if `ctx`'s are (`v3rpc.ctxCauseOk`):
+`ContextWithSpan(ctx, s)` is a `*valueCtx`, whose `Err()` is `ctx.Err()` and whose
+`Value(&cancelCtxKey)` is `ctx`'s (otel's `currentSpanKey` is not `&cancelCtxKey`), so `Cause` of it
+finds what `Cause(ctx)` finds; or it is `ctx` itself (the no-op tracer). -/
 abbrev traceutil.Tracer.Start.spec : Prop :=
   ∀ (tr ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (name : GoString)
     (opts : GoSlice),
@@ -101,7 +105,8 @@ abbrev traceutil.Tracer.Start.spec : Prop :=
       trace.isSpan sp ∗ □ (trace.spanCtxOk ctx -∗ trace.spanCtxOk ctx') ∗
       □ (context.startTimeOk ctx -∗ context.startTimeOk ctx') ∗
       □ (context.libCtxOk ctx -∗ context.libCtxOk ctx') ∗
-      □ (http.netCtxOkC ctx -∗ http.netCtxOkC ctx') }}
+      □ (http.netCtxOkC ctx -∗ http.netCtxOkC ctx') ∗
+      □ (v3rpc.ctxCauseOk ctx -∗ v3rpc.ctxCauseOk ctx') }}
 
 end spec
 

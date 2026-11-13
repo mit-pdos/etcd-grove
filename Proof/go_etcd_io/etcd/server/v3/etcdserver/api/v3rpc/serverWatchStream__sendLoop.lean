@@ -1607,7 +1607,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
   icases Hh4 with ⟨%hs4, #Hg4, #Ho4⟩
   ihave #Hstream' := Hstream
   iunfold v3rpc.srvStreamIs at Hstream'
-  icases Hstream' with ⟨%si, %Hsi, #HRecv, #HSend, #HCtx, #Hctxw, #Hlibc, #Hspanc⟩
+  icases Hstream' with ⟨%si, %Hsi, #HRecv, #HSend, #HCtx, #Hctxw, #Hlibc, #Hspanc, -⟩
   ihave #Hctx2 := Hctxw
   iunfold srvCtxWeak at Hctx2
   iNamed Hctx2

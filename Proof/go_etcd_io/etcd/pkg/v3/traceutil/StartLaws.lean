@@ -43,7 +43,8 @@ theorem traceutil.Tracer.Start.spec_txn (hTS : traceutil.Tracer.Start.spec (GF :
       trace.isSpan sp ∗ □ (trace.spanCtxOk ctx -∗ trace.spanCtxOk ctx') ∗
       □ (context.startTimeOk ctx -∗ context.startTimeOk ctx') ∗
       □ (context.libCtxOk ctx -∗ context.libCtxOk ctx') ∗
-      □ (http.netCtxOkC ctx -∗ http.netCtxOkC ctx') }} := by
+      □ (http.netCtxOkC ctx -∗ http.netCtxOkC ctx') ∗
+      □ (v3rpc.ctxCauseOk ctx -∗ v3rpc.ctxCauseOk ctx') }} := by
   intro tr ctx cd name opts
   iintro %Φ ⟨#Htr, #Htxn, #Hlib⟩ HΦ
   ihave #Hlib' := Hlib

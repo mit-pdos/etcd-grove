@@ -84,12 +84,23 @@ the wrapper's `Cancel(ErrGRPCNoLeader)` gives the child `Canceled`; its own time
 `DeadlineExceeded`, its cancel `Canceled`; `RenewHTTP` over the child, live and done, does not
 panic).
 
+(k8s 7f-4, Addendum T-k, producer (e)) Its causes: if `parent`'s causes are context errors or etcd's
+no-leader error (`v3rpc.ctxCauseOk parent`), so are `ctx'`'s. The `*timerCtx` `c` (or the `*cancelCtx`
+of the `WithCancel` case) is made by `WithDeadlineCause(parent, d, nil)`, so its own causes are its
+errors (`cancel` stores `err` when the cause is nil): `Canceled` (the cancel function), `DeadlineExceeded`
+(its timer, or `d` already passed); else `propagateCancel` stores `Cause(parent)` (`parent` already done)
+or the found `*cancelCtx` `p`'s `cause` (`p`'s `cancel` passes it to its children, `:550-575`), each a
+cause error by `ctxCauseOk parent`. `c.Value(&cancelCtxKey)` returns its embedded `cancelCtx` (i), and
+`c.Err()` is non-nil only once `cancel` stored `err` and `cause` together under `c.mu`, which `Cause`
+takes before reading `cause` (ii). Go evidence: `TestCauseCancellable` (a `WithTimeout` child of the
+wrapper and of a `WithValue` of it: `Cause` is `ErrGRPCNoLeader`, `Canceled` or `DeadlineExceeded`).
+
 Not claimed: anything of `parent` beyond `srvCtxWeak`; the child's `Err` before `Done` is not
 claimed nil (its timer or a cancel may have stored the error first). -/
 axiom v3rpc.wp_WithTimeout_weak (parent : GoInterfaceOk) (pd : context.ContextDesc (IProp GF))
     (timeout : time.Duration) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.context ∗ srvCtxWeak parent pd ∗
-        levelTok v3rpc.ctxErrLvl }}
+        levelTok v3rpc.ctxErrLvl ∗ v3rpc.ctxCauseOk parent }}
       (App (App (Val (@! _root_.Perennial.context.WithTimeout)) (Val #(interface.ok parent)))
         (Val #(timeout)))
     {{ (ctx' : GoInterfaceOk) (γ' : context.ContextNames) (cancel : GoFunc) (d : time.Time),
@@ -99,7 +110,7 @@ axiom v3rpc.wp_WithTimeout_weak (parent : GoInterfaceOk) (pd : context.ContextDe
           WP (App (Val #cancel) (Val #())) {{ Φ }}) ∗
         v3rpc.ctxChildErr ctx'
           { pd with Deadline := some d, PDone := iprop(True), Done_gn := γ' } ∗
-        context.ctxValueFrom parent ctx' }}
+        context.ctxValueFrom parent ctx' ∗ v3rpc.ctxCauseOk ctx' }}
 
 end axiom_
 

@@ -252,6 +252,7 @@ public import Proof.context.WithValue
 public import Proof.errors.AsLeaf
 public import Proof.errors.Is
 public import Proof.errors.IsCtxErr
+public import Proof.errors.IsStatusErr
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.isConnectedSince
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.isConnectedToQuorumSince
@@ -1809,9 +1810,13 @@ theorem EtcdServer.wp_isLeader :
     EtcdServer.isLeader.spec (GF := GF) (hG := hG) :=
   EtcdServer.isLeader.wp_proof EtcdServer.wp_MemberID EtcdServer.wp_Lead
 
+theorem errors.wp_IsStatusErr :
+    errors.IsStatusErr.spec (GF := GF) (hG := hG) :=
+  errors.IsStatusErr.wp_proof
+
 theorem EtcdServer.wp_LeaseRenew :
     EtcdServer.LeaseRenew.spec (GF := GF) (hG := hG) :=
-  EtcdServer.LeaseRenew.wp_proof EtcdServer.wp_ensureLeadership EtcdServer.wp_waitAppliedIndex EtcdServer.wp_waitLeader EtcdServer.wp_checkLeaseRenew lease.lessor.wp_Renew lease.lessor.wp_Lookup leasehttp.wp_RenewHTTP EtcdServer.wp_isLeader EtcdServer.wp_FeatureEnabled config.ServerConfig.wp_ReqTimeout traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_Int64 errors.wp_Is context.wp_ErrDone errors.wp_IsCtxErr
+  EtcdServer.LeaseRenew.wp_proof EtcdServer.wp_ensureLeadership EtcdServer.wp_waitAppliedIndex EtcdServer.wp_waitLeader EtcdServer.wp_checkLeaseRenew lease.lessor.wp_Renew lease.lessor.wp_Lookup leasehttp.wp_RenewHTTP EtcdServer.wp_isLeader EtcdServer.wp_FeatureEnabled config.ServerConfig.wp_ReqTimeout traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_Int64 errors.wp_Is errors.wp_IsCtxErr errors.wp_IsStatusErr EtcdServer.wp_Logger zap.wp_Error zap.Logger.wp_Warn
 
 theorem EtcdServer.wp_LeaseRevoke :
     EtcdServer.LeaseRevoke.spec (GF := GF) (hG := hG) :=

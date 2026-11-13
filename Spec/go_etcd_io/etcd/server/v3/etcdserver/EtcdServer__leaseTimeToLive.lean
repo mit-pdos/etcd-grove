@@ -6,6 +6,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRead
 public import Proof.net.http.NetCtx
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.SrvCtxWeak
 
 @[expose] public section
 
@@ -96,7 +97,16 @@ configuration changes or restarts with leases must revisit this spec.
 `httptrace.ContextClientTrace(cctx)` (go1.27.3 `net/http/transport.go:614`), a `Value` call the
 `*timerCtx` answers as `ctx` (its `value()` walk); the dial and lookup paths read the two `nettrace`
 keys. Without it a context whose `Value` panics at the first key met the premise and the call panicked
-(`TestLeaseTimeToLiveFollowerValuePanics`, `examples/etcd/lease/ctxsweep_test.go`). -/
+(`TestLeaseTimeToLiveFollowerValuePanics`, `examples/etcd/lease/ctxsweep_test.go`). (k8s 7f-4, Addendum
+T-k, the fix of a refutation: `notes/renewhttp-cause-refuted.md`) The context's causes are context errors
+or etcd's no-leader error (`v3rpc.ctxCauseOk ctx`, which grpc's run context gives): on a follower,
+`leasehttp.TimeToLiveHTTP(cctx, ...)` returns, once `cctx` is done, net/http's `context.Cause` of its
+child of `cctx` in a `*url.Error` (go1.27.3 `net/http/transport.go:675, 698`), and `leaseTimeToLive`
+calls `errors.Is(err, lease.ErrLeaseNotFound)` on it (fork `673da07c8f`
+`server/etcdserver/v3_server.go:686`); `cctx` is a `*timerCtx` over `ctx`, whose causes are its own
+(`Canceled`, `DeadlineExceeded`) or `ctx`'s. Without it, a context made by `WithDeadlineCause` with a
+cause whose `Is` method panics met the premise, and the call panicked
+(`TestLeaseTimeToLiveFollowerCausePanics`). -/
 abbrev EtcdServer.leaseTimeToLive.spec : Prop :=
   leasePeersOk →
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (γl : GName)
@@ -104,7 +114,7 @@ abbrev EtcdServer.leaseTimeToLive.spec : Prop :=
     (v : etcdserverpb.LeaseTimeToLiveRequest) (m : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvLessorRd s γl ∗
-      context.isContext ctx cd ∗ http.netCtxOk ctx ∗ lease.lessorRdPool γl ∗ levelTok lease.lessorLvl ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗
+      context.isContext ctx cd ∗ http.netCtxOk ctx ∗ v3rpc.ctxCauseOk ctx ∗ lease.lessorRdPool γl ∗ levelTok lease.lessorLvl ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗
       lease.lessorLb γl m ∗ r ↦{dq} v }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"leaseTimeToLive"))
       (Val #(GoInterface.ok ctx))) (Val #r))

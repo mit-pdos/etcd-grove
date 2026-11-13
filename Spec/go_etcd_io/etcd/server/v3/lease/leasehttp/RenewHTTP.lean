@@ -90,12 +90,20 @@ place of `isCancelCtx`. That is what net/http's `WithCancelCause(req.Context())`
 `TestRenewHTTPNilCancelCtxPanics`); with no parent-cancel clause, a context with an `AfterFunc` method
 that panics did (`propagateCancel`'s `afterFuncer` arm, go1.27.3 `context.go:508-520`,
 `TestRenewHTTPAfterFuncPanics`). Over the child of `TestWithTimeoutWeak` (live, and done with
-`ErrGRPCNoLeader`) it returns, a TTL or an error. -/
+`ErrGRPCNoLeader`) it returns, a TTL or an error. (k8s 7f-4, Addendum T-k, the fix of a refutation:
+`notes/renewhttp-cause-refuted.md`) The context's causes are context errors or etcd's no-leader error
+(`v3rpc.ctxCauseOk ctx`): net/http's `Transport.roundTrip` works on `WithCancelCause(req.Context())` and,
+once that is done, returns `context.Cause` of it (go1.27.3 `net/http/transport.go:675, 698`), wrapped
+in a `*url.Error` by `Client.Do`; the child's cause is `Cause(ctx)` or the cause of the `*cancelCtx`
+`ctx` finds, or one of net/http's own (`errRequestCanceled`, ...), each an error with an `Error()` and no
+`Is` method of the program's. Without it, a context made by `WithDeadlineCause(Background(), d,
+badErr{})` met the premise, and `RenewHTTP` returned a `*url.Error` wrapping `badErr{}`, whose `Is`
+method panics in the `errors.Is` `applyErrIs` claims safe (`TestRenewHTTPCausePanics`). -/
 abbrev leasehttp.RenewHTTP.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (id : w64) (url : GoString)
     (rt : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease.leasehttp ∗
-      v3rpc.ctxDoneErr ctx cd ∗ http.netCtxOk ctx ∗
+      v3rpc.ctxDoneErr ctx cd ∗ http.netCtxOk ctx ∗ v3rpc.ctxCauseOk ctx ∗
       ⌜∃ t : Loc, rt = GoInterface.ok ⟨go.GoType.PointerType _root_.Perennial.net.http.Transport.ty, #t⟩⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.lease.leasehttp.RenewHTTP))
       (Val #(GoInterface.ok ctx))) (Val #id)) (Val #url)) (Val #rt))
