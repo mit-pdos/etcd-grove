@@ -18,6 +18,27 @@ the worktree's untracked `questions.md` (decisions; never re-add it tracked).
   this stage's T5-c); 7f-0 partial (records only; the rest goes with 7f-6, Q7).
 - No Lean edited. Nothing built on this branch.
 
+## Handoff point (2026-11-13, third 7f-5 agent): 7f-3a at S2 (STOPPED for 81's review)
+
+Done (on `k8s-7f5`, not landed):
+- Translation config (Q2) applied: client `WithPrevKV`/`WithRequireLeader`; grpc metadata's
+  `NewOutgoingContext`, `Pairs`, `MD.Copy`, `MD.Set`, `copyOf` (imports context/strings/fmt);
+  `etc/goose.py --project etcd`, `--check` passes; `etc/gen-init.py` (metadata Init + 17 PkgTables);
+  SpecPlan PkgInit for metadata only (the generator's other drift is lean's, ungated, left alone).
+  The axiom `WithRequireLeader.wp_proof` still stands over the translated function.
+- `EvModel` gains `prevKv : Loc := null` (InvStore.lean; InvWatcher's countable instance updated).
+- The statements: `Proof/go_etcd_io/etcd/client/v3/Draft7f3a.lean` (unlinked; `P`-suffixed new
+  forms + `WithRequireLeader.specGen`; laws proved, no sorry/axiom), the Draft
+  `notes/k8s-7f3a-draft.md` (table old → new, findings, plan, decisions D1-D3).
+- Findings: (1) Q2's "no new axiom" is false: translating WithRequireLeader needs WithValue.spec
+  at grpc's key (+ valueCtx fields, watchCtx), an intro law for opaque builtRawMD (ToLower too weak
+  for its case clause), FromOutgoingContext over a non-isContext parent; recommended the fallback
+  (one restated axiom). (2) 7f-3b: the send loop writes `PrevKv` into mvcc's events, which mvcc's
+  API gives read-only (`evIs`): an mvcc API ownership change.
+
+Next (after 81's decisions D1-D3): the full build of this config (not yet run; targeted builds
+pass), then 7f-3b (mvcc event ownership, v3rpc recvLoop/sendLoop), 7f-3c (client, swap, users).
+
 ## Handoff point (2026-11-13, second 7f-5 agent): S1 LANDED (lean `be36a0f818`); 7f-3a next
 
 S1 with the review's fixes landed (`0d873a9ee5`, `be36a0f818`; freeze note "S1 review"; gates all

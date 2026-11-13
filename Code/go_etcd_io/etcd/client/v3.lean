@@ -144,6 +144,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   mustInt64_unfold : FuncUnfold mustInt64 [] mustInt64.impl
   mustInt64orLeaseID_unfold : FuncUnfold mustInt64orLeaseID [] mustInt64orLeaseID.impl
   cloneCompare_unfold : FuncUnfold cloneCompare [] cloneCompare.impl
+  WithRequireLeader_unfold : FuncUnfold WithRequireLeader [] WithRequireLeader.impl
   NewKV_unfold : FuncUnfold NewKV [] NewKV.impl
   NewLease_unfold : FuncUnfold NewLease [] NewLease.impl
   NewLeaseFromLeaseClient_unfold : FuncUnfold NewLeaseFromLeaseClient [] NewLeaseFromLeaseClient.impl
@@ -177,6 +178,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   withTop_unfold : FuncUnfold withTop [] withTop.impl
   WithProgressNotify_unfold : FuncUnfold WithProgressNotify [] WithProgressNotify.impl
   WithCreatedNotify_unfold : FuncUnfold WithCreatedNotify [] WithCreatedNotify.impl
+  WithPrevKV_unfold : FuncUnfold WithPrevKV [] WithPrevKV.impl
   WithIgnoreLease_unfold : FuncUnfold WithIgnoreLease [] WithIgnoreLease.impl
   toLeaseTimeToLiveRequest_unfold : FuncUnfold toLeaseTimeToLiveRequest [] toLeaseTimeToLiveRequest.impl
   IsOptsWithPrefix_unfold : FuncUnfold IsOptsWithPrefix [] IsOptsWithPrefix.impl
@@ -349,6 +351,7 @@ attribute [instance] Assumptions.AuthEnableResponse_instance
   Assumptions.mustInt64_unfold
   Assumptions.mustInt64orLeaseID_unfold
   Assumptions.cloneCompare_unfold
+  Assumptions.WithRequireLeader_unfold
   Assumptions.NewKV_unfold
   Assumptions.NewLease_unfold
   Assumptions.NewLeaseFromLeaseClient_unfold
@@ -382,6 +385,7 @@ attribute [instance] Assumptions.AuthEnableResponse_instance
   Assumptions.withTop_unfold
   Assumptions.WithProgressNotify_unfold
   Assumptions.WithCreatedNotify_unfold
+  Assumptions.WithPrevKV_unfold
   Assumptions.WithIgnoreLease_unfold
   Assumptions.toLeaseTimeToLiveRequest_unfold
   Assumptions.IsOptsWithPrefix_unfold

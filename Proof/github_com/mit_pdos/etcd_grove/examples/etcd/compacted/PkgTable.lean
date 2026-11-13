@@ -232,34 +232,34 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h12 : GetIsPkgInitProp pkg_id.google_golang_org.grpc.metadata (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact True.intro
-  have h13 : GetIsPkgInitProp pkg_id.google_golang_org.grpc (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h6, h12, True.intro⟩
-  have h14 : GetIsPkgInitProp pkg_id.google_golang_org.grpc.keepalive (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h5, True.intro⟩
-  have h15 : GetIsPkgInitProp pkg_id.net.url (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact True.intro
-  have h16 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.client.pkg.v3.types (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h15, True.intro⟩
-  have h17 : GetIsPkgInitProp pkg_id.fmt (getIsPkgInit (GF := GF)) := by
+  have h12 : GetIsPkgInitProp pkg_id.fmt (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h0, h7, h4, True.intro⟩
-  have h18 : GetIsPkgInitProp pkg_id.strings (getIsPkgInit (GF := GF)) := by
+  have h13 : GetIsPkgInitProp pkg_id.strings (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
+  have h14 : GetIsPkgInitProp pkg_id.google_golang_org.grpc.metadata (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h6, h12, h13, True.intro⟩
+  have h15 : GetIsPkgInitProp pkg_id.google_golang_org.grpc (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h6, h14, True.intro⟩
+  have h16 : GetIsPkgInitProp pkg_id.google_golang_org.grpc.keepalive (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h5, True.intro⟩
+  have h17 : GetIsPkgInitProp pkg_id.net.url (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact True.intro
+  have h18 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.client.pkg.v3.types (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h17, True.intro⟩
   have h19 : GetIsPkgInitProp pkg_id.google_golang_org.protobuf.reflect.protoreflect (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -291,7 +291,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h26 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h22, h24, h23, h25, h6, h13, True.intro⟩
+    exact ⟨h22, h24, h23, h25, h6, h15, True.intro⟩
   have h27 : GetIsPkgInitProp pkg_id.google_golang_org.grpc.codes (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -347,7 +347,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h40 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.client.v3 (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h6, h17, h18, h13, h23, h26, h4, h5, h0, h1, h9, h27, h28, h29, h14, h31, h32, h33, h34, h35, h36, h37, h38, h12, h7, h39, h25, True.intro⟩
+    exact ⟨h6, h12, h13, h15, h23, h26, h4, h5, h0, h1, h9, h27, h28, h29, h16, h31, h32, h33, h34, h35, h36, h37, h38, h14, h7, h39, h25, True.intro⟩
   have h41 : GetIsPkgInitProp pkg_id.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -427,7 +427,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h60 : GetIsPkgInitProp pkg_id.go_etcd_io.bbolt.internal.common (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h17, h43, h47, h7, h45, h52, h56, h59, h5, h18, True.intro⟩
+    exact ⟨h12, h43, h47, h7, h45, h52, h56, h59, h5, h13, True.intro⟩
   have h61 : GetIsPkgInitProp pkg_id.bytes (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -443,7 +443,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h64 : GetIsPkgInitProp pkg_id.go_etcd_io.bbolt.internal.freelist (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h17, h56, h60, h62, h63, h43, True.intro⟩
+    exact ⟨h12, h56, h60, h62, h63, h43, True.intro⟩
   have h65 : GetIsPkgInitProp pkg_id.log (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -455,7 +455,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h67 : GetIsPkgInitProp pkg_id.go_etcd_io.bbolt (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h42, h17, h5, h43, h44, h45, h60, h61, h56, h0, h7, h52, h59, h4, h64, h65, h18, h1, h66, True.intro⟩
+    exact ⟨h42, h12, h5, h43, h44, h45, h60, h61, h56, h0, h7, h52, h59, h4, h64, h65, h13, h1, h66, True.intro⟩
   have h68 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.client.pkg.v3.transport (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -471,7 +471,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h71 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.config (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h5, h41, h9, h67, h68, h16, h69, h70, True.intro⟩
+    exact ⟨h5, h41, h9, h67, h68, h18, h69, h70, True.intro⟩
   have h72 : GetIsPkgInitProp pkg_id.github_com.Masterminds.semver.v3 (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -491,7 +491,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h76 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.pkg.v3.pbutil (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h17, h37, True.intro⟩
+    exact ⟨h12, h37, True.intro⟩
   have h77 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.pkg.v3.notify (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -515,15 +515,15 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h82 : GetIsPkgInitProp pkg_id.go_etcd_io.raft.v3.raftpb (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h17, h81, h18, h37, h55, h19, h22, True.intro⟩
+    exact ⟨h12, h81, h13, h37, h55, h19, h22, True.intro⟩
   have h83 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h74, h56, h4, h72, h9, h16, h77, h78, h82, True.intro⟩
+    exact ⟨h74, h56, h4, h72, h9, h18, h77, h78, h82, True.intro⟩
   have h84 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h72, h16, h83, True.intro⟩
+    exact ⟨h72, h18, h83, True.intro⟩
   have h85 : GetIsPkgInitProp pkg_id.internal.bytealg (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -551,7 +551,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h91 : GetIsPkgInitProp pkg_id.math.big (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h17, h0, True.intro⟩
+    exact ⟨h12, h0, True.intro⟩
   have h92 : GetIsPkgInitProp pkg_id.crypto.rand (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -559,19 +559,19 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h93 : GetIsPkgInitProp pkg_id.go_etcd_io.raft.v3.quorum (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h54, h17, h63, h55, h18, h81, True.intro⟩
+    exact ⟨h54, h12, h63, h55, h13, h81, True.intro⟩
   have h94 : GetIsPkgInitProp pkg_id.go_etcd_io.raft.v3.tracker (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h17, h55, h18, h93, h82, True.intro⟩
+    exact ⟨h12, h55, h13, h93, h82, True.intro⟩
   have h95 : GetIsPkgInitProp pkg_id.go_etcd_io.raft.v3.confchange (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h0, h17, h18, h93, h82, h94, True.intro⟩
+    exact ⟨h0, h12, h13, h93, h82, h94, True.intro⟩
   have h96 : GetIsPkgInitProp pkg_id.go_etcd_io.raft.v3 (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h0, h37, h82, h17, h7, h65, h52, h4, h6, h61, h92, h63, h91, h55, h18, h95, h93, h94, h90, True.intro⟩
+    exact ⟨h0, h37, h82, h12, h7, h65, h52, h4, h6, h61, h92, h63, h91, h55, h13, h95, h93, h94, h90, True.intro⟩
   have h97 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -591,19 +591,19 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h101 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h82, h6, h0, h17, h7, h11, h86, h18, h5, h75, h9, h37, h73, h16, h87, h88, h89, h90, h76, h97, h4, h98, h96, h61, h99, h100, h72, h68, h15, h10, True.intro⟩
+    exact ⟨h82, h6, h0, h12, h7, h11, h86, h13, h5, h75, h9, h37, h73, h18, h87, h88, h89, h90, h76, h97, h4, h98, h96, h61, h99, h100, h72, h68, h17, h10, True.intro⟩
   have h102 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.client.pkg.v3.verify (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h17, True.intro⟩
+    exact ⟨h12, True.intro⟩
   have h103 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.storage.backend (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h61, h17, h7, h4, h1, h5, h9, h67, h102, h0, h63, h45, h89, h66, h56, True.intro⟩
+    exact ⟨h61, h12, h7, h4, h1, h5, h9, h67, h102, h0, h63, h45, h89, h66, h56, True.intro⟩
   have h104 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.pkg.v3.adt (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h61, h17, h63, h18, True.intro⟩
+    exact ⟨h61, h12, h63, h13, True.intro⟩
   have h105 : GetIsPkgInitProp pkg_id.golang_org.x.crypto.bcrypt (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -611,7 +611,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h106 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.auth (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h6, h0, h5, h9, h4, h17, h23, h104, h81, h18, h61, h56, h1, h105, h12, h26, h32, True.intro⟩
+    exact ⟨h6, h0, h5, h9, h4, h12, h23, h104, h81, h13, h61, h56, h1, h105, h14, h26, h32, True.intro⟩
   have h107 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.storage.schema (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -627,7 +627,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h110 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.storage (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h17, h52, h9, h71, h88, h103, h107, h82, h4, h37, h108, h72, True.intro⟩
+    exact ⟨h12, h52, h9, h71, h88, h103, h107, h82, h4, h37, h108, h72, True.intro⟩
   have h111 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.storage.wal (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -675,7 +675,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h122 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h46, h4, h9, h103, h107, h112, h61, h0, h17, h6, h25, h113, h116, h63, h5, h37, h102, h117, h90, h75, h89, h40, h121, h104, True.intro⟩
+    exact ⟨h46, h4, h9, h103, h107, h112, h61, h0, h12, h6, h25, h113, h116, h63, h5, h37, h102, h117, h90, h75, h89, h40, h121, h104, True.intro⟩
   have h123 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.pkg.v3.contention (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -695,7 +695,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h127 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h4, h9, h26, h16, h103, h107, True.intro⟩
+    exact ⟨h4, h9, h26, h18, h103, h107, True.intro⟩
   have h128 : GetIsPkgInitProp pkg_id.github_com.jonboulle.clockwork (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -703,15 +703,15 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h129 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h6, h17, h5, h128, h9, h26, h0, h4, h122, True.intro⟩
+    exact ⟨h6, h12, h5, h128, h9, h26, h0, h4, h122, True.intro⟩
   have h130 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h6, h9, h26, h25, h113, h122, h5, h89, h37, h109, h116, h61, h63, h56, h17, h62, h18, True.intro⟩
+    exact ⟨h6, h9, h26, h25, h113, h122, h5, h89, h37, h109, h116, h61, h63, h56, h12, h62, h13, True.intro⟩
   have h131 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h9, h26, h76, h125, h83, h82, h4, h113, h106, h116, h6, h72, h24, h16, h84, h130, h78, h122, h109, h110, h5, h37, h127, h108, h103, h89, h0, True.intro⟩
+    exact ⟨h9, h26, h76, h125, h83, h82, h4, h113, h106, h116, h6, h72, h24, h18, h84, h130, h78, h122, h109, h110, h5, h37, h127, h108, h103, h89, h0, True.intro⟩
   have h132 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -731,15 +731,15 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h136 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h6, h72, h26, h73, h74, h0, h17, h7, h11, h5, h75, h9, h37, h16, h76, h71, h84, h83, h101, h88, h108, h109, h110, h103, h111, h96, h82, h81, h4, h122, h89, h65, h33, h123, h63, h1, h69, h124, h77, h117, h113, h125, h106, h126, h97, h127, h129, h131, h132, h133, h116, h134, h135, h118, h121, h105, h130, True.intro⟩
+    exact ⟨h6, h72, h26, h73, h74, h0, h12, h7, h11, h5, h75, h9, h37, h18, h76, h71, h84, h83, h101, h88, h108, h109, h110, h103, h111, h96, h82, h81, h4, h122, h89, h65, h33, h123, h63, h1, h69, h124, h77, h117, h113, h125, h106, h126, h97, h127, h129, h131, h132, h133, h116, h134, h135, h118, h121, h105, h130, True.intro⟩
   have h137 : GetIsPkgInitProp pkg_id.google_golang_org.grpc.reflection (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h13, True.intro⟩
+    exact ⟨h15, True.intro⟩
   have h138 : GetIsPkgInitProp pkg_id.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h13, h137, True.intro⟩
+    exact ⟨h15, h137, True.intro⟩
   have h139 : GetIsPkgInitProp pkg_id.google_golang_org.grpc.health (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -747,7 +747,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h140 : GetIsPkgInitProp pkg_id.google_golang_org.grpc.health.grpc_health_v1 (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h6, h13, True.intro⟩
+    exact ⟨h6, h15, True.intro⟩
   have h141 : GetIsPkgInitProp pkg_id.unicode.utf8 (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -759,7 +759,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h143 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h6, h26, h106, h136, h38, h63, h4, h138, h89, h41, h9, h13, h139, h140, h34, h131, h133, h5, h141, h12, h37, h32, h16, h84, h96, h27, h31, h104, h130, h0, h7, h116, h71, h78, h110, h103, h122, h142, h118, h121, h25, h102, h40, h113, True.intro⟩
+    exact ⟨h6, h26, h106, h136, h38, h63, h4, h138, h89, h41, h9, h15, h139, h140, h34, h131, h133, h5, h141, h14, h37, h32, h18, h84, h96, h27, h31, h104, h130, h0, h7, h116, h71, h78, h110, h103, h122, h142, h118, h121, h25, h102, h40, h113, True.intro⟩
   have h144 : GetIsPkgInitProp pkg_id.github_com.goose_lang.primitive (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -767,7 +767,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h145 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h10, h11, h5, h9, h13, h14, h16, h40, h71, h136, h143, h133, h6, h4, h144, h25, True.intro⟩
+    exact ⟨h10, h11, h5, h9, h15, h16, h18, h40, h71, h136, h143, h133, h6, h4, h144, h25, True.intro⟩
   have h146 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.compacted (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
