@@ -496,6 +496,22 @@ it lands with the first proofs.
   fix). **Not pushed [user].** The part's WAL is retranslated from the fork checkout (`--src`); the pin
   stays `0b50f0426`. Supersedes the "no fork change" decision above; W1's target narrows (§2.5).
 
+### Status (2026-11-13, branch `wal-owner`, after `wal-int` `e4df0f9fae` merged)
+
+Everything under `LinuxFs/` and `GooseLang/Ext/Fs/` builds (3019 jobs); `etc/gen-part-copies.py --check` and
+`etc/gen-init.py --check` pass. The W1 layer (`Ghost`, `Inv`, `Crash`, `CrashPure`, ...), `CreateAu`'s update
+(both arms) and the pipeline have no `sorry`. The remaining `sorry`s of the track (declarations using one, by
+module; the bboltfs/crashlog/walfs examples and the generated translations not listed):
+- `wal/`: `Create.wp_proof` (`Create.lean`), `Open.wp_proof`, `OpenForRead.wp_proof`, `openAtIndex.wp_proof`,
+  `openWALFiles.wp_proof`, `WAL.ReadAll.wp_proof`, `WAL.Save.wp_proof`, `WAL.SaveSnapshot.wp_proof`,
+  `WAL.Sync.wp_proof`, `WAL.cut.wp_proof`, `WAL.saveEntry.wp_proof`, `WAL.saveState.wp_proof`,
+  `WAL.sync.wp_proof`, `wal.tailWriter` (`TailWriter.lean`);
+- `fileutil/`: `ReadDir.wp_proof`, `TouchDirAll.wp_proof`, `CreateDirAll.wp_proof` (`TouchDirAll.lean`);
+- `os/`: `File.Truncate.wp_proofAu` (`File__TruncateAu.lean`), `File.WriteAt.wp_proof_long` (`WriteLong.lean`,
+  past 1 GiB).
+Not yet stated (no `sorry`, no statement): `Close`, `ReleaseLockTo`, `Repair`, `ValidSnapshotEntries`, `Exist`
+(§4.2's W7-W12), the `walCreating` minting step, the WAL-level resize updates (I3b's open items).
+
 ## W1 implementation log (branch `wal-inv`, 2026-11-13)
 
 Modules (`LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/`, namespace `Perennial.EtcdGrove.WalFs`):
@@ -686,6 +702,19 @@ directory's sync back to `none` with `CrashOkA … none` (`crashOk_dirSync`). `R
 (`walDirKey_insert`; its facts from `NamesCoh` at a step at `⊤`, as `Create`'s minting). The handle
 (`walHandleIn`) holding `walDirKey dir j X ∗ osNames j (.except X) ½ hj` is left to the units that produce it
 (`Create`'s body, `ReadAll`): no proof destructures `walHandleIn` yet.
+
+**Seventh session, task 3: `CreateAu`'s commit arm proved** (no `sorry` left in `CreateAu.lean`). New module
+`CreateKeys.lean` (pure, and `walParked_create`): `dirKeysOk_create` (the new WAL keyed `(J, X)`; the others'
+claims kept once and exclusive; `crashOkA_none_create_other`), `walsNamed_create`, `parkedClaim_create`,
+`walParked_create` (the new segment's inode into `O`, `J`'s claim into `D`; the area claim is no WAL directory's
+before or after, since it leaves out a `.wal` name), `walInos_mem`, `segsNamedC_congr_ents`,
+`mem_createClaims_cases`. **`walCreate_osAUnc`'s statement changed** (for `wal-create6`):
+- `walCreateP` also holds `walLockedTok` (its parking flag `false`: the new WAL's segment and claim stay out,
+  the handle's); `walCreateQ` gives it back in both arms, and after the commit also `walDirKey dir J X`;
+- two new premises: `hsn : SegsNamed lay.segs hJ.cur` (the segment at its `.wal` name in `J`, every `.wal`
+  entry a file) and `hJC : ∀ K E, (∀ b, walNameP b = true → E !! b = hJ.valAfter J K b) → SegsNamedC lay.segs E`
+  (the same after any crash of `J`'s claim: every `.wal` value along `hJ`'s history a file, the segment's inode
+  only at its name), both of `J`'s history as `Create` made it (`CreateDirAll`, then the one segment).
 
 **The part's WAL package init (branch `wal-nc`, 2026-11-13).** `etc/gen-init.py` generates the
 `wp_initialize'` of the WAL's whole import closure in the part (`LFS_PKGS`): the part's `wal`, `walpb`,
