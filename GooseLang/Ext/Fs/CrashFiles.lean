@@ -110,7 +110,7 @@ theorem osCrash_rel (htw : FsTreeWf st) (htc : TreeCoh st V Γdf Γc) (hc : OsCr
 (`closed_cut`, from the shared mode's disciplines on the log), and each slot of the new tree holds
 what it held right after the last kept entry writing it. -/
 theorem machineCrash_initS {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS)} (htw : FsTreeWf st)
-    (htc : TreeCohS st s0 Γdf Γc) (hc : MachineCrash st st') :
+    {Γg : GMap Nat (Nat × Qp)} (htc : TreeCohS st s0 Γdf Γc Γg) (hc : MachineCrash st st') :
     FsInit st' ∧ ∃ S, (∀ x, S x → x < st.fs.metaLog.length) ∧ Closed st.fs.metaLog S ∧
       (∀ y, st.fs.committed y → S y) ∧
       ∀ j b, st'.fs.treeDur.entry j b = slotAfter st.fs.treeDur st.fs.metaLog S j b := by
@@ -143,7 +143,7 @@ theorem machineCrash_initS {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS)} (htw : F
 start in, on the same roots, every file it names is there, and the crash kept a closed set of the
 log's entries, with the committed ones, each slot as right after its last kept writer. -/
 theorem osCrash_relS {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS)} (htw : FsTreeWf st)
-    (htc : TreeCohS st s0 Γdf Γc) (hc : OsCrash st st') :
+    {Γg : GMap Nat (Nat × Qp)} (htc : TreeCohS st s0 Γdf Γc Γg) (hc : OsCrash st st') :
     FsInit st' ∧ st'.fs.roots = st.fs.roots ∧
       (∀ i, Named st'.fs.treeDur i → (st'.fs.files !! i).isSome) ∧
       ∃ S, (∀ x, S x → x < st.fs.metaLog.length) ∧ Closed st.fs.metaLog S ∧

@@ -176,18 +176,31 @@ def WalsCreateOk (jr : Ino) (cl : List Claim) : Prop :=
 def ClaimOnce (c : Claim) (cl : List Claim) : Prop :=
   ∃ l1 l2, cl = l1 ++ c :: l2 ∧ c ∉ l1 ∧ c ∉ l2
 
+/-- **What the creating map records of the new WAL's directory `J`** (the `walCreating` token's;
+for the commit's `DirKeysOk`, W2 log, "the directory-claim map"): `J` is not the area directory, no
+claim of `J` among `cl` holds a `.wal` name (the program holds `J`'s claim on all of them: the
+shared invariant's `NamesCoh.disj` where the token is made; so `J` is no keyed WAL's directory,
+whose claim holds them), no other entry's directory is `J`, and the area claim leaves out a `.wal`
+name (it is none of a WAL directory's claims, `WalDirClaimOf`; `.only [nm, nm.tmp]`). -/
+def CreatingNew (jr : Ino) (cl : List Claim) (CR : GMap GoString (NameSet × NamesH × Ino))
+    (dir : GoString) (N : NameSet) (J : Ino) : Prop :=
+  J ≠ jr ∧ (∀ c ∈ cl, c.1 = J → ∀ b, walNameP b = true → ¬ c.2.1.Mem b) ∧
+  (∀ dir' x, dir' ≠ dir → CR !! dir' = some x → x.2.2 ≠ J) ∧
+  ∃ b, walNameP b = true ∧ ¬ N.Mem b
+
 /-- **The WALs being created are renamed in claims the invariant holds** (W4, framed): each entry
-`dir ↦ (N, h)` of the creating map is a claim `(jr, N, h)` of the area directory among `cl`,
+`dir ↦ (N, h, J)` of the creating map is a claim `(jr, N, h)` of the area directory among `cl`,
 coherent, and no other claim of `jr` among `cl` holds one of its names (what the file system's
 shared invariant says of claims, `NamesCoh.disj`, recorded where the token is made: the rename's
 commit, inside an `os` call's update, cannot open that invariant); the claim occurs once in `cl`
 (the commit replaces that one occurrence) and is no other entry's (the commit deletes only its own
 entry). A new entry's claim is split off the area claim where its token is made, so it is in no
 claim of `cl` before. -/
-def CreatingOk (jr : Ino) (cl : List Claim) (CR : GMap GoString (NameSet × NamesH)) : Prop :=
-  ∀ dir N h, CR !! dir = some (N, h) → (jr, N, h) ∈ cl ∧ ClaimCoh h jr N ∧
+def CreatingOk (jr : Ino) (cl : List Claim) (CR : GMap GoString (NameSet × NamesH × Ino)) : Prop :=
+  ∀ dir N h J, CR !! dir = some (N, h, J) → (jr, N, h) ∈ cl ∧ ClaimCoh h jr N ∧
     (∀ c ∈ cl, c ≠ (jr, N, h) → c.1 = jr → ∀ b, N.Mem b → ¬ c.2.1.Mem b) ∧
-    ClaimOnce (jr, N, h) cl ∧ ∀ dir', dir' ≠ dir → CR !! dir' ≠ some (N, h)
+    ClaimOnce (jr, N, h) cl ∧ (∀ dir' J', dir' ≠ dir → CR !! dir' ≠ some (N, h, J')) ∧
+    CreatingNew jr cl CR dir N J
 
 /-- **A WAL name of the area with no WAL is absent** (W4, framed; strong absence, against `AbsentOk`'s
 "no `.wal` file"): in every claim of the area directory holding it, now, and after every crash the
@@ -199,6 +212,23 @@ def AbsentNone (s : AbsDiskState) (jr : Ino) (cl : List Claim) (n : Nat) : Prop 
   ∀ dir nm, InArea s.area dir nm → s.wal !! dir = none →
     (∀ N h, (jr, N, h) ∈ cl → N.Mem nm → h.cur !! nm = none) ∧
     ∀ m', RegionCrashed cl n m' → m'.entry jr nm = none
+
+/-- **The WAL directories' claim keys, and no cut pending** (framed; W2 log, "the directory-claim
+map"). Each key `dir ↦ (j, X)` (`walDirKey`, persistent; an open handle holds the program's half of
+that claim): the WAL in `dir` has a layout of directory `j`, not the area's; the claim `(j, .except
+X, hj)` (`X` holding no `.wal` name) occurs once among the claims, coherent, and no other claim of
+`j` holds a `.wal` name (the shared invariant's `NamesCoh.disj`, recorded where the key is made: an
+update's opening, inside an `os` call's, cannot open that invariant). And every WAL but the one whose
+cut's rename is pending (`c`, `walCutAuth`; the lock token holds `none`) has no alternative layout
+(`CrashOkA … none`, i.e. `CrashOk`): a cut's rename needs it of its WAL. -/
+def DirKeysOk (C : WalCodec) (Mr : WalMarshal) (jr : Ino) (s : AbsDiskState)
+    (Ls : GMap GoString WalLay) (cl : List Claim) (n : Nat)
+    (K : GMap GoString (Ino × List GoString)) (c : Option GoString) : Prop :=
+  (∀ dir j X, K !! dir = some (j, X) → ∃ lay hj, Ls !! dir = some lay ∧ lay.j = j ∧ j ≠ jr ∧
+    (∀ b ∈ X, walNameP b = false) ∧ ClaimOnce (j, .except X, hj) cl ∧ ClaimCoh hj j (.except X) ∧
+    ∀ c' ∈ cl, c' ≠ (j, .except X, hj) → c'.1 = j → ∀ b, walNameP b = true → ¬ c'.2.1.Mem b) ∧
+  (∀ dir d lay, s.wal !! dir = some d → Ls !! dir = some lay → c ≠ some dir →
+    CrashOkA C Mr d lay none cl n)
 
 /-- A name of the area a WAL function may change: a WAL name, or `nm.<sfx>` of one (`Create`'s
 `nm.tmp`, the cleanup's `nm.broken.<time>`). -/
@@ -212,6 +242,60 @@ def DirsAvoid (R : Roots) (jr : Ino) (s : AbsDiskState) : Prop :=
   ∀ dd, s.dirs !! dd = some () → ∀ m1 m2 : Tree,
     (∀ j b, ¬ (j = jr ∧ AreaSlot b) → m1.entry j b = m2.entry j b) →
     lookupH R (m1, []) dd = lookupH R (m2, []) dd
+
+/-- **A WAL directory's segments are at their names** (`ents` its entries): each segment's name
+is a `.wal` name, the entry at it the segment's file; every `.wal` entry is a file (W3/W5's gap 1:
+`Open` reads the names, `searchIndex` picks a file by them). -/
+def SegsNamed (segs : List SegG) (ents : Ents) : Prop :=
+  (∀ g ∈ segs, walNameP g.name = true ∧ ents !! g.name = some (.file g.ino)) ∧
+  ∀ b e, walNameP b = true → ents !! b = some e → ∃ i, e = .file i
+
+/-- **`SegsNamed` after a crash**: the segments the crash kept named (their files among the
+directory's `.wal` files) are at their names; every `.wal` entry is a file. -/
+def SegsNamedC (segs : List SegG) (ents : Ents) : Prop :=
+  (∀ g ∈ segs, walNameP g.name = true ∧ (g.ino ∈ walInos ents → ents !! g.name = some (.file g.ino))) ∧
+  ∀ b e, walNameP b = true → ents !! b = some e → ∃ i, e = .file i
+
+/-- **Every WAL's segments are at their names** (framed; W3/W5): now, in every claim of its
+directory the invariant holds (`WalDirClaim`), and after every crash the claims allow. Established
+at the start (`WalsStart`'s, from the crash: `walCrash_pure`); `cut`'s rename and `Create` must keep
+it. -/
+def WalsNamed (Ls : GMap GoString WalLay) (cl : List Claim) (n : Nat) : Prop :=
+  ∀ dir lay, Ls !! dir = some lay →
+    (∀ hj, WalDirClaim lay.j hj cl → SegsNamed lay.segs hj.cur) ∧
+    ∀ m', RegionCrashed cl n m' → SegsNamedC lay.segs (entsOf m' lay.j)
+
+theorem SegsNamed.crash {segs : List SegG} {ents : Ents} (h : SegsNamed segs ents) :
+    SegsNamedC segs ents :=
+  ⟨fun g hg => ⟨(h.1 g hg).1, fun _ => (h.1 g hg).2⟩, h.2⟩
+
+/-- `SegsNamed` of a claim's view of the directory, its names all but non-`.wal` ones. -/
+theorem SegsNamed.restrict {segs : List SegG} {ents : Ents} {X : List GoString}
+    (h : SegsNamed segs ents) (hX : ∀ b ∈ X, walNameP b = false) :
+    SegsNamed segs (restrictN (.except X) ents) := by
+  have hm : ∀ b, walNameP b = true → (NameSet.except X).Mem b := fun b hb hbX => by
+    rw [hX b hbX] at hb; cases hb
+  refine ⟨fun g hg => ?_, fun b e hb he => ?_⟩
+  · obtain ⟨hw, he⟩ := h.1 g hg
+    exact ⟨hw, by rw [restrictN_lookup _ _ _ (hm _ hw)]; exact he⟩
+  · rw [restrictN_lookup _ _ _ (hm _ hb)] at he
+    exact h.2 b e hb he
+
+/-- The claim `c` is one of a WAL directory's, as `WalDirClaim` has them: on the directory of a
+layout of `Ls`, on all names but non-`.wal` ones. -/
+def WalDirClaimOf (Ls : GMap GoString WalLay) (c : Claim) : Prop :=
+  ∃ dir lay, Ls !! dir = some lay ∧ c.1 = lay.j ∧
+    ∃ X : List GoString, c.2.1 = .except X ∧ ∀ b ∈ X, walNameP b = false
+
+noncomputable instance WalDirClaimOf.dec (Ls : GMap GoString WalLay) (c : Claim) :
+    Decidable (WalDirClaimOf Ls c) := Classical.propDecidable _
+
+/-- The claim `c` is parked (`walParked`): a WAL directory's, not taken out (`D`). -/
+def ParkedClaim (Ls : GMap GoString WalLay) (D : List Claim) (c : Claim) : Prop :=
+  WalDirClaimOf Ls c ∧ c ∉ D
+
+noncomputable instance ParkedClaim.dec (Ls : GMap GoString WalLay) (D : List Claim) (c : Claim) :
+    Decidable (ParkedClaim Ls D c) := Classical.propDecidable _
 
 end pure
 
@@ -324,6 +408,51 @@ theorem walTailsRes_mono (C : WalCodec) (Mr : WalMarshal) (s s' : AbsDiskState) 
   ipureintro
   exact ⟨hd', hp.2.1, hp.2.2.1, hp.2.2.2.1, hp.2.2.2.2.congr hH hmd⟩
 
+/-- **A segment's program halves, parked** (`walParked`): of its inode's `OsMeta` and of bytes from
+0 on, as many as the segment's. Not `segRes g` itself: the contents are the segment's (by agreement
+with the invariant's halves, `segResF`) only while no change is in flight on it, and an open handle
+changes its tail's contents in the layout (`walInvBody_tail`, `TailAcc.lean`) with the tail's halves
+out, so the parked entry of a segment must not depend on its contents. -/
+def segResP (g : SegG) : IProp GF :=
+  iprop(∃ (m : OsMeta) (bs : List ByteG), osMeta (L := L) g.ino (DFrac.own (1 : Qp).half) m ∗
+    osBytes (L := L) g.ino 0 (DFrac.own (1 : Qp).half) bs ∗ ⌜bs.length = g.bs.length⌝)
+
+theorem segRes_segResP (g : SegG) : segRes (L := L) g ⊢ segResP (L := L) g := by
+  unfold segRes segResP
+  iintro ⟨Hm, Hb⟩
+  iexists g.om, g.bs
+  iframe Hm Hb
+  ipureintro; rfl
+
+/-- **The program's halves, parked** (W3/W5's gap 2, framed): the parking flag's invariant half
+(`walParkAuth b`, `Ghost.lean`); every segment's program halves (`segResP`) but those of the inodes
+`O`, and the program's half of every WAL directory's claim (`WalDirClaimOf`) but the claims `D`;
+with the flag `true` (the lock token free: no handle) nothing is out. A handle (the flag `false`)
+takes what it needs (`Open`: the opened WAL's segments and directory claim) and puts back what it
+does not keep (`ReadAll`: all but the tail's); returning a half needs no token (a third half
+contradicts). -/
+def walParked (Ls : GMap GoString WalLay) (cl : List Claim) : IProp GF :=
+  iprop(∃ (b : Bool) (O : List Ino) (D : List Claim), walParkAuth (W := W) b ∗
+    ⌜b = true → O = [] ∧ D = []⌝ ∗
+    ([∗list] g ∈ segsAll Ls, if g.ino ∈ O then emp else segResP (L := L) g) ∗
+    [∗list] c ∈ cl, if ParkedClaim Ls D c then
+      osNames (L := L) c.1 c.2.1 (DFrac.own (1 : Qp).half) c.2.2 else emp)
+
+instance walParked_timeless (Ls : GMap GoString WalLay) (cl : List Claim) :
+    Timeless (walParked (L := L) (W := W) Ls cl) := by
+  haveI : ∀ g : SegG, Timeless (segResP (L := L) g) := fun g => by
+    unfold segResP osMeta; infer_instance
+  haveI : ∀ (j : Ino) (N : NameSet) (q : DFrac) (h : NamesH), Timeless (osNames (L := L) j N q h) :=
+    fun _ _ _ _ => by unfold osNames; split <;> infer_instance
+  unfold walParked
+  haveI : ∀ (O : List Ino) (g : SegG),
+      Timeless (iprop(if g.ino ∈ O then iprop(emp) else segResP (L := L) g) : IProp GF) :=
+    fun O g => by split <;> infer_instance
+  haveI : ∀ (D : List Claim) (c : Claim), Timeless (iprop(if ParkedClaim Ls D c then
+      osNames (L := L) c.1 c.2.1 (DFrac.own (1 : Qp).half) c.2.2 else iprop(emp)) : IProp GF) :=
+    fun D c => by split <;> infer_instance
+  infer_instance
+
 /-- **The WAL invariant's contents**, the real WAL state being `s`. -/
 def walInvBody (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (s : AbsDiskState) : IProp GF :=
@@ -332,7 +461,8 @@ def walInvBody (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoSt
     osClaims L (cl.map (fun c => (c, DFrac.own (1 : Qp).half))) ∗ osCommitLb (L := L) n ∗
     laysResF (L := L) F Ls ∗ ⌜WalsOk C Mr R jr s Ls cl n⌝ ∗ ⌜WalsCreateOk jr cl⌝ ∗
     (∃ CR, walCreatingAuth (W := W) CR ∗ ⌜CreatingOk jr cl CR⌝) ∗ walTailsRes (W := W) C Mr s Ls F ∗
-    ⌜AbsentNone s jr cl n ∧ DirsAvoid R jr s⌝)
+    ⌜AbsentNone s jr cl n ∧ DirsAvoid R jr s⌝ ∗ ⌜WalsNamed Ls cl n⌝ ∗ walParked (L := L) (W := W) Ls cl ∗
+    ∃ K c, walDirKeysAuth (W := W) K ∗ walCutAuth (W := W) c ∗ ⌜DirKeysOk C Mr jr s Ls cl n K c⌝)
 
 instance walInvBody_timeless (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (s : AbsDiskState) : Timeless (walInvBody (L := L) (W := W) C Mr R jr r s) := by

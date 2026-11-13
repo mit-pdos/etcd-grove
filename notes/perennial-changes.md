@@ -2390,3 +2390,15 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
   a `haveI` in the macro `fileStat_isDir` of `LinuxFs/Proof/os/MkdirAll{,Parts}.lean`). Every predeclared
   integer type is a plain `def` (`go.uint32 := go.Named go!"uint32" []`), so no instance of the class sees it.
 - **Proposed.** The instance (or the unfolding) in Perennial, for every predeclared type.
+
+## 2026-11-13: `errors.Is` only for pointer targets (`fileutil.TryLockFile`'s `EWOULDBLOCK`)
+
+- **Missing.** Perennial's `errors.Is.spec`/`errors.is.spec` admit only `nil` and pointer targets
+  (`IsPointerError`). `fileutil`'s `ofdTryLockFile`/`flockTryLockFile` call `errors.Is(err,
+  syscall.EWOULDBLOCK)` with an errno target (a `uintptr`, comparable, so Go's walk returns), and
+  `syscall.Errno.Is` has no spec.
+- **Workaround here.** `TryLockFile`'s proof takes `errors.IsErrno.spec` (`LinuxFs/Spec/errors/IsErrno.lean`:
+  an errno `err` and an errno target give some boolean) as a hypothesis (branch `wal-read4`).
+- **Proposed.** `errors.is.spec` for any target whose type's errors in the tree hold comparable values
+  (the comparison `err == target` is then defined), and a spec of `syscall.Errno.Is` (a `switch` comparing
+  the target with `oserror`'s pointer errors).
