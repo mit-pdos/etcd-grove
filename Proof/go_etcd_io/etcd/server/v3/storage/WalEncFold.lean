@@ -386,6 +386,148 @@ theorem goOp_sim_complete (s : w64 × w64) (c : Nat) (hc : uint.nat s.1 ≤ c) :
         rw [ih _ _ σ' hr hle' hterm' h']
         simp [snapAt, hmi]
 
+/-! ## The headers and the segments -/
+
+theorem chainRecs_map (C : WalCodec) (c : w32) (D : List (w64 × List w8)) :
+    (chainRecs C c D).map (fun r => (r.typ, r.data)) = D := by
+  induction D generalizing c with
+  | nil => rfl
+  | cons p D ih => obtain ⟨t, d⟩ := p; simp [chainRecs, ih]
+
+theorem except_ok_bind {ε α β : Type} (a : α) (f : α → Except ε β) :
+    (Except.ok a >>= f) = f a := rfl
+
+theorem raStep_crc (U : WalUnmarshal) (s : w64 × w64) (st : RAState) (d : List w8) :
+    raStep U s st (crcType, d) = .ok st := by
+  simp [raStep, crcType, entryType, stateType, metadataType]
+
+theorem raStep_meta (U : WalUnmarshal) (s : w64 × w64) (st : RAState) (d : List w8)
+    (hmd : st.md = none ∨ st.md = some d) :
+    raStep U s st (metadataType, d) = .ok { st with md := some d } := by
+  rcases hmd with h | h
+  · simp [raStep, h, metadataType, entryType, stateType]
+  · simp [raStep, h, metadataType, entryType, stateType]
+    cases st; simp only at h; subst h; rfl
+
+theorem raStep_state (U : WalUnmarshal) (M : WalMarshal) (hU : U.Ok M) (s : w64 × w64)
+    (st : RAState) (h : HardStateM) :
+    raStep U s st (stateType, M.encState h) = .ok { st with hs := h } := by
+  simp [raStep, hU.state, stateType, entryType]
+
+theorem raStep_snap0 (U : WalUnmarshal) (M : WalMarshal) (hU : U.Ok M) (s : w64 × w64)
+    (st : RAState) :
+    raStep U s st (snapshotType, M.snap0) =
+      if W64 0 = s.1 then
+        (if W64 0 = s.2 then
+          .ok { st with matched := true,
+                        ents := if uint.nat st.hs.Commit' < uint.nat (W64 0) then [] else st.ents }
+        else .error .snapshotMismatch)
+      else .ok st := by
+  simp only [raStep, hU.snap0]
+  simp [snapshotType, entryType, stateType, metadataType, crcType]
+
+/-- **A cut's header** (wal.go:914-924): the metadata set (or found equal), the state taken unless
+it is empty. -/
+theorem raStep_cutHdr (U : WalUnmarshal) (M : WalMarshal) (hU : U.Ok M) (s : w64 × w64)
+    (md : List w8) (hs : HardStateM) (st : RAState) (hmd : st.md = none ∨ st.md = some md) :
+    (cutHdrDs M md hs).foldlM (raStep U s) st =
+      .ok { st with md := some md, hs := if hsEmptyP hs then st.hs else hs } := by
+  unfold cutHdrDs
+  by_cases he : hsEmptyP hs
+  · simp only [he, ite_true, List.append_nil, List.foldlM_cons, List.foldlM_nil, raStep_crc,
+      except_ok_bind, raStep_meta U s st md hmd]
+    rfl
+  · simp only [he, ite_false, List.cons_append, List.nil_append, List.foldlM_cons,
+      List.foldlM_nil, raStep_crc, except_ok_bind, raStep_meta U s st md hmd, raStep_state U M hU]
+    rfl
+
+/-- **`Create`'s header** (wal.go:174-183): the metadata, and the snapshot record `(0, 0)`. -/
+theorem raStep_hdr (U : WalUnmarshal) (M : WalMarshal) (hU : U.Ok M) (s : w64 × w64)
+    (md : List w8) :
+    (hdrDs M md).foldlM (raStep U s) raInit =
+      if s.1 = W64 0 then
+        (if s.2 = W64 0 then .ok ⟨some md, hsZero, [], true⟩ else .error .snapshotMismatch)
+      else .ok ⟨some md, hsZero, [], false⟩ := by
+  simp only [hdrDs, List.foldlM_cons, List.foldlM_nil, raStep_crc, except_ok_bind,
+    raStep_meta U s raInit md (Or.inl rfl), raStep_snap0 U M hU]
+  by_cases h1 : s.1 = W64 0
+  · rw [if_pos h1.symm, if_pos h1]
+    by_cases h2 : s.2 = W64 0
+    · rw [if_pos h2.symm, if_pos h2]
+      simp only [except_ok_bind]
+      rfl
+    · rw [if_neg (Ne.symm h2), if_neg h2]
+      rfl
+  · rw [if_neg (Ne.symm h1), if_neg h1]
+    rfl
+
+
+/-- The hard state of the fold after `S`, from `walLastHS P`. -/
+theorem walFoldChkFrom_lastHS {c : Nat} {σ σ' : StorContents} {P S : WalHist}
+    (hσ : σ.hs = walLastHS P) (h : walFoldChkFrom σ (S.filter (walKeep c)) = some σ') :
+    σ'.hs = walLastHS (P ++ S) := by
+  rw [walFoldChkFrom_hs h, walHsStep_filter, hσ, walLastHS_eq, walLastHS_eq, List.foldl_append]
+
+/-- **The loop over the files after the operations `P`** (cut files: header, then the segment's
+operations), against the fold at the base `s`. -/
+theorem raStep_segs_ok (U : WalUnmarshal) (M : WalMarshal) (hU : U.Ok M) (s : w64 × w64)
+    (md : List w8) (c : Nat) (hc : uint.nat s.1 ≤ c) :
+    ∀ (Ss : List WalHist) (P : WalHist) (st st' : RAState) (σ : StorContents),
+    st.ents = σ.ents → σ.b = uint.nat s.1 → σ.hs = walLastHS P →
+    (st.hs = walLastHS P ∨ st.hs = hsZero) → (st.md = none ∨ st.md = some md) →
+    (∀ m, WalOpG.snap m ∈ Ss.flatten → uint.nat m.Index' ≤ c → uint.nat m.Index' ≤ uint.nat s.1) →
+    (segsDs M md false P Ss).flatten.foldlM (raStep U s) st = .ok st' →
+    ∃ σ', walFoldChkFrom σ (Ss.flatten.filter (walKeep c)) = some σ' ∧ st'.ents = σ'.ents ∧
+      ((Ss = [] ∧ st' = st ∧ σ' = σ) ∨ (st'.hs = σ'.hs ∧ st'.md = some md)) ∧
+      st'.matched = (st.matched || Ss.flatten.any (snapAt s.1)) := by
+  intro Ss
+  induction Ss with
+  | nil =>
+    intro P st st' σ he _ _ _ _ _ h
+    simp only [segsDs, List.flatten_nil, List.foldlM_nil, pure, Except.pure, Except.ok.injEq] at h
+    subst h
+    exact ⟨σ, rfl, he, Or.inl ⟨rfl, rfl, rfl⟩, by simp⟩
+  | cons S Ss ih =>
+    intro P st st' σ he hb hσ hst hmd hle h
+    simp only [segsDs, List.flatten_cons, List.foldlM_append] at h
+    rw [except_bind_ok] at h
+    obtain ⟨st2, h2, h⟩ := h
+    rw [except_bind_ok] at h2
+    obtain ⟨st1, h1, h2⟩ := h2
+    simp only [segHdrDs, Bool.false_eq_true, ite_false] at h1
+    rw [raStep_cutHdr U M hU s md _ st hmd, Except.ok.injEq] at h1
+    subst h1
+    rw [raStep_flatMap U M hU] at h2
+    have hle1 : ∀ m, WalOpG.snap m ∈ S → uint.nat m.Index' ≤ c → uint.nat m.Index' ≤ uint.nat s.1 :=
+      fun m hm => hle m (List.mem_append_left _ hm)
+    have hle2 : ∀ m, WalOpG.snap m ∈ Ss.flatten → uint.nat m.Index' ≤ c →
+        uint.nat m.Index' ≤ uint.nat s.1 :=
+      fun m hm => hle m (List.mem_append_right _ hm)
+    have hr1 : RARel s { st with md := some md,
+                                     hs := if hsEmptyP (walLastHS P) then st.hs else walLastHS P } σ := by
+      refine ⟨?_, he, hb⟩
+      show (if hsEmptyP (walLastHS P) then st.hs else walLastHS P) = σ.hs
+      rw [hσ]
+      by_cases hE : hsEmptyP (walLastHS P)
+      · rw [if_pos hE]
+        rcases hst with h0 | h0
+        · exact h0
+        · rw [h0, hsEmptyP_eq hE]
+      · rw [if_neg hE]
+    obtain ⟨σ1, hf1, hr2, hmd2, hm2⟩ := goOp_sim_ok s c hc S _ st2 σ hr1 hle1 h2
+    simp only at hmd2 hm2
+    have hσ1 : σ1.hs = walLastHS (P ++ S) := walFoldChkFrom_lastHS hσ hf1
+    obtain ⟨σ', hf, he', hcase, hm'⟩ := ih (P ++ S) st2 st' σ1 hr2.2.1 hr2.2.2 hσ1
+      (Or.inl (hr2.1.trans hσ1)) (Or.inr hmd2) hle2 h
+    refine ⟨σ', ?_, he', ?_, ?_⟩
+    · rw [List.flatten_cons, List.filter_append, walFoldChkFrom_append, hf1, Option.bind_some]
+      exact hf
+    · right
+      rcases hcase with ⟨-, rfl, rfl⟩ | hcase
+      · exact ⟨hr2.1, hmd2⟩
+      · exact hcase
+    · rw [hm', hm2, List.flatten_cons, List.any_append, Bool.or_assoc]
+
 /-! ## The main theorems -/
 
 /-- **From a cut file: `ReadAll` succeeds only with `walReadFrom`'s read.** The WAL's segments are
