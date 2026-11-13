@@ -144,7 +144,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.wp_proofAu
     have hw' : w = m.size := hw.2.2 rfl
     subst hw'
     iframe
-    ipureintro; exact ⟨hm'.1, hm'.2.1.trans hm1.2.1, Nat.le_trans hm1.2.2 hm'.2.2⟩
+    ipureintro; exact ⟨hm'.1, hm'.2.1.trans hm1.2.1, Nat.le_trans hm1.2.2 hm'.2.2.1⟩
   · cases err with
     | nil => exact absurd rfl he
     | ok ie =>

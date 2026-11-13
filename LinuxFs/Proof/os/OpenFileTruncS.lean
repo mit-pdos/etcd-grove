@@ -52,7 +52,7 @@ theorem trFile_new (i : Ino) (P : Prop) :
   · iapply osBytes_nil
   isplitl []
   · iapply (mcellsAny_empty (GF := GF) newMeta.maps 0)
-  ipureintro; exact ⟨rfl, fun _ => rfl, rfl⟩
+  ipureintro; exact ⟨rfl, fun _ => rfl, rfl, rfl, Nat.le_refl _⟩
 
 /-- An unmapped file's cells: nothing. -/
 theorem mcellsAny_of_empty (M : GMap Loc Nat) (hM : M = ∅) (lo hi : Nat) :
@@ -60,7 +60,8 @@ theorem mcellsAny_of_empty (M : GMap Loc Nat) (hM : M = ∅) (lo hi : Nat) :
   subst hM; unfold mcellsAny; exact BigSepM.bigSepM_empty.2
 
 /-- A file truncated to 0 is a `trFile`, of size 0. -/
-theorem trFile_of_rsDone (i : Ino) (m : OsMeta) (n : Nat) (P : Prop) (hmp : m.maps = ∅) :
+theorem trFile_of_rsDone (i : Ino) (m : OsMeta) (n : Nat) (P : Prop) (hmp : m.maps = ∅)
+    (hcut : m.cut = none) :
     rsDone (GF := GF) true i 0 0 m n ⊢ trFile i P := by
   unfold rsDone trFile
   iintro ⟨%zs, %hz, Hm, -, -⟩
@@ -72,7 +73,10 @@ theorem trFile_of_rsDone (i : Ino) (m : OsMeta) (n : Nat) (P : Prop) (hmp : m.ma
   · iapply osBytes_nil
   isplitl []
   · iapply (mcellsAny_empty (GF := GF) (rsPost true m 0 0).maps 0)
-  ipureintro; exact ⟨rfl, fun _ => rfl, by simp only [rsPost, announce_maps]; exact hmp⟩
+  ipureintro
+  refine ⟨rfl, fun _ => rfl, by simp only [rsPost, announce_maps]; exact hmp, ?_, ?_⟩
+  · simp [rsPost, hcut]
+  · simp [rsPost, OsMeta.announce]
 
 end lemmas
 
@@ -217,7 +221,7 @@ theorem os.OpenFile.wp_proofCreateTruncSnc : os.OpenFile.specCreateTruncSnc (GF 
     icases Hout with ⟨%hc, Hlo, Hn⟩
     isimp only [crTr, trFile] at Hm
     icases Hm with ⟨%m, %bs, Hm, Hb, -, %hmb⟩
-    ihave Hc := mcellsAny_of_empty (GF := GF) m.maps hmb.2.2 0 (pageEnd m.size)
+    ihave Hc := mcellsAny_of_empty (GF := GF) m.maps hmb.2.2.1 0 (pageEnd m.size)
     wp_apply +noauto wp_osOpenTruncS R d b j i (.only [b]) dq (DFrac.own q) _ t s0 qc fl m bs
       hfl htr hb (by simp [NameSet.Mem]) hi hmb.1 CoPset.subseteq_top CoPset.subseteq_top
       $$ Hos Hsi Hp Hn Hk Hm Hb Hc
@@ -245,7 +249,7 @@ theorem os.OpenFile.wp_proofCreateTruncSnc : os.OpenFile.specCreateTruncSnc (GF 
       try dsimp only [crTr]
       iframe
       isplitl [Hd]
-      · iapply trFile_of_rsDone i m n _ hmb.2.2 $$ Hd
+      · iapply trFile_of_rsDone i m n _ hmb.2.2.1 hmb.2.2.2.1 $$ Hd
       ileft
       iexists fd, i
       iframe
@@ -264,10 +268,10 @@ theorem os.OpenFile.wp_proofCreateTruncSnc : os.OpenFile.specCreateTruncSnc (GF 
       subst hfd
       ihave Hm : trFile i False $$ [Htr]
       · icases Htr with (⟨-, Hm, Hb, -⟩ | ⟨%n, Hd⟩)
-        · ihave Hc := mcellsAny_of_empty (GF := GF) m.maps hmb.2.2 0 m.size
+        · ihave Hc := mcellsAny_of_empty (GF := GF) m.maps hmb.2.2.1 0 m.size
           unfold trFile; iexists m, bs; iframe; isplitl [Hc]; · iexact Hc
           ipureintro; exact ⟨hmb.1, False.elim, hmb.2.2⟩
-        · iapply trFile_of_rsDone i m n False hmb.2.2 $$ Hd
+        · iapply trFile_of_rsDone i m n False hmb.2.2.1 hmb.2.2.2.1 $$ Hd
       wp_auto
       rw [decide_eq_false (show e ≠ W64 0 from he0)]
       wp_auto
@@ -321,7 +325,7 @@ theorem os.OpenFile.wp_truncS (d b : GoString) (flag : w64) (perm : w32) (R : Ro
   (try wp_auto)
   isimp only [trFile] at Hf
   icases Hf with ⟨%m, %bs, Hm, Hb, -, %hmb⟩
-  ihave Hc := mcellsAny_of_empty (GF := GF) m.maps hmb.2.2 0 (pageEnd m.size)
+  ihave Hc := mcellsAny_of_empty (GF := GF) m.maps hmb.2.2.1 0 (pageEnd m.size)
   wp_apply +noauto wp_osOpenTruncS R d b j i N dq dqn h t s0 qc fl m bs
     hfl htr hb hN hi hmb.1 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hp Hn Hk Hm Hb Hc
@@ -346,7 +350,7 @@ theorem os.OpenFile.wp_truncS (d b : GoString) (flag : w64) (perm : w32) (R : Ro
     iapply HΦ
     iframe
     isplitl [Hd]
-    · iapply trFile_of_rsDone i m n _ hmb.2.2 $$ Hd
+    · iapply trFile_of_rsDone i m n _ hmb.2.2.1 hmb.2.2.2.1 $$ Hd
     ileft
     iexists fd
     iframe
@@ -365,10 +369,10 @@ theorem os.OpenFile.wp_truncS (d b : GoString) (flag : w64) (perm : w32) (R : Ro
     subst hfd
     ihave Hm : trFile i False $$ [Htr]
     · icases Htr with (⟨-, Hm, Hb, -⟩ | ⟨%n, Hd⟩)
-      · ihave Hc := mcellsAny_of_empty (GF := GF) m.maps hmb.2.2 0 m.size
+      · ihave Hc := mcellsAny_of_empty (GF := GF) m.maps hmb.2.2.1 0 m.size
         unfold trFile; iexists m, bs; iframe; isplitl [Hc]; · iexact Hc
         ipureintro; exact ⟨hmb.1, False.elim, hmb.2.2⟩
-      · iapply trFile_of_rsDone i m n False hmb.2.2 $$ Hd
+      · iapply trFile_of_rsDone i m n False hmb.2.2.1 hmb.2.2.2.1 $$ Hd
     wp_auto
     rw [decide_eq_false (show e ≠ W64 0 from he0)]
     wp_auto

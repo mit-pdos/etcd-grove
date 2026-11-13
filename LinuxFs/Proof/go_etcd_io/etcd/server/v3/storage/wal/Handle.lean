@@ -246,17 +246,24 @@ fsyncs: `os.File.Sync.specDirS`), and the tail's name: the `.wal` name `nm0` hol
 inode `ino`, the tail file's name `child dir nm0` (`w.seq()` parses it: `walFileName sq ix`, its
 sequence below `2^64 - 1`, which `cut` increments), the largest `.wal` name of the directory (the
 invariant's: the last segment's, `WalAbsD.names`; stable while the handle holds half the claim). The
-claim leaves out the pipeline's names (`walTmps ⊆ X`: the pipeline holds their claims). -/
+claim leaves out the pipeline's names (`walTmps ⊆ X`: the pipeline holds their claims) and no `.wal`
+name (`DirKeysOk`'s: `cut`'s rename target is in the claim, `os.Rename.specFileSnc`'s `N'.Mem bt`);
+the WAL is named (`walNamed`, persistent: `walCut_osAUnc`'s `walCutP` takes it); the record of what
+the handle holds out of the parked state (`walOutFrag`: the tail, the directory's claim, the
+pipeline's names; W1 log, tenth session). -/
 def walDirH (dir : GoString) (j : Ino) (dfd : w64) (ino : Ino) (name : GoString) : IProp GF :=
   iprop(∃ (R : Roots) (q : Qp) (X : List GoString) (hj : NamesH) (nm0 : GoString) (ph : DirPhS),
     walDirKey (W := W) dir j X ∗ osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
     osPathS R dir (DFrac.own q) j ∗ osSharedInv R ∗ osCallPerm (1 : Qp).half ∗ osDirFdS dfd j ph ∗
+    walNamed (W := W) dir ∗ walOutFrag (W := W) ⟨[ino], [(j, .except X)], [dir]⟩ ∗
     ⌜walNameP nm0 = true ∧ hj.cur !! nm0 = some (.file ino) ∧ name = child dir nm0 ∧
-      (∀ t ∈ walTmps, t ∈ X) ∧
+      (∀ t ∈ walTmps, t ∈ X) ∧ (∀ b ∈ X, walNameP b = false) ∧
       (∃ sq ix : Nat, nm0 = walFileName sq ix ∧ sq + 1 < 2 ^ 64) ∧
       ∀ b n, hj.cur !! b = some n → walNameP b = true → b = nm0 ∨ go.GoStringLt b nm0⌝)
 
-/-- **The open WAL `w` of `dir`, in the state `h`** (see the file header). The pure facts: the
+/-- **The open WAL `w` of `dir`, in the state `h`** (see the file header). The metadata slice is
+non-nil (`recBytes … (some md)`: `cut` encodes it as a record's data, present, `recOf`; `Create`
+takes it non-nil). The pure facts: the
 stream split, the tail's offset inside its size (both below ext4's maximum offset, `Seek`'s), and
 the indices `enti`/`snapi` bounding every index of the history (`cut` names the next segment
 `max(enti, snapi) + 1`, above `walLastIdx`, without wrapping): the bound on `walLastIdx` only of a
@@ -274,7 +281,7 @@ def walHandleIn (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ df ∗
     os.ownFile df dfd dnm (DFrac.own 1) ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"metadata" w ↦ mds ∗
-    mds ↦*□ h.md ∗
+    recBytes mds (some h.md) ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"state" w ↦ sp ∗
     P.hsIn sp h.st ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"decoder" w ↦ null ∗

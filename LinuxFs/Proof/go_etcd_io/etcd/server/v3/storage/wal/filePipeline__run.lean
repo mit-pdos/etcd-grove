@@ -99,7 +99,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.run.wp_proof
       (try wp_auto)
       iunfold pipeFile at Hfile
       icases Hfile with ⟨%f, %fd, %i, %m, %h, #Hlf, Hf, Hoff, Hfd, Hm, Hz, Hn, %hpf⟩
-      obtain ⟨hfd, hmaps, hcur⟩ := hpf
+      obtain ⟨hfd, hmaps, hcur, hcut, hlo, -⟩ := hpf
       iunfold fileutil.lockedFile at Hlf
       iStructNamed Hlf
       wp_method_call
@@ -109,7 +109,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.run.wp_proof
       (try wp_auto)
       iunfold pipeRes at Hres
       icases Hres with ⟨Hperm, Hp⟩
-      ihave Ht := zerosA_trFile i m hmaps $$ [$Hm $Hz]
+      ihave Ht := zerosA_trFile i m hmaps hcut hlo $$ [$Hm $Hz]
       wp_apply wp_removeTmp wp_Remove R dir dq j (pipeTmp n) i h _ (pipeTmp_nameOk n) hcur
         $$ [$Hos $Hsi $Hp $Hperm $Hn $Ht] as %re ⟨Hp, Hperm, Hc⟩
       (try wp_auto)

@@ -1,13 +1,10 @@
 /-
 The proof of `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__cut.lean` (W2).
-**Unfinished (`sorry` after step 4).** Done: steps 1 (`Seek`, `os.File.Truncate.specWalTail`) and 2
-(`WAL.sync.specCut`), both hypotheses (`WAL__cutTail.lean`), with their error exits; 3 (`w.seq()` inline:
-`File.Name`, `filepath.Base` = `baseModel_child_walFileName`, `parseWALName` = `scanWalName_walFileName`;
-`next` joined by `wp_join`; `walName` over `fmt.SprintfWalName.spec`, `cutName_str`; `filepath.Join` =
-`child dir bt`, `join_child`/`walFileName_nameOk`); 4 (`wp_walPipeH_open`, its error exit). Next: step 5
-(`PreSync.lean`'s `os.fileWI`/`os.fileWI_preSyncOk` for the stream over `N.tmp`, `CutHdr.lean`'s
-`metaChain_cut`/`_size`/`streamOk_vals` for the bytes after it; blocked on `pipeFile` facts, the W2 log's
-eighth session). The steps (S/wal.go:875-965)
+**Unfinished (`sorry` at the rename's return).** Done: steps 1-2 (over the hypotheses
+`os.File.Truncate.specWalTail`, `WAL.sync.specCut`), 3 (the name), 4 (`wp_walPipeH_open`), 5 (the headers on
+`N.tmp`: `saveCrc`, `encode(Metadata)`, `saveState.specPre`, `sync.specPreL`, `Seek`) and 6 up to
+`os.Rename.specFileSnc`'s return (`walCut_osAUnc` instantiated, `CutRen.lean`'s premises). Next: the rename's
+outcome, steps 7-8 (the W2 log's ninth session). The steps (S/wal.go:875-965)
 and what each needs:
 1. `w.tail().Seek(0, SeekCurrent)`, `Truncate(off)`: the tail's whole `OsMeta`, half of which is
    `walInv`'s (`segRes`): a crash-aware truncate opening `walInv` around the step (W6's tail
@@ -58,6 +55,13 @@ public import LinuxFs.Spec.path.filepath.Base
 public import LinuxFs.Spec.path.filepath.Join
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.parseWALName
 public import Spec.fmt.SprintfWalName
+public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__cutPre
+public import LinuxFs.Spec.go_etcd_io.etcd.pkg.v3.crc.digest__Sum32
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.PreSync
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutHdr
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutHdrStream
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutRen
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutAu
 
 @[expose] public section
 
@@ -101,9 +105,16 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     (wp_Base : filepath.Base.spec (GF := GF) (hG := hG))
     (wp_parse : go_etcd_io.etcd.server.v3.storage.wal.parseWALName.spec (GF := GF) (hG := hG))
     (wp_SprintfWal : fmt.SprintfWalName.spec (GF := GF) (hG := hG))
-    (wp_Join : filepath.Join.spec (GF := GF) (hG := hG)) :
+    (wp_Join : filepath.Join.spec (GF := GF) (hG := hG))
+    (wp_Sum32 : go_etcd_io.etcd.pkg.v3.crc.digest.Sum32.spec (GF := GF) (hG := hG))
+    (wp_newFileEncoder : go_etcd_io.etcd.server.v3.storage.wal.newFileEncoder.spec (GF := GF)
+      (hG := hG))
+    (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) (hG := hG))
+    (wp_Fdatasync : go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync.spec (GF := GF) (hG := hG))
+    (wp_syncPreL : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specPreL (GF := GF) (hG := hG))
+    (wp_saveStatePre : go_etcd_io.etcd.server.v3.storage.wal.WAL.saveState.specPre P Mr) :
     go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.spec (W := W) P Mr := by
-  intro R jr r w dir h hrest hst hcnt hcuts hcpos
+  intro R jr r w dir h hrest hst hcnt hcuts hsorted hcpos hmdsz
   wp_start as ⟨#Harea, Hh⟩
   iunfold walHandleIn at Hh
   icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j,
@@ -175,6 +186,22 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     iright; ipureintro; exact he
   subst he
   wp_auto
+  -- the synced handle, a variable
+  have hh1e : (cutSynced { h with sz := h.o0 + h.out.length }).H = h.H ∧
+      (cutSynced { h with sz := h.o0 + h.out.length }).md = h.md ∧
+      (cutSynced { h with sz := h.o0 + h.out.length }).cuts = h.cuts ∧
+      (cutSynced { h with sz := h.o0 + h.out.length }).rest = h.rest ∧
+      (cutSynced { h with sz := h.o0 + h.out.length }).st = h.st ∧
+      (cutSynced { h with sz := h.o0 + h.out.length }).enti = h.enti ∧
+      (cutSynced { h with sz := h.o0 + h.out.length }).snapi = h.snapi ∧
+      (cutSynced { h with sz := h.o0 + h.out.length }).pc = h.pc ∧
+      (cutSynced { h with sz := h.o0 + h.out.length }).pend = [] ∧
+      (cutSynced { h with sz := h.o0 + h.out.length }).sz =
+        (cutSynced { h with sz := h.o0 + h.out.length }).o0 +
+          (cutSynced { h with sz := h.o0 + h.out.length }).out.length :=
+    ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, by simp [cutSynced]; omega⟩
+  generalize cutSynced { h with sz := h.o0 + h.out.length } = h1 at hh1e ⊢
+  obtain ⟨h1H, h1md, h1cuts, h1rest, h1st, h1enti, h1snapi, h1pc, h1pend, h1sz⟩ := hh1e
   -- step 3: the name
   iunfold walHandleIn at Hh
   icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j,
@@ -182,9 +209,17 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     He, %Hen, Henc, Htw, Hdh, Hlocks, Hls, Hcap, %Hlt, Hlks, #Hltf, Hfp, Hpipe, #Henv, #Hcrc, #Hwpk, Hopen, %Hpure⟩
   obtain ⟨hsplit, hfd, hoff, hsz, hpend, hidx, hidx1⟩ := Hpure
   obtain ⟨ls, rfl⟩ := List.getLast?_eq_some_iff.1 Hlt
+  try rw [h1H]
+  try rw [h1md]
+  try rw [h1cuts]
+  try rw [h1st]
+  try rw [h1enti]
+  try rw [h1snapi]
+  try rw [h1pc]
+  try rw [h1pend]
   iunfold walDirH at Hdh
-  icases Hdh with ⟨%Rd, %qd, %X, %hj, %nm0, %ph, #Hdk, Hcl, Hpd, #Hsid, Hperm, Hdfd, %hdh⟩
-  obtain ⟨hnm0w, hnm0c, hname, htmps, ⟨sq, ix, hnm0, hsq⟩, hlargest⟩ := hdh
+  icases Hdh with ⟨%Rd, %qd, %X, %hj, %nm0, %ph, #Hdk, Hcl, Hpd, #Hsid, Hperm, Hdfd, #Hnamed, Hout, %hdh⟩
+  obtain ⟨hnm0w, hnm0c, hname, htmps, hXw, ⟨sq, ix, hnm0, hsq⟩, hlargest⟩ := hdh
   iunfold walPipeH at Hpipe
   icases Hpipe with ⟨%γp, %Rp, %dqp, %szp, %np, #Hisfp, Hmain, Hpc, %hnp⟩
   ihave #Hisfp' := Hisfp
@@ -237,7 +272,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   iintro %asl ⟨Hasl, -⟩
   (try wp_auto)
   wp_apply wp_SprintfWal _ _ _ _ $$ [$Hasl] as %bt ⟨-, %hbt⟩
-  have hmx : max (uint.nat h.enti) (uint.nat h.snapi) + 1 < 2 ^ 64 := hidx1
+  have hmx : max (uint.nat h.enti) (uint.nat h.snapi) + 1 < 2 ^ 64 := by
+    rw [← h1enti, ← h1snapi]; exact hidx1
   rw [cutName_str sq _ nx hsq hmx hnx] at hbt
   subst hbt
   (try wp_auto)
@@ -268,6 +304,337 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     iright; ipureintro; exact he
   subst he
   (try wp_auto)
+  -- step 5: the headers, on the owned `N.tmp`
+  iunfold pipeFile at Hpf
+  icases Hpf with ⟨%f2, %fd2, %i2, %m2, %ht, #Hlf2, Hf2, Hoff2, Hfd2, Hm2, Hz2, Hn2, %hpf⟩
+  obtain ⟨hfd2, hmaps2, hcur2, hcut2, hlo2, hsz8⟩ := hpf
+  wp_apply wp_slice_literal (V := Loc) [ntl]
+  isplitr
+  · ipureintro; rfl
+  iintro %l1 ⟨Hl1, -⟩
+  wp_apply wp_slice_append $$ [$Hls $Hcap $Hl1] as %locks' ⟨Hls, Hcap, -⟩
+  (try wp_auto)
+  -- `prevCrc`: the encoder's CRC
+  iunfold ownEncoder at Henc
+  icases Henc with ⟨%pw0, %hc0, %b0, %u0, %bs0, %us0, #Hmu0, Hbw0, Hpw0, Hcf0, Hdc0, Hb0, Hbs0, %hb0,
+    Hu0, Hus0, %hus0⟩
+  iunfold ownDecCrc at Hdc0
+  icases Hdc0 with ⟨%l0, %tab0, %hl0, Hl0, #Htab0⟩
+  subst hl0
+  (try wp_auto)
+  wp_apply (wp_Sum32 l0 _ tab0 (DFrac.own 1)) $$ [Hl0] as Hl0
+  · iexact Hl0
+  (try wp_auto)
+  -- `w.tail().File`, `newFileEncoder`
+  rw [show ls ++ [lt] ++ [ntl] = (ls ++ [lt]) ++ [ntl] by simp]
+  wp_apply (wp_tail w locks' (ls ++ [lt]) ntl (DFrac.own 1) (DFrac.own 1)) $$ [Hlocks Hls]
+    as ⟨Hlocks, Hls⟩
+  · iframe
+  ihave #Hlf2' := Hlf2
+  iunfold fileutil.lockedFile at Hlf2'
+  iStructNamed Hlf2'
+  (try wp_auto)
+  ihave #Hioi : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.ioutil $$ []
+  · iPkgInit
+  wp_apply (wp_newFileEncoder f2 fd2 _ _ (W64 0) _ hfd2 (by decide) (by decide))
+    $$ [Hf2 Hoff2] as %e2 ⟨Henc2, Hf2, Hoff2, %he2⟩
+  · iframe; iframe #
+  (try wp_auto)
+  -- the headers' stream over `N.tmp`, from offset 0 (its zeros), bounded by the headers' length
+  have hcrc0 : WalHS.crc Mr h1 = tailCrc Mr h.H h.md h.cuts := by
+    rw [WalHS.crc_done Mr h1 (by rw [h1rest, hrest]), h1H, h1md, h1cuts]
+  have hsorted' : h.cuts.Pairwise (· ≤ ·) := hsorted.imp Nat.le_of_lt
+  have hle' : ∀ b ∈ h.cuts, b ≤ h.H.length := fun b hb => Nat.le_of_lt (hcuts b hb)
+  have hTS : tailStream Mr h.H h.md (h.cuts ++ [h.H.length]) =
+      recFrames walCodec (chainRecs walCodec (tailCrc Mr h.H h.md h.cuts)
+        (cutHdrDs Mr h.md (walLastHS (h.H.map WalOpG.toM)))) := by
+    rw [tailStream_recs, tailRecs_cut Mr h.H h.md h.cuts hsorted' hle']
+  have hL : (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length ≤ 0xffffffff000 := by
+    rw [hTS]; exact cutHdrs_fit Mr h.md _ _ (by rw [← hst]; exact hmdsz)
+  icases (osZerosA_unfold i2 0 m2.size (DFrac.own 1)).1 $$ Hz2 with ⟨%zs2, %hzs2, Hz2⟩
+  ihave HW0 := os.fileW_start f2 fd2 (child dir (pipeTmp np)) (DFrac.own 1) (DFrac.own 1)
+    (openFd i2 (wal.walOpenFlag true ||| W64 0x80000)) m2 0 (zs2.map (fun c => ((0 : w8), c)))
+    hlo2 (Nat.zero_le _) (by simp [hzs2]) $$ [Hf2 Hfd2 Hoff2 Hm2 Hz2]
+  · iframe
+  ihave #Hws := os.File.writerStreamI wp_WriteAt f2 fd2 (child dir (pipeTmp np)) (DFrac.own 1)
+    (DFrac.own 1) (openFd i2 (wal.walOpenFlag true ||| W64 0x80000)) m2
+    (zs2.map (fun c => ((0 : w8), c))) (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length
+    hfd2 (by unfold openFd; dsimp only; decide) hmaps2 (by omega) $$ Hos
+  ihave #HwsP := (io.writerStream_P _ _ _ _).1 $$ Hws
+  ihave HW0' : os.fileWI f2 fd2 (child dir (pipeTmp np)) (DFrac.own 1) (DFrac.own 1)
+    (openFd i2 (wal.walOpenFlag true ||| W64 0x80000)) m2 (zs2.map (fun c => ((0 : w8), c))) []
+    $$ [HW0]
+  · iunfold os.fileWI; iframe; iframe #
+  -- the headers' frames, record by record
+  have hFr := cutHdrRecs_frames Mr h.md (walLastHS (h.H.map WalOpG.toM)) (WalHS.crc Mr h1)
+  rw [← hcrc0] at hTS
+  rw [← hTS] at hFr
+  generalize hc0 : WalHS.crc Mr h1 = c0 at hFr hTS hL ⊢
+  -- `saveCrc(prevCrc)`
+  wp_apply (_wp_saveCrc w e2 (wal.fileWi f2) _ _ (fun ys => ys.length ≤
+      (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length) [] [] c0 c0
+      (fun xs ys hp hy => Nat.le_trans hp.length_le hy) (by rw [hFr]; simp))
+    $$ [HwsP] [He Henc2 HW0'] as %serr1 ⟨%pend1, He, Henc2, Hr1⟩
+  · iexact HwsP
+  · iframe; iframe #
+  icases Hr1 with (⟨%ys1, ⟨%he1, %hys1⟩, HW1⟩ | ⟨%a1, %b1, ⟨%he1, -, -⟩, -⟩)
+  rotate_left
+  · rcases serr1 with ei | _
+    rotate_left
+    · exact absurd rfl he1
+    (try wp_auto)
+    iapply HΦ
+    iright; ipureintro; exact he1
+  subst he1
+  (try wp_auto)
+  -- `encode(&Record{Type: MetadataType, Data: w.metadata})`
+  unfold go_etcd_io.etcd.server.v3.storage.wal.MetadataType
+  (try wp_auto)
+  imod (typedPointsto_dfractional _ _).dfractional_persist (DFrac.own 1) $$ «$v0» with #Ht1
+  have hmdr : recSize (recOf ⟨metadataType, hash.crc32.crc32c (hash.crc32.crc32c c0 []) h.md, h.md⟩)
+      < 2 ^ 47 := recSize_hdr _ _ _ (by decide) (by omega)
+  wp_apply (_wp_encode e2 (wal.fileWi f2) _ _ (fun ys => ys.length ≤
+      (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length) ([] ++ ys1) pend1
+      (hash.crc32.crc32c c0 []) «$a0_ptr» metadataType h.md hmdr
+      (fun xs ys hp hy => Nat.le_trans hp.length_le hy) (by
+        have h1 := congrArg List.length hys1
+        rw [hFr]; simp only [List.length_append, List.length_nil] at h1 ⊢; split <;> omega))
+    $$ [HwsP] [Henc2 HW1 «$a0»] as %serr2 ⟨%pend2, Henc2, -, Hr2⟩
+  · iexact HwsP
+  · iframe Henv Henc2 HW1
+    iunfold encRecIn
+    iexists _
+    iframe «$a0»
+    have hd : (recOf ⟨metadataType, 0#32, h.md⟩).data = some h.md := by
+      simp [recOf, metadataType, crcType]
+    rw [hd]
+    have hmt : metadataType = W64 1 := rfl
+    rw [hmt]
+    isplitl
+    · iexact Ht1
+    isplitr
+    · iexact Hmds
+    · ipureintro; trivial
+  icases Hr2 with (⟨%ys2, ⟨%he2', %hys2⟩, HW2⟩ | ⟨%a2, %b2, ⟨%he2', -, -⟩, -⟩)
+  rotate_left
+  · rcases serr2 with ei | _
+    rotate_left
+    · exact absurd rfl he2'
+    (try wp_auto)
+    iapply HΦ
+    iright; ipureintro; exact he2'
+  subst he2'
+  (try wp_auto)
+  -- `saveState(w.state)`
+  rw [← hst] at hFr
+  have hlen12 := congrArg List.length hys1
+  have hlen2 := congrArg List.length hys2
+  simp only [List.length_append, List.length_nil] at hlen12 hlen2
+  wp_apply (wp_saveStatePre w e2 sp sp h.st (wal.fileWi f2) _ _ (fun ys => ys.length ≤
+      (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length) ([] ++ ys1 ++ ys2) pend2
+      (hash.crc32.crc32c (hash.crc32.crc32c c0 []) h.md)
+      (fun xs ys hp hy => Nat.le_trans hp.length_le hy) (fun hne => by
+        refine ⟨?_, recSize_hdr _ _ _ (by decide) (by omega)⟩
+        rw [hFr, if_neg hne]; simp only [stateFrame, List.length_append, List.length_nil]; omega))
+    $$ [HwsP] [Hsp He Henc2 HW2] as %serr3 ⟨He, Hr3⟩
+  · iexact HwsP
+  · iframe Henv Hsp He Henc2 HW2 Hst
+  ihave Hu : (⌜serr3 = GoInterface.nil⌝ ∗ ∃ (sp' : Loc) (pend3 ys3 : List w8),
+      structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"state" w ↦ sp' ∗
+      ownEncoder e2 (wal.fileWi f2) (crcAfter walCodec c0 (cutHdrDs Mr h.md h.st)) pend3 ∗
+      os.fileWI f2 fd2 (child dir (pipeTmp np)) (DFrac.own 1) (DFrac.own 1)
+        (openFd i2 (wal.walOpenFlag true ||| W64 0x80000)) m2 (zs2.map (fun c => ((0 : w8), c)))
+        ([] ++ ys1 ++ ys2 ++ ys3) ∗
+      ⌜ys3 ++ pend3 = pend2 ++ (if hsEmptyP h.st then [] else stateFrame Mr
+        (hash.crc32.crc32c (hash.crc32.crc32c c0 []) h.md) h.st)⌝) ∨ ⌜serr3 ≠ GoInterface.nil⌝
+    $$ [Hr3]
+  · icases Hr3 with (⟨%hE, Hspf, Henc2, HW3⟩ | ⟨%hNE, Hspf, %pend3, Henc2,
+      (⟨%ys3, ⟨%he3, %hys3⟩, HW3⟩ | ⟨%a3, %b3, ⟨%he3, -, -⟩, -⟩)⟩)
+    · ileft
+      isplitr
+      · ipureintro; exact hE.1
+      iexists sp, pend2, []
+      rw [crcAfter_cutHdrs, if_pos hE.2, List.append_nil]
+      iframe
+      ipureintro; rw [if_pos hE.2]; simp
+    · ileft
+      isplitr
+      · ipureintro; exact he3
+      iexists sp, pend3, ys3
+      rw [crcAfter_cutHdrs, if_neg hNE]
+      iframe
+      ipureintro; rw [if_neg hNE]; exact hys3
+    · iright; ipureintro; exact he3
+  icases Hu with (⟨%he3, %sp', %pend3, %ys3, Hspf, Henc2, HW3, %hys3⟩ | %he3)
+  rotate_left
+  · rcases serr3 with ei | _
+    rotate_left
+    · exact absurd rfl he3
+    (try wp_auto)
+    iapply HΦ
+    iright; ipureintro; exact he3
+  subst he3
+  (try wp_auto)
+  -- `w.sync()`: the headers flushed and `N.tmp` fdatasynced
+  have hlen3 := congrArg List.length hys3
+  simp only [List.length_append] at hlen3
+  have hall : ([] ++ ys1 ++ ys2 ++ ys3 ++ pend3) = tailStream Mr h.H h.md (h.cuts ++ [h.H.length]) := by
+    calc [] ++ ys1 ++ ys2 ++ ys3 ++ pend3 = ys1 ++ (ys2 ++ (ys3 ++ pend3)) := by simp
+      _ = (ys1 ++ (ys2 ++ pend2)) ++ (if hsEmptyP h.st then [] else stateFrame Mr
+          (hash.crc32.crc32c (hash.crc32.crc32c c0 []) h.md) h.st) := by rw [hys3]; simp
+      _ = ((ys1 ++ pend1) ++ WalEnc.frame (walRecEnc ⟨metadataType,
+            hash.crc32.crc32c (hash.crc32.crc32c c0 []) h.md, h.md⟩)) ++
+          (if hsEmptyP h.st then [] else stateFrame Mr
+            (hash.crc32.crc32c (hash.crc32.crc32c c0 []) h.md) h.st) := by rw [hys2]; simp
+      _ = tailStream Mr h.H h.md (h.cuts ++ [h.H.length]) := by
+          rw [hys1, hFr]; split <;> simp [stateFrame]
+  ihave #Hmds2 := Hmds
+  iunfold recBytes at Hmds2
+  icases Hmds2 with ⟨%hmdsn, #Hmdsb⟩
+  ihave #Hzpk : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
+  · iPkgInit
+  have hlenL : ([] ++ ys1 ++ ys2 ++ ys3).length + pend3.length ≤
+      (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length := by
+    have := congrArg List.length hall; simp only [List.length_append] at this ⊢; omega
+  have hsyncOk := os.fileWI_preSyncOk wp_Fdatasync f2 fd2 (child dir (pipeTmp np)) (DFrac.own 1)
+    (DFrac.own 1) (openFd i2 (wal.walOpenFlag true ||| W64 0x80000)) m2
+    (zs2.map (fun c => ((0 : w8), c)))
+  wp_apply (wp_syncPreL w lg dir mds h.md e2 (ls ++ [lt]) ntl f2 h.snapi h.enti _ _ _
+      (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length ([] ++ ys1 ++ ys2 ++ ys3) pend3 _
+      hlenL hsyncOk)
+    $$ [Hws] [Hlg Hdir Hmd Hns Henti Hsnapi He Hlocks Hls Hcap Henc2 HW3] as %serr4 ⟨Hpre, Henc2, Hr4⟩
+  · iexact Hws
+  · iframe Henv Hzpk Henc2 HW3
+    iunfold walPreInL
+    iexists locks'
+    iframe
+    iframe #
+    ipureintro; exact he2
+  icases Hr4 with (⟨%he4, HS⟩ | ⟨%he4, -⟩)
+  rotate_left
+  · rcases serr4 with ei | _
+    rotate_left
+    · exact absurd rfl he4
+    (try wp_auto)
+    iapply HΦ
+    iright; ipureintro; exact he4
+  subst he4
+  rw [hall]
+  iunfold walPreInL at Hpre
+  icases Hpre with ⟨%locks'', Hlg, -, Hdir, Hmd, -, Hns, -, Henti, Hsnapi, He, -, Hlocks, Hls,
+    Hcap, -⟩
+  iclear Hbw0 Hpw0 Hcf0 Hb0 Hbs0 Hu0 Hus0 Hl0 Hws HwsP
+  (try wp_auto)
+  -- the new segment's offset: the headers' end
+  wp_apply (wp_tail w locks'' (ls ++ [lt]) ntl (DFrac.own 1) (DFrac.own 1)) $$ [Hlocks Hls]
+    as ⟨Hlocks, Hls⟩
+  · iframe
+  (try wp_auto)
+  wp_method_call
+  wp_call
+  (try wp_auto)
+  iunfold os.fileS at HS
+  icases HS with ⟨%mS, %ysS, %hokS, Hf2, Hfd2, Hoff2, HmS, HbS, -⟩
+  obtain ⟨hoS1, hoS2, hoS3⟩ := cut_off_toInt 0 (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length
+    (by omega)
+  rw [show (((0 + (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length : Nat) : Int)) =
+    ((0 : Nat) : Int) + (((tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length : Nat) : Int)
+    by omega]
+  wp_apply (os.File.Seek.wp_cur f2 fd2 _ (DFrac.own 1) _ hfd2 hoS1 hoS2) $$ [$Hf2 $Hoff2]
+    as ⟨Hf2, Hoff2⟩
+  (try wp_auto)
+  -- step 6: `os.Rename(newTail.Name(), fpath)`
+  wp_method_call
+  wp_call
+  (try wp_auto)
+  wp_apply wp_Name f2 fd2 _ _ $$ [$Hf2] as Hf2
+  (try wp_auto)
+  -- the new segment
+  have hz0 : ∀ x ∈ zs2.map (fun c => ((0 : w8), c)), x.1 = 0 := by
+    intro x hx; obtain ⟨c, -, rfl⟩ := List.mem_map.1 hx; rfl
+  obtain ⟨hbsS, hLle⟩ := streamOk_vals hokS hz0
+  have hcutS : mS.cut = none := by rw [metaChain_cut hokS.2.1]; exact hcut2
+  have hszS : mS.size = max m2.size (0 + (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length) :=
+    metaChain_size hokS.2.1 (Nat.zero_le _)
+  have hysS : ysS.length = mS.size := by have := hokS.2.2.2.2.2.2.1; omega
+  generalize hg : (⟨walFileName (sq + 1) (max (uint.nat h.enti) (uint.nat h.snapi) + 1), i2, mS.synced,
+    ysS.map (fun x => durB x.1)⟩ : SegG) = g
+  have hgbsL : g.bs.length = ysS.length := by rw [← hg]; simp
+  have hgbs : g.bs = (tailStream Mr h.H h.md (h.cuts ++ [h.H.length]) ++ List.replicate
+      (g.bs.length - (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length) 0).map durB ∧
+      (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length ≤ g.bs.length := by
+    rw [hgbsL]; rw [← hg]; exact ⟨hbsS, hLle⟩
+  have hgmeta : g.om.size = g.bs.length ∧ g.om.cut = none ∧ g.om.lo = g.bs.length ∧
+      g.om.hi = g.bs.length := by
+    rw [hgbsL, hysS, ← hg]; simp [OsMeta.synced, hcutS]
+  have hL8 := recFrames_mod8 walCodec (tailRecs Mr h.H h.md (h.cuts ++ [h.H.length]))
+  rw [← tailStream_recs] at hL8
+  have hgz : g.bs.length - (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length = 0 ∨
+      8 ≤ g.bs.length - (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length := by
+    rw [hgbsL, hysS, hszS]; exact cutHdrZeros _ _ hsz8 hL8
+  have hLpos : 8 ≤ (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length := by
+    rw [hFr]; simp only [List.length_append, WalEnc.frame_length]; omega
+  have hgne : g.bs ≠ [] := by
+    intro h0; have h2 := hgbs.2; rw [h0, List.length_nil] at h2; omega
+  have hfitH : RecsFit walCodec (chainRecs walCodec (tailCrc Mr h.H h.md h.cuts)
+      (cutHdrDs Mr h.md (walLastHS (h.H.map WalOpG.toM)))) := by
+    apply recsFit_of_frames
+    rw [← tailRecs_cut Mr h.H h.md h.cuts hsorted' hle', ← tailStream_recs]; omega
+  -- the old tail
+  rw [h1H, h1enti, h1snapi] at hidx
+  have hbs0 : bs.length = (tailStream Mr h.H h.md h.cuts).length ∧ bs.length = m.size := by
+    have := tailStream_len_split Mr h1 hsplit (by rw [h1rest, hrest]) h1pend
+    rw [h1H, h1md, h1cuts] at this
+    refine ⟨?_, hmb.2.1.1⟩
+    rw [this, hmb.2.1.1, hmb.1, h1sz]
+  have hm0x : m.lo = m.size ∧ m.hi = m.size := ⟨hmb.2.1.2.2.2.1, hmb.2.1.2.2.2.2⟩
+  -- the name
+  have hlt : go.GoStringLt nm0 (walFileName (sq + 1) (max (uint.nat h.enti) (uint.nat h.snapi) + 1)) := by
+    rw [hnm0]; exact walFileName_lt sq ix (sq + 1) _ (by omega) hsq
+  have hbtw := walNameP_walFileName (sq + 1) (max (uint.nat h.enti) (uint.nat h.snapi) + 1)
+  have hcurbt := cutName_free hlargest hlt hbtw
+  -- the update's resources (`walCutP`): quarters of the WAL claim, halves of the tmp claim
+  have hq3 : qQuarter + ((1 : Qp).half + qQuarter) = 1 := by
+    apply Subtype.ext
+    show (1 : Rat) / 2 / 2 + ((1 : Rat) / 2 + (1 : Rat) / 2 / 2) = 1
+    grind
+  ihave Hcl' : osNames j (.except X) (DFrac.own (qQuarter + qQuarter)) hj $$ [Hcl]
+  · rw [show qQuarter + qQuarter = (1 : Qp).half from Qp.half_add_half _]; iexact Hcl
+  icases (osNames_frac j (.except X) qQuarter qQuarter hj).1 $$ Hcl' with ⟨Hcl1, Hcl2⟩
+  icases (osNames_join j (.only [pipeTmp np]) (1 : Qp).half (1 : Qp).half ht (Qp.half_add_half 1)).2
+    $$ Hn2 with ⟨Hn2a, Hn2b⟩
+  icases (walOpenW_cut w dir).1 $$ Hopen with ⟨Hopen, Hpk, Hcf⟩
+  ihave #Hinv : walInv (W := W) walCodec Mr R jr r $$ [Harea]
+  · iunfold WalFs.walAreaOk at Harea; icases Harea with ⟨#H, -, -⟩; iexact H
+  ihave Hau := walCut_osAUnc Mr R jr r dir j X hj (pipeTmp np) ht h1.γ h.H h.md h.cuts
+    (h1.o0 + h1.out.length) h1.ino m bs g ⟨[h1.ino], [(j, .except X)], [dir]⟩
+    (walFileName (sq + 1) (max (uint.nat h.enti) (uint.nat h.snapi) + 1)) nm0
+    (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length (sq + 1)
+    (max (uint.nat h.enti) (uint.nat h.snapi) + 1) (by simp)
+    (htmps _ (pipeTmp_mem np)) hcuts hcpos ⟨hnm0w, hnm0c⟩ ⟨rfl, by omega, hlt⟩ hbtw hcurbt hbs0 hm0x
+    rfl hgbs hgmeta hfitH hgz (by rw [← hg]) hgne $$ Hinv [Hdk Htk Hv Hcl1 Hn2a Hpk Hcf Hout Hm Hbs HmS HbS]
+  · iunfold walCutP
+    iframe Hdk Htk Hcl1 Hn2a Hpk Hcf Hout Hm Hbs Hsyn Hnamed
+    isplitl [Hv]
+    · iunfold tailVar; iexact Hv
+    rw [← hg]
+    iframe
+  -- the rename
+  ihave Hpd' : osPathS Rd dir (DFrac.own (qd.half + qd.half)) j $$ [Hpd]
+  · rw [Qp.half_add_half]; iexact Hpd
+  icases (osPathS_frac Rd dir qd.half qd.half j).1 $$ Hpd' with ⟨Hpd1, Hpd2⟩
+  have hgi : g.ino = i2 := by rw [← hg]
+  have hbX : (NameSet.except X).Mem (walFileName (sq + 1) (max (uint.nat h.enti) (uint.nat h.snapi) + 1)) :=
+    fun hb => by rw [hXw _ hb] at hbtw; cases hbtw
+  wp_apply (_wp_Rename dir (pipeTmp np) dir
+      (walFileName (sq + 1) (max (uint.nat h.enti) (uint.nat h.snapi) + 1)) j j g.ino
+      (.only [pipeTmp np]) (.except X) Rd (DFrac.own qd.half) (DFrac.own qd.half) ht hj
+      (1 : Qp).half (1 : Qp).half qQuarter ((1 : Qp).half + qQuarter) (1 : Qp).half _
+      (pipeTmp_nameOk np) (walFileName_nameOk _ _) (by simp [NameSet.Mem]) hbX (by simp)
+      (by rw [hgi]; exact hcur2) (fun J hJ => by rw [hcurbt] at hJ; cases hJ)
+      (Qp.half_add_half 1) hq3)
+    $$ [Hpd1 Hpd2 Hperm Hn2b Hcl2 Hau] as %rerr ⟨Hpd1, Hpd2, Hperm, %ro, %hro, HQ, Hro⟩
+  · iframe; iframe #
   sorry
 
 end proof
