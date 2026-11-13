@@ -10,6 +10,7 @@ public import LinuxFs.Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.TouchDirAll
 public import LinuxFs.Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.CreateDirAll
 public import LinuxFs.Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.Exist
 public import LinuxFs.Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.IsDirWriteable
+public import LinuxFs.Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir
 public import LinuxFs.Spec.os.MkdirAll
 public import LinuxFs.Spec.path.filepath.Clean
 public import LinuxFs.Spec.path.filepath.Dir
@@ -483,9 +484,92 @@ theorem fileutil.TouchDirAll.wp_proof
         · subst_vars; rw [hTf.1 rfl]; simp
         · rw [hRc]; simp
 
-theorem fileutil.CreateDirAll.wp_proof (hT : fileutil.TouchDirAll.spec (GF := GF)) :
+theorem fileutil.CreateDirAll.wp_proof (hT : fileutil.TouchDirAll.spec (GF := GF))
+    (wp_ReadDir : go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.spec (GF := GF) (hG := hG)) :
     fileutil.CreateDirAll.spec (GF := GF) := by
-  sorry
+  intro lg R jp d parent name qp h hd hname hlen hnone
+  wp_start as ⟨#Hlg, #Hinv, #Hsi, Hp, Hperm, Hn⟩
+  wp_auto
+  wp_apply hT lg R jp d parent name qp h hd hname hlen hnone $$ [Hp Hperm Hn] as %err ⟨Hp, Hperm, Hr⟩
+  · iframe; isplitl [] <;> try iassumption
+    isplitl [] <;> iassumption
+  icases Hr with (⟨%herr, %h', Hsub⟩ | ⟨%herr, %h', %hJ, %J, %n, %hf, Hn, HJ, #Hc⟩)
+  · cases err with
+    | nil => exact absurd rfl herr
+    | ok e =>
+      wp_auto
+      iapply HΦ
+      iframe
+      ileft
+      isplitr
+      · ipureintro; intro hc; cases hc
+      iexists h'
+      iexact Hsub
+  subst herr hd
+  wp_auto
+  obtain ⟨ε, a', b', hqd, hqq⟩ := os.qp_common qp 1
+  subst hqd
+  icases (osPathS_frac R parent ε a' jp).1 $$ Hp with ⟨Hpe, Hpa⟩
+  icases (osNames_join jp (.only [name]) ε b' h' hqq).2 $$ Hn with ⟨Hne, Hnb⟩
+  ihave Hpc := osPathS_child R _ name (DFrac.own ε) jp J h' hname hf.1 $$ Hpe Hne
+  wp_apply wp_ReadDir (child parent name) slice.nil [] [] (DFrac.own 1) R J (DFrac.own ε) 1 (.except [])
+      (DFrac.own 1) hJ rfl $$ [Hpc Hperm HJ]
+  · iframe
+    isplitl []; iassumption
+    isplitl []; iassumption
+    isplitl []; iassumption
+    isplitl []
+    · iapply ownSlice_nil
+    iapply BigSepL.bigSepL_nil.2
+    iempintro
+  iintro %r %e ⟨Hpc, Hperm, HJ, -, Hres⟩
+  icases os.osPathS_unchild R _ name jp J ε a' hname $$ [Hpc Hpa] with ⟨%h'', Hp, Hne, %-⟩
+  · iframe
+  icases osNames_agree jp (.only [name]) _ _ h'' h' $$ Hne Hnb with %he
+  subst he
+  ihave Hn := (osNames_join jp (.only [name]) ε b' h'' hqq).1 $$ [Hne Hnb]
+  · iframe
+  have hno : ∀ c J', hJ.cur !! c ≠ some (.dir J') := fun c J' hc => by rw [hf.2.2] at hc; simp at hc
+  icases Hres with (⟨%names, %rs, %hrd, Hr⟩ | ⟨%he, -⟩)
+  · obtain ⟨rfl, -, hnm, -, hout⟩ := hrd
+    have hnames : names = [] := by
+      apply List.eq_nil_iff_forall_not_mem.2
+      intro b hb
+      have := (hnm b (by simp [NameSet.Mem])).2 hb
+      rw [hf.2.2] at this; simp at this
+    subst hnames
+    obtain ⟨srt, hperm, -, hrs⟩ := hout
+    have hsrt : srt = [] := (List.Perm.nil_eq hperm).symm
+    subst hsrt
+    simp only [fileutil.optsExt, List.foldl_nil, ↓reduceIte] at hrs
+    subst hrs
+    ihave %hl := ownSlice_len _ _ _ $$ Hr
+    have hr0 : r.len = W64 0 := by simp at hl; word
+    wp_auto
+    rw [hr0]
+    wp_auto
+    iapply HΦ
+    iframe
+    iright
+    isplitr
+    · ipureintro; rfl
+    iexists h'', hJ, J, n
+    iframe
+    isplitl []
+    · ipureintro; exact hf
+    iexact Hc
+  · cases e with
+    | nil => exact absurd rfl he
+    | ok e =>
+      wp_auto
+      iapply HΦ
+      iframe
+      ileft
+      isplitr
+      · ipureintro; intro hc; cases hc
+      iexists h''
+      iapply osSubtreeH_dir jp name h'' J hJ hf.1 hno $$ [Hn HJ]
+      iframe
 
 end proof
 
