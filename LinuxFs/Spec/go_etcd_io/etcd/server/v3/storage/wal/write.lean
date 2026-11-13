@@ -1,7 +1,7 @@
 /-
 `write(w, uint64buf, data, lenField)` (`server/storage/wal/encoder.go:124-140`), at the encoder's
 writer, a `*ioutil.PageWriter` (`ioutil.ownPageWriter`) over a stream writer `wi`
-(`io.writerStream wi W B`): puts the length word in `uint64buf` (`binary.LittleEndian.PutUint64`),
+(`io.writerStreamP wi ok W B`, guarded: `ok`, prefix-closed, holds of everything written): puts the length word in `uint64buf` (`binary.LittleEndian.PutUint64`),
 writes it, then `data`, through the page writer (the metrics in between have no effect the model
 sees). On success the page writer has accepted `u64Le lenField ++ data` after its pending bytes; on
 an error (the first write's, or the second's) its buffer is dropped and the writer is broken by one
@@ -32,9 +32,10 @@ variable [go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 /-- See the file header. -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.write.spec : Prop :=
   ∀ (pw : Loc) (wi : GoInterfaceOk) (W : List w8 → IProp GF) (B : List w8 → List w8 → IProp GF)
-    (lim : Nat) (out pend : List w8) (u : GoSlice) (us : List w8) (d : GoSlice) (ds : List w8) (dq : DFrac) (lenField : w64),
-  us.length = 8 → ds.length < 2 ^ 62 → out.length + pend.length + 8 + ds.length ≤ lim →
-  ⊢ io.writerStream wi lim W B -∗
+    (ok : List w8 → Prop) (out pend : List w8) (u : GoSlice) (us : List w8) (d : GoSlice) (ds : List w8) (dq : DFrac) (lenField : w64),
+  us.length = 8 → ds.length < 2 ^ 62 → (∀ xs ys, xs <+: ys → ok ys → ok xs) →
+  ok (out ++ pend ++ u64Le lenField ++ ds) →
+  ⊢ io.writerStreamP wi ok W B -∗
     {{ encEnv ∗ ioutil.ownPageWriter pw wi pend ∗ W out ∗ u ↦* us ∗ d ↦*{dq} ds }}
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.write))
         (Val #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.ty)

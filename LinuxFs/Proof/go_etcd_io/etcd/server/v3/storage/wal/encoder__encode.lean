@@ -1,9 +1,12 @@
 /-
-The proof of `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/encoder__encode.lean`.
+The proof of `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/encoder__encode.lean`: over a guarded
+stream (`encoder.encode.specG`, `encoder__encodeG.lean`), the length-bounded `spec` its instance
+(`io.writerStream_P`).
 -/
 module
 
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.encoder__encode
+public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.encoder__encodeG
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.prepareDataWithPadding
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.write
 public import LinuxFs.Spec.go_etcd_io.etcd.pkg.v3.crc.digest__Write
@@ -31,7 +34,18 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 
-theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proof
+/-- `encodeFrameSize`'s length word as `wp_auto` leaves it. -/
+theorem efs_fst_eq (n : Nat) : (encodeFrameSize n).1 = (if ¬ framePad n = 0 then
+    BitVec.ofNat 64 n ||| (128#64 ||| BitVec.ofNat 64 (framePad n)) <<< 56 else BitVec.ofNat 64 n) := rfl
+
+/-- The frame `write` is given is the record's frame. -/
+theorem enc_ok_frame {ok : List w8 → Prop} (out pend : List w8) (x : WalRec)
+    (h : ok (out ++ pend ++ frame (walRecEnc x))) :
+    ok (out ++ pend ++ u64Le (encodeFrameSize (recEnc (recOf x)).length).1 ++
+      (recEnc (recOf x) ++ List.replicate (framePad (recEnc (recOf x)).length) (0#8))) := by
+  simpa only [WalEnc.frame, walRecEnc, List.append_assoc] using h
+
+theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proofG
     (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := hG))
     (wp_Unlock : sync.Mutex.Unlock.spec (GF := GF) (hG := hG))
     (wp_CrcWrite : go_etcd_io.etcd.pkg.v3.crc.digest.Write.spec (GF := GF) (hG := hG))
@@ -41,8 +55,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proof
     (wp_MarshalAppend : proto.MarshalAppendCachedRecord.spec (GF := GF) (hG := hG))
     (wp_pad : go_etcd_io.etcd.server.v3.storage.wal.prepareDataWithPadding.spec (GF := GF) (hG := hG))
     (wp_write : go_etcd_io.etcd.server.v3.storage.wal.write.spec (GF := GF) (hG := hG)) :
-    go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.spec (GF := GF) (hG := hG) := by
-  intro e wi W B lim out pend c rp t d hsz hlim
+    go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.specG (GF := GF) (hG := hG) := by
+  intro e wi W B ok out pend c rp t d hsz hpc hok
   iintro #Hw
   wp_start as ⟨#Henv, He, Hout, Hr⟩
   iunfold encRecIn at Hr
@@ -121,19 +135,22 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proof
     wp_apply (wp_pad dat (recEnc (recOf ⟨t, hash.crc32.crc32c c d, d⟩)) (by omega))
       $$ [Hdat Hcap] as %dat2 ⟨Hdat2, Hcap2, -⟩
     · iframe
+    rw [← efs_fst_eq]
+    generalize hL : (encodeFrameSize (recEnc (recOf ⟨t, hash.crc32.crc32c c d, d⟩)).length).1 = L
     try wp_auto
-    wp_apply (wp_write pw wi W B lim out pend u us dat2
+    wp_apply (wp_write pw wi W B ok out pend u us dat2
       (recEnc (recOf ⟨t, hash.crc32.crc32c c d, d⟩) ++ List.replicate
-        (framePad (recEnc (recOf ⟨t, hash.crc32.crc32c c d, d⟩)).length) (0#8)) (DFrac.own 1) _ Hus
+        (framePad (recEnc (recOf ⟨t, hash.crc32.crc32c c d, d⟩)).length) (0#8)) (DFrac.own 1)
+      L Hus
       (by have := framePad_lt (recEnc (recOf ⟨t, hash.crc32.crc32c c d, d⟩)).length
           simp only [List.length_append, List.length_replicate]; omega)
-      (by simp only [WalEnc.frame, walRecEnc, WalEnc.encodeFrameSize, List.length_append,
-            u64Le_length, List.length_replicate] at hlim ⊢; omega))
+      hpc (by rw [← hL]; exact enc_ok_frame out pend _ hok))
       $$ [Hw] [Hpw Hout Hus Hdat2] as %err ⟨%pend', Hpw, Hus, Hdat2, Hres⟩
     · iexact Hw
     · iframe
       iunfold encEnv
       iframe #
+    subst hL
     try wp_auto
     wp_apply wp_Unlock $$ [Hown]
     · iframe
@@ -176,7 +193,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proof
     have h0 : sint.Z (W64 0) = 0 := rfl
     have hsl : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) ≤ sint.Z b.cap := by
       rw [h0, hbc, hbl]; unfold encBufBytes; omega
-    simp only [hsl, and_self, ite_true]
+    simp only [hsl, _root_.and_self, ite_true]
     ihave Hbc : ownSliceCap w8 b (DFrac.own 1) $$ []
     · iapply ownSliceCap_empty b hbc.symm (by rw [hbl]; unfold encBufBytes; omega)
     icases ownSlice_slice_with_cap (W64 0) (W64 0) b bs ⟨by rw [h0]; exact Int.le_refl 0,
@@ -197,19 +214,22 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proof
     wp_apply (wp_pad b' (recEnc (recOf ⟨t, hash.crc32.crc32c c d, d⟩)) (by omega))
       $$ [Hb' Hc'] as %dat2 ⟨Hdat2, Hcap2, Hback⟩
     · iframe
+    rw [← efs_fst_eq]
+    generalize hL : (encodeFrameSize (recEnc (recOf ⟨t, hash.crc32.crc32c c d, d⟩)).length).1 = L
     try wp_auto
-    wp_apply (wp_write pw wi W B lim out pend u us dat2
+    wp_apply (wp_write pw wi W B ok out pend u us dat2
       (recEnc (recOf ⟨t, hash.crc32.crc32c c d, d⟩) ++ List.replicate
-        (framePad (recEnc (recOf ⟨t, hash.crc32.crc32c c d, d⟩)).length) (0#8)) (DFrac.own 1) _ Hus
+        (framePad (recEnc (recOf ⟨t, hash.crc32.crc32c c d, d⟩)).length) (0#8)) (DFrac.own 1)
+      L Hus
       (by have := framePad_lt (recEnc (recOf ⟨t, hash.crc32.crc32c c d, d⟩)).length
           simp only [List.length_append, List.length_replicate]; omega)
-      (by simp only [WalEnc.frame, walRecEnc, WalEnc.encodeFrameSize, List.length_append,
-            u64Le_length, List.length_replicate] at hlim ⊢; omega))
+      hpc (by rw [← hL]; exact enc_ok_frame out pend _ hok))
       $$ [Hw] [Hpw Hout Hus Hdat2] as %err ⟨%pend', Hpw, Hus, Hdat2, Hres⟩
     · iexact Hw
     · iframe
       iunfold encEnv
       iframe #
+    subst hL
     try wp_auto
     wp_apply wp_Unlock $$ [Hown]
     · iframe
@@ -260,6 +280,28 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proof
       ipureintro
       simp only [WalEnc.frame, walRecEnc, WalEnc.encodeFrameSize, List.append_assoc] at Hr ⊢
       exact Hr
+
+/-- `encode` over a length-bounded stream: `specG`'s instance (`io.writerStream_P`). -/
+theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proof
+    (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := hG))
+    (wp_Unlock : sync.Mutex.Unlock.spec (GF := GF) (hG := hG))
+    (wp_CrcWrite : go_etcd_io.etcd.pkg.v3.crc.digest.Write.spec (GF := GF) (hG := hG))
+    (wp_Sum32 : go_etcd_io.etcd.pkg.v3.crc.digest.Sum32.spec (GF := GF) (hG := hG))
+    (wp_Size : proto.SizePb.spec (GF := GF) (hG := hG))
+    (wp_Marshal : proto.MarshalPb.spec (GF := GF) (hG := hG))
+    (wp_MarshalAppend : proto.MarshalAppendCachedRecord.spec (GF := GF) (hG := hG))
+    (wp_pad : go_etcd_io.etcd.server.v3.storage.wal.prepareDataWithPadding.spec (GF := GF) (hG := hG))
+    (wp_write : go_etcd_io.etcd.server.v3.storage.wal.write.spec (GF := GF) (hG := hG)) :
+    go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.spec (GF := GF) (hG := hG) := by
+  intro e wi W B lim out pend c rp t d hsz hlim
+  iintro #Hw
+  iapply (go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proofG wp_Lock wp_Unlock
+    wp_CrcWrite wp_Sum32 wp_Size wp_Marshal wp_MarshalAppend wp_pad wp_write
+    e wi W B (fun ys => ys.length ≤ lim) out pend c rp t d hsz
+    (fun xs ys h hy => Nat.le_trans (List.IsPrefix.length_le h) hy)
+    (by simp only [List.length_append]; exact hlim))
+  iapply (io.writerStream_P wi lim W B).1
+  iexact Hw
 
 end proof
 
