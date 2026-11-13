@@ -498,6 +498,52 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
         ipureintro; rfl
     have hn2 : err2 = GoInterface.nil := Classical.byContradiction hn2
     subst hn2
+    have hlen2 : ys2.length = rb + pad := by
+      rcases Hok2 with ⟨h, _⟩ | ⟨_, e, he', _, h1, h2⟩
+      · exact h
+      · exfalso
+        by_cases hc : e = eof ∧ ys2 ≠ []
+        · exact hueofn (h1 hc).symm
+        · exact he' (h2 hc).symm
+    have hdat : ys2 ++ (List.replicate (rb + pad) (zero_val w8)).drop ys2.length = ys2 := by
+      rw [hlen2]; simp
+    rw [hdat]
+    have hpre2' : ys ++ ys2 <+: F.bs.drop off := by
+      have := take_append_prefix (ys := ys ++ ys2) (by simpa using Hpre2) (by simp; intro h; rw [h] at h8; simp at h8)
+      exact this.2
+    have hnsd : ¬ (F.bs.drop off).length < 8 + rb + pad := by
+      have := hpre2'.length_le; simp at this ⊢; omega
+    have hdata : ((F.bs.drop off).drop 8).take (rb + pad) = ys2 := by
+      obtain ⟨t, ht⟩ := hpre2'; rw [← ht, ← h8, ← hlen2]; simp
+    have hstep0 : decRecStep C fs.isEmpty F.bs off c = decRecData C fs.isEmpty off c rb pad ys2 := by
+      rw [hframe, if_neg htl, if_neg hnsd, hdata]
+    have hys2l : ys2.length < 2 ^ 62 := by
+      have := hpre2'.length_le; simp at this; omega
+    wp_auto
+    ihave %Hdl := ownSlice_len _ _ _ $$ Hdat
+    ihave %Hdwf := ownSlice_wf _ _ _ $$ Hdat
+    have hz0 : sint.Z (W64 0) = 0 := rfl
+    have hrbz : sint.Z (W64 rb) = rb := by word
+    have hrbn : sint.nat (W64 rb) = rb := by word
+    have hdl : sint.Z dsl.len = rb + pad := by
+      have h1 : ys2.length = (sint.Z dsl.len).toNat := Hdl.1
+      omega
+    have hbd : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) ≤ sint.Z (W64 rb) ∧ sint.Z (W64 rb) ≤ sint.Z dsl.cap := by
+      rw [hz0, hrbz]; omega
+    rw [ite_eq_left hbd]
+    ihave Hds := (ownSlice_slice (W64 0) (W64 rb) dsl (DFrac.own 1) ys2
+      ⟨by rw [hz0]; decide, by rw [hz0, hrbz]; omega, by rw [hrbz]; omega⟩).1 $$ Hdat
+    icases Hds with ⟨Hd0, Hdm, Hd2⟩
+    have hsub2 : subslice (sint.nat (W64 0)) (sint.nat (W64 rb)) ys2 = ys2.take rb := by
+      have h0n : sint.nat (W64 0) = 0 := rfl
+      rw [hrbn, h0n]; simp [subslice]
+    rw [hsub2]
+    wp_auto
+    wp_apply HUnm C _ _ (DFrac.own 1) rp $$ [Hdm Hr] as %err3 ⟨Hdm, Hres⟩
+    · iframe
+    ihave Hdat := (ownSlice_slice (W64 0) (W64 rb) dsl (DFrac.own 1) ys2
+      ⟨by rw [hz0]; decide, by rw [hz0, hrbz]; omega, by rw [hrbz]; omega⟩).2 $$ [Hd0 Hdm Hd2]
+    · rw [hsub2]; iframe
     sorry
 
 end proof
