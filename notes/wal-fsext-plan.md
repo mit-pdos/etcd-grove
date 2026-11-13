@@ -1875,6 +1875,16 @@ The W3/W5 log's gap 4 (`ZeroToEnd` on the tail; `cut`'s truncate of the old tail
   `os.File.Read` spec (`wp_osPRead` already allows `xs.length = min n (size - off)`, `k = 0` at the end;
   `Off.lean`'s `Read.wp_spec` requires the read inside the file): `0 < k` bytes and `nil`, or `0, io.EOF` at
   `off = size`, or a `*PathError`.
-- *Statement change needed* (`openWALFiles`, not yet made): `filepath.Join(dir, name)` needs `CleanAbs dir`
-  (from `osPathS_cleanAbs`) and `|dir| + |name| + 2 < 2^62`: the spec gains `d.length < 2^61` and, per name,
+- *Statement change* (`openWALFiles`): `filepath.Join(dir, name)` needs `CleanAbs dir` (from
+  `osPathS_cleanAbs`) and `|dir| + |name| + 2 < 2^62`: the spec takes `d.length < 2^61` and, per name,
   `b.length < 2^61` (`openAtIndex` has both: the pipeline's `dir.length < 2^61`, the names `walNameStr`s).
+- *`openWALFiles`, started* (proof still `sorry`): `walOpenedRc` (an opened file with the closer it
+  collected), `walOpenedRc_file`/`_rcFile`, `walOpenedRcs` (by position over `is.take j`) with `_snoc` and
+  `_close` (to `closeAll`'s `[∗list] rc ∈ rcs, wal.rcFile rc`), proved. Plan for the rest: three `make2`s,
+  `ownSlice_slice` on `names[k:]` (as `selectWALFiles`), the range loop with the invariant `walOpenedRcs ... j
+  frs lfs rcs` and the three slices; per name `Join` (`join_child`), then `TryLockFile` with `OpenTriple`
+  from `os.OpenFile.wp_fileS` (flag 2, `X := Unit`, `C _ i' := i' = i`) or `wp_fileS` (flag 0), `NewFileReader`
+  (persist `rl ↦`), three appends; on an error `walOpenedRcs_close` → `closeAll`, `ErrorfErrs` of the error.
+  The proof takes `[os.Assumptions] [os.file.FieldAssumptions] [fileutil.Assumptions]`.
+- *Not done*: `openWALFiles`' loop, `openAtIndex`, `OpenForRead`, `Open`, `ReadAll` (blocked on the bridge
+  above for the decoder's `decFile`s).
