@@ -2316,6 +2316,9 @@ its last page).
      the tail before `ZeroToEnd` (then `TailZeros` must admit the junk past `z0` until the sync, e.g. a
      registered `z0 = |old|` lowered at the sync's commit), or the invariant gets a tie for an unregistered
      tail. `cut`'s truncate has the tie (`tailVar`).
+  `cut`'s hypothesis `os.File.Truncate.specWalTail` (`wal-cut7`, `WAL__cutTail.lean`) is `specAu` at
+  `K := walTailKey dir γ ∗ ghostVar γ ½ (H, md, cuts, o0 + |out|, i, none)` (exactly `walTailW`'s tie) with
+  the supply below, the post's halves rebuilding `walTailW … (o0 + |out|)`.
   With 1 decided, the supplies are: open `walInv` in the update (`walInv_open` at `osAuMask`), take the
   tail by `walInvBody_tail` (`TailAcc.lean`), agree the caller's halves with `segResF`'s
   (`osMeta_agree'`, `osBytes_agree`), lend the whole; at the commit put `rsTok` in `F` (`segResF`'s `rz` case,
