@@ -85,31 +85,36 @@ def rsCz (tr : Bool) (s tg cz : Nat) : Nat := if tr then max cz (rsHi tr s tg) e
 def rsPost (tr : Bool) (m : OsMeta) (tg sz' : Nat) : OsMeta :=
   { m.announce (min m.size tg) (rsHi tr m.size tg) tg with size := sz', cz := rsCz tr m.size tg m.cz }
 
-/-- The candidates known past the size after a truncate to `tg` lands, of a file whose bytes from
-`tg` were `xs` and which its first step announced as change `n` (each byte cut off with zero,
-stamped `n`, as its last candidate): those bytes', now past the size (a crash may still keep them:
-the crash rule's candidates are the state's, which the landing does not change); the others as
-`tc0`. -/
-def rsTail (tg n : Nat) (xs : List ByteG) (tc0 : GMap Nat Cands) : GMap Nat Cands :=
-  ⟨fun b => if tg ≤ b ∧ b < tg + xs.length then some ((xs.getD (b - tg) (0, [])).2 ++ [(0, n)])
-      else tc0 !! b,
+/-- The candidates known past the size after a resize from `m`'s size to `tg` (`ftruncate`: `tr`)
+lands with the size `sz'`, announced as change `n` (each byte announced with zero, stamped `n`, as
+its last candidate), the bytes from `min size tg` on having been `xs`: each announced byte past the
+new size has its candidates, now past the size (a crash may still keep them: the crash rule's
+candidates are the state's, which the landing does not change): below the old size, `xs`'s; past
+it, those `m` knew (`OsMeta.pc`); the other bytes as the announcement left them. -/
+def rsTail (tr : Bool) (m : OsMeta) (tg sz' n : Nat) (xs : List ByteG) : GMap Nat Cands :=
+  ⟨fun b => if min m.size tg ≤ b ∧ b < rsHi tr m.size tg ∧ sz' ≤ b then
+      (if b < m.size then some ((xs.getD (b - min m.size tg) (0, [])).2 ++ [(0, n)])
+       else (m.pc b).map (· ++ [(0, n)]))
+    else (m.announce (min m.size tg) (rsHi tr m.size tg) tg).tc !! b,
    by
-    obtain ⟨l, hl⟩ := tc0.finite
-    refine ⟨l ++ List.range (tg + xs.length), fun b h => ?_⟩
-    by_cases h1 : tg ≤ b ∧ b < tg + xs.length
-    · exact List.mem_append_right _ (List.mem_range.2 h1.2)
+    obtain ⟨l, hl⟩ := (m.announce (min m.size tg) (rsHi tr m.size tg) tg).tc.finite
+    refine ⟨l ++ List.range (rsHi tr m.size tg), fun b h => ?_⟩
+    by_cases h1 : min m.size tg ≤ b ∧ b < rsHi tr m.size tg ∧ sz' ≤ b
+    · exact List.mem_append_right _ (List.mem_range.2 h1.2.1)
     · simp only [h1, if_false] at h; exact List.mem_append_left _ (hl b h)⟩
 
-theorem rsTail_lookup (tg n : Nat) (xs : List ByteG) (tc0 : GMap Nat Cands) (b : Nat) :
-    rsTail tg n xs tc0 !! b = if tg ≤ b ∧ b < tg + xs.length then
-      some ((xs.getD (b - tg) (0, [])).2 ++ [(0, n)]) else tc0 !! b := rfl
+theorem rsTail_lookup (tr : Bool) (m : OsMeta) (tg sz' n : Nat) (xs : List ByteG) (b : Nat) :
+    rsTail tr m tg sz' n xs !! b = if min m.size tg ≤ b ∧ b < rsHi tr m.size tg ∧ sz' ≤ b then
+      (if b < m.size then some ((xs.getD (b - min m.size tg) (0, [])).2 ++ [(0, n)])
+       else (m.pc b).map (· ++ [(0, n)]))
+    else (m.announce (min m.size tg) (rsHi tr m.size tg) tg).tc !! b := rfl
 
 /-- `rsPost`, and, if `keep`, the candidates of the bytes a truncate cut off (`rsTail`; the bytes
 `xs` from the target, announced as change `n`). Sound only for a file with no sync cut
 (`OsMeta.cut = none`), whose byte resources' candidates are the state's. -/
 def rsPostK (keep : Bool) (tr : Bool) (m : OsMeta) (tg sz' n : Nat) (xs : List ByteG) : OsMeta :=
   { rsPost tr m tg sz' with
-    tc := cond keep (rsTail tg n xs (rsPost tr m tg sz').tc) (rsPost tr m tg sz').tc }
+    tc := cond keep (rsTail tr m tg sz' n xs) (rsPost tr m tg sz').tc }
 
 theorem rsPostK_false (tr : Bool) (m : OsMeta) (tg sz' n : Nat) (xs : List ByteG) :
     rsPostK false tr m tg sz' n xs = rsPost tr m tg sz' := rfl
@@ -134,14 +139,22 @@ theorem rsPostK_false (tr : Bool) (m : OsMeta) (tg sz' n : Nat) (xs : List ByteG
 @[simp] theorem rsPostK_cz (keep tr : Bool) (m : OsMeta) (tg sz' n : Nat) (xs : List ByteG) :
     (rsPostK keep tr m tg sz' n xs).cz = (rsPost tr m tg sz').cz := rfl
 
-/-- What `rsPostK true` knows of a byte cut off. -/
+/-- What `rsPostK true` knows of a byte a truncate cut off. -/
 theorem rsPostK_true_tc {tr : Bool} {m : OsMeta} {tg sz' n : Nat} {xs : List ByteG} {k : Nat}
-    (hk : k < xs.length) :
-    (rsPostK true tr m tg sz' n xs).tc !! (tg + k) = some (xs[k].2 ++ [(0, n)]) := by
-  show rsTail tg n xs _ !! (tg + k) = _
-  rw [rsTail_lookup, if_pos ⟨by omega, by omega⟩, Nat.add_sub_cancel_left,
-    List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hk]
+    (hsz : sz' ≤ min m.size tg) (hxl : xs.length = m.size - tg) (hk : k < xs.length) :
+    (rsPostK true tr m tg sz' n xs).tc !! (min m.size tg + k) = some (xs[k].2 ++ [(0, n)]) := by
+  have := le_rsHi tr m.size tg
+  show rsTail tr m tg sz' n xs !! (min m.size tg + k) = _
+  rw [rsTail_lookup, if_pos ⟨by omega, by omega, by omega⟩, if_pos (by omega),
+    Nat.add_sub_cancel_left, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hk]
   rfl
+
+/-- What `rsPostK true` knows of a byte announced past the old size. -/
+theorem rsPostK_true_tc_past {tr : Bool} {m : OsMeta} {tg sz' n : Nat} {xs : List ByteG} {b : Nat}
+    (hsz : sz' ≤ b) (hb : m.size ≤ b) (hb2 : b < rsHi tr m.size tg) :
+    (rsPostK true tr m tg sz' n xs).tc !! b = (m.pc b).map (· ++ [(0, n)]) := by
+  show rsTail tr m tg sz' n xs !! b = _
+  rw [rsTail_lookup, if_pos ⟨by omega, hb2, hsz⟩, if_neg (by omega)]
 
 /-- What a mapped cell at byte `i` of the resized range shows once the size is `sz'`. -/
 def rsCell [GooseExts] (sz' i : Nat) : val := toCellVal (if i < sz' then some (0 : w8) else none)
@@ -393,6 +406,8 @@ structure RsFacts (st : OsState) (Γb : GMap (Ino × Nat) ByteG) (Γm : GMap Ino
     ∀ z, m.zf = some z → z ≤ b → c0 = [(0, 0)]
   hmo : MetaOk st p (m.announce (min m.size tg) (rsHi tr m.size tg) tg) f
   hml : Γm !! p = some (m.announce (min m.size tg) (rsHi tr m.size tg) tg)
+  /-- An announced byte past the size whose candidates `m` knew has them, then zero stamped `n`. -/
+  hcandP : ∀ b c, m.size ≤ b → b < rsHi tr m.size tg → m.pc b = some c → f.cand b = c ++ [(0, n)]
 
 /-- The facts of the second step of a resize, from its token. -/
 theorem rsFacts_of {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) {t : Nat} {tr : Bool}
@@ -414,7 +429,13 @@ theorem rsFacts_of {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf
     fun b h1 h2 => by
       obtain ⟨c0, h, hz, -⟩ := hcand b (by simp only [inRange, Bool.and_eq_true, decide_eq_true_eq]; omega)
       exact ⟨c0, h, hz⟩,
-    hmo, Hml⟩⟩
+    hmo, Hml,
+    fun b c1 h1 h2 hp => by
+      obtain ⟨c0, h, hz, ht⟩ := hcand b (by simp only [inRange, Bool.and_eq_true, decide_eq_true_eq]; omega)
+      rw [h]; congr 1
+      rcases OsMeta.pc_some hp with h3 | ⟨z, h3, h4, rfl⟩
+      · exact ht c1 h1 h3
+      · exact hz z h3 h4⟩⟩
 
 theorem osWorld_unfold {st : OsState} {Γb Γm Γf Γt} {h : GMap Loc (NonAtomic val)} :
     osWorld (L := L) st Γb Γm Γf Γt h ⊣⊢
@@ -447,7 +468,7 @@ theorem resize_done_worldK (keep : Bool) {st : OsState} {Γb Γm Γf Γt} {h h' 
       (∃ Γb' Γm' Γf' Γt', osWorld (L := L) ((st.doneInflight t).setFile p (f.land c e sz'))
         Γb' Γm' Γf' Γt' h') ∗ rsDoneK (L := L) keep tr p tg sz' m xs n := by
   iintro HAb HAm HAf HAt Htok Hcells Hσ Ht
-  obtain ⟨hti, hct, hcino, hckind, hclo, hchi, hctg, hcval, hf, hmsz, hxl, hcand, hmo, hml⟩ := hF
+  obtain ⟨hti, hct, hcino, hckind, hclo, hchi, hctg, hcval, hf, hmsz, hxl, hcand, hmo, hml, hcandP⟩ := hF
   subst hcino
   have hR := le_rsHi tr m.size tg
   unfold tokRes
@@ -522,33 +543,39 @@ theorem resize_done_worldK (keep : Bool) {st : OsState} {Γb Γm Γf Γt} {h h' 
         fun b hb hbz => ?_⟩
       rotate_right 2
       · rw [show f2.cand b = f.cand b from rfl]
-        have hcase : (tg ≤ b ∧ b < tg + xs.length ∧ keep = true ∧
-              cs = (xs.getD (b - tg) (0, [])).2 ++ [(0, n)]) ∨
+        have hcase : (keep = true ∧ min m.size tg ≤ b ∧ b < rsHi tr m.size tg ∧ sz' ≤ b ∧
+              (if b < m.size then some ((xs.getD (b - min m.size tg) (0, [])).2 ++ [(0, n)])
+                else (m.pc b).map (· ++ [(0, n)])) = some cs) ∨
             (m.announce (min m.size tg) (rsHi tr m.size tg) tg).tc !! b = some cs := by
           cases keep with
           | false => exact .inr hc
           | true =>
-            change rsTail tg n xs _ !! b = some cs at hc
+            change rsTail tr m tg sz' n xs !! b = some cs at hc
             rw [rsTail_lookup] at hc
             split at hc
-            · rename_i hin; cases hc; exact .inl ⟨hin.1, hin.2, rfl, rfl⟩
+            · rename_i hin; exact .inl ⟨rfl, hin.1, hin.2.1, hin.2.2, hc⟩
             · exact .inr hc
-        rcases hcase with ⟨h1, h2, hk1, rfl⟩ | hc'
-        · -- a byte cut off: its candidates, from its byte resource (no sync cut)
-          have hk : b - tg < (rsAnn n xs).length := by rw [rsAnn_length]; omega
-          have hmin : min m.size tg = tg := by
-            have := hxl; rw [rsAnn_length] at hk; omega
-          obtain ⟨f1, hf1, -, -, -, hrel⟩ := hcoh.bytes _ _ _ (Hbl _ hk)
-          rw [hf] at hf1; cases hf1
-          have hcut : cutOf Γm c.ino = none := by
-            simp [cutOf, hml, OsMeta.announce_cut, hkeep hk1]
-          rw [hcut] at hrel
-          simp only [CandRel] at hrel
-          rw [hmin, show tg + (b - tg) = b by omega] at hrel
-          rw [hrel]
-          have hk' : b - tg < xs.length := by simpa using hk
-          simp only [rsAnn, List.getElem_map, List.getD_eq_getElem?_getD,
-            List.getElem?_eq_getElem hk', Option.getD_some]
+        rcases hcase with ⟨hk1, h1, h2, h3, hcs⟩ | hc'
+        · split at hcs
+          · -- a byte cut off: its candidates, from its byte resource (no sync cut)
+            rename_i hbs
+            cases hcs
+            have hk : b - min m.size tg < (rsAnn n xs).length := by rw [rsAnn_length]; omega
+            obtain ⟨f1, hf1, -, -, -, hrel⟩ := hcoh.bytes _ _ _ (Hbl _ hk)
+            rw [hf] at hf1; cases hf1
+            have hcut : cutOf Γm c.ino = none := by
+              simp [cutOf, hml, OsMeta.announce_cut, hkeep hk1]
+            rw [hcut] at hrel
+            simp only [CandRel] at hrel
+            rw [show min m.size tg + (b - min m.size tg) = b by omega] at hrel
+            rw [hrel]
+            have hk' : b - min m.size tg < xs.length := by simpa using hk
+            simp only [rsAnn, List.getElem_map, List.getD_eq_getElem?_getD,
+              List.getElem?_eq_getElem hk', Option.getD_some]
+          · -- a byte past the old size: the candidates `m` knew, then the zero
+            rename_i hbs
+            obtain ⟨c1, hc1, rfl⟩ := Option.map_eq_some_iff.1 hcs
+            exact hcandP b c1 (by omega) h2 hc1
         · have hr := hc'
           rw [announce_tc] at hr
           split at hr
@@ -822,7 +849,7 @@ theorem resize_undone_world {st : OsState} {Γb Γm Γf Γt} {h h' : GMap Loc (N
       (∃ Γb' Γm' Γf' Γt', osWorld (L := L) (st.doneInflight t) Γb' Γm' Γf' Γt' h') ∗
         rsUndone (L := L) tr p tg m xs n := by
   iintro HAb HAm HAf HAt Htok Hcells Hσ Ht
-  obtain ⟨hti, hct, hcino, hckind, hclo, hchi, hctg, hcval, hf, hmsz, hxl, hcand, hmo, hml⟩ := hF
+  obtain ⟨hti, hct, hcino, hckind, hclo, hchi, hctg, hcval, hf, hmsz, hxl, hcand, hmo, hml, hcandP⟩ := hF
   subst hcino
   unfold tokRes
   icases (BigSepM.bigSepM_delete (Φ := fun (_t : Nat) (ti : TokInfo) =>
