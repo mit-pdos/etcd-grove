@@ -1,3 +1,56 @@
+# auth-schema-fix: handoff (2026-11-13, after F1, S1 option A and the first finish)
+
+## State (read this first)
+
+Branch `auth-schema-fix` at the commit holding this note. Done and committed: F3, F2, F4, F1
+(398c6dc09f, 10da96a817), S1 option A (d9f4a2dd66, with 81's accepted deviation: isReqAuth(Bound)
+unchanged, pre-start holders carry `□ (auth.tpReady M -∗ …)`), nonissues index, trust base +1 axiom
+`apply.irrDecode_utf8` with baseline and 17 collections updated (8b5b18ab8b), notes (d2519c5729:
+auth-validspec-false fixed, decisions entry, STATUS entry). Freeze package complete:
+`/shared/tmp/auth-safe/freeze-fix.md` (F1-F4, S1 sections). Not merged with lean, not landed. The
+first finish's full build/gates results were not reported (the subagent was lost): redo them.
+
+81's axiom re-review: READY WITH CHANGES, no blockers. Findings:
+`/root/.claude-csail/projects/-shared-etcd-grove/c04a65b0-a272-4ae4-94c7-91aa4a20ea30/subagents/workflows/wf_bbd42cc3-0cf/journal.jsonl`;
+reviewers' Go tests `/shared/tmp/coord-81/authfix-rereview/`. Decisions in questions.md
+("Axiom re-review (2026-11-13)"). 81 says: do them directly, no subagents.
+
+## Next, in order
+
+1. Merge lean (222c3fcff7 or later) early. Expect conflicts in examples/etcd/auth/Defs.lean (k8s 7f-4
+   T-k / step 6 deleted runsNoRequireLeader from the etcdstart/auth Defs bundles) and STATUS.md (one
+   copy per entry, ten in all; the oldest to status-history, which is APPEND-ONLY: `wc -l` at least
+   lean's).
+2. Unknown fields (trusted tightening): `ownUser`/`ownRole` on the PUT side (UnsafePutUser /
+   UnsafePutRole clauses of authBatchTxLk(R), InvAuth.lean) require the message's unknown-fields slice
+   empty (`uf ↦*□ []` or nil: look at how ownUser/ownRole expose `unknownFields`); the store meets it
+   (messages built fresh, or from its own Unmarshal); UnmarshalUser/UnmarshalRole's specs give it for
+   roleEncode/userEncode bytes. Freeze package: old → new and a Go test (adapt the reviewers'
+   TestRereviewUnknownFields in /shared/tmp/coord-81/authfix-rereview/: an empty uf round-trips;
+   protobuf-go leaves unknownFields nil decoding these bytes), at the server pin (GOWORK=off for the
+   test only).
+3. m1: `0 < name.length` in both put premises (UnsafePutUser, UnsafePutRole), with the store's
+   "stored names are non-empty" fact (find or add it in the auth invariant / model).
+4. m2: record the per-batch pend bound as a D22 plan item (notes; D22's plan section in decisions.md).
+5. m3: authSchemaSrv's docstring (AuthSrv.lean ~60-80): the Wb charges, the lend as an observation,
+   F1-F4 (it still lists "today's five refutations" in the old terms).
+6. ValidSpec lens M1-M4 (details in the journal): newAuthStore_boot's readiness cell allocated at a
+   fresh name (not reusing γt); token_simple_new's mode parameter as the reviewer suggests; the
+   "strictly stronger" wording in notes/auth-validspec-false.md; stale ValidSpec comments
+   (`grep -rn ValidSpec`), including the authkv link input (etc/link-*.txt or examples/etcd/auth).
+7. Full build (flock /shared/tmp/etcd-grove-build.lock, systemd-run --scope -q -p MemoryMax=64G,
+   etc/timed-build.py --packages=/shared/tmp/manifest-ddc.json), tcb --check (collections only for
+   exactly the intended changes), gates (etc/gates.sh's list; GOWORK unset), gen-interface
+   (regenerate, list diffs). Then REPORT to 81 before etc/land.sh (the trusted tightening needs 81's
+   look). Land command once 81 says go: LAKE_PACKAGES=/shared/tmp/manifest-ddc.json
+   PERENNIAL_CHECKOUT=/shared/perennial-ddc0f0acc etc/land.sh, GOWORK unset.
+
+Answer already given to 81's question (S6): the branch does not restate the auth-off
+`auth.NewAuthStore.spec` or its post (`git diff lean -- Spec/go_etcd_io/etcd/server/v3/auth/NewAuthStore.lean`
+empty); `AuthNames` gained a field `rdy` (not mentioned by that axiom).
+
+---- older handoff below ----
+
 # auth-schema-fix: handoff (2026-11-12, updated after F4)
 
 Stage of etcd-grove-81: make the auth results non-vacuous (S1: remove `auth.ValidSpec`; S0's F1-F4
