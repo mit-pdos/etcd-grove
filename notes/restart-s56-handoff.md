@@ -48,7 +48,31 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
   and the risks R1-R5 (§7).
 - Decisions go in the worktree's `questions.md` (untracked).
 
-## Phase B progress (2026-11-13, the Phase B agent): next agent starts here
+## CP2 (2026-11-13, the CP2 agent): next agent starts here
+
+- **CP2 texts in tracked files, commit `fbc609c3d1`** (on `0032b2e8f4`): `wal.restartOk` (sealed,
+  defined) with `walReadFacts` (I1-I4), laws `wal.restartOk_facts`/`_start`, `walReadFacts_F3`,
+  `durAgrees_prefix` (`E/WalApi.lean`); `bootOkR`'s `"Hwal" ∷ wal.restartOk cfg id cid bw.w' σ` and
+  `%Hraft` over `rnRestartCfg`; the restart contract's antecedent `clusterVerLogOk L` (81's decision 1:
+  derived, no world assumption) and its docstring "The cluster version"; `srvRestartRows`
+  (`E/InvRestart.lean`); HS1 (`Spec/.../auth/NewAuthStore.lean`, axiom restated) with `authStoreKit_off`'s
+  `Or.inl`; `boot_storageR` (`E/BootStore.lean`, P2); new `E/BuiltRestart.lean` (`restartKV`, `srvBuiltR`
+  generated from `isServerBuiltC .off` less `Hskeep` by `/shared/tmp/restart-s56/cp2/gen_builtR.py`,
+  `srvBuiltR_C`, P6's `restart_cs_bound`/`restart_idx`, `restart_clusterVerLogOk`); `NewServer.specR`
+  (`SE/NewServer.lean`, not linked, not proved).
+- Targeted build clean (`/shared/tmp/restart-s56/cp2/targeted.log`); full build:
+  `/shared/tmp/restart-s56/cp2/full.log`; tcb: see the CP2 report.
+- **Freeze package: `/shared/tmp/restart-s56/freeze-package.md`** (T1-T6, H10, world assumptions, exported
+  statements). STOP: 81 runs the reviews (spec-reviewer on specR/srvBuiltR/srvRestartRows; axiom skill on
+  HS1 and bootOkR's slot).
+- After approval (B2): `NewServer.wp_proofB` over `SrvBoot`; NodeStart's `Hbc` from I3 (`wal.restartOk_facts`)
+  instead of `σ.b ≤ |A₀| ≤ σ.commit` (interface §4; not done in CP2); P5's phase-2 RestConf invariant for
+  the contract's clause (G); P3's rows (`/shared/tmp/restart-s56/p3-rows.md`), the lease-granting `srvRest`
+  branch the largest unknown; apply `restart_clusterVerLogOk` at the contract call.
+- Pitfall: `srvBuiltR` is generated; if `isServerBuiltC` changes, rerun the generator (its header and
+  law are in `/shared/tmp/restart-s56/cp2/{hdr,law}.lean`) or edit by hand.
+
+## Phase B progress (2026-11-13, the Phase B agent)
 
 - **Step 1 (forms) done, commit `800a0789bc`**: `lateWBR` deleted (`bootOkR`'s `Hnew` at `fun _ =>
   mvcc.api.mvccW d.gx`); `srvDiskImageAt γ ρ id dd S σ i A D m M` holds the old body verbatim,
