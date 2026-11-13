@@ -191,7 +191,20 @@ returns the same `ρ`, then the same stop.
    tell it apart from a synced one, so W1 does not cover it. Either the proof tracks the stale
    remnant (its first frame is the middle of an old record, accepted only by collision, so W1
    needs a "durable but never synced as this file's stream" clause, which `OsState` cannot
-   express), or the fork opens with `O_TRUNC`. See Q3.
+   express), or the fork opens with `O_TRUNC`. See Q3. **Resolved (2026-11-13):** the fork opens
+   `N.tmp` with `O_TRUNC` (item 7; `notes/decisions.md`, "WAL over fsExt: `N.tmp` opened with
+   `O_TRUNC`"): no stale bytes, no stale clause.
+
+7. **A torn Type byte** (2026-11-13, `nonissues/etcd-wal-record-type-outside-crc.md`). The CRC
+   covers `Data` only; a crash keeping a frame but its Type byte (frame byte 9) gives a record of the
+   type under it, CRC valid. Over zeros: type 0, a `ReadAll` error (allowed). Over a stale byte (only
+   a reused `N.tmp`'s remnant in the fork; `TestWALTypeTearStaleTmp` builds one): an entry read as a
+   hard state or snapshot record, **wrong content with no collision**. W1 as stated excludes it; the
+   narrowest justified premise is "an accepted frame carries the intended `Data`" plus `O_TRUNC` in
+   `alloc` (or "frame bytes 8-15 come back whole"). Byte-mix enumeration over zero old bytes: no other
+   wrong acceptance (3.5 M images). **Decided (2026-11-13):** `O_TRUNC` in `alloc` (fork commit,
+   `notes/wal-fsext-fork/0004-*.patch`); the 8-byte-word premise is rejected (it contradicts
+   `fsExt`'s per-byte model).
 
 Past the synced offset each byte's candidates are `[(0,0)]` or `[(0,0),(x,s)]`, `x` the intended
 byte (each offset written once per epoch). This needs no write after a failed write (§3).
@@ -215,6 +228,14 @@ file under the area and each frame `walDecode` accepts in the image at offset `o
 The second disjunct with the per-byte invariant gives "the accepted frame is the intended frame".
 Like P1 it needs a satisfiability lemma (`W1Sat`: a crash keeping everything as synced satisfies
 it) and a docstring with its evidence (the W3 decision, the CP1 runs).
+
+**W1's target (2026-11-13, with the fork's `O_TRUNC` in `alloc`):** plain *no CRC-32C collision on the
+`Data` of a frame whose bytes under it were zero*. Every byte under a fresh frame is zero (a truncated,
+preallocated `N.tmp`, or F-Z's synced zeroing), so a torn non-`Data` byte is the intended byte or 0, and
+the byte-mix argument (`nonissues/etcd-wal-record-type-outside-crc.md`, "Why zero old bytes are safe")
+turns any acceptance with wrong content into a collision on `Data`. The form above (every byte of an
+accepted frame written since the last sync) excludes more than this justifies (a torn Type over 0); its
+Lean restatement in `W1.lean` to the narrower target is a later proof unit.
 
 ## 3. Changes to the statements
 
@@ -384,6 +405,10 @@ reviews it.
   approved "no CRC32-C collision on torn data" (W3); the user reviews the text.
 - **Q3 stale `N.tmp`: Go test first.** If it fails: a local fork fix (`O_TRUNC` in `alloc`) and an
   `issues/` file **[user: the fork push]**. Otherwise: a nonissue and W1's stale clause.
+  **Revised 2026-11-13:** the test passed (a nonissue), but the torn Type byte over the remnant
+  (§2.4 item 7) makes the restart accept wrong content with no collision, so the fork fix is taken
+  anyway: `O_TRUNC` in `alloc` **[user: the fork push]**, no stale clause (`notes/decisions.md`, "WAL
+  over fsExt: `N.tmp` opened with `O_TRUNC`").
 - **Q4 Create after the rename: (a)**, the cleanup AU.
 - **Q5 panics: Go tests, then local fork fixes [user: the push]**, issues/nonissues recorded first.
 - **Q6 honest error posts: adopted** (intermediate specs; every client stops on these errors).
@@ -444,7 +469,7 @@ it lands with the first proofs.
   across files, `walDecodeFiles_streamFiles`), `WalEncSegsImg` (`walDecodeFiles_walImg`: intact earlier
   files and an image of the last give `walImg`), `WalEncSuffix` (`walDecodeFiles_suffix`: the read from a
   later file, CRC 0 start). Open: `(segsOf H cuts).flatten = H`; the fold of `ReadAll` over decoded
-  records ≡ `walReadCut` (next unit). **Decision (stale `N.tmp`)**: no fork change (the code is correct,
+  records ≡ `walReadCut` (next unit). **Decision (stale `N.tmp`), superseded 2026-11-13 by the fork's `O_TRUNC` (below, "Fork fix: `O_TRUNC`")**: no fork change (the code is correct,
   `nonissues/etcd-wal-cut-reuses-stale-tmp.md`); the stale clause is proved in W3 from concrete wire
   facts of `walpb.Record`/`HardState`'s marshalling model, which W3 registers anyway.
 - **ReadAll's fold** (`wal-fold`, `WalEncFold.lean`, no `sorry`): `readAllFold` (the loop, S/wal.go:505-676,
@@ -463,6 +488,13 @@ it lands with the first proofs.
   whose entries apply to the read with commit ≤ last; the received-snapshot `Save` (the one raising the commit
   to the snapshot just saved) is not covered yet. The tester's generator (opEntries/opResend/opRecvSnap) only
   saves entries contiguous with its log, so it never produces the deviating order (CP1 saw none).
+- **Fork fix: `O_TRUNC`** (`wal-otrunc`, 2026-11-13): after the torn-Type finding
+  (`nonissues/etcd-wal-record-type-outside-crc.md`, §2.4 item 7), a third local fork commit on
+  `goose-lean-walfs`: `alloc` opens `N.tmp` with `O_TRUNC`, with `TestFilePipelineTruncatesStaleTmp` and
+  `TestWALTypeTearStaleTmp` rewritten as a regression test (both fail before, pass after). Patches
+  `notes/wal-fsext-fork/0003` (the byte-mix tests, which the regression test builds on) and `0004` (the
+  fix). **Not pushed [user].** The part's WAL is retranslated from the fork checkout (`--src`); the pin
+  stays `0b50f0426`. Supersedes the "no fork change" decision above; W1's target narrows (§2.5).
 
 ## W1 implementation log (branch `wal-inv`, 2026-11-13)
 
