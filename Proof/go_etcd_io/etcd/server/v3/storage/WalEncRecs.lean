@@ -156,10 +156,10 @@ theorem walDecode_streamOf {C : WalCodec} (hC : C.Ok) (M : WalMarshal) (md : Lis
     (hfit : RecsFit C (recsOf C M md H)) {z : Nat} (hz : z = 0 ∨ 8 ≤ z) :
     (walDecode C (streamOf C M md H ++ List.replicate z (0#8))).recs = recsOf C M md H ∧
     (walDecode C (streamOf C M md H ++ List.replicate z (0#8))).stop = .eof := by
-  have h := walDecodeFrom_frames hC (bs := streamOf C M md H ++ List.replicate z (0#8))
+  have h := walDecodeFrom_frames hC (last := true) (bs := streamOf C M md H ++ List.replicate z (0#8))
     (recsOf C M md H) (off := 0) (c := 0#32) (rest := List.replicate z (0#8)) hfit
     (chainOk_recsOf hC M md H) (by rw [List.drop_zero]; rfl)
-  have hz' := walDecodeFrom_zeros C (bs := streamOf C M md H ++ List.replicate z (0#8))
+  have hz' := walDecodeFrom_zeros C (last := true) (bs := streamOf C M md H ++ List.replicate z (0#8))
     (off := (recFrames C (recsOf C M md H)).length) (c := chainEnd C 0#32 (recsOf C M md H)) hz
     (by unfold streamOf; exact List.drop_left' rfl)
   unfold walDecode

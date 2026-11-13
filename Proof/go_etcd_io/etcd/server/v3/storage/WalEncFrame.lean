@@ -102,11 +102,10 @@ private theorem fs_bv_pad (x p : BitVec 64) (hx : x.toNat < 2 ^ 56) (hp : p.toNa
     (x ||| ((0x80#64 ||| p) <<< 56)).slt 0#64 = true ∧
     ((x ||| ((0x80#64 ||| p) <<< 56)) >>> 56) &&& 7#64 = p := by
   refine ⟨fs_mask x _ hx (fun i hi => by simp [BitVec.getLsbD_shiftLeft, hi]), ?_, ?_⟩
-  · have h7 : (0x80#64).getLsbD 7 = true := by decide
-    have hm : ((0x80#64 ||| p) <<< 56).msb = true := by
+  · have hm : ((0x80#64 ||| p) <<< 56).msb = true := by
       rw [BitVec.msb_eq_getLsbD_last]
       simp only [BitVec.getLsbD_shiftLeft, BitVec.getLsbD_or]
-      simp [h7]
+      simp
     rw [BitVec.slt_zero_eq_msb, BitVec.msb_or, hm, Bool.or_true]
   · apply BitVec.eq_of_getLsbD_eq
     intro j hj

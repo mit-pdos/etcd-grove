@@ -149,25 +149,25 @@ structure DecOut where
 
 /-- **The reader's loop from `lastValidOff = off` and CRC `c`** (`for err = decoder.Decode(rec);
 err == nil; ...`, wal.go:523). -/
-def walDecodeFrom (C : WalCodec) (bs : List w8) (off : Nat) (c : w32) : DecOut :=
-  match _h : decStep C true bs off c with
+def walDecodeFrom (C : WalCodec) (last : Bool) (bs : List w8) (off : Nat) (c : w32) : DecOut :=
+  match _h : decStep C last bs off c with
   | .stop s => ⟨[], s, off, c⟩
   | .accept r len c' =>
-    let o := walDecodeFrom C bs (off + len) c'
+    let o := walDecodeFrom C last bs (off + len) c'
     { o with recs := r :: o.recs }
 termination_by bs.length - off
 decreasing_by have := decStep_rec_bound _h; omega
 
 /-- **`walDecode bs`: the reader on one file `bs`** (`NewDecoder`: offset 0, CRC
 `crc.New(0, crcTable)`, decoder.go:60-74). -/
-def walDecode (C : WalCodec) (bs : List w8) : DecOut := walDecodeFrom C bs 0 0#32
+def walDecode (C : WalCodec) (bs : List w8) : DecOut := walDecodeFrom C true bs 0 0#32
 
-theorem walDecodeFrom_unfold (C : WalCodec) (bs : List w8) (off : Nat) (c : w32) :
-    walDecodeFrom C bs off c =
-      match decStep C true bs off c with
+theorem walDecodeFrom_unfold (C : WalCodec) (last : Bool) (bs : List w8) (off : Nat) (c : w32) :
+    walDecodeFrom C last bs off c =
+      match decStep C last bs off c with
       | .stop s => ⟨[], s, off, c⟩
       | .accept r len c' =>
-        let o := walDecodeFrom C bs (off + len) c'
+        let o := walDecodeFrom C last bs (off + len) c'
         { o with recs := r :: o.recs } := by
   rw [walDecodeFrom]; split <;> simp_all
 
@@ -260,18 +260,18 @@ theorem decStep_frame {C : WalCodec} (hC : C.Ok) (last : Bool) {bs : List w8} {o
   · rw [ite_eq_right ht] at hcrc ⊢; rw [ite_eq_right ht, ite_eq_right (by intro ⟨h1, h2⟩; rcases hcrc with h | h <;> contradiction)]
 
 /-- **The encoder's frames decode to its records**, then the reader goes on after them. -/
-theorem walDecodeFrom_frames {C : WalCodec} (hC : C.Ok) {bs : List w8} (rs : List WalRec) :
+theorem walDecodeFrom_frames {C : WalCodec} (hC : C.Ok) {last : Bool} {bs : List w8} (rs : List WalRec) :
     ∀ {off : Nat} {c : w32} {rest : List w8}, RecsFit C rs → ChainOk C c rs →
     bs.drop off = recFrames C rs ++ rest →
-    walDecodeFrom C bs off c =
-      let o := walDecodeFrom C bs (off + (recFrames C rs).length) (chainEnd C c rs)
+    walDecodeFrom C last bs off c =
+      let o := walDecodeFrom C last bs (off + (recFrames C rs).length) (chainEnd C c rs)
       { o with recs := rs ++ o.recs } := by
   induction rs with
   | nil => intro off c rest _ _ _; simp [recFrames_nil, chainEnd]
   | cons r rs ih =>
     intro off c rest hfit hch hbs
     rw [recFrames_cons, List.append_assoc] at hbs
-    have hstep := decStep_frame hC true (hfit r (by simp)) hbs hch.1
+    have hstep := decStep_frame hC last (hfit r (by simp)) hbs hch.1
     rw [walDecodeFrom_unfold, hstep]
     have hbs' : bs.drop (off + (frame (C.encRec r)).length) = recFrames C rs ++ rest := by
       rw [← List.drop_drop, hbs]
@@ -295,10 +295,10 @@ theorem decStep_zeros (C : WalCodec) (last : Bool) {bs : List w8} {off z : Nat} 
 /-- **Zeros, or nothing, read as the end** (decoder.go:95: a zero length word; the end of the
 file). Fewer than 8 zeros would be `shortLen`: the WAL's frames and preallocation keep 8-byte
 alignment. -/
-theorem walDecodeFrom_zeros (C : WalCodec) {bs : List w8} {off z : Nat} {c : w32}
+theorem walDecodeFrom_zeros (C : WalCodec) {last : Bool} {bs : List w8} {off z : Nat} {c : w32}
     (hz : z = 0 ∨ 8 ≤ z) (hbs : bs.drop off = List.replicate z (0#8)) :
-    walDecodeFrom C bs off c = ⟨[], .eof, off, c⟩ := by
-  rw [walDecodeFrom_unfold, decStep_zeros C true hz hbs]
+    walDecodeFrom C last bs off c = ⟨[], .eof, off, c⟩ := by
+  rw [walDecodeFrom_unfold, decStep_zeros C last hz hbs]
 
 /-- An accepted step reads only its frame: bytes appended after the file change nothing. -/
 theorem decStep_append {C : WalCodec} {last : Bool} {img : List w8} {off : Nat} {c : w32}
@@ -368,18 +368,18 @@ theorem decStep_append_eof {C : WalCodec} {last : Bool} {img : List w8} {off z :
         · split at h <;> cases h
         · split at h <;> cases h
 
-theorem walDecodeFrom_append_zeros (C : WalCodec) {img : List w8} {z : Nat} (hz : z = 0 ∨ 8 ≤ z) :
+theorem walDecodeFrom_append_zeros (C : WalCodec) {last : Bool} {img : List w8} {z : Nat} (hz : z = 0 ∨ 8 ≤ z) :
     ∀ n off c, img.length - off = n → off ≤ img.length →
-    (walDecodeFrom C img off c).stop = .eof →
-    (walDecodeFrom C (img ++ List.replicate z (0#8)) off c).recs = (walDecodeFrom C img off c).recs ∧
-    (walDecodeFrom C (img ++ List.replicate z (0#8)) off c).stop = .eof := by
+    (walDecodeFrom C last img off c).stop = .eof →
+    (walDecodeFrom C last (img ++ List.replicate z (0#8)) off c).recs = (walDecodeFrom C last img off c).recs ∧
+    (walDecodeFrom C last (img ++ List.replicate z (0#8)) off c).stop = .eof := by
   intro n
   induction n using Nat.strongRecOn with
   | ind n ih =>
     intro off c hn hoff heof
     rw [walDecodeFrom_unfold] at heof
     rw [walDecodeFrom_unfold (bs := img), walDecodeFrom_unfold (bs := img ++ _)]
-    cases hs : decStep C true img off c with
+    cases hs : decStep C last img off c with
     | stop s =>
       rw [hs] at heof
       simp only at heof
@@ -411,7 +411,7 @@ theorem walDecode_prefix {C : WalCodec} (hC : C.Ok) {rs : List WalRec} {img : Li
     (hfit : RecsFit C rs) (hchain : ChainOk C 0#32 rs) (hnc : NoCollision C rs img) :
     (walDecode C img).recs <+: rs := by
   have key : ∀ ys xs, xs ++ ys = rs →
-      (walDecodeFrom C img (recFrames C xs).length (chainEnd C 0#32 xs)).recs <+: ys := by
+      (walDecodeFrom C true img (recFrames C xs).length (chainEnd C 0#32 xs)).recs <+: ys := by
     intro ys
     induction ys with
     | nil =>
@@ -458,7 +458,7 @@ theorem walDecode_of_prefix {C : WalCodec} (hC : C.Ok) {xs : List WalRec} {img :
     (hfit : RecsFit C xs) (hchain : ChainOk C 0#32 xs) (hpre : recFrames C xs <+: img) :
     xs <+: (walDecode C img).recs := by
   obtain ⟨rest, hrest⟩ := hpre
-  have h := walDecodeFrom_frames hC (bs := img) xs (off := 0) (c := 0#32) (rest := rest) hfit hchain
+  have h := walDecodeFrom_frames hC (last := true) (bs := img) xs (off := 0) (c := 0#32) (rest := rest) hfit hchain
     (by rw [List.drop_zero, hrest])
   unfold walDecode
   rw [h]
