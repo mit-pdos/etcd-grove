@@ -748,16 +748,87 @@ theorem readAllFold_from_complete {C : WalCodec} {M : WalMarshal} {U : WalUnmars
         hmd, hh, he]
       rfl
 
-/-- **From the first file: `ReadAll` succeeds only with the read at the fixed base `s`.** -/
+/-- **From the first file: `ReadAll` succeeds only with the read at the fixed base `s`**, and the
+metadata `md`. -/
 theorem readAllFold_zero {C : WalCodec} {M : WalMarshal} {U : WalUnmarshal} (hU : U.Ok M)
     (md : List w8) (Ss : List WalHist) (s : w64 × w64) (write : Bool)
     (stop : WalStop) (r : List w8 × HardStateM × List EntryM)
     (hs : some s = walNewestPair (walValidSnaps Ss.flatten 0))
     (hok : readAllFold U s write (recsOfSegs C M md Ss) stop = .ok r) :
     ∃ σ, walReadAt Ss.flatten 0 s = some σ ∧ r = (md, σ.hs, σ.ents) := by
-  sorry
+  obtain ⟨hc, hle⟩ := validSnaps_bounds hs
+  simp only [List.drop_zero] at hle
+  obtain ⟨st, hfold, hm, rfl⟩ := readAllFold_ok hok
+  rw [recsOfSegs_map] at hfold
+  cases Ss with
+  | nil =>
+    simp only [segsDs, List.flatten_nil, List.foldlM_nil, pure, Except.pure, Except.ok.injEq] at hfold
+    subst hfold; simp [raInit] at hm
+  | cons S Ss =>
+    simp only [segsDs, segHdrDs, ite_true, List.flatten_cons, List.nil_append] at hfold
+    rw [List.foldlM_append, except_bind_ok] at hfold
+    obtain ⟨st2, h2, hfold⟩ := hfold
+    rw [List.foldlM_append, except_bind_ok] at h2
+    obtain ⟨st1, h1, h2⟩ := h2
+    rw [raStep_hdr U M hU] at h1
+    have hst1 : st1.md = some md ∧ st1.hs = hsZero ∧ st1.ents = [] := by
+      split at h1
+      · split at h1
+        · simp only [Except.ok.injEq] at h1; subst h1; exact ⟨rfl, rfl, rfl⟩
+        · cases h1
+      · simp only [Except.ok.injEq] at h1; subst h1; exact ⟨rfl, rfl, rfl⟩
+    rw [raStep_flatMap U M hU] at h2
+    have hle1 : ∀ m, WalOpG.snap m ∈ S → uint.nat m.Index' ≤ uint.nat (walLastHS (S :: Ss).flatten).Commit' →
+        uint.nat m.Index' ≤ uint.nat s.1 :=
+      fun m hm => hle m (List.mem_append_left _ hm)
+    have hle2 : ∀ m, WalOpG.snap m ∈ Ss.flatten →
+        uint.nat m.Index' ≤ uint.nat (walLastHS (S :: Ss).flatten).Commit' →
+        uint.nat m.Index' ≤ uint.nat s.1 :=
+      fun m hm => hle m (List.mem_append_right _ hm)
+    obtain ⟨σ1, hf1, hr2, hmd2, -⟩ := goOp_sim_ok s _ hc S st1 st2
+      ⟨hsZero, none, entryID.mk s.2 s.1, []⟩ ⟨hst1.2.1, hst1.2.2, rfl⟩ hle1 h2
+    have hσ1 : σ1.hs = walLastHS S := by
+      have := walFoldChkFrom_lastHS (P := []) rfl hf1
+      simpa using this
+    obtain ⟨σ', hf, he, hcase, -⟩ := raStep_segs_ok U M hU s md _ hc Ss S st2 st σ1 hr2.2.1 hr2.2.2 hσ1
+      (Or.inl (hr2.1.trans hσ1)) (Or.inr (hmd2.trans hst1.1)) hle2 hfold
+    refine ⟨σ', ?_, ?_⟩
+    · rw [List.flatten_cons] at hf1 hf
+      unfold walReadAt
+      rw [List.take_zero, List.drop_zero, List.flatten_cons, List.filter_append, walFoldChkFrom_append]
+      rw [show walLastHS [] = hsZero from rfl, hf1, Option.bind_some]
+      exact hf
+    · rcases hcase with ⟨-, rfl, rfl⟩ | ⟨hh, hmd⟩
+      · rw [hmd2, hst1.1, hr2.1, hr2.2.1]; rfl
+      · rw [hmd, hh, he]; rfl
 
-/-- **… which is `walRead`'s when that succeeds** (`walCommitLe`: W4b's C2 premise). -/
+/-- Two folds over operations without a snapshot record, from states of the same hard state,
+entries and base index, end in the same hard state and entries. -/
+theorem walFoldChkFrom_nosnap : ∀ (L : WalHist) (τ τ' σ σ' : StorContents),
+    (∀ m, WalOpG.snap m ∉ L) → τ.hs = τ'.hs → τ.ents = τ'.ents → τ.b = τ'.b →
+    walFoldChkFrom τ L = some σ → walFoldChkFrom τ' L = some σ' → σ.hs = σ'.hs ∧ σ.ents = σ'.ents := by
+  intro L
+  induction L with
+  | nil =>
+    intro τ τ' σ σ' _ h1 h2 _ h h'
+    simp only [walFoldChkFrom, Option.some.injEq] at h h'
+    subst h h'; exact ⟨h1, h2⟩
+  | cons o L ih =>
+    intro τ τ' σ σ' hns h1 h2 h3 h h'
+    cases o with
+    | snap m => exact absurd List.mem_cons_self (hns m)
+    | save hs es =>
+      have hns' : ∀ m, WalOpG.snap m ∉ L := fun m hm => hns m (List.mem_cons_of_mem _ hm)
+      simp only [walFoldChkFrom, Option.bind_eq_bind, Option.bind_eq_some_iff] at h h'
+      obtain ⟨ents, hf, h⟩ := h
+      obtain ⟨ents', hf', h'⟩ := h'
+      rw [h2, h3, hf'] at hf
+      simp only [Option.some.injEq] at hf
+      exact ih { τ with hs := phsNext τ.hs hs, ents := ents } { τ' with hs := phsNext τ'.hs hs, ents := ents' }
+        σ σ' hns' (by simp only; rw [h1]) (by simp only; exact hf.symm) h3 h h'
+
+/-- **… which is `walRead`'s when that succeeds** (`walCommitLe`: W4b's C2 premise), and the
+metadata `md`. -/
 theorem readAllFold_zero_eq {C : WalCodec} {M : WalMarshal} {U : WalUnmarshal} (hU : U.Ok M)
     (md : List w8) (Ss : List WalHist) (s : w64 × w64) (write : Bool)
     (stop : WalStop) (r : List w8 × HardStateM × List EntryM) (σ : StorContents)
@@ -765,7 +836,51 @@ theorem readAllFold_zero_eq {C : WalCodec} {M : WalMarshal} {U : WalUnmarshal} (
     (hcl : walCommitLe Ss.flatten) (h : walRead Ss.flatten = some σ)
     (hok : readAllFold U s write (recsOfSegs C M md Ss) stop = .ok r) :
     r = (md, σ.hs, σ.ents) := by
-  sorry
+  obtain ⟨σ', h', rfl⟩ := readAllFold_zero hU md Ss s write stop r hs hok
+  obtain ⟨hc, hle⟩ := validSnaps_bounds hs
+  simp only [List.drop_zero] at hle
+  unfold walReadAt at h'
+  rw [List.take_zero, List.drop_zero, show walLastHS [] = hsZero from rfl] at h'
+  unfold walRead at h
+  unfold walCommitLe at hcl
+  generalize hL : Ss.flatten.filter (walKeep (uint.nat (walLastHS Ss.flatten).Commit')) = L at h h' hcl
+  have hleL : ∀ m, WalOpG.snap m ∈ L → uint.nat m.Index' ≤ uint.nat s.1 := by
+    intro m hm
+    rw [← hL] at hm
+    obtain ⟨hm1, hm2⟩ := List.mem_filter.1 hm
+    exact hle m hm1 (by simpa [walKeep] using hm2)
+  by_cases hex : ∃ m, WalOpG.snap m ∈ L ∧ uint.nat m.Index' = uint.nat s.1
+  · have := walFoldChk_sim (uint.nat s.1) L walFresh ⟨hsZero, none, entryID.mk s.2 s.1, []⟩ σ σ'
+      hleL hex rfl rfl (by simp [walFresh, StorContents.b])
+      (Or.inl (by simp [walFresh])) hcl h h'
+    subst this; rfl
+  · -- the start is `Create`'s `(0, 0)`, and no record is kept
+    have hs0 : uint.nat s.1 = 0 := by
+      have hmem := walNewestPair_mem hs.symm
+      unfold walValidSnaps at hmem
+      rcases List.mem_append.1 hmem with h0 | h0
+      · simp only [ite_true, List.mem_cons, List.not_mem_nil, or_false] at h0
+        subst h0; simp
+      · obtain ⟨o, ho, hoe⟩ := List.mem_filterMap.1 h0
+        cases o with
+        | save _ _ => cases hoe
+        | snap m =>
+          simp only at hoe
+          split at hoe
+          · next hmc =>
+            simp only [Option.some.injEq] at hoe
+            subst hoe
+            exact absurd ⟨m, by rw [← hL]; exact List.mem_filter.2 ⟨ho, by simpa [walKeep] using hmc⟩,
+              rfl⟩ hex
+          · cases hoe
+    have hns : ∀ m, WalOpG.snap m ∉ L := by
+      intro m hm
+      have := hleL m hm
+      exact hex ⟨m, hm, by omega⟩
+    obtain ⟨e1, e2⟩ := walFoldChkFrom_nosnap L walFresh ⟨hsZero, none, entryID.mk s.2 s.1, []⟩ σ σ'
+      hns rfl rfl
+      (by simp [walFresh, StorContents.b, hs0]) h h'
+    rw [e1, e2]
 
 /-- **The deviation: `ReadAll` from the first file succeeds where `walRead` fails.** `Save` of the
 hard state `{Term 1, Commit 5}` with the entry 6, then `SaveSnapshot({Index 5, Term 1})`: the start
