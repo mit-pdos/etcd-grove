@@ -29,16 +29,18 @@ theorem OsMeta.announce_maps (m : OsMeta) (lo hi tg : Nat) : (m.announce lo hi t
 theorem OsMeta.announce_size (m : OsMeta) (lo hi tg : Nat) : (m.announce lo hi tg).size = m.size := by
   simp [OsMeta.announce, OsMeta.touch]; split <;> (try split) <;> rfl
 
-/-- A truncate that shrank the file to `tg` landed: its `OsMeta`, of size `tg`, the same mappings. -/
+/-- A truncate that shrank the file to `tg` landed: its `OsMeta`, of size `tg`, the same mappings,
+the page cache known zero to the end of the page holding the old end. -/
 theorem ftDone_shrunk (p : Ino) (m : OsMeta) (tg : Nat) :
-    os.ftDone (GF := GF) p m tg ⊢ ∃ m1 : OsMeta, ⌜m1.size = tg ∧ m1.maps = m.maps⌝ ∗
+    os.ftDone (GF := GF) p m tg ⊢ ∃ m1 : OsMeta,
+      ⌜m1.size = tg ∧ m1.maps = m.maps ∧ pageEnd (max m.size tg) ≤ m1.cz⌝ ∗
       osMeta p (DFrac.own 1) m1 := by
   unfold os.ftDone
   iintro ⟨%zs, %hzs, Hm, -, -⟩
   iexists rsPost true m tg tg
   iframe Hm
   ipureintro
-  refine ⟨rfl, ?_⟩
+  refine ⟨rfl, ?_, os.rsPost_cz_true m tg tg⟩
   simp [rsPost, OsMeta.announce, OsMeta.touch]; split <;> (try split) <;> rfl
 
 theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.wp_proof
@@ -113,7 +115,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.wp_proof
   have hsN : (W64 (m.size : Int)).toNat = m.size := by
     simp only [BitVec.toNat_ofInt]; omega
   wp_apply wp_Preallocate f fd name dqf dq d m1 (W64 m.size) (W64 m.size) true hfd hwr
-    (by rw [hm1.2, hmaps]) (by omega) (by omega) (by omega) (by omega) (fun _ => by omega)
+    (by rw [hm1.2.1, hmaps]) (by omega) (by omega) (by omega) (by omega) (fun _ => by omega)
     $$ [Hf Ho Hfd Hm] as %err ⟨Hf, Ho, Hfd, Hr⟩
   · iframe; isplitl [] <;> iassumption
   simp only [preallocPost, ↓reduceIte]
@@ -136,7 +138,9 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.wp_proof
     have hw' : w = m.size := by have := hw.2.2 rfl; omega
     subst hw'
     iframe
-    ipureintro; exact ⟨hm'.1, hm'.2.trans hm1.2⟩
+    have hcz1 := hm1.2.2
+    rw [Nat.max_eq_left hole] at hcz1
+    ipureintro; exact ⟨hm'.1, hm'.2.1.trans hm1.2.1, Nat.le_trans hcz1 hm'.2.2⟩
   · cases err with
     | nil => exact absurd rfl he
     | ok ie =>
@@ -151,7 +155,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.wp_proof
     iframe
     ipureintro
     simp only [List.length_map]
-    refine ⟨by omega, hm'.2.trans hm1.2, by omega⟩
+    refine ⟨by omega, hm'.2.1.trans hm1.2.1, by omega⟩
 
 end proof
 

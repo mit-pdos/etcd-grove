@@ -9,7 +9,7 @@ attempt's first update lends the other halves at `FtruncateStart` and commits wi
 (`rsTok`, kept by the update's owner while the change is in flight); its commit is the second, which
 lends the token at `FtruncateFinish` and commits with what the step left (`rsOutT`, whole), giving
 the caller its halves (`os.truncOutH`). The post is `File__Truncate.lean`'s at half (`os.ftDoneH`,
-`os.ftUndoneH`). Proof: `Proof/os/File__TruncateAu.lean` (**`sorry`**: the loop of
+`os.ftUndoneH`). Proof: `Proof/os/File__TruncateAu.lean` (proved: the loop of
 `File__Truncate.lean`'s proof over `wp_osFtruncateStart_au`/`Finish_au`). Lean-first.
 -/
 module

@@ -2010,6 +2010,42 @@ The W3/W5 log's gap 4 (`ZeroToEnd` on the tail; `cut`'s truncate of the old tail
      `preallocExtend` → `Fallocate.wp_growAu` (the `ENOTSUP` fallback `preallocExtendTrunc` →
      `specAu` again); post: halves of the `osZerosA` run.
 
+**The known-zero tail (branch `wal-kz`, 2026-11-13)**: the fact `eof-page.md`'s P2 left to the ghost
+state (a sync after `ZeroToEnd` gives zeros known from the size, `zf := some size`, not from the end of
+its last page).
+- *Design* (decided; untrusted): an `OsMeta` field **`cz : Nat := 0`**, "the page cache is zero on
+  `[size, cz)`" (`MetaOk.cz`), not a separate ghost resource: the page cache past the size is the
+  state's, which only `osInv`'s coherence sees, and a resource tied to it would have needed the same
+  upkeep in every step lemma plus a new piece in the resize and sync specs. Every step keeps the clause
+  with `cz` unchanged (a write lands only below its new size, a growth's new size is at least the old,
+  a sync keeps the page cache in the size's last page and zeroes past it, a crash or creation starts at
+  0), so the default is right everywhere `{ m with ... }` is built. `rsPost` raises it for an
+  `ftruncate`: `cz := rsCz tr m.size tg m.cz` (`max m.cz (rsHi true s tg)`, the end of what it
+  announced; `fallocate` keeps it); `resize_done_world` takes `htr : tr = true → rsHi tr s tg ≤ e` (a
+  truncate lands all it announced: its three callers pass it). `OsMeta.synced`'s `zf` is `some m.syncZ`
+  (`syncZ` = the size if `pageEnd size ≤ cz`, else `pageEnd size`; `size_le_syncZ`, `syncZ_le`):
+  **`OsMeta.synced_zf_size : pageEnd m.size ≤ m.cz → m.synced.zf = some m.size`**. `bsynced` unchanged.
+- *The lemma for `ZeroToEnd`* (`LinuxFs/Proof/os/Base.lean`): `os.rsPost_cz_true` (`pageEnd (max s tg) ≤
+  (rsPost true m tg sz').cz`), `os.le_rsPost_cz` (a resize never lowers it), **`os.zeroToEnd_cz`**
+  (`o ≤ m.size → pageEnd m.size ≤ (rsPost tr (rsPost true m o o) m.size sz').cz`, either growth: the
+  `fallocate`, or `preallocExtendTrunc`'s `ftruncate` fallback) and **`os.zeroToEnd_synced_zf`** (with
+  the sync: `zf = some m.size`). The split specs' posts name these metas exactly (`os.ftDoneH`'s
+  `rsPost true m tg tg`, `rsOutF`'s `rsPost false …`), so the split `ZeroToEnd`'s post gets them for
+  free; `ReadAll`'s `TailZeros` then holds from `o` on: `[o, size)` the bytes made `durB 0` by the
+  sync, past the size `zf = some size`.
+- *Whole-resource specs*: `fileutil.ZeroToEnd.spec`'s success post gains `pageEnd m.size ≤ m'.cz`
+  (proved; `ftDone_shrunk` gives it); `preGrown` gains `m.cz ≤ m'.cz` (`Defs.lean`'s lemmas,
+  `preGrown_trans` takes `hcz`). bboltfs: `synced_eq` takes `m1.cz = m2.cz`, `WReach.cz` (a write loop
+  keeps it). `wp_osPWriteFinishK` needed `maxHeartbeats 400000` (one more `OsMeta` field).
+- *`os.File.Truncate.specAu` proved* (`Proof/os/File__TruncateAu.lean`, no `sorry`): the loop at half
+  (`ftStateH`), the supply instantiated per attempt (`os.TruncFrom`'s left case, or `rsPost true m tg tg`
+  with no bytes after a landing), `os.ftDoneH_of`, `os.truncOutH_again`.
+- *Not done*: the split `fileutil.ZeroToEnd`/`Preallocate`/`preallocExtend`/`preallocExtendTrunc` (item 3
+  above; its post can state `pageEnd S ≤ m'.cz` by `zeroToEnd_cz`); the WAL-level supplies
+  (`os.truncAu`/`fallocAu` from `walInv`, item 1).
+- *Integration*: `wal/checkWALNames` built again at `wal-int` (`zap.Logger.Warn` now takes `zapLoggerOk l`
+  itself: `iexact Hlg`).
+
 **Third session (branch `wal-read3`, 2026-11-13).**
 - *Gaps 1 and 2 closed* as the coordinator decided: `WalsNamed` and `walParked` in `walInvBody`, the parking
   flag in the lock token (W1 log, sixth session, for the design and the other units' obligations).
