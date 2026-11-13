@@ -1620,16 +1620,17 @@ theorem EtcdServer.run.wp_proofG
     rw [← hST]
     (try wp_auto)
     wp_apply hRStop Er γn (srvRAddr s) A $$ [$Hpkg $Hrn $HST $Hrunh $Hwta $Hsc $Happly]
-      as ⟨Hvac, %S, %σ, HrS, Hwc, %Hsh, #Hwcert, -⟩
+      as ⟨Hvac, %S, %σ, HrS, Hwc, %Hsh, #Hwcert, #Hdag⟩
     -- the records' commit at least the ghost log: `|A₀|` and `|A|` from `raftNode.stop` (S1: until
     -- then `|A₀|` from the restart data's false row 3, `rnRestartOk_commit`)
     ihave Hrst : iprop(∃ (S : RaftState) (σ : StorContents), raftState γn.node.cl γn.id S ∗
         rnWalClosed γn (srvRAddr s) σ ∗
         ⌜StorageHolds S σ ∧ σ.b ≤ (γn.pre ++ A).length ∧
           (γn.pre ++ ghostOf ⟨P.length, A₀⟩ A).length ≤ σ.commit⌝ ∗
-        walSnapCert γn.node.cl σ) $$ [HrS Hwc]
+        walSnapCert γn.node.cl σ ∗
+        (∃ l', isCommittedLogLb γn.node.cl l' ∗ ⌜σ.b ≤ l'.length ∧ DurAgrees S l'⌝)) $$ [HrS Hwc]
     · iexists S, σ
-      iframe HrS Hwc Hwcert
+      iframe HrS Hwc Hwcert Hdag
       ipureintro
       have hp0 : γn.pre = [] := Hc0a.2.1
       have hc1 := Hsh.2.2.1

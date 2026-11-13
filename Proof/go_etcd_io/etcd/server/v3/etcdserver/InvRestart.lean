@@ -156,10 +156,10 @@ the stopped incarnation at `γ.snapLoc id` (`srvSnapRO`'s), and the removal coun
 thread's `srvSnapOwn` at the graceful stop's applied index; (S6a-2) `ssₒ`'s paths are `dd`'s
 (`snap.snapDBPathOf dd`, from `srvSnapRO`, `bootOk`'s `Hssp`), so that the restart reuses the
 invariant at its own snapshotter, `snapDirInv_ss_congr` with `bootOkR`'s equation.) -/
-def srvDiskImage (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) : IProp GF :=
-  iprop(∃ (S : RaftState) (σ : StorContents) (i : w64) (A : List EntryModel)
-      (D : backend.Data) (m : Membership) (M : GMap Loc MemStorNamesRec),
-    nodeVacant γ.cl id ∗ raftState γ.cl id S ∗
+def srvDiskImageAt (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) (S : RaftState)
+    (σ : StorContents) (i : w64) (A : List EntryModel) (D : backend.Data) (m : Membership)
+    (M : GMap Loc MemStorNamesRec) : IProp GF :=
+  iprop(nodeVacant γ.cl id ∗ raftState γ.cl id S ∗
     ⌜ρ.rd.raft.raft = γ ∧ ρ.rd.kv.c0 = W64 0⌝ ∗ srvRLogLb ρ.rd.raft A ∗
     ⌜uint.Z i = uint.Z ρ.rd.raft.ai0 + A.length ∧
       imageRestAt ρ.rd.kv γ.boot i (ρ.rd.raft.pre ++ A) D ∧
@@ -182,11 +182,21 @@ def srvDiskImage (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) : IPr
         (fun j => monoNatLbOwn γm (uint.nat j + 1))) ∗
       monoNatAuthOwn γm 1 c))
 
+/-- **Member `id`'s data directory as its last stop left it** (`srvDiskImageAt`'s body, above, at
+some witnesses: the raft state `S`, the WAL's records `σ`, the consistent index `i`, the applied log
+`A`, the backend file's data `D`, the membership `m` at `i` and the storage registry `M`). (Restart
+S6, 2026-11-13: the body moved verbatim into `srvDiskImageAt`, so that a restart's `NewServer.specR`
+names the witnesses; the meaning is unchanged.) -/
+def srvDiskImage (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) : IProp GF :=
+  iprop(∃ (S : RaftState) (σ : StorContents) (i : w64) (A : List EntryModel)
+      (D : backend.Data) (m : Membership) (M : GMap Loc MemStorNamesRec),
+    srvDiskImageAt γ ρ id dd S σ i A D m M)
+
 /-- The image records the raft names it is at (`ρ.rd.raft.raft = γ`). -/
 theorem srvDiskImage_raft (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) :
     srvDiskImage (GF := GF) γ ρ id dd ⊢ ⌜ρ.rd.raft.raft = γ⌝ ∗ srvDiskImage γ ρ id dd := by
   refine (persistent_entails_left ?_).trans sep_comm.1
-  unfold srvDiskImage
+  unfold srvDiskImage srvDiskImageAt
   iintro ⟨%S, %σ, %i, %A, %D, %m, %M, -, -, %Hρ, -⟩
   ipureintro; exact Hρ.1
 
@@ -379,21 +389,14 @@ variable [MemStorReg GF]
 -- 2026-11-11, D2 (b)) as that method's proved post (`bootstrappedWAL__MemoryStorage.lean`); until
 -- then an opaque here.
 
-/-- **The real backend's batch-lock resource, as a restart's `bootstrap` leaves it** (2026-11-03,
-the whole-`bootOk` review, T1-B, option B3; DRAFT, R2d's). (The `lean` merge, 2026-11-06: the
-store's write invariant of mvcc's API, `mvcc.api.mvccW gx`, as a first start's; until then `lean`'s
-F2 arms, `mvcc.lateWB`'s unregistered arm at the backend's exact compaction ghosts `pvckOwn` or
-`mvcc.lateWR`, gone with F2. A restart's store over a non-empty history needs the API's `New` over
-`mvccStorageFor B Pk L c u` at any `(L, c, u)`: `notes/mvcc-client-merge-plan.md`, risk 5.) -/
-def lateWBR (gx : GName) (_γB : backend.BNames) : IProp GF := mvcc.api.mvccW gx
-
 /-- **The bootstrapped record of a restart** (DRAFT, R2c; `bootOk`'s restart case, L3): `bootOk`
 with the changes marked `[R2c]`: no peers (so `RestartNode`), the storage rebuilt from the WAL's
 records `σ` (`memStorRestarted`), the cluster's members recovered from the image's buckets at its
 committed log `L`, the consistent index loaded at the image's `i` (`γA.m0`, `ciApplying`), the
 backend file's data the image `D` (no fresh file's facts: `HD`, `HDr`, `HmEmpty` gone), the
-batch lock's resource `lateWBR` (2026-11-03, the whole-`bootOk` review, T1-B: until then `lateWB`,
-whose unregistered arm, an empty `Key` bucket, a restart does not meet). Kept as a first start's:
+batch lock's resource the first start's, the store's write invariant `mvcc.api.mvccW` (2026-11-03,
+the whole-`bootOk` review, T1-B: until then `lateWB`, whose unregistered arm, an empty `Key` bucket, a
+restart does not meet; then the alias `lateWBR`, deleted by restart S5, 2026-11-13). Kept as a first start's:
 the remotes (`Hrms0`: `bootstrapClusterWithWAL` sets none either), the directory's members (a
 static cluster, the plan's scope: the restart contract's premise). (2026-11-03, the whole-`bootOk`
 review: the write-back stock `bootLeft N`, the hooks stated once, as `bootOk`.) -/
@@ -570,9 +573,9 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     -- `newPostK`, at the server's batch-lock resources: its hooks the server's, so its
     -- `isBackend` names the apply protocol's batch lock), over the image's data `D`, the stopped
     -- file; (2026-11-03, the whole-`bootOk` review) `N + 7` write-back tokens and the open token
-    -- (`bootLeft`, A), the batch lock's resource `lateWBR` (T1-B); and what `bootstrap` adds: the
+    -- (`bootLeft`, A), the batch lock's resource, the first start's `mvccW` (T1-B); and what `bootstrap` adds: the
     -- store's registration right
-    "Hnew" ∷ backend.newPostK d.γB d.P (fun γB => lateWBR d.gx γB)
+    "Hnew" ∷ backend.newPostK d.γB d.P (fun _ => mvcc.api.mvccW d.gx)
       (fun γB => batchLockInv γA (metaTM γB d.P)) (bootLeft N) d.be D ∗
     -- [R2c] the file is the image (`srvDiskImage`), at the consistent index `i`
     -- (2026-11-01, the user's decision, "bootOk's boot metadata") the boot data's meta keys are the
