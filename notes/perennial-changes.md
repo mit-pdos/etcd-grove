@@ -2268,3 +2268,15 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
 - **Proposed (general; record only).** Specs of `strings.Builder` (`WriteString`, `WriteByte`, `String`)
   and of `fmt.Fprintf` to an `io.Writer` with basic-typed arguments.
 - **Status.** Recorded only.
+
+## 2026-11-13: `fmt.Errorf` with `%w` does not wrap (the WAL decoder)
+
+- **Missing.** Perennial's `fmt.Errorf` model returns a fresh error for `%w` that does not wrap its
+  argument, so `errors.Is(fmt.Errorf("...: %w", io.ErrUnexpectedEOF), io.ErrUnexpectedEOF)` is false in
+  the model and true in Go; and the spec refuses error arguments (`ArgsWf`). etcd's WAL decoder
+  (`decoder.go`: the "too large" and CRC-mismatch errors) and `walpb.Record.Validate` pass errors to `%w`,
+  and `ReadAll`'s read-mode branch tests `errors.Is(err, io.ErrUnexpectedEOF)` on them.
+- **Workaround here.** The WAL proofs take `fmt.ErrorfErrs.spec` as a hypothesis (branch `wal-dec`,
+  `LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/`), to be discharged when linking.
+- **Proposed.** `Errorf`'s model wraps the `%w` arguments (Go's `wrapError`/`wrapErrors`) and its spec
+  accepts error arguments, with `errors.Is`/`Unwrap` following the chain.
