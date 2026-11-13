@@ -33,6 +33,7 @@ public import GooseLang.Ext.Fs.TreeCutProof
 public import GooseLang.Ext.Fs.TreeSharedSwitch
 public import GooseLang.Ext.Fs.TreeSharedCrash
 public import GooseLang.Ext.Fs.TreeSharedLaws
+public import GooseLang.Ext.Fs.TreeSharedClaims
 
 @[expose] public section
 
@@ -64,39 +65,13 @@ theorem osCallPerm_valid (q : Qp) : osCallPerm (L := L) q ⊢ ⌜q ≤ 1⌝ := b
   icases gElem_valid _ _ _ _ _ $$ H with %hv
   ipureintro; exact DFrac.valid_own.1 hv
 
-theorem osNames_frac (j : Ino) (N : NameSet) (q1 q2 : Qp) (h : NamesH) :
-    osNames (L := L) j N (DFrac.own (q1 + q2)) h ⊣⊢
-      osNames (L := L) j N (DFrac.own q1) h ∗ osNames (L := L) j N (DFrac.own q2) h := by
-  by_cases hN : N = .only []
-  · subst hN
-    unfold osNames
-    simp only [if_pos]
-    constructor
-    · iintro %H; isplitl [] <;> ipureintro <;> exact H
-    · iintro ⟨%H, -⟩; ipureintro; exact H
-  · rw [osNames_of_ne _ _ hN, osNames_of_ne _ _ hN, osNames_of_ne _ _ hN]
-    exact gElem_split _ _ _ q1 q2 h
-
-theorem osNames_agree (j : Ino) (N : NameSet) (dq1 dq2 : DFrac) (h1 h2 : NamesH) :
-    osNames (L := L) j N dq1 h1 -∗ osNames (L := L) j N dq2 h2 -∗ ⌜h1 = h2⌝ := by
-  by_cases hN : N = .only []
-  · subst hN
-    unfold osNames
-    simp only [if_pos]
-    iintro %H1 %H2
-    ipureintro; rw [H1, H2]
-  · rw [osNames_of_ne _ _ hN, osNames_of_ne _ _ hN]
-    iintro H1 H2
-    icases gElem_valid_2 _ _ _ _ _ _ _ $$ H1 H2 with %hv
-    ipureintro; exact hv.2
-
 /-- Splitting a claim along a finite set of names `M`. -/
 theorem osNames_split (R : Roots) (j : Ino) (N : NameSet) (M : List GoString) (h : NamesH)
     (hE : ↑osShN ⊆ E) :
     osSharedInv (L := L) R -∗ osNames (L := L) j N (DFrac.own 1) h ={E}=∗
       osNames (L := L) j (N.inter M) (DFrac.own 1) (h.restrict j (N.inter M)) ∗
-      osNames (L := L) j (N.diff M) (DFrac.own 1) (h.restrict j (N.diff M)) := by
-  sorry
+      osNames (L := L) j (N.diff M) (DFrac.own 1) (h.restrict j (N.diff M)) :=
+  osNames_split' R j N M h hE
 
 /-- Two claims of a directory merged, as a set with their names (`N''`). -/
 theorem osNames_merge (R : Roots) (j : Ino) (N N' N'' : NameSet) (h h' : NamesH)
@@ -105,15 +80,15 @@ theorem osNames_merge (R : Roots) (j : Ino) (N N' N'' : NameSet) (h h' : NamesH)
       osNames (L := L) j N' (DFrac.own 1) h' ={E}=∗
       ∃ h'', osNames (L := L) j N'' (DFrac.own 1) h'' ∗
         ⌜h''.restrict j N = h.restrict j N ∧ h''.restrict j N' = h'.restrict j N' ∧
-          h''.next = max h.next h'.next⌝ := by
-  sorry
+          h''.next = max h.next h'.next⌝ :=
+  osNames_merge' R j N N' N'' h h' hN hE
 
 /-- A claim under another key of the same names. -/
 theorem osNames_rekey (R : Roots) (j : Ino) (N N' : NameSet) (h : NamesH) (hN : N.Same N')
     (hE : ↑osShN ⊆ E) :
     osSharedInv (L := L) R -∗ osNames (L := L) j N (DFrac.own 1) h ={E}=∗
-      osNames (L := L) j N' (DFrac.own 1) h := by
-  sorry
+      osNames (L := L) j N' (DFrac.own 1) h :=
+  osNames_rekey' R j N N' h hN hE
 
 /-- The log is at least as long as a claim knows. -/
 theorem osNames_next (R : Roots) (j : Ino) (N : NameSet) (dq : DFrac) (h : NamesH)
@@ -132,15 +107,22 @@ theorem osLogLb_le {n : Nat} (n' : Nat) (h : n' ≤ n) :
 /-- A spine's claims split. -/
 theorem osPathS_frac (R : Roots) (p : GoString) (q1 q2 : Qp) (j : Ino) :
     osPathS (L := L) R p (DFrac.own (q1 + q2)) j ⊣⊢
-      osPathS (L := L) R p (DFrac.own q1) j ∗ osPathS (L := L) R p (DFrac.own q2) j := by
-  sorry
+      osPathS (L := L) R p (DFrac.own q1) j ∗ osPathS (L := L) R p (DFrac.own q2) j :=
+  osPathS_frac' R p q1 q2 j
 
 /-- A spine extended by a claim's fraction on a name holding a directory. -/
 theorem osPathS_child (R : Roots) (d b : GoString) (dq : DFrac) (j J : Ino) (h : NamesH)
     (hb : NameOk b) (hJ : h.cur !! b = some (.dir J)) :
     osPathS (L := L) R d dq j -∗ osNames (L := L) j (.only [b]) dq h -∗
-      osPathS (L := L) R (child d b) dq J := by
-  sorry
+      osPathS (L := L) R (child d b) dq J :=
+  osPathS_child' R d b dq j J h hb hJ
+
+/-- A root of the shared invariant's roots is a path to its directory (the roots are well-formed:
+`osPathS` records it). -/
+theorem osPathS_root (R : Roots) (r : GoString) (j0 : Ino) (dq : DFrac) (hr : (r, j0) ∈ R)
+    (hE : ↑osShN ⊆ E) :
+    osSharedInv (L := L) R ={E}=∗ osPathS (L := L) R r dq j0 :=
+  osPathS_root' R r j0 dq hr hE
 
 end laws
 

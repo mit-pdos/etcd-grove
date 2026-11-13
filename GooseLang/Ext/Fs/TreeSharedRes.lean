@@ -104,11 +104,11 @@ def osSpine : Ino → List GoString → DFrac → Ino → IProp GF
   | j, c :: cs, dq, j' => iprop(∃ (h : NamesH) (J : Ino),
       osNames j (.only [c]) dq h ∗ ⌜h.cur !! c = some (.dir J)⌝ ∗ osSpine J cs dq j')
 
-/-- The path `p` names the directory `j`: a root of `R` followed by components, each held by a
-fraction of its claim. -/
+/-- The path `p` names the directory `j`: a root of `R` (well-formed roots, so the split of `p`
+is unique) followed by components, each held by a fraction of its claim. -/
 def osPathS (R : Roots) (p : GoString) (dq : DFrac) (j : Ino) : IProp GF :=
   iprop(∃ (r : GoString) (j0 : Ino) (cs : List GoString),
-    ⌜(r, j0) ∈ R ∧ (∀ c ∈ cs, NameOk c) ∧ p = joinPath r cs⌝ ∗ osSpine j0 cs dq j)
+    ⌜RootsOk R ∧ (r, j0) ∈ R ∧ (∀ c ∈ cs, NameOk c) ∧ p = joinPath r cs⌝ ∗ osSpine j0 cs dq j)
 
 /-- **The shared mode's invariant**, on the roots `R`: the shared history `Vs`, whole; the claims'
 authority, coherent with it; the log's length and entries. -/
