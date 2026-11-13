@@ -108,6 +108,15 @@ theorem osNames_next (R : Roots) (j : Ino) (N : NameSet) (dq : DFrac) (h : Names
       osNames (L := L) j N dq h ∗ osLogLb (L := L) h.next :=
   osNames_next' R j N dq h hE
 
+/-- **The claims held are one log's** (their entries its entries), a log whose entries' calls began
+no later than they took effect (`Starts`): what a client needs to compare the crashes of different
+lists of its claims (W4's drop of a claim, `notes/wal-fsext-plan.md`). -/
+theorem osClaims_log (R : Roots) (cl : List (Claim × DFrac)) (hE : ↑osShN ⊆ E) :
+    osSharedInv (L := L) R -∗ osClaims L cl ={E}=∗ osClaims L cl ∗
+      ⌜∃ log : List LogEntry, Starts log ∧
+        ∀ c ∈ cl, ∀ x e Es, (x, e, Es) ∈ c.1.2.2.ents → log[x]? = some e⌝ :=
+  osClaims_log' L R cl E hE
+
 theorem osLogLb_le {n : Nat} (n' : Nat) (h : n' ≤ n) :
     osLogLb (L := L) n ⊢ osLogLb (L := L) n' := by
   unfold osLogLb

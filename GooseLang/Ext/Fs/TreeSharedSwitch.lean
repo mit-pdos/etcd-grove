@@ -79,10 +79,10 @@ theorem claimsInit_lookup (V : Hist) (js : List Ino) (k : Ino × NameSet) :
       · simp [h2]
 
 /-- The claims a switch allocates are coherent with the history. -/
-theorem namesCoh_init (V : Hist) :
+theorem namesCoh_init (V : Hist) (hs : Starts V.2) :
     NamesCoh V (claimsInit V ((GMap.toList V.now).map (·.1))) := by
   refine ⟨fun j N h hl => ?_, fun j N N' h h' b hl hl' hne _ => ?_, fun j b hj => ?_,
-    fun j N h hl => ?_⟩
+    fun j N h hl => ?_, hs⟩
   · rw [claimsInit_lookup] at hl
     split at hl
     · cases hl; rfl
@@ -312,7 +312,7 @@ theorem wp_osShare' (R : Roots) (V : Hist) (op : String) (v : val) (hE : ↑osN 
   · inext
     iexists V, (claimsInit V ((GMap.toList V.now).map (·.1)))
     iframe Hs Han Halen Halog
-    ipureintro; exact ⟨hns.1.roots, namesCoh_init V⟩
+    ipureintro; exact ⟨hns.1.roots, namesCoh_init V (by rw [hV]; exact hcohS.starts)⟩
   imodintro
   isplitl [HF Hh HAd HAdf HAc Has Hadfs Hacs Hag Hcm]
   · iapply (os_local_ctx_eq σ).mpr
