@@ -35560,3 +35560,16 @@ meet both `authBucketsAre` and `UnmarshalUser.spec` (MAJ-2). Go tests:
   read and every later put, the read does not panic, re-encoding a read user gives the stored
   bytes; nil vs empty `Options` differ; `UserAdd` with nil `Options` stores an empty one.
   `TestAuthFixGrantPermissionFresh`: a request's permission with unknown fields is stored without).
+
+## `fsExt`: bytes past an unaligned EOF — a soundness gap (P1) and a precision gap (P2) (2026-11-13 · found by the WAL track; fixes pending the user's review)
+
+`notes/axiom-review/eof-page.md` (Linux v7.0 ext4 source and 15 scenarios measured on configuration C):
+**P1, soundness:** writeback zeroes the EOF page past the size, in the page cache and on disk
+(`fs/ext4/page-io.c:476-483`); a power loss can leave `00` where `GooseLang/Ext/Fs/Impl.lean`'s crash rule
+allows only the stale byte or the written one (measured: `pl-wb-zero`). The model excludes a real outcome,
+so the crash theorems over `fsExt` on `lean` (minibolt, crashlog, walfs) rest on a false semantics there.
+Fix: a byte at or past `sizeLo` may also come back zero. **P2, precision:** ext4 zeroes the rest of the EOF
+block on every `ftruncate` (`ext4_block_truncate_page`, ordered), which the model does not capture; the WAL
+proof needs it after `ZeroToEnd`. Both are being implemented on the WAL track's branch `wal-p12` (merged
+into `wal-int`), not on `lean`, until the user reviews them. The bbolt port over `fsExt` (another session)
+should expect P1's change to `FileCrashedR`.
