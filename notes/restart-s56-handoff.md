@@ -70,7 +70,7 @@ The S6a axiom review (READY WITH CHANGES) is answered; texts and reasons in
   has `srvMemberIDAddr s ↦□ idm`, `γr.raft.raft.snapLoc idm = some γd` and the invariant at
   `srvImageM γr.raft.raft.authOn γr.raft.raft`; the image is at `C.rn.id` and `C.ρ.rd.raft.raft`
   (`hρ`, `hγ : C.γr.raft.raft = C.rn.node` in the proof). Still open: `idm = C.rn.id` (lead below).
-- Build: full build under the lock, `/shared/tmp/restart-s56/s6a-m1-full.log`.
+- Verified at `e338bf455a`: full build clean (17552 jobs, `/shared/tmp/restart-s56/s6a-m1-full.log`), `tcb-report --check` matches the baseline (865 axioms, 4 sorries: no change), `gen-interface --check` clean for every `etc/api` list, `etc/gates.sh` all passed (`/shared/tmp/restart-s56/s6a-m1-gates.log`).
 
 ## S6a-1 progress (2026-11-13, the S6a-1 agent)
 
