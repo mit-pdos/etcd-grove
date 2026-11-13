@@ -1902,3 +1902,40 @@ The W3/W5 log's gap 4 (`ZeroToEnd` on the tail; `cut`'s truncate of the old tail
   must hand over a leftover `N.tmp`'s resources with its claim.
 - *Build note*: `filePipeline__alloc` fails at `wal-int` `6f367bb4bf` merged here (`wp_LError ... cannot frame
   zapLoggerOk lg`, line 136; not touched here, nor are its imports' statements).
+
+**Fourth session (branch `wal-read4`, 2026-11-13).**
+- *Proved* (no `sorry`, `lake build`): `fileutil.TryLockFile` (as `LockFile`, post `lockPost` plus an
+  `errOk` error, which `openWALFiles` wraps with `%w`); `wal.closeAll` (over `wal.rcFile`, `CloseDefs.lean`:
+  an `*os.File` or a `*LockedFile` with the file and fd whole, consumed; error `nil` or `errOk`);
+  `walpb.Snapshot.Clone` (over `walSnapIdTerm`).
+- *New hypotheses* (spec files, not axioms; to discharge when linking):
+  - `errors.IsErrno.spec` (`LinuxFs/Spec/errors/IsErrno.lean`): `errors.Is(errno, errno)` returns. Perennial's
+    `errors.Is` admits only pointer targets (`notes/perennial-changes.md`, 2026-11-13).
+  - `proto.CloneWalSnap.spec` (`LinuxFs/Spec/google_golang_org/protobuf/proto/CloneWalSnap.lean`): `proto.Clone`
+    of a `*walpb.Snapshot` keeps `walSnapIdTerm`. It is `proto.ClonePb.spec` at `walpb.Snapshot` once that type
+    is registered in the part with `walSnapAt` over its content model (W6's `SaveSnapshot` fix); not done here
+    to avoid a second registration (and its two trusted axioms) racing W6's.
+- **Finding, blocks the `os.File`-reader bridge** (for the coordinator): `decFile`'s `io.readerStream`
+  quantifies over every buffer `p`, and the trusted `os.File.Read` model panics when `off + len(p) ≥ 2^62`
+  (`model.offMax`, "not modelled"), so `decFile` of an `*os.File` reader is unprovable as stated (a GooseLang
+  slice may be that long). The decoder never reads past the file (frame checks; `bufio`'s 4 KiB buffer), so
+  either (a) `io.readerStream` takes `r.length + xs.length < 2^62` (its clients: `bufio.Reader.Read`'s proof,
+  `io.ReadFull`, the decoder's specs: each read is inside the file or one buffer past it, with `|F.bs| + 2^12 <
+  2^62` in `decFile`), or (b) the trusted `Read` model reads `min(len, offMax - off)` instead of panicking (a
+  trusted change: the user's review). Recommended (a). Also needed for the bridge, either way: an EOF-aware
+  `os.File.Read` spec (`wp_osPRead` already allows `xs.length = min n (size - off)`, `k = 0` at the end;
+  `Off.lean`'s `Read.wp_spec` requires the read inside the file): `0 < k` bytes and `nil`, or `0, io.EOF` at
+  `off = size`, or a `*PathError`.
+- *Statement change* (`openWALFiles`): `filepath.Join(dir, name)` needs `CleanAbs dir` (from
+  `osPathS_cleanAbs`) and `|dir| + |name| + 2 < 2^62`: the spec takes `d.length < 2^61` and, per name,
+  `b.length < 2^61` (`openAtIndex` has both: the pipeline's `dir.length < 2^61`, the names `walNameStr`s).
+- *`openWALFiles`, started* (proof still `sorry`): `walOpenedRc` (an opened file with the closer it
+  collected), `walOpenedRc_file`/`_rcFile`, `walOpenedRcs` (by position over `is.take j`) with `_snoc` and
+  `_close` (to `closeAll`'s `[∗list] rc ∈ rcs, wal.rcFile rc`), proved. Plan for the rest: three `make2`s,
+  `ownSlice_slice` on `names[k:]` (as `selectWALFiles`), the range loop with the invariant `walOpenedRcs ... j
+  frs lfs rcs` and the three slices; per name `Join` (`join_child`), then `TryLockFile` with `OpenTriple`
+  from `os.OpenFile.wp_fileS` (flag 2, `X := Unit`, `C _ i' := i' = i`) or `wp_fileS` (flag 0), `NewFileReader`
+  (persist `rl ↦`), three appends; on an error `walOpenedRcs_close` → `closeAll`, `ErrorfErrs` of the error.
+  The proof takes `[os.Assumptions] [os.file.FieldAssumptions] [fileutil.Assumptions]`.
+- *Not done*: `openWALFiles`' loop, `openAtIndex`, `OpenForRead`, `Open`, `ReadAll` (blocked on the bridge
+  above for the decoder's `decFile`s).
