@@ -2354,4 +2354,7 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
 - **Missing.** `MethodResolve` on a named type over `int64` (`time.Duration`) needs a `go.NotInterface go.int64`
   instance that Perennial's instances do not derive (they do not unfold `go.int64`).
 - **Workaround here.** A local instance in the WAL encoder's proofs (branch `wal-enc4`, `LinuxFs/.../wal/EncDefs.lean`).
-- **Proposed.** The instance (or the unfolding) in Perennial.
+  The same for `go.uint32` (`io/fs.FileMode.IsDir`, `os.MkdirAll`'s proof, branch `wal-osau4-mkdirall`:
+  a `haveI` in the macro `fileStat_isDir` of `LinuxFs/Proof/os/MkdirAll{,Parts}.lean`). Every predeclared
+  integer type is a plain `def` (`go.uint32 := go.Named go!"uint32" []`), so no instance of the class sees it.
+- **Proposed.** The instance (or the unfolding) in Perennial, for every predeclared type.
