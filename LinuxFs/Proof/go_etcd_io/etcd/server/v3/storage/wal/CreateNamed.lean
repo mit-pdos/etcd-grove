@@ -249,7 +249,9 @@ theorem walInvBody_named (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     · ipureintro; exact Hco
     iframe Hcr
     ipureintro
-    exact absentNone_named (absentNone_mono (Nat.le_max_left _ _) Han) dir
+    refine ⟨absentNone_named (absentNone_mono (Nat.le_max_left _ _) Han.1) dir, fun dd hdd => Han.2 dd ?_⟩
+    have hdirs : (setNamed s dir).dirs = s.dirs := by unfold setNamed absDiskUpd; rw [hd]
+    rw [← hdirs]; exact hdd
   iframe Hn
   unfold walNamed
   iexists (setNamed s dir), { d with named := true }

@@ -149,7 +149,7 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
       walCrashTok (W := W) -∗ osSharedInv (L := L) R -∗
       crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) [] false V' ={E}=∗
       ∃ (W' : WalGS GF) (s' : AbsDiskState) (D : List Ino),
-        walCrashWal W W' ∗ ⌜s'.area = r⌝ ∗ walStart L' W' C Mr R jr r s' V'.now ∗
+        walCrashWal W W' ∗ ⌜s'.area = r ∧ DirsAvoid R jr s'⌝ ∗ walStart L' W' C Mr R jr r s' V'.now ∗
         walPast (W := W') s' ∗ walUnlockedTok (W := W') ∗ walCrashTok (W := W') ∗
         crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D false V' := by
   iintro #Hinv #Hcrd Htok #Hsh Hcr
@@ -180,7 +180,7 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
     (walsOk_cut Hok) $$ Hcr Hlays with ⟨%st, %st', %Hfs, Hstarts, Hcr, -⟩
   obtain ⟨hQs, htree, hfiles⟩ := Hfs
   obtain ⟨s', Ls', hcrash, harea', hk', hstart, hnd', hsegs⟩ :=
-    walCrash_pure C hC Mr R jr s Ls cl n V'.now st st' Hok Han hk Hreg htree (hQ _ _ hQs) hfiles
+    walCrash_pure C hC Mr R jr s Ls cl n V'.now st st' Hok Han.1 hk Hreg htree (hQ _ _ hQs) hfiles
   -- the new generation's ghost state
   imod walGhost_init hPre s' hk' with ⟨%W', Hg', HM', #Hp', Hu', Hc', Hcr'⟩
   imodintro
@@ -192,7 +192,9 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
     iframe Hg HM' Hp'
     ipureintro; exact hcrash
   isplitr
-  · ipureintro; rw [harea', Har]
+  · ipureintro
+    refine ⟨by rw [harea', Har], fun dd hdd => Han.2 dd ?_⟩
+    rw [← hcrash.2.1]; exact hdd
   unfold walStart
   iexists Ls', (segsAll Ls).map (·.ino), (fun i => st'.fs.files !! i)
   iframe Hg' Hstarts Hcr'
@@ -314,7 +316,7 @@ theorem segStart_halves (L : GooseLocalGS GF) (g : SegG) (f : Fs.OsFile) (hom : 
 over the shared mode's boot tree `V.now`, nothing logged): the claims `cl` (whole) as the boot
 history has them, among them one on the area's WAL names (`harea`) and one on all names of every
 directory at such a name (`hdirs`: every WAL directory wholly), and the durable directories' resolution
-after any crash they allow (`hdok`); the invariant takes half of each claim, the commit bound 0 and
+after any crash they allow (`hdok`), through no WAL slot of the area (`hav`; the crash keeps it); the invariant takes half of each claim, the commit bound 0 and
 half of each segment's resources; the program keeps the other halves, with the layouts. -/
 theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLocalGS GF)
     (W : WalGS GF) (R : Roots) (jr : Ino) (r : GoString) (s : AbsDiskState) (V : Hist)
@@ -323,7 +325,7 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     (harea : ∃ N h, (jr, N, h) ∈ cl ∧ ∀ nm, walNameOk nm → N.Mem nm)
     (hdirs : ∀ nm J, walNameOk nm → V.now.entry jr nm = some (.dir J) →
       ∃ h, (J, NameSet.except [], h) ∈ cl)
-    (hdok : DirsOk R s cl 0) (E : CoPset) :
+    (hdok : DirsOk R s cl 0) (hav : DirsAvoid R jr s) (E : CoPset) :
     ⊢ walStart L W C Mr R jr r s V.now -∗
       osClaims L (cl.map (fun c => (c, DFrac.own 1))) ={E}=∗
       walInv (L := L) (W := W) C Mr R jr r ∗
@@ -399,7 +401,7 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
       intro dir N h hd
       simp at hd
     ipureintro
-    exact absentNone_start s jr V cl hV hcl harea hstart.2.2.1
+    exact ⟨absentNone_start s jr V cl hV hcl harea hstart.2.2.1, hav⟩
   imodintro
   unfold walInv
   iframe Hinv Hc2

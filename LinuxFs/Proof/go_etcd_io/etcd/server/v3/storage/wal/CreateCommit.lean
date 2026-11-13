@@ -461,6 +461,30 @@ theorem absentOk_of_absentNone {s : AbsDiskState} {jr : Ino} {cl : List Claim} {
   intro dir nm hin hnone m' hr J hJ
   rw [(h dir nm hin hnone).2 m' hr] at hJ; cases hJ
 
+/-- **The durable directories after the rename** (they resolve through neither `tmp` nor `nm`). -/
+theorem dirsOk_create {R : Roots} {s : AbsDiskState} {jr : Ino} {cl : List Claim} {n : Nat}
+    {nm tmp : GoString} {N : NameSet} {h : NamesH} {J : Ino} {x st : Nat}
+    {X : List GoString} {hJ : NamesH}
+    (hdo : DirsOk R s cl n) (hav : DirsAvoid R jr s)
+    (hc : (jr, N, h) ∈ cl) (hcoh : ClaimCoh h jr N) (hs : h.next ≤ st) (hne : tmp ≠ nm)
+    (hnmN : N.Mem nm) (htmpN : N.Mem tmp) (hcnm : h.cur !! nm = none)
+    (hctmp : h.cur !! tmp = some (.dir J))
+    (hothers : ∀ c' ∈ cl, c' ≠ (jr, N, h) → c'.1 = jr → ¬ c'.2.1.Mem nm ∧ ¬ c'.2.1.Mem tmp)
+    (hnmS : AreaSlot nm) (htmpS : AreaSlot tmp) :
+    DirsOk R s
+      (createClaims cl jr N h x (renDirEnt jr tmp nm J st) (renCur N h tmp nm J) J X hJ) n := by
+  intro dd hdd m' hr
+  obtain ⟨K, hK⟩ := (regionCrashed_iff _ _ _).1 hr
+  by_cases hx : K x
+  · obtain ⟨-, hK'⟩ := regionCrashedK_create_keep hK hx hc hcoh hs hne hnmN htmpN hcnm hctmp
+      hothers
+    obtain ⟨J', hJ'⟩ := hdo dd hdd _ ((regionCrashed_iff _ _ _).2 ⟨K, hK'⟩)
+    refine ⟨J', ?_⟩
+    rw [← hav dd hdd (treeUnren m' jr tmp nm J) m' (fun j b hjb => treeUnren_entry_other hne
+      (fun ⟨h1, h2⟩ => hjb ⟨h1, h2.elim (fun e => e ▸ htmpS) (fun e => e ▸ hnmS)⟩))]
+    exact hJ'
+  · exact hdo dd hdd m' ((regionCrashed_iff _ _ _).2 ⟨K, regionCrashedK_create_drop hK hx⟩)
+
 /-- `Create`'s framed part after the rename: the area claim keeps its names. -/
 theorem walsCreateOk_create {jr : Ino} {cl : List Claim} {N : NameSet} {h : NamesH} {x : Nat}
     {e : LogEntry} {c : Ents} {J : Ino} {X : List GoString} {hJ : NamesH}
@@ -479,7 +503,7 @@ area claim `(jr, N, h)` is coherent and holds `nm` (free: `AbsentNone`) and `tmp
 which no other claim of `jr` holds; the call began at `st` after its last change; `J`'s claim
 `(J, except X, hJ)` is coherent and changed last before `st`, its `.wal` names the new layout's one
 segment, all of whose bytes are durable (`hdur`, the stream then zeros: `htail`, `hold0`, `hz`).
-The durable directories' resolution after a crash of the new claims (`hdok`) is the caller's. -/
+The durable directories resolve through neither `tmp` nor `nm` (`hav`, `htmpS`). -/
 theorem walsOk_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s : AbsDiskState}
     {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat} {dir nm tmp : GoString}
     {md : List w8} {N : NameSet} {h : NamesH} {J : Ino} {x st : Nat} {X : List GoString}
@@ -501,8 +525,7 @@ theorem walsOk_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s
     (hnd : (lay.segs.map (·.ino)).Nodup)
     (hdisj : ∀ g ∈ lay.segs, ∀ g' ∈ segsAll Ls, g.ino ≠ g'.ino)
     (hcut : ∀ g ∈ lay.segs, g.om.cut = none)
-    (hdok : DirsOk R s
-      (createClaims cl jr N h x (renDirEnt jr tmp nm J st) (renCur N h tmp nm J) J X hJ) n) :
+    (hav : DirsAvoid R jr s) (htmpS : AreaSlot tmp) :
     WalsOk C Mr R jr (createSt s dir md) (<[dir := lay]> Ls)
       (createClaims cl jr N h x (renDirEnt jr tmp nm J st) (renCur N h tmp nm J) J X hJ) n ∧
     AbsentNone (createSt s dir md) jr
@@ -513,8 +536,9 @@ theorem walsOk_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s
   have hcnm' := hcnm N h hc hnmN
   have han' := absentNone_create (x := x) (X := X) (hJ := hJ) (md := md) han hin hc hcoh hs hne
     hnmN htmpN hcnm' hctmp hothers htmp hJjr
-  obtain ⟨h1, h2, h3, h4, -, -⟩ := hok
-  have hLd : Ls !! dir = none := h2 dir hd
+  obtain ⟨h1, h2, h3, h4, -, hdo⟩ := hok
+  have hdok := dirsOk_create (x := x) (X := X) (hJ := hJ) hdo hav hc hcoh hs hne hnmN htmpN hcnm'
+    hctmp hothers ⟨nm, hin.1, Or.inl rfl⟩ htmpS
   refine ⟨⟨fun dir' d' hd' => ?_, fun dir' hn' => ?_, ?_, ?_, absentOk_of_absentNone han', hdok⟩,
     han'⟩
   · by_cases hdd : dir' = dir

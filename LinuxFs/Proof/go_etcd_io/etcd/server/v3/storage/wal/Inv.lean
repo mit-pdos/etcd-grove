@@ -15,7 +15,8 @@ roots `R`), in the tree's shared mode (`notes/wal-fsext-i2-design.md`). It holds
 * `Create`'s framed part (`WalsCreateOk`, W4): a claim of the area holds every WAL name; and the
   creating map's authority (`walCreatingAuth`, `CreatingOk`): each `Create` in progress's area claim,
   among the invariant's (the program's `walCreating` token names it); and that a WAL name with no WAL
-  is absent, now and after every crash (`AbsentNone`).
+  is absent, now and after every crash (`AbsentNone`), and the durable directories resolve through no
+  name of the area a WAL function changes (`DirsAvoid`).
 
 W2 (`Cut.lean`): the WAL directory's claim leaves out the pipeline's names (`WalDirClaim`, the
 `N.tmp` claims are the pipeline's) and is coherent; the crash condition may carry the layout before
@@ -83,9 +84,13 @@ def WalsCreateOk (jr : Ino) (cl : List Claim) : Prop :=
   ∀ nm, walNameOk nm → ∃ N h, (jr, N, h) ∈ cl ∧ N.Mem nm
 
 /-- **The WALs being created are renamed in claims the invariant holds** (W4, framed): each entry
-`dir ↦ (N, h)` of the creating map is a claim `(jr, N, h)` of the area directory among `cl`. -/
+`dir ↦ (N, h)` of the creating map is a claim `(jr, N, h)` of the area directory among `cl`,
+coherent, and no other claim of `jr` among `cl` holds one of its names (what the file system's
+shared invariant says of claims, `NamesCoh.disj`, recorded where the token is made: the rename's
+commit, inside an `os` call's update, cannot open that invariant). -/
 def CreatingOk (jr : Ino) (cl : List Claim) (CR : GMap GoString (NameSet × NamesH)) : Prop :=
-  ∀ dir N h, CR !! dir = some (N, h) → (jr, N, h) ∈ cl
+  ∀ dir N h, CR !! dir = some (N, h) → (jr, N, h) ∈ cl ∧ ClaimCoh h jr N ∧
+    ∀ c ∈ cl, c ≠ (jr, N, h) → c.1 = jr → ∀ b, N.Mem b → ¬ c.2.1.Mem b
 
 /-- **A WAL name of the area with no WAL is absent** (W4, framed; strong absence, against `AbsentOk`'s
 "no `.wal` file"): in every claim of the area directory holding it, now, and after every crash the
@@ -97,6 +102,19 @@ def AbsentNone (s : AbsDiskState) (jr : Ino) (cl : List Claim) (n : Nat) : Prop 
   ∀ dir nm, InArea s.area dir nm → s.wal !! dir = none →
     (∀ N h, (jr, N, h) ∈ cl → N.Mem nm → h.cur !! nm = none) ∧
     ∀ m', RegionCrashed cl n m' → m'.entry jr nm = none
+
+/-- A name of the area a WAL function may change: a WAL name, or `nm.<sfx>` of one (`Create`'s
+`nm.tmp`, the cleanup's `nm.broken.<time>`). -/
+def AreaSlot (b : GoString) : Prop :=
+  ∃ nm, walNameOk nm ∧ (b = nm ∨ ∃ sfx, b = nm ++ go!"." ++ sfx)
+
+/-- **The durable directories resolve through no slot of the area a WAL function changes** (W4,
+framed with `AbsentNone`): their lookup in a tree depends on no entry of `jr` at an `AreaSlot` name, so
+that `Create`'s rename (of `nm.tmp` onto `nm`) leaves `DirsOk` as it was. -/
+def DirsAvoid (R : Roots) (jr : Ino) (s : AbsDiskState) : Prop :=
+  ∀ dd, s.dirs !! dd = some () → ∀ m1 m2 : Tree,
+    (∀ j b, ¬ (j = jr ∧ AreaSlot b) → m1.entry j b = m2.entry j b) →
+    lookupH R (m1, []) dd = lookupH R (m2, []) dd
 
 end pure
 
@@ -131,7 +149,8 @@ def walInvBody (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoSt
     walGhost (W := W) s ∗ ⌜s.area = r⌝ ∗
     osClaims L (cl.map (fun c => (c, DFrac.own (1 : Qp).half))) ∗ osCommitLb (L := L) n ∗
     laysRes (L := L) Ls ∗ ⌜WalsOk C Mr R jr s Ls cl n⌝ ∗ ⌜WalsCreateOk jr cl⌝ ∗
-    (∃ CR, walCreatingAuth (W := W) CR ∗ ⌜CreatingOk jr cl CR⌝) ∗ ⌜AbsentNone s jr cl n⌝)
+    (∃ CR, walCreatingAuth (W := W) CR ∗ ⌜CreatingOk jr cl CR⌝) ∗
+    ⌜AbsentNone s jr cl n ∧ DirsAvoid R jr s⌝)
 
 instance walInvBody_timeless (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (s : AbsDiskState) : Timeless (walInvBody (L := L) (W := W) C Mr R jr r s) := by
