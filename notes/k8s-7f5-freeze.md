@@ -391,3 +391,7 @@ transfer's result predicate `R` is pure, and `#HCC`'s is `isCancelCtxAny v` (an 
 the reviewed `watchCtx c s`'s `Value(&cancelCtxKey)` clause (the review's "`Value(&cancelCtxKey)` the
 parent's"), stated over any `Φ`. Go evidence: `TestWithRequireLeaderCancelPropagates` and
 `TestWithRequireLeaderOtherKeys` (`Cause` and `WithCancel(c)` read `c.Value(&cancelCtxKey)`).
+
+**Accepted by etcd-grove-81 (2026-11-13):** the review's reviewer 1 checked exactly this part:
+`c.Value(&cancelCtxKey)` is `value(ctx, &cancelCtxKey)`, the same answer as `ctx.Value(&cancelCtxKey)`
+for every parent type, the typed-nil exclusion carried over.
