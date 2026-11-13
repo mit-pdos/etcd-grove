@@ -2454,3 +2454,25 @@ its last page).
   `selectWALFiles` (premise `WalDirNamesOk` from `WalsNamed`), `openWALFiles` (names from the selected
   position: `walNamesOut_segs`, `walOpenNames_ok`), `walDecFiles_mk`, `NewDecoder`, the struct; the error arms unpin at a later step (the `Errorf`
   call) with `walLockedTok_unlock`.
+
+**Seventh session (branch `wal-read7`, 2026-11-13).**
+- *Gaps 1 and 3 closed in the invariant* (W1 log, eighth session: `WalsAt`, `walTmpParked`, `walInv_alloc`'s new
+  premises; the lemmas the other units apply).
+- *Gap 2, a missing WAL directory, proved* (no `sorry`): `os.OpenFile.wp_absentS`/`os.Open.wp_absentS`
+  (`LinuxFs/Proof/os/NsAbsentS.lean`, over `wp_osOpenAbsentS`, `EINTR` retried); `fileutil.ReadDir.specAbsent`
+  (no option, `d/b` with `b` absent in a claim fraction: an error, `fmtErrorOkOrNil`) proved
+  (`ReadDir.wp_proofAbsent`: `applyOpts` over `nil` by `wp_method_call`, the empty loop by `wp_for`);
+  `readWALNames.specAbsent`, `selectWALFiles.specAbsent` (an `errOk` error; claim and path back), proved over
+  them and `fmt.ErrorfErrs`.
+- *`openAtIndex`'s pin, the area part* (`OpenPin.lean`, proved): `walDirAt_pure` (from `WalsOk`, `WalsAt`,
+  `AbsentNone`, a claim `(jr, N, h) ∈ cl` holding `nm`: `s.wal !! dir = none → h.cur !! nm = none`, and for a WAL
+  its layout with `h.cur !! nm = some (.dir lay.j)`), `walInvBody_areaAt` (the program's area-claim fraction is
+  the invariant's claim, `osNames_same_name`; at a mask with `osShN`).
+- *ReadDefs repaired after `wal-cut7`*: `walReadH`'s pipeline is `∃ j, walPipeH fp dir j 0` (`walPipeH` now takes
+  the directory inode); `ReadAll` ties `j` to `walReadTie`'s claim, and must establish `walHandleIn`'s new facts
+  (`walDirH` with `j`, the dir fd, `walTmps ⊆ X`, the tail name; the size and `enti`/`snapi` bounds).
+- *Not done*: `openAtIndex` (beyond the pin's area part), `OpenForRead`, `Open`. The rest of the pin: at the
+  first step (`wp_notCrashed_acc`), open `walInv`, `walInvBody_areaAt`'s facts for the AU's `o` (`walDirIs` agrees
+  with `s.wal` through `walMapLe`), `walUnlockedTok_lock`, take the segments and directory claim out
+  (`walParked`) and, in write mode, `walTmpParked_take` (the pipeline's `tmpClaim j (pipeTmp 0)` and the handle's
+  `pipeTmp 1`); `o = none`: commit `Q none` and continue on `selectWALFiles.specAbsent` with the token back.
