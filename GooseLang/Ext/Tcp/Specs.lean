@@ -115,6 +115,72 @@ theorem pendOk_setConn {g : TcpGlobal} {pm : GMap GoString (GSet Nat)} {c : Nat}
 theorem finIf_fin (st : TcpEnd) (p : TcpPipe) : (p.finIf st).fin = (p.fin || !st.broken) := by
   unfold TcpPipe.finIf; split <;> simp_all
 
+/-- A dial keeps `PendOk`, the new connection pending at its address. -/
+theorem pendOk_dial {g : TcpGlobal} {pm : GMap GoString (GSet Nat)} {c : Nat} {a h : GoString}
+    {S : GSet Nat} (hp : PendOk g pm) (hc : g.conns !! c = none) (hb : 2 * c + 1 < 2 ^ 64)
+    (ha : g.plan !! a = some h) (hS : pm !! a = some S) :
+    PendOk (g.setConn c (TcpConn.fresh a)) (pm.insert a (S ∪ {[c]})) := by
+  obtain ⟨h1, h2, h3⟩ := hp
+  refine ⟨fun a' => ?_, fun a' S' k hS' => ?_, fun k cn hk => ?_⟩
+  · simp only [GMap.lookup_insert_eq_iff, setConn_plan]
+    by_cases haa : a = a'
+    · subst haa; simp [ha]
+    · simp [haa, h1 a']
+  · simp only [GMap.lookup_insert_eq_iff] at hS'
+    simp only [setConn_conns, GMap.lookup_insert_eq_iff]
+    by_cases haa : a = a'
+    · subst haa
+      simp only [↓reduceIte, Option.some.injEq] at hS'
+      subst hS'
+      rw [GMap.elem_of_union, GMap.elem_of_singleton, h2 a S k hS]
+      by_cases hkc : c = k
+      · subst hkc; simp [hc, TcpConn.fresh]
+      · simp [hkc, Ne.symm hkc]
+    · simp only [haa, ↓reduceIte] at hS'
+      rw [h2 a' S' k hS']
+      by_cases hkc : c = k
+      · subst hkc; simp [hc, TcpConn.fresh, haa]
+      · simp [hkc]
+  · simp only [setConn_conns, setConn_plan, GMap.lookup_insert_eq_iff] at hk ⊢
+    by_cases hkc : c = k
+    · subst hkc
+      simp only [↓reduceIte, Option.some.injEq] at hk; subst hk
+      exact ⟨by simp [TcpConn.fresh, ha], hb⟩
+    · simp only [hkc, ↓reduceIte] at hk; exact h3 k cn hk
+
+/-- An accept keeps `PendOk`, the connection no longer pending. -/
+theorem pendOk_accept {g : TcpGlobal} {pm : GMap GoString (GSet Nat)} {c : Nat} {cn : TcpConn}
+    {S : GSet Nat} (hp : PendOk g pm) (hcn : g.conns !! c = some cn)
+    (hS : pm !! cn.addr = some S) :
+    PendOk (g.setConn c { cn with accepted := true }) (pm.insert cn.addr (S \ {[c]})) := by
+  obtain ⟨h1, h2, h3⟩ := hp
+  refine ⟨fun a' => ?_, fun a' S' k hS' => ?_, fun k cn' hk => ?_⟩
+  · simp only [GMap.lookup_insert_eq_iff, setConn_plan]
+    by_cases haa : cn.addr = a'
+    · subst haa; rw [← h1]; simp [hS]
+    · simp [haa, h1 a']
+  · simp only [GMap.lookup_insert_eq_iff] at hS'
+    simp only [setConn_conns, GMap.lookup_insert_eq_iff]
+    by_cases haa : cn.addr = a'
+    · subst haa
+      simp only [↓reduceIte, Option.some.injEq] at hS'
+      subst hS'
+      rw [GMap.elem_of_difference, GMap.elem_of_singleton, h2 _ S k hS]
+      by_cases hkc : c = k
+      · subst hkc; simp
+      · simp [hkc, Ne.symm hkc]
+    · simp only [haa, ↓reduceIte] at hS'
+      rw [h2 a' S' k hS']
+      by_cases hkc : c = k
+      · subst hkc; simp [hcn, haa]
+      · simp [hkc]
+  · simp only [setConn_conns, setConn_plan, GMap.lookup_insert_eq_iff] at hk ⊢
+    by_cases hkc : c = k
+    · subst hkc
+      simp only [↓reduceIte, Option.some.injEq] at hk; subst hk
+      exact h3 c cn hcn
+    · simp only [hkc, ↓reduceIte] at hk; exact h3 k cn' hk
+
 end algebra
 
 /-! ## The ends' parts of the context after a change -/
@@ -258,6 +324,43 @@ theorem fin_close (γ : GName) (p : TcpPipe) (st : TcpEnd) :
     iframe H1 H2
   all_goals (imodintro; iframe H1 H2)
 
+theorem ghostVar_alloc_halves {A : Type} [Pos.Countable A] (a : A) :
+    ⊢ |==> ∃ γ, ghostVar (GF := GF) γ (1 : Qp).half a ∗ ghostVar γ (1 : Qp).half a := by
+  imod ghostVar_alloc (GF := GF) a with ⟨%γ, H⟩
+  icases (ghostVar_split_half γ 1 a).mp $$ H with ⟨H1, H2⟩
+  imodintro
+  iexists γ
+  iframe H1 H2
+
+theorem mono_alloc_halves {A : Type} [Pos.Countable A] (l : List A) :
+    ⊢ |==> ∃ γ, monoListAuthOwn (GF := GF) γ (1 : Qp).half l ∗ monoListAuthOwn γ (1 : Qp).half l := by
+  imod mono_list_own_alloc (GF := GF) l with ⟨%γ, H, -⟩
+  icases (mono_half_split γ l).mp $$ H with ⟨H1, H2⟩
+  imodintro
+  iexists γ
+  iframe H1 H2
+
+theorem dghostVar_alloc_halves {A : Type} [Pos.Countable A] (a : A) :
+    ⊢ |==> ∃ γ, dghostVar (GF := GF) γ (.own (1 : Qp).half) a ∗
+      dghostVar γ (.own (1 : Qp).half) a := by
+  have Ha := dghostVar_alloc (GF := GF) a
+  rw [show (DFrac.own (1 : Qp) : DFrac) = DFrac.own (1 : Qp).half • DFrac.own (1 : Qp).half by
+    rw [DFrac.op_own, Qp.half_add_half]] at Ha
+  imod Ha with ⟨%γ, H⟩
+  icases dghostVar_split γ a _ _ $$ H with ⟨H1, H2⟩
+  imodintro
+  iexists γ
+  iframe H1 H2
+
+/-- The end `s`'s part of a new connection. -/
+theorem endCtx_fresh (γ : ConnNames) (s : Bool) (a : GoString) :
+    endCtx (GF := GF) γ s (TcpConn.fresh a) =
+      iprop(ghostVar (γ.v s) (1 : Qp).half (TcpEnd.fresh, 0) ∗
+        monoListAuthOwn (γ.out s) (1 : Qp).half ([] : GoString) ∗
+        dghostVar (γ.fin s) (.own (1 : Qp).half) (none : Option GoString) ∗
+        ⌜0 ≤ ([] : GoString).length ∧ (false = true → false = true ∨ false = true)⌝) := by
+  cases s <;> rfl
+
 end endCtx
 
 /-! ## Opening the network -/
@@ -279,7 +382,7 @@ theorem tcpCtx_acc (hG : TcpGS GF) (g : TcpGlobal) (c : Nat) (γ : ConnNames) :
   icases ghost_map_lookup $$ Hn Hγ with %Hnγ
   have hsome : (g.conns !! c).isSome := by rw [← Hdom c]; simp [Hnγ]
   obtain ⟨cn, hcn⟩ := Option.isSome_iff_exists.mp hsome
-  icases BigSepM.bigSepM_insert_acc hcn $$ Hconns with ⟨⟨%γ', %Hγ', Hcc⟩, Hclose⟩
+  icases BigSepM.bigSepM_insert_acc hcn $$ Hconns with ⟨⟨%γ', %Hγ', #Hn', Hcc⟩, Hclose⟩
   have : γ' = γ := by
     rw [Hnγ] at Hγ'; exact (Option.some.inj Hγ').symm
   subst this
@@ -302,7 +405,7 @@ theorem tcpCtx_acc (hG : TcpGS GF) (g : TcpGlobal) (c : Nat) (γ : ConnNames) :
   · rw [setConn_conns]
     iapply Hclose
     iexists γ'
-    iframe Hcc'
+    iframe Hcc' Hn'
     ipureintro; exact Hγ'
 
 theorem tcpCtx_of_eq (hG : TcpGS GF) {g g' : TcpGlobal} (h : g' = g) :
@@ -1127,6 +1230,144 @@ theorem wp_tcp_LisClose (l : w64) (a : GoString) (o : Bool) (Φ : val → IProp 
     · iapply (tcp_local_ctx_eq _).mpr; unfold tcpLocalCtx; iframe Hlis; ipureintro; exact Hhost
     iapply wp_value'
     iapply HΦ $$ Hel
+
+
+/-- The resources of a new connection's end `s`: fresh, nothing read or written. -/
+def tcpFreshEnd (hG : TcpGS GF) (c : Nat) (s : Bool) : IProp GF :=
+  iprop(tcpEnd hG c s TcpEnd.fresh 0 ∗ tcpOut hG c s [] false)
+
+theorem tcpFresh_intro (hG : TcpGS GF) (c : Nat) (s : Bool) (γ : ConnNames) (gv go gf : GName)
+    (hv : γ.v s = gv) (ho : γ.out s = go) (hf : γ.fin s = gf) :
+    tcpNames hG c γ -∗ @ghostVar GF hG.allG _ _ gv (1 : Qp).half (TcpEnd.fresh, 0) -∗
+      @monoListAuthOwn GF hG.allG _ _ go (1 : Qp).half ([] : GoString) -∗
+      @dghostVar GF hG.allG _ _ gf (.own (1 : Qp).half) (none : Option GoString) -∗
+      tcpFreshEnd hG c s := by
+  letI := hG.allG
+  subst hv ho hf
+  unfold tcpFreshEnd tcpEnd tcpOut
+  iintro #Hγ Hv Ho Hf
+  isplitl [Hv]
+  · iexists γ; iframe Hγ Hv
+  · iexists γ; iframe Hγ Ho; simp only [Bool.false_eq_true, ↓reduceIte]; iexact Hf
+
+theorem connCtx_fresh_intro (hG : TcpGS GF) (a : GoString) (γ : ConnNames)
+    (gv0 gv1 go0 go1 gf0 gf1 : GName) (ha : γ.addr = a) (hv0 : γ.v false = gv0)
+    (hv1 : γ.v true = gv1) (ho0 : γ.out false = go0) (ho1 : γ.out true = go1)
+    (hf0 : γ.fin false = gf0) (hf1 : γ.fin true = gf1) :
+    @ghostVar GF hG.allG _ _ gv0 (1 : Qp).half (TcpEnd.fresh, 0) -∗
+      @monoListAuthOwn GF hG.allG _ _ go0 (1 : Qp).half ([] : GoString) -∗
+      @dghostVar GF hG.allG _ _ gf0 (.own (1 : Qp).half) (none : Option GoString) -∗
+      @ghostVar GF hG.allG _ _ gv1 (1 : Qp).half (TcpEnd.fresh, 0) -∗
+      @monoListAuthOwn GF hG.allG _ _ go1 (1 : Qp).half ([] : GoString) -∗
+      @dghostVar GF hG.allG _ _ gf1 (.own (1 : Qp).half) (none : Option GoString) -∗
+      @connCtx GF hG.allG γ (TcpConn.fresh a) := by
+  letI := hG.allG
+  subst hv0 hv1 ho0 ho1 hf0 hf1
+  unfold connCtx
+  rw [endCtx_fresh, endCtx_fresh]
+  iintro Hv0 Ho0 Hf0 Hv1 Ho1 Hf1
+  iframe Hv0 Ho0 Hf0 Hv1 Ho1 Hf1
+  ipureintro; simp [TcpConn.fresh, ha]
+
+/-- `Dial` of `a`, an address of the plan: a failure, or a new connection `c` to `a`, pending at
+`a` (`tcpPend`, by a logically atomic update), with both ends' resources. -/
+theorem wp_tcp_Dial (a h : GoString) (Φ : val → IProp GF) :
+    tcpPlan tcpG a h -∗
+    (Φ (PairV (#(W64 0)) (#false)) ∧
+      |={E,∅}=> ∃ S, tcpPend tcpG a S ∗
+        ∀ c, ⌜c ∉ S⌝ -∗ tcpPend tcpG a (S ∪ {[c]}) -∗ tcpConnAt tcpG c a -∗
+          tcpFreshEnd tcpG c false -∗ tcpFreshEnd tcpG c true ={∅,E}=∗
+          Φ (PairV (#(endId c false)) (#true))) -∗
+    WP (ExternalOp tcpExt.name "Dial" (Val (#a))) @ sk; E {{ Φ }} := by
+  letI := (tcpG (G := G)).allG
+  iintro #Hp HΦ
+  iapply wp_extStep "Dial" (#a) Φ (by simp)
+  iintro %hh %σ %g Hheap Hl Hg
+  icases (tcp_global_ctx_eq g).mp $$ Hg with Hg
+  icases tcpCtx_plan _ g a _ $$ Hg Hp with %Hpa
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hclose
+  isplitr
+  · ipureintro
+    exact ⟨_, hh, σ, g, rfl, a, rfl, ⟨by simp [Hpa], .inl ⟨rfl, rfl⟩⟩, rfl⟩
+  inext
+  iintro %e' %h' %σ' %g' %Hst _
+  obtain ⟨rfl, a0, Hv, ⟨-, Hcase⟩, rfl⟩ := Hst
+  obtain rfl := go.intoVal_inj (V := GoString) Hv
+  imod Hclose
+  rcases Hcase with ⟨rfl, rfl⟩ | ⟨c, hc, hb, rfl, rfl⟩
+  · -- a failure
+    icases HΦ with ⟨HΦ, -⟩
+    imodintro
+    iframe Hheap Hl
+    isplitl [Hg]
+    · iapply (tcp_global_ctx_eq _).mpr; iexact Hg
+    iapply wp_value'
+    iexact HΦ
+  · -- a new connection `c`
+    icases HΦ with ⟨-, HAU⟩
+    imod HAU with ⟨%S, Hpend, Hk⟩
+    unfold tcpCtx
+    icases Hg with ⟨%nm, %pm, Hn, Hpm, Hpl, %Hpure, Hconns⟩
+    obtain ⟨Hdom, Hpok⟩ := Hpure
+    unfold tcpPend
+    icases ghost_map_lookup $$ Hpm Hpend with %HS
+    have hcS : c ∉ S := by
+      rw [Hpok.2.1 a S c HS]; rintro ⟨cn, hcn, -⟩; simp [hc] at hcn
+    have hnm : nm.lookup c = none := by
+      have := Hdom c; rw [hc] at this
+      cases hx : nm !! c with
+      | none => rfl
+      | some _ => rw [hx] at this; simp at this
+    imod ghostVar_alloc_halves (TcpEnd.fresh, 0) with ⟨%γv0, Hv0, Hv0'⟩
+    imod ghostVar_alloc_halves (TcpEnd.fresh, 0) with ⟨%γv1, Hv1, Hv1'⟩
+    imod mono_alloc_halves ([] : GoString) with ⟨%γo0, Ho0, Ho0'⟩
+    imod mono_alloc_halves ([] : GoString) with ⟨%γo1, Ho1, Ho1'⟩
+    imod dghostVar_alloc_halves (none : Option GoString) with ⟨%γf0, Hf0, Hf0'⟩
+    imod dghostVar_alloc_halves (none : Option GoString) with ⟨%γf1, Hf1, Hf1'⟩
+    let γ : ConnNames := ⟨a, γv0, γv1, γo0, γo1, γf0, γf1⟩
+    imod ghost_map_insert_persist c γ hnm $$ Hn with ⟨Hn, #Hγ⟩
+    imod ghost_map_update (S ∪ {[c]}) $$ Hpm Hpend with ⟨Hpm, Hpend⟩
+    have Hat : 2 * c + 1 < 2 ^ 64 := hb
+    imod Hk $$ %c %hcS [Hpend] [] [Hv0 Ho0 Hf0] [Hv1 Ho1 Hf1] with HΦ
+    · iexact Hpend
+    · unfold tcpConnAt tcpNames; iexists γ; iframe Hγ; ipureintro; exact ⟨rfl, Hat⟩
+    · iapply tcpFresh_intro _ c false γ γv0 γo0 γf0 rfl rfl rfl $$ [] Hv0 Ho0 Hf0
+      unfold tcpNames; iexact Hγ
+    · iapply tcpFresh_intro _ c true γ γv1 γo1 γf1 rfl rfl rfl $$ [] Hv1 Ho1 Hf1
+      unfold tcpNames; iexact Hγ
+    imodintro
+    iframe Hheap Hl
+    isplitr [HΦ]
+    · iapply (tcp_global_ctx_eq _).mpr
+      unfold tcpCtx
+      iexists nm.insert c γ, pm.insert a (S ∪ {[c]})
+      rw [setConn_plan, setConn_conns]
+      iframe Hn Hpm Hpl
+      isplitr
+      · ipureintro
+        refine ⟨fun k => ?_, pendOk_dial Hpok hc hb Hpa HS⟩
+        simp only [GMap.lookup_insert_eq_iff]
+        by_cases hk : c = k
+        · subst hk; simp
+        · simp [hk, Hdom k]
+      iapply (BigSepM.bigSepM_insert hc).mpr
+      isplitr [Hconns]
+      · iexists γ
+        iframe Hγ
+        isplitr
+        · ipureintro; simp [GMap.lookup_insert_eq_iff]
+        iapply connCtx_fresh_intro _ a γ γv0 γv1 γo0 γo1 γf0 γf1 rfl rfl rfl rfl rfl rfl rfl
+          $$ Hv0' Ho0' Hf0' Hv1' Ho1' Hf1'
+      iapply BigSepM.bigSepM_impl $$ Hconns
+      iintro !> %k %cn %Hk ⟨%γ', %Hγ', #Hn', Hcc⟩
+      iexists γ'
+      iframe Hn' Hcc
+      ipureintro
+      have hkc : c ≠ k := by rintro rfl; rw [gmap_get?_eq] at Hk; rw [hc] at Hk; cases Hk
+      simp [GMap.lookup_insert_eq_iff, hkc, Hγ']
+    iapply wp_value'
+    iexact HΦ
 
 end lifting
 

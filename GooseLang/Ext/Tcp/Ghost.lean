@@ -139,7 +139,8 @@ def tcpCtx (hG : TcpGS GF) (g : TcpGlobal) : IProp GF :=
   iprop(∃ (nm : GMap Nat ConnNames) (pm : GMap GoString (GSet Nat)),
     ghostMapAuth hG.γnames 1 nm ∗ ghostMapAuth hG.γpend 1 pm ∗ ghostMapAuth hG.γplan 1 g.plan ∗
     ⌜(∀ c, (nm !! c).isSome = (g.conns !! c).isSome) ∧ PendOk g pm⌝ ∗
-    [∗map] c ↦ cn ∈ g.conns, ∃ γ, ⌜nm !! c = some γ⌝ ∗ connCtx γ cn)
+    [∗map] c ↦ cn ∈ g.conns, ∃ γ, ⌜nm !! c = some γ⌝ ∗ ghostMapElem hG.γnames c .discard γ ∗
+      connCtx γ cn)
 
 /-- The interpretation of a node: its host is the ghost state's, and its listeners are those of
 the ghost map. -/
