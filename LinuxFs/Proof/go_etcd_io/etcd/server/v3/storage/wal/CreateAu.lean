@@ -143,13 +143,15 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     (htail : lay.wr = (segStream C Mr (walDurFresh md) lay.cuts lay.cuts.length).length)
     (hold0 : ∀ b, lay.wr ≤ b → b < lay.old.length → lay.old.getD b 0 = 0)
     (hz : lay.old.length - lay.wr = 0 ∨ 8 ≤ lay.old.length - lay.wr)
-    (hcut : g.om.cut = none) (hsn : SegsNamed lay.segs hJ.cur)
+    (hcut : g.om.cut = none) (hgx : SegExact g) (hsn : SegsNamed lay.segs hJ.cur)
     (hJC : ∀ (K : Nat → Prop) (E : Ents), (∀ b, walNameP b = true → E !! b = hJ.valAfter J K b) →
       SegsNamedC lay.segs E) :
     ⊢ walInv (W := W) C Mr R jr r -∗ walCreateP (W := W) dir N h md Q J X hJ g -∗
       osAUnc (osNames jr N (DFrac.own (1 : Qp).half) h)
         (renDirOut jr J N tmp nm h (DFrac.own (1 : Qp).half) lb)
         (walCreateQ (W := W) dir N h md Q J X hJ g) := by
+  have hex : TailExact lay := fun g1 hg1 => by
+    rw [hsegs, List.getLast?_singleton, Option.some.injEq] at hg1; exact hg1 ▸ hgx
   iintro #Hinv HP
   iapply osAUnc_coiter _ _ _ (walCreateP (W := W) dir N h md Q J X hJ g) $$ [] HP
   iintro !> HP
@@ -292,7 +294,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         exact hdur
       obtain ⟨hok', han'⟩ := walsOk_create (x := x) (st := s0) Hok Han.1 hsd hin' hc hcoh
         (Nat.le_trans hlb hls) hsx hne hnmN htmpN hctmp hothers htmp htw hJjr hlay hJcoh
-        (Nat.le_trans hJlb hls) hX habs hdur' htail hold0 hz (by rw [hsegs]; simp)
+        (Nat.le_trans hJlb hls) hX habs hex hdur' htail hold0 hz (by rw [hsegs]; simp)
         hdisj (by rw [hsegs]; simpa using hcut) Han.2 htmpS
       -- the ghost state, the client's commit, the creating entry
       imod walGhost_upd s (createSt s dir md) M (absLe_createSt hsd)
@@ -305,6 +307,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         simp only [createSt, GMap.lookup_insert_eq]
         exact walDurLe_refl _
       imod walCreating_delete CR dir N h J $$ Hcra Htok with ⟨-, Hcra, HLk⟩
+      imod walParked_lock (W := W) Ls _ $$ Hpk HLk with ⟨Hpk, HLk⟩
       icases (osMeta_halves g.ino g.om).1 $$ Hm with ⟨Hm1, Hm2⟩
       icases (osBytes_halves g.ino 0 (y :: ys)).1 $$ Hbs with ⟨Hb1, Hb2⟩
       have hF : ∀ g' ∈ segsAll Ls, (GMap.delete g.ino F) !! g'.ino = F !! g'.ino := fun g' hg' =>
@@ -374,7 +377,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
           ipureintro
           exact dirKeysOk_create (x := x) (st := s0) (md := md) (CR := CR) Hok Han.1 Hdko hnew hsd hin'
             hc hcoh (Nat.le_trans hlb hls) hne hnmN htmpN hctmp hothers htmp htw hlay hJcoh
-            (Nat.le_trans hJlb hls) hX habs hdur' htail hold0 hz
+            (Nat.le_trans hJlb hls) hX habs hex hdur' htail hold0 hz
         ipureintro
         exact walsAt_create (x := x) (st := s0) (X := X) (hJ := hJ) HAt Hok hnew hin' htmp hc hothers
           hlay

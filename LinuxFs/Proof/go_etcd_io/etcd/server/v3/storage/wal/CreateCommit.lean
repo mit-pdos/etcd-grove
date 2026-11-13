@@ -308,7 +308,7 @@ theorem crashOk_create_new {C : WalCodec} {Mr : WalMarshal} {md : List w8} {lay 
     (hc : (jr, N, h) ∈ cl) (hnmN : N.Mem nm)
     (hlay : lay.jr = jr ∧ lay.nm = nm ∧ lay.j = J)
     (hJcoh : ClaimCoh hJ J (.except X)) (hJs : hJ.next ≤ st) (hX : ∀ b ∈ X, walNameP b = false)
-    (habs : WalAbsD C Mr (walDurFresh md) lay hJ.cur)
+    (habs : WalAbsD C Mr (walDurFresh md) lay hJ.cur) (hex : TailExact lay)
     (hdur : ∀ g ∈ lay.segs, ∀ y ∈ g.bs, y = durB y.1)
     (htail : lay.wr = (segStream C Mr (walDurFresh md) lay.cuts lay.cuts.length).length)
     (hold0 : ∀ b, lay.wr ≤ b → b < lay.old.length → lay.old.getD b 0 = 0)
@@ -328,7 +328,7 @@ theorem crashOk_create_new {C : WalCodec} {Mr : WalMarshal} {md : List w8} {lay 
     have hold : ∀ xe ∈ hJ.ents, K xe.1 := fun xe hxe =>
       hK.1 _ hc1 _ hcJ x (renDirEnt jr tmp nm J st) (renCur N h tmp nm J) xe.1 xe.2.1 xe.2.2
         (by simp [NamesH.log]) (by simpa using hxe) hx (Nat.lt_of_lt_of_le (hJcoh.1 xe hxe) hJs)
-    refine crashTo_synced C Mr (walDurFresh md) lay hJ.cur m' fo habs rfl hdur htail hold0 hz ?_ ?_
+    refine crashTo_synced C Mr (walDurFresh md) lay hJ.cur m' fo habs hex rfl hdur htail hold0 hz ?_ ?_
       hf hn
     · apply walInos_congr
       intro b hb
@@ -517,7 +517,7 @@ theorem walsOk_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s
     (htmp : ¬ walNameOk tmp) (htw : walNameP tmp = false) (hJjr : J ≠ jr)
     (hlay : lay.jr = jr ∧ lay.nm = nm ∧ lay.j = J)
     (hJcoh : ClaimCoh hJ J (.except X)) (hJs : hJ.next ≤ st) (hX : ∀ b ∈ X, walNameP b = false)
-    (habs : WalAbsD C Mr (walDurFresh md) lay hJ.cur)
+    (habs : WalAbsD C Mr (walDurFresh md) lay hJ.cur) (hex : TailExact lay)
     (hdur : ∀ g ∈ lay.segs, ∀ y ∈ g.bs, y = durB y.1)
     (htail : lay.wr = (segStream C Mr (walDurFresh md) lay.cuts lay.cuts.length).length)
     (hold0 : ∀ b, lay.wr ≤ b → b < lay.old.length → lay.old.getD b 0 = 0)
@@ -548,7 +548,7 @@ theorem walsOk_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s
       refine ⟨lay, nm, hJ, GMap.lookup_insert_eq .., hin, hlay.1, hlay.2.1,
         ⟨X, hX, hlay.2.2 ▸ mem_createClaims_J, hlay.2.2 ▸ hJcoh⟩, habs,
         crashOkW_of_crashOk ?_⟩
-      exact crashOk_create_new hc hnmN hlay hJcoh hJs hX habs hdur htail hold0 hz hgone
+      exact crashOk_create_new hc hnmN hlay hJcoh hJs hX habs hex hdur htail hold0 hz hgone
     · simp only [createSt, GMap.lookup_insert_ne _ _ (Ne.symm hdd)] at hd'
       obtain ⟨lay', nm', hj', hL', hin', hjr', hnm', hW, habs', hco'⟩ := h1 dir' d' hd'
       obtain ⟨hj'', hW', habs''⟩ := walDirClaim_create (x := x) (st := st) (tmp := tmp) (nm := nm)

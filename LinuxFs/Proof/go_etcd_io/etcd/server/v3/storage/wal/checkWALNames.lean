@@ -116,8 +116,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.checkWALNames.wp_proof
         iintro %fsl ⟨-, -⟩
         try wp_auto
         wp_apply HWarn lg _ _ $$ []
-        · ihave %Hne := zapLoggerOk_ne_null lg $$ Hlg
-          ipureintro; exact Hne
+        · iexact Hlg
         try wp_auto
         wp_for_post
         iframe
