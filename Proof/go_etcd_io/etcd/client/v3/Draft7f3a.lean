@@ -15,7 +15,7 @@ after the review. Only the pure laws relating the two forms are proved here.
   at `r - 1`, `mvcc.stateAt`; the key-value fixed, `mvcc.kvPtrFixed`).
 * `v3rpc.watchReqOkP`, `v3rpc.swsMuP`: the server's restrictions without `prev_kv = false`, and
   its `prevKV` map allowed entries.
-* `WithRequireLeader.specGen`: `WithRequireLeader` over a `watchCtx` parent (T5-a).
+* (`WithRequireLeader.specGen` moved into `WithRequireLeader.spec`, the restated axiom: decision D1.)
 -/
 module
 
@@ -174,35 +174,6 @@ abbrev watcher.Watch.specP : Prop :=
         (fun _ => iprop(True)) ∗
       spscConsumer γw.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
       monoListIdxOwn γw.cur 0 (rev - W64 1) }}
-
-/-- **`WithRequireLeader(ctx)` over a caller's context** (T5-a, 7f-4's F2): for a context the
-client's watch takes (`watchCtx`), a context `c` the watch takes, at the same descriptor (its
-`Done`, `Err` and `Value(&cancelCtxKey)` are the parent's: `NewOutgoingContext` is
-`context.WithValue(ctx, mdOutgoingKey{}, rawMD{md})`), whose answer to every key of another type
-than grpc's `mdOutgoingKey` is the parent's, in both the WP form (`ctx.Value(k)`) and the chain
-form (`context.ctxValue`, what `WithCancel` carries); its outgoing metadata is one grpc stored
-(`watchCtx`'s `metadata.outgoingCtxOkC`). Margin: the metadata's content (the parent's with
-`hasleader` set) is not stated: no user reads it (the watch's stream key is generic in it), and
-proved from the translation it would need `strings.ToLower` and the `rpctypes` constants exactly,
-and a law of the opaque `metadata.outgoingOf` (the S1 review's "parent's metadata plus one key"). -/
-abbrev WithRequireLeader.specGen : Prop :=
-  ∀ (ctx : GoInterfaceOk) (s : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-      EtcdGrove.context.watchCtx ctx s }}
-    (App (Val (@! go_etcd_io.etcd.client.v3.WithRequireLeader)) (Val #(GoInterface.ok ctx)))
-  {{ (c : GoInterfaceOk), RET #(GoInterface.ok c);
-      EtcdGrove.context.watchCtx c s ∗
-      □ (∀ (k : GoInterface) (R : GoInterface → Prop),
-          ⌜∀ k' : GoInterfaceOk, k = GoInterface.ok k' →
-            k'.ty ≠ google_golang_org.grpc.metadata.mdOutgoingKey.ty⌝ -∗
-          {{ True }} (App (Val #(methods ctx.ty go!"Value" ctx.v)) (Val #k))
-            {{ (w : GoInterface), RET #w; ⌜R w⌝ }} -∗
-          {{ True }} (App (Val #(methods c.ty go!"Value" c.v)) (Val #k))
-            {{ (w : GoInterface), RET #w; ⌜R w⌝ }}) ∗
-      □ (∀ (k : GoInterface) (R : GoInterface → Prop),
-          ⌜∀ k' : GoInterfaceOk, k = GoInterface.ok k' →
-            k'.ty ≠ google_golang_org.grpc.metadata.mdOutgoingKey.ty⌝ -∗
-          _root_.Perennial.context.ctxValue ctx k R -∗ _root_.Perennial.context.ctxValue c k R) }}
 
 end spec
 

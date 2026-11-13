@@ -267,3 +267,82 @@ features `Init`'s doc (`etc/gen-init.py`) and `etcd3/Base.lean`'s `featuresInit`
 - Go: `examples/premisefix/watcherctx` all pass (new: `enabled-kept-then-set`, `TestWithRequireLeaderCause`,
   `...NoAliasWithoutCopy`, `...NoAliasDetects`).
 - The gates: by `etc/land.sh`.
+
+## T5-a addendum (2026-11-13, 7f-3a decision D1: the fallback; for etcd-grove-81's axiom review)
+
+81's S2 decisions (questions.md; `notes/k8s-7f3a-draft.md` §6): translating `WithRequireLeader` needs
+three or four trusted changes (`WithValue.spec` at grpc's key, an intro law for the opaque
+`builtRawMD`, `FromOutgoingContext` over a non-`isContext` parent, `strings.ToLower`), against one
+restated axiom. So the translation is reverted (`Code/google_golang_org/grpc/metadata.toml` back to
+lean's; `WithRequireLeader` out of `Code/go_etcd_io/etcd/client/v3.toml`, `WithPrevKV` kept;
+`etc/goose.py --project etcd`, `--check`; `etc/gen-init.py`, the metadata `Init` and the `PkgTable`s
+back to lean's; metadata's SpecPlan PkgInit back), and the axiom `WithRequireLeader.wp_proof` is
+restated. Q2 of the Scope is superseded (`notes/k8s-7f5-scope.md` §8).
+
+### The text, old → new (`Spec/go_etcd_io/etcd/client/v3/WithRequireLeader.lean`)
+
+Old (premise-fixes-7/8, C1): only `WithRequireLeader(Background())`:
+
+```lean
+{{ isPkgInit client.v3 }} WithRequireLeader(Background())
+{{ c, RET c; □ ({{ isPkgInit context }} WithCancel(c)
+     {{ ctx' γ' cancel, RET (ctx', cancel); cancelSpec cancel γ' True ∗
+        isContext ctx' { Values := ∅, Deadline := none, Done_gn := γ', PDone := True } ∗
+        libCtxOk ctx' ∗ metadata.outgoingCtxOkC ctx' }}) }}
+```
+
+New (`Draft7f3a.lean`'s `specGen`, D3: without the metadata's content, in `withVersion.spec`'s
+pattern, the old clause kept inside the axiom for `Background()`):
+
+```lean
+∀ ctx s,
+{{ isPkgInit client.v3 ∗ (watchCtx ctx s ∨ ⌜ctx = backgroundCtxVal⌝) }} WithRequireLeader(ctx)
+{{ c, RET c;
+   (watchCtx ctx s -∗ watchCtx c s) ∗
+   □ (∀ k R, ⌜k's type ≠ mdOutgoingKey.ty⌝ -∗
+        {{ True }} ctx.Value(k) {{ w, ⌜R w⌝ }} -∗ {{ True }} c.Value(k) {{ w, ⌜R w⌝ }}) ∗
+   □ (∀ k R, ⌜k's type ≠ mdOutgoingKey.ty⌝ -∗ ctxValue ctx k R -∗ ctxValue c k R) ∗
+   (⌜ctx = backgroundCtxVal⌝ -∗ □ (the old WithCancel(c) triple, unchanged)) }}
+```
+
+In words: for a parent the client's watch takes, or `Background()`, `WithRequireLeader` returns a
+context that (1) the watch takes at the parent's descriptor (`Done`, `Err`, `Value(&cancelCtxKey)`
+the parent's: so its `Cause` too; its outgoing metadata one grpc stored); (2) answers every key not
+of the type of grpc's `mdOutgoingKey` as the parent does, called directly (`c.Value(k)`) and walked
+by a descendant (`context.value`'s chain, `ctxValue`: what `WithCancel`, `WithValue` and `Cause` of a
+child see); (3) over `Background()`, as before: `WithCancel` of it is done only when cancelled, with
+well-formed library values in both forms. The metadata's content (the parent's plus `hasleader`) is
+not stated: no user reads it.
+
+Why not a proved corollary for (3): (1)-(2) give `watchCtx c s`, which has no `Deadline()` or
+`Values`, and Perennial has no `isContext` of `Background()` (its `Done()` is `nil`); deriving
+`WithCancel(c)`'s `isContext ctx' {Values := ∅, Deadline := none, ...}` would need a `WithCancel`
+over a non-`isContext` parent (`wp_WithCancel_gen_of` with a new parent spec): more trusted or more
+Perennial work than keeping the clause, which is the reviewed old text unchanged.
+
+The one caller, `NewLeaseFromLeaseClient.wp_proof` (`WithRequireLeader(Background())`), takes the
+right disjunct and uses (3), as before (an arbitrary `s`, unused).
+
+### The Go evidence (`examples/premisefix/watcherctx/requireleader_spec_test.go`; all pass)
+
+On parents of every shape `context.value` distinguishes (`Background`, `TODO`, `*valueCtx` with and
+without outgoing metadata, `*cancelCtx` (`WithCancelCause`), `*timerCtx`, `withoutCancelCtx`, a context
+type outside the standard library with and without metadata), before and after cancellation, and on
+keys of several kinds (the caller's struct key, int- and string-kinded named types, a plain string, an
+int, nil, a pointer, an error value, an uncomparable-typed key `[]int`, and a local type
+`mdOutgoingKey struct{}` of the same shape and name as grpc's but another type):
+
+- `TestWithRequireLeaderOtherKeys`: every key answers as the parent's through `Value`, through
+  `WithCancel(c)` and through `WithValue(c, other{}, ...)` (the chain); `Done` (the same channel),
+  `Deadline`, `Err` and `Cause` are the parent's;
+- `TestWithRequireLeaderCancelPropagates`: `WithCancel(c)` is cancelled with the parent, its `Cause`
+  the parent's (`propagateCancel` reads `c.Value(&cancelCtxKey)`: the parent's `*cancelCtx`);
+- `TestWithRequireLeaderForeignParentAsked`: over a parent outside the standard library, `c.Value(k)`
+  asks the parent's `Value(k)` once and returns its answer;
+- `TestOtherKeysCheckDetects` (the check is not vacuous): a `WithRequireLeader` that also changes
+  another key (each comparable key tried, the local `mdOutgoingKey` among them) fails the check on
+  every parent, and so does a child detached from its parent's cancellation;
+- `TestWithRequireLeaderOutgoingKeyChanged`: grpc's outgoing key is changed (the exception is not
+  empty).
+
+The older tests (`requireleader_test.go`: `...Values`, `...Cause`, `...NoAlias*`) still pass.

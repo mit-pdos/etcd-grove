@@ -1,13 +1,15 @@
 package watcherctx
 
-// T5-a (Q2: translated, no trusted triple): clientv3.WithRequireLeader (client/v3/ctx.go:28-38) is
-// metadata.NewOutgoingContext(ctx, md) with md the caller's outgoing metadata copied (or new) and
-// hasleader set: a context.WithValue at grpc's outgoing key, so every other key, Done, Err,
-// Deadline and the cause are the parent's, and the parent's metadata map is not written.
+// T5-a: clientv3.WithRequireLeader (client/v3/ctx.go:28-38) is metadata.NewOutgoingContext(ctx, md)
+// with md the caller's outgoing metadata copied (or new) and hasleader set: a context.WithValue at
+// grpc's outgoing key, so every other key, Done, Err, Deadline and the cause are the parent's, and
+// the parent's metadata map is not written.
 //
-// What the Lean proof can give of the outgoing metadata (7f-3a): the parent's plus one key, since
-// MD.Set and Pairs lower-case the key with strings.ToLower, trusted only to return some string
-// (Spec/strings/ToLower.lean). These tests show the key is "hasleader".
+// 7f-3a decision D1 (the fallback): WithRequireLeader is not translated; its trust-boundary axiom
+// WithRequireLeader.wp_proof is restated over a watchCtx parent (requireleader_spec_test.go tests
+// the restated text). The tests below were written for the translation (Q2, superseded) and still
+// describe the code: the metadata is the parent's plus hasleader (which the axiom does not state,
+// decision D3), and is not aliased.
 //
 // The no-alias property does not rest on the Copy at the pin: FromOutgoingContext already returns a
 // fresh map with copied value slices (grpc v1.84.0 metadata.go:342-348, copyOf), so no test of
