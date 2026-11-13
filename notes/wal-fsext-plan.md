@@ -506,7 +506,7 @@ module; the bboltfs/crashlog/walfs examples and the generated translations not l
   `openWALFiles.wp_proof`, `WAL.ReadAll.wp_proof`, `WAL.Save.wp_proof`, `WAL.SaveSnapshot.wp_proof`,
   `WAL.Sync.wp_proof`, `WAL.cut.wp_proof`, `cutCommit_pure` (`CutCommit.lean`), `WAL.saveEntry.wp_proof`, `WAL.saveState.wp_proof`,
   `WAL.sync.wp_proof`, `wal.tailWriter` (`TailWriter.lean`);
-- `fileutil/`: `ReadDir.wp_proof`, `TouchDirAll.wp_proof`, `CreateDirAll.wp_proof` (`TouchDirAll.lean`);
+- `fileutil/`: `ReadDir.wp_proof` (`TouchDirAll`/`CreateDirAll` proved, `wal-create7`, over the above-root hypotheses);
 - `os/`: `File.Truncate.wp_proofAu` (`File__TruncateAu.lean`), `File.WriteAt.wp_proof_long` (`WriteLong.lean`,
   past 1 GiB).
 Not yet stated (no `sorry`, no statement): `Close`, `ReleaseLockTo`, `Repair`, `ValidSnapshotEntries`, `Exist`
