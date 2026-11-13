@@ -125,6 +125,48 @@ theorem wp_existAnc (wp_Exist : go_etcd_io.etcd.client.pkg.v3.fileutil.Exist.spe
     iframe
     ipureintro; intro h; exact absurd h hkn
 
+/-- A `mkdir`'s outcome on a claim held as two halves. -/
+theorem mkOut_join (j : Ino) (b : GoString) (h : NamesH) (o : Option (Nat × Nat × Ino)) :
+    mkOut (GF := GF) j b h (DFrac.own (1 : Qp).half) o ∗ mkOut (GF := GF) j b h (DFrac.own (1 : Qp).half) o ⊢
+      mkOut j b h (DFrac.own 1) o := by
+  cases o with
+  | none =>
+    simp only [mkOut]
+    iintro ⟨H1, H2⟩
+    iapply (osNames_join j _ _ _ h (Qp.half_add_half 1)).1 $$ [$H1 $H2]
+  | some xsJ =>
+    obtain ⟨x, s, J⟩ := xsJ
+    simp only [mkOut]
+    iintro ⟨⟨Hl, H1⟩, ⟨-, H2⟩⟩
+    iframe Hl
+    iapply (osNames_join j _ _ _ _ (Qp.half_add_half 1)).1 $$ [$H1 $H2]
+
+/-- An absent name, its claim whole: its subtree. -/
+theorem osSubtreeH_none (j : Ino) (b : GoString) (h : NamesH) (hb : h.cur !! b = none) :
+    osNames (GF := GF) j (.only [b]) (DFrac.own 1) h ⊢ osSubtreeH j b h := by
+  unfold osSubtreeH
+  iintro Hn
+  iexists []
+  iframe
+  isplitl []
+  · simp only [List.map_nil, osClaims]; iempintro
+  ipureintro; rw [hb]; exact subCover_none _
+
+/-- A name holding a directory that holds no directory, both claims whole: its subtree. -/
+theorem osSubtreeH_dir (j : Ino) (b : GoString) (h : NamesH) (J : Ino) (hJ : NamesH)
+    (hb : h.cur !! b = some (.dir J)) (hno : ∀ c J', hJ.cur !! c ≠ some (.dir J')) :
+    osNames (GF := GF) j (.only [b]) (DFrac.own 1) h ∗ osNames J (.except []) (DFrac.own 1) hJ ⊢
+      osSubtreeH j b h := by
+  unfold osSubtreeH
+  iintro ⟨Hn, HJ⟩
+  iexists [(J, NameSet.except [], hJ)]
+  iframe Hn
+  isplitl [HJ]
+  · simp only [List.map_cons, List.map_nil, osClaims]
+    iframe
+    iempintro
+  ipureintro; rw [hb]; exact subCover_noDirs J hJ hno
+
 theorem fileutil.TouchDirAll.wp_proof
     (wp_Exist : go_etcd_io.etcd.client.pkg.v3.fileutil.Exist.spec (GF := GF) (hG := hG))
     (wp_Clean : filepath.Clean.spec (GF := GF) (hG := hG))
@@ -245,7 +287,118 @@ theorem fileutil.TouchDirAll.wp_proof
         rw [show k - 1 + 1 = k by omega]
         iframe
         ipureintro; omega
-  sorry
+  ihave Hp := (os.osPathS_joinPath R (joinPath [] rcs) j0 cs (DFrac.own qp) jp hR hm hcs).2 $$ Hs
+  icases (osNames_join jp _ _ _ h (Qp.half_add_half 1)).2 $$ Hn with ⟨Hq, Hr⟩
+  ihave Hau := os.osAU_triv (A := Option (Nat × Nat × Ino))
+    (osNames jp (.only [name]) (DFrac.own (1 : Qp).half) h)
+    (mkOut jp name h (DFrac.own (1 : Qp).half)) $$ Hr
+  wp_apply wp_MkdirAll (joinPath (joinPath [] rcs) cs) name (W32 448) R jp qp h (1 : Qp).half (1 : Qp).half
+      (mkOut jp name h (DFrac.own (1 : Qp).half)) hname hnone (Qp.half_add_half 1)
+      $$ [Hp Hperm Hq Hau] as %err ⟨Hp, Hperm, %o, %hok, HQ, Hout, Hnew⟩
+  · iframe; isplitl [] <;> iassumption
+  ihave Hout := mkOut_join jp name h o $$ [HQ Hout]
+  · iframe
+  cases err with
+  | ok e =>
+    wp_auto
+    iapply HΦ
+    iframe
+    ileft
+    isplitr
+    · ipureintro; intro hc; cases hc
+    rcases o with _ | ⟨x, s, J⟩
+    · dsimp only [mkOut]
+      iexists h
+      iapply osSubtreeH_none jp name h hnone $$ Hout
+    · dsimp only [mkOut, mkNew]
+      icases Hout with ⟨-, Hn1⟩
+      icases Hnew with ⟨%hJ, HJ, %hJc⟩
+      iexists _
+      iapply osSubtreeH_dir jp name (h.log x (mkEnt jp name J s) (<[name := Node.dir J]> h.cur)) J hJ
+        (by simp [NamesH.log])
+        (fun c J' hc => by rw [hJc.1] at hc; simp at hc) $$ [Hn1 HJ]
+      iframe
+  | nil =>
+    obtain ⟨⟨x, s, J⟩, rfl⟩ := Option.isSome_iff_exists.1 (hok rfl)
+    dsimp only [mkOut, mkNew]
+    icases Hout with ⟨-, Hn1⟩
+    icases Hnew with ⟨%hJ, HJ, %hJc⟩
+    generalize hh1 : h.log x (mkEnt jp name J s) (<[name := Node.dir J]> h.cur) = h1
+    have hcur1 : h1.cur !! name = some (.dir J) := by subst hh1; simp [NamesH.log]
+    have hno : ∀ c J', hJ.cur !! c ≠ some (.dir J') := fun c J' hc => by rw [hJc.1] at hc; simp at hc
+    imod osNames_next R jp _ _ h1 CoPset.subseteq_top $$ Hsi Hn1 with ⟨Hn1, #Hlb⟩
+    ihave Hs := (os.osPathS_joinPath R (joinPath [] rcs) j0 cs (DFrac.own qp) jp hR hm hcs).1 $$ Hp
+    ihave %Hlen := ownSlice_len _ _ _ $$ Hsl
+    have hCl := touchC_length full j
+    wp_auto
+    ihave IH : iprop(∃ (i : w64) (dv : GoString),
+        "i" ∷ i_ptr ↦ i ∗ "d" ∷ d_ptr ↦ dv ∗ "err" ∷ err_ptr ↦ GoInterface.nil ∗
+        "Hs" ∷ osSpine j0 cs (DFrac.own qp) jp ∗ "Hperm" ∷ osCallPerm 1 ∗
+        "Hc" ∷ (⌜sint.nat i < (touchC full j).length⌝ ∨ osCommitLb h1.next) ∗
+        "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ sint.nat i ≤ (touchC full j).length⌝) $$ [i d err Hs Hperm]
+    · iexists W64 0, _
+      iframe
+      isplitl []
+      · ileft; ipureintro; rw [show sint.nat (W64 0) = 0 from rfl]; omega
+      ipureintro
+      refine ⟨by decide, ?_⟩
+      rw [show sint.nat (W64 0) = 0 from rfl]; omega
+    wp_for IH
+    obtain ⟨hi0, hil⟩ := Hi
+    wp_if_destruct
+    · have Hlt : sint.nat i < (touchC full j).length := by rw [Hlen.1]; word
+      have Hbnd : 0 ≤ sint.Z i ∧ sint.Z i < sint.Z sl.len := ⟨hi0, Hif⟩
+      simp only [Hbnd, _root_.and_self, ↓reduceIte]
+      have He : (touchC full j)[(sint.Z i).toNat]? = some (os.ancPath (full.take (j + sint.nat i))) := by
+        rw [show (sint.Z i).toNat = sint.nat i by word, List.getElem?_eq_getElem Hlt, touchC_get]
+      have hji : j + sint.nat i ≤ full.length := by omega
+      wp_apply wp_load_slice_index sl (sint.Z i) _ (DFrac.own 1) _ hi0 $$ [Hsl] as Hsl
+      · iframe; ipureintro; exact He
+      wp_apply wp_Dir (os.ancPath (full.take (j + sint.nat i)))
+      iintro %dr %hdr
+      rw [dir_take full hfok _ hji] at hdr
+      subst hdr
+      have hk' : j + sint.nat i - 1 ≤ (rcs ++ cs).length := by omega
+      rw [show full.take (j + sint.nat i - 1) = (rcs ++ cs).take (j + sint.nat i - 1) by
+        rw [hfull, List.take_append_of_le_length hk']]
+      wp_apply wp_syncDirAnc hSync hSyncAbove R rcs cs j0 jp (DFrac.own qp) 1 h1.next (j + sint.nat i - 1)
+        hR hm hrcs hcs hk' $$ [Hs Hperm] as %e ⟨Hs, Hperm, Hr⟩
+      · iframe; isplitl [] <;> try iassumption
+        isplitl [] <;> iassumption
+      cases e with
+      | ok e =>
+        wp_auto
+        wp_for_post
+        iapply HΦ
+        ihave Hp := (os.osPathS_joinPath R (joinPath [] rcs) j0 cs (DFrac.own qp) jp hR hm hcs).2 $$ Hs
+        iframe
+        ileft
+        isplitr
+        · ipureintro; intro hc; cases hc
+        iexists h1
+        iapply osSubtreeH_dir jp name h1 J hJ hcur1 hno $$ [Hn1 HJ]
+        iframe
+      | nil =>
+        wp_auto
+        wp_for_post
+        iframe
+        iexists i + W64 1, _
+        iframe
+        have hi1 : sint.nat (i + W64 1) = sint.nat i + 1 := by word
+        rw [hi1]
+        isplitl [Hr Hc]
+        · by_cases hlast : sint.nat i + 1 < (touchC full j).length
+          · ileft; ipureintro; exact hlast
+          · iright
+            have hge : rcs.length ≤ j + sint.nat i - 1 := by
+              have : (rcs ++ cs).length = rcs.length + cs.length := List.length_append
+              omega
+            icases Hr $$ %hge with (%hc | ⟨-, #Hcm⟩)
+            · exact absurd rfl hc
+            · iexact Hcm
+        ipureintro
+        refine ⟨by word, by omega⟩
+    · sorry
 
 theorem fileutil.CreateDirAll.wp_proof (hT : fileutil.TouchDirAll.spec (GF := GF)) :
     fileutil.CreateDirAll.spec (GF := GF) := by
