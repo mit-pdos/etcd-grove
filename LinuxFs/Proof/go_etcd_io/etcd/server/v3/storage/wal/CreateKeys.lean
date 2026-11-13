@@ -266,12 +266,12 @@ theorem walsNamed_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
 /-- **A claim parked after the commit iff before** (`walParked_create`): `J`'s new claim is out (in
 `D`); the area claim, before and after, is no WAL directory's (it leaves out a `.wal` name); the
 others are the same claims of the same directories, none `J`'s (`CreatingNew`). -/
-theorem parkedClaim_create {Ls : GMap GoString WalLay} {cl : List Claim} {D : List Claim}
+theorem parkedClaim_create {Ls : GMap GoString WalLay} {cl : List Claim} {D : List (Ino × NameSet)}
     {CR : GMap GoString (NameSet × NamesH × Ino)} {jr : Ino} {dir : GoString} {N : NameSet}
-    {J : Ino} {X : List GoString} {hJ : NamesH} {lay : WalLay} {c : Claim}
+    {J : Ino} {X : List GoString} {lay : WalLay} {c : Claim}
     (hnew : CreatingNew jr cl CR dir N J) (hlj : lay.j = J) (hLd : Ls !! dir = none)
     (hX : ∀ b ∈ X, walNameP b = false) (hc : c ∈ cl) :
-    ParkedClaim (<[dir := lay]> Ls) ((J, NameSet.except X, hJ) :: D) c ↔ ParkedClaim Ls D c := by
+    ParkedClaim (<[dir := lay]> Ls) ((J, NameSet.except X) :: D) c ↔ ParkedClaim Ls D c := by
   classical
   obtain ⟨-, hJc, -, b0, hb0, -⟩ := hnew
   have hcJ : c.1 = J → ∀ X' : List GoString, (∀ b ∈ X', walNameP b = false) →
@@ -294,7 +294,7 @@ theorem parkedClaim_create {Ls : GMap GoString WalLay} {cl : List Claim} {D : Li
     refine ⟨⟨dir', lay', by rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)]; exact hl', hj, X', hN, hX'⟩,
       fun hm => ?_⟩
     rcases List.mem_cons.1 hm with he | hm
-    · subst he; exact (hcJ rfl X hX rfl).elim
+    · simp only [Prod.mk.injEq] at he; exact (hcJ he.1 X hX he.2).elim
     · exact hD hm
 
 /-- **`WalsAt` after `Create`'s commit** (W3/W5's gap 1): the rename puts the new WAL's directory `J`
@@ -387,75 +387,61 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
   [W : WalGS GF]
 
-/-- The pipeline names parked with the flag `true` are parked with it `false`. -/
-theorem walTmpParked_unpark (Ls : GMap GoString WalLay) :
-    walTmpParked (G := G) (L := L) Ls true ⊢ walTmpParked (G := G) (L := L) Ls false := by
-  unfold walTmpParked
-  iintro ⟨%Jt, %T, %hp, Hm⟩
-  iexists Jt, T
-  iframe Hm
-  ipureintro
-  exact ⟨fun h => (by cases h), hp.2⟩
+/-- **The record of what is out after `Create`'s commit**: the new WAL's segment, its directory's
+claim and its pipeline names, the handle's. -/
+def WalOut.create (o : WalOut) (i J : Ino) (X : List GoString) (dir : GoString) : WalOut :=
+  ⟨i :: o.O, (J, NameSet.except X) :: o.D, dir :: o.T⟩
 
-/-- **Taking the lock with everything parked** (`Create`'s commit, the creating entry's free lock
-token back): the flag goes `false`, nothing out yet. -/
-theorem walParked_lock (Ls : GMap GoString WalLay) (cl : List Claim) :
-    ⊢ walParked (L := L) (W := W) Ls cl -∗ walUnlockedTok (W := W) ==∗
-      walParked (L := L) (W := W) Ls cl ∗ walLockedTok (W := W) := by
-  unfold walParked
-  iintro ⟨%b, %O, %D, Ha, %hb, Hs, Hc, Ht⟩ Hu
-  imod walUnlockedTok_lock (W := W) b $$ Ha Hu with ⟨%hbt, Ha, Hl⟩
-  subst hbt
-  obtain ⟨rfl, rfl⟩ := hb rfl
-  imodintro
-  iframe Hl
-  iexists false, [], []
-  iframe Ha Hs Hc
-  isplitr
-  · ipureintro; intro h; cases h
-  iapply walTmpParked_unpark
-  iexact Ht
-
-/-- **The parked halves after the commit** (the lock token's flag `false`): the new segment's
-inode and `J`'s claim out (`O`, `D`), the rest as before. -/
-theorem walParked_create (Ls : GMap GoString WalLay) (cl : List Claim)
+/-- **The parked halves after the commit** (the record of what is out updated): the new segment's
+inode, `J`'s claim and the new WAL's pipeline names out (`WalOut.create`), the rest as before; the
+change in flight on the new segment, if any, dropped. -/
+theorem walParked_create (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMap Ino SegFl)
+    (o : WalOut)
     (CR : GMap GoString (NameSet × NamesH × Ino)) (jr : Ino) (dir : GoString) (N : NameSet)
     (h : NamesH) (h' : NamesH) (J : Ino) (X : List GoString) (hJ : NamesH) (lay : WalLay) (g : SegG)
     (hnew : CreatingNew jr cl CR dir N J) (hlj : lay.j = J) (hLd : Ls !! dir = none)
     (hX : ∀ b ∈ X, walNameP b = false) (hsegs : lay.segs = [g]) (hino : ∀ g' ∈ segsAll Ls, g'.ino ≠ g.ino) :
-    ⊢ walParked (L := L) (W := W) Ls cl -∗ walParkFrag (W := W) false -∗
+    ⊢ walParked (L := L) (W := W) Ls cl F -∗ walOutFrag (W := W) o ==∗
       walParked (L := L) (W := W) (<[dir := lay]> Ls)
-        (replClaim (jr, N, h) (jr, N, h') cl ++ [(J, NameSet.except X, hJ)]) ∗
-      walParkFrag (W := W) false := by
+        (replClaim (jr, N, h) (jr, N, h') cl ++ [(J, NameSet.except X, hJ)]) (GMap.delete g.ino F) ∗
+      walOutFrag (W := W) (o.create g.ino J X dir) := by
   classical
   have ⟨_, _, _, b0, hb0, hNb0⟩ := hnew
   unfold walParked
-  iintro ⟨%b, %O, %D, Ha, %hb, Hs, Hc, Ht⟩ Hf
-  icases walPark_agree (W := W) b false $$ Ha Hf with %hbf
-  subst hbf
-  iframe Hf
-  iexists false, g.ino :: O, (J, NameSet.except X, hJ) :: D
-  iframe Ha
+  iintro ⟨%b, %o', Ha, Hoa, %hp, Hs, Hc, Ht⟩ Ho
+  icases walOut_agree (W := W) o' o $$ Hoa Ho with %ho
+  subst ho
+  imod walOut_set (W := W) o' o' (o'.create g.ino J X dir) $$ Hoa Ho with ⟨Hoa, Ho⟩
+  imodintro
+  iframe Ho
+  iexists b, o'.create g.ino J X dir
+  dsimp only [WalOut.create]
+  iframe Ha Hoa
   isplitr
-  · ipureintro; intro h; cases h
+  · ipureintro
+    intro i hi
+    by_cases he : i = g.ino
+    · rw [he]; exact List.mem_cons_self ..
+    · rw [GMap.lookup_delete_ne _ (Ne.symm he)] at hi
+      exact List.mem_cons_of_mem _ (hp i hi)
   isplitl [Hs]
-  · iapply (segsAll_sep_map (fun x => iprop(if x.ino ∈ g.ino :: O then emp else segResP (L := L) x))
+  · iapply (segsAll_sep_map (fun x => iprop(if x.ino ∈ g.ino :: o'.O then emp else segResP (L := L) x))
       _).2
     iapply (BigSepM.bigSepM_insert (Φ := fun (_ : GoString) (lay : WalLay) =>
-      iprop([∗list] x ∈ lay.segs, if x.ino ∈ g.ino :: O then emp else segResP (L := L) x)) hLd).2
+      iprop([∗list] x ∈ lay.segs, if x.ino ∈ g.ino :: o'.O then emp else segResP (L := L) x)) hLd).2
     isplitr
     · rw [hsegs]
       iapply (BigSepL.bigSepL_singleton (PROP := IProp GF)
-        (Φ := fun _ x => iprop(if x.ino ∈ g.ino :: O then emp else segResP (L := L) x))).2
+        (Φ := fun _ x => iprop(if x.ino ∈ g.ino :: o'.O then emp else segResP (L := L) x))).2
       rw [if_pos (List.mem_cons_self ..)]
       iempintro
-    ihave Hs := (segsAll_sep_map (fun x => iprop(if x.ino ∈ O then emp else segResP (L := L) x))
+    ihave Hs := (segsAll_sep_map (fun x => iprop(if x.ino ∈ o'.O then emp else segResP (L := L) x))
       Ls).1 $$ Hs
     iapply BigSepM.bigSepM_mono (fun {k lay'} hl => ?_) $$ Hs
     iapply BigSepL.bigSepL_mono (fun {i x} hx => ?_)
     have hx' : x.ino ≠ g.ino := hino x (mem_segsAll hl (List.mem_of_getElem? hx))
-    have e : (x.ino ∈ g.ino :: O) ↔ x.ino ∈ O := by
-      simp only [List.mem_cons, hx', false_or]
+    have e : (x.ino ∈ g.ino :: o'.O) ↔ x.ino ∈ o'.O := by
+      simp only [List.mem_cons, hx', _root_.false_or]
     simp only [propext e]
     exact .rfl
   isplitl [Hc]
@@ -467,7 +453,7 @@ theorem walParked_create (Ls : GMap GoString WalLay) (cl : List Claim)
       have hcm : c ∈ cl := List.mem_of_getElem? hci
       by_cases h0 : c = (jr, N, h)
       · -- the area claim: no WAL directory's, before or after
-        have hn : ∀ N' : NameSet, N' = N → ∀ (Ls' : GMap GoString WalLay) (D' : List Claim)
+        have hn : ∀ N' : NameSet, N' = N → ∀ (Ls' : GMap GoString WalLay) (D' : List (Ino × NameSet))
             (h'' : NamesH), ¬ ParkedClaim Ls' D' (jr, N', h'') := by
           rintro N' rfl Ls' D' h'' ⟨⟨-, -, -, -, X', hN, hX'⟩, -⟩
           apply hNb0
@@ -475,16 +461,16 @@ theorem walParked_create (Ls : GMap GoString WalLay) (cl : List Claim)
           rw [hN]; intro hb; rw [hX' b0 hb] at hb0; cases hb0
         rw [if_pos h0, if_neg (hn N rfl _ _ h'), h0, if_neg (hn N rfl _ _ h)]
       · rw [if_neg h0]
-        have e := parkedClaim_create (X := X) (hJ := hJ) (D := D) hnew hlj hLd hX hcm (Ls := Ls)
+        have e := parkedClaim_create (X := X) (D := o'.D) hnew hlj hLd hX hcm (Ls := Ls)
           (lay := lay)
         simp only [propext e]
         exact .rfl
     · iapply (BigSepL.bigSepL_singleton (PROP := IProp GF)
-        (Φ := fun _ c => iprop(if ParkedClaim (<[dir := lay]> Ls) ((J, NameSet.except X, hJ) :: D) c then
+        (Φ := fun _ c => iprop(if ParkedClaim (<[dir := lay]> Ls) ((J, NameSet.except X) :: o'.D) c then
           osNames (L := L) c.1 c.2.1 (DFrac.own (1 : Qp).half) c.2.2 else emp))).2
       rw [if_neg (fun hp => hp.2 (List.mem_cons_self ..))]
       iempintro
-  · iapply walTmpParked_create Ls dir lay $$ Ht
+  · iapply walTmpParked_create Ls o'.T dir lay $$ Ht
 
 end iris
 

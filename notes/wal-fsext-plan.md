@@ -510,7 +510,7 @@ module; the bboltfs/crashlog/walfs examples and the generated translations not l
 - `os/`: `File.Truncate.wp_proofAu` (`File__TruncateAu.lean`), `File.WriteAt.wp_proof_long` (`WriteLong.lean`,
   past 1 GiB).
 Not yet stated (no `sorry`, no statement): `Close`, `ReleaseLockTo`, `Repair`, `ValidSnapshotEntries`, `Exist`
-(§4.2's W7-W12), the WAL-level resize updates (I3b's open items). `Create`'s ghost steps (drop, mint, unmint, merges) are proved (`wal-create10`; W4 log, tenth session).
+(§4.2's W7-W12), the WAL-level resize updates (I3b's open items). `Create`'s ghost steps (drop, mint, unmint, merges) are proved (`wal-create10`; W4 log, tenth session). The record of what is out of the parked state and the changes in flight only on segments out (W3/W5's gaps A and B) are in the invariant, with the pin's and the put-back's moves (`Parked.lean`, `wal-read9`; W1 log, tenth session).
 
 ## W1 implementation log (branch `wal-inv`, 2026-11-13)
 
@@ -862,6 +862,65 @@ coordinator's decision for the first, mine for the second).**
   `Proof/io/ReaderStream` `.olean` in the seeded `.lake` (without `io.readerStream`'s `2 ^ 62` bound). Deleting its
   artifacts and rebuilding fixes all three, with no source change.
 - Merge `wal-create10`: notes conflict only; everything builds.
+
+**Tenth session (branch `wal-read9`, 2026-11-13; the invariant's owner): W3/W5's gaps A and B (the
+coordinator adopted both logged proposals).** Every module of the WAL directory builds; no `sorry` added.
+- *Gap A, the record of what is out* (`Ghost.lean`): **`WalOut`** `{O : List Ino, D : List (Ino × NameSet),
+  T : List GoString}` (segment inodes, WAL-directory claims **by key** `(j, N)`, directories whose pipeline
+  names are out; `WalOut.empty`, `addSeg`/`delSeg`, `addClaim`/`delClaim`, `addTmp`/`delTmp`), a new ghost
+  variable `WalGS.γpo`: `walOutAuth o` (the invariant's half, in `walParked`), `walOutFrag o` (the program's);
+  `walOut_agree`, `walOut_set`. **`walUnlockedTok` holds `walOutFrag WalOut.empty`** (4th conjunct);
+  `walLockedTok` unchanged (the holder of what is out carries the frag beside it, in its sealed body).
+  `walUnlockedTok_lock` also gives `walOutFrag WalOut.empty`; `walLockedTok_unlock` takes it.
+  `walGhost_init` allocates it (`walStart` gains `walOutAuth WalOut.empty`). With `wal-create10`'s design
+  (the creating map holds `walUnlockedTok`), the record needs nothing in `walCreatingAuth`.
+- *`walParked Ls cl F`* (`Inv.lean`; **now takes `F`**): `∃ b o, walParkAuth b ∗ walOutAuth o ∗ ⌜∀ i, F !! i ≠
+  none → i ∈ o.O⌝ ∗ segs (but `o.O`) ∗ claims (`ParkedClaim Ls o.D c`: `WalDirClaimOf Ls c ∧ (c.1, c.2.1) ∉ o.D`) ∗
+  walTmpParked Ls o.T`. The flag's clause `b = true → …` is gone (the record does its work: the free token's
+  empty frag). **Gap B** is the pure clause (a change in flight only on a segment out). `walTmpParked Ls T` takes
+  the record's `T` (no flag, no inner `∃ T`); `walTmpParked_take` (`dir ∉ T`, to `dir :: T`), `_create` (to
+  `dir :: T`), new `_put` (to `T.filter (· ≠ dir)`).
+- *The moves* (new `Parked.lean`, all proved): `walParked_lock` (`walParked Ls cl F -∗ walUnlockedTok ==∗
+  walParked Ls cl F ∗ walLockedTok ∗ walOutFrag ∅ ∗ ⌜∀ i, F !! i = none⌝`; replaces `CreateKeys`'s);
+  `walParked_unlock` (with `walLockedTok` and `walOutFrag ∅`); `walParked_takeSeg`/`_takeSegs` (segments of
+  `segsAll Ls` not in `o.O`, distinct: their `segResP`, `⌜F !! g.ino = none⌝`, frag `⟨S.map ino ++ o.O, …⟩`);
+  `walParked_putSeg` (premises `g ∈ segsAll Ls`, the inodes distinct, `F !! g.ino = none`; frag `o.delSeg`);
+  `walParked_takeClaim` (`c ∈ cl`, `WalDirClaimOf Ls c`, key `∉ o.D`; its half, `o.addClaim`);
+  `walParked_putClaim` (`l1 ++ c :: l2`, no other claim of its key: `DirKeysOk`'s exclusivity; `o.delClaim`);
+  `walParked_takeTmps`/`_putTmps`; `walParkedIn` (walParked with `i ∈ o.O`), `walParkedIn_of_fl`,
+  `walParkedIn_of_halves` (two halves of `i`'s `OsMeta` outside: a parked one would be a third,
+  `osMeta_three_halves`).
+- **Obligations for the concurrent units** (statements changed here; their callers in this branch repaired):
+  - *the tail's steps (`wal-save*`, `wal-zte*`)*: **`walInvBody_tail … tg m`** takes `(m : OsMeta)` and the premise
+    `tailHeld tg m` (`TailAcc.lean`: the caller's half `osMeta tg.i ½ m` while `tg`'s change is `none`, `emp`
+    otherwise), given back after the second `tailVar`. Callers: idle `… _ m $$ Hb Hk Hv [Hm1] with ⟨…, Hv', Hm1,
+    Hclose⟩` then `· dsimp only [tailHeld]; iexact Hm1` (and `dsimp only [tailHeld]` after); in flight
+    `… _ fl.m $$ Hb Hk Hv [] with ⟨…, Hv', -, Hclose⟩` then `· dsimp only [tailHeld]; iempintro`
+    (`TailWriter.lean`'s two). A resize supply (`truncSup`/`fallocSup`) passes the `½ m0` it receives.
+    `walParked_tail` takes `F F'`, `hF : ∀ i, i ≠ g0.ino → F' !! i = F !! i` and `walParkedIn Ls cl F g0.ino`;
+    `walParked_relay` (`TailSync`) and `walParked_cover` (`CreateMergeStep`) take an implicit `{F}`.
+  - *`cut` (`wal-cut9`)*: **`walCut_osAUnc`** takes `(o : WalOut)` after `g` and `hoD : (j, NameSet.except X) ∈
+    o.D`; `walCutP … g o` holds `walOutFrag o` (after `walParkFrag false`); `walCutQ … g o bt wr`'s commit gives
+    `walOutFrag ((o.delSeg i0).addSeg g.ino)`. `walParked_cut … wr F o hl hg0 hnd hino (hkey : c'.1 = c.1 ∧
+    c'.2.1 = c.2.1) (hD : (c.1, c.2.1) ∈ o.D) (hF0 : F !! g0.ino = none) : ⊢ walParked Ls (l1 ++ c :: l2) F -∗
+    walOutFrag o -∗ segResP g0 ==∗ walParked (<[dir := cutLay …]> Ls) (l1 ++ c' :: l2) (GMap.delete g.ino F) ∗
+    walOutFrag ((o.delSeg g0.ino).addSeg g.ino)` (no `walParkFrag`, no `hc'`; `CutAu` passes `⟨rfl, rfl⟩ hoD
+    hF0.symm`). `WAL.cut`'s proof gets `o` and `hoD` from the write handle's body (below).
+  - *`Create` (`wal-create*`)*: `walCreateQ`'s commit holds **`walOutFrag (WalOut.empty.create g.ino J X dir)`**
+    (`WalOut.create o i J X dir := ⟨i :: o.O, (J, .except X) :: o.D, dir :: o.T⟩`, `CreateKeys.lean`), which
+    `Create`'s post must put into the new handle's body. `walParked_create Ls cl F o CR … : ⊢ walParked Ls cl F -∗
+    walOutFrag o ==∗ walParked … (GMap.delete g.ino F) ∗ walOutFrag (o.create g.ino J X dir)` (no
+    `walParkFrag`); `CreateAu`'s commit: `imod walParked_lock (W := W) Ls _ F $$ Hpk HLk with ⟨Hpk, HLk, Ho, -⟩`.
+    `CreateDropStep`'s `walUnlocked_park` became `walUnlocked_out` (`o = WalOut.empty` from the free token).
+  - *the write handle (`walOpenWF`/`walHandleIn`, `ReadAll`, `Close`)*: its sealed body holds `walOutFrag o` with
+    `⌜o = ⟨[tail ino], [(lay.j, .except X)], [dir]⟩⌝` (what it keeps after `ReadAll`'s put-back); `Close` puts
+    back with `_putSeg`/`_putClaim`/`_putTmps` and `walParked_unlock`.
+- **Open**: putting back the **tail** without a tail record (`openAtIndex`'s error arms, a failed `ReadAll`)
+  needs `F !! tail = none`, which no resource of the holder shows (a change starts only through
+  `walInvBody_tail`, i.e. on a registered tail, but nothing records that). Proposed: `walTailsRes`'s pure part
+  gains `∀ i, F !! i ≠ none → ∃ dir γ, T !! dir = some γ ∧ <dir's last segment>.ino = i` (it has `T`, `Ls`, `F`):
+  kept by `walInvBody_tail` (the tail stays last), `cut` (`delete g.ino`, the old tail idle), `Create`.
+  The non-tail segments have the same need; the same clause gives them (a change only on a last segment).
 
 ## 9. The trusted-model drafts (2026-11-13, branch `wal-models`; pending the user's review [user])
 
@@ -2939,3 +2998,16 @@ Two facts the pin and the error arms need are not in `walInv`; both are invarian
 - *Callees for `openAtIndex`'s write mode*: `os.File.Name` and `filepath.Base` have specs
   (`LinuxFs/Spec/os/File__Name.lean`, `LinuxFs/Spec/path/filepath/Base.lean`); `*LockedFile`'s promoted
   `Name` and `WAL.tail` over `walReadH`'s locks (`WAL__tail` is over the write handle) are to check.
+
+**Ninth session (branch `wal-read9`, 2026-11-13): gaps A and B closed in the invariant** (W1 log, tenth
+session: `WalOut`, `walParked Ls cl F`, `Parked.lean`). For `openAtIndex`'s pin, at its first step
+(`wp_notCrashed_acc`): open `walInv`, `walParked_lock` (with `walUnlockedTok`: `walLockedTok`, the empty
+record, and no change in flight anywhere), then `walParked_takeSegs` with `S = lay.segs.drop k` (`k` the
+`walSearch` position; `segsAll_nodup_iff` for the distinct inodes), `walParked_takeClaim` (the WAL directory's
+claim, `WalDirClaimOf` from `WalsOk`/`DirKeysOk`), in write mode `walParked_takeTmps`; each `segResP g` with
+`⌜F !! g.ino = none⌝` and the invariant's `segResF F g = segRes g` gives the exact halves (`osMeta_agree`,
+`osBytes_agree`). The handle's body (`walReadH`) must then hold `walOutFrag ⟨S.map ino, [(lay.j, .except X)],
+[dir] or []⟩` (a `ReadDefs` change, sealed: no client statement changes). The error arms put back with
+`_putSeg`/`_putClaim`/`_putTmps`, then `walParked_unlock`; the put-back of the WAL's **last** segment needs
+`F !! ino = none`, open (W1 log, tenth session, "Open": a `walTailsRes` clause, a change only on a registered
+tail). Task 3 (the pin, `openAtIndex`, `OpenForRead`, `Open`) not started.

@@ -169,17 +169,20 @@ theorem laysResF_cut (F : GMap Ino SegFl) (Ls : GMap GoString WalLay) (dir : GoS
     iexact Hg
   · iapply (laysResF_map (L := L) _ _).1 $$ Hrest
 
-/-- **The parked halves after the cut**: the handle (the flag `false`) takes the new segment out
-and its directory's new claim `c'` (in place of the old `c`), and deposits the old tail's halves
-(`segResP g0`). -/
+/-- **The parked halves after the cut**: the handle (holding the record of what is out, `o`) takes
+the new segment out and deposits the old tail's halves (`segResP g0`, idle: no change in flight on
+it); its directory's claim, out by key, keeps its key in the new history `c'` (in place of the old
+`c`). -/
 theorem walParked_cut (Ls : GMap GoString WalLay) (l1 l2 : List Claim) (c c' : Claim) (dir : GoString)
-    (lay : WalLay) (g0 g : SegG) (b wr : Nat) (hl : Ls !! dir = some lay)
+    (lay : WalLay) (g0 g : SegG) (b wr : Nat) (F : GMap Ino SegFl) (o : WalOut)
+    (hl : Ls !! dir = some lay)
     (hg0 : lay.segs.getLast? = some g0) (hnd : ((segsAll Ls).map (·.ino)).Nodup)
-    (hino : ∀ g' ∈ segsAll Ls, g'.ino ≠ g.ino) (hc' : ∀ c1 ∈ l1 ++ l2, c1 ≠ c') :
-    walParked (L := L) (W := W) Ls (l1 ++ c :: l2) ∗ walParkFrag (W := W) false ∗
-        segResP (L := L) g0 ⊢
-      walParked (L := L) (W := W) (<[dir := cutLay lay b g wr]> Ls) (l1 ++ c' :: l2) ∗
-        walParkFrag (W := W) false := by
+    (hino : ∀ g' ∈ segsAll Ls, g'.ino ≠ g.ino) (hkey : c'.1 = c.1 ∧ c'.2.1 = c.2.1)
+    (hD : (c.1, c.2.1) ∈ o.D) (hF0 : F !! g0.ino = none) :
+    ⊢ walParked (L := L) (W := W) Ls (l1 ++ c :: l2) F -∗ walOutFrag (W := W) o -∗
+        segResP (L := L) g0 ==∗
+      walParked (L := L) (W := W) (<[dir := cutLay lay b g wr]> Ls) (l1 ++ c' :: l2) (GMap.delete g.ino F) ∗
+        walOutFrag (W := W) ((o.delSeg g0.ino).addSeg g.ino) := by
   classical
   have hnd' := (segsAll_nodup_iff Ls).1 hnd
   obtain ⟨pre, hs⟩ := List.getLast?_eq_some_iff.1 hg0
@@ -192,14 +195,27 @@ theorem walParked_cut (Ls : GMap GoString WalLay) (l1 l2 : List Claim) (c c' : C
   have hother : ∀ k la, k ≠ dir → Ls !! k = some la → ∀ g' ∈ la.segs, g'.ino ≠ g0.ino :=
     fun k la hk hla g' hg' => hnd'.2 k dir la lay hk hla hl g' hg' g0 hg0m
   unfold walParked
-  iintro ⟨⟨%bf, %O, %D, Ha, %hb, Hs, Hc, Ht⟩, Hf, Hp⟩
-  icases walPark_agree (W := W) bf false $$ Ha Hf with %hbf
-  subst hbf
+  iintro ⟨%bf, %o', Ha, Hoa, %hb, Hs, Hc, Ht⟩ Hf Hp
+  icases walOut_agree (W := W) o' o $$ Hoa Hf with %ho
+  subst ho
+  imod walOut_set (W := W) o' o' ((o'.delSeg g0.ino).addSeg g.ino) $$ Hoa Hf with ⟨Hoa, Hf⟩
+  imodintro
   iframe Hf
-  iexists false, g.ino :: O.filter (· ≠ g0.ino), c' :: D
-  iframe Ha
+  obtain ⟨O, D, T⟩ := o'
+  dsimp only [WalOut.delSeg, WalOut.addSeg] at hb hD ⊢
+  iexists bf, ⟨g.ino :: O.filter (· ≠ g0.ino), D, T⟩
+  dsimp only
+  iframe Ha Hoa
   isplitr
-  · ipureintro; intro h; cases h
+  · ipureintro
+    intro i hi
+    by_cases he : i = g.ino
+    · rw [he]; exact List.mem_cons_self ..
+    · rw [GMap.lookup_delete_ne _ (Ne.symm he)] at hi
+      have hi0 : i ≠ g0.ino := by rintro rfl; exact hi hF0
+      refine List.mem_cons_of_mem _ ?_
+      simp only [List.mem_filter, decide_eq_true_eq]
+      exact ⟨hb i hi, hi0⟩
   isplitl [Hs Hp]
   · -- the segments
     iapply (segsAll_sep_map _ _).2
@@ -256,12 +272,11 @@ theorem walParked_cut (Ls : GMap GoString WalLay) (l1 l2 : List Claim) (c c' : C
     icases (BigSepL.bigSepL_append (PROP := IProp GF)).1 $$ Hc with ⟨H1, H2⟩
     icases (BigSepL.bigSepL_cons (PROP := IProp GF)).1 $$ H2 with ⟨-, H2⟩
     iapply (BigSepL.bigSepL_append (PROP := IProp GF)).2
-    have hP : ∀ c1 ∈ l1 ++ l2, ParkedClaim (<[dir := cutLay lay b g wr]> Ls) (c' :: D) c1 ↔
+    have hP : ∀ c1 ∈ l1 ++ l2, ParkedClaim (<[dir := cutLay lay b g wr]> Ls) D c1 ↔
         ParkedClaim Ls D c1 := by
-      intro c1 hc1
+      intro c1 _
       unfold ParkedClaim
       rw [walDirClaimOf_insert hl (by simp [cutLay]) c1]
-      simp [hc' c1 hc1]
     isplitl [H1]
     · iapply BigSepL.bigSepL_mono (fun {k c1} hk => ?_) $$ H1
       have e := hP c1 (List.mem_append_left _ (List.mem_of_getElem? hk))
@@ -269,8 +284,8 @@ theorem walParked_cut (Ls : GMap GoString WalLay) (l1 l2 : List Claim) (c c' : C
       exact .rfl
     · iapply (BigSepL.bigSepL_cons (PROP := IProp GF)).2
       isplitr
-      · have e : ¬ ParkedClaim (<[dir := cutLay lay b g wr]> Ls) (c' :: D) c' := fun h =>
-          h.2 (List.mem_cons_self ..)
+      · have e : ¬ ParkedClaim (<[dir := cutLay lay b g wr]> Ls) D c' := fun h =>
+          h.2 (by rw [hkey.1, hkey.2]; exact hD)
         rw [if_neg e]
         iempintro
       · iapply BigSepL.bigSepL_mono (fun {k c1} hk => ?_) $$ H2
@@ -278,7 +293,7 @@ theorem walParked_cut (Ls : GMap GoString WalLay) (l1 l2 : List Claim) (c c' : C
         simp only [propext e]
         exact .rfl
   · -- the pipeline names: the same directory
-    iapply walTmpParked_insert Ls false dir lay (cutLay lay b g wr) hl rfl $$ Ht
+    iapply walTmpParked_insert Ls T dir lay (cutLay lay b g wr) hl rfl $$ Ht
 
 end iris
 
