@@ -72,7 +72,7 @@ theorem cutCommit_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {
     (hDK : DirKeysOk C Mr jr s Ls cl n K none) (hK : K !! dir = some (j, X))
     (hd : s.wal !! dir = some d) (hl : Ls !! dir = some lay) (hg0 : lay.segs.getLast? = some g0)
     (hc0 : ClaimOnce (j, .except X, hj) cl)
-    (hm : d.m = d.H.length)
+    (hm : d.m = d.H.length) (hnamed : d.named = true)
     (hlast0 : g0.bs = (segStream C Mr d lay.cuts lay.cuts.length).map durB)
     (hcuts : ∀ b ∈ lay.cuts, b < d.H.length)
     (hnm0 : walNameP nm0 = true ∧ hj.cur !! nm0 = some (.file g0.ino))
