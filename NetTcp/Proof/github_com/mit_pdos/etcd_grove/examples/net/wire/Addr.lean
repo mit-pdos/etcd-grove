@@ -73,6 +73,13 @@ theorem setMap_delete (S : GSet Nat) (c : Nat) :
     cases h1 : S !! k <;> cases h2 : (S \ {[c]}) !! k <;> simp_all
 
 
+/-- Two namespaces of different names are disjoint (as Perennial's `sync.wg_mask_ndot_ne`). -/
+theorem ndot_mask (N : Namespace) (x y : String) (h : x ≠ y) :
+    (↑(N.@x) : CoPset) ⊆ ⊤ \ ↑(N.@y) := by
+  intro p hp
+  rw [LawfulSet.mem_diff]
+  exact ⟨CoPset.mem_full, fun h' => ndot_ne_disjoint N h p ⟨hp, h'⟩⟩
+
 section wps
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt tcpExt] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
