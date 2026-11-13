@@ -21,7 +21,7 @@ do not depend on their bodies.
   lock is `fileutil.lockedFile` of its file.
 * `walReadH write w dir s`: the struct's fields as `openAtIndex` leaves them: `lg`, `dir`, `start`,
   the decoder (`ownDecoder` live at offset 0, CRC 0, over `fs`), `locks`, `readClose` (`nil` in write
-  mode), the pipeline (write mode: `walPipeH fp dir 0`; read mode: `nil`), the zero fields
+  mode), the pipeline (write mode: `walPipeH fp dir j 0`, at some directory inode `j`; read mode: `nil`), the zero fields
   (`encoder`, `state`, `metadata`, `enti`, `snapi`, `unsafeNoSync`), the mutex, the decoder's
   environment.
 
@@ -110,7 +110,7 @@ def walReadH (write : Bool) (w : Loc) (dir : GoString) (s : w64 × w64) : IProp 
     locks ↦* lfs ∗ ownSliceCap Loc locks (DFrac.own 1) ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"readClose" w ↦ rc ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ fp ∗
-    (if write then iprop(⌜rc = zero_val GoFunc⌝ ∗ walPipeH fp dir 0) else ⌜fp = null⌝) ∗
+    (if write then iprop(⌜rc = zero_val GoFunc⌝ ∗ ∃ j : Ino, walPipeH fp dir j 0) else ⌜fp = null⌝) ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"encoder" w ↦ (null : Loc) ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"state" w ↦ (null : Loc) ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"metadata" w ↦ slice.nil ∗
