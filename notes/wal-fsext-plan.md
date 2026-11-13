@@ -1008,6 +1008,24 @@ error; `Close`: the token → the pipeline's claims (and the file in flight remo
   persistent `lockedFile`; (6) task 2's `nc` variants: `specCreateTruncSnc` landed on `wal-int`
   (`wal-osau4`); `os.File.Sync.specDirS` has no atomic update, so it needs none: `crashOk_dirSync`
   is applied after the step, opening `walInv` with `wp_notCrashed_acc` before the next one.
+**Gaps session (branch `wal-gaps`, 2026-11-13).** Gaps (1)-(3) closed, no `sorry` added:
+- (1) `os.ownOff f (W64 0)` (the model's `file.off` starts at 0) in the success posts of
+  `os.OpenFile.specCreateS`/`specCreateSnc`/`specCreateTruncS`/`specCreateTruncSnc`, `wp_fileS`,
+  `wp_truncS`, and of `fileutil.openPost`/`lockPost` (`LockFile`'s proof passes it on; the spec
+  modules import `LinuxFs.Proof.os.Off`). `os.OpenFile.wp_dirS` unchanged.
+- (2) `trFile i P` has `m.maps = ∅` (third pure conjunct): a new file has no mappings, a truncation
+  keeps them (`announce_maps`); `trFile_of_rsDone` takes it. True of the WAL's `N.tmp` (never mapped).
+- Found and fixed: the `nc` open specs had lost `fmtErrorOkOrNil err` in their error posts (the merge
+  of `wal-osau4` into `wal-int`, 9bc9e5356e), so `OpenFileS`/`OpenFileTruncS` did not build on `wal-int`.
+- (3) `filepathlite.Clean` proved (`LinuxFs/Proof/internal/filepathlite/Clean.lean`, the main tree's
+  `path.Clean` proof adapted: `IsPathSeparator` calls, the empty output appended through the buffer,
+  `postClean`, `FromSlash`); `filepath.join` specified (`LinuxFs/Spec/path/filepath/join.lean`, the
+  same post as `Join`, no premise) and proved over Perennial's `strings.wp_Join` and `filepath.Clean`
+  (pure: `filepath.joinModel_drop`, `joinModel_empties`); `filepath.Join` proved over `join`. `join`
+  takes `[UntypedRuneSemantics]` (`string(Separator)`, `notes/perennial-changes.md`), to be listed in
+  `etc/gen-link.py`'s `SEM_PREMISES` when filepath is linked.
+- Not done: `fileutil.ReadDir` (still wholly `sorry`), `filepathlite.Dir`/`IsAbs`.
+
 ## W4 implementation log (branch `wal-create`, 2026-11-13)
 
 **Statements (`sorry`-stubbed proofs):** `LinuxFs/Spec/.../storage/wal/Create.lean` (`wal.Create.spec C Mr`),
