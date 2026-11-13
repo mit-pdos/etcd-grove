@@ -7,6 +7,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.SrvCtxWeak
+public import Proof.net.http.NetCtx
 public import Code.net.http
 public import Proof.go_etcd_io.etcd.server.v3.lease.leasehttp.Base
 public import GeneratedProof.go_etcd_io.etcd.server.v3.lease.leasehttp
@@ -61,12 +62,20 @@ synchronously on the caller's goroutine, in `propagateCancel` and `Cause`, go1.2
 token (`levelTok v3rpc.ctxErrLvl`, the reader slot of the wrapper's `RWMutex`), which the premise
 does not hand over: net/http calls `ctx.Err()` only from live goroutines (the caller's and the
 transport's own), each a thread, so the read locks it holds at one time are bounded by the threads,
-which is what the token accounts for in the logic (the Freeze addendum T-f'). -/
+which is what the token accounts for in the logic (the Freeze addendum T-f'). (k8s 7f-4, Addendum
+T-h0, the fix of a refutation: `notes/renewhttp-value-refuted.md`) The context holds nothing at the
+keys net/http reads of a request's context (`http.netCtxOk ctx`: `nil` at `httptrace`'s
+`clientEventContextKey{}`, `nettrace.TraceKey{}`, `nettrace.LookupIPAltResolverKey{}`):
+`Transport.roundTrip` calls `httptrace.ContextClientTrace(ctx)` (go1.27.3
+`net/http/transport.go:614`) and the dial and lookup paths read the other two (`net/dial.go:535,
+778`, `net/lookup.go:313, 321`); without it, a context whose `Value` panics at the first key met the
+premise and `RenewHTTP` panicked (`TestRenewHTTPValuePanics`), and a non-nil value there would run
+the caller's hooks or resolver. -/
 abbrev leasehttp.RenewHTTP.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (id : w64) (url : GoString)
     (rt : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease.leasehttp ∗
-      srvCtxWeak ctx cd ∗
+      srvCtxWeak ctx cd ∗ http.netCtxOk ctx ∗
       ⌜∃ t : Loc, rt = GoInterface.ok ⟨go.GoType.PointerType _root_.Perennial.net.http.Transport.ty, #t⟩⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.lease.leasehttp.RenewHTTP))
       (Val #(GoInterface.ok ctx))) (Val #id)) (Val #url)) (Val #rt))

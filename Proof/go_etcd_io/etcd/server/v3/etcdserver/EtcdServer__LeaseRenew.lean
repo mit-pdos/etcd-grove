@@ -106,9 +106,15 @@ local macro "renew_forward" : tactic => `(tactic| (
   wp_apply hReqT (structFieldRef EtcdServer go!"Cfg" s) rv.electionTicks rv.tickMs as %tmo -
   · iframe #
   (try wp_auto)
-  wp_apply context.wp_WithTimeout ctx1 _ tmo $$ [] as %cctx %γc %cancel %dl ⟨#Hcancel, #Hcctx, -⟩
+  wp_apply context.wp_WithTimeout ctx1 _ tmo $$ [] as %cctx %γc %cancel %dl ⟨#Hcancel, #Hcctx, #Hcvf⟩
   · iframe #
   (try wp_auto)
+  ihave #Hnetw' : http.netCtxOk cctx $$ []
+  · iapply http.netCtxOk_of_netCtxOkC
+    isplitl []
+    · iPkgInit
+    iapply http.netCtxOkC_from
+    iframe #
   ihave #Hcc := Hcctx
   iunfold _root_.Perennial.context.isContext at Hcc
   iunfold _root_.Perennial.context.isContextDef at Hcc
@@ -348,7 +354,7 @@ theorem EtcdServer.LeaseRenew.wp_proof
     (hIsC : errors.IsCtxErr.spec (GF := GF) (hG := hG)) :
     EtcdServer.LeaseRenew.spec (GF := GF) (hG := hG) := by
   intro s E ρ γr γl ctx cd id n m
-  wp_start as ⟨#Hq, #Hr, #Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, #Hlib, HRD, #Hpool, Htok, Hlgr, Hrrd,
+  wp_start as ⟨#Hq, #Hr, #Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, #Hlib, #Hnet, HRD, #Hpool, Htok, Hlgr, Hrrd,
     %Hbound, #Hprt⟩
   iunfold srvPeerRt at Hprt
   icases Hprt with ⟨%rt, #Hrtf, %Hrt⟩
@@ -376,10 +382,11 @@ theorem EtcdServer.LeaseRenew.wp_proof
   · ipureintro; rfl
   iintro %osl ⟨-, -⟩
   (try wp_auto)
-  wp_apply (traceutil.Tracer.Start.spec_txn hStart) tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, -, %Hinc1, #Hsp, -, -, #Hlibw⟩
+  wp_apply (traceutil.Tracer.Start.spec_txn hStart) tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, -, %Hinc1, #Hsp, -, -, #Hlibw, #Hnetw⟩
   · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hctx1 := Hctx1w $$ Hctx
   ihave #Hlib1 := Hlibw $$ Hlib
+  ihave #Hnet1 := Hnetw $$ Hnet
   iunfold trace.isSpan at Hsp
   icases Hsp with ⟨%si, %Hsi, #HEnd, -, -⟩
   subst Hsi

@@ -165,7 +165,7 @@ theorem v3rpc.LeaseServer.leaseKeepAlive.wp_proof
   icases Hls' with ⟨%Hpn, #Hhdr, #Hle, %lg, #Hlg, #Hlgf⟩
   ihave #Hst' := Hst
   iunfold srvStreamIsStrong at Hst'
-  icases Hst' with ⟨%si, %Hsi, #HRecv, #HSend, #HCtx, #Hctxis, #Hrunctx⟩
+  icases Hst' with ⟨%si, %Hsi, #HRecv, #HSend, #HCtx, #Hctxis, #Hrunctx, #Hnetci⟩
   iunfold v3rpc.raftLeaseRenew at HRn
   ihave #Hlp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease $$ []
   · iPkgInit

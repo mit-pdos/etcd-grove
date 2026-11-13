@@ -90,7 +90,8 @@ theorem v3rpc.streamKeysOk_delete (m : GMap GoInterface Unit) (k : GoInterface) 
 /-- **The wrapper `serverStreamWithCtx{ctx: l, ServerStream: ss}` is a server end with a weak
 context** (`srvRawStreamIsW`): its promoted `RecvMsg`/`SendMsg` are `ss`'s, its `Context()` returns
 the `*cancellableContext` `l`, a weak context (`v3rpc.srvCtxWeak_cc`) whose library values and span
-are well formed (`v3rpc.wrapperLibCtx`, from `ci`'s chain forms). -/
+are well formed (`v3rpc.wrapperLibCtx`, from `ci`'s chain forms) and which holds nothing at
+net/http's keys (`v3rpc.wrapperNetCtx`). -/
 theorem v3rpc.wrapper_rawW
     (wp_Err : v3rpc.cancellableContext.Err.spec (GF := GF) (hG := hG))
     {Req Rep : StreamMsg GF} (si : GoInterfaceOk) (γ : StreamNames) (Up : Nat → Req.M → IProp GF)
@@ -112,9 +113,11 @@ theorem v3rpc.wrapper_rawW
   iunfold v3rpc.ccHandle at Hcc'
   icases Hcc' with ⟨%c0, %γ0, %cancel, %e, %γp, %Hc1, -, #Hfield, -⟩
   iunfold srvRawStreamIs at Hss
-  icases Hss with ⟨%si', %Hsi, -, #HRecv, #HSend, -, -, -, #HlibC, #HspC⟩
+  icases Hss with ⟨%si', %Hsi, -, #HRecv, #HSend, -, -, -, #HlibC, #HspC, #HnetC⟩
   cases Hsi
   ihave ⟨#Hlib, #Hspan⟩ := v3rpc.wrapperLibCtx l _ ci $$ [Hfield Hvf HlibC HspC]
+  · iframe #
+  ihave #Hnet := v3rpc.wrapperNetCtx l _ ci $$ [Hfield Hvf HnetC]
   · iframe #
   iunfold srvRawStreamIsW
   iexists _
@@ -247,7 +250,7 @@ theorem v3rpc.newStreamInterceptor.wp_proof
   wp_auto
   ihave #Hss' := Hss
   iunfold srvRawStreamIs at Hss'
-  icases Hss' with ⟨%si, %Hsi, %Hkey, #HRecv, #HSend, #HCtx, #Hctx, #Hrc, #HlibC, #HspC⟩
+  icases Hss' with ⟨%si, %Hsi, %Hkey, #HRecv, #HSend, #HCtx, #Hctx, #Hrc, #HlibC, #HspC, #HnetC⟩
   subst Hsi
   ihave #HssW := srvRawStreamIsW_of_raw _ γ _ _ Up Dn ci cd $$ Hss
   wp_auto

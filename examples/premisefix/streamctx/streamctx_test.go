@@ -541,3 +541,35 @@ func TestNoLeaderTyped(t *testing.T) {
 		t.Fatalf("dynamic type %s", got)
 	}
 }
+
+// nilCancelCtx (T-h5): a context whose every method delegates to a real WithCancel child, except
+// Value at context's own &cancelCtxKey, where it returns a nil pointer of the dynamic type the
+// child returns (*context.cancelCtx, built by reflect: the type is unexported). Value(&cancelCtxKey)
+// returns, with no fact of the value: what T-h2's ctxDoneErr "#HValueAny" admits.
+type nilCancelCtx struct{ context.Context }
+
+func (c nilCancelCtx) Value(k any) any {
+	v := c.Context.Value(k)
+	if fmt.Sprintf("%T", v) == "*context.cancelCtx" {
+		return reflect.Zero(reflect.TypeOf(v)).Interface()
+	}
+	return v
+}
+
+// TestRenewHTTPNilCancelCtxPanics (T-h5): RenewHTTP panics on such a context: net/http's
+// WithCancelCause(req.Context()) calls propagateCancel, whose parentCancelCtx asserts the value to
+// *cancelCtx (ok) and loads its done field through the nil pointer (go1.27.3 context.go:403-411).
+func TestRenewHTTPNilCancelCtxPanics(t *testing.T) {
+	hs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	defer hs.Close()
+	inner, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Fatal("RenewHTTP did not panic (T-h5 no longer holds: update the notes)")
+		}
+		t.Logf("recovered: %v", r)
+	}()
+	leasehttp.RenewHTTP(nilCancelCtx{inner}, lease.LeaseID(1), hs.URL+"/leases", &http.Transport{})
+}

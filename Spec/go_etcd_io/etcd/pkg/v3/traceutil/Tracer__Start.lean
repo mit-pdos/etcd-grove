@@ -12,6 +12,7 @@ public import Proof.google_golang_org.grpc.metadata.Incoming
 public import Proof.context.ReqKeys
 public import Proof.context.LibKeys
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.SrvCtxWeak
+public import Proof.net.http.NetCtx
 
 @[expose] public section
 
@@ -71,7 +72,12 @@ The premise is a disjunction (`txnCtx ∨ srvCtxWeak`), a known departure from t
 `txnCtx` did not, but `isContext`'s arm of `txnCtx` already admitted the same kind, and with
 `spanValOk` in the premise neither arm can refute the triple through the span. (k8s 7f-4, T-f')
 `srvCtxWeak`'s `Err` clauses take a level token (`levelTok v3rpc.ctxErrLvl`), which the wand carries
-unchanged: a `valueCtx`'s `Err()` is `ctx`'s own call, paid with the same token. -/
+unchanged: a `valueCtx`'s `Err()` is `ctx`'s own call, paid with the same token. (k8s 7f-4,
+Addendum T-h0) It holds nothing at net/http's keys, in the chain form, if `ctx` does
+(`http.netCtxOkC`): `ContextWithSpan(ctx, s)` is a `*valueCtx` at otel's `currentSpanKey`, a key of
+another type than `httptrace`'s and `nettrace`'s, whose `context.value()` walk goes on to `ctx`
+(Perennial's `ctxValue_valueCtx`), or `ctx` itself (the no-op tracer); what carries the fact to
+`LeaseRenew`'s `WithTimeout` child (`ctxValueFrom`) and from there to `RenewHTTP`. -/
 abbrev traceutil.Tracer.Start.spec : Prop :=
   ∀ (tr ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (name : GoString)
     (opts : GoSlice),
@@ -88,7 +94,8 @@ abbrev traceutil.Tracer.Start.spec : Prop :=
       ⌜metadata.incomingOf (GoInterface.ok ctx') = metadata.incomingOf (GoInterface.ok ctx)⌝ ∗
       trace.isSpan sp ∗ □ (trace.spanCtxOk ctx -∗ trace.spanCtxOk ctx') ∗
       □ (context.startTimeOk ctx -∗ context.startTimeOk ctx') ∗
-      □ (context.libCtxOk ctx -∗ context.libCtxOk ctx') }}
+      □ (context.libCtxOk ctx -∗ context.libCtxOk ctx') ∗
+      □ (http.netCtxOkC ctx -∗ http.netCtxOkC ctx') }}
 
 end spec
 

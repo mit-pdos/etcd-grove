@@ -8,6 +8,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseRead
 public import Code.net.http
 public import Proof.context.LibKeys
+public import Proof.net.http.NetCtx
 
 @[expose] public section
 
@@ -47,14 +48,17 @@ unchecked (as `LeaseTimeToLive`'s, `issues/etcd-lease-timetolive-keys-toctou.md`
 the local lessor, which may lag the lessor that renews: a follower's, the leader's
 (`nonissues/etcd-lease-renew-keys-follower-lag.md`), and the leader's own with `FastLeaseKeepAlive`
 and the lease found, which skips `waitAppliedIndex` (entries committed but not yet applied). The
-revision re-check is not stated (`checkLeaseRenew.spec`'s margin). -/
+revision re-check is not stated (`checkLeaseRenew.spec`'s margin).
+(k8s 7f-4, Addendum T-h0) The context holds nothing at net/http's keys, in the chain form
+(`http.netCtxOkC ctx`), which `Tracer.Start` and `WithTimeout` carry to the context `RenewHTTP`
+takes (`http.netCtxOk`). -/
 abbrev EtcdServer.LeaseRenew.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (γl : GName)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (id : w64) (n m : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗
       srvAuthAt s E ∗ srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ auth.authPubLbM E.authMode n ∗
-      lease.lessorLb γl m ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗ E.RD ∗ lease.lessorRdPool γl ∗ levelTok lease.lessorLvl ∗
+      lease.lessorLb γl m ∗ context.isContext ctx cd ∗ context.libCtxOk ctx ∗ http.netCtxOkC ctx ∗ E.RD ∗ lease.lessorRdPool γl ∗ levelTok lease.lessorLvl ∗
       srvLgReader s ∗ srvReadReader s γr ∗ ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ ∗
       srvPeerRt s }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"LeaseRenew"))
