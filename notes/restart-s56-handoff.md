@@ -60,7 +60,7 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
   generated from `isServerBuiltC .off` less `Hskeep` by `/shared/tmp/restart-s56/cp2/gen_builtR.py`,
   `srvBuiltR_C`, P6's `restart_cs_bound`/`restart_idx`, `restart_clusterVerLogOk`); `NewServer.specR`
   (`SE/NewServer.lean`, not linked, not proved).
-- Targeted build clean (`/shared/tmp/restart-s56/cp2/targeted.log`); full build:
+- Targeted build clean (`/shared/tmp/restart-s56/cp2/targeted.log`); full build clean (17479 jobs), tcb --check matches (870, 4):
   `/shared/tmp/restart-s56/cp2/full.log`; tcb: see the CP2 report.
 - **Freeze package: `/shared/tmp/restart-s56/freeze-package.md`** (T1-T6, H10, world assumptions, exported
   statements). STOP: 81 runs the reviews (spec-reviewer on specR/srvBuiltR/srvRestartRows; axiom skill on
