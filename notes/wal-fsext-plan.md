@@ -1638,3 +1638,53 @@ condition lifted to `CrashOkA`.**
      `closeAll`, the `os.File` reader bridge (`decFile` of a `walFileS` stream: `Read` over the
      program's half of the bytes, `Stat`), `walpb.Snapshot.Clone`; `newFilePipeline` is `sorry`.
 - *Not done*: the proofs of `openWALFiles`, `openAtIndex`, `OpenForRead`, `Open`, `ReadAll`.
+
+## I3b: resizes in flight on a crash-tracked file (branch `wal-i3b`, 2026-11-13)
+
+The W3/W5 log's gap 4 (`ZeroToEnd` on the tail; `cut`'s truncate of the old tail): `ftruncate` and
+`fallocate`'s growth on a file whose `OsMeta`/bytes are split between the program and `walInv`.
+
+- *The extension level needed nothing new*: `Truncate.lean`/`Falloc.lean`'s two-step specs already
+  have an in-flight token (`rsTok`, as `pwTok` for writes: the `OsMeta` whole, the bytes cut off,
+  `rsAnn`'s zero candidates). The split forms are **atomic-update specs** (`LinuxFs/Proof/os/
+  ResizeAu.lean`, proved, over `osAUnc`/`wp_aunc_step`, so the update's owner can open `walInv` with
+  `notCrashed`): `wp_osFtruncateStart_au`/`wp_osFallocStart_au` (caller: half the `OsMeta`, and of the
+  bytes cut off; the update lends the other halves and commits with `rsTok`, outcome `(t, n)`),
+  `wp_osFtruncateFinish_au`/`wp_osFallocFinish_au` (the update lends the token, commits with the
+  whole outcome `rsOutT`/`rsOutF`; its `Q e` gives the caller its share). Files unmapped
+  (`m.maps = ∅`). Derived from the whole-resource specs, which stay (the case of updates owning nothing).
+  `GooseLang/Ext/Fs` unchanged (no rebuild).
+- *Go wrappers*: `syscall.Fallocate.wp_growAu` (`Proof/syscall/FallocateAu.lean`, **proved**): one
+  `fallocAu` = the start's update whose commit is the finish's; post `∃ n, Q n e`.
+  `os.File.Truncate.specAu` (`Spec/os/File__TruncateAu.lean`; proof **`sorry`**,
+  `Proof/os/File__TruncateAu.lean`, plan in its header): the `EINTR` loop needs an update pair per
+  attempt, so the caller gives a **persistent supply** `□ ∀ m0 xs0, ⌜os.TruncFrom m xs tg m0 xs0⌝ -∗
+  os.truncAu p tg m0 xs0` (the states an attempt starts from: `m` or as announced, or landed); each
+  finish's commit hands the caller its halves (`os.truncOutH`); post `File__Truncate.lean`'s at half
+  (`os.ftDoneH`, `os.ftUndoneH`). The WAL can supply it from `walInv` (persistent) and agreement
+  with the halves it holds.
+- *`walInv`* (`Inv.lean`, additive): **`SegFl.rz : Option Nat := none`** (a resize to `tg` in flight;
+  `off`/`data` unused). `segResF`'s in-flight case splits on it: a write as before; a resize holds
+  `rsTok fl.t g.ino tg fl.m (fl.bs.drop lo) fl.n` and the half of `fl.bs.take lo` (`lo = min size
+  tg`), the layout holding the segment as announced (`SegFl.OkR`: `g.om = m.announce lo (max size tg)
+  tg`, `g.bs = bs.take lo ++ rsAnn n (bs.drop lo)`, `0 < lo` so the invariant keeps half of byte 0).
+  `walTailsRes`'s record carries `F !! ino`, so a resize in flight is in the tail record with no
+  change. Repaired: `segResF_timeless`; `InvInos.segResF_ino_ne` (`segFlR_take_cons`);
+  `CrashTakeSeg.crashRestAt_take_seg` takes a resize's token (`runsCover_rz`) — so `walInv_crash`'s
+  segment take accepts it, `SegCrashAt` unchanged. **For W6**: `SegFl` anonymous constructors need
+  the 7th field (`TailWriter.lean`'s two `⟨t, wr, data, n, m, bs, none⟩`).
+- **Open (not done)**:
+  1. *`WalAbsD.metas`* (`lo = hi = |bs|`) fails for a segment as a resize announced it (`lo = min`,
+     `hi = max` of the sizes): as for W6's writes past the size, the last segment needs
+     `lo ≤ |bs| ≤ hi` with candidates past `|bs|`; the static relation and `CrashOk` across a resize's
+     two steps (`walsOk_resizeStart`/`Finish`, pure) are the next unit, and with them the WAL-level
+     `os.truncAu`/`fallocAu` instances.
+  2. *A growth's crash bytes past the old size* (`fallocate` in flight): `FileCrashedR` bounds them only
+     by `zf`, and the truncate before it raised `zf` past them (`OsMeta.announce`); the wal-eof
+     proposals (`notes/axiom-review/eof-page/`, P1/P2: writeback and `ftruncate` zero the page past
+     the size) decide whether they are zeros. Until then `ZeroToEnd`'s crash images past `o` are
+     unconstrained, against W1.
+  3. *`fileutil.ZeroToEnd`/`Preallocate` split variants*: not written. Shape: `ZeroToEnd`'s
+     `Seek`s take the halves' fraction; its `Truncate(o)` is `specAu`; `Preallocate(f, S, true)` →
+     `preallocExtend` → `Fallocate.wp_growAu` (the `ENOTSUP` fallback `preallocExtendTrunc` →
+     `specAu` again); post: halves of the `osZerosA` run.
