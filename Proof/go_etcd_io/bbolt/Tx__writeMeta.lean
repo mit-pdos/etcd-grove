@@ -4,8 +4,8 @@ built in a fresh buffer (`metaBuf`), written at slot `txid % 2` under `metalock`
 unless `NoSync`. The commit point is the caller's: right after the `WriteAt`, still under
 `metalock`, its view shift `Hcp` gets `metalock`'s resource, hands over the slot's page-cache
 bytes and the client halves of its mapped cells, and gets them back as the write left them, which
-by D22 (one aligned OS page) is all of `metaBuf mv` or nothing (`j = 4096` or `j = 0`), whatever
-`WriteAt` returned.
+for one aligned OS page is all of `metaBuf mv` or nothing (`j = 4096` or `j = 0`), whatever
+`WriteAt` returned: `WriteAt.spec`'s page cut (`PwCut`, `notes/bbolt-port-plan.md` §2.4).
 
 The spec is over local resources (the writer side's fields and file, which `Commit` takes from
 `wdbLive`): `db.ops.writeAt` holds `db.file.WriteAt`'s method value, which `wdbCoreG` does not
@@ -200,33 +200,33 @@ theorem Tx.writeMeta.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   -- the commit step's first half
   iunfold commitStep at Hcp
   imod Hcp $$ HR with ⟨%xs, %old, Hxs, %Hxl, Hold, Hk⟩
-  have hmin : min ((mv.txid' % W64 2) * W64 4096).toNat om.size = 4096 * (mv.txid'.toNat % 2) := by
-    rw [hoff]; omega
-  ihave Hc : mcellsAny om.maps (min ((mv.txid' % W64 2) * W64 4096).toNat om.size)
+  ihave Hc : mcellsAny om.maps ((mv.txid' % W64 2) * W64 4096).toNat
       (((mv.txid' % W64 2) * W64 4096).toNat + (metaBuf mv).length) $$ [Hold]
-  · rw [hmaps, hmin, metaBuf_length, hoff]
+  · rw [hmaps, metaBuf_length, hoff]
     iapply wm_cells_of_bytes b l _ old (by omega) Hxl.2 $$ Hold
   -- the write
   have h0 : 0 ≤ ((mv.txid' % W64 2) * W64 4096).toInt := by
     rw [BitVec.toInt_eq_toNat_cond]; split <;> omega
-  wp_apply hWriteAt f fd K.p (DFrac.own 1) sl (metaBuf mv) (DFrac.own 1)
-    ((mv.txid' % W64 2) * W64 4096) (DFrac.own 1) ⟨K.p.ino, true, true⟩ 1 om xs rfl h0
-    (by rw [metaBuf_length]; omega) (by rw [metaBuf_length, hoff]; omega)
-    (by rw [metaBuf_length, hoff]; omega) (fun _ => rfl)
-    $$ [Hfo Hsl Hfd Hm Hxs Hc] as %n %err ⟨Hfo, Hsl, Hfd, %j, %ys, %h, %Hj, Hm, Hys, Hc, Herr⟩
+  wp_apply hWriteAt f fd K.p.path (DFrac.own 1) sl (metaBuf mv) (DFrac.own 1)
+    ((mv.txid' % W64 2) * W64 4096) (DFrac.own 1) ⟨K.p.ino, true, true⟩ om xs rfl h0
+    (by rw [hoff]; omega) (by rw [metaBuf_length, hoff]; omega)
+    (by rw [metaBuf_length]; decide) (by rw [metaBuf_length]; decide)
+    (by rw [metaBuf_length, hoff]; omega)
+    $$ [Hfo Hsl Hfd Hm Hxs Hc] as %n %err ⟨Hfo, Hsl, Hfd, %j, %ys, %Hj, Hm, Hys, Hc, Herr⟩
   · iframe #
-    rw [hmin, ← fileOwn_eq]
+    rw [← fileOwn_eq, hoff]
     iframe
-  obtain ⟨hjle, hysp, -, hd22, hres⟩ := Hj
-  simp only [metaBuf_length, hoff] at hd22 hysp hjle
+  obtain ⟨hjle, hpo, hcut, hres⟩ := Hj
+  simp only [metaBuf_length, hoff] at hcut hjle
   have hj01 : j = 0 ∨ j = 4096 := by
-    exact hd22 ⟨by simp [osPageSize] <;> omega, by simp [osPageSize]⟩
+    unfold PwCut at hcut
+    simp only [osPageSize] at hcut
+    omega
   have hys : ys.map Prod.fst = (if j = 0 then xs.map Prod.fst else metaBuf mv) := by
-    rw [hysp]
-    have := pwBytes_inside_fst om.size (4096 * (mv.txid'.toNat % 2)) (metaBuf mv) j xs
+    rw [hoff] at hpo
+    exact pwOut_inside_fst om (4096 * (mv.txid'.toNat % 2)) (metaBuf mv) j xs ys
       (by rw [metaBuf_length]; omega) (by rw [metaBuf_length]; exact Hxl.1)
-      (by rw [metaBuf_length]; exact hj01)
-    exact this
+      (by rw [metaBuf_length]; exact hj01) hpo
   have hyl : ys.length = 4096 := by
     have := congrArg List.length hys
     simp only [List.length_map] at this
@@ -235,14 +235,17 @@ theorem Tx.writeMeta.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     · exact metaBuf_length mv
   have hsize : pwSize om.size (4096 * (mv.txid'.toNat % 2)) j = om.size :=
     pwSize_inside _ _ _ 4096 (by omega) (by omega)
-  have hmin' : min (4096 * (mv.txid'.toNat % 2)) om.size = 4096 * (mv.txid'.toNat % 2) := by
-    omega
-  rw [hoff, hsize, hmin', metaBuf_length]
+  have hom' : (pwPost om (4096 * (mv.txid'.toNat % 2)) (metaBuf mv).length j).size = om.size ∧
+      (pwPost om (4096 * (mv.txid'.toNat % 2)) (metaBuf mv).length j).maps = om.maps :=
+    ⟨hsize, by simp only [pwPost, announce_maps]⟩
+  rw [hoff]
+  generalize pwPost om (4096 * (mv.txid'.toNat % 2)) (metaBuf mv).length j = om' at hom'
+  rw [metaBuf_length]
   ihave Hc : ∃ vf, cellsR b (4096 * (mv.txid'.toNat % 2)) ys.length vf $$ [Hc]
   · rw [hmaps, hyl]
     iapply wm_cells_any b l _ (by omega) $$ Hc
   icases Hc with ⟨%vf, Hc⟩
-  iapply cellsR_agree_bytes _ rfl K.p (DFrac.own 1) _ b l (by simp [hmaps]) (DFrac.own 1)
+  iapply cellsR_agree_bytes _ rfl K.p (DFrac.own 1) _ b l (by simp [hom'.2, hmaps]) (DFrac.own 1)
     (by simp) _ ys (4096 * (mv.txid'.toNat % 2)) vf (by omega) $$ Hos Hm Hys Hc
   iintro Hm Hys Hc
   icases cellsR_bytes b (ys.map Prod.fst) _ $$ [Hc] with Hc
@@ -301,7 +304,7 @@ theorem Tx.writeMeta.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     unfold metaSummed
     iframe Hst Hdb Hme Hmv Hf Hwa Hfo Hfd
     isplitl [Hm]
-    · iexists _; iframe; ipureintro; exact ⟨rfl, rfl⟩
+    · iexists _; iframe; ipureintro; exact hom'
     iexists j
     iframe
     isplitr
@@ -331,7 +334,7 @@ theorem Tx.writeMeta.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       unfold metaSummed
       iframe Hst Hdb Hme Hmv Hf Hwa Hfo Hfd
       isplitl [Hm]
-      · iexists _; iframe; ipureintro; exact ⟨rfl, rfl⟩
+      · iexists _; iframe; ipureintro; exact hom'
       iexists j
       iframe
       isplitr
@@ -339,7 +342,7 @@ theorem Tx.writeMeta.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       ileft; ipureintro; rfl
     | false =>
       wp_auto
-      wp_apply hSync K.db f fd K.p _ dqf (DFrac.own 1) $$ [Hf Hfo Hfd Hm]
+      wp_apply hSync K.db f fd K.p K.p.ino _ dqf (DFrac.own 1) $$ [Hf Hfo Hfd Hm]
         as %e2 ⟨Hf, Hfo, Hfd, ⟨%m', Hm, %Hm'⟩, Hr⟩
       · iframe #; iframe
       icases Hr with (%He | ⟨%He, #Hfe⟩)
@@ -352,7 +355,7 @@ theorem Tx.writeMeta.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         unfold metaSummed
         iframe Hst Hdb Hme Hmv Hf Hwa Hfo Hfd
         isplitl [Hm]
-        · iexists m'; iframe; ipureintro; exact Hm'
+        · iexists m'; iframe; ipureintro; exact ⟨Hm'.1.trans hom'.1, Hm'.2.trans hom'.2⟩
         iexists j
         iframe
         isplitr
@@ -387,7 +390,7 @@ theorem Tx.writeMeta.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         unfold metaSummed
         iframe Hst Hdb Hme Hmv Hf Hwa Hfo Hfd
         isplitl [Hm]
-        · iexists m'; iframe; ipureintro; exact Hm'
+        · iexists m'; iframe; ipureintro; exact ⟨Hm'.1.trans hom'.1, Hm'.2.trans hom'.2⟩
         iexists j
         iframe
         isplitr

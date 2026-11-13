@@ -30,18 +30,17 @@ section pure
 variable [GooseExts]
 
 /-- After a whole `pwrite` of `data` at `off`, the range's bytes from `off` on are `data`. -/
-theorem pwBytes_tail_fst (sz off : Nat) (data : List w8) (xs : List ByteG)
+theorem pwValsG_tail (sz off : Nat) (data : List w8) (xs : List ByteG)
     (h : 0 < data.length) :
-    ((pwBytes sz off data data.length xs).drop (off - min off sz)).map Prod.fst = data := by
+    (pwValsG sz off data data.length xs).drop (off - min off sz) = data := by
   have hs : pwSize sz off data.length = max sz (off + data.length) := by
-    unfold pwSize; rw [if_neg (by omega)]
+    unfold pwSize; rw [ite_eq_right (by omega)]
   apply List.ext_getElem
-  · simp only [List.length_map, List.length_drop, pwBytes_length, hs]; omega
+  · simp only [List.length_drop, pwValsG_length, hs]; omega
   · intro i h1 h2
-    simp only [List.getElem_map, List.getElem_drop]
-    rw [pwBytes_getElem]
-    unfold pwByte
-    rw [if_neg (by omega), if_pos (by omega), List.getD_eq_getElem?_getD,
+    simp only [List.getElem_drop, pwValsG, List.getElem_map, List.getElem_range]
+    unfold pwByteG
+    rw [ite_eq_left (by omega), List.getD_eq_getElem?_getD,
       show min off sz + (off - min off sz + i) - off = i by omega, List.getElem?_eq_getElem h2]
     rfl
 

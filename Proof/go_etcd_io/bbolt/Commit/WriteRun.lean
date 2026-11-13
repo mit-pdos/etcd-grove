@@ -160,12 +160,12 @@ theorem oAny_app (p : BFile) (lo n1 n2 : Nat) :
   unfold oAny
   constructor
   · iintro ⟨%xs, H, %hl⟩
-    icases (osBytes_take_drop p lo _ xs n1 (by omega)).1 $$ H with ⟨H1, H2⟩
+    icases (osBytes_take_drop p.ino lo _ xs n1 (by omega)).1 $$ H with ⟨H1, H2⟩
     isplitl [H1]
     · iexists _; iframe H1; ipureintro; simp only [List.length_take]; omega
     · iexists _; iframe H2; ipureintro; simp only [List.length_drop]; omega
   · iintro ⟨⟨%xs, H1, %h1⟩, ⟨%ys, H2, %h2⟩⟩
-    have e := osBytes_take_drop (GF := GF) p lo (DFrac.own 1) (xs ++ ys) xs.length (by simp)
+    have e := osBytes_take_drop (GF := GF) p.ino lo (DFrac.own 1) (xs ++ ys) xs.length (by simp)
     rw [List.take_left, List.drop_left, h1] at e
     iexists xs ++ ys
     isplitl [H1 H2]
@@ -288,7 +288,7 @@ theorem run_done (b : Loc) (p : BFile) : ∀ (c k : Nat) (P : List w8) (ys : Lis
   | c + 1, k, P, ys, hy, hl => by
     rw [List.range'_succ]
     have hyl : ys.length = P.length := by rw [← hy, List.length_map]
-    have Hos := osBytes_take_drop (GF := GF) p (4096 * k) (DFrac.own 1) ys 4096 (by omega)
+    have Hos := osBytes_take_drop (GF := GF) p.ino (4096 * k) (DFrac.own 1) ys 4096 (by omega)
     rw [show 4096 * k + 4096 = 4096 * (k + 1) by omega] at Hos
     have Hb := bytes_cut (GF := GF) b (4096 * k) (DFrac.own (1 : Qp).half) P 4096 (by omega)
     rw [show 4096 * k + 4096 = 4096 * (k + 1) by omega] at Hb

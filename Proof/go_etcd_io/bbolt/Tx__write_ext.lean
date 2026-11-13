@@ -35,7 +35,7 @@ theorem Tx.write_ext.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     (hOv : internal.common.Page.Overflow.spec (GF := GF) (hG := hG))
     (hId : internal.common.Page.Id.spec (GF := GF) (hG := hG))
     (hUBS : internal.common.UnsafeByteSlice.spec (GF := GF) (hG := hG))
-    (hWriteAt : os.File.WriteAt.spec (GF := GF) (hG := hG))
+    (hWriteAt : os.File.WriteAt.specExt (GF := GF) (hG := hG))
     (hSync : fdatasync.spec (GF := GF) (hG := hG))
     (hInc : TxStats.IncWrite.spec (GF := GF) (hG := hG)) :
     Tx.write_ext.spec (GF := GF) (hG := hG) :=

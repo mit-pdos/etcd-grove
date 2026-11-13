@@ -81,7 +81,7 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     (hOv : internal.common.Page.Overflow.spec (GF := GF) (hG := hG))
     (hId : internal.common.Page.Id.spec (GF := GF) (hG := hG))
     (hUBS : internal.common.UnsafeByteSlice.spec (GF := GF) (hG := hG))
-    (hWriteAt : os.File.WriteAt.spec (GF := GF) (hG := hG))
+    (hWriteAt : os.File.WriteAt.specExt (GF := GF) (hG := hG))
     (hSync : fdatasync.spec (GF := GF) (hG := hG))
     (hInc : TxStats.IncWrite.spec (GF := GF) (hG := hG)) :
     Tx.write_ext.spec (GF := GF) (hG := hG) := by
@@ -449,24 +449,30 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       have h0 : 0 ≤ (W64 ((4096 * c.1.toNat + w : Nat) : Int)).toInt := by
         have : 4096 * c.1.toNat + w < 2 ^ 63 := by omega
         rw [BitVec.toInt_eq_toNat_cond]; split <;> omega
-      wp_apply hWriteAt f fd K.p (DFrac.own 1) _ (bytesAt c.2.2 w cs) (DFrac.own 1)
-        (W64 ((4096 * c.1.toNat + w : Nat) : Int)) (DFrac.own 1) ⟨K.p.ino, true, true⟩ 1 om2 xs rfl h0
-        (by rw [hcl]; omega) (by rw [hcl, htn]; omega) (by rw [hcl, htn]; omega) (fun _ => rfl)
-        $$ [Hfo Hck Hfd Hm Hxs Hc] as %nn %err ⟨Hfo, Hck, Hfd, %jj, %ys, %hh, %Hjj, Hm, Hys, Hc, Herr⟩
+      wp_apply hWriteAt f fd K.p.path (DFrac.own 1) _ (bytesAt c.2.2 w cs) (DFrac.own 1)
+        (W64 ((4096 * c.1.toNat + w : Nat) : Int)) (DFrac.own 1) ⟨K.p.ino, true, true⟩ om2 xs rfl h0
+        (by rw [hcl, htn]; omega) (by rw [hcl]; omega) (by rw [hcl, htn]; omega)
+        $$ [Hfo Hck Hfd Hm Hxs Hc] as %nn %err ⟨Hfo, Hck, Hfd, %jj, %aa, %ys, %Hjj, Hm, Hys, Hc, Herr⟩
       · iframe #
         rw [htn, ← fileOwn_eq]
         iframe
-      obtain ⟨hjjle, hysp, -, -, hres⟩ := Hjj
+      obtain ⟨hjja, hale, -, hysp, -, hres⟩ := Hjj
+      have hjjle : jj ≤ (bytesAt c.2.2 w cs).length := Nat.le_trans hjja hale
       rw [htn] at hysp ⊢
       rw [hcl] at hjjle
+      have hm3 : (pwPost om2 (4096 * c.1.toNat + w) aa jj).size =
+            pwSize om2.size (4096 * c.1.toNat + w) jj ∧
+          (pwPost om2 (4096 * c.1.toNat + w) aa jj).maps = om2.maps :=
+        ⟨rfl, by simp only [pwPost, announce_maps]⟩
+      generalize pwPost om2 (4096 * c.1.toNat + w) aa jj = om3 at hm3 ⊢
       have hyl : ys.length = min (4096 * c.1.toNat + w + cs)
           (pwSize om2.size (4096 * c.1.toNat + w) jj) - min (4096 * c.1.toNat + w) om2.size := by
         have := congrArg List.length hysp
         simp only [List.length_map] at this
-        rw [this, pwBytes_length, hcl]
+        rw [this, pwValsG_length, hcl]
       have hsz3 := pwSize_le om2.size (4096 * c.1.toNat + w) jj cs hjjle
       have hsz3' := pwSize_ge' om2.size (4096 * c.1.toNat + w) jj
-      generalize Hsz3 : pwSize om2.size (4096 * c.1.toNat + w) jj = sz3 at hyl hsz3 hsz3' ⊢
+      generalize Hsz3 : pwSize om2.size (4096 * c.1.toNat + w) jj = sz3 at hyl hsz3 hsz3' hm3 ⊢
       -- the cells back: the gap's and the chunk's
       ihave Hc : cAny (GF := GF) b (min (4096 * c.1.toNat + w) om2.size)
           (4096 * c.1.toNat + w + cs - min (4096 * c.1.toNat + w) om2.size) $$ [Hc]
@@ -474,7 +480,7 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         iapply hmc.1; iexact Hc
       icases hgc.1 $$ Hc with ⟨Hgc, Hrc1⟩
       -- the bytes back: the gap's, then the chunk's
-      have es := osBytes_take_drop (GF := GF) K.p (min (4096 * c.1.toNat + w) om2.size)
+      have es := osBytes_take_drop (GF := GF) K.p.ino (min (4096 * c.1.toNat + w) om2.size)
         (DFrac.own 1) ys (min (4096 * c.1.toNat + w) sz3 - min (4096 * c.1.toNat + w) om2.size)
         (by omega)
       rw [show min (4096 * c.1.toNat + w) om2.size + (min (4096 * c.1.toNat + w) sz3 -
@@ -556,11 +562,12 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         iframe Hst Hdb Hf Hwa Hfo Hfd
         isplitl [Hpg Hpl']
         · iexists pl'; iframe
-        iexists { om2 with size := sz3, hi := hh }, wb'
+        iexists om3, wb'
+        rw [hm3.1]
         iframe Hm
         isplitr
         · ipureintro
-          exact ⟨by simp only; omega, by simp only; omega, Hom2m, Hwb1, Hwb2,
+          exact ⟨by omega, by omega, hm3.2.trans Hom2m, Hwb1, Hwb2,
             fun s hs _ h2 => by rw [Hwb3 s hs]; omega⟩
         iright
         isplitr
@@ -575,12 +582,12 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           · exact absurd rfl h2
         subst hjj
         have hsz3e : sz3 = max om2.size (4096 * c.1.toNat + w + cs) := by
-          rw [← Hsz3, hcl]; unfold pwSize; rw [if_neg (by omega)]
+          rw [← Hsz3, hcl]; unfold pwSize; rw [ite_eq_right (by omega)]
         have hmo : min (4096 * c.1.toNat + w) sz3 = 4096 * c.1.toNat + w := by omega
         have hys : (ys.drop (4096 * c.1.toNat + w - min (4096 * c.1.toNat + w) om2.size)).map
             Prod.fst = bytesAt c.2.2 w cs := by
-          rw [List.map_drop, hysp, ← List.map_drop]
-          exact pwBytes_tail_fst _ _ _ _ (by rw [hcl]; omega)
+          rw [List.map_drop, hysp]
+          exact pwValsG_tail _ _ _ _ (by rw [hcl]; omega)
         rw [hmo] at hysl2 ⊢
         generalize Hys2 : ys.drop (4096 * c.1.toNat + w - min (4096 * c.1.toNat + w) om2.size) =
           ys2 at hys hysl2 ⊢
@@ -590,11 +597,10 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         icases Hrc1 with ⟨%vf, Hc⟩
         ihave Hc : cellsR b (4096 * c.1.toNat + w) ys2.length vf $$ [Hc]
         · rw [hyl2]; iexact Hc
-        have hbm : ({ om2 with size := sz3, hi := hh } : OsMeta).maps !! b = some l := by
-          show om2.maps !! b = some l
-          rw [Hom2m, hmaps]; exact GMap.lookup_singleton_eq b l
+        have hbm : om3.maps !! b = some l := by
+          rw [hm3.2, Hom2m, hmaps]; exact GMap.lookup_singleton_eq b l
         have hyl' : 4096 * c.1.toNat + w + ys2.length ≤ l := by rw [hyl2]; omega
-        iapply cellsR_agree_bytes _ rfl K.p (DFrac.own 1) { om2 with size := sz3, hi := hh } b l hbm
+        iapply cellsR_agree_bytes _ rfl K.p (DFrac.own 1) om3 b l hbm
           (DFrac.own 1) (by simp) _ ys2 (4096 * c.1.toNat + w) vf hyl' $$ Hos Hm Hyc Hc
         iintro Hm Hys Hc
         icases cellsR_bytes b (ys2.map Prod.fst) _ $$ [Hc] with Hc
@@ -608,7 +614,7 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           omega
         ihave Hpb := Hpbb $$ Hck
         ihave Hd1 : osBytes (GF := GF) K.p.ino (4096 * c.1.toNat) (DFrac.own 1) (ysd ++ ys2) $$ [Hd1 Hys]
-        · iapply (osBytes_take_drop (GF := GF) K.p (4096 * c.1.toNat) (DFrac.own 1) (ysd ++ ys2)
+        · iapply (osBytes_take_drop (GF := GF) K.p.ino (4096 * c.1.toNat) (DFrac.own 1) (ysd ++ ys2)
             ysd.length (by simp)).2
           rw [List.take_left, List.drop_left, hyd]
           iframe
@@ -649,14 +655,12 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
             word
           rw [fileOwn_eq]
           iframe
-          iexists j + W64 1, c.2.1, { om2 with size := sz3, hi := hh }
-          rw [hj1]
+          iexists j + W64 1, c.2.1, om3
+          rw [hj1, hm3.1]
           iframe
           ipureintro
-          refine ⟨by word, by omega, Hom2m, by simp only; omega, by simp only; omega, ?_,
-            by simp only; omega⟩
+          refine ⟨by word, by omega, hm3.2.trans Hom2m, by omega, by omega, ?_, by omega⟩
           intro e he
-          simp only
           rw [List.take_add_one, Hc, Option.toList_some] at he
           rcases List.mem_append.1 he with he | he
           · have := Hjd e he; omega
@@ -680,11 +684,11 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           wp_for_post
           rw [fileOwn_eq]
           iframe
-          iexists w + cs, ysd ++ ys2, { om2 with size := sz3, hi := hh }
+          iexists w + cs, ysd ++ ys2, om3
+          rw [hm3.1]
           iframe
           ipureintro
-          exact ⟨hnend, hfst, Hom2m, by simp only; omega, by simp only; omega,
-            fun _ => by simp only; omega, by simp only; omega⟩
+          exact ⟨hnend, hfst, hm3.2.trans Hom2m, by omega, by omega, fun _ => by omega, by omega⟩
   · have Hjl : sint.nat j = L'.length := by have := Hsll.1; word
     obtain ⟨-, -, Hom'm, Hom's1, Hom's2, Hjd, Hjz⟩ := Hj
     rw [Hjl, List.take_length, List.drop_length] at *
@@ -699,7 +703,7 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     focus
       -- `NoSync` off: the sync
       try wp_auto
-      wp_apply hSync K.db f fd K.p om' dqf (DFrac.own 1) $$ [Hf Hfo Hfd Hm]
+      wp_apply hSync K.db f fd K.p K.p.ino om' dqf (DFrac.own 1) $$ [Hf Hfo Hfd Hm]
         as %e2 ⟨Hf, Hfo, Hfd, ⟨%m', Hm, %Hm'⟩, Hr⟩
       · iframe #; iframe
       icases Hr with (%He | ⟨%He, #Hfe⟩)

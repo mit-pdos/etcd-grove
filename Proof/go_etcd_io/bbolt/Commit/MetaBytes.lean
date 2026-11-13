@@ -65,7 +65,7 @@ theorem osBytes_halves_h (p : BFile) (off : Nat) (xs : List ByteG) :
     osBytes (GF := GF) p.ino off (DFrac.own 1) xs ⊢
       osBytes (GF := GF) p.ino off (DFrac.own (1 : Qp).half) xs ∗
         osBytes (GF := GF) p.ino off (DFrac.own (1 : Qp).half) xs :=
-  (osBytes_halves p off xs).1
+  (osBytes_halves p.ino off xs).1
 
 /-- **The meta slots' page-cache bytes, whole, as slot `s` and the other slot** (from the two
 halves: `metalock`'s and the writer's). -/
@@ -84,7 +84,7 @@ theorem metaOsBytes_take (p : BFile) (C : CommitSt) (s : Nat) (hs : s < 2)
     have := congrArg List.length hy; simp only [List.length_map, List.length_append] at this; omega
   ihave H := osBytes_join_h p xs ys 0 (by omega) $$ [H1 H2]
   · iframe
-  icases (osBytes_take_drop p 0 _ xs 4096 (by omega)).1 $$ H with ⟨Ha, Hb⟩
+  icases (osBytes_take_drop p.ino 0 _ xs 4096 (by omega)).1 $$ H with ⟨Ha, Hb⟩
   have e0 : (xs.take 4096).map Prod.fst = C.m0 := by
     rw [List.map_take, hx, List.take_left' h0]
   have e1 : (xs.drop 4096).map Prod.fst = C.m1 := by
@@ -115,7 +115,7 @@ theorem metaOsBytes_put (p : BFile) (C : CommitSt) (s : Nat) (hs : s < 2)
     rw [show 4096 * 0 = 0 from rfl, show 4096 * (1 - 0) = 4096 from rfl]
     iintro ⟨Ha, Hb⟩
     ihave H : osBytes p.ino 0 (DFrac.own 1) (xa ++ xb) $$ [Ha Hb]
-    · iapply (osBytes_take_drop p 0 _ (xa ++ xb) 4096 (by simp; omega)).2
+    · iapply (osBytes_take_drop p.ino 0 _ (xa ++ xb) 4096 (by simp; omega)).2
       rw [List.take_left' (by omega), List.drop_left' (by omega)]
       iframe
     icases osBytes_halves_h p 0 _ $$ H with ⟨H1, H2⟩
@@ -128,7 +128,7 @@ theorem metaOsBytes_put (p : BFile) (C : CommitSt) (s : Nat) (hs : s < 2)
     rw [show 4096 * 1 = 4096 from rfl, show 4096 * (1 - 1) = 0 from rfl]
     iintro ⟨Ha, Hb⟩
     ihave H : osBytes p.ino 0 (DFrac.own 1) (xb ++ xa) $$ [Ha Hb]
-    · iapply (osBytes_take_drop p 0 _ (xb ++ xa) 4096 (by simp; omega)).2
+    · iapply (osBytes_take_drop p.ino 0 _ (xb ++ xa) 4096 (by simp; omega)).2
       rw [List.take_left' (by omega), List.drop_left' (by omega)]
       iframe
     icases osBytes_halves_h p 0 _ $$ H with ⟨H1, H2⟩

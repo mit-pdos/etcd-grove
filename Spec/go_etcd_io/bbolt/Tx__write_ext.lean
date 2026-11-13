@@ -1,8 +1,8 @@
 /-
 `Tx.write_ext` (bbolt, internal; maintainer 12, item 3 of `notes/bbolt-proof-plan.md`): `tx.write()`
 with dirty pages past the end of the file. Under `NoGrowSync`, `DB.grow` does not truncate, so the
-dirty pages may lie past the file's end (inside the mapping); `WriteAt` extends the file (OsFs's
-`pwrite`, `os.File.WriteAt.spec`: the zero gap past the old end, then the data). `Tx.write.spec`
+dirty pages may lie past the file's end (inside the mapping); `WriteAt` extends the file (the file extension's
+`pwrite`, `os.File.WriteAt.specExt`: the zero gap past the old end, then the data). `Tx.write.spec`
 (`Proof/go_etcd_io/bbolt/Tx__write.lean`, proved) is the case of pages inside the file. Proof:
 `Proof/go_etcd_io/bbolt/Tx__write_ext.lean` (`Commit/WriteExtRun.Tx.write_ext_gen`).
 -/
@@ -33,7 +33,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- **`tx.write()`, the dirty pages anywhere in the mapping** (`Tx.write.spec` but the pages need
 not lie inside the file). The target slots are the pages' `bufSlots bufs` and the tail `T`: every
 slot of the mapping not wholly inside the file is one of them (a write past the end fills the gap
-before it with zeros, which needs the gap's cells: `os.File.WriteAt.spec`'s `mcellsAny`), all as
+before it with zeros, which needs the gap's cells: `os.File.WriteAt.specExt`'s `mcellsAny`), all as
 `wrSlotsSz` (`Inv/WSlots`) at the file's size, a slot across the file's end holding at least its
 part inside the file (maintainer 13: `wdbOK`'s partial-page clause, D-J). Afterwards the file is no smaller and ends within the mapping's whole slots (the partial last slot `l / 4096` is never written) or
 where it ended (`om.size ≤ om'.size ≤ max om.size (4096 * (l / 4096))`), a tail slot inside the old file keeps its
