@@ -400,18 +400,19 @@ reader, having accepted the first records `xs` of the intended records `rs = xs 
 frame in the image `img`, the intended stream has a frame there (`ys = r :: _`) and the image holds
 exactly its bytes. That is, a frame whose bytes differ from the intended frame at that position
 (or that lies past the intended records) fails the reader's checks. -/
-def NoCollision (C : WalCodec) (rs : List WalRec) (img : List w8) : Prop :=
+def NoCollisionFrom (C : WalCodec) (c0 : w32) (rs : List WalRec) (img : List w8) : Prop :=
   ∀ xs ys r len c', xs ++ ys = rs →
-    decStep C true img (recFrames C xs).length (chainEnd C 0#32 xs) = .accept r len c' →
+    decStep C true img (recFrames C xs).length (chainEnd C c0 xs) = .accept r len c' →
     ∃ r' ys', ys = r' :: ys' ∧
       (img.drop (recFrames C xs).length).take (frame (C.encRec r')).length = frame (C.encRec r')
 
 /-- **(b) The reader accepts a prefix of the intended records**, on any image without collision. -/
-theorem walDecode_prefix {C : WalCodec} (hC : C.Ok) {rs : List WalRec} {img : List w8}
-    (hfit : RecsFit C rs) (hchain : ChainOk C 0#32 rs) (hnc : NoCollision C rs img) :
-    (walDecode C img).recs <+: rs := by
+theorem walDecodeFrom_prefix {C : WalCodec} (hC : C.Ok) {c0 : w32} {rs : List WalRec}
+    {img : List w8} (hfit : RecsFit C rs) (hchain : ChainOk C c0 rs)
+    (hnc : NoCollisionFrom C c0 rs img) :
+    (walDecodeFrom C true img 0 c0).recs <+: rs := by
   have key : ∀ ys xs, xs ++ ys = rs →
-      (walDecodeFrom C true img (recFrames C xs).length (chainEnd C 0#32 xs)).recs <+: ys := by
+      (walDecodeFrom C true img (recFrames C xs).length (chainEnd C c0 xs)).recs <+: ys := by
     intro ys
     induction ys with
     | nil =>
@@ -437,8 +438,8 @@ theorem walDecode_prefix {C : WalCodec} (hC : C.Ok) {rs : List WalRec} {img : Li
             (img.drop (recFrames C xs).length)
           rw [hwin] at e
           exact e.symm
-        have hch : ChainOk C (chainEnd C 0#32 xs) (y :: ys) :=
-          ((chainOk_append C 0#32 xs (y :: ys)).mp (hxs ▸ hchain)).2
+        have hch : ChainOk C (chainEnd C c0 xs) (y :: ys) :=
+          ((chainOk_append C c0 xs (y :: ys)).mp (hxs ▸ hchain)).2
         have hst := decStep_frame hC true (hfit y (by rw [← hxs]; simp)) hbs hch.1
         rw [h] at hst
         injection hst with h1 h2 h3
@@ -454,15 +455,30 @@ theorem walDecode_prefix {C : WalCodec} (hC : C.Ok) {rs : List WalRec} {img : Li
 
 /-- **What the image starts with is accepted**: an image whose first bytes are the frames of `xs`
 decodes to `xs` and more. -/
-theorem walDecode_of_prefix {C : WalCodec} (hC : C.Ok) {xs : List WalRec} {img : List w8}
-    (hfit : RecsFit C xs) (hchain : ChainOk C 0#32 xs) (hpre : recFrames C xs <+: img) :
-    xs <+: (walDecode C img).recs := by
+theorem walDecodeFrom_of_prefix {C : WalCodec} (hC : C.Ok) (last : Bool) {c0 : w32}
+    {xs : List WalRec} {img : List w8}
+    (hfit : RecsFit C xs) (hchain : ChainOk C c0 xs) (hpre : recFrames C xs <+: img) :
+    xs <+: (walDecodeFrom C last img 0 c0).recs := by
   obtain ⟨rest, hrest⟩ := hpre
-  have h := walDecodeFrom_frames hC (last := true) (bs := img) xs (off := 0) (c := 0#32) (rest := rest) hfit hchain
+  have h := walDecodeFrom_frames hC (last := last) (bs := img) xs (off := 0) (c := c0) (rest := rest) hfit hchain
     (by rw [List.drop_zero, hrest])
-  unfold walDecode
   rw [h]
   exact List.prefix_append _ _
+
+/-- No collision for the reader of one file from CRC 0. -/
+abbrev NoCollision (C : WalCodec) (rs : List WalRec) (img : List w8) : Prop :=
+  NoCollisionFrom C 0#32 rs img
+
+/-- **(b) The reader accepts a prefix of the intended records**, on any image without collision. -/
+theorem walDecode_prefix {C : WalCodec} (hC : C.Ok) {rs : List WalRec} {img : List w8}
+    (hfit : RecsFit C rs) (hchain : ChainOk C 0#32 rs) (hnc : NoCollision C rs img) :
+    (walDecode C img).recs <+: rs := walDecodeFrom_prefix hC hfit hchain hnc
+
+/-- **What the image starts with is accepted**: an image whose first bytes are the frames of `xs`
+decodes to `xs` and more. -/
+theorem walDecode_of_prefix {C : WalCodec} (hC : C.Ok) {xs : List WalRec} {img : List w8}
+    (hfit : RecsFit C xs) (hchain : ChainOk C 0#32 xs) (hpre : recFrames C xs <+: img) :
+    xs <+: (walDecode C img).recs := walDecodeFrom_of_prefix hC true hfit hchain hpre
 
 /-- **(d) Appending zeros changes nothing after an end of file**: a reader that stopped at `io.EOF`
 reads the same records from the image followed by preallocated zeros. -/
