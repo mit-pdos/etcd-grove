@@ -117,15 +117,38 @@ instance walInvBody_timeless (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : 
     (s : AbsDiskState) : Timeless (walInvBody (L := L) (W := W) C Mr R jr r s) := by
   unfold walInvBody laysRes segRes osClaims; infer_instance
 
-/-- **The WAL invariant** of the area `r`, the directory `jr` under the roots `R`: its contents, or
-the generation's crash token (once `walInv_crash` has taken them). -/
+/-- **The WAL invariant** of the area `r`, the directory `jr` under the roots `R`: its contents, or,
+once `walInv_crash` has taken them, the generation's `crashed` (Perennial's crash token,
+`Perennial/GooseLang/CrashToken.lean`, which the crash adequacy theorem gives the crash obligation)
+with the WAL's own crash token (`walCrashTok`, exclusive: the contents are taken once). A step of the
+running generation holds `notCrashed` (in its state interpretation), which excludes the second
+branch (`walInv_open`). -/
 def walInv (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) : IProp GF :=
   inv walN iprop((∃ s : AbsDiskState, walInvBody (L := L) (W := W) C Mr R jr r s) ∨
-    walCrashTok (W := W))
+    (crashed (hC := L.goose_crashGS) ∗ walCrashTok (W := W)))
 
 instance walInv_persistent (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) :
     Persistent (walInv (L := L) (W := W) C Mr R jr r) := by
   unfold walInv; infer_instance
+
+/-- **Opening the WAL invariant while the generation runs**: with `notCrashed` (which a step of the
+generation has, in its state interpretation), the invariant holds its contents; it is closed again
+with contents. -/
+theorem walInv_open (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+    (E : CoPset) (hE : ↑walN ⊆ E) :
+    ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ notCrashed (hC := L.goose_crashGS) ={E, E \ ↑walN}=∗
+      (∃ s, walInvBody (L := L) (W := W) C Mr R jr r s) ∗ notCrashed (hC := L.goose_crashGS) ∗
+      ((∃ s, walInvBody (L := L) (W := W) C Mr R jr r s) ={E \ ↑walN, E}=∗ True) := by
+  iintro #Hinv Hnc
+  unfold walInv
+  imod inv_acc (E := E) hE $$ Hinv with ⟨Hi, Hclose⟩
+  icases Hi with (>Hb | ⟨>Hc, -⟩)
+  · imodintro
+    iframe Hb Hnc
+    iintro Hb
+    iapply Hclose
+    inext; ileft; iexact Hb
+  · iexfalso; iapply notCrashed_crashed $$ Hnc Hc
 
 end inv
 

@@ -18,6 +18,7 @@ module
 public import GooseLang.Ext.Fs.TreeShared
 public import LinuxFs.Proof.os.CrashFile
 public import Iris.BI.Lib.Atomic
+public import GooseLang.Ext.Fs.NotCrashedAcc
 
 @[expose] public section
 
@@ -115,6 +116,124 @@ theorem wp_au_step {A : Type} (op : String) (v : val) (α : IProp GF) (β Q : A 
     isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hco
     iapply fupd_close_au
     imod Hco $$ Hβ with HQ
+    imodintro
+    iapply Hw $$ HQ
+
+/-! ### Atomic updates whose opening gets the crash token
+
+`osAUnc α β Q` is `osAU α β Q` whose opening (the accessor, before the step) receives the
+generation's `notCrashed` and gives it back: a client's update can then open an invariant whose
+crash branch only `notCrashed` excludes (the WAL's `walInv`, `walInv_open`) for the whole step, and
+commit or abort with it open. A spec taking `osAUnc` gives every `osAU` spec (`osAU_osAUnc`). -/
+
+/-- The accessor of `osAUnc`, with `Ψ` the update itself (for the abort). -/
+def osAUncPre {A : Type} (α : IProp GF) (β Q : A → IProp GF) (Ψ : Unit → IProp GF) (_ : Unit) :
+    IProp GF :=
+  iprop(notCrashed -∗ |={osAuMask, ∅}=> α ∗ notCrashed ∗
+    ((α ={∅, osAuMask}=∗ Ψ ()) ∧ (∀ o, β o ={∅, osAuMask}=∗ Q o)))
+
+instance osAUncPre_mono {A : Type} (α : IProp GF) (β Q : A → IProp GF) :
+    BIMonoPred (osAUncPre (L := L) α β Q) where
+  mono_pred := by
+    intro _ _ _ _
+    unfold osAUncPre
+    iintro #H %_ Hp Hnc
+    imod Hp $$ Hnc with ⟨Hα, Hnc, Hcl⟩
+    imodintro
+    iframe Hα Hnc
+    isplit
+    · iintro Hα
+      icases Hcl with ⟨Hcl, -⟩
+      imod Hcl $$ Hα with Hp
+      imodintro
+      iapply H $$ Hp
+    · icases Hcl with ⟨-, Hcl⟩
+      iexact Hcl
+  mono_pred_ne := ⟨fun _ _ _ _ => .rfl⟩
+
+/-- The shared `os` specs' atomic updates whose opening gets `notCrashed`: precondition `α`,
+outcome `o` with `β o`, `Q o`. -/
+def osAUnc {A : Type} (α : IProp GF) (β Q : A → IProp GF) : IProp GF :=
+  bi_greatest_fixpoint (osAUncPre (L := L) α β Q) ()
+
+theorem osAUnc_unfold {A : Type} (α : IProp GF) (β Q : A → IProp GF) :
+    osAUnc (L := L) α β Q ⊢ osAUncPre (L := L) α β Q (fun _ => osAUnc (L := L) α β Q) () :=
+  greatest_fixpoint_unfold_mp _
+
+/-- **Introducing `osAUnc`** (coinduction): a resource `P` that opens as `osAUnc`'s accessor, with
+`P` back on an abort. -/
+theorem osAUnc_coiter {A : Type} (α : IProp GF) (β Q : A → IProp GF) (P : IProp GF) :
+    ⊢ □ (P -∗ osAUncPre (L := L) α β Q (fun _ => P) ()) -∗ P -∗ osAUnc (L := L) α β Q := by
+  iintro #H HP
+  unfold osAUnc
+  iapply greatest_fixpoint_coiter (osAUncPre (L := L) α β Q) (fun _ => P) $$ [] %() HP
+  iintro !> %_ HP
+  iapply H $$ HP
+
+/-- An `osAU` is an `osAUnc` (its opening ignores the token). -/
+theorem osAU_osAUnc {A : Type} (α : IProp GF) (β Q : A → IProp GF) :
+    osAU α β Q ⊢ osAUnc (L := L) α β Q := by
+  iintro Hau
+  iapply osAUnc_coiter α β Q (osAU α β Q) $$ [] Hau
+  iintro !> Hau
+  unfold osAUncPre
+  iintro Hnc
+  unfold osAU
+  ihave Hacc := aupd_aacc $$ Hau
+  unfold atomic_acc
+  imod Hacc with Hacc
+  isimp only [texist_nil] at Hacc
+  icases Hacc with ⟨Hα, Hcl⟩
+  imodintro
+  isplitl [Hα]
+  · irevert Hα
+    dsimp only [Std.Tele.app]
+    iintro Hα
+    iexact Hα
+  iframe Hnc
+  isplit
+  · icases Hcl with ⟨Hab, -⟩
+    iintro Hα
+    iapply Hab
+    irevert Hα
+    dsimp only [Std.Tele.app]
+    iintro Hα
+    iexact Hα
+  · icases Hcl with ⟨-, Hco⟩
+    isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hco
+    iintro %o Hβ
+    iapply Hco $$ Hβ
+
+/-- **`wp_au_step` for `osAUnc`**: the update is opened with the generation's `notCrashed`
+(`wp_atomic_nc`), around one step of the extension. -/
+theorem wp_aunc_step {A : Type} (op : String) (v : val) (α : IProp GF) (β Q : A → IProp GF)
+    (Ψ : val → IProp GF) :
+    ⊢ osAUnc (L := L) α β Q -∗
+      (α -∗ WP (ExternalOp fsExt.name op (Val v)) @ ((⊤ : CoPset) \ osAuMask) {{ w,
+        (α ∗ (osAUnc (L := L) α β Q -∗ Ψ w)) ∨
+        (∃ o, β o ∗ (Q o -∗ Ψ w)) }}) -∗
+      WP (ExternalOp fsExt.name op (Val v)) {{ Ψ }} := by
+  iintro Hau Hk
+  iapply (wp_atomic_nc (E1 := ⊤) (E2 := (⊤ : CoPset) \ osAuMask) _ _ rfl)
+  iintro Hnc
+  ihave Hacc := osAUnc_unfold α β Q $$ Hau
+  unfold osAUncPre
+  iapply fupd_open_au
+  imod Hacc $$ Hnc with ⟨Hα, Hnc, Hcl⟩
+  imodintro
+  iframe Hnc
+  ihave Hwp := Hk $$ Hα
+  iapply wp_wand $$ Hwp
+  iintro %w Hr
+  icases Hr with (⟨Hα, Hw⟩ | ⟨%o, Hβ, Hw⟩)
+  · icases Hcl with ⟨Hab, -⟩
+    iapply fupd_close_au
+    imod Hab $$ Hα with Hau
+    imodintro
+    iapply Hw $$ Hau
+  · icases Hcl with ⟨-, Hco⟩
+    iapply fupd_close_au
+    imod Hco $$ %o Hβ with HQ
     imodintro
     iapply Hw $$ HQ
 

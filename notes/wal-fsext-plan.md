@@ -571,6 +571,65 @@ The integration build of `wal-int` needed two fixes: `crashRestAt` (CrashTakeFil
   `CrashGood` record each new layout's inodes a sublist of the old one's; `segsAll_nodup_iff`/`_sub`).
 
 
+**Fourth session (branch `wal-nc`, 2026-11-13): `walInv` with Perennial's crash token (§11).** Perennial's
+Lean port has no fractional `NC q`/`C`: its crash token is `notCrashed` (whole, owned by the state
+interpretation, `gooseBstateInterp`) and the persistent `crashed` (`Perennial/GooseLang/CrashToken.lean`;
+`goose_crash_adequacy` hands the old generation's `crashed` to the crash obligation). `crashed` alone cannot
+replace the WAL's token in the invariant (it is persistent, so it would not stop `walInv_crash` from finding
+the crash branch), so the invariant's second branch holds both:
+`walInv := inv walN ((∃ s, walInvBody s) ∨ (crashed (hC := L.goose_crashGS) ∗ walCrashTok))`.
+- `walInv_open` (new, `Inv.lean`): `walInv -∗ notCrashed ={E, E \ ↑walN}=∗ (∃ s, walInvBody s) ∗ notCrashed
+  ∗ ((∃ s, walInvBody s) ={E \ ↑walN, E}=∗ True)` (`notCrashed_crashed` excludes the crash branch).
+- `walInv_crash` takes `crashed` (old generation) beside `walCrashTok`, and closes the invariant with both;
+  `walInv_alloc` allocates the new shape; the `_keep` lemmas and `walInvBody_named` are unchanged (not over
+  `walInv`).
+- **Open (for every W-unit that opens `walInv`):** an operation has `notCrashed` only inside a step (the
+  state interpretation), and the `os` specs' atomic updates (`osAU`, `wp_au_step`) are opened by
+  `wp_atomic` before the step, without it. Needed: a lifting lemma giving a step's pre-update access to
+  `notCrashed` (for a non-value `e`: `(notCrashed -∗ |={E}=> notCrashed ∗ WP e @ E {{Φ}}) ⊢ WP e @ E {{Φ}}`,
+  from the WP's unfolding; Perennial) and an `osAU` whose opening receives it (`notCrashed -∗ |={osAuMask,
+  ∅}=> α ∗ notCrashed ∗ …`, `LinuxFs/Proof/os/SharedAu.lean`), so that the WAL's update, opened inside the
+  `os` update, can call `walInv_open`. Not done here.
+
+**Fifth session (branch `wal-ncau`, 2026-11-13): the open point closed (proved, no axiom).**
+- *Lifting* (`GooseLang/Ext/Fs/NotCrashedAcc.lean`): `wp_notCrashed_acc` (non-value `e`, mask kept)
+  and `wp_atomic_nc : (notCrashed -∗ |={E1,E2}=> notCrashed ∗ WP e @ s; E2 {{v, |={E2,E1}=> Φ v}}) ⊢
+  WP e @ s; E1 {{Φ}}` (`Atomic ↑s e`, `toVal e = none`): iris's `wp_atomic` with the token taken from
+  the first step's state interpretation. Proposed upstream (`notes/perennial-changes.md`).
+- *`osAUnc`* (`LinuxFs/Proof/os/SharedAu.lean`): a greatest fixpoint whose accessor is `notCrashed -∗
+  |={osAuMask, ∅}=> α ∗ notCrashed ∗ ((α ={∅,osAuMask}=∗ osAUnc …) ∧ (∀ o, β o ={∅,osAuMask}=∗ Q o))`;
+  `osAU_osAUnc` (every `osAU` is one), `osAUnc_coiter` (how a client builds one), `wp_aunc_step`
+  (`wp_au_step` for it, over `wp_atomic_nc`). The token is needed only at the opening: `walInv_open`
+  returns it at once, and the invariant stays open across the step until the abort or the commit.
+- *`os.Rename.specFileSnc`* (`Spec/os/Rename.lean`): `specFileS` with `osAUnc`; its proof is the old
+  one (`wp_au_step` → `wp_aunc_step`), and `specFileS` is now derived from it (statement unchanged).
+  The other shared `os` specs (`specDirS`, `Remove`, `Mkdir`, `OpenFile*S`) get the same treatment
+  when a W-unit needs them: rename the proof to the `nc` variant and derive the old spec.
+- *Test* (`wal/InvOpenTest.lean`): `walN_sub_au` (`↑walN ⊆ osAuMask`); `walInv_osAUnc`, a client update
+  that opens `walInv` with `walInv_open` at its opening, reads the area's name from the contents and
+  closes it at the abort or the commit; `walToy_rename`, `specFileSnc` with it. **Convention for the
+  W-units:** a WAL client update `AU <{…}> @ walAuMask, ∅` is turned into an `osAUnc` by opening
+  `walInv` (`osAuMask → walAuMask`) and then the client's update (`walAuMask → ∅`) in `osAUnc`'s
+  accessor.
+
+**The part's WAL package init (branch `wal-nc`, 2026-11-13).** `etc/gen-init.py` generates the
+`wp_initialize'` of the WAL's whole import closure in the part (`LFS_PKGS`): the part's `wal`, `walpb`,
+`fileutil`, `crc`, `hash/crc32` and raft root package (names-only); the main-tree translations below them
+(`LFS_MAIN_CODE`: zap, zapcore, semver, prometheus, pbutil, `hash`, protobuf's pragma/protoreflect/impl/
+protoimpl), over the part's own instances (their main instances sit in modules reaching the main raft);
+raftpb/quorum/tracker/confchange/proto from `InitPb.lean`, a generated copy of the main raft
+`Init.lean`'s theorems (`lfs_raft_initpb`). Facts (`PkgInit.lean`s):
+- `wal.walInit`: `walCrcTable` (MakeTable's spec), `wal.metricsInit` (new trust-boundary axioms
+  `walFsyncSec_init`/`walWriteSec_init`/`walWriteBytes_init`, as the backend's), `SegmentSizeBytes ↦□
+  64000000`, and `wal.errVar X` (an `errOk` error, read-only) for the eight error variables
+  (`ErrCRCMismatch` from `walpbInit`). Not `openWALFilesFn`; no distinctness of the errors.
+- `walpb.walpbInit`: `ErrCRCMismatch` an `errOk` error.
+- `fileutil.fileutilInit`: `∃ ofd, linuxLockFile ↦□ lockFn ofd ∗ linuxTryLockFile ↦□ tryLockFn ofd`
+  (**both** outcomes: the `F_OFD_GETLK` probe's errno is arbitrary, `wp_getlk`; `ofd` the same for the
+  two), `wrlck` (`Type = F_WRLCK`, `Whence = Start = Len = 0`), `ErrLocked` an `errOk` error.
+- The others `True` (the part's raft root too: `emptyState`, which `IsEmptyHardState` reads, would join
+  when `Save` needs it). `Create`'s spec can now take `isPkgInit wal`.
+
 ## 9. The trusted-model drafts (2026-11-13, branch `wal-models`; pending the user's review [user])
 
 The WAL and fileutil retranslated from the fork's `goose-lean-walfs` (`f15d88841`, the two local fixes
@@ -753,26 +812,54 @@ out of `Abs.lean`; statement unchanged). Left: `walInv_alloc` (`sorry`).
   `decFile`, `ownFbr`, `ownDecoder`, `decEnv`, `decPost`, `stopErr`; walpb `ownRec`): proved
   `decodeFrameSize`, `readInt64`, `LastOffset`, `LastCRC`, `UpdateCRC`, `Decode` (over decodeRecord's
   spec), walpb `GetType`/`GetCrc`/`Validate`, fileutil `NewFileBufReader`/`FileInfo`/`Err`/`Read`.
-  `sorry`: `isTornEntry`, `NewDecoder` (started, to the range loop). `decodeRecord` proved (branch
+  `NewDecoder` proved (`wal-dec3`: the range loop builds `ownFbrs` by `ownFbrs_snoc`, each reader's `*FileBufReader` cell persisted; `sync.init_Mutex` for `d.mu`; the readers' slice persisted). `sorry`: `isTornEntry` (three loops: the sector split appending subslices of `data` to `chunks`, then two nested range loops with a `break`; the subslices alias `data`, so its fraction must be split per chunk, or the chunks read through `data` by index). `decodeRecord` proved (branch
   `wal-dec2`, by induction on the files for its recursive call), over its lemmas in `DecLemmas.lean`
   (`fbr_readerStream`: a `*FileBufReader` as `io.Reader` is a stream reader of its file; the
   `decRecStep_*` equations by what the reads returned; `decPost_{stop,accept,ioe,cons_eof}`).
   `isEofOk` gained `nil` and `⌜eof ≠ ueof ∧ ¬ IoE eof⌝` (ledger, 2026-11-13).
-- **`proto.UnmarshalWalRecord.spec` is not derivable from `proto.UnmarshalPb.spec`** (2026-11-13,
-  wal-dec2): (1) `UnmarshalPb` says only "an encoding of a valid content decodes without error"; that a
-  failed `Unmarshal` means `recDecode bs = none` (what `goDecode`'s `badRec` needs) is not in it, and
-  `recDecode` accepts non-canonical encodings, so it does not follow; (2) its precondition is
-  `I.data.blank l` (the hidden `state` field included), not `l ↦ zero_val walpb.Record`; (3) it needs
-  `isPkgInit proto`, which `decEnv` does not give. Options: a trusted law "`Unmarshal` fails only on
-  `recDecode bs = none`" for registered types (Perennial-side, the user's call), or weaken `decRecStep`'s
-  `badRec` stop to "`Unmarshal` failed" (an oracle in `WalCodec`). Left as the hypothesis.
+- **A failed `proto.Unmarshal`: the weaker model** (2026-11-13, `wal-dec3`; supersedes the finding of
+  `wal-dec2` that `proto.UnmarshalWalRecord.spec` was not derivable). `proto.UnmarshalPb.spec` says
+  that a success is the canonical decoding (D1) and that an encoding of a valid content succeeds
+  (D2), nothing more: `Unmarshal` may fail on any other bytes, including bytes `recDecode` decodes
+  (a non-canonical encoding). So the pure decoder keeps `decStep`/`walDecodeFrom`/`walDecodeFiles`
+  as the canonical reader (`C.decRec` = `recDecode`, Unmarshal's result *when it succeeds*; no
+  downstream lemma changed, no part copy changed), and the Go decoder may in addition stop with
+  `badRec` where `Unmarshal` is handed bytes that are no record's encoding (`UFail C u := ∀ r, u ≠
+  C.encRec r`): `WalEncDecoder.lean`'s `decFrame` (the frame handed to `Unmarshal`), `RecFail`,
+  `GoFail` (the decoder state's version, dropping files at their end first), `ReaderRun.fail`; the
+  loop lemma `readerRun_eq`/`readerRun_start` is now "the canonical reader's result, or the
+  canonical records up to a decoder state where `GoFail` holds" (`recs = rs ++ (rdRest …).recs`).
+  A frame the encoder wrote never fails (`UFail` excludes it), so with `NoCollision` a failure can
+  only be where the canonical reader stops too; turning that into the read specs' terms is left
+  to their proofs. `decPost` gained a third disjunct (`GoFail` with `stopErr`, the decoder not live,
+  **the record not given back**: `UnmarshalPb`'s error post drops it; every reader stops at an
+  error, so nothing needs it).
+- **`proto.UnmarshalWalRecord.spec` derived** (`LinuxFs/Proof/google_golang_org/protobuf/proto/UnmarshalWalRecord.lean`,
+  from `proto.UnmarshalPb.spec` and `pbRecordC_reg`): stated over `walCodec` (no codec parameter),
+  pre `isPkgInit proto ∗ b ↦*{dq} bs ∗ pbRecordC.data.blank l`, post `nil` and `ownRec l r` with
+  `recDecode bs = some r`, or an error with `UFail walCodec bs` (D2 at `recOf r`, valid: no unknown
+  fields). Consequently `decoder.decodeRecord.spec`/`Decode.spec` take `C = walCodec` (was
+  `C.crc32c = crc32c`), `decodeRecord`'s precondition is `pbRecordC.data.blank rp`, and `decEnv`
+  gained `isPkgInit proto` (a client obligation, like its other `isPkgInit`s: the part has no
+  `Init.lean` for the WAL's packages, `etc/gen-init.py`'s `LFS_PKGS` stops at `ioutil`; adding `wal`,
+  `walpb`, `fileutil`, `crc` there, with their `SPECIAL` facts, is what derives them).
+- **The registered `walpb.Record`'s decoded object is owned whole** (`PbRecord.lean`, `recOwnC`, the
+  instance's `decC`/`dec`; **trusted, pending the user's review** with the registration): every field
+  at `1`, the hidden ones included, `Data`'s bytes owned. Raft's types put the hidden fields of a
+  decoded object in an invariant (`pbMsg`); that cannot work here: the decoder reuses `rec`
+  (`Reset`, then `Unmarshal` into it), `Reset` writes the whole struct, and a `Reset` spec taking a
+  decoded record to `blank` would duplicate the invariant's points-tos (`False` derivable), nor could
+  the invariant (at the old unknown fields) survive `*x = Record{}`. Faithful: the decoded message is
+  fresh and protobuf-go keeps no reference to it. The frozen form (`recRoC`, what `Marshal` reads)
+  keeps the invariant. `PbRecord`'s definitions are now generic in `HasLC` (the registration axiom
+  stays at `hasLC`).
 - **`walpb.Record.Reset` stays names-only** (2026-11-13): its body (`*x = Record{}`, then
   `protoimpl.X.MessageStateOf(x).StoreMessageInfo(&file_record_proto_msgTypes[0])`) is the protobuf
-  runtime plumbing the configuration excludes on purpose (`walpb.toml`); and its spec's post
-  `l ↦ zero_val walpb.Record` is not what Go leaves (the `state` field holds the message info) -- the
-  same `blank`-vs-`zero_val` point as above. Its spec should be stated over `I.data.blank`.
-- **Hypotheses** (theorem parameters, not axioms): `proto.UnmarshalWalRecord.spec C` (stated over
-  `C.decRec`; to derive from the walpb registration), `walpb.Record.Reset.spec` (names-only),
+  runtime plumbing the configuration excludes on purpose (`walpb.toml`). Its spec (a hypothesis) is
+  now `{{ ownRecAny l }} Reset {{ pbRecordC.data.blank l }}`: blank as the registered instance says
+  (what `Unmarshal` takes), whatever the message state then holds.
+- **Hypotheses** (theorem parameters, not axioms): `proto.UnmarshalWalRecord.spec` (derived, above;
+  a parameter of `decodeRecord`'s proof until a `Link` covers the decoder), `walpb.Record.Reset.spec` (names-only),
   `fmt.ErrorfErrs.spec` (Perennial's `Errorf` spec refuses error arguments, `ArgsWf`; Perennial
   change to propose), and in `decEnv` the client's `isEofOk` (`errors.Is(e, io.EOF)` on the readers'
   errors). **Gap**: Perennial's `Errorf` model does not wrap, so `errors.Is(err, io.ErrUnexpectedEOF)`
@@ -868,6 +955,17 @@ vocabulary would fix the wrong statement):
 - **an `O_CREAT|O_TRUNC` shared-mode open** (`alloc` now opens `N.tmp` with `O_TRUNC`, decision of
   2026-11-13; `os.OpenFile.specCreateS`/`wp_osOpenCreateS` exclude `O_TRUNC`): an `os`/I2 unit;
 - a zero-run byte resource (I4) for the 64 MB preallocation (CLAUDE.md, "Large contexts").
+**I4 and fileutil (branch `wal-zr`, 2026-11-13).** I4 done: `GooseLang/Ext/Fs/Zeros.lean`, `osZeros i lo
+n dq cs` (sealed `osBytes` of `List.replicate n (0, cs)`) and `osZerosA i lo n dq` (zeros, each with
+its own candidates), laws over a symbolic length only: `_add` (split/merge), `_take` (a prefix as
+`osBytes`, for a write), `_frac`, `zrun_synced`/`zcands_synced` (a sync gives durable zeros),
+`rsDone_zeros` (a growth with `m.zf` known, candidates `zcs n`), `rsDone_zerosA`, `zcs_crash`/
+`zrun_crash`. fileutil (no `sorry`): `Fsync`, `Fdatasync`, `preallocExtendTrunc`, `preallocExtend`,
+`preallocFixed`, `Preallocate` (extending: `preGrown`, the growth as an `osZerosA` run; premise the
+file at most `sizeInBytes`, `nonissues/etcd-fileutil-prealloc-fallback-shrinks.md`; `os.File.Seek.
+wp_endOff` added). Not done: `LockFile`/`TryLockFile` (need a `fileutil` package fact for
+`linuxLockFile`, set by `init`: no `PkgInit.lean`/`Init.lean` for the part's `fileutil` yet),
+`LockedFile`, `ZeroToEnd`, `ReadDir`, `Exist`, `createNewWALFile`.
 Planned shape: the pipeline's predicate `isFilePipeline fp dir j γ` (persistent: the fields, `filec` a
 rendezvous handshake (Perennial `Chan/Idioms/Handshake`, `P` the handed file, `Q` the claim on the
 name received before, via a ghost count), `errc`/`donec` invariants); `alloc`: the claim on
@@ -984,3 +1082,101 @@ update: `s.wal dir := walDurFresh md`, the new layout and its `CrashOk`); then `
   `Close` (W2, W10).
 - **Invariant extensions** are separate conjuncts of `walInvBody` (W4's `WalsCreateOk`, then W2's, W6's), so
   the units merge.
+
+## W6 implementation log (branch `wal-save`, 2026-11-13)
+
+**Statements (stubs, `sorry` proofs, pushed first for W2):** in `LinuxFs/Spec/.../wal/`, spec names under the
+full Go path (`go_etcd_io.etcd.server.v3.storage.wal.WAL.<M>.spec P Mr`, the main tree's `wal.WAL.<M>.spec`
+being another name): `Save`, `SaveSnapshot`, `Sync` (client: `walAreaOk walCodec Mr R jr r`, the sealed handle
+`walOpenWF P Mr w dir`, the update at `walAuMask`, plan §11); `sync`, `saveEntry`, `saveState`, `cut` (internal,
+over `walHandleIn P Mr w dir h`); `encoder.encode.specG` and `WAL.saveCrc.spec` (`encoder__encodeG.lean`, over a
+guarded writer). Proof stubs `LinuxFs/Proof/.../wal/WAL__{Save,SaveSnapshot,Sync,sync,saveEntry,saveState}.lean`
+take their callees' specs as hypotheses (`cut`'s is W2's to prove or restate).
+
+**Vocabulary** (`Handle.lean`):
+- `WalHS`: the program's knowledge of its open WAL (history `H`, metadata, cuts, tail inode, encoder start
+  offset `o0`, writer bytes `out`, pending `pend`, records of the last operation not yet encoded `rest`, the
+  hard state at `w.state` `st`, ghost names `γH`/`γS`/`γW`, `enti`/`snapi`). `walHandleIn`: the struct's
+  fields, the encoder with CRC `h.crc` (chain end after the encoded records), the tail's lock and file
+  (O_WRONLY fd), `walTailW` (offset, the program's halves of the tail's `OsMeta`/bytes, its half of the write
+  position `γW`), the tail's guarded writer, `ghostVar γH ½ (H, md, cuts)` (to agree with the invariant),
+  `walPipeH` (W2's placeholder: the pointer only), `walOpenW` (the ghost handle). `walOpenWF := ∃ h,
+  walHandleIn h ∗ ⌜h.Done⌝` (sealed; `Done`: `rest = 0`, `st = walLastHS H`). **Create/ReadAll should return
+  `walOpenWF`** (W4's spec returns the ghost-only `walOpenW`).
+- **`io.writerStreamG wi W G`** (finding): `io.writerStream`'s `Write(p)` quantifies over every `p`; for the
+  crash-tracked tail no `W` makes it true (a write of non-stream bytes breaks `CrashOk`, and the bridge cannot
+  know `p` is the stream). The guarded contract adds `G (out ++ p)`, `G` persistent and prefix-closed: the
+  tail's `G` is a mono-list lower bound of its intended stream (`walTailG γS`), grown at `Save`'s commit. The
+  page writer's and encoder's proofs need re-running over it (`encode.specG` is a hypothesis till then); the
+  bridge (`wal-bridge`) should prove `io.writerStreamG (wal.fileWi f) (walTailW f i γW o0) (walTailG γS)`.
+- `WalPbIn` (the raft messages `Save` reads: `hsIn`, `entIn`): the part cannot import the main tree's
+  `hsRO`/`entRoC` (the raft-root clash, §10); clients instantiate it, the proofs will take the laws
+  (`MustMarshalMessage`, `GetIndex`, `IsEmptyHardState`, `MustSync`) as hypotheses.
+- Package init: no `isPkgInit wal` (the part's `wal` has none, as `Create`); `encEnv`/`walCrcTable` in the handle.
+
+**Spec decisions:** Save/SaveSnapshot's error arm `∃ d, Q d` (committed, handle lost: Q6). **`Sync`'s error arm
+loses the handle** (deviation from the main tree, which kept it): `sync` flushes the page writer first, and a
+failed flush leaves part of `pend` written with the buffer emptied. Spec defects for the ledger: this one.
+
+**Invariant extension (designed, not yet in `walInvBody`):** a conjunct `walTailsRes s Ls` (after W4's and W2's):
+per WAL with an open handle, `ghostVar γH ½ (d.H, d.metadata, lay.cuts)`, `monoListAuthOwn γS 1 (segStream …
+last)` (the tail's intended stream), `ghostVar γW ½ lay.wr`, the names keyed by the tail's inode; plus a write in
+flight's `pwTok` in place of the tail's `segRes` halves between `PWriteStart` and `PWriteFinish` (the bridge's;
+the crash lemma must then take files with tokens, I3). Also needed in it: F-Z's fact that `old` is zeros from
+`z0` on (`walAbsD_snoc`'s `hZ`).
+
+**Proved (pure, no `sorry`):** `SaveRecs.lean`: `tailRecs_snoc`, `allRecs_snoc`, `tailStream_snoc` (an appended
+operation's records extend the tail's and the WAL's, chained from the CRC after all records). `SaveAbs.lean`:
+the commit keeps the crash condition (`walImg_snoc`, `crashTo_snoc`, `crashOkA_snoc`, `crashOk_snoc`) and the
+static relation (`walAbsD_snoc`, premises `hZ` and the new records' fit); `segRecs_snoc_op`; the sync's commit
+keeps the static relation with `d.m := |H|` (`syncLay`, `walAbsD_sync`; its crash condition is W2's
+`crashTo_synced`).
+
+**Left (hardest first):** the append's crash condition (bytes `[wr, wr+k)` from `durB old` to `[(old,0),(x,n)]`:
+`CrashTo` of any image mixing old zeros and the new frames under W1G, via the encoding layer's prefix lemma); the
+`walTailsRes` conjunct and its repair of the W1 lemmas that destructure `walInvBody`; the Iris proofs of
+`sync`, `saveEntry`, `saveState`, `Save`, `SaveSnapshot`, `Sync`; NC tokens once `wal-nc` lands.
+- **W6, the file as a stream writer** (`wal-bridge`, 2026-11-13). `io.writerStream wi lim W B`: on
+  success all of `p` and `n = len(p)`; on an error the broken state `B out xs` and **any count**
+  (`os.File`'s trusted `Write` returns `ArbitraryInt` and sets the offset to `-1` on an error, so
+  "the count is the bytes written" is unprovable over the unchanged model); `lim` bounds the total
+  (`o0 + lim < 2^62`, the model's `offMax` panic). PageWriter/encoder specs and proofs follow (their
+  error posts: `B (out ++ a) b`, `a ++ b` a prefix of pending ++ input). `os.File.WriteAt.specLong`
+  (any length, chunks of `maxRW`; premise `m.lo ≤ m.size`; post `pwPost m off A j`, `PwOutA`):
+  proved up to 1 GiB, **`sorry` past it** (`Proof/os/WriteLong.lean`, plan in its header).
+  `os.File.Write.wp_empty`/`wp_long` (`OffLong.lean`) and the bridge `os.File.writerStream`
+  (`Proof/os/WriterStream.lean`: `fileW`/`fileB` over `StreamOk`, whole resources) proved.
+  **Open:** `wal-save`'s `io.writerStreamG` keeps the old error clause (`W (out ++ ys)`, `n = |ys|`),
+  which no `os.File` can meet (offset `-1`, arbitrary count): it needs the `B` form. And the guarded
+  bridge for `walTailW` (program halves) needs a crash-aware `Write` that opens `walInv` around each
+  `PWriteStart`/`PWriteFinish` (the in-flight write's token in `walTailsRes`), not this whole-resource bridge.
+
+## fileutil, the rest (branch `wal-fu2`, 2026-11-13)
+
+Specs in `LinuxFs/Spec/go_etcd_io/etcd/client/pkg/v3/fileutil/` (and `wal/createNewWALFile.lean`), proofs
+beside them in `LinuxFs/Proof/...`:
+- **`ZeroToEnd`** (proved): pre the offset `o ≤ size`, the file unmapped, whole `OsMeta` and the bytes
+  `[o, size)`; success: offset `o`, same size and mappings, `[o, size)` an `osZerosA` run; error: some
+  offset, some size `w ≥ o`, some `w - o` bytes from `o`. Callees `os.File.Truncate.spec`, `Preallocate.spec`.
+- **`LockFile`** (proved, ofd and flock variants over the package fact `fileutilInit`): **generic in
+  the open spec** (decision: one statement for every open variant instead of one spec each):
+  `fileutil.OpenTriple P path flag perm A C` (`LockDefs.lean`) is the premise, `{{P}} os.OpenFile
+  {{ fileutil.openPost A C }}`, the shape of `specCreateS`/`specCreateTruncS`/`wp_fileS` (outcome `x`,
+  resources `A x ok`, on success a fresh file and fd on `i` with `C x i`); post `fileutil.lockPost`
+  (the locked file `fileutil.lockedFile lf f`, persistent, with the file and fd whole; on an error a
+  nil pointer and `∃ b, A x b`: a lock error closes the file it opened). Callees `os.File.Fd`,
+  `Close`, `syscall.Flock`, `fmt.ErrorfErrs` (`ofdLockFile` wraps the open error with `%w`).
+  **Open, blocking instantiation:** `openPost`'s error branch needs `fmtErrorOkOrNil err` (for that
+  `%w`), which the part's open specs do not give yet: add it to `os.OpenFile.specCreateS`,
+  `specCreateTruncS` and `wp_fileS`'s error posts (their model's error is `pathError "open" name
+  (errno e)`; `os.wp_wrapErrno_ok`'s argument, `pathError_fmtErrorOk` + `errnoErr_fmtErrorOk`).
+- **`createNewWALFile`** (proved, `wal/`): `specLocked` (`LockFile`'s post) and `specFile`
+  (the open's), generic the same way at `wal.walOpenFlag forceNew` (`0x41`/`0x241`), mode `0600`.
+- **`Exist`** (proved): generic in the `Stat` spec. **`WithExt`** (proved): `fileutil.withExtFn g ext`
+  (persistent closure contract).
+- **`ReadDir`**: spec over `Open/Readdirnames/Close.wp_dirS` (result `fileutil.ReadDirOut names
+  (optsExt es) rs`: sorted, filtered); **proof `sorry`** (two loops left).
+- Not done: `TryLockFile` (the WAL does not call it; needs `errors.Is(err, EWOULDBLOCK)`),
+  `IsDirWriteable` (reached through `TouchDirAll`: `os.WriteFile`, `Remove`).
+- Build note: the seeded `.lake` replayed stale `Proof/.../storage/WalEncDecode` and
+  `GooseLang/Ext/Fs/TreeSharedRes` artifacts after the `wal-int` merge; deleting them fixed it.

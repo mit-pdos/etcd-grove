@@ -228,3 +228,37 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   true of Go (`errors.Is(nil, t)` is `nil == t`; the two `errors.New` allocations differ; the client's `IoE`, the
   `os` file errors, are expected not to include `io.EOF`), a client obligation like the rest of `isEofOk`.
 - **Decision.** Adopted (proof agent, minor: an intermediate client obligation, no ghost state).
+
+## 2026-11-13: the WAL decoder's `proto.Unmarshal` -- a failure is not `recDecode bs = none`; the decoded record cannot be reset
+
+- **Spec.** `LinuxFs/Spec/google_golang_org/protobuf/proto/UnmarshalWalRecord.lean` (a hypothesis of
+  `decoder.decodeRecord`), `walpb.Record.Reset.spec`, `decoder.{decodeRecord,Decode}.spec` and `decPost`
+  (`DecDefs.lean`), the registered `walpb.Record`'s `decC` (`PbRecord.lean`); W3a of `notes/wal-fsext-plan.md`.
+- **Defect.** (1) `UnmarshalWalRecord.spec` said `Unmarshal` fails exactly when the canonical decoding
+  `recDecode` does; `proto.UnmarshalPb.spec` (D1/D2) gives only "success is the canonical decoding" and
+  "a valid encoding succeeds", so it was not derivable. (2) Its precondition `l ↦ zero_val` and `Reset`'s
+  post, against the registration's `blank`. (3) The registered `decC` put the record's hidden fields in an
+  invariant, so a decoded record could never be `Reset` (the decoder reuses `rec`) without duplicating them.
+- **Evidence.** The derivation attempt (`wal-dec2`, notes W3a), and `UnmarshalPb`'s error post, which
+  returns no record.
+- **Proposed change.** The coordinator's decision (2026-11-13): the weaker model. `Unmarshal` may fail on
+  bytes that are no record's encoding (`UFail`), a failure being a `badRec` stop of the Go decoder
+  (`GoFail`, `decPost`'s third disjunct, the record not given back; `ReaderRun.fail`); success is
+  `recDecode`. The spec stated over `walCodec` and `pbRecordC.data.blank`, derived from `UnmarshalPb`;
+  `decodeRecord`/`Decode` take `C = walCodec`; `Reset` returns `blank`; `decEnv` gains `isPkgInit proto`;
+  the registered `decC` owns the decoded record whole (trusted, pending the user's review with the
+  registration).
+- **Decision.** Adopted (the coordinator for the model; proof agent for the `decC` ownership, flagged for review).
+
+## 2026-11-13: `wal.WAL.Sync.spec` -- the error arm keeps the handle, though a failed flush leaves a partial write
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__Sync.lean` (the W4a axiom; its proved replacement
+  over `fsExt`, `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/`, branch `wal-save`).
+- **Defect.** Unprovable: `sync` flushes the encoder's page writer first; a failed flush drops the pending
+  buffer after part of it reached the file, so the handle's state no longer matches the file and no
+  later operation on it can be proved.
+- **Evidence.** The W6 proof attempt (`notes/wal-fsext-plan.md`, W6 log); `ioutil.PageWriter.Flush.spec`'s
+  error post (proved, branch `wal-enc3`).
+- **Proposed change.** On error, `Sync` consumes the handle (as `Save`'s and `SaveSnapshot`'s error arms
+  do, plan §3); etcd's callers stop on that error (`Fatal`).
+- **Decision.** Adopted (the coordinator, the user away; an intermediate spec, every client stops there).

@@ -44,7 +44,7 @@ theorem wp_linkError (op old new : GoString) (e : w64) (Φ : val → IProp GF) :
   wp_auto
   iapply HΦ
 
-theorem os.Rename.wp_proofFileS : os.Rename.specFileS (GF := GF) (hG := hG) := by
+theorem os.Rename.wp_proofFileSnc : os.Rename.specFileSnc (GF := GF) (hG := hG) := by
   intro d bs d' bt j j' i N N' R dq dq' h h' q1 r1 q2 r2 qc Q hbs hbt hN hN' hkey hsrc htgt hq1 hq2
   wp_start as ⟨#Hos, #Hsi, Hp, Hp', Hperm, Hn1, Hn2, Hau⟩
   imod osNames_next R j N _ h CoPset.subseteq_top $$ Hsi Hn1 with ⟨Hn1, #Hlb1⟩
@@ -60,7 +60,7 @@ theorem os.Rename.wp_proofFileS : os.Rename.specFileS (GF := GF) (hG := hG) := b
   have hd1 : isDir ≠ 1 := fun h1 => by obtain ⟨⟨J, hJ⟩, -⟩ := hd h1; exact htgt J hJ
   rw [decide_eq_false (show isDir ≠ W64 1 from hd1)]
   wp_auto
-  ihave HSt : iprop((osAU iprop(osNames j N (DFrac.own r1) h ∗ osNames j' N' (DFrac.own r2) h')
+  ihave HSt : iprop((osAUnc iprop(osNames j N (DFrac.own r1) h ∗ osNames j' N' (DFrac.own r2) h')
       (renFileOut j j' i N N' bs bt h h' (DFrac.own r1) (DFrac.own r2)) Q ∗
       osNames j N (DFrac.own q1) h ∗ osNames j' N' (DFrac.own q2) h') ∨
     (∃ xs, Q (some xs) ∗ renFileOut j j' i N N' bs bt h h' (DFrac.own q1) (DFrac.own q2) (some xs)))
@@ -71,7 +71,7 @@ theorem os.Rename.wp_proofFileS : os.Rename.specFileS (GF := GF) (hG := hG) := b
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
   icases HSt with (⟨Hau, Hn1, Hn2⟩ | ⟨%xs, HQ, Hout⟩)
-  · wp_apply +noauto (wp_au_step "Rename" _
+  · wp_apply +noauto (wp_aunc_step "Rename" _
       iprop(osNames j N (DFrac.own r1) h ∗ osNames j' N' (DFrac.own r2) h')
       (renFileOut j j' i N N' bs bt h h' (DFrac.own r1) (DFrac.own r2)) Q) $$ Hau [Hn1 Hn2 Hk Hp Hp' HΦ]
     iintro ⟨Hr1, Hr2⟩
@@ -176,6 +176,15 @@ theorem os.Rename.wp_proofFileS : os.Rename.specFileS (GF := GF) (hG := hG) := b
     iapply HΦ
     iframe
     ipureintro; intro _; rfl
+
+/-- `specFileS` from `specFileSnc`: an `osAU` is an `osAUnc`. -/
+theorem os.Rename.wp_proofFileS : os.Rename.specFileS (GF := GF) (hG := hG) := by
+  intro d bs d' bt j j' i N N' R dq dq' h h' q1 r1 q2 r2 qc Q hbs hbt hN hN' hkey hsrc htgt hq1 hq2
+  iintro %Φ ⟨#Hos, #Hsi, Hp, Hp', Hperm, Hn1, Hn2, Hau⟩ HΦ
+  iapply os.Rename.wp_proofFileSnc d bs d' bt j j' i N N' R dq dq' h h' q1 r1 q2 r2 qc Q hbs hbt
+    hN hN' hkey hsrc htgt hq1 hq2 $$ [Hp Hp' Hperm Hn1 Hn2 Hau] HΦ
+  iframe Hos Hsi Hp Hp' Hperm Hn1 Hn2
+  iapply osAU_osAUnc $$ Hau
 
 theorem os.Rename.wp_proofDirS : os.Rename.specDirS (GF := GF) (hG := hG) := by
   intro d bs bt j J N R qd h q r Q hbs hbt hN hN' hne hsrc htgt hq
