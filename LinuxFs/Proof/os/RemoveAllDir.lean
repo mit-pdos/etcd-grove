@@ -64,6 +64,30 @@ theorem os.osNames_merge1 (R : Roots) (J : Ino) (c : GoString) (hc hr : NamesH) 
     rw [restrictN_lookup _ _ _ hm, restrictN_lookup _ _ _ hm] at this
     exact this
 
+/-- The entries after the removal of the name `c` (its claim `hc'` back from the claim
+`hJ.restrict J (.only [c])`) and the merge, `h''`, are some of `hJ0`'s when `hJ`'s were. -/
+theorem os.entsSub_merge1 {J : Ino} {c : GoString} {hJ hc' h'' : NamesH} {e0 : Ents}
+    (hsub : EntsSub hJ.cur e0) (hlo : LeafOk c (hJ.restrict J (.only [c])) hc')
+    (hm : h''.cur !! c = hc'.cur !! c ∧
+      ∀ x, x ≠ c → h''.cur !! x = (hJ.restrict J (.except [c])).cur !! x) :
+    EntsSub h''.cur e0 := by
+  intro x n hx
+  by_cases hxc : x = c
+  · subst hxc
+    rw [hm.1] at hx
+    have := hlo.1 x n hx
+    simp only [NamesH.restrict] at this
+    exact hsub x n (EntsSub.restrictN _ _ x n this)
+  · rw [hm.2 x hxc] at hx
+    simp only [NamesH.restrict] at hx
+    exact hsub x n (EntsSub.restrictN _ _ x n hx)
+
+/-- The claim on `c` split off a directory's whole claim holds what the whole one did. -/
+theorem os.restrict_only_cur (J : Ino) (c : GoString) (hJ : NamesH) :
+    (hJ.restrict J (.only [c])).cur !! c = hJ.cur !! c := by
+  simp only [NamesH.restrict]
+  exact restrictN_lookup _ _ _ (by simp [NameSet.Mem])
+
 /-- `unlink` loop on a name holding no file (a fraction of the claim on it): an errno, no
 effect. -/
 theorem os.model.wp_unlinkLoop_nofile (p c : GoString) (R : Roots) (J : Ino) (dq dqn : DFrac)
