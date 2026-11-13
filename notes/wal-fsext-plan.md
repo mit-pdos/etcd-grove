@@ -1378,6 +1378,57 @@ contract.**
   Not yet: the `cuts.length + 2 < 2^63` bound `cut` needs (Save must carry it: a premise of `Save`, or
   derived from the name bound); Save/saveEntry/saveState/sync/Sync/SaveSnapshot proofs (still `sorry`).
 
+**W6, third session (branch `wal-save3`, 2026-11-13): the append's crash condition, its core.**
+- *Proved* (`TailCrashPure.lean`, pure, no `sorry`): `TailCands X Y cs so z0` (the tail's candidates:
+  durable `X b` below `so`; above, `(Y b, 0)` then candidates of `X b` stamped `> 0`; `Y = X` below `z0`,
+  zeros from `z0`: `ByteOk` + F-Z), `AsOf` (`AsOfOneG` over a candidate function, `asOfOneG_asOf`),
+  `tail_frame_match` (a frame the reader accepts at a record boundary is the intended frame: as of one
+  change its core is the intended bytes; as of the sync it is the intended bytes below `max so z0` and
+  zeros above, a zero length word; the padding is the intended zeros since `Y` is zero past `z0`),
+  `tail_decode` (the reader of the crashed tail, from the segment's chain start, reads the intended
+  records `R.take j` for some `j ≥ jE`, their frames a prefix of the image, and rejects the next).
+  It needs W1 only along the reader's path (`acceptsFrom`), not `NoCollisionFrom`'s every boundary.
+- *Its premises the invariant must carry* (new, for the lift): **`max so z0` is a record boundary** of
+  the last segment (`(recFrames C (R.take jE)).length = max so z0`): `z0` ends the frames found, and a
+  tail fdatasync (`sync`) comes after the encoder's flush, at the end of the records encoded (`cut`'s and
+  ReadAll's syncs: at a boundary too). Proposed home: `walTailsRes`'s per-tail pure part (beside
+  `TailZeros`), since appends happen only under an open handle; the sync's commit re-establishes it from
+  the handle's `pend = []`.
+- *Next (the lift to `CrashTo`)*: the bridge `cs b := if b < g.bs.length then (g.bs.getD b (0, [])).2
+  else [(0, 0)]` (`TailCands` from `WalAbsD.last`'s `ByteOk` + `TailZeros`; `AsOf` from `W1G`, every
+  accepted core lying in the image, which `FileCrashedR`'s `hi = g.bs.length` keeps inside `g.bs`); the
+  record count `j` to an image `I` of the history (`walImg_histCut` + `walImg_lift` +
+  `flatMap_histCut`, as `walDecodeFiles_walImg`; the earlier segments unchanged since `lastStart ≤ d.m`);
+  the tree part of `CrashTo` (entry, `q`, `walInos`, purge bound) from the old `CrashOk`, the pwrite steps
+  leaving the claims alone (an `fo₀` with the old last image, `OsFile.ofBytes` of the stamp-0 values,
+  satisfies the old `FileCrashedR` once `metas` also says `zf ≥ size`).
+- *Writes past the preallocated size (task 1), findings, not yet implemented*:
+  1. `WalAbsD.metas` (`lo = hi = |bs|`) cannot hold of a tail written past its size: `pwPost` keeps
+     `lo` at the old size and raises `hi` to `off + len`; a short write leaves `hi > size`. The last
+     segment needs `so ≤ lo ≤ |bs| ≤ hi`, and bytes in `[|bs|, hi)` need candidates.
+  2. `FileCrashedR` (`GooseLang/Ext/Fs/CrashFiles.lean`) ignores `OsMeta.tc`, so a crash image's bytes in
+     `[size, hi)` are unconstrained, and `w1G_of_W1` needs the image no larger than `g.bs`. The fix: a
+     segment's ghost tail `[size, hi)` from `tc` (idle: `MetaOk.tail`; in flight: `OsCoh.tok_cand`,
+     `ti.m0.pc`), taken by a WAL-local variant of `crashRestAt_take`/`_tok` (as `CrashTakeSeg.lean` does),
+     `SegG` gaining the tail's candidates and `SegFl.Ok` recording `pwTail`'s (the layout's `om.tc`, which
+     `FileCrashedR` does not read, can carry them: `wp_osPWriteFinishK true` gives `pwTail`).
+  3. **The candidates past the size are zeros only if the size is page-aligned**: after a sync,
+     `OsMeta.synced` sets `zf := pageUp size`, `tc := ∅`, and the model keeps stale bytes in the last page
+     past the size (`OsFile.ofDisk`, "stale ones included"); a write past an unaligned size has arbitrary
+     durable candidates there (`wp_osPWriteFinishK`'s `zs` unconstrained), against which W1 cannot exclude a
+     stale frame. Reachable: a crossing `Save` grows the tail to an unaligned `curOff`, a crash after
+     `cut`'s truncate and before its rename leaves it the last file, `ReadAll`'s `ZeroToEnd` keeps that
+     size, and the next `Save` writes past it at once. Cut's and Create's segments (64 MB, aligned) are
+     fine. **For the coordinator** (trusted-semantics question, [user]): either the model's truncate and
+     sync zero the page past the size (ext4 does: `block_truncate_page`, writeback zeroes past `i_size`),
+     or the WAL's proof needs `pageUp size = size` of a reopened tail, which it cannot establish.
+  So task 1 changes `WalAbsD.metas` and `SegG` (W1/W2/W4's files: `CrashPure`, `CrashStart`, `CutLay`,
+  `CutSynced`, `CreateCommit`, `CrashTakeSeg`) and waits on item 3; not started, to avoid conflicts with
+  the concurrent branches.
+- *Not done this session*: the step specs (`wp_tailPWriteStart`/`Finish`), `wal.tailWriter`, PageWriter and
+  encoder over `writerStreamP`, the cuts budget, `saveEntry`/`saveState`/`sync`/`Save`/`SaveSnapshot`/`Sync`
+  (all still `sorry`).
+
 ## W3/W5 implementation log (branch `wal-read`, 2026-11-13)
 
 **Proved (no `sorry`, `lake build`):**
