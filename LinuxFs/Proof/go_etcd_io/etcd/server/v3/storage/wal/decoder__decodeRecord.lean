@@ -427,6 +427,77 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
       ipureintro; rfl
     rw [decide_eq_false (fun h => htl (hcmp.mp h))]
     wp_auto
+    have hrp : sint.nat (W64 rb + W64 pad) = rb + pad := by word
+    wp_apply (wp_slice_make2 (V := w8) (W64 rb + W64 pad)) as %dsl ⟨Hdat, -⟩
+    · ipureintro; word
+    rw [hrp]
+    wp_apply HRF ⟨go.GoType.PointerType go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader.ty, #fbr⟩
+      _ _ (F.bs.take off ++ ys) dsl _ eof ueof $$ Hrs [Hb Hdat] as %n2 %err2 ⟨%ys2, %Hys2, Hdat, Hb⟩
+    · iframe
+      iframe Heof Hueof
+    ihave ⟨%Hpre2, Hb⟩ := ownReader_prefix IoE eof F b _ _ $$ [HF Hb]
+    · iframe HF Hb
+    have Hok2 := Hys2.2.2
+    simp only [List.length_replicate] at Hok2
+    by_cases hn2 : err2 ≠ GoInterface.nil
+    · -- a failed read of the frame
+      obtain ⟨ei2, rfl⟩ : ∃ ei, err2 = GoInterface.ok ei := by
+        cases err2 with
+        | ok ei => exact ⟨ei, rfl⟩
+        | nil => exact absurd rfl hn2
+      wp_auto
+      ihave #HIs2 := Heok $$ %(GoInterface.ok ei2) %(readFull_err_cases Hok2)
+      wp_apply HIs2 as %b2 %Hb2
+      subst Hb2
+      by_cases hI : IoE (GoInterface.ok ei2)
+      · rw [decide_eq_false (fun (h : GoInterface.ok ei2 = eof) => Hneq.2 (h ▸ hI))]
+        wp_auto
+        iapply HΦ
+        iapply decPost_ioe C d rp IoE eof ueof (F :: fs) (F :: fs) off off c c _ hI
+        isplitl [Hr]
+        · iunfold ownRecAny; iexists _; iexact Hr
+        iapply ownDecoder_intro d IoE eof sl fbr fbrs h F fs (F.bs.take off ++ ys ++ ys2) off c
+          false hoff (by simp)
+        iframe
+        iframe Hmu Hsl
+        iapply ownFbr_intro
+        iframe
+        iframe Hf HF
+        iunfold fileInfoOk
+        iexists fii
+        iframe HSize HName
+        ipureintro; rfl
+      obtain ⟨hlt2, hr2, hc2⟩ := readFull_short Hok2 Hneq.2 hn2 hI
+      have hsd : (F.bs.drop off).length < 8 + rb + pad := by
+        have := congrArg List.length hr2
+        simp only [List.length_append, List.length_take, List.length_drop] at this ⊢
+        omega
+      have hstep : decRecStep C fs.isEmpty F.bs off c = .stop .shortData c := by
+        rw [hframe, if_neg htl, if_pos hsd]
+      rcases hc2 with ⟨h1, _⟩ | ⟨h1, _⟩
+      all_goals first
+        | rw [decide_eq_true h1]
+        | rw [decide_eq_false (fun h => Hneq.1 (h1.symm.trans h).symm)]
+      all_goals
+        wp_auto
+        iapply HΦ
+        iapply decPost_stop C d rp IoE eof ueof F fs off c c _ .shortData hstep
+          (by simp only [stopErr]; first | exact hu.symm | exact h1)
+        isplitl [Hr]
+        · iunfold ownRecAny; iexists _; iexact Hr
+        iapply ownDecoder_intro d IoE eof sl fbr fbrs h F fs (F.bs.take off ++ ys ++ ys2) off c
+          _ hoff (by simp)
+        iframe
+        iframe Hmu Hsl
+        iapply ownFbr_intro
+        iframe
+        iframe Hf HF
+        iunfold fileInfoOk
+        iexists fii
+        iframe HSize HName
+        ipureintro; rfl
+    have hn2 : err2 = GoInterface.nil := Classical.byContradiction hn2
+    subst hn2
     sorry
 
 end proof
