@@ -801,3 +801,186 @@ out of `Abs.lean`; statement unchanged). Left: `walInv_alloc` (`sorry`).
   so the old array is referenced by nobody else). With it the encoder's invariant owns `e.buf` whole
   and the padding `append` (fits or grows) keeps it. Also needed: `recSize < 2^47` (data below
   `2^46` bytes) for `MarshalAppend`/`Marshal`'s premises.
+
+## W2 implementation log (branch `wal-cut`, 2026-11-13)
+
+Modules (`LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/`), all pure, **no `sorry`**: `Cut` (the
+invariant's new definitions), `CutCrash` (the rename and the directory sync keep the crash condition),
+`CutSynced` (a synced WAL's crash; `walInos_congr`), `CutLay` (the layout after a cut: its static relation,
+the composed rename lemma).
+
+**Invariant changes** (`Inv.lean`'s `WalsOk`, per WAL; the W1 lemmas re-proved, statements unchanged):
+- `(lay.j, NameSet.except [], hj) ∈ cl` became `WalDirClaim lay.j hj cl` := `∃ X, (∀ b ∈ X, walNameP b =
+  false) ∧ (lay.j, .except X, hj) ∈ cl ∧ ClaimCoh hj lay.j (.except X)`: the WAL's claim leaves out
+  non-`.wal` names (the pipeline's `walTmps = ["0.tmp", "1.tmp"]`, whose claims the pipeline holds), and is
+  coherent: `ClaimCoh h j N` := entries below `next`, and a crash keeping all of them leaves every name as
+  `h.cur` (preserved by `claimCoh_log` for an entry at `x ≥ next` that changes only the names it writes;
+  `claimCoh_init` at boot). Producers (`walsOk_start`) give `X = []`.
+- `CrashOk C Mr d lay cl n` became `CrashOkW` := `∃ alt, (∀ lay0, alt = some lay0 → AltOk d lay lay0) ∧
+  CrashOkA d lay alt cl n`. `CrashOkA`: every crash gives `CrashTo lay` or `CrashTo lay0` (`alt = some
+  lay0`). `AltOk`: `lay0` has its own static relation (over some entries), the same `jr`/`nm`/`j`, its
+  segments a prefix of `lay`'s. `alt = none` is `CrashOk` (`crashOkA_none_iff`). `crashGood_exists` takes
+  whichever `CrashTo` holds (`crashTo_start` over that layout; the sublist and inode facts through the
+  prefix).
+
+**Which intermediate states the invariant allows during a cut** (S/wal.go:875-965):
+1. old tail truncated at the file offset, not yet synced: W6's tail step (the reader stops at the
+   stream's end with or without the zeros past it); `CrashOk` unchanged.
+2. old tail flushed and fdatasync'd (`w.sync()`): `d.m = |H|` (the invariant's `s` raised, the
+   program's copy lagging, `walGhost_upd_lag`), every byte of every segment `durB`, the last one's
+   `bs = S.map durB` and its `OsMeta` sized `|S|`.
+3. `N.tmp` (from the pipeline: `O_TRUNC`, preallocated) holding zeros, then the headers, then
+   fdatasync'd: not a `.wal` name, owned wholly by `cut` (its `OsMeta`/`osBytes`, its claim `.only
+   [N.tmp]` from the pipeline): no invariant fact.
+4. renamed (`os.Rename.specFileS`, two claims: `N.tmp`'s and the WAL's; the AU commits in the
+   invariant): layout `cutLay lay |H| g wr` (cut `|H|` and segment `g` appended; `old` zeros; `wr = so =`
+   the headers' frames; `z0 = 0`), `alt = some lay`, the claim `h.log x e c`. `cut` hands the
+   invariant the halves of `g`'s `OsMeta`/bytes (`segRes`). Proved: `crashOkA_cut` (from `CrashOk lay`,
+   `cutLay_abs`, the bytes durable, the rename's entry writing only the new `.wal` name among the
+   claim's names, no other claim holding it).
+5. after `Fsync(w.dirFile)` (`os.File.Sync.specDirS`: `osCommitLb n`, `n > x`): `alt = none`
+   (`crashOk_dirSync`: every crash keeps the rename, so the new segment is named, which `CrashTo lay`
+   excludes).
+The re-lock (`newTail.Close()`, `LockFile(fpath, O_WRONLY)`, `Seek(off)`) changes no invariant fact
+(locks are bookkeeping, plan §6 Q1).
+
+**Pure lemmas** (proved): `regionCrashedK_unlog` (a crash dropping the logged entry is one of the
+claims before it), `regionCrashedK_kept` (keeping it keeps every earlier entry of the coherent claim,
+and without the new name is a crash of the claims before it: `treeDel`), `w1G_durable` (W1 over
+all-durable segments holds by itself), `w1G_prefix`, `crashOkA_rename`, `crashOk_of_alt`,
+`crashOk_dirSync`, `crashTo_synced` (all bytes durable, `d.m = |H|`, the names kept: `CrashTo` with
+`I = H`, `q = 0`; zeros after the last stream read as EOF), `walInos_congr` (directories agreeing on
+`.wal` names), `segRecs_snoc`/`segStream_snoc`/`segStart_snoc` (an extra cut at `|H|`),
+`cutLay_abs` (the static relation after the rename: premises the old tail synced and truncated, the
+new name above the old ones and above `walLastIdx H`, the new bytes `(S' ++ zeros).map durB`, the zero
+tail `0` or `≥ 8` bytes, `RecsFit` of the new segmentation, the directory's `.wal` files the old ones
+then `g`).
+
+**Not done: the Iris specs** of `filePipeline.alloc`/`run`/`Open`/`Close` and `(*WAL).cut`. Their
+statements need vocabulary not yet on `wal-int`, so they were not stubbed (a stub over a guessed
+vocabulary would fix the wrong statement):
+- the WAL handle predicate (fields `dir`, `dirFile`, `locks`, `encoder`, `fp`, `enti`, `snapi`,
+  `state`, `metadata`) and the specs of `(*WAL).sync`, `saveCrc`, `saveState`, `encoder.encode`,
+  `newFileEncoder` on a tail that is (a) the last segment, its bytes crash-tracked, or (b) the cut's
+  `N.tmp`, owned wholly: W6;
+- `fileutil.LockedFile` ownership and the specs of `fileutil.LockFile`, `Preallocate`, `Fsync`,
+  `createNewWALFile` (over `os.OpenFile` and `syscall.FcntlFlock.wp_lock`/`Fallocate.wp_grow`);
+- **an `O_CREAT|O_TRUNC` shared-mode open** (`alloc` now opens `N.tmp` with `O_TRUNC`, decision of
+  2026-11-13; `os.OpenFile.specCreateS`/`wp_osOpenCreateS` exclude `O_TRUNC`): an `os`/I2 unit;
+- a zero-run byte resource (I4) for the 64 MB preallocation (CLAUDE.md, "Large contexts").
+Planned shape: the pipeline's predicate `isFilePipeline fp dir j γ` (persistent: the fields, `filec` a
+rendezvous handshake (Perennial `Chan/Idioms/Handshake`, `P` the handed file, `Q` the claim on the
+name received before, via a ghost count), `errc`/`donec` invariants); `alloc`: the claim on
+`walTmps[count%2]` whole → a fresh file there (zeros, `OsMeta` whole) or an error with the claim back;
+`Open`: the main thread's token `pipeMain γ c` → `pipeMain γ (c+1)` and the file with its claim, or an
+error; `Close`: the token → the pipeline's claims (and the file in flight removed). `cut`: within
+`Save`'s proof, the handle and `walInv`, `walSyncedLb |H|` preserved, the layout `cutLay`, `alt` back to
+`none` on success; on an error the handle is lost (§3's honest error posts), `CrashOkW` held throughout.
+## W4 implementation log (branch `wal-create`, 2026-11-13)
+
+**Statements (`sorry`-stubbed proofs):** `LinuxFs/Spec/.../storage/wal/Create.lean` (`wal.Create.spec C Mr`),
+`LinuxFs/Spec/.../client/pkg/v3/fileutil/{TouchDirAll,CreateDirAll}.lean`; vocabulary
+`LinuxFs/Proof/.../wal/CreateDefs.lean` (`walAuMask`, `walAreaOk`, `walAreaRes`, `osSubtreeH`/`osSubtree`,
+`ClReach`/`SubCover`, `tmpName`). The main-tree axioms stay until the clients move.
+
+Statement decisions (against the old axiom and plan §3):
+1. **Client atomic updates at `walAuMask = osAuMask \ ↑walN`**, not `⊤`: the WAL commits a client update
+   inside an `os` call's `osAU` (whose mask is `osAuMask`), with `walInv` open. Every WAL spec with a client
+   update needs the same (W2/W6: `Save`'s update).
+2. **`walAreaOk C Mr R jr r`** = `walInv ∗ osInv ∗ osSharedInv R` (persistent). **`walAreaRes jr`** (the
+   program's, exclusive): its half of the area claim on names `N ⊇` every WAL name (the invariant has the
+   other half: `walInv_alloc`'s `harea`), and whole claims covering every directory under a non-WAL name
+   of `N`. `N` is cofinite (`NameSet`), so the cleanup's `nm.broken.<time>` names cannot be kept out of
+   it: they are split off when known, which needs both halves (so `Create` takes `walAreaRes`; it holds
+   the whole call permission anyway, so the exclusivity costs nothing). Two claims of `jr` containing a
+   WAL name have the same key (`NamesCoh.disj`): the lemma matching the program's half with the
+   invariant's.
+3. **`Create` takes `osCallPerm 1` and the spine `osPathS R r (own qp) jr`**; success gives back
+   `osCallPerm ½` (the other half is the file pipeline's, in the handle until `Close`: W2/W10 to agree),
+   an error before the rename `osCallPerm 1`, an error after it `osCallPerm ½`.
+4. **Q4 (a) is not provable** (finding, for the coordinator). `cleanupWAL`'s rename of `dir` to
+   `dir.broken.*` is never fsynced, so committing `walAbsent dir` there contradicts a crash that drops
+   that rename (the fresh WAL, with its `.wal` file, back at `nm`: `AbsentOk` false). Even with a fork fix
+   (fsync the parent after the cleanup rename) that fsync can fail, leaving the same state. So the
+   post-rename error arm is `err ≠ nil ∗ Q ∗ osCallPerm ½`: the WAL committed, fresh and unnamed, its
+   directory at `dir` or moved aside. `WalsOk` already allows that (nothing ties a WAL's layout to `nm`
+   in the current tree; `CrashTo`'s left disjunct covers the crash keeping the cleanup rename, since
+   `named = false`). Consequence: **`Exist`'s spec needs Q4 (b)** (`false → o = none ∨ o = some d` with
+   `d.H = [] ∧ ¬ d.named`). Recommended: adopt (b) for `Exist` (W12); no fork change.
+5. `md` non-nil (`mp ≠ slice.nil`: a nil metadata encodes without its `Data` field, `WalPbWire.lean`).
+6. **No package-initialization premise yet**: the part's `wal` has no `IsPkgInit` instance (not in
+   `etc/gen-init.py`'s `LFS_PKGS`); `Create` reads `SegmentSizeBytes` and `walFsyncSec`. To add with it.
+7. **`TouchDirAll`/`CreateDirAll` at the file-system level**: pre `osSubtreeH jp name h` (the whole name
+   and everything under it: `MkdirAll`, the `.touch` probe), the spine of `parent`, `osCallPerm 1`, roots
+   holding `/` (the `Exist` loop may climb to any ancestor, each needing a spine); post on success `name`
+   holds a directory and `osCommitLb n` with `h'.next ≤ n` (F-N2's parent fsync). The old `dirDurable d`
+   is the WAL layer's, derived from this by a deposit into `walInv` (`DirsOk`); the old `d ∉ area` and
+   `walAreaOk` premises are replaced by owning the subtree. `CreateDirAll`: success gives `name`'s claim
+   and the empty directory's whole claim (`hJ.cur = ∅`).
+
+**The invariant during `Create`** (design; no in-flight state needed before the rename):
+- Before the rename the temporary directory is the program's (`nm.tmp`'s claim and `J`'s, whole, from
+  `CreateDirAll`; the segment's `osMeta`/bytes from its create); the invariant keeps half of `nm`'s
+  claim (split off the area claim), for `AbsentOk`.
+- At the rename (inside `os.Rename.specDirS`'s update; the claim on `[nm, nm.tmp]` half the program's,
+  half the invariant's): `s.wal dir := walDurFresh md`, a layout with the one segment (`cuts = []`,
+  `first = 0`, bytes durable: `wr = so`), `J`'s claim half and the segment's halves deposited. `CrashOk`
+  then: a crash drops the rename (`nm` absent, `named = false`: the left disjunct) or keeps it, and with
+  it everything before it (`DirOpExcl`), so `J` names the segment (F-N1's fsync of `nm.tmp` committed its
+  entry) and the segment holds its synced frames.
+- **Needed: strong absence.** `renameWAL`'s `RemoveAll(dir)` must be a no-op, and the left disjunct needs
+  `nm` absent, not merely free of `.wal` files: the invariant must say a WAL name with no WAL is absent
+  (now and in every crash its claims allow); `AbsentOk` says only "no `.wal` file". Plan: a separate
+  framed fact `AbsentNone s jr cl n` in the body (merges with W2's extension), established by
+  `walInv_alloc` from a boot premise (WAL-less names absent: the area empty at the first boot) and carried
+  by `walCrash_pure` (`CrashTo`'s left disjunct is absence). Otherwise a non-WAL directory at a WAL name,
+  which `AbsentOk` allows, would need its whole subtree owned for `RemoveAll`.
+- At the parent's fsync (`osCommitLb n`, `n` past the rename's entry): `named := true` (every crash keeps
+  the rename: `RegionCrashed`'s `K` holds every claimed entry below `n`, and the rename is `nm`'s last
+  writer), giving `walNamed dir`.
+
+**Done (no `sorry`):**
+- `Inv.lean`: **`WalsCreateOk jr cl`**, the framed `Create` part of `walInvBody` (a new last conjunct
+  `⌜WalsCreateOk jr cl⌝`, apart from `WalsOk`): a claim of the area among `cl` holds every WAL name.
+  `walInv_alloc` establishes it from `harea`; `walInv_crash` drops it (`Crash.lean`, two pattern edits).
+  W2's extension: add its own conjunct after it.
+- `CreateNamedPure.lean`: `regionCrashed_mono`, `LastWrite` (the claim's last entry writing a name),
+  `regionCrashed_lastWrite` (a committed last writer decides its name in every crash), `crashOk_named`,
+  `crashOk_named_of_lastWrite`.
+- `CreateNamed.lean`: `crashOk_mono`, `walsOk_mono`, `walAbsD_named`, `setNamed`, `walsOk_named`;
+  `osNames_same_name` (two claims of one directory holding a name are one: same key, same history);
+  **`walInvBody_named`** (the parent fsync's commit point: the invariant's contents at `s`, the program's
+  claim fraction on `N ∋ nm` whose last writer of `nm` (`x`) left a directory, `osCommitLb n` with
+  `x < n` ⟹ the contents at `setNamed s dir` and `walNamed dir`).
+
+**Open, for the coordinator:** (i) every WAL operation opening `walInv` meets the `walCrashTok` branch,
+which nothing the program holds excludes; `walInvBody_named` is stated on the contents for that reason.
+A program-side exclusion (e.g. a fraction of a generation token the crash takes whole) is needed by every
+W-unit. (ii) Q4 (a) (above). (iii) `AbsentNone` (strong absence) not yet added.
+
+**Next:** the commit at the rename (`osAU` for `os.Rename.specDirS` built from `walInv` and the client's
+update: `s.wal dir := walDurFresh md`, the new layout and its `CrashOk`); then `syncDir`, `renameWAL`,
+`cleanupWAL`, `Create`'s body; `TouchDirAll`/`CreateDirAll`.
+
+**Hypotheses the proof will take** (callee specs not yet over `fsExt`): `os.RemoveAll`, `os.MkdirAll`
+(`wal-osau3`), `os.Stat` of a regular file, `fileutil.LockFile`/`FcntlFlock`, `fileutil.Preallocate`,
+`File.Seek`, `newFileEncoder`/`encode`/`saveCrc` (`wal-enc4`), `WAL.SaveSnapshot` (W6/W11), `WAL.Close`
+(W10), `Open`/`ReadAll` (W5/W3, for `renameWALUnlock`), `newFilePipeline` (W2), `Exist` (W12),
+`filepath.Clean`/`Dir`/`Join`, `fmt.Sprintf`, `time.Now`/`Format`, prometheus `Observe`.
+
+## 11. Coordinator decisions after W2 and W4 (2026-11-13)
+
+- **Q4 revised to (b)** (W4 found (a) unprovable: `cleanupWAL`'s rename to `dir.broken.*` is never fsynced,
+  so a crash can bring the fresh WAL back after a committed `walAbsent`; a fork fsync could itself fail):
+  `Create`'s after-rename error arm returns `Q` only, and `Exist`'s `false` arm allows `o = none ∨` a fresh,
+  unnamed WAL (`d.H = [] ∧ ¬ d.named`). No fork change.
+- **`walInv` and the crash case**: `walInv`'s body is `body ∨ C` with Perennial's crash tokens (`NC q` held by
+  the running program's operations, `C` deposited by the crash step, `NC ∗ C ⊢ False`), so an operation that
+  opens `walInv` with an `NC` fraction always finds the body. W1's crash lemmas restated accordingly (branch
+  `wal-nc`).
+- **Masks**: every WAL client update sits at `walAuMask = osAuMask \ ↑walN` (it commits inside an `os` call's
+  update with `walInv` open); `Save`'s and `SaveSnapshot`'s too.
+- **Call permission**: `Create`/`Open` return `osCallPerm ½`; the file pipeline holds the other half until
+  `Close` (W2, W10).
+- **Invariant extensions** are separate conjuncts of `walInvBody` (W4's `WalsCreateOk`, then W2's, W6's), so
+  the units merge.

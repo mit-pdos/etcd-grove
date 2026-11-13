@@ -11,16 +11,21 @@ roots `R`), in the tree's shared mode (`notes/wal-fsext-i2-design.md`). It holds
   `n` of the generation's tree (`osCommitLb n`, I1), each named segment's halves (`segRes`);
 * the static relation (`WalAbsD`) and the crash condition (`CrashOk`) of every WAL;
 * that a directory of the area with no WAL has none after any crash its claims allow (`AbsentOk`),
-  and that a durable directory (`dirDurable`) resolves after any crash (`DirsOk`).
+  and that a durable directory (`dirDurable`) resolves after any crash (`DirsOk`);
+* `Create`'s framed part (`WalsCreateOk`, W4): a claim of the area holds every WAL name.
 
-**Not yet here** (W2-W6 add them as their steps need): a write in flight on a segment (its
-`pwTok`, as `cfInv`'s `invRes`, LinuxFs/Proof/os/CrashFile.lean); the pipeline's `N.tmp` claims
-parked between hand-offs; `Create`'s `dir.tmp`.
+W2 (`Cut.lean`): the WAL directory's claim leaves out the pipeline's names (`WalDirClaim`, the
+`N.tmp` claims are the pipeline's) and is coherent; the crash condition may carry the layout before
+a cut's rename not yet made durable (`CrashOkW`).
+
+**Not yet here** (W3-W6 add them as their steps need): a write in flight on a segment (its
+`pwTok`, as `cfInv`'s `invRes`, LinuxFs/Proof/os/CrashFile.lean); `Create`'s `dir.tmp`.
 -/
 module
 
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Ghost
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Abs
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Cut
 public import GooseLang.Ext.Fs.TreeShared
 
 @[expose] public section
@@ -57,16 +62,22 @@ def DirsOk (R : Roots) (s : AbsDiskState) (cl : List Claim) (n : Nat) : Prop :=
 def segsAll (Ls : GMap GoString WalLay) : List SegG := (toList Ls).flatMap (fun kv => kv.2.segs)
 
 /-- **What the invariant says of the WALs** (pure): each WAL of `s` has a layout, its directory at
-its name in the area, its claims among `cl` with the static relation over the directory's names,
-and its crash condition. -/
+its name in the area, its directory's claim among `cl` (`WalDirClaim`) with the static relation
+over the directory's names, and its crash condition (`CrashOkW`). -/
 def WalsOk (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (s : AbsDiskState)
     (Ls : GMap GoString WalLay) (cl : List Claim) (n : Nat) : Prop :=
   (∀ dir d, s.wal !! dir = some d → ∃ lay nm hj, Ls !! dir = some lay ∧ InArea s.area dir nm ∧
-    lay.jr = jr ∧ lay.nm = nm ∧ (lay.j, NameSet.except [], hj) ∈ cl ∧
-    WalAbsD C Mr d lay hj.cur ∧ CrashOk C Mr d lay cl n) ∧
+    lay.jr = jr ∧ lay.nm = nm ∧ WalDirClaim lay.j hj cl ∧
+    WalAbsD C Mr d lay hj.cur ∧ CrashOkW C Mr d lay cl n) ∧
   (∀ dir, s.wal !! dir = none → Ls !! dir = none) ∧
   ((segsAll Ls).map (·.ino)).Nodup ∧ (∀ g ∈ segsAll Ls, g.om.cut = none) ∧
   AbsentOk s jr cl n ∧ DirsOk R s cl n
+
+/-- **`Create`'s part of the invariant** (W4, framed apart from `WalsOk`): a claim of the area
+directory among `cl` holds every WAL name, so that a claim the program holds on a WAL name is known
+to be one the invariant has the other half of (`NamesCoh.disj`), whose crashes it reasons about. -/
+def WalsCreateOk (jr : Ino) (cl : List Claim) : Prop :=
+  ∀ nm, walNameOk nm → ∃ N h, (jr, N, h) ∈ cl ∧ N.Mem nm
 
 end pure
 
@@ -100,7 +111,7 @@ def walInvBody (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoSt
   iprop(∃ (Ls : GMap GoString WalLay) (cl : List Claim) (n : Nat),
     walGhost (W := W) s ∗ ⌜s.area = r⌝ ∗
     osClaims L (cl.map (fun c => (c, DFrac.own (1 : Qp).half))) ∗ osCommitLb (L := L) n ∗
-    laysRes (L := L) Ls ∗ ⌜WalsOk C Mr R jr s Ls cl n⌝)
+    laysRes (L := L) Ls ∗ ⌜WalsOk C Mr R jr s Ls cl n⌝ ∗ ⌜WalsCreateOk jr cl⌝)
 
 instance walInvBody_timeless (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (s : AbsDiskState) : Timeless (walInvBody (L := L) (W := W) C Mr R jr r s) := by
