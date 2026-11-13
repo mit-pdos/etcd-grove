@@ -37,6 +37,19 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.spec (P : WalPbIn GF) (Mr 
           WalFs.walSyncedLb dir h.H.length) ∨
       ⌜err ≠ GoInterface.nil⌝ }}
 
+/-- **`sync.spec` while the pending bytes fit the tail's size** (`o0 + |out ++ pend| ≤ sz`): what
+the tail's writer accepts (`tailOk`) until writes past the preallocated size are covered (W6, after
+`wal-zte2`'s relaxation); then `sync.spec` itself. -/
+abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specIn (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
+  ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (h : WalHS),
+  h.rest = 0 → h.o0 + h.out.length + h.pend.length ≤ h.sz →
+  {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walHandleIn P Mr w dir h }}
+    (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"sync")) (Val #()))
+  {{ (err : GoInterface), RET #err;
+      (⌜err = GoInterface.nil⌝ ∗ walHandleIn P Mr w dir { h with out := h.out ++ h.pend, pend := [] } ∗
+          WalFs.walSyncedLb dir h.H.length) ∨
+      ⌜err ≠ GoInterface.nil⌝ }}
+
 end spec
 
 end EtcdGrove
