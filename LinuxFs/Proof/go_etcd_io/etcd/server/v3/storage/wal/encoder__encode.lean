@@ -42,7 +42,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proof
     (wp_pad : go_etcd_io.etcd.server.v3.storage.wal.prepareDataWithPadding.spec (GF := GF) (hG := hG))
     (wp_write : go_etcd_io.etcd.server.v3.storage.wal.write.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.spec (GF := GF) (hG := hG) := by
-  intro e wi W out pend c rp t d hsz
+  intro e wi W B out pend c rp t d hsz
   iintro #Hw
   wp_start as ⟨#Henv, He, Hout, Hr⟩
   iunfold encRecIn at Hr
@@ -122,12 +122,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proof
       $$ [Hdat Hcap] as %dat2 ⟨Hdat2, Hcap2, -⟩
     · iframe
     try wp_auto
-    wp_apply (wp_write pw wi W out pend u us dat2
+    wp_apply (wp_write pw wi W B out pend u us dat2
       (recEnc (recOf ⟨t, hash.crc32.crc32c c d, d⟩) ++ List.replicate
         (framePad (recEnc (recOf ⟨t, hash.crc32.crc32c c d, d⟩)).length) (0#8)) (DFrac.own 1) _ Hus
       (by have := framePad_lt (recEnc (recOf ⟨t, hash.crc32.crc32c c d, d⟩)).length
           simp only [List.length_append, List.length_replicate]; omega))
-      $$ [Hw] [Hpw Hout Hus Hdat2] as %err ⟨%ys, %pend', Hout, Hpw, Hus, Hdat2, %Hr⟩
+      $$ [Hw] [Hpw Hout Hus Hdat2] as %err ⟨%pend', Hpw, Hus, Hdat2, Hres⟩
     · iexact Hw
     · iframe
       iunfold encEnv
@@ -140,8 +140,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proof
       inext; itrivial
     try wp_auto
     iapply HΦ
-    iexists ys, pend'
-    iframe Hout Hro
+    iexists pend'
+    iframe Hro
     isplitl [Hpw Hbw Hcrc Hl Hbuf Hbs Hu64 Hus]
     · iunfold ownEncoder
       iexists pw, _, b, u, bs, _
@@ -155,9 +155,19 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proof
         ipureintro; rfl
       ipureintro
       exact ⟨Hb, u64Le_length _⟩
-    ipureintro
-    simp only [WalEnc.frame, walRecEnc, WalEnc.encodeFrameSize, List.append_assoc] at Hr ⊢
-    exact Hr
+    icases Hres with (⟨%ys, %Hr, Hout⟩ | ⟨%a, %b2, %Hr, Hbad⟩)
+    · ileft
+      iexists ys
+      iframe Hout
+      ipureintro
+      simp only [WalEnc.frame, walRecEnc, WalEnc.encodeFrameSize, List.append_assoc] at Hr ⊢
+      exact Hr
+    · iright
+      iexists a, b2
+      iframe Hbad
+      ipureintro
+      simp only [WalEnc.frame, walRecEnc, WalEnc.encodeFrameSize, List.append_assoc] at Hr ⊢
+      exact Hr
   · -- `MarshalAppend` into `e.buf[:0]`
     try wp_auto
     obtain ⟨hbl, hbc⟩ := Hb
@@ -186,12 +196,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proof
       $$ [Hb' Hc'] as %dat2 ⟨Hdat2, Hcap2, Hback⟩
     · iframe
     try wp_auto
-    wp_apply (wp_write pw wi W out pend u us dat2
+    wp_apply (wp_write pw wi W B out pend u us dat2
       (recEnc (recOf ⟨t, hash.crc32.crc32c c d, d⟩) ++ List.replicate
         (framePad (recEnc (recOf ⟨t, hash.crc32.crc32c c d, d⟩)).length) (0#8)) (DFrac.own 1) _ Hus
       (by have := framePad_lt (recEnc (recOf ⟨t, hash.crc32.crc32c c d, d⟩)).length
           simp only [List.length_append, List.length_replicate]; omega))
-      $$ [Hw] [Hpw Hout Hus Hdat2] as %err ⟨%ys, %pend', Hout, Hpw, Hus, Hdat2, %Hr⟩
+      $$ [Hw] [Hpw Hout Hus Hdat2] as %err ⟨%pend', Hpw, Hus, Hdat2, Hres⟩
     · iexact Hw
     · iframe
       iunfold encEnv
@@ -218,8 +228,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proof
         iframe
     icases Hbs' with ⟨%bs', Hbs'⟩
     iapply HΦ
-    iexists ys, pend'
-    iframe Hout Hro
+    iexists pend'
+    iframe Hro
     isplitl [Hpw Hbw Hcrc Hl Hbuf Hbs' Hu64 Hus]
     · iunfold ownEncoder
       iexists pw, _, b, u, bs', _
@@ -233,9 +243,19 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proof
         ipureintro; rfl
       ipureintro
       exact ⟨⟨hbl, hbc⟩, u64Le_length _⟩
-    ipureintro
-    simp only [WalEnc.frame, walRecEnc, WalEnc.encodeFrameSize, List.append_assoc] at Hr ⊢
-    exact Hr
+    icases Hres with (⟨%ys, %Hr, Hout⟩ | ⟨%a, %b2, %Hr, Hbad⟩)
+    · ileft
+      iexists ys
+      iframe Hout
+      ipureintro
+      simp only [WalEnc.frame, walRecEnc, WalEnc.encodeFrameSize, List.append_assoc] at Hr ⊢
+      exact Hr
+    · iright
+      iexists a, b2
+      iframe Hbad
+      ipureintro
+      simp only [WalEnc.frame, walRecEnc, WalEnc.encodeFrameSize, List.append_assoc] at Hr ⊢
+      exact Hr
 
 end proof
 

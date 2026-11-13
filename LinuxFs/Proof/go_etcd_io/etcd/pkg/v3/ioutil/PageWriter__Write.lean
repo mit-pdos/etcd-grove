@@ -24,9 +24,9 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 
 /-- `Write` when `p` fits below the watermark: it is copied into the buffer (the first branch). -/
 theorem ioutil.wp_Write_fits (pw : Loc) (wi : GoInterfaceOk) (W : List w8 → IProp GF)
-    (out pend : List w8) (p : GoSlice) (xs : List w8) (dq : DFrac)
+    (B : List w8 → List w8 → IProp GF) (out pend : List w8) (p : GoSlice) (xs : List w8) (dq : DFrac)
     (hxs : xs.length < 2 ^ 62) (hfit : pend.length + xs.length ≤ 131072) :
-    ⊢ io.writerStream wi W -∗
+    ⊢ io.writerStream wi W B -∗
     {{ ioutil.ownPageWriter pw wi pend ∗ W out ∗ p ↦*{dq} xs }}
       (App (Val (pw @!! go.GoType.PointerType go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.ty @!!
         go!"Write")) (Val #p))
@@ -100,19 +100,22 @@ set_option maxHeartbeats 1000000 in
 theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Write.wp_proof
     (wp_Flush : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Flush.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Write.spec (GF := GF) (hG := hG) := by
-  intro pw wi W out pend p xs dq hxs
+  intro pw wi W B out pend p xs dq hxs
   by_cases hfit : pend.length + xs.length ≤ 131072
   · iintro #Hw
-    ihave #Hf := ioutil.wp_Write_fits pw wi W out pend p xs dq hxs hfit $$ Hw
+    ihave #Hf := ioutil.wp_Write_fits pw wi W B out pend p xs dq hxs hfit $$ Hw
     iintro !> %Φ Hpre HΦ
     iapply Hf $$ Hpre
     iintro !> %n %err ⟨%Hr, Hout, Hpw, Hp⟩
     iapply HΦ
-    iexists [], pend ++ xs
+    iexists pend ++ xs
+    iframe Hpw Hp
+    ileft
+    iexists []
     rw [List.append_nil]
-    iframe
+    iframe Hout
     ipureintro
-    refine ⟨fun _ => ⟨rfl, Hr.2⟩, fun h => absurd Hr.1 h⟩
+    exact ⟨Hr.1, rfl, Hr.2⟩
   iintro #Hw
   wp_start as ⟨Hpw, Hout, Hp⟩
   iunfold ioutil.ownPageWriter at Hpw
@@ -302,23 +305,33 @@ theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Write.wp_proof
     ⟨%Hret, n, err, Hout, pw, Hpw, Hp⟩)
   · subst Hv0
     wp_auto
-    wp_apply (wp_Flush pw wi W out _) $$ [Hw] [Hpw Hout] as %err0 ⟨%ys, %Hys, Hout, Hpw⟩
+    wp_apply (wp_Flush pw wi W B out _) $$ [Hw] [Hpw Hout] as %err0 ⟨Hpw, Hres⟩
     · iexact Hw
     · iframe
-    rcases err0 with ei | _
+    icases Hres with (⟨%Herr0, Hout⟩ | ⟨%Herr0, Hbad⟩)
+    rotate_left
     · -- the flush failed
+      rcases err0 with ei | _
+      rotate_left
+      · exact absurd rfl Herr0
       wp_auto
       iapply HΦ
-      iexists ys, []
-      iframe Hout
+      iexists []
       iframe Hpw
       isplitl [Hback Hs']
       · iapply Hback; iexact Hs'
+      iright
+      iexists [], (List.take (sint.nat bb) bs ++ List.take k xs)
+      rw [List.append_nil]
+      iframe Hbad
       ipureintro
-      exact ⟨fun h => (nomatch h), fun _ => ⟨rfl, Hys.1.trans
-        ((List.prefix_append_right_inj _).2 (List.take_prefix _ _))⟩⟩
+      refine ⟨fun h => (nomatch h), rfl, ?_⟩
+      rw [List.nil_append]
+      exact (List.prefix_append_right_inj _).2 (List.take_prefix _ _)
+    subst Herr0
     wp_auto
-    have hys := Hys.2 rfl
+    generalize hysd : List.take (sint.nat bb) bs ++ List.take k xs = ys
+    have hys := hysd.symm
     iunfold ioutil.ownPageWriter at Hpw
     icases Hpw with ⟨%v2, %bs2, Hv, Hbuf, %Hwf2⟩
     obtain ⟨Hwv2, Hwm2, Hok2, Hpend2⟩ := Hwf2
@@ -375,15 +388,17 @@ theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Write.wp_proof
       icases (ownSlice_split_all (V := w8) P s' _ (xs.drop k) hsP).1 $$ Hs' with ⟨H1, H2⟩
       wp_auto
       unfold io.writerStream
-      wp_apply Hw $$ [Hout H1] as %c %werr ⟨%ys2, %Hys2, Hout, H1⟩
+      wp_apply Hw $$ [Hout H1] as %c %werr ⟨H1, Hres⟩
       · iframe
-      rcases werr with ei | _
+      icases Hres with (⟨%Hc, Hout⟩ | ⟨%Herr, Hbad⟩)
+      rotate_left
       · -- the pages' write failed
+        rcases werr with ei | _
+        rotate_left
+        · exact absurd rfl Herr
         wp_auto
         iapply HΦ
-        iexists ys ++ ys2, []
-        rw [List.append_assoc]
-        iframe Hout
+        iexists []
         isplitl [Hv Hbuf]
         · iunfold ioutil.ownPageWriter
           iexists _, bs2
@@ -396,15 +411,18 @@ theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Write.wp_proof
         · iapply Hback
           iapply (ownSlice_split_all (V := w8) P s' _ (xs.drop k) hsP).2
           iframe
+        iright
+        iexists ys, _
+        iframe Hbad
         ipureintro
-        refine ⟨fun h => (nomatch h), fun _ => ⟨rfl, ?_⟩⟩
+        refine ⟨fun h => (nomatch h), rfl, ?_⟩
         rw [hys, List.append_assoc]
         refine (List.prefix_append_right_inj _).2 ?_
-        refine List.IsPrefix.trans ((List.prefix_append_right_inj _).2 (Hys2.1.trans
-          (List.take_prefix _ _))) ?_
+        refine List.IsPrefix.trans ((List.prefix_append_right_inj _).2
+          (List.take_prefix _ _)) ?_
         rw [List.take_append_drop]
         exact List.prefix_refl _
-      have hys2 := Hys2.2.2 rfl
+      obtain ⟨rfl, Hc⟩ := Hc
       wp_auto
       rw [hPdef]
       rw [ite_eq_left_of_eq_true _ _ (eq_true (show 0 ≤ sint.Z P ∧ sint.Z P ≤ sint.Z s'.len ∧
@@ -420,29 +438,31 @@ theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Write.wp_proof
         exact ⟨rfl, rfl, Hok20, Hpend2⟩
       have hdP : ((xs.drop k).drop (sint.nat P)).length = xs.length - k - sint.nat P := by
         rw [List.length_drop, hdk]
-      wp_apply (ioutil.wp_Write_fits pw wi W (out ++ ys ++ ys2) [] _ ((xs.drop k).drop (sint.nat P))
+      wp_apply (ioutil.wp_Write_fits pw wi W B (out ++ ys ++ (List.take (sint.nat P) (List.drop k xs))) [] _ ((xs.drop k).drop (sint.nat P))
           dq (by rw [hdP]; omega) (by rw [List.length_nil, hdP]; omega)) $$ [Hw] [Hpw Hout H2]
           as %c2 %werr2 ⟨%Hc2, Hout, Hpw, H2⟩
       · unfold io.writerStream; iexact Hw
       · iframe
       obtain ⟨rfl, hc2⟩ := Hc2
       iapply HΦ
-      iexists ys ++ ys2, _
-      rw [List.append_assoc]
-      iframe Hout
+      iexists _
       iframe Hpw
       isplitl [Hback H1 H2]
       · iapply Hback
         iapply (ownSlice_split_all (V := w8) P s' _ (xs.drop k) hsP).2
         iframe
+      ileft
+      iexists ys ++ (List.take (sint.nat P) (List.drop k xs))
+      rw [List.append_assoc]
+      iframe Hout
       ipureintro
-      refine ⟨fun _ => ⟨?_, ?_⟩, fun h => absurd rfl h⟩
-      · rw [hys, hys2, List.nil_append, List.append_assoc, List.append_assoc,
+      refine ⟨rfl, ?_, ?_⟩
+      · rw [hys, List.nil_append, List.append_assoc, List.append_assoc,
           List.take_append_drop, List.take_append_drop]
       · rw [hdP] at hc2
         have := Hk.2
-        have := Hys2.2.1
-        rw [hys2, List.length_take, hdk] at this
+        have := Hc
+        rw [List.length_take, hdk] at this
         have h1 : sint.nat P ≤ xs.length - k := by omega
         rw [Nat.min_eq_left h1] at this
         have h2 : ((xs.length - k - sint.nat P : Nat) : Int) = xs.length - k - sint.nat P := by
@@ -466,19 +486,21 @@ theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Write.wp_proof
         iframe
         ipureintro
         exact ⟨rfl, rfl, Hok20, Hpend2⟩
-      wp_apply (ioutil.wp_Write_fits pw wi W (out ++ ys) [] s' (xs.drop k) dq
+      wp_apply (ioutil.wp_Write_fits pw wi W B (out ++ ys) [] s' (xs.drop k) dq
           (by rw [hdk]; omega) hfit2) $$ [Hw] [Hpw Hout Hs'] as %c %werr ⟨%Hc, Hout, Hpw, Hs'⟩
       · iexact Hw
       · iframe
       obtain ⟨rfl, hc⟩ := Hc
       iapply HΦ
-      iexists ys, _
-      iframe Hout
+      iexists _
       iframe Hpw
       isplitl [Hback Hs']
       · iapply Hback; iexact Hs'
+      ileft
+      iexists ys
+      iframe Hout
       ipureintro
-      refine ⟨fun _ => ⟨?_, ?_⟩, fun h => absurd rfl h⟩
+      refine ⟨rfl, ?_, ?_⟩
       · rw [hys, List.nil_append, List.append_assoc, List.take_append_drop]
       · rw [hdk] at hc
         have := Hk.2
@@ -486,11 +508,14 @@ theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Write.wp_proof
   · subst Hret
     wp_auto
     iapply HΦ
-    iexists [], _
+    iexists _
+    iframe Hpw Hp
+    ileft
+    iexists []
     rw [List.append_nil]
-    iframe
+    iframe Hout
     ipureintro
-    exact ⟨fun _ => ⟨by simp, by word⟩, fun h => absurd rfl h⟩
+    exact ⟨rfl, by simp, by word⟩
 
 end proof
 

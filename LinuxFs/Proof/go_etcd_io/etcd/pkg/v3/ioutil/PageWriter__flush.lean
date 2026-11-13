@@ -23,7 +23,7 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 
 theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.flush.wp_proof :
     go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.flush.spec (GF := GF) (hG := hG) := by
-  intro pw wi W out pend
+  intro pw wi W B out pend
   iintro #Hw
   wp_start as ⟨Hpw, Hout⟩
   iunfold ioutil.ownPageWriter at Hpw
@@ -43,11 +43,12 @@ theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.flush.wp_proof :
   wp_auto
   wp_if_destruct
   · iapply HΦ
-    iexists []
-    rw [List.append_nil]
-    iframe Hout
-    isplitr
-    · ipureintro; simp
+    isplitl [Hv Hbuf]
+    rotate_left
+    · ileft
+      rw [show sint.nat (W64 0) = 0 from rfl, List.take_zero, List.append_nil]
+      iframe Hout
+      ipureintro; exact ⟨rfl, rfl⟩
     iunfold ioutil.ownPageWriter
     iexists _, bs
     iframe Hv
@@ -63,7 +64,7 @@ theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.flush.wp_proof :
     icases (ownSlice_split_all bb buf _ bs ⟨hbb0, hbblen⟩).1 $$ Hbuf with ⟨Hb1, Hb2⟩
     wp_auto
     unfold io.writerStream
-    wp_apply Hw $$ [Hout Hb1] as %n %err ⟨%ys, %Hys, Hout, Hb1⟩
+    wp_apply Hw $$ [Hout Hb1] as %n %err ⟨Hb1, Hres⟩
     · iframe
     ihave Hbuf := (ownSlice_split_all bb buf _ bs ⟨hbb0, hbblen⟩).2 $$ [Hb1 Hb2]
     · iframe
@@ -74,10 +75,7 @@ theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.flush.wp_proof :
     have hm0 := Int.emod_nonneg (sint.Z off + sint.Z bb) (by omega : sint.Z pB ≠ 0)
     have hm1 := Int.emod_lt_of_pos (sint.Z off + sint.Z bb) hpB
     iapply HΦ
-    iexists ys
-    iframe Hout
-    isplitr
-    · ipureintro; exact Hys
+    iframe Hres
     iunfold ioutil.ownPageWriter
     iexists _, bs
     iframe Hv

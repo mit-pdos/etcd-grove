@@ -25,18 +25,18 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Flush.wp_proof
     (wp_flush : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.flush.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Flush.spec (GF := GF) (hG := hG) := by
-  intro pw wi W out pend
+  intro pw wi W B out pend
   iintro #Hw
   wp_start as ⟨Hpw, Hout⟩
   wp_auto
-  wp_apply (wp_flush pw wi W out pend) $$ [Hw] [Hpw Hout] as %n %err ⟨%ys, %Hys, Hout, Hpw⟩
+  wp_apply (wp_flush pw wi W B out pend) $$ [Hw] [Hpw Hout] as %n %err ⟨Hpw, Hres⟩
   · iexact Hw
   · iframe
   iapply HΦ
-  iexists ys
-  iframe
-  ipureintro
-  exact ⟨Hys.1, Hys.2.2⟩
+  iframe Hpw
+  icases Hres with (⟨⟨%h, -⟩, H⟩ | ⟨%h, H⟩)
+  · ileft; iframe; ipureintro; exact h
+  · iright; iframe; ipureintro; exact h
 
 end proof
 
