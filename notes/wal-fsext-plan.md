@@ -801,3 +801,78 @@ out of `Abs.lean`; statement unchanged). Left: `walInv_alloc` (`sorry`).
   so the old array is referenced by nobody else). With it the encoder's invariant owns `e.buf` whole
   and the padding `append` (fits or grows) keeps it. Also needed: `recSize < 2^47` (data below
   `2^46` bytes) for `MarshalAppend`/`Marshal`'s premises.
+
+## W2 implementation log (branch `wal-cut`, 2026-11-13)
+
+Modules (`LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/`), all pure, **no `sorry`**: `Cut` (the
+invariant's new definitions), `CutCrash` (the rename and the directory sync keep the crash condition),
+`CutSynced` (a synced WAL's crash; `walInos_congr`), `CutLay` (the layout after a cut: its static relation,
+the composed rename lemma).
+
+**Invariant changes** (`Inv.lean`'s `WalsOk`, per WAL; the W1 lemmas re-proved, statements unchanged):
+- `(lay.j, NameSet.except [], hj) ∈ cl` became `WalDirClaim lay.j hj cl` := `∃ X, (∀ b ∈ X, walNameP b =
+  false) ∧ (lay.j, .except X, hj) ∈ cl ∧ ClaimCoh hj lay.j (.except X)`: the WAL's claim leaves out
+  non-`.wal` names (the pipeline's `walTmps = ["0.tmp", "1.tmp"]`, whose claims the pipeline holds), and is
+  coherent: `ClaimCoh h j N` := entries below `next`, and a crash keeping all of them leaves every name as
+  `h.cur` (preserved by `claimCoh_log` for an entry at `x ≥ next` that changes only the names it writes;
+  `claimCoh_init` at boot). Producers (`walsOk_start`) give `X = []`.
+- `CrashOk C Mr d lay cl n` became `CrashOkW` := `∃ alt, (∀ lay0, alt = some lay0 → AltOk d lay lay0) ∧
+  CrashOkA d lay alt cl n`. `CrashOkA`: every crash gives `CrashTo lay` or `CrashTo lay0` (`alt = some
+  lay0`). `AltOk`: `lay0` has its own static relation (over some entries), the same `jr`/`nm`/`j`, its
+  segments a prefix of `lay`'s. `alt = none` is `CrashOk` (`crashOkA_none_iff`). `crashGood_exists` takes
+  whichever `CrashTo` holds (`crashTo_start` over that layout; the sublist and inode facts through the
+  prefix).
+
+**Which intermediate states the invariant allows during a cut** (S/wal.go:875-965):
+1. old tail truncated at the file offset, not yet synced: W6's tail step (the reader stops at the
+   stream's end with or without the zeros past it); `CrashOk` unchanged.
+2. old tail flushed and fdatasync'd (`w.sync()`): `d.m = |H|` (the invariant's `s` raised, the
+   program's copy lagging, `walGhost_upd_lag`), every byte of every segment `durB`, the last one's
+   `bs = S.map durB` and its `OsMeta` sized `|S|`.
+3. `N.tmp` (from the pipeline: `O_TRUNC`, preallocated) holding zeros, then the headers, then
+   fdatasync'd: not a `.wal` name, owned wholly by `cut` (its `OsMeta`/`osBytes`, its claim `.only
+   [N.tmp]` from the pipeline): no invariant fact.
+4. renamed (`os.Rename.specFileS`, two claims: `N.tmp`'s and the WAL's; the AU commits in the
+   invariant): layout `cutLay lay |H| g wr` (cut `|H|` and segment `g` appended; `old` zeros; `wr = so =`
+   the headers' frames; `z0 = 0`), `alt = some lay`, the claim `h.log x e c`. `cut` hands the
+   invariant the halves of `g`'s `OsMeta`/bytes (`segRes`). Proved: `crashOkA_cut` (from `CrashOk lay`,
+   `cutLay_abs`, the bytes durable, the rename's entry writing only the new `.wal` name among the
+   claim's names, no other claim holding it).
+5. after `Fsync(w.dirFile)` (`os.File.Sync.specDirS`: `osCommitLb n`, `n > x`): `alt = none`
+   (`crashOk_dirSync`: every crash keeps the rename, so the new segment is named, which `CrashTo lay`
+   excludes).
+The re-lock (`newTail.Close()`, `LockFile(fpath, O_WRONLY)`, `Seek(off)`) changes no invariant fact
+(locks are bookkeeping, plan §6 Q1).
+
+**Pure lemmas** (proved): `regionCrashedK_unlog` (a crash dropping the logged entry is one of the
+claims before it), `regionCrashedK_kept` (keeping it keeps every earlier entry of the coherent claim,
+and without the new name is a crash of the claims before it: `treeDel`), `w1G_durable` (W1 over
+all-durable segments holds by itself), `w1G_prefix`, `crashOkA_rename`, `crashOk_of_alt`,
+`crashOk_dirSync`, `crashTo_synced` (all bytes durable, `d.m = |H|`, the names kept: `CrashTo` with
+`I = H`, `q = 0`; zeros after the last stream read as EOF), `walInos_congr` (directories agreeing on
+`.wal` names), `segRecs_snoc`/`segStream_snoc`/`segStart_snoc` (an extra cut at `|H|`),
+`cutLay_abs` (the static relation after the rename: premises the old tail synced and truncated, the
+new name above the old ones and above `walLastIdx H`, the new bytes `(S' ++ zeros).map durB`, the zero
+tail `0` or `≥ 8` bytes, `RecsFit` of the new segmentation, the directory's `.wal` files the old ones
+then `g`).
+
+**Not done: the Iris specs** of `filePipeline.alloc`/`run`/`Open`/`Close` and `(*WAL).cut`. Their
+statements need vocabulary not yet on `wal-int`, so they were not stubbed (a stub over a guessed
+vocabulary would fix the wrong statement):
+- the WAL handle predicate (fields `dir`, `dirFile`, `locks`, `encoder`, `fp`, `enti`, `snapi`,
+  `state`, `metadata`) and the specs of `(*WAL).sync`, `saveCrc`, `saveState`, `encoder.encode`,
+  `newFileEncoder` on a tail that is (a) the last segment, its bytes crash-tracked, or (b) the cut's
+  `N.tmp`, owned wholly: W6;
+- `fileutil.LockedFile` ownership and the specs of `fileutil.LockFile`, `Preallocate`, `Fsync`,
+  `createNewWALFile` (over `os.OpenFile` and `syscall.FcntlFlock.wp_lock`/`Fallocate.wp_grow`);
+- **an `O_CREAT|O_TRUNC` shared-mode open** (`alloc` now opens `N.tmp` with `O_TRUNC`, decision of
+  2026-11-13; `os.OpenFile.specCreateS`/`wp_osOpenCreateS` exclude `O_TRUNC`): an `os`/I2 unit;
+- a zero-run byte resource (I4) for the 64 MB preallocation (CLAUDE.md, "Large contexts").
+Planned shape: the pipeline's predicate `isFilePipeline fp dir j γ` (persistent: the fields, `filec` a
+rendezvous handshake (Perennial `Chan/Idioms/Handshake`, `P` the handed file, `Q` the claim on the
+name received before, via a ghost count), `errc`/`donec` invariants); `alloc`: the claim on
+`walTmps[count%2]` whole → a fresh file there (zeros, `OsMeta` whole) or an error with the claim back;
+`Open`: the main thread's token `pipeMain γ c` → `pipeMain γ (c+1)` and the file with its claim, or an
+error; `Close`: the token → the pipeline's claims (and the file in flight removed). `cut`: within
+`Save`'s proof, the handle and `walInv`, `walSyncedLb |H|` preserved, the layout `cutLay`, `alt` back to
+`none` on success; on an error the handle is lost (§3's honest error posts), `CrashOkW` held throughout.
