@@ -39,12 +39,14 @@ def namesOf (V : Hist) (j : Ino) (N : NameSet) : NamesH where
   cur := restrictN N (entsOf V.now j)
 
 /-- The claims' coherence with the shared history `V`: each claim's history is the history's; the
-claims of a directory are disjoint; every name of every directory of the tree is claimed. -/
+claims of a directory are disjoint; every name of every directory of the tree is claimed; every
+claimed directory is one of the tree (so a fresh directory's key is free). -/
 structure NamesCoh (V : Hist) (Γn : GMap (Ino × NameSet) NamesH) : Prop where
   hist : ∀ j N h, Γn !! (j, N) = some h → h = namesOf V j N
   disj : ∀ j N N' h h' b, Γn !! (j, N) = some h → Γn !! (j, N') = some h' → N ≠ N' →
     N.Mem b → ¬ N'.Mem b
   cover : ∀ j b, j ∈ V.now → ∃ N h, Γn !! (j, N) = some h ∧ N.Mem b
+  dirs : ∀ j N h, Γn !! (j, N) = some h → j ∈ V.now
 
 /-- The log's entries, as a map. -/
 def logMap (log : List LogEntry) : GMap Nat LogEntry :=

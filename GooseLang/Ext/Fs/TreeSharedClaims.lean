@@ -198,19 +198,23 @@ structure CohEx (V : Hist) (Γn : GMap (Ino × NameSet) NamesH) (j : Ino) (U : G
     N.Mem b → ¬ N'.Mem b
   cover : ∀ j' b, j' ∈ V.now → ¬ (j' = j ∧ U b) → ∃ N h, Γn !! (j', N) = some h ∧ N.Mem b
   free : ∀ N h b, Γn !! (j, N) = some h → N.Mem b → ¬ U b
+  dirs : ∀ j N h, Γn !! (j, N) = some h → j ∈ V.now
+  udir : ∀ b, U b → j ∈ V.now
 
 theorem CohEx.of_coh {V : Hist} {Γn : GMap (Ino × NameSet) NamesH} (h : NamesCoh V Γn) (j : Ino) :
     CohEx V Γn j (fun _ => False) :=
-  ⟨h.hist, h.disj, fun j' b hj _ => h.cover j' b hj, fun _ _ _ _ _ h => h⟩
+  ⟨h.hist, h.disj, fun j' b hj _ => h.cover j' b hj, fun _ _ _ _ _ h => h, h.dirs,
+    fun _ h => h.elim⟩
 
 theorem CohEx.coh {V : Hist} {Γn : GMap (Ino × NameSet) NamesH} {j : Ino} {U : GoString → Prop}
     (h : CohEx V Γn j U) (hU : ∀ b, ¬ U b) : NamesCoh V Γn :=
-  ⟨h.hist, h.disj, fun j' b hj => h.cover j' b hj (fun hh => hU b hh.2)⟩
+  ⟨h.hist, h.disj, fun j' b hj => h.cover j' b hj (fun hh => hU b hh.2), h.dirs⟩
 
 theorem CohEx.iff {V : Hist} {Γn : GMap (Ino × NameSet) NamesH} {j : Ino} {U U' : GoString → Prop}
     (h : CohEx V Γn j U) (hU : ∀ b, U b ↔ U' b) : CohEx V Γn j U' :=
   ⟨h.hist, h.disj, fun j' b hj hn => h.cover j' b hj (fun hh => hn ⟨hh.1, (hU b).1 hh.2⟩),
-    fun N hh b hl hm hu => h.free N hh b hl hm ((hU b).2 hu)⟩
+    fun N hh b hl hm hu => h.free N hh b hl hm ((hU b).2 hu), h.dirs,
+    fun b hu => h.udir b ((hU b).2 hu)⟩
 
 theorem CohEx.del {V : Hist} {Γn : GMap (Ino × NameSet) NamesH} {j : Ino} {U : GoString → Prop}
     (hc : CohEx V Γn j U) {N : NameSet} {h : NamesH} (hl : Γn !! (j, N) = some h) :
@@ -249,6 +253,16 @@ theorem CohEx.del {V : Hist} {Γn : GMap (Ino × NameSet) NamesH} {j : Ino} {U :
     · exact hc.free _ _ _ hl1 hm hu
     · have hNN : N1 ≠ N := fun he => hne (by rw [he])
       exact hc.disj _ _ _ _ _ b hl1 hl hNN hm hu
+  dirs := by
+    intro j1 N1 h1 hl1
+    rw [GMap.lookup_delete_iff] at hl1
+    split at hl1
+    · cases hl1
+    · exact hc.dirs _ _ _ hl1
+  udir := by
+    rintro b (hu | _)
+    · exact hc.udir b hu
+    · exact hc.dirs _ _ _ hl
 
 theorem CohEx.ins {V : Hist} {Γn : GMap (Ino × NameSet) NamesH} {j : Ino} {U : GoString → Prop}
     (hc : CohEx V Γn j U) {N : NameSet} (hNU : ∀ b, N.Mem b → U b) (hne : N ≠ .only []) :
@@ -261,7 +275,7 @@ theorem CohEx.ins {V : Hist} {Γn : GMap (Ino × NameSet) NamesH} {j : Ino} {U :
     cases hl : Γn !! (j, N) with
     | none => rfl
     | some h => exact absurd (hNU b0 hb0) (hc.free N h b0 hl hb0)
-  refine ⟨hfree, ?_, ?_, ?_, ?_⟩
+  refine ⟨hfree, ?_, ?_, ?_, ?_, ?_, fun b hu => hc.udir b hu.1⟩
   · intro j1 N1 h1 hl1
     rw [GMap.lookup_insert_eq_iff] at hl1
     split at hl1
@@ -304,6 +318,14 @@ theorem CohEx.ins {V : Hist} {Γn : GMap (Ino × NameSet) NamesH} {j : Ino} {U :
       rw [← he.2] at hm
       exact hu.2 hm
     · exact hc.free _ _ _ hl1 hm hu.1
+  · intro j1 N1 h1 hl1
+    rw [GMap.lookup_insert_eq_iff] at hl1
+    split at hl1
+    · rename_i he
+      simp only [Prod.mk.injEq] at he
+      obtain ⟨rfl, rfl⟩ := he
+      exact hc.udir b0 (hNU b0 hb0)
+    · exact hc.dirs _ _ _ hl1
 
 /-! ## The laws -/
 

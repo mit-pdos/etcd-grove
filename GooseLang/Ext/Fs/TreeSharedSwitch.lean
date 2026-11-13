@@ -81,7 +81,8 @@ theorem claimsInit_lookup (V : Hist) (js : List Ino) (k : Ino × NameSet) :
 /-- The claims a switch allocates are coherent with the history. -/
 theorem namesCoh_init (V : Hist) :
     NamesCoh V (claimsInit V ((GMap.toList V.now).map (·.1))) := by
-  refine ⟨fun j N h hl => ?_, fun j N N' h h' b hl hl' hne _ => ?_, fun j b hj => ?_⟩
+  refine ⟨fun j N h hl => ?_, fun j N N' h h' b hl hl' hne _ => ?_, fun j b hj => ?_,
+    fun j N h hl => ?_⟩
   · rw [claimsInit_lookup] at hl
     split at hl
     · cases hl; rfl
@@ -100,6 +101,14 @@ theorem namesCoh_init (V : Hist) :
       | none => rw [hv] at hj; exact absurd hj (by simp)
       | some v => exact List.mem_map.2 ⟨(j, v), (GMap.mem_toList _ _ _).2 hv, rfl⟩
     simp [hm]
+  · rw [claimsInit_lookup] at hl
+    split at hl
+    · rename_i hk
+      obtain ⟨⟨j1, v⟩, hv, hj1⟩ := List.mem_map.1 hk.2
+      simp only at hj1
+      subst hj1
+      rw [GMap.mem_iff, (GMap.mem_toList _ _ _).1 hv]; rfl
+    · cases hl
 
 /-- The shared coherence of a state whose log is sequential, with no directory fd and no call: the
 shared mode begun at the log's length. -/
