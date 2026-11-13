@@ -974,6 +974,40 @@ name received before, via a ghost count), `errc`/`donec` invariants); `alloc`: t
 error; `Close`: the token → the pipeline's claims (and the file in flight removed). `cut`: within
 `Save`'s proof, the handle and `walInv`, `walSyncedLb |H|` preserved, the layout `cutLay`, `alt` back to
 `none` on success; on an error the handle is lost (§3's honest error posts), `CrashOkW` held throughout.
+
+**Second session (branch `wal-cut2`, 2026-11-13): the pipeline.**
+- *`HandshakeN.lean`* (generic, to propose to Perennial): an **indexed handshake** on an unbuffered
+  channel, `isHsn γ ch P Q` with `P : Nat → V → _`, `Q : Nat → _`, the sides' counts `hsnSnd γ n`/
+  `hsnRcv γ n` (ghost-variable halves, the other halves in the invariant; the side completing an
+  exchange finds the other's resource at its own index). `hsn_send_au`/`hsn_receive_au` (for
+  `select`), `wp_hsn_send`/`wp_hsn_receive`, `start_hsn`. Needed because the plain handshake's `Q` is
+  one proposition: `run` cannot know which claim it gets back, and no ghost token exchanged through
+  the plain idiom fixes that (each round both sides' tokens cross without meeting).
+- *`Pipe.lean`*, the predicate (replaces `walPipeH`'s placeholder): `filec` an indexed handshake
+  (`P n lf = pipeFile j dir n lf`: `N.tmp` locked, offset 0, `OsMeta`/zero bytes whole, no mappings,
+  its whole claim holding it; `Q n = pipeQ j n`: the claim on `pipeTmp (n+1)`, the name of file
+  `n-1`, and `n + 1 < 2^63`); `errc` Perennial's SPSC (its value: an error with `pipeLeft`, the
+  pipeline's half call permission, path fraction and claim; its close without a value: `pipeLeft`
+  and `pipeClosedW`); `donec` a broadcast carrying `pipeClosedW` (`dghostVar γ.a discard true`, from
+  the caller's alive flag `dghostVar γ.a (own 1) false`: an `Open` meeting `errc` closed and empty
+  is a contradiction). Tokens: `pipeMain γ n`, `pipeDead γ e`, `pipeRun fp γ … n`. `walPipeH fp dir k`
+  (`Handle.lean`): `isFilePipe`, `pipeMain γ n`, the claim on `pipeTmp (n+1)`, `n ≤ k`, with
+  `walHandleIn` passing `h.cuts.length`.
+- **Proved:** `filePipeline.Open`, `filePipeline.Close`. **Stated, `sorry`:** `alloc`, `run`,
+  `newFilePipeline` (plans in their proof files), `WAL.cut` (the steps and their needs in
+  `WAL__cut.lean`'s header).
+- **Statement change:** `WAL.cut.spec` takes `h.cuts.length + 2 < 2^63` (`count` is a Go `int` and
+  `count % 2` a signed remainder: after `2^63` files the name would be `-1.tmp`). Save's proof must
+  supply it (e.g. from a bound on the history; logged for W6).
+- **Gaps found (for the coordinator):** (1) the open specs' posts (`fileutil.openPost`, hence
+  `lockPost`, `crTr`) give no `os.ownOff f 0`, which `Preallocate`, `Seek` and `newFileEncoder` need
+  of a fresh file; (2) `m.maps = ∅` of a truncated file is not in `trFile`; (3) `filepath.Join` has no
+  spec; (4) `sync`/`saveState` are stated over `walHandleIn` whose tail is the crash-tracked last
+  segment, but `cut` runs them on the owned `N.tmp` (a second tail mode, or inline them in `cut`);
+  (5) `walHandleIn`'s non-tail locks hold an exclusive `LockedFile.File` field, `LockFile` gives the
+  persistent `lockedFile`; (6) task 2's `nc` variants: `specCreateTruncSnc` landed on `wal-int`
+  (`wal-osau4`); `os.File.Sync.specDirS` has no atomic update, so it needs none: `crashOk_dirSync`
+  is applied after the step, opening `walInv` with `wp_notCrashed_acc` before the next one.
 ## W4 implementation log (branch `wal-create`, 2026-11-13)
 
 **Statements (`sorry`-stubbed proofs):** `LinuxFs/Spec/.../storage/wal/Create.lean` (`wal.Create.spec C Mr`),
