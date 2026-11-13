@@ -19,6 +19,7 @@ public import Spec.io.ReadFull
 public import Spec.encoding.binary.ReadInt64LE
 public import LinuxFs.Spec.fmt.ErrorfErrs
 public import LinuxFs.Spec.go_etcd_io.etcd.pkg.v3.crc.digest__Write
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.DecLemmas
 
 @[expose] public section
 
@@ -54,8 +55,103 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
     (HWrite : go_etcd_io.etcd.pkg.v3.crc.digest.Write.spec (GF := GF) (hG := hG))
     (HSum : go_etcd_io.etcd.pkg.v3.crc.digest.Sum32.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.spec (GF := GF) (hG := hG) := by
-  intro C d rp IoE eof ueof fs off c hC
-  sorry
+  intro C d rp IoE eof ueof fs
+  induction fs with
+  | nil =>
+    intro off c hC
+    wp_start as ⟨#Henv, Hd, Hr⟩
+    iunfold ownDecoder at Hd
+    icases Hd with ⟨%sl, %fbrs, %h, %rs, #Hmu, Hbrs, #Hsl, Hoff, Hcrc, Hcont, Hdc, Hfbrs, %Hinv⟩
+    wp_auto
+    wp_apply wp_with_defer as %defer Hdefer
+    ihave %Hl := ownFbrs_len IoE eof fbrs [] rs $$ Hfbrs
+    ihave %Hsll := ownSlice_len _ _ _ $$ Hsl
+    have hfbrs : fbrs = [] := List.length_eq_zero_iff.mp (by simpa using Hl.1)
+    subst hfbrs
+    have hsl : sl.len = W64 0 := by simp at Hsll; word
+    iunfold decEnv at Henv
+    icases Henv with ⟨#Hio, #Hbin, #Hfmt, #Hsync, #Hbufio, #Heof, #Hueof, #Heok, #Htab, #Hcm⟩
+    wp_if_destruct
+    · iapply HΦ
+      iunfold decPost
+      ileft
+      iexists 0
+      simp only [goDecode, List.drop_zero, List.map_nil, decide_true]
+      isplitl []
+      · ipureintro; simp [stopErr]
+      isplitl [Hr]
+      · iunfold ownRecAny; iexists _; iexact Hr
+      iunfold ownDecoder
+      iexists sl, [], h, rs
+      iframe
+      iframe Hmu Hsl
+      ipureintro
+      exact Hinv
+    · exact absurd hsl (by assumption)
+  | cons F fs IH =>
+    intro off c hC
+    wp_start as ⟨#Henv, Hd, Hr⟩
+    iunfold ownDecoder at Hd
+    icases Hd with ⟨%sl, %fbrs, %h, %rs, #Hmu, Hbrs, #Hsl, Hoff, Hcrc, Hcont, Hdc, Hfbrs, %Hinv⟩
+    wp_auto
+    wp_apply wp_with_defer as %defer Hdefer
+    ihave %Hl := ownFbrs_len IoE eof fbrs (F :: fs) rs $$ Hfbrs
+    ihave %Hsll := ownSlice_len _ _ _ $$ Hsl
+    obtain ⟨hoff, hrs⟩ := Hinv
+    have hrs := hrs rfl
+    subst hrs
+    rcases fbrs with _ | ⟨fbr, fbrs⟩
+    · simp at Hl
+    simp only [liveRs, ownFbrs]
+    icases Hfbrs with ⟨Hfbr, Hfbrs⟩
+    iunfold decEnv at Henv
+    icases Henv with ⟨#Hio, #Hbin, #Hfmt, #Hsync, #Hbufio, #Heof, #Hueof, #Heok, #Htab, #Hcm⟩
+    have hsl0 : 0 < sint.Z sl.len := by
+      have h1 : (fbr :: fbrs).length = (sint.Z sl.len).toNat := Hsll.1
+      simp only [List.length_cons] at h1
+      omega
+    have hz : sint.Z (W64 0) = 0 := rfl
+    have hsl : sl.len ≠ W64 0 := by
+      intro h0; rw [h0, hz] at hsl0; exact absurd hsl0 (by decide)
+    wp_if_destruct
+    · exact absurd (by assumption) hsl
+    rw [ite_eq_left (show 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z sl.len from ⟨by rw [hz]; decide, by rw [hz]; exact hsl0⟩)]
+    wp_apply wp_load_slice_index sl (sint.Z (W64 0)) (fbr :: fbrs) DFrac.discard fbr (by rw [hz]; decide) $$ [Hsl] as -
+    · iframe Hsl; ipureintro; rfl
+    iunfold ownFbr at Hfbr
+    icases Hfbr with ⟨%b, %fi, %ferr, #Hf, #HF, Hb, %Hferr, Hfi⟩
+    wp_apply HErr fbr b fi ferr DFrac.discard $$ [Hf] as -
+    · iexact Hf
+    rcases ferr with _ | fii
+    · -- `Err()` failed: return its error
+      wp_auto
+      iapply HΦ
+      iunfold decPost
+      iright
+      isplitl []
+      · ipureintro; exact Hferr (by simp)
+      isplitl [Hr]
+      · iunfold ownRecAny; iexists _; iexact Hr
+      iexists (F :: fs), off, c
+      iunfold ownDecoder
+      iexists sl, fbr :: fbrs, h, (F.bs.take off :: fs.map (fun _ => []))
+      iframe
+      iframe Hmu Hsl
+      isplitl [Hb Hfi Hfbrs]
+      · simp only [ownFbrs]
+        isplitl [Hb Hfi]
+        · iunfold ownFbr
+          iexists b, fi, _
+          iframe
+          iframe Hf HF
+          ipureintro; exact Hferr
+        · iexact Hfbrs
+      ipureintro
+      simp [hoff]
+    wp_auto
+    ihave #Hfio := Hfi $$ []
+    · ipureintro; rfl
+    sorry
 
 end proof
 
