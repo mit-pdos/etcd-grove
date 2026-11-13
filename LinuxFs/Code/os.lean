@@ -981,6 +981,21 @@ noncomputable def File.Name.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
 
+/-- go: file.go:110:21 -/
+noncomputable def LinkError.Error.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "e"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType LinkError.ty)))) (Var "e"))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef LinkError.ty go!"Op"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LinkError.ty)))) (Var "e")))) (Val #(go!" ")))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef LinkError.ty go!"Old"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LinkError.ty)))) (Var "e")))))) (Val #(go!" ")))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef LinkError.ty go!"New"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LinkError.ty)))) (Var "e")))))) (Val #(go!": ")))) (App (App (Val (GoInstruction (MethodResolve go.error go!"Error"))) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (StructFieldRef LinkError.ty go!"Err"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LinkError.ty)))) (Var "e"))))) (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
 /-- Open opens the named file for reading. If successful, methods on
     the returned file can be used for reading; the associated file
     descriptor has mode [O_RDONLY].
@@ -1815,6 +1830,7 @@ class LinkError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   set_Err : ∀ (x : LinkError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet LinkError.underlying go!"Err") (PairV #x #y) (Val #(({ x with Err' := y } : LinkError)))
   method_set : go.MethodSetIs LinkError.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType LinkError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
+  ptr_Error_unfold : MethodUnfold (go.GoType.PointerType LinkError.ty) go!"Error" LinkError.Error.impl
 
 attribute [instance] LinkError.TypeAssumptions.type_repr
   LinkError.TypeAssumptions.underlying
@@ -1828,6 +1844,7 @@ attribute [instance] LinkError.TypeAssumptions.type_repr
   LinkError.TypeAssumptions.set_Err
   LinkError.TypeAssumptions.method_set
   LinkError.TypeAssumptions.ptr_method_set
+  LinkError.TypeAssumptions.ptr_Error_unfold
 
 structure noReadFrom [GooseExts] where
   mk ::

@@ -26,7 +26,7 @@ translate = ["!*", "O_RDONLY", "O_WRONLY", "O_RDWR", "O_APPEND", "O_CREATE", "O_
   "pollCopyFileRange", "pollSplice",
   "Args", "init.0",
   # real Go over OpenFile (`return OpenFile(name, O_RDONLY, 0)`); the error type of Rename
-  "Open", "LinkError",
+  "Open", "LinkError", "LinkError.Error",
   # (2026-11-13, the WAL over fsExt) real Go over the trusted layout of `fileStat`
   # (`return fs.mode`, `return fs.Mode().IsDir()`), and over the models of OpenFile, File.Write and
   # File.Close (`WriteFile`, fileutil's IsDirWriteable)
