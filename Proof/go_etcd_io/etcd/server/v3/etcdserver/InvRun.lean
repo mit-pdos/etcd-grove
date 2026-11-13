@@ -95,28 +95,21 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- (2026-10-31, #11) **The disk snapshot's storage, from the snapshot path's bundle and the raft
 wrapper**: the bundle's storage over the snapshotter (`srvSnapRO`) is the wrapper's, whose WAL
-contract is `isRaftNode`'s (`isRNWal`); a snapshot at `j` is removable once `j + 1` is applied
-(`srvSnapRm`'s right disjunct). -/
-theorem srvSnapDisk_of_RO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γt : GName)
+contract is `isRaftNode`'s (`isRNWal`). (Restart S6a: the directory is `srvSnapDir_of_RO`'s.) -/
+theorem srvSnapDisk_of_RO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γm : GName)
     (Er : RNEnv GF) (γn : RNNames) :
-    srvSnapRO (GF := GF) s ci E γr γt ∗ isRaftNode Er γn (srvRAddr s) ⊢ srvSnapDisk s γr := by
+    srvSnapRO (GF := GF) s ci E γr γm ∗ isRaftNode Er γn (srvRAddr s) ⊢ srvSnapDisk s γr := by
   iintro ⟨#Hro, #Hrn⟩
   iunfold srvSnapRO at Hro
   icases Hro with ⟨%cfg, %ss, %hk, %lgh, %stp, %γd, %idm, %al, %ast, %lp, %cl, %ps, %dir, %d, %Hp,
-    #HL, #Hzl, #HD, #HF, #HFg, #Hvo, #HQ, #HW, #HSs, #HSi, #HH, #HHi, #HSt, #HM, #Hinv, -⟩
+    #HL, #Hzl, #HD, #HF, #HFg, #Hvo, #HQ, #HW, #HSs, #HSi, #HH, #HHi, #HSt, -⟩
   iunfold isRaftNode at Hrn
   iNamed Hrn
   icombine HSt Hst gives %Heq
   iunfold srvSnapDisk
-  iexists stp, ss, γd, srvImageM γr.raft.raft.authOn γr.raft.raft, srvSnapRm γt γr
-  iframe HSt Hinv
-  isplitr
-  · ipureintro; exact Hp.2.1
-  isplitr
-  · rw [Heq]; iexact Hsti
-  iintro !> %j #Hj
-  iunfold srvSnapRm
-  iright; iexact Hj
+  iexists stp
+  iframe HSt
+  rw [Heq]; iexact Hsti
 
 end snapDisk
 

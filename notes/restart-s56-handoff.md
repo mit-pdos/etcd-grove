@@ -48,6 +48,38 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
   and the risks R1-R5 (§7).
 - Decisions go in the worktree's `questions.md` (untracked).
 
+## S6a-1 progress (2026-11-13, the S6a-1 agent): next agent starts here
+
+Done (full build clean, 17552 jobs, `/shared/tmp/restart-s56/s6a1-full.log`; `tcb-report --check` matches the baseline: the opaque adds no axiom, and the baseline lists axioms and sorries only; `gen-interface --check` clean for every `etc/api` list): steps 1, 2, 3, 4 and 6 of the list
+below; targeted builds clean (`SnapRO`, `SnapTake`, `InvBoot`, `InvRestart`, `InvRun`,
+`EtcdServer__snapshot`, `…snapshotIfNeededAndCompactRaftLog`, `SnapApplyWalk`,
+`EtcdServer__applySnapshot`, `ApplyAllSnap`, `EtcdServer__applyAll`, `EtcdServer__run`, `StopShutdown`,
+`NewServer`, `EtcdServer__HardStop`). Final texts and the list of forms: `freeze-s6a.md` §3.2-final.
+- `NewServer.lean` untouched: `srvSnapRm` stays as `abbrev srvSnapRm γm _γr := snapRmM γm` (SnapRO),
+  and `bootOk`'s `Hssp` is left unused by its `iNamed Hb`.
+- `snapshot`'s `Release` facts: `srvSnapDisk` split; the directory is the new `srvSnapDir s γm`
+  (SnapTake), which `snapshot.spec`/`snapshotIfNeeded…specBatch` take with `monoNatLbOwn γm ai`;
+  `applyAll`'s batch raises the counter (`snapRm_raise`) and derives it (`srvSnapDir_of_RO`,
+  ApplyAllSnap).
+- **Step 5 not done, and its equation cannot be done in S6a-1**: the equation `snapDBPath ss =
+  snapDBPathOf cfg.DataDir'` in `srvSnapRO` breaks `NewServer`'s proof (it builds `srvSnapRO` with a
+  fixed `refine ⟨…⟩` of the pure conjuncts and an `isplitr` chain), so the stop has nowhere to get it.
+  Defer the equation (srvSnapRO and the image) to S6a-2. The rest of step 5 (the image's `∃ ssₒ γm c`,
+  invariant, counter) can be done now in `InvRestart` + `StopShutdown` (`stop_cleanup_image`). Findings:
+  - In `stop_cleanup_image`, `icases Hres` names the snapshot index `ai0g` and the ghost index `ai`;
+    the image's `i` is the ghost `ai`, and `ai0g ≤ ai` (`hAG`), so `c ≤ ai0g + 1 ≤ i + 1`.
+  - Write the image's invariant at `srvImageM γ.authOn γ` (form: then it is literally `srvSnapRO`'s at a
+    restart, `γr.raft.raft = γ`), not `srvImageM false γ`.
+  - InvRestart does not import SnapRO: write the removal fact inline
+    (`fun j => monoNatLbOwn γm (uint.nat j + 1)`, defeq `snapRmM γm`) or move `snapRmM` lower.
+  - Open: `γ.snapLoc id = some γd` needs `srvSnapRO`'s `idm` to be the image's `C.rn.id`; no lemma in
+    the stop's context links `srvMemberIDAddr C.s` to `C.rn.id` yet (`srvSnapBagN`, `InvApplyAll`'s
+    `isServerApplyAll` and `InvNet` hold `srvMemberIDAddr s ↦□ γn.id` at some `γn`). Lead:
+    `InvNet.srvProcOk γn s id γd` has `srvMemberIDAddr s ↦□ id`, `rnNodeAddr (srvRAddr s) ↦□
+    rnNodeIface γ` with `γ.id = id` and even `γ.node.snapLoc id = some γd`; `isRaftNode Er C.rn` holds
+    the node's address at `C.rn`, so agreement may give `id = C.rn.id` if `rnNodeIface` determines the id.
+- Probes P1-P3, P6 not done (not cheap: each drafts restart texts; plan §4 A1).
+
 ## S6a (decided 2026-11-13; `questions.md`): next agent starts here
 
 (b′) decided by 81. The `bootOk`/`bootOkR` conjunct `⌜snap.snapDBPath bs.ss' = snap.snapDBPathOf

@@ -41,6 +41,19 @@ open Iris Iris.BI
 file header). -/
 opaque snapDBPath [GooseExts] (ss : Loc) (id : w64) : GoString
 
+/-- **The path of the database snapshot of index `id` in the data directory `dd`** (opaque; restart
+S6a, approved by the user 2026-11-13 via etcd-grove-81): `<dd>/member/snap/<id as 16 hex
+digits>.snap.db`, a function of `dd` alone. The bootstrap contracts (`bootOk`, `bootOkR`) say that
+the snapshotter `bootstrap` returns has `snapDBPath ss = snapDBPathOf cfg.DataDir`, so that two
+incarnations of a member over one data directory write their snapshots to the same files. Go:
+`bootstrapSnapshot` returns `snap.New(cfg.Logger, cfg.SnapDir())` (`server/etcdserver/bootstrap.go:252`);
+`SnapDir()` is `filepath.Join(c.MemberDir(), "snap")` and `MemberDir()` is
+`datadir.ToMemberDir(c.DataDir)` (`server/config/config.go:300,309`); `dbFilePath(id)` is
+`filepath.Join(s.dir, fmt.Sprintf("%016x.snap.db", id))` (`server/etcdserver/api/snap/db.go:117-119`),
+and `s.dir` is written only by `New` (`snapshotter.go:34-40`). No law: only the equation of the
+contracts relates it to `snapDBPath`. -/
+opaque snapDBPathOf [GooseExts] (dd : GoString) (id : w64) : GoString
+
 /-- The address of the snapshotter `ss`'s logger field (`s.lg`; `snap.Snapshotter` is an
 axiomatized type, so the field is named, not modeled). -/
 abbrev snapLgAddr [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] (ss : Loc) : Loc :=

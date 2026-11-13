@@ -11,10 +11,14 @@
   (`srvStorTokN`'s `memTokShared`, as J3's `wp_shared`) and the registry, for any conf-state
   argument (`memCsArg`: `ep.confState` may be `nil`): the entry registered at the linearization
   point, for the snapshot the storage's state then gives.
-* `srvSnapDisk s γr`: the raft wrapper's `storage` (a `*storage.storage` over the snapshotter
-  `ss`), its `SaveSnap` (the WAL's and the snapshotter's write, the WAL contract's, `isRNWal`) and the
-  snapshot directory's invariant at a removal fact `Rm` that the applied index past `j` gives
-  (J1a's `srvSnapRm`'s second disjunct): what `snapshot(toDisk)`'s `SaveSnap` and `Release` take.
+* `srvSnapDisk s γr`: the raft wrapper's `storage` (a `*storage.storage`) and its `SaveSnap` (the
+  WAL's and the snapshotter's write, the WAL contract's, `isRNWal`): what `snapshot(toDisk)`'s
+  `SaveSnap` takes;
+* `srvSnapDir s γm` (restart S6a, 2026-11-13): that storage over the snapshotter `ss` and the
+  snapshot directory's invariant at a removal fact `Rm` that the member's removal counter `γm` past
+  `j` gives (`snapRmM`): what `snapshot(toDisk)`'s `Release` takes, with the counter's lower bound at
+  the applied index (until then a part of `srvSnapDisk`, its `Rm` from the applied index past `j`,
+  J1a's `srvSnapRm`'s second disjunct, over an incarnation's names).
 -/
 module
 
@@ -78,19 +82,31 @@ theorem memCertReg_alloc (γs : MemStorNames) (Ec : CoPset) :
 /-- **The disk snapshot's storage** (persistent; see the file header) of the server `s` with the
 read names `γr`: the raft wrapper's storage (its `SaveSnap` the WAL contract's, `isRNWal`; 2026-10-31,
 `notes/axiom-review/savesnap.md`: until then `saveSnapOk`, `nil` for any snapshot, false of a nil
-metadata), over the snapshotter `ss`. -/
+metadata). (Restart S6a: the snapshotter and the directory moved to `srvSnapDir`.) -/
 def srvSnapDisk (s : Loc) (γr : ReadNames) : IProp GF :=
-  iprop(∃ (stp ss : Loc) (γd : GName) (img : w64 → backend.Data → IProp GF) (Rm : w64 → IProp GF),
-    ⌜storage.storageSnap stp ss⌝ ∗
+  iprop(∃ stp : Loc,
     rnStorageAddr (srvRAddr s) ↦□ (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.storage.ty) #stp : GoInterface) ∗
-    isWalStorage (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #stp) ∗
-    inv snapDirN (snapDirInv ss γd img Rm) ∗
-    □ (∀ j : w64, monoNatLbOwn γr.applied (uint.nat j + 1) -∗ Rm j))
+    isWalStorage (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #stp))
 
 instance srvSnapDisk_persistent (s : Loc) (γr : ReadNames) :
     Persistent (srvSnapDisk (GF := GF) s γr) := by
   unfold srvSnapDisk; infer_instance
+
+/-- **The disk snapshot's directory** (persistent; restart S6a, see the file header) of the server
+`s` at the member's removal counter `γm`: the raft wrapper's storage over the snapshotter `ss`, and
+`ss`'s directory's invariant at a removal fact the counter past `j` gives. -/
+def srvSnapDir (s : Loc) (γm : GName) : IProp GF :=
+  iprop(∃ (stp ss : Loc) (γd : GName) (img : w64 → backend.Data → IProp GF) (Rm : w64 → IProp GF),
+    ⌜storage.storageSnap stp ss⌝ ∗
+    rnStorageAddr (srvRAddr s) ↦□ (interface.mkOk (go.GoType.PointerType
+      go_etcd_io.etcd.server.v3.storage.storage.ty) #stp : GoInterface) ∗
+    inv snapDirN (snapDirInv ss γd img Rm) ∗
+    □ (∀ j : w64, monoNatLbOwn γm (uint.nat j + 1) -∗ Rm j))
+
+instance srvSnapDir_persistent (s : Loc) (γm : GName) :
+    Persistent (srvSnapDir (GF := GF) s γm) := by
+  unfold srvSnapDir; infer_instance
 
 end defs
 
