@@ -1,4 +1,4 @@
-# The auth messages' nested unknown fields (spec-side flaw, found 2026-11-13; fixed on auth-schema-fix, awaiting 81's re-review)
+# The auth messages' nested unknown fields (spec-side flaw, found 2026-11-13; fixed on auth-schema-fix, re-reviewed by etcd-grove-81 2026-11-13)
 
 Found by etcd-grove-81's independent review of auth-schema-fix (journal
 `/root/.claude-csail/projects/-shared-etcd-grove/c04a65b0-a272-4ae4-94c7-91aa4a20ea30/subagents/workflows/wf_c53ac11b-636/journal.jsonl`;
@@ -35,3 +35,14 @@ The `Option` covers a second pair of encodings the review did not name: nil vs e
 (3) the MINOR reworded. Details: `notes/decisions.md` (auth-schema-fix, "The review's MAJ-1/MAJ-2");
 Freeze package `/shared/tmp/auth-safe/freeze-fix.md` (R2-*); Go control
 `/shared/tmp/auth-safe/fix-tests/zz_authfix_optsuf_test.go` (passes).
+
+Open follow-ups (recorded by 81's re-review, 2026-11-13; pre-existing, not fixed now):
+- (a) The persistent `↦□` on the nested `Options` and permission messages (`userOptsIs`, `ownPermS`,
+  `ownPermW`) fixes their `sizeCache`, which protobuf-go's `Marshal` overwrites (a write to a
+  read-only field the model forbids). No translated code reads `sizeCache`; the fix is to leave
+  `sizeCache` out of the read-only part (an owned or invariant-held cell).
+- (b) `pbAuthUserAddRequest.send` (client, `InvAuthConn.lean`) holds the request's `Options` through
+  `userOptsFalse o := auth.userOptsAt o false`, which allows valid unknown bytes of any length, while
+  its `wireLen` ignores them, so the bound is not one for every message `send` holds (documented in
+  `InvGrpc.lean`'s `wireLen`). Fix: split the send and receive predicates, the send pinned to
+  `userOptsIs o false (some [])` (every client proof already builds `some []`).

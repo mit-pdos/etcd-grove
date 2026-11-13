@@ -46,7 +46,7 @@ open Iris Iris.BI go_etcd_io.etcd.api.v3
 def userOptsSchema : FieldSchema := [(1, [0])]
 
 /-- The `Options` of a user record as far as its encoding goes beyond `NoPassword`: `none`, no
-`Options` message (nil: field 5 absent); `some u`, a message whose unknown fields are the bytes `u`,
+`Options` message (nil: field 4 absent); `some u`, a message whose unknown fields are the bytes `u`,
 valid wire format for it (`ufWire userOptsSchema u`: what protobuf-go's decoder leaves). -/
 def userOptsUfOk (ou : Option GoString) : Prop := ∀ u, ou = some u → ufWire userOptsSchema u
 
@@ -62,7 +62,7 @@ keeps them: `UserAdd` stores the request's `Options` message as it is (`Options:
 store.go), and a newer client's fields in it come through gRPC's decode, the raft entry's encoding
 and back (auth-schema-fix, the review's MAJ-2: without them one record had two encodings, Go test
 `zz_review_optsuf_test.go`); a nil `Options` (`UnsafePutUser` of a message without one) is encoded
-without field 5, unlike an empty one, hence the `Option`. Every later put of the user copies the
+without field 4, unlike an empty one, hence the `Option`. Every later put of the user copies the
 stored message (`UserChangePassword`, `UserGrantRole`, `UserRevokeRole`, `RoleDelete`), so the
 stored value carries on. -/
 structure UserRec where
@@ -223,8 +223,9 @@ def ownUserX (p : Loc) (u : UserRec) : IProp GF :=
     ownSliceCap GoString roles (DFrac.own 1) ∗ userOptsIs o u.noPassword u.optsUF)
 
 /-- The `*authpb.Permission` at `p` as `proto.Unmarshal` returns it: as `ownPermS` (a stored
-role's permission, no unknown fields), but owned (`RoleGrantPermission` writes an existing entry's
-`PermType`). -/
+role's permission, no unknown fields), but owned (as the decoder leaves it; `RoleGrantPermission`
+only reads the existing entries: it keeps those off the new permission's range and appends a fresh
+`newPerm`, store.go). -/
 def ownPermX (p : Loc) (w : PermW) : IProp GF :=
   iprop(⌜p ≠ null ∧ w.key.length < 2 ^ 63 - 1⌝ ∗ ∃ (st : google_golang_org.protobuf.internal.impl.MessageState)
     (k re : GoSlice) (sc : w32),

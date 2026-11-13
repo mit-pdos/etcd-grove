@@ -35483,16 +35483,21 @@ meet both `authBucketsAre` and `UnmarshalUser.spec` (MAJ-2). Go tests:
   one (`wp_permW_key`) and for `RoleGet`'s reply (`roleGetOut` unchanged). `Requests.lean`'s header no
   longer says the store puts the request's permission in "as it is" (it copies three fields).
 - *MAJ-2, the Options' unknown fields part of the record (trusted change).* `UserRec` gains
-  `optsUF : Option GoString` (none: nil `Options`, encoded without field 5; `some u`: a message whose
+  `optsUF : Option GoString` (none: nil `Options`, encoded without field 4; `some u`: a message whose
   unknown fields are `u`) and `optsOk : userOptsUfOk optsUF` (`u` is `ufWire userOptsSchema u`,
   `userOptsSchema = [(1, [0])]`: what protobuf-go's decoder leaves, so Unmarshal∘Marshal keeps it).
   The validity is a field of the record (a proof), so every record is valid and `UnmarshalUser.spec`
   stays true for every `x` without a new premise. `userOptsIs o b ou` (new) ties the message at `o`
   to `NoPassword = b` and the bytes `ou` (`uf ↦*□ u`); `ownUser`/`ownUserX` use it with the record's
   `optsUF`. The request side keeps `userOptsAt o b`, now `∃ ou, ⌜userOptsUfOk ou⌝ ∗ userOptsIs o b ou`
-  (a trusted strengthening of the decode claims behind `authUserAddIs`: the decoded `Options`' unknown
-  fields are valid wire format, true of protobuf-go's decoder, `UfWire.lean`); clients build theirs
-  fresh (`some []`). `UserAdd` stores the request's `Options` (its `ou`) or a fresh empty one
+  (through it the axiom `pbutil.MustUnmarshalMessage.wp_proof`, its text unchanged, claims more: its
+  IRR case returns `internalRaftRequestIs`, which unfolds through `irrField AuthUserAdd` and
+  `apply.authUserAddIs` to `userOptsAt`, so the raft entry's decode now claims the `Options`' unknown
+  fields valid wire format; true of protobuf-go's decoder, `internal/impl/decode.go` copying an
+  unknown field verbatim after a minimal `AppendTag`, `UfWire.lean`; Go test
+  `/shared/tmp/coord-81/authfix-rereview/r-ufwire/server/storage/schema/zz_rereview_ufwire_test.go`).
+  The gRPC side is proved, not assumed: clients build theirs fresh (`some []`, `userOptsUfOk_empty`)
+  and the receive predicate's satisfiability is a theorem. `UserAdd` stores the request's `Options` (its `ou`) or a fresh empty one
   (`some []`); the other puts copy the stored record (`{ ur with … }`). The `Option` is needed: a nil
   and an empty `Options` are different bytes (Go test). `userEncode : UserRec → GoString` keeps its
   type. No spec of the store's methods changes (the model keeps no user fields but roles).
