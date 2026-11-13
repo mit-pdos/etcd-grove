@@ -2413,6 +2413,54 @@ size) did not start; the session did the fdatasync half of `sync`, which every r
   `Save` must supply from a `snapi`-bounds fact the handle does not carry today; the cuts budget; the
   `walpb.Snapshot` registration).
 
+**W6, ninth session (branch `wal-save9`, 2026-11-13): `sync` over the tail, the handle's index facts, the cuts
+budget, `walpb.Snapshot`'s wire format.**
+- *`sync.wp_proofIn` proved* (`WAL__sync.lean`; `sync.specIn`, the spec with `o0 + |out ++ pend| ≤ sz`): the
+  encoder's `flush.specP` over `wal.tailWriter` (guard `tailOk`, from `WalHS.split_rest0`/`tailOk_rest0`), the
+  crash-aware `fileutil.Fdatasync.wp_tail` (`walCutFrag none` out of the sealed `walOpenW` by Ghost's existing
+  law `walOpenW_cut`, so no `import all`), the leaf calls (`time.Now`/`Since`, `Duration.Seconds_ptr`, zap's
+  `Duration`/`Warn`, `walFsyncSec.Observe` from `encEnv`'s `wal.histSpec`). `sync.wp_proof` (`sync.spec`) still
+  `sorry`: it is `wp_proofIn` once the tail writer accepts writes past the size (task 4). Gotcha: `wp_if_destruct`
+  did not find the `took > warnSyncDuration` test here (it did in `wp_proofPreL`); a `by_cases` on the condition
+  with `decide_eq_true/false` and `wp_pures` works.
+- *`walHandleIn` (statement changes, internal; obligations for the producers `Create`, `ReadAll`, `cut`)*:
+  `⌜e ≠ null⌝` after the encoder field (`sync` tests it; `newFileEncoder` gives it); `isPkgInit wal` beside
+  `encEnv` (zap's init for the log lines, by `iPkgInit`); the index facts are now `(rest = 0 → walLastIdx H ≤
+  max(enti, snapi)) ∧ walMaxSnapIdx H ≤ snapi` (new `walMaxSnapIdx`, `walLastIdx_snap` by `rfl`): `saveEntry`
+  sets `w.enti` per entry, and a `Save` going back below an earlier snapshot record needs the snapshot bound
+  (ledger 2026-11-13, "withdrawn"). **`ReadAll`'s obligation**: `walMaxSnapIdx H ≤ snapi` (every snapshot record
+  before its first segment is below that segment's name index ≤ the target snapshot's index, which it reads
+  and raises `snapi` to); `Create`'s: `0 ≤ 0`. `cut`'s proof repaired (two patterns, one rebuild).
+  `saveEntry.spec` takes `e.Index < 2^64-1` and `rest = 1 → walLastIdx H ≤ max(e.Index, snapi)`; `saveState.spec`
+  the `rest = 1` case of the bound. **The `SaveSnapshot` index premise is not added** (ledger): the code takes
+  the maximum (S/wal.go:1161).
+- *The cuts budget (decided, no client-visible statement change)*: `walOpenWF := ∃ h, walHandleIn h ∗ ⌜h.Done⌝ ∗
+  ⧗ h.pc` (one receipt per file the pipeline handed over this lifetime); `walAreaOk` gains `⌜ReceiptBoundLe GF
+  (2 ^ 62)⌝` (the area's owner keeps the adequacy theorem's constant, bounds-plan rules 1-2; appended last, so
+  `⟨#Hinv, #Hos, -⟩` patterns still match); `walPc_bound`: `walAreaOk -∗ ⧗ (n + 1) -∗ ⌜n + 2 < 2^63⌝`. `Save`'s
+  proof takes a step's receipt (`wp_take_receipt`, `Proof/ReceiptTactics.lean`) before `cut`, merges it
+  (`receipt_add`), gets `cut.spec`'s premise and repacks `⧗ (pc + 1)`. **Obligations**: `Create`/`ReadAll` return
+  `walOpenWF` with `⧗ 0` (`receipt_zero`, an update); whoever builds `walAreaOk` (the boot, `walInv_alloc`'s
+  caller at adequacy) proves `ReceiptBoundLe GF (2 ^ 62)`.
+- *`walpb.Snapshot`'s wire format* (`Proof/.../storage/WalPbSnapWire.lean`, main tree, pure: `WalSnapC`/`WalCsC`,
+  `snapEnc`/`csEnc` (non-packed repeated `uint64`s, `auto_leave` 0/1), `snapSize`, `walSnapSchema`/`walCsSchema`,
+  `WalSnapC.levels`) and its Go test `examples/stdlib/walpb/snapshot_test.go` (`TestSnapshotEncoder`: 200,000 random
+  contents, `proto.Marshal`/`proto.Size`/`proto.Unmarshal` against `snapEnc` at both levels; `TestSnapshotSchema`;
+  passes, protobuf-go of `examples/go.mod`, go1.27.3).
+- *Not done (next, in order)*: (1) the registration in the part (`walpb/PbSnapshot.lean`, as `PbRecord.lean`:
+  `snapRoC` with a frozen `*raftpb.ConfState` of the part's raftpb and both levels' hidden fields in invariants,
+  `snapDecode` opaque, the axioms `snapEncC_ok` and `pbSnapC_reg` **pending the user's review**; the model
+  `WalSnapC.model : SnapshotMetadataM` there, the part's `PbModel`); (2) the content-model fix: `walSnapAt Mr sp
+  md` := a frozen `walpb.Snapshot` at some content `c` with `c.model = md` and `snapEnc c = Mr.encSnap md` (the
+  client chooses `Mr.encSnap`, one wire form per metadata: a C6 obligation, plausible since the server builds
+  every `walpb.Snapshot` the same way, `storage.go:62`), `cs` derived from `c.confState`; `pbutil
+  .MustMarshalMessage.specWalSnap` then derived from the registered type's `MarshalPb`; its users
+  (`SaveSnapshotPre`, `Create`); (3) task 4, writes past the preallocated size: after `wal-zte2`, a write past
+  the size opens a window (`pwPost` raises `hi`), so `TailMeta`'s `lo = hi = size` and `wp_tailPWriteStart`'s
+  in-size `SegFl.Ok` must be extended (candidates of the new bytes from `OsMeta.pc`, P2's zeros), then `tailOk`'s
+  size clause dropped and `sync.wp_proof := wp_proofIn`; then `saveEntry`, `saveState`, `WAL.sync.specCut`,
+  `Save`, `SaveSnapshot`, `Sync`.
+
 ## W3/W5 implementation log (branch `wal-read`, 2026-11-13)
 
 **Proved (no `sorry`, `lake build`):**
