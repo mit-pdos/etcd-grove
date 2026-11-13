@@ -72,6 +72,42 @@ def encEnv : IProp GF :=
 instance encEnv_persistent : Persistent (encEnv (GF := GF)) := by
   unfold encEnv; infer_instance
 
+theorem sliceIndexRef_w8_zero (b : GoSlice) : sliceIndexRef w8 (sint.Z (W64 0)) b = b.ptr := by
+  rw [show sint.Z (W64 0) = 0 by simp]
+  exact go.arrayIndexRef_0 _ _
+
+theorem slice_w8_zero_ptr (b : GoSlice) (h : w64) : (slice.slice b w8 (W64 0) h).ptr = b.ptr :=
+  sliceIndexRef_w8_zero b
+
+theorem w64_sub_W64_zero (x : w64) : x - W64 0 = x := by
+  rw [show W64 0 = 0#64 by simp]; exact BitVec.sub_zero x
+
+theorem slice_w8_zero_cap (b : GoSlice) (h : w64) : (slice.slice b w8 (W64 0) h).cap = b.cap :=
+  w64_sub_W64_zero b.cap
+
+/-- **The scratch buffer back**: a slice `s` in `b`'s array (same pointer, same capacity; `b` with
+no slack), owned with its capacity, gives `b` back whole (`encode` after `MarshalAppend` and the
+padding `append`). -/
+theorem encBuf_back (s b : GoSlice) (xs : List w8) (hptr : s.ptr = b.ptr) (hcap : s.cap = b.cap)
+    (hb : b.cap = b.len) (h : 0 ≤ sint.Z s.len ∧ sint.Z s.len ≤ sint.Z s.cap) :
+    s ↦* xs ∗ ownSliceCap (GF := GF) w8 s (DFrac.own 1) ⊢ ∃ bs : List w8, b ↦* bs := by
+  have hs : slice.slice s w8 (W64 0) s.cap = b := by
+    rcases b with ⟨bp, bl, bc⟩
+    rcases s with ⟨sp, sl, sc⟩
+    simp only at hptr hcap hb
+    subst hptr hcap hb
+    simp only [slice.slice, sliceIndexRef_w8_zero, w64_sub_W64_zero]
+  iintro ⟨Hs, Hc⟩
+  icases ownSlice_slice_into_capacity (W64 0) s.cap s xs $$ [Hs Hc] with ⟨%vc, -, H, -⟩
+  · iframe
+    ipureintro
+    have h0 : sint.Z (W64 0) = 0 := rfl
+    rw [h0]
+    exact ⟨Int.le_refl _, by have := h.1; have := h.2; omega, h.2, Int.le_refl _⟩
+  rw [hs]
+  iexists _
+  iexact H
+
 end defs
 
 section recin

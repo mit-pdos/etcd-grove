@@ -158,7 +158,84 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proof
     ipureintro
     simp only [WalEnc.frame, walRecEnc, WalEnc.encodeFrameSize, List.append_assoc] at Hr ⊢
     exact Hr
-  · sorry
+  · -- `MarshalAppend` into `e.buf[:0]`
+    try wp_auto
+    obtain ⟨hbl, hbc⟩ := Hb
+    have h0 : sint.Z (W64 0) = 0 := rfl
+    have hsl : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) ≤ sint.Z b.cap := by
+      rw [h0, hbc, hbl]; unfold encBufBytes; omega
+    simp only [hsl, and_self, ite_true]
+    ihave Hbc : ownSliceCap w8 b (DFrac.own 1) $$ []
+    · iapply ownSliceCap_empty b hbc.symm (by rw [hbl]; unfold encBufBytes; omega)
+    icases ownSlice_slice_with_cap (W64 0) (W64 0) b bs ⟨by rw [h0]; exact Int.le_refl 0,
+      by rw [h0]; exact Int.le_refl 0, by rw [h0, hbl]; unfold encBufBytes; omega⟩ $$ [Hbs Hbc] with ⟨-, Hb0, Hc0⟩
+    · iframe
+    have wpA := wp_MarshalAppend pbRecordC pbRecordC_reg opts_ptr (DFrac.own 1) rp
+      (recOf ⟨t, hash.crc32.crc32c c d, d⟩) (slice.slice b w8 (W64 0) (W64 0))
+      (subslice (sint.nat (W64 0)) (sint.nat (W64 0)) bs) trivial
+      (by simp only [pbRecordC_size, subslice, sint.nat, h0]; simp; omega)
+    simp only [pbRecordC_ty, pbRecordC_roC, pbEncC_pbRecordC] at wpA
+    try wp_auto
+    wp_apply wpA $$ [opts Hb0 Hc0] as %b' ⟨Hopts, Hb', Hc', Hor⟩
+    · iframe
+      iframe #
+    have hsub : subslice 0 0 bs = [] := by simp [subslice]
+    rw [hsub, List.nil_append]
+    try wp_auto
+    wp_apply (wp_pad b' (recEnc (recOf ⟨t, hash.crc32.crc32c c d, d⟩)) (by omega))
+      $$ [Hb' Hc'] as %dat2 ⟨Hdat2, Hcap2, Hback⟩
+    · iframe
+    try wp_auto
+    wp_apply (wp_write pw wi W out pend u us dat2
+      (recEnc (recOf ⟨t, hash.crc32.crc32c c d, d⟩) ++ List.replicate
+        (framePad (recEnc (recOf ⟨t, hash.crc32.crc32c c d, d⟩)).length) (0#8)) (DFrac.own 1) _ Hus
+      (by have := framePad_lt (recEnc (recOf ⟨t, hash.crc32.crc32c c d, d⟩)).length
+          simp only [List.length_append, List.length_replicate]; omega))
+      $$ [Hw] [Hpw Hout Hus Hdat2] as %err ⟨%ys, %pend', Hout, Hpw, Hus, Hdat2, %Hr⟩
+    · iexact Hw
+    · iframe
+      iunfold encEnv
+      iframe #
+    try wp_auto
+    wp_apply wp_Unlock $$ [Hown]
+    · iframe
+      isplitl []
+      · iexact Hmu
+      inext; itrivial
+    try wp_auto
+    ihave ⟨Hb', Hc'⟩ := Hback $$ [Hdat2 Hcap2]
+    · iframe
+    ihave Hbs' : (∃ bs' : List w8, b ↦* bs') $$ [Hb' Hc' Hor]
+    · icases Hor with (%Hpc | ⟨%ys0, Hy, Hyc⟩)
+      · ihave %Hwf := ownSliceCap_wf _ _ $$ Hc'
+        iapply (encBuf_back b' b _
+          (by rw [Hpc.1]; exact sliceIndexRef_w8_zero b)
+          (by rw [Hpc.2]; exact w64_sub_W64_zero _) hbc Hwf)
+        iframe
+      · ihave %Hwf := ownSliceCap_wf _ _ $$ Hyc
+        iapply (encBuf_back (slice.slice b w8 (W64 0) (W64 0)) b ys0
+          (slice_w8_zero_ptr b _) (slice_w8_zero_cap b _) hbc Hwf)
+        iframe
+    icases Hbs' with ⟨%bs', Hbs'⟩
+    iapply HΦ
+    iexists ys, pend'
+    iframe Hout Hro
+    isplitl [Hpw Hbw Hcrc Hl Hbuf Hbs' Hu64 Hus]
+    · iunfold ownEncoder
+      iexists pw, _, b, u, bs', _
+      iframe
+      iframe Hmu
+      isplitl [Hl]
+      · iunfold ownDecCrc
+        iexists l, tab
+        iframe
+        iframe Htab
+        ipureintro; rfl
+      ipureintro
+      exact ⟨⟨hbl, hbc⟩, u64Le_length _⟩
+    ipureintro
+    simp only [WalEnc.frame, walRecEnc, WalEnc.encodeFrameSize, List.append_assoc] at Hr ⊢
+    exact Hr
 
 end proof
 
