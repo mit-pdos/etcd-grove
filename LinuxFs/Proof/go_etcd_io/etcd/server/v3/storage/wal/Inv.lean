@@ -221,11 +221,37 @@ def WalsNamed (Ls : GMap GoString WalLay) (cl : List Claim) (n : Nat) : Prop :=
     (∀ hj, WalDirClaim lay.j hj cl → SegsNamed lay.segs hj.cur) ∧
     ∀ m', RegionCrashed cl n m' → SegsNamedC lay.segs (entsOf m' lay.j)
 
+theorem SegsNamed.crash {segs : List SegG} {ents : Ents} (h : SegsNamed segs ents) :
+    SegsNamedC segs ents :=
+  ⟨fun g hg => ⟨(h.1 g hg).1, fun _ => (h.1 g hg).2⟩, h.2⟩
+
+/-- `SegsNamed` of a claim's view of the directory, its names all but non-`.wal` ones. -/
+theorem SegsNamed.restrict {segs : List SegG} {ents : Ents} {X : List GoString}
+    (h : SegsNamed segs ents) (hX : ∀ b ∈ X, walNameP b = false) :
+    SegsNamed segs (restrictN (.except X) ents) := by
+  have hm : ∀ b, walNameP b = true → (NameSet.except X).Mem b := fun b hb hbX => by
+    rw [hX b hbX] at hb; cases hb
+  refine ⟨fun g hg => ?_, fun b e hb he => ?_⟩
+  · obtain ⟨hw, he⟩ := h.1 g hg
+    exact ⟨hw, by rw [restrictN_lookup _ _ _ (hm _ hw)]; exact he⟩
+  · rw [restrictN_lookup _ _ _ (hm _ hb)] at he
+    exact h.2 b e hb he
+
 /-- The claim `c` is one of a WAL directory's, as `WalDirClaim` has them: on the directory of a
 layout of `Ls`, on all names but non-`.wal` ones. -/
 def WalDirClaimOf (Ls : GMap GoString WalLay) (c : Claim) : Prop :=
   ∃ dir lay, Ls !! dir = some lay ∧ c.1 = lay.j ∧
     ∃ X : List GoString, c.2.1 = .except X ∧ ∀ b ∈ X, walNameP b = false
+
+noncomputable instance WalDirClaimOf.dec (Ls : GMap GoString WalLay) (c : Claim) :
+    Decidable (WalDirClaimOf Ls c) := Classical.propDecidable _
+
+/-- The claim `c` is parked (`walParked`): a WAL directory's, not taken out (`D`). -/
+def ParkedClaim (Ls : GMap GoString WalLay) (D : List Claim) (c : Claim) : Prop :=
+  WalDirClaimOf Ls c ∧ c ∉ D
+
+noncomputable instance ParkedClaim.dec (Ls : GMap GoString WalLay) (D : List Claim) (c : Claim) :
+    Decidable (ParkedClaim Ls D c) := Classical.propDecidable _
 
 end pure
 
@@ -333,7 +359,6 @@ instance walIte_timeless {p : Prop} [Decidable p] (P Q : IProp GF) [Timeless P] 
     Timeless (if p then P else Q) := by
   split <;> infer_instance
 
-open Classical in
 /-- **The program's halves, parked** (W3/W5's gap 2, framed): the parking flag's invariant half
 (`walParkAuth b`, `Ghost.lean`); every segment's program halves (`segRes`) but those of the inodes
 `O`, and the program's half of every WAL directory's claim (`WalDirClaimOf`) but the claims `D`;
@@ -345,10 +370,9 @@ def walParked (Ls : GMap GoString WalLay) (cl : List Claim) : IProp GF :=
   iprop(∃ (b : Bool) (O : List Ino) (D : List Claim), walParkAuth (W := W) b ∗
     ⌜b = true → O = [] ∧ D = []⌝ ∗
     ([∗list] g ∈ segsAll Ls, if g.ino ∈ O then emp else segRes (L := L) g) ∗
-    [∗list] c ∈ cl, if WalDirClaimOf Ls c ∧ c ∉ D then
+    [∗list] c ∈ cl, if ParkedClaim Ls D c then
       osNames (L := L) c.1 c.2.1 (DFrac.own (1 : Qp).half) c.2.2 else emp)
 
-open Classical in
 instance walParked_timeless (Ls : GMap GoString WalLay) (cl : List Claim) :
     Timeless (walParked (L := L) (W := W) Ls cl) := by
   haveI : ∀ g : SegG, Timeless (segRes (L := L) g) := fun g => by
@@ -359,7 +383,7 @@ instance walParked_timeless (Ls : GMap GoString WalLay) (cl : List Claim) :
   haveI : ∀ (O : List Ino) (g : SegG),
       Timeless (iprop(if g.ino ∈ O then iprop(emp) else segRes (L := L) g) : IProp GF) :=
     fun O g => by split <;> infer_instance
-  haveI : ∀ (D : List Claim) (c : Claim), Timeless (iprop(if WalDirClaimOf Ls c ∧ c ∉ D then
+  haveI : ∀ (D : List Claim) (c : Claim), Timeless (iprop(if ParkedClaim Ls D c then
       osNames (L := L) c.1 c.2.1 (DFrac.own (1 : Qp).half) c.2.2 else iprop(emp)) : IProp GF) :=
     fun D c => by split <;> infer_instance
   infer_instance

@@ -102,8 +102,9 @@ theorem crashTo_start (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLa
       lay'.z0 = (segStream C Mr d' lay'.cuts lay'.cuts.length).length ∧
       (∀ g, lay'.segs.getLast? = some g → g.bs = lay'.old.map durB) ∧
       (lay'.segs.map (·.ino)).Sublist (lay.segs.map (·.ino)) ∧
-      ∀ g ∈ lay'.segs, g.ino ∈ lay.segs.map (·.ino) ∧
-        ∃ f, fo g.ino = some f ∧ g.om = initMeta f ∧ g.bs = f.contents.map durB := by
+      (∀ g ∈ lay'.segs, g.ino ∈ lay.segs.map (·.ino) ∧
+        ∃ f, fo g.ino = some f ∧ g.om = initMeta f ∧ g.bs = f.contents.map durB) ∧
+      lay'.j = lay.j ∧ ∀ g ∈ lay'.segs, ∃ g1 ∈ lay.segs, g1.name = g.name ∧ g1.ino = g.ino := by
   rcases hct with hl | ⟨q, I, hent, hq, hinos, himg, hlastI, hpur, hint, hlast⟩
   · exact Or.inl hl
   right
@@ -167,7 +168,7 @@ theorem crashTo_start (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLa
   have hpreS : S <+: f0.contents := hpre0
   have hSlen : S.length ≤ f0.contents.length := hpreS.length_le
   refine ⟨d', crashLay fo lay q S.length, Or.inr ⟨I, segStart lay.cuts (lay.first + q), himg,
-    hpur, rfl⟩, rfl, rfl, hent, ?abs, ?fit, rfl, rfl, rfl, ?lastbs, ?sub, ?inos⟩
+    hpur, rfl⟩, rfl, rfl, hent, ?abs, ?fit, rfl, rfl, rfl, ?lastbs, ?sub, ?inos, rfl, ?names⟩
   case abs =>
     constructor
     · -- names
@@ -300,6 +301,10 @@ theorem crashTo_start (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLa
     intro g hg
     obtain ⟨g1, hg1, f, hf, rfl⟩ := hmem g hg
     exact ⟨List.mem_map_of_mem (f := (·.ino)) (List.mem_of_mem_drop hg1), f, hf, rfl, rfl⟩
+  case names =>
+    intro g hg
+    obtain ⟨g1, hg1, f, hf, rfl⟩ := hmem g hg
+    exact ⟨g1, List.mem_of_mem_drop hg1, rfl, rfl⟩
 
 /-! ## All the WALs -/
 
@@ -395,8 +400,10 @@ def CrashGood (C : WalCodec) (Mr : WalMarshal) (jr : Ino) (s : AbsDiskState)
     lay'.z0 = (segStream C Mr d' lay'.cuts lay'.cuts.length).length ∧
     (∀ g, lay'.segs.getLast? = some g → g.bs = lay'.old.map durB) ∧
     (∃ lay, Ls !! dir = some lay ∧ (lay'.segs.map (·.ino)).Sublist (lay.segs.map (·.ino))) ∧
-    ∀ g ∈ lay'.segs, g.ino ∈ (segsAll Ls).map (·.ino) ∧
-      ∃ f, st'.fs.files !! g.ino = some f ∧ g.om = initMeta f ∧ g.bs = f.contents.map durB)
+    (∀ g ∈ lay'.segs, g.ino ∈ (segsAll Ls).map (·.ino) ∧
+      ∃ f, st'.fs.files !! g.ino = some f ∧ g.om = initMeta f ∧ g.bs = f.contents.map durB) ∧
+    ∀ lay, Ls !! dir = some lay → lay'.j = lay.j ∧
+      ∀ g ∈ lay'.segs, ∃ g1 ∈ lay.segs, g1.name = g.name ∧ g1.ino = g.ino)
 
 theorem crashGood_exists (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     (s : AbsDiskState) (Ls : GMap GoString WalLay) (cl : List Claim) (n : Nat) (m' : Tree)
@@ -419,13 +426,13 @@ theorem crashGood_exists (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   have hct := hcok m' (fun i => st'.fs.files !! i) hreg (fun g hg => (hf g hg).1)
     (fun g hg => (hf g hg).2.1) hw1G
   -- the layout whose `CrashTo` the crash gives: `lay`, or the one before a pending cut's rename
-  obtain ⟨lay0, ents0, habs0, hjr0, hnm0, hpre, hct0⟩ : ∃ lay0 ents0, WalAbsD C Mr d lay0 ents0 ∧
-      lay0.jr = lay.jr ∧ lay0.nm = lay.nm ∧ lay0.segs <+: lay.segs ∧
+  obtain ⟨lay0, ents0, habs0, hjr0, hnm0, hj0, hpre, hct0⟩ : ∃ lay0 ents0, WalAbsD C Mr d lay0 ents0 ∧
+      lay0.jr = lay.jr ∧ lay0.nm = lay.nm ∧ lay0.j = lay.j ∧ lay0.segs <+: lay.segs ∧
       CrashTo C Mr d lay0 m' (fun i => st'.fs.files !! i) := by
     rcases hct with h | ⟨l0, hl0, h⟩
-    · exact ⟨lay, _, habs, rfl, rfl, List.prefix_refl _, h⟩
-    · obtain ⟨⟨e0, ha0⟩, h1, h2, -, h3⟩ := halt l0 hl0
-      exact ⟨l0, e0, ha0, h1, h2, h3.1, h⟩
+    · exact ⟨lay, _, habs, rfl, rfl, rfl, List.prefix_refl _, h⟩
+    · obtain ⟨⟨e0, ha0⟩, h1, h2, hj', h3⟩ := halt l0 hl0
+      exact ⟨l0, e0, ha0, h1, h2, hj', h3.1, h⟩
   rcases crashTo_start C Mr d lay0 _ m' (fun i => st'.fs.files !! i) habs0
     (fun g hg => (hf g (hpre.subset hg)).2.1) hct0 with ⟨hn, he⟩ | ⟨d', lay', hc, hjr', hnm', he, hrest⟩
   · refine ⟨none, Or.inl ⟨hn, rfl⟩, ⟨fun _ => ⟨nm, hin, ?_⟩, fun _ _ h => by cases h⟩⟩
@@ -433,10 +440,15 @@ theorem crashGood_exists (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   · refine ⟨some (d', lay'), hc, ⟨fun h => (by cases h), fun d1 l1 h => ?_⟩⟩
     simp only [Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
-    obtain ⟨ha, hfit, h1, h2, h3, h4, hsub, h5⟩ := hrest
+    obtain ⟨ha, hfit, h1, h2, h3, h4, hsub, h5, hj6, h6⟩ := hrest
     refine ⟨nm, hin, by rw [hjr', hjr0, hjr], by rw [hnm', hnm0, hnm],
       by rw [← hjr, ← hnm, ← hjr0, ← hnm0]; exact he, ha, hfit,
-      h1, h2, h3, h4, ⟨lay, hLs, hsub.trans (hpre.sublist.map _)⟩, fun g hg => ?_⟩
+      h1, h2, h3, h4, ⟨lay, hLs, hsub.trans (hpre.sublist.map _)⟩, fun g hg => ?_, fun lay1 hl1 => ?_⟩
+    rotate_left
+    · rw [hLs] at hl1; cases hl1
+      refine ⟨by rw [hj6, hj0], fun g hg => ?_⟩
+      obtain ⟨g1, hg1, e1, e2⟩ := h6 g hg
+      exact ⟨g1, hpre.subset hg1, e1, e2⟩
     obtain ⟨hi, hrest⟩ := h5 g hg
     refine ⟨?_, hrest⟩
     obtain ⟨g1, hg1, he1⟩ := List.mem_map.1 hi
@@ -472,7 +484,8 @@ def WalsStart (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (s : AbsDi
     (∀ g, lay.segs.getLast? = some g → g.bs = lay.old.map durB)) ∧
   (∀ dir, s.wal !! dir = none → Ls !! dir = none) ∧
   (∀ dir nm, InArea s.area dir nm → s.wal !! dir = none → m.entry jr nm = none) ∧
-  (∀ dd, s.dirs !! dd = some () → ∃ J, lookupH R (m, []) dd = some (.dir J))
+  (∀ dd, s.dirs !! dd = some () → ∃ J, lookupH R (m, []) dd = some (.dir J)) ∧
+  (∀ dir lay, Ls !! dir = some lay → SegsNamed lay.segs (entsOf m lay.j))
 
 /-- **The crash's pure core** (plan §2.2): from what the invariant says of the WALs, what a crash of
 the claims allows of the tree (`m'`), what the crash did to each segment (`FileCrashedR` of its
@@ -485,7 +498,7 @@ as the bytes under its stream (`crashTo_start`). -/
 theorem walCrash_pure (C : WalCodec) (_hC : C.Ok) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     (s : AbsDiskState) (Ls : GMap GoString WalLay) (cl : List Claim) (n : Nat) (m' : Tree)
     (st st' : Fs.OsState) (hok : WalsOk C Mr R jr s Ls cl n) (han : AbsentNone s jr cl n)
-    (hk : walKeysInArea s)
+    (hnm : WalsNamed Ls cl n) (hk : walKeysInArea s)
     (hreg : RegionCrashed cl n m') (htree : st'.fs.treeDur = m') (hw1 : W1 C st st')
     (hfiles : ∀ g ∈ segsAll Ls,
       FileCrashedR g.om [(0, DFrac.own (1 : Qp).half, g.bs)] (st'.fs.files !! g.ino) ∧
@@ -542,7 +555,7 @@ theorem walCrash_pure (C : WalCodec) (_hC : C.Ok) (Mr : WalMarshal) (R : Roots) 
         rw [hFd] at h
         simp only [Option.map_some, Option.some.injEq] at h
         exact ⟨d, p.1, rfl, by rw [hFd, ← h]⟩
-  refine ⟨s', Ls', ⟨rfl, rfl, fun dir d hd => ?_, fun dir hd => ?_⟩, rfl, ?_, ⟨?_, ?_, ?_, ?_⟩, ?_, ?_⟩
+  refine ⟨s', Ls', ⟨rfl, rfl, fun dir d hd => ?_, fun dir hd => ?_⟩, rfl, ?_, ⟨?_, ?_, ?_, ?_, ?_⟩, ?_, ?_⟩
   · rw [hs', hd]; exact (hF dir d hd).1
   · rw [hs', hd]; rfl
   · intro k d' h
@@ -550,7 +563,7 @@ theorem walCrash_pure (C : WalCodec) (_hC : C.Ok) (Mr : WalMarshal) (R : Roots) 
     exact hk k d hd
   · intro dir d' h
     obtain ⟨d, lay, hd, hFd⟩ := hsome dir d' h
-    obtain ⟨nm, hin, hjr, hnm, he, ha, hfit, h1, h2, h3, h4, -, -⟩ := (hF dir d hd).2.2 d' lay hFd
+    obtain ⟨nm, hin, hjr, hnm, he, ha, hfit, h1, h2, h3, h4, -, -, -⟩ := (hF dir d hd).2.2 d' lay hFd
     refine ⟨lay, nm, ?_, hin, hjr, hnm, he, ha, hfit, h1, h2, h3, h4⟩
     rw [hLs', hd]; simp [hFd]
   · intro dir h
@@ -578,13 +591,28 @@ theorem walCrash_pure (C : WalCodec) (_hC : C.Ok) (Mr : WalMarshal) (R : Roots) 
       | some p => rw [hFd] at h; cases h
   · intro dd hdd
     exact hok.2.2.2.2.2 dd hdd m' hreg
+  · -- the kept segments are at their names (`WalsNamed`'s crash clause)
+    intro dir lay' h
+    obtain ⟨d, d', hd, hFd⟩ := hsomeL dir lay' h
+    obtain ⟨-, -, -, -, -, ha, -, -, -, -, -, -, -, hn⟩ := (hF dir d hd).2.2 d' lay' hFd
+    obtain ⟨lay, -, -, hLs, -⟩ := hok.1 dir d hd
+    obtain ⟨hj, hg⟩ := hn lay hLs
+    obtain ⟨hC1, hC2⟩ := (hnm dir lay hLs).2 m' hreg
+    rw [hj]
+    refine ⟨fun g hg' => ?_, hC2⟩
+    obtain ⟨g1, hg1, e1, e2⟩ := hg g hg'
+    have hin : g.ino ∈ walInos (entsOf m' lay.j) := by
+      rw [← hj, ha.names.1]; exact List.mem_map_of_mem (f := (·.ino)) hg'
+    obtain ⟨hw, hent⟩ := hC1 g1 hg1
+    rw [← e1, ← e2]
+    exact ⟨hw, hent (by rw [e2]; exact hin)⟩
   · refine segsAll_nodup_sub hok.2.2.1 (fun dir lay h => ?_)
     obtain ⟨d, d', hd, hFd⟩ := hsomeL dir lay h
-    obtain ⟨-, -, -, -, -, -, -, -, -, -, -, h5, -⟩ := (hF dir d hd).2.2 d' lay hFd
+    obtain ⟨-, -, -, -, -, -, -, -, -, -, -, h5, -, -⟩ := (hF dir d hd).2.2 d' lay hFd
     exact h5
   · intro dir lay h
     obtain ⟨d, d', hd, hFd⟩ := hsomeL dir lay h
-    obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, h5⟩ := (hF dir d hd).2.2 d' lay hFd
+    obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, h5, -⟩ := (hF dir d hd).2.2 d' lay hFd
     exact h5
 
 end crashpure

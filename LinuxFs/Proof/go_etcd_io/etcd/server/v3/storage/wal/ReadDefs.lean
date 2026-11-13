@@ -25,11 +25,11 @@ do not depend on their bodies.
   (`encoder`, `state`, `metadata`, `enti`, `snapi`, `unsafeNoSync`), the mutex, the decoder's
   environment.
 
-**Where the program's halves come from** (decision 2): `Open` (holding the lock token and the
-WAL's `walOpening` state) takes them out of `walInv` (they are parked there while no handle holds
-the WAL: not yet a conjunct of `walInvBody`, see the plan's W3/W5 log), and `ReadAll` puts them back
-when it returns the write handle (all but the tail's, which `walTailW` keeps), or `Close`/the
-failure does. Still open: the `os.File` reader bridge proving `decFile` of a `walFileS` stream.
+**Where the program's halves come from** (decision 2): `Open`, holding the lock token
+(`walUnlockedTok`: the parking flag `true`, so nothing is out), takes them out of `walInv`'s
+`walParked` (`Inv.lean`) and sets the flag to `false` (`walUnlockedTok_lock`; the handles hold
+`walLockedTok`); `ReadAll` puts them back when it returns the write handle (all but the tail's,
+which `walTailW` keeps), or `Close`/the failure does. Still open: the `os.File` reader bridge proving `decFile` of a `walFileS` stream.
 -/
 module
 
@@ -129,10 +129,11 @@ sealed): the ghost handle, `openAtIndex`'s fields in write mode, and `w.dirFile`
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ df ∗
     os.ownFile df dfd dir (DFrac.own 1) ∗ osDirFdS dfd j .idle)
 
-/-- **`w` is the WAL `OpenForRead` opened in `dir` at `s`** (read mode, sealed): the lock token
-(the reader pins the files as `Open`'s does), `openAtIndex`'s fields in read mode, no `dirFile`. -/
+/-- **`w` is the WAL `OpenForRead` opened in `dir` at `s`** (read mode, sealed): the lock token,
+taken (`walLockedTok`: the reader holds the program's halves of the files as `Open`'s does),
+`openAtIndex`'s fields in read mode, no `dirFile`. -/
 @[no_expose] def walReadOnlyF (w : Loc) (dir : GoString) (s : w64 × w64) : IProp GF :=
-  iprop(walUnlockedTok (W := W) ∗ walReadH false w dir s ∗
+  iprop(walLockedTok (W := W) ∗ walReadH false w dir s ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ (null : Loc))
 
 /-- **`w`'s `ReadAll` in `dir` failed** (the specs' handle; sealed): only `Close` accepts it.
