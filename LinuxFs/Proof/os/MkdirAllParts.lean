@@ -201,6 +201,67 @@ theorem os.model.wp_mkdirAllParent (p : GoString) :
               Option.getD_some, hs, ↓reduceIte]
           iapply IH $$ %k %hB' %(by omega) HΦ
 
+set_option hygiene false in
+/-- The end of `mkdirAllAbove`: `Lstat` sees a directory (`nil`), or `Mkdir`'s error. -/
+local macro "above_tail" : tactic => `(tactic| (
+  wp_apply wp_ArbitraryInt as %y _
+  by_cases hy : y = W64 0
+  · subst hy
+    try wp_auto
+    iapply HΦ $$ %_
+    itrivial
+  rw [decide_eq_false hy]
+  try wp_auto
+  wp_apply wp_ArbitraryInt as %m _
+  try wp_auto
+  unfold os.model.pathError
+  by_cases hm : m = W64 0
+  · subst hm
+    try wp_auto
+    wp_apply wp_errno
+    try wp_auto
+    iapply HΦ $$ %_
+    itrivial
+  · rw [decide_eq_false hm]
+    try wp_auto
+    wp_apply wp_errno
+    try wp_auto
+    iapply HΦ $$ %_
+    itrivial))
+
+/-- `MkdirAll` at a root or an ancestor of one, no extension step: `nil` or an error, any path. -/
+theorem os.model.wp_mkdirAllAbove (p : GoString) :
+    {{ (True : IProp GF) }} (App (Val os.model.mkdirAllAbove) (Val #p))
+    {{ (err : GoInterface), RET #err; True }} := by
+  wp_start
+  iclear Hpre
+  try unfold os.model.mkdirAllAbove
+  try wp_auto
+  iloeb as IH generalizing %p %Φ HΦ
+  wp_apply wp_ArbitraryInt as %x _
+  by_cases hx : x = W64 0
+  · subst hx
+    wp_auto
+    iapply HΦ $$ %_
+    itrivial
+  rw [decide_eq_false hx]
+  wp_auto
+  wp_apply os.model.wp_mkdirAllParent
+  wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %-
+  try wp_auto
+  wp_if_destruct
+  · wp_apply IH as %e _
+    cases e with
+    | ok i =>
+      wp_auto
+      iapply HΦ $$ %_
+      itrivial
+    | nil =>
+      wp_auto
+      above_tail
+  · try wp_auto
+    above_tail
+
 end proof
 
 end EtcdGrove
