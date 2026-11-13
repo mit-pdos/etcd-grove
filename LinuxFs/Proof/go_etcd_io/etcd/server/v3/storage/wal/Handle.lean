@@ -159,6 +159,12 @@ def tailOk [GooseExts] (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (md : List w
     (o0 sz : Nat) (ys : List w8) : Prop :=
   ys <+: (tailStream Mr H md cuts).drop o0 ∧ o0 + ys.length ≤ sz
 
+/-- **What the program knows of the tail's `OsMeta` `m` and bytes `bs`** (`walTailW`): all its bytes,
+no mappings, its known zeros past its size (`MetaOk.zf`: a fact of the state, which the WAL
+invariant does not keep and a step's crash condition needs, `crashOkA_tail`'s `hzf`). -/
+def TailMeta (m : Fs.OsMeta) (bs : List Fs.ByteG) : Prop :=
+  bs.length = m.size ∧ m.maps = ∅ ∧ ∀ z, m.zf = some z → m.size ≤ z
+
 theorem tailOk_prefix [GooseExts] {Mr : WalMarshal} {H : List (WalOpG WalEnt)} {md : List w8}
     {cuts : List Nat} {o0 sz : Nat} {xs ys : List w8} (h : xs <+: ys)
     (hy : tailOk Mr H md cuts o0 sz ys) : tailOk Mr H md cuts o0 sz xs :=
@@ -178,7 +184,8 @@ variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.A
 the file header): the file `f` (fd `fd` of inode `i`, with write access: `Create` opens it
 write-only, `ReadAll` read-write), its offset at `o0 + |out|`, the program's halves of the tail's `OsMeta` (of size `sz`) and bytes, the handle's key to its tail
 record `γ` in `dir`, and its half of the record: history `H`, metadata `md`, cuts, write position
-`o0 + |out|`, inode `i`, no write in flight. -/
+`o0 + |out|`, inode `i`, no write in flight; and what the program knows of the tail's `OsMeta`
+(`TailMeta`: all its bytes, no mappings, its zeros past the size). -/
 def walTailW (f : Loc) (fd : w64) (name : GoString) (dir : GoString) (γ : GName) (i : Ino)
     (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (o0 sz : Nat) (out : List w8) :
     IProp GF :=
@@ -187,7 +194,7 @@ def walTailW (f : Loc) (fd : w64) (name : GoString) (dir : GoString) (γ : GName
     os.ownOff f (W64 (o0 + out.length)) ∗ walTailKey (W := W) dir γ ∗
     ∃ (m : OsMeta) (bs : List ByteG),
     osMeta i (DFrac.own (1 : Qp).half) m ∗ osBytes i 0 (DFrac.own (1 : Qp).half) bs ∗
-    ⌜m.size = sz⌝ ∗
+    ⌜m.size = sz ∧ TailMeta m bs⌝ ∗
     ghostVar γ (1 : Qp).half ((H, md, cuts, o0 + out.length, i, none) : TailG))
 
 /-- **The pipeline `w.fp` of the WAL in `dir`** (`Pipe.lean`), the handle having made `k` cuts:

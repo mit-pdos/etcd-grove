@@ -48,12 +48,6 @@ def segAnn (g0 : SegG) (off : Nat) (data : List w8) (n : Nat) : SegG :=
 def segFin (fl : SegFl) (g0 : SegG) (k : Nat) (zs : List Cands) : SegG :=
   { g0 with om := pwPost fl.m fl.off fl.data.length k, bs := finBytes fl.m fl.bs fl.off fl.data k fl.n zs }
 
-/-- What the program knows of the tail's `OsMeta` `m` and bytes `bs` (`walTailW`): all its bytes, no
-mappings, its known zeros past its size (`MetaOk.zf`, a fact of the state the WAL invariant does
-not keep). -/
-def TailMeta (m : OsMeta) (bs : List ByteG) : Prop :=
-  bs.length = m.size ∧ m.maps = ∅ ∧ ∀ z, m.zf = some z → m.size ≤ z
-
 theorem segAnn_ok {g0 : SegG} {off : Nat} {data : List w8} {n t : Nat}
     (hin : off + data.length ≤ g0.om.size) (hd : data ≠ []) (hlen : g0.bs.length = g0.om.size)
     (hcut : g0.om.cut = none) (hoff : 0 < off) :
