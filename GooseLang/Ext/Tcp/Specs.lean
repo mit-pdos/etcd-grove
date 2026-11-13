@@ -203,6 +203,42 @@ theorem endCtx_eq (γ : ConnNames) (s : Bool) (cn : TcpConn) :
           ((cn.out s).fin = true → (cn.endSt s).closed = true ∨ (cn.endSt s).wshut = true)⌝) :=
   rfl
 
+theorem mono_half_split {A : Type} [Pos.Countable A] (γ : GName) (l : List A) :
+    monoListAuthOwn (GF := GF) γ 1 l ⊣⊢
+      iprop(monoListAuthOwn γ (1 : Qp).half l ∗ monoListAuthOwn γ (1 : Qp).half l) := by
+  conv => lhs; rw [← Qp.half_add_half 1]
+  exact (monoListAuthOwn_fractional γ l).fractional _ _
+
+/-- The two halves of a monotone list agree, and append together. -/
+theorem mono_halves_app {A : Type} [Pos.Countable A] (γ : GName) (l l' x : List A) :
+    monoListAuthOwn (GF := GF) γ (1 : Qp).half l -∗ monoListAuthOwn γ (1 : Qp).half l' ==∗
+      ⌜l = l'⌝ ∗ monoListAuthOwn γ (1 : Qp).half (l ++ x) ∗
+        monoListAuthOwn γ (1 : Qp).half (l ++ x) := by
+  iintro H1 H2
+  icases monoListAuthOwn_agree γ _ _ l l' $$ H1 H2 with %Hag
+  obtain ⟨-, rfl⟩ := Hag
+  ihave H := (mono_half_split γ l).mpr $$ [H1 H2]
+  · iframe H1 H2
+  imod monoListAuthOwn_update_app x $$ H with ⟨H, -⟩
+  icases (mono_half_split γ (l ++ x)).mp $$ H with ⟨H1, H2⟩
+  imodintro
+  iframe H1 H2
+  ipureintro; rfl
+
+/-- The writer's FIN flag is the network's. -/
+theorem fin_agree (γ : GName) (bs : GoString) (f : Bool) (p : TcpPipe) :
+    (if f then dghostVar (GF := GF) γ .discard (some bs)
+      else dghostVar γ (.own (1 : Qp).half) (none : Option GoString)) -∗ finCtx γ p -∗
+      ⌜f = p.fin ∧ (f = true → bs = p.sent)⌝ := by
+  unfold finCtx
+  iintro H1 H2
+  cases f <;> cases hp : p.fin <;> simp only [Bool.false_eq_true, ↓reduceIte]
+  · ipureintro; simp
+  · icases dghostVar_agree $$ H1 H2 with %Hag; cases Hag
+  · icases dghostVar_agree $$ H1 H2 with %Hag; cases Hag
+  · icases dghostVar_agree $$ H1 H2 with %Hag
+    ipureintro; simpa using Hag
+
 end endCtx
 
 /-! ## Opening the network -/
@@ -542,6 +578,157 @@ theorem wp_tcp_Read (c : Nat) (s : Bool) (a : GoString) (n : w64) (Φ : val → 
         ipureintro; exact ⟨Haddr, Hpure, by simpa using Hpureo⟩
       iapply wp_value'
       iexact HΦ
+
+/-- The outcomes of a write of `bs` by an end in state `st`: `k` bytes written, `ok` its result,
+`st'` the end's state after it. Nothing, and a failure, once the end is closed, shut for writing
+or broken; otherwise all of `bs`, or a shorter prefix and a failure (the end broken unless a
+deadline was set). -/
+def WriteRes (st : TcpEnd) (bs : GoString) (k : Nat) (ok : Bool) (st' : TcpEnd) : Prop :=
+  (st.blocked = true ∧ k = 0 ∧ ok = false ∧ st' = st) ∨
+  (st.blocked = false ∧
+    ((k = bs.length ∧ ok = true ∧ st' = st) ∨ (k < bs.length ∧ ok = false ∧ st' = st.onFail)))
+
+theorem tcpOut_intro (hG : TcpGS GF) (c : Nat) (s : Bool) (bs : GoString) (f : Bool)
+    (γ : ConnNames) :
+    tcpNames hG c γ -∗ @monoListAuthOwn GF hG.allG _ _ (γ.out s) (1 : Qp).half bs -∗
+      (if f then @dghostVar GF hG.allG _ _ (γ.fin s) .discard (some bs)
+        else @dghostVar GF hG.allG _ _ (γ.fin s) (.own (1 : Qp).half) (none : Option GoString)) -∗
+      tcpOut hG c s bs f := by
+  letI := hG.allG
+  unfold tcpOut
+  iintro #Hγ Hm Hf
+  iexists γ
+  iframe Hγ Hm Hf
+
+theorem tcpOut_elim (hG : TcpGS GF) (c : Nat) (s : Bool) (bs : GoString) (f : Bool) :
+    tcpOut hG c s bs f ⊢ ∃ γ, tcpNames hG c γ ∗
+      @monoListAuthOwn GF hG.allG _ _ (γ.out s) (1 : Qp).half bs ∗
+      (if f then @dghostVar GF hG.allG _ _ (γ.fin s) .discard (some bs)
+        else @dghostVar GF hG.allG _ _ (γ.fin s) (.own (1 : Qp).half) (none : Option GoString)) :=
+  .rfl
+
+theorem setEnd_endSt_setOut (cn : TcpConn) (s : Bool) (p : TcpPipe) :
+    (cn.setOut s p).setEnd s (cn.endSt s) = cn.setOut s p := by
+  cases s <;> rfl
+
+theorem W64_zero : (W64 0 : w64) = BitVec.ofNat 64 0 := rfl
+
+theorem ite_false_ent {P Q R : IProp GF} {f : Bool} (h : f = false) :
+    (if f then P else Q) ⊢ (if f then R else Q) := by subst h; exact .rfl
+
+/-- `Write` of `bs` by the end `s` of `c`: `k` bytes appended (`WriteRes`). -/
+theorem wp_tcp_Write (c : Nat) (s : Bool) (a : GoString) (bs : GoString) (Φ : val → IProp GF) :
+    tcpConnAt tcpG c a -∗
+    (|={E,∅}=> ∃ st r out f, tcpEnd tcpG c s st r ∗ tcpOut tcpG c s out f ∗
+      ∀ k ok st', ⌜WriteRes st bs k ok st'⌝ -∗ tcpEnd tcpG c s st' r -∗
+        tcpOut tcpG c s (out ++ bs.take k) f ={∅,E}=∗ Φ (PairV (#(BitVec.ofNat 64 k)) (#ok))) -∗
+    WP (ExternalOp tcpExt.name "Write" (Val (PairV (#(endId c s)) (#bs)))) @ sk; E {{ Φ }} := by
+  letI := (tcpG (G := G)).allG
+  iintro #Hat HAU
+  unfold tcpConnAt
+  icases Hat with ⟨%γ, #Hγ, %Hγa⟩
+  iapply wp_extStep "Write" (PairV (#(endId c s)) (#bs)) Φ (by simp)
+  iintro %h %σ %g Hheap Hl Hg
+  icases (tcp_global_ctx_eq g).mp $$ Hg with Hg
+  imod HAU with ⟨%st, %r, %out, %f, Hend, Hout, Hk⟩
+  icases tcpCtx_acc _ g c γ $$ Hg Hγ with ⟨%cn, %hcn, Hcc, Hgclose⟩
+  icases (connCtx_ends γ cn s).mp $$ Hcc with ⟨%Haddr, Hes, Heo⟩
+  rw [endCtx_eq γ s cn]
+  icases Hes with ⟨Hgv, Hmono, Hfin, %Hpure⟩
+  icases tcpEnd_agree _ c s st r γ cn $$ Hγ Hend Hgv with ⟨%Hagr, Hv, Hgv⟩
+  obtain ⟨rfl, rfl⟩ := Hagr
+  icases tcpOut_elim _ c s out f $$ Hout with ⟨%γ', #Hγ', Hm, Hf⟩
+  icases tcpNames_agree _ c γ γ' $$ Hγ Hγ' with %Heq
+  subst Heq
+  icases monoListAuthOwn_agree _ _ _ out _ $$ Hm Hmono with %Hmag
+  obtain ⟨-, rfl⟩ := Hmag
+  icases fin_agree _ _ f _ $$ Hf Hfin with %Hfag
+  obtain ⟨rfl, -⟩ := Hfag
+  imodintro
+  isplitr
+  · ipureintro
+    by_cases hb : (cn.endSt s).blocked = true
+    · refine ⟨Val (PairV (#(W64 0)) (#false)), h, σ, g, rfl, endId c s, bs, c, s, rfl,
+        ⟨Hγa.2, rfl⟩, ⟨cn, hcn, ?_⟩, rfl⟩
+      simp [hb]
+    · refine ⟨Val (PairV (#(BitVec.ofNat 64 bs.length)) (#true)), h, σ,
+        g.setConn c (cn.setOut s { cn.out s with sent := (cn.out s).sent ++ bs }), rfl,
+        endId c s, bs, c, s, rfl, ⟨Hγa.2, rfl⟩, ⟨cn, hcn, ?_⟩, rfl⟩
+      simp [hb]
+  inext
+  iintro %e' %h' %σ' %g' %Hst _
+  obtain ⟨rfl, e0, bs0, c0, s0, Hv0, ⟨Hb0, He0⟩, Hrs, rfl⟩ := Hst
+  obtain ⟨He1, He2⟩ := val.PairV.inj Hv0
+  obtain rfl := go.intoVal_inj (V := w64) He1
+  obtain rfl := go.intoVal_inj (V := GoString) He2
+  obtain ⟨rfl, rfl⟩ := endId_inj Hγa.2 Hb0 He0
+  obtain ⟨cn', hcn', Hcase⟩ := Hrs
+  rw [hcn] at hcn'
+  cases hcn'
+  by_cases hb : (cn.endSt s).blocked = true
+  · -- blocked: nothing written
+    simp only [hb, ↓reduceIte] at Hcase
+    obtain ⟨rfl, Hgg⟩ := Hcase
+    imod Hk $$ %0 %false %(cn.endSt s) %(.inl ⟨hb, rfl, rfl, rfl⟩) [Hv] [Hm Hf] with HΦ
+    · iapply tcpEnd_intro $$ Hγ Hv
+    · rw [List.take_zero, List.append_nil]
+      iapply tcpOut_intro $$ Hγ Hm Hf
+    imodintro
+    iframe Hheap Hl
+    isplitr [HΦ]
+    · rw [Hgg]
+      iapply (tcp_global_ctx_eq _).mpr
+      iapply tcpCtx_of_eq _ (setConn_self hcn)
+      iapply Hgclose $$ %cn %(And.intro rfl rfl)
+      iapply (connCtx_ends γ _ s).mpr
+      rw [endCtx_eq γ s cn]
+      iframe Heo Hgv Hmono Hfin
+      ipureintro; exact ⟨Haddr, Hpure⟩
+    iapply wp_value'
+    rw [W64_zero]
+    iexact HΦ
+  · -- not blocked: the end has sent no FIN
+    simp only [hb, Bool.false_eq_true, ↓reduceIte] at Hcase
+    have hnf : (cn.out s).fin = false := by
+      cases hf : (cn.out s).fin
+      · rfl
+      · rcases Hpure.2 hf with h1 | h1 <;> simp [TcpEnd.blocked, h1] at hb
+    have hb' : (cn.endSt s).blocked = false := by simpa using hb
+    obtain ⟨k, ok, st', hwr, rfl, rfl⟩ : ∃ k ok st', WriteRes (cn.endSt s) bs k ok st' ∧
+        e' = Val (PairV (#(BitVec.ofNat 64 k)) (#ok)) ∧
+        g' = g.setConn c
+          ((cn.setOut s { cn.out s with sent := (cn.out s).sent ++ bs.take k }).setEnd s st') := by
+      rcases Hcase with ⟨rfl, rfl⟩ | ⟨k, hk, rfl, rfl⟩
+      · refine ⟨bs.length, true, cn.endSt s, .inr ⟨hb', .inl ⟨rfl, rfl, rfl⟩⟩, rfl, ?_⟩
+        rw [List.take_length, setEnd_endSt_setOut]
+      · exact ⟨k, false, (cn.endSt s).onFail, .inr ⟨hb', .inr ⟨hk, rfl, rfl⟩⟩, rfl, rfl⟩
+    imod mono_halves_app _ _ _ (bs.take k) $$ Hm Hmono with ⟨-, Hm, Hmono⟩
+    imod ghostVar_update_halves (st', (cn.out (!s)).rcvd) $$ Hv Hgv with ⟨Hv, Hgv⟩
+    ihave Hf := ite_false_ent (R := dghostVar (γ.fin s) .discard
+      (some ((cn.out s).sent ++ bs.take k))) hnf $$ Hf
+    imod Hk $$ %k %ok %st' %hwr [Hv] [Hm Hf] with HΦ
+    · iapply tcpEnd_intro $$ Hγ Hv
+    · iapply tcpOut_intro $$ Hγ Hm Hf
+    imodintro
+    iframe Hheap Hl
+    isplitr [HΦ]
+    · iapply (tcp_global_ctx_eq _).mpr
+      iapply Hgclose $$ %_ %(And.intro (by simp) (by simp))
+      iapply (connCtx_ends γ _ s).mpr
+      rw [endCtx_setOutEnd_other, endCtx_setOutEnd_self]
+      ihave Hfin := (finCtx_nofin _ _ hnf).mp $$ Hfin
+      ihave Hfin := (finCtx_nofin _ { cn.out s with sent := (cn.out s).sent ++ bs.take k }
+        hnf).mpr $$ Hfin
+      rw [endCtx_eq γ (!s) cn]
+      icases Heo with ⟨Hgvo, Hmonoo, Hfino, %Hpureo⟩
+      dsimp only
+      simp only [Bool.not_not] at Hpureo ⊢
+      iframe Hgv Hmono Hfin Hgvo Hmonoo Hfino
+      ipureintro
+      refine ⟨by simpa using Haddr, ⟨?_, fun h => by simp [hnf] at h⟩, Hpureo⟩
+      simp only [List.length_append]; omega
+    iapply wp_value'
+    iexact HΦ
 
 end lifting
 

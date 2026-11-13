@@ -190,6 +190,9 @@ def IsEnd (e : w64) (c : Nat) (s : Bool) : Prop :=
 section step
 variable [GooseExts] [GoGlobalContext]
 
+/-- The end writes nothing: it is closed, shut for writing, or broken. -/
+def TcpEnd.blocked (st : TcpEnd) : Bool := st.closed || st.wshut || st.broken
+
 /-- The end state after a failure: broken unless a deadline was set. -/
 def TcpEnd.onFail (st : TcpEnd) : TcpEnd := if st.dl then st else { st with broken := true }
 
@@ -227,7 +230,7 @@ def WriteStep (c : Nat) (s : Bool) (bs : List w8) (g : TcpGlobal) (e' : Expr) (g
   ∃ cn, g.conns !! c = some cn ∧
   let st := cn.endSt s
   let p := cn.out s
-  if st.closed || st.wshut || st.broken then
+  if st.blocked then
     e' = Val (PairV (#(W64 0)) (#false)) ∧ g' = g
   else
     -- all of it
