@@ -13,6 +13,8 @@ public import GooseLang.Ext.Fs.TreeSharedRes
 
 noncomputable section
 
+set_option autoImplicit false
+
 namespace Perennial
 namespace Fs
 
@@ -234,7 +236,8 @@ theorem wp_osShare' (R : Roots) (V : Hist) (op : String) (v : val) (hE : ↑osN 
     unfold callResS
     iapply BigSepM.bigSepM_empty.2; itrivial
   iframe Hg
-  unfold osSharedInv osCallPerm osLogLb osNames
+  simp only [osNames_except]
+  unfold osSharedInv osCallPerm osLogLb
   iapply HΦ $$ Hsi Hperm Hlb Hcl
 
 instance osSharedBody_timeless (R : Roots) : Timeless (PROP := IProp GF)

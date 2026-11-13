@@ -13,6 +13,8 @@ public import GooseLang.Ext.Fs.CrashRegion
 
 noncomputable section
 
+set_option autoImplicit false
+
 namespace Perennial
 namespace Fs
 
@@ -23,11 +25,12 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
   [GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF]
 
-/-- The claims held, with their authority: each is the authority's. -/
-theorem claims_lookup (L : GooseLocalGS GF) (Γn : GMap (Ino × NameSet) NamesH) :
+/-- The claims held, with their authority coherent with `V`: each is the history's. -/
+theorem claims_lookup (L : GooseLocalGS GF) {V : Hist} {Γn : GMap (Ino × NameSet) NamesH}
+    (hcoh : NamesCoh V Γn) :
     ∀ cl : List (Claim × DFrac),
     ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γn Γn -∗ osClaims L cl -∗
-      ⌜∀ c ∈ cl, Γn !! (c.1.1, c.1.2.1) = some c.1.2.2⌝ ∗
+      ⌜∀ c ∈ cl, c.1.2.2 = namesOf V c.1.1 c.1.2.1⌝ ∗
       gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γn Γn ∗ osClaims L cl
   | [] => by
     iintro HA Hc
@@ -36,11 +39,8 @@ theorem claims_lookup (L : GooseLocalGS GF) (Γn : GMap (Ino × NameSet) NamesH)
   | c :: cl => by
     iintro HA Hc
     icases (osClaims_cons L c cl).1 $$ Hc with ⟨H1, Hc⟩
-    ihave H1' : gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γn (c.1.1, c.1.2.1) c.2 c.1.2.2
-      $$ [H1]
-    · unfold osNames; iexact H1
-    icases gAuth_lookup _ _ _ _ _ _ $$ HA H1' with %h1
-    icases claims_lookup L Γn cl $$ HA Hc with ⟨%hcl, HA, Hc⟩
+    icases osNames_auth L hcoh _ _ _ _ $$ HA H1 with %h1
+    icases claims_lookup L hcoh cl $$ HA Hc with ⟨%hcl, HA, Hc⟩
     iframe HA
     isplitr
     · ipureintro
@@ -49,8 +49,7 @@ theorem claims_lookup (L : GooseLocalGS GF) (Γn : GMap (Ino × NameSet) NamesH)
       · exact h1
       · exact hcl c' hc'
     iapply (osClaims_cons L c cl).2
-    iframe Hc
-    unfold osNames; iexact H1'
+    iframe
 
 /-- In the legacy mode the restart holds the shared history's authority empty: no shared
 invariant is the generation's. -/
@@ -95,7 +94,7 @@ theorem crashRest_region' (Q : OsState → OsState → Prop) (L L' : GooseLocalG
   icases gAuth_lookup _ _ _ _ _ _ $$ Has Hs with %hVs
   simp only [histMap, GMap.lookup_singleton_eq, Option.some.injEq, Prod.mk.injEq] at hVs
   obtain ⟨hR, rfl⟩ := hVs
-  icases claims_lookup L Γn cl $$ HAn Hcl with ⟨%hlk, HAn, Hcl⟩
+  icases claims_lookup L hcoh.2 cl $$ HAn Hcl with ⟨%hlk, HAn, Hcl⟩
   imod Hclose $$ [Hs HAn Halen HAlog] with -
   · inext; iexists _, Γn; iframe; ipureintro; exact hcoh
   imodintro
@@ -106,7 +105,7 @@ theorem crashRest_region' (Q : OsState → OsState → Prop) (L L' : GooseLocalG
       (fun y hy => hSc y (hc y hy)) hn hslot _ ?_
     intro cc hcc
     obtain ⟨c0, hc0, rfl⟩ := List.mem_map.1 hcc
-    exact hcoh.2.hist _ _ _ (hlk c0 hc0)
+    exact hlk c0 hc0
   iexists Γb, Γm, F, st, st', Γf, Γt, V
   iframe Hab Ham Hfs HAt Htok HAd Htl
   isplitr

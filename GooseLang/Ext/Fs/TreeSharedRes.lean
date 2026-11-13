@@ -16,11 +16,16 @@ public import GooseLang.Ext.Fs.TreeCutProof
 
 noncomputable section
 
+set_option autoImplicit false
+
 namespace Perennial
 namespace Fs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
 /-! ## What the claims know, as a function of the history -/
+
+/-- What a claim on no name knows. -/
+def NamesH.empty : NamesH := ⟨∅, [], ∅⟩
 
 open Classical in
 /-- The claim on the names `N` of the directory `j`, as the history `V` has them: their entries at
@@ -55,9 +60,21 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
 /-- The namespace of the shared mode's invariant (disjoint from `osN`). -/
 def osShN : Namespace := nroot .@ "osfsShared"
 
-/-- A claim on the names `N` of the directory `j`, `h` what is known of them. -/
+/-- A claim on the names `N` of the directory `j`, `h` what is known of them. A claim on no
+name (`.only []`, the only key of the empty set) knows nothing (`NamesH.empty`) and is no ghost
+resource: so splitting off an empty part never meets another empty claim's key. -/
 def osNames (j : Ino) (N : NameSet) (dq : DFrac) (h : NamesH) : IProp GF :=
-  gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γn (j, N) dq h
+  if N = .only [] then iprop(⌜h = NamesH.empty⌝)
+  else gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γn (j, N) dq h
+
+theorem osNames_of_ne {j : Ino} {N : NameSet} (dq : DFrac) (h : NamesH) (hN : N ≠ .only []) :
+    osNames (L := L) j N dq h = gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γn (j, N) dq h := by
+  unfold osNames; rw [if_neg hN]
+
+theorem osNames_except (j : Ino) (bs : List GoString) (dq : DFrac) (h : NamesH) :
+    osNames (L := L) j (.except bs) dq h =
+      gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γn (j, NameSet.except bs) dq h :=
+  osNames_of_ne dq h (by simp)
 
 /-- A fraction `q` of the call permission. -/
 def osCallPerm (q : Qp) : IProp GF :=
@@ -109,7 +126,7 @@ instance osLogLb_persistent (n : Nat) : Persistent (osLogLb (L := L) n) := by
 instance osLogEnt_persistent (x : Nat) (e : LogEntry) : Persistent (osLogEnt (L := L) x e) := by
   unfold osLogEnt gElem; letI := (gooseOsGS (L := L)).osAllG; infer_instance
 instance osNames_timeless (j : Ino) (N : NameSet) (dq : DFrac) (h : NamesH) :
-    Timeless (osNames (L := L) j N dq h) := by unfold osNames; infer_instance
+    Timeless (osNames (L := L) j N dq h) := by unfold osNames; split <;> infer_instance
 instance osCallPerm_timeless (q : Qp) : Timeless (osCallPerm (L := L) q) := by
   unfold osCallPerm; infer_instance
 instance osCallS_timeless (t s : Nat) (q : Qp) : Timeless (osCallS (L := L) t s q) := by
@@ -142,6 +159,34 @@ def osClaims (L : GooseLocalGS GF) (cl : List (Claim × DFrac)) : IProp GF :=
 theorem osClaims_cons (L : GooseLocalGS GF) (c : Claim × DFrac) (cl : List (Claim × DFrac)) :
     osClaims L (c :: cl) ⊣⊢ osNames (L := L) c.1.1 c.1.2.1 c.2 c.1.2.2 ∗ osClaims L cl :=
   by unfold osClaims; exact BigSepL.bigSepL_cons
+
+/-- The claim on no name knows nothing. -/
+theorem namesOf_empty (V : Hist) (j : Ino) : namesOf V j (.only []) = NamesH.empty := by
+  have hr : ∀ e : Ents, restrictN (.only []) e = ∅ := by
+    intro e; apply GMap.ext; intro b; simp [restrictN, NameSet.Mem]
+  unfold namesOf NamesH.empty
+  simp only [hr, NamesH.mk.injEq, true_and, and_true]
+  apply List.filterMap_eq_nil_iff.2
+  intro x _
+  split
+  · simp [NameSet.Mem]
+  · rfl
+
+/-- A claim held, with the claims' authority coherent with the history `V`: the history's. -/
+theorem osNames_auth (L : GooseLocalGS GF) {V : Hist} {Γn : GMap (Ino × NameSet) NamesH}
+    (hcoh : NamesCoh V Γn) (j : Ino) (N : NameSet) (dq : DFrac) (h : NamesH) :
+    ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γn Γn -∗ osNames (L := L) j N dq h -∗
+      ⌜h = namesOf V j N⌝ := by
+  iintro HA H
+  by_cases hN : N = .only []
+  · subst hN
+    unfold osNames
+    rw [if_pos rfl]
+    icases H with %h1
+    ipureintro; rw [h1, namesOf_empty]
+  · rw [osNames_of_ne dq h hN]
+    icases gAuth_lookup _ _ _ _ _ _ $$ HA H with %h1
+    ipureintro; exact hcoh.hist _ _ _ h1
 
 end claims
 

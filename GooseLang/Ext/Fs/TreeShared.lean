@@ -37,6 +37,8 @@ public import GooseLang.Ext.Fs.TreeSharedCrash
 
 noncomputable section
 
+set_option autoImplicit false
+
 namespace Perennial
 namespace Fs
 
@@ -56,19 +58,36 @@ theorem osCallPerm_split (q1 q2 : Qp) :
   unfold osCallPerm; exact gElem_split _ _ _ q1 q2 ()
 
 theorem osCallPerm_valid (q : Qp) : osCallPerm (L := L) q ⊢ ⌜q ≤ 1⌝ := by
-  sorry
+  unfold osCallPerm
+  iintro H
+  icases gElem_valid _ _ _ _ _ $$ H with %hv
+  ipureintro; exact DFrac.valid_own.1 hv
 
 theorem osNames_frac (j : Ino) (N : NameSet) (q1 q2 : Qp) (h : NamesH) :
     osNames (L := L) j N (DFrac.own (q1 + q2)) h ⊣⊢
       osNames (L := L) j N (DFrac.own q1) h ∗ osNames (L := L) j N (DFrac.own q2) h := by
-  unfold osNames; exact gElem_split _ _ _ q1 q2 h
+  by_cases hN : N = .only []
+  · subst hN
+    unfold osNames
+    simp only [if_pos]
+    constructor
+    · iintro %H; isplitl [] <;> ipureintro <;> exact H
+    · iintro ⟨%H, -⟩; ipureintro; exact H
+  · rw [osNames_of_ne _ _ hN, osNames_of_ne _ _ hN, osNames_of_ne _ _ hN]
+    exact gElem_split _ _ _ q1 q2 h
 
 theorem osNames_agree (j : Ino) (N : NameSet) (dq1 dq2 : DFrac) (h1 h2 : NamesH) :
     osNames (L := L) j N dq1 h1 -∗ osNames (L := L) j N dq2 h2 -∗ ⌜h1 = h2⌝ := by
-  unfold osNames
-  iintro H1 H2
-  icases gElem_valid_2 _ _ _ _ _ _ _ $$ H1 H2 with %hv
-  ipureintro; exact hv.2
+  by_cases hN : N = .only []
+  · subst hN
+    unfold osNames
+    simp only [if_pos]
+    iintro %H1 %H2
+    ipureintro; rw [H1, H2]
+  · rw [osNames_of_ne _ _ hN, osNames_of_ne _ _ hN]
+    iintro H1 H2
+    icases gElem_valid_2 _ _ _ _ _ _ _ $$ H1 H2 with %hv
+    ipureintro; exact hv.2
 
 /-- Splitting a claim along a finite set of names `M`. -/
 theorem osNames_split (R : Roots) (j : Ino) (N : NameSet) (M : List GoString) (h : NamesH)
@@ -258,7 +277,8 @@ theorem wp_osMkdirS (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : Nam
         ((⌜e ≠ 0⌝ ∗ osNames (L := L) j (.only [b]) (DFrac.own 1) h) ∨
          ∃ x J, osLogged (L := L) x (⟨.mkdir j b J, s0⟩ : LogEntry) ∗
            osNames (L := L) j (.only [b]) (DFrac.own 1) (h.log x (⟨.mkdir j b J, s0⟩ : LogEntry) (<[b := .dir J]> h.cur)) ∗
-           osNames (L := L) J (.except []) (DFrac.own 1) ⟨∅, [(x, o, ∅)], ∅⟩) -∗ Φ (#e)) -∗
+           osNames (L := L) J (.except []) (DFrac.own 1)
+             ⟨∅, [(x, (⟨.mkdir j b J, s0⟩ : LogEntry), ∅)], ∅⟩) -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Mkdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} := by
   sorry
 
