@@ -197,3 +197,20 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Proposed change.** The realization keeps `boltState` in an invariant (the bank's pattern),
   the commit's update opening it.
 - **Decision.** Pending (the backend's; no statement changes).
+
+## 2026-11-13: `wal.WAL.ReadAll.spec` -- the success post `walReadCut … = some σ` is false of a Save-then-SaveSnapshot history
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__ReadAll.lean` (the W4a axiom; its proved
+  replacement over `fsExt`, `notes/wal-fsext-plan.md`).
+- **Defect.** Unprovable: Go's `ReadAll` folds from `Open`'s start snapshot `s` (the entries' base fixed
+  at `s.Index`), while `walReadCut`'s fold moves its base only at snapshot records it has read.
+- **Evidence.** `readAllFold_zero_dev` (branch `wal-fold`, `Proof/go_etcd_io/etcd/server/v3/storage/WalEncFold.lean`,
+  proved): the history `Save({Term 1, Commit 5}, [entry 6 term 1])`, `SaveSnapshot({Index 5, Term 1})`;
+  `Open` starts at `(5,1)`; Go's `ReadAll` succeeds with `[e6]`, `walRead I = none`. Raft does not
+  produce this order (etcd saves the snapshot record before entries above it), but `Save`'s spec allows it.
+- **Proposed change.** `ReadAll`'s success post states Go's fold, `walReadAt I k s` (the fold from the
+  base `s`), and a lemma gives `walReadAt I k s = walReadCut I k` under a history condition the server's
+  and the tester's histories meet (the condition to be found: e.g. every entry above a snapshot record's
+  index is saved after it), so the clients keep `walReadCut`.
+- **Decision.** Adopted (the coordinator, the user away; an intermediate spec, no client-visible ghost
+  state added); the condition and the lemma on branch `wal-fold`.
