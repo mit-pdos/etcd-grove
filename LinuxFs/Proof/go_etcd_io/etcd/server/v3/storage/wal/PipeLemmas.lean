@@ -17,6 +17,7 @@ module
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Pipe
 public import LinuxFs.Proof.os.OpenFileTruncS
 public import LinuxFs.Proof.path.filepath.Names
+public import LinuxFs.Spec.os.Remove
 
 @[expose] public section
 
@@ -109,7 +110,7 @@ variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
-variable [os_sem : os.Assumptions] [os_fa : os.file.FieldAssumptions]
+variable [os_sem : os.Assumptions]
 
 /-- A path in the shared mode is a clean absolute path. -/
 theorem osPathS_cleanAbs (R : Roots) (d : GoString) (dq : DFrac) (j : Ino) :
@@ -169,7 +170,7 @@ theorem walOpenFlag_ok :
   decide
 
 /-- **`createNewWALFile(dir/b, true)` of a pipeline name.** -/
-theorem wp_createTmp
+theorem wp_createTmp [os.file.FieldAssumptions]
     (wp_create : go_etcd_io.etcd.server.v3.storage.wal.createNewWALFile.specLocked (GF := GF)
       (hG := hG))
     (wp_open : os.OpenFile.specCreateTruncSnc (GF := GF) (hG := hG))
@@ -355,6 +356,71 @@ theorem wp_createTmp
         rw [hcur]
         simp only [tmpEnt]
         iapply trFile_mono i _ _ (fun h => h.elim) $$ Htr
+
+
+/-- A file's `OsMeta` and zero bytes (no mappings): the file whole, any size (`trFile i False`). -/
+theorem zerosA_trFile (i : Ino) (m : OsMeta) (hm : m.maps = ∅) :
+    osMeta (GF := GF) i (DFrac.own 1) m ∗ osZerosA i 0 m.size (DFrac.own 1) ⊢ trFile i False := by
+  iintro ⟨Hm, Hz⟩
+  icases (osZerosA_unfold i 0 m.size (DFrac.own 1)).1 $$ Hz with ⟨%zs, %hzs, Hz⟩
+  iunfold trFile
+  iexists m, zs.map (fun c => ((0 : w8), c))
+  iframe Hm Hz
+  isplitl []
+  · iapply mcellsAny_empty m.maps hm
+  ipureintro
+  exact ⟨by simp [hzs], fun h => h.elim, hm⟩
+
+/-- **After an unlink of the pipeline's file** (both halves of the outcome), with the file: the
+claim, the name absent (the file dropped), or still the file. -/
+theorem rmFile_tmpClaim (j : Ino) (b : GoString) (i : Ino) (h : NamesH)
+    (o : Option (Nat × Nat)) (hcur : h.cur !! b = some (.file i)) :
+    rmFileOut (GF := GF) j b i h (DFrac.own (1 : Qp).half) o ∗
+      rmFileOut j b i h (DFrac.own (1 : Qp).half) o ∗ trFile i False ⊢ tmpClaim j b := by
+  unfold rmFileOut tmpClaim
+  cases o with
+  | none =>
+    simp only [claimOut]
+    iintro ⟨⟨-, H1⟩, ⟨-, H2⟩, Ht⟩
+    iexists h
+    isplitl [H1 H2]
+    · iapply (osNames_join j _ _ _ h (Qp.half_add_half 1)).1 $$ [$H1 $H2]
+    rw [hcur]
+    simp only [tmpEnt]
+    iexact Ht
+  | some xs =>
+    obtain ⟨x, s⟩ := xs
+    simp only [claimOut]
+    iintro ⟨⟨-, H1⟩, ⟨-, H2⟩, -⟩
+    iexists _
+    isplitl [H1 H2]
+    · iapply (osNames_join j _ _ _ _ (Qp.half_add_half 1)).1 $$ [$H1 $H2]
+    simp only [NamesH.log]
+    rw [restrictN_lookup _ _ _ (by simp [NameSet.Mem]), GMap.lookup_delete]
+    simp only [tmpEnt]
+    iempintro
+
+/-- **`walInv`-free unlink of the pipeline's file**, by a caller holding the whole claim. -/
+theorem wp_removeTmp (wp_Remove : os.Remove.specFileSnc (GF := GF) (hG := hG))
+    (R : Roots) (dir : GoString) (dq : DFrac) (j : Ino) (b : GoString) (i : Ino) (h : NamesH)
+    (qc : Qp) (hb : NameOk b) (hcur : h.cur !! b = some (.file i)) :
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R dir dq j ∗ osCallPerm qc ∗
+        osNames j (.only [b]) (DFrac.own 1) h ∗ trFile i False }}
+      (App (Val (@! os.Remove)) (Val #(child dir b)))
+    {{ (err : GoInterface), RET #err; osPathS R dir dq j ∗ osCallPerm qc ∗ tmpClaim j b }} := by
+  iintro %Φ ⟨#Hos, #Hsi, Hp, Hperm, Hn, Ht⟩ HΦ
+  icases (osNames_join j _ _ _ h (Qp.half_add_half 1)).2 $$ Hn with ⟨Hn, Hr⟩
+  ihave Hau := osAUnc_triv (A := Option (Nat × Nat))
+    (osNames (GF := GF) j (.only [b]) (DFrac.own (1 : Qp).half) h)
+    (rmFileOut j b i h (DFrac.own (1 : Qp).half)) $$ Hr
+  iapply wp_Remove dir b j i R dq h (1 : Qp).half (1 : Qp).half qc
+    (rmFileOut j b i h (DFrac.own (1 : Qp).half)) hb hcur (Qp.half_add_half 1)
+    $$ [$Hos $Hsi $Hp $Hperm $Hn $Hau]
+  inext
+  iintro %err ⟨Hp, Hperm, %o, -, Ho1, Ho2⟩
+  iapply HΦ
+  iframe Hp Hperm
+  iapply rmFile_tmpClaim j b i h o hcur $$ [$Ho1 $Ho2 $Ht]
 
 end iris
 
