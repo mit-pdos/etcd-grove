@@ -19,17 +19,19 @@ namespace Fs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
 
-/-- The shared coherence with a call ended. -/
+/-- The shared coherence with a logging call ended. -/
 theorem treeCohS_metaEnd {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS)}
-    {Γc : GMap Nat (Nat × Qp)} (hc : TreeCohS st s0 Γdf Γc) (k : Nat) :
-    TreeCohS (st.metaEnd k) s0 Γdf (GMap.delete k Γc) := by
+    {Γc Γg : GMap Nat (Nat × Qp)} (hc : TreeCohS st s0 Γdf Γc Γg) (k : Nat) {xk : Nat × Qp}
+    (hk : Γc !! k = some xk) :
+    TreeCohS (st.metaEnd k) s0 Γdf (GMap.delete k Γc) Γg := by
   refine ⟨hc.starts, hc.pss, hc.dox, hc.valid, hc.s0le, hc.fds,
-    fun fd x df hx hdf => (hc.ph fd x df hx hdf).congr rfl rfl, fun t0 => ?_, fun t0 x hx => ?_,
-    fun t0 x hx hq => ?_, fun t0 x hx y ey hy hd => ?_⟩
-  · show _ = (GMap.delete k st.proc.calls) !! t0
+    fun fd x df hx hdf => (hc.ph fd x df hx hdf).congr rfl rfl, fun t0 x hx => ?_, fun t0 x hx => ?_,
+    fun t0 x hx hq => ?_, fun t0 x hx y ey hy hd => ?_, fun t0 x hx => ?_, fun t0 x hx => ?_,
+    fun t0 s hs => ?_, fun c x t0 g hx hg hq hle => ?_⟩
+  · show (GMap.delete k st.proc.calls) !! t0 = _
     by_cases h0 : k = t0
-    · subst h0; simp
-    · rw [GMap.lookup_delete_ne _ h0, GMap.lookup_delete_ne _ h0]; exact hc.calls t0
+    · subst h0; simp at hx
+    · rw [GMap.lookup_delete_ne _ h0] at hx; rw [GMap.lookup_delete_ne _ h0]; exact hc.calls t0 x hx
   · by_cases h0 : k = t0
     · subst h0; simp at hx
     · rw [GMap.lookup_delete_ne _ h0] at hx; exact hc.callsLe t0 x hx
@@ -39,6 +41,49 @@ theorem treeCohS_metaEnd {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × DirP
   · by_cases h0 : k = t0
     · subst h0; simp at hx
     · rw [GMap.lookup_delete_ne _ h0] at hx; exact hc.after t0 x hx y ey hy hd
+  · show (GMap.delete k st.proc.calls) !! t0 = _
+    by_cases h0 : k = t0
+    · subst h0; have := hc.gdisj k x hx; rw [hk] at this; cases this
+    · rw [GMap.lookup_delete_ne _ h0]; exact hc.gcalls t0 x hx
+  · by_cases h0 : k = t0
+    · subst h0; simp
+    · rw [GMap.lookup_delete_ne _ h0]; exact hc.gdisj t0 x hx
+  · change (GMap.delete k st.proc.calls) !! t0 = some s at hs
+    by_cases h0 : k = t0
+    · subst h0; simp at hs
+    · rw [GMap.lookup_delete_ne _ h0] at hs; rw [GMap.lookup_delete_ne _ h0]; exact hc.cover t0 s hs
+  · by_cases h0 : k = c
+    · subst h0; simp at hx
+    · rw [GMap.lookup_delete_ne _ h0] at hx; exact hc.pair c x t0 g hx hg hq hle
+
+/-- The shared coherence with a guard call ended. -/
+theorem treeCohS_guardEnd {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS)}
+    {Γc Γg : GMap Nat (Nat × Qp)} (hc : TreeCohS st s0 Γdf Γc Γg) (t : Nat) {xt : Nat × Qp}
+    (ht : Γg !! t = some xt) :
+    TreeCohS (st.metaEnd t) s0 Γdf Γc (GMap.delete t Γg) := by
+  have htc := hc.gdisj t xt ht
+  refine ⟨hc.starts, hc.pss, hc.dox, hc.valid, hc.s0le, hc.fds,
+    fun fd x df hx hdf => (hc.ph fd x df hx hdf).congr rfl rfl, fun t0 x hx => ?_, hc.callsLe,
+    hc.whole, hc.after, fun t0 x hx => ?_, fun t0 x hx => ?_,
+    fun t0 s hs => ?_, fun c x t0 g hx hg hq hle => ?_⟩
+  · show (GMap.delete t st.proc.calls) !! t0 = _
+    by_cases h0 : t = t0
+    · subst h0; rw [htc] at hx; cases hx
+    · rw [GMap.lookup_delete_ne _ h0]; exact hc.calls t0 x hx
+  · show (GMap.delete t st.proc.calls) !! t0 = _
+    by_cases h0 : t = t0
+    · subst h0; simp at hx
+    · rw [GMap.lookup_delete_ne _ h0] at hx; rw [GMap.lookup_delete_ne _ h0]; exact hc.gcalls t0 x hx
+  · by_cases h0 : t = t0
+    · subst h0; simp at hx
+    · rw [GMap.lookup_delete_ne _ h0] at hx; exact hc.gdisj t0 x hx
+  · change (GMap.delete t st.proc.calls) !! t0 = some s at hs
+    by_cases h0 : t = t0
+    · subst h0; simp at hs
+    · rw [GMap.lookup_delete_ne _ h0] at hs; rw [GMap.lookup_delete_ne _ h0]; exact hc.cover t0 s hs
+  · by_cases h0 : t = t0
+    · subst h0; simp at hg
+    · rw [GMap.lookup_delete_ne _ h0] at hg; exact hc.pair c x t0 g hx hg hq hle
 
 section facts
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
@@ -134,7 +179,7 @@ theorem wp_callEndS (op : String) (v : val) (hv : v.isPanic = false) (R : Roots)
   icases Hm with (Hm | Hm)
   · iexfalso; iapply legacy_callS_excl st k s0 q $$ Hk Hm
   unfold treeShared
-  icases Hm with ⟨%V0, %s1, %Γdf, %Γc, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr⟩
+  icases Hm with ⟨%V0, %s1, %Γdf, %Γc, %Γg, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
   obtain ⟨hw, hc⟩ := hns
   unfold osSharedInv
   imod inv_acc (osShN_sub hE') $$ Hsi with ⟨Hi, Hclose⟩
@@ -148,8 +193,7 @@ theorem wp_callEndS (op : String) (v : val) (hv : v.isPanic = false) (R : Roots)
   · inext; iexists _, Γn; iframe; ipureintro; exact hcoh
   unfold osCallS
   icases gAuth_lookup _ _ _ _ _ _ $$ Hacs Hk with %hk
-  have hcall : st.proc.calls !! k = some s0 := by
-    have := hc.calls k; rw [hk] at this; exact this.symm
+  have hcall : st.proc.calls !! k = some s0 := hc.calls k _ hk
   unfold osWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
@@ -179,7 +223,7 @@ theorem wp_callEndS (op : String) (v : val) (hv : v.isPanic = false) (R : Roots)
   iexists Γb, Γm, Γf, Γt
   isplitl [Hw]
   · unfold osWorld; iexact Hw
-  isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr Hcm]
+  isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr HAg Hgr Hcm]
   · try unfold treeCtx
     isplitr [Hcm]
     rotate_left
@@ -187,9 +231,9 @@ theorem wp_callEndS (op : String) (v : val) (hv : v.isPanic = false) (R : Roots)
     iright
     simp only [OsState.metaEnd]
     try unfold treeShared
-    iexists V0, s1, Γdf, GMap.delete k Γc
+    iexists V0, s1, Γdf, GMap.delete k Γc, Γg
     iframe
-    ipureintro; exact ⟨fsTreeWf_metaEnd hw k, treeCohS_metaEnd hc k⟩
+    ipureintro; exact ⟨fsTreeWf_metaEnd hw k, treeCohS_metaEnd hc k hk⟩
   iapply wp_value'
   iapply HΦ $$ %w %hW [Hq] HF
   unfold osCallPerm; iexact Hq

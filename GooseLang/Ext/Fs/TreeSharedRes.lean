@@ -87,6 +87,14 @@ permission (in the state interpretation), which its step gives back. -/
 def osCallS (t s : Nat) (q : Qp) : IProp GF :=
   gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γcS t (DFrac.own 1) (s, q)
 
+/-- The shared **guard call** `t` is in flight, begun when the log had `s` entries, holding `g` of
+the call permission (in the state interpretation). A guard never logs: it is ended by
+`wp_osLstatDirGuardS`, which gives `g` back. While it is in flight no call can hold the whole
+permission (so no directory is renamed), and a logging call holding the rest (`q + g = 1`, begun
+no earlier than the guard) may do a directory operation (`wp_osRmdirSG`, `wp_osMkdirSG`). -/
+def osGuardS (t s : Nat) (g : Qp) : IProp GF :=
+  gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γg t (DFrac.own 1) (s, g)
+
 /-- The log has at least `n` entries (persistent). -/
 def osLogLb (n : Nat) : IProp GF :=
   letI := (gooseOsGS (L := L)).osAllG; monoNatLbOwn (gooseOsGS (L := L)).γlen n
