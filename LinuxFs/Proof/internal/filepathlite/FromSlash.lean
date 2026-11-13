@@ -4,6 +4,7 @@ Proof of `LinuxFs/Spec/internal/filepathlite/FromSlash.lean`. Lean-first.
 module
 
 public import LinuxFs.Spec.internal.filepathlite.FromSlash
+public import LinuxFs.Proof.internal.filepathlite.UntypedRune
 
 @[expose] public section
 
@@ -23,7 +24,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.internal.filepathlite.Assumptions]
 
-theorem filepathlite.FromSlash.wp_proof [go.IsStrictlyComparable go.untypedInt Int] :
+theorem filepathlite.FromSlash.wp_proof [UntypedRuneSemantics] :
     filepathlite.FromSlash.spec (GF := GF) (hG := hG) := by
   intro x
   wp_start
