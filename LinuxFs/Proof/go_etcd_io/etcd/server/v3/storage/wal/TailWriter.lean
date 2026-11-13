@@ -79,8 +79,8 @@ theorem wp_tailPWriteStart (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStrin
       ghostVar γ (1 : Qp).half ((H, md, cuts, wr, d.ino, none) : TailG) -∗
       osMeta d.ino (DFrac.own (1 : Qp).half) m -∗ osBytes d.ino 0 (DFrac.own (1 : Qp).half) bs -∗
       (∀ t : Nat, ∀ n : Nat, osFd fd dq d -∗
-        walTailFl dir γ (H, md, cuts, wr, d.ino, some ⟨t, wr, data, n, m, bs⟩) d.ino
-          ⟨t, wr, data, n, m, bs⟩ -∗ Φ (osTokV t)) -∗
+        walTailFl dir γ (H, md, cuts, wr, d.ino, some ⟨t, wr, data, n, m, bs, none⟩) d.ino
+          ⟨t, wr, data, n, m, bs, none⟩ -∗ Φ (osTokV t)) -∗
       WP (ExternalOp fsExt.name "PWriteStart" (Val (PairV (#fd) (PairV (#off) (#data))))) {{ Φ }} := by
   sorry
 

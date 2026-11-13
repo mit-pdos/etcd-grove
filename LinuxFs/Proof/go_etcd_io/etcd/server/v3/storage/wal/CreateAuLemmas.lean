@@ -177,10 +177,11 @@ theorem laysResF_congr (F F' : GMap Ino SegFl) (Ls : GMap GoString WalLay)
 
 /-- **The tails after the commit**: the new WAL has no open handle; the others' tails are as before,
 the writes in flight unchanged on their segments. -/
-theorem walTailsRes_create (s : AbsDiskState) (Ls : GMap GoString WalLay) (F F' : GMap Ino SegFl)
+theorem walTailsRes_create (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (Ls : GMap GoString WalLay) (F F' : GMap Ino SegFl)
     (dir : GoString) (md : List w8) (lay : WalLay) (hd : s.wal !! dir = none)
     (h : ∀ g ∈ segsAll Ls, F' !! g.ino = F !! g.ino) :
-    walTailsRes (W := W) s Ls F ⊢ walTailsRes (W := W) (createSt s dir md) (<[dir := lay]> Ls) F' := by
+    walTailsRes (W := W) C Mr s Ls F ⊢
+      walTailsRes (W := W) C Mr (createSt s dir md) (<[dir := lay]> Ls) F' := by
   unfold walTailsRes
   letI := walAllG (W := W)
   iintro ⟨%T, Ha, Hm⟩
@@ -189,14 +190,14 @@ theorem walTailsRes_create (s : AbsDiskState) (Ls : GMap GoString WalLay) (F F' 
   iapply BigSepM.bigSepM_mono_of_forall _ $$ Hm
   intro dir' γ
   iintro ⟨%d, %lay', %g, %hp, Hv⟩
-  obtain ⟨hd', hl', hg, hz⟩ := hp
+  obtain ⟨hd', hl', hg, hz, hb⟩ := hp
   have hdd : dir' ≠ dir := by rintro rfl; rw [hd] at hd'; cases hd'
   have hgm : g ∈ segsAll Ls := mem_segsAll hl' (List.mem_of_getLast? hg)
   iexists d, lay', g
   rw [h g hgm]
   iframe Hv
   ipureintro
-  refine ⟨?_, ?_, hg, hz⟩
+  refine ⟨?_, ?_, hg, hz, hb⟩
   · unfold createSt; rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)]; exact hd'
   · rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)]; exact hl'
 
