@@ -214,3 +214,17 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   index is saved after it), so the clients keep `walReadCut`.
 - **Decision.** Adopted (the coordinator, the user away; an intermediate spec, no client-visible ghost
   state added); the condition and the lemma on branch `wal-fold`.
+
+## 2026-11-13: the WAL decoder's `isEofOk` -- `errors.Is` asked of `nil`, and `io.EOF` must be neither `io.ErrUnexpectedEOF` nor an `IoE` error
+
+- **Spec.** `LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/DecDefs.lean`, `isEofOk` (in `decEnv`, the
+  precondition of `decoder.Decode`/`decodeRecord`; W3a of `notes/wal-fsext-plan.md`).
+- **Defect.** Unprovable `decodeRecord`: (1) Go asks `errors.Is(err, io.EOF)` of `readInt64`'s error also
+  when it is `nil` (decoder.go:95), which `isEofOk` did not cover; (2) with `io.EOF = io.ErrUnexpectedEOF`
+  a short length word would drop the file; (3) with `IoE io.EOF` a reader may end a file early with
+  `io.EOF` (`decRdErr`), and the decoder goes on in the next file, which `goDecode` does not say.
+- **Evidence.** The proof of `decoder.decodeRecord` (branch `wal-dec2`): the three cases are where it stuck.
+- **Proposed change.** `isEofOk` also covers `e = nil` and carries `⌜eof ≠ ueof ∧ ¬ IoE eof⌝`; all three are
+  true of Go (`errors.Is(nil, t)` is `nil == t`; the two `errors.New` allocations differ; the client's `IoE`, the
+  `os` file errors, are expected not to include `io.EOF`), a client obligation like the rest of `isEofOk`.
+- **Decision.** Adopted (proof agent, minor: an intermediate client obligation, no ghost state).
