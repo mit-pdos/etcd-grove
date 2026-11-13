@@ -5,6 +5,16 @@
 **Changes** (verify-round, A11 F9): the cache still represents every view it did (`repKept`), and
 a nil parent leaves the handle's root materialized (`b.rootNode = n`, or already set: a handle with
 cached nodes has its root), which `SetSequence`'s `wtxCore_seq` needs.
+**Changes (2026-11-12, `notes/specs-only/ledger.md`, bucket handles).** `bktH` (which object `b` is)
+without the generations (the per-path generation counter it replaces was unobservable state,
+redundant with ownership).
+**Changes (2026-11-12, `notes/specs-only/ledger.md`, `Bucket.node` on a deleted handle).** The
+handle
+is a cached one, `⌜C.bkts b = some p⌝` (a premise: `Assert(b.nodes != nil)`, `bucket.go:867`,
+panics on a handle `DeleteBucket` dropped, which keeps its `bktH`); the cached handles unchanged
+(`C'.bkts = C.bkts`). Callers: `Cursor.node` (its own premise), `node.childAt` (a cached node's
+bucket), `SetSequence`/`NextSequence` (`wtxCore_bktOwn` from their `bktUse`), `spill`/`rebalance`
+(the cached handles).
 -/
 module
 
@@ -29,11 +39,11 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- (internal) the node of page `id` (cached, its parent `par`). -/
 def Bucket.node.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (C : TxCore) (b : Loc) (p : BPath) (gs : List Nat) (id : w64) (par : Loc),
-  {{ wtxCore (GF := GF) tx γ C ∗ bktH tx γ b p gs }}
+  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (C : TxCore) (b : Loc) (p : BPath) (id : w64) (par : Loc),
+  {{ wtxCore (GF := GF) tx γ C ∗ bktH tx γ b p ∗ ⌜C.bkts b = some p⌝ }}
     (App (App (Val (b @!! go.GoType.PointerType Bucket.ty @!! go!"node")) (Val #id)) (Val #par))
   {{ (n : Loc), RET #n; ∃ C' : TxCore, wtxCore tx γ C' ∗
-      ⌜(∃ N, C'.nodes n = some N ∧ N.parent = par) ∧ repKept C C' ∧
+      ⌜(∃ N, C'.nodes n = some N ∧ N.parent = par) ∧ repKept C C' ∧ C'.bkts = C.bkts ∧
         (par = Loc.null → (C'.roots b).isSome = true)⌝ }}
 
 end spec

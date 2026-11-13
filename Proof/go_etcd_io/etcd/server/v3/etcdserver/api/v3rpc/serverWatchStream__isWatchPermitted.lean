@@ -56,8 +56,7 @@ theorem v3rpc.serverWatchStream.isWatchPermitted.wp_proof
   iunfold v3rpc.watchSrvOk at Hok
   icases Hok with ⟨-, ⟨%sta, %cca, %P, %f, %BT, #Has, #Hreq, #Hreqb, #Hcca, #Has2⟩, -⟩
   iunfold v3rpc.srvStreamIs at Hstr
-  icases Hstr with ⟨%si, %Hsi, -, -, #Hctx, #Hic, #Hrc⟩
-  ihave #Hlib := libCtxOk_of_runCtx ci $$ Hrc
+  icases Hstr with ⟨%si, %Hsi, -, -, #Hctx, #Hcw, #Hlib, -⟩
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
   iunfold apply.isAuthStore at Has2
@@ -73,8 +72,6 @@ theorem v3rpc.serverWatchStream.isWatchPermitted.wp_proof
   wp_apply (hAI r.srv.s _ r.srv.E.RD r.srv.E.authMode cca
       ci cd) $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr0, #Hb, -⟩
   · iframe #
-    iunfold mvcc.txnCtx
-    iright; iexact Hic
   ihave #Herr := authApplyErrIs_apply _ $$ Herr0
   (try wp_auto)
   rcases err with _ | ei

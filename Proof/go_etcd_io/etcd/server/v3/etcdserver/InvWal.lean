@@ -438,9 +438,12 @@ the handed log, not the committed one; `σ.b ≤ |l|` is what the stop's image n
 σ.commit` the apply thread's snapshot), the durable log agreeing with it; at a received snapshot
 `m` whose `Save` is pending, records `walSaveSnap σ m` of such records `σ` (the apply thread's own
 snapshot is then below their base and changes nothing). Either way the records' hard state is the
-view's. -/
+view's. (out_size C3, MAJ-2, 2026-11-12) The records are sized (`walRecs … true`): the server's cluster
+bounds proposed data, the raft loop saves a `Ready`'s entries as handed-out objects of bounded size
+(`walSaveSized_spec`), and a first start's WAL is sized (`wal.bootOk`); so the stop's files are
+(`srvFiles`), and a restart's records must come so to allocate this invariant. -/
 def walAsViewed (cl : Cluster) (w : Loc) (v : WalView) : IProp GF :=
-  iprop(∃ σ : StorContents, walRecs w (recsOf v σ) ∗ ⌜ViewOk v σ⌝ ∗ walSnapCert cl (recsOf v σ))
+  iprop(∃ σ : StorContents, walRecs w (recsOf v σ) true ∗ ⌜ViewOk v σ⌝ ∗ walSnapCert cl (recsOf v σ))
 
 instance walAsViewed_timeless (cl : Cluster) (w : Loc) (v : WalView) :
     Timeless (walAsViewed (GF := GF) cl w v) := by
@@ -484,7 +487,7 @@ first start's is `walFresh` at `walView0` (`rnDur_alloc`); a restart's, the reco
 returned at `⟨S, σ.hs, none, l₀⟩` (`viewOk_restart`; the records' source is W4's). -/
 theorem rnDur_alloc_view (cl : Cluster) (w : Loc) (σ : StorContents) (v : WalView)
     (hv : ViewOk v σ) (hp : v.pend = none) :
-    walRecs (GF := GF) w σ ∗ walSnapCert cl σ ⊢
+    walRecs (GF := GF) w σ true ∗ walSnapCert cl σ ⊢
       |={⊤}=> ∃ ν : WalNames, rnDurInv cl ν w ∗ ghostVar ν.view (1 : Qp).half v ∗
         token ν.ok ∗ token ν.stop ∗ token ν.app ∗ walCommitLb ν v.l := by
   iintro ⟨Hr, #Hc⟩
@@ -525,7 +528,7 @@ records hold `RaftState.init`, `walFresh_holds`), the loop's half of the view wi
 token, the stop's claim, the apply thread's token, and the handed log's lower bound at `[]`.
 (Restart S3 item 4: `rnDur_alloc_view` at `walView0`.) -/
 theorem rnDur_alloc (cl : Cluster) (w : Loc) :
-    walRecs (GF := GF) w walFresh ⊢
+    walRecs (GF := GF) w walFresh true ⊢
       |={⊤}=> ∃ ν : WalNames, rnDurInv cl ν w ∗ ghostVar ν.view (1 : Qp).half walView0 ∗
         token ν.ok ∗ token ν.stop ∗ token ν.app ∗ walCommitLb ν [] := by
   iintro Hr
@@ -549,8 +552,8 @@ at `v'`, the token back and the handed log's lower bound at `v'.l`. -/
 theorem rnDur_save_au (cl : Cluster) (ν : WalNames) (w : Loc) (v v' : WalView) (h : HardStateM)
     (es : List EntryM) (Hst : WalSaveStep v v' h es) :
     rnDurInv (GF := GF) cl ν w -∗ ghostVar ν.view (1 : Qp).half v -∗ token ν.ok -∗
-      AU <{ ∃∃ (σ : StorContents), walRecs w σ ∗ ⌜WalSaveOk σ es⌝ }> @ ⊤, ∅
-        <{ walRecs w (walSave σ h es),
+      AU <{ ∃∃ (σ : StorContents), walRecs w σ true ∗ ⌜WalSaveOk σ es⌝ }> @ ⊤, ∅
+        <{ walRecs w (walSave σ h es) true,
           COMM ghostVar ν.view (1 : Qp).half v' ∗ token ν.ok ∗ walCommitLb ν v'.l }> := by
   obtain ⟨Hpn, Hpfx, Hstep⟩ := Hst
   iintro #Hinv Hv Hok
@@ -765,9 +768,9 @@ theorem rnDur_saveSnap_au (cl : Cluster) (ν : WalNames) (w : Loc) (v : WalView)
     rnDurInv (GF := GF) cl ν w -∗ ghostVar ν.view (1 : Qp).half v -∗ token ν.ok -∗
       -- (R2d, Q14 (a), DRAFT) the received snapshot's WAL record valid (`srv_snapshotValid_record`)
       snapshotValid cl (SnapshotM.mk [] m) -∗
-      AU <{ ∃∃ (σ : StorContents), walRecs w σ ∗
+      AU <{ ∃∃ (σ : StorContents), walRecs w σ true ∗
             ⌜uint.nat m.Index' = σ.b → m.Term' = σ.base.term'⌝ }> @ ⊤, ∅
-        <{ walRecs w (walSaveSnap σ m),
+        <{ walRecs w (walSaveSnap σ m) true,
           COMM ghostVar ν.view (1 : Qp).half { v with pend := some m } ∗ token ν.ok ∗
             -- (sweep repairs 1, W2) the records start at or above the snapshot's index
             walBaseLb w (uint.nat m.Index') }> := by
@@ -806,7 +809,7 @@ theorem rnDur_saveSnap_au (cl : Cluster) (ν : WalNames) (w : Loc) (v : WalView)
     imodintro
     iframe Hv Hok
   · iintro Hr
-    icases walRecs_saveSnap_baseLb w σ m $$ Hr with ⟨Hr, #Hblb⟩
+    icases walRecs_saveSnap_baseLb w σ m true $$ Hr with ⟨Hr, #Hblb⟩
     imod Hmask with -
     imod (ghostVar_update_halves { v with pend := some m } ν.view v v) $$ Hv Hv0 with ⟨Hv, Hv0⟩
     imod Hclose $$ [Hv0 Hcm Hr] with -
@@ -893,9 +896,9 @@ theorem rnDur_ownSnap_au (cl : Cluster) (ν : WalNames) (w : Loc) (md : Snapshot
     rnDurInv (GF := GF) cl ν w -∗ token ν.app -∗ walCommitLb ν l -∗
       -- (R2d, Q14 (a), DRAFT) the snapshot's WAL record valid (`srv_snap_make`'s, of no data)
       snapshotValid cl (SnapshotM.mk [] md) -∗
-      AU <{ ∃∃ (σ : StorContents), walRecs w σ ∗
+      AU <{ ∃∃ (σ : StorContents), walRecs w σ true ∗
             ⌜uint.nat md.Index' = σ.b → md.Term' = σ.base.term'⌝ }> @ ⊤, ∅
-        <{ walRecs w (walSaveSnap σ md), COMM token ν.app ∗
+        <{ walRecs w (walSaveSnap σ md) true, COMM token ν.app ∗
           -- (sweep repairs 1, W2) the records start at or above the snapshot's index
           walBaseLb w (uint.nat md.Index') }> := by
   iintro #Hinv Ha #Hlb #Hsv
@@ -928,7 +931,7 @@ theorem rnDur_ownSnap_au (cl : Cluster) (ν : WalNames) (w : Loc) (md : Snapshot
     imodintro
     iframe Ha
   · iintro Hr
-    icases walRecs_saveSnap_baseLb w _ md $$ Hr with ⟨Hr, #Hblb⟩
+    icases walRecs_saveSnap_baseLb w _ md true $$ Hr with ⟨Hr, #Hblb⟩
     imod Hmask with -
     imod Hclose $$ [Hv Hcm Hr] with -
     · inext; ileft; iexists v; iframe Hv Hcm; iunfold walAsViewed; iexists σ'
@@ -952,7 +955,7 @@ sent batch received.) -/
 theorem rnDur_take (cl : Cluster) (ν : WalNames) (w : Loc) (v : WalView) (hp : v.pend = none) :
     rnDurInv (GF := GF) cl ν w -∗ token ν.stop -∗ token ν.app -∗
       ghostVar ν.view (1 : Qp).half v -∗ token ν.ok ={⊤}=∗
-      ∃ σ : StorContents, walRecs w σ ∗
+      ∃ σ : StorContents, walRecs w σ true ∗
         ⌜StorageHolds v.S σ ∧ σ.b ≤ v.l.length ∧ v.l.length ≤ σ.commit ∧
           -- (S1) the records' hard state the view's, and the durable log agreeing with the handed log
           σ.hs = v.hs ∧ DurAgrees v.S v.l⌝ ∗

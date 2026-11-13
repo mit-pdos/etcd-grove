@@ -17,19 +17,21 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section slots
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 
 omit sem in
 /-- Written slots (whole pages) are write targets again. -/
-theorem slotsOwn_wrSlots (b : Loc) (l : Nat) (p : GoString) (S : List Nat) (bs : Nat → List w8)
+theorem slotsOwn_wrSlots (b : Loc) (l : Nat) (p : BFile) (S : List Nat) (bs : Nat → List w8)
     (hlen : ∀ s ∈ S, (bs s).length = 4096) :
     slotsOwn (GF := GF) (some (b, l)) p S bs ⊢ wrSlots b p S bs := by
   unfold slotsOwn wrSlots
@@ -45,7 +47,7 @@ theorem slotsOwn_wrSlots (b : Loc) (l : Nat) (p : GoString) (S : List Nat) (bs :
 
 omit go_gctx sem in
 /-- The written slots split by a predicate. -/
-theorem slotsOwn_filter (ms : MapSt) (p : GoString) (L : List Nat) (bs : Nat → List w8)
+theorem slotsOwn_filter (ms : MapSt) (p : BFile) (L : List Nat) (bs : Nat → List w8)
     (P : Nat → Bool) :
     slotsOwn (GF := GF) ms p L bs ⊢
       slotsOwn ms p (L.filter P) bs ∗ slotsOwn ms p (L.filter (fun s => !P s)) bs := by
@@ -55,7 +57,7 @@ theorem slotsOwn_filter (ms : MapSt) (p : GoString) (L : List Nat) (bs : Nat →
 /-- **The written slots split** (see the file header): of the dirty pages' slots `SB`, those
 satisfying `P` stay written (`S`), the rest go back into the writer's `W` slots `W'` with their
 written bytes. -/
-theorem cm_slots_split (B : BNs) (db : Loc) (p : GoString) (sp : Loc) (t0 : Nat) (tx : Loc)
+theorem cm_slots_split (B : BNs) (db : Loc) (p : BFile) (sp : Loc) (t0 : Nat) (tx : Loc)
     (ws : WSt) (w : WDb) (b : Loc) (l : Nat) (SB : List Nat) (bs : Nat → List w8)
     (P : Nat → Bool) (hms : w.ms = some (b, l)) (hdisj : ∀ s ∈ w.W, s ∉ SB)
     (hin : ∀ s ∈ SB, 4096 * (s + 1) ≤ l ∧ 4096 * (s + 1) ≤ w.m.size)
@@ -80,7 +82,7 @@ theorem cm_slots_split (B : BNs) (db : Loc) (p : GoString) (sp : Loc) (t0 : Nat)
   iexact Hwc
 
 /-- **The written slots back** (after a failed meta write): `S` into the writer's `W` slots. -/
-theorem cm_slots_back (B : BNs) (db : Loc) (p : GoString) (sp : Loc) (t0 : Nat) (tx : Loc)
+theorem cm_slots_back (B : BNs) (db : Loc) (p : BFile) (sp : Loc) (t0 : Nat) (tx : Loc)
     (ws : WSt) (w : WDb) (b : Loc) (l : Nat) (S : List Nat) (bs : Nat → List w8)
     (hms : w.ms = some (b, l)) (hdisj : ∀ s ∈ w.W, s ∉ S)
     (hin : ∀ s ∈ S, 4096 * (s + 1) ≤ l ∧ 4096 * (s + 1) ≤ w.m.size)

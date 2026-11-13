@@ -35299,6 +35299,96 @@ reverted: `range_linearizable`/`range_serializable` (exported), `EtcdServer.Rang
 `EtcdServer.LeaseRenew.spec` and `v3rpc.raftLeaseRenew` are back to `lean`'s text. Strengthening
 `isSpan` instead would recheck every `isSpan` producer for a property only `Start` needs.
 
+## WAL W4c: the WAL robustness tester under crashes (2026-11-12 · plan approved by etcd-grove-81 (Q1, Q2, Q3, Q5) and the user (Q4), `/shared/tmp/wal-spec/w4c/plan.md` · branch `wal-w4c`; paused 2026-11-12)
+
+- **purgeRound is names-only, with one trust-boundary axiom** (Q2, PR-a; the Freeze approved by
+  etcd-grove-81 after its axiom-skill review, READY WITH CHANGES, no blocker or major;
+  `/shared/tmp/wal-spec/w4c/freeze-purge.md`). The landed `"WalPurge"` step takes its position by
+  value, so no `TrustedCode` model can perform it. `etcd_wal.purgeRound.spec` takes `walOpenW` and
+  `walPurgeW`, framed (the W4a revision round 3 gate M1). Its update raises `pur` to `unl` and moves
+  `cut` to the first remaining file's start `k`, `cut ≤ k ≤ max pur unl`. The body is proved
+  (`PurgeBody.lean`): `"WalPurge"` of `k` at the access, with `cut ≤ pur` kept by the semantics so the
+  guard is satisfiable. The commit at the round's first step uses a prophesied `k`, which is sound
+  because a crash re-chooses `cut` (m1).
+- **C6 gate (the review's m5).** The commit point is sound only because `walOpenW` excludes
+  `ReleaseLockTo` while the round runs. etcd's server purge goroutine (`fileutil.purgeFile`) runs
+  concurrently with `Save` and `ReleaseLockTo`. If `unl` rose after the commit, Go's later locks would
+  delete files above the committed bound. The server's purge needs its own spec, with a commit at
+  each removal or a commit that reads `unl` when each lock is taken. It cannot reuse this one.
+- **The tester's purged-prefix check is not observed to matter** (`freeze-purge.md` §6, runs
+  `purgebias{,2,3,4}`): no restart was accepted only through a purged prefix, and the model's
+  purged-prefix arm never offered a `ReadAll` read other than the full one. It is argued unreachable
+  under the tester's invariants (`walCommitLe`, and `pur` at most the name bound of a snapshot record
+  in the image, within its commit), which are not proved. The claim covers `ReadAll` only:
+  `ValidSnapshotEntries` depends on `cut` exactly (m3).
+- **Paused, 2026-11-12 (the user's decision, via etcd-grove-81).** The effort stops after landing
+  what is done (the tester, the purgeRound axiom and its body, Q1's Durable crash, the package inits,
+  `Defs`/`Crash`/`RefLemmas`/`Rep`, ref.go's and `putU64`'s proofs), with no `sorry`; `etcd_wal_safe`
+  is not reached, and the new axioms (purgeRound, the 4 init axioms) are reached by no root until it
+  is. The plan and its decisions stand; a resumption starts from `notes/wal-w4c-handoff.md`, "Paused
+  2026-11-12".
+
+## One file semantics, `fsExt`; power loss only (2026-11-13 · the user's decision)
+
+**Decision** (the user, 2026-11-12/13): every file-system proof runs over one trusted semantics, the
+per-byte Linux extension `fsExt` (`GooseLang/Ext/Fs`, configuration C), and the crashes covered are
+**power losses only**: no process kill, no kill followed by a power loss. A program generation starts
+under `fsExt`'s "Restarts" assumption (`GooseLang/Ext/Fs/Impl.lean`): after a machine restart, or after
+the old process exited and a `sync(2)` completed (`notes/restart-vs-crash.md`). This is an environment
+assumption of every crash theorem; `fsExt` needs no change for it.
+
+**Consequences.**
+- **`osFsExt`** (`GooseLang/Ext/OsFs`) goes once real bbolt is ported onto `fsExt` (the bbolt port,
+  another agent; `notes/bbolt-port-plan.md`), and with it the main tree's `osFsExt` `os` layer, which
+  `LinuxFs/`'s replaces; SpecPlan's `HasExt osFsExt` binders are retargeted (ledger entries).
+- **`absDiskExt`** (`GooseLang/Ext/AbsDisk`) stops being a trusted extension: the WAL's 12 axioms
+  (`Spec/go_etcd_io/etcd/server/v3/storage/wal/`, `fileutil.TouchDirAll`) become proved specs of the
+  real WAL over `fsExt`, with the abstract disk's state kept as ghost state over the real files (its
+  pure vocabulary, `WalHist`, `walImg`, `walReadCut`, and the W4b lemmas carry over). Then the extension,
+  its steps (`AbsDiskStep`) and its world-assumption list go. Plan: `notes/wal-fsext-plan.md`.
+- **`durableExt`** (`GooseLang/Ext/Durable`) goes: `examples/lib/durable` is reimplemented over `os`
+  (write a temporary file, fsync, rename, fsync the directory) and its specs proved over `fsExt`.
+- The WAL's world assumptions become `fsExt`'s configuration C plus "no CRC32-Castagnoli collision on
+  torn data" (a premise of the WAL's theorems). Whether `SectorWhole` (`GooseLang/Ext/Fs/Premises.lean`)
+  is needed is decided by the proof; the target is to need it for no safety statement (a read of a
+  crash image outside `walImg` may fail, which every read spec allows).
+
+**Superseded.** The kill and kill-then-power-loss parts of "WAL W3"'s world assumptions ("a kill keeps
+exactly what was written") and of the W4 crash relation as requirements on the proof (`walImg`'s kill
+reading may stay: it is more general than needed); rung 3's "a process-kill crash is needed in `fsExt`
+before it can replace the bbolt arm" (`notes/wal-crash-handoff/rung3/README.md`), and the handoff's
+"unify `absDiskExt` with LinuxFs" (`notes/wal-crash-handoff/README.md`): there is nothing to unify, the
+abstract disk becomes a proof layer over `fsExt`.
+
+**Decided by the agent (the user away, 2026-11-13, delegation in [the user's words] "make decisions
+autonomously to keep making progress towards proving the wal specs"):**
+- The fork fixes made for kill-then-power-loss (WAL F-Z `41fddbc2d`, F-N4; bbolt `c5a6065`, `ea4cab5`)
+  stay: they are correct fixes and upstream candidates, and removing them would be a fork change with
+  no proof benefit. The proofs need not rely on them.
+- The restart track's interface (`notes/wal-crash-handoff/restart-wal-interface.md`, I1-I11) is
+  unaffected; its gate 12 ("restarts are machine crashes") is now this decision.
+- Rejected: keeping `absDiskExt` as a trusted layer and proving a refinement of `fsExt` into it (a
+  second trusted crash relation, which the closed-theorem rule excludes); adding process kills to
+  `fsExt` (the user: not wanted).
+
+## `trace.otelSpan` narrowed to providers of otel's own components (2026-11-13 · approved by etcd-grove-81 · branch `otelspan-narrow`)
+
+The context sweep's minors (a) and (b) (`notes/ctx-sweep-fixes.md`; the refutation, the producers and
+the evidence in `notes/otelspan-narrow.md`). otel's SDK passes the caller's context to the provider's
+sampler, ID generator and span processors, and, with `OTEL_GO_X_OBSERVABILITY`, to the global
+`MeterProvider`'s instruments; `trace.otelSpan` admitted any provider, so user components reading a key
+of their own refuted `tracing.Start.spec`. Approved by etcd-grove-81:
+
+1. **The docstring of the existing opaque is narrowed, rather than a provider-configuration opaque
+   added**: the same restriction in one place, no new opaque, no Lean statement changed. Admitted:
+   `AlwaysSample`, `NeverSample`, `TraceIDRatioBased`, `ParentBased` over these; the default ID
+   generator; the Batch and Simple span processors.
+2. **Minor (b) gets a clause**: with the observability metrics on, the global `MeterProvider` is otel's
+   default or `metric/noop` (kube-apiserver installs the latter at init; etcd sets none). A user
+   `MeterProvider` receives the span's start context, also in `End`.
+3. **The processors' exporters return** (`ExportSpans`, `Shutdown`): the Simple processor exports inside
+   `End`, so a panicking exporter would refute "`End` returns", beyond the context keys.
+
 ## auth-schema-fix (2026-11-12 · decided by etcd-grove-81 under the user's delegation; forms decided by the agent, reviewed at checkpoint (`questions.md`) · branch `auth-schema-fix`; the new trusted text awaits etcd-grove-81's axiom re-review, `/shared/tmp/auth-safe/freeze-fix.md`)
 
 The auth results (`srv_auth_tp_on`, `server_new_auth_on`, `authkv_startServer`, `authkv_Main`) took

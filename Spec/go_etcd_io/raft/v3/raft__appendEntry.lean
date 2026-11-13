@@ -159,12 +159,17 @@ which the ghost step that creates them (`StepC.propose`, `StepC.win`) records wi
 clones each (`cloned[i] = proto.Clone(es[i]).(*pb.Entry)`), stamps the clones (`Term =
 new(r.Term)`, `Index = new(li + 1 + i)`) and appends those. So the batch is taken at any fraction
 and given back unchanged (`entsPts es dq ents`), and what reaches the log is the stamped clones.
-A clone holds the same record (`proto.CloneEntry.spec`,
-`Spec/google_golang_org/protobuf/proto/CloneEntry.lean`: its `Data` is a fresh slice holding the
+A clone holds the same record (until out_size C3 `proto.CloneEntry.spec`, now `proto.ClonePb.spec`
+at `pbEntryC`: its `Data` is a fresh slice holding the
 same bytes, and since D6 the record's `Data'` is the bytes), so the log grows by
 `ents.mapIdx (stamp ...)`, as before the retarget, when the batch itself was stamped in place
 and appended. (Phase 2 of R4 stated copies `ents'` whose `Data` slices differed,
-`EntsDataCopy`, with the bytes a premise `"#Hdata"`; D6 removed both.) -/
+`EntsDataCopy`, with the bytes a premise `"#Hdata"`; D6 removed both.)
+### Sizes (out_size C3)
+The batch is taken at contents, sized when the node's flag `s.gh.sn.sz` is set (`entsPtsZ`), and the
+clones are `proto.ClonePb`'s at `pbEntryC` (the source's content exactly, owned): stamped, they keep
+the source's size (`entBytes` counts only `Data` and the unknown fields), so the log's unstable
+entries stay sized (`ownRaftLog`'s `entsROz ls.sn.sz`). `proto.CloneEntry` (model level) is gone. -/
 abbrev raft.appendEntry.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (es : GoSlice)
     (ents : List EntryM) (dq : DFrac) (m : Nat),
@@ -174,7 +179,7 @@ abbrev raft.appendEntry.spec : Prop :=
   -- `RawNode.Advance` steps it, which needs a nonzero term (`AAMsgOk`)
   s.term ≠ W64 0 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
-      "Hes" ∷ entsPts es dq ents ∗
+      "Hes" ∷ entsPtsZ s.gh.sn.sz es dq ents ∗
       -- (2026-10-18, D19b stage 5) a time receipt, raised by one per entry stamped
       "#Hrc" ∷ ⧖ m }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"appendEntry")) (Val #es))
@@ -183,7 +188,7 @@ abbrev raft.appendEntry.spec : Prop :=
       -- an all-empty batch is never dropped -- see above
       ⌜(∀ e ∈ ents, e.Data' = []) → accepted = true⌝ ∗
       -- (stage R4) the caller's batch, untouched
-      entsPts es dq ents ∗
+      entsPtsZ s.gh.sn.sz es dq ents ∗
       if accepted then
         ownRaftPhysCV c c.voters r id
           (sendMsgs

@@ -327,7 +327,7 @@ theorem raft.campaign.wp_proof
       imod cellRO_alloc $$ «$v0» with #cTo
       imod cellRO_alloc $$ «$v1» with #cTe
       wp_auto
-      imod msgOwn_lit0 «$a0_ptr» _
+      imod msgOwnZ_lit0 _ «$a0_ptr» _
           ⟨vrespW32 pre, y, 0, s.term + W64 1, 0, 0, 0, 0, false, 0⟩ ⊤ $$ [«$a0»] with Hm
       · iframe «$a0» cTy cTo cTe
         isplitr
@@ -360,7 +360,7 @@ theorem raft.campaign.wp_proof
           (fun h => absurd h (by cases pre <;> simp [vrespW32, MsgSnap, MsgVoteResp, MsgPreVoteResp]))
           (fun h => absurd h (by cases pre <;> simp [vrespW32, MsgApp, MsgVoteResp, MsgPreVoteResp]))
         rfl $$ [$Hphys $Hm]
-      · iapply tsSrcU_ne; exact (fun h => absurd h (by cases pre <;> simp [vrespW32, MsgSnap, MsgVoteResp, MsgPreVoteResp]))
+      · iapply tsSrc_ne; exact (fun h => absurd h (by cases pre <;> simp [vrespW32, MsgSnap, MsgVoteResp, MsgPreVoteResp]))
       iintro Hphys
       ihave Hphys : ownRaftPhysCV c c.voters r y
           (sendMsgs { campRoleState y s pre with prvals := pvs }
@@ -411,9 +411,9 @@ theorem raft.campaign.wp_proof
       imod cellRO_alloc $$ Hpty with #cTy
       imod cellRO_alloc $$ «$v3» with #cIx
       imod cellRO_alloc $$ «$v4» with #cLt
-      imod msgOwn_lit «$a0_ptr» _
+      imod msgOwnZ_lit _ «$a0_ptr» _
           ⟨vreqW32 pre, y, 0, s.term + W64 1, lastID.term', lastID.index', 0, 0, false, 0⟩
-          (transferCtx t) ⊤ $$ [«$a0»] with Hm
+          (transferCtx t) ⊤ (fun _ => transferCtx_len t) $$ [«$a0»] with Hm
       · iframe «$a0» cTy cTo cTe cIx cLt Hcl
         isplitr
         · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
@@ -436,7 +436,7 @@ theorem raft.campaign.wp_proof
           (fun h => absurd h (by cases pre <;> simp [vreqW32, MsgSnap, MsgVote, MsgPreVote]))
           (fun h => absurd h (by cases pre <;> simp [vreqW32, MsgApp, MsgVote, MsgPreVote]))
         rfl $$ [$Hphys $Hm]
-      · iapply tsSrcU_ne; exact (fun h => absurd h (by cases pre <;> simp [vreqW32, MsgSnap, MsgVote, MsgPreVote]))
+      · iapply tsSrc_ne; exact (fun h => absurd h (by cases pre <;> simp [vreqW32, MsgSnap, MsgVote, MsgPreVote]))
       iintro Hphys
       ihave Hphys : ownRaftPhysCV c c.voters r id
           (sendMsgs { campRoleState id s pre with prvals := pvs }

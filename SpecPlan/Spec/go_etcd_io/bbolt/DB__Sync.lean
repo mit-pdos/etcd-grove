@@ -4,7 +4,8 @@
 **Users.** defrag (`backend.go:578, 947`: the temporary database, opened with `NoSync`, synced
 before its close and rename). Snippet: `ReqDefrag`.
 
-**Proof sketch.** Under the close right (the file is open: `db.file` is set), call OsFs's
+**Proof sketch.** Under a share of the close right (the file is open: `db.file` is set; only
+`close` clears it, `db.go:829`, and the logger's `db.path`, `:832`), call OsFs's
 `Fdatasync` on the database's fd (its spec over the file's `OsMeta`, which the crash invariant and
 the open database share). At its step, open the client's update: the file's bytes now on disk are
 the page cache's; if no meta page write is in flight (`σ.busy` false) and no sync failed before
@@ -15,6 +16,9 @@ the page cache's; if no meta page write is in flight (`σ.busy` false) and no sy
 
 **Margin.** A failed sync's `lost` is never cleared in a generation (it could be, once every page a
 failed sync dropped is rewritten and synced).
+**Changes (2026-11-12, `notes/specs-only/ledger.md`, the close right's share).** Takes any share `q`
+of the close right and gives it back (was the whole): its body (`Logger`,
+`db.path`, `fdatasync(db)`'s `db.file`) races only with `close()`.
 -/
 module
 
@@ -41,12 +45,12 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 outcome (`σ.sync ok`): on success with no commit's meta write in flight and no earlier failed sync,
 only the committed data is recoverable. -/
 def DB.Sync.spec : Prop :=
-  ∀ [HasExt osFsExt] (db : Loc) (γ : BoltName) (ns : Bool) (S : Bool → IProp GF),
-  {{ isBolt (GF := GF) db γ ns ∗ boltOpened db γ ∗
+  ∀ [HasExt osFsExt] (db : Loc) (γ : BoltName) (ns : Bool) (q : Qp) (S : Bool → IProp GF),
+  {{ isBolt (GF := GF) db γ ns ∗ boltOpened db γ q ∗
       AU <{ ∃∃ (σ : BoltSt), boltState γ 1 σ }> @ ⊤ \ ↑γ.ns, ∅
         <{ ∀∀ (ok : Bool), boltState γ 1 (σ.sync ok), COMM S ok }> }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"Sync")) (Val #()))
-  {{ (err : GoInterface), RET #err; boltOpened db γ ∗
+  {{ (err : GoInterface), RET #err; boltOpened db γ q ∗
       ∃ ok : Bool, S ok ∗ ⌜err = GoInterface.nil ↔ ok = true⌝ }}
 
 end spec

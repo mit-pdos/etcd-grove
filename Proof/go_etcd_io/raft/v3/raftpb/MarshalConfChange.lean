@@ -33,10 +33,10 @@ theorem raftpb.MarshalConfChange.wp_proof
     (wp_proto_MarshalConfChange : proto.MarshalConfChange.spec (GF := GF) (hG := hG))
     (wp_proto_MarshalConfChangeV2 : proto.MarshalConfChangeV2.spec (GF := GF) (hG := hG)) :
     raftpb.MarshalConfChange.spec (GF := GF) (hG := hG) := by
-  intro c o dq
+  intro c oc dq
   wp_start as Hc
-  rcases o with _ | (m | m)
-  · simp only [ownConfChangeI, confChangeEntryType]
+  rcases oc with _ | (⟨m, uf⟩ | ⟨t, chs, ctx, uf⟩)
+  · simp only [ccPtsCCo, Option.map_none, confChangeEntryType]
     icases Hc with %Hc
     subst Hc
     wp_auto
@@ -46,34 +46,54 @@ theorem raftpb.MarshalConfChange.wp_proof
     · iapply ownSlice_nil
     iapply HΦ $$ %slice.nil %([] : List w8)
     iframe
-    ipureintro; rfl
-  · simp only [ownConfChangeI, confChangeEntryType]
-    icases Hc with ⟨%v, %Hc, Hown⟩
+    isplitr
+    · ipureintro; rfl
+    ipureintro; intro cc h; cases h
+  · simp only [ccPtsCCo, Option.map_some, ConfChangeIC.model, confChangeEntryType]
+    iunfold ccPtsCC at Hc
+    icases Hc with ⟨%v, %pt, %pn, %pi, %cs, %Hc, Hrest⟩
+    obtain ⟨Hc, Hnn⟩ := Hc
     subst Hc
     wp_auto
     wp_apply wp_ConfChange_AsV1
     simp only [raftpb.EntryConfChange]
     wp_auto
-    wp_apply wp_proto_MarshalConfChange v dq m $$ [$Hown] as %sl %bs ⟨Hown, Hsl, %Hdec⟩
+    ihave Hcc : ccPtsCC (GF := GF) (interface.mkOk (go.GoType.PointerType raftpb.ConfChange.ty) #v) dq
+        (.v1 m uf) $$ [Hrest]
+    · simp only [ccPtsCC]
+      iexists v, pt, pn, pi, cs
+      isplitr
+      · ipureintro; exact ⟨rfl, Hnn⟩
+      iexact Hrest
+    wp_apply wp_proto_MarshalConfChange v dq m uf $$ [$Hcc] as %sl %bs ⟨Hcc, Hsl, %Hdec⟩
     iapply HΦ $$ %sl %bs
     iframe
-    isplitl
-    · ipureintro; rfl
-    · ipureintro; exact Hdec
-  · simp only [ownConfChangeI, confChangeEntryType]
-    icases Hc with ⟨%v, %Hc, Hown⟩
+    isplitr
+    · ipureintro; exact Hdec.1
+    ipureintro; intro cc h; cases h; exact Hdec.2
+  · simp only [ccPtsCCo, Option.map_some, ConfChangeIC.model, confChangeEntryType]
+    iunfold ccPtsCC at Hc
+    icases Hc with ⟨%v, %pt, %sc, %ls, %cs, %Hc, Hrest⟩
+    obtain ⟨Hc, Hnn⟩ := Hc
     subst Hc
     wp_auto
     wp_apply wp_ConfChangeV2_AsV1
     wp_apply wp_ConfChangeV2_AsV2
     simp only [raftpb.EntryConfChangeV2]
     wp_auto
-    wp_apply wp_proto_MarshalConfChangeV2 v dq m $$ [$Hown] as %sl %bs ⟨Hown, Hsl, %Hdec⟩
+    ihave Hcc : ccPtsCC (GF := GF) (interface.mkOk (go.GoType.PointerType raftpb.ConfChangeV2.ty) #v) dq
+        (.v2 t chs ctx uf) $$ [Hrest]
+    · simp only [ccPtsCC]
+      iexists v, pt, sc, ls, cs
+      isplitr
+      · ipureintro; exact ⟨rfl, Hnn⟩
+      iexact Hrest
+    wp_apply wp_proto_MarshalConfChangeV2 v dq t chs ctx uf $$ [$Hcc] as %sl %bs ⟨Hcc, Hsl, %Hdec⟩
     iapply HΦ $$ %sl %bs
     iframe
-    isplitl
-    · ipureintro; rfl
-    · ipureintro; exact Hdec
+    isplitr
+    · ipureintro; exact Hdec.1
+    ipureintro; intro cc h; cases h; exact Hdec.2
 
 end proof
 

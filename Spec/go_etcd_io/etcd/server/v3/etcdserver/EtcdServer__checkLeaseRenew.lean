@@ -6,6 +6,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseCheck
 public import Proof.context.LibKeys
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.SrvCtxWeak
 
 @[expose] public section
 
@@ -42,13 +43,15 @@ backend's. What closes that window in Go is `isOpPermitted`'s own check of the t
 (`ErrAuthOldRevision` when it is below the store's, `store.go:873`), with tokens minted on the
 apply thread between auth mutations, which the model does not record. A statement would need each
 verdict bounded by the end read's state, and would still be weak (`notes/lease-revcheck-plan.md`:
-a post with only the two reads' states is implied by the first read alone). -/
+a post with only the two reads' states is implied by the first read alone). (k8s 7f-4, Addendum T-k) The context may also be a stream handler's weak one
+(`srvCtxWeak`), which `LeaseRenew` passes once it takes one: the context is only passed to
+`AuthInfoFromCtx`, which takes either. -/
 abbrev EtcdServer.checkLeaseRenew.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (γl : GName) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (id : w64) (n m : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvAuthAt s E ∗ srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ auth.authPubLbM E.authMode n ∗
-      lease.lessorLb γl m ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗ E.RD ∗ lease.lessorRdPool γl ∗ levelTok lease.lessorLvl ∗
+      lease.lessorLb γl m ∗ (mvcc.txnCtx ctx cd ∨ srvCtxWeak ctx cd) ∗ context.libCtxOk ctx ∗ E.RD ∗ lease.lessorRdPool γl ∗ levelTok lease.lessorLvl ∗
       ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"checkLeaseRenew"))
       (Val #(GoInterface.ok ctx))) (Val #id))

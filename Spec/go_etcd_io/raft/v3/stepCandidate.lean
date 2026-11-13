@@ -198,7 +198,10 @@ abbrev stepCandidate.spec : Prop :=
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- (stage R4) the message, as `Step` received it (its `Context` holding `cl`: what the
       -- response to a heartbeat carries)
-      "Hm" ∷ msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
+      -- (out_size C3) at its content, of bounded size under the node's flag for the types whose
+      -- objects the step moves (`movesB`: appended, forwarded, stored, echoed)
+      "Hm" ∷ msgInC (s.gh.sn.sz && movesB m.Type') ml
+               (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
                ⟨m, ents, sn, cl, rs⟩ ∗
       -- (D22 S-b′3; U8 v2: pinned at the node's storage names, `rcvSrc`) a `MsgSnap`'s snapshot
       -- certified (`handleSnapshot`'s; `rcvSrc_ne` for any other type)

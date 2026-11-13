@@ -114,7 +114,7 @@ theorem Main.wp_proof
   -- (hub step 7) the client address's listen right, out of the member's start bundle (to `Serve`)
   icases etcdstart.memberStartRes_client _ _ _ rfl $$ Hstart with ⟨Haddr, Hstart⟩
   iunfold premises at Hprem
-  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Htd, #Hns, #Hnrl⟩
+  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Htd, #Hns⟩
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init
     iPkgInit
@@ -187,7 +187,7 @@ theorem Main.wp_proof
     $$ [Haddr Hlg3 Hbemu Hgo Hstk] as %serr Hs
   · iframe; iframe #
     isplitr
-    · ipureintro; exact ⟨HEtr, HEw, Hms, Hbuq, by rw [HEo]; simp⟩
+    · ipureintro; exact ⟨HEtr, HEw, Hms, Hbuq, by rw [HEo]; simp, Htb⟩
     iintro %gs %lis %cid %mid %R Hg
     rw [hon]
     ihave Hg := etcdstart.grpcUpM_true _ _ _ _ _ _ _ _ _ _ $$ Hg

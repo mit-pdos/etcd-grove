@@ -548,3 +548,71 @@ osfs target building after each step:
    `tcb-report --check`, STATUS). The first statements by inode (§3, `fileHolds`, `pathHolds`,
    `Open.spec`, `fdatasync`, `Tx.write_ext`, `osSlot`) are written but not type-checked: real bbolt
    does not build on `fs-lean` until step 3.
+
+**2026-11-12, branch `writeat-ext` (items 1 and 2 of the list above).** `os.File.WriteAt.specExt`
+(`Spec/os/File__WriteAt.lean`, proof `wp_proofExt` in `Proof/os/File__WriteAt.lean`), beside the
+unchanged `spec`: any non-empty write, past the end of the file and of any length (the model's chunk
+loop). It drops `off ≤ size` and `len ≤ 2^30`; takes the bytes below the size from `min off size`
+(`xs.length = min (off + n) size - min off size`; none past the end) and `mcellsAny` over
+`[min off size, off + n)`. Post: `∃ j a ys`, `j ≤ a ≤ n`, `min n 2^30 ≤ a`, `ys`'s values are
+`pwValsG m.size off data j xs` (the zero gap once something landed, `b[0..j)` at `off`, the old bytes
+elsewhere, up to `pwSize`), `os.WaCut off n j` (`PwCut`, or `j` a multiple of 2^30: a failed attempt
+after whole 1 GiB chunks lands a prefix that is a page cut only if `off` is aligned; `WaCut.pwCut` for
+`n ≤ 2^30`), the result as `spec`'s, `osMeta (pwPost m off a j)` (`a` the end of the last chunk
+attempted: the announced range is the furthest chunk's, so not always `n`; on success `a = n`), the
+bytes from `min off size`, the cells, `fmtErrorOkOrNil err`. The bytes' candidates are not stated
+(values only); a byte of a chunk never attempted gets no new candidate, so `PwOut`'s `extra ≠ []`
+would be false there.
+Program logic (`GooseLang/Ext/Fs/Write.lean`, untrusted): new `pwTokG`, `wp_osPWriteStartG` (no
+`hgap`; its continuation also gives `m.lo ≤ m.size`), `wp_osPWriteFinishKG` (bytes/cells from
+`min off m.size`, `pwBytesG`/`pwCellG`/`pwTailG`/`pwPostKG`, `pwVal` the announced byte, zero in the
+gap), `ofWrite_isG`, `pwFile_sizeG`/`pwFile_cacheG`, `pwValsG`; the old `wp_osPWriteStart`,
+`wp_osPWriteFinishK`, `wp_osPWriteFinish` keep their statements and are now corollaries
+(`pwBytesG_eq`, `pwPostKG_eq`, `mcells_congr`). `Proof/os/WriteChunks.lean` rewritten over fsExt
+(`pwValsG_chunk`, `pwPost_chunk`, `pwChunk_end`, `osBytes_split3_range`/`osBytes_app3` by inode,
+`wp_osPWriteFinishG`); `os.WaCut` in `Proof/os/Base.lean`. minibolt, crashlog, walfs build unchanged.
+
+**2026-11-13, the port (branch `worktree-bbolt-fs-port`).** Step 0: the split of `780c767146`
+reverted (`003d52e8ff`): the per-byte extension's `os`/`syscall`/`unix`/`io/fs`/`internal/*` and
+minibolt/crashlog/walfs back in the main tree (`LinuxFs/` gone; its files were this branch's modulo
+the prefix), real bbolt the wip's files; v1's `GooseLang/Ext/OsFs` kept in the main tree only for
+`SpecPlan/`'s statements; `old/osfs-v1` stays deleted. Built after it: minibolt/crashlog/walfs
+`Results`, raft's `Base` (main and witness), the server's `storage.Init`/`OpenSnapshotBackend`, the
+k8s inits; `gen-init --check` up to date. Then bbolt:
+- **The file parameter is a record `BFile := {path, ino}`** (`Inv/Locks.lean`; deviation from the
+  entry above, which kept `BC.p` and added `BC.i`): every invariant keeps one file parameter `p`,
+  resources take `p.ino`, `fileOwn`/`db.path` take `p.path`; `BC.p : BFile`.
+  `etc/fs-port/bbolt-bfile.py` did the mechanical part.
+- `fdatasync`/`DB.grow` over byte-less syncs: new `syscall.Fdatasync.specB`, `os.File.Sync.specB`
+  (proved, over `wp_osFsyncB`); `DB.grow` over the new `Truncate` (cut or grow; on an error either
+  size: `grow_finish` or `grow_finish_same`), zeros as `zBytes`.
+- `Open` over `osTree`/`pathHolds` (`wp_OpenFile_db` splits existing/create; `pathHolds`'s no-file
+  case takes `RootsOk R`, which `lookupH_create` needs); `openedF`, `fileHolds_opened`, `new_opened`.
+- `os.File.WriteAt.specExt` (any offset, the gap zero-filled; any length, Go's chunk loop): its
+  landed prefix is a page cut or a multiple of `2^30` (`WaCut`), its metadata `pwPost m off a j`
+  (`a` the last chunk attempted). `Tx.write`/`write_ext` take it; `Tx.writeMeta` keeps
+  `WriteAt.spec` (one aligned page, all or nothing from `PwCut`).
+- Specs unchanged but `pathHolds`; `Tx.Writable` added (convergence S1,
+  `notes/bbolt-specplan-convergence.md`).
+**Not done:** `Commit/WriteExtRun.lean` (`Tx.write_ext_gen`, 880 lines, one proof) and so
+`Tx__write_ext`, `Link`, `Results` and the gates. Its elaboration needs more memory than this
+machine has free (killed at 48-56 GB; v1's needed about 40 GB); its errors at 569-688 are fixed but
+unchecked, and line 929's `iframe` (`statsTok`) undiagnosed. Next: split `Tx.write_ext_gen` at its
+loops (the page-collection loop to line ~175, the write loop, the sync tail) into lemmas, then
+`etc/gen-link.py --bbolt` (its `etc/link_bbolt.py` takes the three instance binders now) and
+`--results`, `gen-interface etc/api/bbolt.txt` (`pathHolds` changed), `tcb-report --check`.
+
+**2026-11-13, continued: the port builds.** `Commit/WriteExtRun.lean` was not too big for the
+machine: bisecting it under a cgroup cap (`systemd-run --user --scope -p MemoryMax=30G`, truncated
+copies) found one tactic, `have hremv2 : … := by word` inside the write loop's `nil` arm, whose
+`simp` preprocessing over that context ran past 30 GB; as a lemma (`wr_rem_sub`, `omega` for its
+premise) the whole file takes 320 s. The writer agent's fixes of lines 569-688 and the `iframe` at
+929 needed nothing more. `etc/gen-link.py --bbolt` and `--results` regenerated (`etc/link_bbolt.py`
+over the three instance binders); every bbolt module, `Link` and `Results` build; `gen-init --check`,
+every `Link.lean`'s regeneration, `api-check etc/api/bbolt.txt` and `bounds-check` pass. Then the
+full build (every default target, 17,390 jobs; one fix: `batchTxBuffered.Unlock` names
+`backend.baseOf`, since `GooseLang/Ext/Fs/Paths.lean`'s `Perennial.baseOf` is now in scope);
+`gen-interface etc/api/bbolt.txt` regenerated (the others unchanged); `tcb-report --check`: the
+trust base unchanged (865 axioms, 5 sorries), all 54 collections match, `osfs.txt` (minibolt,
+crashlog, walfs: no axiom, no sorry; was `linuxfs.txt`) added; `goose.py --check` for bbolt,
+bboltfs, crashlog, walfs up to date. **The port is done.**

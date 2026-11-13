@@ -168,7 +168,19 @@ theorem chanCtx_watch (wp_Done : wait.channelContext.Done.spec (GF := GF) (hG :=
           · imodintro; itrivial
           · iunfold _root_.Perennial.context.ContextClosed; iexact Hdn
       · rw [ite_eq_right_of_eq_false _ _ (eq_false Hne)]; iexact Hce
+  isplitr
   · iexact HoC
+  -- (context sweep fixes, 2026-11-13) `Value(&cancelCtxKey)` is `nil`
+  · ihave #HvN := chanCtx_valueNil wp_Value sc _root_.Perennial.context.cancelCtxKeyAny $$ Pw
+    iunfold context.valueAt at HvN
+    iintro !> %Φ - HΦ
+    iapply HvN
+    inext
+    iintro %v %hv
+    subst hv
+    iapply HΦ
+    unfold _root_.Perennial.context.isCancelCtxAny
+    itrivial
 
 end proofs
 

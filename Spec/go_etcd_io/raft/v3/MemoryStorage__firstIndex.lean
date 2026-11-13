@@ -28,14 +28,14 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 held, so it is stated on `memstorageFields`, the lock's contents, rather than on
 `ownMemoryStorage`. The bound is a premise: the sum cannot wrap. -/
 abbrev MemoryStorage.firstIndex.spec : Prop :=
-  ∀ (ms : Loc) (σ : StorState),
+  ∀ (ms : Loc) (sz : Bool) (σ : StorState),
   uint.Z σ.prev.index' + (σ.ents.length : Int) < 2^61 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-      "Hf" ∷ memstorageFields ms σ }}
+      "Hf" ∷ memstorageFields ms sz σ }}
     (App (Val (ms @!! go.GoType.PointerType MemoryStorage.ty @!! go!"firstIndex")) (Val #()))
   {{ (fi : w64), RET #fi;
       ⌜uint.Z fi = uint.Z σ.prev.index' + 1⌝ ∗
-      memstorageFields ms σ }}
+      memstorageFields ms sz σ }}
 
 end spec
 

@@ -385,7 +385,10 @@ abbrev stepLeader.spec : Prop :=
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- (stage R4) the message, as `Step` received it: its entry pointers owned for a
       -- `MsgProp`, read-only otherwise
-      "Hm" ∷ msgIn ml (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
+      -- (out_size C3) at its content, of bounded size under the node's flag for the types whose
+      -- objects the step moves (`movesB`: appended, forwarded, stored, echoed)
+      "Hm" ∷ msgInC (s.gh.sn.sz && movesB m.Type') ml
+               (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard)
                ⟨m, ents, sn, ctx, rs⟩ ∗
       -- (2026-10-13) and its conf-change entries' bytes, which decode
       "Hcc" ∷ (⌜m.Type' = MsgProp⌝ -∗ ∃ cs, ccEntsOk ents cs) ∗

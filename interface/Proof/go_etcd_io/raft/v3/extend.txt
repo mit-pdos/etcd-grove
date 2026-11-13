@@ -4,14 +4,14 @@
 
 theorem extend.wp_proof [package_sem : Assumptions] : extend.spec
   -- `Perennial.EtcdGrove.extend.spec`, unfolded:
-  ∀ (dst vals : GoSlice) (ds vs : List EntryM) (dq1 dq2 : DFrac),
+  ∀ (sz : Bool) (dst vals : GoSlice) (ds vs : List EntryC) (dq1 dq2 : DFrac),
     sint.Z dst.cap < ↑ds.length + ↑vs.length →
       ⊢
         ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hdst" ∷ entsPts dst dq1 ds ∗ "Hvals" ∷ entsPts vals dq2 vs -∗
+          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hdst" ∷ entsPtsC sz dst dq1 ds ∗ "Hvals" ∷ entsPtsC sz vals dq2 vs -∗
             (▷
                 ∀ s,
-                  entsPts s (DFrac.own 1) (ds ++ vs) ∗
-                      ownSliceCap Loc s (DFrac.own 1) ∗ entsPts dst dq1 ds ∗ entsPts vals dq2 vs -∗
+                  entsPtsC sz s (DFrac.own 1) (ds ++ vs) ∗
+                      ownSliceCap Loc s (DFrac.own 1) ∗ entsPtsC sz dst dq1 ds ∗ entsPtsC sz vals dq2 vs -∗
                     Φ (intoVal s)) -∗
               WP (((intoVal (functions extend [])) (intoVal dst)) (intoVal vals)) {{ Φ }}

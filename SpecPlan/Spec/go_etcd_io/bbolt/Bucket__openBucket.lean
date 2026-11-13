@@ -8,6 +8,11 @@
 
 **Changes** (integration I7): the value is `bktVal` of the child (from `seek`'s `seekRaw`), not any
 `txBytes`: `&value[0]` panics on an empty value, and nothing tied the bytes to the bucket.
+**Changes (2026-11-12, `notes/specs-only/ledger.md`, bucket handles).** `bktH` without the
+generations; the parent's currency is not needed (it reads `b.tx` and the value `bktVal` gives); the
+new handle is a `bktH`, which its caller (`Bucket.Bucket`, `CreateBucketIfNotExists`) caches and
+turns into the token (the per-path generation counter it replaces was unobservable state, redundant
+with ownership).
 -/
 module
 
@@ -32,10 +37,10 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- (internal) a handle of the child bucket at `p.child k` (`k` the key the value was found at). -/
 def Bucket.openBucket.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (b : Loc) (p : BPath) (gs : List Nat) (k : GoString) (v : GoSlice),
-  {{ boltTx (GF := GF) tx γ q T ∗ bktH tx γ b p gs ∗ bktVal tx γ (p.child k) v ∗ ⌜T.gens p = gs ∧ (T.cur.atPath (p.child k)).any Ent.isBkt ∧ (T.rw = true → q = 1)⌝ }}
+  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (b : Loc) (p : BPath) (k : GoString) (v : GoSlice),
+  {{ boltTx (GF := GF) tx γ q T ∗ bktH tx γ b p ∗ bktVal tx γ (p.child k) v ∗ ⌜(T.cur.atPath (p.child k)).any Ent.isBkt ∧ (T.rw = true → q = 1)⌝ }}
     (App (Val (b @!! go.GoType.PointerType Bucket.ty @!! go!"openBucket")) (Val #v))
-  {{ (c : Loc), RET #c; boltTx tx γ q T ∗ bktH tx γ c (p.child k) (T.gens (p.child k)) }}
+  {{ (c : Loc), RET #c; boltTx tx γ q T ∗ bktH tx γ c (p.child k) }}
 
 end spec
 

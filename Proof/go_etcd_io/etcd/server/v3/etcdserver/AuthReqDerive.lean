@@ -202,8 +202,8 @@ and the error `nil` or one of the auth package's error variables (`authErrVarIs`
 theorem isReqAuth_ctxM (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) (ai : GoInterfaceOk)
     (hai : st = GoInterface.ok ai) :
     isReqAuth (GF := GF) st RD ∗ □ (⌜M.isOn = true⌝ → isReqAuthBound st RD M) ⊢
-      □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-        {{ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗ RD }}
+      □ (∀ ctx : GoInterfaceOk,
+        {{ auth.ctxDoneAny ctx ∗ context.libCtxOk ctx ∗ RD }}
           (App (Val #(methods ai.ty go!"AuthInfoFromCtx" ai.v)) (Val #(GoInterface.ok ctx)))
         {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗
             authApplyErrIs err ∗ □ (⌜M.isOn = true⌝ → auth.ctxBound M (GoInterface.ok ctx) a) ∗
@@ -214,8 +214,7 @@ theorem isReqAuth_ctxM (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) (a
     icases Ha with ⟨%ai1, %Hai1, #H, -⟩
     have h1 : ai1 = ai := GoInterface.ok.inj (Hai1.symm.trans hai)
     subst h1
-    iintro !> %ctx %cd %Φ !> ⟨#Htx, #Hlib, Hrd⟩ HΦ
-    ihave #Hda := auth.ctxDoneAny_of_txnCtx ctx cd $$ Htx
+    iintro !> %ctx %Φ !> ⟨#Hda, #Hlib, Hrd⟩ HΦ
     iapply H $$ %ctx [Hrd]
     · iframe; iframe #
     iintro !> %a %err ⟨HRD, Hai, Herr⟩
@@ -232,8 +231,7 @@ theorem isReqAuth_ctxM (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) (a
     icases Hb' with ⟨%ai1, %Hai1, #H⟩
     have h1 : ai1 = ai := GoInterface.ok.inj (Hai1.symm.trans hai)
     subst h1
-    iintro !> %ctx %cd %Φ !> ⟨#Htx, #Hlib, Hrd⟩ HΦ
-    ihave #Hda := auth.ctxDoneAny_of_txnCtx ctx cd $$ Htx
+    iintro !> %ctx %Φ !> ⟨#Hda, #Hlib, Hrd⟩ HΦ
     iapply H $$ %ctx [Hrd]
     · iframe; iframe #
     iintro !> %a %err ⟨HRD, Hai, #Herr, #Hbd⟩

@@ -2,15 +2,15 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.Cursor.last_w.specQ.congr_simp [hos : HasExt osFsExt] : bbolt.Cursor.last_w.specQ =
-    bbolt.Cursor.last_w.specQ
+theorem bbolt.Cursor.last_w.specQ.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] :
+    bbolt.Cursor.last_w.specQ = bbolt.Cursor.last_w.specQ
 
-theorem bbolt.Cursor.first_w.specQ.congr_simp [hos : HasExt osFsExt] : bbolt.Cursor.first_w.specQ =
-    bbolt.Cursor.first_w.specQ
+theorem bbolt.Cursor.first_w.specQ.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] :
+    bbolt.Cursor.first_w.specQ = bbolt.Cursor.first_w.specQ
 
-theorem bbolt.Cursor.prev_w.wp_proofQ [hos : HasExt osFsExt] (hfirst : bbolt.Cursor.first_w.specQ)
-    (hlast : bbolt.Cursor.last_w.specQ) (hkv : bbolt.Cursor.keyValue_ws.specQ) :
-    bbolt.Cursor.prev_w.specQ
+theorem bbolt.Cursor.prev_w.wp_proofQ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt]
+    (hfirst : bbolt.Cursor.first_w.specQ) (hlast : bbolt.Cursor.last_w.specQ) (hkv :
+    bbolt.Cursor.keyValue_ws.specQ) : bbolt.Cursor.prev_w.specQ
   -- `Perennial.EtcdGrove.bbolt.Cursor.prev_w.specQ`, unfolded:
   ∀ (K : bbolt.BC) (tx : Loc) (r : bbolt.TxReg) (m : Bool) (q : Qp) (X : bbolt.WX) (n : GoString) (bl : Loc) (rt : Nat)
     (ipg : List w8) (nl : Loc → Option (Loc × Nat)) (c : Loc) (stk : GoSlice) (els : List go_etcd_io.bbolt.elemRef)
@@ -40,5 +40,5 @@ theorem bbolt.Cursor.prev_w.wp_proofQ [hos : HasExt osFsExt] (hfirst : bbolt.Cur
                         (intoVal ()))
                       {{ Φ }}
 
-theorem bbolt.Cursor.keyValue_ws.specQ.congr_simp [hos : HasExt osFsExt] :
+theorem bbolt.Cursor.keyValue_ws.specQ.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] :
     bbolt.Cursor.keyValue_ws.specQ = bbolt.Cursor.keyValue_ws.specQ

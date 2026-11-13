@@ -2,15 +2,19 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.Tx.DeleteBucket.wp_proof (hBw : ∀ [inst : HasExt osFsExt], bbolt.Bucket.Bucket_w.spec)
-    (hCur : ∀ [inst : HasExt osFsExt], bbolt.Bucket.Cursor_i.spec) (hSeek : ∀ [inst : HasExt
-    osFsExt], bbolt.Cursor.seek_w.spec) (hFeb : ∀ [inst : HasExt osFsExt],
-    bbolt.Bucket.ForEachBucket_w.spec) (hNode : ∀ [inst : HasExt osFsExt], bbolt.Cursor.node.spec)
-    (hDel : bbolt.node.del.spec) (hFree : ∀ [inst : HasExt osFsExt], bbolt.Bucket.free_dead.spec)
-    (hClone : bbolt.cloneBytes.spec) (hEq : bytes.Equal.spec) : bbolt.Tx.DeleteBucket.spec
+theorem bbolt.Tx.DeleteBucket.wp_proof (hBw : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [inst_2
+    : HasExt Fs.fsExt], bbolt.Bucket.Bucket_w.spec) (hCur : ∀ [inst : ExtSemantics Fs.fsExt]
+    [Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt], bbolt.Bucket.Cursor_i.spec) (hSeek : ∀ [inst :
+    ExtSemantics Fs.fsExt] [Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt], bbolt.Cursor.seek_w.spec) (hFeb
+    : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt],
+    bbolt.Bucket.ForEachBucket_w.spec) (hNode : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk]
+    [inst_2 : HasExt Fs.fsExt], bbolt.Cursor.node.spec) (hDel : bbolt.node.del.spec) (hFree : ∀
+    [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt],
+    bbolt.Bucket.free_dead.spec) (hClone : bbolt.cloneBytes.spec) (hEq : bytes.Equal.spec) :
+    bbolt.Tx.DeleteBucket.spec
   -- `Perennial.EtcdGrove.bbolt.Tx.DeleteBucket.spec`, unfolded:
-  ∀ [inst : HasExt osFsExt] (tx : Loc) (γ : bbolt.BoltName) (T : bbolt.TxView) (name : GoSlice) (n : GoString)
-    (dq : DFrac),
+  ∀ [inst : ExtSemantics Fs.fsExt] [inst_1 : Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt] (tx : Loc) (γ : bbolt.BoltName)
+    (T : bbolt.TxView) (name : GoSlice) (n : GoString) (dq : DFrac),
     ⊢
       ∀ Φ,
         bbolt.boltTx tx γ 1 T ∗ ownSlice name n dq ∗ ⌜T.rw = true⌝ -∗

@@ -13,6 +13,9 @@ is gone from `T.cur`).
 freed are pending, still readable in the snapshot), which `DeleteBucket`'s `physRep_delBkt` needs;
 the premise `C.bkts b = none` (`DeleteBucket` already dropped the handle from its parent's cache):
 on a cached handle `SetRootPage(0)` would make it read as an inline bucket.
+**Changes (2026-11-12, `notes/specs-only/ledger.md`, bucket handles).** `bktH` (which object `b` is)
+without the generations (the per-path generation counter it replaces was unobservable state,
+redundant with ownership).
 -/
 module
 
@@ -37,8 +40,8 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- (internal) the bucket's pages pending for this txid. -/
 def Bucket.free.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (C : TxCore) (b : Loc) (p : BPath) (gs : List Nat),
-  {{ wtxCore (GF := GF) tx γ C ∗ bktH tx γ b p gs ∗ ⌜C.bkts b = none⌝ }}
+  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (C : TxCore) (b : Loc) (p : BPath),
+  {{ wtxCore (GF := GF) tx γ C ∗ bktH tx γ b p ∗ ⌜C.bkts b = none⌝ }}
     (App (Val (b @!! go.GoType.PointerType Bucket.ty @!! go!"free")) (Val #()))
   {{ RET #(); ∃ C' : TxCore, wtxCore tx γ C' ∗ ⌜repKept C C' ∧ C'.bkts = C.bkts⌝ }}
 

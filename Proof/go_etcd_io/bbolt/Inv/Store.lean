@@ -20,6 +20,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI go_etcd_io.bbolt
 
 section fbrec
@@ -45,7 +47,7 @@ end fbrec
 section store
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
@@ -57,12 +59,12 @@ def viewCells (q : Qp) (v : View) : IProp GF :=
   iprop([∗map] id ↦ pg ∈ v.pages, bytesPointsto (v.base +ₗ ((id * 4096 : Nat) : Int)) (DFrac.own q) pg)
 
 /-- The page-cache bytes of slot `s` of the file `p`, all of them, holding `bs`. -/
-def osSlot (p : GoString) (s : Nat) (bs : List w8) : IProp GF :=
-  iprop(∃ xs : List (w8 × Bool), osBytes p (4096 * s) (DFrac.own 1) xs ∗ ⌜xs.map Prod.fst = bs⌝)
+def osSlot (p : BFile) (s : Nat) (bs : List w8) : IProp GF :=
+  iprop(∃ xs : List ByteG, osBytes p.ino (4096 * s) (DFrac.own 1) xs ∗ ⌜xs.map Prod.fst = bs⌝)
 
 /-- The slots `S` whole, as they move between the store and `W`: their client cell halves (when
 mapped) and their page-cache bytes, holding `bs`. -/
-def slotsOwn (ms : MapSt) (p : GoString) (S : List Nat) (bs : Nat → List w8) : IProp GF :=
+def slotsOwn (ms : MapSt) (p : BFile) (S : List Nat) (bs : Nat → List w8) : IProp GF :=
   iprop([∗list] s ∈ S, (match ms with
       | some (base, _) => bytesPointsto (base +ₗ ((4096 * s : Nat) : Int)) (DFrac.own (1 : Qp).half) (bs s)
       | none => iprop(emp)) ∗
@@ -158,7 +160,7 @@ instance rdsAuth_timeless (B : BNs) (R : GMap Nat RdInfo) : Timeless (rdsAuth (G
   unfold rdsAuth opnShot; infer_instance
 
 /-- **The page store's invariant** (design §3.6). -/
-def pagesInv (B : BNs) (p : GoString) : IProp GF :=
+def pagesInv (B : BNs) (p : BFile) : IProp GF :=
   iprop(∃ (σ : StoreSt) (W : GMap Nat (List w8)),
     ghostVar B.cur (1 : Qp).half.half σ.C ∗ ghostVar B.fl (1 : Qp).half σ.fl ∗
     ghostVar B.map (1 : Qp).half.half σ.ms ∗ ghostVar B.wv (1 : Qp).half σ.wst ∗
@@ -170,7 +172,7 @@ def pagesInv (B : BNs) (p : GoString) : IProp GF :=
 /-! ## Lemma statements (U3), fancy updates at `pagesN N` -/
 
 omit go_gctx sem in
-private theorem pagesInv_timeless (B : BNs) (p : GoString) : Timeless (pagesInv (GF := GF) B p) := by
+private theorem pagesInv_timeless (B : BNs) (p : BFile) : Timeless (pagesInv (GF := GF) B p) := by
   have h1 : ∀ σ : StoreSt, Timeless (storeCells (GF := GF) σ) := by
     intro σ; unfold storeCells; split <;> infer_instance
   have h2 : ∀ σ : StoreSt, Timeless (metaLend (GF := GF) B σ) := by
@@ -179,7 +181,7 @@ private theorem pagesInv_timeless (B : BNs) (p : GoString) : Timeless (pagesInv 
     intro σ W; unfold bytesWit; split <;> infer_instance
   have h3 : ∀ s bs, Timeless (osSlot (GF := GF) p s bs) := by
     intro s bs
-    have : ∀ off dq xs, Timeless (osBytes (GF := GF) p off dq xs) := fun _ _ _ => by
+    have : ∀ off dq xs, Timeless (osBytes (GF := GF) p.ino off dq xs) := fun _ _ _ => by
       unfold osBytes bytesG; exact BigSepL.bigSepL_timeless (fun _ => inferInstance)
     unfold osSlot; infer_instance
   unfold pagesInv
@@ -1019,7 +1021,7 @@ private theorem slots_leave_perm (σ σ' : StoreSt) (hsub : ∀ s ∈ storeSlots
       · exact hsub s h
       · exact h.1
 
-private theorem slots_leave (p : GoString) (σ σ' : StoreSt) (hms : σ'.ms = σ.ms)
+private theorem slots_leave (p : BFile) (σ σ' : StoreSt) (hms : σ'.ms = σ.ms)
     (hb : σ'.bytes = σ.bytes) (hlent : lent σ' = lent σ)
     (hsub : ∀ s ∈ storeSlots σ', s ∈ storeSlots σ)
     (hnone : ∀ s ∈ storeSlots σ, s ∉ storeSlots σ' → lent σ s = none) :
@@ -1091,7 +1093,7 @@ private theorem wUpd_lookup (W : GMap Nat (List w8)) (S : List Nat) (f : Nat →
     · subst h; simp
     · rw [if_neg h, ih]; simp [Ne.symm h]
 
-private theorem slots_enter (p : GoString) (σ σ' : StoreSt) (S : List Nat) (bs : Nat → List w8)
+private theorem slots_enter (p : BFile) (σ σ' : StoreSt) (S : List Nat) (bs : Nat → List w8)
     (hms : σ'.ms = σ.ms) (hlent : lent σ' = lent σ)
     (hperm : (storeSlots σ').Perm (storeSlots σ ++ S))
     (hold : ∀ s ∈ storeSlots σ, σ'.bytes s = σ.bytes s)
@@ -1134,9 +1136,9 @@ end helpers
 section agreeH
 set_option linter.unusedSectionVars false
 
-private theorem osBytes_cons' (p : GoString) (off : Nat) (dq : DFrac) (x : w8 × Bool)
-    (xs : List (w8 × Bool)) :
-    osBytes (GF := GF) p off dq (x :: xs) ⊣⊢ osByte p off dq x ∗ osBytes p (off + 1) dq xs := by
+private theorem osBytes_cons' (p : BFile) (off : Nat) (dq : DFrac) (x : ByteG)
+    (xs : List ByteG) :
+    osBytes (GF := GF) p.ino off dq (x :: xs) ⊣⊢ osByte p.ino off dq x ∗ osBytes p.ino (off + 1) dq xs := by
   unfold osBytes osByte; exact bytesG_cons _ _ _ _ _ _
 
 private theorem cellsR_cons' (base : Loc) (lo n : Nat) (vf : Nat → val) :
@@ -1150,13 +1152,13 @@ private theorem cellsR_cons' (base : Loc) (lo n : Nat) (vf : Nat → val) :
 /-- The client halves of mapped cells `[lo, lo + xs.length)` hold the file's bytes `xs`, of which
 a fraction is held, given the file's `OsMeta` (`osCell_agree` byte by byte); as `bytesPointsto`. -/
 private theorem cellsR_agree_bytes (s : Stuckness) (E : CoPset) (e : Expr) (htv : toVal e = none)
-    (p : GoString) (dqm : DFrac) (m : OsMeta)
+    (p : BFile) (dqm : DFrac) (m : OsMeta)
     (base : Loc) (len : Nat) (hb : m.maps !! base = some len) (dqb : DFrac) (hE : ↑osN ⊆ E)
     (Φ : val → IProp GF) :
-    ∀ (xs : List (w8 × Bool)) (lo : Nat) (vf : Nat → val), lo + xs.length ≤ len →
-    ⊢ osInv -∗ osMeta p dqm (some m) -∗ osBytes p lo dqb xs -∗
+    ∀ (xs : List ByteG) (lo : Nat) (vf : Nat → val), lo + xs.length ≤ len →
+    ⊢ osInv -∗ osMeta p.ino dqm m -∗ osBytes p.ino lo dqb xs -∗
       cellsR base lo xs.length vf -∗
-      (osMeta p dqm (some m) -∗ osBytes p lo dqb xs -∗
+      (osMeta p.ino dqm m -∗ osBytes p.ino lo dqb xs -∗
         bytesPointsto (base +ₗ ((lo : Nat) : Int)) (DFrac.own (1 : Qp).half) (xs.map Prod.fst) -∗
         WP e @ s; E {{ Φ }}) -∗
       WP e @ s; E {{ Φ }}
@@ -1171,7 +1173,7 @@ private theorem cellsR_agree_bytes (s : Stuckness) (E : CoPset) (e : Expr) (htv 
     icases (osBytes_cons' _ _ _ _ _).1 $$ Hb with ⟨Hx, Hb⟩
     simp only [List.length_cons]
     icases (cellsR_cons' _ _ _ _).1 $$ Hc with ⟨Hcx, Hc⟩
-    iapply osCell_agree e htv p dqm m base len lo hb (by omega) dqb x _ (vf lo) hE Φ
+    iapply osCell_agree e htv p.ino dqm m base len lo hb (by omega) dqb x _ (vf lo) hE Φ
       $$ Hinv Hm Hx Hcx
     iintro %Hv Hm Hx Hcx
     iapply cellsR_agree_bytes s E e htv p dqm m base len hb dqb hE Φ xs (lo + 1) vf (by omega)
@@ -1189,13 +1191,13 @@ private theorem cellsR_agree_bytes (s : Stuckness) (E : CoPset) (e : Expr) (htv 
 /-- `cellsR_agree_bytes` over whole store slots `S` (their page-cache bytes `osSlot`, of `4096`
 bytes each, inside the mapping). -/
 private theorem slots_agree_bytes (s : Stuckness) (E : CoPset) (e : Expr) (htv : toVal e = none)
-    (p : GoString) (dqm : DFrac) (m : OsMeta)
+    (p : BFile) (dqm : DFrac) (m : OsMeta)
     (base : Loc) (len : Nat) (hb : m.maps !! base = some len) (hE : ↑osN ⊆ E)
     (bs : Nat → List w8) (Φ : val → IProp GF) :
     ∀ (S : List Nat), (∀ t ∈ S, 4096 * (t + 1) ≤ len ∧ (bs t).length = 4096) →
-    ⊢ osInv -∗ osMeta p dqm (some m) -∗ ([∗list] t ∈ S, osSlot p t (bs t)) -∗
+    ⊢ osInv -∗ osMeta p.ino dqm m -∗ ([∗list] t ∈ S, osSlot p t (bs t)) -∗
       ([∗list] t ∈ S, ∃ vf, cellsR base (4096 * t) 4096 vf) -∗
-      (osMeta p dqm (some m) -∗ ([∗list] t ∈ S, osSlot p t (bs t)) -∗
+      (osMeta p.ino dqm m -∗ ([∗list] t ∈ S, osSlot p t (bs t)) -∗
         ([∗list] t ∈ S,
           bytesPointsto (base +ₗ ((4096 * t : Nat) : Int)) (DFrac.own (1 : Qp).half) (bs t)) -∗
         WP e @ s; E {{ Φ }}) -∗
@@ -1207,8 +1209,8 @@ private theorem slots_agree_bytes (s : Stuckness) (E : CoPset) (e : Expr) (htv :
   | t :: S, hS => by
     iintro #Hinv Hm Ho Hc HΦ
     icases BigSepL.bigSepL_cons.1 $$ Ho with ⟨Hx, Ho⟩
-    icases (show osSlot (GF := GF) p t (bs t) ⊢ ∃ xs : List (w8 × Bool),
-        osBytes p (4096 * t) (DFrac.own 1) xs ∗ ⌜xs.map Prod.fst = bs t⌝ by
+    icases (show osSlot (GF := GF) p t (bs t) ⊢ ∃ xs : List ByteG,
+        osBytes p.ino (4096 * t) (DFrac.own 1) xs ∗ ⌜xs.map Prod.fst = bs t⌝ by
         unfold osSlot; exact .rfl) $$ Hx with ⟨%xs, Hx, %Hxs⟩
     icases BigSepL.bigSepL_cons.1 $$ Hc with ⟨⟨%vf, Hcx⟩, Hc⟩
     obtain ⟨ht1, ht2⟩ := hS t (List.mem_cons_self ..)
@@ -1225,7 +1227,7 @@ private theorem slots_agree_bytes (s : Stuckness) (E : CoPset) (e : Expr) (htv :
     iapply HΦ $$ Hm [Hx Ho] [Hcx Hc]
     · iapply BigSepL.bigSepL_cons.2
       iframe
-      iapply (show (∃ xs : List (w8 × Bool), osBytes p (4096 * t) (DFrac.own 1) xs ∗
+      iapply (show (∃ xs : List ByteG, osBytes p.ino (4096 * t) (DFrac.own 1) xs ∗
           ⌜xs.map Prod.fst = bs t⌝) ⊢ osSlot (GF := GF) p t (bs t) by unfold osSlot; exact .rfl)
       iexists xs; iframe; ipureintro; exact Hxs
     · iapply BigSepL.bigSepL_cons.2
@@ -1237,7 +1239,7 @@ private theorem slots_agree_bytes (s : Stuckness) (E : CoPset) (e : Expr) (htv :
 end agreeH
 
 section lemmas
-variable (B : BNs) (N : Namespace) (p : GoString) (E : CoPset) (hE : ↑(pagesN N) ⊆ E)
+variable (B : BNs) (N : Namespace) (p : BFile) (E : CoPset) (hE : ↑(pagesN N) ⊆ E)
 include hE
 
 /-- `beginTx`, under `metalock` (`metaR`'s `cur`) and `Pm rfrac` (its `map` share and `mtok`):
@@ -2756,12 +2758,12 @@ theorem store_cells_agree (s : Stuckness) (e : Expr) (htv : toVal e = none)
     ⊢ inv (pagesN N) (pagesInv (GF := GF) B p) -∗ osInv -∗
       ghostVar B.cur (1 : Qp).half.half C -∗ ghostVar B.fl (1 : Qp).half fl -∗
       ghostVar B.map (1 : Qp).half (none : MapSt) -∗ ghostVar B.wv (1 : Qp).half ws -∗
-      ghostVar B.byt (1 : Qp).half W -∗ osMeta p dqm (some m) -∗
+      ghostVar B.byt (1 : Qp).half W -∗ osMeta p.ino dqm m -∗
       ([∗list] s ∈ slotsOf C fl, ∃ vf, cellsR b (4096 * s) 4096 vf) -∗
       (∀ bs : Nat → List w8, ⌜∀ s ∈ slotsOf C fl, W !! s = some (bs s)⌝ -∗
         ghostVar B.cur (1 : Qp).half.half C -∗ ghostVar B.fl (1 : Qp).half fl -∗
         ghostVar B.map (1 : Qp).half (none : MapSt) -∗ ghostVar B.wv (1 : Qp).half ws -∗
-        ghostVar B.byt (1 : Qp).half W -∗ osMeta p dqm (some m) -∗
+        ghostVar B.byt (1 : Qp).half W -∗ osMeta p.ino dqm m -∗
         ([∗list] s ∈ slotsOf C fl,
           bytesPointsto (b +ₗ ((4096 * s : Nat) : Int)) (DFrac.own (1 : Qp).half) (bs s)) -∗
         WP e @ s; (E \ ↑(pagesN N)) {{ Φ }}) -∗

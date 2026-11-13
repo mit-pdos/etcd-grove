@@ -17,6 +17,9 @@ Now the close right's holder gets the closed file back (for a reopen, etcd's def
 database may be closed again (`cleanupTmpDB` after `finishDefrag`'s `Close`). A `Close` by someone
 without the right while the database is open is no longer allowed: the right's holder relies on the
 database staying open (`Path`, `Sync`).
+**Changes (2026-11-12, `notes/specs-only/ledger.md`, the close right's share).** The right is
+fractional (`boltOpened db γ q`); `Close` takes the whole (`1`), so no share is out (`Path`,
+`Sync` hold one while they run).
 
 **Margin.** The error (a system call's) is not described: the file is closed either way.
 -/
@@ -45,7 +48,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 γ`), whatever the error; on a database already closed, does nothing. -/
 def DB.Close.spec : Prop :=
   ∀ [HasExt osFsExt] (db : Loc) (γ : BoltName) (ns tok : Bool),
-  {{ isBolt (GF := GF) db γ ns ∗ (if tok then boltOpened db γ else dbClosed db) }}
+  {{ isBolt (GF := GF) db γ ns ∗ (if tok then boltOpened db γ 1 else dbClosed db) }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"Close")) (Val #()))
   {{ (err : GoInterface), RET #err; dbClosed db ∗
       (if tok then boltClosed γ else ⌜err = GoInterface.nil⌝) }}

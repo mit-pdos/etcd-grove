@@ -252,6 +252,7 @@ public import Proof.context.WithValue
 public import Proof.errors.AsLeaf
 public import Proof.errors.Is
 public import Proof.errors.IsCtxErr
+public import Proof.errors.IsStatusErr
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.isConnectedSince
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.isConnectedToQuorumSince
@@ -351,13 +352,11 @@ public import Proof.github_com.prometheus.client_golang.prometheus.CounterVec__W
 public import Proof.github_com.prometheus.client_golang.prometheus.GaugeVec__With
 public import Proof.github_com.prometheus.client_golang.prometheus.GaugeVec__WithLabelValues
 public import Proof.github_com.prometheus.client_golang.prometheus.HistogramVec__WithLabelValues
-public import Proof.google_golang_org.protobuf.proto.ClonePb
 public import Proof.google_golang_org.protobuf.proto.MarshalAppendPb
 public import Proof.google_golang_org.protobuf.proto.MarshalIRR
 public import Proof.google_golang_org.protobuf.proto.MarshalPb
 public import Proof.google_golang_org.protobuf.proto.Size
 public import Proof.google_golang_org.protobuf.proto.SizeMessage
-public import Proof.google_golang_org.protobuf.proto.SizePb
 public import Proof.google_golang_org.protobuf.proto.UnmarshalPb
 public import Proof.google_golang_org.protobuf.proto.UnmarshalRole
 public import Proof.google_golang_org.protobuf.proto.UnmarshalUser
@@ -948,10 +947,6 @@ theorem pbutil.wp_MustMarshalMessage :
     pbutil.MustMarshalMessage.spec (GF := GF) (hG := hG) :=
   pbutil.MustMarshalMessage.wp_proof proto.wp_MarshalPb
 
-theorem proto.wp_SizePb :
-    proto.SizePb.spec (GF := GF) (hG := hG) :=
-  proto.SizePb.wp_proof
-
 theorem zap.wp_Strings :
     zap.Strings.spec (GF := GF) (hG := hG) :=
   zap.Strings.wp_proof
@@ -1099,10 +1094,6 @@ theorem proto.wp_MarshalAppendPb :
 theorem binary.wp_WriteUint8 :
     binary.WriteUint8.spec (GF := GF) (hG := hG) :=
   binary.WriteUint8.wp_proof
-
-theorem proto.wp_ClonePb :
-    proto.ClonePb.spec (GF := GF) (hG := hG) :=
-  proto.ClonePb.wp_proof
 
 theorem pbutil.wp_MustUnmarshalMessagePb :
     pbutil.MustUnmarshalMessagePb.spec (GF := GF) (hG := hG) :=
@@ -1819,9 +1810,13 @@ theorem EtcdServer.wp_isLeader :
     EtcdServer.isLeader.spec (GF := GF) (hG := hG) :=
   EtcdServer.isLeader.wp_proof EtcdServer.wp_MemberID EtcdServer.wp_Lead
 
+theorem errors.wp_IsStatusErr :
+    errors.IsStatusErr.spec (GF := GF) (hG := hG) :=
+  errors.IsStatusErr.wp_proof
+
 theorem EtcdServer.wp_LeaseRenew :
     EtcdServer.LeaseRenew.spec (GF := GF) (hG := hG) :=
-  EtcdServer.LeaseRenew.wp_proof EtcdServer.wp_ensureLeadership EtcdServer.wp_waitAppliedIndex EtcdServer.wp_waitLeader EtcdServer.wp_checkLeaseRenew lease.lessor.wp_Renew lease.lessor.wp_Lookup leasehttp.wp_RenewHTTP EtcdServer.wp_isLeader EtcdServer.wp_FeatureEnabled config.ServerConfig.wp_ReqTimeout traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_Int64 errors.wp_Is context.wp_ErrDone errors.wp_IsCtxErr
+  EtcdServer.LeaseRenew.wp_proof EtcdServer.wp_ensureLeadership EtcdServer.wp_waitAppliedIndex EtcdServer.wp_waitLeader EtcdServer.wp_checkLeaseRenew lease.lessor.wp_Renew lease.lessor.wp_Lookup leasehttp.wp_RenewHTTP EtcdServer.wp_isLeader EtcdServer.wp_FeatureEnabled config.ServerConfig.wp_ReqTimeout traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_Int64 errors.wp_Is errors.wp_IsCtxErr errors.wp_IsStatusErr EtcdServer.wp_Logger zap.wp_Error zap.Logger.wp_Warn
 
 theorem EtcdServer.wp_LeaseRevoke :
     EtcdServer.LeaseRevoke.spec (GF := GF) (hG := hG) :=

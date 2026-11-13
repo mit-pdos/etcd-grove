@@ -36,18 +36,441 @@ unstableOf Proof/go_etcd_io/raft/v3/InvRaftlog.lean` (list in `/shared/tmp/out-s
     `entsPtsZ us.sz`, `restore` keeps `sz`. raftLog's specs unchanged (`append` converts with
     `entsPts_entsPtsZ`; `slice`, `nextUnstableEnts` weaken with `entsROz_entsRO`).
 
+- **C2 (statements)**, 2026-11-12, commit `909347aa5e`, **waiting for etcd-grove-81's review** of
+  `/shared/tmp/out-size/freeze-c2.md` (the Freeze package: old → new, changes in meaning, the D4
+  axioms, the restart clause, Go evidence). Written: `outSetR` sized (and `out_size` proved from it),
+  `raftOutInv_insert`'s premise, `entsPtsC`/`entsCut` (PbSized), `StorNames.sz`, `isStorageP`/
+  `isStorageWith` with `sz` and the cut, `isStorage` at `γ.maxData.isSome`, `certLink`'s pin
+  `sn.sz = γ.maxData.isSome`, `MemStorNames.sz`, `NewMemoryStorage`/`Append`/`Entries` specs,
+  `memStorage_isStorage`'s `hsz`, `isRNMemStor` over `entsROz true`. Builds: the raft API closure
+  (`MemstorageApi InvNodeRule MsgOutIns InvApi` + the specs); `isRNMemStor` checked in a scratch
+  module (`/shared/tmp/out-size/c2/scratch/RNCheck.lean`). Branch-only `sorry`s: `entsPtsC_entsPtsZ`,
+  `entsPtsZ_entsPtsC`, `memStorage_isStorage`, the size fact at `entsOut_insert`/`msgOutR_intro`.
+
+- **C2 review addressed**, 2026-11-12, commit `6465f380e0`: Freeze revision 2 (same path). `bootOk`
+  (`InvBoot.lean`) and `NodeStartSpec`'s pre gain `⌜γs.sz = true⌝`; `srvMem_bootStorage` gains `hsz`
+  (user-approved). `entsCutMax := 2^20`, `entBytesMax := 2^31` (`@[word_unfold]`, PbSized) in the
+  contracts, `entSizeOk`, the starters' premise. `out_size`'s docstring rewritten. **C3 approved to
+  start** (raft fully proved, P2-P6): next checkpoint C3. NodeStart and InvBoot may be edited; tell
+  etcd-grove-81 before touching anything else outside raft.
+
+- **C3 in progress**, 2026-11-12 (commits `18142fa3a5`, then the P2 commit after it):
+  - `PbSized`: the bridges `entsPtsC_entsPtsZ`/`entsPtsZ_entsPtsC` proved; `entRZ_of_struct` (a fresh
+    entry with no unknown fields, frozen sized: use it for every entry raft allocates); the
+    `entsBigC_*` list laws; `entsPts_entsPtsC`/`entsPtsC_entsPts` (unsized bridges for callers).
+  - `InvStorage`: `isStorageP_unsize`, `entsPtsC_unsize`; `memStorage_isStorage` proved.
+  - MemoryStorage: `memstorageFields ms sz σ` holds `entsROz sz` (helper specs `{first,last}Index`
+    take `∀ sz`); all its proofs and `NewMemoryStorage` (`γs.sz` the caller's) check.
+  - **B1 done** (decided by etcd-grove-81): `Proof/go_etcd_io/raft/v3/PbEntryType.lean` holds
+    `entDecode`/`EntWireOk`/`pbEntry` (from rafthttp `PbMessage`), all of rafthttp's
+    `PerTypeEntry.lean` (deleted) and the `pbEntryC_*` simp lemmas (from `PerTypeMessage`); texts
+    unchanged, `pbEntryC_reg` still at `HasLC.hasLC`.
+  - rafthttp `Net.lean`'s pure `sizePure` section (varint/entry/message size lemmas) moved to
+    `MsgOut.lean` (needed by raft's cut); new `entrySize_lt_of_ok`. `msgSizeOk`'s `2^31`s are
+    `entBytesMax` (decided).
+  - `limitSize`/`entsSize`: specs at contents (`entsPtsC sz`), `limitSize` with the cut
+    (`sz → maxSize ≤ entsCutMax → entsCut`), `entsSize` exact (`sz → sum < 2^64 → n = sum`); proofs on
+    `proto.SizePb` at `pbEntryC`, at `HasLC.hasLC`. Helpers `w64_add_exact`,
+    `entrySize_sum_take_succ` (limitSize.lean). Pitfall: `word` inside these proofs can produce a
+    kernel "application type mismatch" (auxiliary-proof abstraction with an unused `sz`): move the
+    arithmetic into a pure lemma.
+  - `etc/link-lean-first-raft.txt`: `proto_SizePb` replaces `proto_SizeEntry`; server list
+    `proto_SizePb: @`; both Links regenerated (17 raft results moved to the `HasLC.hasLC` section:
+    acceptable, etcd-grove-81 asked to be told if it spread badly).
+  - `MemoryStorage.Entries` (cut from `limitSize`) and `raftLog.slice` (unsized bridges) check.
+  - **Build 1** (commit `5f2759dcb5`; raft Link + kv/kvreconf/kvdurable Links;
+    `/shared/tmp/out-size/c3-build1.log`) fails in: `raftLog__firstIndex:36` (an `isStorageWith`
+    use: pass `ls.sn.sz`), `raft__Step/MsgStorageApplyResp:252` (an `entsRO`/`entsPtsC` frame),
+    `RawNode__acceptReady:668` (`entsSize` at contents: bridge as in `raftLog.slice`), `StartNode`
+    and `RestartNode` (`certLink`'s new conjunct at :190/:204 and :210/:224, `storKeyNames`' tuple
+    `sn.sz` at :451/:633, `isStorage` at `γ.maxData.isSome` at :467/:674: the C2 repairs),
+    kv `KVStorageInstance`/`NewStorage`, kvreconf `KvrStorageApi`, kvdurable `KdStorageApi`/
+    `newStorage`/`openStorage`/`Replica__run` (`hmd`; `NewMemoryStorage`'s new `∀ sz` and
+    `⌜γs.sz = sz⌝`, pass `sz := false`; `Entries`' post at contents, `entsPtsC_entsPts`;
+    `Append` at `entsPtsZ false`, `entsPts_entsPtsZ`). Everything else in raft built.
+  - **Next:** fix those, then
+    kv storage instances (`hmd`), `raft.Step`/`RawNode.acceptReady`'s `entsSize` calls (bridges as in
+    `raftLog.slice`), `Results.lean`'s `#print axioms proto.wp_SizeEntry`; then delete
+    `proto.SizeEntry` (Spec+Proof, D4) when no user is left; then P3 (outbox `msgQC`, `raft.send`
+    and callers, `outSetR` premise discharge), P4 (`LogState.sz`, step pipeline, `appendEntry`
+    onto `ClonePb` (`pbEntryC`), then delete `proto.CloneEntry`), P5 (proposals, ConfChange via
+    the B2 instances), P6. `raftLog.slice`/`entries` must return `entsPtsC` sized and cut for the
+    `MsgApp` bound: needs the unstable entries sized (`LogState.sz`, P4).
+  - **B2 (approved by etcd-grove-81, hard stop before landing):** per-type `ConfChange` and
+    `ConfChangeV2` instances in `PbEntryType`'s pattern (an opaque encoder, its Go-tested fact
+    `proto.Size` = formula + round trip, a registration; each: about +4 axioms) and a pure lemma
+    size ≤ `ccSize + 64`. Write them with the Go tests in a small Freeze package
+    (`/shared/tmp/out-size/freeze-b2.md`) for etcd-grove-81's axiom review; P2-P4 go on meanwhile.
+
+- **C3 continued**, 2026-11-12 (agent 2; commits `07c471b714`..`7de568af9d`):
+  - Build-1's 15 files fixed (`07c471b714`): `raftLog__firstIndex` (`ls.sn.sz`), `MsgStorageApplyResp`/
+    `RawNode__acceptReady` (`entsPts_entsPtsC` before `entsSize`), `StartNode`/`RestartNode` (`sn.sz :=
+    γ.raft.maxData.isSome`, `certLink_make`'s `hsz`, the 9-tuple), kv/kvreconf/kvdurable: the storage
+    records `kvStorRec`/`kvrStorRec`/`kdStorRec` carry `⌜γs.sz = false⌝` (registered with
+    `NewMemoryStorage false`'s fact; `kv*Stor_register`/`kvrStor_alloc` take `hsz`), the promoted
+    `Entries`/`Append` wrappers keep their texts (convert inside), the instance lemmas
+    (`kvStorage_isStorage`, `kvStorage_bootStorage`, kv `Results`' `kv_storage_isStorage`/`kv_bootStorage`,
+    `kvrStorage_isStorage`, `kvr_bootStorage`, `kdStorage_isStorage`, `kd_restartStorage`) take
+    `(hmd : γ.maxData = none)` (freeze-c2 m3); kvdurable `newStorage.spec`'s post gains `⌜γs.sz = false⌝`.
+  - `proto.SizeEntry` deleted (`88b5c9cc0d`; Results prints `proto.wp_SizePb`); Linked's
+    `MemoryStorage.wp_Entries` moved to the `HasLC.hasLC` section (was generic, now false there).
+  - `memStorage_isStorage`'s unsized branch (`9687fda4e8`).
+  - Raft `Results`, kv `Results`, kvreconf/kvdurable `Link` build (`/shared/tmp/out-size/c3-build4.log`).
+  - Server (`5ab9fbc007`): `PerTypeMessage` imports `PbMessage` (lost with B1's deletion of
+    `PerTypeEntry`), `bootstrappedWAL.MemoryStorage` at `sz := false` (spec unchanged),
+    `isRNMemStor_of_memstorage` via `entsPtsZ_true`. **Server build 6** (`c3-build6.log`) fails in:
+    `NodeStart.lean:659` (`memStorage_isStorage`'s `hsz` on the restart path: γs from
+    `bootstrappedWAL.MemoryStorage`, now unsized, while the server's cluster has `maxData = some _`:
+    needs m4/MAJ-2 pulled forward or a decision: **asked**), `InvSnapSend.lean:236` (omega: likely
+    `entBytesMax` not unfolded, try `word` or `simp only [entBytesMax]`), `raftNode__start.lean:753`
+    and `:1381` (`isRNMemStor`'s new shape: `entsROz true sl (es.map toM)` in place of `sl ↦*□ esL`
+    + `entriesAt`; get it from the Ready's sized entries).
+  - **B2 Freeze package written**: `/shared/tmp/out-size/freeze-b2.md` (A1 recommended: three
+    `ConfChange*` schemas in `pbSchemaOf` + two instances, +4 axioms; §1 a finding on today's
+    `MarshalConfChange` at schema `[]`), Go tests `examples/pbschema/confchange_test.go` pass.
+    **Waiting for etcd-grove-81's axiom review.**
+  - **Next:** the server failures above; P3 (outbox `msgQC`, `raft.send`, `outSetR`'s premise at
+    `entsOut_insert`/`msgOutR_intro`), P4 (`LogState.sz`, `appendEntry` onto `ClonePb`, delete
+    `proto.CloneEntry`), P5 after the B2 review, P6, full build, tcb/collections/gates/gen-interface.
+
+- **C3 continued**, 2026-11-12 (agent 3; commits `7b9b049dea`, `5c90c806b4`, merge of lean):
+  - **Restart clause in Lean** (m4, MAJ-1, MAJ-2, MIN-3, MIN-5 pulled into C3 by etcd-grove-81): `srvFiles`
+    holds `walFiles … true` (provenance docstring), `bootstrapRestartContract`'s premise gains
+    `storage.walSaveOk`, `bootOkR` gains `"%Hγsz" ∷ ⌜γs.sz = true⌝`; `bootstrappedWAL.MemoryStorage.spec`
+    `∀ sz` (`entsPtsZ sz`, post `⌜γs.sz = sz⌝`); `NodeStartSpecR` pre gains `Hγsz`, `srvMem_restartStorage`
+    `hsz`. MAJ-2: `walAsViewed` at `walRecs … true` (so `rnDur_alloc_view` takes sized records: MIN-5's
+    obligation moves to W4's restart records), `wal.bootOk_start` no longer unsizes, the raft loop's
+    `Save`s via `walSaveRn_spec` (`rnEntsSized` in `rnReadyData`/`rnReadySnap`, from `readyEnts_sized`
+    and `srvRaftLogInv_maxData` in `rn_ready_recv`), `SaveSnap`/`Close` at `true`, `rnWalClosedW` sized.
+    **Hard stop: etcd-grove-81's axiom review of `/shared/tmp/out-size/freeze-c3-restart.md` before
+    landing.**
+  - Build-6 server failures fixed: `NodeStart:659` (above), `InvSnapSend:236` (`entBytesMax` in the
+    simp set), `raftNode__start:753/:1381` (`rnEntsSized_entsROz`, `entsPtsZ_true`), `NewServer`
+    (passes `bootOk`'s `Hγsz` to `NodeStartSpec`).
+  - **B2 Revision 1** (etcd-grove-81's review: §2.1 approved, §2.2-2.4 dropped for A3'): the three
+    schemas in `pbSchemaOf` (header and docstrings fixed); `proto.MarshalConfChange[V2]` restated over
+    `ccPtsCC` with `bs.length ≤ ccLenMax cc` under `ccSize cc + 64 < 2^63`; `ccLenMax`,
+    `ccLenMax_le` (proved) in `PbContentOwn`; Go tests `TestA3CCLen`, `TestA3CC2Len`,
+    `TestB2MustUnmarshalCC` (+ `TestB2CCDecoderUf`) in `etc/pbschema-check.py`'s `POST_TESTS` (9).
+    **Hard stop: re-review of freeze-b2.md "Revision 1" before landing.**
+  - `notes/confchange-schema-empty.md` (the `[]` finding, decided by etcd-grove-81).
+  - **Full build 1** after the lean merge (`/shared/tmp/out-size/c3a-full1.log`): **passes** (17488
+    jobs). `etc/tcb-report.py --check` (`/shared/tmp/out-size/c3a-tcb.log`): the only differences are the
+    two branch `sorry`s `ApiImpl.entsOut_insert`, `msgOutR_intro` (new) and `out_size` (gone): P3 closes
+    the first two. Axioms unchanged in name. `etc/pbschema-check.py`: ok (with the 4 ConfChange tests).
+  - **Next:** fix full-build failures; P3 (outbox `msgQC`, `raft.send` + callers; discharges the two
+    branch `sorry`s `(fun _ _ => sorry)` at `entsOut_insert` (InvApi ~2394) and `msgOutR_intro`
+    (MsgOutIns:68); Scope §2 table row "outbox" and §3), P4 (`LogState.sz`/unstable sized, step
+    pipeline, `appendEntry` onto `ClonePb`, delete `proto.CloneEntry`), P5 (proposals: the entry's
+    `entSizeOk` from `raftpb.MarshalConfChange` restated over `ccPtsCC` with the bound, then
+    `ccLenMax_le` and the proposal premise `ccSize cc + 64 ≤ b`), P6, then C3 checks (tcb, the
+    collections, gates incl. `etc/pbschema-check.py`, gen-interface).
+
+- **C3 continued**, 2026-11-12 (agent 4; commits `958e75ddce`, `a846967ef7`, then the P3 WIP commits):
+  - The reviews of the restart clause and B2 Revision 1: approved by etcd-grove-81 (READY WITH CHANGES,
+    no blockers); their minors folded in (`958e75ddce`; questions.md lists them). m3 (gen-interface)
+    at C3.
+  - **MsgRead moved into raft** (decided by etcd-grove-81): `Proof/go_etcd_io/raft/v3/MsgRead.lean`
+    (importable, `etc/api/raft.txt`), with `optCell_alloc`, `msgPtsCC_of_struct`, `msgPtsCC_pbMsg`,
+    `msgPtsCC_freeze` from rafthttp `MsgAppV2`; `msgPtsCC_splitE`/`_joinE`/`_readE` over the entries'
+    slice fraction. `PbContent`/`PbContentOwn`/`MsgRead`/`MsgOut` now generic in `hlc` (were
+    `HasLC.hasLC`). rafthttp/server not yet rebuilt against the move (only import lines changed).
+  - **P3 design (in Lean): `MsgOwnZ.lean`.** `msgOwnZ sz l dq st := ∃ c, msgPtsCC l dq □ false c ∗
+    ⌜c.model = st ∧ msgSzC sz c⌝` (`msgSzC`: `sentOk` and, under `sz`, `msgSizeOk` unless a
+    `MsgSnap`) replaces the pair `msgOwn ∗ snapUf` everywhere a queued or handed-out message is held.
+    The flag: `s.gh.sn.sz` in raft (the storage names' flag), `γ.maxData.isSome` at the API, linked by
+    `certLink`'s pin (`ownStepGhost_certLink`, as `ownRawNodeReady_abandon` does). Laws:
+    `msgOwnZ_msgOwn`, `_unsize`, `_of_snapUf` (flag false), `_of_uf` (a literal with the fresh
+    `pbMsg l []`: no entries, no snapshot, context ≤ `entBytesMax`, or a `MsgSnap`), `_halves`/
+    `_unhalves` (a response's half kept in today's form), `_read` (getters), `_store_From`/`_Term`
+    (send).
+  - Done with it: `msgQ sz`, `outboxRel sz` (`InvRaftPhys`, `ownRaftPhys` at `s.gh.sn.sz`; the
+    close wand at 2818 at `g.sn.sz`; push lemmas `ownRaftPhysC_msgs`/`_msgsAA` take `msgOwnZ
+    s.gh.sn.sz l' 1 st'` and `tsSrc` only); `InvRawnodeReady` (`qOwn sz`, `selfOwn sz`, `msgQs_split`/
+    `outboxRel_split`/`_join` without `snapUf`, `ownRaftPhysReady` without `Hsuf1/2`, its `Hundo` over
+    `msgOwnZ s.gh.sn.sz`, `ownRawNodeReady_abandon` takes `msgOwnZ γ.maxData.isSome`): both check.
+    **`msgOutR_intro` proved** (`MsgOutIns`, takes `msgOwnZ γ.maxData.isSome l dq st`): its `sorry` gone.
+  - **Next, in order (P3 rest):**
+    1. `LemmasReadyR` (lines 123-183: the `readyDq` lists → `msgOwnZ sz`; delete `snapUfs_nonself`/
+       `snapUfs_ready`).
+    2. `RawNode.readyWithoutAccept` spec and proof (`Hmsgs_own` → `msgOwnZ γ.maxData.isSome`, drop
+       `#Hmsgs_uf`; :461 reads an `ms2` message: `msgOwnZ_read` around the getter), `RawNode__acceptReady`
+       :487 (`qOwn sz`), `RawNode.Ready` spec and proof.
+    3. `InvNodeChan` 679/735, `InvNodeRun` 433/1874/2201, `node__run` 873: `msgOwn (readyDq) ∗ snapUf`
+       → `msgOwnZ <flag>`.
+    4. `InvApi`: `readyMsgs_own_split` (2347), `msgOuts_insert` (2503, now `msgOutR_intro` without
+       `snapUf`), `readyRecv_open` 2773/2891 (drop `Hsuf`).
+    5. `raft.send` spec: `"Hm" ∷ msgOwnZ s.gh.sn.sz ml 1 ⟨…⟩`, `"#Hsrc" ∷ tsSrc …` only. Proof: the
+       getter macros through `msgOwnZ_read`; `load_term`/`From` through `msgOwnZ_store_*`; the push.
+    6. `send`'s callers (`grep -l "raft.send.spec\|wp_send"`): literals via `msgOwn_of_struct_uf`/
+       `msgOwn_lit` + `msgOwnZ_of_uf`. Need more: `maybeSendAppend`'s `MsgApp` (entries from
+       `raftLog.entries`, sized + cut: P4; the sum bound as in the Scope §2.3's `MsgApp` row),
+       `stepFollower`'s forwards and `handleHeartbeat`'s echoed context (received: `msgInC`, P4),
+       `sendMsgReadIndexResponse` (stored request's entries: read requests at contents, `InvMisc`),
+       heartbeat contexts from `readOnly` (sized ReadIndex data), `maybeSendSnapshot` (a `MsgSnap`:
+       `msgOwnZ_of_uf`). Where P4 is needed first, a branch-only `sorry` on the size fact is
+       acceptable meanwhile (list them).
+    7. `entsOut_insert`'s `sorry`: `readyEntsU_intro` from sized entries (`entsROz γ.maxData.isSome`
+       `rd.Entries' es`, from `RawNode.Ready`'s `#Hents`, which needs P4's sized unstable entries).
+  - **P4 (sized unstable):** `ownRaftLog`/`ownRaftLogW`/`ownRaftLog_intro` `entsROz false` →
+    `entsROz ls.sn.sz` (the flag is already in `LogState.sn`; no new field needed); appenders:
+    `appendEntry` (onto `ClonePb`/`pbEntryC`, then delete `proto.CloneEntry`), `handleAppendEntries`/
+    `maybeAppend` (received entries: `msgInC`), `becomeLeader`'s empty entry (`entRZ_of_struct`),
+    `restore`.
+
+- **C3 continued**, 2026-11-12 (agent 5; commits `0be8877e8d`..HEAD):
+  - **P3 done (Lean), with temporary sorries.** Every queued/handed-out message is `msgOwnZ`:
+    `LemmasReadyR` (`readyDq_halves`, `qOwns_*`, `self_pending` at `msgOwnZ sz`; `snapUfs_*` deleted;
+    `sint_loop_succ`/`sint_loop_done`: pure loop-bound lemmas, `word` inside `readyWithoutAccept`'s
+    and `acceptReady`'s proofs gave a kernel "application type mismatch"), `RawNode.readyWithoutAccept`
+    and `RawNode.Ready` specs (`Hmsgs_own` at `msgOwnZ γ.maxData.isSome`, `#Hmsgs_uf` dropped,
+    `Habandon` takes `msgOwnZ`), `acceptReady`, `InvNodeChan` `readyData`/`readySnapData`, `InvNodeRun`
+    (`ownRawNodeReady_abandon_keep` takes `msgOwnZ γ.maxData.isSome`, `freshOk`, `readyMsgs_termLB`),
+    `node__run`, `InvApi` (`readyMsgs_own_split`, `msgOuts_insert` without `snapUf`). The flag link is
+    `certLink`'s `⌜sn.sz = γ.maxData.isSome⌝` (destructed at the end of each proof that needs it).
+  - **`raft.send`'s spec**: `"Hm" ∷ msgOwnZ s.gh.sn.sz ml 1 ⟨…⟩`, `"#Hsrc" ∷ tsSrc …` only; the proof
+    reads through `msgOwnZ_read` and stores through `msgOwnZ_store_From`/`_Term`. Callers: literals via
+    the new `msgOwnZ_lit`/`msgOwnZ_lit0` (`LemmasSendR`; `transferCtx_len`), `msgOwn_of_resp sz`/
+    `msgOwn_of_scalars sz` now give `msgOwnZ` (with `msgOwn_of_resp_uf`), `maybeSendSnapshot` via
+    `msgOwnZ_of_uf`. `tsSrcU_ne` deleted (use `tsSrc_ne`).
+  - **P4 started**: `unstableOf`'s `sz := ls.sn.sz`; `ownRaftLog`/`ownRaftLogW`/`ownRaftLog_intro`/
+    `raftLog_lend_unstable`/`ownUnstable_return` at `entsROz ls.sn.sz`; `raftLog.append` takes and gives
+    back `entsPtsZ ls.sn.sz` (`entsPtsZ_open`, PbSized), `raftLog.maybeAppend` takes `entsROz ls.sn.sz`,
+    `raftLog.nextUnstableEnts` returns `entsROz ls.sn.sz`; `RawNode.readyWithoutAccept`/`Ready`'s
+    `#Hents` and `readyData`/`readySnapData`/`freshOk`'s entries at `entsROz γ.maxData.isSome`
+    (`entsROz_of_nil` for a stale `Ready`); `readyEntsU_intro`/`entsOut_insert` take the sized form:
+    **`entsOut_insert`'s `sorry` is gone** (and `msgOutR_intro`'s, agent 4): the two out_size branch
+    sorries are discharged, modulo the temporary ones below.
+  - **Temporary branch-only sorries (size facts; none may remain at C3):**
+    1. `msgOwnZ_sized_TODO` (`MsgOwnZ.lean`), used at: `raft__maybeSendAppend` (the `MsgApp` sum, Scope
+       §2.3 row `MsgApp`: needs `raftLog.entries` sized + cut), `stepFollower` ×3 (forwards of received
+       messages: `msgInC`), `sendMsgReadIndexResponse` and `stepLeader/Rest` (`MsgReadIndexResp`: the
+       stored request's entries, `InvMisc` read requests at contents), `raft__sendHeartbeat` (ctx from
+       `readOnly`: sized ReadIndex data), `raft__handleHeartbeat` (the received heartbeat's ctx: `msgInC`).
+    2. `entRZ_sized_TODO` (`PbSized.lean`, through `entsPtsZ_sized_TODO`/`entsROz_sized_TODO`), used at:
+       `raft__handleAppendEntries` (the received `MsgApp`'s entries: `msgInC`), `raft__appendEntry` (the
+       clones: blocked, see below), `RawNode__Bootstrap` (boot entries: P5, `ccLenMax`).
+  - **Blocker found (needs a decision): `ClonePb` at `pbEntryC` returns a frozen clone.**
+    `pbEntryM.decC := entRoC` (`PbEntryType.lean:141`), so `proto.ClonePb.spec` at Entry gives
+    `entRoC l' c'` (fields `↦□`), and `appendEntry` stores `Term`/`Index` into the clone: it cannot run on
+    `ClonePb` as is. Options: (a) `pbEntryM.decC := entPtsCC l (DFrac.own 1) c` (owned, as `pbMessageC`'s
+    `decC` is; `Clone`/`Unmarshal` return fresh objects, so owned is the faithful reading) — changes
+    the meaning `pbEntryC_reg`, `ClonePb` and `UnmarshalPb` give at Entry (rafthttp's
+    `msgAppV2Decoder__decode` then freezes its decoded entries); (b) keep `proto.CloneEntry` restated
+    at contents. Recommended (a). Then: content-level `Term`/`Index` stores (`entPtsCC`), freeze to
+    `entRoC`, `entSizeOk` kept (`entBytes` counts only data and unknown fields), delete
+    `proto.CloneEntry`; `appendEntry`'s spec takes `entsPtsZ s.gh.sn.sz` (callers: `becomeLeader`'s empty
+    entry via `entRZ_of_struct`, stepLeader `MsgProp` via `msgInC`).
+  - Build: raft `Results` passes (`/shared/tmp/out-size/c3-p4-raft3.log`); rafthttp/server/kv not rebuilt.
+  - **Next, in order:** the decision above; `msgInC` (Scope §2.3: `raft.Step`'s spec, the dispatch,
+    the moving handlers; `InvNodeChan` recvc/propc) to discharge the received-message TODOs; read
+    requests at contents (`InvMisc`); `raftLog.entries`/`slice` sized + cut and the `MsgApp` sum;
+    P5 (`raftpb.MarshalConfChange` over `ccPtsCC`, `ccLenMax_le`; Bootstrap's TODO); P6; rebuild
+    rafthttp and the server (not rebuilt since the MsgRead move and these spec changes: `RawNode.Ready`,
+    `readyData`); `etc/pbschema-check.py`; C3 checks.
+
+- **C3 continued**, 2026-11-12 (agent 6; commit `170b7aaca4`):
+  - **Option (a) done** (decided by etcd-grove-81): `pbEntryM.decC`/`dec` at `entPtsCC l (own 1) c`
+    (`PbEntryType`; `entPtsCC_freeze`; `treeWp_entryTree` owned). Go evidence `TestC3DecodedFresh`
+    (`examples/pbschema/c3fresh_test.go`) in `etc/pbschema-check.py`'s `POST_TESTS` (10). Freeze
+    addendum: `/shared/tmp/out-size/freeze-c3-decc.md` (reviewed with the C3 checkpoint). rafthttp
+    `msgAppV2Decoder__decode` freezes the decoded entries (`iapply wp_fupd` before the call, then
+    `imod entPtsCC_freeze`, `imodintro`; checks). `appendEntry` on `proto.ClonePb` at `pbEntryC`
+    (proof at `HasLC.hasLC`; `entPtsCC_store_Term`/`_Index` in `LemmasSendRB`, `entRoC_entRZ_eq`/`_imp`
+    in `PbSized`), spec takes/gives `entsPtsZ s.gh.sn.sz es dq ents`; `becomeLeader` via
+    `entRZ_of_struct s1.gh.sn.sz`. `proto.CloneEntry` (spec and axiom) deleted; raft `Link`
+    regenerated (`etc/link-lean-first-raft.txt`: `proto_ClonePb`). Raft `Results` builds
+    (`/shared/tmp/out-size/c3-decc-b1.log`). NOT yet updated: tcb baseline/collections still list
+    `proto.CloneEntry.wp_proof` (C3's `--check --update`), `interface/` (regenerate at C3).
+  - `msgInC sz l dqe st` defined (`MsgOwnZ`, with `msgInC_msgIn`, `msgIn_msgInC`), not yet used.
+  - **Temporary sorries left** (`msgOwnZ_sized_TODO`, `entRZ_sized_TODO`): as agent 5's list, minus
+    `appendEntry`'s clones (gone), plus `stepLeader/MsgProp.lean`'s `entsPtsZ_sized_TODO` before
+    `appendEntry` (the proposal's entries: `msgInC`).
+  - **Step 2 plan (msgInC), found while reading:** `RawNode.Step`'s spec and `stepIn_intro_impl`
+    already carry the size fact (`∀ b, γ.maxData = some b → Type ≠ Snap → msgSizeOk c`, raft-entsize
+    §2); `RawNode__Step.lean:94` and `stepIn_intro_impl` (`InvApi.lean:3653`) drop it
+    (`msgPtsCC_msgPtsC`). So: `stepP` (behind `stepIn`, `InvApi`) and `InvNodeChan` recvc/propc carry
+    `msgInC γ.maxData.isSome`; `raft.Step`'s `"Hmsg_in"` becomes `msgInC s.gh.sn.sz ml dqe st` (flag
+    link `certLink`'s `sn.sz = γ.maxData.isSome`); its callers (24 files: `grep -rln "Hmsg_in\|raft.Step.spec\|wp_raft_Step"`):
+    the local ones (Propose, Campaign, tick*, ReadIndex, ...) build literals (`msgIn_msgInC` gives only
+    flag `false`: they need a sized literal lemma, from `msgSizeOk_of_lit` and the `Propose`/`ReadIndex`
+    data premises), `RawNode.Step` passes its content, `node.run` the channel's. In `raft__Step.lean`
+    each branch lemma takes `msgIn`; convert with `msgInC_msgIn` at the dispatch for all but MsgProp
+    (stepLeader MsgProp, stepFollower forwards), MsgApp (`handleAppendEntries`), MsgHeartbeat,
+    MsgReadIndex (+ follower forward), MsgTransferLeader (follower forward). MsgProp's entries reach
+    `appendEntry` as `entsPtsZ` from `msgInC`'s `msgSizeOk` (`entBytes ≤ entBytesMax` each) through
+    the entries part of `msgPtsCC` (`msgPtsCC_splitE`/`_readE` in `MsgRead`). Also RawNode.Step's
+    netStepTypes exclude MsgProp: network proposals come through `node.Step` → propc.
+
+- **C3 continued**, 2026-11-12 (agent 7; WIP commit after `bfb62f4d41`): **msgInC threaded (step 2),
+  most of it.**
+  - Vocabulary (`MsgOwnZ`): `movesB` (MsgProp, MsgApp, MsgHeartbeat, MsgReadIndex, MsgTransferLeader),
+    `flag_moves`/`flag_nomoves`/`movesB_false_of`/`movesB_*`, macro `movesB_tac`; `msgInC_flag`,
+    `msgInC_moves`, `msgInC_ctx` (the context's bound), `msgInC_nn`, `msgInC_half`/`_halfD`/`_halfO`
+    (half read through the getters, the whole rebuilt), `msgInC_pass`/`_passP` (rebuild + hand to a
+    `stepX`), `msgPtsCC_store_To`, `msgInC_store_To` (a forward: frozen `msgOwnZ` with its size),
+    `msgPtsCC_acc_entries` (the `Entries` field of a content), `msgIn_toC` (non-moving types, any
+    flag), `msgOwnZ_to_msgInC` (a literal handed to `Step`); `msgIn_nonprop` (now giving `msgInC (b &&
+    movesB _)`, autoParam `movesB_tac`), `msgInC_nonprop`, `msgIn_prop` moved here from `ReplLemmas`.
+    `msgOwnZ_of_uf`/`msgOwnZ_lit`'s bound now under the flag (`sz = true → …`).
+  - Specs (internal; callers discharged): `raft.Step` and the `stepX` take `msgInC (s.gh.sn.sz &&
+    movesB m.Type')`; `handleAppendEntries` `msgInC s.gh.sn.sz`; `handleHeartbeat` a pure premise
+    `s.gh.sn.sz = true → cl.length ≤ entBytesMax`; `logSliceFromMsgApp` at the content (`msgPtsCC`, □
+    entries; reads `Entries` through the getter's body, the getter's spec cannot say the slice is the
+    field's) — its `GetEntries` hypothesis gone, raft `Link` regenerated.
+  - TODO sorries discharged: `handleAppendEntries` (`entsROz_sized_TODO`), `handleHeartbeat`,
+    `stepFollower` ×3 forwards, `stepLeader/MsgProp` (entries at `entRZ s.gh.sn.sz` through the loop;
+    refused slots via `entRZ_normal_of_struct`, `LemmasStepR`).
+  - Build state: `raft__Step` (all branches), `stepX`, handlers, `RawNode__{Step,Advance,Campaign,
+    ForgetLeader,TransferLeader,ReportSnapshot,ReportUnreachable}`, `raft__tick*`, `InvNodeRunHup`
+    build (`/shared/tmp/out-size/c3-msgin-b{5,8,9}.log`). **Still broken:** `RawNode__Propose`,
+    `RawNode__ReadIndex`, `RawNode__ProposeConfChange` (moving literals: need a sized literal, see the
+    blocker), `InvNodeRun` 713/1045 and `node__run` (the channels: `stepP`/`InvNodeChan` recvc/propc
+    must carry `msgInC γ.maxData.isSome`; RawNode.Step's content is there already).
+  - **Blocker (decision asked of etcd-grove-81):** a proposal's entry is sized only if `data.length ≤ b`
+    (the API premise) gives `≤ entBytesMax = 2^31`, but `b ≤ 2^31` is a premise of `cluster_alloc`
+    (`InvNodeRule`, also `InvApiBoot`, `InvApiDecAlloc`, `Protocol/Facts`' alloc: `have _ := Hmd`) that
+    nothing records. Recommended: record `⌜∀ b, γ.raft.maxData = some b → b ≤ 2^31⌝` in the sealed body
+    of `isCluster`/`clusterInv` (established by the alloc lemmas from their premise), and in `certLink`
+    (internal, `StepGhostMode`; `certLink_make` in `StartNode`/`RestartNode` reads it), so every node
+    reads it with `sz`. Same need for ReadIndex contexts, conf-change data, boot entries (P5).
+  - Remaining TODO uses: `raft__maybeSendAppend` (the MsgApp sum, step 4), `sendMsgReadIndexResponse`,
+    `stepLeader/Rest` (read requests at contents, step 3), `raft__sendHeartbeat` (readOnly ctx, step 3),
+    `RawNode__Bootstrap` (P5).
+  - Next, in order: the decision above; Propose/ReadIndex/ProposeConfChange literals (`msgPtsCC_of_struct`
+    with entries at `entRZ` + `msgInC` directly); channels (`stepP`, `InvNodeChan`, `node__run`,
+    `InvNodeRun`); then steps 3-7 of the plan.
+
+- **C3 continued**, 2026-11-12 (agent 8; commits `4988e96faa`, `281a170bdc`, then this handoff): **steps 1,
+  2 and P5 done; raft `Results` builds** (`/shared/tmp/out-size/c3-a8-raft1.log`).
+  - **The maxData bound (decided by etcd-grove-81)**: `clusterInv` (InvApi) gains
+    `⌜∀ b, γ.raft.maxData = some b → b ≤ 2^31 ∧ ∀ e ∈ γ.raft.reBoot, e.Data'.length ≤ b⌝` (the boot
+    half: needed by `RawNode.Bootstrap`, same pattern: the alloc lemmas' `HmxdB` premise), established
+    in `InvApiBoot`/`InvApiDecAlloc` (`Protocol/Facts` unchanged: it already returns `reBoot`/`maxData`);
+    `certLink` (StepGhostMode) the same over `γ.maxData`/`γ.reBoot`, read by `certLink_make`
+    (StartNode, RestartNode). Patterns: `⟨-, -, %Hszl, %Hmb⟩` on `certLink`, `⟨…, -, %Hmb⟩` (5th) on
+    `clusterInv`.
+  - **Step 1**: `msgInC_of_struct` (MsgOwnZ: a literal with entries at `entRZ sz`, ctx/entry-count
+    bounds → `msgInC sz`); `RawNode.Propose`/`ReadIndex` build their entry with `entRZ_of_struct
+    s.gh.sn.sz` (bound from `Hmd` + `certLink`), `RawNode.ProposeConfChange` via `confChangeToMsg`.
+  - **P5**: `ccPtsCCo` (PbContentOwn: `nil` or `ccPtsCC`, with `ccPtsCCo_own`/`own_ccPtsCCo`);
+    `raftpb.MarshalConfChange.spec` over `ccPtsCCo` with post `∀ cc, oc = some cc → ccSize cc + 64 <
+    2^63 → bs.length ≤ ccLenMax cc` (freeze-b2 m1); `confChangeToMsg.spec` over `ccPtsCCo c dq oc` and a
+    flag `sz` (premise `sz → ccSize cc + 64 ≤ entBytesMax`), post `msgInC sz`; callers
+    `RawNode.ProposeConfChange`, `node.ProposeConfChange` (specRaw takes `ccPtsCC`+bound; wrapper from
+    `clusterInv`), `raft.appliedTo` (`none`). `RawNode.Bootstrap`: boot entries built at `entRZ
+    s.gh.sn.sz` (bound from `certLink`'s boot half, `R8`), its TODO gone.
+  - **Step 2 (channels)**: `fwdP`, `propP` at `msgInC γ.raft.maxData.isSome`; `netP` at `msgInC
+    (γ.raft.maxData.isSome && movesB st.msg.Type') … discard` (`hupP` stays `msgIn`); `netP_local` takes
+    `msgInC γ.raft.maxData.isSome`; `netP_split`/`stepP_split` hand out half (`msgPtsC ml dqh …
+    false`, `msgInC_halfD`/`_halfO`) with the closing wand; `stepArg`/`node.stepWait.spec` at `msgInC`;
+    `node.Propose`/`node.ReadIndex` specRaw gain `⌜γ.raft.maxData.isSome → len ≤ entBytesMax⌝`
+    (wrappers: `Hmd` + `clusterInv`); `msgInC_of_scalar_struct` (LemmasNodeR) for the local senders;
+    `stepIn_intro_impl` keeps the content (`msgPtsCC_nn`, `msgPtsCC_cap_any`, `msgPtsCC_persist_els`,
+    `msgInC_of_CC`, MsgOwnZ); `InvNodeRun`'s `wp_rn_raft_Step_net`/`_prop` take `msgInC` and rewrite with
+    `certLink`'s `Hszl`; `node.run` stamps with `msgInC_store_From`.
+  - **Remaining TODO uses** (all `msgOwnZ_sized_TODO`): `raft__maybeSendAppend` (step 4: MsgApp sum),
+    `sendMsgReadIndexResponse`, `stepLeader/Rest:992`, `raft__sendHeartbeat` (step 3).
+  - **Step 3 design (not started)**: give the read-index state a flag: `ownReadreq sz p q` and
+    `ownPendRI sz l p` hold `msgOwnZ sz … DFrac.discard` (was `msgOwn`); `ownReadOnly sz ro r`,
+    `ownRaftMisc sz …` (InvRaftPhys passes `s.gh.sn.sz`; ~20 files: `grep -rln "ownReadOnly\|ownRaftMisc\|
+    ownReadreq\|ownPendRI"`, specs of `readOnly.*`, `newReadOnly` (∀ sz)). A stored request comes from a
+    received `msgInC (sz && movesB MsgReadIndex)` (= `msgInC sz`), frozen: needs a `msgInC_freeze` (as in
+    `msgInC_store_To`). `sendMsgReadIndexResponse.spec`'s `#Hm` → `msgOwnZ s.gh.sn.sz`;
+    `raft.responseToReadIndexReq` post `msgOwnZ sz` (the response shares the request's entries, fresh
+    header: `msgSizeOk` from the request's); `releasePendingReadIndexMessages` passes `ownPendRI`'s
+    `msgOwnZ`; `readOnly.heartbeatCtx`'s post bounds the ctx (`sz → len ≤ entBytesMax`, the last
+    request's first entry's data: `entRZ`), for `raft.sendHeartbeat` via `msgOwnZ_lit`.
+  - Then steps 4-7 as before (entries/slice + cut + MsgApp sum; P6; rebuild rafthttp and the server;
+    `etc/pbschema-check.py`), and the C3 checks. rafthttp/server/kv not rebuilt by agent 8 (no textual
+    users of the changed names outside raft but comments).
+
+- **C3 continued**, 2026-11-12 (agent 9; commit `08534f1fdf`, then the C3 checks): **steps 3 and 4 done;
+  no TODO sorry left** (the four `*_sized_TODO` lemmas deleted). raft `Results` builds
+  (`/shared/tmp/out-size/c3-a9-raft2.log`).
+  - Decided by etcd-grove-81: the boot half of `clusterInv`/`certLink`'s conjunct accepted.
+  - **Step 3**: `ownReadreq`/`ownPendRI`/`ownReadOnly`/`ownRaftMisc` take the flag `sz` and hold the
+    stored request at `msgOwnZ sz … □` with `Type' ≠ MsgSnap`; `stepLeader`'s `MsgReadIndex` branch
+    keeps `msgInC` and freezes it (`msgInC_freeze`); `responseToReadIndexReq` builds the response at
+    the request's entry contents (`msgPtsCC_acc_entries`, `wp_Message_GetEntries_field`,
+    `msgOwnZ_of_structC`); `sendHeartbeat`/`bcastHeartbeatWithCtx` take `cl.length ≤ entBytesMax`
+    (`bcastHeartbeat`: nil or eight bytes). The view's closure carries `g.sn.sz = s.gh.sn.sz`.
+  - **Step 4**: `raftLog.slice`/`entries` return `entsCutRO ls.sn.sz maxSize` (contents, sized, cut);
+    `extend` at contents; the extend exit's cut is `extend_cut` (slice file). `ownRaftPhys` records
+    `s.gh.sn.sz → maxMsgSize ≤ entsCutMax` (`Hmms`; from the starters' premise through `setupNode`
+    (new premise `sn.sz = γ.maxData.isSome`), `NewRawNode`, `newRaft`, `ConfigPreserved`);
+    `maybeSendAppend` builds the `MsgApp` with `msgOwnZ_of_structC`, the sum by `msgApp_sum` (cut +
+    entry index ≥ 1 ⇒ protobuf size ≥ 2 ⇒ ≤ 2^19 entries).
+  - Forms decided: questions.md, "agent 9".
+  - **C3 checks done** (commit after `475aa304c6`): full build passes (`c3-a9-full3.log`; fixes:
+    raft's `msgSzC` renamed `msgSzOk` (clash with rafthttp's), server `Link` regenerated with
+    `proto_ClonePb: @`); P6 needed nothing more. tcb `--check`: only `sorry out_size` gone (updated);
+    `proto.CloneEntry`/`SizeEntry` stay in the baseline because RaftWitness's copies keep the short
+    names. Collections: 15 updated (out_size, CloneEntry, SizeEntry gone); kv, kvdurable, kvreconf,
+    raft gain `pbEntryC_reg`, `entryEncC_ok`, `proto.ClonePb.wp_proof`, `proto.SizePb.wp_proof`
+    (existing axioms, via B1/decC) and lose CloneEntry/SizeEntry: NOT updated, for etcd-grove-81.
+    Gates: pbschema, axiom-tok, model-param, errdesc, bounds, api-check, import-all ok. Interfaces
+    regenerated (62 files, includes C2/B2/restart changes since C1; new `MsgRead.txt`).
+  - **Next**: etcd-grove-81's C3 review; then (on go) the four kv/raft collections' `--update`,
+    merge lean, `etc/land.sh`.
+
+## P7 items (from the C2 review; resolve and re-review with the `axiom` skill before P7 lands)
+
+freeze-c2.md §4: MAJ-1 (`walSaveOk` in `bootstrapRestartContract`'s premise), MAJ-2 (`srvDiskImage`'s
+`srvFiles … true`, HardStop/restart specs' stronger post, `rnDurInv`/`walAsViewed` at `true`,
+`wal.bootOk_start` no longer unsizing), MIN-3 (`srvFiles`' provenance docstring; `maxData = 2^30` rests
+on the MaxRequestBytes config premise), MIN-5 (second restart: narrowing recorded), m4
+(`bootstrappedWAL.MemoryStorage.spec` `∀ sz`), m5 (axiom review after P2's `memstorageFields`),
+`NodeStart.lean:658`'s `hsz` from `bootOkR`.
+
 ## Next, in order (Scope §4)
 
-1. C1 committed (`12bc0aafa5`): full build green (17484 jobs), interfaces regenerated (all
-   `etc/api/*.txt --check` clean), gates all ok but `k8s client error types` (StartCluster failed in
-   0.04s under the parallel gate run; the same test alone passes, 212s). Waiting for the
-   coordinator's go for `etc/land.sh` (merge lean first; STATUS entry and session registry then).
-2. P0's law part, moved to P3: `outSetR` with the pure fact, `raftOutInv_insert`'s premise.
-3. C2 (statements Freeze, hard stop): storage contract with `sized` and the cut (the cut needs the
-   contents as a list: use `∃ cs` with `entRoC`, and a bridge `entsROz sz s es ⊢ ∃ cs, …` by
-   induction, as `entsRO_entsRoC`), `MemoryStorage.Append`, starters, `isRNMemStor`, `outSetR`,
-   the restart clause (+ `axiom`-skill review).
-4. P2-P5 (raft), C3; P6, P7 (tell etcd-grove-81 before P7: D7), C4; C5.
+C1 LANDED: lean `ec6fd114d2` (2026-11-12, gates all passed, with etcd-grove-81's `gates.sh` retry
+commit `3a986545ae` cherry-picked; not pushed). The branch continues from there (merge lean first).
+
+1. **C2, the statements Freeze (hard stop for etcd-grove-81's review).** Write the texts with the
+   proofs left open (`sorry` on the branch only, never landed), and a Freeze package in
+   `/shared/tmp/out-size/freeze-c2.md`. Design sketched at hand-off (not yet written in Lean):
+   - `outSetR` (MsgOut): `ghostMapElem … ∗ ⌜∀ b, γ.maxData = some b → outSizeOk x⌝`; `out_size`
+     proved by `unfold outSetR; iintro ⟨-, %H⟩; ipureintro; exact H _`; `raftOutInv_insert` takes
+     `⌜∀ b, γ.maxData = some b → outSizeOk x⌝` (its callers `entsOut_insert`/`msgOuts_insert`,
+     `InvApi.lean` ~2370-2470, then need the fact: P3).
+   - Vocabulary for the cut (PbSized): a list form `entsPtsC sz s dq cs := ∃ ls, s ↦*{dq} ls ∗
+     ([∗list] l;c ∈ ls;cs, entRoC l c) ∗ ⌜sz = true → ∀ c ∈ cs, entSizeOk c⌝`, bridges to/from
+     `entsPtsZ sz s dq (cs.map EntryC.model)` (the back direction by induction, as
+     `entsRO_entsRoC`), and `entsCut (maxSize : w64) cs := cs.length = 1 ∨ (cs.map entrySize).sum ≤
+     uint.nat maxSize`.
+   - Storage contract (`InvStorage`): a flag `sz : Bool` on `isStorageP` and `isStorageWith`;
+     `#HEntries`' success post `∃ cs, entsPtsC sz s □ cs ∗ ⌜cs.map EntryC.model = es ∧ (sz = true →
+     uint.nat maxSize ≤ 2^20 → entsCut maxSize cs)⌝` (at `sz = false` equivalent to today's
+     `entsRO s es`). Proposal: the node API's `isStorage γ K st` (`InvNodeRule.lean:618`) passes
+     `sz := γ.maxData.isSome`, so `StartNode`/`RestartNode`/`setupNode` keep their text and their
+     meaning gains "sized when `maxData ≠ none`" (kv: `maxData = none`, no change); say so in the
+     Freeze as the r3 §3/§5 starters' change.
+   - `MemoryStorage`: `MemStorNames` gains `sz : Bool` (ghost, chosen at `NewMemoryStorage`, whose
+     post then says `γs.sz = sz` for a caller-chosen `sz`); `MemoryStorage.Append.spec` takes and
+     gives back `entsPtsZ γs.sz s dq es` (no cut needed on `Append`); `memStorInvP`'s `Hents`
+     (`InvMemstorage.lean` ~590) holds `entsROz γs.sz`; `memStorage_isStorageP` at `sz := γs.sz`
+     (Entries' cut through `limitSize`, whose spec gains the content cut onto `SizePb`: P2).
+   - `isRNMemStor` (server `InvRaftNode.lean:1558`): `Append` takes `sl ↦*□ esL` with each entry at a
+     content with `entSizeOk` (in place of `entriesAt esL es`); server file: tell etcd-grove-81 before
+     editing.
+   - The restart clause (D5, option B): write its text in the Freeze package only (P7 is sequenced
+     after the next restart landing, D7; `InvRestart.lean` is the restart owner's), with the
+     `axiom`-skill review there.
+2. P2-P5 (raft), C3; P6, P7 (tell etcd-grove-81 before P7: D7), C4; C5. Known repairs from C2: the
+   proofs building `StorNames`/the `storKeyNames` tuple (`StartNode.lean:447`, `RestartNode.lean:629`,
+   and `certLink`'s new conjunct at `StartNode.lean:186`/`RestartNode.lean:200`), `NewMemoryStorage`'s
+   anonymous `MemStorNames` constructor, `memstorageFields`' `Hents` (`entsROz γs.sz`, needs a `sz`
+   argument), every `HEntries` reader (`raftLog__slice`, ...), kv's storage instances (`sz = false`),
+   `isRNMemStor_of_memstorage` (`entsPtsZ_true`); the server's callers of the starters' premise now
+   `≤ entsCutMax` (`word` unfolds it); server users of `entSizeOk` (`WalApi`, `WalRecs`, `InvBoot`,
+   `InvRaftNode`) now see `entBytesMax`; `NewServer`'s proof passes `bootOk`'s `Hγsz` to
+   `NodeStartSpec`; the `InvBoot`/`NodeStart` edits are not built yet (server).
+   Suggested C3 order: P2 (`memstorageFields` `sz` + `Hents`, `MemoryStorage__{Append,Entries}`,
+   `NewMemoryStorage`, `limitSize`/`entsSize` onto `SizePb` with the cut, the two `PbSized` bridges,
+   `memStorage_isStorage`, kv instances with `hmd`), then a raft build to list the remaining breakage
+   (`etc/importers.py --uses isStorageWith --uses HEntries ...`), P3-P5, P6.
 
 ## Pitfalls
 

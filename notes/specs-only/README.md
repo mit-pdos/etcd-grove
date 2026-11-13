@@ -47,7 +47,7 @@ The Go code: the pinned sources are in the Go module cache (from `examples/`, `g
 |---|---|
 | etcd server, client, api, pkg, cache (`a4d2bb17`) | `/home/ubuntu/go/pkg/mod/github.com/upamanyus/etcd/{server,client,api,pkg,cache}/v3@v3.0.0-20261107170612-a4d2bb1720b9` |
 | raft (`565c2bd`) | `/home/ubuntu/go/pkg/mod/github.com/upamanyus/etcd/v3@v3.0.0-20261028061729-565c2bda9e6d` |
-| bbolt (`743299d`) | `/home/ubuntu/go/pkg/mod/github.com/upamanyus/bbolt@v0.0.0-20261104031046-743299d8cec8` |
+| bbolt (`ea4cab5`; was `743299d`) | `/home/ubuntu/go/pkg/mod/github.com/upamanyus/bbolt@v0.0.0-20261111214215-ea4cab526797` |
 | this repository's examples (users: txnlin, k8s, raft kv, lintest, ...) | `examples/` |
 
 The Lean translation of a function is in `Code/<pkg>/*.lean` (search for the function's name);

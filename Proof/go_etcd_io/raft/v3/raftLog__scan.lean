@@ -131,6 +131,7 @@ theorem raftLog.scan.wp_proof
     wp_apply wp_raftLog_slice l ls cur hi pageSize Hsl $$ [$Hlog]
       as %s %es %err0 ⟨Hlog, Hsr⟩
     icases Hsr with (⟨%Herr0, #Hes, ⟨%Hne, %Hlen, %_, %Hpre⟩, -⟩ | ⟨%Hle0, -, -⟩)
+    ihave #Hes := entsCutRO_entsRO _ _ _ _ $$ Hes
     rotate_left
     · exfalso; have := Hcur.1; omega
     subst Herr0

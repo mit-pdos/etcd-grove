@@ -24,11 +24,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `NewMemoryStorage()`. -/
+/-- `NewMemoryStorage()`. (out_size C2) The caller chooses whether the storage is sized (`sz`, a
+ghost choice: `γs.sz`), which `Append` then requires of the objects it is given. -/
 abbrev NewMemoryStorage.spec : Prop :=
+  ∀ (sz : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 }}
     (App (Val #(functions NewMemoryStorage [])) (Val #()))
-  {{ (ms : Loc) (γs : MemStorNames), RET #ms;
+  {{ (ms : Loc) (γs : MemStorNames), RET #ms; ⌜γs.sz = sz⌝ ∗
       memStorLock ms γs ∗ memLog γs 0 DFrac.discard [zero_val EntryM] ∗ memEnd γs 1 ∗
       memSnapNone γs ∗ memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
       memStorFresh ms γs 0 memSnapEmpty }}

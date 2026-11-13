@@ -54,7 +54,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 `sized`** (raft-entsize §5, [r3g], 2026-11-09): unsized, today's `entriesAt esL es`; sized, each
 object frozen at a wire content (`entRoC`) whose model is the saved entry's and whose size is
 bounded (`entSizeOk`), which `saveEntry` writes as `MustMarshalMessage(e)` of that object
-(`wal.go:1011-1020` at the goose pin `a4d2bb172`). -/
+(`wal.go:1072-1078` at the pin `0b50f0426`). -/
 def walSaveEnts (sized : Bool) (esL : List Loc) (es : List EntryM) : IProp GF :=
   if sized then
     iprop(∃ cs : List EntryC, ([∗list] l; c ∈ esL; cs, entRoC l c) ∗
@@ -68,8 +68,8 @@ below.
 (raft-entsize §5, [r3g], 2026-11-09) The `Save` and `Close` laws are over the records' flag
 `sized` (`walRecs`'s). `Save` at `sized = true` takes the entries as objects frozen at contents
 of bounded size (`walSaveEnts`): `serverstorage`'s `Save` calls `wal.Save(st, ents)`, which writes
-each entry record as `pbutil.MustMarshalMessage(ents[i])` (`saveEntry`, `wal.go:1011-1020` at the
-goose pin `a4d2bb172`, from `Save`'s loop, `:1050-1052`), so the record's bytes are the encoding of
+each entry record as `pbutil.MustMarshalMessage(ents[i])` (`saveEntry`, `wal.go:1072-1078` at the
+pin `0b50f0426`, from `Save`'s loop, `:1112`), so the record's bytes are the encoding of
 the saved object's content, and the flag stays `true`. At `sized = false`, today's premise
 (`entriesAt`). A failed `Save` commits no update and leaves the flag as it was (`walRecs`'s
 docstring: the flag speaks of successful saves only). `SaveSnap` (the axiom review's W1) only drops
@@ -174,16 +174,65 @@ theorem walSaveSized_spec (st : GoInterface) (si : GoInterfaceOk) (hst : st = Go
   iframe He
   ipureintro; exact ⟨rfl, Hsz⟩
 
+/-- (out_size C3, 2026-11-12) **The entry objects `esL` are frozen at contents of bounded size
+holding `es`** (persistent): what a sized WAL `Save` (`walSaveSized_spec`) and the sized storage's
+`Append` (`isRNMemStor`) take; a `Ready`'s entries are so in the server's cluster, which bounds
+proposed data (`readyEnts_sized`). -/
+def rnEntsSized (esL : List Loc) (es : List EntryModel) : IProp GF :=
+  iprop(∃ cs : List EntryC, ([∗list] l;c ∈ esL;cs, entRoC l c) ∗
+    ⌜cs.map EntryC.model = es.map EntryModel.toM ∧ ∀ c ∈ cs, entSizeOk c⌝)
+
+instance rnEntsSized_persistent (esL : List Loc) (es : List EntryModel) :
+    Persistent (rnEntsSized (GF := GF) esL es) := by
+  unfold rnEntsSized; infer_instance
+
+/-- The sized objects as `entsROz true` (`isRNMemStor`'s `Append` premise). -/
+theorem rnEntsSized_entsROz (sl : GoSlice) (esL : List Loc) (es : List EntryModel) :
+    sl ↦*□ esL ∗ rnEntsSized (GF := GF) esL es ⊢ entsROz true sl (es.map EntryModel.toM) := by
+  unfold rnEntsSized
+  iintro ⟨#Hs, %cs, #Hb, %Hcs⟩
+  unfold entsROz entsPtsZ
+  iexists esL
+  iframe Hs
+  rw [← Hcs.1]
+  iapply entsBigC_entsBigZ true esL cs (fun _ => Hcs.2) $$ Hb
+
+/-- (out_size C3, MAJ-2) **The raft loop's `Save` into its sized WAL** (`walSaveSized_spec` over
+`rnEntsSized`): the entries' objects at sized contents, the records staying sized. -/
+theorem walSaveRn_spec (st : GoInterface) (si : GoInterfaceOk) (hst : st = GoInterface.ok si)
+    (q : Qp) (hp : Loc) (hs : HardStateModel) (sl : GoSlice) (esL : List Loc)
+    (es : List EntryModel) (Q : IProp GF) :
+    isWalStorage st ⊢
+      {{ storage.walOpen (storage.walOf st) q ∗ hardStateAt hp hs ∗ sl ↦*□ esL ∗
+          rnEntsSized esL es ∗
+          AU <{ ∃∃ (σ : StorContents), walRecs (storage.walOf st) σ true ∗
+                ⌜WalSaveOk σ (es.map EntryModel.toM)⌝ }>
+            @ ⊤, ∅ <{ walRecs (storage.walOf st) (walSave σ hs.toM (es.map EntryModel.toM)) true,
+              COMM Q }> }}
+        (App (App (Val #(methods si.ty go!"Save" si.v)) (Val #hp)) (Val #sl))
+      {{ (err : GoInterface), RET #err; storage.walOpen (storage.walOf st) q ∗
+          ((⌜err = GoInterface.nil⌝ ∗ Q) ∨ ⌜¬ storage.walSaveOk⌝) }} := by
+  iintro #Hw
+  iintro !> %Φ ⟨Ho, Hh, #Hsl, #Hsz, HAU⟩ HΦ
+  unfold rnEntsSized
+  icases Hsz with ⟨%cs, #Hb, %Hcs⟩
+  ihave #HS := walSaveSized_spec st si hst q hp hs sl esL cs Q $$ Hw
+  rw [← Hcs.1]
+  iapply HS $$ [Ho Hh HAU] HΦ
+  iframe Ho Hh Hsl Hb HAU
+  ipureintro; exact Hcs.2
+
 /-- `SaveSnap`: the snapshot record saved (or the environment failed: the apply thread panics on an
 error, the raft loop calls `lg.Fatal`; `walSaveOk`, already in `diskOk`). -/
 theorem walSaveSnap_spec (st : GoInterface) (si : GoInterfaceOk) (hst : st = GoInterface.ok si)
-    (q : Qp) (sn mp : Loc) (dq dq' : DFrac) (md : SnapshotMetadataM) (Q : IProp GF) :
+    (q : Qp) (sn mp : Loc) (dq dq' : DFrac) (md : SnapshotMetadataM) (Q : IProp GF)
+    (sized : Bool := false) :
     isWalStorage st ⊢
       {{ storage.walOpen (storage.walOf st) q ∗
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smPtsV mp dq' md ∗
-          AU <{ ∃∃ (σ : StorContents), walRecs (storage.walOf st) σ ∗
+          AU <{ ∃∃ (σ : StorContents), walRecs (storage.walOf st) σ sized ∗
                 ⌜uint.nat md.Index' = σ.b → md.Term' = σ.base.term'⌝ }>
-            @ ⊤, ∅ <{ walRecs (storage.walOf st) (walSaveSnap σ md), COMM Q }> }}
+            @ ⊤, ∅ <{ walRecs (storage.walOf st) (walSaveSnap σ md) sized, COMM Q }> }}
         (App (Val #(methods si.ty go!"SaveSnap" si.v)) (Val #sn))
       {{ (err : GoInterface), RET #err; storage.walOpen (storage.walOf st) q ∗
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smPtsV mp dq' md ∗
@@ -191,7 +240,7 @@ theorem walSaveSnap_spec (st : GoInterface) (si : GoInterfaceOk) (hst : st = GoI
   unfold isWalStorage
   iintro ⟨%si', %Heq, -, #HS, -, -⟩
   rw [hst] at Heq; cases Heq
-  ispecialize HS $$ %false %q %sn %mp %dq %dq' %md %Q
+  ispecialize HS $$ %sized %q %sn %mp %dq %dq' %md %Q
   iexact HS
 
 /-- `Sync`. -/
@@ -209,19 +258,19 @@ theorem walSync_spec (st : GoInterface) (si : GoInterfaceOk) (hst : st = GoInter
 
 /-- `Close`: the WAL's files hold its records and metadata (or the environment failed). -/
 theorem walClose_spec (st : GoInterface) (si : GoInterfaceOk) (hst : st = GoInterface.ok si)
-    (σ : StorContents) (id cid : w64) :
+    (σ : StorContents) (id cid : w64) (sized : Bool := false) :
     isWalStorage (GF := GF) st ⊢
-      {{ storage.walOpen (storage.walOf st) 1 ∗ walRecs (storage.walOf st) σ ∗
+      {{ storage.walOpen (storage.walOf st) 1 ∗ walRecs (storage.walOf st) σ sized ∗
           walMetaIs (storage.walOf st) id cid ∗ walPurgeRight (walDirOf (storage.walOf st)) ∗
           ⌜σ.b ≤ σ.commit⌝ }}
         (App (Val #(methods si.ty go!"Close" si.v)) (Val #()))
       {{ (err : GoInterface), RET #err;
-          (⌜err = GoInterface.nil⌝ ∗ walFiles (walDirOf (storage.walOf st)) id cid σ) ∨
+          (⌜err = GoInterface.nil⌝ ∗ walFiles (walDirOf (storage.walOf st)) id cid σ sized) ∨
           ⌜¬ storage.walCloseOk⌝ }} := by
   unfold isWalStorage
   iintro ⟨%si', %Heq, -, -, -, #HC⟩
   rw [hst] at Heq; cases Heq
-  ispecialize HC $$ %false %σ %id %cid
+  ispecialize HC $$ %sized %σ %id %cid
   iexact HC
 
 /-- **An opened WAL** (what `bootstrap`'s contract gives: a first start's `wal.Create(dir,
@@ -297,7 +346,6 @@ theorem wal.bootOk_start (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (
   unfold wal.bootOk
   iintro ⟨Hw, Hp⟩
   icases walOpened_elim _ _ _ _ _ _ $$ Hw with ⟨Ho, Hr, Hm, %Hrd⟩
-  imod walRecs_unsize w _ _ $$ Hr with Hr
   imod rnDur_alloc cl w $$ Hr with ⟨%ν, #Hinv, Hv, Hok, Hst, Hap, #Hlb⟩
   imodintro
   iexists ν

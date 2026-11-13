@@ -5,10 +5,10 @@
 def bbolt.spExact (pg kb : List w8) (L : List Int) : Bool :=
   decide (∃ j, j ∈ L ∧ bbolt.branchKey pg j.toNat = kb)
 
-theorem bbolt.Cursor.search_r.wp_proof [hos : HasExt osFsExt] (hpn : bbolt.Bucket.pageNode_r.spec)
-    (hns : bbolt.Cursor.nsearch_p.spec) (hIL : bbolt.internal.common.Page.IsLeafPage.spec) (hIB :
-    bbolt.internal.common.Page.IsBranchPage.spec) (hBE :
-    bbolt.internal.common.Page.BranchPageElements.spec) (hCnt :
+theorem bbolt.Cursor.search_r.wp_proof [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt]
+    (hpn : bbolt.Bucket.pageNode_r.spec) (hns : bbolt.Cursor.nsearch_p.spec) (hIL :
+    bbolt.internal.common.Page.IsLeafPage.spec) (hIB : bbolt.internal.common.Page.IsBranchPage.spec)
+    (hBE : bbolt.internal.common.Page.BranchPageElements.spec) (hCnt :
     bbolt.internal.common.Page.Count.spec) (hBK : bbolt.internal.common.branchPageElement.Key.spec)
     (hBP : bbolt.internal.common.branchPageElement.Pgid.spec) (hS : bbolt.Read.sort.SearchEv.spec)
     (hC : bytes.Compare.spec) : bbolt.Cursor.search_r.spec
@@ -46,15 +46,15 @@ theorem bbolt.Cursor.search_r.wp_proof [hos : HasExt osFsExt] (hpn : bbolt.Bucke
 def bbolt.spPred (pg kb : List w8) (i : Int) : Bool :=
   decide ¬go.GoStringLt (bbolt.branchKey pg i.toNat) kb
 
-theorem bbolt.rdTxK.congr_simp [hos : HasExt osFsExt] (K K✝ : bbolt.BC) (e_K : K = K✝) (tx tx✝ :
-    Loc) (e_tx : tx = tx✝) (src src✝ : bbolt.PairSrc) (e_src : src = src✝) (q q✝ : Qp) (e_q : q =
-    q✝) (T T✝ : bbolt.TxView) (e_T : T = T✝) (v v✝ : bbolt.View) (e_v : v = v✝) : bbolt.rdTxK K tx
-    src q T v = bbolt.rdTxK K✝ tx✝ src✝ q✝ T✝ v✝
+theorem bbolt.rdTxK.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] (K K✝ : bbolt.BC)
+    (e_K : K = K✝) (tx tx✝ : Loc) (e_tx : tx = tx✝) (src src✝ : bbolt.PairSrc) (e_src : src = src✝)
+    (q q✝ : Qp) (e_q : q = q✝) (T T✝ : bbolt.TxView) (e_T : T = T✝) (v v✝ : bbolt.View) (e_v : v =
+    v✝) : bbolt.rdTxK K tx src q T v = bbolt.rdTxK K✝ tx✝ src✝ q✝ T✝ v✝
 
-theorem bbolt.search_r_rec [hos : HasExt osFsExt] (hpn : bbolt.Bucket.pageNode_r.spec) (hns :
-    bbolt.Cursor.nsearch_p.spec) (hIL : bbolt.internal.common.Page.IsLeafPage.spec) (hIB :
-    bbolt.internal.common.Page.IsBranchPage.spec) (hBE :
-    bbolt.internal.common.Page.BranchPageElements.spec) (hCnt :
+theorem bbolt.search_r_rec [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (hpn :
+    bbolt.Bucket.pageNode_r.spec) (hns : bbolt.Cursor.nsearch_p.spec) (hIL :
+    bbolt.internal.common.Page.IsLeafPage.spec) (hIB : bbolt.internal.common.Page.IsBranchPage.spec)
+    (hBE : bbolt.internal.common.Page.BranchPageElements.spec) (hCnt :
     bbolt.internal.common.Page.Count.spec) (hBK : bbolt.internal.common.branchPageElement.Key.spec)
     (hBP : bbolt.internal.common.branchPageElement.Pgid.spec) (hS : bbolt.Read.sort.SearchEv.spec)
     (hC : bytes.Compare.spec) (pht : Nat → Nat) (n : Nat) (K : bbolt.BC) (tx : Loc) (src :
@@ -72,7 +72,7 @@ theorem bbolt.search_r_rec [hos : HasExt osFsExt] (hpn : bbolt.Bucket.pageNode_r
     (methods go_etcd_io.bbolt.Cursor.ty.PointerType go!"search" (intoVal c))) (intoVal key))
     (intoVal pid)) {{ Φ }}
 
-theorem bbolt.Bucket.pageNode_r.spec.congr_simp [hos : HasExt osFsExt] :
+theorem bbolt.Bucket.pageNode_r.spec.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] :
     bbolt.Bucket.pageNode_r.spec = bbolt.Bucket.pageNode_r.spec
 
 theorem bbolt.sp_route (pg kb : List w8) (L : List Int) (idx : Int) (hc0 : 0 < bbolt.pageCount pg)

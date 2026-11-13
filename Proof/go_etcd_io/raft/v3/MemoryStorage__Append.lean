@@ -99,9 +99,9 @@ theorem MemoryStorage.Append.wp_proof
     MemoryStorage.Append.spec (GF := GF) (hG := hG) := by
   intro ms γs k old es s dq Hidx Hlen
   wp_start as ⟨#Hlock, Hr, Hs⟩
-  iunfold entsPts at Hs
+  iunfold entsPtsZ at Hs
   icases Hs with ⟨%lsb, Hsb, #Hbigb⟩
-  ihave %Hblen := entsBig_length $$ Hbigb
+  ihave %Hblen := entsBigZ_length γs.sz _ _ $$ Hbigb
   by_cases Hnil : es = []
   · -- an empty batch: `Append` returns at once
     subst Hnil
@@ -113,7 +113,7 @@ theorem MemoryStorage.Append.wp_proof
     wp_apply wp_with_defer as %defer defer
     wp_if_destruct
     · iapply HΦ
-      iunfold entsPts
+      iunfold entsPtsZ
       isplitl [Hsb]
       · iexists lsb
         iframe Hsb Hbigb
@@ -130,7 +130,7 @@ theorem MemoryStorage.Append.wp_proof
   · rw [ite_eq_right (fun h => absurd h (List.cons_ne_nil e0 rest))]; iexact Hr
   ihave %Hslen := ownSlice_len $$ Hsb
   simp only [List.length_cons] at Hslen Hblen Hlen
-  icases entsBig_lookup lsb (e0 :: rest) 0 e0 rfl $$ Hbigb with ⟨%lb0, %Hlb0, #Heb0⟩
+  icases entsBigZ_lookup_RO γs.sz lsb (e0 :: rest) 0 e0 rfl $$ Hbigb with ⟨%lb0, %Hlb0, #Heb0⟩
   iunfold memStorLock at Hlock
   icases Hlock with ⟨#Hinit, #Hmu⟩
   wp_auto
@@ -169,7 +169,7 @@ theorem MemoryStorage.Append.wp_proof
   have Hke : k ≤ uint.nat p.index' + 1 + ents.length := by omega
   have Hpb : uint.Z (memPhys p ents).prev.index' + ((memPhys p ents).ents.length : Int) < 2^61 := by
     simp only [memPhys]; word
-  wp_apply wp_MemoryStorage_firstIndex ms (memPhys p ents) Hpb $$ [$Hfields_inv] as %fi ⟨%Hfi, Hf⟩
+  wp_apply wp_MemoryStorage_firstIndex ms γs.sz (memPhys p ents) Hpb $$ [$Hfields_inv] as %fi ⟨%Hfi, Hf⟩
   simp only [memPhys] at Hfi
   have Hlenz : uint.Z s.len = (rest.length : Int) + 1 := by
     have := Hslen.1; rw [Hblen] at this; word
@@ -196,12 +196,12 @@ theorem MemoryStorage.Append.wp_proof
   iNamed Hf
   simp only [memPhys] at Hdummy
   icases Hents with #Hents
-  ihave %Hcl := entsRO_cons_len $$ Hents
-  iunfold entsRO at Hents
-  iunfold entsPts at Hents
+  ihave %Hcl := entsROz_cons_len _ _ _ _ $$ Hents
+  iunfold entsROz at Hents
+  iunfold entsPtsZ at Hents
   icases Hents with ⟨%ls, #Hls, #Hbig⟩
-  ihave %Hbl := entsBig_length $$ Hbig
-  icases entsBig_lookup ls (dummy :: (memPhys p ents).ents) 0 dummy rfl $$ Hbig with ⟨%l0, %Hl0, #He0⟩
+  ihave %Hbl := entsBigZ_length γs.sz _ _ $$ Hbig
+  icases entsBigZ_lookup_RO γs.sz ls (dummy :: (memPhys p ents).ents) 0 dummy rfl $$ Hbig with ⟨%l0, %Hl0, #He0⟩
   rw [ite_eq_left (show 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z s.len from ⟨by word, by word⟩)]
   wp_apply wp_load_slice_index s (sint.Z (W64 0)) lsb dq lb0 (by word) $$ [Hsb] as Hsb
   · iframe Hsb; ipureintro; exact Hlb0
@@ -235,7 +235,7 @@ theorem MemoryStorage.Append.wp_proof
       k + (e0 :: rest).length := by
     simp only [List.length_append, List.length_take, List.length_cons]; omega
   have Hkc : sint.nat (e0.Index' - p.index') = k - uint.nat p.index' := by word
-  ihave Hpost : (entsPts s dq (e0 :: rest) -∗ Φ #interface.nil) $$ [HΦ Hnew Hen Hek]
+  ihave Hpost : (entsPtsZ γs.sz s dq (e0 :: rest) -∗ Φ #interface.nil) $$ [HΦ Hnew Hen Hek]
   · iintro Hs
     iapply HΦ
     iframe Hs
@@ -271,19 +271,19 @@ theorem MemoryStorage.Append.wp_proof
     wp_auto
     wp_apply wp_slice_append_persistent (V := Loc) _ _ s lsb dq
       $$ [$Hsub2 $Hcap0 $Hsb] as %es' ⟨#Hes', Hes'_cap, Hsb⟩
-    ihave #Hbt := entsBig_take (sint.nat (e0.Index' - p.index')) ls (dummy :: ents) $$ Hbig
-    ihave #Hba := entsBig_app _ lsb _ (e0 :: rest) $$ [Hbt Hbigb]
+    ihave #Hbt := entsBigZ_take γs.sz (sint.nat (e0.Index' - p.index')) ls (dummy :: ents) $$ Hbig
+    ihave #Hba := entsBigZ_app γs.sz _ lsb _ (e0 :: rest) $$ [Hbt Hbigb]
     · iframe Hbt Hbigb
-    ihave #Hes2 : entsRO es' (dummy :: (ents.take (k - uint.nat p.index' - 1) ++ e0 :: rest)) $$ []
+    ihave #Hes2 : entsROz γs.sz es' (dummy :: (ents.take (k - uint.nat p.index' - 1) ++ e0 :: rest)) $$ []
     · have Hl : (dummy :: ents).take (sint.nat (e0.Index' - p.index')) ++ e0 :: rest =
           dummy :: (ents.take (k - uint.nat p.index' - 1) ++ e0 :: rest) := by
         rw [Hkc, show k - uint.nat p.index' = (k - uint.nat p.index' - 1) + 1 by omega,
           List.take_succ_cons, List.cons_append, Nat.add_sub_cancel]
       rw [← Hl]
-      iunfold entsRO; iunfold entsPts
+      iunfold entsROz; iunfold entsPtsZ
       iexists _
       iframe Hes' Hba
-    ihave Hf' : memstorageFields ms (memPhys p (ents.take (k - uint.nat p.index' - 1) ++ e0 :: rest)) $$ [HhardState Hents_f Hes'_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
+    ihave Hf' : memstorageFields ms γs.sz (memPhys p (ents.take (k - uint.nat p.index' - 1) ++ e0 :: rest)) $$ [HhardState Hents_f Hes'_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
     · unfold memstorageFields
       iexists hp, es', dummy, nfi, nli, nen, nte, nsn
       simp only [named, memPhys]
@@ -299,7 +299,7 @@ theorem MemoryStorage.Append.wp_proof
       iframe # ∗
       ipureintro; exact Hok'
     iapply Hpost
-    iunfold entsPts
+    iunfold entsPtsZ
     iexists lsb
     iframe Hsb Hbigb
   wp_if_destruct
@@ -310,14 +310,14 @@ theorem MemoryStorage.Append.wp_proof
       word
     wp_apply wp_slice_append_persistent (V := Loc) se ls s lsb dq
       $$ [$Hls $Hents_cap $Hsb] as %es' ⟨#Hes', Hes'_cap, Hsb⟩
-    ihave #Hba := entsBig_app ls lsb (dummy :: ents) (e0 :: rest) $$ [Hbig Hbigb]
+    ihave #Hba := entsBigZ_app γs.sz ls lsb (dummy :: ents) (e0 :: rest) $$ [Hbig Hbigb]
     · iframe Hbig Hbigb
-    ihave #Hes2 : entsRO es' (dummy :: (ents.take (k - uint.nat p.index' - 1) ++ e0 :: rest)) $$ []
+    ihave #Hes2 : entsROz γs.sz es' (dummy :: (ents.take (k - uint.nat p.index' - 1) ++ e0 :: rest)) $$ []
     · rw [List.take_of_length_le (by omega), ← List.cons_append]
-      iunfold entsRO; iunfold entsPts
+      iunfold entsROz; iunfold entsPtsZ
       iexists _
       iframe Hes' Hba
-    ihave Hf' : memstorageFields ms (memPhys p (ents.take (k - uint.nat p.index' - 1) ++ e0 :: rest)) $$ [HhardState Hents_f Hes'_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
+    ihave Hf' : memstorageFields ms γs.sz (memPhys p (ents.take (k - uint.nat p.index' - 1) ++ e0 :: rest)) $$ [HhardState Hents_f Hes'_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
     · unfold memstorageFields
       iexists hp, es', dummy, nfi, nli, nen, nte, nsn
       simp only [named, memPhys]
@@ -333,7 +333,7 @@ theorem MemoryStorage.Append.wp_proof
       iframe # ∗
       ipureintro; exact Hok'
     iapply Hpost
-    iunfold entsPts
+    iunfold entsPtsZ
     iexists lsb
     iframe Hsb Hbigb
   · -- a gap after the stored entries: excluded, `offset ≤ len(ms.ents)`

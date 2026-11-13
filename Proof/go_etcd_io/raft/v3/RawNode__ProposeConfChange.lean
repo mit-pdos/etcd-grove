@@ -46,12 +46,28 @@ theorem RawNode.ProposeConfChange.wp_proof
   wp_start as H
   iNamed H
   iNamed Hrn
-  -- (raft-entsize §3) the conf change at its model; the size bound is for the later proof
-  obtain ⟨Ho, -⟩ := Hmd
-  ihave Hc : ownConfChangeI c dq (some o) $$ [Hc]
-  · rw [← Ho]; iapply ccPtsCC_own c dq cc $$ Hc
+  -- (raft-entsize §3; out_size C3, P5) the conf change at its content, its size within the
+  -- cluster's bound (`Hmd`), itself at most `2^31` (`certLink`)
+  obtain ⟨Ho, Hmd⟩ := Hmd
+  subst Ho
+  icases ownStepGhost_certLink γ _ cf id s $$ Hghost with ⟨#Hlink, Hghost⟩
+  iunfold certLink at Hlink
+  icases Hlink with ⟨-, -, %Hszl, %Hmb⟩
+  have Hcsz : s.gh.sn.sz = true → ∀ cc', some cc = some cc' → ccSize cc' + 64 ≤ entBytesMax := by
+    intro hs cc' h
+    cases h
+    rw [Hszl] at hs
+    obtain ⟨b, hb⟩ := Option.isSome_iff_exists.1 hs
+    have := Hmd b hb; have := (Hmb b hb).1
+    simp only [entBytesMax]; omega
+  ihave Hc : ccPtsCCo c dq (some cc) $$ [Hc]
+  · simp only [ccPtsCCo]; iexact Hc
   wp_auto_lc 1
-  wp_apply wp_confChangeToMsg c (some o) dq $$ [$Hc] as %ml %bs ⟨Hc, Hm, %Hbs⟩
+  wp_apply wp_confChangeToMsg c (some cc) dq s.gh.sn.sz $$ [$Hc] as %ml %bs ⟨Hc, Hm, %Hbs⟩
+  · ipureintro; exact Hcsz
+  ihave Hc := ccPtsCCo_own c dq (some cc) $$ Hc
+  simp only [Option.map_some] at Hbs ⊢
+  generalize cc.model = o at *
   -- (2026-10-27) the proposal's ghost work: tracked under its key, its ticket on the entry
   ihave #Hcinv := ownStepGhost_inv γ _ cf id s $$ Hghost
   imod cc_propose_ghost γ o bs Hbs $$ Hcinv Harg with ⟨#Hent, Htk⟩
@@ -80,7 +96,7 @@ theorem RawNode.ProposeConfChange.wp_proof
     isplitl [Hm Htk]
     · simp only [named]
       isplitl [Hm]
-      · iexact Hm
+      · rw [flag_moves (by decide : movesB (W32 2) = true)]; iexact Hm
       isplitl [Htk]
       · isplitr
         · iexists [some o]

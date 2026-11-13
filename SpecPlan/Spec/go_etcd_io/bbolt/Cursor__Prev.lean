@@ -9,6 +9,10 @@ leaf node, `Prev` returns nil in the middle of the bucket (`issues/bbolt-cursor-
 which no true spec over `T.ents` can state without the node layout.
 
 **Changes.** Unchanged (over paths).
+**Changes (2026-11-12, `notes/specs-only/ledger.md`, bucket handles).** The handle premise `bktUse`
+(new: without the generations, a deleted and re-created bucket can leave the view as it was, and the
+cursor must not survive its bucket), given back; the cursor names its handle `b` in place of `gs`
+(the per-path generation counter it replaces was unobservable state, redundant with ownership).
 -/
 module
 
@@ -34,14 +38,14 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- `c.Prev()` in a read transaction: the previous entry; at the first entry or unpositioned, nil
 and nil. -/
 def Cursor.Prev.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx c : Loc) (γ : BoltName) (q : Qp) (T : TxView) (p : BPath) (gs : List Nat) (pos : Option Nat),
-  {{ boltTx (GF := GF) tx γ q T ∗ boltCur tx γ c p gs T pos ∗ ⌜T.rw = false⌝ }}
+  ∀ [HasExt osFsExt] (tx c : Loc) (γ : BoltName) (q : Qp) (T : TxView) (b : Loc) (p : BPath) (qb : Qp) (pos : Option Nat),
+  {{ boltTx (GF := GF) tx γ q T ∗ boltCur tx γ c b p T pos ∗ bktUse tx γ T.rw b p qb ∗ ⌜T.rw = false⌝ }}
     (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"Prev")) (Val #()))
-  {{ (k v : GoSlice), RET (PairV #k #v); boltTx tx γ q T ∗
+  {{ (k v : GoSlice), RET (PairV #k #v); bktUse tx γ T.rw b p qb ∗ boltTx tx γ q T ∗
       (match pos with
-       | none => iprop(boltCur tx γ c p gs T none ∗ ⌜k = slice.nil ∧ v = slice.nil⌝)
-       | some 0 => iprop(boltCur tx γ c p gs T (some 0) ∗ ⌜k = slice.nil ∧ v = slice.nil⌝)
-       | some (i + 1) => iprop(boltCur tx γ c p gs T (some i) ∗ curAt tx γ (T.ents p) i k v)) }}
+       | none => iprop(boltCur tx γ c b p T none ∗ ⌜k = slice.nil ∧ v = slice.nil⌝)
+       | some 0 => iprop(boltCur tx γ c b p T (some 0) ∗ ⌜k = slice.nil ∧ v = slice.nil⌝)
+       | some (i + 1) => iprop(boltCur tx γ c b p T (some i) ∗ curAt tx γ (T.ents p) i k v)) }}
 
 end spec
 

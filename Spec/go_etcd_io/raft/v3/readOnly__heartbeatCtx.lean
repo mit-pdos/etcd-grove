@@ -38,11 +38,11 @@ Otherwise a fresh eight-byte slice, fully owned, holding `readonlyPosition r`
 little-endian (`u64Le`). The object is unchanged. The receiver is a pointer and the
 body reads `ro.unconfirmedReads` through it, so the spec owns the object. -/
 abbrev readOnly.heartbeatCtx.spec : Prop :=
-  ∀ (ro : Loc) (r : ReadOnly),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hown" ∷ ownReadOnly ro r }}
+  ∀ (sz : Bool) (ro : Loc) (r : ReadOnly),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ "Hown" ∷ ownReadOnly sz ro r }}
     (App (Val (ro @!! go.GoType.PointerType readOnly.ty @!! go!"heartbeatCtx")) (Val #()))
   {{ (sl : GoSlice), RET #sl;
-      ownReadOnly ro r ∗
+      ownReadOnly sz ro r ∗
       (⌜r.pending = [] ∧ sl = slice.nil⌝ ∨
        ⌜r.pending ≠ []⌝ ∗
        sl ↦* u64Le (readonlyPosition r) ∗

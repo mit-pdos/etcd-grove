@@ -3,19 +3,27 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def bbolt.Open.spec : Prop :=
-  ∀ [inst : HasExt osFsExt] [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (N : Namespace) (path : GoString)
-    (mode : w32) (opts : Loc) (dq : DFrac) (o : bbolt.OptsM) (D : bbolt.Data),
+  ∀ [inst : ExtSemantics Fs.fsExt] [inst_1 : Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt] [ThreadBoundLe GF (2 ^ 29)]
+    [ReceiptBoundLe GF (2 ^ 62)] (N : Namespace) (path : GoString) (mode : w32) (opts : Loc) (dq : DFrac)
+    (o : bbolt.OptsM) (D : bbolt.Data) (R : Fs.Roots) (V : Fs.Hist),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.bbolt ∗
-            osInv ∗
-              ⌜N ## osN⌝ ∗
-                bbolt.fileHolds path D ∗
-                  bbolt.optsAt opts dq o ∗ ⌜o.ok⌝ ∗ (⌜o.logger = GoInterface.nil⌝ ∨ bbolt.boltLogger o.logger) -∗
+            Fs.osInv ∗
+              ⌜N ## Fs.osN⌝ ∗
+                Fs.osTree (DFrac.own 1) R V ∗
+                  bbolt.pathHolds R V path D ∗
+                    bbolt.optsAt opts dq o ∗ ⌜o.ok⌝ ∗ (⌜o.logger = GoInterface.nil⌝ ∨ bbolt.boltLogger o.logger) -∗
           (▷
               ∀ db err,
-                bbolt.optsAt opts dq o ∗
-                    ((⌜err = GoInterface.nil⌝ ∗ ∃ γ, ⌜γ.ns = N⌝ ∗ bbolt.isBolt db γ ∗ bbolt.boltState γ 1 D) ∨
-                      ⌜err ≠ GoInterface.nil⌝) -∗
+                (bbolt.optsAt opts dq o ∗
+                    ∃ V',
+                      Fs.osTree (DFrac.own 1) R V' ∗
+                        ⌜V' = V ∨ ∃ e, V' = V.push e⌝ ∗
+                          ((⌜err = GoInterface.nil⌝ ∗
+                              ∃ γ i,
+                                ⌜γ.ns = N ∧ Fs.lookupH R V' path = some (Fs.Node.file i)⌝ ∗
+                                  bbolt.isBolt db γ ∗ bbolt.boltState γ 1 D) ∨
+                            ⌜err ≠ GoInterface.nil⌝)) -∗
                   Φ (intoVal db, intoVal err)) -∗
             WP ((((intoVal (functions go_etcd_io.bbolt.Open [])) (intoVal path)) (intoVal mode)) (intoVal opts)) {{ Φ }}

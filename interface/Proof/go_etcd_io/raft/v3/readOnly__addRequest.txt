@@ -4,18 +4,21 @@
 
 theorem readOnly.addRequest.wp_proof [package_sem : Assumptions] : readOnly.addRequest.spec
   -- `Perennial.EtcdGrove.readOnly.addRequest.spec`, unfolded:
-  ∀ (ro : Loc) (r : ReadOnly) (commitIndex : w64) (req : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM)
-    (ctx : List w8) (rs : List Loc),
-    ⊢
-      ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-            "Hown" ∷ ownReadOnly ro r ∗
-              "#Hreq" ∷ msgOwn req DFrac.discard { msg := m, ents := ents, snap := sn, ctx := ctx, resps := rs } -∗
-          ▷ (ownReadOnly ro (readonlyAdd r { index := commitIndex, src := m.From', ents := ents }) -∗ Φ (intoVal ())) -∗
-            WP
-              (((intoVal
-                    (methods readOnly.ty.PointerType go!"addRequest"
-                      (intoVal ro)))
-                  (intoVal commitIndex))
-                (intoVal req))
-              {{ Φ }}
+  ∀ (sz : Bool) (ro : Loc) (r : ReadOnly) (commitIndex : w64) (req : Loc) (m : MessageM) (ents : List EntryM)
+    (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc),
+    m.Type' ≠ MsgSnap →
+      ⊢
+        ∀ Φ,
+          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+              "Hown" ∷ ownReadOnly sz ro r ∗
+                "#Hreq" ∷ msgOwnZ sz req DFrac.discard { msg := m, ents := ents, snap := sn, ctx := ctx, resps := rs } -∗
+            ▷
+                (ownReadOnly sz ro (readonlyAdd r { index := commitIndex, src := m.From', ents := ents }) -∗
+                  Φ (intoVal ())) -∗
+              WP
+                (((intoVal
+                      (methods readOnly.ty.PointerType
+                        go!"addRequest" (intoVal ro)))
+                    (intoVal commitIndex))
+                  (intoVal req))
+                {{ Φ }}

@@ -10,6 +10,7 @@
 status_Error:
 status_Errorf:
 errors_Is:
+errors_IsStatusErr:
 errors_IsDeadlineExceeded:
 # The functions of other packages the checks call (`@`: linked in their Link.lean): the txn
 # package's stream-check predicates, the interval tree's intervals.
@@ -157,19 +158,23 @@ NewWatchServer: zap_NewNop zap_Logger__Warn zap_Duration config_ServerConfig__Ma
 serverWatchStream__recvLoop: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds serverWatchStream__isWatchPermitted serverWatchStream__newResponseHeader FiltersFromRequest errors_Is traceutil_Tracer__Start trace_WithAttributes attribute_String attribute_Int64 attribute_Bool zap_Logger__Error zap_Error
 serverWatchStream__sendLoop: serverWatchStream__newResponseHeader GetProgressReportInterval isClientCtxErr =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_wsChan_recv_law_holds =mvcc.api.mvccApi_wsRecv_ok_law_holds =mvcc.api.mvccApi_wsSentLb_zero_law_holds verify_Assert =_root_.Perennial.time.wp_NewTicker =_root_.Perennial.time.Ticker.wp_Stop time_Duration__Seconds time_Duration__Seconds_ptr zap_Logger__Debug zap_Logger__Warn zap_Error prometheus_CounterVec__WithLabelValues mvcc_ReportEventReceived
 serverWatchStream__close: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds
-watchServer__Watch: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccReaders_split_law_holds serverWatchStream__recvLoop serverWatchStream__sendLoop serverWatchStream__close isClientCtxErr errors_IsCtxErr errors_Is zap_Logger__Debug zap_Logger__Warn zap_Error prometheus_CounterVec__WithLabelValues
+watchServer__Watch: =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccReaders_split_law_holds serverWatchStream__recvLoop serverWatchStream__sendLoop serverWatchStream__close isClientCtxErr errors_IsCtxErr errors_Is errors_IsStatusErr zap_Logger__Debug zap_Logger__Warn zap_Error prometheus_CounterVec__WithLabelValues
 #
 # Unit W-W (the stream interceptor, interceptor.go): `monitorLeader` (the leader monitor through
 # `GoAttach`, over Perennial's `time.After`, which its proof uses directly) and
 # `newStreamInterceptor`; the server's `GoAttach` and `StoppingNotify` are linked in the server's
 # Link (`@`). `metadata.FromIncomingContext` is not a callee: the premise
-# `runsNoRequireLeader` (InvStreamInterceptor.lean) states it at the run's context. Not linked:
-# `newCancellableContext`, `cancellableContext.Cancel`/`Err`, `serverStreamWithCtx.Context`
-# (reached only in the require-leader branch the premise excludes).
+# `runsNoRequireLeader` (InvStreamInterceptor.lean) states it at the run's context.
+# k8s 7f-4: the require-leader branch's wrapper, `newCancellableContext` (over Perennial's
+# `WithCancel` and `RWMutex`, which its proof uses directly), `cancellableContext.Cancel`/`Err`
+# (InvCancellable.lean, CancellableLaws.lean).
 EtcdServer__GoAttach: @
 EtcdServer__StoppingNotify: @
-monitorLeader: EtcdServer__GoAttach EtcdServer__StoppingNotify EtcdServer__Leader
-newStreamInterceptor: monitorLeader api_IsCapabilityEnabled EtcdServer__MemberID EtcdServer__IsMemberExist EtcdServer__IsLearner metadata_MD__Get utf8_ValidString prometheus_CounterVec__WithLabelValues
+newCancellableContext:
+cancellableContext__Cancel:
+cancellableContext__Err:
+monitorLeader: EtcdServer__GoAttach EtcdServer__StoppingNotify EtcdServer__Leader cancellableContext__Cancel
+newStreamInterceptor: monitorLeader api_IsCapabilityEnabled EtcdServer__MemberID EtcdServer__IsMemberExist EtcdServer__IsLearner metadata_MD__Get utf8_ValidString prometheus_CounterVec__WithLabelValues metadata_FromIncomingContext EtcdServer__Leader newCancellableContext cancellableContext__Cancel cancellableContext__Err
 #
 # Item 4 (the server start, 2026-10-17): `v3rpc.Server` (grpc.go) and what it calls. grpc's server
 # side is the trust boundary (axioms, `Proof/google_golang_org/grpc/InvGrpcServer.lean`): its options,

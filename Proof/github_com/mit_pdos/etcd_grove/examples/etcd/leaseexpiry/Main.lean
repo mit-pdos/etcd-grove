@@ -85,7 +85,7 @@ theorem Main.wp_proof
   -- (hub step 7) the client address's listen right, out of the member's start bundle (to `Serve`)
   icases etcdstart.memberStartRes_client _ _ _ rfl $$ Hstart with ⟨Haddr, Hstart⟩
   iunfold premises at Hprem
-  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Htd, #Hns, #Hnrl⟩
+  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Htd, #Hns⟩
   -- `Main`'s premises in the shared start's form
   ihave #Hb := etcdstart.bootPremise_of N [id] (LogEntry.toEntries boot 0) ctxs (leaseexpiryDir id)
       go!"leaseexpiry" go!"leaseexpiry"
@@ -118,7 +118,7 @@ theorem Main.wp_proof
   have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
   imod (etcdstart.alloc1 hne id ctxs boot Hbf (leaseexpiryDir id)
       (dirOne_member id _) (by omega) (by omega) false 0 .revocable .revocable
-      (lease.runCfg_revocable Hlev hrev)) $$ Hmarsh
+      (lease.runCfg_revocable (srvRevokeLevels_of_srvLevels Hlev) hrev)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, -⟩
   obtain ⟨hvs, hrule, hboot, hγn1, hγn2, -, -, -, hlgρ⟩ := Hal
   have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
@@ -184,12 +184,12 @@ theorem Main.wp_proof
     $$ [Haddr Hlg3 Hbemu Hgo Hstk] as %serr Hs
   · iframe; iframe #
     isplitr
-    · ipureintro; exact ⟨HEtr, HEw, Hms, Hbuq, HsvOff.2⟩
+    · ipureintro; exact ⟨HEtr, HEw, Hms, Hbuq, HsvOff.2, Htb⟩
     iintro %gs %lis %cid %mid %R Hg
     rw [HsvOff.1]
     ihave Hg := etcdstart.grpcUpM_false _ _ _ _ _ _ _ _ _ _ $$ Hg
     have h := etcdstart.kv_lease_served srv E { ρ with wait := γw } ρ.rd gs lis go!"127.0.0.1:23976"
-      cid mid R Hrb48 (by omega) Hrf HlP rfl .revocable hlgw (srvLevels_iff.2 Hlev)
+      cid mid R Hrb48 (by omega) Hrf HlP rfl .revocable hlgw Hlev
     simp only [etcdstart.etcdLeaseServedAt] at h
     imod h $$ [Hg Hstk] with ⟨Htk, #Hlr, #Hga⟩
     · iframe; iframe #

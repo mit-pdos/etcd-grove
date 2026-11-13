@@ -356,3 +356,13 @@ transaction.
    modelled and proved. These are upstream changes (the fork or upstream), and per CLAUDE.md the
    findings (Q1(a), Q5, bbolt) would each get a `nonissues/` or `issues/` file once a test reaches
    them; this note does not add them.
+
+## The WAL's size flag on a crash image (out_size C3, 2026-11-12)
+
+`srvFiles … true` (the WAL's entry records are of bounded size) is argued for a graceful stop in one
+process only: every `Save` of that incarnation succeeded (a failed `Save` ends in `lg.Fatal`,
+`raft.go:258`, `:265`). A crash image is not a `srvFiles`; a future cross-process or crash restart (a
+`walRecs_crash`-style token, or `srvFiles` taken from an on-disk image) cannot inherit `true` from it,
+since a failed `Save`'s partial records are on disk with `walSaveOk` false. It needs its own sizing
+argument (for instance: a partial record is torn and `ReadAll`/`Repair` drops it, or each record that
+reaches disk was written by a successful `saveEntry` of a sized object).

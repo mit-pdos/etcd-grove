@@ -5,7 +5,7 @@
 theorem hbCtx_recvAck (r : ReadOnly) (src : w64) (ctx : List w8) : hbCtx (readonlyRecvAck r src ctx)
     = hbCtx r
 
-def ownReadOnly (ro : Loc) (r : ReadOnly) : IProp GF :=
+def ownReadOnly (sz : Bool) (ro : Loc) (r : ReadOnly) : IProp GF :=
   iprop(∃ rov ptrs,
       "Hro" ∷ typedPointsto ro rov (DFrac.own 1) ∗
         "%Hro_conf" ∷ ⌜rov.confirmedReads' = r.confirmed⌝ ∗
@@ -13,11 +13,12 @@ def ownReadOnly (ro : Loc) (r : ReadOnly) : IProp GF :=
             "Hacks" ∷ ownMap rov.acks' (DFrac.own 1) r.acks ∗
               "Hucr" ∷ ownSlice rov.unconfirmedReads' ptrs DFrac.discard ∗
                 "Hucr_cap" ∷ ownSliceCap Loc rov.unconfirmedReads' (DFrac.own 1) ∗
-                  "Hreqs" ∷ [∗list] p;q ∈ ptrs;r.pending, ownReadreq p q)
+                  "Hreqs" ∷ [∗list] p;q ∈ ptrs;r.pending, ownReadreq sz p q)
 
-theorem ownReadOnly_option [package_sem : Assumptions] (ro : Loc) (r : ReadOnly) : ⊢ ownReadOnly ro
-    r -∗ ∃ o, ⌜o = W64 0⌝ ∗ typedPointsto (structFieldRef readOnly go!"option" ro) o (DFrac.own 1) ∗
-    (typedPointsto (structFieldRef readOnly go!"option" ro) o (DFrac.own 1) -∗ ownReadOnly ro r)
+theorem ownReadOnly_option [package_sem : Assumptions] (sz : Bool) (ro : Loc) (r : ReadOnly) : ⊢
+    ownReadOnly sz ro r -∗ ∃ o, ⌜o = W64 0⌝ ∗ typedPointsto (structFieldRef readOnly go!"option" ro)
+    o (DFrac.own 1) ∗ (typedPointsto (structFieldRef readOnly go!"option" ro) o (DFrac.own 1) -∗
+    ownReadOnly sz ro r)
 
 theorem readonlyAdd.proj_pending (r : ReadOnly) (q : ReadReq) : (readonlyAdd r q).pending =
     r.pending ++ [q]
@@ -35,28 +36,32 @@ theorem readonlyAdd.proj_acks (r : ReadOnly) (q : ReadReq) : (readonlyAdd r q).a
 theorem readStatesPts_persistent (rs : GoSlice) (sts : List ReadStateM) : Persistent (readStatesPts
     rs sts)
 
-def ownReadreq (p : Loc) (q : ReadReq) : IProp GF :=
+def ownReadreq (sz : Bool) (p : Loc) (q : ReadReq) : IProp GF :=
   iprop(∃ rv mm sn ctx rs,
       "Hrv" ∷ typedPointsto p rv DFrac.discard ∗
-        "%Hrv_idx" ∷ ⌜rv.index' = q.index ∧ mm.From' = q.src⌝ ∗
-          "#Hrv_msg" ∷ msgOwn rv.req' DFrac.discard { msg := mm, ents := q.ents, snap := sn, ctx := ctx, resps := rs })
+        "%Hrv_idx" ∷ ⌜rv.index' = q.index ∧ mm.From' = q.src ∧ mm.Type' ≠ MsgSnap⌝ ∗
+          "#Hrv_msg" ∷
+            msgOwnZ sz rv.req' DFrac.discard { msg := mm, ents := q.ents, snap := sn, ctx := ctx, resps := rs })
 
 theorem readonlyAdd.proj_confirmed (r : ReadOnly) (q : ReadReq) : (readonlyAdd r q).confirmed =
     r.confirmed
 
-theorem ownReadreq_pers (p : Loc) (q : ReadReq) : Persistent (ownReadreq p q)
+theorem ownReadreq_pers (sz : Bool) (p : Loc) (q : ReadReq) : Persistent (ownReadreq sz p q)
 
-theorem ownPendRI_pers (l : Loc) (p : MessageM × List EntryM) : Persistent (ownPendRI l p)
+theorem ownPendRI_pers (sz : Bool) (l : Loc) (p : MessageM × List EntryM) : Persistent (ownPendRI sz
+    l p)
 
-def ownPendRI (l : Loc) (p : MessageM × List EntryM) : IProp GF :=
-  iprop(∃ sn ctx rs, msgOwn l DFrac.discard { msg := p.fst, ents := p.snd, snap := sn, ctx := ctx, resps := rs })
+def ownPendRI (sz : Bool) (l : Loc) (p : MessageM × List EntryM) : IProp GF :=
+  iprop(∃ sn ctx rs,
+      msgOwnZ sz l DFrac.discard { msg := p.fst, ents := p.snd, snap := sn, ctx := ctx, resps := rs } ∗
+        ⌜p.fst.Type' ≠ MsgSnap⌝)
 
-def ownRaftMisc (readStates : GoSlice) (ro : Loc) (pendingReadIndex : GoSlice) (rd : RdState) :
-    IProp GF :=
+def ownRaftMisc (sz : Bool) (readStates : GoSlice) (ro : Loc) (pendingReadIndex : GoSlice) (rd :
+    RdState) : IProp GF :=
   iprop("HreadStates" ∷ readStatesPts readStates rd.states ∗
       "HreadStates_cap" ∷ ownSliceCap ReadState readStates (DFrac.own 1) ∗
-        "Hro_obj" ∷ ownReadOnly ro rd.ro ∗
-          ("Hpri" ∷ ∃ pls, ownSlice pendingReadIndex pls (DFrac.own 1) ∗ [∗list] l;p ∈ pls;rd.pend, ownPendRI l p) ∗
+        "Hro_obj" ∷ ownReadOnly sz ro rd.ro ∗
+          ("Hpri" ∷ ∃ pls, ownSlice pendingReadIndex pls (DFrac.own 1) ∗ [∗list] l;p ∈ pls;rd.pend, ownPendRI sz l p) ∗
             "Hpri_cap" ∷ ownSliceCap Loc pendingReadIndex (DFrac.own 1))
 
 theorem readStatesPts_len [package_sem : Assumptions] (rs : GoSlice) (sts : List ReadStateM) :

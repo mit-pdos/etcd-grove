@@ -81,6 +81,10 @@ theorem stepFollower.wp_proof
   icases Hinit with ⟨%e1, %e2, %e3, %e4, %errPropDropped, %gr, %_, %_, %_, %_, #Hinit⟩
   iNamed Hinit
   wp_auto
+  -- (out_size C3) the message at its content: its context's bound, and half of it read through the
+  -- getters (`msgInC_half`), the whole rebuilt where it is forwarded or appended
+  icases msgInC_ctx _ _ _ _ $$ Hm with ⟨Hm, %Hctx⟩
+  icases msgInC_half _ _ _ _ $$ Hm with ⟨Hm, Hmb⟩
   wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hm] as Hm
   rcases Hty with Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty | Hty |
     Hty
@@ -118,10 +122,14 @@ theorem stepFollower.wp_proof
       wp_apply raft.wp_load_disableProposalForwardingC $$ Hphys as Hphys
       wp_apply raft.wp_load_leadC $$ Hphys as Hphys
       imod cellRO_alloc $$ «$r0» with #cTo
-      icases msgPtsC_store_To _ _ _ _ $$ Hm with ⟨%pTo, HTo, Hback⟩
+      -- (out_size C3) forwarded at its content, with its size (`msgInC_store_To`)
+      ihave Hm := Hmb $$ Hm
+      ihave Hm := msgInC_moves (by first | decide | (rw [Hty]; decide)) _ _ _ $$ Hm
+      icases msgInC_store_To _ _ _ _
+        (fun h => by simp [Hty, MsgProp, MsgReadIndex, MsgTransferLeader, MsgSnap] at h) $$ Hm
+        with ⟨%pTo, HTo, Hback⟩
       wp_auto
-      ihave Hm := Hback $$ %_ %s.lead HTo cTo
-      imod msgIn_to_msgOwn $$ Hm with Hm
+      imod Hback $$ %_ %s.lead HTo cTo with Hm
       wp_apply wp_raft_send c r id s ml { m with To' := s.lead } ents sn cl rs
           [propForward id s.lead m ents cl]
           (Or.imp_right Or.inl Hfrom0)
@@ -129,7 +137,7 @@ theorem stepFollower.wp_proof
           (fun h => by simp [Hty, MsgProp, MsgSnap] at h)
           (fun h => by simp [Hty, MsgProp, MsgApp] at h)
         (Hnors (.inl Hty)) $$ [$Hphys $Hm] as Hphys
-      · iapply tsSrcU_ne; exact (fun h => by simp [Hty, MsgProp, MsgSnap] at h)
+      · iapply tsSrc_ne; exact (fun h => by simp [Hty, MsgProp, MsgSnap] at h)
       iapply HΦ $$ %GoInterface.nil %_ %false %c
       iframe
       simp only [Bool.false_eq_true, ↓reduceIte]
@@ -140,13 +148,17 @@ theorem stepFollower.wp_proof
     obtain ⟨Hwf, Hnw, Hconf, Hfid, Hnl⟩ := Happ Hty
     rw [show (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard) = DFrac.discard by
       simp [Hty, MsgApp, MsgProp]]
+    rw [show (if m.Type' = MsgProp then dqh else DFrac.discard) = DFrac.discard by
+      simp [Hty, MsgApp, MsgProp]]
+    rw [flag_moves (by rw [Hty]; exact movesB_MsgApp)]
     simp only [Hty, MsgApp]
     wp_auto
     wp_apply raft.wp_store_electionElapsedC $$ Hphys as Hphys
     wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
     wp_apply raft.wp_store_leadC $$ Hphys as Hphys
     wp_apply wp_raft_handleAppendEntries c r id { s with lead := m.From' } ml m ents sn cl rs
-        Hwf Hnw Hconf Hfid Hty Hnl (by simp only; first | exact Hstz (Or.inl Hty) | exact Hstz (Or.inr (Or.inl Hty)) | exact Hstz (Or.inr (Or.inr Hty))) $$ [$Hphys $Hm] as %s' ⟨Hphys, %Hres⟩
+        Hwf Hnw Hconf Hfid Hty Hnl (by simp only; first | exact Hstz (Or.inl Hty) | exact Hstz (Or.inr (Or.inl Hty)) | exact Hstz (Or.inr (Or.inr Hty))) $$ [$Hphys Hm Hmb] as %s' ⟨Hphys, %Hres⟩
+    · iapply Hmb $$ Hm
     iapply HΦ $$ %GoInterface.nil %s' %false %c
     iframe
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -163,7 +175,9 @@ theorem stepFollower.wp_proof
     wp_apply wp_GetFrom.1 ml _ _ _ _ $$ [$Hm] as Hm
     wp_apply raft.wp_store_leadC $$ Hphys as Hphys
     wp_apply wp_raft_handleHeartbeat c r id { s with lead := m.From' } ml _ _ _ m ents sn cl rs
-        Hcommit Hfrom (by simp only; first | exact Hstz (Or.inl Hty) | exact Hstz (Or.inr (Or.inl Hty)) | exact Hstz (Or.inr (Or.inr Hty))) $$ [$Hphys $Hm] as ⟨Hphys, -⟩
+        Hcommit Hfrom (by simp only; first | exact Hstz (Or.inl Hty) | exact Hstz (Or.inr (Or.inl Hty)) | exact Hstz (Or.inr (Or.inr Hty)))
+        (fun h => Hctx (by rw [Hty, flag_moves movesB_MsgHeartbeat]; exact h)
+          (by rw [Hty]; simp [MsgHeartbeat, MsgSnap])) $$ [$Hphys $Hm] as ⟨Hphys, -⟩
     iapply HΦ $$ %GoInterface.nil %_ %false %c
     iframe
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -185,6 +199,8 @@ theorem stepFollower.wp_proof
     obtain ⟨Hsn, Hscfg, Hscope, Hrole, Hvotes, Hfid, Hns⟩ := Hsnap Hty
     rw [show (if m.Type' = MsgProp then DFrac.own 1 else DFrac.discard) = DFrac.discard by
       simp [Hty, MsgSnap, MsgProp]]
+    rw [show (if m.Type' = MsgProp then dqh else DFrac.discard) = DFrac.discard by
+      simp [Hty, MsgSnap, MsgProp]]
     simp only [Hty, MsgSnap]
     wp_auto
     wp_apply raft.wp_store_electionElapsedC $$ Hphys as Hphys
@@ -195,6 +211,8 @@ theorem stepFollower.wp_proof
       icases Hcert with (%Hn | ⟨%sv', %Hsv', #Hc⟩)
       · exact (Hn rfl).elim
       · rw [Hsn] at Hsv'; obtain rfl := Option.some.inj Hsv'; iexact Hc
+    ihave Hm := Hmb $$ Hm
+    ihave Hm := msgInC_msgIn _ _ _ _ $$ Hm
     wp_apply wp_raft_handleSnapshot c r id { s with lead := m.From' } ml m ents sn cl rs sv scfg
         Hrole Hvotes Hsn Hscfg Hscope Hfid Hns (by simp only; first | exact Hstz (Or.inl Hty) | exact Hstz (Or.inr (Or.inl Hty)) | exact Hstz (Or.inr (Or.inr Hty))) $$ [$Hphys $Hm $Hcs]
       as %s' ⟨Hphys, %Hres⟩
@@ -239,10 +257,14 @@ theorem stepFollower.wp_proof
       wp_auto
       wp_apply raft.wp_load_leadC $$ Hphys as Hphys
       imod cellRO_alloc $$ «$r0» with #cTo
-      icases msgPtsC_store_To _ _ _ _ $$ Hm with ⟨%pTo, HTo, Hback⟩
+      -- (out_size C3) forwarded at its content, with its size (`msgInC_store_To`)
+      ihave Hm := Hmb $$ Hm
+      ihave Hm := msgInC_moves (by first | decide | (rw [Hty]; decide)) _ _ _ $$ Hm
+      icases msgInC_store_To _ _ _ _
+        (fun h => by simp [Hty, MsgProp, MsgReadIndex, MsgTransferLeader, MsgSnap] at h) $$ Hm
+        with ⟨%pTo, HTo, Hback⟩
       wp_auto
-      ihave Hm := Hback $$ %_ %s.lead HTo cTo
-      imod msgIn_to_msgOwn $$ Hm with Hm
+      imod Hback $$ %_ %s.lead HTo cTo with Hm
       wp_apply wp_raft_send c r id s ml { m with To' := s.lead } ents sn cl rs
           [readForward id s.lead m ents cl]
           (Or.inr (Or.inr (Or.inl Hty)))
@@ -250,7 +272,7 @@ theorem stepFollower.wp_proof
           (fun h => by simp [Hty, MsgReadIndex, MsgSnap] at h)
           (fun h => by simp [Hty, MsgReadIndex, MsgApp] at h)
         (Hnors (.inr (.inl Hty))) $$ [$Hphys $Hm] as Hphys
-      · iapply tsSrcU_ne; exact (fun h => by simp [Hty, MsgReadIndex, MsgSnap] at h)
+      · iapply tsSrc_ne; exact (fun h => by simp [Hty, MsgReadIndex, MsgSnap] at h)
       iapply HΦ $$ %GoInterface.nil %_ %false %c
       iframe
       simp only [Bool.false_eq_true, ↓reduceIte]
@@ -265,7 +287,8 @@ theorem stepFollower.wp_proof
     wp_apply wp_GetEntries.1 ml _ _ _ _ $$ [$Hm] as %es %els ⟨Hes, #Hents, Hcap, Hback⟩
     ihave %Hlen := ownSlice_len _ _ _ $$ Hes
     ihave %Hlen2 := BigSepL2.bigSepL2_length $$ Hents
-    ihave Hm := Hback $$ %(needsCap m) %els %ents Hes Hents Hcap
+    ihave Hm := Hback $$ %false %els %ents Hes Hents []
+    · simp only [Bool.false_eq_true, ↓reduceIte]; iempintro
     wp_if_destruct
     · -- one entry: `r.readStates = append(r.readStates, ReadState{m.GetIndex(),
       -- m.GetEntries()[0].GetData()})`
@@ -297,7 +320,7 @@ theorem stepFollower.wp_proof
       wp_apply wp_slice_append_persistent (V := ReadState) rsl vs _ [ReadState.mk m.Index' ds]
           (DFrac.own 1) $$ [$Hvs $HreadStates_cap $Hsl]
         as %rs' ⟨#Hrs', Hcap', -⟩
-      ihave Hmisc : ownRaftMisc (GF := GF) rs' ro pr
+      ihave Hmisc : ownRaftMisc (GF := GF) s.gh.sn.sz rs' ro pr
           { s.rd with states := s.rd.states ++ [ReadStateM.mk m.Index' e.Data'] }
           $$ [Hcap' Hro_obj Hpri Hpri_cap]
       · unfold ownRaftMisc
@@ -345,7 +368,7 @@ theorem stepFollower.wp_proof
     simp only [Hty, MsgForgetLeader]
     wp_auto
     icases ownRaftPhysC_readOnly c r id _ $$ Hphys with ⟨%ro, Hrof, Hro, Hback⟩
-    icases ownReadOnly_option ro _ $$ Hro with ⟨%o, %Hosafe, Hopt, Hroback⟩
+    icases ownReadOnly_option _ ro _ $$ Hro with ⟨%o, %Hosafe, Hopt, Hroback⟩
     wp_auto
     ihave Hro := Hroback $$ Hopt
     ihave Hphys := Hback $$ %ro %_ Hrof Hro
@@ -408,10 +431,14 @@ theorem stepFollower.wp_proof
       wp_apply raft.wp_load_leadC $$ Hphys as Hphys
       obtain ⟨Hterm0', Hlid⟩ := Hterm0.resolve_left Hlead
       imod cellRO_alloc $$ «$r0» with #cTo
-      icases msgPtsC_store_To _ _ _ _ $$ Hm with ⟨%pTo, HTo, Hback⟩
+      -- (out_size C3) forwarded at its content, with its size (`msgInC_store_To`)
+      ihave Hm := Hmb $$ Hm
+      ihave Hm := msgInC_moves (by first | decide | (rw [Hty]; decide)) _ _ _ $$ Hm
+      icases msgInC_store_To _ _ _ _
+        (fun h => by simp [Hty, MsgProp, MsgReadIndex, MsgTransferLeader, MsgSnap] at h) $$ Hm
+        with ⟨%pTo, HTo, Hback⟩
       wp_auto
-      ihave Hm := Hback $$ %_ %s.lead HTo cTo
-      imod msgIn_to_msgOwn $$ Hm with Hm
+      imod Hback $$ %_ %s.lead HTo cTo with Hm
       wp_apply wp_raft_send c r id s ml { m with To' := s.lead } [] sn [] rs []
           (Or.inr (Or.inr (Or.inr Hty)))
           (Or.inr (Or.inr (Or.inl (Or.inr ⟨Or.inr Hty, fun h => absurd (Hty.symm.trans h) (by simp [MsgTransferLeader, MsgTimeoutNow]),
@@ -419,7 +446,7 @@ theorem stepFollower.wp_proof
           (fun h => by simp [Hty, MsgTransferLeader, MsgSnap] at h)
           (fun h => by simp [Hty, MsgTransferLeader, MsgApp] at h)
         (Hnors (.inr (.inr Hty))) $$ [$Hphys $Hm] as Hphys
-      · iapply tsSrcU_ne; exact (fun h => by simp [Hty, MsgTransferLeader, MsgSnap] at h)
+      · iapply tsSrc_ne; exact (fun h => by simp [Hty, MsgTransferLeader, MsgSnap] at h)
       ihave Hphys := ownRaftPhysC_unsend c r id s $$ Hphys
       iapply HΦ $$ %GoInterface.nil %s %false %c
       iframe Hphys

@@ -96,7 +96,7 @@ theorem raftLog.append.wp_proof
   wp_start as H
   iNamed H
   wp_auto
-  ihave %Hlen := entsPts_len _ _ _ $$ Hes
+  ihave %Hlen := entsPtsZ_len _ _ _ _ $$ Hes
   cases ents with
   | nil =>
     -- `len(ents) == 0`: the log is untouched and the result is the old last index.
@@ -119,18 +119,14 @@ theorem raftLog.append.wp_proof
     rw [decide_eq_false (by word)]
     wp_auto
     rw [ite_eq_left (show 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z es.len by word)]
-    iunfold entsPts at Hes
-    icases Hes with ⟨%lps, Hs, #Hb⟩
+    icases entsPtsZ_open _ _ _ _ $$ Hes with ⟨%lps, Hs, #Hb, Hesb⟩
     icases entsBig_lookup lps (e0 :: ents') 0 e0 He0 $$ Hb with ⟨%lp, %Hlp, #He⟩
     wp_apply wp_load_slice_index es (sint.Z (W64 0)) lps dq lp (by decide) $$ [Hs] with Hs
     · iframe
       ipureintro
       exact Hlp
     wp_apply wp_Entry_GetIndex.1 lp DFrac.discard e0 $$ [$He] as -
-    ihave Hes : entsPts es dq (e0 :: ents') $$ [Hs]
-    · iunfold entsPts
-      iexists lps
-      iframe Hs Hb
+    ihave Hes := Hesb $$ Hs
     -- the `Panicf`: `after = e0.Index - 1 >= committed`
     iNamed Hlog
     wp_auto
@@ -148,12 +144,10 @@ theorem raftLog.append.wp_proof
       apply propext; omega
     simp only [Hadopt_eq]
     lend_unstable
-    -- (out_size C1) the log's flag is off (`unstableOf`)
-    ihave Hes := entsPts_entsPtsZ _ _ _ $$ Hes
+    -- (out_size P4) at the log's flag (`unstableOf`)
     wp_apply wp_unstable_truncateAndAppend _ (unstableOf lv ls) _ _ _ _ He0 Hle' Hnw'
         $$ [$Hun $Hes Hadopt] as ⟨Hun, Hes⟩
     · iexact Hadopt
-    ihave Hes := ite_entsPtsZ_false _ _ _ _ $$ Hes
     iclear Husnap Hpksn Hu_logger
     icases ownUnstable_reopen _ _ _ $$ Hlback Hun
       with ⟨%uv', Hl, Hents_cap, Hents, #Husnap, #Hpksn, #Hu_logger, %Hoffm, %Hoip', %Hsipm⟩

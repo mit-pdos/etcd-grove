@@ -38,7 +38,7 @@ theorem raft.sendHeartbeat.wp_proof
     (wp_Progress_SentCommit : tracker.Progress.SentCommit.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.sendHeartbeat.spec (GF := GF) (hG := hG) := by
-  intro c r id s to ctx cl Hto Hcfg Htz
+  intro c r id s to ctx cl Hto Hcfg Htz Hcl
   wp_start as H
   iNamed H
   icases ownRaftPhysC_tracker_same $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
@@ -75,7 +75,8 @@ theorem raft.sendHeartbeat.wp_proof
   imod cellRO_alloc $$ «$v0» with #cTo
   wp_auto
   imod cellRO_alloc $$ «$v2» with #cCo
-  imod msgOwn_lit «$a0_ptr» _ ⟨W32 8, to, 0, 0, 0, 0, cm, 0, false, 0⟩ cl ⊤ $$ [«$a0»] with Hm
+  imod msgOwnZ_lit s.gh.sn.sz «$a0_ptr» _ ⟨W32 8, to, 0, 0, 0, 0, cm, 0, false, 0⟩ cl ⊤
+    (fun _ => Hcl) $$ [«$a0»] with Hm
   · iframe «$a0» cTy cTo cCo Hctx
     isplitr
     · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
@@ -86,7 +87,7 @@ theorem raft.sendHeartbeat.wp_proof
   wp_apply wp_raft_send c r id s «$a0_ptr» _ [] none cl [] _ (Or.inl rfl) Hok
     (fun h => absurd h (by simp [MsgSnap]))
       (fun h => absurd h (by simp [MsgApp])) rfl $$ [$Hphys $Hm] as Hphys
-  · iapply tsSrcU_ne; exact (fun h => absurd h (by simp [MsgSnap]))
+  · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
   icases ownRaftPhysC_pr_upd _ _ _ _ _ _ p $$ Hphys %Hlk %Hpvs with ⟨%Hok, -, Hpa, Hpback⟩
   wp_apply wp_Progress_SentCommit $$ [$Hpa] as Hpa
   ihave Hphys := Hpback $$ %_ Hpa %rfl %(fun Hl => (Hok Hl).sentCommit _)

@@ -33,7 +33,8 @@ end of a keep-alive stream (`srvStreamIs`, both tokens at `[]`) whose responses'
 keep-alive's (`kaStreamSpec` at the run's token) and whose requests' content gives their bounds
 (`kaUpOk`), with the renewals' per-call resources `S'` and the header's revision reader `A.revR`:
 the loop of receive, fill, renew, send. It returns `S' ∗ A.revR` when the loop ends (the stream's
-tokens spent), with the stream specification. -/
+tokens spent), with the stream specification. (k8s 7f-4, Addendum T-k) It takes and returns
+`levelTok v3rpc.ctxErrLvl`, lent to each renewal (the contract's weak context). -/
 abbrev v3rpc.LeaseServer.leaseKeepAlive.spec : Prop :=
   ∀ (p s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64) (E : apply.AEnv GF) (γl : GName)
     (S' : IProp GF) (st : GoInterface) (γs : StreamNames)
@@ -45,9 +46,9 @@ abbrev v3rpc.LeaseServer.leaseKeepAlive.spec : Prop :=
       v3rpc.kaStreamSpec s E γl γs (auth.ctxTokenOf (GoInterface.ok ci)) Dn ∗
       v3rpc.kaUpOk E γl Up ∗
       srvRecvTok (Req := pbLeaseKeepAliveRequest) γs [] ∗
-      srvSendTok (Rep := pbLeaseKeepAliveResponse) γs [] ∗ S' ∗ A.revR }}
+      srvSendTok (Rep := pbLeaseKeepAliveResponse) γs [] ∗ S' ∗ A.revR ∗ levelTok v3rpc.ctxErrLvl }}
     (App (Val (p @!! go.GoType.PointerType v3rpc.LeaseServer.ty @!! go!"leaseKeepAlive")) (Val #st))
-  {{ (err : GoInterface), RET #err; S' ∗ A.revR ∗
+  {{ (err : GoInterface), RET #err; S' ∗ A.revR ∗ levelTok v3rpc.ctxErrLvl ∗
       v3rpc.kaStreamSpec s E γl γs (auth.ctxTokenOf (GoInterface.ok ci)) Dn }}
 
 end spec

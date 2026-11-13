@@ -14,7 +14,7 @@ def RestartNode.spec : Prop :=
                 cv.DisableConfChangeValidation' = false →
                   cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0 →
                     cv.AsyncStorageWrites' = false →
-                      (γ.maxData ≠ none → uint.Z cv.MaxSizePerMsg' ≤ 2 ^ 20) →
+                      (γ.maxData ≠ none → uint.Z cv.MaxSizePerMsg' ≤ ↑entsCutMax) →
                         uint.nat cv.Applied' = 0 ∨ σ.b ≤ uint.nat cv.Applied' ∧ uint.nat cv.Applied' ≤ σ.commit →
                           max σ.b (uint.nat cv.Applied') ≤ a →
                             a ≤ σ.commit →

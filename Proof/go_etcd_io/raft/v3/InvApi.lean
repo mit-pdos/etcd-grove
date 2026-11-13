@@ -522,10 +522,14 @@ def apiInv (γ : Cluster) (N : Namespace) : IProp GF := inv (apiN N) (apiInvBody
 instance apiInv_persistent (γ : Cluster) (N : Namespace) : Persistent (apiInv (GF := GF) γ N) := by
   unfold apiInv; infer_instance
 
-/-- **The cluster's invariants**: raft's, in `N .@ "raft"`, and the adapter's. -/
+/-- **The cluster's invariants**: raft's, in `N .@ "raft"`, and the adapter's. (out_size C3) It
+records the allocation's premises on the bound on proposed data (`maxData`): at most `2^31`, and met
+by the bootstrap log's entries; a node reads them (`certLink`) to size the entries it builds from
+proposals and from the bootstrap log. -/
 def clusterInv (γ : Cluster) (N : Namespace) : IProp GF :=
   iprop(⌜γ.raft.reNs = N .@ "raft"⌝ ∗ raftCommitInv γ.raft ∗ apiInv γ N ∗
-    savedPredOwn γ.trueQ DFrac.discard (fun _ : List EntryM => iprop(True : IProp GF)))
+    savedPredOwn γ.trueQ DFrac.discard (fun _ : List EntryM => iprop(True : IProp GF)) ∗
+    ⌜∀ b, γ.raft.maxData = some b → b ≤ 2 ^ 31 ∧ ∀ e ∈ γ.raft.reBoot, e.Data'.length ≤ b⌝)
 
 instance clusterInv_persistent (γ : Cluster) (N : Namespace) :
     Persistent (clusterInv (GF := GF) γ N) := by
@@ -1698,7 +1702,7 @@ the attach (`restartStorage`'s continuation, where raft allocates `K`). By this 
 `nodeAppliedLb γ K`/`nodeCommitLb γ K` are the floor's, the snapshot hand-out's and the certified
 terms' lower bounds of the one node attached to it. -/
 def storKeyNames (K : GName) (sn : StorNames) : IProp GF :=
-  dghostVar K DFrac.discard (sn.ga, sn.gg, sn.gsv, sn.gd, sn.gk, sn.a0, sn.c0, sn.ct)
+  dghostVar K DFrac.discard (sn.ga, sn.gg, sn.gsv, sn.gd, sn.gk, sn.a0, sn.c0, sn.ct, sn.sz)
 
 instance storKeyNames_persistent (K : GName) (sn : StorNames) :
     Persistent (storKeyNames (GF := GF) K sn) := by
@@ -1715,8 +1719,9 @@ theorem storKeyNames_agree (K : GName) (sn1 sn2 : StorNames) :
   ihave %H := dghostVar_agree _ _ _ _ _ $$ E1 E2
   ipureintro
   simp only [Prod.mk.injEq] at H
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := H
-  cases sn1; cases sn2; simp only at h1 h2 h3 h4 h5 h6 h7 h8; subst h1 h2 h3 h4 h5 h6 h7 h8; rfl
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ := H
+  cases sn1; cases sn2; simp only at h1 h2 h3 h4 h5 h6 h7 h8 h9
+  subst h1 h2 h3 h4 h5 h6 h7 h8 h9; rfl
 
 /-- (U8 v2, 2026-10-29; 2026-11-01, durability stage I-4: keyed by the storage's key, with
 `snapGiven` merged in) **Compacting the storage of key `K` up to `k` is safe** (the API's
@@ -2343,16 +2348,18 @@ theorem api_sentMsgs (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ 
 bounds apart. -/
 theorem readyMsgs_own_split (γ : Cluster) (N : Namespace) (γn : NodeNames)
     (Hγr : γn.raft = γ.raft) (ms : List QMsg) :
-    ⊢ ([∗list] q ∈ ms, msgOwn (GF := GF) q.loc (readyDq q.st) q.st ∗ termLB γn.bud q.st.msg.Term') -∗
+    ⊢ ([∗list] q ∈ ms, msgOwnZ (GF := GF) γn.raft.maxData.isSome q.loc (readyDq q.st) q.st ∗
+        termLB γn.bud q.st.msg.Term') -∗
       ([∗list] q ∈ ms, stTks γn.raft q.st) -∗
-      ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) ∗
+      ([∗list] q ∈ ms, msgOwnZ γ.raft.maxData.isSome q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) ∗
       [∗list] q ∈ ms, termLB γn.bud q.st.msg.Term' := by
+  rw [← Hγr]
   induction ms with
   | nil =>
     iintro - -
     isplitl []
-    · iapply (BigSepL.bigSepL_nil (Φ := fun _ (q : QMsg) => iprop(msgOwn (GF := GF) q.loc
-        (readyDq q.st) q.st ∗ msgCredits γ N q.st))).2
+    · iapply (BigSepL.bigSepL_nil (Φ := fun _ (q : QMsg) => iprop(msgOwnZ (GF := GF)
+        γn.raft.maxData.isSome q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st))).2
       iempintro
     · iapply (BigSepL.bigSepL_nil (Φ := fun _ (q : QMsg) => iprop(termLB (GF := GF) γn.bud
         q.st.msg.Term'))).2
@@ -2369,10 +2376,11 @@ theorem readyMsgs_own_split (γ : Cluster) (N : Namespace) (γn : NodeNames)
     · iapply BigSepL.bigSepL_cons.2
       iframe Hl Hls
 
-/-- (raft-entsize §2) **A `Ready`'s entry objects into the handed-out set**, each at its content. -/
+/-- (raft-entsize §2) **A `Ready`'s entry objects into the handed-out set**, each at its content
+(out_size C3: sized under the cluster's flag, `entRZ`, which the set's size fact takes). -/
 theorem entsOut_insert (γ : Cluster) (E : CoPset) (HE : ↑(raftOutN γ.raft) ⊆ E) :
     ∀ (ls : List Loc) (es : List EntryM),
-    ⊢ raftOutInv (GF := GF) γ.raft -∗ ([∗list] l;e ∈ ls;es, entRO l e) ={E}=∗
+    ⊢ raftOutInv (GF := GF) γ.raft -∗ ([∗list] l;e ∈ ls;es, entRZ γ.raft.maxData.isSome l e) ={E}=∗
       ∃ cs : List EntryC, ([∗list] p;c ∈ ls;cs, entPtsCC p DFrac.discard c ∗ outEntR γ.raft p c) ∗
         ⌜cs.map EntryC.model = es⌝
   | [], es => by
@@ -2388,8 +2396,13 @@ theorem entsOut_insert (γ : Cluster) (E : CoPset) (HE : ↑(raftOutN γ.raft) �
     iintro #Hinv H
     icases BigSepL2.bigSepL2_cons_inv_left.1 $$ H with ⟨%e, %es', %He, #H1, H⟩
     subst He
-    icases (entPts_iff_CC l DFrac.discard e).1 $$ H1 with ⟨%c, #Hc, %Hm⟩
-    imod raftOutInv_insert γ.raft (.inr (l, c)) E HE $$ Hinv with #Ho
+    iunfold entRZ at H1
+    icases H1 with ⟨%c, #Hc, %Hm⟩
+    obtain ⟨Hm, Hsz⟩ := Hm
+    ihave #Hc : entPtsCC l DFrac.discard c $$ []
+    · iunfold entPtsCC; iunfold entRoC at Hc; iexact Hc
+    imod raftOutInv_insert γ.raft (.inr (l, c)) E HE (fun b hb => Hsz (by rw [hb]; rfl)) $$ Hinv
+      with #Ho
     imod entsOut_insert γ E HE ls es' $$ Hinv H with ⟨%cs, H, %Hcs⟩
     imodintro
     iexists c :: cs
@@ -2399,12 +2412,13 @@ theorem entsOut_insert (γ : Cluster) (E : CoPset) (HE : ↑(raftOutN γ.raft) �
       iframe Hc Ho
     · ipureintro; simp only [List.map_cons, Hcs, Hm]
 
-/-- (raft-entsize §2) **A `Ready`'s entries handed out** (`readyEntsU`), from today's form. -/
+/-- (raft-entsize §2) **A `Ready`'s entries handed out** (`readyEntsU`), from the sized form (out_size
+C3). -/
 theorem readyEntsU_intro (γ : Cluster) (E : CoPset) (HE : ↑(raftOutN γ.raft) ⊆ E) (s : GoSlice)
     (es : List EntryM) :
-    ⊢ raftOutInv (GF := GF) γ.raft -∗ entsRO s es ={E}=∗ readyEntsU γ s es := by
+    ⊢ raftOutInv (GF := GF) γ.raft -∗ entsROz γ.raft.maxData.isSome s es ={E}=∗ readyEntsU γ s es := by
   iintro #Hinv H
-  unfold entsRO entsPts
+  unfold entsROz entsPtsZ
   icases H with ⟨%ls, #Hs, #H⟩
   imod entsOut_insert γ E HE ls es $$ Hinv H with ⟨%cs, #H, %Hcs⟩
   imodintro
@@ -2448,26 +2462,73 @@ theorem readyEntsU_entsRO (γ : Cluster) (s : GoSlice) (es : List EntryM) :
   subst Hcs
   iapply entsCC_entRO γ ls cs $$ H
 
+/-- A read-only entry object at a content is frozen at it (the same predicate). -/
+theorem entPtsCC_discard_entRoC (l : Loc) (c : EntryC) :
+    entPtsCC (GF := GF) l DFrac.discard c ⊢ entRoC l c := by
+  unfold entPtsCC entRoC; exact .rfl
+
+/-- (out_size C3) Handed-out entry objects are frozen at their contents, each of bounded size in a
+cluster with a bound on proposed data (`outEntR_size`). -/
+theorem entsCC_sized (γ : Cluster) (b : Nat) (hmd : γ.raft.maxData = some b) :
+    ∀ (ls : List Loc) (cs : List EntryC),
+    ([∗list] p;c ∈ ls;cs, entPtsCC (GF := GF) p DFrac.discard c ∗ outEntR γ.raft p c) ⊢
+      ([∗list] l;c ∈ ls;cs, entRoC l c) ∗ ⌜∀ c ∈ cs, entSizeOk c⌝
+  | [], cs => by
+    iintro H
+    ihave %Hc := BigSepL2.bigSepL2_nil_inv_left $$ H
+    subst Hc
+    isplitl
+    · iapply BigSepL2.bigSepL2_nil.2; iempintro
+    · ipureintro; intro c hc; cases hc
+  | l :: ls, cs => by
+    iintro H
+    icases BigSepL2.bigSepL2_cons_inv_left.1 $$ H with ⟨%c, %cs', %Hc, ⟨#H1, #Ho⟩, H⟩
+    subst Hc
+    ihave %Hsz := outEntR_size γ.raft l c b $$ Ho
+    icases entsCC_sized γ b hmd ls cs' $$ H with ⟨H, %Hs⟩
+    isplitl
+    · iapply BigSepL2.bigSepL2_cons.2
+      iframe H
+      iapply entPtsCC_discard_entRoC l c $$ H1
+    · ipureintro
+      intro c' hc'
+      rcases List.mem_cons.1 hc' with h | h
+      · subst h; exact Hsz hmd
+      · exact Hs c' h
+
+/-- (out_size C3) **A `Ready`'s entries, sized** in a cluster with a bound on proposed data: the slice
+of objects frozen at contents of bounded size holding `es`. -/
+theorem readyEntsU_sized (γ : Cluster) (s : GoSlice) (es : List EntryM) (b : Nat)
+    (hmd : γ.raft.maxData = some b) :
+    readyEntsU (GF := GF) γ s es ⊢
+      ∃ (ls : List Loc) (cs : List EntryC), s ↦*□ ls ∗ ([∗list] l;c ∈ ls;cs, entRoC l c) ∗
+        ⌜cs.map EntryC.model = es ∧ ∀ c ∈ cs, entSizeOk c⌝ := by
+  unfold readyEntsU
+  iintro ⟨%ls, %cs, #Hs, #H, %Hcs⟩
+  icases entsCC_sized γ b hmd ls cs $$ H with ⟨#H, %Hsz⟩
+  iexists ls, cs
+  iframe Hs H
+  ipureintro; exact ⟨Hcs, Hsz⟩
+
 /-- (raft-entsize §2) **A `Ready`'s messages into the handed-out set**, each at a content raft pins
-(its `snapUf`'s). -/
+(out_size C3: held at it, `msgOwnZ`; until then owned with its `snapUf`). -/
 theorem msgOuts_insert (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑(raftOutN γ.raft) ⊆ E) :
     ∀ ms : List QMsg,
     ⊢ raftOutInv (GF := GF) γ.raft -∗
-      ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st) -∗
-      ([∗list] q ∈ ms, snapUf q.loc q.st) ={E}=∗
+      ([∗list] q ∈ ms, msgOwnZ γ.raft.maxData.isSome q.loc (readyDq q.st) q.st ∗
+        msgCredits γ N q.st) ={E}=∗
       [∗list] q ∈ ms, msgOutU γ q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st
   | [] => by
-    iintro #_ - -
+    iintro #_ -
     imodintro
     iapply (BigSepL.bigSepL_nil (Φ := fun _ (q : QMsg) => iprop(msgOutU (GF := GF) γ q.loc
       (readyDq q.st) q.st ∗ msgCredits γ N q.st))).2
     iempintro
   | q :: ms => by
-    iintro #Hinv H #Hu
+    iintro #Hinv H
     icases BigSepL.bigSepL_cons.1 $$ H with ⟨⟨Ho, Hc⟩, H⟩
-    icases BigSepL.bigSepL_cons.1 $$ Hu with ⟨#Hu1, #Hu⟩
-    imod msgOutR_intro γ.raft q.loc (readyDq q.st) q.st E HE $$ Hinv Ho Hu1 with Ho
-    imod msgOuts_insert γ N E HE ms $$ Hinv H Hu with H
+    imod msgOutR_intro γ.raft q.loc (readyDq q.st) q.st E HE $$ Hinv Ho with Ho
+    imod msgOuts_insert γ N E HE ms $$ Hinv H with H
     imodintro
     iapply BigSepL.bigSepL_cons.2
     iframe H Hc
@@ -2715,13 +2776,15 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
   | none =>
     iunfold readyDataL at Hdata
     iunfold readyData at Hdata
-    icases Hdata with ⟨#Hce, #Hcom, #Hes, Hout, #Hfz, Hmsgs, Hmo, #Hsuf, -, Htks, ⟨%sts, Hsts, Hrs⟩,
+    icases Hdata with ⟨#Hce, #Hcom, #Hes, Hout, #Hfz, Hmsgs, Hmo, -, Htks, ⟨%sts, Hsts, Hrs⟩,
       ⟨%h, Hhs, %Hp'⟩, #Hhw, -, %Hnull, #Hidx, %Hix⟩
     icases readyMsgs_own_split γ N γn Hγr ms $$ Hmo Htks with ⟨Hmo, #Htl⟩
     -- (raft-entsize §2) the messages and entries handed out, into the handed-out set
     ihave #Hoinv := clusterInv_out γ N $$ Hci
-    imod msgOuts_insert γ N ⊤ CoPset.subseteq_top ms $$ Hoinv Hmo Hsuf with Hmo
-    imod readyEntsU_intro γ ⊤ CoPset.subseteq_top rd.Entries' es $$ Hoinv Hes with #HesO
+    imod msgOuts_insert γ N ⊤ CoPset.subseteq_top ms $$ Hoinv Hmo with Hmo
+    ihave #HesZ : entsROz γ.raft.maxData.isSome rd.Entries' es $$ []
+    · rw [← Hγr]; iexact Hes
+    imod readyEntsU_intro γ ⊤ CoPset.subseteq_top rd.Entries' es $$ Hoinv HesZ with #HesO
     imod api_committed_lb γ N ⊤ CoPset.subseteq_top (ds ++ ce) $$ Hci [Hcom] with ⟨#Hlb, %HidxOk⟩
     · rw [Hγr]; iexact Hcom
     imod api_readStates γ N ⊤ CoPset.subseteq_top sts $$ Hci [Hrs] with Hrs
@@ -2831,15 +2894,17 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
   | some l =>
     iunfold readyDataL at Hdata
     iunfold readySnapData at Hdata
-    icases Hdata with ⟨#Hce, #Hcom, #Hes, Hmsgs, Hmo, #Hsuf, -, Htks, ⟨%sts, Hsts, Hrs⟩,
+    icases Hdata with ⟨#Hce, #Hcom, #Hes, Hmsgs, Hmo, -, Htks, ⟨%sts, Hsts, Hrs⟩,
       ⟨%h, Hhs, %Hp'⟩, #Hhw, -, #Hidx, Hsnap, #Hdlv, #Hloc, %Hbl, #HD, -, %Hfacts, Hout⟩
     obtain ⟨Hptr, Hce0, Hpre, Hlt, Hdl, Hpos, H61, Hfl, Hind⟩ := Hfacts
     subst Hce0
     icases readyMsgs_own_split γ N γn Hγr ms $$ Hmo Htks with ⟨Hmo, #Htl⟩
     -- (raft-entsize §2) the messages and entries handed out, into the handed-out set
     ihave #Hoinv := clusterInv_out γ N $$ Hci
-    imod msgOuts_insert γ N ⊤ CoPset.subseteq_top ms $$ Hoinv Hmo Hsuf with Hmo
-    imod readyEntsU_intro γ ⊤ CoPset.subseteq_top rd.Entries' es $$ Hoinv Hes with #HesO
+    imod msgOuts_insert γ N ⊤ CoPset.subseteq_top ms $$ Hoinv Hmo with Hmo
+    ihave #HesZ : entsROz γ.raft.maxData.isSome rd.Entries' es $$ []
+    · rw [← Hγr]; iexact Hes
+    imod readyEntsU_intro γ ⊤ CoPset.subseteq_top rd.Entries' es $$ Hoinv HesZ with #HesO
     ihave ⟨Hrng, #Hgv⟩ : (∃ (k : Nat) (old : List EntryM), ⌜k ≤ uint.nat l.snap.Metadata'.Index'⌝ ∗
         storLog γn.stor k (DFrac.own 1) old ∗ storEnd γn.stor (k + old.length)) ∗
         storGiven γn.sn (uint.nat l.snap.Metadata'.Index') $$ [Hout]
@@ -3050,7 +3115,7 @@ theorem api_key_register (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N 
   iintro #Hci
   ihave #Hci' := Hci
   iunfold clusterInv at Hci'
-  icases Hci' with ⟨%HNs, #Hcinv, #Hinv, #HspT⟩
+  icases Hci' with ⟨%HNs, #Hcinv, #Hinv, #HspT, -⟩
   ihave Hat : |={E}=> propIsAt γ.raft k γ.trueQ $$ []
   · unfold apiInv apiInvBody
     have Ha := apiN_sub N HE
@@ -3586,12 +3651,10 @@ theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (
       msgPtsCC ml (DFrac.own 1) (DFrac.own 1) true c ∗
       msgCredits γ N st ∗ snapLocalMsg γ id st ⊢
     |==> stepIn γ N id ml := by
-  intro Hto Hc Hcs _
+  intro Hto Hc Hcs Hcsz
   subst Hto
   iintro ⟨#Hsent, Hm, Htk, #Hloc⟩
-  ihave Hm := msgPtsCC_msgPtsC ml (DFrac.own 1) (DFrac.own 1) true c Hcs $$ Hm
-  rw [Hc]
-  icases msgPtsC_nn $$ Hm with ⟨%Hnn, Hm⟩
+  icases msgPtsCC_nn $$ Hm with ⟨%Hnn, Hm⟩
   ihave %Hbnd : ⌜st.msg.Type' = MsgSnap →
       ∃ sv, st.snap = some sv ∧ uint.Z sv.Metadata'.Index' < 2 ^ 61⌝ $$ []
   · by_cases Hty : st.msg.Type' = MsgSnap
@@ -3606,7 +3669,7 @@ theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (
   have Hrs : st.resps = [] := Hsh.2.2.2.2.2.2.2
   have Hst : (⟨st.msg, st.ents, st.snap, st.ctx, []⟩ : MsgSt) = st := by
     cases st; simp only at Hrs ⊢; rw [Hrs]
-  rw [Hst]
+  have Hcm : c.model = st := Hc.trans Hst
   iunfold msgCredits at Htk
   -- the message's abstraction, but a snapshot's
   ihave #Hmsg : □ (∀ ty, ⌜mtypeOf st.msg.Type' = some ty⌝ -∗ ⌜ty ≠ .snap⌝ -∗
@@ -3634,7 +3697,12 @@ theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (
     unfold fwdP
     iexists st
     isplitl [Hm]
-    · iapply msgPtsC_cap_any $$ Hm
+    · -- (out_size C3) at its content, with its size (`stepIn_intro`'s premise)
+      ihave Hm := msgPtsCC_cap_any ml _ _ (needsCap st.msg) c $$ Hm
+      iapply (msgInC_of_CC _ ml _ c st Hcm Hcs (fun hs ht => by
+        rw [Hγr] at hs
+        obtain ⟨b, hb⟩ := Option.isSome_iff_exists.1 hs
+        exact Hcsz b hb ht)) $$ Hm
     isplitr
     · ipureintro; exact ⟨Hp, Hrs⟩
     isplitr
@@ -3646,7 +3714,7 @@ theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (
     simp only [stTks, if_pos Hp]
     rw [Hγr]
     iexact Htk
-  · imod msgPtsC_persist_els $$ Hm with Hm
+  · imod msgPtsCC_persist_els $$ Hm with Hm
     have Hnok' : NetMsgOk st.msg.To' st := NetMsgOk.of_shape Hsh rfl Hp
     imodintro
     unfold stepIn
@@ -3682,7 +3750,13 @@ theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (
     ileft
     iexists st
     isplitl [Hm]
-    · iapply msgPtsC_cap_any $$ Hm
+    · ihave Hm := msgPtsCC_cap_any ml _ _ (needsCap st.msg) c $$ Hm
+      iapply (msgInC_of_CC _ ml _ c st Hcm Hcs (fun hs ht => by
+        simp only [Bool.and_eq_true] at hs
+        have hs1 := hs.1
+        rw [Hγr] at hs1
+        obtain ⟨b, hb⟩ := Option.isSome_iff_exists.1 hs1
+        exact Hcsz b hb ht)) $$ Hm
     isplitr
     · ipureintro; exact Hnok'
     rw [Hγr, Hγb]

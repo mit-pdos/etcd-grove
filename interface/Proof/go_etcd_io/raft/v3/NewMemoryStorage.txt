@@ -8,16 +8,18 @@ theorem memOk_new : MemOk { term' := W64 0, index' := W64 0 } [] (<[0 := zero_va
 theorem NewMemoryStorage.wp_proof [package_sem : Assumptions] (wp_EnsureSnapshot :
     raftpb.EnsureSnapshot.spec) : NewMemoryStorage.spec
   -- `Perennial.EtcdGrove.NewMemoryStorage.spec`, unfolded:
-  ⊢
-    ∀ Φ,
-      isPkgInit pkg_id.go_etcd_io.raft.v3 -∗
-        (▷
-            ∀ ms γs,
-              memStorLock ms γs ∗
-                  memLog γs 0 DFrac.discard [zero_val EntryM] ∗
-                    memEnd γs 1 ∗
-                      memSnapNone γs ∗
-                        memStorMeta ms γs { Term' := W64 0, Vote' := W64 0, Commit' := W64 0 } ∗
-                          memStorFresh ms γs 0 memSnapEmpty -∗
-                Φ (intoVal ms)) -∗
-          WP ((intoVal (functions NewMemoryStorage [])) (intoVal ())) {{ Φ }}
+  ∀ (sz : Bool),
+    ⊢
+      ∀ Φ,
+        isPkgInit pkg_id.go_etcd_io.raft.v3 -∗
+          (▷
+              ∀ ms γs,
+                ⌜γs.sz = sz⌝ ∗
+                    memStorLock ms γs ∗
+                      memLog γs 0 DFrac.discard [zero_val EntryM] ∗
+                        memEnd γs 1 ∗
+                          memSnapNone γs ∗
+                            memStorMeta ms γs { Term' := W64 0, Vote' := W64 0, Commit' := W64 0 } ∗
+                              memStorFresh ms γs 0 memSnapEmpty -∗
+                  Φ (intoVal ms)) -∗
+            WP ((intoVal (functions NewMemoryStorage [])) (intoVal ())) {{ Φ }}

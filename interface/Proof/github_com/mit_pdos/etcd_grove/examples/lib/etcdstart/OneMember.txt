@@ -23,8 +23,7 @@ def etcdstart.premises (name peer client : GoString) (N : Nat) (id : w64) (ctxs 
                   γ.vs = [id] ∧
                     γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧ γ.boot = LogEntry.toEntries boot 0⌝ -∗
             bootstrapContract cfg U γ id ctxs N (etcdstart.dir1 peer id)) ∗
-      bootMarshal [id] ctxs (LogEntry.toEntries boot 0) ∗
-        rnLoggerZapOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk ∗ v3rpc.runsNoRequireLeader)
+      bootMarshal [id] ctxs (LogEntry.toEntries boot 0) ∗ rnLoggerZapOk ∗ rnTimeoutDetectorOk ∗ rnNewStorageOk)
 
 theorem etcdstart.premises_persistent (name peer client : GoString) (N : Nat) (id : w64) (ctxs :
     List (List w8)) (boot : List LogEntry) : Persistent (etcdstart.premises name peer client N id

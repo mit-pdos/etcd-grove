@@ -10,6 +10,10 @@ first leaf (`goToFirstElementOnTheStack`); an empty leaf (a writer's, after dele
 
 **Changes.** May reposition a cursor made at an older view (Go: "reposition your cursor after
 mutating data"), given its bucket is still current; over paths.
+**Changes (2026-11-12, `notes/specs-only/ledger.md`, bucket handles).** The handle premise `bktUse`
+(the bucket's ownership share in a write transaction) in place of the generation check, given back;
+the cursor names its handle `b` in place of `gs` (the per-path generation counter it replaces was
+unobservable state, redundant with ownership).
 -/
 module
 
@@ -35,11 +39,11 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- `c.First()`: repositions the cursor at the first entry of the bucket at `p` in the current view
 `T'` (its bucket still current). -/
 def Cursor.First.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx c : Loc) (γ : BoltName) (q : Qp) (T : TxView) (p : BPath) (gs : List Nat) (pos : Option Nat) (T' : TxView),
-  {{ boltTx (GF := GF) tx γ q T' ∗ boltCur tx γ c p gs T pos ∗ ⌜T'.gens p = gs⌝ }}
+  ∀ [HasExt osFsExt] (tx c : Loc) (γ : BoltName) (q : Qp) (T : TxView) (b : Loc) (p : BPath) (qb : Qp) (pos : Option Nat) (T' : TxView),
+  {{ boltTx (GF := GF) tx γ q T' ∗ boltCur tx γ c b p T pos ∗ bktUse tx γ T'.rw b p qb }}
     (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"First")) (Val #()))
-  {{ (k v : GoSlice), RET (PairV #k #v); boltTx tx γ q T' ∗
-      boltCur tx γ c p gs T' (some 0) ∗ curAt tx γ (T'.ents p) 0 k v }}
+  {{ (k v : GoSlice), RET (PairV #k #v); bktUse tx γ T'.rw b p qb ∗ boltTx tx γ q T' ∗
+      boltCur tx γ c b p T' (some 0) ∗ curAt tx γ (T'.ents p) 0 k v }}
 
 end spec
 

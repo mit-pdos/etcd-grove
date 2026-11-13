@@ -281,6 +281,16 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   facts by values the client already has (the node object, the storage object). A handle only the
   proof needs is a resource every caller threads. (Same critique; see also "Do not make callers
   thread a resource only the proof's bookkeeping needs", `put.md`, critique 3.)
+- **No unobservable state in the model: say it by ownership.** A field of the client's view that no
+  operation lets the client observe is redundant when a resource can say the same thing. Being ghost
+  state is not the objection; being unobservable is. bbolt's per-path generation counter
+  (`TxView.gen`, bumped by `DeleteBucket`) existed only to tell a stale bucket handle from a current
+  one. Ownership says that already: using a bucket takes its token, deleting it consumes the token,
+  so a stale handle has nothing to be used with, and the counter goes. When a spec carries state
+  only to invalidate other resources, look for the resource whose consumption does the
+  invalidating. (bbolt's bucket handles, 2026-11-12, the user: "it was unobservable state. It
+  introduced a redundancy in the specs which we found was not necessary by instead using
+  ownership"; `notes/specs-only/ledger.md`.)
 - **The caller's result predicate carries what the caller needs**: no witness or history predicate
   beside it. A read that may be stale still fires the update at the current state, and answers from a
   past state of it. (`range.md`, critique 1)

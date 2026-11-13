@@ -3,6 +3,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer__LeaseKeepAlive
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer__leaseKeepAlive
 public import Perennial.Golang.Theory.Chan.Idioms.Spsc
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.SrvCtxWeakLaws
 
 @[expose] public section
 
@@ -29,11 +30,12 @@ theorem v3rpc.LeaseServer.LeaseKeepAlive.wp_proof
     (hLoop : v3rpc.LeaseServer.leaseKeepAlive.spec (GF := GF) (hG := hG)) :
     v3rpc.LeaseServer.LeaseKeepAlive.spec (GF := GF) (hG := hG) := by
   intro p s A cid mid E γl S' st γs Up Dn ci cd
-  wp_start as ⟨#Hls, #HRn, #Hst, #Hspec, #HUp, Hrt, Hstt, HS, HR⟩
+  wp_start as ⟨#Hls, #HRn, #Hst, #Hspec, #HUp, Hrt, Hstt, HS, HR, HE, %HT5⟩
   ihave #Hst' := Hst
   iunfold srvStreamIs at Hst'
-  icases Hst' with ⟨%si, %Hsi, -, -, #HCtx, #Hctxis, -⟩
-  ihave #Hctx2 := Hctxis
+  icases Hst' with ⟨%si, %Hsi, -, -, #HCtx, #Hwk, -⟩
+  ihave #Hctx2 := Hwk
+  iunfold srvCtxWeak at Hctx2
   iNamed Hctx2
   ihave #Pv3 : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc $$ []
   · iPkgInit
@@ -48,13 +50,18 @@ theorem v3rpc.LeaseServer.LeaseKeepAlive.wp_proof
   ipersist errc
   ipersist ls
   ipersist stream
-  wp_apply wp_fork $$ [Hrt Hstt HS HR HprodE]
-  · wp_auto
-    wp_apply hLoop p s A cid mid E γl S' st γs Up Dn ci cd $$ [$Hrt $Hstt $HS $HR] as %lerr -
+  -- the loop's goroutine with its thread token, a level of which it lends to the renewals
+  wp_apply wp_fork_tok_body $$ [Hrt Hstt HS HR HprodE]
+  · iintro Htt
+    icases (threadTok_lend4 (GF := GF) HT5) $$ Htt with ⟨Hl4, Hback⟩
+    wp_auto
+    wp_apply hLoop p s A cid mid E γl S' st γs Up Dn ci cd $$ [$Hrt $Hstt $HS $HR $Hl4] as %lerr
+      ⟨-, -, Hl4, -⟩
     · iframe #
+    ihave Htt := Hback $$ Hl4
     wp_apply wp_spsc_send γerr errc PE (fun _ => iprop(False)) [] lerr $$ [$HprodE] as -
     · iframe #
-    itrivial
+    iframe Htt
   rw [Hsi]
   wp_auto
   wp_bind (App (Val #(methods si.ty go!"Context" si.v)) (Val #()))
@@ -81,7 +88,7 @@ theorem v3rpc.LeaseServer.LeaseKeepAlive.wp_proof
     iintro %ve %okE -
     wp_auto
     iapply HΦ
-    iframe #
+    iframe HE; iframe #
   iapply BigAndL.bigAndL_cons.2
   isplit
   · -- `<-stream.Context().Done()`: the context's error
@@ -99,10 +106,10 @@ theorem v3rpc.LeaseServer.LeaseKeepAlive.wp_proof
     · itrivial
     iintro !> -
     wp_auto
-    wp_apply +noauto HErrDone $$ [$HCC] as %cerr - -
+    wp_apply +noauto HErrDone $$ HCC HE as %cerr - - HE
     wp_auto
     iapply HΦ
-    iframe #
+    iframe HE; iframe #
   iapply BigAndL.bigAndL_nil.2
   itrivial
 

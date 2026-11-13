@@ -25,7 +25,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 other exit makes the eight bytes and fills them in. -/
 theorem readOnly.heartbeatCtx.wp_proof :
     readOnly.heartbeatCtx.spec (GF := GF) (hG := hG) := by
-  intro ro r
+  intro sz ro r
   wp_start as H
   iNamed H
   iunfold ownReadOnly at Hown

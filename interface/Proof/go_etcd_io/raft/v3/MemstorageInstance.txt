@@ -36,7 +36,7 @@ theorem memStorage_isStorageP [package_sem : Assumptions] [MemStorReg GF] (wp_La
     MemoryStorage.LastIndex.spec) (wp_FirstIndex : MemoryStorage.FirstIndex.spec) (wp_Term :
     MemoryStorage.Term.spec) (wp_Entries : MemoryStorage.Entries.spec) (wp_Snapshot :
     MemoryStorage.Snapshot.spec) (ms : Loc) (γs : MemStorNames) (J : MemJust GF) : ⊢ memStorInvP ms
-    γs J -∗ memStorReg ms γs -∗ isStorageP J.SV (memBnd J) J.DL (memStorIface ms)
+    γs J -∗ memStorReg ms γs -∗ isStorageP γs.sz J.SV (memBnd J) J.DL (memStorIface ms)
 
 theorem memStorReg_persistent [MemStorReg GF] (ms : Loc) (γs : MemStorNames) : Persistent
     (memStorReg ms γs)
@@ -83,7 +83,7 @@ theorem memStorIface_inj [package_sem : Assumptions] [MemStorReg GF] (ms1 ms2 : 
     ms1 = memStorIface ms2 → ms1 = ms2
 
 def MemStorNamesRec : Type :=
-  GName × GName × GName × GName × GName × GName × GName × GName × GName × GName
+  GName × GName × GName × GName × GName × GName × GName × GName × GName × GName × Bool
 
 theorem memStorLogI_persist [package_sem : Assumptions] [MemStorReg GF] (st : Storage) (k : Nat) (dq
     : DFrac) (es : List EntryM) : memStorLogI st k dq es ⊢ |==> memStorLogI st k DFrac.discard es
@@ -108,4 +108,4 @@ theorem memLogL_agree [package_sem : Assumptions] [MemStorReg GF] (γ : GName) (
     es1 k2 es2⌝
 
 def MemStorNames.tuple (γs : MemStorNames) : MemStorNamesRec :=
-  (γs.log, γs.en, γs.ek, γs.cp, γs.jc, γs.sx, γs.lk, γs.hk, γs.sl, γs.pr)
+  (γs.log, γs.en, γs.ek, γs.cp, γs.jc, γs.sx, γs.lk, γs.hk, γs.sl, γs.pr, γs.sz)

@@ -298,7 +298,7 @@ theorem rafthttp.streamReader.dial.wp_proof
   ihave #Hf' := Hf
   iunfold srFixed at Hf'
   icases Hf' with ⟨%lg, %tr, %ps, %rcc, %pcc, %γr, %γp, %ctx, %cd, #Hlg, #Hlgz, #Hpid, #Htr,
-    #Hlid, -, -, -, -, -, -, #Hmu, #Hctxf, #Hctx⟩
+    #Hlid, -, -, -, -, -, -, #Hmu, #Hctxf, #Hctx, #Hbgc⟩
   ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   iunfold srDial at Hd
   icases Hd with ⟨#Hcfg, %ec, #Herrc⟩
@@ -383,7 +383,11 @@ theorem rafthttp.streamReader.dial.wp_proof
   wp_apply hSetPeer req _ urls uvs $$ [$Hreq] as ⟨%hs, -, %Hpu, Hreq⟩
   · iframe #
   (try wp_auto)
-  wp_apply hWithContext req _ (.fixed []) ctx $$ [$Hreq $Hstr] as %req' ⟨Hreq, Hstr⟩
+  wp_apply hWithContext req _ (.fixed []) ctx $$ [$Hreq $Hstr] as %req' ⟨Hreq, Hstr, #Hrctx⟩
+  ihave #Hrbg : http.reqCtxBg req' $$ []
+  · iunfold http.reqCtxBg
+    iexists ctx
+    iframe #
   (try wp_auto)
   ihave #Hfmtp : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
   · iPkgInit
@@ -434,7 +438,7 @@ theorem rafthttp.streamReader.dial.wp_proof
     · ipureintro
       simp only [raftHttpNet, raftProto, snapStreamed]
       exact fun h => absurd h.1 (by decide)
-    wp_apply HRT $$ [$Hreq $Hstr $Hso $Htk $Hpa $Hpr] as %resp %rerr ⟨Hreq, Hres⟩
+    wp_apply HRT $$ [$Hreq $Hstr $Hrbg $Hso $Htk $Hpa $Hpr] as %resp %rerr ⟨Hreq, Hres⟩
     (try wp_auto)
     icases Hres with (⟨%Herr, #HerrS, -⟩ | ⟨%Hnil, %rst, %rd, #Hra, #Hrw, Hrr, #Hrc⟩)
     · -- `RoundTrip` failed

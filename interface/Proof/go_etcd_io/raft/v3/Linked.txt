@@ -164,7 +164,7 @@ theorem RaftLink.wp_RestartNode [package_sem : Assumptions] : RestartNode.spec
                 cv.DisableConfChangeValidation' = false →
                   cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0 →
                     cv.AsyncStorageWrites' = false →
-                      (γ.maxData ≠ none → uint.Z cv.MaxSizePerMsg' ≤ 2 ^ 20) →
+                      (γ.maxData ≠ none → uint.Z cv.MaxSizePerMsg' ≤ ↑entsCutMax) →
                         uint.nat cv.Applied' = 0 ∨ σ.b ≤ uint.nat cv.Applied' ∧ uint.nat cv.Applied' ≤ σ.commit →
                           max σ.b (uint.nat cv.Applied') ≤ a →
                             a ≤ σ.commit →
@@ -301,7 +301,7 @@ theorem RaftLink.wp_StartNode [package_sem : Assumptions] : StartNode.spec
                 cv.DisableConfChangeValidation' = false →
                   cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0 →
                     cv.AsyncStorageWrites' = false →
-                      (γ.maxData ≠ none → uint.Z cv.MaxSizePerMsg' ≤ 2 ^ 20) →
+                      (γ.maxData ≠ none → uint.Z cv.MaxSizePerMsg' ≤ ↑entsCutMax) →
                         cv.Applied' = W64 0 →
                           csm.Voters' = [] →
                             csm.VotersOutgoing' = [] →
@@ -411,7 +411,10 @@ theorem RaftLink.MemoryStorage.wp_Entries [package_sem : Assumptions] : MemorySt
                     memLog γs (k + a.length) dq2 b ∗
                       (⌜err = ec⌝ ∗ memCompacted γs (uint.nat lo) ∨
                         ⌜err = GoInterface.nil⌝ ∗
-                          entsRO s es ∗
+                          (∃ cs,
+                              entsPtsC γs.sz s DFrac.discard cs ∗
+                                ⌜List.map EntryC.model cs = es ∧
+                                    (γs.sz = true → uint.nat maxSize ≤ entsCutMax → entsCut maxSize cs)⌝) ∗
                             ⌜es ≠ [] ∧
                                 s.cap = s.len ∧
                                   es <+: List.take (uint.nat hi - uint.nat lo) (List.drop (uint.nat lo - k) (a ++ b))⌝) -∗
@@ -478,19 +481,21 @@ theorem RaftLink.confchange.Changer.wp_Simple_api [package_sem : Assumptions] :
 
 theorem RaftLink.wp_NewMemoryStorage [package_sem : Assumptions] : NewMemoryStorage.spec
   -- `Perennial.EtcdGrove.NewMemoryStorage.spec`, unfolded:
-  ⊢
-    ∀ Φ,
-      isPkgInit pkg_id.go_etcd_io.raft.v3 -∗
-        (▷
-            ∀ ms γs,
-              memStorLock ms γs ∗
-                  memLog γs 0 DFrac.discard [zero_val EntryM] ∗
-                    memEnd γs 1 ∗
-                      memSnapNone γs ∗
-                        memStorMeta ms γs { Term' := W64 0, Vote' := W64 0, Commit' := W64 0 } ∗
-                          memStorFresh ms γs 0 memSnapEmpty -∗
-                Φ (intoVal ms)) -∗
-          WP ((intoVal (functions NewMemoryStorage [])) (intoVal ())) {{ Φ }}
+  ∀ (sz : Bool),
+    ⊢
+      ∀ Φ,
+        isPkgInit pkg_id.go_etcd_io.raft.v3 -∗
+          (▷
+              ∀ ms γs,
+                ⌜γs.sz = sz⌝ ∗
+                    memStorLock ms γs ∗
+                      memLog γs 0 DFrac.discard [zero_val EntryM] ∗
+                        memEnd γs 1 ∗
+                          memSnapNone γs ∗
+                            memStorMeta ms γs { Term' := W64 0, Vote' := W64 0, Commit' := W64 0 } ∗
+                              memStorFresh ms γs 0 memSnapEmpty -∗
+                  Φ (intoVal ms)) -∗
+            WP ((intoVal (functions NewMemoryStorage [])) (intoVal ())) {{ Φ }}
 
 theorem RaftLink.MemoryStorage.wp_ApplySnapshot [package_sem : Assumptions] :
     MemoryStorage.ApplySnapshot.spec
@@ -634,9 +639,9 @@ theorem RaftLink.MemoryStorage.wp_Append [package_sem : Assumptions] : MemorySto
             isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
                 memStorLock ms γs ∗
                   (if es = [] then emp else memLog γs k (DFrac.own 1) old ∗ memEnd γs (k + old.length)) ∗
-                    entsPts s dq es -∗
+                    entsPtsZ γs.sz s dq es -∗
               ▷
-                  ((entsPts s dq es ∗
+                  ((entsPtsZ γs.sz s dq es ∗
                       if es = [] then emp else memLog γs k (DFrac.own 1) es ∗ memEnd γs (k + es.length)) -∗
                     Φ (intoVal GoInterface.nil)) -∗
                 WP

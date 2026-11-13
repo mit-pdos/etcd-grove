@@ -6,18 +6,26 @@ model is the meaning of the specs.
 
 * **The data** (`Ent`, `Data`): a database is its root bucket; a bucket holds a sequence counter
   (`NextSequence`) and entries sorted by key (`bytes.Compare`, `go.GoStringLt`), each a plain value
-  or a nested bucket. The root's entries are the top-level buckets (no `Tx` method puts a plain value
-  there). A bucket is named by its **path** from the root (`BPath`). Every operation of the model
+  or a nested bucket. The root's entries are the top-level buckets: no `Tx` method puts a plain
+  value there, but the root's handle (`Tx.Cursor`, then `Cursor.Bucket`) can (`Bucket.Put` at
+  `[]`); etcd puts none. A bucket is named by its **path** from the root (`BPath`). Every operation of the model
   keeps the entries sorted with distinct keys (`insEnt`, `delEnt`), so a database reached from
   `Data.empty` or from a file (`Api.lean`'s `fileHolds`) is sorted.
 * **A transaction's view** (`TxView`): read or write, managed (`View`/`Update`) or not, the
-  committed data it began at (`base`), its data now (`cur`), the per-path **generation** that
-  `DeleteBucket` bumps (a deleted bucket's handles are never current again,
-  `nonissues/bbolt-deleted-bucket-handle.md`), and the database's `NoSync` mode.
+  committed data it began at (`base`), its data now (`cur`), and the database's `NoSync` mode.
+  Which bucket handles are current is not in the view: a write transaction's handles are owned
+  (`Api.lean`'s `bktOwn`), a read transaction's never go stale.
 * **The client-owned state** (`BoltSt`): the committed data and **what a crash may recover**
   (`dur`), with the two flags the durability argument needs (`busy`, `lost`); the transitions of a
   commit, a failed commit attempt and a sync (`BoltSt.commit`, `attempt`, `settle`, `sync`).
 * The size bounds (`maxKeySize`, `bboltEntryMax`) and the options (`OptsM`).
+* **Laws** over the data model (`Ent.atPath_modAt.spec`, ..., at the end): pure obligations the
+  clients use (lookup after a put or a delete, the cursor order after a put, well-formedness kept).
+
+**Changes (2026-11-12, `notes/specs-only/ledger.md`).** `TxView.gen`/`gens` removed (a generation
+counter in the view was unobservable state, redundant with the ownership of a write transaction's
+bucket handles, `Api.lean`'s `bktOwn`): `dropBkt` only changes the data. Added: the bucket paths
+(`Ent.bktPaths`, `Ent.bktsUnder`, `TxView.bktNames`), `Ent.curVal`, and the model's laws.
 -/
 module
 
@@ -111,12 +119,36 @@ def modAt : Ent → BPath → (Ent → Ent) → Ent
     | some c => e.setKey k (some (c.modAt p f))
     | none => e
 
+/-- An entry's value as a cursor returns it: a value's bytes, `none` for a nested bucket. -/
+def curVal : Ent → Option GoString
+  | .val v => some v
+  | .bkt _ _ => none
+
 /-- A bucket's entries as a cursor (and `ForEach`) returns them, in key order: a value's bytes,
 or `none` for a nested bucket (Go returns a nil value for a bucket's key). -/
 def curEnts (e : Ent) : List (GoString × Option GoString) :=
-  e.ents.map (fun x => (x.1, match x.2 with
-    | .val v => some v
-    | .bkt _ _ => none))
+  e.ents.map (fun x => (x.1, x.2.curVal))
+
+mutual
+/-- **The paths of the nested buckets** of `e`, at any depth, relative to `e` (not `[]`: `e`
+itself), in key order, parents first. -/
+def bktPaths : Ent → List BPath
+  | .val _ => []
+  | .bkt _ es => entsBktPaths es
+
+/-- The nested bucket paths of an entry list (`bktPaths`' helper). -/
+def entsBktPaths : List (GoString × Ent) → List BPath
+  | [] => []
+  | (k, c) :: es =>
+    (if c.isBkt then [k] :: (bktPaths c).map (k :: ·) else []) ++ entsBktPaths es
+end
+
+/-- **The bucket at `q` and every bucket below it** (`[]` if there is no bucket at `q`): the
+handles `DeleteBucket` of `q` invalidates. -/
+def bktsUnder (e : Ent) (q : BPath) : List BPath :=
+  match e.atPath q with
+  | some c => if c.isBkt then q :: (bktPaths c).map (q ++ ·) else []
+  | none => []
 
 end Ent
 
@@ -176,8 +208,6 @@ def float64IsNaN (f : w64) : Prop :=
   `Rollback` panic);
 - `base`: the committed data when it began (its snapshot, for a read transaction);
 - `cur`: its data now (`base` throughout a read transaction);
-- `gen p`: the generation of the bucket path `p`, bumped by `DeleteBucket` of `p`; `0` throughout
-  a read transaction;
 - `noSync`: the database's `NoSync` option (`isBolt`'s mode), which `Commit` follows.
 Written with named fields. -/
 structure TxView where
@@ -185,21 +215,15 @@ structure TxView where
   managed : Bool
   base : Data
   cur : Data
-  gen : BPath → Nat
   noSync : Bool
 
 /-- A read transaction's view: the snapshot `D` (on a database of mode `ns`). -/
 def TxView.ro (D : Data) (managed : Bool) (ns : Bool) : TxView :=
-  { rw := false, managed := managed, base := D, cur := D, gen := fun _ => 0, noSync := ns }
+  { rw := false, managed := managed, base := D, cur := D, noSync := ns }
 
 /-- A write transaction's view when it begins at the committed `D`, on a database of mode `ns`. -/
 def TxView.wr (D : Data) (managed : Bool) (ns : Bool) : TxView :=
-  { rw := true, managed := managed, base := D, cur := D, gen := fun _ => 0, noSync := ns }
-
-/-- The generations of `p` and of each of its ancestors, root first: a bucket handle is current
-while these are what they were when the handle was made. -/
-def TxView.gens (T : TxView) (p : BPath) : List Nat :=
-  (List.range (p.length + 1)).map (fun i => T.gen (p.take i))
+  { rw := true, managed := managed, base := D, cur := D, noSync := ns }
 
 /-- The entries of the bucket at `p` in cursor order (`[]` if there is none). -/
 def TxView.ents (T : TxView) (p : BPath) : List CurEnt :=
@@ -207,19 +231,17 @@ def TxView.ents (T : TxView) (p : BPath) : List CurEnt :=
   | some e => e.curEnts
   | none => []
 
+/-- The names of the nested buckets of the bucket at `p`, in key order (`ForEachBucket`'s). -/
+def TxView.bktNames (T : TxView) (p : BPath) : List GoString :=
+  ((T.ents p).filter (fun e => e.2.isNone)).map Prod.fst
+
 /-- The view with its data changed to `D`. -/
 def TxView.setCur (T : TxView) (D : Data) : TxView := { T with cur := D }
 
-/-- The view with the bucket `p.child k` deleted (with everything in it), its generation bumped,
-and the generations of the paths strictly below it reset to `0` (their handles are stale anyway:
-their generation lists hold `p.child k`'s, which only grows until an ancestor's is bumped).
-Resetting, not keeping, the paths below is what makes `DeleteBucket`'s recursion (each nested
-bucket deleted by its own `DeleteBucket`, bumping its own path) end at this view exactly
-(verify-round A11 F9). -/
+/-- The view with the bucket `p.child k` deleted, with everything in it (`DeleteBucket`; its
+handles' tokens are consumed, `Api.lean`'s `bktOwn`). -/
 def TxView.dropBkt (T : TxView) (p : BPath) (k : GoString) : TxView :=
-  { T with cur := T.cur.modAt p (fun b => b.setKey k none),
-           gen := fun x => if x = p.child k then T.gen x + 1
-             else if (p.child k).isPrefixOf x then 0 else T.gen x }
+  { T with cur := T.cur.modAt p (fun b => b.setKey k none) }
 
 /-! ## The client-owned state: committed data and durability -/
 
@@ -316,7 +338,7 @@ structure OptsM where
   mmapFlags : w64
   noSync : Bool
   /-- `NoFreelistSync` (re-review N1: with it off, `Open` commits once to write a freelist page
-  into a file that has none, `db.go:319-334`, a commit the client's state must record) -/
+  into a file that has none, `db.go:338-350` at `ea4cab5`, a commit the client's state must record) -/
   noFreelistSync : Bool
 
 /-- `Open(path, mode, nil)`'s options (`DefaultOptions`: no timeout, grow sync, the array
@@ -348,6 +370,129 @@ def OptsM.ok (o : OptsM) : Prop :=
     (o.mmapFlags.toNat = 0 ∨ o.mmapFlags.toNat = mapPopulate) ∧ loggerPtrOk o.logger
 
 end opts
+
+/-! ## Laws of the data model (2026-11-12, `notes/specs-only/ledger.md`)
+
+Pure obligations over the transparent model, which the clients use instead of re-deriving them
+(the backend's range after a put, its compaction's deletes). Each is true of the definitions;
+the comments say why, for the edge cases. -/
+
+namespace Ent
+
+/-- **`atPath` after `modAt` at the same path and below it**: the entry at `p` is `f` of the old
+one, and the entries below are `f`'s (`r = []`: the same path). If there is no entry at `p`
+(a missing key, or a value on the way), `modAt` changes nothing and both sides are `none`. -/
+def atPath_modAt.spec : Prop :=
+  ∀ (e : Ent) (p r : BPath) (f : Ent → Ent),
+    (e.modAt p f).atPath (p ++ r) = ((e.atPath p).map f).bind (fun c => c.atPath r)
+
+/-- **`atPath` after `modAt` at another path**: unchanged when neither path is a prefix of the
+other (`modAt` replaces only the first entry of each key on its way, so another key's first
+entry, which `lookup` finds, stays). An ancestor of `p` is changed (its subtree is). -/
+def atPath_modAt_other.spec : Prop :=
+  ∀ (e : Ent) (p p' : BPath) (f : Ent → Ent),
+    ¬ p.IsPrefix p' → ¬ p'.IsPrefix p → (e.modAt p f).atPath p' = e.atPath p'
+
+/-- **Lookup after `setKey`** in a bucket: the key gives what was set (`some x`: put, inserted or
+replaced; `none`: deleted), every other key what it gave before. (A value's `setKey` is the value,
+whose `lookup` is `none`: hence the bucket premise.) -/
+def lookup_setKey.spec : Prop :=
+  ∀ (e : Ent) (k k' : GoString) (x : Option Ent), e.isBkt = true →
+    (e.setKey k x).lookup k' = if k' = k then x else e.lookup k'
+
+/-- **A put or delete at a bucket, seen at its key's path** (`Get` after `Put`/`Delete`): with a
+bucket at `p`, the key's path holds what was set. Other keys' paths are unchanged
+(`atPath_modAt_other.spec`: `p.child k` and `p.child k'` are not prefixes of each other). -/
+def atPath_child_setKey.spec : Prop :=
+  ∀ (e : Ent) (p : BPath) (k : GoString) (x : Option Ent), e.bktAt p →
+    (e.modAt p (fun b => b.setKey k x)).atPath (p.child k) = x
+
+/-- **The cursor order after a put** (`curEnts`, what `Seek`/`Next` return): in a well-formed
+bucket (keys strictly sorted, so the entries before `k` are the `seekIdx` first, and at most the
+next one has the key `k`), the entry `(k, x.curVal)` is at `seekIdx`, after the entries below `k`
+and before those above it, replacing the old entry of `k` if there was one. (A bucket: a value's
+`setKey` is the value, whose `curEnts` stays `[]`.) -/
+def curEnts_put.spec : Prop :=
+  ∀ (e : Ent) (k : GoString) (x : Ent), e.isBkt = true → e.wf →
+    (e.setKey k (some x)).curEnts =
+      e.curEnts.take (seekIdx e.curEnts k) ++ (k, x.curVal) ::
+        (e.curEnts.drop (seekIdx e.curEnts k)).filter (fun c => decide (c.1 ≠ k))
+
+/-- **The cursor order after a delete**: the entries without the key (in order; a value's
+`setKey` is the value, whose `curEnts` is `[]` either way). -/
+def curEnts_del.spec : Prop :=
+  ∀ (e : Ent) (k : GoString),
+    (e.setKey k none).curEnts = e.curEnts.filter (fun c => decide (c.1 ≠ k))
+
+/-- **A put keeps an entry well-formed** under the entry bounds (a key non-empty and at most
+`maxKeySize`; a value's key and value together at most `bboltEntryMax`; a nested bucket itself
+well-formed): what `Put`'s and `CreateBucket*`'s premises give. Sorted insertion: `GoStringLt`,
+the bytes' lexicographic order, is a strict total order. -/
+def wf_setKey.spec : Prop :=
+  ∀ (e : Ent) (k : GoString) (x : Ent), e.wf → k ≠ [] → k.length ≤ maxKeySize → x.wf →
+    (∀ v, x = Ent.val v → k.length + v.length ≤ bboltEntryMax) → (e.setKey k (some x)).wf
+
+/-- **A delete keeps an entry well-formed** (a filter keeps the order and the bounds). -/
+def wf_delKey.spec : Prop :=
+  ∀ (e : Ent) (k : GoString), e.wf → (e.setKey k none).wf
+
+/-- **`modAt` keeps an entry well-formed** when it changes a bucket into a well-formed bucket
+(the key on the way to it unchanged, a bucket's entry not under the value bound). With no entry
+at `p` it changes nothing. (A value at `p` is excluded: a longer value could break its parent's
+entry bound.) -/
+def wf_modAt.spec : Prop :=
+  ∀ (e : Ent) (p : BPath) (f : Ent → Ent), e.wf →
+    (∀ c, e.atPath p = some c → c.isBkt = true ∧ (f c).isBkt = true ∧ (f c).wf) →
+    (e.modAt p f).wf
+
+/-- **The bucket paths are the paths of buckets** (not the root), without duplicates, in a
+well-formed entry (distinct keys: `lookup` finds the one entry of each key). -/
+def bktPaths_mem.spec : Prop :=
+  ∀ (e : Ent), e.wf →
+    (∀ q, q ∈ e.bktPaths ↔ q ≠ [] ∧ e.bktAt q) ∧ e.bktPaths.Nodup
+
+/-- **The buckets under `q`** are the buckets at paths extending `q`, without duplicates, in a
+well-formed entry. -/
+def bktsUnder_mem.spec : Prop :=
+  ∀ (e : Ent) (q : BPath), e.wf →
+    (∀ d, d ∈ e.bktsUnder q ↔ q.IsPrefix d ∧ e.bktAt d) ∧ (e.bktsUnder q).Nodup
+
+/-- **The bucket paths after a bucket's creation** (`CreateBucket*` of a key absent from the
+bucket at `p`): the new bucket's path and its own buckets' (none for `CreateBucket`'s empty
+bucket) join the old ones, up to order. Well-formed data: keys sorted and distinct, so `setKey`
+on each ancestor replaces its one entry (on unsorted entries `insEnt` could insert a second copy
+of an ancestor's key, whose paths `bktPaths` would count twice). What a client keeping
+`[∗list] d ∈ T.cur.bktPaths, …` (the backend's lock invariant) rebuilds its list by. -/
+def bktPaths_create.spec : Prop :=
+  ∀ (e : Ent) (p : BPath) (k : GoString) (x : Ent), e.wf → e.bktAt p →
+    e.atPath (p.child k) = none → x.isBkt = true →
+    (e.modAt p (fun b => b.setKey k (some x))).bktPaths.Perm
+      ((p.child k :: x.bktPaths.map (p.child k ++ ·)) ++ e.bktPaths)
+
+/-- **The bucket paths after a bucket's deletion** (`DeleteBucket`, `TxView.dropBkt`): those at or
+below `p.child k` go (the tokens `DeleteBucket` consumes, `bktsUnder`), the others stay, up to
+order. With no bucket at `p.child k` (absent, a value), nothing goes; with no bucket at `p`,
+`modAt` changes nothing. -/
+def bktPaths_dropBkt.spec : Prop :=
+  ∀ (e : Ent) (p : BPath) (k : GoString), e.wf →
+    (e.modAt p (fun b => b.setKey k none)).bktPaths.Perm
+      (e.bktPaths.filter (fun d => !((p.child k).isPrefixOf d)))
+
+/-- **A value's put or delete leaves the bucket paths as they were** (`Put`, `Delete`,
+`Cursor.Delete`: the key holds no bucket, and what is set is a value or nothing; values add no
+path, so even the order is kept). -/
+def bktPaths_setVal.spec : Prop :=
+  ∀ (e : Ent) (p : BPath) (k : GoString) (x : Option Ent), e.wf →
+    (e.atPath (p.child k)).any Ent.isBkt = false → (∀ y, x = some y → y.isBkt = false) →
+    (e.modAt p (fun b => b.setKey k x)).bktPaths = e.bktPaths
+
+/-- **A sequence update leaves the bucket paths as they were** (`SetSequence`, `NextSequence`:
+`setSeq` keeps a bucket's entries). -/
+def bktPaths_setSeq.spec : Prop :=
+  ∀ (e : Ent) (p : BPath) (n : w64), e.wf →
+    (e.modAt p (fun b => b.setSeq n)).bktPaths = e.bktPaths
+
+end Ent
 
 end Bbolt
 end EtcdGrove

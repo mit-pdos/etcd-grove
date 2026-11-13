@@ -15,13 +15,15 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 /- Every bbolt spec is stated over OsFs's semantics (round 11, D22: the default `osFs_semantics`,
-whose `pwrite` within one aligned OS page is all-or-nothing): the binder `∀ [HasExt osFsExt]` at
+whose `pwrite` within one aligned OS page is all-or-nothing): the binder `∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]` at
 the head of each triple (a section variable is dropped from a definition that does not use it),
 and in the signature of each vocabulary predicate, so that every statement carries it (checked
 with `#check`). -/
@@ -33,7 +35,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 the value, valid while the transaction is live, or nil if absent. (Margin: a present key whose
 value was put as nil also reads back nil; Go's `Get` cannot tell them apart.) -/
 abbrev Bucket.Get.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (b : Loc) (n : GoString) (m : BktData)
+  ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (b : Loc) (n : GoString) (m : BktData)
     (key : GoSlice) (kb : GoString) (dk : DFrac),
   {{ boltTx (GF := GF) tx γ q T ∗ boltBkt tx γ b n (T.gen n) ∗ key ↦*{dk} kb ∗ ⌜T.cur.lookup n = some m⌝ }}
     (App (Val (b @!! go.GoType.PointerType Bucket.ty @!! go!"Get")) (Val #key))

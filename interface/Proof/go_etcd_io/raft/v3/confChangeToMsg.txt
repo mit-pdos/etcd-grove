@@ -6,15 +6,17 @@ theorem confChangeToMsg.wp_proof [package_sem : Assumptions] (wp_raftpb_MarshalC
     raftpb.MarshalConfChange.spec) (wp_MessageType_Enum : raftpb.MessageType.Enum.spec)
     (wp_EntryType_Enum : raftpb.EntryType.Enum.spec) : confChangeToMsg.spec
   -- `Perennial.EtcdGrove.confChangeToMsg.spec`, unfolded:
-  ∀ (c : GoInterface) (o : Option ConfChangeIM) (dq : DFrac),
+  ∀ (c : GoInterface) (oc : Option ConfChangeIC) (dq : DFrac) (sz : Bool),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ ownConfChangeI c dq o -∗
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+            ccPtsCCo c dq oc ∗ ⌜sz = true → ∀ (cc : ConfChangeIC), oc = some cc → ccSize cc + 64 ≤ entBytesMax⌝ -∗
           (▷
               ∀ ml bs,
-                ownConfChangeI c dq o ∗
-                    msgIn ml (DFrac.own 1)
-                        { msg := propMsgM, ents := [ccEntryM o bs], snap := none, ctx := [], resps := [] } ∗
-                      ⌜MarshalsConfChange o bs⌝ -∗
+                ccPtsCCo c dq oc ∗
+                    msgInC sz ml (DFrac.own 1)
+                        { msg := propMsgM, ents := [ccEntryM (Option.map ConfChangeIC.model oc) bs], snap := none,
+                          ctx := [], resps := [] } ∗
+                      ⌜MarshalsConfChange (Option.map ConfChangeIC.model oc) bs⌝ -∗
                   Φ (intoVal ml, intoVal GoInterface.nil)) -∗
             WP ((intoVal (functions confChangeToMsg [])) (intoVal c)) {{ Φ }}

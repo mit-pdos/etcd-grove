@@ -194,7 +194,12 @@ axiom metadata.incomingOf_of_value (c c' : GoInterfaceOk) (v : GoInterface) :
   (`internal/http2/client_conn_pool.go:284`). **Evidence:** `TestRenewHTTPErrTiming`: `RenewHTTP`
   over a `*http.Transport` with a context whose `Err()` panics before `Done` and returns
   `ErrGRPCNoLeader` after: the successful call and the cancelled call (blocked server, then cancel)
-  never call `Err()`; the cancelled call returns a `*url.Error` of `context.Canceled`.
+  do not call `Err()`; the cancelled call returns a `*url.Error` of `context.Canceled`. (Corrected
+  after the T-g review's M1: on a context already done when `RenewHTTP` is called, the transport's
+  `WithCancelCause` calls the caller's `Err()` twice, synchronously on the caller's goroutine, in
+  `propagateCancel`'s already-done arm and in `Cause`, go1.27.3 `context.go:487, 290`; the test's
+  pre-cancelled case checks it, and that a `*url.Error` is returned. The weak pre still suffices:
+  any error is accepted by the post, and each call is on a live goroutine, Addendum T-f'.)
 - **Review point (from the previous agent):** net/http's `Err()` vs `Done`: above. Remaining: the
   post `applyErrIs err` for a `*url.Error` wrapping `ErrGRPCNoLeader` (reachable only if the
   derived context took the parent's `Err()` through propagateCancel's goroutine path, which a
@@ -326,6 +331,728 @@ etcd-grove-81 (questions.md).
 - m1 (axiom): `incomingOf_cancelCtx`'s docstring: written once for an `isContext` parent
   (`#HParentCC` excludes the `afterFuncer`/`stopCtx` rewrite). m2: the per-execution reading sentence
   (the same as `WithValue.spec`'s `incomingOf` post).
+
+## Addendum T-f' (2026-11-12): the weak context's `Err` pays a level token (decided by etcd-grove-81, option (A))
+
+- **Why** (step 4's blocker, `notes/k8s-7f4-handoff.md` "Steps 3-4, third agent"): etcd's wrapper's
+  `Err` (fork `673da07c8f` `server/etcdserver/api/v3rpc/interceptor.go:297-304`) takes
+  `c.lock.RLock()`. Perennial's `RLock` (`sync.RWMutex.wp_RLock_of`) needs a reader token
+  (`ownRWMutex rw P`; `2^30 - 1` per lock, the bound below which Go's reader counter does not
+  overflow). T-f's `"#HErr"`/`"#HErrDone"` gave a persistent `Err` triple with no resource, which no
+  finite stock of reader tokens can pay for (unboundedly many concurrent callers), so
+  `srvCtxWeak (ccCtx l)` was not provable. The bounds plan's answer (`notes/bounds-plan.md`): a reader
+  pays with its thread token, through a thread pool of the lock's reader tokens
+  (`init_RWMutex_threadPoolL`).
+- **Text** (`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/SrvCtxWeak.lean`): new
+  `abbrev v3rpc.ctxErrLvl : Nat := 4`; `"#HErr"` is
+  `□ ∀ Φ, levelTok v3rpc.ctxErrLvl -∗ ▷ (∀ err, levelTok v3rpc.ctxErrLvl -∗ Φ #err) -∗ WP Err()`,
+  and `"#HErrDone"` takes `levelTok v3rpc.ctxErrLvl` after `ContextClosed` and returns it with the
+  error. The other clauses are unchanged. `srvCtxWeak_of_isContext` still holds (an `isContext`'s
+  `Err` needs no token; it is passed through) and `auth.ctxDoneAny_of_srvCtxWeak` is untouched.
+- **The level** (from `Proof/google_golang_org/grpc/InvGrpcRun.lean`): grpc's run splits its thread
+  token into levels 0-3 and `threadTokFrom 4` (`threadTok_levels0123`): level 0 is the handler's own
+  (the lessor's and leases' pools, `lessorLvl = leaseLvl = 0`), 1 `raftPoolN`, 2 the revoke pools
+  (`srvRevokeInnerN`/`srvRevokeOuterN`), 3 `srvRunN` (`grpcStreamRunOk_of_pools`). No pool of the
+  repository is at a level above 3 (`isThreadPoolL` and `levelTok` occurrences, 2026-11-12). Level 4
+  is in the run's `threadTokFrom 4`, which it keeps: the wrapper's handle work hands `levelTok 4` to
+  the handler with its bundle (`threadTokFrom 4 ⊣⊢ levelTok 4 ∗ threadTokFrom 5`), and a forked
+  goroutine keeps the whole token `wp_fork_tok` gives it.
+- **Effect on the trust base** (weaker premises, so stronger axioms): the `Err` part of the premise
+  of `EtcdServer.waitLeader.spec` and `leasehttp.RenewHTTP.spec` (both take `srvCtxWeak ctx cd`), and
+  of `Tracer.Start.spec`'s premise and wand (`txnCtx ∨ srvCtxWeak`, `□ (srvCtxWeak ctx cd -∗
+  srvCtxWeak ctx' cd)`). Their statements are textually unchanged; each docstring has a T-f' sentence.
+- **Go:**
+  - `waitLeader` (`v3_server.go:785-803`) only selects on `ctx.Done()`; it never calls `Err()`, so
+    a premise whose `Err` needs a token it does not have is never exercised.
+  - `RenewHTTP`: net/http calls `ctx.Err()` only from live goroutines (the caller's and the
+    transport's own; HTTP/2 after `Done`, and `shouldRetryDial`'s nil test,
+    `internal/http2/client_conn_pool.go:284`). Each is a thread, so the read locks held at one time
+    on the wrapper's `RWMutex` are bounded by the live threads (`threadBound GF`, 2^28 < 2^30), which
+    is what the token accounts for in the logic. In Go the reader counter cannot overflow from them.
+  - `Tracer.Start`: `ContextWithSpan(ctx, s)` is a `valueCtx` whose `Err()` is `ctx.Err()` (the
+    same call, paid with the same token), or `ctx` itself (the no-op tracer).
+- **Review point:** the level choice (4) and that the three trust-boundary texts only use `Err`
+  from threads. Callers of the weak context's `Err` in proofs (after the handle work): `watchServer.Watch`
+  (after `Done`), `recvLoop` (`watch.go:203`, forked), `leaseKeepAlive` (`lease.go:106,118,149`),
+  and the local `WithTimeout` lemma (`propagateCancel`'s `parent.Err()`).
+- **Checks:** `SrvCtxWeak.lean` and every module that mentions `srvCtxWeak`
+  (`Tracer__Start`, `StartLaws`, `SrvCtxWeakLaws`, `EtcdServer__waitLeader`, `RenewHTTP`) pass
+  `etc/lean-check.py -a`; full build (`etc/timed-build.py`, 64G cap, build lock) passes (17492
+  jobs); `etc/tcb-report.py --check` matches the baseline unchanged (865 axioms, 5 sorries: the
+  statements of the axioms are textually the same); `etc/goose.py --check` passes (with the Goose
+  configuration's promoted methods, below). Not run: axiom-tok, collections, gen-interface (none of
+  the six API lists exposes these texts; to run with the next gates).
+- **Goose configuration** (accepted by etcd-grove-81): `Code/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc.toml`
+  lists the wrapper's promoted methods (`cancellableContext.{Deadline,Done,Value}`,
+  `serverStreamWithCtx.{RecvMsg,SendMsg}`), regenerated with `etc/goose.py --project etcd`
+  (`8227d410c2`).
+
+## Addendum T-g (2026-11-12): the raw stream is a pointer value; `SpanFromContext` reads only `Value` (decided by etcd-grove-81, Q1/Q2)
+
+Found while proving item 7 (the interceptor's insert into the monitor's map; mvcc's `Watch` on the
+traced weak context). Both are trusted-text changes; for 81's review with the `axiom` skill at the
+mvcc checkpoint, together with the interface diff.
+
+### T-g1 (Q1). `rawStreamKeyTy t` → `rawStreamKey si` (strengthens T-c)
+
+- **Text** (`Proof/google_golang_org/grpc/InvGrpcStream.lean`, `rawStreamKey`; used in
+  `srvRawStreamIs`): `∃ (t' : go.GoType) (ls : Loc), si = interface.mk (go.GoType.PointerType t') #ls`
+  (was: `∃ t', si.ty = go.GoType.PointerType t'`, the type only). `srvRawStreamIs` says
+  `⌜rawStreamKey si⌝`.
+- **Why:** the monitor's map key `v3rpc.sKey t ls l` (and `safeMapKey_sKey`, `==` on two keys
+  comparing the pointers) needs the raw stream as `interface.mkOk (PointerType t) #ls`; a type
+  alone leaves the value an arbitrary `val`.
+- **Stronger claim** of grpc's run model (`acceptRun`'s raw end) and of prometheus's contract
+  (its handler's raw end).
+- **Evidence** (`examples/premisefix/streamctx` `TestRawStreamKey`, extended): at etcd's interceptor
+  position and in the handler, with and without grpc-prometheus, the stream is a pointer type
+  (`*grpc.serverStream`, `*interceptors.monitoredServerStream`) and the interface's data word
+  (`(*[2]unsafe.Pointer)(unsafe.Pointer(&ss))[1]`) is the pointer itself
+  (`reflect.ValueOf(ss).UnsafePointer()`): Go stores a pointer-typed dynamic value directly in the
+  interface. Passes (`GOWORK=off go test ./premisefix/streamctx -run TestRawStreamKey`). After the
+  review (m1): also with otelgrpc's stats handler and through `ServeHTTP` (an HTTP/2 TLS httptest
+  server), all eight combinations; `srvRawStreamIs`'s docstring names grpc's one wrapper hook (the
+  xDS-internal `xdsFilterWrapperOption`, never set by etcd).
+
+### T-g2 (Q2). `trace.SpanFromContext.spec` and mvcc's `WatchStream.Watch.contract` take `spanCtxOk` only
+
+- **Text:** `Spec/go_opentelemetry_io/otel/trace/SpanFromContext.lean`, pre
+  `⌜ctx = trace.todoCtx⌝ ∨ trace.spanCtxOk ctx` (was `⌜…⌝ ∨ (context.isContext ctx cd ∗
+  trace.spanCtxOk ctx)`), the binder `cd` kept (unused); `Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.lean`
+  `WatchStream.Watch.contract`, the context part `⌜ctx = todo⌝ ∨ trace.spanCtxOk ctx` (was with
+  `isContext ctx cd`), `cd` kept. **Weaker premises** (the axiom claims more; the sealed API asks
+  less: an interface diff of mvcc's API).
+- **Why:** etcd's `recvLoop` passes mvcc's `Watch` the traced stream context, a weak one
+  (`srvCtxWeak`), not an `isContext`; mvcc's `watchStream.Watch` reads only `SpanFromContext(ctx)`.
+- **Faithful:** otel v1.47.0 `trace/context.go` `SpanFromContext` returns `noopSpanInstance` for a
+  nil context, else `ctx.Value(currentSpanKey).(Span)` or `noopSpanInstance`: no other method of
+  `ctx`. **Evidence:** `TestSpanFromContextValueOnly` (same package): a context whose `Deadline`,
+  `Done` and `Err` panic and whose `Value` answers nil or a span: `SpanFromContext` returns the
+  no-op span and the span (by its `SpanContext`). Passes.
+- Callers repaired: mvcc's `watchStream.Watch` proof (`hspan ctx cd`), `processInternalRaftRequestOnce`
+  (unchanged text, checks).
+
+### The T-g review (2026-11-12): READY WITH CHANGES, applied (decided by etcd-grove-81)
+
+- M1: the axiom-tok entry of `RenewHTTP` said net/http never calls the caller's `Err()`; false on
+  a context already done (`propagateCancel`/`Cause`, go1.27.3 `context.go:487, 290`). The entry, the
+  T-f text above and `RenewHTTP`'s docstring restated; `TestRenewHTTPErrTiming` has the pre-cancelled
+  case (two calls, a `*url.Error`). The token argument stands (each call on a live goroutine).
+- m1: `TestRawStreamKey` covers the stats handler and `ServeHTTP`; `srvRawStreamIs`'s docstring
+  names the xDS-only wrapper hook.
+- m2 (kept for cleanup): `SpanFromContext.spec`'s and mvcc's `WatchStream.Watch.contract`'s `cd`
+  binder is unused; drop it with its callers (`hspan ctx cd`) in a later pass.
+- m3: the `Tracer.Start` axiom-tok entry says `Start` never calls `ctx.Err()` (otel's noop and sdk
+  tracers).
+
+## Addendum T-h (2026-11-13): `WithTimeout` over a weak parent; a refutation of `RenewHTTP` (for etcd-grove-81's axiom review)
+
+81 decided option (c) for `LeaseRenew`'s `context.WithTimeout(ctx1)` over a weak `ctx1`: a clearly
+marked local trust-boundary axiom, until the general Perennial change (option (a),
+`notes/perennial-changes.md`, "The context model over an error predicate"). Writing it found two
+things that change its form, and a refutation of a landed axiom. **Nothing below is in Lean yet.**
+
+### T-h0. Refutation: `leasehttp.RenewHTTP.spec` (landed; before T-f with `isContext`, now `srvCtxWeak`)
+
+- **The program:** a context whose every method delegates to a real `WithCancel` child, except
+  `Value` at net/http's `httptrace` key (`clientEventContextKey{}`), which panics. It meets every
+  clause of `isContext` and of `srvCtxWeak` (their `Value` clause speaks only of `&cancelCtxKey`;
+  `parentCancelCtx` finds the child's `*cancelCtx`), and `RenewHTTP`'s other premises (a
+  `*http.Transport`). `RenewHTTP` panics: `Transport.roundTrip` calls
+  `httptrace.ContextClientTrace(ctx)` (go1.27.3 `net/http/transport.go:614`), which calls
+  `ctx.Value(clientEventContextKey{})`. Go test: `TestRenewHTTPValuePanics`
+  (`examples/premisefix/streamctx`), recovers `Value(httptrace key)`.
+- **Also reachable through a non-nil value:** a `*httptrace.ClientTrace` at that key makes the
+  transport call its hooks (the caller's functions); a `*nettrace.Trace` at `nettrace.TraceKey{}`
+  likewise (`net/dial.go:535, 778`, `net/lookup.go:313`), and a function at
+  `nettrace.LookupIPAltResolverKey{}` replaces the resolver (`net/lookup.go:321`).
+- **Fix proposed:** `RenewHTTP`'s premise gains the values net/http reads, as `libCtxOk` does for
+  grpc's: `context.valueAt ctx k (· = GoInterface.nil)` for `k` each of `httptrace`'s
+  `clientEventContextKey{}`, `nettrace.TraceKey{}` and `nettrace.LookupIPAltResolverKey{}` (a new
+  `http.netCtxOk ctx`), discharged on etcd's stream path from T-a's chain form (no link of grpc's,
+  otel's or etcd's chain stores these keys: `ctxValue ci k (· = nil)`, carried through
+  `WithCancel`, the wrapper's promoted `Value`, `Tracer.Start`'s `WithValue` and the `WithTimeout`
+  below by `ctxValueFrom`; this needs T-a's chain form of grpc's run context, `libCtxOkC`, to name these three keys too, a trusted claim of grpc's run model, checked by `TestRunCtxChain`'s chain: only grpc's, otel's and the transport's links). **The class:** other trust-boundary specs that take `isContext` (or
+  `srvCtxWeak`) and run library code that reads `ctx.Value` at keys the predicate does not speak of
+  (net/http, grpc's client and server internals beyond `libCtxOk`'s four keys) have the same gap; a
+  sweep is a separate task (recommended: list the axioms whose Go reaches `Value` at an unlisted key).
+
+### T-h1. Why the child cannot be `srvCtxWeak`
+
+`propagateCancel` (go1.27.3 `context.go:476-528`) on a parent already done calls
+`child.cancel(false, parent.Err(), Cause(parent))`: the new `*timerCtx` stores the wrapper's
+`ErrGRPCNoLeader`. Its embedded `*cancelCtx` is what its `Value(&cancelCtxKey)` returns and what
+`parentCancelCtx` finds. `srvCtxWeak`'s `#HValue` (`isCancelCtxAny`) and `#HParentCC`
+(`isCancelCtx p`) would claim Perennial's `cancelCtxInv` of it, whose stored error is
+`isTypedErr ∧ isCtxErr`: false here, and a proof could derive `isCtxErr` of an `ErrGRPCNoLeader`
+through `cancelCtx.Err`'s spec (unsound: a program that panics unless the error is `Canceled` or
+`DeadlineExceeded` would verify). So the axiom gives the child a weaker predicate, without those
+two clauses.
+
+### T-h2. The texts (proposed)
+
+- `v3rpc.ctxDoneErr c s` (vocabulary, `SrvCtxWeak.lean`): `srvCtxWeak` without `#HParentCC`, with
+  `#HValue` at `&cancelCtxKey` returning (no fact of the value): `#HDeadline`, `#HDone`, `#HErr`
+  (token), `#HValueAny` (`WP c.Value(&cancelCtxKey) {True}`), `#HErrDone` (token; non-nil,
+  `isCtxErr ∨ noLeaderErr`), `#HDoneFresh`, `#HClosedchan`. Law `srvCtxWeak c s ⊢ ctxDoneErr c s`
+  (dropping clauses).
+- `v3rpc.ctxChildErr c s`: `ctxDoneErr` with the `*timerCtx`'s stronger `Err`, no token:
+  `#HErrAny`: `Err()` returns `nil` or a non-nil `err` with `isCtxErr err ∨ noLeaderErr err`; law
+  `ctxChildErr c s ⊢ ctxDoneErr c s` (the token passed through).
+- `EtcdServer.waitLeader.spec` and `leasehttp.RenewHTTP.spec` take `ctxDoneErr ctx cd` in place
+  of `srvCtxWeak ctx cd` (**weaker premises**: `waitLeader` selects on `Done` only;
+  net/http's `WithCancelCause(req.Context())` calls `Done`, `Value(&cancelCtxKey)` through
+  `parentCancelCtx`, `Err` (T-f'), and locks the found `*cancelCtx` in Go, whatever its error),
+  `RenewHTTP` also T-h0's `http.netCtxOk ctx`.
+- **The axiom** `v3rpc.wp_WithTimeout_weak` (new file `v3rpc/WithTimeoutWeak.lean`, marked
+  trust-boundary, to be deleted when (a) lands):
+  `{{ isPkgInit context ∗ srvCtxWeak parent pd ∗ levelTok v3rpc.ctxErrLvl }}
+     context.WithTimeout(parent, timeout)
+   {{ ctx' γ' cancel d, RET (ctx', cancel); levelTok v3rpc.ctxErrLvl ∗
+      □ (∀ Φ, True -∗ ▷ (True -∗ Φ #()) -∗ WP cancel() {{ Φ }}) ∗
+      v3rpc.ctxChildErr ctx' {pd with Deadline := some d, PDone := True, Done_gn := γ'} ∗
+      ctxValueFrom parent ctx' }}`
+  (Perennial's `wp_WithTimeout` with `isContext` replaced as above; the token pays the parent's
+  `Err()`, called twice on the caller's goroutine when the parent is already done; the goroutine
+  branch is not reached, the parent's `#HParentCC` finding its `*cancelCtx`.)
+- **`isTypedErr` in `#HErrDone`** (81's item): with T-h1's form nothing needs it (the child's
+  stored error is inside the axiom; no consumer type-asserts it in the logic). Recommended: not
+  added; if wanted, it is a one-clause strengthening of `srvCtxWeak` and `ctxDoneErr`, proved for the
+  wrapper from `ErrGRPCNoLeader`'s dynamic type (`*status.Error`, which implements `error`:
+  `TestNoLeaderTyped`).
+
+### T-h3. Go evidence (`examples/premisefix/streamctx`)
+
+- `TestWithTimeoutWeak`: over etcd's wrapper (and a `WithValue` of it, `Tracer.Start`'s link):
+  already cancelled with `ErrGRPCNoLeader`, the child is done and its `Err()` is `ErrGRPCNoLeader`
+  (`errors.Is` with `Canceled`/`DeadlineExceeded` false), unchanged by `cancel()`; not yet done, the
+  child registers with the wrapper's inner `*cancelCtx`, and the wrapper's `Cancel(ErrGRPCNoLeader)`
+  gives the child `Canceled`; its own timeout gives `DeadlineExceeded`, its `cancel()` `Canceled`.
+- `TestNoLeaderTyped`: `ErrGRPCNoLeader` is a `*status.Error`, an `error`.
+- `TestRenewHTTPValuePanics`: T-h0.
+
+### T-h4. Consequences in `LeaseRenew`
+
+The loop's `cctx.Err()` (`ctxChildErr`'s `#HErrAny`) and the switch: `errors.Is(err,
+DeadlineExceeded)`/`Canceled` on an `ErrGRPCNoLeader` (`errors.IsStatusErr.spec`, as `Watch`) are
+false, so the **default arm becomes reachable**: it logs "Unexpected lease renew context error"
+(`srvLgReader`'s logger) and returns `ErrCanceled` (an `applyErrIs` leaf). `LeaseRenew.spec` takes
+`srvCtxWeak ctx cd ∗ levelTok v3rpc.ctxErrLvl` (and T-h0's `http.netCtxOk`) in place of
+`isContext ctx cd`; `raftLeaseRenew` likewise.
+
+### T-h5 (2026-11-13, the seventh agent). Soundness finding: T-h2's `ctxDoneErr` would make `RenewHTTP` false
+
+T-h2's `ctxDoneErr` replaces `#HValue` by `#HValueAny` (`Value(&cancelCtxKey)` returns, **no fact of the
+value**), and `RenewHTTP.spec` was to take it. A context can return there a **nil pointer of type
+`*context.cancelCtx`** (the type is unexported, but `reflect.Zero(reflect.TypeOf(v)).Interface()` of the
+value a real child returns builds one): net/http's `WithCancelCause(req.Context())` → `propagateCancel` →
+`parentCancelCtx` asserts it to `*cancelCtx` (ok) and loads `p.done` through the nil pointer (go1.27.3
+`context.go:403-411`): **`RenewHTTP` panics** (`TestRenewHTTPNilCancelCtxPanics`,
+`examples/premisefix/streamctx`, passes: "invalid memory address or nil pointer dereference"). Every
+other clause of `ctxDoneErr` holds (all methods delegate to a real `WithCancel` child). `srvCtxWeak`'s
+`#HValue` (`isCancelCtxAny`: a `*cancelCtx` value is a valid one, `isCancelCtx c`) excludes it, so the
+**landed** `RenewHTTP.spec` is not affected; only the proposed `ctxDoneErr` premise is. `waitLeader`
+is unaffected (it never calls `Value`).
+
+Also in principle: a non-nil `*cancelCtx` that is a reflect copy of a real one (`reflect.New(T.Elem())`,
+then `Elem().Set(...)`) has the real one's `done` channel and `children` map but its own mutex, so
+`parentCancelCtx` accepts it and `propagateCancel` writes the shared map under the wrong lock (a data
+race), so `c ≠ null` alone is not enough either. A fresh zero `*cancelCtx` (`reflect.New`) is harmless
+(`p.done.Load()` is nil, `parentCancelCtx` returns false).
+
+**Options** (for etcd-grove-81):
+- (A) `ctxDoneErr`'s `#HValue`: `Value(&cancelCtxKey)` returns nil, a value of another dynamic type, or a
+  `*cancelCtx` at a location `c` with `context.madeCancelCtx c`, a new opaque trusted predicate ("allocated
+  by `context`'s constructors, its fields written only by `context`'s code"); `wp_WithTimeout_weak` gives
+  it of the child's embedded `*cancelCtx`; `ctxDoneErr_of_srvCtxWeak` needs a trusted law
+  `madeCancelCtx_of_isCancelCtx` (Perennial's `isCancelCtx` holds only of the constructors' contexts).
+- (B) `RenewHTTP`'s premise `srvCtxWeak ctx cd ∨ v3rpc.weakChild ctx cd`, the second an opaque handle the
+  axiom gives of its child only (the same claim as (A), scoped to the one consumer).
+- (C) `c ≠ null` only, the reflect-copy race recorded as a residual (not recommended: a race is
+  undefined behavior in the model).
+- **Recommended:** land T-h0's fix now (below: built), and write `ctxDoneErr`/`ctxChildErr`/
+  `wp_WithTimeout_weak` with (A) at LeaseKeepAlive, their first consumer (nothing in this landing uses
+  the axiom; `waitLeader` can take `ctxDoneErr` then too).
+
+### T-h, as written in Lean (2026-11-13, the seventh agent; `da77c070e5`, `00ce547d39`)
+
+Written (T-h0's fix; steps 1, 2, 4's `RenewHTTP` part, 6, 7 of the handoff):
+- `Proof/net/http/NetCtx.lean` (new, not trusted): the keys `httptrace.clientEventKeyAny`,
+  `nettrace.traceKeyAny`, `nettrace.lookupIPAltResolverKeyAny`; `http.netCtxOk ctx` (`context.valueAt
+  ctx k (· = nil)` at the three), `http.netCtxOkC ctx` (`ctxValue`, the chain form); laws
+  `http.netCtxOk_of_netCtxOkC`, `http.netCtxOkC_from` (`ctxValueFrom`), `http.netCtxOkC_raw` (a type
+  `context.value()` does not special-case).
+- **Trusted, changed:** grpc's `srvRawStreamIs` gains `http.netCtxOkC ci` (docstring: the keys are
+  unexported standard-library types, stored only by `httptrace.WithClientTrace` and `net`'s tests, which
+  neither grpc, otelgrpc nor etcd's interceptors call; `TestRunCtxChain` now also checks that no link of
+  the run context's chain is at those keys, with and without TLS/otelgrpc/prometheus/deadline). Every
+  axiom whose post holds `srvRawStreamIs` (grpc's run model, prometheus's interceptor) claims it.
+- **Axiom, changed:** `leasehttp.RenewHTTP.spec` takes `http.netCtxOk ctx` (beside `srvCtxWeak ctx cd`,
+  unchanged), docstring citing T-h0.
+- **Axiom, changed (stronger post):** `traceutil.Tracer.Start.spec`'s post gains
+  `□ (http.netCtxOkC ctx -∗ http.netCtxOkC ctx')`: **the chain form, not the WP form 81 accepted in
+  principle**, because `LeaseRenew` stays on `isContext` and Perennial's `wp_WithTimeout`, whose post
+  carries only the chain form (`ctxValueFrom`): a WP-form fact of `ctx1` says nothing of a `*timerCtx`
+  child when `ctx1` is a `*valueCtx` (`context.value()` walks it without calling its `Value`). True of
+  Go: `ContextWithSpan(ctx, s)` is a `*valueCtx` at otel's key (another type), walked on to `ctx`
+  (`ctxValue_valueCtx`), or `ctx` itself (the no-op tracer). `Tracer.Start.spec_txn` carries it.
+- With the chain form, `wp_WithTimeout_weak` needs **no** `netCtxOk` wand: its post's `ctxValueFrom
+  parent ctx'` carries `http.netCtxOkC` (`http.netCtxOkC_from`).
+- Not trusted: `srvRawStreamIsW` and the temporary `srvStreamIsStrong` gain `http.netCtxOkC ci`;
+  `v3rpc.wrapperNetCtx` (the wrapper's, from `ci`'s through `ctxValueFrom` and the promoted `Value`);
+  `EtcdServer.LeaseRenew.spec` takes `http.netCtxOkC ctx` (internal; proof: `Tracer.Start`'s wand, then
+  `ctxValueFrom` of `wp_WithTimeout`, then the WP form for `RenewHTTP`); the contract
+  `v3rpc.raftLeaseRenew` takes `http.netCtxOkC ci`, `raftLeaseRenew_of_server` threads it,
+  `leaseKeepAlive` discharges it from `srvStreamIsStrong`.
+
+Not written (T-h5): `v3rpc.ctxDoneErr`, `v3rpc.ctxChildErr`, `v3rpc.wp_WithTimeout_weak`, `waitLeader`'s
+premise change.
+
+### T-h6 (2026-11-13, etcd-grove-81's context-key sweep). `leaseTimeToLive` refuted; fixed with `http.netCtxOk`
+
+`notes/leasetimetolive-value-refuted.md`: the landed axiom `EtcdServer.leaseTimeToLive.spec` (premise
+`isContext`) runs, on a follower, `WithTimeout(ctx)` then `TimeToLiveHTTP(cctx)` over a `*http.Transport`,
+whose `roundTrip` reads `Value` at `httptrace`'s key (`TestLeaseTimeToLiveFollowerValuePanics`,
+`examples/etcd/lease/ctxsweep_test.go`, passes). Written:
+- **Axiom, changed:** `EtcdServer.leaseTimeToLive.spec` takes `http.netCtxOk ctx` (the WP form suffices
+  inside the axiom: the `*timerCtx`'s `value()` walk answers as `ctx.Value`).
+- **Trusted, changed:** grpc's `grpcRunCtx` gains `http.netCtxOk ci` (same justification as T-h0's
+  `srvRawStreamIs` clause), law `netCtxOk_of_runCtx`. Every axiom whose post holds `grpcRunCtx` claims it.
+- Not trusted: `EtcdServer.LeaseTimeToLive.spec`, `v3rpc.lessorTTLOk`,
+  `v3rpc.LeaseServer.LeaseTimeToLive.spec` take `http.netCtxOk`; the client's served-handler proofs
+  (`LeaseGrantServed`, `LeaseReadServed`) discharge it from the run context.
+
+**Next (not written; etcd-grove-81's item 2):** `http.WithContext_ok` with `rafthttp.NewRoundTripper` /
+`newStreamRoundTripper` (`roundTripperOk`): `RoundTrip`'s contract never mentions the request's context;
+record it (`reqCtx` in `reqOwn`, or a persistent `reqCtxIs`), `WithContext_spec` takes `isContext ∗
+http.netCtxOk` (or a Background chain: all callers pass `WithCancel(Background())`), `roundTripperOk`'s
+`RoundTrip` uses it; widen `netErr`/`errStrOk` if the done-context error comes back (the sweep's finding,
+etcd-grove-81's workflow journal `wf_91727eee-383`).
+
+### The T-h0 + T-h6 review (2026-11-13): READY, minors applied (decided by etcd-grove-81)
+
+The axiom review (key set complete at go1.27.3, `tLogKey` dead code; run-context claims hold on the
+stream path through Serve and ServeHTTP and on unary handlers; the chain-form `Tracer.Start` wand
+holds for the no-op and SDK tracers; T-h0 closes the refutation; T-h5 does not touch the landed
+`RenewHTTP`) found four minors, applied: **m1** `TestRunCtxChain` checks the net keys through
+ServeHTTP too (and the chain shape there), and `TestRunCtxChainUnary` a unary handler's context
+(with and without otelgrpc); **m2** the `nettrace.TraceKey` wording in `srvRawStreamIs`'s and
+`grpcRunCtx`'s docstrings (`net`'s `DialContext` stores it on a context it derives, `net/dial.go:539`);
+**m3** `Tracer.Start`'s docstring: the SDK claims hold with Go's execution tracer off (the
+`runtime/trace` key; unreachable in the model, the tracer is the no-op one; what to add if
+`traceutil.Init` gets a spec); **m4** `RenewHTTP`'s docstring: the `*http.Transport` premise admits a
+panicking hook in Go, unreachable since `http.Transport` is axiomatized (zero value only). The
+chain-form wand deviation is accepted. Docstrings only; no statement changed.
+
+## Addendum T-i (2026-11-13): the request's context at rafthttp's round trippers (for etcd-grove-81's axiom review)
+
+Item (2) of etcd-grove-81's context-key sweep (findings: 81's workflow `wf_91727eee-383`, search
+`WithContext_ok`). Refutation record: `notes/roundtripper-ctx-refuted.md`; Go tests
+`examples/premisefix/rtctx` (go1.27.3, GOWORK=off, all pass).
+
+### T-i0. Refutation: `http.WithContext_ok` with `rafthttp.NewRoundTripper.wp_proof` / `newStreamRoundTripper.wp_proof`
+
+`WithContext_spec` took any context and recorded nothing; `roundTripperOk`'s `RoundTrip` triple never
+named the request's context, yet promised no panic and a `netErr ∗ errStrOk` error. The round trippers
+are `*http.Transport`s (`transport.NewTimeoutTransport`), whose `roundTrip` reads `Value` at
+`httptrace`'s key (`net/http/transport.go:614`), makes `WithCancelCause(req.Context())` (`:675`), returns
+`context.Cause(ctx)` on `Done` (`:698`), and dials with the `nettrace` keys and `Deadline`. Tests:
+`TestRoundTripValuePanics` (a `Value` panic at `httptrace`'s key escapes `RoundTrip`),
+`TestRoundTripTraceHook` (a `ClientTrace`'s `GetConn` runs), `TestRoundTripProgramErr` (a done
+context's program `Err` is returned, its `Error()` panics). No closed theorem's program exercises it:
+rafthttp's three callers pass `WithCancel(Background())`.
+
+### T-i1. Why not `isContext ∗ http.netCtxOk` (81's first option)
+
+`TestRoundTripDeadlineCause`: Perennial's `wp_WithDeadlineCause_Background` gives `isContext` of
+`WithDeadlineCause(Background(), d, cause)` for any `cause`, and a Background chain (`nil` at every
+key); after the deadline `RoundTrip` returns `context.Cause`, the program's `cause` (Perennial's
+`cancelCtxLockInv` leaves `cause` unconstrained, so no model fact rules it out). So the premise names
+the one shape rafthttp uses: a `*cancelCtx` whose parent field is `Background()` (81's second option,
+"a Background chain", narrowed to its single link).
+
+### T-i2. The texts (written; for review)
+
+- **New vocabulary** `context.bgCancelChild ctx` (`Proof/context/BgCancel.lean`, a definition, not
+  opaque): `∃ c, ctx = *cancelCtx c ∗ ctxField c ↦□ Background()`. Docstring: Go facts of such a
+  context (nil values but `&cancelCtxKey`, no deadline, cause `Canceled`); residual: `WithCancelCause`
+  also makes this shape with a caller's cause, but Perennial has no spec of it, so a verified program
+  cannot make one; a future spec of it must not give this fact.
+- **New opaque** `http.reqCtxRaw r ctx` with `http.reqCtx r ctx := □ reqCtxRaw r ctx` (the request's
+  `ctx` field: set only by `WithContext`/`NewRequestWithContext`/`Clone`, each on a new request; no spec
+  gives a whole `Request` points-to, so it is never overwritten), and `http.reqCtxBg r := ∃ ctx,
+  reqCtx r ctx ∗ context.bgCancelChild ctx` (`Proof/net/http/Boundary.lean`).
+- **`WithContext_spec`** (axiom `WithContext_ok`): post gains `reqCtx r' ctx` (a stronger post; the
+  premise unchanged: `WithContext` only stores the context).
+- **`roundTripperOk`** (given by the axioms `rafthttp.NewRoundTripper.wp_proof`,
+  `newStreamRoundTripper.wp_proof`, whose text is unchanged): `RoundTrip`'s pre gains `reqCtxBg r`
+  (the axioms get weaker).
+- **`netErr`'s docstring** (opaque `netErrRaw`): also the cause of the request's context, returned once
+  it is done (`transport.go:698`), and by a body read after that: for `reqCtxBg`, `context.Canceled`
+  (`TestRoundTripBgCancel`: live 204; a dial `*net.OpError`; `err == context.Canceled` cancelled in
+  flight and before the call, both round trippers). `netErrNotRemoved_spec` stays true (Canceled is
+  not `errMemberRemoved`); `errStrOk` holds of `Canceled` (a `*errors.errorString`).
+- **`context.WithCancelBackground.spec`**: post gains `context.bgCancelChild ctx'`; its axiom
+  `context.WithCancelBackground.wp_proof` is **now a theorem**, proved from Perennial's
+  `wp_WithCancel_gen` (as `traceutil.wp_WithCancelBackground_noTrace`): the trust base loses one axiom.
+- **Callers** (proofs only): `pipeline.post`, `snapshotSender.post`, `streamReader.dial` build
+  `reqCtxBg req'` from `WithCancelBackground`'s new conjunct and `WithContext`'s post; `srFixed` (the
+  stream reader's fixed fields) gains `context.bgCancelChild ctx`, from `streamReader.start`;
+  `srFixed_intro` takes it.
+
+No closed theorem's statement changes; no axiom added (one removed).
+
+### T-i review (2026-11-13): READY WITH CHANGES, applied (decided by etcd-grove-81)
+
+The narrowed premise (`bgCancelChild`) and the `WithCancelCause` residual note accepted. m1 the
+baselines below; m2 `bgCancelChild`'s docstring names the `cancelCtx` embedded in a `*timerCtx`
+(unreachable as a context: `&cancelCtxKey` is unexported), and `etc/bgcancel-check.py` (in
+`etc/gates.sh`) fails if the pinned Perennial gains a `WithCancelCause` spec; m3
+`Spec/context/WithCancelBackground.lean`'s header and `traceutil.wp_WithCancelBackground_noTrace`'s
+docstring; m4 `reqCtx`'s wording (net/http's internal writes touch only its own requests); m5 `netErr`
+includes `Canceled` itself, so no law may separate them; m6 `TestRoundTripBgCancelTLS` (cancelled
+before the call and during a handshake the peer never answers: `context.Canceled`); the
+`ProxyFromEnvironment` CONNECT path is argued from the code, not tested (it dials and handshakes with
+the same context, yielding `Canceled` or an error net/http made); m7 the etcd bug found on the way
+(`NewTimeoutTransport`'s read/write-timeout dialer never runs: net/http prefers the `DialContext`
+`NewTransport` set) is `issues/etcd-timeout-transport-rw-timeouts-unused.md` (known upstream,
+etcd-io/etcd#22638, fix PR #22639; Go test fails at v3.7.3; `blocks-proof: no`), and
+`notes/specs-only/net-extensions-design.md` is corrected.
+
+### Checks run, T-i (2026-11-13, merged with lean `564e2bb2e9`)
+
+Full build green; `etc/tcb-report.py --check --update` and every collection `--check --update`:
+the only change is `context.WithCancelBackground.wp_proof` gone (`etc/tcb-baseline.txt`: 867 to 866 axiom lines, 4 sorries; every collection loses that one line); axiom-tok
+ok (and selftest), model-param, errdesc ok; `gen-interface --check` on every API list: no diff;
+`goose --check` ok; `etc/bgcancel-check.py` ok (and fails on a planted `wp_WithCancelCause`);
+`examples/premisefix/rtctx` and `streamctx` pass at go1.27.3; `etc/land.sh`'s gates.
+
+## Addendum T-j (2026-11-13): `ctxDoneErr`, `ctxChildErr`, `wp_WithTimeout_weak` with T-h5's option (A) (for etcd-grove-81's axiom review)
+
+T-h2's texts with T-h5's option (A), as 81 decided (handoff "Handoff point (2026-11-13, end of the
+eighth agent's context)"), written in Lean (`43357ed9bc`); go1.27.3 Go evidence in
+`examples/premisefix/streamctx` (GOWORK=off, all pass). **Nothing relies on them yet**: no proof applies
+`wp_WithTimeout_weak`; `LeaseRenew` still runs Perennial's `wp_WithTimeout` over `isContext`, and reaches
+`waitLeader`/`RenewHTTP` through the new law `v3rpc.ctxDoneErr_of_isContext`.
+
+### T-j0. Finding: T-h2's `ctxDoneErr` without `#HParentCC` would make `RenewHTTP` false (as T-h5)
+
+T-h2 dropped `#HParentCC`. Then `parentCancelCtx(ctx)` may fail (`Value(&cancelCtxKey)` `nil`, which
+`#HValue` admits under option (A) too), and net/http's `WithCancelCause(req.Context())` →
+`propagateCancel` takes its **`afterFuncer` arm** (go1.27.3 `context.go:508-520`) and calls the
+context's own `AfterFunc` method, or else its goroutine arm. A context delegating every method to a
+real `WithCancel` child, `nil` at `&cancelCtxKey`, with an `AfterFunc` that panics, meets T-h2's
+`ctxDoneErr` with option (A), and **`RenewHTTP` panics** (`TestRenewHTTPAfterFuncPanics`: "AfterFunc
+called"). The afterFuncer arm also rewrites `c.Context` to a `stopCtx`, which `ctxValueFrom`'s
+`ctxField ↦□` does not survive. **Fix (in the texts below):** `ctxDoneErr` keeps `#HParentCC`, with
+`madeCancelCtx` in place of `isCancelCtx`; true of the child (its embedded `*cancelCtx`, whose `done`
+is the child's Done channel) and of every `srvCtxWeak` (by the law). The landed `RenewHTTP.spec`
+(`srvCtxWeak`, with `#HParentCC`) was never affected. This is a strengthening of the vocabulary over
+T-h2 (a stronger premise for `waitLeader`/`RenewHTTP` than T-h2 proposed; still weaker than the landed
+`srvCtxWeak`), so a deviation from the plan's text, toward soundness: **for 81's review.**
+
+### T-j1. The texts (TRUSTED unless marked)
+
+- **New opaque** `context.madeCancelCtxRaw c` (`Proof/context/MadeCancelCtx.lean:30`) and
+  `context.madeCancelCtx c := □ madeCancelCtxRaw c` (`:55`, persistent): "the `*cancelCtx` at `c` was
+  allocated by one of `context`'s constructors (alone or embedded in a `timerCtx`), its fields read and
+  written only by `context`'s code"; says nothing of its stored errors. Docstring: what it excludes (a
+  nil `*cancelCtx`, a reflect copy, T-h5), who gives it (the law and `wp_WithTimeout_weak` only).
+  `context.madeCancelCtxAny v` (`:64`, a definition): `isCancelCtxAny` with `madeCancelCtx`.
+- **New trusted law** `context.madeCancelCtx_of_isCancelCtx : isCancelCtx c ⊢ madeCancelCtx c`
+  (`:97`, an `axiom`). Logically weak: `madeCancelCtxRaw := True` satisfies it, so it cannot make the
+  logic inconsistent; its content is the meaning `RenewHTTP.spec`'s premise gives the opaque (Perennial
+  establishes `isCancelCtx` only of locations `context`'s constructors allocate; the type is unexported;
+  no spec gives a program a `cancelCtx`'s field points-tos). Proved corollary
+  `madeCancelCtxAny_of_isCancelCtxAny` (`:101`).
+- **New vocabulary** `v3rpc.ctxDoneErr c s` (`SrvCtxWeak.lean:130`): `srvCtxWeak` with `#HValue` over
+  `madeCancelCtxAny` and `#HParentCC` over `madeCancelCtx` (T-j0); the other clauses (`Deadline`,
+  `Done`, `Err` and `Err` after `Done` with the level token, `DoneFresh`, `isClosedchanInit`) as
+  `srvCtxWeak`'s. `v3rpc.ctxChildErr c s` (`:175`): the same with token-free `Err` clauses: `#HErr`
+  returns `nil` or `isCtxErr ∨ noLeaderErr` at any time, `#HErrDone` non-nil and one of those after
+  `Done`. Laws, proved: `ctxDoneErr_of_srvCtxWeak` (`:238`, via the trusted law), `ctxDoneErr_of_isContext`
+  (`:264`), `ctxDoneErr_of_child` (`:273`, the caller's token passed through).
+- **New local axiom** `v3rpc.wp_WithTimeout_weak` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/WithTimeoutWeak.lean:88`,
+  header "TRUST BOUNDARY, local, delete when notes/perennial-changes.md's 'The context model over an
+  error predicate' lands"): `{{ isPkgInit context ∗ srvCtxWeak parent pd ∗ levelTok v3rpc.ctxErrLvl }}
+  WithTimeout(parent, timeout) {{ ctx' γ' cancel d, RET (ctx', cancel); levelTok v3rpc.ctxErrLvl ∗
+  □ cancel-spec ∗ v3rpc.ctxChildErr ctx' {pd with Deadline := some d, PDone := True, Done_gn := γ'} ∗
+  ctxValueFrom parent ctx' }}`: Perennial's `context.WithTimeout.spec` with `isContext parent` →
+  `srvCtxWeak parent pd ∗ levelTok` and `isContext ctx'` → `ctxChildErr ctx'`. Its docstring walks
+  go1.27.3's `WithDeadlineCause`/`propagateCancel`/`cancel`/`removeChild` (the token pays the parent's
+  `Err()` in the already-done arm and `Cause`; `#HParentCC` keeps the afterFuncer and goroutine arms out;
+  every stored error is nil, a context error, or the parent's `Err()` after `Done`; the parent's
+  deadline earlier: the `WithCancel` case, same facts, `d` a binder). No `netCtxOk` wand (`ctxValueFrom`
+  carries the chain form, T-h as written).
+- **Axioms, changed (weaker premises, so the axioms claim more):** `EtcdServer.waitLeader.spec`
+  (`Spec/.../EtcdServer__waitLeader.lean:51`) and `leasehttp.RenewHTTP.spec`
+  (`Spec/.../leasehttp/RenewHTTP.lean:97`) take `v3rpc.ctxDoneErr ctx cd` in place of `srvCtxWeak ctx
+  cd`; `RenewHTTP` keeps `http.netCtxOk ctx` (T-h0). Docstrings: a T-j sentence each (`RenewHTTP`'s
+  names the net/http calls the clauses cover and the two refuting tests the premise excludes).
+- **Not trusted:** `EtcdServer.LeaseRenew.wp_proof` passes `ctxDoneErr_of_isContext` (two lines).
+  `notes/perennial-changes.md`'s entry names the new texts to delete with the axiom.
+
+### T-j2. Go evidence (`examples/premisefix/streamctx`, go1.27.3)
+
+- `TestWithTimeoutWeak` (T-h3's cases) gains: not yet done, the child is registered in the wrapper's
+  embedded `*cancelCtx`'s `children` (so `parentCancelCtx` found it: no afterFuncer arm, no goroutine)
+  and is a `*context.timerCtx`; with and without `Tracer.Start`'s `WithValue` link.
+- `TestRenewHTTPWeakChild` (new): `RenewHTTP` over the child (both shapes): live, TTL 5; the wrapper
+  cancelled with `ErrGRPCNoLeader` after the child was made, an error; already cancelled before (the
+  child's `Err()` is `ErrGRPCNoLeader`), a `*url.Error` of `context canceled`; no panic.
+- What `ctxDoneErr` must exclude, each still a passing panic test: `TestRenewHTTPValuePanics` (T-h0,
+  excluded by `http.netCtxOk`), `TestRenewHTTPNilCancelCtxPanics` (T-h5, excluded by
+  `madeCancelCtxAny`: a nil `*cancelCtx` is not one `context` made), `TestRenewHTTPAfterFuncPanics`
+  (T-j0, excluded by `#HParentCC`).
+- `TestNoLeaderTyped` unchanged.
+
+### T-j3. Review points
+
+1. T-j0: `#HParentCC` kept in `ctxDoneErr` (a deviation from T-h2's text, toward a stronger premise).
+2. The opaque's meaning and its sources (the law, the axiom); no other spec may give it.
+3. `wp_WithTimeout_weak`'s argument (its docstring), in particular that the parent's `#HParentCC`
+   (`isCancelCtx`, from `srvCtxWeak`) is what makes every stored error but the already-done arm's a
+   context error.
+4. The level token: `wp_WithTimeout_weak` takes and returns `levelTok v3rpc.ctxErrLvl` directly (the
+   caller's), and `ctxChildErr`'s `Err` needs none (a `*timerCtx`'s `Err` takes no `RWMutex` reader slot: an atomic
+   load, then `<-c.Done()`, which may briefly take `c.mu` or wait for the concurrent `cancel`).
+
+### Checks run, T-j (2026-11-13, `43357ed9bc` merged with lean `44d390bd41`)
+
+Full build green (`etc/timed-build.py`, 64G cap, build 20261113-122003, 17572 jobs). `etc/tcb-report.py
+--check` (not updated): **one line differs, NEW `axiom context.madeCancelCtx_of_isCancelCtx`**, reached
+through `LeaseRenew`'s `ctxDoneErr_of_isContext`; `v3rpc.wp_WithTimeout_weak` is not reached (no proof
+uses it yet). Collections: `server` and `v3rpc` differ by the same one line, the others match.
+axiom-tok ok (813 walked, 779 pass, 34 by an entry; the `waitLeader`/`RenewHTTP` level-token entries
+still match, their reasons now name `ctxDoneErr`) and selftest; model-param, errdesc ok;
+`gen-interface --check` on every API list: no diff. `wp_WithTimeout_weak`'s axiom-tok entry (it takes
+and returns `levelTok v3rpc.ctxErrLvl` directly; `srvCtxWeak`'s `Err` methods hand the token on) is
+added when `LeaseRenew` uses it. Go: `examples/premisefix/streamctx` passes at go1.27.3.
+
+### T-j review (2026-11-13): READY WITH CHANGES, applied (decided by etcd-grove-81)
+
+T-j0's fix, the opaque and its law, and `wp_WithTimeout_weak` hold against go1.27.3 (review journal
+`wf_34700c38-af3`). Applied: MIN-1 `etc/tcb-baseline.txt` and the `server`/`v3rpc` collections gain
+`axiom context.madeCancelCtx_of_isCancelCtx` (867 axiom lines, 4 sorries); MIN-2 the T-f sentences of
+`RenewHTTP`'s and `waitLeader`'s docstrings name `ctxDoneErr`, and `RenewHTTP`'s axiom-tok entry says the
+goroutine and afterFuncer arms are excluded by `#HParentCC`; MIN-3 the child's `Err` "takes no `RWMutex`
+reader slot" (an atomic load, then `<-c.Done()`, which may briefly take `c.mu`). MAJ-1 (`RenewHTTP`
+refuted through `context.Cause`, older than T-j) is Addendum T-k.
+
+## Addendum T-k (2026-11-13): the context's cause (the T-j review's MAJ-1; DESIGN, for etcd-grove-81 before the Lean texts)
+
+T-j landed (lean `0b2a6e3247`). The refutation: `notes/renewhttp-cause-refuted.md` (audit rows). Go
+tests (go1.27.3, GOWORK=off, pass): `TestRenewHTTPCausePanics` (`examples/premisefix/streamctx`; the
+review's test, past and mid-call deadlines) and `TestLeaseTimeToLiveFollowerCausePanics`
+(`examples/etcd/lease/ctxsweep_test.go`, new: a second axiom refuted the same way, the panic inside it).
+**Nothing in Lean yet**: writing the texts adds trusted items beyond 81's sketch, listed below for a
+decision first.
+
+### T-k0. The sweep: specs whose Go returns or compares `context.Cause`
+
+| spec | status |
+|---|---|
+| `leasehttp.RenewHTTP.wp_proof` | **refuted** (returns the cause in a `*url.Error`; `applyErrIs` claimed) |
+| `EtcdServer.leaseTimeToLive.wp_proof` | **refuted** (its own `errors.Is` on `TimeToLiveHTTP`'s error panics) |
+| rafthttp `NewRoundTripper`/`newStreamRoundTripper` (`roundTripperOk`'s `RoundTrip`, premise `http.reqCtxBg`) | **holds**: `bgCancelChild` is a `*cancelCtx` child of `Background()`, made by `WithCancel` (no `WithCancelCause` spec, `etc/bgcancel-check.py`), whose cause is `Canceled` once cancelled (its parent is never done); `TestRoundTripBgCancel` (`err == context.Canceled`, in flight and before the call, both round trippers) |
+| grpc's axioms (client `Invoke`/`NewStream`, the run model) | **not affected**: grpc v1.84.0 never calls `context.Cause` (grep of its non-test sources); it reports `ctx.Err()` |
+| etcd fork (server, api, pkg, client) | **not affected**: no `context.Cause` call outside tests |
+| k8s: client-go `WaitFor`, `sharedInformerFactory.WaitForCacheSyncWithContext` | translated, **no spec** (they return/log `context.Cause(ctx)`); a future spec must constrain the cause or accept any error |
+| Perennial's `context.Cause.spec` | post `True`: nothing claimed |
+
+### T-k1. Why a new trusted fact is needed
+
+Perennial's model does not track causes (`cancelCtxLockInv`'s `cause : GoError`, no fact), and
+`WithDeadlineCause.spec` gives `isContext` of a context with any cause, so no existing predicate can
+say "the cause is a context error", and no proof can derive it for a derived context. The fact must be
+claimed where contexts are made (grpc's run, `WithCancel`, the wrapper, `Tracer.Start`'s `WithValue`,
+`wp_WithTimeout_weak`) and carried, as `netCtxOk` was.
+
+### T-k2. Proposed texts (all TRUSTED unless marked)
+
+- **Vocabulary** `v3rpc.ctxCauseOk c` (`SrvCtxWeak.lean`, **opaque**, persistent): "`context.Cause(c)`
+  returns `nil`, a context error or `ErrGRPCNoLeader` at every call, and the `cause` field of the
+  `*cancelCtx` that `c.Value(&cancelCtxKey)` or `parentCancelCtx(c)` finds holds only such values".
+  Why opaque, not a WP clause on `Cause(c)`: net/http also reads the found `*cancelCtx`'s `cause` directly
+  (`propagateCancel`'s registration arm and the parent's later `cancel`), and every producer below would
+  need a trusted law anyway (Perennial's model has no cause fact to prove one from). (Alternative: a WP
+  clause on `Cause(c)` taking the level token; RenewHTTP's justification then argues that, under
+  `#HParentCC`, the found `p.cause` once `p` is cancelled is what `Cause(c)` returns.)
+- **Consumers (axioms, stronger premises):** `leasehttp.RenewHTTP.spec` and
+  `EtcdServer.leaseTimeToLive.spec` take `v3rpc.ctxCauseOk ctx`.
+- **Producers:**
+  (a) grpc's run model: `grpcRunCtx ci` and `srvRawStreamIs` gain `v3rpc.ctxCauseOk ci` (grpc makes its
+  contexts with `WithCancel`/`WithTimeout`/`WithValue`, never a cause variant; `TestRunCtxChain` can
+  check `context.Cause(ci)` after the stream ends: `Canceled`), law `ctxCauseOk_of_runCtx`;
+  (b) law `v3rpc.ctxCauseOk_cancelChild : ctxField c ↦□ parent ∗ ctxCauseOk parent ⊢ ctxCauseOk
+  (*cancelCtx c)` (a `*cancelCtx` context value is `WithCancel`'s, as `bgCancelChild`'s argument; its
+  own cancel stores cause `Canceled`, the others come from `Cause(parent)` or the parent's found
+  `*cancelCtx`), for the wrapper's inner context (`v3rpc.wp_WithCancel_cancelCtx` gives the field);
+  (c) law `v3rpc.ctxCauseOk_cancellable`: the wrapper's `Context` field `↦□ inner` ∗ `ctxCauseOk inner`
+  ∗ the wrapper's `cancelReason` only ever `nil` or `ErrGRPCNoLeader` (from its handle `v3rpc.ccHandle`;
+  exact form to fit it) ⊢ `ctxCauseOk wrapper` (`Cause(wrapper)` = `wrapper.Err()`, then the inner
+  `*cancelCtx`'s cause, else `wrapper.Err()`);
+  (d) `Tracer.Start.spec`'s post gains `□ (ctxCauseOk ctx -∗ ctxCauseOk ctx')` (a `valueCtx` delegates
+  `Value` and `Err`, or `ctx' = ctx`);
+  (e) `v3rpc.wp_WithTimeout_weak`: premise gains `ctxCauseOk parent`, post `ctxCauseOk ctx'` (the
+  `*timerCtx`'s causes: `Canceled`, `DeadlineExceeded` (nil cause), `Cause(parent)`, the found `p.cause`).
+- **Callers (not trusted):** `LeaseRenew` must take its child from `wp_WithTimeout_weak` (Perennial's
+  `wp_WithTimeout` child has no cause fact, and its post does not name the `*timerCtx` for a law), so
+  `LeaseRenew.spec` takes `srvCtxWeak ctx cd ∗ levelTok v3rpc.ctxErrLvl ∗ v3rpc.ctxCauseOk ctx` (T-h4's
+  form, pulled into T-k for the build), `raftLeaseRenew` likewise, `leaseKeepAlive` from
+  `srvStreamIsStrong` (gains `ctxCauseOk ci`; produced by nothing, temporary) and its level token;
+  `LeaseTimeToLive`'s chain from `grpcRunCtx` by (a).
+
+### T-k3. Decisions needed (recommendation first)
+
+1. `ctxCauseOk` as an opaque with producers (a)-(e) (recommended), or a WP clause on `Cause(c)`.
+2. Pull `LeaseRenew` onto `wp_WithTimeout_weak` into T-k (recommended: needed to build; the rest of
+   step 3, `LeaseKeepAlive` over the weak end, stays after T-k).
+3. The wrapper law (c): its premise on `cancelReason` taken from the handle (recommended), or a
+   trusted claim in `newCancellableContext`'s spec post.
+
+### T-k4. The texts as written (2026-11-13, the tenth agent; decided by etcd-grove-81 with the user's approval: T-k3 1-3 as recommended)
+
+Built on `684f8ffda2` (Lean), `236001ff3b` (Go evidence), merged with lean `709538af50`. TRUSTED items:
+
+- **`v3rpc.ctxCauseOkRaw` / `v3rpc.ctxCauseOk c`** (`v3rpc/SrvCtxWeak.lean`; opaque, `□` of the raw fact,
+  persistent). Meaning, "a cause error" being `nil`, `Canceled`, `DeadlineExceeded` or `ErrGRPCNoLeader`:
+  (i) the `cause` field of the `*cancelCtx` `c.Value(&cancelCtxKey)` returns holds only cause errors;
+  (ii) a non-nil `c.Err()` returned while that field is `nil`, or with no such `*cancelCtx`, is one; so
+  (iii) every `context.Cause(c)` returns one (go1.27.3 `Cause` calls `c.Err()` first, `:289-307`), and so
+  does every cause a `context` child of `c` stores. Says nothing of whether the calls return. Producers
+  listed in its docstring; "no other spec may give it".
+- **(a)** `grpcRunCtx ci` (`grpc/InvGrpc.lean`) gains a fifth part `v3rpc.ctxCauseOk ci` (docstring:
+  grpc v1.84.0 makes the run's contexts with `WithCancel`/`WithTimeout`/`WithValue` only, file:line;
+  net/http's server likewise; no cause variant or `context.Cause` in grpc's non-test sources); proved law
+  `ctxCauseOk_of_runCtx`. `srvRawStreamIs` has it through its `grpcRunCtx ci` (docstring sentence only;
+  form decided: no second copy of the fact in the trusted text).
+- **(b)+(c)** `v3rpc.ctxCauseOk_cancellable (l c ci cd)` (`v3rpc/InvCancellable.lean`, axiom):
+  `ccHandle l (*cancelCtx c) cd ∗ ctxField c ↦□ ci ∗ ctxCauseOk ci ⊢ ctxCauseOk (ccCtx l)`.
+  **Deviation from T-k2 (toward soundness, for the review): (b) is not a separate law.** T-k2's (b),
+  `ctxField c ↦□ parent ∗ ctxCauseOk parent ⊢ ctxCauseOk (*cancelCtx c)`, would be false of the
+  `cancelCtx` embedded in a `*timerCtx` made by `WithDeadlineCause(parent, d, badCause)`: Perennial's
+  `ctxChain`/`timerCtx.cancel` spec give `ctxField (tcc c) ↦□ parent`, and that `cancelCtx`'s cause is
+  the program's (unreachable as a Go value outside `context`, but the law would state a false Go fact).
+  Folded into (c), `c` is the `*cancelCtx` the wrapper's `Context` field holds, written only by
+  `newCancellableContext` with `WithCancel(parent)`'s result (the type is unexported; `ccHandle`'s
+  field is `↦□`), whose causes are `Canceled` or `ci`'s. `cancelReason` (nil or `ErrGRPCNoLeader`) comes
+  from `ccHandle`'s lock guard (T-k3 3). One trusted law fewer than T-k2.
+- **(d)** `traceutil.Tracer.Start.spec`'s post gains `□ (v3rpc.ctxCauseOk ctx -∗ v3rpc.ctxCauseOk ctx')`
+  (a `valueCtx` delegates `Err` and `Value(&cancelCtxKey)`, or `ctx' = ctx`). `Tracer.Start.spec_txn`
+  (proved) carries the same wand (a stronger post; callers' patterns end in `-`).
+- **(e)** `v3rpc.wp_WithTimeout_weak`: premise `∗ v3rpc.ctxCauseOk parent`, post `∗ v3rpc.ctxCauseOk ctx'`
+  (docstring: the `*timerCtx`'s causes are its errors, `Cause(parent)` or the found `p.cause`).
+- **Consumers:** `leasehttp.RenewHTTP.spec` and `EtcdServer.leaseTimeToLive.spec` take
+  `v3rpc.ctxCauseOk ctx` (docstrings: the refutation, the transport's `Cause`).
+
+Not trusted (definitions and proofs; forms for the checkpoint):
+- `srvRawStreamIsW` and `srvStreamIs` (grpc's weak stream ends) gain `v3rpc.ctxCauseOk ci`;
+  `srvRawStreamIsW_of_raw`, `srvStreamIs_of_raw` carry it; `v3rpc.wrapper_rawW` takes `ctxField c ↦□ ci`
+  (`newCancellableContext.spec`'s post) and uses (c). Watch's stream proofs: patterns only.
+- `EtcdServer.LeaseRenew.spec` (T-h4's form, T-k3 2): `srvCtxWeak ctx cd ∗ levelTok v3rpc.ctxErrLvl ∗
+  libCtxOk ∗ netCtxOkC ∗ v3rpc.ctxCauseOk ctx`, the level token returned. The proof takes `Tracer.Start`'s
+  weak arm and `v3rpc.wp_WithTimeout_weak`; the loop's `cctx.Err()` is `ctxChildErr`'s (`nil`, a context
+  error or `noLeaderErr`); the switch: on a context error the default arm is unreachable (as before), on
+  `nil` or `ErrGRPCNoLeader` it is `errors.IsStatusErr` twice and the default arm logs (`s.Logger().Warn`,
+  `zap.Error`) and returns `ErrCanceled`. New hypotheses `errors.IsStatusErr.spec`, `EtcdServer.Logger.spec`,
+  `zap.Error.spec`, `zap.Logger.Warn.spec` (an existing axiom and existing specs; `context.ErrDone` no
+  longer used); the server's `Link.lean` gains the leaf `errors.wp_IsStatusErr`
+  (`etc/link-lean-first-server.txt`).
+- `EtcdServer.checkLeaseRenew.spec`: premise `mvcc.txnCtx ctx cd ∨ srvCtxWeak ctx cd` (weaker; its only
+  use of the context is `AuthInfoFromCtx`, which takes either).
+- `v3rpc.raftLeaseRenew` (the keep-alive's contract) as `LeaseRenew.spec`; `raftLeaseRenew_of_server`.
+- `v3rpc.LeaseServer.leaseKeepAlive.spec` takes and returns `levelTok v3rpc.ctxErrLvl` (in the loop
+  invariant); from `srvStreamIsStrong` (temporary) by `srvCtxWeak_of_isContext` and
+  `ctxCauseOk_of_runCtx`.
+- `v3rpc.LeaseServer.LeaseKeepAlive.spec` gains `⌜5 ≤ threadBound GF⌝`: the loop's goroutine is forked
+  with `wp_fork_tok_body` and lends level 4 of its own thread token (`threadTok_lend4`), as Watch's send
+  loop. **Flag:** v3rpc's `Results.lean` restates this spec (`LeaseServer.wp_LeaseKeepAlive`, an
+  exported, not closed, result): its statement gains the pure premise.
+- The `LeaseTimeToLive` chain: `EtcdServer.LeaseTimeToLive.spec`, `v3rpc.LeaseServer.LeaseTimeToLive.spec`,
+  `v3rpc.lessorTTLOk` gain `v3rpc.ctxCauseOk`; the client's `LeaseReadServed`/`LeaseGrantServed` take it
+  from `grpcRunCtx` (`ctxCauseOk_of_runCtx`).
+
+Go evidence (go1.27.3, GOWORK=off; `examples/premisefix/streamctx`, all tests pass):
+- (a) `TestRunCtxChain` (16 configurations: Serve/ServeHTTP, prometheus, otelgrpc, client deadline) and
+  `TestRunCtxChainUnary`: once the call ends, the handler's context is done and `context.Cause` of it is
+  `Canceled` or `DeadlineExceeded` (`checkCauseAfter`).
+- (c) `TestCauseCancellable`: `Cause` of the wrapper is `nil` live; `ErrGRPCNoLeader` in `Cancel`'s
+  window (reason stored, `cancel()` not yet called); `Canceled` after `Cancel(ErrGRPCNoLeader)`; `Canceled`/
+  `DeadlineExceeded` after the run context's cancel/deadline.
+- (e) and net/http's child, same test: `WithTimeout` (through a `WithValue`, as `Tracer.Start`) and
+  `WithCancelCause` children of the wrapper made before and after `Cancel(ErrGRPCNoLeader)` have cause
+  `Canceled` (the one made after: `Err()` `ErrGRPCNoLeader`, cause `Canceled`); a child made in the window
+  is live (`nil`) and then `Canceled`; a child's own timeout `DeadlineExceeded`, own cancel `Canceled`.
+  Every value checked is in the set (`causeOk`).
+- Excluded, as before: `TestRenewHTTPCausePanics` and `examples/etcd/lease`
+  `TestLeaseTimeToLiveFollowerCausePanics` (the refutations; they panic by design).
+
+### Checks run, T-k (2026-11-13, on `236001ff3b` merged with lean `709538af50`)
+
+- Full build (`etc/timed-build.py`, 64G cap, build lock): passes (17573 jobs).
+- `etc/tcb-report.py --check` (**not updated**): NEW `v3rpc.ctxCauseOk_cancellable` (the new law) and
+  `v3rpc.wp_WithTimeout_weak` (T-j's axiom, now reached by `LeaseRenew`); GONE
+  `context.madeCancelCtx_of_isCancelCtx` (its one use was `v3rpc.ctxDoneErr_of_isContext` in
+  `LeaseRenew`, whose `waitLeader`/`RenewHTTP` contexts are now the child's, `ctxDoneErr_of_child`).
+  Collections (not updated): 17 differ; 16 gain `ctxCauseOk_cancellable` (authkv, cachekv, compactkv,
+  k8scompactor, k8setcd3, leasecatchup, leaseexpiry, leasekv, linkv3p, linkvtxn, m2, putget, putget3,
+  server, v3rpc, watchkv; watch too), `server` and `v3rpc` gain `wp_WithTimeout_weak` and lose
+  `madeCancelCtx_of_isCancelCtx`, one gains `errors.IsStatusErr.wp_proof` (`LeaseRenew`'s new callee).
+- axiom-tok: one new entry and one `trunc` line for `v3rpc.wp_WithTimeout_weak` (rule 2: the caller's
+  level token lent and returned, the premise handle's two `Err` parameters; its walk stops at
+  Perennial's `isContextDone`, as `waitLeader`'s), **for the review**; with them ok (814 walked, 779
+  pass, 35 by an entry); selftest ok. (Without them, rule 5 tainted `ctxCauseOkRaw` and
+  `madeCancelCtxRaw` through this axiom's post.)
+- bounds: one allow line for `LeaseServer__LeaseKeepAlive`'s `5 ≤ threadBound` (as `sendLoop`'s), **for
+  the review**; with it ok (330).
+- model-param, errdesc: ok. gen-interface `--check --layout` on the six API lists: no diff.
+- Go: `examples/premisefix/streamctx` passes (go1.27.3, GOWORK=off; T-k's evidence above).
+
+### T-k review (2026-11-13, etcd-grove-81; independent, three lenses, workflow `wf_a94e5fc1-f5f`)
+
+No BLOCKER or MAJOR. Decisions: the fold of (b) into (c) approved; the axiom-tok entry and `trunc` line
+for `wp_WithTimeout_weak` and the bounds allow line for `LeaseKeepAlive` approved; the `5 ≤ threadBound`
+premise in v3rpc `Results`' `LeaseKeepAlive` restatement approved. MINORs (docstrings only, no statement
+changed), all fixed:
+- (a) `ctxCauseOk`'s (iii) said a child's own cancel stores `Canceled` and its timer `DeadlineExceeded`:
+  true only of nil-cause children (`WithCancel`/`WithTimeout`/`WithDeadline`); restricted, with the
+  cause variants named as excluded (go1.27.3 `context.go:269-271, 633-660, 711`).
+- (b) `ctxCauseOk_cancellable` and `wp_WithTimeout_weak` justified (ii) by "err and cause stored together
+  under `c.mu`"; `Err()` loads `err` atomically without `mu` (`:464-471`). Now: `Err()` returns non-nil only
+  after `<-c.Done()`, and `cancel` closes `done` under `mu` after assigning `cause` (`:446-457, 550-575`)
+  (the reviewer's race test: `/shared/tmp/coord-81/tk-review/cause_test.go`).
+- (c) `ctxCauseOk_cancellable` now states that its soundness rests on `cancellableContext` being unexported
+  and `newCancellableContext` (`interceptor.go:278-284`) its only writer (the `*cancelCtx` type alone does not
+  exclude a `WithCancelCause` child).
+- (d) `grpcRunCtx`: the `ServeHTTP` path is net/http's HTTP/2 server (`net/http/internal/http2`); the
+  file:line list of grpc's links is marked as examples, not exhaustive.
+- (e) `ctxCauseOk`/`Tracer.Start`: with the SDK tracer and Go's execution tracer on, `Start`'s result is
+  two `WithValue` links over `ctx`.
+- (f) (no change) the `LeaseKeepAlive` chain's new premises have no producer yet: it still starts from
+  `srvStreamIsStrong` (temporary, until the weak-end re-proof before step 6); recorded in the handoff.
+Then: tcb baseline and the 17 collections `--check --update`.
+
+### Step 6 (2026-11-13): `v3rpc.runsNoRequireLeader` deleted (the user's decision of 2026-11-08; 81's go)
+
+The deployment premise (a definition, not an axiom) is deleted with no fork change: from
+`InvStreamInterceptor.lean` (its definition, and the header's account of why the branch was excluded),
+the deployment bundles (`etcdstart.commonPremises`, `etcdstart`'s one-member bundle, `putget3.commonPremises`,
+`leaseexpiry`'s and `auth`'s bundles), `etcdstart.Serve.spec`, `restart.serveClient.spec`,
+`v3rpc.newStreamInterceptor.spec` (unused since item 7), `ServeFromStart`, `InvGrpcStart`'s server facts and
+v3rpc `Results`' Watch registration; the proofs drop the hypothesis. No axiom, opaque or trusted text added
+or changed. Interface diff: `etcdstart`'s `Defs`, `OneMember`, `Serve` (proof and spec), the premise removed.
+
+**Closed theorems whose statements lose the premise** (18, as §7 of `notes/k8s-7f4-draft.md`; re-verified:
+every `_safe` theorem of the examples whose `Results` imports `etcdstart/Defs`, `putget3/Defs`,
+`leaseexpiry/Defs`, `ServeFromStart` or `InvGrpcStart`, `etc/importers.py`): `etcd_putget_safe`,
+`etcd_putget3_safe`, `etcd_txnlin_safe`, `etcd_watch_safe`, `etcd_cache_safe`, `etcd_partition_safe`,
+`etcd_partition_watch_safe`, `etcd_lease_safe`, `etcd_leasecatchup_safe`, `etcd_leaseexpiry_safe`,
+`etcd_leasegrant_safe`, `etcd_compacted_safe`, `etcd_compactwatch_safe`, `k8s_compactor_safe`,
+`k8s_compactor_partition_safe`, `k8s_etcd3_safe`, `k8s_etcd3_cluster_safe`, `k8s_etcd3_partition_safe`
+(and `auth`'s exported, not closed, `authkv_Main`). `mvccfull_safe`, the raft examples and
+`goose_prophkv_safe` start no server and are untouched. `etc/tcb-report.py --check` and every collection
+match their baselines unchanged: none reaches a new axiom.
 
 ### Checks run, Revision 2 (2026-11-12, merged with lean `219ddbbb83`)
 

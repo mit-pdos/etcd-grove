@@ -114,9 +114,9 @@ def hdrBytes (c : MsgC) : Nat :=
   (c.f.context.getD []).length + c.f.uf.length + optSnapSize c.f.snapshot
 
 /-- **A message's content is of bounded size**: no responses, its header bytes and each entry's
-bytes at most `2^31`, and its entries' framed sum at most `2^36`. -/
+bytes at most `2^31` (`entBytesMax`), and its entries' framed sum at most `2^36`. -/
 def msgSizeOk (c : MsgC) : Prop :=
-  c.resps = [] ∧ hdrBytes c ≤ 2 ^ 31 ∧ (∀ e ∈ c.f.entries, entBytes e ≤ 2 ^ 31) ∧
+  c.resps = [] ∧ hdrBytes c ≤ entBytesMax ∧ (∀ e ∈ c.f.entries, entBytes e ≤ entBytesMax) ∧
     (c.f.entries.map (fun e => entBytes e + 64)).sum ≤ 2 ^ 36
 
 /-- **The size law's conclusion** of an element of the handed-out set: a message, unless a
@@ -159,9 +159,13 @@ instance snapUfT_persistent (l : Loc) (ty : w32) : Persistent (snapUfT (GF := GF
 /-- `snapUfT` at a message's type. -/
 abbrev snapUf (l : Loc) (st : MsgSt) : IProp GF := snapUfT l st.msg.Type'
 
-/-- **An element of the handed-out set** (persistent): the object and content `x`, by its key. -/
+/-- **An element of the handed-out set** (persistent): the object and content `x`, by its key.
+(out_size C2, the Scope's D1) It carries the size law's conclusion: in a cluster with a bound on
+proposed data, `x` is of bounded size (`outSizeOk`), which raft's `Ready` proofs establish at
+insertion (`raftOutInv_insert`). -/
 def outSetR (γ : RaftNames) (x : Sum (Loc × MsgC) (Loc × EntryC)) : IProp GF :=
-  ghostMapElem γ.out (Pos.Countable.encode (outKey x)) DFrac.discard ()
+  iprop(ghostMapElem γ.out (Pos.Countable.encode (outKey x)) DFrac.discard () ∗
+    ⌜∀ b, γ.maxData = some b → outSizeOk x⌝)
 
 instance outSetR_persistent (γ : RaftNames) (x : Sum (Loc × MsgC) (Loc × EntryC)) :
     Persistent (outSetR (GF := GF) γ x) := by
@@ -173,34 +177,33 @@ abbrev outObjR (γ : RaftNames) (m : Loc) (c : MsgC) : IProp GF := outSetR γ (.
 /-- The entry `e` was handed out at the content `c`. -/
 abbrev outEntR (γ : RaftNames) (e : Loc) (c : EntryC) : IProp GF := outSetR γ (.inr (e, c))
 
-/-- **The size law of the handed-out objects** (raft-entsize §2; the tracked `sorry`): in a
-cluster with a bound on proposed data (`RaftNames.maxData = some b`), every object a `Ready` handed
-out, at the content it was handed out with, is of bounded size (`outSizeOk`: a message but a
-`MsgSnap` `msgSizeOk`, an entry `entSizeOk`).
+/-- **The size law of the handed-out objects** (raft-entsize §2): in a cluster with a bound on
+proposed data (`RaftNames.maxData = some b`), every object a `Ready` handed out, at the content it
+was handed out with, is of bounded size (`outSizeOk`: a message but a `MsgSnap` `msgSizeOk`, an entry
+`entSizeOk`).
+
+**Proof** (out_size, 2026-11-12): by the element's definition (`outSetR` carries the fact). The
+work is at insertion: `raftOutInv_insert` takes the fact (`Hsz`), which raft's two hand-outs derive
+from its log and outbox invariants on objects (`entsROz`, `msgQC`).
 
 **Why it is true of Go.** Raft builds its own messages with no unknown fields and no responses;
 their entries are its log's entry objects, whose content comes from proposals (at most `b`, the
-node API's `Propose`/`ReadIndex` premises), raft-internal constants, the storage (bounded by the
-storage contract, raft-entsize §5) and stepped messages (`msgSizeOk` by `stepIn_intro`'s and
-`RawNode.Step`'s premise, raft-entsize §4); it re-emits received objects only after changing their
-scalar fields, which the measure does not count (`hdrBytes`, `entBytes`, `PbSized.lean`), and cuts a `MsgApp`'s
-entries at `MaxSizePerMsg ≤ 2^20` (the starters' premise) or sends one entry. Harness `H4`, `H5`,
-`H9′`: 0 violations over 26,471 non-snapshot messages, adversarial snapshots included.
-
-**Why a `sorry`.** Its proof needs raft's log invariant on entry *objects* (their content, not only
-their model), which raft's proofs do not carry yet.
-
-**A condition of its truth for restarted nodes** (etcd-grove-81, 2026-11-09, scope r3 [r3h]): a
-restarted node's storage entries are WAL-replayed, so the law needs them to satisfy `entSizeOk`. That
-is the `ReadAll` fact (`walFiles … true`, `WalRecs.lean`, gives the replayed objects with
-`entSizeOk`), which goes into the restart contract with R2d'b or with this law's proof, whichever
-comes first; until then the law's Go argument covers restarts only under it.
-
-**The later stage** ("raft-entsize proof") proves it from that invariant; the count goes back from
-5 to 4 then. `outObjR_size`/`outEntR_size` (and the node API's `Cluster.outObj_size`/
+node API's `Propose`/`ReadIndex` premises), raft-internal constants, the storage (sized and cut by
+the storage contract when the cluster bounds proposed data, `isStorage`) and stepped messages
+(`msgSizeOk` by `stepIn_intro`'s and `RawNode.Step`'s premise); it re-emits received objects only
+after changing their scalar fields, which the measure does not count (`hdrBytes`, `entBytes`), and
+cuts a `MsgApp`'s entries at `MaxSizePerMsg ≤ entsCutMax` (the starters' premise) or sends one entry
+(`entsCut`). Harness `H4`, `H5`, `H9′`: 0 violations over 26,471 non-snapshot messages, adversarial
+snapshots included. A restarted node's storage entries are WAL-replayed: they are sized by the
+server's restart contract (out_size's restart clause, P7), and a first start's storage is sized by
+`bootOk`. `outObjR_size`/`outEntR_size` (and the node API's `Cluster.outObj_size`/
 `Cluster.outEnt_size`) are derived from it. -/
 theorem out_size (γ : RaftNames) (x : Sum (Loc × MsgC) (Loc × EntryC)) (b : Nat) :
-    outSetR (GF := GF) γ x ⊢ ⌜γ.maxData = some b → outSizeOk x⌝ := sorry
+    outSetR (GF := GF) γ x ⊢ ⌜γ.maxData = some b → outSizeOk x⌝ := by
+  unfold outSetR
+  iintro ⟨-, %H⟩
+  ipureintro
+  exact H b
 
 /-- **A handed-out message is of bounded size** (derived from `out_size`), unless a `MsgSnap`. -/
 theorem outObjR_size (γ : RaftNames) (m : Loc) (c : MsgC) (b : Nat) :
@@ -225,7 +228,7 @@ end generic
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- **What raft pins of a message's content**: its snapshot's conf state, if any, without unknown
@@ -246,7 +249,7 @@ end defs
 section lemmas
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- **A message's content form may take its `pbMsg` from anywhere**: today's message with a `pbMsg`
@@ -320,6 +323,199 @@ theorem msgOwn_snapUf_CC (l : Loc) (dq : DFrac) (st : MsgSt) :
     exact ⟨Hm.1, Hm.2.1, fun _ => Hm.2.2⟩
 
 end lemmas
+
+/-! ### The size facts (raft-entsize §4, the receive row; out_size C3: moved here from rafthttp's
+`Net.lean`, for raft's cut) -/
+
+section sizePure
+variable [GooseExts]
+
+theorem varintSize_pos (n : Nat) : 1 ≤ varintSize n := by
+  unfold varintSize
+  rw [varintEnc]
+  split <;> simp
+
+theorem varintSize_le_succ : ∀ n : Nat, varintSize n ≤ n + 1 := by
+  intro n
+  induction n using Nat.strongRecOn with
+  | _ n ih =>
+    unfold varintSize
+    rw [varintEnc]
+    split
+    · simp
+    · rename_i h
+      simp only [List.length_cons]
+      have := ih (n / 128) (by omega)
+      unfold varintSize at this
+      omega
+
+theorem varintSize_le_ten (n : Nat) (h : n < 2 ^ 64) : varintSize n ≤ 10 :=
+  varintSize_le_of_lt 9 n (by
+    have : (2 : Nat) ^ 64 ≤ 2 ^ (7 * (9 + 1)) := Nat.pow_le_pow_right (by decide) (by decide)
+    omega)
+
+theorem optW64Size_le (o : Option w64) : optW64Size o ≤ 11 := by
+  rcases o with _ | v
+  · simp [optW64Size, optVarintSize]
+  · simp only [optW64Size, optVarintSize, Option.map_some]
+    have := varintSize_le_ten (uint.Z v).toNat (by word)
+    omega
+
+theorem optVarintSize_le_type {T : Type} (o : Option T) (f : T → w64) :
+    optVarintSize (o.map fun t => (uint.Z (f t)).toNat) ≤ 11 := by
+  rcases o with _ | v
+  · simp [optVarintSize]
+  · simp only [optVarintSize, Option.map_some]
+    have := varintSize_le_ten (uint.Z (f v)).toNat (by word)
+    omega
+
+theorem nat_le_sum_of_mem' {l : List Nat} {a : Nat} (h : a ∈ l) : a ≤ l.sum := by
+  induction l with
+  | nil => simp at h
+  | cons x xs ih =>
+    simp only [List.sum_cons]
+    rcases List.mem_cons.1 h with rfl | h
+    · omega
+    · have := ih h; omega
+
+theorem lenSize_ge (n : Nat) : n + 2 ≤ lenSize n := by
+  have := varintSize_pos n; unfold lenSize; omega
+
+theorem lenSize_le (n : Nat) : lenSize n ≤ 2 * n + 2 := by
+  have := varintSize_le_succ n; unfold lenSize; omega
+
+theorem sum_map_le_sum_map {α : Type} (l : List α) (f g : α → Nat) (h : ∀ x ∈ l, f x ≤ g x) :
+    (l.map f).sum ≤ (l.map g).sum := by
+  induction l with
+  | nil => simp
+  | cons x xs ih =>
+    simp only [List.map_cons, List.sum_cons]
+    have h1 := h x List.mem_cons_self
+    have h2 := ih (fun y hy => h y (List.mem_cons_of_mem _ hy))
+    omega
+
+theorem sum_map_mul {α : Type} (l : List α) (f : α → Nat) (k : Nat) :
+    (l.map fun x => k * f x).sum = k * (l.map f).sum := by
+  induction l with
+  | nil => simp
+  | cons x xs ih => simp only [List.map_cons, List.sum_cons, ih, Nat.mul_add]
+
+theorem entBytes_le_entrySize (e : EntryC) : entBytes e ≤ entrySize e := by
+  unfold entBytes entrySize
+  rcases e.data with _ | bs
+  · simp
+  · simp only [Option.getD_some]; omega
+
+theorem entrySize_le_entBytes (e : EntryC) : entrySize e ≤ 2 * entBytes e + 35 := by
+  have h2 := optW64Size_le e.term
+  have h3 := optW64Size_le e.index
+  unfold optW64Size at h2 h3
+  unfold entBytes entrySize
+  generalize hT : optVarintSize (Option.map _ e.type) = T
+  have h1 : T ≤ 11 := by
+    rw [← hT]
+    rcases e.type with _ | ty
+    · simp [optVarintSize]
+    · simp only [Option.map_some, optVarintSize]
+      exact Nat.le_trans (Nat.add_le_add_left (varintSize_le_ten _ (by word)) 1) (by omega)
+  revert h1 h2 h3
+  generalize e.data = d
+  rcases d with _ | bs
+  · simp only [Option.getD_none, List.length_nil]; intros; omega
+  · have := varintSize_le_succ bs.length
+    simp only [Option.getD_some]; intros; omega
+
+theorem optBytesSize_ge (o : Option (List w8)) : (o.getD []).length ≤ optBytesSize o := by
+  rcases o with _ | bs
+  · simp [optBytesSize]
+  · simp only [optBytesSize, Option.getD_some]; have := lenSize_ge bs.length; omega
+
+theorem optBytesSize_le (o : Option (List w8)) : optBytesSize o ≤ 2 * (o.getD []).length + 2 := by
+  rcases o with _ | bs
+  · simp [optBytesSize]
+  · simp only [optBytesSize, Option.getD_some]; exact lenSize_le _
+
+/-- **A content of size at most `2^30` without responses is of bounded size** (raft-entsize §4: what
+the message stream's decoder gives, `D1` under `readBytesLimit`). Each entry costs at least two bytes
+of the size, so the entries' framed sum stays below `32 · 2^30`. -/
+theorem msgSizeOk_of_size (c : MsgC) (hs : msgSize c ≤ 2 ^ 30) (hr : c.resps = []) :
+    msgSizeOk c := by
+  cases c with
+  | mk f rs =>
+  simp only [MsgC.resps] at hr
+  subst hr
+  have hsz : f.size ≤ 2 ^ 30 := by simpa [msgSize, respsSize] using hs
+  have hent : (f.entries.map fun e => lenSize (entrySize e)).sum ≤ f.size := by
+    unfold MsgFC.size; omega
+  have hctx := optBytesSize_ge f.context
+  refine ⟨rfl, ?_, ?_, ?_⟩ <;> try simp only [entBytesMax]
+  · simp only [hdrBytes, MsgC.f]
+    revert hsz
+    unfold MsgFC.size
+    generalize f.snapshot = sn
+    rcases sn with _ | s
+    · simp only [optSnapSize]; intro; omega
+    · have := lenSize_ge (snapSize s)
+      simp only [optSnapSize]; intro; omega
+  · intro e he
+    simp only [MsgC.f] at he
+    have h1 : lenSize (entrySize e) ≤ (f.entries.map fun e => lenSize (entrySize e)).sum :=
+      nat_le_sum_of_mem' (List.mem_map.2 ⟨e, he, rfl⟩)
+    have := entBytes_le_entrySize e
+    have := lenSize_ge (entrySize e)
+    omega
+  · simp only [MsgC.f]
+    have h1 : (f.entries.map fun e => entBytes e + 64).sum ≤
+        (f.entries.map fun e => 32 * lenSize (entrySize e)).sum :=
+      sum_map_le_sum_map _ _ _ (fun e _ => by
+        have := entBytes_le_entrySize e; have := lenSize_ge (entrySize e); omega)
+    rw [sum_map_mul] at h1
+    omega
+
+/-- **A content of bounded size is below `2^47` bytes** (raft-entsize §4: the encoders' bound from
+the size law; at most `2^38 + 2^34`). -/
+theorem msgSize_lt_of_ok (c : MsgC) (h : msgSizeOk c) : msgSize c < 2 ^ 47 := by
+  cases c with
+  | mk f rs =>
+  obtain ⟨hr, hh, he, hs⟩ := h
+  simp only [entBytesMax] at hh he
+  simp only [MsgC.resps] at hr
+  subst hr
+  simp only [msgSize, respsSize, Nat.add_zero]
+  simp only [hdrBytes, MsgC.f] at hh he hs
+  have hent : (f.entries.map fun e => lenSize (entrySize e)).sum ≤
+      (f.entries.map fun e => 4 * (entBytes e + 64)).sum :=
+    sum_map_le_sum_map _ _ _ (fun e _ => by
+      have := lenSize_le (entrySize e); have := entrySize_le_entBytes e; omega)
+  rw [sum_map_mul] at hent
+  have hctx := optBytesSize_le f.context
+  have := optW64Size_le f.to; have := optW64Size_le f.frm; have := optW64Size_le f.term
+  have := optW64Size_le f.logTerm; have := optW64Size_le f.index; have := optW64Size_le f.commit
+  have := optW64Size_le f.vote; have := optW64Size_le f.rejectHint
+  have hb : optBoolSize f.reject ≤ 2 := by rcases f.reject with _ | _ <;> simp [optBoolSize]
+  revert hh
+  unfold MsgFC.size
+  generalize hT : optVarintSize (Option.map _ f.type) = T
+  have h1 : T ≤ 11 := by
+    rw [← hT]
+    rcases f.type with _ | ty
+    · simp [optVarintSize]
+    · simp only [Option.map_some, optVarintSize]
+      exact Nat.le_trans (Nat.add_le_add_left (varintSize_le_ten _ (by word)) 1) (by omega)
+  generalize f.snapshot = sn
+  rcases sn with _ | s
+  · simp only [optSnapSize]; intro; omega
+  · have := lenSize_le (snapSize s)
+    simp only [optSnapSize]; intro; omega
+
+/-- (out_size C3) A sized entry's protobuf size is below `2^33`: what `limitSize`'s and `entsSize`'s
+sums need to stay exact. -/
+theorem entrySize_lt_of_ok (e : EntryC) (h : entSizeOk e) : entrySize e < 2 ^ 33 := by
+  have := entrySize_le_entBytes e
+  unfold entSizeOk entBytesMax at h
+  omega
+
+end sizePure
 
 end EtcdGrove
 end Perennial

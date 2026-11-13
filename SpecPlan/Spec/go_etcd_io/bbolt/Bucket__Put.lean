@@ -21,10 +21,15 @@ value it read from another open transaction). The abstraction relation then maps
 **Proof sketch, the success arm in the internal vocabulary** (verify-round, A11 F9).
 `wtxCore_view` opens `boltTx` (`T.rw`) to `wtxCore tx γ C` with `physRep T C`; `seek` leaves
 `curPath … T kb`; `Cursor.node` gives the leaf `n` with `repKept` (so `physRep T C'`) and
-`keyLeaf C' p kb n` (the handle current: `C.gens p = T.gens p = gs` by `physRep_meta`);
+`keyLeaf C' p kb n` (the handle current: `C.bkts b = some p` by `wtxCore_bktOwn` from the
+handle premise);
 `node.put kb kb value 0 0`; `physRep_set` with `newEnt 0 vb (Ent.val vb)` (the key not a bucket:
 the `ErrIncompatibleValue` test; its bounds: the checks and the premise) gives `physRep` of
 `T.setCur (… setKey kb (some (Ent.val vb)))`; `wtxCore_view` closes `boltTx`.
+**Changes (2026-11-12, `notes/specs-only/ledger.md`, bucket handles).** The handle premise `bktUse`
+(the bucket's ownership share in a write transaction) in place of `bktH … gs` and the generation
+check, given back (the per-path generation counter it replaces was unobservable state, redundant
+with ownership).
 -/
 module
 
@@ -51,11 +56,11 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 `p`; the errors in Go's order (not writable, empty key, key too large, `key` is a nested
 bucket). The value is kept by reference: lent until the transaction is done (`putLoan`). -/
 def Bucket.Put.spec : Prop :=
-  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (b : Loc) (p : BPath) (gs : List Nat) (key value : GoSlice) (kb vb : GoString) (dk dv : DFrac),
-  {{ boltTx (GF := GF) tx γ q T ∗ bktH tx γ b p gs ∗ key ↦*{dk} kb ∗ value ↦*{dv} vb ∗
-      ⌜T.gens p = gs ∧ (T.rw = true → q = 1) ∧ kb.length + vb.length ≤ bboltEntryMax⌝ }}
+  ∀ [HasExt osFsExt] (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (b : Loc) (p : BPath) (qb : Qp) (key value : GoSlice) (kb vb : GoString) (dk dv : DFrac),
+  {{ boltTx (GF := GF) tx γ q T ∗ bktUse tx γ T.rw b p qb ∗ key ↦*{dk} kb ∗ value ↦*{dv} vb ∗
+      ⌜(T.rw = true → q = 1) ∧ kb.length + vb.length ≤ bboltEntryMax⌝ }}
     (App (App (Val (b @!! go.GoType.PointerType Bucket.ty @!! go!"Put")) (Val #key)) (Val #value))
-  {{ (err : GoInterface), RET #err; key ↦*{dk} kb ∗
+  {{ (err : GoInterface), RET #err; bktUse tx γ T.rw b p qb ∗ key ↦*{dk} kb ∗
       (if T.rw = false then
          iprop(value ↦*{dv} vb ∗ boltTx tx γ q T ∗ isErr go_etcd_io.bbolt.errors.ErrTxNotWritable err)
        else if kb.length = 0 then

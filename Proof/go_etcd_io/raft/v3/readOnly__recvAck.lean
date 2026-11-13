@@ -36,7 +36,7 @@ private theorem readonlyRecvAck_cons (r : ReadOnly) (src : w64) (cs : List w8) (
   simp [readonlyRecvAck, H]
 
 theorem readOnly.recvAck.wp_proof : readOnly.recvAck.spec (GF := GF) (hG := hG) := by
-  intro ro r src ctx cs dq
+  intro sz ro r src ctx cs dq
   wp_start as Hown
   iNamed Hown
   unfold ownReadOnly

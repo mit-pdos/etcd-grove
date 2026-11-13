@@ -87,7 +87,7 @@ theorem openStorage.wp_proof
   ihave #Hraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   try wp_auto
-  wp_apply wp_NewMemoryStorage as %ms %γs ⟨#Hlock, #Hd0, Hend, Hnone, Hmeta, Hfresh⟩
+  wp_apply wp_NewMemoryStorage false as %ms %γs ⟨%Hsz, #Hlock, #Hd0, Hend, Hnone, Hmeta, Hfresh⟩
   try wp_auto
   -- the decode
   ihave Hb := (show (b ↦* encStor f : IProp GF) ⊣⊢ b ↦* (u64Le f.hs.Term' ++ (u64Le f.hs.Vote' ++
@@ -247,7 +247,7 @@ theorem openStorage.wp_proof
     obtain ⟨stp, Hstp⟩ : ∃ x, x = «$r0_ptr» := ⟨_, rfl⟩
     subst Hstp
     iStructNamedPrefix «$r0» "S"
-    imod kdStor_register stp ms γs ⊤ CoPset.subseteq_top $$ HsInv SMemoryStorage with #Hrec
+    imod kdStor_register stp ms γs ⊤ CoPset.subseteq_top Hsz $$ HsInv SMemoryStorage with #Hrec
     imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Sboot with #Sboot
     imod memSnapNone_open γs $$ Hnone with #Hlb0
     ihave #Hinit := isInitialized_access $$ Hraft
@@ -369,9 +369,11 @@ theorem openStorage.wp_proof
         iapply memLog_nil
     have Hidx1 : ∀ (j : Nat) (e : EntryM), f.ents[j]? = some e →
         uint.nat e.Index' = uint.nat f.prev + 1 + j := fun j e h => Hidx j e h
+    ihave #HentsZ : entsPtsZ γs.sz sv DFrac.discard f.ents $$ []
+    · rw [Hsz]; iapply entsPts_entsPtsZ $$ HentsO
     wp_apply wp_Append ms γs (uint.nat f.prev + 1) [] f.ents sv DFrac.discard Hidx1 Hb61
       $$ [HA] as ⟨-, HA⟩
-    · iframe HA HentsO Hlock
+    · iframe HA HentsZ Hlock
     ihave ⟨Hlog, Hend⟩ : memLog γs (uint.nat f.prev + 1) (DFrac.own 1) f.ents ∗
         memEnd γs (uint.nat f.prev + 1 + f.ents.length) $$ [HA HB]
     · by_cases Hne : f.ents = []
