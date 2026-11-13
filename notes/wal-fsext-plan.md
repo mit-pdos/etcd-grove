@@ -612,6 +612,37 @@ the crash branch), so the invariant's second branch holds both:
   `walInv` (`osAuMask → walAuMask`) and then the client's update (`walAuMask → ∅`) in `osAUnc`'s
   accessor.
 
+**Sixth session (branch `wal-read3`, 2026-11-13): two `walInvBody` conjuncts for the read path (W3/W5's
+gaps 1 and 2), appended last: `⌜WalsNamed Ls cl n⌝ ∗ walParked Ls cl` (`Inv.lean`).**
+- *`WalsNamed`*: per layout, in every claim of its directory (`WalDirClaim`) each segment's name is a `.wal`
+  name holding the segment's file and every `.wal` entry is a file (`SegsNamed`); after every crash the
+  claims allow, the same for the segments the crash kept (`SegsNamedC`, conditional on the inode being among
+  `walInos`). `WalsStart` gains `SegsNamed` over the start tree (5th conjunct); `walCrash_pure` takes
+  `WalsNamed` and gives it (`crashTo_start`/`CrashGood` now record `lay'.j = lay.j` and each kept segment's
+  old name and inode); `walsNamed_start` establishes it at `walInv_alloc`; `walsNamed_mono` (commit bound).
+- *`walParked`*: the parking flag `walParkAuth b` (new `WalGS.γpk`, a ghost `Bool`, half the invariant's);
+  the program's halves of every segment but the inodes `O` (`segRes`) and of every WAL directory's claim
+  (`WalDirClaimOf`) but the claims `D` (`ParkedClaim`, classical `if`); `b = true → O = D = []`. **The lock
+  token carries the other half**: `walUnlockedTok := token γu ∗ walParkFrag true`; new `walLockedTok :=
+  token γu ∗ walParkFrag false`, which `walHandleP` (so `walOpening`, `walReadFailed`), `walOpenW` and
+  `walReadOnlyF` now carry; `walUnlockedTok_lock` (flag to `false`, gives `b = true`: nothing is out, so
+  `Open` can take its WAL's halves), `walLockedTok_unlock`. Why the token: `Open`'s only exclusive resource
+  is the lock token, so "nothing is out" must be read off it. `walGhost_init` allocates the flag (`walStart`
+  gains `walParkAuth true`); `walInv_alloc` deposits the segments' program halves and the WAL directory
+  claims' halves; **its statement changed**: it returns `∃ Ls, ⌜WalsStart⌝ ∗ [∗list] c ∈ cl, if
+  WalDirClaimOf Ls c then emp else osNames c ½` (no `laysRes`, no WAL-directory claim halves).
+- **Obligations for the other units** (their agents merge them):
+  - `cut` (W2): the rename keeps `WalsNamed` (the new segment at its name in the new claim history; a crash
+    dropping the rename leaves its inode out of `walInos`) and `walParked` (the handle holds the flag
+    `false`: it may add the new tail's inode to `O`, take the directory claim out by adding it to `D`, and
+    deposits the old tail's halves by dropping its inode from `O`).
+  - `Create` (W4): `walOpenW`'s body is now `walHandleSt ∗ walLockedTok`, so `Create` flips the flag
+    (`walUnlockedTok_lock`) at an invariant opening. `CreateAu`'s commit keeps both conjuncts in its abort
+    arms; **its commit arm has a `sorry`** for them (the new WAL's segment and directory claim out: `g.ino`
+    and the claims on `J` into `O`/`D` with the flag `false`, which `walCreateP` must then carry; the area
+    claim's new history is no WAL directory's, a third half contradicts).
+  - `Close` (W10): parks what the handle holds and returns `walUnlockedTok` (`walLockedTok_unlock`).
+
 **The part's WAL package init (branch `wal-nc`, 2026-11-13).** `etc/gen-init.py` generates the
 `wp_initialize'` of the WAL's whole import closure in the part (`LFS_PKGS`): the part's `wal`, `walpb`,
 `fileutil`, `crc`, `hash/crc32` and raft root package (names-only); the main-tree translations below them
@@ -1688,3 +1719,20 @@ The W3/W5 log's gap 4 (`ZeroToEnd` on the tail; `cut`'s truncate of the old tail
      `Seek`s take the halves' fraction; its `Truncate(o)` is `specAu`; `Preallocate(f, S, true)` →
      `preallocExtend` → `Fallocate.wp_growAu` (the `ENOTSUP` fallback `preallocExtendTrunc` →
      `specAu` again); post: halves of the `osZerosA` run.
+
+**Third session (branch `wal-read3`, 2026-11-13).**
+- *Gaps 1 and 2 closed* as the coordinator decided: `WalsNamed` and `walParked` in `walInvBody`, the parking
+  flag in the lock token (W1 log, sixth session, for the design and the other units' obligations).
+  `walReadOnlyF` holds `walLockedTok`. `Open`'s proof: `walUnlockedTok_lock` at its first invariant opening,
+  then take its WAL's segments into `O` and its directory claim into `D`; `selectWALFiles`' premise
+  `WalDirNamesOk` from `WalsNamed`'s current clause.
+- *Gap 5, partly*: `fileutil.NewFileReader` (interface `*fileReader{f}`, the cell owned) and
+  `fileutil.OpenDir` (`os.Open.wp_dirS`'s triple) specified and proved (`LinuxFs/{Spec,Proof}/.../fileutil/`).
+  Not done: `TryLockFile` (as `LockFile`, plus `errors.Is(err, EWOULDBLOCK)`), `closeAll`,
+  `walpb.Snapshot.Clone`, the `os.File`-reader bridge to `decFile`.
+- *Not done*: the proofs of `openWALFiles`, `openAtIndex`, `OpenForRead`, `Open`, `ReadAll`.
+- *Pipeline obligations* (the coordinator, after `wal-cut3`): `newFilePipeline.spec` takes `dir.length <
+  2^61`; `tmpClaim j b` owns what `N.tmp` holds (nothing, or a leftover file whole), so after a crash `Open`
+  must hand over a leftover `N.tmp`'s resources with its claim.
+- *Build note*: `filePipeline__alloc` fails at `wal-int` `6f367bb4bf` merged here (`wp_LError ... cannot frame
+  zapLoggerOk lg`, line 136; not touched here, nor are its imports' statements).
