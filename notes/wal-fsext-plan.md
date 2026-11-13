@@ -2227,7 +2227,12 @@ The W3/W5 log's gap 4 (`ZeroToEnd` on the tail; `cut`'s truncate of the old tail
   `walHandleP_set` (`ReadAll`: `opening` to `append`/`failed`), `walGhost_handleAuth`); `OpenFiles.lean`
   (`walDecFiles_mk`: `openWALFiles`' `walOpenedFile`s and the opened segments' program halves `segHalves`
   give `NewDecoder`'s `[∗list] F ∈ fs, decFile IoE eof F ∗ F.S []`, `fs.map (·.fr)` the readers, and
-  `WalDecTie` (`walReadTie`'s per-file facts) and the locks; over `walDecFile_ok`).
+  `WalDecTie` (`walReadTie`'s per-file facts) and the locks; over `walDecFile_ok`); `OpenNames.lean` (pure:
+  `walFileName_walNameStr` (`hex16 = fmt.hexPad 16`, last 16 digits), `walName_unique`/`walName_seg` (a
+  present `.wal` name is a segment's, the inodes distinct), `walDirNamesOk_of` (`selectWALFiles`' premise from
+  `SegsNamed`, `WalAbsD.names`, `nameBound`), `walNamesOut_segs` (`readWALNames`' names are exactly
+  `lay.segs.map name`, by `Perm.eq_of_pairwise`), `walOpenNames_ok` (`openWALFiles`' name premise from the
+  selected position; names are 37 bytes)).
 - **Statement change, `openAtIndex`'s read mode**: its read-mode success returned
   `walUnlockedTok`, but `walReadH false` holds the program's halves of the WAL's files and directory claim
   (`walReadTie`), which only a `walLockedTok` holder may have out of `walParked`; `walReadOnlyF` already
@@ -2258,6 +2263,5 @@ The W3/W5 log's gap 4 (`ZeroToEnd` on the tail; `cut`'s truncate of the old tail
   segments into `O` and its claim into `D`, exact halves by agreement with `segResF` (idle: the flag was
   `true`, no handle, so no write in flight), write mode `walOpening_mint` from `walGhost_handleAuth`); then
   `selectWALFiles` (premise `WalDirNamesOk` from `WalsNamed`), `openWALFiles` (names from the selected
-  position: a pure lemma `WalSelected` + `SegsNamed` + `WalAbsD.names` ⇒ `ws = lay.segs.map name`, still to
-  write), `walDecFiles_mk`, `NewDecoder`, the struct; the error arms unpin at a later step (the `Errorf`
+  position: `walNamesOut_segs`, `walOpenNames_ok`), `walDecFiles_mk`, `NewDecoder`, the struct; the error arms unpin at a later step (the `Errorf`
   call) with `walLockedTok_unlock`.
