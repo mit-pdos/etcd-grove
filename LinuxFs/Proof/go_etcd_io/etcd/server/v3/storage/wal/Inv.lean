@@ -12,7 +12,9 @@ roots `R`), in the tree's shared mode (`notes/wal-fsext-i2-design.md`). It holds
 * the static relation (`WalAbsD`) and the crash condition (`CrashOk`) of every WAL;
 * that a directory of the area with no WAL has none after any crash its claims allow (`AbsentOk`),
   and that a durable directory (`dirDurable`) resolves after any crash (`DirsOk`);
-* `Create`'s framed part (`WalsCreateOk`, W4): a claim of the area holds every WAL name.
+* `Create`'s framed part (`WalsCreateOk`, W4): a claim of the area holds every WAL name; and the
+  creating map's authority (`walCreatingAuth`, `CreatingOk`): each `Create` in progress's area claim,
+  among the invariant's (the program's `walCreating` token names it).
 
 W2 (`Cut.lean`): the WAL directory's claim leaves out the pipeline's names (`WalDirClaim`, the
 `N.tmp` claims are the pipeline's) and is coherent; the crash condition may carry the layout before
@@ -120,6 +122,11 @@ to be one the invariant has the other half of (`NamesCoh.disj`), whose crashes i
 def WalsCreateOk (jr : Ino) (cl : List Claim) : Prop :=
   ∀ nm, walNameOk nm → ∃ N h, (jr, N, h) ∈ cl ∧ N.Mem nm
 
+/-- **The WALs being created are renamed in claims the invariant holds** (W4, framed): each entry
+`dir ↦ (N, h)` of the creating map is a claim `(jr, N, h)` of the area directory among `cl`. -/
+def CreatingOk (jr : Ino) (cl : List Claim) (CR : GMap GoString (NameSet × NamesH)) : Prop :=
+  ∀ dir N h, CR !! dir = some (N, h) → (jr, N, h) ∈ cl
+
 end pure
 
 section inv
@@ -184,7 +191,35 @@ def walTailsRes (s : AbsDiskState) (Ls : GMap GoString WalLay) : IProp GF :=
 
 instance walTailsRes_timeless (s : AbsDiskState) (Ls : GMap GoString WalLay) :
     Timeless (walTailsRes (W := W) s Ls) := by
-  unfold walTailsRes; infer_instance
+  unfold walTailsRes
+  letI := walAllG (W := W)
+  haveI : ∀ (γ : GName) (x : TailG), Timeless (ghostVar (GF := GF) γ (1 : Qp).half x) :=
+    fun _ _ => inferInstance
+  haveI : ∀ (dir : GoString) (γ : GName), Timeless (iprop(∃ (d : WalDur) (lay : WalLay) (g : SegG),
+      ⌜s.wal !! dir = some d ∧ Ls !! dir = some lay ∧ lay.segs.getLast? = some g ∧ TailZeros lay⌝ ∗
+      ghostVar (GF := GF) γ (1 : Qp).half (tailG d lay g.ino))) := fun _ _ => inferInstance
+  infer_instance
+
+/-- **The tails as the WAL state changes elsewhere than the histories and metadata** (`named`, the
+mark, the purge bounds). -/
+theorem walTailsRes_mono (s s' : AbsDiskState) (Ls : GMap GoString WalLay)
+    (h : ∀ dir d, s.wal !! dir = some d →
+      ∃ d', s'.wal !! dir = some d' ∧ d'.H = d.H ∧ d'.metadata = d.metadata) :
+    walTailsRes (W := W) s Ls ⊢ walTailsRes (W := W) s' Ls := by
+  unfold walTailsRes
+  letI := walAllG (W := W)
+  iintro ⟨%T, Ha, Hm⟩
+  iexists T
+  iframe Ha
+  iapply BigSepM.bigSepM_mono_of_forall _ $$ Hm
+  intro dir γ
+  iintro ⟨%d, %lay, %g, %hp, Hv⟩
+  obtain ⟨d', hd', hH, hmd⟩ := h dir d hp.1
+  iexists d', lay, g
+  have e : tailG d' lay g.ino = tailG d lay g.ino := by simp [tailG, hH, hmd]
+  rw [e]
+  iframe Hv
+  ipureintro; exact ⟨hd', hp.2⟩
 
 /-- **The WAL invariant's contents**, the real WAL state being `s`. -/
 def walInvBody (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
@@ -193,7 +228,7 @@ def walInvBody (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoSt
     walGhost (W := W) s ∗ ⌜s.area = r⌝ ∗
     osClaims L (cl.map (fun c => (c, DFrac.own (1 : Qp).half))) ∗ osCommitLb (L := L) n ∗
     laysResF (L := L) F Ls ∗ ⌜WalsOk C Mr R jr s Ls cl n⌝ ∗ ⌜WalsCreateOk jr cl⌝ ∗
-    walTailsRes (W := W) s Ls)
+    (∃ CR, walCreatingAuth (W := W) CR ∗ ⌜CreatingOk jr cl CR⌝) ∗ walTailsRes (W := W) s Ls)
 
 instance walInvBody_timeless (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (s : AbsDiskState) : Timeless (walInvBody (L := L) (W := W) C Mr R jr r s) := by

@@ -23,6 +23,7 @@ module
 
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CrashStart
 public import GooseLang.Ext.Fs.CrashTakeFiles
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CrashTakeSeg
 
 @[expose] public section
 
@@ -51,7 +52,8 @@ file on disk, the segments' inodes distinct. -/
 def walStart (L : GooseLocalGS GF) (W : WalGS GF) (C : WalCodec) (Mr : WalMarshal) (R : Roots)
     (jr : Ino) (r : GoString) (s : AbsDiskState) (m : Tree) : IProp GF :=
   iprop(∃ (Ls : GMap GoString WalLay) (is : List Ino) (fo : Ino → Option Fs.OsFile),
-    walGhost (W := W) s ∗ ⌜s.area = r⌝ ∗ ([∗list] i ∈ is, osFileStartO (L := L) i (fo i)) ∗
+    walGhost (W := W) s ∗ walCreatingAuth (W := W) ∅ ∗ walTailsAuth (W := W) ∅ ∗ ⌜s.area = r⌝ ∗
+    ([∗list] i ∈ is, osFileStartO (L := L) i (fo i)) ∗
     ⌜is.Nodup ∧ ((segsAll Ls).map (·.ino)).Nodup ∧ WalsStart C Mr R jr s Ls m ∧
       ∀ dir lay, Ls !! dir = some lay → ∀ g ∈ lay.segs,
       g.ino ∈ is ∧ ∃ f, fo g.ino = some f ∧ g.om = initMeta f ∧ g.bs = f.contents.map durB⌝)
@@ -61,71 +63,6 @@ real state `s`, the new generation's program map at the crashed state `s'` and i
 def walCrashWal (W W' : WalGS GF) : IProp GF :=
   iprop(∃ s s' : AbsDiskState, ⌜walStCrash s s'⌝ ∗ walGhost (W := W) s ∗
     walOwn (W := W') s'.wal ∗ walPast (W := W') s')
-
-/-- **The crashed state's files, all at once** (an I3 gap, `notes/wal-fsext-plan.md` W1 log): for
-the files `gs` (inodes not taken, with halves of their `OsMeta` and runs), one crashed state `st'`
-for all of them, the crash premise `Q` of it, its tree the new history's, each file as
-`FileCrashedR` of its halves and its candidates the state's (no sync cut), each new file's start
-resources. `crashRest_take_runs_keep` gives each file its own existential state, which a premise
-over several files (W1) cannot use. Belongs in `GooseLang/Ext/Fs/CrashTok.lean`. -/
-theorem crashRest_take_files (Q : Fs.OsState → Fs.OsState → Prop) (L L' : GooseLocalGS GF)
-    (D : List Ino) (tt : Bool) (V' : Hist) (gs : List SegG)
-    (hD : ∀ g ∈ gs, g.ino ∉ D) (hnd : (gs.map (·.ino)).Nodup) (hcut : ∀ g ∈ gs, g.om.cut = none) :
-    ⊢ crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D tt V' -∗
-      ([∗list] g ∈ gs, segRes (L := L) g) -∗
-      ∃ (st st' : Fs.OsState), ⌜Q st st' ∧ st'.fs.treeDur = V'.now ∧
-          ∀ g ∈ gs, FileCrashedR g.om [(0, DFrac.own (1 : Qp).half, g.bs)] (st'.fs.files !! g.ino) ∧
-            (Named V'.now g.ino → (st'.fs.files !! g.ino).isSome) ∧
-            ∃ f, st.fs.files !! g.ino = some f ∧ ∀ b (y : ByteG), g.bs[b]? = some y → f.cand b = y.2⌝ ∗
-        ([∗list] i ∈ gs.map (·.ino), osFileStartO (L := L') i (st'.fs.files !! i)) ∗
-        crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) (gs.map (·.ino) ++ D) tt V' ∗
-        ([∗list] g ∈ gs, segRes (L := L) g) := by
-  let xOf : SegG → Ino × DFrac × OsMeta × List (Nat × DFrac × List ByteG) :=
-    fun g => (g.ino, DFrac.own (1 : Qp).half, g.om, [(0, DFrac.own (1 : Qp).half, g.bs)])
-  have hsr : ∀ g, segRes (L := L) g ⊣⊢ fileOld (gooseOsGS (L := L)) (xOf g) := by
-    intro g
-    unfold segRes fileOld osMeta osBytes
-    simp only [xOf]
-    have hs := BigSepL.bigSepL_singleton (PROP := IProp GF) (Φ := fun _ (r : Nat × DFrac × List ByteG) => bytesG (gooseOsGS (L := L)) g.ino r.1 r.2.1 r.2.2) (x := (0, DFrac.own (1 : Qp).half, g.bs))
-    exact ⟨sep_mono_right hs.2, sep_mono_right hs.1⟩
-  have e1 : ([∗list] g ∈ gs, segRes (L := L) g) ⊣⊢
-      [∗list] x ∈ gs.map xOf, fileOld (gooseOsGS (L := L)) x := by
-    rw [BigSepL.bigSepL_map]
-    exact ⟨BigSepL.bigSepL_mono_of_forall (fun {_ x} => (hsr x).1),
-      BigSepL.bigSepL_mono_of_forall (fun {_ x} => (hsr x).2)⟩
-  have e2 : (gs.map xOf).map (·.1) = gs.map (·.ino) := by simp [xOf]
-  have hstarts : ∀ st' : Fs.OsState, ([∗list] x ∈ gs.map xOf, fileStartO (gooseOsGS (L := L')) x.1
-      (st'.fs.files !! x.1)) ⊢ [∗list] i ∈ gs.map (·.ino), osFileStartO (L := L') i (st'.fs.files !! i) := by
-    intro st'
-    rw [BigSepL.bigSepL_map, BigSepL.bigSepL_map]
-    exact BigSepL.bigSepL_mono_of_forall (fun {_ x} => (fileStartO_eq (L := L') x.ino _).1)
-  have hD' : ∀ x ∈ gs.map xOf, x.1 ∉ D := by
-    intro x hx; obtain ⟨g, hg, rfl⟩ := List.mem_map.1 hx; exact hD g hg
-  have hnd' : ((gs.map xOf).map (·.1)).Nodup := by rw [e2]; exact hnd
-  iintro Hr Hs
-  icases e1.1 $$ Hs with Hs
-  have H := crashRest_take_list (gooseOsGS (L := L)) Q (gooseOsGS (L := L')) D tt V' (gs.map xOf)
-    hD' hnd'
-  rw [e2] at H
-  icases H $$ Hr Hs with ⟨%st, %st', %h, Hf, Hr, Hs⟩
-  iexists st, st'
-  iframe Hr
-  isplitr
-  · ipureintro
-    refine ⟨h.1, h.2.1, fun g hg => ?_⟩
-    obtain ⟨h1, h2, f, hf, h3⟩ := h.2.2 (xOf g) (List.mem_map_of_mem hg)
-    refine ⟨h1, h2, f, hf, fun b y hb => ?_⟩
-    have hbl : b < g.bs.length := by
-      rcases Nat.lt_or_ge b g.bs.length with h | h
-      · exact h
-      · rw [List.getElem?_eq_none h] at hb; cases hb
-    have := h3 (hcut g hg) _ (List.mem_singleton_self _) b hbl
-    rw [List.getElem?_eq_getElem hbl] at hb
-    cases hb
-    simpa using this
-  isplitl [Hf]
-  · iapply hstarts st' $$ Hf
-  iapply e1.2 $$ Hs
 
 theorem walsOk_nodup {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s : AbsDiskState}
     {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat} (h : WalsOk C Mr R jr s Ls cl n) :
@@ -162,7 +99,7 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
   · inext; iright; iframe Hcrd Htok
   icases Hb with ⟨%s, >Hb⟩
   iunfold walInvBody at Hb
-  icases Hb with ⟨%Ls, %cl, %n, Hg, %Har, Hcl, #Hcm, Hlays, %Hok, -⟩
+  icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, #Hcm, Hlays, %Hok, -⟩
   icases walGhost_keys_keep (W := W) s $$ Hg with ⟨Hg, %hk⟩
   -- the tree: what the claims allow
   imod crashRest_region Q L L' [] false V' R (cl.map (fun c => (c, DFrac.own (1 : Qp).half))) n E
@@ -174,14 +111,14 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
       | cons c l ih => simp only [List.map_cons]; rw [ih]
   rw [hcl cl] at Hreg
   -- the segments
-  icases (laysRes_list (L := L) Ls).1 $$ Hlays with Hlays
-  icases crashRest_take_files Q L L' [] false V' (segsAll Ls) (by simp) (walsOk_nodup Hok)
+  iunfold laysResF at Hlays
+  icases crashRest_take_segs Q L L' [] false V' F (segsAll Ls) (by simp) (walsOk_nodup Hok)
     (walsOk_cut Hok) $$ Hcr Hlays with ⟨%st, %st', %Hfs, Hstarts, Hcr, -⟩
   obtain ⟨hQs, htree, hfiles⟩ := Hfs
   obtain ⟨s', Ls', hcrash, harea', hk', hstart, hnd', hsegs⟩ :=
     walCrash_pure C hC Mr R jr s Ls cl n V'.now st st' Hok hk Hreg htree (hQ _ _ hQs) hfiles
   -- the new generation's ghost state
-  imod walGhost_init hPre s' hk' with ⟨%W', Hg', HM', #Hp', Hu', Hc'⟩
+  imod walGhost_init hPre s' hk' with ⟨%W', Hg', HM', #Hp', Hu', Hc', Hcr', Ht'⟩
   imodintro
   iexists W', s', ((segsAll Ls).map (·.ino) ++ [])
   iframe Hu' Hc' Hcr Hp'
@@ -194,7 +131,7 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
   · ipureintro; rw [harea', Har]
   unfold walStart
   iexists Ls', (segsAll Ls).map (·.ino), (fun i => st'.fs.files !! i)
-  iframe Hg' Hstarts
+  iframe Hg' Hstarts Hcr' Ht'
   ipureintro
   exact ⟨by rw [harea', Har], walsOk_nodup Hok, hnd', hstart, hsegs⟩
 
@@ -317,7 +254,7 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
       ∃ Ls, ⌜WalsStart C Mr R jr s Ls V.now⌝ ∗ laysRes (L := L) Ls := by
   iintro Hst Hcl
   unfold walStart
-  icases Hst with ⟨%Ls, %is, %fo, Hg, %Har, Hfs, %Hp⟩
+  icases Hst with ⟨%Ls, %is, %fo, Hg, Hcr, Htl, %Har, Hfs, %Hp⟩
   obtain ⟨-, hnd, hstart, hsegs⟩ := Hp
   -- the segments' start resources, halved
   have hsub : ((segsAll Ls).map (·.ino)) ⊆ is := fun i hi => by
@@ -361,22 +298,34 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     exact monoNatLbOwn_0 _
   imod hcm0 with #Hcm
   imod inv_alloc walN E (iprop((∃ s : AbsDiskState, walInvBody (L := L) (W := W) C Mr R jr r s) ∨
-      (crashed (hC := L.goose_crashGS) ∗ walCrashTok (W := W)))) $$ [Hg Hc1 Hi] with #Hinv
+      (crashed (hC := L.goose_crashGS) ∗ walCrashTok (W := W)))) $$ [Hg Hc1 Hi Hcr Htl] with #Hinv
   · inext; ileft; iexists s
     unfold walInvBody
-    iexists Ls, cl, 0
+    iexists Ls, cl, 0, ∅
     iframe Hg Hc1 Hcm
     isplitr
     · ipureintro; exact Har
     isplitl [Hi]
-    · iapply (laysRes_list (L := L) Ls).2 $$ Hi
+    · iapply (laysResF_empty (L := L) Ls).2
+      iapply (laysRes_list (L := L) Ls).2 $$ Hi
     isplitr
     · ipureintro
       exact walsOk_start C hC Mr R jr s Ls V cl hV hcl harea hdirs hdok hstart hnd hcut
-    ipureintro
-    intro nm hnm
-    obtain ⟨N, h, hc, hN⟩ := harea
-    exact ⟨N, h, hc, hN nm hnm⟩
+    isplitr
+    · ipureintro
+      intro nm hnm
+      obtain ⟨N, h, hc, hN⟩ := harea
+      exact ⟨N, h, hc, hN nm hnm⟩
+    isplitl [Hcr]
+    · iexists ∅
+      iframe Hcr
+      ipureintro
+      intro dir N h hd
+      simp at hd
+    unfold walTailsRes
+    iexists ∅
+    iframe Htl
+    iapply BigSepM.bigSepM_empty.2; iempintro
   imodintro
   unfold walInv
   iframe Hinv Hc2

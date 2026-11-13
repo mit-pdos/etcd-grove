@@ -26,13 +26,15 @@ translate = ["!*", "O_RDONLY", "O_WRONLY", "O_RDWR", "O_APPEND", "O_CREATE", "O_
   "pollCopyFileRange", "pollSplice",
   "Args", "init.0",
   # real Go over OpenFile (`return OpenFile(name, O_RDONLY, 0)`); the error type of Rename
-  "Open", "LinkError",
+  "Open", "LinkError", "LinkError.Error",
   # (2026-11-13, the WAL over fsExt) real Go over the trusted layout of `fileStat`
   # (`return fs.mode`, `return fs.Mode().IsDir()`), and over the models of OpenFile, File.Write and
   # File.Close (`WriteFile`, fileutil's IsDirWriteable)
   "fileStat.Mode", "fileStat.IsDir", "WriteFile",
   # pure helpers the models of MkdirAll and RemoveAll call (path.go, path_unix.go)
-  "IsPathSeparator", "endsWithDot", "splitPath"]
+  "IsPathSeparator", "endsWithDot", "splitPath",
+  # (2026-11-13, os.MkdirAll's proof) the constant IsPathSeparator compares with
+  "PathSeparator"]
 # what the models use: errors.New, io.EOF, fs.PathError and FileInfo, syscall.Errno
 imports = ["!*", "errors", "io", "io/fs", "syscall", "sync", "internal/poll"]
 # The functions and methods minibolt calls, modeled by the Linux file extension fsExt

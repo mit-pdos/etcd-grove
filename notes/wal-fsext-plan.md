@@ -1066,6 +1066,57 @@ update: `s.wal dir := walDurFresh md`, the new layout and its `CrashOk`); then `
 (W10), `Open`/`ReadAll` (W5/W3, for `renameWALUnlock`), `newFilePipeline` (W2), `Exist` (W12),
 `filepath.Clean`/`Dir`/`Join`, `fmt.Sprintf`, `time.Now`/`Format`, prometheus `Observe`.
 
+**Second session (branch `wal-create2`, 2026-11-13).**
+- *Done:* the `nc` variants of the `os` specs `Create` uses (`os.Rename.specDirSnc`, `os.Mkdir.specSnc`,
+  `os.Remove.specFileSnc`, `os.OpenFile.specCreateSnc`/`specCreateTruncSnc`), proved as `specFileSnc` was
+  (the proof renamed to the `nc` variant, `wp_au_step` → `wp_aunc_step`; the old spec derived through
+  `osAU_osAUnc`). `Create.spec`: the after-rename error arm was already Q4 (b) (`Q` only); it now takes
+  `isPkgInit wal`. `walAreaRes`'s claim also holds every `nm.<sfx>` of a WAL name `nm` (**spec gap fixed**:
+  `Create` needs `nm.tmp`'s and the cleanup's `nm.broken.<time>`'s claims, which "every WAL name" did not
+  give: `walNameOk` excludes `.`).
+- *`Create` cannot return `walOpenWF`* (W6's sealed handle) as `walHandleIn` stands: it requires
+  `w.state ≠ nil` (`⌜sp ≠ null⌝`), and `Create` leaves `state` nil (S/wal.go:164-168; `hsIn` reads nil as
+  the zero state, so the conjunct should be dropped or made `sp = null → st = zero`); `walPipeH` is W2's
+  placeholder. Also: `Create` calls `SaveSnapshot` *before* the rename, on a `w` with no `dirFile` and no
+  `fp`, on a file in `nm.tmp` that no WAL layout tracks, so W6's `SaveSnapshot` spec (over `walOpenWF`,
+  crash-tracked tail) does not apply there: `Create` needs a pre-rename variant (the tail owned wholly,
+  not in `walInv`; the encoder's `encode.specG` over a whole-resource writer, `os.File.writerStream`).
+  Until W6's handle allows both, `Create` returns the ghost-only `walOpenW`.
+- **Finding: the rename's client update cannot find its claim in `walInv`.** `os.Rename.specDirSnc`'s
+  update must hand out `osNames jr N ½ h`, the key `(jr, N)` and history `h` the program's half has.
+  `walInv` holds some claim `(jr, N1, h1) ∈ cl` holding `nm` (`WalsCreateOk`), and only `osSharedInv`'s
+  coherence (`NamesCoh.disj`, `osNames_same_name`) shows `N1 = N`; `osShN ∉ osAuMask` (the step opens it),
+  so the update's opening cannot. Fragments of different keys cannot be compared without the authority.
+  **Proposed** (internal ghost state, not client-visible): a `WalGS` field `γcr` and a `walInvBody`
+  conjunct `walCreatingAuth`: `ghostMapAuth γcr CR` with `∀ dir N h, CR !! dir = some (N, h) → (jr, N,
+  h) ∈ cl`; the program's token `walCreating dir N h := dir ↪[γcr] (N, h)` (whole), made at a program
+  step at `⊤` (`wp_notCrashed_acc`; both invariants open, the agreement by `osNames_same_name`), put in
+  the update's `P` (`osAUnc_coiter`): its opening reads `(jr, N, h) ∈ cl` from the authority and takes the
+  invariant's half; the commit updates the entry (or deletes it). `walGhost_init` allocates it empty;
+  `walInv_crash` drops it, `walInv_alloc` makes it empty (pattern edits, as `WalsCreateOk`'s).
+- **The commit's pure core** (`walsOk_create`, to state with it): from `WalsOk s Ls cl n`, `s.wal dir =
+  none`, `InArea r dir nm`, the claim `(jr, N, h) ∈ cl` with `h.cur !! tmp = some (.dir J)`, `h.cur !! nm =
+  none`, the rename logged at `x` (call begun at `st ≥ h.next`), `J`'s claim `(J, .except X, hJ)` (`hJ.cur`
+  = the segment `walFileName 0 0 ↦ file g.ino` and non-`.wal` names, every entry `< st`), the segment `g`
+  (bytes `(S ++ zeros).map durB`, `S` the fresh WAL's stream, meta sized), **`AbsentNone`** for `nm` (every
+  crash of `cl` leaves `nm` absent): `WalsOk s' Ls' cl' n` with `s'.wal = <[dir := walDurFresh md]>`,
+  `Ls' = <[dir := lay]>` (`cuts = []`, `first = 0`, `segs = [g]`, `old` zeros, `wr = so = |S|`, `z0 = 0`),
+  `cl' = ` the claim logged, `J`'s appended. Its pieces: (a) the fresh WAL's `CrashOk`: a crash dropping
+  `x` leaves `nm` as `cl`'s crash did (`regionCrashedK_unlog`), absent (`AbsentNone`): `CrashTo`'s left;
+  keeping it keeps every entry before `st` (`Follows`), so `J` names the segment, synced: `crashTo_synced`;
+  (b) the other WALs', `AbsentOk`, `DirsOk`: a crash of `cl'` is one of `cl` on the tree with `tmp`/`nm`
+  restored (as W2's `treeDel` for a file rename; `Named` is reachability-free, so moving `J` changes no
+  file's naming), the WALs' directories distinct from `jr`; (c) `Nodup` of the inodes by the meta
+  halves' validity. Not stated yet (its `AbsentNone` premise and the claim's agreement need the two
+  conjuncts above first).
+- **`walCreating` in (coordinator's decision, same session):** `WalGS.γcr`; `walCreatingAuth CR` (the
+  invariant's, a ghost map `dir ↦ (N, h)`) and `walCreating dir N h` (the program's whole element),
+  `Ghost.lean`; `walInvBody`'s last conjunct `∃ CR, walCreatingAuth CR ∗ ⌜CreatingOk jr cl CR⌝`
+  (`Inv.lean`: every entry a claim `(jr, N, h)` of `cl`); `walGhost_init` allocates it empty, `walStart`
+  carries it, `walInv_alloc` puts it in, `walInv_crash` drops the old one. No other statement changed.
+- *Not done:* the commit lemma, `AbsentNone`; `wal.Create.wp_proof`,
+  `fileutil.TouchDirAll.wp_proof`, `fileutil.CreateDirAll.wp_proof` (still `sorry`).
+
 ## 11. Coordinator decisions after W2 and W4 (2026-11-13)
 
 - **Q4 revised to (b)** (W4 found (a) unprovable: `cleanupWAL`'s rename to `dir.broken.*` is never fsynced,
@@ -1150,3 +1201,33 @@ keeps the static relation with `d.m := |H|` (`syncLay`, `walAbsD_sync`; its cras
   which no `os.File` can meet (offset `-1`, arbitrary count): it needs the `B` form. And the guarded
   bridge for `walTailW` (program halves) needs a crash-aware `Write` that opens `walInv` around each
   `PWriteStart`/`PWriteFinish` (the in-flight write's token in `walTailsRes`), not this whole-resource bridge.
+
+## fileutil, the rest (branch `wal-fu2`, 2026-11-13)
+
+Specs in `LinuxFs/Spec/go_etcd_io/etcd/client/pkg/v3/fileutil/` (and `wal/createNewWALFile.lean`), proofs
+beside them in `LinuxFs/Proof/...`:
+- **`ZeroToEnd`** (proved): pre the offset `o ≤ size`, the file unmapped, whole `OsMeta` and the bytes
+  `[o, size)`; success: offset `o`, same size and mappings, `[o, size)` an `osZerosA` run; error: some
+  offset, some size `w ≥ o`, some `w - o` bytes from `o`. Callees `os.File.Truncate.spec`, `Preallocate.spec`.
+- **`LockFile`** (proved, ofd and flock variants over the package fact `fileutilInit`): **generic in
+  the open spec** (decision: one statement for every open variant instead of one spec each):
+  `fileutil.OpenTriple P path flag perm A C` (`LockDefs.lean`) is the premise, `{{P}} os.OpenFile
+  {{ fileutil.openPost A C }}`, the shape of `specCreateS`/`specCreateTruncS`/`wp_fileS` (outcome `x`,
+  resources `A x ok`, on success a fresh file and fd on `i` with `C x i`); post `fileutil.lockPost`
+  (the locked file `fileutil.lockedFile lf f`, persistent, with the file and fd whole; on an error a
+  nil pointer and `∃ b, A x b`: a lock error closes the file it opened). Callees `os.File.Fd`,
+  `Close`, `syscall.Flock`, `fmt.ErrorfErrs` (`ofdLockFile` wraps the open error with `%w`).
+  **Open, blocking instantiation:** `openPost`'s error branch needs `fmtErrorOkOrNil err` (for that
+  `%w`), which the part's open specs do not give yet: add it to `os.OpenFile.specCreateS`,
+  `specCreateTruncS` and `wp_fileS`'s error posts (their model's error is `pathError "open" name
+  (errno e)`; `os.wp_wrapErrno_ok`'s argument, `pathError_fmtErrorOk` + `errnoErr_fmtErrorOk`).
+- **`createNewWALFile`** (proved, `wal/`): `specLocked` (`LockFile`'s post) and `specFile`
+  (the open's), generic the same way at `wal.walOpenFlag forceNew` (`0x41`/`0x241`), mode `0600`.
+- **`Exist`** (proved): generic in the `Stat` spec. **`WithExt`** (proved): `fileutil.withExtFn g ext`
+  (persistent closure contract).
+- **`ReadDir`**: spec over `Open/Readdirnames/Close.wp_dirS` (result `fileutil.ReadDirOut names
+  (optsExt es) rs`: sorted, filtered); **proof `sorry`** (two loops left).
+- Not done: `TryLockFile` (the WAL does not call it; needs `errors.Is(err, EWOULDBLOCK)`),
+  `IsDirWriteable` (reached through `TouchDirAll`: `os.WriteFile`, `Remove`).
+- Build note: the seeded `.lake` replayed stale `Proof/.../storage/WalEncDecode` and
+  `GooseLang/Ext/Fs/TreeSharedRes` artifacts after the `wal-int` merge; deleting them fixed it.

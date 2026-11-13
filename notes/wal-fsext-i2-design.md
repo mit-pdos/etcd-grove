@@ -882,3 +882,104 @@ Not done:
   Until then no spec of `RemoveAll` of a directory is provable (of a file or an absent name it is:
   no `rmdir` takes effect).
 - The `LinkError`/`PathError` `fmtErrorOkOrNil` facts.
+
+### Implementation log, the `os`-level shared specs, fourth part (branch `wal-osau4`, 2026-11-13)
+
+Done, proved (no `sorry`):
+
+- **`wp_osOpenTruncS`** (`GooseLang/Ext/Fs/TreeSharedTrunc.lean`; statement unchanged). The world
+  update is `osWorld_trunc`: the open's one-step truncation (`truncSt`, `OpenEffect`'s state) is the
+  two steps of a resize to 0 under a fresh token, through the state between them (`startState`):
+  `resize_start_world` (`wp_osResizeStart`'s body as a world update, the heap re-rendered for the
+  middle state, `renderHeap`) then `resize_done_world`, with `heapRendered_mid` (a step `A → C` seen
+  from a `B` between them, no mapping changes) and `truncSt_eq` (the two steps make `truncSt`).
+  Helpers: `heapRendered_congr` (`HeapRendered` sees its source only through the mappings, its
+  target through files, changes in flight and mappings), `osWorld_addFd0` (an fd added, heap
+  unchanged), `osMeta_whole_facts`. The tree's part is `wp_osOpenFileS'`'s; the truncation is a
+  `TreeFrame` step (`treeFrame_stampFile`). `os.OpenFile.specCreateTruncS` is now `sorry`-free.
+- **`os.OpenFile.wp_truncS`** (`LinuxFs/Proof/os/OpenFileTruncS.lean`): the plain triple for an
+  `O_TRUNC` open (with or without `O_CREATE`) of a name holding the file `i` (a leftover `N.tmp`): a
+  fraction of a claim on names containing `b`, `osCallPerm qc`, `trFile i False` (the file whole,
+  any size) in; `trFile i (err = nil)` out (size 0 on success; on failure truncated or not), the fd
+  on success. Each `EINTR` retry truncates again.
+- **The `fmtErrorOk` facts**: `LinkError.Error` is now translated (`LinuxFs/Code/os.toml`, one
+  method added; `LinuxFs/Code/os.lean` regenerated, `GeneratedProof` unchanged); in
+  `LinuxFs/Proof/os/ErrorOk.lean`: `linkError_fmtErrorOk`, `wp_linkError_ok` (`model.linkError` of
+  a nonzero errno) and `wp_pathError_ok` (`model.pathError` of a nonzero errno).
+- **Statement change (coordinator's request, for `fileutil.LockFile`)**: the error branch of the
+  shared `OpenFile` specs (`os.OpenFile.specCreateS`, `specCreateTruncS`, `wp_fileS`, `wp_truncS`)
+  is now `⌜err ≠ nil ∧ f = null⌝ ∗ fmtErrorOkOrNil err` (proved over `wp_pathError_ok`); nothing
+  else changed. `Rename`/`Remove`/`Mkdir`'s shared specs do not state it yet.
+
+**`RemoveAll`: the decided guard-call design is unsound as stated; not implemented.** The proposal
+(guard calls that never log, tracked apart from `Γc`, exempt from `TreeCohS.after`/`whole`,
+*holding no permission*) breaks the directory rename. The semantics makes a directory `Rename`
+stuck while **any** other call is in flight (`Impl.lean`, `"Rename"`), guards included, and
+`wp_osRenameDirS` gets "no other call" from `osCallS k s0 1` alone: `TreeSharedLog`'s `hsole`
+(`q = 1` and `calls ⊆ dom Γc`, via `callResS_excl`). With permission-less guards outside `Γc`, a
+thread holding `osCallPerm 1` could rename a directory while another thread's `RemoveAll` guard is
+in flight: a stuck step the logic would prove safe. Yet `RemoveAll`'s inner `rmdir` must hold
+`osCallS k s0 1` (`wp_osRmdirS`), so the guard cannot hold a fraction of the permission either,
+unless the directory operations other than rename accept less. A sound version (additive; the
+existing statements unchanged), for the coordinator's decision:
+1. A guard call holds a fraction `g` of `osCallPerm` (so `q = 1` still excludes every other call,
+   and `hsole` survives) and is tracked in a new ghost map `γg` (`OsGS` field, allocated at boot and
+   in `legacyHolds`), `Γg : Nat ↦ Nat × Qp`; `treeShared` gains `∃ Γg, gAuth γg Γg` with `Γg`'s
+   permission in `callResS`'s sum, `dom Γg ∩ dom Γc = ∅` and `Γg`'s starts in `st.proc.calls`.
+2. `TreeCohS.calls` weakened to `Γc ⊆ st.proc.calls` (guards are the other calls), `after` unchanged
+   (it ranges over `Γc`: guards exempt), and `whole` generalized to "a call whose fraction plus the
+   guards' is 1 began now" (maintainable: such a call excludes every other logging call).
+3. New specs: `wp_osCallBeginGuardS` (`osCallPerm g` → `osGuardS t s g`), `wp_osLstatDirGuardS`
+   (ends it, the fraction back, needs only `TreePath`), and `wp_osRmdirSG`/`wp_osMkdirSG`, the
+   directory operations (not rename) with `osCallS k s0 q ∗ osGuardS t sg (1 - q)` in place of `osCallS k s0 1`.
+   Directory rename keeps requiring `osCallS k s0 1`, which a guard in flight excludes. (`Unlink`,
+   `Open`, `DirReadNext` take any fraction already.)
+Churn: every `treeShared` open/close (~40 sites in 11 files of `GooseLang/Ext/Fs/`, plus
+`CrashTok`, `World`'s `LegacyWit`, `Ghost`'s `os_local_init`), the `hc.calls` uses (~16) and the
+`TreeCohS` constructions (`treeCohS_metaEnd`, the switch, `CallBegin`, the logging lemmas). Then
+`os.RemoveAll`'s spec (the recursive `removeAllFrom` with its passes, reads and `rmdir`) is a
+separate, large proof. Until then no spec of `RemoveAll` of a directory is provable.
+
+### Implementation log, `os.MkdirAll` (branch `wal-osau4-mkdirall`, 2026-11-13)
+
+Done, proved (no `sorry`), the six steps of the plan above:
+
+- `LinuxFs/Proof/os/PathKindS.lean` (extension level, beside `SharedExt.lean`): **`wp_osPathKindS`**,
+  `PathKind(p)` in the shared mode for a path of the roots (`PathIn R p`: a root and valid
+  components): `#1` iff `RootsTreeName R p` (strictly below a root), else `#0`; nothing changes. The
+  roots are `R` from the shared invariant's `γs` element against `treeShared`'s authority; the legacy
+  mode is excluded by its empty `γs` authority. Over `wp_fs_stepM` directly, as `wp_osFdKindDirS'`.
+- `LinuxFs/Proof/os/MkdirAllParts.lean`: `os.parentModel` (the two loops as `trailIdx`/`backIdx`) with
+  `os.model.wp_mkdirAllParent` (any path) and `os.parentModel_child` (`d/b` ↦ `d`);
+  `os.model.wp_mkdirAllAbove` (no step: `nil` or an error, any path; Löb generalizing the path and
+  the postcondition); `os.Mkdir.wp_takenS` (`Mkdir` of a taken name with a fraction `qc` of the call
+  permission: an error, no effect); **`os.MkdirAll.wp_spineS`**: `MkdirAll(joinPath r cs)` of an
+  existing directory (a spine `osSpine j0 cs dq J`), any `qc`, by induction on `cs` reversed: `nil` or
+  an error, nothing changes (a root: `PathKind` 0, `mkdirAllAbove`; below: `Stat`, then the parent's
+  `MkdirAll`, `Mkdir` of the taken name, `Lstat`, `IsDir`). Spine helpers: `os.osSpine_unsnoc`,
+  `os.osPathS_joinPath` (a spine path is its components' spine), `os.osPathS_unchild` (a spine to
+  `d/b` and one to `d` give back the whole spine to `d` and the claim on `b`); `os.qp_common`.
+- `LinuxFs/Spec/os/MkdirAll.lean`, proof `LinuxFs/Proof/os/MkdirAll.lean`: **`os.MkdirAll.specS`**,
+  `MkdirAll(d/b)` with `b` absent, `osCallPerm 1`, the claim on `b` split caller (`q`) / atomic update
+  (`r`) exactly as `os.Mkdir.specS` (same `mkOut`/`mkNew`, outcome `Option (x, s, J)`), post
+  `⌜err = nil → o.isSome⌝`. What the model allows: `MkdirAll(d)` fails (`Stat(d)` fails and so on up,
+  or `IsDir` false: `ENOTDIR`, or `mkdirAllAbove`'s arbitrary errno) → the update commits with `none`
+  by a fancy update (`os.osAU_commit_none`, no step), the error returned; else `os.Mkdir.wp_proofS`;
+  a failed `Mkdir` is followed by `Lstat(d/b)`: with `none` (`b` still absent) an error; with `some`
+  (the `mkdir` logged, then an error, e.g. `EEXIST` after an effectful `EINTR`) `Lstat` through a spine
+  to the new directory (fractions of the spine and of the caller's claim), and `IsDir` decides
+  between `nil` and the `Mkdir` error.
+
+Statement change (from `os.Mkdir.specS`): the spine to `d` is `osPathS R d (DFrac.own qd) j`, not any
+`dq`: the `Lstat` of `d/b` needs `osPathS_child`, which takes the spine and the claim at one fraction;
+the proof takes a common part of `qd` and the caller's `q` (`os.qp_common`) and gives both back
+(`os.osPathS_unchild`).
+
+Translation changes (trust base shrinks: two untranslated-constant axioms become Go's values):
+`os.PathSeparator` (`LinuxFs/Code/os.toml`, `'/'`, which `IsPathSeparator` compares with) and
+`io/fs.ModeDir` (`LinuxFs/Code/io/fs.toml`, `1 << 31`, which `FileMode.IsDir` tests) are translated;
+both were `axiom … : val`, with which `MkdirAll`'s parent loop and `IsDir` could not step.
+`go.NotInterface go.uint32` is a local instance (`notes/perennial-changes.md`, the `go.int64` entry).
+
+Not done: multi-component `MkdirAll` (an absent component above `b`; the WAL does not need it);
+`fmtErrorOkOrNil` of the returned errors.

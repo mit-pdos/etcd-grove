@@ -104,7 +104,9 @@ noncomputable def WalkDirFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] WalkDirFunc.ty
 
-axiom ModeDir [GooseExts] [GoGlobalContext] : val
+/-- d: is a directory -/
+@[reducible] noncomputable def ModeDir [GooseExts] [GoGlobalContext] : val :=
+  #(W32 2147483648)
 
 axiom ModeAppend [GooseExts] [GoGlobalContext] : val
 
