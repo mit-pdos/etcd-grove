@@ -36,6 +36,10 @@ def preGrown (i : Ino) (m : OsMeta) (w : Nat) : IProp GF :=
   iprop(∃ m' : OsMeta, ⌜m'.size = w ∧ m'.maps = m.maps⌝ ∗ osMeta i (DFrac.own 1) m' ∗
     osZerosA i m.size (w - m.size) (DFrac.own 1))
 
+theorem preGrown_unfold (i : Ino) (m : OsMeta) (w : Nat) :
+    preGrown (GF := GF) i m w ⊣⊢ ∃ m' : OsMeta, ⌜m'.size = w ∧ m'.maps = m.maps⌝ ∗
+      osMeta i (DFrac.own 1) m' ∗ osZerosA i m.size (w - m.size) (DFrac.own 1) := .rfl
+
 /-- Not grown. -/
 theorem preGrown_same (i : Ino) (m : OsMeta) :
     osMeta (GF := GF) i (DFrac.own 1) m ⊢ preGrown i m m.size := by
@@ -154,6 +158,10 @@ theorem errno_asTyped [syscall.Assumptions] (e : w64) :
   split
   · rename_i h; exact absurd h (by decide)
   · intro _; exact ⟨e, rfl⟩
+
+/-- A `*Errno` is a valid `errors.As` target (`Errno` implements `error`). -/
+theorem errno_asTarget [syscall.Assumptions] : errors.AsTarget syscall.Errno.ty :=
+  Or.inr (by go_type_set)
 
 /-- `errors.As(errnoErr e, &errno)`'s error tree. -/
 theorem errno_errTree [syscall.Assumptions] [errors.Assumptions] (e : w64) :
