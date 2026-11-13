@@ -2037,7 +2037,7 @@ theorem etcd_watch_served_etcd_chain (addr : GoString) (p : Loc) (R : WSrv GF) (
             (fun md γs Dn => watchStreamSpec γs R W (auth.mdTokenOf md) Dn)) }} := by
   iintro %Φ ⟨#Hpkg, -, Hpre⟩ HΦ
   wp_apply (new_stream_interceptor s c ch mid tm et) $$ [Hpre] as %is ⟨#His, Hgr, Hlg⟩
-  · icases Hpre with ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12⟩
+  · icases Hpre with ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11⟩
     iframe
     ipureintro
     have := Htb; rw [sync.rwmutex.actualMaxReaders_unseal] at this; omega

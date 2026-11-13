@@ -172,7 +172,7 @@ theorem v3rpc.newStreamInterceptor.wp_proof
     (wp_Err : v3rpc.cancellableContext.Err.spec (GF := GF) (hG := hG)) :
     v3rpc.newStreamInterceptor.spec (GF := GF) (hG := hG) := by
   intro s c ch mid tm et
-  wp_start as ⟨#Hmid, #Hlead, #Hcl, #Hrc', #Hkept, Hgr, Hlg, #Hst, #Hstc, #Htm, #Het, -, %Htb⟩
+  wp_start as ⟨#Hmid, #Hlead, #Hcl, #Hrc', #Hkept, Hgr, Hlg, #Hst, #Hstc, #Htm, #Het, %Htb⟩
   ihave Hinit : (go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.v3rpcInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨-, -, -, -, #Hiv, -, -⟩
