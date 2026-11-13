@@ -307,10 +307,30 @@ the area directory `jr` holding a WAL's name, the entry there is the WAL's direc
 the WAL directory's path through it (from its own half of the area claim, `walAreaRes`). Established
 at the start (`WalsStart`), kept by the tail's steps (no claim changes), a cut (the area claims
 unchanged, the WAL directory not the area's) and `Create`'s commit (the rename puts the new WAL's
-directory at its name; the others' names untouched). -/
+directory at its name; the others' names untouched). And **no WAL's directory is the area
+directory** (`lay.j ≠ jr`; W4: `Create`'s merge of its claims back into the area claim after the
+commit needs the merged claim to be no WAL directory's, `WalDirClaimOf`; established at the start from
+the crash's old invariant, `CrashGood` keeping each layout's directory, kept by every step, which
+keeps each layout's directory, and `Create`'s commit, `CreatingNew`'s `J ≠ jr`). -/
 def WalsAt (jr : Ino) (Ls : GMap GoString WalLay) (cl : List Claim) : Prop :=
-  ∀ dir lay, Ls !! dir = some lay → ∀ N h, (jr, N, h) ∈ cl → N.Mem lay.nm →
+  ∀ dir lay, Ls !! dir = some lay → lay.j ≠ jr ∧ ∀ N h, (jr, N, h) ∈ cl → N.Mem lay.nm →
     h.cur !! lay.nm = some (.dir lay.j)
+
+/-- No WAL's directory is the area directory (`WalsAt`'s first part). -/
+theorem WalsAt.ne {jr : Ino} {Ls : GMap GoString WalLay} {cl : List Claim} (h : WalsAt jr Ls cl)
+    {dir : GoString} {lay : WalLay} (hl : Ls !! dir = some lay) : lay.j ≠ jr := (h dir lay hl).1
+
+/-- The area claims at a WAL's name (`WalsAt`'s second part). -/
+theorem WalsAt.at {jr : Ino} {Ls : GMap GoString WalLay} {cl : List Claim} (h : WalsAt jr Ls cl)
+    {dir : GoString} {lay : WalLay} (hl : Ls !! dir = some lay) {N : NameSet} {hh : NamesH}
+    (hm : (jr, N, hh) ∈ cl) (hN : N.Mem lay.nm) : hh.cur !! lay.nm = some (.dir lay.j) :=
+  (h dir lay hl).2 N hh hm hN
+
+/-- A claim of the area directory is no WAL directory's claim (`WalsAt`'s first part). -/
+theorem WalsAt.not_walDirClaimOf {jr : Ino} {Ls : GMap GoString WalLay} {cl : List Claim}
+    (h : WalsAt jr Ls cl) (c : Claim) (hc : c.1 = jr) : ¬ WalDirClaimOf Ls c := by
+  rintro ⟨dir, lay, hl, hj, -⟩
+  exact h.ne hl (hj ▸ hc)
 
 /-- **`WalsAt` under a change of layouts and claims**: every new layout one of a key with the same
 name and directory before, every new claim of the area one before. -/
@@ -318,10 +338,11 @@ theorem walsAt_congr {jr : Ino} {Ls Ls' : GMap GoString WalLay} {cl cl' : List C
     (hL : ∀ dir lay', Ls' !! dir = some lay' →
       ∃ lay, Ls !! dir = some lay ∧ lay.nm = lay'.nm ∧ lay.j = lay'.j)
     (hc : ∀ N h, (jr, N, h) ∈ cl' → (jr, N, h) ∈ cl) (h : WalsAt jr Ls cl) : WalsAt jr Ls' cl' := by
-  intro dir lay' hl' N hh hm hN
+  intro dir lay' hl'
   obtain ⟨lay, hl, hnm, hj⟩ := hL dir lay' hl'
+  refine ⟨hj ▸ h.ne hl, fun N hh hm hN => ?_⟩
   rw [← hnm, ← hj]
-  exact h dir lay hl N hh (hc N hh hm) (hnm ▸ hN)
+  exact h.at hl (hc N hh hm) (hnm ▸ hN)
 
 /-- The layout at a key replaced by one of the same name and directory (the tail's steps, a cut). -/
 theorem walsAt_insert {jr : Ino} {Ls : GMap GoString WalLay} {cl : List Claim} {dir : GoString}

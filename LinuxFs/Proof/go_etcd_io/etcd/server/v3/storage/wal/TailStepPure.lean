@@ -180,7 +180,7 @@ theorem getElem?_tail_cases {pre : List SegG} {g g' : SegG} {k : Nat}
 /-- **The static relation with the tail and the write position changed** (see the file header). -/
 theorem walAbsD_tail {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
     {pre : List SegG} {g0 g : SegG} {wr' : Nat}
-    (habs : WalAbsD C Mr d lay ents) (hs : lay.segs = pre ++ [g0])
+    (habs : WalAbsD C Mr d lay ents) (hs : lay.segs = pre ++ [g0]) (hex0 : SegExact g0)
     (hino : g.ino = g0.ino) (hname : g.name = g0.name)
     (hmeta : g.om.size = g.bs.length ∧ g.om.cut = none ∧ g.om.lo = g.bs.length ∧
       g.om.hi = g.bs.length)
@@ -193,7 +193,7 @@ theorem walAbsD_tail {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay
         (decide (b < lay.so)) x) :
     WalAbsD C Mr d (tailLay lay pre g wr') ents := by
   have hg0 : lay.segs.getLast? = some g0 := by rw [hs]; simp
-  obtain ⟨-, -, hl0, -, -, -, hzS, hzZ⟩ := habs.last g0 hg0
+  obtain ⟨-, -, hl0, -, -, -, hzS, hzZ⟩ := (habs.last g0 hg0).1 hex0
   refine ⟨?_, ?_, ?_, habs.cut, ?_, ?_, ?_, habs.synced, habs.lastSynced, habs.fit, habs.tailStop,
     by simp [tailLay]⟩
   · have h1 := habs.names.1; have h2 := habs.names.2
@@ -209,8 +209,11 @@ theorem walAbsD_tail {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay
   · intro g' hg'
     simp only [tailLay, List.mem_append, List.mem_singleton] at hg'
     rcases hg' with hg' | rfl
-    · exact habs.metas g' (by rw [hs]; exact List.mem_append_left _ hg')
-    · exact hmeta
+    · obtain ⟨h1, h2, h3, h4, h5⟩ := habs.metas g' (by rw [hs]; exact List.mem_append_left _ hg')
+      refine ⟨h1, h2, h3, h4, h5.elim (fun h => Or.inr ?_) Or.inr⟩
+      rw [hs, List.getLast?_append, List.getLast?_singleton, Option.some_or, Option.some.injEq] at h
+      exact h ▸ hex0
+    · exact ⟨hmeta.1, hmeta.2.1, (Nat.le_of_eq hmeta.2.2.1), (Nat.le_of_eq hmeta.2.2.2.symm), Or.inr hmeta.2.2⟩
   · intro k g' hk hg'
     simp only [tailLay, List.length_append, List.length_singleton] at hk
     rcases getElem?_tail_cases hg' with ⟨hk1, hk2⟩ | ⟨hk1, -⟩
@@ -220,7 +223,8 @@ theorem walAbsD_tail {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay
     simp only [tailLay, List.getLast?_append, List.getLast?_singleton, Option.some_or,
       Option.some.injEq] at hg'
     subst hg'
-    exact ⟨hso, hS, by rw [hlen]; exact hl0, hold, hbytes, hz0, hzS, hzZ⟩
+    exact ⟨fun _ => ⟨hso, hS, by rw [hlen]; exact hl0, hold, hbytes, hz0, hzS, hzZ⟩,
+      fun hne => absurd hmeta.2.2 hne⟩
 
 /-- `ByteOk` of an unsynced, unwritten byte. -/
 theorem byteOk_ff {x y : w8} {a : Bool} {g : ByteG} :
@@ -278,17 +282,19 @@ or below the write position (a retry rewrites bytes an earlier attempt wrote), o
 bytes from there, inside the file, change number positive. -/
 theorem walAbsD_announce {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
     {pre : List SegG} {g0 : SegG} {off : Nat} {data : List w8} {n : Nat}
-    (habs : WalAbsD C Mr d lay ents) (hs : lay.segs = pre ++ [g0])
+    (habs : WalAbsD C Mr d lay ents) (hs : lay.segs = pre ++ [g0]) (hex0 : SegExact g0)
     (hso : lay.so ≤ off) (hin : off + data.length ≤ g0.om.size)
     (hpre : data <+: (segStream C Mr d lay.cuts lay.cuts.length).drop off) (hn : 0 < n) :
     WalAbsD C Mr d (tailLay lay pre (segAnn g0 off data n) lay.wr) ents := by
   have hg0 : lay.segs.getLast? = some g0 := by rw [hs]; simp
   have hg0m : g0 ∈ lay.segs := List.mem_of_getLast? hg0
-  obtain ⟨hsz, hcut, hlo, hhi⟩ := habs.metas g0 hg0m
-  obtain ⟨hso', hwS, -, hwo, hB, -⟩ := habs.last g0 hg0
+  obtain ⟨hsz, hcut, -, -, -⟩ := habs.metas g0 hg0m
+  obtain ⟨hlo, hhi⟩ := hex0
+  obtain ⟨hso', hwS, -, hwo, hB, -⟩ := (habs.last g0 hg0).1 ⟨hlo, hhi⟩
   have hl : g0.bs.length = g0.om.size := hsz.symm
   have hlen := segAnn_length (n := n) hin hl
-  refine walAbsD_tail habs hs rfl rfl ?_ hlen hso' (habs.last g0 hg0).2.2.2.2.2.1 hwS hwo ?_
+  refine walAbsD_tail habs hs ⟨hlo, hhi⟩ rfl rfl ?_ hlen hso' ((habs.last g0 hg0).1 ⟨hlo, hhi⟩).2.2.2.2.2.1
+    hwS hwo ?_
   · rw [hlen]
     have hT : max g0.om.size (off + data.length) = g0.om.size := by omega
     simp only [segAnn, cfMeta, announce_size, OsMeta.announce_cut, announce_lo, announce_hi, hT]
@@ -312,13 +318,14 @@ theorem walAbsD_announce {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wa
 bytes written (or where it was, if a retry rewrote bytes below it). -/
 theorem walAbsD_finish {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
     {pre : List SegG} {g0 : SegG} {fl : SegFl} {k : Nat} {zs : List Cands}
-    (habs : WalAbsD C Mr d lay ents) (hs : lay.segs = pre ++ [g0]) (hok : fl.Ok g0)
+    (habs : WalAbsD C Mr d lay ents) (hs : lay.segs = pre ++ [g0]) (hex0 : SegExact g0) (hok : fl.Ok g0)
     (hwr : fl.off ≤ lay.wr) (hk : k ≤ fl.data.length) (hn : 0 < fl.n) :
     WalAbsD C Mr d (tailLay lay pre (segFin fl g0 k zs) (max lay.wr (fl.off + k))) ents := by
   have hg0 : lay.segs.getLast? = some g0 := by rw [hs]; simp
   have hg0m : g0 ∈ lay.segs := List.mem_of_getLast? hg0
-  obtain ⟨hsz, hcut, hlo, hhi⟩ := habs.metas g0 hg0m
-  obtain ⟨hso, hwS, hlo0, hwo, hB, hz0, -⟩ := habs.last g0 hg0
+  obtain ⟨hsz, hcut, -, -, -⟩ := habs.metas g0 hg0m
+  obtain ⟨hlo, hhi⟩ := hex0
+  obtain ⟨hso, hwS, hlo0, hwo, hB, hz0, -⟩ := (habs.last g0 hg0).1 ⟨hlo, hhi⟩
   have hok' := hok
   obtain ⟨hin, hd, hl, hmc, hm, hbs, -⟩ := hok'
   have hlen := segFin_length (zs := zs) hok hk
@@ -373,7 +380,7 @@ theorem walAbsD_finish {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalL
     by_cases hk0 : k = 0
     · subst hk0; omega
     · obtain ⟨-, -, -, hbS, -⟩ := hrng (fl.off + k - 1) (by omega) (by omega); omega
-  refine walAbsD_tail habs hs rfl rfl ?_ hlen (by omega) (by omega) (by omega) (by omega) ?_
+  refine walAbsD_tail habs hs ⟨hlo, hhi⟩ rfl rfl ?_ hlen (by omega) (by omega) (by omega) (by omega) ?_
   · have hT : max fl.m.size (fl.off + fl.data.length) = fl.m.size := by omega
     have hps : pwSize fl.m.size fl.off k = fl.m.size := by unfold pwSize; split <;> omega
     have hlo' := hlo; have hhi' := hhi
@@ -433,7 +440,7 @@ theorem crashOkW_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} 
     (habs : WalAbsD C Mr d lay ents) (habs' : WalAbsD C Mr d (tailLay lay pre g wr') ents')
     (hZ : TailZeros lay) (hB : TailBound C Mr d lay) (hnd : (lay.segs.map (·.ino)).Nodup)
     (hs : lay.segs = pre ++ [g0]) (hino : g.ino = g0.ino) (hlen : g.bs.length = g0.bs.length)
-    (hzf : ∀ z, g0.om.zf = some z → g0.bs.length ≤ z)
+    (hzf : (∀ z, g0.om.zf = some z → g0.bs.length ≤ z) ∧ SegExact g0 ∧ SegExact g)
     (hok : CrashOkW C Mr d lay cl n) : CrashOkW C Mr d (tailLay lay pre g wr') cl n := by
   obtain ⟨alt, halt, hA⟩ := hok
   have hpre : ∀ lay0, alt = some lay0 → lay0.segs <+: pre := by
@@ -468,7 +475,7 @@ theorem walsOk_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} {jr
     {d : WalDur} {lay : WalLay} {pre : List SegG} {g0 g : SegG} {wr' : Nat}
     (hW : WalsOk C Mr R jr s Ls cl n) (hd : s.wal !! dir = some d) (hl : Ls !! dir = some lay)
     (hs : lay.segs = pre ++ [g0]) (hino : g.ino = g0.ino) (hcut : g.om.cut = none)
-    (hlen : g.bs.length = g0.bs.length) (hzf : ∀ z, g0.om.zf = some z → g0.bs.length ≤ z)
+    (hlen : g.bs.length = g0.bs.length) (hzf : (∀ z, g0.om.zf = some z → g0.bs.length ≤ z) ∧ SegExact g0 ∧ SegExact g)
     (hZ : TailZeros lay) (hB : TailBound C Mr d lay)
     (habs' : ∀ ents, WalAbsD C Mr d lay ents → WalAbsD C Mr d (tailLay lay pre g wr') ents) :
     WalsOk C Mr R jr s (<[dir := tailLay lay pre g wr']> Ls) cl n := by

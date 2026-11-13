@@ -113,7 +113,7 @@ theorem dirKeysOk_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} 
     {d : WalDur} {lay : WalLay} {pre : List SegG} {g0 g : SegG} {wr' : Nat}
     (hW : WalsOk C Mr R jr s Ls cl n) (hd : s.wal !! dir = some d) (hl : Ls !! dir = some lay)
     (hs : lay.segs = pre ++ [g0]) (hino : g.ino = g0.ino)
-    (hlen : g.bs.length = g0.bs.length) (hzf : ∀ z, g0.om.zf = some z → g0.bs.length ≤ z)
+    (hlen : g.bs.length = g0.bs.length) (hzf : (∀ z, g0.om.zf = some z → g0.bs.length ≤ z) ∧ SegExact g0 ∧ SegExact g)
     (hZ : TailZeros lay) (hB : TailBound C Mr d lay)
     (habs' : ∀ ents, WalAbsD C Mr d lay ents → WalAbsD C Mr d (tailLay lay pre g wr') ents)
     (h : DirKeysOk C Mr jr s Ls cl n K c) :
@@ -294,7 +294,7 @@ theorem walInvBody_tail (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
         tailVar (W := W) γ tg ∗ tailHeld (L := L) tg m ∗
         (∀ (g : SegG) (wr' : Nat) (F' : GMap Ino SegFl),
           ⌜g.ino = g0.ino ∧ g.om.cut = none ∧ g.bs.length = g0.bs.length ∧
-            (∀ z, g0.om.zf = some z → g0.bs.length ≤ z) ∧
+            ((∀ z, g0.om.zf = some z → g0.bs.length ≤ z) ∧ SegExact g0 ∧ SegExact g) ∧
             (∀ ents, WalAbsD C Mr d lay ents → WalAbsD C Mr d (tailLay lay pre g wr') ents) ∧
             (∀ i, i ≠ g0.ino → F' !! i = F !! i) ∧ g.name = g0.name⌝ -∗
           segResF (L := L) F' g -∗

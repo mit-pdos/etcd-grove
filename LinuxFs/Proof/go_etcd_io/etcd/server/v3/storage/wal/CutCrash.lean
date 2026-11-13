@@ -202,7 +202,7 @@ theorem w1G_durable (C : WalCodec) (js : List Ino) (img : Ino → List w8)
     (h : ∀ i bs, bsOf i = some bs → (∀ y ∈ bs, y = durB y.1) ∧
       (img i = bs.map (·.1) ∨ img i = [])) :
     W1G C js img bsOf := by
-  intro k p hp i bs hi hbs
+  intro k p hp i bs hi hbs _
   obtain ⟨hdur, himg⟩ := h i bs hbs
   obtain ⟨x, hx, hb⟩ := acceptsFiles_bound C _ _ p hp
   rw [List.getElem?_map, hi] at hx
@@ -280,7 +280,7 @@ crash condition puts it). -/
 theorem crashOkA_rename (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay lay' : WalLay)
     (ents : Ents) (cl : List Claim) (n : Nat) (X : List GoString) (h : NamesH) (x : Nat)
     (e : LogEntry) (c : Ents) (bt : GoString)
-    (hok : CrashOk C Mr d lay cl n) (habs : WalAbsD C Mr d lay ents)
+    (hok : CrashOk C Mr d lay cl n) (habs : WalAbsD C Mr d lay ents) (hex : TailExact lay)
     (hdur : ∀ g ∈ lay.segs, ∀ y ∈ g.bs, y = durB y.1)
     (hcl : (lay.j, NameSet.except X, h) ∈ cl) (hcoh : ClaimCoh h lay.j (.except X))
     (hcoh' : ClaimCoh (h.log x e c) lay.j (.except X)) (hs : h.next ≤ e.start)
@@ -329,7 +329,7 @@ theorem crashOkA_rename (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay lay' 
           | none => right; simp [imgOf]
           | some f' =>
             left
-            have hm := habs.metas g hg
+            have hm := habs.metasEx hex g hg
             have hbs : g.bs = (g.bs.map (·.1)).map durB := by
               rw [List.map_map]
               exact (List.map_id' g.bs).symm.trans

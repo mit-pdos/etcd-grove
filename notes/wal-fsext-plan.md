@@ -510,7 +510,7 @@ module; the bboltfs/crashlog/walfs examples and the generated translations not l
 - `os/`: `File.Truncate.wp_proofAu` (`File__TruncateAu.lean`), `File.WriteAt.wp_proof_long` (`WriteLong.lean`,
   past 1 GiB).
 Not yet stated (no `sorry`, no statement): `Close`, `ReleaseLockTo`, `Repair`, `ValidSnapshotEntries`, `Exist`
-(§4.2's W7-W12), the `walCreating` minting step, the WAL-level resize updates (I3b's open items).
+(§4.2's W7-W12), the WAL-level resize updates (I3b's open items). `Create`'s ghost steps (drop, mint, unmint, merges) are proved (`wal-create10`; W4 log, tenth session). The record of what is out of the parked state and the changes in flight only on segments out (W3/W5's gaps A and B) are in the invariant, with the pin's and the put-back's moves (`Parked.lean`, `wal-read9`; W1 log, tenth session).
 
 ## W1 implementation log (branch `wal-inv`, 2026-11-13)
 
@@ -787,6 +787,140 @@ coordinator's decisions). Both separate; every lemma below builds, no `sorry`.
   WAL directory's `0.tmp`/`1.tmp`, a leftover file whole), deposited. `walAbs_crashOk_start`'s `hj` is now
   `∀ m', RegionCrashed cl n m' → walInos (entsOf m' lay.j) = walInos ents` (`start_walEnt`, `walInos_congr`;
   `Crash.lean` imports `CutSynced`).
+
+**Ninth session (branch `wal-zte2`, 2026-11-13): `WalAbsD` relaxed for the tail's resize window** (the
+coordinator's decision of the I3b entry's open item 1; pure, every repaired module builds).
+- *The window* is read off the last segment's `OsMeta` half: **`SegExact g := g.om.lo = |g.bs| ∧ g.om.hi =
+  |g.bs|`** (a crash leaves the file at its size); a resize opens it (truncate in flight: `lo = tg`; landed:
+  `hi` the old size; a growth: `hi` the target, then `lo` the size before), the fdatasync after it closes it
+  (`OsMeta.synced`); writes inside the file keep it. No new layout field, no ghost flag.
+- *`WalAbsD`* (`Abs.lean`; same twelve fields, so positional patterns still match):
+  - `metas`: `size = |bs| ∧ cut = none ∧ lo ≤ |bs| ∧ |bs| ≤ hi ∧ (segs.getLast? = some g ∨ SegExact g)`
+    (every segment but the last exact);
+  - `last g`: `(SegExact g → TailLast …) ∧ (¬ SegExact g → TailWin …)`. `TailLast` is the old 8-tuple
+    unchanged; **`TailWin`** (the window) = `so ≤ wr ∧ wr ≤ |S| ∧ |bs| ≤ |old| ∧ wr ≤ |bs| ∧ ByteOk below wr only
+    ∧` the three `z0` facts. Bytes from `wr` on are unconstrained in the window (the coordinator's "zero
+    candidates past the stream" is subsumed: a growth's bytes carry the file's candidates past its size, not
+    `(y, 0)`, and its page cache is 0, not `old`; `ByteOk` itself unchanged, so `Save`'s `ByteOk.snoc` stands).
+  - Accessors: `WalAbsD.lastEx (hex : TailExact lay)` (the old `last`), `WalAbsD.lastWin` (`TailWin`, window
+    or not), `WalAbsD.metasEx hex` (the old `metas`); `TailExact lay := ∀ g, getLast? = some g → SegExact g`.
+- *`W1G`* takes `(img i).length ≤ bs.length →` (frames of an image longer than the bytes the ghost knows are
+  a window crash; `w1G_of_W1` no longer needs a size bound, so `crashGood_exists` holds in a window).
+- *Exactness supplied where the crash proofs need it* (statement changes):
+  - pure: `crashTo_synced`, `crashOkA_rename`, `cutLay_abs`, `crashOkA_cut` (`hex : TailExact lay`;
+    `crashOkA_cut` also `hexg : SegExact g`, the new segment), `crashTo_tail` and `tailCands_of_abs`
+    (`hex : SegExact g`), `walAbsD_tail`/`walAbsD_announce`/`walAbsD_finish` (`hex0 : SegExact g0`),
+    `crashOk_create_new`/`walsOk_create` (`CreateCommit`) and `dirKeysOk_create` (`hex`/`hexL`);
+  - the tail steps' `hzf` (`crashOkA_tail`, `crashOkW_tail`, `walsOk_tail`, `TailAcc`'s two lemmas and
+    `walInvBody_tail`'s continuation) is now `(∀ z, …) ∧ SegExact g0 ∧ SegExact g`;
+  - `WalsStart`'s, `CrashGood`'s and `crashTo_start`'s last-segment clause, and `walAbs_crashOk_start`'s
+    `hlast`: `g.bs = old.map durB ∧ SegExact g` (a crash's files are `initMeta`: exact);
+  - **`TailMeta`** (`Handle.lean`, the program's knowledge in `walTailW`) gains `m.lo = m.size ∧ m.hi = m.size`
+    (the program writes only outside a window): `TailWriter` derives `SegExact` from it at both steps and keeps
+    it (`pwPost` of a write inside the file).
+  - **`walCreate_osAUnc`** (`CreateAu`) takes `hgx : SegExact g` (the fresh segment's `OsMeta`, `initMeta`-like);
+    **`walCut_osAUnc`** (`CutAu`) takes `hm0x : m0.lo = m0.size ∧ m0.hi = m0.size` (the old tail's `OsMeta` after
+    the truncate's fdatasync), `cutCommit_pure` `hex0 : SegExact g0`.
+- *Build*: `lake build LinuxFs` at `wal-int` `1ac7232c86` plus this: every module builds but four that fail
+  without importing anything changed here (`bufio/Reader__Read` 217/259 "No goals", `wal/DecLemmas` 67,
+  `wal/ReadBridge` 79 `iintro` of a non-existential, `wal/checkWALNames` 120 `zapLoggerOk lg` not pure).
+- **Obligations**: `Create` (wal-create9): `hgx` for `walCreate_osAUnc`; `TailMeta`'s two new conjuncts where
+  `walTailW` is built (`Create`, `ReadAll`: after `ZeroToEnd` and its fdatasync, `OsMeta.synced` has `lo = hi =
+  size`). `cut` (wal-cut8): `crashOkA_cut`'s `hex` (the old tail after `cut`'s truncate and sync: exact again
+  once the sync's commit sets the invariant's `om` to the synced meta) and `hexg`; `cutLay_abs`'s `hex`.
+  Every resize step (`cut`'s truncate, `ZeroToEnd`) commits a layout in the window: `last`'s `TailWin` half
+  (`wr ≤ |bs|`: `cut` truncates to `wr`, `ZeroToEnd` to `z0 = wr`), and the sync's commit closing it must
+  give `TailLast` again (`|bs| = |old|`: `ReadAll`'s sync re-sets `old` to the zeroed bytes, `cut`'s to the
+  truncated ones).
+
+**Ninth session (branch `wal-create10`, 2026-11-13; W4's tenth session): two invariant changes (the
+coordinator's decision for the first, mine for the second).**
+- *No WAL's directory is the area directory*: folded into **`WalsAt`** (`Inv.lean`), whose per-layout clause is
+  now `lay.j ≠ jr ∧ ∀ N h, …` (accessors `WalsAt.ne`, `WalsAt.at`, `WalsAt.not_walDirClaimOf`: a claim of `jr` is
+  no WAL directory's claim). Carried: every layout change keeps `lay.j` (`walsAt_congr` checks it); `Create`'s
+  commit has `CreatingNew`'s `J ≠ jr` (`walsAt_create`); through the crash, **`WalsStart` gains a last clause**
+  `∀ dir lay, Ls !! dir = some lay → lay.j ≠ jr` (so `hst.2.2.2.2` is now `hst.2.2.2.2.1`), which `walCrash_pure`
+  proves from a new premise `hjne` (the old invariant's `WalsAt.ne`, passed by `walInv_crash`) and `CrashGood`'s
+  `lay'.j = lay.j`; `walsAt_start` reads it. **For the concurrent units**: a use `hA dir lay hl N h hm hN` becomes
+  `hA.at hl hm hN`; a new proof of `WalsAt` gives `lay.j ≠ jr` first (`refine ⟨hA.ne hl, fun N h hm hN => ?_⟩`).
+- *The creating map holds the free lock token* (`walCreatingAuth`'s non-empty case: `walUnlockedTok`, was
+  `walLockedTok`): the parking flag stays `true` while `Create` is between the minting and the rename, so an
+  abort (`walInvBody_unmint`) gets the free token back with everything parked (with the flag `false`, nothing
+  recorded that `O`, `D`, `T` stayed empty). `walCreating_mint` no longer takes `walParkAuth`;
+  `walCreating_delete` gives `walUnlockedTok`; `Create`'s commit takes the lock after the deletion
+  (`walParked_lock`, `CreateKeys.lean`: flag to `false`, nothing out, `walTmpParked_unpark`). The drop's
+  exclusion is `walUnlockedTok_excl`. `Close`'s exclusion of a non-empty map is `walLockedTok_unlocked_excl`.
+
+**Integration fixes (branch `wal-int2`, 2026-11-13):**
+- Merge `wal-zte2` into `wal-int` (with `wal-save8`): `crashTo_tailM` keeps the mark `m0` and takes `hex : SegExact g`;
+  `walAbsD_sync` (and `crashOk_sync`, `walsOk_sync`, `dirKeysOk_sync`, `walInvBody_sync`'s success wand) takes
+  `hex : SegExact g0` (the synced tail is exact, so its `TailLast` needs the tail exact before the sync; a sync closing
+  a resize window is still the obligation above), discharged in `wp_tailFsync` from `TailMeta`'s `lo = hi = size`;
+  `TailMeta.synced` gives the two new conjuncts; `wp_tailFsync`'s `hzf` reads `TailMeta`'s third conjunct.
+- `checkWALNames` (120): `zap.Logger.Warn`'s precondition is now `zapLoggerOk` (premise-fixes-6): `iexact Hlg`.
+- `bufio/Reader__Read` (217, 259), `wal/DecLemmas` (67), `wal/ReadBridge` (79): not merge breakage; a stale
+  `Proof/io/ReaderStream` `.olean` in the seeded `.lake` (without `io.readerStream`'s `2 ^ 62` bound). Deleting its
+  artifacts and rebuilding fixes all three, with no source change.
+- Merge `wal-create10`: notes conflict only; everything builds.
+
+**Tenth session (branch `wal-read9`, 2026-11-13; the invariant's owner): W3/W5's gaps A and B (the
+coordinator adopted both logged proposals).** Every module of the WAL directory builds; no `sorry` added.
+- *Gap A, the record of what is out* (`Ghost.lean`): **`WalOut`** `{O : List Ino, D : List (Ino × NameSet),
+  T : List GoString}` (segment inodes, WAL-directory claims **by key** `(j, N)`, directories whose pipeline
+  names are out; `WalOut.empty`, `addSeg`/`delSeg`, `addClaim`/`delClaim`, `addTmp`/`delTmp`), a new ghost
+  variable `WalGS.γpo`: `walOutAuth o` (the invariant's half, in `walParked`), `walOutFrag o` (the program's);
+  `walOut_agree`, `walOut_set`. **`walUnlockedTok` holds `walOutFrag WalOut.empty`** (4th conjunct);
+  `walLockedTok` unchanged (the holder of what is out carries the frag beside it, in its sealed body).
+  `walUnlockedTok_lock` also gives `walOutFrag WalOut.empty`; `walLockedTok_unlock` takes it.
+  `walGhost_init` allocates it (`walStart` gains `walOutAuth WalOut.empty`). With `wal-create10`'s design
+  (the creating map holds `walUnlockedTok`), the record needs nothing in `walCreatingAuth`.
+- *`walParked Ls cl F`* (`Inv.lean`; **now takes `F`**): `∃ b o, walParkAuth b ∗ walOutAuth o ∗ ⌜∀ i, F !! i ≠
+  none → i ∈ o.O⌝ ∗ segs (but `o.O`) ∗ claims (`ParkedClaim Ls o.D c`: `WalDirClaimOf Ls c ∧ (c.1, c.2.1) ∉ o.D`) ∗
+  walTmpParked Ls o.T`. The flag's clause `b = true → …` is gone (the record does its work: the free token's
+  empty frag). **Gap B** is the pure clause (a change in flight only on a segment out). `walTmpParked Ls T` takes
+  the record's `T` (no flag, no inner `∃ T`); `walTmpParked_take` (`dir ∉ T`, to `dir :: T`), `_create` (to
+  `dir :: T`), new `_put` (to `T.filter (· ≠ dir)`).
+- *The moves* (new `Parked.lean`, all proved): `walParked_lock` (`walParked Ls cl F -∗ walUnlockedTok ==∗
+  walParked Ls cl F ∗ walLockedTok ∗ walOutFrag ∅ ∗ ⌜∀ i, F !! i = none⌝`; replaces `CreateKeys`'s);
+  `walParked_unlock` (with `walLockedTok` and `walOutFrag ∅`); `walParked_takeSeg`/`_takeSegs` (segments of
+  `segsAll Ls` not in `o.O`, distinct: their `segResP`, `⌜F !! g.ino = none⌝`, frag `⟨S.map ino ++ o.O, …⟩`);
+  `walParked_putSeg` (premises `g ∈ segsAll Ls`, the inodes distinct, `F !! g.ino = none`; frag `o.delSeg`);
+  `walParked_takeClaim` (`c ∈ cl`, `WalDirClaimOf Ls c`, key `∉ o.D`; its half, `o.addClaim`);
+  `walParked_putClaim` (`l1 ++ c :: l2`, no other claim of its key: `DirKeysOk`'s exclusivity; `o.delClaim`);
+  `walParked_takeTmps`/`_putTmps`; `walParkedIn` (walParked with `i ∈ o.O`), `walParkedIn_of_fl`,
+  `walParkedIn_of_halves` (two halves of `i`'s `OsMeta` outside: a parked one would be a third,
+  `osMeta_three_halves`).
+- **Obligations for the concurrent units** (statements changed here; their callers in this branch repaired):
+  - *the tail's steps (`wal-save*`, `wal-zte*`)*: **`walInvBody_tail … tg m`** takes `(m : OsMeta)` and the premise
+    `tailHeld tg m` (`TailAcc.lean`: the caller's half `osMeta tg.i ½ m` while `tg`'s change is `none`, `emp`
+    otherwise), given back after the second `tailVar`. Callers: idle `… _ m $$ Hb Hk Hv [Hm1] with ⟨…, Hv', Hm1,
+    Hclose⟩` then `· dsimp only [tailHeld]; iexact Hm1` (and `dsimp only [tailHeld]` after); in flight
+    `… _ fl.m $$ Hb Hk Hv [] with ⟨…, Hv', -, Hclose⟩` then `· dsimp only [tailHeld]; iempintro`
+    (`TailWriter.lean`'s two). A resize supply (`truncSup`/`fallocSup`) passes the `½ m0` it receives.
+    `walParked_tail` takes `F F'`, `hF : ∀ i, i ≠ g0.ino → F' !! i = F !! i` and `walParkedIn Ls cl F g0.ino`;
+    `walParked_relay` (`TailSync`) and `walParked_cover` (`CreateMergeStep`) take an implicit `{F}`.
+  - *`cut` (`wal-cut9`)*: **`walCut_osAUnc`** takes `(o : WalOut)` after `g` and `hoD : (j, NameSet.except X) ∈
+    o.D`; `walCutP … g o` holds `walOutFrag o` (after `walParkFrag false`); `walCutQ … g o bt wr`'s commit gives
+    `walOutFrag ((o.delSeg i0).addSeg g.ino)`. `walParked_cut … wr F o hl hg0 hnd hino (hkey : c'.1 = c.1 ∧
+    c'.2.1 = c.2.1) (hD : (c.1, c.2.1) ∈ o.D) (hF0 : F !! g0.ino = none) : ⊢ walParked Ls (l1 ++ c :: l2) F -∗
+    walOutFrag o -∗ segResP g0 ==∗ walParked (<[dir := cutLay …]> Ls) (l1 ++ c' :: l2) (GMap.delete g.ino F) ∗
+    walOutFrag ((o.delSeg g0.ino).addSeg g.ino)` (no `walParkFrag`, no `hc'`; `CutAu` passes `⟨rfl, rfl⟩ hoD
+    hF0.symm`). `WAL.cut`'s proof gets `o` and `hoD` from the write handle's body (below).
+  - *`Create` (`wal-create*`)*: `walCreateQ`'s commit holds **`walOutFrag (WalOut.empty.create g.ino J X dir)`**
+    (`WalOut.create o i J X dir := ⟨i :: o.O, (J, .except X) :: o.D, dir :: o.T⟩`, `CreateKeys.lean`), which
+    `Create`'s post must put into the new handle's body. `walParked_create Ls cl F o CR … : ⊢ walParked Ls cl F -∗
+    walOutFrag o ==∗ walParked … (GMap.delete g.ino F) ∗ walOutFrag (o.create g.ino J X dir)` (no
+    `walParkFrag`); `CreateAu`'s commit: `imod walParked_lock (W := W) Ls _ F $$ Hpk HLk with ⟨Hpk, HLk, Ho, -⟩`.
+    `CreateDropStep`'s `walUnlocked_park` became `walUnlocked_out` (`o = WalOut.empty` from the free token).
+  - *the write handle (`walOpenWF`/`walHandleIn`, `ReadAll`, `Close`)*: its sealed body holds `walOutFrag o` with
+    `⌜o = ⟨[tail ino], [(lay.j, .except X)], [dir]⟩⌝` (what it keeps after `ReadAll`'s put-back); `Close` puts
+    back with `_putSeg`/`_putClaim`/`_putTmps` and `walParked_unlock`.
+- **Open**: putting back the **tail** without a tail record (`openAtIndex`'s error arms, a failed `ReadAll`)
+  needs `F !! tail = none`, which no resource of the holder shows (a change starts only through
+  `walInvBody_tail`, i.e. on a registered tail, but nothing records that). Proposed: `walTailsRes`'s pure part
+  gains `∀ i, F !! i ≠ none → ∃ dir γ, T !! dir = some γ ∧ <dir's last segment>.ino = i` (it has `T`, `Ls`, `F`):
+  kept by `walInvBody_tail` (the tail stays last), `cut` (`delete g.ino`, the old tail idle), `Create`.
+  The non-tail segments have the same need; the same clause gives them (a change only on a last segment).
 
 ## 9. The trusted-model drafts (2026-11-13, branch `wal-models`; pending the user's review [user])
 
@@ -1903,6 +2037,45 @@ update: `s.wal dir := walDurFresh md`, the new layout and its `CrashOk`); then `
   directory, or the merge done before the lock goes to the handle), the minting, the unminting,
   `wal.Create.wp_proof` (`sorry`).
 
+**Tenth session (branch `wal-create10`, 2026-11-13).**
+- *Task 1 (done)*: `lay.j ≠ jr` in the invariant (`WalsAt`), and the creating map's token (W1 log, ninth
+  session). Both built with every `Inv` importer.
+- *Covering changes of the area claims* (`CreateMerge.lean`, pure): **`CoverOk jr cl cl' n`** (crashes of `cl'`
+  are `cl`'s, its claims of other directories `cl`'s with their multiplicities, its claims of `jr` say of a WAL
+  name what one of `cl` said and hold every WAL name one of `cl` held); every pure fact carries over
+  (`walsOk_cover`, `absentNone_cover`, `walsNamed_cover`, `walsCreateOk_cover`, `dirKeysOk_cover`,
+  `walsAt_cover`); **`mergeClaims cl c1 c2 c`** (`replClaim c1 c (cl.filter (· ≠ c2))`) covers under `MergeOk`
+  (`coverOk_merge`); `mintClaims` covers (`coverOk_mint`).
+- *Coherence of a held claim* (`CreateCoh.lean`): **`namesOf_coh`** (`ClaimCoh (namesOf V j N) j N` under
+  `Starts`: the log's entries in order, and `now_entry_slotAfter`, the tree now has each slot as its last
+  writer left it, `prefTree_frame`), **`osNames_coh`**. This gives `CreatingOk`'s `ClaimCoh` at the minting.
+- *The steps* (`CreateMergeStep.lean`, `CreateMint.lean`; ghost updates with `walInvBody` and `osSharedInv`
+  open, at a mask holding `osShN`): **`walInvBody_merge2`** (the program's halves of two area claims, each
+  found through a WAL name it holds, merged; a lock token `T` the program holds, excluding a non-empty
+  creating map): the merge back after the commit (`T = walLockedTok`) and after the unminting
+  (`T = walUnlockedTok`); **`walInvBody_mergeIn`** (half an area claim and a whole claim of the area with no
+  WAL name, e.g. `nm.tmp`'s, the invariant holding none of it): an abort before the minting;
+  **`walInvBody_unmint`** (the entry deleted, the free token back); **`walInvBody_mint`** (premises: `nm` a
+  WAL name in `N`, `tmp ∉ N`, `N.diff [nm]` non-empty, `tmp` no WAL nor `.wal` name, `nm ∉ X`, `X` no `.wal`
+  name; the program's free token, half area claim, `tmp`'s claim whole, `J`'s `.except X` claim whole (given
+  back); out: the token `walCreating dir (.only [nm, tmp]) hC J`, halves of `(jr, N.diff [nm], …)` and of the
+  creating claim, `hC.restrict jr (.only [tmp]) = hT.restrict …` (so `hC.cur !! tmp` is `nm.tmp`'s entry,
+  `cur_of_part`), `hC.restrict jr (N.inter [nm]) = h.restrict …`, `hC.next = max …`). Helpers:
+  `osClaims_once`, `osClaims_not_mem`, `osClaims_excl` (a whole claim held shares no name with the
+  invariant's claims of its directory), `osClaims_filter_once`, `walCreating_empty`, `walParked_cover`.
+  No `sorry` in any of them. **`CreateSteps.lean`**: `walInv_step` (a step of the contents as an update of
+  `walInv`, with the generation's `notCrashed`, which a program step has by `wp_notCrashed_acc`) and the five
+  steps in that form (`walInv_drop`, `walInv_mint`, `walInv_unmint`, `walInv_merge2`, `walInv_mergeIn`; at a
+  mask `E ⊇ walN` with `osShN ⊆ E \ walN`, `walN_osShN_top` for `⊤`).
+- *For `Create`'s body* (not started): the sequence is `walInvBody_drop` (tmp) → `RemoveAll`/`CreateDirAll`
+  /segment/`SaveSnapshot.specPre`/fsync of `nm.tmp` → `walInvBody_mint` (J's claim split `.except walTmps` +
+  `walTmpsRes J` first) → `walCreate_osAUnc` → parent fsync (`walInvBody_named`) → `walInvBody_merge2` (the
+  part off `nm` and the renamed creating claim, `T = walLockedTok`; `b1` a WAL name other than `nm`, e.g.
+  `nm ++ "a"`) → the handle; error arms `walInvBody_mergeIn` (before the minting) or `walInvBody_unmint` +
+  `walInvBody_merge2` (after it, before the rename). Each step needs `walInv` open at a program step
+  (`walInv_open` with the generation's `notCrashed`) and `osSharedInv`. Then `walAreaRes`'s pure facts of the
+  merged claim (`N'' ⊇` every WAL name and `nm.<sfx>`; `SubCover`/`FilesOnly` of the program's whole claims).
+
 **For `wal-create6` (the invariant's owner, 2026-11-13).** (1) `walAreaRes jr` gains `⌜∀ nm J, walNameOk nm →
 h.cur !! tmpName nm = some (.dir J) → ∀ hJ, (J, NameSet.except [], hJ) ∈ cl → FilesOnly hJ.cur⌝` (a leftover
 `nm.tmp` holds only files; `CreateDefs.lean`, importing `LinuxFs.Spec.os.RemoveAll`), for `os.RemoveAll.specDirS`
@@ -2259,6 +2432,46 @@ stream.**
      needs.
   4. `SaveSnapshot`'s `walpb.Snapshot` registration not started.
 
+**W6, eighth session (branch `wal-save8`, 2026-11-13): the tail's fdatasync, proved down to `fileutil.Fdatasync`.**
+`wal-zte2` (the `WalAbsD` relaxation) was not pushed during the session, so task 1 (writes past the
+size) did not start; the session did the fdatasync half of `sync`, which every remaining unit needs.
+- *`syncLay` reshaped* (`SaveAbs.lean`, W6's own; no other user): `syncLay lay pre g0` replaces only the
+  tail, by `syncTail g0` (its `OsMeta` `om.synced` — the invariant's half must be the state's — and every
+  byte `durB`); the earlier segments are untouched (durable already, `intact`). `walAbsD_sync` restated
+  over it (`hs : lay.segs = pre ++ [g0]`), its proof by named fields (`refine { names := …, … }`), so the
+  `metas` field is the only place `wal-zte2`'s relaxation touches it.
+- *`crashTo_tailM`* (`TailCrash.lean`): `crashTo_tail` with the tree part taken from a `CrashTo` of the
+  WAL at any mark `m0` covering the earlier segments (`{ d with m := m0 }`); `crashTo_tail` is the
+  wrapper at `d.m` (callers unchanged).
+- *Pure, no `sorry`* (`TailSyncPure.lean`): `walSyncS s dir d` (the mark at `|H|`); `tailBound_sync` (the
+  record boundary is the stream's end: `jE = |R|`, `max wr z0 = wr`); **`crashOk_sync`** (as
+  `crashOkA_tail`: the old condition with the tail imaged as of the last sync, then `crashTo_tailM` at the
+  raised mark: a crash after the sync reads the whole history); `walsOk_sync`, `dirKeysOk_sync` (no cut
+  pending), `absentNone_sync`, `dirsAvoid_sync`, `walsNamed_relay`.
+- *Iris, no `sorry`* (`TailSync.lean`): **`walInvBody_sync`** — with `walTailKey`, the tail record's half
+  and `walCutFrag none` (the lock token's: no cut's rename pending, so `CrashOkA … none`), the tail's part
+  out, and *two* closings as an `∧`: the success (`F !! ino = none`, `wr` the stream's end, `zf`; the
+  synced tail's `segRes`) to `walInvBody (walSyncS s dir d) ∗ walPast …`, and the unchanged one
+  (`segResF F g0 -∗ walInvBody s`) for a failed fdatasync. Helpers: `walTailsRes_zeros` (F-Z and the
+  record boundary from the tail record), `segsAll_sep_relay`, `walParked_relay` (any relayout with the
+  same directory and tail inode/length), `walMapLe_sync`, `absLe_sync`, `walKeysInArea_sync`.
+- *Steps, no `sorry`*: **`wp_tailFsync`** (`TailFsync.lean`, the extension's `Fsync` with `walInv` open:
+  halves joined, `wp_osFsync`, success gives the program's synced halves and `walSyncedLb dir |H|`, failure
+  nothing); `syscall.Fdatasync.wp_tail` and **`fileutil.Fdatasync.wp_tail`** (`TailFdatasync.lean`, over
+  `walTailW` with `o0 + |out| = |tailStream|`; takes `os.File.Fd.spec`; `TailMeta.synced`).
+- *What `sync.wp_proof` still needs*: (a) `encoder.flush.specP` over `wal.tailWriter` with the guard
+  `tailOk … (out ++ pend)`: **blocked on writes past the size** (the page writer's pending bytes may pass
+  `sz` even when `curOff < SegmentSizeBytes`), task 1 once `wal-zte2` lands; (b) the handle's
+  `walCutFrag none` (inside the sealed `walOpenW`'s `walLockedTok`: the proof unseals with `import all`
+  of `Ghost.lean`); (c) the leaf calls `time.Now`/`Since`, `Duration.Seconds`, `zap.Duration`,
+  `Logger.Warn`, `walFsyncSec.Observe` (`wal.metricsInit`, `Metrics.lean`); (d) `o0 + |out ++ pend| =
+  |tailStream|` from `WalHS.Split` at `rest = 0`.
+- *Not done*: tasks 1-4 of the brief (writes past the size; the handle facts `∀ b ∈ cuts, b ≤ |H|` and
+  `walLastIdx` only when `Done` — note for whoever does it: `saveEntry`/`saveState` then need a premise
+  covering the case their post is `Done`, e.g. `rest = 1 → walLastIdx H ≤ max(e.Index, snapi)`, which
+  `Save` must supply from a `snapi`-bounds fact the handle does not carry today; the cuts budget; the
+  `walpb.Snapshot` registration).
+
 ## W3/W5 implementation log (branch `wal-read`, 2026-11-13)
 
 **Proved (no `sorry`, `lake build`):**
@@ -2508,6 +2721,30 @@ its last page).
   `walsOk_resizeStart`); the finish's update, owning `K`'s half, finds `fl`, lends the token, splits
   `rsOutT`/`rsOutF` into `segRes` and the caller's halves (`walsOk_resizeFinish`).
 
+**The relaxation and `ReadAll`'s tie (branch `wal-zte2`, 2026-11-13).**
+- *Open item 1 done*: `WalAbsD` admits the tail's resize window (`SegExact`/`TailLast`/`TailWin`; the W1 log's
+  ninth session). Item 2 stands and now shows in the statements: in the window `TailWin` constrains no byte
+  from `wr` on, and `W1G` says nothing of an image longer than the bytes the ghost knows, so `CrashOk` across a
+  resize (`walsOk_resizeStart`/`Finish`) still needs a fact the extension does not give: after a truncate lands,
+  `FileCrashedR` bounds the bytes `[size, hi)` only by `zf` (the cut-off bytes' candidates, old value or the
+  zero stamped `n`, are the state's, held by no resource after `rsDone`). Proposal (untrusted, `GooseLang/Ext/Fs`):
+  `rsDone`/`rsPost` of a truncate keep the cut-off bytes' candidates in `OsMeta.tc`, and `FileCrashedR`
+  constrains a byte past the runs by `tc` (the clause it lacks today). `SegFl.OkR`/`segResF`'s resize case are
+  `ftruncate`-only (`rsTok true`, `rsHi true`): `ZeroToEnd`'s growth (`fallocate`) needs `rz : Option (Bool × Nat)`.
+- **`ReadAll`'s tie (option a), designed, not implemented** (no flag in `TailG`):
+  - `walTailsRes`' per-tail `TailZeros lay` becomes `TailZeros lay ∨ lay.wr = lay.z0` (nothing appended past the
+    start's frames). `ReadAll` registers its tail (key, `tailVar` at `wr = so = z0`, `TailBound` at `z0`) at an
+    invariant step before `ZeroToEnd`, so `ZeroToEnd`'s supplies have `K = walTailKey dir γ ∗ ghostVar γ ½ (…, none)`.
+  - `ReadAll`'s fdatasync commit (the window closes) sets the invariant's `om` to `OsMeta.synced` (exact; `zf = some
+    size` by `OsMeta.synced_zf_size`), every byte `durB`, and `old := old.take z0 ++ replicate (|old| - z0) 0`
+    (`TailLast`'s `ByteOk` forces it: a synced zero past `wr` has `y = old b = 0`); `TailZeros` then holds.
+  - The appends get `TailZeros` from the disjunction by a pure lemma (to write): `WalAbsD` + `SegExact g` + the
+    program's bytes from `wr` on of value 0 → `old b = 0` there (`TailLast`'s unwritten, unsynced `ByteOk`: `g.1 =
+    y`), so `wr = z0` gives `TailZeros`. `walTailW` gains `∀ b, o0 + |out| ≤ b → b < |bs| → bs[b].1 = 0` (from
+    `ZeroToEnd.specAu`'s `osZerosA` after the sync; writes keep it: they write below the new `wr`).
+  - **Obligation for `wal-read7`**: the registration step, the sync commit above, `walTailW`'s new conjunct, and
+    `TailMeta`'s exactness (W1 log, ninth session) when building `walTailW`.
+
 **Third session (branch `wal-read3`, 2026-11-13).**
 - *Gaps 1 and 2 closed* as the coordinator decided: `WalsNamed` and `walParked` in `walInvBody`, the parking
   flag in the lock token (W1 log, sixth session, for the design and the other units' obligations).
@@ -2713,3 +2950,16 @@ Two facts the pin and the error arms need are not in `walInv`; both are invarian
 - *Callees for `openAtIndex`'s write mode*: `os.File.Name` and `filepath.Base` have specs
   (`LinuxFs/Spec/os/File__Name.lean`, `LinuxFs/Spec/path/filepath/Base.lean`); `*LockedFile`'s promoted
   `Name` and `WAL.tail` over `walReadH`'s locks (`WAL__tail` is over the write handle) are to check.
+
+**Ninth session (branch `wal-read9`, 2026-11-13): gaps A and B closed in the invariant** (W1 log, tenth
+session: `WalOut`, `walParked Ls cl F`, `Parked.lean`). For `openAtIndex`'s pin, at its first step
+(`wp_notCrashed_acc`): open `walInv`, `walParked_lock` (with `walUnlockedTok`: `walLockedTok`, the empty
+record, and no change in flight anywhere), then `walParked_takeSegs` with `S = lay.segs.drop k` (`k` the
+`walSearch` position; `segsAll_nodup_iff` for the distinct inodes), `walParked_takeClaim` (the WAL directory's
+claim, `WalDirClaimOf` from `WalsOk`/`DirKeysOk`), in write mode `walParked_takeTmps`; each `segResP g` with
+`⌜F !! g.ino = none⌝` and the invariant's `segResF F g = segRes g` gives the exact halves (`osMeta_agree`,
+`osBytes_agree`). The handle's body (`walReadH`) must then hold `walOutFrag ⟨S.map ino, [(lay.j, .except X)],
+[dir] or []⟩` (a `ReadDefs` change, sealed: no client statement changes). The error arms put back with
+`_putSeg`/`_putClaim`/`_putTmps`, then `walParked_unlock`; the put-back of the WAL's **last** segment needs
+`F !! ino = none`, open (W1 log, tenth session, "Open": a `walTailsRes` clause, a change only on a registered
+tail). Task 3 (the pin, `openAtIndex`, `OpenForRead`, `Open`) not started.

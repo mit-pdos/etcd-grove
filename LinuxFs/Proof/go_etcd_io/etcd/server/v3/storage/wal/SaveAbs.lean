@@ -162,6 +162,9 @@ theorem walAbsD_snoc {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay
   have htake : ∀ c, c ≤ d.H.length → (histM { d with H := d.H ++ [o] }).take c = (histM d).take c := by
     intro c hcl
     rw [histM_snoc, List.take_append_of_le_length (by simpa [histM] using hcl)]
+  obtain ⟨gl, hgl⟩ : ∃ g, lay.segs.getLast? = some g :=
+    ⟨_, List.getLast?_eq_some_getLast h.nonempty⟩
+  have hW := h.lastWin gl hgl
   obtain ⟨hn, hcs, hnb, hcut, hmeta, hint, hlast, hsyn, hls, -, hstop, hne⟩ := h
   refine ⟨hn, ⟨fun b hb => ?_, hcs.2⟩, ?_, hcut, hmeta, ?_, ?_, ?_, hls, hfit, ?_, hne⟩
   · rw [histM_snoc]; exact walCutPos_snoc _ (hcs.1 b hb)
@@ -174,7 +177,24 @@ theorem walAbsD_snoc {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay
     rw [hsegLt _ (by have := hcs.2.2; have := List.getElem?_eq_some_iff.1 hg; omega)]
     exact hint k g hk hg
   · intro g hg
-    obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := hlast g hg
+    refine ⟨fun hx => ?_, fun hx => ?_⟩
+    rotate_left
+    · obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := (hlast g hg).2 hx
+      unfold TailWin
+      simp only at h1 h2 h3 h4 h5 h6 h7 h8 ⊢
+      rw [hS]
+      refine ⟨h1, by simp; omega, h3, h4, fun b x hb hbw => ?_, h6, ?_, fun hz b hb1 hb2 => ?_⟩
+      · exact (h5 b x hb hbw).snoc (fun hw => by simp at hw; omega) (fun hs => by simp at hs; omega)
+      · rw [List.take_append_of_le_length (by omega)]; exact h7
+      · rcases Nat.lt_or_ge lay.z0 (segStream C Mr d lay.cuts lay.cuts.length).length with hlt | hge
+        · exact h8 hlt b hb1 hb2
+        · apply hZ _ b hb1 hb2
+          intro hnil
+          rw [hnil, List.length_nil, List.length_eq_zero_iff] at hX
+          subst hX
+          simp [recFrames, frames] at hz; omega
+    obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := (hlast g hg).1 hx
+    unfold TailLast
     simp only at h1 h2 h3 h4 h5 h6 h7 h8 ⊢
     rw [hS]
     refine ⟨h1, by simp; omega, h3, h4, fun b x hb => ?_, h6, ?_, fun hz b hb1 hb2 => ?_⟩
@@ -193,8 +213,8 @@ theorem walAbsD_snoc {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay
     exact h2
   · intro hz r len c'
     have hz' : recFrames C X = [] := by
-      have hwr := (hlast _ (List.getLast?_eq_some_getLast hne)).2.1
-      have hz0 := (hlast _ (List.getLast?_eq_some_getLast hne)).2.2.2.2.2.1
+      have hwr := hW.2.1
+      have hz0 := hW.2.2.2.2.2.1
       rw [hS, List.length_append] at hz
       apply List.eq_nil_of_length_eq_zero; omega
     have hX0 := recFrames_eq_nil hz'
@@ -222,66 +242,91 @@ theorem byteOk_sync {x y : w8} {a w s : Bool} {g : ByteG} (h : ByteOk x y a w s 
     rw [h.val_unw]
     exact byteOk_durB rfl rfl
 
-/-- A segment after a successful fdatasync: every byte durable at its value. -/
-def syncSeg (g : SegG) : SegG := { g with bs := g.bs.map (fun y => durB y.1) }
+/-- **The tail after a successful fdatasync**: its `OsMeta` synced (`OsMeta.synced`), every byte
+durable at its value. -/
+def syncTail (g : SegG) : SegG := { g with om := g.om.synced, bs := g.bs.map (fun y => durB y.1) }
 
-/-- The layout after `sync`'s fdatasync of the tail (every byte written, flushed): every byte
-durable, the tail synced up to what is written. -/
-def syncLay (lay : WalLay) : WalLay := { lay with segs := lay.segs.map syncSeg, so := lay.wr }
+/-- **The layout after `sync`'s fdatasync of the tail `g`** (the segments `pre` before it, unchanged:
+every segment but the last is durable already, `WalAbsD.intact`): every byte of the tail written,
+flushed and durable, the tail synced up to what is written. -/
+def syncLay (lay : WalLay) (pre : List SegG) (g : SegG) : WalLay :=
+  { lay with segs := pre ++ [syncTail g], so := lay.wr }
+
+theorem syncLay_getElem? {lay : WalLay} {pre : List SegG} {g0 : SegG} (hs : lay.segs = pre ++ [g0])
+    (k : Nat) : (syncLay lay pre g0).segs[k]? =
+      (lay.segs[k]?).map (fun g => if k = pre.length then syncTail g else g) := by
+  simp only [syncLay, hs]
+  rcases Nat.lt_trichotomy k pre.length with h | h | h
+  · rw [List.getElem?_append_left h, List.getElem?_append_left h]
+    cases pre[k]? <;> simp [Nat.ne_of_lt h]
+  · subst h; simp
+  · rw [List.getElem?_eq_none (by simp; omega), List.getElem?_eq_none (by simp; omega)]; rfl
 
 /-- **`sync`'s commit keeps the static relation**, the history synced (`d.m := |H|`): every record
-flushed (`wr` the tail's stream's length), the fdatasync made every byte durable. -/
+flushed (`wr` the tail's stream's length), the fdatasync made every byte of the tail durable. -/
 theorem walAbsD_sync {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
-    (h : WalAbsD C Mr d lay ents)
-    (htail : lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length) :
-    WalAbsD C Mr { d with m := d.H.length } (syncLay lay) ents := by
+    {pre : List SegG} {g0 : SegG} (h : WalAbsD C Mr d lay ents) (hs : lay.segs = pre ++ [g0])
+    (hex : SegExact g0) (htail : lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length) :
+    WalAbsD C Mr { d with m := d.H.length } (syncLay lay pre g0) ents := by
   have hc : ∀ b ∈ lay.cuts, b ≤ d.H.length := fun b hb => by
     have := walCutPos_le (h.cuts.1 b hb); simpa [histM] using this
-  obtain ⟨hn, hcs, hnb, hcut, hmeta, hint, hlast, hsyn, hls, hfit, hstop, hne⟩ := h
-  refine ⟨?_, ⟨fun b hb => hcs.1 b hb, hcs.2.1, by simpa [syncLay] using hcs.2.2⟩, ?_, hcut, ?_, ?_, ?_, ?_, ?_, hfit, hstop, ?_⟩
-  · simp only [syncLay, List.map_map]
-    exact ⟨hn.1, hn.2⟩
+  have hmapI : (syncLay lay pre g0).segs.map (·.ino) = lay.segs.map (·.ino) := by
+    simp [syncLay, hs, syncTail]
+  have hmapN : (syncLay lay pre g0).segs.map (·.name) = lay.segs.map (·.name) := by
+    simp [syncLay, hs, syncTail]
+  have hlen : (syncLay lay pre g0).segs.length = lay.segs.length := by simp [syncLay, hs]
+  have hg0 : lay.segs.getLast? = some g0 := by rw [hs]; simp
+  have hlast' : (syncLay lay pre g0).segs.getLast? = some (syncTail g0) := by simp [syncLay]
+  refine { names := ?_, cuts := ?_, nameBound := ?_, cut := h.cut, metas := ?_, intact := ?_,
+           last := ?_, synced := ?_, lastSynced := ?_, fit := h.fit, tailStop := h.tailStop,
+           nonempty := ?_ }
+  · rw [hmapI, hmapN]; exact h.names
+  · exact ⟨h.cuts.1, h.cuts.2.1, by rw [hlen]; exact h.cuts.2.2⟩
   · intro k g hk
-    simp only [syncLay, List.getElem?_map] at hk
-    cases hk0 : lay.segs[k]? with
-    | none => rw [hk0] at hk; cases hk
-    | some g0 =>
-      rw [hk0] at hk; simp only [Option.map_some, Option.some.injEq] at hk; subst hk
-      exact hnb k g0 hk0
+    rw [syncLay_getElem? hs] at hk
+    obtain ⟨g1, hg1, rfl⟩ := Option.map_eq_some_iff.1 hk
+    obtain ⟨sq, ix, hn, hb⟩ := h.nameBound k g1 hg1
+    refine ⟨sq, ix, ?_, hb⟩
+    split <;> simp [syncTail, hn]
   · intro g hg
-    simp only [syncLay, List.mem_map] at hg
-    obtain ⟨g0, hg0, rfl⟩ := hg
-    have := hmeta g0 hg0
-    simpa [syncSeg] using this
+    simp only [syncLay, List.mem_append, List.mem_singleton] at hg
+    rcases hg with hg | rfl
+    · obtain ⟨h1, h2, h3, h4, h5⟩ := h.metas g (by rw [hs]; simp [hg])
+      refine ⟨h1, h2, h3, h4, Or.inr ?_⟩
+      rcases h5 with h5 | h5
+      · obtain rfl := Option.some.inj (hg0.symm.trans h5); exact hex
+      · exact h5
+    · have := h.metas g0 (by rw [hs]; simp)
+      refine ⟨?_, ?_, ?_, ?_, Or.inl hlast'⟩ <;>
+        simp [syncTail, OsMeta.synced, this.1, this.2.1]
   · intro k g hk hg
-    simp only [syncLay, List.length_map, List.getElem?_map] at hk hg
-    cases hk0 : lay.segs[k]? with
-    | none => rw [hk0] at hg; cases hg
-    | some g0 =>
-      rw [hk0] at hg; simp only [Option.map_some, Option.some.injEq] at hg; subst hg
-      simp only [syncSeg, hint k g0 hk hk0, List.map_map]
-      rfl
+    rw [syncLay_getElem? hs] at hg
+    obtain ⟨g1, hg1, rfl⟩ := Option.map_eq_some_iff.1 hg
+    have hk' : k + 1 < lay.segs.length := hlen ▸ hk
+    have hkp : k ≠ pre.length := by rw [hs] at hk'; simp at hk'; omega
+    simp only [if_neg hkp]
+    exact h.intact k g1 hk' hg1
   · intro g hg
-    simp only [syncLay, List.getLast?_map] at hg
-    cases hl0 : lay.segs.getLast? with
-    | none => rw [hl0] at hg; cases hg
-    | some g0 =>
-      rw [hl0] at hg; simp only [Option.map_some, Option.some.injEq] at hg; subst hg
-      obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := hlast g0 hl0
-      simp only [syncLay] at h1 h2 h3 h4 h5 h6 h7 h8 ⊢
-      refine ⟨Nat.le_refl _, h2, by simp [syncSeg, h3], h4, fun b x hb => ?_, h6, h7, h8⟩
-      simp only [syncSeg, List.getElem?_map] at hb
-      cases hb0 : g0.bs[b]? with
-      | none => rw [hb0] at hb; cases hb
-      | some y =>
-        rw [hb0] at hb; simp only [Option.map_some, Option.some.injEq] at hb; subst hb
-        exact byteOk_sync (h5 b y hb0)
-          (fun hs => decide_eq_true (Nat.lt_of_lt_of_le (of_decide_eq_true hs) h1))
+    rw [hlast'] at hg; cases hg
+    have hxs : SegExact (syncTail g0) := by
+      simp [SegExact, syncTail, OsMeta.synced, (h.metas g0 (by rw [hs]; simp)).1]
+    refine ⟨fun _ => ?_, fun hx => absurd hxs hx⟩
+    obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := (h.last g0 hg0).1 hex
+    unfold TailLast
+    simp only [syncLay] at h1 h2 h3 h4 h5 h6 h7 h8 ⊢
+    refine ⟨Nat.le_refl _, h2, by simp [syncTail, h3], h4, fun b x hb => ?_, h6, h7, h8⟩
+    simp only [syncTail, List.getElem?_map] at hb
+    cases hb0 : g0.bs[b]? with
+    | none => rw [hb0] at hb; cases hb
+    | some y =>
+      rw [hb0] at hb; simp only [Option.map_some, Option.some.injEq] at hb; subst hb
+      exact byteOk_sync (h5 b y hb0)
+        (fun hs => decide_eq_true (Nat.lt_of_lt_of_le (of_decide_eq_true hs) h1))
   · refine ⟨Nat.le_refl _, ?_⟩
     simp only [syncLay, List.take_length]
     rw [htail]; exact Nat.le_refl _
   · exact segStart_le hc _
-  · simp [syncLay, hne]
+  · simp [syncLay]
 
 end snoc
 

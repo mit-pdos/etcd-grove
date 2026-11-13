@@ -54,13 +54,14 @@ affected: the claim's remaining names keep their entries). -/
 theorem walsAt_drop {jr : Ino} {Ls : GMap GoString WalLay} {cl : List Claim} {N : NameSet}
     {h : NamesH} {b : GoString} (hA : WalsAt jr Ls cl) (hm : (jr, N, h) ∈ cl) :
     WalsAt jr Ls (dropClaims cl jr N h b) := by
-  intro dir lay hl N' h' hc hN'
+  intro dir lay hl
+  refine ⟨hA.ne hl, fun N' h' hc hN' => ?_⟩
   rcases mem_dropClaims hc with he | ⟨hc', -⟩
   · cases he
     show restrictN (N.diff [b]) h.cur !! lay.nm = _
     rw [restrictN_lookup _ _ _ hN']
-    exact hA dir lay hl N h hm ((NameSet.mem_diff N [b] lay.nm).1 hN').1
-  · exact hA dir lay hl N' h' hc' hN'
+    exact hA.at hl hm ((NameSet.mem_diff N [b] lay.nm).1 hN').1
+  · exact hA.at hl hc' hN'
 
 end walsAt
 
@@ -198,22 +199,22 @@ theorem osNames_three_halves (j : Ino) (N : NameSet) (h1 h2 h3 : NamesH) (hN : N
   have := DFrac.valid_own_op hv.1
   simp at this
 
-/-- The lock free: the invariant's parking flag is `true`. -/
-theorem walUnlocked_park (b : Bool) :
-    ⊢@{IProp GF} walParkAuth (W := W) b -∗ walUnlockedTok (W := W) -∗
-      ⌜b = true⌝ ∗ walParkAuth (W := W) b ∗ walUnlockedTok (W := W) := by
+/-- The lock free: nothing is out of the parked state (the lock token's record is empty). -/
+theorem walUnlocked_out (o : WalOut) :
+    ⊢@{IProp GF} walOutAuth (W := W) o -∗ walUnlockedTok (W := W) -∗
+      ⌜o = WalOut.empty⌝ ∗ walOutAuth (W := W) o ∗ walUnlockedTok (W := W) := by
   unfold walUnlockedTok
-  iintro Ha ⟨Ht, Hf, Hc⟩
-  icases walPark_agree (W := W) b true $$ Ha Hf with %hb
+  iintro Ha ⟨Ht, Hf, Hc, Ho⟩
+  icases walOut_agree (W := W) o _ $$ Ha Ho with %ho
   iframe
-  ipureintro; exact hb
+  ipureintro; exact ho
 
 /-- The parked halves after the drop (neither the area claim nor its part is a WAL directory's). -/
 theorem parked_drop (Ls : GMap GoString WalLay) (cl : List Claim) (jr : Ino) (N : NameSet)
-    (h : NamesH) (b : GoString) (hbw : walNameP b = false) (hW : ¬ WalDirClaimOf Ls (jr, N, h)) :
-    ([∗list] c ∈ cl, if ParkedClaim Ls [] c then
+    (h : NamesH) {D : List (Ino × NameSet)} (b : GoString) (hbw : walNameP b = false) (hW : ¬ WalDirClaimOf Ls (jr, N, h)) :
+    ([∗list] c ∈ cl, if ParkedClaim Ls D c then
         osNames (L := L) c.1 c.2.1 (DFrac.own (1 : Qp).half) c.2.2 else emp) ⊢
-      [∗list] c ∈ dropClaims cl jr N h b, if ParkedClaim Ls [] c then
+      [∗list] c ∈ dropClaims cl jr N h b, if ParkedClaim Ls D c then
         osNames (L := L) c.1 c.2.1 (DFrac.own (1 : Qp).half) c.2.2 else emp := by
   classical
   unfold dropClaims replClaim
@@ -257,13 +258,12 @@ theorem walInvBody_drop (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
   icases HCRa with ⟨HCRa, Hor⟩
   icases Hor with (%hCR0 | ⟨-, Hl⟩)
   rotate_left
-  · iexfalso; iapply walLockedTok_unlocked_excl $$ Hl Hu
+  · iexfalso; iapply walUnlockedTok_excl $$ Hl Hu
   subst hCR0
   unfold walParked
-  icases Hpk with ⟨%bp, %O, %D, Hpa, %hOD, Hsegs, Hpc, Htp⟩
-  icases walUnlocked_park bp $$ Hpa Hu with ⟨%hbp, Hpa, Hu⟩
-  obtain ⟨hO, hD⟩ := hOD hbp
-  subst hO hD hbp
+  icases Hpk with ⟨%bp, %o, Hpa, Hoa, %hOD, Hsegs, Hpc, Htp⟩
+  icases walUnlocked_out o $$ Hoa Hu with ⟨%ho, Hoa, Hu⟩
+  subst ho
   imod osClaims_log (L := L) R _ hE $$ Hsi Hcl with ⟨Hcl, %hlog⟩
   imod osClaims_keys R jr N _ h _ hNe hE $$ Hsi H Hcl with ⟨H, Hcl, %hkeys⟩
   imod osNames_self R jr N _ h hE $$ Hsi H with ⟨H, %hself⟩
@@ -287,7 +287,7 @@ theorem walInvBody_drop (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
   by_cases hW : WalDirClaimOf Ls (jr, N1, h1)
   · icases (BigSepL.bigSepL_append).1 $$ Hpc with ⟨-, Hpc⟩
     icases (BigSepL.bigSepL_cons).1 $$ Hpc with ⟨Hp0, -⟩
-    ihave Hp0 := (show (if ParkedClaim Ls [] (jr, N1, h1) then
+    ihave Hp0 := (show (if ParkedClaim Ls WalOut.empty.D (jr, N1, h1) then
         osNames (L := L) jr N1 (DFrac.own (1 : Qp).half) h1 else emp : IProp GF) ⊢
         osNames (L := L) jr N1 (DFrac.own (1 : Qp).half) h1 from by
       rw [if_pos ⟨hW, List.not_mem_nil⟩]) $$ Hp0
@@ -327,10 +327,10 @@ theorem walInvBody_drop (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
   · ipureintro; exact ⟨absentNone_drop hd hbn hab.1, hab.2⟩
   isplitr
   · ipureintro; exact walsNamed_drop hd hbw hW hwn
-  isplitl [Hpa Hsegs Hpc Htp]
-  · iexists true, [], []
-    iframe Hpa Hsegs Hpc Htp
-    ipureintro; intro _; exact ⟨rfl, rfl⟩
+  isplitl [Hpa Hoa Hsegs Hpc Htp]
+  · iexists bp, WalOut.empty
+    iframe Hpa Hoa Hsegs Hpc Htp
+    ipureintro; exact hOD
   isplitl [HK Hcc]
   · iexists K, cc
     iframe HK Hcc
