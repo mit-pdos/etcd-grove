@@ -28,8 +28,8 @@ tracer on in-process through `/debug/pprof/trace` (`--profiling` defaults to tru
 `TestStartRuntimeTraceTask` (the new fact holds of the parent, `nil`, and of the context `Start`
 returns: a fresh non-nil `*Task` with the tracer on, the parent's `nil` with it off; a child started
 from the tracer-on context does not panic). Run: `cd examples/premisefix/k8sctx && GOWORK=off
-GOFLAGS=-mod=mod go test -run RuntimeTrace -v .` (go1.27.1 at /usr/local/go; the code paths are the
-same in go1.27.3).
+GOFLAGS=-mod=mod GOTOOLCHAIN=go1.27.3 go test -run RuntimeTrace -v .` (the axiom review reran it and
+the watchctx tests at go1.27.3: all pass).
 
 **Reach.** `etc/tcb-collections/k8s.txt` (client/v3/kubernetes Link, apiserver storage/etcd3 Link)
 and `etc/tcb-collections/k8setcd3.txt` (the closed k8s etcd3 theorems, through the store's
@@ -47,9 +47,20 @@ parent's). Producers: `k8sCtxOk_of_nil` (the key added to `k8sKeys`), hence `k8s
 `k8sCtxOk_todo`, `k8sCtxOk_bgFrom`, `k8sCtxOk_of_ctxValueNil` (`k8sKeys_notIntPtr`: the key's type is
 not `*int`). No new opaque: the fact is pure over translated types.
 
-The sweep's two smaller gaps of the same axiom (MINOR) are not fixed here: (a) the SDK calls every
-registered `SpanProcessor.OnStart(ctx, span)`, and `trace.otelSpan` does not exclude a processor
-reading context values (the Batch and Simple processors ignore `ctx`); (b) with
+The sweep's two smaller gaps of the same axiom (MINOR, pre-existing) are not fixed here, recorded for
+a later decision (etcd-grove-81): (a) the SDK passes `ctx` to the provider's configured components, its
+`Sampler` (`ShouldSample(SamplingParameters{ParentContext: ctx})`), its `IDGenerator`
+(`NewIDs(ctx)`, `NewSpanID(ctx, tid)`) and every registered `SpanProcessor.OnStart(ctx, span)` (sdk/trace
+v1.47.0 `tracer.go`, `newSpan` and `Start`), and `trace.otelSpan` admits a span of any SDK provider
+configuration, so a user sampler, ID generator or processor reading `ctx.Value(myKey{})` meets
+`k8sCtxOk` and makes `tracing.Start` panic (the axiom review's scratch
+`/shared/tmp/coord-81/ctxfix-review/k8sctx/review_test.go`, `TestReviewSamplerReadsKey`,
+`TestReviewProcessorReadsKey`). No closed theorem reaches it (their contexts come from `Background`,
+whose span is the no-op one), nor does kube-apiserver's own provider (component-base's `NewProvider`:
+`ParentBased(TraceIDRatioBased)`, the default ID generator, a Batch processor, none reading `ctx`); it
+does refute `tracing.Start.spec` and the store specs as written. Fix later: narrow `trace.otelSpan` to
+providers with otel's own samplers, its default ID generator and its Batch/Simple processors, or a
+provider-configuration opaque. (b) with
 `OTEL_GO_X_OBSERVABILITY` set the SDK passes `ctx` to metric instruments (an SDK meter provider reads
 only otel's span key).
 
