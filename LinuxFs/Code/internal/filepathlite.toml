@@ -5,7 +5,7 @@
 # Proved in `LinuxFs/Proof/internal/filepathlite/`.
 translate = ["!*", "lazybuf", "lazybuf.index", "lazybuf.append", "lazybuf.string", "Clean",
   "IsPathSeparator", "volumeNameLen", "VolumeName", "FromSlash", "postClean", "Base", "Dir", "Ext",
-  "IsAbs", "errInvalidPath"]
+  "IsAbs", "errInvalidPath", "Separator"]
 imports = ["!*", "errors", "internal/stringslite"]
 
 # translate the definitions of all type declarations goose supports

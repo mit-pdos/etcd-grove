@@ -30,7 +30,8 @@ noncomputable def WalkFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] WalkFunc.ty
 
-axiom Separator [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def Separator [GooseExts] [GoGlobalContext] : val :=
+  #(47 : Int)
 
 axiom ListSeparator [GooseExts] [GoGlobalContext] : val
 

@@ -27,7 +27,9 @@ noncomputable def lazybuf.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] lazybuf.ty
 
-axiom Separator [GooseExts] [GoGlobalContext] : val
+/-- OS-specific path separator -/
+@[reducible] noncomputable def Separator [GooseExts] [GoGlobalContext] : val :=
+  #(47 : Int)
 
 axiom ListSeparator [GooseExts] [GoGlobalContext] : val
 

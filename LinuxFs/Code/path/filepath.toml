@@ -6,7 +6,7 @@
 # whose values the part's `io/fs` fact does not hold) and `lstat`. Proved in
 # `LinuxFs/Proof/path/filepath/`.
 translate = ["!*", "Join", "join", "Base", "Dir", "Ext", "Clean", "IsAbs", "Abs", "abs", "unixAbs",
-  "ErrBadPattern"]
+  "ErrBadPattern", "Separator"]
 imports = ["!*", "errors", "internal/filepathlite", "io/fs", "os", "strings"]
 
 # translate the definitions of all type declarations goose supports
