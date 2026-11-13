@@ -35,11 +35,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.newFileEncoder.wp_proof
   try wp_auto
   wp_apply (wp_newEncoder (wal.fileWi f) prev o (by exact h0)
     (by have : sint.Z o ≤ 0xffffffff000 := hmax; omega))
-    $$ [] as %e He
+    $$ [] as %e ⟨He, %Hen⟩
   · iframe #
   try wp_auto
   iapply HΦ
   iframe
+  try (ipureintro; exact Hen)
 
 end proof
 

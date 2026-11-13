@@ -2077,6 +2077,46 @@ condition lifted to `CrashOkA`.**
   carry `∀ b ∈ h.cuts, b < |H|`, needed by `cut.spec` with `walCutPos`), `saveEntry`/`saveState`/`sync`/
   `Save`/`SaveSnapshot`/`Sync`.
 
+**W6, seventh session (branch `wal-save7`, 2026-11-13): the tail `WriteAt` loop; the encoder over the guarded
+stream.**
+- *`wp_tailWriteAt` proved* (`TailWriter.lean`; with it `wp_tailWrite` and `wal.tailWriter`, no `sorry` in the
+  file). The loop's arithmetic goes through small top-level lemmas over `Nat` (`tw_*`: `tw_sub`, `tw_addMax`,
+  `tw_offAdd`, `tw_full_iff` for the `BitVec` conversions, each proved in an empty context; `tw_eintr`,
+  `tw_short`, `tw_full` for the invariant), the invariant written without `min` (`wr ≤ off + len`,
+  `wr ≤ off + nn + 2^30`) and the `max` of the finish generalized to a variable with its three facts
+  (`tw_max`). No `omega`/`word` in the loop's context but on linear facts; peak memory stayed low (the
+  check ran under a 12 GB cgroup, `systemd-run --user --scope -p MemoryMax=12G`, a guard worth keeping).
+- *The page writer and the encoder over `io.writerStreamP`* (statement changes, internal): `PageWriter.{flush,
+  Flush,Write}.spec` and `wal.write.spec` now take a prefix-closed guard `ok` (premise `ok (out ++ pend [++ xs])`)
+  in place of the length bound `lim` (the bound is the instance `io.writerStream_P`); the proofs' writes are
+  prefixes of `out ++ pend ++ xs`. `encoder.encode.wp_proofG : encode.specG` and `encoder.flush.specP` /
+  `wp_proofP` (new) are the main proofs; `encode.spec`/`flush.spec` (length-bounded, used by `SaveSnapshotPre`,
+  `cutPre`) are derived (`wp_proof` from the guarded one), unchanged. Gotcha: `wp_auto` unfolds
+  `encodeFrameSize`'s length word into an `if`; to pass it by name, fold it back (`efs_fst_eq`) and
+  `generalize` it before `wp_auto`.
+- *`WAL.saveCrc.spec` proved* (`WAL__saveCrc.lean`, over `encode.specG`; `recSize_crc`, with a local copy of
+  raft's `varintSize_le_succ`, which the part cannot import).
+- *`newEncoder`/`newFileEncoder` give `e ≠ null`* (post conjunct at the end; no user had destructured it).
+- *Merged `wal-int` (`wal-cut7`)*; everything above builds against it.
+- *Findings for the remaining units* (not done):
+  1. **`sync`, `saveEntry`, `saveState` are blocked on writes past the tail's size** as stated: the tail's guard
+     `tailOk` needs `o0 + |out ++ written| ≤ sz`, and nothing in `walHandleIn` bounds `o0 + |out| + |pend|` (or
+     the next frame) by `sz` (only by `0xffffffff000`); a `Save` that crosses `SegmentSizeBytes`, and
+     `sync.specCut` (`wal-cut7`: pending bytes past the truncated size), write there. These wait for
+     `wal-zte`'s past-size design; with an in-size premise they are provable now over `tailWriter`.
+  2. **The cut bound is `≤`, not `<`**: right after `cut`, `h'.cuts = h.cuts ++ [|H|]`, so the handle can carry
+     only `∀ b ∈ h.cuts, b ≤ |H|`; `Save` gets `cut.spec`'s strict premise after its append (`|H| + 1`). Not yet
+     added to `walHandleIn` (it changes the pure conjunct `wal-cut7` just edited; to add with the next `cut`
+     merge: `cut`'s post keeps it, `Create`/`ReadAll` establish it).
+  3. **The cuts budget does not fit receipts as such**: a handle could hold `⧗ k` (one receipt per cut of this
+     lifetime, `[ReceiptBoundLe GF (2^62)]`, `receipt_lt`), but `ReadAll`'s handle starts with the cuts of the
+     WAL it read (`c0`, bounded only by a slice length, `< 2^63`), and `c0 + k` can pass `2^63 - 2`. Options: bound
+     `c0` by the tail name's sequence (an invariant fact `cuts.length ≤ sq`, then `sq + 1 < 2^64` is still too
+     weak for `2^63`), or weaken `cut.spec`'s `cuts.length + 2 < 2^63` (where `cut` needs it: the `int`
+     arithmetic on the sequence?) to what the name bound gives. For the coordinator: which bound `cut` really
+     needs.
+  4. `SaveSnapshot`'s `walpb.Snapshot` registration not started.
+
 ## W3/W5 implementation log (branch `wal-read`, 2026-11-13)
 
 **Proved (no `sorry`, `lake build`):**
@@ -2261,9 +2301,70 @@ its last page).
   with no bytes after a landing), `os.ftDoneH_of`, `os.truncOutH_again`.
 - *Not done*: the split `fileutil.ZeroToEnd`/`Preallocate`/`preallocExtend`/`preallocExtendTrunc` (item 3
   above; its post can state `pageEnd S ≤ m'.cz` by `zeroToEnd_cz`); the WAL-level supplies
-  (`os.truncAu`/`fallocAu` from `walInv`, item 1).
+  (`os.truncAu`/`fallocAu` from `walInv`, item 1). (The split fileutil specs: done in the next entry,
+  over a reshaped `specAu`.)
 - *Integration*: `wal/checkWALNames` built again at `wal-int` (`zap.Logger.Warn` now takes `zapLoggerOk l`
   itself: `iexact Hlg`).
+
+**The updates' shape; the split `ZeroToEnd` (branch `wal-zte`, 2026-11-13)**.
+- **Finding: the first split form could not be supplied by `walInv`.** `os.truncAu p tg m0 xs0` had the
+  update lend the *other halves* of a state `m0` the caller names (`os.TruncFrom`: `m`, as announced, or
+  landed), from a persistent supply. An invariant's update does not see the caller's halves, so it cannot
+  know the state it holds is `m0` (the three are different `OsMeta`s); and the second update (lending the
+  token at the finish) has no resource tying it to the invariant's record of the change, so it cannot find
+  *its* token (`segResF`'s `fl.t`) either (`osTok` is `own 1`, no witness). Both need agreement with
+  something the program holds.
+- **Decision (the `os`-level shape, untrusted):** the caller **hands its halves and a tie `K` to the supply**;
+  the update lends the *whole* (`LinuxFs/Proof/os/ResizeAuW.lean`: `wp_osFtruncateStart_auW`,
+  `wp_osFallocStart_auW`; the finish lemmas of `ResizeAu.lean` already lend the whole token) and gives back
+  the caller's halves of the outcome with `K`. `K` is the program's tie with the owner's record (the WAL: its
+  `walTailKey dir γ ∗ tailVar γ (H, md, cuts, wr, i, none)`): the start's commit updates the record to the
+  change in flight with both halves of `tailVar` and keeps the program's in the finish's update, which finds
+  `fl` by agreement and returns it as `none` again. Definitions: `os.truncAuW K p tg m0 xs0`,
+  `os.truncSup K p tg` (`□ ∀ m0 xs0, ⌜|xs0| = m0.size - tg⌝ -∗ K -∗ ½ m0 -∗ ½ xs0 -∗ truncAuW …`;
+  `Spec/os/File__TruncateAu.lean`), `fallocAuW i tg m Q`, `fallocSup K i tg` (from any `m0.size ≤ tg`),
+  `fallocOutH`/`fallocDoneH` (the caller's halves of `rsOutF`; `Proof/syscall/FallocateAu.lean`).
+  `os.truncAu`/`os.TruncFrom` are gone (no user).
+- *Proved* (no `sorry`, `lake build`): `os.File.Truncate.specAu` restated over `K`/`os.truncSup` (pre: `½ m`,
+  `½ xs`, `K`, the supply; post `File__Truncate.lean`'s at half and `K`; the loop carries `K`);
+  `syscall.Fallocate.wp_growAuW` (`fallocAuW`, post `∃ n, Q n e`); the split fileutil specs
+  (`LinuxFs/{Spec,Proof}/.../fileutil/*Au.lean`, `.specAu`/`.wp_proofAu`; shared `DefsAu.lean`:
+  `preGrownH` = `preGrown` at half, `_same`, `_trans`, `fallocOutH_preGrownH`, `ftDoneH_preGrownH`):
+  - `preallocExtendTrunc.specAu`: `½ m`, `K`, `truncSup K i sz`; post `preGrownH i m w` (`w` as the whole spec's) and `K`;
+  - `preallocExtend.specAu`: adds `fallocSup K i sz`;
+  - `Preallocate.specAu`: both supplies; post `preallocPostH` (`preGrownH`, or `½ m` unchanged) and `K`;
+  - **`ZeroToEnd.specAu`**: `½ m`, `½` of the bytes `[o, size)`, `K`, `truncSup K i o`, `truncSup K i size`,
+    `fallocSup K i size`; success: offset `o`, `∃ m'`, `m'.size = m.size ∧ m'.maps = m.maps ∧ pageEnd m.size ≤
+    m'.cz`, `½ m'`, `osZerosA i o (size - o) ½`, `K` (so `OsMeta.synced_zf_size` applies to the fdatasync after:
+    `os.zeroToEnd_synced_zf` is the special case of the direct growth; the post states the `cz` bound, which
+    every path gives — the fallback's `ftruncate` from a failed growth's state too); error: as the whole spec's,
+    at half, with `K`. The update's owner holds the other halves (it committed each step's outcome).
+- **Not done: the WAL-level supplies** (`truncSup`/`fallocSup` from `walInv`), blocked on two decisions for
+  the invariant's owner:
+  1. *The static relation does not admit a resize's states* (pure, checked against the definitions):
+     during `cut`'s truncate of the old tail at `wr` (bytes `[wr, size)` zeros past the stream), the
+     announced segment (`SegFl.OkR`) has `om.lo = min m.lo wr = wr ≠ |bs|` (`WalAbsD.metas`) and its bytes past
+     `wr` carry `(y, 0) :: [(0, n)]` (`rsAnn`), which `ByteOk` refuses past the stream (`a = false → ex = []`);
+     once landed, `om.hi` stays the old size (`≠ |bs|`) and `|bs| = wr ≠ |old|` (`WalAbsD.last`) until the
+     fdatasync. `ZeroToEnd`'s growth adds the same (`hi` past `|bs|`, then zeros with fresh candidates).
+     Proposed: `metas` as `om.lo ≤ |bs| ≤ om.hi` for the last segment (W6's writes past the size need the
+     same), `last`'s `ByteOk` with zero candidates allowed past the stream (`∀ q ∈ ex, q.1 = x ∨ (a = false ∧
+     q.1 = 0)`) and `|bs| ≤ |old|`; then `CrashTo` holds (the reader stops at the zeros or at the end of the
+     file). A change to `WalAbsD` (the invariant's content, 20 uses of `.metas` in 12 files): not made here.
+  2. *`ReadAll`'s `ZeroToEnd` has no tie*: its tail is not yet in `walTailsRes` (the record is made after the
+     fdatasync, needing `TailZeros`), so no program resource agrees with `F !! ino`. Either `ReadAll` registers
+     the tail before `ZeroToEnd` (then `TailZeros` must admit the junk past `z0` until the sync, e.g. a
+     registered `z0 = |old|` lowered at the sync's commit), or the invariant gets a tie for an unregistered
+     tail. `cut`'s truncate has the tie (`tailVar`).
+  `cut`'s hypothesis `os.File.Truncate.specWalTail` (`wal-cut7`, `WAL__cutTail.lean`) is `specAu` at
+  `K := walTailKey dir γ ∗ ghostVar γ ½ (H, md, cuts, o0 + |out|, i, none)` (exactly `walTailW`'s tie) with
+  the supply below, the post's halves rebuilding `walTailW … (o0 + |out|)`.
+  With 1 decided, the supplies are: open `walInv` in the update (`walInv_open` at `osAuMask`), take the
+  tail by `walInvBody_tail` (`TailAcc.lean`), agree the caller's halves with `segResF`'s
+  (`osMeta_agree'`, `osBytes_agree`), lend the whole; at the commit put `rsTok` in `F` (`segResF`'s `rz` case,
+  `OkR` from `rsKind_meta`), update `tailVar` with `K`'s half, close with the new layout (the pure
+  `walsOk_resizeStart`); the finish's update, owning `K`'s half, finds `fl`, lends the token, splits
+  `rsOutT`/`rsOutF` into `segRes` and the caller's halves (`walsOk_resizeFinish`).
 
 **Third session (branch `wal-read3`, 2026-11-13).**
 - *Gaps 1 and 2 closed* as the coordinator decided: `WalsNamed` and `walParked` in `walInvBody`, the parking

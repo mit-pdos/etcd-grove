@@ -25,12 +25,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 
-theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.wp_proof
+theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.wp_proofP
     (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := hG))
     (wp_Unlock : sync.Mutex.Unlock.spec (GF := GF) (hG := hG))
     (wp_Flush : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Flush.spec (GF := GF) (hG := hG)) :
-    go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.spec (GF := GF) (hG := hG) := by
-  intro e wi W B lim out pend c hlim
+    go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.specP (GF := GF) (hG := hG) := by
+  intro e wi W B ok out pend c hpc hok
   iintro #Hw
   wp_start as ⟨#Henv, He, Hout⟩
   iunfold encEnv at Henv
@@ -44,7 +44,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.wp_proof
   wp_apply wp_Lock $$ [] as ⟨Hown, -⟩
   · iexact Hmu
   try wp_auto
-  wp_apply (wp_Flush pw wi W B lim out pend hlim) $$ [Hw] [Hpw Hout] as %err ⟨Hpw, Hres⟩
+  wp_apply (wp_Flush pw wi W B ok out pend hpc hok) $$ [Hw] [Hpw Hout] as %err ⟨Hpw, Hres⟩
   · iexact Hw
   · iframe
   try wp_auto
@@ -62,6 +62,21 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.wp_proof
   iframe Hmu
   ipureintro
   exact ⟨Hb, Hus⟩
+
+/-- `flush` over a length-bounded stream: `specP`'s instance (`io.writerStream_P`). -/
+theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.wp_proof
+    (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := hG))
+    (wp_Unlock : sync.Mutex.Unlock.spec (GF := GF) (hG := hG))
+    (wp_Flush : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Flush.spec (GF := GF) (hG := hG)) :
+    go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.spec (GF := GF) (hG := hG) := by
+  intro e wi W B lim out pend c hlim
+  iintro #Hw
+  iapply (go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.wp_proofP wp_Lock wp_Unlock wp_Flush
+    e wi W B (fun ys => ys.length ≤ lim) out pend c
+    (fun xs ys h hy => Nat.le_trans (List.IsPrefix.length_le h) hy)
+    (by simp only [List.length_append]; exact hlim))
+  iapply (io.writerStream_P wi lim W B).1
+  iexact Hw
 
 end proof
 
