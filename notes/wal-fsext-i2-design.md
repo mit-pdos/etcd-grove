@@ -478,3 +478,23 @@ uncertain part.
    call in flight' resource" is exactly `osCallPerm 1`).
 5. Mode irreversibility: a program cannot mix legacy-specified and shared-specified libraries. This is
    the composition caveat above.
+
+## Review and decisions (2026-11-13)
+
+Independent review: `notes/wal-fsext-i2-review.md`, verdict READY WITH CHANGES (no soundness
+counterexample; `closed_cut`'s paper argument holds). The coordinator's decisions (the user away):
+- **M1 adopted**: the `os`-level shared specs (`os.Rename`, `os.Remove`, `os.OpenFile(O_CREATE)`, the
+  multi-step calls with `EINTR` retries) are logically atomic (or crash-aware, as `LinuxFs/Spec/os/Crash.lean`),
+  so a crash invariant holding half of a claim can update it at the step.
+- **M2**: the claim that the server's purge is covered is withdrawn: purge's safety rests on OFD locks
+  (`client/pkg/fileutil/purge.go:55-90`), which wait for the user's lock decision (plan §6 Q1).
+- **M3 adopted**: a legacy-mode resource excluding shared resources; the full call permission minted at
+  the mode switch; the shared invariant in the directory-sync spec; the crash fact's kept set under its
+  quantifier.
+- **M4**: a directory rename needs the whole call permission; in a composed program the boot sequence
+  holds it (WAL `Create`, `cleanupWAL`, `renameWALUnlock` run before other libraries start) and splits it
+  after; a gate for C6 (recorded in the plan).
+- **Minors adopted**: reuse I1's `osCommitLb`/`crashCommit` (add the shared form); the mode switch at any
+  extension step; blind directory reads with no claim; no-effect failure specs; `os.RemoveAll`'s
+  `unlinkat`/`openat` (the trusted-model drafts model it by path over the extension's steps, or report it);
+  the per-slot crash rule revisited; a rendezvous channel spec for the pipeline's `N.tmp` hand-off.
