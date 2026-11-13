@@ -27,14 +27,14 @@ variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 
 /-- See the file header. -/
 abbrev Conn.Close.spec : Prop :=
-  ∀ (c : GoInterface) (cn : Nat) (s : Bool) (a : GoString) (Q : Bool → IProp GF),
-  {{ isConn (GF := GF) c cn s a ∗
+  ∀ (t : Loc) (cn : Nat) (s : Bool) (a : GoString) (Q : Bool → IProp GF),
+  {{ connAt (GF := GF) t cn s a ∗
       (|={⊤,∅}=> ∃ st r out f, tcpEnd (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s st r ∗
         tcpOut (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s out f ∗
         ∀ ok st' f', ⌜CloseRes false (fun st => { st with closed := true }) st f ok st' f'⌝ -∗
           tcpEnd (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s st' r -∗
           tcpOut (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s out f' ={∅,⊤}=∗ Q ok) }}
-    (App (App (Val (GoInstruction (MethodResolve Conn.ty go!"Close"))) (Val #c)) (Val #()))
+    (App (Val #(methods (go.GoType.PointerType TCPConn.ty) go!"Close" #t)) (Val #()))
   {{ (err : GoInterface), RET #err;
       ∃ ok, Q ok ∗ ⌜(ok = true → err = interface.nil) ∧ (ok = false → netErr err)⌝ }}
 

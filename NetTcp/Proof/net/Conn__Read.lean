@@ -38,20 +38,17 @@ theorem ReadPost_res (hT : TcpGS GF) (cn : Nat) (s : Bool) (n : w64) (st : TcpEn
   · ipureintro; exact ⟨_, _, h.2.2⟩
 
 theorem Conn.Read.wp_proof : Conn.Read.spec (GF := GF) (hG := hG) := by
-  intro c cn s a b bs0 eof Q
-  unfold isConn
-  wp_start as ⟨⟨%t, %Hc, #Ht, #Hat⟩, Hsl, #Heof, HAU⟩
-  subst Hc
-  wp_auto
+  intro t cn s a b bs0 eof Q
+  unfold connAt
+  wp_start as ⟨⟨#Ht, #Hat⟩, Hsl, #Heof, HAU⟩
   wp_method_call
-  wp_auto
-  wp_method_call
-  unfold conn.Read.impl model.connId
-  rw [conn_ty_eq']
+  (try unfold conn.Read.impl)
+  (try unfold model.connId)
+  (try rw [conn_ty_eq'])
   ihave #Ht2 := Ht
   iStructNamed Ht2
   iStructNamed conn
-  wp_auto
+  (try wp_auto)
   wp_bind (ExternalOp _ _ _)
   iapply wp_tcp_Read cn s a b.len $$ Hat
   imod HAU with ⟨%st, %r, Hend, Hk⟩

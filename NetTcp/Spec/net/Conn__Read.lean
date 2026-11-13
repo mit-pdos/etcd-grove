@@ -38,13 +38,13 @@ def ReadOut (bs0 bs : List w8) (code k : w64) (err eof : GoInterface) (bs' : Lis
 
 /-- See the file header. -/
 abbrev Conn.Read.spec : Prop :=
-  ∀ (c : GoInterface) (cn : Nat) (s : Bool) (a : GoString) (b : GoSlice) (bs0 : List w8)
+  ∀ (t : Loc) (cn : Nat) (s : Bool) (a : GoString) (b : GoSlice) (bs0 : List w8)
     (eof : GoInterface) (Q : val → IProp GF),
-  {{ isConn (GF := GF) c cn s a ∗ b ↦* bs0 ∗ globalAddr io.EOF ↦□ eof ∗
+  {{ connAt (GF := GF) t cn s a ∗ b ↦* bs0 ∗ globalAddr io.EOF ↦□ eof ∗
       (|={⊤,∅}=> ∃ st r, tcpEnd (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s st r ∗
         ∀ res, ReadPost (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s b.len st r res ={∅,⊤}=∗
           Q res) }}
-    (App (App (Val (GoInstruction (MethodResolve Conn.ty go!"Read"))) (Val #c)) (Val #b))
+    (App (Val #(methods (go.GoType.PointerType TCPConn.ty) go!"Read" #t)) (Val #b))
   {{ (k : w64) (err : GoInterface), RET (PairV #k #err);
       ∃ (bs : List w8) (code : w64) (bs' : List w8), Q (readRes bs code) ∗ b ↦* bs' ∗
         ⌜ReadOut bs0 bs code k err eof bs'⌝ }}

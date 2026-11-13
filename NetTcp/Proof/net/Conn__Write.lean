@@ -27,20 +27,17 @@ variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 variable [go.BasicIntoValInj]
 
 theorem Conn.Write.wp_proof : Conn.Write.spec (GF := GF) (hG := hG) := by
-  intro c cn s a b bs dq Q
-  unfold isConn
-  wp_start as ⟨⟨%t, %Hc, #Ht, #Hat⟩, Hsl, HAU⟩
-  subst Hc
-  wp_auto
+  intro t cn s a b bs dq Q
+  unfold connAt
+  wp_start as ⟨⟨#Ht, #Hat⟩, Hsl, HAU⟩
   wp_method_call
-  wp_auto
-  wp_method_call
-  unfold conn.Write.impl model.connId
-  rw [conn_ty_eq']
+  (try unfold conn.Write.impl)
+  (try unfold model.connId)
+  (try rw [conn_ty_eq'])
   ihave #Ht2 := Ht
   iStructNamed Ht2
   iStructNamed conn
-  wp_auto
+  (try wp_auto)
   wp_apply wp_bytes_to_string b bs dq $$ Hsl as Hsl
   wp_bind (ExternalOp _ _ _)
   iapply wp_tcp_Write cn s a bs $$ Hat

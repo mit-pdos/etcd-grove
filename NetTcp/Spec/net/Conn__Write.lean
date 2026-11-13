@@ -28,16 +28,16 @@ variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 
 /-- See the file header. -/
 abbrev Conn.Write.spec : Prop :=
-  ∀ (c : GoInterface) (cn : Nat) (s : Bool) (a : GoString) (b : GoSlice) (bs : List w8)
+  ∀ (t : Loc) (cn : Nat) (s : Bool) (a : GoString) (b : GoSlice) (bs : List w8)
     (dq : DFrac) (Q : Nat → Bool → IProp GF),
-  {{ isConn (GF := GF) c cn s a ∗ b ↦*{dq} bs ∗
+  {{ connAt (GF := GF) t cn s a ∗ b ↦*{dq} bs ∗
       (|={⊤,∅}=> ∃ st r out f, tcpEnd (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s st r ∗
         tcpOut (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s out f ∗
         ∀ k ok st', ⌜WriteRes st bs k ok st'⌝ -∗
           tcpEnd (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s st' r -∗
           tcpOut (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s (out ++ bs.take k) f
           ={∅,⊤}=∗ Q k ok) }}
-    (App (App (Val (GoInstruction (MethodResolve Conn.ty go!"Write"))) (Val #c)) (Val #b))
+    (App (Val #(methods (go.GoType.PointerType TCPConn.ty) go!"Write" #t)) (Val #b))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
       ∃ k ok, Q k ok ∗ b ↦*{dq} bs ∗
         ⌜n = BitVec.ofNat 64 k ∧ (ok = true → err = interface.nil) ∧ (ok = false → netErr err)⌝ }}

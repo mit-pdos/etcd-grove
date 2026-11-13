@@ -63,7 +63,7 @@ theorem Dial.wp_proof : Dial.spec (GF := GF) (hG := hG) := by
     · ipureintro; rfl
     iexists cn
     iframe HQ
-    unfold isConn
+    unfold isConn connAt
     iexists t_ptr
     iframe t Hat
     ipureintro; rfl

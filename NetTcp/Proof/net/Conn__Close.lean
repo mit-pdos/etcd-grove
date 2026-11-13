@@ -27,20 +27,17 @@ variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 variable [go.BasicIntoValInj]
 
 theorem Conn.Close.wp_proof : Conn.Close.spec (GF := GF) (hG := hG) := by
-  intro c cn s a Q
-  unfold isConn
-  wp_start as ⟨⟨%t, %Hc, #Ht, #Hat⟩, HAU⟩
-  subst Hc
-  wp_auto
+  intro t cn s a Q
+  unfold connAt
+  wp_start as ⟨⟨#Ht, #Hat⟩, HAU⟩
   wp_method_call
-  wp_auto
-  wp_method_call
-  unfold conn.Close.impl model.connId
-  rw [conn_ty_eq']
+  (try unfold conn.Close.impl)
+  (try unfold model.connId)
+  (try rw [conn_ty_eq'])
   ihave #Ht2 := Ht
   iStructNamed Ht2
   iStructNamed conn
-  wp_auto
+  (try wp_auto)
   wp_bind (ExternalOp _ _ _)
   iapply wp_tcp_Close cn s a $$ Hat
   imod HAU with ⟨%st, %r, %out, %f, Hend, Hout, Hk⟩

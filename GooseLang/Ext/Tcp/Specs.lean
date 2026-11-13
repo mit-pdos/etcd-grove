@@ -446,6 +446,82 @@ theorem tcpCtx_lookup (hG : TcpGS GF) (g : TcpGlobal) (c : Nat) (γ : ConnNames)
 
 end acc
 
+/-! ## The resources' laws -/
+
+section laws
+variable {GF : BundledGFunctors}
+
+/-- Two lower bounds of one end's bytes: one is a prefix of the other. -/
+theorem tcpOutLb_valid (hG : TcpGS GF) (c : Nat) (s : Bool) (l1 l2 : GoString) :
+    tcpOutLb hG c s l1 -∗ tcpOutLb hG c s l2 -∗ ⌜l1 <+: l2 ∨ l2 <+: l1⌝ := by
+  letI := hG.allG
+  unfold tcpOutLb
+  iintro ⟨%γ1, #H1, #L1⟩ ⟨%γ2, #H2, #L2⟩
+  icases tcpNames_agree hG c γ1 γ2 $$ H1 H2 with %e
+  subst e
+  iapply mono_list_lb_valid $$ L1 L2
+
+/-- A lower bound of an end's bytes is a prefix of them. -/
+theorem tcpOut_lb_prefix (hG : TcpGS GF) (c : Nat) (s : Bool) (bs : GoString) (f : Bool)
+    (l : GoString) :
+    tcpOut hG c s bs f -∗ tcpOutLb hG c s l -∗ ⌜l <+: bs⌝ := by
+  letI := hG.allG
+  unfold tcpOut tcpOutLb
+  iintro ⟨%γ1, #H1, M, -⟩ ⟨%γ2, #H2, #L⟩
+  icases tcpNames_agree hG c γ1 γ2 $$ H1 H2 with %e
+  subst e
+  icases mono_list_auth_lb_valid $$ M L with %h
+  ipureintro; exact h.2
+
+/-- An end's bytes are a lower bound of them. -/
+theorem tcpOut_lb (hG : TcpGS GF) (c : Nat) (s : Bool) (bs : GoString) (f : Bool) :
+    tcpOut hG c s bs f -∗ tcpOutLb hG c s bs := by
+  letI := hG.allG
+  unfold tcpOut tcpOutLb
+  iintro ⟨%γ, #H, M, -⟩
+  iexists γ
+  iframe H
+  iapply monoListLbOwn_get $$ M
+
+/-- Nothing is a lower bound of any end's bytes. -/
+theorem tcpOutLb_nil (hG : TcpGS GF) (c : Nat) (s : Bool) (a : GoString) :
+    tcpConnAt hG c a ==∗ tcpOutLb hG c s [] := by
+  letI := hG.allG
+  unfold tcpConnAt tcpOutLb
+  iintro ⟨%γ, #H, -⟩
+  imod monoListLbOwn_nil (γ.out s) with L
+  imodintro
+  iexists γ
+  iframe H L
+
+/-- A FIN of an end agrees with the end's bytes and FIN flag: it was sent, after them. -/
+theorem tcpOut_fin (hG : TcpGS GF) (c : Nat) (s : Bool) (bs : GoString) (f : Bool)
+    (bs' : GoString) :
+    tcpOut hG c s bs f -∗ tcpFin hG c s bs' -∗ ⌜f = true ∧ bs' = bs⌝ := by
+  letI := hG.allG
+  unfold tcpOut tcpFin
+  iintro ⟨%γ1, #H1, -, Hf⟩ ⟨%γ2, #H2, #F⟩
+  icases tcpNames_agree hG c γ1 γ2 $$ H1 H2 with %e
+  subst e
+  cases f
+  · simp only [Bool.false_eq_true, ↓reduceIte]
+    icases dghostVar_agree $$ Hf F with %h; cases h
+  · simp only [↓reduceIte]
+    icases dghostVar_agree $$ Hf F with %h
+    ipureintro; exact ⟨trivial, (Option.some.inj h).symm⟩
+
+/-- An end that has sent its FIN: the FIN, after its bytes. -/
+theorem tcpOut_fin_intro (hG : TcpGS GF) (c : Nat) (s : Bool) (bs : GoString) :
+    tcpOut hG c s bs true -∗ tcpFin hG c s bs := by
+  letI := hG.allG
+  unfold tcpOut tcpFin
+  simp only [↓reduceIte]
+  iintro ⟨%γ, #H, -, #F⟩
+  iexists γ
+  iframe H F
+
+end laws
+
 /-! ## The specs -/
 
 section lifting

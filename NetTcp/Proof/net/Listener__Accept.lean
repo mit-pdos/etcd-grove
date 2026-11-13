@@ -77,7 +77,7 @@ theorem Listener.Accept.wp_proof : Listener.Accept.spec (GF := GF) (hG := hG) :=
     · ipureintro; rfl
     iexists cn
     iframe HQ
-    unfold isConn
+    unfold isConn connAt
     iexists _
     iframe t Hat
     ipureintro; rfl
