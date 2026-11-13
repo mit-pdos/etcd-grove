@@ -35327,3 +35327,38 @@ reverted: `range_linearizable`/`range_serializable` (exported), `EtcdServer.Rang
   is not reached, and the new axioms (purgeRound, the 4 init axioms) are reached by no root until it
   is. The plan and its decisions stand; a resumption starts from `notes/wal-w4c-handoff.md`, "Paused
   2026-11-12".
+
+## Restart S6a: the snapshot directory's right, and the double rename (2026-11-13 · M1 approved by the user, M2 decided by the user, via etcd-grove-81 · branch `restart-s56`)
+
+The S6a axiom review (READY WITH CHANGES; `/shared/tmp/restart-s56/freeze-s6a.md` §3.2-review) found
+two majors, both older than S6a, which (b′)'s "one directory invariant per member" made central.
+
+- **M1: one invariant per directory is enforced by the trusted text, not by proof discipline.**
+  `SaveDBFrom`'s kept-file branch returns `snapSaved γd i` for whatever invariant it is given, and
+  `snapDir_init`/`snapDir_alloc` made an invariant over any snapshotter's paths from a fresh empty
+  ghost map: a second invariant over one directory (or a first one over a directory that already held
+  a `.snap.db`) gave `snapSaved` of an index it did not know, and `False`. **Decision (the user):** a
+  listed world assumption, `bootOk` (first start only, never `bootOkR`) gives
+  `snap.snapDirOwn (snap.snapDBPathOf cfg.DataDir')`: at the first start the snapshot directory holds
+  no `.snap.db` file, and nothing outside the server's snapshotters writes `.snap.db` files there.
+  The right names, once, the ghost map of the files (`snap.snapDirIs p γd`, persistent; `snapDirOwn p`
+  is defined as `∀ γd, |==> snapDirIs p γd`, so no axiom: the environment gives it once).
+  `snapDir_alloc` is deleted (unused). In S6a-2 (`NewServer.lean`, after the auth fix): `snapDirInv`
+  holds `snapDirIs (snapDBPath ss) γd`, so every invariant `SaveDBFrom` and `Release` take is the
+  one the right named, and `snapDir_init` consumes the right (`/shared/tmp/restart-s56/m1-s6a2.patch`).
+  Form: the record sits inside the invariant rather than beside it in each axiom's precondition,
+  which encloses it the same way (no invariant without it) and leaves the axioms', the transport's
+  and `srvSnapRO`'s statements as they are. `purgeFile` needs nothing: it no longer removes
+  `.snap.db` files (sweep repairs 1, R1-3).
+- **M2: two saves of one index both rename** (`Exist` then `Rename`, no lock; the review's Go test:
+  both rename in 788, and in our rerun 2749, of 3000 iterations). **Decision (the user):** no code
+  change; `nonissues/etcd-snap-savedbfrom-concurrent-rename.md` records it with the test, and
+  `SaveDBFrom`'s docstring restates the justification of its ghost steps for a rename over an existing
+  file, including one `snapDir_take` already handed out: the stored image is a function of the index
+  and the file claims are data-level. The functionality of `img i` is the justification's premise,
+  not a Lean law (no lemma `img i D → img i D' → D = D'`).
+- **Minors.** m1: `snapDBPath`'s and `snapDBPathOf`'s index binder is `i`, and the docstrings say it
+  is the snapshot index (the member enters only through `dd`). m2: `snapDBPathOf`'s docstring states
+  the path-aliasing assumption (equal strings name one file), as for `backendPathOf`/`pathOwn`. m3:
+  no change; in S6a-2 the image's `c ≤ i + 1` stays tied to the graceful stop's index, and `specR`'s
+  restart configuration has `cfg.DataDir' = dd` at the image's `dd`.

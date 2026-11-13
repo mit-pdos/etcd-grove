@@ -262,6 +262,11 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- snapshot directory (`cfg.SnapDir()`, a function of `DataDir`: `snap.snapDBPathOf`), so that a
     -- restart's snapshotter writes the files of the first start's
     "%Hssp" ∷ ⌜snap.snapDBPath bs.ss' = snap.snapDBPathOf cfg.DataDir'⌝ ∗
+    -- (restart S6a, M1, approved by the user 2026-11-13 via etcd-grove-81; the first start only,
+    -- not `bootOkR`) the right to that snapshot directory: it holds no `.snap.db` file, and nothing
+    -- outside the server's snapshotters writes `.snap.db` files there (`snap.snapDirOwn`), which
+    -- names the one ghost map of its files (`snapDir_init`)
+    "Hsdo" ∷ snap.snapDirOwn (snap.snapDBPathOf cfg.DataDir') ∗
     -- `b.raft`: `NodeStartSpec`'s premises
     -- (2026-11-03, S2: until then `heartbeat ≠ 0`, false at `TickMs = 2 ^ 58`) the heartbeat as Go
     -- computes it (`time.Duration(cfg.TickMs) * time.Millisecond`, `bootstrap.go:563`, wrapping)

@@ -21,7 +21,7 @@ image certificate `N.img i D` at the snapshot's index `i` (`netSnapBundle`). The
 transport saves the stream before it calls `Process` (`SaveDBFrom`: a temporary file, synced,
 renamed to `snapDBPath ss i` unless a file of that index is there, which it keeps). A member's
 **snapshot directory** is an invariant the receiver allocates and gives `Transport.Start`
-(`snapDirInv ss γd img Rm`, `snapDir_alloc`): the `.snap.db` files present (`M`, each with its
+(`snapDirInv ss γd img Rm`, `snapDir_init`): the `.snap.db` files present (`M`, each with its
 `fileHolds` and `□ img i D`) and the indices ever saved (`E`, a ghost map with persistent elements
 `snapSaved γd i`), each saved index absent from `M` with the receiver's removal fact `Rm i`. The
 transport only adds to it (a file it created, at an index absent from `M`); the receiver removes
@@ -523,16 +523,11 @@ theorem snapDir_init (ss : Loc) (γd : GName) (img : w64 → backend.Data → IP
 -- (2026-10-27) `snapLocal_of_saved` (`snapSaved` as raft's `snapLocal`, by `RaftNames.reSnapLoc`)
 -- deleted with the server's port onto raft's node API: the server's clusters send no snapshot.
 
-/-- **A member's snapshot directory, allocated empty** (D22 S-i): what the receiver gives
-`Transport.Start` for its snapshotter `ss`, at the payload's certificate and its removal fact
-`Rm` (a fresh data directory: its snapshot directory has no `.snap.db` file). -/
-theorem snapDir_alloc (ss : Loc) (img : w64 → backend.Data → IProp GF) (Rm : w64 → IProp GF)
-    (E : CoPset) : ⊢ |={E}=> ∃ γd : GName, inv snapDirN (snapDirInv ss γd img Rm) := by
-  imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Unit) with ⟨%γd, Ha⟩
-  imod (snapDir_init ss γd img Rm E) $$ Ha with #Hi
-  imodintro
-  iexists γd
-  iexact Hi
+-- (restart S6a, M1, 2026-11-13: the axiom review's M1, approved by the user via etcd-grove-81)
+-- `snapDir_alloc` (an invariant for any `ss` from a fresh ghost map, no right to the directory)
+-- deleted, unused: a second invariant over one directory made `SaveDBFrom`'s kept-file branch give
+-- `snapSaved` of an index the second invariant did not know. The directory's right
+-- (`snap.snapDirOwn`, `bootOk`) is to be consumed by `snapDir_init` (S6a-2).
 
 end lemmas
 

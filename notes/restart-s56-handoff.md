@@ -48,7 +48,31 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
   and the risks R1-R5 (§7).
 - Decisions go in the worktree's `questions.md` (untracked).
 
-## S6a-1 progress (2026-11-13, the S6a-1 agent): next agent starts here
+## S6a review answered (2026-11-13, the S6a agent continued): next agent starts here
+
+The S6a axiom review (READY WITH CHANGES) is answered; texts and reasons in
+`/shared/tmp/restart-s56/freeze-s6a.md` §3.2-review, decisions in `questions.md` and
+`notes/decisions.md` ("Restart S6a: the snapshot directory's right, and the double rename").
+**Stopped for 81's review of the M1 texts.**
+- Done: `snap.snapDirOwn`/`snap.snapDirIs` (`api/snap/Defs.lean`, defined, no axiom); `bootOk`'s
+  `"Hsdo" ∷ snap.snapDirOwn (snap.snapDBPathOf cfg.DataDir')`; `snapDir_alloc` deleted; `SaveDBFrom`'s
+  docstring (M2); `nonissues/etcd-snap-savedbfrom-concurrent-rename.md` with the test; m1, m2.
+- **S6a-2 (with `NewServer.lean`, after the auth fix):** apply `/shared/tmp/restart-s56/m1-s6a2.patch`
+  (`snapDirInv` holds `snapDirIs (snapDBPath ss) γd`; `snapDir_init` takes the right and the path
+  equation; `snapDir_take` carries the record; NewServer's call passes `Hsdo`, `Hssp`). Only its
+  `Net.lean` part was checked. Also: a comment next to `NewServer.spec`'s `Hsdir` pointing at
+  `bootOk`'s `Hsdo` (the review's fallback ask, `Spec/.../NewServer.lean:305-308`, still says
+  `snapDir_alloc`); then the deferred `srvSnapRO` equation and the image's (S6a-1 notes below).
+- **Step 5's remaining part not started** (the image's `∃ ssₒ γm c, inv … ∗ monoNatAuthOwn γm 1 c ∗
+  ⌜c ≤ i + 1⌝` at `srvImageM γ.authOn γ`, `InvRestart.srvDiskImage` + `StopShutdown.stop_cleanup_image`;
+  the member-id link). Findings so far: `applyResStopR` holds `srvSnapOwn C.s C.ci B.E C.γr B.γ ai`
+  (the snapshot index `ai`, named `ai0g` in `stop_cleanup_image`'s `icases Hres`), whose `srvSnapRO`
+  has `srvMemberIDAddr s ↦□ idm`, `γr.raft.raft.snapLoc idm = some γd` and the invariant at
+  `srvImageM γr.raft.raft.authOn γr.raft.raft`; the image is at `C.rn.id` and `C.ρ.rd.raft.raft`
+  (`hρ`, `hγ : C.γr.raft.raft = C.rn.node` in the proof). Still open: `idm = C.rn.id` (lead below).
+- Build: full build under the lock, `/shared/tmp/restart-s56/s6a-m1-full.log`.
+
+## S6a-1 progress (2026-11-13, the S6a-1 agent)
 
 Done (full build clean, 17552 jobs, `/shared/tmp/restart-s56/s6a1-full.log`; `tcb-report --check` matches the baseline: the opaque adds no axiom, and the baseline lists axioms and sorries only; `gen-interface --check` clean for every `etc/api` list; `etc/gates.sh` all passed, `/shared/tmp/restart-s56/s6a1-gates.log`): steps 1, 2, 3, 4 and 6 of the list
 below; targeted builds clean (`SnapRO`, `SnapTake`, `InvBoot`, `InvRestart`, `InvRun`,
