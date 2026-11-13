@@ -255,7 +255,8 @@ theorem wp_osRenameAbsentS (R : Roots) (d bs d' bt : GoString) (j j' : Ino) (N :
   wp_osRenameAbsentS' R d bs d' bt j j' N dq dq' dqn h k s0 q hbs hbt hN hsrc hE hE' Φ
 
 /-- **`mkdir(2)`** of the free name `d/b`, by a call holding the whole call permission: the new
-directory `J` comes with a claim on all its names. -/
+directory `J` comes with a claim on all its names, empty, that no call begun before the `mkdir`
+can use (`hJ.next = x + 1`). -/
 theorem wp_osMkdirS (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : NamesH) (k s0 : Nat)
     (hb : NameOk b) (hn : h.cur !! b = none) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E)
     (Φ : val → IProp GF) :
@@ -265,10 +266,10 @@ theorem wp_osMkdirS (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : Nam
         ((⌜e ≠ 0⌝ ∗ osNames (L := L) j (.only [b]) (DFrac.own 1) h) ∨
          ∃ x J, osLogged (L := L) x (⟨.mkdir j b J, s0⟩ : LogEntry) ∗
            osNames (L := L) j (.only [b]) (DFrac.own 1) (h.log x (⟨.mkdir j b J, s0⟩ : LogEntry) (<[b := .dir J]> h.cur)) ∗
-           osNames (L := L) J (.except []) (DFrac.own 1)
-             ⟨∅, [(x, (⟨.mkdir j b J, s0⟩ : LogEntry), ∅)], ∅⟩) -∗ Φ (#e)) -∗
-      WP (ExternalOp fsExt.name "Mkdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} := by
-  sorry
+           ∃ hJ, osNames (L := L) J (.except []) (DFrac.own 1) hJ ∗ ⌜hJ.cur = ∅ ∧ hJ.next = x + 1⌝) -∗
+        Φ (#e)) -∗
+      WP (ExternalOp fsExt.name "Mkdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} :=
+  wp_osMkdirS' R d b j dq h k s0 hb hn hE hE' Φ
 
 /-- **`rmdir(2)`** of the directory `d/b` (inode `J`), empty (its whole claim, with no name), by a
 call holding the whole call permission. -/
