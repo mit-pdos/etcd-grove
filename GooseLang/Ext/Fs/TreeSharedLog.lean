@@ -694,8 +694,8 @@ from what it finds of the state (`P`, given by the caller's resources `F` throug
 authority; `ClaimsAt`: what the claims know) and what it returns (`W w logged`). The obligations:
 each claim is written and every slot `o` writes is in one; the claims' `next` bound the call's
 start (or the call holds the whole permission); a directory operation holds the whole permission;
-the tree after `o` is well formed, names no new file, has the old directories and the new ones
-(fresh), `o` is applicable if a file operation, and the claims' entries after `o` are as given.
+the tree after a logged `o` has the old directories and the new ones (fresh), `o` is applicable if
+a file operation, and the claims' entries after `o` are as given.
 The operation `oF n` and the claims' new entries `curF n` are functions of the step's fresh inode
 `n` (the state's `nextIno`, which the logic does not track: `mkdir`, `open(O_CREAT)`). The step
 may change the files' world (`hworld`, giving `G n w logged`: `open(O_CREAT)`'s new file and fd);
@@ -726,9 +726,9 @@ theorem wp_logStepSW (op : String) (v : val) (hv : v.isPanic = false) (R : Roots
       HeapRendered st st' h h' → MapsFresh st st' h →
       ⊢ osWorld (L := L) st Γb Γm Γf Γt h ==∗ ∃ Γb' Γm' Γf' Γt',
         osWorld (L := L) st' Γb' Γm' Γf' Γt' h' ∗ G st.fs.nextIno w lg)
-    (htree : ∀ st, FsTreeWf st → st.fs.roots = R → P st → ClaimsAt st cl →
+    (htree : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 → P st →
+      ClaimsAt st cl → IsFsStep op v st e' st' → LoggedT st st' k s0 (oF st.fs.nextIno) →
       let o := oF st.fs.nextIno
-      TreeWf R (o.apply st.tree) ∧ (∀ i, Named (o.apply st.tree) i → Named st.tree i) ∧
       (∀ x, x ∈ o.apply st.tree → x ∈ st.tree ∨ x ∈ o.newDirs) ∧
       (∀ J ∈ o.newDirs, J ∉ st.tree) ∧
       (¬ o.IsDirOp → OpOk st.tree o ∧ ∀ j b i, o = .create j b i → ∀ t,
@@ -878,7 +878,7 @@ theorem wp_logStepSW (op : String) (v : val) (hv : v.isPanic = false) (R : Roots
     · iexact HG
     · iexact Hcl
   · -- logged
-    obtain ⟨htw, hnm, hdirs, hnew, hok, hcur⟩ := htree0 hw hR hP hat
+    obtain ⟨hdirs, hnew, hok, hcur⟩ := htree0 _ st' hw hR hcall hP hat Hst hlf
     have htr := hlf.tree
     have hpss : ∀ y (ey : LogEntry), st.fs.metaLog[y]? = some ey →
         (∃ sl ∈ o.slots, sl ∈ ey.op.slots) → y < s0 := by
@@ -1063,7 +1063,8 @@ start (or the call holds the whole permission); a directory operation holds the 
 the tree after `o` is well formed, names no new file, has the old directories and the new ones
 (fresh), `o` is applicable if a file operation, and the claims' entries after `o` are as given.
 The operation `oF n` and the claims' new entries `curF n` are functions of the step's fresh inode
-`n` (the state's `nextIno`, which the logic does not track: `mkdir`, `open(O_CREAT)`). -/
+`n` (the state's `nextIno`, which the logic does not track: `mkdir`); the files' world unchanged
+(`wp_logStepSW` with no gift). -/
 theorem wp_logStepSN (op : String) (v : val) (hv : v.isPanic = false) (R : Roots) (k s0 : Nat)
     (q : Qp) (oF : Nat → MetaOp) (cl : List ClaimW) (curF : Nat → ClaimW → Ents) (F : IProp GF)
     (P : OsState → Prop) (W : val → Bool → Prop)
@@ -1124,7 +1125,10 @@ theorem wp_logStepSN (op : String) (v : val) (hv : v.isPanic = false) (R : Roots
       imodintro
       iexists Γb, Γm, Γf, Γt
       iframe)
-    htree hE hE' Φ $$ Hinv Hsi HF Hcl Hk
+    (fun st _ _ hw hR _ hP hat _ _ => by
+      obtain ⟨-, -, h3⟩ := htree st hw hR hP hat
+      exact h3)
+    hE hE' Φ $$ Hinv Hsi HF Hcl Hk
   iintro %w Hq HF Hp
   iapply HΦ $$ %w Hq HF
   icases Hp with (⟨%hW, -, Hp⟩ | ⟨%hW, %n, %x, -, Hp⟩)

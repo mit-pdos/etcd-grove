@@ -22,7 +22,7 @@ The resources (all of the generation's ghost state):
 * `osLogLb n`, `osLogEnt x e`: the log has at least `n` entries; its entry `x` is `e` (persistent).
 * `osDirFdS fd j ph`: the shared directory fd `fd`, on the directory `j`, its read at `ph`.
 
-Statements only for now: every proof is `sorry` (filled in `TreeShared*.lean` as they come).
+Every statement is proved in a `TreeShared*.lean` module.
 -/
 module
 
@@ -39,6 +39,7 @@ public import GooseLang.Ext.Fs.TreeSharedCallEnd
 public import GooseLang.Ext.Fs.TreeSharedOpenDir
 public import GooseLang.Ext.Fs.TreeSharedMeta
 public import GooseLang.Ext.Fs.TreeSharedRead
+public import GooseLang.Ext.Fs.TreeSharedCreate
 
 @[expose] public section
 
@@ -329,8 +330,8 @@ theorem wp_osOpenCreateS (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h 
          (⌜e ≠ 0 ∧ fd = -1⌝ ∗ osNames (L := L) j (.only [b]) (DFrac.own 1) h)) -∗
         Φ (PairV (#fd) (#e))) -∗
       WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#(child d b)) (#flCreat)))))
-        @ s; E {{ Φ }} := by
-  sorry
+        @ s; E {{ Φ }} :=
+  wp_osOpenCreateS' R d b j dq h k s0 q hb hnd hs hE hE' Φ
 
 /-- **`open(2)` of a directory, read-only**: a shared directory fd, holding nothing. -/
 theorem wp_osOpenDirS (R : Roots) (p : GoString) (j : Ino) (dq : DFrac) (k s0 : Nat) (q : Qp)
