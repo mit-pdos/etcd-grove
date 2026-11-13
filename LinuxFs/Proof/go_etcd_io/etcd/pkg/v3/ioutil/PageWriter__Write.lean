@@ -96,6 +96,7 @@ theorem ioutil.wp_Write_fits (pw : Loc) (wi : GoInterfaceOk) (W : List w8 → IP
       exact (List.take_left' (by rw [List.length_append, htk])).symm
   · exfalso; apply Hif; word
 
+set_option maxHeartbeats 1000000 in
 theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Write.wp_proof
     (wp_Flush : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Flush.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Write.spec (GF := GF) (hG := hG) := by
@@ -346,7 +347,114 @@ theorem go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Write.wp_proof
     wp_auto
     have hdk : (xs.drop k).length = xs.length - k := List.length_drop
     wp_if_destruct
-    · sorry
+    · -- whole pages straight to the writer
+      simp only [show ¬ (sint.Z pB2 = 0) by omega, ↓reduceIte]
+      have hlen0 : 0 ≤ sint.Z s'.len := by omega
+      have hpg : sint.Z (BitVec.sdiv s'.len pB2) = sint.Z s'.len / sint.Z pB2 :=
+        ioutil.sint_sdiv _ _ hlen0 hpB2
+      have hq0 : 0 ≤ sint.Z s'.len / sint.Z pB2 := Int.ediv_nonneg hlen0 (by omega)
+      have hP0 : 0 ≤ sint.Z s'.len / sint.Z pB2 * sint.Z pB2 := Int.mul_nonneg hq0 (by omega)
+      have e := Int.emod_add_mul_ediv (sint.Z s'.len) (sint.Z pB2)
+      rw [Int.mul_comm] at e
+      have hr0 := Int.emod_nonneg (sint.Z s'.len) (by omega : sint.Z pB2 ≠ 0)
+      have hr1 := Int.emod_lt_of_pos (sint.Z s'.len) hpB2
+      have hPz : sint.Z (BitVec.sdiv s'.len pB2 * pB2) =
+          sint.Z s'.len / sint.Z pB2 * sint.Z pB2 := by
+        rw [show sint.Z (BitVec.sdiv s'.len pB2 * pB2) = (BitVec.sdiv s'.len pB2 * pB2).toInt
+          from rfl, ioutil.sint_mul_small _ _ (by change 0 ≤ sint.Z _ * sint.Z _; rw [hpg]; exact hP0)
+            (by change sint.Z _ * sint.Z _ < _; rw [hpg]; omega)]
+        change sint.Z _ * sint.Z _ = _
+        rw [hpg]
+      wp_auto
+      generalize hPdef : BitVec.sdiv s'.len pB2 * pB2 = P at hPz ⊢
+      have hPn : (sint.nat P : Int) = sint.Z P := by
+        have : sint.nat P = (sint.Z P).toNat := rfl; omega
+      have hsP : 0 ≤ sint.Z P ∧ sint.Z P ≤ sint.Z s'.len := ⟨by omega, by omega⟩
+      rw [ite_eq_left_of_eq_true _ _ (eq_true (show 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) ≤ sint.Z P ∧
+        sint.Z P ≤ sint.Z s'.cap by refine ⟨by decide, by word, by omega⟩))]
+      icases (ownSlice_split_all (V := w8) P s' _ (xs.drop k) hsP).1 $$ Hs' with ⟨H1, H2⟩
+      wp_auto
+      unfold io.writerStream
+      wp_apply Hw $$ [Hout H1] as %c %werr ⟨%ys2, %Hys2, Hout, H1⟩
+      · iframe
+      rcases werr with ei | _
+      · -- the pages' write failed
+        wp_auto
+        iapply HΦ
+        iexists ys ++ ys2, []
+        rw [List.append_assoc]
+        iframe Hout
+        isplitl [Hv Hbuf]
+        · iunfold ioutil.ownPageWriter
+          iexists _, bs2
+          iframe Hv
+          dsimp only
+          iframe
+          ipureintro
+          exact ⟨rfl, rfl, Hok20, Hpend2⟩
+        isplitl [Hback H1 H2]
+        · iapply Hback
+          iapply (ownSlice_split_all (V := w8) P s' _ (xs.drop k) hsP).2
+          iframe
+        ipureintro
+        refine ⟨fun h => (nomatch h), fun _ => ⟨rfl, ?_⟩⟩
+        rw [hys, List.append_assoc]
+        refine (List.prefix_append_right_inj _).2 ?_
+        refine List.IsPrefix.trans ((List.prefix_append_right_inj _).2 (Hys2.1.trans
+          (List.take_prefix _ _))) ?_
+        rw [List.take_append_drop]
+        exact List.prefix_refl _
+      have hys2 := Hys2.2.2 rfl
+      wp_auto
+      rw [hPdef]
+      rw [ite_eq_left_of_eq_true _ _ (eq_true (show 0 ≤ sint.Z P ∧ sint.Z P ≤ sint.Z s'.len ∧
+        sint.Z s'.len ≤ sint.Z s'.cap by omega))]
+      wp_auto
+      ihave Hpw : ioutil.ownPageWriter pw wi [] $$ [Hv Hbuf]
+      · iunfold ioutil.ownPageWriter
+        iexists _, bs2
+        iframe Hv
+        dsimp only
+        iframe
+        ipureintro
+        exact ⟨rfl, rfl, Hok20, Hpend2⟩
+      have hdP : ((xs.drop k).drop (sint.nat P)).length = xs.length - k - sint.nat P := by
+        rw [List.length_drop, hdk]
+      wp_apply (ioutil.wp_Write_fits pw wi W (out ++ ys ++ ys2) [] _ ((xs.drop k).drop (sint.nat P))
+          dq (by rw [hdP]; omega) (by rw [List.length_nil, hdP]; omega)) $$ [Hw] [Hpw Hout H2]
+          as %c2 %werr2 ⟨%Hc2, Hout, Hpw, H2⟩
+      · unfold io.writerStream; iexact Hw
+      · iframe
+      obtain ⟨rfl, hc2⟩ := Hc2
+      iapply HΦ
+      iexists ys ++ ys2, _
+      rw [List.append_assoc]
+      iframe Hout
+      iframe Hpw
+      isplitl [Hback H1 H2]
+      · iapply Hback
+        iapply (ownSlice_split_all (V := w8) P s' _ (xs.drop k) hsP).2
+        iframe
+      ipureintro
+      refine ⟨fun _ => ⟨?_, ?_⟩, fun h => absurd rfl h⟩
+      · rw [hys, hys2, List.nil_append, List.append_assoc, List.append_assoc,
+          List.take_append_drop, List.take_append_drop]
+      · rw [hdP] at hc2
+        have := Hk.2
+        have := Hys2.2.1
+        rw [hys2, List.length_take, hdk] at this
+        have h1 : sint.nat P ≤ xs.length - k := by omega
+        rw [Nat.min_eq_left h1] at this
+        have h2 : ((xs.length - k - sint.nat P : Nat) : Int) = xs.length - k - sint.nat P := by
+          omega
+        rw [h2] at hc2
+        have hsum : sint.Z nk + sint.Z c + sint.Z c2 = xs.length := by omega
+        have b1 : 0 ≤ sint.Z nk := by omega
+        have b2 : 0 ≤ sint.Z c := by omega
+        have b3 : 0 ≤ sint.Z c2 := by omega
+        have b4 : (xs.length : Int) < 2 ^ 62 := by omega
+        clear hc2 this h2
+        word
     · -- the rest fits in the buffer
       have hfit2 : ([] : List w8).length + (xs.drop k).length ≤ 131072 := by
         rw [List.length_nil, hdk]; omega

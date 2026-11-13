@@ -70,6 +70,21 @@ theorem ioutil.sint_srem (a b : w64) (ha : 0 ≤ sint.Z a) :
   rw [show sint.Z (BitVec.srem a b) = (BitVec.srem a b).toInt from rfl, BitVec.toInt_srem]
   exact Int.tmod_eq_emod_of_nonneg ha
 
+/-- Go's `a / b` on a non-negative `int` and a positive one is the Euclidean quotient. -/
+theorem ioutil.sint_sdiv (a b : w64) (ha : 0 ≤ a.toInt) (hb : 0 < b.toInt) :
+    (BitVec.sdiv a b).toInt = a.toInt / b.toInt := by
+  rw [BitVec.toInt_sdiv, Int.tdiv_eq_ediv_of_nonneg ha]
+  have := Int.ediv_nonneg ha (Int.le_of_lt hb)
+  have := Int.ediv_le_self b.toInt ha
+  have := BitVec.toInt_lt (x := a)
+  apply Int.bmod_eq_of_le <;> omega
+
+/-- `a * b` on `int`s when the product fits. -/
+theorem ioutil.sint_mul_small (a b : w64) (h0 : 0 ≤ a.toInt * b.toInt)
+    (h1 : a.toInt * b.toInt < 2 ^ 63) : (a * b).toInt = a.toInt * b.toInt := by
+  rw [BitVec.toInt_mul]
+  apply Int.bmod_eq_of_le <;> omega
+
 /-- Filling the last page reaches a page boundary. -/
 theorem ioutil.emod_add_fill (a p : Int) : (a + (p - a % p)) % p = 0 := by
   have e : a + (p - a % p) = p * (a / p + 1) := by
