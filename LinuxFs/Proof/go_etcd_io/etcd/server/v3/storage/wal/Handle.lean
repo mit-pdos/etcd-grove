@@ -8,16 +8,17 @@ their helpers (`saveEntry`, `saveState`, `saveCrc`, `sync`, `cut`).
 * **The tail's stream** (`tailStream Mr H md cuts`): the intended bytes of the last segment, the
   frames of its records (`Abs.lean`'s `segStream` at the last segment, over the concrete codec
   `walCodec`); `tailCrc`: the encoder's CRC after every record of the WAL (the chain's end).
-* **A writer with an acceptance guard** (`io.writerStreamG wi W G`): `io.writerStream` whose
-  `Write(p)` also needs `G (out ++ p)`, a persistent fact about the stream so far. The WAL's tail
-  is a crash-tracked file (half of its bytes in `walInv`): a write of bytes that are not the
-  intended stream would break the crash condition, so no `W` makes the plain contract true of the
-  tail. `G` is a lower bound of the tail's intended stream (`walTailG`, a mono list), which grows
-  only when `Save`'s update commits. The encoder's and page writer's specs over it thread `G`
-  (`encoder.encode.specG`, a hypothesis until their proofs are re-run over `writerStreamG`).
-* **The tail's writer state** (`walTailW f i γW o0 out`): the file's offset at `o0 + |out|`, the
-  program's halves of the tail's `OsMeta` and bytes, and the program's half of the tail's write
-  position `γW` (the invariant's `lay.wr`, `walTailsRes`).
+* **The tail's writer** (plan W6 log, "the crash-aware tail write"): the tail is crash-tracked (half
+  of its `OsMeta` and bytes in `walInv`), so it is written as a *guarded* stream
+  (`io.writerStreamP`, `Proof/io/WriterStream.lean`) accepting only the bytes it is meant to hold:
+  `tailOk Mr H md cuts o0 sz ys` (`ys` a prefix of the intended stream past `o0`, inside the
+  preallocated size `sz`). Its state `walTailW` (the file, its offset `o0 + |out|`, the program's
+  halves of the tail's `OsMeta` and bytes, the handle's key to the invariant's tail record
+  `walTailKey dir γ` and its half of the tail record `(H, md, cuts, o0 + |out|, ino, none)`,
+  `walTailsRes`, `Inv.lean`): the record ties the program's `H` to the invariant's, so that a
+  write step, opening `walInv`, knows the bytes are the stream's. `wal.tailWriter` is the
+  contract (each `pwrite` step opens `walInv` with `notCrashed`, `wp_atomic_nc`); the encoder's
+  and page writer's specs over it are `encoder.encode.specP` (`encoder__encodeG.lean`).
 * **The handle** (`walHandleIn Mr w dir h`, `h : WalHS`): the struct's fields, the encoder over
   the tail with its CRC at `tailCrc` and its pending bytes, the stream split
   `take o0 ++ out ++ pend = tailStream`, the tail's lock and file, the last hard state at
@@ -27,9 +28,8 @@ their helpers (`saveEntry`, `saveState`, `saveCrc`, `sync`, `cut`).
   `entRoC` (the raft-root clash, plan §10), so the specs are over predicates a client
   instantiates, with the laws (`MustMarshalMessage`, `GetIndex`, `IsEmptyHardState`, `MustSync`)
   taken as hypotheses by the proofs.
-* **The invariant's tail conjunct** (`walTailsRes`, to be appended to `walInvBody`, plan §11): per
-  WAL with an open handle, the authority of its tail's stream (`γS`) and the invariant's half of
-  its write position (`γW`), agreeing with the layout (`lay.wr`, the last segment's stream).
+* **The invariant's tail conjunct** (`walTailsRes`, `Inv.lean`): per WAL with an open handle, the
+  other half of the tail record, the layout's (`tailG`), and F-Z.
 -/
 module
 
@@ -41,7 +41,7 @@ public import LinuxFs.Proof.os.Off
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.newFileEncoder
 public import LinuxFs.GeneratedProof.go_etcd_io.etcd.server.v3.storage.wal
 public import Spec.go_uber_org.zap.Defs
-public import Perennial.Ghost.MonoList
+public import LinuxFs.Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.LockDefs
 public import Perennial.Ghost.GhostVar
 
 @[expose] public section
@@ -90,8 +90,8 @@ theorem tailStream_eq (Mr : WalMarshal) (d : WalDur) (cuts : List Nat) :
 last `rest` records not yet encoded: `Save` commits its operation before encoding it), the
 metadata, the cuts, the tail's inode, the encoder's start offset `o0` in the tail, the bytes its
 writer has accepted (`out`) and its page writer's pending bytes (`pend`), the hard state at
-`w.state` (`st`), the ghost names of the history (`γH`, agreeing with the invariant), of the
-tail's stream (`γS`) and write position (`γW`), and the indices `enti`/`snapi`. -/
+`w.state` (`st`), the ghost name of the tail's record (`γ`, `walTailsRes`), the tail's size `sz`
+(preallocated), and the indices `enti`/`snapi`. -/
 structure WalHS where
   H : List (WalOpG WalEnt)
   md : List w8
@@ -102,9 +102,8 @@ structure WalHS where
   pend : List w8
   rest : Nat
   st : HardStateM
-  γH : GName
-  γS : GName
-  γW : GName
+  γ : GName
+  sz : Nat
   enti : w64
   snapi : w64
 
@@ -152,30 +151,18 @@ def walEntsIn (P : WalPbIn GF) (esL : List Loc) (es : List EntryM) : IProp GF :=
 
 end pb
 
-/-! ## The writer with an acceptance guard -/
+/-! ## The tail's guard -/
 
-section writer
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
+/-- **What the tail's writer accepts** (`io.writerStreamP`'s guard): the bytes after the encoder's
+start `o0` are a prefix of the tail's intended stream past `o0`, inside the preallocated size `sz`. -/
+def tailOk [GooseExts] (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat)
+    (o0 sz : Nat) (ys : List w8) : Prop :=
+  ys <+: (tailStream Mr H md cuts).drop o0 ∧ o0 + ys.length ≤ sz
 
-/-- See the file header: `io.writerStream` whose `Write(p)` needs `G (out ++ p)`; `G` persistent
-and prefix-closed (the client's: what may be written). -/
-def io.writerStreamG (wi : GoInterfaceOk) (W : List w8 → IProp GF) (G : List w8 → IProp GF) :
-    IProp GF :=
-  iprop(□ ∀ (out : List w8) (p : GoSlice) (xs : List w8) (dq : DFrac),
-    {{ W out ∗ G (out ++ xs) ∗ p ↦*{dq} xs }}
-      (App (Val #(methods wi.ty go!"Write" wi.v)) (Val #p))
-    {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
-        ∃ ys : List w8, ⌜ys <+: xs ∧ sint.Z n = ys.length ∧ (err = GoInterface.nil → ys = xs)⌝ ∗
-        W (out ++ ys) ∗ p ↦*{dq} xs }})
-
-instance io.writerStreamG_persistent (wi : GoInterfaceOk) (W G : List w8 → IProp GF) :
-    Persistent (io.writerStreamG wi W G) := by
-  unfold io.writerStreamG; infer_instance
-
-end writer
+theorem tailOk_prefix [GooseExts] {Mr : WalMarshal} {H : List (WalOpG WalEnt)} {md : List w8}
+    {cuts : List Nat} {o0 sz : Nat} {xs ys : List w8} (h : xs <+: ys)
+    (hy : tailOk Mr H md cuts o0 sz ys) : tailOk Mr H md cuts o0 sz xs :=
+  ⟨h.trans hy.1, Nat.le_trans (Nat.add_le_add_left h.length_le _) hy.2⟩
 
 /-! ## The tail and the handle -/
 
@@ -187,24 +174,21 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 
-/-- **The tail's stream is at least `ys`** (persistent): a lower bound of the tail's intended
-stream, the acceptance guard of its writer. -/
-def walTailG (γS : GName) (ys : List w8) : IProp GF :=
+/-- **The tail's writer state after accepting `out`** (`W` of the tail's `io.writerStreamP`, see
+the file header): the file `f` (fd `fd`, write-only, of inode `i`), its offset at `o0 + |out|`, the
+program's halves of the tail's `OsMeta` (of size `sz`) and bytes, the handle's key to its tail
+record `γ` in `dir`, and its half of the record: history `H`, metadata `md`, cuts, write position
+`o0 + |out|`, inode `i`, no write in flight. -/
+def walTailW (f : Loc) (fd : w64) (name : GoString) (dir : GoString) (γ : GName) (i : Ino)
+    (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (o0 sz : Nat) (out : List w8) :
+    IProp GF :=
   letI := walAllG (W := W)
-  monoListLbOwn γS ys
-
-instance walTailG_persistent (γS : GName) (ys : List w8) :
-    Persistent (walTailG (W := W) γS ys) := by
-  unfold walTailG; infer_instance
-
-/-- **The tail's writer state** (`W` of the tail's `io.writerStreamG`): the file `f`'s offset at
-`o0 + |out|`, the program's halves of the tail's `OsMeta` and bytes, and its half of the tail's
-write position. -/
-def walTailW (f : Loc) (i : Ino) (γW : GName) (o0 : Nat) (out : List w8) : IProp GF :=
-  letI := walAllG (W := W)
-  iprop(∃ (m : OsMeta) (bs : List ByteG),
-    os.ownOff f (W64 (o0 + out.length)) ∗ osMeta i (DFrac.own (1 : Qp).half) m ∗
-    osBytes i 0 (DFrac.own (1 : Qp).half) bs ∗ ghostVar γW (1 : Qp).half (o0 + out.length))
+  iprop(os.ownFile f fd name (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨i, false, true⟩ ∗
+    os.ownOff f (W64 (o0 + out.length)) ∗ walTailKey (W := W) dir γ ∗
+    ∃ (m : OsMeta) (bs : List ByteG),
+    osMeta i (DFrac.own (1 : Qp).half) m ∗ osBytes i 0 (DFrac.own (1 : Qp).half) bs ∗
+    ⌜m.size = sz⌝ ∗
+    ghostVar γ (1 : Qp).half ((H, md, cuts, o0 + out.length, i, none) : TailG))
 
 /-- **The pipeline `w.fp` of the WAL in `dir`** (`Pipe.lean`), the handle having made `k` cuts:
 the pipeline (some directory inode `j`, roots `R`, path fraction `dq`, file size `sz`), the
@@ -214,11 +198,11 @@ def walPipeH (fp : Loc) (dir : GoString) (k : Nat) : IProp GF :=
   iprop(∃ (γ : PipeNames) (R : Roots) (dq : DFrac) (j : Ino) (sz : w64) (n : Nat),
     isFilePipe fp γ R dir dq j sz ∗ pipeMain γ n ∗ tmpClaim j (pipeTmp (n + 1)) ∗ ⌜n ≤ k⌝)
 
-/-- A non-tail lock: a `*fileutil.LockedFile` and its open file. -/
+/-- A non-tail lock: a `*fileutil.LockedFile` (`fileutil.lockedFile`, what `fileutil.LockFile`
+returns) and its open file, whole. -/
 def walLockH (lf : Loc) : IProp GF :=
   iprop(∃ (f : Loc) (fd : w64) (nm : GoString) (d : OsFd),
-    structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile go!"File" lf ↦ f ∗
-    os.ownFile f fd nm (DFrac.own 1) ∗ osFd fd (DFrac.own 1) d)
+    fileutil.lockedFile lf f ∗ os.ownFile f fd nm (DFrac.own 1) ∗ osFd fd (DFrac.own 1) d)
 
 /-- **The open WAL `w` of `dir`, in the state `h`** (see the file header). -/
 def walHandleIn (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h : WalHS) :
@@ -243,15 +227,11 @@ def walHandleIn (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"snapi" w ↦ h.snapi ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"encoder" w ↦ e ∗
     ownEncoder e (wal.fileWi f) (h.crc Mr) h.pend ∗
-    walTailW f h.ino h.γW h.o0 h.out ∗
-    io.writerStreamG (wal.fileWi f) (walTailW f h.ino h.γW h.o0) (walTailG (W := W) h.γS) ∗
-    walTailG (W := W) h.γS ((recFrames walCodec (h.encRecs Mr)).take h.o0 ++ h.out) ∗
-    ghostVar h.γH (1 : Qp).half (h.H, h.md, h.cuts) ∗
+    walTailW (W := W) f fd name dir h.γ h.ino h.H h.md h.cuts h.o0 h.sz h.out ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks ∗
     locks ↦* lfs ∗ ownSliceCap Loc locks (DFrac.own 1) ∗ ⌜lfs.getLast? = some lt⌝ ∗
     ([∗list] lf ∈ lfs.dropLast, walLockH lf) ∗
-    structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile go!"File" lt ↦ f ∗
-    os.ownFile f fd name (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨h.ino, false, true⟩ ∗
+    fileutil.lockedFile lt f ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ fp ∗ walPipeH fp dir h.cuts.length ∗
     encEnv ∗ walCrcTable ∗
     walOpenW (W := W) w dir ∗
