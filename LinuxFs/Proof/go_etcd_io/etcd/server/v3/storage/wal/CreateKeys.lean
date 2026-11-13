@@ -297,6 +297,80 @@ theorem parkedClaim_create {Ls : GMap GoString WalLay} {cl : List Claim} {D : Li
     · subst he; exact (hcJ rfl X hX rfl).elim
     · exact hD hm
 
+/-- **`WalsAt` after `Create`'s commit** (W3/W5's gap 1): the rename puts the new WAL's directory `J`
+at its name `nm` in the area claim; the other WALs' names (neither `nm` nor `tmp`: other directories
+of the area, `InArea`) keep their entries; the other area claims hold neither name; `J`'s new claim
+is not the area's. -/
+theorem walsAt_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s : AbsDiskState}
+    {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat}
+    {CR : GMap GoString (NameSet × NamesH × Ino)} {dir nm tmp : GoString}
+    {N : NameSet} {h : NamesH} {J : Ino} {x st : Nat} {X : List GoString}
+    {hJ : NamesH} {lay : WalLay}
+    (hA : WalsAt jr Ls cl) (hok : WalsOk C Mr R jr s Ls cl n) (hnew : CreatingNew jr cl CR dir N J)
+    (hin : InArea s.area dir nm) (htmp : ¬ walNameOk tmp) (hc : (jr, N, h) ∈ cl)
+    (hothers : ∀ c' ∈ cl, c' ≠ (jr, N, h) → c'.1 = jr → ¬ c'.2.1.Mem nm ∧ ¬ c'.2.1.Mem tmp)
+    (hlay : lay.jr = jr ∧ lay.nm = nm ∧ lay.j = J) :
+    WalsAt jr (<[dir := lay]> Ls)
+      (createClaims cl jr N h x (renDirEnt jr tmp nm J st) (renCur N h tmp nm J) J X hJ) := by
+  classical
+  have hJjr := hnew.1
+  -- another WAL's name is neither `nm` nor `tmp`
+  have hnms : ∀ dir' lay', dir' ≠ dir → Ls !! dir' = some lay' → lay'.nm ≠ nm ∧ lay'.nm ≠ tmp := by
+    intro dir' lay' hdd hl'
+    obtain ⟨d', hd'⟩ : ∃ d', s.wal !! dir' = some d' := by
+      cases hw : s.wal !! dir' with
+      | none => rw [hok.2.1 dir' hw] at hl'; cases hl'
+      | some d' => exact ⟨d', rfl⟩
+    obtain ⟨lay'', nm', -, hl'', hin', -, hnm', -⟩ := hok.1 dir' d' hd'
+    rw [hl'] at hl''; cases hl''
+    rw [hnm']
+    exact ⟨inArea_ne hin hin' hdd, not_inArea_tmp hin' htmp⟩
+  intro dir' lay' hl' N' h' hm hN'
+  rcases mem_createClaims_cases hm with he | he | ⟨hm', hne⟩
+  · simp only [Prod.mk.injEq] at he; exact absurd he.1 (Ne.symm hJjr)
+  · cases he
+    simp only [NamesH.log]
+    unfold renCur
+    rw [restrictN_lookup _ _ _ hN']
+    by_cases hdd : dir' = dir
+    · subst hdd
+      rw [GMap.lookup_insert_eq] at hl'
+      cases hl'
+      rw [hlay.2.1, GMap.lookup_insert_eq, hlay.2.2]
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)] at hl'
+      obtain ⟨h1, h2⟩ := hnms dir' lay' hdd hl'
+      rw [GMap.lookup_insert_ne _ _ (Ne.symm h1), GMap.lookup_delete_ne _ (Ne.symm h2)]
+      exact hA dir' lay' hl' N h hc hN'
+  · by_cases hdd : dir' = dir
+    · subst hdd
+      rw [GMap.lookup_insert_eq] at hl'
+      cases hl'
+      rw [hlay.2.1] at hN'
+      exact absurd hN' (hothers _ hm' hne rfl).1
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)] at hl'
+      exact hA dir' lay' hl' N' h' hm' hN'
+
+/-- **`WalsAt` after a cut's commit** (W3/W5's gap 1): the WAL directory's claim replaced by
+another of the same directory (not the area's), the layout by one of the same name and directory. -/
+theorem walsAt_repl {jr : Ino} {Ls : GMap GoString WalLay} {cl : List Claim} {dir : GoString}
+    {lay lay' : WalLay} {c0 c1 : Claim} (hA : WalsAt jr Ls cl) (hl : Ls !! dir = some lay)
+    (hnm : lay'.nm = lay.nm) (hj : lay'.j = lay.j) (hc1 : c1.1 ≠ jr) :
+    WalsAt jr (<[dir := lay']> Ls) (replClaim c0 c1 cl) := by
+  classical
+  refine walsAt_congr (fun dir' l hl' => ?_) (fun N' h' hm => ?_) hA
+  · by_cases hd : dir' = dir
+    · subst hd
+      rw [GMap.lookup_insert_eq] at hl'
+      cases hl'
+      exact ⟨lay, hl, hnm.symm, hj.symm⟩
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm hd)] at hl'
+      exact ⟨l, hl', rfl, rfl⟩
+  · unfold replClaim at hm
+    obtain ⟨c, hc, he⟩ := List.mem_map.1 hm
+    by_cases h0 : c = c0
+    · rw [if_pos h0] at he; rw [he] at hc1; exact absurd rfl hc1
+    · rw [if_neg h0] at he; rw [← he]; exact hc
+
 end pure
 
 section iris
@@ -319,7 +393,7 @@ theorem walParked_create (Ls : GMap GoString WalLay) (cl : List Claim)
   classical
   have ⟨_, _, _, b0, hb0, hNb0⟩ := hnew
   unfold walParked
-  iintro ⟨%b, %O, %D, Ha, %hb, Hs, Hc⟩ Hf
+  iintro ⟨%b, %O, %D, Ha, %hb, Hs, Hc, Ht⟩ Hf
   icases walPark_agree (W := W) b false $$ Ha Hf with %hbf
   subst hbf
   iframe Hf
@@ -347,6 +421,7 @@ theorem walParked_create (Ls : GMap GoString WalLay) (cl : List Claim)
       simp only [List.mem_cons, hx', false_or]
     simp only [propext e]
     exact .rfl
+  isplitl [Hc]
   · iapply (BigSepL.bigSepL_append (PROP := IProp GF)).2
     isplitl [Hc]
     · unfold replClaim
@@ -372,6 +447,7 @@ theorem walParked_create (Ls : GMap GoString WalLay) (cl : List Claim)
           osNames (L := L) c.1 c.2.1 (DFrac.own (1 : Qp).half) c.2.2 else emp))).2
       rw [if_neg (fun hp => hp.2 (List.mem_cons_self ..))]
       iempintro
+  · iapply walTmpParked_create Ls dir lay $$ Ht
 
 end iris
 

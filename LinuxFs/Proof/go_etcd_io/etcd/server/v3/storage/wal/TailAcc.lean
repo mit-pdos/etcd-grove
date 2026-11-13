@@ -219,7 +219,7 @@ theorem walParked_tail (Ls : GMap GoString WalLay) (cl : List Claim) (dir : GoSt
     walParked (L := L) (W := W) Ls cl ⊢
       walParked (L := L) (W := W) (<[dir := tailLay lay pre g wr']> Ls) cl := by
   unfold walParked
-  iintro ⟨%b, %O, %D, Ha, %hb, Hs, Hc⟩
+  iintro ⟨%b, %O, %D, Ha, %hb, Hs, Hc, Ht⟩
   iexists b, O, D
   iframe Ha
   isplitr
@@ -232,11 +232,13 @@ theorem walParked_tail (Ls : GMap GoString WalLay) (cl : List Claim) (dir : GoSt
     · exact .rfl
     · unfold segResP
       rw [hino, hlen]
+  isplitl [Hc]
   · iapply BigSepL.bigSepL_mono (fun {k c} _ => ?_) $$ Hc
     have e : ParkedClaim (<[dir := tailLay lay pre g wr']> Ls) D c ↔ ParkedClaim Ls D c := by
       unfold ParkedClaim; rw [walDirClaimOf_tail hl c]
     simp only [propext e]
     exact .rfl
+  · iapply walTmpParked_insert Ls b dir lay (tailLay lay pre g wr') hl rfl $$ Ht
 
 /-- **The tail's access** (see the file header). -/
 theorem walInvBody_tail (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots) (jr : Ino)
@@ -261,7 +263,7 @@ theorem walInvBody_tail (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
   iintro Hb Hk Hv
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hn, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
-    ⟨%K, %cp, Hdk, Hcp, %Hdko⟩⟩
+    ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt⟩
   unfold walTailsRes
   icases Htl with ⟨%T, HTa, HTm⟩
   icases walTailKey_lookup T dir γ $$ HTa Hk with %HT
@@ -362,10 +364,13 @@ theorem walInvBody_tail (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
   · ipureintro; exact walsNamed_tail hl hs hname hino HNm
   isplitl [Hpk]
   · iapply walParked_tail Ls cl dir lay pre g0 g wr' hl hs hino hlen $$ Hpk
-  iexists K, cp
-  iframe Hdk Hcp
+  isplitl [Hdk Hcp]
+  · iexists K, cp
+    iframe Hdk Hcp
+    ipureintro
+    exact dirKeysOk_tail hC ⟨hW1, hW2, hW3, hW4, hW5, hW6⟩ hd hl hs hino hlen hzf hZ hB habs' Hdko
   ipureintro
-  exact dirKeysOk_tail hC ⟨hW1, hW2, hW3, hW4, hW5, hW6⟩ hd hl hs hino hlen hzf hZ hB habs' Hdko
+  exact walsAt_insert hl rfl rfl HAt
 
 end iris
 

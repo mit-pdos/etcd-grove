@@ -2,7 +2,8 @@
 
 # The crash condition at a generation's start (`notes/wal-fsext-plan.md`, §2.2; W1 log)
 
-`walAbs_crashOk_start`: a WAL whose names have nothing logged and whose segments are durable, with
+`walAbs_crashOk_start`: a WAL whose names have nothing logged (its directory's `.wal` files kept by
+every crash, `hj`) and whose segments are durable, with
 nothing appended, meets its crash condition: a crash keeps the names (`RegionCrashed` of claims with
 empty histories), every segment there is its bytes as they are (`durable_img`), so the reader reads
 the WAL's records and stops (`tailStop`). W1 is not used.
@@ -65,7 +66,7 @@ theorem walAbs_crashOk_start (C : WalCodec) (_hC : C.Ok) (Mr : WalMarshal) (d : 
     (habs : WalAbsD C Mr d lay ents)
     (_hfit : RecsFit C (recsOfSegs C Mr d.metadata (segsOf (histM d) lay.cuts)))
     (hlog : ∀ c ∈ cl, c.2.2.ents = [])
-    (hj : ∃ h, (lay.j, NameSet.except [], h) ∈ cl ∧ h.boot = ents)
+    (hj : ∀ m', RegionCrashed cl n m' → walInos (entsOf m' lay.j) = walInos ents)
     (hr : ∃ N h, (lay.jr, N, h) ∈ cl ∧ N.Mem lay.nm ∧ h.boot !! lay.nm = some (.dir lay.j))
     (hdur : lay.wr = lay.so ∧ lay.wr = lay.z0 ∧
       lay.z0 = (segStream C Mr d lay.cuts lay.cuts.length).length)
@@ -73,15 +74,12 @@ theorem walAbs_crashOk_start (C : WalCodec) (_hC : C.Ok) (Mr : WalMarshal) (d : 
     CrashOk C Mr d lay cl n := by
   intro m' fo hreg hfc hnamed _
   right
+  have hents := hj m' hreg
   obtain ⟨K, -, -, hval⟩ := hreg
-  obtain ⟨hJ, hJm, hJb⟩ := hj
-  have hjent : ∀ b, m'.entry lay.j b = ents !! b := fun b => by
-    rw [hval _ hJm b (by simp [NameSet.Mem]), valAfter_nil (hlog _ hJm), hJb]
   obtain ⟨N, hN, hNm, hNin, hNb⟩ := hr
   have hjr : m'.entry lay.jr lay.nm = some (.dir lay.j) := by
     rw [hval _ hNm lay.nm hNin, valAfter_nil (hlog _ hNm)]
     exact hNb
-  have hents : entsOf m' lay.j = ents := entsOf_eq_of_entry hjent
   have hsorted := habs.cuts.2.1
   have hcutsLen := habs.cuts.2.2
   have hHm := habs.synced.1

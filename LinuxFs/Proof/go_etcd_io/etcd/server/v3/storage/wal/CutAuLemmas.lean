@@ -192,7 +192,7 @@ theorem walParked_cut (Ls : GMap GoString WalLay) (l1 l2 : List Claim) (c c' : C
   have hother : ∀ k la, k ≠ dir → Ls !! k = some la → ∀ g' ∈ la.segs, g'.ino ≠ g0.ino :=
     fun k la hk hla g' hg' => hnd'.2 k dir la lay hk hla hl g' hg' g0 hg0m
   unfold walParked
-  iintro ⟨⟨%bf, %O, %D, Ha, %hb, Hs, Hc⟩, Hf, Hp⟩
+  iintro ⟨⟨%bf, %O, %D, Ha, %hb, Hs, Hc, Ht⟩, Hf, Hp⟩
   icases walPark_agree (W := W) bf false $$ Ha Hf with %hbf
   subst hbf
   iframe Hf
@@ -251,6 +251,7 @@ theorem walParked_cut (Ls : GMap GoString WalLay) (l1 l2 : List Claim) (c c' : C
         simp [h1, h2]
       simp only [propext e]
       exact .rfl
+  isplitl [Hc]
   · -- the claims
     icases (BigSepL.bigSepL_append (PROP := IProp GF)).1 $$ Hc with ⟨H1, H2⟩
     icases (BigSepL.bigSepL_cons (PROP := IProp GF)).1 $$ H2 with ⟨-, H2⟩
@@ -276,6 +277,8 @@ theorem walParked_cut (Ls : GMap GoString WalLay) (l1 l2 : List Claim) (c c' : C
         have e := hP c1 (List.mem_append_right _ (List.mem_of_getElem? hk))
         simp only [propext e]
         exact .rfl
+  · -- the pipeline names: the same directory
+    iapply walTmpParked_insert Ls false dir lay (cutLay lay b g wr) hl rfl $$ Ht
 
 end iris
 

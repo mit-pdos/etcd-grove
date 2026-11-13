@@ -24,6 +24,7 @@ module
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CrashStart
 public import GooseLang.Ext.Fs.CrashTakeFiles
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CrashTakeSeg
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutSynced
 
 @[expose] public section
 
@@ -180,6 +181,32 @@ theorem absentNone_start (s : AbsDiskState) (jr : Ino) (V : Hist) (cl : List Cla
     show restrictN N (entsOf V.now jr) !! nm = none
     rw [restrictN_lookup _ _ _ (hN nm hin.1), entsOf_lookup]; exact he
 
+/-- A `.wal` name is in a WAL directory's claim at the start (all names but the pipeline's). -/
+theorem walTmps_mem_wal {b : GoString} (hb : walNameP b = true) : (NameSet.except walTmps).Mem b :=
+  fun hm => by rw [walTmps_not_wal b hm] at hb; cases hb
+
+/-- **A WAL directory's `.wal` entries after a crash, at the start**: as the boot tree has them (its
+claim, on all names but the pipeline's, with nothing logged). -/
+theorem start_walEnt {V : Hist} (hV : V.2 = []) {cl : List Claim}
+    (hcl : ∀ c ∈ cl, c.2.2 = namesOf V c.1 c.2.1) {J : Ino} {h : NamesH}
+    (hjm : (J, NameSet.except walTmps, h) ∈ cl) {n : Nat} {m' : Tree} (hreg : RegionCrashed cl n m')
+    (b : GoString) (hb : walNameP b = true) : entsOf m' J !! b = entsOf V.now J !! b := by
+  obtain ⟨K, -, -, hval⟩ := hreg
+  have e1 := hcl _ hjm
+  simp only at e1
+  rw [namesOf_nil hV] at e1
+  rw [entsOf_lookup, entsOf_lookup, hval _ hjm b (walTmps_mem_wal hb), valAfter_nil (by rw [e1]), e1]
+  show restrictN (.except walTmps) (entsOf V.now J) !! b = _
+  rw [restrictN_lookup _ _ _ (walTmps_mem_wal hb), entsOf_lookup]
+
+/-- The static relation over a WAL directory's claim at the start (all names but the pipeline's). -/
+theorem walAbsD_restrictTmps {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
+    {e : Ents} (h : WalAbsD C Mr d lay e) : WalAbsD C Mr d lay (restrictN (.except walTmps) e) := by
+  have hw : walInos e = walInos (restrictN (.except walTmps) e) :=
+    walInos_congr (fun b hb => (restrictN_lookup _ _ _ (walTmps_mem_wal hb)).symm)
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12⟩ := h
+  exact ⟨hw ▸ h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12⟩
+
 /-- **What the invariant says of the WALs, at the start** (pure): from the start's static relation,
 claims with nothing logged on each WAL's area names (`harea`) and wholly on every directory at such
 a name (`hdirs`), and the durable directories' resolution (`hdok`). -/
@@ -188,7 +215,7 @@ theorem walsOk_start (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots) (j
     (hcl : ∀ c ∈ cl, c.2.2 = namesOf V c.1 c.2.1)
     (harea : ∃ N h, (jr, N, h) ∈ cl ∧ ∀ nm, walNameOk nm → N.Mem nm)
     (hdirs : ∀ nm J, walNameOk nm → V.now.entry jr nm = some (.dir J) →
-      ∃ h, (J, NameSet.except [], h) ∈ cl)
+      ∃ h, (J, NameSet.except walTmps, h) ∈ cl)
     (hdok : DirsOk R s cl 0) (hst : WalsStart C Mr R jr s Ls V.now)
     (hnd : ((segsAll Ls).map (·.ino)).Nodup) (hcut : ∀ g ∈ segsAll Ls, g.om.cut = none) :
     WalsOk C Mr R jr s Ls cl 0 := by
@@ -210,11 +237,12 @@ theorem walsOk_start (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots) (j
     obtain ⟨hj, hjm⟩ := hdirs nm lay.j hin.1 he
     have hjc := hc _ hjm
     simp only at hjc
-    refine ⟨lay, nm, hj, hL, hin, hjr, hnm, ⟨[], by simp, hjm, ?_⟩, ?_, crashOkW_of_crashOk ?_⟩
+    refine ⟨lay, nm, hj, hL, hin, hjr, hnm, ⟨walTmps, walTmps_not_wal, hjm, ?_⟩, ?_,
+      crashOkW_of_crashOk ?_⟩
     · exact claimCoh_init _ _ _ (by rw [hjc]) (fun b _ => by rw [hjc])
-    · rw [hjc]; simp only [restrictN_all]; exact habs
+    · rw [hjc]; exact walAbsD_restrictTmps habs
     · refine walAbs_crashOk_start C hC Mr d lay cl 0 (entsOf V.now lay.j) habs hfit hlog
-        ⟨hj, hjm, by rw [hjc]; simp only [restrictN_all]⟩ ?_ ⟨h1, h2, h3⟩ hlast
+        (fun m' hreg => walInos_congr (start_walEnt hV hcl hjm hreg)) ?_ ⟨h1, h2, h3⟩ hlast
       rw [hjr, hnm]
       refine ⟨N, hN, hNm, hNall nm hin.1, ?_⟩
       rw [hNb, restrictN_lookup _ _ _ (hNall nm hin.1), entsOf_lookup]
@@ -229,7 +257,7 @@ theorem crashOk_start (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots) (
     (hcl : ∀ c ∈ cl, c.2.2 = namesOf V c.1 c.2.1)
     (harea : ∃ N h, (jr, N, h) ∈ cl ∧ ∀ nm, walNameOk nm → N.Mem nm)
     (hdirs : ∀ nm J, walNameOk nm → V.now.entry jr nm = some (.dir J) →
-      ∃ h, (J, NameSet.except [], h) ∈ cl)
+      ∃ h, (J, NameSet.except walTmps, h) ∈ cl)
     (hst : WalsStart C Mr R jr s Ls V.now) :
     ∀ dir d lay, s.wal !! dir = some d → Ls !! dir = some lay → CrashOkA C Mr d lay none cl 0 := by
   have hc : ∀ c ∈ cl, c.2.2 = ⟨restrictN c.2.1 (entsOf V.now c.1), [],
@@ -246,7 +274,7 @@ theorem crashOk_start (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots) (
   simp only at hjc
   refine (crashOkA_none_iff C Mr d lay cl 0).2 ?_
   refine walAbs_crashOk_start C hC Mr d lay cl 0 (entsOf V.now lay.j) habs hfit hlog
-    ⟨hj, hjm, by rw [hjc]; simp only [restrictN_all]⟩ ?_ ⟨h1, h2, h3⟩ hlast
+    (fun m' hreg => walInos_congr (start_walEnt hV hcl hjm hreg)) ?_ ⟨h1, h2, h3⟩ hlast
   rw [hjr, hnm]
   refine ⟨N, hN, hNm, hNall nm hin.1, ?_⟩
   rw [hNb, restrictN_lookup _ _ _ (hNall nm hin.1), entsOf_lookup]
@@ -258,7 +286,7 @@ theorem walsNamed_start (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     (s : AbsDiskState) (Ls : GMap GoString WalLay) (V : Hist) (cl : List Claim) (hV : V.2 = [])
     (hcl : ∀ c ∈ cl, c.2.2 = namesOf V c.1 c.2.1)
     (hdirs : ∀ nm J, walNameOk nm → V.now.entry jr nm = some (.dir J) →
-      ∃ h, (J, NameSet.except [], h) ∈ cl)
+      ∃ h, (J, NameSet.except walTmps, h) ∈ cl)
     (hst : WalsStart C Mr R jr s Ls V.now) : WalsNamed Ls cl 0 := by
   have hc : ∀ c ∈ cl, c.2.2 = ⟨restrictN c.2.1 (entsOf V.now c.1), [],
       restrictN c.2.1 (entsOf V.now c.1)⟩ := fun c h => by rw [hcl c h, namesOf_nil hV]
@@ -277,16 +305,30 @@ theorem walsNamed_start (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     simp only at e
     rw [e]
     exact hn.restrict hX
-  · have e : entsOf m' lay.j = entsOf V.now lay.j := by
-      apply GMap.ext; intro b
-      obtain ⟨K, -, -, hval⟩ := hreg
-      have hb : (NameSet.except ([] : List GoString)).Mem b := by simp [NameSet.Mem]
-      have e1 := hc _ hjm
-      simp only at e1
-      rw [entsOf_lookup, entsOf_lookup, hval _ hjm b hb, valAfter_nil (by rw [e1]), e1]
-      show restrictN (.except []) (entsOf V.now lay.j) !! b = _
-      rw [restrictN_lookup _ _ _ hb, entsOf_lookup]
-    rw [e]; exact hn.crash (fun i hi => by rw [ha.names.1] at hi; exact hi)
+  · have e := start_walEnt hV hcl hjm hreg
+    have hw : walInos (entsOf m' lay.j) = walInos (entsOf V.now lay.j) := walInos_congr e
+    refine ⟨fun g hg => ⟨(hn.1 g hg).1, fun _ => by rw [e _ (hn.1 g hg).1]; exact (hn.1 g hg).2⟩,
+      fun b x hb hx => hn.2 b x hb (by rw [← e b hb]; exact hx), fun i hi => ?_⟩
+    rw [hw, ha.names.1] at hi; exact hi
+
+/-- **Every WAL's directory at its name, at the start** (pure): the boot tree has it there
+(`WalsStart`), and every claim of the area holds it as the boot history has it. -/
+theorem walsAt_start (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
+    (s : AbsDiskState) (Ls : GMap GoString WalLay) (V : Hist) (cl : List Claim) (hV : V.2 = [])
+    (hcl : ∀ c ∈ cl, c.2.2 = namesOf V c.1 c.2.1)
+    (hst : WalsStart C Mr R jr s Ls V.now) : WalsAt jr Ls cl := by
+  intro dir lay hL N h hm hN
+  obtain ⟨d, hd⟩ : ∃ d, s.wal !! dir = some d := by
+    cases h : s.wal !! dir with
+    | none => rw [hst.2.1 dir h] at hL; cases hL
+    | some d => exact ⟨d, rfl⟩
+  obtain ⟨lay', nm, hL', -, -, hnm, he, -⟩ := hst.1 dir d hd
+  rw [hL] at hL'; cases hL'
+  have e1 := hcl _ hm
+  simp only at e1
+  rw [e1, namesOf_nil hV]
+  show restrictN N (entsOf V.now jr) !! lay.nm = _
+  rw [restrictN_lookup _ _ _ hN, entsOf_lookup, hnm]; exact he
 
 /-- A segment's start resources, its `OsMeta` and bytes those of the file, are its two halves. -/
 theorem segStart_halves (L : GooseLocalGS GF) (g : SegG) (f : Fs.OsFile) (hom : g.om = initMeta f)
@@ -327,15 +369,18 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     (hcl : ∀ c ∈ cl, c.2.2 = namesOf V c.1 c.2.1)
     (harea : ∃ N h, (jr, N, h) ∈ cl ∧ ∀ nm, walNameOk nm → N.Mem nm)
     (hdirs : ∀ nm J, walNameOk nm → V.now.entry jr nm = some (.dir J) →
-      ∃ h, (J, NameSet.except [], h) ∈ cl)
-    (hdok : DirsOk R s cl 0) (hav : DirsAvoid R jr s) (E : CoPset) :
+      ∃ h, (J, NameSet.except walTmps, h) ∈ cl)
+    (hdok : DirsOk R s cl 0) (hav : DirsAvoid R jr s) (Jm : GMap GoString Ino)
+    (hJm : ∀ dir nm J, InArea r dir nm → V.now.entry jr nm = some (.dir J) → Jm !! dir = some J)
+    (E : CoPset) :
     ⊢ walStart L W C Mr R jr r s V.now -∗
-      osClaims L (cl.map (fun c => (c, DFrac.own 1))) ={E}=∗
+      osClaims L (cl.map (fun c => (c, DFrac.own 1))) -∗
+      ([∗map] _dir ↦ J ∈ Jm, walTmpsRes (hG := ⟨G, L⟩) J) ={E}=∗
       walInv (L := L) (W := W) C Mr R jr r ∗
       ∃ Ls, ⌜WalsStart C Mr R jr s Ls V.now⌝ ∗
         [∗list] c ∈ cl, if WalDirClaimOf Ls c then emp else
           osNames (L := L) c.1 c.2.1 (DFrac.own (1 : Qp).half) c.2.2 := by
-  iintro Hst Hcl
+  iintro Hst Hcl Htmp
   unfold walStart
   icases Hst with ⟨%Ls, %is, %fo, Hg, Hcr, Htl, Hpk, Hdk, Hcp, %Har, Hfs, %Hp⟩
   obtain ⟨-, hnd, hstart, hsegs⟩ := Hp
@@ -397,7 +442,7 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     exact monoNatLbOwn_0 _
   imod hcm0 with #Hcm
   imod inv_alloc walN E (iprop((∃ s : AbsDiskState, walInvBody (L := L) (W := W) C Mr R jr r s) ∨
-      (crashed (hC := L.goose_crashGS) ∗ walCrashTok (W := W)))) $$ [Hg Hc1 Hi Hcr Htl Hpk Hp Hc2 Hdk Hcp]
+      (crashed (hC := L.goose_crashGS) ∗ walCrashTok (W := W)))) $$ [Hg Hc1 Hi Hcr Htl Hpk Hp Hc2 Hdk Hcp Htmp]
       with #Hinv
   · inext; ileft; iexists s
     unfold walInvBody
@@ -433,7 +478,7 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     isplitr
     · ipureintro
       exact walsNamed_start C Mr R jr s Ls V cl hV hcl hdirs hstart
-    isplitl [Hpk Hc2 Hp]
+    isplitl [Hpk Hc2 Hp Htmp]
     · unfold walParked
       iexists true, [], []
       iframe Hpk Hc2
@@ -442,12 +487,32 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
       have hpk : ∀ (k : Nat) (g : SegG), segRes (L := L) g ⊢
           (if g.ino ∈ ([] : List Ino) then emp else segResP (L := L) g) := fun _ g => by
         rw [if_neg List.not_mem_nil]; exact segRes_segResP g
-      iapply BigSepL.bigSepL_mono_of_forall (fun {k} {g} => hpk k g) $$ Hp
-    iexists ∅, none
-    iframe Hdk Hcp
+      isplitl [Hp]
+      · iapply BigSepL.bigSepL_mono_of_forall (fun {k} {g} => hpk k g) $$ Hp
+      unfold walTmpParked
+      iexists Jm, []
+      isplitr
+      · ipureintro
+        refine ⟨fun _ => rfl, fun dir lay hl => ?_⟩
+        obtain ⟨d, hd⟩ : ∃ d, s.wal !! dir = some d := by
+          cases h : s.wal !! dir with
+          | none => rw [hstart.2.1 dir h] at hl; cases hl
+          | some d => exact ⟨d, rfl⟩
+        obtain ⟨lay', nm, hL', hin, -, -, he, -⟩ := hstart.1 dir d hd
+        rw [hl] at hL'; cases hL'
+        exact hJm dir nm lay.j (Har ▸ hin) he
+      have hpt : ∀ (dir : GoString) (J : Ino), walTmpsRes (hG := ⟨G, L⟩) J ⊢
+          (if dir ∈ ([] : List GoString) then emp else walTmpsRes (hG := ⟨G, L⟩) J) := fun _ _ => by
+        rw [if_neg List.not_mem_nil]
+      iapply BigSepM.bigSepM_mono (fun {k J} _ => hpt k J) $$ Htmp
+    isplitl [Hdk Hcp]
+    · iexists ∅, none
+      iframe Hdk Hcp
+      ipureintro
+      refine ⟨fun dir j X hk => by simp at hk, fun dir d lay hd hl _ => ?_⟩
+      exact crashOk_start C hC Mr R jr s Ls V cl hV hcl harea hdirs hstart dir d lay hd hl
     ipureintro
-    refine ⟨fun dir j X hk => by simp at hk, fun dir d lay hd hl _ => ?_⟩
-    exact crashOk_start C hC Mr R jr s Ls V cl hV hcl harea hdirs hstart dir d lay hd hl
+    exact walsAt_start C Mr R jr s Ls V cl hV hcl hstart
   imodintro
   unfold walInv
   iframe Hinv
