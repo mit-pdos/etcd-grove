@@ -92,28 +92,6 @@ theorem osClaims_create (l1 l2 : List Claim) (c c' cJ : Claim) (dq : DFrac) (hl1
     iapply BigSepL.bigSepL_nil.2
     iempintro
 
-/-- The creating token's entry in the authority. -/
-theorem walCreating_lookup (CR : GMap GoString (NameSet × NamesH × Ino)) (dir : GoString)
-    (N : NameSet) (h : NamesH) (J : Ino) :
-    ⊢ walCreatingAuth (W := W) CR -∗ walCreating (W := W) dir N h J -∗
-      ⌜CR !! dir = some (N, h, J)⌝ ∗ walCreatingAuth (W := W) CR ∗ walCreating (W := W) dir N h J := by
-  unfold walCreatingAuth walCreating
-  letI := walAllG (W := W)
-  iintro Ha Ht
-  icases ghost_map_lookup $$ Ha Ht with %H
-  iframe Ha Ht
-  ipureintro; exact H
-
-/-- Deleting the creating token's entry. -/
-theorem walCreating_delete (CR : GMap GoString (NameSet × NamesH × Ino)) (dir : GoString)
-    (N : NameSet) (h : NamesH) (J : Ino) :
-    ⊢ walCreatingAuth (W := W) CR -∗ walCreating (W := W) dir N h J ==∗
-      walCreatingAuth (W := W) (GMap.delete dir CR) := by
-  unfold walCreatingAuth walCreating
-  letI := walAllG (W := W)
-  iintro Ha Ht
-  iapply ghost_map_delete $$ Ha Ht
-
 end iris
 
 section au
@@ -121,16 +99,17 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
   [GoGlobalContext] [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [W : WalGS GF]
 
-/-- **What `Create` holds for the rename's update**: the creating token, the client's update, the
-lock token (its parking flag `false`: the new WAL's segment and directory claim stay out, the handle's),
-and what the invariant takes at the commit: half of `J`'s claim, the segment `g` whole (its `OsMeta`,
-its bytes). -/
+/-- **What `Create` holds for the rename's update**: the creating token, the client's update, and
+what the invariant takes at the commit: half of `J`'s claim, the segment `g` whole (its `OsMeta`, its
+bytes). The lock token (its parking flag `false`: the new WAL's segment and directory claim stay out,
+the handle's) is the invariant's while the creating entry exists (`walCreatingAuth`); the commit
+gives it back. -/
 def walCreateP (dir : GoString) (N : NameSet) (h : NamesH) (md : List w8) (Q : IProp GF)
     (J : Ino) (X : List GoString) (hJ : NamesH) (g : SegG) : IProp GF :=
   iprop(walCreating (W := W) dir N h J ∗
     (AU <{ walAbsent (W := W) dir }> @ walAuMask, ∅ <{ walDiskAt (W := W) dir (walDurFresh md), COMM Q }>) ∗
     osNames J (.except X) (DFrac.own (1 : Qp).half) hJ ∗
-    osMeta g.ino (DFrac.own 1) g.om ∗ osBytes g.ino 0 (DFrac.own 1) g.bs ∗ walLockedTok (W := W))
+    osMeta g.ino (DFrac.own 1) g.om ∗ osBytes g.ino 0 (DFrac.own 1) g.bs)
 
 /-- **What `Create` gets from the rename's update**: with no effect, what it held; after the commit,
 the client's `Q`, the segment's halves the invariant did not take, a past state with the fresh
@@ -180,7 +159,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   rw [show osAuMask \ (↑walN : CoPset) = walAuMask from rfl]
   icases Hb with ⟨%s, Hb⟩
   unfold walCreateP
-  icases HP with ⟨Htok, Hau, HJ, Hm, Hbs, HLk⟩
+  icases HP with ⟨Htok, Hau, HJ, Hm, Hbs⟩
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl0, #Hcm, Hlays, %Hok, %Hco, ⟨%CR, Hcra, %Hcro⟩,
     Htl, %Han, %Hnm, Hpk, ⟨%K, %cp, Hdk, Hcp, %Hdko⟩⟩
@@ -230,7 +209,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       ipureintro; exact Hdko
     imodintro
     dsimp only
-    iframe Htok Hau HJ Hm Hbs HLk
+    iframe Htok Hau HJ Hm Hbs
   · -- commit
     iintro %o Hβ
     rcases o with _ | ⟨x, s0⟩
@@ -266,7 +245,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         ipureintro; exact Hdko
       imodintro
       dsimp only [walCreateQ, walCreateP]
-      iframe Htok Hau HJ Hm Hbs HLk
+      iframe Htok Hau HJ Hm Hbs
     · -- the commit
       unfold renDirOut
       simp only [logOut, claimOut]
@@ -321,7 +300,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         ipureintro
         simp only [createSt, GMap.lookup_insert_eq]
         exact walDurLe_refl _
-      imod walCreating_delete CR dir N h J $$ Hcra Htok with Hcra
+      imod walCreating_delete CR dir N h J $$ Hcra Htok with ⟨-, Hcra, HLk⟩
       icases (osMeta_halves g.ino g.om).1 $$ Hm with ⟨Hm1, Hm2⟩
       icases (osBytes_halves g.ino 0 (y :: ys)).1 $$ Hbs with ⟨Hb1, Hb2⟩
       have hF : ∀ g' ∈ segsAll Ls, (GMap.delete g.ino F) !! g'.ino = F !! g'.ino := fun g' hg' =>

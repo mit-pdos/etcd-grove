@@ -1657,6 +1657,73 @@ update: `s.wal dir := walDurFresh md`, the new layout and its `CrashOk`); then `
   now has `walDirH` (`wal-cut5`): `Create` must give the key `walDirKey dir J X` (from `walCreateQ`), half of
   `J`'s claim, a path fraction to `dir`, half the call permission and the tail's name.
 
+**Eighth session (branch `wal-create8`, 2026-11-13).**
+- *Task 1, the creating map tied to the lock (done, `Ghost.lean`).* Implemented without touching
+  `walParked` or the shape of `walInvBody` (so the concurrent units' `icases` patterns are unchanged):
+  **`walCreatingAuth CR`** is the map's authority and `⌜CR = ∅⌝ ∨ ⌜CR` a single entry`⌝ ∗ walLockedTok`
+  (the invariant holds the lock token, its parking flag `false`, while an entry exists).
+  `walCreating_mint` (from `walCreatingAuth CR`, `walParkAuth b`, `walUnlockedTok`: `CR = ∅` (a non-empty
+  map holds the one token), `b = true`, the lock taken by `walUnlockedTok_lock`, its token deposited with the
+  one entry); `walCreating_delete` (now in `Ghost.lean`: the entry's deletion empties the map and gives the
+  lock token back: `Create`'s commit, or the unminting on an abort, which then `walLockedTok_unlock`s);
+  `walCreating_lookup` moved there. `walCreateP` no longer holds `walLockedTok` (the invariant has it);
+  `walCreateQ`'s commit arm gets it from the deletion (`CreateAu.lean` repaired). **`Close`** needs nothing
+  more: it holds `walLockedTok`, so a non-empty map (holding the other copy of the token) is excluded
+  (`walLockedTok_excl`). The "single entry" is stated (cheap), though only the emptiness is used.
+- **Finding (blocks task 2/3; for the coordinator): `Create` cannot take the claim on `nm.tmp`.** The
+  minting needs `J`, so it comes after `CreateDirAll(nm.tmp)`, and `RemoveAll`/`CreateDirAll`/the segment's
+  creation need the **whole** claim on `.only [nm.tmp]` (`TouchDirAll.spec`, `osSubtreeH`). But the area
+  claim's other half is the invariant's (`walInv_alloc`'s `harea`; `N` cofinite, so it holds every
+  `nm.tmp`), so the program must take the invariant's half: **drop** `(jr, .only [tmp], hT)` from the
+  invariant's claims `cl` (W4 log's "giving back the invariant's halves"). Every pure fact of the invariant
+  quantifies over `RegionCrashed cl n m'`, and fewer claims allow more crashed trees: the facts must be
+  re-proved. Semantically they do not depend on `jr/tmp`, so it suffices that each crash `m'` of the smaller
+  list is, with `jr/tmp` reset, a crash of the larger one: extend its kept set `K` to the dropped claim's
+  entries, `K' y := (y` a remaining claim's index `∧ K y) ∨ (y` not one `∧ (y < n ∨ ∃` a kept remaining entry
+  `x, y < x.start))`. The closure of `K'` needs **`Starts`** (`e.start ≤ x` for the log's entries: a kept
+  dropped entry `x < n` forces every `y < x.start`) and the claims' entries at one index being the same log
+  entry. Neither is available where the drop happens: the shared invariant (`osSharedInv`) has `NamesCoh`
+  (every claim's history is `namesOf Vs`: the consistency) but not `Starts Vs.2`, which only the state
+  interpretation's `TreeCohS` has (Ghost.lean of the extension). Without `Starts` the extension is false in
+  general (a dropped entry below `n` with a large `start` forces later entries of other claims). The other
+  directions are fine: adding names to `cl` (the minting's merge of `.only [tmp]` into the creating claim, the
+  return of `tmp` on an error, the merge back into the area claim after the commit) only shrinks the crashed
+  trees, and a split keeps them (every entry of `namesOf` writes a name of its set).
+  **Proposed** (GooseLang/Ext/Fs, ghost layer, untrusted): `osSharedInv`'s pure part gains `Starts Vs.2`
+  (each shared-mode step closes it with the new state's `TreeCohS.starts`, `Vs.2` being the state's log by the
+  `γs` agreement); a law `osClaims_log : osSharedInv R -∗ osClaims L cl ={E}=∗ osClaims L cl ∗ ⌜∃ log, Starts
+  log ∧ ∀ c ∈ cl, ∀ (x, e, _) ∈ c.ents, log[x]? = some e⌝`; on the WAL side the drop lemma (pure, the `K'`
+  above, for a one-name claim: the crashed tree with `jr/tmp` set by `treeSetE`) and each fact's independence
+  of `jr/b` for a non-WAL `AreaSlot b` (`crashTo_congr`/`crashOkW_create_other` do most of it for
+  `treeUnren`). The same drop is needed by `cleanupWAL`'s `nm.broken.*` (W4's error arm).
+- *Task 2, pure part (done, `CreateDrop.lean`, no `sorry`):* `valAfter_congrK`, `valAfter_restrict`,
+  `mem_restrict_ents`/`restrict_ents_mem`/`restrict_ents_writes`; **`regionCrashedK_cover`** (a crash of
+  claims covering others, entry for entry and name for name, is one of theirs: adding names, splits,
+  merges); **`mintClaims cl jr N h nm tmp hC`** (the area claim `(jr, N, h)` replaced by its part off `nm`,
+  `(jr, .only [nm, tmp], hC)` appended) and **`regionCrashedK_mint`** (a crash of `mintClaims` is one of
+  `cl`, given `(jr, N, h) ∈ cl`, `h.restrict jr N = h` (`namesOf_restrict_self` at the step), `N ∋ nm`,
+  `hC.restrict jr (N.inter [nm]) = h.restrict jr (N.inter [nm])` (`osNames_merge`'s)); **`dropK`,
+  `regionCrashedK_drop1`** (the drop of a one-name claim, under `Starts log` and `ClaimsLog log cl`: the
+  finding's lemma, ready for the infrastructure). Every RC-quantified fact of the invariant carries over
+  to `mintClaims` by `regionCrashedK_mint` (the same tree).
+- *The minting step, plan (not written):* at a step with `walInv` and `osSharedInv` open, from the
+  program's `walUnlockedTok`, its half of the area claim `(jr, N, h)` (`N ∌ tmp`, after the drop), its
+  whole `.only [tmp]` claim (holding `J`) and `J`'s whole claim: `walCreating_mint` (so `CR = ∅` and the
+  parking flag was `true`: `walParked`'s `D = []`, so **`(jr, N, h)` is not `WalDirClaimOf Ls`**, else its
+  program half would be parked as well as in hand: three halves); find `(jr, N, h)` in `cl` (WalsCreateOk's
+  claim holding `nm` has the same key by `osNames_same_name`, `osNames_agree` the history; once, by the
+  halves' validity); join the halves, `osNames_split` at `[nm]`, `osNames_merge` of `N.inter [nm]` with
+  `.only [tmp]` into `.only [nm, tmp]`, halve both. The facts: the RC parts by `regionCrashedK_mint`;
+  `WalDirClaim` memberships kept (a WAL directory's claim is `WalDirClaimOf`, so not the replaced one);
+  `AbsentNone`'s first part (`nm`: `hC.cur !! nm = h.cur !! nm` from the restrictions' `cur`); `WalsCreateOk`
+  (`nm` in the creating claim, the rest in the part off `nm`); `walParked` (neither new claim is
+  `WalDirClaimOf`: `.only`, and `N.diff [nm]` iff `N`, `nm` not a `.wal` name); `DirKeysOk` (keyed claims
+  are of `j ≠ jr`, untouched); `CreatingOk` of the singleton map (`ClaimOnce` from the halves; `CreatingNew`:
+  `J ≠ jr` and no claim of `J` in `cl` holds a `.wal` name, both by `NamesCoh.disj` against the program's
+  whole `J` claim; the third clause vacuous, the map being a singleton; `.only [nm, tmp]` leaves out a
+  `.wal` name). The unminting is the reverse (`walCreating_delete`, then `walLockedTok_unlock`), the claims
+  merged back by `regionCrashedK_cover`.
+
 **For `wal-create6` (the invariant's owner, 2026-11-13).** (1) `walAreaRes jr` gains `⌜∀ nm J, walNameOk nm →
 h.cur !! tmpName nm = some (.dir J) → ∀ hJ, (J, NameSet.except [], hJ) ∈ cl → FilesOnly hJ.cur⌝` (a leftover
 `nm.tmp` holds only files; `CreateDefs.lean`, importing `LinuxFs.Spec.os.RemoveAll`), for `os.RemoveAll.specDirS`
