@@ -32,10 +32,12 @@ started at the history's length (`cuts ++ [|H|]`), its headers (`Crc`, the metad
 *Error*: the handle lost. The bound on the cuts: the pipeline's `count` is a Go `int`, and its
 `count % 2` (the next file's name) is a signed remainder (`Pipe.lean`; the handle's pipeline has
 received at most `h.cuts.length` files, `walPipeH`). The cuts below `|H|` and `|H|` a cut position
-(`walCutPos`: after a `Save` that wrote a record): the new segment starts a new cut (`cutLay_abs`). -/
+(`walCutPos`: after a `Save` that wrote a record): the new segment starts a new cut (`cutLay_abs`).
+`w.state` the history's last hard state: the new segment's headers hold it (`cutHdrDs`). -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.spec (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
   ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (h : WalHS),
-  h.rest = 0 → h.cuts.length + 2 < 2 ^ 63 → (∀ b ∈ h.cuts, b < h.H.length) →
+  h.rest = 0 → h.st = walLastHS (h.H.map WalOpG.toM) → h.cuts.length + 2 < 2 ^ 63 →
+  (∀ b ∈ h.cuts, b < h.H.length) →
   walCutPos (h.H.map WalOpG.toM) h.H.length →
   {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walHandleIn P Mr w dir h }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"cut")) (Val #()))

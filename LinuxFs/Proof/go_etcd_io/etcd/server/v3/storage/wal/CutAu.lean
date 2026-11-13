@@ -113,7 +113,7 @@ theorem osMeta_agree' (i : Ino) (dq1 dq2 : DFrac) (m1 m2 : OsMeta) :
 /-- **`cut`'s update for `os.Rename.specFileSnc`** (see the file header). The program's premises, over
 its copy of the WAL (`H`, `md`, `cuts`): `tmp` one of the claim's left-out names; the cuts below
 `|H|`; the old tail at the `.wal` name `nm0`; `bt` free, a `.wal` name past `nm0` with an index past
-the history's; the old tail's bytes the stream's, durable, as many as its size; the new segment's
+the history's; the old tail's bytes as many as its stream's and its size (durable: the invariant's, synced, `lastSeg_synced_durable`); the new segment's
 bytes its headers' frames (`wr` bytes) then zeros, durable, its `OsMeta` sized to them, named `bt`. -/
 theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (tmp : GoString) (ht : NamesH)
@@ -124,7 +124,7 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (hnm0 : walNameP nm0 = true ∧ hj.cur !! nm0 = some (.file i0))
     (hbt : bt = walFileName sq ix ∧ walLastIdx (H.map WalOpG.toM) + 1 ≤ ix ∧ go.GoStringLt nm0 bt)
     (hbtw : walNameP bt = true) (hcur : hj.cur !! bt = none)
-    (hbs0 : bs0 = (tailStream Mr H md cuts).map durB ∧ bs0.length = m0.size)
+    (hbs0 : bs0.length = (tailStream Mr H md cuts).length ∧ bs0.length = m0.size)
     (hwr : wr = (tailStream Mr H md (cuts ++ [H.length])).length)
     (hbs : g.bs = (tailStream Mr H md (cuts ++ [H.length]) ++
       List.replicate (g.bs.length - wr) 0).map durB ∧ wr ≤ g.bs.length)
@@ -275,8 +275,8 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       have hlen0 : g0.bs.length = bs0.length := by
         rw [hbs0.2, ← hm0]; exact ((habs.metas g0 hg0m).1).symm
       icases osBytes_agree g0.ino _ _ 0 g0.bs bs0 hlen0 $$ Hbi Hb0 with %hb0
-      have hlast0 : g0.bs = (segStream walCodec Mr d lay1.cuts lay1.cuts.length).map durB := by
-        rw [hb0, hbs0.1, tailStream_eq]
+      have hlast0 : g0.bs = (segStream walCodec Mr d lay1.cuts lay1.cuts.length).map durB :=
+        lastSeg_synced_durable habs hg0 hm (by rw [hlen0, hbs0.1, tailStream_eq])
       ihave Hlays := (laysResF_del F Ls dir lay1 hl1).2 $$ [Hpre Hmi Hbi Hrest]
       · iframe Hrest
         rw [hs]
