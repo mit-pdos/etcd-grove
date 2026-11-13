@@ -113,19 +113,7 @@ def slotAfter (T0 : Tree) (log : List LogEntry) (S : Nat → Prop) (j : Ino) (b 
   | some x => (prefTree T0 log (x + 1)).entry j b
   | none => T0.entry j b
 
-/-- **The consistent-cut theorem.** A log with the shared mode's disciplines, every tree of whose
-run is a tree over the roots: what a crash keeping a closed set `S` replays is a tree; each slot as
-right after its last kept writer; its files named somewhere in the run; its directories those of one
-of the run's trees. -/
-theorem closed_cut {R : List (GoString × Ino)} {T0 : Tree} {log : List LogEntry}
-    (hst : Starts log) (hps : PerSlotSeq log) (hdx : DirOpExcl log) (hv : LogValid T0 log)
-    (hwf : ∀ t, t ≤ log.length → TreeWf R (prefTree T0 log t))
-    {S : Nat → Prop} (hS : ∀ x, S x → x < log.length) (hc : Closed log S) :
-    TreeWf R (replay (keptOps log S) T0) ∧
-    (∀ j b, (replay (keptOps log S) T0).entry j b = slotAfter T0 log S j b) ∧
-    (∀ i, Named (replay (keptOps log S) T0) i → ∃ t, t ≤ log.length ∧ Named (prefTree T0 log t) i) ∧
-    (∃ t, t ≤ log.length ∧ ∀ j, j ∈ replay (keptOps log S) T0 ↔ j ∈ prefTree T0 log t) := by
-  sorry
+-- The consistent-cut theorem, `closed_cut`, is in `TreeCutProof.lean`.
 
 end Fs
 end Perennial

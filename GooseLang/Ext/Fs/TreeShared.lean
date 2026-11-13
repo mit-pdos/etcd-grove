@@ -29,6 +29,7 @@ module
 public import GooseLang.Ext.Fs.TreeCrashCommit
 public import GooseLang.Ext.Fs.TreeSpecsOpen
 public import GooseLang.Ext.Fs.TreeSpecsMeta
+public import GooseLang.Ext.Fs.TreeCutProof
 
 @[expose] public section
 
