@@ -16,6 +16,7 @@ by the proof; it stays so that the statement is unchanged.
 module
 
 public import Proof.runtime.PkgInit
+public import Perennial.Code.internal.stringslite
 public import Code.google_golang_org.protobuf.proto
 public import Code.k8s_io.utils.third_party.forked.golang.btree
 public import Perennial.Code.bytes
@@ -52,6 +53,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std
 
 /-- The initializers of the packages whose `wp_initialize'` is not generated here. -/
 inductive ExternalInit [GooseExts] [GoGlobalContext] : GoString → val → Prop where
+  | internal_stringslite : ExternalInit pkg_id.internal.stringslite _root_.Perennial.internal.stringslite.initialize'
   | bytes : ExternalInit pkg_id.bytes _root_.Perennial.bytes.initialize'
   | cmp : ExternalInit pkg_id.cmp _root_.Perennial.cmp.initialize'
   | context : ExternalInit pkg_id.context _root_.Perennial.context.initialize'

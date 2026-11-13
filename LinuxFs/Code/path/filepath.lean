@@ -40,11 +40,17 @@ noncomputable def ErrBadPattern [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def SkipDir [GooseExts] [GoGlobalContext] : GoString :=
   go!"path/filepath.SkipDir"
 
+axiom SkipDir.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def SkipAll [GooseExts] [GoGlobalContext] : GoString :=
   go!"path/filepath.SkipAll"
 
+axiom SkipAll.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def lstat [GooseExts] [GoGlobalContext] : GoString :=
   go!"path/filepath.lstat"
+
+axiom lstat.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Match [GooseExts] [GoGlobalContext] : GoString :=
   go!"path/filepath.Match"
@@ -484,23 +490,17 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val #(go!"syntax error in pattern"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.io.fs.SkipDir))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.io.fs.SkipAll))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (FuncResolve _root_.Perennial.os.Lstat []))) (Val #()))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [go.string] false [_root_.Perennial.os.FileInfo.ty, go.error]))))) (Pair (App (Val (GoInstruction (GlobalVarAddr lstat))) (Val #())) (Var "$r0")))))))
+  (App (Val lstat.init) (Val #())))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr SkipAll))) (Val #())) (Var "$r0"))))))))
+  (App (Val SkipAll.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr SkipDir))) (Val #())) (Var "$r0"))))))))
+  (App (Val SkipDir.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrBadPattern))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -514,13 +514,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.io.fs.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val (go.GlobalAlloc ErrBadPattern go.error)) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (go.GlobalAlloc SkipDir go.error)) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (go.GlobalAlloc SkipAll go.error)) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (go.GlobalAlloc lstat (go.GoType.FunctionType (go.signature.Signature [go.string] false [_root_.Perennial.os.FileInfo.ty, go.error])))) (Val #()))))))))
+  (App (Val (go.GlobalAlloc ErrBadPattern go.error)) (Val #()))))))))
 
 abbrev WalkFunc [GooseExts] : Type := GoFunc
 

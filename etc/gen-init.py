@@ -509,6 +509,26 @@ copies, hold some error for good. Its initializer copies internal/oserror's erro
 
 SPECIAL['internal.syscall.unix'] = dict(alloc_types=_ALLOC_ANY)
 
+# (WAL leaf specs, 2026-11-13) the part's bufio, internal/filepathlite and path/filepath: their
+# translated `errors.New` variables; fact `True` (`PkgInit.lean`).
+_BUFIO_ERRS = ['ErrInvalidUnreadByte', 'ErrInvalidUnreadRune', 'ErrBufferFull', 'ErrNegativeCount',
+               'errNegativeRead', 'errNegativeWrite', 'ErrTooLong', 'ErrNegativeAdvance',
+               'ErrAdvanceTooFar', 'ErrBadReadCount', 'ErrFinalToken']
+SPECIAL['bufio'] = dict(
+    imports=['Perennial.Proof.errors.NewVar'],
+    alloc_types=_ALLOC_ANY,
+    before={'errorRune': ['try wp_auto'] + [f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{i} #E{i}'
+                     for i in range(len(_BUFIO_ERRS))]},
+    finish=['iframe Hown', 'is_pkg_init_finish'],
+)
+for _p, _k in [('internal.filepathlite', '$end'), ('path.filepath', 'SkipDir')]:
+    SPECIAL[_p] = dict(
+        imports=['Perennial.Proof.errors.NewVar'],
+        alloc_types=_ALLOC_ANY,
+        before={_k: ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %x0 #E0']},
+        finish=['iframe Hown', 'is_pkg_init_finish'],
+    )
+
 SPECIAL['internal.poll'] = dict(
     doc='''Its fact (`PkgInit.lean`): `ErrNoDeadline` and `ErrDeadlineExceeded`, which `os`'s
 initializer copies, hold some error for good. Its initializer runs its variables' translated
@@ -2893,7 +2913,8 @@ def dag_init():
 # imports of the part's modules prefixed; its `PkgInitExt` is the main tree's without raft (whose
 # translation imports the main tree's `os`).
 LFS_ROOT = 'LinuxFs'
-LFS_PKGS = ['os', 'syscall', 'io.fs', 'internal.poll', 'internal.syscall.unix', 'golang_org.x.sys.unix']
+LFS_PKGS = ['os', 'syscall', 'io.fs', 'internal.poll', 'internal.syscall.unix', 'golang_org.x.sys.unix',
+            'bufio', 'internal.filepathlite', 'path.filepath']
 
 
 def lfs_prefix(txt):
@@ -2911,6 +2932,7 @@ def lfs_inits(ext_txt):
     global inv, inst
     saved = inv, inst
     outs = []
+    extra = []  # (WAL leaf specs, 2026-11-13) Perennial packages only the part's import
     try:
         inv = inventory(f'{LFS_ROOT}/Code')
         inst = instances(f'{LFS_ROOT}/Proof/')
@@ -2918,9 +2940,17 @@ def lfs_inits(ext_txt):
             if os.path.exists(f'{LFS_ROOT}/Code/{dirof(p)}.lean'):
                 path, txt = gen(p, SPECIAL.get(p))
                 outs.append((f'{LFS_ROOT}/{path}', lfs_prefix(txt)))
+                for x in inv[p]['imports']:
+                    if external(x) and f'| {ext_ctor(x)} :' not in ext_txt and x not in [q for q, _ in extra]:
+                        extra.append((x, code_module(x)))
     finally:
         inv, inst = saved
     ext = '\n'.join(l for l in ext_txt.split('\n') if 'go_etcd_io.raft' not in l and 'go_etcd_io_raft' not in l)
+    for q, m in sorted(extra):
+        ext = ext.replace('\npublic import Proof.runtime.PkgInit\n',
+                          f'\npublic import Proof.runtime.PkgInit\npublic import {m}\n', 1)
+        ext = ext.replace(' : GoString → val → Prop where\n',
+                          f" : GoString → val → Prop where\n  | {ext_ctor(q)} : ExternalInit pkg_id.{q} _root_.Perennial.{q}.initialize'\n", 1)
     i = ext.index('\nmodule\n') + 1
     note = (f'-- The copy for the part `{LFS_ROOT}/` of `Proof/runtime/PkgInitExt.lean` (`etc/gen-init.py`):\n'
             f'-- the same, without raft (whose translation imports the main tree\'s `os`).\n')
