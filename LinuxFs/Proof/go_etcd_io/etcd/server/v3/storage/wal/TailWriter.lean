@@ -159,7 +159,7 @@ theorem wp_tailPWriteStart (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStrin
     refine ⟨hino.symm, by simp [g', segAnn, cfMeta, hcut0], segAnn_length hin' hlen, ?_, ?_, ?_⟩
     · intro z hz; rw [hlen]; exact hm.2.2 z hz
     · intro ents' habs'; simp only [g']; rw [hwrl]; exact walAbsD_announce habs' hs hin'' hpre' hn
-    · intro i hi; exact GMap.lookup_insert_ne _ _ (fun h => hi (h.symm.trans hino.symm))
+    · exact ⟨fun i hi => GMap.lookup_insert_ne _ _ (fun h => hi (h.symm.trans hino.symm)), rfl⟩
   · rw [show F' !! g'.ino = some fl from GMap.lookup_insert _ _ _]
     dsimp only [fl]
     rw [show g'.ino = d.ino from hino.symm]
@@ -275,7 +275,7 @@ theorem wp_tailPWriteFinish (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStri
   · ipureintro
     refine ⟨rfl, by simp [g', segFin, pwPost, hmc], segFin_length hok hk, hzf0, ?_, ?_⟩
     · intro ents' habs'; exact walAbsD_finish habs' hs hok hwrl.symm hk hn
-    · intro i' hi; exact GMap.lookup_delete_ne _ (Ne.symm hi)
+    · exact ⟨fun i' hi => GMap.lookup_delete_ne _ (Ne.symm hi), rfl⟩
   · rw [show F' !! g'.ino = none from GMap.lookup_delete_eq _ _]
     dsimp only
     unfold segRes

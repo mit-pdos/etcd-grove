@@ -4,7 +4,7 @@
 
 `walCreate_osAUnc`: the atomic update `Create` gives `os.Rename.specDirSnc` for `renameWAL`'s rename of
 `nm.tmp` (the directory `J`, the fresh WAL's one segment `g` in it, synced) onto the WAL-less name `nm`
-of the area `r`, in the area claim `(jr, N, h)` that the program's `walCreating dir N h` token names.
+of the area `r`, in the area claim `(jr, N, h)` that the program's `walCreating dir N h J` token names.
 
 * *Opening* (with the generation's `notCrashed`): opens `walInv`, finds the claim among the
   invariant's (`CreatingOk`: once in its claims), hands out the invariant's half of it, and opens the
@@ -20,6 +20,7 @@ of the area `r`, in the area claim `(jr, N, h)` that the program's `walCreating 
 module
 
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateAuLemmas
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateKeys
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateDefs
 
 @[expose] public section
@@ -92,10 +93,10 @@ theorem osClaims_create (l1 l2 : List Claim) (c c' cJ : Claim) (dq : DFrac) (hl1
     iempintro
 
 /-- The creating token's entry in the authority. -/
-theorem walCreating_lookup (CR : GMap GoString (NameSet × NamesH)) (dir : GoString) (N : NameSet)
-    (h : NamesH) :
-    ⊢ walCreatingAuth (W := W) CR -∗ walCreating (W := W) dir N h -∗
-      ⌜CR !! dir = some (N, h)⌝ ∗ walCreatingAuth (W := W) CR ∗ walCreating (W := W) dir N h := by
+theorem walCreating_lookup (CR : GMap GoString (NameSet × NamesH × Ino)) (dir : GoString)
+    (N : NameSet) (h : NamesH) (J : Ino) :
+    ⊢ walCreatingAuth (W := W) CR -∗ walCreating (W := W) dir N h J -∗
+      ⌜CR !! dir = some (N, h, J)⌝ ∗ walCreatingAuth (W := W) CR ∗ walCreating (W := W) dir N h J := by
   unfold walCreatingAuth walCreating
   letI := walAllG (W := W)
   iintro Ha Ht
@@ -104,9 +105,9 @@ theorem walCreating_lookup (CR : GMap GoString (NameSet × NamesH)) (dir : GoStr
   ipureintro; exact H
 
 /-- Deleting the creating token's entry. -/
-theorem walCreating_delete (CR : GMap GoString (NameSet × NamesH)) (dir : GoString) (N : NameSet)
-    (h : NamesH) :
-    ⊢ walCreatingAuth (W := W) CR -∗ walCreating (W := W) dir N h ==∗
+theorem walCreating_delete (CR : GMap GoString (NameSet × NamesH × Ino)) (dir : GoString)
+    (N : NameSet) (h : NamesH) (J : Ino) :
+    ⊢ walCreatingAuth (W := W) CR -∗ walCreating (W := W) dir N h J ==∗
       walCreatingAuth (W := W) (GMap.delete dir CR) := by
   unfold walCreatingAuth walCreating
   letI := walAllG (W := W)
@@ -120,31 +121,35 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
   [GoGlobalContext] [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [W : WalGS GF]
 
-/-- **What `Create` holds for the rename's update**: the creating token, the client's update, and what
-the invariant takes at the commit: half of `J`'s claim, the segment `g` whole (its `OsMeta`, its
-bytes). -/
+/-- **What `Create` holds for the rename's update**: the creating token, the client's update, the
+lock token (its parking flag `false`: the new WAL's segment and directory claim stay out, the handle's),
+and what the invariant takes at the commit: half of `J`'s claim, the segment `g` whole (its `OsMeta`,
+its bytes). -/
 def walCreateP (dir : GoString) (N : NameSet) (h : NamesH) (md : List w8) (Q : IProp GF)
     (J : Ino) (X : List GoString) (hJ : NamesH) (g : SegG) : IProp GF :=
-  iprop(walCreating (W := W) dir N h ∗
+  iprop(walCreating (W := W) dir N h J ∗
     (AU <{ walAbsent (W := W) dir }> @ walAuMask, ∅ <{ walDiskAt (W := W) dir (walDurFresh md), COMM Q }>) ∗
     osNames J (.except X) (DFrac.own (1 : Qp).half) hJ ∗
-    osMeta g.ino (DFrac.own 1) g.om ∗ osBytes g.ino 0 (DFrac.own 1) g.bs)
+    osMeta g.ino (DFrac.own 1) g.om ∗ osBytes g.ino 0 (DFrac.own 1) g.bs ∗ walLockedTok (W := W))
 
 /-- **What `Create` gets from the rename's update**: with no effect, what it held; after the commit,
-the client's `Q`, the segment's halves the invariant did not take, and a past state with the fresh
-WAL in `dir`. -/
+the client's `Q`, the segment's halves the invariant did not take, a past state with the fresh
+WAL in `dir`, the lock token, and the new WAL's directory key (`walDirKey dir J X`: the invariant
+holds the other half of `J`'s claim, once). -/
 def walCreateQ (dir : GoString) (N : NameSet) (h : NamesH) (md : List w8) (Q : IProp GF)
     (J : Ino) (X : List GoString) (hJ : NamesH) (g : SegG) : Option (Nat × Nat) → IProp GF
   | none => walCreateP (W := W) dir N h md Q J X hJ g
   | some _ => iprop(Q ∗ osMeta g.ino (DFrac.own (1 : Qp).half) g.om ∗
-      osBytes g.ino 0 (DFrac.own (1 : Qp).half) g.bs ∗
+      osBytes g.ino 0 (DFrac.own (1 : Qp).half) g.bs ∗ walLockedTok (W := W) ∗
+      walDirKey (W := W) dir J X ∗
       ∃ s', walPast (W := W) s' ∗ ⌜s'.wal !! dir = some (walDurFresh md)⌝)
 
 /-- **`Create`'s update for `os.Rename.specDirSnc`** (see the file header). The program's premises:
 `dir = r/nm`, `tmp` (`nm.tmp`) holding `J` in the claim, both names of the claim; `J ≠ jr`; the call's
 log bound `lb` past both claims' last entries; the new layout `lay` of `jr`, `nm`, `J` with the one
 segment `g` (nonempty), its static relation over `J`'s names, every byte durable, the stream then
-zeros. -/
+zeros; the segment at its name in `J` (`hsn`), and after any crash of `J`'s claim (`hJC`: every
+`.wal` entry a file, the segment's file only at its name). -/
 theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (dir nm tmp : GoString) (md : List w8) (Q : IProp GF) (N : NameSet) (h : NamesH) (J : Ino)
     (X : List GoString) (hJ : NamesH) (lay : WalLay) (g : SegG) (lb : Nat)
@@ -159,7 +164,9 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     (htail : lay.wr = (segStream C Mr (walDurFresh md) lay.cuts lay.cuts.length).length)
     (hold0 : ∀ b, lay.wr ≤ b → b < lay.old.length → lay.old.getD b 0 = 0)
     (hz : lay.old.length - lay.wr = 0 ∨ 8 ≤ lay.old.length - lay.wr)
-    (hcut : g.om.cut = none) :
+    (hcut : g.om.cut = none) (hsn : SegsNamed lay.segs hJ.cur)
+    (hJC : ∀ (K : Nat → Prop) (E : Ents), (∀ b, walNameP b = true → E !! b = hJ.valAfter J K b) →
+      SegsNamedC lay.segs E) :
     ⊢ walInv (W := W) C Mr R jr r -∗ walCreateP (W := W) dir N h md Q J X hJ g -∗
       osAUnc (osNames jr N (DFrac.own (1 : Qp).half) h)
         (renDirOut jr J N tmp nm h (DFrac.own (1 : Qp).half) lb)
@@ -173,13 +180,13 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   rw [show osAuMask \ (↑walN : CoPset) = walAuMask from rfl]
   icases Hb with ⟨%s, Hb⟩
   unfold walCreateP
-  icases HP with ⟨Htok, Hau, HJ, Hm, Hbs⟩
+  icases HP with ⟨Htok, Hau, HJ, Hm, Hbs, HLk⟩
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl0, #Hcm, Hlays, %Hok, %Hco, ⟨%CR, Hcra, %Hcro⟩,
-    Htl, %Han, %Hnm, Hpk⟩
-  icases walCreating_lookup CR dir N h $$ Hcra Htok with ⟨%Hcr, Hcra, Htok⟩
+    Htl, %Han, %Hnm, Hpk, ⟨%K, %cp, Hdk, Hcp, %Hdko⟩⟩
+  icases walCreating_lookup CR dir N h J $$ Hcra Htok with ⟨%Hcr, Hcra, Htok⟩
   have hco := Hcro
-  obtain ⟨hc, hcoh, hexcl, honce, hdist⟩ := Hcro dir N h Hcr
+  obtain ⟨hc, hcoh, hexcl, honce, hdist, hnew⟩ := Hcro dir N h J Hcr
   obtain ⟨l1, l2, hcl, hl1, hl2⟩ := honce
   subst hcl
   icases (osClaims_split _ _ _ _).1 $$ Hcl0 with ⟨Hl1, Hα, Hl2⟩
@@ -197,7 +204,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     iintro Hα
     icases Hcla with ⟨Hab, -⟩
     imod Hab $$ Hab0 with Hau
-    imod Hcl $$ [Hg Hl1 Hα Hl2 Hlays Hcra Htl Hpk]
+    imod Hcl $$ [Hg Hl1 Hα Hl2 Hlays Hcra Htl Hpk Hdk Hcp]
     · iexists s
       iexists Ls, l1 ++ (jr, N, h) :: l2, n, F
       iframe Hg Hcm Hlays Htl Hpk
@@ -214,10 +221,16 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       · iexists CR
         iframe Hcra
         ipureintro; exact hco
-      ipureintro; exact ⟨Han, Hnm⟩
+      isplitr
+      · ipureintro; exact Han
+      isplitr
+      · ipureintro; exact Hnm
+      iexists K, cp
+      iframe Hdk Hcp
+      ipureintro; exact Hdko
     imodintro
     dsimp only
-    iframe Htok Hau HJ Hm Hbs
+    iframe Htok Hau HJ Hm Hbs HLk
   · -- commit
     iintro %o Hβ
     rcases o with _ | ⟨x, s0⟩
@@ -227,7 +240,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       icases Hβ with ⟨-, Hα⟩
       icases Hcla with ⟨Hab, -⟩
       imod Hab $$ Hab0 with Hau
-      imod Hcl $$ [Hg Hl1 Hα Hl2 Hlays Hcra Htl Hpk]
+      imod Hcl $$ [Hg Hl1 Hα Hl2 Hlays Hcra Htl Hpk Hdk Hcp]
       · iexists s
         iexists Ls, l1 ++ (jr, N, h) :: l2, n, F
         iframe Hg Hcm Hlays Htl Hpk
@@ -244,10 +257,16 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         · iexists CR
           iframe Hcra
           ipureintro; exact hco
-        ipureintro; exact ⟨Han, Hnm⟩
+        isplitr
+        · ipureintro; exact Han
+        isplitr
+        · ipureintro; exact Hnm
+        iexists K, cp
+        iframe Hdk Hcp
+        ipureintro; exact Hdko
       imodintro
       dsimp only [walCreateQ, walCreateP]
-      iframe Htok Hau HJ Hm Hbs
+      iframe Htok Hau HJ Hm Hbs HLk
     · -- the commit
       unfold renDirOut
       simp only [logOut, claimOut]
@@ -302,12 +321,27 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         ipureintro
         simp only [createSt, GMap.lookup_insert_eq]
         exact walDurLe_refl _
-      imod walCreating_delete CR dir N h $$ Hcra Htok with Hcra
+      imod walCreating_delete CR dir N h J $$ Hcra Htok with Hcra
       icases (osMeta_halves g.ino g.om).1 $$ Hm with ⟨Hm1, Hm2⟩
       icases (osBytes_halves g.ino 0 (y :: ys)).1 $$ Hbs with ⟨Hb1, Hb2⟩
       have hF : ∀ g' ∈ segsAll Ls, (GMap.delete g.ino F) !! g'.ino = F !! g'.ino := fun g' hg' =>
         GMap.lookup_delete_ne _ (Ne.symm (hino g' hg'))
-      imod Hcl $$ [Hg Hl1 Hα Hl2 HJ Hlays Hm1 Hb1 Hcra Htl Hpk]
+      -- the new WAL's key, its segment and directory claim out of the parked halves
+      have hKd : K !! dir = none := by
+        cases e : K !! dir with
+        | none => rfl
+        | some v =>
+          obtain ⟨lay1, -, hl1, -⟩ := Hdko.1 dir v.1 v.2 e
+          rw [hLd] at hl1; cases hl1
+      imod walDirKey_insert K dir J X hKd $$ Hdk with ⟨Hdk, #Hkey⟩
+      unfold walLockedTok
+      icases HLk with ⟨Htk, Hf, Hcf⟩
+      icases walParked_create (W := W) Ls (l1 ++ (jr, N, h) :: l2) CR jr dir N h
+        (h.log x (renDirEnt jr tmp nm J s0) (renCur N h tmp nm J)) J X hJ lay g hnew hlay.2.2 hLd hX
+        hsegs hino $$ Hpk Hf with ⟨Hpk, Hf⟩
+      have hnw : walNameP nm = false := walNameP_false_of_ok hin.1
+      have hcnm : h.cur !! nm = none := (Han.1 dir nm hin' hsd).1 N h hc hnmN
+      imod Hcl $$ [Hg Hl1 Hα Hl2 HJ Hlays Hm1 Hb1 Hcra Htl Hpk Hdk Hcp]
       · iexists (createSt s dir md)
         iexists <[dir := lay]> Ls,
           createClaims (l1 ++ (jr, N, h) :: l2) jr N h x (renDirEnt jr tmp nm J s0)
@@ -345,15 +379,25 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         · iapply walTailsRes_create C Mr s Ls F _ dir md lay hsd hF $$ Htl
         isplitr
         · ipureintro; exact ⟨han', Han.2⟩
-        -- W3/W5's conjuncts (W1 log, "wal-read3"): the new WAL's segment at its name in the new
-        -- directory claim, now and after a crash (`WalsNamed`), and its program halves and
-        -- directory claim out (`walParked`: `g.ino` and the claims on `J` added to `O`/`D`, the
-        -- flag `false` since `Create` holds the lock, `walUnlockedTok_lock`). W4's to prove.
-        sorry
+        isplitr
+        · ipureintro
+          exact walsNamed_create (x := x) (st := s0) Hok Hnm hnew hc hcoh (Nat.le_trans hlb hls) hne
+            hnmN htmpN hcnm hctmp hothers htw hnw hlay.2.2 hX hsn hJC
+        isplitl [Hpk]
+        · unfold createClaims; iexact Hpk
+        iexists <[dir := (J, X)]> K, cp
+        iframe Hdk Hcp
+        ipureintro
+        exact dirKeysOk_create (x := x) (st := s0) (md := md) (CR := CR) Hok Han.1 Hdko hnew hsd hin' hc
+          hcoh (Nat.le_trans hlb hls) hne hnmN htmpN hctmp hothers htmp htw hlay hJcoh
+          (Nat.le_trans hJlb hls) hX habs hdur' htail hold0 hz
       imodintro
       dsimp only [walCreateQ]
       rw [hgbs]
-      iframe HQ Hm2 Hb2
+      iframe HQ Hm2 Hb2 Hkey
+      isplitl [Htk Hf Hcf]
+      · unfold walLockedTok
+        iframe Htk Hf Hcf
       iexists (createSt s dir md)
       iframe Hp
       ipureintro

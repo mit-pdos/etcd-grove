@@ -133,7 +133,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.alloc.wp_proof
       · ipureintro; rfl
       iintro %fsl ⟨-, -⟩
       (try wp_auto)
-      wp_apply wp_LError lg _ _ $$ [$Hlgok]
+      wp_apply wp_LError lg _ _ $$ []
+      · iapply zapLoggerOk_ne_null; iexact Hlgok
       (try wp_auto)
       iStructNamed Hlf
       wp_method_call
