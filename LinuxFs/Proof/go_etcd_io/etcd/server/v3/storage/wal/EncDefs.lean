@@ -86,6 +86,19 @@ def encRecIn (rp : Loc) (t : w64) (d : List w8) : IProp GF :=
     rp ↦ v ∗ v.Type' ↦□ t ∗ recBytes v.Data' (recOf ⟨t, 0#32, d⟩).data ∗
     ⌜v.unknownFields' = slice.nil⌝)
 
+/-- The data of a record built for `encode` holds `d` (a nil slice holds `[]`). -/
+theorem recBytes_recOf (s : GoSlice) (t : w64) (k : w32) (d : List w8) :
+    recBytes (GF := GF) s (recOf ⟨t, k, d⟩).data ⊢ s ↦*□ d := by
+  unfold recOf
+  by_cases hc : t = crcType ∧ d = []
+  · simp only [hc, and_self, ite_true, recBytes]
+    iintro %hs
+    subst hs
+    iapply ownSlice_nil
+  · simp only [hc, ite_false, recBytes]
+    iintro ⟨-, H⟩
+    iexact H
+
 end recin
 
 end WalFs
