@@ -33,6 +33,16 @@ the worktree's untracked `questions.md` (decisions), `/shared/tmp/coord-81/commo
     Nothing used it.
   - freeze §2's "T-e'" section (marked draft).
 
+## Handoff point (2026-11-13, end of the tenth agent's context): step 6 done; 7f-5's Scope next
+
+Step 5 landed (lean `edd43a9b44`). Step 6 (`runsNoRequireLeader` deleted; freeze note "Step 6", the 18 closed
+theorems) built, gated (tcb and every collection unchanged), merged with `merge-origin-1113` (origin's
+bbolt port), being landed by the tenth agent (see the report). **Next (81's instruction):** 7f-5 — draft
+its Scope from `notes/k8s-7f-scope.md` §9 (7f-5a: the etcd3 watcher's serial branch, `store.Watch.spec`,
+`k8sWatch`, the trust specs; 7f-5b the concurrent branch), as `notes/k8s-7f5-scope.md`, and STOP for 81's
+review before any Lean. Check first what 7f-5a depends on: 7f-3 (`WithPrevKV` through the watch stack;
+its status: not in STATUS), 7c-3, 7e-1, sweep repairs B5.
+
 ## Tenth agent, continued (2026-11-13): T-k landed (lean `3d0966ffdc`); step 5's LeaseKeepAlive over the weak end
 
 `e13ec16980`: `LeaseServer.LeaseKeepAlive`/`leaseKeepAlive` take grpc's weak stream end (`srvStreamIs`, which
