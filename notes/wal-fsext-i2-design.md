@@ -729,6 +729,42 @@ Found: the WAL creates with `O_WRONLY|O_CREATE` (`createNewWALFile`), which `wp_
 with `O_CREAT`, no `O_TRUNC`; the fd `openFd i fl`). The `os` specs omit `fmtErrorOkOrNil` (no
 `LinkError` lemma yet). Not yet done: `Remove`, `Mkdir`, `MkdirAll`, `RemoveAll`, `Stat`, `Open` of
 a directory, `Readdirnames`, a directory's `Close`, the file-data calls.
+
+### Implementation log, the `os`-level shared specs, second part (branch `wal-osau2`, 2026-11-13)
+
+Done, proved (no `sorry`), over `TreeShared.lean` (merged from `wal-int` with I2 complete):
+
+- `os.OpenFile.specCreateS` re-proved over the real `wp_osOpenCreateS`/`wp_osOpenFileS`, its flags
+  generalized (statement change): any `flag` with `O_CREAT` and without `O_TRUNC`
+  (`OpenFlagsOk`), the fd `openFd i (flag ||| O_CLOEXEC)`; covers the WAL's `O_WRONLY|O_CREATE`. The
+  sorry'd copy of `wp_osOpenFileS` in `LinuxFs/Proof/os/SharedExt.lean` is gone.
+- `SharedExt.lean` (extension level, over `wp_callEndS`): `wp_osMkdirS_some` (`mkdir` of a taken
+  name: an errno, no effect; a fraction of a claim), `wp_osOpenAbsentS` (`open` without `O_CREAT`
+  of an absent name: an errno, no effect), `osLogLb_0`.
+- `os.Remove.specFileS` (`Spec/os/Remove.lean`): logically atomic unlink of a file, claim
+  `.only [b]` split caller/update; outcome `Option (x, s)`; the `rmdir` that follows a failed
+  unlink fails (`wp_osRmdirS_none`).
+- `os.Mkdir.specS` (`Spec/os/Mkdir.lean`): logically atomic, with `osCallPerm 1`; outcome
+  `Option (x, s, J)`; the new directory's whole claim (`cur = ∅`, `next = x + 1`) to the caller
+  (`mkNew`); a retry after an effectful `EINTR` fails (`wp_osMkdirS_some`).
+- Plain triples (no claim changes), `Proof/os/NsS.lean`: `os.OpenFile.wp_fileS` (an existing file,
+  any flags without `O_TRUNC`; a fraction of a claim), `os.OpenFile.wp_dirS`/`os.Open.wp_dirS` (a
+  spine; a shared directory fd `.idle`), `os.File.Readdirnames.wp_dirS` (a fraction of a claim on
+  `N`: every name valid; a name of `N` returned iff present, at most once; `N = .only []` is the
+  blind read), `os.File.Close.wp_dirS`.
+- `Proof/os/StatS.lean`: `os.Stat.wp_dirS` (a spine; `ownFileStat` of some size and mode: the mode's
+  directory bit is not stated) and `os.Stat.wp_absentS` (a fraction of a claim on an absent name:
+  an error).
+- `Proof/syscall/FileOps.lean`: `syscall.Fallocate.wp_grow`/`wp_keep`, `syscall.FcntlFlock.wp_lock`
+  (the unix proofs, for `syscall`'s identical models).
+- The file-data calls need no shared variant: the legacy specs (`File.WriteAt`/`Write`/`Seek`/
+  `Truncate`/`Sync`/`Stat`/`Close` of a file, `syscall.Fdatasync`) take only `osFd`/`osMeta`, and
+  the extension's data steps (`Specs.lean`, `Falloc.lean`) use no legacy witness.
+
+Not done: `os.MkdirAll`, `os.RemoveAll` (draft models; multi-component paths), `Stat` of a regular
+file (needs its `OsMeta` for the `fstat`), `FcntlFlock`'s `F_OFD_GETLK` (fileutil's `init`), the
+`fmtErrorOkOrNil` facts of the shared specs' errors (`LinkError`/`PathError`).
+
 ### Implementation log, fifth session (2026-11-13)
 
 Done (no `sorry`): every statement of `TreeShared.lean` is now proved (its header says so).
