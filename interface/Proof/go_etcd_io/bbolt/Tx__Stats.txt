@@ -4,7 +4,7 @@
 
 theorem bbolt.Tx.Stats.wp_proof : bbolt.Tx.Stats.spec
   -- `Perennial.EtcdGrove.bbolt.Tx.Stats.spec`, unfolded:
-  ∀ [inst : HasExt osFsExt] (tx : Loc),
+  ∀ [inst : ExtSemantics Fs.fsExt] [inst_1 : Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt] (tx : Loc),
     ⊢
       ∀ Φ,
         bbolt.txDone tx -∗

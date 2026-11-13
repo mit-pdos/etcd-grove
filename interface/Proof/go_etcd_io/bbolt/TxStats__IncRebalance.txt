@@ -2,7 +2,8 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.TxStats.IncRebalance.wp_proof [hos : HasExt osFsExt] : bbolt.TxStats.IncRebalance.spec
+theorem bbolt.TxStats.IncRebalance.wp_proof [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt
+    Fs.fsExt] : bbolt.TxStats.IncRebalance.spec
   -- `Perennial.EtcdGrove.bbolt.TxStats.IncRebalance.spec`, unfolded:
   ∀ (K : bbolt.BC) (tx : Loc) (r : bbolt.TxReg) (m : Bool) (q : Qp) (d : w64),
     ⊢

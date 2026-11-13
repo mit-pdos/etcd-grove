@@ -23,12 +23,14 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
@@ -36,12 +38,12 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- **`flock(db, exclusive, timeout)`**: the file and its descriptor are given back; an error is
 one `fmt` formats (`fmtErrorOkOrNil`). -/
 abbrev flock.spec : Prop :=
-  ∀ (db f : Loc) (fd : w64) (p : GoString) (d : OsFd) (dqf : DFrac) (ex : Bool)
+  ∀ (db f : Loc) (fd : w64) (p : BFile) (d : OsFd) (dqf : DFrac) (ex : Bool)
     (tmo : time.Duration),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
-      db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p (DFrac.own 1) ∗ osFd fd (DFrac.own 1) d }}
+      db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p.path (DFrac.own 1) ∗ osFd fd (DFrac.own 1) d }}
     (App (App (App (Val #(functions flock [])) (Val #db)) (Val #ex)) (Val #tmo))
-  {{ (err : GoInterface), RET #err; db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p (DFrac.own 1) ∗
+  {{ (err : GoInterface), RET #err; db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p.path (DFrac.own 1) ∗
       osFd fd (DFrac.own 1) d ∗ fmtErrorOkOrNil err }}
 
 end spec
@@ -49,7 +51,7 @@ end spec
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable [hos : HasExt osFsExt]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
@@ -86,7 +88,7 @@ theorem flock.wp_proof [syscall.Assumptions]
     ihave Ht : (∃ tt : time.Time, t_ptr ↦ tt : IProp GF) $$ [t]
     · iexists _; iexact t
     icases Ht with ⟨%tt, t⟩
-    wp_apply hFd f fd p (DFrac.own 1) $$ [Hfo] as Hfo
+    wp_apply hFd f fd p.path (DFrac.own 1) $$ [Hfo] as Hfo
     · rw [← fileOwn_eq]; iexact Hfo
     try wp_auto
     cases ex
@@ -94,7 +96,7 @@ theorem flock.wp_proof [syscall.Assumptions]
       try wp_auto
       ihave IH : (∃ fl : w64, "flag" ∷ flag_ptr ↦ fl ∗ "fd" ∷ fd_ptr ↦ fd ∗ "t" ∷ t_ptr ↦ tt ∗
           "timeout" ∷ timeout_ptr ↦ tmo ∗ "Hf" ∷ db.[DB, go!"file"] ↦{dqf} f ∗
-          "Hfo" ∷ os.ownFile f fd p (DFrac.own 1) ∗ "Hfd" ∷ osFd fd (DFrac.own 1) d ∗
+          "Hfo" ∷ os.ownFile f fd p.path (DFrac.own 1) ∗ "Hfd" ∷ osFd fd (DFrac.own 1) d ∗
           "res" ∷ «$res0_ptr» ↦ (GoInterface.nil : GoInterface) : IProp GF)
         $$ [flag fd t timeout Hf Hfo Hfd «$res0»]
       · iexists _; simp only [named]; iframe

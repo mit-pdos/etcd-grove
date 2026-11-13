@@ -18,6 +18,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
+
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section spec
@@ -30,7 +32,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- **`tx.rollback()` of a writer, flagged**: `Tx.rollback.spec` from `wtxEnd' fr`; with the flag
 (after `Commit`'s free of the synced freelist page) the writer has not published. -/
 abbrev Tx.rollback_f.spec : Prop :=
-  ∀ [HasExt osFsExt] (fr : Bool) (K : BC) (tx : Loc) (r : TxReg) (X : WX) (ws : WSt) (w : WDb),
+  ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (fr : Bool) (K : BC) (tx : Loc) (r : TxReg) (X : WX) (ws : WSt) (w : WDb),
   rbOK X ws w → (fr = true → ws.2.2.1 = false) →
   {{ wtxEnd' (GF := GF) fr K tx r X ws w }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"rollback")) (Val #()))

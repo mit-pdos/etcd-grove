@@ -18,7 +18,7 @@ The rules:
   `<T>.wp_<M><S>` (in the namespace `EtcdGrove.bbolt`). A spec proved twice is linked once: by
   the theorem named `<T>.<M>.wp_proof<S>` if there is one, else by the one with the fewest
   binders.
-- **The callees** are the proof's explicit binders, in order: a spec (or `∀ [HasExt osFsExt],
+- **The callees** are the proof's explicit binders, in order: a spec (or `∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt],
   <spec>`, which the result fills, the extension being a section variable) is given its result:
   bbolt's own; Perennial's linked result (`Perennial/Proof/<pkg>/Link.lean`), or
   etcd-grove's shared trust boundary of `fmt`/`context` (`Proof/fmt/Link.lean`: as the `@`
@@ -37,7 +37,7 @@ The rules:
   backend still rests on, until the backend switch derives them from the triples) are not
   results: an `axiom` proving a `_kv` spec is skipped, so neither `Link.lean` nor `Results.lean`
   presents it as bbolt's.
-- Instance binders (`[sync.Assumptions]`, `[HasExt osFsExt]`) are left to instance search: the
+- Instance binders (`[sync.Assumptions]`, `[ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]`) are left to instance search: the
   section's `[package_sem : go_etcd_io.bbolt.Assumptions]` includes every imported package's;
   the field assumptions of `os`'s trusted `file` and `fileStat` (`TrustedCode/os.lean`), which
   no package's `Assumptions` include, are section variables too (as in bboltfs's `Link.lean`).
@@ -245,7 +245,7 @@ def main(root, perennial, argv0, results_file=False):
                 return c
         return None
 
-    SPEC_TY = re.compile(r"(∀ \[HasExt osFsExt\],\s*)?([\w.«»']+\.spec[\w']*)"
+    SPEC_TY = re.compile(r"(∀ \[ExtSemantics fsExt\] \[FsSemOk\] \[HasExt fsExt\],\s*)?([\w.«»']+\.spec[\w']*)"
                          r"( \(GF := GF\))?( \(hG := hG\))?")
 
     def concl_spec(x):
@@ -497,7 +497,7 @@ The callees are read off each proof's binders (`etc/link_bbolt.py`'s docstring).
                     break_on_hyphens=False) + "\n-/"
     out = [header, "module", ""]
     out.extend(f"public import {m}" for m in sorted(imports, key=mod_key))
-    sec_vars = """variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt osFsExt]
+    sec_vars = """variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -513,6 +513,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace bbolt
 
+open Fs
 open Iris Iris.BI
 
 section links

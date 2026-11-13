@@ -1,0 +1,13 @@
+# The per-byte Linux file extension (`GooseLang/Ext/Fs`, notes/fs-semantics-v2.md) and the programs
+# proved over it: minibolt's linked results
+# (Proof/github_com/mit_pdos/etcd_grove/examples/osfs/bboltfs/Link.lean) and the crash-safety
+# results of minibolt (bootCrashSafety, under the premise P1), crashlog and walfs (segdir, seglog,
+# dirswap) in their Results.lean. (Until 2026-11-13 `linuxfs.txt`, over the part LinuxFs/.)
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/osfs.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/osfs.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/osfs.txt --check --update
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/osfs/

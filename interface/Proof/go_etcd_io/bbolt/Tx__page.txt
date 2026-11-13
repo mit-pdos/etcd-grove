@@ -2,8 +2,8 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.wp_fastCheck_bytes [hos : HasExt osFsExt] (hFast :
-    bbolt.internal.common.Page.FastCheck.spec) (p : Loc) (pg : List w8) (dq : DFrac) (id : w64)
+theorem bbolt.wp_fastCheck_bytes [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (hFast
+    : bbolt.internal.common.Page.FastCheck.spec) (p : Loc) (pg : List w8) (dq : DFrac) (id : w64)
     (hlen : 16 ≤ pg.length) (hid : bbolt.pageId pg = BitVec.toNat id) (hfl : bbolt.pageFlags pg =
     bbolt.branchPageFlag ∨ bbolt.pageFlags pg = bbolt.leafPageFlag ∨ bbolt.pageFlags pg =
     bbolt.metaPageFlag ∨ bbolt.pageFlags pg = bbolt.freelistPageFlag) : ⊢ ∀ Φ, isPkgInit
@@ -11,14 +11,14 @@ theorem bbolt.wp_fastCheck_bytes [hos : HasExt osFsExt] (hFast :
     -∗ WP ((intoVal (methods go_etcd_io.bbolt.internal.common.Page.ty.PointerType go!"FastCheck"
     (intoVal p))) (intoVal id)) {{ Φ }}
 
-theorem bbolt.pageHdr_fastCheck [hos : HasExt osFsExt] (pg : List w8) (id : w64) (hid : bbolt.pageId
-    pg = BitVec.toNat id) (hfl : bbolt.pageFlags pg = bbolt.branchPageFlag ∨ bbolt.pageFlags pg =
-    bbolt.leafPageFlag ∨ bbolt.pageFlags pg = bbolt.metaPageFlag ∨ bbolt.pageFlags pg =
-    bbolt.freelistPageFlag) : (bbolt.pageHdr pg).id' = id ∧ ((bbolt.pageHdr pg).flags' = W16 1 ∨
-    (bbolt.pageHdr pg).flags' = W16 2 ∨ (bbolt.pageHdr pg).flags' = W16 4 ∨ (bbolt.pageHdr
-    pg).flags' = W16 16)
+theorem bbolt.pageHdr_fastCheck [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (pg :
+    List w8) (id : w64) (hid : bbolt.pageId pg = BitVec.toNat id) (hfl : bbolt.pageFlags pg =
+    bbolt.branchPageFlag ∨ bbolt.pageFlags pg = bbolt.leafPageFlag ∨ bbolt.pageFlags pg =
+    bbolt.metaPageFlag ∨ bbolt.pageFlags pg = bbolt.freelistPageFlag) : (bbolt.pageHdr pg).id' = id
+    ∧ ((bbolt.pageHdr pg).flags' = W16 1 ∨ (bbolt.pageHdr pg).flags' = W16 2 ∨ (bbolt.pageHdr
+    pg).flags' = W16 4 ∨ (bbolt.pageHdr pg).flags' = W16 16)
 
-theorem bbolt.Tx.page.wp_proof [hos : HasExt osFsExt] (hFast :
+theorem bbolt.Tx.page.wp_proof [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (hFast :
     bbolt.internal.common.Page.FastCheck.spec) : bbolt.Tx.page.spec
   -- `Perennial.EtcdGrove.bbolt.Tx.page.spec`, unfolded:
   ∀ (tx db : Loc) (pmv : GoMap) (pm : GMap w64 Loc) (data : Loc) (id : w64) (p : Loc) (pg : List w8)
@@ -55,20 +55,20 @@ theorem bbolt.Tx.page.wp_proof [hos : HasExt osFsExt] (hFast :
                         (intoVal id))
                       {{ Φ }}
 
-theorem bbolt.Tx.page.wp_proof' [hos : HasExt osFsExt] (hFast :
-    bbolt.internal.common.Page.FastCheck.spec) (tx db : Loc) (pmv : GoMap) (pm : GMap w64 Loc) (data
-    : Loc) (id : w64) (p : Loc) (pg : List w8) (dqt dqm dqd dq : DFrac) (hcase : pm !! id = some p ∨
-    pm !! id = none ∧ 0 < data.addr ∧ BitVec.toNat id * 4096 < 281474976710655 ∧ p = data.add
-    ↑(BitVec.toNat id * 4096)) (hlen : 16 ≤ pg.length) (hid : bbolt.pageId pg = BitVec.toNat id)
-    (hfl : bbolt.pageFlags pg = bbolt.branchPageFlag ∨ bbolt.pageFlags pg = bbolt.leafPageFlag ∨
-    bbolt.pageFlags pg = bbolt.metaPageFlag ∨ bbolt.pageFlags pg = bbolt.freelistPageFlag) : ⊢ ∀ Φ,
-    isPkgInit pkg_id.go_etcd_io.bbolt ∗ typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"pages"
-    tx) pmv dqt ∗ (if pmv = null then ⌜pm = ∅⌝ else ownMap pmv dqm pm) ∗ typedPointsto
-    (structFieldRef go_etcd_io.bbolt.Tx go!"db" tx) db dqt ∗ typedPointsto (structFieldRef
-    go_etcd_io.bbolt.DB go!"data" db) data dqd ∗ typedPointsto (structFieldRef go_etcd_io.bbolt.DB
-    go!"pageSize" db) (W64 4096) DFrac.discard ∗ bytesPointsto p dq pg -∗ ▷ (typedPointsto
+theorem bbolt.Tx.page.wp_proof' [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (hFast
+    : bbolt.internal.common.Page.FastCheck.spec) (tx db : Loc) (pmv : GoMap) (pm : GMap w64 Loc)
+    (data : Loc) (id : w64) (p : Loc) (pg : List w8) (dqt dqm dqd dq : DFrac) (hcase : pm !! id =
+    some p ∨ pm !! id = none ∧ 0 < data.addr ∧ BitVec.toNat id * 4096 < 281474976710655 ∧ p =
+    data.add ↑(BitVec.toNat id * 4096)) (hlen : 16 ≤ pg.length) (hid : bbolt.pageId pg =
+    BitVec.toNat id) (hfl : bbolt.pageFlags pg = bbolt.branchPageFlag ∨ bbolt.pageFlags pg =
+    bbolt.leafPageFlag ∨ bbolt.pageFlags pg = bbolt.metaPageFlag ∨ bbolt.pageFlags pg =
+    bbolt.freelistPageFlag) : ⊢ ∀ Φ, isPkgInit pkg_id.go_etcd_io.bbolt ∗ typedPointsto
     (structFieldRef go_etcd_io.bbolt.Tx go!"pages" tx) pmv dqt ∗ (if pmv = null then ⌜pm = ∅⌝ else
     ownMap pmv dqm pm) ∗ typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"db" tx) db dqt ∗
-    typedPointsto (structFieldRef go_etcd_io.bbolt.DB go!"data" db) data dqd ∗ bytesPointsto p dq pg
-    -∗ Φ (intoVal p)) -∗ WP ((intoVal (methods go_etcd_io.bbolt.Tx.ty.PointerType go!"page" (intoVal
-    tx))) (intoVal id)) {{ Φ }}
+    typedPointsto (structFieldRef go_etcd_io.bbolt.DB go!"data" db) data dqd ∗ typedPointsto
+    (structFieldRef go_etcd_io.bbolt.DB go!"pageSize" db) (W64 4096) DFrac.discard ∗ bytesPointsto p
+    dq pg -∗ ▷ (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"pages" tx) pmv dqt ∗ (if pmv =
+    null then ⌜pm = ∅⌝ else ownMap pmv dqm pm) ∗ typedPointsto (structFieldRef go_etcd_io.bbolt.Tx
+    go!"db" tx) db dqt ∗ typedPointsto (structFieldRef go_etcd_io.bbolt.DB go!"data" db) data dqd ∗
+    bytesPointsto p dq pg -∗ Φ (intoVal p)) -∗ WP ((intoVal (methods
+    go_etcd_io.bbolt.Tx.ty.PointerType go!"page" (intoVal tx))) (intoVal id)) {{ Φ }}
