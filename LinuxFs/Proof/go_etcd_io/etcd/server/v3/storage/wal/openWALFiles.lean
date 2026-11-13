@@ -160,6 +160,38 @@ theorem walOpenedRcs_close (write : Bool) (dir : GoString) (ns : List GoString) 
   refine (BigSepL.bigSepL_mono (fun {m x} _ => walOpenedRc_rcFile (GF := GF) write dir _ x _ _ _)).trans ?_
   exact rcFiles_take is j rcs hl hj
 
+/-- `os.OpenFile(d/b, flag, 0600)` of a file `b` of a claim, as `TryLockFile` takes it: the
+claim's resources lent and given back, the inode `i`. -/
+theorem walOpen_triple [os.Assumptions] [os.file.FieldAssumptions] (R : Roots) (d b : GoString) (dq : DFrac) (j i : Ino)
+    (N : NameSet) (dqn : DFrac) (h : NamesH) (qc : Qp) (flag : w64)
+    (hfl : OpenFlagsOk (flag ||| W64 0x80000).toNat)
+    (htr : (flag ||| W64 0x80000).toNat / O_TRUNC % 2 = 0) (hb : NameOk b) (hN : N.Mem b)
+    (hi : h.cur !! b = some (.file i)) :
+    fileutil.OpenTriple (X := Unit)
+      (iprop(osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm qc))
+      (child d b) flag (W32 384)
+      (fun _ _ => iprop(osPathS (GF := GF) R d dq j ∗ osNames j N dqn h ∗ osCallPerm qc))
+      (fun _ i' => i' = i) := by
+  unfold fileutil.OpenTriple
+  iintro %Φ ⟨#Hinv, #Hsi, Hp, Hn, Hperm⟩ HΦ
+  wp_apply os.OpenFile.wp_fileS d b flag (W32 384) R j i N dq dqn h qc hfl htr hb hN hi
+    $$ [Hp Hn Hperm] as %f %err ⟨Hp, Hn, Hperm, Hr⟩
+  · iframe; isplitl [] <;> iassumption
+  iapply HΦ
+  iunfold fileutil.openPost
+  iexists ()
+  icases Hr with (⟨%fd, %hh, Hf, Ho, Hfd⟩ | ⟨%hh, Herr⟩)
+  · ileft
+    isplitr
+    · ipureintro; exact hh.1
+    simp only []
+    iframe
+    ipureintro; exact ⟨hh.2, rfl⟩
+  · iright
+    isplitr
+    · ipureintro; exact hh
+    simp only []
+    iframe
 
 theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
     [os.Assumptions] [os.file.FieldAssumptions] [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
@@ -173,7 +205,25 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
   wp_start as ⟨#Hlg, #Hinv, #Hsi, Hp, Hperm, Hn, Hsl⟩
   ihave %hclean := osPathS_cleanAbs R d dq j $$ Hp
   ihave %Hsll := ownSlice_len _ _ _ $$ Hsl
+  ihave %Hslw := ownSlice_wf _ _ _ $$ Hsl
   wp_auto
+  wp_apply (wp_slice_make2 (V := GoInterface) (W64 0)) as %rc0 ⟨Hrc0, Hrcc0⟩
+  · ipureintro; decide
+  (try wp_auto)
+  wp_apply (wp_slice_make2 (V := GoInterface) (W64 0)) as %rs0 ⟨Hrs0, Hrsc0⟩
+  · ipureintro; decide
+  (try wp_auto)
+  wp_apply (wp_slice_make2 (V := Loc) (W64 0)) as %ls0 ⟨Hls0, Hlsc0⟩
+  · ipureintro; decide
+  (try wp_auto)
+  have hkz : sint.Z k ≤ sint.Z sl.len := by have := Hsll.1; word
+  rw [if_pos ⟨hk0, hkz, Hslw.2⟩]
+  icases (ownSlice_slice k sl.len sl dqs names ⟨hk0, hkz, Int.le_refl _⟩).1 $$ Hsl with ⟨Hw1, Hw2, Hw3⟩
+  have hsub : subslice (sint.nat k) (sint.nat sl.len) names = names.drop (sint.nat k) := by
+    rw [subslice_def, ← Hsll.1, List.take_length]
+  rw [hsub]
+  generalize hns : names.drop (sint.nat k) = ns at hlen hnames
+  (try wp_auto)
   sorry
 
 end proof
