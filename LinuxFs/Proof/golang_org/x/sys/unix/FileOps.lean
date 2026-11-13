@@ -38,11 +38,11 @@ theorem golang_org.x.sys.unix.Fallocate.wp_grow (fd off len : w64) (dq : DFrac) 
       (App (App (App (App (Val (@! golang_org.x.sys.unix.Fallocate)) (Val #fd)) (Val #(W32 0)))
         (Val #off)) (Val #len))
     {{ (e : w64), RET #(errnoErr e); osFd fd dq d ∗ ∃ n : Nat,
-        ((⌜e = 0⌝ ∗ rsDone d.ino (max m.size (off.toNat + len.toNat))
+        ((⌜e = 0⌝ ∗ rsDone false d.ino (max m.size (off.toNat + len.toNat))
             (max m.size (off.toNat + len.toNat)) m n) ∨
-         (⌜e ≠ 0⌝ ∗ (rsUndone d.ino (max m.size (off.toNat + len.toNat)) m [] n ∨
+         (⌜e ≠ 0⌝ ∗ (rsUndone false d.ino (max m.size (off.toNat + len.toNat)) m [] n ∨
            ∃ w, ⌜m.size ≤ w ∧ w ≤ max m.size (off.toNat + len.toNat)⌝ ∗
-             rsDone d.ino (max m.size (off.toNat + len.toNat)) w m n))) }} := by
+             rsDone false d.ino (max m.size (off.toNat + len.toNat)) w m n))) }} := by
   wp_start as ⟨#Hinv, Hfd, Hm, Hc⟩
   wp_apply wp_osFallocStart fd off len dq d m CoPset.subseteq_top hwr hoff hlen
     $$ Hinv Hfd Hm Hc as %t %n Hfd Ht

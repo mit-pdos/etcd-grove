@@ -178,13 +178,13 @@ theorem wp_Segment (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
   icases (osBytes_take_drop' i 0 8 (DFrac.own 1) (List.replicate 65536 xb)
     (by rw [List.length_replicate]; omega)).1 $$ Hb with ⟨Hb8, Hbr⟩
   rw [List.take_replicate, List.drop_replicate]
-  have hmaps0 : (rsPost newMeta 65536 65536).maps = ∅ := by simp [rsPost]; rfl
-  ihave Hmc : mcellsAny (GF := GF) (rsPost newMeta 65536 65536).maps (W64 0).toNat
+  have hmaps0 : (rsPost false newMeta 65536 65536).maps = ∅ := by simp [rsPost]; rfl
+  ihave Hmc : mcellsAny (GF := GF) (rsPost false newMeta 65536 65536).maps (W64 0).toNat
       ((W64 0).toNat + dataC.length) $$ []
   · unfold mcellsAny; rw [hmaps0]
     iapply BigSepM.bigSepM_empty.2; iempintro
   wp_apply os.File.Write.wp_spec wp_WriteAt f fd (child dir logB) (DFrac.own 1) sl dataC dqs (W64 0)
-      (DFrac.own 1) ⟨i, true, true⟩ (rsPost newMeta 65536 65536) (List.replicate (min 8 65536) xb)
+      (DFrac.own 1) ⟨i, true, true⟩ (rsPost false newMeta 65536 65536) (List.replicate (min 8 65536) xb)
       hfd0 rfl (by decide) (by simp only [rsPost]; decide) (by decide) (by decide)
       (by rw [List.length_replicate]; simp only [rsPost]; decide) (by decide)
     $$ [Hos Hf Ho Hsl Hfd Hm Hb8 Hmc] as %n %err ⟨Hf, Hsl, Hfd, ⟨%j', %ys, %Hres, Hm, Hys, -⟩, Ho⟩
@@ -234,7 +234,7 @@ theorem wp_Segment (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
   · rw [List.take_left' hyl, List.drop_left' hyl]
     iframe
   have hall : (ys ++ List.replicate (65536 - 8) xb).length =
-      (pwPost (rsPost newMeta 65536 65536) (W64 0).toNat dataC.length dataC.length).size := by
+      (pwPost (rsPost false newMeta 65536 65536) (W64 0).toNat dataC.length dataC.length).size := by
     rw [List.length_append, hyl, List.length_replicate]; simp only [pwPost, rsPost, pwSize, dataC]; decide
   wp_apply wp_Fdatasync fd (DFrac.own 1) ⟨i, true, true⟩ _ 0 _ (OsMeta.covers_whole _ hall)
       $$ [Hos Hfd Hm Hb] as %e3 ⟨Hfd, Hr⟩
@@ -315,7 +315,7 @@ theorem wp_ZeroToEnd (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
   icases (osBytes_take_drop' i 0 8 _ bs (by omega)).1 $$ Hb with ⟨Hb8, Hbr⟩
   have hmin : min m.size (W64 8).toNat = 8 := by rw [hsz]; decide
   have hmax8 : max m.size (W64 8).toNat = 0x10000 := by rw [hsz]; decide
-  ihave Hc8 : mcellsAny (GF := GF) m.maps (min m.size (W64 8).toNat) (max m.size (W64 8).toNat) $$ []
+  ihave Hc8 : mcellsAny (GF := GF) m.maps (min m.size (W64 8).toNat) (rsHi true m.size (W64 8).toNat) $$ []
   · unfold mcellsAny; rw [hmaps]; iapply BigSepM.bigSepM_empty.2; iempintro
   wp_apply os.File.Truncate.wp_proof f fd name dqf (W64 8) dq ⟨i, true, true⟩ m (bs.drop 8)
       hfd0 rfl (by decide) (by simp [hbl, hsz])
@@ -341,14 +341,14 @@ theorem wp_ZeroToEnd (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
   (try wp_auto)
   wp_apply wp_Fd f fd name dqf $$ Hf as Hf
   (try wp_auto)
-  have hsh : (rsPost m (W64 8).toNat (W64 8).toNat).size = 8 := rfl
-  have hmaps2 : (rsPost m (W64 8).toNat (W64 8).toNat).maps = ∅ := by simp [rsPost, hmaps]
-  ihave Hc0 : mcellsAny (GF := GF) (rsPost m (W64 8).toNat (W64 8).toNat).maps
-      (rsPost m (W64 8).toNat (W64 8).toNat).size
-      (max (rsPost m (W64 8).toNat (W64 8).toNat).size ((W64 0).toNat + (W64 0x10000).toNat)) $$ []
+  have hsh : (rsPost true m (W64 8).toNat (W64 8).toNat).size = 8 := rfl
+  have hmaps2 : (rsPost true m (W64 8).toNat (W64 8).toNat).maps = ∅ := by simp [rsPost, hmaps]
+  ihave Hc0 : mcellsAny (GF := GF) (rsPost true m (W64 8).toNat (W64 8).toNat).maps
+      (rsPost true m (W64 8).toNat (W64 8).toNat).size
+      (max (rsPost true m (W64 8).toNat (W64 8).toNat).size ((W64 0).toNat + (W64 0x10000).toNat)) $$ []
   · unfold mcellsAny; rw [hmaps2]; iapply BigSepM.bigSepM_empty.2; iempintro
   wp_apply golang_org.x.sys.unix.Fallocate.wp_grow fd (W64 0) (W64 0x10000) dq ⟨i, true, true⟩
-      (rsPost m (W64 8).toNat (W64 8).toNat) rfl (by decide) (by decide)
+      (rsPost true m (W64 8).toNat (W64 8).toNat) rfl (by decide) (by decide)
     $$ [Hos Hfd Hm Hc0] as %e1 ⟨Hfd, %n1, Hr⟩
   · iframe; iexact Hos
   icases Hr with (⟨%he1, Hg⟩ | ⟨%he1, -⟩)
@@ -381,7 +381,7 @@ theorem wp_ZeroToEnd (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
   iexists _
   iframe Hm Hb8
   ipureintro
-  simp only [rsPost, hsh]
+  simp only [rsPost, rsHi, hsh]
   constructor <;> decide
 
 /-- `readFull(f, buf)` at the offset `o` of a non-empty `buf` (at most `maxRW` bytes) inside the

@@ -124,13 +124,13 @@ def SegFl.Ok (fl : SegFl) (g : SegG) : Prop :=
     fl.bs.drop (cfHi fl.m fl.off fl.data.length) ∧ 0 < fl.off
 
 /-- **The segment `g` as the resize in flight `fl` to `tg` announced it** (I3b; `wp_osResizeStart`):
-`g`'s `OsMeta` the token's (`TokInfo.meta`: `m` with `[min size tg, max size tg)` announced, the
+`g`'s `OsMeta` the token's (`TokInfo.meta`: `m` with `[min size tg, rsHi true size tg)` announced, the
 target `tg`), its bytes `fl.bs` with zero added as a candidate of each byte cut off (`rsAnn`; none
 if it grows the file); the resize keeps byte 0 (`0 < min size tg`), so that the invariant keeps
 half of it, as `SegFl.Ok`'s `0 < fl.off`. -/
 def SegFl.OkR (fl : SegFl) (tg : Nat) (g : SegG) : Prop :=
   fl.bs.length = fl.m.size ∧ fl.m.cut = none ∧
-  g.om = fl.m.announce (min fl.m.size tg) (max fl.m.size tg) tg ∧
+  g.om = fl.m.announce (min fl.m.size tg) (rsHi true fl.m.size tg) tg ∧
   g.bs = fl.bs.take (min fl.m.size tg) ++ rsAnn fl.n (fl.bs.drop (min fl.m.size tg)) ∧
   0 < min fl.m.size tg
 
@@ -251,10 +251,13 @@ def SegsNamed (segs : List SegG) (ents : Ents) : Prop :=
   ∀ b e, walNameP b = true → ents !! b = some e → ∃ i, e = .file i
 
 /-- **`SegsNamed` after a crash**: the segments the crash kept named (their files among the
-directory's `.wal` files) are at their names; every `.wal` entry is a file. -/
+directory's `.wal` files) are at their names; every `.wal` entry is a file, and a segment's (a crash
+names no other file at a `.wal` name: `cut`'s rename dropped by a crash leaves its new segment at
+no `.wal` name, W2). -/
 def SegsNamedC (segs : List SegG) (ents : Ents) : Prop :=
   (∀ g ∈ segs, walNameP g.name = true ∧ (g.ino ∈ walInos ents → ents !! g.name = some (.file g.ino))) ∧
-  ∀ b e, walNameP b = true → ents !! b = some e → ∃ i, e = .file i
+  (∀ b e, walNameP b = true → ents !! b = some e → ∃ i, e = .file i) ∧
+  ∀ i ∈ walInos ents, i ∈ segs.map (·.ino)
 
 /-- **Every WAL's segments are at their names** (framed; W3/W5): now, in every claim of its
 directory the invariant holds (`WalDirClaim`), and after every crash the claims allow. Established
@@ -265,9 +268,9 @@ def WalsNamed (Ls : GMap GoString WalLay) (cl : List Claim) (n : Nat) : Prop :=
     (∀ hj, WalDirClaim lay.j hj cl → SegsNamed lay.segs hj.cur) ∧
     ∀ m', RegionCrashed cl n m' → SegsNamedC lay.segs (entsOf m' lay.j)
 
-theorem SegsNamed.crash {segs : List SegG} {ents : Ents} (h : SegsNamed segs ents) :
-    SegsNamedC segs ents :=
-  ⟨fun g hg => ⟨(h.1 g hg).1, fun _ => (h.1 g hg).2⟩, h.2⟩
+theorem SegsNamed.crash {segs : List SegG} {ents : Ents} (h : SegsNamed segs ents)
+    (hsub : ∀ i ∈ walInos ents, i ∈ segs.map (·.ino)) : SegsNamedC segs ents :=
+  ⟨fun g hg => ⟨(h.1 g hg).1, fun _ => (h.1 g hg).2⟩, h.2, hsub⟩
 
 /-- `SegsNamed` of a claim's view of the directory, its names all but non-`.wal` ones. -/
 theorem SegsNamed.restrict {segs : List SegG} {ents : Ents} {X : List GoString}
@@ -337,7 +340,7 @@ def segResF (F : GMap Ino SegFl) (g : SegG) : IProp GF :=
         osBytes (L := L) g.ino 0 (DFrac.own (1 : Qp).half) (fl.bs.take (cfLo fl.m fl.off)) ∗
         osBytes (L := L) g.ino (cfHi fl.m fl.off fl.data.length) (DFrac.own (1 : Qp).half)
           (fl.bs.drop (cfHi fl.m fl.off fl.data.length)) ∗ ⌜fl.Ok g⌝)
-    | some tg => iprop(rsTok (L := L) fl.t g.ino tg fl.m (fl.bs.drop (min fl.m.size tg)) fl.n ∗
+    | some tg => iprop(rsTok (L := L) true fl.t g.ino tg fl.m (fl.bs.drop (min fl.m.size tg)) fl.n ∗
         osBytes (L := L) g.ino 0 (DFrac.own (1 : Qp).half) (fl.bs.take (min fl.m.size tg)) ∗
         ⌜fl.OkR tg g⌝)
 

@@ -3,7 +3,8 @@
 `os.WriteFile` of an empty file there, `os.Remove` of it, in the tree's shared mode. For a directory `J`
 at `dir` (a spine to it, a fraction) whose name `.touch` holds nothing, the caller holding that name's
 claim whole (`TouchDirAll`'s fresh directory: `MkdirAll` made it empty). On success `.touch` holds
-nothing again (the create and the unlink logged); on an error, it may hold the probe file. `dir`'s
+nothing again (the create and the unlink logged); on an error, it may hold the probe file, never a
+directory (so the caller's claims still cover `dir`'s subtree). `dir`'s
 length is bounded (`filepath.Join`'s premise). Proved in
 `LinuxFs/Proof/go_etcd_io/etcd/client/pkg/v3/fileutil/IsDirWriteable.lean`. Lean-first (W4).
 -/
@@ -40,7 +41,8 @@ abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.IsDirWriteable.spec : Prop :=
     (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.IsDirWriteable)) (Val #dir))
   {{ (err : GoInterface), RET #err; osPathS R dir dq J ∗ osCallPerm qc ∗
       ∃ hJ', osNames J (.only [go!".touch"]) (DFrac.own 1) hJ' ∗
-        ⌜err = interface.nil → hJ'.cur !! go!".touch" = none⌝ }}
+        ⌜(err = interface.nil → hJ'.cur !! go!".touch" = none) ∧
+          ∀ J', hJ'.cur !! go!".touch" ≠ some (.dir J')⌝ }}
 
 end spec
 

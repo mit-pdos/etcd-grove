@@ -45,7 +45,8 @@ theorem walInos_mem {E : Ents} {i : Ino} (h : i ∈ walInos E) :
 theorem segsNamedC_congr_ents {segs : List SegG} {E1 E2 : Ents}
     (h : ∀ b, walNameP b = true → E1 !! b = E2 !! b) (hs : SegsNamedC segs E1) :
     SegsNamedC segs E2 := by
-  refine ⟨fun g hg => ?_, fun b e hb he => hs.2 b e hb (by rw [h b hb]; exact he)⟩
+  refine ⟨fun g hg => ?_, fun b e hb he => hs.2.1 b e hb (by rw [h b hb]; exact he),
+    fun i hi => hs.2.2 i (by rw [walInos_congr h]; exact hi)⟩
   obtain ⟨hw, hin⟩ := hs.1 g hg
   refine ⟨hw, fun hi => ?_⟩
   rw [← h _ hw]

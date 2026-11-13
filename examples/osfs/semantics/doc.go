@@ -38,6 +38,8 @@
 //	data_resize_chunks.go         partial resize (F5)                CrashFile (targets), FallocFinish
 //	data_durable_zeros.go         pages past a durable size: zeros   diskByte, OsFile.ofDisk, OsFile.synced
 //	data_append_old_block.go      the end's block is not ordered     diskByte (the end's page), CrashFile
+//	data_writeback_tail_zeros.go  writeback zeroes the end's tail    CrashFile (zero at or past sizeLo)
+//	data_truncate_tail_zeros.go   ftruncate zeroes the end's page    OsChange.ofResize (pageEnd), pageEnd
 //	data_extension_zeros.go       extensions read zeros (F3 refuted) OsFile.resized, OsFile.written
 //	data_keep_size.go             FALLOC_FL_KEEP_SIZE: no change     FallocKeep
 //	data_short_io.go              short and failed pread/pwrite      PRead, PWriteFinish
@@ -62,6 +64,9 @@
 //	model_os_stat.go              Stat/Lstat as open+fstat+close     os.lean: model.stat, arbitraryMode
 //	model_os_mkdirall.go          MkdirAll: Go's body over models    os.lean: MkdirAll.impl
 //	model_os_mkdirall_above.go    MkdirAll at or above a root        Impl.lean: PathKind; os.lean: mkdirAllAbove
+//	model_os_stat_above.go        Stat/Lstat above a root, no step   Impl.lean: PathKind, AboveRoot; os.lean: statAbove
+//	model_os_open_above.go        Open/Sync/Close above a root       Impl.lean: Open (OpenOutside), OutSync, OutClose
+//	model_os_filestat_name.go     fileStat.Name: base of the path    os.lean: fileStat, model.base; os.toml
 //	model_os_removeall.go         RemoveAll over paths, rename-free  os.lean: RemoveAll.impl, removeAllFrom
 //	model_os_writefile.go         WriteFile; an empty Write          os.lean: File.Write.impl; WriteFile
 //

@@ -149,7 +149,8 @@ theorem statSees_gt {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γ
     unfold TokInfo.lo TokInfo.hi at hnr; unfold TokInfo.target at hlo
     cases hkk : ti.kind with
     | write off data => simp only [hkk] at hnr hlo; omega
-    | truncate sz' => simp only [hkk] at hnr hlo; omega
+    | truncate sz' => have := le_pageEnd (max ti.m0.size sz'); simp only [hkk] at hnr hlo; omega
+    | falloc sz' => simp only [hkk] at hnr hlo; omega
 
 /-- `flock(fd, how)`: any errno. -/
 theorem wp_osFlock (fd how : w64) (dq : DFrac) (d : OsFd) (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
@@ -212,7 +213,7 @@ theorem wp_osFdKind (fd : w64) (dq : DFrac) (d : OsFd) (hE : ↑osN ⊆ E) (Φ :
   simp only [IsFsStep] at Hst
   obtain ⟨fd', hv, rfl, hres⟩ := Hst
   cases go.intoVal_inj hv
-  rcases hres with ⟨-, rfl⟩ | ⟨hn, -, -⟩
+  rcases hres with ⟨-, rfl⟩ | ⟨hn, -, -⟩ | ⟨hn, -⟩
   · imod cells_same hwf hwf Hr Hfr rfl rfl $$ [Hσ Hcells] with ⟨Hσ, Hcells⟩
     · iframe
     imodintro
@@ -222,6 +223,7 @@ theorem wp_osFdKind (fd : w64) (dq : DFrac) (d : OsFd) (hE : ↑osN ⊆ E) (Φ :
     · ipureintro; exact ⟨hwf, hcoh⟩
     iapply wp_value'
     iapply HΦ $$ Hfd
+  · rw [hfd] at hn; cases hn
   · rw [hfd] at hn; cases hn
 
 /-- `fstat(fd)`'s size, with a fraction of the file's `OsMeta`: its size, or an errno. -/
@@ -537,7 +539,7 @@ theorem wp_osPRead_racy_list (fd off n : w64) (dq : DFrac) (d : OsFd)
 end of the size's last page on (`OsFile.synced`). -/
 def OsMeta.synced (m : OsMeta) : OsMeta :=
   { m with
-    lo := m.size, hi := m.size, dlo := 0, dhi := 0, zf := some (pageUp m.size), tc := ∅ }
+    lo := m.size, hi := m.size, dlo := 0, dhi := 0, zf := some (pageEnd m.size), tc := ∅ }
 
 /-- The `n` bytes from `lo` hold every byte below the size that `m` says may not be durable (those
 in `[dlo, dhi)`). -/
@@ -639,7 +641,7 @@ theorem wp_osFsync2 (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat) (
         · intro b _ _; exact synced_cand f _ b (hnoI b)
         · intro z hz
           simp only [OsMeta.synced, Option.some.injEq] at hz; subst hz
-          refine ⟨by rw [hmo.size]; exact le_pageUp _, fun b hb => ?_⟩
+          refine ⟨by rw [hmo.size]; exact le_pageEnd _, fun b hb => ?_⟩
           rw [synced_cand f _ b (hnoI b)]
           simp only [f', OsFile.synced, if_neg (hnoI b)]
           rw [diskByte_past (by rw [← hmo.size]; exact hb)]
@@ -768,7 +770,7 @@ theorem wp_osFsync (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat) (x
 resources' candidates now relate to the state's through the cut `c` (`CandRel`), the candidates
 known past the size are forgotten, and zeros are known from the end of the size's last page on. -/
 def OsMeta.bsynced (m : OsMeta) (c : Nat) : OsMeta :=
-  { m with cut := some c, zf := some (pageUp m.size), tc := ∅ }
+  { m with cut := some c, zf := some (pageEnd m.size), tc := ∅ }
 
 /-- The resource's candidates' stamps are at most `S` if the state's are and the cut is. -/
 theorem CandRel.stamps_le {o : Option Nat} {cs sc : Cands} (h : CandRel o cs sc) {S : Nat}
@@ -856,7 +858,7 @@ theorem wp_osFsyncB (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (hE : ↑osN
         · intro b _ _; exact synced_cand f _ b (hnoI b)
         · intro z hz
           simp only [OsMeta.bsynced, Option.some.injEq] at hz; subst hz
-          refine ⟨by rw [hmo.size]; exact le_pageUp _, fun b hb => ?_⟩
+          refine ⟨by rw [hmo.size]; exact le_pageEnd _, fun b hb => ?_⟩
           rw [synced_cand f _ b (hnoI b)]
           simp only [f', OsFile.synced, if_neg (hnoI b)]
           rw [diskByte_past (by rw [← hmo.size]; exact hb)]
@@ -1315,7 +1317,7 @@ theorem osCell_agree (e : Expr) (htv : toVal e = none) (p : Ino) (dqm : DFrac) (
   iintro %σ %g Hl Hg
   icases (os_local_ctx_eq σ).mp $$ Hl with Hl
   unfold osCtx osCtxF
-  icases Hl with ⟨⟨%Γb, %Γm, %Γf, %Γt, %Hwc, HAb, HAm, HAf, HAt, Htok, Hv⟩, Hns⟩
+  icases Hl with ⟨⟨%Γb, %Γm, %Γf, %Γt, %Hwc, HAb, HAm, HAf, HAt, Htok, Hv⟩, Hns, Hof⟩
   obtain ⟨hwf, hcoh⟩ := Hwc
   unfold osInv
   imod inv_acc hE $$ Hinv with ⟨Hi, Hclose⟩
@@ -1343,10 +1345,10 @@ theorem osCell_agree (e : Expr) (htv : toVal e = none) (p : Ino) (dqm : DFrac) (
   imod Hclose $$ [Hv' Hcells] with -
   · inext; iexists (cellView σ), (GMap.size σ.proc.inflight); iframe
   imodintro
-  isplitl [HAb HAm HAf HAt Htok Hv Hns]
+  isplitl [HAb HAm HAf HAt Htok Hv Hns Hof]
   · iapply (os_local_ctx_eq σ).mpr
     unfold osCtx osCtxF
-    iframe Hns
+    iframe Hns Hof
     iexists Γb, Γm, Γf, Γt
     iframe
     ipureintro; exact ⟨hwf, hcoh⟩

@@ -57,7 +57,7 @@ theorem os.rmFileOut_join (j : Ino) (b : GoString) (i : Ino) (h : NamesH) (o : O
     rmFileOut (GF := GF) j b i h (DFrac.own (1 : Qp).half) o ∗
       rmFileOut (GF := GF) j b i h (DFrac.own (1 : Qp).half) o ⊢
       ∃ h', osNames (GF := GF) j (.only [b]) (DFrac.own 1) h' ∗
-        ⌜o.isSome → h'.cur !! b = none⌝ := by
+        ⌜(o.isSome → h'.cur !! b = none) ∧ (h'.cur !! b = none ∨ h'.cur !! b = h.cur !! b)⌝ := by
   unfold rmFileOut
   cases o with
   | none =>
@@ -66,7 +66,7 @@ theorem os.rmFileOut_join (j : Ino) (b : GoString) (i : Ino) (h : NamesH) (o : O
     iexists h
     isplitl [H1 H2]
     · iapply (osNames_join j _ _ _ h (Qp.half_add_half 1)).1 $$ [$H1 $H2]
-    ipureintro; intro hc; cases hc
+    ipureintro; exact ⟨fun hc => (by cases hc), Or.inr rfl⟩
   | some xs =>
     obtain ⟨x, s⟩ := xs
     simp only [claimOut]
@@ -74,9 +74,11 @@ theorem os.rmFileOut_join (j : Ino) (b : GoString) (i : Ino) (h : NamesH) (o : O
     iexists _
     isplitl [H1 H2]
     · iapply (osNames_join j _ _ _ _ (Qp.half_add_half 1)).1 $$ [$H1 $H2]
-    ipureintro; intro _
+    ipureintro
+    have hn : (restrictN (.only [b]) (GMap.delete b h.cur)) !! b = none := by
+      rw [restrictN_lookup _ _ _ (by simp [NameSet.Mem]), GMap.lookup_delete]
     simp only [NamesH.log]
-    rw [restrictN_lookup _ _ _ (by simp [NameSet.Mem]), GMap.lookup_delete]
+    exact ⟨fun _ => hn, Or.inl hn⟩
 
 theorem go_etcd_io.etcd.client.pkg.v3.fileutil.IsDirWriteable.wp_proof
     (wp_Join : filepath.Join.spec (GF := GF) (hG := hG))
@@ -114,12 +116,14 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.IsDirWriteable.wp_proof
     · dsimp only [crOut]
       iexists hJ
       iframe
-      ipureintro; intro hc; cases hc
+      ipureintro; exact ⟨fun hc => (by cases hc), fun J' h => by rw [hnone] at h; cases h⟩
     · dsimp only [crOut]
       icases Hout with ⟨-, -, Hn⟩
       iexists _
       iframe
-      ipureintro; intro hc; cases hc
+      ipureintro
+      refine ⟨fun hc => (by cases hc), fun J' h => ?_⟩
+      simp [NamesH.log] at h
   | nil =>
     obtain ⟨⟨x, s, i⟩, rfl⟩ := Option.isSome_iff_exists.1 (hok rfl)
     dsimp only [crOut]
@@ -142,7 +146,11 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.IsDirWriteable.wp_proof
     (try wp_auto)
     iapply HΦ
     iframe
-    ipureintro; intro he; exact hc (hok' he)
+    ipureintro
+    refine ⟨fun he => hc.1 (hok' he), fun J' h => ?_⟩
+    rcases hc.2 with hc | hc <;> rw [hc] at h
+    · cases h
+    · rw [hcur] at h; cases h
 
 end proof
 

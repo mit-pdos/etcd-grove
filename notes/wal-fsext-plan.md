@@ -506,7 +506,7 @@ module; the bboltfs/crashlog/walfs examples and the generated translations not l
   `openWALFiles.wp_proof`, `WAL.ReadAll.wp_proof`, `WAL.Save.wp_proof`, `WAL.SaveSnapshot.wp_proof`,
   `WAL.Sync.wp_proof`, `WAL.cut.wp_proof`, `WAL.saveEntry.wp_proof`, `WAL.saveState.wp_proof`,
   `WAL.sync.wp_proof`, `wal.tailWriter` (`TailWriter.lean`);
-- `fileutil/`: `ReadDir.wp_proof`, `TouchDirAll.wp_proof`, `CreateDirAll.wp_proof` (`TouchDirAll.lean`);
+- `fileutil/`: `ReadDir.wp_proof` (`TouchDirAll`/`CreateDirAll` proved, `wal-create7`, over the above-root hypotheses);
 - `os/`: `File.Truncate.wp_proofAu` (`File__TruncateAu.lean`), `File.WriteAt.wp_proof_long` (`WriteLong.lean`,
   past 1 GiB).
 Not yet stated (no `sorry`, no statement): `Close`, `ReleaseLockTo`, `Repair`, `ValidSnapshotEntries`, `Exist`
@@ -788,6 +788,15 @@ holds some mode). Nothing proves the new models yet.
   (`notes/perennial-changes.md`, "`io.ReadFull`/`ReadAtLeast` and `binary.Read`'s fast path without
   bodies"); the `fmt`/`time` ones likewise ("`Sprintf`'s `%0Nx`, ..."), with Go evidence for all three
   in `examples/stdlib/{fmtwalname,timeformat}/`.
+- **`wal-read5`** (2026-11-13): `io.readerStream` takes `len(r) + len(p) < 2^62` of each `Read` (decided
+  option (a) of the `wal-read4` finding: the `*os.File` model does not model reads ending past
+  `model.offMax`). So the `io.ReadFull` axiom's statement is **weakened** by the premise `len(r0) +
+  len(buf) < 2^62` (a stronger precondition: what the axiom claims is less); `binary.ReadInt64LE`'s is
+  stated over `ReadFull`'s triple and does not change. `bufio.ownReader` records the buffer at most 4 KiB
+  and `bufio.Reader.Read.spec` asks that the underlying stream's states stay 4 KiB below `2^62` (a
+  refill reads a whole buffer at the position); `decFile`'s bound is now `|F.bs| + 2^12 < 2^62`;
+  `readInt64` takes `len(r0) + 8 < 2^62`. The decoder discharges both reads: the length word inside
+  `|F.bs| + 8`, the frame at most 8 bytes past the file (Go's size check counts from `lastValidOff`).
 
 **Pending the user's review (trusted or axiomatic), all off `lean`:** the fork fixes (§8,
 `notes/wal-fsext-fork/`); W1 (the crash premise, `LinuxFs/.../wal/W1.lean`; the open question of torn
@@ -1211,6 +1220,90 @@ on three facts the invariant does not record.**
   budget (W6). The order the proof must take: the header phase over `walPreInL` with the old segments'
   locks in `ls`, `encode.specG`/`saveCrc.spec` (both still unproved over `writerStreamP`).
 
+**Fifth session (branch `wal-cut5`, 2026-11-13): the rename's update proved, over one pure lemma.**
+- *`walCut_osAUnc`* (`CutAu.lean`, **proved**): the update for `os.Rename.specFileSnc` of the pipeline's
+  `tmp` (claim `(j, .only [tmp], ht)`, the program's half in the update, the call's half) onto the free
+  `.wal` name `bt` of the WAL claim `(j, .except X, hj)`. The program splits its half of the WAL claim:
+  a quarter in the update (`walCutP`, to agree with the invariant's half at the opening; the key
+  `walDirKey dir j X` finds the claim by `DirKeysOk`'s `ClaimOnce`), a quarter to the call; `α` is
+  the tmp claim's half and the WAL claim's `½ + ¼`. Commit: `walCut_agree`/`walCut_set` (`none` →
+  `some dir`); `walTailsRes_cut` (the tail record gives `d`, `lay`, `g0`; the program's `H`, metadata,
+  cuts, old tail inode are substituted); the old tail's halves agree with the program's (`hlast0`:
+  synced, truncated); `laysResF_ino_ne` (the new segment's inode fresh); the invariant takes half of the
+  new claim (`cutClaim`), the new segment's halves (`laysResF_cut`), the tail record moved
+  (`tailG_cut`), the old tail's program halves deposited (`walParked_cut`: `O' = g.ino :: O.filter (·
+  ≠ g0.ino)`, `D' = cutClaim :: D`; if the old tail was already parked, the program's halves are
+  dropped). `walCutQ` gives back the claims' new histories (½ tmp, ¼ WAL), the keys, the tail record at
+  the new segment, the flags (`walCutFrag (some dir)`), the new segment's other halves.
+  Program premises (over its copy `H`, `md`, `cuts`): `tmp ∈ X`; the cuts below `|H|`; the old tail at
+  the `.wal` name `nm0` of `hj.cur`; `bt` free, a `.wal` name, `walFileName sq ix` past `nm0` with `ix`
+  past the history's last index; the old tail's bytes the stream's, durable, `|bs0| = m0.size`; the new
+  segment's bytes the headers' frames (`wr`) then zeros, durable, `OsMeta` sized, named `bt`, nonempty;
+  `RecsFit` of the new segmentation; `walSyncedLb dir |H|`, `walNamed dir` (in `walCutP`).
+- *`CutAuLemmas.lean`* (proved): `walGhost_synced`, `walGhost_named` (past states → `d.m`, `d.named`),
+  `walTailsRes_cut`, `laysResF_cut`, `walParked_cut`, `walDirClaimOf_insert`.
+- **`sorry`: `cutCommit_pure`** (`CutCommit.lean`): every pure conjunct after the commit (`WalsOk`,
+  `WalsCreateOk`, `CreatingOk`, `AbsentNone`, `WalsNamed`, `DirKeysOk … (some dir)`), its plan in the
+  file header. The two non-obvious parts: `cutLay_abs`'s `hents` (`bt` is the largest `.wal` name of
+  `hj.cur`: `nm0` is the last segment's name, since `walInos` of the sorted names are the segments'
+  inodes, `Nodup`), and `WalsNamed`'s crash dropping the rename (`g.ino` in no `.wal` entry of `j`: the
+  old crash condition, the WAL named, puts only the old segments' inodes there; hence `walNamed` in
+  `walCutP`); `DirsOk` needs "a lookup succeeding in `treeDel m' j bt` reads no `(j, bt)`".
+- **`walHandleIn` change** (`Handle.lean`): a new conjunct `walDirH dir h.ino name` (the key
+  `walDirKey dir j X`, the program's half of `(j, .except X, hj)`, `osPathS R dir dq j ∗ osSharedInv
+  R`, `osCallPerm ½`, the tail at `.wal` name `nm0` of `hj.cur` with `name = child dir nm0`). Producers
+  (`Create`'s body, `ReadAll`) must provide it; nothing destructured `walHandleIn` before. Its pipeline
+  (`walPipeH`) still has its own `∃ j`: `cut` ties it to `walDirH`'s by path agreement.
+- **`Ghost.lean`**: `walOpenWC` (sealed: `walOpenW` without its two flags) and `walOpenW_cut :
+  walOpenW ⊣⊢ walOpenWC ∗ walParkFrag false ∗ walCutFrag none` (the update needs the parking flag to know
+  the handle's halves are out, and sets the cut flag).
+- **For W6 / `cut.spec`**: the update needs the cuts strictly below `|H|` (`cutLay_abs`'s increasing
+  cuts), so `cut.spec` needs `∀ b ∈ h.cuts, b < h.H.length` (Save's op is committed before its cut; a
+  second cut at the same length would break `WalAbsD.cuts`): not yet added to the statement.
+- *`(*WAL).cut`*: still `sorry`. Its rename step is now `os.Rename.specFileSnc` with
+  `walCut_osAUnc` (q1 = ½, q2 = ¼); the dir sync then `crashOk_dirSync` with `walCut_set` back to
+  `none` (a lemma opening `walInv` via `wp_notCrashed_acc`, the analog of this one, not written).
+
+**Sixth session (branch `wal-cut6`, 2026-11-13): `cutCommit_pure` proved.**
+- *`cutCommit_pure`* (`CutCommit.lean`, **no `sorry`**), over `CutCommitPure.lean` (the rename's writes,
+  `replClaim` membership and `ClaimOnce`, `walClaim_eq` (the keyed claim is `j`'s only claim on `.wal`
+  names), `walName_unique` (distinct files, one `.wal` name each), `walInos_insert_last` (`bt` above every
+  name: its file last), `regionCrashed_cut` (a crash of the new claims is one of the old, on the tree or
+  on `treeDel m' j bt`), `lookupH_treeDel`, `crashOkA_cut_other`) and `CutCommitLemmas.lean`
+  (`walsOk_dir_ne`: another WAL's directory is not `j`; `creatingOk_cut`, `absentNone_cut`, `dirsOk_cut`,
+  `walsNamed_cut`, `dirKeysOk_cut`). `nm0` is the last segment's name by `walName_unique`; `bt` the
+  largest by the segments' names sorted.
+- **Invariant change: `SegsNamedC` gains a third clause** (`Inv.lean`): every file at a `.wal` name after
+  a crash is a segment's (`∀ i ∈ walInos ents, i ∈ segs.map (·.ino)`). `WalsNamed`'s crash clause for a
+  crash dropping the cut's rename must say the new segment is at no `.wal` name; the old crash condition
+  says so only for crashes whose files `FileCrashedR` allows, and no such files can be produced purely
+  (an old segment's `zf` is not recorded: a durable nonzero byte past a `zf` below the size would admit
+  none). Re-proved: `SegsNamed.crash` (takes the clause), `walsNamed_start` (`WalAbsD.names`),
+  `walsNamed_tail`/`segsNamedC_congr` (the inodes kept), `segsNamedC_congr_ents`, `walCrash_pure`.
+  **For W4 (`wal-create7`)**: `walCreate_osAUnc`'s `hJC` now asks the clause too (after any crash of `J`'s
+  claim, its `.wal` files are the new segment's: the claim's boot holds no `.wal` file, its entries are
+  the segment's create).
+- **Statement change**: `cutCommit_pure` and `walCut_osAUnc` take `walCutPos (H.map toM) |H|` (`cutLay_abs`'s
+  `hcut`: the new segment starts at a cut position, i.e. after a `Save` that wrote a record), so `cut.spec`
+  needs it from `Save` (with the cuts below `|H|`).
+- **`cut.spec` premises added** (`wal-save6` had not added the handle bound): `∀ b ∈ h.cuts, b < h.H.length`
+  and `walCutPos (h.H.map WalOpG.toM) h.H.length`. `Save`'s proof (W6) supplies them: the cut follows the
+  `Save` that wrote a record, after every earlier cut.
+- *`CutSync.lean`* (proved): `walInvBody_cutSynced`, step 7's update (after `os.File.Sync.specDirS`'s
+  `osCommitLb n`, `x < n`, the program opening `walInv` with `wp_notCrashed_acc`): the program's fraction
+  of the WAL claim agrees with the invariant's (history ending with the rename), the tail record names
+  the layout's last segment `i` (`walTailsRes_lookup`), so the alternative's segments, a strict prefix,
+  miss `i` and `crashOk_dirSync` drops it; the flag back to `none` (`dirKeysOk_cutSynced`, at `max n0 n`).
+- *`(*WAL).cut`*: still `sorry`. Done of its steps: 4 (`wp_walPipeH_open`), 6 (`walCut_osAUnc`), 7
+  (`walInvBody_cutSynced`). Left: 1 (split-form `os.File.Truncate.specAu`, its proof `sorry`, on the
+  tail's `walTailW`), 2 (`sync.spec` on the truncated tail, then the `walSyncedLb |H|` and the durable
+  bytes `walCut_osAUnc` needs), 3 (`w.seq()`: `filepath.Base`/`parseWALName` of `Name()`; the
+  `max(enti, snapi) + 1` naming and `walLastIdx` bound from the handle), 5 (the header phase over the
+  owned `N.tmp`: `newFileEncoder`, `saveCrc`, `encode(Metadata)`, `saveState.specPre`, `sync.specPreL`
+  over `walPreInL` with the old locks in `ls`), 8 (`Close`, `LockFile` of the renamed `.wal`
+  (`os.OpenFile.wp_fileS`), `Seek`, `newFileEncoder`), and rebuilding `walHandleIn` (with `walDirH` at
+  the new claim history, `walPipeH_next`).
+
 ## W4 implementation log (branch `wal-create`, 2026-11-13)
 
 **Statements (`sorry`-stubbed proofs):** `LinuxFs/Spec/.../storage/wal/Create.lean` (`wal.Create.spec C Mr`),
@@ -1526,6 +1619,110 @@ update: `s.wal dir := walDurFresh md`, the new layout and its `CrashOk`); then `
   `IsDirWriteable`'s post must also say `.touch` holds no directory (for the error arm's `SubCover`).
 - *Not done:* `TouchDirAll`/`CreateDirAll` `wp_proof`s (`sorry`), the `walCreating` minting step,
   `wal.Create.wp_proof`.
+
+**Seventh session (branch `wal-create7`, 2026-11-13).**
+- *Proved (no `sorry`):* **`fileutil.TouchDirAll.wp_proof`** and **`fileutil.CreateDirAll.wp_proof`**
+  (`LinuxFs/Proof/.../fileutil/TouchDirAll.lean`), over hypotheses `Exist.spec`, `filepath.Clean`/`Dir`,
+  `os.MkdirAll.specS`, `IsDirWriteable.spec`, `syncDir.spec`, `ReadDir.spec` (CreateDirAll) and the two
+  above-root hypotheses (`os.Stat.specAboveRoot`, `syncDir.specAboveRoot`; `wal-above` replaces them).
+  Structure: `wp_existAnc` (`Exist` of the path of the first `k` components of `rcs ++ cs ++ [name]`:
+  `false` at `k = |full|`), the first loop as a `wp_join` at the `doFor` (invariant `d = ancPath (full.take
+  k)`, `created ↦* touchC full (k+1)`), `MkdirAll` with `osAU_triv` (`mkOut_join`), the second loop
+  (`forRange`; invariant `i < |created| ∨ osCommitLb h1.next`: the last element's `syncDir` is the parent's,
+  below the root), `IsDirWriteable` on `J`'s claim split at `.touch` and merged back (`merged_cur`); error
+  arms through `osSubtreeH_none`/`osSubtreeH_dir` (`subCover_noDirs`). `CreateDirAll`: `ReadDir` of the
+  fresh directory finds `[]` (its claim's `cur = ∅`), so the `fmt.Errorf` branch is unreachable.
+- *Spec change (minor):* `IsDirWriteable`'s post also says `.touch` holds no directory (`∀ J', hJ'.cur !!
+  .touch ≠ some (.dir J')`; `os.rmFileOut_join` gives the entry kept or deleted), for the error arm's
+  `SubCover`.
+- **Finding (task 2, for the invariant's owner/coordinator): `CreatingNew`'s third clause cannot be
+  established at the minting.** "No other creating entry's directory is `J`" needs, at the step at `⊤`
+  that mints `walCreating dir N h J`, that every entry `dir' ↦ (_, _, J')` of `CR` has `J' ≠ J`. Nothing the
+  program or the invariant holds says so: the invariant records no fragment of `J'`'s claim, and the
+  program's whole `J` claim can be compared (`NamesCoh`) only with fragments it holds. Only one `Create` is
+  ever in progress (it holds `osCallPerm 1` and the lock token throughout), so the fix is to know `CR = ∅` at
+  the minting. Proposed (internal ghost, no client-visible change): a conjunct tying `CR` to the parking flag
+  (`CR ≠ ∅ → CR` a singleton `∧` the parking flag `false`), the minting doing `walUnlockedTok_lock` (which
+  `walCreateP`'s `walLockedTok` needs anyway; `b = true ⇒ CR = ∅`) and inserting the entry; the abort path
+  (an unminting step: claims merged back, entry deleted, `walLockedTok_unlock`) restoring `CR = ∅`; `Close`
+  (W10, not yet stated) needing `CR = ∅` when it unparks: an open handle's `walHandleDir` (registered after
+  `Create`'s commit / at `Open`) could witness it (`CR ≠ ∅ →` no handle registered). The other three clauses
+  and `CreatingOk`'s facts are the shared invariant's at the minting (as designed). Also needed by the
+  minting (not written): the claim split's preservation of `WalsOk`/`AbsentNone`/`WalsNamed`/`walParked`/
+  `DirKeysOk` (replacing `(jr, N0, h0)` in `cl` by its `.inter [nm, nm.tmp]` and `.diff` parts:
+  `RegionCrashed` is the same for both claim lists under `ClaimCoh h0 jr N0`, since every logged entry of
+  `h0` writes a name of one part and `valAfter` of a part agrees with `h0`'s on its names), and for the
+  success post's `walAreaRes jr` the reverse merge after the parent fsync. Not started.
+- *Not done:* the minting step (above), `wal.Create.wp_proof` (`sorry`). For `Create`'s handle: `walHandleIn`
+  now has `walDirH` (`wal-cut5`): `Create` must give the key `walDirKey dir J X` (from `walCreateQ`), half of
+  `J`'s claim, a path fraction to `dir`, half the call permission and the tail's name.
+
+**Eighth session (branch `wal-create8`, 2026-11-13).**
+- *Task 1, the creating map tied to the lock (done, `Ghost.lean`).* Implemented without touching
+  `walParked` or the shape of `walInvBody` (so the concurrent units' `icases` patterns are unchanged):
+  **`walCreatingAuth CR`** is the map's authority and `⌜CR = ∅⌝ ∨ ⌜CR` a single entry`⌝ ∗ walLockedTok`
+  (the invariant holds the lock token, its parking flag `false`, while an entry exists).
+  `walCreating_mint` (from `walCreatingAuth CR`, `walParkAuth b`, `walUnlockedTok`: `CR = ∅` (a non-empty
+  map holds the one token), `b = true`, the lock taken by `walUnlockedTok_lock`, its token deposited with the
+  one entry); `walCreating_delete` (now in `Ghost.lean`: the entry's deletion empties the map and gives the
+  lock token back: `Create`'s commit, or the unminting on an abort, which then `walLockedTok_unlock`s);
+  `walCreating_lookup` moved there. `walCreateP` no longer holds `walLockedTok` (the invariant has it);
+  `walCreateQ`'s commit arm gets it from the deletion (`CreateAu.lean` repaired). **`Close`** needs nothing
+  more: it holds `walLockedTok`, so a non-empty map (holding the other copy of the token) is excluded
+  (`walLockedTok_excl`). The "single entry" is stated (cheap), though only the emptiness is used.
+- **Finding (blocks task 2/3; for the coordinator): `Create` cannot take the claim on `nm.tmp`.** The
+  minting needs `J`, so it comes after `CreateDirAll(nm.tmp)`, and `RemoveAll`/`CreateDirAll`/the segment's
+  creation need the **whole** claim on `.only [nm.tmp]` (`TouchDirAll.spec`, `osSubtreeH`). But the area
+  claim's other half is the invariant's (`walInv_alloc`'s `harea`; `N` cofinite, so it holds every
+  `nm.tmp`), so the program must take the invariant's half: **drop** `(jr, .only [tmp], hT)` from the
+  invariant's claims `cl` (W4 log's "giving back the invariant's halves"). Every pure fact of the invariant
+  quantifies over `RegionCrashed cl n m'`, and fewer claims allow more crashed trees: the facts must be
+  re-proved. Semantically they do not depend on `jr/tmp`, so it suffices that each crash `m'` of the smaller
+  list is, with `jr/tmp` reset, a crash of the larger one: extend its kept set `K` to the dropped claim's
+  entries, `K' y := (y` a remaining claim's index `∧ K y) ∨ (y` not one `∧ (y < n ∨ ∃` a kept remaining entry
+  `x, y < x.start))`. The closure of `K'` needs **`Starts`** (`e.start ≤ x` for the log's entries: a kept
+  dropped entry `x < n` forces every `y < x.start`) and the claims' entries at one index being the same log
+  entry. Neither is available where the drop happens: the shared invariant (`osSharedInv`) has `NamesCoh`
+  (every claim's history is `namesOf Vs`: the consistency) but not `Starts Vs.2`, which only the state
+  interpretation's `TreeCohS` has (Ghost.lean of the extension). Without `Starts` the extension is false in
+  general (a dropped entry below `n` with a large `start` forces later entries of other claims). The other
+  directions are fine: adding names to `cl` (the minting's merge of `.only [tmp]` into the creating claim, the
+  return of `tmp` on an error, the merge back into the area claim after the commit) only shrinks the crashed
+  trees, and a split keeps them (every entry of `namesOf` writes a name of its set).
+  **Proposed** (GooseLang/Ext/Fs, ghost layer, untrusted): `osSharedInv`'s pure part gains `Starts Vs.2`
+  (each shared-mode step closes it with the new state's `TreeCohS.starts`, `Vs.2` being the state's log by the
+  `γs` agreement); a law `osClaims_log : osSharedInv R -∗ osClaims L cl ={E}=∗ osClaims L cl ∗ ⌜∃ log, Starts
+  log ∧ ∀ c ∈ cl, ∀ (x, e, _) ∈ c.ents, log[x]? = some e⌝`; on the WAL side the drop lemma (pure, the `K'`
+  above, for a one-name claim: the crashed tree with `jr/tmp` set by `treeSetE`) and each fact's independence
+  of `jr/b` for a non-WAL `AreaSlot b` (`crashTo_congr`/`crashOkW_create_other` do most of it for
+  `treeUnren`). The same drop is needed by `cleanupWAL`'s `nm.broken.*` (W4's error arm).
+- *Task 2, pure part (done, `CreateDrop.lean`, no `sorry`):* `valAfter_congrK`, `valAfter_restrict`,
+  `mem_restrict_ents`/`restrict_ents_mem`/`restrict_ents_writes`; **`regionCrashedK_cover`** (a crash of
+  claims covering others, entry for entry and name for name, is one of theirs: adding names, splits,
+  merges); **`mintClaims cl jr N h nm tmp hC`** (the area claim `(jr, N, h)` replaced by its part off `nm`,
+  `(jr, .only [nm, tmp], hC)` appended) and **`regionCrashedK_mint`** (a crash of `mintClaims` is one of
+  `cl`, given `(jr, N, h) ∈ cl`, `h.restrict jr N = h` (`namesOf_restrict_self` at the step), `N ∋ nm`,
+  `hC.restrict jr (N.inter [nm]) = h.restrict jr (N.inter [nm])` (`osNames_merge`'s)); **`dropK`,
+  `regionCrashedK_drop1`** (the drop of a one-name claim, under `Starts log` and `ClaimsLog log cl`: the
+  finding's lemma, ready for the infrastructure). Every RC-quantified fact of the invariant carries over
+  to `mintClaims` by `regionCrashedK_mint` (the same tree).
+- *The minting step, plan (not written):* at a step with `walInv` and `osSharedInv` open, from the
+  program's `walUnlockedTok`, its half of the area claim `(jr, N, h)` (`N ∌ tmp`, after the drop), its
+  whole `.only [tmp]` claim (holding `J`) and `J`'s whole claim: `walCreating_mint` (so `CR = ∅` and the
+  parking flag was `true`: `walParked`'s `D = []`, so **`(jr, N, h)` is not `WalDirClaimOf Ls`**, else its
+  program half would be parked as well as in hand: three halves); find `(jr, N, h)` in `cl` (WalsCreateOk's
+  claim holding `nm` has the same key by `osNames_same_name`, `osNames_agree` the history; once, by the
+  halves' validity); join the halves, `osNames_split` at `[nm]`, `osNames_merge` of `N.inter [nm]` with
+  `.only [tmp]` into `.only [nm, tmp]`, halve both. The facts: the RC parts by `regionCrashedK_mint`;
+  `WalDirClaim` memberships kept (a WAL directory's claim is `WalDirClaimOf`, so not the replaced one);
+  `AbsentNone`'s first part (`nm`: `hC.cur !! nm = h.cur !! nm` from the restrictions' `cur`); `WalsCreateOk`
+  (`nm` in the creating claim, the rest in the part off `nm`); `walParked` (neither new claim is
+  `WalDirClaimOf`: `.only`, and `N.diff [nm]` iff `N`, `nm` not a `.wal` name); `DirKeysOk` (keyed claims
+  are of `j ≠ jr`, untouched); `CreatingOk` of the singleton map (`ClaimOnce` from the halves; `CreatingNew`:
+  `J ≠ jr` and no claim of `J` in `cl` holds a `.wal` name, both by `NamesCoh.disj` against the program's
+  whole `J` claim; the third clause vacuous, the map being a singleton; `.only [nm, tmp]` leaves out a
+  `.wal` name). The unminting is the reverse (`walCreating_delete`, then `walLockedTok_unlock`), the claims
+  merged back by `regionCrashedK_cover`.
 
 **For `wal-create6` (the invariant's owner, 2026-11-13).** (1) `walAreaRes jr` gains `⌜∀ nm J, walNameOk nm →
 h.cur !! tmpName nm = some (.dir J) → ∀ hJ, (J, NameSet.except [], hJ) ∈ cl → FilesOnly hJ.cur⌝` (a leftover
@@ -2019,3 +2216,92 @@ The W3/W5 log's gap 4 (`ZeroToEnd` on the tail; `cut`'s truncate of the old tail
   The proof takes `[os.Assumptions] [os.file.FieldAssumptions] [fileutil.Assumptions]`.
 - *Not done*: `openWALFiles`' loop, `openAtIndex`, `OpenForRead`, `Open`, `ReadAll` (blocked on the bridge
   above for the decoder's `decFile`s).
+
+**Fifth session (branch `wal-read5`, 2026-11-13).**
+- *Option (a) carried out* (no trusted change): `io.readerStream` takes `len(r) + len(p) < 2^62` of each
+  `Read` (§10 records the weakened `io.ReadFull` axiom). Ripple: `bufio.ownReader` records the buffer at
+  most 4 KiB; `bufio.Reader.Read.spec` and `FileBufReader.Read.spec` take, besides the read's own bound,
+  `□ ∀ r, S r -∗ ⌜|r| + 2^12 < 2^62⌝` of the underlying stream (a refill reads a whole buffer at the
+  position); `decFile`'s bound is `|F.bs| + 2^12 < 2^62`; `readInt64` takes `|r0| + 8 < 2^62`. The decoder
+  discharges both of its reads (the frame ends at most 8 bytes past the file: Go's size check counts from
+  `lastValidOff`, not past the length word). All re-proved (`lake build`).
+- *`decFile`'s `FileInfo` triple is now from any stream state, which it keeps* (`□ ∀ r, {{ F.S r }} ...
+  {{ F.S r ∗ ... }}`; was `{{ True }}`): an `*os.File`'s `Stat` needs the fd and the `OsMeta`, which only the
+  stream state holds. `NewFileBufReader.spec` takes the same form (proof: `bufio.ownReader_open` lends the
+  state out of the reader). `NewDecoder`, `decodeRecord`, `Decode` re-proved unchanged.
+- *Proved*: `os.File.Read.wp_eof` (`LinuxFs/Proof/os/ReadEof.lean`): `Read` over the whole file's bytes from
+  0 and its `OsMeta`: `k` bytes from the offset (`k ≤ len(p)`, inside the file), `nil` with `k > 0` unless `p`
+  is empty, `0, io.EOF` only at or past the end, or `0` and a `*PathError` (`fmtErrorOk`); any `len(p)` (reads
+  of more than 1 GiB are short).
+- *Proved: the bridge* `walDecFile_ok` (`wal/ReadBridge.lean`): `walDecFile rl f fd name fl g` (the
+  `*fileReader` at `rl`, the bytes `g.bs.map (·.1)`, the state `walFileS`) satisfies `decFile IoE eof`, given
+  `osInv`, `io.EOF`'s value, `rl ↦□ fileReader{f}`, the fd readable of `g.ino`, `g.om.size = |g.bs|`,
+  `|g.bs| + 2^12 < 2^62`, and `IoE` holding of every pointer error (`Read`'s `*PathError`, `Stat`'s error).
+  `walFileS` now also records `r <+: g.bs.map (·.1)` (ReadDefs; nothing constructed it yet).
+- **Finding (trusted model gap, for the coordinator/user)**: the `os` model's `fileStat` has no `name` and
+  `Name()` no body (its method set lists it, no unfold), so `fi.Name()` is stuck; the decoder calls it (the
+  "frame too large" error message, `fileInfoOk`). The bridge takes `os.fileStat.Name.spec`
+  (`LinuxFs/Spec/os/fileStat__Name.lean`, no proof) as a hypothesis. Discharge: the model keeps the base name
+  in `fileStat` (`Stat` stores it, `Name` returns it) — a trusted change for the user's review.
+- *Statement change*: `openWALFiles` takes each name below `2^60` (was `2^61`: `|d| + |b| + 2 < 2^62` fails
+  at `|d| = |b| = 2^61 - 1`); `openAtIndex`'s names are `walNameStr`s.
+- *`openWALFiles`, in progress*: `walOpen_triple` (`os.OpenFile` of a claim's file as `TryLockFile`'s
+  `OpenTriple`, `X := Unit`, `C _ i' := i' = i`), the loop invariant (three slices, `walOpenedRcs`, the claim's
+  resources, `names[k:]` split out with `ownSlice_slice`), the exit, the write-mode success iteration
+  (`TryLockFile`, the two appends, `l.File`, `NewFileReader` persisted, `walOpenedRcs_snoc`) and the
+  write-mode error (`closeAll` over `walOpenedRcs_close`, `Errorf` `%w`, `wp_for_post` of the return) proved;
+  left `sorry`: the read mode only (`os.OpenFile.wp_fileS` at flag 0; its error is `fmtErrorOkOrNil`, made
+  `errOk` by `fileutil.errOk_of_fmtErrorOk`; `Errorf`'s `%q` of `p` by `argWf_string`; appends `nil` and
+  `rf`; the same tail as the write mode). Gotcha: `omega`/`word` facts inside
+  this long proof gave kernel "application type mismatch" on `_proof_` auxiliaries (an instance argument
+  dropped): moved into top-level lemmas (`walOpen_lt_sub`, `walOpen_eq_sub`, `walOpen_succ`, `walOpen_getElem?`).
+- *Coordinator messages noted*: `walHandleIn`'s new `walDirH` conjunct is `ReadAll`'s to provide (not done
+  here); the known-zero lemma after `ZeroToEnd` (branch `wal-kz`) stays a hypothesis of `ReadAll` until it
+  lands.
+
+**Sixth session (branch `wal-read6`, 2026-11-13).**
+- *Proved* (no `sorry`, `lake build`): `openWALFiles` (read mode: `os.OpenFile.wp_fileS` at `O_RDONLY`, its
+  error made `errOk` by the local `walOpen_errOk`; the error arm `closeAll` and `Errorf` with `%q` of the
+  path, `argWf_string`, and `%w`). New modules, proved: `HandleAlloc.lean` (`import all` of `Ghost.lean`:
+  `walHandle_alloc`, `walHandleP_mint`/`walOpening_mint` (a handle from `walHandleAuth` and `walLockedTok`),
+  `walHandleP_set` (`ReadAll`: `opening` to `append`/`failed`), `walGhost_handleAuth`); `OpenFiles.lean`
+  (`walDecFiles_mk`: `openWALFiles`' `walOpenedFile`s and the opened segments' program halves `segHalves`
+  give `NewDecoder`'s `[∗list] F ∈ fs, decFile IoE eof F ∗ F.S []`, `fs.map (·.fr)` the readers, and
+  `WalDecTie` (`walReadTie`'s per-file facts) and the locks; over `walDecFile_ok`); `OpenNames.lean` (pure:
+  `walFileName_walNameStr` (`hex16 = fmt.hexPad 16`, last 16 digits), `walName_unique`/`walName_seg` (a
+  present `.wal` name is a segment's, the inodes distinct), `walDirNamesOk_of` (`selectWALFiles`' premise from
+  `SegsNamed`, `WalAbsD.names`, `nameBound`), `walNamesOut_segs` (`readWALNames`' names are exactly
+  `lay.segs.map name`, by `Perm.eq_of_pairwise`), `walOpenNames_ok` (`openWALFiles`' name premise from the
+  selected position; names are 37 bytes)).
+- **Statement change, `openAtIndex`'s read mode**: its read-mode success returned
+  `walUnlockedTok`, but `walReadH false` holds the program's halves of the WAL's files and directory claim
+  (`walReadTie`), which only a `walLockedTok` holder may have out of `walParked`; `walReadOnlyF` already
+  holds `walLockedTok`. The read-mode success now returns `walLockedTok` (`OpenForRead`'s statement does not
+  change).
+- **Gaps found (`openAtIndex`'s pinning step; for the invariant's owner):**
+  1. *The WAL directory's path.* `readWALNames`/`openWALFiles`/the pipeline need `osPathS R dir dq j` with
+     `j = lay.j`: from the area's spine `osPathS R r qp jr` and the program's half of the area claim
+     (`walAreaRes`: `osNames jr N ½ h`) it needs `h.cur !! nm = some (.dir lay.j)` for a present WAL. The
+     invariant does not say it: `WalsOk` has `InArea s.area dir nm ∧ lay.nm = nm` only, `AbsentNone` is the
+     absent case. Proposed: a framed pure conjunct (or a `WalsNamed` clause) `∀ dir lay, Ls !! dir = some
+     lay → ∀ N h, (lay.jr, N, h) ∈ cl → N.Mem lay.nm → h.cur !! lay.nm = some (.dir lay.j)`, with the
+     agreement of the program's area claim with the invariant's (`WalsCreateOk`'s claim holding `nm`, the
+     same key by the shared invariant's disjointness, a step at `⊤`). Kept by `cut` (area untouched),
+     `Create`'s commit (the rename sets `nm ↦ J`), the crash (`WalsStart`'s `m.entry jr nm = .dir lay.j`).
+  2. *The absent case* (`o = none`): `os.Open(dir)` must fail; `readWALNames`' spec takes the directory's
+     claim, so `selectWALFiles` needs a variant for a missing directory (`AbsentNone`: the area claim
+     holds no `nm`), or the pin must find the directory present.
+  3. *The pipeline's claims* (write mode): `newFilePipeline` takes `tmpClaim j (pipeTmp 0)` (the whole claim
+     on `0.tmp`, and a leftover file whole); the `N.tmp` claims are outside `WalDirClaim` and not in
+     `walParked`: where `walInv_alloc` puts them (half the invariant's, half returned to the program) they
+     must reach `Open` whole.
+  4. *`decFile`'s size bound* `|g.bs| + 2^12 < 2^62` and `os.fileStat.Name.spec` (`wal-above`), and
+     `isEofOk IoE eof ueof` for `IoE` the pointer errors (`errors.Is` of a `*PathError` against `io.EOF`:
+     Perennial's `errors.Is` spec), are hypotheses-to-be of `openAtIndex`.
+- *Plan for `openAtIndex`* (not started in the proof file): the pin at the call's first step
+  (`wp_notCrashed_acc`, mask unchanged: open `walInv`, `walUnlockedTok_lock`, the AU's commit, the WAL's
+  segments into `O` and its claim into `D`, exact halves by agreement with `segResF` (idle: the flag was
+  `true`, no handle, so no write in flight), write mode `walOpening_mint` from `walGhost_handleAuth`); then
+  `selectWALFiles` (premise `WalDirNamesOk` from `WalsNamed`), `openWALFiles` (names from the selected
+  position: `walNamesOut_segs`, `walOpenNames_ok`), `walDecFiles_mk`, `NewDecoder`, the struct; the error arms unpin at a later step (the `Errorf`
+  call) with `walLockedTok_unlock`.

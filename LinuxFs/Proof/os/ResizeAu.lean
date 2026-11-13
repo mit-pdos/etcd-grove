@@ -47,15 +47,15 @@ theorem mcellsAny_nomaps (lo hi : Nat) : ⊢ mcellsAny (GF := GF) (∅ : GMap Lo
 
 /-- What `ftruncate`'s second step leaves: on success the size landed; on failure it did or not. -/
 def rsOutT (p : Ino) (tg : Nat) (m : OsMeta) (xs : List ByteG) (n : Nat) (e : w64) : IProp GF :=
-  iprop((⌜e = 0⌝ ∗ rsDone (L := L) p tg tg m n) ∨
-    (⌜e ≠ 0⌝ ∗ (rsDone (L := L) p tg tg m n ∨ rsUndone (L := L) p tg m xs n)))
+  iprop((⌜e = 0⌝ ∗ rsDone (L := L) true p tg tg m n) ∨
+    (⌜e ≠ 0⌝ ∗ (rsDone (L := L) true p tg tg m n ∨ rsUndone (L := L) true p tg m xs n)))
 
 /-- What `fallocate`'s second step leaves: on success the growth landed; on failure none of it, or a
 prefix (the size `w` between). -/
 def rsOutF (p : Ino) (tg : Nat) (m : OsMeta) (n : Nat) (e : w64) : IProp GF :=
-  iprop((⌜e = 0⌝ ∗ rsDone (L := L) p tg tg m n) ∨
-    (⌜e ≠ 0⌝ ∗ (rsUndone (L := L) p tg m [] n ∨
-      ∃ w, ⌜m.size ≤ w ∧ w ≤ tg⌝ ∗ rsDone (L := L) p tg w m n)))
+  iprop((⌜e = 0⌝ ∗ rsDone (L := L) false p tg tg m n) ∨
+    (⌜e ≠ 0⌝ ∗ (rsUndone (L := L) false p tg m [] n ∨
+      ∃ w, ⌜m.size ≤ w ∧ w ≤ tg⌝ ∗ rsDone (L := L) false p tg w m n)))
 
 /-- **`ftruncate`'s first step, split**: the caller's halves of the `OsMeta` and of the bytes cut
 off, the update's halves lent at the step; the update commits with the token. -/
@@ -68,7 +68,7 @@ theorem wp_osFtruncateStart_au (fd sz : w64) (dq : DFrac) (d : OsFd) (m : OsMeta
       osAUnc (L := L) (A := Nat × Nat)
         iprop(osMeta (L := L) d.ino (DFrac.own (1 : Qp).half) m ∗
           osBytes (L := L) d.ino (min m.size sz.toNat) (DFrac.own (1 : Qp).half) xs)
-        (fun tn => rsTok (L := L) tn.1 d.ino sz.toNat m xs tn.2) Q -∗
+        (fun tn => rsTok (L := L) true tn.1 d.ino sz.toNat m xs tn.2) Q -∗
       iprop(∀ t : Nat, ∀ n : Nat, ⌜∀ x ∈ xs, ∀ q ∈ x.2, q.2 < n⌝ -∗ osFd (L := L) fd dq d -∗
         Q (t, n) -∗ Φ (osTokV t)) -∗
       WP (ExternalOp fsExt.name "FtruncateStart" (Val (PairV (#fd) (#sz)))) {{ Φ }} := by
@@ -82,7 +82,7 @@ theorem wp_osFtruncateStart_au (fd sz : w64) (dq : DFrac) (d : OsFd) (m : OsMeta
     rw [Qp.half_add_half] at hb
     iapply hb.2
     iframe
-  ihave Hc := mcellsAny_nomaps (GF := GF) (min m.size sz.toNat) (max m.size sz.toNat)
+  ihave Hc := mcellsAny_nomaps (GF := GF) (min m.size sz.toNat) (rsHi true m.size sz.toNat)
   rw [← hmaps]
   iapply wp_osFtruncateStart fd sz dq d m xs osN_sub_au hwr hsz0 hlen $$ Hinv Hfd Hm Hb Hc
   iintro %t %n %hn Hfd Ht
@@ -97,7 +97,7 @@ leaves (`rsOutT`). -/
 theorem wp_osFtruncateFinish_au (t : Nat) (p : Ino) (tg : Nat) (m : OsMeta) (xs : List ByteG)
     (n : Nat) (Q : w64 → IProp GF) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗
-      osAUnc (L := L) (A := w64) (rsTok (L := L) t p tg m xs n) (rsOutT (L := L) p tg m xs n) Q -∗
+      osAUnc (L := L) (A := w64) (rsTok (L := L) true t p tg m xs n) (rsOutT (L := L) p tg m xs n) Q -∗
       (∀ e : w64, Q e -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "FtruncateFinish" (Val (osTokV t))) {{ Φ }} := by
   iintro #Hinv Hau HΦ
@@ -120,7 +120,7 @@ theorem wp_osFallocStart_au (fd off len : w64) (dq : DFrac) (d : OsFd) (m : OsMe
     ⊢ osInv (L := L) -∗ osFd (L := L) fd dq d -∗
       osMeta (L := L) d.ino (DFrac.own (1 : Qp).half) m -∗
       osAUnc (L := L) (A := Nat × Nat) (osMeta (L := L) d.ino (DFrac.own (1 : Qp).half) m)
-        (fun tn => rsTok (L := L) tn.1 d.ino (max m.size (off.toNat + len.toNat)) m [] tn.2) Q -∗
+        (fun tn => rsTok (L := L) false tn.1 d.ino (max m.size (off.toNat + len.toNat)) m [] tn.2) Q -∗
       iprop(∀ t : Nat, ∀ n : Nat, osFd (L := L) fd dq d -∗ Q (t, n) -∗ Φ (osTokV t)) -∗
       WP (ExternalOp fsExt.name "FallocStart" (Val (PairV (#fd) (PairV (#off) (#len))))) {{ Φ }} := by
   iintro #Hinv Hfd Hm Hau HΦ
@@ -143,7 +143,7 @@ leaves (`rsOutF`). -/
 theorem wp_osFallocFinish_au (t : Nat) (p : Ino) (tg : Nat) (m : OsMeta) (n : Nat)
     (hgrow : m.size ≤ tg) (Q : w64 → IProp GF) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗
-      osAUnc (L := L) (A := w64) (rsTok (L := L) t p tg m [] n) (rsOutF (L := L) p tg m n) Q -∗
+      osAUnc (L := L) (A := w64) (rsTok (L := L) false t p tg m [] n) (rsOutF (L := L) p tg m n) Q -∗
       (∀ e : w64, Q e -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "FallocFinish" (Val (osTokV t))) {{ Φ }} := by
   iintro #Hinv Hau HΦ

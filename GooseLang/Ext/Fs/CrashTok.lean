@@ -367,7 +367,7 @@ theorem os_local_crash (Q : OsState → OsState → Prop) (hPre : OsGpreS GF) (s
     (hc : OsCrash st st') (hQ : Q st st') :
     ⊢@{IProp GF} osCtx hL st ==∗ ∃ hL' : OsGS GF, osCtx hL' st' ∗ osCrashStart Q hL hL' := by
   unfold osCtx osCtxF treeCtx treeLegacy treeShared
-  iintro ⟨⟨%Γb, %Γm, %Γf, %Γt, %hwc, Hab, Ham, -, HAt, Htok, -⟩, ⟨Hmode, Hcm⟩⟩
+  iintro ⟨⟨%Γb, %Γm, %Γf, %Γt, %hwc, Hab, Ham, -, HAt, Htok, -⟩, ⟨Hmode, Hcm⟩, -⟩
   icases Hmode with (⟨%V, %Γdf, %Γc, %htw, HAd, -, -, -, -, Hlh⟩ |
     ⟨%V0, %s0, %Γdf, %Γc, %Γg, %htw, HAd, Hd0, -, -, Has, -, -, -⟩)
   · unfold legacyHolds

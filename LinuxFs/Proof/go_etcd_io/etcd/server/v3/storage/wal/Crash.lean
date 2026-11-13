@@ -269,7 +269,7 @@ theorem walsNamed_start (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     cases h : s.wal !! dir with
     | none => rw [hst.2.1 dir h] at hL; cases hL
     | some d => exact ⟨d, rfl⟩
-  obtain ⟨lay', nm, hL', hin, -, -, he, -⟩ := hst.1 dir d hd
+  obtain ⟨lay', nm, hL', hin, -, -, he, ha, -⟩ := hst.1 dir d hd
   rw [hL] at hL'; cases hL'
   obtain ⟨h, hjm⟩ := hdirs nm lay.j hin.1 he
   refine ⟨fun hj ⟨X, hX, hm, _⟩ => ?_, fun m' hreg => ?_⟩
@@ -286,7 +286,7 @@ theorem walsNamed_start (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       rw [entsOf_lookup, entsOf_lookup, hval _ hjm b hb, valAfter_nil (by rw [e1]), e1]
       show restrictN (.except []) (entsOf V.now lay.j) !! b = _
       rw [restrictN_lookup _ _ _ hb, entsOf_lookup]
-    rw [e]; exact hn.crash
+    rw [e]; exact hn.crash (fun i hi => by rw [ha.names.1] at hi; exact hi)
 
 /-- A segment's start resources, its `OsMeta` and bytes those of the file, are its two halves. -/
 theorem segStart_halves (L : GooseLocalGS GF) (g : SegG) (f : Fs.OsFile) (hom : g.om = initMeta f)

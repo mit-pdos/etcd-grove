@@ -90,7 +90,7 @@ theorem wp_osFdKindDirS' (fd : w64) (j : Ino) (ph : DirPhS) (hE : ↑osN ⊆ E) 
   isplitr
   · ipureintro
     obtain ⟨hfr, hr⟩ := step_filesSame (h := h) Hwc.1 (filesSame_refl st) Hag
-    exact ⟨_, h, st, ⟨fd, rfl, rfl, .inr ⟨hnf, ⟨df, hdf⟩, rfl⟩⟩, hfr, hr⟩
+    exact ⟨_, h, st, ⟨fd, rfl, rfl, .inr (.inl ⟨hnf, ⟨df, hdf⟩, rfl⟩)⟩, hfr, hr⟩
   inext
   iintro %e' %h' %st' %Hst
   imod Hclose2
@@ -99,8 +99,10 @@ theorem wp_osFdKindDirS' (fd : w64) (j : Ino) (ph : DirPhS) (hE : ↑osN ⊆ E) 
   obtain ⟨fd', hv, hst, hres⟩ := Hst
   subst st'
   cases go.intoVal_inj hv
-  rcases hres with ⟨⟨d, hd⟩, -⟩ | ⟨-, -, rfl⟩
+  rcases hres with ⟨⟨d, hd⟩, -⟩ | ⟨-, -, rfl⟩ | ⟨-, hd, -⟩
   · rw [hnf] at hd; cases hd
+  rotate_left
+  · rw [hdf] at hd; cases hd
   imod osWorld_filesSame (st := st) (st' := st) (filesSame_refl st) Hr Hfr
     $$ [HAb HAm HAf HAt Htok Hcells Hσ] with Hw
   · unfold osWorld; iframe; ipureintro; exact Hwc

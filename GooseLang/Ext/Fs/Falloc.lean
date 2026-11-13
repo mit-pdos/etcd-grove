@@ -104,14 +104,15 @@ theorem wp_osFallocStart (fd off len : w64) (dq : DFrac) (d : OsFd) (m : OsMeta)
     ⊢ osInv (L := L) -∗ osFd (L := L) fd dq d -∗ osMeta (L := L) d.ino (DFrac.own 1) m -∗
       mcellsAny m.maps m.size (max m.size (off.toNat + len.toNat)) -∗
       (∀ t : Nat, ∀ n : Nat, osFd (L := L) fd dq d -∗
-        rsTok t d.ino (max m.size (off.toNat + len.toNat)) m [] n -∗ Φ (osTokV t)) -∗
+        rsTok false t d.ino (max m.size (off.toNat + len.toNat)) m [] n -∗ Φ (osTokV t)) -∗
       WP (ExternalOp fsExt.name "FallocStart" (Val (PairV (#fd) (PairV (#off) (#len))))) @ s; E
         {{ Φ }} := by
   iintro #Hinv Hfd Hm Hc HΦ
   have hmin : min m.size (max m.size (off.toNat + len.toNat)) = m.size := by omega
-  have hmax : max m.size (max m.size (off.toNat + len.toNat)) =
-      max m.size (off.toNat + len.toNat) := by omega
-  iapply wp_osResizeStart "FallocStart" _ (by simp [DataOp]) (by simp [val.isPanic]) fd
+  have hmax : rsHi false m.size (max m.size (off.toNat + len.toNat)) =
+      max m.size (off.toNat + len.toNat) := by
+    show max m.size (max m.size (off.toNat + len.toNat)) = _; omega
+  iapply wp_osResizeStart "FallocStart" _ (by simp [DataOp]) (by simp [val.isPanic]) false fd
     (max m.size (off.toNat + len.toNat)) dq d m [] hE
     (fun st f t hfd hf hnb ht hc hsz => by
       simp only [IsFsStep]
@@ -133,11 +134,11 @@ theorem wp_osFallocStart (fd off len : w64) (dq : DFrac) (d : OsFd) (m : OsMeta)
 
 theorem wp_osFallocFinish (t : Nat) (p : Ino) (tg : Nat) (m : OsMeta) (n : Nat) (hgrow : m.size ≤ tg)
     (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
-    ⊢ osInv (L := L) -∗ rsTok (L := L) t p tg m [] n -∗
+    ⊢ osInv (L := L) -∗ rsTok (L := L) false t p tg m [] n -∗
       (∀ e : w64,
-        ((⌜e = 0⌝ ∗ rsDone (L := L) p tg tg m n) ∨
-         (⌜e ≠ 0⌝ ∗ (rsUndone (L := L) p tg m [] n ∨
-           ∃ w, ⌜m.size ≤ w ∧ w ≤ tg⌝ ∗ rsDone (L := L) p tg w m n))) -∗
+        ((⌜e = 0⌝ ∗ rsDone (L := L) false p tg tg m n) ∨
+         (⌜e ≠ 0⌝ ∗ (rsUndone (L := L) false p tg m [] n ∨
+           ∃ w, ⌜m.size ≤ w ∧ w ≤ tg⌝ ∗ rsDone (L := L) false p tg w m n))) -∗
         Φ (#e)) -∗
       WP (ExternalOp fsExt.name "FallocFinish" (Val (osTokV t))) @ s; E {{ Φ }} := by
   iintro #Hinv Ht HΦ
@@ -158,22 +159,14 @@ theorem wp_osFallocFinish (t : Nat) (p : Ino) (tg : Nat) (m : OsMeta) (n : Nat) 
     obtain ⟨x, hx⟩ := cellView_isSome hwf hm
     obtain ⟨m0, hm0⟩ := Hag l x hx
     rw [hm0]; rfl
-  have hland : (tg < m.size ∧ c.hi = m.size ∧ c.target = tg) ∨
-      (m.size ≤ tg ∧ m.size ≤ c.hi ∧ c.hi ≤ tg ∧ c.target = c.hi) := by
-    rw [hF.hchi, hF.hctg]
-    by_cases h1 : tg < m.size
-    · left; omega
-    · right; omega
+  have hchi' : c.hi = tg := by rw [hF.hchi]; show max m.size tg = tg; omega
   have hwf1 : OsWf ((st.doneInflight t).setFile c.ino (f.land c c.hi c.target)) :=
     osWf_setFile' (osWf_done (t := t) hwf) hF.hf
       (by have := hwf.sizes c.ino f hF.hf; simp only [OsFile.land]; omega)
       (fun b p0 hp0 => hwf.stamps c.ino f b p0 hF.hf hp0)
-  have hland' : (tg < m.size ∧ c.hi = m.size ∧ tg = tg) ∨
-      (m.size ≤ tg ∧ m.size ≤ c.hi ∧ c.hi ≤ tg ∧ tg = c.hi) := by
-    rw [hF.hctg] at hland
-    rcases hland with ⟨h1, h2, -⟩ | ⟨h1, h2, h3, h4⟩
-    · exact .inl ⟨h1, h2, rfl⟩
-    · exact .inr ⟨h1, h2, h3, h4⟩
+  have hland' : (max m.size tg ≤ c.hi ∧ c.hi = rsHi false m.size tg ∧ tg = tg) ∨
+      (m.size ≤ tg ∧ m.size ≤ c.hi ∧ c.hi ≤ tg ∧ tg = c.hi) :=
+    .inr ⟨hgrow, by omega, by omega, by omega⟩
   imodintro
   isplitr
   · ipureintro
@@ -188,7 +181,8 @@ theorem wp_osFallocFinish (t : Nat) (p : Ino) (tg : Nat) (m : OsMeta) (n : Nat) 
   have htt : t = t' := by injection hv with hv; exact extVal_inj hv
   subst htt
   rw [hF.hct, Option.some.injEq] at hinfl; subst hinfl
-  rw [hF.hckind] at hkind'; injection hkind' with ho; subst ho
+  rw [hF.hckind] at hkind'; simp only [rsKind, Bool.false_eq_true, if_false] at hkind'
+  injection hkind' with ho; subst ho
   rw [hF.hf, Option.some.injEq] at hf'; subst hf'
   rcases hres with ⟨rfl, rfl⟩ | ⟨e, he, rfl, rfl | ⟨w, hw1, hw2, rfl⟩⟩
   · rw [hF.hctg] at Hr Hfr ⊢
@@ -210,8 +204,9 @@ theorem wp_osFallocFinish (t : Nat) (p : Ino) (tg : Nat) (m : OsMeta) (n : Nat) 
     iapply HΦ; iright; isplitr
     · ipureintro; exact he
     ileft; iexact Hd
-  · have hlw : (tg < m.size ∧ w = m.size ∧ w = tg) ∨ (m.size ≤ tg ∧ m.size ≤ w ∧ w ≤ tg ∧ w = w) := by
-      rw [hF.hclo] at hw1; rw [hF.hchi] at hw2; right; omega
+  · have hlw : (max m.size tg ≤ w ∧ w = rsHi false m.size tg ∧ w = tg) ∨
+        (m.size ≤ tg ∧ m.size ≤ w ∧ w ≤ tg ∧ w = w) := by
+      rw [hF.hclo] at hw1; rw [hchi'] at hw2; right; omega
     imod resize_done_world hwf hcoh hF w w hlw Hr Hfr $$ HAb HAm HAf HAt Htok Hcells Hσ Ht
       with ⟨⟨%Γb', %Γm', %Γf', %Γt', Hw⟩, Hd⟩
     imodintro
@@ -222,7 +217,7 @@ theorem wp_osFallocFinish (t : Nat) (p : Ino) (tg : Nat) (m : OsMeta) (n : Nat) 
     iapply HΦ; iright; isplitr
     · ipureintro; exact he
     iright; iexists w; iframe; ipureintro
-    rw [hF.hclo] at hw1; rw [hF.hchi] at hw2; omega
+    rw [hF.hclo] at hw1; rw [hchi'] at hw2; omega
 end specs
 
 end Fs

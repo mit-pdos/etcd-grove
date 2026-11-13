@@ -182,9 +182,9 @@ theorem pwSize_full (sz off n : Nat) (h : 0 < n) : pwSize sz off n = max sz (off
 `[base, base + n)`, holding that range, hold every byte that may not be durable. -/
 theorem covers_touch_clean (m m' : OsMeta) (lo hi base n : Nat) (hc : m.dhi ≤ m.dlo)
     (hd : m'.dlo = (m.touch lo hi).dlo) (hh : m'.dhi = (m.touch lo hi).dhi)
-    (h1 : base ≤ lo) (h2 : hi ≤ base + n) : m'.Covers base n := by
+    (h1 : base ≤ lo) (h2 : min hi m'.size ≤ base + n) : m'.Covers base n := by
   unfold OsMeta.Covers
-  intro b _ hb1 hb2
+  intro b hbs hb1 hb2
   rw [hd, os.touch_dlo] at hb1
   rw [hh, os.touch_dhi] at hb2
   by_cases c1 : hi ≤ lo <;> by_cases c2 : m.dhi ≤ m.dlo <;> simp only [c1, c2, if_true, if_false] at hb1 hb2 <;> omega
@@ -410,6 +410,21 @@ theorem mcellsAny_single (b : Loc) (l lo hi : Nat) (hlo : lo ≤ hi) (hhi : hi �
   unfold mcellsAny cellsAny
   refine BigSepM.bigSepM_singleton.trans ?_
   rw [Nat.min_eq_left hhi, Nat.min_eq_left (by omega : lo ≤ l)]
+  exact .rfl
+
+/-- The cells of a mapping of length `l` past its end: none. -/
+theorem mcellsAny_single_past (b : Loc) (l lo hi : Nat) (hlo : lo ≤ l) (hhi : l ≤ hi) :
+    mcellsAny (GF := GF) {[b := l]} lo hi ⊣⊢ cellsAny (GF := GF) b lo (l - lo) := by
+  unfold mcellsAny cellsAny
+  refine BigSepM.bigSepM_singleton.trans ?_
+  rw [Nat.min_eq_right hhi, Nat.min_eq_left hlo]
+  exact .rfl
+
+theorem mcells_single_past (b : Loc) (l lo hi : Nat) (vf : Nat → val) (hlo : lo ≤ l) (hhi : l ≤ hi) :
+    mcells (GF := GF) {[b := l]} lo hi vf ⊣⊢ cellsR (GF := GF) b lo (l - lo) vf := by
+  unfold mcells
+  refine BigSepM.bigSepM_singleton.trans ?_
+  rw [Nat.min_eq_right hhi, Nat.min_eq_left hlo]
   exact .rfl
 
 theorem mcells_single (b : Loc) (l lo hi : Nat) (vf : Nat → val) (hlo : lo ≤ hi) (hhi : hi ≤ l) :

@@ -4,12 +4,12 @@ for the WAL's `filePipeline.alloc` (`O_CREATE|O_TRUNC` of `N.tmp`, which may be 
 earlier run). Untrusted.
 
 The semantics (`OpenEffect`, `Impl.lean`): an existing file is truncated to size 0 in the open's
-step (the change `OsChange.ofResize i f 0` announced and landed at once, stamped), no entry logged;
+step (the change `OsChange.ofResize i f 0 true` announced and landed at once, stamped), no entry logged;
 on failure the truncation may or may not have happened; the step needs no change in flight on the
 file (`¬ BusyAt`), which the file's whole `OsMeta` gives (`tokRes_meta_whole`). So the spec takes
 what a resize's first step takes (`wp_osResizeStart` with target 0: the `OsMeta`, the bytes it cuts
 off, the client's halves of the mapped cells) and gives back what its landing gives
-(`rsDone i 0 0 m n`), or, without the truncation, what it took.
+(`rsDone true i 0 0 m n`), or, without the truncation, what it took.
 
 `O_CREAT|O_TRUNC` of an absent name is `wp_osOpenCreateS'` (`TreeSharedCreate.lean`), whose `O_TRUNC`
 premise is "clear, or the name absent".
@@ -40,14 +40,14 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
 
 /-- The state after `open(O_TRUNC)` truncates the file `i` (was `f`), as `OpenEffect` writes it. -/
 def truncSt (st : OsState) (i : Ino) (f : OsFile) : OsState :=
-  st.stampFile i (fun n => let c := OsChange.ofResize i f 0; (f.announce c n).land c c.hi 0)
+  st.stampFile i (fun n => let c := OsChange.ofResize i f 0 true; (f.announce c n).land c c.hi 0)
 
 /-- The truncation is the two steps of a resize to 0 under a fresh token `t`. -/
 theorem truncSt_eq (st : OsState) (i : Ino) (f : OsFile) (t : Nat)
     (ht : st.proc.inflight !! t = none) :
-    ((startState st i f (OsChange.ofResize i f 0) t).doneInflight t).setFile i
-      ((f.announce (OsChange.ofResize i f 0) (st.fs.stamp + 1)).land (OsChange.ofResize i f 0)
-        (OsChange.ofResize i f 0).hi 0) = truncSt st i f := by
+    ((startState st i f (OsChange.ofResize i f 0 true) t).doneInflight t).setFile i
+      ((f.announce (OsChange.ofResize i f 0 true) (st.fs.stamp + 1)).land (OsChange.ofResize i f 0 true)
+        (OsChange.ofResize i f 0 true).hi 0) = truncSt st i f := by
   simp only [truncSt, startState, OsState.doneInflight, OsState.setFile, OsState.addInflight,
     OsState.stampFile]
   congr 2
@@ -124,13 +124,13 @@ attribute [local instance] Classical.propDecidable in
 does more): the change `ofResize p f tg` put in flight under the fresh token `t`, the heap rendered
 for it (`renderHeap`); the client's resources become the change's token. -/
 theorem resize_start_world {st : OsState} {Γb Γm Γf Γt} {h : GMap Loc (NonAtomic val)}
-    {p : Ino} {f : OsFile} {tg t : Nat} {m : OsMeta} {xs : List ByteG}
+    {tr : Bool} {p : Ino} {f : OsFile} {tg t : Nat} {m : OsMeta} {xs : List ByteG}
     (hf : st.file p = some f) (ht : st.proc.inflight !! t = none) (hlen : xs.length = m.size - tg) :
     ⊢ osWorld (L := L) st Γb Γm Γf Γt h -∗ osMeta (L := L) p (DFrac.own 1) m -∗
       osBytes (L := L) p (min m.size tg) (DFrac.own 1) xs -∗
-      mcellsAny m.maps (min m.size tg) (max m.size tg) ==∗
-      (∃ Γb' Γm' Γf' Γt', osWorld (L := L) (startState st p f (OsChange.ofResize p f tg) t)
-        Γb' Γm' Γf' Γt' (renderHeap (startState st p f (OsChange.ofResize p f tg) t) h)) ∗ rsTok (L := L) t p tg m xs (st.fs.stamp + 1) := by
+      mcellsAny m.maps (min m.size tg) (rsHi tr m.size tg) ==∗
+      (∃ Γb' Γm' Γf' Γt', osWorld (L := L) (startState st p f (OsChange.ofResize p f tg tr) t)
+        Γb' Γm' Γf' Γt' (renderHeap (startState st p f (OsChange.ofResize p f tg tr) t) h)) ∗ rsTok (L := L) tr t p tg m xs (st.fs.stamp + 1) := by
   iintro Hw Hm Hbs Hc
   unfold osWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
@@ -142,13 +142,14 @@ theorem resize_start_world {st : OsState} {Γb Γm Γf Γt} {h : GMap Loc (NonAt
   obtain ⟨f0, hf0, hmo⟩ := coh_meta hcoh Hml
   rw [hf] at hf0; cases hf0
   have hni := noInfl_of_noTok hcoh Hnt
-  let c := OsChange.ofResize p f tg
+  let c := OsChange.ofResize p f tg tr
   have hclo : c.lo = min m.size tg := by simp [c, OsChange.ofResize, hmo.size]
-  have hchi : c.hi = max m.size tg := by simp [c, OsChange.ofResize, hmo.size]
-  have haff : ∀ i, inRange c.lo c.hi i = true ↔ min m.size tg ≤ i ∧ i < max m.size tg := by
+  have hchi : c.hi = rsHi tr m.size tg := by simp [c, hmo.size]
+  have hR := le_rsHi tr m.size tg
+  have haff : ∀ i, inRange c.lo c.hi i = true ↔ min m.size tg ≤ i ∧ i < rsHi tr m.size tg := by
     intro i; rw [hclo, hchi]; simp [inRange]
   let n := st.fs.stamp + 1
-  let ti : TokInfo := ⟨p, .truncate tg, n, m, rsAnn n xs⟩
+  let ti : TokInfo := ⟨p, rsKind tr tg, n, m, rsAnn n xs⟩
   have hwf1 := osWf_start (c := c) hwf ht hf rfl hni
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
   have Hh : ∀ l, Mapped st l → (h !! l).isSome := by
@@ -158,11 +159,10 @@ theorem resize_start_world {st : OsState} {Γb Γm Γf Γt} {h : GMap Loc (NonAt
     rw [hm0]; rfl
   have Hr := heapRendered_render (st := st) (h := h) hwf1 rfl Hh
   have Hfr : MapsFresh st (startState st p f c t) h := mapsFresh_same rfl
-  have hti : ti.Is c := ofResize_is p f tg n m _ hmo.size
+  have hti : ti.Is c := ofResize_is p f tg tr n m _ hmo.size
   have hcoh1 := osCoh_start (c := c) hcoh ht hf Hml hmo Hnt ti hti rfl rfl rfl
     (by rw [hclo, hchi]; omega)
-    (by show (rsAnn n xs).length = _; rw [rsAnn_length, hlen, hmo.size]
-        simp [c, OsChange.ofResize]; omega)
+    (by show (rsAnn n xs).length = _; rw [rsAnn_length, hlen, hclo, hchi, ← hmo.size]; omega)
     (fun j hj => by
       simp only [ti, rsAnn, List.getElem_map] at hj ⊢
       have hj' : j < xs.length := by simpa using hj
@@ -174,8 +174,8 @@ theorem resize_start_world {st : OsState} {Γb Γm Γf Γt} {h : GMap Loc (NonAt
   unfold mcellsAny
   ihave Hc := (BigSepM.bigSepM_toList (Φ := fun (b : Loc) (len : Nat) =>
     iprop(∃ vf, cellsR b (min (min m.size tg) len)
-      (min (max m.size tg) len - min (min m.size tg) len) vf))).1 $$ Hc
-  icases halves_mapsCells_ex (min m.size tg) (max m.size tg) _ hdisj $$ Hc with ⟨%C, Hc, %hC⟩
+      (min (rsHi tr m.size tg) len - min (min m.size tg) len) vf))).1 $$ Hc
+  icases halves_mapsCells_ex (min m.size tg) (rsHi tr m.size tg) _ hdisj $$ Hc with ⟨%C, Hc, %hC⟩
   have hmapsC : ∀ l, (C !! l).isSome → ∃ i, MapsTo st l p i ∧ inRange c.lo c.hi i = true := by
     intro l hl
     obtain ⟨i, b, len, hm, h1, h2, h3, rfl⟩ := (hC l).1 hl
@@ -246,7 +246,7 @@ theorem resize_start_world {st : OsState} {Γb Γm Γf Γt} {h : GMap Loc (NonAt
     iapply (BigSepM.bigSepM_insert (Φ := fun (_t : Nat) (ti : TokInfo) =>
       iprop(gElem gooseOsGS gooseOsGS.γm ti.ino (DFrac.own 1) ti.meta ∗
         bytesG gooseOsGS ti.ino ti.lo (DFrac.own 1) ti.saved)) hΓt).2
-    have hlo' : ti.lo = min m.size tg := by simp [ti, TokInfo.lo]
+    have hlo' : ti.lo = min m.size tg := by simp [ti]
     rw [hlo']
     iframe
   unfold rsTok osTok
@@ -295,17 +295,18 @@ theorem osWorld_trunc {st : OsState} {Γb Γm Γf Γt} {h h' : GMap Loc (NonAtom
     (hf : st.file i = some f) (hlen : xs.length = m.size)
     (Hr : HeapRendered st (truncSt st i f) h h') :
     ⊢ osWorld (L := L) st Γb Γm Γf Γt h -∗ osMeta (L := L) i (DFrac.own 1) m -∗
-      osBytes (L := L) i 0 (DFrac.own 1) xs -∗ mcellsAny m.maps 0 m.size ==∗
+      osBytes (L := L) i 0 (DFrac.own 1) xs -∗ mcellsAny m.maps 0 (pageEnd m.size) ==∗
       (∃ Γb' Γm' Γf' Γt', osWorld (L := L) (truncSt st i f) Γb' Γm' Γf' Γt' h') ∗
-        ∃ n, rsDone (L := L) i 0 0 m n := by
+        ∃ n, rsDone (L := L) true i 0 0 m n := by
   iintro Hw Hm Hbs Hc
   obtain ⟨t, ht, -⟩ := exists_fresh2 st.proc.inflight st.proc.calls
-  let c := OsChange.ofResize i f 0
+  let c := OsChange.ofResize i f 0 true
   have hlen' : xs.length = m.size - 0 := by omega
-  imod resize_start_world (tg := 0) hf ht hlen' $$ Hw Hm [Hbs] [Hc] with
+  imod resize_start_world (tr := true) (tg := 0) hf ht hlen' $$ Hw Hm [Hbs] [Hc] with
     ⟨⟨%Γb1, %Γm1, %Γf1, %Γt1, Hw⟩, Ht⟩
   · rw [show min m.size 0 = 0 by omega]; iexact Hbs
-  · rw [show min m.size 0 = 0 by omega, show max m.size 0 = m.size by omega]; iexact Hc
+  · rw [show min m.size 0 = 0 by omega, show rsHi true m.size 0 = pageEnd m.size by
+      simp only [rsHi, if_true, Nat.max_zero]]; iexact Hc
   icases (osWorld_unfold (L := L)).1 $$ Hw with ⟨%Hwc1, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   obtain ⟨hwf1, hcoh1⟩ := Hwc1
   unfold rsTok osTok
@@ -320,12 +321,9 @@ theorem osWorld_trunc {st : OsState} {Γb Γm Γf Γt} {h h' : GMap Loc (NonAtom
   have hf' : f' = f.announce c (st.fs.stamp + 1) := by
     have := hF.hf; rw [startState_file, if_pos rfl] at this; cases this; rfl
   subst hf'
-  have hland : (0 < m.size ∧ c.hi = m.size ∧ 0 = 0) ∨
-      (m.size ≤ 0 ∧ m.size ≤ c.hi ∧ c.hi ≤ 0 ∧ 0 = c.hi) := by
-    have := hF.hchi
-    by_cases h0 : 0 < m.size
-    · left; omega
-    · right; omega
+  have hland : (max m.size 0 ≤ c.hi ∧ c.hi = rsHi true m.size 0 ∧ 0 = 0) ∨
+      (m.size ≤ 0 ∧ m.size ≤ c.hi ∧ c.hi ≤ 0 ∧ 0 = c.hi) :=
+    .inl ⟨hF.hchi ▸ le_rsHi true m.size 0, hF.hchi, rfl⟩
   have Hr2 := heapRendered_mid (A := st) (C := truncSt st i f) (B := startState st i f c t) rfl rfl Hr
   rw [← truncSt_eq st i f t ht] at Hr2
   have Hfr2 : MapsFresh (startState st i f c t)
@@ -342,7 +340,7 @@ theorem osWorld_trunc {st : OsState} {Γb Γm Γf Γt} {h h' : GMap Loc (NonAtom
 /-- **`open(2)` with `O_TRUNC` of `d/b`, a name holding the file `i`** (shared mode; any access
 mode, with or without `O_CREAT`), with a fraction of a claim on names containing `b`, the file's
 `OsMeta` whole, its bytes and the client's halves of its mapped cells: no entry logged; the file
-truncated (`rsDone i 0 0 m n`), or, on failure only, left as it was; on success a fresh fd on `i`. -/
+truncated (`rsDone true i 0 0 m n`), or, on failure only, left as it was; on success a fresh fd on `i`. -/
 theorem wp_osOpenTruncS (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (dq dqn : DFrac)
     (h : NamesH) (k s0 : Nat) (q : Qp) (fl : w64) (m : OsMeta) (xs : List ByteG)
     (hfl : OpenFlagsOk fl.toNat) (htr : fl.toNat / O_TRUNC % 2 = 1) (hb : NameOk b)
@@ -351,12 +349,12 @@ theorem wp_osOpenTruncS (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osNames (L := L) j N dqn h -∗ osCallS (L := L) k s0 q -∗
       osMeta (L := L) i (DFrac.own 1) m -∗ osBytes (L := L) i 0 (DFrac.own 1) xs -∗
-      mcellsAny (GF := GF) m.maps 0 m.size -∗
+      mcellsAny (GF := GF) m.maps 0 (pageEnd m.size) -∗
       (∀ fd : w64, ∀ e : w64, ⌜(e = 0 ∧ 0 ≤ fd.toInt) ∨ (e ≠ 0 ∧ fd = -1)⌝ -∗
         osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗ osNames (L := L) j N dqn h -∗
         ((⌜e ≠ 0⌝ ∗ osMeta (L := L) i (DFrac.own 1) m ∗ osBytes (L := L) i 0 (DFrac.own 1) xs ∗
-            mcellsAny (GF := GF) m.maps 0 m.size) ∨
-         (∃ n, rsDone (L := L) i 0 0 m n)) -∗
+            mcellsAny (GF := GF) m.maps 0 (pageEnd m.size)) ∨
+         (∃ n, rsDone (L := L) true i 0 0 m n)) -∗
         (if e = 0 then osFd (L := L) fd (DFrac.own 1) (openFd i fl) else emp) -∗
         Φ (PairV (#fd) (#e))) -∗
       WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#(child d b)) (#fl)))))
@@ -399,7 +397,7 @@ theorem wp_osOpenTruncS (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
   isplitr
   · ipureintro
     obtain ⟨hfr, hr⟩ := step_filesSame (h := h0) Hwc.1 (filesSame_metaEnd st k) Hag
-    exact ⟨_, h0, _, ⟨child d b, fl, k, s0, rfl, treePath_of_lookup hl', hfl, hcall,
+    exact ⟨_, h0, _, .inl ⟨child d b, fl, k, s0, rfl, treePath_of_lookup hl', hfl, hcall,
       ⟨fun _ i' hi' => by rw [hl0] at hi'; cases hi'; exact hnb, .inr ⟨1, by decide, rfl, .inl rfl⟩⟩⟩,
       hfr, hr⟩
   inext
@@ -407,6 +405,7 @@ theorem wp_osOpenTruncS (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
   imod Hclose2
   obtain ⟨Hst, Hfr, Hr⟩ := Hst
   simp only [IsFsStep] at Hst
+  replace Hst := open_inTree Hst (treePath_of_lookup hl')
   obtain ⟨p', fl', k', s', hv, -, -, hk', hres⟩ := Hst
   obtain ⟨rfl, rfl, rfl⟩ := tokPathFl_inj hv
   rw [hcall] at hk'; cases hk'
@@ -436,7 +435,7 @@ theorem wp_osOpenTruncS (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
     rw [hf0, Option.some.injEq] at hf'; subst hf'
     simp only [↓reduceIte] at hst1
     subst st1
-    obtain ⟨hfd0, hfdn, hdfn⟩ := hfree
+    obtain ⟨hfd0, hfdn, hdfn, -⟩ := hfree
     have hst'' : st' = (truncSt (st.metaEnd k) i f).setProc
         { (truncSt (st.metaEnd k) i f).proc with
           fds := <[fd := openFd i fl]> (truncSt (st.metaEnd k) i f).proc.fds } := hst

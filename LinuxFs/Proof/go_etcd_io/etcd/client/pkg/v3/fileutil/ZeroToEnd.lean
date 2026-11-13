@@ -35,7 +35,7 @@ theorem ftDone_shrunk (p : Ino) (m : OsMeta) (tg : Nat) :
       osMeta p (DFrac.own 1) m1 := by
   unfold os.ftDone
   iintro ⟨%zs, %hzs, Hm, -, -⟩
-  iexists rsPost m tg tg
+  iexists rsPost true m tg tg
   iframe Hm
   ipureintro
   refine ⟨rfl, ?_⟩
