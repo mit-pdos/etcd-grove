@@ -1286,6 +1286,23 @@ on three facts the invariant does not record.**
 - **Statement change**: `cutCommit_pure` and `walCut_osAUnc` take `walCutPos (H.map toM) |H|` (`cutLay_abs`'s
   `hcut`: the new segment starts at a cut position, i.e. after a `Save` that wrote a record), so `cut.spec`
   needs it from `Save` (with the cuts below `|H|`).
+- **`cut.spec` premises added** (`wal-save6` had not added the handle bound): `∀ b ∈ h.cuts, b < h.H.length`
+  and `walCutPos (h.H.map WalOpG.toM) h.H.length`. `Save`'s proof (W6) supplies them: the cut follows the
+  `Save` that wrote a record, after every earlier cut.
+- *`CutSync.lean`* (proved): `walInvBody_cutSynced`, step 7's update (after `os.File.Sync.specDirS`'s
+  `osCommitLb n`, `x < n`, the program opening `walInv` with `wp_notCrashed_acc`): the program's fraction
+  of the WAL claim agrees with the invariant's (history ending with the rename), the tail record names
+  the layout's last segment `i` (`walTailsRes_lookup`), so the alternative's segments, a strict prefix,
+  miss `i` and `crashOk_dirSync` drops it; the flag back to `none` (`dirKeysOk_cutSynced`, at `max n0 n`).
+- *`(*WAL).cut`*: still `sorry`. Done of its steps: 4 (`wp_walPipeH_open`), 6 (`walCut_osAUnc`), 7
+  (`walInvBody_cutSynced`). Left: 1 (split-form `os.File.Truncate.specAu`, its proof `sorry`, on the
+  tail's `walTailW`), 2 (`sync.spec` on the truncated tail, then the `walSyncedLb |H|` and the durable
+  bytes `walCut_osAUnc` needs), 3 (`w.seq()`: `filepath.Base`/`parseWALName` of `Name()`; the
+  `max(enti, snapi) + 1` naming and `walLastIdx` bound from the handle), 5 (the header phase over the
+  owned `N.tmp`: `newFileEncoder`, `saveCrc`, `encode(Metadata)`, `saveState.specPre`, `sync.specPreL`
+  over `walPreInL` with the old locks in `ls`), 8 (`Close`, `LockFile` of the renamed `.wal`
+  (`os.OpenFile.wp_fileS`), `Seek`, `newFileEncoder`), and rebuilding `walHandleIn` (with `walDirH` at
+  the new claim history, `walPipeH_next`).
 
 ## W4 implementation log (branch `wal-create`, 2026-11-13)
 
