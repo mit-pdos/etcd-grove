@@ -357,10 +357,6 @@ def snapRmM (γm : GName) (j : w64) : IProp GF := monoNatLbOwn γm (uint.nat j +
 instance snapRmM_persistent (γm : GName) (j : w64) : Persistent (snapRmM (GF := GF) γm j) := by
   unfold snapRmM; infer_instance
 
-/-- (restart S6a-1) J1a's name, kept until S6a-2 for `NewServer.lean` (the auth fix's file until it
-lands), which allocates the directory's invariant at `srvSnapRm γt ρ.rd`: now `snapRmM γt`. -/
-abbrev srvSnapRm (γm : GName) (_γr : ReadNames) : w64 → IProp GF := snapRmM γm
-
 /-- (restart S6a) **The directory's invariant reads its snapshotter only through its paths**: two
 snapshotters with the same database-snapshot paths (`snapDBPath`; a restart's and the first start's,
 both `snapDBPathOf` of the data directory by the bootstrap contracts) have the same invariant. -/
@@ -385,7 +381,7 @@ theorem snapDir_take (ss : Loc) (γd γm : GName)
   iinv Hinv with Hi Hclose
   imod (lc_fupd_elim_later (P := snapDirInv ss γd img (snapRmM γm))) $$ Hlc Hi with Hi
   iunfold snapDirInv at Hi
-  icases Hi with ⟨%M, %Es, Ha, %HME, HM, #HEs, #HRm⟩
+  icases Hi with ⟨#Hdi, %M, %Es, Ha, %HME, HM, #HEs, #HRm⟩
   iunfold snapSaved at Hsv
   ihave %HEi := ghost_map_lookup $$ Ha Hsv
   cases hMi : M.lookup i with
@@ -402,6 +398,7 @@ theorem snapDir_take (ss : Loc) (γd γm : GName)
     imod Hclose $$ [Ha HM] with -
     · inext
       iunfold snapDirInv
+      iframe Hdi
       iexists GMap.delete i M, Es
       iframe Ha HM HEs
       isplitr
@@ -458,7 +455,11 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γm : GName) :
       (d.P.has mvcc.alarmBI ∧
         d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧ d.P.has mvcc.authRolesBI) ∧
       E.RO = srvRestOwnH E.authMode d.γB cl (srvObjsOn al ast lp cl d.be) ∧
-      receiptBound GF ≤ backend.wbInit - 6⌝ ∗
+      receiptBound GF ≤ backend.wbInit - 6 ∧
+      -- (restart S6a-2) the snapshotter's paths, the data directory's (`bootOk`'s `Hssp`): what the
+      -- stop hands to the image (`srvDiskImage`), so that a restarted incarnation's snapshotter,
+      -- at the same data directory, finds this directory's invariant
+      snap.snapDBPath ss = snap.snapDBPathOf cfg.DataDir'⌝ ∗
     -- the configuration's fields the snapshot path reads, its feature gate
     -- (premise-fixes-6: until then `cfg.Logger' ≠ null` in the pure part) a zap logger
     srvCfgFieldAddr s go!"Logger" ↦□ cfg.Logger' ∗ zapLoggerOk cfg.Logger' ∗
@@ -550,7 +551,7 @@ theorem srvSnapRO_succ {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (s ci : Loc)
   icombine Hcl H17 gives %e4
   simp only [auth.authIface, lease.lessorIface, interface_mkOk_inj] at e2 e3
   obtain ⟨hkb0, hstp, hdbo, hmm, hbuq, hsl, hdir, hsop, hbr, hci, hhk, hwf, hlim, hlp, halbi,
-    -, hrb⟩ := Hp
+    -, hrb, hsp⟩ := Hp
   rw [hkb] at hkb0
   obtain rfl := srvBkTie_inj d d0 hkb0
   have e2' : ast = ast0 := by
@@ -564,7 +565,7 @@ theorem srvSnapRO_succ {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (s ci : Loc)
   isplitr
   · ipureintro
     refine ⟨hkb', hstp, hdbo, hmm, hbuq, hsl, hdir, hsop, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
-      hRO, hrb⟩ <;> rw [hP] <;> assumption
+      hRO, hrb, hsp⟩ <;> rw [hP] <;> assumption
   have e5 : (E.onBe b P f c RO RW).authMode = E.authMode := rfl
   have e6 : (E.onBe b P f c RO RW).RD = E.RD := rfl
   have e7 : (E.onBe b P f c RO RW).γ = E.γ := rfl

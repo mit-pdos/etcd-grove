@@ -153,8 +153,9 @@ the member's snapshot directory, so that a restart reuses the first start's inva
 stopped incarnation's snapshot handler may still update: the invariant over some snapshotter `ssₒ` of
 the stopped incarnation at `γ.snapLoc id` (`srvSnapRO`'s), and the removal counter's authority
 (`snapRmM γm`, written out: this module does not import `SnapRO`), at most `i + 1`, from the apply
-thread's `srvSnapOwn` at the graceful stop's applied index. The equation tying `ssₒ`'s paths to `dd`
-(`snapDBPathOf`) comes with S6a-2.) -/
+thread's `srvSnapOwn` at the graceful stop's applied index; (S6a-2) `ssₒ`'s paths are `dd`'s
+(`snap.snapDBPathOf dd`, from `srvSnapRO`, `bootOk`'s `Hssp`), so that the restart reuses the
+invariant at its own snapshotter, `snapDirInv_ss_congr` with `bootOkR`'s equation.) -/
 def srvDiskImage (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) : IProp GF :=
   iprop(∃ (S : RaftState) (σ : StorContents) (i : w64) (A : List EntryModel)
       (D : backend.Data) (m : Membership) (M : GMap Loc MemStorNamesRec),
@@ -173,8 +174,10 @@ def srvDiskImage (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) : IPr
     srvFiles dd id σ D ∗ backend.pathOwn (config.backendPathOf dd) ∗
     -- (restart S6a, (b′)) the member's snapshot directory: the invariant its first start allocated
     -- (at raft's names for the member, its images' certificate the cluster's auth mode's), and the
-    -- member's removal counter, at most one past the image's index
-    (∃ (ssₒ : Loc) (γd γm : GName) (c : Nat), ⌜γ.snapLoc id = some γd ∧ c ≤ uint.nat i + 1⌝ ∗
+    -- member's removal counter, at most one past the image's index; (S6a-2) the invariant's
+    -- snapshotter's paths the data directory `dd`'s, which a restarted snapshotter's are (`bootOkR`)
+    (∃ (ssₒ : Loc) (γd γm : GName) (c : Nat),
+      ⌜γ.snapLoc id = some γd ∧ snap.snapDBPath ssₒ = snap.snapDBPathOf dd ∧ c ≤ uint.nat i + 1⌝ ∗
       inv snapDirN (snapDirInv ssₒ γd (srvImageM γ.authOn γ)
         (fun j => monoNatLbOwn γm (uint.nat j + 1))) ∗
       monoNatAuthOwn γm 1 c))

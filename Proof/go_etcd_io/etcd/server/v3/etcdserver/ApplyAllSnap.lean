@@ -458,7 +458,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
       #Hdinv, #Half, #Hauf, #Hlpf, #Hclf, #Hal, #HalOk, #HauOk, #HauR, #HauSK, #HlpOk, #HlpCfg, #HlpL, #Hrc,
       #HclOk, #Hvc, #Hmd, #Hks, #HlpI, #HlpM, ⟨#Hkvaddr, #Hkvm⟩, #Hcfg, #Hclgz⟩
     obtain ⟨hkb, hstp, hdbo, hmm, hbuq, hsl, hdirps, hsop, hbr, hci, hhk, hwf, hlim, hlp,
-      halbi, hRO, hrb⟩ := Hp
+      halbi, hRO, hrb, -⟩ := Hp
     -- (the lease-expiry plan's S2–S4 Probe, 2026-11-05: in either lease mode; until then the
     -- revocable lessor refuted the rest's leased arm, a cluster that grants none) the lessor at the
     -- environment's mode
@@ -951,7 +951,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
     #Hdinv, #Half, #Hauf, #Hlpf, #Hclf, #Hal, #HalOk, #HauOk, #HauR, #HauSK, #HlpOk, #HlpCfg, #HlpL, #Hrc,
     #HclOk, #Hvc, #Hmd, #Hks, #HlpI, #HlpM, ⟨#Hkvaddr, #Hkvm⟩, #Hcfg, #Hclgz⟩
   obtain ⟨hkb, hstp, hdbo, hmm, hbuq, hsl, hdirps, hsop, hbr, hci, hhk, hwf, hlim, hlp,
-    halbi, hRO, hrb⟩ := Hp
+    halbi, hRO, hrb, -⟩ := Hp
   -- (the lease-grant stage, 2.9) the lessor revocable refutes the rest's leased arm
   -- (the lease-expiry plan's X2) the mode of a cluster that grants none: `none`
   icases HlpM with ⟨%Hmo, #HlpM⟩

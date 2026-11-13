@@ -1230,10 +1230,12 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- (D22 S-i) the member's snapshot directory, empty (a fresh data directory), for the
   -- transport's snapshot handler; no removal yet (`applySnapshot`'s, S-j); (2026-10-26, D22 J2) at
   -- the names raft's names give the member (`RaftNames.reSnapLoc`, `snapDir_init`)
-  -- (2026-10-26, D22 J1a) with the server's removal fact (`srvSnapRm`, J0 item 3), over the
-  -- snapshot-taken counter `γt`, allocated here at `0` for the apply thread
+  -- (2026-10-26, D22 J1a) with the member's removal fact (`snapRmM`, restart S6a; J0 item 3's
+  -- `srvSnapRm` until then), over the member's removal counter `γt`, allocated here at `0`
   imod (mono_nat_own_alloc (GF := GF) 0) with ⟨%γt, Hγt, -⟩
-  imod (snapDir_init bs.ss' γd γn.N.img (srvSnapRm γt ρ.rd) ⊤) $$ Hsdir with #Hsdir
+  -- (restart S6a, M1) its ghost map named by the directory's right (`bootOk`'s `Hsdo`)
+  imod (snapDir_init bs.ss' cfg.DataDir' Hssp γd γn.N.img (snapRmM γt) ⊤) $$ Hsdo Hsdir
+    with #Hsdir
   ihave #Hnro := srv_netRaftOk h90 h91 h92 h93 γn γd s id $$ [$Hpkg $Hprocok]
   generalize htr : «$r0_ptr» = t
   -- (rafthttp stage 6d) the member's URLs, read-only; it is a member of the directory (raft's peer)
@@ -1251,7 +1253,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     intro f; simp [List.mem_filter]
   have Hturls : trURLsOk (netRh γn) id U.peer :=
     trURLsOk_of_dir γn dir Hγn.2 Hdirok ps Hdirps.1 id (Hrid ▸ Hrmem) U.peer HpU
-  wp_apply (h38 γn t _ (srvLgReader s) γd (srvSnapRm γt ρ.rd) U.peer (ps.filter (· ≠ id)))
+  wp_apply (h38 γn t _ (srvLgReader s) γd (snapRmM γt) U.peer (ps.filter (· ≠ id)))
     $$ [«$r0» Hlsf] as %terr Htres
   · iframe «$r0»
     simp only
@@ -1766,7 +1768,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       isplitr
       · ipureintro
         refine ⟨trivial, Hstpss, Hdisk.1, Hmmap, Hbuq, ?_, Hdirps.1, Hdisk.2.1, HbP,
-          Hci0, HhP, HPwf, HPlim, HlP, ⟨HalB, HauB, HauUB, HauRB⟩, trivial, by omega⟩
+          Hci0, HhP, HPwf, HPlim, HlP, ⟨HalB, HauB, HauUB, HauRB⟩, trivial, by omega, Hssp⟩
         rw [HρRaft, Hid]; exact Hsloc
       isplitr
       · iExactEq Hsdir

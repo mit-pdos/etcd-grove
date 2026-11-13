@@ -48,6 +48,24 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
   and the risks R1-R5 (§7).
 - Decisions go in the worktree's `questions.md` (untracked).
 
+## S6a-2 (2026-11-13, the S6a-2 agent): next agent starts here
+
+- `lean` (51ee20f154: auth-schema-fix, k8s 7f-4/7f-5, the bbolt port) merged, `fc4ee3a900`
+  (decisions.md: both appended sections kept; STATUS and status-history as `lean`'s).
+- The fork pin 2eaeb872b is pushed: `etc/goose.py --check` passes **without** `ETCD_SRC`
+  (`/shared/tmp/restart-s56/goose-check-s6a2.log`). The `ETCD_SRC` instruction below is obsolete.
+- Done (S6a-2): `m1-s6a2.patch` applied (no adaptation needed: NewServer's hunk at +32 lines);
+  `srvSnapRm` alias deleted, NewServer allocates at `snapRmM γt`; the `Spec/.../NewServer.lean`
+  comment at `Hsdir` (the map's authority only; the directory is `bootOk`'s `Hsdo`); `srvSnapRO`'s
+  pure part gains, last, `snap.snapDBPath ss = snap.snapDBPathOf cfg.DataDir'` (NewServer: `Hssp`);
+  `srvDiskImage`'s directory part gains `snap.snapDBPath ssₒ = snap.snapDBPathOf dd` (the stop:
+  `srvSnapRO`'s equation at its `DataDir` field, = `srvDataDir`'s `dd`).
+- `idm = C.rn.id` was already closed by step 5 (`f14b569984`): `stopCleanupImage.spec` takes
+  `srvMemberIDAddr C.s ↦□ C.rn.id`, `run` passes `srvSnapBagN`'s, `stop_cleanup_image` combines it
+  with `srvSnapRO`'s `srvMemberIDAddr s ↦□ idm`.
+- Then: full build, `tcb-report --check`, gen-interface, gates; STOP for 81 before `etc/land.sh`
+  (step 5 + S6a-2 change statements). Phase B only after 81's go.
+
 ## S6a: fork fix and step 5's image (2026-11-13, the S6 agent, fresh): next agent starts here
 
 - **Fork fix (the user's decision via 81).** upamanyus/etcd@2eaeb872b (`goose-lean-snaplink`, local

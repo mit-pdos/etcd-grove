@@ -503,7 +503,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   -- (restart S6a) the member's snapshot directory, at raft's names for the member
   iunfold srvSnapRO at Hsro
   icases Hsro with ⟨%cfgs, %sso, %-, %-, %-, %γdo, %idm, %-, %-, %-, %-, %-, %-, %-, %Hsrop,
-    -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmidm, #Hsdinv, -⟩
+    -, -, #Hddo, -, -, -, -, -, -, -, -, -, -, #Hmidm, #Hsdinv, -⟩
   icombine Hmidr Hmidm gives %hidm
   have hloc : C.γr.raft.raft.snapLoc C.rn.id = some γdo := by
     rw [hidm]; exact Hsrop.2.2.2.2.2.1
@@ -734,9 +734,14 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
     have e1 := hp.2.1
     have e2 := hp.2.2.2.2.2.1
     word
+  -- (restart S6a-2) its paths the data directory's: the snapshotter's (`srvSnapRO`'s, from
+  -- `bootOk`'s `Hssp`) at the configuration's `DataDir`, which is the stop's `dd`
+  icombine Hdd1 Hddo gives %hddo
+  have hsp : snap.snapDBPath sso = snap.snapDBPathOf dd := by
+    rw [hddo]; exact Hsrop.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2
   iexists sso, γdo, γm, cm
   isplitr
-  · ipureintro; exact ⟨hloc, by omega⟩
+  · ipureintro; exact ⟨hloc, hsp, by omega⟩
   isplitr
   · rw [show (fun j : w64 => monoNatLbOwn (GF := GF) γm (uint.nat j + 1)) = snapRmM γm from rfl]
     iexact Hsdinv
