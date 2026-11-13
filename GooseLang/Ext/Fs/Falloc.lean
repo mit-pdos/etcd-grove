@@ -186,7 +186,7 @@ theorem wp_osFallocFinish (t : Nat) (p : Ino) (tg : Nat) (m : OsMeta) (n : Nat) 
   rw [hF.hf, Option.some.injEq] at hf'; subst hf'
   rcases hres with ⟨rfl, rfl⟩ | ⟨e, he, rfl, rfl | ⟨w, hw1, hw2, rfl⟩⟩
   · rw [hF.hctg] at Hr Hfr ⊢
-    imod resize_done_world hwf hcoh hF c.hi tg hland' Hr Hfr $$ HAb HAm HAf HAt Htok Hcells Hσ Ht
+    imod resize_done_world hwf hcoh hF c.hi tg hland' (fun h => by cases h) Hr Hfr $$ HAb HAm HAf HAt Htok Hcells Hσ Ht
       with ⟨⟨%Γb', %Γm', %Γf', %Γt', Hw⟩, Hd⟩
     imodintro
     iexists Γb', Γm', Γf', Γt'
@@ -207,7 +207,7 @@ theorem wp_osFallocFinish (t : Nat) (p : Ino) (tg : Nat) (m : OsMeta) (n : Nat) 
   · have hlw : (max m.size tg ≤ w ∧ w = rsHi false m.size tg ∧ w = tg) ∨
         (m.size ≤ tg ∧ m.size ≤ w ∧ w ≤ tg ∧ w = w) := by
       rw [hF.hclo] at hw1; rw [hchi'] at hw2; right; omega
-    imod resize_done_world hwf hcoh hF w w hlw Hr Hfr $$ HAb HAm HAf HAt Htok Hcells Hσ Ht
+    imod resize_done_world hwf hcoh hF w w hlw (fun h => by cases h) Hr Hfr $$ HAb HAm HAf HAt Htok Hcells Hσ Ht
       with ⟨⟨%Γb', %Γm', %Γf', %Γt', Hw⟩, Hd⟩
     imodintro
     iexists Γb', Γm', Γf', Γt'

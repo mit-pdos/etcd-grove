@@ -76,9 +76,14 @@ def rsAnn (n : Nat) (xs : List ByteG) : List ByteG := xs.map (fun x => (x.1, x.2
 @[simp] theorem rsAnn_length (n : Nat) (xs : List ByteG) : (rsAnn n xs).length = xs.length := by
   simp [rsAnn]
 
+/-- The page cache known zero past the size after a resize from the size `s`, as `cz` (`OsMeta.cz`)
+was: an `ftruncate` (`tr`) zeroed it to the end of what it announced; `fallocate` keeps what was
+known. -/
+def rsCz (tr : Bool) (s tg cz : Nat) : Nat := if tr then max cz (rsHi tr s tg) else cz
+
 /-- The `OsMeta` after a resize from `m`'s size, to the target `tg`, landed with the size `sz'`. -/
 def rsPost (tr : Bool) (m : OsMeta) (tg sz' : Nat) : OsMeta :=
-  { m.announce (min m.size tg) (rsHi tr m.size tg) tg with size := sz' }
+  { m.announce (min m.size tg) (rsHi tr m.size tg) tg with size := sz', cz := rsCz tr m.size tg m.cz }
 
 /-- What a mapped cell at byte `i` of the resized range shows once the size is `sz'`. -/
 def rsCell [GooseExts] (sz' i : Nat) : val := toCellVal (if i < sz' then some (0 : w8) else none)
@@ -357,6 +362,7 @@ theorem resize_done_world {st : OsState} {Γb Γm Γf Γt} {h h' : GMap Loc (Non
     (hF : RsFacts st Γb Γm Γt t tr p tg m xs n c f) (e sz' : Nat)
     (hland : (max m.size tg ≤ e ∧ e = rsHi tr m.size tg ∧ sz' = tg) ∨
       (m.size ≤ tg ∧ m.size ≤ e ∧ e ≤ tg ∧ sz' = e))
+    (htr : tr = true → rsHi tr m.size tg ≤ e)
     (Hr : HeapRendered st ((st.doneInflight t).setFile p (f.land c e sz')) h h')
     (Hfr : MapsFresh st ((st.doneInflight t).setFile p (f.land c e sz')) h) :
     ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γb Γb -∗
@@ -440,8 +446,9 @@ theorem resize_done_world {st : OsState} {Γb Γm Γf Γt} {h h' : GMap Loc (Non
       refine ⟨rfl, ?_, ?_, fun b len => by
           have h1 := hmo.maps b len; simp only [announce_maps] at h1
           simp only [rsPost, announce_maps]; exact h1,
-        fun t2 c2 h1 h2 => ?_, fun b hb hn => ?_, fun z hz => ?_, fun b cs hb hc => ?_⟩
-      rotate_right
+        fun t2 c2 h1 h2 => ?_, fun b hb hn => ?_, fun z hz => ?_, fun b cs hb hc => ?_,
+        fun b hb hbz => ?_⟩
+      rotate_right 2
       · have hc' : (m.announce (min m.size tg) (rsHi tr m.size tg) tg).tc !! b = some cs := hc
         rw [show f2.cand b = f.cand b from rfl]
         have hr := hc'
@@ -454,6 +461,25 @@ theorem resize_done_world {st : OsState} {Γb Γm Γf Γt} {h h' : GMap Loc (Non
           simp only [inRange, Bool.and_eq_true, decide_eq_true_eq] at hnr
           rw [← hmsz]
           rcases hland with ⟨hl1, hl2, rfl⟩ | ⟨hl1, hl2, hl3, rfl⟩ <;> omega
+      · -- the page cache known zero past the size
+        have hb2 : sz' ≤ b := hb
+        have hbz2 : b < rsCz tr m.size tg m.cz := hbz
+        have hsb : m.size ≤ b ∧ ¬ (c.lo ≤ b ∧ b < e) ∨ (c.lo ≤ b ∧ b < e) := by
+          rw [hclo]; rcases hland with ⟨hl1, hl2, rfl⟩ | ⟨hl1, hl2, hl3, rfl⟩ <;> omega
+        rw [hcache b]
+        rcases hsb with ⟨hsb, hne⟩ | hin
+        · rw [if_neg hne]
+          refine hmo.cz b (by omega) ?_
+          rw [announce_cz]
+          unfold rsCz at hbz2
+          cases tr with
+          | false => exact hbz2
+          | true =>
+            have := htr rfl
+            simp only [if_true] at hbz2
+            rw [hclo] at hne
+            omega
+        · rw [if_pos hin]
       · simp only [rsPost, f2, OsFile.land, announce_lo]
         rcases hland with ⟨hl1, hl2, rfl⟩ | ⟨hl1, hl2, hl3, rfl⟩ <;> omega
       · simp only [rsPost, f2, OsFile.land, announce_hi]
@@ -873,7 +899,7 @@ theorem wp_osFtruncateFinish (t : Nat) (p : Ino) (tg : Nat) (m : OsMeta) (xs : L
   rw [hF.hf, Option.some.injEq] at hf'; subst hf'
   rcases hres with ⟨rfl, rfl⟩ | ⟨e, he, rfl, rfl | rfl⟩
   · rw [hF.hctg] at Hr Hfr ⊢
-    imod resize_done_world hwf hcoh hF c.hi tg hland' Hr Hfr $$ HAb HAm HAf HAt Htok Hcells Hσ Ht
+    imod resize_done_world hwf hcoh hF c.hi tg hland' (fun _ => Nat.le_of_eq hF.hchi.symm) Hr Hfr $$ HAb HAm HAf HAt Htok Hcells Hσ Ht
       with ⟨⟨%Γb', %Γm', %Γf', %Γt', Hw⟩, Hd⟩
     imodintro
     iexists Γb', Γm', Γf', Γt'
@@ -890,7 +916,7 @@ theorem wp_osFtruncateFinish (t : Nat) (p : Ino) (tg : Nat) (m : OsMeta) (xs : L
     iapply wp_value'
     iapply HΦ; iright; iframe; ipureintro; exact he
   · rw [hF.hctg] at Hr Hfr ⊢
-    imod resize_done_world hwf hcoh hF c.hi tg hland' Hr Hfr $$ HAb HAm HAf HAt Htok Hcells Hσ Ht
+    imod resize_done_world hwf hcoh hF c.hi tg hland' (fun _ => Nat.le_of_eq hF.hchi.symm) Hr Hfr $$ HAb HAm HAf HAt Htok Hcells Hσ Ht
       with ⟨⟨%Γb', %Γm', %Γf', %Γt', Hw⟩, Hd⟩
     imodintro
     iexists Γb', Γm', Γf', Γt'

@@ -330,7 +330,7 @@ theorem osWorld_trunc {st : OsState} {Γb Γm Γf Γt} {h h' : GMap Loc (NonAtom
       (((startState st i f c t).doneInflight t).setFile i
         ((f.announce c (st.fs.stamp + 1)).land c c.hi 0)) (renderHeap (startState st i f c t) h) :=
     mapsFresh_same rfl
-  imod resize_done_world hwf1 hcoh1 hF c.hi 0 hland Hr2 Hfr2 $$ HAb HAm HAf HAt Htok Hcells Hσ Ht
+  imod resize_done_world hwf1 hcoh1 hF c.hi 0 hland (fun _ => Nat.le_of_eq hF.hchi.symm) Hr2 Hfr2 $$ HAb HAm HAf HAt Htok Hcells Hσ Ht
     with ⟨Hw, Hd⟩
   rw [← truncSt_eq st i f t ht]
   imodintro
