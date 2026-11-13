@@ -656,6 +656,37 @@ Three modules failed at `497f88bb04` (`wal-save5` merged); fixed:
   to be out inside the lemma: the program's half that would contradict a parked one is not the lemma's)
   must survive that. Open recovers the exact halves by agreement with the invariant's (`segResF`, idle).
 
+**Seventh session, task 2: the directory-claim map (W2's proposal, as decided).** `Ghost.lean`: `WalGS.γdk`
+(ghost map `dir ↦ (j, X)`, persistent elements: `walDirKeysAuth K`, `walDirKey dir j X`, `walDirKey_lookup`,
+`walDirKey_insert`) and `WalGS.γcp` (the pending cut: a ghost `Option GoString`, `walCutAuth c` the invariant's
+half, `walCutFrag c` the program's; `walCut_agree`, `walCut_set`). **The lock tokens carry `walCutFrag none`**
+(`walUnlockedTok`, `walLockedTok`: at most one handle per generation, so one flag; a cut sets it to its directory
+at the rename, back at the directory's sync). `walGhost_init` allocates both; `walStart` carries `walDirKeysAuth ∅
+∗ walCutAuth none`. `Inv.lean`: `walInvBody`'s new last conjunct `∃ K c, walDirKeysAuth K ∗ walCutAuth c ∗
+⌜DirKeysOk C Mr jr s Ls cl n K c⌝`:
+```
+DirKeysOk … K c :=
+  (∀ dir j X, K !! dir = some (j, X) → ∃ lay hj, Ls !! dir = some lay ∧ lay.j = j ∧ j ≠ jr ∧
+    (∀ b ∈ X, walNameP b = false) ∧ ClaimOnce (j, .except X, hj) cl ∧ ClaimCoh hj j (.except X) ∧
+    ∀ c' ∈ cl, c' ≠ (j, .except X, hj) → c'.1 = j → ∀ b, walNameP b = true → ¬ c'.2.1.Mem b) ∧
+  (∀ dir d lay, s.wal !! dir = some d → Ls !! dir = some lay → c ≠ some dir → CrashOkA … d lay none cl n)
+```
+(the crash clause is over every WAL, keyed or not, so `ReadAll`'s insertion of a key needs no crash argument).
+**`CreatingOk`**: the creating map's values are `(N, h, J)` (`walCreating dir N h J`), and each entry carries
+`CreatingNew jr cl CR dir N J`: `J ≠ jr`, no claim of `J` among `cl` holds a `.wal` name, no other entry's
+directory is `J`, and the area claim leaves out some `.wal` name. All four are facts of the shared invariant at
+the token's minting (W4's step at `⊤`: the program holds `J`'s claim and the creating claim `.only [nm, nm.tmp]`
+whole); they give the commit `J ≠ j` for every key (a keyed claim holds every `.wal` name) and that the area
+claim is no WAL directory's (`walParked`). Established: `walInv_alloc` (`K = ∅`, `c = none`; the crash clause by
+`crashOk_start`), carried by `walInvBody_tail` (`dirKeysOk_tail`), `walInvBody_named` (`dirKeysOk_named`,
+`crashOkA_none_named`, `crashOkA_mono`), `CreateAu`'s abort arms; `walInv_crash` drops them (a generation's keys
+are its own). **For the units**: `cut` (W2) matches its handle's claim half by `walDirKey_lookup` and `DirKeysOk`'s
+`ClaimOnce`; at the rename `walCut_set` to `some dir` (the lock token's flag, from `walOpenW`), at the
+directory's sync back to `none` with `CrashOkA … none` (`crashOk_dirSync`). `ReadAll` (W3) inserts its WAL's key
+(`walDirKey_insert`; its facts from `NamesCoh` at a step at `⊤`, as `Create`'s minting). The handle
+(`walHandleIn`) holding `walDirKey dir j X ∗ osNames j (.except X) ½ hj` is left to the units that produce it
+(`Create`'s body, `ReadAll`): no proof destructures `walHandleIn` yet.
+
 **The part's WAL package init (branch `wal-nc`, 2026-11-13).** `etc/gen-init.py` generates the
 `wp_initialize'` of the WAL's whole import closure in the part (`LFS_PKGS`): the part's `wal`, `walpb`,
 `fileutil`, `crc`, `hash/crc32` and raft root package (names-only); the main-tree translations below them
@@ -1415,6 +1446,13 @@ update: `s.wal dir := walDurFresh md`, the new layout and its `CrashOk`); then `
   `os.Remove`, `filepath.Abs`); the `walCreating` minting step; `wal.Create.wp_proof` (now with
   `wal-cut3`'s `newFilePipeline.spec`, which needs `dir.length < 2^61`), `TouchDirAll`/`CreateDirAll`
   `wp_proof`s: still `sorry`.
+
+**For `wal-create6` (the invariant's owner, 2026-11-13).** (1) `walAreaRes jr` gains `⌜∀ nm J, walNameOk nm →
+h.cur !! tmpName nm = some (.dir J) → ∀ hJ, (J, NameSet.except [], hJ) ∈ cl → FilesOnly hJ.cur⌝` (a leftover
+`nm.tmp` holds only files; `CreateDefs.lean`, importing `LinuxFs.Spec.os.RemoveAll`), for `os.RemoveAll.specDirS`
+of a leftover `dir.tmp`. (2) The `walCreating` token is `walCreating dir N h J` and the minting must establish
+`CreatingNew` (W1 log, seventh session, task 2). (3) `walCreate_osAUnc`'s commit (task 3) needs more of the
+program: see the W1 log's task-3 entry.
 
 ## 11. Coordinator decisions after W2 and W4 (2026-11-13)
 

@@ -90,6 +90,40 @@ theorem walDirClaimOf_tail {Ls : GMap GoString WalLay} {dir : GoString} {lay : W
       exact ⟨dir', tailLay lay pre g wr', GMap.lookup_insert _ _ _, hj, hX⟩
     · exact ⟨dir', lay', by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hl', hj, hX⟩
 
+/-- **The directory keys with a tail replaced** (the tail step's crash condition, `crashOkA_tail`,
+with no alternative). -/
+theorem dirKeysOk_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} {jr : Ino}
+    {s : AbsDiskState} {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat}
+    {K : GMap GoString (Ino × List GoString)} {c : Option GoString} {dir : GoString}
+    {d : WalDur} {lay : WalLay} {pre : List SegG} {g0 g : SegG} {wr' : Nat}
+    (hW : WalsOk C Mr R jr s Ls cl n) (hd : s.wal !! dir = some d) (hl : Ls !! dir = some lay)
+    (hs : lay.segs = pre ++ [g0]) (hino : g.ino = g0.ino)
+    (hlen : g.bs.length = g0.bs.length) (hzf : ∀ z, g0.om.zf = some z → g0.bs.length ≤ z)
+    (hZ : TailZeros lay) (hB : TailBound C Mr d lay)
+    (habs' : ∀ ents, WalAbsD C Mr d lay ents → WalAbsD C Mr d (tailLay lay pre g wr') ents)
+    (h : DirKeysOk C Mr jr s Ls cl n K c) :
+    DirKeysOk C Mr jr s (<[dir := tailLay lay pre g wr']> Ls) cl n K c := by
+  obtain ⟨h1, h2⟩ := h
+  refine ⟨fun dir' j X hk => ?_, fun dir' d' lay' hd' hl' hc => ?_⟩
+  · obtain ⟨lay1, hj, hl1, rest⟩ := h1 dir' j X hk
+    by_cases e : dir' = dir
+    · subst e; rw [hl] at hl1; cases hl1
+      exact ⟨tailLay lay pre g wr', hj, GMap.lookup_insert _ _ _, rest⟩
+    · exact ⟨lay1, hj, by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hl1, rest⟩
+  · by_cases e : dir' = dir
+    · subst e
+      rw [GMap.lookup_insert] at hl'; cases hl'
+      rw [hd] at hd'; cases hd'
+      obtain ⟨lay1, nm, hj, hl1, hA, hjr, hnm, hcl, habs, hcr⟩ := hW.1 dir' d hd
+      rw [hl] at hl1; cases hl1
+      have hnd : (lay.segs.map (·.ino)).Nodup := ((segsAll_nodup_iff Ls).1 hW.2.2.1).1 dir' lay hl
+      have hnd' : ((tailLay lay pre g wr').segs.map (·.ino)).Nodup := by
+        rw [hs] at hnd; simpa [tailLay, hino] using hnd
+      exact crashOkA_tail hC habs (habs' _ habs) hZ hB hnd' hs rfl hino rfl rfl rfl rfl rfl hlen hzf
+        (fun la h => by cases h) (h2 dir' d lay hd hl hc)
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hl'
+      exact h2 dir' d' lay' hd' hl' hc
+
 end pure
 
 section iris
@@ -215,7 +249,8 @@ theorem walInvBody_tail (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
   unfold tailVar
   iintro Hb Hk Hv
   unfold walInvBody
-  icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hn, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk⟩
+  icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hn, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
+    ⟨%K, %cp, Hdk, Hcp, %Hdko⟩⟩
   unfold walTailsRes
   icases Htl with ⟨%T, HTa, HTm⟩
   icases walTailKey_lookup T dir γ $$ HTa Hk with %HT
@@ -314,7 +349,12 @@ theorem walInvBody_tail (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
   · ipureintro; exact Hab
   isplitr
   · ipureintro; exact walsNamed_tail hl hs hname hino HNm
-  iapply walParked_tail Ls cl dir lay pre g0 g wr' hl hs hino hlen $$ Hpk
+  isplitl [Hpk]
+  · iapply walParked_tail Ls cl dir lay pre g0 g wr' hl hs hino hlen $$ Hpk
+  iexists K, cp
+  iframe Hdk Hcp
+  ipureintro
+  exact dirKeysOk_tail hC ⟨hW1, hW2, hW3, hW4, hW5, hW6⟩ hd hl hs hino hlen hzf hZ hB habs' Hdko
 
 end iris
 

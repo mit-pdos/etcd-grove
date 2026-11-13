@@ -4,7 +4,7 @@
 
 `walCreate_osAUnc`: the atomic update `Create` gives `os.Rename.specDirSnc` for `renameWAL`'s rename of
 `nm.tmp` (the directory `J`, the fresh WAL's one segment `g` in it, synced) onto the WAL-less name `nm`
-of the area `r`, in the area claim `(jr, N, h)` that the program's `walCreating dir N h` token names.
+of the area `r`, in the area claim `(jr, N, h)` that the program's `walCreating dir N h J` token names.
 
 * *Opening* (with the generation's `notCrashed`): opens `walInv`, finds the claim among the
   invariant's (`CreatingOk`: once in its claims), hands out the invariant's half of it, and opens the
@@ -92,10 +92,10 @@ theorem osClaims_create (l1 l2 : List Claim) (c c' cJ : Claim) (dq : DFrac) (hl1
     iempintro
 
 /-- The creating token's entry in the authority. -/
-theorem walCreating_lookup (CR : GMap GoString (NameSet × NamesH)) (dir : GoString) (N : NameSet)
-    (h : NamesH) :
-    ⊢ walCreatingAuth (W := W) CR -∗ walCreating (W := W) dir N h -∗
-      ⌜CR !! dir = some (N, h)⌝ ∗ walCreatingAuth (W := W) CR ∗ walCreating (W := W) dir N h := by
+theorem walCreating_lookup (CR : GMap GoString (NameSet × NamesH × Ino)) (dir : GoString)
+    (N : NameSet) (h : NamesH) (J : Ino) :
+    ⊢ walCreatingAuth (W := W) CR -∗ walCreating (W := W) dir N h J -∗
+      ⌜CR !! dir = some (N, h, J)⌝ ∗ walCreatingAuth (W := W) CR ∗ walCreating (W := W) dir N h J := by
   unfold walCreatingAuth walCreating
   letI := walAllG (W := W)
   iintro Ha Ht
@@ -104,9 +104,9 @@ theorem walCreating_lookup (CR : GMap GoString (NameSet × NamesH)) (dir : GoStr
   ipureintro; exact H
 
 /-- Deleting the creating token's entry. -/
-theorem walCreating_delete (CR : GMap GoString (NameSet × NamesH)) (dir : GoString) (N : NameSet)
-    (h : NamesH) :
-    ⊢ walCreatingAuth (W := W) CR -∗ walCreating (W := W) dir N h ==∗
+theorem walCreating_delete (CR : GMap GoString (NameSet × NamesH × Ino)) (dir : GoString)
+    (N : NameSet) (h : NamesH) (J : Ino) :
+    ⊢ walCreatingAuth (W := W) CR -∗ walCreating (W := W) dir N h J ==∗
       walCreatingAuth (W := W) (GMap.delete dir CR) := by
   unfold walCreatingAuth walCreating
   letI := walAllG (W := W)
@@ -125,7 +125,7 @@ the invariant takes at the commit: half of `J`'s claim, the segment `g` whole (i
 bytes). -/
 def walCreateP (dir : GoString) (N : NameSet) (h : NamesH) (md : List w8) (Q : IProp GF)
     (J : Ino) (X : List GoString) (hJ : NamesH) (g : SegG) : IProp GF :=
-  iprop(walCreating (W := W) dir N h ∗
+  iprop(walCreating (W := W) dir N h J ∗
     (AU <{ walAbsent (W := W) dir }> @ walAuMask, ∅ <{ walDiskAt (W := W) dir (walDurFresh md), COMM Q }>) ∗
     osNames J (.except X) (DFrac.own (1 : Qp).half) hJ ∗
     osMeta g.ino (DFrac.own 1) g.om ∗ osBytes g.ino 0 (DFrac.own 1) g.bs)
@@ -176,10 +176,10 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   icases HP with ⟨Htok, Hau, HJ, Hm, Hbs⟩
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl0, #Hcm, Hlays, %Hok, %Hco, ⟨%CR, Hcra, %Hcro⟩,
-    Htl, %Han, %Hnm, Hpk⟩
-  icases walCreating_lookup CR dir N h $$ Hcra Htok with ⟨%Hcr, Hcra, Htok⟩
+    Htl, %Han, %Hnm, Hpk, ⟨%K, %cp, Hdk, Hcp, %Hdko⟩⟩
+  icases walCreating_lookup CR dir N h J $$ Hcra Htok with ⟨%Hcr, Hcra, Htok⟩
   have hco := Hcro
-  obtain ⟨hc, hcoh, hexcl, honce, hdist⟩ := Hcro dir N h Hcr
+  obtain ⟨hc, hcoh, hexcl, honce, hdist, hnew⟩ := Hcro dir N h J Hcr
   obtain ⟨l1, l2, hcl, hl1, hl2⟩ := honce
   subst hcl
   icases (osClaims_split _ _ _ _).1 $$ Hcl0 with ⟨Hl1, Hα, Hl2⟩
@@ -197,7 +197,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     iintro Hα
     icases Hcla with ⟨Hab, -⟩
     imod Hab $$ Hab0 with Hau
-    imod Hcl $$ [Hg Hl1 Hα Hl2 Hlays Hcra Htl Hpk]
+    imod Hcl $$ [Hg Hl1 Hα Hl2 Hlays Hcra Htl Hpk Hdk Hcp]
     · iexists s
       iexists Ls, l1 ++ (jr, N, h) :: l2, n, F
       iframe Hg Hcm Hlays Htl Hpk
@@ -214,7 +214,13 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       · iexists CR
         iframe Hcra
         ipureintro; exact hco
-      ipureintro; exact ⟨Han, Hnm⟩
+      isplitr
+      · ipureintro; exact Han
+      isplitr
+      · ipureintro; exact Hnm
+      iexists K, cp
+      iframe Hdk Hcp
+      ipureintro; exact Hdko
     imodintro
     dsimp only
     iframe Htok Hau HJ Hm Hbs
@@ -227,7 +233,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       icases Hβ with ⟨-, Hα⟩
       icases Hcla with ⟨Hab, -⟩
       imod Hab $$ Hab0 with Hau
-      imod Hcl $$ [Hg Hl1 Hα Hl2 Hlays Hcra Htl Hpk]
+      imod Hcl $$ [Hg Hl1 Hα Hl2 Hlays Hcra Htl Hpk Hdk Hcp]
       · iexists s
         iexists Ls, l1 ++ (jr, N, h) :: l2, n, F
         iframe Hg Hcm Hlays Htl Hpk
@@ -244,7 +250,13 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         · iexists CR
           iframe Hcra
           ipureintro; exact hco
-        ipureintro; exact ⟨Han, Hnm⟩
+        isplitr
+        · ipureintro; exact Han
+        isplitr
+        · ipureintro; exact Hnm
+        iexists K, cp
+        iframe Hdk Hcp
+        ipureintro; exact Hdko
       imodintro
       dsimp only [walCreateQ, walCreateP]
       iframe Htok Hau HJ Hm Hbs
@@ -302,12 +314,12 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         ipureintro
         simp only [createSt, GMap.lookup_insert_eq]
         exact walDurLe_refl _
-      imod walCreating_delete CR dir N h $$ Hcra Htok with Hcra
+      imod walCreating_delete CR dir N h J $$ Hcra Htok with Hcra
       icases (osMeta_halves g.ino g.om).1 $$ Hm with ⟨Hm1, Hm2⟩
       icases (osBytes_halves g.ino 0 (y :: ys)).1 $$ Hbs with ⟨Hb1, Hb2⟩
       have hF : ∀ g' ∈ segsAll Ls, (GMap.delete g.ino F) !! g'.ino = F !! g'.ino := fun g' hg' =>
         GMap.lookup_delete_ne _ (Ne.symm (hino g' hg'))
-      imod Hcl $$ [Hg Hl1 Hα Hl2 HJ Hlays Hm1 Hb1 Hcra Htl Hpk]
+      imod Hcl $$ [Hg Hl1 Hα Hl2 HJ Hlays Hm1 Hb1 Hcra Htl Hpk Hdk Hcp]
       · iexists (createSt s dir md)
         iexists <[dir := lay]> Ls,
           createClaims (l1 ++ (jr, N, h) :: l2) jr N h x (renDirEnt jr tmp nm J s0)
