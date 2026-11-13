@@ -839,6 +839,78 @@ goroutine and afterFuncer arms are excluded by `#HParentCC`; MIN-3 the child's `
 reader slot" (an atomic load, then `<-c.Done()`, which may briefly take `c.mu`). MAJ-1 (`RenewHTTP`
 refuted through `context.Cause`, older than T-j) is Addendum T-k.
 
+## Addendum T-k (2026-11-13): the context's cause (the T-j review's MAJ-1; DESIGN, for etcd-grove-81 before the Lean texts)
+
+T-j landed (lean `0b2a6e3247`). The refutation: `notes/renewhttp-cause-refuted.md` (audit rows). Go
+tests (go1.27.3, GOWORK=off, pass): `TestRenewHTTPCausePanics` (`examples/premisefix/streamctx`; the
+review's test, past and mid-call deadlines) and `TestLeaseTimeToLiveFollowerCausePanics`
+(`examples/etcd/lease/ctxsweep_test.go`, new: a second axiom refuted the same way, the panic inside it).
+**Nothing in Lean yet**: writing the texts adds trusted items beyond 81's sketch, listed below for a
+decision first.
+
+### T-k0. The sweep: specs whose Go returns or compares `context.Cause`
+
+| spec | status |
+|---|---|
+| `leasehttp.RenewHTTP.wp_proof` | **refuted** (returns the cause in a `*url.Error`; `applyErrIs` claimed) |
+| `EtcdServer.leaseTimeToLive.wp_proof` | **refuted** (its own `errors.Is` on `TimeToLiveHTTP`'s error panics) |
+| rafthttp `NewRoundTripper`/`newStreamRoundTripper` (`roundTripperOk`'s `RoundTrip`, premise `http.reqCtxBg`) | **holds**: `bgCancelChild` is a `*cancelCtx` child of `Background()`, made by `WithCancel` (no `WithCancelCause` spec, `etc/bgcancel-check.py`), whose cause is `Canceled` once cancelled (its parent is never done); `TestRoundTripBgCancel` (`err == context.Canceled`, in flight and before the call, both round trippers) |
+| grpc's axioms (client `Invoke`/`NewStream`, the run model) | **not affected**: grpc v1.84.0 never calls `context.Cause` (grep of its non-test sources); it reports `ctx.Err()` |
+| etcd fork (server, api, pkg, client) | **not affected**: no `context.Cause` call outside tests |
+| k8s: client-go `WaitFor`, `sharedInformerFactory.WaitForCacheSyncWithContext` | translated, **no spec** (they return/log `context.Cause(ctx)`); a future spec must constrain the cause or accept any error |
+| Perennial's `context.Cause.spec` | post `True`: nothing claimed |
+
+### T-k1. Why a new trusted fact is needed
+
+Perennial's model does not track causes (`cancelCtxLockInv`'s `cause : GoError`, no fact), and
+`WithDeadlineCause.spec` gives `isContext` of a context with any cause, so no existing predicate can
+say "the cause is a context error", and no proof can derive it for a derived context. The fact must be
+claimed where contexts are made (grpc's run, `WithCancel`, the wrapper, `Tracer.Start`'s `WithValue`,
+`wp_WithTimeout_weak`) and carried, as `netCtxOk` was.
+
+### T-k2. Proposed texts (all TRUSTED unless marked)
+
+- **Vocabulary** `v3rpc.ctxCauseOk c` (`SrvCtxWeak.lean`, **opaque**, persistent): "`context.Cause(c)`
+  returns `nil`, a context error or `ErrGRPCNoLeader` at every call, and the `cause` field of the
+  `*cancelCtx` that `c.Value(&cancelCtxKey)` or `parentCancelCtx(c)` finds holds only such values".
+  Why opaque, not a WP clause on `Cause(c)`: net/http also reads the found `*cancelCtx`'s `cause` directly
+  (`propagateCancel`'s registration arm and the parent's later `cancel`), and every producer below would
+  need a trusted law anyway (Perennial's model has no cause fact to prove one from). (Alternative: a WP
+  clause on `Cause(c)` taking the level token; RenewHTTP's justification then argues that, under
+  `#HParentCC`, the found `p.cause` once `p` is cancelled is what `Cause(c)` returns.)
+- **Consumers (axioms, stronger premises):** `leasehttp.RenewHTTP.spec` and
+  `EtcdServer.leaseTimeToLive.spec` take `v3rpc.ctxCauseOk ctx`.
+- **Producers:**
+  (a) grpc's run model: `grpcRunCtx ci` and `srvRawStreamIs` gain `v3rpc.ctxCauseOk ci` (grpc makes its
+  contexts with `WithCancel`/`WithTimeout`/`WithValue`, never a cause variant; `TestRunCtxChain` can
+  check `context.Cause(ci)` after the stream ends: `Canceled`), law `ctxCauseOk_of_runCtx`;
+  (b) law `v3rpc.ctxCauseOk_cancelChild : ctxField c ↦□ parent ∗ ctxCauseOk parent ⊢ ctxCauseOk
+  (*cancelCtx c)` (a `*cancelCtx` context value is `WithCancel`'s, as `bgCancelChild`'s argument; its
+  own cancel stores cause `Canceled`, the others come from `Cause(parent)` or the parent's found
+  `*cancelCtx`), for the wrapper's inner context (`v3rpc.wp_WithCancel_cancelCtx` gives the field);
+  (c) law `v3rpc.ctxCauseOk_cancellable`: the wrapper's `Context` field `↦□ inner` ∗ `ctxCauseOk inner`
+  ∗ the wrapper's `cancelReason` only ever `nil` or `ErrGRPCNoLeader` (from its handle `v3rpc.ccHandle`;
+  exact form to fit it) ⊢ `ctxCauseOk wrapper` (`Cause(wrapper)` = `wrapper.Err()`, then the inner
+  `*cancelCtx`'s cause, else `wrapper.Err()`);
+  (d) `Tracer.Start.spec`'s post gains `□ (ctxCauseOk ctx -∗ ctxCauseOk ctx')` (a `valueCtx` delegates
+  `Value` and `Err`, or `ctx' = ctx`);
+  (e) `v3rpc.wp_WithTimeout_weak`: premise gains `ctxCauseOk parent`, post `ctxCauseOk ctx'` (the
+  `*timerCtx`'s causes: `Canceled`, `DeadlineExceeded` (nil cause), `Cause(parent)`, the found `p.cause`).
+- **Callers (not trusted):** `LeaseRenew` must take its child from `wp_WithTimeout_weak` (Perennial's
+  `wp_WithTimeout` child has no cause fact, and its post does not name the `*timerCtx` for a law), so
+  `LeaseRenew.spec` takes `srvCtxWeak ctx cd ∗ levelTok v3rpc.ctxErrLvl ∗ v3rpc.ctxCauseOk ctx` (T-h4's
+  form, pulled into T-k for the build), `raftLeaseRenew` likewise, `leaseKeepAlive` from
+  `srvStreamIsStrong` (gains `ctxCauseOk ci`; produced by nothing, temporary) and its level token;
+  `LeaseTimeToLive`'s chain from `grpcRunCtx` by (a).
+
+### T-k3. Decisions needed (recommendation first)
+
+1. `ctxCauseOk` as an opaque with producers (a)-(e) (recommended), or a WP clause on `Cause(c)`.
+2. Pull `LeaseRenew` onto `wp_WithTimeout_weak` into T-k (recommended: needed to build; the rest of
+   step 3, `LeaseKeepAlive` over the weak end, stays after T-k).
+3. The wrapper law (c): its premise on `cancelReason` taken from the handle (recommended), or a
+   trusted claim in `newCancellableContext`'s spec post.
+
 ### Checks run, Revision 2 (2026-11-12, merged with lean `219ddbbb83`)
 
 Full build passes (17490 jobs); `tcb-report --check` matches the baseline unchanged (865 axioms, 5

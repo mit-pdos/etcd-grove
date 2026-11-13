@@ -775,3 +775,54 @@ func TestRenewHTTPWeakChild(t *testing.T) {
 		cancel()
 	}
 }
+
+// causeBadErr (Addendum T-k; the T-j review's MAJ-1): an error whose Is panics, used as a context's
+// cause.
+type causeBadErr struct{}
+
+func (causeBadErr) Error() string { return "bad cause" }
+func (causeBadErr) Is(error) bool { panic("causeBadErr.Is called") }
+
+// TestRenewHTTPCausePanics (Addendum T-k, notes/renewhttp-cause-refuted.md; the review's test): a
+// context made by context.WithDeadlineCause(Background(), d, causeBadErr{}) (Perennial's spec gives
+// isContext, so ctxDoneErr, and netCtxOk holds) makes RenewHTTP return a *url.Error wrapping the
+// cause (net/http returns context.Cause of the request's context once done, go1.27.3
+// net/http/transport.go:698), on which LeaseRenew's errors.Is(err, lease.ErrLeaseNotFound) panics:
+// already past the deadline, and with the deadline firing mid-call (the transport's child registered
+// with the context's *cancelCtx, whose cancel passes its cause).
+func TestRenewHTTPCausePanics(t *testing.T) {
+	for _, live := range []bool{false, true} {
+		hs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if live {
+				select {
+				case <-r.Context().Done():
+				case <-time.After(3 * time.Second):
+				}
+			}
+		}))
+		d := time.Now().Add(-time.Second)
+		if live {
+			d = time.Now().Add(200 * time.Millisecond)
+		}
+		ctx, cancel := context.WithDeadlineCause(context.Background(), d, causeBadErr{})
+		_, err := leasehttp.RenewHTTP(ctx, lease.LeaseID(1), hs.URL+"/leases", &http.Transport{})
+		cancel()
+		hs.Close()
+		var ue *url.Error
+		if !errors.As(err, &ue) {
+			t.Fatalf("live=%v: %v (%T) is not a *url.Error", live, err, err)
+		}
+		if _, ok := ue.Err.(causeBadErr); !ok {
+			t.Fatalf("live=%v: unwrap %T, want the cause", live, ue.Err)
+		}
+		r := func() (r any) {
+			defer func() { r = recover() }()
+			errors.Is(err, lease.ErrLeaseNotFound) // as EtcdServer.LeaseRenew does
+			return nil
+		}()
+		if r == nil {
+			t.Fatalf("live=%v: errors.Is did not panic (T-k no longer holds: update the notes)", live)
+		}
+		t.Logf("live=%v: err=%v; recovered: %v", live, err, r)
+	}
+}

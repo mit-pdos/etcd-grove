@@ -33,6 +33,24 @@ the worktree's untracked `questions.md` (decisions), `/shared/tmp/coord-81/commo
     Nothing used it.
   - freeze §2's "T-e'" section (marked draft).
 
+## Handoff point (2026-11-13, end of the ninth agent's context): T-j landed; T-k designed, not in Lean
+
+Landed: lean `0b2a6e3247` (T-j with the review's minors; tcb baseline 867 axiom lines, 4 sorries).
+**T-k** (the T-j review's MAJ-1, `RenewHTTP` refuted through `context.Cause`; also
+`leaseTimeToLive`, by the sweep): `notes/renewhttp-cause-refuted.md`, audit rows, Go tests
+(`TestRenewHTTPCausePanics`, `TestLeaseTimeToLiveFollowerCausePanics`), the sweep table and the proposed
+texts in Addendum T-k of `notes/k8s-7f4-freeze.md` (T-k0..T-k3). **Waiting for 81's decisions T-k3 1-3.**
+**Next, in order:** write T-k2's texts in Lean as decided (opaque `v3rpc.ctxCauseOk` in `SrvCtxWeak.lean`;
+grpc's `grpcRunCtx`/`srvRawStreamIs` claims; laws (b), (c); `Tracer.Start`'s wand; `wp_WithTimeout_weak`'s
+premise/post; `RenewHTTP`/`leaseTimeToLive` premises; `LeaseRenew` on `wp_WithTimeout_weak` with
+`srvCtxWeak ∗ levelTok v3rpc.ctxErrLvl ∗ ctxCauseOk`, `raftLeaseRenew`, `leaseKeepAlive` via
+`srvStreamIsStrong`; the LeaseTimeToLive chain); build; tcb `--check` (report, no update); axiom-tok
+(entry for `wp_WithTimeout_weak`'s level token once reached); model-param; gen-interface; STOP for 81's
+axiom review. Nothing else may rely on `RenewHTTP.spec` beyond `LeaseRenew` until T-k lands. Then
+`LeaseKeepAlive`/`leaseKeepAlive` over the weak end (drop `srvStreamIsStrong`); stop before step 6.
+Pitfall: `httptest.Server.Close` waits for handlers; a handler blocking on `r.Context().Done()` can hang
+it (the transport need not close the connection on cancel): bound it with `time.After`.
+
 ## Ninth agent (2026-11-13): Addendum T-j written and built; STOPPED for 81's axiom review
 
 `43357ed9bc` (+ the notes commit after it): `context.madeCancelCtx` (opaque, `Proof/context/MadeCancelCtx.lean`)
