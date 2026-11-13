@@ -601,3 +601,14 @@ unchecked, and line 929's `iframe` (`statsTok`) undiagnosed. Next: split `Tx.wri
 loops (the page-collection loop to line ~175, the write loop, the sync tail) into lemmas, then
 `etc/gen-link.py --bbolt` (its `etc/link_bbolt.py` takes the three instance binders now) and
 `--results`, `gen-interface etc/api/bbolt.txt` (`pathHolds` changed), `tcb-report --check`.
+
+**2026-11-13, continued: the port builds.** `Commit/WriteExtRun.lean` was not too big for the
+machine: bisecting it under a cgroup cap (`systemd-run --user --scope -p MemoryMax=30G`, truncated
+copies) found one tactic, `have hremv2 : … := by word` inside the write loop's `nil` arm, whose
+`simp` preprocessing over that context ran past 30 GB; as a lemma (`wr_rem_sub`, `omega` for its
+premise) the whole file takes 320 s. The writer agent's fixes of lines 569-688 and the `iframe` at
+929 needed nothing more. `etc/gen-link.py --bbolt` and `--results` regenerated (`etc/link_bbolt.py`
+over the three instance binders); every bbolt module, `Link` and `Results` build; `gen-init --check`,
+every `Link.lean`'s regeneration, `api-check etc/api/bbolt.txt` and `bounds-check` pass. Left for
+the full build: `gen-interface etc/api/bbolt.txt` (the API's binders and `pathHolds` changed),
+`tcb-report --check` and its collections.
