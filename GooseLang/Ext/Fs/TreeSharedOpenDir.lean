@@ -20,11 +20,12 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
 
 /-- The shared coherence with a directory fd set (added, or its read moved on). -/
 theorem treeCohS_setDfd {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS)}
-    {Γc : GMap Nat (Nat × Qp)} (hc : TreeCohS st s0 Γdf Γc) {fd : w64} {df' : OsDirFd}
+    {Γc Γg : GMap Nat (Nat × Qp)} (hc : TreeCohS st s0 Γdf Γc Γg) {fd : w64} {df' : OsDirFd}
     {x : Ino × DirPhS} (hino : x.1 = df'.ino) (hph : PhOkS (setDfd st fd df') x.1 x.2 df'.rd) :
-    TreeCohS (setDfd st fd df') s0 (<[fd := x]> Γdf) Γc := by
+    TreeCohS (setDfd st fd df') s0 (<[fd := x]> Γdf) Γc Γg := by
   refine ⟨hc.starts, hc.pss, hc.dox, hc.valid, hc.s0le, fun fd' => ?_, fun fd' x' df hx hdf => ?_,
-    hc.calls, hc.callsLe, hc.whole, hc.after⟩
+    hc.calls, hc.callsLe, hc.whole, hc.after, hc.gcalls, hc.gdisj,
+    hc.cover, hc.pair⟩
   · show ((<[fd := x]> Γdf) !! fd').map (·.1) = ((<[fd := df']> st.proc.dfds) !! fd').map (·.ino)
     rw [GMap.lookup_insert_eq_iff, GMap.lookup_insert_eq_iff]; split
     · simp [hino]
@@ -58,7 +59,7 @@ theorem wp_osOpenDirS' (R : Roots) (p : GoString) (j : Ino) (dq : DFrac) (k s0 :
   icases Hm with (Hm | Hm)
   · iexfalso; iapply legacy_callS_excl st k s0 q $$ Hk Hm
   unfold treeShared
-  icases Hm with ⟨%V0, %s1, %Γdf, %Γc, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr⟩
+  icases Hm with ⟨%V0, %s1, %Γdf, %Γc, %Γg, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
   obtain ⟨hw, hc⟩ := hns
   unfold osSharedInv
   imod inv_acc (osShN_sub hE') $$ Hsi with ⟨Hi, Hclose⟩
@@ -73,7 +74,7 @@ theorem wp_osOpenDirS' (R : Roots) (p : GoString) (j : Ino) (dq : DFrac) (k s0 :
   unfold osCallS
   icases gAuth_lookup _ _ _ _ _ _ $$ Hacs Hk with %hk
   have hcall : st.proc.calls !! k = some s0 := by
-    have := hc.calls k; rw [hk] at this; exact this.symm
+    exact hc.calls k _ hk
   unfold osWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
@@ -128,8 +129,8 @@ theorem wp_osOpenDirS' (R : Roots) (p : GoString) (j : Ino) (dq : DFrac) (k s0 :
     have hw' := fsTreeWf_setDfd (fsTreeWf_metaEnd hw k') (fd := fd) (df' := ⟨j, .idle⟩) hfdn
       (mem_of_lookup_dir hw hl)
     have hc' : TreeCohS (setDfd (st.metaEnd k') fd ⟨j, .idle⟩) s1
-        (<[fd := ((j, DirPhS.idle) : Ino × DirPhS)]> Γdf) (GMap.delete k' Γc) :=
-      treeCohS_setDfd (treeCohS_metaEnd hc k') rfl trivial
+        (<[fd := ((j, DirPhS.idle) : Ino × DirPhS)]> Γdf) (GMap.delete k' Γc) Γg :=
+      treeCohS_setDfd (treeCohS_metaEnd hc k' hk) rfl trivial
     imod osWorld_filesSame (st := st) (st' := setDfd (st.metaEnd k') fd ⟨j, .idle⟩) hs Hr Hfr
       $$ [HAb HAm HAf HAt Htok Hcells Hσ] with Hw
     · unfold osWorld; iframe; ipureintro; exact Hwc
@@ -137,7 +138,7 @@ theorem wp_osOpenDirS' (R : Roots) (p : GoString) (j : Ino) (dq : DFrac) (k s0 :
     iexists Γb, Γm, Γf, Γt
     isplitl [Hw]
     · unfold osWorld; iexact Hw
-    isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr Hcm]
+    isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr HAg Hgr Hcm]
     · try unfold treeCtx
       isplitr [Hcm]
       rotate_left
@@ -146,7 +147,7 @@ theorem wp_osOpenDirS' (R : Roots) (p : GoString) (j : Ino) (dq : DFrac) (k s0 :
       iright
       simp only [setDfd, OsState.metaEnd, OsState.setProc]
       try unfold treeShared
-      iexists V0, s1, _, GMap.delete k' Γc
+      iexists V0, s1, _, GMap.delete k' Γc, Γg
       iframe
       ipureintro; exact ⟨hw', hc'⟩
     iapply wp_value'
@@ -166,7 +167,7 @@ theorem wp_osOpenDirS' (R : Roots) (p : GoString) (j : Ino) (dq : DFrac) (k s0 :
     iexists Γb, Γm, Γf, Γt
     isplitl [Hw]
     · unfold osWorld; iexact Hw
-    isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr Hcm]
+    isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr HAg Hgr Hcm]
     · try unfold treeCtx
       isplitr [Hcm]
       rotate_left
@@ -175,9 +176,9 @@ theorem wp_osOpenDirS' (R : Roots) (p : GoString) (j : Ino) (dq : DFrac) (k s0 :
       iright
       simp only [OsState.metaEnd]
       try unfold treeShared
-      iexists V0, s1, Γdf, GMap.delete k' Γc
+      iexists V0, s1, Γdf, GMap.delete k' Γc, Γg
       iframe
-      ipureintro; exact ⟨fsTreeWf_metaEnd hw k', treeCohS_metaEnd hc k'⟩
+      ipureintro; exact ⟨fsTreeWf_metaEnd hw k', treeCohS_metaEnd hc k' hk⟩
     iapply wp_value'
     iapply HΦ $$ %(-1) %e %(.inr ⟨he, rfl⟩) [Hq] Hp
     · unfold osCallPerm; iexact Hq
