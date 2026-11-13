@@ -38,6 +38,7 @@
 //	data_resize_chunks.go         partial resize (F5)                CrashFile (targets), FallocFinish
 //	data_durable_zeros.go         pages past a durable size: zeros   diskByte, OsFile.ofDisk, OsFile.synced
 //	data_append_old_block.go      the end's block is not ordered     diskByte (the end's page), CrashFile
+//	data_writeback_tail_zeros.go  writeback zeroes the end's tail    CrashFile (zero at or past sizeLo)
 //	data_extension_zeros.go       extensions read zeros (F3 refuted) OsFile.resized, OsFile.written
 //	data_keep_size.go             FALLOC_FL_KEEP_SIZE: no change     FallocKeep
 //	data_short_io.go              short and failed pread/pwrite      PRead, PWriteFinish

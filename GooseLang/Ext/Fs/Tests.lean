@@ -11,10 +11,14 @@ check of the trusted definitions).
   source page migrated during the copy) or any mix (mechanism B, a page rewritten during its
   writeback), both measured on C (`notes/axiom-review/fs-v2-r6/e2e/`).
 * `crash_after_sync` (a guarantee): after a successful sync with nothing in flight, every crash
-  leaves the file exactly as it was synced.
+  leaves the file's contents exactly as they were synced (past the size, its last page may come
+  back zero: writeback's zeroing).
 * `crash_append_old_block`: an append into the block holding the old end, then a crash: the new
   size may come back with the block's old bytes, stale ones included (`fs-config/crash.sh
   append-end`).
+* `crash_wb_tail_zero`: the same append, then a crash: the appended byte may come back zero, though
+  neither its stale value nor the written one is (writeback zeroes the page holding the end past
+  the size, `ext4_bio_write_folio`; `notes/axiom-review/eof-page.md`, `pl-wb-zero`).
 * `crash_new_block_zeros`: a new file's first write, then a crash: the new size may come back with
   zeros where the write was (ext4 commits the unwritten extent first; `crash.sh empty-write`).
 * `crash_past_end_zeros` (a guarantee): a file grown past its durable size's last page, then a
@@ -60,12 +64,16 @@ def byt : w8 := 2
 theorem crashFile_of (st : OsState) (i : Ino) (f : OsFile) (img : Nat → w8) (sz : Nat)
     (hlo : f.sizeLo ≤ sz) (hhi : sz ≤ f.sizeHi) (hc : ∀ b, ∃ s, (img b, s) ∈ f.cand b) :
     CrashFile st i f (OsFile.ofDisk img sz) :=
-  ⟨sz, img, ⟨.inl hlo, .inl hhi⟩, hc, rfl⟩
+  ⟨sz, img, ⟨.inl hlo, .inl hhi⟩, fun b => .inl (hc b), rfl⟩
 
 /-- Write `c` at offset 0 as the change numbered `n`, announced and landed whole. -/
 def wr (f : OsFile) (c : List w8) (n : Nat) : OsFile :=
   let ch := OsChange.ofWrite 0 f 0 c
   (f.announce ch n).land ch c.length (max f.size c.length)
+
+theorem diskByte_lt (img : Nat → w8) {sz b : Nat} (hb : b < sz) : diskByte img sz b = img b := by
+  simp only [diskByte]
+  rw [if_pos (by simp only [pageIn, decide_eq_true_eq]; have := Nat.mul_div_le b 4096; omega)]
 
 theorem diskByte_page0 (img : Nat → w8) (sz b : Nat) (hsz : 0 < sz) (hb : b < 4096) :
     diskByte img sz b = img b := by
@@ -254,12 +262,12 @@ theorem crash_loses_unsynced (st : OsState) (i : Ino) :
   show _ ∈ [(diskByte (fun b => [bx].getD b 0) [bx].length b, 0)]
   rw [diskByte_list]; exact List.mem_singleton_self _
 
-/-- **After a successful sync, a crash leaves the file exactly as synced** (a guarantee, with no
-change in flight on it). -/
+/-- **After a successful sync, a crash leaves the file's contents exactly as synced** (a guarantee,
+with no change in flight on it; past the size, its last page may come back zero). -/
 theorem crash_after_sync (st : OsState) (i : Ino) (f f' : OsFile)
     (hnone : ∀ t c, st.proc.inflight !! t = some c → c.ino ≠ i)
     (hc : CrashFile st i (f.synced (fun _ => False)) f') :
-    f' = OsFile.ofDisk f.cache f.size := by
+    f'.contents = f.contents := by
   obtain ⟨sz, img, ⟨hlo, hhi⟩, himg, rfl⟩ := hc
   have hsz : sz = f.size := by
     rcases hlo with h | ⟨t, c, ht, hi, -⟩
@@ -268,16 +276,15 @@ theorem crash_after_sync (st : OsState) (i : Ino) (f f' : OsFile)
       · exact absurd hi (hnone t c ht)
     · exact absurd hi (hnone t c ht)
   subst hsz
-  have hi : ∀ b, img b = diskByte f.cache f.size b := by
-    intro b; obtain ⟨s, h⟩ := himg b; simp [OsFile.synced] at h; exact h.1
-  have hd : ∀ b, diskByte img f.size b = diskByte f.cache f.size b := by
-    intro b; unfold diskByte; split
-    · rw [hi b, diskByte, if_pos (by assumption)]
-    · rfl
-  simp only [OsFile.ofDisk]
-  congr 1
-  · funext b; exact hd b
-  · funext b; rw [hd b]
+  have hi : ∀ b, b < f.size → img b = f.cache b := by
+    intro b hb
+    rcases himg b with ⟨s, h⟩ | ⟨h, -⟩
+    · simp [OsFile.synced] at h; rw [h.1, diskByte_lt _ hb]
+    · simp only [OsFile.synced] at h; omega
+  simp only [OsFile.contents, OsFile.ofDisk]
+  refine List.map_congr_left (fun b hb => ?_)
+  have hb := List.mem_range.1 hb
+  rw [diskByte_lt _ hb, hi b hb]
 
 /-- A one-byte file as a crash may find it on disk, its bytes `img` (stale past its end), `Y`
 appended at 1 as change `n`. -/
@@ -293,6 +300,28 @@ theorem crash_append_old_block (st : OsState) (i : Ino) (img : Nat → w8) (n : 
   refine crashFile_of _ _ _ _ _ (by simp [fApp, OsFile.land, OsFile.announce, OsFile.ofDisk])
     (by simp [fApp, OsFile.land, OsFile.announce, OsFile.ofDisk]) (fun b => ⟨0, ?_⟩)
   show _ ∈ ((OsFile.ofDisk img 1).announce (OsChange.ofWrite 0 (OsFile.ofDisk img 1) 1 [byt]) n).cand b
+  have hv : diskByte img 1 b = img b := by
+    by_cases hb : b < 4096
+    · exact diskByte_page0 img 1 b (by omega) hb
+    · rw [diskByte_past img 1 b (by omega), hz b (by omega)]
+  refine mem_announce_old ?_ _ _
+  rw [ofDisk_cand, hv]; simp
+
+/-- **Writeback zeroes the page holding the end past the size**: after the append of `Y` into the
+block holding the old end, a crash may keep the new size with the appended byte zero, though its
+candidates are the stale byte and `Y` (`ext4_bio_write_folio`; `eof-page.md`, `pl-wb-zero`). -/
+theorem crash_wb_tail_zero (st : OsState) (i : Ino) (img : Nat → w8) (n : Nat)
+    (hz : ∀ b, 4096 ≤ b → img b = 0) :
+    CrashFile st i (fApp img n) (OsFile.ofDisk (fun b => if b = 1 then 0 else img b) 2) := by
+  refine ⟨2, _, ⟨.inl (by simp [fApp, OsFile.land, OsFile.announce, OsFile.ofDisk]),
+    .inl (by simp [fApp, OsFile.land, OsFile.announce, OsFile.ofDisk])⟩, fun b => ?_, rfl⟩
+  by_cases hb1 : b = 1
+  · subst hb1
+    exact .inr ⟨by simp [fApp, OsFile.land, OsFile.announce, OsFile.ofDisk], by simp⟩
+  refine .inl ⟨0, ?_⟩
+  show ((if b = 1 then (0 : w8) else img b), 0) ∈
+    ((OsFile.ofDisk img 1).announce (OsChange.ofWrite 0 (OsFile.ofDisk img 1) 1 [byt]) n).cand b
+  rw [if_neg hb1]
   have hv : diskByte img 1 b = img b := by
     by_cases hb : b < 4096
     · exact diskByte_page0 img 1 b (by omega) hb
@@ -320,7 +349,9 @@ crash leaves the grown pages zeros, whatever the disk held past the old end. -/
 theorem crash_past_end_zeros (st : OsState) (i : Ino) (img : Nat → w8) (n : Nat) (f' : OsFile)
     (hc : CrashFile st i (fGrow img n) f') (b : Nat) (hb : 4096 ≤ b) : f'.cache b = 0 := by
   obtain ⟨sz, img', -, himg, rfl⟩ := hc
-  obtain ⟨s, h⟩ := himg b
+  obtain ⟨s, h⟩ | ⟨-, h0⟩ := himg b
+  rotate_left
+  · simp only [OsFile.ofDisk, diskByte, h0]; split <;> rfl
   have hcand : (fGrow img n).cand b =
       ((OsFile.ofDisk img 1).announce (OsChange.ofResize 0 (OsFile.ofDisk img 1) 8192) n).cand b := rfl
   rw [hcand] at h

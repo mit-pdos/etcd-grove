@@ -1,7 +1,8 @@
 /-
 What a crash leaves of a byte, from its crash candidates (`Impl.lean`, `CrashFile`): one of their
-values (`crash_byte`); a byte whose candidates all hold `x` and that the crash's size covers comes
-back as `x` (`crash_keeps`). And the arithmetic of the file effects the specs use. Untrusted.
+values, or zero at or past the smallest size since the last sync (`crash_byte`); a byte below that
+size whose candidates all hold `x` and that the crash's size covers comes back as `x`
+(`crash_keeps`). And the arithmetic of the file effects the specs use. Untrusted.
 -/
 module
 
@@ -46,20 +47,23 @@ theorem contents_getElem? (f : OsFile) (b : Nat) :
 theorem contents_getElem?_of_lt {f : OsFile} {b : Nat} (h : b < f.size) :
     f.contents[b]? = some (f.cache b) := by rw [contents_getElem?, if_pos h]
 
-/-- **A crash leaves each byte one of its candidates' values** (below the crash's size: past it,
-the file of a crash holds no byte). -/
+/-- **A crash leaves each byte one of its candidates' values, or zero at or past the smallest size
+since the last sync** (below the crash's size: past it, the file of a crash holds no byte). -/
 theorem crash_byte {st : OsState} {i : Ino} {f f' : OsFile} {b : Nat}
-    (hc : CrashFile st i f f') (hb : b < f'.size) : ∃ s, (f'.cache b, s) ∈ f.cand b := by
+    (hc : CrashFile st i f f') (hb : b < f'.size) :
+    (∃ s, (f'.cache b, s) ∈ f.cand b) ∨ (f.sizeLo ≤ b ∧ f'.cache b = 0) := by
   obtain ⟨sz, img, -, hcand, rfl⟩ := hc
   simp only [OsFile.ofDisk] at hb ⊢
   rw [diskByte_of_lt hb]; exact hcand b
 
-/-- **A crash keeps a byte whose candidates all hold `x`**, if its size covers it. -/
+/-- **A crash keeps a byte whose candidates all hold `x`**, below the smallest size since the last
+sync, if its size covers it. -/
 theorem crash_keeps {st : OsState} {i : Ino} {f f' : OsFile} {b : Nat} {x : w8}
-    (hc : CrashFile st i f f') (hv : ∀ p ∈ f.cand b, p.1 = x) (hsz : b < f'.size) :
-    f'.contents[b]? = some x := by
-  obtain ⟨s, hs⟩ := crash_byte hc hsz
-  rw [contents_getElem?_of_lt hsz, ← hv _ hs]
+    (hc : CrashFile st i f f') (hv : ∀ p ∈ f.cand b, p.1 = x) (hlo : b < f.sizeLo)
+    (hsz : b < f'.size) : f'.contents[b]? = some x := by
+  rcases crash_byte hc hsz with ⟨s, hs⟩ | ⟨h, -⟩
+  · rw [contents_getElem?_of_lt hsz, ← hv _ hs]
+  · omega
 
 /-- The size a crash leaves the file with: between the smallest and the largest since the last
 sync, or the target of the change in flight. -/

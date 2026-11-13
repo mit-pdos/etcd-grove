@@ -162,11 +162,12 @@ end after
 /-- What a crash did to a file the old generation knew as `m`, with the bytes of the runs `rs`
 (each `(off, dq, xs)`, the bytes `xs` from `off` on): if the new state has it, it is on disk, its
 size is within `m`'s crash bounds, each byte of a run below that size is one of the byte's crash
-candidates, and the bytes from the zeros `m` knows on are zeros. -/
+candidates or, at or past `m.lo`, zero (writeback's zeroing, `CrashFile`), and the bytes from the
+zeros `m` knows on are zeros. -/
 def FileCrashedR (m : OsMeta) (rs : List (Nat × DFrac × List ByteG)) (fo : Option OsFile) : Prop :=
   ∀ f', fo = some f' → (∃ img, f' = OsFile.ofDisk img f'.size) ∧ m.lo ≤ f'.size ∧ f'.size ≤ m.hi ∧
     (∀ r ∈ rs, ∀ k (hk : k < r.2.2.length), r.1 + k < f'.size →
-      ∃ s, (f'.cache (r.1 + k), s) ∈ (r.2.2[k]).2) ∧
+      (∃ s, (f'.cache (r.1 + k), s) ∈ (r.2.2[k]).2) ∨ (m.lo ≤ r.1 + k ∧ f'.cache (r.1 + k) = 0)) ∧
     (∀ z, m.zf = some z → ∀ b, z ≤ b → b < f'.size → f'.cache b = 0)
 
 /-- The facts of a crash the restarted program learns of the file of inode `i`, taken with the old
@@ -215,13 +216,15 @@ theorem crashSeen_crashed {Q : OsState → OsState → Prop} {i : Ino} {m : OsMe
     simp only [OsState.file, hf, Option.some.injEq] at hf1; subst hf1
     simp only [OsFile.ofDisk] at hks
     rw [hb _ hks]
-    obtain ⟨s, hs⟩ := hcand (r.1 + k)
-    exact hrel.mem hs
+    rcases hcand (r.1 + k) with ⟨s, hs⟩ | ⟨hl, h0⟩
+    · exact .inl (hrel.mem hs)
+    · exact .inr ⟨Nat.le_trans hok.lo hl, h0⟩
   · simp only [OsFile.ofDisk] at hbs
     rw [hb _ hbs]
-    obtain ⟨s, hs⟩ := hcand b
-    rw [(hok.zf z hz).2 b hzb, List.mem_singleton] at hs
-    exact (Prod.mk.inj hs).1
+    rcases hcand b with ⟨s, hs⟩ | ⟨-, h0⟩
+    · rw [(hok.zf z hz).2 b hzb, List.mem_singleton] at hs
+      exact (Prod.mk.inj hs).1
+    · exact h0
 
 end Fs
 end Perennial

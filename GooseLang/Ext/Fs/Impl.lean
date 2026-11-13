@@ -113,8 +113,9 @@ tree is kept with a set of the metadata operations since replayed (the committed
 under the journal's order, `Follows`); every file that tree names gets a size between the smallest
 and the largest it had since its last successful sync (ext4's delayed allocation leaves on-disk
 sizes the program never set in between), or towards the target of a change in flight, and **each
-byte any one of its candidates, independently**
-(`CrashFile`); every other file, and the process's state, is gone. Bytes are independent because
+byte any one of its candidates, independently**, or zero at or past the smallest size since the
+last sync (writeback's zeroing, below) (`CrashFile`); every other file, and the process's state,
+is gone. Bytes are independent because
 Linux's are: one `pwrite` of a page can reach disk torn mid-sector, a prefix of it new (its source
 crossed a page that was migrated during the copy) or any mix of two writes (a page rewritten while
 its previous writeback was reading it, on a device without stable pages); both measured on C
@@ -125,7 +126,16 @@ their candidates): such a page has no block, or an unwritten one (`dioread_noloc
 and `FALLOC_FL_KEEP_SIZE` allocate unwritten extents), which reads as zeros (`diskByte`). The page
 holding the end keeps whatever its bytes past the size hold, stale ones included; an extension
 (truncate-up, a write past the end, `fallocate`) reads zeros past the old size. All measured on C
-(`notes/axiom-review/fs-config/crash.sh`, `fs-v2-f3/f3.sh`).
+(`notes/axiom-review/fs-config/crash.sh`, `fs-v2-f3/f3.sh`). **Writeback zeroes the page holding
+the end past the size** (`ext4_bio_write_folio`, "The folio straddles i_size. It must be zeroed out
+on each and every writepage invocation", in the page cache and in the block it writes): a byte that
+was past the size at some writeback since the last sync, so at or past the smallest size since then
+(`sizeLo`), may come back zero whatever its candidates (`CrashFile`; a byte below `sizeLo` was
+below the size throughout and is never zeroed so; after a sync `sizeLo` is the size, so the stale
+candidate a sync keeps past the size is covered too). Measured on C
+(`notes/axiom-review/eof-page.md`, `pl-wb-zero`: size 5020 reading `00` at bytes 5010..5019, whose
+candidates were the stale `53` and the written `43`). **Pending the user's review** (P1 of
+`eof-page.md`, 2026-11-13).
 
 **Client premises** (`Premises.lean`, never part of these semantics): a theorem may assume of its
 crashes more than this rule gives, as a stated premise on its executions. `SectorWhole` is one:
@@ -875,13 +885,15 @@ end step
 /-- `f'` is what a machine crash may leave of the file `f` of inode `i`: a size between the
 smallest and the largest it had since its last successful sync, or between such a size and the
 target of the change in flight; each byte
-any one of its crash candidates, each independently (its bytes past the size included); all of it
-on disk (`ofDisk`: the pages past the size durable zeros). -/
+any one of its crash candidates, each independently (its bytes past the size included), or zero
+at or past the smallest size since the last sync (writeback zeroes the page holding the end past
+the size of the moment, the header; **pending the user's review**); all of it on disk (`ofDisk`:
+the pages past the size durable zeros). -/
 def CrashFile (st : OsState) (i : Ino) (f f' : OsFile) : Prop :=
   ∃ (sz : Nat) (img : Nat → w8),
     ((f.sizeLo ≤ sz ∨ ∃ t c, st.proc.inflight !! t = some c ∧ c.ino = i ∧ c.target ≤ sz) ∧
      (sz ≤ f.sizeHi ∨ ∃ t c, st.proc.inflight !! t = some c ∧ c.ino = i ∧ sz ≤ c.target)) ∧
-    (∀ b, ∃ s, (img b, s) ∈ f.cand b) ∧ f' = OsFile.ofDisk img sz
+    (∀ b, (∃ s, (img b, s) ∈ f.cand b) ∨ (f.sizeLo ≤ b ∧ img b = 0)) ∧ f' = OsFile.ofDisk img sz
 
 /-- The file `i` is named in the tree `m`. -/
 def Named (m : Tree) (i : Ino) : Prop := ∃ j b, m.entry j b = some (.file i)
