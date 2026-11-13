@@ -545,7 +545,8 @@ PROJECTS = [
         # WAL with bodies, in the part `LinuxFs/` over its `os` (LinuxFs/Code/**.toml): `wal` (but
         # version.go and metrics.go, names only), `walpb`, `fileutil`, `pkg/v3/ioutil` (PageWriter)
         # and `pkg/v3/crc`, and the standard-library packages they call that nothing translates
-        # (`hash/crc32`, `bufio`, `path/filepath`: names only). The rest is the main tree's (the empty
+        # (`hash/crc32` names only; `bufio`'s `Reader` and `path/filepath`'s lexical functions, over
+        # `internal/filepathlite`, with bodies: the WAL leaf specs, 2026-11-13). The rest is the main tree's (the empty
         # root): raftpb, zap, protobuf, prometheus, semver, `pkg/v3/pbutil`, `client/pkg/v3/verify`,
         # `hash`; none of them reaches the main tree's `os`. raft's root package (`IsEmptyHardState`,
         # `MustSync`) is project raft's part copy in `LinuxFs/` (the main tree's imports its `os`). The
@@ -559,18 +560,20 @@ PROJECTS = [
                         "go.etcd.io/raft/v3=LinuxFs", "go.etcd.io/raft/v3/raftpb=",
                         "google.golang.org=", "go.uber.org=", "github.com/prometheus/client_golang=",
                         "github.com/Masterminds/semver=", "hash=", "hash/crc32=LinuxFs",
-                        "bufio=LinuxFs", "path/filepath=LinuxFs",
+                        "bufio=LinuxFs", "path/filepath=LinuxFs", "internal/filepathlite=LinuxFs",
                         "os=LinuxFs", "syscall=LinuxFs", "golang.org/x/sys=LinuxFs",
                         "io/fs=LinuxFs", "internal/poll=LinuxFs", "internal/syscall=LinuxFs"],
             packages=["go.etcd.io/etcd/server/v3/storage/wal",
                       "go.etcd.io/etcd/server/v3/storage/wal/walpb",
                       "go.etcd.io/etcd/client/pkg/v3/fileutil", "go.etcd.io/etcd/pkg/v3/ioutil",
-                      "go.etcd.io/etcd/pkg/v3/crc", "hash/crc32", "bufio", "path/filepath"],
+                      "go.etcd.io/etcd/pkg/v3/crc", "hash/crc32", "bufio", "path/filepath",
+                      "internal/filepathlite"],
             owned=[os.path.join("go_etcd_io", "etcd", "server", "v3", "storage", "wal"),
                    os.path.join("go_etcd_io", "etcd", "client", "pkg", "v3", "fileutil"),
                    os.path.join("go_etcd_io", "etcd", "pkg", "v3", "ioutil"),
                    os.path.join("go_etcd_io", "etcd", "pkg", "v3", "crc"),
-                   os.path.join("hash", "crc32"), "bufio", os.path.join("path", "filepath")])],
+                   os.path.join("hash", "crc32"), "bufio", os.path.join("path", "filepath"),
+                   os.path.join("internal", "filepathlite")])],
     ),
     Project(
         name="kv",

@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.errors
 public import Perennial.GeneratedProof.io
 public import Perennial.Golang.Theory
 public import LinuxFs.Code.bufio
