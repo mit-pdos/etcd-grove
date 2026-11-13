@@ -16,7 +16,8 @@ the inner cell, as in Go. The other fields of Go's `file`
 are not observable to code outside `os` (they are unexported), and the methods modelled here do
 not depend on them for a file `OpenFile` returns: `nonblock` and `appendMode` are false
 (`O_APPEND` and `O_NONBLOCK` are among the flags the extension's `Open` refuses), `dirinfo` is
-nil. `Name` is translated, the real `return f.name`, over this layout; so is `fileStat.Size`.
+nil. `Name` is translated, the real `return f.name`, over this layout; so are `fileStat.Size` and
+`fileStat.Name` (over `fileStat`'s).
 
 **Faithfulness.** Each model is the Go method with the `poll.FD` calls replaced by the extension's
 operations, and with Go's retries of `EINTR` (`ignoringEINTR`, `ignoringEINTR2`, `Pwrite`'s loop)
@@ -56,13 +57,14 @@ structure file where
 
 instance file.zero_val : ZeroVal file := ⟨file.mk zeroValDef zeroValDef zeroValDef⟩
 
-/-- The model's `fileStat` (`fileStat.underlying`): the size and the mode. -/
+/-- The model's `fileStat` (`fileStat.underlying`): the name, the size and the mode. -/
 structure fileStat where
   mk ::
+  name' : GoString
   size' : w64
   mode' : w32
 
-instance fileStat.zero_val : ZeroVal fileStat := ⟨fileStat.mk zeroValDef zeroValDef⟩
+instance fileStat.zero_val : ZeroVal fileStat := ⟨fileStat.mk zeroValDef zeroValDef zeroValDef⟩
 
 section code
 variable [GooseExts] [GoGlobalContext]
@@ -74,12 +76,15 @@ module docstring says why the other fields are not needed). An open file's `off`
   go.GoType.StructType [go.field_decl.FieldDecl go!"fd" go.int,
     go.field_decl.FieldDecl go!"name" go.string, go.field_decl.FieldDecl go!"off" go.int64]
 
-/-- `fileStat` (`types_unix.go`): only `size` and `mode` (an `io/fs.FileMode`). A `fileStat` is
-made only by `File.Stat.impl` and `model.stat` (`Stat`, `Lstat`); its methods `Size`, `Mode` and
-`IsDir` are translated (`return fs.size`, `return fs.mode`, `return fs.Mode().IsDir()`), the
-others (`Name`, `ModTime`, `Sys`) are not (stuck). -/
+/-- `fileStat` (`types_unix.go`): only `name`, `size` and `mode` (an `io/fs.FileMode`). A
+`fileStat` is made only by `File.Stat.impl` and `model.stat` (`Stat`, `Lstat`), which set `name` as
+`fillFileStatFromSys` does (`model.base`; 2026-11-13, pending the user's review, Go example
+`examples/osfs/semantics/model_os_filestat_name.go`); its methods `Name`, `Size`, `Mode` and `IsDir`
+are translated (`return fs.name`, `return fs.size`, `return fs.mode`, `return fs.Mode().IsDir()`),
+the others (`ModTime`, `Sys`) are not (stuck). -/
 @[reducible] noncomputable def fileStat.underlying : go.GoType :=
-  go.GoType.StructType [go.field_decl.FieldDecl go!"size" go.int64,
+  go.GoType.StructType [go.field_decl.FieldDecl go!"name" go.string,
+    go.field_decl.FieldDecl go!"size" go.int64,
     go.field_decl.FieldDecl go!"mode" io.fs.FileMode.ty]
 
 /-- The struct-field facts goose emits for every translated struct (as `File.TypeAssumptions`'s
@@ -106,6 +111,11 @@ class file.FieldAssumptions [GoLocalContext] [GoSemanticsFunctions] : Prop where
 `fileStat`, whose layout `fileStat.underlying` is trusted (as `file.FieldAssumptions`). Part of
 the trust base. -/
 class fileStat.FieldAssumptions [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  get_name : ∀ (x : fileStat), go.IsGoStepPureDetTagged Tag.under
+    (StructFieldGet fileStat.underlying go!"name") #x (Val #(x.name'))
+  set_name : ∀ (x : fileStat) (y : GoString), go.IsGoStepPureDetTagged Tag.under
+    (StructFieldSet fileStat.underlying go!"name") (PairV #x #y)
+    (Val #(({ x with name' := y } : fileStat)))
   get_size : ∀ (x : fileStat), go.IsGoStepPureDetTagged Tag.under
     (StructFieldGet fileStat.underlying go!"size") #x (Val #(x.size'))
   set_size : ∀ (x : fileStat) (y : w64), go.IsGoStepPureDetTagged Tag.under
@@ -120,6 +130,7 @@ class fileStat.FieldAssumptions [GoLocalContext] [GoSemanticsFunctions] : Prop w
 attribute [instance] file.FieldAssumptions.get_fd file.FieldAssumptions.set_fd
   file.FieldAssumptions.get_name file.FieldAssumptions.set_name
   file.FieldAssumptions.get_off file.FieldAssumptions.set_off
+  fileStat.FieldAssumptions.get_name fileStat.FieldAssumptions.set_name
   fileStat.FieldAssumptions.get_size fileStat.FieldAssumptions.set_size
   fileStat.FieldAssumptions.get_mode fileStat.FieldAssumptions.set_mode
 
@@ -142,6 +153,51 @@ noncomputable def model.pathError : val :=
     StructFieldRef io.fs.PathError.ty go!"Path" "pe" <-[go.string] "path" ;;
     StructFieldRef io.fs.PathError.ty go!"Err" "pe" <-[go.error] "err" ;;
     Convert (go.PointerType io.fs.PathError.ty) go.error "pe"
+
+/-- `MkdirAll`'s `parent` of `path` (`path.go`): `path` up to the last separator before its last
+component (trailing separators skipped), empty if there is none:
+
+```go
+	i := len(path) - 1
+	for i >= 0 && IsPathSeparator(path[i]) {
+		i--
+	}
+	for i >= 0 && !IsPathSeparator(path[i]) {
+		i--
+	}
+	if i < 0 {
+		i = 0
+	}
+	parent := path[:i]
+``` -/
+noncomputable def model.mkdirAllParent : val :=
+  λ: "path",
+    let: "len" := (FuncResolve go.len [go.string]) #() "path" in
+    let: "i" := (rec: "trail" "i" :=
+        if: ("i" ≥⟨go.int⟩ #(W64 0)) &&
+            ((FuncResolve go!"os.IsPathSeparator" []) #() (Index go.string ("path", "i")))
+        then "trail" ("i" -⟨go.int⟩ #(W64 1)) else "i") ("len" -⟨go.int⟩ #(W64 1)) in
+    let: "i" := (rec: "back" "i" :=
+        if: ("i" ≥⟨go.int⟩ #(W64 0)) &&
+            (⟨go.bool⟩! ((FuncResolve go!"os.IsPathSeparator" []) #()
+              (Index go.string ("path", "i"))))
+        then "back" ("i" -⟨go.int⟩ #(W64 1)) else "i") "i" in
+    let: "i" := if: "i" <⟨go.int⟩ #(W64 0) then #(W64 0) else "i" in
+    Slice go.string ("path", #(W64 0), "i")
+
+/-- `filepathlite.Base(path)` (what `fillFileStatFromSys`, `stat_linux.go`, stores as a `fileStat`'s
+`name`) on the canonical absolute paths the model takes (every other is stuck before): `path` after
+the separator before its last component (`model.mkdirAllParent`), `path` itself when that is empty
+(`/`), and `.` for the empty path (Go's). 2026-11-13, pending the user's review; Go example
+`examples/osfs/semantics/model_os_filestat_name.go`. -/
+noncomputable def model.base : val :=
+  λ: "path",
+    let: "len" := (FuncResolve go.len [go.string]) #() "path" in
+    if: "len" =⟨go.int⟩ #(W64 0) then #"." else
+    let: "parent" := model.mkdirAllParent "path" in
+    let: "b" := Slice go.string ("path",
+      (FuncResolve go.len [go.string]) #() "parent" +⟨go.int⟩ #(W64 1), "len") in
+    if: (FuncResolve go.len [go.string]) #() "b" =⟨go.int⟩ #(W64 0) then "path" else "b"
 
 /-- `FileMode` as goose names it. -/
 @[reducible] noncomputable def model.FileMode : go.GoType := io.fs.FileMode.ty
@@ -509,7 +565,8 @@ retried) into a fresh `fileStat`, an error being `&PathError{"stat", name, Errno
 extension's `Fstat` gives only the size (`fd ↦ (size, errno)`), stored in a fresh `fileStat`
 with a regular file's mode of arbitrary permission bits (`model.arbitraryMode`: the extension's
 `Fstat` is stuck on a directory's fd, so the fd is a regular file's); it is returned as a `FileInfo`
-(`&fs`), whose `Size()` and `Mode()` read it. -/
+(`&fs`), whose `Size()` and `Mode()` read it; its `name` is `model.base` of the file's name, as
+`fillFileStatFromSys(&fs, f.name)` sets it. -/
 noncomputable def File.Stat.impl : val :=
   λ: "f" <>,
     let: "inner" := model.inner "f" in
@@ -521,6 +578,8 @@ noncomputable def File.Stat.impl : val :=
         (GoZeroVal io.fs.FileInfo.ty #(), model.wrapErrno #"stat" "inner" (Snd "r"))
       else
         let: "fs" := GoAlloc model.fileStat (GoZeroVal model.fileStat #()) in
+        StructFieldRef model.fileStat go!"name" "fs" <-[go.string]
+          model.base (![go.string] (StructFieldRef model.file go!"name" "inner")) ;;
         StructFieldRef model.fileStat go!"size" "fs" <-[go.int64] Fst "r" ;;
         StructFieldRef model.fileStat go!"mode" "fs" <-[model.FileMode]
           model.arbitraryMode #(W32 0) ;;
@@ -729,6 +788,7 @@ noncomputable def model.statAbove : val :=
   λ: "op" "name",
     if: ArbitraryInt =⟨go.uint64⟩ #(W64 0) then
       let: "fs" := GoAlloc model.fileStat (GoZeroVal model.fileStat #()) in
+      StructFieldRef model.fileStat go!"name" "fs" <-[go.string] model.base "name" ;;
       StructFieldRef model.fileStat go!"size" "fs" <-[go.int64] ArbitraryInt ;;
       StructFieldRef model.fileStat go!"mode" "fs" <-[model.FileMode]
         model.arbitraryMode (if: ArbitraryInt =⟨go.uint64⟩ #(W64 0) then #(W32 0x80000000)
@@ -795,6 +855,7 @@ noncomputable def model.stat : val :=
            model.pathError "op" "name" (syscall.model.errno (Snd "z")))
         else
           let: "fs" := GoAlloc model.fileStat (GoZeroVal model.fileStat #()) in
+          StructFieldRef model.fileStat go!"name" "fs" <-[go.string] model.base "name" ;;
           StructFieldRef model.fileStat go!"size" "fs" <-[go.int64] Fst "z" ;;
           StructFieldRef model.fileStat go!"mode" "fs" <-[model.FileMode]
             model.arbitraryMode (if: "kind" =⟨go.uintptr⟩ #(W64 0) then #(W32 0)
@@ -811,37 +872,6 @@ noncomputable def Stat.impl : val :=
 environment), so `lstat` answers as `stat` does on every path the model takes. -/
 noncomputable def Lstat.impl : val :=
   λ: "name", model.stat #"lstat" "name"
-
-/-- `MkdirAll`'s `parent` of `path` (`path.go`): `path` up to the last separator before its last
-component (trailing separators skipped), empty if there is none:
-
-```go
-	i := len(path) - 1
-	for i >= 0 && IsPathSeparator(path[i]) {
-		i--
-	}
-	for i >= 0 && !IsPathSeparator(path[i]) {
-		i--
-	}
-	if i < 0 {
-		i = 0
-	}
-	parent := path[:i]
-``` -/
-noncomputable def model.mkdirAllParent : val :=
-  λ: "path",
-    let: "len" := (FuncResolve go.len [go.string]) #() "path" in
-    let: "i" := (rec: "trail" "i" :=
-        if: ("i" ≥⟨go.int⟩ #(W64 0)) &&
-            ((FuncResolve go!"os.IsPathSeparator" []) #() (Index go.string ("path", "i")))
-        then "trail" ("i" -⟨go.int⟩ #(W64 1)) else "i") ("len" -⟨go.int⟩ #(W64 1)) in
-    let: "i" := (rec: "back" "i" :=
-        if: ("i" ≥⟨go.int⟩ #(W64 0)) &&
-            (⟨go.bool⟩! ((FuncResolve go!"os.IsPathSeparator" []) #()
-              (Index go.string ("path", "i"))))
-        then "back" ("i" -⟨go.int⟩ #(W64 1)) else "i") "i" in
-    let: "i" := if: "i" <⟨go.int⟩ #(W64 0) then #(W64 0) else "i" in
-    Slice go.string ("path", #(W64 0), "i")
 
 /-- `MkdirAll(path, perm)` at a root or an ancestor of one (the extension's `PathKind` is `0` or
 `2`, not `1`):

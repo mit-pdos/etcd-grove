@@ -15,6 +15,7 @@ module
 public import LinuxFs.Proof.os.OpenFile
 public import LinuxFs.Proof.os.SharedExt
 public import LinuxFs.Proof.os.PathKindS
+public import LinuxFs.Proof.os.PathParent
 
 @[expose] public section
 
@@ -80,8 +81,11 @@ theorem os.model.wp_stat_dirS (op p : GoString) (R : Roots) (J : Ino) (dq : DFra
     iapply wp_fupd
     wp_apply wp_osDirCloseS fd J .idle CoPset.subseteq_top $$ Hos Hfd as %e2
     iStructNamed fs
-    wp_auto
+    try wp_auto
+    wp_apply os.model.wp_base as %nm _
+    try wp_auto
     wp_apply wp_ArbitraryInt as %x _
+    ipersist name
     ipersist size
     ipersist mode
     imodintro
@@ -94,6 +98,8 @@ theorem os.model.wp_stat_dirS (op p : GoString) (R : Roots) (J : Ino) (dq : DFra
     · ipureintro; exact ⟨rfl, rfl⟩
     isplitl []
     · iassumption
+    isplitl []
+    · iexists _; iassumption
     iexists _
     iassumption
   · iclear Hfd
@@ -212,8 +218,11 @@ theorem os.model.wp_stat_fileS (op d b : GoString) (R : Roots) (j i : Ino) (N : 
       iapply wp_fupd
       wp_auto
       iStructNamed fs
-      wp_auto
+      try wp_auto
+      wp_apply os.model.wp_base as %nm _
+      try wp_auto
       wp_apply wp_ArbitraryInt as %x _
+      ipersist name
       ipersist size
       ipersist mode
       imodintro
@@ -226,6 +235,8 @@ theorem os.model.wp_stat_fileS (op d b : GoString) (R : Roots) (j i : Ino) (N : 
       · ipureintro; exact ⟨rfl, rfl⟩
       isplitl []
       · iassumption
+      isplitl []
+      · iexists _; iassumption
       iexists _
       iassumption
     · rw [decide_eq_false (show ez ≠ W64 0 from hz0)]

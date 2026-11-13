@@ -8,6 +8,7 @@ module
 
 public import LinuxFs.Proof.os.NsS
 public import LinuxFs.Proof.os.PathKindS
+public import LinuxFs.Proof.os.PathParent
 public import LinuxFs.Spec.os.StatAbove
 
 @[expose] public section
@@ -73,6 +74,9 @@ theorem os.model.wp_stat_aboveS (op p : GoString) (R : Roots) (hp : RootsAbove R
   · subst hx
     try wp_auto
     iStructNamed fs
+    try wp_auto
+    wp_apply os.model.wp_base as %nm _
+    try wp_auto
     wp_apply wp_ArbitraryInt as %sz _
     try wp_auto
     wp_apply wp_ArbitraryInt as %y _

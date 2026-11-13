@@ -326,3 +326,29 @@ of a symlink to a directory sees a symlink, `Stat` a directory.
   `os.OpenFile/Open.wp_aboveS`, `os.File.Sync/Close.wp_outS` (`NsAbove.lean`);
   **`os.Stat.wp_proofAboveRoot`** (`Proof/os/StatAbove.lean`), `fileutil.OpenDir.wp_proofAboveRoot`,
   `fileutil.Fsync.wp_proofOutS`, **`fileutil.syncDir.wp_proofAboveRoot`**.
+
+## fileStat.Name (2026-11-13, branch `wal-above`)
+
+**Finding** (`wal-read5`, W3/W5 log): the model's `fileStat` had no name and `Name()` no body (stuck),
+but the WAL's decoder calls `FileInfo().Name()` for its "frame too large" error. Trusted, **pending
+the user's review**:
+
+* `LinuxFs/TrustedCode/os.lean`: `fileStat` gains `name' : GoString` (first, as Go's);
+  `fileStat.underlying` is `struct{ name string; size int64; mode FileMode }`;
+  `fileStat.FieldAssumptions` gains `get_name`/`set_name`. New `model.base path`: `"."` for `""`,
+  else `path[len(mkdirAllParent path)+1:]`, or `path` itself if that is empty (`/`): Go's
+  `filepathlite.Base` on the canonical absolute paths the model takes. `File.Stat.impl` stores
+  `model.base f.name`, `model.stat` and `model.statAbove` `model.base name` (as
+  `fillFileStatFromSys`, `stat_linux.go`: `fs.name = filepathlite.Base(name)`). `model.mkdirAllParent`
+  moved up the file (unchanged).
+* `LinuxFs/Code/os.toml`: `fileStat.Name` translated (`return fs.name`); `Code/os.lean` regenerated
+  (`etc/goose.py --project bboltfs`: `fileStat.Name.impl`, `ptr_Name_unfold`).
+* Go example `examples/osfs/semantics/model_os_filestat_name.go`; `TestFileStatName` on C (pass):
+  `Stat(d/wal).Name() = "wal"` (and `Lstat`), `Stat("/").Name() = "/"`, `f.Stat().Name()` the file's
+  base name.
+
+Untrusted: `ownFileStat` also holds `∃ name, name ↦□ name`; `os.fileStat.Name.wp_proof`
+(`Proof/os/fileStat__Name.lean`) proves the `wal-read5` hypothesis spec `os.fileStat.Name.spec`;
+`os.model.wp_base` and the `parentModel` lemmas moved to `Proof/os/PathParent.lean`; users repaired
+(`StatS`, `File__Stat`, `fileStat__Size`, `MkdirAll*`, `NsAbove`, `ReadBridge`'s `ownFileStat_persist`).
+`ReadBridge` still takes `wp_Name` as a hypothesis: its callers can now pass `os.fileStat.Name.wp_proof`.
