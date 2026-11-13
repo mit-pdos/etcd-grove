@@ -2,10 +2,11 @@
 # Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/Results.lean: `authkv_Main`,
 # `authkv_Permitted` and the pure `authkv_granted_iff`, `authkv_badToken`; the checks,
 # `authkv_reqCtx` and `authkv_bad_unbound` (E2f); `authkv_startServer` (E3zb: the server's trust
-# boundary, through `server_new_auth_on` and
-# `server_Start` at `.on γa`), `authkv_setup_auth_served`. The
-# one `sorry`, `authSrvTP_on` (R-D1, 2026-11-04): the abandoned auth store's clause with auth on
-# (`authAbandonM`), until R-D2.
+# boundary, through `server_new_auth_on` and `server_Start` at `.on γa`); `authkv_SetUp`; and the
+# closed theorem `etcd_auth_safe`/`etcd_auth_adequate` (the `etcd_auth_safe` Scope's S2,
+# 2026-11-13: watchkv's hypotheses at authkv's configuration, and D22's `authSchemaSrv` as a named
+# hypothesis, which this report does not show), which also rests on the package initializers'
+# axioms. No `sorry` (R-D2 removed `authSrvTP_on`'s, 2026-11-04; raft's `out_size`, 2026-11-12).
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/authkv.txt            what it rests on
 #   etc/tcb-report.py --collection etc/tcb-collections/authkv.txt --check    against the lines below

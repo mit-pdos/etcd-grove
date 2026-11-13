@@ -21,9 +21,9 @@ principal may read (`u`'s ranges, transactions and watch), and every write of th
 `setupSt`: `granted_setupSt_iff`), but the set-up's puts (`x/<who>/d` with the value `setup`,
 `SetupWrite`), which the check admits at any revision.
 
-The premises are watchkv's for the server's start, stated before the proof: an auth-enabled
-server's proof may need others (the client's auth contract, `ClientAuth.lean`, and what E2a's
-`NewAuthStore` gives).
+The premises are watchkv's for the server's start, stated before the proof, which needed no other
+(2026-10-31); the member's start with auth on is `startServer`'s spec, whose proof takes D22's
+`authSchemaSrv` (`Results.lean`'s `authkv_startServer`; the closed theorem `etcd_auth_safe`).
 -/
 module
 

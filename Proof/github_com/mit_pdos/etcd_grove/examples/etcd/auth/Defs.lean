@@ -4,14 +4,14 @@ plan"). Lean-first (no Rocq counterpart).
 
 * The configuration `Main` starts its member with: watchkv's (`watchkv/Defs.lean`, whose header
   points at putget's for each premise) at authkv's names and ports, with the simple token provider
-  (`AuthToken` `simple`): `cfgOk` (member and token `authkv`, data directory `etcd_auth.etcd`),
+  (`AuthToken` `simple`): `cfgOk` (member and token `authkv`, data directory `authkv.etcd`),
   `urlsOk` (peer URL `http://127.0.0.1:23926`, client URL `http://127.0.0.1:23916`), the peer
   directory `akDir`, and `premises`: putget's at these.
 * The program's auth state and verdicts: `Model.lean`.
 
-`Main`'s proof is not done (`Main.lean`), so these premises are those of the server's start as
-watchkv states them; the proof may need others (an auth-enabled server's, after E2a: the client's
-auth contract, `ClientAuth.lean`).
+These premises are those of the server's start as watchkv states them; `Main`'s proof (`Main.lean`,
+done 2026-10-31) needed no other, and the auth-enabled server's start takes D22's `authSchemaSrv`
+as its own named premise (`Results.lean`'s `authkv_startServer`, `Adequacy.lean`).
 -/
 module
 
@@ -62,7 +62,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- **The configuration `Main` passes to `NewServer`**, by its scalar fields: member `authkv` of a
-new cluster with token `authkv`, data directory `etcd_auth.etcd`, raft's clock `100` ms and `10`
+new cluster with token `authkv`, data directory `authkv.etcd`, raft's clock `100` ms and `10`
 ticks, and the simple token provider. -/
 def cfgOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop :=
   cfg.Name' = go!"authkv" ∧ cfg.DataDir' = go!"authkv.etcd" ∧
