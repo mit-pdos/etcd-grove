@@ -746,7 +746,8 @@ coordinator's decisions). Both separate; every lemma below builds, no `sorry`.
   (`walsAt_insert hl rfl rfl`), `walInvBody_named` (unchanged `Ls`, `cl`), `CreateAu`'s abort arms
   (unchanged) and commit (`walsAt_create`, `CreateKeys.lean`), `cut`'s rename (`CutAu`: `walsAt_repl`,
   `CreateKeys.lean`; the new claim's directory `j ≠ jr` from `DirKeysOk`) and its directory sync
-  (`CutSync`: `walsAt_mid hjjr`). Generic: `walsAt_congr`. **Obligations for `wal-cut7`/`wal-create9`**:
+  (`CutSync`: `walsAt_mid hjjr`), `Create`'s drop step (`CreateDropStep`: `walsAt_drop`, the area claim
+  losing a non-WAL name). Generic: `walsAt_congr`. **Obligations for `wal-cut7`/`wal-create9`**:
   a proof destructuring `walInvBody` adds `, %HAt` after `⟨%K, %cp, Hdk, Hcp, %Hdko⟩`; one rebuilding it
   wraps the last part as `isplitl [Hdk Hcp]; · iexists K, cp …; ipureintro; exact <WalsAt>`, with
   - `walsAt_insert (hl : Ls !! dir = some lay) (hnm : lay'.nm = lay.nm) (hj : lay'.j = lay.j) : WalsAt jr Ls cl →
