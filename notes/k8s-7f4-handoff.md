@@ -33,6 +33,19 @@ the worktree's untracked `questions.md` (decisions), `/shared/tmp/coord-81/commo
     Nothing used it.
   - freeze §2's "T-e'" section (marked draft).
 
+## Ninth agent (2026-11-13): Addendum T-j written and built; STOPPED for 81's axiom review
+
+`43357ed9bc` (+ the notes commit after it): `context.madeCancelCtx` (opaque, `Proof/context/MadeCancelCtx.lean`)
+and the trusted law `madeCancelCtx_of_isCancelCtx`; `v3rpc.ctxDoneErr`/`ctxChildErr` and laws
+(`SrvCtxWeak.lean`); the local axiom `v3rpc.wp_WithTimeout_weak` (`v3rpc/WithTimeoutWeak.lean`);
+`waitLeader`/`RenewHTTP` on `ctxDoneErr` (RenewHTTP keeps `netCtxOk`). **Finding T-j0**: T-h2's
+`ctxDoneErr` without `#HParentCC` makes `RenewHTTP` panic via `propagateCancel`'s afterFuncer arm
+(`TestRenewHTTPAfterFuncPanics`); `ctxDoneErr` keeps `#HParentCC` over `madeCancelCtx`. Checks: Addendum
+T-j "Checks run, T-j" (tcb: one NEW axiom line, not updated). **Next, after the review:** tcb/collection
+`--update`; `LeaseRenew` on `wp_WithTimeout_weak` (premise `srvCtxWeak ∗ levelTok`, T-h4: the default arm
+becomes reachable), `LeaseKeepAlive`/`leaseKeepAlive` over the weak stream end (drop `srvStreamIsStrong`),
+axiom-tok entry for `wp_WithTimeout_weak`; stop before step 6.
+
 ## Handoff point (2026-11-13, end of the eighth agent's context): T-i landed; LeaseKeepAlive next
 
 Landed: lean `7b414c87f3` (T-i with the review's m1-m7: `etc/bgcancel-check.py` in `etc/gates.sh`;

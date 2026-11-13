@@ -100,8 +100,12 @@ every branch, `default` included); not yet reported upstream.
   speaks of the found `*cancelCtx` at `E`.
 - **Needed by.** `LeaseRenew`'s `WithTimeout` over the keep-alive stream's context (k8s 7f-4).
 - **Workaround here.** The trust-boundary axiom `v3rpc.wp_WithTimeout_weak` (Addendum T-h of
-  `notes/k8s-7f4-freeze.md`), to delete when this lands (its uses then follow from the general
-  `WithTimeout` at `E := isCtxErr ∨ noLeaderErr`).
+  `notes/k8s-7f4-freeze.md`; written in Addendum T-j,
+  `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/WithTimeoutWeak.lean`), to delete when this
+  lands (its uses then follow from the general `WithTimeout` at `E := isCtxErr ∨ noLeaderErr`); with
+  it the opaque `context.madeCancelCtx` and its trusted law `madeCancelCtx_of_isCancelCtx`
+  (`Proof/context/MadeCancelCtx.lean`), which `v3rpc.ctxDoneErr`'s `Value`/parent-cancel clauses then
+  state as the general model's `*cancelCtx` at `E`.
 - **Status.** Proposed (decided by etcd-grove-81, 2026-11-13); not started.
 
 ### Fatal runtime errors are not in the model: `netpollinit` on file-descriptor exhaustion (2026-11-07, the review of `os-init-lean`)
