@@ -373,6 +373,97 @@ theorem treeCohS_log {st st' : OsState} {s1 : Nat} {Γdf : GMap w64 (Ino × DirP
           rw [hdir hd] at this; exact absurd this (by simp)
         · have := hc.s0le; omega
 
+/-! ## The claims after a logged entry -/
+
+/-- The claims `ks` set to their histories in `V'`. -/
+def insKeys (V' : Hist) (ks : List (Ino × NameSet)) (m : GMap (Ino × NameSet) NamesH) :
+    GMap (Ino × NameSet) NamesH :=
+  ks.foldr (fun k m => <[k := namesOf V' k.1 k.2]> m) m
+
+theorem insKeys_lookup (V' : Hist) (ks : List (Ino × NameSet)) (m : GMap (Ino × NameSet) NamesH)
+    (k : Ino × NameSet) :
+    insKeys V' ks m !! k = if k ∈ ks then some (namesOf V' k.1 k.2) else m !! k := by
+  induction ks with
+  | nil => simp [insKeys]
+  | cons k0 ks ih =>
+    show (<[k0 := namesOf V' k0.1 k0.2]> (insKeys V' ks m)) !! k = _
+    by_cases h : k0 = k
+    · subst h; rw [GMap.lookup_insert]; simp
+    · rw [GMap.lookup_insert_ne _ _ h, ih]
+      have : k ∈ k0 :: ks ↔ k ∈ ks := by simp [Ne.symm h]
+      simp only [this]
+
+/-- The keys of the claims a step makes: one on all the names of each directory it makes. -/
+def newKeys (o : MetaOp) : List (Ino × NameSet) := o.newDirs.map (fun J => (J, .except []))
+
+/-- **The claims' coherence after a logged entry**: the presented claims `ks` (each existing) and
+the new directories' claims set to the new history's; every slot the entry writes is in a presented
+claim; a new directory is new. -/
+theorem namesCoh_log {V : Hist} {Γn : GMap (Ino × NameSet) NamesH} (hcoh : NamesCoh V Γn)
+    (e : LogEntry) (ks : List (Ino × NameSet))
+    (hin : ∀ k ∈ ks, ∃ h, Γn !! k = some h)
+    (hslots : ∀ sl ∈ e.op.slots, ∃ k ∈ ks, k.1 = sl.1 ∧ k.2.Mem sl.2)
+    (hnew : ∀ J ∈ e.op.newDirs, J ∉ V.now)
+    (hdirs : ∀ x, x ∈ e.op.apply V.now → x ∈ V.now ∨ x ∈ e.op.newDirs) :
+    NamesCoh (V.1, V.2 ++ [e]) (insKeys (V.1, V.2 ++ [e]) (ks ++ newKeys e.op) Γn) := by
+  have hnowV : Hist.now (V.1, V.2 ++ [e]) = e.op.apply V.now := hist_now_snoc V e
+  have hnk : ∀ k ∈ newKeys e.op, k.2 = .except [] ∧ k.1 ∈ e.op.newDirs := by
+    intro k hk
+    obtain ⟨J, hJ, rfl⟩ := List.mem_map.1 hk
+    exact ⟨rfl, hJ⟩
+  have horig : ∀ k h, insKeys (V.1, V.2 ++ [e]) (ks ++ newKeys e.op) Γn !! k = some h →
+      (∃ h0, Γn !! k = some h0) ∨ k ∈ newKeys e.op := by
+    intro k h hl
+    rw [insKeys_lookup] at hl
+    split at hl
+    · rename_i hk
+      rcases List.mem_append.1 hk with hk | hk
+      · exact .inl (hin k hk)
+      · exact .inr hk
+    · exact .inl ⟨h, hl⟩
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · intro j N h hl
+    rw [insKeys_lookup] at hl
+    split at hl
+    · cases hl; rfl
+    · rename_i hk
+      rw [hcoh.hist j N h hl]
+      symm
+      apply namesOf_snoc_other
+      intro b hb hw
+      rcases writes_cases _ _ _ hw with hs | hd
+      · obtain ⟨k', hk', hk1, hk2⟩ := hslots (j, b) hs
+        obtain ⟨h', hl'⟩ := hin k' hk'
+        have hk'e : k' = (j, k'.2) := by simp only at hk1; rw [← hk1]
+        by_cases hN : k'.2 = N
+        · exact hk (List.mem_append.2 (.inl (by rw [hk'e, hN] at hk'; exact hk')))
+        · rw [hk'e] at hl'
+          exact hcoh.disj j k'.2 N h' h b hl' hl hN hk2 hb
+      · exact hnew j hd (hcoh.dirs j N h hl)
+  · intro j N N' h h' b hl hl' hne hb hb'
+    rcases horig _ _ hl with ⟨h0, hl0⟩ | hk
+    · rcases horig _ _ hl' with ⟨h0', hl0'⟩ | hk'
+      · exact hcoh.disj j N N' h0 h0' b hl0 hl0' hne hb hb'
+      · exact hnew j (hnk _ hk').2 (hcoh.dirs j N h0 hl0)
+    · rcases horig _ _ hl' with ⟨h0', hl0'⟩ | hk'
+      · exact hnew j (hnk _ hk).2 (hcoh.dirs j N' h0' hl0')
+      · exact hne ((hnk _ hk).1.trans (hnk _ hk').1.symm)
+  · intro j b hj
+    rw [hnowV] at hj
+    rcases hdirs j hj with hj | hj
+    · obtain ⟨N, h, hl, hm⟩ := hcoh.cover j b hj
+      by_cases hk : (j, N) ∈ ks ++ newKeys e.op
+      · exact ⟨N, _, by rw [insKeys_lookup, if_pos hk], hm⟩
+      · exact ⟨N, h, by rw [insKeys_lookup, if_neg hk]; exact hl, hm⟩
+    · refine ⟨.except [], namesOf (V.1, V.2 ++ [e]) j (.except []), ?_, by simp [NameSet.Mem]⟩
+      rw [insKeys_lookup, if_pos (List.mem_append.2 (.inr (show (j, NameSet.except []) ∈ newKeys e.op from List.mem_map.2 ⟨j, hj, rfl⟩)))]
+  · intro j N h hl
+    show j ∈ Hist.now (V.1, V.2 ++ [e])
+    rw [hnowV]
+    rcases horig _ _ hl with ⟨h0, hl0⟩ | hk
+    · exact mem_apply_of_mem _ _ _ (hcoh.dirs j N h0 hl0)
+    · exact mem_apply_newDirs _ _ _ (hnk _ hk).2
+
 end Fs
 end Perennial
 
