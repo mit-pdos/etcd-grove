@@ -1,3 +1,43 @@
+# auth-schema-fix: handoff (2026-11-13, fourth step: 81's NO GO, two MAJORs to fix)
+
+## State (read this first)
+
+Everything below "Finish done" was committed and passed the full build and gates (2cd0cf1d59), but
+etcd-grove-81 said NO GO after an independent review: two MAJORs and a MINOR,
+`notes/auth-unknown-fields-nested.md` (the finding, evidence, decisions). Not landed. Context ran
+out for the third agent before starting the fixes; nothing of them is done.
+
+## Next, in order (81's decisions, 2026-11-13)
+
+1. **Permissions (MAJ-1, decision (1)).** Do NOT just put `unknownFields' := slice.nil` into
+   `ownPermW`: it is also the request side's predicate (`roleGrantPermissionReqIs`,
+   `auth/Requests.lean:116-122`; the client's `InvAuthConn.lean:124`, `PerTypeAuth.lean:258`), whose
+   permission comes from decoding a client's request, which may carry (valid) unknown fields: fixing
+   it nil there would make the decode claims false. Instead: a stored-permission predicate (e.g.
+   `ownPermS`/`ownPermSX`, as `ownPermW`/`ownPermX` with `unknownFields' := slice.nil`) used in
+   `ownRole`/`ownRoleX` (Buckets.lean ~128-185), `ownPermX_persist` adapted; RoleGrantPermission's
+   fresh `newPerm` (store.go:839-842; proof `authStore__RoleGrantPermission.lean`, lemmas at ~75-170,
+   ~240) builds the stored one; RoleRevokePermission (~262), getMergedPerms (~213), PermSorter (~81),
+   Reads read it. Check that `Requests.lean`'s docstring line 7-8 ("puts into the role's record as it
+   is") matches the code (store.go builds a new message) and fix it.
+2. **Options (MAJ-2, decision (2)).** `UserRec` (auth/Buckets.lean or Model) gains the Options'
+   raw unknown bytes (e.g. `optsUF : GoString`), with a premise that they are valid wire format (they
+   came from gRPC's decode of the request); `userEncode` takes them (it is a function of the record);
+   `userOptsAt o b uf'` ties the Options message's `unknownFields` to them (nil `o`: `[]`); 
+   `userAddReqIs` carries them from the request (and the IRR decode side that produces it); every later
+   put (ChangePassword, GrantRole, RevokeRole, RoleDelete) carries the stored value (they copy
+   `user.Options`). Prefer this over a client-side premise. Go control: a `UserAddOptions` with valid
+   unknown fields round-trips through UserAdd/GetUser and the read does not panic (adapt 81's
+   `zz_review_optsuf_test.go`; put it in `/shared/tmp/auth-safe/fix-tests/`).
+3. MINOR: `notes/auth-validspec-false.md` ("strictly stronger", the M3 paragraph): say R-M1 makes D22
+   harder to meet on reads.
+4. Record both in `notes/decisions.md` (auth-schema-fix section) and the Freeze package
+   `/shared/tmp/auth-safe/freeze-fix.md` (old → new, Go evidence); update
+   `notes/auth-unknown-fields-nested.md` to "fixed".
+5. Full build, tcb --check, gates (commands in "Finish done" below), then STOP for 81's re-review.
+
+---- older handoff below ----
+
 # auth-schema-fix: handoff (2026-11-13, third agent: re-review changes done, finishing)
 
 ## State (read this first)
