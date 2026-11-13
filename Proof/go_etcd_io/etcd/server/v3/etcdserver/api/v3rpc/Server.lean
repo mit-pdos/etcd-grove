@@ -143,7 +143,7 @@ theorem v3rpc.Server.wp_proof
     (hInit : grpc_prometheus.ServerMetrics.InitializeMetrics.spec (GF := GF) (hG := hG)) :
     v3rpc.Server.spec (GF := GF) (hG := hG) := by
   intro _
-  intro s C d gsl gvs Hbuq
+  intro s C d gsl gvs Hbuq Htb30
   wp_start as ⟨#Hc, Hlr, Hbr, Hgo, #Hd, %Hdb, #Hgvs, %Hgn⟩
   iunfold v3rpc.grpcCfgOk at Hc
   icases Hc with ⟨#HKV, #Hws, #Hkv, #Hids, #Hlg0, #Hlg0n, #Hlg, #Hlgn, #Hqb, #Hmid, #Hn, %Hmx, #Hwd,
@@ -204,6 +204,7 @@ theorem v3rpc.Server.wp_proof
   (try wp_auto)
   wp_apply (hSIc s C.c C.ch C.mid C.tm C.et) $$ [Hgo Hlr] as %is ⟨#His, Hgo, Hlr⟩
   · iframe; iframe #
+    ipureintro; exact Htb30
   (try wp_auto)
   wp_apply wp_slice_literal (V := GoFunc) (l := [ims, is])
   isplitr

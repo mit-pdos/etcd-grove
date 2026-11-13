@@ -42,8 +42,7 @@ def mvcc.api.WatchStream.Watch.contract (ty : go.GoType) (v : val) : Prop :=
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
             mvcc.api.isMvccWatchStream (interface.mkOk ty v) γ ι ∗
               mvcc.api.mvccReaders γ 1 ∗
-                (⌜ctx = interface.mk context.todoCtx.ty (intoVal (zero_val context.todoCtx))⌝ ∨
-                    context.isContext ctx cd ∗ trace.spanCtxOk ctx) ∗
+                (⌜ctx = interface.mk context.todoCtx.ty (intoVal (zero_val context.todoCtx))⌝ ∨ trace.spanCtxOk ctx) ∗
                   ownSlice key kk DFrac.discard ∗
                     ownSlice endk e DFrac.discard ∗
                       mvcc.filtersImpl fcs fs ∗ ⌜0 ≤ sint.Z startRev⌝ ∗ (⌜e ≠ [] ∧ ¬go.GoStringLt kk e⌝ ∨ au) -∗

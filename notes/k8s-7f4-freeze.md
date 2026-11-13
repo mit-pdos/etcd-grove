@@ -194,7 +194,12 @@ axiom metadata.incomingOf_of_value (c c' : GoInterfaceOk) (v : GoInterface) :
   (`internal/http2/client_conn_pool.go:284`). **Evidence:** `TestRenewHTTPErrTiming`: `RenewHTTP`
   over a `*http.Transport` with a context whose `Err()` panics before `Done` and returns
   `ErrGRPCNoLeader` after: the successful call and the cancelled call (blocked server, then cancel)
-  never call `Err()`; the cancelled call returns a `*url.Error` of `context.Canceled`.
+  do not call `Err()`; the cancelled call returns a `*url.Error` of `context.Canceled`. (Corrected
+  after the T-g review's M1: on a context already done when `RenewHTTP` is called, the transport's
+  `WithCancelCause` calls the caller's `Err()` twice, synchronously on the caller's goroutine, in
+  `propagateCancel`'s already-done arm and in `Cause`, go1.27.3 `context.go:487, 290`; the test's
+  pre-cancelled case checks it, and that a `*url.Error` is returned. The weak pre still suffices:
+  any error is accepted by the post, and each call is on a live goroutine, Addendum T-f'.)
 - **Review point (from the previous agent):** net/http's `Err()` vs `Done`: above. Remaining: the
   post `applyErrIs err` for a `*url.Error` wrapping `ErrGRPCNoLeader` (reachable only if the
   derived context took the parent's `Err()` through propagateCancel's goroutine path, which a
@@ -326,6 +331,119 @@ etcd-grove-81 (questions.md).
 - m1 (axiom): `incomingOf_cancelCtx`'s docstring: written once for an `isContext` parent
   (`#HParentCC` excludes the `afterFuncer`/`stopCtx` rewrite). m2: the per-execution reading sentence
   (the same as `WithValue.spec`'s `incomingOf` post).
+
+## Addendum T-f' (2026-11-12): the weak context's `Err` pays a level token (decided by etcd-grove-81, option (A))
+
+- **Why** (step 4's blocker, `notes/k8s-7f4-handoff.md` "Steps 3-4, third agent"): etcd's wrapper's
+  `Err` (fork `673da07c8f` `server/etcdserver/api/v3rpc/interceptor.go:297-304`) takes
+  `c.lock.RLock()`. Perennial's `RLock` (`sync.RWMutex.wp_RLock_of`) needs a reader token
+  (`ownRWMutex rw P`; `2^30 - 1` per lock, the bound below which Go's reader counter does not
+  overflow). T-f's `"#HErr"`/`"#HErrDone"` gave a persistent `Err` triple with no resource, which no
+  finite stock of reader tokens can pay for (unboundedly many concurrent callers), so
+  `srvCtxWeak (ccCtx l)` was not provable. The bounds plan's answer (`notes/bounds-plan.md`): a reader
+  pays with its thread token, through a thread pool of the lock's reader tokens
+  (`init_RWMutex_threadPoolL`).
+- **Text** (`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/SrvCtxWeak.lean`): new
+  `abbrev v3rpc.ctxErrLvl : Nat := 4`; `"#HErr"` is
+  `□ ∀ Φ, levelTok v3rpc.ctxErrLvl -∗ ▷ (∀ err, levelTok v3rpc.ctxErrLvl -∗ Φ #err) -∗ WP Err()`,
+  and `"#HErrDone"` takes `levelTok v3rpc.ctxErrLvl` after `ContextClosed` and returns it with the
+  error. The other clauses are unchanged. `srvCtxWeak_of_isContext` still holds (an `isContext`'s
+  `Err` needs no token; it is passed through) and `auth.ctxDoneAny_of_srvCtxWeak` is untouched.
+- **The level** (from `Proof/google_golang_org/grpc/InvGrpcRun.lean`): grpc's run splits its thread
+  token into levels 0-3 and `threadTokFrom 4` (`threadTok_levels0123`): level 0 is the handler's own
+  (the lessor's and leases' pools, `lessorLvl = leaseLvl = 0`), 1 `raftPoolN`, 2 the revoke pools
+  (`srvRevokeInnerN`/`srvRevokeOuterN`), 3 `srvRunN` (`grpcStreamRunOk_of_pools`). No pool of the
+  repository is at a level above 3 (`isThreadPoolL` and `levelTok` occurrences, 2026-11-12). Level 4
+  is in the run's `threadTokFrom 4`, which it keeps: the wrapper's handle work hands `levelTok 4` to
+  the handler with its bundle (`threadTokFrom 4 ⊣⊢ levelTok 4 ∗ threadTokFrom 5`), and a forked
+  goroutine keeps the whole token `wp_fork_tok` gives it.
+- **Effect on the trust base** (weaker premises, so stronger axioms): the `Err` part of the premise
+  of `EtcdServer.waitLeader.spec` and `leasehttp.RenewHTTP.spec` (both take `srvCtxWeak ctx cd`), and
+  of `Tracer.Start.spec`'s premise and wand (`txnCtx ∨ srvCtxWeak`, `□ (srvCtxWeak ctx cd -∗
+  srvCtxWeak ctx' cd)`). Their statements are textually unchanged; each docstring has a T-f' sentence.
+- **Go:**
+  - `waitLeader` (`v3_server.go:785-803`) only selects on `ctx.Done()`; it never calls `Err()`, so
+    a premise whose `Err` needs a token it does not have is never exercised.
+  - `RenewHTTP`: net/http calls `ctx.Err()` only from live goroutines (the caller's and the
+    transport's own; HTTP/2 after `Done`, and `shouldRetryDial`'s nil test,
+    `internal/http2/client_conn_pool.go:284`). Each is a thread, so the read locks held at one time
+    on the wrapper's `RWMutex` are bounded by the live threads (`threadBound GF`, 2^28 < 2^30), which
+    is what the token accounts for in the logic. In Go the reader counter cannot overflow from them.
+  - `Tracer.Start`: `ContextWithSpan(ctx, s)` is a `valueCtx` whose `Err()` is `ctx.Err()` (the
+    same call, paid with the same token), or `ctx` itself (the no-op tracer).
+- **Review point:** the level choice (4) and that the three trust-boundary texts only use `Err`
+  from threads. Callers of the weak context's `Err` in proofs (after the handle work): `watchServer.Watch`
+  (after `Done`), `recvLoop` (`watch.go:203`, forked), `leaseKeepAlive` (`lease.go:106,118,149`),
+  and the local `WithTimeout` lemma (`propagateCancel`'s `parent.Err()`).
+- **Checks:** `SrvCtxWeak.lean` and every module that mentions `srvCtxWeak`
+  (`Tracer__Start`, `StartLaws`, `SrvCtxWeakLaws`, `EtcdServer__waitLeader`, `RenewHTTP`) pass
+  `etc/lean-check.py -a`; full build (`etc/timed-build.py`, 64G cap, build lock) passes (17492
+  jobs); `etc/tcb-report.py --check` matches the baseline unchanged (865 axioms, 5 sorries: the
+  statements of the axioms are textually the same); `etc/goose.py --check` passes (with the Goose
+  configuration's promoted methods, below). Not run: axiom-tok, collections, gen-interface (none of
+  the six API lists exposes these texts; to run with the next gates).
+- **Goose configuration** (accepted by etcd-grove-81): `Code/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc.toml`
+  lists the wrapper's promoted methods (`cancellableContext.{Deadline,Done,Value}`,
+  `serverStreamWithCtx.{RecvMsg,SendMsg}`), regenerated with `etc/goose.py --project etcd`
+  (`8227d410c2`).
+
+## Addendum T-g (2026-11-12): the raw stream is a pointer value; `SpanFromContext` reads only `Value` (decided by etcd-grove-81, Q1/Q2)
+
+Found while proving item 7 (the interceptor's insert into the monitor's map; mvcc's `Watch` on the
+traced weak context). Both are trusted-text changes; for 81's review with the `axiom` skill at the
+mvcc checkpoint, together with the interface diff.
+
+### T-g1 (Q1). `rawStreamKeyTy t` → `rawStreamKey si` (strengthens T-c)
+
+- **Text** (`Proof/google_golang_org/grpc/InvGrpcStream.lean`, `rawStreamKey`; used in
+  `srvRawStreamIs`): `∃ (t' : go.GoType) (ls : Loc), si = interface.mk (go.GoType.PointerType t') #ls`
+  (was: `∃ t', si.ty = go.GoType.PointerType t'`, the type only). `srvRawStreamIs` says
+  `⌜rawStreamKey si⌝`.
+- **Why:** the monitor's map key `v3rpc.sKey t ls l` (and `safeMapKey_sKey`, `==` on two keys
+  comparing the pointers) needs the raw stream as `interface.mkOk (PointerType t) #ls`; a type
+  alone leaves the value an arbitrary `val`.
+- **Stronger claim** of grpc's run model (`acceptRun`'s raw end) and of prometheus's contract
+  (its handler's raw end).
+- **Evidence** (`examples/premisefix/streamctx` `TestRawStreamKey`, extended): at etcd's interceptor
+  position and in the handler, with and without grpc-prometheus, the stream is a pointer type
+  (`*grpc.serverStream`, `*interceptors.monitoredServerStream`) and the interface's data word
+  (`(*[2]unsafe.Pointer)(unsafe.Pointer(&ss))[1]`) is the pointer itself
+  (`reflect.ValueOf(ss).UnsafePointer()`): Go stores a pointer-typed dynamic value directly in the
+  interface. Passes (`GOWORK=off go test ./premisefix/streamctx -run TestRawStreamKey`). After the
+  review (m1): also with otelgrpc's stats handler and through `ServeHTTP` (an HTTP/2 TLS httptest
+  server), all eight combinations; `srvRawStreamIs`'s docstring names grpc's one wrapper hook (the
+  xDS-internal `xdsFilterWrapperOption`, never set by etcd).
+
+### T-g2 (Q2). `trace.SpanFromContext.spec` and mvcc's `WatchStream.Watch.contract` take `spanCtxOk` only
+
+- **Text:** `Spec/go_opentelemetry_io/otel/trace/SpanFromContext.lean`, pre
+  `⌜ctx = trace.todoCtx⌝ ∨ trace.spanCtxOk ctx` (was `⌜…⌝ ∨ (context.isContext ctx cd ∗
+  trace.spanCtxOk ctx)`), the binder `cd` kept (unused); `Spec/go_etcd_io/etcd/server/v3/storage/mvcc/Api.lean`
+  `WatchStream.Watch.contract`, the context part `⌜ctx = todo⌝ ∨ trace.spanCtxOk ctx` (was with
+  `isContext ctx cd`), `cd` kept. **Weaker premises** (the axiom claims more; the sealed API asks
+  less: an interface diff of mvcc's API).
+- **Why:** etcd's `recvLoop` passes mvcc's `Watch` the traced stream context, a weak one
+  (`srvCtxWeak`), not an `isContext`; mvcc's `watchStream.Watch` reads only `SpanFromContext(ctx)`.
+- **Faithful:** otel v1.47.0 `trace/context.go` `SpanFromContext` returns `noopSpanInstance` for a
+  nil context, else `ctx.Value(currentSpanKey).(Span)` or `noopSpanInstance`: no other method of
+  `ctx`. **Evidence:** `TestSpanFromContextValueOnly` (same package): a context whose `Deadline`,
+  `Done` and `Err` panic and whose `Value` answers nil or a span: `SpanFromContext` returns the
+  no-op span and the span (by its `SpanContext`). Passes.
+- Callers repaired: mvcc's `watchStream.Watch` proof (`hspan ctx cd`), `processInternalRaftRequestOnce`
+  (unchanged text, checks).
+
+### The T-g review (2026-11-12): READY WITH CHANGES, applied (decided by etcd-grove-81)
+
+- M1: the axiom-tok entry of `RenewHTTP` said net/http never calls the caller's `Err()`; false on
+  a context already done (`propagateCancel`/`Cause`, go1.27.3 `context.go:487, 290`). The entry, the
+  T-f text above and `RenewHTTP`'s docstring restated; `TestRenewHTTPErrTiming` has the pre-cancelled
+  case (two calls, a `*url.Error`). The token argument stands (each call on a live goroutine).
+- m1: `TestRawStreamKey` covers the stats handler and `ServeHTTP`; `srvRawStreamIs`'s docstring
+  names the xDS-only wrapper hook.
+- m2 (kept for cleanup): `SpanFromContext.spec`'s and mvcc's `WatchStream.Watch.contract`'s `cd`
+  binder is unused; drop it with its callers (`hspan ctx cd`) in a later pass.
+- m3: the `Tracer.Start` axiom-tok entry says `Start` never calls `ctx.Err()` (otel's noop and sdk
+  tracers).
 
 ### Checks run, Revision 2 (2026-11-12, merged with lean `219ddbbb83`)
 

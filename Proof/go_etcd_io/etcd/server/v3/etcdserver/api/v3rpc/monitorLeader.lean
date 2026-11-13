@@ -10,6 +10,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.GoAttachTok
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__StoppingNotify
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__Leader
 public import Perennial.Proof.time.Link
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.cancellableContext__Cancel
 
 @[expose] public section
 
@@ -32,10 +33,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
+attribute [local instance 1100] v3rpc.streamKeys in
 theorem v3rpc.monitorLeader.wp_proof
     (wp_GoAttach : EtcdServer.GoAttach.spec (GF := GF) (hG := hG))
     (wp_StoppingNotify : EtcdServer.StoppingNotify.spec (GF := GF) (hG := hG))
-    (wp_Leader : EtcdServer.Leader.spec (GF := GF) (hG := hG)) :
+    (wp_Leader : EtcdServer.Leader.spec (GF := GF) (hG := hG))
+    (wp_Cancel : v3rpc.cancellableContext.Cancel.spec (GF := GF) (hG := hG)) :
     v3rpc.monitorLeader.spec (GF := GF) (hG := hG) := by
   intro s ch tm et
   wp_start as ⟨Hgr, Hlg, #Hlead, #Hst, #Hstc, #Htm, #Het⟩
@@ -48,7 +51,8 @@ theorem v3rpc.monitorLeader.wp_proof
   imod sync.init_Mutex (v3rpc.streamsMapInv «$r0_ptr») ⊤
     (structFieldRef v3rpc.streamsMap go!"mu" «$r0_ptr») $$ [mu] [streams Hmp] with #Hmu
   · iexact mu
-  · inext; iunfold v3rpc.streamsMapInv; iexists mp; iframe
+  · inext; iunfold v3rpc.streamsMapInv; iexists mp, ∅; iframe
+    iapply BigSepM.bigSepM_empty.2; itrivial
   ipersist s
   ipersist smap
   icases srvGoRes_open s $$ Hgr with ⟨%γg, Hgr⟩
@@ -103,23 +107,69 @@ theorem v3rpc.monitorLeader.wp_proof
       · wp_if_destruct
         · wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, HR⟩
           iunfold v3rpc.streamsMapInv at HR
-          icases HR with ⟨%mp', Hf, Hm'⟩
+          icases HR with ⟨%mp', %m, Hf, Hm', #Hks⟩
           wp_auto
-          wp_apply (wp_map_for_range (K := GoInterface) (V := Unit) (fun _ _ => iprop(True)) _
-            google_golang_org.grpc.ServerStream.ty (go.GoType.StructType []) mp' ∅ (DFrac.own 1))
+          wp_apply (wp_map_for_range (K := GoInterface) (V := Unit)
+            (fun _ _ => iprop(∃ x : GoInterface, ss_ptr ↦ x)) _
+            google_golang_org.grpc.ServerStream.ty (go.GoType.StructType []) mp' m (DFrac.own 1))
             $$ Hm'
           iintro %keys %Hkeys
+          isplitl [ss]
+          · iexists _; iexact ss
           isplitr
-          · itrivial
-          isplitr
-          · iintro !> %i %key %v %Hiv
-            exfalso
-            simp at Hiv
+          · iintro !> %i %key %v ⟨%Hik, %Hmk⟩ ⟨%x, ss⟩
+            ihave #Hk := BigSepM.bigSepM_lookup (Φ := fun k (_u : Unit) => v3rpc.streamKeyOk (GF := GF) k)
+              Hmk $$ Hks
+            iunfold v3rpc.streamKeyOk at Hk
+            icases Hk with ⟨%t, %ls, %l, %c1, %cd, %Hkey, #Hh⟩
+            subst Hkey
+            ihave #Hh' := Hh
+            iunfold v3rpc.ccHandle at Hh'
+            icases Hh' with ⟨%c, %γ, %cancel, %e, %γp, %Hc1, %Hγ, #Hf, #Hcf, #Hctx, #Hcc, #Hcancel,
+              #HnL, -⟩
+            ihave #HnL' := HnL
+            iunfold noLeaderErr at HnL'
+            icases HnL' with ⟨%e', #He', %Hee⟩
+            wp_auto
+            simp only
+            wp_apply wp_Cancel l c1 cd (GoInterface.ok e') $$ [] as #Hcl
+            · iframe #
+              iright
+              iunfold noLeaderErr
+              iexists e'
+              iframe #
+              ipureintro; rfl
+            (try wp_auto)
+            rw [method_unfold (t := go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverStreamWithCtx.ty)
+              (m := go!"Context")]
+            wp_auto
+            rw [method_unfold (t := go.GoType.PointerType
+              go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.cancellableContext.ty) (m := go!"Done")]
+            wp_auto
+            ihave #Hctx' := Hctx
+            iunfold context.isContext at Hctx'
+            iunfold context.isContextDef at Hctx'
+            icases Hctx' with ⟨-, #HDone, -⟩
+            subst Hc1
+            wp_apply HDone as %dch %γd #Hdone
+            ihave #Hdch := context.isContextDone_is_chan _ _ _ $$ Hdone
+            wp_bind (App (Val (chan.receive (go.GoType.StructType []))) (Val #dch))
+            iapply chan.wp_receive dch γd $$ Hdch
+            iintro ⟨-, -, -, -⟩
+            iapply context.isContextDone_receive _ _ _ _ $$ Hdone
+            iintro -
+            wp_auto
+            unfold forMapPostcondition
+            iright; ileft
+            isplitr
+            · ipureintro; rfl
+            iexists _; iexact ss
           iintro - -
           wp_apply (wp_map_make1 (K := GoInterface) (V := Unit)
             google_golang_org.grpc.ServerStream.ty (go.GoType.StructType [])) as %mp'' Hmp''
           wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hf Hmp'']
-          · inext; iunfold v3rpc.streamsMapInv; iexists mp''; iframe
+          · inext; iunfold v3rpc.streamsMapInv; iexists mp'', ∅; iframe
+            iapply BigSepM.bigSepM_empty.2; itrivial
           wp_for_post
           iframe
           iexists _

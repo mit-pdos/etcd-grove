@@ -14,7 +14,8 @@ theorem etcdstart.Serve.wp_proof [HasExt idIssueExt] (wp_KEP : grpc.KeepaliveEnf
             zapLoggerOk cfg.Logger' ∗
               ⌜cfg.TracerOptions' = slice.nil ∧
                     cfg.WatchProgressNotifyInterval' = 0 ∧
-                      v3rpc.ServerMethodSets ∧ apply.backendUnderQuota ∧ E.authMode ≠ auth.AuthMode.any⌝ ∗
+                      v3rpc.ServerMethodSets ∧
+                        apply.backendUnderQuota ∧ E.authMode ≠ auth.AuthMode.any ∧ threadBound GF ≤ 2 ^ 28⌝ ∗
                 netAddrFree addr ∗
                   isServerReqM E.authOn s E ρ ∗
                     isServerReadM E.authOn s E γr ∗

@@ -36,6 +36,17 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.context.Assumptions]
 
+/-- **The thread-token level a weak context's `Err()` is paid with** (k8s 7f-4, Freeze addendum
+"T-f': Err pays a level token"; decided by etcd-grove-81, 2026-11-12): level 4. etcd's wrapper's
+`Err` takes `c.lock.RLock()`, whose reader slot (Perennial's `ownRWMutex`, `2^30 - 1` per lock, the
+bound of Go's reader counter) comes from a thread pool at this level (`init_RWMutex_threadPoolL`):
+the caller lends `levelTok 4` for the call and gets it back. Level 4 is reserved for it: grpc's run
+splits a thread token into levels 0-3 (`threadTok_levels0123`, `InvGrpcRun.lean`: 0 the handler's
+own, used by the lessor's and leases' pools, `lessorLvl = leaseLvl = 0`; 1 `raftPoolN`; 2 the
+revoke pools; 3 `srvRunN`) and `threadTokFrom 4`, and no pool of the repository is at a level
+above 3. -/
+abbrev v3rpc.ctxErrLvl : Nat := 4
+
 /-- **etcd's no-leader error** (persistent): the value of `rpctypes.ErrGRPCNoLeader` (a status
 error, `status.Error(codes.Unavailable, "etcdserver: no leader")`). -/
 def noLeaderErr (err : GoInterface) : IProp GF :=
@@ -49,10 +60,12 @@ instance noLeaderErr_persistent (err : GoInterface) : Persistent (noLeaderErr (G
 /-- **A stream handler's context** `c` described by `s` (persistent; k8s 7f-4, T-f): `isContext c s`
 (`Perennial/Proof/context/Base.lean`, `isContextDef`) with its `Err()` clauses weakened:
 * `"#HErr"`: `Err()` returns some error, nil or not, at any time (the Err-before-Done window:
-  `issues/etcd-stream-interceptor-err-before-done.md`);
+  `issues/etcd-stream-interceptor-err-before-done.md`), the caller lending a level token
+  (`levelTok v3rpc.ctxErrLvl`, returned: the wrapper's `Err` read-locks an `RWMutex`, whose reader
+  slot a live thread pays for; Freeze addendum T-f');
 * `"#HErrDone"`: once `Done` is closed (`ContextClosed s.Done_gn`), a non-nil error that is
   `Canceled`'s or `DeadlineExceeded`'s value (`isCtxErr`) or etcd's no-leader error
-  (`noLeaderErr`);
+  (`noLeaderErr`), with the same level token lent and returned;
 * the other clauses as `isContext`'s: `Deadline()` returns the descriptor's deadline, `Done()` the
   context's Done channel (`isContextDone`), `Value(&cancelCtxKey)` nothing or a valid `*cancelCtx`,
   the Done channel fresh (`"#HDoneFresh"`), `parentCancelCtx(c)` a valid `*cancelCtx`
@@ -69,16 +82,17 @@ def srvCtxWeak (c : GoInterfaceOk) (s : context.ContextDesc (IProp GF)) : IProp 
       ▷ (∀ (ch : GoChan) (γch : ChanNames), context.isContextDone s ch γch -∗ Φ #ch) -∗
       WP (App (Val #(methods c.ty go!"Done" c.v)) (Val #())) {{ Φ }}) ∗
   "#HErr" ∷
-    □ (∀ Φ : val → IProp GF, ▷ (∀ err : GoInterface, Φ #err) -∗
+    □ (∀ Φ : val → IProp GF, levelTok v3rpc.ctxErrLvl -∗
+      ▷ (∀ err : GoInterface, levelTok v3rpc.ctxErrLvl -∗ Φ #err) -∗
       WP (App (Val #(methods c.ty go!"Err" c.v)) (Val #())) {{ Φ }}) ∗
   "#HValue" ∷
     □ (∀ Φ : val → IProp GF, True -∗
       ▷ (∀ v : GoInterface, context.isCancelCtxAny v -∗ Φ #v) -∗
       WP (App (Val #(methods c.ty go!"Value" c.v)) (Val #context.cancelCtxKeyAny)) {{ Φ }}) ∗
   "#HErrDone" ∷
-    □ (∀ Φ : val → IProp GF, context.ContextClosed s.Done_gn -∗
+    □ (∀ Φ : val → IProp GF, context.ContextClosed s.Done_gn -∗ levelTok v3rpc.ctxErrLvl -∗
       ▷ (∀ err : GoInterface, ⌜err ≠ GoInterface.nil⌝ -∗ (context.isCtxErr err ∨ noLeaderErr err) -∗
-        Φ #err) -∗
+        levelTok v3rpc.ctxErrLvl -∗ Φ #err) -∗
       WP (App (Val #(methods c.ty go!"Err" c.v)) (Val #())) {{ Φ }}) ∗
   "#HDoneFresh" ∷
     □ (∀ ch : GoChan, dghostVar s.Done_gn.doneGn .discard (some ch) ={⊤}=∗
@@ -105,15 +119,15 @@ theorem srvCtxWeak_of_isContext (c : GoInterfaceOk) (s : context.ContextDesc (IP
   unfold srvCtxWeak
   iframe #
   isplitl []
-  · iintro !> %Φ HΦ
+  · iintro !> %Φ Ht HΦ
     iapply HErrU $$ []
     · itrivial
     iintro !> %err - -
-    iapply HΦ
-  iintro !> %Φ #Hcl HΦ
+    iapply HΦ $$ Ht
+  iintro !> %Φ #Hcl Ht HΦ
   iapply HErrDone $$ Hcl
   iintro !> %err %Hty #He
-  iapply HΦ
+  iapply HΦ $$ [] [] Ht
   · ipureintro; exact context.isTypedErr_ne_nil Hty
   ileft; iexact He
 

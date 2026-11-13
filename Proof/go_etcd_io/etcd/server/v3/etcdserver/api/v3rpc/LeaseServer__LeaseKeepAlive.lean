@@ -31,7 +31,7 @@ theorem v3rpc.LeaseServer.LeaseKeepAlive.wp_proof
   intro p s A cid mid E γl S' st γs Up Dn ci cd
   wp_start as ⟨#Hls, #HRn, #Hst, #Hspec, #HUp, Hrt, Hstt, HS, HR⟩
   ihave #Hst' := Hst
-  iunfold srvStreamIs at Hst'
+  iunfold srvStreamIsStrong at Hst'
   icases Hst' with ⟨%si, %Hsi, -, -, #HCtx, #Hctxis, -⟩
   ihave #Hctx2 := Hctxis
   iNamed Hctx2

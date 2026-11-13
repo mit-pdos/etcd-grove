@@ -69,7 +69,9 @@ no-op tracer). The post's context facts are wands from the premise's (the old tr
 The premise is a disjunction (`txnCtx ∨ srvCtxWeak`), a known departure from the spec principles
 (`notes/decisions.md`, "Tracer.Start's context premise"): `srvCtxWeak` admits program contexts that
 `txnCtx` did not, but `isContext`'s arm of `txnCtx` already admitted the same kind, and with
-`spanValOk` in the premise neither arm can refute the triple through the span. -/
+`spanValOk` in the premise neither arm can refute the triple through the span. (k8s 7f-4, T-f')
+`srvCtxWeak`'s `Err` clauses take a level token (`levelTok v3rpc.ctxErrLvl`), which the wand carries
+unchanged: a `valueCtx`'s `Err()` is `ctx`'s own call, paid with the same token. -/
 abbrev traceutil.Tracer.Start.spec : Prop :=
   ∀ (tr ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (name : GoString)
     (opts : GoSlice),

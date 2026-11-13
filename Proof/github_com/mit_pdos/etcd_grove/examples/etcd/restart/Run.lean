@@ -342,7 +342,7 @@ theorem Run.wp_proof
   · rw [HElg]; iexact Hzlg
   wp_apply (wp_serveClient m₁ s₁ pl₁ clientAddr₁ E { ρ₁ with wait := γw } ρ₁.rd cfg
       (fun cid mid _ => etcdstart.etcdKVAt clientAddr₁ E { ρ₁ with wait := γw } ρ₁.rd cid mid)
-      HEtr HEw Hms Hbuq)
+      HEtr HEw Hms Hbuq (ThreadBoundLe.le (GF := GF) (2 ^ 28)))
     $$ [Hm₁ Hac₁ Hlg3 Hbemu Hgo Hstk] as %serr ⟨-, Hs⟩
   · iframe; iframe #
     iintro %gs %lis %cid %mid %R Hg
