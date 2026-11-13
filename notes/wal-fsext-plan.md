@@ -788,6 +788,15 @@ holds some mode). Nothing proves the new models yet.
   (`notes/perennial-changes.md`, "`io.ReadFull`/`ReadAtLeast` and `binary.Read`'s fast path without
   bodies"); the `fmt`/`time` ones likewise ("`Sprintf`'s `%0Nx`, ..."), with Go evidence for all three
   in `examples/stdlib/{fmtwalname,timeformat}/`.
+- **`wal-read5`** (2026-11-13): `io.readerStream` takes `len(r) + len(p) < 2^62` of each `Read` (decided
+  option (a) of the `wal-read4` finding: the `*os.File` model does not model reads ending past
+  `model.offMax`). So the `io.ReadFull` axiom's statement is **weakened** by the premise `len(r0) +
+  len(buf) < 2^62` (a stronger precondition: what the axiom claims is less); `binary.ReadInt64LE`'s is
+  stated over `ReadFull`'s triple and does not change. `bufio.ownReader` records the buffer at most 4 KiB
+  and `bufio.Reader.Read.spec` asks that the underlying stream's states stay 4 KiB below `2^62` (a
+  refill reads a whole buffer at the position); `decFile`'s bound is now `|F.bs| + 2^12 < 2^62`;
+  `readInt64` takes `len(r0) + 8 < 2^62`. The decoder discharges both reads: the length word inside
+  `|F.bs| + 8`, the frame at most 8 bytes past the file (Go's size check counts from `lastValidOff`).
 
 **Pending the user's review (trusted or axiomatic), all off `lean`:** the fork fixes (§8,
 `notes/wal-fsext-fork/`); W1 (the crash premise, `LinuxFs/.../wal/W1.lean`; the open question of torn
@@ -2100,3 +2109,45 @@ The W3/W5 log's gap 4 (`ZeroToEnd` on the tail; `cut`'s truncate of the old tail
   The proof takes `[os.Assumptions] [os.file.FieldAssumptions] [fileutil.Assumptions]`.
 - *Not done*: `openWALFiles`' loop, `openAtIndex`, `OpenForRead`, `Open`, `ReadAll` (blocked on the bridge
   above for the decoder's `decFile`s).
+
+**Fifth session (branch `wal-read5`, 2026-11-13).**
+- *Option (a) carried out* (no trusted change): `io.readerStream` takes `len(r) + len(p) < 2^62` of each
+  `Read` (§10 records the weakened `io.ReadFull` axiom). Ripple: `bufio.ownReader` records the buffer at
+  most 4 KiB; `bufio.Reader.Read.spec` and `FileBufReader.Read.spec` take, besides the read's own bound,
+  `□ ∀ r, S r -∗ ⌜|r| + 2^12 < 2^62⌝` of the underlying stream (a refill reads a whole buffer at the
+  position); `decFile`'s bound is `|F.bs| + 2^12 < 2^62`; `readInt64` takes `|r0| + 8 < 2^62`. The decoder
+  discharges both of its reads (the frame ends at most 8 bytes past the file: Go's size check counts from
+  `lastValidOff`, not past the length word). All re-proved (`lake build`).
+- *`decFile`'s `FileInfo` triple is now from any stream state, which it keeps* (`□ ∀ r, {{ F.S r }} ...
+  {{ F.S r ∗ ... }}`; was `{{ True }}`): an `*os.File`'s `Stat` needs the fd and the `OsMeta`, which only the
+  stream state holds. `NewFileBufReader.spec` takes the same form (proof: `bufio.ownReader_open` lends the
+  state out of the reader). `NewDecoder`, `decodeRecord`, `Decode` re-proved unchanged.
+- *Proved*: `os.File.Read.wp_eof` (`LinuxFs/Proof/os/ReadEof.lean`): `Read` over the whole file's bytes from
+  0 and its `OsMeta`: `k` bytes from the offset (`k ≤ len(p)`, inside the file), `nil` with `k > 0` unless `p`
+  is empty, `0, io.EOF` only at or past the end, or `0` and a `*PathError` (`fmtErrorOk`); any `len(p)` (reads
+  of more than 1 GiB are short).
+- *Proved: the bridge* `walDecFile_ok` (`wal/ReadBridge.lean`): `walDecFile rl f fd name fl g` (the
+  `*fileReader` at `rl`, the bytes `g.bs.map (·.1)`, the state `walFileS`) satisfies `decFile IoE eof`, given
+  `osInv`, `io.EOF`'s value, `rl ↦□ fileReader{f}`, the fd readable of `g.ino`, `g.om.size = |g.bs|`,
+  `|g.bs| + 2^12 < 2^62`, and `IoE` holding of every pointer error (`Read`'s `*PathError`, `Stat`'s error).
+  `walFileS` now also records `r <+: g.bs.map (·.1)` (ReadDefs; nothing constructed it yet).
+- **Finding (trusted model gap, for the coordinator/user)**: the `os` model's `fileStat` has no `name` and
+  `Name()` no body (its method set lists it, no unfold), so `fi.Name()` is stuck; the decoder calls it (the
+  "frame too large" error message, `fileInfoOk`). The bridge takes `os.fileStat.Name.spec`
+  (`LinuxFs/Spec/os/fileStat__Name.lean`, no proof) as a hypothesis. Discharge: the model keeps the base name
+  in `fileStat` (`Stat` stores it, `Name` returns it) — a trusted change for the user's review.
+- *Statement change*: `openWALFiles` takes each name below `2^60` (was `2^61`: `|d| + |b| + 2 < 2^62` fails
+  at `|d| = |b| = 2^61 - 1`); `openAtIndex`'s names are `walNameStr`s.
+- *`openWALFiles`, in progress*: `walOpen_triple` (`os.OpenFile` of a claim's file as `TryLockFile`'s
+  `OpenTriple`, `X := Unit`, `C _ i' := i' = i`), the loop invariant (three slices, `walOpenedRcs`, the claim's
+  resources, `names[k:]` split out with `ownSlice_slice`), the exit, the write-mode success iteration
+  (`TryLockFile`, the two appends, `l.File`, `NewFileReader` persisted, `walOpenedRcs_snoc`) and the
+  write-mode error (`closeAll` over `walOpenedRcs_close`, `Errorf` `%w`, `wp_for_post` of the return) proved;
+  left `sorry`: the read mode only (`os.OpenFile.wp_fileS` at flag 0; its error is `fmtErrorOkOrNil`, made
+  `errOk` by `fileutil.errOk_of_fmtErrorOk`; `Errorf`'s `%q` of `p` by `argWf_string`; appends `nil` and
+  `rf`; the same tail as the write mode). Gotcha: `omega`/`word` facts inside
+  this long proof gave kernel "application type mismatch" on `_proof_` auxiliaries (an instance argument
+  dropped): moved into top-level lemmas (`walOpen_lt_sub`, `walOpen_eq_sub`, `walOpen_succ`, `walOpen_getElem?`).
+- *Coordinator messages noted*: `walHandleIn`'s new `walDirH` conjunct is `ReadAll`'s to provide (not done
+  here); the known-zero lemma after `ZeroToEnd` (branch `wal-kz`) stays a hypothesis of `ReadAll` until it
+  lands.
