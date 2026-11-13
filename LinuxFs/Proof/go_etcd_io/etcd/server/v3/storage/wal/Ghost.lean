@@ -52,6 +52,8 @@ class WalGS (GF : BundledGFunctors) where
   γh : GName
   γhd : GName
   γhp : GName
+  /-- The generation's crash token (`walCrashTok`): the WAL invariant holds its contents or it. -/
+  γc : GName
 
 section ghost
 variable {GF : BundledGFunctors} [W : WalGS GF]
@@ -132,6 +134,15 @@ def walLenLb (w : Loc) (dir : GoString) (n : Nat) : IProp GF :=
 def walUnlockedTok : IProp GF :=
   letI := walAllG (W := W)
   token W.hA.γu
+
+/-- **The generation's crash token** (exclusive): `walInv_crash` takes it, to keep the old
+generation's invariant closed with it in place of its contents. -/
+def walCrashTok : IProp GF :=
+  letI := walAllG (W := W)
+  token W.γc
+
+instance walCrashTok_timeless : Timeless (walCrashTok (W := W)) := by
+  unfold walCrashTok; infer_instance
 
 /-- **`w` is a handle of `dir` in mode `m`, with its purge right and the lock token.** Sealed. -/
 @[no_expose] def walHandleP (w : Loc) (dir : GoString) (m : WalMode) : IProp GF :=
@@ -372,23 +383,24 @@ section init
 variable {GF : BundledGFunctors}
 
 /-- **A new generation's ghost state** at the real state `s` (every WAL key in the area): the
-invariant's part, the program's map at `s.wal`, `s`'s fact and the lock token. -/
+invariant's part, the program's map at `s.wal`, `s`'s fact, the lock token and the crash token. -/
 theorem walGhost_init (hPre : AbsDiskGpreS GF) (s : AbsDiskState) (hk : walKeysInArea s) :
     ⊢@{IProp GF} |==> ∃ W : WalGS GF, walGhost (W := W) s ∗ walOwn (W := W) s.wal ∗
-      walPast (W := W) s ∗ walUnlockedTok (W := W) := by
+      walPast (W := W) s ∗ walUnlockedTok (W := W) ∗ walCrashTok (W := W) := by
   imod absDisk_local_init hPre s hk with ⟨%hA, Hctx, Hst⟩
   letI := hA.absDiskAllG
   imod (ghost_map_alloc_empty (GF := GF) (K := GName) (V := WalMode)) with ⟨%γh, Hh⟩
   imod (ghost_map_alloc_empty (GF := GF) (K := GName) (V := Loc × GoString)) with ⟨%γhd, Hhd⟩
   imod (ghost_map_alloc_empty (GF := GF) (K := GName) (V := Unit)) with ⟨%γhp, Hhp⟩
+  imod token_alloc (GF := GF) with ⟨%γc, Hc⟩
   imodintro
-  iexists ⟨hA, γh, γhd, γhp⟩
+  iexists ⟨hA, γh, γhd, γhp, γc⟩
   iunfold absDiskCtx at Hctx
   icases Hctx with ⟨Hs, HP, -, -⟩
   iunfold absDiskStart at Hst
   icases Hst with ⟨HM, Hp, Hu⟩
-  unfold walGhost walOwn walPast walUnlockedTok walHandleAuth walAllG
-  iframe Hs HP HM Hp Hu
+  unfold walGhost walOwn walPast walUnlockedTok walCrashTok walHandleAuth walAllG
+  iframe Hs HP HM Hp Hu Hc
   isplitl [Hh Hhd Hhp]
   · iexists 0, ∅, ∅, ∅
     iframe Hh Hhd Hhp
