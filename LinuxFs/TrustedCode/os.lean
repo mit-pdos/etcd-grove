@@ -971,12 +971,22 @@ of the path (`O_RDONLY|O_CLOEXEC`: the extension does not take `O_DIRECTORY`; an
 `FdKind`, is closed and answered as `ENOTDIR`, which Linux returns without opening). The reads of
 a pass are one `Readdirnames(-1)` of the directory (the extension's `DirReadNext` until the end,
 `EINTR` retried, as `File.Readdirnames.impl`; an error is `&PathError{"readdirent", base,
-Errno(e)}`, as Go's `readdir` makes it), all of whose names are then removed; Go's chunks of 1024
-names, and its reading of the next chunk when every removal of one failed, read the same names
-across the pass (the extension's `readdir` returns, by the end, every name present throughout the
-read: POSIX's guarantee, which is all Go's chunked reads have too). Whether another pass follows is
-arbitrary (`ArbitraryInt`): Go makes one more exactly when a chunk was full, which depends on the
-directory's size and on entries added meanwhile; the model allows every number of passes. Errors
+Errno(e)}`, as Go's `readdir` makes it), all of whose names are then removed. Go's pass is not
+that: it reads one chunk of up to 1024 names, removes them, and (unless all 1024 removals failed,
+when it reads the next chunk from the same fd) closes the directory and reopens it, so under a
+concurrent creation a later pass reads new entries mixed with old ones not yet removed (measured:
+an entry created after the first unlink removed while older entries were still present, 20 of 20
+runs; `notes/wal-fsext-models-review.md`, finding 3). The model still has each such run, for a
+reason that is load-bearing: the extension's `Unlink` and `Rmdir` may fail with any errno and no
+effect, `ENOENT` included, and `ENOENT` is success here (`IsNotExist`, no error recorded). So the
+model's first pass may read every name and remove only Go's first chunk (the other removals
+failing with `ENOENT` and no effect), and each later pass reads what Go's next one reads (POSIX's
+`readdir`: by the end, every name present throughout the read; an entry added or removed meanwhile
+may or may not be returned) and does the same. A tightening of the extension's failure branches
+(say, `ENOENT` only when there is no entry) would make this model unsound: it would then need
+passes that stop reading at a chunk. Whether another pass follows is arbitrary (`ArbitraryInt`):
+Go makes one more exactly when a chunk was full, which depends on the directory's size and on
+entries added meanwhile; the model allows every number of passes. Errors
 are Go's (`ENOENT` is `IsNotExist`'s errno; `ENOTDIR` 20, `EISDIR` 21, `EPERM` 1, `EACCES` 13). -/
 noncomputable def model.removeAllFrom : val :=
   rec: "from" "parent" "base" :=
