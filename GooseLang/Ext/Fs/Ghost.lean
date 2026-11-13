@@ -988,12 +988,13 @@ def callResS (hL : OsGS GF) (Γc : GMap Nat (Nat × Qp)) : IProp GF :=
 
 /-- A shared directory fd's read, the ghost state's and the state's, agree: not begun, done, or
 begun when the log had `r0` entries, the names of `N` returned `rs`; while no entry from `r0` on
-wrote a name of `N` in the directory `j`, those names are as the state's read has them. -/
+wrote a name of `N` in the directory `j`, those names are as the state's read has them; every name
+the read has seen is valid. -/
 def PhOkS (st : OsState) (j : Ino) : DirPhS → OsDirRead → Prop
   | .idle, .idle => True
   | .done, .done => True
   | .reading N r0 rs, .reading u s r =>
-    r0 ≤ st.fs.metaLog.length ∧
+    r0 ≤ st.fs.metaLog.length ∧ (∀ b, s b = true → NameOk b) ∧
     ((∀ x (e : LogEntry), r0 ≤ x → st.fs.metaLog[x]? = some e → ∀ b, N.Mem b → ¬ e.op.Writes j b) →
       ∀ b, N.Mem b → u b = present st j b ∧ s b = present st j b ∧ r b = decide (b ∈ rs))
   | _, _ => False
@@ -1050,9 +1051,9 @@ theorem PhOkS.congr {st st' : OsState} {j : Ino} {x : DirPhS} {r : OsDirRead} (h
   have hp : ∀ b, present st' j b = present st j b := by
     intro b; simp [present, OsState.tree, hd, hl]
   cases x <;> cases r <;> simp only [PhOkS] at h ⊢
-  refine ⟨hl ▸ h.1, fun hn b hb => ?_⟩
+  refine ⟨hl ▸ h.1, h.2.1, fun hn b hb => ?_⟩
   simp only [hp]
-  exact h.2 (fun x e hx he => hn x e hx (hl ▸ he)) b hb
+  exact h.2.2 (fun x e hx he => hn x e hx (hl ▸ he)) b hb
 
 /-- `TreeCohS` depends on the durable tree, the log, the directory fds and the calls only. -/
 theorem TreeCohS.congr {st st' : OsState} {s0 Γdf Γc} (h : TreeCohS st s0 Γdf Γc)

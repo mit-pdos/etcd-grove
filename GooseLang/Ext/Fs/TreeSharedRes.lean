@@ -39,12 +39,14 @@ def namesOf (V : Hist) (j : Ino) (N : NameSet) : NamesH where
   cur := restrictN N (entsOf V.now j)
 
 /-- The claims' coherence with the shared history `V`: each claim's history is the history's; the
-claims of a directory are disjoint; every name of every directory of the tree is claimed. -/
+claims of a directory are disjoint; every name of every directory of the tree is claimed; every
+claimed directory is one of the tree (so a fresh directory's key is free). -/
 structure NamesCoh (V : Hist) (Γn : GMap (Ino × NameSet) NamesH) : Prop where
   hist : ∀ j N h, Γn !! (j, N) = some h → h = namesOf V j N
   disj : ∀ j N N' h h' b, Γn !! (j, N) = some h → Γn !! (j, N') = some h' → N ≠ N' →
     N.Mem b → ¬ N'.Mem b
   cover : ∀ j b, j ∈ V.now → ∃ N h, Γn !! (j, N) = some h ∧ N.Mem b
+  dirs : ∀ j N h, Γn !! (j, N) = some h → j ∈ V.now
 
 /-- The log's entries, as a map. -/
 def logMap (log : List LogEntry) : GMap Nat LogEntry :=
@@ -104,11 +106,11 @@ def osSpine : Ino → List GoString → DFrac → Ino → IProp GF
   | j, c :: cs, dq, j' => iprop(∃ (h : NamesH) (J : Ino),
       osNames j (.only [c]) dq h ∗ ⌜h.cur !! c = some (.dir J)⌝ ∗ osSpine J cs dq j')
 
-/-- The path `p` names the directory `j`: a root of `R` followed by components, each held by a
-fraction of its claim. -/
+/-- The path `p` names the directory `j`: a root of `R` (well-formed roots, so the split of `p`
+is unique) followed by components, each held by a fraction of its claim. -/
 def osPathS (R : Roots) (p : GoString) (dq : DFrac) (j : Ino) : IProp GF :=
   iprop(∃ (r : GoString) (j0 : Ino) (cs : List GoString),
-    ⌜(r, j0) ∈ R ∧ (∀ c ∈ cs, NameOk c) ∧ p = joinPath r cs⌝ ∗ osSpine j0 cs dq j)
+    ⌜RootsOk R ∧ (r, j0) ∈ R ∧ (∀ c ∈ cs, NameOk c) ∧ p = joinPath r cs⌝ ∗ osSpine j0 cs dq j)
 
 /-- **The shared mode's invariant**, on the roots `R`: the shared history `Vs`, whole; the claims'
 authority, coherent with it; the log's length and entries. -/
