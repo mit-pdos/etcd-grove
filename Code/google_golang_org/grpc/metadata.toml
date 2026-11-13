@@ -1,10 +1,8 @@
 # Types and names only: the incoming metadata's type `MD` (`map[string][]string`), whose
 # entries the auth store's `AuthInfoFromCtx` reads (`FromIncomingContext` is names only: an
-# axiom, `Spec/google_golang_org/grpc/metadata/FromIncomingContext.lean`; unit P2); and (k8s 7f-3a,
-# `clientv3.WithRequireLeader`'s body) what builds an outgoing context: `NewOutgoingContext`,
-# `Pairs`, `MD.Copy` with `copyOf`, `MD.Set` (over Perennial's `context`, `strings`, `fmt`).
-translate = ["!*", "NewOutgoingContext", "Pairs", "MD.Copy", "MD.Set", "mdOutgoingKey", "rawMD", "copyOf"]
-imports = ["!*", "context", "strings", "fmt"]
+# axiom, `Spec/google_golang_org/grpc/metadata/FromIncomingContext.lean`; unit P2).
+translate = ["!*"]
+imports = ["!*"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

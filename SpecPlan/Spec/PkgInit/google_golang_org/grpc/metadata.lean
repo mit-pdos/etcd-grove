@@ -3,9 +3,6 @@ module
 
 public import GeneratedProof.google_golang_org.grpc.metadata
 public import SpecPlan.Spec.PkgInit.Base
-public import Perennial.Proof.context.Base
-public import Perennial.Proof.fmt.Base
-public import Perennial.Proof.strings.Base
 
 @[expose] public section
 noncomputable section

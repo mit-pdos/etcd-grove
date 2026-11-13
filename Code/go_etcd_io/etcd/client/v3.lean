@@ -144,7 +144,6 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   mustInt64_unfold : FuncUnfold mustInt64 [] mustInt64.impl
   mustInt64orLeaseID_unfold : FuncUnfold mustInt64orLeaseID [] mustInt64orLeaseID.impl
   cloneCompare_unfold : FuncUnfold cloneCompare [] cloneCompare.impl
-  WithRequireLeader_unfold : FuncUnfold WithRequireLeader [] WithRequireLeader.impl
   NewKV_unfold : FuncUnfold NewKV [] NewKV.impl
   NewLease_unfold : FuncUnfold NewLease [] NewLease.impl
   NewLeaseFromLeaseClient_unfold : FuncUnfold NewLeaseFromLeaseClient [] NewLeaseFromLeaseClient.impl
@@ -351,7 +350,6 @@ attribute [instance] Assumptions.AuthEnableResponse_instance
   Assumptions.mustInt64_unfold
   Assumptions.mustInt64orLeaseID_unfold
   Assumptions.cloneCompare_unfold
-  Assumptions.WithRequireLeader_unfold
   Assumptions.NewKV_unfold
   Assumptions.NewLease_unfold
   Assumptions.NewLeaseFromLeaseClient_unfold

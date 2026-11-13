@@ -12,8 +12,8 @@
 # of grpc, grpc's `credentials`, zap, `sync/atomic` and the client's `credentials` and
 # `internal/resolver` (names only, their `.toml`s; translating `Client` also translates the
 # client's structs whose field types these provide: `authClient`, `kv`, `watcher`, ...).
-# k8s 7f-3a: `WithPrevKV` (the etcd3 watcher's option) and `WithRequireLeader` (with grpc
-# metadata's helpers, `metadata.toml`; its trust-boundary axiom becomes a proof).
+# k8s 7f-3a: `WithPrevKV` (the etcd3 watcher's option). `WithRequireLeader` stays names-only (its
+# trust-boundary axiom, `Proof/go_etcd_io/etcd/client/v3/WithRequireLeader.lean`; 7f-3a decision D1).
 translate = [
   "!*",
   "WatchResponse.IsProgressNotify",
@@ -47,7 +47,6 @@ translate = [
   "WithLimit",
   "WithRev",
   "WithPrevKV",
-  "WithRequireLeader",
   "WithPrefix",
   "WithRange",
   "WithFromKey",
