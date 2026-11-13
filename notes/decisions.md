@@ -35327,3 +35327,46 @@ reverted: `range_linearizable`/`range_serializable` (exported), `EtcdServer.Rang
   is not reached, and the new axioms (purgeRound, the 4 init axioms) are reached by no root until it
   is. The plan and its decisions stand; a resumption starts from `notes/wal-w4c-handoff.md`, "Paused
   2026-11-12".
+
+## One file semantics, `fsExt`; power loss only (2026-11-13 · the user's decision)
+
+**Decision** (the user, 2026-11-12/13): every file-system proof runs over one trusted semantics, the
+per-byte Linux extension `fsExt` (`GooseLang/Ext/Fs`, configuration C), and the crashes covered are
+**power losses only**: no process kill, no kill followed by a power loss. A program generation starts
+under `fsExt`'s "Restarts" assumption (`GooseLang/Ext/Fs/Impl.lean`): after a machine restart, or after
+the old process exited and a `sync(2)` completed (`notes/restart-vs-crash.md`). This is an environment
+assumption of every crash theorem; `fsExt` needs no change for it.
+
+**Consequences.**
+- **`osFsExt`** (`GooseLang/Ext/OsFs`) goes once real bbolt is ported onto `fsExt` (the bbolt port,
+  another agent; `notes/bbolt-port-plan.md`), and with it the main tree's `osFsExt` `os` layer, which
+  `LinuxFs/`'s replaces; SpecPlan's `HasExt osFsExt` binders are retargeted (ledger entries).
+- **`absDiskExt`** (`GooseLang/Ext/AbsDisk`) stops being a trusted extension: the WAL's 12 axioms
+  (`Spec/go_etcd_io/etcd/server/v3/storage/wal/`, `fileutil.TouchDirAll`) become proved specs of the
+  real WAL over `fsExt`, with the abstract disk's state kept as ghost state over the real files (its
+  pure vocabulary, `WalHist`, `walImg`, `walReadCut`, and the W4b lemmas carry over). Then the extension,
+  its steps (`AbsDiskStep`) and its world-assumption list go. Plan: `notes/wal-fsext-plan.md`.
+- **`durableExt`** (`GooseLang/Ext/Durable`) goes: `examples/lib/durable` is reimplemented over `os`
+  (write a temporary file, fsync, rename, fsync the directory) and its specs proved over `fsExt`.
+- The WAL's world assumptions become `fsExt`'s configuration C plus "no CRC32-Castagnoli collision on
+  torn data" (a premise of the WAL's theorems). Whether `SectorWhole` (`GooseLang/Ext/Fs/Premises.lean`)
+  is needed is decided by the proof; the target is to need it for no safety statement (a read of a
+  crash image outside `walImg` may fail, which every read spec allows).
+
+**Superseded.** The kill and kill-then-power-loss parts of "WAL W3"'s world assumptions ("a kill keeps
+exactly what was written") and of the W4 crash relation as requirements on the proof (`walImg`'s kill
+reading may stay: it is more general than needed); rung 3's "a process-kill crash is needed in `fsExt`
+before it can replace the bbolt arm" (`notes/wal-crash-handoff/rung3/README.md`), and the handoff's
+"unify `absDiskExt` with LinuxFs" (`notes/wal-crash-handoff/README.md`): there is nothing to unify, the
+abstract disk becomes a proof layer over `fsExt`.
+
+**Decided by the agent (the user away, 2026-11-13, delegation in [the user's words] "make decisions
+autonomously to keep making progress towards proving the wal specs"):**
+- The fork fixes made for kill-then-power-loss (WAL F-Z `41fddbc2d`, F-N4; bbolt `c5a6065`, `ea4cab5`)
+  stay: they are correct fixes and upstream candidates, and removing them would be a fork change with
+  no proof benefit. The proofs need not rely on them.
+- The restart track's interface (`notes/wal-crash-handoff/restart-wal-interface.md`, I1-I11) is
+  unaffected; its gate 12 ("restarts are machine crashes") is now this decision.
+- Rejected: keeping `absDiskExt` as a trusted layer and proving a refinement of `fsExt` into it (a
+  second trusted crash relation, which the closed-theorem rule excludes); adding process kills to
+  `fsExt` (the user: not wanted).
