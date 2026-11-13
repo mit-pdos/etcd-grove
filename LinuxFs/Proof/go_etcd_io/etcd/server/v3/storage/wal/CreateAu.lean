@@ -162,7 +162,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   icases HP with ⟨Htok, Hau, HJ, Hm, Hbs⟩
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl0, #Hcm, Hlays, %Hok, %Hco, ⟨%CR, Hcra, %Hcro⟩,
-    Htl, %Han, %Hnm, Hpk, ⟨%K, %cp, Hdk, Hcp, %Hdko⟩⟩
+    Htl, %Han, %Hnm, Hpk, ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt⟩
   icases walCreating_lookup CR dir N h J $$ Hcra Htok with ⟨%Hcr, Hcra, Htok⟩
   have hco := Hcro
   obtain ⟨hc, hcoh, hexcl, honce, hdist, hnew⟩ := Hcro dir N h J Hcr
@@ -204,9 +204,11 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       · ipureintro; exact Han
       isplitr
       · ipureintro; exact Hnm
-      iexists K, cp
-      iframe Hdk Hcp
-      ipureintro; exact Hdko
+      isplitl [Hdk Hcp]
+      · iexists K, cp
+        iframe Hdk Hcp
+        ipureintro; exact Hdko
+      ipureintro; exact HAt
     imodintro
     dsimp only
     iframe Htok Hau HJ Hm Hbs
@@ -240,9 +242,11 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         · ipureintro; exact Han
         isplitr
         · ipureintro; exact Hnm
-        iexists K, cp
-        iframe Hdk Hcp
-        ipureintro; exact Hdko
+        isplitl [Hdk Hcp]
+        · iexists K, cp
+          iframe Hdk Hcp
+          ipureintro; exact Hdko
+        ipureintro; exact HAt
       imodintro
       dsimp only [walCreateQ, walCreateP]
       iframe Htok Hau HJ Hm Hbs
@@ -364,12 +368,16 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
             hnmN htmpN hcnm hctmp hothers htw hnw hlay.2.2 hX hsn hJC
         isplitl [Hpk]
         · unfold createClaims; iexact Hpk
-        iexists <[dir := (J, X)]> K, cp
-        iframe Hdk Hcp
+        isplitl [Hdk Hcp]
+        · iexists <[dir := (J, X)]> K, cp
+          iframe Hdk Hcp
+          ipureintro
+          exact dirKeysOk_create (x := x) (st := s0) (md := md) (CR := CR) Hok Han.1 Hdko hnew hsd hin'
+            hc hcoh (Nat.le_trans hlb hls) hne hnmN htmpN hctmp hothers htmp htw hlay hJcoh
+            (Nat.le_trans hJlb hls) hX habs hdur' htail hold0 hz
         ipureintro
-        exact dirKeysOk_create (x := x) (st := s0) (md := md) (CR := CR) Hok Han.1 Hdko hnew hsd hin' hc
-          hcoh (Nat.le_trans hlb hls) hne hnmN htmpN hctmp hothers htmp htw hlay hJcoh
-          (Nat.le_trans hJlb hls) hX habs hdur' htail hold0 hz
+        exact walsAt_create (x := x) (st := s0) (X := X) (hJ := hJ) HAt Hok hnew hin' htmp hc hothers
+          hlay
       imodintro
       dsimp only [walCreateQ]
       rw [hgbs]

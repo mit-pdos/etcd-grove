@@ -46,6 +46,24 @@ theorem List.split_first {α : Type} [DecidableEq α] {c : α} :
       · exact ha rfl
       · exact h1 hm
 
+section walsAt
+variable [GooseExts]
+
+/-- **`WalsAt` after the drop** (W3/W5's gap 1): the area claim loses `b` (no WAL's name is
+affected: the claim's remaining names keep their entries). -/
+theorem walsAt_drop {jr : Ino} {Ls : GMap GoString WalLay} {cl : List Claim} {N : NameSet}
+    {h : NamesH} {b : GoString} (hA : WalsAt jr Ls cl) (hm : (jr, N, h) ∈ cl) :
+    WalsAt jr Ls (dropClaims cl jr N h b) := by
+  intro dir lay hl N' h' hc hN'
+  rcases mem_dropClaims hc with he | ⟨hc', -⟩
+  · cases he
+    show restrictN (N.diff [b]) h.cur !! lay.nm = _
+    rw [restrictN_lookup _ _ _ hN']
+    exact hA dir lay hl N h hm ((NameSet.mem_diff N [b] lay.nm).1 hN').1
+  · exact hA dir lay hl N' h' hc' hN'
+
+end walsAt
+
 section iris
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
   [GoGlobalContext]
@@ -234,7 +252,7 @@ theorem walInvBody_drop (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
   unfold walInvBody
   iintro Hb #Hsi Hu H
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %hr, Hcl, Hn, HF, %hwo, %hwc, ⟨%CR, HCRa, %hCR⟩, Ht, %hab,
-    %hwn, Hpk, ⟨%K, %cc, HK, Hcc, %hdk⟩⟩
+    %hwn, Hpk, ⟨%K, %cc, HK, Hcc, %hdk⟩, %hAt⟩
   unfold walCreatingAuth
   icases HCRa with ⟨HCRa, Hor⟩
   icases Hor with (%hCR0 | ⟨-, Hl⟩)
@@ -242,7 +260,7 @@ theorem walInvBody_drop (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
   · iexfalso; iapply walLockedTok_unlocked_excl $$ Hl Hu
   subst hCR0
   unfold walParked
-  icases Hpk with ⟨%bp, %O, %D, Hpa, %hOD, Hsegs, Hpc⟩
+  icases Hpk with ⟨%bp, %O, %D, Hpa, %hOD, Hsegs, Hpc, Htp⟩
   icases walUnlocked_park bp $$ Hpa Hu with ⟨%hbp, Hpa, Hu⟩
   obtain ⟨hO, hD⟩ := hOD hbp
   subst hO hD hbp
@@ -309,14 +327,17 @@ theorem walInvBody_drop (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
   · ipureintro; exact ⟨absentNone_drop hd hbn hab.1, hab.2⟩
   isplitr
   · ipureintro; exact walsNamed_drop hd hbw hW hwn
-  isplitl [Hpa Hsegs Hpc]
+  isplitl [Hpa Hsegs Hpc Htp]
   · iexists true, [], []
-    iframe Hpa Hsegs Hpc
+    iframe Hpa Hsegs Hpc Htp
     ipureintro; intro _; exact ⟨rfl, rfl⟩
-  iexists K, cc
-  iframe HK Hcc
+  isplitl [HK Hcc]
+  · iexists K, cc
+    iframe HK Hcc
+    ipureintro
+    exact dirKeysOk_drop hd hbw hbn hw hdk
   ipureintro
-  exact dirKeysOk_drop hd hbw hbn hw hdk
+  exact walsAt_drop hAt hd.mem
 
 end iris
 

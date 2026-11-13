@@ -151,7 +151,7 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
   icases HP with ⟨#Hkey, Hk, Hv, Hq, Ht, Hpf, Hcf, Hm0, Hb0, Hmg, Hbg, #Hsy, #Hnd⟩
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl0, #Hcm, Hlays, %Hok, %Hco, ⟨%CR, Hcra, %Hcro⟩,
-    Htl, %Han, %Hnm, Hpk, ⟨%K, %cp, Hdk, Hcp, %Hdko⟩⟩
+    Htl, %Han, %Hnm, Hpk, ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt⟩
   icases walDirKey_lookup K dir j X $$ Hdk Hkey with %HK
   obtain ⟨lay1, hj1, hl1, hj1j, hjjr, hXw, honce, hcoh, hexcl⟩ := Hdko.1 dir j X HK
   obtain ⟨l1, l2, hcl, hn1, hn2⟩ := honce
@@ -193,9 +193,11 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       · ipureintro; exact Han
       isplitr
       · ipureintro; exact Hnm
-      iexists K, cp
-      iframe Hdk Hcp
-      ipureintro; exact Hdko
+      isplitl [Hdk Hcp]
+      · iexists K, cp
+        iframe Hdk Hcp
+        ipureintro; exact Hdko
+      ipureintro; exact HAt
     imodintro
     dsimp only
     iframe Hkey Hk Hv Hq Ht Hpf Hcf Hm0 Hb0 Hmg Hbg Hsy Hnd
@@ -228,9 +230,11 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
         · ipureintro; exact Han
         isplitr
         · ipureintro; exact Hnm
-        iexists K, cp
-        iframe Hdk Hcp
-        ipureintro; exact Hdko
+        isplitl [Hdk Hcp]
+        · iexists K, cp
+          iframe Hdk Hcp
+          ipureintro; exact Hdko
+        ipureintro; exact HAt
       imodintro
       dsimp only [walCutQ, walCutP]
       iframe Hkey Hk Hv Hq Ht Hpf Hcf Hm0 Hb0 Hmg Hbg Hsy Hnd
@@ -368,9 +372,12 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
         · ipureintro; exact hnm'
         isplitl [Hpk]
         · rw [replClaim_split hn1 hn2]; iexact Hpk
-        iexists K, some dir
-        iframe Hdk Hcp
-        ipureintro; exact hdko'
+        isplitl [Hdk Hcp]
+        · iexists K, some dir
+          iframe Hdk Hcp
+          ipureintro; exact hdko'
+        ipureintro
+        exact walsAt_repl HAt hl1 rfl rfl (by simpa [cutClaim, hj1j] using hjjr)
       imodintro
       dsimp only [walCutQ, cutClaim]
       rw [hgbs']
