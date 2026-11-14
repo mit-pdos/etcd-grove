@@ -149,8 +149,8 @@ theorem acceptloop_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semant
       $$ Hpends
     -- the protocol: the connections' echo state (none yet), then the address's invariant
     letI := (extGlobalGS tcpExt (G := G)).allG
-    imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := GName) with ⟨%γm, Hm⟩
-    imod inv_alloc echoN ⊤ (echoState (extGlobalGS tcpExt) γm) $$ [Hm] with #HechoInv
+    imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := ConnG) with ⟨%γm, Hm⟩
+    imod inv_alloc echoN ⊤ (echoState (Gg := G) γm) $$ [Hm] with #HechoInv
     · inext
       unfold echoState
       iexists ∅
