@@ -135,8 +135,8 @@ theorem walTail_truncFin (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
   unfold truncFinP
   icases HP with ⟨Hk, Hv, %hf⟩
   obtain ⟨hhi, hwr⟩ := hf
-  icases walInvBody_tailW walCodec Mr R jr r s dir γ _ m0 $$ Hb Hk Hv [] with
-    ⟨%Ls, %cl, %nn, %F, %d, %lay, %pre, %g1, %hp, Hseg, Hk, Hv, Hv', -, Hclose⟩
+  imod walInvBody_tailW walCodec Mr R jr r s dir γ _ m0 $$ Hb Hk Hv [] with
+    ⟨%Ls, %cl, %nn, %F, %d, %lay, %pre, %g1, %hp, -, Hseg, Hk, Hv, Hv', -, Hclose⟩
   · dsimp only [tailHeld]; iempintro
   obtain ⟨hd, hl, hs, htg0, hW, ⟨ents, habs⟩, hcut1, hZ, hB⟩ := hp
   have htg := htg0
@@ -318,8 +318,8 @@ theorem walTail_truncSup (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
   icases Hb with ⟨%s, Hb⟩
   unfold truncStartP
   icases HP with ⟨Hk, Hv, Hm, Hbx⟩
-  icases walInvBody_tailW walCodec Mr R jr r s dir γ _ m0 $$ Hb Hk Hv [Hm] with
-    ⟨%Ls, %cl, %nn, %F, %d, %lay, %pre, %g0, %hp, Hseg, Hk, Hv, Hv', Hm, Hclose⟩
+  imod walInvBody_tailW walCodec Mr R jr r s dir γ _ m0 $$ Hb Hk Hv [Hm] with
+    ⟨%Ls, %cl, %nn, %F, %d, %lay, %pre, %g0, %hp, -, Hseg, Hk, Hv, Hv', Hm, Hclose⟩
   · dsimp only [tailHeld]; iexact Hm
   dsimp only [tailHeld]
   obtain ⟨hd, hl, hs, htg0, hW, ⟨ents, habs⟩, hcut0, hZ, hB⟩ := hp

@@ -763,7 +763,7 @@ theorem OldOk.insert_ext {M : GMap (GoString × List Nat) Nat} {Ls : GMap GoStri
     refine ⟨lay', GMap.lookup_insert _ _ _, hcp.trans hc, fun hce => ?_⟩
     have h1 := hcp.length_le
     have h2 := hc.length_le
-    have hcl : c = la.cuts := hcp.eq_of_length (by rw [hce] at h1 ⊢; omega)
+    have hcl : c = lay.cuts := hcp.eq_of_length (by rw [hce] at h1 ⊢; omega)
     rw [hk' hcl, ho (by rw [← hce, hcl])]
   · exact ⟨la, by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hla, hcp, hk'⟩
 
@@ -772,7 +772,7 @@ theorem OldOk.insert_same {M : GMap (GoString × List Nat) Nat} {Ls : GMap GoStr
     {dir : GoString} {lay lay' : WalLay} (h : OldOk M Ls) (hl : Ls !! dir = some lay)
     (hc : lay'.cuts = lay.cuts) (ho : lay'.old.length = lay.old.length) :
     OldOk M (<[dir := lay']> Ls) :=
-  h.insert_ext hl (by rw [hc]) (fun _ => ho)
+  h.insert_ext hl (by rw [hc]; exact List.prefix_refl _) (fun _ => ho)
 
 /-- A new directory's layout. -/
 theorem OldOk.insert_new {M : GMap (GoString × List Nat) Nat} {Ls : GMap GoString WalLay}
@@ -813,7 +813,7 @@ theorem walOldsRes_insert_ext (Ls : GMap GoString WalLay) (dir : GoString) (lay 
 theorem walOldsRes_insert_same (Ls : GMap GoString WalLay) (dir : GoString) (lay lay' : WalLay)
     (hl : Ls !! dir = some lay) (hc : lay'.cuts = lay.cuts) (ho : lay'.old.length = lay.old.length) :
     walOldsRes (W := W) Ls ⊢ walOldsRes (W := W) (<[dir := lay']> Ls) :=
-  walOldsRes_insert_ext Ls dir lay lay' hl (by rw [hc]) (fun _ => ho)
+  walOldsRes_insert_ext Ls dir lay lay' hl (by rw [hc]; exact List.prefix_refl _) (fun _ => ho)
 
 theorem walOldsRes_insert_new (Ls : GMap GoString WalLay) (dir : GoString) (lay' : WalLay)
     (hl : Ls !! dir = none) :
@@ -823,6 +823,25 @@ theorem walOldsRes_insert_new (Ls : GMap GoString WalLay) (dir : GoString) (lay'
   iexists M
   iframe Ha
   ipureintro; exact h.insert_new hl
+
+/-- **A layout step the old-length map allows**: the cuts extended, `old` as long while they stay. -/
+def OldStep (lay lay' : WalLay) : Prop :=
+  lay.cuts <+: lay'.cuts ∧ (lay'.cuts = lay.cuts → lay'.old.length = lay.old.length)
+
+theorem OldStep.same {lay lay' : WalLay} (hc : lay'.cuts = lay.cuts)
+    (ho : lay'.old.length = lay.old.length) : OldStep lay lay' :=
+  ⟨by rw [hc]; exact List.prefix_refl _, fun _ => ho⟩
+
+/-- A cut: the cuts grow by one. -/
+theorem OldStep.cut {lay lay' : WalLay} (b : Nat) (hc : lay'.cuts = lay.cuts ++ [b]) :
+    OldStep lay lay' :=
+  ⟨by rw [hc]; exact List.prefix_append _ _, fun h => by
+    rw [h] at hc; have := congrArg List.length hc; simp at this⟩
+
+theorem walOldsRes_step (Ls : GMap GoString WalLay) (dir : GoString) (lay lay' : WalLay)
+    (hl : Ls !! dir = some lay) (h : OldStep lay lay') :
+    walOldsRes (W := W) Ls ⊢ walOldsRes (W := W) (<[dir := lay']> Ls) :=
+  walOldsRes_insert_ext Ls dir lay lay' hl h.1 h.2
 
 /-- **A tail's old length handed out** (persistent). -/
 theorem walOldsRes_mint (Ls : GMap GoString WalLay) (dir : GoString) (lay : WalLay)
@@ -848,7 +867,7 @@ theorem walOldsRes_mint (Ls : GMap GoString WalLay) (dir : GoString) (lay : WalL
   | some k =>
     obtain ⟨la, hla, -, hk⟩ := h dir lay.cuts k hM
     rw [hl] at hla; cases hla
-    icases walOldsAuth_get (W := W) M dir la.cuts k hM $$ Ha with ⟨Ha, Hk⟩
+    icases walOldsAuth_get (W := W) M dir lay.cuts k hM $$ Ha with ⟨Ha, Hk⟩
     rw [← hk rfl]
     imodintro
     iframe Hk
@@ -911,13 +930,14 @@ theorem walTailsRes_mono (C : WalCodec) (Mr : WalMarshal) (s s' : AbsDiskState) 
     walTailsRes (W := W) C Mr s Ls F ⊢ walTailsRes (W := W) C Mr s' Ls F := by
   unfold walTailsRes
   letI := walAllG (W := W)
-  iintro ⟨%T, Ha, %Ho, %Hi, Hm⟩
+  iintro ⟨%T, Ha, %Ho, %Hi, Hm, HOld⟩
   iexists T
   iframe Ha
   isplitr
   · ipureintro; exact Ho
   isplitr
   · ipureintro; exact Hi.mono h'
+  iframe HOld
   iapply BigSepM.bigSepM_mono_of_forall _ $$ Hm
   intro dir γ
   iintro ⟨%d, %lay, %g, %hp, Hv⟩
@@ -1096,14 +1116,14 @@ theorem walTailsRes_none (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (Ls
     ⊢ walTailsRes (W := W) C Mr s Ls F -∗ walTailsFrag (W := W) ∅ -∗
       ⌜∀ i, F !! i = none⌝ ∗ walTailsRes (W := W) C Mr s Ls F ∗ walTailsFrag (W := W) ∅ := by
   unfold walTailsRes
-  iintro ⟨%T, Ha, %Ho, %Hi, Hm⟩ Hf
+  iintro ⟨%T, Ha, %Ho, %Hi, Hm, HOld⟩ Hf
   icases walTails_agree (W := W) T ∅ $$ Ha Hf with %hT
   subst hT
   iframe Hf
   isplitr
   · ipureintro; exact Ho.none_of_empty
   iexists ∅
-  iframe Ha Hm
+  iframe Ha Hm HOld
   ipureintro; exact ⟨Ho, Hi⟩
 
 /-- **The program's halves, parked** (W3/W5's gap 2, framed): the parking flag's invariant half

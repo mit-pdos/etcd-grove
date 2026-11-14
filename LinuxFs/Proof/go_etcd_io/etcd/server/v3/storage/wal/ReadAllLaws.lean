@@ -46,7 +46,7 @@ theorem walTailsRes_idle (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (Ls
       ⌜∀ dir d lay, s.wal !! dir = some d → Ls !! dir = some lay → TailIdle C Mr d lay⌝ ∗
         walTailsRes (W := W) C Mr s Ls F ∗ walTailsFrag (W := W) ∅ := by
   unfold walTailsRes
-  iintro ⟨%T, Ha, %Ho, %Hi, Hm⟩ Hf
+  iintro ⟨%T, Ha, %Ho, %Hi, Hm, HOld⟩ Hf
   icases walTails_agree (W := W) T ∅ $$ Ha Hf with %hT
   subst hT
   iframe Hf
@@ -55,7 +55,7 @@ theorem walTailsRes_idle (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (Ls
     intro dir d lay hd hl
     exact Hi dir d lay (GMap.lookup_empty _) hd hl
   iexists ∅
-  iframe Ha Hm
+  iframe Ha Hm HOld
   ipureintro; exact ⟨Ho, Hi⟩
 
 /-- A WAL's key names its layout's directory (`DirKeysOk`). -/
