@@ -48,6 +48,60 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
   and the risks R1-R5 (§7).
 - Decisions go in the worktree's `questions.md` (untracked).
 
+## B2 blocked on `bootOkR` (2026-11-14, the B2 agent): next agent starts here
+
+Reading `wp_proofG` against `bootOkR` before any Lean (no edit to `E/NewServerR.lean`, still the skeleton
+`c081768592`): **three rows the restart proof needs are missing from the restart contract's `bootOkR`**
+(trusted text, `E/InvRestart.lean:404`). STOP for 81 (questions.md, "B2: bootOkR gaps").
+1. `%Hraft` lacks `bv.lg' = cfg.Logger'` (`bootOk`'s, premise-fixes-6). `NodeStartSpecR` takes
+   `#Hlgz : zapLoggerOk bv.lg'` (`newRaftNode` logs through `b.lg`); `rnRestartCfg` gives only
+   `bv.lg' ≠ null`, so no proof can give it. Go: `bootstrapRaftFromWAL` sets `lg: cfg.Logger`
+   (`server/etcdserver/bootstrap.go`, as `bootstrapRaftFromCluster`).
+2. No `"#Hbfile" ∷ backend.bFile d.γB (config.backendPathOf cfg.DataDir')` (`bootOk`'s last row). specR's
+   post needs it: `srvBuiltR` → `HBr` (`srvBuiltRestartR`) → `srvSnapOwn` → `srvSnapRes`'s last conjunct,
+   at the backend `bootstrap` just opened (`d.γB` is fresh: the image cannot give it). Go: both paths
+   open the backend in the shared `bootstrapBackend(cfg, haveWAL)` at `cfg.BackendPath()`.
+3. `"Hlate" ∷ mvcc.lateReg d.gx`, where `boot_storageR` (mvcc's `etcdStorage_open.law`) takes
+   `mvcc.api.mvccWReg d.gx` (sealed `@[no_expose]`, by definition `lateReg`). Same meaning; either restate
+   the row in `bootOk`'s form or add an mvcc API law `lateReg gx ⊢ mvccWReg gx` (EtcdBackend.lean).
+Recommended: one restatement of `bootOkR` with all three in `bootOk`'s form (strengthens a premise of the
+unlinked `specR` only; no axiom; tcb count unchanged); then B2 proceeds.
+
+**B2 plan from the reading (for after the fix).** Write `wp_proofR` as a copy of `wp_proofG`'s body
+(`NewServer.lean:389-2682`) with `on`/`cmp` replaced by `false` (perl, not after `.`/before ` :=`: `.on γa`,
+`cmp :=`, `.cmp` are fields/constructors), the image binder `M` named `Mr` (the proof names an auth mode
+`M`), and the private helpers (`newServer_cmp_peek`, `rep_join`, `rep_cons1`, `mvccReaders_rep`,
+`rep_cast`) copied. Boot section (418-546 of G) replaced:
+- the image: `iunfold srvDiskImageAt at Himg`; `wal.stopImage_elim` (σ.b ≤ i ≤ commit, `StorageHolds`,
+  `walSnapCert`, a committed log), re-intro for `wal.restartOk_start`; `HρRaft`, `restartNames`
+  (`ρ.rd.raft = ρo.rd.raft`) give `pre = []`, `ai0 = 0`, `uint i = |A|`;
+- the contract (`HbootR` at `σ i A D Mr`): antecedent from the image, `Hbco`/`Hfnc`/`Hdwd`/`Hbwb`,
+  `Hdisk` (`dbOpensOk`, `walSaveOk`), `restart_clusterVerLogOk`; **clause (G)** (peer URLs at `A` the boot
+  log's) is P5's phase-2 RestConf invariant (~250 lines, not written); the existential at `ρo.rd.kv`
+  (`mvccImage` is persistent: keep it for `boot_storageR`);
+- the WAL: `wal.restartOk_start` at `l₀ = srvLE ⟨γ,[],0⟩ (A.take σ.b)` (committed: from `srvRLogLb`'s
+  `isCommittedLogLb`, prefix as in `NodeStart.lean:1147`);
+- the node: `raftNode_of_RestartNode` at `ctxs = []` (`pv = []`), `cs` from `Hrest`, `confStateIs cs
+  (simple γ.cfg)` from the image's `∀ cs, v3ConfStateIs D cs → confStateIs cs mb` and `mb = simple γ.cfg`
+  (`srv_confAt_simple_ind`, SrvRaftLog.lean:1082, and `confAt_agree`), F3 by `walReadFacts_F3`,
+  `restart_cs_bound`, `restart_idx`;
+- the store: `boot_storageR` at `kvModel ρo.rd.kv A`, `crevOf`, `u` (`u = false` at `cmp = false`: a
+  lemma from `imageStOk`/the log having no compaction, to find), `mvcc.api.New.spec` at
+  `stAt (kvModel A) crev`, `Ls = Lr` (the lease bucket's ids), its item premise from `LogNoLease
+  (kvModel A)` (the KV invariant's `plainLogM`, as `SnapApplyWalk.lean:599-608`);
+- the lessor: `NewLessor.spec` at the image's `lease` bucket records (`recs`, `reqOf` from the image),
+  `Lr`; its `lessorAt γl 0 (recMap …)` is specR's `srvInvAt` snapshot;
+- rest buckets: G's `hDl`/`HDr`/`restBootBk_of_fresh` (1096) replaced by `imageRestAt`'s buckets;
+- the snapshot directory (G 1230-1261): the image's `inv snapDirN …` via `snapDirInv_ss_congr` and
+  `Hssp`, its counter `c ≤ i + 1` for `srvSnapOwn` at `0 + W64 |A|`;
+- the post: `srvBuiltR` (= `srvBuiltRC .off`) directly, `HBr` from P3's rows
+  (`/shared/tmp/restart-s56/p3-rows.md`: `applyBuiltR` at `A`, `srvRest`'s leased arm the largest item,
+  `srvApRes` at `A` from P5's invariant, `rnSnapOnceR` at `|P|`: `NodeStartSpecR`'s post may need the
+  snapshot token, a form), `Hwpend` and the installer's `rnSnapTermAbove` from `srvRestartRows`; no
+  `leaseTTLRowR`, no auth-on conjunct; `lease.srvInvAt` at the recovered snapshot.
+Suggested order: P5's invariant and clause (G) first (a lemma file), then the boot section to the node,
+then the tail by `lean-check --fast --split` errors, sorried sub-facts as named lemmas in a separate file.
+
 ## Route (C) and the CP2 landing (2026-11-14, the route-C agent): next agent starts here (CP2 landed)
 
 81 decided route (C) for finding 1 (`questions.md`; freeze package §11.1a, superseding (A)).
