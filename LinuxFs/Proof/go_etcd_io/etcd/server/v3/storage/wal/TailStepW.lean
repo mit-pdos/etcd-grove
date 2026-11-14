@@ -381,6 +381,140 @@ theorem walAbsD_announceW {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : W
         exact .inr (.inr ⟨hbS, hdv, hn⟩)
     · exact habs.lowW g0 hg0 b x hb hbw (by unfold WinLo at hwlo; omega) (fun _ h => h)
 
+/-! ## The finished tail, any write from inside the file -/
+
+/-- **The tail `g0` as the second step of the write in flight `fl` leaves it** (any write from inside
+the file), `k` bytes written: `pwPostK true` (the candidates past the size kept, `wp_osPWriteFinishK
+true`), `finBytes`, its bytes past the old size with the candidates `zs` the file had there. -/
+def segFinW (fl : SegFl) (g0 : SegG) (k : Nat) (zs : List Cands) : SegG :=
+  { g0 with om := pwPostK true fl.m fl.off fl.data k fl.n,
+            bs := finBytes fl.m fl.bs fl.off fl.data k fl.n zs }
+
+/-- `pwPostK true` knows past the size what the write's layout `OsMeta` knew (`wrMeta`). -/
+theorem pwPostK_true_pc (m : OsMeta) (off : Nat) (data : List w8) (k n b : Nat) :
+    (pwPostK true m off data k n).pc b = (wrMeta m off data n).pc b := rfl
+
+theorem pwPostK_lo (m : OsMeta) (off : Nat) (data : List w8) (k n : Nat) :
+    (pwPostK true m off data k n).lo = min m.lo (max m.size (off + data.length)) := rfl
+
+theorem pwPostK_hi (m : OsMeta) (off : Nat) (data : List w8) (k n : Nat) :
+    (pwPostK true m off data k n).hi = max m.hi (max m.size (off + data.length)) := rfl
+
+theorem pwPostK_size (m : OsMeta) (off : Nat) (data : List w8) (k n : Nat) :
+    (pwPostK true m off data k n).size = pwSize m.size off k := rfl
+
+theorem pwPostK_rz (m : OsMeta) (off : Nat) (data : List w8) (k n : Nat) :
+    (pwPostK true m off data k n).rz = m.rz := by
+  simp [pwPostK, pwPost]
+
+theorem pwPostK_cut (m : OsMeta) (off : Nat) (data : List w8) (k n : Nat) :
+    (pwPostK true m off data k n).cut = m.cut := by
+  simp [pwPostK, pwPost]
+
+/-- A write inside the size: `pwPostK true` is `pwPost` (`pwTail` is the announcement's `tc`). -/
+theorem pwPostK_true_in {m : OsMeta} {off : Nat} {data : List w8} {k n : Nat}
+    (hin : off + data.length ≤ m.size) : pwPostK true m off data k n = pwPost m off data.length k := by
+  have h := wrMeta_in (n := n) hin
+  have htc : pwTail m off data n = (cfMeta m off data.length).tc := by
+    have := congrArg OsMeta.tc h; exact this
+  simp only [pwPostK, cond_true, htc]
+  rfl
+
+/-- The announced tail, as the token's `OsMeta` and bytes announce it (`SegFl.Ok`). -/
+theorem SegFl.Ok.eq_ann {fl : SegFl} {g0 : SegG} (hok : fl.Ok g0) :
+    g0 = segAnnW ⟨g0.name, g0.ino, fl.m, fl.bs⟩ fl.off fl.data fl.n := by
+  obtain ⟨-, -, -, -, hm, hbs, -⟩ := hok
+  cases g0 with
+  | mk nm ino om bs => simp only at hm hbs; subst hm hbs; rfl
+
+/-- **The finished tail's bytes, against the announced ones** (any write from inside the file): the
+written range's values the data's, below the old size the announced candidates, past it the file's
+(`zs`) then the data's. -/
+theorem segFinW_getElem? {fl : SegFl} {g0 : SegG} {k b : Nat} {zs : List Cands}
+    (hok : fl.Ok g0) (hk : k ≤ fl.data.length) :
+    (segFinW fl g0 k zs).bs[b]? =
+      if fl.off ≤ b ∧ b < fl.off + k then
+        (if b < fl.m.size then g0.bs[b]?.map (fun x => (fl.data.getD (b - fl.off) 0, x.2))
+         else some (fl.data.getD (b - fl.off) 0,
+           zs.getD (b - fl.m.size) [] ++ [(fl.data.getD (b - fl.off) 0, fl.n)]))
+      else g0.bs[b]? := by
+  have hok' := hok
+  obtain ⟨hoff, -, hl, -, -, -, -⟩ := hok'
+  have hg0 : g0.bs[b]? = if fl.off ≤ b ∧ b < fl.off + fl.data.length then
+      fl.bs[b]?.map (fun x => (x.1, x.2 ++ [(fl.data.getD (b - fl.off) 0, fl.n)])) else fl.bs[b]? := by
+    rw [hok.eq_ann]; exact segAnnW_getElem? (g0 := ⟨g0.name, g0.ino, fl.m, fl.bs⟩) hoff hl
+  have hlo : cfLo fl.m fl.off = fl.off := by unfold cfLo; omega
+  have hhi : cfHi fl.m fl.off fl.data.length = min (fl.off + fl.data.length) fl.m.size := rfl
+  have hR : (cfRange fl.m fl.bs fl.off fl.data.length).length =
+      min (fl.off + fl.data.length) fl.m.size - fl.off := by
+    unfold cfRange; rw [hlo, hhi]; simp only [List.length_take, List.length_drop]; omega
+  have hRg : ∀ j, j < (cfRange fl.m fl.bs fl.off fl.data.length).length →
+      (cfRange fl.m fl.bs fl.off fl.data.length)[j]? = fl.bs[fl.off + j]? := by
+    intro j hj
+    unfold cfRange; rw [hlo, List.getElem?_take, if_pos (by rw [hR] at hj; rw [hhi]; omega),
+      List.getElem?_drop]
+  have hP := pwBytes_length fl.m.size fl.off fl.data k fl.n (cfRange fl.m fl.bs fl.off fl.data.length) zs
+  have hps : pwSize fl.m.size fl.off k = if k = 0 then fl.m.size else max fl.m.size (fl.off + k) := rfl
+  show (fl.bs.take (cfLo fl.m fl.off) ++
+    pwBytes fl.m.size fl.off fl.data k fl.n (cfRange fl.m fl.bs fl.off fl.data.length) zs ++
+    fl.bs.drop (cfHi fl.m fl.off fl.data.length))[b]? = _
+  rw [hlo, getElem?_tpd _ _ fl.off _ b (by omega), hP]
+  by_cases h1 : b < fl.off
+  · rw [if_pos h1, if_neg (by omega), hg0, if_neg (by omega)]
+  rw [if_neg h1]
+  by_cases h2 : b < fl.off + (min (fl.off + fl.data.length) (pwSize fl.m.size fl.off k) - fl.off)
+  · rw [if_pos h2]
+    have hj : b - fl.off < min (fl.off + fl.data.length) (pwSize fl.m.size fl.off k) - fl.off := by omega
+    simp only [pwBytes, List.getElem?_map, List.getElem?_range hj, Option.map_some]
+    rw [show fl.off + (b - fl.off) = b by omega]
+    by_cases hbk : b < fl.off + k
+    · rw [if_pos (show fl.off ≤ b ∧ b < fl.off + k from ⟨by omega, hbk⟩)]
+      simp only [pwByte, if_pos hbk]
+      by_cases hbs : b < fl.m.size
+      · rw [if_pos hbs, hg0,
+          if_pos (show fl.off ≤ b ∧ b < fl.off + fl.data.length from ⟨by omega, by omega⟩)]
+        have hjR : b - fl.off < (cfRange fl.m fl.bs fl.off fl.data.length).length := by rw [hR]; omega
+        have hr := hRg _ hjR
+        rw [show fl.off + (b - fl.off) = b by omega] at hr
+        have hbl : b < fl.bs.length := by omega
+        have hgd : (cfRange fl.m fl.bs fl.off fl.data.length).getD (b - fl.off) (0, []) = fl.bs[b] := by
+          rw [List.getD_eq_getElem?_getD, hr, List.getElem?_eq_getElem hbl]; rfl
+        rw [if_pos hjR, hgd, List.getElem?_eq_getElem hbl]
+        rfl
+      · rw [if_neg hbs]
+        have hjR : ¬ b - fl.off < (cfRange fl.m fl.bs fl.off fl.data.length).length := by rw [hR]; omega
+        rw [if_neg hjR, hR, show b - fl.off - (min (fl.off + fl.data.length) fl.m.size - fl.off) =
+          b - fl.m.size by omega]
+    · rw [if_neg (show ¬ (fl.off ≤ b ∧ b < fl.off + k) from fun h => hbk h.2)]
+      simp only [pwByte, if_neg hbk]
+      have hbs : b < fl.m.size := by rw [hps] at h2; split at h2 <;> omega
+      have hjR : b - fl.off < (cfRange fl.m fl.bs fl.off fl.data.length).length := by rw [hR]; omega
+      have hr := hRg _ hjR
+      rw [show fl.off + (b - fl.off) = b by omega] at hr
+      have hbl : b < fl.bs.length := by omega
+      have hgd : (cfRange fl.m fl.bs fl.off fl.data.length).getD (b - fl.off) (0, []) = fl.bs[b] := by
+        rw [List.getD_eq_getElem?_getD, hr, List.getElem?_eq_getElem hbl]; rfl
+      rw [hg0, if_pos (show fl.off ≤ b ∧ b < fl.off + fl.data.length from ⟨by omega, by omega⟩),
+        if_pos hjR, hgd, List.getElem?_eq_getElem hbl]
+      rfl
+  · rw [if_neg h2]
+    have hbk : ¬ (fl.off ≤ b ∧ b < fl.off + k) := by
+      rintro ⟨-, h⟩; rw [hps] at h2; split at h2 <;> omega
+    rw [if_neg hbk, hg0]
+    by_cases hin : fl.off + fl.data.length ≤ fl.m.size
+    · rw [if_neg (by rw [hps] at h2; split at h2 <;> omega), hhi]
+      congr 1; rw [hps] at h2 ⊢; split at h2 <;> split <;> omega
+    · rw [List.getElem?_eq_none (by rw [hhi]; omega)]
+      have hbs : fl.m.size ≤ b := by rw [hps] at h2; split at h2 <;> omega
+      rw [List.getElem?_eq_none (show fl.bs.length ≤ b by omega)]
+      split <;> rfl
+
+theorem segFinW_length {fl : SegFl} {g0 : SegG} {k : Nat} {zs : List Cands}
+    (hok : fl.Ok g0) (hk : k ≤ fl.data.length) :
+    (segFinW fl g0 k zs).bs.length = pwSize fl.m.size fl.off k := by
+  obtain ⟨hoff, -, hl, -, -, -, -⟩ := hok
+  exact finBytes_length hl hoff hk
+
 end pure
 
 end WalFs
