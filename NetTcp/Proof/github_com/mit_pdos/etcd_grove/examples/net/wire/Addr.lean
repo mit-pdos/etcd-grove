@@ -2,7 +2,8 @@
 A per-address protocol, for the proofs of `examples/net/`: the invariant of a plan address `a`
 (`addrInv a Φ`) holds `a`'s pending set (`tcpPend`) and, for each connection `cn` pending there,
 the resources `Φ cn` its dialer deposited (`Φ` timeless). A dial that deposits `Φ cn`
-(`dial_au`) and an accept that takes it (`accept_au`) are the atomic updates of `net.Dial` and
+(`dial_au`, `dial_both_au`; a dial that fails but leaves its connection pending, abandoned, deposits
+too) and an accept that takes it (`accept_au`) are the atomic updates of `net.Dial` and
 `Listener.Accept` (`NetTcp/Spec/net/`). Also `setMap`, sets as the maps `[∗map]` ranges over
 (`GSet` has no `[∗set]` instance; as raft's `Protocol.toMap`), with its laws.
 -/
@@ -95,14 +96,18 @@ def addrInv (a : GoString) (Φ : Nat → IProp GF) : IProp GF :=
   iprop(∃ S, tcpPend G a S ∗ [∗map] cn ↦ _u ∈ setMap S, Φ cn)
 
 /-- A dial of `a` whose dialer deposits `Φ cn` (made, at the address's invariant's mask, from the
-new connection's acceptor end, `mk`) and keeps its own end and `R cn`. -/
+new connection's acceptor end, `mk`) and keeps its own end and `R cn`; a dial that fails leaving
+the connection abandoned (D16) deposits `Φ cn` all the same (an acceptor may take it) and keeps
+nothing. The update of `net.Dial` with `Qfail := True`. -/
 theorem dial_au (N : Namespace) (a : GoString) (Φ R : Nat → IProp GF) [∀ cn, Timeless (Φ cn)] :
     ⊢ inv N (addrInv a Φ) -∗
       (∀ cn, tcpConnAt G cn a -∗ tcpFresh G cn true ={⊤ \ ↑N}=∗ Φ cn ∗ R cn) -∗
       |={⊤,∅}=> ∃ S, tcpPend G a S ∗
         ∀ cn, ⌜cn ∉ S⌝ -∗ tcpPend G a (S ∪ {[cn]}) -∗ tcpConnAt G cn a -∗
-          tcpFresh G cn false -∗ tcpFresh G cn true ={∅,⊤}=∗
-          tcpFresh G cn false ∗ R cn := by
+          tcpFresh G cn true -∗
+          ((tcpFresh G cn false ={∅,⊤}=∗ tcpFresh G cn false ∗ R cn) ∧
+           (tcpEnd G cn false { TcpEnd.fresh with closed := true } -∗
+            tcpDir G cn false ⟨[], .fin⟩ ={∅,⊤}=∗ True)) := by
   iintro #Hinv Hmk
   iinv Hinv with Hi Hclose
   unfold addrInv
@@ -111,31 +116,52 @@ theorem dial_au (N : Namespace) (a : GoString) (Φ R : Nat → IProp GF) [∀ cn
   iintro Hmask
   iexists S
   iframe Hpend
-  iintro %cn %HcS Hpend #Hat Hd Ha
-  imod Hmask
-  imod Hmk $$ %cn Hat Ha with ⟨HΦ, HR⟩
-  imod Hclose $$ [Hpend Hdeps HΦ] with -
-  · inext
-    iexists S ∪ {[cn]}
-    iframe Hpend
-    rw [setMap_insert]
-    iapply (BigSepM.bigSepM_insert (setMap_lookup_none HcS)).2
-    iframe Hdeps HΦ
-  imodintro
-  iframe Hd HR
+  iintro %cn %HcS Hpend #Hat Ha
+  isplit
+  · iintro Hd
+    imod Hmask
+    imod Hmk $$ %cn Hat Ha with ⟨HΦ, HR⟩
+    imod Hclose $$ [Hpend Hdeps HΦ] with -
+    · inext
+      iexists S ∪ {[cn]}
+      iframe Hpend
+      rw [setMap_insert]
+      iapply (BigSepM.bigSepM_insert (setMap_lookup_none HcS)).2
+      iframe Hdeps HΦ
+    imodintro
+    iframe Hd HR
+  · iintro - -
+    imod Hmask
+    imod Hmk $$ %cn Hat Ha with ⟨HΦ, -⟩
+    imod Hclose $$ [Hpend Hdeps HΦ] with -
+    · inext
+      iexists S ∪ {[cn]}
+      iframe Hpend
+      rw [setMap_insert]
+      iapply (BigSepM.bigSepM_insert (setMap_lookup_none HcS)).2
+      iframe Hdeps HΦ
+    imodintro
+    itrivial
 
 /-- A dial of `a` whose dialer deposits `Φ cn`, made from both new ends (the dialer's too: so the
 deposit can tie the dialer's direction to the acceptor's, as a per-connection protocol's state
-does), and keeps `R cn`. -/
+does), and keeps `R cn`; a dial that fails leaving the connection abandoned (D16) deposits `Φ cn`
+made from the acceptor's fresh end and the dialer's closed end and shut, empty direction
+(`mkAb`), and keeps nothing. The update of `net.Dial` with `Qfail := True`. -/
 theorem dial_both_au (N : Namespace) (a : GoString) (Φ R : Nat → IProp GF)
     [∀ cn, Timeless (Φ cn)] :
     ⊢ inv N (addrInv a Φ) -∗
       (∀ cn, tcpConnAt G cn a -∗ tcpFresh G cn false -∗ tcpFresh G cn true ={⊤ \ ↑N}=∗
         Φ cn ∗ R cn) -∗
+      (∀ cn, tcpConnAt G cn a -∗ tcpEnd G cn false { TcpEnd.fresh with closed := true } -∗
+        tcpDir G cn false ⟨[], .fin⟩ -∗ tcpFresh G cn true ={⊤ \ ↑N}=∗ Φ cn) -∗
       |={⊤,∅}=> ∃ S, tcpPend G a S ∗
         ∀ cn, ⌜cn ∉ S⌝ -∗ tcpPend G a (S ∪ {[cn]}) -∗ tcpConnAt G cn a -∗
-          tcpFresh G cn false -∗ tcpFresh G cn true ={∅,⊤}=∗ R cn := by
-  iintro #Hinv Hmk
+          tcpFresh G cn true -∗
+          ((tcpFresh G cn false ={∅,⊤}=∗ R cn) ∧
+           (tcpEnd G cn false { TcpEnd.fresh with closed := true } -∗
+            tcpDir G cn false ⟨[], .fin⟩ ={∅,⊤}=∗ True)) := by
+  iintro #Hinv Hmk HmkAb
   iinv Hinv with Hi Hclose
   unfold addrInv
   icases Hi with ⟨%S, >Hpend, >Hdeps⟩
@@ -143,18 +169,32 @@ theorem dial_both_au (N : Namespace) (a : GoString) (Φ R : Nat → IProp GF)
   iintro Hmask
   iexists S
   iframe Hpend
-  iintro %cn %HcS Hpend #Hat Hd Ha
-  imod Hmask
-  imod Hmk $$ %cn Hat Hd Ha with ⟨HΦ, HR⟩
-  imod Hclose $$ [Hpend Hdeps HΦ] with -
-  · inext
-    iexists S ∪ {[cn]}
-    iframe Hpend
-    rw [setMap_insert]
-    iapply (BigSepM.bigSepM_insert (setMap_lookup_none HcS)).2
-    iframe Hdeps HΦ
-  imodintro
-  iexact HR
+  iintro %cn %HcS Hpend #Hat Ha
+  isplit
+  · iintro Hd
+    imod Hmask
+    imod Hmk $$ %cn Hat Hd Ha with ⟨HΦ, HR⟩
+    imod Hclose $$ [Hpend Hdeps HΦ] with -
+    · inext
+      iexists S ∪ {[cn]}
+      iframe Hpend
+      rw [setMap_insert]
+      iapply (BigSepM.bigSepM_insert (setMap_lookup_none HcS)).2
+      iframe Hdeps HΦ
+    imodintro
+    iexact HR
+  · iintro He Hd
+    imod Hmask
+    imod HmkAb $$ %cn Hat He Hd Ha with HΦ
+    imod Hclose $$ [Hpend Hdeps HΦ] with -
+    · inext
+      iexists S ∪ {[cn]}
+      iframe Hpend
+      rw [setMap_insert]
+      iapply (BigSepM.bigSepM_insert (setMap_lookup_none HcS)).2
+      iframe Hdeps HΦ
+    imodintro
+    itrivial
 
 /-- An accept at `a`: the acceptor takes the connection's deposit. -/
 theorem accept_au (N : Namespace) (a : GoString) (Φ : Nat → IProp GF) [∀ cn, Timeless (Φ cn)] :

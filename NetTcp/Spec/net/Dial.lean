@@ -1,10 +1,13 @@
 /-
 `net.Dial("tcp", a)` for an address `a` of the plan (`tcpPlan`; `Dial.impl`,
-`NetTcp/TrustedCode/net.lean`): the extension's `Dial`. A failure gives the caller's `Qfail`; a
-new connection `cn` is taken by a logically atomic update over `a`'s pending set (`tcpPend`), which
-gets `cn` (with both ends' fresh resources, `tcpFresh`: each end's state and the direction from it, and `tcpConnAt`), and the call returns
-the dialer's end as a `Conn` (`isConn _ cn false a`) and `Qok cn`. Proved in
-`NetTcp/Proof/net/Dial.lean`.
+`NetTcp/TrustedCode/net.lean`): the extension's `Dial` (D8, D16). A failure that leaves nothing gives
+the caller's `Qfail`; a new connection `cn` is taken by a logically atomic update over `a`'s pending
+set (`tcpPend`), which gets `cn` (with `tcpConnAt` and its acceptor's end's fresh resources,
+`tcpFresh cn true`) and then either the dialer's end's fresh resources, the call returning the
+dialer's end as a `Conn` (`isConn _ cn false a`) and `Qok cn`, or, abandoned, the dialer's end
+closed and its direction shut and empty, the call failing with `Qfail`. A failure's error is
+`*OpError{Op: "dial", Source: nil, Addr: x}`, `x` a `*TCPAddr`, whose `Err` is an `*os.SyscallError`
+(`resErr`, D14). Proved in `NetTcp/Proof/net/Dial.lean`.
 -/
 module
 
@@ -32,13 +35,15 @@ abbrev Dial.spec : Prop :=
   {{ tcpPlan (extGlobalGS tcpExt (G := hG.goose_globalGS)) a h ∗
       (Qfail ∧
         |={⊤,∅}=> ∃ S, tcpPend (extGlobalGS tcpExt (G := hG.goose_globalGS)) a S ∗
-          ∀ cn, ⌜cn ∉ S⌝ -∗ tcpPend (extGlobalGS tcpExt (G := hG.goose_globalGS)) a (S ∪ {[cn]}) -∗
-            tcpConnAt (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn a -∗
-            tcpFresh (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn false -∗
-            tcpFresh (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn true ={∅,⊤}=∗ Qok cn) }}
+          ∀ cn, ⌜cn ∉ S⌝ -∗ tcpPend (extGlobalGS tcpExt (G := hG.goose_globalGS)) a (S ∪ {[cn]}) -∗ tcpConnAt (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn a -∗
+            tcpFresh (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn true -∗
+            ((tcpFresh (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn false ={∅,⊤}=∗ Qok cn) ∧
+             (tcpEnd (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn false { TcpEnd.fresh with closed := true } -∗
+              tcpDir (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn false ⟨[], .fin⟩ ={∅,⊤}=∗ Qfail))) }}
     (App (App (Val (@! net.Dial)) (Val #(go!"tcp"))) (Val #a))
   {{ (c : GoInterface) (err : GoInterface), RET (PairV #c #err);
-      (⌜err = interface.nil⌝ ∗ ∃ cn, isConn c cn false a ∗ Qok cn) ∨ (⌜netErr err⌝ ∗ Qfail) }}
+      (⌜err = interface.nil⌝ ∗ ∃ cn, isConn c cn false a ∗ Qok cn) ∨
+      (Qfail ∗ ∃ x, tcpAddr x ∗ resErr (some .sys) go!"dial" interface.nil x none (fun _ => True) err) }}
 
 end spec
 

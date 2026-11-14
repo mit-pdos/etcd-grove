@@ -17,6 +17,25 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `errors.Is` with a struct-valued target: `net.ErrClosed` (2026-11-14, branch `net-tcp`)
+
+`errors.Is.spec` (`Perennial/Spec/errors/Is.lean`) admits only a `nil` or pointer target
+(`IsPointerError`), because Go's `==` on a target of another comparable type compares it with the
+tree's errors of its type and can panic on uncomparable fields. `net.ErrClosed` is
+`poll.ErrNetClosing`, the value `errNetClosing{}` of an empty struct, so `errors.Is(err,
+net.ErrClosed)`, the check every Go client of `net` makes, has no spec: a client proof is stuck there
+(sound: less defined). The TCP semantics v3 gives the closed kind's `Err` as that value
+(`NetTcp/Proof/net/Base.lean`, `closedErr`), and `NetTcp/Proof/net/ErrorsIs.lean` proves only the
+`os.ErrDeadlineExceeded` (pointer) target. The general fix: a spec for a target whose dynamic type
+is comparable and whose tree's errors of that type are comparable too (a struct with comparable
+fields, here none), a premise like `TreeTyped`. Not done here (no Perennial change for one proof).
+
+Two related gaps of this repository's own translations, not Perennial's: the main tree's `os`
+(`Code/os.toml`, names only) has no body for `(*SyscallError).Unwrap` (nor `Error`, `Timeout`), so
+`errors.Is` on a `sys` error is stuck at its `Err`; and `internal/poll`'s package fact
+(`Proof/internal/poll/PkgInit.lean`) says only that `ErrDeadlineExceeded` holds some error, not
+`&DeadlineExceededError{}`, so `errors_Is_deadline` takes that as a premise.
+
 ### `copy`'s count is only `sint.nat n = min …` (2026-11-14, branch `net-tcp`)
 
 - **The gap.** `wp_slice_copy` (`Perennial/Golang/Theory/Slice.lean`) returns `n` with

@@ -84,49 +84,54 @@ theorem dirOk_read {st : TcpEnd} {d d' : TcpDir} {W R : List w8} {n : Nat} {r : 
       · exact dirOk_avail (dirOk_cut k h) hr
 
 /-- A write keeps `DirOk`, the writer having written what it appended. -/
-theorem dirOk_write {st : TcpEnd} {d d' : TcpDir} {W R bs : List w8} {k : Nat} {ok : Bool}
-    (h : DirOk d W R) (hw : WriteOutcome st d bs k ok d') : DirOk d' (W ++ bs.take k) R := by
+theorem dirOk_write {st : TcpEnd} {d d' : TcpDir} {W R bs : List w8} {k : Nat}
+    {res : Option TcpErr} (h : DirOk d W R) (hw : WriteOutcome st d bs k res d') :
+    DirOk d' (W ++ bs.take k) R := by
   unfold WriteOutcome at hw
   split at hw
   · obtain ⟨rfl, -, rfl⟩ := hw; simpa using h
   · rename_i hnc
     split at hw
+    · rename_i hfin
+      obtain ⟨rfl, rfl, -⟩ := hw; simpa using h
     · rename_i hcut
-      obtain ⟨-, rfl⟩ := hw
+      obtain ⟨rfl, -⟩ := hw
       simp only [DirOk, hcut, ↓reduceIte] at h ⊢
       exact h.trans (List.prefix_append W _)
-    · rename_i hcut
-      simp only [DirOk, hcut, ↓reduceIte] at h
-      rcases hw with ⟨rfl, -, rfl⟩ | ⟨-, -, rfl⟩ | ⟨-, -, -, rfl⟩
-      · simp only [DirOk, hcut, ↓reduceIte, List.take_length, ← List.append_assoc, h]
+    · rename_i hopen
+      simp only [DirOk, hopen, reduceCtorEq, ↓reduceIte] at h
+      rcases hw with ⟨rfl, -, rfl⟩ | ⟨-, -, rfl⟩ | ⟨-, -, -, rfl⟩ | ⟨-, -, rfl⟩
+      · simp only [DirOk, hopen, reduceCtorEq, ↓reduceIte, List.take_length, ← List.append_assoc, h]
       · simp only [DirOk, ↓reduceIte, ← List.append_assoc, h]
         exact List.prefix_refl _
-      · simp only [DirOk, hcut, ↓reduceIte, ← List.append_assoc, h]
+      · simp only [DirOk, hopen, reduceCtorEq, ↓reduceIte, ← List.append_assoc, h]
+      · simp only [DirOk, hopen, reduceCtorEq, ↓reduceIte, ← List.append_assoc, h]
 
 /-- A write that returns success wrote all of it. -/
 theorem writeOutcome_ok {st : TcpEnd} {d d' : TcpDir} {bs : List w8} {k : Nat}
-    (hw : WriteOutcome st d bs k true d') : k = bs.length := by
+    (hw : WriteOutcome st d bs k none d') : k = bs.length := by
   unfold WriteOutcome at hw
   split at hw
   · cases hw.2.1
   · split at hw
-    · rcases hw.1 with ⟨h, -⟩ | ⟨-, h⟩
+    · rcases hw.2.2 with h | ⟨-, h⟩ <;> cases h
+    · rcases hw.2 with ⟨h, -⟩ | ⟨-, h⟩
       · exact h
-      · cases h
-    · rcases hw with ⟨h, -⟩ | ⟨-, h, -⟩ | ⟨-, -, h, -⟩
+      · rcases h with h | h | ⟨-, h⟩ <;> cases h
+    · rcases hw with ⟨h, -⟩ | ⟨-, h, -⟩ | ⟨-, -, h, -⟩ | ⟨-, h, -⟩
       · exact h
-      · cases h
-      · cases h
+      all_goals cases h
 
 /-- A write returns at most what it was given. -/
-theorem writeOutcome_le {st : TcpEnd} {d d' : TcpDir} {bs : List w8} {k : Nat} {ok : Bool}
-    (hw : WriteOutcome st d bs k ok d') : k ≤ bs.length := by
+theorem writeOutcome_le {st : TcpEnd} {d d' : TcpDir} {bs : List w8} {k : Nat}
+    {res : Option TcpErr} (hw : WriteOutcome st d bs k res d') : k ≤ bs.length := by
   unfold WriteOutcome at hw
   split at hw
   · rw [hw.1]; exact Nat.zero_le _
   · split at hw
-    · rcases hw.1 with ⟨h, -⟩ | ⟨h, -⟩ <;> omega
-    · rcases hw with ⟨h, -⟩ | ⟨h, -⟩ | ⟨-, h, -⟩ <;> omega
+    · rw [hw.1]; exact Nat.zero_le _
+    · rcases hw.2 with ⟨h, -⟩ | ⟨h, -⟩ <;> omega
+    · rcases hw with ⟨h, -⟩ | ⟨h, -⟩ | ⟨-, h, -⟩ | ⟨h, -⟩ <;> omega
 
 theorem dirOk_shut {d : TcpDir} {W R : List w8} (h : DirOk d W R) : DirOk d.shut W R := by
   unfold TcpDir.shut
@@ -136,15 +141,15 @@ theorem dirOk_shut {d : TcpDir} {W R : List w8} (h : DirOk d W R) : DirOk d.shut
     simpa using h
   · exact h
 
-theorem dirOk_close {st st' : TcpEnd} {d d' : TcpDir} {W R : List w8} {ok : Bool}
-    (h : DirOk d W R) (hc : CloseOutcome st d ok st' d') : DirOk d' W R := by
+theorem dirOk_close {st st' : TcpEnd} {d d' : TcpDir} {W R : List w8} {res : Option TcpErr}
+    (h : DirOk d W R) (hc : CloseOutcome st d res st' d') : DirOk d' W R := by
   unfold CloseOutcome at hc
   split at hc
   · obtain ⟨-, -, rfl⟩ := hc; exact h
-  · obtain ⟨-, rfl⟩ := hc; exact dirOk_shut h
+  · obtain ⟨-, -, rfl⟩ := hc; exact dirOk_shut h
 
-theorem dirOk_closeWrite {st : TcpEnd} {d d' : TcpDir} {W R : List w8} {ok : Bool}
-    (h : DirOk d W R) (hc : CloseWriteOutcome st d ok d') : DirOk d' W R := by
+theorem dirOk_closeWrite {st : TcpEnd} {d d' : TcpDir} {W R : List w8} {res : Option TcpErr}
+    (h : DirOk d W R) (hc : CloseWriteOutcome st d res d') : DirOk d' W R := by
   unfold CloseWriteOutcome at hc
   split at hc
   · obtain ⟨-, rfl⟩ := hc; exact h
@@ -193,29 +198,30 @@ theorem readOutcome_bytes_pos {st : TcpEnd} {d d' : TcpDir} {n : Nat} {bs : List
       · exact hav _ h
 
 /-- A close leaves the end closed. -/
-theorem closeOutcome_closed {st : TcpEnd} {d : TcpDir} {ok : Bool} {st' : TcpEnd} {d' : TcpDir}
-    (h : CloseOutcome st d ok st' d') : st'.closed = true := by
+theorem closeOutcome_closed {st : TcpEnd} {d : TcpDir} {res : Option TcpErr} {st' : TcpEnd}
+    {d' : TcpDir} (h : CloseOutcome st d res st' d') : st'.closed = true := by
   unfold CloseOutcome at h
   split at h
   · rw [h.2.1]; assumption
-  · rw [h.1]
+  · rw [h.2.1]
 
-/-- A close of a closed end fails and changes nothing. -/
-theorem closeOutcome_of_closed {st : TcpEnd} {d : TcpDir} {ok : Bool} {st' : TcpEnd}
-    {d' : TcpDir} (hc : st.closed = true) (h : CloseOutcome st d ok st' d') :
-    ok = false ∧ st' = st := by
+/-- A close of a closed end fails (`closed`) and changes nothing. -/
+theorem closeOutcome_of_closed {st : TcpEnd} {d : TcpDir} {res : Option TcpErr} {st' : TcpEnd}
+    {d' : TcpDir} (hc : st.closed = true) (h : CloseOutcome st d res st' d') :
+    res = some .closed ∧ st' = st := by
   simp only [CloseOutcome, hc, ↓reduceIte] at h
   exact ⟨h.1, h.2.1⟩
 
-/-- A write on a closed end fails. -/
-theorem writeOutcome_of_closed {st : TcpEnd} {d : TcpDir} {bs : List w8} {k : Nat} {ok : Bool}
-    {d' : TcpDir} (hc : st.closed = true) (h : WriteOutcome st d bs k ok d') : ok = false := by
-  simp only [WriteOutcome, hc, Bool.true_or, ↓reduceIte] at h
+/-- A write on a closed end fails (`closed`). -/
+theorem writeOutcome_of_closed {st : TcpEnd} {d : TcpDir} {bs : List w8} {k : Nat}
+    {res : Option TcpErr} {d' : TcpDir} (hc : st.closed = true)
+    (h : WriteOutcome st d bs k res d') : res = some .closed := by
+  simp only [WriteOutcome, hc, ↓reduceIte] at h
   exact h.2.1
 
-/-- A read on a closed end fails. -/
+/-- A read on a closed end fails (`closed`). -/
 theorem readOutcome_of_closed {st : TcpEnd} {d : TcpDir} {n : Nat} {r : ReadRes} {d' : TcpDir}
-    (hc : st.closed = true) (h : ReadOutcome st d n r d') : r = .err := by
+    (hc : st.closed = true) (h : ReadOutcome st d n r d') : r = .err .closed := by
   simp only [ReadOutcome, hc, ↓reduceIte] at h
   exact h.1
 

@@ -35,8 +35,9 @@ variable [package_sem' : wire.Assumptions] [field_sem : net.FieldAssumptions]
 /-- See the file header. -/
 abbrev ReadFull.spec : Prop :=
   ∀ (c : GoInterface) (cn : Nat) (s : Bool) (a : GoString) (buf : GoSlice) (bs0 : List w8)
-    (P : List w8 → IProp GF) (eof : GoInterface),
-  {{ net.isConn (GF := GF) c cn s a ∗ buf ↦* bs0 ∗ globalAddr io.EOF ↦□ eof ∗ P [] ∗
+    (P : List w8 → IProp GF) (eof ed : GoInterface),
+  {{ net.isConn (GF := GF) c cn s a ∗ buf ↦* bs0 ∗ globalAddr io.EOF ↦□ eof ∗
+      globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed ∗ P [] ∗
       □ (∀ (got : List w8) (m : Nat), P got -∗
         |={⊤,∅}=> ∃ st d, tcpEnd (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s st ∗ tcpDir (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn (!s) d ∗
           ∀ r d', ⌜ReadOutcome st d m r d' ∧ r ≠ .wait⌝ -∗ tcpEnd (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s st -∗

@@ -6,6 +6,7 @@ update (`Tcp.wp_tcp_Close`).
 module
 
 public import NetTcp.Spec.net.Conn__Close
+public import NetTcp.Proof.net.Errors
 
 @[expose] public section
 
@@ -27,12 +28,13 @@ variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 variable [go.BasicIntoValInj]
 
 theorem Conn.Close.wp_proof : Conn.Close.spec (GF := GF) (hG := hG) := by
-  intro t cn s a Q
+  intro t cn s a la ra Q
   unfold connAt
-  wp_start as ⟨⟨#Ht, #Hat⟩, HAU⟩
+  wp_start as ⟨⟨#Ht, #Hla, #Hra, #Hat⟩, HAU⟩
   wp_method_call
   (try unfold conn.Close.impl)
   (try unfold model.connId)
+  (try unfold model.connErr)
   (try rw [conn_ty_eq'])
   ihave #Ht2 := Ht
   iStructNamed Ht2
@@ -44,25 +46,31 @@ theorem Conn.Close.wp_proof : Conn.Close.spec (GF := GF) (hG := hG) := by
   imodintro
   iexists st, d
   iframe Hend Hdir
-  iintro %ok %st' %d' %Hcr Hend Hdir
-  imod Hk $$ %ok %st' %d' %Hcr Hend Hdir with HQ
+  iintro %res %st' %d' %Hcr Hend Hdir
+  imod Hk $$ %res %st' %d' %Hcr Hend Hdir with HQ
   imodintro
-  cases ok
+  rcases res with _ | k
   · wp_auto
-    unfold model.opError
-    rw [OpError_ty_eq]
+    iapply HΦ
+    iexists none
+    iframe HQ
+    unfold resErr
+    ipureintro; rfl
+  · have hk : k = .closed := by
+      unfold CloseOutcome at Hcr; split at Hcr
+      · exact Option.some.inj Hcr.1
+      · cases Hcr.1
+    subst hk
     wp_auto
+    wp_apply wp_kindErr .closed none go!"close" (· = go!"close") rfl rfl $$ [] as %e #He
+    (try wp_auto)
+    wp_apply wp_opError as %err #Herr
     iapply HΦ
-    iexists false
+    iexists some .closed
     iframe HQ
-    ipureintro
-    exact ⟨by simp, fun _ => ⟨_, rfl⟩⟩
-  · wp_auto
-    iapply HΦ
-    iexists true
-    iframe HQ
-    ipureintro
-    exact ⟨fun _ => rfl, by simp⟩
+    unfold resErr
+    iexists e
+    iframe Herr He
 
 end proof
 

@@ -5,8 +5,9 @@
 #
 # `net`'s package variables are trusted too, each with an initializer that does nothing (as
 # LinuxFs's `os.Stdin`, `Stdout`): the variables are not allocated, so code that reads one is stuck;
-# but for `errTimeout` (translated: `&timeoutError{}`, which DialTimeout's model returns) and
-# `errClosed`/`ErrClosed` (trusted: they hold `poll.ErrNetClosing`'s value, NetTcp/TrustedCode/net.lean).
+# but for `errTimeout` (translated: `&timeoutError{}`, which DialTimeout's model returns), `ErrClosed`
+# (translated: `errClosed`) and `errClosed` (trusted: it holds `poll.ErrNetClosing`'s value,
+# NetTcp/TrustedCode/net.lean).
 #
 # Translated: the interfaces (`Conn`, `Listener`, `Addr`, `Error`); the error types `OpError` (with
 # `Unwrap`, so that `errors.Is` walks into its `Err`) and `timeoutError` (with its methods); the
@@ -19,7 +20,7 @@
 translate = ["!*", "Conn", "Listener", "Addr", "Error",
   "OpError", "OpError.Unwrap",
   "timeoutError", "timeoutError.Error", "timeoutError.Timeout", "timeoutError.Temporary",
-  "timeoutError.Is", "errTimeout",
+  "timeoutError.Is", "errTimeout", "ErrClosed",
   "TCPAddr", "IP", "TCPAddr.Network",
   "TCPConn.Read", "TCPConn.Write", "TCPConn.Close",
   "TCPConn.SetDeadline", "TCPConn.SetReadDeadline", "TCPConn.SetWriteDeadline",
@@ -49,7 +50,7 @@ trusted = ["conn", "TCPConn", "TCPListener",
   "DefaultResolver", "_", "errMalformedDNSRecordsDetail", "readProtocolsOnce",
   "errNoSuitableAddress", "errMissingAddress", "errCanceled", "ErrWriteToConnected",
   "aLongTimeAgo", "noDeadline", "noCancel", "errNoSuchHost", "errUnknownPort",
-  "errClosed", "ErrClosed", "pollSplice", "_cgo_77133bf98b3a_C2func_getaddrinfo",
+  "errClosed", "pollSplice", "_cgo_77133bf98b3a_C2func_getaddrinfo",
   "_cgo_77133bf98b3a_C2func_getnameinfo", "_cgo_77133bf98b3a_Cfunc_free",
   "_cgo_77133bf98b3a_Cfunc_freeaddrinfo", "_cgo_77133bf98b3a_Cfunc_gai_strerror",
   "_cgo_77133bf98b3a_Cfunc_getaddrinfo", "_cgo_77133bf98b3a_Cfunc_getnameinfo",

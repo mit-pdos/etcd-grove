@@ -24,6 +24,15 @@ grpc-go), each verified end to end with a distributed adequacy theorem.
 | the proved stream protocol, `wire.ReadFull`, the per-address protocol | `.../examples/net/wire/{Stream,ReadFull,Addr}.lean` |
 | the soundness review | `notes/axiom-review/tcp-semantics.md` |
 
+## v3 (2026-11-14, phase 1)
+
+Errors are Go's values (D14: kinds `closed|timeout|sys`), with the Write/Close race (D15),
+abandoned dials (D16), `Close` of an open end or listener succeeding (D17), addresses (D18),
+`DialTimeout` (D19), the plan's well-formedness (D20, `Deploy.lean`) and wildcard `Listen` (D21):
+`notes/net-tcp-v3-plan.md` (the decisions, and how phase 1 departs from them). Each `doc.go` row has
+an `example` in `GooseLang/Ext/Tcp/Tests.lean`. The sections below describe v2.1, which v3 extends;
+the examples' proofs are over v2.1 until phase 3.
+
 ## The semantics (v2.1, 2026-11-14)
 
 **Only observable state** (the user, 2026-11-14: "make sure the semantics is not designed for proof

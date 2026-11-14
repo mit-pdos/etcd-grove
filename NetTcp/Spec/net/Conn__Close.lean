@@ -1,10 +1,11 @@
 /-
-`c.Close()` on a `Conn` `c` that is the end `s` of a TCP connection `cn` (`isConn`), through the
-interface (`conn.Close.impl`, promoted): the extension's `Close`, whose outcome (`CloseOutcome`,
-`GooseLang/Ext/Tcp/Impl.lean`, D3: the end closed, its direction shut if open; an error if closed
-already) the caller takes by a logically atomic update over the end's state and the direction from
-it (`tcpEnd`, `tcpDir`). Its result `Q ok` is handed back with the error: `nil` for `ok`, else an
-`*OpError`. Proved in `NetTcp/Proof/net/Conn__Close.lean`.
+`c.Close()` on a `Conn` `c` that is the end `s` of a TCP connection `cn` (`connAt`, with the end's
+addresses `la`, `ra`), through the interface (`conn.Close.impl`, promoted): the extension's
+`Close`, whose outcome (`CloseOutcome`, `GooseLang/Ext/Tcp/Impl.lean`, D3, D17: the end closed, its
+direction shut if open, success; `closed` if closed already) the caller takes by a logically atomic
+update over the end's state and the direction from it (`tcpEnd`, `tcpDir`). Its result `Q res` is
+handed back with the error: `nil` for success, else the `*OpError{Op: "close", Source: la, Addr:
+ra}` of the failure's kind (`resErr`; no timeout). Proved in `NetTcp/Proof/net/Conn__Close.lean`.
 -/
 module
 
@@ -28,14 +29,15 @@ variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 
 /-- See the file header. -/
 abbrev Conn.Close.spec : Prop :=
-  ∀ (t : Loc) (cn : Nat) (s : Bool) (a : GoString) (Q : Bool → IProp GF),
-  {{ connAt (GF := GF) t cn s a ∗
+  ∀ (t : Loc) (cn : Nat) (s : Bool) (a : GoString) (la ra : GoInterface)
+    (Q : Option TcpErr → IProp GF),
+  {{ connAt (GF := GF) t cn s a la ra ∗
       (|={⊤,∅}=> ∃ st d, tcpEnd (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s st ∗ tcpDir (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s d ∗
-        ∀ ok st' d', ⌜CloseOutcome st d ok st' d'⌝ -∗ tcpEnd (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s st' -∗
-          tcpDir (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s d' ={∅,⊤}=∗ Q ok) }}
+        ∀ res st' d', ⌜CloseOutcome st d res st' d'⌝ -∗ tcpEnd (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s st' -∗
+          tcpDir (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s d' ={∅,⊤}=∗ Q res) }}
     (App (Val #(methods (go.GoType.PointerType TCPConn.ty) go!"Close" #t)) (Val #()))
   {{ (err : GoInterface), RET #err;
-      ∃ ok, Q ok ∗ ⌜(ok = true → err = interface.nil) ∧ (ok = false → netErr err)⌝ }}
+      ∃ res, Q res ∗ resErr res go!"close" la ra none (· = go!"close") err }}
 
 end spec
 

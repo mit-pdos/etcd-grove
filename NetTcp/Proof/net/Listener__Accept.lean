@@ -6,6 +6,7 @@ holding the acceptor's end, as a `Conn`.
 module
 
 public import NetTcp.Spec.net.Listener__Accept
+public import NetTcp.Proof.net.Errors
 
 @[expose] public section
 
@@ -27,8 +28,9 @@ variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 variable [go.BasicIntoValInj]
 
 theorem Listener.Accept.wp_proof : Listener.Accept.spec (GF := GF) (hG := hG) := by
-  intro t l a Qfail Qok
-  wp_start as ⟨#Ht, #Hla, HQ⟩
+  intro t l x a Qfail Qok
+  unfold lisAt
+  wp_start as ⟨⟨#Ht, #Hx, %hl0⟩, #Hla, HQ⟩
   (try wp_method_call)
   (try unfold TCPListener.Accept.impl)
   rw [TCPListener_ty_eq]
@@ -47,37 +49,46 @@ theorem Listener.Accept.wp_proof : Listener.Accept.spec (GF := GF) (hG := hG) :=
     icases HQ with ⟨HQ, -⟩
     imod HQ $$ Hl Hpend with HQ
     imodintro
+    rw [Conn_ty_eq]
     wp_auto
-    unfold model.opError
-    rw [OpError_ty_eq, Conn_ty_eq]
-    wp_auto
-    iapply HΦ
-    iright
-    isplitr
-    · ipureintro; exact ⟨_, rfl⟩
-    iexact HQ
+    cases o
+    · wp_apply wp_kindErr (c := TcpErr.closed.code) .closed none go!"accept4" (· = go!"accept4") rfl rfl $$ [] as %e #He
+      (try wp_auto)
+      wp_apply wp_opError as %err #Herr
+      (try wp_auto)
+      iapply HΦ
+      iright
+      iexists .closed
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      iframe HQ
+      unfold resErr
+      iexists e
+      iframe Herr He
+    · wp_apply wp_kindErr (c := TcpErr.sys.code) .sys none go!"accept4" (· = go!"accept4") rfl rfl $$ [] as %e #He
+      (try wp_auto)
+      wp_apply wp_opError as %err #Herr
+      (try wp_auto)
+      iapply HΦ
+      iright
+      iexists .sys
+      simp only [↓reduceIte]
+      iframe HQ
+      unfold resErr
+      iexists e
+      iframe Herr He
   · -- a connection
     iintro %ho %cn %HcS Hl Hpend #Hat
     icases HQ with ⟨-, Hk⟩
     imod Hk $$ %ho %cn %HcS Hl Hpend Hat with HQ
     imodintro
     wp_auto
-    unfold model.newConn
-    rw [TCPConn_ty_eq, conn_ty_eq', Conn_ty_eq]
-    iapply wp_fupd
-    wp_auto
-    ipersist t
-    imodintro
+    wp_apply wp_newConn cn true a $$ Hat as %c #Hc
     iapply HΦ
     ileft
     isplitr
     · ipureintro; rfl
     iexists cn
-    iframe HQ
-    unfold isConn connAt
-    iexists _
-    iframe t Hat
-    ipureintro; rfl
+    iframe HQ Hc
 
 end proof
 

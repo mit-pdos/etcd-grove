@@ -498,10 +498,10 @@ uses. -/
 `net`'s variables (the DNS configuration, the error values, the test hooks, the cgo
 functions, ...) are trusted, each initializer a model that does nothing: the variable is not
 allocated, so code that loads it is stuck (has no proof), where Go reads its value. The models
-give a proof less than Go does, never more. But `errClosed` and `ErrClosed` (`net.go`: `errClosed =
-poll.ErrNetClosing`, `ErrClosed error = errClosed`), which hold that value (`model.closedErr`: an
-empty struct's only value, so no read of `poll`'s variable is needed), and `errTimeout`
-(translated: `&timeoutError{}`). -/
+give a proof less than Go does, never more. But `errClosed` (`net.go`: `errClosed =
+poll.ErrNetClosing`), which holds that value (an empty struct's only value, so no read of `poll`'s
+variable is needed), and the translated `ErrClosed` (`ErrClosed error = errClosed`) and
+`errTimeout` (`&timeoutError{}`). -/
 
 /-- `errClosed = poll.ErrNetClosing` (of type `poll.errNetClosing`). -/
 noncomputable def errClosed.init : val :=
@@ -509,12 +509,6 @@ noncomputable def errClosed.init : val :=
     go.GlobalAlloc go!"net.errClosed" internal.poll.errNetClosing.ty #() ;;
     GlobalVarAddr go!"net.errClosed" #() <-[internal.poll.errNetClosing.ty]
       GoZeroVal internal.poll.errNetClosing.ty #()
-
-/-- `ErrClosed error = errClosed`. -/
-noncomputable def ErrClosed.init : val :=
-  λ: <>,
-    go.GlobalAlloc go!"net.ErrClosed" go.error #() ;;
-    GlobalVarAddr go!"net.ErrClosed" #() <-[go.error] model.closedErr #()
 
 def rfc6724policyTable.init : val := λ: <>, #()
 def confVal.init : val := λ: <>, #()

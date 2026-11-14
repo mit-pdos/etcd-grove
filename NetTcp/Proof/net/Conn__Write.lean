@@ -6,6 +6,7 @@ extension's `Write`, taking the caller's update (`Tcp.wp_tcp_Write`).
 module
 
 public import NetTcp.Spec.net.Conn__Write
+public import NetTcp.Proof.net.Errors
 
 @[expose] public section
 
@@ -27,12 +28,13 @@ variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 variable [go.BasicIntoValInj]
 
 theorem Conn.Write.wp_proof : Conn.Write.spec (GF := GF) (hG := hG) := by
-  intro t cn s a b bs dq Q
+  intro t cn s a la ra b bs dq ed Q
   unfold connAt
-  wp_start as ⟨⟨#Ht, #Hat⟩, Hsl, HAU⟩
+  wp_start as ⟨⟨#Ht, #Hla, #Hra, #Hat⟩, Hsl, #Hed, HAU⟩
   wp_method_call
   (try unfold conn.Write.impl)
   (try unfold model.connId)
+  (try unfold model.connErr)
   (try rw [conn_ty_eq'])
   ihave #Ht2 := Ht
   iStructNamed Ht2
@@ -45,25 +47,49 @@ theorem Conn.Write.wp_proof : Conn.Write.spec (GF := GF) (hG := hG) := by
   imodintro
   iexists st, d
   iframe Hend Hdir
-  iintro %k %ok %d' %Hwr Hend Hdir
-  imod Hk $$ %k %ok %d' %Hwr Hend Hdir with HQ
+  iintro %k %res %d' %Hw Hend Hdir
+  imod Hk $$ %k %res %d' %Hw Hend Hdir with HQ
   imodintro
-  cases ok
-  · wp_auto
-    unfold model.opError
-    rw [OpError_ty_eq]
-    wp_auto
-    iapply HΦ
-    iexists k, false
-    iframe HQ Hsl
-    ipureintro
-    exact ⟨rfl, by simp, fun _ => ⟨_, rfl⟩⟩
+  rcases res with _ | e
   · wp_auto
     iapply HΦ
-    iexists k, true
+    iexists k, none
     iframe HQ Hsl
-    ipureintro
-    exact ⟨rfl, fun _ => rfl, by simp⟩
+    unfold resErr
+    ipureintro; exact ⟨rfl, rfl⟩
+  · wp_auto
+    cases e
+    · wp_apply wp_kindErr .closed (some ed) go!"write" (· = go!"write") rfl rfl $$ [] as %e #He
+      (try wp_auto)
+      wp_apply wp_opError as %err #Herr
+      iapply HΦ
+      iexists k, some .closed
+      iframe HQ Hsl
+      isplitr; · ipureintro; rfl
+      unfold resErr
+      iexists e
+      iframe Herr He
+    · wp_apply wp_kindErr .timeout (some ed) go!"write" (· = go!"write") rfl rfl $$ [Hed] as %e #He
+      · iexact Hed
+      (try wp_auto)
+      wp_apply wp_opError as %err #Herr
+      iapply HΦ
+      iexists k, some .timeout
+      iframe HQ Hsl
+      isplitr; · ipureintro; rfl
+      unfold resErr
+      iexists e
+      iframe Herr He
+    · wp_apply wp_kindErr .sys (some ed) go!"write" (· = go!"write") rfl rfl $$ [] as %e #He
+      (try wp_auto)
+      wp_apply wp_opError as %err #Herr
+      iapply HΦ
+      iexists k, some .sys
+      iframe HQ Hsl
+      isplitr; · ipureintro; rfl
+      unfold resErr
+      iexists e
+      iframe Herr He
 
 end proof
 

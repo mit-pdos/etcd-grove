@@ -5,6 +5,7 @@ then a new `*TCPConn` holding the dialer's end, as a `Conn`.
 module
 
 public import NetTcp.Spec.net.Dial
+public import NetTcp.Proof.net.Errors
 
 @[expose] public section
 
@@ -33,40 +34,70 @@ theorem Dial.wp_proof : Dial.spec (GF := GF) (hG := hG) := by
   isplit
   · -- a failure
     icases HQ with ⟨HQ, -⟩
+    rw [Conn_ty_eq]
     wp_auto
-    unfold model.opError
-    rw [OpError_ty_eq, Conn_ty_eq]
-    wp_auto
+    wp_bind (ExternalOp _ _ _)
+    iapply wp_tcp_AnyString
+    iintro %nm
+    wp_apply wp_kindErr (c := TcpErr.sys.code) .sys none nm (fun _ => True) trivial rfl $$ [] as %e #He
+    (try wp_auto)
+    wp_apply wp_anyTCPAddr as %x #Hx
+    (try wp_auto)
+    wp_apply wp_opError as %err #Herr
+    (try wp_auto)
     iapply HΦ
     iright
     iframe HQ
-    ipureintro; exact ⟨_, rfl⟩
-  · -- a new connection
-    icases HQ with ⟨-, HAU⟩
+    iexists x
+    iframe Hx
+    unfold resErr
+    iexists e
+    iframe Herr He
+  · icases HQ with ⟨-, HAU⟩
     imod HAU with ⟨%S, Hpend, Hk⟩
     imodintro
     iexists S
     iframe Hpend
-    iintro %cn %HcS Hpend #Hat Hd Ha
-    imod Hk $$ %cn %HcS Hpend Hat Hd Ha with HQ
-    imodintro
-    wp_auto
-    unfold model.newConn
-    rw [TCPConn_ty_eq, conn_ty_eq', Conn_ty_eq]
-    iapply wp_fupd
-    wp_auto
-    ipersist t
-    imodintro
-    iapply HΦ
-    ileft
-    isplitr
-    · ipureintro; rfl
-    iexists cn
-    iframe HQ
-    unfold isConn connAt
-    iexists t_ptr
-    iframe t Hat
-    ipureintro; rfl
+    iintro %cn %HcS Hpend #Hat Ha
+    icases Hk $$ %cn %HcS Hpend Hat Ha with Hk
+    isplit
+    · -- a new connection
+      iintro Hd
+      icases Hk with ⟨Hk, -⟩
+      imod Hk $$ Hd with HQ
+      imodintro
+      wp_auto
+      wp_apply wp_newConn cn false a $$ Hat as %c #Hc
+      iapply HΦ
+      ileft
+      isplitr
+      · ipureintro; rfl
+      iexists cn
+      iframe HQ Hc
+    · -- a failure, the connection abandoned
+      iintro He Hd
+      icases Hk with ⟨-, Hk⟩
+      imod Hk $$ He Hd with HQ
+      imodintro
+      rw [Conn_ty_eq]
+      wp_auto
+      wp_bind (ExternalOp _ _ _)
+      iapply wp_tcp_AnyString
+      iintro %nm
+      wp_apply wp_kindErr (c := TcpErr.sys.code) .sys none nm (fun _ => True) trivial rfl $$ [] as %e #He
+      (try wp_auto)
+      wp_apply wp_anyTCPAddr as %x #Hx
+      (try wp_auto)
+      wp_apply wp_opError as %err #Herr
+      (try wp_auto)
+      iapply HΦ
+      iright
+      iframe HQ
+      iexists x
+      iframe Hx
+      unfold resErr
+      iexists e
+      iframe Herr He
 
 end proof
 

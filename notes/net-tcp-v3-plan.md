@@ -52,6 +52,40 @@ Every decision keeps our rules: only observable state, auditable, sound against 
   certify an admitted verdict in Lean (the search outputs its witness, a `lake exe` replays it
   through decidable versions of the outcome relations, proved equivalent).
 
+## Phase 1 as done (2026-11-14), and where it departs from the decisions
+
+Done: `Impl.lean` (D14-D21), `Deploy.lean`, `Tests.lean`, `NetTcp/TrustedCode/net.lean` and the
+translation, the extension's and `net`'s specs and proofs, `wire`'s lemmas, `v3_test.go` and
+`doc.go`. Departures, each following Go's source or a measurement:
+
+- E1: `Dial`'s and `Listen`'s `*os.SyscallError` name is arbitrary (Go's is that of whichever call
+  failed: `connect`, `getsockopt`, `socket`, `bind`, `listen`, `setsockopt`); `Read`'s, `Write`'s,
+  `CloseWrite`'s (`shutdown`) and `Accept`'s (`accept4`) are Go's. `Accept` and `Dial` can also
+  return a bare `Errno` (a failed `epoll_ctl` registration, `ENOMEM`/`ENOSPC`): not modeled, under
+  D12. `errors.Is(err, net.ErrClosed)` has no proof: Perennial's `errors.Is` spec takes only
+  pointer targets (`notes/perennial-changes.md`); `errors_Is_deadline` covers the timeout target.
+- E1/E6: a `DialTimeout` timeout is `errTimeout` or `poll.ErrDeadlineExceeded` (both measured:
+  `TestDialTimeoutAccepted`, and the coordinator's tracer, 413 and 355 of 768): `netFD.connect`'s
+  `WaitWrite` under the write deadline it set returns the latter when the context's timer has not
+  fired yet. No extension op: `DialTimeout.impl` chooses the failure's `Err` (`AnyBool`).
+- E2: also into a `fin` direction a `Write` may time out (Go checks the deadline first), and into a
+  `cut` direction it may fail with any kind (a timeout only with a deadline).
+- E3: the abandoned connection's resources go to the `Dial` update's second branch (`wp_tcp_Dial`,
+  `net.Dial.spec`), `Qfail` for both failures; `wire.dial_au`/`dial_both_au` deposit for it too.
+- E5: the addresses are given read-only (`tcpAddr x`: `p ↦□ v`), and a zero `TCPListener`'s `Addr`
+  panics, as Go's (nil `fd`).
+- E7: `PlanWellFormed` is over the plan as a list (the extension's `GMap` is not computable), with
+  `PlanWellFormed.addrOk` for the map; it excludes every address from `224.0.0.0` up (multicast,
+  reserved, broadcast).
+- E8: a wildcard string listens through the plan only if it is not itself a plan address
+  (`ListenAt`, functional: `listenAt_unique`); the extension's ghost state carries the plan
+  (`TcpGS.plan`, which the start resources name) for the uniqueness premise.
+- The translation: `net` now imports the main tree's `os`, `syscall`, `internal/poll` (project
+  nettcp's lean roots, as every project's), so their initializers run in `net`'s; `etc/gen-init.py`
+  copies their `Init.lean` into the part (`NT_MAIN`; the main tree's import its `PkgInitExt`, which
+  declares the same names as the part's). `errClosed` is a trusted initializer (`errNetClosing{}`),
+  `ErrClosed` and `errTimeout` translated.
+
 Not taken: a break that cuts both directions (ours, per direction, allows more); pending connections
 owned by a listener (impossible with node-local crashes, D7); dsverify-lab's Hoare-triple token specs
 (ours are logically atomic and more general); `"tcp4"`.

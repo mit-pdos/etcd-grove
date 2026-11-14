@@ -47,9 +47,9 @@ theorem readRes_inj {bs bs' : List w8} {c c' : w64} (h : readRes bs c = readRes 
 
 theorem ReadFull.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG)) :
     ReadFull.spec (GF := GF) (hG := hG) := by
-  intro c cn s a buf bs0 P eof
+  intro c cn s a buf bs0 P eof ed
   unfold net.isConn
-  wp_start as ⟨⟨%t, %Hct, #Hc⟩, Hbuf, #Heof, HP, #Hacc⟩
+  wp_start as ⟨⟨%t, %la, %ra, %Hct, #Hc⟩, Hbuf, #Heof, #Hed, HP, #Hacc⟩
   subst Hct
   wp_auto
   ihave %Hlen0 := ownSlice_len $$ Hbuf
@@ -70,12 +70,12 @@ theorem ReadFull.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG)) :
     rw [if_pos ⟨Hk0, Hkl, Hwf.2⟩]
     icases (ownSlice_split_all k buf _ bsn ⟨Hk0, Hkl⟩).1 $$ Hbuf with ⟨Hb1, Hb2⟩
     wp_auto
-    wp_apply wp_Read t cn s a (slice.slice buf w8 k buf.len) (bsn.drop (sint.nat k)) eof
+    wp_apply wp_Read t cn s a la ra (slice.slice buf w8 k buf.len) (bsn.drop (sint.nat k)) eof ed
         (fun r => iprop(P (got ++ r.got) ∗
           ⌜r.got.length ≤ (slice.slice buf w8 k buf.len).len.toNat ∧
             (r = .bytes [] → (slice.slice buf w8 k buf.len).len.toNat = 0)⌝)) $$ [Hb2 HP]
-      as %k' %err ⟨%r, %bs', ⟨HP, %Hrl0⟩, Hb2, %Hout⟩
-    · iframe Hc Hb2 Heof
+      as %k' %err ⟨%r, %bs', ⟨HP, %Hrl0⟩, Hb2, %Hout, HE⟩
+    · iframe Hc Hb2 Heof Hed
       imod Hacc $$ %got %((slice.slice buf w8 k buf.len).len.toNat) HP
         with ⟨%st, %d, HE, HD, Hcl⟩
       imodintro
@@ -95,7 +95,10 @@ theorem ReadFull.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG)) :
     rw [hsl, hlenk] at Hrl Hr0
     cases r with
     | bytes bs =>
-      obtain ⟨hk', rfl, rfl⟩ := Hout
+      obtain ⟨hk', rfl⟩ := Hout
+      simp only [net.ReadErr]
+      icases HE with %Herr
+      subst Herr
       simp only [ReadRes.got] at Hrl
       rw [show (ReadRes.bytes bs).got = bs from rfl]
       have hb1 : 1 ≤ bs.length := by
@@ -126,7 +129,10 @@ theorem ReadFull.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG)) :
           List.take_of_length_le (show (bsn.take (sint.nat k)).length ≤ sint.nat k + bs.length
             by rw [hlt]; omega), Hgt]
     | eof =>
-      obtain ⟨rfl, rfl, rfl⟩ := Hout
+      obtain ⟨rfl, rfl⟩ := Hout
+      simp only [net.ReadErr]
+      icases HE with %Herr
+      subst Herr
       rw [show ReadRes.got _ = [] from rfl, List.append_nil]
       have hk0 : k + 0 = k := BitVec.add_zero k
       ihave Hbuf := buf_rejoin buf k _ _ (by simp; word) ⟨Hk0, Hkl⟩ $$ Hb1 Hb2
@@ -153,8 +159,11 @@ theorem ReadFull.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG)) :
         ipureintro
         refine ⟨Hbl, ⟨bsn.drop (sint.nat k), by rw [← Hgt, List.take_append_drop]⟩, ?_⟩
         intro h; cases h
-    | err =>
-      obtain ⟨rfl, ⟨pe, rfl⟩, rfl⟩ := Hout
+    | err e =>
+      obtain ⟨rfl, rfl⟩ := Hout
+      simp only [net.ReadErr]
+      icases net.resErr_netErr _ _ _ _ _ _ _ $$ HE with %Hne
+      obtain ⟨pe, rfl⟩ := Hne.2 (by simp)
       rw [show ReadRes.got _ = [] from rfl, List.append_nil]
       ihave Hbuf := buf_rejoin buf k _ _ (by simp; word) ⟨Hk0, Hkl⟩ $$ Hb1 Hb2
       rw [List.take_append_drop]
@@ -170,21 +179,8 @@ theorem ReadFull.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG)) :
       refine ⟨Hbl, ⟨bsn.drop (sint.nat k), by rw [← Hgt, List.take_append_drop]⟩, ?_⟩
       intro h; cases h
     | wait =>
-      obtain ⟨rfl, ⟨pe, rfl⟩, rfl⟩ := Hout
-      rw [show ReadRes.got _ = [] from rfl, List.append_nil]
-      ihave Hbuf := buf_rejoin buf k _ _ (by simp; word) ⟨Hk0, Hkl⟩ $$ Hb1 Hb2
-      rw [List.take_append_drop]
-      wp_auto
-      wp_for_post
-      iapply HΦ
-      have hne : k + 0 ≠ buf.len := by
-        intro h; rw [show k + 0 = k from BitVec.add_zero k] at h; subst h; omega
-      rw [decide_eq_false hne]
-      iexists got, bsn
-      iframe HP Hbuf
-      ipureintro
-      refine ⟨Hbl, ⟨bsn.drop (sint.nat k), by rw [← Hgt, List.take_append_drop]⟩, ?_⟩
-      intro h; cases h
+      simp only [net.ReadErr]
+      iexfalso; iexact HE
   · -- the loop ends: `buf` is full
     obtain ⟨Hk0, Hkl, Hbl, Hgl, Hgt⟩ := Hinv
     have hk : sint.Z k = sint.Z buf.len := by omega

@@ -2205,11 +2205,13 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType timeoutError.ty) go.error))) (App (Val (GoInstruction (GoAlloc timeoutError.ty))) (App (Val (GoInstruction (CompositeLiteral timeoutError.ty))) (LiteralValue []))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert _root_.Perennial.internal.poll.errNetClosing.ty go.error))) (App (Val (GoInstruction (GoLoad _root_.Perennial.internal.poll.errNetClosing.ty))) (App (Val (GoInstruction (GlobalVarAddr errClosed))) (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2247,7 +2249,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val «_».init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val ErrClosed.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrClosed))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val errClosed.init) (Val #()))))))
   (App (Val doExecute)
@@ -2393,7 +2395,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.internal.poll.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val (go.GlobalAlloc errTimeout go.error)) (Val #()))))))))
+  (App (Val (go.GlobalAlloc errTimeout go.error)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ErrClosed go.error)) (Val #()))))))))
 
 axiom ipAttr : Type
 axiom ipAttr.zero_val : ZeroVal ipAttr

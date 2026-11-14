@@ -5,6 +5,7 @@ The proof of `NetTcp/Spec/net/Listen.lean`: `Listen.impl`'s extension `Listen`
 module
 
 public import NetTcp.Spec.net.Listen
+public import NetTcp.Proof.net.Errors
 
 @[expose] public section
 
@@ -26,25 +27,38 @@ variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 variable [go.BasicIntoValInj]
 
 theorem Listen.wp_proof : Listen.spec (GF := GF) (hG := hG) := by
-  intro a
-  wp_start as #Hp
+  intro a a0
+  wp_start as %Hla
   wp_bind (ExternalOp _ _ _)
-  iapply wp_tcp_Listen a $$ Hp
+  iapply wp_tcp_Listen a a0 $$ %Hla
   isplit
   · -- a failure
+    rw [Listener_ty_eq]
     wp_auto
-    unfold model.opError
-    rw [OpError_ty_eq, Listener_ty_eq]
-    wp_auto
+    wp_bind (ExternalOp _ _ _)
+    iapply wp_tcp_AnyString
+    iintro %nm
+    wp_apply wp_kindErr (c := TcpErr.sys.code) .sys none nm (fun _ => True) trivial rfl $$ [] as %e #He
+    (try wp_auto)
+    wp_apply wp_anyTCPAddr as %x #Hx
+    (try wp_auto)
+    wp_apply wp_opError as %err #Herr
+    (try wp_auto)
     iapply HΦ
     iright
-    ipureintro; exact ⟨_, rfl⟩
+    iexists x
+    iframe Hx
+    unfold resErr
+    iexists e
+    iframe Herr He
   · -- a new listener
-    iintro %lid Hl #Hla
+    iintro %lid %hl0 Hl #Hlat
     wp_auto
-    rw [TCPListener_ty_eq, Listener_ty_eq]
+    rw [TCPListener_ty_eq, Listener_ty_eq, Addr_ty_eq']
     iapply wp_fupd
     wp_auto
+    wp_apply wp_anyTCPAddr as %x #Hx
+    (try wp_auto)
     ipersist l
     imodintro
     iapply HΦ
@@ -52,11 +66,12 @@ theorem Listen.wp_proof : Listen.spec (GF := GF) (hG := hG) := by
     isplitr
     · ipureintro; rfl
     iexists lid
-    iframe Hl Hla
-    unfold isListener
-    iexists _
-    iframe l
-    ipureintro; rfl
+    iframe Hl Hlat
+    unfold isListener lisAt
+    iexists _, x
+    dsimp only
+    iframe l Hx
+    ipureintro; exact ⟨rfl, hl0⟩
 
 end proof
 

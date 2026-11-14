@@ -6,6 +6,7 @@ taking the caller's update (`Tcp.wp_tcp_SetDeadline`).
 module
 
 public import NetTcp.Spec.net.Conn__SetDeadline
+public import NetTcp.Proof.net.Errors
 
 @[expose] public section
 
@@ -27,9 +28,9 @@ variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 variable [go.BasicIntoValInj]
 
 theorem Conn.SetDeadline.wp_proof : Conn.SetDeadline.spec (GF := GF) (hG := hG) := by
-  intro t cn s a tm Q
+  intro t cn s a la ra tm Q
   unfold connAt
-  wp_start as ⟨⟨#Ht, #Hat⟩, HAU⟩
+  wp_start as ⟨⟨#Ht, #Hla, #Hra, #Hat⟩, HAU⟩
   wp_method_call
   (try unfold conn.SetDeadline.impl)
   (try unfold model.setDeadline)
@@ -45,25 +46,31 @@ theorem Conn.SetDeadline.wp_proof : Conn.SetDeadline.spec (GF := GF) (hG := hG) 
   imodintro
   iexists st
   iframe Hend
-  iintro %ok %st' %Hsd Hend
-  imod Hk $$ %ok %st' %Hsd Hend with HQ
+  iintro %res %st' %Hsd Hend
+  imod Hk $$ %res %st' %Hsd Hend with HQ
   imodintro
-  cases ok
+  rcases res with _ | k
   · wp_auto
-    unfold model.opError
-    rw [OpError_ty_eq]
+    iapply HΦ
+    iexists none
+    iframe HQ
+    unfold resErr
+    ipureintro; rfl
+  · have hk : k = .closed := by
+      unfold DeadlineOutcome at Hsd; split at Hsd
+      · exact Option.some.inj Hsd.1
+      · cases Hsd.1
+    subst hk
     wp_auto
+    wp_apply wp_kindErr .closed none go!"set" (· = go!"set") rfl rfl $$ [] as %e #He
+    (try wp_auto)
+    wp_apply wp_opError as %err #Herr
     iapply HΦ
-    iexists false
+    iexists some .closed
     iframe HQ
-    ipureintro
-    exact ⟨by simp, fun _ => ⟨_, rfl⟩⟩
-  · wp_auto
-    iapply HΦ
-    iexists true
-    iframe HQ
-    ipureintro
-    exact ⟨fun _ => rfl, by simp⟩
+    unfold resErr
+    iexists e
+    iframe Herr He
 
 end proof
 

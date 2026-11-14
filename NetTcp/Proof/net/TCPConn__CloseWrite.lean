@@ -6,6 +6,7 @@ caller's update (`Tcp.wp_tcp_CloseWrite`).
 module
 
 public import NetTcp.Spec.net.TCPConn__CloseWrite
+public import NetTcp.Proof.net.Errors
 
 @[expose] public section
 
@@ -27,12 +28,13 @@ variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 variable [go.BasicIntoValInj]
 
 theorem TCPConn.CloseWrite.wp_proof : TCPConn.CloseWrite.spec (GF := GF) (hG := hG) := by
-  intro t cn s a Q
+  intro t cn s a la ra Q
   unfold connAt
-  wp_start as ⟨⟨#Ht, #Hat⟩, HAU⟩
+  wp_start as ⟨⟨#Ht, #Hla, #Hra, #Hat⟩, HAU⟩
   (try wp_method_call)
   (try unfold TCPConn.CloseWrite.impl)
   (try unfold model.connId)
+  (try unfold model.connErr)
   (try rw [TCPConn_ty_eq])
   (try rw [conn_ty_eq'])
   ihave #Ht2 := Ht
@@ -45,25 +47,41 @@ theorem TCPConn.CloseWrite.wp_proof : TCPConn.CloseWrite.spec (GF := GF) (hG := 
   imodintro
   iexists st, d
   iframe Hend Hdir
-  iintro %ok %d' %Hcr Hend Hdir
-  imod Hk $$ %ok %d' %Hcr Hend Hdir with HQ
+  iintro %res %d' %Hcr Hend Hdir
+  imod Hk $$ %res %d' %Hcr Hend Hdir with HQ
   imodintro
-  cases ok
+  rcases res with _ | k
   · wp_auto
-    unfold model.opError
-    rw [OpError_ty_eq]
+    iapply HΦ
+    iexists none
+    iframe HQ
+    unfold resErr
+    ipureintro; rfl
+  · have hk : k ≠ .timeout := by
+      unfold CloseWriteOutcome at Hcr; split at Hcr
+      · rintro rfl; cases Hcr.1
+      · rintro rfl; rcases Hcr with ⟨h, -⟩ | ⟨h, -⟩ <;> cases h
     wp_auto
-    iapply HΦ
-    iexists false
-    iframe HQ
-    ipureintro
-    exact ⟨by simp, fun _ => ⟨_, rfl⟩⟩
-  · wp_auto
-    iapply HΦ
-    iexists true
-    iframe HQ
-    ipureintro
-    exact ⟨fun _ => rfl, by simp⟩
+    cases k
+    · wp_apply wp_kindErr .closed none go!"shutdown" (· = go!"shutdown") rfl rfl $$ [] as %e #He
+      (try wp_auto)
+      wp_apply wp_opError as %err #Herr
+      iapply HΦ
+      iexists some .closed
+      iframe HQ
+      unfold resErr
+      iexists e
+      iframe Herr He
+    · exact absurd rfl hk
+    · wp_apply wp_kindErr .sys none go!"shutdown" (· = go!"shutdown") rfl rfl $$ [] as %e #He
+      (try wp_auto)
+      wp_apply wp_opError as %err #Herr
+      iapply HΦ
+      iexists some .sys
+      iframe HQ
+      unfold resErr
+      iexists e
+      iframe Herr He
 
 end proof
 

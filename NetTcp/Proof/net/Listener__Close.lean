@@ -6,6 +6,7 @@ The proof of `NetTcp/Spec/net/Listener__Close.lean`: the method resolves to
 module
 
 public import NetTcp.Spec.net.Listener__Close
+public import NetTcp.Proof.net.Errors
 
 @[expose] public section
 
@@ -27,8 +28,9 @@ variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 variable [go.BasicIntoValInj]
 
 theorem Listener.Close.wp_proof : Listener.Close.spec (GF := GF) (hG := hG) := by
-  intro t l a Q
-  wp_start as ⟨#Ht, #Hla, HQ⟩
+  intro t l x a Q
+  unfold lisAt
+  wp_start as ⟨⟨#Ht, #Hx, %hl0⟩, #Hla, HAU⟩
   (try wp_method_call)
   (try unfold TCPListener.Close.impl)
   rw [TCPListener_ty_eq]
@@ -37,29 +39,35 @@ theorem Listener.Close.wp_proof : Listener.Close.spec (GF := GF) (hG := hG) := b
   wp_auto
   wp_bind (ExternalOp _ _ _)
   iapply wp_tcp_LisClose l a $$ Hla
-  imod HQ with ⟨%o, Hl, Hk⟩
+  imod HAU with ⟨%o, Hl, Hk⟩
   imodintro
   iexists o
   iframe Hl
-  iintro Hl
-  imod Hk $$ Hl with HQ
+  iintro %res %Hres Hl
+  imod Hk $$ %res %Hres Hl with HQ
   imodintro
-  cases o
+  rcases res with _ | k
   · wp_auto
-    unfold model.opError
-    rw [OpError_ty_eq]
+    iapply HΦ
+    iexists none
+    iframe HQ
+    unfold resErr
+    ipureintro; rfl
+  · have hk : k = .closed := by
+      unfold LisCloseOutcome at Hres; split at Hres
+      · cases Hres.1
+      · exact Option.some.inj Hres.1
+    subst hk
     wp_auto
+    wp_apply wp_kindErr .closed none go!"close" (· = go!"close") rfl rfl $$ [] as %e #He
+    (try wp_auto)
+    wp_apply wp_opError as %err #Herr
     iapply HΦ
-    iexists false
+    iexists some .closed
     iframe HQ
-    ipureintro
-    exact ⟨by simp, fun _ => ⟨_, rfl⟩⟩
-  · wp_auto
-    iapply HΦ
-    iexists true
-    iframe HQ
-    ipureintro
-    exact ⟨fun _ => rfl, by simp⟩
+    unfold resErr
+    iexists e
+    iframe Herr He
 
 end proof
 

@@ -6,6 +6,7 @@ The proof of `NetTcp/Spec/net/Conn__Read.lean`: the interface call resolves to `
 module
 
 public import NetTcp.Spec.net.Conn__Read
+public import NetTcp.Proof.net.Errors
 
 @[expose] public section
 
@@ -27,12 +28,13 @@ variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 variable [go.BasicIntoValInj]
 
 theorem Conn.Read.wp_proof : Conn.Read.spec (GF := GF) (hG := hG) := by
-  intro t cn s a b bs0 eof Q
+  intro t cn s a la ra b bs0 eof ed Q
   unfold connAt
-  wp_start as ⟨⟨#Ht, #Hat⟩, Hsl, #Heof, HAU⟩
+  wp_start as ⟨⟨#Ht, #Hla, #Hra, #Hat⟩, Hsl, #Heof, #Hed, HAU⟩
   wp_method_call
   (try unfold conn.Read.impl)
   (try unfold model.connId)
+  (try unfold model.connErr)
   (try rw [conn_ty_eq'])
   ihave #Ht2 := Ht
   iStructNamed Ht2
@@ -60,8 +62,9 @@ theorem Conn.Read.wp_proof : Conn.Read.spec (GF := GF) (hG := hG) := by
     iapply HΦ
     iexists .bytes bs, _
     iframe HQ Hsl
-    ipureintro
-    exact ⟨Hn, rfl, rfl⟩
+    isplitr; · ipureintro; exact ⟨Hn, rfl⟩
+    unfold ReadErr
+    ipureintro; rfl
   | eof =>
     simp only [ReadRes.toVal]
     unfold readRes
@@ -69,20 +72,47 @@ theorem Conn.Read.wp_proof : Conn.Read.spec (GF := GF) (hG := hG) := by
     iapply HΦ
     iexists .eof, bs0
     iframe HQ Hsl
-    ipureintro
-    exact ⟨rfl, rfl, rfl⟩
-  | err =>
+    isplitr; · ipureintro; exact ⟨rfl, rfl⟩
+    unfold ReadErr
+    ipureintro; rfl
+  | err k =>
     simp only [ReadRes.toVal]
     unfold readRes
-    wp_auto
-    unfold model.opError
-    rw [OpError_ty_eq]
-    wp_auto
-    iapply HΦ
-    iexists .err, bs0
-    iframe HQ Hsl
-    ipureintro
-    exact ⟨rfl, ⟨_, rfl⟩, rfl⟩
+    cases k
+    · wp_auto
+      wp_apply wp_kindErr (c := TcpErr.closed.code) .closed (some ed) go!"read" (· = go!"read") rfl rfl $$ [] as %e #He
+      (try wp_auto)
+      wp_apply wp_opError as %err #Herr
+      iapply HΦ
+      iexists .err .closed, bs0
+      iframe HQ Hsl
+      isplitr; · ipureintro; exact ⟨rfl, rfl⟩
+      unfold ReadErr resErr
+      iexists e
+      iframe Herr He
+    · wp_auto
+      wp_apply wp_kindErr (c := TcpErr.timeout.code) .timeout (some ed) go!"read" (· = go!"read") rfl rfl $$ [Hed] as %e #He
+      · iexact Hed
+      (try wp_auto)
+      wp_apply wp_opError as %err #Herr
+      iapply HΦ
+      iexists .err .timeout, bs0
+      iframe HQ Hsl
+      isplitr; · ipureintro; exact ⟨rfl, rfl⟩
+      unfold ReadErr resErr
+      iexists e
+      iframe Herr He
+    · wp_auto
+      wp_apply wp_kindErr (c := TcpErr.sys.code) .sys (some ed) go!"read" (· = go!"read") rfl rfl $$ [] as %e #He
+      (try wp_auto)
+      wp_apply wp_opError as %err #Herr
+      iapply HΦ
+      iexists .err .sys, bs0
+      iframe HQ Hsl
+      isplitr; · ipureintro; exact ⟨rfl, rfl⟩
+      unfold ReadErr resErr
+      iexists e
+      iframe Herr He
 
 end proof
 
