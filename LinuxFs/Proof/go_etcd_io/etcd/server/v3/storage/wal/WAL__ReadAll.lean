@@ -229,7 +229,61 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
   · -- the loop's exit
     dsimp only
     (try wp_auto)
-    sorry
+    simp only [intoVal_eq_iff, Bool.false_eq_true, decide_false, decide_true, ↓reduceIte]
+    -- `w.tail() != nil` (write mode)
+    obtain ⟨ls, lt, rfl⟩ : ∃ ls lt, lfs = ls ++ [lt] := by
+      rcases List.eq_nil_or_concat lfs with h | ⟨L, b, h⟩
+      · subst h
+        have h0 : gs.length = 0 := by simpa using hll.symm
+        exact absurd (List.eq_nil_of_length_eq_zero h0) hgne
+      · exact ⟨L, b, by simpa using h⟩
+    (try wp_auto)
+    wp_apply (wp_tail w locks ls lt (DFrac.own 1) (DFrac.own 1)) $$ [Hlocks Hls] as ⟨Hlocks, Hls⟩
+    · iframe
+    ihave #HltL := (BigSepL.bigSepL_snoc (PROP := IProp GF)).1 $$ Hlks
+    icases HltL with ⟨-, #HltL⟩
+    ihave #Hlt0 := HltL
+    iunfold fileutil.lockedFile at Hlt0
+    ihave %hltn := typedPointsto_not_null lt _ _ $$ Hlt0
+    simp only [decide_eq_false hltn]
+    (try wp_auto)
+    -- the mode check: only `io.EOF`
+    iunfold decPost at Hpost
+    icases Hpost with ⟨Hpb, #Hans⟩
+    iunfold decAns at Hans
+    icases Hans with (%hn0 | #Hans)
+    · exact absurd hn0 (by simp)
+    ihave #Hde := Hdenv
+    iunfold decEnv at Hde
+    icases Hde with ⟨-, -, -, -, -, #Heofp, -⟩
+    (try wp_auto)
+    iunfold isEofAns at Hans
+    wp_apply Hans as %b %hb
+    subst hb
+    by_cases heof : GoInterface.ok ei = eof
+    · simp only [heof, decide_true]
+      (try wp_auto)
+      sorry
+    · -- not `io.EOF`: the decoder's error
+      simp only [heof, decide_false]
+      (try wp_auto)
+      wp_apply hHs.reset stp st.hs $$ Hhs as Hhs
+      (try wp_auto)
+      iapply readAll_failWp walCodec Mr R jr rt w dir s _ Q _ _ rfl $$ Hinv Hgh Hau
+      iintro %dq HQ Hfail
+      wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hlocked]
+      · ipureintro; trivial
+      iapply HΦ
+      iframe Hp Hperm
+      iexists dq
+      iframe HQ
+      ileft
+      isplitr
+      · ipureintro; simp
+      unfold walReadFailedF
+      iframe Hfail
+      iexists lg
+      iframe Hlg Hdir Hzap
   · -- the body: `err == nil`
     dsimp only
     (try wp_auto)
