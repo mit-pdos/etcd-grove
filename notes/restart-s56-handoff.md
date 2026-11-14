@@ -48,7 +48,19 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
   and the risks R1-R5 (§7).
 - Decisions go in the worktree's `questions.md` (untracked).
 
-## B2 blocked on `bootOkR` (2026-11-14, the B2 agent): next agent starts here
+## B2 contract rows done (2026-11-14, the B2 agent): next agent starts here (write `wp_proofR`)
+
+81 approved the restatement (questions.md; decisions.md "Restart S6 B2", "B2 contract rows"; freeze
+package §11.6): `bootOkR` now has `bv.lg' = cfg.Logger'` in `%Hraft`, `"Hlate" ∷ mvcc.api.mvccWReg d.gx`
+and the last row `"#Hbfile" ∷ backend.bFile d.γB (config.backendPathOf cfg.DataDir')`, all `bootOk`'s.
+**The skeleton `E/NewServerR.lean` is removed from the tree** so that no `sorry` lands: restore it first,
+`git show c081768592:Proof/go_etcd_io/etcd/server/v3/etcdserver/NewServerR.lean >
+Proof/go_etcd_io/etcd/server/v3/etcdserver/NewServerR.lean` (statement unchanged; body `sorry`). Then
+follow "B2 plan from the reading" below; with the three rows the boot section has what it needs from the
+contract (`Hrlg` → `Hrzl` as in G; `Hlate` straight to `boot_storageR`; `Hbfile` for `srvSnapRes`).
+Do not land while the file has a `sorry` (tcb --check).
+
+## B2 blocked on `bootOkR` (2026-11-14, the B2 agent; resolved above)
 
 Reading `wp_proofG` against `bootOkR` before any Lean (no edit to `E/NewServerR.lean`, still the skeleton
 `c081768592`): **three rows the restart proof needs are missing from the restart contract's `bootOkR`**

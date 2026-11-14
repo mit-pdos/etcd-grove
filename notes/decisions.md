@@ -35587,3 +35587,14 @@ module; the 64G cap, 2^28 counts symbolic, no bare `iframe` over replicate lists
 `raftNode_of_RestartNode`, `wal.restartOk_start` and `boot_storageR`; it stays unlinked until it has no
 `sorry`. Cost: the tail duplicated. Follow-up (proof cleanup): factor the shared tail of `wp_proofG` and
 `wp_proofR` into lemmas once both are done.
+
+**B2 contract rows** (2026-11-14, decided by etcd-grove-81). Reading `wp_proofG` against `bootOkR` found
+three rows the restart proof needs that the restart contract's post lacked; `bootOkR` (trusted) is restated
+once with all three copied from the reviewed `bootOk`: `%Hraft` gains `bv.lg' = cfg.Logger'` (Go:
+`bootstrapRaftFromWAL`'s `lg: cfg.Logger`; for `NodeStartSpecR`'s `zapLoggerOk bv.lg'`), the last row
+`"#Hbfile" ∷ backend.bFile d.γB (config.backendPathOf cfg.DataDir')` (Go: the shared `bootstrapBackend(cfg,
+haveWAL)` at `cfg.BackendPath()`; for `srvSnapRes` in specR's post), and `"Hlate"` as `mvcc.api.mvccWReg d.gx`
+in place of `mvcc.lateReg d.gx` (same meaning; what `boot_storageR` takes). Why one restatement: each row is a
+copy of a reviewed `bootOk` row reached by the same Go code. Old → new text: the freeze package §11.6
+(`/shared/tmp/restart-s56/freeze-package.md`). The skeleton `E/NewServerR.lean` (its `sorry`) is kept off
+`lean` (removed from the tree at this checkpoint; restore it with `git show c081768592:<path>`).
