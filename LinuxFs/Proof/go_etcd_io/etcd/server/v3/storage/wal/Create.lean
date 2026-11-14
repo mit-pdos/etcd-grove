@@ -160,7 +160,7 @@ theorem wal.Create.wp_proof (C : WalCodec) (Mr : WalMarshal)
       wp_apply wp_Warn lg _ _ $$ []
       · iframe #
       try wp_auto
-      wp_apply wp_removeAllTmp wp_RmAbs wp_RmDir r (tmpName nm) R jr qp hT2 (tmpName_nameOk hnmO)
+      wp_apply +noauto wp_removeAllTmp wp_RmAbs wp_RmDir r (tmpName nm) R jr qp hT2 (tmpName_nameOk hnmO)
         $$ [Hp Ht Hperm] as %err' ⟨Hp, Hperm, Ht, -⟩
       · iframe; iframe #
       icases Ht with ⟨%hT3, Ht⟩
