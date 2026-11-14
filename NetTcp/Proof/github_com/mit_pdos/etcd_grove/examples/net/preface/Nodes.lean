@@ -7,7 +7,7 @@ The proofs of `examples/net/preface`'s functions, over the specs of `net`, `wire
   the 4-byte preface (`wire.read_acc` on the up direction), the check against `Magic` (both
   branches: the protocol does not need it), the deadline cleared, a full read of the 1-byte
   request (a lower bound of the dialer's bytes past the preface, `sentLb`), its echo
-  (`server_write_au`, with the connection's token), and the close (`close_drop_au`). A failure of
+  (`server_write_au`, with the connection's token), and the close (`wire.close_drop_au`). A failure of
   any operation needs no reasoning of its own: the specs allow every operation to fail.
 * `Serve`: `Listen`, then the accept loop (`wire.accept_lis_au`: each accepted connection's protocol).
 * `Call`: the dial (`pf_dial_au`), the writes of `Magic` and of the request `[42]`
@@ -15,13 +15,14 @@ The proofs of `examples/net/preface`'s functions, over the specs of `net`, `wire
   the reply is a prefix of the client's bytes past the preface, `[42]` (`client_check`), of its
   length, so `[42]`.
 * `SendJunk`: as `Call`, without the check.
-* `Server`, `Client`, `Junk`: the bodies, then `wire.Forever`.
+
+Each is the body of one of the example's commands (`cmd/*/Main.lean`), which gets `io.EOF`'s value
+from the package's initialization (`eof_init`).
 -/
 module
 
 public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.preface.Defs
 public import NetTcp.Spec.github_com.mit_pdos.etcd_grove.examples.net.wire.ReadFull
-public import NetTcp.Spec.github_com.mit_pdos.etcd_grove.examples.net.wire.Forever
 public import NetTcp.Spec.net.Conn__Read
 public import NetTcp.Spec.net.Conn__Write
 public import NetTcp.Spec.net.Conn__Close
@@ -115,7 +116,7 @@ theorem wp_serveConn
     wp_auto
     wp_apply wp_Close t cn true srvAddr (fun _ => iprop(True)) $$ [Hend] as %err ⟨%ok', -, -⟩
     · iframe Hc
-      iapply close_drop_au pfN cn true ν.down st1 $$ HdownInv Hend
+      iapply wire.close_drop_au pfN cn true ν.down st1 $$ HdownInv Hend
     (try wp_auto)
     iapply HΦ
     itrivial
@@ -130,7 +131,7 @@ theorem wp_serveConn
       wp_auto
       wp_apply wp_Close t cn true srvAddr (fun _ => iprop(True)) $$ [Hend] as %err ⟨%ok', -, -⟩
       · iframe Hc
-        iapply close_drop_au pfN cn true ν.down st1 $$ HdownInv Hend
+        iapply wire.close_drop_au pfN cn true ν.down st1 $$ HdownInv Hend
       (try wp_auto)
       iapply HΦ
       itrivial
@@ -170,7 +171,7 @@ theorem wp_serveConn
       wp_auto
       wp_apply wp_Close t cn true srvAddr (fun _ => iprop(True)) $$ [Hend] as %err' ⟨%ok', -, -⟩
       · iframe Hc
-        iapply close_drop_au pfN cn true ν.down st2 $$ HdownInv Hend
+        iapply wire.close_drop_au pfN cn true ν.down st2 $$ HdownInv Hend
       (try wp_auto)
       iapply HΦ
       itrivial
@@ -186,7 +187,7 @@ theorem wp_serveConn
       (try wp_auto)
       wp_apply wp_Close t cn true srvAddr (fun _ => iprop(True)) $$ [Hend] as %err'' ⟨%ok', -, -⟩
       · iframe Hc
-        iapply close_drop_au pfN cn true ν.down st2 $$ HdownInv Hend
+        iapply wire.close_drop_au pfN cn true ν.down st2 $$ HdownInv Hend
       (try wp_auto)
       iapply HΦ
       itrivial
@@ -292,7 +293,7 @@ theorem wp_Call
       wp_auto
       wp_apply wp_Close t cn false srvAddr (fun _ => iprop(True)) $$ [Hend] as %err' ⟨%ok', -, -⟩
       · iframe Hca
-        iapply close_drop_au pfN cn false ν.up _ $$ HupInv Hend
+        iapply wire.close_drop_au pfN cn false ν.up _ $$ HupInv Hend
       (try wp_auto)
       iapply HΦ
       itrivial
@@ -326,7 +327,7 @@ theorem wp_Call
       wp_auto
       wp_apply wp_Close t cn false srvAddr (fun _ => iprop(True)) $$ [Hend] as %err' ⟨%ok', -, -⟩
       · iframe Hca
-        iapply close_drop_au pfN cn false ν.up _ $$ HupInv Hend
+        iapply wire.close_drop_au pfN cn false ν.up _ $$ HupInv Hend
       (try wp_auto)
       iapply HΦ
       itrivial
@@ -362,7 +363,7 @@ theorem wp_Call
       wp_auto
       wp_apply wp_Close t cn false srvAddr (fun _ => iprop(True)) $$ [Hend] as %err' ⟨%ok', -, -⟩
       · iframe Hca
-        iapply close_drop_au pfN cn false ν.up _ $$ HupInv Hend
+        iapply wire.close_drop_au pfN cn false ν.up _ $$ HupInv Hend
       (try wp_auto)
       iapply HΦ
       itrivial
@@ -393,7 +394,7 @@ theorem wp_Call
       wp_auto
       wp_apply wp_Close t cn false srvAddr (fun _ => iprop(True)) $$ [Hend] as %err' ⟨%ok', -, -⟩
       · iframe Hca
-        iapply close_drop_au pfN cn false ν.up _ $$ HupInv Hend
+        iapply wire.close_drop_au pfN cn false ν.up _ $$ HupInv Hend
       (try wp_auto)
       iapply HΦ
       itrivial
@@ -465,7 +466,7 @@ theorem wp_SendJunk
     (try wp_auto)
     wp_apply wp_Close t cn false srvAddr (fun _ => iprop(True)) $$ [Hend] as %err' ⟨%ok', -, -⟩
     · iframe Hca
-      iapply close_drop_au pfN cn false ν.up _ $$ HupInv Hend
+      iapply wire.close_drop_au pfN cn false ν.up _ $$ HupInv Hend
     (try wp_auto)
     iapply HΦ
     itrivial
@@ -486,66 +487,6 @@ theorem eof_init :
   icases Hn with ⟨%eofl, #Heof, -⟩
   iexists _
   iexact Heof
-
-theorem wp_Server
-    (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
-    (wp_Accept : net.Listener.Accept.spec (GF := GF) (hG := hG))
-    (wp_ReadFull : wire.ReadFull.spec (GF := GF) (hG := hG))
-    (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
-    (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
-    (wp_SetDeadline : net.Conn.SetDeadline.spec (GF := GF) (hG := hG))
-    (wp_Now : time.Now.spec (GF := GF) (hG := hG))
-    (wp_Add : time.Time.Add.spec (GF := GF) (hG := hG))
-    (wp_Forever : wire.Forever.spec (GF := GF) (hG := hG))
-    (γm : GName) :
-    {{ isPkgInit (PROP := IProp GF) pkg ∗ pfInvs γm ∗
-        tcpPlan G srvAddr (extLocalGS tcpExt (L := hG.goose_localGS)).host }}
-      (App (Val (@! Server)) (Val #()))
-    {{ RET #(); True }} := by
-  wp_start as ⟨#Hinvs, #Hplan⟩
-  icases eof_init $$ Hpkg with ⟨%eof, #Heof⟩
-  (try wp_auto)
-  wp_apply wp_Serve wp_Listen wp_Accept wp_ReadFull wp_Write wp_Close wp_SetDeadline wp_Now wp_Add
-    γm eof $$ []
-  · iframe Hinvs Hplan Heof
-  (try wp_auto)
-  wp_apply wp_Forever as ⟨⟩
-
-theorem wp_Client
-    (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
-    (wp_ReadFull : wire.ReadFull.spec (GF := GF) (hG := hG))
-    (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
-    (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
-    (wp_Forever : wire.Forever.spec (GF := GF) (hG := hG))
-    (γm : GName) (h : GoString) :
-    {{ isPkgInit (PROP := IProp GF) pkg ∗ pfInvs γm ∗ tcpPlan G srvAddr h }}
-      (App (Val (@! Client)) (Val #()))
-    {{ RET #(); True }} := by
-  wp_start as ⟨#Hinvs, #Hplan⟩
-  icases eof_init $$ Hpkg with ⟨%eof, #Heof⟩
-  (try wp_auto)
-  wp_apply wp_Call wp_Dial wp_ReadFull wp_Write wp_Close γm h eof $$ []
-  · iframe Hinvs Hplan Heof
-  (try wp_auto)
-  wp_apply wp_Forever as ⟨⟩
-
-theorem wp_Junk
-    (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
-    (wp_ReadFull : wire.ReadFull.spec (GF := GF) (hG := hG))
-    (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
-    (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
-    (wp_Forever : wire.Forever.spec (GF := GF) (hG := hG))
-    (γm : GName) (h : GoString) :
-    {{ isPkgInit (PROP := IProp GF) pkg ∗ pfInvs γm ∗ tcpPlan G srvAddr h }}
-      (App (Val (@! Junk)) (Val #()))
-    {{ RET #(); True }} := by
-  wp_start as ⟨#Hinvs, #Hplan⟩
-  icases eof_init $$ Hpkg with ⟨%eof, #Heof⟩
-  (try wp_auto)
-  wp_apply wp_SendJunk wp_Dial wp_ReadFull wp_Write wp_Close γm h eof $$ []
-  · iframe Hinvs Hplan Heof
-  (try wp_auto)
-  wp_apply wp_Forever as ⟨⟩
 
 end proof
 

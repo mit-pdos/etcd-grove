@@ -159,29 +159,6 @@ theorem pfInvs_elim (γm : GName) :
     pfInvs (Gg := Gg) γm ⊢ inv addrN (addrInv srvAddr (connProto (Gg := Gg) γm)) ∗
       inv pfN (pfState (Gg := Gg) γm) := .rfl
 
-/-- A direction's stream protocol, from its fresh resource, without its invariant (a candidate
-for `Stream.lean`, as `dirInv_alloc`'s first half). -/
-theorem dirGhost_alloc (c : Nat) (s : Bool) :
-    tcpDir (G (Gg := Gg)) c s TcpDir.fresh ==∗ ∃ γ, dirInv c s γ ∗ sentAll γ [] ∗
-      rcvdAll γ [] := by
-  letI := (G (Gg := Gg)).allG
-  iintro Hd
-  imod mono_list_own_alloc (GF := GF) ([] : List w8) with ⟨%γw, Hw, -⟩
-  icases (show monoListAuthOwn (GF := GF) γw 1 ([] : List w8) ⊣⊢
-      iprop(monoListAuthOwn γw (1 : Qp).half [] ∗ monoListAuthOwn γw (1 : Qp).half []) by
-    conv => lhs; rw [← Qp.half_add_half 1]
-    exact (monoListAuthOwn_fractional γw []).fractional _ _).mp $$ Hw with ⟨Hw1, Hw2⟩
-  imod ghostVar_alloc (GF := GF) ([] : List w8) with ⟨%γr, Hr⟩
-  icases (ghostVar_split_half γr 1 ([] : List w8)).mp $$ Hr with ⟨Hr1, Hr2⟩
-  imodintro
-  iexists ⟨γw, γr⟩
-  unfold dirInv sentAll rcvdAll
-  isplitl [Hd Hw1 Hr1]
-  · iexists TcpDir.fresh, [], []
-    iframe Hd Hw1 Hr1
-    ipureintro; exact wire.dirOk_fresh
-  · iframe Hw2 Hr2
-
 /-- A connection's state, from the map's: it and the wand that puts it back. -/
 theorem pfConns_acc (m : GMap Nat PfNames) (cn : Nat) (ν : PfNames) (Hl : m.lookup cn = some ν) :
     ([∗map] k ↦ v ∈ m, pfConn (Gg := Gg) k v) ⊢
@@ -268,8 +245,8 @@ theorem pf_deposit (γm : GName) (cn : Nat) :
     icases tcpDir_excl _ cn false d TcpDir.fresh $$ Hd' Hdd with ⟨⟩
   | none =>
     imod token_alloc (GF := GF) with ⟨%γt, Htok⟩
-    imod dirGhost_alloc cn false $$ Hdd with ⟨%γu, Hup, Hwu, Hru⟩
-    imod dirGhost_alloc cn true $$ Had with ⟨%γd, Hdown, Hwd, Hrd⟩
+    imod wire.dirInv_body_alloc cn false $$ Hdd with ⟨%γu, Hup, Hwu, Hru⟩
+    imod wire.dirInv_body_alloc cn true $$ Had with ⟨%γd, Hdown, Hwd, Hrd⟩
     ihave #Hlbu := wire.sentLb_get γu [] $$ Hwu
     ihave #Hlbd := wire.sentLb_get γd [] $$ Hwd
     imod ghost_map_insert_persist cn (⟨γt, γu, γd⟩ : PfNames) hm $$ Hm with ⟨Hm, #Hname⟩
@@ -294,34 +271,18 @@ theorem pf_deposit (γm : GName) (cn : Nat) :
     · iexists ⟨γt, γu, γd⟩
       iframe Hde Hwu Hrd Hlbd Hname
 
-/-- A dial of `srvAddr`: the update of `net.Dial`, which deposits the connection's protocol in
-the address's invariant (as `wire.dial_au`, but the deposit is made from both ends' fresh
-resources, since it allocates both directions' protocols: a candidate for `Addr.lean`). -/
+/-- A dial of `srvAddr`: the update of `net.Dial` (`wire.dial_both_au`), which deposits the
+connection's protocol in the address's invariant, made from both ends' fresh resources
+(`pf_deposit`). -/
 theorem pf_dial_au (γm : GName) :
     ⊢ inv addrN (addrInv srvAddr (connProto (Gg := Gg) γm)) -∗ inv pfN (pfState (Gg := Gg) γm) -∗
       |={⊤,∅}=> ∃ S, tcpPend G srvAddr S ∗
         ∀ cn, ⌜cn ∉ S⌝ -∗ tcpPend G srvAddr (S ∪ {[cn]}) -∗ tcpConnAt G cn srvAddr -∗
           tcpFresh G cn false -∗ tcpFresh G cn true ={∅,⊤}=∗ clientRes γm cn := by
   iintro #HaddrInv #HpfInv
-  iinv HaddrInv with Hi Hclose
-  unfold addrInv
-  icases Hi with ⟨%S, >Hpend, >Hdeps⟩
-  iapply fupd_mask_intro Std.LawfulSet.empty_subset
-  iintro Hmask
-  iexists S
-  iframe Hpend
-  iintro %cn %HcS Hpend #Hat Hd Ha
-  imod Hmask
-  imod pf_deposit γm cn $$ HpfInv Hd Ha with ⟨HΦ, HR⟩
-  imod Hclose $$ [Hpend Hdeps HΦ] with -
-  · inext
-    iexists S ∪ {[cn]}
-    iframe Hpend
-    rw [wire.setMap_insert]
-    iapply (BigSepM.bigSepM_insert (wire.setMap_lookup_none HcS)).2
-    iframe Hdeps HΦ
-  imodintro
-  iexact HR
+  iapply wire.dial_both_au addrN srvAddr (connProto γm) (clientRes γm) $$ HaddrInv
+  iintro %cn - Hd Ha
+  iapply pf_deposit γm cn $$ HpfInv Hd Ha
 
 /-- The server's one write on `cn`, of bytes `bs` that are a prefix of the dialer's (`si`) past
 the preface, with the connection's token: the reply state's bytes were nothing, and are a prefix
@@ -417,23 +378,6 @@ theorem client_check (γm : GName) (cn : Nat) (ν : PfNames) (W resp : List w8) 
     ipureintro
     rw [List.prefix_nil.1 Hrs]
     exact List.nil_prefix
-
-/-- A close of an end its thread owns, whose direction follows the stream protocol, its result
-dropped (`wire.close_au`, forgotten). -/
-theorem close_drop_au (N : Namespace) (c : Nat) (s : Bool) (γ : DirNames) (st : TcpEnd) :
-    ⊢ inv N (dirInv (Gg := Gg) c s γ) -∗ tcpEnd G c s st -∗
-      |={⊤,∅}=> ∃ st0 d, tcpEnd G c s st0 ∗ tcpDir G c s d ∗
-        ∀ ok st' d', ⌜CloseOutcome st0 d ok st' d'⌝ -∗ tcpEnd G c s st' -∗ tcpDir G c s d'
-          ={∅,⊤}=∗ True := by
-  iintro #Hinv Hend
-  imod wire.close_au N c s γ st $$ Hinv Hend with ⟨%st0, %d, Hend, Hd, Hk⟩
-  imodintro
-  iexists st0, d
-  iframe Hend Hd
-  iintro %ok %st' %d' %Hc Hend Hd
-  imod Hk $$ %ok %st' %d' %Hc Hend Hd with -
-  imodintro
-  itrivial
 
 /-- A deadline set (or cleared) by an end its thread owns: the update of `net.Conn.SetDeadline`,
 which hands back the end's state, whatever its outcome. -/
