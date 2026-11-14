@@ -129,6 +129,66 @@ class WalGS (GF : BundledGFunctors) where
   authority the invariant's, each element (exclusive) the holder's of the lent tail. -/
   γl : GName
 
+/-! ## The WALs' step bound (`notes/bounds-plan.md`, "The WAL's segment sequence") -/
+
+section steps
+variable {GF : BundledGFunctors} {hlc : HasLC} [GooseExts] [GooseInterp] [G : GooseGlobalGS hlc GF]
+
+/-- **Every WAL's history at most `n` operations long.** -/
+def WalsStepped (s : AbsDiskState) (n : Nat) : Prop :=
+  ∀ dir d, s.wal !! dir = some d → d.H.length ≤ n
+
+/-- **The WALs' step bound** (persistent; `notes/bounds-plan.md`, "The WAL's segment sequence"): at
+least as many counted steps (`⧖ n`, Perennial's persistent time receipt; the counter is global across
+generations, so the receipt is crash-stable) as any WAL's history has operations. `Save` and
+`SaveSnapshot` take one counted step before their commit (`walHandleIn_steps`, then
+`walHandleIn_append`), a crash keeps a prefix of each history, `Create` starts one empty; so every
+WAL's history, hence its cuts and its last segment's sequence number (`WalAbsD.seqName`), is below the
+receipts' bound, which the adequacy theorem fixes (`walAreaOk`'s `ReceiptBoundLe GF (2 ^ 62)`):
+`ReadAll`'s `walDirH` bound. -/
+def walStepsLb (s : AbsDiskState) : IProp GF := iprop(∃ n : Nat, ⧖ n ∗ ⌜WalsStepped s n⌝)
+
+instance walStepsLb_persistent (s : AbsDiskState) : Persistent (walStepsLb (G := G) s) := by
+  unfold walStepsLb; infer_instance
+
+instance walStepsLb_timeless (s : AbsDiskState) : Timeless (walStepsLb (G := G) s) := by
+  unfold walStepsLb; infer_instance
+
+theorem WalsStepped.mono {s : AbsDiskState} {n n' : Nat} (h : WalsStepped s n) (hn : n ≤ n') :
+    WalsStepped s n' := fun dir d hd => Nat.le_trans (h dir d hd) hn
+
+/-- The step bound at a new state, given the receipt `⧖ n'`: each of its WALs' histories no longer
+than the old bound or than `n'`. -/
+theorem walStepsLb_upd (s s' : AbsDiskState) (n' : Nat)
+    (hH : ∀ n, WalsStepped s n → WalsStepped s' (max n n')) :
+    ⊢@{IProp GF} ⧖ n' -∗ walStepsLb (G := G) s -∗ walStepsLb (G := G) s' := by
+  unfold walStepsLb
+  iintro #Hn' ⟨%n, #Hn, %hn⟩
+  iexists max n n'
+  isplitl
+  · iapply (preceipt_max n n').2
+    iframe Hn Hn'
+  ipureintro; exact hH n hn
+
+/-- The step bound at a new state whose WALs' histories are within the old bound. -/
+theorem walStepsLb_mono (s s' : AbsDiskState) (hH : ∀ n, WalsStepped s n → WalsStepped s' n) :
+    ⊢@{IProp GF} walStepsLb (G := G) s -∗ walStepsLb (G := G) s' := by
+  unfold walStepsLb
+  iintro ⟨%n, #Hn, %hn⟩
+  iexists n
+  iframe Hn
+  ipureintro; exact hH n hn
+
+/-- One WAL's history within the bound: `⧖` of its length. -/
+theorem walStepsLb_at (s : AbsDiskState) (dir : GoString) (d : WalDur) (hd : s.wal !! dir = some d) :
+    ⊢@{IProp GF} walStepsLb (G := G) s -∗ ⧖ d.H.length := by
+  unfold walStepsLb
+  iintro ⟨%n, #Hn, %hn⟩
+  iapply preceipt_mono (hn dir d hd)
+  iexact Hn
+
+end steps
+
 section ghost
 variable {GF : BundledGFunctors} [W : WalGS GF]
 
@@ -153,19 +213,8 @@ proofs allocate a handle or change its mode (`walHandle_alloc`, `walHandleP_set`
     ghostMapAuth W.γh 1 Hh ∗ ghostMapAuth W.γhd 1 Hd ∗ ghostMapAuth W.γhp 1 Hp ∗
     ⌜∀ k, n ≤ k → Hh !! k = none ∧ Hd !! k = none ∧ Hp !! k = none⌝)
 
-/-- **What the WAL invariant holds of the ghost state, the real WAL state being `s`**: the map's
-other half, below `s`'s (`walMapLe`), the past states' authority, the handles' authorities, every
-WAL key in the area. -/
-def walGhost (s : AbsDiskState) : IProp GF :=
-  letI := walAllG (W := W)
-  iprop((∃ G : GMap GoString WalDur, ghostVar W.hA.γs (1 : Qp).half G ∗ ⌜walMapLe G s.wal⌝) ∗
-    absPastAuth W.hA s ∗ walHandleAuth (W := W) ∗ ⌜walKeysInArea s⌝)
-
 instance walHandleAuth_timeless : Timeless (walHandleAuth (W := W)) := by
   unfold walHandleAuth; infer_instance
-
-instance walGhost_timeless (s : AbsDiskState) : Timeless (walGhost (W := W) s) := by
-  unfold walGhost absPastAuth; infer_instance
 
 /-- **The WAL area is `r`** (persistent). -/
 def walArea (r : GoString) : IProp GF :=
@@ -892,6 +941,24 @@ theorem walPast_walArea (s : AbsDiskState) :
   iintro #Hs
   iexists s; iframe Hs; ipureintro; rfl
 
+end ghost
+
+section ghostInv
+variable {GF : BundledGFunctors} [W : WalGS GF] {hlc : HasLC} [GooseExts] [GooseInterp]
+  [G : GooseGlobalGS hlc GF]
+
+/-- **What the WAL invariant holds of the ghost state, the real WAL state being `s`**: the map's
+other half, below `s`'s (`walMapLe`), the past states' authority, the handles' authorities, every
+WAL key in the area, and the WALs' step bound (`walStepsLb`). -/
+def walGhost (s : AbsDiskState) : IProp GF :=
+  letI := walAllG (W := W)
+  iprop((∃ G : GMap GoString WalDur, ghostVar W.hA.γs (1 : Qp).half G ∗ ⌜walMapLe G s.wal⌝) ∗
+    absPastAuth W.hA s ∗ walHandleAuth (W := W) ∗ ⌜walKeysInArea s⌝ ∗ walStepsLb s)
+
+instance walGhost_timeless (s : AbsDiskState) : Timeless (walGhost (W := W) s) := by
+  letI := walAllG (W := W)
+  unfold walGhost absPastAuth; infer_instance
+
 /-- What the program's WAL map says of the invariant's: it is below the real one. -/
 theorem walOwn_agree (s : AbsDiskState) (M : GMap GoString WalDur) :
     ⊢@{IProp GF} walGhost (W := W) s -∗ walOwn (W := W) M -∗ ⌜walMapLe M s.wal⌝ := by
@@ -918,16 +985,24 @@ theorem walArea_ghost (s : AbsDiskState) (r : GoString) :
 theorem walGhost_keys (s : AbsDiskState) :
     ⊢@{IProp GF} walGhost (W := W) s -∗ ⌜walKeysInArea s⌝ := by
   unfold walGhost
-  iintro ⟨-, -, -, %hk⟩
+  iintro ⟨-, -, -, %hk, -⟩
   ipureintro; exact hk
 
 /-- **One purge right per handle.** -/
 theorem walGhost_keys_keep (s : AbsDiskState) :
     ⊢@{IProp GF} walGhost (W := W) s -∗ walGhost (W := W) s ∗ ⌜walKeysInArea s⌝ := by
   unfold walGhost
-  iintro ⟨Hs, HP, Hh, %hk⟩
-  iframe Hs HP Hh
+  iintro ⟨Hs, HP, Hh, %hk, #Hst⟩
+  iframe Hs HP Hh Hst
   isplitl <;> ipureintro <;> exact hk
+
+/-- **The WALs' step bound, read off the ghost state** (persistent). -/
+theorem walGhost_steps (s : AbsDiskState) :
+    ⊢@{IProp GF} walGhost (W := W) s -∗ walGhost (W := W) s ∗ walStepsLb s := by
+  unfold walGhost
+  iintro ⟨Hs, HP, Hh, %hk, #Hst⟩
+  iframe Hs HP Hh Hst
+  ipureintro; exact hk
 
 theorem walPurgeW_excl (γ : GName) :
     ⊢@{IProp GF} (letI := walAllG (W := W); γ ↪[W.γhp] ()) -∗
@@ -937,17 +1012,19 @@ theorem walPurgeW_excl (γ : GName) :
   icases ghostMapElem_valid_2 γ _ (DFrac.own 1) (DFrac.own 1) () () $$ H1 H2 with %Hv
   exact absurd Hv.1 (dfrac_own_one_op_invalid _)
 
-/-- **The ghost state at a bigger real state** (a step's update): the map set to the new state's,
-the past states kept, and the new state's fact. -/
-theorem walGhost_upd (s s' : AbsDiskState) (M : GMap GoString WalDur) (hle : absLe s s')
-    (hk : walKeysInArea s → walKeysInArea s') :
-    ⊢@{IProp GF} walGhost (W := W) s -∗ walOwn (W := W) M ==∗
+/-- **The ghost state at a bigger real state, a counted step's receipt `⧖ n'` deposited** (an
+append's commit: the WAL's history one longer, within `n'`): the map set to the new state's, the past
+states kept, and the new state's fact. -/
+theorem walGhost_updR (s s' : AbsDiskState) (M : GMap GoString WalDur) (hle : absLe s s')
+    (hk : walKeysInArea s → walKeysInArea s') (n' : Nat)
+    (hst : ∀ n, WalsStepped s n → WalsStepped s' (max n n')) :
+    ⊢@{IProp GF} ⧖ n' -∗ walGhost (W := W) s -∗ walOwn (W := W) M ==∗
       ⌜walMapLe M s.wal⌝ ∗ walGhost (W := W) s' ∗ walOwn (W := W) s'.wal ∗ walPast (W := W) s' := by
-  iintro Hc HM
+  iintro #Hn' Hc HM
   icases walOwn_agree $$ Hc HM with %HMs
   unfold walGhost walOwn walOwnAt walPast
   letI := walAllG (W := W)
-  icases Hc with ⟨⟨%G, Hs, -⟩, HP, Hh, %Hk⟩
+  icases Hc with ⟨⟨%G, Hs, -⟩, HP, Hh, %Hk, #Hst⟩
   icases HM with ⟨HM, Ht⟩
   imod ghostVar_update_halves s'.wal _ _ _ $$ Hs HM with ⟨Hs, HM⟩
   ihave HP := absPast_grow _ s s' hle $$ HP
@@ -958,22 +1035,37 @@ theorem walGhost_upd (s s' : AbsDiskState) (M : GMap GoString WalDur) (hle : abs
   · ipureintro; exact HMs
   isplitr
   · ipureintro; exact walMapLe_refl _
-  ipureintro; exact hk Hk
+  isplitr
+  · ipureintro; exact hk Hk
+  iapply walStepsLb_upd s s' n' hst $$ Hn' Hst
+
+/-- **The ghost state at a bigger real state** (a step's update, no WAL's history longer than the
+bound): the map set to the new state's, the past states kept, and the new state's fact. -/
+theorem walGhost_upd (s s' : AbsDiskState) (M : GMap GoString WalDur) (hle : absLe s s')
+    (hk : walKeysInArea s → walKeysInArea s') (hst : ∀ n, WalsStepped s n → WalsStepped s' n) :
+    ⊢@{IProp GF} walGhost (W := W) s -∗ walOwn (W := W) M ==∗
+      ⌜walMapLe M s.wal⌝ ∗ walGhost (W := W) s' ∗ walOwn (W := W) s'.wal ∗ walPast (W := W) s' := by
+  iintro Hc HM
+  imod preceipt_zero (GF := GF) with #H0
+  iapply walGhost_updR s s' M hle hk 0 (fun n hn => by rw [Nat.max_zero]; exact hst n hn) $$ H0 Hc HM
 
 /-- **The ghost state at a bigger real state, the program's map unchanged.** -/
 theorem walGhost_upd_lag (s s' : AbsDiskState) (hlag : ∀ G, walMapLe G s.wal → walMapLe G s'.wal)
-    (hle : absLe s s') (hk : walKeysInArea s → walKeysInArea s') :
+    (hle : absLe s s') (hk : walKeysInArea s → walKeysInArea s')
+    (hst : ∀ n, WalsStepped s n → WalsStepped s' n) :
     ⊢@{IProp GF} walGhost (W := W) s ==∗ walGhost (W := W) s' ∗ walPast (W := W) s' := by
   iintro Hc
   unfold walGhost walPast
-  icases Hc with ⟨⟨%G, Hs, %HG⟩, HP, Hh, %Hk⟩
+  icases Hc with ⟨⟨%G, Hs, %HG⟩, HP, Hh, %Hk, #Hst⟩
   ihave HP := absPast_grow _ s s' hle $$ HP
   imod absPast_snap _ s' $$ HP with ⟨HP, Hp⟩
   imodintro
   iframe HP Hh Hp
   isplitl [Hs]
   · iexists G; iframe Hs; ipureintro; exact hlag G HG
-  ipureintro; exact hk Hk
+  isplitr
+  · ipureintro; exact hk Hk
+  iapply walStepsLb_mono s s' hst $$ Hst
 
 /-- A past state's fact, from the authority. -/
 theorem walGhost_past (s : AbsDiskState) :
@@ -985,22 +1077,24 @@ theorem walGhost_past (s : AbsDiskState) :
   imodintro
   iframe Hs HP Hh Hk Hp
 
-end ghost
+end ghostInv
 
 /-! ## A generation's start -/
 
 section init
-variable {GF : BundledGFunctors}
+variable {GF : BundledGFunctors} {hlc : HasLC} [GooseExts] [GooseInterp] [G : GooseGlobalGS hlc GF]
 
 /-- **A new generation's ghost state** at the real state `s` (every WAL key in the area): the
-invariant's part, the program's map at `s.wal`, `s`'s fact, the lock token and the crash token. -/
+invariant's part, the program's map at `s.wal`, `s`'s fact, the lock token and the crash token; the
+WALs' step bound carried over (`walStepsLb`: a crash keeps a prefix of each history). -/
 theorem walGhost_init (hPre : AbsDiskGpreS GF) (s : AbsDiskState) (hk : walKeysInArea s) :
-    ⊢@{IProp GF} |==> ∃ W : WalGS GF, walGhost (W := W) s ∗ walOwn (W := W) s.wal ∗
+    ⊢@{IProp GF} walStepsLb s -∗ |==> ∃ W : WalGS GF, walGhost (W := W) s ∗ walOwn (W := W) s.wal ∗
       walPast (W := W) s ∗ walUnlockedTok (W := W) ∗ walCrashTok (W := W) ∗
       walCreatingAuth (W := W) ∅ ∗ walTailsAuth (W := W) ∅ ∗ walParkAuth (W := W) true ∗
       walDirKeysAuth (W := W) ∅ ∗ walCutAuth (W := W) none ∗ walOutAuth (W := W) WalOut.empty ∗
       walNamesAuth (W := W) none ∗ walSplitAuth (W := W) [] ∗ walSplitFrag (W := W) [] ∗
       walLentAuth (W := W) ∅ := by
+  iintro #Hstp
   imod absDisk_local_init hPre s hk with ⟨%hA, Hctx, Hst⟩
   letI := hA.absDiskAllG
   imod (ghost_map_alloc_empty (GF := GF) (K := GName) (V := WalMode)) with ⟨%γh, Hh⟩
@@ -1039,7 +1133,9 @@ theorem walGhost_init (hPre : AbsDiskGpreS GF) (s : AbsDiskState) (hk : walKeysI
     · iexists 0, ∅, ∅, ∅
       iframe Hh Hhd Hhp
       ipureintro; intro k _; exact ⟨rfl, rfl, rfl⟩
-    · ipureintro; exact hk
+    · isplitr
+      · ipureintro; exact hk
+      · iexact Hstp
   · isplitr
     · ileft; ipureintro; rfl
     · iapply BigSepM.bigSepM_empty.2; iempintro
