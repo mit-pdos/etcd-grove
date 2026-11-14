@@ -7,7 +7,8 @@ The callee specs `wal.Create`'s proof takes as hypotheses that no other spec sta
   or a directory of files only, whose whole claim is held too: what `Create` keeps of its temporary
   directory `nm.tmp` (a leftover's, `walAreaRes`), and what `RemoveAll`/`CreateDirAll` leave of it.
 * **`wal.Exist.specCreate`** (W12 states `Exist` over `walDirIs`; `Create` needs only that it
-  returns): `Exist(dir)` with `Create`'s resources, unchanged.
+  returns): `Exist(dir)` with `Create`'s resources, unchanged (and `NameOk nm`, which `ReadDir`'s specs
+  need of the name it reads; `walNameOk` allows a NUL byte). Proved: `wal.Exist.wp_specCreate`.
 * **`fileutil.CreateDirAll.specTmp`**: `CreateDirAll.spec` (proved, `name` absent) extended to a
   `name` holding a directory of files (a leftover `nm.tmp` that `Exist` missed, a `Stat` error, or
   that `RemoveAll` returned `nil` on, `ENOENT` with no effect: `os.RemoveAll.specDirS`'s header), and
@@ -66,7 +67,7 @@ variable [sem : go.Semantics]
 abbrev wal.Exist.specCreate [go_etcd_io.etcd.server.v3.storage.wal.Assumptions] (C : WalEnc.WalCodec)
     (Mr : WalEnc.WalMarshal) : Prop :=
   ∀ (R : Roots) (jr : Ino) (r dir nm : GoString) (qp : Qp),
-  InArea r dir nm →
+  InArea r dir nm → NameOk nm →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
       WalFs.walAreaOk C Mr R jr r ∗ osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗ osCallPerm 1 ∗
       WalFs.walUnlockedTok }}

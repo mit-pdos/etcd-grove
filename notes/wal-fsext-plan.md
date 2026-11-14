@@ -511,6 +511,8 @@ module; the bboltfs/crashlog/walfs examples and the generated translations not l
   past 1 GiB).
 Not yet stated (no `sorry`, no statement): `Close`, `ReleaseLockTo`, `Repair`, `ValidSnapshotEntries`, `Exist`
 (§4.2's W7-W12), the WAL-level resize updates (I3b's open items). `Create`'s ghost steps (drop, mint, unmint, merges) are proved (`wal-create10`; W4 log, tenth session). The record of what is out of the parked state and the changes in flight only on segments out (W3/W5's gaps A and B) are in the invariant, with the pin's and the put-back's moves (`Parked.lean`, `wal-read9`; W1 log, tenth session). A change in flight only on a registered tail (`TailsOnly`), the tails' authority halved with the lock holder (`walTailsFrag`), and `openAtIndex`'s pin (`walInvBody_pin`, `OpenPinTake.lean`) are proved (`wal-read10`; W1 log, eleventh session; W3/W5 log, tenth session). Gap C (every WAL's directory claim once and exclusive, `DirClaimsOk` in `DirKeysOk`), the pin keying its WAL, the put-back (`walInvBody_unpin`), the commit's `unl` raise (`walInvBody_unl`) and the tail's registration (`walTailsRes_register`) are proved (`wal-read11`; W1 log, twelfth session; W3/W5 log, eleventh session).
+`Exist` proved over hypotheses (`wal-small12`, W7-W12 log; no `sorry`). Not yet stated (no `sorry`, no statement): `Close`, `ReleaseLockTo`, `Repair`, `ValidSnapshotEntries`
+(§4.2's W7-W11), the WAL-level resize updates (I3b's open items). `Create`'s ghost steps (drop, mint, unmint, merges) are proved (`wal-create10`; W4 log, tenth session). The record of what is out of the parked state and the changes in flight only on segments out (W3/W5's gaps A and B) are in the invariant, with the pin's and the put-back's moves (`Parked.lean`, `wal-read9`; W1 log, tenth session). A change in flight only on a registered tail (`TailsOnly`), the tails' authority halved with the lock holder (`walTailsFrag`), and `openAtIndex`'s pin (`walInvBody_pin`, `OpenPinTake.lean`) are proved (`wal-read10`; W1 log, eleventh session; W3/W5 log, tenth session).
 
 ## W1 implementation log (branch `wal-inv`, 2026-11-13)
 
@@ -3532,3 +3534,55 @@ tail). Task 3 (the pin, `openAtIndex`, `OpenForRead`, `Open`) not started.
   `k` (`sq < 2^63 + k`, `wal-cut10`): `ReadAll`/`openAtIndex` establish the read tail's sequence number below
   `2^63` with `k = h.pc`; `wal-save11`'s handle facts (`h.cuts` increasing from the layout, the metadata's
   length bound) are `ReadAll`'s.
+## W7-W12 implementation log (branch `wal-small12`, 2026-11-14)
+
+**First session.** Task order: `Exist` (W12), then `ValidSnapshotEntries` (W8), then `ReleaseLockTo` (W9).
+
+- **`wal.Exist.spec`** (`LinuxFs/Spec/.../wal/Exist.lean`): the old axiom over `fsExt` with plan §3's binders,
+  `Create`'s resources (`walAreaOk C Mr`, the area's spine, `walAreaRes`, `osCallPerm 1`), **`walUnlockedTok`
+  framed** (reading a present WAL's directory takes its claim out of `walParked`, which needs the lock, as
+  `Open`'s pin), the update at `walAuMask`, and Q4 (b)'s `false` arm (`wal.ExistFalseOk o`: `o = none` or a
+  fresh unnamed WAL). Ledger entry 2026-11-14.
+- **Model finding [user]: `Exist` may answer `false` on a present WAL in the model.** `false` comes from
+  `errors.Is(err, os.ErrNotExist)` on `ReadDir`'s error, and `fsExt` lets a failing `open`/`getdents` return
+  any errno, `ENOENT` included. On configuration C, `open(2)` gives `ENOENT` only for a missing component and
+  `getdents64` only on a removed directory. The proof takes the hypothesis `fileutil.ReadDir.specChildIs`
+  (`ExistCallees.lean`: a present directory's read fails only with an error `errors.Is` does not take for
+  `os.ErrNotExist`), unprovable until the model says "`ENOENT` only when the path does not resolve" for
+  `Open` and `Readdir` (`GooseLang/Ext/Fs/Impl.lean`; note §3 of `notes/wal-fsext-models-review.md`: the same
+  tightening for `Unlink` would break `RemoveAll`'s model, so it must not be extended there). Weakening
+  `false` to claim nothing instead would leave the server's bootstrap without the `walAbsent` that `Create`
+  needs.
+- **Infrastructure gap (shared with `Open`'s pin): a path to a WAL directory.** `ReadDir.spec` needs
+  `osPathS R dir dq J`, i.e. a spine through a `.only [nm]` claim of the area directory; the program holds half
+  of the area claim on a cofinite `N`, which cannot be split (`osNames_split` needs the whole claim). The
+  hypothesis `specChildIs` therefore reads `d/b` through a fraction of a claim on names holding `b` (as
+  `ReadDir.specAbsent` does for a missing name). To prove it: a child form of `wp_osOpenDirS'`
+  (`GooseLang/Ext/Fs/TreeSharedOpenDir.lean`, whose only path-dependent step is `osPathS_lookup`; the child
+  lookup through a claim is `wp_osOpenFileS'`'s), then `os.OpenFile`/`os.Open` and `ReadDir` child variants.
+  `openAtIndex` needs the same for `readWALNames` of a present WAL (W3/W5's gap 1 closed only the invariant's
+  side).
+- **Other hypotheses** (`ExistCallees.lean`): `fileutil.ReadDir.specAbsentIs` (`specAbsent` with an option
+  slice; its `errors.Is` part needs the error tree of the part's `os` errors, as `errors.IsErrno.spec`), and
+  `hErrNotExist` (`os`'s `isPkgInit` does not record `os.ErrNotExist`, as `hErrExist` for `Create`).
+- **Proof design** (`LinuxFs/Proof/.../wal/Exist.lean`, `ExistPin.lean`): a core lemma generic in the
+  linearization (`A`, `Lin`), from which `wal.Exist.wp_proof` (the AU, committed at a ghost step before
+  `ReadDir`, the state unchanged) and `wal.Exist.wp_specCreate` (`Create`'s hypothesis, `A := emp`) both
+  follow. Start step: `walInvBody_areaAt`'s facts; absent → `h.cur !! nm = none`; present → `walParked_lock`,
+  `walParked_takeClaim` of the WAL directory's claim, `walPast s`, and a `.wal` name present
+  (`WalsNamed`, `WalAbsD.nonempty`), so the read gives `true` (or an error `errors.Is` rejects: `true`). End
+  step (present case): the claim found again in the new state's claims (`absLe` keeps the WAL; `WalsAt` with
+  the program's area claim gives the same directory; `osClaims_keys` the same key and history; a duplicate
+  would be a third half), `walParked_putClaim`, `walParked_unlock`. This put-back argument is the one
+  `openAtIndex`'s error arms and `Close` need (gap A's record says what is out, not that it is still in `cl`).
+- **Proved (no `sorry`)**: `ExistPure.lean` (a `.wal` name's extension; a read with a `.wal` name is
+  non-empty; `false` gives `wal.ExistFalseOk`), `ExistPin.lean` (`walInvBody_existAU`, `walInvBody_existPin`,
+  `walInvBody_existUnpin` and their program-step forms `walInv_existStart`/`walInv_existEnd`), `Exist.lean`
+  (`wal.Exist.wp_core`, generic in the linearization; **`wal.Exist.wp_proof`** and
+  **`wal.Exist.wp_specCreate`**). Hypotheses of both: `WithExt.spec` (proved), `fileutil.ReadDir.specAbsentIs`,
+  `fileutil.ReadDir.specChildIs`, `hErrNotExist`. `walInvBody_existUnpin` is the put-back `openAtIndex`'s error
+  arms and `Close` can reuse for a directory claim.
+- **Statement change (minor):** `wal.Exist.specCreate` (`CreateCallees.lean`) takes `NameOk nm` (both `ReadDir`
+  hypotheses need it; `walNameOk` allows a NUL byte); `Create.lean` passes its own `hnmO`. `wal-create12`: replace
+  the hypothesis `wp_Exist` by `wal.Exist.wp_specCreate C Mr wp_WithExt wp_RDabs wp_RDchild hErrNotExist`.
+- *Not started*: `ValidSnapshotEntries` (W8), `ReleaseLockTo` (W9).

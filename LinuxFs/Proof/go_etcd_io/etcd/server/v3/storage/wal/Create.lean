@@ -67,7 +67,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
   try wp_auto
   wp_apply wp_with_defer as %defer Hdefer
   try wp_auto
-  wp_apply wp_Exist R jr r dir nm qp hin $$ [Hp Hres Hperm Hu] as %bx ⟨Hp, Hres, Hperm, Hu⟩
+  wp_apply wp_Exist R jr r dir nm qp hin hnmO $$ [Hp Hres Hperm Hu] as %bx ⟨Hp, Hres, Hperm, Hu⟩
   · iframe; iframe #
   ihave #Hdeps := isPkgInit_unfold_deps pkg_id.go_etcd_io.etcd.server.v3.storage.wal $$ Hpkg
   isimp only [isPkgInitDeps] at Hdeps
