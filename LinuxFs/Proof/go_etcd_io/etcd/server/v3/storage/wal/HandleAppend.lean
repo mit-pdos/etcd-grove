@@ -163,13 +163,13 @@ theorem walHandleIn_append (P : WalPbIn GF) (Mr : WalMarshal) (R : Roots) (jr : 
     ⊢ walAreaOk walCodec Mr R jr r -∗ notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗
       walHandleIn (W := W) P Mr w dir h tm -∗
       (AU <{ ∃∃ d : WalDur, walDiskAt (W := W) dir d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅
-        <{ walDiskAt (W := W) dir { d with H := d.H ++ [o] }, COMM Q d }>) -∗
+        <{ walDiskAt (W := W) dir { d with H := d.H ++ [o] }, COMM Q d }>) -∗ ⧖ (h.H.length + 1) -∗
       |={⊤}=> notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗
         walHandleIn (W := W) P Mr w dir { h with H := h.H ++ [o], rest := (opDs Mr o.toM).length } tm ∗
         walLenLb (W := W) w dir (h.H.length + 1) ∗ (∃ d : WalDur, Q d ∗ ⌜d.H = h.H⌝) ∗
         ⌜(∀ b ∈ h.cuts, walCutPos (h.H.map WalOpG.toM) b) ∧ h.cuts.Pairwise (· < ·)⌝ := by
   letI := walAllG (W := W)
-  iintro #Harea Hnc Hh Hau
+  iintro #Harea Hnc Hh Hau #Hst
   unfold walAreaOk
   icases Harea with ⟨#Hinv, -⟩
   unfold walHandleIn
@@ -197,7 +197,7 @@ theorem walHandleIn_append (P : WalPbIn GF) (Mr : WalMarshal) (R : Roots) (jr : 
     · exact hfit _ x hx
   imod walTail_append walCodec Mr R jr r w dir h.γ
     ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG) o sized Q hfit' hox
-    $$ Hinv Hnc Hk [Hv] Hw Hau with ⟨Hnc, Hk, Hv, Hw, Hlb, HQ, %hcp⟩
+    $$ Hinv Hnc Hk [Hv] Hw Hau Hst with ⟨Hnc, Hk, Hv, Hw, Hlb, HQ, %hcp⟩
   · unfold tailVar; iexact Hv
   have hc : ∀ b ∈ h.cuts, b ≤ h.H.length := fun b hb => by
     simpa using walCutPos_le (hcp.1 b hb)
@@ -230,6 +230,38 @@ theorem walHandleIn_append (P : WalPbIn GF) (Mr : WalMarshal) (R : Roots) (jr : 
   isplitl [HQ]
   · iexact HQ
   ipureintro; exact hcp
+
+/-- **The step bound of the handle's WAL** (`notes/bounds-plan.md`, "The WAL's segment sequence"): a
+look at the invariant gives `⧖ |H|` (`walTail_steps`); `Save` and `SaveSnapshot` then take one counted
+step (`wp_go_step_preceipt`) for the `⧖ (|H| + 1)` their commit deposits (`walHandleIn_append`). -/
+theorem walHandleIn_steps (P : WalPbIn GF) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+    (w : Loc) (dir : GoString) (h : WalHS) (tm : Fs.OsMeta → List Fs.ByteG → Prop := TailMeta) :
+    ⊢ walAreaOk walCodec Mr R jr r -∗ notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗
+      walHandleIn (W := W) P Mr w dir h tm -∗
+      |={⊤}=> notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗
+        walHandleIn (W := W) P Mr w dir h tm ∗ ⧖ h.H.length := by
+  letI := walAllG (W := W)
+  iintro #Harea Hnc Hh
+  unfold walAreaOk
+  icases Harea with ⟨#Hinv, -⟩
+  unfold walHandleIn
+  icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j,
+    %rc, H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15, H16, H17, H18, Ht, Hrest⟩
+  unfold walTailW
+  icases Ht with ⟨Hf, Hfd, Hoff, Hk, %m, %bs, Hm, Hb, %hm, Hv⟩
+  imod walTail_steps walCodec Mr R jr r dir h.γ
+    ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG) $$ Hinv Hnc Hk [Hv]
+    with ⟨Hnc, Hk, Hv, #Hd⟩
+  · unfold tailVar; iexact Hv
+  unfold tailVar
+  imodintro
+  iframe Hnc Hd
+  iexists lg, df, sp, e, fp, lt, f, mds, locks, lfs, fd, dfd, name, dnm, j, rc
+  iframe H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 Hrest
+  iframe Hf Hfd Hoff Hk
+  iexists m, bs
+  iframe Hm Hb Hv
+  ipureintro; exact hm
 
 end handle
 

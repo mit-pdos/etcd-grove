@@ -157,6 +157,24 @@ instance walStepsLb_timeless (s : AbsDiskState) : Timeless (walStepsLb (G := G) 
 theorem WalsStepped.mono {s : AbsDiskState} {n n' : Nat} (h : WalsStepped s n) (hn : n ≤ n') :
     WalsStepped s n' := fun dir d hd => Nat.le_trans (h dir d hd) hn
 
+/-- `WalsStepped` with one WAL set to a state whose history is within the bound. -/
+theorem WalsStepped.insert {s s' : AbsDiskState} {dir : GoString} {d' : WalDur} {n : Nat}
+    (h : WalsStepped s n) (hw : s'.wal = <[dir := d']> s.wal) (hd' : d'.H.length ≤ n) :
+    WalsStepped s' n := by
+  intro k e he
+  rw [hw] at he
+  by_cases hk : k = dir
+  · subst hk; rw [GMap.lookup_insert_eq] at he; cases he; exact hd'
+  · rw [GMap.lookup_insert_ne _ _ (Ne.symm hk)] at he; exact h k e he
+
+/-- `WalsStepped` across an update of one WAL keeping its history (`absDiskUpd`). -/
+theorem WalsStepped.upd {s : AbsDiskState} {dir : GoString} {f : WalDur → WalDur} {n : Nat}
+    (h : WalsStepped s n) (hH : ∀ d, (f d).H = d.H) : WalsStepped (absDiskUpd s dir f) n := by
+  unfold absDiskUpd
+  cases hd : s.wal !! dir with
+  | none => exact h
+  | some d => exact h.insert rfl (by rw [hH]; exact h dir d hd)
+
 /-- The step bound at a new state, given the receipt `⧖ n'`: each of its WALs' histories no longer
 than the old bound or than `n'`. -/
 theorem walStepsLb_upd (s s' : AbsDiskState) (n' : Nat)

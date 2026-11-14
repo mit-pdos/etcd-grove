@@ -124,12 +124,27 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
   icases walHandleIn_lockFacts P Mr w dir h TailMetaW $$ Hh with ⟨Hh, #Hmu, #Hsync, #Hseg⟩
   icases walHandleIn_pure P Mr w dir h TailMetaW $$ Hh with ⟨Hh, %hpu0⟩
   have hix0 := hix.1 hD.1
-  -- the commit, before the call's first step
+  -- the WALs' step bound at a look (`⧖ |H|`), raised by the call's first step (the error result's
+  -- zero value), deposited by the commit (`notes/bounds-plan.md`, "The WAL's segment sequence")
+  iapply (wp_notCrashed_acc _ _ rfl)
+  iintro Hnc
+  imod walHandleIn_steps P Mr R jr r w dir h TailMetaW $$ Harea Hnc Hh with ⟨Hnc, Hh, #Hst⟩
+  imodintro
+  iframe Hnc
+  wp_bind (App (Val (GoInstruction (GoZeroVal _))) (Val _))
+  iapply wp_go_step_preceipt'
+  case hv => exact isPanic_intoVal _
+  isplitr
+  · iexact Hst
+  inext
+  iintro - #Hst1 -
+  iapply wp_value'
+  -- the commit, after the call's first step
   iapply (wp_notCrashed_acc _ _ rfl)
   iintro Hnc
   imod walHandleIn_append P Mr R jr r w dir h (WalOpG.save hs es).toRaw sized Q hD.1
     (saveOp_fit Mr hs es (hS hs) hsz) (fun a b => saveOp_idx Mr h.H hs es _ _ a b)
-    (saveOp_noMax hs es hidx) TailMetaW $$ Harea Hnc Hh Hau with ⟨Hnc, Hh, #Hlb, HQ, %hcp⟩
+    (saveOp_noMax hs es hidx) TailMetaW $$ Harea Hnc Hh Hau Hst1 with ⟨Hnc, Hh, #Hlb, HQ, %hcp⟩
   imodintro
   iframe Hnc
   have hcut : ∀ b ∈ h.cuts, b ≤ h.H.length := fun b hb => by

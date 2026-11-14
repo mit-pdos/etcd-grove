@@ -20,6 +20,7 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleLaws
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.SnapPure
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.StreamBound
 public import Perennial.Proof.sync.Results
+public import Proof.ReceiptTactics
 
 @[expose] public section
 
@@ -98,12 +99,29 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_proof (P : Wal
     rcases List.mem_append.1 hx with hx | hx
     · exact hold x hx
     · exact hfit _ x hx
+  -- the WALs' step bound at a look (`⧖ |H|`), raised by the call's first step (the error result's
+  -- zero value), deposited by the commit (`notes/bounds-plan.md`, "The WAL's segment sequence")
+  iapply (wp_notCrashed_acc _ _ rfl)
+  iintro Hnc
+  imod walTail_steps walCodec Mr R jr r dir h.γ
+    ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG) $$ Hinv Hnc Htk [Hv]
+    with ⟨Hnc, Htk, Hv, #Hst⟩
+  · unfold tailVar; iexact Hv
+  imodintro
+  iframe Hnc
+  wp_bind (App (Val (GoInstruction (GoZeroVal _))) (Val _))
+  iapply wp_go_step_preceipt'
+  case hv => exact isPanic_intoVal _
+  isplitr
+  · iexact Hst
+  inext
+  iintro - #Hst1 -
+  iapply wp_value'
   iapply (wp_notCrashed_acc _ _ rfl)
   iintro Hnc
   imod walTail_append walCodec Mr R jr r w dir h.γ
     ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG) (WalOpG.snap md) sized Q hfit'
-    (snapOp_noMax md hidx) $$ Hinv Hnc Htk [Hv] Hopen Hau with ⟨Hnc, Htk, Hv, Hopen, #Hlb, HQ, %hcp⟩
-  · unfold tailVar; iexact Hv
+    (snapOp_noMax md hidx) $$ Hinv Hnc Htk Hv Hopen Hau Hst1 with ⟨Hnc, Htk, Hv, Hopen, #Hlb, HQ, %hcp⟩
   unfold tailVar
   imodintro
   iframe Hnc

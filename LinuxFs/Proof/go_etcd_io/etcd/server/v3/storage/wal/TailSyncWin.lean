@@ -86,7 +86,13 @@ theorem walAbsD_syncW {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLa
   obtain ⟨h1, h2, h3, h4, -, h6, h7, h8, -⟩ := h.lastWin g0 hg0
   refine { names := ?_, cuts := ?_, nameBound := ?_, cut := h.cut, metas := ?_, intact := ?_,
            last := ?_, synced := ?_, lastSynced := ?_, fit := h.fit, tailStop := ?_,
-           nonempty := ?_, cutPos := h.cutPos }
+           nonempty := ?_, cutPos := h.cutPos, seqName := fun k g hk => by
+             rw [hget] at hk
+             obtain ⟨g1, hg1, rfl⟩ := Option.map_eq_some_iff.1 hk
+             obtain ⟨ix, hn⟩ := h.seqName k g1 hg1
+             refine ⟨ix, ?_⟩
+             show _ = walFileName (lay.first + k) ix
+             split <;> simp [syncTail, hn] }
   · rw [hmapI, hmapN]; exact h.names
   · exact ⟨h.cuts.1, h.cuts.2.1, by rw [hlen]; exact h.cuts.2.2⟩
   · intro k g hk
