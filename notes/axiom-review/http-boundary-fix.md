@@ -16,7 +16,7 @@ the fix's author with the `axiom` skill's attack list; an independent review is 
 ## Verdict
 
 **Survives** every attack tried. One gap of the surrounding boundary found, not of the new texts:
-the environment's HTTP proxy (below, "Found on the way").
+the environment's HTTP proxy (below, "Found on the way"), fixed by a loopback-only `netAddrLit`.
 
 ## Attacks tried
 
@@ -59,7 +59,7 @@ the environment's HTTP proxy (below, "Found on the way").
 8. **A protocol registered without `srvOk`.** `httpProtoAt` is made only by `reserve` (opaque raw
    fact), and `roundTripperOk` asks `httpProtoAt R.host (H.proto R.host)`.
 
-## Found on the way (not fixed: for the coordinator)
+## Found on the way (fixed 2026-11-14, etcd-grove-81's decision: `netAddrLit` loopback only)
 
 **The environment's proxy.** rafthttp's round trippers are `*http.Transport`s with `Proxy:
 http.ProxyFromEnvironment` (`client/pkg/transport/transport.go:42,63` at the pin). With
@@ -67,9 +67,13 @@ http.ProxyFromEnvironment` (`client/pkg/transport/transport.go:42,63` at the pin
 answer itself (`502`, `407`, ...) with a status neither a handler nor Go's server made, so
 `roundTripperOk`'s `resp` promise is false of it. Loopback hosts are never proxied
 (`httpproxy/proxy.go:178-185`), and the closed theorems' programs use `127.0.0.1` literals, but
-`netAddrLit` admits any IPv4 literal. Candidate fixes: `addrsUnclaimed` (or the adequacy's world
-assumptions) also says no proxy is configured for the program's addresses, or `netAddrLit` asks a
-loopback host.
+`netAddrLit` admitted any IPv4 literal. Candidate fixes were a new world assumption (no proxy
+configured for the program's addresses) or a loopback-only `netAddrLit`. **Fixed** by the latter
+(etcd-grove-81, no new world assumption): `netAddrLit` asks the first octet `127`
+(`Proof/net/InvNet.lean`), so every address of `As` is in `127.0.0.0/8`, which `useProxy` never
+proxies; every closed theorem discharges `hAsLit` by `decide` over `127.0.0.1` literals, unchanged.
+`examples/premisefix/httpproxy`: with `HTTP_PROXY` set, a request to `127.0.0.2` reaches the member,
+one to `10.255.255.1` gets the proxy's `502`.
 
 ## Not tried
 

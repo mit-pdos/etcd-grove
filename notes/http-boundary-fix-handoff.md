@@ -23,8 +23,8 @@ Branch `http-boundary-fix` (worktree `/shared/etcd-grove-auth3`, off `lean` `e6b
 
 ## Next
 
-Coordinator's review of the trusted-text diff, then `etc/land.sh` on its go. Open: the
-`ProxyFromEnvironment` gap (the review's "Found on the way").
+Coordinator's review of the trusted-text diff, then `etc/land.sh` on its go. The
+`ProxyFromEnvironment` gap is closed: `netAddrLit` loopback only (`examples/premisefix/httpproxy`).
 
 ## Build
 
