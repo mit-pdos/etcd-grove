@@ -126,11 +126,26 @@ def OutOk (s : DurSt) (cs : List DCand) : Option Node → Prop
   | some (.file i) => ∃ c ∈ cs, c.i = i ∧ (s.cur = some c.v ∨ s.alt = some (some c.v))
   | some (.dir _) => False
 
+/-- **No version of the history `h` holds a directory at the name `b`**: neither at boot nor after
+any of its logged entries (so neither does what a crash leaves there, `NamesH.valAfter`). -/
+def NoDirH (h : NamesH) (b : GoString) : Prop :=
+  (∀ J, h.boot !! b ≠ some (.dir J)) ∧ ∀ xe ∈ h.ents, ∀ J, xe.2.2 !! b ≠ some (.dir J)
+
+/-- A new version holding no directory at `b` keeps `NoDirH`. -/
+theorem NoDirH.log {h : NamesH} {b : GoString} (hn : NoDirH h b) (x : Nat) (e : LogEntry)
+    (E : Ents) (hE : ∀ J, E !! b ≠ some (.dir J)) : NoDirH (h.log x e E) b := by
+  refine ⟨hn.1, fun xe hxe J => ?_⟩
+  simp only [NamesH.log, List.mem_append, List.mem_singleton] at hxe
+  rcases hxe with hxe | rfl
+  · exact hn.2 xe hxe J
+  · exact hE J
+
 /-- **The invariant's facts** of the file `f`, the state `s`, the physical state `p`: every crash that
 keeps the entries below the commit bound leaves the name as `OutOk` allows; the name holds, now,
 `cur` (a candidate's inode); the temporary's name holds no directory; with no rename to lose
 (`alt = none`), every entry of the name is below the commit bound; the candidates are `Ok`, at
-distinct inodes; `alt` is the physical state's copy. -/
+distinct inodes; `alt` is the physical state's copy; no version of the temporary's history holds a
+directory (a crash leaves none there, `durInv_crash`). -/
 structure DurOk (f : DFile) (s : DurSt) (p : DurPhys) : Prop where
   crash : ∀ K : Nat → Prop, (∀ y e E, (y, e, E) ∈ p.hb.ents → y < p.nc → K y) →
     OutOk s p.cands (p.hb.valAfter f.J K f.b)
@@ -142,6 +157,7 @@ structure DurOk (f : DFile) (s : DurSt) (p : DurPhys) : Prop where
   cands : ∀ c ∈ p.cands, c.Ok
   inj : (p.cands.map DCand.i).Nodup
   alt : s.alt = p.alt
+  tmpH : NoDirH p.ht f.tb
 
 /-- **What the file's name holds under the physical state `p`**: no file (`none`), or a candidate's
 inode and its contents. -/

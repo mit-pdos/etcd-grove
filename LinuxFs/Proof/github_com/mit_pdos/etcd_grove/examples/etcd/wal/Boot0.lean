@@ -6,8 +6,7 @@ Lean-first (no Rocq counterpart).
 `tBoot0`: from what the shared mode's switch gives the program (`wp_osShare`: the shared invariant,
 the whole call permission, a whole claim on all names of every directory of the boot tree `V.now`,
 nothing logged), the first incarnation's `TBoot`: the WAL's area by `walBoot0` (U3) and the oracle
-file's by durable's first boot (`DurBoot0`, U2's, not yet proved: a hypothesis here, with the
-statement this unit needs), the tester's invariant allocated over the fresh oracle and no WAL.
+file's by durable's first boot (`DurBoot0`, proved by U2's `DurFs.durBoot0`: `durBoot0_holds`), the tester's invariant allocated over the fresh oracle and no WAL.
 
 The world premises (each the closed theorem's, U7): the roots well formed; the area `tArea root` and the
 oracle directory `tOrDir root` two distinct roots; no entry of the area at a WAL function's name
@@ -17,6 +16,7 @@ module
 
 public import LinuxFs.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.Inv
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Boot0
+public import LinuxFs.Proof.github_com.mit_pdos.etcd_grove.examples.lib.durable.Boot
 
 @[expose] public section
 
@@ -35,7 +35,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
   [GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF]
 
-/-- **Durable's first boot** (U2's, to come; the statement the tester needs): at the shared mode's
+/-- **Durable's first boot** (the statement the tester needs; `durBoot0_holds`): at the shared mode's
 switch, from the whole claim on the file's directory (a root, holding neither the file nor its
 temporary), fresh ghost names, the invariant and the handle, the client's half of the state (no file,
 nothing pending) and the crash token. -/
@@ -47,6 +47,9 @@ def DurBoot0 : Prop :=
       osNames (L := L) f.J (.except []) (DFrac.own 1) (namesOf V f.J (.except [])) ={E}=∗
       ∃ γ : DurFs.DurGS, DurFs.durInv (L := L) γ f ∗ DurFs.durHandle (L := L) γ f R ∗
         DurFs.durSt (GF := GF) γ ⟨none, none⟩ ∗ DurFs.durCrashTok (GF := GF) γ
+
+theorem durBoot0_holds : DurBoot0 (GF := GF) :=
+  fun L f R V E hf hV hR hb ht hE => DurFs.durBoot0 L f R V E hf hV hR hb ht hE
 
 /-- An element of the boot tree's directory list, out of the list. -/
 theorem claims_take (L : GooseLocalGS GF) (V : Hist) (js : List Ino) (j : Ino) (hj : j ∈ js) :
@@ -69,7 +72,7 @@ theorem dirDurable_boot0 [W : WalGS GF] (r : GoString) :
   simp [walBoot0St]
 
 /-- **The tester's first boot** (see the file header). -/
-theorem tBoot0 (hPre : AbsDiskGpreS GF) (hdur : DurBoot0 (GF := GF)) (L : GooseLocalGS GF)
+theorem tBoot0 (hPre : AbsDiskGpreS GF) (L : GooseLocalGS GF)
     (e : TEnv) (V : Hist) (hV : V.2 = []) (hR : RootsOk e.R) (hr : (tArea e.root, e.jr) ∈ e.R)
     (hjr : e.jr ∈ V.now) (hslots : ∀ b, AreaSlot b → V.now.entry e.jr b = none)
     (ho : (tOrDir e.root, e.jo) ∈ e.R) (hjo : e.jo ∈ V.now) (hne : e.jo ≠ e.jr)
@@ -93,7 +96,7 @@ theorem tBoot0 (hPre : AbsDiskGpreS GF) (hdur : DurBoot0 (GF := GF)) (L : GooseL
       | some x => exact List.mem_map.2 ⟨(e.jo, x), (GMap.mem_toList _ _ _).2 he, rfl⟩
     exact (List.mem_erase_of_ne hne).2 h1
   ihave Hjo := claims_take L V _ e.jo hmem $$ Hrest
-  have hd := hdur L e.orFile e.R V E hf hV ho hob hot hE
+  have hd := durBoot0_holds (GF := GF) L e.orFile e.R V E hf hV ho hob hot hE
   rw [show e.orFile.J = e.jo from rfl] at hd
   imod hd $$ Hos Hsh Hjo with ⟨%γd, #Hdi, Hdh, Hds, Hdc⟩
   -- the tester's ghost variables and invariant

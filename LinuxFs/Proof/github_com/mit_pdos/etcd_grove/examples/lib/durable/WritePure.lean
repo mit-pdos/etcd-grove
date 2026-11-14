@@ -205,13 +205,19 @@ theorem OutOk.mono_cands {s : DurSt} {cs cs' : List DCand} (hc : ∀ c ∈ cs, c
 
 theorem DurOk.crHt {f : DFile} {s : DurSt} {p : DurPhys} (h : DurOk f s p)
     (o : Option (Nat × Nat × Ino)) : DurOk f s { p with ht := crHt f p.ht o } := by
-  refine ⟨h.crash, h.cur, ?_, h.synced, h.cands, h.inj, h.alt⟩
-  intro J
-  match o with
-  | none => exact h.tmp J
-  | some (x, s0, i) =>
-    simp only [DurFs.crHt, NamesH.log, GMap.lookup_insert]
-    intro he; cases he
+  refine ⟨h.crash, h.cur, ?_, h.synced, h.cands, h.inj, h.alt, ?_⟩
+  · intro J
+    match o with
+    | none => exact h.tmp J
+    | some (x, s0, i) =>
+      simp only [DurFs.crHt, NamesH.log, GMap.lookup_insert]
+      intro he; cases he
+  · match o with
+    | none => exact h.tmpH
+    | some (x, s0, i) =>
+      refine h.tmpH.log x _ _ (fun J => ?_)
+      simp only [GMap.lookup_insert]
+      intro he; cases he
 
 /-- The new candidate's facts, the rename's for both forms. -/
 theorem DurOk.ren_common {f : DFile} {s s' : DurSt} {p : DurPhys} (h : DurOk f s p) (c : DCand)
@@ -220,7 +226,7 @@ theorem DurOk.ren_common {f : DFile} {s s' : DurSt} {p : DurPhys} (h : DurOk f s
     (hold : ∀ o, OutOk s p.cands o → OutOk s' (p.cands ++ [c]) o) :
     DurOk f s' (renPhys f p c a x s0) := by
   have hmem : c ∈ p.cands ++ [c] := List.mem_append_right _ (List.mem_singleton_self _)
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, halt⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, halt, ?_⟩
   · intro K hK
     by_cases hx : K x
     · simp only [renPhys]
@@ -245,6 +251,9 @@ theorem DurOk.ren_common {f : DFile} {s s' : DurSt} {p : DurPhys} (h : DurOk f s
   · simp only [renPhys, List.map_append, List.map_cons, List.map_nil]
     exact List.nodup_append.2 ⟨h.inj, (by simp), fun a ha b hb => by
       rw [List.mem_singleton.1 hb]; rintro rfl; exact hci ha⟩
+  · refine h.tmpH.log x _ _ (fun J => ?_)
+    simp only [GMap.lookup_delete]
+    intro he; cases he
 
 /-- **The first rename** (`alt = none` before): the state becomes `⟨data, some cur⟩`. -/
 theorem DurOk.renA {f : DFile} {s : DurSt} {p : DurPhys} (h : DurOk f s p) (hA : p.alt = none)
@@ -275,7 +284,7 @@ theorem DurOk.renB {f : DFile} {s : DurSt} {p : DurPhys} (h : DurOk f s p) (hB :
 theorem DurOk.commit {f : DFile} {s : DurSt} {p : DurPhys} (h : DurOk f s p)
     (hcoh : HistCoh p.hb f.J (.only [f.b])) (n : Nat) (hn : p.hb.next ≤ n) :
     DurOk f ⟨s.cur, none⟩ { p with nc := n, alt := none } := by
-  refine ⟨?_, h.cur, h.tmp, fun _ => hn, h.cands, h.inj, rfl⟩
+  refine ⟨?_, h.cur, h.tmp, fun _ => hn, h.cands, h.inj, rfl, h.tmpH⟩
   intro K hK
   have hall : ∀ xe ∈ p.hb.ents, K xe.1 := fun xe hxe =>
     hK xe.1 xe.2.1 xe.2.2 hxe (Nat.lt_of_lt_of_le (hcoh.1 xe hxe) hn)
