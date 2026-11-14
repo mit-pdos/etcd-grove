@@ -494,3 +494,22 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   corrections to its wording found in the proof: the fact is on the stream's end, not the offset (a `Save` that
   syncs flushes its pending bytes after its `Seek`, so the next `Save` may start at `SegmentSizeBytes` plus the
   buffer), and its bound covers a cut's headers (the metadata may reach 2^41 bytes).
+
+## 2026-11-14: `wal.WAL.Close.spec` (the part's, over `fsExt`) -- the directory's `Close` error after everything is closed
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__Close.lean` (`wal.WAL.Close.spec`, new: the
+  main tree's axiom's first conjunct with plan §3's binders), post `(∃ d, Q d ∗ walSyncedLb dir |d.H| ∗
+  walUnlockedTok ∗ osCallPerm 1) ∨ ⌜err ≠ nil⌝`.
+- **Defect (of the main axiom).** Its success arm required `err = nil`, its error arm was `¬ walCloseOk`. The Go
+  code (S/wal.go:1053-1077) returns `w.dirFile.Close()`'s error after the sync, every lock's close and the
+  put-back: an error there leaves everything closed and released, so a spec giving only `err ≠ nil` would lose
+  the lock token and the update's `Q` for no reason; and `¬ walCloseOk` cannot be proved from an errno (plan §6 Q6).
+- **Evidence.** `WAL.Close.wp_proof` (`LinuxFs/Proof/.../wal/WAL__Close.lean`): the put-back (`WalCloseLaw`) runs
+  before `dirFile.Close()`.
+- **Change (made).** The success resources whatever `err` (the left disjunct does not constrain it); a failed
+  sync (S/wal.go:1064-1066, returned before the locks) gives only `err ≠ nil` (the handle is lost, as `sync`'s
+  error arm loses it). The main axiom's second conjunct (`Close` of an opening or failed handle) is not restated
+  here: `Open`'s error arm takes `WAL.Close.specOpening` (a hypothesis), the failed handle (`walReadFailedF`) waits
+  for `ReadAll`.
+- **Decision.** Adopted (the W10 session, 2026-11-14; plan §6 Q6's honest error posts; no client of the part's
+  `Close` yet).

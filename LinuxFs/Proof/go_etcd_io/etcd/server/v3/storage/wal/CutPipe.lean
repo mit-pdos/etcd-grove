@@ -58,7 +58,7 @@ theorem wp_walPipeH_open
         ⌜err ≠ interface.nil⌝ }} := by
   iintro %Φ Hp HΦ
   iunfold walPipeH at Hp
-  icases Hp with ⟨%γ, %R, %dq, %sz, %n, #Hfp, Hmain, Hc, %hn⟩
+  icases Hp with ⟨%γ, %R, %dq, %sz, %n, #Hfp, Hmain, Hc, %hn, -⟩
   iapply wp_Open fp γ R dir dq j sz n $$ [$Hfp $Hmain Hc]
   · iunfold pipeQ
     iframe Hc
@@ -81,7 +81,7 @@ theorem wp_walPipeH_open
 /-- **The handle's pipeline after a cut**: the claim on the renamed file's name, `pipeTmp n`, is
 the one the next `Open` hands back. -/
 theorem walPipeH_next (fp : Loc) (dir : GoString) (k : Nat) (γ : PipeNames) (R : Roots)
-    (dq : DFrac) (j : Ino) (sz : w64) (n : Nat) (hn : n ≤ k) :
+    (dq : DFrac) (j : Ino) (sz : w64) (n : Nat) (hn : n ≤ k) (hfp : fp ≠ null) :
     isFilePipe (GF := GF) fp γ R dir dq j sz ∗ pipeMain γ (n + 1) ∗ tmpClaim j (pipeTmp n) ⊢
       walPipeH fp dir j (k + 1) := by
   iintro ⟨#Hfp, Hmain, Hc⟩
@@ -90,7 +90,9 @@ theorem walPipeH_next (fp : Loc) (dir : GoString) (k : Nat) (γ : PipeNames) (R 
   iframe Hfp Hmain
   rw [show n + 1 + 1 = n + 2 by omega, pipeTmp_add_two]
   iframe Hc
-  ipureintro; omega
+  isplitr
+  · ipureintro; omega
+  · ipureintro; exact hfp
 
 end iris
 
