@@ -227,6 +227,152 @@ Modules (`S/`): `BootPure` (pure), `BootStart0` (the first generation's `walStar
   the area holds only files (`tmpEnt (dir _) = False`, `TmpOk`, `SubCover`); the WAL creates nothing else there,
   but no invariant records that the claims' histories hold only files.
 
+**Second session (branch `wal-u3b`, 2026-11-14): (a) and (c) done; (d) not derivable as decided; (b) designed.**
+No axiom, nothing trusted changed. **For concurrent branches (merge note):** `walInvBody`'s last conjunct is now
+`⌜WalsBounded s ∧ DirsRoots R s⌝` (`DirsRoots` moved from `BootPure` to `Inv.lean`, with `DirsRoots.congr`/`.upd`):
+a step's `%Hbd` is the pair; rebuild with `⟨walsBounded_… Hbd.1 …, Hbd.2⟩` (`Hbd.2` is accepted as is when the
+new state is `{s with wal := …}`; `Hbd.2.upd` for `absDiskUpd`); a step keeping `s` closes with `Hbd` unchanged.
+`walInv_alloc` takes `(hdr : DirsRoots R s)` after `hbd`. `walStart`'s pure part gained `∀ i ∈ is, Named m i →
+(fo i).isSome` (second conjunct). `entsOf_lookup` moved from `Crash.lean` to `BootCrashPure.lean`.
+- **(a)** `walInv_crash` returns `WalsBounded s' ∧ DirsRoots R s'` (`walsBounded_crash`, `dirsRoots_crash`).
+- **(c)** `walInv_crash` also returns `[∗list] i ∈ bootFiles V'.now jr, trFile i False` (new generation): every
+  file of the crashed tree at a non-`.wal` name of a directory at a WAL name of the area (the others and the
+  pipeline names `0.tmp`/`1.tmp`), and at `.touch` of a directory at `nm.tmp` (`BootCrashPure.lean`). Distinct by
+  unique naming, a new premise **`hu : UniqNames V'.now`** (`TreeWf`'s last part of the crashed tree: `MachineCrash`
+  does not state the crashed tree well formed; a lemma "replaying a `Closed` set of logged operations on a
+  well-formed durable tree keeps `TreeWf`" would discharge it, not proved). An old segment's inode found at a
+  non-`.wal` name (a `cut` rename the crash dropped) comes from its segment start (`walStart` keeps only the old
+  segments not in `bootFiles`; the new layouts' segments are at `.wal` names, so none is lost); the rest from
+  `crashRest` (`crashRest_take_named`, `CrashTakeNamed.lean`: no old resources needed).
+- **(d) "WAL directories and `nm.<sfx>` directories hold only files" cannot be a fact of the WAL invariant as
+  it stands.** A fact about the crashed tree comes from the claims the invariant holds (`RegionCrashed cl n`). The
+  entries in question are under claims the invariant does not hold when the crash comes: the pipeline names'
+  `tmpClaim`s while a write handle holds them (`filePipeline.alloc` creates `0.tmp` with the whole claim, no
+  invariant step), the names `Repair` lends (`lendKey`), the whole claims of every directory under an `nm.<sfx>`
+  (`walAreaRes`'s `areaCls`, the program's), and `Create`'s `nm.tmp` directory's claim. Only the WAL directory's
+  own claim `(J, .except walTmps)` is the invariant's. Making it derivable means the invariant keeping a share of
+  those claims (the pipeline's and `Create`'s file creations becoming invariant steps through `osAU`, and
+  `walAreaRes`'s subtree claims shared): a change to `walAreaRes` (client-visible vocabulary) and to the
+  pipeline's ownership — **left to the coordinator/user** (not done). Until then it is the crash boot's premise
+  **`hfo : ∀ b J, AreaSlot b → V'.now.entry jr b = some (.dir J) → FilesOnly (entsOf V'.now J)`** (true of the Go
+  code: nothing creates a directory there; not dischargeable by a client either).
+- **(b), next: `walBootCrash`** (new generation, at its `wp_osShare` with `V = V'`, `V'.2 = []` from
+  `crashRest_treeS`), designed: `cl` = the area claim `(jr, .except (Wn ++ others), _)` (`Wn` the present WALs'
+  names, `others` the area's names holding an entry that are no `AreaSlot`, given back as at the first boot), per
+  present WAL `nm` at `J`: `(J, .except walTmps, _)` and `(jr, .only [nm], _)`; `(J, .only walTmps)` → `walTmpsRes J`
+  (files from `bootFiles`, `hfo`), `Jm` = the present WALs' directories; `hdirs1`/`hJm`/`hnames`/`hnok` from
+  `UniqNames` and `TreeWf` (`NameOk`); `hdok`/`hav` from `DirsRoots` (`BootPure`); `walOthersL` from `bootFiles`;
+  `walAreaRes`: `areaCls` = each `nm.<sfx>` directory's whole claim tagged by its name, `SubCover`/`TmpOk` from
+  `hfo`, `tmpClTouch` from the `.touch` files of `bootFiles`. Premises: `hu` (or `TreeWf R V'.now`), `hfo`.
+
+## W4c U2 log
+
+**First session (branch `wal-u2`, 2026-11-14): `lib/durable` translated into the part, its vocabulary
+and the `Read`/`Write` specs stated over `fsExt`; nothing proved yet.** No axiom, no trusted model,
+no `sorry` (no proof file yet). Modules: `LinuxFs/{Code,GeneratedProof}/github_com/mit_pdos/etcd_grove/
+examples/lib/durable.lean` (generated), `LinuxFs/Proof/.../examples/lib/durable/{Defs,PkgInit}.lean`,
+`LinuxFs/Spec/.../examples/lib/durable/{Read,Write}.lean`.
+
+- **The Go, reshaped (our own example; decided autonomously, the user's WAL-over-fsExt delegation).**
+  The semantics are the same (whole-file, atomic, durable `Write`; failures retried; `Read` of a missing
+  file `("", false)`), but only `os` functions the part already models are called: a `Write`'s
+  temporary is the fixed `dir/.durable-<base>`, opened `O_RDWR|O_CREATE|O_TRUNC` (was `os.CreateTemp`,
+  whose `runtime_rand` would be a new trusted model, and whose random names need a cofinite claim),
+  written with one `WriteAt` (skipped when empty), synced, closed, renamed, the directory opened and
+  synced; a `Read` is `tryRead`: `os.Open`, `Stat`, `make`, one `ReadAt` of the size (was
+  `os.ReadFile`, whose `readFileContents` growth loop is untranslated). `errors.Is(err,
+  fs.ErrNotExist)` stays. New premises the package doc states: no name of another file's temporary
+  (`.durable-` prefix), a file of at most 1 GiB. A quick Go test (write, empty write, read back, one
+  entry left in the directory) passed; not committed. The main tree's model
+  (`TrustedCode/.../lib/durable.lean`) is unchanged but for its docstring's list of calls.
+- **Project `durable` has a part `LinuxFs`** (`etc/goose.py`), with `path/filepath` and
+  `internal/filepathlite` mapped to the part, no `LinuxFs/Code/...durable.toml` (every function
+  translated). `etc/goose.py --check --project durable` passes.
+- **The spec design (`Defs.lean`'s header).** Per file `f : DFile` (directory path `d`, its inode `J`,
+  base `b`; `f.Ok`: clean absolute `d`, clean segments `b`, `.durable-b`). The client-visible state is
+  `DurSt := {cur, alt}`: `cur` what `Read` returns, `alt = some old` while a `Write`'s rename may be
+  lost to a crash. **A `Write` is two atomic updates** (`Write.spec`): at the rename `cur := data, alt
+  := some cur`; at the directory sync's commit `alt := none`. Why not one (as `durableExt`'s): between
+  the rename and the commit a crash may keep either contents, and no single point of the client's
+  ghost state is right for both. Rejected: committing the client's update at the crash (helping, the
+  update stored in `durInv`), which needs a saved proposition, a later stripped in the crash
+  obligation, and the writer's `Φ` back through `savedPropOwn`'s `▷`-agreement; the two-update form
+  costs the client only an `alt` it keeps in its own invariant (the tester: the WAL does not move
+  during a `Write`, so both oracles are consistent with it). Masks: `durAuMask = osAuMask \ durN`, so
+  the first update can be opened inside `os.Rename`'s `osAUnc` at the rename step (with `notCrashed`,
+  to open `durInv`). **The mutex guards `True`** (`PkgInit.lean`'s fact `isMutex (globalAddr mu)
+  True`): the calls are serialized in the proof by the caller's exclusive `durHandle γ f R`, not by
+  `mu`, whose invariant is fixed at package init (before any claim exists) and whose ghost name a
+  client's `durInv` could not agree with. kvdurable (concurrent callers) will need the handle in a lock
+  of its own, or the token-in-`durInv` form (lock invariant a token, `durInv` holding `token ∨ handle`).
+- **The invariant (`durInvBody`)**: the other half of `durSt`; the physical state `DurPhys` (half; the
+  handle has the other): the claims' histories `hb` (on `.only [b]`) and `ht` (on `.only [tb]`), a
+  commit lower bound `nc`, the candidates `cands` (inode, `OsMeta`, contents; `DCand.Ok`: size the
+  contents' length, crash bounds `lo = hi = size`, as a synced file and a crash's `initMeta` both
+  have); half of each claim, `osCommitLb nc`, half of every candidate's `osMeta`/`osBytes` (bytes
+  `durB`). Facts (`DurOk`): every `K` keeping the entries of `hb` below `nc` leaves `b` (`valAfter`)
+  as `OutOk` allows (absent iff `cur` or `alt` is, or a candidate holding `cur`'s or `alt`'s
+  contents), stated without `RegionCrashed`'s `Follows` closure, which `b`'s history (renames only)
+  does not need; `b` now holds `cur`'s candidate; the temporary is never a directory; `alt = none →
+  hb.next ≤ nc`.
+- **Next (in order):** (1) `tryRead`/`Read`: needs an `os.Open` of a present file in shared mode whose
+  error is a `*PathError` of an errno other than `ENOENT` (`wp_osOpenFileS` does not export the
+  semantics' `e = ENOENT → lookup = none`: a strengthened extension lemma, as `wp_osOpenDirS`'s), the
+  `fi.Size()` interface call, `errors.IsPathErrnoNotExist.spec` (the WAL's hypothesis, to move from
+  `wal/ExistCallees.lean` to `LinuxFs/Spec/errors/`); (2) `tryWrite`/`Write` (`os.OpenFile.wp_truncS`
+  for an existing temporary, `specCreateTruncSnc` otherwise, `WriteAt`, `Sync`, `Close`,
+  `Rename.specFileSnc` with the first update inside, `Open.wp_dirS`, `Sync.specDirS`, the second update
+  after it); (3) `durInv_crash` (`crashRest_region` on the two claims with `osCommitLb nc`,
+  `crashRestAt_take` of the candidate `b` holds) and the boot (`durBoot`, from the new generation's
+  claims and the crash's `osFileStart`s); (4) `gen-init.py` (`LFS_PKGS`, `LFS_SPECIAL`: `init_Mutex
+  True`) and `etc/gen-link.py` (a mode of its own or `--walfs`'s).
+
+**Third session (branch `wal-u3c`, 2026-11-14): `hu` discharged; `hfo`'s invariant designed, its crash side proved;
+`walBootCrash` not started.** No axiom, nothing trusted changed.
+- **`hu` gone.** The replay of a closed set of logged operations is a tree only under the shared mode's disciplines
+  (`TreeCut.lean`: without them it need not be, the §4.3 counterexample), and that theorem was proved (`closed_cut`,
+  used by `machineCrash_initS`), but its conclusion was not kept for the next generation. Now `crashShared`
+  (`GooseLang/Ext/Fs/CrashTok.lean`, untrusted) keeps `TreeWf st.fs.roots V'.now` (first conjunct; built in
+  `os_local_crash` from `FsInit`), and **`crashRest_treeWf`** (`TreeShared.lean`, proof `TreeSharedCrash.lean`):
+  `osSharedInv R -∗ crashRest … V' ={E}=∗ ⌜TreeWf R V'.now⌝ ∗ crashRest … V'`. `walInv_crash` takes no `hu` (it calls
+  `crashRest_treeWf`; `uniqNames_of_wf`). The crash boot gets `TreeWf R V'.now` the same way (`NameOk`, `hjr`).
+  **Merge note:** a proof destructuring `crashShared`'s pure part gains a first component (two sites, fixed).
+- **`hfo`: condition checked, design (ledger 2026-11-14, "`hfo` not derivable").** `walAreaRes` is unpacked by no
+  client (outside `wal/` only comments and the WAL's own `Spec` files name it); its body is exposed (not
+  `@[no_expose]`): sealing it formally means `import all` in its WAL proofs (a follow-up, not needed for the check).
+  The crash side is proved (`BootFilesOnly.lean`): `HistNoDir h b` (no version of the history holds a directory at
+  `b`), `regionCrashed_noDir`, `regionCrashed_filesOnly` (a directory all of whose names crash-kept claims cover with
+  `HistNoDir` holds only files after the crash), `HistNoDir.log`. `hfo` narrows to WAL names and `nm.tmp`: the
+  `nm.broken.<t>` directories need only `SubCover`, which the boot's whole claims give (all directories reachable
+  under the name, tagged with it). The invariant side (a framed conjunct `walFoRes`: claims `fl` at half, `HistNoDir`
+  of `fl` and of the WAL-directory claims, coverage of every area version's directory at a WAL name or `nm.tmp`), by
+  the updates under the new claims, each to become an invariant step:
+  1. the pipeline's `0.tmp`/`1.tmp` (`tmpClaim`): `filePipeline.alloc`'s create (`specCreateS` → `specCreateSnc` with
+     the invariant's half, the os specs are shaped for it), the pipeline's removal of its leftover, `cut`'s rename
+     (already an invariant step; its source half now the invariant's too), the hand-off (`walParked` ↔ the handle:
+     `openAtIndex`, `Close`, `CloseHandle`, `WAL__CloseOpening`, `CreateHandle`, `CreateUnmint`): ~15 proofs;
+  2. `Create`'s `nm.tmp`: the `mkdir` (an area step: the new directory's claim's half into `fl`), `TouchDirAll`'s
+     `.touch` probe (fileutil's spec takes `osSubtree` whole: needs an AU-shaped spec, a fileutil spec change),
+     the first segment's create, `os.RemoveAll(nm.tmp)` of a leftover (needs an AU-shaped `os.RemoveAll` spec, a new
+     os spec and proof), the rename `nm.tmp` → `nm` (the claims become the WAL directory's);
+  3. `Repair`'s lent names (`lendKey`): its `.broken` file's create, rename;
+  4. the WAL-directory claims' `HistNoDir`: every invariant step logging into one proves its new version files-only
+     (segments and `walOthers`): `cut`, `Create`'s commit, `Repair`, `renameWAL`;
+  5. **open point**: `cleanupWAL` (`wal-create25`) renames `nm` → `nm.broken.<t>`: until that rename is committed a
+     crash may keep the version with `J` at `nm`, so `J`'s claims must stay covered (the invariant's half in `fl`), but
+     `walAreaRes`'s `areaCls` holds `nm.broken.<t>`'s subtree claims whole (for `os.RemoveAll`). Either coverage is
+     released only past the commit bound (`n`), the broken directory's claims staying split until a sync, or
+     `walAreaRes` takes the broken subtrees at less than whole.
+  **Estimate 3-5 sessions; cheaper alternative for 2 (for the coordinator):** drop `TmpOk` for a general-subtree
+  `os.RemoveAll` spec (`SubCover`, which the boot gives) and let `tmpClTouch` accept a directory `.touch` (the probe's
+  `O_CREAT` open fails with `EISDIR`, `Create` returns the error): then only `nm` (1, 3, 4) needs `fl`, and none of the
+  AU-shaped fileutil/`RemoveAll` specs.
+- **`walBootCrash`, started (pure).** `BootCrashCl.lean`: `bootWals m jr` (the area's WAL names holding a directory,
+  with it), `mem_bootWals`, `bootWals_nodup`, `bootWals_fun`, `bootWals_inj` (unique naming: distinct directories),
+  `bootWals_ne_root`, `bootWals_nameOk`, `bootWals_mem` (`TreeWf`): the facts `hdirs1`/`hJm`/`hnames`/`hnok` rest on.
+  Next: the claim list over `bootWals` (the `osNames_split`s of the area's and each `J`'s whole claims), then the
+  proof as designed in the second session, with `hfo` (narrowed) its premise until `walFoRes` lands.
+
 ## W4c U4 log (branch `wal-u4`, 2026-11-14)
 
 **The instance** (`LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/RaftModel/`), one module per group:

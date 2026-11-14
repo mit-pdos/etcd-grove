@@ -186,7 +186,7 @@ theorem walInvBody_readGive (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
   iframe Htf Hk Hv Ho
   isplitr
   · ipureintro
-    refine ⟨⟨d, hd, ?_, ?_⟩, Hbd, hX⟩
+    refine ⟨⟨d, hd, ?_, ?_⟩, Hbd.1, hX⟩
     · rw [htg]; rfl
     · rw [htg]; rfl
   iunfold walInvBody

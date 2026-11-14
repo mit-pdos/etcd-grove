@@ -11,6 +11,9 @@ Why it holds in Go (protobuf-go v1.36, `proto/decode.go`, `internal/impl/decode.
 (`*prefixError`, `*wrapError` wrapping another of these, which unwrap to `errors.Error`, "protobuf
 error"), `protowire.ParseError`'s (`io.ErrUnexpectedEOF`, `errors.New` values of `internal/errors`), or
 `errors.RequiredNotSet`: none is `io.EOF` or wraps it, since nothing reads an `io.Reader`.
+And `errors.Is(err, u)` returns for every pointer target `u` (`errIsTerm`; since 2026-11-14, `wal-vsnap3`;
+ledger, "no `errors.Is(_, io.ErrUnexpectedEOF)` termination"): these errors' `Is` methods compare and their
+`Unwrap` chains are finite.
 W3a of `notes/wal-fsext-plan.md` (ledger 2026-11-14, "the error's identity"); Lean-first.
 -/
 module
@@ -43,7 +46,7 @@ abbrev proto.UnmarshalWalRecordE.spec : Prop :=
       (Val #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.walpb.Record.ty) #l)))
   {{ (err : GoInterface), RET #err; b ↦*{dq} bs ∗
       ((∃ r, ⌜err = GoInterface.nil ∧ walCodec.decRec bs = some r⌝ ∗ ownRec l r) ∨
-       ⌜err ≠ GoInterface.nil ∧ UFail walCodec bs⌝ ∗ errIsNot err t) }}
+       ⌜err ≠ GoInterface.nil ∧ UFail walCodec bs⌝ ∗ errIsNot err t ∗ errIsTerm err) }}
 
 end spec
 

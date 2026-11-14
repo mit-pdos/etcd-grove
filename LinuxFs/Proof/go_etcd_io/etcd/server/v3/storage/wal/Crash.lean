@@ -25,6 +25,9 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CrashStart
 public import GooseLang.Ext.Fs.CrashTakeFiles
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CrashTakeSeg
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutSynced
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.BootPure
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.BootCrashPure
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CrashTakeNamed
 
 @[expose] public section
 
@@ -48,7 +51,7 @@ def laysFull (L : GooseLocalGS GF) (Ls : GMap GoString WalLay) : IProp GF :=
 
 /-- **The WAL's start in the generation `(L, W)`**, the WAL state being `s` and the tree `m`: the
 ghost authorities; the files `is`, each with its start resources (as a crash's `fileStart` gives
-them: `fo`); the layouts (`WalsStart`), every segment one of `is`, its `OsMeta` and bytes those of its
+them: `fo`, each the tree names on disk); the layouts (`WalsStart`), every segment one of `is`, its `OsMeta` and bytes those of its
 file on disk, the segments' inodes distinct. -/
 def walStart (L : GooseLocalGS GF) (W : WalGS GF) (C : WalCodec) (Mr : WalMarshal) (R : Roots)
     (jr : Ino) (r : GoString) (s : AbsDiskState) (m : Tree) : IProp GF :=
@@ -58,7 +61,8 @@ def walStart (L : GooseLocalGS GF) (W : WalGS GF) (C : WalCodec) (Mr : WalMarsha
     walOutAuth (W := W) WalOut.empty ∗ walNamesAuth (W := W) none ∗ walSplitAuth (W := W) [] ∗
     walSplitFrag (W := W) [] ∗ walLentAuth (W := W) ∅ ∗ ⌜s.area = r⌝ ∗
     ([∗list] i ∈ is, osFileStartO (L := L) i (fo i)) ∗
-    ⌜is.Nodup ∧ ((segsAll Ls).map (·.ino)).Nodup ∧ WalsStart C Mr R jr s Ls m ∧
+    ⌜is.Nodup ∧ (∀ i ∈ is, Named m i → (fo i).isSome) ∧
+      ((segsAll Ls).map (·.ino)).Nodup ∧ WalsStart C Mr R jr s Ls m ∧
       ∀ dir lay, Ls !! dir = some lay → ∀ g ∈ lay.segs,
       g.ino ∈ is ∧ ∃ f, fo g.ino = some f ∧ g.om = initMeta f ∧ g.bs = f.contents.map durB⌝)
 
@@ -88,11 +92,31 @@ theorem walsOk_cut {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s : 
     {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat} (h : WalsOk C Mr R jr s Ls cl n) :
     ∀ g ∈ segsAll Ls, g.om.cut = none := h.2.2.2.1
 
+/-- **A file a crash kept is held whole once taken** (`osFileStart`, as a generation's `fileStart`
+gives it: `initMeta`, its bytes durable): `trFile i False`. What the boot program gives of a leftover
+file the WAL's temporary names hold: a pipeline's `N.tmp` (`walTmpsRes`'s `tmpEnt`) and a temporary
+directory's `.touch` (`walAreaRes`'s `tmpClTouch`, `wal-leaf5`: the area's establishment, C6, takes each
+such file from the crash's `crashRest`). -/
+theorem osFileStart_trFile (L : GooseLocalGS GF) (i : Ino) (f : Fs.OsFile) :
+    osFileStart (L := L) i f ⊢ trFile (hG := ⟨G, L⟩) i False := by
+  unfold osFileStart trFile
+  iintro ⟨Hm, Hb⟩
+  iexists initMeta f, f.contents.map durB
+  iframe Hm Hb
+  isplitl []
+  · unfold mcellsAny
+    exact BigSepM.bigSepM_empty.2
+  ipureintro
+  refine ⟨by simp [initMeta, contents_length], fun h => h.elim, rfl, rfl, Nat.le_refl _,
+    ⟨pageEnd f.size, rfl, le_pageEnd _⟩, fun h => h.elim⟩
+
 /-- **The WAL's crash** (plan §2.2): from the old generation's invariant, its `crashed` (from the
 crash adequacy theorem) and the WAL's crash token, the shared mode's invariant, the generation's
 `crashRest` (the tree untaken) and W1 (`hQ`): a new generation of the WAL's names, the crash view,
-the new generation's start over the crashed tree, its lock and crash tokens, and `crashRest` back
-(the segments taken, the tree not). -/
+the new generation's start over the crashed tree, its lock and crash tokens, the crash boot's
+non-segment files whole (`bootFiles`: a WAL directory's files at its non-`.wal` names, a temporary
+directory's `.touch`; distinct by the crashed tree's unique naming, `crashRest_treeWf`, each from an old segment's
+start if it was one, else from `crashRest`), and `crashRest` back (those files taken, the tree not). -/
 theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsState → Fs.OsState → Prop)
     (hQ : ∀ st st', Q st st' → W1 C st st') (hPre : AbsDiskGpreS GF) (L L' : GooseLocalGS GF)
     (W : WalGS GF) (R : Roots) (jr : Ino) (r : GoString) (V' : Hist) (E : CoPset)
@@ -101,10 +125,15 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
       walCrashTok (W := W) -∗ osSharedInv (L := L) R -∗
       crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) [] false V' ={E}=∗
       ∃ (W' : WalGS GF) (s' : AbsDiskState) (D : List Ino),
-        walCrashWal W W' ∗ ⌜s'.area = r ∧ DirsAvoid R jr s'⌝ ∗ walStart L' W' C Mr R jr r s' V'.now ∗
+        walCrashWal W W' ∗ ⌜s'.area = r ∧ DirsAvoid R jr s' ∧ WalsBounded s' ∧ DirsRoots R s'⌝ ∗
+        walStart L' W' C Mr R jr r s' V'.now ∗
         walPast (W := W') s' ∗ walUnlockedTok (W := W') ∗ walCrashTok (W := W') ∗
+        ([∗list] i ∈ bootFiles V'.now jr, trFile (hG := ⟨G, L'⟩) i False) ∗
         crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D false V' := by
   iintro #Hinv #Hcrd Htok #Hsh Hcr
+  -- the crashed tree is well formed (`crashRest_treeWf`): its names unique
+  imod crashRest_treeWf Q L L' [] false V' R E hE' $$ Hsh Hcr with ⟨%hwf, Hcr⟩
+  have hu : UniqNames V'.now := uniqNames_of_wf hwf
   -- open the old invariant and close it with the crash tokens
   unfold walInv
   imod inv_acc (E := E) hE $$ Hinv with ⟨Hi, Hclose⟩
@@ -134,13 +163,68 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
   obtain ⟨hQs, htree, hfiles⟩ := Hfs
   obtain ⟨s', Ls', hcrash, harea', hk', hstart, hnd', hsegs⟩ :=
     walCrash_pure C hC Mr R jr s Ls cl n V'.now st st' Hok Han.1 Hnm hk (fun _ _ hl => HAt.ne hl) Hreg htree (hQ _ _ hQs) hfiles
+  -- the crash boot's files (`bootFiles`): among the old segments' starts, or not yet taken
+  have hBn : (bootFiles V'.now jr).Nodup := bootFiles_nodup hu jr
+  have hsegN : ((segsAll Ls).map (·.ino)).Nodup := walsOk_nodup Hok
+  have hnamedB : ∀ i ∈ (bootFiles V'.now jr), Named V'.now i := fun i hi => by
+    obtain ⟨a, J, b, -, hb, -⟩ := mem_bootFiles.1 hi
+    exact ⟨J, b, hb⟩
+  have hsome : ∀ i ∈ ((segsAll Ls).map (·.ino)), Named V'.now i → (st'.fs.files !! i).isSome := fun i hi hn => by
+    obtain ⟨g, hg, rfl⟩ := List.mem_map.1 hi
+    exact (hfiles g hg).2.1 hn
+  ihave Hstarts := (BigSepL.bigSepL_perm (Φ := fun i => osFileStartO (L := L') i (st'.fs.files !! i))
+    (List.filter_append_perm (fun i => decide (i ∈ (bootFiles V'.now jr))) ((segsAll Ls).map (·.ino))).symm).1 $$ Hstarts
+  icases BigSepL.bigSepL_append.1 $$ Hstarts with ⟨HB1, Hstarts⟩
+  have hB1 : ([∗list] i ∈ ((segsAll Ls).map (·.ino)).filter (fun i => decide (i ∈ (bootFiles V'.now jr))),
+      osFileStartO (L := L') i (st'.fs.files !! i)) ⊢
+      [∗list] i ∈ ((segsAll Ls).map (·.ino)).filter (fun i => decide (i ∈ (bootFiles V'.now jr))), trFile (hG := ⟨G, L'⟩) i False := by
+    refine BigSepL.bigSepL_mono (fun {k i} hk => ?_)
+    have hi := List.mem_filter.1 (List.mem_of_getElem? hk)
+    have hiB : i ∈ (bootFiles V'.now jr) := of_decide_eq_true hi.2
+    have h := hsome i hi.1 (hnamedB i hiB)
+    cases e : st'.fs.files !! i with
+    | none => rw [e] at h; cases h
+    | some f => exact osFileStart_trFile L' i f
+  ihave HB1 := hB1 $$ HB1
+  icases crashRest_take_named (gooseOsGS (L := L)) (gooseOsGS (L := L')) Q (((segsAll Ls).map (·.ino)) ++ []) false V' ((bootFiles V'.now jr).filter (fun i => decide (i ∉ (segsAll Ls).map (·.ino))))
+    (fun i hi hD => by
+      have := of_decide_eq_true (List.mem_filter.1 hi).2
+      exact this (by simpa using hD))
+    (hBn.filter _) (fun i hi => hnamedB i (List.mem_filter.1 hi).1) $$ Hcr with ⟨HB2, Hcr⟩
+  have hB2 : ([∗list] i ∈ ((bootFiles V'.now jr).filter (fun i => decide (i ∉ (segsAll Ls).map (·.ino)))), ∃ f, fileStart (gooseOsGS (L := L')) i f) ⊢
+      [∗list] i ∈ ((bootFiles V'.now jr).filter (fun i => decide (i ∉ (segsAll Ls).map (·.ino)))), trFile (hG := ⟨G, L'⟩) i False := by
+    refine BigSepL.bigSepL_mono (fun {k i} _ => ?_)
+    iintro ⟨%f, H⟩
+    iapply osFileStart_trFile L' i f
+    iapply (Fs.fileStart_eq (L := L') i f).1 $$ H
+  ihave HB2 := hB2 $$ HB2
+  have hperm : (((segsAll Ls).map (·.ino)).filter (fun i => decide (i ∈ (bootFiles V'.now jr))) ++ ((bootFiles V'.now jr).filter (fun i => decide (i ∉ (segsAll Ls).map (·.ino))))).Perm (bootFiles V'.now jr) := by
+    refine List.Perm.trans ?_ (List.filter_append_perm (fun i => decide (i ∈ ((segsAll Ls).map (·.ino)))) (bootFiles V'.now jr))
+    refine List.Perm.append ?_ (List.Perm.of_eq (List.filter_congr (fun i _ => by rw [decide_not])))
+    refine (List.perm_ext_iff_of_nodup (hsegN.filter _) (hBn.filter _)).2 (fun i => ?_)
+    simp only [List.mem_filter, decide_eq_true_eq]
+    exact ⟨fun h => ⟨h.2, h.1⟩, fun h => ⟨h.2, h.1⟩⟩
+  ihave HB : [∗list] i ∈ (bootFiles V'.now jr), trFile (hG := ⟨G, L'⟩) i False $$ [HB1 HB2]
+  · iapply (BigSepL.bigSepL_perm (Φ := fun i => trFile (hG := ⟨G, L'⟩) i False) hperm).1
+    iapply BigSepL.bigSepL_append.2
+    iframe HB1 HB2
+  -- the new layouts' segments are no crash boot file (they are at `.wal` names)
+  have hsegB : ∀ dir lay, Ls' !! dir = some lay → ∀ g ∈ lay.segs, g.ino ∉ (bootFiles V'.now jr) := by
+    intro dir lay hl g hg hB
+    obtain ⟨a, J, b, -, hb, ht⟩ := mem_bootFiles.1 hB
+    obtain ⟨hw, he⟩ := (hstart.2.2.2.2.1 dir lay hl).1 g hg
+    rw [entsOf_lookup] at he
+    have e := (hu _ _ _ _ _ hb he).2
+    subst e
+    rw [bootTake_not_wal ht] at hw
+    cases hw
   -- the new generation's ghost state
   ihave #Hst' := walStepsLb_mono s s' (fun _ hn => walsStepped_crash hcrash hn) $$ Hst
   imod walGhost_init hPre s' hk' $$ Hst' with
     ⟨%W', Hg', HM', #Hp', Hu', Hc', Hcr', Ht', Hpk', Hdk', Hcp', Hpo', Hnm', Hnw', Hnwf', Hlt'⟩
   imodintro
-  iexists W', s', ((segsAll Ls).map (·.ino) ++ [])
-  iframe Hu' Hc' Hcr Hp'
+  iexists W', s', (((bootFiles V'.now jr).filter (fun i => decide (i ∉ (segsAll Ls).map (·.ino)))) ++ (((segsAll Ls).map (·.ino)) ++ []))
+  iframe Hu' Hc' Hcr Hp' HB
   isplitl [Hg HM']
   · unfold walCrashWal
     iexists s, s'
@@ -148,22 +232,24 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
     ipureintro; exact hcrash
   isplitr
   · ipureintro
-    refine ⟨by rw [harea', Har], fun dd hdd => Han.2 dd ?_⟩
+    refine ⟨by rw [harea', Har], fun dd hdd => Han.2 dd ?_, walsBounded_crash hcrash Hbd.1,
+      dirsRoots_crash hcrash Hbd.2⟩
     rw [← hcrash.2.1]; exact hdd
   unfold walStart
-  iexists Ls', (segsAll Ls).map (·.ino), (fun i => st'.fs.files !! i)
+  iexists Ls', ((segsAll Ls).map (·.ino)).filter (fun i => !decide (i ∈ (bootFiles V'.now jr))), (fun i => st'.fs.files !! i)
   iframe Hg' Hstarts Hcr' Ht' Hpk' Hdk' Hcp' Hpo' Hnm' Hnw' Hnwf' Hlt'
   ipureintro
-  exact ⟨by rw [harea', Har], walsOk_nodup Hok, hnd', hstart, hsegs⟩
+  refine ⟨by rw [harea', Har], hsegN.filter _, fun i hi hn => hsome i (List.mem_filter.1 hi).1 hn,
+    hnd', hstart, fun dir lay hl g hg => ?_⟩
+  obtain ⟨h1, h2⟩ := hsegs dir lay hl g hg
+  refine ⟨List.mem_filter.2 ⟨h1, ?_⟩, h2⟩
+  simp only [Bool.not_eq_eq_eq_not, Bool.not_true, decide_eq_false_iff_not]
+  exact hsegB dir lay hl g hg
 
 /-- Every name of a set. -/
 theorem restrictN_all (e : Ents) : restrictN (.except []) e = e := by
   apply GMap.ext; intro b
   exact restrictN_lookup _ _ _ (by simp [NameSet.Mem])
-
-theorem entsOf_lookup (m : Tree) (j : Ino) (b : GoString) : entsOf m j !! b = m.entry j b := by
-  unfold entsOf Tree.entry
-  cases m !! j <;> rfl
 
 /-- A claim of a history with nothing logged: its names as the tree has them. -/
 theorem namesOf_nil {V : Hist} (hV : V.2 = []) (j : Ino) (N : NameSet) :
@@ -507,7 +593,8 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     (hJm : ∀ dir nm J, InArea r dir nm → V.now.entry jr nm = some (.dir J) → Jm !! dir = some J)
     (hnames : ∀ nm J, walNameOk nm → V.now.entry jr nm = some (.dir J) →
       ∃ h, (jr, NameSet.only [nm], h) ∈ cl)
-    (hnok : ∀ b h, (jr, NameSet.only [b], h) ∈ cl → NameOk b) (hbd : WalsBounded s) (qs : Qp)
+    (hnok : ∀ b h, (jr, NameSet.only [b], h) ∈ cl → NameOk b) (hbd : WalsBounded s)
+    (hdr : DirsRoots R s) (qs : Qp)
     (E : CoPset) :
     ⊢ walStart L W C Mr R jr r s V.now -∗
       osClaims L (cl.map (fun c => (c, DFrac.own 1))) -∗
@@ -523,7 +610,7 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
   iintro Hst Hcl Htmp Hsp Hoth
   unfold walStart
   icases Hst with ⟨%Ls, %is, %fo, Hg, Hcr, Htl, Hpk, Hdk, Hcp, Hpo, Hnm, Hnw, Hnwf, Hlt, %Har, Hfs, %Hp⟩
-  obtain ⟨-, hnd, hstart, hsegs⟩ := Hp
+  obtain ⟨-, -, hnd, hstart, hsegs⟩ := Hp
   ihave Hoth := Hoth $$ %Ls %hstart
   -- the segments' start resources, halved
   have hsub : ((segsAll Ls).map (·.ino)) ⊆ is := fun i hi => by
@@ -720,7 +807,7 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
       · ipureintro
         exact ⟨fun nm hnm => (hW nm).1 hnm, fun dir lay hl _ => (hW lay.nm).2 ⟨dir, lay, hl, rfl⟩⟩
       iexists qs; iexact Hsp
-    ipureintro; exact hbd
+    ipureintro; exact ⟨hbd, hdr⟩
   imodintro
   unfold walInv
   iframe Hinv
@@ -902,24 +989,6 @@ theorem walArea_crash_keep (r : GoString) :
   isplitl [HG HM']
   · iexists s, s'; iframe HG HM' Hp'; ipureintro; exact hc
   · iexists s'; iframe Hp'; ipureintro; rw [hc.1, Hlp.1, Hr]
-
-/-- **A file a crash kept is held whole once taken** (`osFileStart`, as a generation's `fileStart`
-gives it: `initMeta`, its bytes durable): `trFile i False`. What the boot program gives of a leftover
-file the WAL's temporary names hold: a pipeline's `N.tmp` (`walTmpsRes`'s `tmpEnt`) and a temporary
-directory's `.touch` (`walAreaRes`'s `tmpClTouch`, `wal-leaf5`: the area's establishment, C6, takes each
-such file from the crash's `crashRest`). -/
-theorem osFileStart_trFile (L : GooseLocalGS GF) (i : Ino) (f : Fs.OsFile) :
-    osFileStart (L := L) i f ⊢ trFile (hG := ⟨G, L⟩) i False := by
-  unfold osFileStart trFile
-  iintro ⟨Hm, Hb⟩
-  iexists initMeta f, f.contents.map durB
-  iframe Hm Hb
-  isplitl []
-  · unfold mcellsAny
-    exact BigSepM.bigSepM_empty.2
-  ipureintro
-  refine ⟨by simp [initMeta, contents_length], fun h => h.elim, rfl, rfl, Nat.le_refl _,
-    ⟨pageEnd f.size, rfl, le_pageEnd _⟩, fun h => h.elim⟩
 
 end crash
 

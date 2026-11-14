@@ -1442,6 +1442,29 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   notUeof err ∗ ownRecAny rp ∗ ∃ k off' c', ([∗list] F ∈ fs.take k, ∃ q, F.S q) ∗ ownDecoder d IoE eof (fs.drop k)
   off' c' false`.
 
+## 2026-11-14: `decoder.Decode.spec`/`decodeRecord.spec` (internal, the part's) -- no `errors.Is(_, io.ErrUnexpectedEOF)` termination on `Decode`'s own errors
+
+- **Spec.** `decPost` (`LinuxFs/Proof/.../wal/DecDefs.lean`): `decPostB ∗ decAns eof err`; only the I/O arm carries
+  `errors.Is(err, io.ErrUnexpectedEOF)`'s answer (`notUeof`).
+- **Defect.** Too weak for `wal.Repair` (S/repair.go:64: `errors.Is(err, io.ErrUnexpectedEOF)` on every non-`EOF`
+  error) and `validSnapshotEntries`/`ReadAll` read mode: on a stop's or a failed `Unmarshal`'s error the call has no
+  spec (`RepairLoop.lean`'s `errUeAns_end`, `sorry`).
+- **Evidence.** The stop errors are `io.EOF`, `io.ErrUnexpectedEOF`, `fmt.Errorf("%w ...", io.ErrUnexpectedEOF|err)`
+  (decoder.go:110-150) and `proto.Unmarshal`'s; `errors.Is` terminates on each in Go.
+- **Change (made, `wal-vsnap3`).** `decPost := decPostB ∗ decAns eof err ∗ decUe err`, `decUe err := ⌜err = nil⌝ ∨
+  errIsTerm err ∨ notUeof err`, `errIsTerm e` (`LinuxFs/Spec/fmt/ErrorfErrsNot.lean`): `errors.Is(e, u)` returns for
+  every pointer target `u`. The hypotheses it comes from carry it: `fmt.ErrorfErrsNot.spec` (pre: each error argument's
+  `errIsTerm`; post: the result's), `walpb.Record.Validate.spec` (pre: `ErrCRCMismatch`'s; post: its error's),
+  `proto.UnmarshalWalRecordE.spec` (post: its error's), `decEnv` (`ErrCRCMismatch`'s; a part of the hypothesis
+  `WalDecEnvSupply`); `io.EOF`'s and `io.ErrUnexpectedEOF`'s are proved (`*errorString` leaves, `errors.wp_Is_leaf`).
+  **Deviation from the coordinator's wording** ("the `%w`-wrapped `io.ErrUnexpectedEOF`: true; `io.EOF`: false"):
+  only termination is given, no answer. `true` on `fmt.Errorf("%w ...", io.ErrUnexpectedEOF)` is Go's answer but false of
+  Perennial's `fmt.Errorf` model (`errors.New(format)`, a fresh leaf), so the hypothesis `ErrorfErrsNot` could not be
+  discharged from the model if it claimed it; and no caller needs an answer (`Repair` needs `true` only at the end of the
+  frames, where the stop is, `RepairAt`; `validSnapshotEntries`' error arm takes any error). `io.EOF`'s `false` follows
+  from `wp_Is_leaf` where a caller needs it.
+- **Decision.** Made (internal; no ghost state; the hypotheses' strengthening is true of Go and of the models).
+
 ## 2026-11-14: `openLast.spec` (internal, the part's) -- the last segment's name not known valid
 
 - **Spec.** `walLastOpen` (`LinuxFs/Proof/.../wal/OpenLastDefs.lean`), `openLast.spec`'s success arm: the pin of the
@@ -1499,3 +1522,27 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   main tree's conjunct, word for word), which `IsEmptyLaw`'s proof reads. (2)+(3) stay out (the user's call,
   W4c U4 task 3): `MarshalHsLaw`, `CloneHsLaw`, `WalHsOwn.unmarshal`, `WalHsOwn.reset` remain hypotheses of
   the closed result, listed in §10 of `notes/wal-fsext-plan.md` as pending the user.
+
+## 2026-11-14: `walInvBody` (internal, the part's) -- the crash boot's files-only fact `hfo` not derivable (W4c U3)
+
+- **Spec.** `walInvBody` (`LinuxFs/Proof/.../wal/Inv.lean`) and what `walInv_crash` returns of the crashed tree.
+- **Defect.** The crash boot (`walBootCrash`) must give the next generation `walTmpsRes J` (`0.tmp`/`1.tmp` absent or
+  files), `walOthersL` (a WAL directory's non-segment entries files), `walAreaRes`'s `TmpOk` (a leftover `nm.tmp` holds
+  only files, for `os.RemoveAll.specDirS`) and `tmpClTouch` (its `.touch` no directory). A crash leaves at a name what
+  one of its claim's versions held (`RegionCrashed`), and only for the claims the invariant holds when the crash comes;
+  the pipeline's names (while a write handle holds them), `Repair`'s lent names, `Create`'s `nm.tmp` directory and its
+  contents are under claims the program holds whole, and the invariant's own WAL-directory claims record no fact about
+  their past versions. So the fact is the crash boot's premise `hfo` (U3 log, second session), true of the Go code (the
+  WAL creates no directory there) but dischargeable by no one.
+- **Evidence.** U3 log, second session, (d); `BootFilesOnly.lean` (the crash-side lemma, proved).
+- **Proposed change (decided by the coordinator, 2026-11-14).** A new framed conjunct of `walInvBody` (its own
+  predicate, `walFoRes`): a list `fl` of claims held at half, and pure facts: every claim of `fl`, and every
+  WAL-directory claim of `cl`, has a history holding no directory at its names (`HistNoDir`, all versions); and every
+  version of an area claim of `cl` holding a directory `J` at a WAL name or at `nm.tmp` has every name of `J` covered by
+  such a claim. Then `RegionCrashed (cl ++ fl) n V'.now` gives `hfo` (`regionCrashed_filesOnly`), narrowed to WAL names
+  and `nm.tmp` (the `nm.broken.<t>` directories need only `SubCover`, which the boot's whole claims give). Every update
+  under a claim of `fl` becomes an invariant step (`osAU`/`osAUnc` with the invariant's half: the os specs are already
+  shaped for it). Condition checked: `walAreaRes` is unpacked by no client (outside the WAL's proofs only comments and
+  the WAL's own specs name it; its body is exposed, not `@[no_expose]`-sealed). No client-visible ghost state: `fl` is
+  inside the invariant.
+- **Decision.** Adopted (internal), in progress: the design's open points are in the U3 log, third session.

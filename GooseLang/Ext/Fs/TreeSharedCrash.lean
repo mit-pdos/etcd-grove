@@ -1,7 +1,7 @@
 /-
 The shared mode of the tree across a crash (`notes/wal-fsext-i2-design.md`, §4.2): what a region
 concludes (`crashRest_region'`, from the crash's facts `crashShared` keeps and `regionCrashed_of_cut`)
-and the new generation's tree (`crashRest_treeS'`). `TreeShared.lean` states them and takes their
+and the new generation's tree (`crashRest_treeS'`, well formed: `crashRest_treeWf'`). `TreeShared.lean` states them and takes their
 proofs from here. Untrusted.
 -/
 module
@@ -108,7 +108,7 @@ theorem crashRest_region' (Q : OsState → OsState → Prop) (L L' : GooseLocalG
     exact h.elim
   unfold crashShared
   icases Hcc with ⟨Hd, Has, %hsh, Hcm⟩
-  obtain ⟨hst, S, hSlt, hcl, hSc, hslot⟩ := hsh
+  obtain ⟨hwf0, hst, S, hSlt, hcl, hSc, hslot⟩ := hsh
   unfold commitRes
   icases Hcm with ⟨%c, %hc, Hc⟩
   unfold osCommitLb
@@ -139,10 +139,47 @@ theorem crashRest_region' (Q : OsState → OsState → Prop) (L L' : GooseLocalG
   iright
   iframe Hd Has
   isplitr
-  · ipureintro; exact ⟨hst, S, hSlt, hcl, hSc, hslot⟩
+  · ipureintro; exact ⟨hwf0, hst, S, hSlt, hcl, hSc, hslot⟩
   iexists c
   iframe Hc
   ipureintro; exact hc
+
+/-- The new generation's tree is well formed over the shared invariant's roots (`closed_cut`, which
+`crashShared` keeps). -/
+theorem crashRest_treeWf' (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF) (D : List Ino)
+    (tt : Bool) (V' : Hist) (R : Roots) (E : CoPset) (hE : ↑osShN ⊆ E) :
+    ⊢ osSharedInv (L := L) R -∗
+      crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D tt V' ={E}=∗
+      ⌜TreeWf R V'.now⌝ ∗ crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D tt V' := by
+  iintro #Hsi Hr
+  unfold crashRest
+  icases Hr with ⟨%Γb, %Γm, %F, %st, %st', %Γf, %Γt, %V, %hrel, Hab, Ham, Hfs, HAt, Htok, HAd,
+    Htl, Hcc⟩
+  unfold crashMode
+  icases Hcc with (⟨Hcc, Has⟩ | Hcc)
+  · imod sharedInv_legacy_excl L R E hE $$ Hsi Has with %h
+    exact h.elim
+  unfold crashShared
+  icases Hcc with ⟨Hd, Has, %hsh, Hcm⟩
+  unfold osSharedInv
+  imod inv_acc hE $$ Hsi with ⟨Hi, Hclose⟩
+  icases Hi with >Hi
+  icases Hi with ⟨%Vs, %Γn, Hs, HAn, %hcoh, Halen, HAlog⟩
+  icases gAuth_lookup _ _ _ _ _ _ $$ Has Hs with %hVs
+  simp only [histMap, GMap.lookup_singleton_eq, Option.some.injEq, Prod.mk.injEq] at hVs
+  obtain ⟨hR, rfl⟩ := hVs
+  imod Hclose $$ [Hs HAn Halen HAlog] with -
+  · inext; iexists _, Γn; iframe; ipureintro; exact hcoh
+  imodintro
+  isplitr
+  · ipureintro; rw [← hR]; exact hsh.1
+  iexists Γb, Γm, F, st, st', Γf, Γt, V
+  iframe Hab Ham Hfs HAt Htok HAd Htl
+  isplitr
+  · ipureintro; exact hrel
+  iright
+  iframe Hd Has Hcm
+  ipureintro; exact hsh
 
 theorem crashRest_treeS' (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF) (D : List Ino)
     (V' : Hist) (R : Roots) (E : CoPset) (hE : ↑osShN ⊆ E) :
