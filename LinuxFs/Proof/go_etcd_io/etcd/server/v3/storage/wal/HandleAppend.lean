@@ -7,7 +7,8 @@ update of mask `⊤` (`wp_notCrashed_acc` before any step of the call): the hand
 `H ++ [o]` with `o`'s records not yet encoded (`rest := |opDs o|`); nothing else of it moves (the
 encoder's CRC and the stream split are the same: the records encoded so far are the same, `o`'s come
 after them). The index facts of the new history are the caller's (`hidx`; for a `Save`,
-`saveOp_idx`); `o`'s records must fit a frame (`hfit`). Also out: the client's `Q d` (`d.H` the
+`saveOp_idx`); `o`'s records must fit a frame whatever the CRC (`hfit`; the WAL's do, the static
+relation's `fit`). Also out: the client's `Q d` (`d.H` the
 handle's history), `walLenLb` at the new length, the cuts' facts (`cut.spec`'s premises).
 -/
 module
@@ -93,7 +94,7 @@ variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.A
 theorem walHandleIn_append (P : WalPbIn GF) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (w : Loc) (dir : GoString) (h : WalHS) (o : WalOpG WalEnt) (sized : Bool) (Q : WalDur → IProp GF)
     (hr : h.rest = 0)
-    (hfit : RecsFit walCodec (allRecs Mr (h.H ++ [o]) h.md h.cuts))
+    (hfit : ∀ c, RecsFit walCodec (chainRecs walCodec c (opDs Mr o.toM)))
     (hidx : ((opDs Mr o.toM).length = 0 → walLastIdx ((h.H ++ [o]).map WalOpG.toM) ≤
         max (uint.nat h.enti) (uint.nat h.snapi)) ∧
       walMaxSnapIdx ((h.H ++ [o]).map WalOpG.toM) ≤ uint.nat h.snapi) :
@@ -115,10 +116,23 @@ theorem walHandleIn_append (P : WalPbIn GF) (Mr : WalMarshal) (R : Roots) (jr : 
   icases Hrest with ⟨R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, Hw, %hp⟩
   unfold walTailW
   icases Ht with ⟨Hf, Hfd, Hoff, Hk, %m, %bs, Hm, Hb, %hm, Hv⟩
-  have hfit' : RecsFit walCodec (recsOfSegs walCodec Mr
-      ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG).2.1
-      (segsOf ((((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG).1 ++ [o]).map
-        WalOpG.toM) ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG).2.2.1)) := hfit
+  have hfit' : (∀ b ∈ ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG).2.2.1,
+        b ≤ ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG).1.length) →
+      RecsFit walCodec (recsOfSegs walCodec Mr
+        ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG).2.1
+        (segsOf (((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG).1.map WalOpG.toM)
+          ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG).2.2.1)) →
+      RecsFit walCodec (recsOfSegs walCodec Mr
+        ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG).2.1
+        (segsOf ((((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG).1 ++ [o]).map
+          WalOpG.toM) ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG).2.2.1)) := by
+    intro hc hold
+    show RecsFit walCodec (allRecs Mr (h.H ++ [o]) h.md h.cuts)
+    rw [allRecs_snoc Mr h.H h.md h.cuts o hc]
+    intro x hx
+    rcases List.mem_append.1 hx with hx | hx
+    · exact hold x hx
+    · exact hfit _ x hx
   imod walTail_append walCodec Mr R jr r w dir h.γ
     ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG) o sized Q hfit'
     $$ Hinv Hnc Hk [Hv] Hw Hau with ⟨Hnc, Hk, Hv, Hw, Hlb, HQ, %hcp⟩

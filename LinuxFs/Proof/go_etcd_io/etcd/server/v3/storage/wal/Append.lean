@@ -11,7 +11,8 @@ map `walOwn` with it) and in the open handle's tail record (both halves), the la
 * `walInvBody_append`: the invariant's contents at `walAppS s dir d o`, with the program's map, given the
   handle's key, its half of the tail record and the lock token's pending-cut flag (`walCutFrag none`:
   the crash condition has no alternative layout, so `crashOk_snoc` gives it); `o`'s records must fit
-  a frame (`RecsFit`: the static relation's `fit`).
+  a frame (`hfit`: the WAL's records fitting, as the static relation's `fit` says, so do they with
+  `o`'s).
 * `walTail_append`: the step, at an update of mask `⊤` (`wp_notCrashed_acc` before any step of the
   call): `walInv` opened with `notCrashed`, the client's update (at `walAuMask`) committed; the client's
   `Q d` (`d.H` the handle's history), the handle's `walLenLb` at the new length, and the cuts' facts of
@@ -104,7 +105,9 @@ theorem walTailsRes_append (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState)
 theorem walInvBody_append (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (s : AbsDiskState) (dir : GoString) (γ : GName) (tg : TailG) (o : WalOpG WalEnt)
     (M : GMap GoString WalDur)
-    (hfit : RecsFit C (recsOfSegs C Mr tg.2.1 (segsOf ((tg.1 ++ [o]).map WalOpG.toM) tg.2.2.1))) :
+    (hfit : (∀ b ∈ tg.2.2.1, b ≤ tg.1.length) →
+      RecsFit C (recsOfSegs C Mr tg.2.1 (segsOf (tg.1.map WalOpG.toM) tg.2.2.1)) →
+      RecsFit C (recsOfSegs C Mr tg.2.1 (segsOf ((tg.1 ++ [o]).map WalOpG.toM) tg.2.2.1))) :
     ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walTailKey (W := W) dir γ -∗
       tailVar (W := W) γ tg -∗ walCutFrag (W := W) none -∗ walOwn (W := W) M ==∗
       ∃ d : WalDur, ⌜s.wal !! dir = some d ∧ walMapLe M s.wal ∧ d.H = tg.1 ∧
@@ -130,7 +133,7 @@ theorem walInvBody_append (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
     (crashOkA_none_iff _ _ _ _ _ _).1 (Hdko.2 dir d lay hd hl (by simp))
   subst htg
   have hfit' : RecsFit C (recsOfSegs C Mr d.metadata
-      (segsOf (histM { d with H := d.H ++ [o] }) lay.cuts)) := hfit
+      (segsOf (histM { d with H := d.H ++ [o] }) lay.cuts)) := hfit hcuts habs.fit
   imod walGhost_upd s (walAppS s dir d o) M (absLe_append o hd) (walKeysInArea_append o hd) $$ Hg HM
     with ⟨%HMs, Hg, HM, #Hp⟩
   imodintro
@@ -163,7 +166,9 @@ theorem walInvBody_append (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
 theorem walTail_append (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (w : Loc) (dir : GoString) (γ : GName) (tg : TailG) (o : WalOpG WalEnt) (sized : Bool)
     (Q : WalDur → IProp GF)
-    (hfit : RecsFit C (recsOfSegs C Mr tg.2.1 (segsOf ((tg.1 ++ [o]).map WalOpG.toM) tg.2.2.1))) :
+    (hfit : (∀ b ∈ tg.2.2.1, b ≤ tg.1.length) →
+      RecsFit C (recsOfSegs C Mr tg.2.1 (segsOf (tg.1.map WalOpG.toM) tg.2.2.1)) →
+      RecsFit C (recsOfSegs C Mr tg.2.1 (segsOf ((tg.1 ++ [o]).map WalOpG.toM) tg.2.2.1))) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ notCrashed (hC := L.goose_crashGS) -∗
       walTailKey (W := W) dir γ -∗ tailVar (W := W) γ tg -∗ walOpenW (W := W) w dir -∗
       (AU <{ ∃∃ d : WalDur, walDiskAt (W := W) dir d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅

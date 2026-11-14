@@ -299,6 +299,26 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Decision.** Adopted (proof agent; withdraws a provisional client obligation, so nothing for the user to
   approve; flagged in the W6 log).
 
+## 2026-11-14: `wal.WAL.Save.spec`, `wal.WAL.SaveSnapshot.spec` -- no bound on the records' size
+
+- **Spec.** The WAL specs over `fsExt` (`LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__Save.lean`,
+  `WAL__SaveSnapshot.lean`).
+- **Defect.** The append's commit (`walTail_append`, before any record is written) must keep the
+  invariant's static relation, whose `fit` says every record's encoding is below `2^56` bytes (the
+  frame's 56-bit length field: `encodeFrameSize` puts the padding in the top byte, so a longer record
+  corrupts its frame); the encoder's spec needs each record below `2^47` (`encode.specG`'s `recSize`,
+  protobuf-go's `MarshalAppend`). Nothing bounds `Mr.encEntry e` or `Mr.encSnap md`: the part's `Save`
+  dropped the main tree's `walSaveEnts sized` (whose `entSizeOk` bounded the entries), and `entIn` has no
+  size.
+- **Evidence.** `Append.lean`/`HandleAppend.lean` (`walHandleIn_append`'s `hfit`: `∀ c, RecsFit walCodec
+  (chainRecs walCodec c (opDs Mr o.toM))`); `encoder__encodeG.lean`.
+- **Proposed change.** A premise of `Save`: `∀ e ∈ es, (Mr.encEntry e).length < 2 ^ 40`, and of
+  `SaveSnapshot`: `(Mr.encSnap md).length < 2 ^ 40` (the hard state's record: `walAreaOk`'s law). True of
+  etcd: raft entries are bounded by the server's request size limit (`--max-request-bytes`, below
+  `2^31`), snapshot metadata is a few varints and the conf state's member ids. A C6 obligation on the
+  server.
+- **Decision.** Pending (the coordinator); `Save`'s proof takes it as the hypothesis `hfitE` until then.
+
 ## 2026-11-14: `wal.WAL.SaveSnapshot.spec` -- `walSnapAt` does not determine the bytes `SaveSnapshot` writes
 
 - **Spec.** `walSnapAt sp md cs` (the WAL vocabulary, `Proof/go_etcd_io/etcd/server/v3/storage/WalDisk.lean`),
@@ -336,3 +356,10 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   ~33 bytes): discharged at C6 from raftpb's encoder.
 - **Decision.** Adopted (the coordinator, the user away): a client-visible law on a parameter, true of
   etcd's marshaller.
+- **Made** (`wal-save11`): the law is the last conjunct of `walAreaOk` (`CreateDefs.lean`;
+  `walAreaOk_encState`); the metadata's bound `h.md.length < 2^41` is a conjunct of the sealed client
+  handle `walOpenWF` (`Handle.lean`), an obligation of its producers: `Create` (a premise
+  `md.length < 2^41` when its spec returns `walOpenWF`) and `ReadAll` (the WAL's metadata is `Create`'s:
+  needs the invariant to keep `d.metadata.length < 2^41`, established at `Create`'s commit). The cuts'
+  increase (`cut.spec`'s `h.cuts.Pairwise`) is not carried by the handle: the append's commit returns it
+  from the invariant's static relation (`walTail_append`).

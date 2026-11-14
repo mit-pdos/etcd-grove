@@ -86,7 +86,7 @@ theorem wal.Create.wp_proof (C : WalCodec) (Mr : WalMarshal)
   -- the claim on `nm.tmp`, off the area claim (`walInvBody_drop`), with what it holds
   ihave #Hok' := Hok
   iunfold WalFs.walAreaOk at Hok'
-  icases Hok' with ⟨#Hinv, #Hosi, #Hsi, %hrb⟩
+  icases Hok' with ⟨#Hinv, #Hosi, #Hsi, %hrb, -⟩
   icases walAreaRes_open jr $$ Hres with ⟨%N, %h, %cl, HN, %hok, Hcl⟩
   have hnm := hin.1
   have hNnm : N.Mem nm := hok.1 nm hnm
