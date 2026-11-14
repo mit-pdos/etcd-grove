@@ -1682,6 +1682,13 @@ holds some mode). Nothing proves the new models yet.
   `Err`), which the pure `E` could not carry, so the decoder's `isEofOk` had to claim it of every
   `*PathError`, false for `&PathError{Err: io.EOF}`. New hypothesis (true of Go, not an axiom):
   `errors.IsPathErrnoEof.spec`.
+- **Corrected (coordinator, 2026-11-14, after the user asked why it is trusted):** only the leaf system call needs a
+  model. `io.Copy`/`copyBuffer` (names-only in Perennial's `io`: `io.toml` translates only the types and errors) and
+  `(*os.File).ReadFrom`/`WriteTo` (names-only in the part's `os`) are ordinary Go to translate and verify; the one
+  kernel call they reach for file-to-file copies on Linux, `copy_file_range(2)` (via `internal/poll`), has no `fsExt`
+  step. Plan: translate those (the `io` part a Perennial configuration change, or the part's copy), add an `fsExt`
+  `CopyFileRange` step modelled as a `pwrite` of the source's bytes (crash candidates as a write's), with a Go example
+  measured on C — that step pending the user's review. The hypothesis below stands until then.
 - **`io.Copy(bf, f)` of two `*os.File`s** (`wal-repair19`, 2026-11-14; **a missing trusted model, pending the
   user**): `Repair` copies the torn segment into its `.broken` file with `io.Copy`, which on `*os.File` goes through
   `File.ReadFrom` (Linux: `copy_file_range`/`splice`/`sendfile`, then a generic loop) or `File.WriteTo`: neither is
