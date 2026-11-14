@@ -3,6 +3,10 @@
 The statement to freeze before the proof is linked (`X/etcd/restart1/Results.lean`, after `Link`,
 `MainLinked`, `Adequacy`, putget's templates). `X/` = `Proof/github_com/mit_pdos/etcd_grove/examples/`.
 
+## Approved
+
+- Approved by the user, 2026-11-14, via etcd-grove-81: `etcd_restart1_safe`'s statement and docstring, revision 2 below.
+
 ## Revision 2 (2026-11-14, after the independent Freeze review)
 
 - **MAJOR fixed by strengthening the program:** `check()` also panics unless every key-value's
