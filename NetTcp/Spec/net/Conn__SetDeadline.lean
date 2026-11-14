@@ -32,10 +32,9 @@ variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 abbrev Conn.SetDeadline.spec : Prop :=
   ∀ (t : Loc) (cn : Nat) (s : Bool) (a : GoString) (tm : time.Time) (Q : Bool → IProp GF),
   {{ connAt (GF := GF) t cn s a ∗
-      (|={⊤,∅}=> ∃ st r, tcpEnd (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s st r ∗
-        ∀ ok st', ⌜(st.closed = true ∧ ok = false ∧ st' = st) ∨
-            (st.closed = false ∧ ok = true ∧ st' = { st with dl := true })⌝ -∗
-          tcpEnd (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s st' r ={∅,⊤}=∗ Q ok) }}
+      (|={⊤,∅}=> ∃ st, tcpEnd (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s st ∗
+        ∀ ok st', ⌜DeadlineOutcome st (W64 0) (!timeIsZero tm.wall' tm.ext') ok st'⌝ -∗
+          tcpEnd (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s st' ={∅,⊤}=∗ Q ok) }}
     (App (Val #(methods (go.GoType.PointerType TCPConn.ty) go!"SetDeadline" #t)) (Val #tm))
   {{ (err : GoInterface), RET #err;
       ∃ ok, Q ok ∗ ⌜(ok = true → err = interface.nil) ∧ (ok = false → netErr err)⌝ }}

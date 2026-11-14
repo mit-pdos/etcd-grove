@@ -296,25 +296,28 @@ noncomputable def TCPConn.CloseWrite.impl : val :=
         (model.connId (StructFieldRef model.TCPConn go!"conn" "c")) then #GoInterface.nil
     else model.opError #(go!"close")
 
-/-- `(*conn).SetDeadline(t time.Time) error` (`net.go`, `poll.FD.SetDeadline`): records the
-deadline with the poller (`ErrNetClosing` on a closed socket): the extension's `SetDeadline`,
-which records only that a deadline was set (a later operation may fail at any time). -/
-noncomputable def conn.SetDeadline.impl : val :=
+/-- The extension's `SetDeadline` of the deadlines of kind `kind` (`0` both, `1` read, `2` write)
+of the end of `c` to the time `t`: `t`'s two words (`wall`, `ext`; the extension decides whether it
+is Go's zero time, `Tcp.timeIsZero`), read through a copy of `t` (the cell is the model's, never
+seen by the program). -/
+noncomputable def model.setDeadline (kind : w64) : val :=
   λ: "c" "t",
-    if: ExternalOp Tcp.tcpExt.name "SetDeadline" (model.connId "c") then #GoInterface.nil
+    let: "tp" := GoAlloc time.Time.ty "t" in
+    if: ExternalOp Tcp.tcpExt.name "SetDeadline"
+        (model.connId "c", (#kind, (![go.uint64] (StructFieldRef time.Time.ty go!"wall" "tp"),
+          ![go.int64] (StructFieldRef time.Time.ty go!"ext" "tp")))) then #GoInterface.nil
     else model.opError #(go!"set")
 
-/-- `(*conn).SetReadDeadline(t time.Time) error`: as `SetDeadline`. -/
-noncomputable def conn.SetReadDeadline.impl : val :=
-  λ: "c" "t",
-    if: ExternalOp Tcp.tcpExt.name "SetDeadline" (model.connId "c") then #GoInterface.nil
-    else model.opError #(go!"set")
+/-- `(*conn).SetDeadline(t time.Time) error` (`net.go`, `poll.FD.SetDeadline`): sets the read and
+the write deadline with the poller, or clears them for the zero time (`ErrNetClosing` on a closed
+socket): the extension's `SetDeadline` of both. -/
+noncomputable def conn.SetDeadline.impl : val := model.setDeadline (W64 0)
 
-/-- `(*conn).SetWriteDeadline(t time.Time) error`: as `SetDeadline`. -/
-noncomputable def conn.SetWriteDeadline.impl : val :=
-  λ: "c" "t",
-    if: ExternalOp Tcp.tcpExt.name "SetDeadline" (model.connId "c") then #GoInterface.nil
-    else model.opError #(go!"set")
+/-- `(*conn).SetReadDeadline(t time.Time) error`: the read deadline only. -/
+noncomputable def conn.SetReadDeadline.impl : val := model.setDeadline (W64 1)
+
+/-- `(*conn).SetWriteDeadline(t time.Time) error`: the write deadline only. -/
+noncomputable def conn.SetWriteDeadline.impl : val := model.setDeadline (W64 2)
 
 /-- `(*OpError).Error() string` (`net.go`): Go's message names the operation, the addresses and
 the system's error, which the model does not explain: an arbitrary string. -/

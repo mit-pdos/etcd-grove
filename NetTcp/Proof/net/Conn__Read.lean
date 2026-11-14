@@ -26,17 +26,6 @@ variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 variable [go.BasicIntoValInj]
 
-omit [GooseSemantics] [HasExt tcpExt] sem package_sem' field_sem [go.BasicIntoValInj] in
-theorem ReadPost_res (hT : TcpGS GF) (cn : Nat) (s : Bool) (n : w64) (st : TcpEnd) (r : Nat)
-    (res : val) :
-    ReadPost hT cn s n st r res -∗ ⌜∃ bs code, res = readRes bs code⌝ := by
-  unfold ReadPost
-  iintro (⟨%h, -⟩ | ⟨%h, -⟩ | ⟨%bs, %sent, %h, -⟩ | ⟨%sent, %h, -⟩)
-  · ipureintro; exact ⟨_, _, h⟩
-  · ipureintro; exact ⟨_, _, h.2.2⟩
-  · ipureintro; exact ⟨_, _, h.2.2.2.2.2⟩
-  · ipureintro; exact ⟨_, _, h.2.2⟩
-
 theorem Conn.Read.wp_proof : Conn.Read.spec (GF := GF) (hG := hG) := by
   intro t cn s a b bs0 eof Q
   unfold connAt
@@ -51,51 +40,49 @@ theorem Conn.Read.wp_proof : Conn.Read.spec (GF := GF) (hG := hG) := by
   (try wp_auto)
   wp_bind (ExternalOp _ _ _)
   iapply wp_tcp_Read cn s a b.len $$ Hat
-  imod HAU with ⟨%st, %r, Hend, Hk⟩
+  imod HAU with ⟨%st, %d, Hend, Hdir, Hk⟩
   imodintro
-  iexists st, r
-  iframe Hend
-  iintro %res Hpost
-  icases ReadPost_res _ cn s b.len st r res $$ Hpost with %Hres
-  obtain ⟨bs, code, rfl⟩ := Hres
-  imod Hk $$ %_ Hpost with HQ
+  iexists st, d
+  iframe Hend Hdir
+  iintro %r %d' %Hr Hend Hdir
+  imod Hk $$ %r %d' %Hr Hend Hdir with HQ
   imodintro
-  unfold readRes
-  wp_auto
-  by_cases h0 : code = W64 0
-  · rw [decide_eq_true h0]
+  obtain ⟨-, hw⟩ := Hr
+  cases r with
+  | wait => exact absurd rfl hw
+  | bytes bs =>
+    simp only [ReadRes.toVal]
+    unfold readRes
     wp_auto
     wp_apply wp_string_to_bytes bs as %sl ⟨Hsl2, -⟩
     wp_apply wp_slice_copy b bs0 sl bs (DFrac.own 1) $$ [Hsl Hsl2] as %n ⟨%Hn, Hsl, -⟩
     · iframe
     iapply HΦ
-    iexists bs, code, _
+    iexists .bytes bs, _
     iframe HQ Hsl
     ipureintro
-    left
-    exact ⟨h0, Hn, rfl, rfl⟩
-  · rw [decide_eq_false h0]
+    exact ⟨Hn, rfl, rfl⟩
+  | eof =>
+    simp only [ReadRes.toVal]
+    unfold readRes
     wp_auto
-    by_cases h1 : code = W64 1
-    · rw [decide_eq_true h1]
-      wp_auto
-      iapply HΦ
-      iexists bs, code, bs0
-      iframe HQ Hsl
-      ipureintro
-      right; left
-      exact ⟨h1, rfl, rfl, rfl⟩
-    · rw [decide_eq_false h1]
-      wp_auto
-      unfold model.opError
-      rw [OpError_ty_eq]
-      wp_auto
-      iapply HΦ
-      iexists bs, code, bs0
-      iframe HQ Hsl
-      ipureintro
-      right; right
-      exact ⟨h0, h1, rfl, ⟨_, rfl⟩, rfl⟩
+    iapply HΦ
+    iexists .eof, bs0
+    iframe HQ Hsl
+    ipureintro
+    exact ⟨rfl, rfl, rfl⟩
+  | err =>
+    simp only [ReadRes.toVal]
+    unfold readRes
+    wp_auto
+    unfold model.opError
+    rw [OpError_ty_eq]
+    wp_auto
+    iapply HΦ
+    iexists .err, bs0
+    iframe HQ Hsl
+    ipureintro
+    exact ⟨rfl, ⟨_, rfl⟩, rfl⟩
 
 end proof
 

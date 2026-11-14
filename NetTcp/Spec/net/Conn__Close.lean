@@ -1,9 +1,10 @@
 /-
 `c.Close()` on a `Conn` `c` that is the end `s` of a TCP connection `cn` (`isConn`), through the
-interface (`conn.Close.impl`, promoted): the extension's `Close`, whose outcome the caller takes by
-a logically atomic update over the end's state and its written bytes (`CloseRes`: the end closed,
-and its FIN sent unless broken). Its result `Q ok` is handed back with the error: `nil` for `ok`,
-else an `*OpError`. Proved in `NetTcp/Proof/net/Conn__Close.lean`.
+interface (`conn.Close.impl`, promoted): the extension's `Close`, whose outcome (`CloseOutcome`,
+`GooseLang/Ext/Tcp/Impl.lean`, D3: the end closed, its direction shut if open; an error if closed
+already) the caller takes by a logically atomic update over the end's state and the direction from
+it (`tcpEnd`, `tcpDir`). Its result `Q ok` is handed back with the error: `nil` for `ok`, else an
+`*OpError`. Proved in `NetTcp/Proof/net/Conn__Close.lean`.
 -/
 module
 
@@ -29,11 +30,9 @@ variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 abbrev Conn.Close.spec : Prop :=
   ∀ (t : Loc) (cn : Nat) (s : Bool) (a : GoString) (Q : Bool → IProp GF),
   {{ connAt (GF := GF) t cn s a ∗
-      (|={⊤,∅}=> ∃ st r out f, tcpEnd (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s st r ∗
-        tcpOut (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s out f ∗
-        ∀ ok st' f', ⌜CloseRes false (fun st => { st with closed := true }) st f ok st' f'⌝ -∗
-          tcpEnd (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s st' r -∗
-          tcpOut (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s out f' ={∅,⊤}=∗ Q ok) }}
+      (|={⊤,∅}=> ∃ st d, tcpEnd (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s st ∗ tcpDir (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s d ∗
+        ∀ ok st' d', ⌜CloseOutcome st d ok st' d'⌝ -∗ tcpEnd (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s st' -∗
+          tcpDir (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s d' ={∅,⊤}=∗ Q ok) }}
     (App (Val #(methods (go.GoType.PointerType TCPConn.ty) go!"Close" #t)) (Val #()))
   {{ (err : GoInterface), RET #err;
       ∃ ok, Q ok ∗ ⌜(ok = true → err = interface.nil) ∧ (ok = false → netErr err)⌝ }}

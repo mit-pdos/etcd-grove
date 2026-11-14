@@ -41,12 +41,12 @@ theorem Conn.Write.wp_proof : Conn.Write.spec (GF := GF) (hG := hG) := by
   wp_apply wp_bytes_to_string b bs dq $$ Hsl as Hsl
   wp_bind (ExternalOp _ _ _)
   iapply wp_tcp_Write cn s a bs $$ Hat
-  imod HAU with ⟨%st, %r, %out, %f, Hend, Hout, Hk⟩
+  imod HAU with ⟨%st, %d, Hend, Hdir, Hk⟩
   imodintro
-  iexists st, r, out, f
-  iframe Hend Hout
-  iintro %k %ok %st' %Hwr Hend Hout
-  imod Hk $$ %k %ok %st' %Hwr Hend Hout with HQ
+  iexists st, d
+  iframe Hend Hdir
+  iintro %k %ok %d' %Hwr Hend Hdir
+  imod Hk $$ %k %ok %d' %Hwr Hend Hdir with HQ
   imodintro
   cases ok
   · wp_auto

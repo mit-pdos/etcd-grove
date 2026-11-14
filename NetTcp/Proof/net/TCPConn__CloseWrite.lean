@@ -41,12 +41,12 @@ theorem TCPConn.CloseWrite.wp_proof : TCPConn.CloseWrite.spec (GF := GF) (hG := 
   (try wp_auto)
   wp_bind (ExternalOp _ _ _)
   iapply wp_tcp_CloseWrite cn s a $$ Hat
-  imod HAU with ⟨%st, %r, %out, %f, Hend, Hout, Hk⟩
+  imod HAU with ⟨%st, %d, Hend, Hdir, Hk⟩
   imodintro
-  iexists st, r, out, f
-  iframe Hend Hout
-  iintro %ok %st' %f' %Hcr Hend Hout
-  imod Hk $$ %ok %st' %f' %Hcr Hend Hout with HQ
+  iexists st, d
+  iframe Hend Hdir
+  iintro %ok %d' %Hcr Hend Hdir
+  imod Hk $$ %ok %d' %Hcr Hend Hdir with HQ
   imodintro
   cases ok
   · wp_auto

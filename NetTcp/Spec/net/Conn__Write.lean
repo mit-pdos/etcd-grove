@@ -1,10 +1,10 @@
 /-
 `c.Write(b)` on a `Conn` `c` that is the end `s` of a TCP connection `cn` (`isConn`), through the
 interface (`conn.Write.impl`, promoted): `b`'s bytes read (any fraction), then the extension's
-`Write`, whose outcome the caller takes by a logically atomic update over the end's state and its
-written bytes (`tcpEnd`, `tcpOut`; `WriteRes`). Its result `Q k ok` is handed back with what the
-call returns: `(k, nil)` if all was written (`ok`), else `(k, err)` with an `*OpError`. Proved in
-`NetTcp/Proof/net/Conn__Write.lean`.
+`Write`, whose outcome (`WriteOutcome`, `GooseLang/Ext/Tcp/Impl.lean`, D2) the caller takes by a
+logically atomic update over the end's state and the direction from it (`tcpEnd`, `tcpDir`). Its
+result `Q k ok` is handed back with what the call returns: `(k, nil)` if all was written (`ok`),
+else `(k, err)` with an `*OpError`. Proved in `NetTcp/Proof/net/Conn__Write.lean`.
 -/
 module
 
@@ -31,12 +31,9 @@ abbrev Conn.Write.spec : Prop :=
   ∀ (t : Loc) (cn : Nat) (s : Bool) (a : GoString) (b : GoSlice) (bs : List w8)
     (dq : DFrac) (Q : Nat → Bool → IProp GF),
   {{ connAt (GF := GF) t cn s a ∗ b ↦*{dq} bs ∗
-      (|={⊤,∅}=> ∃ st r out f, tcpEnd (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s st r ∗
-        tcpOut (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s out f ∗
-        ∀ k ok st', ⌜WriteRes st bs k ok st'⌝ -∗
-          tcpEnd (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s st' r -∗
-          tcpOut (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s (out ++ bs.take k) f
-          ={∅,⊤}=∗ Q k ok) }}
+      (|={⊤,∅}=> ∃ st d, tcpEnd (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s st ∗ tcpDir (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s d ∗
+        ∀ k ok d', ⌜WriteOutcome st d bs k ok d'⌝ -∗ tcpEnd (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s st -∗
+          tcpDir (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s d' ={∅,⊤}=∗ Q k ok) }}
     (App (Val #(methods (go.GoType.PointerType TCPConn.ty) go!"Write" #t)) (Val #b))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
       ∃ k ok, Q k ok ∗ b ↦*{dq} bs ∗

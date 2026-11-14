@@ -40,12 +40,12 @@ theorem Conn.Close.wp_proof : Conn.Close.spec (GF := GF) (hG := hG) := by
   (try wp_auto)
   wp_bind (ExternalOp _ _ _)
   iapply wp_tcp_Close cn s a $$ Hat
-  imod HAU with ⟨%st, %r, %out, %f, Hend, Hout, Hk⟩
+  imod HAU with ⟨%st, %d, Hend, Hdir, Hk⟩
   imodintro
-  iexists st, r, out, f
-  iframe Hend Hout
-  iintro %ok %st' %f' %Hcr Hend Hout
-  imod Hk $$ %ok %st' %f' %Hcr Hend Hout with HQ
+  iexists st, d
+  iframe Hend Hdir
+  iintro %ok %st' %d' %Hcr Hend Hdir
+  imod Hk $$ %ok %st' %d' %Hcr Hend Hdir with HQ
   imodintro
   cases ok
   · wp_auto

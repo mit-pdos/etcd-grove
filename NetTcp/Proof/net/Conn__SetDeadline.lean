@@ -32,6 +32,7 @@ theorem Conn.SetDeadline.wp_proof : Conn.SetDeadline.spec (GF := GF) (hG := hG) 
   wp_start as ⟨⟨#Ht, #Hat⟩, HAU⟩
   wp_method_call
   (try unfold conn.SetDeadline.impl)
+  (try unfold model.setDeadline)
   (try unfold model.connId)
   (try rw [conn_ty_eq'])
   ihave #Ht2 := Ht
@@ -39,10 +40,10 @@ theorem Conn.SetDeadline.wp_proof : Conn.SetDeadline.spec (GF := GF) (hG := hG) 
   iStructNamed conn
   (try wp_auto)
   wp_bind (ExternalOp _ _ _)
-  iapply wp_tcp_SetDeadline cn s a $$ Hat
-  imod HAU with ⟨%st, %r, Hend, Hk⟩
+  iapply wp_tcp_SetDeadline cn s a (W64 0) tm.wall' tm.ext' $$ Hat
+  imod HAU with ⟨%st, Hend, Hk⟩
   imodintro
-  iexists st, r
+  iexists st
   iframe Hend
   iintro %ok %st' %Hsd Hend
   imod Hk $$ %ok %st' %Hsd Hend with HQ

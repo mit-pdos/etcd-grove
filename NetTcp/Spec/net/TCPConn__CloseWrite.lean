@@ -3,8 +3,7 @@
 `Conn` with `isConn` holds such a `t`, so `c.(*net.TCPConn)` succeeds; the model
 `TCPConn.CloseWrite.impl`, `NetTcp/TrustedCode/net.lean`): the extension's `CloseWrite`, whose
 outcome the caller takes by a logically atomic update over the end's state and its written bytes
-(`CloseRes true`: a failure that changes nothing, or, unless the end is closed, its write side
-shut and its FIN sent unless broken). Its result `Q ok` is handed back with the error: `nil` for
+(`CloseWriteOutcome`, `GooseLang/Ext/Tcp/Impl.lean`, D4: the direction shut if open, or an error that changes nothing). Its result `Q ok` is handed back with the error: `nil` for
 `ok`, else an `*OpError`. Proved in `NetTcp/Proof/net/TCPConn__CloseWrite.lean`.
 -/
 module
@@ -31,11 +30,9 @@ variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 abbrev TCPConn.CloseWrite.spec : Prop :=
   ∀ (t : Loc) (cn : Nat) (s : Bool) (a : GoString) (Q : Bool → IProp GF),
   {{ connAt (GF := GF) t cn s a ∗
-      (|={⊤,∅}=> ∃ st r out f, tcpEnd (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s st r ∗
-        tcpOut (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s out f ∗
-        ∀ ok st' f', ⌜CloseRes true (fun st => { st with wshut := true }) st f ok st' f'⌝ -∗
-          tcpEnd (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s st' r -∗
-          tcpOut (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s out f' ={∅,⊤}=∗ Q ok) }}
+      (|={⊤,∅}=> ∃ st d, tcpEnd (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s st ∗ tcpDir (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s d ∗
+        ∀ ok d', ⌜CloseWriteOutcome st d ok d'⌝ -∗ tcpEnd (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s st -∗
+          tcpDir (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s d' ={∅,⊤}=∗ Q ok) }}
     (App (Val #(methods (go.GoType.PointerType TCPConn.ty) go!"CloseWrite" #t)) (Val #()))
   {{ (err : GoInterface), RET #err;
       ∃ ok, Q ok ∗ ⌜(ok = true → err = interface.nil) ∧ (ok = false → netErr err)⌝ }}
