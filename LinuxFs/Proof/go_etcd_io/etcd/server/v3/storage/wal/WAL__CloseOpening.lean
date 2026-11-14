@@ -128,7 +128,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofOpening [os.file
   obtain ⟨FL, hFL⟩ : ∃ F, fs[gs0.length]? = some F :=
     ⟨_, List.getElem?_eq_getElem (by rw [hfl]; simp)⟩
   obtain ⟨-, hiL, -⟩ := hfk gs0.length FL gL hFL hkL
-  have hbL : (walNames hj.cur).getLast? = some gL.name := hlast trivial gL (by simp)
+  have hbL : (walNames hj.cur).getLast? = some gL.name := (hlast trivial).1 gL (by simp)
   have hlenL : gL.bs.length = gL.om.size := (hsz gL (by simp)).symm
   wp_auto
   wp_apply wp_with_defer as %defer defer

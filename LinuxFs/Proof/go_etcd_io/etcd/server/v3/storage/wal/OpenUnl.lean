@@ -178,7 +178,7 @@ theorem walInvBody_unl (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
   ipureintro
   exact ⟨by rw [unlSt_area]; exact Har, walsOk_unl dir p HW, HWC,
     ⟨absentNone_unl dir p Hab.1, dirsAvoid_unl dir p Hab.2⟩, HNm, dirKeysOk_unl dir p HDK, HAt,
-    walsBounded_upd Hbd (fun _ => rfl)⟩
+    walsBounded_upd Hbd (fun _ => rfl) (fun _ => rfl)⟩
 
 end iris
 

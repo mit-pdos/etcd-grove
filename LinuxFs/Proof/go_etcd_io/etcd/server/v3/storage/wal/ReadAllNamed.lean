@@ -204,7 +204,7 @@ theorem walInvBody_namedBy (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : In
       iframe Hdk Hcp
       ipureintro
       exact dirKeysOk_namedBy (n := max n0 n) (Nat.le_max_left _ _) Hok Hdko hd hin' hname
-    iframe Hnms; ipureintro; exact ⟨HAt, walsBounded_upd Hbd (fun _ => rfl)⟩
+    iframe Hnms; ipureintro; exact ⟨HAt, walsBounded_upd Hbd (fun _ => rfl) (fun _ => rfl)⟩
   iframe Hn
   unfold walNamed
   iexists (setNamed s dir), { d with named := true }

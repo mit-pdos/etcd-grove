@@ -66,6 +66,7 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --k8sinformers > Proof/k8s_io/client_go/informers/Link.lean
        etc/gen-link.py --apimodel > Proof/github_com/mit_pdos/etcd_grove/examples/k8s/daemonset/apimodel/Link.lean
        etc/gen-link.py --bboltfs > LinuxFs/Proof/github_com/mit_pdos/etcd_grove/examples/osfs/bboltfs/Link.lean
+       etc/gen-link.py --walfs > LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/Link.lean
        etc/gen-link.py --mvccrand > Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/Link.lean
        etc/gen-link.py --mvccfull > Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/Link.lean
        etc/gen-link.py --bbolt > Proof/go_etcd_io/bbolt/Link.lean
@@ -168,6 +169,12 @@ durableExt] [go.IntoValInj GoString]`, which its specs take).
 read off each proof's binders, the specs with no proof are hypotheses of `links_pending`, and the
 non-spec premises are given by a table (`etc/link_bbolt.py`, whose docstring has the rules);
 `--bbolt --results` writes the `Results.lean` of its public results.
+`--walfs` links etcd's real WAL over the per-byte Linux file extension (the part `LinuxFs/`: `wal`,
+`walpb`, `fileutil` and the part's packages they call), with no list file either: the callees are
+read off the proofs' binders, the results are generic in the specs' model parameters (`P`, `Mr`,
+...), and the specs with no proof and the premises on the parameters are each result's
+hypotheses (`etc/link_walfs.py`, whose docstring has the rules); `--walfs --check` compares the
+output with the committed `Link.lean`.
 
 A function with a second spec and proof (`Replica.persist`'s `specRun`/`wp_proofRun`) is listed a
 second time as `<fn>+<S>`: its spec `<F>.spec<S>`, its proof `<F>.wp_proof<S>`, its result
@@ -624,6 +631,16 @@ for _m in ["--cachekv", "--watchkv", "--linkvtxn", "--k8setcd3", "--cluster3", "
 # The modes whose specs are stated over the clients' model of etcd (the class `EtcdModel`,
 # `cache/v3/EtcdModel.lean`, the vertical slice's unit V1): their sections take it as a variable.
 EM_MODES = {"--cache", "--concurrency", "--leasing", "--recipes", "--v3lock", "--v3election"}
+if sys.argv[1:2] == ["--walfs"]:
+    # etcd's WAL over the per-byte Linux file extension: the callees read off the proofs' binders,
+    # the results generic in the model parameters (`etc/link_walfs.py`); `--check` compares
+    sys.dont_write_bytecode = True  # no etc/__pycache__
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import link_walfs  # noqa: E402
+    import proof_roots  # noqa: E402  (Perennial's checkout as Lake resolves it)
+    link_walfs.main(os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")),
+                    proof_roots.PERENNIAL, sys.argv[0], check="--check" in sys.argv[2:])
+    sys.exit(0)
 if sys.argv[1:2] == ["--bbolt"]:
     # bbolt's Link: the callees read off the proofs' binders (`etc/link_bbolt.py`)
     sys.dont_write_bytecode = True  # no etc/__pycache__

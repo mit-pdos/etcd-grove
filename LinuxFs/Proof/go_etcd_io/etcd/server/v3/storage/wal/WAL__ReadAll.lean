@@ -32,6 +32,10 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllOpen
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllZero
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllWF
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllWFPure
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllIdx
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllGive
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllLocks
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleLaws
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.TailFdatasync
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.ReadAllTailCallees
 public import LinuxFs.Spec.os.File__Fd
@@ -271,7 +275,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
   wp_apply sync.Mutex.wp_Lock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync] as ⟨Hlocked, -⟩
   (try wp_auto)
   -- the look at the invariant before the loop: the records the decoder reads decode
-  obtain ⟨hgne, hgnd, hgsz, hghd, hglast, hgdrop⟩ := Hgs
+  obtain ⟨hgne, hgnd, hgsz, hghd, hglastN, hgdrop⟩ := Hgs
   obtain ⟨hfl, hll, hfll, hfk⟩ := Hfs
   ihave #HareaK := Harea
   iunfold WalFs.walAreaOk at Harea
@@ -710,14 +714,47 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
               (by simpa using hso1) (by simpa using hso2)) $$ [Hf Hoff] as %e ⟨Henc, Hf, Hoff, %hne⟩
             · iframe; iframe #
             (try wp_auto)
-            -- the ghost handle `append`
+            -- the ghost handle `append`; the directory's path; the files before the tail given back
+            obtain ⟨rfl, rfl⟩ := hjd
+            have hgsI : gs = gs.take fsI.length ++ [gl] := by
+              have e1 : gs.take fsI.length = gs.dropLast := by
+                rw [List.dropLast_eq_take]; congr 1; omega
+              rw [e1]
+              obtain ⟨l, hl⟩ := List.getLast?_eq_some_iff.1 hglast
+              rw [hl, List.dropLast_concat]
+            have hkL : ∀ (k : Nat) (F : DecFile GF) (g : SegG), fsI[k]? = some F →
+                (gs.take fsI.length)[k]? = some g →
+                ∃ (f : Loc) (fd : w64), fls[k]? = some f ∧
+                  F.S = walFileS f fd (child dir g.name) ((fun i => openFd i (walReadFlag true)) g.ino) g := by
+              intro k F g h1 h2
+              have hk : k < fsI.length := (List.getElem?_eq_some_iff.1 h1).1
+              have h1' : fs[k]? = some F := by rw [hfsI, List.getElem?_append_left hk]; exact h1
+              have h2' : gs[k]? = some g := by rw [List.getElem?_take, if_pos hk] at h2; exact h2
+              exact (hfk k F g h1' h2').2.2
+            ihave #HlkL : [∗list] k ↦ lf ∈ ls, fileutil.lockedFile lf (fls.getD k null) $$ [Hlks]
+            · icases (BigSepL.bigSepL_append (PROP := IProp GF)).1 $$ Hlks with ⟨H1, -⟩
+              iexact H1
+            icases readAll_splitLeft (W := W) dir fsI (gs.take fsI.length) fls ls
+              (fun i => openFd i (walReadFlag true)) (by simp; omega) hlsl hkL $$ [Hleft HlkL]
+              with ⟨HS, Hlh⟩
+            · iframe Hleft HlkL
+            have hSz : ∀ g ∈ gs.take fsI.length, g.om.size = g.bs.length :=
+              fun g hg => hgsz g (List.mem_of_mem_take hg)
             iapply wp_notCrashed_acc _ _ rfl
             iintro Hnc
             imod walInv_appendOpening walCodec Mr R jr rt w dir s $$ Hinv Hnc Hgh with ⟨Hnc, Hopen, Hpw⟩
+            imod walInv_dirPath walCodec Mr R jr rt dir jd Xd $$ Hinv Hnc Hnf Hkd with ⟨Hnc, Hnf, %qd, Hpd⟩
+            imod walInv_readGive walCodec Mr R jr rt dir γt
+              ((d0.H, d0.metadata, lay.cuts, lay.wr + ([] : List w8).length, gl.ino, none) : TailG)
+              (gs.take fsI.length) _ jd Xd hSz rfl
+              $$ Hinv Hnc Htf Hk [Hv] Hkd Hout HS with ⟨Hnc, %hgv, Htf, Hk, Hv, Hout⟩
+            · unfold tailVar; iexact Hv
             iframe Hnc
             imodintro
+            iunfold tailVar at Hv
             imod ownSlice_persist $$ Hents with #Hents
             imod ownSlice_persist $$ Hmdv with #Hmdv
+            imod receipt_zero with Hr0
             wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hlocked]
             · ipureintro; trivial
             iapply HΦ
@@ -737,8 +774,102 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             have hσhs := walReadAllOk_hs hσ
             obtain ⟨mdr, hmdr⟩ := readAll_md_some walCodec_ok hab hex hwr kk hkk
               (by rw [← hR0eq1]; exact hR0r) hL.fold
-            obtain ⟨rfl, -⟩ := hjd
-            sorry
+            have hmd0 : mdr = d0.metadata := hmdd mdr hmdr
+            obtain ⟨⟨s', d', hd', hH', hmd', hbd⟩, hXw⟩ := hgv
+            obtain ⟨hmdl, hmdne, hnmx⟩ := hbd dir d' hd'
+            simp only at hH' hmd'
+            have hhist : histM d' = histM d0 := by unfold histM; rw [hH']
+            rw [hmd'] at hmdl hmdne
+            rw [hhist] at hnmx
+            -- (d) the indices
+            obtain ⟨g0, hg0⟩ : ∃ g0, gs.head? = some g0 := by
+              cases gs with
+              | nil => exact absurd rfl hgne
+              | cons g0 _ => exact ⟨g0, rfl⟩
+            have hg0k : lay.segs[kk]? = some g0 := by rw [← hgs, List.head?_drop] at hg0; exact hg0
+            obtain ⟨⟨hix1, hix2⟩, hix3⟩ := readAll_idx walCodec_ok hU hab hex hwr kk g0 hg0k s
+              (hghd g0 hg0) (by rw [← hR0eq1]; exact hR0r) hL.fold hmt hL.idx
+            -- (f) the tail's name
+            obtain ⟨hlastN, hXt⟩ := hglastN trivial
+            have hlastG := hlastN gl hglast
+            have hglc : hj.cur !! gl.name = some (.file gl.ino) := by
+              have hF : fs[fsI.length]? = some (DecFile.mk frl bsl
+                  (walFileS fl fdl (child dir gl.name) (openFd gl.ino (walReadFlag true)) gl)) := by
+                rw [hfsI]; simp
+              have hk := hfk fsI.length _ gl hF hgl
+              exact hk.2.1
+            have hwn : walNameP gl.name = true := by
+              have hm := List.mem_of_getLast? hlastG
+              unfold walNames at hm
+              exact (List.mem_filter.1 (List.mem_mergeSort.1 hm)).2
+            have hsq : ∃ sq ix : Nat, gl.name = walFileName sq ix ∧ sq < 2 ^ 63 + 0 := by
+              sorry -- task 3 of `wal-readall27` (the tail's sequence bound; ledger 2026-11-14, `walDirH`'s
+                    -- sequence bound): the invariant does not bound it yet
+            -- the metadata slice non-nil
+            ihave %hmdvl := ownSlice_len mdv _ _ $$ Hmdv
+            have hmdvn : mdv ≠ slice.nil := by
+              intro h0
+              subst h0
+              rw [hmdr] at hmdvl
+              simp only [Option.getD_some] at hmdvl
+              rw [hmd0] at hmdvl
+              apply hmdne
+              apply List.eq_nil_of_length_eq_zero
+              rw [hmdvl.1]; rfl
+            iapply (walOpenWF_iff P Mr w dir).2
+            iexists (WalHS.mk d0.H d0.metadata lay.cuts gl.ino lay.wr [] [] 0 st.hs γt sz' ix.1 ix.2 0)
+            iframe Hr0
+            isplitl
+            · unfold walHandleIn
+              iexists lg, df, p', e, fp, lt, fl, mdv, locks, ls ++ [lt], fdl, dfd, child dir gl.name, dir, jd,
+                func.nil
+              iframe Hlg Hzap Hdir Hdff Hdf Hmd Hst Hhs' Hdecf Hrc Hns Hmu Henti Hsnapi He Hlocks Hls Hcap
+                HltL Hfp Hpipe Henv Hcrc Hpkg Hopen
+              isplitr
+              · unfold recBytes
+                isplitr
+                · ipureintro; exact hmdvn
+                · rw [hmdr, Option.getD_some, hmd0]; iexact Hmdv
+              isplitr
+              · ipureintro; exact hne
+              isplitl [Henc]
+              · simp only
+                rw [walHS_crc_read Mr _ rfl]
+                unfold histM at hcrcw
+                rw [← hcrcw]
+                iexact Henc
+              isplitl [Hf Hfd Hoff Hk Hm Hby Hv]
+              · unfold walTailW
+                iframe Hf Hfd Hoff Hk
+                iexists m, bs
+                iframe Hm Hby Hv
+                ipureintro
+                exact ⟨hp.1, hp.2.1.win, hp.2.2.1, hp.2.2.2.1, hp.2.2.2.2⟩
+              isplitl [Hn Hpd Hph Hdfs Hout Htf Hnf]
+              · unfold walDirH
+                iexists R, qd, Xd, hj, gl.name, DirPhS.idle
+                iframe Hkd Hn Hpd Hsi Hph Hdfs Hnamed Hnf
+                isplitl [Hout]
+                · iapply walOutFrag_eq' (W := W) $$ Hout
+                  ipureintro
+                  rw [filter_out_take hgsI hgnd]
+                isplitl [Htf]
+                · iexists γt; iexact Htf
+                ipureintro
+                exact ⟨hwn, hglc, ⟨dir, rfl⟩, hXt, hXw, hsq, fun b n hb hbw => walNames_last_max hlastG b n hb hbw⟩
+              isplitr
+              · ipureintro; simp
+              isplitl [Hlh]
+              · rw [List.dropLast_concat]; iexact Hlh
+              ipureintro
+              refine ⟨walHS_split_read Mr _ rfl rfl rfl hwrT, hfdl, ?_, ?_, ⟨fun _ => hix1, hix2⟩, hix3 hnmx⟩
+              · simp only [List.length_nil, Nat.add_zero]; exact hsz'.1
+              · rw [hsz'.2]; exact hszb
+            ipureintro
+            refine ⟨⟨rfl, ?_⟩, ?_⟩
+            · simp only
+              rw [hhsσ, hσhs, hle1.1]
+            · simp only; exact hmdl
       · exact absurd hio hEu.2
       · exfalso
         obtain ⟨t, rfl⟩ := goFail_badRec hgf.1

@@ -36,6 +36,7 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.NameClaims
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutSynced
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.SegSize
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadState
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreatePre
 
 @[expose] public section
 
@@ -202,6 +203,44 @@ theorem walTmpsRes_split (j : Ino) :
   unfold walTmpsRes walTmps
   iintro ⟨H0, H1, -⟩
   iframe
+
+/-- **The pipeline's names are outside the WAL directory's claim** (`walDirH`'s `walTmps ⊆ X`):
+their claims, held whole, and the directory's share no name (`osNames_disj`). -/
+theorem walTmpsRes_mem_except (R : Roots) (j : Ino) (X : List GoString) (dq : DFrac) (hj : NamesH) :
+    ⊢ osSharedInv (GF := GF) R -∗ osNames j (.except X) dq hj -∗ walTmpsRes (hG := hG) j ={⊤}=∗
+      ⌜∀ t ∈ walTmps, t ∈ X⌝ ∗ osNames j (.except X) dq hj ∗ walTmpsRes (hG := hG) j := by
+  iintro #Hsi Hj Ht
+  ihave ⟨Ht0, Ht1⟩ := walTmpsRes_split j $$ Ht
+  have key : ∀ b, ⊢ osSharedInv (GF := GF) R -∗ osNames j (.except X) dq hj -∗ tmpClaim (hG := hG) j b
+      ={⊤}=∗ ⌜b ∈ X⌝ ∗ osNames j (.except X) dq hj ∗ tmpClaim (hG := hG) j b := by
+    intro b
+    iintro #Hsi Hj Hb
+    by_cases hb : b ∈ X
+    · imodintro; iframe Hj Hb; ipureintro; exact hb
+    · unfold tmpClaim
+      icases Hb with ⟨%h, Hn, -⟩
+      imod osNames_disj R j (.except X) (.only [b]) dq (DFrac.own 1) hj h b (by simp)
+        (fun h' => hb h') (by simp [NameSet.Mem]) (fun _ _ => CoPset.mem_full) $$ Hsi Hj Hn with %hF
+      exact hF.elim
+  imod key (pipeTmp 0) $$ Hsi Hj Ht0 with ⟨%h0, Hj, Ht0⟩
+  imod key (pipeTmp 1) $$ Hsi Hj Ht1 with ⟨%h1, Hj, Ht1⟩
+  imodintro
+  iframe Hj
+  isplitr
+  · ipureintro
+    intro t ht
+    simp only [walTmps, List.mem_cons, List.not_mem_nil, or_false] at ht
+    rcases ht with rfl | rfl
+    · exact h0
+    · exact h1
+  unfold walTmpsRes walTmps
+  rw [show pipeTmp 0 = go!"0.tmp" from rfl, show pipeTmp 1 = go!"1.tmp" from rfl]
+  iapply (BigSepL.bigSepL_cons (PROP := IProp GF)).2
+  iframe Ht0
+  iapply (BigSepL.bigSepL_cons (PROP := IProp GF)).2
+  iframe Ht1
+  iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2
+  iempintro
 
 theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMarshal)
     (hEnv : WalDecEnvSupply (GF := GF))
@@ -493,7 +532,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       · iexists gs, fls
         iframe Ho
         isplitr
-        · ipureintro; exact ⟨hgne, hndg, hS, hselg, by first | exact fun h => h.elim | exact fun _ => hlastw rfl | exact hlastw rfl | exact hlastw, hdropn⟩
+        · ipureintro; exact ⟨hgne, hndg, hS, hselg, by first | exact fun h => h.elim | exact fun _ => ⟨hlastw rfl, hXt⟩ | exact fun _ => hlastw rfl | exact hlastw rfl | exact hlastw, hdropn⟩
         isplitr
         · ipureintro; exact htf
         iexact Hlk
@@ -542,6 +581,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       icases Hw2 with ⟨-, -, #Hseg, -⟩
       try wp_auto
       ihave ⟨Hperm1, Hperm2⟩ := osCallPerm_halves' $$ Hperm
+      imod walTmpsRes_mem_except R lay.j X _ hj $$ Hsi Hj Ht with ⟨%hXt, Hj, Ht⟩
       ihave ⟨Ht0, Ht1⟩ := walTmpsRes_split lay.j $$ Ht
       iapply wp_notCrashed_acc _ _ rfl
       iintro Hnc
@@ -583,7 +623,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       · iexists gs, fls
         iframe Ho
         isplitr
-        · ipureintro; exact ⟨hgne, hndg, hS, hselg, by first | exact fun h => h.elim | exact fun _ => hlastw rfl | exact hlastw rfl | exact hlastw, hdropn⟩
+        · ipureintro; exact ⟨hgne, hndg, hS, hselg, by first | exact fun h => h.elim | exact fun _ => ⟨hlastw rfl, hXt⟩ | exact fun _ => hlastw rfl | exact hlastw rfl | exact hlastw, hdropn⟩
         isplitr
         · ipureintro; exact htf
         rw [hlfs]

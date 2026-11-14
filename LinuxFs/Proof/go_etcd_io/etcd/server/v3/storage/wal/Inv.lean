@@ -620,43 +620,73 @@ theorem walsAt_mid {jr : Ino} {Ls : GMap GoString WalLay} {l1 l2 : List Claim} {
   · exact absurd (by rw [← hm]) hne
   · exact Or.inr (Or.inr hm)
 
-/-- **Every WAL's metadata is shorter than `2^41`** (a framed conjunct of `walInvBody`; the plan's W1
-log, fifteenth session): `Create` takes the bound on its metadata (its spec's premise), `walInv_alloc`
-on the WALs found at boot, and no other step changes a WAL's metadata. `ReadAll` reads it
-(`walInvBody_bounded`): the metadata record it decodes and returns. -/
+/-- **Every WAL's metadata is shorter than `2^41` and not empty, and no index of its history is
+`2^64 - 1`** (a framed conjunct of `walInvBody`; the plan's W1 log, fifteenth session; W3/W5 log,
+twenty-seventh session, ledger 2026-11-14): `Create` takes the metadata's bounds (its spec's premises:
+not empty, so that a handle's metadata slice is non-nil, `cut`'s record encoding it present) and
+starts the history empty, `walInv_alloc` takes all three of the WALs found at boot, `Save` and
+`SaveSnapshot` append operations of indices below `2^64 - 1` (their premises, `walInvBody_append`'s
+`hox`), and no other step changes a WAL's metadata or history. `ReadAll` reads it (`walInv_readGive`):
+the metadata record it decodes and returns, and the indices `w.enti`/`w.snapi` it reads, whose maximum
+plus one `cut` names its next segment with. -/
 def WalsBounded (s : AbsDiskState) : Prop :=
-  ∀ dir d, s.wal !! dir = some d → d.metadata.length < 2 ^ 41
+  ∀ dir d, s.wal !! dir = some d →
+    d.metadata.length < 2 ^ 41 ∧ d.metadata ≠ [] ∧ ¬ walHasMaxIdx (histM d)
 
-/-- `WalsBounded` is kept by a change of WAL states keeping each present WAL's metadata. -/
+/-- A history appended with operations of no maximal index has none if it had none. -/
+theorem walHasMaxIdx_append {H H' : WalHist} (h : ¬ walHasMaxIdx H) (h' : ¬ walHasMaxIdx H') :
+    ¬ walHasMaxIdx (H ++ H') := by
+  rintro ⟨o, ho, hm⟩
+  rcases List.mem_append.1 ho with ho | ho
+  · exact h ⟨o, ho, hm⟩
+  · exact h' ⟨o, ho, hm⟩
+
+/-- `WalsBounded` is kept by a change of WAL states keeping each present WAL's metadata and history. -/
 theorem WalsBounded.mono {s s' : AbsDiskState} (h : WalsBounded s)
-    (h' : ∀ dir d', s'.wal !! dir = some d' → ∃ d, s.wal !! dir = some d ∧ d'.metadata = d.metadata) :
+    (h' : ∀ dir d', s'.wal !! dir = some d' →
+      ∃ d, s.wal !! dir = some d ∧ d'.metadata = d.metadata ∧ d'.H = d.H) :
     WalsBounded s' := by
   intro dir d' hd'
-  obtain ⟨d, hd, he⟩ := h' dir d' hd'
-  rw [he]; exact h dir d hd
+  obtain ⟨d, hd, he, hH⟩ := h' dir d' hd'
+  have hhm : histM d' = histM d := by unfold histM; rw [hH]
+  rw [he, hhm]; exact h dir d hd
 
-/-- `WalsBounded` with one WAL's state set to one with a bounded metadata. -/
+/-- `WalsBounded` with one WAL's state set to a bounded one. -/
 theorem walsBounded_ins {s s' : AbsDiskState} {dir : GoString} {d' : WalDur} (h : WalsBounded s)
-    (hw : s'.wal = <[dir := d']> s.wal) (hd' : d'.metadata.length < 2 ^ 41) : WalsBounded s' := by
+    (hw : s'.wal = <[dir := d']> s.wal)
+    (hd' : d'.metadata.length < 2 ^ 41 ∧ d'.metadata ≠ [] ∧ ¬ walHasMaxIdx (histM d')) :
+    WalsBounded s' := by
   intro k e he
   rw [hw] at he
   by_cases hk : k = dir
   · subst hk; rw [GMap.lookup_insert_eq] at he; cases he; exact hd'
   · rw [GMap.lookup_insert_ne _ _ (Ne.symm hk)] at he; exact h k e he
 
-/-- `WalsBounded` with one WAL's state set to one with the same metadata. -/
+/-- `WalsBounded` with one WAL's state set to one with the same metadata and history. -/
 theorem walsBounded_insSame {s s' : AbsDiskState} {dir : GoString} {d d' : WalDur} (h : WalsBounded s)
-    (hw : s'.wal = <[dir := d']> s.wal) (hd : s.wal !! dir = some d) (hm : d'.metadata = d.metadata) :
-    WalsBounded s' :=
-  walsBounded_ins h hw (by rw [hm]; exact h dir d hd)
+    (hw : s'.wal = <[dir := d']> s.wal) (hd : s.wal !! dir = some d) (hm : d'.metadata = d.metadata)
+    (hH : d'.H = d.H) : WalsBounded s' :=
+  walsBounded_ins h hw (by
+    have hhm : histM d' = histM d := by unfold histM; rw [hH]
+    rw [hm, hhm]; exact h dir d hd)
 
-/-- `WalsBounded` across an update of one WAL keeping its metadata (`absDiskUpd`). -/
+/-- `WalsBounded` with one WAL's history appended with an operation of no maximal index. -/
+theorem walsBounded_app {s s' : AbsDiskState} {dir : GoString} {d d' : WalDur} (h : WalsBounded s)
+    (hw : s'.wal = <[dir := d']> s.wal) (hd : s.wal !! dir = some d) (hm : d'.metadata = d.metadata)
+    {o : WalOpG WalEnt} (hH : d'.H = d.H ++ [o]) (ho : ¬ walHasMaxIdx [o.toM]) : WalsBounded s' :=
+  walsBounded_ins h hw (by
+    obtain ⟨h1, h2, h3⟩ := h dir d hd
+    have hhm : histM d' = histM d ++ [o.toM] := by unfold histM; rw [hH, List.map_append]; rfl
+    rw [hm, hhm]; exact ⟨h1, h2, walHasMaxIdx_append h3 ho⟩)
+
+/-- `WalsBounded` across an update of one WAL keeping its metadata and history (`absDiskUpd`). -/
 theorem walsBounded_upd {s : AbsDiskState} {dir : GoString} {f : WalDur → WalDur} (h : WalsBounded s)
-    (hm : ∀ d, (f d).metadata = d.metadata) : WalsBounded (absDiskUpd s dir f) := by
+    (hm : ∀ d, (f d).metadata = d.metadata) (hH : ∀ d, (f d).H = d.H) :
+    WalsBounded (absDiskUpd s dir f) := by
   unfold absDiskUpd
   cases hd : s.wal !! dir with
   | none => exact h
-  | some d => exact walsBounded_insSame h rfl hd (hm d)
+  | some d => exact walsBounded_insSame h rfl hd (hm d) (hH d)
 
 /-- **The last segment synced** (`TailIdle`'s third part; the W7-W12 log, sixth session): every byte of
 the last segment durable, and zeros known (`OsMeta.zf`) only from its end on. Then an fdatasync of an

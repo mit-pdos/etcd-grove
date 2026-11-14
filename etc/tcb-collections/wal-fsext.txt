@@ -1,0 +1,25 @@
+# etcd's real WAL over the per-byte Linux file extension (`GooseLang/Ext/Fs`, notes/wal-fsext-plan.md,
+# section 8, "Links"), in the part LinuxFs/: the linked results of
+# LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/Link.lean (`etc/gen-link.py --walfs`: the WAL's,
+# walpb's and fileutil's proofs and the part's `os`, `syscall`, `ioutil`, `crc`, ... they reach). The
+# results' hypotheses (specs with no proof in the part, the laws of the client's protobuf model) are
+# in their statements and the Link's header, not here: `#print axioms` does not show them.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/wal-fsext.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/wal-fsext.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/wal-fsext.txt --check --update
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/
+axiom pbRecordC_reg
+axiom pbSnapC_reg
+axiom proto.MarshalAppendCachedRecord.wp_proof
+axiom proto.MarshalPb.wp_proof
+axiom proto.SizePb.wp_proof
+axiom proto.UnmarshalPb.wp_proof
+axiom recEncC_ok
+axiom snapEncC_ok
+sorry go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof
+sorry os.File.WriteAt.wp_proof_long
+sorry wal.Create.wp_proof
