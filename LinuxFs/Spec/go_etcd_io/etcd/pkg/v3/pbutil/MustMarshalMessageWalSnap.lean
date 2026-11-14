@@ -10,8 +10,10 @@ is over a registered protobuf type's content).
 encoding `snapEnc c` (protobuf-go's, `snapEncC_ok`) is `Mr.encSnap sm`, so the law holds of the real
 `MustMarshalMessage`: it is the main tree's generic spec at the registered `pbSnapC` (`pbSnapC_reg`;
 `pbEncC pbSnapC c = snapEnc c`), plus protobuf-go's non-nil result (`Marshal` returns a non-nil slice,
-empty or not), which the generic spec does not state. Not derived here: the part has no copy of the
-generic spec yet. Lean-first.
+empty or not), which the generic spec does not state (derived here from the encoding's non-emptiness, `Index` being set:
+`snapEnc_ne_of_index`). The size premise is `proto.Marshal`'s (`maxAlloc`; ledger 2026-11-14,
+"`MustMarshalMessage.specWalSnap`'s size premise"). Proved:
+`LinuxFs/Proof/go_etcd_io/etcd/pkg/v3/pbutil/MustMarshalMessageWalSnap.lean`. Lean-first.
 -/
 module
 
@@ -37,7 +39,7 @@ variable [sem : go.Semantics]
 
 /-- See the file header. -/
 abbrev go_etcd_io.etcd.pkg.v3.pbutil.MustMarshalMessage.specWalSnap (Mr : WalMarshal) : Prop :=
-  ∀ (sp : Loc) (sm : SnapshotMetadataM) (cs : Bool),
+  ∀ (sp : Loc) (sm : SnapshotMetadataM) (cs : Bool), (Mr.encSnap sm).length < 2 ^ 48 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil ∗ walSnapAt Mr sp sm cs }}
     (App (Val (@! go_etcd_io.etcd.pkg.v3.pbutil.MustMarshalMessage))
       (Val #(interface.mkOk
