@@ -1441,3 +1441,26 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   **2026-11-14 (`wal-vsnap2`): adopted** (the coordinator's decision), as proposed: the I/O arm is `⌜IoE err⌝ ∗
   notUeof err ∗ ownRecAny rp ∗ ∃ k off' c', ([∗list] F ∈ fs.take k, ∃ q, F.S q) ∗ ownDecoder d IoE eof (fs.drop k)
   off' c' false`.
+
+## 2026-11-14: `decoder.Decode.spec`/`decodeRecord.spec` (internal, the part's) -- no `errors.Is(_, io.ErrUnexpectedEOF)` termination on `Decode`'s own errors
+
+- **Spec.** `decPost` (`LinuxFs/Proof/.../wal/DecDefs.lean`): `decPostB ∗ decAns eof err`; only the I/O arm carries
+  `errors.Is(err, io.ErrUnexpectedEOF)`'s answer (`notUeof`).
+- **Defect.** Too weak for `wal.Repair` (S/repair.go:64: `errors.Is(err, io.ErrUnexpectedEOF)` on every non-`EOF`
+  error) and `validSnapshotEntries`/`ReadAll` read mode: on a stop's or a failed `Unmarshal`'s error the call has no
+  spec (`RepairLoop.lean`'s `errUeAns_end`, `sorry`).
+- **Evidence.** The stop errors are `io.EOF`, `io.ErrUnexpectedEOF`, `fmt.Errorf("%w ...", io.ErrUnexpectedEOF|err)`
+  (decoder.go:110-150) and `proto.Unmarshal`'s; `errors.Is` terminates on each in Go.
+- **Change (made, `wal-vsnap3`).** `decPost := decPostB ∗ decAns eof err ∗ decUe err`, `decUe err := ⌜err = nil⌝ ∨
+  errIsTerm err ∨ notUeof err`, `errIsTerm e` (`LinuxFs/Spec/fmt/ErrorfErrsNot.lean`): `errors.Is(e, u)` returns for
+  every pointer target `u`. The hypotheses it comes from carry it: `fmt.ErrorfErrsNot.spec` (pre: each error argument's
+  `errIsTerm`; post: the result's), `walpb.Record.Validate.spec` (pre: `ErrCRCMismatch`'s; post: its error's),
+  `proto.UnmarshalWalRecordE.spec` (post: its error's), `decEnv` (`ErrCRCMismatch`'s; a part of the hypothesis
+  `WalDecEnvSupply`); `io.EOF`'s and `io.ErrUnexpectedEOF`'s are proved (`*errorString` leaves, `errors.wp_Is_leaf`).
+  **Deviation from the coordinator's wording** ("the `%w`-wrapped `io.ErrUnexpectedEOF`: true; `io.EOF`: false"):
+  only termination is given, no answer. `true` on `fmt.Errorf("%w ...", io.ErrUnexpectedEOF)` is Go's answer but false of
+  Perennial's `fmt.Errorf` model (`errors.New(format)`, a fresh leaf), so the hypothesis `ErrorfErrsNot` could not be
+  discharged from the model if it claimed it; and no caller needs an answer (`Repair` needs `true` only at the end of the
+  frames, where the stop is, `RepairAt`; `validSnapshotEntries`' error arm takes any error). `io.EOF`'s `false` follows
+  from `wp_Is_leaf` where a caller needs it.
+- **Decision.** Made (internal; no ghost state; the hypotheses' strengthening is true of Go and of the models).

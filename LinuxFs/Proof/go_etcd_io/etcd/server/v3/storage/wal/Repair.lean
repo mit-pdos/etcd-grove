@@ -251,10 +251,10 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
   wp_apply (wp_Decode walCodec dec «$r0_ptr» IoE eof ueof [F] off c rfl) $$ [Hdec Hra] as %err Hpost
   · iframe Hdec Hra Hde
   iunfold decPost at Hpost
-  icases Hpost with ⟨Hpost, #Hans⟩
+  icases Hpost with ⟨Hpost, #Hans, #Hue0⟩
   have hRF' : RepairFile walCodec F.bs rs := by rw [hFbs]; exact hRF
-  ihave Hn := repair_decNorm dec «$r0_ptr» IoE eof ueof F rs off c err hRF' hat $$ [Hde Hpost]
-  · iframe Hpost Hde
+  ihave Hn := repair_decNorm dec «$r0_ptr» IoE eof ueof F rs off c err hRF' hat hIoN $$ [Hde Hpost]
+  · iframe Hpost Hde Hue0
   icases Hn with (⟨%r, %off1, %c1x, ⟨%he, %hg⟩, Hr, Hdec⟩ | ⟨%he, %q, HS⟩ | ⟨%hne, ⟨%q, HS⟩, #Hue⟩)
   · -- a record: on a CRC record its check, then the next iteration
     subst he
