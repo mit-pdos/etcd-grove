@@ -366,8 +366,8 @@ theorem walInvBody_syncIdle (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
     isplitl [HTa HL]
     · unfold walTailsRes
       iexists ∅
-      ihave HL := walLentRes_insert_same (W := W) _ Ls dir lay (syncLay lay pre g0) hl rfl id Or.inr
-        (fun _ => id) $$ HL
+      ihave HL := walLentRes_insert_same (W := W) ∅ Ls dir lay (syncLay lay pre g0) hl rfl id Or.inr
+        (fun _ => id) (fun h => absurd (GMap.lookup_empty _) h) $$ HL
       iframe HTa HL
       isplitr
       · ipureintro; intro i hi; exact absurd (he0 i) hi

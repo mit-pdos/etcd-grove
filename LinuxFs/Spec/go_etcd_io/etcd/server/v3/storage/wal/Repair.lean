@@ -42,7 +42,10 @@ state). With the lock token, framed (plan §6 Q7: with the trivial lock model, `
 nothing, so a concurrent appender would race the truncation; both callers, the WAL tester and
 `openWALFromSnapshot`, call `Repair` after a successful `Close`; the main tree's "blocks until the
 handle's `Close`" scenario is dropped until the lock model). The boolean claims nothing, as the main
-tree's. -/
+tree's. On `false` the token may be lost (`notes/specs-only/ledger.md`, 2026-11-14, "the `false` arm after a
+failed `Truncate` or `Fsync`"; plan §6 Q6): after a failed truncate or fsync of the last segment the
+truncate's window stays open and the tail `Repair` registered cannot be unregistered; every client stops on
+`false` (the WAL tester's `restartRead`, etcd's `openWALFromSnapshot`: `lg.Fatal`). -/
 abbrev wal.Repair.spec (Mr : WalMarshal) : Prop :=
   ∀ (lg : Loc) (R : Roots) (jr : Ino) (r dir nm : GoString) (qp : Qp) (Q : Option WalDur → IProp GF),
   InArea r dir nm → NameOk nm → cleanAbsPath r → dir.length < 2 ^ 59 →
@@ -53,7 +56,7 @@ abbrev wal.Repair.spec (Mr : WalMarshal) : Prop :=
         <{ WalFs.walDirIs dir o, COMM Q o }> }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.Repair)) (Val #lg)) (Val #dir))
   {{ (b : Bool), RET #b; osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗ osCallPerm 1 ∗
-      WalFs.walUnlockedTok ∗ ∃ o : Option WalDur, Q o }}
+      (WalFs.walUnlockedTok ∨ ⌜b = false⌝) ∗ ∃ o : Option WalDur, Q o }}
 
 end spec
 

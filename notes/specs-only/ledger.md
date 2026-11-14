@@ -1299,6 +1299,27 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Decision.** Pending the user (a fork change). Until then `Create.wp_proof` keeps a marked `sorry` on that
   path only.
 
+## 2026-11-14: `wal.Repair.spec` (the part's, over `fsExt`) -- the `false` arm after a failed `Truncate` or `Fsync` cannot return the lock token
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/Repair.lean` (`wal.Repair.spec`): every arm's post
+  returns `walUnlockedTok` (framed, the entry "the lock token taken" above).
+- **Defect.** Unprovable on two of the `false` arms. `walUnlockedTok`'s `walTailsFrag ∅` makes `Repair` unregister
+  the tail it registered (the pending token, kind `true`, for its truncate at `wr`), which needs the tail idle
+  (`WalTailIdle`: exact). After a failed `f.Truncate(lastOffset)` (`os.ftUndoneH`: the truncate's window open,
+  `lo = wr`) or a failed `fileutil.Fsync(f.File)` after it (the window open, landed or not), the Go code returns
+  `false` with no sync, and nothing the program can do closes the window. The state is crash-safe
+  (`crashOkA_tailRep`: the window of a `RepOld` tail); only the unregistration fails.
+- **Evidence.** The W7-W12 log, twelfth session ("Finding", option (b)); S/repair.go:83-97. Every client stops
+  on `false`: the WAL tester's `restartRead` returns `readFail` (examples/etcd/wal/wal.go:200-202), etcd's
+  `openWALFromSnapshot` calls `lg.Fatal` (server/etcdserver/bootstrap.go). Plan §6 Q6 (honest error posts: a
+  client stops on these errors; `Sync`'s error arm already loses the handle).
+- **Proposed change.** The post's token becomes `walUnlockedTok ∨ ⌜b = false⌝`: on `true` the token comes back;
+  on `false` it may not (the proof returns it on every `false` arm but the two above). Nothing else moves
+  (`∃ o, Q o`, the area's resources and the call permission are returned on every arm). The tester's proof
+  (`restartRead`) uses `Repair`'s token only on `true` (the retried `Open`).
+- **Decision.** Accepted (the coordinator, under plan §6 Q6, 2026-11-14: option (b) of the twelfth session's
+  finding); applied by `wal-repair24` (the W7-W12 log, thirteenth session).
+
 ## 2026-11-14: `wal.WAL.sync.specC` (internal, the part's) -- the error arm keeps the lock token; `WAL.Close.specU`
 
 - **Spec.** `WAL.sync.specC`'s error arm `⌜err ≠ nil⌝` (the handle and the lock token lost).
@@ -1355,3 +1376,44 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   lemma; the callers' error posts take the same change (both callers drop that arm's resources).
 - **Decision.** Made (internal to the part: only the failure arm of a write past 1 GiB moves; no client-visible
   ghost state; the success arm unchanged). `wal-wlong1`.
+## 2026-11-14: `wal.ValidSnapshotEntries.spec` (the part's, W8) -- restated over `fsExt`
+
+- **Spec.** The main tree's axiom `Spec/.../wal/ValidSnapshotEntries.lean` (`walUnlockedTok` framed, the AU over
+  `walDirIs` unchanged, success `walSnapsAt ps (walValidSnaps (d.H.map toM) d.cut)`), restated over `fsExt`:
+  `LinuxFs/Spec/.../wal/ValidSnapshotEntries.lean`.
+- **Defect.** None of the main tree's statement: only plan §3's binders change (`walAreaOk walCodec Mr`, the
+  area's spine `osPathS R r qp jr` and `walAreaRes jr` framed, `osCallPerm 1` framed, the update at
+  `walAuMask`; premises `InArea r dir nm`, `NameOk nm`, `cleanAbsPath r`, `dir.length < 2^59`), as `Repair`'s
+  and `OpenForRead`'s, which read the same directory the same way.
+- **Evidence.** `Repair.spec`, `OpenForRead.spec` (the same binders); S/wal.go:698-791.
+- **Change (made, `wal-vsnap1`).** The restated spec; the update commits unchanged where the proof pins the
+  segments (before the retry loop: every attempt reads the same pinned files, so the retry needs no second
+  commit).
+- **Decision.** Made (the restatement plan §3 prescribes).
+
+## 2026-11-14: `decoder.Decode.spec` (the part's) -- no `errors.Is(err, io.ErrUnexpectedEOF)` answer on an I/O error
+
+- **Spec.** `decPost`'s I/O arm (`⌜IoE err⌝`, `DecDefs.lean`) and `decAns` (only `errors.Is(err, io.EOF)`).
+- **Defect.** Too weak for read mode's callers: `validSnapshotEntries` (W8) and `ReadAll` in read mode accept
+  `errors.Is(err, io.ErrUnexpectedEOF)` as the end; on an `IoE` error the proof knows no answer, so a `true` would
+  make a partial read a success. In Go the readers' errors are `*PathError`s of an errno, for which it is `false`.
+- **Evidence.** S/wal.go:772-776 (VSE's exit test); `ReadBridge.lean` (the readers' errors are `errnoPathErr`).
+- **Proposed change.** Carry the `io.ErrUnexpectedEOF` answer as the `io.EOF` one: `decRdE` and `decAns` gain
+  `isEofAns e ueof` (with `e ≠ ueof` for an `IoE` error, as `¬ IoE eof`), `walDecFiles_mk` proves it from an
+  `errors.IsPathErrnoEof`-style spec for `ueof`.
+- **Decision.** Pending (internal; `validSnapshotEntries.specPinned` stays a hypothesis of VSE until it is made).
+
+## 2026-11-14: `decoder.Decode.spec`/`decodeRecord.spec` (internal, the part's) -- the I/O arm loses the files' streams
+
+- **Spec.** `decPostB`'s I/O arm (`LinuxFs/Proof/.../wal/DecDefs.lean`): `⌜IoE err⌝ ∗ ownRecAny rp ∗ ∃ fs' off' c',
+  ownDecoder d IoE eof fs' off' c' false`.
+- **Defect.** Too weak for `wal.Repair` (S/repair.go:30-106): on a reader's I/O error its `default` arm returns `false`
+  and the deferred `f.Close()` runs, which needs the segment's `*os.File` (`os.File.Close.spec`: `os.ownFile`, `osFd`),
+  held in the segment's stream (`walFileS`) inside the decoder; the arm's decoder is over unknown files `fs'`, so
+  the stream cannot be taken out (`ownDecoder_streams`).
+- **Evidence.** `RepairLoop.lean`'s `repair_decNorm` (the I/O arm, `sorry`); the decoder only ever leaves files at
+  their end (`d.brs = d.brs[1:]`), so its files are always a suffix of `fs` (as the record and stop arms say).
+- **Proposed change.** The I/O arm as the first arm's files: `∃ k off' c', ([∗list] F ∈ fs.take k, ∃ q, F.S q) ∗
+  ownDecoder d IoE eof (fs.drop k) off' c' false` (`decodeRecord`'s I/O exits build it with `k = 0`,
+  `decPost_cons_eof` adds one). Implies the old arm; `ReadAll` (the only other caller) drops it.
+- **Decision.** Pending (internal; to be made after `wal-vsnap2`'s change of the same arm lands, to avoid a conflict).

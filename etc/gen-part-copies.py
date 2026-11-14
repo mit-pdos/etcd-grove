@@ -116,7 +116,7 @@ COPIES = [
 ] + [
     Whole(f'Spec/go_uber_org/zap/{n}.lean', drop=['Proof.go_etcd_io.etcd.cache.v3.Base'],
           add=['LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.DepsPkgInit'])
-    for n in ['Logger__Warn', 'Logger__Info', 'Duration', 'String', 'Error', 'Int64']
+    for n in ['Logger__Warn', 'Logger__Info', 'Duration', 'String', 'Error', 'Int64', 'Int']
 ] + [
     # the trust-boundary axioms of the specs above and of the main-tree specs the part's proofs import
     # as they are, for the WAL's link (`etc/gen-link.py --walfs` links the part's proofs only):
@@ -128,7 +128,7 @@ COPIES = [
         'google_golang_org/protobuf/proto/ClonePb', 'time/Duration__Seconds', 'time/Duration__Seconds_ptr',
         'go_uber_org/zap/Logger__Warn', 'go_uber_org/zap/Logger__Info', 'go_uber_org/zap/Logger__Error',
         'go_uber_org/zap/Duration', 'go_uber_org/zap/String', 'go_uber_org/zap/Error',
-        'go_uber_org/zap/Int64', 'strings/HasSuffix', 'fmt/SprintfWalName', 'fmt/SscanfWalName',
+        'go_uber_org/zap/Int64', 'go_uber_org/zap/Int', 'strings/HasSuffix', 'fmt/SprintfWalName', 'fmt/SscanfWalName',
         'io/ReadFull', 'encoding/binary/ReadInt64LE']
 ]
 
