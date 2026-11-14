@@ -37,6 +37,8 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreatePre
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateRename
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateCoh
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.AreaPath
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateAreaBack
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateLockedLeft
 
 @[expose] public section
 
@@ -106,6 +108,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
     (wp_cNWF : go_etcd_io.etcd.server.v3.storage.wal.createNewWALFile.specLocked (GF := GF) (hG := hG))
     (wp_OpenC : os.OpenFile.specCreateSnc (GF := GF) (hG := hG))
     (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
+    (wp_CloseC : os.File.Close.specClosed (GF := GF) (hG := hG))
     (wp_Prealloc : go_etcd_io.etcd.client.pkg.v3.fileutil.Preallocate.spec (GF := GF) (hG := hG))
     (wp_newFileEncoder : go_etcd_io.etcd.server.v3.storage.wal.newFileEncoder.spec (GF := GF)
       (hG := hG))
@@ -765,7 +768,62 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
     · iframe; iframe #
       iunfold walLockIn
       iframe
-    sorry)
+    unfold renameWALPost
+    icases Hpost with ⟨Hp, Hpost⟩
+    icases Hpost with (⟨%herr, %x, %fp, %γ, %sz, %df, %dfd, HU, HSpR, Hpre, Hlk, Hfpf, Hpipe, Hmain,
+        Ht1, Hdff, Hdf, Hdfd, Hsd, Hperm⟩ | ⟨%herr, %x, HU, HSpR, Hw, Hnmd, Hpw⟩ |
+      ⟨%herr, HU, HC, Hperm, HSp, HTmps, -, Hll⟩ | ⟨%herr, %x, HU, HSpR, Hperm, Hll⟩)
+    · -- committed, `w` returned: the parent's fsync, the registration, the handle (not yet)
+      sorry
+    · -- committed, a reopened WAL returned: `renameWALPost`'s arm 2 is pending (ledger 2026-11-14)
+      sorry
+    · -- not committed: the unminting step (the creating token, the update and both claims back; not
+      -- yet written), the deferred `f.Close()` and `RemoveAll(nm.tmp)`, the abort
+      sorry
+    -- committed, an error: the deferred `f.Close()` and `RemoveAll(nm.tmp)` (absent now), the new
+    -- name registered, the area back; the client's `Q` and half the permission
+    rcases err with ei | _
+    rotate_left
+    · exact absurd rfl herr
+    try wp_auto
+    wp_apply wp_String as %f1 -
+    wp_apply wp_String as %f2 -
+    wp_apply wp_Error as %f3 -
+    wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1, f2, f3]
+    isplitr
+    · ipureintro; rfl
+    iintro %fsl ⟨-, -⟩
+    try wp_auto
+    wp_apply wp_Warn lg _ _ $$ []
+    · iframe #
+    try wp_auto
+    wp_apply wp_lockedCloseLeft wp_Close wp_CloseC lf f fd _ _ $$ [Hll] as %cerr -
+    · iframe; iframe #
+    iunfold createSpR at HSpR
+    icases HSpR with ⟨%hn, %ht, Hnm, Htmp, %hnt⟩
+    try wp_auto
+    wp_apply +noauto wp_RmAbs r (tmpName nm) jr R (e + a') (DFrac.own 1) ht (1 : Qp).half
+      (tmpName_nameOk hnmO) hnt.2 $$ [Hp Htmp Hperm] as %err' ⟨Hp, Htmp, Hperm, -⟩
+    · iframe; iframe #
+    unfold createU
+    icases HU with ⟨-, HQ⟩
+    unfold walCreateQ
+    icases HQ with ⟨HQ, -, -, Hlt, -, -, Hnf, -, %s', Hpast, %hs'⟩
+    iapply wp_notCrashed_acc _ _ rfl
+    iintro Hnc
+    imod walInv_register walCodec Mr R jr r s' (child r nm) nm Wn (b1 + b1) hn hin hnmO
+      (by rw [hs']; simp) $$ Hinv Hsi Hnc Hpast Hnf Hsf Hnm with ⟨Hnc, -, Hsf⟩
+    imod create_areaBack walCodec Mr R jr r N h cl nm ht Wn (walLockedTok (W := W))
+      walLockedTok_unlocked_excl hok hnm hself hnt.2 $$ Hinv Hsi Hnc Hlt HNr Htmp Hcl Hsf
+      with ⟨Hnc, -, Hres⟩
+    iframe Hnc
+    imodintro
+    try wp_auto
+    iapply HΦ
+    iframe
+    iright; iright
+    iframe
+    ipureintro; intro hc; cases hc)
 
 end proof
 
