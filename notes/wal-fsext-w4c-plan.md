@@ -458,6 +458,45 @@ part); `os.OpenFile.wp_truncS`, `os.Open.wp_dirS`, `os.File.Close.wp_dirS` used 
   (`DCand.Ok`: `lo = hi = size`, every byte `durB`); `durBoot` from the new generation's whole claims on
   `b`/`tb` (split off by the boot's client), the state `⟨v, none⟩`. Needs: whether the tester (`wal-u1`)
   wants the boot per file or for the directory.
+
+**Fourth session (branch `wal-u2d`, 2026-11-14): the boot and the crash lemma proved; the tester's `DurBoot0`
+discharged.** No axiom, no `sorry`, nothing trusted changed; `Write.spec`/`Read.spec` unchanged.
+- **`DurOk.tmpH : NoDirH p.ht f.tb`** (internal, decided autonomously): no version of the temporary's history
+  holds a directory (`DurOk.tmp` spoke of `cur` only, which a crash need not keep). Kept by the two steps logging
+  into `ht` (`DurOk.crHt`: the create's file; `ren_common`: the rename's deletion), `NoDirH.log`. Only
+  `WritePure.lean` builds a `DurOk`.
+- **`Boot.lean`.** `durFound f m v` (the name in the generation's first tree `m`: no file and `v = none`, or a
+  file whose `osFileStart` the generation holds, `v` its contents, at most 1 GiB; never a directory) and
+  `durFoundTmp f m` (no temporary, or its file whole, `trFile i False`; never a directory). **`durBoot`**: from
+  `osSharedInv R`, the whole claim `osNames f.J (.except []) 1 (namesOf V f.J _)` with `V.2 = []`, `(f.d, f.J) ∈ R`,
+  `durFound f V.now v`, `durFoundTmp f V.now`: `|={E}=> ∃ γ, durInv γ f ∗ durHandle γ f R ∗ durSt γ ⟨v, none⟩ ∗
+  durCrashTok γ` (the claim split along `[f.b]`, `[f.tb]`, halves; `nc = 0`, the found file the one candidate,
+  its `initMeta` a synced file's). **`durBoot0`**: exactly the tester's `DurBoot0` (both names absent).
+  The tester's `tBoot0` no longer takes `hdur` (`durBoot0_holds : DurBoot0`; `DurBoot0` kept as the statement).
+- **`Crash.lean`, `durInv_crash`** (generic in `Q`, `D`, `tt`): `durInv γ f -∗ crashed -∗ durCrashTok γ -∗ durSt γ s
+  -∗ osSharedInv R -∗ crashRest Q L L' D tt V' ={E}=∗ ∃ v D', ⌜v = s.cur ∨ s.alt = some v⌝ ∗ durSt γ s ∗ durFound
+  (L := L') f V'.now v ∗ durFoundTmp (L := L') f V'.now ∗ crashRest … (D' ++ D) tt V'` (the form
+  `tOracleFile_crash` takes). The invariant closed with the crash token first (as `walInv_crash`);
+  `crashRest_region` on the two claims at `osCommitLb nc`; the name by `DurOk.crash` (`OutOk`), the candidate taken
+  with the invariant's halves (`osCrash_take_runs_keep`), its new contents by `fileCrashedR_cand` (`DCand.Ok`:
+  crash bounds the size, bytes durable); the temporary by `crashRest_take_named` (the WAL's `CrashTakeNamed`,
+  namespace `Fs`), distinct from the candidate by `TreeWf`'s unique naming. **The re-boot after a crash is
+  `durBoot`** at the new generation's `wp_osShare` with `V = V'` (`crashRest_treeS`: `V'.2 = []`), from
+  `durInv_crash`'s `durFound`/`durFoundTmp`.
+- **Open point for the tester (`tester_crash`), premise `hD`**: `∀ i ∈ D, V'.now.entry f.J f.b ≠ some (.file i) ∧
+  V'.now.entry f.J f.tb ≠ some (.file i)` (the files another client's crash lemma already took are not at the
+  file's names). `walInv_crash` takes `crashRest … []`, so the tester calls it first and passes its `D` here; for
+  its `bootFiles` part `hD` follows from unique naming (they are named in WAL directories, not in the oracle
+  root), but for the old segments' inodes it does not follow from the trees alone: it needs the old generation's
+  exclusivity (the WAL's whole `osMeta` of each segment against durable's half of each candidate). Options: (a)
+  `walInv_crash` generalized to `crashRest … D` with its segments `∉ D` and durable's lemma called first with `D =
+  []` (`hD` trivial; the WAL's premise is then the same question mirrored), or (b) `walInv_crash` returning the old
+  segments' `osMeta` (old generation), so the tester gets `hD` from `gElem` validity against durable's candidates
+  (which `durInv_crash` would then have to return too). Not decided here (the WAL's statements are `wal-u3d`'s).
+- **Merge fix:** `storeOracle.lean`'s `unfold durWriteSync` → `DurFs.durWriteSync` (moved to `Defs.lean` in the
+  third session; the tester's file had not been rebuilt). `etc/gen-link.py --durable --check` passes (no new Go
+  function proofs; the link is unchanged).
+
 ## W4c U4 log (branch `wal-u4`, 2026-11-14)
 
 **The instance** (`LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/RaftModel/`), one module per group:
