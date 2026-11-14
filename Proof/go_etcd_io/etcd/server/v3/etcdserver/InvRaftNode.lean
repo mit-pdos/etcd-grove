@@ -1251,7 +1251,7 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
       with ⟨Hrest, %Hfit61⟩
     · iframe Hfits Hrest
     simp only [readyRest, readySnap]
-    icases Hrest with ⟨#HesO, Hmsgs, Hmo, #Hhs, #Hss, -, ⟨%Hsp, Hown, #Hcom2, #Hcert, Hold,
+    icases Hrest with ⟨#HesO, Hmsgs, Hmo, -, #Hhs, #Hss, -, ⟨%Hsp, Hown, #Hcom2, #Hcert, Hold,
       Hgiv⟩, %Hrrf⟩
     icases readyEnts_rn _ _ _ _ Hmd' $$ HesO with ⟨%esL, #HesL, #Hesz, #Hesro⟩
     obtain ⟨Hdlv, Hptr, Hce0, Hpfx, Hlt, Hdl, Hpos, H61, Hfl, Hli⟩ := Hsp
@@ -1434,7 +1434,7 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
     with ⟨Hrest, %Hfit61⟩
   · iframe Hfits Hrest
   simp only [readyRest, readySnap]
-  icases Hrest with ⟨#HesO, Hmsgs, Hmo, #Hhs, #Hss, %Hbnd, ⟨%Hsnap, Happ, #Hcf, %Hidx⟩, %Hrrf⟩
+  icases Hrest with ⟨#HesO, Hmsgs, Hmo, -, #Hhs, #Hss, %Hbnd, ⟨%Hsnap, Happ, #Hcf, %Hidx⟩, %Hrrf⟩
   icases readyEnts_rn _ _ _ _ Hmd' $$ HesO with ⟨%esL, #HesL, #Hesz, #Hesro⟩
   obtain ⟨Lx, HLx, Hes0, Hdl, -⟩ := Hbnd
   obtain ⟨ce', Hce'def⟩ : ∃ ce', ce' = rnCe (srvLE γ.srv L).length ce := ⟨_, rfl⟩

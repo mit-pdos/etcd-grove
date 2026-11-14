@@ -27,7 +27,11 @@ Worktree `/shared/etcd-grove-rs56`, branch `restart-s7` (off `lean`). Plan: `not
   `srvErM false` literals, now `srvEr`, definitionally equal).
 - **P2-a, WIP** (`de74cd8d84`, not landed): the protocol's `MsgSnap` carries `snapDstOk` (raft builds through its
   `Link`; server not rebuilt yet, a full build). Stopped on the row-4 finding (`notes/restart-s7-p2a.md`,
-  "Progress and a finding"): waiting for etcd-grove-81 on options (A)/(B).
+  "Progress and a finding"): option (A) approved and done in raft (`5d6d93926b`, `fb42ba546e`, then the
+  server's `InvRaftNode` patterns); raft builds through `Link`/`Results`, the server's `InvRaftNode` and
+  `EtcdServer__run` build; no full build yet. Second stop (same note, "Option (A), done in raft, and a second
+  stop"): the rows are plain wands under a basic update, but the destination fact reaches `To = id` only
+  through fancy updates; waiting for etcd-grove-81 on restating the rows with a fancy update.
 
 - **srvLeaseRd consumer check** (etcd-grove-81's condition on the change, 2026-11-14):
   `etc/importers.py --uses srvLeaseRd` lists `etcdstart.{Defs,Restart,Served,ServedLease,newServerMode}`;
