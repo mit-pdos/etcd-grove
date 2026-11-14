@@ -263,7 +263,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
     (try wp_auto)
     obtain ⟨hpos, hlast, hrec⟩ := Hs.entryPre hcut hix.2 e he
     have hei : uint.nat e.Index' < 2 ^ 64 - 1 := hidx e (List.mem_of_getElem? he)
-    wp_apply (wp_saveEntry R jr r w dir hc l e hpos hei hlast hrec) $$ [Hh] as %err Hres
+    wp_apply (wp_saveEntry R jr r w dir hc l e hpos hei (hsz e (List.mem_of_getElem? he)) hlast hrec) $$ [Hh] as %err Hres
     · iframe Harea Hh Hel
     icases Hres with (⟨%herr, %out', %pend', %sz', Hh⟩ | %herr)
     · subst herr
