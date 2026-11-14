@@ -623,6 +623,20 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   absent source (`ENOENT`, no effect).
 - **Decision.** (1) adopted (coordinator); (2), (3) pending the coordinator.
 
+## 2026-11-14: `wal.Create.spec` (the part's, over `fsExt`) -- the initial snapshot record's bytes
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/Create.lean`.
+- **Defect.** `Create` writes `&walpb.Snapshot{Index: new(0), Term: new(0)}` through `SaveSnapshot`
+  (S/wal.go:181), whose bytes are protobuf-go's (`snapEnc snapC0`; `SaveSnapshot.specPre` writes
+  `Mr.encSnap sm` of a `walSnapAt Mr sp sm cs`, which ties the object's encoding to `Mr.encSnap`). The
+  committed state `walDurFresh md` has `Mr.snap0` there (`hdrDs`). Nothing relates `Mr.snap0`, `Mr.encSnap`
+  and `snapEnc`: with an arbitrary marshaller the spec's commit is false.
+- **Evidence.** `Create.wp_proof`'s `SaveSnapshot` step (`wal-create15`); `WalEncRecs.lean` (`hdrDs`).
+- **Change (made).** Premise `WalMarshalCreateOk Mr` (`CreateSnap.lean`: `Mr.snap0 = snapEnc snapC0 ∧
+  Mr.encSnap snapC0.model = Mr.snap0`), a pure fact of the client's marshaller parameter, which the
+  server meets with the real one (as `walSnapAt`'s tie, ledger 2026-11-13).
+- **Decision.** Adopted (minor: a pure premise on a parameter, no ghost state; `wal-create15`).
+
 ## 2026-11-14: `wal.Repair.spec` (the part's, over `fsExt`) -- the lock token taken (plan §6 Q7)
 
 - **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/Repair.lean` (`wal.Repair.spec`, new): the main
