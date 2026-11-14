@@ -1969,8 +1969,6 @@ theorem NewServer.wp_proofR
     isplitr
     · iexact Hrvkb
     iexact HstkP
-  -- (R2d'a A10 item 5) `Hwpend`'s token (`srvWinPend`, free at a first start)
-  imod (token_alloc (GF := GF)) with ⟨%γwp, Hwpt⟩
   -- (auth-schema-fix S1 option A) `srv` read-only from here on (it holds `s`): the readiness's
   ipersist srv
   imodintro
@@ -2013,23 +2011,26 @@ theorem NewServer.wp_proofR
   · icases HM with %HM0
     iunfold srvTpPend; iexists γy, srv_ptr; iframe Htpp Htpinv srv
     ipureintro; exact HM0.2.2
-  -- (restart) the post, `srvBuiltR` (= `srvBuiltRC .off`): NOT YET WRITTEN. `wp_proofG`'s assembly
-  -- of `srvBuiltG` from here on (its text, adapted up to here, is in the comment block after this
-  -- proof) is to be retargeted at `srvBuiltRC`'s rows (handoff, "B2 proof in progress")
-  sorry
-
-end proof
-
-/- The rest of `wp_proofG`'s tail (its post's assembly, `srvBuiltG`), pasted with `on`/`cmp` at
-`false`, to retarget at `srvBuiltRC .off` (restart S6 B2; handoff, "B2 proof in progress"):
-
-  unfold srvBuiltG
-  iframe Htpp' HsCI Hloop Happly Hrdone Hcci Hwci Hai Hti Hcmi Hrn Hrvkb
+  -- (restart) the post: `srvBuiltR` (= `srvBuiltRC .off`), `wp_proofG`'s assembly of `srvBuiltG`
+  -- retargeted at `srvBuiltRC`'s rows (handoff, "B2 proof in progress"), and the lessor's records
+  isplitr [HLsrv]
+  rotate_left
+  · iexists recs, ls, minTTLsecs
+    iframe HLsrv
+    ipureintro
+    rw [rbData_real_lookup d D _ (by decide)] at hrecs
+    exact ⟨hrecs, Hls⟩
+  have hργ : ρ.rd.raft.raft = γ := by rw [HρRaft]
+  have hpre : ρ.rd.raft.pre = [] := by simp [HρRaft]
+  have hidr : γrn.id = id := by rw [Hrn5, Hrid]
+  unfold srvBuiltR srvBuiltRC
+  simp only [AuthC.isOn]
+  iframe Htpp' HsCI Hrdone Hcci Hwci Hai Hti Hcmi Hrn Hrvkb Hwpend Hwth Hwtl
   isplitr
   · -- `#Hfb`
     iexists ⟨cfg.Logger', GoInterface.nil, lease.lessorIface lp, #hook, fcn, alst, bc.cl',
       cfg.QuotaBackendBytes', «$v2_ptr», bc.nodeID', cfg.ElectionTicks', cfg.TickMs'⟩
-    unfold srvFieldsBuiltNA srvLeadInv
+    unfold srvFieldsBuilt srvLeadInv
     iframe #
     ipureintro; exact ⟨⟨rfl, rfl, Hhknn⟩, rfl, rfl, d.γB, _, rfl, rfl,
       ({ d with cm := true } : mvcc.KBReal), alst, astl, lp, rfl, rfl, rfl⟩
@@ -2054,68 +2055,35 @@ end proof
       iframe Hnodef Hprop
     ipureintro; exact ⟨HCfgnn, Hmrb⟩
   isplitr
-  · -- `#Hrdb`
-    iexists ⟨null, GoInterface.nil, lease.lessorIface lp, ast, cfg.Logger', cfg.WarningApplyDuration',
-      GoInterface.nil, null, fcn, null⟩
-    unfold srvReadBuiltNK
-    iframe firstCommitInTerm Hast Hapl Hti WarningApplyDurationS lessor authStore lg
+  · -- `#Hrdb`: with the KV's rows (`srvReadBuilt`, not `NK`), the store's log at the image's
+    iexists { (⟨null, GoInterface.nil, lease.lessorIface lp, ast, cfg.Logger',
+      cfg.WarningApplyDuration', GoInterface.nil, null, fcn, null⟩ : ReadFields) with
+      kv := interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #ws }
+    unfold srvReadBuilt
+    dsimp only
+    iframe kv HisKV firstCommitInTerm Hast Hapl Hti WarningApplyDurationS lessor authStore lg
+    isplitr
+    · ipureintro; rfl
     isplitr
     · iexact Hzlg
-    iexists [[], []]
+    iexists kvModel ρ.rd.kv A
     iframe Hlb0
-    ipureintro; exact ⟨by simp, mvcc.LogPutsLe.empties _⟩
+    ipureintro; exact ⟨by have := h0A.length_le; simpa using this, hkA⟩
   isplitr
   · -- `#Hrunb`
     iexists ⟨errc, null, null, func.nil, cpv, sstats, null⟩
     unfold srvRunBuilt
     iframe compactor errorc Hltg stats Herrb Hcpok
-  isplitl [Hcpt HltC HlgC HRDC HwrC]
-  · -- `Hcrun` (M2, S4): the compactor off, nothing to run; on, its run token and the run's
-    -- precondition from the views `start` builds (`compactorRun`)
+  isplitl [Hcpt]
+  · -- `Hcrun`: no compactor (`hcmpT`)
     iexists cpv
     iframe compactor
     iunfold compactorRun
-    icases Hcpt with (%Hn | ⟨%Hcm, %Hcrm, %T, %γf, #Hcpo, HT⟩)
+    icases Hcpt with (%Hn | ⟨Hf, -⟩)
     · ileft; ipureintro; exact Hn
-    -- (2026-11-05) a compactor, so its reader was not kept for the stop
-    icases HwrC with (%Hnil | HwrC)
-    · iexfalso
-      iunfold v3compactor.compactorOk at Hcpo
-      icases Hcpo with ⟨%ci, %Hci, -⟩
-      rw [Hnil] at Hci; cases Hci
-    iright
-    subst Hcm
-    -- (K1) auth off in compaction mode; the mode's permit carried from where the compactor is built
-    have Hon : false = false := Hcon rfl
-    isplitr
-    · icases HM with %HM; ipureintro; show M.isOn = false; rw [HM.1, Hon]
-    iexists T, _
-    iframe Hcpo HT
-    iintro %ρ' ⟨#Hpk', #Hreq', #Hrd', #Hcred'⟩
-    unfold v3compactor.runPre
-    simp only
-    imodintro
-    isplitr
-    · ihave #Hrg := revGetterOk_server Hp Hr hsh s ({ kv := interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #ws, γ := γm, γs := E₀.γs, Nx := srvApi.kvNx ρ.rd false, Pk := fun _ => batchLockInv γA (metaTM d.γB d.P), f := hook, RD := RD, γrev := E₀.γrev, authMode := M, FS := srvFS s, ciC := srvCiC γA cil, RO := srvRestOwnH M d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), RW := srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe := γbe, Cp := kvCpOk ρ.rd.kv, BkTie := srvBkTie ({ d with cm := true } : mvcc.KBReal), cmp := E₀.cmp, cret := ρ.rd.kv.cret, lm := ρ.rd.kv.lm, γlt := γlt } : apply.AEnv GF) ρ'.rd _ $$ [$Hmvpkg $kv $Hrd']
-      iExactEq Hrg; rfl
-    isplitr
-    · ihave #Hcb := compactableOk_server_mode (hCmpS rfl) Hp Hr s ({ kv := interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #ws, γ := γm, γs := E₀.γs, Nx := srvApi.kvNx ρ.rd false, Pk := fun _ => batchLockInv γA (metaTM d.γB d.P), f := hook, RD := RD, γrev := E₀.γrev, authMode := M, FS := srvFS s, ciC := srvCiC γA cil, RO := srvRestOwnH M d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), RW := srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe := γbe, Cp := kvCpOk ρ.rd.kv, BkTie := srvBkTie ({ d with cm := true } : mvcc.KBReal), cmp := E₀.cmp, cret := ρ.rd.kv.cret, lm := ρ.rd.kv.lm, γlt := γlt } : apply.AEnv GF) ρ' cfg.AutoCompactionMode'
-          (sint.Z cfg.AutoCompactionRetention') γf Hcmp0 Hcrm
-        $$ [$Hpk' $Hreq' $Hrd' $Hcred']
-      iExactEq Hcb; rfl
-    isplitl [HltC HlgC HRDC HwrC]
-    · unfold srvCompactR srvLeadTimeReader
-      iframe HltC HlgC HRDC HwrC
-    imodintro
-    iunfold srvRevLb
-    iexists [[], []]
-    iframe Hlb0
-    isplitr
-    · imodintro; iexact Hnx0
-    ipureintro; simp
+    · iexfalso; iexact Hf
   isplitr
-  · -- `#Hsab`: `msgSnapC`, a bag of raft's `MsgSnap`s (2026-10-30, the repair: snapshots allowed)
-    -- (2026-10-31, S1) the raft node's bag and the started transport
+  · -- `#Hsab`
     unfold srvApplyAllBuilt
     iexists _
     iframe NHmsc Hinfl
@@ -2124,7 +2092,6 @@ end proof
       iframe NHmsci
       isplitr
       · ipureintro; simp [Hrn1, HρRaft]
-      have hidr : γrn.id = id := by rw [Hrn5, Hrid]
       rw [hidr, ← Hid]; iexact memberID
     isplitr
     · iexists (transportIface t), γn, id, srvTrKey γn γk, iprop(False)
@@ -2132,118 +2099,77 @@ end proof
       ipureintro; rw [Hγn.1, ← hργ]
     ipureintro; exact ⟨Hc0, Hlog0⟩
   isplitr
-  · -- `#Hkvi`
-    unfold Perennial.named
-    cases false
-    · simp only [srvKVInvsM, srvKVInvs, kvInvM, kvCertInvM]
-      iframe Hkci Hsrl Hkvinv
-      isplitr
-      · iexact HkvSG
-      ipureintro
-      refine ⟨⟨Hkcmp.trans Hcmp0.symm, ?_, ⟨fun _ => inferInstance, fun _ => inferInstance,
-        fun _ => inferInstance, fun _ => inferInstance⟩, ?_⟩, ?_, ?_⟩ <;> first | exact True.intro | rfl
-    · simp only [srvKVInvsM, srvKVInvsOn, kvInvM, kvCertInvM]
-      isplit
-      · iframe Hkci Hsrl Hkvinv Htie
-        isplitr
-        · iexact HkvSG
-        ipureintro
-        -- (#7-on) auth on, the compaction mode off (`specG`'s `cmp = true → on = false`)
-        -- (the lease-grant merge) and a cluster that grants no lease (`specG`'s `on → lg = false`)
-        have hcf : false = false := by
-          cases hc : false
-          · rfl
-          · exact absurd (Hcon hc) (by decide)
-        refine ⟨⟨⟨fun _ => inferInstance, fun _ => inferInstance, fun _ => inferInstance,
-          fun _ => inferInstance⟩, ?_⟩, ?_, Hkcmp.trans ?_, Hlgon rfl⟩
-        all_goals first | exact True.intro | rfl | exact hcf
-      · iapply srvUberOn_of_kit hKit
-        iPkgInit
+  · -- `#Hkvi` (`srvKVInvsM false`'s, as the component's)
+    iapply (srvKVInvsM_C (GF := GF) .off s _ ρ.rd).1
+    dsimp only [AuthC.isOn]
+    simp only [srvKVInvsM, srvKVInvs, kvInvM, kvCertInvM]
+    iframe Hkci Hsrl Hkvinv
+    isplitr
+    · iexact HkvSG
+    ipureintro
+    refine ⟨⟨Hkcmp.trans Hcmp0.symm, ?_, ⟨fun _ => inferInstance, fun _ => inferInstance,
+      fun _ => inferInstance, fun _ => inferInstance⟩, ?_⟩, ?_, ?_⟩ <;> first | exact True.intro | rfl
   isplitr
   · ipureintro
-    refine ⟨?_, rfl, ⟨Int.le_refl _, Hrn6, rfl⟩, Hrna0⟩
+    refine ⟨?_, rfl, ?_⟩
+    rotate_left
+    · simp [Hrn6]
     unfold srvErM
     simp only
     exact (srvCM_agree false ρ _ E₀ (W64 0) (W64 0) (restartKV ρ.rd.kv A) hγs).symm
-  isplitl [Hwpt]
-  · -- (R2d'a A10 item 5) at a first start `Hwpend` is free (`srvWinPend_first`)
-    iapply srvWinPend_first _ _ _ Hrna0 γwp
-    iexact Hwpt
   isplitl [Hrunh]
   · iunfold named; iExactEq Hrunh; rfl
-  isplitl [Hwth]
-  · iexact Hwth
-  isplitl [Hwtl]
-  · iexact Hwtl
   isplitr
   · ipureintro; exact Hdisk
   isplitr
   · ipureintro; exact Hslg
   isplitr
-  · ipureintro; rfl
+  · rw [hidr, ← Hid]; iexact memberID
   isplitr
-  · -- (J8b) the member id, the raft node's (`srvProcOk`'s)
-    have hidr : γrn.id = id := by rw [Hrn5, Hrid]
-    rw [hidr, ← Hid]; iexact memberID
-  isplitr
-  · -- (2026-11-02, the cluster-rows stage) the member id, a voter (`srvDynLog`'s)
-    ipureintro
-    have hidr : γrn.id = id := by rw [Hrn5, Hrid]
-    have hργ' : ρ.rd.raft.raft = γ := by rw [HρRaft]
+  · ipureintro
     rw [hidr]
-    try rw [hργ']
+    try rw [hργ]
     unfold SrvRaft.cfg
     rw [Hrvs, GMap.elem_of_list_to_set, ← Hrid]
     exact Hrmem
   isplitr
-  · -- (J8b) `bootOk`'s meta reads, by name
-    unfold srvMetaSnap; iexact HmetaSnap
-  isplitl [Hsend]
-  · simp only [srvErM]; iexact Hsend
-  isplitl [w]
-  · iexists _; iexact w
-  isplitl [applyWait]
-  · iexists _; iexact applyWait
-  isplitl [done]
-  · iexists _; iexact done
-  isplitl [stop]
-  · iexists _; iexact stop
-  isplitl [stopping]
-  · iexists _; iexact stopping
-  isplitl [ctx]
-  · iexists _; iexact ctx
-  isplitl [cancel]
-  · iexists _; iexact cancel
-  isplitl [read]
-  · iexists _; iexact read
-  isplitl [leaderChanged]
-  · iexists _; iexact leaderChanged
-  isplitl [SnapshotCountS]
-  · iexists _; iexact SnapshotCountS
-  isplitl [SnapshotCatchUpEntriesS]
-  · iexists _; iexact SnapshotCatchUpEntriesS
-  isplitl [wg]
-  · iexact wg
-  isplitl [wgMu]
-  · iexact wgMu
-  isplitl [Hcmown]
-  · iexists _; iexact Hcmown
-  isplitl [Hnot]
-  · iexact Hnot
-  isplitl [Hthr Happ Hown Hlr5 Hbmr HrdApp beA HγbA HbkP HrtA Hrev HAR Hrdat Haown Hkhi2 forceDiskSnapshot Hrbo Hmem HalOn HauthOn HleOn HclBe Htlive HltS HlEv HTR]
-  · -- `Happ` (E3c: the mode-`on` row, the auth resource at the store's start state)
-    iapply applyBuiltNAM_of_On
-    unfold applyBuiltNAOn srvBemuReaderAt
-    iexists ⟨W64 0, W64 0, W64 0, false⟩, W64 0, W64 0, false
-    iframe Hthr Happ Hlr5 Hbmr HrdApp Haown forceDiskSnapshot HTR
+  · unfold srvMetaSnap; iexact HmetaSnap
+  isplitr [Hsend w applyWait done stop stopping ctx cancel read leaderChanged SnapshotCountS SnapshotCatchUpEntriesS wg wgMu Hcmown Hnot Hlr3 Hlr4 Hfcr HWreg Hwtok]
+  · -- `HBr`: the restart point (`srvBuiltRestartR .off` at `P := A.take σ.b`)
+    iunfold srvBuiltRestartR
+    iexists List.take σ.b A
+    rw [Hrna0]
+    iframe Hloop Happly
+    isplitr
+    · ipureintro; exact ⟨List.take_prefix _ _, HlastT⟩
+    isplitl [HsnapR]
+    · iexists msR
+      iframe HmsR
+      iExactEq HsnapR
+      rw [Hrn1, Hrn8]
+      rfl
+    isplitr [HsnapB]
+    rotate_left
+    · iExactEq HsnapB; rfl
+    -- the apply thread's resources at the image's log `A` (`applyBuiltR .off`, P3's table)
+    iunfold applyBuiltR
+    have hci : ciEff γA (W64 0) = i := by unfold ciEff; simp [Hm0.2]
+    iexists ⟨W64 0, γA.m0.1, W64 0, false⟩, W64 0, W64 0, false, i, srvAuthSt0
+    iframe Hthr Happ Hlr5 HrdApp Haown forceDiskSnapshot
     isplitr
     · ipureintro
-      have hm0 := Hci.2
-      refine ⟨⟨rfl, ?_⟩, ?_⟩ <;> simp [ciEff, hm0]
+      have hlt := List.length_take_le σ.b A
+      unfold loopOk
+      refine ⟨⟨rfl, ?_⟩, hci.symm, ?_⟩
+      · dsimp only
+        rw [hci, Hm0.2]
+        word
+      · exact Hiz
     isplitl [Hown]
     · unfold applyBackend
       iframe Hown Hmeta
-    -- (2026-11-02, the backend-auth-split stage) with the backend's reader pool (`newPost_pool`'s)
+    isplitl [Hbmr]
+    · unfold srvBemuReaderAt; iexact Hbmr
     isplitl [beA HγbA HbkP HrtA]
     · iunfold srvBeOwn; iexists ({ d with cm := true } : mvcc.KBReal); iframe beA HγbA
       isplitr
@@ -2254,73 +2180,202 @@ end proof
       isplitl [HbkP]
       · iExactEq HbkP; rfl
       iexact HrtA
+    isplitl [uberApply Hulate HAR Hw0 HmB Hopn Hcr0 HRD2 Hlrd2 Hlrvk Hlown Hlt1]
+    · -- the uber-applier (`wp_proofG`'s `Hua`, at the restart's KV state)
+      ihave #Haus : apply.envAus ({ kv := interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #ws, γ := γm, γs := E₀.γs, Nx := srvApi.kvNx ρ.rd false, Pk := fun _ => batchLockInv γA (metaTM d.γB d.P), f := hook, RD := RD, γrev := E₀.γrev, authMode := M, FS := srvFS s, ciC := srvCiC γA cil, RO := srvRestOwnH M d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), RW := srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe := γbe, Cp := kvCpOk ρ.rd.kv, BkTie := srvBkTie ({ d with cm := true } : mvcc.KBReal), cmp := E₀.cmp, cret := ρ.rd.kv.cret, lm := ρ.rd.kv.lm, γlt := γlt } : apply.AEnv GF) $$ []
+      · ihave #Hk := srvApi.kvAusG (srvApi.kvNx ρ.rd false) (kvCpOk ρ.rd.kv) Hp Hr _ γm E₀.γs $$ HkvSG
+        icases Hk with ⟨#HB1, #HR1, -, #HE1, #HC1, -, -, #HF1⟩
+        iunfold apply.envAus
+        isplitr
+        · imodintro; iExactEq HB1; rfl
+        isplitr
+        · imodintro; iExactEq HR1; rfl
+        isplitr
+        · imodintro; iExactEq HE1; rfl
+        isplitr
+        · imodintro; iExactEq HC1; rfl
+        isplitr
+        · -- (the parent's change) the writer's witness under `□`
+          iintro !> %log %c Hw
+          imod HF1 $$ %log %c Hw with ⟨Hw, #Hlb, #Hnx, Hrc, %Hre⟩
+          imodintro
+          iframe Hw Hlb Hrc
+          isplitr
+          · imodintro; iexact Hnx
+          ipureintro; exact Hre
+        iintro !> %log %c %F Hw HF
+        iapply (srvApi.writer_floor (srvApi.kvNx ρ.rd false) (kvCpOk ρ.rd.kv) Hp _ γm E₀.γs log c F) $$ HkvSG Hw HF
+      ihave #Hbo : apply.backendOptsOk ({ kv := interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #ws, γ := γm, γs := E₀.γs, Nx := srvApi.kvNx ρ.rd false, Pk := fun _ => batchLockInv γA (metaTM d.γB d.P), f := hook, RD := RD, γrev := E₀.γrev, authMode := M, FS := srvFS s, ciC := srvCiC γA cil, RO := srvRestOwnH M d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), RW := srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe := γbe, Cp := kvCpOk ρ.rd.kv, BkTie := srvBkTie ({ d with cm := true } : mvcc.KBReal), cmp := E₀.cmp, cret := ρ.rd.kv.cret, lm := ρ.rd.kv.lm, γlt := γlt } : apply.AEnv GF) uopts $$ []
+      · obtain ⟨Hu1, Hu2, Hu3, Hu4, Hu5, Hu6, Hu7, Hu8, Hu9, Hu10, Hu11, Hu12⟩ := Huopts
+        iunfold apply.backendOptsOk
+        simp only
+        rw [Hu1, Hu2, Hu3, Hu4, Hu5, Hu6, Hu7, Hu11, Hu12]
+        isplitr
+        · iexact Hzlg
+        isplitr
+        · iunfold apply.isApplyKV; iexact HisKV
+        isplitr
+        · ipureintro; rfl
+        isplitr
+        · iexact Haus
+        isplitr
+        · iexact Hapl
+        isplitr
+        · iexact Hast
+        isplitr
+        · iapply snap_isAlarmStore alst astl lp bc.cl' ({ d with cm := true } : mvcc.KBReal)
+            (mvcc.api.mvccW d.gx) (batchLockInv γA (metaTM d.γB d.P)) hook Hhknn
+          iframe HalA HBs Hhooks
+        isplitr
+        · iapply snap_isCluster M alst astl lp bc.cl' ({ d with cm := true } : mvcc.KBReal)
+            (mvcc.api.mvccW d.gx) (batchLockInv γA (metaTM d.γB d.P)) hook Hhknn
+          iframe Hisc HBs Hhooks
+          iexists _; iexact Hvcn
+        isplitr
+        · iunfold apply.isRaftStatus
+          iexists ⟨go.GoType.PointerType EtcdServer.ty, #s⟩
+          isplitr
+          · ipureintro; rfl
+          isplitr
+          · iintro !> !> %Φ' - HΦ'
+            iapply (h79 s bc.nodeID') $$ [] [HΦ']
+            · iframe Hpkg memberID
+            inext; iintro -; iapply HΦ'; itrivial
+          isplitr
+          · iintro !> !> %Φ' - HΦ'
+            iapply (h80 s) $$ [] [HΦ']
+            · iframe Hpkg
+              iunfold srvLeadInv; iexact Hlead
+            inext; iintro %l -; iapply HΦ'; itrivial
+          · iintro !> !> %Φ' - HΦ'
+            iapply (h81 s) $$ [] [HΦ']
+            · iframe Hti Hpkg
+            inext; iintro %t' -; iapply HΦ'; itrivial
+        isplitr
+        · iunfold apply.isSnapshotServer
+          iexists ⟨go.GoType.PointerType EtcdServer.ty, #s⟩
+          isplitr
+          · ipureintro; rfl
+          iintro !> !> %Φ' Hfs HΦ'
+          iapply (h82 s) $$ [Hfs] [HΦ']
+          · iframe Hpkg; iframe Hfs
+          inext; iintro Hfs; iapply HΦ'; iexact Hfs
+        · iunfold apply.isConsistentIndexer
+          rw [Hci]
+          iexists ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #cil⟩
+          isplitr
+          · ipureintro; rfl
+          iintro !> %C %x %HC
+          obtain ⟨cst, cb, hC, hcp, hld, hx⟩ := HC
+          subst hC hx
+          iintro %Φ' !> Hpre HΦ'
+          iapply (wp_wand (Φ := fun w => iprop((
+              iprop(applyThread γA cst ∗ applyBackend γA cil cb) -∗ Φ' #(ciEff γA cst.k)) ∗
+              (⌜w = #(ciEff γA cst.k)⌝ ∗ applyThread γA cst ∗ applyBackend γA cil cb))))
+            $$ [Hpre HΦ']
+          · iapply (wp_frame_step_l' (by rfl) Std.LawfulSet.subset_refl)
+            iframe HΦ'
+            icases Hpre with ⟨Hcst, Hcb⟩
+            iapply (wp_ci_get h83 γA cil cb cst hcp) $$ [Hcst Hcb]
+            · iframe Hcipkg Hcons HisCI; iframe Hcst Hcb
+            iintro ⟨Hcst, Hcb⟩
+            rw [hld]
+            iframe Hcst Hcb
+            ipureintro; rfl
+          · iintro %w ⟨HΦ', %Hw, HP⟩
+            subst Hw
+            iapply HΦ' $$ HP
+
+      ihave Hul := Hulate $$ %(({ kv := interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #ws, γ := γm, γs := E₀.γs, Nx := srvApi.kvNx ρ.rd false, Pk := fun _ => batchLockInv γA (metaTM d.γB d.P), f := hook, RD := RD, γrev := E₀.γrev, authMode := M, FS := srvFS s, ciC := srvCiC γA cil, RO := srvRestOwnH M d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), RW := srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe := γbe, Cp := kvCpOk ρ.rd.kv, BkTie := srvBkTie ({ d with cm := true } : mvcc.KBReal), cmp := E₀.cmp, cret := ρ.rd.kv.cret, lm := ρ.rd.kv.lm, γlt := γlt } : apply.AEnv GF) : apply.AEnv GF) Hbo
+      icases Hul with ⟨#Hui, %ns, %cr, %Hz, Huo⟩
+      obtain ⟨hns, hcr⟩ := Hz trivial
+      subst hns hcr
+      iexists ua
+      iframe uberApply
+      isplitl [HAR]
+      · iapply acRes_off
+        iapply srvAuthApplyRes_of_At
+        iapply srvAuthApplyResAt_of_B $$ HAR
+      isplitr
+      · iunfold apply.applierFor
+        iexists up, uopts
+        iframe Hui
+        ipureintro; exact Hua
+      iunfold apply.applyKV
+      simp only [restartKV]
+      iexists up
+      isplitr
+      · ipureintro; exact Hua
+      isplitl [Huo]
+      · icases HM with %HM'
+        iExactEq Huo
+        simp only [Hch0, apply.AEnv.authOn, HM'.1]
+      isplitr [Hopn Hcr0]; rotate_left
+      · iunfold apply.cmpOwn
+        iframe Hopn Hcr0
+      iunfold apply.kvOwn
+      isplitl [Hw0]
+      · iexists _; iexact Hw0
+      isplitl [HmB]
+      · iunfold apply.kvBk
+        iexists ({ d with cm := true } : mvcc.KBReal)
+        iframe HmB
+        isplitr
+        · rw [mvcc.api.etcdStorage_hookIs]; iexact Hhooks
+        iunfold srvBkTie; ipureintro; rfl
+      iframe HRD2
+      iunfold apply.leasesLive
+      iexists (appliedTable ρ.rd A).ids
+      isplitr
+      · iapply leasesKnown_noLease _ _ hnl
+      iunfold lease.lessorUser
+      simp only
+      rw [Hγl]
+      iframe Hlrd2 Hlrvk
+      have h0 : (∅ : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) =
+          mvcc.leaseItemsOf (mvcc.stateAfter (kvModel ρ.rd.kv A)) := by rw [← hpi]; rfl
+      isplitl [Hlown]
+      · iapply (lease.leaseOwn_eq h0) $$ Hlown
+      iunfold apply.ltHalf
+      simp only [apply.AEnv.lg_eq, KVNames.lg_fold]
+      cases ρ.rd.kv.lg
+      · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
+      · simp only [↓reduceIte]; iexact Hlt1
     isplitl [Hrev]
     · unfold revAuth
       iexists ∅
       iframe Hrev
       ipureintro; intro k hk; simp at hk
-    isplitl [HAR]
-    · iexact HAR
-    -- (2026-11-04, the lease-expiry plan's step 2) the range deleter, `mvcc.New`'s
     isplitl [Hrdat]
     · iExactEq Hrdat; simp [Hγl]
     isplitr
-    · simp only [bootKVOf]; rw [← Hlog0]; iexact Hal0
-    isplitr [Hrbo Hmem HalOn HauthOn HleOn HclBe Htlive HltS HlEv]
-    · unfold kvRun kvApplied kvAppliedL kvCert
-      iframe Hrlb
-      isplitl [Hkhi2]
-      · isplitl [Hkhi2]
-        · isplitl [Hkhi2]
-          · first
-              | iexact Hkhi2
-              | (simp only [bootKVOf]; rw [← Hlog0]; iexact Hkhi2)
-          isplitr
-          · ileft; ipureintro; simp [Hlog0, bootKVOf]
-          ipureintro; simp [kvModel, kvRaftOf_nil, Hlog0, bootKVOf]
-        ipureintro; simp [bootKVOf, Hch0, crevOf, kvCrevOf]
-      ipureintro; exact ⟨Hc0, by simp [ReqNames.raft, HρRaft]⟩
-    · -- (D22, 2026-10-23) the rest buckets and the members at the start: the boot state; (the
-      -- lease-grant stage, 2.13) the apply thread's half of the live set at `[]`, and in a cluster
-      -- that grants leases the lessor's guard and mode (`srvGrantable`)
-      have hpre : ρ.rd.raft.pre = [] := by simp [HρRaft]
-      isplitl [Hrbo Hmem HalOn HauthOn HleOn HclBe HltS HlEv]
-      · iapply srvRest_init _ _ hpre
-        rw [restModel_nil]
-        dsimp only
-        isplitl [Hrbo Hmem HalOn HauthOn HleOn HclBe]
-        · unfold srvRestOwnH srvRestOwn restBoot srvObjsOn
-          have hb0 : ρ.rd.raft.raft.boot = γ.boot := by rw [HρRaft]
-          rw [hb0]
-          -- (2026-11-02, the backend-auth-split stage) the cluster's buckets idle, the others a part
-          -- (P5) of the mode's buckets: the auth ones the realization's in `on`
-          icases rbOwnIn_kit_rest M d.γB _ $$ Hrbo with ⟨Hrbc, Hrbn⟩
-          isplitl [Hrbc Hrbn Hmem]
-          · iframe Hrbc Hrbn Hmem
-            ipureintro; exact ⟨memIdOk_memBoot _, restPresent_restBoot _⟩
-          iframe HalOn HauthOn HleOn HclBe
-        isplitl [HltS]
-        · iunfold apply.ltHalf
-          simp only [apply.AEnv.lg_eq, KVNames.lg_fold]
-          cases ρ.rd.kv.lg
-          · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
-          · simp only [↓reduceIte]; iexact HltS
-        isplitr [HlEv]
-        rotate_left
-        · iunfold apply.everOwn
-          simp only [apply.AEnv.lg_eq, KVNames.lg_fold]
-          cases ρ.rd.kv.lg
-          · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
-          · simp only [↓reduceIte]; rw [Hγl]; iexact HlEv
-        unfold srvGrantIf srvGrantable
-        dsimp only
+    · iExactEq Hal0; rfl
+    isplitl [Hkhi2]
+    · simp only [AuthC.isOn, kvRunM]
+      unfold kvRun kvApplied kvAppliedL
+      simp only [restartKV]
+      iframe HAr HkcA Hkhi2
+      ipureintro
+      simp [Hc0, HρRaft]
+    isplitl [Hrbo Hmem HalOn HauthOn HleOn HclBe HltS HlEv]
+    · -- the rest buckets at the image's log (`srvRest_restart`)
+      iapply (srvRest_restart _ ρ.rd A D d M hMo bc.cl' (srvObjsOn alst astl lp bc.cl' d.be)
+        (W64 0) γ.boot rfl hpre Hc0 (by rw [HρRaft]) HbkR
+        (fun h => Hng h))
+      iframe Hrbo Hmem
+      isplitl [HalOn HauthOn HleOn HclBe]
+      · unfold srvObjsOn; iframe HalOn HauthOn HleOn HclBe
+      isplitl [HltS]
+      · iunfold apply.ltHalf
+        simp only [apply.AEnv.lg_eq, KVNames.lg_fold]
+        cases ρ.rd.kv.lg
+        · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
+        · simp only [↓reduceIte]; iexact HltS
+      isplitr
+      · unfold srvGrantIf srvGrantable
         simp only [apply.AEnv.lg_eq, KVNames.lg_fold]
         by_cases hlg : ρ.rd.kv.lg = true
-        · have hon : false = false := by
-            cases false
-            · rfl
-            · rw [Hlgon rfl] at hlg; cases hlg
-          simp only [hlg, ↓reduceIte]
+        · simp only [hlg, ↓reduceIte]
           rw [Hγl]
           isplitl []
           · iintro !> %lid
@@ -2329,13 +2384,32 @@ end proof
             iframe Hlgd
             iintro !>
             iunfold srvGrantGuard
-            ipureintro; exact ⟨rfl, hon⟩
+            ipureintro; exact ⟨rfl, rfl⟩
           rw [show (decide (ρ.rd.kv.lm = .mono)) = decide (m = .mono) by
             rw [lease.bootCfg_lm Hlbc]]
           iexact Hlmode
         · simp only [hlg, Bool.false_eq_true, ↓reduceIte]; itrivial
-      -- (D43 M5e) the apply thread's membership resource: the frozen transport's stop token
-      have hργ : ρ.rd.raft.raft = γ := by rw [HρRaft]
+      isplitr
+      · unfold srvReqsIf; split
+        · iapply (srvReqs_of_recs _ _ recs (appliedTable_nodup ρ.rd A) hperm)
+          rw [Hγl]
+          iexact HlReq
+        · itrivial
+      iexists recs.map (·.1)
+      isplitl [HlEv]
+      · iunfold apply.everOwn
+        simp only [apply.AEnv.lg_eq, KVNames.lg_fold]
+        cases ρ.rd.kv.lg
+        · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
+        · simp only [↓reduceIte]; rw [Hγl]; iexact HlEv
+      ipureintro
+      refine ⟨fun h => ?_, fun _ u hu => appliedTable_ids_granted ρ.rd hpre A u (hperm.subset hu)⟩
+      rcases hGA with h' | h'
+      · have h2 : ρ.rd.kv.lg = false := h
+        rw [h2] at h'; cases h'
+      · exact h'
+    isplitl [Htlive]
+    · -- the apply thread's membership resource at `A` (`srvMemOk` from the peer URLs, P5)
       iunfold srvApRes
       icases Hbh with ⟨%lgh, #Hbhi⟩
       icases Hclg with ⟨%lgc, #Hclgf, #Hlgcz⟩
@@ -2372,27 +2446,18 @@ end proof
         unfold SrvRaft.cfg at hf
         rw [Hrvs, GMap.elem_of_list_to_set] at hf
         exact (Hdirps.1 f).2 hf
-      · exact srvMemOk_boot _ _ ps (by rw [HρRaft]) (by rw [hργ]; unfold SrvRaft.cfg; rw [Hrvs])
-          Hrnodup Hdirps.2 (by rw [hργ]; exact Hrbok)
+      · apply srvMemOk_of_keys _ _ _ (srvMemOk_boot _ _ ps (by rw [HρRaft])
+          (by rw [hργ]; unfold SrvRaft.cfg; rw [Hrvs]) Hrnodup Hdirps.2 (by rw [hργ]; exact Hrbok))
+        intro f
+        rw [hpre, List.nil_append, List.append_nil, restModel_nil, hργ, Hc0]
+        have := congrArg Option.isSome (Hpurl f)
+        simpa [restBoot] using this
       · unfold SrvRaft.cfg
         rw [Hrvs, GMap.elem_of_list_to_set, Hid, ← Hrid]
         exact Hrmem
-  iframe Hlr3 Hlr4
-  isplitl [Hfcr]
-  · iexists fcn
-    iframe firstCommitInTerm Hfcr
-  isplitr
-  · -- `#Hkv`: the watchable store, the store's handle (`mvcc.New`)
-    iexists _
-    iframe kv HisKV
-    ipureintro; rfl
-  -- `HWB`: the stores' write budget (`boot_storage`'s)
-  isplitl [HWreg]
-  · iunfold srvWTBudget; iexists γp
-    iframe HWA0 HWreg
-    iapply HWBp; ipureintro; rfl
-  -- the lifetime premises (D17): the id supply from the time-receipt bound (D19b), the thread
-  -- bound; `ClusterVersion()` from the cluster's `Version` contract
+    rw [acTok_off]; itrivial
+  isplitl [Hsend]
+  · simp only [srvErM]; iexact Hsend
   isplitr
   · iapply (idCred_supply ρ.ids Hrb)
   isplitr
@@ -2405,203 +2470,50 @@ end proof
     inext; iintro %v Hv; iapply HΦ' $$ Hv
   isplitr
   · ipureintro; (try unfold backend.rdPoolN); omega
-  -- `Hua`: the uber-applier (D14i): its options' contracts, its chain, the apply thread's KV
-  have hm0 : γA.m0.1 = W64 0 := by rw [Hci.2]
-  have hLoaded : ∀ st : ApplyState, stLoaded γA st = st := by
-    intro st; unfold stLoaded; split
-    · rename_i h; cases st; simp only at h; subst h; simp [hm0]
-    · rfl
-  -- (R8) the store's builders at the environment (`envAus`): `kvAusG`'s at the store invariant,
-  -- the writer's floor (`writer_floor`)
-  ihave #Haus : apply.envAus ({ kv := interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #ws, γ := γm, γs := E₀.γs, Nx := srvApi.kvNx ρ.rd false, Pk := fun _ => batchLockInv γA (metaTM d.γB d.P), f := hook, RD := RD, γrev := E₀.γrev, authMode := M, FS := srvFS s, ciC := srvCiC γA cil, RO := srvRestOwnH M d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), RW := srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe := γbe, Cp := kvCpOk ρ.rd.kv, BkTie := srvBkTie ({ d with cm := true } : mvcc.KBReal), cmp := E₀.cmp, cret := ρ.rd.kv.cret, lm := ρ.rd.kv.lm, γlt := γlt } : apply.AEnv GF) $$ []
-  · ihave #Hk := srvApi.kvAusG (srvApi.kvNx ρ.rd false) (kvCpOk ρ.rd.kv) Hp Hr _ γm E₀.γs $$ HkvSG
-    icases Hk with ⟨#HB1, #HR1, -, #HE1, #HC1, -, -, #HF1⟩
-    iunfold apply.envAus
-    isplitr
-    · imodintro; iExactEq HB1; rfl
-    isplitr
-    · imodintro; iExactEq HR1; rfl
-    isplitr
-    · imodintro; iExactEq HE1; rfl
-    isplitr
-    · imodintro; iExactEq HC1; rfl
-    isplitr
-    · -- (the parent's change) the writer's witness under `□`
-      iintro !> %log %c Hw
-      imod HF1 $$ %log %c Hw with ⟨Hw, #Hlb, #Hnx, Hrc, %Hre⟩
-      imodintro
-      iframe Hw Hlb Hrc
-      isplitr
-      · imodintro; iexact Hnx
-      ipureintro; exact Hre
-    iintro !> %log %c %F Hw HF
-    iapply (srvApi.writer_floor (srvApi.kvNx ρ.rd false) (kvCpOk ρ.rd.kv) Hp _ γm E₀.γs log c F) $$ HkvSG Hw HF
-  ihave #Hbo : apply.backendOptsOk ({ kv := interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #ws, γ := γm, γs := E₀.γs, Nx := srvApi.kvNx ρ.rd false, Pk := fun _ => batchLockInv γA (metaTM d.γB d.P), f := hook, RD := RD, γrev := E₀.γrev, authMode := M, FS := srvFS s, ciC := srvCiC γA cil, RO := srvRestOwnH M d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), RW := srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe := γbe, Cp := kvCpOk ρ.rd.kv, BkTie := srvBkTie ({ d with cm := true } : mvcc.KBReal), cmp := E₀.cmp, cret := ρ.rd.kv.cret, lm := ρ.rd.kv.lm, γlt := γlt } : apply.AEnv GF) uopts $$ []
-  · obtain ⟨Hu1, Hu2, Hu3, Hu4, Hu5, Hu6, Hu7, Hu8, Hu9, Hu10, Hu11, Hu12⟩ := Huopts
-    iunfold apply.backendOptsOk
-    simp only
-    rw [Hu1, Hu2, Hu3, Hu4, Hu5, Hu6, Hu7, Hu11, Hu12]
-    isplitr
-    · iexact Hzlg
-    isplitr
-    · iunfold apply.isApplyKV; iexact HisKV
-    isplitr
-    · ipureintro; rfl
-    isplitr
-    · iexact Haus
-    isplitr
-    · iexact Hapl
-    isplitr
-    · iexact Hast
-    isplitr
-    · iapply snap_isAlarmStore alst astl lp bc.cl' ({ d with cm := true } : mvcc.KBReal)
-        (mvcc.api.mvccW d.gx) (batchLockInv γA (metaTM d.γB d.P)) hook Hhknn
-      iframe HalA HBs Hhooks
-    isplitr
-    · iapply snap_isCluster M alst astl lp bc.cl' ({ d with cm := true } : mvcc.KBReal)
-        (mvcc.api.mvccW d.gx) (batchLockInv γA (metaTM d.γB d.P)) hook Hhknn
-      iframe Hisc HBs Hhooks
-      iexists _; iexact Hvcn
-    isplitr
-    · iunfold apply.isRaftStatus
-      iexists ⟨go.GoType.PointerType EtcdServer.ty, #s⟩
-      isplitr
-      · ipureintro; rfl
-      isplitr
-      · iintro !> !> %Φ' - HΦ'
-        iapply (h79 s bc.nodeID') $$ [] [HΦ']
-        · iframe Hpkg memberID
-        inext; iintro -; iapply HΦ'; itrivial
-      isplitr
-      · iintro !> !> %Φ' - HΦ'
-        iapply (h80 s) $$ [] [HΦ']
-        · iframe Hpkg
-          iunfold srvLeadInv; iexact Hlead
-        inext; iintro %l -; iapply HΦ'; itrivial
-      · iintro !> !> %Φ' - HΦ'
-        iapply (h81 s) $$ [] [HΦ']
-        · iframe Hti Hpkg
-        inext; iintro %t' -; iapply HΦ'; itrivial
-    isplitr
-    · iunfold apply.isSnapshotServer
-      iexists ⟨go.GoType.PointerType EtcdServer.ty, #s⟩
-      isplitr
-      · ipureintro; rfl
-      iintro !> !> %Φ' Hfs HΦ'
-      iapply (h82 s) $$ [Hfs] [HΦ']
-      · iframe Hpkg; iframe Hfs
-      inext; iintro Hfs; iapply HΦ'; iexact Hfs
-    · iunfold apply.isConsistentIndexer
-      rw [Hci.1]
-      iexists ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #cil⟩
-      isplitr
-      · ipureintro; rfl
-      iintro !> %C %x %HC
-      obtain ⟨cst, cb, hC, hcp, -, hx⟩ := HC
-      subst hC hx
-      iintro %Φ' !> Hpre HΦ'
-      iapply (wp_wand (Φ := fun w => iprop((
-          iprop(applyThread γA cst ∗ applyBackend γA cil cb) -∗ Φ' #(ciEff γA cst.k)) ∗
-          (⌜w = #(ciEff γA cst.k)⌝ ∗ applyThread γA cst ∗ applyBackend γA cil cb))))
-        $$ [Hpre HΦ']
-      · iapply (wp_frame_step_l' (by rfl) Std.LawfulSet.subset_refl)
-        iframe HΦ'
-        icases Hpre with ⟨Hcst, Hcb⟩
-        iapply (wp_ci_get h83 γA cil cb cst hcp) $$ [Hcst Hcb]
-        · iframe Hcipkg Hcons HisCI; iframe Hcst Hcb
-        iintro ⟨Hcst, Hcb⟩
-        rw [hLoaded]
-        iframe Hcst Hcb
-        ipureintro; rfl
-      · iintro %w ⟨HΦ', %Hw, HP⟩
-        subst Hw
-        iapply HΦ' $$ HP
-  ihave Hul := Hulate $$ %(({ kv := interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #ws, γ := γm, γs := E₀.γs, Nx := srvApi.kvNx ρ.rd false, Pk := fun _ => batchLockInv γA (metaTM d.γB d.P), f := hook, RD := RD, γrev := E₀.γrev, authMode := M, FS := srvFS s, ciC := srvCiC γA cil, RO := srvRestOwnH M d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), RW := srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe := γbe, Cp := kvCpOk ρ.rd.kv, BkTie := srvBkTie ({ d with cm := true } : mvcc.KBReal), cmp := E₀.cmp, cret := ρ.rd.kv.cret, lm := ρ.rd.kv.lm, γlt := γlt } : apply.AEnv GF) : apply.AEnv GF) Hbo
-  icases Hul with ⟨#Hui, %ns, %cr, %Hz, Huo⟩
-  obtain ⟨hns, hcr⟩ := Hz trivial
-  subst hns hcr
-  isplitr [Hwtok HsnapB]
-  rotate_left
-  · iframe Hwtok HsnapB
-  iapply srvUberRowM_of_On
-  iexists ua
-  iframe uberApply
-  isplitr
-  · -- (E3k) the base applier's auth layer, at the server's store and lessor
-    iunfold srvUberBase
-    iexists _, _
-    iframe authStore lessor
-    iunfold apply.uberBaseAuth
-    isplitr
-    · iexists up, uopts
-      iframe Hui
-      ipureintro; exact ⟨Hua, Huopts.2.2.2.1, Huopts.2.2.2.2.1⟩
-    -- (E3s) the range check at a reader's lower bound, from the construction
-    isplitr
-    · iexact HstLb
-    -- (E3l) the store's checks at the latest state, from the construction
-    iexists astl
-    isplitr
-    · ipureintro; exact Hastl
-    -- (E3t) publication, from the construction
-    isplitr
-    · iexact HstPub
-    iframe HstL
-    iexact HbBk
-  isplitr
-  · iunfold apply.applierFor
-    iexists up, uopts
-    iframe Hui
-    ipureintro; exact Hua
-  iunfold apply.applyKV
-  simp only [bootKVOf]
-  iexists up
-  isplitr
-  · ipureintro; exact Hua
-  isplitl [Huo]
-  -- (the chain's auth layer is the environment's mode: by `HM`, not by unfolding)
-  · icases HM with %HM'
-    iExactEq Huo
-    simp only [apply.AEnv.authOn, HM'.1]
-  -- (M2's apply side, A1) the compaction resources at `-1`: the right (`True` off) and the
-  -- write-back supply (`True` off; on, the stock's)
-  isplitr [Hopn Hcr0]; rotate_left
-  · iunfold apply.cmpOwn
-    iframe Hopn Hcr0
-  iunfold apply.kvOwn
-  isplitl [Hw0]
-  · iexists _; iexact Hw0
-  isplitl [HmB]
-  · iunfold apply.kvBk
-    iexists ({ d with cm := true } : mvcc.KBReal)
-    iframe HmB
-    isplitr
-    · rw [mvcc.api.etcdStorage_hookIs]; iexact Hhooks
-    iunfold srvBkTie; ipureintro; rfl
-  iframe HRD2
-  iunfold apply.leasesLive
-  iexists []
-  isplitr
-  · iunfold txn.leasesKnown; simp [mvcc.stateAfter, txn.leasesOk]
-    iintro !> %l %h
-    obtain ⟨a, ha, -⟩ := h
-    simp [mvcc.applyChanges] at ha
-  iunfold lease.lessorUser
-  simp only
-  rw [Hγl]
-  iframe Hlrd2 Hlrvk
-  -- the initial state has no key: its item map is the lessor's, empty
-  have h0 : (∅ : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) =
-      mvcc.leaseItemsOf (mvcc.stateAfter ([[], []] : mvcc.Log)) := GMap.ext fun _ => rfl
-  isplitl [Hlown]
-  · iapply (lease.leaseOwn_eq h0) $$ Hlown
-  iunfold apply.ltHalf
-  simp only [apply.AEnv.lg_eq, KVNames.lg_fold]
-  cases ρ.rd.kv.lg
-  · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
-  · simp only [↓reduceIte]; iexact Hlt1
+  isplitl [w]
+  · iexists _; iexact w
+  isplitl [applyWait]
+  · iexists _; iexact applyWait
+  isplitl [done]
+  · iexists _; iexact done
+  isplitl [stop]
+  · iexists _; iexact stop
+  isplitl [stopping]
+  · iexists _; iexact stopping
+  isplitl [ctx]
+  · iexists _; iexact ctx
+  isplitl [cancel]
+  · iexists _; iexact cancel
+  isplitl [read]
+  · iexists _; iexact read
+  isplitl [leaderChanged]
+  · iexists _; iexact leaderChanged
+  isplitl [SnapshotCountS]
+  · iexists _; iexact SnapshotCountS
+  isplitl [SnapshotCatchUpEntriesS]
+  · iexists _; iexact SnapshotCatchUpEntriesS
+  isplitl [wg]
+  · iexact wg
+  isplitl [wgMu]
+  · iexact wgMu
+  isplitl [Hcmown]
+  · iexists _; iexact Hcmown
+  isplitl [Hnot]
+  · iexact Hnot
+  isplitl [Hlr3]
+  · iexact Hlr3
+  isplitl [Hlr4]
+  · iexact Hlr4
+  isplitl [Hfcr]
+  · iexists fcn
+    iframe firstCommitInTerm Hfcr
+  isplitl [HWreg]
+  · iunfold srvWTBudget; iexists γp
+    iframe HWA0 HWreg
+    iapply HWBp; ipureintro; rfl
+  iexact Hwtok
 
--/
+end proof
 
 end EtcdGrove
 end Perennial

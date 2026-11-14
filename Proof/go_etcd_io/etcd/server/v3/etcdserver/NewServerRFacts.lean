@@ -11,6 +11,8 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuiltRestart
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ImageLeases
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthSrv
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApplyRest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApplyKVLemmas
 
 @[expose] public section
 
@@ -148,6 +150,137 @@ theorem imageRestAt_alarm (γk : KVNames) (bootLog : List EntryM) (i : w64)
   rw [hb go!"alarm" (by decide), restLeasesWith_lookup_other _ _ _ _ (by decide),
     restModel_keep _ _ _ _ (by decide) (by decide) (by decide)]
   simp [restBoot, restBootBk]
+
+open backend go_etcd_io.etcd.server.v3.storage in
+/-- (Restart S6 B2, the post's `srvRest`) **The tracked buckets after the constructors at a restart
+are the leased image's**: the backend's tracked buckets `rbData d.P D` with the constructors' writes
+(the lessor's `lease` bucket created, the auth store's buckets at `authBoot`/`∅`/`∅`, the alarm
+store's `∅`) agree on every bucket with the image's rest state (`bkRestAtL`'s, at its TTLs `f`): the
+constructors' writes are what the image already holds (`restModel_keep`: no committed entry changes
+them), the other tracked buckets are the image's, the untracked ones absent from both. -/
+theorem restartBk_eq (d : mvcc.KBReal) (D : Data) (c0 : w64) (bootLog : List EntryM)
+    (L : List EntryModel) (f : w64 → w64) (ids : List w64)
+    (hb : ∀ n ∈ mvcc.restBuckets,
+      D.lookup n = (apply.restLeasesWith f ids (restModel c0 bootLog L)).bk.lookup n) (n : GoString) :
+    ((((((rbData d.P D).insert go!"lease" ((D.lookup go!"lease").getD ∅)).insert go!"auth"
+      authBoot).insert go!"authUsers" ∅).insert go!"authRoles" ∅).insert go!"alarm" ∅).lookup n =
+      (apply.restLeasesWith f ids (restModel c0 bootLog L)).bk.lookup n := by
+  have hother : ∀ n, mvcc.leaseName ≠ n → go!"members" ≠ n → go!"cluster" ≠ n →
+      go!"members_removed" ≠ n →
+      (apply.restLeasesWith f ids (restModel c0 bootLog L)).bk.lookup n = restBootBk.lookup n := by
+    intro n h0 h1 h2 h3
+    rw [restLeasesWith_lookup_other _ _ _ _ h0, restModel_keep _ _ _ _ h1 h2 h3]; rfl
+  by_cases hn : n ∈ mvcc.restBuckets
+  · have hn' := hn
+    simp only [mvcc.restBuckets, List.mem_cons, List.not_mem_nil, or_false] at hn'
+    rcases hn' with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+    · -- `lease`: present in the image
+      have hp := restPresent_restLeasesWith f ids _ (restPresent_restModel c0 bootLog L)
+        go!"lease" (by simp [restBootBk])
+      rw [← hb _ hn] at hp ⊢
+      simp only [GMap.lookup_insert_eq_iff]
+      simp only [show (go!"alarm" = go!"lease") = False by decide,
+        show (go!"authRoles" = go!"lease") = False by decide,
+        show (go!"authUsers" = go!"lease") = False by decide,
+        show (go!"auth" = go!"lease") = False by decide, if_false, if_true]
+      cases h : D.lookup go!"lease" with
+      | none => rw [h] at hp; cases hp
+      | some x => rfl
+    all_goals first
+      | (rw [hother _ (by decide) (by decide) (by decide) (by decide)]; simp [restBootBk])
+      | (rw [← hb _ hn]; simp only [GMap.lookup_insert_eq_iff]
+         rw [rbData_real_lookup d D _ hn]; simp)
+  · rw [hother n (fun h => hn (h ▸ by decide)) (fun h => hn (h ▸ by decide))
+      (fun h => hn (h ▸ by decide)) (fun h => hn (h ▸ by decide))]
+    have : d.P.RB n = false := by show decide (n ∈ mvcc.restBuckets) = false; simpa using hn
+    simp only [mvcc.restBuckets, List.mem_cons, List.not_mem_nil, or_false, not_or] at hn
+    obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := hn
+    simp [backend.rbData_lookup, this, restBootBk, Ne.symm h1, Ne.symm h2, Ne.symm h3, Ne.symm h4, Ne.symm h5, Ne.symm h6,
+      Ne.symm h7, Ne.symm h8]
+
+open backend in
+/-- (Restart S6 B2, the post's `srvRest`) **The apply thread's rest buckets at a restart**: at the
+image's committed log `A` (`srvRest`'s), from the tracked buckets after the constructors
+(`restartBk_eq`), the cluster's members at the image's, the objects' backend parts `H`, and, in a
+cluster that grants leases, the lessor's live-set half, permits, requests and ever-set half; the
+applied table's ids empty in a cluster that grants none (`hng`), so that `srvIds` is the table's. -/
+theorem srvRest_restart (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (D : Data)
+    (d : mvcc.KBReal) (M : auth.AuthMode) (hM : M = .off) (cl : Loc) (H : IProp GF)
+    (c0 : w64) (boot : List EntryM)
+    (hRO : E.RO = srvRestOwnH M d.γB cl H) (hpre : γr.raft.pre = []) (hc0 : γr.kv.c0 = c0)
+    (hboot : γr.raft.raft.boot = boot)
+    (HbkR : bkRestAtL γr.kv γr.raft.raft.boot (γr.raft.pre ++ A) D)
+    (hng : E.lg = false → (appliedTable γr A).ids = []) :
+    rbOwnIn d.γB (kitSet M)
+        (((((((rbData d.P D).insert go!"lease" ((D.lookup go!"lease").getD ∅)).insert go!"auth"
+          authBoot).insert go!"authUsers" ∅).insert go!"authRoles" ∅).insert go!"alarm" ∅)) ∗
+      membership.clusterMem cl (restModel c0 boot A).mem ∗ H ∗
+      apply.ltHalf E (appliedTable γr A).ids ∗ srvGrantIf E ∗ srvReqsIf E (appliedTable γr A) ∗
+      (∃ U : List w64, apply.everOwn E U ∗ ⌜srvEverOk E A U⌝) ⊢ srvRest E γr A := by
+  obtain ⟨f, hf, hb⟩ := HbkR
+  have hT : srvIds E (appliedTable γr A).ids = (appliedTable γr A).ids := by
+    unfold srvIds; cases h : E.lg
+    · simp only [Bool.false_eq_true, ↓reduceIte]; exact (hng h).symm
+    · rfl
+  iintro ⟨Hrb, Hmem, HH, HL, #HG, #HQ, ⟨%U, HU, %HU⟩⟩
+  iapply srvRest_close
+  iexists f
+  rw [hT]
+  isplitr
+  · ipureintro; intro _; exact hf
+  rw [hpre, List.nil_append] at hb ⊢
+  rw [hc0, hboot] at hb ⊢
+  iframe HL HG HQ
+  isplitl [Hrb Hmem HH]
+  · rw [hRO]
+    unfold srvRestOwnH srvRestOwn
+    iframe HH
+    icases rbOwnIn_kit_rest M d.γB _ $$ Hrb with ⟨Hc, Hp⟩
+    rw [apply.restLeasesWith_mem]
+    iframe Hmem
+    have hbk := restartBk_eq d D c0 boot A f (appliedTable γr A).ids
+      (by unfold appliedTable; rw [hpre, List.nil_append]; exact hb)
+    isplitl [Hc]
+    · iapply (rbOwnIn_congr d.γB _ _ _ (fun n _ => hbk n)).1 $$ Hc
+    isplitl [Hp]
+    · iapply (rbPart_congr d.γB _ _ _ (fun n _ => hbk n)).1 $$ Hp
+    ipureintro
+    exact ⟨restModel_memIdOk' _ _ _,
+      restPresent_restLeasesWith _ _ _ (restPresent_restModel _ _ _)⟩
+  iunfold srvEver
+  iexists U
+  iframe HU
+  ipureintro; exact HU
+
+/-- (Restart S6 B2, the post's `srvRest`) **The applied table's requests from the restarted lessor's
+records** (`NewLessor`'s `leaseReqIs` of each record, at the table's request): every lease of the table
+is a record's (`hperm`), its request the table's (`tableReq_of_mem`). -/
+theorem srvReqs_of_recs (E : apply.AEnv GF) (T : LeaseTable) (recs : List (w64 × w64 × w64))
+    (hn : T.ids.Nodup) (hperm : (recs.map (·.1)).Perm T.ids) :
+    ([∗list] x ∈ recs, lease.leaseReqIs (mvcc.api.mvccLeases E.γ) x.1 (tableReq T x.1)) ⊢
+      srvReqs E T := by
+  iintro #H
+  iunfold srvReqs
+  iintro !> %p %hp
+  have hm : p.1 ∈ recs.map (·.1) := hperm.symm.subset (List.mem_map.2 ⟨p, hp, rfl⟩)
+  obtain ⟨x, hx, hx1⟩ := List.mem_map.1 hm
+  ihave #Hx := BigSepL.bigSepL_mem
+    (Φ := fun x : w64 × w64 × w64 => lease.leaseReqIs (mvcc.api.mvccLeases E.γ) x.1 (tableReq T x.1))
+    hx $$ H
+  have h1 : x.1 = p.1 := hx1
+  rw [h1, tableReq_of_mem hn hp] at *
+  iexact Hx
+
+/-- (Restart S6 B2, the post's `srvApRes`) **The members' bounds at a restart**: `srvMemOk` at the
+committed log `A` from a first start's (`srvMemOk_boot`), the members' ids at `A` the boot's (the
+peer URLs at `A` the boot's, `restart_peerURLs`, give the same ids). -/
+theorem srvMemOk_of_keys (γs : ServerRaftNames) (c0 : w64) (A : List EntryModel)
+    (h0 : srvMemOk γs c0 [])
+    (hk : ∀ f, ((restModel c0 γs.raft.boot (γs.pre ++ A)).mem.lookup f).isSome =
+      ((restModel c0 γs.raft.boot (γs.pre ++ [])).mem.lookup f).isSome) :
+    srvMemOk γs c0 A := by
+  unfold srvMemOk srvMemCover at *
+  exact ⟨fun k h => h0.1 k (by rw [← hk]; exact h), h0.2.1, fun k h => by rw [hk]; exact h0.2.2 k h⟩
 
 /-- (Restart S6 B2, P3) **The indices at a restart**: `srvIndices_allocM`'s at the mode off, the apply
 thread's ghost applied index at the image's `i` (`uint.Z i = |A|`), its log `kvModel A`'s (Go's
