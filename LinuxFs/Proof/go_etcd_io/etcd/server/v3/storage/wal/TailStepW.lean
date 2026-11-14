@@ -217,7 +217,7 @@ theorem wrMeta_pc_some {m : OsMeta} {off : Nat} {data : List w8} {n b : Nat} {c 
 /-- **The first step of a write from inside the file keeps the static relation**, the tail exact or in a
 window (W6 log, twenty-third and twenty-fourth sessions): the write past the synced bytes, of the
 intended bytes from there, change number positive; the tail's zeros known past its size (`TailZ`) and
-nothing but zeros known past its `hi` (`PastZ`), the handle's; F-Z. Exact and inside the size:
+nothing but zeros known past its `hi` (`PastZ`), the handle's (every byte past the size known: `TailZ.pc_isSome`, `TailZE.pc_isSome`); F-Z. Exact and inside the size:
 `walAbsD_announce`. Otherwise the window is open after it (`WinLast`): the write raises `hi` past the
 size, or the window was open. -/
 theorem walAbsD_announceW {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
@@ -225,7 +225,7 @@ theorem walAbsD_announceW {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : W
     (habs : WalAbsD C Mr d lay ents) (hs : lay.segs = pre ++ [g0])
     (hso : lay.so ≤ off) (hoff : off ≤ g0.om.size)
     (hpre : data <+: (segStream C Mr d lay.cuts lay.cuts.length).drop off) (hn : 0 < n)
-    (hZ : TailZeros lay) (hTZ : TailZ g0.om) (hPZ : PastZ g0.om) :
+    (hZ : TailZeros lay) (hTZ : ∀ b, g0.om.size ≤ b → (g0.om.pc b).isSome) (hPZ : PastZ g0.om) :
     WalAbsD C Mr d (tailLay lay pre (segAnnW g0 off data n) lay.wr) ents := by
   have hg0 : lay.segs.getLast? = some g0 := by rw [hs]; simp
   obtain ⟨hsz, hcut, hlo0, hhi0, -⟩ := habs.metas g0 (List.mem_of_getLast? hg0)
@@ -270,7 +270,7 @@ theorem walAbsD_announceW {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : W
     have hk : ∀ j, j < g.om.hi - g.bs.length → (g.om.pc (g.bs.length + j)).isSome := by
       intro j _
       have hb : g0.om.size ≤ g.bs.length + j := by omega
-      have := hTZ.pc_isSome hb
+      have := hTZ _ hb
       rw [hgom, wrMeta_pc_ge hoff hb]
       split
       · obtain ⟨c, hc⟩ := Option.isSome_iff_exists.1 this

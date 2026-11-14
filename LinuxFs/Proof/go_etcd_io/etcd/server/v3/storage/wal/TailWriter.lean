@@ -28,10 +28,10 @@ of the intended stream inside the preallocated size). Its proof: `(*os.File).Wri
 `LinuxFs/Proof/os/Crash.lean`, with these steps in place of `cfInv`'s; `os.File.Write.wp_spec`,
 `Off.lean`, generalized over its `WriteAt` contract).
 
-**Writes past the preallocated size are not covered** (`tailOk`'s second clause, `SegFl.Ok`'s first):
-the layout's `wr ≤ old.length`, and a write in flight past the size has no ghost candidates for the
-bytes it extends the file with (`cfMeta`'s zeros move to the write's end; the step's `OsMeta.pc`
-past the size would be the source). The `Save` that crosses `SegmentSizeBytes` writes there.
+**Writes past the preallocated size** (`tailOk`'s second clause) are `TailWriterW.lean`'s: the steps
+`wp_tailPWriteStartW`/`wp_tailPWriteFinishW` (the tail exact or in a window, `segAnnW`/`segFinW`), the
+loop `wp_tailWriteAtW` and `wal.tailWriterW` (guard `tailOkW`, state `walTailWS`; W6 log, twenty-fifth
+session). The `Save` that crosses `SegmentSizeBytes` writes there.
 
 Status: the two steps proved (over `walInvBody_tail`, `TailAcc.lean`, and the pure `walsOk_tail`,
 `walAbsD_announce`/`walAbsD_finish`, `TailStepPure.lean`); the program's tail facts `TailMeta` (no

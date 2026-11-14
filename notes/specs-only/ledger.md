@@ -1045,6 +1045,34 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   variants (the "(2) Create-specific" entry above).
 - **Decision.** Made (internal, no client: `renameWAL` is `Create`'s; the coordinator's task 1, `wal-create20`).
 
+## 2026-11-14: `wal.WAL.SaveSnapshot.specPre` (internal, the part's) -- the indices after the call
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__SaveSnapshotPre.lean`.
+- **Defect.** The post returned `walPreIn … snapi' enti'` for some `snapi' enti'`, nothing said of them; `Create`'s
+  handle (`walHandleIn`) needs `max enti snapi + 1 < 2^64` of the fields it returns.
+- **Evidence.** The pinned `SaveSnapshot` raises `w.enti` and `w.snapi` each to the snapshot's index if below it
+  (the translation, `WAL.SaveSnapshot.impl`). `Create.wp_proof`'s arm 1 (`wal-create21`).
+- **Change (made, `wal-create21`).** The post adds `⌜(snapi' = snapi ∨ snapi' = sm.Index') ∧ (enti' = enti ∨
+  enti' = sm.Index')⌝` (every arm); the proof unchanged but for the fact.
+- **Decision.** Made (internal; strengthening a post).
+
+## 2026-11-14: `walCreateQ` / `walDirH` (internal, the part's) -- the tail registered at the commit; the tail's name
+
+- **Definitions.** `walCreateQ` (`CreateAu.lean`), `walDirH` (`Handle.lean`).
+- **Defect.** (1) `walCreateQ`'s committed arm gave `walTailsFrag ∅`, the handle to register its tail later. A
+  later registration (`walTailsRes_register`, inside `walInv`) finds the invariant's history and layout only up to
+  `WalAbsD` (no step after the commit pins them to the fresh WAL's), while the handle's encoder CRC and file offset
+  are the fresh WAL's: the tail record's `H`/`md`/`cuts`/`wr` could not be shown to match. (2) `walDirH` asked the
+  tail file's name to be `child dir nm0`; `Create`'s segment was opened as `dir.tmp/0000…0000.wal`, and Go's
+  `f.Name()` keeps that path after the rename.
+- **Change (made, `wal-create21`).** (1) The commit registers the tail (`walTailsRes_register` on the new layout,
+  `createLay_tailBound` its record boundary): `walCreateQ`'s committed arm holds `walTailReg dir t` (the holder's
+  half of the tails' authority `{dir ↦ γ}`, the key, the tail record's half `t`), `t` a new parameter
+  (`createTailG Mr md jr nm J g` from `createU`). (2) `walDirH`'s name fact is `∃ pd, name = child pd nm0` (`cut`'s
+  `w.seq()` reads only the base, `baseModel_child_walFileName`).
+- **Obligation.** `renameWALUnlock`'s `RenameWALOk` law (the retry's `w.Close()` and the reopen) now unregisters the
+  tail too (`walTails_unregister`, `Close`'s).
+- **Decision.** Made (internal, no client-visible change).
 ## 2026-11-14: `pbutil.MustMarshalMessage.specWalSnap` (internal, the part's) -- the size premise
 
 - **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/pkg/v3/pbutil/MustMarshalMessageWalSnap.lean`.
@@ -1118,3 +1146,68 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   from before a crash (the crash rebuild's file ownership: the deep part). Alternatively restrict `specTmp` to a
   directory with no `.touch` (`Create` cannot show it).
 - **Decision.** Open: the coordinator's call (the change reaches `walAreaRes` and the crash rebuild).
+
+## 2026-11-14: `decoder.Decode.spec`/`proto.UnmarshalWalRecord.spec` (internal, the part's) -- an empty metadata read back as `nil`
+
+- **Spec.** `LinuxFs/Spec/google_golang_org/protobuf/proto/UnmarshalWalRecord.lean` (its success is `ownRec l r`,
+  `walpb/Defs.lean`), and through it `decoder.decodeRecord.spec`/`Decode.spec` (`decPost`); `walHandleIn`'s
+  `recBytes mds (some h.md)` (`Handle.lean`), which `ReadAll` must establish for the slice it read
+  (`wal-readall26`, obligation (c) of `walOpenWF`).
+- **Defect.** `ownRec` says `v.Data' ↦* r.data` only: with an empty metadata (`d.metadata = []`) the slice the
+  loop keeps (`metadata = rec.Data`, S/wal.go) may be `nil` for all the spec says, and then the handle's `cut`
+  would write a metadata record without the data field (`Record{Data: nil}`), not the model's `recOf` bytes (the
+  field present, empty), so `walHandleIn`'s `recBytes … (some md)` (`ds ≠ nil`) is unprovable. Not a Go bug:
+  protobuf-go decodes a present bytes field to a non-nil slice (`internal/impl/codec_gen.go`, `consumeBytes`:
+  `*p.Bytes() = append(emptyBuf[:], v...)`), and `TestRecordEncoder` measured `proto.Unmarshal(recEnc c)` giving
+  back exactly `c`, `Data`'s presence included. The specs drop it: `proto.UnmarshalPb.spec` gives the exact
+  content (`c = c₀` when `bs = pbEncC I c₀`), `UnmarshalWalRecord.wp_proof` forgets it (`recOwnC_ownRec`).
+  With a non-empty metadata the slice is non-nil from its points-to (its length), so only `[]` is affected.
+- **Evidence.** The proof of `ReadAll`'s success arm (`ReadAllWFPure.lean`: `readAll_md_some` gives `st.md = some
+  md`, not the slice's non-nilness); `Create.spec` takes the metadata non-nil but may take `[]`; `walInv_alloc`
+  admits a WAL found at boot with any metadata below `2 ^ 41`.
+- **Proposed change.** Either (A, no client change) the decoder keeps the content's presence: `ownRec l r`
+  gains `⌜∀ r₀, bs = walRecEnc r₀ → (recOf r₀).data.isSome → v.Data' ≠ slice.nil⌝` over the frame's bytes
+  `bs` (from `UnmarshalPb`'s exactness), carried by `decodeRecord`/`Decode` and the reader's model (`goDecode`'s
+  accepted frames are the encoder's for the WAL's files, `walReadFiles_running` at the byte level); or (B) the
+  metadata non-empty: `Create.spec` takes `md ≠ []` (the server's is a marshalled `etcdserverpb.Metadata` with
+  both ids set, never empty) and `WalsBounded` carries `0 < |d.metadata|` (and `walInv_alloc` takes it of the
+  WALs found at boot), so the slice's length gives `≠ nil`. (B) is a few lines; (A) is the faithful one.
+- **Decision.** Open: (B) adds a client premise to `Create` and an assumption on the WALs found at boot; the
+  coordinator's call. Until then `ReadAll`'s `walOpenWF` takes it as a marked `sorry` (`hmdnn`).
+
+## 2026-11-14: `walHandleIn`'s index bound (internal, the part's) -- `ReadAll` cannot bound `max(enti, snapi) + 1`
+
+- **Spec.** `walHandleIn`'s `max (uint.nat h.enti) (uint.nat h.snapi) + 1 < 2 ^ 64` (`Handle.lean`), which
+  `ReadAll` must establish (`wal-readall26`, obligation (d) of `walOpenWF`).
+- **Defect.** `w.enti`/`w.snapi` after the loop are indices read from the WAL; nothing bounds them below
+  `2 ^ 64 - 1`: `Save`/`SaveSnapshot` take `< 2 ^ 64 - 1` of what they write (their premises), but the
+  invariant does not record it, so a WAL read back (or found at boot) may hold index `2 ^ 64 - 1` for all
+  `ReadAll` knows, and `cut` would then name its next segment with a wrapped index.
+- **Evidence.** `WalsBounded` (`Inv.lean`) bounds only the metadata; `WalAbsD.nameBound` bounds the indices
+  before each segment by its name's `ix < 2 ^ 64`, not those of the last segment.
+- **Proposed change.** An invariant fact, framed as `WalsBounded` (or a conjunct of it): `∀ dir d, s.wal !! dir
+  = some d → ¬ walHasMaxIdx (histM d)`; kept by `Save`/`SaveSnapshot` from their premises, by `Create` (index 0),
+  by crashes and cuts (histories' prefixes / unchanged), taken by `walInv_alloc` of the WALs found at boot. No
+  client-visible change but the boot assumption.
+- **Decision.** Open (an invariant change touching `Save`'s commit steps, which `wal-save*` owns): the
+  coordinator's call. Until then `ReadAll`'s `walOpenWF` takes it as a marked `sorry`.
+
+## 2026-11-14: `walDirH`'s sequence bound (internal, the part's) -- `ReadAll` cannot bound the tail's sequence
+
+- **Spec.** `walDirH`'s `∃ sq ix, nm0 = walFileName sq ix ∧ sq < 2 ^ 63 + k` (`Handle.lean`), `k` the files
+  the handle's pipeline handed over (0 at `ReadAll`), which `ReadAll` must establish for the tail's name
+  (`wal-readall26`, obligation (f) of `walOpenWF`).
+- **Defect.** Nothing bounds a read-back tail's sequence: `WalAbsD.nameBound` gives the name's form and
+  `ix < 2 ^ 64`, not `sq`. `Create` starts at 0 and each `cut` adds one under the handle's receipt bound
+  (`walPc_bound`), but receipts do not survive a crash, so across generations the sequence is bounded by
+  nothing the invariant keeps (a WAL found at boot, or cut `2 ^ 62` times per generation over two
+  generations, may hold `sq ≥ 2 ^ 63`). Then `cut`'s `seq + 1` could wrap (`w.seq()` is a `uint64`).
+- **Evidence.** The assembly of `walOpenWF` in `ReadAll` (`wal-readall26`).
+- **Proposed change.** Either an invariant fact (every `.wal` segment's sequence `< 2 ^ 63`, kept by `cut`
+  with a premise `sq + 1 < 2 ^ 63` that its caller takes from a bound the invariant then must keep: no
+  natural source) or, simpler, `walDirH`'s bound weakened to what `cut` needs, `sq + k < 2 ^ 64 - 1`-style
+  against `uint64` wrap, with the tail's `sq < 2 ^ 64` from the name's 16 hex digits and the remaining room
+  as a premise on `ReadAll` (the same shape as the index bound above: `sq < 2 ^ 63` of the tail an
+  assumption on the WALs found at boot, kept by `cut` only while receipts bound it). Needs the coordinator's
+  design: no option is free.
+- **Decision.** Open: the coordinator's call. Until then `ReadAll`'s `walOpenWF` takes it as a marked `sorry`.

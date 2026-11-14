@@ -65,7 +65,8 @@ def createU (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoString) (hC : Nam
     (Q : IProp GF) (J : Ino) (hJ : NamesH) (g : SegG) (o : Option (Nat × Nat)) : IProp GF :=
   iprop(walInv (W := W) walCodec Mr R jr r ∗
     (∃ m : Nat, ⌜∀ xe ∈ hJ.ents, xe.1 < m⌝ ∗ osCommitLb m) ∗
-    walCreateQ (W := W) (child r nm) (.only [nm, tmpName nm]) hC md Q J walTmps hJ g o)
+    walCreateQ (W := W) (child r nm) (.only [nm, tmpName nm]) hC md Q J walTmps hJ g
+      (createTailG Mr md jr nm J g) o)
 
 /-- **The aborted result rebuilds the update** (`RenameWALOk`'s last conjunct), over the fresh layout. -/
 theorem createU_none (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoString)

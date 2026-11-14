@@ -165,6 +165,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.wp_proof (P : WalPbI
     isplitr
     · ipureintro; exact ⟨rfl, rfl⟩
     iexists x, fp, γ, (W64 64000000), df, dfd
+    isplitr
+    · ipureintro; exact hfp
     iframe
     iunfold walPreIn
     iexists locks

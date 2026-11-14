@@ -126,6 +126,19 @@ theorem createLay_abs (Mr : WalMarshal) (md : List w8) (hMr : WalMarshalCreateOk
   · simp [createLay]
   · simp [createLay]
 
+/-- **The fresh WAL's tail record** (`walCreateQ`'s, the commit's registration). -/
+def createTailG (Mr : WalMarshal) (md : List w8) (jr : Ino) (nm : GoString) (J : Ino) (g : SegG) :
+    TailG :=
+  tailG (walDurFresh md) (createLay jr nm J g (createStream Mr md).length) g.ino none
+
+/-- **The fresh layout's record boundary** (`TailBound`: `so = |stream|`, the end of every record). -/
+theorem createLay_tailBound (Mr : WalMarshal) (md : List w8) (jr : Ino) (nm : GoString) (J : Ino)
+    (g : SegG) :
+    TailBound walCodec Mr (walDurFresh md) (createLay jr nm J g (createStream Mr md).length) := by
+  refine ⟨((segRecs walCodec Mr (walDurFresh md) []).getD 0 []).length, Nat.le_refl _, ?_⟩
+  simp only [createLay, List.length_nil, List.take_length, Nat.max_zero]
+  rfl
+
 /-- **The fresh WAL's segment** after the header stream and its fdatasync: its inode `i`, the synced
 `OsMeta`, every byte durable. -/
 def createSeg (i : Ino) (mS : OsMeta) (ysS : List ByteG) : SegG :=
