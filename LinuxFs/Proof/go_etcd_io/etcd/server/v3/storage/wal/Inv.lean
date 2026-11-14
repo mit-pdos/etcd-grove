@@ -838,6 +838,27 @@ theorem walLentRes_insert_key (T : GMap GoString GName) (Ls : GMap GoString WalL
   obtain ⟨hT, la, hla, hlen⟩ := hx
   exact ⟨hT, la, by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hla, hlen⟩
 
+/-- **The tail's layout to be replaced by its key's holder**, the new layout chosen later (`walTailsRes_cut`). -/
+theorem walLentRes_free (T : GMap GoString GName) (Ls : GMap GoString WalLay) (dir : GoString)
+    (γ : GName) :
+    ⊢ walTailKey (W := W) dir γ -∗ walLentRes (W := W) T Ls -∗
+      walTailKey (W := W) dir γ ∗ ∀ lay' : WalLay, walLentRes (W := W) T (<[dir := lay']> Ls) := by
+  iintro Hk HL
+  icases walLentRes_notLent T Ls dir γ $$ Hk HL with ⟨%M, %hM, Hk, Ha, Hm⟩
+  iframe Hk
+  iintro %lay'
+  unfold walLentRes
+  iexists M
+  iframe Ha
+  iapply BigSepM.bigSepM_mono (fun {k x} hk => ?_) $$ Hm
+  iintro ⟨%hx, Hk⟩
+  iframe Hk
+  ipureintro
+  have e : k ≠ dir := by
+    change M !! k = some x at hk; rintro rfl; rw [hM] at hk; cases hk
+  obtain ⟨hT, la, hla, hlen⟩ := hx
+  exact ⟨hT, la, by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hla, hlen⟩
+
 /-- **A tail registered** (`T` gains a directory it did not have). -/
 theorem walLentRes_reg (T : GMap GoString GName) (Ls : GMap GoString WalLay) (dir : GoString)
     (γ : GName) (hT : T !! dir = none) :
