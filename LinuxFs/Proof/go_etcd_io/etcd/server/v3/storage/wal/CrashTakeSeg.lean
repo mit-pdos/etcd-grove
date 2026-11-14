@@ -75,9 +75,11 @@ theorem runsCover_fl {fl : SegFl} {g : SegG} (h : fl.Ok g) :
         fl.bs.drop (cfHi fl.m fl.off fl.data.length))] g.bs := by
   obtain ⟨hin, -, hlen, -, -, hbs, -⟩ := h
   have hlo : cfLo fl.m fl.off = fl.off := by unfold cfLo; omega
-  have hhi : cfHi fl.m fl.off fl.data.length = fl.off + fl.data.length := by unfold cfHi; omega
-  have hA : (pwAnn fl.data fl.n (cfRange fl.m fl.bs fl.off fl.data.length)).length = fl.data.length := by
-    simp only [pwAnn_length, cfRange, List.length_take, List.length_drop]; rw [hlo, hhi]; omega
+  have hhi1 : fl.off ≤ cfHi fl.m fl.off fl.data.length := by unfold cfHi; omega
+  have hhi2 : cfHi fl.m fl.off fl.data.length ≤ fl.bs.length := by unfold cfHi; omega
+  have hA : (pwAnn fl.data fl.n (cfRange fl.m fl.bs fl.off fl.data.length)).length =
+      cfHi fl.m fl.off fl.data.length - fl.off := by
+    simp only [pwAnn_length, cfRange, List.length_take, List.length_drop]; rw [hlo]; omega
   have hT : (fl.bs.take (cfLo fl.m fl.off)).length = fl.off := by
     simp only [List.length_take]; rw [hlo]; omega
   rw [hbs]
@@ -87,18 +89,19 @@ theorem runsCover_fl {fl : SegFl} {g : SegG} (h : fl.Ok g) :
     simp only
     rw [List.getElem_append_left (by simp only [List.length_append]; omega),
       List.getElem_append_left (by omega)]
-  · by_cases h2 : b < fl.off + fl.data.length
+  · by_cases h2 : b < cfHi fl.m fl.off fl.data.length
     · refine ⟨_, List.mem_cons_self .., b - fl.off, by rw [hA]; omega, by rw [hlo]; omega, ?_⟩
       simp only
       rw [List.getElem_append_left (by simp only [List.length_append]; omega),
         List.getElem_append_right (by omega)]
       congr 1; omega
     · refine ⟨_, List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_self ..)),
-        b - (fl.off + fl.data.length), ?_, by rw [hhi]; omega, ?_⟩
-      · simp only [List.length_append, hT, hA, List.length_drop] at hb ⊢; rw [hhi]; omega
+        b - cfHi fl.m fl.off fl.data.length, ?_, by omega, ?_⟩
+      · simp only [List.length_append, hT, hA, List.length_drop] at hb ⊢; omega
       · simp only
         rw [List.getElem_append_right (by simp only [List.length_append]; omega)]
         simp only [List.length_append, hT, hA, List.getElem_drop]
+        congr 1; omega
 
 /-- A resize in flight's runs (its token's bytes cut off, the halves below them) cover the segment
 as the layout holds it (I3b). -/
@@ -223,6 +226,69 @@ theorem fileCrashedR_rzMeta {tr : Bool} {i : Ino} {tg n : Nat} {m : OsMeta} {sv 
     simp only [rsKind_val, rsKind_meta] at this
     exact this
   · exact h6 b c hb hc hbs
+
+/-- **What `wrMeta` knows past the size is the file's** (W6, fifteenth session; the write case of
+`rzMeta_pc_cand`): outside the announced range the token's `OsMeta`'s (`FileCrashAt`), inside it the
+candidates the write's first step saw then the data's byte stamped `n` (`OsCoh.tok_cand`). -/
+theorem wrMeta_pc_cand [GooseExts] {m : OsMeta} {off : Nat} {data : List w8} {n : Nat} {f : OsFile}
+    (hoff : off ≤ m.size)
+    (hmeta : ∀ b c, m.size ≤ b → (cfMeta m off data.length).pc b = some c → f.cand b = c)
+    (htok : ∀ b c, inRange (min off m.size) (off + data.length) b = true → m.size ≤ b →
+      m.pc b = some c → f.cand b = c ++ [((if off ≤ b then data.getD (b - off) 0 else 0), n)]) :
+    ∀ b c, (wrMeta m off data n).size ≤ b → (wrMeta m off data n).pc b = some c → f.cand b = c := by
+  intro b c hb hc
+  rw [wrMeta_size] at hb
+  have hmin : min off m.size = off := Nat.min_eq_left hoff
+  by_cases hin : off ≤ b ∧ b < off + data.length
+  · have htc : (wrMeta m off data n).tc !! b = (m.pc b).map (· ++ [(data.getD (b - off) 0, n)]) := by
+      show pwTail m off data n !! b = _
+      rw [pwTail_lookup, if_pos (by simp [inRange, hin.1, hin.2]), if_pos hb]
+    rcases OsMeta.pc_some hc with ht | ⟨z, hz, hzb, -⟩
+    · rw [htc] at ht
+      obtain ⟨c', hc', rfl⟩ := Option.map_eq_some_iff.1 ht
+      have := htok b c' (by rw [hmin]; simp [inRange, hin.1, hin.2]) hb hc'
+      rw [if_pos hin.1] at this; exact this
+    · exfalso
+      rw [wrMeta_zf] at hz
+      unfold cfMeta at hz
+      rw [announce_zf] at hz
+      obtain ⟨z0, -, rfl⟩ := Option.map_eq_some_iff.1 hz
+      rw [hmin, if_pos (by omega)] at hzb
+      omega
+  · have he : (wrMeta m off data n).pc b = (cfMeta m off data.length).pc b := by
+      refine OsMeta.pc_congr ?_ (wrMeta_zf m off data n)
+      show pwTail m off data n !! b = _
+      rw [pwTail_lookup, if_neg (by simp only [inRange, Bool.and_eq_true, decide_eq_true_eq]; omega)]
+      unfold cfMeta; rw [announce_tc, hmin, if_neg (by simp only [inRange, Bool.and_eq_true, decide_eq_true_eq]; omega)]
+    rw [he] at hc
+    exact hmeta b c hb hc
+
+/-- **A write in flight's crash is one the layout's `OsMeta` allows** (`wrMeta`: the token's, and the
+candidates of the bytes announced past the size, `TokPast`). -/
+theorem fileCrashedR_wrMeta [GooseExts] {i : Ino} {off : Nat} {data : List w8} {n : Nat} {m : OsMeta}
+    {sv : List ByteG} {rs : List (Nat × DFrac × List ByteG)} {fo : Option OsFile} (hoff : off ≤ m.size)
+    (h : FileCrashedR (TokInfo.meta ⟨i, .write off data, n, m, sv⟩) rs fo)
+    (hp : TokPast ⟨i, .write off data, n, m, sv⟩ fo) :
+    FileCrashedR (wrMeta m off data n) rs fo := by
+  have hmin : min off m.size = off := Nat.min_eq_left hoff
+  intro f' hf'
+  obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h f' hf'
+  refine ⟨h1, h2, h3, h4, h5, fun b c hb hc hbs => ?_⟩
+  rw [wrMeta_size] at hb
+  change pwTail m off data n !! b = some c at hc
+  rw [pwTail_lookup] at hc
+  split at hc
+  · rename_i hin
+    obtain ⟨c', hc', rfl⟩ := Option.map_eq_some_iff.1 hc
+    have hin' : off ≤ b ∧ b < off + data.length := by
+      simpa only [inRange, Bool.and_eq_true, decide_eq_true_eq] using hin
+    have := hp f' hf' b c' hb (by simp [TokInfo.lo, TokInfo.hi, hmin, inRange, hin'.1, hin'.2]) hc' hbs
+    simp only [TokInfo.val, if_pos hin'.1] at this
+    exact this
+  · rename_i hin
+    refine h6 b c (by simp only [TokInfo.meta, announce_size]; exact hb) ?_ hbs
+    show (m.announce (min off m.size) (off + data.length) (max m.size (off + data.length))).tc !! b = _
+    rw [announce_tc, hmin, if_neg hin]; exact hc
 
 /-- **A crash after a truncate landed is one the layout's `OsMeta` of it in flight allows**
 (`fileCrashedR_rsPostK`, with the candidates of the bytes announced past the old size, which the
@@ -390,19 +456,24 @@ theorem crashRestAt_take_seg (Q : OsState → OsState → Prop) (L L' : GooseLoc
         iapply BigSepL.bigSepL_singleton.2; iexact Hb2
       icases BigSepL.bigSepL_cons.1 $$ Hbs with ⟨Hb1, Hbs⟩
       icases BigSepL.bigSepL_singleton.1 $$ Hbs with Hb2
-      obtain ⟨⟨h1, h2, f, hf, h3, h4, h5⟩, -, -⟩ := hfc
+      obtain ⟨⟨h1, h2, f, hf, h3, h4, h5⟩, hpast, f1, hf1, -, htc⟩ := hfc
+      rw [hf] at hf1; cases hf1
       have hcov := runsCover_fl hok
-      have hmeta : g.om = cfMeta fl.m fl.off fl.data.length := hok.2.2.2.2.1
+      have hmeta : g.om = wrMeta fl.m fl.off fl.data fl.n := hok.2.2.2.2.1
+      have hoff : fl.off ≤ fl.m.size := hok.1
       iframe Hr Hb1 Hb2
       isplitr
       · ipureintro
-        refine ⟨?_, h2, f, hf, cands_cover hcov (h3 ?_), fun s hs => h4 s ?_,
-          fun b c hb hc => h5 b c (by rw [hmeta] at hb; exact hb) (by rw [hmeta] at hc; exact hc)⟩
-        rotate_right
-        · rw [hmeta] at hs; simpa [cfMeta, TokInfo.meta, TokInfo.lo, TokInfo.hi, TokInfo.target] using hs
-        · rw [hmeta]; exact fileCrashedR_cover _ hcov h1
+        refine ⟨?_, h2, f, hf, cands_cover hcov (h3 ?_), fun s hs => h4 s ?_, ?_⟩
+        · rw [hmeta]; exact fileCrashedR_wrMeta hoff (fileCrashedR_cover _ hcov h1) hpast
         · show (cfMeta fl.m fl.off fl.data.length).cut = none
           simp [cfMeta, OsMeta.announce, hcut0]
+        · rw [hmeta, wrMeta_rz] at hs
+          simpa [cfMeta, TokInfo.meta, TokInfo.lo, TokInfo.hi, TokInfo.target] using hs
+        · rw [hmeta]
+          refine wrMeta_pc_cand hoff (fun b c hb hc => h5 b c (by simp only [TokInfo.meta, announce_size]; exact hb) hc)
+            (fun b c hin hb hc => ?_)
+          exact htc b c (by simpa only [TokInfo.lo, TokInfo.hi] using hin) hb hc
       isplitl [Hf]
       · iapply (fileStartO_eq (L := L') g.ino _).1 $$ Hf
       iframe Ht
