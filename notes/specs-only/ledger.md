@@ -1673,3 +1673,24 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   (which takes the token) only after a nil one, so it needs only the left arm on `nil`.
 - **Decision.** Adopted (the agent's: the spec is stated, unproved, not in the Link; no client proved over it);
   made.
+
+## 2026-11-14: `walOpenWFU`, `WAL.Close.specU`, `WAL.sync.specC`, `renameWALPost` arm 2 (internal, the part's) -- `Create`'s name registered only at success (design P; unit `create`)
+
+- **Spec.** `walOpenWFU` (`Handle.lean`, sealed), `LinuxFs/Spec/.../wal/WAL__CloseU.lean`, `WAL__syncC.lean`'s
+  error arm, `WAL__renameWAL.lean`'s `renameWALPost` arm 2 (so `renameWALUnlock.spec`'s too).
+- **Defect.** `Create`'s cleanup renames `nm` aside, which `os.Rename.specDirAnySnc` allows only with the whole
+  claim on `nm`; but `walOpenWFU` held the name registered (`walNamesFrag none`), whose registration lent a
+  fraction to `nameShare` that is never given back whole (borrowers drop what they borrow): no state after
+  `Close.specU` lets `Create` call the rename (W4 log, twenty-sixth and twenty-seventh sessions).
+- **Evidence.** `nameShare`'s `∃ q`, `walInv_dirPath`; `Close.specU`'s proof dropping the handle's and the
+  pipeline's paths.
+- **Change (made).** Design P (`notes/wal-units/create.md`): the handle before naming carries the pending
+  registration (`walDirH`'s new names-fragment parameter `nf := some dir`) and its two paths to `dir` pinned at
+  `Create`'s spine-law roots and fraction (`walOpenWFU P Mr w dir Rp qp`; `walDirH`'s naming fact a function of
+  the path's roots and fraction, `walPipeH`'s new pin `pp`; all defaulted, so every other handle is unchanged).
+  `Close.specU` returns `walUnlockedTokX` (the free token less its names fragment), `walNamesFrag (some dir)`
+  and the two pinned paths (error arm: `walLockedTok ∗ walNamesFrag (some dir)`); `sync.specC`'s error arm
+  returns the handle's names fragment `nf` too; `renameWALPost` arm 2 returns the pinned pending handle
+  (`∃ x qd, ⌜dq = own qd⌝ ∗ UH x ∗ walOpenWFU P Mr w' dir R qd`). `Create` registers the name at its success
+  exit, after the parent's close (`walInv_named`, `walInv_register`, `walOpenWFU_seal`).
+- **Decision.** Made (internal: no client spec moves; `Create.spec` unchanged).

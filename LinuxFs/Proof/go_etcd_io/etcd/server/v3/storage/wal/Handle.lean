@@ -416,9 +416,11 @@ file size `sz`), the
 caller's token after `n ≤ k` files received, and the claim on the name the next `Open` hands back
 (`pipeTmp (n + 1)`: the name of the file received last, renamed away by its cut); `fp` non-nil
 (`Close` tests it, S/wal.go:1057). -/
-def walPipeH (fp : Loc) (dir : GoString) (j : Ino) (k : Nat) : IProp GF :=
+def walPipeH (fp : Loc) (dir : GoString) (j : Ino) (k : Nat)
+    (pp : Roots → DFrac → Prop := fun _ _ => True) : IProp GF :=
   iprop(∃ (γ : PipeNames) (R : Roots) (dq : DFrac) (sz : w64) (n : Nat),
-    isFilePipe fp γ R dir dq j sz ∗ pipeMain γ n ∗ tmpClaim j (pipeTmp (n + 1)) ∗ ⌜n ≤ k⌝ ∗ ⌜fp ≠ null⌝)
+    isFilePipe fp γ R dir dq j sz ∗ pipeMain γ n ∗ tmpClaim j (pipeTmp (n + 1)) ∗ ⌜n ≤ k ∧ pp R dq⌝ ∗
+      ⌜fp ≠ null⌝)
 
 /-- A non-tail lock: a `*fileutil.LockedFile` (`fileutil.lockedFile`, what `fileutil.LockFile`
 returns) and its open file, whole. -/
@@ -451,13 +453,14 @@ W7-W12 log, fourth session; `Create` and `ReadAll` establish them when they retu
 `nmd` is the naming fact, `walNamed dir` by default; `emp` in the handle before naming
 (`walOpenWFU`: `Create` between its commit and the parent's fsync). -/
 def walDirH (dir : GoString) (j : Ino) (dfd : w64) (ino : Ino) (name : GoString) (k : Nat)
-    (nmd : IProp GF := walNamed (W := W) dir) : IProp GF :=
+    (nmd : Roots → Qp → IProp GF := fun _ _ => walNamed (W := W) dir) (nf : Option GoString := none) :
+    IProp GF :=
   iprop(∃ (R : Roots) (q : Qp) (X : List GoString) (hj : NamesH) (nm0 : GoString) (ph : DirPhS),
     walDirKey (W := W) dir j X ∗ osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
     osPathS R dir (DFrac.own q) j ∗ osSharedInv R ∗ osCallPerm (1 : Qp).half.half ∗ osDirFdS dfd j ph ∗
-    nmd ∗ walOutFrag (W := W) ⟨[ino], [(j, .except X)], [dir]⟩ ∗
+    nmd R q ∗ walOutFrag (W := W) ⟨[ino], [(j, .except X)], [dir]⟩ ∗
     (∃ γt : GName, walTailsFrag (W := W) (<[dir := γt]> (∅ : GMap GoString GName))) ∗
-    walNamesFrag (W := W) none ∗
+    walNamesFrag (W := W) nf ∗
     ⌜walNameP nm0 = true ∧ hj.cur !! nm0 = some (.file ino) ∧ (∃ pd, name = child pd nm0) ∧
       (∀ t ∈ walTmps, t ∈ X) ∧ (∀ b ∈ X, walNameP b = false) ∧
       (∃ sq ix : Nat, nm0 = walFileName sq ix ∧ sq < 2 ^ 63 + k) ∧
@@ -475,8 +478,9 @@ needs it when its entries go back below an earlier snapshot record). The encoder
 tests it, S/wal.go:968). With `tm := TailMetaW`, the tail in a resize window (`cut` between its
 truncate and its fdatasync, `WAL.sync.specCut`). -/
 def walHandleIn (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h : WalHS)
-    (tm : Fs.OsMeta → List Fs.ByteG → Prop := TailMeta) (nmd : IProp GF := walNamed (W := W) dir) :
-    IProp GF :=
+    (tm : Fs.OsMeta → List Fs.ByteG → Prop := TailMeta)
+    (nmd : Roots → Qp → IProp GF := fun _ _ => walNamed (W := W) dir) (nf : Option GoString := none)
+    (pp : Roots → DFrac → Prop := fun _ _ => True) : IProp GF :=
   letI := walAllG (W := W)
   iprop(∃ (lg df sp e fp lt f : Loc) (mds locks : GoSlice) (lfs : List Loc) (fd dfd : w64)
       (name dnm : GoString) (j : Ino) (rc : GoFunc),
@@ -498,12 +502,12 @@ def walHandleIn (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"encoder" w ↦ e ∗ ⌜e ≠ null⌝ ∗
     ownEncoder e (wal.fileWi f) (h.crc Mr) h.pend ∗
     walTailW (W := W) f fd name dir h.γ h.ino h.H h.md h.cuts h.o0 h.sz h.out tm ∗
-    walDirH (W := W) dir j dfd h.ino name h.pc nmd ∗
+    walDirH (W := W) dir j dfd h.ino name h.pc nmd nf ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks ∗
     locks ↦* lfs ∗ ownSliceCap Loc locks (DFrac.own 1) ∗ ⌜lfs.getLast? = some lt⌝ ∗
     ([∗list] lf ∈ lfs.dropLast, walLockH lf) ∗
     fileutil.lockedFile lt f ∗
-    structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ fp ∗ walPipeH fp dir j h.pc ∗
+    structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ fp ∗ walPipeH fp dir j h.pc pp ∗
     encEnv ∗ walCrcTable ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
     walOpenW (W := W) w dir ∗
     ⌜WalHS.Split Mr h ∧ 0 ≤ fd.toInt ∧ h.o0 + h.out.length ≤ h.sz ∧ h.sz ≤ 0xffffffff000 ∧
@@ -527,13 +531,18 @@ buffer. -/
     ⧗ h.pc)
 
 /-- **The handle before naming** (`Create` after its commit, W4 log, twenty-second session; ledger
-2026-11-14, `renameWALPost`'s arm 2): `walOpenWF` but for the naming fact (`walDirH`'s `nmd := emp`).
-The WAL's name registration is done (`walNamesFrag none`: `walInv_register` needs no naming, and the
-retry's `Open` needs the lock token released, which needs it); only the parent directory's fsync,
-which gives `walNamed dir` (`walInv_named`), is left. Sealed; its laws in `HandleUnnamed.lean`. -/
-@[no_expose] def walOpenWFU (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) :
-    IProp GF :=
-  iprop(∃ h : WalHS, walHandleIn (W := W) P Mr w dir h TailMetaW emp ∗ ⌜h.Done⌝ ∗
+2026-11-14, `renameWALPost`'s arm 2): `walOpenWF` but for the naming fact, and **the WAL's name not yet
+registered** (`walDirH`'s `nf := some dir`: `Create`'s pending registration, `walNamesRes`'s `o`; design P
+of `notes/wal-units/create.md`): the program's half of the name's claim is `Create`'s, but for the two
+paths to `dir` it made with its spine law, the handle's (`walDirH`'s, roots `Rp`, fraction `qp`) and the
+pipeline's (the same), **pinned** here so that `Close.specU` gives them back and `Create`'s cleanup has
+the whole half again for its rename. The parent directory's fsync, its close, then the naming
+(`walInv_named`) and the registration (`walInv_register`) are left (`walOpenWFU_seal`). Sealed; its laws
+in `HandleUnnamed.lean`. -/
+@[no_expose] def walOpenWFU (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (Rp : Roots)
+    (qp : Qp) : IProp GF :=
+  iprop(∃ h : WalHS, walHandleIn (W := W) P Mr w dir h TailMetaW (fun R q => iprop(⌜R = Rp ∧ q = qp⌝))
+      (some dir) (fun R dq => R = Rp ∧ dq = DFrac.own qp) ∗ ⌜h.Done⌝ ∗
     ⌜h.md.length < 2 ^ 41⌝ ∗ ⧗ h.pc)
 
 /-- **The cuts budget** (`notes/bounds-plan.md`: the counter's owner turns the global receipt bound into

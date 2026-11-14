@@ -58,7 +58,8 @@ theorem wp_walPipeH_open
         ⌜err ≠ interface.nil⌝ }} := by
   iintro %Φ Hp HΦ
   iunfold walPipeH at Hp
-  icases Hp with ⟨%γ, %R, %dq, %sz, %n, #Hfp, Hmain, Hc, %hn, -⟩
+  icases Hp with ⟨%γ, %R, %dq, %sz, %n, #Hfp, Hmain, Hc, %hn2, -⟩
+  have hn := hn2.1
   iapply wp_Open fp γ R dir dq j sz n $$ [$Hfp $Hmain Hc]
   · iunfold pipeQ
     iframe Hc
@@ -91,7 +92,7 @@ theorem walPipeH_next (fp : Loc) (dir : GoString) (k : Nat) (γ : PipeNames) (R 
   rw [show n + 1 + 1 = n + 2 by omega, pipeTmp_add_two]
   iframe Hc
   isplitr
-  · ipureintro; omega
+  · ipureintro; exact ⟨by omega, trivial⟩
   · ipureintro; exact hfp
 
 end iris

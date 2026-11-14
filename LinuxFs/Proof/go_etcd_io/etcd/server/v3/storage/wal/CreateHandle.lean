@@ -136,32 +136,30 @@ theorem walInv_mintAppend (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
       iframe)
     $$ Hinv Hnc Hl
 
-/-- **The ghost steps of `Create`'s arm 1** (see the file header): the new WAL's name registered with half
-of `createSpR`'s claim fraction (`walInv_register`), the append-mode handle minted from the lock token;
-`createUH x` the residue. -/
+/-- **The ghost steps of `Create`'s arm 1** (see the file header): the append-mode handle minted from the
+lock token; the name **not** registered (design P, `notes/wal-units/create.md`: the names fragment `some
+dir` goes into the handle, and `createSpR`'s claim fraction `c` stays `Create`'s, with `qh + (qh + c) =
+½` for the two pinned paths); `createUH qh x` the residue. -/
 theorem create_ghost (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoString) (hC : NamesH)
-    (md : List w8) (Q : IProp GF) (J : Ino) (hJ : NamesH) (g : SegG) (Wn : List GoString) (c : Qp)
-    (x : Nat × Nat) (w : Loc) (hin : InArea r (child r nm) nm) (hnmO : NameOk nm) :
-    ⊢ osSharedInv (L := hG.goose_localGS) R -∗ notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗
+    (md : List w8) (Q : IProp GF) (J : Ino) (hJ : NamesH) (g : SegG) (Wn : List GoString) (c qh : Qp)
+    (x : Nat × Nat) (w : Loc) (hc : qh + (qh + c) = (1 : Qp).half) :
+    ⊢ notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗
       createU (W := W) Mr R jr r nm hC md Q J hJ g (some x) -∗
       createSpR (hG := hG) jr J nm c x -∗ walSplitFrag (W := W) Wn ={⊤}=∗
-      notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ createUH (W := W) jr J r nm md Q Wn x ∗
+      notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ createUH (W := W) jr J r nm md Q Wn qh x ∗
       walInv (W := W) walCodec Mr R jr r ∗ walHandleP (W := W) w (child r nm) .append ∗
       osMeta g.ino (DFrac.own (1 : Qp).half) g.om ∗ osBytes g.ino 0 (DFrac.own (1 : Qp).half) g.bs ∗
       walOutFrag (W := W) (WalOut.empty.create g.ino J walTmps (child r nm)) ∗
-      walTailReg (W := W) (child r nm) (createTailG Mr md jr nm J g) ∗ walNamesFrag (W := W) none ∗
+      walTailReg (W := W) (child r nm) (createTailG Mr md jr nm J g) ∗
+      walNamesFrag (W := W) (some (child r nm)) ∗
       walDirKey (W := W) (child r nm) J walTmps := by
-  iintro #Hsi Hnc HU HSpR Hsf
+  iintro Hnc HU HSpR Hsf
   unfold createU
   icases HU with ⟨#Hinv, -, HQ⟩
   simp only [walCreateQ]
   icases HQ with ⟨HQ, Hm, Hb, Hlt, Ho, Htr, Hnf, #Hk, %s', #Hpast, %hs'⟩
   unfold createSpR
   icases HSpR with ⟨%hn, %ht, Hnm, Htmp, %hnt, %hlw, #Hlog⟩
-  icases (osNames_frac jr (.only [nm]) c.half c.half hn).1 $$ [Hnm] with ⟨Hn1, Hn2⟩
-  · rw [Qp.half_add_half]; iexact Hnm
-  imod walInv_register walCodec Mr R jr r s' (child r nm) nm Wn c.half hn hin hnmO
-    (by rw [hs']; simp) $$ Hinv Hsi Hnc Hpast Hnf Hsf Hn1 with ⟨Hnc, Hnf, Hsf⟩
   imod walInv_mintAppend walCodec Mr R jr r w (child r nm) $$ Hinv Hnc Hlt with ⟨Hnc, Hh⟩
   imodintro
   iframe Hnc Hinv Hh Hm Hb Ho Htr Hnf Hk
@@ -169,8 +167,8 @@ theorem create_ghost (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoString) 
   iframe HQ Hsf Hlog
   isplitl []
   · iexists s'; iframe Hpast; ipureintro; exact hs'
-  isplitl [Hn2]
-  · iexists c.half, hn; iframe Hn2; ipureintro; exact ⟨hnt.1, hlw⟩
+  isplitl [Hnm]
+  · iexists c, hn; iframe Hnm; ipureintro; exact ⟨hc, hnt.1, hlw⟩
   · iexists ht; iframe Htmp; ipureintro; exact hnt.2
 
 end ghost
@@ -199,7 +197,8 @@ theorem create_handleIn (P : WalPbIn GF) (Mr : WalMarshal) (hMr : WalMarshalCrea
     (hname : fname = child pd (walFileName 0 0)) (htm : TailMeta g.om g.bs)
     (hL : (createStream Mr md).length ≤ g.om.size) (hsz : g.om.size ≤ 0xffffffff000)
     (hj0 : hj.cur !! walFileName 0 0 = some (.file g.ino))
-    (hj1 : ∀ b n, hj.cur !! b = some n → b = walFileName 0 0) (hfp : fp ≠ null) (hfd0 : 0 ≤ fd.toInt) :
+    (hj1 : ∀ b n, hj.cur !! b = some n → b = walFileName 0 0) (hfp : fp ≠ null) (hfd0 : 0 ≤ fd.toInt)
+    (hRp : Rp = R) (hdqp : dqp = DFrac.own q) :
     walPreIn w lg (child r nm) mds md e lt f (W64 0) (W64 0) ∗
       ownEncoder e (wal.fileWi f) (hash.crc32.crc32c (hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md)
         (Mr.encSnap snapC0.model)) [] ∗
@@ -210,7 +209,8 @@ theorem create_handleIn (P : WalPbIn GF) (Mr : WalMarshal) (hMr : WalMarshalCrea
       osNames J (.except walTmps) (DFrac.own (1 : Qp).half) hj ∗
       osPathS R (child r nm) (DFrac.own q) J ∗ osSharedInv R ∗ osCallPerm (1 : Qp).half.half ∗
       osDirFdS dfd J .idle ∗
-      walOutFrag (W := W) (WalOut.empty.create g.ino J walTmps (child r nm)) ∗ walNamesFrag (W := W) none ∗
+      walOutFrag (W := W) (WalOut.empty.create g.ino J walTmps (child r nm)) ∗
+      walNamesFrag (W := W) (some (child r nm)) ∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ df ∗
       os.ownFile df dfd dnm (DFrac.own 1) ∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"state" w ↦ sp ∗ P.hsIn sp hsZero ∗
@@ -221,7 +221,8 @@ theorem create_handleIn (P : WalPbIn GF) (Mr : WalMarshal) (hMr : WalMarshalCrea
       encEnv ∗ walCrcTable ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
       walOpenW (W := W) w (child r nm) ⊢
     ∃ γ, walHandleIn (W := W) P Mr w (child r nm)
-      (createHS md g.ino (createStream Mr md).length γ g.om.size) TailMetaW emp := by
+      (createHS md g.ino (createStream Mr md).length γ g.om.size) TailMetaW
+      (fun R' q' => iprop(⌜R' = R ∧ q' = q⌝)) (some (child r nm)) (fun R' dq' => R' = R ∧ dq' = DFrac.own q) := by
   iintro ⟨Hpre, Henc, Hf, Hfd, Hoff, Htr, Hm, Hb, #Hk, Hn, Hp, #Hsi, Hperm, Hdfd, Ho, Hnf, Hdff, Hdf,
     Hst, #Hsp, Hdec, Hrc, Hfpf, #Hpipe, Hmain, Htc, #Henv, #Hcrc, #Hpkg, Hopen⟩
   iunfold walPreIn at Hpre
@@ -267,6 +268,8 @@ theorem create_handleIn (P : WalPbIn GF) (Mr : WalMarshal) (hMr : WalMarshalCrea
     rw [show (⟨[g.ino], [(J, .except walTmps)], [child r nm]⟩ : WalOut) =
       WalOut.empty.create g.ino J walTmps (child r nm) from rfl]
     iframe Hk Hn Hp Hsi Hperm Hdfd Ho Hnf Htf
+    isplitr
+    · ipureintro; exact ⟨rfl, rfl⟩
     ipureintro
     exact ⟨walNameP_walFileName 0 0, hj0, ⟨pd, hname⟩, fun _ h => h, walTmps_not_wal,
       ⟨0, 0, rfl, by decide⟩, fun b n hb _ => Or.inl (hj1 b n hb)⟩
@@ -280,7 +283,7 @@ theorem create_handleIn (P : WalPbIn GF) (Mr : WalMarshal) (hMr : WalMarshalCrea
   · unfold walPipeH
     iexists γp, Rp, dqp, szp, 0
     iframe Hpipe Hmain Htc
-    ipureintro; exact ⟨Nat.le_refl _, hfp⟩
+    ipureintro; exact ⟨⟨Nat.le_refl _, hRp, hdqp⟩, hfp⟩
   ipureintro
   refine ⟨createHS_split Mr md g.ino γ g.om.size, hfd0, by simpa using hL, hsz, ⟨fun _ => ?_, ?_⟩, ?_⟩
   · simp [walLastIdx]

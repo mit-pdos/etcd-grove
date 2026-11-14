@@ -28,20 +28,26 @@ variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.A
 
 /-- **`w.Close()` of the handle before naming** (`Create`'s cleanup): `WAL.Close.spec`'s effects
 (the pipeline closed, the tail synced, every lock's file and the directory's closed, the purge right
-consumed) with nothing committed: the free lock token back (`walUnlockedTok`, `walCloseLawU`) with the handle's
-half of the call permission (its quarter and the pipeline's), whatever `err` (the directory's `Close` may fail after everything else), or, the sync
-failed (`Close` returns before it unlocks), the lock token still held (`walLockedTok`: `WAL.sync.specC`'s
-error arm), which `Create` needs to merge `nm.tmp`'s claim back to the area. The `dir` field comes back
-with the free token (`cleanupWAL` reads `w.dir` after `Close`, for the rename). -/
+consumed) with nothing committed: the free lock token back but for its names fragment
+(`walUnlockedTokX`, `walCloseLawU`), the handle's names fragment `some dir` (`Create`'s pending
+registration), the handle's half of the call permission (its quarter and the pipeline's), and the two
+pinned paths to `dir` (the handle's and the pipeline's, at the roots `Rp` and fraction `qp` `Create`
+lent: with them `Create` has the program's half of the name's claim whole again for its cleanup's
+rename; design P, `notes/wal-units/create.md`), whatever `err` (the directory's `Close` may fail after
+everything else); or, the sync failed (`Close` returns before it unlocks), the lock token still held
+(`walLockedTok`: `WAL.sync.specC`'s error arm), which `Create` needs to merge `nm.tmp`'s claim back to the
+area, with the names fragment (`Create` then registers the name, which still holds the WAL). The `dir`
+field comes back with the free token (`cleanupWAL` reads `w.dir` after `Close`, for the rename). -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.specU (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
-  ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString),
-  {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWFU P Mr w dir ∗ WalFs.walPurgeW w dir }}
+  ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (Rp : Roots) (qp : Qp),
+  {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWFU P Mr w dir Rp qp ∗ WalFs.walPurgeW w dir }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"Close"))
       (Val #()))
   {{ (err : GoInterface), RET #err;
-      (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dir" w ↦ dir ∗ WalFs.walUnlockedTok ∗
-        osCallPerm (1 : Qp).half) ∨
-      (⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walLockedTok) }}
+      (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dir" w ↦ dir ∗ WalFs.walUnlockedTokX ∗
+        WalFs.walNamesFrag (some dir) ∗ osCallPerm (1 : Qp).half ∗
+        ∃ j : Ino, osPathS Rp dir (DFrac.own qp) j ∗ osPathS Rp dir (DFrac.own qp) j) ∨
+      (⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walLockedTok ∗ WalFs.walNamesFrag (some dir)) }}
 
 end spec
 

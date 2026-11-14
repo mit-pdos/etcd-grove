@@ -61,7 +61,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofU [os.file.Field
     (wp_Error : zap.Error.spec (GF := GF) (hG := hG))
     (wp_LError : zap.Logger.Error.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.specU (W := W) P Mr := by
-  intro R jr r w dir
+  intro R jr r w dir Rp qp
   wp_start as ⟨#Harea, Hw, Hpw⟩
   unfold walOpenWFU
   icases Hw with ⟨%h, Hh, %hD, %hmd, Hr⟩
@@ -85,10 +85,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofU [os.file.Field
   (try wp_auto)
   -- the pipeline's `Close`
   iunfold walPipeH at Hpipe
-  icases Hpipe with ⟨%γp, %Rp, %dqp, %szp, %np, #Hisfp, Hmain, Hpc, %hnp, %hfpn⟩
+  icases Hpipe with ⟨%γp, %Rp', %dqp, %szp, %np, #Hisfp, Hmain, Hpc, %hnp, %hfpn⟩
+  obtain ⟨-, rfl, rfl⟩ := hnp
   simp only [decide_eq_false hfpn]
   (try wp_auto)
-  wp_apply wp_fpClose fp γp Rp dir dqp j szp $$ [Hmain] as %perr Hleft
+  wp_apply wp_fpClose fp γp _ dir _ j szp $$ [Hmain] as %perr Hleft
   · iframe Hisfp; ileft; iexists np; iexact Hmain
   (try wp_auto)
   -- `w.tail() != nil`, then `w.sync()`
@@ -100,7 +101,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofU [os.file.Field
   ihave %hltn := typedPointsto_not_null lt _ _ $$ Hlt0
   simp only [decide_eq_false hltn]
   (try wp_auto)
-  wp_apply (wp_syncC R jr r w dir j h emp hD.1) $$ [Hlg Hdir Hdf Hdff Hmd Hsp Hdec Hrc Hns Henti Hsnapi He
+  wp_apply (wp_syncC R jr r w dir j h _ _ hD.1) $$ [Hlg Hdir Hdf Hdff Hmd Hsp Hdec Hrc Hns Henti Hsnapi He
       Henc Htw Hdh Hlocks Hls Hcap Hlks Hfp Hopen] as %err Hpost
   · iframe Harea
     iunfold walHandleC
@@ -118,7 +119,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofU [os.file.Field
     wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hlocked]
     (try wp_auto)
     iapply HΦ
-    iright; iframe Hlk; ipureintro; exact Herr
+    icases Hlk with ⟨Hlk, Hnf⟩
+    iright; iframe Hlk Hnf; ipureintro; exact Herr
   subst Herr
   wp_auto
   have hwr := (WalHS.split_rest0 Hpure.1 hD.1).2
@@ -130,8 +132,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofU [os.file.Field
   unfold walTailW
   icases Htw with ⟨Hf2, ⟨%rd2, Hfd2⟩, Hoff2, Hk2, %m2, %bs2, Hm2, Hb2, %hp2, Hv2⟩
   unfold walDirH
-  icases Hdh with ⟨%Rd, %qd, %X, %hj, %nm0, %ph, #Hdk, Hcl, Hpd, #Hsid, Hperm, Hdfd, -, Hout,
+  icases Hdh with ⟨%Rd, %qd, %X, %hj, %nm0, %ph, #Hdk, Hcl, Hpd, #Hsid, Hperm, Hdfd, %hpin, Hout,
     ⟨%γt, Htf⟩, Hnf, %hdh⟩
+  obtain ⟨rfl, rfl⟩ := hpin
   ihave %Hll2 := ownSlice_len _ _ _ $$ Hls
   have hlen2 : 0 < lfs2.length := by
     obtain ⟨ls2, rfl⟩ := List.getLast?_eq_some_iff.1 Hlt2; simp
@@ -301,12 +304,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofU [os.file.Field
   -- the put-back, at the next step
   iunfold pipeLeft at Hleft
   iunfold pipeRes at Hleft
-  icases Hleft with ⟨⟨Hperm2, -⟩, %b, %hb, Htb⟩
+  icases Hleft with ⟨⟨Hperm2, Hpp⟩, %b, %hb, Htb⟩
   iapply (wp_notCrashed_acc _ _ rfl)
   iintro Hnc
   imod walCloseLawU (L := hG.goose_localGS) (W := W) Mr R jr r w dir h.γ γt h.ino j X hj h.H h.md h.cuts
     (h.o0 + (h.out ++ h.pend).length) m2 bs2 b (pipeTmp (np + 1)) hp2.2.1 hwr hb (pipeTmp_memU _)
-    $$ Hinv Hnc Hk2 [Hv2] Hm2 Hb2 Hdk Hcl Htb Hpc Hout Htf Hnf Hopen Hpw with ⟨Hnc, Hunl⟩
+    $$ Hinv Hnc Hk2 [Hv2] Hm2 Hb2 Hdk Hcl Htb Hpc Hout Htf Hopen Hpw with ⟨Hnc, Hunl⟩
   · unfold tailVar; iexact Hv2
   imodintro
   iframe Hnc
@@ -318,9 +321,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofU [os.file.Field
   (try wp_auto)
   iapply HΦ
   ileft
-  iframe Hunl Hdir
-  iapply osCallPerm_joinU
-  iframe
+  iframe Hunl Hdir Hnf
+  isplitl [Hperm Hperm2]
+  · iapply osCallPerm_joinU
+    iframe
+  iexists j
+  iframe Hpd Hpp
 
 end proof
 

@@ -300,6 +300,20 @@ theorem walParked_unlock (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMap
   iframe Hpa Hoa Hs Hc Ht Hw
   ipureintro; exact hp
 
+/-- `walParked_unlock` without the names fragment (`walUnlockedTokX`). -/
+theorem walParked_unlockX (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMap Ino SegFl) :
+    ⊢ walParked (L := L) (W := W) Ls cl F -∗ walLockedTok (W := W) -∗ walOutFrag (W := W) WalOut.empty -∗
+      walTailsFrag (W := W) ∅ ==∗
+      walParked (L := L) (W := W) Ls cl F ∗ walUnlockedTokX (W := W) := by
+  unfold walParked
+  iintro ⟨%b, %o, Hpa, Hoa, %hp, Hs, Hc, Ht, Hw⟩ Hl Ho Htf
+  imod walLockedTok_unlockX (W := W) b $$ Hpa Hl Ho Htf with ⟨-, Hpa, Hu⟩
+  imodintro
+  iframe Hu
+  iexists true, o
+  iframe Hpa Hoa Hs Hc Ht Hw
+  ipureintro; exact hp
+
 /-- **A parked segment taken out** (`Open`'s pin): it is idle (gap B), so its halves agree with the
 invariant's `segRes`. -/
 theorem walParked_takeSeg (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMap Ino SegFl)
