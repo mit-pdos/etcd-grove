@@ -113,7 +113,8 @@ theorem walInvBody_append (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
     (M : GMap GoString WalDur)
     (hfit : (∀ b ∈ tg.2.2.1, b ≤ tg.1.length) →
       RecsFit C (recsOfSegs C Mr tg.2.1 (segsOf (tg.1.map WalOpG.toM) tg.2.2.1)) →
-      RecsFit C (recsOfSegs C Mr tg.2.1 (segsOf ((tg.1 ++ [o]).map WalOpG.toM) tg.2.2.1))) :
+      RecsFit C (recsOfSegs C Mr tg.2.1 (segsOf ((tg.1 ++ [o]).map WalOpG.toM) tg.2.2.1)))
+    (hox : ¬ walHasMaxIdx [o.toM]) :
     ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walTailKey (W := W) dir γ -∗
       tailVar (W := W) γ tg -∗ walCutFrag (W := W) none -∗ walOwn (W := W) M ==∗
       ∃ d : WalDur, ⌜s.wal !! dir = some d ∧ walMapLe M s.wal ∧ d.H = tg.1 ∧
@@ -166,7 +167,7 @@ theorem walInvBody_append (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
   · iexists K, none
     iframe Hdk Hcp
     ipureintro; exact dirKeysOk_append o hd Hdko
-  iframe Hnms; ipureintro; exact ⟨HAt, walsBounded_insSame Hbd rfl hd rfl⟩
+  iframe Hnms; ipureintro; exact ⟨HAt, walsBounded_app Hbd rfl hd rfl rfl hox⟩
 
 /-- **The append's commit** (see the file header). -/
 theorem walTail_append (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
@@ -174,7 +175,8 @@ theorem walTail_append (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
     (Q : WalDur → IProp GF)
     (hfit : (∀ b ∈ tg.2.2.1, b ≤ tg.1.length) →
       RecsFit C (recsOfSegs C Mr tg.2.1 (segsOf (tg.1.map WalOpG.toM) tg.2.2.1)) →
-      RecsFit C (recsOfSegs C Mr tg.2.1 (segsOf ((tg.1 ++ [o]).map WalOpG.toM) tg.2.2.1))) :
+      RecsFit C (recsOfSegs C Mr tg.2.1 (segsOf ((tg.1 ++ [o]).map WalOpG.toM) tg.2.2.1)))
+    (hox : ¬ walHasMaxIdx [o.toM]) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ notCrashed (hC := L.goose_crashGS) -∗
       walTailKey (W := W) dir γ -∗ tailVar (W := W) γ tg -∗ walOpenW (W := W) w dir -∗
       (AU <{ ∃∃ d : WalDur, walDiskAt (W := W) dir d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅
@@ -194,7 +196,7 @@ theorem walTail_append (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
   icases Hacc with ⟨%dc, ⟨Hdc, %hsz⟩, Hucl⟩
   unfold walDiskAt walDirIs
   icases Hdc with ⟨%M, HM, %HMd⟩
-  imod walInvBody_append C Mr R jr r s dir γ tg o M hfit $$ Hb Hk Hv Hcf HM
+  imod walInvBody_append C Mr R jr r s dir γ tg o M hfit hox $$ Hb Hk Hv Hcf HM
     with ⟨%d, %hp, Hb, Hk, Hv, Hcf, HM, #Hp⟩
   obtain ⟨hd, HMs, hH, hcp, hpw⟩ := hp
   -- the client's copy is below the real WAL

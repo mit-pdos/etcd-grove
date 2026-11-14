@@ -102,7 +102,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_proof (P : Wal
   iintro Hnc
   imod walTail_append walCodec Mr R jr r w dir h.γ
     ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG) (WalOpG.snap md) sized Q hfit'
-    $$ Hinv Hnc Htk [Hv] Hopen Hau with ⟨Hnc, Htk, Hv, Hopen, #Hlb, HQ, %hcp⟩
+    (snapOp_noMax md hidx) $$ Hinv Hnc Htk [Hv] Hopen Hau with ⟨Hnc, Htk, Hv, Hopen, #Hlb, HQ, %hcp⟩
   · unfold tailVar; iexact Hv
   unfold tailVar
   imodintro

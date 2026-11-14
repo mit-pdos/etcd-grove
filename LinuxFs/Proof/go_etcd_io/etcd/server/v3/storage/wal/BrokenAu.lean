@@ -109,31 +109,63 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
   [W : WalGS GF]
 
-/-- **A claim out of `walParked` replaced by one of the same directory and names** (its element
-`emp` before and after). -/
-theorem walParked_replOut (Ls : GMap GoString WalLay) (l1 l2 : List Claim) (c c' : Claim)
-    (F : GMap Ino SegFl) (o : WalOut) (hkey : c'.1 = c.1 ∧ c'.2.1 = c.2.1)
-    (hD : (c.1, c.2.1) ∈ o.D) :
-    ⊢ walParked (L := L) (W := W) Ls (l1 ++ c :: l2) F -∗ walOutFrag (W := W) o -∗
-      walParked (L := L) (W := W) Ls (l1 ++ c' :: l2) F ∗ walOutFrag (W := W) o := by
+/-- **A claim out of `walParked` replaced by one of the same directory and names, its new name `bt`
+lent** (`Repair`'s create of `bt`): its parked element `emp` before and after; the entries changed only
+at `bt`, absent before, and `bt` lent (`lendKey`, in the record of what is out), so its others are
+the same; no other WAL directory claim of its directory (`DirClaimOk`'s exclusivity). -/
+theorem walParked_lendNew (Ls : GMap GoString WalLay) (l1 l2 : List Claim) (c c' : Claim)
+    (F : GMap Ino SegFl) (o : WalOut) (bt : GoString) (hkey : c'.1 = c.1 ∧ c'.2.1 = c.2.1)
+    (hD : (c.1, c.2.1) ∈ o.D) (hbt : c.2.2.cur !! bt = none)
+    (hcur : ∀ b, b ≠ bt → c'.2.2.cur !! b = c.2.2.cur !! b)
+    (hoth : ∀ c1 ∈ l1 ++ l2, WalDirClaimOf Ls c1 → c1.1 ≠ c.1) :
+    ⊢ walParked (L := L) (W := W) Ls (l1 ++ c :: l2) F -∗ walOutFrag (W := W) o ==∗
+      walParked (L := L) (W := W) Ls (l1 ++ c' :: l2) F ∗
+        walOutFrag (W := W) (o.addClaim (lendKey c.1 bt)) := by
   unfold walParked
-  iintro ⟨%bf, %o', Ha, Hoa, %hb, Hs, Hc, Ht⟩ Hf
+  iintro ⟨%bf, %o', Ha, Hoa, %hb, Hs, Hc, Ht, Hw⟩ Hf
   icases walOut_agree (W := W) o' o $$ Hoa Hf with %ho
   subst ho
+  imod walOut_set (W := W) o' o' (o'.addClaim (lendKey c.1 bt)) $$ Hoa Hf with ⟨Hoa, Hf⟩
+  imodintro
   iframe Hf
-  iexists bf, o'
+  iexists bf, o'.addClaim (lendKey c.1 bt)
+  dsimp only [WalOut.addClaim]
   iframe Ha Hoa Hs Ht
   isplitr
   · ipureintro; exact hb
-  icases (BigSepL.bigSepL_append (PROP := IProp GF)).1 $$ Hc with ⟨H1, H2⟩
-  icases (BigSepL.bigSepL_cons (PROP := IProp GF)).1 $$ H2 with ⟨-, H2⟩
-  iapply (BigSepL.bigSepL_append (PROP := IProp GF)).2
-  iframe H1
-  iapply (BigSepL.bigSepL_cons (PROP := IProp GF)).2
-  iframe H2
-  have e : ¬ ParkedClaim Ls o'.D c' := fun h => h.2 (by rw [hkey.1, hkey.2]; exact hD)
-  rw [if_neg e]
-  iempintro
+  have hPk : ∀ x : Claim, ParkedClaim Ls (lendKey c.1 bt :: o'.D) x ↔ ParkedClaim Ls o'.D x := by
+    intro x
+    unfold ParkedClaim
+    constructor
+    · rintro ⟨hx, hxD⟩; exact ⟨hx, fun hm => hxD (List.mem_cons_of_mem _ hm)⟩
+    · rintro ⟨hx, hxD⟩
+      refine ⟨hx, fun hm => hxD ?_⟩
+      rcases List.mem_cons.1 hm with he | hm
+      · obtain ⟨-, -, -, -, X, hX, -⟩ := hx
+        simp only [lendKey, Prod.mk.injEq] at he
+        rw [hX] at he; cases he.2
+      · exact hm
+  isplitl [Hc]
+  · icases (BigSepL.bigSepL_append (PROP := IProp GF)).1 $$ Hc with ⟨H1, H2⟩
+    icases (BigSepL.bigSepL_cons (PROP := IProp GF)).1 $$ H2 with ⟨-, H2⟩
+    iapply (BigSepL.bigSepL_append (PROP := IProp GF)).2
+    isplitl [H1]
+    · iapply BigSepL.bigSepL_mono (fun {k x} _ => ?_) $$ H1
+      simp only [propext (hPk x)]
+      exact .rfl
+    iapply (BigSepL.bigSepL_cons (PROP := IProp GF)).2
+    isplitr
+    · have e : ¬ ParkedClaim Ls (lendKey c.1 bt :: o'.D) c' := fun h =>
+        h.2 (List.mem_cons_of_mem _ (by rw [hkey.1, hkey.2]; exact hD))
+      rw [if_neg e]
+      iempintro
+    · iapply BigSepL.bigSepL_mono (fun {k x} _ => ?_) $$ H2
+      simp only [propext (hPk x)]
+      exact .rfl
+  · iapply walOthersL_repl (L := L)
+      (fun c1 hc1 h1 => ⟨h1, othersOf_lend_ne (hoth c1 hc1 h1)⟩)
+      (fun h1 => ⟨(walDirClaimOf_key hkey.1 hkey.2).1 h1, by
+        rw [hkey.1]; exact othersOf_lend hbt hcur⟩) $$ Hw
 
 end iris
 
@@ -151,13 +183,14 @@ def walBrokenP (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (o :
     walOutFrag (W := W) o)
 
 /-- **What `Repair` gets from the update**: with no effect, what it held; after the create of `bt`
-(the file `i`, logged at `x` by a call begun at `s0`), its quarter of the claim at the new history. -/
+(the file `i`, logged at `x` by a call begun at `s0`), its quarter of the claim at the new history and
+`bt` lent (`lendKey`: the new file is the program's until it gives it back, `walOthers_unlend`). -/
 def walBrokenQ (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (o : WalOut)
     (bt : GoString) : Option (Nat × Nat × Ino) → IProp GF
   | none => walBrokenP (W := W) dir j X hj o
   | some (x, s0, i) => iprop(walDirKey (W := W) dir j X ∗
       osNames j (.except X) (DFrac.own qQuarter) (hj.log x (crEnt j bt i s0) (<[bt := .file i]> hj.cur)) ∗
-      walOutFrag (W := W) o)
+      walOutFrag (W := W) (o.addClaim (lendKey j bt)))
 
 /-- **`Repair`'s update for `os.OpenFile.specCreateTruncSncN`** (see the file header): the name `bt`
 a `.wal.broken` name, the claim out (`hoD`). -/
@@ -273,10 +306,21 @@ theorem walBroken_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       have hcl : (j, NameSet.except X, hj1) ∈ l1 ++ (j, NameSet.except X, hj1) :: l2 := by simp
       obtain ⟨hok', hwc', hco', han', hnm', hdko', hat'⟩ := brokenCommit_pure (i := i)
         Hok Hco Hcro Han.1 Hnm Hdko HAt HK hcl hbt hcs.1 hcs.2 hsx
-      ihave Hpk := walParked_replOut Ls l1 l2 (j, NameSet.except X, hj1)
-        (j, NameSet.except X, hj1.log x (crEnt j bt i s0) (<[bt := .file i]> hj1.cur)) F o
-        ⟨rfl, rfl⟩ hoD $$ Hpk Ho
-      icases Hpk with ⟨Hpk, Ho⟩
+      have hoth : ∀ c1 ∈ l1 ++ l2, WalDirClaimOf Ls c1 → c1.1 ≠ j := by
+        rintro c1 hc1 ⟨-, -, -, -, X1, hX1, hX1w⟩ hj
+        have hne : c1 ≠ (j, NameSet.except X, hj1) := by
+          rintro rfl
+          rcases List.mem_append.1 hc1 with h | h
+          · exact hn1 h
+          · exact hn2 h
+        refine hexcl c1 (List.mem_append.2 ((List.mem_append.1 hc1).imp id
+          (List.mem_cons_of_mem _))) hne hj go!".wal" walNameP_dotWal ?_
+        rw [hX1]; show go!".wal" ∉ X1; intro hm; have h := hX1w _ hm
+        rw [walNameP_dotWal] at h; cases h
+      imod walParked_lendNew Ls l1 l2 (j, NameSet.except X, hj1)
+        (j, NameSet.except X, hj1.log x (crEnt j bt i s0) (<[bt := .file i]> hj1.cur)) F o bt
+        ⟨rfl, rfl⟩ hoD hcs.1 (fun b hb => GMap.lookup_insert_ne _ _ (Ne.symm hb)) hoth $$ Hpk Ho
+        with ⟨Hpk, Ho⟩
       imod Hcl $$ [Hg Hl1 Hαn Hl2 Hlays Hcra Htl Hpk Hdk Hcp Hnms]
       · iexists s
         iexists Ls, replClaim (j, NameSet.except X, hj1)

@@ -139,6 +139,22 @@ theorem parked_cover (Ls : GMap GoString WalLay) (D : List (Ino × NameSet)) (jr
   rw [← hf]
   exact (bigSepL_filter_emp _ _ hg cl').2
 
+/-- The others after a covering change of the area claims (no area claim is a WAL directory's). -/
+theorem others_cover (Ls : GMap GoString WalLay) (D : List (Ino × NameSet)) (jr : Ino)
+    (cl cl' : List Claim) (hA : ∀ c : Claim, c.1 = jr → ¬ WalDirClaimOf Ls c)
+    (hf : cl'.filter (fun c => decide (c.1 ≠ jr)) = cl.filter (fun c => decide (c.1 ≠ jr))) :
+    walOthersL (L := L) Ls D cl ⊢ walOthersL (L := L) Ls D cl' := by
+  classical
+  unfold walOthersL
+  have hg : ∀ c : Claim, decide (c.1 ≠ jr) = false →
+      (if WalDirClaimOf Ls c then walOthers (L := L) D c.1 c.2.2.cur else emp) = iprop(emp) := by
+    intro c hc
+    have : c.1 = jr := by simpa using hc
+    rw [if_neg (hA c this)]
+  refine (bigSepL_filter_emp _ _ hg cl).1.trans ?_
+  rw [← hf]
+  exact (bigSepL_filter_emp _ _ hg cl').2
+
 open Classical in
 /-- The claims with one found once taken out. -/
 theorem osClaims_filter_once (c : Claim) (cl : List Claim) (dq : DFrac) (h : ClaimOnce c cl) :
@@ -245,12 +261,14 @@ theorem walParked_cover (Ls : GMap GoString WalLay) (jr : Ino) (cl cl' : List Cl
     (hf : cl'.filter (fun c => decide (c.1 ≠ jr)) = cl.filter (fun c => decide (c.1 ≠ jr))) :
     walParked (L := L) (W := W) Ls cl F ⊢ walParked (L := L) (W := W) Ls cl' F := by
   unfold walParked
-  iintro ⟨%bp, %o, Hpa, Hoa, %hOD, Hsegs, Hpc, Htp⟩
+  iintro ⟨%bp, %o, Hpa, Hoa, %hOD, Hsegs, Hpc, Htp, How⟩
   iexists bp, o
   iframe Hpa Hoa Hsegs Htp
   isplitr
   · ipureintro; exact hOD
-  iapply parked_cover Ls o.D jr cl cl' hA hf $$ Hpc
+  isplitl [Hpc]
+  · iapply parked_cover Ls o.D jr cl cl' hA hf $$ Hpc
+  · iapply others_cover Ls o.D jr cl cl' hA hf $$ How
 
 /-- **Merging the program's halves of two area claims** (see the file header): each holds a WAL
 name (`b1`, `b2`, the second not the first's), so each is the invariant's other half (`WalsCreateOk`,

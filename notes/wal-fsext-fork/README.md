@@ -15,3 +15,8 @@ On upamanyus/etcd, branch `goose-lean-walfs`, on the pin `0b50f0426`: apply with
 After the push: bump the etcd pin in `etc/goose.py` to the branch's head and the examples' go.mod/go.sum.
 Until then the part's WAL is translated from the local checkout (`etc/goose.py --project etcd --src
 etcd=<checkout>`), and `goose.py --check` of etcd fails on these branches.
+- `0005` (`0bc171ac1`, on `6dff53e17`; `wal-create22`, 2026-11-14): `Create` closes the
+  parent with `pdir.Close()` after a failed fsync, not `dirCloser()`, which overwrote `perr` with the
+  close's `nil` and made `Create` return `(nil, nil)` with no cleanup
+  (`nonissues/etcd-wal-create-parent-fsync-nil-nil.md`). No regression test (an fsync EIO on a directory
+  is not injectable in the package's tests).

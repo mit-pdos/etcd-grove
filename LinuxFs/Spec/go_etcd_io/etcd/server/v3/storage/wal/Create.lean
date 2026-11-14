@@ -36,7 +36,10 @@ variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.A
 its record's `Data`) in `dir = r/nm`, a WAL directory of the area `r` (the directory `jr`, durable).
 
 `nm` is a name (`NameOk`: no NUL byte, beyond `walNameOk`; the system calls on `dir` need it), the
-metadata shorter than `2^41` (the handle `walOpenWF` keeps that bound; ledger, 2026-11-14), and
+metadata shorter than `2^41` (the handle `walOpenWF` keeps that bound; ledger, 2026-11-14) and not empty
+(a handle's metadata slice is then non-nil whatever it is read back as: `cut` writes it as a record's
+present data; ledger 2026-11-14, "an empty metadata read back as `nil`"; the server's is a marshalled
+`etcdserverpb.Metadata`, never empty), and
 `dir` shorter than `2^59` (`filepath.Join`'s and `CreateDirAll`'s bounds, on `dir.tmp`'s paths). The
 client's marshaller encodes `Create`'s initial snapshot object as protobuf-go does (`WalMarshalCreateOk`,
 `CreateSnap.lean`: the fresh WAL's `Mr.snap0`; ledger, 2026-11-14).
@@ -79,7 +82,7 @@ abbrev wal.Create.spec (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
   ∀ (lg : Loc) (R : Roots) (jr : Ino) (r dir nm : GoString) (mp : GoSlice) (md : List w8) (qp : Qp)
     (Q : IProp GF),
   InArea r dir nm → NameOk nm → dir.length < 2 ^ 59 → cleanAbsPath r → mp ≠ slice.nil →
-  md.length < 2 ^ 41 → WalMarshalCreateOk Mr →
+  md.length < 2 ^ 41 → md ≠ [] → WalMarshalCreateOk Mr →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗
       mp ↦*□ md ∗ WalFs.walAreaOk walCodec Mr R jr r ∗ WalFs.dirDurable r ∗ osPathS R r (DFrac.own qp) jr ∗
       walAreaRes jr ∗ osCallPerm 1 ∗ WalFs.walUnlockedTok ∗

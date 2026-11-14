@@ -1522,6 +1522,11 @@ theorem wal.wp_Create
     _root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.wp_syncDir
     (_root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_renameWAL P Mr
     h_errors_AsLinkError h_wal_WAL_renameWALUnlock)
+    _root_.Perennial.EtcdGrove.walfs.filepath.wp_Dir
+    _root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.client.pkg.v3.fileutil.wp_OpenDir
+    _root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.client.pkg.v3.fileutil.wp_FsyncDirS
+    _root_.Perennial.time.wp_Now _root_.Perennial.time.wp_Since
+    _root_.Perennial.EtcdGrove.walfs.time.Duration.wp_Seconds
 
 theorem wal.wp_Exist
     (C : WalCodec) (Mr : WalMarshal) (h_errors_IsPathErrnoNotExist :
