@@ -48,6 +48,38 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
   and the risks R1-R5 (§7).
 - Decisions go in the worktree's `questions.md` (untracked).
 
+## S6 B2 DONE: `NewServer.specR` proved and linked (2026-11-14, CP3 approved by etcd-grove-81): a fresh agent starts here
+
+The restart constructor's spec is proved, with no `sorry` (`wp_NewServerR` in the server's `Link.lean`). It is
+on `lean` (the hash is in the STATUS entry of 2026-11-14 and in 81's records). CP3 approved:
+- `bootOk`'s `Hsnone` text (the first-start instance);
+- raft's interface diff and `MemStorNamesRec`'s new name;
+- the gate baselines (mode lit-mode etcdserver 156, bounds stock etcdserver 33).
+
+**Next, in order:**
+1. **S5's leftovers** (`/shared/tmp/restart-s56/plan.md` §1 and §4 B1-B3; `notes/restart-scope.md`, S5). HS1 and
+   `lateWBR` are done (CP2, Phase B). What is left:
+   - S5's call sites (`E/AuthSrv.lean`'s `authSrvTP_off`, an `Or.inl`);
+   - widening `authStoreKit` itself to the auth bucket `∅ ∨ authBoot`, so that `authStoreKitR`/`authStoreKitR_off`
+     (NewServerRFacts.lean, copies) go;
+   - B3's callers and docstrings, and `notes/decisions.md` ("Restart S5/S6").
+   Check against plan.md §1 what is not yet on `lean` before starting.
+2. **S7 (R2s-A)**: follow the merged snapshot. `Hwpend` and the restart-only rows (`srvRestartRows`, row 4
+   `rnSnapTermAbove`) are removed (`notes/restart-scope.md`, "S7"; 6-9 weeks est.). It needs its own Scope for
+   81 first.
+3. **Proof cleanup (follow-up, with the proof-cleanup skill):** factor the shared tail of `NewServer.wp_proofG`
+   (`NewServer.lean`) and `NewServer.wp_proofRG` (`NewServerR.lean`) into lemmas. This is what brings the
+   bounds stock (etcdserver 33, raised by +3 for the restart proof's copies of `wp_proofG`'s replicate
+   stocks) back down, and the mode lit-mode count with it. Also: the private helpers copied into
+   `NewServerR.lean`.
+
+Pitfalls:
+- `NewServer.lean`'s compile peaks at 8.1 GiB, `NewServerR.lean`'s at 8.6 GiB (2026-11-14); keep the 64G cap
+  anyway (it once hit 80 GB).
+- No bare `iframe` with the replicate stocks in context.
+- `NewServer+R`'s link list entry is `NewServer`'s minus the four compaction-mode callees; keep them in sync.
+- The lock invariant's `Hsn_inv` is spatial now: a new MemoryStorage method lists it in its `Unlock` frame.
+
 ## B2: both sorries proved, wp_proofR linked; CP3 checks running (2026-11-14, fourth B2 agent): next agent starts here
 
 81 approved the raft-side generalization (questions.md; freeze package §11.8). Commit `f75195aa23` (WIP), then fixes.
