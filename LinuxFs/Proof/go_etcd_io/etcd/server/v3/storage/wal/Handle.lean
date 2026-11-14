@@ -34,6 +34,7 @@ their helpers (`saveEntry`, `saveState`, `saveCrc`, `sync`, `cut`).
 module
 
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateDefs
+public import LinuxFs.Proof.os.TcKnows
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Pipe
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.EncDefs
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Codec
@@ -236,13 +237,89 @@ theorem TailZ.pwPost_in {m : Fs.OsMeta} {off n k : Nat} (h : TailZ m) (hin : off
     show (m.announce (min off m.size) (off + n) (max m.size (off + n))).tc !! b = some c
     rw [Fs.announce_tc, if_neg (by simp [Fs.inRange]; omega)]; exact hc
 
+/-- **Nothing but zeros known past `hi`** (I3b; W6 log, twenty-first session, finding C, amended in the
+twenty-second): each candidate `m` knows of a byte at or past the largest size a crash may leave is a zero,
+stamped 0 or by a known resize (a truncate announces its zeros up to the end of the page past the old size,
+which may pass `hi`). True of a handle's tail (`OsMeta.synced`: nothing known but the zeros past `zf`; a
+write or a truncate raises `hi` past every candidate it adds but the truncate's zeros), not of a crash's
+tail (`ZeroToEnd`'s window: the disk's bytes past its size). With `|old| ≤ hi`, a zero stamped 0 past `hi`
+is `old`'s byte (`WinShape`): what the writer past the size needs of the bytes it grows over. -/
+def PastZ (m : Fs.OsMeta) : Prop :=
+  ∀ b c, m.hi ≤ b → m.pc b = some c → ∀ q ∈ c, q.1 = 0 ∧ (q.2 = 0 ∨ q.2 ∈ m.rz)
+
+/-- `PastZ` of `M` from `m`'s: `M`'s candidates past its `hi` are `m`'s or the zero. -/
+theorem PastZ.of_pc {m M : Fs.OsMeta} (h : PastZ m) (hhi : m.hi ≤ M.hi) (hrz : ∀ x ∈ m.rz, x ∈ M.rz)
+    (hpc : ∀ b c, M.hi ≤ b → M.pc b = some c → m.pc b = some c ∨ c = [(0, 0)]) : PastZ M := by
+  intro b c hb hc q hq
+  rcases hpc b c hb hc with h1 | rfl
+  · obtain ⟨h1, h2⟩ := h b c (by omega) h1 q hq
+    exact ⟨h1, h2.imp_right (hrz _)⟩
+  · simp only [List.mem_singleton] at hq; subst hq; exact ⟨rfl, .inl rfl⟩
+
+/-- The candidate list of the zeros known past `zf`. -/
+theorem pc_zf_cases {M : Fs.OsMeta} {b : Nat} {c : Fs.Cands} (ht : M.tc !! b = none)
+    (hc : M.pc b = some c) : c = [(0, 0)] := by
+  unfold Fs.OsMeta.pc at hc
+  rw [ht] at hc
+  cases hz : M.zf with
+  | none => rw [hz] at hc; cases hc
+  | some z =>
+    rw [hz] at hc
+    dsimp only at hc
+    split at hc
+    · exact (Option.some.inj hc).symm
+    · cases hc
+
+/-- **A change's first step keeps `PastZ`** (it forgets candidates and raises `hi`). -/
+theorem PastZ.announce {m : Fs.OsMeta} (h : PastZ m) (lo hi tg : Nat) : PastZ (m.announce lo hi tg) := by
+  refine h.of_pc (by simp only [Fs.announce_hi]; omega) (by simp) fun b c _ hc => ?_
+  cases ht : (m.announce lo hi tg).tc !! b with
+  | none => exact .inr (pc_zf_cases ht hc)
+  | some c1 =>
+    have ht' := ht
+    rw [Fs.announce_tc] at ht'
+    split at ht'
+    · cases ht'
+    · left
+      unfold Fs.OsMeta.pc at hc ⊢
+      rw [ht] at hc; rw [ht']; exact hc
+
+/-- **A write keeps `PastZ`** (`pwPost`: the announcement, its size and `cz`). -/
+theorem PastZ.pwPost {m : Fs.OsMeta} (h : PastZ m) (off n k : Nat) : PastZ (Fs.pwPost m off n k) :=
+  h.announce (min off m.size) (off + n) (max m.size (off + n))
+
+/-- **A sync gives `PastZ`** (nothing known but the zeros past `zf`). -/
+theorem PastZ.synced (m : Fs.OsMeta) : PastZ m.synced := by
+  intro b c _ hc q hq
+  rw [pc_zf_cases (M := m.synced) (GMap.lookup_empty b) hc] at hq
+  simp only [List.mem_singleton] at hq; subst hq; exact ⟨rfl, .inl rfl⟩
+
+/-- **A resize's outcome keeps `PastZ`**, its candidates past the old size from `m`'s or zeros of a
+known stamp (`TcFrom`, `os.ftDoneH`'s), from at most its `hi` on. -/
+theorem PastZ.of_tcFrom {m M : Fs.OsMeta} {s : Nat} (h : PastZ m) (hf : Fs.TcFrom m s M.tc M.rz)
+    (hs : s ≤ M.hi) (hhi : m.hi ≤ M.hi) : PastZ M := by
+  intro b c hb hc q hq
+  cases ht : M.tc !! b with
+  | none =>
+    rw [pc_zf_cases ht hc] at hq
+    simp only [List.mem_singleton] at hq; subst hq; exact ⟨rfl, .inl rfl⟩
+  | some c1 =>
+    have e : c = c1 := by
+      unfold Fs.OsMeta.pc at hc; rw [ht] at hc; exact (Option.some.inj hc).symm
+    subst e
+    rcases hf.2 b c (by omega) ht q hq with ⟨c0, h0, hq0⟩ | hz
+    · obtain ⟨h1, h2⟩ := h b c0 (by omega) h0 q hq0
+      exact ⟨h1, h2.imp_right (hf.1 _)⟩
+    · exact hz
+
 /-- **What the program knows of the tail's `OsMeta` `m` and bytes `bs`** (`walTailW`): all its bytes,
 no mappings, the candidates past its size (`TailZ`: zeros known past it, `MetaOk.zf`, a fact of the
 state, which the WAL invariant does not keep and a step's crash condition needs, `crashOkA_tail`'s
-`hzf`), and no resize window open on it (`SegExact`: a crash leaves it with its size; the invariant's
-static relation does not say so of the last segment, I3b). -/
+`hzf`), no resize window open on it (`SegExact`: a crash leaves it with its size; the invariant's
+static relation does not say so of the last segment, I3b), and nothing but zeros known past it (`PastZ`;
+W6 log, twenty-second session). -/
 def TailMeta (m : Fs.OsMeta) (bs : List Fs.ByteG) : Prop :=
-  bs.length = m.size ∧ m.maps = ∅ ∧ TailZ m ∧ m.lo = m.size ∧ m.hi = m.size
+  bs.length = m.size ∧ m.maps = ∅ ∧ TailZ m ∧ m.lo = m.size ∧ m.hi = m.size ∧ PastZ m
 
 /-- **`TailMeta` with a resize window open** (I3b, `wal-tc3`): from `cut`'s truncate of the tail at its
 write position until `cut`'s fdatasync (`os.File.Truncate.specWalTail`'s post, `WAL.sync.specCut`'s
@@ -250,10 +327,35 @@ pre). The truncate lands its size (`rsPost true m tg tg`: `lo = size = tg`, `hi`
 flush's writes past it raise the size; a crash may leave any size in `[lo, hi]` (`SegExact` fails).
 Otherwise as `TailMeta`. -/
 def TailMetaW (m : Fs.OsMeta) (bs : List Fs.ByteG) : Prop :=
-  bs.length = m.size ∧ m.maps = ∅ ∧ TailZ m ∧ m.lo ≤ m.size ∧ m.size ≤ m.hi
+  bs.length = m.size ∧ m.maps = ∅ ∧ TailZ m ∧ m.lo ≤ m.size ∧ m.size ≤ m.hi ∧ PastZ m
 
 theorem TailMeta.win {m : Fs.OsMeta} {bs : List Fs.ByteG} (h : TailMeta m bs) : TailMetaW m bs :=
-  ⟨h.1, h.2.1, h.2.2.1, Nat.le_of_eq h.2.2.2.1, Nat.le_of_eq h.2.2.2.2.symm⟩
+  ⟨h.1, h.2.1, h.2.2.1, Nat.le_of_eq h.2.2.2.1, Nat.le_of_eq h.2.2.2.2.1.symm, h.2.2.2.2.2⟩
+
+theorem TailMeta.pastZ {m : Fs.OsMeta} {bs : List Fs.ByteG} (h : TailMeta m bs) : PastZ m :=
+  h.2.2.2.2.2
+
+theorem TailMetaW.pastZ {m : Fs.OsMeta} {bs : List Fs.ByteG} (h : TailMetaW m bs) : PastZ m :=
+  h.2.2.2.2.2
+
+/-- **No resize window open on the tail, or its least crash size at most the write position `wr`**
+(`walTailW`'s; I3b, W6 log, twenty-second session, option (A) of the twenty-first): true of a handle at
+rest (a window is opened by a truncate to `wr`, which sets `lo = wr`, or by a write past the size, whose
+completion ends at `wr ≥ lo`; a failed one loses the handle), not of the invariant (a write past the
+size from an exact tail keeps `lo` at the size until it completes). The truncate at `wr` needs it of a
+window (`os.truncSup`'s `P`, `walTail_truncSup`). -/
+def LoWr (m : Fs.OsMeta) (wr : Nat) : Prop := (m.lo = m.size ∧ m.hi = m.size) ∨ m.lo ≤ wr
+
+theorem LoWr.of_exact {m : Fs.OsMeta} {wr : Nat} (h1 : m.lo = m.size) (h2 : m.hi = m.size) :
+    LoWr m wr := .inl ⟨h1, h2⟩
+
+theorem TailMeta.loWr {m : Fs.OsMeta} {bs : List Fs.ByteG} (h : TailMeta m bs) (wr : Nat) : LoWr m wr :=
+  .inl ⟨h.2.2.2.1, h.2.2.2.2.1⟩
+
+theorem LoWr.mono {m : Fs.OsMeta} {wr wr' : Nat} (h : LoWr m wr) (hw : wr ≤ wr') : LoWr m wr' := by
+  rcases h with h | h
+  · exact .inl h
+  · exact .inr (Nat.le_trans h hw)
 
 theorem tailOk_prefix [GooseExts] {Mr : WalMarshal} {H : List (WalOpG WalEnt)} {md : List w8}
     {cuts : List Nat} {o0 sz : Nat} {xs ys : List w8} (h : xs <+: ys)
@@ -277,8 +379,9 @@ record `γ` in `dir`, and its half of the record: history `H`, metadata `md`, cu
 `o0 + |out|`, inode `i`, no write in flight; and what the program knows of the tail's `OsMeta`
 (`TailMeta`: all its bytes, no mappings, its zeros past the size), the size below `2^62` (the
 model's `Write` bound: whoever builds it, `Create` and `ReadAll`, knows the size, at most
-ext4's `s_maxbytes`) and the fd open. With `tm := TailMetaW`, the tail in a resize window
-(`cut`'s truncate until its fdatasync). -/
+ext4's `s_maxbytes`), the fd open, and no window open or its least crash size at most the write
+position (`LoWr`). With `tm := TailMetaW`, the tail in a resize window (`cut`'s truncate until its
+fdatasync). -/
 def walTailW (f : Loc) (fd : w64) (name : GoString) (dir : GoString) (γ : GName) (i : Ino)
     (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (o0 sz : Nat) (out : List w8)
     (tm : Fs.OsMeta → List Fs.ByteG → Prop := TailMeta) : IProp GF :=
@@ -287,7 +390,7 @@ def walTailW (f : Loc) (fd : w64) (name : GoString) (dir : GoString) (γ : GName
     os.ownOff f (W64 (o0 + out.length)) ∗ walTailKey (W := W) dir γ ∗
     ∃ (m : OsMeta) (bs : List ByteG),
     osMeta i (DFrac.own (1 : Qp).half) m ∗ osBytes i 0 (DFrac.own (1 : Qp).half) bs ∗
-    ⌜m.size = sz ∧ tm m bs ∧ sz < 2 ^ 62 ∧ 0 ≤ fd.toInt⌝ ∗
+    ⌜m.size = sz ∧ tm m bs ∧ sz < 2 ^ 62 ∧ 0 ≤ fd.toInt ∧ LoWr m (o0 + out.length)⌝ ∗
     ghostVar γ (1 : Qp).half ((H, md, cuts, o0 + out.length, i, none) : TailG))
 
 /-- **The pipeline `w.fp` of the WAL in `dir`** (`Pipe.lean`), the handle having taken at most `k`

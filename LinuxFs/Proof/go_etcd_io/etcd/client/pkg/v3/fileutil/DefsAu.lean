@@ -160,7 +160,7 @@ theorem ftDoneH_preGrownH (p : Ino) (m : OsMeta) (tg : Nat) (zs : List Cands) (Z
   · ipureintro
     exact ⟨rfl, rsPost_maps true m tg tg, by simp only [OsMeta.withTc_cz]; exact le_rsCz true m tg,
       growMeta_rsPost true m tg tg (Or.inr rfl) (Nat.le_max_right _ _),
-      PcKeep.of_tc (tr := true) rfl rfl htc, fun hz => OsMeta.zeroPg_rsPost_true (hZ hz) tg⟩
+      PcKeep.of_tc (tr := true) rfl rfl htc.1, fun hz => OsMeta.zeroPg_rsPost_true (hZ hz) tg⟩
   iapply (osZerosA_unfold p m.size _ _).2
   iexists zs
   iframe Hb
@@ -179,7 +179,7 @@ theorem ftUndoneH_preGrownH (p : Ino) (m : OsMeta) (tg : Nat) :
       announce_maps' m (min m.size tg) (rsHi true m.size tg) tg,
       Nat.le_of_eq (announce_cz' m (min m.size tg) (rsHi true m.size tg) tg).symm,
       growMeta_announce m (min m.size tg) (rsHi true m.size tg) tg,
-      PcKeep.of_tc (tr := true) (announce_size' m (min m.size tg) (rsHi true m.size tg) tg) rfl htc, False.elim⟩
+      PcKeep.of_tc (tr := true) (announce_size' m (min m.size tg) (rsHi true m.size tg) tg) rfl htc.1, False.elim⟩
   rw [Nat.sub_self]
   iapply osZerosA_nil
 

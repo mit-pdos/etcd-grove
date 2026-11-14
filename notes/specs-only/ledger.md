@@ -968,3 +968,37 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `os.RemoveAll.specDirS`), not the name's absence; restricting `specTmp`'s pre to an absent name would need
   `RemoveAll`'s success post to give absence (arguable since the extension's `ENOENT` decision, not made).
 - **Decision.** Made (the coordinator's, decided; internal, no client-visible change).
+
+## 2026-11-14: `os.truncSup` / `os.File.Truncate.specAu` (the part's, Lean-first) and `walTailW` -- the caller's property of the start state
+
+- **Spec.** `LinuxFs/Spec/os/File__TruncateAu.lean` (`os.truncSup`, `os.File.Truncate.specAu`); `walTailW`
+  (`LinuxFs/Proof/.../wal/Handle.lean`, the handle's tail, internal).
+- **Defect.** The truncate at the tail's write position (`cut`'s, `os.File.Truncate.specWalTail`, whose pre is a tail
+  that may be in a window) needs `lo ≤ wr` of a window for its first step's crash condition (`crashOkA_rzStart`):
+  the crashes of size in `[wr, lo)` are new. The invariant kept it (`WalAbsD.winLo`), but it is false of a write past
+  the size from an exact tail (W6 log, twentieth session, finding 1), so the writer past the size could not be
+  proved. The supply (`os.truncSup`) quantifies over every state and could not be told the handle's fact.
+- **Evidence.** W6 log, twentieth and twenty-first sessions (findings 1 and B); option (A).
+- **Change (made, `wal-save22`).** `os.truncSup K p tg P` (`P` defaults to `True`) tells the supply `m0.lo ≤ tg ∨ P
+  m0` of each attempt's state; `specAu` takes `P` and `P m` of the state it starts from (every later attempt starts
+  from a state an attempt announced or landed, `lo ≤ tg`: `os.announce_lo_le`, `os.rsPost_lo_le`). The four fileutil
+  AU specs keep the default (their proofs pass `fun _ => True`). `walTailW`'s pure facts gain `LoWr m (o0 + |out|)`
+  (no window open, or `lo ≤` the write position); `walTail_truncSup` takes `P := LoWr · wr`. The invariant's
+  window branch (`WinLast`) has `WinHead` in place of `lo ≤ wr` (internal).
+- **Decision.** Made (the coordinator's option (A), decided; internal, no client-visible change).
+
+## 2026-11-14: `os.ftDoneH` / `os.ftUndoneH` (the part's, Lean-first) -- the candidates' values past the old size (`TcFrom`)
+
+- **Spec.** `LinuxFs/Spec/os/File__TruncateAu.lean` (`os.ftDoneH`, `os.ftUndoneH`, the caller's halves of a
+  truncate's outcome); `TcFrom` (`LinuxFs/Proof/os/TcKnows.lean`).
+- **Defect.** The caller learns only which bytes past the size have known candidates (`TcKnows`), not what they
+  are, so after `cut`'s truncate the handle cannot know that nothing but zeros is known past `hi` (`PastZ`, W6
+  log, twenty-second session), which the writer past the size needs of the bytes it grows over.
+- **Evidence.** `rsTail`: past the old size a truncate's outcome knows `m.pc b ++ [(0, n)]` or the announcement's
+  `tc` (a subset of `m`'s); the caller cannot see either through its half.
+- **Change (made, `wal-save22`).** Both posts' pure fact is `TcKnows … ∧ TcFrom m (max m.size tg) tc rz`: `rz`
+  keeps `m.rz`, and each candidate of `tc` from `max size tg` on is one `m.pc` knew or a zero stamped 0 or with a
+  stamp of `rz`. Proved for the WAL's supply (`TcFrom.rsTail`) and carried by the retry loop (`TcFrom.trans`);
+  consumers (`DefsAu`, `ZeroToEndAu`, `preallocExtendTruncAu`, `TruncWalTail`) take `.1`. `fallocDoneH` unchanged
+  (no user needs it yet).
+- **Decision.** Made (internal, weaker-or-equal knowledge given to the caller; no client-visible change).

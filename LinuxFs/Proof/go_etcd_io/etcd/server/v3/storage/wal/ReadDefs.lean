@@ -13,7 +13,7 @@ do not depend on their bodies.
   (`TryLockFile`'s `*LockedFile` in write mode, nil in read mode).
 * `walFileS f fd i g r`: the stream state of such a file read as the segment `g` (`DecFile.S`, what
   the `os.File`-as-`io.Reader` bridge takes, `ReadBridge.lean`): `r` a prefix of the bytes, the
-  file, the fd, the offset `|r|`, and the program's halves of `g`'s `OsMeta` and bytes. With them the bytes the decoder reads
+  file, the fd (non-negative: `Seek` needs it), the offset `|r|`, and the program's halves of `g`'s `OsMeta` and bytes. With them the bytes the decoder reads
   (`DecFile.bs`, the page cache's values of `g.bs`) cannot change during the read.
 * `walReadTie dir write s j fs lfs`: the decoder's files are the WAL's segments from the opened one on
   (at least one: `selectWALFiles` fails with `ErrFileNotFound` on none; in write mode the last one at the
@@ -82,7 +82,7 @@ def walOpenedFile (write : Bool) (dir b : GoString) (i : Ino) (fr : GoInterfaceO
 /-- See the file header. -/
 def walFileS (f : Loc) (fd : w64) (name : GoString) (fl : OsFd) (g : SegG) (r : List w8) :
     IProp GF :=
-  iprop(⌜r <+: g.bs.map Prod.fst⌝ ∗
+  iprop(⌜r <+: g.bs.map Prod.fst ∧ 0 ≤ fd.toInt⌝ ∗
     os.ownFile f fd name (DFrac.own 1) ∗ osFd fd (DFrac.own 1) fl ∗ os.ownOff f (W64 r.length) ∗
     osMeta g.ino (DFrac.own (1 : Qp).half) g.om ∗ osBytes g.ino 0 (DFrac.own (1 : Qp).half) g.bs)
 

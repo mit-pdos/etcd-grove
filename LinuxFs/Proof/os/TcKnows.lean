@@ -125,6 +125,61 @@ theorem TcKnows.of_rsPost {m : OsMeta} {tg : Nat} {tc0 tc : GMap Nat Cands} {rz0
     simp only [inRange, Bool.and_eq_false_iff, decide_eq_false_iff_not] at hin
     omega
 
+/-! ## `TcFrom`: where the candidates known past the size come from -/
+
+/-- **`tc`'s candidates of the bytes from `s` on are `m`'s, or zeros stamped 0 or with a stamp of
+`rz`, and `rz` keeps `m`'s stamps** (`os.ftDoneH`/`os.ftUndoneH`, at `s = max m.size tg`; W6 log,
+twenty-second session): what a caller holding only half of a resize's outcome knows of the values past
+the old size (the WAL's `PastZ` after `cut`'s truncate). -/
+def TcFrom (m : OsMeta) (s : Nat) (tc : GMap Nat Cands) (rz : List Nat) : Prop :=
+  (∀ x ∈ m.rz, x ∈ rz) ∧ ∀ b c, s ≤ b → tc !! b = some c → ∀ q ∈ c,
+    (∃ c0, m.pc b = some c0 ∧ q ∈ c0) ∨ (q.1 = 0 ∧ (q.2 = 0 ∨ q.2 ∈ rz))
+
+/-- **The supply's fact**: a truncate's `rsTail` (stamped `n`, with `n :: m.rz`). -/
+theorem TcFrom.rsTail (m : OsMeta) (tg sz' n : Nat) (xs : List ByteG) :
+    TcFrom m (max m.size tg) (Fs.rsTail true m tg sz' n xs) (n :: m.rz) := by
+  refine ⟨fun x hx => List.mem_cons_of_mem _ hx, fun b c hb hc q hq => ?_⟩
+  rw [rsTail_lookup] at hc
+  split at hc
+  · rw [if_neg (by omega)] at hc
+    obtain ⟨c0, h0, rfl⟩ := Option.map_eq_some_iff.1 hc
+    rcases List.mem_append.1 hq with hq | hq
+    · exact .inl ⟨c0, h0, hq⟩
+    · simp only [List.mem_singleton] at hq; subst hq
+      exact .inr ⟨rfl, .inr (List.mem_cons_self ..)⟩
+  · rw [announce_tc] at hc
+    split at hc
+    · cases hc
+    · refine .inl ⟨c, ?_, hq⟩
+      unfold OsMeta.pc; rw [hc]
+
+/-- **From a state another outcome left** (`M`, whose `tc`/`rz` `TcFrom m s`): a `TcFrom M s'` of a
+later outcome is one of `m`, `s' ≤ s`, `M`'s zeros known stamped 0. -/
+theorem TcFrom.trans {m M : OsMeta} {s s' : Nat} {tc : GMap Nat Cands} {rz : List Nat}
+    (h : TcFrom M s' tc rz) (h0 : TcFrom m s M.tc M.rz) (hs : s' ≤ s) : TcFrom m s tc rz := by
+  refine ⟨fun x hx => h.1 x (h0.1 x hx), fun b c hb hc q hq => ?_⟩
+  rcases h.2 b c (by omega) hc q hq with ⟨c0, hc0, hq0⟩ | hz
+  · unfold OsMeta.pc at hc0
+    cases hM : M.tc !! b with
+    | some c1 =>
+      rw [hM] at hc0; cases hc0
+      rcases h0.2 b _ hb hM q hq0 with h1 | ⟨h1, h2 | h2⟩
+      · exact .inl h1
+      · exact .inr ⟨h1, .inl h2⟩
+      · exact .inr ⟨h1, .inr (h.1 _ h2)⟩
+    | none =>
+      rw [hM] at hc0
+      cases hz : M.zf with
+      | none => rw [hz] at hc0; cases hc0
+      | some z =>
+        rw [hz] at hc0
+        dsimp only at hc0
+        split at hc0
+        · cases hc0; simp only [List.mem_singleton] at hq0; subst hq0
+          exact .inr ⟨rfl, .inl rfl⟩
+        · cases hc0
+  · exact .inr hz
+
 end Fs
 end Perennial
 

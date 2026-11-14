@@ -614,7 +614,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     rw [h1H, h1md, h1cuts] at this
     refine ⟨?_, hmb.2.1.1⟩
     rw [this, hmb.2.1.1, hmb.1, h1sz]
-  have hm0x : m.lo = m.size ∧ m.hi = m.size := ⟨hmb.2.1.2.2.2.1, hmb.2.1.2.2.2.2⟩
+  have hm0x : m.lo = m.size ∧ m.hi = m.size := ⟨hmb.2.1.2.2.2.1, hmb.2.1.2.2.2.2.1⟩
   -- the name
   have hlt : go.GoStringLt nm0 (walFileName (sq + 1) (max (uint.nat h.enti) (uint.nat h.snapi) + 1)) := by
     rw [hnm0]; exact walFileName_lt sq ix (sq + 1) _ (by omega) hsq
@@ -867,7 +867,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     iexists g.om, g.bs
     iframe HmG HbG
     isplitr
-    · ipureintro; exact ⟨hgmeta.1, htm, by omega, hfd3⟩
+    · ipureintro; exact ⟨hgmeta.1, htm, by omega, hfd3, htm.loWr _⟩
     iunfold tailVar at Hv
     iexact Hv
   isplitl [Hdk Hcw Hpd Hsid Hperm Hdfd Hnamed Hout Htf Hnf]
