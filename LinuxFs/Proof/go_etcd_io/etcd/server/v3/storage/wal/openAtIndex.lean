@@ -33,6 +33,7 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.OpenAtTail
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutName
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.selectWALFiles
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.NameClaims
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutSynced
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.SegSize
 
 @[expose] public section
@@ -101,12 +102,14 @@ variable [os.file.FieldAssumptions] [go_etcd_io.etcd.client.pkg.v3.fileutil.Assu
 packages and variables (`decEnv`); the readers' errors `IoE` hold of every `*PathError` (`os.File.Read`'s
 and `Stat`'s errors). Until 2026-11-14 `IoE` held of every pointer error, which made the hypothesis
 unsatisfiable (`isEofOk` needs `¬ IoE eof`, and `io.EOF` is a pointer error); `walDecEnv_eof_not` checks
-that the new form's pure part agrees with `io`'s initialization. **Not true as stated** (ledger
-2026-11-14, "the readers' errors and `errors.Is`"): `isEofOk` asks `errors.Is(e, io.EOF)` to answer
-`false` for every `*PathError` `e`, which Go does not do for a `&PathError{Err: io.EOF}`; a pure `IoE`
-cannot say which `*PathError`s the model made (their fields are heap), so the true statement needs the
-readers' errors carried with their evidence (an Iris error predicate through `io.readerStream` and the
-trust-boundary axiom `io.ReadFull.wp_proof`, pending the user's decision). -/
+that the new form's pure part agrees with `io`'s initialization. Since 2026-11-14 (`wal-readall17`; ledger,
+"the readers' errors and `errors.Is`", adopted provisionally) `isEofOk` asks `errors.Is(e, io.EOF)`'s
+answer only on `nil`, `io.EOF` and `io.ErrUnexpectedEOF` (the readers' errors carry their own, `decRdE`),
+so the hypothesis is true of Go. **Not provable from the packages' facts**: `errors.newVar` (Perennial's
+`io` fact, the part's `walpb` fact) keeps no trace of the allocation, so nothing says `io.EOF`,
+`io.ErrUnexpectedEOF` and `walpb.ErrCRCMismatch` are three different errors (`eof ≠ ueof`, and
+`errors.Is(ErrCRCMismatch, io.EOF)` false); the general fix is a Perennial change (`newVar` keeping the
+`errorString`'s field, `notes/perennial-changes.md`). -/
 abbrev WalDecEnvSupply : Prop :=
   ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal -∗
     ∃ (IoE : GoInterface → Prop) (eof ueof : GoInterface), decEnv IoE eof ueof ∗
@@ -161,6 +164,41 @@ theorem wal_encEnv :
   iunfold encEnv
   iframe #
 
+/-- **The claim's `.wal` names are the segments'**, in order (`walNamesOut_segs`'s argument, over
+`walNames`). -/
+theorem walNames_segs {hj : NamesH} {segs : List SegG}
+    (hsn : SegsNamed segs hj.cur)
+    (hnames : walInos hj.cur = segs.map (·.ino)) (hnd : (segs.map (·.ino)).Nodup)
+    (hsort : (segs.map (·.name)).Pairwise (fun a b => go.GoStringLt a b)) :
+    walNames hj.cur = segs.map (·.name) := by
+  have hnds : (segs.map (·.name)).Nodup :=
+    hsort.imp (fun {a b} h hab => by subst hab; exact go.goStringLt_irrefl _ h)
+  have hndk : (((GMap.toList hj.cur).map (·.1)).filter walNameP).Nodup :=
+    List.Nodup.sublist List.filter_sublist (GMap.toList_keys_nodup hj.cur)
+  have hperm : (((GMap.toList hj.cur).map (·.1)).filter walNameP).Perm (segs.map (·.name)) := by
+    refine (List.perm_ext_iff_of_nodup hndk hnds).2 fun b => ⟨fun hb => ?_, fun hb => ?_⟩
+    · obtain ⟨hbk, hbw⟩ := List.mem_filter.1 hb
+      obtain ⟨⟨b', e⟩, he, rfl⟩ := List.mem_map.1 hbk
+      have he' := (GMap.mem_toList _ _ _).1 he
+      obtain ⟨g, hg, rfl⟩ := walName_seg hsn hnames hnd hbw he'
+      exact List.mem_map.2 ⟨g, hg, rfl⟩
+    · obtain ⟨g, hg, rfl⟩ := List.mem_map.1 hb
+      obtain ⟨hgw, hge⟩ := hsn.1 g hg
+      exact List.mem_filter.2 ⟨List.mem_map.2 ⟨(g.name, _), (GMap.mem_toList _ _ _).2 hge, rfl⟩, hgw⟩
+  unfold walNames
+  rw [mergeSort_name_perm hperm]
+  exact List.mergeSort_of_pairwise (hsort.imp fun h => by simp [h])
+
+/-- `os`'s initialization, from the WAL package's. -/
+theorem wal_osInit :
+    ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal -∗
+      isPkgInit (PROP := IProp GF) pkg_id.os := by
+  iintro #Hpkg
+  ihave #Hdeps := isPkgInit_unfold_deps pkg_id.go_etcd_io.etcd.server.v3.storage.wal $$ Hpkg
+  isimp only [isPkgInitDeps] at Hdeps
+  icases Hdeps with ⟨-, -, -, -, -, -, -, -, -, -, -, -, #Hos, -⟩
+  iexact Hos
+
 /-- `walReadTie`'s pure part, from the decoder's files and the segments' names. -/
 theorem walReadTie_facts {dir : GoString} {write : Bool} {gs : List SegG} {fs : List (DecFile GF)}
     {fls lfs : List Loc} {hj : NamesH} (htie : WalDecTie dir write gs fs fls)
@@ -190,6 +228,7 @@ theorem walTmpsRes_split (j : Ino) :
 
 theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMarshal)
     (hEnv : WalDecEnvSupply (GF := GF))
+    (wp_IsEof : errors.IsPathErrnoEof.spec (GF := GF) (hG := hG))
     (wp_Clone : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.Clone.spec (GF := GF) (hG := hG))
     (wp_select : go_etcd_io.etcd.server.v3.storage.wal.selectWALFiles.spec (GF := GF) (hG := hG))
     (wp_selectAbs : go_etcd_io.etcd.server.v3.storage.wal.selectWALFiles.specAbsent (GF := GF) (hG := hG))
@@ -398,13 +437,22 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
     iunfold decEnv at Hde'
     icases Hde' with ⟨-, -, -, -, #Hbufio, #Heof, -, -, #Hcrc, -, -⟩
     ihave ⟨Hfiles, #Hlast⟩ := WalFs.walOpenedFiles_last write dir gs frs lfs _ gL hgL $$ Hfiles
-    ihave ⟨%fs, %fls, ⟨%htie, %hfr⟩, Hdf, Hlk⟩ := walDecFiles_mk wp_Stat wp_Size wp_FName IoE hIo eof
-      write dir gs frs lfs hfl hll hsz' $$ [Hfiles HS]
+    ihave #Hosp := wal_osInit $$ Hpkg
+    ihave ⟨#Heofa, %hIoEof⟩ := isEofOk_eof IoE eof ueof $$ [Hde]
+    · iunfold decEnv at Hde
+      icases Hde with ⟨-, -, -, -, -, -, -, #Hok, -⟩
+      iexact Hok
+    ihave ⟨%fs, %fls, ⟨%htie, %hfr⟩, Hdf, Hlk⟩ := walDecFiles_mk wp_Stat wp_Size wp_FName wp_IsEof IoE hIo eof
+      hIoEof write dir gs frs lfs hfl hll hsz' $$ [Hfiles HS]
     · iframe Hfiles
       isplitl []
       · iexact Hosi
       isplitl []
       · iexact Heof
+      isplitl []
+      · iexact Hosp
+      isplitl []
+      · iexact Heofa
       unfold segHalves segRes
       iexact HS
     subst hfr
@@ -425,6 +473,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
     have hndg : (gs.map (·.ino)).Nodup := by
       rw [← hgs, List.map_drop]; exact hnd.sublist (List.drop_sublist _ _)
     have htf := walReadTie_facts htie hll hnmg
+    have hgne : gs ≠ [] := List.ne_nil_of_length_pos (by omega)
+    have hlastw : write = true → ∀ g, gs.getLast? = some g → (walNames hj.cur).getLast? = some g.name := by
+      intro _ g hg
+      rw [walNames_segs hsn habs.names.1 hnd habs.names.2, List.getLast?_map]
+      rw [← hgs, List.getLast?_drop, if_neg (by omega)] at hg
+      rw [hg]; rfl
     cases write
     · -- read mode
       try wp_auto
@@ -447,7 +501,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       · iexists lg, sp'
         iframe
         iframe #
-      iexists dec, IoE, eof, ueof, fs, lsl, lfs, null, clo
+      iexists dec, IoE, eof, ueof, fs, lsl, lfs, null, clo, lay.j
       subst hdI
       iframe
       iframe #
@@ -456,7 +510,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       · iexists gs, fls
         iframe Ho
         isplitr
-        · ipureintro; exact ⟨hndg, hS, hselg⟩
+        · ipureintro; exact ⟨hgne, hndg, hS, hselg, by first | exact fun h => h.elim | exact fun _ => hlastw rfl | exact hlastw rfl | exact hlastw⟩
         isplitr
         · ipureintro; exact htf
         iexact Hlk
@@ -535,7 +589,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
         iframe
         iframe #
       rw [← hlfs]
-      iexists dec, IoE, eof, ueof, fs, lsl, lfs, fp, func.nil
+      iexists dec, IoE, eof, ueof, fs, lsl, lfs, fp, func.nil, lay.j
       subst hdI
       iframe
       iframe #
@@ -544,14 +598,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       · iexists gs, fls
         iframe Ho
         isplitr
-        · ipureintro; exact ⟨hndg, hS, hselg⟩
+        · ipureintro; exact ⟨hgne, hndg, hS, hselg, by first | exact fun h => h.elim | exact fun _ => hlastw rfl | exact hlastw rfl | exact hlastw⟩
         isplitr
         · ipureintro; exact htf
         rw [hlfs]
         iexact Hlk
       isplitr
       · ipureintro; rfl
-      iexists lay.j
       unfold walPipeH
       iexists γ, R, DFrac.own qd, W64 64000000, 0
       iframe

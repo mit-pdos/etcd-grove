@@ -122,7 +122,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
     wp_apply wp_load_slice_index sl (sint.Z (W64 0)) (fbr :: fbrs) DFrac.discard fbr (by rw [hz]; decide) $$ [Hsl] as -
     · iframe Hsl; ipureintro; rfl
     iunfold ownFbr at Hfbr
-    icases Hfbr with ⟨%b, %fi, %ferr, #Hf, #HF, Hb, %Hferr, Hfi⟩
+    icases Hfbr with ⟨%b, %fi, %ferr, #Hf, #HF, Hb, %Hferr, #Hfans, Hfi⟩
     wp_apply HErr fbr b fi ferr DFrac.discard $$ [Hf] as -
     · iexact Hf
     rcases ferr with _ | fii
@@ -131,7 +131,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
       iapply HΦ
       iapply decPost_mk
       isplitl []
-      · iapply decAns_of_eofOk IoE eof ueof _ (Or.inr (Or.inr (Or.inr (Hferr (by simp))))); iexact Heok
+      · iexact Hfans
       iunfold decPostB
       iright; ileft
       isplitl []
@@ -149,7 +149,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
         · iunfold ownFbr
           iexists b, fi, _
           iframe
-          iframe Hf HF
+          iframe Hf HF Hfans
           ipureintro; exact Hferr
         · iexact Hfbrs
       ipureintro
@@ -177,17 +177,21 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
     · iframe Hf HF
     ihave %HFp0 := decFile_pure IoE eof F $$ HF
     wp_apply HRI ⟨go.GoType.PointerType go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader.ty, #fbr⟩
-      _ _ (F.bs.take off) eof ueof $$ Hrs [Hb] as %l %err ⟨%ys, %Hys, Hb⟩
+      _ _ (F.bs.take off) eof ueof $$ Hrs [Hb] as %l %err ⟨%ys, #Hrf, %Hys2, Hb⟩
     · iframe
       iframe Heof Hueof
       ipureintro
       have := HFp0.2
       simp only [List.length_take]
       omega
+    ihave ⟨%Hys1, #HIs0⟩ := readFull_ans IoE eof ueof F.bs _ ys 8 err $$ [HeokA Hrf]
+    · iframe HeokA Hrf
+    have Hys := And.intro Hys1 Hys2
+    ihave #HIs := HIs0
+    iunfold isEofAns at HIs
     ihave ⟨%Hpre, Hb⟩ := ownReader_prefix IoE eof F b _ _ $$ [HF Hb]
     · iframe HF Hb
     rw [← he]
-    ihave #HIs := Heok $$ %err %(readFull_err_cases Hys.1)
     wp_apply HIs as %bIs %HbIs
     subst HbIs
     have hnil8 : err = GoInterface.nil → ys.length = 8 := by
@@ -311,7 +315,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
       iapply HΦ
       iapply decPost_mk
       isplitl []
-      · iapply decAns_of_eofOk IoE eof ueof _ (readFull_err_cases Hys.1); iexact HeokA
+      · iapply decAns_of_ans; iexact HIs0
       iunfold decPostB
       by_cases hI : IoE (GoInterface.ok ei)
       · iright; ileft
@@ -330,7 +334,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
           · iunfold ownFbr
             iexists b, fi, _
             iframe
-            iframe Hf HF Hfio
+            iframe Hf HF Hfio Hfans
             ipureintro; simp
           · iexact Hfbrs
         ipureintro
@@ -366,7 +370,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
           · iunfold ownFbr
             iexists b, fi, _
             iframe
-            iframe Hf HF Hfio
+            iframe Hf HF Hfio Hfans
             ipureintro; simp
           · iexact Hfbrs
         ipureintro
@@ -471,7 +475,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
     · ipureintro; word
     rw [hrp]
     wp_apply HRF ⟨go.GoType.PointerType go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader.ty, #fbr⟩
-      _ _ (F.bs.take off ++ ys) dsl _ eof ueof $$ Hrs [Hb Hdat] as %n2 %err2 ⟨%ys2, %Hys2, Hdat, Hb⟩
+      _ _ (F.bs.take off ++ ys) dsl _ eof ueof $$ Hrs [Hb Hdat] as %n2 %err2 ⟨%ys2, %Hys2, #Hrf2, Hdat, Hb⟩
     · iframe
       iframe Heof Hueof
       ipureintro
@@ -480,7 +484,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
       omega
     ihave ⟨%Hpre2, Hb⟩ := ownReader_prefix IoE eof F b _ _ $$ [HF Hb]
     · iframe HF Hb
-    have Hok2 := Hys2.2.2
+    ihave ⟨%Hok2, #HIs2a⟩ := readFull_ans IoE eof ueof F.bs _ ys2 _ err2 $$ [HeokA Hrf2]
+    · iframe HeokA Hrf2
     simp only [List.length_replicate] at Hok2
     by_cases hn2 : err2 ≠ GoInterface.nil
     · -- a failed read of the frame
@@ -489,7 +494,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
         | ok ei => exact ⟨ei, rfl⟩
         | nil => exact absurd rfl hn2
       wp_auto
-      ihave #HIs2 := Heok $$ %(GoInterface.ok ei2) %(readFull_err_cases Hok2)
+      ihave #HIs2 := HIs2a
+      iunfold isEofAns at HIs2
       wp_apply HIs2 as %b2 %Hb2
       subst Hb2
       by_cases hI : IoE (GoInterface.ok ei2)
@@ -498,7 +504,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
         iapply HΦ
         iapply decPost_mk
         isplitl []
-        · iapply decAns_of_eofOk IoE eof ueof _ (Or.inr (Or.inr (Or.inr hI))); iexact HeokA
+        · iapply decAns_of_ans; iexact HIs2a
         iapply decPost_ioe C d rp IoE eof ueof (F :: fs) (F :: fs) off off c c _ hI
         isplitl [Hr]
         · iapply blank_ownRecAny; iexact Hr
@@ -530,7 +536,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
         iapply decPost_mk
         isplitl []
         · iapply decAns_of_eofOk IoE eof ueof _
-            (Or.inr (Or.inr (Or.inl (by first | exact hu.symm | exact h1)))); iexact HeokA
+            (Or.inr (Or.inr (by first | exact hu.symm | exact h1))); iexact HeokA
         iapply decPost_stop C d rp IoE eof ueof F fs off c c _ .shortData hstep
           (by simp only [stopErr]; first | exact hu.symm | exact h1)
         isplitl [Hr]
@@ -618,7 +624,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
          structFieldRef go_etcd_io.etcd.server.v3.storage.wal.decoder go!"continueOnCrcError" d ↦ false ∗
          ownDecCrc h c' ∗ fbr ↦□ go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader.mk b (GoInterface.ok fii) GoInterface.nil ∗
          decFile IoE eof F ∗ sl ↦*□ (fbr :: fbrs) ∗
-         bufio.ownReader b F.fr F.S (decRdErr F.bs eof IoE) (F.bs.take off ++ ys ++ ys2) ∗
+         bufio.ownReader b F.fr F.S (decRdE F.bs eof IoE) (F.bs.take off ++ ys ++ ys2) ∗
          ownFbrs IoE eof fbrs fs (fs.map (fun _ => [])) ∗ fileInfoOk (GoInterface.ok fii) F.bs.length) ⊢
         ownDecoder d IoE eof (F :: fs) off c' live := by
       intro c' live hlive
@@ -659,7 +665,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
         iapply decPost_mk
         isplitl []
         · first
-            | (iapply decAns_of_eofOk IoE eof ueof _ (Or.inr (Or.inr (Or.inl hu.symm))); iexact HeokA)
+            | (iapply decAns_of_eofOk IoE eof ueof _ (Or.inr (Or.inr hu.symm)); iexact HeokA)
             | (iapply decAns_of_not; iexact Hn3)
         iapply decPost_fail C d rp IoE eof ueof F fs off c _ _ hfr
           (by simp only [stopErr]; first | exact hu.symm | exact ⟨by simp, hn3⟩)

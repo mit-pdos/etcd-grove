@@ -65,7 +65,7 @@ theorem os.File.Stat.wp_proof : os.File.Stat.spec (GF := GF) (hG := hG) := by
       · isplitl [] <;> iassumption
       isplitr
       rotate_left
-      · ipureintro; intro ii h; cases h
+      · ileft; ipureintro; rfl
       ileft
       iexists fs_ptr
       unfold os.ownFileStat
@@ -80,7 +80,9 @@ theorem os.File.Stat.wp_proof : os.File.Stat.spec (GF := GF) (hG := hG) := by
     · have he0' : ¬ e = W64 0 := he0
       rw [decide_eq_false he0']
       wp_auto
-      wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn as %pe #Hok
+      wp_apply os.wp_wrapErrno_errno _ inner name e $$ Hn as %perr #Hep
+      ihave #Hok := os.errnoPathErr_fmtErrorOk perr e he0' $$ Hep
+      ihave %Hne := os.errnoPathErr_ne perr e $$ Hep
       ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
       iapply HΦ
       iframe Hokn
@@ -89,9 +91,9 @@ theorem os.File.Stat.wp_proof : os.File.Stat.spec (GF := GF) (hG := hG) := by
       · isplitl [] <;> iassumption
       isplitr
       rotate_left
-      · ipureintro; intro ii h; cases h; exact ⟨pe, rfl⟩
+      · iright; iexists e; iframe Hep; ipureintro; exact he0'
       iright
-      ipureintro; exact ⟨(fun h => by cases h), rfl⟩
+      ipureintro; exact ⟨Hne, rfl⟩
 
 end proof
 

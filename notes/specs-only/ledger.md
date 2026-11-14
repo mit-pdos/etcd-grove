@@ -577,7 +577,25 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   small strengthening), and `isEofOk`'s I/O branch is provable from an `errors.Is` fact on `errnoPathErr`
   against an `*errorString` (as `errors.IsPathErrnoNotExist.spec`, `ExistCallees.lean`). Changing
   `io.ReadFull.wp_proof`'s statement is a trust-base change: **the user's decision**.
-- **Decision.** Defect 1 fixed (2026-11-14, `wal-readall16`). Defect 2 pending the user.
+- **Decision.** Defect 1 fixed (2026-11-14, `wal-readall16`). Defect 2: **adopted provisionally** by the
+  coordinator (2026-11-14, `wal-readall17`; a trust-boundary axiom's statement changed: **pending the
+  user's review**, listed in `notes/wal-fsext-plan.md` §10; kept off `lean` until reviewed).
+- **Change (made, `wal-readall17`).** `io.readerStream ri S E` takes `E : List w8 → GoInterface → IProp GF`
+  and returns `nil` or an error with `□ E (r ++ ys) err` (`io.errAt`); `io.ReadFull.wp_proof`'s statement
+  (`Spec/io/ReadFull.lean`) returns `io.readFullRes E eof ueof r0 ys m err`:
+  `⌜ys.length = m ∧ err = nil⌝ ∨ ∃ e, ⌜ys.length < m ∧ e ≠ nil ∧ (e = eof ∧ ys ≠ [] → err = ueof) ∧
+  (¬ (e = eof ∧ ys ≠ []) → err = e)⌝ ∗ □ E (r0 ++ ys) e` (the old pure `readFullOk` with the evidence
+  made Iris; `io.readFullRes_pure` gives the old form back). `bufio.ownReader`/`Reader.Read`,
+  `FileBufReader.Read`, `readInt64` pass it on. The decoder's readers return `decRdE bs eof IoE r e :=
+  ⌜decRdErr bs eof IoE r e⌝ ∗ isEofAns e eof` (each error with `errors.Is(e, io.EOF)`'s answer), its
+  `FileInfo` errors `decAns`; `isEofOk` asks the answer only on `nil`, `io.EOF`, `io.ErrUnexpectedEOF`.
+  The `os.File` bridge proves the answer on the model's `*PathError`s (`os.File.Read.wp_eof`'s and
+  `Stat.spec`'s errors now `os.errnoPathErr err e`, `e ≠ 0`) from the hypothesis
+  `errors.IsPathErrnoEof.spec` (`LinuxFs/Spec/errors/IsPathErrnoEof.lean`; true of Go, as
+  `IsPathErrnoNotExist.spec`: needs `(*PathError).Unwrap`, `Errno.Is` translated). `WalDecEnvSupply` is
+  then true of Go but still a hypothesis: `errors.newVar` keeps no trace of the allocation, so `io.EOF`,
+  `io.ErrUnexpectedEOF` and `walpb.ErrCRCMismatch` cannot be shown distinct from the packages' facts
+  (`notes/perennial-changes.md`, 2026-11-14).
 ## 2026-11-14: `wal.WAL.renameWAL.spec` (internal, the part's) -- the spine law cannot open the invariant
 
 - **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__renameWAL.lean`, `RenameWALOk`'s third

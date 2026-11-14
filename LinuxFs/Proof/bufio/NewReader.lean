@@ -63,9 +63,11 @@ theorem bufio.NewReader.wp_proof : bufio.NewReader.spec (GF := GF) (hG := hG) :=
   simp only []
   rw [hz]
   iframe HS
-  ipureintro
-  rw [List.length_replicate]
-  exact ⟨⟨trivial, by word, by word, by word, by omega, by omega⟩, fun h => absurd rfl h⟩
+  isplitl []
+  · ipureintro
+    rw [List.length_replicate]
+    exact ⟨trivial, by word, by word, by word, by omega, by omega⟩
+  iapply io.errAt_nil
 
 end proof
 

@@ -42,27 +42,29 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.readInt64.wp_proof
   have hun : ueof ≠ GoInterface.nil := by rw [hu]; simp [interface.mkOk]
   wp_auto
   wp_apply HRead (r := GoInterface.ok ri) (P := S r0)
-    (Q := fun ys _ err => iprop(⌜io.readFullOk E eof ueof r0 ys 8 err⌝ ∗ S (r0 ++ ys)))
-    $$ [] [HS n] as %err ⟨%ys, %nv, ⟨%Hok, HS⟩, Hn⟩
+    (Q := fun ys _ err => iprop(io.readFullRes E eof ueof r0 ys 8 err ∗ S (r0 ++ ys)))
+    $$ [] [HS n] as %err ⟨%ys, %nv, ⟨#Hok, HS⟩, Hn⟩
   · imodintro
     iintro %sl %xs
     imodintro
     iintro %Φ' ⟨Hsl, %Hxs, HS⟩ HΦ'
-    wp_apply HRF ri S E r0 sl xs eof ueof $$ Hrs [Hsl HS] as %n' %err' ⟨%ys, %Hys, Hsl, HS⟩
+    wp_apply HRF ri S E r0 sl xs eof ueof $$ Hrs [Hsl HS] as %n' %err' ⟨%ys, %Hys, #Hrf, Hsl, HS⟩
     · iframe
       isplitl []
       · iexact Heof
       isplitl []
       · iexact Hueof
       ipureintro; rw [Hxs]; exact Hr8
+    rw [Hxs] at Hys ⊢
+    ihave %Hys2 := (io.readFullRes_pure (P := fun _ _ => True) (fun _ _ => by iintro -; ipureintro; trivial)) $$ Hrf
     iapply HΦ'
     iexists ys
     iframe
+    iframe Hrf
     ipureintro
-    rw [Hxs] at Hys
-    refine ⟨⟨Hys.2.1, ?_⟩, Hys.2.2⟩
+    refine ⟨Hys.2, ?_⟩
     intro he
-    rcases Hys.2.2 with ⟨h, _⟩ | ⟨h, e, he', _, h1, h2⟩
+    rcases Hys2 with ⟨h, _⟩ | ⟨h, e, he', _, h1, h2⟩
     · exact h
     · exfalso
       by_cases hc : e = eof ∧ ys ≠ []
@@ -74,14 +76,16 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.readInt64.wp_proof
     iapply HΦ
     iexists ys
     iframe
+    iframe Hok
     ipureintro
-    exact ⟨Hok, fun _ => rfl⟩
+    exact fun _ => rfl
   · wp_auto
     iapply HΦ
     iexists ys
     iframe
+    iframe Hok
     ipureintro
-    exact ⟨Hok, fun h => absurd h He⟩
+    exact fun h => absurd h He
 
 end proof
 

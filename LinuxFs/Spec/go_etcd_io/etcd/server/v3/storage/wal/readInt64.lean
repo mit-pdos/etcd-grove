@@ -1,7 +1,7 @@
 /-
 `readInt64(r)` (decoder.go:230-234) of a reader read as a stream: `binary.Read` of an `int64`,
 little-endian, which is one `io.ReadFull` of 8 bytes: the bytes `ys` it delivered and its error
-(`io.readFullOk`), the value their little-endian word when it succeeded. Proved in
+(`io.readFullRes`, with the reader's error evidence), the value their little-endian word when it succeeded. Proved in
 `LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/readInt64.lean`.
 W3a of `notes/wal-fsext-plan.md`; Lean-first.
 -/
@@ -32,7 +32,7 @@ variable [bufio_sem : _root_.Perennial.bufio.Assumptions]
 
 /-- See the file header. -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.readInt64.spec : Prop :=
-  ∀ (ri : GoInterfaceOk) (S : List w8 → IProp GF) (E : List w8 → GoInterface → Prop)
+  ∀ (ri : GoInterfaceOk) (S : List w8 → IProp GF) (E : List w8 → GoInterface → IProp GF)
     (r0 : List w8) (eof ueof : GoInterface),
   ⊢ io.readerStream ri S E -∗
     {{ isPkgInit (PROP := IProp GF) pkg_id.io ∗ isPkgInit (PROP := IProp GF) pkg_id.encoding.binary ∗
@@ -40,8 +40,8 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.readInt64.spec : Prop :=
         globalAddr _root_.Perennial.io.ErrUnexpectedEOF ↦□ ueof ∗ ⌜r0.length + 8 < 2 ^ 62⌝ ∗ S r0 }}
       (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.readInt64)) (Val #(GoInterface.ok ri)))
     {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
-        ∃ ys : List w8, ⌜io.readFullOk E eof ueof r0 ys 8 err ∧
-          (err = GoInterface.nil → n = leToU64 ys)⌝ ∗ S (r0 ++ ys) }}
+        ∃ ys : List w8, io.readFullRes E eof ueof r0 ys 8 err ∗
+          ⌜err = GoInterface.nil → n = leToU64 ys⌝ ∗ S (r0 ++ ys) }}
 
 end spec
 
