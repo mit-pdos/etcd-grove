@@ -322,6 +322,145 @@ theorem segBytesX_rzSeg {g0 : SegG} {tg n : Nat} (hn : 0 < n) (htg : tg ≤ g0.o
       · exact .inr ⟨n, hn, hrz, rfl⟩
       · exact .inl rfl
 
+/-- **The crash condition across a truncate's first step at the write position** (`cut`'s), from an
+exact tail (`crashOkA_win`) or a window (`crashOkA_rz`: a window's `lo` is at most `wr`, `winLo`, and
+its `OsMeta` a state's, `OsMetaTcZ`): the layout `lay0`, its tail `g0`, gives the layout with the tail
+as the truncate's first step announced it (`rzSeg`, stamp `n > 0`). -/
+theorem crashOkA_rzStart {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur}
+    {lay0 : WalLay} {ents0 : Ents} {alt : Option WalLay} {cl : List Claim} {k : Nat}
+    {pre : List SegG} {g0 : SegG} {n : Nat}
+    (habs0 : WalAbsD C Mr d lay0 ents0) (hZ : TailZeros lay0) (hB : TailBound C Mr d lay0)
+    (hnd : (lay0.segs.map (·.ino)).Nodup) (hs0 : lay0.segs = pre ++ [g0])
+    (hzf : ∀ z, g0.om.zf = some z → g0.om.size ≤ z) (hn : 0 < n)
+    (hwin : ¬ SegExact g0 → g0.om.lo ≤ lay0.wr ∧ OsMetaTcZ g0.om)
+    (halt : ∀ la, alt = some la → ∀ g' ∈ la.segs, g'.ino ≠ g0.ino)
+    (hok : CrashOkA C Mr d lay0 alt cl k) :
+    CrashOkA C Mr d (tailLay lay0 pre (rzSeg g0 true lay0.wr n) lay0.wr) alt cl k := by
+  have hg0 : lay0.segs.getLast? = some g0 := by rw [hs0]; simp
+  have hg0m : g0 ∈ lay0.segs := List.mem_of_getLast? hg0
+  obtain ⟨hsz, -, hlo0, hhi0, -⟩ := habs0.metas g0 hg0m
+  obtain ⟨-, -, -, hwrb, -⟩ := habs0.lastWin g0 hg0
+  have hlen : g0.bs.length = g0.om.size := hsz.symm
+  have hwrs : lay0.wr ≤ g0.om.size := by omega
+  have hmin : min g0.om.size lay0.wr = lay0.wr := Nat.min_eq_right hwrs
+  obtain ⟨hXl, hXc⟩ := segBytesX_rzSeg (g0 := g0) (tg := lay0.wr) hn hwrs hlen (by omega) hzf
+  have hl := rzSeg_length g0 true lay0.wr n
+  by_cases hex : SegExact g0
+  · have hX0 : segBytesX g0 = g0.bs := segBytesX_of_hi (Nat.le_of_eq hex.2)
+    refine crashOkA_win hC habs0 hZ hB hnd hs0 rfl rfl rfl rfl rfl rfl rfl hex
+      (fun z hz => by have := hzf z hz; omega) (by simp [rzSeg]; omega) (by omega)
+      (by simp only [rzSeg, rzMeta_lo]; have := hex.1; omega)
+      (by simp only [rzSeg, rzMeta_hi]; have := hex.2; omega) (by rw [hXl, hX0]; exact Nat.le_refl _)
+      (fun b hb => ?_) (fun b hb => ?_) halt hok
+    · have hbl : b < (rzSeg g0 true lay0.wr n).bs.length := by omega
+      rw [segBytesX_getD_lt hbl, List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD,
+        rzSeg_getElem?_lt hlen (by omega)]
+    · have := hXc b (by rw [hX0]; exact hb)
+      rw [hX0] at this; exact this
+  · obtain ⟨hlo, htcz⟩ := hwin hex
+    refine crashOkA_rz hnd hs0 rfl rfl rfl rfl rfl rfl rfl (fun fo h => ?_) (Nat.le_of_eq hXl.symm)
+      hXc (fun s hs => by simp [rzSeg, rzMeta, hs]) hok
+    simp only [rzSeg, hmin] at h
+    exact fileCrashedR_rzMeta_win hlo hwrs (by omega) hlen hzf htcz h
+
+/-! ## The truncate's landing -/
+
+/-- The tail as a truncate to `tg` landed (`rsPostK true`: the owner's half, which knows the cut-off
+bytes' candidates and the stamp `n`), its bytes those below the target. -/
+def rzLand (g0 : SegG) (tg n : Nat) : SegG :=
+  { g0 with om := rsPostK true true g0.om tg tg n (g0.bs.drop tg), bs := g0.bs.take tg }
+
+theorem pcRunN_congr {m m' : OsMeta} : ∀ {b k : Nat},
+    (∀ j, b ≤ j → j < b + k → m'.pc j = m.pc j) → pcRunN m' b k = pcRunN m b k
+  | _, 0, _ => rfl
+  | b, k + 1, h => by
+    unfold pcRunN
+    rw [h b (Nat.le_refl _) (by omega),
+      pcRunN_congr (b := b + 1) (k := k) (fun j h1 h2 => h j (by omega) (by omega))]
+
+theorem pcRunN_succ_some {m : OsMeta} {b k : Nat} {c : Cands} (h : m.pc b = some c) :
+    pcRunN m b (k + 1) = ((0 : w8), c) :: pcRunN m (b + 1) k := by
+  simp [pcRunN, h]
+
+/-- `pcRunN` over a run of known bytes, then the rest. -/
+theorem pcRunN_known {m : OsMeta} {F : Nat → Cands} : ∀ {b k1 : Nat} (k2 : Nat),
+    (∀ i, i < k1 → m.pc (b + i) = some (F i)) →
+    pcRunN m b (k1 + k2) = (List.range k1).map (fun i => ((0 : w8), F i)) ++ pcRunN m (b + k1) k2
+  | b, 0, k2, _ => by simp
+  | b, k1 + 1, k2, h => by
+    rw [show k1 + 1 + k2 = (k1 + k2) + 1 by omega]
+    rw [pcRunN_succ_some (show m.pc b = some (F 0) by simpa using h 0 (by omega))]
+    have ih := pcRunN_known (m := m) (F := fun i => F (i + 1)) (b := b + 1) (k1 := k1) k2
+      (fun i hi => by rw [show b + 1 + i = b + (i + 1) by omega]; exact h (i + 1) (by omega))
+    rw [ih, List.range_succ_eq_map, List.map_cons, List.map_map]
+    simp only [List.cons_append, show b + 1 + k1 = b + (k1 + 1) by omega]
+    rfl
+
+/-- **What the landed truncate knows past the old size is what its first step knew.** -/
+theorem rsPostK_pc_ge {m : OsMeta} {tg n b : Nat} {xs : List ByteG} (htg : tg ≤ m.size)
+    (hb : m.size ≤ b) : (rsPostK true true m tg tg n xs).pc b = (rzMeta true m tg n).pc b := by
+  have htc : (rsPostK true true m tg tg n xs).tc !! b = (rzMeta true m tg n).tc !! b := by
+    show rsTail true m tg tg n xs !! b = rsTail true m tg m.size n [] !! b
+    rw [rsTail_lookup, rsTail_lookup]
+    by_cases h : min m.size tg ≤ b ∧ b < rsHi true m.size tg
+    · rw [if_pos (show min m.size tg ≤ b ∧ b < rsHi true m.size tg ∧ tg ≤ b from ⟨h.1, h.2, by omega⟩),
+        if_pos (show min m.size tg ≤ b ∧ b < rsHi true m.size tg ∧ m.size ≤ b from ⟨h.1, h.2, hb⟩),
+        if_neg (show ¬ b < m.size by omega), if_neg (show ¬ b < m.size by omega)]
+    · rw [if_neg (fun h' => h ⟨h'.1, h'.2.1⟩), if_neg (fun h' => h ⟨h'.1, h'.2.1⟩)]
+  unfold OsMeta.pc; rw [htc]; rfl
+
+/-- **What the landed truncate knows of a byte it cut off**: its candidates before, then the zero. -/
+theorem rsPostK_pc_mid {m : OsMeta} {tg n b : Nat} {xs : List ByteG} (htg : tg ≤ m.size)
+    (hb1 : tg ≤ b) (hb2 : b < m.size) :
+    (rsPostK true true m tg tg n xs).pc b = some ((xs.getD (b - tg) (0, [])).2 ++ [((0 : w8), n)]) := by
+  have hrs := le_rsHi true m.size tg
+  have htc : (rsPostK true true m tg tg n xs).tc !! b =
+      some ((xs.getD (b - tg) (0, [])).2 ++ [((0 : w8), n)]) := by
+    show rsTail true m tg tg n xs !! b = _
+    rw [rsTail_lookup, if_pos ⟨by omega, by omega, hb1⟩, if_pos hb2, Nat.min_eq_right htg]
+  unfold OsMeta.pc; rw [htc]
+
+/-- **The landing keeps the tail's candidates** (`crashOkA_same`'s): `segBytesX` of the landed tail
+(`rzLand`) has the candidates of `segBytesX` of the in-flight one (`rzSeg`), position by position. -/
+theorem segBytesX_rzLand {g0 : SegG} {tg n : Nat} (htg : tg ≤ g0.om.size)
+    (hlen : g0.bs.length = g0.om.size) (hhi : g0.om.size ≤ g0.om.hi) :
+    (segBytesX (rzLand g0 tg n)).map (·.2) = (segBytesX (rzSeg g0 true tg n)).map (·.2) := by
+  have hmin : min g0.om.size tg = tg := Nat.min_eq_right htg
+  have hl2 : (rzLand g0 tg n).bs.length = tg := by simp [rzLand]; omega
+  have hhi2 : (rzLand g0 tg n).om.hi = g0.om.hi := by
+    show max g0.om.hi tg = _; omega
+  have hhi1 : (rzSeg g0 true tg n).om.hi = g0.om.hi := by
+    show max g0.om.hi tg = _; omega
+  have hl1 := rzSeg_length g0 true tg n
+  have e2 : pcRun (rzLand g0 tg n).om (rzLand g0 tg n).bs.length =
+      (List.range (g0.om.size - tg)).map (fun i => ((0 : w8),
+        ((g0.bs.drop tg).getD i (0, [])).2 ++ [((0 : w8), n)])) ++
+      pcRunN (rzSeg g0 true tg n).om g0.om.size (g0.om.hi - g0.om.size) := by
+    unfold pcRun
+    rw [hl2, hhi2, show g0.om.hi - tg = (g0.om.size - tg) + (g0.om.hi - g0.om.size) by omega]
+    rw [pcRunN_known (m := (rzLand g0 tg n).om)
+      (F := fun i => ((g0.bs.drop tg).getD i (0, [])).2 ++ [((0 : w8), n)]) _
+      (fun i hi => by
+        show (rsPostK true true g0.om tg tg n (g0.bs.drop tg)).pc (tg + i) = _
+        rw [rsPostK_pc_mid htg (by omega) (by omega), show tg + i - tg = i by omega])]
+    rw [show tg + (g0.om.size - tg) = g0.om.size by omega]
+    congr 1
+    exact pcRunN_congr (fun j h1 _ => rsPostK_pc_ge htg h1)
+  have e1 : pcRun (rzSeg g0 true tg n).om (rzSeg g0 true tg n).bs.length =
+      pcRunN (rzSeg g0 true tg n).om g0.om.size (g0.om.hi - g0.om.size) := by
+    unfold pcRun; rw [hl1, hhi1, hlen]
+  unfold segBytesX
+  rw [e1, e2]
+  simp only [rzLand, rzSeg, hmin, List.map_append, List.append_assoc]
+  congr 1
+  congr 1
+  simp only [rsAnn, List.map_map]
+  apply List.ext_getElem (by simp; omega)
+  intro i h1 h2
+  simp only [List.getElem_map, List.getElem_range, Function.comp]
+  rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by simp at h1 ⊢; omega)]
+  rfl
+
 end winw
 
 end WalFs

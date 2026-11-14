@@ -215,9 +215,11 @@ structure WalAbsD (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (
   /-- The last segment: its stream up to `wr`, `old` past it, durable below `so`; while a resize
   window is open on it (`¬ SegExact g`, I3b: from a resize's first step to the fdatasync after it),
   only the bytes below `wr`, the segment no longer than `old` and at least `wr` long
-  (`TailWin`). -/
+  (`TailWin`), and the least size a crash may leave at most `wr` (`winLo`: a window opens at a
+  truncate to `wr`, `ZeroToEnd`'s or `cut`'s, or at a write past the size, which keeps `lo` at the
+  size the write found, below the write position; `wal-tc7`). -/
   last : ∀ g, lay.segs.getLast? = some g →
-    (SegExact g → TailLast C Mr d lay g) ∧ (¬ SegExact g → TailWin C Mr d lay g)
+    (SegExact g → TailLast C Mr d lay g) ∧ (¬ SegExact g → TailWin C Mr d lay g ∧ g.om.lo ≤ lay.wr)
   /-- The synced operations' frames, in the last segment, are synced. -/
   synced : d.m ≤ d.H.length ∧
     (recFrames C ((segRecs C Mr { d with H := d.H.take d.m } lay.cuts).getD lay.cuts.length [])).length
@@ -246,7 +248,13 @@ theorem WalAbsD.lastWin {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wal
     TailWin C Mr d lay g := by
   by_cases hx : SegExact g
   · exact ((h.last g hg).1 hx).win
-  · exact (h.last g hg).2 hx
+  · exact ((h.last g hg).2 hx).1
+
+/-- **A window's least crash size is at most the write position** (`WalAbsD.last`'s `winLo`). -/
+theorem WalAbsD.winLo {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
+    (h : WalAbsD C Mr d lay ents) (g : SegG) (hg : lay.segs.getLast? = some g) (hx : ¬ SegExact g) :
+    g.om.lo ≤ lay.wr :=
+  ((h.last g hg).2 hx).2
 
 /-- **Every segment's `OsMeta` half exact**, no resize window open on the last (the form of
 `metas` before I3b). -/
