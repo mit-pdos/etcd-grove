@@ -306,7 +306,7 @@ crash sizes from `lo` on must be the old window's; a later attempt's state has `
 `os.truncSup`). -/
 theorem walTail_truncSup (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (dir : GoString)
     (γ : GName) (ok : Option (Nat × Bool)) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (wr : Nat) (i : Ino)
-    (hok : ∀ k, ok ≠ some (k, true)) :
+    (hok : ∀ k p, ok ≠ some (k, p)) :
     ⊢ walInv (W := W) walCodec Mr R jr r -∗
       os.truncSup iprop(walTailKeyL (W := W) dir γ ok ∗ tailVar (W := W) γ ((H, md, cuts, wr, i, none) : TailG))
         i wr (fun m => LoWr m wr) := by
