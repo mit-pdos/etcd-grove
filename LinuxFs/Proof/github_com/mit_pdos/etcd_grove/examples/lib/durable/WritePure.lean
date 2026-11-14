@@ -17,6 +17,8 @@ module
 public import LinuxFs.Proof.github_com.mit_pdos.etcd_grove.examples.lib.durable.Defs
 public import LinuxFs.Spec.os.Rename
 public import GooseLang.Ext.Fs.TreeSharedCoh
+public import LinuxFs.Spec.os.File__WriteAt
+public import LinuxFs.Spec.os.File__Sync
 
 @[expose] public section
 
@@ -76,6 +78,81 @@ theorem DFile.join_len {f : DFile} (hf : f.Ok) : ([f.d, f.tb].map List.length).s
   have := hf.2.2.2.2.2
   simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil]
   omega
+
+/-- `O_RDWR|O_CREATE|O_TRUNC` with `O_CLOEXEC`: a valid read-write create-truncate open. -/
+theorem durOpenFlag_ok :
+    OpenFlagsOk ((W64 2 ||| W64 64 ||| W64 512) ||| W64 0x80000).toNat ∧
+      ((W64 2 ||| W64 64 ||| W64 512) ||| W64 0x80000).toNat / O_CREAT % 2 = 1 ∧
+      ((W64 2 ||| W64 64 ||| W64 512) ||| W64 0x80000).toNat / O_TRUNC % 2 = 1 := by
+  unfold OpenFlagsOk O_CREAT O_TRUNC O_CLOEXEC
+  decide
+
+theorem durOpenFlag_writable (i : Ino) :
+    (openFd i ((W64 2 ||| W64 64 ||| W64 512) ||| W64 0x80000)).writable = true := by
+  show decide (((W64 2 ||| W64 64 ||| W64 512) ||| W64 0x80000).toNat % 4 ≠ O_RDONLY) = true
+  decide
+
+/-! ## The temporary's file across the write and the sync -/
+
+/-- What `trFile` says of a file's `OsMeta` `m` and bytes `ys` (but the size): every byte held, not
+mapped, no sync without its bytes pending, a crash's lower bound at most the size, zeros known from at
+least the size. -/
+def TrOk (m : OsMeta) (ys : List ByteG) : Prop :=
+  ys.length = m.size ∧ m.maps = ∅ ∧ m.cut = none ∧ m.lo ≤ m.size ∧ m.ZfGe
+
+theorem pwSize_zero (n j : Nat) (hj : j ≤ n) : min n (pwSize 0 0 j) = pwSize 0 0 j ∧
+    pwSize 0 0 j = j := by
+  unfold pwSize
+  split <;> omega
+
+/-- The write of `data` (`j` bytes landed) at 0 into the empty file keeps `TrOk`. -/
+theorem TrOk.pw {m : OsMeta} (hm : TrOk m []) (hsz : m.size = 0) (data : List w8) (hd : 0 < data.length)
+    (j : Nat) (hj : j ≤ data.length) {ys : List ByteG} (hpw : os.PwOut m 0 data j [] ys) :
+    TrOk (pwPost m 0 data.length j) ys := by
+  obtain ⟨-, hmaps, hcut, hlo, ⟨z, hz, hzs⟩⟩ := hm
+  obtain ⟨hl, -⟩ := hpw
+  have hps := pwSize_zero data.length j hj
+  have hs : (pwPost m 0 data.length j).size = j := by
+    simp only [pwPost]; rw [hsz]; exact hps.2
+  refine ⟨?_, ?_, ?_, ?_, ?_⟩
+  · rw [hs, hl, hsz]; simp only [Nat.zero_add, Nat.sub_zero]; rw [hps.1, hps.2]
+  · simp only [pwPost, announce_maps]; exact hmaps
+  · simp only [pwPost, OsMeta.announce_cut]; exact hcut
+  · rw [hs]; simp only [pwPost, announce_lo]; omega
+  · refine ⟨if min 0 m.size < 0 + data.length then max z (0 + data.length) else z, ?_, ?_⟩
+    · simp only [pwPost, announce_zf, hz, Option.map_some]
+    · rw [hs]; rw [if_pos (by omega)]; omega
+
+/-- A write that landed whole holds `data`, and the file is its size. -/
+theorem pw_whole {m : OsMeta} (hsz : m.size = 0) (data : List w8) (hd : 0 < data.length)
+    {ys : List ByteG} (hpw : os.PwOut m 0 data data.length [] ys) :
+    ys.map Prod.fst = data ∧ (pwPost m 0 data.length data.length).size = data.length := by
+  obtain ⟨hl, hv⟩ := hpw
+  have hps := pwSize_zero data.length data.length (Nat.le_refl _)
+  simp only [Nat.zero_add, Nat.sub_zero] at hl
+  rw [hsz, hps.1, hps.2] at hl
+  refine ⟨List.ext_getElem (by simp [hl]) (fun i h1 h2 => ?_), ?_⟩
+  · have hi : i < ys.length := by simpa using h1
+    rw [List.getElem_map, (hv i hi).1]
+    unfold pwByte
+    rw [if_pos (by omega)]
+    simp only [Nat.zero_add, Nat.sub_zero]
+    rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem h2]; rfl
+  · simp only [pwPost]; rw [hsz]; exact hps.2
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+  [GoGlobalContext] [go.BasicIntoValInj] in
+/-- A successful sync keeps `TrOk`, with the bytes durable. -/
+theorem TrOk.synced {m : OsMeta} {ys : List ByteG} (h : TrOk m ys) :
+    TrOk m.synced (ys.map (fun x => durB x.1)) := by
+  obtain ⟨hl, hmaps, hcut, -, -⟩ := h
+  refine ⟨by simp [hl, OsMeta.synced], hmaps, hcut, by simp [OsMeta.synced], ?_⟩
+  exact ⟨m.syncZ, rfl, m.size_le_syncZ⟩
+
+/-- The file of `data`, written whole and synced: a candidate. -/
+theorem dcand_ok (i : Ino) {m : OsMeta} (data : List w8) (hsz : m.size = data.length)
+    (hd : data.length ≤ 0x40000000) : (DCand.mk i m.synced data).Ok :=
+  ⟨hsz, rfl, rfl, hd⟩
 
 /-! ## The physical states -/
 

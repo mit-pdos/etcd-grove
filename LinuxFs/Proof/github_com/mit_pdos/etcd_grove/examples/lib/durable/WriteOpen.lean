@@ -40,6 +40,44 @@ theorem DurFs.tmpRes_none (f : DFile) (ht : NamesH) (hx : ht.cur !! f.tb = none)
     tmpRes (GF := GF) f ht ⊣⊢ emp := by
   unfold tmpRes; rw [hx]; exact .rfl
 
+/-- The current inode's other half depends on the name's history and the candidates only. -/
+theorem DurFs.curRes_congr (f : DFile) (p p' : DurPhys) (hb : p'.hb = p.hb) (hc : p'.cands = p.cands) :
+    curRes (GF := GF) f p' ⊣⊢ curRes f p := by
+  obtain ⟨⟩ := p; obtain ⟨⟩ := p'
+  simp only at hb hc; subst hb hc; exact .rfl
+
+/-- What a `Write` owes depends on the name's history, the candidates and `alt` only. -/
+theorem DurFs.durWOwe_congr (γ : DurGS) (f : DFile) (data : GoString) (p p' : DurPhys) (Ψ : IProp GF)
+    (hb : p'.hb = p.hb) (hc : p'.cands = p.cands) (ha : p'.alt = p.alt) :
+    durWOwe γ f data p' Ψ ⊣⊢ durWOwe γ f data p Ψ := by
+  obtain ⟨⟩ := p; obtain ⟨⟩ := p'
+  simp only at hb hc ha; subst hb hc ha; exact .rfl
+
+/-- **The handle rebuilt** after a failed attempt that kept the temporary's file `i` (`TrOk`: as a
+`trFile` holds it). -/
+theorem DurFs.durHandle_tmp (γ : DurGS) (f : DFile) (R : Roots) (p : DurPhys) (ht1 : NamesH) (qd : Qp)
+    (i : Ino) (m : OsMeta) (ys : List ByteG) (hi : ht1.cur !! f.tb = some (.file i)) (htr : TrOk m ys) :
+    ⊢ durPhys (GF := GF) γ { p with ht := ht1 } -∗
+      osNames f.J (.only [f.b]) (DFrac.own (1 : Qp).half) p.hb -∗
+      osNames f.J (.only [f.tb]) (DFrac.own (1 : Qp).half) ht1 -∗ curRes f p -∗
+      osPathS R f.d (DFrac.own qd) f.J -∗ osMeta i (DFrac.own 1) m -∗ osBytes i 0 (DFrac.own 1) ys -∗
+      durHandleP γ f R { p with ht := ht1 } := by
+  iintro Hp Hnb Hnt Hcur Hpath Hm Hby
+  obtain ⟨hl, hmaps, hcut, hlo, hzf⟩ := htr
+  iunfold durHandleP
+  iexists qd
+  iframe Hp Hnb Hnt Hpath
+  isplitl [Hcur]
+  · iapply (curRes_congr f p { p with ht := ht1 } rfl rfl).2 $$ Hcur
+  iapply (tmpRes_file f ht1 i hi).2
+  iunfold trFile
+  iexists m, ys
+  iframe Hm Hby
+  isplitl []
+  · iapply mcellsAny_of_empty m.maps hmaps
+  ipureintro
+  exact ⟨hl, False.elim, hmaps, hcut, hlo, hzf, False.elim⟩
+
 /-- See the file header. -/
 theorem DurFs.durTmpOpen (wp_OpenCT : os.OpenFile.specCreateTruncSnc (GF := GF) (hG := hG))
     (γ : DurGS) (f : DFile) (R : Roots) (qc qd : Qp) (p : DurPhys) (s : DurSt) (flag : w64)
