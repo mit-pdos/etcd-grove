@@ -18,6 +18,34 @@ the worktree's untracked `questions.md` (decisions; never re-add it tracked).
   this stage's T5-c); 7f-0 partial (records only; the rest goes with 7f-6, Q7).
 - No Lean edited. Nothing built on this branch.
 
+## Handoff point (2026-11-14, sixth 7f-5 agent): 7f-3b v3rpc part done on the branch; checkpoint (not landed)
+
+Done (`35fdc186ad` and the commit after it on `k8s-7f5`; questions.md entries of 2026-11-14):
+- Steps 1-3, 5, 6 of the list below. `recvLoop` records `prevKV[id] = true` (`swsMu`, the Draft's
+  `swsMuP` under the old name, each entry carrying `pkIs γpk id true`); `sendLoop`'s `PrevKv` branch
+  (`IsCreateEvent` on `evRd`, the watchable store's `Range` at `ModRevision - 1` through
+  `shapes.law`'s `KV.Range.contract` and `v3rpc.range_au`, `r.KVs[0]` written into the copy's owned
+  field, the error/empty arms) inside the macro `pk_branch` (the code generator overflowed with one
+  macro); `watchReqOk` without `prev_kv = false`; `wrespRO` removed.
+- The server's guarantee for the client (7f-3c): `mvccOk` carries `evsSentOk r x m.evs` (`pkWritten`
+  per event: mvcc's event, or with `PrevKv := some kv` for a non-create event of a watcher with
+  `pkIs … true`, `kv` the key's record at `ModRevision - 1` of a certified log `L` with `L[1] = []`,
+  claimed at revisions ≥ 2). The created response's `ctrlWatcher` gives `pkIs r.γpk id c.prevKv`
+  (agreement: `pkIs_agree`; the client finds `γpk` through `auxOf_inj_pk`).
+- Client adapted minimally (`evRd` readers, `m.evs.length = x.evs.length`); finding
+  `nonissues/etcd-watch-prevkv-revision-one.md`.
+- **Step 4 moved to 7f-3c** (form decision): `rawRespOkP` swap is client-only.
+
+Next: the checkpoint (full build, tcb --check, gates, interfaces), report to 81, land on its go;
+then 7f-3c: `rawRespOkP` (prevKvLogOk from `evsSentOk`: for `prevKV = false`, `pkIs` agreement with the
+created response's `pkIs … c.prevKv`; for a written one, `stateAt` transfer between `L` and the
+client's log by `histLb` agreement, and `L[1] = []` to exclude revision 1), then `watchGRPCStream`
+carrying the pointer, `watcher.Watch.specP`, the users.
+
+Pitfalls: in a `local macro` a `$$ [$H]` is an antiquotation (write `$$ [H]` and `iframe H`); a
+`--goal` inside a macro body does not work (use a deliberate `done`); `rw … at H` on an Iris
+hypothesis fails (rewrite the goal, or `irevert`).
+
 ## Handoff point (2026-11-13, fifth 7f-5 agent, final): 7f-3b mvcc part LANDED (lean `570cea0725`); v3rpc part next
 
 Done (`3e90b6e741` on `k8s-7f5`; full build passes, 17487 jobs; tcb matches 870/4; gates all ok after
