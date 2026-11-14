@@ -7,12 +7,16 @@ implementation log", eighteenth session)
   then split into the claim off the pipeline's names (`.except walTmps`, for the commit, half to
   `walCreateP`, half to the handle) and the pipeline's names (`walTmpsRes J`, `renameWAL`'s pre), with
   the merged history's facts (`createJ_val`, `createJ_cur`).
+* `osNames_disj`: two claims held on different keys of one directory share no name (the shared
+  invariant's `NamesCoh.disj`); so `J ≠ jr` (`Create` holds `nm.tmp`'s claim of `jr` and `J`'s claim
+  off the pipeline's names, which holds `nm.tmp`).
 -/
 module
 
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateJ
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.TmpClaim
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateSeg
+public import GooseLang.Ext.Fs.TreeSharedRes
 
 @[expose] public section
 
@@ -111,6 +115,43 @@ theorem createJ_claims {E : CoPset} (R : Roots) (J : Ino) (w0 : GoString) (hJ : 
     iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro
   ipureintro
   exact ⟨hval, hcur⟩
+
+/-- **Two claims held on different keys of a directory share no name.** -/
+theorem osNames_disj {E : CoPset} (R : Roots) (j : Ino) (N N' : NameSet) (dq dq' : DFrac)
+    (h h' : NamesH) (b : GoString) (hNN : N ≠ N') (hb : N.Mem b) (hb' : N'.Mem b)
+    (hE : ↑osShN ⊆ E) :
+    ⊢ osSharedInv (GF := GF) R -∗ osNames j N dq h -∗ osNames j N' dq' h' ={E}=∗ False := by
+  have hN : N ≠ .only [] := by rintro rfl; simp [NameSet.Mem] at hb
+  have hN' : N' ≠ .only [] := by rintro rfl; simp [NameSet.Mem] at hb'
+  unfold osSharedInv
+  iintro #Hsi H H'
+  imod inv_acc hE $$ Hsi with ⟨Hi, Hclose⟩
+  icases Hi with >Hi
+  icases Hi with ⟨%Vs, %Γn, Hs, HAn, %hcoh, Halen, HAlog⟩
+  rw [osNames_of_ne dq h hN, osNames_of_ne dq' h' hN']
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAn H with %h1
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAn H' with %h2
+  exact absurd hb' (hcoh.2.disj j N N' h h' b h1 h2 hNN hb)
+
+/-- **`J` is not the area's directory**: `Create` holds `nm.tmp`'s claim of `jr` and a claim of `J`
+holding `nm.tmp` (every name but the pipeline's). -/
+theorem create_J_ne {E : CoPset} (R : Roots) (jr J : Ino) (tmp : GoString) (dq dq' : DFrac)
+    (h h' : NamesH) (htw : walNameP tmp = false) (htt : tmp ∉ walTmps) (hE : ↑osShN ⊆ E) :
+    ⊢ osSharedInv (GF := GF) R -∗ osNames jr (.only [tmp]) dq h -∗
+      osNames J ((NameSet.except []).diff walTmps) dq' h' ={E}=∗
+      ⌜J ≠ jr⌝ ∗ osNames jr (.only [tmp]) dq h ∗
+        osNames J ((NameSet.except []).diff walTmps) dq' h' := by
+  iintro #Hsi H H'
+  by_cases hJ : J = jr
+  · subst hJ
+    have hne : NameSet.only [tmp] ≠ (NameSet.except []).diff walTmps := by
+      simp [NameSet.diff]
+    imod osNames_disj R J _ _ dq dq' h h' tmp hne (by simp [NameSet.Mem])
+      ((NameSet.mem_diff _ _ _).2 ⟨by simp [NameSet.Mem], htt⟩) hE $$ Hsi H H' with Hf
+    iexfalso; iexact Hf
+  · imodintro
+    iframe H H'
+    ipureintro; exact hJ
 
 end proof
 
