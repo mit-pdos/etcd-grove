@@ -67,8 +67,12 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
   is the proof, and `NewServer.wp_proofR` the wrapper with `NewServer.wp_proof`'s callees less the four of
   the compaction mode. Entry `etcdserver_NewServer+R` in `etc/link-lean-first-server.txt`, and
   `Link.lean` regenerated (`wp_NewServerR`).
-- **Next:** the full build (`/shared/tmp/restart-s56/cp3/full.log`, `etc/timed-build.py`) and its peak
-  (`etc/build-report.py`), then tcb --check, gen-interface (raft's diff expected), gates, and STOP (CP3).
+- **Verified (commits `912b6d73ff`, `367565ac58`):** full build clean, 17482 jobs
+  (`/shared/tmp/restart-s56/cp3/full4.log`). Peak memory 8.6 GiB `NewServerR`, 8.1 GiB `NewServer`
+  (`cp3/report1.txt`, `report2.txt`). `tcb-report --check` matches (870 axioms, 4 sorries), and
+  `wp_NewServerR` reaches no `sorry`. `gen-interface` changes raft only (`cp3/raft-interface.diff`); the
+  other lists `--check` clean. Gates: `cp3/gates.log`.
+- **Next:** CP3 report to 81; land only on 81's go.
 
 ## B2: `restart_peerURLs` proved; `restart_snapOnceR` STOPPED for 81 (2026-11-14, fourth B2 agent): next agent starts here
 
