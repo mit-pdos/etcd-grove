@@ -48,6 +48,60 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
   and the risks R1-R5 (§7).
 - Decisions go in the worktree's `questions.md` (untracked).
 
+## B2 proof in progress (2026-11-14, the B2 proof agent): next agent starts here
+
+Branch `restart-s56` (commits after `b2015769d0`); **not landable** (two `sorry`s: tcb --check).
+Files: `E/NewServerR.lean` (the skeleton restored from `c081768592`, statement unchanged) and the new
+`E/NewServerRFacts.lean` (the proof's sub-facts; imported by `NewServerR`). Check loop:
+`/shared/tmp/restart-s56/lc.sh --fast --split -a Proof/go_etcd_io/etcd/server/v3/etcdserver/NewServerR.lean`
+(`etc/lean-check.py` under the 64G cap; the daemon stays in the scope). Each check of the current
+prefix: ~35s. The lean worker sat at 3 GB after the store section.
+
+**Done, checked (0 errors up to the `sorry`, `NewServerR.lean:556`):** `intro` (binder names as in
+`wp_proofG`, plus `ρo S σ i A D mb M`, `HrN` (restartNames), `Hfnc Hdwd`; no `ctxs γd Hcon Hauthcfg
+Hbcf`), `wp_start`, the image (`icases` of `srvDiskImageAt`: `Hvac HrS %Himr #HA %Himp ⟨%u,#Hmvi⟩
+%Hbl #Hconf %Hcsm Hwsi Hrauth Hfiles Hpath Hsdimg`; `Himg : imageRestAt ρo.rd.kv γ.boot i A D`,
+`Hist`, `HiA : uint.nat i = A.length`, `#HA0 : srvRLogLb ⟨γ,[],0⟩ A`), `wal.stopImage_elim`, the
+contract's antecedents (`restart_clusterVerLogOk`; clause (G) by `restart_peerURLs`, **sorried**),
+the contract call and its error branch, `iNamed Hb` (bootOkR's rows), `restart_idx` (`Hba Hac Hblc`),
+`wal.restartOk_facts` (`Hwrf`), `wal.restartOk_start` at `l₀ = srvLE ⟨γ,[],0⟩ (A.take σ.b)` (gives
+back `Hwsi`, the image's WAL slot), G's lines 486-514 verbatim, `raftNode_of_RestartNode` (cs from
+`Hrest`, `Hmb : mb = simple γ.cfg` by `srv_confAt_eq_simple`, `Hclu`/`Hrf` from `srvClusterOk`,
+`peersCtx pv []` from `peersNil`), its post as G's less `#Hsfresh`; G's lines 547-683 (perl
+`on`/`cmp` → `false`); `boot_storageR` at `kvModel ρ.rd.kv A`, `crevOf ρ.rd.kv A`, `u` (from the
+image's `mvccImage` through `restartNames_kvModel`/`restartNames_crevOf`); G's 699-721 (to
+`rw [Hbe0]`).
+
+**Next, in order:**
+1. The lessor (G 722-770, `h24`): `NewLessor.spec` at the image's `lease` bucket, as
+   `EtcdServer__applySnapshot.lean:119-160` does for `Recover`: `bkRestAtL` (`Himg.2.2`, at
+   `ρo.rd.kv`: move to `ρ.rd` by `HrN`'s `kvCongr`, c0/ch0/log0) → `imageLeasesAt_of_bkRestAtL d` →
+   `imageLeasesAt_recs` gives `recs`, the perm to `(appliedTable ρ.rd A).ids` (= `Lr`), and the TTL
+   bound for `reqOf := tableReq (appliedTable ρ.rd A)` (`tableReq_of_mem`). Keep `∃ ls, lessorAt γl 0
+   (recMap …)` from the post (G drops it and allocates `lessorAt_empty`; R uses NewLessor's for
+   specR's `srvInvAt`, so do not call `lessorAt_empty`). `hDl`/`HDr`/`restBootBk_of_fresh` (G 1096)
+   do not exist at a restart: the rest buckets are `imageRestAt`'s. The `GA` premise
+   `□ [∗list] id ∈ recs.map (·.1), GA id` with `GA := fun _ => True`. `Hrbo` after: `rbOwnIn … (r.insert
+   "lease" ((r.lookup "lease").getD ∅))` (no `hLe` rewrite).
+2. Then paste G from 771 on (the auth token provider: `hTP` at `false`, the `Hauthcfg` premise is
+   `fun h => absurd h (by decide)`) and continue by errors. Places known to differ (G line numbers,
+   `NewServer.lean`): the snapshot directory 1230-1261 (`Hsdimg`: `snapDirInv_ss_congr` with `Hssp`,
+   the counter `c ≤ i + 1`; no `snapDir_init`, no `Hsdo`/`Hsdir`); `Hsnone`/`srvBuildGap` 1613 (gone:
+   `rnSnapOnceR` at `|P|` for `srvBuiltRestartR`, P3); the apply rows at `[]` 2212-2359 (`Hlog0`,
+   `Hthr` at `γA.m0.1 = i`, `srvAppliedOwn`/`appliedLogAt` at `g₀ = i`: P3 says a new allocation at
+   `i`); `leasesLive` (G's tail, `iexists []`): the image's leases, items empty by `LogNoLease
+   (kvModel A)` (`SnapApplyWalk.lean:617-626`); `cases on`/`cases cmp` lines (5 of them: `cases
+   false` fails, delete); the compaction branch (`hCmpS`, `Hcon`; G 1780-1800, 1844-1847) is dead.
+   The post: `srvBuiltR` (= `srvBuiltRC .off`) directly, not `srvBuiltG`+`srvBuildGap`; HBr by P3
+   (`/shared/tmp/restart-s56/p3-rows.md`); `Hwpend`/`rnSnapTermAbove` from `Hrows`
+   (`srvRestartRows`, at `γrn`, needs `Hrnames`); no `leaseTTLRowR`.
+3. Open sub-facts (sorried or to state in `NewServerRFacts.lean`): `restart_peerURLs` (P5, ~250
+   lines; also gives `srvApRes`'s members at `A`), `u = false` (if the store's later uses need it),
+   the read names at `g₀ = i`, the authStoreKit widening (or a direct `Or.inr`).
+
+Forms so far (questions.md): the instance `bootstrapRestartContract_persistent` (local, in
+`NewServerR.lean`: `iNamed` needs it), `restartNames_crevOf` (proved), the file `NewServerRFacts.lean`.
+
 ## B2 contract rows done (2026-11-14, the B2 agent): next agent starts here (write `wp_proofR`)
 
 **Landed: `lean` 6b99efd348** (full build clean, 17479 jobs; tcb --check 870/4; gen-interface clean; gates all passed: `/shared/tmp/restart-s56/b2rows/`). 81 approved the restatement (questions.md; decisions.md "Restart S6 B2", "B2 contract rows"; freeze

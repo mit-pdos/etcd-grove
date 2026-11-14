@@ -42,6 +42,10 @@ instance bootstrapRestartContract_persistent [MemStorReg GF] (cfg : go_etcd_io.e
     Persistent (bootstrapRestartContract (GF := GF) cfg U γ id N dir) := by
   unfold bootstrapRestartContract; infer_instance
 
+set_option linter.unusedVariables false in
+set_option maxRecDepth 100000 in
+set_option pp.maxSteps 200000 in
+set_option maxHeartbeats 0 in
 /-- **`NewServer(cfg)` at a restart** (`NewServer.specR`), over `wp_proofG`'s callee specs at auth
 off and no compaction (the restart's scope). Skeleton: not yet proved. -/
 theorem NewServer.wp_proofR
@@ -372,6 +376,183 @@ theorem NewServer.wp_proofR
     exact ⟨⟨Hrcfg, by rw [Hrhb]; exact raftNode.bootCfg_heartbeat cfg Hrnc, HwalR, by omega, Hcfg0,
       Hcfgsz, Hba, Hac, Hblc, Hsw.1, walReadFacts_F3 σ Hwrf, Hcsv,
       restart_cs_bound cs γ.cfg Hcsv Hcfgsz⟩, Hγsz⟩
+  clear Hrcfg
+  (try wp_auto)
+  -- the configuration, field by field from here on
+  iStructNamed cfg
+  ihave %HcuNN := typedPointsto_not_null _ _ _ $$ ClientURLs
+  wp_apply h13 as %cus -
+  · ipureintro; exact HcuNN
+  (try wp_auto)
+  -- the request ids' generator, the notifiers
+  ihave #Hipkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.idutil $$ []
+  · iPkgInit
+  ihave #Hnpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.notify $$ []
+  · iPkgInit
+  wp_apply time.wp_Now as %now -
+  -- (D21e (A), stage M4) over the cluster's claims, at the member's prefix
+  -- (R2c) at the member's key: the claims' facts the server's family at its store's index
+  wp_apply (h14 ρ.ids _ now srvFloorFacts E₀.γs.slog (by rw [Hpfx]; congr 1; rw [← Hid]))
+    $$ [Hids] as %gen #Hgen0
+  · iframe Hidc Hidk; iframe Hids
+  ihave #Hgen : idGen ρ.ids gen (srvFloorFact E₀) $$ []
+  · rw [show srvFloorFact (GF := GF) E₀ = srvFloorFacts E₀.γs.slog from rfl]
+    iexact Hgen0
+  (try wp_auto)
+  wp_apply h15 as %fcn ⟨#Hfcn, Hfcnr⟩
+  wp_apply h15 as %cvn ⟨#Hcvn, Hcvnr⟩
+  (try wp_auto)
+  -- the server `s`, field by field
+  generalize hsrv : «$r0_ptr» = s
+  irename «$r0» => Hs
+  iStructNamed Hs
+  -- the metrics
+  ihave Hsi : (srvInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  iunfold srvInit at Hsi
+  icases Hsi with ⟨⟨-, -, -, -, -, ⟨%gvf, #Hgvf, %Hgvfl⟩, ⟨%gvi, #Hgvi, %Hgvil⟩, -⟩, -⟩
+  (try wp_auto)
+  wp_apply h16 $$ []
+  · iframe Hgvf Hfg; ipureintro; exact Hfgp
+  ihave #Hppkg : isPkgInit (PROP := IProp GF)
+      pkg_id.github_com.prometheus.client_golang.prometheus $$ []
+  · iPkgInit
+  (try wp_auto)
+  wp_apply h7 $$ [$nodeID] as %ids2 ⟨nodeID, %Hids2⟩
+  (try wp_auto)
+  wp_apply wp_map_make1 (K := GoString) (V := GoString) as %lbl Hlbl
+  wp_apply wp_mapInsert go.string lbl _ _ _ $$ [$Hlbl] as Hlbl
+  (try wp_auto)
+  wp_apply h17 gvi lbl [go!"server_id"] _ _ $$ [Hlbl] as %gsi ⟨%gi, %Hgi, #Hgset, -⟩
+  · iframe #; iframe Hlbl; ipureintro
+    exact ⟨Hgvil, prometheus.labelMapOk_one _ _ (utf8Valid_of_ascii _ (Hids2 ▸ types.idStr_ascii _))⟩
+  subst Hgi
+  (try wp_auto)
+  wp_apply Hgset
+  (try wp_auto)
+  -- (audit B4a) the cluster's `versionChanged` field, owned, then read-only
+  wp_apply h18 $$ [Hvcn] as Hvcn
+  · iframe Hrc; iframe Hvcn
+  ipersist Hvcn
+  (try wp_auto)
+  -- `lgMu`'s readers (`Logger()`)
+  ipersist lg
+  ipersist lgMu
+  imod sync.init_RWMutex (fun _ => iprop(True)) (E := ⊤) «$v2_ptr» $$ [] «$v2» with Hlgrs
+  · inext; itrivial
+  ihave Hlgrs := replicate_map _ (srvLgReader s) (srvLgMuAddr s ↦□ «$v2_ptr») _
+    (by iintro ⟨#H, Hm⟩; iunfold srvLgReader; iexists _; iframe Hm; iexact H) $$ [$lgMu $Hlgrs]
+  -- `srv.Cfg`, field by field
+  ihave ⟨Cfg, %HCfgnn⟩ := typedPointsto_not_null_dup _ _ _ $$ Cfg
+  iStructNamedSuffix Cfg "S"
+  ipersist ElectionTicksS
+  ipersist TickMsS
+  ipersist ServerFeatureGateS
+  have hMR : 2 ^ 29 + 2 ^ 28 + 100 ≤ Int.toNat sync.rwmutex.actualMaxReaders := by
+    rw [sync.rwmutex.actualMaxReaders_unseal]; decide
+  have hM1 : 1 ≤ Int.toNat sync.rwmutex.actualMaxReaders := by omega
+  -- (D21 M2; rafthttp stage 6d) the transport's `lgMu` reader slots, one per concurrent call into
+  -- the server's `Raft` (`Process`'s `Logger()`): `httpProcSlots` for the requests the member's raft
+  -- handler serves
+  have hHP : http.httpProcSlots = 2 ^ 29 := rfl
+  icases replicate_takeN _ http.httpProcSlots _ (by omega) $$ Hlgrs with ⟨HlgServe, Hlgrs⟩
+  -- (J8a-6, 2026-11-01, the user's decision; until then `2 ^ 23` slots for the peers' goroutines,
+  -- eight each, and `2 ^ 22` for the remotes', four each, which the snapshots' `AddPeer`s consumed)
+  -- `2 ^ 28` for the transport's pool (`raftPool`, a thread pool: `threadBound GF ≤ 2 ^ 28`), which
+  -- the peers' receiving goroutines borrow from with their thread tokens
+  icases replicate_takeN _ (2 ^ 28) _ (by omega) $$ Hlgrs with ⟨HlgPool, Hlgrs⟩
+  imod raftPool_init (srvLgReader s) ⊤ (2 ^ 28) (by omega) $$ HlgPool with #HrPool
+  icases replicate_take1 _ _ (by omega) $$ Hlgrs with ⟨Hlr1, Hlgrs⟩
+  wp_apply h19 $$ [Hlr1] as ⟨-, Hlr1⟩
+  · iframe lg; iframe Hlr1; iexact Hzlg
+  (try wp_auto)
+  ihave #Htmpkg : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
+  · iPkgInit
+  ihave #Hmapkg : isPkgInit (PROP := IProp GF) pkg_id.math $$ []
+  · iPkgInit
+  wp_apply h22 $$ [$minTTL] as %secs minTTL
+  wp_apply h23 as %ceil -
+  (try wp_auto)
+  -- `int64(math.Ceil(...))`: Perennial's float-to-integer conversion, an arbitrary `int64`
+  -- (`Float64Semantics.convert_float64_to_integer`; until 2026-11-10 the repository's own
+  -- `Float64ToInt64Semantics`, which contradicted it: premise fixes 1)
+  wp_apply wp_ArbitraryInt as %minTTLsecs -
+  (try wp_auto)
+  ihave #Hfg' := Hfg
+  iunfold isFeatureGate at Hfg'
+  icases Hfg' with ⟨%fgi, %Hfgi, #Hen⟩
+  rw [Hfgi]
+  (try wp_auto)
+  wp_apply Hen $$ [] as %ckpp -
+  · ipureintro; simp [serverFeatures]
+  (try wp_auto)
+  wp_apply h20 $$ [] as %reqto -
+  · iframe TickMsS ElectionTicksS
+  (try wp_auto)
+  -- the backend, from `backend.New`'s postcondition (`bootBackend_of_newPost`)
+  obtain ⟨Hbe0, HbP, Hci0, HhP, HPwf, HPlim, HlP, HalB, HauB, HauUB, HauRB⟩ := Hbe
+  ihave #Hstpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage $$ []
+  · iPkgInit
+  ihave #Hbkpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend $$ []
+  · iPkgInit
+  ihave #Hscpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema $$ []
+  · iPkgInit
+  ihave #Hcipkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex $$ []
+  · iPkgInit
+  ihave #Hlspkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease $$ []
+  · iPkgInit
+  -- (R6, 2026-11-07, the `lean` merge) the store's storage over mvcc's API (`BootStore.boot_storage`):
+  -- the backend's current-backend variable `γbe` at the store's instance (the API's backend, in
+  -- compaction mode: `{ d with cm := true }`, `d`'s names and parameters), half `bemu`'s, a quarter
+  -- the apply thread's, a quarter the write budget's; the budget, whose stock backs the storage's
+  -- write-back supply; the storage at the empty history; the client's rest
+  imod (dghostVar_alloc (GF := GF) (bkKey ({ d with cm := true } : mvcc.KBReal))) with ⟨%γbe, Hγbe⟩
+  icases (dghostVar_split (GF := GF) γbe (bkKey ({ d with cm := true } : mvcc.KBReal))
+      (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half)) $$ [Hγbe] with ⟨Hγbm, Hγbe⟩
+  · rw [DFrac.op_own, Qp.half_add_half]; iexact Hγbe
+  icases (dghostVar_split (GF := GF) γbe (bkKey ({ d with cm := true } : mvcc.KBReal))
+      (DFrac.own (1 : Qp).half.half) (DFrac.own (1 : Qp).half.half)) $$ [Hγbe] with ⟨HγbA, HγbW⟩
+  · rw [DFrac.op_own, Qp.half_add_half]; iexact Hγbe
+  -- (restart) the storage over the image (`boot_storageR`), at the restarted names' KV model of `A`
+  ihave #Hmvi' : mvcc.api.mvccImage D (kvModel ρ.rd.kv A) (crevOf ρ.rd.kv A) u $$ []
+  · rw [restartNames_kvModel HrN, restartNames_crevOf HrN]; iexact Hmvi
+  imod (boot_storageR hopen hrest Hbnd N HrbN ({ d with cm := true } : mvcc.KBReal)
+      (fun γB => batchLockInv γA (metaTM γB d.P)) D E₀ γbe HbP HlP rfl (kvModel ρ.rd.kv A)
+      (crevOf ρ.rd.kv A) u)
+    $$ [Hnew Hlate HγbW]
+    with ⟨%γp, #HWBp, #HWA0, HWreg, #Hstock, HstoF, #HB, #HSC, Hhook, Hrbo, HbkP, HrdA, Hopen, HrtA,
+      Hwb⟩
+  · iframe Hmvi'
+    isplitl [Hnew]
+    · iExactEq Hnew; rfl
+    isplitl [Hlate]
+    · iexact Hlate
+    isplitr
+    · imodintro; iExactEq Hsz; rfl
+    iexact HγbW
+  -- (the instance's names and parameters are `d`'s)
+  ihave #HB : backend.isBackend d.γB d.P (mvcc.api.mvccW d.gx) (batchLockInv γA (metaTM d.γB d.P))
+      d.be $$ [HB]
+  · iExactEq HB; rfl
+  ihave #HSC : backend.isStopChans d.γB d.P (mvcc.api.mvccW d.gx)
+      (batchLockInv γA (metaTM d.γB d.P)) d.be $$ [HSC]
+  · iExactEq HSC; rfl
+  ihave Hhook : backend.plHook d.γB func.nil $$ [Hhook]
+  · iExactEq Hhook; rfl
+  ihave Hrbo : backend.rbOwn d.γB (backend.rbData d.P D) $$ [Hrbo]
+  · iExactEq Hrbo; rfl
+  ihave HbkP : backend.bkRPool d.γB d.P d.be $$ [HbkP]
+  · iExactEq HbkP; rfl
+  ihave HrdA : backend.rdAuth d.γB d.P d.be $$ [HrdA]
+  · iExactEq HrdA; rfl
+  ihave Hopen : backend.bOpen d.γB (1 : Qp).half $$ [Hopen]
+  · iExactEq Hopen; rfl
+  ihave Hwb : ownToks d.γB.wb 5 $$ [Hwb]
+  · iExactEq Hwb; rfl
+  rw [show (5 : Nat) = 1 + 4 from rfl]
+  icases (ownToks_add 4 1 d.γB.wb).1 $$ Hwb with ⟨Hwl, Hwb⟩
+  -- `lease.NewLessor`
+  rw [Hbe0]
   sorry
 
 end proof

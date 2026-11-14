@@ -28,6 +28,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
+/-- The restarted names' compaction revision of a log is the stopped one's. -/
+theorem restartNames_crevOf {ρ ρ' : ReqNames} (h : restartNames ρ ρ') (A : List EntryModel) :
+    crevOf ρ'.rd.kv A = crevOf ρ.rd.kv A := by
+  obtain ⟨-, h2, h3, -⟩ := h.2.1
+  unfold crevOf; rw [h2, h3]
+
 /-- (Probe P5; the restart contract's clause (G)) **The members' peer URLs at a committed log are the
 boot log's**: no committed conf change adds a member (every `AddNode` names a present id) and the
 attribute updates keep peer URLs (`withAttrs`). OPEN: the phase-2 invariant of `RestConf.lean`
