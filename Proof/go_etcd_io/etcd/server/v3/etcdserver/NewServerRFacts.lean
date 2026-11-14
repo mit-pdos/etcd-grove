@@ -645,7 +645,6 @@ theorem restart_snapOnceR [MemStorReg GF] (wp_Snapshot : MemoryStorage.Snapshot.
   have Hsv0 := Hsv.2 _ rfl
   subst Hsv0
   subst Herr
-  simp only at Hnone
   imod memSnapNone_open γs (walSnapCS σ cs) $$ Hnone with #Hlb
   imodintro
   have hidx : (walSnapCS σ cs).Metadata'.Index' = W64 (A.take σ.b).length := by
@@ -659,9 +658,9 @@ theorem restart_snapOnceR [MemStorReg GF] (wp_Snapshot : MemoryStorage.Snapshot.
   · iapply epCsOk_of_csOptA $$ Hcs
   · iapply epCsAt_voters
     iunfold epCsVoters
-    iexists cs
+    iexists (walSnapCS σ cs).Metadata'.ConfState'
     isplitl []
-    · iapply csPts_of_csOptA pc cs Hnn.2 $$ Hcs
+    · iapply csPts_of_csOptA pc (walSnapCS σ cs).Metadata'.ConfState' Hnn.2 $$ Hcs
     ipureintro; exact hcs
   · imodintro; iapply memSnapLb_mono γs _ 0 (Nat.zero_le _) $$ Hlb
   · iexact Hinv0

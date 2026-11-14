@@ -48,6 +48,28 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
   and the risks R1-R5 (§7).
 - Decisions go in the worktree's `questions.md` (untracked).
 
+## B2: both sorries proved, wp_proofR linked; CP3 checks running (2026-11-14, fourth B2 agent): next agent starts here
+
+81 approved the raft-side generalization (questions.md; freeze package §11.8). Commit `f75195aa23` (WIP), then fixes.
+- **Raft (API):** `MemStorNames.s0`. The lock's `Hsn` is `∃ s0, ghostVar γs.s0 ½ s0 ∗ (⌜sv = s0⌝ ∨ pr ≥ 1)`,
+  now spatial: every method lists `Hsn_inv` in its `Unlock` frame. `memSnapNone γs sv₀`, `memSnapNone_open`
+  at `sv₀`'s index, `memSnapNone_open_empty`, `memSnapNone_eq`. `Snapshot.spec`'s token is
+  `t : Option SnapshotM`. `ApplySnapshot.spec` has four triples, `.2.2.1`/`.2.2.2` being the token variants
+  (`wp_ApplySnapshot_gen` takes `w`). `NewMemoryStorage`'s token is at `memSnapEmpty`.
+- **Users:** the kv/kvreconf/kvdurable examples (`none` for `false`, `memSnapNone_open_empty`). `InvBoot`'s
+  `bootOk` `Hsnone` and `rnSnapOnce_of_tok`. `InvRunRes.rnSnapOnce`. `bootstrappedWAL__MemoryStorage` (the
+  token variants, no `memSnapNone_open`). `BaseRestartStor.memStorRestarted` (`memSnapNone γs (walSnapCS σ cs)`).
+  `NodeStart` (`srvMem_restartStorage` threads the token to `F`; `NodeStartSpecR`'s post returns it).
+  `NewServerR` (`Hmsnone`).
+- **`restart_snapOnceR` proved** over the token (`csPts_of_csOptA` new). It is restated: premises
+  `memSnapNone γs (walSnapCS σ cs)` and `confStateIs cs …`, no certificate or log premises.
+- **Link:** `NewServer.specR` moved to `Spec/.../NewServerR.lean` (text unchanged). `NewServer.wp_proofRG`
+  is the proof, and `NewServer.wp_proofR` the wrapper with `NewServer.wp_proof`'s callees less the four of
+  the compaction mode. Entry `etcdserver_NewServer+R` in `etc/link-lean-first-server.txt`, and
+  `Link.lean` regenerated (`wp_NewServerR`).
+- **Next:** the full build (`/shared/tmp/restart-s56/cp3/full.log`, `etc/timed-build.py`) and its peak
+  (`etc/build-report.py`), then tcb --check, gen-interface (raft's diff expected), gates, and STOP (CP3).
+
 ## B2: `restart_peerURLs` proved; `restart_snapOnceR` STOPPED for 81 (2026-11-14, fourth B2 agent): next agent starts here
 
 Branch `restart-s56`; **not landable** (one `sorry`: `restart_snapOnceR`, `E/NewServerRFacts.lean`).
