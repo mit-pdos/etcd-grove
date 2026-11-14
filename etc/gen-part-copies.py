@@ -45,9 +45,12 @@ class Whole:
 
 
 class Extract:
-    def __init__(self, path, names, imports, opens, variables=('variable [GooseExts]',), options=()):
+    def __init__(self, path, names, imports, opens, variables=('variable [GooseExts]',), options=(),
+                 bare=()):
         self.path, self.names, self.imports = path, list(names), list(imports)
         self.opens, self.variables, self.options = list(opens), list(variables), list(options)
+        # names declared at the top level in the source (their own binders): after the section
+        self.bare = list(bare)
 
 
 STOR = 'Proof/go_etcd_io/etcd/server/v3/storage/'
@@ -68,6 +71,16 @@ COPIES = [
             ['walFresh', 'walSaveSnap', 'walSaveSnap_base_ge'],
             imports=['Proof.go_etcd_io.raft.v3.NodeApiVocab', 'Proof.go_etcd_io.raft.v3.Protocol.CommitWit'],
             opens=['Iris Iris.BI go_etcd_io.raft.v3']),
+    # an `Entry`'s wire content and size, and its encoder with its trusted fact (`entryEncC_ok`, a copy
+    # of the main tree's axiom): the raftpb instance's entry marshaller (W4c U4, `wal/RaftModel/`)
+    Extract('Proof/go_etcd_io/raft/v3/PbContent.lean',
+            ['EntryC', 'EntryC.model', 'optVarintSize', 'entrySize'],
+            imports=['Proof.go_etcd_io.raft.v3.PbModel', 'Proof.google_golang_org.protobuf.proto.UfWire'],
+            opens=['Iris Iris.BI go_etcd_io.raft.v3'], variables=()),
+    Extract('Proof/go_etcd_io/raft/v3/PbEntryType.lean',
+            ['entDecode', 'EntWireOk', 'entryEncC', 'entryEncC_ok'],
+            imports=['Proof.go_etcd_io.raft.v3.PbContent', 'Proof.google_golang_org.protobuf.proto.PbSchema'],
+            opens=['Iris Iris.BI go_etcd_io.raft.v3'], bare=['entryEncC', 'entryEncC_ok']),
     # the abstract disk (its histories, states and ghost state, which the W1 layer reuses)
     Whole('GooseLang/Ext/AbsDisk/Impl.lean'),
     Whole('GooseLang/Ext/AbsDisk/Specs.lean'),
@@ -287,8 +300,13 @@ def gen_extract(c):
     out += ['section extract'] + list(c.variables) + ['']
     # in the source's order
     for n in sorted(found, key=lambda n: order[n]):
-        out += found[n] + ['']
-    out += ['end extract', '', 'end EtcdGrove', 'end Perennial', '']
+        if n not in c.bare:
+            out += found[n] + ['']
+    out += ['end extract', '']
+    for n in sorted(found, key=lambda n: order[n]):
+        if n in c.bare:
+            out += found[n] + ['']
+    out += ['end EtcdGrove', 'end Perennial', '']
     kind = 'An extract (the declarations ' + ', '.join(f'`{n}`' for n in c.names) + \
         ', verbatim, in a frame of the part\'s imports),'
     return header(c, kind) + '\n'.join(out)
