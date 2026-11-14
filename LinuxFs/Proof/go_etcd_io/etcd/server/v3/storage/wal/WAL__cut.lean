@@ -1,7 +1,8 @@
 /-
 The proof of `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__cut.lean` (W2).
-**Proved** (no `sorry`), over the hypotheses `os.File.Truncate.specWalTail` and `WAL.sync.specCut` (steps
-1-2, to be proved on `wal-tc2` and with W6's `sync`) and the callees' specs. Steps 7-8: the directory fsync
+**Proved** (no `sorry`), over the hypothesis `WAL.sync.specCut` (step 2, with W6's `sync`) and the callees'
+specs; step 1's truncate is `os.File.Truncate.wp_specWalTail` (`TruncWalTail.lean`, `wal-tc10`) over
+`os.File.Truncate.specAu`. Steps 7-8: the directory fsync
 (`fileutil.Fsync.specDirS`) and `CutFin.lean`'s `walInv_cutSynced` at the next step (`wp_notCrashed_acc`);
 `Close`, `LockFile` over `openWALFiles.lean`'s `walOpen_triple` (`os.OpenFile.wp_fileS` of the renamed name),
 `Seek`, `w.locks[last]`, `Sum32`, `newFileEncoder`, the log line; the new handle at the new segment
@@ -64,6 +65,7 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutHdrStream
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutRen
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutAu
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutFin
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.TruncWalTail
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.openWALFiles
 public import LinuxFs.Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.FsyncS
 public import LinuxFs.Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.LockFile
@@ -106,7 +108,7 @@ set_option maxHeartbeats 1000000 in
 theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAssumptions]
     [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions] (P : WalPbIn GF) (Mr : WalMarshal)
     (wp_tail : go_etcd_io.etcd.server.v3.storage.wal.WAL.tail.spec (GF := GF) (hG := hG))
-    (wp_TruncTail : os.File.Truncate.specWalTail (W := W) Mr)
+    (wp_Truncate : os.File.Truncate.specAu (GF := GF) (hG := hG))
     (wp_syncCut : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specCut (W := W) P Mr)
     (_wp_sync : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.spec (W := W) P Mr)
     (_wp_saveState : go_etcd_io.etcd.server.v3.storage.wal.WAL.saveState.spec (W := W) P Mr)
@@ -164,7 +166,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   wp_method_call
   wp_call
   (try wp_auto)
-  wp_apply (wp_TruncTail R jr r f fd name dir h.γ h.ino h.H h.md h.cuts h.o0 h.sz h.out hoff)
+  wp_apply (os.File.Truncate.wp_specWalTail (W := W) Mr wp_Truncate R jr r f fd name dir h.γ h.ino h.H h.md
+    h.cuts h.o0 h.sz h.out hoff)
     $$ [Hf Hfdo Hoff Htk Hm Hbs Hv] as %terr Htr
   · iframe Harea
     iunfold walTailW
