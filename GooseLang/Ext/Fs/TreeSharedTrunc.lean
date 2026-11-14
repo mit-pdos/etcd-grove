@@ -254,7 +254,8 @@ theorem resize_start_world {st : OsState} {Γb Γm Γf Γt} {h : GMap Loc (NonAt
 
 /-- An fd added on an existing file, the heap unchanged. -/
 theorem osWorld_addFd0 {st : OsState} {Γb Γm Γf Γt} {h : GMap Loc (NonAtomic val)} {fd : w64}
-    {d : OsFd} (hfd : st.proc.fds !! fd = none) (hfile : ∃ f, st.file d.ino = some f) :
+    {d : OsFd} (hfd : st.proc.fds !! fd = none) (hfd0 : 0 ≤ fd.toInt)
+    (hfile : ∃ f, st.file d.ino = some f) :
     ⊢ osWorld (L := L) st Γb Γm Γf Γt h ==∗
       osWorld (L := L) (st.setProc { st.proc with fds := <[fd := d]> st.proc.fds }) Γb Γm
         (<[fd := d]> Γf) Γt h ∗ osFd (L := L) fd (DFrac.own 1) d := by
@@ -264,7 +265,7 @@ theorem osWorld_addFd0 {st : OsState} {Γb Γm Γf Γt} {h : GMap Loc (NonAtomic
   obtain ⟨hfr, hr⟩ := step_filesSame (h := h) Hwc.1 (filesSame_refl st) Hag
   ihave Hw : osWorld (L := L) st Γb Γm Γf Γt h $$ [HAb HAm HAf HAt Htok Hcells Hσ]
   · iapply (osWorld_unfold (L := L)).2; iframe; ipureintro; exact Hwc
-  iapply osWorld_addFd (filesSame_refl st) hfd hfile
+  iapply osWorld_addFd (filesSame_refl st) hfd hfd0 hfile
     (heapRendered_congr rfl rfl rfl rfl hr) (mapsFresh_same rfl) $$ Hw
 
 /-- The facts of a whole `OsMeta` against the world: its entry, and no change in flight on it. -/
@@ -442,7 +443,7 @@ theorem wp_osOpenTruncS (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
     subst hst''
     imod osWorld_trunc (st := st.metaEnd k) hf0 hlen
       (heapRendered_congr rfl rfl rfl rfl Hr) $$ Hw Hm Hbs Hc with ⟨⟨%Γb1, %Γm1, %Γf1, %Γt1, Hw⟩, Hrs⟩
-    imod osWorld_addFd0 (st := truncSt (st.metaEnd k) i f) (d := openFd i fl) hfdn
+    imod osWorld_addFd0 (st := truncSt (st.metaEnd k) i f) (d := openFd i fl) hfdn hfd0
       ⟨_, by simp [truncSt, OsState.stampFile, OsState.file, openFd]; rfl⟩ $$ Hw
       with ⟨Hw, Hfd⟩
     imodintro

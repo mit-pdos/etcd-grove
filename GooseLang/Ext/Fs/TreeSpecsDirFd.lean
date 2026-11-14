@@ -175,7 +175,7 @@ theorem wp_osFdKindDir (fd : w64) (dq : DFrac) (x : Ino × DirPh) (hE : ↑osN �
   icases Hn with ⟨%Hns, HAd, HAdf, HAc, Hrd, Hcr⟩
   obtain ⟨hw, hc⟩ := Hns
   unfold osDirFd
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAdf Hfd with %Hfl
+  icases gFdElem_lookup _ _ _ _ _ _ $$ HAdf Hfd with %Hfl
   obtain ⟨df, hdf⟩ : ∃ df, st.proc.dfds !! fd = some df := by
     have := hc.fds fd; rw [Hfl] at this
     cases h0 : st.proc.dfds !! fd with
@@ -298,7 +298,7 @@ theorem wp_osDirSync (fd : w64) (dq : DFrac) (x : Ino × DirPh) (hE : ↑osN ⊆
   icases Hn with ⟨%Hns, HAd, HAdf, HAc, Hrd, Hcr⟩
   obtain ⟨hw, hc⟩ := Hns
   unfold osDirFd
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAdf Hfd with %Hfl
+  icases gFdElem_lookup _ _ _ _ _ _ $$ HAdf Hfd with %Hfl
   obtain ⟨df, hdf⟩ : ∃ df, st.proc.dfds !! fd = some df := by
     have := hc.fds fd; rw [Hfl] at this
     cases h0 : st.proc.dfds !! fd with
@@ -362,7 +362,7 @@ theorem wp_osDirClose (fd : w64) (x : Ino × DirPh) (hE : ↑osN ⊆ E) (Φ : va
   icases Hn with ⟨%Hns, HAd, HAdf, HAc, Hrd, Hcr⟩
   obtain ⟨hw, hc⟩ := Hns
   unfold osDirFd
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAdf Hfd with %Hfl
+  icases gFdElem_lookup _ _ _ _ _ _ $$ HAdf Hfd with %Hfl
   obtain ⟨df, hdf⟩ : ∃ df, st.proc.dfds !! fd = some df := by
     have := hc.fds fd; rw [Hfl] at this
     cases h0 : st.proc.dfds !! fd with
@@ -389,7 +389,7 @@ theorem wp_osDirClose (fd : w64) (x : Ino × DirPh) (hE : ↑osN ⊆ E) (Φ : va
   icases (BigSepM.bigSepM_delete (M := GMap w64)
     (Φ := fun (_ : w64) (x : Ino × DirPh) => rdPart (gooseOsGS (L := L)) x) Hfl).1 $$ Hrd
     with ⟨Hx, Hrd⟩
-  imod gAuth_delete _ _ _ _ _ $$ HAdf Hfd with HAdf
+  imod gFdElem_delete _ _ _ _ _ $$ HAdf Hfd with HAdf
   imod worlds_close hs Hr Hfr rfl (fsTreeWf_delDfd hw fd) (treeCoh_delDfd hc fd)
     $$ [HAb HAm HAf HAt Htok Hcells Hσ] HAd HAdf HAc [Hrd] Hcr with ⟨Hw, Hn⟩
   · unfold osWorld; iframe; ipureintro; exact Hwc
@@ -440,7 +440,7 @@ theorem wp_osDirReadStep (fd : w64) (j : Ino) (rs : List GoString) (g : DirG) (q
   icases Hn with ⟨%Hns, HAd, HAdf, HAc, Hrd, Hcr⟩
   obtain ⟨hw, hc⟩ := Hns
   unfold osDirFd
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAdf Hfd with %Hfl
+  icases gFdElem_lookup _ _ _ _ _ _ $$ HAdf Hfd with %Hfl
   obtain ⟨df, hdf⟩ : ∃ df, st.proc.dfds !! fd = some df := by
     have := hc.fds fd; rw [Hfl] at this
     cases h0 : st.proc.dfds !! fd with
@@ -504,7 +504,7 @@ theorem wp_osDirReadStep (fd : w64) (j : Ino) (rs : List GoString) (g : DirG) (q
       ⊢ osWorld (L := L) st Γb Γm Γf Γt h -∗
         gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap (st.fs.roots, V)) -∗
         gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γdf Γdf -∗
-        gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γdf fd (DFrac.own 1)
+        gFdElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γdf fd (DFrac.own 1)
           (j, if fresh then DirPh.idle g q else .reading rs g q) -∗
         gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γc Γc -∗
         ([∗map] k ↦ v ∈ <[fd := (j, ph')]> Γdf, rdPart (gooseOsGS (L := L)) v) -∗
@@ -517,7 +517,7 @@ theorem wp_osDirReadStep (fd : w64) (j : Ino) (rs : List GoString) (g : DirG) (q
     have hc' := treeCoh_setDfd (fd := fd) (df' := { df with rd := rd' }) (x := (j, ph')) hc
       hino.symm hok hrd
     iintro Hw HAd HAdf Hfd HAc Hrd Hcr
-    imod gAuth_update _ _ _ _ _ (j, ph') $$ HAdf Hfd with ⟨HAdf, Hfd⟩
+    imod gFdElem_update _ _ _ _ _ (j, ph') $$ HAdf Hfd with ⟨HAdf, Hfd⟩
     imod worlds_close (filesSame_setDfd st fd _) Hr Hfr' rfl hw' hc' $$ Hw HAd HAdf HAc [Hrd] Hcr
       with ⟨Hw, Hn⟩
     · unfold rdRes; iexact Hrd

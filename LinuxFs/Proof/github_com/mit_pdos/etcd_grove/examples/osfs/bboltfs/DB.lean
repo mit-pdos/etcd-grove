@@ -348,10 +348,6 @@ theorem ownFile_fractional (f : Loc) (fd : w64) (p : GoString) :
         q1 q2).2
       iframe
 
-theorem osFd_fractional (fd : w64) (d : OsFd) :
-    Fractional (fun q : Qp => osFd (GF := GF) fd (DFrac.own q) d) where
-  fractional q1 q2 := by unfold osFd; exact gElem_split _ _ _ _ _ _
-
 theorem mapBody_fractional (γ : DBNames) (db f : Loc) (fd : w64) (p : GoString) (st : MapSt) :
     Fractional (mapBody (GF := GF) γ db f fd p st) := by
   unfold mapBody
