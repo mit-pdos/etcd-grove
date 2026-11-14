@@ -555,7 +555,11 @@ not started (`wal-readall14`; W3/W5 log, fourteenth session). The decoder's erro
 `ix < 2^64`, and the finding that `WalDecEnvSupply` is unsatisfiable). `WalDecEnvSupply` restated satisfiably (`IoE` the
 `*PathError`s; `walDecEnv_eof_not`), still not true of Go (`isEofOk` over a pure `IoE`: ledger 2026-11-14, pending the user's
 decision on `io.ReadFull`'s axiom); `WalReadState` restated satisfiably (the pinned names); the hypotheses' audit (`wal-readall16`;
-W3/W5 log, sixteenth session).
+W3/W5 log, sixteenth session). The readers' errors carry their `errors.Is` evidence through `io.readerStream` and the restated
+`io.ReadFull` axiom (adopted provisionally, pending the user's review), so `WalDecEnvSupply` is true of Go (unprovable only
+for `errors.newVar`'s lost allocation identity, a Perennial gap); new hypothesis `errors.IsPathErrnoEof.spec`; `walReadH`
+ties the pipeline's directory inode to the claim's and `walReadTie` records `gs ≠ []` (`wal-readall17`; W3/W5 log,
+seventeenth session).
 invariant conjunct is designed, not made (same log). Each registered WAL name has its own claim (`walNamesRes`, a framed conjunct; registration pending linked to the lock token, `walNamesFrag`), and the path law `walInv_dirPath` (a kept fraction of `osPathS R dir _ j` from `walDirKey`, with `walNamesFrag none`) is proved (`wal-path13`; W1 log, thirteenth session); `walAreaRes` holds every WAL name not split out (`walSplitFrag`), `Exist`/`openAtIndex`/`Create` read a registered name through its own claim, `openAtIndex` takes its path from `walInv_dirPath`, and `Create`'s post-commit split (`walInv_splitNew`) and registration (`walInv_register`) are proved, not yet used by `Create`'s body (`wal-path14`; W1 log, fourteenth session). Open: `renameWAL`'s path law, `Open`'s `WalDirPathLaw`, `WalsBounded`.
 `ix < 2^64`, and the finding that `WalDecEnvSupply` is unsatisfiable).
 invariant conjunct is designed, not made (same log). Each registered WAL name has its own claim (`walNamesRes`, a framed conjunct; registration pending linked to the lock token, `walNamesFrag`), and the path law `walInv_dirPath` (a kept fraction of `osPathS R dir _ j` from `walDirKey`, with `walNamesFrag none`) is proved (`wal-path13`; W1 log, thirteenth session); `walAreaRes` holds every WAL name not split out (`walSplitFrag`), `Exist`/`openAtIndex`/`Create` read a registered name through its own claim, `openAtIndex` takes its path from `walInv_dirPath`, and `Create`'s post-commit split (`walInv_splitNew`) and registration (`walInv_register`) are proved, not yet used by `Create`'s body (`wal-path14`; W1 log, fourteenth session). `WalsBounded` (metadata `< 2^41`, a framed conjunct; the segments' size read at a step, `wp_segs_size`) replaces `WalPinSized`, and `Open` takes its path from `walInv_dirPath` (`WalDirPathLaw` deleted); `renameWAL.spec`'s spine law restated with `notCrashed` and the update's result (ledger); the nil-receiver `File.Close` proved (`wal-path15`; W1 log, fifteenth session). Open: `renameWAL`, `renameWALUnlock`, `Create`'s body after the commit.
@@ -1319,8 +1323,19 @@ holds some mode). Nothing proves the new models yet.
   refill reads a whole buffer at the position); `decFile`'s bound is now `|F.bs| + 2^12 < 2^62`;
   `readInt64` takes `len(r0) + 8 < 2^62`. The decoder discharges both reads: the length word inside
   `|F.bs| + 8`, the frame at most 8 bytes past the file (Go's size check counts from `lastValidOff`).
+- **`wal-readall17`** (2026-11-14; **adopted provisionally, pending the user's review**; ledger "the readers'
+  errors and `errors.Is`"): the `io.ReadFull` axiom's statement carries the reader's error evidence.
+  `io.readerStream ri S E` has `E : List w8 → GoInterface → IProp GF` and returns `nil` or an error with
+  `□ E (r ++ ys) err` (`io.errAt`); `io.ReadFull.spec` returns `io.readFullRes E eof ueof r0 ys len(buf) err`
+  (all came and `nil`; or fewer and the reader's last error `e` with `□ E (r0 ++ ys) e`, `err = e` but
+  `io.ErrUnexpectedEOF` for `e = io.EOF` after some bytes: Go's `ReadAtLeast`), the old pure post being
+  its shadow (`io.readFullRes_pure`). Why: `errors.Is` of a reader's error is a heap fact (a `*PathError`'s
+  `Err`), which the pure `E` could not carry, so the decoder's `isEofOk` had to claim it of every
+  `*PathError`, false for `&PathError{Err: io.EOF}`. New hypothesis (true of Go, not an axiom):
+  `errors.IsPathErrnoEof.spec`.
 
-**Pending the user's review (trusted or axiomatic), all off `lean`:** the file-size bound of `fsExt` (2026-11-14, `Impl.lean`'s
+**Pending the user's review (trusted or axiomatic), all off `lean`:** the `io.ReadFull` axiom's restatement
+with the reader's error evidence (2026-11-14, `wal-readall17`, above); the file-size bound of `fsExt` (2026-11-14, `Impl.lean`'s
 `maxBytes`, ext4's `s_maxbytes` on C: `PWriteFinish`, `FtruncateFinish`, `FallocFinish`, `CrashFile`, `FsInit`;
 `examples/osfs/semantics/data_maxbytes.go`, measured on C; W6 log, fourteenth session); the `ENOENT` rule of `fsExt`
 (2026-11-14, `Impl.lean`'s `ENOENT`, `Open`/`DirReadNext`; `examples/osfs/semantics/meta_enoent.go`,
@@ -4534,3 +4549,39 @@ records `ErrInvalid`'s variable (`os.errInvalid_of_pkgInit`; `Create.lean`'s pat
 d.metadata.length < 2 ^ 41`; `WalReadState` gives `s.wal !! dir = some d` with the body, so apply it there. The segments'
 size: `wp_segs_size` (`SegSize.lean`, `Fs.wp_osMeta_size` over `segRes`s, before any step). `WalPinSized` and
 `WalDirPathLaw` are deleted (use `walInv_dirPath`).
+
+**W3/W5 log, seventeenth session (branch `wal-readall17`, 2026-11-14).** Task 1 done (the readers' errors with
+their evidence; a trust-boundary axiom restated, **adopted provisionally, pending the user's review**, off
+`lean`); the coordinator's two `ReadDefs` additions done; tasks 2-3 not started. No `sorry` added or removed.
+- *The axiom* (`Spec/io/ReadFull.lean`; ledger "the readers' errors and `errors.Is`", §10): `io.readerStream ri S E`
+  with `E : List w8 → GoInterface → IProp GF`, each `Read` returning `io.errAt E (r ++ ys) err` (`nil`, or
+  `□ E (r ++ ys) err`); `io.ReadFull.spec`'s post `∃ ys, ⌜sint.Z n = |ys| ∧ |ys| ≤ |buf|⌝ ∗
+  io.readFullRes E eof ueof r0 ys |buf| err ∗ ...`, `io.readFullRes` the old `readFullOk` with the reader's last
+  error's evidence `□ E (r0 ++ ys) e` (Go's `ReadAtLeast`: `nil` when all came; else that error, or
+  `io.ErrUnexpectedEOF` for `io.EOF` after some bytes). The pure `io.readFullOk` stays as its shadow
+  (`io.readFullRes_pure`). Repaired: `bufio.ownReader` (pending error `io.errAt`), `bufio.Reader.Read`,
+  `bufio.NewReader`, `FileBufReader.Read`, `NewFileBufReader`'s spec, `readInt64` (post `io.readFullRes ... ∗
+  ⌜err = nil → n = ...⌝`). Main tree: no other user (its `readerStreams` is another predicate).
+- *The decoder* (`DecDefs.lean`): the readers' errors `decRdE bs eof IoE r e := ⌜decRdErr bs eof IoE r e⌝ ∗
+  isEofAns e eof`; `decFile`'s `FileInfo` and `ownFbr`'s stored error carry `decAns eof err`; `isEofOk` asks
+  `errors.Is(_, io.EOF)` only on `nil`, `io.EOF`, `io.ErrUnexpectedEOF`. New lemmas: `readFull_ans` (a decoder
+  `ReadFull`'s pure shadow and `isEofAns err eof`), `decAns_of_ans` (`DecLemmas.lean`), `isEofOk_eof`,
+  `walPathErr_ans` (`ReadBridge.lean`). `decodeRecord`/`NewDecoder` re-proved (`lake build`).
+- *The `os` bridge*: `os.File.Read.wp_eof`'s error arm adds `∃ e, ⌜e ≠ 0⌝ ∗ os.errnoPathErr err e`; `os.File.Stat.spec`'s
+  last conjunct is now `⌜err = nil⌝ ∨ ∃ e, ⌜e ≠ 0⌝ ∗ os.errnoPathErr err e` (was "a `*PathError`"); bboltfs/crashlog
+  unchanged. `walDecFile_ok`/`walDecFiles_mk` take `errors.IsPathErrnoEof.spec` (**new hypothesis**, true of Go:
+  `LinuxFs/Spec/errors/IsPathErrnoEof.lean`), `¬ IoE eof`, `isPkgInit os` and `isEofAns eof eof`;
+  `openAtIndex.wp_proof` takes `errors.IsPathErrnoEof.spec` (`wal_osInit`: `os`'s initialization from the WAL's).
+- *`WalDecEnvSupply`*: unchanged statement, now **true of Go** (the `*PathError` clause is gone from `isEofOk`), but
+  **not provable**: `errors.newVar` (Perennial's `io` fact, the part's `walpb` fact) keeps no trace of the
+  allocation, so `io.EOF ≠ io.ErrUnexpectedEOF` and `errors.Is(walpb.ErrCRCMismatch, io.EOF) = false` cannot be
+  derived (`notes/perennial-changes.md`, 2026-11-14, "`errors.newVar` forgets the allocation"). With that Perennial
+  change (and `walpb`'s fact in `newVar` form, `etc/gen-init.py`'s `LFS_SPECIAL`), the proof is three leaf walks of
+  `errors.Is.spec` (`errorWalkTree_leaf`).
+- *Coordinator's additions* (`ReadDefs.lean`, for `Close.specOpening`): (1) `walReadTie dir write s j fs lfs` takes the
+  directory inode `j` (was existential) and `walReadH` binds it once, last of its existentials, for both the tie and
+  the pipeline (`walPipeH fp dir j 0`); (2) `walReadTie`'s first pure fact begins with `gs ≠ []` (`openAtIndex`:
+  `hgne`, from `kk < |lay.segs|`). `Open.lean`'s `walReadH_key`/`_namesOut` and `openAtIndex` re-proved.
+- *Not done*: task 2 (the invariant facts for `WalReadState`: files singly named, cut positivity, the pinned-segments
+  law, `nameBound`'s `ix < 2^64`), task 3 (`ReadAll.wp_proof`). Build note: `wal-create14`'s `.lake` (GooseLang,
+  LinuxFs, `Proof/*.olean` top level, `Proof/go_etcd_io/etcd/server/v3/storage`) after its build seeded this one.

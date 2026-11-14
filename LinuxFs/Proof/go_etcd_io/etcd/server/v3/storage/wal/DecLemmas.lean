@@ -35,7 +35,7 @@ theorem keep_pure {P : IProp GF} {φ : Prop} (h : P ⊢ ⌜φ⌝) : P ⊢ ⌜φ�
 
 /-- See the file header. -/
 theorem ownReader_prefix (IoE : GoInterface → Prop) (eof : GoInterface) (F : DecFile GF) (b : Loc)
-    (E : List w8 → GoInterface → Prop) (r : List w8) :
+    (E : List w8 → GoInterface → IProp GF) (r : List w8) :
     decFile IoE eof F ∗ bufio.ownReader b F.fr F.S E r ⊢
       ⌜r <+: F.bs⌝ ∗ bufio.ownReader b F.fr F.S E r := by
   refine (keep_pure ?_).trans (BI.sep_mono_right BI.sep_elim_right)
@@ -56,7 +56,7 @@ theorem fbr_readerStream
     (fbr ↦□ go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader.mk b fi err : IProp GF) ∗
       decFile IoE eof F ⊢
       io.readerStream ⟨go.GoType.PointerType go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader.ty, #fbr⟩
-        (bufio.ownReader b F.fr F.S (decRdErr F.bs eof IoE)) (decRdErr F.bs eof IoE) := by
+        (bufio.ownReader b F.fr F.S (decRdE F.bs eof IoE)) (decRdE F.bs eof IoE) := by
   iintro ⟨#Hf, #HF⟩
   iunfold decFile at HF
   icases HF with ⟨#Hrs, #Hpre, -, %HFp⟩
@@ -65,8 +65,8 @@ theorem fbr_readerStream
   iintro %r %p %xs
   imodintro
   iintro %Φ ⟨%Hrx, Hb, Hp⟩ HΦ
-  wp_apply HRead fbr b fi err DFrac.discard F.fr F.S (decRdErr F.bs eof IoE) r p xs $$ Hrs
-    [] [Hb Hp] as %n %e ⟨%ys, %Hys, Hp, -, Hb⟩
+  wp_apply HRead fbr b fi err DFrac.discard F.fr F.S (decRdE F.bs eof IoE) r p xs $$ Hrs
+    [] [Hb Hp] as %n %e ⟨%ys, %Hys, #He, Hp, -, Hb⟩
   · imodintro
     iintro %r' HS
     ihave %h := Hpre $$ HS
@@ -79,6 +79,7 @@ theorem fbr_readerStream
     iexact Hf
   iapply HΦ
   iexists ys
+  iframe He
   iframe
   ipureintro
   exact Hys
@@ -96,7 +97,7 @@ theorem decFile_pure (IoE : GoInterface → Prop) (eof : GoInterface) (F : DecFi
 theorem ownFbr_intro (fbr b : Loc) (fi : GoInterface) (IoE : GoInterface → Prop) (eof : GoInterface)
     (F : DecFile GF) (r : List w8) :
     (fbr ↦□ go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader.mk b fi GoInterface.nil : IProp GF) ∗
-      decFile IoE eof F ∗ bufio.ownReader b F.fr F.S (decRdErr F.bs eof IoE) r ∗
+      decFile IoE eof F ∗ bufio.ownReader b F.fr F.S (decRdE F.bs eof IoE) r ∗
       fileInfoOk fi F.bs.length ⊢
       ownFbr fbr IoE eof F r := by
   iintro ⟨#Hf, #HF, Hb, #Hfi⟩
@@ -106,6 +107,8 @@ theorem ownFbr_intro (fbr b : Loc) (fi : GoInterface) (IoE : GoInterface → Pro
   iframe Hf HF
   isplitl []
   · ipureintro; intro h; exact absurd rfl h
+  isplitl []
+  · iunfold decAns; ileft; ipureintro; rfl
   · iintro -; iexact Hfi
 
 /-- A decoder whose first reader has delivered `r`, the others nothing, from its parts. -/
@@ -448,9 +451,9 @@ theorem decAns_nil (eof : GoInterface) : ⊢ decAns (GF := GF) eof GoInterface.n
   ipureintro
   rfl
 
-/-- The answer on `nil`, `io.EOF`, `io.ErrUnexpectedEOF` and the readers' errors (`isEofOk`). -/
+/-- The answer on `nil`, `io.EOF` and `io.ErrUnexpectedEOF` (`isEofOk`). -/
 theorem decAns_of_eofOk (IoE : GoInterface → Prop) (eof ueof e : GoInterface)
-    (h : e = GoInterface.nil ∨ e = eof ∨ e = ueof ∨ IoE e) :
+    (h : e = GoInterface.nil ∨ e = eof ∨ e = ueof) :
     isEofOk IoE eof ueof ⊢ decAns (GF := GF) eof e := by
   unfold isEofOk decAns isEofAns
   iintro ⟨-, #H⟩
@@ -480,7 +483,7 @@ theorem errIsNot_ueof (IoE : GoInterface → Prop) (eof ueof : GoInterface) :
   iintro ⟨%hne, #H⟩
   isplitr
   · ipureintro; exact fun h => hne.1 h.symm
-  ihave #H2 := H $$ %ueof %(Or.inr (Or.inr (Or.inl rfl)))
+  ihave #H2 := H $$ %ueof %(Or.inr (Or.inr rfl))
   imodintro
   imodintro
   iintro %Φ - HΦ
@@ -488,6 +491,43 @@ theorem errIsNot_ueof (IoE : GoInterface → Prop) (eof ueof : GoInterface) :
   rw [hb, decide_eq_false (fun h => hne.1 h.symm)]
   iapply HΦ
   itrivial
+
+/-- An answer is a `decAns`. -/
+theorem decAns_of_ans (e eof : GoInterface) : isEofAns e eof ⊢ decAns (GF := GF) eof e := by
+  unfold decAns
+  iintro #H
+  iright
+  iexact H
+
+/-- **What a `ReadFull` from a file's reader returns** (`io.readFullRes` over `decRdE`): its pure
+shadow over `decRdErr`, and `errors.Is(err, io.EOF)`'s answer on the error (from `isEofOk` on `nil`
+and `io.ErrUnexpectedEOF`, from the reader's evidence on the reader's error). -/
+theorem readFull_ans (IoE : GoInterface → Prop) (eof ueof : GoInterface) (bs r ys : List w8)
+    (m : Nat) (err : GoInterface) :
+    isEofOk IoE eof ueof ∗ io.readFullRes (decRdE bs eof IoE) eof ueof r ys m err ⊢
+      ⌜io.readFullOk (decRdErr bs eof IoE) eof ueof r ys m err⌝ ∗ isEofAns (GF := GF) err eof := by
+  iintro ⟨#Hok, #Hrf⟩
+  ihave %h := (io.readFullRes_pure (P := decRdErr bs eof IoE) (fun r e => by
+    unfold decRdE; iintro ⟨%h, -⟩; ipureintro; exact h)) $$ Hrf
+  isplitl []
+  · ipureintro; exact h
+  iunfold isEofOk at Hok
+  icases Hok with ⟨-, #Hq⟩
+  iunfold io.readFullRes at Hrf
+  icases Hrf with (%h1 | ⟨%e, %h1, #HE⟩)
+  · ihave #H2 := Hq $$ %err %(Or.inl h1.2)
+    iunfold isEofAns
+    imodintro
+    iexact H2
+  · by_cases hc : e = eof ∧ ys ≠ []
+    · ihave #H2 := Hq $$ %err %(Or.inr (Or.inr (h1.2.2.1 hc)))
+      iunfold isEofAns
+      imodintro
+      iexact H2
+    · rw [h1.2.2.2 hc]
+      iunfold decRdE at HE
+      icases HE with ⟨-, #HA⟩
+      iexact HA
 
 /-- `errIsNot`'s pure part. -/
 theorem errIsNot_ne (e t : GoInterface) : errIsNot (GF := GF) e t ⊢ ⌜e ≠ t⌝ := by

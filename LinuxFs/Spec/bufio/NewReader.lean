@@ -27,7 +27,7 @@ variable [package_sem : _root_.Perennial.bufio.Assumptions]
 /-- `NewReader(rd)`, `rd` holding `ri` (not a `*bufio.Reader`), from the stream state `S r`:
 a reader that has delivered `r`. -/
 abbrev bufio.NewReader.spec : Prop :=
-  ∀ (ri : GoInterfaceOk) (S : List w8 → IProp GF) (E : List w8 → GoInterface → Prop)
+  ∀ (ri : GoInterfaceOk) (S : List w8 → IProp GF) (E : List w8 → GoInterface → IProp GF)
     (r : List w8),
   ri.ty ≠ go.GoType.PointerType _root_.Perennial.bufio.Reader.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.bufio ∗ S r }}

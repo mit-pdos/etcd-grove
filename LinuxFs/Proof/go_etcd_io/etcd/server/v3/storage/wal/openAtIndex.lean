@@ -101,12 +101,14 @@ variable [os.file.FieldAssumptions] [go_etcd_io.etcd.client.pkg.v3.fileutil.Assu
 packages and variables (`decEnv`); the readers' errors `IoE` hold of every `*PathError` (`os.File.Read`'s
 and `Stat`'s errors). Until 2026-11-14 `IoE` held of every pointer error, which made the hypothesis
 unsatisfiable (`isEofOk` needs `¬ IoE eof`, and `io.EOF` is a pointer error); `walDecEnv_eof_not` checks
-that the new form's pure part agrees with `io`'s initialization. **Not true as stated** (ledger
-2026-11-14, "the readers' errors and `errors.Is`"): `isEofOk` asks `errors.Is(e, io.EOF)` to answer
-`false` for every `*PathError` `e`, which Go does not do for a `&PathError{Err: io.EOF}`; a pure `IoE`
-cannot say which `*PathError`s the model made (their fields are heap), so the true statement needs the
-readers' errors carried with their evidence (an Iris error predicate through `io.readerStream` and the
-trust-boundary axiom `io.ReadFull.wp_proof`, pending the user's decision). -/
+that the new form's pure part agrees with `io`'s initialization. Since 2026-11-14 (`wal-readall17`; ledger,
+"the readers' errors and `errors.Is`", adopted provisionally) `isEofOk` asks `errors.Is(e, io.EOF)`'s
+answer only on `nil`, `io.EOF` and `io.ErrUnexpectedEOF` (the readers' errors carry their own, `decRdE`),
+so the hypothesis is true of Go. **Not provable from the packages' facts**: `errors.newVar` (Perennial's
+`io` fact, the part's `walpb` fact) keeps no trace of the allocation, so nothing says `io.EOF`,
+`io.ErrUnexpectedEOF` and `walpb.ErrCRCMismatch` are three different errors (`eof ≠ ueof`, and
+`errors.Is(ErrCRCMismatch, io.EOF)` false); the general fix is a Perennial change (`newVar` keeping the
+`errorString`'s field, `notes/perennial-changes.md`). -/
 abbrev WalDecEnvSupply : Prop :=
   ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal -∗
     ∃ (IoE : GoInterface → Prop) (eof ueof : GoInterface), decEnv IoE eof ueof ∗
@@ -161,6 +163,16 @@ theorem wal_encEnv :
   iunfold encEnv
   iframe #
 
+/-- `os`'s initialization, from the WAL package's. -/
+theorem wal_osInit :
+    ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal -∗
+      isPkgInit (PROP := IProp GF) pkg_id.os := by
+  iintro #Hpkg
+  ihave #Hdeps := isPkgInit_unfold_deps pkg_id.go_etcd_io.etcd.server.v3.storage.wal $$ Hpkg
+  isimp only [isPkgInitDeps] at Hdeps
+  icases Hdeps with ⟨-, -, -, -, -, -, -, -, -, -, -, -, #Hos, -⟩
+  iexact Hos
+
 /-- `walReadTie`'s pure part, from the decoder's files and the segments' names. -/
 theorem walReadTie_facts {dir : GoString} {write : Bool} {gs : List SegG} {fs : List (DecFile GF)}
     {fls lfs : List Loc} {hj : NamesH} (htie : WalDecTie dir write gs fs fls)
@@ -190,6 +202,7 @@ theorem walTmpsRes_split (j : Ino) :
 
 theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMarshal)
     (hEnv : WalDecEnvSupply (GF := GF))
+    (wp_IsEof : errors.IsPathErrnoEof.spec (GF := GF) (hG := hG))
     (wp_Clone : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.Clone.spec (GF := GF) (hG := hG))
     (wp_select : go_etcd_io.etcd.server.v3.storage.wal.selectWALFiles.spec (GF := GF) (hG := hG))
     (wp_selectAbs : go_etcd_io.etcd.server.v3.storage.wal.selectWALFiles.specAbsent (GF := GF) (hG := hG))
@@ -398,13 +411,22 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
     iunfold decEnv at Hde'
     icases Hde' with ⟨-, -, -, -, #Hbufio, #Heof, -, -, #Hcrc, -, -⟩
     ihave ⟨Hfiles, #Hlast⟩ := WalFs.walOpenedFiles_last write dir gs frs lfs _ gL hgL $$ Hfiles
-    ihave ⟨%fs, %fls, ⟨%htie, %hfr⟩, Hdf, Hlk⟩ := walDecFiles_mk wp_Stat wp_Size wp_FName IoE hIo eof
-      write dir gs frs lfs hfl hll hsz' $$ [Hfiles HS]
+    ihave #Hosp := wal_osInit $$ Hpkg
+    ihave ⟨#Heofa, %hIoEof⟩ := isEofOk_eof IoE eof ueof $$ [Hde]
+    · iunfold decEnv at Hde
+      icases Hde with ⟨-, -, -, -, -, -, -, #Hok, -⟩
+      iexact Hok
+    ihave ⟨%fs, %fls, ⟨%htie, %hfr⟩, Hdf, Hlk⟩ := walDecFiles_mk wp_Stat wp_Size wp_FName wp_IsEof IoE hIo eof
+      hIoEof write dir gs frs lfs hfl hll hsz' $$ [Hfiles HS]
     · iframe Hfiles
       isplitl []
       · iexact Hosi
       isplitl []
       · iexact Heof
+      isplitl []
+      · iexact Hosp
+      isplitl []
+      · iexact Heofa
       unfold segHalves segRes
       iexact HS
     subst hfr
@@ -425,6 +447,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
     have hndg : (gs.map (·.ino)).Nodup := by
       rw [← hgs, List.map_drop]; exact hnd.sublist (List.drop_sublist _ _)
     have htf := walReadTie_facts htie hll hnmg
+    have hgne : gs ≠ [] := List.ne_nil_of_length_pos (by omega)
     cases write
     · -- read mode
       try wp_auto
@@ -447,7 +470,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       · iexists lg, sp'
         iframe
         iframe #
-      iexists dec, IoE, eof, ueof, fs, lsl, lfs, null, clo
+      iexists dec, IoE, eof, ueof, fs, lsl, lfs, null, clo, lay.j
       subst hdI
       iframe
       iframe #
@@ -456,7 +479,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       · iexists gs, fls
         iframe Ho
         isplitr
-        · ipureintro; exact ⟨hndg, hS, hselg⟩
+        · ipureintro; exact ⟨hgne, hndg, hS, hselg⟩
         isplitr
         · ipureintro; exact htf
         iexact Hlk
@@ -535,7 +558,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
         iframe
         iframe #
       rw [← hlfs]
-      iexists dec, IoE, eof, ueof, fs, lsl, lfs, fp, func.nil
+      iexists dec, IoE, eof, ueof, fs, lsl, lfs, fp, func.nil, lay.j
       subst hdI
       iframe
       iframe #
@@ -544,14 +567,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       · iexists gs, fls
         iframe Ho
         isplitr
-        · ipureintro; exact ⟨hndg, hS, hselg⟩
+        · ipureintro; exact ⟨hgne, hndg, hS, hselg⟩
         isplitr
         · ipureintro; exact htf
         rw [hlfs]
         iexact Hlk
       isplitr
       · ipureintro; rfl
-      iexists lay.j
       unfold walPipeH
       iexists γ, R, DFrac.own qd, W64 64000000, 0
       iframe

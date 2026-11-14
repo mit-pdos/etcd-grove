@@ -30,15 +30,14 @@ into the front of `p`, from the buffer or from `ri`, and returns only an error `
 there (`io.readerStream`'s triple, for `b`). A refill reads a whole buffer (up to 4 KiB) at
 the stream's position, so the underlying stream's states stay 4 KiB below `2^62`. -/
 abbrev bufio.Reader.Read.spec : Prop :=
-  ∀ (b : Loc) (ri : GoInterfaceOk) (S : List w8 → IProp GF) (E : List w8 → GoInterface → Prop)
+  ∀ (b : Loc) (ri : GoInterfaceOk) (S : List w8 → IProp GF) (E : List w8 → GoInterface → IProp GF)
     (r : List w8) (p : GoSlice) (xs : List w8),
   ⊢ io.readerStream ri S E -∗ (□ ∀ r', S r' -∗ ⌜r'.length + 2 ^ 12 < 2 ^ 62⌝) -∗
     {{ ⌜r.length + xs.length < 2 ^ 62⌝ ∗ bufio.ownReader b ri S E r ∗ p ↦* xs }}
       (App (Val (b @!! go.GoType.PointerType _root_.Perennial.bufio.Reader.ty @!! go!"Read"))
         (Val #p))
     {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
-        ∃ ys : List w8, ⌜sint.Z n = ys.length ∧ ys.length ≤ xs.length ∧
-          (err ≠ GoInterface.nil → E (r ++ ys) err)⌝ ∗
+        ∃ ys : List w8, ⌜sint.Z n = ys.length ∧ ys.length ≤ xs.length⌝ ∗ io.errAt E (r ++ ys) err ∗
         p ↦* (ys ++ xs.drop ys.length) ∗ bufio.ownReader b ri S E (r ++ ys) }}
 
 end spec

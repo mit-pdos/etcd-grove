@@ -74,21 +74,21 @@ theorem bufio.subslice_take_split {α : Type} (a b k : Nat) (l : List α) :
 
 /-- Re-establish `bufio.ownReader` from its parts. -/
 theorem bufio.ownReader_intro (b : Loc) (ri : GoInterfaceOk) (S : List w8 → IProp GF)
-    (E : List w8 → GoInterface → Prop) (r : List w8) (v : _root_.Perennial.bufio.Reader)
+    (E : List w8 → GoInterface → IProp GF) (r : List w8) (v : _root_.Perennial.bufio.Reader)
     (bs : List w8)
     (Hwf : v.rd' = GoInterface.ok ri ∧ 0 ≤ sint.Z v.r' ∧ sint.Z v.r' ≤ sint.Z v.w' ∧
-      sint.nat v.w' ≤ bs.length ∧ 0 < bs.length ∧ bs.length ≤ 2 ^ 12)
-    (Herr : v.err' ≠ GoInterface.nil → E (r ++ subslice (sint.nat v.r') (sint.nat v.w') bs) v.err') :
+      sint.nat v.w' ≤ bs.length ∧ 0 < bs.length ∧ bs.length ≤ 2 ^ 12) :
+    io.errAt E (r ++ subslice (sint.nat v.r') (sint.nat v.w') bs) v.err' -∗
     isPkgInit (PROP := IProp GF) pkg_id.bufio -∗ b ↦ v -∗ v.buf' ↦* bs -∗
       S (r ++ subslice (sint.nat v.r') (sint.nat v.w') bs) -∗ bufio.ownReader b ri S E r := by
-  iintro #Hpkg Hv Hbuf HS
+  iintro #Herr #Hpkg Hv Hbuf HS
   iunfold bufio.ownReader
   isplitr
   · iexact Hpkg
   iexists v, bs
-  iframe Hv Hbuf HS
+  iframe Hv Hbuf HS Herr
   ipureintro
-  exact ⟨Hwf, Herr⟩
+  exact Hwf
 
 set_option hygiene false in
 /-- The copy at the end of `Read` (`n = copy(p, b.buf[b.r:b.w])`, ...) from the reader's
@@ -139,11 +139,13 @@ local macro "copy_tail " V:term:max BS:term:max : tactic => `(tactic| (
   iframe Hp
   isplitr
   · ipureintro
-    refine ⟨by rw [hyl]; word, by rw [hyl, Hnc]; exact Nat.min_le_left _ _, fun h => (h rfl).elim⟩
-  rw [hl] at Herr
+    exact ⟨by rw [hyl]; word, by rw [hyl, Hnc]; exact Nat.min_le_left _ _⟩
+  isplitl []
+  · iapply io.errAt_nil
+  ihave #Herr2 := io.errAt_eq hl $$ Herr
   iapply (bufio.ownReader_intro b ri S E _
     { ($V) with r' := ($V).r' + nc, lastByte' := W64 (uint.Z x), lastRuneSize' := W64 (-1) } ($BS)
-    ⟨Hwf.1, by word, by word, Hwf.2.2.2⟩ Herr) $$ Hpkg Hv Hbuf
+    ⟨Hwf.1, by word, by word, Hwf.2.2.2⟩) $$ Herr2 Hpkg Hv Hbuf
   rw [← hl]
   iexact HS))
 
@@ -153,7 +155,7 @@ theorem bufio.Reader.Read.wp_proof : bufio.Reader.Read.spec (GF := GF) (hG := hG
   iintro #Hrd #HSb
   wp_start as ⟨%Hrx, Hb, Hp⟩
   iunfold bufio.ownReader at Hb
-  icases Hb with ⟨#Hpkg, %v, %bs, Hv, Hbuf, %Hwf, HS, %Herr⟩
+  icases Hb with ⟨#Hpkg, %v, %bs, Hv, Hbuf, %Hwf, HS, #Herr⟩
   ihave %Hplen := ownSlice_len _ _ _ $$ Hp
   ihave %Hblen := ownSlice_len _ _ _ $$ Hbuf
   try wp_auto
@@ -167,21 +169,26 @@ theorem bufio.Reader.Read.wp_proof : bufio.Reader.Read.spec (GF := GF) (hG := hG
       simp only [List.append_nil, List.length_nil, List.drop_zero, List.nil_append]
       iframe Hp
       isplitr
-      · ipureintro; exact ⟨by word, Nat.zero_le _, fun h => absurd rfl h⟩
-      iapply (bufio.ownReader_intro b ri S E r v bs Hwf Herr) $$ Hpkg Hv Hbuf HS
+      · ipureintro; exact ⟨by word, Nat.zero_le _⟩
+      isplitl []
+      · iapply io.errAt_nil
+      iapply (bufio.ownReader_intro b ri S E r v bs Hwf) $$ Herr Hpkg Hv Hbuf HS
     · wp_apply (bufio.wp_readErr b v) $$ Hv as Hv
       try wp_auto
       have hrw : v.r' = v.w' := by rcases Hwf with ⟨_, h1, h2, _⟩; revert Hif h1 h2; word
       have hsub : subslice (sint.nat v.r') (sint.nat v.w') bs = [] := by
         rw [hrw]; simp [subslice]
-      rw [hsub, List.append_nil] at Herr
+      ihave #Herr2 := io.errAt_eq (show _ = r by rw [hsub, List.append_nil]) $$ Herr
       iapply HΦ
       iexists []
       simp only [List.append_nil, List.length_nil, List.drop_zero, List.nil_append]
       iframe Hp
       isplitr
-      · ipureintro; exact ⟨by word, Nat.zero_le _, Herr⟩
-      iapply (bufio.ownReader_intro b ri S E r { v with err' := GoInterface.nil } bs Hwf (fun h => (h rfl).elim)) $$ Hpkg Hv Hbuf
+      · ipureintro; exact ⟨by word, Nat.zero_le _⟩
+      isplitl []
+      · iexact Herr2
+      iapply (bufio.ownReader_intro b ri S E r { v with err' := GoInterface.nil } bs Hwf) $$ [] Hpkg Hv Hbuf
+      · iapply io.errAt_nil
       simp only [hsub, List.append_nil]
       iexact HS
   · have hp0 : p.len ≠ W64 0 := Hif
@@ -189,10 +196,9 @@ theorem bufio.Reader.Read.wp_proof : bufio.Reader.Read.spec (GF := GF) (hG := hG
     wp_if_destruct
     · have hsub : subslice (sint.nat v.r') (sint.nat v.w') bs = [] := by
         rw [Hif]; simp [subslice]
-      rw [hsub, List.append_nil] at Herr
+      ihave #Herr2 := io.errAt_eq (show _ = r by rw [hsub, List.append_nil]) $$ Herr
       rcases hve : v.err' with e | _
-      · rw [hve] at Herr
-        simp only []
+      · simp only []
         try wp_auto
         wp_apply (bufio.wp_readErr b v) $$ Hv as Hv
         try wp_auto
@@ -201,9 +207,11 @@ theorem bufio.Reader.Read.wp_proof : bufio.Reader.Read.spec (GF := GF) (hG := hG
         simp only [List.append_nil, List.length_nil, List.drop_zero, List.nil_append]
         iframe Hp
         isplitr
-        · ipureintro; exact ⟨by word, Nat.zero_le _, by rw [hve]; exact Herr⟩
-        iapply (bufio.ownReader_intro b ri S E r { v with err' := GoInterface.nil } bs Hwf
-          (fun h => (h rfl).elim)) $$ Hpkg Hv Hbuf
+        · ipureintro; exact ⟨by word, Nat.zero_le _⟩
+        isplitl []
+        · first | iexact Herr2 | (rw [← hve]; iexact Herr2)
+        iapply (bufio.ownReader_intro b ri S E r { v with err' := GoInterface.nil } bs Hwf) $$ [] Hpkg Hv Hbuf
+        · iapply io.errAt_nil
         simp only [hsub, List.append_nil]
         iexact HS
       · simp only []
@@ -213,7 +221,7 @@ theorem bufio.Reader.Read.wp_proof : bufio.Reader.Read.spec (GF := GF) (hG := hG
           rw [Hwf.1, hsub, List.append_nil]
           try wp_auto
           iunfold io.readerStream at Hrd
-          wp_apply Hrd $$ %r %p %xs [HS Hp] as %nr %er ⟨%ys, %Hys, Hp, HS⟩
+          wp_apply Hrd $$ %r %p %xs [HS Hp] as %nr %er ⟨%ys, %Hys, #Hye, Hp, HS⟩
           · iframe; ipureintro; exact Hrx
           have hnr0 : ¬ sint.Z nr < 0 := by omega
           wp_if_destruct
@@ -234,9 +242,12 @@ theorem bufio.Reader.Read.wp_proof : bufio.Reader.Read.spec (GF := GF) (hG := hG
             iframe Hp
             isplitr
             · ipureintro; exact Hys
+            isplitl []
+            · iexact Hye
             iapply (bufio.ownReader_intro b ri S E _
               { v with err' := GoInterface.nil, lastByte' := W64 (uint.Z x), lastRuneSize' := W64 (-1) }
-              bs Hwf (fun h => (h rfl).elim)) $$ Hpkg Hv Hbuf
+              bs Hwf) $$ [] Hpkg Hv Hbuf
+            · iapply io.errAt_nil
             simp only [hsub, List.append_nil]
             iexact HS
           · try wp_auto
@@ -247,20 +258,23 @@ theorem bufio.Reader.Read.wp_proof : bufio.Reader.Read.spec (GF := GF) (hG := hG
             iframe Hp
             isplitr
             · ipureintro; exact Hys
+            isplitl []
+            · iexact Hye
             iapply (bufio.ownReader_intro b ri S E _ { v with err' := GoInterface.nil }
-              bs Hwf (fun h => (h rfl).elim)) $$ Hpkg Hv Hbuf
+              bs Hwf) $$ [] Hpkg Hv Hbuf
+            · iapply io.errAt_nil
             simp only [hsub, List.append_nil]
             iexact HS
         · try wp_auto
           rw [Hwf.1, hsub, List.append_nil]
           iunfold io.readerStream at Hrd
           ihave %HSr := HSb $$ HS
-          wp_apply Hrd $$ %r %v.buf' %bs [HS Hbuf] as %nr %er ⟨%ys, %Hys, Hbuf, HS⟩
+          wp_apply Hrd $$ %r %v.buf' %bs [HS Hbuf] as %nr %er ⟨%ys, %Hys, #Hye, Hbuf, HS⟩
           · iframe; ipureintro; have := Hwf.2.2.2.2.2; omega
           have hnr0 : ¬ sint.Z nr < 0 := by omega
           wp_if_destruct
           · exact absurd Hif hnr0
-          have hys0 : ys.length ≤ bs.length := Hys.2.1
+          have hys0 : ys.length ≤ bs.length := Hys.2
           wp_if_destruct
           · have hys : ys = [] := List.eq_nil_of_length_eq_zero (by
               have h0 : ((ys.length : Nat) : Int) = 0 := Hys.1.symm.trans (by decide)
@@ -275,10 +289,13 @@ theorem bufio.Reader.Read.wp_proof : bufio.Reader.Read.spec (GF := GF) (hG := hG
             simp only [List.append_nil, List.length_nil] at Hys
             iframe Hp
             isplitr
-            · ipureintro; exact ⟨by word, Nat.zero_le _, Hys.2.2⟩
+            · ipureintro; exact ⟨by word, Nat.zero_le _⟩
+            isplitl []
+            · first | iexact Hye | (iapply (io.errAt_eq (List.append_nil r)); iexact Hye)
             iapply (bufio.ownReader_intro b ri S E r (_root_.Perennial.bufio.Reader.mk v.buf'
               (GoInterface.ok ri) (W64 0) (W64 0) GoInterface.nil v.lastByte' v.lastRuneSize') bs
-              ⟨rfl, by word, by word, by word, Hwf.2.2.2.2⟩ (fun h => (h rfl).elim)) $$ Hpkg Hv Hbuf
+              ⟨rfl, by word, by word, by word, Hwf.2.2.2.2⟩) $$ [] Hpkg Hv Hbuf
+            · iapply io.errAt_nil
             have h00 : subslice (sint.nat (W64 0)) (sint.nat (W64 0)) bs = [] := by simp [subslice]
             simp only [h00, List.append_nil]
             iexact HS
@@ -291,7 +308,8 @@ theorem bufio.Reader.Read.wp_proof : bufio.Reader.Read.spec (GF := GF) (hG := hG
             have Hwf0 : 0 < bs.length ∧ bs.length ≤ 2 ^ 12 := Hwf.2.2.2.2
             have Hblen0 := Hblen
             have hnr : nr ≠ W64 0 := Hif
-            clear Hwf Hblen Herr Hif
+            iclear Herr
+            clear Hwf Hblen Hif
             let V : _root_.Perennial.bufio.Reader := _root_.Perennial.bufio.Reader.mk v.buf'
               (GoInterface.ok ri) (W64 0) (W64 0 + nr) er v.lastByte' v.lastRuneSize'
             have hV : V = _root_.Perennial.bufio.Reader.mk v.buf'
@@ -305,9 +323,8 @@ theorem bufio.Reader.Read.wp_proof : bufio.Reader.Read.spec (GF := GF) (hG := hG
             have Hblen : BS.length = sint.nat V.buf'.len ∧ 0 ≤ sint.Z V.buf'.len := by
               rw [hBS]; exact Hblen0
             have hsubV : subslice (sint.nat V.r') (sint.nat V.w') BS = ys := hsub2
-            have Herr : V.err' ≠ GoInterface.nil →
-                E (r ++ subslice (sint.nat V.r') (sint.nat V.w') BS) V.err' := by
-              rw [hsubV]; exact Hys.2.2
+            ihave #Herr : io.errAt E (r ++ subslice (sint.nat V.r') (sint.nat V.w') BS) V.err' $$ [Hye]
+            · rw [hsubV]; iexact Hye
             have Hif : ¬ V.r' = V.w' := by simp only [hV]; revert hnr; word
             rw [show r ++ ys = r ++ subslice (sint.nat V.r') (sint.nat V.w') BS by rw [hsubV]]
             copy_tail V BS

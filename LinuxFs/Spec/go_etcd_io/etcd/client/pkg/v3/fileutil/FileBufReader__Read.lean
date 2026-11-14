@@ -28,14 +28,13 @@ variable [bufio_sem : _root_.Perennial.bufio.Assumptions]
 /-- See the file header. -/
 abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader.Read.spec : Prop :=
   ∀ (fbr b : Loc) (fi err : GoInterface) (dq : DFrac) (ri : GoInterfaceOk) (S : List w8 → IProp GF)
-    (E : List w8 → GoInterface → Prop) (r : List w8) (p : GoSlice) (xs : List w8),
+    (E : List w8 → GoInterface → IProp GF) (r : List w8) (p : GoSlice) (xs : List w8),
   ⊢ io.readerStream ri S E -∗ (□ ∀ r', S r' -∗ ⌜r'.length + 2 ^ 12 < 2 ^ 62⌝) -∗
     {{ ⌜r.length + xs.length < 2 ^ 62⌝ ∗
         fbr ↦{dq} go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader.mk b fi err ∗ bufio.ownReader b ri S E r ∗ p ↦* xs }}
       (App (Val (fbr @!! go.GoType.PointerType go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader.ty @!! go!"Read")) (Val #p))
     {{ (n : w64) (e : GoInterface), RET (PairV #n #e);
-        ∃ ys : List w8, ⌜sint.Z n = ys.length ∧ ys.length ≤ xs.length ∧
-          (e ≠ GoInterface.nil → E (r ++ ys) e)⌝ ∗
+        ∃ ys : List w8, ⌜sint.Z n = ys.length ∧ ys.length ≤ xs.length⌝ ∗ io.errAt E (r ++ ys) e ∗
         p ↦* (ys ++ xs.drop ys.length) ∗ fbr ↦{dq} go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader.mk b fi err ∗
         bufio.ownReader b ri S E (r ++ ys) }}
 

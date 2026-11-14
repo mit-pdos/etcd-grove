@@ -15,7 +15,8 @@ do not depend on their bodies.
   the `os.File`-as-`io.Reader` bridge takes, `ReadBridge.lean`): `r` a prefix of the bytes, the
   file, the fd, the offset `|r|`, and the program's halves of `g`'s `OsMeta` and bytes. With them the bytes the decoder reads
   (`DecFile.bs`, the page cache's values of `g.bs`) cannot change during the read.
-* `walReadTie dir write fs lfs`: the decoder's files are the WAL's segments from the opened one on,
+* `walReadTie dir write s j fs lfs`: the decoder's files are the WAL's segments from the opened one on
+  (at least one: `selectWALFiles` fails with `ErrFileNotFound` on none),
   each read through `walFileS`; the program's half of the WAL directory's claim (`WalDirClaim`), so
   that the directory's names cannot change either (no atomic readdir needed); in write mode each
   lock is `fileutil.lockedFile` of its file. And what the pin returns for the put-back
@@ -25,7 +26,8 @@ do not depend on their bodies.
   WAL's key (`walDirKey`), the segments' inodes distinct and each of its bytes' size.
 * `walReadH write w dir s`: the struct's fields as `openAtIndex` leaves them: `lg`, `dir`, `start`,
   the decoder (`ownDecoder` live at offset 0, CRC 0, over `fs`), `locks`, `readClose` (`nil` in write
-  mode), the pipeline (write mode: `walPipeH fp dir j 0`, at some directory inode `j`; read mode: `nil`), the zero fields
+  mode), the pipeline (write mode: `walPipeH fp dir j 0`, at the inode `j` of the directory whose claim
+  `walReadTie` holds; read mode: `nil`), the zero fields
   (`encoder`, `state`, `metadata`, `enti`, `snapi`, `unsafeNoSync`), the mutex, the decoder's
   environment.
 
@@ -81,13 +83,13 @@ def walFileS (f : Loc) (fd : w64) (name : GoString) (fl : OsFd) (g : SegG) (r : 
     osMeta g.ino (DFrac.own (1 : Qp).half) g.om ∗ osBytes g.ino 0 (DFrac.own (1 : Qp).half) g.bs)
 
 /-- See the file header. -/
-def walReadTie (dir : GoString) (write : Bool) (s : w64 × w64) (fs : List (DecFile GF))
+def walReadTie (dir : GoString) (write : Bool) (s : w64 × w64) (j : Ino) (fs : List (DecFile GF))
     (lfs : List Loc) : IProp GF :=
-  iprop(∃ (j : Ino) (X : List GoString) (hj : NamesH) (gs : List SegG) (fls : List Loc),
+  iprop(∃ (X : List GoString) (hj : NamesH) (gs : List SegG) (fls : List Loc),
     osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
     walOutFrag (W := W) ⟨gs.map (·.ino), [(j, .except X)], if write then [dir] else []⟩ ∗
     (walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) ∗ walDirKey (W := W) dir j X ∗
-    ⌜(gs.map (·.ino)).Nodup ∧ (∀ g ∈ gs, g.om.size = g.bs.length) ∧
+    ⌜gs ≠ [] ∧ (gs.map (·.ino)).Nodup ∧ (∀ g ∈ gs, g.om.size = g.bs.length) ∧
       ∀ g, gs.head? = some g → ∀ sq ix, g.name = walFileName sq ix → ix < 2 ^ 64 → ix ≤ uint.nat s.1⌝ ∗
     ⌜fs.length = gs.length ∧ lfs.length = gs.length ∧ fls.length = gs.length ∧
       ∀ (k : Nat) (F : DecFile GF) (g : SegG), fs[k]? = some F → gs[k]? = some g →
@@ -109,16 +111,16 @@ def walOpenIn (w : Loc) (dir : GoString) (s : w64 × w64) : IProp GF :=
 def walReadH (write : Bool) (w : Loc) (dir : GoString) (s : w64 × w64) : IProp GF :=
   iprop(walOpenIn w dir s ∗
     ∃ (dec : Loc) (IoE : GoInterface → Prop) (eof ueof : GoInterface) (fs : List (DecFile GF))
-      (locks : GoSlice) (lfs : List Loc) (fp : Loc) (rc : GoFunc),
+      (locks : GoSlice) (lfs : List Loc) (fp : Loc) (rc : GoFunc) (j : Ino),
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"decoder" w ↦
       interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.decoder.ty) #dec ∗
     ownDecoder dec IoE eof fs 0 0#32 true ∗ decEnv IoE eof ueof ∗
-    walReadTie dir write s fs lfs ∗
+    walReadTie dir write s j fs lfs ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks ∗
     locks ↦* lfs ∗ ownSliceCap Loc locks (DFrac.own 1) ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"readClose" w ↦ rc ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ fp ∗
-    (if write then iprop(⌜rc = zero_val GoFunc⌝ ∗ ∃ j : Ino, walPipeH fp dir j 0) else ⌜fp = null⌝) ∗
+    (if write then iprop(⌜rc = zero_val GoFunc⌝ ∗ walPipeH fp dir j 0) else ⌜fp = null⌝) ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"encoder" w ↦ (null : Loc) ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"state" w ↦ (null : Loc) ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"metadata" w ↦ slice.nil ∗
