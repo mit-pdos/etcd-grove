@@ -836,7 +836,18 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   (a partial or full `fallocate`) and `TcKnows` (the fallback's truncate): `preGrownH` (`DefsAu.lean`) must carry
   the pc-domain and `zf` facts through `preGrownH_trans` (`Preallocate.specAu`'s post), a change to
   `preallocExtend.specAu`/`Preallocate.specAu` and `filePipeline.alloc`'s use of `preGrownH`.
-- **Decision.** `fallocDoneH`'s fact adopted (the coordinator's task list for `wal-tc11`, "decided"); `ZteMeta` pending.
+- **Decision.** `fallocDoneH`'s fact adopted (the coordinator's task list for `wal-tc11`, "decided"). `ZteMeta`
+  adopted (the coordinator's task list for `wal-tc12`, "decided") and **made, simplified** (`wal-tc12`): `ZteMeta m m'
+  := PcKeep m m' ∧ (m.ZfGe → m'.ZeroPg)` (`DefsAu.lean`; `PcKeep m m' := ∀ b, m.size ≤ b → m'.size ≤ b → (m.pc
+  b).isSome → (m'.pc b).isSome`, `LinuxFs/Proof/os/PcKeep.lean`). `wal-save18`'s `ZeroPg` (zeros known from `z ≥ size`
+  with `pageEnd z ≤ max size cz`) replaces the proposal's `zf` bound and `cz` clause: with `TailZ m` (which gives
+  `ZfGe m`, and `m.pc` known at every byte past the size) and `m'.size = m.size`, `ZeroPg m'` and `PcKeep` give `TailZ
+  m'`. Carried by **`preGrownH i m w Z`** (as `wal-save18`'s `preGrown`: `PcKeep m m'` always, `Z → m'.ZeroPg`),
+  so `preallocExtend.specAu`'s post is `preGrownH … (err = nil ∧ m.ZeroPg)`, `preallocExtendTrunc.specAu`'s `(err = nil
+  ∧ m.ZfGe)`, `Preallocate.specAu`'s (`preallocPostH`) `(err = nil ∧ m.ZeroPg)`, as the whole specs'. `PcKeep` from each
+  outcome's `TcKnows`/`TcKnowsF` (`PcKeep.of_tc`); the undone `fallocate` arm of `fallocOutH` became `∃ tc rz,
+  ⌜TcKnowsF m tg m.size tc⌝ ∗ osMeta ½ ((m.announce …).withTc tc rz)` (the extension's `rsOutF` undone arm
+  `rsUndoneK m.cut.isNone false`, `wal-tc12`), which the obligation above asked for.
 
 ## 2026-11-14: `fileutil.Preallocate`/`preallocExtend`/`preallocExtendTrunc` (the part's) and `os.OpenFile.specCreateTruncS`'s `trFile` -- the zeros known on success
 
