@@ -106,8 +106,10 @@ theorem dirKeysOk_cover {C : WalCodec} {Mr : WalMarshal} {jr : Ino} {s : AbsDisk
     {Ls : GMap GoString WalLay} {cl cl' : List Claim} {n : Nat}
     {K : GMap GoString (Ino × List GoString)} {c : Option GoString} (hc : CoverOk jr cl cl' n)
     (hok : DirKeysOk C Mr jr s Ls cl n K c) : DirKeysOk C Mr jr s Ls cl' n K c := by
-  obtain ⟨h1, h2⟩ := hok
-  refine ⟨fun dir j X hk => ?_, fun dir d lay hd hl hcc => crashOkA_cover hc (h2 dir d lay hd hl hcc)⟩
+  obtain ⟨h1, h2, h3⟩ := hok
+  refine ⟨fun dir j X hk => ?_, fun dir d lay hd hl hcc => crashOkA_cover hc (h2 dir d lay hd hl hcc),
+    h3.mono_cl fun _ _ _ X hj ⟨hjr, hX, ho, hco, hoth⟩ => ⟨hjr, hX, hc.once _ hjr ho, hco,
+      fun c' hc' hne hj' => hoth c' ((hc.other c' (by rw [hj']; exact hjr)).1 hc') hne hj'⟩⟩
   obtain ⟨lay, hj, hl, hlj, hjr, hX, ho, hco, hoth⟩ := h1 dir j X hk
   refine ⟨lay, hj, hl, hlj, hjr, hX, hc.once _ hjr ho, hco, fun c' hc' hne hj' => ?_⟩
   have hne' : c'.1 ≠ jr := by rw [hj']; exact hjr

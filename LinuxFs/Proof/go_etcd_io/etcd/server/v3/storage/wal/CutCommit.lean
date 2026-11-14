@@ -189,7 +189,7 @@ theorem cutCommit_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {
     rfl
   -- the cut WAL's crash condition, with the old layout as the alternative
   have hok0 : CrashOk C Mr d lay cl n :=
-    (crashOkA_none_iff C Mr d lay cl n).1 (hDK.2 dir d lay hd hl (fun h => by cases h))
+    (crashOkA_none_iff C Mr d lay cl n).1 (hDK.2.1 dir d lay hd hl (fun h => by cases h))
   have hcr' := crashOkA_cut C Mr d lay hj.cur cl n X hj x (renFileEnt lay.j tmp lay.j bt g.ino hj s0)
     (<[bt := Node.file g.ino]> hj.cur) bt g wr hok0 habs hexL habs' hmeta.2.2 hm hdur hdurg hwr hz hX hcl hcoh1
     hcoh' hs hbt' hcur hothers (Or.inl (by rw [hjr]; exact Ne.symm hjjr))

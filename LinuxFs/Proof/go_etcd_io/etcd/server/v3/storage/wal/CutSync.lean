@@ -50,7 +50,7 @@ theorem dirKeysOk_cutSynced {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : I
     (hcl : (lay.j, NameSet.except X, hj.log x e c) ∈ cl)
     (hw : e.op.Writes lay.j bt) (hwal : walNameP bt = true) (hc : c !! bt = some (.file g0.ino)) :
     DirKeysOk C Mr jr s Ls cl n K none := by
-  refine ⟨hk.1, fun dir' d' lay' hd' hl' _ => ?_⟩
+  refine ⟨hk.1, fun dir' d' lay' hd' hl' _ => ?_, hk.2.2⟩
   by_cases he : dir' = dir
   · rw [he, hd] at hd'
     cases hd'
@@ -86,7 +86,7 @@ theorem dirKeysOk_cutSynced {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : I
       exact (crashOkA_none_iff C Mr d lay cl n).2
         (crashOk_dirSync C Mr d lay lay0 cl n X hj x e c bt g0.ino hA (crashOkA_mono hn hcr) hcl
           hx hw hbtX hwal hc hi)
-  · exact crashOkA_mono hn (hk.2 dir' d' lay' hd' hl' (fun h => he (Option.some.inj h).symm))
+  · exact crashOkA_mono hn (hk.2.1 dir' d' lay' hd' hl' (fun h => he (Option.some.inj h).symm))
 
 end pure
 
