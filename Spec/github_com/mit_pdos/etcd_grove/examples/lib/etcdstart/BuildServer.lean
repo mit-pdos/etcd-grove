@@ -27,7 +27,11 @@ could give). (Restart S7.4, 2026-11-14, decided by etcd-grove-81, option (i)) An
 restart-only rows at every image's witnesses (`□ ∀ A σ, srvRestartRows γ id A σ`: the image's `A σ`
 are known only inside the proof): a one-member cluster discharges it (`srvRestartRows_single`,
 `restart1`'s proof, so that `etcd_restart1_safe` does not carry it); restart3's draft carries it as its
-open row, which R2s-A (route B, `notes/restart-s7-p2a.md`) removes.
+open row, which R2s-A (route B, `notes/restart-s7-p2a.md`) removes. (Restart S7.4, 2026-11-14,
+approved by etcd-grove-81) And `ETCD_VERIFY` off (`envVerifyOff`, `NewServer.specR`'s `#Hvoff`):
+persistent, the same world assumption (`verifyEnvOff`) the closed theorems already take at program
+start; a first start's comes in its fresh bundle (`memberFreshRes_verify`), and a driver keeps it from
+there for the restart (the restart bundle, what a stop gives back, has none).
 -/
 module
 
@@ -122,6 +126,8 @@ abbrev BuildServer.specRestart : Prop :=
       memberRestartRes name {} γn γ ρ id ∗ netHttpOk γn id ∗
       -- (restart S7.4, P4-a) the cluster's persistent facts at the stopped names
       memberRestartFacts γ ρ id ∗
+      -- (restart S7.4, 2026-11-14, approved by etcd-grove-81) `ETCD_VERIFY` off for the run
+      envVerifyOff ∗
       -- (restart S7.4, 2026-11-14, decided by etcd-grove-81) `NewServer.specR`'s restart-only rows,
       -- at every image's witnesses
       □ (∀ A σ, srvRestartRows γ id A σ) }}

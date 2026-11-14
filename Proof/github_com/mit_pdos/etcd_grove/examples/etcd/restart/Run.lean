@@ -256,6 +256,8 @@ theorem Run.wp_proof
   -- (restart S7.4) the cluster's persistent facts at members 2's and 3's names, for their restarts
   icases etcdstart.memberBoot_restartFacts _ _ _ _ _ _ $$ Hmb₂ with ⟨#Hrfs₂, Hmb₂⟩
   icases etcdstart.memberBoot_restartFacts _ _ _ _ _ _ $$ Hmb₃ with ⟨#Hrfs₃, Hmb₃⟩
+  -- (restart S7.4) `ETCD_VERIFY` off, kept from member 2's fresh bundle for the restarts
+  icases etcdstart.memberFreshRes_verify _ _ _ $$ Hfr₂ with ⟨#Hvoff, Hfr₂⟩
   ihave #Hrows₂ := hRows { γ with reg := reg₂ } id₂
   ihave #Hrows₃ := hRows { γ with reg := reg₃ } id₃
   obtain ⟨hn12, hn13, hn23⟩ := etcdstart.id_ne id₁ id₂ id₃ Hbf.idLow Hbf.idLow0

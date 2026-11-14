@@ -76,6 +76,8 @@ abbrev restartCheck.spec : Prop :=
       context.isClosedchanInit ∗ netHttpOk γn id ∗
       -- (restart S7.4, P4-a) the cluster's persistent facts at the stopped names
       etcdstart.memberRestartFacts γ ρ id ∗
+      -- (restart S7.4, `BuildServer.specRestart`'s) `ETCD_VERIFY` off for the run
+      envVerifyOff ∗
       -- (restart S7.4) the restart-only rows: restart3's open row (R2s-A removes it)
       □ (∀ A σ, srvRestartRows γ id A σ) }}
     (App (App (App (App (App (App (App (App
