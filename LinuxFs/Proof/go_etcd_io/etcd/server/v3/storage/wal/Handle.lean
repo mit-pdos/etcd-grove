@@ -325,10 +325,12 @@ def walHandleIn (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h
 
 /-- **`w` is the WAL opened in `dir`, ready to append, its history `H`** (the specs' handle;
 sealed): quiescent (`WalHS.Done`). The history is the program's copy's (`walDiskAt dir d` has `d.H = H`, the update of
-`Save` moves both). -/
+`Save` moves both). The metadata below `2 ^ 41` bytes (`cut`'s header records, `cut.spec`'s `2 ^ 42` with
+`walAreaOk`'s bound on the hard state's encoding; ledger 2026-11-14): fixed at `Create`, whose premise it is
+(the server's metadata is a small protobuf), and the same for every handle of the WAL (`ReadAll`'s). -/
 @[no_expose] def walOpenWF (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) :
     IProp GF :=
-  iprop(∃ h : WalHS, walHandleIn (W := W) P Mr w dir h ∗ ⌜h.Done⌝ ∗ ⧗ h.pc)
+  iprop(∃ h : WalHS, walHandleIn (W := W) P Mr w dir h ∗ ⌜h.Done⌝ ∗ ⌜h.md.length < 2 ^ 41⌝ ∗ ⧗ h.pc)
 
 /-- **The cuts budget** (`notes/bounds-plan.md`: the counter's owner turns the global receipt bound into
 its bound): with the area's `ReceiptBoundLe GF (2 ^ 62)`, `⧗ (pc + 1)` (the handle's `⧗ pc` and the receipt
@@ -338,7 +340,7 @@ theorem walPc_bound (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r :
     ⊢@{IProp GF} walAreaOk C Mr R jr r -∗ ⧗ (n + 1) -∗ ⌜n + 2 < 2 ^ 63⌝ := by
   iintro #Harea Hr
   unfold walAreaOk
-  icases Harea with ⟨-, -, -, %hb⟩
+  icases Harea with ⟨-, -, -, %hb, -⟩
   ihave %hl := receipt_lt (n + 1) $$ Hr
   ipureintro
   have := hb.receiptBound_le

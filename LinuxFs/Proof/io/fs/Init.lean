@@ -3,7 +3,7 @@ Package initialization of `io.fs`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
 Its fact (`Proof/os/PkgInit.lean`): its five error variables, which `os`'s initializer
-copies, hold some error for good. Its initializer copies internal/oserror's errors into them
+copies, hold some error for good, `ErrExist` a non-nil one (the part only). Its initializer copies internal/oserror's errors into them
 (`errInvalid()`, ...) and makes `SkipDir` and `SkipAll` (`errors.New`).
 -/
 module

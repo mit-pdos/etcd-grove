@@ -2289,6 +2289,52 @@ success arm (next: `walName(0,0)`/`Join`, `createNewWALFile`).
   with an error), its `renameWALUnlock` (`Close`, `Open`, `ReadAll`) a hypothesis; then `Create` after it is the
   parent fsync (`walInv_named`), the merge back (`walInv_merge2`, `b1 := nm ++ "a"`) and `area_give`.
 
+**Twelfth session (branch `wal-create12`, 2026-11-14).** `Create` continued past `CreateDirAll`: frontier `sorry`
+now at `f.Seek(0, io.SeekEnd)` (after `createNewWALFile`'s success).
+- *Done (no `sorry`):* `walName(0, 0)`/`Join` (`p = child (child r nm.tmp) (walFileName 0 0)`); `createNewWALFile(p,
+  false)` over `CreateSeg.lean`'s **`wp_createSeg`** (the `OpenTriple` over `os.OpenFile.specCreateSnc`, trivial
+  update, as `PipeLemmas.wp_createTmp`; `walOpenFlag_create`), with `J`'s claim split at the segment's name
+  (`osNames_split` + `osNames_rekey` to `.only [b]`) and the spine to `nm.tmp` (`os.qp_common`, `osPathS_child`,
+  `os.osPathS_unchild` after); its error arm proved to the abort (`segClaim_back`/`filesOnly_merge`: the segment's
+  claim merged back into `J`'s, files only, so `tmpDirH` again; the deferred `RemoveAll`; `create_abortTmp`).
+  `Create.lean` is now at `HeapGS HasLC.hasLC` (the handle's).
+- *`hErrExist` dropped* (task 4): the part's `io/fs` fact records `ErrExist` non-nil and the part's `os` fact
+  records `os.ErrExist` (`LinuxFs/Proof/os/PkgInit.lean`; `etc/gen-init.py`'s `LFS_SPECIAL['io.fs']`/`['os']`,
+  variants of the main tree's, which is unchanged; `--check` passes). Read in `Create` by `isPkgInit_access`.
+- *`Create.spec` returns `walOpenWF P Mr`* (task 3; ledger entry 2026-11-14): binders `P Mr`, `walAreaOk walCodec Mr`,
+  `HasLC.hasLC`; success `Q ∗ walOpenWF ∗ walNamed ∗ walLenLb 0 ∗ walSyncedLb 0 ∗ walPurgeW` (the call permission's
+  half inside the handle's `walDirH`). No new client-visible ghost state.
+- *`renameWAL` stated* (task 1): `Spec/.../wal/WAL__renameWAL.lean` (`renameWAL.spec P Mr`, `RenameWALOk`,
+  `renameWALPost`), generic in the rename's update `U` (`Create`'s is `walCreate_osAUnc`'s, `U := walCreateQ`; an
+  aborted `U none` must rebuild the update, for the retry), four post arms (committed with `w`'s pipeline and
+  directory fd; committed with a reopened client handle, from `renameWALUnlock`; not committed; committed with an
+  error). `WAL__renameWALUnlock.lean`: its retry, same vocabulary and post, a hypothesis of `renameWAL`'s proof.
+  `Proof/.../WAL__renameWAL.lean`: `sorry` stub over its callees (`specAbsentN`, `Rename.specDirSnc`,
+  `newFilePipeline`, `OpenDir`, `renameWALUnlock`). `Create.wp_proof` takes `renameWAL.spec` (unused yet).
+- **Finding G-spine (for the invariant's owner; blocks `renameWAL` and every `walDirH` producer):** no
+  `osPathS R dir dq J` to a WAL directory can be built. `osSpine` is made of fractions of `.only [c]` claims, but
+  `nm` is only ever in the creating claim `.only [nm, nm.tmp]` (half `walInv`'s) and, merged back, in the cofinite
+  area claim (half `walInv`'s); `osPathS_child` needs a `.only [nm]` fraction. `newFilePipeline` (`pipeRes`),
+  `OpenDir(w.dir)` and `walDirH` all need one. `renameWAL.spec` takes it as a caller-supplied law (`Sp`/`SpR`,
+  `RenameWALOk`'s third conjunct), which nothing supplies. Possible fix: each WAL name's `.only [nm]` claim kept
+  apart from the area claim (split at creation, half in `walInv`, fractions of the program's half for spines;
+  `WalsCreateOk` restated), or a spine through a fraction of any claim holding the name (an `Fs` change; but a
+  fraction held by a spine pins the area claim, which the next `Create` must change).
+- **Finding (renameWALUnlock):** `os.Rename`'s errors are all `*os.LinkError`, so every failed rename takes
+  `renameWALUnlock`, whose `w.Close()` reaches `w.dirFile.Close()` with a nil `dirFile` (`ErrInvalid` in Go, stuck
+  in the trusted model: plan §0 item 6); and its `Open`/`ReadAll` need `walAreaRes`, split up by `Create` then. Its
+  spec is a hypothesis until the model handles a nil `*os.File`'s `Close`.
+- *Next:* `f.Seek(0, io.SeekEnd)` is a promoted method of `*fileutil.LockedFile` (`methods (ptr LockedFile) "Seek"
+  lf`): needs a lemma unfolding it to the embedded `*os.File`'s (`os.File.Seek.wp_end`, size 0 after the create);
+  the deferred `f.Close()` likewise (`LockedFile`'s `Close`). Then `Preallocate` (`PreallocateAu`/`preallocExtend`
+  specs), `newFileEncoder`, the encoder's records and `SaveSnapshot.specPre`, `syncDir(nm.tmp)` (proved), the
+  minting (`walInv_mint`, after `J`'s `.except walTmps` + `walTmpsRes J` split), `renameWAL` (blocked on G-spine),
+  the parent fsync (`walInv_named`), `walInv_merge2`, `area_give`, the handle (`walOpenWF_iff`, `⧗ 0`).
+- *`Create.wp_proof`'s hypotheses now:* `wal.Exist.specCreate`, `fileutil.Exist.spec`, `filepath.Clean.spec`,
+  `os.RemoveAll.specAbsentS`/`specDirS`, `fileutil.CreateDirAll.specTmp`, zap `String`/`Error`/`Warn`,
+  `fmt.SprintfWalName.spec`, `filepath.Join.spec`, `createNewWALFile.specLocked`, `os.OpenFile.specCreateSnc`,
+  `WAL.renameWAL.spec`.
+
 **For `wal-create6` (the invariant's owner, 2026-11-13).** (1) `walAreaRes jr` gains `⌜∀ nm J, walNameOk nm →
 h.cur !! tmpName nm = some (.dir J) → ∀ hJ, (J, NameSet.except [], hJ) ∈ cl → FilesOnly hJ.cur⌝` (a leftover
 `nm.tmp` holds only files; `CreateDefs.lean`, importing `LinuxFs.Spec.os.RemoveAll`), for `os.RemoveAll.specDirS`
@@ -2777,6 +2823,55 @@ budget, `walpb.Snapshot`'s wire format.**
   metadata of the ledger's 2026-11-14 entry));
   (3) `SaveSnapshot` over `SaveSnapshotPre`-style steps and the commit; (4) the past-size writes once `wal-tc2`'s
   window continuation lands, then `saveEntry`/`saveState`/`sync.wp_proof`.
+
+**W6, eleventh session (branch `wal-save11`, 2026-11-14): the append's commit; the marshaller's law; the metadata's
+bound.**
+- *The append's commit, `Save`'s and `SaveSnapshot`'s shared step, proved (no `sorry`)*: `AppendPure.lean` (pure:
+  `walAppS s dir d o`, the WAL state with `o` appended; `walsOk_append` (`walAbsD_snoc` with F-Z from the tail record,
+  `crashOk_snoc`: no cut pending, so no alternative layout), `dirKeysOk_append` (any pending cut), `absentNone_append`,
+  `dirsAvoid_append`, `tailBound_snoc`, `absLe_append`, `walKeysInArea_append`, `walDurLe_append`); `Append.lean`:
+  `walTailsRes_append` (both halves of the tail record moved to `H ++ [o]`), `walInvBody_append` (the program's map
+  `walOwn` moved with the state, `walGhost_upd`), **`walTail_append`** (at an update of mask `⊤`, before any step of the
+  call, `wp_notCrashed_acc`: `walInv` opened with `notCrashed`, the client's update at `walAuMask` committed through
+  `atomic_update_mask_weaken`; out: `Q d` with `d.H` the handle's history, `walLenLb w dir (|H| + 1)`, and the static
+  relation's cut facts `walCutPos`/`Pairwise`, i.e. `cut.spec`'s premises); its fit premise is a function (the WAL's
+  records fitting, so do they with `o`'s), so the caller needs only `o`'s records' fit. `HandleAppend.lean`:
+  **`walHandleIn_append`** (a quiescent handle, `rest = 0`: the handle at `{h with H := H ++ [o], rest := |opDs o|}`,
+  its CRC and stream split unchanged, `WalHS.encRecs_snoc`/`crc_snoc`/`split_snoc`; premises: `∀ c, RecsFit walCodec
+  (chainRecs walCodec c (opDs Mr o.toM))` and the new history's index facts, `saveOp_idx` for a `Save`).
+  `SaveSnapshot` cannot use the handle form (its `w.snapi` is raised after the encode, so the handle's
+  `walMaxSnapIdx ≤ snapi` fails in between): its proof uses `walTail_append` on the unsealed handle's pieces.
+- *The marshaller's law (decided, ledger 2026-11-14)*: `walAreaOk`'s last conjunct `⌜∀ hs, (Mr.encState hs).length <
+  2^32⌝` (`walAreaOk_encState`); patterns repaired (`walPc_bound`, `Create.lean`'s `⟨…, %hrb, -⟩`).
+- *The metadata's bound*: in the sealed client handle, `walOpenWF := ∃ h, walHandleIn h ∗ ⌜h.Done⌝ ∗ ⌜h.md.length <
+  2^41⌝ ∗ ⧗ h.pc` (`walOpenWF_iff`, `Sync` repaired), not in `walHandleIn` (no internal spec changes; `md` never
+  moves, so `Save` keeps the fact in its context). **Obligations**: `Create` (when it returns `walOpenWF`) takes
+  `md.length < 2^41`; `ReadAll` needs the invariant to keep `d.metadata.length < 2^41` (from `Create`'s commit).
+  `h.cuts.Pairwise` is not carried: `walTail_append` returns it.
+- *Spec defect (ledger 2026-11-14, pending)*: nothing bounds the records' size (`Mr.encEntry e`, `Mr.encSnap md`), which
+  the commit needs (`WalAbsD.fit`, `2^56`) and the encoder needs (`2^47`): proposed premises of `Save`/`SaveSnapshot`.
+- *Records' size (minor fix, ledger 2026-11-14)*: `Save` takes `∀ e ∈ es, (Mr.encEntry e).length < 2^40`,
+  `SaveSnapshot` `(Mr.encSnap md).length < 2^40`; `saveOp_fit` (over `recsFit_chainRecs_small`, `recSize_le`)
+  gives the append's fit premise for a `Save`.
+- *`Save.wp_proof` started* (`WAL__Save.lean`): the commit at the call's first step (`wp_notCrashed_acc`,
+  `walHandleIn_append` with `saveOp_fit`/`saveOp_idx`), then **`sorry`** (the body). What the body needs, in order:
+  (1) `wp_with_defer`, `sync.Mutex.wp_Lock` on `w.mu` (`walHandleIn`'s `isMutex … True`; `import all` of `Handle`
+  to reach it, then fold back before each callee); (2) the shortcut (`WalPbIn.IsEmptyLaw`, `WAL__cutPre.lean`'s,
+  as a hypothesis; `len(ents) = 0`): `walOpenWF` back at `H ++ [save hs []]` (`rest = 0`; `Done` needs `walLastHS`
+  of an empty save unchanged, a small lemma), `Hlb`, `Q d`, `walMustSync` vacuous; (3) `st == nil`/`w.state == nil`
+  → `&raftpb.HardState{}`: a law of `P` (a fresh zero `HardState` holds `hsZero`; `P.hsIn null hs → hs = hsZero`),
+  a new hypothesis; (4) `raft.MustSync` over `P.hsIn` (a new law, `MustSync(st, prev, n) = (n ≠ 0 ∨ vote/term
+  differ)`, which with `Done`'s `st = walLastHS H` is `walMustSync` off the shortcut); (5) the entries loop
+  (invariant: the handle at `rest = |opDs| - i`, `enti` the last saved entry's index; `saveEntry`'s record premise
+  from `tailRecs_snoc`/`chainRecs`, its `rest = 1` index premise from `walLastIdx` of the new history); (6)
+  `saveState`; `w.tail().Seek(0, SeekCurrent)` (`wp_tail`, `os.File.Seek.wp_cur` on `walTailW`'s offset, as
+  `cut`'s step 1) against `SegmentSizeBytes`; then `sync` if `mustSync` (`sync.spec`, blocked on writes past the
+  size only through its own proof) or `cut` (premises: `walPc_bound` with a step's receipt, `hcp` for the cuts,
+  `walCutPos` of `|H ++ [o]|` since the save wrote a record, `hmd` and `walAreaOk_encState` for `2^42`); (7) the
+  deferred `Unlock`. `saveEntry`/`saveState` stay `sorry` (the tail writer's guard `tailOk` still has the size
+  clause: writes past the size wait for `wal-tc2`'s window continuation).
+- *Not done*: `saveEntry`, `saveState`, the body of `Save`, `SaveSnapshot` (its commit is `walTail_append` on the
+  unsealed handle: `w.snapi` is raised after the encode).
 
 ## W3/W5 implementation log (branch `wal-read`, 2026-11-13)
 
