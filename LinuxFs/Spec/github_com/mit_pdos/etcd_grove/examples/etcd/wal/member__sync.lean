@@ -35,7 +35,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.wal.Assumpt
 
 /-- See the file header. -/
 abbrev member.sync.spec : Prop :=
-  ∀ (W : WalGS GF) (e : TEnv) (γ : TGS) (m w : Loc) (v : oracle) (o : TOracle) (c : TCand) (d : WalDur)
+  ∀ (W : WalGS GF) (e : TEnv) (γ : TGS) (m w : Loc) (v : oracle) (o os : TOracle) (c : TCand) (d : WalDur)
     (qc : Qp),
   e.orFile.Ok → tMemOk o c d → tOrSmall (tSynced o) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.wal ∗
@@ -43,7 +43,7 @@ abbrev member.sync.spec : Prop :=
       DurFs.durInv (GF := GF) γ.γd e.orFile ∗ DurFs.durHandle (GF := GF) γ.γd e.orFile e.R ∗
       osCallPerm (GF := GF) qc ∗
       m.[member, go!"orPath"] ↦ tOrPath e.root ∗ m.[member, go!"w"] ↦ w ∗ m.[member, go!"o"] ↦ v ∗
-      oracleRep v o ∗ tOrOwn γ o none ∗ tWalOwn γ (some d) ∗
+      oracleRep v o ∗ tOrOwn γ os none ∗ tWalOwn γ (some d) ∗
       WalFs.walAreaOk (W := W) walCodec walRaftMr e.R e.jr (tArea e.root) ∗
       walOpenWF (W := W) (walRaftP (GF := GF)) walRaftMr w (tWalDir e.root) ∗
       WalFs.walLenLb (W := W) w (tWalDir e.root) d.H.length ∗ WalFs.walNamed (W := W) (tWalDir e.root) }}
@@ -55,7 +55,7 @@ abbrev member.sync.spec : Prop :=
         walOpenWF (W := W) (walRaftP (GF := GF)) walRaftMr w (tWalDir e.root) ∗
         WalFs.walLenLb (W := W) w (tWalDir e.root) d.H.length ∗
         WalFs.walSyncedLb (W := W) (tWalDir e.root) d.H.length
-      else oracleRep v' o ∗ tOrOwn γ o none }}
+      else oracleRep v' o ∗ tOrOwn γ os none }}
 
 end spec
 

@@ -89,7 +89,7 @@ theorem member.close.wp_proof
     (wp_Close : ∀ W : WalGS GF,
       go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.spec (W := W) (walRaftP (GF := GF)) walRaftMr) :
     member.close.spec (GF := GF) (hG := hG) := by
-  intro W e γ m w v o c d qc hf hok hsm
+  intro W e γ m w v o os c d qc hf hok hsm
   wp_start as ⟨#Hos, #Hsi, #Hinv, #Hdi, Hh, Hperm, Hpath, Hw, Hov, Hrep, Ho, Hwo, #Harea, Hwf,
     Hpw, #Hnm⟩
   wp_auto
@@ -114,7 +114,7 @@ theorem member.close.wp_proof
     · isplitl []
       · iexact Hsl
       · iexact Hnm
-    wp_apply (wp_store W e γ _ o (tSynced o) (some d1) qc hf hsm) $$ [Hh Hperm Hrep Ho Hwo]
+    wp_apply (wp_store W e γ _ os (tSynced o) (some d1) qc hf hsm) $$ [Hh Hperm Hrep Ho Hwo]
       as ⟨Hh, Hperm, Hrep, Ho, Hwo⟩
     · iframe; iframe #
     iapply HΦ

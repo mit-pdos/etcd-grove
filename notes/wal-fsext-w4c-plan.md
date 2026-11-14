@@ -789,3 +789,61 @@ trusted changed, no Go changed.
   tester's `restartRead` calls `w.Close()` there), `Boot`. `sync`/`close` still take `tOrOwn γ o none` at the
   program's own oracle: after a `save` the caller has only `∃ os`; generalize their premise to any `os` (their
   proofs pass it to `storeOracle`, which takes any) when the member's step is assembled.
+
+**Fourth session (branch `wal-u5d`, 2026-11-14): the decoder's failed-`Unmarshal` arm keeps the streams;
+`WAL.Close.specFailed` stated, its proof blocked on two invariant steps (below); `member.sync`/`close` over any
+stored oracle.** No axiom, no `sorry`, nothing trusted changed, no Go changed. Tasks 1 (partly) and 2 done; task 3
+(`restartRead`/`restart`, `Boot`, `saveSnap`) not started.
+
+- **Decoder (ledger 2026-11-14, "the failed-`Unmarshal` arm loses the files' streams": adopted).** `decPostB`'s
+  `GoFail` arm now holds `[∗list] F ∈ fs.take k, ∃ q, F.S q` as the I/O arm does (`DecDefs.lean`; `decPost_fail`
+  with `k = 0`, `decPost_cons_eof` frames the left file, `DecLemmas.lean`); its users drop it (`VseAttemptLemmas`,
+  `RepairLoop`, `ReadAll`, `validSnapshotEntriesPinned`: their patterns' `-`). So every `ReadAll` exit before the
+  tail's zeroing holds every file's stream (`Hleft` plus the decoder's, live or dead: `ownDecoder_streams`).
+- **`member.sync`/`member.close`** take `tOrOwn γ os none` for any `os` (the false arm returns it; the proofs pass it
+  to `storeOracle`). Task 2 done; no other importer.
+- **`WAL.Close.specFailed`, stated** (`Sp/WAL__CloseFailed.lean`; not proved, not in the Link): `{isPkgInit wal ∗
+  walAreaOk ∗ walReadFailedF w dir} w.Close() {err; walUnlockedTok ∗ osCallPerm ½}` (as `specOpening`'s post, any
+  `err`). `restartRead` (task 3) is to be proved over it as a callee hypothesis.
+- **`ReadAll`'s error exits (ten `readAll_failWpQ` sites, not seven) and what each holds** (`S/WAL__ReadAll.lean`).
+  The tail is registered at the look before the loop (`walInv_readCommitReg`), so every exit has it registered:
+  - E1-E4, the loop's arms (CRC mismatch, `ErrSliceOutOfRange`, `ErrSnapshotMismatch`, unexpected type) and E5,
+    the decoder's error at the mode check (`io.ErrUnexpectedEOF` of a torn tail: the exit the tester's `Repair`
+    loop exists for): the tail **registered, not yet zeroed** (`walTailsFrag {dir ↦ γt}`, `walPendTok dir γt |old|`,
+    `ghostVar γt ½ (tailG d0 lay gl.ino none)`), every file's stream with its halves, the out-record
+    (`walOutFrag`), `walNamesFrag none`, the directory claim's half, the pipeline, the locks, `dirFile`; the name
+    claim's fraction (`Hnw`, droppable).
+  - E6 (`ZeroToEnd`'s error), E7 (the fdatasync's): the tail's file, fd, offset, halves, lent token and record
+    **lost** by `ZeroToEnd.specWalTail`'s and `Fdatasync.specWalPend`'s error arms (`⌜err ≠ nil⌝` only;
+    `ZeroToEnd.specAu`'s error arm returns them all, `ZteWalTail.lean` drops them).
+  - E8 (`Fsync(w.dirFile)`'s error), E9 (`syncDir`'s): the tail as `walTailW … TailMeta` (key held, zeroed and
+    synced, the halves not `TailMetaS`), the other files' streams.
+  - E10 (`!match`): as E8, then the code runs on: `w.encoder` an encoder over the tail (empty buffer), `w.decoder`
+    nil.
+- **Why `Close.specFailed` is not proved** (for the coordinator):
+  - (B1) **No law unregisters a tail registered, not yet zeroed** (E1-E5). Needed: the lent registry's pending
+    entry deleted with `T`'s (a `walLentRes_unregPend`: `IdleZ0` from the registered map's `TailZ0 lay`; the other
+    entries' `LentOk` unchanged) and `WalTailIdle` for the WAL again: `TailIdle d lay` of the invariant's *current*
+    layout, which the record pins only through `(H, md, cuts, wr, ino)`. As in `walInvBody_untail` it follows from
+    the halves' agreement given `TailMetaS` of the program's halves; they are (the tail was idle at the registration:
+    `TailExact`, `TailSynced`), but `walInv_readCommitReg` exports only `TailMetaR gl.om gl.bs`. So: export
+    `TailMetaS gl.om gl.bs` from `walInvBody_readReg`/`walInv_readCommitReg`, then a `walInvBody_unregPend`
+    (`walInvBody_untail` with the pending token for the key). Internal, about two modules; not made.
+  - (B2) **E6/E7 lose the tail** in their callee specs, and even returned it is in a resize window (a failed
+    truncate/fallocate) or after a failed sync; no law puts back a tail in a window (the same gap as `Repair`'s
+    truncate/fsync failure arms, W7-W12 log, twelfth session), and `Close`'s fdatasync of it would need a window-form
+    fdatasync spec. Options: (a) the two error arms return the tail (`walTailP` with a weak `tm`, the offset
+    unknown) and the invariant gets a window put-back (tc-track work); (b) `Close.specFailed`'s post loses the token
+    after such an exit, as `Repair.spec`'s false arm may (ledger) — then the tester's `restartRead` cannot call
+    `Repair` after `Close` returns `nil` there: a tester mismatch. **Coordinator's choice; (a) recommended.**
+  - (B3) E8-E10 need the append-mode path: `w.sync()` of a `walTailW` tail (`WAL.sync.specC`'s form; E10 flushes the
+    empty encoder) for `TailMetaS` (`TailMetaS.of_sync`), then `walInvBody_untail` and `walInvBody_unpin` of every
+    segment (the non-tail halves are still out: not `walCloseLaw`'s give-back state). No new law; a second branch
+    of the proof.
+  - Plan once B1/B2 are decided: `walReadFailedF`'s body a disjunction of the pending form (E1-E5, the streams, the
+    pending registration; or unregistered at the exit by B1, making it `walReadH`'s minus `walOpening`) and the
+    registered form (E8-E10, and E6/E7 under (a)); `Close.wp_proofFailed` as `wp_proofOpening` (pipeline, sync,
+    locks) with the real `dirFile` `Close` (`os.File.Close.spec` on `Hdf`); the ten exits supply the body in place of
+    `lg`/`dir` only.
+- **Next:** decide B2; make B1 (export + `walInvBody_unregPend`); `walReadFailedF`'s body and the ten exits;
+  `Close.wp_proofFailed` (B3's branch too); then task 3 (`restartRead` over `Close.specFailed`).

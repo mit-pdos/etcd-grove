@@ -1600,3 +1600,36 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `specOpening` takes the quarter of `walOpeningF`); the client recombines with `osCallPerm_halfJoin`
   (`Pipe.lean`). Every error arm unchanged (`Create`'s after-rename arm `Q ∗ osCallPerm ½`). The tester's
   `member.close.spec` returns `Close`'s `osCallPerm ½`.
+
+## 2026-11-14: `decoder.Decode.spec`/`decodeRecord.spec` (internal, the part's) -- the failed-`Unmarshal` arm loses the files' streams (W4c U5, fourth session)
+
+- **Spec.** `decPostB`'s third arm (`GoFail`, `LinuxFs/Proof/.../wal/DecDefs.lean`): `∃ k s off' c', ⌜GoFail … ∧
+  stopErr …⌝ ∗ ownDecoder d IoE eof (fs.drop k) off' c' false`.
+- **Defect.** The streams of the `k` files the decoder left before the frame `proto.Unmarshal` rejected are dropped
+  (`decPost_cons_eof` frames them away), as the I/O arm's were before the entry above. `Close` of the handle a failed
+  `ReadAll` leaves (`WAL.Close.specFailed`, this session) closes every file (`l.Close()`, `os.File.Close.spec`: the
+  file's `os.ownFile`/`osFd`, in its stream `walFileS`) and puts the segments' halves back (`walInvBody_unpin`), so
+  `ReadAll`'s decoder-error exit must keep every file's stream.
+- **Evidence.** `decPost_cons_eof`'s third case (`DecLemmas.lean`): `HF` unused.
+- **Proposed change.** The arm as the other two: `∃ k s off' c', ([∗list] F ∈ fs.take k, ∃ q, F.S q) ∗ ⌜…⌝ ∗
+  ownDecoder d IoE eof (fs.drop k) off' c' false` (`decPost_fail` with `k = 0`, `decPost_cons_eof` adds one).
+  Implies the old arm (its users drop the new conjunct).
+- **Decision.** Adopted (internal, the agent's; the same change as the I/O arm's, already adopted).
+
+## 2026-11-14: `ZeroToEnd.specWalTail`/`Fdatasync.specWalPend` (internal, the part's) -- the error arms lose the tail (W4c U5, fourth session)
+
+- **Spec.** `LinuxFs/Spec/.../wal/ReadAllTailCallees.lean`: both posts' error arm is `⌜err ≠ nil⌝` (resp. `⌜e ≠
+  0⌝`) alone.
+- **Defect.** `ReadAll`'s two exits after these errors (S/wal.go, the `ZeroToEnd` and the fdatasync after it) leave a
+  handle whose `Close` (`WAL.Close.specFailed`, stated this session) runs `w.sync()`, i.e. `fileutil.Fdatasync` of the
+  tail, and closes its lock's file: it needs the tail's `os.ownFile`/`osFd` and halves, and the generation's lock
+  token comes back only if the tail can be put back into `walInv`. With the tail lost, `Close.specFailed` is
+  unprovable on those exits.
+- **Evidence.** `ZeroToEnd.wp_specWalTail` (`ZteWalTail.lean`): `ZeroToEnd.specAu`'s error arm returns the file, the
+  fd, the key and record (`growTie`), the `OsMeta` and the bytes past the offset; the proof drops them.
+- **Proposed change.** (a) The error arms return the tail (`∃ o' m' bs`, file, fd, offset `o'`, the lent token, the
+  halves, the record), with a law putting back a tail left in a resize window or after a failed fdatasync (none
+  exists: the same gap as `Repair`'s failure arms); or (b) leave them, and `Close.specFailed`'s post may lose the
+  lock token after these two exits (as `Repair.spec`'s `false` arm), which the tester's `restartRead` (it calls
+  `Repair` after a `nil` `Close`) cannot meet.
+- **Decision.** Open (the coordinator's; (a) recommended).
