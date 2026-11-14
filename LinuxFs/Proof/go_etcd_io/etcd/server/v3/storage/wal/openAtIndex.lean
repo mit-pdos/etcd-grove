@@ -448,7 +448,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       imodintro
       iframe Hnc
       wp_apply wp_pipe lg dir (W64 64000000) R (DFrac.own qd) lay.j (by decide) (by decide) (by omega)
-        (by decide) $$ [Hperm1 Hpd Ht0] as %fp ⟨%γ, #Hfp, Hmain⟩
+        (by decide) $$ [Hperm1 Hpd Ht0] as %fp ⟨%hfpn, %γ, #Hfp, Hmain⟩
       · iframe; iframe #
         unfold pipeRes
         iframe
@@ -492,7 +492,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       iexists γ, R, DFrac.own qd, W64 64000000, 0
       iframe
       iframe #
-      ipureintro; exact Nat.le_refl 0
+      isplitr
+      · ipureintro; exact Nat.le_refl 0
+      · ipureintro; exact hfpn
 
 end proof
 

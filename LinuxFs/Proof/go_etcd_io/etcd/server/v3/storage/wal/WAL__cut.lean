@@ -239,11 +239,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   try rw [h1pc]
   try rw [h1pend]
   iunfold walDirH at Hdh
-  icases Hdh with ⟨%Rd, %qd, %X, %hj, %nm0, %ph, #Hdk, Hcl, Hpd, #Hsid, Hperm, Hdfd, #Hnamed, Hout, %hdh⟩
+  icases Hdh with ⟨%Rd, %qd, %X, %hj, %nm0, %ph, #Hdk, Hcl, Hpd, #Hsid, Hperm, Hdfd, #Hnamed, Hout, Htf, Hnf, %hdh⟩
   obtain ⟨hnm0w, hnm0c, hname, htmps, hXw, ⟨sq, ix, hnm0, hsq0⟩, hlargest⟩ := hdh
   have hsq : sq + 1 < 2 ^ 64 := by omega
   iunfold walPipeH at Hpipe
-  icases Hpipe with ⟨%γp, %Rp, %dqp, %szp, %np, #Hisfp, Hmain, Hpc, %hnp⟩
+  icases Hpipe with ⟨%γp, %Rp, %dqp, %szp, %np, #Hisfp, Hmain, Hpc, %hnp, %hfpn⟩
   ihave #Hisfp' := Hisfp
   iunfold isFilePipe at Hisfp'
   icases Hisfp' with ⟨%plg, -, -, -, -, -, -, -, -, -, -, #Hos, -, #Hpkg, %hszp⟩
@@ -314,7 +314,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   · iunfold walPipeH
     iexists γp, Rp, dqp, szp, np
     iframe Hmain Hpc Hisfp
-    ipureintro; exact hnp
+    isplitr
+    · ipureintro; exact hnp
+    · ipureintro; exact hfpn
   wp_apply (wp_walPipeH_open _wp_Open fp dir j h.pc hcnt) $$ [$Hpipe] as %ntl %oerr Hop
   icases Hop with (⟨%he, %γp, %Rp, %dqp, %szp, %np, #Hisfp, Hmain, Hpf, %hnp⟩ | %he)
   rotate_left
@@ -864,13 +866,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     · ipureintro; exact ⟨hgmeta.1, htm, by omega, hfd3⟩
     iunfold tailVar at Hv
     iexact Hv
-  isplitl [Hdk Hcw Hpd Hsid Hperm Hdfd Hnamed Hout]
+  isplitl [Hdk Hcw Hpd Hsid Hperm Hdfd Hnamed Hout Htf Hnf]
   · iunfold walDirH
     iexists Rd, qd, X, (hj.log x (renFileEnt j (pipeTmp np) j bt g.ino hj s0) (<[bt := .file g.ino]> hj.cur)),
       bt, ph
     iframe Hdk Hcw Hpd Hsid Hperm Hdfd Hnamed
     rw [walOut_cut]
-    iframe Hout
+    iframe Hout Htf Hnf
     ipureintro
     exact ⟨hbtw, GMap.lookup_insert _ _ _, rfl, htmps, hXw, ⟨sq + 1, _, hbt.symm, by omega⟩,
       cutDir_largest g.ino hlargest hlt⟩
@@ -884,7 +886,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     iexists f, fd, name, ⟨h1.ino, rd, true⟩
     iframe Hltf Hf Hfdo
   isplitl [Hmain Htm1 Htm2]
-  · iapply walPipeH_next fp dir h.pc γp Rp dqp j szp np hnp
+  · iapply walPipeH_next fp dir h.pc γp Rp dqp j szp np hnp hfpn
     iframe Hisfp Hmain
     iapply tmpClaim_absent j (pipeTmp np)
       (ht.log x (renFileEnt j (pipeTmp np) j bt g.ino hj s0) (GMap.delete (pipeTmp np) ht.cur))
