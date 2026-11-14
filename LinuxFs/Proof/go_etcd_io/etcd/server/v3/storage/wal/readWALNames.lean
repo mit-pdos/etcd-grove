@@ -57,7 +57,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.readWALNames.wp_proof
   · iPkgInit
   ihave #Hi : (wal.walInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hi with ⟨-, -, -, -, -, Hfnf, -⟩
+  ihave Hfnf := wal.walInit_ErrFileNotFound $$ Hi
   iunfold wal.errVar at Hfnf
   icases Hfnf with ⟨%efnf, #Hfnf, #Hfok⟩
   wp_auto

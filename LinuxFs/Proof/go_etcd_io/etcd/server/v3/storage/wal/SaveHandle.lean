@@ -48,8 +48,7 @@ theorem walHandleIn_lockFacts (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir 
   icases Henv0 with ⟨-, -, #Hsync, -, -⟩
   ihave #Hwi : (wal.walInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hwpk
-  iunfold wal.walInit at Hwi
-  icases Hwi with ⟨-, -, #Hseg, -⟩
+  ihave #Hseg := wal.walInit_segSize $$ Hwi
   iframe Hmu Hsync Hseg
   iunfold walHandleIn
   iexists lg, df, sp, e, fp, lt, f, mds, locks, lfs, fd, dfd, name, dnm, j, rc

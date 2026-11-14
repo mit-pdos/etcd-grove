@@ -650,8 +650,9 @@ def _walMetric(x, spec):
 LFS_SPECIAL['go_etcd_io.etcd.server.v3.storage.wal'] = dict(
     doc='''Its fact (`walInit`, `PkgInit.lean`): `crcTable` holds the Castagnoli table (`walCrcTable`), the
 metrics `walFsyncSec`, `walWriteSec` (histograms) and `walWriteBytes` (a gauge) hold metrics whose
-`Observe`/`Add` return (`wal.metricsInit`), `SegmentSizeBytes` holds `64000000`, and every error
-variable an error whose `Error()` returns (`wal.errVar`), read-only for good. Its initializer
+`Observe`/`Add` return (`wal.metricsInit`), `SegmentSizeBytes` holds `64000000`, every error
+variable an error whose `Error()` returns (`wal.errVar`), and `openWALFilesFn` the function
+`openWALFiles`, read-only for good. Its initializer
 allocates its variables, initializes its imports and runs their initializers: the metrics'
 untranslated `prometheus` constructors (the trust-boundary axioms `<X>_init`, metrics.go), the
 translated `errors.New` calls, `ErrCRCMismatch = walpb.ErrCRCMismatch` (`walpbInit`), `crcTable =
@@ -675,7 +676,7 @@ says returns.''',
                           'wp_apply _root_.Perennial.EtcdGrove.hash.crc32.MakeTable.wp_proof as %tab #Htab',
                           'try wp_auto']),
     finish=[f'ipersist H{x}' for x in _WAL_ERRS + ['crcTable', 'SegmentSizeBytes', 'walFsyncSec',
-                                                    'walWriteSec', 'walWriteBytes']] +
+                                                    'walWriteSec', 'walWriteBytes', 'openWALFilesFn']] +
            [l for x, t in _WAL_NEW_ERRS for l in _walErrVar(x, t)] +
            ['ihave #VErrCRCMismatch : (EtcdGrove.wal.errVar ErrCRCMismatch : IProp GF) $$ []',
             '· unfold EtcdGrove.wal.errVar', '  iexists _', '  iframe HErrCRCMismatch HpbOk'] +

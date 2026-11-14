@@ -631,8 +631,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
           · -- `!match`: the handle failed; the rest of the code runs on what the program holds
             ihave #Hwi : (wal.walInit : IProp GF) $$ []
             · iapply isPkgInit_access $$ Hpkg
-            iunfold wal.walInit at Hwi
-            icases Hwi with ⟨-, -, -, -, -, -, -, -, #HeX, -⟩
+            ihave #HeX := wal.walInit_ErrSnapshotNotFound $$ Hwi
             iunfold wal.errVar at HeX
             icases HeX with ⟨%eX, #HeX, -⟩
             (try wp_auto)
@@ -1000,8 +999,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
               · -- `offset > len(ents)`: `ErrSliceOutOfRange`
                 ihave #Hwi : (wal.walInit : IProp GF) $$ []
                 · iapply isPkgInit_access $$ Hpkg
-                iunfold wal.walInit at Hwi
-                icases Hwi with ⟨-, -, -, -, -, -, -, -, -, #HeX, -⟩
+                ihave #HeX := wal.walInit_ErrSliceOutOfRange $$ Hwi
                 iunfold wal.errVar at HeX
                 icases HeX with ⟨%eX, #HeX, #HeXok⟩
                 (try wp_auto)
@@ -1236,8 +1234,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
               wp_apply hHs.reset stp st.hs $$ Hhs as Hhs
               ihave #Hwi : (wal.walInit : IProp GF) $$ []
               · iapply isPkgInit_access $$ Hpkg
-              iunfold wal.walInit at Hwi
-              icases Hwi with ⟨-, -, -, -, -, -, #HeX, -⟩
+              ihave #HeX := wal.walInit_ErrCRCMismatch $$ Hwi
               iunfold wal.errVar at HeX
               icases HeX with ⟨%eX, #HeX, -⟩
               wp_auto
@@ -1366,8 +1363,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
               wp_apply hHs.reset stp st.hs $$ Hhs as Hhs
               ihave #Hwi : (wal.walInit : IProp GF) $$ []
               · iapply isPkgInit_access $$ Hpkg
-              iunfold wal.walInit at Hwi
-              icases Hwi with ⟨-, -, -, -, -, -, -, #HeX, -⟩
+              ihave #HeX := wal.walInit_ErrSnapshotMismatch $$ Hwi
               iunfold wal.errVar at HeX
               icases HeX with ⟨%eX, #HeX, -⟩
               (try wp_auto)

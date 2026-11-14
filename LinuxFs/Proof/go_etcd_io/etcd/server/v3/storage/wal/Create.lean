@@ -526,8 +526,9 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     -- `fileutil.Preallocate(f.File, SegmentSizeBytes, true)`: the segment grown to 64 MB of zeros
     ihave #Hwi : (wal.walInit : IProp GF) $$ []
     · iapply isPkgInit_access $$ Hpkg
-    iunfold wal.walInit at Hwi
-    icases Hwi with ⟨#Hcrct, #Hmet, #Hseg, -⟩
+    ihave #Hcrct := wal.walInit_crcTable $$ Hwi
+    ihave #Hmet := wal.walInit_metrics $$ Hwi
+    ihave #Hseg := wal.walInit_segSize $$ Hwi
     try wp_auto
     have hwr : (openFd i (wal.walOpenFlag false ||| W64 524288)).writable = true := by
       simp only [openFd]; unfold wal.walOpenFlag O_RDONLY; decide

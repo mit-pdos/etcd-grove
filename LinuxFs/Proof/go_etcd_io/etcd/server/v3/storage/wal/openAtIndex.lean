@@ -164,7 +164,7 @@ theorem wal_encEnv :
     -, -⟩
   ihave #Hw : (wal.walInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hw with ⟨-, #Hm, -⟩
+  ihave #Hm := wal.walInit_metrics $$ Hw
   iunfold encEnv
   iframe #
 /-- `os`'s initialization, from the WAL package's. -/
@@ -578,7 +578,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       try wp_auto
       ihave #Hw2 : (wal.walInit : IProp GF) $$ []
       · iapply isPkgInit_access $$ Hpkg
-      icases Hw2 with ⟨-, -, #Hseg, -⟩
+      ihave #Hseg := wal.walInit_segSize $$ Hw2
       try wp_auto
       ihave ⟨Hperm1, Hperm2⟩ := osCallPerm_halves' $$ Hperm
       imod walTmpsRes_mem_except R lay.j X _ hj $$ Hsi Hj Ht with ⟨%hXt, Hj, Ht⟩

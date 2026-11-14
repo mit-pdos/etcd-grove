@@ -29,7 +29,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.parseWALName.wp_proof
   wp_start as #Hpkg
   ihave #Hi : (wal.walInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hi with ⟨-, -, -, Heb, -⟩
+  ihave Heb := wal.walInit_errBadWALName $$ Hi
   iunfold wal.errVar at Heb
   icases Heb with ⟨%eb, #Heb, -⟩
   wp_auto

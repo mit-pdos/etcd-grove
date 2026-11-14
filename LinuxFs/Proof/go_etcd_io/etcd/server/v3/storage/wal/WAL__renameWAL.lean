@@ -141,8 +141,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.wp_proof (P : WalPbI
   imodintro
   ihave #Hwi : (wal.walInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  iunfold wal.walInit at Hwi
-  icases Hwi with ⟨-, -, #Hseg, -⟩
+  ihave #Hseg := wal.walInit_segSize $$ Hwi
   icases walTmpsRes_split' J $$ Htmps with ⟨Ht0, Ht1⟩
   ihave Hperm : osCallPerm ((1 : Qp).half + (1 : Qp).half) $$ [Hperm]
   · rw [Qp.half_add_half]; iexact Hperm

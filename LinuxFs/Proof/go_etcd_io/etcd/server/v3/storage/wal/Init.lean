@@ -4,8 +4,9 @@ Package initialization of `go_etcd_io.etcd.server.v3.storage.wal`
 
 Its fact (`walInit`, `PkgInit.lean`): `crcTable` holds the Castagnoli table (`walCrcTable`), the
 metrics `walFsyncSec`, `walWriteSec` (histograms) and `walWriteBytes` (a gauge) hold metrics whose
-`Observe`/`Add` return (`wal.metricsInit`), `SegmentSizeBytes` holds `64000000`, and every error
-variable an error whose `Error()` returns (`wal.errVar`), read-only for good. Its initializer
+`Observe`/`Add` return (`wal.metricsInit`), `SegmentSizeBytes` holds `64000000`, every error
+variable an error whose `Error()` returns (`wal.errVar`), and `openWALFilesFn` the function
+`openWALFiles`, read-only for good. Its initializer
 allocates its variables, initializes its imports and runs their initializers: the metrics'
 untranslated `prometheus` constructors (the trust-boundary axioms `<X>_init`, metrics.go), the
 translated `errors.New` calls, `ErrCRCMismatch = walpb.ErrCRCMismatch` (`walpbInit`), `crcTable =
@@ -218,6 +219,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HwalFsyncSec
   ipersist HwalWriteSec
   ipersist HwalWriteBytes
+  ipersist HopenWALFilesFn
   ihave #VerrBadWALName : (EtcdGrove.wal.errVar errBadWALName : IProp GF) $$ []
   · unfold EtcdGrove.wal.errVar EtcdGrove.errOk
     iexists _

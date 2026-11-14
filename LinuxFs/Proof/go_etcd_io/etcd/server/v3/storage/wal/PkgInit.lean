@@ -12,8 +12,10 @@ specs read of its package variables, read-only for good.
   `ErrSnapshotNotFound`, `ErrSliceOutOfRange`, `ErrDecoderNotFound`) and `ErrCRCMismatch`
   (`walpb.ErrCRCMismatch`'s value, `walpbInit`). (Distinctness of the errors is not stated: no spec
   compares them yet.)
+* `openWALFilesFn = openWALFiles` (wal.go:57, a `var` only tests assign): the function
+  `openWALFiles` (`ValidSnapshotEntries` calls through it).
 
-`openWALFilesFn` (a function value) is not in it. Its `wp_initialize'`: `Init.lean` (`etc/gen-init.py`, `LFS_PKGS` and `LFS_SPECIAL`).
+Proofs read a part through its projection (`wal.walInit_<part>`), not by position. Its `wp_initialize'`: `Init.lean` (`etc/gen-init.py`, `LFS_PKGS` and `LFS_SPECIAL`).
 WAL package init, 2026-11-13.
 -/
 module
@@ -61,7 +63,73 @@ abbrev wal.walInit : IProp GF :=
     wal.errVar go_etcd_io.etcd.server.v3.storage.wal.ErrSnapshotMismatch ∗
     wal.errVar go_etcd_io.etcd.server.v3.storage.wal.ErrSnapshotNotFound ∗
     wal.errVar go_etcd_io.etcd.server.v3.storage.wal.ErrSliceOutOfRange ∗
-    wal.errVar go_etcd_io.etcd.server.v3.storage.wal.ErrDecoderNotFound)
+    wal.errVar go_etcd_io.etcd.server.v3.storage.wal.ErrDecoderNotFound ∗
+    globalAddr go_etcd_io.etcd.server.v3.storage.wal.openWALFilesFn ↦□
+      functions go_etcd_io.etcd.server.v3.storage.wal.openWALFiles [])
+
+/-! The fact's parts, by name (proofs use these, not `walInit`'s positions, so that a new
+conjunct breaks none of them). -/
+
+theorem wal.walInit_crcTable : wal.walInit (GF := GF) ⊢ WalFs.walCrcTable := by
+  unfold wal.walInit
+  iintro ⟨#H, -⟩
+  iexact H
+
+theorem wal.walInit_metrics : wal.walInit (GF := GF) ⊢ wal.metricsInit := by
+  unfold wal.walInit
+  iintro ⟨-, #H, -⟩
+  iexact H
+
+theorem wal.walInit_segSize : wal.walInit (GF := GF) ⊢ globalAddr go_etcd_io.etcd.server.v3.storage.wal.SegmentSizeBytes ↦□ (W64 64000000) := by
+  unfold wal.walInit
+  iintro ⟨-, -, #H, -⟩
+  iexact H
+
+theorem wal.walInit_errBadWALName : wal.walInit (GF := GF) ⊢ wal.errVar go_etcd_io.etcd.server.v3.storage.wal.errBadWALName := by
+  unfold wal.walInit
+  iintro ⟨-, -, -, #H, -⟩
+  iexact H
+
+theorem wal.walInit_ErrMetadataConflict : wal.walInit (GF := GF) ⊢ wal.errVar go_etcd_io.etcd.server.v3.storage.wal.ErrMetadataConflict := by
+  unfold wal.walInit
+  iintro ⟨-, -, -, -, #H, -⟩
+  iexact H
+
+theorem wal.walInit_ErrFileNotFound : wal.walInit (GF := GF) ⊢ wal.errVar go_etcd_io.etcd.server.v3.storage.wal.ErrFileNotFound := by
+  unfold wal.walInit
+  iintro ⟨-, -, -, -, -, #H, -⟩
+  iexact H
+
+theorem wal.walInit_ErrCRCMismatch : wal.walInit (GF := GF) ⊢ wal.errVar go_etcd_io.etcd.server.v3.storage.wal.ErrCRCMismatch := by
+  unfold wal.walInit
+  iintro ⟨-, -, -, -, -, -, #H, -⟩
+  iexact H
+
+theorem wal.walInit_ErrSnapshotMismatch : wal.walInit (GF := GF) ⊢ wal.errVar go_etcd_io.etcd.server.v3.storage.wal.ErrSnapshotMismatch := by
+  unfold wal.walInit
+  iintro ⟨-, -, -, -, -, -, -, #H, -⟩
+  iexact H
+
+theorem wal.walInit_ErrSnapshotNotFound : wal.walInit (GF := GF) ⊢ wal.errVar go_etcd_io.etcd.server.v3.storage.wal.ErrSnapshotNotFound := by
+  unfold wal.walInit
+  iintro ⟨-, -, -, -, -, -, -, -, #H, -⟩
+  iexact H
+
+theorem wal.walInit_ErrSliceOutOfRange : wal.walInit (GF := GF) ⊢ wal.errVar go_etcd_io.etcd.server.v3.storage.wal.ErrSliceOutOfRange := by
+  unfold wal.walInit
+  iintro ⟨-, -, -, -, -, -, -, -, -, #H, -⟩
+  iexact H
+
+theorem wal.walInit_ErrDecoderNotFound : wal.walInit (GF := GF) ⊢ wal.errVar go_etcd_io.etcd.server.v3.storage.wal.ErrDecoderNotFound := by
+  unfold wal.walInit
+  iintro ⟨-, -, -, -, -, -, -, -, -, -, #H, -⟩
+  iexact H
+
+theorem wal.walInit_openWALFilesFn : wal.walInit (GF := GF) ⊢ globalAddr go_etcd_io.etcd.server.v3.storage.wal.openWALFilesFn ↦□
+      functions go_etcd_io.etcd.server.v3.storage.wal.openWALFiles [] := by
+  unfold wal.walInit
+  iintro ⟨-, -, -, -, -, -, -, -, -, -, -, #H⟩
+  iexact H
 
 end EtcdGrove
 
