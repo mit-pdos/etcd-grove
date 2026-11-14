@@ -3,7 +3,7 @@ Package initialization of `io.fs`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
 Its fact (`Proof/os/PkgInit.lean`): its five error variables, which `os`'s initializer
-copies, hold some error for good, `ErrExist` a non-nil one (the part only). Its initializer copies internal/oserror's errors into them
+copies, hold some error for good, `ErrExist` a non-nil one, `ErrClosed` one `fmt` formats (the part only). Its initializer copies internal/oserror's errors into them
 (`errInvalid()`, ...) and makes `SkipDir` and `SkipAll` (`errors.New`).
 -/
 module
@@ -15,6 +15,7 @@ public import Perennial.Proof.io.Link
 public import Perennial.Proof.time.Link
 public import Perennial.Proof.internal.oserror.Link
 public import Perennial.Proof.errors.NewVar
+public import Proof.errors.ErrorStringOk
 public import LinuxFs.Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -106,6 +107,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HErrClosed
   wp_apply _root_.Perennial.errors.wp_New_errorString as %xSD #ESD
   wp_apply _root_.Perennial.errors.wp_New_errorString as %xSA #ESA
+  ihave #HClOk := EtcdGrove.errorString_fmtErrorOk xCl _ $$ ECl
   iframe Hown
   is_pkg_init_finish
 
