@@ -2392,7 +2392,12 @@ maps `W` (R7: also the queued batch's promises), the latter only as R9 allows. -
 def outMsgOk (γ : RaftNames) (id : w64) (s : PState) (πc : List Prom) (W : DurMaps)
     (m : Msg) : IProp GF :=
   iprop(isMessage γ m ∨
-    (□ (durFrags γ id W -∗ isMessage γ m)) ∗ ⌜m.dst ≠ id → OutPend id s πc⌝)
+    (□ (durFrags γ id W -∗ isMessage γ m)) ∗ ⌜m.dst ≠ id → OutPend id s πc⌝ ∗
+    -- (restart S7.3, 2026-11-14) a message waiting for the fragments is no snapshot (the
+    -- waiting ones are a follower's responses and a candidate's vote requests), so a snapshot's
+    -- destination fact (`snapDstOk`) is the outright message's, never behind the fragments
+    -- (`outMsgOk_snapDst`)
+    ⌜m.ty ≠ .snap⌝)
 
 instance outMsgOk_persistent (γ : RaftNames) (id : w64) (s : PState) (πc : List Prom)
     (W : DurMaps) (m : Msg) : Persistent (outMsgOk (GF := GF) γ id s πc W m) := by
@@ -2465,7 +2470,7 @@ theorem outMsgOk_mono (γ : RaftNames) (id : w64) (s s' : PState) (πc πc' : Li
     outMsgOk (GF := GF) γ id s πc W m ⊢ outMsgOk γ id s' πc' W' m := by
   intro Hle Hp
   unfold outMsgOk
-  iintro (#H | ⟨#H, %Hd⟩)
+  iintro (#H | ⟨#H, %Hd, %Hns⟩)
   · ileft; iexact H
   · iright
     isplitl
@@ -2473,7 +2478,7 @@ theorem outMsgOk_mono (γ : RaftNames) (id : w64) (s s' : PState) (πc πc' : Li
       iintro #Hf
       iapply H
       iapply durFrags_mono γ id W W' Hle $$ Hf
-    · ipureintro; exact fun h => Hp (Hd h)
+    · ipureintro; exact ⟨fun h => Hp (Hd h), Hns⟩
 
 /-- The same for the whole outbox. -/
 theorem outbox_mono (γ : RaftNames) (id : w64) (s s' : PState) (πc πc' : List Prom)
@@ -2491,21 +2496,42 @@ theorem outMsgOk_intro (γ : RaftNames) (id : w64) (s : PState) (πc : List Prom
 
 /-- A message to the node itself whose facts wait for the maps' fragments. -/
 theorem outMsgOk_self (γ : RaftNames) (id : w64) (s : PState) (πc : List Prom) (W : DurMaps)
-    (m : Msg) (Hd : m.dst = id) :
+    (m : Msg) (Hd : m.dst = id) (Hns : m.ty ≠ .snap) :
     □ (durFrags (GF := GF) γ id W -∗ isMessage γ m) ⊢ outMsgOk γ id s πc W m := by
   unfold outMsgOk
   iintro #H; iright
   isplitl; · iexact H
-  ipureintro; exact fun h => absurd Hd h
+  ipureintro; exact ⟨fun h => absurd Hd h, Hns⟩
 
 /-- A message waiting for the maps' fragments, as R9 allows. -/
 theorem outMsgOk_pend (γ : RaftNames) (id : w64) (s : PState) (πc : List Prom) (W : DurMaps)
-    (m : Msg) (Hp : m.dst ≠ id → OutPend id s πc) :
+    (m : Msg) (Hp : m.dst ≠ id → OutPend id s πc) (Hns : m.ty ≠ .snap) :
     □ (durFrags (GF := GF) γ id W -∗ isMessage γ m) ⊢ outMsgOk γ id s πc W m := by
   unfold outMsgOk
   iintro #H; iright
   isplitl; · iexact H
-  ipureintro; exact Hp
+  ipureintro; exact ⟨Hp, Hns⟩
+
+/-- (restart S7.3) **A snapshot's destination fact, out of a message's facts**: the `.snap`
+clause's `snapDstOk`. -/
+theorem isMessage_snapDst (γ : RaftNames) (m : Msg) (Hty : m.ty = .snap) :
+    isMessage (GF := GF) γ m ⊢ snapDstOk γ m.dst := by
+  unfold isMessage
+  rw [Hty]
+  dsimp only
+  iintro ⟨-, -, -, -, -, #Hd⟩
+  iexact Hd
+
+/-- (restart S7.3) **A queued snapshot's destination fact, outright** (see `outMsgOk`): from the
+message's facts when they hold outright; a message waiting for the fragments is no snapshot. It
+reads no fragment (`durFrags`). -/
+theorem outMsgOk_snapDst (γ : RaftNames) (id : w64) (s : PState) (πc : List Prom) (W : DurMaps)
+    (m : Msg) (Hty : m.ty = .snap) :
+    outMsgOk (GF := GF) γ id s πc W m ⊢ snapDstOk γ m.dst := by
+  unfold outMsgOk
+  iintro (#H | ⟨-, -, %Hns⟩)
+  · iapply isMessage_snapDst γ m Hty $$ H
+  · exact absurd Hty Hns
 
 theorem EvsOk_mono (T T' : w64) (W : DurMaps) :
     uint.Z T ≤ uint.Z T' → EvsOk T W → EvsOk T' W := by
@@ -2939,7 +2965,7 @@ theorem outMsgOk_wand (γ : RaftNames) (id : w64) (s : PState) (πc : List Prom)
     (m : Msg) :
     outMsgOk (GF := GF) γ id s πc W m ⊢ □ (durFrags γ id W -∗ isMessage γ m) := by
   unfold outMsgOk
-  iintro (#H | ⟨#H, %_⟩)
+  iintro (#H | ⟨#H, %_, %_⟩)
   · imodintro; iintro -; iexact H
   · iexact H
 
@@ -2948,7 +2974,7 @@ theorem outMsgOk_leader (γ : RaftNames) (id : w64) (s : PState) (πc : List Pro
     (m : Msg) (Hrole : s.role = .leader) :
     outMsgOk (GF := GF) γ id s πc W m ⊢ ⌜m.dst ≠ id⌝ -∗ isMessage γ m := by
   unfold outMsgOk
-  iintro (#H | ⟨#_, %Hp⟩) %Hd
+  iintro (#H | ⟨#_, %Hp, %_⟩) %Hd
   · iexact H
   · exact absurd Hrole (Hp Hd).1
 

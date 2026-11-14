@@ -393,7 +393,7 @@ theorem sentMsg_replaceSnapshot_impl (γ : Cluster) (N : Namespace) (src : w64) 
   iunfold committedAtTerm at Hca
   icases Hca with ⟨#Hw, -⟩
   iunfold isRaftMsg at Hrm
-  icases Hrm with ⟨%Hsh, ⟨%a, %Habs, #Hmsgs⟩, -, %Haf, #Hxw⟩
+  icases Hrm with ⟨%Hsh, ⟨%a, %Habs, #Hmsgs⟩, -, %Haf, #Hxw, %Hsns⟩
   have Ha : a = some (absSnap st.msg sv sv.Metadata'.ConfState'.lists) := by
     rcases Habs with ⟨Hn, -⟩ | ⟨ty', Hty', Hne, -⟩ | ⟨sv0, -, Hsv, rfl⟩
     · rw [Hty, mtypeOf_MsgSnap] at Hn; cases Hn
@@ -465,7 +465,8 @@ theorem sentMsg_replaceSnapshot_impl (γ : Cluster) (N : Namespace) (src : w64) 
           snapDataOk γ.raft sv'.Metadata'.Index' sv'.Data' := rfl
       rw [← Hd]; iexact Hdat
     isplitr; · ipureintro; exact Haf
-    iexact Hxw
+    isplitr; · iexact Hxw
+    ipureintro; exact Hsns
   isplitr; · iexact Htlb
   isplitr
   · unfold sentSnapCert

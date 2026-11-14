@@ -616,6 +616,13 @@ theorem RawNode.readyWithoutAccept.wp_proof
     rw [show s.outbox = (toPState s).outbox from rfl]
     iapply outboxRelP_isRaftMsgs_ns γ id s (toPState s).outbox ms1 ms2 Houtbox _ Hsub Hto Hnsout Hxf
       $$ Ho Hqc Hxw
+  -- (restart S7.3, 2026-11-14) and have their `MsgSnap` facts once the outbox's snapshots have
+  -- their destination facts
+  ihave #Hmsnap : iprop(□ (([∗list] x ∈ s.outbox, ⌜x.ty = .snap⌝ -∗ snapDstOk γ x.dst) -∗
+      [∗list] q ∈ ms1 ++ nonself id ms2, snapToOk γ id q.st)) $$ []
+  · iintro !> #Ho
+    rw [show s.outbox = (toPState s).outbox from rfl]
+    iapply outboxRelP_snapTo γ id (toPState s).outbox ms1 ms2 Houtbox _ Hsub Hto $$ Ho
   -- the `Ready`'s soft state: `nil` (the role `prevSoftSt`'s, the node's), or the node's
   ihave #Hrdlead : iprop(∃ ss : Option (w64 × StateType), softStateIs sp ss ∗
       ⌜(sp = null → ss = none) ∧
@@ -739,7 +746,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
     simp only [named, Bool.false_eq_true, ↓reduceIte]
     rw [show s.outbox = (toPState s).outbox from rfl]
     iframe Hrn Hphys Hsdrf Hout Hsoft Hhard Hsteps Hsteps_cap Hdeliv' Hstrecs Hrdsoft Hrdrs' Hce
-      Hce_cap Hents Hrdhard Hrdz Hsloc Hdur Hmsgl Hrdlead
+      Hce_cap Hents Hrdhard Hrdz Hsloc Hdur Hmsgl Hmsnap Hrdlead
     isplitl [Hghost Hrest]
     · iunfold ownStepGhost; iframe Hghost Hrest
     ipureintro

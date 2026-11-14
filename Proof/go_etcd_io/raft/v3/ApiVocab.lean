@@ -168,6 +168,11 @@ is the node's own. What rafthttp's msgappv2 codec needs: its frames carry no sen
 sets the stream's remote peer (`XfOk`, `isRaftMsg`). -/
 def AppFrom (id : w64) (st : MsgSt) : Prop := st.msg.Type' = MsgApp → st.msg.From' = id
 
+/-- (restart S7.3, 2026-11-14; `notes/restart-s7-p2a.md`) **A `MsgSnap` is not to its sender** `id`:
+`send` panics on a non-response message addressed to `r.id` (`raft.go`, `message should not be
+self-addressed`), and a `MsgSnap` is no response. -/
+def SnapNotSelf (id : w64) (st : MsgSt) : Prop := st.msg.Type' = MsgSnap → st.msg.To' ≠ id
+
 -- (U8 v2, 2026-10-29) `NsCap` (the no-snapshot mode's storage cap, `storCap st 1`) removed: the mode
 -- is dropped at raft's level (`ownRaftPhys`'s `Hnsoff`).
 
@@ -426,7 +431,9 @@ def isRaftMsg (γ : RaftNames) (id : w64) (st : MsgSt) : IProp GF :=
     (∃ a, ⌜msgAbs st a⌝ ∗ [∗list] x ∈ a.toList, isMessageC γ x) ∗
     msgDat γ st ∗ ⌜AppFrom id st⌝ ∗
     □ (⌜st.msg.Type' = MsgTransferLeader ∧ st.msg.Term' ≠ W64 0⌝ -∗
-      isLeader γ st.msg.To' st.msg.Term'))
+      isLeader γ st.msg.To' st.msg.Term') ∗
+    -- (restart S7.3, 2026-11-14) a `MsgSnap` not to its sender (`send`'s panic)
+    ⌜SnapNotSelf id st⌝)
 
 instance isRaftMsg_pers (γ : RaftNames) (id : w64) (st : MsgSt) :
     Persistent (isRaftMsg (GF := GF) γ id st) := by
@@ -436,8 +443,40 @@ instance isRaftMsg_pers (γ : RaftNames) (id : w64) (st : MsgSt) :
 theorem isRaftMsg_dat (γ : RaftNames) (id : w64) (st : MsgSt) :
     isRaftMsg (GF := GF) γ id st ⊢ msgDat γ st := by
   unfold isRaftMsg
-  iintro ⟨-, -, #H, -, -⟩
+  iintro ⟨-, -, #H, -, -, -⟩
   iexact H
+
+/-- (restart S7.3, 2026-11-14; `notes/restart-s7-p2a.md`) **A `MsgSnap`'s destination: not its
+sender, and tracked**: to an id other than the sender's `id` (`SnapNotSelf`), a voter or learner of
+a committed log's configuration (`snapDstOk`, the sender's tracker's when it sent it: raft sends a
+`MsgSnap` only to a peer of its progress map). What a `Ready` says of each message it hands out
+(`readyRest`), before the batch is durable: it reads only the committed log and the sender's
+configuration at the step, never the node's unsynced state; and what `isRaftMsg` says
+(`isRaftMsg_snapTo`). -/
+def snapToOk (γ : RaftNames) (id : w64) (st : MsgSt) : IProp GF :=
+  iprop(□ (⌜st.msg.Type' = MsgSnap⌝ -∗ ⌜st.msg.To' ≠ id⌝ ∗ snapDstOk γ st.msg.To'))
+
+instance snapToOk_pers (γ : RaftNames) (id : w64) (st : MsgSt) :
+    Persistent (snapToOk (GF := GF) γ id st) := by
+  unfold snapToOk; infer_instance
+
+/-- (restart S7.3) **A sent message's `MsgSnap` facts** (`snapToOk`), out of `isRaftMsg`: the
+abstraction of a `MsgSnap` is `absSnap`, whose destination is the message's `To`. -/
+theorem isRaftMsg_snapTo (γ : RaftNames) (id : w64) (st : MsgSt) :
+    isRaftMsg (GF := GF) γ id st ⊢ snapToOk γ id st := by
+  unfold isRaftMsg snapToOk
+  iintro ⟨-, ⟨%a, %Ha, #Hx⟩, -, -, -, %Hns⟩
+  iintro !> %Hty
+  isplitr
+  · ipureintro; exact Hns Hty
+  rcases Ha with ⟨Hn, -⟩ | ⟨ty', Hty', Hne, -⟩ | ⟨sv, -, -, rfl⟩
+  · rw [Hty, mtypeOf_MsgSnap] at Hn; cases Hn
+  · rw [Hty, mtypeOf_MsgSnap] at Hty'; cases Hty'; exact absurd rfl Hne
+  · simp only [Option.toList_some]
+    ihave #Hm := (BigSepL.bigSepL_singleton (Φ := fun _ x => isMessageC (GF := GF) γ x)).1 $$ Hx
+    ihave #Hm' := isMessageC_isMessage γ _ $$ Hm
+    ihave #Hd := isMessage_snapDst γ (absSnap st.msg sv sv.Metadata'.ConfState'.lists) rfl $$ Hm'
+    iExactEq Hd; rfl
 
 end
 
