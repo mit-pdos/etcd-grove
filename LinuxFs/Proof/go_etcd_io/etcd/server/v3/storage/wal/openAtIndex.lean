@@ -510,7 +510,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       · iexists gs, fls
         iframe Ho
         isplitr
-        · ipureintro; exact ⟨hgne, hndg, hS, hselg, hlastw⟩
+        · ipureintro; exact ⟨hgne, hndg, hS, hselg, by first | exact fun h => h.elim | exact fun _ => hlastw rfl | exact hlastw rfl | exact hlastw⟩
         isplitr
         · ipureintro; exact htf
         iexact Hlk
@@ -598,7 +598,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       · iexists gs, fls
         iframe Ho
         isplitr
-        · ipureintro; exact ⟨hgne, hndg, hS, hselg, hlastw⟩
+        · ipureintro; exact ⟨hgne, hndg, hS, hselg, by first | exact fun h => h.elim | exact fun _ => hlastw rfl | exact hlastw rfl | exact hlastw⟩
         isplitr
         · ipureintro; exact htf
         rw [hlfs]

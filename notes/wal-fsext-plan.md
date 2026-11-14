@@ -4737,7 +4737,15 @@ their evidence; a trust-boundary axiom restated, **adopted provisionally, pendin
 - *Coordinator's additions* (`ReadDefs.lean`, for `Close.specOpening`): (1) `walReadTie dir write s j fs lfs` takes the
   directory inode `j` (was existential) and `walReadH` binds it once, last of its existentials, for both the tie and
   the pipeline (`walPipeH fp dir j 0`); (2) `walReadTie`'s first pure fact begins with `gs ≠ []` (`openAtIndex`:
-  `hgne`, from `kk < |lay.segs|`). `Open.lean`'s `walReadH_key`/`_namesOut` and `openAtIndex` re-proved.
+  `hgne`, from `kk < |lay.segs|`); (3) and ends with `write = true → ∀ g, gs.getLast? = some g →
+  (walNames hj.cur).getLast? = some g.name` (the handle's last file at the claim's last `.wal` name: `wp_idleFsync`'s
+  premise; `openAtIndex`: `hlastw`, over **`walNames_segs`**: under `SegsNamed`, `WalAbsD.names` and distinct
+  inodes, `walNames hj.cur = lay.segs.map name`). `Open.lean`'s `walReadH_key`/`_namesOut` and `openAtIndex`
+  re-proved for (1)-(2) before merging `wal-int` `ca175563f6`; (3) and the merge pushed before their build (a fix may
+  follow).
+- *TCB*: `etc/tcb-report.py --collection etc/tcb-collections/linuxfs.txt --check` refuses without a full `lake build`
+  (it checks every root's freshness); not run. The axiom keeps its name (`io.ReadFull.wp_proof`), and no linked root
+  reaches the WAL proofs (the collection's roots are minibolt/crashlog/walfs), so no baseline line changes.
 - *Not done*: task 2 (the invariant facts for `WalReadState`: files singly named, cut positivity, the pinned-segments
   law, `nameBound`'s `ix < 2^64`), task 3 (`ReadAll.wp_proof`). Build note: `wal-create14`'s `.lake` (GooseLang,
   LinuxFs, `Proof/*.olean` top level, `Proof/go_etcd_io/etcd/server/v3/storage`) after its build seeded this one.
