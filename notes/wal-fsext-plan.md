@@ -624,6 +624,11 @@ in that report. Paths: `S/` = `LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/w
 - **Update (`wal-leaf1`, 2026-11-14; the "Leaf specs log" below):** proved, as `wp_proof`s over their own
   callees: `walpb.Snapshot.GetTerm.spec`, `os.RemoveAll.specAbsentN`, `fmt.ErrorfErrs.spec`,
   `proto.CloneWalSnap.spec` (over `proto.ClonePb.spec`, whose axiom the part does not copy yet). Left: 11.
+- **Update (`wal-leaf2`, 2026-11-14; the "Leaf specs log (branch `wal-leaf2`)" below):** proved,
+  `walpb.Record.Reset.spec`, over a new trusted model (`Record.Reset.impl`, pending the user's review, §10).
+  Left: 10. `errors.IsErrno.spec`, `errors.IsPathErrnoEof.spec`, `errors.AsLinkError.spec` and
+  `fmt.ErrorfErrsNot.spec` are unprovable from Perennial's present facts and specs, whatever this repository
+  translates (the log says exactly what each lacks).
 
 ## Leaf specs log (branch `wal-leaf1`, 2026-11-14)
 
@@ -674,6 +679,57 @@ extends a trust-boundary axiom, the user's call). None of the proofs below is li
   `tmpDirH` (what `TouchDirAll` leaves: one directory of files) and the existing-directory case (`MkdirAll`,
   `IsDirWriteable` with `.touch` possibly present, `ReadDir` on a directory of files), or the pre restricted to an
   absent name (the only case `Create` reaches, the ledger's note): not started, pending that restatement.
+
+## Leaf specs log (branch `wal-leaf2`, 2026-11-14)
+
+The four `errors`/`fmt` leaves and `Record.Reset` (tasks decided by the coordinator).
+
+**Proved**
+- `walpb.Record.Reset.spec`: `LinuxFs/Proof/.../wal/walpb/Record__Reset.lean`, over the trusted model
+  `Record.Reset.impl` (`LinuxFs/TrustedCode/go_etcd_io/etcd/server/v3/storage/wal/walpb.lean`; the toml's
+  `trusted = ["Record.Reset"]`, an empty `LinuxFs/ManualProof/.../walpb.lean`). **Trusted, decided
+  provisionally, pending the user's review** (§10). The model is Go's first statement, `*x = Record{}` (a store
+  of the zero value, every field, `state` included); it leaves out `MessageStateOf(x).StoreMessageInfo(mi)`, an
+  atomic store of the package's fixed descriptor into `state`'s message-info cache, which nothing but the
+  protobuf runtime reads, and only through `ProtoReflect`, which stores the same `mi` when it finds the cache
+  `nil` (`record.pb.go`): a `nil` cache and one holding `mi` behave alike (the docstring). Nothing more than the
+  fields' reset was needed. The model names `Record`'s type by its name (`model.Record`; the translation's
+  `Record.ty` cannot be named from the trusted file it imports): `walpb_model_Record_eq` (by unfolding).
+  Retranslated with `etc/goose.py --project etcd` keeping only walpb's change (the pin `0b50f0426` would undo the
+  fork fixes in `wal`/`fileutil`, translated from `f15d88841`: those files reverted to the branch's).
+
+**Not proved (blocked by Perennial's facts and specs; no local route without an axiom)**
+- `errors.IsErrno.spec`: translating `Errno.Is` with its body is not enough. Its `switch` loads
+  `errors.ErrUnsupported` (the fourth case, reached for an errno target: the first three compare an `Errno`
+  with `oserror`'s `*errorString`s, different types, `false`), and Perennial's `errors` fact is `True`
+  (`Perennial/Proof/errors/Base.lean`: `define_is_pkg_init iprop(True)`), so nothing gives the global's
+  points-to and the load does not step. The part cannot add it: `errors` is Perennial's package (`ExternalInit`),
+  and syscall's initializer, which runs `errors.initialize'` only if not yet run, learns nothing of it. Needs
+  Perennial's `errors` fact to record `ErrUnsupported` (`errors.newVar ErrUnsupported "unsupported operation"`).
+  The `errors.is` walk at a comparable non-pointer target would then be the local part (symbolic execution of
+  `is` on a two-error tree; `errors.is.spec` admits only pointer targets).
+- `errors.IsPathErrnoEof.spec`: the same load of `errors.ErrUnsupported`, and also `io.EOF` distinct from
+  `oserror.ErrPermission`/`ErrExist`/`ErrNotExist` and `ErrUnsupported` (else `Errno.Is(io.EOF)` returns
+  `e == EACCES || ...`, which may be `true`): both are `*errorString`s, and `errors.newVar` (what `io`'s and
+  `oserror`'s facts keep, Perennial's packages) forgets the allocation (2026-11-14 entry of
+  `notes/perennial-changes.md`), so no fact of the part can say so ("`oserror`'s errors distinct in the part's
+  package facts" is not available: the part's `io/fs` and `os` facts copy `oserror`'s values, they never see the
+  allocations). Needs `newVar` to keep `x.s ↦□ msg` (different messages, different pointers).
+- `errors.AsLinkError.spec`: `errors.As` has no translation and no model (`Perennial/Code/errors.toml` leaves it
+  out, no `As_unfold`), only the axiom `errors.As.wp_proof` whose post is `∃ b v'`. A first-match lemma cannot be
+  derived from it: it would be an axiom (excluded). Needs Perennial's `As` spec with the first-match case (the
+  existing 2026-11-14 entry), or a model of `as`'s first iteration.
+- `fmt.ErrorfErrsNot.spec`: the model's result is a fresh `*errorString` (`errors.New(format)`), but "not `t`"
+  needs a points-to of `t`'s pointer (`t` = `io.EOF`'s value in every caller: `decodeRecord`, `Validate`), and
+  `io`'s fact is Perennial's `newVar`: the same gap. No part fact can carry it (the part does not translate
+  `io`). With `newVar` keeping `x.s ↦□ msg`: the fresh `x'.s ↦ format` (full, before it is persisted) and
+  `y.s ↦□ "EOF"` give `x' ≠ y`, then `errors.Is` of a leaf (`errors.wp_Is_leaf`) answers `false`.
+- **Translation not kept**: `Errno.Is` (with `EACCES`, `EPERM`, `EEXIST`, `ENOTEMPTY`, `ENOTSUP`,
+  `EOPNOTSUPP`; imports `errors`, `internal/oserror`) and `PathError.Unwrap` translate cleanly
+  (`etc/goose.py --project bboltfs`), but unblock nothing until Perennial's facts change, and rebuild 679 part
+  modules (`etc/importers.py --count`): reverted. To redo: add those names to `LinuxFs/Code/syscall.toml`'s
+  `translate` and the two packages to its `imports`, `"PathError.Unwrap"` to `LinuxFs/Code/io/fs.toml`, rerun
+  goose and `etc/gen-init.py` (syscall's initializer then runs `errors`'/`oserror`'s initializers).
 
 ## W1 implementation log (branch `wal-inv`, 2026-11-13)
 
@@ -1637,7 +1693,14 @@ holds some mode). Nothing proves the new models yet.
   past the WAL's state), so a weaker hypothesis (the destination file changed arbitrarily within its claim) also
   suffices. To be replaced by a model of `File.ReadFrom`'s generic path once the user decides.
 
-**Pending the user's review (trusted or axiomatic), all off `lean`:** the `io.Copy`-of-`*os.File` hypothesis of
+- **`(*walpb.Record).Reset`** (`wal-leaf2`, 2026-11-14; **a trusted model, decided provisionally by the
+  coordinator, pending the user's review**): `Record.Reset.impl`
+  (`LinuxFs/TrustedCode/go_etcd_io/etcd/server/v3/storage/wal/walpb.lean`) is Go's `*x = Record{}`; Go's
+  `MessageStateOf(x).StoreMessageInfo(mi)` is left out (a protobuf-runtime cache that `ProtoReflect` fills with
+  the same `mi` when `nil`). `walpb.Record.Reset.spec` is proved over it (`Record__Reset.lean`). Replaces the
+  hypothesis; to be dropped if the user prefers a translation of the protobuf runtime's message state.
+
+**Pending the user's review (trusted or axiomatic), all off `lean`:** the trusted model `walpb.Record.Reset.impl` (2026-11-14, `wal-leaf2`: `*x = Record{}`, the message-state store left out; its docstring, the "Leaf specs log (branch `wal-leaf2`)"); the `io.Copy`-of-`*os.File` hypothesis of
 `Repair` (2026-11-14, above); the `io.ReadFull` axiom's restatement
 with the reader's error evidence (2026-11-14, `wal-readall17`, above); the file-size bound of `fsExt` (2026-11-14, `Impl.lean`'s
 `maxBytes`, ext4's `s_maxbytes` on C: `PWriteFinish`, `FtruncateFinish`, `FallocFinish`, `CrashFile`, `FsInit`;

@@ -2469,3 +2469,13 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
   `As` returns `true` and stores `err`, with no tree premise. (2) Translate `Errno.Is` and `PathError.Unwrap` in the
   part (a configuration change here), and Perennial's `errors.is.spec` for comparable targets.
 - **Status.** Recorded.
+- **Also (`wal-leaf2`, 2026-11-14): Perennial's `errors` fact.** With `Errno.Is` translated (tried: it translates
+  cleanly), its `switch` still does not step: its fourth case loads `errors.ErrUnsupported`, and the `errors`
+  package's fact is `True` (`Perennial/Proof/errors/Base.lean`), so no proof has that global's points-to; an
+  errno target reaches that case (the first three compare an `Errno` with `*errorString`s). No local route: `errors`
+  is Perennial's package and only its own initializer proof sees the allocation. **Proposed (general):** the
+  `errors` fact records `errors.newVar ErrUnsupported go!"unsupported operation"` (as `io`'s records its
+  variables), with the `newVar` change above so that it is distinct from `oserror`'s and `io`'s errors. Blocks
+  `errors.IsErrno.spec` and `errors.IsPathErrnoEof.spec` (with `newVar`'s allocation for the second). And (1),
+  `errors.As`: no first-match lemma is derivable from the axiom `errors.As.wp_proof` (its post is `∃ b v'`, and
+  `As` has neither translation nor model), so `errors.AsLinkError.spec` waits for the Perennial spec.
