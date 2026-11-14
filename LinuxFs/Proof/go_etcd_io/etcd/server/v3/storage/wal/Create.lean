@@ -2,7 +2,7 @@
 `wal.Create` over `fsExt`: the proof (W4 of `notes/wal-fsext-plan.md`; spec
 `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/Create.lean`). The callees' specs not yet proved
 over `fsExt` are hypotheses (`CreateCallees.lean`; the W4 log lists them). **Unfinished**: the body is
-proved up to the frontier `sorry` after the call of `renameWAL` (the W4 log, eighteenth session, says what is left). Lean-first.
+proved through the call of `renameWAL` and its committed-error arm; its other three arms are `sorry` (the W4 log, nineteenth session, says what is left). Lean-first.
 -/
 module
 
@@ -36,6 +36,9 @@ public import Spec.fmt.SprintfWalName
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreatePre
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateRename
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateCoh
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.AreaPath
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateAreaBack
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateLockedLeft
 
 @[expose] public section
 
@@ -105,6 +108,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
     (wp_cNWF : go_etcd_io.etcd.server.v3.storage.wal.createNewWALFile.specLocked (GF := GF) (hG := hG))
     (wp_OpenC : os.OpenFile.specCreateSnc (GF := GF) (hG := hG))
     (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
+    (wp_CloseC : os.File.Close.specClosed (GF := GF) (hG := hG))
     (wp_Prealloc : go_etcd_io.etcd.client.pkg.v3.fileutil.Preallocate.spec (GF := GF) (hG := hG))
     (wp_newFileEncoder : go_etcd_io.etcd.server.v3.storage.wal.newFileEncoder.spec (GF := GF)
       (hG := hG))
@@ -716,15 +720,19 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
     ihave Hau := createU_none Mr R jr r nm md Q hC J hJ' i m2 mS zs2 ysS
       (max hC.next (hJ'.restrict J ((NameSet.except []).diff walTmps)).next) hin hnm hMr hmd hctmp hJjr
       (Nat.le_max_left _ _) (Nat.le_max_right _ _) hJcoh hJval hJcur hokS' hm2s hm2c $$ HU
-    -- the spine law's fractions: `d` twice of the area's spine and of the new name's claim
-    obtain ⟨d, a1, b1, hd1, hd2⟩ := os.qp_common (e + a').half.half (1 : Qp).half.half
+    -- the spine law's fractions: `d` twice of the area's spine (the invariant's lend,
+    -- `walInv_areaPath`: one spine stays with the pipeline) and of the new name's claim
+    iapply wp_notCrashed_acc _ _ rfl
+    iintro Hnc
+    imod walInv_areaPath walCodec Mr R jr r $$ Hinv Hnc with ⟨Hnc, %qa, Hq⟩
+    iframe Hnc
+    imodintro
+    obtain ⟨d, a1, b1, hd1, hd2⟩ := os.qp_common qa.half (1 : Qp).half.half
     have hd : d + (d + (b1 + b1)) = (1 : Qp).half := by
       rw [Qp.ext_iff] at hd2 ⊢
       simp only [Qp.val_add, Qp.val_half] at hd2 ⊢
       grind
-    icases (osPathS_frac R r (e + a').half (e + a').half jr).1 $$ [Hp] with ⟨Hp, Hq⟩
-    · rw [Qp.half_add_half]; iexact Hp
-    icases (osPathS_frac R r (e + a').half.half (e + a').half.half jr).1 $$ [Hq] with ⟨Hq1, Hq2⟩
+    icases (osPathS_frac R r qa.half qa.half jr).1 $$ [Hq] with ⟨Hq1, Hq2⟩
     · rw [Qp.half_add_half]; iexact Hq
     icases (osPathS_frac R r d a1 jr).1 $$ [Hq1] with ⟨Hd1, Ha1⟩
     · rw [hd1]; iexact Hq1
@@ -755,10 +763,67 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
         createU_none Mr R jr r nm md Q hC J hJ' i m2 mS zs2 ysS _ hin hnm hMr hmd hctmp hJjr
           (Nat.le_max_left _ _) (Nat.le_max_right _ _) hJcoh hJval hJcur hokS' hm2s hm2c⟩
     wp_apply _wp_renameWAL R jr J r (child r nm) nm (tmpName nm) (.only [nm, tmpName nm]) hC _
-      (e + a').half (DFrac.own d) wl lg mp md enc lf f snapi' enti' _ _ _ hOk
-      $$ [Hp Hperm HC Hau HSp HTmps Hpre fp dirFile] as %w' %err Hpost
+      (e + a') (DFrac.own d) wl lg mp md enc lf f snapi' enti' fd _ _ _ _ _ _ _ hOk
+      $$ [Hp Hperm HC Hau HSp HTmps Hpre fp dirFile Henc Hf Hfd Hoff] as %w' %err Hpost
     · iframe; iframe #
-    sorry)
+      iunfold walLockIn
+      iframe
+    unfold renameWALPost
+    icases Hpost with ⟨Hp, Hpost⟩
+    icases Hpost with (⟨%herr, %x, %fp, %γ, %sz, %df, %dfd, HU, HSpR, Hpre, Hlk, Hfpf, Hpipe, Hmain,
+        Ht1, Hdff, Hdf, Hdfd, Hsd, Hperm⟩ | ⟨%herr, %x, HU, HSpR, Hw, Hnmd, Hpw⟩ |
+      ⟨%herr, HU, HC, Hperm, HSp, HTmps, -, Hll⟩ | ⟨%herr, %x, HU, HSpR, Hperm, Hll⟩)
+    · -- committed, `w` returned: the parent's fsync, the registration, the handle (not yet)
+      sorry
+    · -- committed, a reopened WAL returned: `renameWALPost`'s arm 2 is pending (ledger 2026-11-14)
+      sorry
+    · -- not committed: the unminting step (the creating token, the update and both claims back; not
+      -- yet written), the deferred `f.Close()` and `RemoveAll(nm.tmp)`, the abort
+      sorry
+    -- committed, an error: the deferred `f.Close()` and `RemoveAll(nm.tmp)` (absent now), the new
+    -- name registered, the area back; the client's `Q` and half the permission
+    rcases err with ei | _
+    rotate_left
+    · exact absurd rfl herr
+    try wp_auto
+    wp_apply wp_String as %f1 -
+    wp_apply wp_String as %f2 -
+    wp_apply wp_Error as %f3 -
+    wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1, f2, f3]
+    isplitr
+    · ipureintro; rfl
+    iintro %fsl ⟨-, -⟩
+    try wp_auto
+    wp_apply wp_Warn lg _ _ $$ []
+    · iframe #
+    try wp_auto
+    wp_apply wp_lockedCloseLeft wp_Close wp_CloseC lf f fd _ _ $$ [Hll] as %cerr -
+    · iframe; iframe #
+    iunfold createSpR at HSpR
+    icases HSpR with ⟨%hn, %ht, Hnm, Htmp, %hnt⟩
+    try wp_auto
+    wp_apply +noauto wp_RmAbs r (tmpName nm) jr R (e + a') (DFrac.own 1) ht (1 : Qp).half
+      (tmpName_nameOk hnmO) hnt.2 $$ [Hp Htmp Hperm] as %err' ⟨Hp, Htmp, Hperm, -⟩
+    · iframe; iframe #
+    unfold createU
+    icases HU with ⟨-, HQ⟩
+    unfold walCreateQ
+    icases HQ with ⟨HQ, -, -, Hlt, -, -, Hnf, -, %s', Hpast, %hs'⟩
+    iapply wp_notCrashed_acc _ _ rfl
+    iintro Hnc
+    imod walInv_register walCodec Mr R jr r s' (child r nm) nm Wn (b1 + b1) hn hin hnmO
+      (by rw [hs']; simp) $$ Hinv Hsi Hnc Hpast Hnf Hsf Hnm with ⟨Hnc, -, Hsf⟩
+    imod create_areaBack walCodec Mr R jr r N h cl nm ht Wn (walLockedTok (W := W))
+      walLockedTok_unlocked_excl hok hnm hself hnt.2 $$ Hinv Hsi Hnc Hlt HNr Htmp Hcl Hsf
+      with ⟨Hnc, -, Hres⟩
+    iframe Hnc
+    imodintro
+    try wp_auto
+    iapply HΦ
+    iframe
+    iright; iright
+    iframe
+    ipureintro; intro hc; cases hc)
 
 end proof
 

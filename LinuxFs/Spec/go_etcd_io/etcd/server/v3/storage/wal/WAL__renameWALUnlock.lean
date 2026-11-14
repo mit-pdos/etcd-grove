@@ -5,9 +5,11 @@ twelfth session): `renameWAL`'s retry after a failed rename (`os.Rename`'s error
 &walpb.Snapshot{})` and `ReadAll`. Stated in `renameWAL`'s vocabulary (`WAL__renameWAL.lean`, which says
 what each piece is), its post `renameWAL`'s. A hypothesis of `renameWAL`'s proof, not proved: **its
 `w.Close()` reaches `w.dirFile.Close()` with a nil `dirFile`** (the pre-rename `w` has none), which
-returns `ErrInvalid` in Go but is stuck in the trusted model of `(*os.File).Close` (plan §0, item 6);
-and its `Open`/`ReadAll` need the area's resources (`walAreaRes`), which `Create` has split up by then.
-Lean-first.
+returned `ErrInvalid` in Go but was stuck in the trusted model of `(*os.File).Close` (plan §0, item 6;
+the model now returns it, `os.File.Close.specNil`); its `Open`/`ReadAll` need the area's resources
+(`walAreaRes`), which `Create` has split up by then, and its success arm (`renameWALPost`'s arm 2) is
+pending (ledger 2026-11-14). The pre carries the lock file and the encoder its `Close` consumes
+(`walLockIn`; nineteenth W4 session). Lean-first.
 -/
 module
 
@@ -37,19 +39,21 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWALUnlock.spec (P : WalPb
     (Mr : WalMarshal) : Prop :=
   ∀ (R : Roots) (jr J : Ino) (r dir nm tmp : GoString) (N : NameSet) (h : NamesH) (lb : Nat)
     (qp : Qp) (dq : DFrac) (w lg : Loc) (mds : GoSlice) (md : List w8) (e lt f : Loc)
-    (snapi enti : w64) (U : Option (Nat × Nat) → IProp GF) (Sp : IProp GF)
-    (SpR : Nat × Nat → IProp GF) (o : Option (Nat × Nat)),
+    (snapi enti : w64) (fd : w64) (fname : GoString) (d : OsFd) (c : w32) (off : w64)
+    (U : Option (Nat × Nat) → IProp GF) (Sp : IProp GF) (SpR : Nat × Nat → IProp GF)
+    (o : Option (Nat × Nat)),
   RenameWALOk R jr J r dir nm tmp N h lb dq U Sp SpR →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ osInv ∗
       osSharedInv R ∗ osPathS R r (DFrac.own qp) jr ∗ osCallPerm 1 ∗ osLogLb lb ∗
       U o ∗ renDirOut jr J N tmp nm h (DFrac.own (1 : Qp).half) lb o ∗ Sp ∗ walTmpsRes J ∗
-      walPreIn w lg dir mds md e lt f snapi enti ∗
+      walPreIn w lg dir mds md e lt f snapi enti ∗ walLockIn e f fd fname d c off ∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ (null : Loc) ∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ (null : Loc) }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!!
       go!"renameWALUnlock")) (Val #(child r tmp)))
   {{ (w' : Loc) (err : GoInterface), RET (PairV #w' #err);
-      renameWALPost P Mr R jr J r dir N h qp dq w lg mds md e lt f snapi enti U Sp SpR w' err }}
+      renameWALPost P Mr R jr J r dir N h qp dq w lg mds md e lt f snapi enti fd fname d c off U Sp
+        SpR w' err }}
 
 end spec
 

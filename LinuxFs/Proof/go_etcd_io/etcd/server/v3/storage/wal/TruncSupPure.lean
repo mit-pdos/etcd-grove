@@ -57,7 +57,10 @@ theorem rzStart_pure {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} {j
   have hstep := tailCrashStep_rzStart (cl := cl) (k := n) hC habs hZ hB hnd hs hk htcz
   refine ⟨walsOk_tailA hW hd hl hs rfl (by simp [rzSeg, hcut]) (fun ents' h => ?_) hstep,
     fun K c h => dirKeysOk_tailA hd hl hstep h⟩
-  exact walAbsD_rzStart h hs (Nat.le_refl _) (Nat.min_le_right _ _)
+  obtain ⟨hsz, -, -, hhi, -⟩ := h.metas g0 (by rw [hs]; simp)
+  obtain ⟨-, -, -, hwb, -⟩ := h.lastWin g0 (by rw [hs]; simp)
+  exact walAbsD_rzStart h hs (Nat.le_refl _) (Nat.min_le_right _ _) (by omega)
+    (segBytesX_rzSeg hk (by omega) hsz.symm (by omega) htcz.1) (h.zeroPast g0 (by rw [hs]; simp) hZ)
 
 /-- **The truncate's landing at the write position**: `WalsOk` and the directory keys of the layout
 with the tail landed (`rzLand`), from the in-flight one. -/
@@ -73,7 +76,7 @@ theorem rzLand_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
         DirKeysOk C Mr jr s (<[dir := tailLay lay pre (rzLand g0 lay.wr k) lay.wr]> Ls) cl n K c) := by
   have hnd : (lay.segs.map (·.ino)).Nodup := ((segsAll_nodup_iff Ls).1 hW.2.2.1).1 dir lay hl
   have hstep := tailCrashStep_rzLand (C := C) (Mr := Mr) (d := d) (cl := cl) (k := n) hnd hs hlen hwr hhi
-  refine ⟨walsOk_tailA hW hd hl hs rfl ?_ (fun ents h => walAbsD_rzLand h hs hlen hwr hcut) hstep,
+  refine ⟨walsOk_tailA hW hd hl hs rfl ?_ (fun ents h => walAbsD_rzLand h hs hlen hwr hcut hhi) hstep,
     fun K c h => dirKeysOk_tailA hd hl hstep h⟩
   simp [rzLand, rsPostK, rsPost, OsMeta.announce, hcut]
 
