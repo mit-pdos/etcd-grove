@@ -130,7 +130,7 @@ theorem walInvBody_append (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
     have := walCutPos_le (habs.cuts.1 b hb)
     simpa [histM] using this
   have hok : CrashOk C Mr d lay cl n :=
-    (crashOkA_none_iff _ _ _ _ _ _).1 (Hdko.2 dir d lay hd hl (by simp))
+    (crashOkA_none_iff _ _ _ _ _ _).1 (Hdko.2.1 dir d lay hd hl (by simp))
   subst htg
   have hfit' : RecsFit C (recsOfSegs C Mr d.metadata
       (segsOf (histM { d with H := d.H ++ [o] }) lay.cuts)) := hfit hcuts habs.fit

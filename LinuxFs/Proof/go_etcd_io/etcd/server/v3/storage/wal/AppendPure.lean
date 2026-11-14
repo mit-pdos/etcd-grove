@@ -114,8 +114,8 @@ theorem dirKeysOk_append {C : WalCodec} {Mr : WalMarshal} {jr : Ino}
     {d : WalDur} (o : WalOpG WalEnt) (hd : s.wal !! dir = some d)
     (h : DirKeysOk C Mr jr s Ls cl n K c) :
     DirKeysOk C Mr jr (walAppS s dir d o) Ls cl n K c := by
-  obtain ⟨h1, h2⟩ := h
-  refine ⟨h1, fun dir' d' lay' hd' hl' hc => ?_⟩
+  obtain ⟨h1, h2, h3⟩ := h
+  refine ⟨h1, fun dir' d' lay' hd' hl' hc => ?_, h3⟩
   by_cases e : dir' = dir
   · subst e
     rw [walAppS_lookup] at hd'; cases hd'
