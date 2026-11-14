@@ -46,7 +46,8 @@ def memSaveRes (W : WalGS GF) (e : TEnv) (γ : TGS) (m w : Loc) (v : oracle) (o 
       WalFs.walAreaOk (W := W) walCodec walRaftMr e.R e.jr (tArea e.root) ∗
       walOpenWF (W := W) (walRaftP (GF := GF)) walRaftMr w (tWalDir e.root) ∗
       WalFs.walNamed (W := W) (tWalDir e.root) ∗
-      WalFs.walSyncedLb (W := W) (tWalDir e.root) (tCandMark o c))
+      WalFs.walSyncedLb (W := W) (tWalDir e.root) (tCandMark o c) ∗
+      WalFs.walLenLb (W := W) w (tWalDir e.root) d.H.length)
 
 /-- `member.save.spec`'s postcondition at the oracle `o`, the hard state `h` and the entries `es`. -/
 def memSavePost (W : WalGS GF) (e : TEnv) (γ : TGS) (m w : Loc) (o : TOracle) (c : TCand) (qc : Qp)
@@ -57,7 +58,8 @@ def memSavePost (W : WalGS GF) (e : TEnv) (γ : TGS) (m w : Loc) (o : TOracle) (
       if b then ∃ d' : WalDur, oracleRep v' (tSaveO o h es) ∗ tWalOwn γ (some d') ∗
         walOpenWF (W := W) (walRaftP (GF := GF)) walRaftMr w (tWalDir e.root) ∗
         ⌜tMemOk (tSaveO o h es) c d' ∧ tMemHs (tSaveO o h es) d'⌝ ∗
-        WalFs.walSyncedLb (W := W) (tWalDir e.root) (tCandMark (tSaveO o h es) c)
+        WalFs.walSyncedLb (W := W) (tWalDir e.root) (tCandMark (tSaveO o h es) c) ∗
+        WalFs.walLenLb (W := W) w (tWalDir e.root) d'.H.length
       else True)
 
 end rep

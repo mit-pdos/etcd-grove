@@ -1673,3 +1673,19 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   (which takes the token) only after a nil one, so it needs only the left arm on `nil`.
 - **Decision.** Adopted (the agent's: the spec is stated, unproved, not in the Link; no client proved over it);
   made.
+
+## 2026-11-14: `member.save.spec` (the tester's, W4c U5) -- the post drops the handle's written length, which `sync` takes (W4c U5, ops)
+
+- **Spec.** `LinuxFs/Spec/github_com/mit_pdos/etcd_grove/examples/etcd/wal/member__save.lean` (and `MemberRep`'s
+  `memSaveRes`/`memSavePost`): the true arm gives the handle, `tMemOk`/`tMemHs` of the new WAL state `d'` and
+  the candidate's synced mark, not `walLenLb w dir |d'.H|`.
+- **Defect.** `member.sync.spec` and `WAL.Sync.spec` take `walLenLb w dir |d.H|` of the current state, so no
+  member operation after a `save` can call `sync` (`opRecvSnap`'s last call; `step`'s `sync`).
+- **Evidence.** `WAL.Save.spec`'s success arm returns `walLenLb w dir (|d.H| + 1)` (`Hlen1` in
+  `member.save.wp_proof`), which the proof dropped; the empty save keeps `d`, for which no length was in the
+  precondition.
+- **Proposed change.** The precondition (and `memSaveRes`) gains `walLenLb w dir |d.H|`, the true arm (and
+  `memSavePost`) `walLenLb w dir |d'.H|`. Its provider at a restart or `Create` is the open handle's
+  (`Open`/`ReadAll`, `Create`): an obligation of `restart`/`Boot`.
+- **Decision.** Adopted (internal, the agent's: a strengthening of a proved spec of our own example, its only
+  clients `opTerm`/`opCommit`/`opEntries`/`opResend`/`opRecvSnap`, all re-proved); made.

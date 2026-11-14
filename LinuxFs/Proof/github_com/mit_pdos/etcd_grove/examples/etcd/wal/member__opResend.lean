@@ -40,7 +40,7 @@ local macro "resend_nop" : tactic => `(tactic| (
   iframe
   iunfold memSaveRes
   iframe
-  iframe H1 H2 H3 H4 H13 H15 H16))
+  iframe H1 H2 H3 H4 H13 H15 H16 H17))
 
 set_option hygiene false in
 /-- `opResend` after the entries' loop (its three exits): the empty check, the terms' loop, the last
@@ -121,7 +121,7 @@ local macro "resend_rest" : tactic => `(tactic| (
       hesw (tOrRoom_save hroom (by omega) _).1 (tOrRoom_save hroom (by omega) _).2)
       $$ [H5 H6 H7 H8 H9 Hrep H11 H12 H14] as %b Hpost
     · iframe
-      iframe Hes H13 H15 H16 H1 H2 H3 H4
+      iframe Hes H13 H15 H16 H17 H1 H2 H3 H4
     iapply HΦ
     iframe
     iright
@@ -146,7 +146,7 @@ theorem member.opResend.wp_proof (wp_copyOps : copyOps.spec (GF := GF) (hG := hG
     iframe
     ipureintro; rfl
   iunfold memSaveRes at Hres
-  icases Hres with ⟨#H1, #H2, #H3, #H4, H5, H6, H7, H8, H9, Hrep, H11, H12, #H13, H14, #H15, #H16⟩
+  icases Hres with ⟨#H1, #H2, #H3, #H4, H5, H6, H7, H8, H9, Hrep, H11, H12, #H13, H14, #H15, #H16, #H17⟩
   iunfold oracleRep at Hrep
   icases Hrep with ⟨%Hof, Hcands, #Hsince, Hsincecap, #Hopens, Hopenscap⟩
   iunfold candsOwn at Hcands

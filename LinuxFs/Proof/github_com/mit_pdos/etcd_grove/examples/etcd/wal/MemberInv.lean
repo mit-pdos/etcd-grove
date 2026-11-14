@@ -21,7 +21,7 @@ persistent half kept from before the call: `memSaveRes_pers`).
 module
 
 public import LinuxFs.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.MemberRep
-public import LinuxFs.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.OrLen
+public import LinuxFs.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.SnapPure
 
 @[expose] public section
 
@@ -89,6 +89,15 @@ theorem tTermsFrom_delete {t : w64} {M M' : GMap w64 w64} (h : tTermsFrom t M M'
   · cases hk
   · exact h k' x' hk
 
+/-- `opTerm`'s new term keeps `tMemFields`' bound. -/
+theorem tNextTerm_lt {t : w64} (ht : uint.nat t < 2 ^ 63) : uint.nat (tNextTerm t) < 2 ^ 63 := by
+  unfold tNextTerm; split <;> word
+
+/-- **`opTerm`'s and `opCommit`'s size premise from room for one empty save.** -/
+theorem tOrRoom_saveNil {o : TOracle} (hr : tOrRoom o 56) :
+    ∀ h : THs, tOrSmall (tSaveO1 o h []) ∧ tOrSmall (tSynced (tSaveO1 o h [])) :=
+  fun h => tOrRoom_save hr (by simp) h
+
 end pure
 
 section rep
@@ -114,29 +123,69 @@ theorem memSaveRes_pers (W : WalGS GF) (e : TEnv) (γ : TGS) (m w : Loc) (v : or
     memSaveRes W e γ m w v o os c d qc ⊢ memSaveRes W e γ m w v o os c d qc ∗ memSavePers W e γ := by
   iintro H
   iunfold memSaveRes at H
-  icases H with ⟨#H1, #H2, #H3, #H4, H5, H6, H7, H8, H9, H10, H11, H12, #H13, H14, #H15, #H16⟩
+  icases H with ⟨#H1, #H2, #H3, #H4, H5, H6, H7, H8, H9, H10, H11, H12, #H13, H14, #H15, #H16, #H17⟩
   isplitl
-  · iunfold memSaveRes; iframe; iframe H1 H2 H3 H4 H13 H15 H16
+  · iunfold memSaveRes; iframe; iframe H1 H2 H3 H4 H13 H15 H16 H17
   · iunfold memSavePers; iframe H1 H2 H3 H4 H13 H15
 
-/-- **`save`'s success gives the member's resources back** at the new oracle, with the same
+/-- **A WAL-writing operation's postcondition at the oracle `o'` it leaves** (`memSavePost` at
+`tSaveO o h es`; `saveSnap`'s at `tSnapO o idx term`). -/
+def memOpPost (W : WalGS GF) (e : TEnv) (γ : TGS) (m w : Loc) (o' : TOracle) (c : TCand) (qc : Qp)
+    (b : Bool) : IProp GF :=
+  iprop(DurFs.durHandle (GF := GF) γ.γd e.orFile e.R ∗ osCallPerm (GF := GF) qc ∗
+      m.[member, go!"orPath"] ↦ tOrPath e.root ∗ m.[member, go!"w"] ↦ w ∗ ∃ v' : oracle,
+      m.[member, go!"o"] ↦ v' ∗ (∃ os' : TOracle, tOrOwn γ os' none) ∗
+      if b then ∃ d' : WalDur, oracleRep v' o' ∗ tWalOwn γ (some d') ∗
+        walOpenWF (W := W) (walRaftP (GF := GF)) walRaftMr w (tWalDir e.root) ∗
+        ⌜tMemOk o' c d' ∧ tMemHs o' d'⌝ ∗
+        WalFs.walSyncedLb (W := W) (tWalDir e.root) (tCandMark o' c) ∗
+        WalFs.walLenLb (W := W) w (tWalDir e.root) d'.H.length
+      else True)
+
+theorem memSavePost_op (W : WalGS GF) (e : TEnv) (γ : TGS) (m w : Loc) (o : TOracle) (c : TCand)
+    (qc : Qp) (h : THs) (es : List TEnt) (b : Bool) :
+    memSavePost W e γ m w o c qc h es b = memOpPost W e γ m w (tSaveO o h es) c qc b := rfl
+
+/-- **An operation's success gives the member's resources back** at the new oracle, with the same
 candidate. -/
+theorem memSaveRes_postOp (W : WalGS GF) (e : TEnv) (γ : TGS) (m w : Loc) (o' : TOracle) (c : TCand)
+    (qc : Qp) :
+    memSavePers W e γ ∗ memOpPost W e γ m w o' c qc true ⊢
+      ∃ (v' : oracle) (os' : TOracle) (d' : WalDur),
+        memSaveRes W e γ m w v' o' os' c d' qc ∗ ⌜tMemOk o' c d' ∧ tMemHs o' d'⌝ := by
+  iintro ⟨#Hp, Hpost⟩
+  iunfold memSavePers at Hp
+  icases Hp with ⟨#H1, #H2, #H3, #H4, #H13, #H15⟩
+  iunfold memOpPost at Hpost
+  simp only [↓reduceIte]
+  icases Hpost with ⟨H6, H7, H8, H9, ⟨%v', H10, ⟨%os', H11⟩, ⟨%d', H12, H14, H16, %Hok, #H17, #H18⟩⟩⟩
+  iexists v', os', d'
+  isplitl
+  · iunfold memSaveRes; iframe; iframe H1 H2 H3 H4 H13 H15 H17 H18
+  · ipureintro; exact Hok
+
+/-- **`save`'s success gives the member's resources back.** -/
 theorem memSaveRes_post (W : WalGS GF) (e : TEnv) (γ : TGS) (m w : Loc) (o : TOracle) (c : TCand)
     (qc : Qp) (h : THs) (es : List TEnt) :
     memSavePers W e γ ∗ memSavePost W e γ m w o c qc h es true ⊢
       ∃ (v' : oracle) (os' : TOracle) (d' : WalDur),
         memSaveRes W e γ m w v' (tSaveO o h es) os' c d' qc ∗
         ⌜tMemOk (tSaveO o h es) c d' ∧ tMemHs (tSaveO o h es) d'⌝ := by
-  iintro ⟨#Hp, Hpost⟩
-  iunfold memSavePers at Hp
-  icases Hp with ⟨#H1, #H2, #H3, #H4, #H13, #H15⟩
-  iunfold memSavePost at Hpost
-  simp only [↓reduceIte]
-  icases Hpost with ⟨H6, H7, H8, H9, ⟨%v', H10, ⟨%os', H11⟩, ⟨%d', H12, H14, H16, %Hok, #H17⟩⟩⟩
-  iexists v', os', d'
-  isplitl
-  · iunfold memSaveRes; iframe; iframe H1 H2 H3 H4 H13 H15 H17
-  · ipureintro; exact Hok
+  rw [memSavePost_op]; exact memSaveRes_postOp W e γ m w _ c qc
+
+/-- **A running member between operations** at the oracle `o`: `memSaveRes` (some handle `w`, Go
+oracle, stored oracle, candidate `c`, WAL state `d`), the raft-like fields with `tMemFields`, the choice
+source, the handle's purge permission (`close` takes it), and the facts the operations take: `tMemOk`,
+`tMemHs`, `tCheckWf`. -/
+def memLive (W : WalGS GF) (e : TEnv) (γ : TGS) (m : Loc) (qc : Qp) (o : TOracle) : IProp GF :=
+  iprop(∃ (w : Loc) (v : oracle) (os : TOracle) (c : TCand) (d : WalDur) (t vo cm bs l : w64) (tm : Loc)
+      (M : GMap w64 w64) (r : Loc) (rv : rnd),
+    memSaveRes W e γ m w v o os c d qc ∗
+    m.[member, go!"term"] ↦ t ∗ m.[member, go!"vote"] ↦ vo ∗ m.[member, go!"commit"] ↦ cm ∗
+    m.[member, go!"base"] ↦ bs ∗ m.[member, go!"last"] ↦ l ∗ m.[member, go!"terms"] ↦ tm ∗
+    tm ↦$ M ∗ m.[member, go!"r"] ↦ r ∗ r ↦ rv ∗
+    WalFs.walPurgeW (W := W) w (tWalDir e.root) ∗
+    ⌜tMemOk o c d ∧ tMemHs o d ∧ tMemFields t M ∧ tCheckWf o⌝)
 
 end rep
 

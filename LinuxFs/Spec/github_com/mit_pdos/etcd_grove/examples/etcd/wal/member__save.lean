@@ -5,7 +5,8 @@ before the call, `tSaveO1`), the entries converted (`toRaft`), `w.Save(toHS(h), 
 committed on the tester's invariant: the WAL state `d` moves to `tSaveD d h es`), then, if the save
 syncs (`walMustSync` on the member's `lastHS`, which is the WAL's last hard state, `tMemHs`), the mark
 moved and stored, and `lastHS` advanced. `true`: the oracle `tSaveO o h es` (Go's), the handle, the WAL
-state `d'` its candidate (`tMemOk`, `tMemHs`), the candidate's mark synced. `false`: `Save` failed (the
+state `d'` its candidate (`tMemOk`, `tMemHs`), the candidate's mark synced, the handle's history
+written to `d'`'s length (`walLenLb`, which `sync` takes; the caller's for `d` before). `false`: `Save` failed (the
 handle is lost; the member stops). The stored oracle is the program's but for `lastHS` (not stored
 until the next store), hence `∃ os`. Touches the member's fields `orPath`, `w`, `o`. The client's call
 permission `qc` (for `storeOracle`) as in `member.sync.spec`. Lean-first (no Rocq counterpart).
@@ -50,7 +51,8 @@ abbrev member.save.spec : Prop :=
       WalFs.walAreaOk (W := W) walCodec walRaftMr e.R e.jr (tArea e.root) ∗
       walOpenWF (W := W) (walRaftP (GF := GF)) walRaftMr w (tWalDir e.root) ∗
       WalFs.walNamed (W := W) (tWalDir e.root) ∗
-      WalFs.walSyncedLb (W := W) (tWalDir e.root) (tCandMark o c) }}
+      WalFs.walSyncedLb (W := W) (tWalDir e.root) (tCandMark o c) ∗
+      WalFs.walLenLb (W := W) w (tWalDir e.root) d.H.length }}
     (App (App (Val (m @!! go.GoType.PointerType member.ty @!! go!"save")) (Val #h)) (Val #esl))
   {{ (b : Bool), RET #b; DurFs.durHandle (GF := GF) γ.γd e.orFile e.R ∗ osCallPerm (GF := GF) qc ∗
       m.[member, go!"orPath"] ↦ tOrPath e.root ∗ m.[member, go!"w"] ↦ w ∗ ∃ v' : oracle,
@@ -58,7 +60,8 @@ abbrev member.save.spec : Prop :=
       if b then ∃ d' : WalDur, oracleRep v' (tSaveO o h es) ∗ tWalOwn γ (some d') ∗
         walOpenWF (W := W) (walRaftP (GF := GF)) walRaftMr w (tWalDir e.root) ∗
         ⌜tMemOk (tSaveO o h es) c d' ∧ tMemHs (tSaveO o h es) d'⌝ ∗
-        WalFs.walSyncedLb (W := W) (tWalDir e.root) (tCandMark (tSaveO o h es) c)
+        WalFs.walSyncedLb (W := W) (tWalDir e.root) (tCandMark (tSaveO o h es) c) ∗
+        WalFs.walLenLb (W := W) w (tWalDir e.root) d'.H.length
       else True }}
 
 end spec
