@@ -503,10 +503,10 @@ Everything under `LinuxFs/` and `GooseLang/Ext/Fs/` builds (3019 jobs); `etc/gen
 (both arms) and the pipeline have no `sorry`. The remaining `sorry`s of the track (declarations using one, by
 module; the bboltfs/crashlog/walfs examples and the generated translations not listed):
 - `wal/`: `Create.wp_proof` (`Create.lean`), `Open.wp_proof`, `OpenForRead.wp_proof`, `openAtIndex.wp_proof`,
-  `openWALFiles.wp_proof`, `WAL.ReadAll.wp_proof`, `WAL.Save.wp_proof`, `WAL.SaveSnapshot.wp_proof`,
+  `WAL.ReadAll.wp_proof`, `WAL.Save.wp_proof`, `WAL.SaveSnapshot.wp_proof`,
   `WAL.Sync.wp_proof`, `WAL.cut.wp_proof`, `cutCommit_pure` (`CutCommit.lean`), `WAL.saveEntry.wp_proof`, `WAL.saveState.wp_proof`,
   `WAL.sync.wp_proof`, `wal.tailWriter` (`TailWriter.lean`);
-- `fileutil/`: `ReadDir.wp_proof` (`TouchDirAll`/`CreateDirAll` proved, `wal-create7`, over the above-root hypotheses);
+- `fileutil/`: none (`ReadDir` proved 2026-11-14, `wal-above`, over `sort.StringsAny.spec`; `TouchDirAll`/`CreateDirAll` proved, `wal-create7`, over the above-root hypotheses);
 - `os/`: `File.Truncate.wp_proofAu` (`File__TruncateAu.lean`), `File.WriteAt.wp_proof_long` (`WriteLong.lean`,
   past 1 GiB).
 Not yet stated (no `sorry`, no statement): `Close`, `ReleaseLockTo`, `Repair`, `ValidSnapshotEntries`, `Exist`
@@ -2005,6 +2005,42 @@ condition lifted to `CrashOkA`.**
      `closeAll`, the `os.File` reader bridge (`decFile` of a `walFileS` stream: `Read` over the
      program's half of the bytes, `Stat`), `walpb.Snapshot.Clone`; `newFilePipeline` is `sorry`.
 - *Not done*: the proofs of `openWALFiles`, `openAtIndex`, `OpenForRead`, `Open`, `ReadAll`.
+
+**Sixth session (branch `wal-above`, 2026-11-14).**
+- *Proved* (no `sorry`, `lake build`): `openWALFiles`' read mode (`os.OpenFile.wp_fileS` at `O_RDONLY`; error:
+  `closeAll`, `Errorf` with `%q` and `%w`), so `openWALFiles` is done; `fileutil.ReadDir` (the options loop as
+  `fileutil.wp_applyOpts`, `os.Open`, the deferred `Close`, `Readdirnames(-1)`, `sort.Strings`, the extension
+  filter `fileutil.extFilt`).
+- *The missing-WAL path* (`o = none`: `AbsentNone` gives `h.cur !! nm = none` from the area's claim, which
+  `walAreaRes` holds half of): `os.OpenFile.wp_absentS`/`os.Open.wp_absentS` (`NsS.lean`, over
+  `wp_osOpenAbsentS`), `ReadDir.specAbsentS`, `readWALNames.specAbsentS`, `selectWALFiles.specAbsentS`, all
+  proved: an `errOk` error, nothing changed. `openAtIndex` uses the last when the AU's `o` is `none`.
+- *New hypothesis* `sort.StringsAny.spec` (`LinuxFs/Spec/sort/StringsAny.lean`): `sort.Strings` without
+  Perennial's `len ≤ 2^62`. `Readdirnames`' model returns any number of names outside the claim, so the bound
+  cannot be shown; recorded under the existing `notes/perennial-changes.md` entry.
+- *Statement changes*: the shared-mode directory specs' errors (`os.OpenFile/Open.wp_dirS`,
+  `Readdirnames.wp_dirS`) give `fmtErrorOkOrNil` (via `os.wp_pathError_ok`/`wp_wrapErrno_ok`; `OpenDir` drops
+  it); `openAtIndex`'s read-mode success gives `walLockedTok` in place of `walUnlockedTok`: the reader holds the
+  program's halves taken out of `walParked`, whose flag must then be `false` (`walReadOnlyF` already held
+  `walLockedTok`).
+- *Next: `openAtIndex`*, plan:
+  1. Peek at the AU's `o` (the update commits at once: `walDirIs` is ghost; in write mode the `unl` raise).
+     `o = none`: `selectWALFiles.specAbsentS` over the area claim's half from `walAreaRes` (agreement with the
+     invariant's half gives `AbsentNone`'s `h`), error, token and permission back.
+  2. `o = some d`: a first opening of `walInv` (a fupd, no step): `walUnlockedTok_lock`, take the WAL
+     directory's claim half out of `walParked` (into `D`); `WalsNamed` gives `selectWALFiles`' premise
+     `WalDirNamesOk`.
+  3. After the selection, a second opening: take the segments from the selected position on (into `O`).
+     The layout then is whatever the invariant holds, but the claim half pins its names and `WalAbsD` (`walInos
+     ents = segs.map ino`, names sorted) with `SegsNamed` determines the segments from them, so no stability
+     argument is needed. `segResP`'s halves agree with `segResF`'s only with no change in flight: **`pwTok` and
+     `rsTok` hold the `OsMeta` whole** (an `osTok`), so the parked `OsMeta` half refutes one; an exclusivity
+     lemma `osTok ⟨i, …⟩ ∗ osMeta i q m ⊢ False` (extension level, `GooseLang/Ext/Fs`) is needed if not there.
+  4. `walOpenedFile` + the segment's halves give `walFileS f fd … g []`; `walDecFile_ok` (with
+     `os.fileStat.Name.wp_proof`) each `decFile`; `NewDecoder`; the struct; in write mode `w.tail().Name()`,
+     `filepath.Base` (`= g.name`), `parseWALName` (no error on a `walNameStr`, so its `closer()` arm is
+     unreachable), `newFilePipeline`; the ghost handle `walOpening` (allocate `γ`).
+  5. Error arms after step 2: put the halves back (`walLockedTok_unlock`).
 
 ## I3b: resizes in flight on a crash-tracked file (branch `wal-i3b`, 2026-11-13)
 
