@@ -224,6 +224,29 @@ theorem wp_entRoC_GetTerm (l : Loc) (c : EntryC) :
     simp only [Option.getD]
     iapply HΦ; ipureintro; trivial
 
+theorem wp_entRoC_GetData (l : Loc) (c : EntryC) :
+    {{ entRoC (GF := GF) l c }}
+      (App (Val (l @!! go.GoType.PointerType raftpb.Entry.ty @!! go!"GetData")) (Val #()))
+    {{ (ds : GoSlice), RET #ds; ds ↦*□ c.data.getD [] }} := by
+  wp_start as #Hc
+  iunfold entRoC at Hc
+  icases Hc with ⟨%pt, %pi, %pty, %ds, %Hn, -, -, -, -, -, -, #HD, #cD, -⟩
+  wp_auto
+  simp only [decide_eq_false Hn]
+  wp_auto
+  rcases ho : c.data with _ | bs
+  · iunfold bytesC at cD
+    icases cD with %Hds
+    subst Hds
+    iapply HΦ
+    simp only [Option.getD]
+    iapply ownSlice_nil
+  · iunfold bytesC at cD
+    icases cD with ⟨-, #Hb⟩
+    iapply HΦ
+    simp only [Option.getD]
+    iexact Hb
+
 end getters
 
 end EtcdGrove
