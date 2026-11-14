@@ -35,16 +35,18 @@ def preallocPostH (i : Ino) (m : OsMeta) (sz : Nat) (ext : Bool) (err : GoInterf
     preGrownH i m w (err = interface.nil ∧ m.ZeroPg))
   else osMeta i (DFrac.own (1 : Qp).half) m
 
-/-- See the file header. -/
+/-- See the file header. `P` is the supplies' property (`fallocSup`'s and `os.truncSup`'s), true of
+every state at most `sz` long whose least crash size is at most `m`'s (`wal-tc19`). -/
 abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.Preallocate.specAu : Prop :=
   ∀ (f : Loc) (fd : w64) (name : GoString) (dqf dq : DFrac) (d : OsFd) (m : OsMeta) (o sz : w64)
-    (ext : Bool) (K : IProp GF),
+    (ext : Bool) (K : IProp GF) (P : OsMeta → Prop),
   0 ≤ fd.toInt → d.writable = true → m.maps = ∅ → 0 ≤ o.toInt → o.toInt ≤ 0xffffffff000 →
   0 ≤ sz.toInt → sz.toInt ≤ 0xffffffff000 → (ext = true → m.size ≤ sz.toNat) →
+  (∀ m' : OsMeta, m'.lo ≤ m.lo → m'.size ≤ sz.toNat → P m') →
   {{ osInv (GF := GF) ∗ isPkgInit (PROP := IProp GF) pkg_id.errors ∗
       os.ownFile (GF := GF) f fd name dqf ∗ os.ownOff (GF := GF) f o ∗
       osFd (GF := GF) fd dq d ∗ osMeta (GF := GF) d.ino (DFrac.own (1 : Qp).half) m ∗ K ∗
-      fallocSup (GF := GF) K d.ino sz.toNat ∗ os.truncSup (GF := GF) K d.ino sz.toNat }}
+      fallocSup (GF := GF) K d.ino sz.toNat P ∗ os.truncSup (GF := GF) K d.ino sz.toNat P }}
     (App (App (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.Preallocate)) (Val #f))
       (Val #sz)) (Val #ext))
   {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ os.ownOff f o ∗ osFd fd dq d ∗ K ∗

@@ -389,8 +389,7 @@ theorem walTail_truncSup (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     imod Hcl'
     have hwrl' : lay.wr = wr := hwrl.symm
     have hlo : ¬ SegExact g0 → g0.om.lo ≤ lay.wr := fun hx => by
-      rcases hP0 with h | h | h
-      · rw [hwrl']; exact h
+      rcases hP0 with h | h
       · exact absurd (SegExact.of_os hsz h) hx
       · rw [hwrl']; exact h
     have hZP : TailZeros lay ∨

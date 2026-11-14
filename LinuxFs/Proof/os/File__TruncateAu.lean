@@ -105,6 +105,16 @@ theorem os.announce_lo_le (m : OsMeta) (lo hi tg : Nat) (tc : GMap Nat Cands) (r
     ((m.announce lo hi tg).withTc tc rz).lo ≤ tg := by
   simp only [OsMeta.withTc_lo, OsMeta.announce]; exact Nat.min_le_right _ _
 
+/-- An announced state's least crash size. -/
+theorem os.announce_lo (m : OsMeta) (lo hi tg : Nat) (tc : GMap Nat Cands) (rz : List Nat) :
+    ((m.announce lo hi tg).withTc tc rz).lo = min m.lo tg := by
+  simp only [OsMeta.withTc_lo, OsMeta.announce]
+
+/-- A landed state's least crash size. -/
+theorem os.rsPost_lo (tr : Bool) (m : OsMeta) (tg sz' : Nat) (tc : GMap Nat Cands) (rz : List Nat) :
+    ((rsPost tr m tg sz').withTc tc rz).lo = min m.lo tg := by
+  simp only [OsMeta.withTc_lo, rsPost, OsMeta.announce]
+
 /-- A landed state's least crash size is at most the target. -/
 theorem os.rsPost_lo_le (tr : Bool) (m : OsMeta) (tg sz' : Nat) (tc : GMap Nat Cands) (rz : List Nat) :
     ((rsPost tr m tg sz').withTc tc rz).lo ≤ tg := by
@@ -122,7 +132,7 @@ def ftStateH (p : Ino) (m : OsMeta) (tg : Nat) (xs : List ByteG) : IProp GF :=
     ∃ zs, os.ftDoneH p m tg zs)
 
 theorem os.File.Truncate.wp_proofAu : os.File.Truncate.specAu (GF := GF) (hG := hG) := by
-  intro f fd name dqf sz dq d m xs K P hfd0 hwr hsz hmaps hxs hP
+  intro f fd name dqf sz dq d m xs K P hfd0 hwr hsz hmaps hxs hP hPa
   unfold os.truncSup
   unfold os.ownFile
   wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hm, Hb, HK, #Hsup⟩
@@ -157,10 +167,10 @@ theorem os.File.Truncate.wp_proofAu : os.File.Truncate.specAu (GF := GF) (hG := 
     rw [← hsz0] at hl
     ihave Hb : osBytes d.ino (min m0.size sz.toNat) (DFrac.own (1 : Qp).half) xs0 $$ [Hb]
     · rw [hsz0]; iexact Hb
-    have hP0 : m0.lo ≤ sz.toNat ∨ P m0 := by
+    have hP0 : P m0 := by
       rcases hm0 with rfl | ⟨tc0, rz0, -, rfl⟩
-      · exact .inr hP
-      · exact .inl (os.announce_lo_le _ _ _ _ _ _)
+      · exact hP
+      · exact hPa _ (Nat.le_of_eq (os.announce_lo _ _ _ _ _ _)) (by rw [hsz0]; omega)
     ihave Hau := Hsup $$ %m0 %xs0 %hl %hP0 HK Hm Hb
     unfold os.truncAuW
     wp_apply wp_osFtruncateStart_auW fd sz dq d m0 xs0 hwr hsz (by rw [hmaps0]; exact hmaps)
@@ -253,7 +263,7 @@ theorem os.File.Truncate.wp_proofAu : os.File.Truncate.specAu (GF := GF) (hG := 
         (DFrac.own (1 : Qp).half) [] $$ []
     · unfold osBytes; iapply (bytesG_nil _ _ _ _).2; iempintro
     ihave Hau := Hsup $$ %((rsPost true m sz.toNat sz.toNat).withTc tc0 rz0) %([] : List ByteG)
-      %(by rw [hdsz]; simp) %(.inl (os.rsPost_lo_le _ _ _ _ _ _)) HK Hm Hb0
+      %(by rw [hdsz]; simp) %(hPa _ (Nat.le_of_eq (os.rsPost_lo _ _ _ _ _ _)) (by rw [hdsz]; omega)) HK Hm Hb0
     unfold os.truncAuW
     wp_apply wp_osFtruncateStart_auW fd sz dq d ((rsPost true m sz.toNat sz.toNat).withTc tc0 rz0) []
       hwr hsz (by rw [hdmaps]; exact hmaps) (by rw [hdsz]; simp) _ $$ Hinv Hosfd Hau

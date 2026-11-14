@@ -8,7 +8,8 @@ holder gets the pending token `walPendTok dir γ |old|` in place of the key, unt
 tail lent (`walLentTokB dir γ k p`) for the key.
 
 * `TailMetaR`: what `ReadAll` knows of the tail it registers (`TailMeta` without `TailZ`/`PastZ`).
-* `TailMetaZ`: the tail after `ZeroToEnd` (`TailMetaW` without `PastZ`).
+* `TailMetaZ`: the tail after `ZeroToEnd` (all its bytes, no mappings, the page cache known zero to the
+  end of the size's page).
 * `walTailP`: the handle's tail, lent.
 -/
 module
@@ -32,10 +33,14 @@ nor `PastZ` (nothing but zeros known past `hi`), which the fdatasync after `Zero
 def TailMetaR (m : Fs.OsMeta) (bs : List Fs.ByteG) : Prop :=
   bs.length = m.size ∧ m.maps = ∅ ∧ m.lo = m.size ∧ m.hi = m.size
 
-/-- **The tail after `ZeroToEnd`** (until the fdatasync after it): `TailMetaW` without `PastZ` (the
-crash's bytes past the old size may be known nonzero candidates). -/
+/-- **The tail after `ZeroToEnd`** (until the fdatasync after it): all its bytes, no mappings, and the
+page cache known zero from the size to the end of its page (`ZeroToEnd.specAu`'s `pageEnd m.size ≤ m'.cz`),
+which is what the fdatasync needs for `TailZ` of the synced `OsMeta` (`TailZ.synced_of`; `PastZ` of a synced
+`OsMeta` holds). Not `TailZ` itself (`wal-tc19`; the `wal-tc17` form had `TailMetaW` without `PastZ`): a
+crashed or synced tail may not know the candidates of its last page past the size, and `ZeroToEnd` does
+not make them known. Its window (`lo`, `hi`) is the handle's `LoWr` and the invariant's. -/
 def TailMetaZ (m : Fs.OsMeta) (bs : List Fs.ByteG) : Prop :=
-  bs.length = m.size ∧ m.maps = ∅ ∧ TailZ m ∧ m.lo ≤ m.size ∧ m.size ≤ m.hi
+  bs.length = m.size ∧ m.maps = ∅ ∧ Fs.pageEnd m.size ≤ max m.size m.cz
 
 theorem TailMeta.tailMetaR {m : Fs.OsMeta} {bs : List Fs.ByteG} (h : TailMeta m bs) : TailMetaR m bs :=
   ⟨h.1, h.2.1, h.2.2.2.1, h.2.2.2.2.1⟩
@@ -46,7 +51,7 @@ theorem TailMetaR.loWr {m : Fs.OsMeta} {bs : List Fs.ByteG} (h : TailMetaR m bs)
 
 theorem TailMetaW.tailMetaZ {m : Fs.OsMeta} {bs : List Fs.ByteG} (h : TailMetaW m bs) :
     TailMetaZ m bs :=
-  ⟨h.1, h.2.1, h.2.2.1, h.2.2.2.1, h.2.2.2.2.1⟩
+  ⟨h.1, h.2.1, h.2.2.1.pageEnd_size⟩
 
 section handle
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]

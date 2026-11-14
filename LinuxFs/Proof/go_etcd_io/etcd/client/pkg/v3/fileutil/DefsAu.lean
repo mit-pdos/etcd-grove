@@ -29,11 +29,12 @@ variable [sem : go.Semantics]
 
 /-- **The caller's half of `preGrown`**: the file `i`, of `OsMeta` `m` before, grown to the size `w`:
 its `OsMeta`'s half (of that size, `m`'s mappings, the page cache known zero past the size at least
-as far, knowing the candidates past both sizes `m` knew, `PcKeep`, the zeros known from the page cache
-known zero on if `Z`, `OsMeta.ZeroPg`) and its half of the new bytes, zeros. -/
+as far, knowing the candidates past both sizes `m` knew, `PcKeep`, its least crash size at most `m`'s
+(`wal-tc19`: what a growth's supplies are told, `fallocSup`'s and `os.truncSup`'s `P`), the zeros known
+from the page cache known zero on if `Z`, `OsMeta.ZeroPg`) and its half of the new bytes, zeros. -/
 def preGrownH (i : Ino) (m : OsMeta) (w : Nat) (Z : Prop) : IProp GF :=
   iprop(∃ m' : OsMeta, ⌜m'.size = w ∧ m'.maps = m.maps ∧ m.cz ≤ m'.cz ∧ GrowMeta m m' ∧ PcKeep m m' ∧
-      (Z → m'.ZeroPg)⌝ ∗
+      m'.lo ≤ m.lo ∧ (Z → m'.ZeroPg)⌝ ∗
     osMeta i (DFrac.own (1 : Qp).half) m' ∗ osZerosA i m.size (w - m.size) (DFrac.own (1 : Qp).half))
 
 /-- **What `ZeroToEnd`'s split form keeps of the `OsMeta` `m`** (`ZeroToEnd.specAu`'s success post, `m'`
@@ -50,7 +51,8 @@ theorem preGrownH_mono (i : Ino) (m : OsMeta) (w : Nat) {Z Z' : Prop} (h : Z' �
   iexists m'
   iframe Hm Hz
   ipureintro
-  exact ⟨hm'.1, hm'.2.1, hm'.2.2.1, hm'.2.2.2.1, hm'.2.2.2.2.1, fun hz => hm'.2.2.2.2.2 (h hz)⟩
+  exact ⟨hm'.1, hm'.2.1, hm'.2.2.1, hm'.2.2.2.1, hm'.2.2.2.2.1, hm'.2.2.2.2.2.1,
+    fun hz => hm'.2.2.2.2.2.2 (h hz)⟩
 
 theorem osZerosA_nil (i : Ino) (lo : Nat) (dq : DFrac) : ⊢ osZerosA (GF := GF) i lo 0 dq := by
   iapply (osZerosA_unfold i lo 0 _).2
@@ -79,14 +81,14 @@ theorem preGrownH_same (i : Ino) (m : OsMeta) (Z : Prop) (hZ : Z → m.ZeroPg) :
   iexists m
   iframe Hm
   isplitr
-  · ipureintro; exact ⟨rfl, rfl, Nat.le_refl _, GrowMeta.refl m, PcKeep.refl m, hZ⟩
+  · ipureintro; exact ⟨rfl, rfl, Nat.le_refl _, GrowMeta.refl m, PcKeep.refl m, Nat.le_refl _, hZ⟩
   rw [Nat.sub_self]
   iapply osZerosA_nil
 
 /-- Two growths in a row are one. -/
 theorem preGrownH_trans (i : Ino) (m m1 : OsMeta) (w : Nat) (Z : Prop) (h1 : m.size ≤ m1.size)
     (h2 : m1.size ≤ w) (hmaps : m1.maps = m.maps) (hcz : m.cz ≤ m1.cz) (hg : GrowMeta m m1)
-    (hpc : PcKeep m m1) :
+    (hpc : PcKeep m m1) (hlo : m1.lo ≤ m.lo) :
     osZerosA (GF := GF) i m.size (m1.size - m.size) (DFrac.own (1 : Qp).half) ∗ preGrownH i m1 w Z ⊢
       preGrownH i m w Z := by
   iintro ⟨Hz, Hg⟩
@@ -97,7 +99,7 @@ theorem preGrownH_trans (i : Ino) (m m1 : OsMeta) (w : Nat) (Z : Prop) (h1 : m.s
   isplitr
   · ipureintro
     exact ⟨hm'.1, hm'.2.1.trans hmaps, Nat.le_trans hcz hm'.2.2.1, hg.trans hm'.2.2.2.1,
-      hpc.trans hm'.2.2.2.2.1 (by omega), hm'.2.2.2.2.2⟩
+      hpc.trans hm'.2.2.2.2.1 (by omega), Nat.le_trans hm'.2.2.2.2.2.1 hlo, hm'.2.2.2.2.2.2⟩
   have hw : w - m.size = (m1.size - m.size) + (w - m1.size) := by omega
   rw [hw]
   iapply (osZerosA_add i m.size _ _ _).2
@@ -115,6 +117,7 @@ theorem fallocDoneH_preGrownH (i : Ino) (m : OsMeta) (tg w : Nat) (Z : Prop) (hw
   ipureintro
   exact ⟨rfl, rsPost_maps false m tg w, os.le_rsPost_cz false m tg w,
     growMeta_rsPost false m tg w (.inl hw) (by omega), PcKeep.of_tc (tr := false) rfl rfl htc,
+    by simp only [OsMeta.withTc_lo, rsPost, OsMeta.announce]; omega,
     fun hz => OsMeta.zeroPg_rsPost_false (hZ hz) tg w hw hle⟩
 
 /-- A growth's outcome: grown to some `w` between the size and the target, all of it on success. -/
@@ -140,7 +143,8 @@ theorem fallocOutH_preGrownH (i : Ino) (m : OsMeta) (tg : Nat) (e : w64) (hle : 
         announce_maps' m (min m.size tg) (rsHi false m.size tg) tg,
         Nat.le_of_eq (announce_cz' m (min m.size tg) (rsHi false m.size tg) tg).symm,
         growMeta_announce m (min m.size tg) (rsHi false m.size tg) tg,
-        PcKeep.of_tc (tr := false) (announce_size' m (min m.size tg) (rsHi false m.size tg) tg) rfl htc, fun h => absurd h.1 he⟩
+        PcKeep.of_tc (tr := false) (announce_size' m (min m.size tg) (rsHi false m.size tg) tg) rfl htc,
+        by simp only [OsMeta.withTc_lo, OsMeta.announce]; omega, fun h => absurd h.1 he⟩
     rw [Nat.sub_self]
     iapply osZerosA_nil
   · iexists w
@@ -160,7 +164,8 @@ theorem ftDoneH_preGrownH (p : Ino) (m : OsMeta) (tg : Nat) (zs : List Cands) (Z
   · ipureintro
     exact ⟨rfl, rsPost_maps true m tg tg, by simp only [OsMeta.withTc_cz]; exact le_rsCz true m tg,
       growMeta_rsPost true m tg tg (Or.inr rfl) (Nat.le_max_right _ _),
-      PcKeep.of_tc (tr := true) rfl rfl htc.1, fun hz => OsMeta.zeroPg_rsPost_true (hZ hz) tg⟩
+      PcKeep.of_tc (tr := true) rfl rfl htc.1, by simp only [OsMeta.withTc_lo, rsPost, OsMeta.announce]; omega,
+      fun hz => OsMeta.zeroPg_rsPost_true (hZ hz) tg⟩
   iapply (osZerosA_unfold p m.size _ _).2
   iexists zs
   iframe Hb
@@ -179,7 +184,8 @@ theorem ftUndoneH_preGrownH (p : Ino) (m : OsMeta) (tg : Nat) :
       announce_maps' m (min m.size tg) (rsHi true m.size tg) tg,
       Nat.le_of_eq (announce_cz' m (min m.size tg) (rsHi true m.size tg) tg).symm,
       growMeta_announce m (min m.size tg) (rsHi true m.size tg) tg,
-      PcKeep.of_tc (tr := true) (announce_size' m (min m.size tg) (rsHi true m.size tg) tg) rfl htc.1, False.elim⟩
+      PcKeep.of_tc (tr := true) (announce_size' m (min m.size tg) (rsHi true m.size tg) tg) rfl htc.1,
+      by simp only [OsMeta.withTc_lo, OsMeta.announce]; omega, False.elim⟩
   rw [Nat.sub_self]
   iapply osZerosA_nil
 
