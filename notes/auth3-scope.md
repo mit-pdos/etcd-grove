@@ -418,6 +418,11 @@ No axiom or trusted text is planned for A.
   Scope, blocks-proof no. Confirm the classification. A filing upstream would be a documentation
   request at most, in the vein of etcd-io/etcd#18437.
 
+**Decided by etcd-grove-81 (2026-11-14; A1 approved by the user, via etcd-grove-81):** Q1 (A): A1,
+then A2, then B, and only A1 now. Q2 deferred to A2. Q3: `NoSnapCatchUp` in A1. Q4: D22 not
+needed before A. Q5: auth3's own `startMember`; `etcdstart`'s proved specs stay. Q6: factor
+authkv's `Main` body into a lemma. Q7: the non-issue classification confirmed.
+
 ## 7. Evidence index
 
 - Token replication: `notes/auth3-scope/zz_auth3_token_replicated_test.go`; code at `2eaeb872b`:
