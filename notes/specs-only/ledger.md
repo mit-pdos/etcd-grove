@@ -641,6 +641,45 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   absent source (`ENOENT`, no effect).
 - **Decision.** (1) adopted (coordinator); (2), (3) pending the coordinator.
 
+## 2026-11-14: `wal.Create.spec` (the part's, over `fsExt`) -- the initial snapshot record's bytes
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/Create.lean`.
+- **Defect.** `Create` writes `&walpb.Snapshot{Index: new(0), Term: new(0)}` through `SaveSnapshot`
+  (S/wal.go:181), whose bytes are protobuf-go's (`snapEnc snapC0`; `SaveSnapshot.specPre` writes
+  `Mr.encSnap sm` of a `walSnapAt Mr sp sm cs`, which ties the object's encoding to `Mr.encSnap`). The
+  committed state `walDurFresh md` has `Mr.snap0` there (`hdrDs`). Nothing relates `Mr.snap0`, `Mr.encSnap`
+  and `snapEnc`: with an arbitrary marshaller the spec's commit is false.
+- **Evidence.** `Create.wp_proof`'s `SaveSnapshot` step (`wal-create15`); `WalEncRecs.lean` (`hdrDs`).
+- **Change (made).** Premise `WalMarshalCreateOk Mr` (`CreateSnap.lean`: `Mr.snap0 = snapEnc snapC0 ∧
+  Mr.encSnap snapC0.model = Mr.snap0`), a pure fact of the client's marshaller parameter, which the
+  server meets with the real one (as `walSnapAt`'s tie, ledger 2026-11-13).
+- **Decision.** Adopted (minor: a pure premise on a parameter, no ghost state; `wal-create15`).
+
+## 2026-11-14: `wal.WAL.renameWALUnlock.spec` (internal, the part's) -- (2) Create-specific: blocked on `Open`'s update
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__renameWALUnlock.lean`, defect (2) of the
+  entry above, and the coordinator's decision (b) (make `renameWAL`/`renameWALUnlock` `Create`-specific, naming
+  `walAreaRes`, `walUnlockedTok` and the client's update on `walDirIs dir`).
+- **Finding (`wal-create15`).** `Create`-specific statements give `walAreaRes jr` (`Create` holds it through
+  `walAreaRes_open`'s parts, merged back by `walInv_merge2` after the unminting or the commit) and
+  `walUnlockedTok` (the commit's `walCreateQ` returns `walLockedTok`; `Close` of the pre-rename `w` does not
+  give it back, so the retry must release it first: `walLockedTok_unlock` needs the handle's
+  `walOutFrag`/`walTailsFrag`/`walNamesFrag none`, which `walCreateQ (some x)` holds). **But `Open`'s update
+  cannot be built**: after the second rename commits, the client's update (`walAbsent dir` to `walDiskAt dir
+  (walDurFresh md)`) has been spent (its `COMM Q` is in `walCreateQ (some x)`), and `Open.spec` asks for an
+  atomic update on `∃∃ o, walDirIs dir o`, which only the client's resources open. `Create` owns no
+  `walDirIs`/`walDiskAt` fragment after the commit (they are the client's, inside `Q`). So the retry's
+  `Open`/`ReadAll` are provable only if `Create.spec` takes a **second client update** for the reopen
+  (`AU <{ ∃∃ o, walDirIs dir o }> @ walAuMask, ∅ <{ walDirIs dir (o.map …), COMM Q' o }>`, used only on the
+  retry path; on every other path returned or dropped), or if `Create`'s success arm on the retry path
+  returns without the reopened handle (not what the code does).
+- **Evidence.** `Open.spec`'s pre (`LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/Open.lean`); `walCreateQ`
+  (`CreateAu.lean`); `Create.spec`'s pre.
+- **Change.** None made: a second client update in `Create.spec` is a change to the client's contract (the
+  coordinator's / the user's decision). (3) (the second rename's absent source) and (1) (the pre carries the
+  encoder and the tail file) are independent of it.
+- **Decision.** Pending the coordinator.
+
 ## 2026-11-14: `wal.Repair.spec` (the part's, over `fsExt`) -- the lock token taken (plan §6 Q7)
 
 - **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/Repair.lean` (`wal.Repair.spec`, new): the main
@@ -673,3 +712,34 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   y = durB y.1`, `CloseHandle.lean`; `TailMetaS.of_sync` from `TailMeta m bs` to the synced pair). `WalCloseLaw`
   takes `TailMetaS`; `WAL.Close.wp_proof` unchanged.
 - **Decision.** Adopted (the coordinator's `TailSynced` decision, 2026-11-14).
+
+## 2026-11-14: `wal.WAL.cut.spec` (internal, the part's) -- the history nonempty at a cut
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__cut.lean` (`WAL.cut.spec`, a hypothesis of
+  `WAL.Save.wp_proof`, proved by `WAL.cut.wp_proof`).
+- **Defect.** Too weak for `ReadAll`: its premise `walCutPos (h.H.map toM) |H|` allows `|H| = 0`, so a cut at
+  position 0 could enter the invariant's layout; `ReadAll` from a cut file reads past a nonempty prefix
+  (`readAll_ok_pure`'s `hk0`), and a cut at 0 would make that prefix empty (W3/W5 log, fourteenth to sixteenth
+  sessions: the cuts' positivity).
+- **Evidence.** `cut`'s only caller, `Save` (S/wal.go: `if curOff < SegmentSizeBytes { ... return nil }; return
+  w.cut()`), cuts after appending a save record: its history is `H ++ [save]`, nonempty.
+- **Change (made).** The premise `0 < h.H.length` after `walCutPos`; the invariant's `WalAbsD.cutPos` (every cut
+  `> 0`, `CutLay` from the premise, the crash keeping the cuts). `WAL.Save.wp_proof` supplies it.
+- **Decision.** Adopted (eighteenth W3/W5 session, minor: a premise its one caller meets; no client-visible
+  change, `cut` is unexported).
+
+## 2026-11-14: minibolt's `DB.init.spec`/`DB.init.specCrash` (the part's example) -- the post's `cz`; `os.File.WriteAt.specCrashS` -- the bytes written
+
+- **Spec.** `LinuxFs/Spec/.../examples/osfs/bboltfs/DB__init.lean` (post: `({ m with size := max m.size 16384 }).synced`),
+  `DB__initCrash.lean` (`initDoneMeta`, the same); `LinuxFs/Spec/os/CrashSt.lean`'s `os.File.WriteAt.specCrashS`
+  (success post: the bytes written, the size, but not how far the loop got, `nn`).
+- **Defect.** Since `wal-save16` (the extension's `pwCz`) a complete `pwrite` whose end reaches the zeros known
+  raises `cz` to its end's page, so `init`'s first write (16384 bytes at 0) leaves `cz = pwCz m 0 16384 16384`,
+  not `m.cz`; the later metas' writes (inside the first four pages, below the zeros a sync made known from the
+  size on) leave it. The posts stated the old `cz`: false. `specCrash`'s proof also needs the loop's end state to
+  be a completed `WReach` (`nn = |data|`), which `specCrashS`'s success post did not say (its proof had it, `hfk`).
+- **Change (made).** Both posts' `OsMeta` is `({ m with size := max m.size 16384, cz := pwCz m 0 16384 16384 }).synced`;
+  `specCrashS`'s success post gains `nn = data.length` (proved; `WReach.czInv`/`WReach.cz_done`: a completed
+  `WriteAt`'s `cz` is one complete write's, `pwCz m off |data| |data|`; `pwCz_eq_of_lt`, `synced_zf_ge`, all in
+  `CrashSt.lean`). Clients (`Open`, `OpenCrash`, `DB.commit.wp_proof_crash`) repaired; no other user.
+- **Decision.** Made (`wal-save17`, the coordinator's task 1: the posts' `cz` as `pwCz m 0 16384 16384`).

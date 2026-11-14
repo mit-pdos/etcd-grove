@@ -27,6 +27,10 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.PipeLemmas
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateSeg
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateLocked
 public import LinuxFs.Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.Preallocate
+public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.newFileEncoder
+public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__SaveSnapshotPre
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.PreSync
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateHdr
 public import LinuxFs.Proof.os.MkdirAllParts
 public import Spec.fmt.SprintfWalName
 
@@ -80,6 +84,8 @@ macro "create_seg_exit" : tactic => `(tactic| (
     iframe
     ipureintro; intro hc; cases hc))
 
+-- (the proof term's instantiation at the end of the declaration exceeds the default budget)
+set_option maxHeartbeats 1000000 in
 theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
     (wp_Exist : wal.Exist.specCreate (GF := GF) walCodec Mr)
     (wp_FExist : go_etcd_io.etcd.client.pkg.v3.fileutil.Exist.spec (GF := GF) (hG := hG))
@@ -97,9 +103,18 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
     (wp_OpenC : os.OpenFile.specCreateSnc (GF := GF) (hG := hG))
     (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
     (wp_Prealloc : go_etcd_io.etcd.client.pkg.v3.fileutil.Preallocate.spec (GF := GF) (hG := hG))
+    (wp_newFileEncoder : go_etcd_io.etcd.server.v3.storage.wal.newFileEncoder.spec (GF := GF)
+      (hG := hG))
+    (wp_saveCrc : go_etcd_io.etcd.server.v3.storage.wal.WAL.saveCrc.spec (GF := GF) (hG := hG))
+    (wp_encode : go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.specG (GF := GF) (hG := hG))
+    (wp_SaveSnapPre : go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.specPre (GF := GF)
+      (hG := hG) Mr)
+    (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) (hG := hG))
+    (wp_Fdatasync : go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync.spec (GF := GF) (hG := hG))
+    (wp_syncDir : go_etcd_io.etcd.server.v3.storage.wal.syncDir.spec (GF := GF) (hG := hG))
     (_wp_renameWAL : go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.spec (W := W) P Mr) :
     wal.Create.spec (GF := GF) P Mr := by
-  intro lg R jr r dir nm mp md qp Q hin hnmO hdl hr hmp _hmd
+  intro lg R jr r dir nm mp md qp Q hin hnmO hdl hr hmp hmd hMr
   wp_start as ⟨#Hzap, #Hmd, #Hok, #Hdd, Hp, Hres, Hperm, Hu, Hau⟩
   try wp_auto
   wp_apply wp_with_defer as %defer Hdefer
@@ -108,7 +123,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
   · iframe; iframe #
   ihave #Hdeps := isPkgInit_unfold_deps pkg_id.go_etcd_io.etcd.server.v3.storage.wal $$ Hpkg
   isimp only [isPkgInitDeps] at Hdeps
-  icases Hdeps with ⟨-, #Herrs, #Hfmt, -, -, -, -, #Hfu, -, -, -, -, #Hos, -, -, #Hfp, #Hzp, -, -, -, -, -, -, -⟩
+  icases Hdeps with ⟨#Hbin, #Herrs, #Hfmt, -, -, #Hsync, #Hproto, #Hfu, -, -, -, -, #Hos, #Htime, -, #Hfp, #Hzp, -, -, -, -, -, -, -⟩
   cases bx
   rotate_left
   · -- `Exist(dir)`: `os.ErrExist`, nothing done
@@ -379,7 +394,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
     ihave #Hwi : (wal.walInit : IProp GF) $$ []
     · iapply isPkgInit_access $$ Hpkg
     iunfold wal.walInit at Hwi
-    icases Hwi with ⟨-, -, #Hseg, -⟩
+    icases Hwi with ⟨#Hcrct, #Hmet, #Hseg, -⟩
     try wp_auto
     have hwr : (openFd i (wal.walOpenFlag false ||| W64 524288)).writable = true := by
       simp only [openFd]; unfold wal.walOpenFlag O_RDONLY; decide
@@ -411,6 +426,214 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
       try wp_auto
       create_seg_exit
     obtain rfl : wsz = 64000000 := hwsz.2.2 rfl
+    try wp_auto
+    -- `w := &WAL{lg, dir, metadata}` (allocated), `newFileEncoder(f.File, 0)`
+    irename lg => Hlgp
+    irename metadata => Hmdp
+    irename «$r0» => Hwal
+    generalize «$r0_ptr» = wl at *
+    iStructNamed Hwal
+    imod sync.init_Mutex (BI.pure True : IProp GF) ⊤
+      (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"mu" wl) $$ mu [] with #Hmu
+    · inext; ipureintro; trivial
+    ihave #Henv : (encEnv : IProp GF) $$ []
+    · iunfold encEnv; iframe #
+    ihave #Hioi : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.ioutil $$ []
+    · iPkgInit
+    ihave Hoff : os.ownOff f (W64 0) $$ [Hoff]
+    · iexact Hoff
+    wp_apply (wp_newFileEncoder f fd _ _ (W64 0) (W32 0) hfi.1 (by decide) (by decide))
+      $$ [Hf Hoff] as %enc ⟨Henc, Hf, Hoff, %he⟩
+    · iframe; iframe #
+    try wp_auto
+    -- `w.locks = append(w.locks, f)`
+    wp_apply wp_slice_literal (V := Loc) [lf]
+    isplitr
+    · ipureintro; rfl
+    iintro %l1 ⟨Hl1, -⟩
+    ihave Hls0 := ownSlice_nil (GF := GF) (V := Loc) (DFrac.own 1)
+    ihave Hcap0 := ownSliceCap_nil (GF := GF) (V := Loc)
+    wp_apply (wp_slice_append (V := Loc) slice.nil [] _ [lf] (DFrac.own 1)) $$ [Hl1]
+      as %locks' ⟨Hls, Hcap, -⟩
+    · iframe; iframe #
+    try wp_auto
+    -- the headers' stream over the segment's zeros, from offset 0
+    have hFr := createStream_frames Mr md hMr
+    have hL := createStream_fit Mr md hMr hmd
+    have hnm0 : Fs.newMeta.size = 0 := by
+      simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk]
+    iunfold preGrown at Hpa
+    icases Hpa with ⟨%m2, ⟨%hm2s, %hm2maps, -, %hgrow⟩, Hm2, Hz2⟩
+    icases (osZerosA_unfold i _ _ (DFrac.own 1)).1 $$ Hz2 with ⟨%zs2, %hzs2, Hz2⟩
+    have hlo2 : m2.lo ≤ m2.size :=
+      hgrow.2 (by simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk])
+    have hmaps2 : m2.maps = ∅ := by
+      rw [hm2maps]; simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk]
+    ihave Hm2 : osMeta (openFd i (wal.walOpenFlag false ||| W64 524288)).ino (DFrac.own 1) m2 $$ [Hm2]
+    · rw [hino]; iexact Hm2
+    ihave Hz2 : osBytes (openFd i (wal.walOpenFlag false ||| W64 524288)).ino 0 (DFrac.own 1)
+        (zs2.map (fun c => ((0 : w8), c))) $$ [Hz2]
+    · rw [hino, ← hnm0]; iexact Hz2
+    ihave HW0 := os.fileW_start f fd (child (child r (tmpName nm)) (walFileName 0 0)) (DFrac.own 1) (DFrac.own 1)
+      (openFd i (wal.walOpenFlag false ||| W64 524288)) m2 0 (zs2.map (fun c => ((0 : w8), c)))
+      hlo2 (Nat.zero_le _) (by simp [hzs2, hm2s, hnm0]) $$ [Hf Hfd Hoff Hm2 Hz2]
+    · iframe
+    ihave #Hws := os.File.writerStreamI wp_WriteAt f fd (child (child r (tmpName nm)) (walFileName 0 0)) (DFrac.own 1) (DFrac.own 1)
+      (openFd i (wal.walOpenFlag false ||| W64 524288)) m2 (zs2.map (fun c => ((0 : w8), c)))
+      (createStream Mr md).length hfi.1 hwr hmaps2 (by omega) $$ Hosi
+    ihave #HwsP := (io.writerStream_P _ _ _ _).1 $$ Hws
+    ihave HW0' : os.fileWI f fd (child (child r (tmpName nm)) (walFileName 0 0)) (DFrac.own 1) (DFrac.own 1)
+      (openFd i (wal.walOpenFlag false ||| W64 524288)) m2 (zs2.map (fun c => ((0 : w8), c))) [] $$ [HW0]
+    · iunfold os.fileWI; iframe; iframe #
+    -- `saveCrc(0)`
+    rw [show (W32 0) = 0#32 from rfl] at *
+    wp_apply (wp_saveCrc wl enc (wal.fileWi f) _ _ (fun ys => ys.length ≤ (createStream Mr md).length)
+        [] [] 0#32 0#32 (fun xs ys hp hy => Nat.le_trans hp.length_le hy) (by rw [hFr]; simp))
+      $$ [HwsP] [encoder Henc HW0'] as %serr1 ⟨%pend1, Hencf, Henc, Hr1⟩
+    · iexact HwsP
+    · iframe; iframe #
+    icases Hr1 with (⟨%ys1, ⟨%he1, %hys1⟩, HW1⟩ | ⟨%a1, %b1, ⟨%he1, -, -⟩, HB1⟩)
+    rotate_left
+    · -- `saveCrc` failed: the deferred `f.Close()` and `RemoveAll(nm.tmp)`, the abort
+      rcases serr1 with ei | _
+      rotate_left
+      · exact absurd rfl he1
+      iunfold os.fileBI at HB1
+      icases HB1 with ⟨HB1, -⟩
+      iunfold os.fileB at HB1
+      icases HB1 with ⟨%o', %mb, %ysb, -, Hf, Hfd, -⟩
+      try wp_auto
+      create_seg_exit
+    subst he1
+    try wp_auto
+    -- `encode(&Record{Type: MetadataType, Data: metadata})`
+    unfold go_etcd_io.etcd.server.v3.storage.wal.MetadataType
+    try wp_auto
+    imod (typedPointsto_dfractional _ _).dfractional_persist (DFrac.own 1) $$ «$v0» with #Ht1
+    have hmdr : recSize (recOf ⟨metadataType, hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md, md⟩)
+        < 2 ^ 47 := recSize_hdr _ _ _ (by decide) (by omega)
+    wp_apply (wp_encode enc (wal.fileWi f) _ _ (fun ys => ys.length ≤ (createStream Mr md).length)
+        ([] ++ ys1) pend1 (hash.crc32.crc32c 0#32 []) «$a0_ptr» metadataType md hmdr
+        (fun xs ys hp hy => Nat.le_trans hp.length_le hy) (by
+          have h1 := congrArg List.length hys1
+          rw [hFr]; unfold snapFrame
+          simp only [List.length_append, List.length_nil] at h1 ⊢; omega))
+      $$ [HwsP] [Henc HW1 «$a0»] as %serr2 ⟨%pend2, Henc, -, Hr2⟩
+    · iexact HwsP
+    · iframe Henv Henc HW1
+      iunfold encRecIn
+      iexists _
+      iframe «$a0»
+      have hd : (recOf ⟨metadataType, 0#32, md⟩).data = some md := by
+        simp [recOf, metadataType, crcType]
+      rw [hd]
+      have hmt : metadataType = W64 1 := rfl
+      rw [hmt]
+      isplitl
+      · iexact Ht1
+      isplitr
+      · simp only [recBytes, recOf, metadataType, crcType]
+        isplitr
+        · ipureintro; exact hmp
+        iexact Hmd
+      · ipureintro; trivial
+    icases Hr2 with (⟨%ys2, ⟨%he2, %hys2⟩, HW2⟩ | ⟨%a2, %b2, ⟨%he2, -, -⟩, HB2⟩)
+    rotate_left
+    · -- `encode` failed: the deferred `f.Close()` and `RemoveAll(nm.tmp)`, the abort
+      rcases serr2 with ei | _
+      rotate_left
+      · exact absurd rfl he2
+      iunfold os.fileBI at HB2
+      icases HB2 with ⟨HB2, -⟩
+      iunfold os.fileB at HB2
+      icases HB2 with ⟨%o', %mb, %ysb, -, Hf, Hfd, -⟩
+      try wp_auto
+      create_seg_exit
+    subst he2
+    try wp_auto
+    -- `SaveSnapshot(&walpb.Snapshot{Index: new(0), Term: new(0)})`: its record, then `sync`
+    imod walSnapAt_lit Mr hMr «$a0_ptr» «$v0_ptr» «$v1_ptr» _ _ $$ «$a0» «$v0» «$v1» with #Hsnap
+    ihave Hpre : walPreIn wl lg (child r nm) mp md enc lf f (W64 0) (W64 0)
+        $$ [lg dir metadata unsafeNoSync enti snapi Hencf locks Hls Hcap]
+    · iunfold walPreIn
+      iexists locks'
+      iframe; iframe #
+      ipureintro; exact he
+    ihave #Hpbu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil $$ []
+    · iPkgInit
+    have hlen1 := congrArg List.length hys1
+    have hlen2 := congrArg List.length hys2
+    have hsyncOk := os.fileWI_preSyncOk wp_Fdatasync f fd (child (child r (tmpName nm)) (walFileName 0 0)) (DFrac.own 1) (DFrac.own 1) (openFd i (wal.walOpenFlag false ||| W64 524288)) m2
+      (zs2.map (fun c => ((0 : w8), c)))
+    wp_apply (wp_SaveSnapPre wl lg (child r nm) mp md enc lf f (W64 0) (W64 0) _ _ _
+        (createStream Mr md).length ([] ++ ys1 ++ ys2) pend2
+        (hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md) «$a0_ptr» snapC0.model false
+        (Or.inl (by simp [snapC0, WalSnapC.model])) (by
+          rw [hFr]
+          simp only [List.length_append, List.length_nil] at hlen1 hlen2 ⊢; omega)
+        (by omega) hsyncOk)
+      $$ [Hws] [Hpre Henc HW2] as %serr3 ⟨%snapi', %enti', Hpre, Hr3⟩
+    · iexact Hws
+    · iframe; iframe #
+    icases Hr3 with (⟨%he3, Henc, HS⟩ | ⟨%he3, %c3, %pend3, Henc, HBW⟩)
+    rotate_left
+    · -- `SaveSnapshot` failed: the deferred `f.Close()` and `RemoveAll(nm.tmp)`, the abort
+      rcases serr3 with ei | _
+      rotate_left
+      · exact absurd rfl he3
+      ihave Hff : (os.ownFile f fd (child (child r (tmpName nm)) (walFileName 0 0)) (DFrac.own 1) ∗ osFd fd (DFrac.own 1) (openFd i (wal.walOpenFlag false ||| W64 524288))) $$ [HBW]
+      · icases HBW with (⟨%a3, %b3, HB⟩ | ⟨%o3, HW⟩)
+        · iunfold os.fileBI at HB
+          icases HB with ⟨HB, -⟩
+          iunfold os.fileB at HB
+          icases HB with ⟨%o', %mb, %ysb, -, Hf, Hfd, -⟩
+          iframe
+        · iunfold os.fileWI at HW
+          icases HW with ⟨HW, -⟩
+          iunfold os.fileW at HW
+          icases HW with ⟨%mb, %ysb, -, Hf, Hfd, -⟩
+          iframe
+      icases Hff with ⟨Hf, Hfd⟩
+      try wp_auto
+      create_seg_exit
+    subst he3
+    try wp_auto
+    iunfold os.fileS at HS
+    icases HS with ⟨%mS, %ysS, %hokS, Hf, Hfd, Hoff, HmS, HbS, -⟩
+    -- `syncDir(tmpdirpath)` (F-N1): `nm.tmp` fsynced
+    imod osNames_next R jr _ _ hT3 CoPset.subseteq_top $$ Hsi HT with ⟨HT, #HlbT⟩
+    icases (osPathS_frac R r e a' jr).1 $$ Hp with ⟨Hpe, Hpa⟩
+    icases (osNames_join jr (.only [tmpName nm]) e b' hT3 hqq).2 $$ HT with ⟨HTe, HTb⟩
+    ihave Hpc := osPathS_child R r (tmpName nm) (DFrac.own e) jr J hT3 (tmpName_nameOk hnmO) hJs.1
+      $$ Hpe HTe
+    wp_apply wp_syncDir (child r (tmpName nm)) R J (DFrac.own e) 1 hT3.next $$ [Hpc Hperm]
+      as %serr4 ⟨Hpc, Hperm, Hsd⟩
+    · iframe; iframe #
+    icases os.osPathS_unchild R r (tmpName nm) jr J e a' (tmpName_nameOk hnmO) $$ [Hpc Hpa]
+      with ⟨%hT5, Hp, HTe, %-⟩
+    · iframe
+    icases osNames_agree jr (.only [tmpName nm]) _ _ hT3 hT5 $$ HTb HTe with %he5
+    subst he5
+    ihave HT := (osNames_join jr (.only [tmpName nm]) e b' hT3 hqq).1 $$ [HTe HTb]
+    · iframe
+    icases Hsd with (%hse | ⟨%hse, #Hcm1⟩)
+    · -- `syncDir` failed: the deferred `f.Close()` and `RemoveAll(nm.tmp)`, the abort
+      rcases serr4 with ei | _
+      rotate_left
+      · exact absurd rfl hse
+      try wp_auto
+      wp_apply wp_String as %f1 -
+      wp_apply wp_Error as %f3 -
+      wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1, f3]
+      isplitr
+      · ipureintro; rfl
+      iintro %fsl ⟨-, -⟩
+      try wp_auto
+      wp_apply wp_Warn lg _ _ $$ []
+      · iframe #
+      try wp_auto
+      create_seg_exit
+    subst hse
     try wp_auto
     sorry)
 

@@ -55,7 +55,7 @@ theorem walAbsD_syncIdle {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wa
   have hso : lay.so ≤ lay.wr :=
     (h.lastEx (fun g hg => by rw [hg0] at hg; cases hg; exact hex) g0 hg0).1
   exact ⟨h'.names, h'.cuts, h'.nameBound, h'.cut, h'.metas, h'.intact, h'.last,
-    ⟨h.synced.1, Nat.le_trans h.synced.2 hso⟩, h.lastSynced, h'.fit, h'.tailStop, h'.nonempty⟩
+    ⟨h.synced.1, Nat.le_trans h.synced.2 hso⟩, h.lastSynced, h'.fit, h'.tailStop, h'.nonempty, h'.cutPos⟩
 
 /-- **A crash of the synced tail is one of the tail before** (see the file header). -/
 theorem fileCrashedR_unsync {g : SegG} {fo : Option Fs.OsFile} (hsz : g.om.size = g.bs.length)

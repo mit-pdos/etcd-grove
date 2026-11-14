@@ -333,7 +333,7 @@ theorem dbFile_norm (R : Roots) (V : Hist) (p : GoString) (t : Nat) (vo : Option
 theorem stored_of_init (p : Ino) (m : OsMeta) (xs : List ByteG) (hl : xs.length = m.size)
     (hmaps : m.maps = ∅) (hsz : m.size ≤ 2 ^ 30) :
     osBytes (GF := GF) p 0 (DFrac.own 1) (initFile xs) ⊢
-      |==> dbStoredAt (GF := GF) p 1 none 4 ({ m with size := max m.size 16384 } : OsMeta).synced := by
+      |==> dbStoredAt (GF := GF) p 1 none 4 ({ m with size := max m.size 16384, cz := pwCz m 0 16384 16384 } : OsMeta).synced := by
   iintro Hb
   rw [initFile_clean xs]
   have ht : (((initFile xs).map Prod.fst).take 8192).take 8192 = initBytes.take 8192 := by
@@ -348,7 +348,7 @@ theorem stored_of_init (p : Ino) (m : OsMeta) (xs : List ByteG) (hl : xs.length 
     unfold curRoot; rw [hc, initMeta_root]; rfl
   have htx : (curMeta (((initFile xs).map Prod.fst).take 8192)).txid'.toNat = 1 := by
     rw [hc, initMeta_txid]; rfl
-  have Hst := stored_of_bytes (GF := GF) p ({ m with size := max m.size 16384 } : OsMeta).synced
+  have Hst := stored_of_bytes (GF := GF) p ({ m with size := max m.size 16384, cz := pwCz m 0 16384 16384 } : OsMeta).synced
     ((initFile xs).map Prod.fst) hl' hmp
     (by rw [hpg]; show _ ≤ max m.size 16384; omega) (Nat.le_refl _) hmaps
     (by show _ ≤ max m.size 16384; omega) (by show max m.size 16384 ≤ _; omega)

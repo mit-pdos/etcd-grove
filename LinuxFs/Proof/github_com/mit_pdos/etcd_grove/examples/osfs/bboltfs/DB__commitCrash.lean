@@ -1547,7 +1547,7 @@ theorem DB.commit.wp_proof_crash (wp_mmap : DB.mmap.specCrash (GF := GF) (hG := 
     (Nat.le_add_right _ _) (Nat.le_trans hin Hsz)).1 $$ [Hpc] with Hpc
   · rw [Hmaps]; iexact Hpc
   rw [Nat.add_sub_cancel_left]
-  obtain ⟨hR, ⟨rfl, rfl, -, hd4⟩ | ⟨rfl, hne⟩⟩ := Hres
+  obtain ⟨hR, ⟨rfl, rfl, -, -, hd4⟩ | ⟨rfl, hne⟩⟩ := Hres
   rotate_left
   · obtain ⟨-, -, -, hs4, hm4, -, hok4⟩ := dataW_after (i := γ.ino) hcc hbl hmp hhwm h2 hin hdl h30 h16 hR
     cases err with
@@ -1743,7 +1743,7 @@ theorem DB.commit.wp_proof_crash (wp_mmap : DB.mmap.specCrash (GF := GF) (hG := 
     isplitl
     · iapply (writer_thrBytes γ.ino _ bs6 hwm h2 hfb6).2; iframe
     · ipureintro; exact Hwf6
-  rcases hsucc2 with ⟨rfl, rfl, -, hd6⟩ | ⟨rfl, hne2⟩
+  rcases hsucc2 with ⟨rfl, rfl, -, -, hd6⟩ | ⟨rfl, hne2⟩
   rotate_left
   · -- the meta `WriteAt` failed: fail the handle
     cases err2 with

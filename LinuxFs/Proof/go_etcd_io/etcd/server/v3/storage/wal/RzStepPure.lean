@@ -79,7 +79,7 @@ theorem walAbsD_win {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
       (¬ SegExact g → TailWin C Mr d (tailLay lay pre g wr') g ∧ g.om.lo ≤ wr')) :
     WalAbsD C Mr d (tailLay lay pre g wr') ents := by
   refine ⟨?_, ?_, ?_, habs.cut, ?_, ?_, ?_, habs.synced, habs.lastSynced, habs.fit, habs.tailStop,
-    by simp [tailLay]⟩
+    by simp [tailLay], by simpa [tailLay] using habs.cutPos⟩
   · have h1 := habs.names.1; have h2 := habs.names.2
     rw [hs] at h1 h2
     simp only [tailLay, List.map_append, List.map_cons, List.map_nil] at h1 h2 ⊢

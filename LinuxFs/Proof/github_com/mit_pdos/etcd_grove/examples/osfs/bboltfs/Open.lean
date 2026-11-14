@@ -345,7 +345,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
         ileft
         isplitr
         · ipureintro; trivial
-        iexists ({ m with size := max m.size 16384 } : OsMeta).synced
+        iexists ({ m with size := max m.size 16384, cz := pwCz m 0 16384 16384 } : OsMeta).synced
         rw [show (max (m.size : Int) 16384) = ((max m.size 16384 : Nat) : Int) by omega]
         iframe
       · cases err4 with

@@ -352,8 +352,8 @@ theorem crashOk_create_new {C : WalCodec} {Mr : WalMarshal} {md : List w8} {lay 
 /-- The static relation reads the directory's entries only through its `.wal` files. -/
 theorem walAbsD_congr {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {e1 e2 : Ents}
     (hw : walInos e1 = walInos e2) (h : WalAbsD C Mr d lay e1) : WalAbsD C Mr d lay e2 := by
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12⟩ := h
-  exact ⟨hw ▸ h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12⟩
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13⟩ := h
+  exact ⟨hw ▸ h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13⟩
 
 /-- **A WAL directory's claim after the rename** (the area claim, if it were one, logged: the rename
 writes no `.wal` name). -/
