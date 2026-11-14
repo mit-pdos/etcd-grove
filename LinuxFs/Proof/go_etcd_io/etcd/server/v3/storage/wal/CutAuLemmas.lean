@@ -109,7 +109,7 @@ theorem walTailsRes_cut (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (Ls 
   icases walLentRes_free (W := W) T Ls dir γ $$ Hk HL with ⟨Hk, HL⟩
   ihave ⟨Hent, HTm⟩ := (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (γ : GName) =>
     iprop(∃ (d : WalDur) (lay : WalLay) (g : SegG),
-      ⌜s.wal !! dir = some d ∧ Ls !! dir = some lay ∧ lay.segs.getLast? = some g ∧ TailZeros lay ∧
+      ⌜s.wal !! dir = some d ∧ Ls !! dir = some lay ∧ lay.segs.getLast? = some g ∧ TailZ0 lay ∧
         TailBound C Mr d lay⌝ ∗
       ghostVar γ (1 : Qp).half (tailG d lay g.ino (F !! g.ino)))) HT).1 $$ HTm
   icases Hent with ⟨%d, %lay, %g0, %hp, Hv'⟩
@@ -123,7 +123,7 @@ theorem walTailsRes_cut (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (Ls 
   iintro %lay' %g %F' %hp Hvn
   obtain ⟨hg', hZ, hB, hF, hFo⟩ := hp
   iexists T
-  ispecialize HL $$ %lay'
+  ispecialize HL $$ %lay' %hZ
   iframe HTa HL
   isplitr
   · ipureintro; exact HTo.insert HT hl hg hg' hFo
@@ -134,13 +134,13 @@ theorem walTailsRes_cut (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (Ls 
   iapply (BigSepM.bigSepM_delete (Φ := fun (k : GoString) (γ' : GName) =>
     iprop(∃ (d' : WalDur) (la : WalLay) (g' : SegG),
       ⌜s.wal !! k = some d' ∧ (<[dir := lay']> Ls) !! k = some la ∧
-        la.segs.getLast? = some g' ∧ TailZeros la ∧ TailBound C Mr d' la⌝ ∗
+        la.segs.getLast? = some g' ∧ TailZ0 la ∧ TailBound C Mr d' la⌝ ∗
       ghostVar γ' (1 : Qp).half (tailG d' la g'.ino (F' !! g'.ino)))) HT).2
   isplitl [Hvn]
   · iexists d, lay', g
     iframe Hvn
     ipureintro
-    exact ⟨hd, GMap.lookup_insert _ _ _, hg', hZ, hB⟩
+    exact ⟨hd, GMap.lookup_insert _ _ _, hg', Or.inl hZ, hB⟩
   · iapply BigSepM.bigSepM_mono (fun {k γ'} hk => ?_) $$ HTm
     have hne : k ≠ dir := by
       change GMap.delete dir T !! k = some γ' at hk
