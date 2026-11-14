@@ -100,7 +100,7 @@ theorem mvccOk_at (r : v3rpc.WRun GF) (j : Nat) (m : v3rpc.WatchRespM) (n : Nat)
     (x : mvcc.api.WResp) (hsrc : m.src = some (n, x)) :
     v3rpc.mvccOk r j m ⊢ ∃ (pre : List mvcc.api.WResp) (L : List v3rpc.WatchRespM)
       (σ : mvcc.api.MvccState) (S : mvcc.api.StreamState),
-      ⌜m = v3rpc.mvccResp n x m.hdr ∧ m.hdr.revision = x.rev ∧ L.length = j ∧ pre.length = n ∧
+      ⌜m = v3rpc.mvccResp n x m.hdr m.evs ∧ m.hdr.revision = x.rev ∧ L.length = j ∧ pre.length = n ∧
         (x.id ≠ W64 (-1) → v3rpc.idLive L x.id) ∧
         (x.id = W64 (-1) → ∀ X, v3rpc.idLive L X → X ≠ W64 (-1) → (S.ws !! X).isSome) ∧
         (x.evs ≠ [] → v3rpc.sentEvsOf L x.id ++ [x] =
@@ -115,7 +115,7 @@ theorem mvccOk_at (r : v3rpc.WRun GF) (j : Nat) (m : v3rpc.WatchRespM) (n : Nat)
         (⌜w.live = true⌝ ∨ v3rpc.cancelQ r.γs id)) := by
   iintro Hm
   iunfold v3rpc.mvccOk at Hm
-  icases Hm with ⟨%n0, %x0, %pre, %L, %σ, %S, %H, #HL, #Hr, Hsnap⟩
+  icases Hm with ⟨%n0, %x0, %pre, %L, %σ, %S, %H, #HL, #Hr, Hsnap, -⟩
   have hs : m.src = some (n0, x0) := by rw [H.1]; rfl
   rw [hs] at hsrc
   obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj hsrc)
@@ -334,7 +334,7 @@ theorem mvccOk_dup (r : v3rpc.WRun GF) (j : Nat) (m : v3rpc.WatchRespM) :
     srvWLaws r.W ∗ v3rpc.mvccOk r j m ⊢ □ v3rpc.mvccOk r j m := by
   iintro ⟨#Hl, Hm⟩
   iunfold v3rpc.mvccOk at Hm
-  icases Hm with ⟨%n, %x, %pre, %L, %σ, %S, %H, #HL, #Hr, Hsnap⟩
+  icases Hm with ⟨%n, %x, %pre, %L, %σ, %S, %H, #HL, #Hr, Hsnap, #Hes⟩
   unfold v3rpc.rcvSnap v3rpc.rcvSnapG
   icases Hsnap with ⟨%Hok, Hh, Hc, #Hreg⟩
   iunfold srvWLaws at Hl
@@ -348,8 +348,21 @@ theorem mvccOk_dup (r : v3rpc.WRun GF) (j : Nat) (m : v3rpc.WatchRespM) :
   isplitr
   · ipureintro; exact H
   unfold v3rpc.rcvSnap v3rpc.rcvSnapG
-  iframe Hh Hc Hreg
+  iframe Hh Hc Hreg Hes
   ipureintro; exact Hok
+
+/-- **An mvcc response's events at its source** `(n, x)` (k8s 7f-3b): `x`'s as the send loop sent
+them, each with the previous key-value it may have written (`v3rpc.evsSentOk`). -/
+theorem mvccOk_evsSent (r : v3rpc.WRun GF) (j : Nat) (m : v3rpc.WatchRespM) (n : Nat)
+    (x : mvcc.api.WResp) (hsrc : m.src = some (n, x)) :
+    v3rpc.mvccOk r j m ⊢ v3rpc.evsSentOk r x m.evs := by
+  iintro Hm
+  iunfold v3rpc.mvccOk at Hm
+  icases Hm with ⟨%n0, %x0, %pre, %L, %σ, %S, %H, -, -, -, #Hes⟩
+  have hs : m.src = some (n0, x0) := by rw [H.1]; rfl
+  rw [hs] at hsrc
+  obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj hsrc)
+  iexact Hes
 
 /-- **A compaction response** (the draft's `compactResp`): no events, its watcher's, at revision
 `0`, its compaction revision positive and at most a permitted one (`crevOk`, at the snapshot's

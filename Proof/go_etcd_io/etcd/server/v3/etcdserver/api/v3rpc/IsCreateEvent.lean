@@ -40,11 +40,10 @@ theorem v3rpc.kv_revs (l : Loc) (v : mvccpb.KeyValue) (dq : DFrac) :
 theorem v3rpc.IsCreateEvent.wp_proof : v3rpc.IsCreateEvent.spec (GF := GF) (hG := hG) := by
   intro e ev
   wp_start as #Hev
-  iunfold mvcc.evIs at Hev
-  icases Hev with ⟨%p, %q, %st, %uf, %sc, %Hn, #He, #Hkv, -⟩
+  iunfold mvcc.evRd at Hev
+  icases Hev with ⟨%p, %st, %uf, %sc, %Hn, -, #HT, #HK, -, -, #Hkv⟩
   iunfold mvcc.kvPtrFixed at Hkv
   icases Hkv with ⟨%ks, %vs, %st', %uf', %sc', -, -, #Hp⟩
-  icases mvcc.event_fields _ _ _ $$ He with ⟨#HT, #HK, -⟩
   icases v3rpc.kv_revs _ _ _ $$ Hp with ⟨#HC, #HM⟩
   wp_auto
   unfold mvcc.evType

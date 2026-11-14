@@ -110,10 +110,10 @@ theorem v3rpc.watchServer.Watch.wp_proof
   wp_apply (hNWS W.γm) $$ [] as %ws ⟨%ι, #Hwstream, HS, Hrcv⟩
   · iframe #
   -- the run's invariant, its received list, its answer tokens, and the stream's auxiliary name
-  imod v3rpc.wsInvG_alloc (v3rpc.cancelQ γs) ι $$ HS with ⟨%γreg, %γtok, %γcl, #Hinv, Hcl⟩
+  imod v3rpc.wsInvG_alloc (v3rpc.cancelQ γs) ι $$ HS with ⟨%γreg, %γtok, %γpk, %γcl, #Hinv, Hcl⟩
   imod mono_list_own_alloc (GF := GF) ([] : List mvcc.api.WResp) with ⟨%γr, HA, -⟩
   imod v3rpc.ansPool_alloc (GF := GF) with ⟨%γa, HPool⟩
-  imod v3rpc.streamAux_set γs [γreg, γtok, γr, γa] $$ HAux with #HauxIs
+  imod v3rpc.streamAux_set γs [γreg, γtok, γr, γa, γpk] $$ HAux with #HauxIs
   wp_apply chan.wp_make2 (V := Loc) (W64 16) as %ctrl %γch ⟨#Hctrl, %Hcap, Hoc⟩
   · ipureintro; decide
   wp_apply (wp_map_make1 (K := w64) (V := Bool) go_etcd_io.etcd.server.v3.storage.mvcc.WatchID.ty go.bool)
@@ -141,7 +141,7 @@ theorem v3rpc.watchServer.Watch.wp_proof
   ipersist closec
   -- the control stream: an SPSC channel of control responses (its predicate reads none of the
   -- run's control-stream names, so a stand-in for them states it before they exist)
-  let r0 : v3rpc.WRun GF := ⟨R, W, γs, ws, ι, γreg, γtok, γr, γcl, γa, ctrl, ⟨γch, γa, γa⟩, pm, vm,
+  let r0 : v3rpc.WRun GF := ⟨R, W, γs, ws, ι, γreg, γtok, γpk, γr, γcl, γa, ctrl, ⟨γch, γa, γa⟩, pm, vm,
     fm, cc, γch⟩
   let P' : Int → Loc → IProp GF := v3rpc.ctrlP r0 ci
   imod start_spsc ctrl P' (fun _ => iprop(True)) γch $$ Hctrl [Hoc] with ⟨%γctrl, #Hspsc, Hprod, Hcons'⟩
@@ -150,13 +150,16 @@ theorem v3rpc.watchServer.Watch.wp_proof
   imod alloc_broadcast_chan (E := ⊤) iprop(True) γcc cc $$ Hccc Hcco with Hcc
   ihave #HccU := ownBroadcastChan_Unknown _ _ _ _ $$ Hcc
   -- the lock over the maps
-  imod sync.init_RWMutex (v3rpc.swsMu pm vm fm) (E := ⊤) (v3rpc.swsF sws_ptr go!"mu") $$ [Hpm Hvm Hfm] mu
+  imod sync.init_RWMutex (v3rpc.swsMu pm vm fm γpk) (E := ⊤) (v3rpc.swsF sws_ptr go!"mu") $$ [Hpm Hvm Hfm] mu
     with Htoks
   · inext
     iunfold v3rpc.swsMu
     iexists ∅, ∅, ∅
     iframe
-    ipureintro; intro id; simp
+    isplitr
+    · ipureintro; intro id; simp
+    iintro !> %id %b %h
+    simp at h
   have hN : 1 ≤ Int.toNat sync.rwmutex.actualMaxReaders := by
     rw [sync.rwmutex.actualMaxReaders_unseal]; decide
   obtain ⟨k, hk⟩ : ∃ k, Int.toNat sync.rwmutex.actualMaxReaders = k + 1 := ⟨_, (Nat.succ_pred_eq_of_pos hN).symm⟩
@@ -167,7 +170,7 @@ theorem v3rpc.watchServer.Watch.wp_proof
   imod sync.init_WaitGroup (sync.join.wgjN.@"wg") (v3rpc.swsF sws_ptr go!"wg") $$ wg
     with ⟨%γwg, #HisWg, Hctr, Hwaiters⟩
   imod sync.join.init (v3rpc.swsF sws_ptr go!"wg") γwg $$ [$HisWg $Hctr $Hwaiters] with Hadd
-  let r : v3rpc.WRun GF := ⟨R, W, γs, ws, ι, γreg, γtok, γr, γcl, γa, ctrl, γctrl, pm, vm, fm, cc, γcc⟩
+  let r : v3rpc.WRun GF := ⟨R, W, γs, ws, ι, γreg, γtok, γpk, γr, γcl, γa, ctrl, γctrl, pm, vm, fm, cc, γcc⟩
   have hP : v3rpc.ctrlP r ci = P' := by funext k l; rfl
   ihave #Hsws : v3rpc.swsIs sws_ptr r Up Dn st ci cd $$ []
   · iunfold v3rpc.swsIs

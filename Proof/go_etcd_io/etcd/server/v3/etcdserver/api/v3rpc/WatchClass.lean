@@ -183,7 +183,7 @@ theorem ctrlWatcher_authorized (r : WRun GF) (tok : Option GoString) (γa : auth
   rw [h]
   simp only [Bool.false_eq_true, ↓reduceIte]
   iintro ⟨#Htag, H⟩
-  icases H with ⟨%i, %Hrg, #Hreg, -, -, -, #Hau⟩
+  icases H with ⟨%i, %Hrg, #Hreg, -, -, -, -, #Hau⟩
   ihave ⟨%info, %j, %st, #Hst, #Hb, %Hn, %Hp, %Hs⟩ :=
     watchAuthed_on r.srv.tag γa r.srv.s tok c.bound c.key c.rangeEnd $$ Htag Hau
   iexists i, info, j, st
