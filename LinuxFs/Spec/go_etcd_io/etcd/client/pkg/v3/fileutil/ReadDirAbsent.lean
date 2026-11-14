@@ -1,7 +1,7 @@
 /-
 `fileutil.ReadDir(d/b)` (read_dir.go), no option, of a name `b` holding nothing (a fraction of a claim
 of `d`'s directory `j` on names containing it): `os.Open` fails (`os.Open.wp_absentS`), and the error
-comes back (`fmtErrorOkOrNil`, as `ReadDir.spec`'s error arm). The WAL's `readWALNames` of a missing WAL
+comes back (`fmtErrorOkOrNil` and `errIsTerm`, as `ReadDir.spec`'s error arm). The WAL's `readWALNames` of a missing WAL
 directory (W3/W5's gap 2, `notes/wal-fsext-plan.md`). Proved in
 `LinuxFs/Proof/go_etcd_io/etcd/client/pkg/v3/fileutil/ReadDirAbsent.lean`. Lean-first.
 -/
@@ -9,6 +9,7 @@ module
 
 public import LinuxFs.Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.PkgInit
 public import LinuxFs.Proof.os.NsAbsentS
+public import LinuxFs.Spec.fmt.ErrorfErrsNot
 
 @[expose] public section
 
@@ -38,7 +39,7 @@ abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.specAbsent : Prop :=
     (App (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir)) (Val #(child d b)))
       (Val #slice.nil))
   {{ (r : GoSlice) (err : GoInterface), RET (PairV #r #err); osPathS R d dq j ∗ osCallPerm qc ∗
-      osNames j N dqn h ∗ ⌜err ≠ interface.nil⌝ ∗ fmtErrorOkOrNil err }}
+      osNames j N dqn h ∗ ⌜err ≠ interface.nil⌝ ∗ fmtErrorOkOrNil err ∗ errIsTerm err }}
 
 end spec
 

@@ -5,6 +5,8 @@ The proof of `LinuxFs/Spec/go_etcd_io/etcd/client/pkg/v3/fileutil/ReadDirAbsent.
 module
 
 public import LinuxFs.Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDirAbsent
+public import LinuxFs.Spec.errors.IsPathErrnoTerm
+public import LinuxFs.Proof.os.NsChildS
 
 @[expose] public section
 
@@ -24,7 +26,8 @@ variable [sem : go.Semantics]
 variable [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 variable [os.Assumptions] [os.file.FieldAssumptions] [go.BasicIntoValInj]
 
-theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.wp_proofAbsent :
+theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.wp_proofAbsent
+    (wp_Term : errors.IsPathErrnoTerm.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.specAbsent (GF := GF) (hG := hG) := by
   intro d b R j dq qc N dqn h hb hN hi
   wp_start as ⟨#Hos, #Hsi, #Hpkg, Hp, Hperm, Hn⟩
@@ -37,10 +40,12 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.wp_proofAbsent :
   ihave IH : iprop("i" ∷ i_ptr ↦ W64 0) $$ [i]
   · simp only [named]; iframe
   wp_for IH
-  wp_apply os.Open.wp_absentS d b R j N dq dqn h qc hb hN hi $$ [Hp Hn Hperm]
-    as %f %err ⟨Hp, Hn, Hperm, %herr, #Herr⟩
+  wp_apply os.Open.wp_absentErrS d b R j N dq dqn h qc hb hN hi $$ [Hp Hn Hperm]
+    as %f %err ⟨Hp, Hn, Hperm, %e, %he, #Herr⟩
   · iframe; isplitl [] <;> iassumption
-  obtain ⟨herr, -⟩ := herr
+  ihave %herr := os.errnoPathErr_ne err e $$ Herr
+  ihave #Hosp : isPkgInit (PROP := IProp GF) pkg_id.os $$ []
+  · iPkgInit
   cases err with
   | nil => exact absurd rfl herr
   | ok ie =>
@@ -49,7 +54,9 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.wp_proofAbsent :
   iframe
   isplitr
   · ipureintro; exact herr
-  iexact Herr
+  isplitl []
+  · iapply (os.errnoPathErr_fmtErrorOkOrNil _ e he.1) $$ Herr
+  · iapply (wp_Term _ e he.1) $$ Hosp Herr
 
 end proof
 

@@ -10,7 +10,8 @@ Over the part's shared-mode directory specs (`os.Open.wp_dirS`, `File.Readdirnam
 `j` (`osNames`, unchanged). On success the names read, `names`, are `Readdirnames`'s (valid; a name
 of `N` is among them iff `j` has it, at most once) and the result is `fileutil.ReadDirOut names ext`
 (sorted, filtered by the extension); on an error an error `fmt.Errorf` may wrap (`fmtErrorOkOrNil`:
-`readWALNames` wraps it with `%w`; 2026-11-13, `wal-read2`). The option slice and its closures are
+`readWALNames` wraps it with `%w`; 2026-11-13, `wal-read2`), on which `errors.Is` returns for every pointer
+target (`errIsTerm`: a `*PathError` of an errno, `errors.IsPathErrnoTerm.spec`; 2026-11-14, `wal-vsnap4`). The option slice and its closures are
 given back. Proved in `LinuxFs/Proof/go_etcd_io/etcd/client/pkg/v3/fileutil/ReadDir.lean`.
 Lean-first.
 -/
@@ -20,6 +21,7 @@ public import LinuxFs.Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.WithExt
 public import LinuxFs.Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.PkgInit
 public import LinuxFs.Proof.path.filepath.Model
 public import LinuxFs.Proof.os.NsS
+public import LinuxFs.Spec.fmt.ErrorfErrsNot
 
 @[expose] public section
 
@@ -65,7 +67,7 @@ abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.spec : Prop :=
             (∀ b, N.Mem b → ((h.cur !! b).isSome ↔ b ∈ names)) ∧
             (∀ b, N.Mem b → names.count b ≤ 1) ∧ fileutil.ReadDirOut names (fileutil.optsExt es) rs⌝ ∗
           r ↦* rs) ∨
-       ⌜err ≠ interface.nil⌝ ∗ fmtErrorOkOrNil err) }}
+       ⌜err ≠ interface.nil⌝ ∗ fmtErrorOkOrNil err ∗ errIsTerm err) }}
 
 end spec
 

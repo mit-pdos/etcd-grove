@@ -6,7 +6,8 @@ it opened (`closeAll`). At the file-system level, over a fraction of a claim on 
 directory holding each name as a file (`is`: their inodes, in order; `filepath.Join`'s bound: `|d|` and
 each name's length below `2^60`, so that `|d| + |b| + 2 < 2^62`): on success the readers, the
 locks (nil in read mode) and each file opened (`walOpenedFile`, fd whole, offset 0); on an error an
-error `fmt.Errorf` may wrap. On success also the closer (`wal.walCloser`, `CloseDefs.lean`; since
+error `fmt.Errorf` may wrap, in read mode one on which `errors.Is` returns for every pointer target
+(`errIsTerm`; 2026-11-14, `wal-vsnap4`: `ValidSnapshotEntries`' retry test). On success also the closer (`wal.walCloser`, `CloseDefs.lean`; since
 2026-11-14, `wal-vsnap2`, ledger "`openWALFiles.spec` ... the closer not specified"): not nil, and its
 call closes each reader's file given back closable (`wal.walClosable`); write mode drops it. Lean-first; proved
 (`LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/openWALFiles.lean`).
@@ -18,6 +19,7 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadDefs
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.PkgInit
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CloseDefs
 public import LinuxFs.Spec.fmt.ErrorfErrs
+public import LinuxFs.Spec.fmt.ErrorfErrsNot
 
 @[expose] public section
 
@@ -60,7 +62,8 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.spec : Prop :=
           ([∗list] m ↦ i ∈ is, walOpenedFile write d ((names.drop (sint.nat k)).getD m [])
             i (frs.getD m ⟨go.GoType.PointerType go.string, #()⟩) (lfs.getD m null)) ∗
           wal.walCloser write frs lfs cl) ∨
-       ∃ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ ∗ errOk e) }}
+       ∃ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ ∗ errOk e ∗
+         (⌜write = true⌝ ∨ errIsTerm (GoInterface.ok e))) }}
 
 end spec
 

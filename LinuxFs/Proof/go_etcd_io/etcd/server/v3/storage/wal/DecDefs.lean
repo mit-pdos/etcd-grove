@@ -106,12 +106,14 @@ instance isEofAns_persistent (e eof : GoInterface) : Persistent (isEofAns (GF :=
 /-- **`errors.Is(e, io.ErrUnexpectedEOF)` answers `false`** (persistent), for the value `io.ErrUnexpectedEOF`
 holds: what a reader's I/O error (a `*PathError` of an errno) gives, so that a caller accepting
 `io.ErrUnexpectedEOF` as the end (`validSnapshotEntries`, `Verify`, `ReadAll` in read mode) does not take an
-I/O error for it (ledger 2026-11-14, "`decoder.Decode.spec`: no `io.ErrUnexpectedEOF` answer"). -/
+I/O error for it (ledger 2026-11-14, "`decoder.Decode.spec`: no `io.ErrUnexpectedEOF` answer"); and
+`errors.Is(e, _)` returns on every pointer target (`errIsTerm`, since 2026-11-14, `wal-vsnap4`: `ValidSnapshotEntries`'
+retry test on the decoder's I/O errors; ledger, "no `errors.Is` termination on their errors"). -/
 def notUeof (e : GoInterface) : IProp GF :=
-  iprop(□ ∀ ueof : GoInterface, globalAddr _root_.Perennial.io.ErrUnexpectedEOF ↦□ ueof -∗
+  iprop((□ ∀ ueof : GoInterface, globalAddr _root_.Perennial.io.ErrUnexpectedEOF ↦□ ueof -∗
     {{ (True : IProp GF) }}
       (App (App (Val (@! _root_.Perennial.errors.Is)) (Val #e)) (Val #ueof))
-    {{ (b : Bool), RET #b; ⌜b = false⌝ }})
+    {{ (b : Bool), RET #b; ⌜b = false⌝ }}) ∗ errIsTerm e)
 
 instance notUeof_persistent (e : GoInterface) : Persistent (notUeof (GF := GF) e) := by
   unfold notUeof; infer_instance

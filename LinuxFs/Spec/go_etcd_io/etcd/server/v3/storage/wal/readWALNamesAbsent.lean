@@ -38,7 +38,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.readWALNames.specAbsent : Prop :=
     (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.readWALNames)) (Val #lg))
       (Val #(child d b)))
   {{ (r : GoSlice) (err : GoInterface), RET (PairV #r #err); osPathS R d dq j ∗ osCallPerm qc ∗
-      osNames j N dqn h ∗ ∃ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ ∗ errOk e }}
+      osNames j N dqn h ∗ ∃ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ ∗ errOk e ∗ errIsTerm (GoInterface.ok e) }}
 
 end spec
 

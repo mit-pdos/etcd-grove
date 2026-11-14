@@ -245,6 +245,7 @@ theorem walTmpsRes_mem_except (R : Roots) (j : Ino) (X : List GoString) (dq : DF
 theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMarshal)
     (hEnv : WalDecEnvSupply (GF := GF))
     (wp_IsEof : errors.IsPathErrnoEof.spec (GF := GF) (hG := hG))
+    (wp_Term : errors.IsPathErrnoTerm.spec (GF := GF) (hG := hG))
     (wp_Clone : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.Clone.spec (GF := GF) (hG := hG))
     (wp_select : go_etcd_io.etcd.server.v3.storage.wal.selectWALFiles.spec (GF := GF) (hG := hG))
     (wp_selectAbs : go_etcd_io.etcd.server.v3.storage.wal.selectWALFiles.specAbsent (GF := GF) (hG := hG))
@@ -396,7 +397,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       (by simp [hwl]) (by omega) (walOpenNames_ok (sint.nat kk) hX hsn hnmf hout hws)
       $$ [Hpd Hperm Hj Hws] as %rsl %lsl %clo %err2 ⟨Hpd, Hperm, Hj, Hws, Hopen⟩
     · iframe; iframe #
-    icases Hopen with (⟨%frs, %lfs, ⟨%herr2, %hfl, %hll⟩, Hrsl, Hrc, Hlsl, Hlc, Hfiles, -⟩ | ⟨%e, %herr, #He⟩)
+    icases Hopen with (⟨%frs, %lfs, ⟨%herr2, %hfl, %hll⟩, Hrsl, Hrc, Hlsl, Hlc, Hfiles, -⟩ | ⟨%e, %herr, #He, -⟩)
     rotate_left
     · -- `openWALFiles` failed: the halves back
       obtain ⟨-, rfl⟩ : True ∧ err2 = GoInterface.ok e := ⟨trivial, herr⟩
@@ -460,7 +461,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
     · iunfold decEnv at Hde
       icases Hde with ⟨-, -, -, -, -, -, -, #Hok, -⟩
       iexact Hok
-    ihave ⟨%fs, %fls, ⟨%htie, %hfr⟩, Hdf, Hlk, -⟩ := walDecFiles_mk wp_Stat wp_Size wp_FName wp_IsEof IoE hIo eof
+    ihave ⟨%fs, %fls, ⟨%htie, %hfr⟩, Hdf, Hlk, -⟩ := walDecFiles_mk wp_Stat wp_Size wp_FName wp_IsEof wp_Term IoE hIo eof
       hIoEof write dir gs frs lfs hfl hll hsz' $$ [Hfiles HS]
     · iframe Hfiles
       isplitl []

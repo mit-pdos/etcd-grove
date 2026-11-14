@@ -521,20 +521,26 @@ _lfs_fs_ex_nn = ('(∃ e : GoInterface, ⌜e ≠ interface.nil⌝ ∗ typedPoint
 # (2026-11-14, the closed-file `(*os.File).Close` returns `&PathError{"close", name, ErrClosed}`,
 # `LinuxFs/Spec/os/File__CloseClosed.lean`) the part's `io/fs` and `os` record `ErrClosed`'s error as
 # one `fmt` formats (`fmtErrorOk`: internal/oserror's `errors.New`, `errorString_fmtErrorOk`).
+# (2026-11-14, `wal-vsnap4`: `ValidSnapshotEntries`' `errors.Is(err, os.ErrNotExist)` on errors with `errIsTerm`,
+# a pointer target) the part's `io/fs` and `os` record `ErrNotExist`'s error as an `*errorString`
+# (internal/oserror's `errors.New`).
+_lfs_fs_ne = '(∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrNotExist) e DFrac.discard)'
+_lfs_fs_ne_ptr = ('(∃ x : Loc, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrNotExist) (interface.mkOk '
+                  '(go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) DFrac.discard)')
 _lfs_fs_cl = '(∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrClosed) e DFrac.discard)'
 _lfs_fs_cl_ok = ('(∃ e : GoInterface, EtcdGrove.fmtErrorOk e ∗ typedPointsto (globalAddr '
                  '_root_.Perennial.io.fs.ErrClosed) e DFrac.discard)')
 LFS_IOFS = dict(SPECIAL['io.fs'])
 LFS_IOFS['doc'] = SPECIAL['io.fs']['doc'].replace('hold some error for good.',
-    'hold some error for good, `ErrExist` a non-nil one, `ErrClosed` one `fmt` formats (the part only).')
+    'hold some error for good, `ErrExist` a non-nil one, `ErrNotExist` an `*errorString`, `ErrClosed` one `fmt`\nformats (the part only).')
 LFS_IOFS['imports'] = SPECIAL['io.fs']['imports'] + ['Proof.errors.ErrorStringOk']
 # (`is_pkg_init_finish` proves the pure conjunct and frames `ErrClosed`'s `fmtErrorOk`)
 LFS_IOFS['finish'] = ['ihave #HClOk := EtcdGrove.errorString_fmtErrorOk xCl _ $$ ECl'] + SPECIAL['io.fs']['finish']
 LFS_OS = dict(SPECIAL['os'])
 LFS_OS['doc'] = SPECIAL['os']['doc'].replace("which raft's\ninitializer loads (`defaultLogger`).",
-    "which raft's\ninitializer loads (`defaultLogger`), `ErrExist` a non-nil error, `ErrNotExist` and\n`ErrInvalid` some error, `ErrClosed` one `fmt` formats (io/fs's; the part only).")
+    "which raft's\ninitializer loads (`defaultLogger`), `ErrExist` a non-nil error, `ErrNotExist` an\n`*errorString`, `ErrInvalid` some error, `ErrClosed` one `fmt` formats (io/fs's; the part only).")
 LFS_OS['before'] = {'dirBufPool': [l.replace(_lfs_fs_ex, _lfs_fs_ex_nn).replace('⟨%fe3, #F3⟩', '⟨%fe3, %hfe3, #F3⟩')
-                                    .replace(_lfs_fs_cl, _lfs_fs_cl_ok).replace('⟨%fe5, #F5⟩', '⟨%fe5, #F5ok, #F5⟩')
+                                    .replace(_lfs_fs_cl, _lfs_fs_cl_ok).replace(_lfs_fs_ne, _lfs_fs_ne_ptr).replace('⟨%fe5, #F5⟩', '⟨%fe5, #F5ok, #F5⟩')
                                    for l in SPECIAL['os']['before']['dirBufPool']]}
 LFS_OS['finish'] = ['ipersist HStderr', 'ipersist HErrExist', 'ipersist HErrNotExist', 'ipersist HErrInvalid',
                     'ipersist HErrClosed', 'iframe Hown', 'imodintro', 'isplitr',
@@ -574,17 +580,19 @@ panicking.''',
 # (WAL package init, 2026-11-13) the part's `walpb`: `ErrCRCMismatch`, a translated `errors.New`
 LFS_SPECIAL['go_etcd_io.etcd.server.v3.storage.wal.walpb'] = dict(
     doc='''Its fact (`walpbInit`, `PkgInit.lean`): `ErrCRCMismatch` holds for good an error whose `Error()`
-returns (`errOk`). Its initializer stores that error (a translated `errors.New` call, record.go;
+returns (`errOk`) and on which `errors.Is` returns for every pointer target (`errIsTerm`: an `*errorString`
+leaf, `errIsTerm_errorString`). Its initializer stores that error (a translated `errors.New` call, record.go;
 Perennial's `errors.wp_New_errorString`), initializes its imports and runs the untranslated
 initializers of its protobuf descriptors and its `init` function, which the trust-boundary axioms
 `opaqueInitsOk` and `initFuncsOk` say run without panicking.''',
-    imports=['Perennial.Proof.errors.NewVar'],
+    imports=['Perennial.Proof.errors.NewVar', 'LinuxFs.Proof.errors.ErrIsTerm'],
     alloc_types={'ErrCRCMismatch': 'GoInterface'},
     before={'ErrCRCMismatch': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %xC #EC',
                                'try wp_auto']},
-    finish=['ipersist HErrCRCMismatch'] + FIN_PRE[:6] + [
-        'imodintro', 'unfold EtcdGrove.walpb.walpbInit EtcdGrove.errOk', 'iexists _',
-        'iframe HErrCRCMismatch', "iintro !> %Φ' HΦ'", 'iapply EC', 'inext', "iapply HΦ'"],
+    finish=['ipersist HErrCRCMismatch', 'ihave #TC := EtcdGrove.errIsTerm_errorString xC $$ {Hd:errors}'] +
+           FIN_PRE[:6] + [
+        'imodintro', 'unfold EtcdGrove.walpb.walpbInit', 'iexists _',
+        'iframe HErrCRCMismatch TC', 'unfold EtcdGrove.errOk', "iintro !> %Φ' HΦ'", 'iapply EC', 'inext', "iapply HΦ'"],
 )
 # (WAL package init, 2026-11-13) the part's `fileutil`: the lock functions, chosen by its `init`'s
 # `F_OFD_GETLK` probe (`syscall.FcntlFlock.wp_getlk`: any errno, so either), `wrlck`, `ErrLocked`
@@ -637,8 +645,9 @@ _WAL_ERRS = ['errBadWALName', 'ErrMetadataConflict', 'ErrFileNotFound', 'ErrCRCM
 def _walErrVar(x, tag):
     """The fact's clause of the error variable `x`, from `errors.New`'s `E<tag>`."""
     return [f'ihave #V{x} : (EtcdGrove.wal.errVar {x} : IProp GF) $$ []',
-            '· unfold EtcdGrove.wal.errVar EtcdGrove.errOk', '  iexists _', f'  iframe H{x}',
-            "  iintro !> %Φ' HΦ'", f'  iapply E{tag}', '  inext', "  iapply HΦ'"]
+            '· unfold EtcdGrove.wal.errVar', '  iexists _', f'  iframe H{x}', '  isplitl []',
+            '  · unfold EtcdGrove.errOk', "    iintro !> %Φ' HΦ'", f'    iapply E{tag}', '    inext', "    iapply HΦ'",
+            f'  · iapply EtcdGrove.errIsTerm_errorString x{tag}; iexact {{Hd:errors}}']
 
 
 def _walMetric(x, spec):
@@ -651,7 +660,7 @@ LFS_SPECIAL['go_etcd_io.etcd.server.v3.storage.wal'] = dict(
     doc='''Its fact (`walInit`, `PkgInit.lean`): `crcTable` holds the Castagnoli table (`walCrcTable`), the
 metrics `walFsyncSec`, `walWriteSec` (histograms) and `walWriteBytes` (a gauge) hold metrics whose
 `Observe`/`Add` return (`wal.metricsInit`), `SegmentSizeBytes` holds `64000000`, every error
-variable an error whose `Error()` returns (`wal.errVar`), and `openWALFilesFn` the function
+variable an error whose `Error()` returns and on which `errors.Is` returns (`wal.errVar`), and `openWALFilesFn` the function
 `openWALFiles`, read-only for good. Its initializer
 allocates its variables, initializes its imports and runs their initializers: the metrics'
 untranslated `prometheus` constructors (the trust-boundary axioms `<X>_init`, metrics.go), the
@@ -659,7 +668,7 @@ translated `errors.New` calls, `ErrCRCMismatch = walpb.ErrCRCMismatch` (`walpbIn
 crc32.MakeTable(crc32.Castagnoli)` (`hash.crc32.MakeTable.wp_proof`), and its untranslated `init`
 function (`prometheus.MustRegister` of the metrics), which the trust-boundary axiom `initFuncsOk`
 says returns.''',
-    imports=['Perennial.Proof.errors.NewVar', 'LinuxFs.Proof.hash.crc32.MakeTable'],
+    imports=['Perennial.Proof.errors.NewVar', 'LinuxFs.Proof.hash.crc32.MakeTable', 'LinuxFs.Proof.errors.ErrIsTerm'],
     custom={'walFsyncSec': _walMetric('walFsyncSec', 'histSpec'),
             'walWriteSec': _walMetric('walWriteSec', 'histSpec'),
             'walWriteBytes': _walMetric('walWriteBytes', 'gaugeAddSpec')},
@@ -670,7 +679,7 @@ says returns.''',
                 ErrCRCMismatch=['try wp_auto',
                     'ihave #Hpb : (EtcdGrove.walpb.walpbInit : IProp GF) $$ []',
                     '· iapply isPkgInit_access $$ {Hd:go_etcd_io.etcd.server.v3.storage.wal.walpb}',
-                    'icases Hpb with ⟨%eC, #HpbC, #HpbOk⟩', 'try wp_auto'],
+                    'icases Hpb with ⟨%eC, #HpbC, #HpbOk, #HpbT⟩', 'try wp_auto'],
                 crcTable=['try wp_auto',
                           'rw [show (W32 2197175160) = _root_.Perennial.hash.crc32.castagnoliPoly from rfl]',
                           'wp_apply _root_.Perennial.EtcdGrove.hash.crc32.MakeTable.wp_proof as %tab #Htab',
@@ -679,7 +688,7 @@ says returns.''',
                                                     'walWriteSec', 'walWriteBytes', 'openWALFilesFn']] +
            [l for x, t in _WAL_NEW_ERRS for l in _walErrVar(x, t)] +
            ['ihave #VErrCRCMismatch : (EtcdGrove.wal.errVar ErrCRCMismatch : IProp GF) $$ []',
-            '· unfold EtcdGrove.wal.errVar', '  iexists _', '  iframe HErrCRCMismatch HpbOk'] +
+            '· unfold EtcdGrove.wal.errVar', '  iexists _', '  iframe HErrCRCMismatch HpbOk HpbT'] +
            FIN_PRE[:6] +
            ['imodintro', 'unfold EtcdGrove.wal.walInit EtcdGrove.WalFs.walCrcTable EtcdGrove.wal.metricsInit',
             'iframe #'],
