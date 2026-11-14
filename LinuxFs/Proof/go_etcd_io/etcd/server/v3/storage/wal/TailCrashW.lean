@@ -21,6 +21,7 @@ resize's zero, the stream's byte stamped by a write). Here the decoding over suc
 module
 
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.WinCrash
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.TailStepPure
 
 @[expose] public section
 
@@ -625,6 +626,44 @@ theorem crashOkA_tailAny {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDu
   exact crashOkA_tailW hC habs0 habs hB hnd hs0 hs hino hjr hnm hj hcuts hfirst hzf0
     (fun z hz => by have := hzf z hz; omega) (habs.winLo_any g hg) (habs.hiX hg)
     (habs.tailShape hZ hg) halt hok
+
+
+/-- **A step on the tail, any window, keeps `CrashOkW`** (`crashOkW_tail` over `crashOkA_tailAny`: no
+exactness asked of either tail). -/
+theorem crashOkW_tailW {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
+    {ents ents' : Ents} {pre : List SegG} {g0 g : SegG} {wr' : Nat} {cl : List Claim} {n : Nat}
+    (habs : WalAbsD C Mr d lay ents) (habs' : WalAbsD C Mr d (tailLay lay pre g wr') ents')
+    (hZ : TailZeros (tailLay lay pre g wr')) (hB : TailBound C Mr d (tailLay lay pre g wr'))
+    (hnd : (lay.segs.map (·.ino)).Nodup)
+    (hs : lay.segs = pre ++ [g0]) (hino : g.ino = g0.ino)
+    (hzf0 : ∀ z, g0.om.zf = some z → g0.bs.length ≤ z) (hzf : ∀ z, g.om.zf = some z → g.bs.length ≤ z)
+    (hok : CrashOkW C Mr d lay cl n) : CrashOkW C Mr d (tailLay lay pre g wr') cl n := by
+  obtain ⟨alt, halt, hA⟩ := hok
+  have hpre : ∀ lay0, alt = some lay0 → lay0.segs <+: pre := by
+    intro lay0 h
+    obtain ⟨-, -, -, -, hp, hlt⟩ := halt lay0 h
+    rw [hs] at hp hlt
+    obtain ⟨t, ht⟩ := hp
+    cases t with
+    | nil => rw [List.append_nil] at ht; rw [ht] at hlt; omega
+    | cons c t =>
+      refine ⟨(c :: t).dropLast, ?_⟩
+      have := congrArg List.dropLast ht
+      rwa [List.dropLast_append_of_ne_nil (List.cons_ne_nil c t),
+        List.dropLast_append_of_ne_nil (List.cons_ne_nil g0 []), List.dropLast_singleton,
+        List.append_nil] at this
+  have hnd' : ((tailLay lay pre g wr').segs.map (·.ino)).Nodup := by
+    rw [hs] at hnd; simpa [tailLay, hino] using hnd
+  refine ⟨alt, fun lay0 h => ?_, crashOkA_tailAny hC habs habs' hZ hB hnd' hs rfl hino rfl rfl rfl rfl rfl
+    hzf0 hzf ?_ hA⟩
+  · obtain ⟨h1, h2, h3, h4, -, -⟩ := halt lay0 h
+    have hp := hpre lay0 h
+    refine ⟨h1, h2, h3, h4, hp.trans (List.prefix_append _ _), ?_⟩
+    have := hp.length_le; simp [tailLay]; omega
+  · intro la h g' hg' he
+    have hg'p : g' ∈ pre := (hpre la h).subset hg'
+    rw [hs, List.map_append, List.nodup_append] at hnd
+    exact hnd.2.2 g'.ino (List.mem_map_of_mem hg'p) g0.ino (by simp) (by rw [he, hino])
 
 
 end crash
