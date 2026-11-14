@@ -125,7 +125,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_proof (P : Wal
   wp_apply (wp_Validate Mr sp md cs hcs) $$ []
   · iexact Hs0
   try wp_auto
-  wp_apply (wp_Marshal sp md cs) $$ [] as %d ⟨%Hdn, Hd, Hdc⟩
+  wp_apply (wp_Marshal sp md cs (by omega)) $$ [] as %d ⟨%Hdn, Hd, Hdc⟩
   · iframe #
   try wp_auto
   wp_apply sync.Mutex.wp_Lock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync] as ⟨Hown, -⟩

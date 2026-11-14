@@ -608,8 +608,8 @@ target builds (3215 jobs, no failure, nothing to fix); `etc/gen-part-copies.py -
   `S/WAL__SaveSnapshot.lean:55`).
 - `fileutil.CreateDirAll.specTmp` (`Sp/CreateCallees.lean:82`; `S/Create.lean:101`; false as stated, ledger).
 - `os.File.Close.specClosed` (`LinuxFs/Spec/os/File__CloseClosed.lean:38`; `S/Create.lean:111`, `CreateLockedLeft`).
-- `pbutil.MustMarshalMessage.specWalSnap` (`LinuxFs/Spec/.../pbutil/MustMarshalMessageWalSnap.lean:39`;
-  `S/WAL__SaveSnapshot.lean:60`, `SaveSnapshotPre`), `pbutil.MustUnmarshalMessage.specWalSnap`
+- `pbutil.MustMarshalMessage.specWalSnap`: proved (`wal-leaf3`, over `proto.MarshalPb.spec`; size premise added,
+  ledger). `pbutil.MustUnmarshalMessage.specWalSnap`
   (`Sp/ReadAllCallees.lean:87`; `S/WAL__ReadAll.lean:154`).
 - Standard library / protobuf: `errors.AsLinkError.spec` (`S/WAL__renameWAL.lean:68`), `errors.IsErrno.spec`
   (`fileutil/TryLockFile.lean:300`), `errors.IsPathErrnoEof.spec` (`S/openAtIndex.lean:208`, `OpenFiles`),
@@ -668,6 +668,27 @@ extends a trust-boundary axiom, the user's call). None of the proofs below is li
   `tmpDirH` (what `TouchDirAll` leaves: one directory of files) and the existing-directory case (`MkdirAll`,
   `IsDirWriteable` with `.touch` possibly present, `ReadDir` on a directory of files), or the pre restricted to an
   absent name (the only case `Create` reaches, the ledger's note): not started, pending that restatement.
+
+## Leaf specs log (branch `wal-leaf3`, 2026-11-14)
+
+**Proved**
+- `pbutil.MustMarshalMessage.specWalSnap`: `LinuxFs/Proof/go_etcd_io/etcd/pkg/v3/pbutil/MustMarshalMessageWalSnap.lean`
+  (`MustMarshalMessage.wp_proofWalSnap`), over the part's `proto.MarshalPb.spec` at `pbSnapC` (main pbutil's
+  translation with bodies). Statement fix (ledger 2026-11-14): premise `(Mr.encSnap sm).length < 2 ^ 48`
+  (`Marshal`'s `maxAlloc`); `SaveSnapshot`/`SaveSnapshotPre` pass it (`< 2^40`; the frame bound `< 2^47`). The
+  non-nil result is derived (`snapEnc_ne_of_index`).
+
+**Not proved**
+- `pbutil.MustUnmarshalMessage.specWalSnap`: unprovable as stated (ledger 2026-11-14): `U.decSnap bs = some s` is
+  about the client's parameter, untied to protobuf-go, so `Unmarshal` may fail (panic) or decode another
+  index/term; and the pre lacks `isPkgInit pbutil`. Proposed premise on `U` in the ledger (coordinator's call:
+  a new obligation for `ReadAll`'s callers).
+- `fileutil.CreateDirAll.specTmp`: not started; the existing-directory case needs specs that do not exist:
+  `os.MkdirAll.specS` and `os.WriteFile.specEmptyS` require the name absent, so `IsDirWriteable.spec` requires
+  `.touch` absent (a leftover `nm.tmp` may hold `.touch`: `WriteFile` with `O_TRUNC` on an existing file, and
+  `MkdirAll` on an existing directory, need new specs/proofs over the extension); and the error post
+  `tmpDirH` needs `TouchDirAll.spec`'s proved error post narrowed from `osSubtreeH` (its proof in
+  `fileutil/TouchDirAll.lean`, 577 lines, re-done over a narrower `MkdirAll`/`IsDirWriteable` error post).
 
 ## Leaf specs log (branch `wal-leaf2`, 2026-11-14)
 
