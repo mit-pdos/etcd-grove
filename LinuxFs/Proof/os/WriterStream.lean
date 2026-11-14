@@ -16,7 +16,7 @@ not mapped, `m0.maps = ∅`). The stream's state after accepting `out` (`os.file
   `xs0`'s.
 
 After a failed `Write` of `xs` (`os.fileB`): the state before it, the offset unknown, and the
-file as the failed write left it (`os.File.Write.wp_long`'s error post: `pwPost`/`PwOutA`; for an
+file as the failed write left it (`os.File.Write.wp_long`'s error post: `pwPostE`/`PwOutA`; for an
 empty `xs`, unchanged). The stream accepts at most `lim` bytes, `o0 + lim < 2^62` (the model's
 bound).
 
@@ -176,10 +176,10 @@ def os.fileB (f : Loc) (fd : w64) (name : GoString) (dqf dq : DFrac) (d : OsFd) 
   iprop(∃ (o' : w64) (m : OsMeta) (ys : List ByteG), ⌜os.StreamOk m0 o0 xs0 out m ys⌝ ∗
     os.ownFile f fd name dqf ∗ osFd fd dq d ∗ os.ownOff f o' ∗
     ((⌜xs = []⌝ ∗ osMeta d.ino (DFrac.own 1) m ∗ osBytes d.ino o0 (DFrac.own 1) ys) ∨
-     (∃ (j A : Nat) (zs : List ByteG), ⌜j ≤ A ∧ A ≤ xs.length ∧
+     (∃ (j A E : Nat) (zs : List ByteG), ⌜j ≤ A ∧ A ≤ xs.length ∧
           os.PwOutA m (o0 + out.length) xs A j ((ys.drop out.length).take xs.length) zs ∧
-          PwCut (o0 + out.length) xs.length j⌝ ∗
-        osMeta d.ino (DFrac.own 1) (pwPost m (o0 + out.length) A j) ∗
+          os.PwCutE (o0 + out.length) xs.length j E⌝ ∗
+        osMeta d.ino (DFrac.own 1) (os.pwPostE m (o0 + out.length) A j E) ∗
         osBytes d.ino o0 (DFrac.own 1) (ys.take out.length) ∗
         osBytes d.ino (o0 + out.length) (DFrac.own 1) zs ∗
         osBytes d.ino (o0 + out.length + ((ys.drop out.length).take xs.length).length) (DFrac.own 1)
@@ -293,7 +293,7 @@ theorem os.File.writerStream (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) (
   iapply HΦ
   iframe Hp
   icases Hres with (⟨%ys2, ⟨%herr, %hnn, %hpw⟩, Hm, Hb2, Ho⟩ |
-    ⟨%j, %A, %zs, ⟨%herr, %hjA, %hAn, %hpa, %hcut⟩, Hm, Hb2, Ho⟩)
+    ⟨%j, %A, %E, %zs, ⟨%herr, %hjA, %hAn, %hpa, %hcut⟩, Hm, Hb2, Ho⟩)
   · ileft
     isplitr
     · ipureintro
@@ -334,7 +334,7 @@ theorem os.File.writerStream (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) (
     isplitr
     · ipureintro; exact Hok0
     iright
-    iexists j, A, zs
+    iexists j, A, E, zs
     iframe
     ipureintro
     exact ⟨hjA, hAn, hpa, hcut⟩

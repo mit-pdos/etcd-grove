@@ -11,8 +11,7 @@ steps generalizing `pwPost_step`/`pwOut_step` to an announcement `[off + nn, off
 -/
 module
 
-public import LinuxFs.Proof.os.File__WriteAt
-public import LinuxFs.Spec.os.WriteLong
+public import LinuxFs.Proof.os.WriteLongStep
 
 @[expose] public section
 
@@ -45,13 +44,15 @@ theorem os.File.WriteAt.wp_proof_long : os.File.WriteAt.specLong (GF := GF) (hG 
     iapply (os.File.WriteAt.wp_proof (GF := GF) (hG := hG) f fd name dqf sl data dqs off dq d m xs
       hwr hoff hgap hbig hn hsmall hxl) $$ Hpre
     iintro !> %n %err ⟨Hf, Hsl, Hfd, %j, %ys, %Hr, Hm, Hbs, Hmc, Hok⟩
+    obtain ⟨hj, hout, hcut, hres⟩ := Hr
     iapply HΦ
     iframe Hf Hsl Hfd
-    iexists j, data.length, ys
+    iexists j, data.length, (if j = data.length then data.length else 0), ys
+    rw [pwPostE_one m off.toNat data.length j hj]
     iframe Hm Hbs Hmc Hok
     ipureintro
-    obtain ⟨hj, hout, hcut, hres⟩ := Hr
-    exact ⟨hj, Nat.le_refl _, fun _ => rfl, os.PwOut.pwOutA hout, hcut, hres⟩
+    refine ⟨hj, Nat.le_refl _, fun _ => rfl, by split <;> omega, fun h => by rw [if_pos h],
+      os.PwOut.pwOutA hout, .inl hcut, hres⟩
   · -- past `maxRW`: the chunked loop (see the file header)
     sorry
 
