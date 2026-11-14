@@ -1282,3 +1282,18 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   that path), then retranslate; the spec stays as it is.
 - **Decision.** Pending the user (a fork change). Until then `Create.wp_proof` keeps a marked `sorry` on that
   path only.
+
+## 2026-11-14: `wal.ValidSnapshotEntries.spec` (the part's, W8) -- restated over `fsExt`
+
+- **Spec.** The main tree's axiom `Spec/.../wal/ValidSnapshotEntries.lean` (`walUnlockedTok` framed, the AU over
+  `walDirIs` unchanged, success `walSnapsAt ps (walValidSnaps (d.H.map toM) d.cut)`), restated over `fsExt`:
+  `LinuxFs/Spec/.../wal/ValidSnapshotEntries.lean`.
+- **Defect.** None of the main tree's statement: only plan §3's binders change (`walAreaOk walCodec Mr`, the
+  area's spine `osPathS R r qp jr` and `walAreaRes jr` framed, `osCallPerm 1` framed, the update at
+  `walAuMask`; premises `InArea r dir nm`, `NameOk nm`, `cleanAbsPath r`, `dir.length < 2^59`), as `Repair`'s
+  and `OpenForRead`'s, which read the same directory the same way.
+- **Evidence.** `Repair.spec`, `OpenForRead.spec` (the same binders); S/wal.go:698-791.
+- **Change (made, `wal-vsnap1`).** The restated spec; the update commits unchanged where the proof pins the
+  segments (before the retry loop: every attempt reads the same pinned files, so the retry needs no second
+  commit).
+- **Decision.** Made (the restatement plan §3 prescribes).
