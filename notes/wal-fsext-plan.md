@@ -2166,6 +2166,46 @@ update: `s.wal dir := walDurFresh md`, the new layout and its `CrashOk`); then `
   (`walInv_open` with the generation's `notCrashed`) and `osSharedInv`. Then `walAreaRes`'s pure facts of the
   merged claim (`N'' ⊇` every WAL name and `nm.<sfx>`; `SubCover`/`FilesOnly` of the program's whole claims).
 
+**Eleventh session (branch `wal-create11`, 2026-11-14).** `wal.Create.wp_proof` started: the body is
+proved from the start through `CreateDirAll(nm.tmp)` (both its arms' exits), frontier `sorry` at the
+success arm (next: `walName(0,0)`/`Join`, `createNewWALFile`).
+- *Done (no `sorry`):* `CreateTmp.lean` (`wp_existTmp`, `wp_removeAllTmp`: `fileutil.Exist`/`os.RemoveAll` of a
+  `tmpDirH`), `CreateArea.lean` (`area_takeTmp`, `area_give`: `nm.tmp`'s claims out of `walAreaRes` and
+  `walAreaRes` rebuilt), `CreateAbsent.lean` (`walInvBody_absent`/`walInv_absent`: `nm` absent in the program's
+  area claim, from `AbsentNone` and the client's `walAbsent dir` read off its update, aborted; for `renameWAL`'s
+  `RemoveAll(dir)` and the rename's `h.cur !! bt = none`), `CreateAbort.lean` (`create_abortTmp`: every exit
+  before the minting), `CreateNamedStep.lean` (`walInv_stepS`, `walInv_named`: the parent fsync's commit at a
+  program step, `dir`'s WAL from a past state), `CreatePure.lean` (names), `wal.syncDir` (spec and proof,
+  `fileutil.syncDir`'s). In `Create.lean`: `Exist(dir)` (its `ErrExist` exit), `Clean`, the drop of `nm.tmp`
+  (`walInv_drop`, with `walInv_absent` and `osNames_self` at the same step), `Exist(nm.tmp)`, `RemoveAll` and its
+  error exit, the deferred `RemoveAll`, `CreateDirAll` and its error exit.
+- *Statement changes (minor, logged here):* `Create.spec` takes `NameOk nm` (`walNameOk` allows a NUL byte;
+  the syscalls need none) and `dir.length < 2^59` (`CreateDirAll`'s and `Join`'s bounds on `dir.tmp`'s paths).
+  **`walAreaRes` restructured** (`CreateDefs.lean`; nothing constructs it yet): the whole claims are tagged with
+  the name they are under (`cl : List (GoString × Claim)`, `clOf cl b`), `SubCover (clOf cl b)` per non-WAL name,
+  and `TmpOk`: `nm.tmp` holds nothing or a directory of files (excluding a file there, which no `os` spec
+  removes). Without the tags, giving back `walAreaRes` after `RemoveAll` removed `nm.tmp`'s directory `J` (its
+  claim gone) needs that no other claim reaches `J` (a unique-parent fact of the tree no lemma exposes).
+- *Hypotheses of `wal.Create.wp_proof`* (`LinuxFs/Spec/.../wal/CreateCallees.lean`): `wal.Exist.specCreate`
+  (W12: returns with `Create`'s resources), `fileutil.CreateDirAll.specTmp` (`CreateDirAll.spec` extended to a
+  leftover directory of files, which `Exist` can miss or `RemoveAll` return `nil` on, and its error arm narrowed
+  from `osSubtreeH` to `tmpDirH`: provable by `TouchDirAll.lean`'s error arms, which already have the no-directory
+  fact, plus the existing-directory case), `os.RemoveAll.specAbsentN` (`specAbsentS` for a fraction of a claim on
+  any names: the extension's leaf steps take `.only [b]`; needed by `renameWAL`'s `RemoveAll(dir)` and the deferred
+  `RemoveAll(nm.tmp)` after the rename, which hold half of `.only [nm, nm.tmp]`; not used yet), and `hErrExist`
+  (**`os`'s `isPkgInit` does not record `ErrExist`**, which its initializer allocates: `etc/gen-init.py`'s
+  `SPECIAL` for the part's `os` should add it, non-nil).
+- *For the coordinator:* `Create`'s post is still the ghost-only `walOpenW` (sealed: handle mode and
+  `walLockedTok`), so the out-record `walOutFrag (WalOut.empty.create …)` and `walTailsFrag ∅` that
+  `walCreateQ`'s commit returns are dropped there; whoever moves `Create` to `walOpenWF` puts them (and
+  `walDirH`'s `walNamed`, the md bound: the caller's `mp ↦*□ md`, a slice, so `md.length < 2^63`) in the
+  handle. Proposed next unit: `WAL.renameWAL` as its own spec for `Create` (pre: `walPreIn` without `fp`/
+  `dirFile`, the creating claim's half with `nm` absent (`walInv_absent`), `walCreateP`, `osLogLb lb`, `walTmpsRes J`,
+  the whole call permission; post: committed (`Q`, the logged claim's half, the handle alloc'd:
+  `walOpenW`/`walLenLb 0`/`walSyncedLb 0`/`walPurgeW`, half the permission) or not (everything back) or committed
+  with an error), its `renameWALUnlock` (`Close`, `Open`, `ReadAll`) a hypothesis; then `Create` after it is the
+  parent fsync (`walInv_named`), the merge back (`walInv_merge2`, `b1 := nm ++ "a"`) and `area_give`.
+
 **For `wal-create6` (the invariant's owner, 2026-11-13).** (1) `walAreaRes jr` gains `⌜∀ nm J, walNameOk nm →
 h.cur !! tmpName nm = some (.dir J) → ∀ hJ, (J, NameSet.except [], hJ) ∈ cl → FilesOnly hJ.cur⌝` (a leftover
 `nm.tmp` holds only files; `CreateDefs.lean`, importing `LinuxFs.Spec.os.RemoveAll`), for `os.RemoveAll.specDirS`
