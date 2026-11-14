@@ -450,8 +450,11 @@ theorem EtcdServer.start.wp_proof
   -- the read side, from the component's row (`acRes_read`)
   icases acRes_read C s E ua sa₀ hm $$ Hres with ⟨Hres, #HaR⟩
   -- (D22 J1b) the snapshot path's resources to the apply thread, its persistent bundle to `run`
-  -- (restart S6, CP2: from the restart point's `srvSnapOwn` at Go's index `|P|`)
-  icases srvSnapOwn_ro s ci E γr γ (W64 P.length) $$ Hso with ⟨Hso, #Hsnapb⟩
+  -- (restart S6, CP2: from the restart point's `srvSnapOwn`, route (C) at the ghost index
+  -- `ai₀ + |γn.a0| = g₀`)
+  icases srvSnapOwn_ro s ci E γr γ _ $$ Hso with ⟨Hso, #Hsnapb⟩
+  have hg₀ : ai₀ + W64 γn.a0.length = g₀ := by obtain ⟨-, -, h⟩ := Hlo; word
+  rw [hg₀]
   ihave Hstart : srvRestartAtR C s γ ci b E γr ai₀ c₀ x₀ γw γn.a0 (W64 P.length) $$
       [Hth Hbe Hca Halg Hbm Hrdk Hbo Hua Hkv HRA Hres Hrdat Hao Hkr Hrest Hap Hfs Htok Hwg1 HRD Hso]
   · iunfold srvRestartAtR

@@ -153,7 +153,8 @@ the member's snapshot directory, so that a restart reuses the first start's inva
 stopped incarnation's snapshot handler may still update: the invariant over some snapshotter `ssₒ` of
 the stopped incarnation at `γ.snapLoc id` (`srvSnapRO`'s), and the removal counter's authority
 (`snapRmM γm`, written out: this module does not import `SnapRO`), at most `i + 1`, from the apply
-thread's `srvSnapOwn` at the graceful stop's applied index; (S6a-2) `ssₒ`'s paths are `dd`'s
+thread's `srvSnapOwn` at the graceful stop's ghost applied index (route (C), 2026-11-13: `i` itself,
+so a restart's `srvBuiltRestartR` row at `ai₀ + |A| = i` follows); (S6a-2) `ssₒ`'s paths are `dd`'s
 (`snap.snapDBPathOf dd`, from `srvSnapRO`, `bootOk`'s `Hssp`), so that the restart reuses the
 invariant at its own snapshotter, `snapDirInv_ss_congr` with `bootOkR`'s equation.) -/
 def srvDiskImageAt (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) (S : RaftState)

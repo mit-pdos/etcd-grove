@@ -112,8 +112,9 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
       -- the log (`rnRtOk`: `0`, or a term committed through at least `n`)
       taRaftTermAddr ap ↦□ rt ∗ rnRtOk γn rt n ∗
       -- (D22 J1b, 2026-10-31; the user's decision) what each snapshot install takes and gives back
-      -- (`srvSnapOwn`), passed through the batch
-      srvSnapOwn s ci E γr γ ai ∗
+      -- (`srvSnapOwn`), passed through the batch; (restart S6, CP2 route (C), 2026-11-13) at the
+      -- ghost applied index `g` (until then Go's `ai`)
+      srvSnapOwn s ci E γr γ g ∗
       -- the rights to issue tokens at the consistent index
       acTok C (ciEff γ st.k) }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #ep))
@@ -136,8 +137,8 @@ abbrev EtcdServer.applyAll.specBatch : Prop :=
           kvAppliedM C.isOn γr.raft γr.kv srvAuthSt0 (ghostOf rp (A ++ unapplied ai ms)) x' sa' ∗
           srvRestR E' γr rp (A ++ unapplied ai ms)) ∗
         (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ □ mvcc.api.isMvcc kv E'.γ ∗ ⌜kv = E'.kv⌝) ∗ rnWalTokA γn (srvRAddr s) q ∗
-        -- (D22 J1b) the snapshot resources, at the batch's end
-        srvSnapOwn s ci E' γr γ' ai' ∗
+        -- (D22 J1b) the snapshot resources, at the batch's end (route (C): at the ghost index `g'`)
+        srvSnapOwn s ci E' γr γ' g' ∗
         ⌜uint.Z g' = uint.Z γr.raft.ai0 + (ghostOf rp (A ++ unapplied ai ms)).length ∧ loopOk γ' st' ai' ∧
           uint.Z ai' = max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0) ∧
           (ciEff γ' st'.k = ciEff γ st.k ∨
@@ -178,9 +179,9 @@ mode `on`, from which `snapRecv_imageOn` gives `specSnapM`'s `hauthI`/`hkI`), an
 `authApplyResB`'s redefinition as `specSnapM` is.
 
 (R2d'a swap batch 2, 2026-11-06, the restart form; review F1, the swap the user approved) The
-applied index split, as inside a restart window: Go's `ai` (`ep.appliedi`, `srvSnapState`,
-`srvSnapOwn`) at most the ghost index `g` (`srvAppliedOwn`, `appliedLogAt`, the ghost log `A` with
-`uint.Z g = |A|`), the snapshot strictly above `g` (A8, derived since S1:
+applied index split, as inside a restart window: Go's `ai` (`ep.appliedi`, `srvSnapState`) at most
+the ghost index `g` (`srvAppliedOwn`, `appliedLogAt`, the ghost log `A` with `uint.Z g = |A|`; since
+restart S6's CP2 route (C), 2026-11-13, also `srvSnapOwn`'s removal counter, at most `g + 1`), the snapshot strictly above `g` (A8, derived since S1:
 `rnRestartOk_winAbove`), the consistent index at most `g`, and the rest buckets at an image `r0`
 whose members have the model's ids (`srvRestRp`;
 inside the window the replay's, `restReplay_memKeys`). The post is unchanged: past the snapshot
@@ -248,8 +249,8 @@ abbrev EtcdServer.applyAll.specSnapM : Prop :=
       -- the snapshot path's resources (`srvSnapRO`'s configuration rebuild over
       -- `isServerApplyAll`'s two fields)
       -- (auth on: the store's invariant and snapshot clause are `srvSnapRO`'s row
-      -- `authSnapKitM`)
-      srvSnapOwn s ci E γr γ ai ∗
+      -- `authSnapKitM`); (restart S6, CP2 route (C)) at the ghost index `g`
+      srvSnapOwn s ci E γr γ g ∗
       -- (J8a-4's, 2026-11-01) `applySnapshot.specSnapM`'s meta reads of the backend it opens, at
       -- the apply names `γ` (`bootOk`'s `#HmetaSnap`, which `run` carries)
       □ (∀ (π : ApplyPhys) (γB : backend.BNames) (P : backend.BParams) (D : backend.Data),

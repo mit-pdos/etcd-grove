@@ -479,7 +479,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
       iexact Hsloc
     -- the snapshot's file out of the directory, the counter raised to its index (`snapDir_take`)
     have hnt' : nt ≤ uint.nat sv.Metadata'.Index' := by
-      have : uint.nat ai < uint.nat sv.Metadata'.Index' := by word
+      have : uint.nat ag < uint.nat sv.Metadata'.Index' := by word  -- (route (C)) the ghost index
       omega
     wp_auto_lc 1
     ihave #Hdinv' : inv snapDirN (snapDirInv ss γd (srvImage γr.raft.raft) (snapRmM γt)) $$ []
@@ -983,7 +983,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
   -- the snapshot's file out of the directory, the counter raised to its index (`snapDir_take`), its
   -- image certified in the mode `on` (`srvImageOn`)
   have hnt' : nt ≤ uint.nat sv.Metadata'.Index' := by
-    have : uint.nat ai < uint.nat sv.Metadata'.Index' := by word
+    have : uint.nat ag < uint.nat sv.Metadata'.Index' := by word  -- (route (C)) the ghost index
     omega
   wp_auto_lc 1
   ihave #Hdinv' : inv snapDirN (snapDirInv ss γd (srvImageOn γr.raft.raft) (snapRmM γt)) $$ []

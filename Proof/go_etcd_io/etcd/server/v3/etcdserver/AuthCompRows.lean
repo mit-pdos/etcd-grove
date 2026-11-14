@@ -176,7 +176,9 @@ the apply side's tokens at it (the raft loop's `cum` authority) and by the stora
 `|P|` (`rnSnapOnceR`, whose conf state reports the voters after the backend's log `γn.a0`); its last
 term is the snapshot's (`at₀`, Go's `appliedt`); the apply thread's resources are at `γn.a0`, Go's
 index `|P|` (`applyBuiltR`). (Restart S6, CP2 review finding 1, 2026-11-13) The snapshot path's
-resources at Go's index `|P|` (`srvSnapOwn`: the member's removal counter at most `|P| + 1`), in
+resources at the ghost index `ai₀ + |γn.a0|` (`srvSnapOwn`: the member's removal counter at most
+`ai₀ + |γn.a0| + 1`; route (C), decided by etcd-grove-81: the ghost index, which the stop's image
+bounds, `c ≤ i + 1` with `i = |A|`; first written at Go's index `|P|`, which the image does not bound), in
 place of `isServerBuiltC`'s first-start row `Hsnapb` (`srvSnapBoot`, the counter at `0`), which a
 restart cannot give: the counter's authority is the stopped incarnation's (its invariant is the
 member's snapshot directory's, which the restart reuses), and a mono-nat authority does not go down.
@@ -189,14 +191,14 @@ def srvBuiltRestartR (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoI
       rnSnapOnceR γn.node.reg γn.node.cl γn.key ms γn.γs (W64 P.length) at₀ γr.raft γn.a0) ∗
     rnLoopTok γn P ∗ rnApplyTok γn P ∗
     applyBuiltR C s γ ci b E γr ai₀ c₀ x₀ γn.a0 (W64 P.length) ∗
-    srvSnapOwn s ci E γr γ (W64 P.length))
+    srvSnapOwn s ci E γr γ (ai₀ + W64 γn.a0.length))
 
 set_option linter.unusedVariables false in
 /-- **`start`'s construction premise less the stop's slot** (restart S6, CP2 review finding 3g,
 2026-11-13: `isServerBuiltC`'s rows, defined once, so that the restart's built part, `srvBuiltR`, is
 this at `.off` and not a copy that could drift): the model rows at `C.isOn`, the KV invariants and
 the apply thread's resources the component's, at the restart point (`HBr`, which since CP2 also holds
-the snapshot path's resources, `srvSnapOwn` at Go's index `|P|`, in place of the first-start row
+the snapshot path's resources, `srvSnapOwn` at the ghost index `ai₀ + |γn.a0|`, in place of the first-start row
 `Hsnapb`). (`N`, unused, as before.) -/
 def srvBuiltRC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
@@ -326,7 +328,8 @@ def srvRestartAtR (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInte
     srvWgReader s ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvApplyKVC C s E γw x₀ sa₀ ∗
     srvAppliedOwn γr g₀ ∗ appliedLogAt γr g₀ x₀.log ∗ kvRunM C.isOn γr ai₀ c₀ A₀ x₀ sa₀ ∗
     srvRest E γr A₀ ∗ srvApRes s γr A₀ ∗ srvForceSnapAddr s ↦ f ∗ acTok C (ciEff γ st₀.k) ∗
-    srvSnapOwn s ci E γr γ ai)
+    -- (restart S6, CP2 route (C), 2026-11-13) at the ghost index `g₀` (until then Go's `ai`)
+    srvSnapOwn s ci E γr γ g₀)
 
 /-- **`isServerRunC`'s restart conjuncts** (R2d'a A9, Q24 (c), in the hub since swap batch 5,
 2026-11-07; restart S4, 2026-11-12, at any WAL snapshot index, `/shared/tmp/restart-s4/plan.md` §1.1,
@@ -644,7 +647,8 @@ theorem srvBuiltRestartR_first (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc
     iapply rnSnapOnceR_first $$ Hsnap
   isplitl [Happ]
   · iapply applyBuiltR_first C s γ ci b E γr ai₀ c₀ x₀ hc $$ Happ
-  icases srvSnapOwn_of_boot s ci E γr γ ai₀ $$ Hsnapb with ⟨Hso, -⟩
+  icases srvSnapOwn_of_boot s ci E γr γ (ai₀ + ai₀) $$ Hsnapb
+    with ⟨Hso, -⟩
   iexact Hso
 
 /-- **`start`'s construction premise is the component's** (`isServerBuilt` off,

@@ -163,15 +163,19 @@ theorem EtcdServer.applyAll.wp_proofBatch
         rw [this] at hg'; word
       rw [hc, hgg]; exact h
     · rw [hc]; omega
-  have Hai' : uint.Z ai ≤ uint.Z ai' := by rw [hai']; exact Int.le_max_left _ _
-  -- (D22 J1b) the snapshot resources at the new applied index
-  ihave Hso := srvSnapOwn_mono s ci E γr _ ai ai' Hai' $$ Hso
-  -- (restart S6a) the removal counter raised to the new applied index (`snapshot`'s `Release`)
+  -- (D22 J1b) the snapshot resources at the new ghost index (restart S6, CP2 route (C): `g ≤ g'`)
+  have Hgg' : uint.Z g ≤ uint.Z g' := by
+    have hm : (ghostOf rp A).length ≤ (ghostOf rp (A ++ unapplied ai ms)).length := by
+      have h1 := hGl A; have h2 := hGl (A ++ unapplied ai ms); omega
+    omega
+  ihave Hso := srvSnapOwn_mono s ci E γr _ g g' Hgg' $$ Hso
+  -- (restart S6a) the removal counter raised to the new applied index (`snapshot`'s `Release`),
+  -- staying at most the ghost index plus one (`ai' ≤ g'`)
   iunfold srvSnapOwn at Hso
   icases Hso with ⟨%γm, %c, #Hsro, %Hc, Hγm, Hsres⟩
-  imod snapRm_raise γm ai' c Hc $$ Hγm with ⟨%c', %Hc', Hγm, #Hrmlb⟩
+  imod snapRm_raise γm ai' g' c Hc (by word) $$ Hγm with ⟨%c', %Hc', Hγm, #Hrmlb⟩
   ihave #Hsdir := srvSnapDir_of_RO s ci E γr γm $$ Hsro
-  ihave Hso : srvSnapOwn s ci E γr γ ai' $$ [Hγm Hsres]
+  ihave Hso : srvSnapOwn s ci E γr γ g' $$ [Hγm Hsres]
   · iunfold srvSnapOwn; iexists γm, c'; iframe Hsro Hγm Hsres; ipureintro; exact Hc'
   ihave Hss : srvSnapState s ep mst γs ai' (W64 0) $$ [Hsd0 Hsm0 Hsf1]
   · iunfold srvSnapState; iexists _, _, _; iframe Hsd0 Hsm0 Hsf1 Hmst Hslb0

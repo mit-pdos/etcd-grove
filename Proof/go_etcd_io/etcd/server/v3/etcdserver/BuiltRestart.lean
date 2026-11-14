@@ -50,7 +50,7 @@ stop's slot at auth off (`srvBuiltRC .off`; CP2 review finding 3g, 2026-11-13: u
 copy of `isServerBuiltC .off`'s rows, which could drift): the restart point `HBr`
 (`srvBuiltRestartR .off`: the storage's snapshot at Go's `|P|`, the loop's and the apply side's
 tokens at `P`, the apply thread's resources at the backend's log `γn.a0`, and, since CP2's finding 1,
-the snapshot path's resources at `|P|`, `srvSnapOwn`), `HEr` without `γn.a0 = []`, and `Hwpend` from
+the snapshot path's resources, `srvSnapOwn`, at the ghost index `ai₀ + |γn.a0|`: route (C)), `HEr` without `γn.a0 = []`, and `Hwpend` from
 `srvRestartRows`. -/
 def srvBuiltR (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
