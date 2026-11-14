@@ -35,13 +35,6 @@ namespace WalFs
 
 open Iris Fs WalEnc
 
-/-- **The length word at the write position is zero** (`old`'s 8 bytes from `wr`; zero past `old`). -/
-def LenZ (lay : WalLay) : Prop := ∀ j, j < 8 → lay.old.getD (lay.wr + j) 0 = 0
-
-/-- **A tail registered, not yet zeroed, whose reader stopped at `wr` with `io.EOF`**: nothing written
-past the start's frames (`wr = z0`), the length word there zero (`LenZ`). -/
-def TailPend (lay : WalLay) : Prop := lay.wr = lay.z0 ∧ LenZ lay
-
 /-- **The reader accepts nothing at a zero length word** (or with fewer than 8 bytes left). -/
 theorem decStep_zeroWord (C : WalCodec) (last : Bool) {bs : List w8} {off : Nat} {c : w32}
     (hz : ∀ j, j < 8 → bs.getD (off + j) 0 = 0) (r : WalRec) (len : Nat) (c' : w32) :

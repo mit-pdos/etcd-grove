@@ -316,6 +316,19 @@ def TailWin (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (g : Se
     (lay.z0 < S.length → ∀ b, lay.z0 ≤ b → b < lay.old.length → lay.old.getD b 0 = 0) ∧
     WinCands S lay.old lay.wr g
 
+/-- **F-Z**: past the frames found at the generation's start, the tail is zeros (`ReadAll`'s
+`ZeroToEnd` and fdatasync; a segment this generation created is zeros past its headers). -/
+def TailZeros (lay : WalLay) : Prop :=
+  ∀ b, lay.z0 ≤ b → b < lay.old.length → lay.old.getD b 0 = 0
+
+/-- **The length word at the write position is zero** (`old`'s 8 bytes from `wr`; zero past `old`;
+`TailCrashPend.lean`, `wal-tc16`). -/
+def LenZ (lay : WalLay) : Prop := ∀ j, j < 8 → lay.old.getD (lay.wr + j) 0 = 0
+
+/-- **A tail registered, not yet zeroed, whose reader stopped at `wr` with `io.EOF`**: nothing written
+past the start's frames (`wr = z0`), the length word there zero (`LenZ`). -/
+def TailPend (lay : WalLay) : Prop := lay.wr = lay.z0 ∧ LenZ lay
+
 /-- **The last segment's bytes past the write position are zero-valued** (in a resize window, I3b:
 finding 2, W6 log, sixteenth session; nineteenth session): `cut`'s truncate leaves none past `wr`, a write
 past the size ends at `wr`, `ZeroToEnd`'s growth zeros them (the cut-off bytes of its in-flight truncate
@@ -348,11 +361,15 @@ def WinLo (lay : WalLay) (g : SegG) : Prop := max lay.so lay.z0 ≤ g.om.lo
 /-- **The last segment in a resize window** (`WalAbsD.last`'s window branch): `TailWin`, a zero a
 crash may leave at each byte from `wr` on (`WinHead`; until the twenty-second session of the W6 log,
 `lo ≤ wr`, which a write past the size from an exact tail falsifies; the truncate at `wr`, which
-needed it of the size, gets it from the handle instead: `os.truncSup`'s `P`), `WinZero`, and `old`
+needed it of the size, gets it from the handle instead: `os.truncSup`'s `P`), `WinZero` given F-Z
+(`TailZeros lay → WinZero lay g`, `wal-tc17`, finding A of the W1 log's twenty-sixth session: a pending
+tail's truncate keeps `old`'s torn values past `wr`; the window's fdatasync takes `WinZero` as a
+premise), and `old`
 no longer than the largest size a crash may leave (a window opens from an exact tail, `hi = |bs| =
 |old|`, and no step before the fdatasync lowers `hi`; `wal-tc12`'s option (b)). -/
 def WinLast (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (g : SegG) : Prop :=
-  TailWin C Mr d lay g ∧ WinHead lay g ∧ WinZero lay g ∧ lay.old.length ≤ g.om.hi ∧ WinLo lay g
+  TailWin C Mr d lay g ∧ WinHead lay g ∧ (TailZeros lay → WinZero lay g) ∧ lay.old.length ≤ g.om.hi ∧
+    WinLo lay g
 
 /-- An exact tail's bytes past `wr` are `old`'s (unwritten), so zero where `old` is (F-Z). -/
 theorem TailLast.winZero {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {g : SegG}
@@ -436,7 +453,7 @@ structure WalAbsD (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) (
   /-- The last segment: its stream up to `wr`, `old` past it, durable below `so`; while a resize
   window is open on it (`¬ SegExact g`, I3b: from a resize's first step to the fdatasync after it),
   only the bytes below `wr`, the segment no longer than `old` and at least `wr` long
-  (`TailWin`), a zero a crash may leave from `wr` on (`WinHead`), the bytes from `wr` on zero
+  (`TailWin`), a zero a crash may leave from `wr` on (`WinHead`), the bytes from `wr` on zero given F-Z
   (`WinZero`) and `|old| ≤ hi` (`WinLast`). -/
   last : ∀ g, lay.segs.getLast? = some g →
     (SegExact g → TailLast C Mr d lay g) ∧ (¬ SegExact g → WinLast C Mr d lay g)
@@ -510,11 +527,12 @@ theorem WalAbsD.oldHi_any {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : W
     rw [← h3, hx.2]; exact Nat.le_refl _
   · exact h.oldHi g hg hx
 
-/-- **A window's bytes past the write position are zero-valued** (`WalAbsD.last`'s `WinZero`). -/
+/-- **A window's bytes past the write position are zero-valued**, given F-Z (`WalAbsD.last`'s
+`WinZero`). -/
 theorem WalAbsD.winZero {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
-    (h : WalAbsD C Mr d lay ents) (g : SegG) (hg : lay.segs.getLast? = some g) (hx : ¬ SegExact g) :
-    WinZero lay g :=
-  ((h.last g hg).2 hx).2.2.1
+    (h : WalAbsD C Mr d lay ents) (g : SegG) (hg : lay.segs.getLast? = some g) (hx : ¬ SegExact g)
+    (hZ : TailZeros lay) : WinZero lay g :=
+  ((h.last g hg).2 hx).2.2.1 hZ
 
 /-- **The last segment's bytes past the write position are zero-valued**, given F-Z (`TailZeros`). -/
 theorem WalAbsD.zeroPast {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
@@ -522,7 +540,7 @@ theorem WalAbsD.zeroPast {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wa
     (hZ : ∀ b, lay.z0 ≤ b → b < lay.old.length → lay.old.getD b 0 = 0) : WinZero lay g := by
   by_cases hx : SegExact g
   · exact ((h.last g hg).1 hx).winZero hZ
-  · exact h.winZero g hg hx
+  · exact h.winZero g hg hx hZ
 
 /-- **Every segment's `OsMeta` half exact**, no resize window open on the last (the form of
 `metas` before I3b). -/
