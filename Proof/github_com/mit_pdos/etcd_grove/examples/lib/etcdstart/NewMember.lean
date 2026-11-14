@@ -78,7 +78,7 @@ theorem NewMember.wp_proof
   subst Hlerr
   wp_auto
   iunfold memberBuilt at Hmb
-  simp only [Bool.false_eq_true, ↓reduceIte]
+  simp only [etcdstart.memberPeerServeRes, Bool.false_eq_true, ↓reduceIte]
   icases Hmb with ⟨%γA, %ci, %TM, %E, %γrn, %b, %cfg, %γk, %τ, %HE, Hstk, #Hwb, Hsb, Hserve, Hsv, #Hoff,
     Hlgm, Hrc, #Hnm, Htokp, HServeR, #Hlr, Hkeep⟩
   -- (2026-10-24, rafthttp stage 6d) the listener serves the peer address with the raft protocol
@@ -105,7 +105,7 @@ theorem NewMember.wp_proof
   iframe Htok
   iunfold memberBuilt
   iexists γA, ci, TM, E, γrn, b, cfg, γk, τ
-  simp only [↓reduceIte]
+  simp only [etcdstart.memberPeerServeRes, ↓reduceIte]
   iframe
   iframe #
   ipureintro; exact HE

@@ -17,7 +17,13 @@ stop left (`srvDiskImage`, at the stopped incarnation's names `ρ`, in the membe
 (`bootPremiseR`) in place of a first start's: the member built at its image's starting index
 (`memberBuiltR`) at new names `ρ'` that agree with `ρ` where the cluster sees them
 (`restartNames`) and a new stand-in environment `E₀'`, with its data directory recorded, from
-which `Start` gives the right to stop it again (R2b-2).
+which `Start` gives the right to stop it again (R2b-2). (Restart S7.4, P4-a of
+`notes/restart-s7-probe.md`, approved by etcd-grove-81 2026-11-14) Beside the image, the cluster's
+persistent facts at the stopped names (`memberRestartFacts`: the persistent part of `memberBoot`,
+which `NewServer.specR` takes at the restarted names and which carry over by `restartNames`); until
+then the precondition held none of them, so the triple was not provable. (Restart S7.2',
+2026-11-14) `memberBuiltR` is now `NewServer.specR`'s post shape (until then a DRAFT that no restart
+could give).
 -/
 module
 
@@ -109,7 +115,9 @@ abbrev BuildServer.specRestart : Prop :=
       bootPremiseR N ps bootLog ctxs dir token name Uok id ∗ commonPremises ∗
       context.isClosedchanInit ∗
       -- (hub step 8, S7) the member's restart bundle without addresses: its stop's disk image
-      memberRestartRes name {} γn γ ρ id ∗ netHttpOk γn id }}
+      memberRestartRes name {} γn γ ρ id ∗ netHttpOk γn id ∗
+      -- (restart S7.4, P4-a) the cluster's persistent facts at the stopped names
+      memberRestartFacts γ ρ id }}
     (App (App (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.BuildServer))
       (Val #name)) (Val #peer)) (Val #client)) (Val #cluster)) (Val #token))

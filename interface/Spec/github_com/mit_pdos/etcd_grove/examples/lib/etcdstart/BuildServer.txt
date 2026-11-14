@@ -97,7 +97,8 @@ def etcdstart.BuildServer.specRestart : Prop :=
                                                   etcdstart.bootPremiseR N ps bootLog ctxs dir token name Uok id ∗
                                                     etcdstart.commonPremises ∗
                                                       context.isClosedchanInit ∗
-                                                        etcdstart.memberRestartRes name { } γn γ ρ id ∗ netHttpOk γn id -∗
+                                                        etcdstart.memberRestartRes name { } γn γ ρ id ∗
+                                                          netHttpOk γn id ∗ etcdstart.memberRestartFacts γ ρ id -∗
                                       (▷
                                           ∀ s err,
                                             (⌜err ≠ GoInterface.nil⌝ ∗ threadTok ∨

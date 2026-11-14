@@ -1,23 +1,26 @@
 /-
-**`s.Start()` of a restarted member** (the restart plan's R2a and R2b-2, 2026-11-02; DRAFT; R2c-4:
-the first start's stoppable case is `wp_Start_built`'s, `Start_builtS_spec` deleted). Lean-first (no Rocq counterpart).
+**`s.Start()` of a restarted member** (the restart plan's R2a and R2b-2, 2026-11-02; restart S7.2',
+2026-11-14: proved). Lean-first (no Rocq counterpart).
 
-`Start_builtR_spec`: `wp_Start_built`'s triple (`Start.lean`) from a restarted member's built state
-(`memberBuiltR`: the apply thread starting at its image's index, not `0`). A statement the restart's
-proofs take as a hypothesis: `Start.spec` takes `ai₀ = 0`, and its generalization is R2d's.
-(R2b-2) It also gives the right to stop the server (`srvStopRight`): R2c-4, inside `memberUp`, as
-a first start's (`wp_Start_built`, from `Start.spec`; `Start_builtS_spec`, the draft hypothesis it
-replaces, deleted). A restarted member's right needs its `run` (R2d: `run.spec` covers first starts
-only); then this collapses into `wp_Start_built` (one spec per function).
-(R2c review round 2, N1) No data directory premise: since R2c-4 the right is inside `memberUp` at
-its own `dd`, so a `srvDataDir s dd` premise constrained nothing.
+`wp_Start_builtR`: `EtcdServer.Start.spec` at a restarted member's built state (`memberBuiltR`) and
+the thread token: the member started (`memberUp`), as `wp_Start_built` (`Start.lean`) at a first
+start's. `NewServer.specR` builds the restart at `ai₀ = c₀ = 0` (the restart point is the raft
+wrapper's `γn.a0`), so `Start.spec`'s premise `ai₀ = W64 0` holds, and its construction premise is
+`srvBuiltR_C` of the restart's built part with the stop's slot from `srvStop.keep`
+(`notes/restart-s7-probe.md`, P3). (Until S7.2' the statement `Start_builtR_spec`, a hypothesis of the
+restart's proofs, on the belief that `Start.spec` needed a restart index: deleted.)
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Restart
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ModeSpecs
 public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
 
 noncomputable section
 
@@ -25,9 +28,9 @@ namespace Perennial
 namespace EtcdGrove
 namespace etcdstart
 
-open Iris Iris.BI go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
+open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
 
-section defs
+section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
@@ -36,15 +39,70 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- See the file header. -/
-def Start_builtR_spec : Prop :=
-  ∀ (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF) (id : w64)
-    (N : Nat) (sv : Bool) [ReceiptBoundLe GF (N + 1)],
-    ⊢ {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-          memberBuiltR s ρ E₀ lg γn id N sv ∗ threadTok }}
-        (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Start")) (Val #()))
-      {{ RET #(); memberUp s ρ E₀ lg γn id }}
+theorem wp_Start_builtR (wp_Start : EtcdServer.Start.spec (GF := GF) (hG := hG))
+    (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF) (id : w64)
+    (N : Nat) (sv : Bool) (HrbN : receiptBound GF ≤ N + 1) (Hrb48 : receiptBound GF ≤ 2 ^ 48) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        memberBuiltR s ρ E₀ lg γn id N sv ∗ threadTok }}
+      (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Start")) (Val #()))
+    {{ RET #(); memberUp s ρ E₀ lg γn id }} := by
+  iintro %Φ ⟨#Psrv, Hmb, Htok⟩ HΦ
+  iunfold memberBuiltR at Hmb
+  icases Hmb with ⟨%γA, %ci, %TM, %E, %γrn, %b, %cfg, %γk, %τ, %at₀, %A, %HE, Hstk, #Hwb, Hsb,
+    Hserve, Hsv, #Hoff, Hlgm, Hrc, #Hnm, Htokp, -, #Hlr, Hkeep⟩
+  iunfold srvServeBuilt at Hserve
+  icases Hserve with ⟨#Hsf, Hbemu, Hlg1, Hlg2⟩
+  -- `Start.spec`'s construction premise: the restart's built part and the stop's slot
+  ihave Hsb := srvBuiltR_C s γA ci TM E ρ ρ.rd
+    (srvErM false ρ E₀ (W64 0) (W64 0) (restartKV ρ.rd.kv A) id (srvTrKey γn γk) (srvTrStopK γk))
+    γrn b (W64 0) at₀ (W64 0) (restartKV ρ.rd.kv A) N $$ [Hsb Hkeep]
+  · iframe Hsb
+    iapply (srvStop.slot_intro s cfg E γrn γk
+      (srvErM false ρ E₀ (W64 0) (W64 0) (restartKV ρ.rd.kv A) id (srvTrKey γn γk) (srvTrStopK γk))
+      rfl) $$ Hkeep
+  have h' := wp_Start s γA ci TM .off E ρ ρ.rd
+    (srvErM false ρ E₀ (W64 0) (W64 0) (restartKV ρ.rd.kv A) id (srvTrKey γn γk) (srvTrStopK γk))
+    γrn b (W64 0) at₀ (W64 0) (restartKV ρ.rd.kv A) N
+  simp only [AuthC.isOn, isServerReqM_false, isServerReadM_false] at h'
+  -- the server's member id is the member's (`srvNetMember`'s)
+  icases isServerBuiltC_mid .off s γA ci TM E ρ ρ.rd
+    (srvErM false ρ E₀ (W64 0) (W64 0) (restartKV ρ.rd.kv A) id (srvTrKey γn γk) (srvTrStopK γk))
+    γrn b (W64 0) at₀ (W64 0) (restartKV ρ.rd.kv A) N $$ Hsb with ⟨Hsb, #HmidS, -⟩
+  ihave #Hnm' := Hnm
+  iunfold srvNetMember at Hnm'
+  icases Hnm' with ⟨⟨%γdp, #Hpok⟩, -⟩
+  iunfold srvProcOk at Hpok
+  icases Hpok with ⟨%lp, %cp, %stp, %γrp, -, -, #Hmidp, -⟩
+  icombine HmidS Hmidp gives %Hideq
+  subst Hideq
+  have hm : E.authMode = AuthC.off.mode := authMode_off_of E HE.2.1
+  wp_apply h' $$ [Hsb Htok Hlg1 Hlg2 Hsv Hlgm Hrc] as ⟨%γw, #Hreq, #Hrd, -, Hgo, Hlg3, Hsr, -, Hright⟩
+  · iframe; iframe #
+    isplitr
+    · ipureintro; exact ⟨hm, Hrb48, HrbN, by trivial⟩
+    iapply acLessor_off
+  iunfold srvStartReaders at Hsr
+  icases Hsr with ⟨Hrslots, -⟩
+  -- (per-type stage B2) the run pool's share of the read loop's slots
+  icases srvStartReaders_split s ρ.rd $$ Hrslots with ⟨Hrslots, Hrun⟩
+  iapply HΦ
+  iunfold memberUp
+  iexists E, cfg, γw
+  -- (the raw run-pool stocks first, framed explicitly: no bare `iframe` meets their
+  -- `srvRevokePoolN`-long lists)
+  isplitr
+  · ipureintro; exact HE
+  isplitl [Hstk]
+  · iexact Hstk
+  isplitl [Hrun]
+  · iexact Hrun
+  iframe
+  iframe #
+  iunfold srvPeerCtl
+  iexists τ
+  iframe Hnm Htokp
 
-end defs
+end proof
 
 end etcdstart
 end EtcdGrove

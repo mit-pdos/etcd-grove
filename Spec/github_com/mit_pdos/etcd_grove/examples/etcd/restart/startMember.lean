@@ -99,7 +99,9 @@ abbrev startMember.specRestart : Prop :=
       context.isClosedchanInit ∗
       netHttpOk γn id ∗
       -- (hub step 8, E4) the member's restart bundle with its peer address: what its stop gave back
-      etcdstart.memberRestartRes name ⟨some peerAddr, none⟩ γn γ ρ id }}
+      etcdstart.memberRestartRes name ⟨some peerAddr, none⟩ γn γ ρ id ∗
+      -- (restart S7.4, P4-a) the cluster's persistent facts at the stopped names
+      etcdstart.memberRestartFacts γ ρ id }}
     (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.restart.startMember))
       (Val #name)) (Val #peer)) (Val #peerAddr)) (Val #client)) (Val #cluster)) (Val #lg))
