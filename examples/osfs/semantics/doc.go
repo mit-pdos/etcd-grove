@@ -44,6 +44,7 @@
 //	data_keep_size.go             FALLOC_FL_KEEP_SIZE: no change     FallocKeep
 //	data_short_io.go              short and failed pread/pwrite      PRead, PWriteFinish
 //	data_inflight_changes.go      changes in flight (one per file)   OsChange, announce, land, BusyAt, osHole
+//	data_resize_stamps.go         resize stamps (bookkeeping only)   OsFile.rzs, OsChangeKind.isResize, announce
 //
 // The directory tree and metadata calls:
 //

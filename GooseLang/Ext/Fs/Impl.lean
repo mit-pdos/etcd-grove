@@ -108,7 +108,9 @@ each byte, its *crash candidates* (`OsFile.cand`): the value it had at the last 
 then the value each change since announced for it, stamped with the change's number. A change
 announces its bytes when it starts, with all of its data, whatever it later lands (`…Start`,
 `OsFile.announce`); its finish lands a prefix of exactly those announced values in the page cache
-(`OsFile.land`), so the page-cache value of a byte is always one of its candidates. A successful
+(`OsFile.land`), so the page-cache value of a byte is always one of its candidates. A file also
+records the stamps of its resizes (`OsFile.rzs`), which no step reads: bookkeeping for a client
+premise that must tell a resize's zeros from a write's (**pending the user's review**). A successful
 sync (`OsFile.synced`) collapses every byte not under a change in flight to its page-cache value;
 a failed one changes nothing (no failed writeback). **The crash rule** (`OsCrash`, a machine
 crash; a restart of the process is one, by the environment's assumption on restarts): the durable
@@ -178,14 +180,23 @@ the file's last successful sync (or boot, or crash), stamped 0. -/
 abbrev Cands := List (w8 × Nat)
 
 /-- A regular file: its page cache (`cache b` is byte `b` as reads see it below the size; past the
-size, what its page holds there), each byte's crash candidates, its size, and the smallest and
-largest sizes since its last successful sync. -/
+size, what its page holds there), each byte's crash candidates, its size, the smallest and
+largest sizes since its last successful sync, and the stamps of its resizes. -/
 structure OsFile where
   cache : Nat → w8
   cand : Nat → Cands
   size : Nat
   sizeLo : Nat
   sizeHi : Nat
+  /-- **Bookkeeping only** (2026-11-14, `notes/wal-fsext-plan.md` §2.5; pending the user's review):
+  the stamps of the resizes (`ftruncate`, `fallocate`'s growth, `open`'s `O_TRUNC`) announced on
+  the file since it was last read from disk (`ofDisk`: a boot or a crash; a new file starts with
+  none), appended at the announcement (`OsFile.announce`). No step reads it: no behaviour or
+  outcome depends on it. It lets a client premise on crashes tell a candidate a resize announced
+  (zeros) from one a `pwrite` announced (W1, `LinuxFs/.../wal/W1.lean`). A sync keeps it: a resize
+  in flight keeps its candidates across a sync, and stamps are never reused, so an old stamp in the
+  list says nothing wrong. `examples/osfs/semantics/model_resize_stamps.go`. -/
+  rzs : List Nat := []
 
 /-- The page of byte `b` holds a byte below the size `sz` (4096-byte pages, which are the blocks
 of the configuration: the header). -/
@@ -373,10 +384,17 @@ def OsChange.ofResize (i : Ino) (f : OsFile) (sz : Nat) (trunc : Bool) : OsChang
     hi := if trunc then pageEnd (max f.size sz) else max f.size sz, val := fun _ => 0,
     target := sz }
 
+/-- The change is a resize (`ftruncate` or `fallocate`'s growth), not a `pwrite`. -/
+def OsChangeKind.isResize : OsChangeKind → Bool
+  | .write _ _ => false
+  | .truncate _ => true
+  | .falloc _ => true
+
 /-- `f` with the change `c` announced as change number `n`: each byte of `[c.lo, c.hi)` gets the
-candidate `c.val b`, stamped `n`. -/
+candidate `c.val b`, stamped `n`; a resize's stamp is recorded (`OsFile.rzs`, bookkeeping only). -/
 def OsFile.announce (f : OsFile) (c : OsChange) (n : Nat) : OsFile :=
-  { f with cand := fun b => if inRange c.lo c.hi b then f.cand b ++ [(c.val b, n)] else f.cand b }
+  { f with cand := fun b => if inRange c.lo c.hi b then f.cand b ++ [(c.val b, n)] else f.cand b,
+           rzs := if c.kind.isResize then n :: f.rzs else f.rzs }
 
 /-- `f` with the change `c` landed up to `e` (`c.lo ≤ e ≤ c.hi`): the bytes `[c.lo, e)` take their
 announced values in the page cache, and the size becomes `sz`; the size range widens to it. -/
