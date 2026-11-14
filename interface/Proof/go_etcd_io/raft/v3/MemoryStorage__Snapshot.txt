@@ -6,22 +6,26 @@ theorem MemoryStorage.Snapshot.wp_proof [package_sem : Assumptions] (wp_EnsureSn
     raftpb.EnsureSnapshot.spec) (wp_CloneSnapshot : proto.CloneSnapshot.spec) :
     MemoryStorage.Snapshot.spec
   -- `Perennial.EtcdGrove.MemoryStorage.Snapshot.spec`, unfolded:
-  ∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (o : Option (Nat × SnapshotM)) (c : Nat) (b : Bool)
+  ∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (o : Option (Nat × SnapshotM)) (c : Nat) (t : Option SnapshotM)
     (esu : GoInterface),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
             memStorAt ms γs J o iprop(emp) ∗
               memCompacted γs c ∗
-                (if b = true then memSnapNone γs else emp) ∗
+                (match t with
+                  | some s => memSnapNone γs s
+                  | none => emp) ∗
                   typedPointsto (globalAddr ErrSnapshotTemporarilyUnavailable) esu DFrac.discard -∗
           (▷
               ∀ snap err,
-                ((if b = true then memSnapNone γs else emp) ∗
+                ((match t with
+                    | some s => memSnapNone γs s
+                    | none => emp) ∗
                     ⌜err = GoInterface.nil⌝ ∗
                       ∃ sv,
                         ownSnapW snap (DFrac.own 1) sv ∗
-                          ⌜c ≤ uint.nat sv.Metadata'.Index' ∧ (b = true → sv = memSnapEmpty)⌝ ∗
+                          ⌜c ≤ uint.nat sv.Metadata'.Index' ∧ ∀ (s : SnapshotM), t = some s → sv = s⌝ ∗
                             match o with
                             | some (c0, sv0) => ⌜sv = sv0⌝ ∗ memStorFresh ms γs c0 sv0
                             | none => ⌜sv.Metadata'.Index' = W64 0⌝ ∨ J.SV sv ∗ J.DL (uint.nat sv.Metadata'.Index')) -∗
