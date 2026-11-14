@@ -87,7 +87,8 @@ theorem walGhost_named (s : AbsDiskState) (dir : GoString) :
 
 /-- **The tail record of `dir`, its other half**: the WAL, layout and last segment it records; given
 back with the layout of `dir` replaced (`lay'`, its last segment `g`, F-Z and the record boundary),
-the writes in flight unchanged on the other layouts' segments, and the invariant's new half. -/
+the writes in flight unchanged on the other layouts' segments, a write in flight only on the new last
+segment or one in flight before off the old (`TailsOnly`), and the invariant's new half. -/
 theorem walTailsRes_cut (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (Ls : GMap GoString WalLay)
     (F : GMap Ino SegFl) (dir : GoString) (γ : GName) (tg : TailG) :
     ⊢ walTailsRes (W := W) C Mr s Ls F -∗ walTailKey (W := W) dir γ -∗ tailVar (W := W) γ tg -∗
@@ -97,12 +98,13 @@ theorem walTailsRes_cut (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (Ls 
         walTailKey (W := W) dir γ ∗ tailVar (W := W) γ tg ∗ tailVar (W := W) γ tg ∗
         ∀ (lay' : WalLay) (g : SegG) (F' : GMap Ino SegFl),
           ⌜lay'.segs.getLast? = some g ∧ TailZeros lay' ∧ TailBound C Mr d lay' ∧
-            (∀ k la, k ≠ dir → Ls !! k = some la → ∀ g' ∈ la.segs, F' !! g'.ino = F !! g'.ino)⌝ -∗
+            (∀ k la, k ≠ dir → Ls !! k = some la → ∀ g' ∈ la.segs, F' !! g'.ino = F !! g'.ino) ∧
+            (∀ i, F' !! i ≠ none → i = g.ino ∨ (F !! i ≠ none ∧ i ≠ g0.ino))⌝ -∗
           tailVar (W := W) γ (tailG d lay' g.ino (F' !! g.ino)) -∗
           walTailsRes (W := W) C Mr s (<[dir := lay']> Ls) F' := by
   letI := walAllG (W := W)
   unfold walTailsRes tailVar
-  iintro ⟨%T, HTa, HTm⟩ Hk Hv
+  iintro ⟨%T, HTa, %HTo, HTm⟩ Hk Hv
   icases walTailKey_lookup T dir γ $$ HTa Hk with %HT
   ihave ⟨Hent, HTm⟩ := (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (γ : GName) =>
     iprop(∃ (d : WalDur) (lay : WalLay) (g : SegG),
@@ -118,9 +120,11 @@ theorem walTailsRes_cut (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (Ls 
   rw [Htg]
   iframe Hk Hv Hv'
   iintro %lay' %g %F' %hp Hvn
-  obtain ⟨hg', hZ, hB, hF⟩ := hp
+  obtain ⟨hg', hZ, hB, hF, hFo⟩ := hp
   iexists T
   iframe HTa
+  isplitr
+  · ipureintro; exact HTo.insert HT hl hg hg' hFo
   iapply (BigSepM.bigSepM_delete (Φ := fun (k : GoString) (γ' : GName) =>
     iprop(∃ (d' : WalDur) (la : WalLay) (g' : SegG),
       ⌜s.wal !! k = some d' ∧ (<[dir := lay']> Ls) !! k = some la ∧

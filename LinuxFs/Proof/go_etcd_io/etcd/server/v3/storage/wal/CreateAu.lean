@@ -114,14 +114,16 @@ def walCreateP (dir : GoString) (N : NameSet) (h : NamesH) (md : List w8) (Q : I
 /-- **What `Create` gets from the rename's update**: with no effect, what it held; after the commit,
 the client's `Q`, the segment's halves the invariant did not take, a past state with the fresh
 WAL in `dir`, the lock token, the record of what is out (the new WAL's segment, directory claim and
-pipeline names: `WalOut.create`, the handle's to carry), and the new WAL's directory key
+pipeline names: `WalOut.create`, the handle's to carry), the program's half of the tails' authority
+(empty: the handle registers its tail with it), and the new WAL's directory key
 (`walDirKey dir J X`: the invariant holds the other half of `J`'s claim, once). -/
 def walCreateQ (dir : GoString) (N : NameSet) (h : NamesH) (md : List w8) (Q : IProp GF)
     (J : Ino) (X : List GoString) (hJ : NamesH) (g : SegG) : Option (Nat × Nat) → IProp GF
   | none => walCreateP (W := W) dir N h md Q J X hJ g
   | some _ => iprop(Q ∗ osMeta g.ino (DFrac.own (1 : Qp).half) g.om ∗
       osBytes g.ino 0 (DFrac.own (1 : Qp).half) g.bs ∗ walLockedTok (W := W) ∗
-      walOutFrag (W := W) (WalOut.empty.create g.ino J X dir) ∗ walDirKey (W := W) dir J X ∗
+      walOutFrag (W := W) (WalOut.empty.create g.ino J X dir) ∗ walTailsFrag (W := W) ∅ ∗
+      walDirKey (W := W) dir J X ∗
       ∃ s', walPast (W := W) s' ∗ ⌜s'.wal !! dir = some (walDurFresh md)⌝)
 
 /-- **`Create`'s update for `os.Rename.specDirSnc`** (see the file header). The program's premises:
@@ -308,7 +310,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         simp only [createSt, GMap.lookup_insert_eq]
         exact walDurLe_refl _
       imod walCreating_delete CR dir N h J $$ Hcra Htok with ⟨-, Hcra, HLk⟩
-      imod walParked_lock (W := W) Ls _ F $$ Hpk HLk with ⟨Hpk, HLk, Ho, -⟩
+      imod walParked_lock (W := W) Ls _ F $$ Hpk HLk with ⟨Hpk, HLk, Ho, Htf, -⟩
       icases (osMeta_halves g.ino g.om).1 $$ Hm with ⟨Hm1, Hm2⟩
       icases (osBytes_halves g.ino 0 (y :: ys)).1 $$ Hbs with ⟨Hb1, Hb2⟩
       have hF : ∀ g' ∈ segsAll Ls, (GMap.delete g.ino F) !! g'.ino = F !! g'.ino := fun g' hg' =>
@@ -361,7 +363,11 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
           iframe Hcra
           ipureintro; exact creatingOk_create hco Hcr hnmN hJjr
         isplitl [Htl]
-        · iapply walTailsRes_create C Mr s Ls F _ dir md lay hsd hF $$ Htl
+        · iapply walTailsRes_create C Mr s Ls F _ dir md lay hsd hF hLd
+            (fun i hi => by
+              by_cases e : i = g.ino
+              · subst e; rw [GMap.lookup_delete_eq] at hi; exact absurd rfl hi
+              · rwa [GMap.lookup_delete_ne _ (Ne.symm e)] at hi) $$ Htl
         isplitr
         · ipureintro; exact ⟨han', Han.2⟩
         isplitr
@@ -384,7 +390,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       dsimp only [walCreateQ]
       rw [hgbs]
       iframe HQ Hm2 Hb2 Hkey
-      iframe HLk Ho
+      iframe HLk Ho Htf
       iexists (createSt s dir md)
       iframe Hp
       ipureintro
