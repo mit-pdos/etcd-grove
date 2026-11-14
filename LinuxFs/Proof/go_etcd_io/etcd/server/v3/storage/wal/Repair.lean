@@ -370,8 +370,45 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
     isplitl [Hu]
     · ileft; iexact Hu
     iexists o; iexact HQ
-  · -- any other error
-    sorry
+  · -- any other error: `errors.Is(err, io.ErrUnexpectedEOF)` true only at the end of the frames
+    obtain ⟨ei, rfl⟩ : ∃ ei, err = GoInterface.ok ei := by
+      cases err with
+      | ok ei => exact ⟨ei, rfl⟩
+      | nil => exact absurd rfl hne.1
+    repair_open
+    try wp_auto
+    iunfold decAns at Hans
+    icases Hans with (%h | #Hea)
+    · exact absurd h hne.1
+    iunfold isEofAns at Hea
+    wp_apply Hea as %b %hb
+    subst hb
+    rw [decide_eq_false hne.2]
+    try wp_auto
+    iunfold errUeAns at Hue
+    wp_apply Hue as %bu %hbu
+    try wp_auto
+    cases bu
+    · -- `default`: `false`
+      try wp_auto
+      wp_apply wp_lockedName wp_Name lf f fd _ _ $$ [Hf] as Hf
+      · iframe Hf Hlf
+      wp_apply wp_String as %f1 -
+      try wp_auto
+      wp_apply wp_Error as %f2 -
+      wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1, f2]
+      isplitr
+      · ipureintro; rfl
+      iintro %fsl ⟨-, -⟩
+      try wp_auto
+      wp_apply wp_Warn lg _ _ $$ []
+      · iframe #
+      try wp_auto
+      wp_for_post
+      repair_false
+    · -- `io.ErrUnexpectedEOF`, at the end of the frames: the copy, the truncate, the fsync
+      have hoff : off = lay.wr := by rw [hbu rfl, hrsw]
+      sorry
 
 end proof
 
