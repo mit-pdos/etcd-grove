@@ -12,12 +12,11 @@ Generic in the update, as `os.Rename.specDirSnc` is: `Create` builds it (`walCre
 **The WAL directory's spine** (`Sp`, `SpR`, `RenameWALOk`'s third conjunct): after the commit the new
 directory `dir` needs paths (`osPathS R dir dq J`: one for the pipeline, `pipeRes`, one for
 `OpenDir` and the handle's `walDirH`). `osPathS` is made of fractions of `.only [c]` claims, and `nm`
-is in no such claim: it is in the creating claim `.only [nm, nm.tmp]`, which the program and
-`walInv` hold half each (and, merged back, in the area claim). So the spine is a law the caller
-supplies (`Sp`, with the program's half of the logged claim, gives two spines and a remainder `SpR`),
-which **nothing can supply yet**: an open obligation of the invariant's design (a WAL name's
-`.only [nm]` claim kept apart from the area claim, fractions of it for the spines; see the W4 log,
-twelfth session). The same gap is every producer of `walDirH`'s (`Open`, `ReadAll`).
+is then in the creating claim `.only [nm, nm.tmp]`, which the program and `walInv` hold half each. So
+the spine is a law the caller supplies (`Sp`, with the program's half of the logged claim, gives two
+spines and a remainder `SpR`), applied at a program step after the rename, with `notCrashed` and the
+update's result `U (some x)` (`Create`'s: the invariant's split of the claim, `walInv_splitNew`, needs
+the invariant open and the lock token the result holds; ledger, 2026-11-14).
 
 *Pre*: the call's resources (the whole call permission: the rename), the update `osAUnc` of the
 program's half of the creating claim `(jr, N)` (`nm` absent, `nm.tmp` holding `J`), the spine law's
@@ -70,7 +69,9 @@ def RenameWALOk (R : Roots) (jr J : Ino) (r dir nm tmp : GoString) (N : NameSet)
     (SpR : Nat × Nat → IProp GF) : Prop :=
   InArea r dir nm ∧ NameOk nm ∧ NameOk tmp ∧ tmp ≠ nm ∧ N.Mem nm ∧ N.Mem tmp ∧
   h.cur !! tmp = some (.dir J) ∧ h.cur !! nm = none ∧
-  (⊢ ∀ x : Nat × Nat, Sp -∗ renDirOut jr J N tmp nm h (DFrac.own (1 : Qp).half) lb (some x) ={⊤}=∗
+  (⊢ ∀ x : Nat × Nat, Sp -∗ notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗ U (some x) -∗
+      renDirOut jr J N tmp nm h (DFrac.own (1 : Qp).half) lb (some x) ={⊤}=∗
+      notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ U (some x) ∗
       osPathS R dir dq J ∗ osPathS R dir dq J ∗ SpR x) ∧
   (⊢ U none -∗ osAUnc (osNames jr N (DFrac.own (1 : Qp).half) h)
       (renDirOut jr J N tmp nm h (DFrac.own (1 : Qp).half) lb) U)

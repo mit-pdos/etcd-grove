@@ -67,7 +67,6 @@ def walHandleC (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (j 
     encEnv ∗ walCrcTable ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
     walOpenW (W := W) w dir ∗
     ⌜WalHS.Split Mr h ∧ 0 ≤ fd.toInt ∧ h.o0 + h.out.length ≤ h.sz ∧ h.sz ≤ 0xffffffff000 ∧
-      h.o0 + h.out.length + h.pend.length ≤ 0xffffffff000 ∧
       ((h.rest = 0 → walLastIdx (h.H.map WalOpG.toM) ≤ max (uint.nat h.enti) (uint.nat h.snapi)) ∧
         walMaxSnapIdx (h.H.map WalOpG.toM) ≤ uint.nat h.snapi) ∧
       max (uint.nat h.enti) (uint.nat h.snapi) + 1 < 2 ^ 64⌝)

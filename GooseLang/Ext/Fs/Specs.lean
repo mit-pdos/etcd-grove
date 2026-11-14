@@ -132,6 +132,48 @@ theorem coh_meta {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf �
   obtain ⟨f, hf, hm⟩ := hcoh.meta_some p m h
   exact ⟨f, hf, hm⟩
 
+/-- **No file is larger than `maxBytes`** (the model's bound, `Impl.lean`: ext4's `s_maxbytes` on C;
+the invariant `OsWf.sizes`): before any step of a non-value `e`, an update that reaches an `OsMeta`
+(opening invariants, mask `E`) learns that its size is at most `maxBytes`, and gives it back. -/
+theorem wp_osMeta_sizeU (e : Expr) (Φ : val → IProp GF) (h : toVal e = none) :
+    (|={E}=> ∃ (i : Ino) (dq : DFrac) (m : OsMeta), osMeta (L := L) i dq m ∗
+      (⌜m.size ≤ maxBytes⌝ -∗ osMeta (L := L) i dq m ={E}=∗ WP e @ s; E {{ Φ }})) ⊢
+      WP e @ s; E {{ Φ }} := by
+  iintro H
+  iapply wp_ext_acc (X := fsExt) e Φ h
+  iintro %σ %g Hl Hg
+  imod H with ⟨%i, %dq, %m, Hm, Hk⟩
+  icases (os_local_ctx_eq σ).mp $$ Hl with Hl
+  unfold osCtx osCtxF osMeta
+  icases Hl with ⟨⟨%Γb, %Γm, %Γf, %Γt, %Hwc, HAb, HAm, HAf, HAt, Htok, Hv⟩, Hns, Hof⟩
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAm Hm with %Hml
+  obtain ⟨f, hf, hmo⟩ := coh_meta Hwc.2 Hml
+  have hsz : m.size ≤ maxBytes := by have := Hwc.1.sizes i f hf; rw [hmo.size]; omega
+  imod Hk $$ %hsz Hm with Hwp
+  imodintro
+  iframe Hg Hwp
+  iapply (os_local_ctx_eq σ).mpr
+  unfold osCtx osCtxF
+  iframe Hns Hof
+  iexists Γb, Γm, Γf, Γt
+  iframe
+  ipureintro; exact Hwc
+
+/-- `wp_osMeta_sizeU` for an `OsMeta` at hand: `m.size ≤ maxBytes` before any step. -/
+theorem wp_osMeta_size (e : Expr) (Φ : val → IProp GF) (h : toVal e = none) (i : Ino) (dq : DFrac)
+    (m : OsMeta) :
+    ⊢ osMeta (L := L) i dq m -∗
+      (⌜m.size ≤ maxBytes⌝ -∗ osMeta (L := L) i dq m -∗ WP e @ s; E {{ Φ }}) -∗
+      WP e @ s; E {{ Φ }} := by
+  iintro Hm Hk
+  iapply wp_osMeta_sizeU e Φ h
+  imodintro
+  iexists i, dq, m
+  iframe Hm
+  iintro %hsz Hm
+  imodintro
+  iapply Hk $$ %hsz Hm
+
 /-- A size `fstat` may see is past every byte below the size that no change in flight may change. -/
 theorem statSees_gt {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) {i : Ino}
     {f : OsFile} {b sz : Nat} (hf : st.file i = some f) (hb : b < f.size)
@@ -612,7 +654,7 @@ theorem wp_osFsync2 (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat) (
   let f' := f.synced (InflightAt st d.ino ·)
   have hszf := hwf.sizes d.ino f hf
   have hwfS : OsWf (st.setFile d.ino f') :=
-    osWf_setFile' hwf hf (by simp [f', OsFile.synced]) (fun b p hp => by
+    osWf_setFile' hwf hf (by simp only [f', OsFile.synced]; omega) (fun b p hp => by
       simp only [f', OsFile.synced, if_neg (hnoI b), List.mem_singleton] at hp; subst hp; simp)
   have hcvS : cellView (st.setFile d.ino f') = cellView st :=
     cellView_congr hwf hwfS rfl (fun q => by
@@ -853,7 +895,7 @@ theorem wp_osFsyncB (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (hE : ↑osN
   let f' := f.synced (InflightAt st d.ino ·)
   have hszf := hwf.sizes d.ino f hf
   have hwfS : OsWf (st.setFile d.ino f') :=
-    osWf_setFile' hwf hf (by simp [f', OsFile.synced]) (fun b p hp => by
+    osWf_setFile' hwf hf (by simp only [f', OsFile.synced]; omega) (fun b p hp => by
       simp only [f', OsFile.synced, if_neg (hnoI b), List.mem_singleton] at hp; subst hp; simp)
   have hcvS : cellView (st.setFile d.ino f') = cellView st :=
     cellView_congr hwf hwfS rfl (fun q => by

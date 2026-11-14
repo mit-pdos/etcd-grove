@@ -286,9 +286,81 @@ def W1G (C : WalCodec) (js : List Ino) (img : Ino → List w8) (bsOf : Ino → O
     bsOf i = some bs → p.2 + frameCore (img i) p.2 ≤ bs.length →
       AsOfOneG bs (rzOf i) (img i) p.2 (frameCore (img i) p.2)
 
-/-- The ghost bytes of the segment of inode `i`, if it is one of the layout's. -/
+/-- The candidates `m` knows (`OsMeta.pc`) of `k` bytes from `b` on, up to the first it does not
+know, as ghost bytes (their value 0: `W1G` reads only the candidates). -/
+def pcRunN (m : OsMeta) : Nat → Nat → List ByteG
+  | _, 0 => []
+  | b, k + 1 => match m.pc b with
+    | some c => (0, c) :: pcRunN m (b + 1) k
+    | none => []
+
+/-- The candidates `m` knows from byte `b` on, below `m.hi`, up to the first it does not know. -/
+def pcRun (m : OsMeta) (b : Nat) : List ByteG := pcRunN m b (m.hi - b)
+
+theorem pcRunN_getElem? {m : OsMeta} : ∀ {b k j : Nat} {y : ByteG}, (pcRunN m b k)[j]? = some y →
+    j < k ∧ m.pc (b + j) = some y.2
+  | _, 0, _, _, h => by simp [pcRunN] at h
+  | b, k + 1, j, y, h => by
+    unfold pcRunN at h
+    split at h
+    · rename_i c hc
+      cases j with
+      | zero =>
+        simp only [List.getElem?_cons_zero, Option.some.injEq] at h
+        subst h; exact ⟨by omega, by simpa using hc⟩
+      | succ j =>
+        simp only [List.getElem?_cons_succ] at h
+        obtain ⟨h1, h2⟩ := pcRunN_getElem? h
+        exact ⟨by omega, by rw [show b + (j + 1) = b + 1 + j by omega]; exact h2⟩
+    · simp at h
+
+/-- **A segment's ghost bytes, then the candidates its `OsMeta` knows past them** (W1 past the
+bytes, I3b, `wal-tc6`): in a resize window, or after a write past the preallocated size, a crash may
+leave the segment longer than the bytes the invariant holds (up to `om.hi`), and its frames there are
+as of the candidates `om` knows past the size (`OsMeta.pc`: a truncate's cut-off bytes, `rzMeta`/
+`rsPostK true`; known zeros). The bytes of an exact segment (`om.hi ≤ |bs|`). -/
+def segBytesX (g : SegG) : List ByteG := g.bs ++ pcRun g.om g.bs.length
+
+theorem segBytesX_of_hi {g : SegG} (h : g.om.hi ≤ g.bs.length) : segBytesX g = g.bs := by
+  unfold segBytesX pcRun
+  rw [show g.om.hi - g.bs.length = 0 by omega]
+  simp [pcRunN]
+
+theorem segBytesX_getElem?_lt {g : SegG} {b : Nat} (hb : b < g.bs.length) :
+    (segBytesX g)[b]? = g.bs[b]? := List.getElem?_append_left hb
+
+theorem segBytesX_getD_lt {g : SegG} {b : Nat} (hb : b < g.bs.length) (d : ByteG) :
+    (segBytesX g).getD b d = g.bs.getD b d := by
+  rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD, segBytesX_getElem?_lt hb]
+
+theorem segBytesX_length_le {g : SegG} : g.bs.length ≤ (segBytesX g).length := by
+  simp [segBytesX]
+
+/-- A byte of `segBytesX g` past `g.bs` is one `g.om` knows, below `g.om.hi`. -/
+theorem segBytesX_getElem?_ge {g : SegG} {b : Nat} {y : ByteG} (hb : g.bs.length ≤ b)
+    (h : (segBytesX g)[b]? = some y) : b < g.om.hi ∧ g.om.pc b = some y.2 := by
+  unfold segBytesX at h
+  rw [List.getElem?_append_right hb] at h
+  obtain ⟨h1, h2⟩ := pcRunN_getElem? h
+  refine ⟨by omega, ?_⟩
+  rw [show b = g.bs.length + (b - g.bs.length) by omega]; exact h2
+
+/-- The candidates of `segBytesX g` are a file's whose candidates are `g.bs`'s and, past the size
+(`|g.bs|`), those `g.om` knows. -/
+theorem segBytesX_cand {g : SegG} {f : Fs.OsFile} (hsz : g.om.size = g.bs.length)
+    (hbs : ∀ b (y : ByteG), g.bs[b]? = some y → f.cand b = y.2)
+    (hpc : ∀ b c, g.om.size ≤ b → g.om.pc b = some c → f.cand b = c) :
+    ∀ b (y : ByteG), (segBytesX g)[b]? = some y → f.cand b = y.2 := by
+  intro b y h
+  by_cases hb : b < g.bs.length
+  · rw [segBytesX_getElem?_lt hb] at h; exact hbs b y h
+  · obtain ⟨-, h2⟩ := segBytesX_getElem?_ge (by omega) h
+    exact hpc b y.2 (by omega) h2
+
+/-- The ghost bytes of the segment of inode `i`, if it is one of the layout's, with the candidates
+its `OsMeta` knows past them (`segBytesX`). -/
 def segBytesOf (lay : WalLay) (i : Ino) : Option (List ByteG) :=
-  (lay.segs.find? (fun g => decide (g.ino = i))).map (·.bs)
+  (lay.segs.find? (fun g => decide (g.ino = i))).map segBytesX
 
 /-- The resize stamps the layout's `OsMeta` half of the segment of inode `i` knows (`OsMeta.rz`),
 if it is one of the layout's. -/
@@ -332,13 +404,20 @@ theorem segRzOf_prefix {lay lay' : WalLay} (h : lay.segs <+: lay'.segs) (i : Ino
 def imgOf (fo : Option Fs.OsFile) : List w8 := (fo.map Fs.OsFile.contents).getD []
 
 theorem segBytesOf_some {lay : WalLay} {i : Ino} {bs : List ByteG} (h : segBytesOf lay i = some bs) :
-    ∃ g ∈ lay.segs, g.ino = i ∧ g.bs = bs := by
+    ∃ g ∈ lay.segs, g.ino = i ∧ segBytesX g = bs := by
   unfold segBytesOf at h
   cases hf : lay.segs.find? (fun g => decide (g.ino = i)) with
   | none => simp [hf] at h
   | some g =>
     simp only [hf, Option.map_some, Option.some.injEq] at h
     exact ⟨g, List.mem_of_find?_eq_some hf, by simpa using List.find?_some hf, h⟩
+
+/-- `segBytesOf_some` for a layout whose segments are exact (`om.hi ≤ |bs|`). -/
+theorem segBytesOf_some_ex {lay : WalLay} {i : Ino} {bs : List ByteG}
+    (hex : ∀ g ∈ lay.segs, g.om.hi ≤ g.bs.length) (h : segBytesOf lay i = some bs) :
+    ∃ g ∈ lay.segs, g.ino = i ∧ g.bs = bs := by
+  obtain ⟨g, hg, hi, he⟩ := segBytesOf_some h
+  exact ⟨g, hg, hi, by rw [← he, segBytesX_of_hi (hex g hg)]⟩
 
 theorem contents_getD (f : Fs.OsFile) (b : Nat) (hb : b < f.size) : f.contents.getD b 0 = f.cache b := by
   simp [Fs.OsFile.contents, List.getD_eq_getElem?_getD, hb]
@@ -349,7 +428,8 @@ candidates in the old state the ghost ones. -/
 theorem w1G_of_W1 (C : WalCodec) (st st' : Fs.OsState) (m' : Tree) (lay : WalLay)
     (rzOf : Ino → List Nat) (hw1 : W1 C st st') (htree : st'.fs.treeDur = m')
     (hsegs : ∀ g ∈ lay.segs,
-      ∃ f, st.fs.files !! g.ino = some f ∧ (∀ b (y : ByteG), g.bs[b]? = some y → f.cand b = y.2) ∧
+      ∃ f, st.fs.files !! g.ino = some f ∧
+        (∀ b (y : ByteG), (segBytesX g)[b]? = some y → f.cand b = y.2) ∧
         ∀ s ∈ rzOf g.ino, s ∈ f.rzs) :
     W1G C (walInos (entsOf m' lay.j)) (fun i => imgOf (st'.fs.files !! i)) (segBytesOf lay) rzOf := by
   intro k p hp i bs hi hbs hsz
@@ -382,11 +462,11 @@ theorem w1G_of_W1 (C : WalCodec) (st st' : Fs.OsState) (m' : Tree) (lay : WalLay
       simp only [hf', imgOf, Option.map_some, Option.getD_some] at hb h1 ⊢
       have hlen : f'.contents.length = f'.size := by simp [Fs.OsFile.contents]
       have hbyte : ∀ b, p.2 ≤ b → b < p.2 + frameCore f'.contents p.2 →
-          f'.contents.getD b 0 = f'.cache b ∧ (g.bs.getD b (0, [])).2 = f.cand b := by
+          f'.contents.getD b 0 = f'.cache b ∧ ((segBytesX g).getD b (0, [])).2 = f.cand b := by
         intro b h1 h2
         have hbs : b < f'.size := by omega
         refine ⟨contents_getD f' b hbs, ?_⟩
-        have hbl : b < g.bs.length := by
+        have hbl : b < (segBytesX g).length := by
           simp only [hf', imgOf, Option.map_some, Option.getD_some] at hsz; omega
         rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hbl]
         exact (hcand b _ (List.getElem?_eq_getElem hbl)).symm

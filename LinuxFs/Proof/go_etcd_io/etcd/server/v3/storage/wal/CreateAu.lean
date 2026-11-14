@@ -149,7 +149,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     (hz : lay.old.length - lay.wr = 0 ∨ 8 ≤ lay.old.length - lay.wr)
     (hcut : g.om.cut = none) (hgx : SegExact g) (hsn : SegsNamed lay.segs hJ.cur)
     (hJC : ∀ (K : Nat → Prop) (E : Ents), (∀ b, walNameP b = true → E !! b = hJ.valAfter J K b) →
-      SegsNamedC lay.segs E) :
+      SegsNamedC lay.segs E) (hmd : md.length < 2 ^ 41) :
     ⊢ walInv (W := W) C Mr R jr r -∗ walCreateP (W := W) dir N h md Q J X hJ g -∗
       osAUnc (osNames jr N (DFrac.own (1 : Qp).half) h)
         (renDirOut jr J N tmp nm h (DFrac.own (1 : Qp).half) lb)
@@ -168,7 +168,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   icases HP with ⟨Htok, Hau, HJ, Hm, Hbs⟩
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl0, #Hcm, Hlays, %Hok, %Hco, ⟨%CR, Hcra, %Hcro⟩,
-    Htl, %Han, %Hnm, Hpk, ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms⟩
+    Htl, %Han, %Hnm, Hpk, ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms, %Hbd⟩
   icases walCreating_lookup CR dir N h J $$ Hcra Htok with ⟨%Hcr, Hcra, Htok⟩
   have hco := Hcro
   obtain ⟨hc, hcoh, hexcl, honce, hdist, hnew⟩ := Hcro dir N h J Hcr
@@ -214,7 +214,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       · iexists K, cp
         iframe Hdk Hcp
         ipureintro; exact Hdko
-      iframe Hnms; ipureintro; exact HAt
+      iframe Hnms; ipureintro; exact ⟨HAt, Hbd⟩
     imodintro
     dsimp only
     iframe Htok Hau HJ Hm Hbs
@@ -252,7 +252,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         · iexists K, cp
           iframe Hdk Hcp
           ipureintro; exact Hdko
-        iframe Hnms; ipureintro; exact HAt
+        iframe Hnms; ipureintro; exact ⟨HAt, Hbd⟩
       imodintro
       dsimp only [walCreateQ, walCreateP]
       iframe Htok Hau HJ Hm Hbs
@@ -410,8 +410,8 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
             (Nat.le_trans hJlb hls) hX habs hex hdur' htail hold0 hz
         iframe Hnms
         ipureintro
-        exact walsAt_create (x := x) (st := s0) (X := X) (hJ := hJ) HAt Hok hnew hin' htmp hc hothers
-          hlay
+        exact ⟨walsAt_create (x := x) (st := s0) (X := X) (hJ := hJ) HAt Hok hnew hin' htmp hc hothers
+          hlay, walsBounded_ins Hbd rfl hmd⟩
       imodintro
       dsimp only [walCreateQ]
       rw [hgbs]

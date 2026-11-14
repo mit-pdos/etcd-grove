@@ -303,7 +303,9 @@ structure OsWf : Prop where
   /-- At most one change is in flight on a file. -/
   infl_one : ∀ t1 c1 t2 c2, st.proc.inflight !! t1 = some c1 →
     st.proc.inflight !! t2 = some c2 → c1.ino = c2.ino → t1 = t2
-  sizes : ∀ i f, st.file i = some f → f.sizeLo ≤ f.size ∧ f.size ≤ f.sizeHi
+  /-- The sizes in order, and none past `maxBytes` (the model's bound: no step, crash or start
+  makes a file larger, `Impl.lean`'s `maxBytes`). -/
+  sizes : ∀ i f, st.file i = some f → f.sizeLo ≤ f.size ∧ f.size ≤ f.sizeHi ∧ f.sizeHi ≤ maxBytes
   /-- Every candidate's stamp is at most the last change's number. -/
   stamps : ∀ i f b p, st.file i = some f → p ∈ f.cand b → p.2 ≤ st.fs.stamp
 
@@ -1224,7 +1226,7 @@ theorem osInit_wf_coh {st : OsState} (h : FsInit st) :
     OsWf st ∧ OsCoh st (bytesMap st) (metaMap st) ∅ ∅ := by
   obtain ⟨hproc, -, -, -, -, -, hdisk, -, -⟩ := h
   have hdisk' : ∀ i f, st.file i = some f → ∃ img sz, f = OsFile.ofDisk img sz :=
-    fun i f hf => (hdisk i f hf).2
+    fun i f hf => let ⟨img, sz, _, h⟩ := (hdisk i f hf).2; ⟨img, sz, h⟩
   refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩⟩
   · intro fd d h; simp [hproc, ProcState.empty] at h
   · intro b m h; simp [hproc, ProcState.empty] at h
@@ -1232,7 +1234,7 @@ theorem osInit_wf_coh {st : OsState} (h : FsInit st) :
   · intro t c h; simp [hproc, ProcState.empty] at h
   · intro t1 c1 _ _ h; simp [hproc, ProcState.empty] at h
   · intro i f hf
-    obtain ⟨img, sz, rfl⟩ := hdisk' i f hf; simp [OsFile.ofDisk]
+    obtain ⟨img, sz, hsz, rfl⟩ := (hdisk i f hf).2; simp [OsFile.ofDisk, hsz]
   · intro i f b p hf hp
     obtain ⟨img, sz, rfl⟩ := hdisk' i f hf
     simp only [OsFile.ofDisk, List.mem_singleton] at hp; subst hp; simp

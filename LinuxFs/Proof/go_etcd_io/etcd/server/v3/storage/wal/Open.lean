@@ -1,10 +1,11 @@
 /-
 The proof of `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/Open.lean` (W3/W5 of
 `notes/wal-fsext-plan.md`, thirteenth session): `openAtIndex` in write mode (its spec), then
-`fileutil.OpenDir(w.dir)` (`OpenDir.wp_proofOk`) over a path to the WAL directory (`WalDirPathLaw`, from
-the WAL's key the handle holds); on its error, `w.Close()` (`WAL.Close.specOpening`, a hypothesis until
-W10) and the error wrapped. Hypotheses: `openAtIndex.spec`, `WalDirPathLaw` (`wal-path13`'s law to
-replace), `WAL.Close.specOpening`, `fmt.ErrorfErrs.spec`.
+`fileutil.OpenDir(w.dir)` (`OpenDir.wp_proofOk`) over a path to the WAL directory (`walInv_dirPath`,
+from the WAL's key and the lock's `walNamesFrag none` the handle holds, `walReadH_namesOut`; until
+2026-11-14 the hypothesis `WalDirPathLaw`); on its error, `w.Close()` (`WAL.Close.specOpening`, a
+hypothesis until W10) and the error wrapped. Hypotheses: `openAtIndex.spec`, `WAL.Close.specOpening`,
+`fmt.ErrorfErrs.spec`.
 -/
 module
 
@@ -14,6 +15,7 @@ public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__CloseOpeni
 public import LinuxFs.Spec.fmt.ErrorfErrs
 public import LinuxFs.Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDirOk
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.OpenAtPin
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.NameClaims
 import all LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadDefs
 
 @[expose] public section
@@ -51,6 +53,26 @@ theorem walReadH_key (write : Bool) (w : Loc) (dir : GoString) (s : w64 × w64) 
     iexact Hk
   · iexists j, X; iexact Hk
 
+/-- **The lock's registration token out of a read handle and back** (with the WAL's key, persistent):
+`walInv_dirPath`'s inputs. -/
+theorem walReadH_namesOut (write : Bool) (w : Loc) (dir : GoString) (s : w64 × w64) :
+    walReadH (W := W) write w dir s ⊢
+      walNamesFrag (W := W) none ∗ (walNamesFrag (W := W) none -∗ walReadH (W := W) write w dir s) ∗
+      ∃ (j : Ino) (X : List GoString), walDirKey (W := W) dir j X := by
+  unfold walReadH walReadTie
+  iintro ⟨Hin, %dec, %IoE, %eof, %ueof, %fs, %locks, %lfs, %fp, %rc, Hd, Hdec, Hde, Htie, Hr⟩
+  icases Htie with ⟨%j, %X, %hj, %gs, %fls, Hn, Ho, ⟨Ht, Hnf⟩, #Hk, Hrest⟩
+  iframe Hnf
+  isplitl [Hin Hd Hdec Hde Hn Ho Ht Hrest Hr]
+  · iintro Hnf
+    iframe Hin
+    iexists dec, IoE, eof, ueof, fs, locks, lfs, fp, rc
+    iframe Hd Hdec Hde Hr
+    iexists j, X, hj, gs, fls
+    iframe
+    iexact Hk
+  · iexists j, X; iexact Hk
+
 /-- A `fmtErrorOkOrNil` error is `errOk`. -/
 theorem walOpenDir_errOk (e : GoInterfaceOk) :
     fmtErrorOkOrNil (GF := GF) (GoInterface.ok e) ⊢ errOk e := by
@@ -62,7 +84,6 @@ theorem walOpenDir_errOk (e : GoInterfaceOk) :
 
 theorem go_etcd_io.etcd.server.v3.storage.wal.Open.wp_proof (Mr : WalMarshal)
     (wp_open : go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.spec (W := W) Mr)
-    (hpath : ∀ R jr r, WalDirPathLaw (L := hG.goose_localGS) (W := W) walCodec Mr R jr r)
     (wp_Close : go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.specOpening (W := W) Mr)
     (wp_Errorf : fmt.ErrorfErrs.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.Open.spec (W := W) Mr := by
@@ -104,16 +125,17 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.Open.wp_proof (Mr : WalMarshal)
     iframe
   · subst he
     try wp_auto
-    ihave ⟨Hrh, %j, %X, #Hkey⟩ := walReadH_key true w dir s $$ Hrh
+    icases walReadH_namesOut true w dir s $$ Hrh with ⟨Hnf, Hback, %j, %X, #Hkey⟩
+    iapply wp_notCrashed_acc _ _ rfl
+    iintro Hnc
+    imod walInv_dirPath walCodec Mr R jr r dir j X $$ Hinv Hnc Hnf Hkey with ⟨Hnc, Hnf, %qd, Hpd⟩
+    ihave Hrh := Hback $$ Hnf
+    imodintro
+    iframe Hnc
     ihave Hrh' := Hrh
     unfold walReadH walOpenIn
     icases Hrh' with ⟨⟨%lg', %sp', Hlg, #Hzap', Hdir, Hstart, #Hsp'⟩, Hrest⟩
     try wp_auto
-    iapply wp_notCrashed_acc _ _ rfl
-    iintro Hnc
-    imod hpath R jr r dir j X qp $$ Hinv Hnc Hkey Hp with ⟨Hnc, Hp, %qd, Hpd⟩
-    imodintro
-    iframe Hnc
     wp_apply go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir.wp_proofOk dir R j (DFrac.own qd)
       (1 : Qp).half $$ [Hpd Hperm] as %f %err2 ⟨Hpd, Hperm, Hod⟩
     · iframe; iframe #

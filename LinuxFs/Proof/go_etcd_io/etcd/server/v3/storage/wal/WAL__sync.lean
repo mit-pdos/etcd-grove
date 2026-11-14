@@ -96,7 +96,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofIn [os.file.Field
   icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j,
     %rc, Hlg, #Hzap, Hdir, Hdf, Hdff, Hmd, #Hmds, Hsp, #Hst, Hdec, Hrc, Hns, #Hmu, Henti, Hsnapi,
     He, %Hen, Henc, Htw, Hdh, Hlocks, Hls, Hcap, %Hlt, Hlks, #Hltf, Hfp, Hpipe, #Henv, #Hcrc, #Hwpk, Hopen, %Hpure⟩
-  obtain ⟨hsplit, hfd, hoff, hsz, hpend, hidx, hidx1⟩ := Hpure
+  obtain ⟨hsplit, hfd, hoff, hsz, hidx, hidx1⟩ := Hpure
   ihave #Hzpk : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   obtain ⟨ls, rfl⟩ := List.getLast?_eq_some_iff.1 Hlt
@@ -176,7 +176,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofIn [os.file.Field
       iframe Hlg Hzap Hdir Hdf Hdff Hmd Hmds Hsp Hst Hdec Hrc Hns Hmu Henti Hsnapi He Henc Htw Hdh
         Hlocks Hls Hcap Hlks Hltf Hfp Hpipe Henv Hcrc Hwpk Hopen
       ipureintro
-      refine ⟨Hen, by simp, WalHS.split_flush hsplit, hfd, ?_, hsz, ?_, hidx, hidx1⟩ <;>
+      refine ⟨Hen, by simp, WalHS.split_flush hsplit, hfd, ?_, hsz, hidx, hidx1⟩ <;>
         simp only [List.length_append, List.length_nil] <;> omega
     · iright; ipureintro; unfold errnoErr; simp; exact H0
   · try wp_auto
@@ -200,7 +200,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofIn [os.file.Field
       iframe Hlg Hzap Hdir Hdf Hdff Hmd Hmds Hsp Hst Hdec Hrc Hns Hmu Henti Hsnapi He Henc Htw Hdh
         Hlocks Hls Hcap Hlks Hltf Hfp Hpipe Henv Hcrc Hwpk Hopen
       ipureintro
-      refine ⟨Hen, by simp, WalHS.split_flush hsplit, hfd, ?_, hsz, ?_, hidx, hidx1⟩ <;>
+      refine ⟨Hen, by simp, WalHS.split_flush hsplit, hfd, ?_, hsz, hidx, hidx1⟩ <;>
         simp only [List.length_append, List.length_nil] <;> omega
     · iright; ipureintro; unfold errnoErr; simp; exact H0
 

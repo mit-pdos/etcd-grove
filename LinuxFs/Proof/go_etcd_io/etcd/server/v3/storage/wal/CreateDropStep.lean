@@ -253,7 +253,7 @@ theorem walInvBody_drop (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
   unfold walInvBody
   iintro Hb #Hsi Hu H
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %hr, Hcl, Hn, HF, %hwo, %hwc, ⟨%CR, HCRa, %hCR⟩, Ht, %hab,
-    %hwn, Hpk, ⟨%K, %cc, HK, Hcc, %hdk⟩, %hAt, Hnms⟩
+    %hwn, Hpk, ⟨%K, %cc, HK, Hcc, %hdk⟩, %hAt, Hnms, %Hbd⟩
   unfold walCreatingAuth
   icases HCRa with ⟨HCRa, Hor⟩
   icases Hor with (%hCR0 | ⟨-, Hl⟩)
@@ -350,7 +350,7 @@ theorem walInvBody_drop (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
   isplitr
   · ipureintro
     exact walsAt_drop hAt hd.mem
-  iexact Hnms
+  iframe Hnms; ipureintro; exact Hbd
 
 end iris
 

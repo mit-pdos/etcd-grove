@@ -494,6 +494,35 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   corrections to its wording found in the proof: the fact is on the stream's end, not the offset (a `Save` that
   syncs flushes its pending bytes after its `Seek`, so the next `Save` may start at `SegmentSizeBytes` plus the
   buffer), and its bound covers a cut's headers (the metadata may reach 2^41 bytes).
+- **Withdrawn (2026-11-14, `wal-maxb14`).** The model now bounds every file at ext4's `s_maxbytes`
+  (`fsExt`'s `maxBytes = 0xffffffff000`, a trusted semantics change pending the user's review:
+  `examples/osfs/semantics/data_maxbytes.go`, measured on configuration C). A write never lands a byte at or
+  past it, so the tail's written stream stays below it by the writes' success alone, and nothing needs a
+  bound on the stream before the write: `Save` is back to the per-entry premise of "no bound on the records'
+  size" (needed by the frame encoding, not by the offsets), the handle's stream-end fact
+  (`o0 + |out| + |pend|`, in `walHandleIn` and the sealed `walOpenWF`) is gone, and so are
+  `saveEntry`/`saveState`'s stream premise and `encode.specTail`'s (entry below).
+
+## 2026-11-14: `wal.WAL.Save.spec` (the part's, over `fsExt`) -- the batch premise withdrawn: the model's file-size bound
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__Save.lean` (premise
+  `walBatchBytes Mr es < 2 ^ 40`); the internal `WAL__saveEntry.lean`, `WAL__saveState.lean` (premise
+  `(tailStream Mr h.H h.md h.cuts).length ≤ 0xffffffff000`), `encoder__encodeTail.lean` (premise
+  `o0 + |out| + |pend| + |frame| ≤ 0xffffffff000`, and the same of the result in its post); the sealed handle
+  (`walHandleIn`'s `o0 + |out| + |pend| ≤ 0xffffffff000`, `walOpenWF`'s `< 2 ^ 43`).
+- **Defect.** `SaveSnapshot` never cuts (S/wal.go:1137-1162), so `n` calls in a row grow the tail by `n`
+  records, and no constant bound on the stream holds across them (`SaveSnapshot.wp_proof`'s `sorry`, W6 log,
+  thirteenth session); the batch premise only moved the problem.
+- **Evidence.** W6 log, thirteenth and fourteenth sessions; ext4's `s_maxbytes` (`ext4_max_size`,
+  `generic_write_check_limits`, `inode_newsize_ok`, `vfs_fallocate`), measured on C (`TestMaxBytes`).
+- **Change (made).** The model: `PWriteFinish` lands nothing at or past `maxBytes`; `FtruncateFinish`,
+  `FallocFinish` land no target past it; `CrashFile`, `FsInit` sizes at most it (`OsWf.sizes`). Clients get
+  it through `PwCut` (a write's landed end) and `wp_osMeta_size` (any `OsMeta`'s size, before a step). The
+  WAL: `Save`'s premise back to `∀ e ∈ es, (Mr.encEntry e).length < 2 ^ 40`; the stream premises and the
+  handle's stream-end fact removed (the handle keeps `o0 + |out| ≤ sz ≤ 0xffffffff000`, which the writes'
+  success now gives). A client-visible weakening of `Save`'s premise; no new ghost state.
+- **Decision.** Adopted provisionally (the coordinator's decision of 2026-11-14 for `wal-maxb14`), pending
+  the user's review of the trusted semantics change.
 
 ## 2026-11-14: `wal.WAL.Close.spec` (the part's, over `fsExt`) -- the directory's `Close` error after everything is closed
 
@@ -513,3 +542,42 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   for `ReadAll`.
 - **Decision.** Adopted (the W10 session, 2026-11-14; plan §6 Q6's honest error posts; no client of the part's
   `Close` yet).
+
+## 2026-11-14: `WalDecEnvSupply` and `decEnv`'s `isEofOk` (the part's WAL decoder, over `fsExt`) -- the readers' errors and `errors.Is`
+
+- **Spec.** `WalDecEnvSupply` (`LinuxFs/Proof/.../wal/openAtIndex.lean`, a hypothesis of `openAtIndex.wp_proof`,
+  hence of `Open`/`OpenForRead` through it) and the decoder's environment `decEnv`/`isEofOk` (`DecDefs.lean`).
+- **Defect 1 (made, fixed).** The supply put every pointer error in the readers' errors `IoE`, while `isEofOk`
+  needs `¬ IoE eof` and `io.EOF` is a pointer error (an `errors.New` `*errorString`, `io.eof_of_init`): the
+  hypothesis proved `False` under `isPkgInit wal`, and `openAtIndex`/`Open`/`OpenForRead` were vacuous.
+- **Change (made).** `IoE` holds of every `*PathError` (`∀ pe, IoE (mkOk *PathError #pe)`); `os.File.Stat.spec`'s
+  error is the model's `*PathError` (was: some pointer error; its proof already knew it). Sanity check:
+  `walDecEnv_eof_not` (`io`'s initialization: `io.EOF` is no `*PathError`), so the pure part `¬ IoE eof`,
+  `∀ pe, IoE (PathError pe)` is met by `IoE` = the `*PathError`s.
+- **Defect 2 (open, not mine to fix).** Even so the supply is not true of Go: `isEofOk` asks
+  `errors.Is(e, io.EOF)` to answer `false` for every `IoE` error with no precondition, and `errors.Is` of a
+  `*PathError` unwraps its `Err` field (heap), so it answers `true` for a `&PathError{Err: io.EOF}`. No pure `IoE`
+  can hold of the `*PathError`s `os.File.Read`/`Stat` return (fresh allocations, `os.errnoPathErr`'s persistent
+  fields) and of no other: the errors' evidence is a heap fact, and the decoder's readers pass errors through
+  pure predicates only (`io.readerStream`'s `E`, `bufio.ownReader`, `decRdErr`, and the trust-boundary axiom
+  `io.ReadFull.wp_proof`, `Spec/io/ReadFull.lean`).
+- **Proposed change.** Carry the error's evidence with it: `io.readerStream ri S E` with `E` a persistent Iris
+  predicate (`List w8 → GoInterface → IProp`), so `ReadFull`'s axiom, `bufio`, `readInt64` and the decoder pass
+  it on; `decRdErr`'s I/O arm then `os.errnoPathErr e n` (`n ≠ 0`, which `Read.wp_eof`'s error arm gives with a
+  small strengthening), and `isEofOk`'s I/O branch is provable from an `errors.Is` fact on `errnoPathErr`
+  against an `*errorString` (as `errors.IsPathErrnoNotExist.spec`, `ExistCallees.lean`). Changing
+  `io.ReadFull.wp_proof`'s statement is a trust-base change: **the user's decision**.
+- **Decision.** Defect 1 fixed (2026-11-14, `wal-readall16`). Defect 2 pending the user.
+## 2026-11-14: `wal.WAL.renameWAL.spec` (internal, the part's) -- the spine law cannot open the invariant
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__renameWAL.lean`, `RenameWALOk`'s third
+  conjunct: `∀ x, Sp -∗ renDirOut … (some x) ={⊤}=∗ osPathS R dir dq J ∗ osPathS R dir dq J ∗ SpR x`.
+- **Defect.** The caller (`Create`) can discharge it only with the invariant's post-commit split
+  (`walInv_splitNew`, `CreateSplit.lean`), which opens `walInv` (needs `notCrashed`) and takes the lock token
+  `walLockedTok` that the committed update's result `U (some x)` (`walCreateQ`) holds; the conjunct gives
+  neither.
+- **Evidence.** The W1 log, fourteenth session, "Not done" (1); `walInv_splitNew`'s statement.
+- **Change (made).** The conjunct is `∀ x, Sp -∗ notCrashed -∗ U (some x) -∗ renDirOut … (some x) ={⊤}=∗
+  notCrashed ∗ U (some x) ∗ osPathS R dir dq J ∗ osPathS R dir dq J ∗ SpR x`; `renameWAL` applies it at a
+  program step after the rename (`wp_notCrashed_acc`). `dq` is fixed by `Create`.
+- **Decision.** Adopted (the coordinator's decision, 2026-11-14, `wal-path15` task 3; internal spec, no client).

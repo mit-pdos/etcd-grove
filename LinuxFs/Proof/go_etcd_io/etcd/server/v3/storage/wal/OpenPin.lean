@@ -69,7 +69,7 @@ theorem walInvBody_areaAt (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
   iintro Hb #Hsh Hn Hsf
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n0, %F, Hg, %Har, Hcl, Hcm, Hlays, %Hok, %Hco, Hcr, Htl, %Han, %Hnm, Hpk,
-    Hk, %HAt, Hnms⟩
+    Hk, %HAt, Hnms, %Hbd⟩
   icases walNamesRes_splitOk (L := L) (W := W) R jr r Ls Wn $$ Hnms Hsf with ⟨Hnms, Hsf, %hW⟩
   have hin' : InArea s.area dir nm := by rw [Har]; exact hin
   by_cases hsd : s.wal !! dir = none
@@ -79,7 +79,7 @@ theorem walInvBody_areaAt (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
     isplitl
     · iexists Ls, cl, n0, F
       iframe
-      ipureintro; exact ⟨Har, Hok, Hco, Han, Hnm, HAt⟩
+      ipureintro; exact ⟨Har, Hok, Hco, Han, Hnm, HAt, Hbd⟩
     ipureintro; intro h; exact absurd h hsd
   have hN : N.Mem nm := hN0.resolve_right (split_absent Hok hW hin' hsd)
   obtain ⟨N', h', hc', hN'⟩ := Hco nm hin.1
@@ -96,7 +96,7 @@ theorem walInvBody_areaAt (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
   isplitl
   · iexists Ls, cl, n0, F
     iframe
-    ipureintro; exact ⟨Har, Hok, Hco, Han, Hnm, HAt⟩
+    ipureintro; exact ⟨Har, Hok, Hco, Han, Hnm, HAt, Hbd⟩
   ipureintro
   intro _; exact ⟨hN, h1 hsd⟩
 

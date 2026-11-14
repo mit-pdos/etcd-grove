@@ -6,7 +6,9 @@ the first step (`walInv_openAt`, `OpenAtPin.lean`); then `selectWALFiles`, `open
 pipeline; the error arms put the pinned halves back at the `Errorf` call's step (`walInv_unpin`).
 The path to the WAL directory is lent by the invariant (`walInv_dirPath`, with the pin's
 `walNamesFrag none`; until 2026-11-14 the hypothesis `WalDirPathLaw`). Hypotheses besides the callees'
-specs: `WalPinSized` (the invariant's owner's, `OpenAtPin.lean`), `WalDecEnvSupply` (the decoder's environment from the package's initialization).
+specs: `WalDecEnvSupply` (the decoder's environment from the package's initialization). (Until
+2026-11-14 also `WalPinSized`: the segments' size bound is now read at the step after the pin,
+`wp_segs_size`, `SegSize.lean`.)
 -/
 module
 
@@ -31,6 +33,7 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.OpenAtTail
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutName
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.selectWALFiles
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.NameClaims
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.SegSize
 
 @[expose] public section
 
@@ -94,13 +97,43 @@ variable [os_sem : os.Assumptions] [bufio_sem : _root_.Perennial.bufio.Assumptio
 variable [os.file.FieldAssumptions] [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 
 /-- **The decoder's environment** (hypothesis): from the WAL package's initialization, `io.EOF`'s and
-`io.ErrUnexpectedEOF`'s values, `errors.Is(_, io.EOF)` on the readers' errors (`isEofOk`, over Perennial's
-`errors.Is` on pointer errors), the decoder's packages and variables (`decEnv`); the readers' errors are
-the pointer errors (`os.File.Read`'s and `Stat`'s `*PathError`s). -/
+`io.ErrUnexpectedEOF`'s values, `errors.Is(_, io.EOF)` on the readers' errors (`isEofOk`), the decoder's
+packages and variables (`decEnv`); the readers' errors `IoE` hold of every `*PathError` (`os.File.Read`'s
+and `Stat`'s errors). Until 2026-11-14 `IoE` held of every pointer error, which made the hypothesis
+unsatisfiable (`isEofOk` needs `¬ IoE eof`, and `io.EOF` is a pointer error); `walDecEnv_eof_not` checks
+that the new form's pure part agrees with `io`'s initialization. **Not true as stated** (ledger
+2026-11-14, "the readers' errors and `errors.Is`"): `isEofOk` asks `errors.Is(e, io.EOF)` to answer
+`false` for every `*PathError` `e`, which Go does not do for a `&PathError{Err: io.EOF}`; a pure `IoE`
+cannot say which `*PathError`s the model made (their fields are heap), so the true statement needs the
+readers' errors carried with their evidence (an Iris error predicate through `io.readerStream` and the
+trust-boundary axiom `io.ReadFull.wp_proof`, pending the user's decision). -/
 abbrev WalDecEnvSupply : Prop :=
   ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal -∗
     ∃ (IoE : GoInterface → Prop) (eof ueof : GoInterface), decEnv IoE eof ueof ∗
-      ⌜∀ ii, _root_.Perennial.errors.IsPointerError ii → IoE (GoInterface.ok ii)⌝
+      ⌜∀ pe : Loc, IoE (interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe)⌝
+
+/-- **The sanity check of `WalDecEnvSupply`'s pure part**: by `io`'s initialization `io.EOF` holds an
+`*errorString` (`errors.newVar`), so it is no `*PathError`, and `IoE` the `*PathError`s meets both
+`¬ IoE eof` (`isEofOk`) and the readers' errors. (The old form, every pointer error in `IoE`, failed
+here: `io.EOF` is one.) -/
+theorem walDecEnv_eof_not (eof : GoInterface) :
+    isPkgInit (PROP := IProp GF) pkg_id.io ∗ globalAddr _root_.Perennial.io.EOF ↦□ eof ⊢
+      ⌜∀ pe : Loc, interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe ≠ eof⌝ := by
+  iintro ⟨#Hio, #Heof⟩
+  ihave #Hn := _root_.Perennial.io.eof_of_init $$ Hio
+  iunfold _root_.Perennial.errors.newVar at Hn
+  icases Hn with ⟨%x, #Hx, -⟩
+  icombine Heof Hx gives %he
+  ipureintro
+  subst he
+  intro pe h
+  unfold interface.mkOk at h
+  injection h with h
+  injection h with h
+  injection h with h
+  rw [io.fs.PathError.ty.eq_1, _root_.Perennial.errors.errorString.ty.eq_1] at h
+  injection h with h
+  revert h; decide
 
 /-- The program's area claim back. -/
 theorem walAreaRes_close (jr : Ino) (N : NameSet) (h : NamesH) (cl : List (GoString × Claim))
@@ -156,7 +189,6 @@ theorem walTmpsRes_split (j : Ino) :
   iframe
 
 theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMarshal)
-    (hpin : ∀ R jr r, WalPinSized (L := hG.goose_localGS) (W := W) walCodec Mr R jr r)
     (hEnv : WalDecEnvSupply (GF := GF))
     (wp_Clone : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.Clone.spec (GF := GF) (hG := hG))
     (wp_select : go_etcd_io.etcd.server.v3.storage.wal.selectWALFiles.spec (GF := GF) (hG := hG))
@@ -185,7 +217,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
   try wp_auto
   iapply wp_notCrashed_acc _ _ rfl
   iintro Hnc
-  imod walInv_openAt walCodec Mr R jr r (hpin R jr r) dir nm N _ h Wn write s.1 Q hin (hok.1 nm hnm)
+  imod walInv_openAt walCodec Mr R jr r dir nm N _ h Wn write s.1 Q hin (hok.1 nm hnm)
     $$ Hinv Hsi Hnc Hu Hau HN Hsf with ⟨Hnc, HN, Hsf, %o, HQ, Hcase⟩
   icases Hcase with (⟨⟨%ho, %hNnm, %hcn⟩, Hu⟩ | ⟨%ho, %d, Hpin⟩)
   · -- no WAL: `selectWALFiles` fails on the missing directory
@@ -231,7 +263,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
     ipureintro; rfl
   · unfold walPinOut
     icases Hpin with ⟨%lay, %X, %hj, %hfacts, #Hkey, Hl, Htf, Ho, HS, Hj, Ht⟩
-    obtain ⟨hljr, hX, hcoh, habs, hnd, hsn, hsz⟩ := hfacts
+    obtain ⟨hljr, hX, hcoh, habs, hnd, hsn⟩ := hfacts
     icases Htf with ⟨Htf, Hnf⟩
     imod walInv_dirPath walCodec Mr R jr r dir lay.j X $$ Hinv Hnc Hnf Hkey with ⟨Hnc, Hnf, %qd, Hpd⟩
     ihave Htf : iprop(walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) $$ [Htf Hnf]
@@ -242,6 +274,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
     have hdn : WalDirNamesOk (.except X) hj := walDirNamesOk_of hX hsn habs.names.1 hnd hnmf
     have hS : ∀ g ∈ lay.segs.drop (walOpenK s.1 lay), g.om.size = g.bs.length := fun g hg =>
       (habs.metas g (List.mem_of_mem_drop hg)).1
+    -- the segments' size bound, before the next step (the model's `s_maxbytes`)
+    iapply wp_segs_size _ _ _ _ rfl _ $$ HS
+    iintro %hsz0 HS
+    have hsz : ∀ g ∈ lay.segs.drop (walOpenK s.1 lay), g.bs.length + 2 ^ 12 < 2 ^ 62 := fun g hg => by
+      have h1 := hsz0 g hg; rw [hS g hg] at h1; omega
     wp_apply wp_Clone sp s $$ [] as %sp' #Hsp'
     · iexact Hsp
     try wp_auto
@@ -296,7 +333,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
     have hKl : sint.nat kk < ws.length := walSearch_lt hsearch
     have hwl : ws.length = lay.segs.length := by rw [hws, List.length_map]
     subst herr
-    rw [hK] at hS
+    rw [hK] at hS hsz
     rw [hK]
     try wp_auto
     wp_apply wp_openFiles lg dir rr ws (DFrac.own 1) kk write ((lay.segs.map (·.ino)).drop (sint.nat kk))
@@ -347,7 +384,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
     rw [hws, ← List.map_drop, ← List.map_drop] at *
     have hKs : sint.nat kk < lay.segs.length := by omega
     have hsz' : ∀ g ∈ lay.segs.drop (sint.nat kk), g.om.size = g.bs.length ∧ g.bs.length + 2 ^ 12 < 2 ^ 62 :=
-      fun g hg => ⟨hS g hg, hsz g (List.mem_of_mem_drop hg)⟩
+      fun g hg => ⟨hS g hg, hsz g hg⟩
     generalize hgs : lay.segs.drop (sint.nat kk) = gs at *
     have hgl : gs.length = lay.segs.length - sint.nat kk := by rw [← hgs, List.length_drop]
     obtain ⟨gL, hgL⟩ : ∃ gL, gs[gs.length - 1]? = some gL :=
@@ -355,7 +392,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
     rw [List.length_map] at hfl hll
     have hEnv' : ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal -∗
         ∃ (IoE : GoInterface → Prop) (eof ueof : GoInterface), decEnv IoE eof ueof ∗
-          ⌜∀ ii, _root_.Perennial.errors.IsPointerError ii → IoE (GoInterface.ok ii)⌝ := hEnv
+          ⌜∀ pe : Loc, IoE (interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe)⌝ := hEnv
     ihave ⟨%IoE, %eof, %ueof, #Hde, %hIo⟩ := hEnv' $$ Hpkg
     ihave #Hde' := Hde
     iunfold decEnv at Hde'

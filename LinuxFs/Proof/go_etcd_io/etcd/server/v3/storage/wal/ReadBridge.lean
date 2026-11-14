@@ -4,8 +4,7 @@
 state `walFileS f fd name fl g` (`ReadDefs.lean`: the file, the fd, its offset, the program's halves
 of the segment `g`'s `OsMeta` and bytes), satisfies the decoder's file contract `decFile`
 (`DecDefs.lean`) for the segment's bytes, given:
-* the errors `IoE` the decoder may see hold of every pointer error (`Read`'s `*PathError`, `Stat`'s
-  error);
+* the errors `IoE` the decoder may see hold of every `*PathError` (`Read`'s and `Stat`'s errors);
 * the segment at rest: its size its bytes' length (`g.om.size = |g.bs|`), and the bound of `decFile`;
 * the fd readable, of the segment's inode, non-negative;
 * `os.File.Stat`'s, `fileStat.Size`'s and `fileStat.Name`'s specs (the last a hypothesis the model
@@ -61,7 +60,7 @@ theorem walDecFile_ok
     (wp_Stat : os.File.Stat.spec (GF := GF) (hG := hG))
     (wp_Size : os.fileStat.Size.spec (GF := GF) (hG := hG))
     (wp_Name : os.fileStat.Name.spec (GF := GF) (hG := hG))
-    (IoE : GoInterface → Prop) (hIo : ∀ ii, _root_.Perennial.errors.IsPointerError ii → IoE (GoInterface.ok ii))
+    (IoE : GoInterface → Prop) (hIo : ∀ pe : Loc, IoE (interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe))
     (eof : GoInterface) (rl f : Loc) (fd : w64) (name : GoString) (fl : OsFd) (g : SegG)
     (hfd : 0 ≤ fd.toInt) (hino : fl.ino = g.ino) (hrd : fl.readable = true)
     (hsz : g.om.size = g.bs.length) (hlen : g.bs.length + 2 ^ 12 < 2 ^ 62) :
@@ -129,8 +128,7 @@ theorem walDecFile_ok
         simp only [List.take_zero, List.append_nil]
         exact Hpre.eq_of_length (by simp only [List.length_map]; omega)
       · right
-        unfold interface.mkOk
-        exact hIo _ ⟨_, pe, rfl, rfl⟩
+        exact hIo pe
     iunfold walFileS
     rw [← hino]
     iframe
@@ -197,7 +195,9 @@ theorem walDecFile_ok
         intro _
         cases err with
         | nil => exact absurd rfl hne
-        | ok ii => exact hIo ii (Hptr ii rfl)
+        | ok ii =>
+          obtain ⟨pe, rfl⟩ := Hptr ii rfl
+          exact hIo pe
       iintro %h
       exact absurd h hne
   ipureintro

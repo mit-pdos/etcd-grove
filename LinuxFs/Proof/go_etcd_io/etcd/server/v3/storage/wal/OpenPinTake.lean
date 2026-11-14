@@ -163,7 +163,7 @@ theorem walInvBody_pin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
   iintro Hb Hu
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hn, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
-    Hdk, %HAt, Hnms⟩
+    Hdk, %HAt, Hnms, %Hbd⟩
   obtain ⟨lay, nm, hj, hl, hA, hjr, hnm, hc, habs, hcr⟩ := HW.1 dir d hd
   obtain ⟨X, hX, hcX, hcoh⟩ := hc
   icases Hdk with ⟨%K, %cp, HKa, Hca, %HDK⟩
@@ -210,7 +210,7 @@ theorem walInvBody_pin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
     isplitl [Hg Hcl Hn Hlays HCR Htl Hpk HKa Hca Hnms]
     · iexists Ls, cl, n, ∅
       iframe
-      ipureintro; exact ⟨Har, HW, HWC, Hab, HNm, HDK', HAt⟩
+      ipureintro; exact ⟨Har, HW, HWC, Hab, HNm, HDK', HAt, Hbd⟩
     · iapply walOutFrag_eq' (W := W) $$ Ho
       ipureintro; simp [WalOut.empty, WalOut.addClaim]
   | true =>
@@ -225,7 +225,7 @@ theorem walInvBody_pin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
     isplitl [Hg Hcl Hn Hlays HCR Htl Hpk HKa Hca Hnms]
     · iexists Ls, cl, n, ∅
       iframe
-      ipureintro; exact ⟨Har, HW, HWC, Hab, HNm, HDK', HAt⟩
+      ipureintro; exact ⟨Har, HW, HWC, Hab, HNm, HDK', HAt, Hbd⟩
     · iapply walOutFrag_eq' (W := W) $$ Ho
       ipureintro; simp [WalOut.empty, WalOut.addClaim, WalOut.addTmp]
 
