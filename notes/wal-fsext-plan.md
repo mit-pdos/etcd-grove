@@ -2926,6 +2926,62 @@ coordinator's decision (the item-2 proposal above); task 3 (the supplies) not do
   2. The supplies themselves (`walInvBody_tail`'s continuation requires `SegExact g`; a resize needs a
      continuation closing with `TailWin` and `CrashOk` in the window, by `fileCrashedR_rsPostK` and item 1).
 
+**The token-aware take; the window's access; `CrashOk` across `cut`'s truncate is not provable (branch
+`wal-tc2`, 2026-11-14).** Task 1 of the coordinator's decision done; tasks 2-3 stopped at a finding.
+- *Task 1, option (a)* (`CrashTakeSeg.lean`, proved, no `Ext/Fs` change): **`TokPast ti fo`** (a byte the
+  change announced at or past `ti.m0.size` with `ti.m0.pc b = some c` came back as one of `c ++ [(val, n)]`,
+  or zero at or past `ti.meta.lo`), **`tok_crash_past`** (from `OsCoh.tok_cand`, `OsCrash`); `crashRestAt_take_tok`
+  now also returns `TokPast` (its only users are in the file).
+- *The layout's `OsMeta` of a resize in flight* (`Inv.lean`): **`rzMeta tr m tg n`** = the token's `TokInfo.meta`
+  with `tc := rsTail tr m tg m.size n []` (the announced bytes past the size, `m.pc b` then `(0, n)`); `SegFl.OkR`'s
+  third clause is now `g.om = rzMeta tr fl.m tg fl.n` (was the bare announcement; same `size`/`lo`/`hi`/`cut`, so
+  `WalAbsD.metas` is unchanged; no constructor of `OkR` existed). `crashRestAt_take_seg`'s resize case gives
+  `SegCrashAt` of it (**`fileCrashedR_rzMeta`**), so `CrashOk`'s `FileCrashedR` premise now carries the regrown bytes'
+  candidates (the I3b open item 1 of `wal-tc`). **`fileCrashedR_rsPostK_rz`**: a crash after a truncate landed
+  (`rsPostK true`) is one `rzMeta true` allows (`fileCrashedR_rsPostK` plus the bytes past the old size).
+- *Pure, the window's static relation* (`RzStepPure.lean`, proved): `rzSeg g0 tr tg n` (the tail as a resize's first
+  step announces it; `rzSeg_ok : SegFl.OkR …`), **`walAbsD_win`** (`WalAbsD` of a layout whose tail is in a window, from
+  `TailLast`/`TailWin` of it), **`walAbsD_rzStart`** (from an exact tail, `lay.wr ≤ tg`).
+- *The window's access* (`TailAccW.lean`, proved): **`walInvBody_tailW`**, `walInvBody_tail` whose continuation takes
+  the new layout's `WalsOk` and `DirKeysOk` from the caller (no `SegExact`, no equal length: a landing shortens the
+  tail), and returns `Ls`, `cl`, `n`, `WalsOk`, `TailZeros`, `TailBound` at the opening; `walParked_tailW` (no length
+  premise: the tail is out). The supplies (`truncSup`/`fallocSup`) are this plus a pure `CrashOk` of each window layout.
+- **Finding (blocks `cut`'s supply and `os.File.Truncate.specWalTail`; for the coordinator, W1 is pending the user's
+  review [user])**: `CrashOk` of the layout in `cut`'s truncate window is **not provable from W1 as stated**. `cut`
+  truncates at the file offset (`Seek(0, SeekCurrent)`), which the `PageWriter` leaves at a page boundary, in general inside a frame: the
+  encoder still buffers the rest of the frame straddling `wr` (`sync()` flushes it after the truncate;
+  `wal.go:882-895`, `pagewriter.go` `Write`). The truncate announces `[wr, pageEnd old)` with the zero stamped `n`
+  (`tok_cand`). A crash may then keep the file as of `n`: the straddling frame's bytes below `wr` are the intended
+  ones (written by changes before `n`), those from `wr` on are the truncate's zeros, and every core byte has a
+  candidate stamped in `(0, n]`, so the frame **is `AsOfOne` at `n`** and W1 does not stop the reader from accepting
+  it (a CRC32-C collision on a torn frame, which W1's evidence, "no collision on torn data", excludes, but its
+  formal statement does not: a resize's zeros count as a change that wrote the frame's tail). The same crash with no
+  truncate (the tail unwritten past `wr`) is excluded by W1, because unwritten bytes have no candidate stamped
+  positive. If the reader accepts it, `CrashTo` fails (a record other than the intended one), so `CrashOk` is false of
+  the window layout in the formal model, from the truncate's first step until `cut`'s fdatasync (the flush's writes
+  past the size do not remove the as-of-`n` state). Options: (1) restate W1 so that a resize's zero candidates do not
+  make a frame "written" (e.g. the change disjunct over write stamps; the state does not record a stamp's kind today,
+  so this needs a recorded kind or a different formulation: a trust-base change, the user's); (2) a fork change to
+  `cut` (flush the encoder before the `Seek`: the truncate is then at the stream's end, a record boundary, and every
+  frame from `wr` on is zeros as of `n`; the code is correct as is, so this goes against "no code change if not a
+  bug"); (3) a WAL-specific premise next to W1 (no accepted frame at a record boundary whose core is the intended
+  bytes up to some offset then zeros). **Not decided here.** `ReadAll`'s `ZeroToEnd` truncates at `z0`, a record
+  boundary, so this does not arise there (as of the truncate every frame from `z0` on is zeros: rejected).
+- **For `ZeroToEnd`'s window** (open, design-independent of the finding): after the truncate lands, and during the
+  `fallocate` growth, the image may be longer than the tail's bytes (`|bs| = z0 < size`), and `W1G` says nothing of
+  such an image (`(img i).length ≤ bs.length`). `rzMeta`/`rsPostK true` now know the candidates past `|bs|` (`pc`),
+  so the proposal is `W1G` over the bytes and the known candidates past them (`segBytesOf` extended by
+  `g.om.pc` on `[|bs|, hi)`), with `SegCrashAt` giving `f.cand b = c` for `|bs| ≤ b`, `g.om.pc b = some c`
+  (`MetaOk.pc_cand` when idle, `tok_cand` in flight, as in `tok_crash_past`), and its users given the frame's fit
+  instead of the image's length (`acceptsFiles_bound`). Then each `ZeroToEnd` state's frames from `z0` on are as of
+  the sync (the old bytes: `tailStop`) or of a resize (zeros): rejected.
+- **Obligations**: `wal-cut10`: `os.File.Truncate.specWalTail`'s success post `walTailW … (o0 + |out|) out` is
+  unprovable as stated even with the finding resolved: `walTailW`'s `TailMeta` requires `m.lo = m.hi = m.size`, and
+  after the truncate lands the window is open (`rsPost true`: `hi` the old size) until `cut`'s fdatasync; the post
+  needs a window form of `walTailW` (the `OsMeta` half `rsPostK true …` without exactness, closed by
+  `WAL.sync.specCut`'s commit). `wal-save10`: the window's closing sync (`walInvBody_tailW` with the synced layout's
+  `WalsOk`, `TailLast` again).
+
 **Third session (branch `wal-read3`, 2026-11-13).**
 - *Gaps 1 and 2 closed* as the coordinator decided: `WalsNamed` and `walParked` in `walInvBody`, the parking
   flag in the lock token (W1 log, sixth session, for the design and the other units' obligations).
