@@ -212,7 +212,8 @@ carries its candidate, stamped positive (a retry from it is past the synced byte
 theorem wp_tailPWriteFinish (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (dir : GoString)
     (γ : GName) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (wr : Nat) (i : Ino)
     (fl : SegFl) (Φ : val → IProp GF) (hrz : fl.rz = none) (hn : 0 < fl.n) (hm : TailMeta fl.m fl.bs)
-    (hoff : 0 < fl.off) (hoffl : fl.off ≤ fl.bs.length) (hwrf : fl.off ≤ wr) :
+    (hoff : 0 < fl.off) (hoffl : fl.off ≤ fl.bs.length) (hwrf : fl.off ≤ wr)
+    (hin : fl.off + fl.data.length ≤ fl.m.size) :
     ⊢ walAreaOk walCodec Mr R jr r -∗
       walTailFl dir γ (H, md, cuts, wr, i, some fl) i fl -∗
       (∀ (k : Nat) (e : w64) (zs : List Cands),
@@ -248,7 +249,8 @@ theorem wp_tailPWriteFinish (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStri
   dsimp only
   icases Hseg with ⟨Htok, Hp2, Hs2, %hok⟩
   have hok' := hok
-  obtain ⟨hin, hd, hl, hmc, hom, hbs, hoff0⟩ := hok'
+  obtain ⟨-, hd, hl, hmc, hom, hbs, hoff0⟩ := hok'
+  rw [wrMeta_in hin] at hom
   have hlo : cfLo fl.m fl.off = fl.off := cfLo_in hin
   have hhi : cfHi fl.m fl.off fl.data.length = fl.off + fl.data.length := cfHi_in hin
   subst hino
@@ -313,9 +315,9 @@ theorem wp_tailPWriteFinish (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStri
     refine ⟨?_, ?_⟩ <;> simp only [g', segFin, hflen, pwPost, announce_lo, announce_hi, hT] <;> omega
   ihave Hb := Hclose $$ %g' %(max lay.wr (fl.off + k)) %F' [] [Hm2 Hb2] Hv'
   · ipureintro
-    refine ⟨rfl, by simp [g', segFin, pwPost, hmc], segFin_length hok hk, ⟨hzf0, hex0, ?_⟩, ?_, ?_⟩
+    refine ⟨rfl, by simp [g', segFin, pwPost, hmc], segFin_length hok hin hk, ⟨hzf0, hex0, ?_⟩, ?_, ?_⟩
     · exact hexF
-    · intro ents' habs'; exact walAbsD_finish habs' hs hex0 hok (by omega) hk hn
+    · intro ents' habs'; exact walAbsD_finish habs' hs hex0 hok hin (by omega) hk hn
     · exact ⟨fun i' hi => GMap.lookup_delete_ne _ (Ne.symm hi), rfl⟩
   · rw [show F' !! g'.ino = none from GMap.lookup_delete_eq _ _]
     dsimp only
@@ -341,7 +343,7 @@ theorem wp_tailPWriteFinish (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStri
       (pwPost fl.m fl.off fl.data.length k).size = fl.m.size ∧
       (∀ b, fl.off ≤ b → b < fl.off + fl.data.length →
         ∃ q ∈ ((finBytes fl.m fl.bs fl.off fl.data k fl.n zs).getD b (0, [])).2, 0 < q.2) :=
-    ⟨hk, hke.2.1, htm, by simp [pwPost, hps], fun b h1 h2 => segFin_cand (zs := zs) hok hk hn b h1 h2⟩
+    ⟨hk, hke.2.1, htm, by simp [pwPost, hps], fun b h1 h2 => segFin_cand (zs := zs) hok hin hk hn b h1 h2⟩
   have htv : tailG dw (tailLay lay pre g' (max lay.wr (fl.off + k))) g'.ino (F' !! g'.ino) =
       ((H, md, cuts, max wr (fl.off + k), g0.ino, none) : TailG) := by
     rw [show F' !! g'.ino = none from GMap.lookup_delete_eq _ _]
@@ -603,7 +605,7 @@ theorem wp_tailWriteAt (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (
     wp_apply wp_tailPWriteFinish Mr R jr r dir γ H md cuts wr d.ino
       ⟨t, (off + nnv).toNat, chunk, nst, m', bs', none⟩ _ rfl hfr.1 hm2.1 hfr.2
       (by show (off + nnv).toNat ≤ bs'.length; rw [hoffv, hm2.1.1, hm2.2]; omega)
-      (by show (off + nnv).toNat ≤ wr; rw [hoffv]; exact hwa)
+      (by show (off + nnv).toNat ≤ wr; rw [hoffv]; exact hwa) hin'
       $$ Harea Hfl as %k %e %zs %hke Hk Hv Hm Hb
     dsimp only at hke
     obtain ⟨hk, hke2, htm, hsz, hcand⟩ := hke

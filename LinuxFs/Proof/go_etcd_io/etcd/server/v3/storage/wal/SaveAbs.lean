@@ -179,7 +179,8 @@ theorem walAbsD_snoc {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay
   · intro g hg
     refine ⟨fun hx => ?_, fun hx => ?_⟩
     rotate_left
-    · obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := (hlast g hg).2 hx
+    · obtain ⟨⟨h1, h2, h3, h4, h5, h6, h7, h8⟩, hlo⟩ := (hlast g hg).2 hx
+      refine ⟨?_, hlo⟩
       unfold TailWin
       simp only at h1 h2 h3 h4 h5 h6 h7 h8 ⊢
       rw [hS]
