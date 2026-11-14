@@ -195,6 +195,192 @@ theorem tailShape_win {S old : List w8} {wr : Nat} (hso : so ≤ wr) (hz0 : z0 �
 
 end shape
 
+section crash
+variable [GooseExts]
+
+/-- **The crash of a tail in a resize window** (see the file header; `crashTo_tailL` for any tail): the
+tail's image `f` at least `max so z0` long, no longer than `segBytesX g`, each byte below its size one of
+`segBytesX g`'s candidates, these of the shape the decoding needs (`TailShape`, with the resizes W1 knows
+of the tail). -/
+theorem crashTo_tailW {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
+    {ents : Ents} {m' : Tree} {fo fo0 : Ino → Option Fs.OsFile} {g : SegG}
+    (habs : WalAbsD C Mr d lay ents) (hB : TailBound C Mr d lay)
+    (hnd : (lay.segs.map (·.ino)).Nodup) (hg : lay.segs.getLast? = some g)
+    (m0 : Nat) (hm0 : segStart lay.cuts lay.cuts.length ≤ m0)
+    (h0 : CrashTo C Mr { d with m := m0 } lay m' fo0) (hfo : ∀ i, i ≠ g.ino → fo0 i = fo i)
+    (himg0 : ∀ f, fo g.ino = some f → max lay.so lay.z0 ≤ f.size ∧ f.size ≤ (segBytesX g).length ∧
+      ∀ b, b < f.size → ∃ s, (f.cache b, s) ∈ ((segBytesX g).getD b (0, [])).2)
+    (hn : g.ino ∈ walInos (entsOf m' lay.j) → (fo g.ino).isSome)
+    {rzOf : Ino → List Nat}
+    (hT : TailShape (fun b => (segStream C Mr d lay.cuts lay.cuts.length).getD b 0) lay.so lay.z0
+      (rzOf g.ino) (fun b => ((segBytesX g).getD b (0, [])).2))
+    (hw : W1G C (walInos (entsOf m' lay.j)) (fun i => imgOf (fo i)) (segBytesOf lay) rzOf) :
+    CrashTo C Mr d lay m' fo := by
+  rcases h0 with hl | ⟨q, I0, hent, hq, hinos, hI0, hLI0, hpur, hmid, -⟩
+  · exact Or.inl hl
+  have hsorted := habs.cuts.2.1
+  have hLm : segStart lay.cuts lay.cuts.length ≤ d.m := habs.lastSynced
+  have hmH : d.m ≤ d.H.length := habs.synced.1
+  have hgm : g ∈ lay.segs := List.mem_of_getLast? hg
+  -- the tail is named, so kept
+  have hgq : (lay.segs.drop q).getLast? = some g := by
+    rw [List.getLast?_drop, if_neg (by omega), hg]
+  have hgin : g.ino ∈ walInos (entsOf m' lay.j) := by
+    rw [hinos]; exact List.mem_map_of_mem (List.mem_of_getLast? hgq)
+  obtain ⟨f, hf⟩ := Option.isSome_iff_exists.1 (hn hgin)
+  obtain ⟨hszlo, hsz, hrun⟩ := himg0 f hf
+  -- the decoding core
+  generalize hR : lastSegRecs C Mr d lay.cuts = R
+  have hRS : segStream C Mr d lay.cuts lay.cuts.length = recFrames C R := by rw [← hR]; rfl
+  rw [hRS] at hT
+  generalize hcs : (fun b => ((segBytesX g).getD b (0, [])).2) = cs at hT
+  have himg : ∀ b, b < f.contents.length → ∃ s, (f.contents.getD b 0, s) ∈ cs b := by
+    intro b hb
+    rw [contents_length] at hb
+    rw [contents_getD f b hb, ← hcs]
+    exact hrun b hb
+  have hlenI : max lay.so lay.z0 ≤ f.contents.length := by rw [contents_length]; exact hszlo
+  obtain ⟨jE, hjE, hEb⟩ := hB
+  have hRdef : (segRecs C Mr d lay.cuts).getD lay.cuts.length [] = R := hR
+  rw [hRdef] at hjE hEb
+  have hfit : RecsFit C R := fun r hr => habs.fit r (by
+    rw [allRecs_split, hR]; exact List.mem_append_right _ hr)
+  have hch : ChainOk C (lastC0 C Mr d lay.cuts) R := hR ▸ chainOk_lastRecs hC Mr d lay.cuts
+  -- the synced records (headers included) are below `jE`
+  generalize hA : (lastHdr Mr d lay.cuts).length + (((lastOps d lay.cuts).take
+    (d.m - segStart lay.cuts lay.cuts.length)).flatMap (opDs Mr)).length = a
+  have haR : a ≤ R.length := by
+    rw [← hA, ← hR, lastRecs_length]
+    have := (flatMap_take_prefix (opDs Mr) (lastOps d lay.cuts)
+      (d.m - segStart lay.cuts lay.cuts.length)).length_le
+    omega
+  have hajE : a ≤ jE := by
+    apply take_le_of_frames_le C R haR
+    have hs := habs.synced.2
+    have e : (segRecs C Mr { d with H := d.H.take d.m } lay.cuts).getD lay.cuts.length [] =
+        R.take a := by
+      rw [← hA, ← hR]; exact lastRecs_synced C Mr d hsorted hLm
+    rw [e] at hs
+    rw [hEb]; omega
+  have hha : 1 ≤ a := by have := lastHdr_pos Mr d lay.cuts; omega
+  -- the image below `max so z0` is the intended stream
+  have hV := hT.vals himg
+  have hlo' : ∀ b, b < max lay.so lay.z0 → f.contents.getD b 0 = (recFrames C R).getD b 0 := by
+    intro b hb
+    rcases hV b (by omega) with h | ⟨h1, -⟩
+    · exact h
+    · omega
+  -- W1 along the reader's path, from the fresh reader's
+  have hW : ∀ p ∈ acceptsFrom C true f.contents 0 (lastC0 C Mr d lay.cuts),
+      TailAsOf (fun b => (recFrames C R).getD b 0) lay.so lay.z0 f.contents p
+        (frameCore f.contents p) := by
+    have hW0 : ∀ p ∈ acceptsFrom C true f.contents 0 0#32,
+        TailAsOf (fun b => (recFrames C R).getD b 0) lay.so lay.z0 f.contents p
+          (frameCore f.contents p) := by
+      intro p hp
+      have hjs : (walInos (entsOf m' lay.j)).drop ((walInos (entsOf m' lay.j)).length - 1) =
+          [g.ino] := by
+        rw [hinos]
+        have hne : lay.segs.drop q ≠ [] := by simp; omega
+        rw [List.length_map, ← List.map_drop, drop_length_sub_one' hne]
+        simp only [List.map_cons, List.map_nil]
+        rw [(List.getLast_eq_iff_getLast?_eq_some _).2 hgq]
+      have hp' : (0, p) ∈ acceptsFiles C (((walInos (entsOf m' lay.j)).drop
+          ((walInos (entsOf m' lay.j)).length - 1)).map (fun i => imgOf (fo i))) 0#32 := by
+        rw [hjs]
+        simp only [List.map_cons, List.map_nil, acceptsFiles, imgOf, hf, Option.map_some,
+          Option.getD_some, List.mem_map]
+        exact ⟨p, hp, rfl⟩
+      obtain ⟨x, hx, hxb⟩ := acceptsFiles_bound C _ _ _ hp'
+      have h1 := hw _ (0, p) hp' g.ino (segBytesX g) (by rw [hjs]; rfl) (segBytesOf_mem hnd hgm) (by
+        show p + frameCore (imgOf (fo g.ino)) p ≤ (segBytesX g).length
+        have hl : (imgOf (fo g.ino)).length ≤ (segBytesX g).length := by
+          simpa [imgOf, hf, contents_length] using hsz
+        rw [hjs] at hx
+        simp only [List.map_cons, List.map_nil, List.getElem?_cons_zero, Option.some.injEq] at hx
+        rw [← hx] at hxb; simp only at hxb; omega)
+      rw [hjs] at hx
+      simp only [List.map_cons, List.map_nil, List.getElem?_cons_zero, imgOf, hf, Option.map_some,
+        Option.getD_some, Option.some.injEq] at hx
+      rw [← hx] at hxb; simp only at hxb
+      simp only [imgOf, hf, Option.map_some, Option.getD_some] at h1
+      unfold AsOfOneG at h1
+      rw [hcs] at h1
+      exact hT.asOf h1
+    by_cases hc0 : lay.cuts = []
+    · rw [hc0, lastC0_nil]; exact hW0
+    · -- the first frame is the CRC record, intact: the fresh reader reads as the chained one
+      obtain ⟨r0, rs, hR0, ht0⟩ := lastRecs_head_crc C Mr d hc0
+      rw [hR] at hR0
+      subst hR0
+      have hfr0 : frame (C.encRec r0) <+: f.contents := by
+        have hpre : frame (C.encRec r0) <+: recFrames C ((r0 :: rs).take jE) := by
+          obtain ⟨k, hk⟩ : ∃ k, jE = k + 1 := ⟨jE - 1, by omega⟩
+          rw [hk, List.take_succ_cons, recFrames_cons]; exact List.prefix_append _ _
+        have hl := hpre.length_le
+        rw [hEb] at hl
+        apply prefix_of_getD (by omega)
+        intro b hb
+        rw [hlo' b (by omega), recFrames_cons, List.getD_eq_getElem?_getD,
+          List.getElem?_append_left hb, ← List.getD_eq_getElem?_getD]
+      obtain ⟨rest, hrest⟩ := hfr0
+      have hd := decStep_frame hC true (bs := f.contents) (off := 0) (rest := rest)
+        (hfit r0 (List.mem_cons_self ..)) (by rw [List.drop_zero, hrest]) hch.1
+      rw [← acceptsFrom_crc0 ht0 hd]
+      exact hW0
+  obtain ⟨j, hjj, hjR, hpre, hrej⟩ := tail_decodeV hC hfit hch hjE hEb hV hlenI hW
+  have hLH : segStart lay.cuts lay.cuts.length ≤ d.H.length := by omega
+  have hhdr : (lastHdr Mr d lay.cuts).length ≤ j := by omega
+  obtain ⟨nI, hnI⟩ : ∃ nI, nI = j - (lastHdr Mr d lay.cuts).length := ⟨_, rfl⟩
+  have hIimg := tailImg_walImg Mr d lay.cuts nI hLm hmH (by omega)
+  have hIL := walImg_length_ge hIimg
+  have hiI := initSegs_tailImg Mr d nI hsorted hLH
+  have hiI0 : initSegs { d with H := I0 } lay.cuts = initSegs d lay.cuts :=
+    initSegs_of_take hsorted (walImg_take hI0 hm0)
+  have hlastI : lastSegRecs C Mr { d with H := tailImg Mr d lay.cuts nI } lay.cuts = R.take j := by
+    rw [lastRecs_tailImg C Mr d _ hsorted hLH, hR, hnI, Nat.add_sub_cancel' hhdr]
+  refine Or.inr ⟨q, tailImg Mr d lay.cuts nI, hent, hq, hinos,
+    hIimg, by omega, ?_, ?_, ?_⟩
+  · exact Nat.le_min.2 ⟨(Nat.le_min.1 hpur).1,
+      Nat.le_trans (segStart_le_length hsorted _) (by omega)⟩
+  · intro k g' hk hkc
+    have hne : g'.ino ≠ g.ino := by
+      intro he
+      have hcl := habs.cuts.2.2
+      have h1 : (lay.segs.map (·.ino))[q + k]? = some g.ino := by
+        rw [List.getElem?_map, ← List.getElem?_drop, hk]; simp [he]
+      have h2 : (lay.segs.map (·.ino))[lay.segs.length - 1]? = some g.ino := by
+        rw [List.getElem?_map, ← List.getLast?_eq_getElem?, hg]; simp
+      have hi1 : q + k < (lay.segs.map (·.ino)).length := by
+        simp only [List.length_map]; omega
+      have hi2 : lay.segs.length - 1 < (lay.segs.map (·.ino)).length := by
+        simp only [List.length_map]; omega
+      have := hnd.eq_of_getElem?_eq hi1 (h1.trans h2.symm)
+      omega
+    rw [← hfo g'.ino hne, hmid k g' hk hkc]
+    change segStream C Mr { d with H := I0 } lay.cuts (lay.first + q + k) = _
+    unfold segStream
+    rw [segRecs_init_congr C Mr (d := { d with H := I0 })
+      (d' := { d with H := tailImg Mr d lay.cuts nI }) rfl
+      (hiI.trans hiI0.symm) hkc]
+  · intro g'' hg''
+    rw [hg] at hg''
+    cases hg''
+    have e1 : segStream C Mr { d with H := tailImg Mr d lay.cuts nI } lay.cuts lay.cuts.length = recFrames C (R.take j) := by
+      show recFrames C (lastSegRecs C Mr _ lay.cuts) = _
+      rw [hlastI]
+    have e2 := chainEnd_allRecs_split C Mr { d with H := tailImg Mr d lay.cuts nI } lay.cuts
+    have e3 : lastC0 C Mr { d with H := tailImg Mr d lay.cuts nI } lay.cuts = lastC0 C Mr d lay.cuts := by
+      unfold lastC0; rw [hiI]
+    rw [hlastI, e3] at e2
+    simp only [imgOf, hf, Option.map_some, Option.getD_some]
+    rw [e1]
+    refine ⟨hpre, fun r len c' => ?_⟩
+    have := hrej r len c'
+    rwa [← e2] at this
+
+end crash
+
 end WalFs
 end EtcdGrove
 end Perennial
