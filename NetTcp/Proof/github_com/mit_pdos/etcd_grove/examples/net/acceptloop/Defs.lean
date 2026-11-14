@@ -19,7 +19,11 @@ goroutines of the server's accept loop nor the client's two concurrent calls nee
   dialer registers the connection (`echo_register`: names, both directions' bodies, the echo
   state) and deposits for the acceptor `connProto γm cn` (its end, the token, the up direction's
   reader half), keeping its end, the up direction's writer half and the down direction's reader
-  half.
+  half. A dial that fails leaving its connection abandoned (D16: the dialer's end closed, the up
+  direction shut and empty) registers it the same way (`echo_register_ab`, over
+  `echo_register_dir`, which takes the up direction in any state agreeing with nothing written,
+  `dirInv_body_alloc_of`), the dialer's halves dropped: a server that accepts it reads EOF and
+  never writes, and nothing it could write would break a check, since no client reads it.
 
 The client's check (`client_check`): a reply it read is a prefix of the server's bytes, which are
 a prefix of the client's own. The token makes the server's one write start from nothing
@@ -186,19 +190,47 @@ theorem dir_inv (γm : GName) (cn : Nat) (γ : ConnG) (s : Bool) :
     iapply Hback
     iframe Hu Hd He
 
-/-- The dialer's registration of its new connection `cn` (from both ends' fresh resources): its
-names, both directions and its echo state in the invariant; the acceptor's deposit, and the
-dialer's halves. -/
-theorem echo_register (γm : GName) (cn : Nat) :
-    ⊢ inv echoN (echoState (Gg := Gg) γm) -∗ tcpFresh G cn false -∗ tcpFresh G cn true
-      ={⊤ \ ↑addrN}=∗ connProto γm cn ∗ dialerOwn γm cn := by
-  iintro #Hinv Hd Ha
+/-- A new direction's protocol state, from its resource in any state `d` that agrees with nothing
+written or read (`DirOk d [] []`: open and empty, or shut and empty): `wire.dirInv_body_alloc`
+for any such `d`, as the abandoned connection's shut direction needs (D16). -/
+theorem dirInv_body_alloc_of (c : Nat) (s : Bool) (d : TcpDir) (hd : DirOk d [] []) :
+    tcpDir (G (Gg := Gg)) c s d ==∗ ∃ γ, dirInv c s γ ∗ sentAll γ [] ∗ rcvdAll γ [] := by
+  letI := (G (Gg := Gg)).allG
+  iintro Hd
+  imod mono_list_own_alloc (GF := GF) ([] : List w8) with ⟨%γw, Hw, -⟩
+  icases (show monoListAuthOwn (GF := GF) γw 1 ([] : List w8) ⊣⊢
+      iprop(monoListAuthOwn γw (1 : Qp).half [] ∗ monoListAuthOwn γw (1 : Qp).half []) by
+    conv => lhs; rw [← Qp.half_add_half 1]
+    exact (monoListAuthOwn_fractional γw []).fractional _ _).mp $$ Hw with ⟨Hw1, Hw2⟩
+  imod ghostVar_alloc (GF := GF) ([] : List w8) with ⟨%γr, Hr⟩
+  icases (ghostVar_split_half γr 1 ([] : List w8)).mp $$ Hr with ⟨Hr1, Hr2⟩
+  imodintro
+  iexists ⟨γw, γr⟩
+  unfold dirInv sentAll rcvdAll
+  isplitl [Hd Hw1 Hr1]
+  · iexists d, [], []
+    iframe Hd Hw1 Hr1
+    ipureintro; exact hd
+  iframe Hw2 Hr2
+
+/-- The up direction of an abandoned connection (D16): shut, and empty. -/
+theorem dirOk_abandoned : DirOk ⟨[], .fin⟩ [] [] := by
+  simp [DirOk]
+
+/-- The dialer's registration of its new connection `cn`, from its up direction in a state `d`
+that agrees with nothing written (fresh, or shut and empty for an abandoned dial) and the
+acceptor's fresh resources: its names, both directions and its echo state in the invariant; the
+acceptor's deposit, and the dialer's halves. -/
+theorem echo_register_dir (γm : GName) (cn : Nat) (d : TcpDir) (hd : DirOk d [] []) :
+    ⊢ inv echoN (echoState (Gg := Gg) γm) -∗ tcpDir G cn false d -∗ tcpFresh G cn true
+      ={⊤ \ ↑addrN}=∗ connProto γm cn ∗ ∃ γ, sentAll (γ.dir false) [] ∗
+        rcvdAll (γ.dir true) [] ∗ sentLb (γ.dir true) [] ∗ connName γm cn γ := by
+  iintro #Hinv Hdd Ha
   iinv Hinv with Hi Hclose
   · exact ndot_mask nroot "acceptloop_conns" "acceptloop_addr" (by decide)
   unfold echoState
   icases Hi with ⟨%m, >Hm, >Hconns⟩
   unfold tcpFresh
-  icases Hd with ⟨Hde, Hdd⟩
   icases Ha with ⟨Hae, Had⟩
   letI := (G (Gg := Gg)).allG
   cases hm : m.lookup cn with
@@ -207,10 +239,10 @@ theorem echo_register (γm : GName) (cn : Nat) :
     icases (BigSepM.bigSepM_lookup_acc (show PartialMap.get? m cn = some γ' by
       rw [gmap_get?_eq]; exact hm)).1 $$ Hconns with ⟨Hc, -⟩
     unfold connBody dirInv
-    icases Hc with ⟨⟨%d, %W, %R, Hd', -⟩, -⟩
+    icases Hc with ⟨⟨%d', %W, %R, Hd', -⟩, -⟩
     icases tcpDir_excl _ cn false _ _ $$ Hdd Hd' with ⟨⟩
   | none =>
-    imod wire.dirInv_body_alloc cn false $$ Hdd with ⟨%γu, Hu, Hsu, Hru⟩
+    imod dirInv_body_alloc_of cn false d hd $$ Hdd with ⟨%γu, Hu, Hsu, Hru⟩
     imod wire.dirInv_body_alloc cn true $$ Had with ⟨%γd, Hdn, Hsd, Hrd⟩
     imod token_alloc (GF := GF) with ⟨%γt, Htok⟩
     let γ : ConnG := ⟨γt, γu.w, γu.r, γd.w, γd.r⟩
@@ -234,7 +266,7 @@ theorem echo_register (γm : GName) (cn : Nat) :
       iright
       ipureintro; rfl
     imodintro
-    unfold connProto dialerOwn
+    unfold connProto
     isplitl [Hae Htok Hru]
     · iexists γ
       unfold echoTok connName
@@ -243,7 +275,35 @@ theorem echo_register (γm : GName) (cn : Nat) :
     · iexists γ
       unfold connName
       rw [hu, hd]
-      iframe Hde Hsu Hrd Hlbd Hname
+      iframe Hsu Hrd Hlbd Hname
+
+/-- The dialer's registration of its new connection `cn` (from both ends' fresh resources):
+`echo_register_dir` for the fresh up direction, the dialer keeping its end. -/
+theorem echo_register (γm : GName) (cn : Nat) :
+    ⊢ inv echoN (echoState (Gg := Gg) γm) -∗ tcpFresh G cn false -∗ tcpFresh G cn true
+      ={⊤ \ ↑addrN}=∗ connProto γm cn ∗ dialerOwn γm cn := by
+  iintro #Hinv Hd Ha
+  iunfold tcpFresh at Hd
+  icases Hd with ⟨Hde, Hdd⟩
+  imod echo_register_dir γm cn TcpDir.fresh wire.dirOk_fresh $$ Hinv Hdd Ha
+    with ⟨Hp, %γ, Hsu, Hrd, #Hlbd, #Hname⟩
+  imodintro
+  iframe Hp
+  unfold dialerOwn
+  iexists γ
+  iframe Hde Hsu Hrd Hlbd Hname
+
+/-- The registration of an abandoned connection `cn` (D16: the dial failed, the dialer's end is
+closed and its direction shut and empty): the acceptor's deposit, as for any connection (its
+server reads EOF), the dialer's halves dropped. -/
+theorem echo_register_ab (γm : GName) (cn : Nat) :
+    ⊢ inv echoN (echoState (Gg := Gg) γm) -∗
+      tcpEnd G cn false { TcpEnd.fresh with closed := true } -∗ tcpDir G cn false ⟨[], .fin⟩ -∗
+      tcpFresh G cn true ={⊤ \ ↑addrN}=∗ connProto γm cn := by
+  iintro #Hinv - Hdd Ha
+  imod echo_register_dir γm cn _ dirOk_abandoned $$ Hinv Hdd Ha with ⟨Hp, -⟩
+  imodintro
+  iexact Hp
 
 /-- The server's one write on `cn`, of bytes `bs` that are a prefix of the dialer's (`si`), with
 the connection's token: the echo state's bytes were nothing, and are a prefix of `si` after. -/

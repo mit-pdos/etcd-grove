@@ -1,8 +1,9 @@
 /-
 The proof of acceptloop's `client` command (`examples/net/acceptloop/cmd/client/main.go`): its
 `main` calls `acceptloop.Call` (`wp_Call`, `Nodes.lean`: two concurrent calls, joined by a wait
-group), with `io.EOF`'s value from the package's initialization (`eof_init`). The command is the
-client node's program, a process of its own, in `Results.lean`.
+group), with `io.EOF`'s and `poll.ErrDeadlineExceeded`'s values from the package's initialization
+(`eof_init`, `ed_init`). The command is the client node's program, a process of its own, in
+`Results.lean`.
 -/
 module
 
@@ -19,7 +20,8 @@ namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Tcp
 open github_com.mit_pdos.etcd_grove.examples.net.wire (G)
-open github_com.mit_pdos.etcd_grove.examples.net.acceptloop (srvAddr echoInvs eof_init wp_Call)
+open github_com.mit_pdos.etcd_grove.examples.net.acceptloop (srvAddr echoInvs eof_init ed_init
+  wp_Call)
 
 namespace github_com.mit_pdos.etcd_grove.examples.net.acceptloop.cmd.client
 
@@ -51,9 +53,10 @@ theorem wp_main
       pkg_id.github_com.mit_pdos.etcd_grove.examples.net.acceptloop) $$ []
   · iPkgInit
   icases eof_init $$ Hal with ⟨%eof, #Heof⟩
+  icases ed_init $$ Hal with ⟨%ed, #Hed⟩
   (try wp_auto)
-  wp_apply wp_Call wp_Dial wp_ReadFull wp_Write wp_Close wp_Add wp_Done wp_Wait γm h eof $$ []
-  · iframe Hinvs Hplan Heof
+  wp_apply wp_Call wp_Dial wp_ReadFull wp_Write wp_Close wp_Add wp_Done wp_Wait γm h eof ed $$ []
+  · iframe Hinvs Hplan Heof Hed
   (try wp_auto)
   iapply HΦ
   itrivial
