@@ -497,6 +497,51 @@ theorem walsAt_mid {jr : Ino} {Ls : GMap GoString WalLay} {l1 l2 : List Claim} {
   · exact absurd (by rw [← hm]) hne
   · exact Or.inr (Or.inr hm)
 
+/-- **A WAL's tail idle** (`WalTailIdle`'s, W3/W5 fifteenth session): no resize window open on its last
+segment (`TailExact`) and its last segment's stream all written (`wr` its length). What `ReadAll` needs
+of a WAL no handle has registered: without it, it could succeed with the history's last records missing
+(the reader stops at the zeros past `wr`). -/
+def TailIdle (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) : Prop :=
+  TailExact lay ∧ lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length
+
+/-- `TailIdle` depends on the WAL's history and metadata only. -/
+theorem TailIdle.congr {C : WalCodec} {Mr : WalMarshal} {d d' : WalDur} {lay : WalLay}
+    (h : TailIdle C Mr d lay) (hH : d'.H = d.H) (hmd : d'.metadata = d.metadata) :
+    TailIdle C Mr d' lay := by
+  have e : segRecs C Mr d' lay.cuts = segRecs C Mr d lay.cuts := by
+    simp [segRecs, histM, hH, hmd]
+  refine ⟨h.1, ?_⟩
+  unfold segStream; rw [e]; exact h.2
+
+/-- **Every WAL no handle has registered is idle** (`walTailsRes`'s third part; W3/W5 fifteenth session,
+the coordinator's `WalTailIdle`): established by a crash (`CrashStart`: `wr = so = z0 = |stream|`), by
+`Create`'s commit, and by a handle's unregistration (`Close`, W10's obligation); kept by every step (the
+steps that change a WAL's layout or history are on registered WALs). -/
+def WalTailIdle {G : Type} (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (Ls : GMap GoString WalLay)
+    (T : GMap GoString G) : Prop :=
+  ∀ dir d lay, T !! dir = none → s.wal !! dir = some d → Ls !! dir = some lay → TailIdle C Mr d lay
+
+/-- **`WalTailIdle` as a registered WAL changes** (its tail's steps, its appends, its cut): nothing
+changes elsewhere. -/
+theorem WalTailIdle.of_reg {G : Type} {C : WalCodec} {Mr : WalMarshal} {s s' : AbsDiskState}
+    {Ls Ls' : GMap GoString WalLay} {T : GMap GoString G} (dir : GoString) (hT : T !! dir ≠ none)
+    (hs : ∀ k, k ≠ dir → s'.wal !! k = s.wal !! k) (hL : ∀ k, k ≠ dir → Ls' !! k = Ls !! k)
+    (h : WalTailIdle C Mr s Ls T) : WalTailIdle C Mr s' Ls' T := by
+  intro k d lay hk hd hl
+  have hkd : k ≠ dir := by rintro rfl; exact hT hk
+  rw [hs k hkd] at hd; rw [hL k hkd] at hl
+  exact h k d lay hk hd hl
+
+/-- **`WalTailIdle` as the WALs' states change but not their histories and metadata.** -/
+theorem WalTailIdle.mono {G : Type} {C : WalCodec} {Mr : WalMarshal} {s s' : AbsDiskState}
+    {Ls : GMap GoString WalLay} {T : GMap GoString G}
+    (hs : ∀ dir d', s'.wal !! dir = some d' →
+      ∃ d, s.wal !! dir = some d ∧ d'.H = d.H ∧ d'.metadata = d.metadata)
+    (h : WalTailIdle C Mr s Ls T) : WalTailIdle C Mr s' Ls T := by
+  intro k d' lay hk hd hl
+  obtain ⟨d, hd0, hH, hmd⟩ := hs k d' hd
+  exact (h k d lay hk hd0 hl).congr hH hmd
+
 end pure
 
 section inv
@@ -562,11 +607,12 @@ instance segResF_timeless (F : GMap Ino SegFl) (g : SegG) : Timeless (segResF (L
 /-- **The open handles' tails** (W6): the invariant's half of the tails' authority, a change in
 flight only on a registered tail (`TailsOnly`), and for each directory with an open handle, its WAL
 and layout, the last segment, F-Z, the record boundary (`TailBound`), and the invariant's half of the
-tail. -/
+tail; every other WAL idle (`WalTailIdle`). -/
 def walTailsRes (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (Ls : GMap GoString WalLay)
     (F : GMap Ino SegFl) : IProp GF :=
   letI := walAllG (W := W)
   iprop(∃ T : GMap GoString GName, walTailsAuth (W := W) T ∗ ⌜TailsOnly T Ls F⌝ ∗
+    ⌜WalTailIdle C Mr s Ls T⌝ ∗
     [∗map] dir ↦ γ ∈ T, ∃ (d : WalDur) (lay : WalLay) (g : SegG),
       ⌜s.wal !! dir = some d ∧ Ls !! dir = some lay ∧ lay.segs.getLast? = some g ∧ TailZeros lay ∧
         TailBound C Mr d lay⌝ ∗
@@ -590,15 +636,19 @@ instance walTailsRes_timeless (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState
 mark, the purge bounds). -/
 theorem walTailsRes_mono (C : WalCodec) (Mr : WalMarshal) (s s' : AbsDiskState) (Ls : GMap GoString WalLay) (F : GMap Ino SegFl)
     (h : ∀ dir d, s.wal !! dir = some d →
-      ∃ d', s'.wal !! dir = some d' ∧ d'.H = d.H ∧ d'.metadata = d.metadata) :
+      ∃ d', s'.wal !! dir = some d' ∧ d'.H = d.H ∧ d'.metadata = d.metadata)
+    (h' : ∀ dir d', s'.wal !! dir = some d' →
+      ∃ d, s.wal !! dir = some d ∧ d'.H = d.H ∧ d'.metadata = d.metadata) :
     walTailsRes (W := W) C Mr s Ls F ⊢ walTailsRes (W := W) C Mr s' Ls F := by
   unfold walTailsRes
   letI := walAllG (W := W)
-  iintro ⟨%T, Ha, %Ho, Hm⟩
+  iintro ⟨%T, Ha, %Ho, %Hi, Hm⟩
   iexists T
   iframe Ha
   isplitr
   · ipureintro; exact Ho
+  isplitr
+  · ipureintro; exact Hi.mono h'
   iapply BigSepM.bigSepM_mono_of_forall _ $$ Hm
   intro dir γ
   iintro ⟨%d, %lay, %g, %hp, Hv⟩
@@ -777,7 +827,7 @@ theorem walTailsRes_none (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (Ls
     ⊢ walTailsRes (W := W) C Mr s Ls F -∗ walTailsFrag (W := W) ∅ -∗
       ⌜∀ i, F !! i = none⌝ ∗ walTailsRes (W := W) C Mr s Ls F ∗ walTailsFrag (W := W) ∅ := by
   unfold walTailsRes
-  iintro ⟨%T, Ha, %Ho, Hm⟩ Hf
+  iintro ⟨%T, Ha, %Ho, %Hi, Hm⟩ Hf
   icases walTails_agree (W := W) T ∅ $$ Ha Hf with %hT
   subst hT
   iframe Hf
@@ -785,7 +835,7 @@ theorem walTailsRes_none (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (Ls
   · ipureintro; exact Ho.none_of_empty
   iexists ∅
   iframe Ha Hm
-  ipureintro; exact Ho
+  ipureintro; exact ⟨Ho, Hi⟩
 
 /-- **The program's halves, parked** (W3/W5's gap 2, framed): the parking flag's invariant half
 (`walParkAuth b`, `Ghost.lean`) and the record of what is out (`walOutAuth o`, gap A: its other half

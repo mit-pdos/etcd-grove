@@ -143,9 +143,16 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
 theorem walTailsRes_unl (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (Ls : GMap GoString WalLay)
     (F : GMap Ino SegFl) (dir : GoString) (p : Nat) :
     walTailsRes (W := W) C Mr s Ls F ⊢ walTailsRes (W := W) C Mr (unlSt s dir p) Ls F := by
-  refine walTailsRes_mono C Mr s _ Ls F (fun dir' d hd => ?_)
-  obtain ⟨u, hu⟩ := unlSt_some' (dir := dir) (p := p) hd
-  exact ⟨_, hu, rfl, rfl⟩
+  refine walTailsRes_mono C Mr s _ Ls F (fun dir' d hd => ?_) (fun dir' d' hd => ?_)
+  · obtain ⟨u, hu⟩ := unlSt_some' (dir := dir) (p := p) hd
+    exact ⟨_, hu, rfl, rfl⟩
+  · rw [unlSt_lookup] at hd
+    cases h0 : s.wal !! dir' with
+    | none => rw [h0] at hd; cases hd
+    | some d =>
+      rw [h0, Option.map_some] at hd
+      cases hd
+      refine ⟨d, rfl, ?_, ?_⟩ <;> split <;> rfl
 
 /-- **`Open`'s commit** (see the file header): the contents at `unlSt s dir p`, the program's map
 set to its WAL map. -/

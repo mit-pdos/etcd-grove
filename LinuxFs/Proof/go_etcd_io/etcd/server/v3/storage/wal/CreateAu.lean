@@ -392,7 +392,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
             (fun i hi => by
               by_cases e : i = g.ino
               · subst e; rw [GMap.lookup_delete_eq] at hi; exact absurd rfl hi
-              · rwa [GMap.lookup_delete_ne _ (Ne.symm e)] at hi) $$ Htl
+              · rwa [GMap.lookup_delete_ne _ (Ne.symm e)] at hi) ⟨hex, htail⟩ $$ Htl
         isplitr
         · ipureintro; exact ⟨han', Han.2⟩
         isplitr

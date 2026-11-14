@@ -624,6 +624,12 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
       iframe Htl
       isplitr
       · ipureintro; intro i hi; exact absurd (GMap.lookup_empty (K := Ino) (V := SegFl) i) hi
+      isplitr
+      · ipureintro
+        intro dir d lay _ hd hl
+        obtain ⟨lay', nm, hl', -, -, -, -, -, -, -, hwz, hzS, hlast⟩ := hstart.1 dir d hd
+        rw [hl] at hl'; cases hl'
+        exact ⟨fun g hg => (hlast g hg).2, hwz.trans hzS⟩
       iapply BigSepM.bigSepM_empty.2; iempintro
     isplitr
     · ipureintro
