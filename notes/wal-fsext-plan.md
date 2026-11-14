@@ -4741,8 +4741,8 @@ their evidence; a trust-boundary axiom restated, **adopted provisionally, pendin
   (walNames hj.cur).getLast? = some g.name` (the handle's last file at the claim's last `.wal` name: `wp_idleFsync`'s
   premise; `openAtIndex`: `hlastw`, over **`walNames_segs`**: under `SegsNamed`, `WalAbsD.names` and distinct
   inodes, `walNames hj.cur = lay.segs.map name`). `Open.lean`'s `walReadH_key`/`_namesOut` and `openAtIndex`
-  re-proved for (1)-(2) before merging `wal-int` `ca175563f6`; (3) and the merge pushed before their build (a fix may
-  follow).
+  re-proved; all 58 build leaves of `ReadDefs`, `Proof/io/ReaderStream` and `os.File.Stat`'s spec build on `wal-int`
+  `ca175563f6` (`lake build`, `556227981d`).
 - *TCB*: `etc/tcb-report.py --collection etc/tcb-collections/linuxfs.txt --check` refuses without a full `lake build`
   (it checks every root's freshness); not run. The axiom keeps its name (`io.ReadFull.wp_proof`), and no linked root
   reaches the WAL proofs (the collection's roots are minibolt/crashlog/walfs), so no baseline line changes.
