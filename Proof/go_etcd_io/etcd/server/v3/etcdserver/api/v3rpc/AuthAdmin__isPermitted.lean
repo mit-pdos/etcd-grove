@@ -28,10 +28,10 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-theorem v3rpc.AuthAdmin.isPermitted.wp_proofC
+theorem v3rpc.AuthAdmin.isPermitted.wp_proof
     (hAI : EtcdServer.AuthInfoFromCtx.specLb (GF := GF) (hG := hG))
     (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
-    v3rpc.AuthAdmin.isPermitted.specC (GF := GF) (hG := hG) := by
+    v3rpc.AuthAdmin.isPermitted.spec (GF := GF) (hG := hG) := by
   intro aa s E ctx cd n
   wp_start as ⟨#Haa, #Hlb, #Hctx, #Hlib, HRD⟩
   iunfold v3rpc.authAdminIs at Haa
@@ -177,22 +177,6 @@ theorem v3rpc.AuthAdmin.isPermitted.wp_proofC
         · iintro %hne
           iapply (adminWhy_some s E.authMode n _ _ _ hne) $$ Hpb' Hv
 
-
-/-- `spec`, of `specC` (auth-guard-completeness G2): the reason dropped, at the lower bound `0`
-(`authPubLbM_zero`). -/
-theorem v3rpc.AuthAdmin.isPermitted.wp_proof
-    (hAI : EtcdServer.AuthInfoFromCtx.specLb (GF := GF) (hG := hG))
-    (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
-    v3rpc.AuthAdmin.isPermitted.spec (GF := GF) (hG := hG) := by
-  intro aa s E ctx cd
-  iintro %Φ ⟨#Hpkg, #Haa, -, #Hctx, #Hlib, HRD⟩ HΦ
-  imod (authPubLbM_zero (GF := GF) E.authMode) with #Hn
-  iapply (v3rpc.AuthAdmin.isPermitted.wp_proofC hAI hAS aa s E ctx cd 0) $$ [HRD]
-  · iframe; iframe #
-  iintro !> %err ⟨HRD, #Hout⟩
-  iapply HΦ
-  iframe HRD
-  iapply adminOutB_of_C $$ Hout
 
 end proof
 

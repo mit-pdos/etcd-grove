@@ -32,7 +32,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 theorem v3rpc.kvServer.Compact.wp_proof
-    (hP : v3rpc.AuthAdmin.isPermitted.specC (GF := GF) (hG := hG))
+    (hP : v3rpc.AuthAdmin.isPermitted.spec (GF := GF) (hG := hG))
     (hTog : v3rpc.togRPCError.spec (GF := GF) (hG := hG))
     (hFill : v3rpc.header.fill.spec (GF := GF) (hG := hG)) :
     v3rpc.kvServer.Compact.spec (GF := GF) (hG := hG) := by

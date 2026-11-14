@@ -27,9 +27,9 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-theorem v3rpc.authMaintenanceServer.requireAuthInfo.wp_proofC
-    (hP : v3rpc.AuthAdmin.requireAuthInfo.specC (GF := GF) (hG := hG)) :
-    v3rpc.authMaintenanceServer.requireAuthInfo.specC (GF := GF) (hG := hG) := by
+theorem v3rpc.authMaintenanceServer.requireAuthInfo.wp_proof
+    (hP : v3rpc.AuthAdmin.requireAuthInfo.spec (GF := GF) (hG := hG)) :
+    v3rpc.authMaintenanceServer.requireAuthInfo.spec (GF := GF) (hG := hG) := by
   intro p ms aa s E ctx cd n
   wp_start as ⟨#Hams, #Haa, #Hlb, #Hctx, #Hlib, HRD⟩
   iunfold v3rpc.amsIs at Hams
@@ -40,21 +40,6 @@ theorem v3rpc.authMaintenanceServer.requireAuthInfo.wp_proofC
   (try wp_auto)
   iapply HΦ
   iframe HRD Hout
-
-/-- `spec`, of `specC` (auth-guard-completeness G2): the reason dropped, at the lower bound `0`
-(`authPubLbM_zero`). -/
-theorem v3rpc.authMaintenanceServer.requireAuthInfo.wp_proof
-    (hP : v3rpc.AuthAdmin.requireAuthInfo.specC (GF := GF) (hG := hG)) :
-    v3rpc.authMaintenanceServer.requireAuthInfo.spec (GF := GF) (hG := hG) := by
-  intro p ms aa s E ctx cd
-  iintro %Φ ⟨#Hpkg, #Hams, #Haa, #Hctx, #Hlib, HRD⟩ HΦ
-  imod (authPubLbM_zero (GF := GF) E.authMode) with #Hn
-  iapply (v3rpc.authMaintenanceServer.requireAuthInfo.wp_proofC hP p ms aa s E ctx cd 0) $$ [HRD]
-  · iframe; iframe #
-  iintro !> %err ⟨HRD, #Hout⟩
-  iapply HΦ
-  iframe HRD
-  iapply authedOutB_of_C $$ Hout
 
 end proof
 

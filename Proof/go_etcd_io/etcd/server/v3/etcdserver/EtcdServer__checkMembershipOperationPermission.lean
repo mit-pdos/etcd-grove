@@ -28,10 +28,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- The guard's proof, both modes, with why it refused (auth-guard-completeness G2): `AuthInfoFromCtx`'s
 reasons at the lower bound (`specLb`) and, with auth on, the bound request side's rows at it. -/
-theorem EtcdServer.checkMembershipOperationPermission.wp_proofC
+theorem EtcdServer.checkMembershipOperationPermission.wp_proof
     (hAI : EtcdServer.AuthInfoFromCtx.specLb (GF := GF) (hG := hG))
     (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
-    EtcdServer.checkMembershipOperationPermission.specC (GF := GF) (hG := hG) := by
+    EtcdServer.checkMembershipOperationPermission.spec (GF := GF) (hG := hG) := by
   intro s E ctx cd n
   wp_start as ⟨#Hau, #Hlb, #Hctx, #Hlib, HRD⟩
   ihave #Hnil := srvAdminNilOk_of_srvAuthAt s E $$ Hau
@@ -172,22 +172,6 @@ theorem EtcdServer.checkMembershipOperationPermission.wp_proofC
           iexact Hpb
         · iintro %hne
           iapply (adminWhy_some s E.authMode n _ _ _ hne) $$ Hpb' Hv
-
-/-- `spec`, of `specC` (auth-guard-completeness G2): the reason dropped, at the lower bound `0`
-(`authPubLbM_zero`). -/
-theorem EtcdServer.checkMembershipOperationPermission.wp_proof
-    (hAI : EtcdServer.AuthInfoFromCtx.specLb (GF := GF) (hG := hG))
-    (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
-    EtcdServer.checkMembershipOperationPermission.spec (GF := GF) (hG := hG) := by
-  intro s E ctx cd
-  iintro %Φ ⟨#Hpkg, #Hau, -, #Hctx, #Hlib, HRD⟩ HΦ
-  imod (authPubLbM_zero (GF := GF) E.authMode) with #Hn
-  iapply (EtcdServer.checkMembershipOperationPermission.wp_proofC hAI hAS s E ctx cd 0) $$ [HRD]
-  · iframe; iframe #
-  iintro !> %err ⟨HRD, #Hout⟩
-  iapply HΦ
-  iframe HRD
-  iapply adminOutB_of_C $$ Hout
 
 end proof
 

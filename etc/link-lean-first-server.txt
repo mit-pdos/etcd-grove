@@ -323,8 +323,7 @@ EtcdServer__AuthInfoFromCtx+Lb: EtcdServer__AuthStore
 EtcdServer__requireAuthInfo: EtcdServer__AuthInfoFromCtx+Lb
 EtcdServer__checkMembershipOperationPermission: EtcdServer__AuthInfoFromCtx+Lb EtcdServer__AuthStore
 EtcdServer__requireAuthInfo+C: EtcdServer__AuthInfoFromCtx+Lb
-EtcdServer__checkMembershipOperationPermission+C: EtcdServer__AuthInfoFromCtx+Lb EtcdServer__AuthStore
-EtcdServer__RemoveMember: EtcdServer__checkMembershipOperationPermission+C raftpb_ConfChangeType__Enum
+EtcdServer__RemoveMember: EtcdServer__checkMembershipOperationPermission raftpb_ConfChangeType__Enum
 # the lease-keys plan's Part B (2026-10-31): the lease API's key checks (v3_server.go), a reader
 # of the auth store and of the lessor at lower bounds (`LeaseCheck.lean`); the entry points that
 # call them stay names-only

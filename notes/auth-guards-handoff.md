@@ -59,8 +59,12 @@ Every reason needs a flag read `true` no older than `n`; errors tied to their ca
   which `isReqAuth` (of `NewAuthStore`'s axiom) leaves free, so `adminWhy .off` is `True`. Discharging
   `NewAuthStore`'s axiom by proof (D22) would give "no error with auth off" without new trust.
 - `isWatchPermitted` (after k8s 7f-3b), `served_of_frozen` for `permWhy` (G4).
-- The reason-free guard specs other than `EtcdServer.requireAuthInfo.spec` (kept for the lease entry points,
-  D5) have no caller left; delete them after review.
+- (decided by etcd-grove-81 2026-11-14) The ordered flag race: a store freshness invariant that follows the
+  flag's latest index (`revFresh` gives only some state at an index at least the published one), so that
+  `authedWhy` can require the `true` read at `i` and the `false` read at `j` with `n ≤ i ≤ j`.
+- Done 2026-11-14: the reason-free guard specs without callers are deleted; each guard has one spec (with
+  reasons), but `EtcdServer.requireAuthInfo`, whose reason-free `spec` the lease entry points take (D5),
+  beside its `specC`.
 
 ## Pitfalls
 

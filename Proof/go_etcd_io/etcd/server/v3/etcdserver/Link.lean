@@ -2123,13 +2123,13 @@ theorem EtcdServer.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.Range.spec (GF := GF) (hG := hG) :=
   EtcdServer.Range.wp_proof traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_String «attribute».wp_Int64 «attribute».wp_Bool RangeRequest.wp_GetKey RangeRequest.wp_GetRangeEnd RangeRequest.wp_GetRevision RangeRequest.wp_GetLimit RangeRequest.wp_GetCountOnly RangeRequest.wp_GetKeysOnly EtcdServer.wp_Logger traceutil.wp_EnsureTrace txn.wp_WarnOfExpensiveReadOnlyRangeRequest traceutil.Trace.wp_AddField traceutil.Trace.wp_LogIfLong strconv.wp_FormatBool time.Duration.wp_Seconds prometheus.HistogramVec.wp_WithLabelValues traceutil.Trace.wp_Step EtcdServer.wp_KV txn.wp_Range mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds EtcdServer.wp_doSerialize RangeRequest.wp_String proto.wp_Size
 
-theorem EtcdServer.wp_checkMembershipOperationPermissionC :
-    EtcdServer.checkMembershipOperationPermission.specC (GF := GF) (hG := hG) :=
-  EtcdServer.checkMembershipOperationPermission.wp_proofC EtcdServer.wp_AuthInfoFromCtxLb EtcdServer.wp_AuthStore
+theorem EtcdServer.wp_checkMembershipOperationPermission :
+    EtcdServer.checkMembershipOperationPermission.spec (GF := GF) (hG := hG) :=
+  EtcdServer.checkMembershipOperationPermission.wp_proof EtcdServer.wp_AuthInfoFromCtxLb EtcdServer.wp_AuthStore
 
 theorem EtcdServer.wp_RemoveMember :
     EtcdServer.RemoveMember.spec (GF := GF) (hG := hG) :=
-  EtcdServer.RemoveMember.wp_proof EtcdServer.wp_checkMembershipOperationPermissionC raftpb.ConfChangeType.wp_Enum
+  EtcdServer.RemoveMember.wp_proof EtcdServer.wp_checkMembershipOperationPermission raftpb.ConfChangeType.wp_Enum
 
 theorem EtcdServer.wp_ReportSnapshot :
     EtcdServer.ReportSnapshot.spec (GF := GF) (hG := hG) :=
@@ -2650,10 +2650,6 @@ theorem EtcdServer.wp_UserRevokeRole :
 theorem EtcdServer.wp_Watchable :
     EtcdServer.Watchable.spec (GF := GF) (hG := hG) :=
   EtcdServer.Watchable.wp_proof EtcdServer.wp_KV
-
-theorem EtcdServer.wp_checkMembershipOperationPermission :
-    EtcdServer.checkMembershipOperationPermission.spec (GF := GF) (hG := hG) :=
-  EtcdServer.checkMembershipOperationPermission.wp_proof EtcdServer.wp_AuthInfoFromCtxLb EtcdServer.wp_AuthStore
 
 theorem v3alarm.wp_NewAlarmStore :
     v3alarm.NewAlarmStore.spec (GF := GF) (hG := hG) :=

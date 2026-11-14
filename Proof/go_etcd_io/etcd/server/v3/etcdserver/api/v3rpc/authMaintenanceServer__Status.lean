@@ -31,7 +31,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 theorem v3rpc.authMaintenanceServer.Status.wp_proof
-    (hG0 : v3rpc.authMaintenanceServer.requireAuthInfo.specC (GF := GF) (hG := hG))
+    (hG0 : v3rpc.authMaintenanceServer.requireAuthInfo.spec (GF := GF) (hG := hG))
     (hTog : v3rpc.togRPCError.spec (GF := GF) (hG := hG)) :
     v3rpc.authMaintenanceServer.Status.spec (GF := GF) (hG := hG) := by
   intro p ms aa s E ctx cd r Pin Q n

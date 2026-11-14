@@ -30,21 +30,9 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- `ams.requireAuthInfo(ctx)`: `ams.AuthAdmin.requireAuthInfo(ctx)`
-(`AuthAdmin__requireAuthInfo.lean`). With auth on, a passed check's auth
-info is moreover bound (`authedOutB`; the auth-mode merge, 2026-10-29). -/
-abbrev v3rpc.authMaintenanceServer.requireAuthInfo.spec : Prop :=
-  ∀ (p ms aa s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
-      v3rpc.amsIs p ms aa ∗ v3rpc.authAdminIs aa s E ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗ E.RD }}
-    (App (Val (p @!! go.GoType.PointerType v3rpc.authMaintenanceServer.ty @!!
-      go!"requireAuthInfo")) (Val #(GoInterface.ok ctx)))
-  {{ (err : GoInterface), RET #err; E.RD ∗ authedOutB s E.authMode (GoInterface.ok ctx) err }}
-
 /-- `ms.requireAuthInfo(ctx)` with why it refused (auth-guard-completeness G2, 2026-11-14):
-`AuthAdmin.requireAuthInfo.specC`'s. `spec` follows (`wp_proof`). -/
-abbrev v3rpc.authMaintenanceServer.requireAuthInfo.specC : Prop :=
+`AuthAdmin.requireAuthInfo.spec`'s. -/
+abbrev v3rpc.authMaintenanceServer.requireAuthInfo.spec : Prop :=
   ∀ (p ms aa s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (n : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗

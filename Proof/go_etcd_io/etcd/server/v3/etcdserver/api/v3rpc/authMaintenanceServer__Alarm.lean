@@ -32,8 +32,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 theorem v3rpc.authMaintenanceServer.Alarm.wp_proof
-    (hP : v3rpc.authMaintenanceServer.isPermitted.specC (GF := GF) (hG := hG))
-    (hR : v3rpc.authMaintenanceServer.requireAuthInfo.specC (GF := GF) (hG := hG))
+    (hP : v3rpc.authMaintenanceServer.isPermitted.spec (GF := GF) (hG := hG))
+    (hR : v3rpc.authMaintenanceServer.requireAuthInfo.spec (GF := GF) (hG := hG))
     (hTog : v3rpc.togRPCError.spec (GF := GF) (hG := hG)) :
     v3rpc.authMaintenanceServer.Alarm.spec (GF := GF) (hG := hG) := by
   intro p ms aa s E ctx cd ar act Pin Q n

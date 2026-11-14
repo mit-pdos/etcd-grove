@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem EtcdServer.RemoveMember.wp_proof
-    (hChk : EtcdServer.checkMembershipOperationPermission.specC (GF := GF) (hG := hG))
+    (hChk : EtcdServer.checkMembershipOperationPermission.spec (GF := GF) (hG := hG))
     (hEnum : raftpb.ConfChangeType.Enum.spec (GF := GF) (hG := hG)) :
     EtcdServer.RemoveMember.spec (GF := GF) (hG := hG) := by
   intro s E ctx cd id Pin Pm Qm Qin n
