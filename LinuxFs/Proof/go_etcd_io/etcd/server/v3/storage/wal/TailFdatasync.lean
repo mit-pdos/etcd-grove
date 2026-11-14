@@ -43,10 +43,8 @@ theorem TailMeta.synced {m : OsMeta} {bs : List ByteG} (h : TailMeta m bs) :
 theorem syscall.Fdatasync.wp_tail (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (dir : GoString) (γ : GName) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat)
     (wr : Nat) (m : OsMeta) (bs : List ByteG) (fd : w64) (dq : DFrac) (d : OsFd)
-    (hm : TailMetaW m bs) (hwr : wr = (tailStream Mr H md cuts).length) (ko : Option Nat)
-    (hko : (m.lo = m.size ∧ m.hi = m.size) ∨ ko = some m.size) :
-    {{ walAreaOk walCodec Mr R jr r ∗ walOldOpt (W := W) dir cuts ko ∗ osFd fd dq d ∗
-        walTailKey (W := W) dir γ ∗
+    (hm : TailMetaW m bs) (hwr : wr = (tailStream Mr H md cuts).length) :
+    {{ walAreaOk walCodec Mr R jr r ∗ osFd fd dq d ∗ walTailKey (W := W) dir γ ∗
         tailVar (W := W) γ ((H, md, cuts, wr, d.ino, none) : TailG) ∗ walCutFrag (W := W) none ∗
         osMeta d.ino (DFrac.own (1 : Qp).half) m ∗ osBytes d.ino 0 (DFrac.own (1 : Qp).half) bs }}
       (App (Val (@! syscall.Fdatasync)) (Val #fd))
@@ -57,9 +55,9 @@ theorem syscall.Fdatasync.wp_tail (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : 
             walSyncedLb (W := W) dir H.length) ∨
          (⌜e ≠ 0⌝ ∗ osMeta d.ino (DFrac.own (1 : Qp).half) m ∗
             osBytes d.ino 0 (DFrac.own (1 : Qp).half) bs)) }} := by
-  wp_start as ⟨#Harea, Hko, Hfd, Hk, Hv, Hcf, Hm, Hb⟩
-  wp_apply wp_tailFsync Mr R jr r dir γ H md cuts wr m bs fd dq d _ hm hwr ko hko
-    $$ Harea Hko Hfd Hk Hv Hcf Hm Hb as %e Hfd Hk Hv Hcf Hr
+  wp_start as ⟨#Harea, Hfd, Hk, Hv, Hcf, Hm, Hb⟩
+  wp_apply wp_tailFsync Mr R jr r dir γ H md cuts wr m bs fd dq d _ hm hwr
+    $$ Harea Hfd Hk Hv Hcf Hm Hb as %e Hfd Hk Hv Hcf Hr
   iapply wp_errno
   iapply HΦ
   iframe Hfd Hk Hv Hcf
@@ -90,11 +88,9 @@ theorem fileutil.Fdatasync.wp_tail (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG
   wp_apply wp_Fd f fd name (DFrac.own 1) $$ Hf as Hf
   ihave Hv : tailVar (W := W) γ ((H, md, cuts, o0 + out.length, i, none) : TailG) $$ [Hv]
   · unfold tailVar; iexact Hv
-  ihave Hko : walOldOpt (W := W) dir cuts none $$ []
-  · unfold walOldOpt; ipureintro; trivial
   wp_apply syscall.Fdatasync.wp_tail Mr R jr r dir γ H md cuts (o0 + out.length) m bs fd
-    (DFrac.own 1) ⟨i, rd, true⟩ hp.2.1.win hwr none (Or.inl ⟨hp.2.1.2.2.2.1, hp.2.1.2.2.2.2⟩)
-    $$ [Harea Hko Hfd Hk Hv Hcf Hm Hb] as %e ⟨Hfd, Hk, Hv, Hcf, Hr⟩
+    (DFrac.own 1) ⟨i, rd, true⟩ hp.2.1.win hwr $$ [Harea Hfd Hk Hv Hcf Hm Hb]
+    as %e ⟨Hfd, Hk, Hv, Hcf, Hr⟩
   · iframe; iexact Harea
   iapply HΦ
   iframe Hcf
@@ -127,10 +123,7 @@ theorem TailMetaW.synced {m : OsMeta} {bs : List ByteG} (h : TailMetaW m bs) :
   ⟨by simp [OsMeta.synced, h.1], h.2.1, h.2.2.1.synced, rfl, rfl⟩
 
 /-- **`fileutil.Fdatasync` of the tail in a resize window** (`wp_tail` over `walTailW`'s `TailMetaW`): on
-success the tail is exact again (`TailMeta` of the synced `OsMeta`, `TailMetaW.synced`). The tail as
-long as `old` (`walOldFrag dir cuts sz`, the old-length map's element at the size): the synced layout
-keeps `old`'s length (`OldStep`, `walInvBody_sync`'s window case; `wal-save21`: `cut`'s flow, whose
-window is shorter than `old`, needs the map's item 1 settled). -/
+success the tail is exact again (`TailMeta` of the synced `OsMeta`, `TailMetaW.synced`). -/
 theorem fileutil.Fdatasync.wp_tailW (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
     (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (f : Loc) (fd : w64)
     (name dir : GoString) (γ : GName) (i : Ino) (H : List (WalOpG WalEnt)) (md : List w8)
@@ -138,24 +131,22 @@ theorem fileutil.Fdatasync.wp_tailW (wp_Fd : os.File.Fd.spec (GF := GF) (hG := h
     (hwr : o0 + out.length = (tailStream Mr H md cuts).length) :
     {{ walAreaOk walCodec Mr R jr r ∗
         walTailW (W := W) f fd name dir γ i H md cuts o0 sz out (tm := TailMetaW) ∗
-        walCutFrag (W := W) none ∗ walOldFrag (W := W) dir cuts sz }}
+        walCutFrag (W := W) none }}
       (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync)) (Val #f))
     {{ (e : w64), RET #(errnoErr e); walCutFrag (W := W) none ∗
         ((⌜e = 0⌝ ∗ walTailW (W := W) f fd name dir γ i H md cuts o0 sz out ∗
             walSyncedLb (W := W) dir H.length) ∨
          (⌜e ≠ 0⌝ ∗ walTailW (W := W) f fd name dir γ i H md cuts o0 sz out (tm := TailMetaW))) }} := by
-  wp_start as ⟨#Harea, Hw, Hcf, #Ho⟩
+  wp_start as ⟨#Harea, Hw, Hcf⟩
   unfold walTailW
   icases Hw with ⟨Hf, ⟨%rd, Hfd⟩, Hoff, Hk, %m, %bs, Hm, Hb, %hp, Hv⟩
   wp_auto
   wp_apply wp_Fd f fd name (DFrac.own 1) $$ Hf as Hf
   ihave Hv : tailVar (W := W) γ ((H, md, cuts, o0 + out.length, i, none) : TailG) $$ [Hv]
   · unfold tailVar; iexact Hv
-  ihave Hko : walOldOpt (W := W) dir cuts (some sz) $$ [Ho]
-  · unfold walOldOpt; iexact Ho
   wp_apply syscall.Fdatasync.wp_tail Mr R jr r dir γ H md cuts (o0 + out.length) m bs fd
-    (DFrac.own 1) ⟨i, rd, true⟩ hp.2.1 hwr (some sz) (Or.inr (by rw [hp.1]))
-    $$ [Harea Hko Hfd Hk Hv Hcf Hm Hb] as %e ⟨Hfd, Hk, Hv, Hcf, Hr⟩
+    (DFrac.own 1) ⟨i, rd, true⟩ hp.2.1 hwr $$ [Harea Hfd Hk Hv Hcf Hm Hb]
+    as %e ⟨Hfd, Hk, Hv, Hcf, Hr⟩
   · iframe; iexact Harea
   iapply HΦ
   iframe Hcf

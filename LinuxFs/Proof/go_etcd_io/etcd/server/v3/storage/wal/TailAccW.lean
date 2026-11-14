@@ -65,19 +65,58 @@ theorem walParked_tailW (Ls : GMap GoString WalLay) (cl : List Claim) (F F' : GM
     exact .rfl
   · iapply walTmpParked_insert Ls o.T dir lay (tailLay lay pre g wr') hl rfl $$ Ht
 
-/-- **The tail's access, the new invariant's pure parts given** (see the file header). -/
+/-- **The right to step a tail**: its key (`ok = none`), or the token of the tail lent to the
+invariant with its `old` `k` long (`ok = some k`; `walLentTok`, I3b, `wal-tc14`). -/
+def walTailKeyL (dir : GoString) (γ : GName) : Option Nat → IProp GF
+  | none => walTailKey (W := W) dir γ
+  | some k => walLentTok (W := W) dir γ k
+
+theorem walTailKeyL_none (dir : GoString) (γ : GName) :
+    walTailKeyL (W := W) dir γ none = walTailKey (W := W) dir γ := rfl
+
+theorem walTailKeyL_some (dir : GoString) (γ : GName) (k : Nat) :
+    walTailKeyL (W := W) dir γ (some k) = walLentTok (W := W) dir γ k := rfl
+
+instance walTailKeyL_timeless (dir : GoString) (γ : GName) (ok : Option Nat) :
+    Timeless (walTailKeyL (W := W) dir γ ok) := by
+  cases ok
+  · rw [walTailKeyL_none]; unfold walTailKey; letI := walAllG (W := W); infer_instance
+  · rw [walTailKeyL_some]; infer_instance
+
+/-- **The tail registered at its record's name**, and, if lent, its `old` as long as lent. -/
+theorem walTailKeyL_lookup (T : GMap GoString GName) (Ls : GMap GoString WalLay) (dir : GoString)
+    (γ : GName) (ok : Option Nat) :
+    ⊢ walTailsAuth (W := W) T -∗ walLentRes (W := W) T Ls -∗ walTailKeyL (W := W) dir γ ok -∗
+      ⌜T !! dir = some γ ∧ ∀ k, ok = some k → LentOk T Ls dir (γ, k)⌝ ∗ walTailsAuth (W := W) T ∗
+        walLentRes (W := W) T Ls ∗ walTailKeyL (W := W) dir γ ok := by
+  cases ok with
+  | none =>
+    rw [walTailKeyL_none]
+    iintro Ha HL Hk
+    icases walTailKey_lookup T dir γ $$ Ha Hk with %HT
+    iframe Ha HL Hk
+    ipureintro; exact ⟨HT, fun _ h => by cases h⟩
+  | some k =>
+    rw [walTailKeyL_some]
+    iintro Ha HL Hk
+    icases walLentRes_lookup T Ls dir γ k $$ Hk HL with ⟨%hx, Hk, HL⟩
+    iframe Ha HL Hk
+    ipureintro; exact ⟨hx.1, fun k' h => by cases h; exact hx⟩
+
+/-- **The tail's access, the new invariant's pure parts given** (see the file header), by the tail's
+key or, the tail lent, its token (`walTailKeyL`, which also gives `old`'s length). -/
 theorem walInvBody_tailW (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
-    (r : GoString) (s : AbsDiskState) (dir : GoString) (γ : GName) (tg : TailG) (m : OsMeta) :
-    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walTailKey (W := W) dir γ -∗
-      tailVar (W := W) γ tg -∗ tailHeld (L := L) tg m ==∗
+    (r : GoString) (s : AbsDiskState) (dir : GoString) (γ : GName) (ok : Option Nat) (tg : TailG)
+    (m : OsMeta) :
+    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walTailKeyL (W := W) dir γ ok -∗
+      tailVar (W := W) γ tg -∗ tailHeld (L := L) tg m -∗
       ∃ (Ls : GMap GoString WalLay) (cl : List Claim) (n : Nat) (F : GMap Ino SegFl) (d : WalDur)
         (lay : WalLay) (pre : List SegG) (g0 : SegG),
         ⌜s.wal !! dir = some d ∧ Ls !! dir = some lay ∧ lay.segs = pre ++ [g0] ∧
           tg = tailG d lay g0.ino (F !! g0.ino) ∧ WalsOk C Mr R jr s Ls cl n ∧
           (∃ ents, WalAbsD C Mr d lay ents) ∧ g0.om.cut = none ∧ TailZeros lay ∧
-          TailBound C Mr d lay⌝ ∗
-        walOldFrag (W := W) dir lay.cuts lay.old.length ∗
-        segResF (L := L) F g0 ∗ walTailKey (W := W) dir γ ∗ tailVar (W := W) γ tg ∗
+          TailBound C Mr d lay ∧ (∀ k, ok = some k → lay.old.length = k)⌝ ∗
+        segResF (L := L) F g0 ∗ walTailKeyL (W := W) dir γ ok ∗ tailVar (W := W) γ tg ∗
         tailVar (W := W) γ tg ∗ tailHeld (L := L) tg m ∗
         (∀ (g : SegG) (wr' : Nat) (F' : GMap Ino SegFl),
           ⌜g.ino = g0.ino ∧ g.name = g0.name ∧ (∀ i, i ≠ g0.ino → F' !! i = F !! i) ∧
@@ -94,8 +133,9 @@ theorem walInvBody_tailW (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hn, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
     ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms, %Hbd⟩
   unfold walTailsRes
-  icases Htl with ⟨%T, HTa, %HTo, %HTi, HTm, HOld⟩
-  icases walTailKey_lookup T dir γ $$ HTa Hk with %HT
+  icases Htl with ⟨%T, HTa, %HTo, %HTi, HTm, HL⟩
+  icases walTailKeyL_lookup T Ls dir γ ok $$ HTa HL Hk with ⟨%HTk, HTa, HL, Hk⟩
+  obtain ⟨HT, hlent⟩ := HTk
   ihave ⟨Hent, HTm⟩ := (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (γ : GName) =>
     iprop(∃ (d : WalDur) (lay : WalLay) (g : SegG),
       ⌜s.wal !! dir = some d ∧ Ls !! dir = some lay ∧ lay.segs.getLast? = some g ∧ TailZeros lay ∧
@@ -120,12 +160,12 @@ theorem walInvBody_tailW (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   icases walParkedIn_tail (L := L) Ls cl F g0 (mem_segsAll hl hg0m) tg m
     (by rw [Htg]; exact ⟨rfl, rfl⟩) $$ [Hpk Hlast Hh] with ⟨Hpk, Hlast, Hh⟩
   · iframe Hpk Hlast Hh
-  imod walOldsRes_mint (W := W) Ls dir lay hl $$ HOld with ⟨HOld, #HOf⟩
-  imodintro
   iexists Ls, cl, n, F, d, lay, pre, g0
-  iframe HOf
   isplitr
-  · ipureintro; exact ⟨hd, hl, hs, Htg, HW0, ⟨_, habs⟩, hcut0, hZ, hB⟩
+  · ipureintro
+    refine ⟨hd, hl, hs, Htg, HW0, ⟨_, habs⟩, hcut0, hZ, hB, fun k hk => ?_⟩
+    obtain ⟨-, la, hla, hlen⟩ := hlent k hk
+    rw [hl] at hla; cases hla; exact hlen
   iframe Hh
   rw [Htg]
   iframe Hlast Hk Hv Hv'
@@ -168,11 +208,10 @@ theorem walInvBody_tailW (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   · ipureintro; exact hW'
   isplitr
   · ipureintro; exact HWC
-  isplitl [HTa HTm Hvn HOld]
+  isplitl [HTa HTm Hvn HL]
   · iexists T
-    iframe HTa
-    ihave HOld := walOldsRes_insert_same (W := W) Ls dir lay (tailLay lay pre g wr') hl rfl rfl $$ HOld
-    iframe HOld
+    ihave HL := walLentRes_insert_same (W := W) T Ls dir lay (tailLay lay pre g wr') hl rfl $$ HL
+    iframe HTa HL
     isplitr
     · ipureintro
       exact HTo.insert HT hl hg (by simp [tailLay]) (fun i hi =>

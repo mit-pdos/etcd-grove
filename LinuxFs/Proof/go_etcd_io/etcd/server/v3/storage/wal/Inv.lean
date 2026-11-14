@@ -739,163 +739,213 @@ instance segResF_timeless (F : GMap Ino SegFl) (g : SegG) : Timeless (segResF (L
   · infer_instance
   · split <;> infer_instance
 
-/-- **The old lengths the tails' map records** (`walOldsRes`; I3b, `wal-tc13`): each element
-`(dir, c) ↦ k` is of a WAL directory of the layouts whose cuts extend `c`, and `k` is the length of
-its `old` while its cuts are `c`. A step that keeps a layout's cuts keeps its `old` (`tailLay`); a cut
-extends the cuts; `Create` adds a directory with none; a crash starts from an empty map. -/
-def OldOk (M : GMap (GoString × List Nat) Nat) (Ls : GMap GoString WalLay) : Prop :=
-  ∀ dir c k, M !! (dir, c) = some k → ∃ lay, Ls !! dir = some lay ∧ c <+: lay.cuts ∧
-    (c = lay.cuts → k = lay.old.length)
+/-- **A lent tail** (I3b, `wal-tc14`, option (d) of the `wal-tc13` entry): a registered directory
+(`T`) whose tail record is `γ`, of a layout whose `old` is `k` long. -/
+def LentOk (T : GMap GoString GName) (Ls : GMap GoString WalLay) (dir : GoString) (x : GName × Nat) :
+    Prop :=
+  T !! dir = some x.1 ∧ ∃ lay, Ls !! dir = some lay ∧ lay.old.length = x.2
 
-theorem OldOk.empty (Ls : GMap GoString WalLay) : OldOk ∅ Ls := fun _ _ _ h => by
-  rw [GMap.lookup_empty] at h; cases h
+/-- **The lent tails** (I3b, `wal-tc14`): the authority of `walLentTok`'s map, and for each lent
+directory its tail's key (`walTailKey`, out of the handle's reach while lent), the tail registered
+and its `old` as long as recorded. A framed conjunct of `walTailsRes`: a step that keeps every
+layout's `old` (`tailLay`, the resizes, appends) carries it unchanged (`walLentRes_insert_same`); one
+that changes the tail's `old` (a cut, the window's fdatasync) or removes the tail (`Close`) holds the
+key, so the tail is not lent (`walLentRes_insert_key`, `walLentRes_unreg`). -/
+def walLentRes (T : GMap GoString GName) (Ls : GMap GoString WalLay) : IProp GF :=
+  iprop(∃ M : GMap GoString (GName × Nat), walLentAuth (W := W) M ∗
+    [∗map] dir ↦ x ∈ M, ⌜LentOk T Ls dir x⌝ ∗ walTailKey (W := W) dir x.1)
 
-/-- A layout replaced by one whose cuts extend its own, `old` as long if the cuts are the same. -/
-theorem OldOk.insert_ext {M : GMap (GoString × List Nat) Nat} {Ls : GMap GoString WalLay}
-    {dir : GoString} {lay lay' : WalLay} (h : OldOk M Ls) (hl : Ls !! dir = some lay)
-    (hc : lay.cuts <+: lay'.cuts) (ho : lay'.cuts = lay.cuts → lay'.old.length = lay.old.length) :
-    OldOk M (<[dir := lay']> Ls) := by
-  intro dir' c k hk
-  obtain ⟨la, hla, hcp, hk'⟩ := h dir' c k hk
-  by_cases e : dir' = dir
-  · subst e
-    rw [hl] at hla; cases hla
-    refine ⟨lay', GMap.lookup_insert _ _ _, hcp.trans hc, fun hce => ?_⟩
-    have h1 := hcp.length_le
-    have h2 := hc.length_le
-    have hcl : c = lay.cuts := hcp.eq_of_length (by rw [hce] at h1 ⊢; omega)
-    rw [hk' hcl, ho (by rw [← hce, hcl])]
-  · exact ⟨la, by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hla, hcp, hk'⟩
+instance walLentRes_timeless (T : GMap GoString GName) (Ls : GMap GoString WalLay) :
+    Timeless (walLentRes (W := W) T Ls) := by
+  unfold walLentRes walTailKey
+  letI := walAllG (W := W)
+  infer_instance
 
-/-- A layout replaced by one with the same cuts and an `old` as long. -/
-theorem OldOk.insert_same {M : GMap (GoString × List Nat) Nat} {Ls : GMap GoString WalLay}
-    {dir : GoString} {lay lay' : WalLay} (h : OldOk M Ls) (hl : Ls !! dir = some lay)
-    (hc : lay'.cuts = lay.cuts) (ho : lay'.old.length = lay.old.length) :
-    OldOk M (<[dir := lay']> Ls) :=
-  h.insert_ext hl (by rw [hc]; exact List.prefix_refl _) (fun _ => ho)
-
-/-- A new directory's layout. -/
-theorem OldOk.insert_new {M : GMap (GoString × List Nat) Nat} {Ls : GMap GoString WalLay}
-    {dir : GoString} {lay' : WalLay} (h : OldOk M Ls) (hl : Ls !! dir = none) :
-    OldOk M (<[dir := lay']> Ls) := by
-  intro dir' c k hk
-  obtain ⟨la, hla, hcp, hk'⟩ := h dir' c k hk
-  by_cases e : dir' = dir
-  · subst e; rw [hl] at hla; cases hla
-  · exact ⟨la, by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hla, hcp, hk'⟩
-
-/-- **The tails' old lengths** (I3b, `wal-tc13`): the authority of `walOldFrag`'s map, `OldOk` of the
-layouts. A framed conjunct of `walTailsRes`: only the steps that change the layouts touch it. -/
-def walOldsRes (Ls : GMap GoString WalLay) : IProp GF :=
-  iprop(∃ M, walOldsAuth (W := W) M ∗ ⌜OldOk M Ls⌝)
-
-instance walOldsRes_timeless (Ls : GMap GoString WalLay) : Timeless (walOldsRes (W := W) Ls) := by
-  unfold walOldsRes; infer_instance
-
-theorem walOldsRes_init (Ls : GMap GoString WalLay) :
-    walOldsAuth (W := W) ∅ ⊢ walOldsRes (W := W) Ls := by
-  unfold walOldsRes
+theorem walLentRes_init (T : GMap GoString GName) (Ls : GMap GoString WalLay) :
+    walLentAuth (W := W) ∅ ⊢ walLentRes (W := W) T Ls := by
+  unfold walLentRes
   iintro Ha
   iexists ∅
   iframe Ha
-  ipureintro; exact OldOk.empty Ls
+  iapply BigSepM.bigSepM_empty.2; iempintro
 
-theorem walOldsRes_insert_ext (Ls : GMap GoString WalLay) (dir : GoString) (lay lay' : WalLay)
-    (hl : Ls !! dir = some lay) (hc : lay.cuts <+: lay'.cuts)
-    (ho : lay'.cuts = lay.cuts → lay'.old.length = lay.old.length) :
-    walOldsRes (W := W) Ls ⊢ walOldsRes (W := W) (<[dir := lay']> Ls) := by
-  unfold walOldsRes
-  iintro ⟨%M, Ha, %h⟩
+/-- The lent tails' entries under a change of the registrations and layouts that keeps each lent one. -/
+theorem walLentRes_mono (T T' : GMap GoString GName) (Ls Ls' : GMap GoString WalLay)
+    (h : ∀ dir x, LentOk T Ls dir x → LentOk T' Ls' dir x) :
+    walLentRes (W := W) T Ls ⊢ walLentRes (W := W) T' Ls' := by
+  unfold walLentRes
+  iintro ⟨%M, Ha, Hm⟩
   iexists M
   iframe Ha
-  ipureintro; exact h.insert_ext hl hc ho
+  iapply BigSepM.bigSepM_mono (fun {k x} _ => ?_) $$ Hm
+  iintro ⟨%hk, Hk⟩
+  iframe Hk
+  ipureintro; exact h k x hk
 
-theorem walOldsRes_insert_same (Ls : GMap GoString WalLay) (dir : GoString) (lay lay' : WalLay)
-    (hl : Ls !! dir = some lay) (hc : lay'.cuts = lay.cuts) (ho : lay'.old.length = lay.old.length) :
-    walOldsRes (W := W) Ls ⊢ walOldsRes (W := W) (<[dir := lay']> Ls) :=
-  walOldsRes_insert_ext Ls dir lay lay' hl (by rw [hc]; exact List.prefix_refl _) (fun _ => ho)
+/-- **A layout replaced, its `old` as long** (any step but a cut and the window's fdatasync). -/
+theorem walLentRes_insert_same (T : GMap GoString GName) (Ls : GMap GoString WalLay) (dir : GoString)
+    (lay lay' : WalLay) (hl : Ls !! dir = some lay) (ho : lay'.old.length = lay.old.length) :
+    walLentRes (W := W) T Ls ⊢ walLentRes (W := W) T (<[dir := lay']> Ls) := by
+  refine walLentRes_mono T T Ls _ fun d x ⟨hT, la, hla, hk⟩ => ⟨hT, ?_⟩
+  by_cases e : d = dir
+  · subst e; rw [hl] at hla; cases hla
+    exact ⟨lay', GMap.lookup_insert _ _ _, by rw [ho, hk]⟩
+  · exact ⟨la, by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hla, hk⟩
 
-theorem walOldsRes_insert_new (Ls : GMap GoString WalLay) (dir : GoString) (lay' : WalLay)
-    (hl : Ls !! dir = none) :
-    walOldsRes (W := W) Ls ⊢ walOldsRes (W := W) (<[dir := lay']> Ls) := by
-  unfold walOldsRes
-  iintro ⟨%M, Ha, %h⟩
+/-- **A new directory's layout** (`Create`). -/
+theorem walLentRes_insert_new (T : GMap GoString GName) (Ls : GMap GoString WalLay) (dir : GoString)
+    (lay' : WalLay) (hl : Ls !! dir = none) :
+    walLentRes (W := W) T Ls ⊢ walLentRes (W := W) T (<[dir := lay']> Ls) := by
+  refine walLentRes_mono T T Ls _ fun d x ⟨hT, la, hla, hk⟩ => ⟨hT, la, ?_, hk⟩
+  by_cases e : d = dir
+  · subst e; rw [hl] at hla; cases hla
+  · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hla
+
+/-- **The holder of a tail's key: the tail is not lent.** -/
+theorem walLentRes_notLent (T : GMap GoString GName) (Ls : GMap GoString WalLay) (dir : GoString)
+    (γ : GName) :
+    ⊢ walTailKey (W := W) dir γ -∗ walLentRes (W := W) T Ls -∗
+      ∃ M : GMap GoString (GName × Nat), ⌜M !! dir = none⌝ ∗ walTailKey (W := W) dir γ ∗
+        walLentAuth (W := W) M ∗
+        [∗map] dir ↦ x ∈ M, ⌜LentOk T Ls dir x⌝ ∗ walTailKey (W := W) dir x.1 := by
+  unfold walLentRes
+  iintro Hk ⟨%M, Ha, Hm⟩
+  cases hM : M !! dir with
+  | none => iexists M; iframe Hk Ha Hm; ipureintro; exact hM
+  | some x =>
+    ihave ⟨⟨-, Hk'⟩, -⟩ := (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (x : GName × Nat) =>
+      iprop(⌜LentOk T Ls dir x⌝ ∗ walTailKey (W := W) dir x.1)) hM).1 $$ Hm
+    iexfalso
+    iapply walTailKey_excl $$ Hk Hk'
+
+/-- **The tail's layout replaced by its key's holder** (a cut, the window's fdatasync): any `old`. -/
+theorem walLentRes_insert_key (T : GMap GoString GName) (Ls : GMap GoString WalLay) (dir : GoString)
+    (γ : GName) (lay' : WalLay) :
+    ⊢ walTailKey (W := W) dir γ -∗ walLentRes (W := W) T Ls -∗
+      walTailKey (W := W) dir γ ∗ walLentRes (W := W) T (<[dir := lay']> Ls) := by
+  iintro Hk HL
+  icases walLentRes_notLent T Ls dir γ $$ Hk HL with ⟨%M, %hM, Hk, Ha, Hm⟩
+  iframe Hk
+  unfold walLentRes
   iexists M
   iframe Ha
-  ipureintro; exact h.insert_new hl
+  iapply BigSepM.bigSepM_mono (fun {k x} hk => ?_) $$ Hm
+  iintro ⟨%hx, Hk⟩
+  iframe Hk
+  ipureintro
+  have e : k ≠ dir := by
+    change M !! k = some x at hk; rintro rfl; rw [hM] at hk; cases hk
+  obtain ⟨hT, la, hla, hlen⟩ := hx
+  exact ⟨hT, la, by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hla, hlen⟩
 
-/-- **A layout step the old-length map allows**: the cuts extended, `old` as long while they stay. -/
-def OldStep (lay lay' : WalLay) : Prop :=
-  lay.cuts <+: lay'.cuts ∧ (lay'.cuts = lay.cuts → lay'.old.length = lay.old.length)
+/-- **The tail's layout to be replaced by its key's holder**, the new layout chosen later (`walTailsRes_cut`). -/
+theorem walLentRes_free (T : GMap GoString GName) (Ls : GMap GoString WalLay) (dir : GoString)
+    (γ : GName) :
+    ⊢ walTailKey (W := W) dir γ -∗ walLentRes (W := W) T Ls -∗
+      walTailKey (W := W) dir γ ∗ ∀ lay' : WalLay, walLentRes (W := W) T (<[dir := lay']> Ls) := by
+  iintro Hk HL
+  icases walLentRes_notLent T Ls dir γ $$ Hk HL with ⟨%M, %hM, Hk, Ha, Hm⟩
+  iframe Hk
+  iintro %lay'
+  unfold walLentRes
+  iexists M
+  iframe Ha
+  iapply BigSepM.bigSepM_mono (fun {k x} hk => ?_) $$ Hm
+  iintro ⟨%hx, Hk⟩
+  iframe Hk
+  ipureintro
+  have e : k ≠ dir := by
+    change M !! k = some x at hk; rintro rfl; rw [hM] at hk; cases hk
+  obtain ⟨hT, la, hla, hlen⟩ := hx
+  exact ⟨hT, la, by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hla, hlen⟩
 
-theorem OldStep.same {lay lay' : WalLay} (hc : lay'.cuts = lay.cuts)
-    (ho : lay'.old.length = lay.old.length) : OldStep lay lay' :=
-  ⟨by rw [hc]; exact List.prefix_refl _, fun _ => ho⟩
+/-- **A tail registered** (`T` gains a directory it did not have). -/
+theorem walLentRes_reg (T : GMap GoString GName) (Ls : GMap GoString WalLay) (dir : GoString)
+    (γ : GName) (hT : T !! dir = none) :
+    walLentRes (W := W) T Ls ⊢ walLentRes (W := W) (<[dir := γ]> T) Ls :=
+  walLentRes_mono T _ Ls Ls fun d x ⟨hT', hl⟩ => ⟨by
+    have e : d ≠ dir := by rintro rfl; rw [hT] at hT'; cases hT'
+    rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hT', hl⟩
 
-/-- A cut: the cuts grow by one. -/
-theorem OldStep.cut {lay lay' : WalLay} (b : Nat) (hc : lay'.cuts = lay.cuts ++ [b]) :
-    OldStep lay lay' :=
-  ⟨by rw [hc]; exact List.prefix_append _ _, fun h => by
-    rw [h] at hc; have := congrArg List.length hc; simp at this⟩
+/-- **A tail removed by its key's holder** (`Close`). -/
+theorem walLentRes_unreg (T : GMap GoString GName) (Ls : GMap GoString WalLay) (dir : GoString)
+    (γ : GName) :
+    ⊢ walTailKey (W := W) dir γ -∗ walLentRes (W := W) T Ls -∗
+      walTailKey (W := W) dir γ ∗ walLentRes (W := W) (GMap.delete dir T) Ls := by
+  iintro Hk HL
+  icases walLentRes_notLent T Ls dir γ $$ Hk HL with ⟨%M, %hM, Hk, Ha, Hm⟩
+  iframe Hk
+  unfold walLentRes
+  iexists M
+  iframe Ha
+  iapply BigSepM.bigSepM_mono (fun {k x} hk => ?_) $$ Hm
+  iintro ⟨%hx, Hk⟩
+  iframe Hk
+  ipureintro
+  have e : k ≠ dir := by
+    change M !! k = some x at hk; rintro rfl; rw [hM] at hk; cases hk
+  obtain ⟨hT, hl⟩ := hx
+  exact ⟨by rw [GMap.lookup_delete_ne _ (Ne.symm e)]; exact hT, hl⟩
 
-theorem walOldsRes_step (Ls : GMap GoString WalLay) (dir : GoString) (lay lay' : WalLay)
-    (hl : Ls !! dir = some lay) (h : OldStep lay lay') :
-    walOldsRes (W := W) Ls ⊢ walOldsRes (W := W) (<[dir := lay']> Ls) :=
-  walOldsRes_insert_ext Ls dir lay lay' hl h.1 h.2
-
-/-- **A tail's old length handed out** (persistent). -/
-theorem walOldsRes_mint (Ls : GMap GoString WalLay) (dir : GoString) (lay : WalLay)
-    (hl : Ls !! dir = some lay) :
-    ⊢ walOldsRes (W := W) Ls ==∗ walOldsRes (W := W) Ls ∗ walOldFrag (W := W) dir lay.cuts lay.old.length := by
-  unfold walOldsRes
-  iintro ⟨%M, Ha, %h⟩
-  cases hM : M !! (dir, lay.cuts) with
-  | none =>
-    imod walOldFrag_insert (W := W) M dir lay.cuts lay.old.length hM $$ Ha with ⟨Ha, Hk⟩
-    imodintro
-    iframe Hk
-    iexists _
-    iframe Ha
-    ipureintro
-    intro dir' c k hk
-    by_cases e : (dir, lay.cuts) = (dir', c)
-    · obtain ⟨rfl, rfl⟩ := Prod.mk.inj e
-      rw [GMap.lookup_insert] at hk; cases hk
-      exact ⟨lay, hl, List.prefix_refl _, fun _ => rfl⟩
-    · rw [GMap.lookup_insert_ne _ _ e] at hk
-      exact h dir' c k hk
-  | some k =>
-    obtain ⟨la, hla, -, hk⟩ := h dir lay.cuts k hM
-    rw [hl] at hla; cases hla
-    icases walOldsAuth_get (W := W) M dir lay.cuts k hM $$ Ha with ⟨Ha, Hk⟩
-    rw [← hk rfl]
-    imodintro
-    iframe Hk
-    iexists M
-    iframe Ha
-    ipureintro; exact h
-
-/-- **A tail's old length read off the map**: the length of `old` while the cuts are `c`. -/
-theorem walOldsRes_agree (Ls : GMap GoString WalLay) (dir : GoString) (c : List Nat) (k : Nat) :
-    ⊢ walOldsRes (W := W) Ls -∗ walOldFrag (W := W) dir c k -∗
-      ⌜∀ lay, Ls !! dir = some lay → lay.cuts = c → k = lay.old.length⌝ ∗ walOldsRes (W := W) Ls := by
-  unfold walOldsRes
-  iintro ⟨%M, Ha, %h⟩ Hk
-  icases walOldFrag_lookup (W := W) M dir c k $$ Ha Hk with %hM
+/-- **A lent tail's facts**: registered at its record's name, its `old` as long as lent. -/
+theorem walLentRes_lookup (T : GMap GoString GName) (Ls : GMap GoString WalLay) (dir : GoString)
+    (γ : GName) (k : Nat) :
+    ⊢ walLentTok (W := W) dir γ k -∗ walLentRes (W := W) T Ls -∗
+      ⌜LentOk T Ls dir (γ, k)⌝ ∗ walLentTok (W := W) dir γ k ∗ walLentRes (W := W) T Ls := by
+  unfold walLentRes
+  iintro Hl ⟨%M, Ha, Hm⟩
+  icases walLentTok_lookup M dir γ k $$ Ha Hl with %hM
+  ihave ⟨⟨%hx, Hk⟩, Hm⟩ := (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (x : GName × Nat) =>
+    iprop(⌜LentOk T Ls dir x⌝ ∗ walTailKey (W := W) dir x.1)) hM).1 $$ Hm
+  iframe Hl
   isplitr
-  · ipureintro
-    intro lay hl hc
-    obtain ⟨la, hla, -, hk⟩ := h dir c k hM
-    rw [hl] at hla; cases hla
-    exact hk hc.symm
+  · ipureintro; exact hx
   iexists M
   iframe Ha
-  ipureintro; exact h
+  iapply (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (x : GName × Nat) =>
+    iprop(⌜LentOk T Ls dir x⌝ ∗ walTailKey (W := W) dir x.1)) hM).2
+  iframe Hm Hk
+  ipureintro; exact hx
+
+/-- **A tail lent** by its key's holder: the key into the invariant, the token out, its `old` as long
+as the layout's. -/
+theorem walLentRes_lend (T : GMap GoString GName) (Ls : GMap GoString WalLay) (dir : GoString)
+    (γ : GName) (lay : WalLay) (hT : T !! dir = some γ) (hl : Ls !! dir = some lay) :
+    ⊢ walTailKey (W := W) dir γ -∗ walLentRes (W := W) T Ls ==∗
+      walLentTok (W := W) dir γ lay.old.length ∗ walLentRes (W := W) T Ls := by
+  iintro Hk HL
+  icases walLentRes_notLent T Ls dir γ $$ Hk HL with ⟨%M, %hM, Hk, Ha, Hm⟩
+  imod walLentTok_insert M dir γ lay.old.length hM $$ Ha with ⟨Ha, Hl⟩
+  imodintro
+  iframe Hl
+  unfold walLentRes
+  iexists _
+  iframe Ha
+  iapply (BigSepM.bigSepM_insert (Φ := fun (dir : GoString) (x : GName × Nat) =>
+    iprop(⌜LentOk T Ls dir x⌝ ∗ walTailKey (W := W) dir x.1)) hM).2
+  iframe Hm Hk
+  ipureintro; exact ⟨hT, lay, hl, rfl⟩
+
+/-- **A lent tail returned**: the token in, the key out. -/
+theorem walLentRes_unlend (T : GMap GoString GName) (Ls : GMap GoString WalLay) (dir : GoString)
+    (γ : GName) (k : Nat) :
+    ⊢ walLentTok (W := W) dir γ k -∗ walLentRes (W := W) T Ls ==∗
+      walTailKey (W := W) dir γ ∗ walLentRes (W := W) T Ls := by
+  unfold walLentRes
+  iintro Hl ⟨%M, Ha, Hm⟩
+  icases walLentTok_lookup M dir γ k $$ Ha Hl with %hM
+  ihave ⟨⟨-, Hk⟩, Hm⟩ := (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (x : GName × Nat) =>
+    iprop(⌜LentOk T Ls dir x⌝ ∗ walTailKey (W := W) dir x.1)) hM).1 $$ Hm
+  imod walLentTok_delete M dir γ k $$ Ha Hl with Ha
+  imodintro
+  iframe Hk
+  iexists _
+  iframe Ha Hm
 
 /-- **The open handles' tails** (W6): the invariant's half of the tails' authority, a change in
 flight only on a registered tail (`TailsOnly`), and for each directory with an open handle, its WAL
 and layout, the last segment, F-Z, the record boundary (`TailBound`), and the invariant's half of the
-tail; every other WAL idle (`WalTailIdle`); the tails' old lengths (`walOldsRes`). -/
+tail; every other WAL idle (`WalTailIdle`); the lent tails (`walLentRes`). -/
 def walTailsRes (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (Ls : GMap GoString WalLay)
     (F : GMap Ino SegFl) : IProp GF :=
   letI := walAllG (W := W)
@@ -904,7 +954,7 @@ def walTailsRes (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (Ls : GMap G
     ([∗map] dir ↦ γ ∈ T, ∃ (d : WalDur) (lay : WalLay) (g : SegG),
       ⌜s.wal !! dir = some d ∧ Ls !! dir = some lay ∧ lay.segs.getLast? = some g ∧ TailZeros lay ∧
         TailBound C Mr d lay⌝ ∗
-      ghostVar γ (1 : Qp).half (tailG d lay g.ino (F !! g.ino))) ∗ walOldsRes (W := W) Ls)
+      ghostVar γ (1 : Qp).half (tailG d lay g.ino (F !! g.ino))) ∗ walLentRes (W := W) T Ls)
 
 instance walTailsRes_timeless (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState)
     (Ls : GMap GoString WalLay) (F : GMap Ino SegFl) :
@@ -930,14 +980,13 @@ theorem walTailsRes_mono (C : WalCodec) (Mr : WalMarshal) (s s' : AbsDiskState) 
     walTailsRes (W := W) C Mr s Ls F ⊢ walTailsRes (W := W) C Mr s' Ls F := by
   unfold walTailsRes
   letI := walAllG (W := W)
-  iintro ⟨%T, Ha, %Ho, %Hi, Hm, HOld⟩
+  iintro ⟨%T, Ha, %Ho, %Hi, Hm, HL⟩
   iexists T
-  iframe Ha
+  iframe Ha HL
   isplitr
   · ipureintro; exact Ho
   isplitr
   · ipureintro; exact Hi.mono h'
-  iframe HOld
   iapply BigSepM.bigSepM_mono_of_forall _ $$ Hm
   intro dir γ
   iintro ⟨%d, %lay, %g, %hp, Hv⟩
@@ -1116,14 +1165,14 @@ theorem walTailsRes_none (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (Ls
     ⊢ walTailsRes (W := W) C Mr s Ls F -∗ walTailsFrag (W := W) ∅ -∗
       ⌜∀ i, F !! i = none⌝ ∗ walTailsRes (W := W) C Mr s Ls F ∗ walTailsFrag (W := W) ∅ := by
   unfold walTailsRes
-  iintro ⟨%T, Ha, %Ho, %Hi, Hm, HOld⟩ Hf
+  iintro ⟨%T, Ha, %Ho, %Hi, Hm, HL⟩ Hf
   icases walTails_agree (W := W) T ∅ $$ Ha Hf with %hT
   subst hT
   iframe Hf
   isplitr
   · ipureintro; exact Ho.none_of_empty
   iexists ∅
-  iframe Ha Hm HOld
+  iframe Ha Hm HL
   ipureintro; exact ⟨Ho, Hi⟩
 
 /-- **The program's halves, parked** (W3/W5's gap 2, framed): the parking flag's invariant half

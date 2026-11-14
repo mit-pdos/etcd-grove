@@ -311,7 +311,7 @@ theorem walInvBody_syncIdle (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
   · iframe Hcl Hn
   -- the WAL is idle: no tail registered, nothing in flight
   iunfold walTailsRes at Htl
-  icases Htl with ⟨%T, HTa, %HTo, %HTi, HTm, HOld⟩
+  icases Htl with ⟨%T, HTa, %HTo, %HTi, HTm, HL⟩
   icases walTails_agree (W := W) T ∅ $$ HTa Hf with %hT
   subst hT
   have hF : F = ∅ := (GMap.lookup_empty_iff F).1 (TailsOnly.none_of_empty HTo)
@@ -360,11 +360,11 @@ theorem walInvBody_syncIdle (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
     · ipureintro; exact walsOk_syncIdle HW hd hl hs hid hok
     isplitr
     · ipureintro; exact HWC
-    isplitl [HTa HOld]
+    isplitl [HTa HL]
     · unfold walTailsRes
-      ihave HOld := walOldsRes_insert_same (W := W) Ls dir lay (syncLay lay pre g0) hl rfl rfl $$ HOld
       iexists ∅
-      iframe HTa HOld
+      ihave HL := walLentRes_insert_same (W := W) _ Ls dir lay (syncLay lay pre g0) hl rfl $$ HL
+      iframe HTa HL
       isplitr
       · ipureintro; intro i hi; exact absurd (he0 i) hi
       isplitr
@@ -413,10 +413,10 @@ theorem walInvBody_syncIdle (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
     · ipureintro; exact HW
     isplitr
     · ipureintro; exact HWC
-    isplitl [HTa HTm HOld]
+    isplitl [HTa HTm HL]
     · unfold walTailsRes
       iexists ∅
-      iframe HTa HTm HOld
+      iframe HTa HTm HL
       ipureintro; exact ⟨HTo, HTi⟩
     isplitr
     · ipureintro; exact Hab

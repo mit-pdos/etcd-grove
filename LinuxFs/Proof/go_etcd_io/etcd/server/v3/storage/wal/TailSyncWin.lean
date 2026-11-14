@@ -418,26 +418,22 @@ theorem syncLay_any {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} {jr
     (hs : lay.segs = pre ++ [g0])
     (htail : lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length) (hZ : TailZeros lay)
     (hzf : ∀ z, g0.om.zf = some z → g0.bs.length ≤ z) (hK : DirKeysOk C Mr jr s Ls cl n K none)
-    (habs : WalAbsD C Mr d lay ents) (hold : ¬ SegExact g0 → g0.bs.length = lay.old.length) :
+    (habs : WalAbsD C Mr d lay ents) :
     ∃ L : WalLay, L.segs = pre ++ [syncTail g0] ∧ L.j = lay.j ∧ L.nm = lay.nm ∧
-      L.cuts = lay.cuts ∧ L.wr = lay.wr ∧ L.old.length = lay.old.length ∧ TailZeros L ∧
+      L.cuts = lay.cuts ∧ L.wr = lay.wr ∧ TailZeros L ∧
       TailBound C Mr { d with m := d.H.length } L ∧
       WalsOk C Mr R jr (walSyncS s dir d) (<[dir := L]> Ls) cl n ∧
       DirKeysOk C Mr jr (walSyncS s dir d) (<[dir := L]> Ls) cl n K none := by
   have hok : CrashOk C Mr d lay cl n :=
     (crashOkA_none_iff _ _ _ _ _ _).1 (hK.2.1 dir d lay hd hl (by simp))
   by_cases hex : SegExact g0
-  · exact ⟨syncLay lay pre g0, rfl, rfl, rfl, rfl, rfl, rfl, hZ, tailBound_sync habs hs htail,
+  · exact ⟨syncLay lay pre g0, rfl, rfl, rfl, rfl, rfl, hZ, tailBound_sync habs hs htail,
       walsOk_sync hC hW hd hl hs htail hZ hzf hex hok,
       dirKeysOk_sync hC hW hd hl hs htail hZ hzf hex hK⟩
   · have hg0 : lay.segs.getLast? = some g0 := by rw [hs]; simp
     have hwo : lay.wr ≤ lay.old.length := by
       obtain ⟨-, -, h3, h4, -⟩ := habs.lastWin g0 hg0; omega
-    have hwb : lay.wr ≤ g0.bs.length := by
-      obtain ⟨-, -, -, h4, -⟩ := habs.lastWin g0 hg0; exact h4
-    exact ⟨syncLayW lay pre g0, rfl, rfl, rfl, rfl, rfl,
-      by simp only [syncLayW, syncLay]; rw [syncOld_length _ _ _ hwo, ← hold hex]; omega,
-      tailZeros_syncW hZ hwo,
+    exact ⟨syncLayW lay pre g0, rfl, rfl, rfl, rfl, rfl, tailZeros_syncW hZ hwo,
       tailBound_syncW habs hs htail,
       walsOk_syncW hC hW hd hl hs htail hZ hzf hex hok,
       dirKeysOk_syncW hC hW hd hl hs htail hZ hzf hex hK⟩
