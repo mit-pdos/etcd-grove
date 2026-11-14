@@ -1435,8 +1435,19 @@ holds some mode). Nothing proves the new models yet.
   `Err`), which the pure `E` could not carry, so the decoder's `isEofOk` had to claim it of every
   `*PathError`, false for `&PathError{Err: io.EOF}`. New hypothesis (true of Go, not an axiom):
   `errors.IsPathErrnoEof.spec`.
+- **`io.Copy(bf, f)` of two `*os.File`s** (`wal-repair19`, 2026-11-14; **a missing trusted model, pending the
+  user**): `Repair` copies the torn segment into its `.broken` file with `io.Copy`, which on `*os.File` goes through
+  `File.ReadFrom` (Linux: `copy_file_range`/`splice`/`sendfile`, then a generic loop) or `File.WriteTo`: neither is
+  translated nor modelled (§4.3). `Repair.wp_proof` will take it as a hypothesis: a triple over the destination's whole
+  file (`osMeta`/`osBytes` of `bf`'s inode) and the source's stream from its offset (the program's halves of the
+  segment, the offset 0 after `Seek`), returning `(n, err)` with the destination's bytes extended by a prefix of the
+  source's (any prefix on an error; the whole rest on `nil`) and the source's offset moved by `n`; the source's bytes
+  unchanged. Only the `.broken` file's content depends on it, which `Repair`'s spec does not mention (it claims nothing
+  past the WAL's state), so a weaker hypothesis (the destination file changed arbitrarily within its claim) also
+  suffices. To be replaced by a model of `File.ReadFrom`'s generic path once the user decides.
 
-**Pending the user's review (trusted or axiomatic), all off `lean`:** the `io.ReadFull` axiom's restatement
+**Pending the user's review (trusted or axiomatic), all off `lean`:** the `io.Copy`-of-`*os.File` hypothesis of
+`Repair` (2026-11-14, above); the `io.ReadFull` axiom's restatement
 with the reader's error evidence (2026-11-14, `wal-readall17`, above); the file-size bound of `fsExt` (2026-11-14, `Impl.lean`'s
 `maxBytes`, ext4's `s_maxbytes` on C: `PWriteFinish`, `FtruncateFinish`, `FallocFinish`, `CrashFile`, `FsInit`;
 `examples/osfs/semantics/data_maxbytes.go`, measured on C; W6 log, fourteenth session); the `ENOENT` rule of `fsExt`
