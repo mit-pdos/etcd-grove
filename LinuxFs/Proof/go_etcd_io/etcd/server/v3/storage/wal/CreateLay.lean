@@ -8,11 +8,14 @@ What the invariant holds of the WAL `Create` commits (`walCreate_osAUnc`'s `habs
 
 * `createLay`: the layout.
 * `createLay_abs`: its static relation `WalAbsD` over a directory whose `.wal` entries are `g` alone.
+* `createSeg`, `createSeg_facts`: the segment after the header stream over the preallocated zeros and
+  the fdatasync (`SaveSnapshot.specPre`'s `os.fileS`).
 -/
 module
 
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateHdr
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Cut
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutHdr
 
 @[expose] public section
 
@@ -122,6 +125,54 @@ theorem createLay_abs (Mr : WalMarshal) (md : List w8) (hMr : WalMarshalCreateOk
     omega
   · simp [createLay]
   · simp [createLay]
+
+/-- **The fresh WAL's segment** after the header stream and its fdatasync: its inode `i`, the synced
+`OsMeta`, every byte durable. -/
+def createSeg (i : Ino) (mS : OsMeta) (ysS : List ByteG) : SegG :=
+  ⟨walFileName 0 0, i, mS.synced, ysS.map (fun x => durB x.1)⟩
+
+/-- **The segment's facts** (`createLay_abs`'s and `walCreate_osAUnc`'s premises on it): the stream then
+zeros, durable; its `OsMeta` exact, no sync cut; the zeros known past its end; its length past the
+stream by 0 or at least a frame. -/
+theorem createSeg_facts (Mr : WalMarshal) (md : List w8) (hMr : WalMarshalCreateOk Mr) (i : Ino)
+    (m2 mS : OsMeta) (zs2 : List Cands) (ysS : List ByteG)
+    (hok : os.StreamOk m2 0 (zs2.map (fun c => ((0 : w8), c))) (createStream Mr md) mS ysS)
+    (hm2s : m2.size = 64000000) (hm2c : m2.cut = none) :
+    let g := createSeg i mS ysS
+    (g.bs = (createStream Mr md ++
+      List.replicate (g.bs.length - (createStream Mr md).length) 0).map durB ∧
+      (createStream Mr md).length ≤ g.bs.length) ∧
+    (g.om.size = g.bs.length ∧ g.om.cut = none ∧ g.om.lo = g.bs.length ∧ g.om.hi = g.bs.length) ∧
+    (∀ z, g.om.zf = some z → g.bs.length ≤ z) ∧ g.bs ≠ [] ∧
+    (g.bs.length - (createStream Mr md).length = 0 ∨ 8 ≤ g.bs.length - (createStream Mr md).length) ∧
+    (∀ y ∈ g.bs, y = durB y.1) := by
+  intro g
+  have hv := streamOk_vals hok (fun x hx => by
+    obtain ⟨c, -, rfl⟩ := List.mem_map.1 hx; rfl)
+  have hyl : ysS.length = mS.size := by have := hok.2.2.2.2.2.2.1; omega
+  have hcut : mS.cut = none := by rw [metaChain_cut hok.2.1, hm2c]
+  have hsz : mS.size = max 64000000 (createStream Mr md).length := by
+    rw [metaChain_size hok.2.1 (by omega), hm2s]; simp
+  have hgl : g.bs.length = mS.size := by simp [g, createSeg, hyl]
+  have h8 := createStream_mod8 Mr md
+  refine ⟨⟨?_, ?_⟩, ⟨?_, ?_, ?_, ?_⟩, ?_, ?_, ?_, ?_⟩
+  · show ysS.map (fun x => durB x.1) = _
+    rw [hv.1]; simp [g, createSeg]
+  · rw [hgl, hsz]; omega
+  · simp [g, createSeg, OsMeta.synced, hgl, hyl]
+  · simp [g, createSeg, OsMeta.synced, hcut]
+  · simp [g, createSeg, OsMeta.synced, hgl, hyl]
+  · simp [g, createSeg, OsMeta.synced, hgl, hyl]
+  · intro z hz
+    simp only [g, createSeg, OsMeta.synced, Option.some.injEq] at hz
+    rw [hgl, ← hz]; unfold OsMeta.syncZ; have := le_pageEnd mS.size; split <;> omega
+  · intro he
+    have := congrArg List.length he
+    rw [hgl, hsz] at this; simp at this
+  · rw [hgl, hsz]; omega
+  · intro y hy
+    obtain ⟨x, -, rfl⟩ := List.mem_map.1 hy
+    rfl
 
 end pure
 
