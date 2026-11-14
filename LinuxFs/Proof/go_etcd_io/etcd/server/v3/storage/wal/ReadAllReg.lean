@@ -2,16 +2,10 @@
 
 # `ReadAll`'s tail registration (W3/W5 of `notes/wal-fsext-plan.md`, twenty-third session)
 
-`ReadAll` in write mode makes the WAL's last segment its handle's tail: its `ZeroToEnd`, fdatasync and
-encoder work on a registered tail (`walTailW`: the tail record `γ`, half in the invariant's
-`walTailsRes`), so the tail is registered when the invariant is looked at, before the loop
-(`walInv_readFiles`'s facts, `walTailsRes_register`'s registration). **`walInvRegisterTailLaw`** is that
-look with the registration, a hypothesis of `WAL.ReadAll.wp_proof` until the invariant's
-registration premise lands (I3b, branch `wal-tc14`: `walTailsRes_register`'s `TailZeros lay` relaxed to
-`TailZeros lay ∨ lay.wr = lay.z0`). Its post: `walInv_readFiles`' facts; the holder's half of the
-tails' authority with `dir ↦ γ`, the key, the program's half of the tail record `tailG d lay g.ino
-none` (`g` the last segment); the last segment's `OsMeta` exact (`TailMeta`: nothing in flight on it,
-its known zeros past the size), the invariant's at the pin (no handle held it).
+`ReadAll`'s tail, as the handle's: `walTailW_ofRead` (the decoder's stream state of the last file, a
+key and the tail record as `walTailW`; the pending registration's form is `walTailP_ofRead`,
+`ReadAllPend.lean`, over `walInvRegisterPendLaw`, `ReadAllRegPend.lean`, which replaced this file's
+`walInvRegisterTailLaw`, 2026-11-14).
 
 `walOpening_cutFrag`: the opening handle's lock token lends its pending-cut flag (`walCutFrag none`,
 which the tail's fdatasync takes).
@@ -37,30 +31,6 @@ section iris
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
   [GoGlobalContext] [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [W : WalGS GF]
-
-/-- **The look at the invariant before `ReadAll`'s loop, registering the tail** (see the file
-header). -/
-def walInvRegisterTailLaw (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) : Prop :=
-  ∀ (dir : GoString) (j : Ino) (X : List GoString) (hj0 : NamesH) (gs : List SegG) (gl : SegG),
-    (∀ g ∈ gs, hj0.cur !! g.name = some (.file g.ino)) →
-    (∃ kk, (walNames hj0.cur).drop kk = gs.map (·.name)) →
-    (∀ g ∈ gs, g.om.size = g.bs.length) → gs.getLast? = some gl →
-    ⊢ walInv (L := hG.goose_localGS) (W := W) C Mr R jr r -∗
-      notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗ walDirKey (W := W) dir j X -∗
-      osNames (L := hG.goose_localGS) j (.except X) (DFrac.own (1 : Qp).half) hj0 -∗
-      walTailsFrag (W := W) ∅ -∗
-      ([∗list] g ∈ gs, osMeta (L := hG.goose_localGS) g.ino (DFrac.own (1 : Qp).half) g.om ∗
-        osBytes (L := hG.goose_localGS) g.ino 0 (DFrac.own (1 : Qp).half) g.bs) ={⊤}=∗
-      notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗
-      osNames (L := hG.goose_localGS) j (.except X) (DFrac.own (1 : Qp).half) hj0 ∗
-      ([∗list] g ∈ gs, osMeta (L := hG.goose_localGS) g.ino (DFrac.own (1 : Qp).half) g.om ∗
-        osBytes (L := hG.goose_localGS) g.ino 0 (DFrac.own (1 : Qp).half) g.bs) ∗
-      ∃ (d : WalDur) (lay : WalLay) (kk : Nat) (γ : GName),
-        walTailsFrag (W := W) (<[dir := γ]> (∅ : GMap GoString GName)) ∗ walTailKey (W := W) dir γ ∗
-        (letI := walAllG (W := W); ghostVar γ (1 : Qp).half (tailG d lay gl.ino none)) ∗
-        ⌜lay.j = j ∧ WalAbsD C Mr d lay hj0.cur ∧ TailExact lay ∧
-          lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length ∧ lay.segs.drop kk = gs ∧
-          TailMeta gl.om gl.bs⌝
 
 /-- **The opening handle lends its pending-cut flag** (see the file header). -/
 theorem walOpening_cutFrag (w : Loc) (dir : GoString) (s : w64 × w64) :
