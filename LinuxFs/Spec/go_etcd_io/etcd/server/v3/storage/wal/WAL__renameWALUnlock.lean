@@ -7,8 +7,9 @@ what each piece is), its post `renameWAL`'s. A hypothesis of `renameWAL`'s proof
 `w.Close()` reaches `w.dirFile.Close()` with a nil `dirFile`** (the pre-rename `w` has none), which
 returned `ErrInvalid` in Go but was stuck in the trusted model of `(*os.File).Close` (plan §0, item 6;
 the model now returns it, `os.File.Close.specNil`); its `Open`/`ReadAll` need the area's resources
-(`walAreaRes`), which `Create` has split up by then, and its success arm (`renameWALPost`'s arm 2) is
-pending (ledger 2026-11-14). The pre carries the lock file and the encoder its `Close` consumes
+(`walAreaRes`), which `Create` has split up by then, and its success arm (`renameWALPost`'s arm 2, the handle before naming
+`walOpenWFU` and the caller's residue `UH`) needs a `RenameWALOk` law producing `UH` (ledger 2026-11-14,
+twenty-second W4 session). The pre carries the lock file and the encoder its `Close` consumes
 (`walLockIn`; nineteenth W4 session). Lean-first.
 -/
 module
@@ -40,7 +41,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWALUnlock.spec (P : WalPb
   ∀ (R : Roots) (jr J : Ino) (r dir nm tmp : GoString) (N : NameSet) (h : NamesH) (lb : Nat)
     (qp : Qp) (dq : DFrac) (w lg : Loc) (mds : GoSlice) (md : List w8) (e lt f : Loc)
     (snapi enti : w64) (fd : w64) (fname : GoString) (d : OsFd) (c : w32) (off : w64)
-    (U : Option (Nat × Nat) → IProp GF) (Sp : IProp GF) (SpR : Nat × Nat → IProp GF)
+    (U : Option (Nat × Nat) → IProp GF) (Sp : IProp GF) (SpR UH : Nat × Nat → IProp GF)
     (o : Option (Nat × Nat)),
   RenameWALOk R jr J r dir nm tmp N h lb dq U Sp SpR →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ osInv ∗
@@ -53,7 +54,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWALUnlock.spec (P : WalPb
       go!"renameWALUnlock")) (Val #(child r tmp)))
   {{ (w' : Loc) (err : GoInterface), RET (PairV #w' #err);
       renameWALPost P Mr R jr J r dir N h qp dq w lg mds md e lt f snapi enti fd fname d c off U Sp
-        SpR w' err }}
+        SpR UH w' err }}
 
 end spec
 

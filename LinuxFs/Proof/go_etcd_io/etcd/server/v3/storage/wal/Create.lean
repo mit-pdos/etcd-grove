@@ -763,7 +763,8 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
         createU_none Mr R jr r nm md Q hC J hJ' i m2 mS zs2 ysS _ hin hnm hMr hmd hctmp hJjr
           (Nat.le_max_left _ _) (Nat.le_max_right _ _) hJcoh hJcur hokS' hm2s hm2c⟩
     wp_apply _wp_renameWAL R jr J r (child r nm) nm (tmpName nm) (.only [nm, tmpName nm]) hC _
-      (e + a') (DFrac.own d) wl lg mp md enc lf f snapi' enti' fd _ _ _ _ _ _ _ hOk
+      (e + a') (DFrac.own d) wl lg mp md enc lf f snapi' enti' fd _ _ _ _ _ _ _
+      (createUH jr J r nm md Q Wn) hOk
       $$ [Hp Hperm HC Hau HSp HTmps Hpre fp dirFile Henc Hf Hfd Hoff] as %w' %err Hpost
     · iframe; iframe #
       iunfold walLockIn
@@ -771,11 +772,12 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
     unfold renameWALPost
     icases Hpost with ⟨Hp, Hpost⟩
     icases Hpost with (⟨%herr, %x, %fp, %γ, %sz, %df, %dfd, HU, HSpR, Hpre, Hlk, Hfpf, Hpipe, Hmain,
-        Ht1, Hdff, Hdf, Hdfd, Hsd, Hperm⟩ | ⟨%herr, %x, HU, HSpR, Hw, Hnmd, Hpw⟩ |
+        Ht1, Hdff, Hdf, Hdfd, Hsd, Hperm⟩ | ⟨%herr, %x, HUH, Hw, Hpw⟩ |
       ⟨%herr, HU, HC, Hperm, HSp, HTmps, -, Hll⟩ | ⟨%herr, %x, HU, HSpR, Hperm, Hll⟩)
     · -- committed, `w` returned: the parent's fsync, the registration, the handle (not yet)
       sorry
-    · -- committed, a reopened WAL returned: `renameWALPost`'s arm 2 is pending (ledger 2026-11-14)
+    · -- committed, a reopened WAL returned (the handle before naming, `walOpenWFU`, and `createUH`):
+      -- the parent's fsync, the naming (not yet)
       sorry
     · -- not committed: the unminting (`create_unmint`), the deferred `f.Close()` and
       -- `RemoveAll(nm.tmp)`, the abort over the area claim's rebuilt history (`create_abortTmpH`)
@@ -852,7 +854,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
     wp_apply wp_lockedCloseLeft wp_Close wp_CloseC lf f fd _ _ $$ [Hll] as %cerr -
     · iframe; iframe #
     iunfold createSpR at HSpR
-    icases HSpR with ⟨%hn, %ht, Hnm, Htmp, %hnt⟩
+    icases HSpR with ⟨%hn, %ht, Hnm, Htmp, %hnt, -, -⟩
     try wp_auto
     wp_apply +noauto wp_RmAbs r (tmpName nm) jr R (e + a') (DFrac.own 1) ht (1 : Qp).half
       (tmpName_nameOk hnmO) hnt.2 $$ [Hp Htmp Hperm] as %err' ⟨Hp, Htmp, Hperm, -⟩

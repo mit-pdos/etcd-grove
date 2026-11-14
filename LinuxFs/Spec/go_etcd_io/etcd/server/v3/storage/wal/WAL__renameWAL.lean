@@ -35,12 +35,15 @@ failed so the locks stayed open, or `OpenDir` failed after a committed rename) o
    the pipeline in `w.fp` (`isFilePipe`, `pipeMain γ 0`, the handle's `1.tmp` claim), the directory
    open in `w.dirFile` (`osDirFdS … .idle`), a spine to `dir`, half the call permission (the pipeline
    holds the other);
-2. *committed, a reopened WAL returned* (`renameWALUnlock`'s retry, then `Open`/`ReadAll`): the result,
-   `SpR`, the client handle, its named entry, the purge right. **Pending** (ledger 2026-11-14,
-   nineteenth W4 session): not provable as stated (`walOpenWF` holds `walNamed dir` and
-   `walNamesFrag none`, which only `Create`'s parent fsync and registration give, after `renameWAL`
-   returns; and the update's result holds the lock token the handle holds too): it needs a handle
-   before naming, not designed;
+2. *committed, a reopened WAL returned* (`renameWALUnlock`'s retry, then `Open`/`ReadAll`): the
+   reopened WAL as the handle before naming (`walOpenWFU`, `Handle.lean`: what `Create` builds from
+   arm 1 too, so that the two arms converge before the parent's fsync), its purge right, and the
+   caller's residue `UH x` (the update's result and `SpR` less what the reopened handle holds; a
+   parameter, `Create`'s `createUH`). Restated 2026-11-14 (ledger, twenty-second W4 session): the
+   arm returned `U (some x) ∗ SpR x ∗ walOpenWF … ∗ walNamed dir`, contradictory for `Create` (the
+   result and the handle both hold the lock token) and unprovable (`walNamed` needs the parent's
+   fsync). `renameWALUnlock`'s proof will need a `RenameWALOk` law from `U (some x) ∗ SpR x` to
+   `UH x` and the reopen's resources (to design with its `Open`/`ReadAll` variants);
 3. *not committed, an error*: everything back but `w`'s fields (perhaps not), the lock file open or
    closed;
 4. *committed, an error* (`OpenDir` failed, the rename failed after taking effect, or the retry's
@@ -110,7 +113,7 @@ def renameWALPost (P : WalPbIn GF) (Mr : WalMarshal) (R : Roots) (jr J : Ino) (r
     (N : NameSet) (h : NamesH) (qp : Qp) (dq : DFrac) (w lg : Loc) (mds : GoSlice) (md : List w8)
     (e lt f : Loc) (snapi enti : w64) (fd : w64) (fname : GoString) (d : OsFd) (c : w32) (off : w64)
     (U : Option (Nat × Nat) → IProp GF) (Sp : IProp GF)
-    (SpR : Nat × Nat → IProp GF) (w' : Loc) (err : GoInterface) : IProp GF :=
+    (SpR UH : Nat × Nat → IProp GF) (w' : Loc) (err : GoInterface) : IProp GF :=
   iprop(osPathS R r (DFrac.own qp) jr ∗
     ((⌜err = interface.nil ∧ w' = w⌝ ∗
         ∃ (x : Nat × Nat) (fp : Loc) (γ : PipeNames) (sz : w64) (df : Loc) (dfd : w64),
@@ -121,8 +124,8 @@ def renameWALPost (P : WalPbIn GF) (Mr : WalMarshal) (R : Roots) (jr J : Ino) (r
         structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ df ∗
         os.ownFile df dfd dir (DFrac.own 1) ∗ osDirFdS dfd J .idle ∗ osPathS R dir dq J ∗
         osCallPerm (1 : Qp).half) ∨
-     (⌜err = interface.nil⌝ ∗ ∃ x : Nat × Nat, U (some x) ∗ SpR x ∗ walOpenWF P Mr w' dir ∗
-        WalFs.walNamed dir ∗ WalFs.walPurgeW w' dir) ∨
+     (⌜err = interface.nil⌝ ∗ ∃ x : Nat × Nat, UH x ∗ walOpenWFU P Mr w' dir ∗
+        WalFs.walPurgeW w' dir) ∨
      (⌜err ≠ interface.nil⌝ ∗ U none ∗ osNames jr N (DFrac.own (1 : Qp).half) h ∗ osCallPerm 1 ∗
         Sp ∗ walTmpsRes J ∗ (walPreIn w lg dir mds md e lt f snapi enti ∨ emp) ∗
         walLockLeft f fd fname d) ∨
@@ -145,7 +148,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.spec (P : WalPbIn GF)
   ∀ (R : Roots) (jr J : Ino) (r dir nm tmp : GoString) (N : NameSet) (h : NamesH) (lb : Nat)
     (qp : Qp) (dq : DFrac) (w lg : Loc) (mds : GoSlice) (md : List w8) (e lt f : Loc)
     (snapi enti : w64) (fd : w64) (fname : GoString) (d : OsFd) (c : w32) (off : w64)
-    (U : Option (Nat × Nat) → IProp GF) (Sp : IProp GF) (SpR : Nat × Nat → IProp GF),
+    (U : Option (Nat × Nat) → IProp GF) (Sp : IProp GF) (SpR UH : Nat × Nat → IProp GF),
   RenameWALOk R jr J r dir nm tmp N h lb dq U Sp SpR →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ osInv ∗
       osSharedInv R ∗ osPathS R r (DFrac.own qp) jr ∗ osCallPerm 1 ∗ osLogLb lb ∗
@@ -160,7 +163,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.spec (P : WalPbIn GF)
       go!"renameWAL")) (Val #(child r tmp)))
   {{ (w' : Loc) (err : GoInterface), RET (PairV #w' #err);
       renameWALPost P Mr R jr J r dir N h qp dq w lg mds md e lt f snapi enti fd fname d c off U Sp
-        SpR w' err }}
+        SpR UH w' err }}
 
 end spec
 

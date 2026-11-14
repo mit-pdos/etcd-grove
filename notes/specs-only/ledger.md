@@ -1016,3 +1016,31 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Change (made, `wal-create19`).** The pre gains `isPkgInit pkg_id.os` (persistent; `Create` has it from `wal`'s
   dependencies, `Hos`); `wp_lockedCloseLeft`'s pre the same. The spec is proved (`os.File.Close.wp_proofClosed`).
 - **Decision.** Made (internal, no client-visible change).
+
+## 2026-11-14: `wal.WAL.renameWAL.spec` / `renameWALUnlock.spec` (internal, the part's) -- arm 2 over the handle before naming
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__renameWAL.lean` (`renameWALPost`'s arm 2),
+  `WAL__renameWALUnlock.lean`; the "error arms" entry above, its "Not made (arm 2)".
+- **Defect.** Arm 2 (`renameWALUnlock`'s retry returned a reopened WAL) was `U (some x) ∗ SpR x ∗ walOpenWF P Mr w'
+  dir ∗ walNamed dir ∗ walPurgeW w' dir`: contradictory for `Create` (`createU (some x)`'s `walCreateQ` and the
+  handle's `walOpenW` both hold `walLockedTok`) and unprovable (`walNamed` needs the parent's fsync, which
+  `Create` does after `renameWAL` returns), and not where arm 1 leads `Create` (a handle it must still name).
+- **Evidence.** `Create.wp_proof`'s arm-2 `sorry` (`Create.lean`); `walCreateQ` (`CreateAu.lean`); `walOpenW`
+  (`Ghost.lean`).
+- **Change (made, `wal-create20`).** The handle before naming, `walOpenWFU P Mr w dir` (`Handle.lean`, sealed):
+  `walOpenWF` with `walDirH`'s naming fact a parameter (`nmd`, default `walNamed dir`; `emp` here), the
+  registration done (`walNamesFrag none`: `walInv_register` needs no naming, and the retry's `Open` needs the lock
+  token back, which needs the registration first). Laws (`HandleUnnamed.lean`): `walOpenWF_unnamed`,
+  `walOpenWFU_named` (with `walNamed dir`), `walOpenWFU_dirAcc`. Arm 2 is `∃ x, UH x ∗ walOpenWFU P Mr w' dir ∗
+  walPurgeW w' dir`, `UH : Nat × Nat → IProp GF` a new parameter of `renameWALPost`, `renameWAL.spec`,
+  `renameWALUnlock.spec`: the caller's residue once the handle holds its share. `Create`'s is `createUH`
+  (`CreateRename.lean`: `Q`, the fresh past state, a fraction of the new name's claim with the rename its last
+  writer, `osLogLb (x.1 + 1)`, the absent `nm.tmp`'s claim, the area's split record with `nm`), which arm 1
+  reaches too; `createSpR` now carries the last-writer fact and the log bound (from `renDirOut`'s `logOut`,
+  `lastWrite_log_restrict`). Supersedes the "error arms" entry's suggestion (`walDirH` with `walNamesFrag (some
+  dir)`).
+- **Obligation.** `renameWALUnlock`'s proof needs a `RenameWALOk` law turning `U (some x) ∗ SpR x` (and what
+  `Create` lends through `Sp`: the split record, for the registration) into `UH x` and the reopen's resources
+  (`walUnlockedTok` after the registration and `walLockedTok_unlock`): to design with its `Open`/`ReadAll`
+  variants (the "(2) Create-specific" entry above).
+- **Decision.** Made (internal, no client: `renameWAL` is `Create`'s; the coordinator's task 1, `wal-create20`).

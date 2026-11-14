@@ -429,12 +429,15 @@ the handle holds out of the parked state (`walOutFrag`: the tail, the directory'
 pipeline's names; W1 log, tenth session); the lock holder's half of the tails' authority, with this
 WAL's tail registered (`walTailsFrag`, W1 log, eleventh session), and no name registration pending
 (`walNamesFrag none`): what `Close` needs to give the lock token back (`walLockedTok_unlock`; W10,
-W7-W12 log, fourth session; `Create` and `ReadAll` establish them when they return the handle). -/
-def walDirH (dir : GoString) (j : Ino) (dfd : w64) (ino : Ino) (name : GoString) (k : Nat) : IProp GF :=
+W7-W12 log, fourth session; `Create` and `ReadAll` establish them when they return the handle).
+`nmd` is the naming fact, `walNamed dir` by default; `emp` in the handle before naming
+(`walOpenWFU`: `Create` between its commit and the parent's fsync). -/
+def walDirH (dir : GoString) (j : Ino) (dfd : w64) (ino : Ino) (name : GoString) (k : Nat)
+    (nmd : IProp GF := walNamed (W := W) dir) : IProp GF :=
   iprop(∃ (R : Roots) (q : Qp) (X : List GoString) (hj : NamesH) (nm0 : GoString) (ph : DirPhS),
     walDirKey (W := W) dir j X ∗ osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
     osPathS R dir (DFrac.own q) j ∗ osSharedInv R ∗ osCallPerm (1 : Qp).half ∗ osDirFdS dfd j ph ∗
-    walNamed (W := W) dir ∗ walOutFrag (W := W) ⟨[ino], [(j, .except X)], [dir]⟩ ∗
+    nmd ∗ walOutFrag (W := W) ⟨[ino], [(j, .except X)], [dir]⟩ ∗
     (∃ γt : GName, walTailsFrag (W := W) (<[dir := γt]> (∅ : GMap GoString GName))) ∗
     walNamesFrag (W := W) none ∗
     ⌜walNameP nm0 = true ∧ hj.cur !! nm0 = some (.file ino) ∧ name = child dir nm0 ∧
@@ -454,7 +457,8 @@ needs it when its entries go back below an earlier snapshot record). The encoder
 tests it, S/wal.go:968). With `tm := TailMetaW`, the tail in a resize window (`cut` between its
 truncate and its fdatasync, `WAL.sync.specCut`). -/
 def walHandleIn (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h : WalHS)
-    (tm : Fs.OsMeta → List Fs.ByteG → Prop := TailMeta) : IProp GF :=
+    (tm : Fs.OsMeta → List Fs.ByteG → Prop := TailMeta) (nmd : IProp GF := walNamed (W := W) dir) :
+    IProp GF :=
   letI := walAllG (W := W)
   iprop(∃ (lg df sp e fp lt f : Loc) (mds locks : GoSlice) (lfs : List Loc) (fd dfd : w64)
       (name dnm : GoString) (j : Ino) (rc : GoFunc),
@@ -476,7 +480,7 @@ def walHandleIn (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"encoder" w ↦ e ∗ ⌜e ≠ null⌝ ∗
     ownEncoder e (wal.fileWi f) (h.crc Mr) h.pend ∗
     walTailW (W := W) f fd name dir h.γ h.ino h.H h.md h.cuts h.o0 h.sz h.out tm ∗
-    walDirH (W := W) dir j dfd h.ino name h.pc ∗
+    walDirH (W := W) dir j dfd h.ino name h.pc nmd ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks ∗
     locks ↦* lfs ∗ ownSliceCap Loc locks (DFrac.own 1) ∗ ⌜lfs.getLast? = some lt⌝ ∗
     ([∗list] lf ∈ lfs.dropLast, walLockH lf) ∗
@@ -503,6 +507,16 @@ buffer. -/
     IProp GF :=
   iprop(∃ h : WalHS, walHandleIn (W := W) P Mr w dir h TailMetaW ∗ ⌜h.Done⌝ ∗ ⌜h.md.length < 2 ^ 41⌝ ∗
     ⧗ h.pc)
+
+/-- **The handle before naming** (`Create` after its commit, W4 log, twenty-second session; ledger
+2026-11-14, `renameWALPost`'s arm 2): `walOpenWF` but for the naming fact (`walDirH`'s `nmd := emp`).
+The WAL's name registration is done (`walNamesFrag none`: `walInv_register` needs no naming, and the
+retry's `Open` needs the lock token released, which needs it); only the parent directory's fsync,
+which gives `walNamed dir` (`walInv_named`), is left. Sealed; its laws in `HandleUnnamed.lean`. -/
+@[no_expose] def walOpenWFU (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) :
+    IProp GF :=
+  iprop(∃ h : WalHS, walHandleIn (W := W) P Mr w dir h TailMetaW emp ∗ ⌜h.Done⌝ ∗
+    ⌜h.md.length < 2 ^ 41⌝ ∗ ⧗ h.pc)
 
 /-- **The cuts budget** (`notes/bounds-plan.md`: the counter's owner turns the global receipt bound into
 its bound): with the area's `ReceiptBoundLe GF (2 ^ 62)`, `⧗ (pc + 1)` (the handle's `⧗ pc` and the receipt

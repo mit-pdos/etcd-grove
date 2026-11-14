@@ -21,6 +21,7 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateSplit
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateSteps
 public import LinuxFs.Proof.os.SharedAu
 public import LinuxFs.Spec.os.Rename
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateNamedPure
 
 @[expose] public section
 
@@ -109,11 +110,39 @@ def createSp (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (d : Qp) : 
     osPathS R r (DFrac.own d) jr)
 
 /-- **`Create`'s remainder after the spines**: the rest `c` of its half of the new name's claim, which
-names the WAL's directory, and the whole claim on `nm.tmp`, which is absent now. -/
-def createSpR (jr J : Ino) (nm : GoString) (c : Qp) (_ : Nat × Nat) : IProp GF :=
+names the WAL's directory, and the whole claim on `nm.tmp`, which is absent now; the rename (logged at
+`x.1`) the new name's last writer, and the log past it (the parent fsync's bound, `walInv_named`). -/
+def createSpR (jr J : Ino) (nm : GoString) (c : Qp) (x : Nat × Nat) : IProp GF :=
   iprop(∃ hn ht : NamesH, osNames jr (.only [nm]) (DFrac.own c) hn ∗
     osNames jr (.only [tmpName nm]) (DFrac.own 1) ht ∗
-    ⌜hn.cur !! nm = some (.dir J) ∧ ht.cur !! tmpName nm = none⌝)
+    ⌜hn.cur !! nm = some (.dir J) ∧ ht.cur !! tmpName nm = none⌝ ∗
+    ⌜∃ e E, LastWrite hn jr nm x.1 e E ∧ E !! nm = some (.dir J)⌝ ∗ osLogLb (x.1 + 1))
+
+open Classical in
+/-- **The last entry of a claim restricted to names it writes**, after it is logged. -/
+theorem lastWrite_log_restrict (h : NamesH) (j : Ino) (M : NameSet) (b : GoString) (x : Nat)
+    (e : LogEntry) (c : Ents) (hM : M.Mem b) (hw : e.op.Writes j b) :
+    LastWrite ((h.log x e c).restrict j M) j b x e (restrictN M c) := by
+  have h1 : decide (∃ b', M.Mem b' ∧ e.op.Writes j b') = true := decide_eq_true ⟨b, hM, hw⟩
+  have h2 : decide (e.op.Writes j b) = true := decide_eq_true hw
+  unfold LastWrite NamesH.restrict NamesH.log
+  simp only [List.filter_append, List.filter_cons, List.filter_nil, h1, h2, if_true, List.map_append,
+    List.map_cons, List.map_nil]
+  simp
+
+/-- **`Create`'s residue once the WAL's handle holds its share** (`renameWALPost`'s `UH`, the two
+success arms' convergence point): the client's `Q`, the past state with the fresh WAL, the rest of
+its fraction `c` of the new name's claim with the rename its last writer and the log past it (the
+parent fsync's naming, `walInv_named`), the whole claim on the absent `nm.tmp` (the deferred
+`RemoveAll`, the area's merge), and the area's split record with `nm` registered. -/
+def createUH (jr J : Ino) (r nm : GoString) (md : List w8) (Q : IProp GF) (Wn : List GoString)
+    (x : Nat × Nat) : IProp GF :=
+  iprop(Q ∗ (∃ s', walPast (W := W) s' ∗ ⌜s'.wal !! child r nm = some (walDurFresh md)⌝) ∗
+    (∃ (c : Qp) (hn : NamesH), osNames jr (.only [nm]) (DFrac.own c) hn ∗
+      ⌜hn.cur !! nm = some (.dir J) ∧ ∃ e E, LastWrite hn jr nm x.1 e E ∧ E !! nm = some (.dir J)⌝) ∗
+    osLogLb (x.1 + 1) ∗
+    (∃ ht : NamesH, osNames jr (.only [tmpName nm]) (DFrac.own 1) ht ∗ ⌜ht.cur !! tmpName nm = none⌝) ∗
+    walSplitFrag (W := W) (nm :: Wn))
 
 /-- **The spine law** (`RenameWALOk`'s third conjunct) of `Create`'s choices: `d + (d + c)` the
 program's half of the new name's claim. -/
@@ -134,8 +163,8 @@ theorem create_spine (Mr : WalMarshal) (R : Roots) (jr J : Ino) (r nm : GoString
   unfold createSp
   icases Hsp with ⟨#Hinv, #Hsi, Hp1, Hp2⟩
   obtain ⟨x, s⟩ := x
-  unfold renDirOut claimOut
-  icases Hout with ⟨-, Hn⟩
+  unfold renDirOut claimOut logOut osLogged
+  icases Hout with ⟨⟨-, -, -, #Hlg⟩, Hn⟩
   have hT : ⊢ createU (W := W) Mr R jr r nm hC md Q J hJ g (some (x, s)) -∗
       walUnlockedTok (W := W) -∗ False := by
     unfold createU
@@ -170,8 +199,13 @@ theorem create_spine (Mr : WalMarshal) (R : Roots) (jr J : Ino) (r nm : GoString
   iframe Hnc HU Hs1 Hs2
   unfold createSpR
   iexists _, _
-  iframe Hnm Htmp
-  ipureintro; exact ⟨hn1, ht1⟩
+  iframe Hnm Htmp Hlg
+  ipureintro
+  refine ⟨⟨hn1, ht1⟩, _, _, lastWrite_log_restrict _ _ _ _ _ _ _
+    ((NameSet.mem_diff _ _ _).2 ⟨by simp [NameSet.Mem], by simpa using (tmpName_ne nm).symm⟩)
+    (by simp [renDirEnt, MetaOp.Writes, MetaOp.slots]), ?_⟩
+  rw [restrictN_lookup _ _ _ ((NameSet.mem_diff _ _ _).2 ⟨by simp [NameSet.Mem],
+      by simpa using (tmpName_ne nm).symm⟩), hcnm]
 
 end au
 
