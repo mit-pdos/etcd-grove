@@ -99,7 +99,7 @@ theorem fallocOutH_preGrownH (i : Ino) (m : OsMeta) (tg : Nat) (e : w64) (hle : 
       preGrownH i m w := by
   unfold fallocOutH
   iintro H
-  icases H with (⟨%he, Hd⟩ | ⟨%he, (Hm | ⟨%w, %hw, Hd⟩)⟩)
+  icases H with (⟨%he, Hd⟩ | ⟨%he, (⟨%tc, %rz, -, Hm⟩ | ⟨%w, %hw, Hd⟩)⟩)
   · iexists tg
     isplitr
     · ipureintro; exact ⟨hle, Nat.le_refl _, fun _ => rfl⟩
@@ -111,8 +111,11 @@ theorem fallocOutH_preGrownH (i : Ino) (m : OsMeta) (tg : Nat) (e : w64) (hle : 
     iexists _
     iframe Hm
     isplitr
-    · ipureintro; exact ⟨announce_size' .., announce_maps' .., Nat.le_of_eq (announce_cz' ..).symm,
-        growMeta_announce ..⟩
+    · ipureintro
+      exact ⟨announce_size' m (min m.size tg) (rsHi false m.size tg) tg,
+        announce_maps' m (min m.size tg) (rsHi false m.size tg) tg,
+        Nat.le_of_eq (announce_cz' m (min m.size tg) (rsHi false m.size tg) tg).symm,
+        growMeta_announce m (min m.size tg) (rsHi false m.size tg) tg⟩
     rw [Nat.sub_self]
     iapply osZerosA_nil
   · iexists w
