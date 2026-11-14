@@ -543,6 +543,16 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Decision.** Adopted (the W10 session, 2026-11-14; plan §6 Q6's honest error posts; no client of the part's
   `Close` yet).
 
+## 2026-11-14: `wal.WAL.saveEntry.spec` (the part's, internal) -- no bound on the entry's encoding
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__saveEntry.lean`.
+- **Defect.** `encoder.encode.specTail` (as every encode spec) needs the record's size below `2 ^ 47`
+  (`recSize`, the frame's length word); `saveEntry.spec` gave no bound on `Mr.encEntry e` (the per-entry
+  bound was withdrawn with the batch premise, 2026-11-14, and moved back to `Save`'s premise only).
+- **Evidence.** `WAL.saveEntry.wp_proof` (W6, fifteenth session): the encode's premise.
+- **Change (made).** `saveEntry.spec` takes `(Mr.encEntry e).length < 2 ^ 40` (`Save`'s premise for each of its
+  entries, which `Save`'s proof passes); internal spec, no client-visible change.
+- **Decision.** Adopted (minor, internal; W6 fifteenth session).
 ## 2026-11-14: `WalDecEnvSupply` and `decEnv`'s `isEofOk` (the part's WAL decoder, over `fsExt`) -- the readers' errors and `errors.Is`
 
 - **Spec.** `WalDecEnvSupply` (`LinuxFs/Proof/.../wal/openAtIndex.lean`, a hypothesis of `openAtIndex.wp_proof`,
@@ -612,3 +622,36 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   names back, or a `Create`-specific (non-generic) `renameWALUnlock` spec; and a public `os.Rename` spec for an
   absent source (`ENOENT`, no effect).
 - **Decision.** (1) adopted (coordinator); (2), (3) pending the coordinator.
+
+## 2026-11-14: `wal.Repair.spec` (the part's, over `fsExt`) -- the lock token taken (plan §6 Q7)
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/Repair.lean` (`wal.Repair.spec`, new): the main
+  tree's axiom (`Spec/go_etcd_io/etcd/server/v3/storage/wal/Repair.lean`) with plan §3's binders (`walAreaOk`, the
+  area's spine and `walAreaRes`, `osCallPerm 1`, the update at `walAuMask`; `Open`'s premises, as `Repair` reads
+  the same directory), and `walUnlockedTok` framed.
+- **Defect (of the main axiom).** It promised that `Repair` blocks on the tail's lock while a handle holds it,
+  then acts as with no handle. Over `fsExt` the file locks are bookkeeping (plan §6 Q1: no lock state), so
+  `LockFile` waits for nothing and a concurrent appender would race the truncation: the axiom's statement
+  without the token is not provable (and with Q1's model, not true of the model).
+- **Evidence.** Plan §3 ("`Repair` takes `walUnlockedTok`") and §5/§6 Q7; both callers comply: the WAL tester
+  calls `Repair` after a successful `Close` (examples/etcd/wal/wal.go:192-198), `openWALFromSnapshot` before
+  any `Open`.
+- **Change (made).** The token in the pre and the post (framed); the "blocks until the handle's `Close`"
+  scenario dropped until the lock model. Otherwise the main tree's: committed as accessed, the boolean unconstrained.
+- **Decision.** Adopted (the coordinator, plan §6 Q7, 2026-11-13; stated in the W7-W12 log's fifth session).
+
+## 2026-11-14: `wal.WAL.sync.specC` (internal, the part's) -- the post says the tail is durable
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__syncC.lean` (a hypothesis of
+  `WAL.Close.wp_proof`, for the `sync` owner): its success post's handle `walHandleC … h'` (tail facts
+  `TailMeta`: `lo = size = hi`).
+- **Defect.** Too weak for `Close`'s unregistration: the invariant now requires an idle WAL's tail to be synced
+  (`TailSynced`, `TailIdle`'s third part: every byte durable, zeros known only past the end; plan's W7-W12 log,
+  sixth session), so that `Close` of an unread handle can fdatasync an unregistered tail without changing the
+  invariant. `TailMeta` says nothing of the bytes.
+- **Evidence.** `sync`'s last step is `fileutil.Fdatasync(w.tail().File)`, whose success post is the synced
+  `OsMeta` and the bytes `bs.map durB` (`fileutil.Fdatasync.wp_tail`, `TailFdatasync.lean`).
+- **Change (made).** The post's handle is `walHandleC … h' TailMetaS` (`TailMetaS m bs := TailMeta m bs ∧ ∀ y ∈ bs,
+  y = durB y.1`, `CloseHandle.lean`; `TailMetaS.of_sync` from `TailMeta m bs` to the synced pair). `WalCloseLaw`
+  takes `TailMetaS`; `WAL.Close.wp_proof` unchanged.
+- **Decision.** Adopted (the coordinator's `TailSynced` decision, 2026-11-14).

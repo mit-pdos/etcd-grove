@@ -31,8 +31,12 @@ its tail (`walTailsRes`: the history, metadata, cuts, write position and tail in
 past the frames found at the generation's start the tail is zeros, F-Z; the larger of the synced
 offset and that end is a record boundary, `TailBound`).
 
-**Not yet here**: `Create`'s `dir.tmp`; a write past the tail's size (`SegFl.Ok`'s first clause:
-the writes stay inside the preallocated file).
+A write may extend the tail past its size (a `Save` crossing the preallocated size, `sync`'s flush
+after `cut`'s truncate): the layout's `OsMeta` then keeps the candidates the write announced past the
+size (`wrMeta`, `pwTail`-shaped), which the token's `OsMeta` forgot and a crash may keep (W6 log,
+fifteenth session).
+
+**Not yet here**: `Create`'s `dir.tmp`.
 -/
 module
 
@@ -109,17 +113,58 @@ instance SegFl.countable : Pos.Countable SegFl :=
       cases a; cases b; simp only [Prod.mk.injEq] at h
       obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := h; subst h1 h2 h3 h4 h5 h6 h7; rfl)
 
-/-- **The segment `g` as the write in flight `fl` announced it**: the write inside the segment
-(the WAL writes its tail inside the preallocated file), not empty; `g`'s `OsMeta` the token's
-(`cfMeta`), its bytes `fl.bs` with the data's candidates added to the written range (`pwAnn`); and
-the write past the segment's first byte (`0 < fl.off`: the tail's writes come after its header
+/-- **The `OsMeta` of a segment with a write in flight, as the layout holds it** (W6, fifteenth
+session): the token's (`cfMeta`: `m` with `[off, off + |data|)` announced), and of each byte it
+announced past the size, the candidates `m` knew (`OsMeta.pc`) then the data's byte stamped `n`
+(`pwTail`, as `wp_osPWriteFinishK true` leaves them), which the token's `OsMeta` forgot and a crash
+may keep (`crashRestAt_take_tok`'s last fact, from the state's `tok_cand`). A write inside the size
+announces nothing past it: then the token's (`wrMeta_in`). -/
+def wrMeta (m : OsMeta) (off : Nat) (data : List w8) (n : Nat) : OsMeta :=
+  { cfMeta m off data.length with tc := pwTail m off data n }
+
+/-- A write inside the size: the layout's `OsMeta` is the token's. -/
+theorem wrMeta_in {m : OsMeta} {off : Nat} {data : List w8} {n : Nat}
+    (hin : off + data.length ≤ m.size) : wrMeta m off data n = cfMeta m off data.length := by
+  have htc : pwTail m off data n = (cfMeta m off data.length).tc := by
+    apply GMap.ext; intro b
+    show pwTail m off data n !! b = (cfMeta m off data.length).tc !! b
+    rw [pwTail_lookup]
+    unfold cfMeta
+    rw [announce_tc]
+    by_cases hr : inRange off (off + data.length) b = true
+    · have hr' := hr
+      simp only [inRange, Bool.and_eq_true, decide_eq_true_eq] at hr'
+      rw [if_pos hr, if_neg (by omega), if_pos (by simp [inRange]; omega)]
+    · rw [if_neg hr, if_neg (by simp only [inRange, Bool.and_eq_true, decide_eq_true_eq] at hr ⊢; omega)]
+  unfold wrMeta; rw [htc]
+
+@[simp] theorem wrMeta_size (m : OsMeta) (off : Nat) (data : List w8) (n : Nat) :
+    (wrMeta m off data n).size = m.size := by simp [wrMeta, cfMeta]
+@[simp] theorem wrMeta_lo (m : OsMeta) (off : Nat) (data : List w8) (n : Nat) :
+    (wrMeta m off data n).lo = (cfMeta m off data.length).lo := rfl
+@[simp] theorem wrMeta_hi (m : OsMeta) (off : Nat) (data : List w8) (n : Nat) :
+    (wrMeta m off data n).hi = (cfMeta m off data.length).hi := rfl
+@[simp] theorem wrMeta_zf (m : OsMeta) (off : Nat) (data : List w8) (n : Nat) :
+    (wrMeta m off data n).zf = (cfMeta m off data.length).zf := rfl
+@[simp] theorem wrMeta_cut (m : OsMeta) (off : Nat) (data : List w8) (n : Nat) :
+    (wrMeta m off data n).cut = m.cut := by simp [wrMeta, cfMeta]
+@[simp] theorem wrMeta_rz (m : OsMeta) (off : Nat) (data : List w8) (n : Nat) :
+    (wrMeta m off data n).rz = (cfMeta m off data.length).rz := rfl
+@[simp] theorem wrMeta_maps (m : OsMeta) (off : Nat) (data : List w8) (n : Nat) :
+    (wrMeta m off data n).maps = m.maps := by simp [wrMeta, cfMeta]
+
+/-- **The segment `g` as the write in flight `fl` announced it**: the write starting inside the
+segment (`pwrite` extends a file only from inside it, `pwTok`'s `off ≤ size`; it may pass the size:
+a `Save` crossing the preallocated size), not empty; `g`'s `OsMeta` the token's with the candidates
+announced past the size (`wrMeta`), its bytes `fl.bs` with the data's candidates added to the written
+range below the size (`pwAnn`); and the write past the segment's first byte (`0 < fl.off`: the tail's writes come after its header
 records, synced when the segment was named), so that the invariant keeps half of byte 0 of every
 segment, idle or written to: a file the program holds byte 0 of wholly (a segment it creates) is
 none of them (`laysResF_ino_ne`, `InvInos.lean`; the inode-clash gap of `Create`'s and `cut`'s
 commits). -/
 def SegFl.Ok (fl : SegFl) (g : SegG) : Prop :=
-  fl.off + fl.data.length ≤ fl.m.size ∧ fl.data ≠ [] ∧ fl.bs.length = fl.m.size ∧
-  fl.m.cut = none ∧ g.om = cfMeta fl.m fl.off fl.data.length ∧
+  fl.off ≤ fl.m.size ∧ fl.data ≠ [] ∧ fl.bs.length = fl.m.size ∧
+  fl.m.cut = none ∧ g.om = wrMeta fl.m fl.off fl.data fl.n ∧
   g.bs = fl.bs.take (cfLo fl.m fl.off) ++
     pwAnn fl.data fl.n (cfRange fl.m fl.bs fl.off fl.data.length) ++
     fl.bs.drop (cfHi fl.m fl.off fl.data.length) ∧ 0 < fl.off
@@ -537,12 +582,22 @@ theorem walsBounded_upd {s : AbsDiskState} {dir : GoString} {f : WalDur → WalD
   | none => exact h
   | some d => exact walsBounded_insSame h rfl hd (hm d)
 
+/-- **The last segment synced** (`TailIdle`'s third part; the W7-W12 log, sixth session): every byte of
+the last segment durable, and zeros known (`OsMeta.zf`) only from its end on. Then an fdatasync of an
+idle tail (`Close` of a handle that never registered it: `WAL.Close.specOpening`) changes nothing the
+invariant says but the segment's `OsMeta` (`OsMeta.synced`, `walInvBody_syncIdle`). Established by a
+crash (the segments are their files' images, `initMeta`: zeros known from the last page's end), by
+`Create`'s commit (its segment fsynced before the rename) and by `Close`'s unregistration (after its
+`sync`: `TailMetaS`, `CloseHandle.lean`). -/
+def TailSynced (lay : WalLay) : Prop :=
+  ∀ g, lay.segs.getLast? = some g → (∀ y ∈ g.bs, y = durB y.1) ∧ ∀ z, g.om.zf = some z → g.bs.length ≤ z
+
 /-- **A WAL's tail idle** (`WalTailIdle`'s, W3/W5 fifteenth session): no resize window open on its last
-segment (`TailExact`) and its last segment's stream all written (`wr` its length). What `ReadAll` needs
+segment (`TailExact`), its last segment's stream all written (`wr` its length) and synced (`TailSynced`). What `ReadAll` needs
 of a WAL no handle has registered: without it, it could succeed with the history's last records missing
 (the reader stops at the zeros past `wr`). -/
 def TailIdle (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) : Prop :=
-  TailExact lay ∧ lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length
+  TailExact lay ∧ lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length ∧ TailSynced lay
 
 /-- `TailIdle` depends on the WAL's history and metadata only. -/
 theorem TailIdle.congr {C : WalCodec} {Mr : WalMarshal} {d d' : WalDur} {lay : WalLay}
@@ -550,8 +605,8 @@ theorem TailIdle.congr {C : WalCodec} {Mr : WalMarshal} {d d' : WalDur} {lay : W
     TailIdle C Mr d' lay := by
   have e : segRecs C Mr d' lay.cuts = segRecs C Mr d lay.cuts := by
     simp [segRecs, histM, hH, hmd]
-  refine ⟨h.1, ?_⟩
-  unfold segStream; rw [e]; exact h.2
+  refine ⟨h.1, ?_, h.2.2⟩
+  unfold segStream; rw [e]; exact h.2.1
 
 /-- **Every WAL no handle has registered is idle** (`walTailsRes`'s third part; W3/W5 fifteenth session,
 the coordinator's `WalTailIdle`): established by a crash (`CrashStart`: `wr = so = z0 = |stream|`), by

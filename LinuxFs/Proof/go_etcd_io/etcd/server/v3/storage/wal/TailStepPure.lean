@@ -52,7 +52,7 @@ theorem segAnn_ok {g0 : SegG} {off : Nat} {data : List w8} {n t : Nat}
     (hin : off + data.length ≤ g0.om.size) (hd : data ≠ []) (hlen : g0.bs.length = g0.om.size)
     (hcut : g0.om.cut = none) (hoff : 0 < off) :
     SegFl.Ok ⟨t, off, data, n, g0.om, g0.bs, none⟩ (segAnn g0 off data n) :=
-  ⟨hin, hd, hlen, hcut, rfl, rfl, hoff⟩
+  ⟨Nat.le_trans (Nat.le_add_right _ _) hin, hd, hlen, hcut, (wrMeta_in hin).symm, rfl, hoff⟩
 
 /-! ## The bytes of a write inside the file -/
 
@@ -110,12 +110,12 @@ theorem segAnn_length {g0 : SegG} {off : Nat} {data : List w8} {n : Nat}
 
 /-- The finished tail's bytes, against the announced ones. -/
 theorem segFin_getElem? {fl : SegFl} {g0 : SegG} {k b : Nat} {zs : List Cands}
-    (hok : fl.Ok g0) (hk : k ≤ fl.data.length) :
+    (hok : fl.Ok g0) (hin : fl.off + fl.data.length ≤ fl.m.size) (hk : k ≤ fl.data.length) :
     (segFin fl g0 k zs).bs[b]? =
       if fl.off ≤ b ∧ b < fl.off + k then
         g0.bs[b]?.map (fun x => (fl.data.getD (b - fl.off) 0, x.2))
       else g0.bs[b]? := by
-  obtain ⟨hin, -, hl, -, hm, hbs, -⟩ := hok
+  obtain ⟨-, -, hl, -, hm, hbs, -⟩ := hok
   have hR := cfRange_length (bs := fl.bs) hin hl
   have hP : (pwBytes fl.m.size fl.off fl.data k fl.n (cfRange fl.m fl.bs fl.off fl.data.length) zs).length =
       fl.data.length := by
@@ -155,9 +155,9 @@ theorem segFin_getElem? {fl : SegFl} {g0 : SegG} {k b : Nat} {zs : List Cands}
   · rw [if_neg hb, if_neg hb, if_neg (fun h => hb ⟨h.1, by omega⟩)]
 
 theorem segFin_length {fl : SegFl} {g0 : SegG} {k : Nat} {zs : List Cands}
-    (hok : fl.Ok g0) (hk : k ≤ fl.data.length) :
+    (hok : fl.Ok g0) (hin : fl.off + fl.data.length ≤ fl.m.size) (hk : k ≤ fl.data.length) :
     (segFin fl g0 k zs).bs.length = g0.bs.length := by
-  obtain ⟨hin, -, hl, -, hm, hbs, -⟩ := hok
+  obtain ⟨-, -, hl, -, hm, hbs, -⟩ := hok
   simp only [segFin]
   rw [finBytes_length hl (by omega) hk, hbs]
   simp only [List.length_append, List.length_take, List.length_drop, pwAnn_length]
@@ -319,6 +319,7 @@ bytes written (or where it was, if a retry rewrote bytes below it). -/
 theorem walAbsD_finish {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
     {pre : List SegG} {g0 : SegG} {fl : SegFl} {k : Nat} {zs : List Cands}
     (habs : WalAbsD C Mr d lay ents) (hs : lay.segs = pre ++ [g0]) (hex0 : SegExact g0) (hok : fl.Ok g0)
+    (hin : fl.off + fl.data.length ≤ fl.m.size)
     (hwr : fl.off ≤ lay.wr) (hk : k ≤ fl.data.length) (hn : 0 < fl.n) :
     WalAbsD C Mr d (tailLay lay pre (segFin fl g0 k zs) (max lay.wr (fl.off + k))) ents := by
   have hg0 : lay.segs.getLast? = some g0 := by rw [hs]; simp
@@ -327,8 +328,9 @@ theorem walAbsD_finish {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalL
   obtain ⟨hlo, hhi⟩ := hex0
   obtain ⟨hso, hwS, hlo0, hwo, hB, hz0, -⟩ := (habs.last g0 hg0).1 ⟨hlo, hhi⟩
   have hok' := hok
-  obtain ⟨hin, hd, hl, hmc, hm, hbs, -⟩ := hok'
-  have hlen := segFin_length (zs := zs) hok hk
+  obtain ⟨-, hd, hl, hmc, hm, hbs, -⟩ := hok'
+  rw [wrMeta_in hin] at hm
+  have hlen := segFin_length (zs := zs) hok hin hk
   have hdl : 0 < fl.data.length := List.length_pos_iff.2 hd
   have hg0l : g0.bs.length = fl.m.size := by rw [← hsz, hm]; simp [cfMeta]
   -- the announced bytes of the range
@@ -390,7 +392,7 @@ theorem walAbsD_finish {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalL
     simp only [segFin, pwPost, hps, announce_lo, announce_hi, OsMeta.announce_cut]
     exact ⟨hg0l.symm, hcut, hlo', hhi'⟩
   · intro b x hx
-    rw [segFin_getElem? hok hk] at hx
+    rw [segFin_getElem? hok hin hk] at hx
     split at hx
     · rename_i hb
       obtain ⟨y, hy, rfl⟩ := Option.map_eq_some_iff.1 hx
@@ -416,11 +418,12 @@ theorem walAbsD_finish {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalL
 /-- **A finished write's range carries its candidate** (stamped positive): a retry from a byte of the
 range starts past the synced bytes (`wp_tailPWriteStart`'s premise). -/
 theorem segFin_cand {fl : SegFl} {g0 : SegG} {k : Nat} {zs : List Cands} (hok : fl.Ok g0)
-    (hk : k ≤ fl.data.length) (hn : 0 < fl.n) (b : Nat) (h1 : fl.off ≤ b)
+    (hin : fl.off + fl.data.length ≤ fl.m.size) (hk : k ≤ fl.data.length) (hn : 0 < fl.n) (b : Nat) (h1 : fl.off ≤ b)
     (h2 : b < fl.off + fl.data.length) :
     ∃ q ∈ ((segFin fl g0 k zs).bs.getD b (0, [])).2, 0 < q.2 := by
   have hok' := hok
-  obtain ⟨hin, -, hl, -, hm, hbs, -⟩ := hok'
+  obtain ⟨-, -, hl, -, hm, hbs, -⟩ := hok'
+  rw [wrMeta_in hin] at hm
   have hbl : b < fl.bs.length := by omega
   have hy : g0.bs[b]? = some (fl.bs[b].1, fl.bs[b].2 ++ [(fl.data.getD (b - fl.off) 0, fl.n)]) := by
     have e : g0 = segAnn ⟨g0.name, g0.ino, fl.m, fl.bs⟩ fl.off fl.data fl.n := by
@@ -428,7 +431,7 @@ theorem segFin_cand {fl : SegFl} {g0 : SegG} {k : Nat} {zs : List Cands} (hok : 
       | mk nm ino om bs => simp only at hm hbs; subst hm hbs; rfl
     rw [e, segAnn_getElem? hin hl, if_pos ⟨h1, h2⟩, List.getElem?_eq_getElem hbl]; rfl
   refine ⟨(fl.data.getD (b - fl.off) 0, fl.n), ?_, hn⟩
-  rw [List.getD_eq_getElem?_getD, segFin_getElem? hok hk, hy]
+  rw [List.getD_eq_getElem?_getD, segFin_getElem? hok hin hk, hy]
   split <;> simp
 
 /-! ## The crash condition and `WalsOk` -/

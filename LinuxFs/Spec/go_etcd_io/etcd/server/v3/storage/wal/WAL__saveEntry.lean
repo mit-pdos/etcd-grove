@@ -46,7 +46,8 @@ abbrev WalPbIn.GetIndexLaw (P : WalPbIn GF) : Prop :=
 
 /-- **`w.saveEntry(e)`** (S/wal.go:1001-1010): the next record of the tail not yet encoded is `e`'s
 entry record; encodes it (`MustMarshalMessage`, `encode`) and sets `w.enti` to its index (below
-`2^64-1`, `Save`'s premise). When it is the last record (`rest = 1`), the history's last index is
+`2^64-1`, `Save`'s premise; its encoding below `2 ^ 40` bytes, `Save`'s premise too, for the encode's
+record size, ledger 2026-11-14). When it is the last record (`rest = 1`), the history's last index is
 at most the larger of its index and `w.snapi` (the handle's bound at `rest = 0`; `Save` has it: the
 entry is the operation's last, and `walMaxSnapIdx ≤ snapi`). No bound on the tail's stream (withdrawn
 2026-11-14: a write never lands past ext4's `s_maxbytes`, `fsExt`'s `maxBytes`). The tail's resize window may be open, before and after
@@ -54,7 +55,7 @@ entry is the operation's last, and `walMaxSnapIdx ≤ snapi`). No bound on the t
 grown with the writes. *Error* (a write of the page writer): the handle lost. -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.saveEntry.spec (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
   ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (h : WalHS) (l : Loc) (e : EntryM),
-  0 < h.rest → uint.nat e.Index' < 2 ^ 64 - 1 →
+  0 < h.rest → uint.nat e.Index' < 2 ^ 64 - 1 → (Mr.encEntry e).length < 2 ^ 40 →
   (h.rest = 1 → walLastIdx (h.H.map WalOpG.toM) ≤ max (uint.nat e.Index') (uint.nat h.snapi)) →
   (((tailRecs Mr h.H h.md h.cuts)[(tailRecs Mr h.H h.md h.cuts).length - h.rest]?).map
     (fun x => (x.typ, x.data)) = some (entryType, Mr.encEntry e)) →

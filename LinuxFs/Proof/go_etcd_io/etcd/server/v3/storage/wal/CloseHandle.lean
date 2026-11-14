@@ -25,6 +25,27 @@ namespace WalFs
 
 open Iris Iris.BI Fs WalEnc
 
+section synced
+variable [GooseExts]
+
+/-- **The tail synced** (`TailMeta`, every byte durable; the W7-W12 log, sixth session): what
+`WAL.sync.specC`'s post gives of the tail (its fdatasync: `OsMeta.synced`, the bytes `durB`), so that
+`Close`'s unregistration establishes the WAL's `TailSynced` (`Inv.lean`). -/
+def TailMetaS (m : Fs.OsMeta) (bs : List Fs.ByteG) : Prop :=
+  TailMeta m bs ∧ ∀ y ∈ bs, y = Fs.durB y.1
+
+theorem TailMetaS.meta {m : Fs.OsMeta} {bs : List Fs.ByteG} (h : TailMetaS m bs) : TailMeta m bs := h.1
+
+/-- The tail after a successful fdatasync (`wp_osFsync`'s post): synced. -/
+theorem TailMetaS.of_sync {m : Fs.OsMeta} {bs : List Fs.ByteG} (h : TailMeta m bs) :
+    TailMetaS m.synced (bs.map (fun x => Fs.durB x.1)) := by
+  refine ⟨⟨by simp [OsMeta.synced, h.1], h.2.1, fun z hz => ?_, rfl, rfl⟩, fun y hy => ?_⟩
+  · simp only [OsMeta.synced, Option.some.injEq] at hz
+    subst hz; show m.size ≤ m.syncZ; unfold OsMeta.syncZ; have := le_pageEnd m.size; split <;> omega
+  · obtain ⟨x, -, rfl⟩ := List.mem_map.1 hy; rfl
+
+end synced
+
 section handle
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
@@ -81,20 +102,20 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
 
 /-- **`Close`'s put-back** (see the file header), at a program step (`notCrashed`): the WAL in `dir`
 with its tail `ino` (record `γ`, every record written, `wr` the tail stream's end, no write in flight;
-the program's halves of its `OsMeta` and bytes, synced: `TailMeta`), the directory's claim's half and
+the program's halves of its `OsMeta` and bytes, synced: `TailMetaS`), the directory's claim's half and
 key, the pipeline names' claims (`b`, `b'`: the pipeline's leftover name and the one the handle kept,
 both of `walTmps`), the record of what is out, the lock holder's halves (the tails' authority with
 this tail, no registration pending), the ghost handle with the lock token (`walOpenW`), the purge right
 and the history synced; the client's update. Gives the update's `Q d` (committed unchanged), the
 history synced in `d`'s terms, and the free lock token. The unregistration must establish the WAL's
 `TailIdle` (`walTailsRes`'s `WalTailIdle`, `Inv.lean`): the record's `wr` is the tail stream's end (all
-written) and `TailMeta m bs` (synced: `lo = size = hi`) gives the layout's `TailExact` by agreement of
-the halves. -/
+written) and `TailMetaS m bs` (synced: `lo = size = hi`, every byte durable) gives the layout's
+`TailExact` and `TailSynced` by agreement of the halves. -/
 def WalCloseLaw (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) : Prop :=
   ∀ (w : Loc) (dir : GoString) (γ γt : GName) (ino j : Ino) (X : List GoString) (hj : NamesH)
     (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (wr : Nat) (m : OsMeta)
     (bs : List ByteG) (b b' : GoString) (Q : WalDur → IProp GF),
-  TailMeta m bs → wr = (tailStream Mr H md cuts).length → b ∈ walTmps → b' ∈ walTmps →
+  TailMetaS m bs → wr = (tailStream Mr H md cuts).length → b ∈ walTmps → b' ∈ walTmps →
   ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ notCrashed (hC := L.goose_crashGS) -∗
     walTailKey (W := W) dir γ -∗ tailVar (W := W) γ ((H, md, cuts, wr, ino, none) : TailG) -∗
     osMeta (L := L) ino (DFrac.own (1 : Qp).half) m -∗ osBytes (L := L) ino 0 (DFrac.own (1 : Qp).half) bs -∗

@@ -130,7 +130,8 @@ def walCreateQ (dir : GoString) (N : NameSet) (h : NamesH) (md : List w8) (Q : I
 /-- **`Create`'s update for `os.Rename.specDirSnc`** (see the file header). The program's premises:
 `dir = r/nm`, `tmp` (`nm.tmp`) holding `J` in the claim, both names of the claim; `J ≠ jr`; the call's
 log bound `lb` past both claims' last entries; the new layout `lay` of `jr`, `nm`, `J` with the one
-segment `g` (nonempty), its static relation over `J`'s names, every byte durable, the stream then
+segment `g` (nonempty), its static relation over `J`'s names, every byte durable and zeros known only
+past its end (`hzf`, `TailSynced`: its `OsMeta` synced, `TailMeta`), the stream then
 zeros; the segment at its name in `J` (`hsn`), and after any crash of `J`'s claim (`hJC`: every
 `.wal` entry a file, the segment's file only at its name). -/
 theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
@@ -143,7 +144,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     (hlay : lay.jr = jr ∧ lay.nm = nm ∧ lay.j = J) (hsegs : lay.segs = [g]) (hbs : g.bs ≠ [])
     (hJcoh : ClaimCoh hJ J (.except X)) (hX : ∀ b ∈ X, walNameP b = false)
     (habs : WalAbsD C Mr (walDurFresh md) lay hJ.cur)
-    (hdur : ∀ y ∈ g.bs, y = durB y.1)
+    (hdur : ∀ y ∈ g.bs, y = durB y.1) (hzf : ∀ z, g.om.zf = some z → g.bs.length ≤ z)
     (htail : lay.wr = (segStream C Mr (walDurFresh md) lay.cuts lay.cuts.length).length)
     (hold0 : ∀ b, lay.wr ≤ b → b < lay.old.length → lay.old.getD b 0 = 0)
     (hz : lay.old.length - lay.wr = 0 ∨ 8 ≤ lay.old.length - lay.wr)
@@ -392,7 +393,9 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
             (fun i hi => by
               by_cases e : i = g.ino
               · subst e; rw [GMap.lookup_delete_eq] at hi; exact absurd rfl hi
-              · rwa [GMap.lookup_delete_ne _ (Ne.symm e)] at hi) ⟨hex, htail⟩ $$ Htl
+              · rwa [GMap.lookup_delete_ne _ (Ne.symm e)] at hi) ⟨hex, htail, fun g1 hg1 => by
+                rw [hsegs, List.getLast?_singleton, Option.some.injEq] at hg1
+                exact hg1 ▸ ⟨hdur, hzf⟩⟩ $$ Htl
         isplitr
         · ipureintro; exact ⟨han', Han.2⟩
         isplitr
