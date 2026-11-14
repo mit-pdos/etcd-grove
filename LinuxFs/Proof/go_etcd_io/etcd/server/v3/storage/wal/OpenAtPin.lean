@@ -88,7 +88,7 @@ def walPinOut (C : WalCodec) (Mr : WalMarshal) (jr : Ino) (dir : GoString) (d : 
       ClaimCoh hj lay.j (.except X) ∧ WalAbsD C Mr d lay hj.cur ∧
       (lay.segs.map (·.ino)).Nodup ∧ SegsNamed lay.segs hj.cur ∧
       (∀ g ∈ lay.segs, g.bs.length + 2 ^ 12 < 2 ^ 62)⌝ ∗ walDirKey (W := W) dir lay.j X ∗
-    walLockedTok (W := W) ∗ walTailsFrag (W := W) ∅ ∗
+    walLockedTok (W := W) ∗ (walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) ∗
     walOutFrag (W := W) ⟨(lay.segs.drop (k lay)).map (·.ino), [(lay.j, .except X)],
       if write then [dir] else []⟩ ∗
     ([∗list] g ∈ lay.segs.drop (k lay), segRes (L := L) g) ∗

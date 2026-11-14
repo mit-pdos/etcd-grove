@@ -548,6 +548,7 @@ permission in `walOpeningF` (ledger 2026-11-14) (`wal-read13`; W3/W5 log, thirte
 invariant conjunct is designed, not made (same log). `ReadAll`'s pure core (the running files' decode, the fold to `walReadAllOk`, the read position below
 `walOpenPos`: `readAll_success`) is proved, over the hypotheses `WalReadState` and `decoder.Decode.specR`; its wp proof
 not started (`wal-readall14`; W3/W5 log, fourteenth session).
+invariant conjunct is designed, not made (same log). Each registered WAL name has its own claim (`walNamesRes`, a framed conjunct; registration pending linked to the lock token, `walNamesFrag`), and the path law `walInv_dirPath` (a kept fraction of `osPathS R dir _ j` from `walDirKey`, with `walNamesFrag none`) is proved (`wal-path13`; W1 log, thirteenth session); `walAreaRes`'s split names and `Create`'s registration are open.
 
 ## W1 implementation log (branch `wal-inv`, 2026-11-13)
 
@@ -1083,6 +1084,47 @@ def AsOfOne (f f' : OsFile) (o len : Nat) : Prop := AsOfW f.cand f.rzs f'.cache 
   candidates, `walCrash_pure`'s `hfiles` carrying it, and `CrashOk`'s `W1G` passing `segRzOf lay i :=
   (find g.ino).om.rz`. Every `CrashOk` prover is unaffected (`asOfOneG_asOf` is generic in `rz`); the
   window's prover uses `AsOfW` with the truncate's stamp in `g.om.rz` (`AsOfW.not_rz_window`'s argument).
+
+**Thirteenth session (branch `wal-path13`, 2026-11-14; G-spine, the claim on each WAL name).** A path to
+`dir = r/nm` is a spine through a fraction of a claim on `nm` alone (`osPathS_child`); `nm` sat only in the
+area or creating claim. Design (internal invariant, no client-visible ghost state; `Inv.lean`, `Ghost.lean`):
+- **`walNamesRes R jr r Ls`**, a framed conjunct appended to `walInvBody` (independent of the claims list,
+  so steps changing other claims frame it). Each **registered** WAL name `nm ∈ Wn` has its own claim
+  `(jr, .only [nm], hn)`: the invariant's half among `cl` (`osClaims`), and here `nameShare jr Ls nm`, a
+  fraction of the program's half with `NameOk nm`, `walNameOk nm` and `hn.cur !! nm = some (.dir lay.j)` for
+  the layout named `nm`; plus `∃ q, osPathS R r (own q) jr`, a fraction of the area's spine. Both are **lent
+  by halves and never returned**: a registered name's claim never changes again in the generation (no WAL
+  function renames onto or away from a registered name; a change needs the whole claim), and the spine lets
+  a handle keep a path past the call that opened it (`Open`/`Create` give their caller's spine back whole).
+- **Registration pending** (`WalGS.γnm`, `walNamesAuth o`/`walNamesFrag o`, `Option GoString`): every present
+  WAL is registered but `o`, the one `Create` committed (`walNamesRes_addWal`, at `CreateAu`'s commit, which
+  takes the lock: `walCreateQ (some _)` now carries `walNamesFrag (some dir)`) and has not yet split out
+  (until then `Create` holds the whole program half, which its cleanup's rename needs). **`walUnlockedTok`
+  gains `walNamesFrag none`**; `walUnlockedTok_lock`/`walLockedTok_unlock`, `walParked_lock`/`_unlock` output/
+  take it; `walInvBody_pin`'s post gains `walNamesFrag none`, `walInvBody_unpin` takes it (wal-read's pin and
+  error arms thread it); `ExistPin` carries it beside `walTailsFrag ∅`.
+- **Split names** (`WalGS.γnw`, `walSplitAuth Wn` here, `walSplitFrag Wn` for `walAreaRes`, not yet added there):
+  each `nm ∈ Wn` is a present WAL's; every present WAL but `o` has its name in `Wn`.
+- **The law** (`NameClaims.lean`, proved): **`walInvBody_dirPath`** (`walInvBody s -∗ walNamesFrag none -∗
+  walDirKey dir j X ==∗ walInvBody s ∗ walNamesFrag none ∗ ∃ q, osPathS R dir (own q) j`) and its program-step
+  form **`walInv_dirPath`** (`walInv -∗ notCrashed -∗ walNamesFrag none -∗ walDirKey dir j X ={⊤}=∗ notCrashed ∗
+  walNamesFrag none ∗ ∃ q, osPathS R dir (own q) j`). `OpenAtPin.lean`'s `WalDirPathLaw` follows with
+  `walNamesFrag none` (from `walParked_lock` at the pin, or inside `walUnlockedTok`) framed in place of the
+  area's spine. The path then serves `os.Open(dir)`/`ReadDir(dir)` (or `wal-enoent13`'s child forms).
+- `walInv_alloc` (no callers yet): `harea` is now `WalsCreateOk jr cl` (each WAL name in some area claim);
+  new premises `hnames` (each boot WAL's name has its own claim `.only [nm]`), `hnok` (`NameOk` of such names)
+  and the deposited spine `osPathS R r (own qs) jr`; it registers the boot names (`nameClaimsOf`,
+  `names_split_start`) and returns `walSplitFrag (nameClaimsOf …)`; its returned program halves leave out the
+  name claims (`NameClaimOf`).
+- **Not done** (for the next session): (1) `walAreaRes`'s fact `∀ nm, walNameOk nm → N.Mem nm` must become
+  `N.Mem nm ∨ nm ∈ Wn` with `walSplitFrag Wn` added to it (`Create` then gets `N.Mem nm` for an absent WAL from
+  `Wn ⊆` present); `Exist`'s present case and `walInvBody_areaAt` must then use the name claim (the law) instead
+  of the area claim. (2) `Create`'s registration after the commit: split `.only [nm, nm.tmp]` into `.only [nm]`
+  and `.only [nm.tmp]` (both halves, a program step), keep fractions for `renameWAL`'s pipeline/`OpenDir` and the
+  handle, put the rest as a `nameShare`, add `nm` to `Wn` (`walSplit_set`), `walNames_set (some dir) → none`;
+  `walInvBody_merge2`'s `b1` must then be an unregistered WAL name. (3) `renameWAL.spec`'s caller-supplied path
+  law (`RenameWALOk`'s third conjunct) to discharge from (2). (4) The `WalsBounded s Ls` conjunct (metadata
+  `< 2^41`, segments' `om.hi ≤ 0xffffffff000`; coordinator's decision) not added.
 
 ## 9. The trusted-model drafts (2026-11-13, branch `wal-models`; pending the user's review [user])
 
@@ -2395,6 +2437,12 @@ now at `f.Seek(0, io.SeekEnd)` (after `createNewWALFile`'s success).
   `os.RemoveAll.specAbsentS`/`specDirS`, `fileutil.CreateDirAll.specTmp`, zap `String`/`Error`/`Warn`,
   `fmt.SprintfWalName.spec`, `filepath.Join.spec`, `createNewWALFile.specLocked`, `os.OpenFile.specCreateSnc`,
   `WAL.renameWAL.spec`.
+
+**Thirteenth session (branch `wal-path13`, 2026-11-14).** G-spine's claim design and path law (W1 log,
+thirteenth session); `Create`'s body not advanced. **Correction to the twelfth session's renameWALUnlock
+finding (blocker 2):** not real: the trusted model of `(*File).Close` returns `ErrInvalid` on a nil receiver
+(`LinuxFs/TrustedCode/os.lean`, Go example `model_os_close_nil.go`), so `WAL.Close` with a nil `dirFile` is not
+stuck; a nil-receiver case of `File.Close`'s spec (from the model) is what `renameWALUnlock` needs (not done).
 
 **For `wal-create6` (the invariant's owner, 2026-11-13).** (1) `walAreaRes jr` gains `⌜∀ nm J, walNameOk nm →
 h.cur !! tmpName nm = some (.dir J) → ∀ hJ, (J, NameSet.except [], hJ) ∈ cl → FilesOnly hJ.cur⌝` (a leftover
