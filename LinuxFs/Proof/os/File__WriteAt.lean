@@ -96,7 +96,7 @@ theorem pwPost_step (m : OsMeta) (off n nn j k : Nat) (hoff : off ≤ m.size) (h
     cases m.zf with
     | none => rfl
     | some z =>
-      simp only [Option.map_some]
+      simp only [Option.map_some, show off + nn + (n - nn) = off + n by omega]
       (repeat' split) <;> omega
   · simp [pwPost]
 
