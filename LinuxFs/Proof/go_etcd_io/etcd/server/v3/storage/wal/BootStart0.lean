@@ -52,12 +52,14 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF]
 
 /-- **The first generation's start**: fresh ghost names for the WAL state `walBoot0St r`, its start
-over the boot tree `m` (no segment), its past, and the lock and crash tokens. -/
+over the boot tree `m` (no segment), its past, the lock and crash tokens, and the program's map (empty:
+no WAL, `walAbsent` of every directory). -/
 theorem walStart_boot0 (hPre : AbsDiskGpreS GF) (L : GooseLocalGS GF) (C : WalCodec)
     (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (m : Tree) (hR : RootsOk R)
     (hr : (r, jr) ∈ R) (hnone : ∀ nm, walNameOk nm → m.entry jr nm = none) :
     ⊢@{IProp GF} |==> ∃ W : WalGS GF, walStart L W C Mr R jr r (walBoot0St r) m ∗
-      walPast (W := W) (walBoot0St r) ∗ walUnlockedTok (W := W) ∗ walCrashTok (W := W) := by
+      walPast (W := W) (walBoot0St r) ∗ walUnlockedTok (W := W) ∗ walCrashTok (W := W) ∗
+      walOwn (W := W) ∅ := by
   imod preceipt_zero (GF := GF) with #H0
   ihave #Hst : walStepsLb (G := G) (walBoot0St r) $$ [H0]
   · unfold walStepsLb
@@ -66,10 +68,14 @@ theorem walStart_boot0 (hPre : AbsDiskGpreS GF) (L : GooseLocalGS GF) (C : WalCo
     ipureintro
     intro dir d hd; simp [walBoot0St] at hd
   imod walGhost_init hPre (walBoot0St r) (walKeysInArea_boot0 r) $$ Hst with
-    ⟨%W, Hg, -, #Hp, Hu, Hc, Hcr, Ht, Hpk, Hdk, Hcp, Hpo, Hnm, Hnw, Hnwf, Hlt⟩
+    ⟨%W, Hg, Hown, #Hp, Hu, Hc, Hcr, Ht, Hpk, Hdk, Hcp, Hpo, Hnm, Hnw, Hnwf, Hlt⟩
   imodintro
   iexists W
   iframe Hp Hu Hc
+  isplitr [Hown]
+  rotate_left
+  · rw [show (∅ : GMap GoString WalDur) = (walBoot0St r).wal from rfl]
+    iexact Hown
   unfold walStart
   iexists ∅, [], (fun _ => none)
   iframe Hg Hcr Ht Hpk Hdk Hcp Hpo Hnm Hnw Hnwf Hlt

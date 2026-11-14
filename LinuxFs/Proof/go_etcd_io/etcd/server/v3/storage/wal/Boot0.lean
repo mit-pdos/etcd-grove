@@ -5,8 +5,9 @@
 `walBoot0`: from what the shared mode's switch gives the program (`wp_osShare`: the shared invariant,
 a whole claim on all names of every directory of the boot tree `V.now`, nothing logged), what a WAL
 client needs to call `Create`, `Open`, ...: the area's `walAreaOk` (the WAL invariant, allocated by
-`walInv_alloc` over `walStart_boot0`), the program's `walAreaRes`, the lock and crash tokens and the
-WAL's past (`walPast`, for `dirDurable r`); the claims the WAL does not take go back to the program
+`walInv_alloc` over `walStart_boot0`), the program's `walAreaRes`, the lock and crash tokens, the
+WAL's past (`walPast`, for `dirDurable r`) and the program's (empty) WAL map (`walOwn ∅`, for a client's
+`walAbsent`); the claims the WAL does not take go back to the program
 (the area's names holding an entry, and every other directory's claim).
 
 Its premises, each a world premise of a closed theorem's first boot:
@@ -96,6 +97,7 @@ theorem walBoot0 (hPre : AbsDiskGpreS GF) (C : WalCodec) (hC : C.Ok) (Mr : WalMa
         osNames (L := L) j (.except []) (DFrac.own 1) (namesOf V j (.except []))) ={E}=∗
       ∃ W : WalGS GF, walAreaOk (L := L) (W := W) C Mr R jr r ∗ walAreaRes (L := L) (W := W) jr ∗
         walUnlockedTok (W := W) ∗ walCrashTok (W := W) ∗ walPast (W := W) (walBoot0St r) ∗
+        walOwn (W := W) ∅ ∗
         osNames (L := L) jr ((NameSet.except []).inter (areaOthers V.now jr)) (DFrac.own 1)
           (namesOf V jr ((NameSet.except []).inter (areaOthers V.now jr))) ∗
         [∗list] j ∈ ((GMap.toList V.now).map (·.1)).erase jr,
@@ -117,7 +119,7 @@ theorem walBoot0 (hPre : AbsDiskGpreS GF) (C : WalCodec) (hC : C.Ok) (Mr : WalMa
   -- the WAL's start and the area's path
   have hnone : ∀ nm, walNameOk nm → V.now.entry jr nm = none :=
     fun nm h => hslots nm (areaSlot_of_walName h)
-  imod walStart_boot0 hPre L C Mr R jr r V.now hR hr hnone with ⟨%W, Hst, #Hp, Hu, Hc⟩
+  imod walStart_boot0 hPre L C Mr R jr r V.now hR hr hnone with ⟨%W, Hst, #Hp, Hu, Hc, Hown⟩
   imod osPathS_root R r jr (DFrac.own 1) hr hE $$ Hsh with Hsp
   -- the invariant's claims: the area's names holding no entry
   let N : NameSet := .except (areaOthers V.now jr)
@@ -166,7 +168,7 @@ theorem walBoot0 (hPre : AbsDiskGpreS GF) (C : WalCodec) (hC : C.Ok) (Mr : WalMa
   rw [if_neg hc]
   imodintro
   iexists W
-  iframe Hu Hc Hp Hoth Hrest
+  iframe Hu Hc Hp Hown Hoth Hrest
   isplitr
   · unfold walAreaOk
     iframe Hinv Hos Hsh
