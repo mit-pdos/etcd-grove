@@ -1,6 +1,7 @@
 /-
 The proof of `examples/net/preface/cmd/server`'s `main`, preface's server node: `preface.Serve`
-(`wp_Serve`), with `io.EOF`'s value from the package's initialization (`eof_init`).
+(`wp_Serve`), with `io.EOF`'s and `poll.ErrDeadlineExceeded`'s values from the package's initialization
+(`eof_init`, `ed_init`).
 -/
 module
 
@@ -41,18 +42,22 @@ theorem wp_main
     (wp_Add : time.Time.Add.spec (GF := GF) (hG := hG))
     (γm : GName) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.net.preface.cmd.server ∗
-        pfInvs γm ∗ tcpPlan G srvAddr (extLocalGS tcpExt (L := hG.goose_localGS)).host }}
+        pfInvs γm ∗
+        ⌜(G (Gg := hG.goose_globalGS)).plan !! srvAddr =
+          some (extLocalGS tcpExt (L := hG.goose_localGS)).host⌝ }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hinvs, #Hplan⟩
+  wp_start as ⟨#Hinvs, %Hplan⟩
   ihave #Hpf : (isPkgInit (PROP := IProp GF)
       pkg_id.github_com.mit_pdos.etcd_grove.examples.net.preface) $$ []
   · iPkgInit
   icases preface.eof_init $$ Hpf with ⟨%eof, #Heof⟩
+  icases preface.ed_init $$ Hpf with ⟨%ed, #Hed⟩
   (try wp_auto)
   wp_apply preface.wp_Serve wp_Listen wp_Accept wp_ReadFull wp_Write wp_Close wp_SetDeadline wp_Now
-    wp_Add γm eof $$ []
-  · iframe Hinvs Hplan Heof
+    wp_Add γm eof ed $$ []
+  · iframe Hinvs Heof Hed
+    ipureintro; exact Hplan
   (try wp_auto)
   iapply HΦ
   itrivial

@@ -18,7 +18,11 @@ the shared per-address protocol (`wire/Addr.lean`) and the per-direction stream 
   invariant (`pf_dial_au`: the dial's update, which gets both ends' fresh resources) and the server
   takes when it accepts `cn` (`wire.accept_lis_au`): the acceptor end's state, the token, the
   reader's half of the up direction, and the names. The dialer keeps its end's state, the writer's
-  half of the up direction and the reader's half of the down direction (`clientRes`).
+  half of the up direction and the reader's half of the down direction (`clientRes`). A dial that
+  fails leaving its connection abandoned (D16: the dialer's end closed, its direction shut and
+  empty) deposits the same protocol (`pf_deposit_ab`), its up direction's protocol started from
+  that shut, empty direction (`dirInv_body_alloc_of`), and the dialer keeps nothing: the server
+  that accepts it reads EOF.
 
 The client's check (`client_check`): a reply it read is a prefix of the server's bytes (`sentLb`
 from its read), which are a prefix of the client's own past its preface (its `sentAll ν.up`). The
@@ -221,19 +225,44 @@ theorem pf_dirInv (γm : GName) (cn : Nat) (ν : PfNames) :
     iapply Hback
     iframe Hup Hdown Hrep
 
-/-- A dialer's deposit for its new connection `cn`, from both ends' fresh resources: new names,
-both directions' protocols and the reply state (nothing written yet) in the invariant; the
-server's part (`connProto`) and the dialer's (`clientRes`). -/
-theorem pf_deposit (γm : GName) (cn : Nat) :
-    ⊢ inv pfN (pfState (Gg := Gg) γm) -∗ tcpFresh G cn false -∗ tcpFresh G cn true
-      ={⊤ \ ↑addrN}=∗ connProto γm cn ∗ clientRes γm cn := by
-  iintro #Hinv Hd Ha
+/-- A new direction's protocol state, from its resource in a state `d` that agrees with nothing
+written or read (`DirOk d [] []`: fresh, or an abandoned dial's shut and empty direction): as
+`wire.dirInv_body_alloc`, for any such `d`. -/
+theorem dirInv_body_alloc_of (c : Nat) (s : Bool) (d : TcpDir) (hd : DirOk d [] []) :
+    tcpDir (G (Gg := Gg)) c s d ==∗ ∃ γ, dirInv c s γ ∗ sentAll γ [] ∗ rcvdAll γ [] := by
+  letI := (G (Gg := Gg)).allG
+  iintro Hd
+  imod mono_list_own_alloc (GF := GF) ([] : List w8) with ⟨%γw, Hw, -⟩
+  icases (show monoListAuthOwn (GF := GF) γw 1 ([] : List w8) ⊣⊢
+      iprop(monoListAuthOwn γw (1 : Qp).half [] ∗ monoListAuthOwn γw (1 : Qp).half []) by
+    conv => lhs; rw [← Qp.half_add_half 1]
+    exact (monoListAuthOwn_fractional γw []).fractional _ _).mp $$ Hw with ⟨Hw1, Hw2⟩
+  imod ghostVar_alloc (GF := GF) ([] : List w8) with ⟨%γr, Hr⟩
+  icases (ghostVar_split_half γr 1 ([] : List w8)).mp $$ Hr with ⟨Hr1, Hr2⟩
+  imodintro
+  iexists ⟨γw, γr⟩
+  unfold dirInv sentAll rcvdAll
+  isplitl [Hd Hw1 Hr1]
+  · iexists d, [], []
+    iframe Hd Hw1 Hr1
+    ipureintro; exact hd
+  iframe Hw2 Hr2
+
+/-- The new connection `cn`'s protocol, from its dialer's direction in a state `d` that agrees with
+nothing written (fresh, or an abandoned dial's shut and empty direction) and the acceptor's fresh
+resources: new names, both directions' protocols and the reply state (nothing written yet) in the
+invariant; the server's part (`connProto`) and the dialer's halves (the writer's of the up
+direction, the reader's of the down direction). -/
+theorem pf_alloc (γm : GName) (cn : Nat) (d : TcpDir) (hd : DirOk d [] []) :
+    ⊢ inv pfN (pfState (Gg := Gg) γm) -∗ tcpDir G cn false d -∗ tcpFresh G cn true
+      ={⊤ \ ↑addrN}=∗ connProto γm cn ∗ ∃ ν, sentAll (Gg := Gg) ν.up [] ∗ rcvdAll ν.down [] ∗
+        sentLb ν.down [] ∗ pfName γm cn ν := by
+  iintro #Hinv Hdd Ha
   iinv Hinv with Hi Hclose
   · exact ndot_mask nroot "preface_conns" "preface_addr" (by decide)
   unfold pfState
   icases Hi with ⟨%m, >Hm, >Hconns⟩
   unfold tcpFresh
-  icases Hd with ⟨Hde, Hdd⟩
   icases Ha with ⟨Hae, Had⟩
   letI := (G (Gg := Gg)).allG
   cases hm : m.lookup cn with
@@ -241,11 +270,11 @@ theorem pf_deposit (γm : GName) (cn : Nat) :
     -- `cn` is new: the direction from its dialer is owned once
     icases pfConns_acc m cn ν' hm $$ Hconns with ⟨Hc, -⟩
     unfold pfConn dirInv
-    icases Hc with ⟨⟨%d, %W, %R, Hd', -⟩, -⟩
-    icases tcpDir_excl _ cn false d TcpDir.fresh $$ Hd' Hdd with ⟨⟩
+    icases Hc with ⟨⟨%d', %W, %R, Hd', -⟩, -⟩
+    icases tcpDir_excl _ cn false d' d $$ Hd' Hdd with ⟨⟩
   | none =>
     imod token_alloc (GF := GF) with ⟨%γt, Htok⟩
-    imod wire.dirInv_body_alloc cn false $$ Hdd with ⟨%γu, Hup, Hwu, Hru⟩
+    imod dirInv_body_alloc_of cn false d hd $$ Hdd with ⟨%γu, Hup, Hwu, Hru⟩
     imod wire.dirInv_body_alloc cn true $$ Had with ⟨%γd, Hdown, Hwd, Hrd⟩
     ihave #Hlbu := wire.sentLb_get γu [] $$ Hwu
     ihave #Hlbd := wire.sentLb_get γd [] $$ Hwd
@@ -264,25 +293,57 @@ theorem pf_deposit (γm : GName) (cn : Nat) :
       iright
       ipureintro; rfl
     imodintro
-    unfold connProto clientRes pfName pfTok
+    unfold connProto pfName pfTok
     isplitl [Hae Htok Hru]
     · iexists ⟨γt, γu, γd⟩
       iframe Hae Htok Hru Hlbu Hname
     · iexists ⟨γt, γu, γd⟩
-      iframe Hde Hwu Hrd Hlbd Hname
+      iframe Hwu Hrd Hlbd Hname
 
-/-- A dial of `srvAddr`: the update of `net.Dial` (`wire.dial_both_au`), which deposits the
-connection's protocol in the address's invariant, made from both ends' fresh resources
-(`pf_deposit`). -/
+/-- A dialer's deposit for its new connection `cn`, from both ends' fresh resources (`pf_alloc`):
+the server's part (`connProto`) and the dialer's (`clientRes`). -/
+theorem pf_deposit (γm : GName) (cn : Nat) :
+    ⊢ inv pfN (pfState (Gg := Gg) γm) -∗ tcpFresh G cn false -∗ tcpFresh G cn true
+      ={⊤ \ ↑addrN}=∗ connProto γm cn ∗ clientRes γm cn := by
+  iintro #Hinv Hd Ha
+  icases (show tcpFresh G cn false ⊢ iprop(tcpEnd G cn false TcpEnd.fresh ∗
+    tcpDir G cn false TcpDir.fresh) from .rfl) $$ Hd with ⟨Hde, Hdd⟩
+  imod pf_alloc γm cn TcpDir.fresh wire.dirOk_fresh $$ Hinv Hdd Ha with
+    ⟨Hp, %ν, Hwu, Hrd, #Hlbd, #Hname⟩
+  imodintro
+  iframe Hp
+  unfold clientRes
+  iexists ν
+  iframe Hde Hwu Hrd Hlbd Hname
+
+/-- An abandoned dial's deposit for its connection `cn` (D16), from the dialer's closed end, its
+shut and empty direction and the acceptor's fresh resources (`pf_alloc`): the server's part
+(`connProto`), the dialer's halves dropped; whoever accepts `cn` reads nothing from it but EOF. -/
+theorem pf_deposit_ab (γm : GName) (cn : Nat) :
+    ⊢ inv pfN (pfState (Gg := Gg) γm) -∗ tcpEnd G cn false { TcpEnd.fresh with closed := true } -∗
+      tcpDir G cn false ⟨[], .fin⟩ -∗ tcpFresh G cn true ={⊤ \ ↑addrN}=∗ connProto γm cn := by
+  iintro #Hinv - Hdd Ha
+  imod pf_alloc γm cn ⟨[], .fin⟩ (by simp [DirOk]) $$ Hinv Hdd Ha with ⟨Hp, -⟩
+  imodintro
+  iexact Hp
+
+/-- A dial of `srvAddr`: the update of `net.Dial` with `Qfail := True` (`wire.dial_both_au`), which
+deposits the connection's protocol in the address's invariant, made from both ends' fresh resources
+(`pf_deposit`), or, for an abandoned dial, from the acceptor's (`pf_deposit_ab`). -/
 theorem pf_dial_au (γm : GName) :
     ⊢ inv addrN (addrInv srvAddr (connProto (Gg := Gg) γm)) -∗ inv pfN (pfState (Gg := Gg) γm) -∗
       |={⊤,∅}=> ∃ S, tcpPend G srvAddr S ∗
         ∀ cn, ⌜cn ∉ S⌝ -∗ tcpPend G srvAddr (S ∪ {[cn]}) -∗ tcpConnAt G cn srvAddr -∗
-          tcpFresh G cn false -∗ tcpFresh G cn true ={∅,⊤}=∗ clientRes γm cn := by
+          tcpFresh G cn true -∗
+          ((tcpFresh G cn false ={∅,⊤}=∗ clientRes γm cn) ∧
+           (tcpEnd G cn false { TcpEnd.fresh with closed := true } -∗
+            tcpDir G cn false ⟨[], .fin⟩ ={∅,⊤}=∗ True)) := by
   iintro #HaddrInv #HpfInv
   iapply wire.dial_both_au addrN srvAddr (connProto γm) (clientRes γm) $$ HaddrInv
-  iintro %cn - Hd Ha
-  iapply pf_deposit γm cn $$ HpfInv Hd Ha
+  · iintro %cn - Hd Ha
+    iapply pf_deposit γm cn $$ HpfInv Hd Ha
+  · iintro %cn - He Hd Ha
+    iapply pf_deposit_ab γm cn $$ HpfInv He Hd Ha
 
 /-- The server's one write on `cn`, of bytes `bs` that are a prefix of the dialer's (`si`) past
 the preface, with the connection's token: the reply state's bytes were nothing, and are a prefix
@@ -384,14 +445,14 @@ which hands back the end's state, whatever its outcome. -/
 theorem owned_setDeadline_au (c : Nat) (s : Bool) (st : TcpEnd) (kind : w64) (set : Bool) :
     ⊢ tcpEnd (G (Gg := Gg)) c s st -∗
       |={⊤,∅}=> ∃ st0, tcpEnd G c s st0 ∗
-        ∀ ok st', ⌜DeadlineOutcome st0 kind set ok st'⌝ -∗
+        ∀ res st', ⌜DeadlineOutcome st0 kind set res st'⌝ -∗
           tcpEnd G c s st' ={∅,⊤}=∗ ∃ st'', tcpEnd G c s st'' := by
   iintro Hend
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   iexists st
   iframe Hend
-  iintro %ok %st' - Hend
+  iintro %res %st' - Hend
   imod Hmask
   imodintro
   iexists st'
