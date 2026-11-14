@@ -112,7 +112,7 @@ COPIES = [
 ] + [
     Whole(f'Spec/go_uber_org/zap/{n}.lean', drop=['Proof.go_etcd_io.etcd.cache.v3.Base'],
           add=['LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.DepsPkgInit'])
-    for n in ['Logger__Warn', 'Duration', 'String', 'Error', 'Int64']
+    for n in ['Logger__Warn', 'Logger__Info', 'Duration', 'String', 'Error', 'Int64']
 ]
 
 IMPORT_RE = re.compile(r'^((?:public\s+)?(?:meta\s+)?import\s+(?:all\s+)?)(\S+)(.*)$')
