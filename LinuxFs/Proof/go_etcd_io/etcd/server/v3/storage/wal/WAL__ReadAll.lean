@@ -27,6 +27,7 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllReg
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllCommit
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllNamed
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllSynced
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllOpen
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.TailFdatasync
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.ReadAllTailCallees
 public import LinuxFs.Spec.os.File__Fd
@@ -187,6 +188,33 @@ theorem readAll_dir {r dir nm : GoString} (hr : filepath.CleanAbs r) (hin : InAr
   have e : r ++ go!"/" ++ nm = r ++ [path.slash] ++ nm := rfl
   rw [e]
   exact filepath.dirModel_name r nm hr (cleanSeg_of_nameOk hnm)
+
+/-- **`ReadAll`'s success at the state read at the commit** (`readAll_success` at `d1`, `lay1`, `kk1`;
+the client's `dc` agrees with it: `walDurLe`). -/
+theorem readAll_success1 {Mr : WalMarshal} {U : WalUnmarshal} (hU : U.Ok Mr) {d1 dc : WalDur}
+    {lay1 : WalLay} {ents : Ents} {kk1 : Nat} {gs : List SegG} {s : w64 × w64}
+    (hab : WalAbsD walCodec Mr d1 lay1 ents) (hex : TailExact lay1)
+    (hwr : lay1.wr = (segStream walCodec Mr d1 lay1.cuts lay1.cuts.length).length)
+    (hgs : lay1.segs.drop kk1 = gs) (hgne : gs ≠ [])
+    (hghd : ∀ g, gs.head? = some g → ∀ sq ix, g.name = walFileName sq ix → ix < 2 ^ 64 →
+      ix ≤ uint.nat s.1)
+    (hpre : some s = walNewestPair (walValidSnaps (dc.H.map WalOpG.toM) dc.cut)) (hle : walDurLe dc d1)
+    {r : List w8 × HardStateM × List EntryM}
+    (hok : readAllFold U s true (walDecodeFiles walCodec ((lay1.segs.drop kk1).map segImg) 0#32).recs
+      .eof = .ok r) :
+    ∃ σ, walReadAllOk (dc.H.map WalOpG.toM) dc.cut s σ ∧ r = (dc.metadata, σ.hs, σ.ents) := by
+  obtain ⟨g, hg⟩ : ∃ g, gs.head? = some g := by
+    cases gs with
+    | nil => exact absurd rfl hgne
+    | cons g _ => exact ⟨g, rfl⟩
+  have hg1 : lay1.segs[kk1]? = some g := by
+    rw [← hg, ← hgs, List.head?_drop]
+  have hs : some s = walNewestPair (walValidSnaps (histM d1) d1.cut) := by
+    rw [histM, ← hle.1, ← hle.2.2.2.1]; exact hpre
+  obtain ⟨σ, h1, h2⟩ := readAll_success walCodec_ok hU hab hex hwr kk1 g hg1 s (hghd g hg) hs .eof r hok
+  refine ⟨σ, ?_, ?_⟩
+  · rw [hle.1, hle.2.2.2.1]; exact h1
+  · rw [h2, hle.2.2.2.2.1]
 
 set_option maxHeartbeats 2000000 in
 theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.FieldAssumptions]
@@ -636,7 +664,66 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             iframe Hfail
             iexists lg
             iframe Hlg Hdir Hzap
-          · sorry
+          · -- `match`: the success (phase 4); the fold at the state read at the commit (`d1`, `lay1`, `kk1`)
+            have hR0eq1 : rdRest walCodec (fs.map (·.bs)) 0 0#32 =
+                walDecodeFiles walCodec ((lay1.segs.drop kk1).map segImg) 0#32 := by
+              rw [rdRest_start, decFiles_bs hfl (fun k F g h1 h2 => (hfk k F g h1 h2).1), hgs1]
+            have hfold := rdLoop_fold_eof hL hR0r hmt
+            rw [hR0eq1] at hfold
+            obtain ⟨σ, hσ, hrσ⟩ := readAll_success1 hU hab1 hex1 hwr1 hgs1 hgne hghd hpre1 hle1 hfold
+            simp only [Prod.mk.injEq] at hrσ
+            obtain ⟨hmdσ, hhsσ, hentsσ⟩ := hrσ
+            (try wp_auto)
+            -- `w.state = proto.Clone(state)`
+            imod hHs.freeze stp st.hs ⊤ $$ Hhs with #Hhs
+            wp_apply wp_CloneHs stp st.hs $$ Hhs as %m ⟨%p', %hm', #Hhs'⟩
+            subst hm'
+            (try wp_auto)
+            -- `w.readClose` is nil in write mode; `w.start`, `w.metadata`
+            subst hrc
+            simp only [show zero_val GoFunc = func.nil from rfl, _root_.decide_true]
+            (try wp_auto)
+            -- `w.encoder, err = newFileEncoder(w.tail().File, w.decoder.LastCRC())`
+            wp_apply (wp_tail w locks ls lt (DFrac.own 1) (DFrac.own 1)) $$ [Hlocks Hls] as ⟨Hlocks, Hls⟩
+            · iframe
+            simp only [decide_eq_false hltn]
+            (try wp_auto)
+            wp_apply (wp_tail w locks ls lt (DFrac.own 1) (DFrac.own 1)) $$ [Hlocks Hls] as ⟨Hlocks, Hls⟩
+            · iframe
+            (try wp_auto)
+            wp_apply (wp_LastCRC dec IoE eof _ lay.wr c' _) $$ [$Hdec] as Hdec
+            (try wp_auto)
+            unfold walTailW
+            icases Htw with ⟨Hf, Hfd, Hoff, Hk, %m, %bs, Hm, Hby, %hp, Hv⟩
+            ihave #Hioi : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.ioutil $$ []
+            · iPkgInit
+            wp_apply (wp_newFileEncoder fl fdl _ _ (W64 (lay.wr + ([] : List w8).length)) c' hfdl
+              (by simpa using hso1) (by simpa using hso2)) $$ [Hf Hoff] as %e ⟨Henc, Hf, Hoff, %hne⟩
+            · iframe; iframe #
+            (try wp_auto)
+            -- the ghost handle `append`
+            iapply wp_notCrashed_acc _ _ rfl
+            iintro Hnc
+            imod walInv_appendOpening walCodec Mr R jr rt w dir s $$ Hinv Hnc Hgh with ⟨Hnc, Hopen, Hpw⟩
+            iframe Hnc
+            imodintro
+            imod ownSlice_persist $$ Hents with #Hents
+            imod ownSlice_persist $$ Hmdv with #Hmdv
+            wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hlocked]
+            · ipureintro; trivial
+            iapply HΦ
+            iframe Hp Hperm
+            iexists dc
+            iframe HQ
+            iright
+            isplitr
+            · ipureintro; rfl
+            iexists σ, esL
+            rw [← hhsσ, ← hentsσ, ← hmdσ]
+            iframe Hhs Hents Hein Hmdv Hnamed Hsyn1 Hlen Hpw
+            isplitr
+            · ipureintro; exact hσ
+            sorry
       · exact absurd hio hEu.2
       · exfalso
         obtain ⟨t, rfl⟩ := goFail_badRec hgf.1
