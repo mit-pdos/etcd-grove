@@ -535,8 +535,8 @@ module; the bboltfs/crashlog/walfs examples and the generated translations not l
   the stream bounds withdrawn over the model's `maxBytes`, `wal-maxb14`, fourteenth session),
   `WAL.sync.wp_proof` (`saveEntry`/`saveState` proved over `encode.specTail`, `wal-save15`), `encode.specTail`;
 - `fileutil/`: none (`ReadDir.wp_proof` proved, `wal-small14`; `TouchDirAll`/`CreateDirAll` proved, `wal-create7`, over the above-root hypotheses);
-- `os/`: `File.Truncate.wp_proofAu` (`File__TruncateAu.lean`), `File.WriteAt.wp_proof_long` (`WriteLong.lean`,
-  past 1 GiB).
+- `os/`: `File.Truncate.wp_proofAu` (`File__TruncateAu.lean`). (`File.WriteAt.wp_proof_long` proved past 1 GiB,
+  `wal-wlong1`, 2026-11-14: below.)
 Not yet stated (no `sorry`, no statement): `Close`, `ReleaseLockTo`, `Repair`, `Exist`
 (§4.2's W7-W12; `ValidSnapshotEntries` stated and proved over its attempt's two internal statements, `wal-vsnap1`, W7-W12 log, W8 session; the attempt's gaps 1-3 closed, `wal-vsnap2`, W8 second session: `openWALFilesFn` in `walInit`, `openWALFiles`' closer, `Decode`'s I/O errors' `io.ErrUnexpectedEOF` answer; gap 4 and the attempt open), the WAL-level resize updates (I3b's open items). `Create`'s ghost steps (drop, mint, unmint, merges) are proved (`wal-create10`; W4 log, tenth session). The record of what is out of the parked state and the changes in flight only on segments out (W3/W5's gaps A and B) are in the invariant, with the pin's and the put-back's moves (`Parked.lean`, `wal-read9`; W1 log, tenth session). A change in flight only on a registered tail (`TailsOnly`), the tails' authority halved with the lock holder (`walTailsFrag`), and `openAtIndex`'s pin (`walInvBody_pin`, `OpenPinTake.lean`) are proved (`wal-read10`; W1 log, eleventh session; W3/W5 log, tenth session). Gap C (every WAL's directory claim once and exclusive, `DirClaimsOk` in `DirKeysOk`), the pin keying its WAL, the put-back (`walInvBody_unpin`), the commit's `unl` raise (`walInvBody_unl`) and the tail's registration (`walTailsRes_register`) are proved (`wal-read11`; W1 log, twelfth session; W3/W5 log, eleventh session).
 `Exist` proved over hypotheses (`wal-small12`, W7-W12 log; no `sorry`); `hErrNotExist` dropped and the
@@ -575,7 +575,25 @@ The resize stamps reach the WAL's crash condition (`OsMeta.rz`, `MetaOk.rz`, `Os
 
 W4 `cleanupWAL` (2026-11-14, `wal-create24`): **blocked by design** -- the cleanup renames a *registered* WAL name, whose claim G-spine never makes whole again (W4 log, twenty-sixth session: unregistration proposed); its name's hypotheses (`Format`, `Sprintf`) and `fmt.ErrorfAny` in; `Create`'s four cleanup `sorry`s stay.
 
-### Inventory (2026-11-14, integration, refreshed on `wal-int4`)
+### Inventory (2026-11-14, integration, refreshed on `wal-int5`)
+
+Branch `wal-int5` (`wal-int` `21ccdef24f` with `wal-leaf5-modeperm` merged, Link regenerated): every `LinuxFs`
+and `GooseLang/Ext/Fs` target builds (3303 jobs, nothing to fix; the six modules `wal-create23` saw failing,
+`fileutil.{NewFileBufReader,preallocExtendAu,preallocExtendTruncAu,PreallocateAu,ZeroToEndAu}` and
+`wal.NewDecoder`, build: stale artifacts there). `gen-part-copies`, `gen-init`, `goose.py` (`bboltfs`, `crashlog`,
+`walfs`) and `gen-link.py --walfs --check` pass. The Link has 205 results, 176 with no hypothesis.
+- **`sorry`s (2 declarations, 4 `sorry`s)**: `S/Create.lean:145`, `:157`, `:191` (`wal.Create.wp_proof`),
+  `LinuxFs/Proof/os/WriteLong.lean:56` (`os.File.WriteAt.wp_proof_long`). `ReadAll` and `sync` are proved.
+- **Trust report** (`etc/tcb-report.lean --part=LinuxFs` on the Link) against `etc/tcb-collections/wal-fsext.txt`:
+  the 23 axioms, plus `zap.Int'.wp_proof` (`ValidSnapshotEntries`, new); `sorry`s 2 (`ReadAll`'s gone). Not the
+  intended `CheckDirPermission`-only difference, so the baseline is not updated here.
+- **Non-callee premises (14 distinct, as Link hypotheses)**: `U_Ok`, `U_SnapCoh`, `WalDecEnvSupply`, `WalHsOwn`,
+  `WalPbIn.{CloneHs,GetIndex,GetTerm,IsEmpty,MarshalEnt,MarshalHs,MustSync,Nil,UnmarshalEnt,Zero}Law`.
+- **Unproved callee hypotheses of the Link (10)**: `errors.{AsLinkError,IsErrno,IsPathErrnoEof,
+  IsPathErrnoNotExist}`, `filepathlite.IsAbs`, `fmt.ErrorfErrsNot`, `proto.UnmarshalWalRecordE`,
+  `WAL.renameWALUnlock`, `wal.validSnapshotEntries{Absent,Pinned}`. `CheckDirPermission.spec` is now linked.
+
+The `wal-int4` inventory follows.
 
 Branch `wal-int4` (from `wal-int` `5c98a6197a`, `wal-save22` merged): every `LinuxFs` and `GooseLang/Ext/Fs`
 target builds (3215 jobs, no failure, nothing to fix); `etc/gen-part-copies.py --check`, `etc/gen-init.py --check` and `etc/goose.py
@@ -589,7 +607,7 @@ target builds (3215 jobs, no failure, nothing to fix); `etc/gen-part-copies.py -
   (committed with `w` returned; committed with a reopened WAL; not committed); the committed-error arm is proved.
 - `S/WAL__ReadAll.lean:300` (`WAL.ReadAll.wp_proof`, :140): the loop's EOF stop and what follows it.
 - `S/WAL__sync.lean:210` (`WAL.sync.wp_proof`, :208): whole proof (writes past the tail's size).
-- `LinuxFs/Proof/os/WriteLong.lean:56` (`os.File.WriteAt.wp_proof_long`, :41): writes past 1 GiB.
+- (`LinuxFs/Proof/os/WriteLong.lean`'s `os.File.WriteAt.wp_proof_long`: proved, `wal-wlong1`, 2026-11-14.)
 - `S/filePipeline__alloc.lean`: none now (was :137). `fileutil/`: none.
 - (Not counted: `LinuxFs/GeneratedProof/os.lean:182-205`, generated instances of axiomatized types.)
 
@@ -666,6 +684,18 @@ and `ZeroToEnd.wp_specWalTail (wp_proofAu …)`, `Create` over `os.File.Close.wp
   boundary: the user's call); the WAL's own `WAL.renameWALUnlock.spec` and `fileutil.CreateDirAll.specTmp` (false as
   stated, ledger). Premises: the `WalPbIn` laws, `U.Ok`, `U.SnapCoh`, `WalHsOwn`, `WalDecEnvSupply`. Semantic premise
   class: `[UntypedRuneSemantics]` (a section instance, from `filepath`).
+
+**`WriteAt` past 1 GiB (branch `wal-wlong1`, 2026-11-14).** `os.File.WriteAt.wp_proof_long` proved, no `sorry`
+(`Proof/os/WriteLong.lean`, pure steps in the new `Proof/os/WriteLongStep.lean`: `pwPostE_step`, `pwOutA_step`,
+`pwCutE_step`, `pwBytes_rest`). **Spec defect (ledger, 2026-11-14, made):** the failure arm was false past 1 GiB:
+a chunk that lands whole raises `cz` (`pwCz`), which `pwPost m off A j` loses once a later chunk is announced, and
+a whole `2^30`-byte chunk from an offset off a page boundary ends off one (not `PwCut`). The post gains `E`, the end
+of the last whole chunk: `os.pwPostE m off A j E` (`pwPost` with `cz := pwCz m off E E`) and `os.PwCutE` (`PwCut`,
+or `j = E`); on success and up to 1 GiB they are `pwPost`/`PwCut`. `os.File.Write.wp_long`'s and `os.fileB`'s
+error arms follow (their users drop that arm); the WAL rebuilt unchanged. Proof notes: the model's `max` branches
+joined by `wp_if_join` (`case'`/`all_goals` over the two branches, and `word` or literal `rfl`s inline in the
+Löb body, blew up past 15 GB: keep such arithmetic in top-level lemmas); `maxHeartbeats 2000000` on the theorem
+(46 s). `gen-link.py --walfs --check` differs on `wal-int` already (`WAL__CloseU`, not this branch's).
 
 ## Leaf specs log (branch `wal-leaf6`, 2026-11-14)
 

@@ -1353,6 +1353,29 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   Until then `cleanupWAL`'s proof takes it as a callee hypothesis. Separately an `os.Rename` spec over `fsExt` for a
   target name past 255 bytes (`ENAMETOOLONG`, nothing changed).
 - **Decision.** Pending the user (a trust-boundary change).
+
+## 2026-11-14: `os.File.WriteAt.specLong` (the part's) -- the failure arm's `OsMeta` and page cut are false past 1 GiB
+
+- **Spec.** `LinuxFs/Spec/os/WriteLong.lean`, `os.File.WriteAt.specLong` (no `SpecPlan` counterpart); its
+  callers' error posts restate it: `os.File.Write.wp_long` (`LinuxFs/Proof/os/OffLong.lean`) and `os.fileB`
+  (`LinuxFs/Proof/os/WriterStream.lean`).
+- **Defect.** Unprovable past `maxRW` (1 GiB), failure arm. (1) The `OsMeta` `pwPost m off A j`: an attempt
+  that lands its whole chunk `[nn, E)` raises `cz` to `pageEnd (off + E)` (`pwCz`, when the zeros known start
+  at or below `off + E`); if a later chunk is then announced (`A > E`) and the write fails before reaching `A`,
+  the file's `cz` keeps that raise, but `pwPost m off A j`'s is `m.cz` (`j ≠ A`), and no other `A`, `j` gives
+  the announcement (dirty range, `zf`, `tc`, `hi`) the later chunk made. (2) `PwCut off len j`: a whole chunk
+  of `2^30` bytes from an offset off a page boundary lands and the next attempt fails with nothing written:
+  `j = 2^30`, `off + j` is not on a page boundary.
+- **Evidence.** The Löb step of `os.File.WriteAt.wp_proof_long` (`LinuxFs/Proof/os/WriteLong.lean`): the
+  `cz` of `pwPost (pwPost m off A A) (off + A) c 0` is `pwCz m off A A`, not `pwCz m off (A + c) A = m.cz`;
+  the page cut: `PWriteFinish`'s `PwCut (off + nn) c k` with `k = c` says nothing of `off + nn + c`'s page.
+- **Proposed change.** The post gains the end `E` of the last chunk that landed whole (`E ≤ j`, `j = A → E = A`;
+  `0` if none): the `OsMeta` is `os.pwPostE m off A j E` (`pwPost m off A j` with `cz := pwCz m off E E`), the
+  cut `os.PwCutE off len j E` (`PwCut off len j`, or `j = E` within `maxBytes`). Up to `maxRW` (`E = 0` or
+  `E = j = A`) and on success (`E = j = A = len`) both are `pwPost`'s and `PwCut`, definitionally or by a
+  lemma; the callers' error posts take the same change (both callers drop that arm's resources).
+- **Decision.** Made (internal to the part: only the failure arm of a write past 1 GiB moves; no client-visible
+  ghost state; the success arm unchanged). `wal-wlong1`.
 ## 2026-11-14: `wal.ValidSnapshotEntries.spec` (the part's, W8) -- restated over `fsExt`
 
 - **Spec.** The main tree's axiom `Spec/.../wal/ValidSnapshotEntries.lean` (`walUnlockedTok` framed, the AU over
