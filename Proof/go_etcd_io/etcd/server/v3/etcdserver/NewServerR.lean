@@ -1087,10 +1087,8 @@ theorem NewServer.wp_proofR
   iunfold srvRestartRows at Hrows
   have hrows : γrn.node = γ ∧ γrn.id = id ∧ γrn.pre = [] ∧ γrn.a0 = A ∧ γrn.t0 = σ.hs.Term' ∧
       ρ.rd.raft.raft = γ := ⟨Hrn1, by rw [Hrn5, Hrid], Hrn6, Hrna0, Hrnt0, by rw [HρRaft]⟩
-  -- (the row's text parses as `(|==> rnSnapTermAbove γn) ∗ srvWinPend s γr γn`)
   ihave Hrows := Hrows $$ %s %ρ.rd %γrn %hrows
-  icases Hrows with ⟨HsTA, Hwpend⟩
-  imod HsTA
+  imod Hrows with ⟨HsTA, Hwpend⟩
   -- (2026-10-27) the cluster's kind, at the wrapper's names
   ihave #Hkind : srvClusterOk γrn.srv $$ []
   · ihave #Hsrl' := Hsrl

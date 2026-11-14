@@ -60,12 +60,23 @@ theorem tableReq_le_recs (T : LeaseTable) (recs : List (w64 × w64 × w64)) (hn 
   exact hge x hx p hp hp1
 
 /-- (The restarted lessor's guard) **A cluster that grants no lease has an empty applied table**:
-the image's lease bucket holds no record unless `lg`. OPEN (from the KV invariant: with
-`lg = false` no committed `LeaseGrant` takes effect). -/
+the image's lease bucket holds no record unless `lg`: with `lg = false` the committed log is plain in
+the lease mode `none` (`kv_log_plain`), which leaves the table (`kvTableOf_plainM`). -/
 theorem restart_noGrant (γr : ReadNames) (A : List EntryModel) (hpre : γr.raft.pre = []) :
     ⊢ kvInv (GF := GF) γr.raft γr.kv -∗ srvRaftLogInv γr.raft -∗ srvRLogLb γr.raft A ={⊤}=∗
       ⌜γr.kv.lg = false → (appliedTable γr A).ids = []⌝ := by
-  sorry
+  iintro #Hkv #Hr #HA
+  imod kv_log_plain γr.raft γr.kv A $$ Hkv Hr HA with %Hpl
+  imodintro
+  ipureintro
+  intro hlg
+  have hlm : γr.kv.lm = .none := by
+    rw [KVNames.lg_eq] at hlg; simpa using hlg
+  have hp := Hpl.1
+  rw [hlm] at hp
+  unfold appliedTable kvLeases
+  rw [hpre, List.nil_append, kvTableOf_plainM _ _ _ A hp]
+  rfl
 
 /-- (Probe P5; the restart contract's clause (G)) **The members' peer URLs at a committed log are the
 boot log's**: no committed conf change adds a member (every `AddNode` names a present id) and the

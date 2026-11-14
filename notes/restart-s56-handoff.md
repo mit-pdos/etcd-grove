@@ -48,6 +48,37 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
   and the risks R1-R5 (§7).
 - Decisions go in the worktree's `questions.md` (untracked).
 
+## B2 post done; `restart_snapOnceR` blocked (2026-11-14, third B2 proof agent): next agent starts here
+
+Branch `restart-s56`; **not landable** (two `sorry`s left, both in `E/NewServerRFacts.lean`). Check loop as
+below (`/shared/tmp/restart-s56/b2tail/chk.sh -a`, ~50-150 s; `lc.sh --fast -q -a` on the Facts file, seconds).
+- **Done, checked (0 errors):** `wp_proofR`'s post (`NewServerR.lean`, from "the post: `srvBuiltR`" on):
+  `srvBuiltRC .off`'s rows in order (`simp only [AuthC.isOn]` first: it also drops the trivially true
+  `%Hρrd` and the `0 = 0` parts of `%HEr`), `#Hrdb` at `srvReadBuilt` with the store's log at
+  `kvModel A`, `#Hkvi` through `srvKVInvsM_C`, `HBr` at `P := A.take σ.b` (`applyBuiltR .off` at
+  `st₀ = ⟨0, γA.m0.1, 0, false⟩`, `g₀ = i`; the uber-applier's `isConsistentIndexer` by `srvCiC`'s own
+  `stLoaded` conjunct, not `hLoaded`; `applyKV` at `restartKV` with `leasesKnown_noLease`; `srvRest`
+  by the new `srvRest_restart`; `srvApRes`'s `srvMemOk` by the new `srvMemOk_of_keys` from `Hpurl`),
+  the lessor's records (`hrecs` through `rbData_real_lookup`). G's comment block and the first-start
+  `token_alloc` for `Hwpend` are gone. New in Facts (forms): `restartBk_eq`, `srvRest_restart`,
+  `srvReqs_of_recs`, `srvMemOk_of_keys`; Facts now imports `SnapApplyRest`, `SnapApplyKVLemmas`.
+- **`restart_noGrant` proved** (`kv_log_plain` + `kvTableOf_plainM`).
+- **`srvRestartRows` parenthesized** (81's decision on the reviewer's finding): `|==> (rnSnapTermAbove γn
+  ∗ srvWinPend s γr γn)`; `wp_proofR` takes both from one `imod`; recorded in decisions.md ("Restart S6 B2")
+  and the freeze package §11.7.
+- **Left:** `restart_peerURLs` (P5, ~250 lines, not started; the plan is in the sections below) and
+  **`restart_snapOnceR`, which is unprovable from raft's current `MemoryStorage` specs (reported to 81)**:
+  `rnSnapOnceR` asks `Snapshot()` to answer exactly index `|A.take σ.b| = σ.b`, but the restarted storage is
+  attached (`NodeStartSpecR`'s post: `memStorInv`), and `MemoryStorage.Snapshot.spec` in the attached mode
+  gives only `c ≤ index` (`memCompacted γs c`) and `index = 0 ∨ snapshotValid …`; the one exact answer it
+  has is `b = true → sv = memSnapEmpty` under `memSnapNone` (pr at 0), which a restart cannot hold (the
+  stored snapshot is the WAL's, so the invariant's `Hsn` needs `pr ≥ 1`; `memStorRestarted` already has
+  `memSnapLb γs σ.b`, which includes `pr ≥ 1`). Recommended fix (a raft-side spec change, so 81's call):
+  generalize the "no write since attach" token from `memSnapEmpty` to the attached snapshot (the invariant's
+  `Hsn` as `sv = sv₀ ∨ pr ≥ 1` with `sv₀` the snapshot at attach, `Snapshot`'s `b = true → sv = sv₀`), the
+  restart's `memStorRestarted` keeping `pr` at 0 until `run` opens it (`rnSnapOnceR`'s `|==> memSnapLb γs 0`).
+- Then: link, measure peak, full build, tcb, gen-interface, gates; STOP before landing (CP3).
+
 ## B2 proof in progress (2026-11-14, second B2 proof agent): next agent starts here
 
 Branch `restart-s56`; **not landable** (four `sorry`s: tcb --check). Files: `E/NewServerR.lean`
