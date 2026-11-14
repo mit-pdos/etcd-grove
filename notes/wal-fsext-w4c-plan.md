@@ -747,3 +747,16 @@ WAL resource mismatch found.** No axiom, no `sorry`, nothing trusted changed, no
   `walSyncedLb (tCandMark o c)`, which the member must carry, as `sync`'s and `close`'s success arms now give; the
   `Save` update committed on `TInv` to `d.H ++ [op]`, `tMemOk` for the new oracle), `saveSnap` (the same, plus the
   `ConfState` canonical-encoding obligation, U1 mismatch 3), `restart` (needs the call-permission fix).
+
+**Third session (branch `wal-u5c`, 2026-11-14): the call-permission split.** No axiom, no `sorry`, nothing
+trusted changed, no Go changed.
+
+- **The call permission restored to §11's design** (ledger 2026-11-14, "the client keeps no call permission
+  while a WAL is open": adopted). The open handle (`walDirH`, `walOpeningF`) and its pipeline (`pipeRes`) hold
+  `osCallPerm ¼` each; `Create`'s success arm and `Open`'s give the client `osCallPerm ½` (`openAtIndex`'s
+  write arm: `¼ ∗ ½`; `renameWAL`'s committed arms: `¼ ∗ ½`, `½`); `Close`/`Close.specU`/`Close.specOpening`
+  return `osCallPerm ½`. Changed proofs: `openAtIndex`, `Open`, `WAL.renameWAL`, `Create` (the
+  `create_named_cont` lends the handle's quarter), `WAL.Close`, `Close.specU`, `Close.specOpening` (their local
+  join lemmas now `¼ + ¼ = ½`), `WAL.cut` (its `Rename`/`LockFile` at the quarter), `PipeLemmas.wp_createTmp`
+  (at the quarter). New in `Pipe.lean`: `osCallPerm_halfSplit q`/`osCallPerm_halfJoin q` (wand forms). The WAL
+  Link unchanged (`--check`); the tester's `member.close.spec` returns `Close`'s half.

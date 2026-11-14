@@ -3,7 +3,7 @@
 committed on the tester's invariant, the WAL state `d` unchanged), `m.w = nil`, then, on success, the
 oracle's mark moved to the end of `since` (`tSynced`) and stored (`storeOracle`, with `tRelI` from
 `Close`'s `walSyncedLb` at the whole history). `true`: the synced oracle, the WAL closed (the lock token
-and `Close`'s call permission back, the history synced). `false`: the oracle unchanged (the WAL state's
+and `Close`'s half of the call permission back, the history synced). `false`: the oracle unchanged (the WAL state's
 half lost with `Close`'s update: a failed `Close` may not have committed it). Touches the
 member's fields `orPath`, `w`, `o`. The client's call permission `qc` (for `storeOracle`) as in
 `member.sync.spec`. Lean-first (no Rocq counterpart).
@@ -53,7 +53,7 @@ abbrev member.close.spec : Prop :=
       m.[member, go!"orPath"] ↦ tOrPath e.root ∗ m.[member, go!"w"] ↦ (null : Loc) ∗ ∃ v' : oracle,
       m.[member, go!"o"] ↦ v' ∗
       if b then oracleRep v' (tSynced o) ∗ tOrOwn γ (tSynced o) none ∗ tWalOwn γ (some d) ∗
-        WalFs.walUnlockedTok (W := W) ∗ osCallPerm (GF := GF) 1 ∗
+        WalFs.walUnlockedTok (W := W) ∗ osCallPerm (GF := GF) (1 : Qp).half ∗
         WalFs.walSyncedLb (W := W) (tWalDir e.root) d.H.length
       else oracleRep v' o ∗ tOrOwn γ o none }}
 

@@ -45,9 +45,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [bufio_sem : _root_.Perennial.bufio.Assumptions]
 
 theorem osCallPerm_halves :
-    osCallPerm (L := hG.goose_localGS) (1 : Qp).half ∗ osCallPerm (L := hG.goose_localGS) (1 : Qp).half ⊢
-      osCallPerm (L := hG.goose_localGS) 1 := by
-  have h := osCallPerm_split (L := hG.goose_localGS) (1 : Qp).half (1 : Qp).half
+    osCallPerm (L := hG.goose_localGS) (1 : Qp).half.half ∗
+      osCallPerm (L := hG.goose_localGS) (1 : Qp).half.half ⊢
+      osCallPerm (L := hG.goose_localGS) (1 : Qp).half := by
+  have h := osCallPerm_split (L := hG.goose_localGS) (1 : Qp).half.half (1 : Qp).half.half
   rw [Qp.half_add_half] at h
   exact h.2
 

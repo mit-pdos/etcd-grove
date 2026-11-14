@@ -656,7 +656,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   wp_apply (_wp_Rename dir (pipeTmp np) dir
       (walFileName (sq + 1) (max (uint.nat h.enti) (uint.nat h.snapi) + 1)) j j g.ino
       (.only [pipeTmp np]) (.except X) Rd (DFrac.own qd.half) (DFrac.own qd.half) ht hj
-      (1 : Qp).half (1 : Qp).half qQuarter ((1 : Qp).half + qQuarter) (1 : Qp).half _
+      (1 : Qp).half (1 : Qp).half qQuarter ((1 : Qp).half + qQuarter) (1 : Qp).half.half _
       (pipeTmp_nameOk np) (walFileName_nameOk _ _) (by simp [NameSet.Mem]) hbX (by simp)
       (by rw [hgi]; exact hcur2) (fun J hJ => by rw [hcurbt] at hJ; cases hJ)
       (Qp.half_add_half 1) hq3)
@@ -749,7 +749,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   wp_apply (wp_LockFile (child dir bt) (W64 1) (W32 384) _ Unit _ _
       (walOpen_triple Rd dir bt (DFrac.own qd) j g.ino (.except X) (DFrac.own (1 : Qp).half)
         (hj.log x (renFileEnt j (pipeTmp np) j bt g.ino hj s0) (<[bt := .file g.ino]> hj.cur))
-        (1 : Qp).half (W64 1) (by simp only [OpenFlagsOk, O_CREAT, O_TRUNC, O_CLOEXEC]; decide)
+        (1 : Qp).half.half (W64 1) (by simp only [OpenFlagsOk, O_CREAT, O_TRUNC, O_CLOEXEC]; decide)
         (by decide) hbn hbX (GMap.lookup_insert _ _ _)))
     $$ [Hpd Hcw Hperm] as %lf3 %lerr Hlp
   · iframe; iframe #

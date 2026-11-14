@@ -581,7 +581,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       · iapply isPkgInit_access $$ Hpkg
       ihave #Hseg := wal.walInit_segSize $$ Hw2
       try wp_auto
-      ihave ⟨Hperm1, Hperm2⟩ := osCallPerm_halves' $$ Hperm
+      ihave ⟨Hperm1, Hcp⟩ := osCallPerm_halves' $$ Hperm
+      icases osCallPerm_halfSplit (1 : Qp).half $$ Hperm1 with ⟨Hperm1, Hperm2⟩
       imod walTmpsRes_mem_except R lay.j X _ hj $$ Hsi Hj Ht with ⟨%hXt, Hj, Ht⟩
       ihave ⟨Ht0, Ht1⟩ := walTmpsRes_split lay.j $$ Ht
       iapply wp_notCrashed_acc _ _ rfl
@@ -606,7 +607,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       · ipureintro; rfl
       isplitr
       · ipureintro; exact ho
-      iframe dirFile Hop Hperm2
+      iframe dirFile Hop Hperm2 Hcp
       unfold walReadH walOpenIn walReadTie
       isplitl [lg dir start]
       · iexists lg, sp'

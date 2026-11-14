@@ -119,10 +119,10 @@ theorem walOpenWFU_dirAcc (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : Go
   iexists lg, df, sp, e, fp, lt, f, mds, locks, lfs, fd, dfd, name, dnm, j, rc
   iframe H1 H2 H3 Hh
 
-/-- **The handle's half of the call permission, lent** (`Create`'s parent fsync after `renameWAL`). -/
+/-- **The handle's quarter of the call permission, lent** (`Create`'s parent fsync after `renameWAL`). -/
 theorem walOpenWFU_permAcc (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) :
-    ⊢ walOpenWFU (W := W) P Mr w dir -∗ osCallPerm (1 : Qp).half ∗
-      (osCallPerm (1 : Qp).half -∗ walOpenWFU (W := W) P Mr w dir) := by
+    ⊢ walOpenWFU (W := W) P Mr w dir -∗ osCallPerm (1 : Qp).half.half ∗
+      (osCallPerm (1 : Qp).half.half -∗ walOpenWFU (W := W) P Mr w dir) := by
   iintro H
   unfold walOpenWFU
   icases H with ⟨%h, Hh, Hr⟩

@@ -96,7 +96,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.Open.wp_proof (Mr : WalMarshal)
   wp_apply wp_open lg R jr r dir nm sp s true qp Q hin hnmO hr hdl $$ [Hp Hres Hperm Hu Hau]
     as %w %err ⟨Hp, Hres, %o, HQ, Hr⟩
   · iframe; iframe #
-  icases Hr with (⟨%he, Hu, Hperm, %e, %hee, #He⟩ | ⟨%he, %ho, Hdf, Hop, Hrh, Hperm⟩)
+  icases Hr with (⟨%he, Hu, Hperm, %e, %hee, #He⟩ | ⟨%he, %ho, Hdf, Hop, Hrh, Hperm, Hcp⟩)
   · -- `openAtIndex` failed
     subst hee
     try wp_auto
@@ -137,7 +137,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.Open.wp_proof (Mr : WalMarshal)
     icases Hrh' with ⟨⟨%lg', %sp', Hlg, #Hzap', Hdir, Hstart, #Hsp'⟩, Hrest⟩
     try wp_auto
     wp_apply go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir.wp_proofOk dir R j (DFrac.own qd)
-      (1 : Qp).half $$ [Hpd Hperm] as %f %err2 ⟨Hpd, Hperm, Hod⟩
+      (1 : Qp).half $$ [Hpd Hcp] as %f %err2 ⟨Hpd, Hcp, Hod⟩
     · iframe; iframe #
     icases Hod with (⟨%fd, %he2, Hf, Hfd⟩ | ⟨⟨%he2, %hf⟩, #He2⟩)
     · -- success: the directory fd kept as `w.dirFile`
@@ -153,7 +153,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.Open.wp_proof (Mr : WalMarshal)
       isplitr
       · ipureintro; exact ho
       unfold walOpeningF
-      iframe Hop Hperm
+      iframe Hop Hperm Hcp
       isplitl [Hlg Hdir Hstart Hrest]
       · unfold walReadH walOpenIn
         iframe Hrest
@@ -197,6 +197,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.Open.wp_proof (Mr : WalMarshal)
         iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
         iexact He2'
       try wp_auto
+      ihave Hperm := osCallPerm_halfJoin 1 $$ Hperm Hcp
       iapply HΦ
       iframe Hp Hres
       iexists o

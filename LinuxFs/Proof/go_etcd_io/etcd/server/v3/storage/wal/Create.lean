@@ -118,7 +118,7 @@ set_option hygiene false in
 /-- **The continuation after a committed `renameWAL` that returned a WAL** (arms 1 and 2, at the
 handle before naming `walOpenWFU P Mr w dir`, `walPurgeW w dir` and `createUH x`), in Go's order:
 `w.dir` (`walOpenWFU_dirAcc`), `filepath.Dir` (`dir_child_model`), `OpenDir(r)` with the handle's
-call-permission half lent (`walOpenWFU_permAcc`), `time.Now`, `Fsync` with `osLogLb (x.1 + 1)`, the
+call-permission quarter lent (`walOpenWFU_permAcc`), `time.Now`, `Fsync` with `osLogLb (x.1 + 1)`, the
 naming at its success (`walInv_named`), `walFsyncSec.Observe`, `dirCloser()`, then the deferred calls
 in LIFO order (the cleanup closure and `f.Close` skipped, `RemoveAll(nm.tmp)` of the absent name),
 `walOpenWFU_named`, `create_areaBack` (`T := walOpenWF`), `walPurgeW_fresh_lbs`. Unhygienic: it
@@ -136,7 +136,7 @@ macro "create_named_cont" w:term : tactic => `(tactic| (
     subst pd
     ihave Hw := Hw $$ Hdir
     icases walOpenWFU_permAcc P Mr $w (child r nm) $$ Hw with ⟨Hperm, Hw⟩
-    wp_apply wp_OpenDir r R jr (DFrac.own (e + a')) (1 : Qp).half $$ [Hp Hperm]
+    wp_apply wp_OpenDir r R jr (DFrac.own (e + a')) (1 : Qp).half.half $$ [Hp Hperm]
       as %pf %perr ⟨Hp, Hperm, Hod⟩
     · iframe; iframe #
     icases Hod with (⟨%pfd, %hperr, Hpf, Hpfd⟩ | ⟨%hperr, -⟩)
@@ -192,7 +192,7 @@ macro "create_named_cont" w:term : tactic => `(tactic| (
     subst hce
     try wp_auto
     -- the deferred `RemoveAll(nm.tmp)` (absent)
-    wp_apply +noauto wp_RmAbs r (tmpName nm) jr R (e + a') (DFrac.own 1) ht (1 : Qp).half
+    wp_apply +noauto wp_RmAbs r (tmpName nm) jr R (e + a') (DFrac.own 1) ht (1 : Qp).half.half
       (tmpName_nameOk hnmO) hht $$ [Hp Htmp Hperm] as %err' ⟨Hp, Htmp, Hperm, -⟩
     · iframe; iframe #
     ihave Hw := Hw $$ Hperm
@@ -902,7 +902,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     unfold renameWALPost
     icases Hpost with ⟨Hp, Hpost⟩
     icases Hpost with (⟨%herr, %x, %fp, %γ, %sz, %df, %dfd, %hfpn, HU, HSpR, Hpre, Hlk, Hfpf, Hpipe, Hmain,
-        Ht1, Hdff, Hdf, Hdfd, Hsd, Hperm⟩ | ⟨%herr, %x, HUH, Hw, Hpw⟩ |
+        Ht1, Hdff, Hdf, Hdfd, Hsd, Hperm, Hcp⟩ | ⟨%herr, %x, HUH, Hw, Hpw, Hcp⟩ |
       ⟨%herr, HU, HC, Hperm, HSp, HTmps, -, Hll⟩ | ⟨%herr, %x, HU, HSpR, Hperm, Hll⟩)
     · -- committed, `w` returned: the name registered, the handle minted and assembled
       -- (`create_ghost`, `create_handleIn`: the handle before naming)

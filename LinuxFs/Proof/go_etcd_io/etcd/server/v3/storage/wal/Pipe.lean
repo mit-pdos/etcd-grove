@@ -107,10 +107,32 @@ def pipeFile (j : Ino) (dir : GoString) (n : Nat) (lf : Loc) : IProp GF :=
 def pipeQ (j : Ino) (n : Nat) : IProp GF :=
   iprop(tmpClaim j (pipeTmp (n + 1)) ∗ ⌜n + 1 < 2 ^ 63⌝)
 
-/-- What the pipeline holds of the file system besides its claim: half of the call permission,
-the fraction `dq` of the directory's path. -/
+/-- What the pipeline holds of the file system besides its claim: a quarter of the call permission
+(the open handle holds another, the client the half left: `notes/specs-only/ledger.md`, 2026-11-14,
+"the client keeps no call permission while a WAL is open"), the fraction `dq` of the directory's
+path. -/
 def pipeRes (R : Roots) (dir : GoString) (dq : DFrac) (j : Ino) : IProp GF :=
-  iprop(osCallPerm (1 : Qp).half ∗ osPathS R dir dq j)
+  iprop(osCallPerm (1 : Qp).half.half ∗ osPathS R dir dq j)
+
+/-- The call permission's halves, split. -/
+theorem osCallPerm_halfSplit (q : Qp) :
+    ⊢ osCallPerm (L := hG.goose_localGS) q -∗
+      osCallPerm (L := hG.goose_localGS) q.half ∗ osCallPerm (L := hG.goose_localGS) q.half := by
+  iintro H
+  have h := osCallPerm_split (L := hG.goose_localGS) q.half q.half
+  rw [Qp.half_add_half] at h
+  iapply h.1
+  iexact H
+
+/-- The call permission's halves, joined. -/
+theorem osCallPerm_halfJoin (q : Qp) :
+    ⊢ osCallPerm (L := hG.goose_localGS) q.half -∗ osCallPerm (L := hG.goose_localGS) q.half -∗
+      osCallPerm (L := hG.goose_localGS) q := by
+  iintro H1 H2
+  have h := osCallPerm_split (L := hG.goose_localGS) q.half q.half
+  rw [Qp.half_add_half] at h
+  iapply h.2
+  iframe
 
 /-- The pipeline's resources, back after `run` returned. -/
 def pipeLeft (R : Roots) (dir : GoString) (dq : DFrac) (j : Ino) : IProp GF :=

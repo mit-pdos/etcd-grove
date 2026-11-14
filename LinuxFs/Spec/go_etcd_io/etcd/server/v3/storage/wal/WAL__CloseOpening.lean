@@ -1,7 +1,7 @@
 /-
 `(*wal.WAL).Close()` (S/wal.go:1053-1077) of a handle `openAtIndex` made in write mode, before
-`Open` set its `dirFile` (S/wal.go:391: `fileutil.OpenDir` failed): the pipeline closed (its half of
-the call permission and its pipeline names back), `w.sync()` of the tail (no encoder: an fdatasync),
+`Open` set its `dirFile` (S/wal.go:391: `fileutil.OpenDir` failed): the pipeline closed (its quarter of
+the call permission and its pipeline names back: with the handle's quarter, the half `Open` held), `w.sync()` of the tail (no encoder: an fdatasync),
 each lock closed, and `Close` of the nil `*os.File` (`ErrInvalid`). The WAL's halves go back to
 `walInv`'s parked state and the lock token comes back (`walInvBody_unpin`); the ghost handle
 `walOpening` goes. Any error (the sync's: the Go code then returns early, its locks left open; the
@@ -37,11 +37,11 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.specOpening (Mr : WalMars
   ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (s : w64 × w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
       WalFs.walAreaOk walCodec Mr R jr r ∗
-      WalFs.walOpening w dir s ∗ walReadH true w dir s ∗ osCallPerm (1 : Qp).half ∗
+      WalFs.walOpening w dir s ∗ walReadH true w dir s ∗ osCallPerm (1 : Qp).half.half ∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ (null : Loc) }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"Close"))
       (Val #()))
-  {{ (err : GoInterface), RET #err; WalFs.walUnlockedTok ∗ osCallPerm 1 }}
+  {{ (err : GoInterface), RET #err; WalFs.walUnlockedTok ∗ osCallPerm (1 : Qp).half }}
 
 end spec
 

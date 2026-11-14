@@ -33,11 +33,13 @@ failed so the locks stayed open, or `OpenDir` failed after a committed rename) o
 *Post* (`renameWALPost`): the spine to the area back, and
 1. *committed, `w` returned*: the update's result, `SpR`, `w`'s fields, the lock file and the encoder,
    the pipeline in `w.fp` (non-nil; `isFilePipe`, `pipeMain γ 0`, the handle's `1.tmp` claim), the directory
-   open in `w.dirFile` (`osDirFdS … .idle`), a spine to `dir`, half the call permission (the pipeline
-   holds the other);
+   open in `w.dirFile` (`osDirFdS … .idle`), a spine to `dir`, three quarters of the call permission
+   (the pipeline holds the other: a quarter goes to the handle, the half to the client, ledger
+   2026-11-14);
 2. *committed, a reopened WAL returned* (`renameWALUnlock`'s retry, then `Open`/`ReadAll`): the
    reopened WAL as the handle before naming (`walOpenWFU`, `Handle.lean`: what `Create` builds from
-   arm 1 too, so that the two arms converge before the parent's fsync), its purge right, and the
+   arm 1 too, so that the two arms converge before the parent's fsync), its purge right, the half of
+   the call permission the handle and its pipeline do not hold, and the
    caller's residue `UH x` (the update's result and `SpR` less what the reopened handle holds; a
    parameter, `Create`'s `createUH`). Restated 2026-11-14 (ledger, twenty-second W4 session): the
    arm returned `U (some x) ∗ SpR x ∗ walOpenWF … ∗ walNamed dir`, contradictory for `Create` (the
@@ -123,9 +125,9 @@ def renameWALPost (P : WalPbIn GF) (Mr : WalMarshal) (R : Roots) (jr J : Ino) (r
         isFilePipe fp γ R dir dq J sz ∗ pipeMain γ 0 ∗ tmpClaim J (pipeTmp 1) ∗
         structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ df ∗
         os.ownFile df dfd dir (DFrac.own 1) ∗ osDirFdS dfd J .idle ∗ osPathS R dir dq J ∗
-        osCallPerm (1 : Qp).half) ∨
+        osCallPerm (1 : Qp).half.half ∗ osCallPerm (1 : Qp).half) ∨
      (⌜err = interface.nil⌝ ∗ ∃ x : Nat × Nat, UH x ∗ walOpenWFU P Mr w' dir ∗
-        WalFs.walPurgeW w' dir) ∨
+        WalFs.walPurgeW w' dir ∗ osCallPerm (1 : Qp).half) ∨
      (⌜err ≠ interface.nil⌝ ∗ U none ∗ osNames jr N (DFrac.own (1 : Qp).half) h ∗ osCallPerm 1 ∗
         Sp ∗ walTmpsRes J ∗ (walPreIn w lg dir mds md e lt f snapi enti ∨ emp) ∗
         walLockLeft f fd fname d) ∨

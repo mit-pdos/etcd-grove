@@ -208,7 +208,7 @@ theorem create_handleIn (P : WalPbIn GF) (Mr : WalMarshal) (hMr : WalMarshalCrea
       osMeta g.ino (DFrac.own (1 : Qp).half) g.om ∗ osBytes g.ino 0 (DFrac.own (1 : Qp).half) g.bs ∗
       walDirKey (W := W) (child r nm) J walTmps ∗
       osNames J (.except walTmps) (DFrac.own (1 : Qp).half) hj ∗
-      osPathS R (child r nm) (DFrac.own q) J ∗ osSharedInv R ∗ osCallPerm (1 : Qp).half ∗
+      osPathS R (child r nm) (DFrac.own q) J ∗ osSharedInv R ∗ osCallPerm (1 : Qp).half.half ∗
       osDirFdS dfd J .idle ∗
       walOutFrag (W := W) (WalOut.empty.create g.ino J walTmps (child r nm)) ∗ walNamesFrag (W := W) none ∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ df ∗

@@ -3997,7 +3997,9 @@ advanced (frontier `sorry`s unchanged). Note: the stream-end fact `< 2^43` is go
 - **Masks**: every WAL client update sits at `walAuMask = osAuMask \ ↑walN` (it commits inside an `os` call's
   update with `walInv` open); `Save`'s and `SaveSnapshot`'s too.
 - **Call permission**: `Create`/`Open` return `osCallPerm ½`; the file pipeline holds the other half until
-  `Close` (W2, W10).
+  `Close` (W2, W10). *Restored 2026-11-14 (ledger, "the client keeps no call permission while a WAL is
+  open")*: the handle and its pipeline hold a quarter each, `Create`'s and `Open`'s success arms give the
+  client the half, `Close` returns the handle's half.
 - **Invariant extensions** are separate conjuncts of `walInvBody` (W4's `WalsCreateOk`, then W2's, W6's), so
   the units merge.
 

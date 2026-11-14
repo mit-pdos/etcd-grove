@@ -430,8 +430,8 @@ def walLockH (lf : Loc) : IProp GF :=
 `notes/wal-fsext-plan.md`, W1 log, seventh session): the directory's key `walDirKey dir j X` (the
 invariant holds the claim `(j, .except X, hj)` once, `DirKeysOk`), the program's half of that claim
 (the claim changes only with both halves, so `hj` is the directory as it is), a fraction of the
-directory's path and the shared invariant of its roots, half of the call permission (the file
-pipeline holds the other, plan §11), the directory's open fd `dfd` (`w.dirFile`, which `cut`
+directory's path and the shared invariant of its roots, a quarter of the call permission (the file
+pipeline holds another, the client the half left: ledger 2026-11-14), the directory's open fd `dfd` (`w.dirFile`, which `cut`
 fsyncs: `os.File.Sync.specDirS`), and the tail's name: the `.wal` name `nm0` holding the tail's
 inode `ino`, the tail file's name `child pd nm0` for some parent path `pd` (`dir`, or `dir.tmp` for
 `Create`'s segment, opened before the rename: Go's `f.Name()` keeps the path it was opened at; W4 log,
@@ -454,7 +454,7 @@ def walDirH (dir : GoString) (j : Ino) (dfd : w64) (ino : Ino) (name : GoString)
     (nmd : IProp GF := walNamed (W := W) dir) : IProp GF :=
   iprop(∃ (R : Roots) (q : Qp) (X : List GoString) (hj : NamesH) (nm0 : GoString) (ph : DirPhS),
     walDirKey (W := W) dir j X ∗ osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
-    osPathS R dir (DFrac.own q) j ∗ osSharedInv R ∗ osCallPerm (1 : Qp).half ∗ osDirFdS dfd j ph ∗
+    osPathS R dir (DFrac.own q) j ∗ osSharedInv R ∗ osCallPerm (1 : Qp).half.half ∗ osDirFdS dfd j ph ∗
     nmd ∗ walOutFrag (W := W) ⟨[ino], [(j, .except X)], [dir]⟩ ∗
     (∃ γt : GName, walTailsFrag (W := W) (<[dir := γt]> (∅ : GMap GoString GName))) ∗
     walNamesFrag (W := W) none ∗

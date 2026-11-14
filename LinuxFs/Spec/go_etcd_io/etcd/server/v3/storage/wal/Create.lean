@@ -62,9 +62,11 @@ absent: the fresh WAL's `CrashOk`. The parent's fsync after it commits the renam
 
 *Success*: the update's `Q`, the open WAL (the client handle `walOpenWF P Mr`, as `Save`'s and
 `ReadAll`'s: it holds the lock token, the record of what the handle holds out, the tails' authority half,
-the metadata, and the call permission: half its own, half the file pipeline's, started by `renameWAL`),
-its named entry, its history's empty prefix written and synced, and the purge right. (Until 2026-11-14
-the ghost-only `walOpenW` and half the call permission: `notes/specs-only/ledger.md`.)
+the metadata, and half the call permission: a quarter its own, a quarter the file pipeline's, started by
+`renameWAL`), its named entry, its history's empty prefix written and synced, the purge right, and the
+other half of the call permission, the client's while the WAL is open (`Close` returns the handle's).
+(Until 2026-11-14 the ghost-only `walOpenW` and half the call permission, then no permission back:
+`notes/specs-only/ledger.md`, "the client keeps no call permission while a WAL is open".)
 
 *An error before the rename* (`Exist` true, `RemoveAll`, `CreateDirAll`, the segment's creation and
 writes, `dir.tmp`'s fsync, or a rename that failed with no effect): nothing committed; the token, the
@@ -74,7 +76,7 @@ update and the whole permission back.
 parent's `OpenDir`/fsync/close, then `cleanupWAL`): the update committed (`Q`); the WAL is fresh and
 unnamed, its directory at `dir` or moved aside to `dir.broken.*` by the cleanup (whose rename is not
 fsynced, so a crash may bring it back: no later state can be promised). The handle, the token and half
-of the permission (the pipeline's, perhaps still in flight) are lost. Plan §5 Q4's option (a) (a second,
+of the permission (the handle's quarter and the pipeline's, perhaps still in flight) are lost. Plan §5 Q4's option (a) (a second,
 cleanup update to `walAbsent dir` committed at the cleanup's rename) is not provable: that rename is
 never made durable, and a crash keeping `nm` would contradict the committed absence; see the W4
 implementation log. -/
@@ -92,7 +94,7 @@ abbrev wal.Create.spec (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
   {{ (w : Loc) (err : GoInterface), RET (PairV #w #err);
       osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗
       ((⌜err = interface.nil⌝ ∗ Q ∗ walOpenWF P Mr w dir ∗ WalFs.walNamed dir ∗ WalFs.walLenLb w dir 0 ∗
-          WalFs.walSyncedLb dir 0 ∗ WalFs.walPurgeW w dir) ∨
+          WalFs.walSyncedLb dir 0 ∗ WalFs.walPurgeW w dir ∗ osCallPerm (1 : Qp).half) ∨
         (⌜err ≠ interface.nil⌝ ∗ osCallPerm 1 ∗ WalFs.walUnlockedTok ∗
           AU <{ WalFs.walAbsent dir }> @ walAuMask, ∅ <{ WalFs.walDiskAt dir (walDurFresh md), COMM Q }>) ∨
         (⌜err ≠ interface.nil⌝ ∗ Q ∗ osCallPerm (1 : Qp).half)) }}

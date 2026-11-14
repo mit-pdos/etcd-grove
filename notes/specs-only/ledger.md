@@ -1590,4 +1590,13 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   join the permission (`openAtIndex`, `Create`'s commit, `ReadAll`, `Close`). Interim (made): the tester's member
   state (`TP/Member.lean`) holds the client's `osCallPerm qc` as a parameter, so the member operations' proofs stand
   once the WAL's arms give it back; only `Boot`/`restart` (which take it from `Create`/`ReadAll`) wait.
-- **Decision.** Open: for the WAL's coordinator (it changes the WAL's internal proofs, not the tester's).
+- **Decision.** Adopted (the coordinator's decision of 2026-11-14; made on branch `wal-u5c`, W4c U5 third
+  session). As proposed, with `Open`'s fractions placed thus: `openAtIndex`'s write arm returns `osCallPerm ¼ ∗
+  osCallPerm ½` (the pipeline's `pipeRes` the other quarter), `Open` puts the quarter in `walOpeningF` and
+  returns the half (`walOpeningF w dir s ∗ osCallPerm ½`); `ReadAll` moves `walOpeningF`'s quarter into the
+  handle's `walDirH` (no change to its spec: the client's half came from `Open`). `Create`'s success arm (and
+  `renameWAL`'s two committed arms, so `renameWALUnlock`'s hypothesis too) carries `osCallPerm ½`. `Close`,
+  `Close.specU` and `Close.specOpening` return the half the handle and its pipeline held (`osCallPerm ½`;
+  `specOpening` takes the quarter of `walOpeningF`); the client recombines with `osCallPerm_halfJoin`
+  (`Pipe.lean`). Every error arm unchanged (`Create`'s after-rename arm `Q ∗ osCallPerm ½`). The tester's
+  `member.close.spec` returns `Close`'s `osCallPerm ½`.

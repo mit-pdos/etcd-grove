@@ -33,8 +33,9 @@ the tail (every record of the history: `walSyncedLb`), closes every lock's file 
 the handle's purge right is consumed (`walPurgeW`: `Close` unlocks every file, so the purge must have
 stopped). The update commits after the sync, the state unchanged (the synced mark a lower bound);
 then the WAL's files go back to the WAL invariant and the generation's lock token comes back
-(`walUnlockedTok`: the next `Open` or `Create` may take it), with the whole call permission (the
-handle's half and the pipeline's). *Error*: the sync failed (`Close` returns before it unlocks,
+(`walUnlockedTok`: the next `Open` or `Create` may take it), with the half of the call permission
+the handle held (its quarter and the pipeline's; the client holds the other half while the WAL is
+open: ledger 2026-11-14). *Error*: the sync failed (`Close` returns before it unlocks,
 S/wal.go:1064-1066: the handle, its files and the token are lost, as `sync`'s error arm loses the
 handle), or the directory's `Close` failed after everything else was done (then the success
 resources come back too: the left disjunct holds whatever `err` is). Main tree's error arm:
@@ -47,7 +48,8 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.spec (P : WalPbIn GF) (Mr
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"Close"))
       (Val #()))
   {{ (err : GoInterface), RET #err;
-      (∃ d : WalDur, Q d ∗ WalFs.walSyncedLb dir d.H.length ∗ WalFs.walUnlockedTok ∗ osCallPerm 1) ∨
+      (∃ d : WalDur, Q d ∗ WalFs.walSyncedLb dir d.H.length ∗ WalFs.walUnlockedTok ∗
+        osCallPerm (1 : Qp).half) ∨
       ⌜err ≠ GoInterface.nil⌝ }}
 
 end spec

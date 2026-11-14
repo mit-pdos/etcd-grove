@@ -6,7 +6,8 @@ tail's name and the pipeline (`newFilePipeline`). Over the WAL layer as `Open` (
 halves of the segments from the opened one on, and of the WAL directory's claim, out of `walInv`:
 the plan's W3/W5 log, decision 2), raising `unl` to `walOpenPos` in write mode (bookkeeping until the
 lock model) and changing nothing in read mode. *Success*: write mode, the ghost `walOpening` and the
-handle's fields (`walReadH true`), half the call permission (the pipeline holds the other); read
+handle's fields (`walReadH true`), three quarters of the call permission (the pipeline holds the
+other quarter; `Open` keeps one for the handle and returns the half: ledger 2026-11-14); read
 mode, the lock token taken (`walLockedTok`: the handle holds the WAL's halves out of `walParked`) and
 `walReadH false` and the whole permission; `dirFile` nil in both. *Error*: the
 token and the permission back, and an error whose `Error()` returns a string (`errOk`: `Open` wraps it
@@ -58,7 +59,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.spec (Mr : WalMarshal) 
        (⌜err = GoInterface.nil⌝ ∗ ⌜o ≠ none⌝ ∗
         structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ (null : Loc) ∗
         if write then iprop(WalFs.walOpening w dir s ∗ walReadH true w dir s ∗
-          osCallPerm (1 : Qp).half)
+          osCallPerm (1 : Qp).half.half ∗ osCallPerm (1 : Qp).half)
         else iprop(WalFs.walLockedTok ∗ walReadH false w dir s ∗ osCallPerm 1))) }}
 
 end spec
