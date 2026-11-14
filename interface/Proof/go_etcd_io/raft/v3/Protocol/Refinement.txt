@@ -34,8 +34,9 @@ theorem ownRaftGhost_step_commit [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : Raf
 theorem ownRaftGhost_step_send_apps [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : RaftNames) (c : CfgM)
     (id : w64) (s : PState) (ms : List Msg) : s.role = Role.leader → (∀ (m : Msg), m ∈ ms → ReplOk
     id s m) → (γ.reDyn ≠ none → ∀ (m : Msg), m ∈ ms → AppCommitEq s m) → (∀ (m : Msg), m ∈ ms → m.ty
-    = MsgType.snap → ∀ (T : GSet w64), γ.reTracked = some T → id ∈ T ∧ m.dst ∈ T) → ⊢ dynEnv γ id c
-    s -∗ ownRaftGhost γ id s md ==∗ ownRaftGhost γ id (psendMsgs s ms) md
+    = MsgType.snap → ∀ (T : GSet w64), γ.reTracked = some T → id ∈ T ∧ m.dst ∈ T) → (∀ (m : Msg), m
+    ∈ ms → m.ty = MsgType.snap → m.dst ∈ c.voters ∪ c.learners) → ⊢ dynEnv γ id c s -∗ ownRaftGhost
+    γ id s md ==∗ ownRaftGhost γ id (psendMsgs s ms) md
 
 theorem ownRaftGhost_stepC_in [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : RaftNames) (c : CfgM) (HC :
     CfgStatic γ c) (id : w64) (HT : TrackedOk γ c id) (B : Int) (HB : B < 2 ^ 64) (s : PState) (recv
@@ -247,9 +248,10 @@ theorem ownRaftGhost_step_win [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : RaftNa
     JQuorum c (granted s.votes) → plogLastIndexZ s.base s.log + 1 < 2 ^ 64 → LeaderMatchOk id s mt →
     (∀ (m : Msg), m ∈ ms → ReplOk id (pwinState id s mt) m) → (γ.reDyn ≠ none → ∀ (m : Msg), m ∈ ms
     → AppCommitEq (pwinState id s mt) m) → (∀ (m : Msg), m ∈ ms → m.ty = MsgType.snap → ∀ (T : GSet
-    w64), γ.reTracked = some T → id ∈ T ∧ m.dst ∈ T) → plogLastIndexZ s.base s.log + 1 ≤ ↑n +
-    ↑γ.reBoot.length → ⊢ ⧖n -∗ dynEnv γ id c s -∗ ownRaftGhost γ id s md ={⊤ \ ↑(raftRegN γ)}=∗
-    ownRaftGhost γ id (psendMsgs (pwinState id s mt) ([pselfAck id (pwinState id s mt)] ++ ms)) md
+    w64), γ.reTracked = some T → id ∈ T ∧ m.dst ∈ T) → (∀ (m : Msg), m ∈ ms → m.ty = MsgType.snap →
+    m.dst ∈ c.voters ∪ c.learners) → plogLastIndexZ s.base s.log + 1 ≤ ↑n + ↑γ.reBoot.length → ⊢ ⧖n
+    -∗ dynEnv γ id c s -∗ ownRaftGhost γ id s md ={⊤ \ ↑(raftRegN γ)}=∗ ownRaftGhost γ id (psendMsgs
+    (pwinState id s mt) ([pselfAck id (pwinState id s mt)] ++ ms)) md
 
 theorem ownRaftGhost_rdR [ReceiptGS GF] [InvGS GF] {md : Bool} (γ : RaftNames) (id : w64) (s s' :
     PState) (ms : List Msg) (R : IProp GF) (Hs' : s' = { term := s.term, vote := s.vote, lead :=
