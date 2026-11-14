@@ -52,6 +52,13 @@ theorem stopErr_nil {eof ueof : GoInterface} (h1 : eof ≠ GoInterface.nil) (h2 
   all_goals try rename_i t; cases t
   all_goals (simp only [stopErr]; first | exact h1' | exact h2' | exact fun h => h.1 rfl)
 
+/-- The only stop whose error is `io.EOF` is `.eof` (`io.ErrUnexpectedEOF` is not `io.EOF`). -/
+theorem stopErr_eof {eof ueof : GoInterface} (h : eof ≠ ueof) (s : WalStop)
+    (hs : stopErr eof ueof s eof) : s = .eof := by
+  cases s
+  all_goals try rename_i t; cases t
+  all_goals simp_all [stopErr]
+
 /-- A record the reader does not reject is one of the reader's records. -/
 theorem rdLoop_mem {C : WalCodec} {U : WalUnmarshal} {s : w64 × w64} {R0 : DecOut}
     {acc : List WalRec} {fs fs' : List (List w8)} {off off' : Nat} {c c' : w32} {st : RAState}
@@ -263,7 +270,31 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
     by_cases heof : GoInterface.ok ei = eof
     · simp only [heof, decide_true]
       (try wp_auto)
-      sorry
+      -- the stop is `io.EOF`: the reader read every record (`rdLoop_stop`)
+      ihave #Hde2 := Hdenv
+      iunfold decEnv at Hde2
+      icases Hde2 with ⟨-, -, -, -, -, -, -, #Hiseof, -⟩
+      iunfold isEofOk at Hiseof
+      icases Hiseof with ⟨%hEu, -⟩
+      iunfold decPostB at Hpb
+      icases Hpb with (⟨%k, Hm⟩ | ⟨%hio, -, -⟩ | ⟨%k, %sx, %offx, %cx, %hgf, -⟩)
+      · generalize hgd : goDecode walCodec (List.map (fun x => x.bs) fsD) off c = gd
+        rcases gd with ⟨r, fs', off', c'⟩ | ⟨sx, fs', off', c'⟩
+        · icases Hm with ⟨%hst, -, -⟩
+          exact absurd hst.1 hnn.1
+        · icases Hm with ⟨%hst, Hrec0, Hdec⟩
+          have hsx : sx = .eof := stopErr_eof hEu.1 sx hst.1
+          subst hsx
+          obtain ⟨hR0r, hR0s⟩ := rdLoop_stop hL hgd
+          simp only [decide_true]
+          sorry
+      · exact absurd hio hEu.2
+      · exfalso
+        obtain ⟨t, rfl⟩ := goFail_badRec hgf.1
+        have h2 := hgf.2
+        cases t
+        · exact h2.2 rfl
+        · exact hEu.1 h2
     · -- not `io.EOF`: the decoder's error
       simp only [heof, decide_false]
       (try wp_auto)
