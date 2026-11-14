@@ -159,14 +159,15 @@ theorem walInvBody_unpin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     (s : AbsDiskState) (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH) (S : List SegG)
     (write : Bool) (hS : ∀ g ∈ S, g.om.size = g.bs.length) :
     ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walLockedTok (W := W) -∗ walTailsFrag (W := W) ∅ -∗
+      walNamesFrag (W := W) none -∗
       walOutFrag (W := W) ⟨S.map (·.ino), [(j, .except X)], if write then [dir] else []⟩ -∗
       ([∗list] g ∈ S, segRes (L := L) g) -∗ osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj -∗
       (if write then walTmpsRes (hG := ⟨G, L⟩) j else emp) -∗ walDirKey (W := W) dir j X ==∗
       walInvBody (L := L) (W := W) C Mr R jr r s ∗ walUnlockedTok (W := W) := by
-  iintro Hb Hl Htf Ho HS Hn Ht #Hk
+  iintro Hb Hl Htf Hnf Ho HS Hn Ht #Hk
   iunfold walInvBody at Hb
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hcm, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
-    ⟨%K, %cp, HKa, Hca, %HDK⟩, %HAt⟩
+    ⟨%K, %cp, HKa, Hca, %HDK⟩, %HAt, Hnms⟩
   icases walTailsRes_none (W := W) C Mr s Ls F $$ Htl Htf with ⟨%hF, Htl, Htf⟩
   have hF0 : F = ∅ := (GMap.lookup_empty_iff F).1 hF
   subst hF0
@@ -198,13 +199,13 @@ theorem walInvBody_unpin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   have hkill : ∀ (T : List GoString), ⊢ walParked (L := L) (W := W) Ls (l1 ++ (lay'.j, NameSet.except X, hj) :: l2) ∅ -∗
       walOutFrag (W := W) (WalOut.delClaim ⟨[], [(lay'.j, NameSet.except X)], T⟩
         ((lay'.j, NameSet.except X, hj).1, (lay'.j, NameSet.except X, hj).2.1)) -∗
-      ⌜T = []⌝ -∗ walLockedTok (W := W) -∗ walTailsFrag (W := W) ∅ ==∗
+      ⌜T = []⌝ -∗ walLockedTok (W := W) -∗ walTailsFrag (W := W) ∅ -∗ walNamesFrag (W := W) none ==∗
       walParked (L := L) (W := W) Ls (l1 ++ (lay'.j, NameSet.except X, hj) :: l2) ∅ ∗
         walUnlockedTok (W := W) := by
     intro T
-    iintro Hpk Ho %hT Hl Htf
+    iintro Hpk Ho %hT Hl Htf Hnf
     subst hT
-    iapply walParked_unlock (L := L) (W := W) Ls _ ∅ $$ Hpk Hl [Ho] Htf
+    iapply walParked_unlock (L := L) (W := W) Ls _ ∅ $$ Hpk Hl [Ho] Htf Hnf
     iapply walOutFrag_eq' (W := W) $$ Ho
     ipureintro; simp [WalOut.delClaim, WalOut.empty]
   have hclose : ⊢ walParked (L := L) (W := W) Ls (l1 ++ (lay'.j, NameSet.except X, hj) :: l2) ∅ -∗
@@ -214,9 +215,10 @@ theorem walInvBody_unpin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       ([∗list] g ∈ segsAll Ls, segRes (L := L) g) -∗
       (∃ CR, walCreatingAuth (W := W) CR ∗ ⌜CreatingOk jr (l1 ++ (lay'.j, NameSet.except X, hj) :: l2) CR⌝) -∗
       walTailsRes (W := W) C Mr s Ls ∅ -∗ walDirKeysAuth (W := W) K -∗ walCutAuth (W := W) cp -∗
+      walNamesRes (L := L) (W := W) R jr r Ls -∗
       walInvBody (L := L) (W := W) C Mr R jr r s ∗ walUnlockedTok (W := W) := by
     rw [hcl] at HDK HAt HNm Hab
-    iintro Hpk Hu Hg Hcl Hcm Hlays HCR Htl HKa Hca
+    iintro Hpk Hu Hg Hcl Hcm Hlays HCR Htl HKa Hca HN
     iframe Hu
     unfold walInvBody
     iexists Ls, (l1 ++ (lay'.j, NameSet.except X, hj) :: l2), n, ∅
@@ -237,24 +239,25 @@ theorem walInvBody_unpin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     · iexists K, cp
       iframe HKa Hca
       ipureintro; exact HDK
+    iframe HN
     ipureintro; exact HAt
   unfold osClaims at hclose
   cases write with
   | false =>
     simp only [Bool.false_eq_true, ↓reduceIte]
-    imod hkill [] $$ Hpk Ho [] Hl Htf with ⟨Hpk, Hu⟩
+    imod hkill [] $$ Hpk Ho [] Hl Htf Hnf with ⟨Hpk, Hu⟩
     · ipureintro; rfl
     imodintro
-    iapply hclose $$ Hpk Hu Hg Hcl Hcm Hlays HCR Htl HKa Hca
+    iapply hclose $$ Hpk Hu Hg Hcl Hcm Hlays HCR Htl HKa Hca Hnms
   | true =>
     simp only [↓reduceIte]
     imod walParked_putTmps (L := L) (W := W) Ls _ ∅ _ dir lay' hl' $$ Hpk Ho Ht with ⟨Hpk, Ho⟩
-    imod hkill [] $$ Hpk [Ho] [] Hl Htf with ⟨Hpk, Hu⟩
+    imod hkill [] $$ Hpk [Ho] [] Hl Htf Hnf with ⟨Hpk, Hu⟩
     · iapply walOutFrag_eq' (W := W) $$ Ho
       ipureintro; simp [WalOut.delTmp, WalOut.delClaim]
     · ipureintro; rfl
     imodintro
-    iapply hclose $$ Hpk Hu Hg Hcl Hcm Hlays HCR Htl HKa Hca
+    iapply hclose $$ Hpk Hu Hg Hcl Hcm Hlays HCR Htl HKa Hca Hnms
 
 end iris
 

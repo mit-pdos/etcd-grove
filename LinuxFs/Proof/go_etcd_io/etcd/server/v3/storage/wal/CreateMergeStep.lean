@@ -276,7 +276,7 @@ theorem walInvBody_merge2 (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
   unfold walInvBody
   iintro Hb #Hsi Ht H1 H2
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %hr, Hcl, Hn, HF, %hwo, %hwc, ⟨%CR, HCRa, %hCR⟩, Htl, %hab,
-    %hwn, Hpk, ⟨%K, %cc, HK, Hcc, %hdk⟩, %hAt⟩
+    %hwn, Hpk, ⟨%K, %cc, HK, Hcc, %hdk⟩, %hAt, Hnms⟩
   icases walCreating_empty CR T hT $$ HCRa Ht with ⟨%hCR0, HCRa, Ht⟩
   subst hCR0
   imod osClaims_keys R jr N1 _ h1 _ hN1e hE $$ Hsi H1 Hcl with ⟨H1, Hcl, %hk1⟩
@@ -320,7 +320,7 @@ theorem walInvBody_merge2 (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
   imodintro
   iexists h
   iframe Ht Hh2
-  isplitl [Hg Hl1 Hh1 Hl2 Hn HF HCRa Htl Hpk HK Hcc]
+  isplitl [Hg Hl1 Hh1 Hl2 Hn HF HCRa Htl Hpk HK Hcc Hnms]
   · iexists Ls, mergeClaims cl (jr, N1, h1) (jr, N2, h2) (jr, N, h), n, F
     iframe Hg Hn HF Htl Hpk
     isplitr
@@ -345,7 +345,7 @@ theorem walInvBody_merge2 (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
     · iexists K, cc
       iframe HK Hcc
       ipureintro; exact dirKeysOk_cover hcov hdk
-    ipureintro; exact walsAt_cover hcov hwo hAt
+    iframe Hnms; ipureintro; exact walsAt_cover hcov hwo hAt
   ipureintro; exact hmr
 
 /-- **Merging a whole claim of the area holding no WAL name into the program's half of an area
@@ -371,7 +371,7 @@ theorem walInvBody_mergeIn (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : In
   unfold walInvBody
   iintro Hb #Hsi Ht H1 H2
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %hr, Hcl, Hn, HF, %hwo, %hwc, ⟨%CR, HCRa, %hCR⟩, Htl, %hab,
-    %hwn, Hpk, ⟨%K, %cc, HK, Hcc, %hdk⟩, %hAt⟩
+    %hwn, Hpk, ⟨%K, %cc, HK, Hcc, %hdk⟩, %hAt, Hnms⟩
   icases walCreating_empty CR T hT $$ HCRa Ht with ⟨%hCR0, HCRa, Ht⟩
   subst hCR0
   imod osClaims_keys R jr N1 _ h1 _ hN1e hE $$ Hsi H1 Hcl with ⟨H1, Hcl, %hk1⟩
@@ -408,7 +408,7 @@ theorem walInvBody_mergeIn (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : In
   imodintro
   iexists h
   iframe Ht Hh2
-  isplitl [Hg Hl1 Hh1 Hl2 Hn HF HCRa Htl Hpk HK Hcc]
+  isplitl [Hg Hl1 Hh1 Hl2 Hn HF HCRa Htl Hpk HK Hcc Hnms]
   · iexists Ls, mergeClaims (l1 ++ (jr, N1, h1) :: l2) (jr, N1, h1) (jr, N2, h2) (jr, N, h), n, F
     iframe Hg Hn HF Htl Hpk
     isplitr
@@ -433,7 +433,7 @@ theorem walInvBody_mergeIn (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : In
     · iexists K, cc
       iframe HK Hcc
       ipureintro; exact dirKeysOk_cover hcov hdk
-    ipureintro; exact walsAt_cover hcov hwo hAt
+    iframe Hnms; ipureintro; exact walsAt_cover hcov hwo hAt
   ipureintro; exact hmr
 
 /-- **The unminting** (an abort past the minting): the creating entry deleted, the free lock token
@@ -445,7 +445,7 @@ theorem walInvBody_unmint (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
   unfold walInvBody
   iintro Hb Htok
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %hr, Hcl, Hn, HF, %hwo, %hwc, ⟨%CR, HCRa, %hCR⟩, Htl, %hab,
-    %hwn, Hpk, ⟨%K, %cc, HK, Hcc, %hdk⟩, %hAt⟩
+    %hwn, Hpk, ⟨%K, %cc, HK, Hcc, %hdk⟩, %hAt, Hnms⟩
   imod walCreating_delete CR dir N h J $$ HCRa Htok with ⟨%hdel, HCRa, Hu⟩
   imodintro
   iframe Hu
@@ -469,7 +469,7 @@ theorem walInvBody_unmint (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
   · iexists K, cc
     iframe HK Hcc
     ipureintro; exact hdk
-  ipureintro; exact hAt
+  iframe Hnms; ipureintro; exact hAt
 
 end iris
 

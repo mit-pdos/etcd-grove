@@ -86,7 +86,7 @@ theorem walInvBody_mint (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
   unfold walInvBody
   iintro Hb #Hsi Hu H HT HJ
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %hr, Hcl, Hn, HF, %hwo, %hwc, ⟨%CR, HCRa, %hCR⟩, Htl, %hab,
-    %hwn, Hpk, ⟨%K, %cc, HK, Hcc, %hdk⟩, %hAt⟩
+    %hwn, Hpk, ⟨%K, %cc, HK, Hcc, %hdk⟩, %hAt, Hnms⟩
   -- what the shared invariant says of the claims held wholly, and of the area claim
   imod osClaims_excl (L := L) R cl J (.except X) hJ hXe hE $$ Hsi HJ Hcl with ⟨%hJx, HJ, Hcl⟩
   imod osClaims_excl (L := L) R cl jr (.only [tmp]) hT hTe hE $$ Hsi HT Hcl with ⟨%hTx, HT, Hcl⟩
@@ -200,7 +200,7 @@ theorem walInvBody_mint (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
   imodintro
   iexists hC
   iframe Htok HD2 HC2 HJ
-  isplitl [Hg Hl1 HD1 Hl2 HC1 Hn HF HCRa Htl Hpk HK Hcc]
+  isplitl [Hg Hl1 HD1 Hl2 HC1 Hn HF HCRa Htl Hpk HK Hcc Hnms]
   · iexists Ls, mintClaims cl jr N h nm tmp hC, n, F
     iframe Hg Hn HF Htl Hpk
     isplitr
@@ -225,7 +225,7 @@ theorem walInvBody_mint (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
     · iexists K, cc
       iframe HK Hcc
       ipureintro; exact dirKeysOk_cover hcov hdk
-    ipureintro; exact walsAt_cover hcov hwo hAt
+    iframe Hnms; ipureintro; exact walsAt_cover hcov hwo hAt
   ipureintro; exact ⟨hmr.2.1, hCr, hmr.2.2⟩
 
 end iris
