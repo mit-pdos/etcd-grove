@@ -16,7 +16,10 @@ the per-address protocol (`wire/Addr.lean`) and the per-direction stream protoco
   invariant (`dup_deposit`, through `wire.dial_both_au`) and the server takes at `Accept`: the acceptor
   end's state, the mirror's half (nothing written), the reader's half of the up-direction. The
   dialer keeps `dialerOwn γm cn`: its end's state, the writer's half of the up-direction, the
-  reader's half of the down-direction.
+  reader's half of the down-direction. A dial that fails leaving its connection abandoned (D16:
+  the dialer's end closed, its direction shut and empty) deposits the same `connProto`
+  (`dup_deposit_ab`, the up-direction's protocol from the shut direction, `dirInv_body_alloc_of`),
+  and the dialer keeps nothing: the server may accept it, and reads EOF.
 * **The client's end** (`cliInv cn γ γw`, an invariant the client allocates after its dial,
   `cliInv_alloc`): the dialer end's state, shared by the writer goroutine and the reader (the main
   thread, which also closes it), and the up-direction's writer's half: the bytes written are the
@@ -273,6 +276,78 @@ theorem dup_deposit (γm : GName) (cn : Nat) :
     · iexists ⟨γh, γu, γd⟩
       iframe Hname Hde Hwu Hrd Hlbd
 
+/-- A direction's protocol state, as `wire.dirInv_body_alloc`, from any state `d` agreeing with
+nothing written or read (`DirOk d [] []`: empty; open, or shut as an abandoned dial leaves its
+dialer's direction, D16). -/
+theorem dirInv_body_alloc_of (c : Nat) (s : Bool) (d : TcpDir) (hd : DirOk d [] []) :
+    tcpDir (G (Gg := Gg)) c s d ==∗ ∃ γ, dirInv c s γ ∗ sentAll γ [] ∗ rcvdAll γ [] := by
+  letI := (G (Gg := Gg)).allG
+  iintro Hd
+  imod mono_list_own_alloc (GF := GF) ([] : List w8) with ⟨%γw, Hw, -⟩
+  icases (show monoListAuthOwn (GF := GF) γw 1 ([] : List w8) ⊣⊢
+      iprop(monoListAuthOwn γw (1 : Qp).half [] ∗ monoListAuthOwn γw (1 : Qp).half []) by
+    conv => lhs; rw [← Qp.half_add_half 1]
+    exact (monoListAuthOwn_fractional γw []).fractional _ _).mp $$ Hw with ⟨Hw1, Hw2⟩
+  imod ghostVar_alloc (GF := GF) ([] : List w8) with ⟨%γr, Hr⟩
+  icases (ghostVar_split_half γr 1 ([] : List w8)).mp $$ Hr with ⟨Hr1, Hr2⟩
+  imodintro
+  iexists ⟨γw, γr⟩
+  unfold dirInv sentAll rcvdAll
+  isplitl [Hd Hw1 Hr1]
+  · iexists d, [], []
+    iframe Hd Hw1 Hr1
+    ipureintro; exact hd
+  iframe Hw2 Hr2
+
+/-- The deposit of a dial that failed leaving its connection `cn` abandoned (D16): the dialer's
+end closed, its direction shut and empty. As `dup_deposit`, nothing written; the server's part
+(`connProto`) only, the dialer keeping nothing (an `Accept` may still return `cn`: it reads EOF). -/
+theorem dup_deposit_ab (γm : GName) (cn : Nat) :
+    ⊢ inv srvN (srvState (Gg := Gg) γm) -∗ tcpConnAt G cn srvAddr -∗
+      tcpEnd G cn false { TcpEnd.fresh with closed := true } -∗ tcpDir G cn false ⟨[], .fin⟩ -∗
+      tcpFresh G cn true ={⊤ \ ↑addrN}=∗ connProto γm cn := by
+  iintro #Hinv #Hat - Hdd Ha
+  iinv Hinv with Hi Hclose
+  · exact ndot_mask nroot "duplex_conns" "duplex_addr" (by decide)
+  unfold srvState
+  icases Hi with ⟨%m, >Hm, >Hconns⟩
+  unfold tcpFresh
+  icases Ha with ⟨Hae, Had⟩
+  letI := (G (Gg := Gg)).allG
+  cases hm : m.lookup cn with
+  | some γ' =>
+    -- `cn` is new: its acceptor's direction is owned once
+    icases (BigSepM.bigSepM_lookup_acc (show PartialMap.get? m cn = some γ' by
+      rw [gmap_get?_eq]; exact hm)).1 $$ Hconns with ⟨Hc, -⟩
+    unfold connInv dirInv
+    icases Hc with ⟨-, ⟨%d, %W, %R, Hdir, -⟩, -⟩
+    icases tcpDir_excl _ cn true d TcpDir.fresh $$ Hdir Had with ⟨⟩
+  | none =>
+    imod dirInv_body_alloc_of cn false ⟨[], .fin⟩ (by simp [DirOk]) $$ Hdd
+      with ⟨%γu, HIu, Hwu, Hru⟩
+    imod wire.dirInv_body_alloc cn true $$ Had with ⟨%γd, HId, Hwd, -⟩
+    imod half_alloc (Gg := Gg) ([] : List w8) with ⟨%γh, Hh1, Hh2⟩
+    ihave #Hlbu : (sentLb (Gg := Gg) γu [] : IProp GF) $$ [Hwu]
+    · iapply wire.sentLb_get
+      iexact Hwu
+    imod ghost_map_insert_persist cn (⟨γh, γu, γd⟩ : DupNames) hm $$ Hm with ⟨Hm, #Hname⟩
+    imod Hclose $$ [Hm Hconns HIu HId Hwd Hh1] with -
+    · inext
+      iexists m.insert cn ⟨γh, γu, γd⟩
+      iframe Hm
+      iapply (BigSepM.bigSepM_insert (show PartialMap.get? m cn = none by
+        rw [gmap_get?_eq]; exact hm)).2
+      iframe Hconns
+      unfold connInv srvSide
+      iframe HIu HId
+      iexists [], []
+      iframe Hwd Hh1 Hlbu
+      ipureintro; exact List.nil_prefix
+    imodintro
+    unfold connProto srvName
+    iexists ⟨γh, γu, γd⟩
+    iframe Hname Hae Hh2 Hru Hlbu
+
 /-- The state of a connection, from the invariant, by its names. -/
 theorem srvState_lookup (γm : GName) (cn : Nat) (γ : DupNames) :
     srvName (Gg := Gg) γm cn γ ⊢ srvState γm -∗ connInv cn γ ∗ (connInv cn γ -∗ srvState γm) := by
@@ -443,7 +518,7 @@ theorem cli_write_au (cn : Nat) (γ : DupNames) (γw : GName) (i : Nat) (hi : i 
       half G γw i -∗
       |={⊤,∅}=> ∃ st d, tcpEnd G cn false st ∗ tcpDir G cn false d ∗
         ∀ k ok d', ⌜WriteOutcome st d [W8 (i + 1)] k ok d'⌝ -∗ tcpEnd G cn false st -∗
-          tcpDir G cn false d' ={∅,⊤}=∗ half G γw (i + k) ∗ ⌜ok = true → k = 1⌝ := by
+          tcpDir G cn false d' ={∅,⊤}=∗ half G γw (i + k) ∗ ⌜ok = none → k = 1⌝ := by
   iintro #Hcli #Hdir Hwh
   iinv Hcli with Hi Hclose
   iinv Hdir with Hj Hclose'
@@ -461,7 +536,7 @@ theorem cli_write_au (cn : Nat) (γ : DupNames) (γw : GName) (i : Nat) (hi : i 
   iintro %k %ok %d' %Hwr Hend Hd
   imod Hmask
   have hk1 : k ≤ 1 := by simpa using wire.writeOutcome_le Hwr
-  have hok : ok = true → k = 1 := by
+  have hok : ok = none → k = 1 := by
     intro h; subst h; simpa using wire.writeOutcome_ok Hwr
   imod wire.sentAll_app γ.up W (dseq.take i) ([W8 (i + 1)].take k) $$ Hwa Hw with ⟨%Heq, Hwa, Hw⟩
   subst Heq

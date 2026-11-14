@@ -8,13 +8,15 @@ node runs its command's program, `boot_server` or `boot_client` (the command's p
 initialization, then its `main`, as Go runs a program), at the start and after every crash or exit
 of its process (`Impl.lean` D10, D11), each with its own program's package table
 (`cmd/<node>/PkgTable.lean`). The plan has the server's address `SrvAddr` at a host `h`, which is
-the server node's; the client may be on any host (the server's too). The network starts with no
-connection.
+the server node's; the client may be on any host (the server's too). The plan is well formed
+(`Impl.lean` D20, `Deploy.lean`'s `PlanWellFormed`, checked by `decide` on the example's plan
+below). The network starts with no connection.
 
 The precondition of a node's program, over the local ghost state `L` of a generation of the
 node (`nodePre`), is the protocol (`dupInvs`, `Defs.lean`: the address's invariant and every
-connection's state, `dupInvs_alloc`), the plan's entry for `SrvAddr`, a fresh package state and,
-for the server, its host; the command's `wp_main` (`cmd/<node>/Main.lean`) proves its program from
+connection's state, `dupInvs_alloc`), the plan's entry for `SrvAddr` (its resource, which `Dial`
+takes, and the network's plan's, which `Listen` reads), a fresh package state and, for the server,
+its host; the command's `wp_main` (`cmd/<node>/Main.lean`) proves its program from
 it. The global setup allocates the protocol from the network's start resources (`SrvAddr`'s
 pending set, empty); each node's first generation gets its precondition from its start
 resources (its host); a crash keeps the host (`tcp_crashStart`), and the rest is persistent, so
@@ -25,8 +27,10 @@ The conclusion, `duplex_crash_safety`, mentions no ghost state and no bounds: in
 the system with crashes, no thread of any node is stuck and none has an unrecovered panic, so the
 client's check (the bytes 1, 2, 3, 4 its reader reads come back in order) never fails, however its
 writer and reader interleave, however much each read returns, however the connections fail or
-the nodes crash. The theorems assume the deployment of `Impl.lean` D13 (a closed world, addresses
-that do not alias, ports outside the ephemeral range, the target configuration).
+the nodes crash, and however a failed dial leaves its connection (abandoned, D16: the server may
+accept it and read EOF). The theorems assume the deployment of `Impl.lean` D13 (a closed world, the
+target configuration) and take its well-formed plan (D20: addresses that do not alias, ports
+outside the ephemeral range) as a premise.
 -/
 module
 
@@ -42,6 +46,7 @@ public import NetTcp.Proof.net.Dial
 public import NetTcp.Proof.net.Listen
 public import NetTcp.Proof.net.Listener__Accept
 public import GooseLang.Ext.Tcp.Adequacy
+public import GooseLang.Ext.Tcp.Deploy
 
 @[expose] public section
 
@@ -116,17 +121,20 @@ theorem wp_boot [hG : HeapGS .hasLC GF] [sem : go.Semantics]
   ipureintro; rfl
 
 /-- The precondition of node `i`'s program in the generation with local ghost state `L`:
-the protocol, the plan's entry for `SrvAddr` (at `h`), a fresh package state, and for the server
-(`i = 0`), that its host is `h`. -/
+the protocol, the plan's entry for `SrvAddr` (at `h`: its resource, and the network's plan's), a
+fresh package state, and for the server (`i = 0`), that its host is `h`. -/
 def nodePre [G : GooseGlobalGS .hasLC GF] (h : GoString) (i : Nat) (L : GooseLocalGS GF) :
     IProp GF :=
   iprop((∃ γm, dupInvs (Gg := G) γm) ∗ tcpPlan (extGlobalGS tcpExt) srvAddr h ∗
+    ⌜(extGlobalGS tcpExt (G := G)).plan !! srvAddr = some h⌝ ∗
     ownGoState (hG := L.goose_go_stateGS) ∅ ∗
     ⌜i = 0 → (extLocalGS tcpExt (L := L)).host = h⌝)
 
+set_option linter.unusedVariables false in
 /-- `duplex_crash_safety` for executions of fewer than `N` steps along which every node has
 fewer than `T` live threads, under any ghost state `GF` with `GooseGpreS GF`:
-`goose_dist_crash_adequacy` for the system. -/
+`goose_dist_crash_adequacy` for the system. The plan `pl` is well formed (D20, checked by `decide`:
+the `example` after the theorems). -/
 theorem duplex_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     [server_sem : cmd.server.Assumptions] [client_sem : cmd.client.Assumptions]
     [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
@@ -134,6 +142,8 @@ theorem duplex_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     (Hs : NodeStart lctx σs) (Hc : NodeStart lctx σc)
     (Hhost : (extLocal tcpExt σs.world).host = h)
     (Hplan : (extGlobal tcpExt g.globalWorld).plan.lookup srvAddr = some h)
+    (pl : List (GoString × GoString)) (Hwf : PlanWellFormed pl)
+    (Hpl : (extGlobal tcpExt g.globalWorld).plan = GMap.ofList pl)
     (Hconns : (extGlobal tcpExt g.globalWorld).conns = ∅)
     (n : Nat) (κs : List Observation) (c : DistCfg)
     (Hsteps : DistCrashNsteps ((system σs σc).map Prod.fst) n
@@ -154,11 +164,13 @@ theorem duplex_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     iintro Hg
     icases tcp_globalStart g.globalWorld $$ Hg with Hnet
     unfold tcpStart
-    icases Hnet with ⟨Hplans, Hpends⟩
+    icases Hnet with ⟨Hplans, Hpends, %HGplan⟩
     have Hpl : PartialMap.get? (extGlobal tcpExt g.globalWorld).plan srvAddr = some h := by
       rw [gmap_get?_eq]; exact Hplan
     ihave #Hp := (BigSepM.bigSepM_lookup (Φ := fun a h => tcpPlan (extGlobalGS tcpExt) a h) Hpl)
       $$ Hplans
+    have HGp : (extGlobalGS tcpExt (G := G)).plan !! srvAddr = some h := by
+      rw [HGplan]; exact Hpl
     have Hpe : PartialMap.get? (pendInit (extGlobal tcpExt g.globalWorld)) srvAddr = some ∅ := by
       rw [gmap_get?_eq]; simp [pendInit, GMap.lookup_fmap, Hplan]
     ihave Hpend := (BigSepM.bigSepM_lookup (Φ := fun a S => tcpPend (extGlobalGS tcpExt) a S) Hpe)
@@ -182,6 +194,8 @@ theorem duplex_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
       isplitl []
       · iexists γm
         iexact Hinvs
+      isplitl []
+      · ipureintro; exact HGp
       ipureintro; intro _; exact Hh.trans Hhost
     isplitl []
     · -- the client
@@ -194,6 +208,8 @@ theorem duplex_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
       isplitl []
       · iexists γm
         iexact Hinvs
+      isplitl []
+      · ipureintro; exact HGp
       ipureintro; intro h0; cases h0
     iempintro
   · -- every generation of every node: its program, and its next precondition
@@ -211,7 +227,7 @@ theorem duplex_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     subst Hlctx
     letI hG : HeapGS .hasLC GF := ⟨G, ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
     unfold nodePre
-    iintro ⟨⟨%γm, #Hinvs⟩, #Hplan, Hgs, %Hh⟩ _
+    iintro ⟨⟨%γm, #Hinvs⟩, #Hplan, %HGp, Hgs, %Hh⟩ _
     imodintro
     isplitl [Hgs]
     · rcases Hnode with ⟨rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩
@@ -221,7 +237,8 @@ theorem duplex_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
           (cmd.server.wp_main net.Listen.wp_proof net.Listener.Accept.wp_proof
             net.Conn.Read.wp_proof net.Conn.Write.wp_proof net.Conn.Close.wp_proof γm) $$ [] Hgs
         rw [Hh rfl]
-        iframe Hinvs Hplan
+        iframe Hinvs
+        ipureintro; exact HGp
       · unfold boot_client
         iapply wp_boot _ _ _ _ _
           (cmd.client.wp_initialize' _ cmd.client.getIsPkgInit_wf)
@@ -237,6 +254,8 @@ theorem duplex_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
       isplitl []
       · iexists γm
         iexact Hinvs
+      isplitl []
+      · ipureintro; exact HGp
       ipureintro
       intro hi
       rw [Hhost']
@@ -247,6 +266,7 @@ theorem duplex_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     · exact Hs.threads
     · exact Hc.threads
 
+set_option linter.unusedVariables false in
 /-- Crash safety of the duplex system, its nodes the commands `cmd/server` and `cmd/client`, each
 its own process running its command's program (`boot_server`, `boot_client`), in the deployment
 `Impl.lean` D13 assumes: in every execution with crashes of the two nodes
@@ -254,11 +274,14 @@ its own process running its command's program (`boot_server`, `boot_client`), in
 a crashed local state, the network's connections and the bytes in flight on them kept), from
 local states whose Go contexts satisfy the Go semantics and the commands' assumptions, with no
 package initialized and their main threads only, where the server's host is `h`, the plan has
-`SrvAddr` at `h` and the network has no connection yet, every program returns `#()` if it
+`SrvAddr` at `h`, the plan is well formed (D20, checked by `decide`: the `example` below) and
+the network has no connection yet, every program returns `#()` if it
 returns, no thread of any node is stuck and none has an unrecovered panic: the bytes the
 client's reader reads are 1, 2, 3, 4 in order (or it gives up), however its writer and reader
 interleave, however the connections fail (bytes lost, a FIN or a reset at any read or write), and
-however often either node crashes. (`duplex_crash_safety_bounded` with the ghost state `tcpGF`, the step bound `n + 1`
+however often either node crashes, whatever the failures' error kinds (closed, timeout, sys:
+none ends a node's loop badly) and however a failed dial leaves its connection (abandoned, D16).
+(`duplex_crash_safety_bounded` with the ghost state `tcpGF`, the step bound `n + 1`
 and the thread bound `n + 2`, which an execution of `n` steps from single threads respects,
 `DistCrashThreadsBelow.of_single`.) -/
 theorem duplex_crash_safety [lctx : GoLocalContext] [sem : go.Semantics]
@@ -268,6 +291,8 @@ theorem duplex_crash_safety [lctx : GoLocalContext] [sem : go.Semantics]
     (Hs : NodeStart lctx σs) (Hc : NodeStart lctx σc)
     (Hhost : (extLocal tcpExt σs.world).host = h)
     (Hplan : (extGlobal tcpExt g.globalWorld).plan.lookup srvAddr = some h)
+    (pl : List (GoString × GoString)) (Hwf : PlanWellFormed pl)
+    (Hpl : (extGlobal tcpExt g.globalWorld).plan = GMap.ofList pl)
     (Hconns : (extGlobal tcpExt g.globalWorld).conns = ∅)
     (n : Nat) (κs : List Observation) (c : DistCfg)
     (Hsteps : DistCrashNsteps ((system σs σc).map Prod.fst) n
@@ -277,7 +302,7 @@ theorem duplex_crash_safety [lctx : GoLocalContext] [sem : go.Semantics]
       (∀ e, e ∈ tp → RealNotStuck e (σ, c.global)) ∧
       (∀ e, e ∈ tp → ¬ UnrecoveredPanic e) :=
   duplex_crash_safety_bounded (GF := tcpGF) (n + 1) (n + 2) σs σc g h Hs Hc Hhost Hplan
-    Hconns n κs c Hsteps (by omega)
+    pl Hwf Hpl Hconns n κs c Hsteps (by omega)
     (DistCrashThreadsBelow.of_single (fun (i : Nat) (tp : List Expr) (σ : state) hi => by
       simp only [distInit, system, List.map_cons, List.map_nil] at hi
       match i, hi with
@@ -285,6 +310,9 @@ theorem duplex_crash_safety [lctx : GoLocalContext] [sem : go.Semantics]
       | 1, hi => cases hi; exact Hc.threads))
 
 end adequacy
+
+/-- The example's plan, `SrvAddr` at a host, is well formed (D20). -/
+example : PlanWellFormed [(srvAddr, go!"h")] := by decide
 
 #print axioms duplex_crash_safety
 
