@@ -90,6 +90,7 @@ theorem cutCommit_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {
     (hcuts : ∀ b ∈ lay.cuts, b < d.H.length) (hcpos : walCutPos (histM d) d.H.length ∧ 0 < d.H.length)
     (hnm0 : walNameP nm0 = true ∧ hj.cur !! nm0 = some (.file g0.ino))
     (hbt : bt = walFileName sq ix ∧ walLastIdx (histM d) + 1 ≤ ix ∧ go.GoStringLt nm0 bt ∧ ix < 2 ^ 64)
+    (hsq : ∃ sq0 ix0, nm0 = walFileName sq0 ix0 ∧ sq = sq0 + 1)
     (hbtw : walNameP bt = true) (hcur : hj.cur !! bt = none)
     (hwr : wr = (segStream C Mr d (lay.cuts ++ [d.H.length]) (lay.cuts.length + 1)).length)
     (hbs : g.bs = ((segStream C Mr d (lay.cuts ++ [d.H.length]) (lay.cuts.length + 1)) ++
@@ -164,7 +165,8 @@ theorem cutCommit_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {
   have habs' : WalAbsD C Mr d (cutLay lay d.H.length g wr) (<[bt := Node.file g.ino]> hj.cur) :=
     cutLay_abs C Mr d lay hj.cur _ g wr sq ix habs hexL hm
       (fun g0' h => by rw [hg0] at h; cases h; exact hlast0) ⟨hcpos.1, hcuts⟩
-      ⟨hgname.trans hbt.1, hbt.2.1, fun g' hg' => by rw [hgname]; exact hlt g' hg'⟩ hwr hbs hmeta
+      ⟨hgname.trans hbt.1, hbt.2.1, fun g' hg' => by rw [hgname]; exact hlt g' hg'⟩
+      (fun g0' h => by rw [hg0] at h; cases h; rw [← hnm0e]; exact hsq) hwr hbs hmeta
       hfit hents hz hbt.2.2.2 hcpos.2
   -- every byte durable
   have hdur : ∀ g' ∈ lay.segs, ∀ y ∈ g'.bs, y = durB y.1 := by

@@ -127,6 +127,7 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (hnm0 : walNameP nm0 = true ∧ hj.cur !! nm0 = some (.file i0))
     (hbt : bt = walFileName sq ix ∧ walLastIdx (H.map WalOpG.toM) + 1 ≤ ix ∧ go.GoStringLt nm0 bt ∧
       ix < 2 ^ 64)
+    (hsq : ∃ sq0 ix0, nm0 = walFileName sq0 ix0 ∧ sq = sq0 + 1)
     (hbtw : walNameP bt = true) (hcur : hj.cur !! bt = none)
     (hbs0 : bs0.length = (tailStream Mr H md cuts).length ∧ bs0.length = m0.size)
     (hm0x : m0.lo = m0.size ∧ m0.hi = m0.size)
@@ -336,7 +337,7 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
         · exact hfitH r h
       obtain ⟨hok', hco', hcro', han', hnm', hdko'⟩ := cutCommit_pure (x := x) (s0 := s0)
         ⟨hW1, hW2, hW3, hW4, hW5, hW6⟩ Hco Hcro Han.1 Han.2 Hnm Hdko HK hd hl1 hg0
-        ⟨l1, l2, rfl, hn1, hn2⟩ hm (hnmd d hd) hlast0 hex0 hcuts hcpos hnm0 hbt hbtw hcur hwr' hbs' hmeta hfit hz
+        ⟨l1, l2, rfl, hn1, hn2⟩ hm (hnmd d hd) hlast0 hex0 hcuts hcpos hnm0 hbt hsq hbtw hcur hwr' hbs' hmeta hfit hz
         hino hgname htmpX (Nat.le_trans (Nat.le_max_right _ _) hls) hsx
       -- the tail record moved, the flag, the parked halves
       imod tailVar_upd γ _ _ (tailG d (cutLay lay1 d.H.length g wr) g.ino none) $$ Hv Hvi with ⟨Hv, Hvi⟩

@@ -15,6 +15,7 @@ Pure. What the invariant holds of a WAL right after a cut's rename (S/wal.go:936
 module
 
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutSynced
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutName
 
 @[expose] public section
 
@@ -79,7 +80,7 @@ theorem segStream_snoc (C : WalCodec) (Mr : WalMarshal) (d : WalDur) {cuts : Lis
 
 /-- **The static relation after a cut's rename** (see the file header). The old layout: its last
 segment `g0` synced and truncated at its stream (`hlast0`), the history synced (`hm`), its end a cut
-position past the last cut (`hcut`). The new segment `g`: named `walFileName sq ix` above every old
+position past the last cut (`hcut`). The new segment `g`: named `walFileName sq ix` (`sq` the old tail's sequence plus one, `hsq`) above every old
 name and above every index before `|H|`, its bytes the stream `wr` bytes long (its headers' frames)
 then zeros, all durable, its `OsMeta` sized to them; the directory's entries `ents'` the old ones
 with `g`'s name. -/
@@ -91,6 +92,7 @@ theorem cutLay_abs (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) 
     (hcut : walCutPos (histM d) d.H.length ∧ ∀ b ∈ lay.cuts, b < d.H.length)
     (hname : g.name = walFileName sq ix ∧ walLastIdx (histM d) + 1 ≤ ix ∧
       ∀ g0 ∈ lay.segs, go.GoStringLt g0.name g.name)
+    (hsq : ∀ g0, lay.segs.getLast? = some g0 → ∃ sq0 ix0, g0.name = walFileName sq0 ix0 ∧ sq = sq0 + 1)
     (hwr : wr = (segStream C Mr d (lay.cuts ++ [d.H.length]) (lay.cuts.length + 1)).length)
     (hbs : g.bs = ((segStream C Mr d (lay.cuts ++ [d.H.length]) (lay.cuts.length + 1)) ++
       List.replicate (g.bs.length - wr) 0).map durB ∧ wr ≤ g.bs.length)
@@ -124,7 +126,7 @@ theorem cutLay_abs (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) 
   refine
     { names := ?_, cuts := ?_, nameBound := ?_, cut := ?_, metas := ?_, intact := ?_,
       last := ?_, synced := ?_, lastSynced := ?_, fit := ?_, tailStop := ?_, nonempty := ?_,
-      cutPos := ?_ }
+      cutPos := ?_, seqName := ?_ }
   · simp only [cutLay, List.map_append, List.map_cons, List.map_nil]
     refine ⟨by rw [hents, habs.names.1], List.pairwise_append.2 ⟨habs.names.2, by simp, ?_⟩⟩
     intro a ha b hb
@@ -213,6 +215,29 @@ theorem cutLay_abs (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) 
     rcases hb with hb | rfl
     · exact habs.cutPos b hb
     · exact hpos
+  · -- the sequence names: the new segment's is the old tail's plus one, `|cuts| + 1`
+    intro k g' hk
+    simp only [cutLay] at hk ⊢
+    by_cases hkl : k < lay.segs.length
+    · rw [List.getElem?_append_left hkl] at hk
+      exact habs.seqName k g' hk
+    · rw [List.getElem?_append_right (by omega)] at hk
+      have hk0 : k = lay.segs.length := by
+        rcases Nat.lt_or_ge (k - lay.segs.length) 1 with h1 | h1
+        · omega
+        · rw [List.getElem?_eq_none (by simp; omega)] at hk; cases hk
+      subst hk0
+      simp only [Nat.sub_self, List.getElem?_cons_zero, Option.some.injEq] at hk
+      subst hk
+      obtain ⟨g0, hg0⟩ : ∃ g0, lay.segs.getLast? = some g0 := by
+        cases h : lay.segs.getLast? with
+        | none => exact absurd (List.getLast?_eq_none_iff.1 h) hne
+        | some g0 => exact ⟨g0, rfl⟩
+      obtain ⟨⟨ix1, hix1⟩, -⟩ := habs.tailSeq g0 hg0
+      obtain ⟨sq0, ix0, hn0, rfl⟩ := hsq g0 hg0
+      refine ⟨ix, ?_⟩
+      rw [hname.1, show lay.first + lay.segs.length = lay.cuts.length + 1 by omega]
+      exact walFileName_succ_eq ix (hn0.symm.trans hix1)
 
 /-- **The crash condition from a cut's rename on**: `crashOkA_rename` for the new layout `cutLay`,
 whose crashes keeping the rename are those of a synced WAL (`crashTo_synced`). -/

@@ -150,6 +150,39 @@ theorem cutName_str (sq mx : Nat) (nx : w64) (hs : sq + 1 < 2 ^ 64) (hm : mx + 1
     have : nx.toNat = mx := hnx
     omega
 
+/-- `%016x` keeps its number modulo `2 ^ 64`. -/
+theorem hex16_mod (n : Nat) : hex16 n = hex16 (n % 2 ^ 64) := by
+  unfold hex16
+  apply List.map_congr_left
+  intro i hi
+  have hi' : i < 16 := by simpa using hi
+  congr 1
+  have e : 2 ^ 64 = 16 ^ i * 16 ^ (16 - i) := by
+    rw [← Nat.pow_add, show i + (16 - i) = 16 by omega]
+  have hd : 16 ∣ 16 ^ (16 - i) := by simpa using Nat.pow_dvd_pow 16 (show 1 ≤ 16 - i by omega)
+  rw [e, Nat.mod_mul_right_div_self, Nat.mod_mod_of_dvd _ hd]
+
+/-- A segment's name keeps its sequence number modulo `2 ^ 64`. -/
+theorem walFileName_mod (sq ix : Nat) : walFileName sq ix = walFileName (sq % 2 ^ 64) ix := by
+  unfold walFileName; rw [hex16_mod sq]
+
+/-- Equal segment names have sequence numbers equal modulo `2 ^ 64`. -/
+theorem walFileName_seq_mod {a b ix ix' : Nat} (h : walFileName a ix = walFileName b ix') :
+    a % 2 ^ 64 = b % 2 ^ 64 := by
+  rw [walFileName_mod a, walFileName_mod b] at h
+  rcases Nat.lt_trichotomy (a % 2 ^ 64) (b % 2 ^ 64) with hl | he | hl
+  · have := walFileName_lt _ ix _ ix' hl (Nat.mod_lt _ (by decide))
+    rw [h] at this; exact absurd this (go.goStringLt_irrefl _)
+  · exact he
+  · have := walFileName_lt _ ix' _ ix hl (Nat.mod_lt _ (by decide))
+    rw [h] at this; exact absurd this (go.goStringLt_irrefl _)
+
+/-- The names after two equal names (`cut`'s `w.seq() + 1`) are equal. -/
+theorem walFileName_succ_eq {a b ix ix' : Nat} (nx : Nat) (h : walFileName a ix = walFileName b ix') :
+    walFileName (a + 1) nx = walFileName (b + 1) nx := by
+  have hm := walFileName_seq_mod h
+  rw [walFileName_mod (a + 1), walFileName_mod (b + 1), Nat.add_mod a, Nat.add_mod b, hm]
+
 end pure
 
 end WalFs

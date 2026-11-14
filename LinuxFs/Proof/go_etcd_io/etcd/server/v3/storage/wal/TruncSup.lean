@@ -22,7 +22,7 @@ An abort (either update) leaves the invariant as it was (`walInvBody_tailW_same`
 -/
 module
 
-public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.TruncSupPend
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.TailCrashRep
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.TailAccW
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Handle
 public import LinuxFs.Spec.os.File__TruncateAu
@@ -61,13 +61,15 @@ theorem walInvBody_tailW_same (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr :
     (r : GoString) (s : AbsDiskState) (dir : GoString) (γ : GName)
     (Ls : GMap GoString WalLay) (cl : List Claim) (n : Nat) (F : GMap Ino SegFl) (d : WalDur)
     (lay : WalLay) (pre : List SegG) (g0 : SegG)
-    (hW : WalsOk C Mr R jr s Ls cl n) (hl : Ls !! dir = some lay) (hs : lay.segs = pre ++ [g0]) :
+    (hW : WalsOk C Mr R jr s Ls cl n) (hl : Ls !! dir = some lay) (hs : lay.segs = pre ++ [g0])
+    (ok : Option (Nat × Bool)) (hR : TailRK ok lay) :
     ⊢ (∀ (g : SegG) (wr' : Nat) (F' : GMap Ino SegFl),
           ⌜g.ino = g0.ino ∧ g.name = g0.name ∧ (∀ i, i ≠ g0.ino → F' !! i = F !! i) ∧
             (wr' = lay.wr ∨ TailZeros lay) ∧
             WalsOk C Mr R jr s (<[dir := tailLay lay pre g wr']> Ls) cl n ∧
             (∀ K c, DirKeysOk C Mr jr s Ls cl n K c →
-              DirKeysOk C Mr jr s (<[dir := tailLay lay pre g wr']> Ls) cl n K c)⌝ -∗
+              DirKeysOk C Mr jr s (<[dir := tailLay lay pre g wr']> Ls) cl n K c) ∧
+            TailRK ok (tailLay lay pre g wr')⌝ -∗
           segResF F' g -∗
           tailVar (W := W) γ (tailG d (tailLay lay pre g wr') g.ino (F' !! g.ino)) -∗
           walInvBody (W := W) C Mr R jr r s) -∗
@@ -76,7 +78,7 @@ theorem walInvBody_tailW_same (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr :
   iintro Hclose Hseg Hv
   have hp := walsOk_self (g := g0) hW hl hs
   iapply Hclose $$ %g0 %lay.wr %F [] Hseg
-  · ipureintro; exact ⟨rfl, rfl, fun _ _ => rfl, Or.inl rfl, hp.1, hp.2⟩
+  · ipureintro; exact ⟨rfl, rfl, fun _ _ => rfl, Or.inl rfl, hp.1, hp.2, by rw [tailLay_self hs]; exact hR⟩
   rw [tailLay_self hs]
   iexact Hv
 
@@ -168,7 +170,7 @@ theorem walTail_truncFin (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     ihave Hseg : segResF F g1 $$ [Htok Hbt]
     · rw [eseg]; iframe; ipureintro; exact hok
     ihave Hb := walInvBody_tailW_same walCodec Mr R jr r s dir γ Ls cl nn F d lay pre g1 hW hl hs
-      $$ Hclose Hseg Hv'
+      ok hZ.rk $$ Hclose Hseg Hv'
     imod Hcl $$ [Hb]
     · iexists s; iexact Hb
     imodintro
@@ -214,7 +216,16 @@ theorem walTail_truncFin (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       imod tailVar_upd γ _ _ (tailG d (tailLay lay pre (rzLand g0' lay.wr n) lay.wr) (rzLand g0' lay.wr n).ino
         ((GMap.delete g1.ino F) !! (rzLand g0' lay.wr n).ino)) $$ Hv Hv' with ⟨Hv, Hv'⟩
       ihave Hb := Hclose $$ %(rzLand g0' lay.wr n) %lay.wr %(GMap.delete g1.ino F) [] [Hm2 Hbt] Hv'
-      · ipureintro; exact ⟨by rw [e1], by rw [e1], hFd, Or.inl rfl, hW', hDK'⟩
+      · ipureintro
+        refine ⟨by rw [e1], by rw [e1], hFd, Or.inl rfl, hW', hDK', ?_⟩
+        have hR := hZ.rk
+        rcases ok with _ | ⟨k, _ | _⟩
+        · trivial
+        · trivial
+        · rcases hR with hR | hR
+          · exact Or.inl hR
+          · exact Or.inr (repOld_rzLand hs' hR (by rw [hg0om, hg0bs]; exact hlen)
+              (by rw [hg0om, ← hwrl]; exact hwr) (by rw [hg0om]; exact hhi))
       · have hn : (GMap.delete g1.ino F) !! (rzLand g0' lay.wr n).ino = none := by
           rw [e1]; exact GMap.lookup_delete_eq _ _
         unfold segResF; rw [hn]; dsimp only
@@ -260,7 +271,7 @@ theorem walTail_truncFin (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       imod tailVar_upd γ _ _ (tailG d (tailLay lay pre g1 lay.wr) g1.ino
         ((GMap.delete g1.ino F) !! g1.ino)) $$ Hv Hv' with ⟨Hv, Hv'⟩
       ihave Hb := Hclose $$ %g1 %lay.wr %(GMap.delete g1.ino F) [] [Hm2 Hbt Hb2] Hv'
-      · ipureintro; exact ⟨rfl, rfl, hFd, Or.inl rfl, hW', hDK'⟩
+      · ipureintro; exact ⟨rfl, rfl, hFd, Or.inl rfl, hW', hDK', by rw [tailLay_self hs]; exact hZ.rk⟩
       · unfold segResF; rw [GMap.lookup_delete_eq]; dsimp only
         unfold segRes
         have hom' : g1.om = rsUnMeta true true m0 wr n := hom
@@ -303,12 +314,13 @@ def truncStartP (dir : GoString) (γ : GName) (ok : Option (Nat × Bool)) (H : L
 /-- **The supply of the tail's truncate at its write position** (see the file header), the caller's
 property of the state it starts from the handle's `LoWr` (no window open, or `lo ≤ wr`: a window's
 crash sizes from `lo` on must be the old window's; a later attempt's state has `lo ≤ wr`,
-`os.truncSup`). The tie's right `ok` is the key or a lent token of kind `false` (`wal-tc18`: F-Z, or a
-pending tail whose length word at `wr` is zero, `TailZK.zp`; then `rzStart_pureP`), the latter with `wr`
-the record's stream end (`hS`). -/
+`os.truncSup`). The tie's right `ok` is the key, a lent token of kind `false` (`wal-tc18`: F-Z, or a
+pending tail whose length word at `wr` is zero, `TailZK.zp`; then `rzStart_pureP`), or the pending token
+(kind `true`, `Repair`'s truncate of a torn frame at `wr`: F-Z or `RepOld`, the lent registry's at every
+attempt, `rzStart_pureR`; the W7-W12 log, thirteenth session), a lent one with `wr` the record's stream
+end (`hS`); `rzStart_pureK`. -/
 theorem walTail_truncSup (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (dir : GoString)
     (γ : GName) (ok : Option (Nat × Bool)) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (wr : Nat) (i : Ino)
-    (hok : ∀ k, ok ≠ some (k, true))
     (hS : ∀ kp, ok = some kp → wr = (tailStream Mr H md cuts).length) :
     ⊢ walInv (W := W) walCodec Mr R jr r -∗
       os.truncSup iprop(walTailKeyL (W := W) dir γ ok ∗ tailVar (W := W) γ ((H, md, cuts, wr, i, none) : TailG))
@@ -377,7 +389,7 @@ theorem walTail_truncSup (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       iapply (osBytes_takeDrop g0.ino _ g0.bs (min g0.om.size wr) (by omega)).2
       iframe
     ihave Hb := walInvBody_tailW_same walCodec Mr R jr r s dir γ Ls cl nn F d lay pre g0 hW hl hs
-      $$ Hclose Hseg Hv'
+      ok hZ.rk $$ Hclose Hseg Hv'
     imod Hcl $$ [Hb]
     · iexists s; iexact Hb
     imodintro
@@ -392,17 +404,12 @@ theorem walTail_truncSup (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       rcases hP0 with h | h
       · exact absurd (SegExact.of_os hsz h) hx
       · rw [hwrl']; exact h
-    have hZP : TailZeros lay ∨
-        (TailPend lay ∧ (segStream walCodec Mr d lay.cuts lay.cuts.length).length = lay.wr) := by
-      by_cases hon : ok = none
-      · subst hon; exact Or.inl hZ
-      · obtain ⟨kp, hkp⟩ := Option.ne_none_iff_exists'.1 hon
-        rcases hZ.zp hok with h | h
-        · exact Or.inl h
-        · refine Or.inr ⟨h, ?_⟩
-          rw [hwrl', hS kp hkp, hH, hmd, hcuts, tailStream_eq]
-    obtain ⟨hW', hDK'⟩ := rzStart_pureP walCodec_ok hW hd hl hs ⟨ents, habs⟩ hcut0 hZP hB hn.1 hn.2 hlo
-    rw [hwrl'] at hW' hDK'
+    have hS' : ok ≠ none → (segStream walCodec Mr d lay.cuts lay.cuts.length).length = lay.wr := by
+      intro hon
+      obtain ⟨kp, hkp⟩ := Option.ne_none_iff_exists'.1 hon
+      rw [hwrl', hS kp hkp, hH, hmd, hcuts, tailStream_eq]
+    obtain ⟨hW', hDK', hR'⟩ := rzStart_pureK walCodec_ok hW hd hl hs ⟨ents, habs⟩ hcut0 hZ hS' hB hn.1 hn.2 hlo
+    rw [hwrl'] at hW' hDK' hR'
     have hFi : ∀ i, i ≠ g0.ino →
         (<[g0.ino := (⟨t, 0, [], n, g0.om, g0.bs, some (true, wr)⟩ : SegFl)]> F) !! i = F !! i :=
       fun i hi => GMap.lookup_insert_ne _ _ (Ne.symm hi)
@@ -417,7 +424,7 @@ theorem walTail_truncSup (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       $$ Hv Hv' with ⟨Hv, Hv'⟩
     ihave Hb := Hclose $$ %(rzSeg g0 true wr n) %wr
       %(<[g0.ino := (⟨t, 0, [], n, g0.om, g0.bs, some (true, wr)⟩ : SegFl)]> F) [] [Htok Hbt] Hv'
-    · ipureintro; exact ⟨rfl, rfl, hFi, Or.inl hwrl'.symm, hW', hDK'⟩
+    · ipureintro; exact ⟨rfl, rfl, hFi, Or.inl hwrl'.symm, hW', hDK', hR'⟩
     · unfold segResF
       rw [show (rzSeg g0 true wr n).ino = g0.ino from rfl, hFg]
       dsimp only

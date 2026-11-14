@@ -288,6 +288,22 @@ theorem crashTo_start (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLa
       exact hstop0 r len c'
     · exact hne'
     · exact habs.cutPos
+    · -- sequence names
+      intro k g hk
+      have hk' : (crashLay fo lay q S.length).segs[k]? = ((lay.segs.drop q)[k]?).map (newSeg fo) := by
+        simp [crashLay]
+      rw [hk', List.getElem?_drop] at hk
+      cases hg1 : lay.segs[q + k]? with
+      | none => rw [hg1] at hk; cases hk
+      | some g1 =>
+        rw [hg1] at hk
+        simp only [Option.map_some, Option.some.injEq] at hk
+        subst hk
+        obtain ⟨ix, hn⟩ := habs.seqName (q + k) g1 hg1
+        refine ⟨ix, ?_⟩
+        rw [newSeg_name, hn]
+        simp only [crashLay]
+        congr 1; omega
   case fit =>
     have hp := (segs_pre C Mr d.metadata (P := I.map WalOpG.toM) (Q := d.H.map WalOpG.toM)
       (le_segStart_length hsorted) htI hpI).1

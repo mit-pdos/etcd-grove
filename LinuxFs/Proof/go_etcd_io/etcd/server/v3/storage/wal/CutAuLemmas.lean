@@ -58,9 +58,9 @@ theorem walGhost_synced (s : AbsDiskState) (dir : GoString) (n : Nat) :
     ⊢ walGhost (W := W) s -∗ walSyncedLb (W := W) dir n -∗
       ⌜∀ d, s.wal !! dir = some d → n ≤ d.m⌝ ∗ walGhost (W := W) s := by
   unfold walGhost walSyncedLb walPast
-  iintro ⟨HG, HA, Hh, %Hk⟩ ⟨%s', %d', #Hp, %Hd'⟩
+  iintro ⟨HG, HA, Hh, %Hk, #Hst⟩ ⟨%s', %d', #Hp, %Hd'⟩
   icases absPast_le W.hA s s' $$ HA Hp with %Hle
-  iframe HG HA Hh
+  iframe HG HA Hh Hst
   isplit
   · ipureintro
     intro d hd
@@ -74,9 +74,9 @@ theorem walGhost_named (s : AbsDiskState) (dir : GoString) :
     ⊢ walGhost (W := W) s -∗ walNamed (W := W) dir -∗
       ⌜∀ d, s.wal !! dir = some d → d.named = true⌝ ∗ walGhost (W := W) s := by
   unfold walGhost walNamed walPast
-  iintro ⟨HG, HA, Hh, %Hk⟩ ⟨%s', %d', #Hp, %Hd'⟩
+  iintro ⟨HG, HA, Hh, %Hk, #Hst⟩ ⟨%s', %d', #Hp, %Hd'⟩
   icases absPast_le W.hA s s' $$ HA Hp with %Hle
-  iframe HG HA Hh
+  iframe HG HA Hh Hst
   isplit
   · ipureintro
     intro d hd

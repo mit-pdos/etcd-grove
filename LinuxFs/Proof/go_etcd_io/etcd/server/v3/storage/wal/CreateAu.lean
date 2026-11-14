@@ -329,7 +329,8 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         hdisj (by rw [hsegs]; simpa using hcut) Han.2 htmpS
       -- the ghost state, the client's commit, the creating entry
       imod walGhost_upd s (createSt s dir md) M (absLe_createSt hsd)
-        (walKeysInArea_createSt hin') $$ Hg HM with ⟨-, Hg, HM, #Hp⟩
+        (walKeysInArea_createSt hin') (fun n hn => hn.insert rfl (by simp [walDurFresh])) $$ Hg HM with
+        ⟨-, Hg, HM, #Hp⟩
       imod Hco $$ [HM] with HQ
       · unfold walDiskAt walDirIs
         iexists (createSt s dir md).wal

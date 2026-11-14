@@ -98,7 +98,7 @@ theorem walLentRes_pendStopZ (T : GMap GoString GName) (Ls : GMap GoString WalLa
   iapply (BigSepM.bigSepM_insert (Φ := fun (dir : GoString) (x : GName × Nat × Bool) =>
     iprop(⌜LentOk T Ls dir x⌝ ∗ walTailKey (W := W) dir x.1)) hM0).2
   iframe Hm Hk
-  ipureintro; exact hx
+  ipureintro; exact hx.kindFalse
 
 /-- **The pending tail's first step** (see the file header): the handle's exact tail with the zero length
 word at its write position; the pending token becomes the lent one, of `|old|` the size. -/
@@ -166,7 +166,7 @@ theorem walInvBody_pendStop (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
     · exact .inl h
     · exact .inr ⟨h, hLZ⟩
   have hold : lay.old.length = g0.om.size := walAbsD_old_exact habs hg hlo hhi
-  obtain ⟨-, la, hla, hlk⟩ := hlent k true rfl
+  obtain ⟨-, la, hla, hlk, -⟩ := hlent k true rfl
   rw [hl] at hla; cases hla
   simp only at hlk
   imod walLentRes_pendStopZ T Ls dir γ k (fun la' hla' => by rw [hl] at hla'; cases hla'; exact hZP)
@@ -283,7 +283,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.wp_specWalTail (Mr : Wa
       (fun m => LoWr m o0) $$ []
   · rw [hT]; unfold growTie
     iapply walTail_truncSup Mr R jr r dir γ (some (k, false)) H md cuts o0 i
-      (fun _ h => by simp at h) (fun _ _ => hS) $$ Hinv
+      (fun _ _ => hS) $$ Hinv
   ihave #Hgs : os.truncSup (growTie (W := W) dir γ k H md cuts o0 i) i m.size
       (fun m' => m'.lo ≤ o0 ∧ m'.size ≤ m.size) $$ []
   · iapply walTail_truncSupG Mr R jr r dir γ k H md cuts o0 i m.size (by omega) $$ Hinv
