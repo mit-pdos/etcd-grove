@@ -69,7 +69,7 @@ theorem rzSeg_bs_of_le {g0 : SegG} {tr : Bool} {tg n : Nat} (hlen : g0.bs.length
 
 /-- **The static relation of a layout whose tail may be in a resize window**: the old relation with
 an exact tail `g0`, the new tail `g` of the same name and inode, its `OsMeta` around its bytes, and
-the last segment's facts (`TailLast` if exact, `TailWin` and `winLo` if not). -/
+the last segment's facts (`TailLast` if exact, `WinLast` if not). -/
 theorem walAbsD_win {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
     {pre : List SegG} {g0 g : SegG} {wr' : Nat}
     (habs : WalAbsD C Mr d lay ents) (hs : lay.segs = pre ++ [g0])
@@ -77,8 +77,7 @@ theorem walAbsD_win {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
     (hmeta : g.om.size = g.bs.length ∧ g.om.cut = none ∧ g.om.lo ≤ g.bs.length ∧
       g.bs.length ≤ g.om.hi)
     (hlast : (SegExact g → TailLast C Mr d (tailLay lay pre g wr') g) ∧
-      (¬ SegExact g → TailWin C Mr d (tailLay lay pre g wr') g ∧ g.om.lo ≤ wr' ∧
-        WinZero (tailLay lay pre g wr') g)) :
+      (¬ SegExact g → WinLast C Mr d (tailLay lay pre g wr') g)) :
     WalAbsD C Mr d (tailLay lay pre g wr') ents := by
   refine ⟨?_, ?_, ?_, habs.cut, ?_, ?_, ?_, habs.synced, habs.lastSynced, habs.fit, habs.tailStop,
     by simp [tailLay], by simpa [tailLay] using habs.cutPos⟩
@@ -168,8 +167,9 @@ theorem walAbsD_rzStart {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wal
     rw [e]
     exact ⟨hso, hwS, hbo, hwo, hB, hz0, hzS, hzZ⟩
   · refine ⟨⟨hso, hwS, by simp only [tailLay]; omega, by simp only [tailLay]; omega,
-      fun b x hb hbw => ?_, hz0, hzS, hzZ, ?_⟩, by simp only [rzSeg, rzMeta_lo]; omega,
-      fun b x hb hx => ?_⟩
+      fun b x hb hbw => ?_, hz0, hzS, hzZ, ?_⟩,
+      by simp only [tailLay, rzSeg, rzMeta_lo]; omega,
+      fun b x hb hx => ?_, ?_⟩
     · simp only [tailLay] at hbw
       rw [rzSeg_getElem?_lt hl (by omega)] at hb
       exact hB b x hb (by omega)
@@ -177,6 +177,8 @@ theorem walAbsD_rzStart {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wal
         (fun s hs => by simp [rzSeg, rzMeta, hs])
     · obtain ⟨y, hy, hy1⟩ := rzSeg_getElem?_fst hx
       rw [← hy1]; exact hz b y hb hy
+    · have := habs.oldHi_any g0 hg0
+      simp only [tailLay, rzSeg, rzMeta_hi]; omega
 
 end pure
 

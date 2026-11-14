@@ -1820,6 +1820,10 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
 - **Proposed change.** `errors.Is.spec` for a comparable non-pointer target (Go's `Is` compares
   with `==` first, which does not panic for a comparable target type), and an `errors.As` spec that
   says `false` for a leaf error not in the target's type set; then the four are proved here.
+- **Status (2026-11-14).** Drafted, pending user review: Perennial branch `errors-facts` (off `lean` at the pin `ddc0f0acc`, pushed, not landed), `601b7fb5d` (`errors.Is.spec` at any
+  `ComparableTarget`: a target whose type's `==` is the equality of plain values, `ComparableErr`; an empty
+  struct or a value struct of comparable fields should qualify, not checked). The `As` false-for-a-leaf case is
+  not drafted.
 
 ### `go.NotInterface go.uint64`
 
@@ -2437,6 +2441,11 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
   `Unwrap`, `Errno.Is`) and `os.ErrNotExist = oserror.ErrNotExist` distinct from `oserror`'s other errors
   in the package facts. Workaround: the hypothesis `errors.IsPathErrnoNotExist.spec`
   (`LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/ExistCallees.lean`).
+- **Status (2026-11-14).** Drafted, pending user review: Perennial branch `errors-facts` (off `lean` at the pin `ddc0f0acc`, pushed, not landed), `601b7fb5d`. `errors.Is.spec`/`errors.is.spec`
+  take `ComparableTarget S target`/`ComparableErr S tii` (the type's `CheckComparable` steps, its `==` is Lean's
+  `=` on some `V` with an injective `#`, the target's and the tree's same-typed values are of `V`);
+  `comparableErr_uintptr` gives it for an `Errno` (`[tii.ty ↓u go.uintptr]`, `V := w64`); the old statement is
+  `errors.wp_Is_ptr` (a client's `wp_Is S I U err target htarget htyped` becomes `wp_Is_ptr` with the same arguments).
 
 ## 2026-11-14: `errors.newVar` forgets the allocation (the WAL decoder's environment, `wal-readall17`)
 
@@ -2451,6 +2460,12 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
   returns it.
 - **Also:** `errors.Is(err, io.EOF)` on the part's `*PathError`s (`errors.IsPathErrnoEof.spec`,
   `LinuxFs/Spec/errors/IsPathErrnoEof.lean`), the same gap as `IsPathErrnoNotExist.spec` above.
+- **Status (2026-11-14).** Drafted, pending user review: Perennial branch `errors-facts` (off `lean` at the pin `ddc0f0acc`, pushed, not landed), `58e04c5c0`. `newVar X msg := ∃ x, globalAddr X ↦□
+  *x ∗ x.[errorString, "s"] ↦□ msg ∗ □ Error()` (moved to `Perennial/Proof/errors/Base.lean`);
+  `wp_New_errorString` returns the field; `errors.errorString_ne` and `errors.newVar_ne (h : m1 ≠ m2) : newVar X m1 ⊢
+  newVar Y m2 -∗ globalAddr X ↦□ v1 -∗ globalAddr Y ↦□ v2 -∗ ⌜v1 ≠ v2⌝`. Perennial's initializer proofs (`io`,
+  `io/fs`, `oserror`, `poll`, `strconv`, `context`) build unchanged; a client destructing `newVar` into three parts
+  (`errOk_newVar`, `walDecEnv_eof_not`, ...) gets one more conjunct.
 
 ## 2026-11-14: The WAL's leaf specs (`wal-leaf1`): `errors.As` first match, `Errno.Is`
 
@@ -2469,3 +2484,22 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
   `As` returns `true` and stores `err`, with no tree premise. (2) Translate `Errno.Is` and `PathError.Unwrap` in the
   part (a configuration change here), and Perennial's `errors.is.spec` for comparable targets.
 - **Status.** Recorded.
+- **Also (`wal-leaf2`, 2026-11-14): Perennial's `errors` fact.** With `Errno.Is` translated (tried: it translates
+  cleanly), its `switch` still does not step: its fourth case loads `errors.ErrUnsupported`, and the `errors`
+  package's fact is `True` (`Perennial/Proof/errors/Base.lean`), so no proof has that global's points-to; an
+  errno target reaches that case (the first three compare an `Errno` with `*errorString`s). No local route: `errors`
+  is Perennial's package and only its own initializer proof sees the allocation. **Proposed (general):** the
+  `errors` fact records `errors.newVar ErrUnsupported go!"unsupported operation"` (as `io`'s records its
+  variables), with the `newVar` change above so that it is distinct from `oserror`'s and `io`'s errors. Blocks
+  `errors.IsErrno.spec` and `errors.IsPathErrnoEof.spec` (with `newVar`'s allocation for the second). And (1),
+  `errors.As`: no first-match lemma is derivable from the axiom `errors.As.wp_proof` (its post is `∃ b v'`, and
+  `As` has neither translation nor model), so `errors.AsLinkError.spec` waits for the Perennial spec.
+- **Status (2026-11-14).** Drafted, pending user review: Perennial branch `errors-facts` (off `lean` at the pin `ddc0f0acc`, pushed, not landed). (a) `errors` fact, `58e04c5c0`: `errors`' `isPkgInit`
+  is `isInit := newVar ErrUnsupported "unsupported operation"` (`errors.isInit_access`, `errors.errUnsupported_of_init`),
+  `errors.initialize'` proved from `wp_New_errorString`. (b) `errors.As`, `7533cf64a`, **a strengthened axiom** (for
+  review; the Go check of its soundness is in `errors.As.wp_proof`'s docstring): `As.spec` takes `(v x : T')` and
+  `⌜AsFirst T err #x⌝ ∨ (isErrorTree S T' T ∗ ⌜S err⌝)`, post `l ↦ v' ∗ ⌜AsFirst T err #x → b = true ∧ v' = x⌝`
+  (`AsFirst`: `err`'s dynamic type is `T`, its value stored; or in an interface `T`'s type set, `err` stored);
+  `errors.wp_As_first (hT : AsTarget T) (h : AsFirst T err #x) : {{ isPkgInit errors ∗ l ↦ v }} As err &l
+  {{ RET #true; l ↦ x }}` is `errors.AsLinkError.spec`'s case. The three `wp_As` callers here gain `x` and an
+  `iright`. (c) `Errno.Is`'s comparisons: `601b7fb5d` (the 2026-11-13 entry's status).

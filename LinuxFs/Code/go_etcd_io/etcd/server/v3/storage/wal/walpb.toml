@@ -8,6 +8,11 @@ translate = ["*",
 imports = ["!*", "errors", "fmt", "go.etcd.io/raft/v3/raftpb", "google.golang.org/protobuf/proto",
   "google.golang.org/protobuf/runtime/protoimpl",
   "google.golang.org/protobuf/reflect/protoreflect"]
+# (2026-11-14, the decoder's `rec.Reset()`; pending the user's review) `(*Record).Reset` trusted
+# (LinuxFs/TrustedCode/go_etcd_io/etcd/server/v3/storage/wal/walpb.lean): the fields' reset; the
+# message-state store, protobuf runtime plumbing, left out (the model's docstring says why that is
+# faithful)
+trusted = ["Record.Reset"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
