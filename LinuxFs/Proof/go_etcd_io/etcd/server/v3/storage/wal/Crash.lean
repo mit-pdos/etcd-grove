@@ -629,7 +629,13 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
         intro dir d lay _ hd hl
         obtain ⟨lay', nm, hl', -, -, -, -, -, -, -, hwz, hzS, hlast⟩ := hstart.1 dir d hd
         rw [hl] at hl'; cases hl'
-        exact ⟨fun g hg => (hlast g hg).2, hwz.trans hzS⟩
+        refine ⟨fun g hg => (hlast g hg).2, hwz.trans hzS, fun g hg => ⟨?_, ?_⟩⟩
+        · rw [(hlast g hg).1]; intro y hy
+          obtain ⟨x, -, rfl⟩ := List.mem_map.1 hy; rfl
+        · obtain ⟨-, f, -, hom, hbs⟩ := hsegs dir lay hl g (List.mem_of_getLast? hg)
+          intro z hz
+          rw [hom] at hz; simp only [initMeta, Option.some.injEq] at hz
+          rw [hbs, List.length_map, contents_length, ← hz]; exact le_pageEnd _
       iapply BigSepM.bigSepM_empty.2; iempintro
     isplitr
     · ipureintro
