@@ -26,19 +26,21 @@ variable [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions] [os.file.FieldAssu
 
 /-- A truncate that shrank the file to `tg` landed, the caller's half (`os.ftDoneH`, nothing grown):
 its `OsMeta`'s half, of size `tg`, the same mappings, the page cache known zero to the end of the
-page holding the old end. -/
+page holding the old end, knowing the candidates past the old size `m` knew (`PcKeep`), and the zeros
+from the page cache known zero on if `m` knew zeros from at least its size. -/
 theorem ftDoneH_shrunk (p : Ino) (m : OsMeta) (tg : Nat) (zs : List Cands) (htg : tg ≤ m.size) :
     os.ftDoneH (GF := GF) p m tg zs ⊢ ∃ m1 : OsMeta,
-      ⌜m1.size = tg ∧ m1.maps = m.maps ∧ pageEnd m.size ≤ m1.cz⌝ ∗
+      ⌜m1.size = tg ∧ m1.maps = m.maps ∧ pageEnd m.size ≤ m1.cz ∧ PcKeep m m1 ∧ (m.ZfGe → m1.ZeroPg)⌝ ∗
       osMeta p (DFrac.own (1 : Qp).half) m1 := by
   unfold os.ftDoneH
-  iintro ⟨%hzs, ⟨%tc, %rz, -, Hm⟩, -⟩
+  iintro ⟨%hzs, ⟨%tc, %rz, %htc, Hm⟩, -⟩
   iexists (rsPost true m tg tg).withTc tc rz
   iframe Hm
   ipureintro
   have h := os.rsPost_cz_true m tg tg
   rw [Nat.max_eq_left htg] at h
-  exact ⟨rfl, rsPost_maps true m tg tg, h⟩
+  exact ⟨rfl, rsPost_maps true m tg tg, h, PcKeep.of_tc (tr := true) rfl rfl htc,
+    fun hz => OsMeta.zeroPg_rsPost_true hz tg⟩
 
 theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.wp_proofAu
     (wp_Truncate : os.File.Truncate.specAu (GF := GF) (hG := hG))
@@ -145,7 +147,9 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.wp_proofAu
     have hw' : w = m.size := hw.2.2 rfl
     subst hw'
     iframe
-    ipureintro; exact ⟨hm'.1, hm'.2.1.trans hm1.2.1, Nat.le_trans hm1.2.2 hm'.2.2.1⟩
+    ipureintro
+    exact ⟨hm'.1, hm'.2.1.trans hm1.2.1, Nat.le_trans hm1.2.2.1 hm'.2.2.1,
+      hm1.2.2.2.1.trans hm'.2.2.2.2.1 (by omega), fun hz => hm'.2.2.2.2.2 ⟨rfl, hm1.2.2.2.2 hz⟩⟩
   · cases err with
     | nil => exact absurd rfl he
     | ok ie =>

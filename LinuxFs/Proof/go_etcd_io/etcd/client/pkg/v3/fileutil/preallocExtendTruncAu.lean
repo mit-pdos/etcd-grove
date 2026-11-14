@@ -49,7 +49,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtendTrunc.wp_proofAu
     iexists m.size
     isplitr
     · ipureintro; exact ⟨Nat.le_refl _, hle, fun h => by cases h⟩
-    iapply preGrownH_same $$ Hm
+    iapply preGrownH_same _ _ _ (fun h => absurd h.1 herr) $$ Hm
   obtain ⟨rfl, hfit, rfl⟩ := hn
   wp_auto
   wp_apply os.File.Seek.wp_start f fd name dqf _ o hfd ho0 ho1 $$ [Hf Ho] as ⟨Hf, Ho⟩
@@ -71,16 +71,16 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtendTrunc.wp_proofAu
   · iexists sz.toNat
     isplitr
     · ipureintro; exact ⟨hle, Nat.le_refl _, fun _ => rfl⟩
-    iapply ftDoneH_preGrownH $$ Hd
+    iapply ftDoneH_preGrownH _ _ _ _ _ (fun h => h.2) $$ Hd
   · iexists sz.toNat
     isplitr
     · ipureintro; exact ⟨hle, Nat.le_refl _, fun _ => rfl⟩
-    iapply ftDoneH_preGrownH $$ Hd
+    iapply ftDoneH_preGrownH _ _ _ _ _ (fun h => h.2) $$ Hd
   · iexists m.size
     isplitr
     · ipureintro; exact ⟨Nat.le_refl _, hle, fun h => absurd h he⟩
     unfold os.ftUndoneH preGrownH
-    icases Hd with ⟨⟨%tc, %rz, -, Hm⟩, -⟩
+    icases Hd with ⟨⟨%tc, %rz, %htc, Hm⟩, -⟩
     iexists _
     iframe Hm
     isplitr
@@ -88,7 +88,9 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtendTrunc.wp_proofAu
       exact ⟨announce_size' m (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat,
         announce_maps' m (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat,
         Nat.le_of_eq (announce_cz' m (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat).symm,
-        growMeta_announce m (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat⟩
+        growMeta_announce m (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat,
+        PcKeep.of_tc (tr := true) (announce_size' m (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat)
+          rfl htc, fun h => absurd h.1 he⟩
     rw [Nat.sub_self]
     iapply osZerosA_nil
 
