@@ -2402,3 +2402,8 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
 - **Proposed.** `errors.is.spec` for any target whose type's errors in the tree hold comparable values
   (the comparison `err == target` is then defined), and a spec of `syscall.Errno.Is` (a `switch` comparing
   the target with `oserror`'s pointer errors).
+- **Also (2026-11-14, `wal.Exist`):** `errors.Is(err, os.ErrNotExist)` of an `os` error (a `*PathError` of
+  an `Errno`) has a pointer target, so `errors.Is.spec` applies, but needs the error tree (`*PathError`'s
+  `Unwrap`, `Errno.Is`) and `os.ErrNotExist = oserror.ErrNotExist` distinct from `oserror`'s other errors
+  in the package facts. Workaround: the hypothesis `errors.IsPathErrnoNotExist.spec`
+  (`LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/ExistCallees.lean`).

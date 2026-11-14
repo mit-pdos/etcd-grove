@@ -11,8 +11,10 @@ package semantics
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"syscall"
 	"testing"
 
@@ -334,4 +336,103 @@ func TestFileStatName(t *testing.T) {
 	if fi, err := f.Stat(); err != nil || fi.Name() != "0000-0000.wal" {
 		t.Fatalf("File.Stat: %v %v", fi, err)
 	}
+}
+
+// meta_enoent.go: ENOENT from open only for a path that does not resolve, from getdents only
+// for a removed directory; never for a present directory, a file in it, or a read of it, while
+// other goroutines create, rename and remove other entries of the directory and of its parent.
+func TestEnoent(t *testing.T) {
+	d := extDir(t)
+	isNoent := func(err error) bool { return errors.Is(err, syscall.ENOENT) }
+	if _, err := os.Open(d + "/missing"); !isNoent(err) {
+		t.Fatalf("Open(missing): %v, want ENOENT", err)
+	}
+	if _, err := os.Open(d + "/missing/x"); !isNoent(err) {
+		t.Fatalf("Open(missing/x): %v, want ENOENT", err)
+	}
+	if err := os.Mkdir(d+"/gone", 0o700); err != nil {
+		t.Fatal(err)
+	}
+	g, err := os.Open(d + "/gone")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(d + "/gone"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.OpenFile(d+"/gone/x", os.O_RDWR|os.O_CREATE, 0o600); !isNoent(err) {
+		t.Fatalf("OpenFile(gone/x, O_CREAT): %v, want ENOENT", err)
+	}
+	if names, err := g.Readdirnames(-1); !isNoent(err) {
+		t.Fatalf("Readdirnames of a removed directory: %v %v, want ENOENT", names, err)
+	}
+	g.Close()
+
+	// A directory large enough for an htree index (ext4 dir_index: more than one block).
+	w := d + "/wal"
+	if err := os.Mkdir(w, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	seg := func(i int) string { return filepath.Join(w, fmt.Sprintf("%016x-%016x.wal", i, i)) }
+	for i := 0; i < 2000; i++ {
+		f, err := os.Create(seg(i))
+		if err != nil {
+			t.Fatal(err)
+		}
+		f.Close()
+	}
+	stop := make(chan struct{})
+	var wg sync.WaitGroup
+	churn := func(dir string, k int) {
+		defer wg.Done()
+		for n := 0; ; n++ {
+			select {
+			case <-stop:
+				return
+			default:
+			}
+			a := filepath.Join(dir, fmt.Sprintf("churn-%d-%d", k, n%64))
+			b := a + ".tmp"
+			if f, err := os.Create(b); err == nil {
+				f.Close()
+			}
+			os.Rename(b, a)
+			os.Remove(a)
+			os.Mkdir(b, 0o700)
+			os.Remove(b)
+		}
+	}
+	for k := 0; k < 4; k++ {
+		wg.Add(2)
+		go churn(w, k)
+		go churn(d, k)
+	}
+	fails := 0
+	for i := 0; i < 3000; i++ {
+		if f, err := os.Open(w); err != nil {
+			fails++
+			if isNoent(err) {
+				t.Errorf("Open(wal) under churn: ENOENT (%v)", err)
+			}
+		} else {
+			if _, err := f.Readdirnames(-1); err != nil {
+				fails++
+				if isNoent(err) {
+					t.Errorf("Readdirnames(wal) under churn: ENOENT (%v)", err)
+				}
+			}
+			f.Close()
+		}
+		if f, err := os.Open(seg(i % 2000)); err != nil {
+			fails++
+			if isNoent(err) {
+				t.Errorf("Open(wal/seg) under churn: ENOENT (%v)", err)
+			}
+		} else {
+			f.Close()
+		}
+	}
+	close(stop)
+	wg.Wait()
+	t.Logf("3000 rounds of open/readdir under churn: %d failures, none ENOENT", fails)
 }

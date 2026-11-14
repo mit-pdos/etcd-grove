@@ -42,12 +42,16 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 variable {s : Stuckness} {E : CoPset}
 
-theorem wp_osOpenDirS' (R : Roots) (p : GoString) (j : Ino) (dq : DFrac) (k s0 : Nat) (q : Qp)
+/-- **`open(2)` read-only of a directory**, generic in what shows the path leads to it: the caller's
+resource `P`, through the claims' authority (`hP`). A failure is not `ENOENT` (the path resolves). -/
+theorem wp_osOpenDirGenS' (R : Roots) (p : GoString) (j : Ino) (P : IProp GF) (k s0 : Nat) (q : Qp)
+    (hP : ∀ st Γn, FsTreeWf st → st.fs.roots = R → NamesCoh (st.fs.treeDur, st.fs.metaLog) Γn →
+      ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γn Γn -∗ P -∗ ⌜st.lookup p = some (.dir j)⌝)
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
-    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R p dq j -∗
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ P -∗
       osCallS (L := L) k s0 q -∗
-      (∀ fd : w64, ∀ e : w64, ⌜(e = 0 ∧ 0 ≤ fd.toInt) ∨ (e ≠ 0 ∧ fd = -1)⌝ -∗ osCallPerm (L := L) q -∗
-        osPathS (L := L) R p dq j -∗ (⌜e = 0⌝ -∗ osDirFdS (L := L) fd j .idle) -∗
+      (∀ fd : w64, ∀ e : w64, ⌜(e = 0 ∧ 0 ≤ fd.toInt) ∨ (e ≠ 0 ∧ e ≠ ENOENT ∧ fd = -1)⌝ -∗
+        osCallPerm (L := L) q -∗ P -∗ (⌜e = 0⌝ -∗ osDirFdS (L := L) fd j .idle) -∗
         Φ (PairV (#fd) (#e))) -∗
       WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#p) (#flRO))))) @ s; E
         {{ Φ }} := by
@@ -68,7 +72,7 @@ theorem wp_osOpenDirS' (R : Roots) (p : GoString) (j : Ino) (dq : DFrac) (k s0 :
   icases gAuth_lookup _ _ _ _ _ _ $$ Has Hs with %hVs
   simp only [histMap, GMap.lookup_singleton_eq, Option.some.injEq, Prod.mk.injEq] at hVs
   obtain ⟨hR, rfl⟩ := hVs
-  icases osPathS_lookup hR hcoh.2 p dq j $$ HAn Hp with %hl
+  icases hP st Γn hw hR hcoh.2 $$ HAn Hp with %hl
   imod Hclose $$ [Hs HAn Halen HAlog] with -
   · inext; iexists _, Γn; iframe; ipureintro; exact hcoh
   unfold osCallS
@@ -89,7 +93,7 @@ theorem wp_osOpenDirS' (R : Roots) (p : GoString) (j : Ino) (dq : DFrac) (k s0 :
     obtain ⟨hfr, hr⟩ := step_filesSame (h := h) Hwc.1 (filesSame_metaEnd st k) Hag
     exact ⟨_, h, _, .inl ⟨p, flRO, k, s0, rfl, treePath_of_lookup hl, flRO_ok, hcall,
       ⟨fun h => (Bool.false_ne_true (htr.symm.trans h)).elim,
-        .inr ⟨1, by decide, rfl, .inl rfl⟩⟩⟩, hfr, hr⟩
+        .inr ⟨1, by decide, fun h => absurd h (by decide), rfl, .inl rfl⟩⟩⟩, hfr, hr⟩
   inext
   iintro %e' %h' %st' %Hst
   imod Hclose2
@@ -112,7 +116,7 @@ theorem wp_osOpenDirS' (R : Roots) (p : GoString) (j : Ino) (dq : DFrac) (k s0 :
     with ⟨Hq, Hcr⟩
   imod gAuth_delete _ _ _ _ _ $$ Hacs Hk with Hacs
   obtain ⟨-, hres⟩ := hres
-  rcases hres with ⟨st1, tgt, fd, heff, hfree, hst, rfl⟩ | ⟨e, he, rfl, hst⟩
+  rcases hres with ⟨st1, tgt, fd, heff, hfree, hst, rfl⟩ | ⟨e, he, hnoent, rfl, hst⟩
   · unfold OpenEffect at heff
     rw [hl0] at heff
     obtain ⟨-, -, -, hst1, rfl⟩ := heff
@@ -181,10 +185,25 @@ theorem wp_osOpenDirS' (R : Roots) (p : GoString) (j : Ino) (dq : DFrac) (k s0 :
       iframe
       ipureintro; exact ⟨fsTreeWf_metaEnd hw k', treeCohS_metaEnd hc k' hk⟩
     iapply wp_value'
-    iapply HΦ $$ %(-1) %e %(.inr ⟨he, rfl⟩) [Hq] Hp
+    have hne : e ≠ ENOENT := fun h0 => by
+      have := hnoent h0; rw [hl0] at this; cases this
+    iapply HΦ $$ %(-1) %e %(.inr ⟨he, hne, rfl⟩) [Hq] Hp
     · unfold osCallPerm; iexact Hq
     iintro %he0
     exact absurd he0 he
+
+theorem wp_osOpenDirS' (R : Roots) (p : GoString) (j : Ino) (dq : DFrac) (k s0 : Nat) (q : Qp)
+    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R p dq j -∗
+      osCallS (L := L) k s0 q -∗
+      (∀ fd : w64, ∀ e : w64, ⌜(e = 0 ∧ 0 ≤ fd.toInt) ∨ (e ≠ 0 ∧ e ≠ ENOENT ∧ fd = -1)⌝ -∗
+        osCallPerm (L := L) q -∗
+        osPathS (L := L) R p dq j -∗ (⌜e = 0⌝ -∗ osDirFdS (L := L) fd j .idle) -∗
+        Φ (PairV (#fd) (#e))) -∗
+      WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#p) (#flRO))))) @ s; E
+        {{ Φ }} :=
+  wp_osOpenDirGenS' R p j (osPathS (L := L) R p dq j) k s0 q
+    (fun _ Γn _ hR hcoh => osPathS_lookup hR hcoh p dq j) hE hE' Φ
 
 end specs
 

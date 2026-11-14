@@ -1,8 +1,8 @@
 /-
 `wal.Exist` over `fsExt`: the proof (W12 of `notes/wal-fsext-plan.md`; spec
 `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/Exist.lean`), over the callee hypotheses of
-`ExistCallees.lean`, `WithExt.spec` (proved) and `os.ErrNotExist`'s value (`hErrNotExist`: `os`'s
-package initialization does not record it, as `hErrExist` in `Create.lean`). One core
+`ExistCallees.lean` and `WithExt.spec` (proved); `os.ErrNotExist`'s value from `os`'s package fact
+(`os.errNotExist_of_pkgInit`, 2026-11-14). One core
 (`wal.Exist.wp_core`), for any update `A` the start step runs on the invariant's contents (`hA`):
 the AU committed unchanged (`wal.Exist.wp_proof`), or nothing (`wal.Exist.wp_specCreate`, what
 `Create` uses). Lean-first.
@@ -40,8 +40,6 @@ theorem wal.Exist.wp_core (C : WalCodec) (Mr : WalMarshal)
     (wp_WithExt : go_etcd_io.etcd.client.pkg.v3.fileutil.WithExt.spec (GF := GF) (hG := hG))
     (wp_RDabs : fileutil.ReadDir.specAbsentIs (GF := GF) (hG := hG))
     (wp_RDchild : fileutil.ReadDir.specChildIs (GF := GF) (hG := hG))
-    (hErrNotExist : ⊢ isPkgInit (PROP := IProp GF) pkg_id.os -∗
-      ∃ e : GoInterface, typedPointsto (globalAddr os.ErrNotExist) e DFrac.discard)
     (R : Roots) (jr : Ino) (r dir nm : GoString) (qp : Qp) (A : IProp GF)
     (Lin : Option WalDur → IProp GF)
     (hA : ∀ s, ⊢ A -∗ walInvBody (L := hG.goose_localGS) (W := W) C Mr R jr r s ={⊤ \ ↑walN}=∗
@@ -87,7 +85,7 @@ theorem wal.Exist.wp_core (C : WalCodec) (Mr : WalMarshal)
       iapply (BigSepL.bigSepL_singleton (PROP := IProp GF)).2
       simp only [List.getD_cons_zero]
       iexact Hg
-    ihave ⟨%ee, #Hee⟩ := hErrNotExist $$ Hos
+    ihave ⟨%ee, #Hee⟩ := os.errNotExist_of_pkgInit $$ Hos
     cases err with
     | nil => exact absurd rfl herr
     | ok ie =>
@@ -134,7 +132,7 @@ theorem wal.Exist.wp_core (C : WalCodec) (Mr : WalMarshal)
       isplitl [HN Hc]
       · iunfold walAreaRes; iexists N, h, cl; iframe; ipureintro; exact ⟨a1, a2, a3, a4⟩
       iexists od; iframe HL; ipureintro; intro hc; cases hc
-    · ihave ⟨%ee, #Hee⟩ := hErrNotExist $$ Hos
+    · ihave ⟨%ee, #Hee⟩ := os.errNotExist_of_pkgInit $$ Hos
       cases err with
       | nil => exact absurd rfl herr
       | ok ie =>
@@ -155,13 +153,11 @@ theorem wal.Exist.wp_core (C : WalCodec) (Mr : WalMarshal)
 theorem wal.Exist.wp_proof (C : WalCodec) (Mr : WalMarshal)
     (wp_WithExt : go_etcd_io.etcd.client.pkg.v3.fileutil.WithExt.spec (GF := GF) (hG := hG))
     (wp_RDabs : fileutil.ReadDir.specAbsentIs (GF := GF) (hG := hG))
-    (wp_RDchild : fileutil.ReadDir.specChildIs (GF := GF) (hG := hG))
-    (hErrNotExist : ⊢ isPkgInit (PROP := IProp GF) pkg_id.os -∗
-      ∃ e : GoInterface, typedPointsto (globalAddr os.ErrNotExist) e DFrac.discard) :
+    (wp_RDchild : fileutil.ReadDir.specChildIs (GF := GF) (hG := hG)) :
     wal.Exist.spec (GF := GF) C Mr := by
   intro R jr r dir nm qp Q hin hnmO
   iintro %Φ Hpre HΦ
-  iapply (wal.Exist.wp_core C Mr wp_WithExt wp_RDabs wp_RDchild hErrNotExist R jr r dir nm qp _
+  iapply (wal.Exist.wp_core C Mr wp_WithExt wp_RDabs wp_RDchild R jr r dir nm qp _
     (fun od => iprop(∃ o, Q o ∗ ⌜walOptLe o od⌝))
     (fun s => walInvBody_existAU C Mr R jr r s dir Q) hin hnmO) $$ Hpre
   inext
@@ -176,13 +172,11 @@ theorem wal.Exist.wp_proof (C : WalCodec) (Mr : WalMarshal)
 theorem wal.Exist.wp_specCreate (C : WalCodec) (Mr : WalMarshal)
     (wp_WithExt : go_etcd_io.etcd.client.pkg.v3.fileutil.WithExt.spec (GF := GF) (hG := hG))
     (wp_RDabs : fileutil.ReadDir.specAbsentIs (GF := GF) (hG := hG))
-    (wp_RDchild : fileutil.ReadDir.specChildIs (GF := GF) (hG := hG))
-    (hErrNotExist : ⊢ isPkgInit (PROP := IProp GF) pkg_id.os -∗
-      ∃ e : GoInterface, typedPointsto (globalAddr os.ErrNotExist) e DFrac.discard) :
+    (wp_RDchild : fileutil.ReadDir.specChildIs (GF := GF) (hG := hG)) :
     wal.Exist.specCreate (GF := GF) C Mr := by
   intro R jr r dir nm qp hin hnmO
   iintro %Φ ⟨#Hpkg, #Hok, Hp, Hres, Hperm, Hu⟩ HΦ
-  iapply (wal.Exist.wp_core C Mr wp_WithExt wp_RDabs wp_RDchild hErrNotExist R jr r dir nm qp
+  iapply (wal.Exist.wp_core C Mr wp_WithExt wp_RDabs wp_RDchild R jr r dir nm qp
     iprop(emp) (fun _ => iprop(emp))
     (fun s => by iintro - Hb; imodintro; iframe Hb) hin hnmO) $$ [Hp Hres Hperm Hu]
   · iframe; iframe #
