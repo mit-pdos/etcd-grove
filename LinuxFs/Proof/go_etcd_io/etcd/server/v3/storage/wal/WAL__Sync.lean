@@ -53,7 +53,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Sync.wp_proof (P : WalPbIn GF)
       iexists { h with out := h.out ++ h.pend, pend := [] }
       iframe Hh Hr
       ipureintro; exact hD
-    · iapply (walSyncedLb_mono dir h.H.length n hn) $$ Hs
+    · iapply (WalFs.walSyncedLb_mono (W := W) dir h.H.length n hn) $$ Hs
   · iapply HΦ
     iright; ipureintro; exact Herr
 
