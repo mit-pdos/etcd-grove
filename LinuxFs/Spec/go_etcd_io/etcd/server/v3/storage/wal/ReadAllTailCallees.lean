@@ -51,9 +51,10 @@ abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.specWalTail (Mr : WalMar
           (fun m bs => TailMetaZ m bs ∧ ∀ b x, o0 ≤ b → bs[b]? = some x → x.1 = 0)) ∨
       ⌜err ≠ GoInterface.nil⌝ }}
 
-/-- **`fileutil.Fdatasync` of the zeroed pending tail** (`wal-tc18`'s pending form, until it lands): the
-window closed and the zeros durable, the key back (`walLentRes_unpend` at its commit), the tail exact
-(`walTailW … TailMeta`) and the history synced; on an error the tail is lost. -/
+/-- **`fileutil.Fdatasync` of the zeroed pending tail** (`wal-tc18`'s pending form): the window closed
+and the zeros durable, the key back (`walLentRes_unpend` at its commit), the tail exact (`walTailW …
+TailMeta`) and the history synced; on an error the tail is lost. Proved (`Fdatasync.wp_specWalPend`,
+`FdatasyncPend.lean`, over `os.File.Fd.spec`; `wal-tc20`). -/
 abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync.specWalPend (Mr : WalMarshal) : Prop :=
   ∀ (R : Roots) (jr : Ino) (r : GoString) (f : Loc) (fd : w64) (name dir : GoString) (γ : GName)
     (i : Ino) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (o0 sz k : Nat),

@@ -34,7 +34,7 @@ theorem chainEnd_crcHead (C : WalCodec) {c c' : w32} {r : WalRec} (rs : List Wal
   simp [chainEnd, crcNext, ht]
 
 /-- A chain starting with a CRC record is a chain from CRC 0 (a fresh decoder's). -/
-theorem chainOk_crcHead (C : WalCodec) {c : w32} {r : WalRec} {rs : List WalRec}
+private theorem chainOk_crcHead (C : WalCodec) {c : w32} {r : WalRec} {rs : List WalRec}
     (ht : r.typ = crcType) (h : ChainOk C c (r :: rs)) : ChainOk C 0#32 (r :: rs) := by
   obtain ⟨-, h2⟩ := h
   refine ⟨?_, ?_⟩
@@ -94,7 +94,7 @@ theorem segsDs_false_cut (M : WalMarshal) (md : List w8) :
     exact segsDs_false_cut M md (P ++ S) Ss q D h
 
 /-- Every file after the first starts with a cut's header. -/
-theorem segsDs_cutRead (M : WalMarshal) (md : List w8) (first : Bool) (P : WalHist) (Ss : List WalHist)
+private theorem segsDs_cut (M : WalMarshal) (md : List w8) (first : Bool) (P : WalHist) (Ss : List WalHist)
     (p : Nat) (hp : 1 ≤ p) (D : List (w64 × List w8)) (h : (segsDs M md first P Ss)[p]? = some D) :
     ∃ hs rest, D = cutHdrDs M md hs ++ rest := by
   obtain ⟨q, rfl⟩ : ∃ q, p = q + 1 := ⟨p - 1, by omega⟩
@@ -164,7 +164,7 @@ theorem walDecodeFiles_running_end {C : WalCodec} (hC : C.Ok) (M : WalMarshal) (
             rw [← List.head?_drop, hd]; rfl
           rw [← hL] at hg
           obtain ⟨c', D, hD, hrs⟩ := chainSegs_getElem? C _ _ p rs0 hg
-          obtain ⟨hs, rest, rfl⟩ := segsDs_cutRead M md true [] A p hpos D hD
+          obtain ⟨hs, rest, rfl⟩ := segsDs_cut M md true [] A p hpos D hD
           obtain ⟨r, rs, h1, h2⟩ := chainRecs_cutHead C M md c' hs rest
           rw [hrs, h1]
           exact ⟨r, rs ++ (Ls.flatten ++ lastRecs C M md A Sl), by simp, h2⟩

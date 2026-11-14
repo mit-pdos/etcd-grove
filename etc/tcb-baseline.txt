@@ -659,6 +659,8 @@ axiom pbPutRequestT_reg
 axiom pbPutResponseT_reg
 axiom pbRangeRequestT_reg
 axiom pbRangeResponseT_reg
+axiom pbRecordC_reg
+axiom pbSnapC_reg
 axiom pbTxnRequestT_reg
 axiom pbTxnResponseT_reg
 axiom pbutil.MustUnmarshalMessage.wp_proof
@@ -686,6 +688,7 @@ axiom proto.CloneEntry.wp_proof
 axiom proto.ClonePb.wp_proof
 axiom proto.CloneSnapshot.wp_proof
 axiom proto.Marshal.wp_proof
+axiom proto.MarshalAppendCachedRecord.wp_proof
 axiom proto.MarshalAppendPb.wp_proof
 axiom proto.MarshalConfChange.wp_proof
 axiom proto.MarshalConfChangeV2.wp_proof
@@ -714,6 +717,7 @@ axiom rate.Limiter.Reserve.wp_proof
 axiom rate.Limiter.Wait.wp_proof
 axiom rate.NewLimiter.wp_proof
 axiom rate.Reservation.Delay.wp_proof
+axiom recEncC_ok
 axiom reflect.Append.wp_proof
 axiom reflect.Copy.wp_proof
 axiom reflect.DeepEqual.wp_proof_pgidSet
@@ -765,6 +769,7 @@ axiom snap.Message.fields.wp_proof
 axiom snap.NewMessage.wp_proof
 axiom snap.Snapshotter.DBFilePath.wp_proof
 axiom snap.Snapshotter.SaveDBFrom.wp_proof
+axiom snapEncC_ok
 axiom sort.SliceIsSorted.wp_proof
 axiom sort.Sort.wp_anyLess
 axiom sort.Stable.wp_proof
@@ -870,3 +875,6 @@ sorry Perennial.go_etcd_io.bbolt.Options.Options_into_val_typed
 sorry Perennial.go_etcd_io.bbolt.Options.Options_typed_pointsto
 sorry Perennial.reflect.Type'.Type'_into_val_typed
 sorry Perennial.reflect.Type'.Type'_typed_pointsto
+sorry go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof
+sorry os.File.WriteAt.wp_proof_long
+sorry wal.Create.wp_proof
