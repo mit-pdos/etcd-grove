@@ -6,7 +6,7 @@ proved in `LinuxFs/Proof/go_etcd_io/etcd/client/pkg/v3/fileutil/TouchDirAll.lean
 -/
 module
 
-public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateDefs
+public import LinuxFs.Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.TmpDir
 public import LinuxFs.GeneratedProof.go_etcd_io.etcd.client.pkg.v3.fileutil
 public import LinuxFs.Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.PkgInit
 public import Spec.go_uber_org.zap.Defs
@@ -35,8 +35,8 @@ fails collecting the missing directories, `MkdirAll`s `d`, syncs the parent of e
 collected (outermost first; `d`'s parent last, F-N2), and probes `d/.touch` (`IsDirWriteable`). On
 success `name` holds a new empty directory `J` (its whole claim), and every entry that wrote `name` is
 committed (`osCommitLb n`, `h'.next ≤ n`): `d`'s entry survives any crash once `parent`'s does (the old
-spec's `dirDurable d`, which the WAL layer derives from it). On an error, `name` and what is under it
-(`osSubtreeH`). Statement changes (sixth session): `name` absent (the os layer has no spec of a create
+spec's `dirDurable d`, which the WAL layer derives from it). On an error, `name` holding nothing or a
+directory of files, both claims whole (`tmpDirH`; until `wal-leaf4` the weaker `osSubtreeH`). Statement changes (sixth session): `name` absent (the os layer has no spec of a create
 over an existing `.touch` nor of `MkdirAll`/`Stat` of an existing name whose subtree the caller holds
 only as claims; `Create` removes a leftover `dir.tmp` first); `isPkgInit fileutil`; `d`'s length bound
 (`filepath.Join`); the vacuous `("/", j0) ∈ R` premise dropped (`RootForm` excludes `/` as a root). -/
@@ -48,7 +48,7 @@ abbrev fileutil.TouchDirAll.spec : Prop :=
       osCallPerm 1 ∗ osNames jp (.only [name]) (DFrac.own 1) h }}
     (App (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.TouchDirAll)) (Val #lg)) (Val #d))
   {{ (err : GoInterface), RET #err; osPathS R parent (DFrac.own qp) jp ∗ osCallPerm 1 ∗
-      ((⌜err ≠ interface.nil⌝ ∗ ∃ h', osSubtreeH jp name h') ∨
+      ((⌜err ≠ interface.nil⌝ ∗ ∃ h', tmpDirH jp name h') ∨
         (⌜err = interface.nil⌝ ∗ ∃ (h' hJ : NamesH) (J : Ino) (n : Nat),
           ⌜h'.cur !! name = some (.dir J) ∧ h'.next ≤ n ∧ hJ.cur = ∅⌝ ∗
           osNames jp (.only [name]) (DFrac.own 1) h' ∗ osNames J (.except []) (DFrac.own 1) hJ ∗
