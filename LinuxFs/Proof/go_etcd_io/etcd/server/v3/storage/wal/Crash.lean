@@ -884,6 +884,24 @@ theorem walArea_crash_keep (r : GoString) :
   · iexists s, s'; iframe HG HM' Hp'; ipureintro; exact hc
   · iexists s'; iframe Hp'; ipureintro; rw [hc.1, Hlp.1, Hr]
 
+/-- **A file a crash kept is held whole once taken** (`osFileStart`, as a generation's `fileStart`
+gives it: `initMeta`, its bytes durable): `trFile i False`. What the boot program gives of a leftover
+file the WAL's temporary names hold: a pipeline's `N.tmp` (`walTmpsRes`'s `tmpEnt`) and a temporary
+directory's `.touch` (`walAreaRes`'s `tmpClTouch`, `wal-leaf5`: the area's establishment, C6, takes each
+such file from the crash's `crashRest`). -/
+theorem osFileStart_trFile (L : GooseLocalGS GF) (i : Ino) (f : Fs.OsFile) :
+    osFileStart (L := L) i f ⊢ trFile (hG := ⟨G, L⟩) i False := by
+  unfold osFileStart trFile
+  iintro ⟨Hm, Hb⟩
+  iexists initMeta f, f.contents.map durB
+  iframe Hm Hb
+  isplitl []
+  · unfold mcellsAny
+    exact BigSepM.bigSepM_empty.2
+  ipureintro
+  refine ⟨by simp [initMeta, contents_length], fun h => h.elim, rfl, rfl, Nat.le_refl _,
+    ⟨pageEnd f.size, rfl, le_pageEnd _⟩, fun h => h.elim⟩
+
 end crash
 
 end WalFs

@@ -58,6 +58,17 @@ theorem filesOnly_merge (J : Ino) (b : GoString) (hJ h1 h'' : NamesH) (hJe : ∀
     rw [this] at hc
     cases hc
 
+/-- A name other than `b` is absent after the merge (`filesOnly_merge`'s premises). -/
+theorem none_merge (J : Ino) (b : GoString) (hJ h'' : NamesH) (hJe : ∀ c, hJ.cur !! c = none)
+    (hD : h''.restrict J ((NameSet.except []).diff [b]) = hJ.restrict J ((NameSet.except []).diff [b]))
+    (c : GoString) (hcb : c ≠ b) : h''.cur !! c = none := by
+  have hm : ((NameSet.except []).diff [b]).Mem c := by
+    rw [NameSet.mem_diff]; simp [NameSet.Mem, hcb]
+  have := congrArg (fun x : NamesH => x.cur !! c) hD
+  simp only [NamesH.restrict] at this
+  rw [restrictN_lookup _ _ _ hm, restrictN_lookup _ _ _ hm, hJe] at this
+  exact this
+
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
@@ -161,7 +172,8 @@ theorem segClaim_back {E : CoPset} (R : Roots) (J : Ino) (b : GoString) (hJ : Na
     osSharedInv (GF := GF) R -∗
       osNames J ((NameSet.except []).diff [b]) (DFrac.own 1) (hJ.restrict J ((NameSet.except []).diff [b])) -∗
       crOut J b (hJ.restrict J ((NameSet.except []).inter [b])) (DFrac.own 1) o ={E}=∗
-      ∃ hJ' : NamesH, ⌜FilesOnly hJ'.cur⌝ ∗ osNames J (.except []) (DFrac.own 1) hJ' := by
+      ∃ hJ' : NamesH, ⌜FilesOnly hJ'.cur ∧ ∀ c, c ≠ b → hJ'.cur !! c = none⌝ ∗
+        osNames J (.except []) (DFrac.own 1) hJ' := by
   iintro #Hsi HD Ho
   have hN : ∀ c, (NameSet.except []).Mem c ↔
       ((NameSet.except []).diff [b]).Mem c ∨ (NameSet.only [b]).Mem c := by
@@ -186,7 +198,8 @@ theorem segClaim_back {E : CoPset} (R : Roots) (J : Ino) (b : GoString) (hJ : Na
     iexists h''
     iframe Hn
     ipureintro
-    exact filesOnly_merge J b _ _ h'' hDe (Or.inl hb0) hr.1 hr.2.1
+    refine ⟨filesOnly_merge J b _ _ h'' hDe (Or.inl hb0) hr.1 hr.2.1, fun c hc => ?_⟩
+    exact none_merge J b _ h'' hDe hr.1 c hc
   | some xsi =>
     obtain ⟨x, s, i⟩ := xsi
     simp only [crOut]
@@ -195,7 +208,9 @@ theorem segClaim_back {E : CoPset} (R : Roots) (J : Ino) (b : GoString) (hJ : Na
     iexists h''
     iframe Hn
     ipureintro
-    exact filesOnly_merge J b _ _ h'' hDe (Or.inr ⟨i, by simp [NamesH.log]⟩) hr.1 hr.2.1
+    refine ⟨filesOnly_merge J b _ _ h'' hDe (Or.inr ⟨i, by simp [NamesH.log]⟩) hr.1 hr.2.1,
+      fun c hc => ?_⟩
+    exact none_merge J b _ h'' hDe hr.1 c hc
 
 end proof
 

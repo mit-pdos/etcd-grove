@@ -1146,6 +1146,19 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   from before a crash (the crash rebuild's file ownership: the deep part). Alternatively restrict `specTmp` to a
   directory with no `.touch` (`Create` cannot show it).
 - **Decision.** Open: the coordinator's call (the change reaches `walAreaRes` and the crash rebuild).
+  **Adopted** (the coordinator, decided; made on `wal-leaf5`), in its "only `.touch`'s" form: `tmpSub`'s
+  directory arm holds `WalFs.tmpEnt (hJ.cur !! .touch)` (nothing, or the file whole, `trFile i False`;
+  never a directory). Only `.touch`'s file, because it is the one a callee changes (the probe's
+  truncation); the other files of a temporary directory are only unlinked (`RemoveAll.specDirS`, which
+  takes no file), and holding them all whole would make `Create`'s unminting give back the new WAL's
+  first segment as a `trFile` (`walCreateP` holds its `OsMeta` and bytes but not `trFile`'s facts:
+  `ZfGe`, `cut = none` after the writes), for no consumer. Producers: `walAreaRes` (`areaCls`: each
+  tagged claim with `tmpClTouch`, the `.touch` of a whole claim under a WAL name's `nm.tmp`;
+  `area_takeTmp`/`area_give`), `RemoveAll`'s wrapper (`rmAllOut_tmpDirH`: the file if `.touch` is still
+  there), `TouchDirAll`'s error arms (`IsDirWriteable.spec`'s error post now gives the probe's file back,
+  over `os.WriteFile.specEmptyS`'s `crTr False o`), `Create`'s exits (the directory has no `.touch`:
+  `segClaim_back`, `create_Jback` keep the fact), and at boot the crash's `osFileStart`
+  (`osFileStart_trFile`, `Crash.lean`; the area's establishment is C6's).
 
 ## 2026-11-14: `decoder.Decode.spec`/`proto.UnmarshalWalRecord.spec` (internal, the part's) -- an empty metadata read back as `nil`
 

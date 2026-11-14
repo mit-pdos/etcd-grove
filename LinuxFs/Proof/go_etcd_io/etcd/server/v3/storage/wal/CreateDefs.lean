@@ -117,6 +117,22 @@ directory whose every whole claim among `cl` (the claims under it) holds only fi
 def TmpOk (cl : List Claim) (e : Option Node) : Prop :=
   e = none ∨ ∃ J, e = some (.dir J) ∧ ∀ hJ, (J, NameSet.except [], hJ) ∈ cl → FilesOnly hJ.cur
 
+/-- **A temporary directory's probe file, owned with the claim `c`** (`walAreaRes`, tagged by the
+name it is under): if `c` is the whole claim of a directory under a WAL name's `nm.tmp`, what its
+`.touch` holds (nothing, or a file whole, `tmpEnt`: a leftover of `fileutil.IsDirWriteable`, a crash or
+an error between its create and its remove, which `CreateDirAll`'s probe truncates, so that the
+truncation's `os.OpenFile.wp_truncS` has the file's `OsMeta` and bytes: ledger 2026-11-14, "a leftover
+`.touch` needs its file", adopted on `wal-leaf5`); nothing for any other claim. At boot (C6) a leftover
+`.touch`'s file comes from the crash's `osFileStart` (`osFileStart_trFile`). -/
+def tmpClTouch (c : GoString × Claim) : IProp GF :=
+  iprop(⌜(∃ nm, walNameOk nm ∧ c.1 = tmpName nm) ∧ c.2.2.1 = NameSet.except []⌝ -∗
+    tmpEnt (hG := ⟨G, L⟩) (c.2.2.2.cur !! go!".touch"))
+
+/-- **The program's claims of the area** (`walAreaRes`), each whole and tagged with the name it is
+under, with the probe files of the temporary directories' (`tmpClTouch`). -/
+def areaCls (cl : List (GoString × Claim)) : IProp GF :=
+  iprop(osClaims L (cl.map (fun c => (c.2, DFrac.own 1))) ∗ [∗list] c ∈ cl, tmpClTouch (L := L) c)
+
 /-- **The program's part of the WAL area's directory `jr`** (exclusive): its half of the claim on
 names `N` containing every WAL name not split out (`Wn`, `walSplitFrag`: the registered WALs' names, each
 in its own claim, `walNamesRes`; G-spine, W1 log, fourteenth session) and every name `nm.<sfx>` of a WAL
@@ -125,13 +141,14 @@ claims of every directory under it (`SubCover`; each claim tagged with the name 
 function working on `b`'s subtree takes and gives back `b`'s claims only: W4 log, eleventh session); a
 WAL name's temporary directory `nm.tmp` (a leftover of a `Create` a crash interrupted) holds nothing or a
 directory of files only (`TmpOk`: the WAL creates nothing else there), so that `Create`'s
-`os.RemoveAll(nm.tmp)` (`os.RemoveAll.specDirS`) applies. -/
+`os.RemoveAll(nm.tmp)` (`os.RemoveAll.specDirS`) applies, and its `.touch`'s file whole
+(`areaCls`, `tmpClTouch`), so that `CreateDirAll`'s probe of a leftover directory can truncate it. -/
 def walAreaRes (jr : Ino) : IProp GF :=
   iprop(∃ (N : NameSet) (h : NamesH) (cl : List (GoString × Claim)) (Wn : List GoString),
     osNames (L := L) jr N (DFrac.own (1 : Qp).half) h ∗ walSplitFrag (W := W) Wn ∗
     ⌜∀ nm, walNameOk nm → N.Mem nm ∨ nm ∈ Wn⌝ ∗
     ⌜∀ nm sfx, walNameOk nm → N.Mem (nm ++ go!"." ++ sfx)⌝ ∗
-    osClaims L (cl.map (fun c => (c.2, DFrac.own 1))) ∗
+    areaCls (L := L) cl ∗
     ⌜∀ b, N.Mem b → ¬ walNameOk b → SubCover (clOf cl b) (h.cur !! b)⌝ ∗
     ⌜∀ nm, walNameOk nm → TmpOk (clOf cl (tmpName nm)) (h.cur !! tmpName nm)⌝)
 

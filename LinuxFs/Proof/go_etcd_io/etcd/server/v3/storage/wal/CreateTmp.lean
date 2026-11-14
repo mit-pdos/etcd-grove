@@ -99,9 +99,9 @@ variable [os_sem : os.Assumptions]
 /-- The removal's outcome on a directory of files is a `tmpDirH`. -/
 theorem rmAllOut_tmpDirH (j : Ino) (b : GoString) (J : Ino) (h hJ : NamesH)
     (hd : h.cur !! b = some (.dir J)) (hf : FilesOnly hJ.cur) :
-    rmAllOut (GF := GF) j b J h hJ ⊢ ∃ h', tmpDirH j b h' := by
+    rmAllOut (GF := GF) j b J h hJ ∗ tmpEnt (hJ.cur !! go!".touch") ⊢ ∃ h', tmpDirH j b h' := by
   unfold rmAllOut tmpDirH
-  iintro ⟨%h', %hJ', Hn, HJ, %hsub, Ho⟩
+  iintro ⟨⟨%h', %hJ', Hn, HJ, %hsub, Ho⟩, HT⟩
   have hf' : FilesOnly hJ'.cur := fun c n hc => hf c n (hsub c n hc)
   icases Ho with (%he | ⟨%x, %s, -, %he⟩)
   · subst he
@@ -110,8 +110,12 @@ theorem rmAllOut_tmpDirH (j : Ino) (b : GoString) (J : Ino) (h hJ : NamesH)
     rw [hd]
     simp only [tmpSub]
     iexists hJ'
-    iframe
-    ipureintro; exact hf'
+    iframe HJ
+    isplitr
+    · ipureintro; exact hf'
+    rcases ht : hJ'.cur !! go!".touch" with _ | n
+    · unfold tmpEnt; iempintro
+    · rw [hsub _ _ ht]; iexact HT
   · iexists h'
     iframe Hn
     have : h'.cur !! b = none := by
@@ -146,14 +150,15 @@ theorem wp_removeAllTmp (wp_RmAbs : os.RemoveAll.specAbsentS (GF := GF) (hG := h
     rw [hcur]; iexact Hs
   · iunfold tmpSub at Hs; icases Hs with %hf; exact hf.elim
   · iunfold tmpSub at Hs
-    icases Hs with ⟨%hJ, %hf, HJ⟩
+    icases Hs with ⟨%hJ, %hf, HJ, HT⟩
     have hd : h.cur !! b = some (.dir J) := hcur
     wp_apply wp_RmDir d b j J R qd h hJ hb hd hf $$ [Hp Hn HJ Hperm]
       as %err ⟨Hp, Hperm, Ho, Hok⟩
     · iframe; isplitl [] <;> iassumption
     iapply HΦ
     iframe
-    iapply rmAllOut_tmpDirH j b J h hJ hd hf $$ Ho
+    iapply rmAllOut_tmpDirH j b J h hJ hd hf $$ [Ho HT]
+    iframe
 
 end rm
 
