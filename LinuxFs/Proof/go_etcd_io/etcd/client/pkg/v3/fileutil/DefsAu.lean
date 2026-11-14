@@ -86,8 +86,8 @@ theorem preGrownH_trans (i : Ino) (m m1 : OsMeta) (w : Nat) (h1 : m.size ≤ m1.
 theorem fallocDoneH_preGrownH (i : Ino) (m : OsMeta) (tg w : Nat) (hw : m.size ≤ w ∨ w = tg) :
     fallocDoneH (GF := GF) i m tg w ⊢ preGrownH i m w := by
   unfold fallocDoneH preGrownH
-  iintro ⟨%tc, Hm, Hz⟩
-  iexists (rsPost false m tg w).withTc tc
+  iintro ⟨%tc, %rz, Hm, Hz⟩
+  iexists (rsPost false m tg w).withTc tc rz
   iframe
   ipureintro
   exact ⟨rfl, rsPost_maps false m tg w, os.le_rsPost_cz false m tg w, growMeta_rsPost false m tg w hw⟩
@@ -123,8 +123,8 @@ theorem fallocOutH_preGrownH (i : Ino) (m : OsMeta) (tg : Nat) (e : w64) (hle : 
 theorem ftDoneH_preGrownH (p : Ino) (m : OsMeta) (tg : Nat) (zs : List Cands) :
     os.ftDoneH (GF := GF) p m tg zs ⊢ preGrownH p m tg := by
   unfold os.ftDoneH preGrownH
-  iintro ⟨%hzs, ⟨%tc, Hm⟩, Hb⟩
-  iexists (rsPost true m tg tg).withTc tc
+  iintro ⟨%hzs, ⟨%tc, %rz, Hm⟩, Hb⟩
+  iexists (rsPost true m tg tg).withTc tc rz
   iframe Hm
   isplitr
   · ipureintro

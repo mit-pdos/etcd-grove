@@ -39,53 +39,62 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
 
 /-! ## `OsMeta`s up to the candidates known past the size -/
 
-/-- `m` knowing the candidates `tc` past the size. A resize's outcome knows, for a file with no sync
-cut, the candidates of the bytes it announced past the new size (`rsPostK`); a client that does not
-need them holds its half of the `OsMeta` up to them (`os.ftDoneH`, `fallocDoneH`). -/
-def OsMeta.withTc (m : OsMeta) (tc : GMap Nat Cands) : OsMeta := { m with tc := tc }
+/-- `m` knowing the candidates `tc` past the size and the resize stamps `rz`. A resize's outcome
+knows, for a file with no sync cut, the candidates of the bytes it announced past the new size and its
+own stamp (`rsPostK`); a client that does not need them holds its half of the `OsMeta` up to them
+(`os.ftDoneH`, `fallocDoneH`). -/
+def OsMeta.withTc (m : OsMeta) (tc : GMap Nat Cands) (rz : List Nat) : OsMeta := { m with tc := tc, rz := rz }
 
-@[simp] theorem OsMeta.withTc_size (m : OsMeta) (tc : GMap Nat Cands) : (m.withTc tc).size = m.size := rfl
-@[simp] theorem OsMeta.withTc_lo (m : OsMeta) (tc : GMap Nat Cands) : (m.withTc tc).lo = m.lo := rfl
-@[simp] theorem OsMeta.withTc_hi (m : OsMeta) (tc : GMap Nat Cands) : (m.withTc tc).hi = m.hi := rfl
-@[simp] theorem OsMeta.withTc_maps (m : OsMeta) (tc : GMap Nat Cands) : (m.withTc tc).maps = m.maps := rfl
-@[simp] theorem OsMeta.withTc_zf (m : OsMeta) (tc : GMap Nat Cands) : (m.withTc tc).zf = m.zf := rfl
-@[simp] theorem OsMeta.withTc_cut (m : OsMeta) (tc : GMap Nat Cands) : (m.withTc tc).cut = m.cut := rfl
-@[simp] theorem OsMeta.withTc_cz (m : OsMeta) (tc : GMap Nat Cands) : (m.withTc tc).cz = m.cz := rfl
-@[simp] theorem OsMeta.withTc_dlo (m : OsMeta) (tc : GMap Nat Cands) : (m.withTc tc).dlo = m.dlo := rfl
-@[simp] theorem OsMeta.withTc_dhi (m : OsMeta) (tc : GMap Nat Cands) : (m.withTc tc).dhi = m.dhi := rfl
-@[simp] theorem OsMeta.withTc_tc (m : OsMeta) (tc : GMap Nat Cands) : (m.withTc tc).tc = tc := rfl
+section withTc
+variable (m : OsMeta) (tc : GMap Nat Cands) (rz : List Nat)
+@[simp] theorem OsMeta.withTc_size : (m.withTc tc rz).size = m.size := rfl
+@[simp] theorem OsMeta.withTc_lo : (m.withTc tc rz).lo = m.lo := rfl
+@[simp] theorem OsMeta.withTc_hi : (m.withTc tc rz).hi = m.hi := rfl
+@[simp] theorem OsMeta.withTc_maps : (m.withTc tc rz).maps = m.maps := rfl
+@[simp] theorem OsMeta.withTc_zf : (m.withTc tc rz).zf = m.zf := rfl
+@[simp] theorem OsMeta.withTc_cut : (m.withTc tc rz).cut = m.cut := rfl
+@[simp] theorem OsMeta.withTc_cz : (m.withTc tc rz).cz = m.cz := rfl
+@[simp] theorem OsMeta.withTc_dlo : (m.withTc tc rz).dlo = m.dlo := rfl
+@[simp] theorem OsMeta.withTc_dhi : (m.withTc tc rz).dhi = m.dhi := rfl
+@[simp] theorem OsMeta.withTc_tc : (m.withTc tc rz).tc = tc := rfl
+@[simp] theorem OsMeta.withTc_rz : (m.withTc tc rz).rz = rz := rfl
+end withTc
 
-theorem OsMeta.withTc_self (m : OsMeta) : m.withTc m.tc = m := rfl
+theorem OsMeta.withTc_self (m : OsMeta) : m.withTc m.tc m.rz = m := rfl
 
-@[simp] theorem OsMeta.withTc_withTc (m : OsMeta) (t u : GMap Nat Cands) :
-    (m.withTc t).withTc u = m.withTc u := rfl
+@[simp] theorem OsMeta.withTc_withTc (m : OsMeta) (t u : GMap Nat Cands) (r s : List Nat) :
+    (m.withTc t r).withTc u s = m.withTc u s := rfl
 
 theorem rsPostK_withTc (keep tr : Bool) (m : OsMeta) (tg sz' n : Nat) (xs : List ByteG) :
-    rsPostK keep tr m tg sz' n xs = (rsPost tr m tg sz').withTc (rsPostK keep tr m tg sz' n xs).tc :=
+    rsPostK keep tr m tg sz' n xs =
+      (rsPost tr m tg sz').withTc (rsPostK keep tr m tg sz' n xs).tc (rsPostK keep tr m tg sz' n xs).rz :=
   rfl
 
-theorem touch_withTc (m : OsMeta) (t : GMap Nat Cands) (lo hi : Nat) :
-    (m.withTc t).touch lo hi = (m.touch lo hi).withTc t := by
+theorem touch_withTc (m : OsMeta) (t : GMap Nat Cands) (r : List Nat) (lo hi : Nat) :
+    (m.withTc t r).touch lo hi = (m.touch lo hi).withTc t r := by
   unfold OsMeta.touch
   by_cases h1 : hi ≤ lo
   · rw [if_pos h1, if_pos h1]
   · rw [if_neg h1, if_neg h1]
     by_cases h2 : m.dhi ≤ m.dlo
-    · rw [if_pos (show (m.withTc t).dhi ≤ (m.withTc t).dlo from h2), if_pos h2]; rfl
-    · rw [if_neg (show ¬ (m.withTc t).dhi ≤ (m.withTc t).dlo from h2), if_neg h2]; rfl
+    · rw [if_pos (show (m.withTc t r).dhi ≤ (m.withTc t r).dlo from h2), if_pos h2]; rfl
+    · rw [if_neg (show ¬ (m.withTc t r).dhi ≤ (m.withTc t r).dlo from h2), if_neg h2]; rfl
 
-theorem announce_withTc (m : OsMeta) (t : GMap Nat Cands) (lo hi tg : Nat) (u : GMap Nat Cands) :
-    ((m.withTc t).announce lo hi tg).withTc u = (m.announce lo hi tg).withTc u := by
+theorem announce_withTc (m : OsMeta) (t : GMap Nat Cands) (r : List Nat) (lo hi tg : Nat)
+    (u : GMap Nat Cands) (s : List Nat) :
+    ((m.withTc t r).announce lo hi tg).withTc u s = (m.announce lo hi tg).withTc u s := by
   unfold OsMeta.announce
   rw [touch_withTc]; rfl
 
-/-- A resize's outcome depends on the candidates `m` knows past the size only through its own. -/
-theorem rsPost_withTc (tr : Bool) (m : OsMeta) (t : GMap Nat Cands) (tg sz' : Nat) (u : GMap Nat Cands) :
-    (rsPost tr (m.withTc t) tg sz').withTc u = (rsPost tr m tg sz').withTc u := by
+/-- A resize's outcome depends on the candidates and stamps `m` knows only through its own. -/
+theorem rsPost_withTc (tr : Bool) (m : OsMeta) (t : GMap Nat Cands) (r : List Nat) (tg sz' : Nat)
+    (u : GMap Nat Cands) (s : List Nat) :
+    (rsPost tr (m.withTc t r) tg sz').withTc u s = (rsPost tr m tg sz').withTc u s := by
   unfold rsPost OsMeta.announce
   rw [touch_withTc]; rfl
 
-@[simp] theorem synced_withTc (m : OsMeta) (t : GMap Nat Cands) : (m.withTc t).synced = m.synced := rfl
+theorem synced_withTc (m : OsMeta) (t : GMap Nat Cands) (r : List Nat) :
+    (m.withTc t r).synced = m.synced.withTc ∅ r := rfl
 
 section au
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
