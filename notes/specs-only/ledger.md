@@ -577,7 +577,25 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   small strengthening), and `isEofOk`'s I/O branch is provable from an `errors.Is` fact on `errnoPathErr`
   against an `*errorString` (as `errors.IsPathErrnoNotExist.spec`, `ExistCallees.lean`). Changing
   `io.ReadFull.wp_proof`'s statement is a trust-base change: **the user's decision**.
-- **Decision.** Defect 1 fixed (2026-11-14, `wal-readall16`). Defect 2 pending the user.
+- **Decision.** Defect 1 fixed (2026-11-14, `wal-readall16`). Defect 2: **adopted provisionally** by the
+  coordinator (2026-11-14, `wal-readall17`; a trust-boundary axiom's statement changed: **pending the
+  user's review**, listed in `notes/wal-fsext-plan.md` §10; kept off `lean` until reviewed).
+- **Change (made, `wal-readall17`).** `io.readerStream ri S E` takes `E : List w8 → GoInterface → IProp GF`
+  and returns `nil` or an error with `□ E (r ++ ys) err` (`io.errAt`); `io.ReadFull.wp_proof`'s statement
+  (`Spec/io/ReadFull.lean`) returns `io.readFullRes E eof ueof r0 ys m err`:
+  `⌜ys.length = m ∧ err = nil⌝ ∨ ∃ e, ⌜ys.length < m ∧ e ≠ nil ∧ (e = eof ∧ ys ≠ [] → err = ueof) ∧
+  (¬ (e = eof ∧ ys ≠ []) → err = e)⌝ ∗ □ E (r0 ++ ys) e` (the old pure `readFullOk` with the evidence
+  made Iris; `io.readFullRes_pure` gives the old form back). `bufio.ownReader`/`Reader.Read`,
+  `FileBufReader.Read`, `readInt64` pass it on. The decoder's readers return `decRdE bs eof IoE r e :=
+  ⌜decRdErr bs eof IoE r e⌝ ∗ isEofAns e eof` (each error with `errors.Is(e, io.EOF)`'s answer), its
+  `FileInfo` errors `decAns`; `isEofOk` asks the answer only on `nil`, `io.EOF`, `io.ErrUnexpectedEOF`.
+  The `os.File` bridge proves the answer on the model's `*PathError`s (`os.File.Read.wp_eof`'s and
+  `Stat.spec`'s errors now `os.errnoPathErr err e`, `e ≠ 0`) from the hypothesis
+  `errors.IsPathErrnoEof.spec` (`LinuxFs/Spec/errors/IsPathErrnoEof.lean`; true of Go, as
+  `IsPathErrnoNotExist.spec`: needs `(*PathError).Unwrap`, `Errno.Is` translated). `WalDecEnvSupply` is
+  then true of Go but still a hypothesis: `errors.newVar` keeps no trace of the allocation, so `io.EOF`,
+  `io.ErrUnexpectedEOF` and `walpb.ErrCRCMismatch` cannot be shown distinct from the packages' facts
+  (`notes/perennial-changes.md`, 2026-11-14).
 ## 2026-11-14: `wal.WAL.renameWAL.spec` (internal, the part's) -- the spine law cannot open the invariant
 
 - **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__renameWAL.lean`, `RenameWALOk`'s third
@@ -591,6 +609,37 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   notCrashed ∗ U (some x) ∗ osPathS R dir dq J ∗ osPathS R dir dq J ∗ SpR x`; `renameWAL` applies it at a
   program step after the rename (`wp_notCrashed_acc`). `dq` is fixed by `Create`.
 - **Decision.** Adopted (the coordinator's decision, 2026-11-14, `wal-path15` task 3; internal spec, no client).
+## 2026-11-14: `wal.WAL.renameWAL.spec` (internal, the part's) -- no bound on the directory's length
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__renameWAL.lean`, `RenameWALOk`.
+- **Defect.** `newFilePipeline.spec` needs `dir.length < 2 ^ 61` (its `Join`s of `dir` and `0.tmp`/`1.tmp`);
+  nothing in `RenameWALOk` bounds `dir` (`osPathS` gives no length).
+- **Evidence.** `renameWAL.wp_proof`'s `newFilePipeline` step (`wal-create14`).
+- **Change (made).** `RenameWALOk`'s second conjunct `dir.length < 2 ^ 59` (`Create.spec`'s premise, which
+  `Create` passes on).
+- **Decision.** Adopted (minor, internal; `wal-create14`).
+## 2026-11-14: `wal.WAL.renameWALUnlock.spec` (internal, the part's) -- unprovable as stated
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__renameWALUnlock.lean`.
+- **Defects.** (1) Its `w.Close()` flushes the encoder, fdatasyncs the tail and closes the lock fds, but the pre
+  (`walPreIn`) has neither `ownEncoder` nor the tail file's ownership (`os.ownFile`/`osFd`, its writer stream):
+  `Create` gives the segment to the rename's update (`walCreateP`), so a generic `U` hides it. (2) Its `Open`/
+  `ReadAll` need `walAreaRes jr`, `walUnlockedTok`, `osCallPerm 1` and an `AU` on `walDirIs dir`; after a
+  committed rename the lock token is in `U (some x)` (`walCreateQ`) and the client's `walDiskAt` in its `Q`, so no
+  generic law gives `Open`'s `AU`. (3) After a rename that committed with an error (`o = some x`), the second
+  `os.Rename(nm.tmp, nm)` has an absent source: no `os.Rename` spec covers it (`wp_osRenameAbsentS` is internal
+  to `Proof/os/Rename.lean`).
+- **Evidence.** `renameWAL.wp_proof` (`wal-create14`) uses the spec as a hypothesis; `WAL.sync.specPreL`'s pre;
+  `Open.spec`'s pre; `os.Rename.specDirSnc`'s premises.
+- **Change.** Decided by the coordinator (2026-11-14) for (1): the pre carries what `Close` consumes (the
+  encoder, the tail file, the lock fds) as `Create` holds them before the rename; the first `Close` proved inline
+  over `os.File.Close`, `os.File.Close.specNil` and the encoder's flush spec, not through `WAL.Close.spec`.
+  **Not yet made** (`wal-create14` stopped at its context budget; `Create`'s body has not reached the encoder, so
+  the exact form is open). (2) and (3) need a design: proposed, a caller-supplied law (like `Sp`/`SpR`) from the
+  committed result to `Open`'s pre, which `Create` discharges by releasing the fresh WAL's lock and merging the
+  names back, or a `Create`-specific (non-generic) `renameWALUnlock` spec; and a public `os.Rename` spec for an
+  absent source (`ENOENT`, no effect).
+- **Decision.** (1) adopted (coordinator); (2), (3) pending the coordinator.
 
 ## 2026-11-14: `wal.Repair.spec` (the part's, over `fsExt`) -- the lock token taken (plan §6 Q7)
 

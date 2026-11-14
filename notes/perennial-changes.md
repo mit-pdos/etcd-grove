@@ -2437,3 +2437,17 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
   `Unwrap`, `Errno.Is`) and `os.ErrNotExist = oserror.ErrNotExist` distinct from `oserror`'s other errors
   in the package facts. Workaround: the hypothesis `errors.IsPathErrnoNotExist.spec`
   (`LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/ExistCallees.lean`).
+
+## 2026-11-14: `errors.newVar` forgets the allocation (the WAL decoder's environment, `wal-readall17`)
+
+- **Limitation.** `errors.newVar X msg` (`Perennial/Proof/errors/NewVar.lean`, what `io`'s fact keeps of
+  `io.EOF`, `io.ErrUnexpectedEOF`, ...) holds `globalAddr X ↦□ *errorString(x)` and `Error()`'s spec, but
+  not `x`'s field (`wp_New_errorString` persists it and drops it). So two `errors.New` variables cannot be
+  shown different (`io.EOF ≠ io.ErrUnexpectedEOF`, `errors.Is(walpb.ErrCRCMismatch, io.EOF) = false`),
+  which Go guarantees (distinct allocations). The part's WAL hypothesis `WalDecEnvSupply`
+  (`openAtIndex.lean`) is blocked only by this.
+- **Proposed (general).** `newVar` keeps `structFieldRef errorString "s" x ↦□ msg` (so variables with
+  different messages are different pointers), or a ghost "fresh allocation" token; `wp_New_errorString`
+  returns it.
+- **Also:** `errors.Is(err, io.EOF)` on the part's `*PathError`s (`errors.IsPathErrnoEof.spec`,
+  `LinuxFs/Spec/errors/IsPathErrnoEof.lean`), the same gap as `IsPathErrnoNotExist.spec` above.

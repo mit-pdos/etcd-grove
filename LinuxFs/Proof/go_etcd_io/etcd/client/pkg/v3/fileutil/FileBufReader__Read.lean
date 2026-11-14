@@ -32,11 +32,12 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader.Read.wp_proof
   ihave %Hn := typedPointsto_not_null fbr _ _ $$ Hf
   iStructNamed Hf
   wp_auto
-  wp_apply HRead b ri S E r p xs $$ Hrs HSb [Hb Hp] as %n %e ⟨%ys, %Hys, Hp, Hb⟩
+  wp_apply HRead b ri S E r p xs $$ Hrs HSb [Hb Hp] as %n %e ⟨%ys, %Hys, #He, Hp, Hb⟩
   · iframe; ipureintro; exact Hrx
   iapply HΦ
   iexists ys
   iframe
+  iframe He
   isplitl []
   · ipureintro; exact Hys
   · iapply typedPointsto_combine fbr _ _ Hn
