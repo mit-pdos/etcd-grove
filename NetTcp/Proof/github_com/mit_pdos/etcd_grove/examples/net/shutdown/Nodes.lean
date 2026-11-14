@@ -13,12 +13,12 @@ The proofs of `examples/net/shutdown`'s functions, over the specs of `net` and `
   (`wire.dial_au`, the deposit `shut_deposit`), the end's invariant (`endInv_alloc`),
   `readLoop` forked and `closeConn`; then the listener's `Close` (`lis_close_au`) and the last
   `Accept`, which fails since the listener is closed (`closed_accept_au`).
-* `Node`: `Run`, then `wire.Forever`.
+
+The node's command (`cmd/node`, whose `main` calls `Run`) is proved in `cmd/node/Main.lean`.
 -/
 module
 
 public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.shutdown.Defs
-public import NetTcp.Spec.github_com.mit_pdos.etcd_grove.examples.net.wire.Forever
 public import NetTcp.Spec.net.Conn__Read
 public import NetTcp.Spec.net.Conn__Write
 public import NetTcp.Spec.net.Conn__Close
@@ -295,30 +295,6 @@ theorem eof_init :
   icases Hn with ⟨%eofl, #Heof, -⟩
   iexists _
   iexact Heof
-
-theorem wp_Node
-    (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
-    (wp_Accept : net.Listener.Accept.spec (GF := GF) (hG := hG))
-    (wp_LClose : net.Listener.Close.spec (GF := GF) (hG := hG))
-    (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
-    (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG))
-    (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
-    (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
-    (wp_Forever : wire.Forever.spec (GF := GF) (hG := hG))
-    (γm : GName) :
-    {{ isPkgInit (PROP := IProp GF) pkg ∗ shutInvs (GF := GF) γm ∗
-        tcpPlan G addr (extLocalGS tcpExt (L := hG.goose_localGS)).host }}
-      (App (Val (@! Node)) (Val #()))
-    {{ RET #(); True }} := by
-  wp_start as ⟨#Hinvs, #Hplan⟩
-  iunfold shutInvs at Hinvs
-  icases Hinvs with ⟨#Ha, #Hdown⟩
-  icases eof_init $$ Hpkg with ⟨%eof, #Heof⟩
-  (try wp_auto)
-  wp_apply wp_Run wp_Listen wp_Accept wp_LClose wp_Dial wp_Read wp_Write wp_Close γm eof $$ []
-  · iframe Ha Hdown Hplan Heof
-  (try wp_auto)
-  wp_apply wp_Forever as ⟨⟩
 
 end proof
 

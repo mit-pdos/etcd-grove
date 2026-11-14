@@ -28,7 +28,7 @@ and the per-address protocol (`wire/Addr.lean`):
 module
 
 public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.shutdown.Base
-public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.Addr
+public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.Stream
 public import Perennial.Ghost.GhostVar
 public import Perennial.Ghost.GhostMap
 
@@ -41,7 +41,8 @@ noncomputable section
 namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Tcp
-open github_com.mit_pdos.etcd_grove.examples.net.wire (G addrInv setMap ndot_mask)
+open github_com.mit_pdos.etcd_grove.examples.net.wire (G addrInv setMap ndot_mask
+  closeOutcome_closed closeOutcome_of_closed writeOutcome_of_closed readOutcome_of_closed)
 
 namespace github_com.mit_pdos.etcd_grove.examples.net.shutdown
 
@@ -52,35 +53,6 @@ def addrN : Namespace := nroot.@"shutdown_addr"
 def lisN : Namespace := nroot.@"shutdown_lis"
 def endN : Namespace := nroot.@"shutdown_end"
 def downN : Namespace := nroot.@"shutdown_down"
-
-/-! ## The outcomes on a closed end -/
-
-/-- A close leaves the end closed, whatever it returns. -/
-theorem closeOutcome_closed {st : TcpEnd} {d : TcpDir} {ok : Bool} {st' : TcpEnd} {d' : TcpDir}
-    (h : CloseOutcome st d ok st' d') : st'.closed = true := by
-  unfold CloseOutcome at h
-  split at h
-  · rw [h.2.1]; assumption
-  · rw [h.1]
-
-/-- A close of a closed end fails and changes nothing. -/
-theorem closeOutcome_of_closed {st : TcpEnd} {d : TcpDir} {ok : Bool} {st' : TcpEnd}
-    {d' : TcpDir} (hc : st.closed = true) (h : CloseOutcome st d ok st' d') :
-    ok = false ∧ st' = st := by
-  simp only [CloseOutcome, hc, ↓reduceIte] at h
-  exact ⟨h.1, h.2.1⟩
-
-/-- A write on a closed end fails. -/
-theorem writeOutcome_of_closed {st : TcpEnd} {d : TcpDir} {bs : List w8} {k : Nat} {ok : Bool}
-    {d' : TcpDir} (hc : st.closed = true) (h : WriteOutcome st d bs k ok d') : ok = false := by
-  simp only [WriteOutcome, hc, Bool.true_or, ↓reduceIte] at h
-  exact h.2.1
-
-/-- A read on a closed end fails. -/
-theorem readOutcome_of_closed {st : TcpEnd} {d : TcpDir} {n : Nat} {r : ReadRes} {d' : TcpDir}
-    (hc : st.closed = true) (h : ReadOutcome st d n r d') : r = .err := by
-  simp only [ReadOutcome, hc, ↓reduceIte] at h
-  exact h.1
 
 section defs
 variable {GF : BundledGFunctors}
