@@ -49,6 +49,25 @@ def authOutL (M : auth.AuthMode) (hs : List auth.AuthState) (ai : auth.AuthInfoM
   (oc = .rejected .auth ∧ refusedL M hs ai perms) ∨
     (chainStep backendStep c rq log oc ∧ passedL M hs ai perms)
 
+/-- **The outcome `oc` decided at the latest state for the checked permissions `perms` and the leases
+`ids`** (auth-lease S2: `authOutL` with `checkLeasePuts`' part, at the owner's item map `I`): the auth
+layer's rejection with a permission or a lease refused, or the inner chain `c`'s outcome with all of them
+granted. -/
+def authOutLL (M : auth.AuthMode) (hs : List auth.AuthState) (ai : auth.AuthInfoM) (c : Chain)
+    (rq : IRRModel) (log : mvcc.Log) (perms : List Perm3)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (ids : List w64) (oc : Outcome) : Prop :=
+  (oc = .rejected .auth ∧ (refusedL M hs ai perms ∨ ∃ id ∈ ids, leaseRefusedL M hs ai I id)) ∨
+    (chainStep backendStep c rq log oc ∧ passedL M hs ai perms ∧
+      ∀ id ∈ ids, leasePassedL M hs ai I id)
+
+/-- `authOutL` is `authOutLL` with no lease. -/
+theorem authOutL_iff (M : auth.AuthMode) (hs : List auth.AuthState) (ai : auth.AuthInfoM) (c : Chain)
+    (rq : IRRModel) (log : mvcc.Log) (perms : List Perm3)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (oc : Outcome) :
+    authOutL M hs ai c rq log perms oc ↔ authOutLL M hs ai c rq log perms I [] oc := by
+  unfold authOutL authOutLL
+  simp
+
 /-- The range end a check saw keeps the cache's shape. -/
 theorem reqShape_authEndOf (k m e : GoString) (he : authEndOf m e) (h : auth.reqShape k m) :
     auth.reqShape k e := by
@@ -103,12 +122,14 @@ instance authIsL_persistent (E : AEnv GF) (p : Loc) (L : List auth.AuthState →
     Persistent (authIsL E p L) := by
   unfold authIsL; infer_instance
 
-/-- `kvPostF` with the outcome's property `X` (`authOutL` for the auth applier's methods). -/
+/-- `kvPostF` with the outcome's property `X` (`authOutL` for the auth applier's methods); (auth-lease
+S2, Q5) with `kvPostF`'s lease class at the owner's item map of the state before the request. -/
 def kvPostFL (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (rq : IRRModel) (log F : mvcc.Log) (R : Outcome → IProp GF) (Pre Post : IProp GF)
     (X : Outcome → Prop) : IProp GF :=
   iprop(∃ oc : Outcome, ⌜chainStep backendStep c rq log oc ∧ floorOkO F log oc ∧ X oc⌝ ∗ R oc ∗
-    kvOwn E (oc.logAfter log) ∗ chainRes c a info ∗ (Post ∨ Pre) ∗ chainClass E.authMode info c rq oc)
+    kvOwn E (oc.logAfter log) ∗ chainRes c a info ∗ (Post ∨ Pre) ∗ chainClass E.authMode info c rq oc ∗
+    chainLeaseClass E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) c rq oc)
 
 /-- `rangePost` with the outcome's property `X`. -/
 def rangePostL (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
@@ -254,7 +275,9 @@ theorem auth_reject_kvPostFL (E : AEnv GF) (on : Bool) (c : Chain) (p : Loc)
   · iapply chainRes_auth_in c p inner info $$ Happ Hinfo Hres
   isplitl [HPre]
   · iright; iexact HPre
-  iapply chainClass_auth_rejected
+  isplitl []
+  · iapply chainClass_auth_rejected
+  · iapply chainLeaseClass_auth_rejected
 
 /-- `auth_pass_kvPostF` with the outcome's property, of every inner outcome. -/
 theorem auth_pass_kvPostFL (E : AEnv GF) (on : Bool) (c : Chain) (p : Loc)
@@ -264,12 +287,13 @@ theorem auth_pass_kvPostFL (E : AEnv GF) (on : Bool) (c : Chain) (p : Loc)
     structFieldRef authApplierV3 go!"applierV3" p ↦□ inner ⊢
       kvPostF E c inner info' rq log F R Pre Post -∗
       structFieldRef authApplierV3 go!"authInfo" p ↦ info -∗ reqClass E.authMode info rq -∗
+      reqLeaseClass E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) rq -∗
       kvPostFL E (.auth on c) (interface.mkOk (go.GoType.PointerType authApplierV3.ty) #p) info rq
         log F R Pre Post X := by
-  iintro #Happ Hpost Hinfo #Hcls
+  iintro #Happ Hpost Hinfo #Hcls #Hlc
   iunfold kvPostF at Hpost
   iunfold kvPostFL
-  icases Hpost with ⟨%oc, %Hst, HR, Hkv, Hres, HPP, -⟩
+  icases Hpost with ⟨%oc, %Hst, HR, Hkv, Hres, HPP, -, -⟩
   iexists oc
   iframe HR Hkv HPP
   isplitr
@@ -280,7 +304,9 @@ theorem auth_pass_kvPostFL (E : AEnv GF) (on : Bool) (c : Chain) (p : Loc)
   ihave Hres := chainResAny_of c inner info' $$ Hres
   isplitl [Hinfo Hres]
   · iapply chainRes_auth_in c p inner info $$ Happ Hinfo Hres
-  iapply chainClass_auth_pass $$ Hcls
+  isplitl []
+  · iapply chainClass_auth_pass $$ Hcls
+  · iapply chainLeaseClass_auth_pass $$ Hlc
 
 end proof
 
@@ -465,6 +491,8 @@ theorem apply.authApplierV3.DeleteRange.wp_latest :
   ihave #Hst' := Hst
   iunfold apply.isAuthStoreL at Hst'
   icases Hst' with ⟨%sti, %Hsti, -, #HRange, #HDel, -⟩
+  ihave #Hrl0 : apply.reqLeaseClass (GF := GF) E.authMode info (mvcc.leaseItemsOf (mvcc.stateAfter log)) rq $$ []
+  · iapply apply.reqLeaseClass_noLease; rw [Hk.2.1]; exact ⟨by decide, by decide, by decide⟩
   iunfold apply.permCheck3L at HRange
   iunfold apply.permCheck3L at HDel
   ihave #Hr' := Hr
@@ -548,7 +576,7 @@ theorem apply.authApplierV3.DeleteRange.wp_latest :
     isplitr [Htrc]
     rotate_left
     · iexact Htrc
-    iapply apply.auth_pass_kvPostFL E E.authOn c p (.ok bi) info info' rq log F _ Pre Post _ ?_ $$ Happ Hpost Hinfo Hrc
+    iapply apply.auth_pass_kvPostFL E E.authOn c p (.ok bi) info info' rq log F _ Pre Post _ ?_ $$ Happ Hpost Hinfo Hrc Hrl0
     intro oc hoc
     refine ⟨e, hend, Or.inr ⟨hoc, ?_⟩⟩
     rw [hpk]
@@ -623,7 +651,7 @@ theorem apply.authApplierV3.DeleteRange.wp_latest :
   isplitr [Htrc]
   rotate_left
   · iexact Htrc
-  iapply apply.auth_pass_kvPostFL E E.authOn c p (.ok bi) info info' rq log F _ Pre Post _ ?_ $$ Happ Hpost Hinfo Hrc
+  iapply apply.auth_pass_kvPostFL E E.authOn c p (.ok bi) info info' rq log F _ Pre Post _ ?_ $$ Happ Hpost Hinfo Hrc Hrl0
   intro oc hoc
   refine ⟨e, hend, Or.inr ⟨hoc, ?_⟩⟩
   rw [hpk]

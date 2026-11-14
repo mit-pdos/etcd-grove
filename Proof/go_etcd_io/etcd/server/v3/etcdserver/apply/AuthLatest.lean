@@ -165,6 +165,57 @@ theorem verdictL_one (M : auth.AuthMode) (hs : List auth.AuthState) (ai : auth.A
   | off => exact ⟨fun _ => trivial, fun _ => trivial⟩
   | any => exact ⟨fun _ => trivial, fun _ => trivial⟩
 
+/-! ### The lease part of a check at the latest state (auth-lease S2, `notes/auth-lease-s2-draft.md`) -/
+
+/-- **The lease check passed at the latest state** (`checkLeasePuts` of the lease `id` at the owner's item
+map `I`): an admin there (`IsAdminPermitted`: no revision check, `store.go:915-936`), or every key `I`
+attaches to `id` write-granted there (`isOpPermitted`'s `granted1`). -/
+def leasePassedL (M : auth.AuthMode) (hs : List auth.AuthState) (ai : auth.AuthInfoM)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (id : w64) : Prop :=
+  latestOk M hs (fun stl => auth.adminOk stl (some ai) ∨
+    ∀ k : GoString, I.lookup ⟨k⟩ = some id → granted1 stl ai (k, [], .write))
+
+/-- **The lease check refused at the latest state**: not an admin there, and a key of `id` not
+write-granted there (`refusedL`'s form: `¬ leasePassedL` is not what a refusal gives, `latestOk` being
+vacuous at an empty history and in the mode `any`). -/
+def leaseRefusedL (M : auth.AuthMode) (hs : List auth.AuthState) (ai : auth.AuthInfoM)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (id : w64) : Prop :=
+  latestOk M hs (fun stl => ¬ auth.adminOk stl (some ai) ∧
+    ∃ k : GoString, I.lookup ⟨k⟩ = some id ∧ ¬ granted1 stl ai (k, [], .write))
+
+/-- **The lease's keys are of the cache's shape whenever auth is enabled** at the latest state (what
+makes each key's check exact). -/
+def leaseShapedL (M : auth.AuthMode) (hs : List auth.AuthState)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (id : w64) : Prop :=
+  latestOk M hs (fun stl => stl.enabled = true →
+    ∀ k : GoString, I.lookup ⟨k⟩ = some id → auth.reqShape k [])
+
+/-- A lease attaching no key passes (whatever the principal). -/
+theorem leasePassedL_of_none (M : auth.AuthMode) (hs : List auth.AuthState) (ai : auth.AuthInfoM)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (id : w64)
+    (h : ∀ k : GoString, I.lookup ⟨k⟩ ≠ some id) : leasePassedL M hs ai I id := by
+  cases M with
+  | on γa => intro stl _; right; intro k hk; exact absurd hk (h k)
+  | off => trivial
+  | any => trivial
+
+/-- A lease attaching no key is not refused, so a refusal of it gives anything. -/
+theorem leaseRefusedL_none_false (γa : auth.AuthNames) (hs : List auth.AuthState) (stl : auth.AuthState)
+    (hl : hs.getLast? = some stl) (ai : auth.AuthInfoM)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (id : w64)
+    (h : ∀ k : GoString, I.lookup ⟨k⟩ ≠ some id) (hr : leaseRefusedL (.on γa) hs ai I id) : False := by
+  obtain ⟨-, k, hk, -⟩ := hr stl hl
+  exact h k hk
+
+/-- A lease attaching no key is of the shape. -/
+theorem leaseShapedL_of_none (M : auth.AuthMode) (hs : List auth.AuthState)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (id : w64)
+    (h : ∀ k : GoString, I.lookup ⟨k⟩ ≠ some id) : leaseShapedL M hs I id := by
+  cases M with
+  | on γa => intro stl _ _ k hk; exact absurd hk (h k)
+  | off => trivial
+  | any => trivial
+
 end pure
 
 /-! ## The contracts -/
@@ -200,7 +251,8 @@ def permCheck3L (ai : GoInterfaceOk) (m : GoString) (RD : IProp GF) (M : auth.Au
 
 /-- **The auth store's checks at the latest state** (see the file header): the three permission
 checks and `IsAdminPermitted` (on a message), with the caller's resource family `L` (the apply
-thread's: `auth.latestRes st M`). -/
+thread's: `auth.latestRes st M`); (auth-lease S2) the latest state recorded from `L hs`
+(`auth.latestSnap`), which a passed admin check's class needs (`leaseKeysClass`). -/
 def isAuthStoreL (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode)
     (L : List auth.AuthState → IProp GF) : IProp GF :=
   iprop(∃ ai : GoInterfaceOk, ⌜st = GoInterface.ok ai⌝ ∗
@@ -210,7 +262,8 @@ def isAuthStoreL (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode)
     □ (∀ (a : Loc) (info : auth.AuthInfo) (dq : DFrac) (hs : List auth.AuthState),
       {{ a ↦{dq} info ∗ RD ∗ L hs }} (App (Val #(methods ai.ty go!"IsAdminPermitted" ai.v)) (Val #a))
       {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ RD ∗ L hs ∗ authApplyErrIs err ∗
-          ⌜auth.adminVerdictL M hs (some (auth.authInfoM info)) err⌝ }}))
+          ⌜auth.adminVerdictL M hs (some (auth.authInfoM info)) err⌝ }}) ∗
+    □ (∀ hs : List auth.AuthState, L hs -∗ L hs ∗ auth.latestSnap M hs))
 
 instance isAuthStoreL_persistent (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode)
     (L : List auth.AuthState → IProp GF) : Persistent (isAuthStoreL st RD M L) := by
@@ -301,6 +354,17 @@ theorem isAuthStoreL_of_authInv
     isplitl []
     · ipureintro; exact Hv
     · iapply (auth.permVerdict_of_L M hs info _ _ _ err Hv) $$ Hsnap
+  isplitr
+  rotate_left
+  · iintro !> %hs HL
+    iunfold auth.latestResC at HL
+    icases HL with ⟨HL, Hw⟩
+    iunfold auth.latestRes at HL
+    icases HL with ⟨Hown, %b, %sc, Hfl, Hca, #Hev, #Hsn, %Htie⟩
+    ihave ⟨Hown, #Hsnap⟩ := auth.authOwn_latestSnap M hs $$ Hown
+    iframe Hsnap
+    iunfold auth.latestResC; iframe Hw; iunfold auth.latestRes; iframe Hown
+    iexists b, sc; iframe Hfl Hca Hev Hsn; ipureintro; exact Htie
   iintro !> %a %info %dq %hs %Φ !> ⟨Ha, Hrd, HL⟩ HΦ
   iunfold auth.latestResC at HL
   icases HL with ⟨HL, Hw⟩
