@@ -144,7 +144,7 @@ theorem walInvBody_pinLast (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : In
     cases h : lay.segs.getLast? with
     | none => exact absurd (List.getLast?_eq_none_iff.1 h) h4.nonempty
     | some g => exact ⟨g, rfl⟩
-  rw [drop_walLastK hgL]
+  rw [drop_walLastK hgL, List.map_cons, List.map_nil]
   imodintro
   iframe Hb
   unfold walPinLast
