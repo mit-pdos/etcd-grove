@@ -18,6 +18,7 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateTmp
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateArea
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateAbsent
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreatePure
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateAbort
 
 @[expose] public section
 
@@ -92,6 +93,7 @@ theorem wal.Create.wp_proof (C : WalCodec) (Mr : WalMarshal)
   have hNt : N.Mem (tmpName nm) := areaOk_tmp hok hnm
   iapply wp_notCrashed_acc _ _ rfl
   iintro Hnc
+  imod osNames_self R jr N _ h CoPset.subseteq_top $$ Hsi HN with ⟨HN, %hself⟩
   imod walInv_absent C Mr R jr r N _ h (child r nm) nm md Q hin hNnm $$ Hinv Hsi Hnc Hau HN
     with ⟨Hnc, Hau, HN, %hnmA⟩
   imod walInv_drop C Mr R jr r N h nm (tmpName nm) ⊤ CoPset.subseteq_top walN_osShN_top hnm hNnm hNt
@@ -108,7 +110,36 @@ theorem wal.Create.wp_proof (C : WalCodec) (Mr : WalMarshal)
   wp_apply wp_existTmp wp_FExist r (tmpName nm) R jr qp _ 1 (tmpName_nameOk hnmO) $$ [Hp Ht Hperm]
     as %bt ⟨Hp, Ht, Hperm⟩
   · iframe; iframe #
-  sorry
+  -- a leftover `nm.tmp`: `RemoveAll`
+  ihave Ht : (∃ hT', tmpDirH jr (tmpName nm) hT') $$ [Ht]
+  · iexists _; iexact Ht
+  cases bt
+  rotate_left
+  try wp_auto
+  icases Ht with ⟨%hT0, Ht⟩
+  wp_apply wp_removeAllTmp wp_RmAbs wp_RmDir r (tmpName nm) R jr qp hT0 (tmpName_nameOk hnmO)
+    $$ [Hp Ht Hperm] as %err ⟨Hp, Hperm, Ht, -⟩
+  · iframe; iframe #
+  cases err
+  case ok ei =>
+    -- `RemoveAll` failed: nothing done, `nm.tmp` merged back
+    icases Ht with ⟨%hT1, Ht⟩
+    iapply wp_notCrashed_acc _ _ rfl
+    iintro Hnc
+    imod create_abortTmp C Mr R jr r N h cl nm hT1 hok hnm hself $$ Hinv Hsi Hnc Hu HN Ht Hcl
+      with ⟨Hnc, Hu, Hres⟩
+    iframe Hnc
+    imodintro
+    try wp_auto
+    iapply HΦ
+    iframe
+    iright; ileft
+    iframe
+    ipureintro; intro hc; cases hc
+  all_goals (
+    try wp_auto
+    icases Ht with ⟨%hT1, Ht⟩
+    sorry)
 
 end proof
 
