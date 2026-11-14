@@ -47,9 +47,7 @@ theorem wal.Create.wp_proof (C : WalCodec) (Mr : WalMarshal)
     (wp_CDA : fileutil.CreateDirAll.specTmp (GF := GF) (hG := hG))
     (wp_String : zap.String.spec (GF := GF) (hG := hG))
     (wp_Error : zap.Error.spec (GF := GF) (hG := hG))
-    (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG))
-    (hErrExist : ⊢ isPkgInit (PROP := IProp GF) pkg_id.os -∗
-      ∃ e : GoInterface, ⌜e ≠ interface.nil⌝ ∗ typedPointsto (globalAddr os.ErrExist) e DFrac.discard) :
+    (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     wal.Create.spec (GF := GF) C Mr := by
   intro lg R jr r dir nm mp md qp Q hin hnmO hdl hr hmp
   wp_start as ⟨#Hzap, #Hmd, #Hok, #Hdd, Hp, Hres, Hperm, Hu, Hau⟩
@@ -64,7 +62,11 @@ theorem wal.Create.wp_proof (C : WalCodec) (Mr : WalMarshal)
   cases bx
   rotate_left
   · -- `Exist(dir)`: `os.ErrExist`, nothing done
-    ihave ⟨%ee, %hee, #Hee⟩ := hErrExist $$ Hos
+    ihave #Hosf : (iprop((∃ f : Loc, typedPointsto (globalAddr os.Stderr) f DFrac.discard) ∗
+        ∃ e : GoInterface, ⌜e ≠ interface.nil⌝ ∗ typedPointsto (globalAddr os.ErrExist) e DFrac.discard) :
+        IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hos
+    icases Hosf with ⟨-, %ee, %hee, #Hee⟩
     try wp_auto
     iapply HΦ
     iframe
