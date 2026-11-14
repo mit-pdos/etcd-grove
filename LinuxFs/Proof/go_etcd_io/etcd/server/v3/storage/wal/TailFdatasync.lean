@@ -43,7 +43,7 @@ theorem TailMeta.synced {m : OsMeta} {bs : List ByteG} (h : TailMeta m bs) :
 theorem syscall.Fdatasync.wp_tail (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (dir : GoString) (γ : GName) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat)
     (wr : Nat) (m : OsMeta) (bs : List ByteG) (fd : w64) (dq : DFrac) (d : OsFd)
-    (hm : TailMeta m bs) (hwr : wr = (tailStream Mr H md cuts).length) :
+    (hm : TailMetaW m bs) (hwr : wr = (tailStream Mr H md cuts).length) :
     {{ walAreaOk walCodec Mr R jr r ∗ osFd fd dq d ∗ walTailKey (W := W) dir γ ∗
         tailVar (W := W) γ ((H, md, cuts, wr, d.ino, none) : TailG) ∗ walCutFrag (W := W) none ∗
         osMeta d.ino (DFrac.own (1 : Qp).half) m ∗ osBytes d.ino 0 (DFrac.own (1 : Qp).half) bs }}
@@ -89,7 +89,7 @@ theorem fileutil.Fdatasync.wp_tail (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG
   ihave Hv : tailVar (W := W) γ ((H, md, cuts, o0 + out.length, i, none) : TailG) $$ [Hv]
   · unfold tailVar; iexact Hv
   wp_apply syscall.Fdatasync.wp_tail Mr R jr r dir γ H md cuts (o0 + out.length) m bs fd
-    (DFrac.own 1) ⟨i, rd, true⟩ hp.2.1 hwr $$ [Harea Hfd Hk Hv Hcf Hm Hb]
+    (DFrac.own 1) ⟨i, rd, true⟩ hp.2.1.win hwr $$ [Harea Hfd Hk Hv Hcf Hm Hb]
     as %e ⟨Hfd, Hk, Hv, Hcf, Hr⟩
   · iframe; iexact Harea
   iapply HΦ
@@ -116,6 +116,66 @@ theorem fileutil.Fdatasync.wp_tail (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG
       · ipureintro; exact hp
       · iapply tailVar_unfold $$ Hv
     · iright; ipureintro; exact he
+
+/-- **A window's tail synced is exact** (`OsMeta.synced`: `lo = hi = size`). -/
+theorem TailMetaW.synced {m : OsMeta} {bs : List ByteG} (h : TailMetaW m bs) :
+    TailMeta m.synced (bs.map (fun x => durB x.1)) :=
+  ⟨by simp [OsMeta.synced, h.1], h.2.1, h.2.2.1.synced, rfl, rfl⟩
+
+/-- **`fileutil.Fdatasync` of the tail in a resize window** (`wp_tail` over `walTailW`'s `TailMetaW`): on
+success the tail is exact again (`TailMeta` of the synced `OsMeta`, `TailMetaW.synced`). -/
+theorem fileutil.Fdatasync.wp_tailW (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
+    (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (f : Loc) (fd : w64)
+    (name dir : GoString) (γ : GName) (i : Ino) (H : List (WalOpG WalEnt)) (md : List w8)
+    (cuts : List Nat) (o0 sz : Nat) (out : List w8)
+    (hwr : o0 + out.length = (tailStream Mr H md cuts).length) :
+    {{ walAreaOk walCodec Mr R jr r ∗
+        walTailW (W := W) f fd name dir γ i H md cuts o0 sz out (tm := TailMetaW) ∗
+        walCutFrag (W := W) none }}
+      (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync)) (Val #f))
+    {{ (e : w64), RET #(errnoErr e); walCutFrag (W := W) none ∗
+        ((⌜e = 0⌝ ∗ walTailW (W := W) f fd name dir γ i H md cuts o0 sz out ∗
+            walSyncedLb (W := W) dir H.length) ∨
+         (⌜e ≠ 0⌝ ∗ walTailW (W := W) f fd name dir γ i H md cuts o0 sz out (tm := TailMetaW))) }} := by
+  wp_start as ⟨#Harea, Hw, Hcf⟩
+  unfold walTailW
+  icases Hw with ⟨Hf, ⟨%rd, Hfd⟩, Hoff, Hk, %m, %bs, Hm, Hb, %hp, Hv⟩
+  wp_auto
+  wp_apply wp_Fd f fd name (DFrac.own 1) $$ Hf as Hf
+  ihave Hv : tailVar (W := W) γ ((H, md, cuts, o0 + out.length, i, none) : TailG) $$ [Hv]
+  · unfold tailVar; iexact Hv
+  wp_apply syscall.Fdatasync.wp_tail Mr R jr r dir γ H md cuts (o0 + out.length) m bs fd
+    (DFrac.own 1) ⟨i, rd, true⟩ hp.2.1 hwr $$ [Harea Hfd Hk Hv Hcf Hm Hb]
+    as %e ⟨Hfd, Hk, Hv, Hcf, Hr⟩
+  · iframe; iexact Harea
+  iapply HΦ
+  iframe Hcf
+  icases Hr with (⟨%he, Hm, Hb, #Hs⟩ | ⟨%he, Hm, Hb⟩)
+  · ileft
+    isplitr
+    · ipureintro; exact he
+    isplitl [Hf Hfd Hoff Hk Hm Hb Hv]
+    · iframe Hf Hoff Hk
+      isplitl [Hfd]
+      · iexists rd; iexact Hfd
+      iexists m.synced, (bs.map (fun x => durB x.1))
+      iframe Hm Hb
+      isplitr
+      · ipureintro
+        exact ⟨by simp [OsMeta.synced, hp.1], hp.2.1.synced, hp.2.2.1, hp.2.2.2⟩
+      · iapply tailVar_unfold $$ Hv
+    · iexact Hs
+  · iright
+    isplitr
+    · ipureintro; exact he
+    · iframe Hf Hoff Hk
+      isplitl [Hfd]
+      · iexists rd; iexact Hfd
+      iexists m, bs
+      iframe Hm Hb
+      isplitr
+      · ipureintro; exact hp
+      · iapply tailVar_unfold $$ Hv
 
 end tail
 
