@@ -80,12 +80,15 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtendTrunc.wp_proofAu
     isplitr
     · ipureintro; exact ⟨Nat.le_refl _, hle, fun h => absurd h he⟩
     unfold os.ftUndoneH preGrownH
-    icases Hd with ⟨Hm, -⟩
+    icases Hd with ⟨⟨%tc, %rz, Hm⟩, -⟩
     iexists _
     iframe Hm
     isplitr
-    · ipureintro; exact ⟨announce_size' .., announce_maps' .., Nat.le_of_eq (announce_cz' ..).symm,
-        growMeta_announce ..⟩
+    · ipureintro
+      exact ⟨announce_size' m (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat,
+        announce_maps' m (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat,
+        Nat.le_of_eq (announce_cz' m (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat).symm,
+        growMeta_announce m (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat⟩
     rw [Nat.sub_self]
     iapply osZerosA_nil
 

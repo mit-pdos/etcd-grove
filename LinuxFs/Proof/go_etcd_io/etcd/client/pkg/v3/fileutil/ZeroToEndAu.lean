@@ -94,7 +94,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.wp_proofAu
       · ipureintro; simp [hm1]
       unfold osBytes; iapply (bytesG_nil _ _ _ _).2; iempintro
     · unfold os.ftUndoneH
-      icases Hd with ⟨Hm, Hb⟩
+      icases Hd with ⟨⟨%tc, %rz, Hm⟩, Hb⟩
       iexists W64 m.size, _, xs'
       iframe
       rw [show min m.size o.toNat = o.toNat by omega]
@@ -102,8 +102,9 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.wp_proofAu
       ipureintro
       have hl := congrArg List.length hxs'
       simp only [List.length_map] at hl
-      refine ⟨by rw [announce_size']; omega, announce_maps' .., ?_⟩
-      rw [announce_size']; omega
+      refine ⟨by rw [OsMeta.withTc_size, announce_size']; omega,
+        announce_maps' m o.toNat (rsHi true m.size o.toNat) o.toNat, ?_⟩
+      rw [OsMeta.withTc_size, announce_size']; omega
   subst he
   wp_auto
   icases ftDoneH_shrunk _ m o.toNat zs hole $$ Hd with ⟨%m1, %hm1, Hm⟩
