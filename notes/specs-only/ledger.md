@@ -1297,3 +1297,15 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   segments (before the retry loop: every attempt reads the same pinned files, so the retry needs no second
   commit).
 - **Decision.** Made (the restatement plan §3 prescribes).
+
+## 2026-11-14: `decoder.Decode.spec` (the part's) -- no `errors.Is(err, io.ErrUnexpectedEOF)` answer on an I/O error
+
+- **Spec.** `decPost`'s I/O arm (`⌜IoE err⌝`, `DecDefs.lean`) and `decAns` (only `errors.Is(err, io.EOF)`).
+- **Defect.** Too weak for read mode's callers: `validSnapshotEntries` (W8) and `ReadAll` in read mode accept
+  `errors.Is(err, io.ErrUnexpectedEOF)` as the end; on an `IoE` error the proof knows no answer, so a `true` would
+  make a partial read a success. In Go the readers' errors are `*PathError`s of an errno, for which it is `false`.
+- **Evidence.** S/wal.go:772-776 (VSE's exit test); `ReadBridge.lean` (the readers' errors are `errnoPathErr`).
+- **Proposed change.** Carry the `io.ErrUnexpectedEOF` answer as the `io.EOF` one: `decRdE` and `decAns` gain
+  `isEofAns e ueof` (with `e ≠ ueof` for an `IoE` error, as `¬ IoE eof`), `walDecFiles_mk` proves it from an
+  `errors.IsPathErrnoEof`-style spec for `ueof`.
+- **Decision.** Pending (internal; `validSnapshotEntries.specPinned` stays a hypothesis of VSE until it is made).
