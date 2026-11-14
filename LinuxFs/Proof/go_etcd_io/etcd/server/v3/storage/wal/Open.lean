@@ -3,9 +3,9 @@ The proof of `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/Open.lean` (W3/
 `notes/wal-fsext-plan.md`, thirteenth session): `openAtIndex` in write mode (its spec), then
 `fileutil.OpenDir(w.dir)` (`OpenDir.wp_proofOk`) over a path to the WAL directory (`walInv_dirPath`,
 from the WAL's key and the lock's `walNamesFrag none` the handle holds, `walReadH_namesOut`; until
-2026-11-14 the hypothesis `WalDirPathLaw`); on its error, `w.Close()` (`WAL.Close.specOpening`, a
-hypothesis until W10) and the error wrapped. Hypotheses: `openAtIndex.spec`, `WAL.Close.specOpening`,
-`fmt.ErrorfErrs.spec`.
+2026-11-14 the hypothesis `WalDirPathLaw`); on its error, `w.Close()` (`WAL.Close.specOpening`,
+proved: `WAL.Close.wp_proofOpening`, `WAL__CloseOpening.lean`) and the error wrapped. Callee specs:
+`openAtIndex.spec`, `WAL.Close.specOpening`, `fmt.ErrorfErrs.spec`.
 -/
 module
 

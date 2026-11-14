@@ -6,9 +6,9 @@ each lock closed, and `Close` of the nil `*os.File` (`ErrInvalid`). The WAL's ha
 `walInv`'s parked state and the lock token comes back (`walInvBody_unpin`); the ghost handle
 `walOpening` goes. Any error (the sync's: the Go code then returns early, its locks left open; the
 lock token still comes back, the halves being ghost). **A minimal statement for `Open`'s error arm**
-(W3/W5 log, thirteenth session), a hypothesis of `Open.wp_proof` until W10 states and proves `Close`
-(whose spec over the handles `walOpenWF`/`walReadFailedF` this one is to be a case of, or be derived
-from). Lean-first.
+(W3/W5 log, thirteenth session), a callee spec of `Open.wp_proof`; proved by
+`WAL.Close.wp_proofOpening` (`LinuxFs/Proof/.../wal/WAL__CloseOpening.lean`, the W7-W12 log's eighth
+session). Lean-first.
 -/
 module
 
