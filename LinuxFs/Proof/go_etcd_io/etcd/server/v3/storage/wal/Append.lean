@@ -173,7 +173,7 @@ theorem walInvBody_append (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
   · iexists K, none
     iframe Hdk Hcp
     ipureintro; exact dirKeysOk_append o hd Hdko
-  iframe Hnms; ipureintro; exact ⟨HAt, walsBounded_app Hbd rfl hd rfl rfl hox⟩
+  iframe Hnms; ipureintro; exact ⟨HAt, walsBounded_app Hbd.1 rfl hd rfl rfl hox, Hbd.2⟩
 
 /-- **The append's commit** (see the file header). -/
 theorem walTail_append (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)

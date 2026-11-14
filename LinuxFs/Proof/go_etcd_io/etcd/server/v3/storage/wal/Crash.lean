@@ -25,6 +25,7 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CrashStart
 public import GooseLang.Ext.Fs.CrashTakeFiles
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CrashTakeSeg
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutSynced
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.BootPure
 
 @[expose] public section
 
@@ -58,7 +59,8 @@ def walStart (L : GooseLocalGS GF) (W : WalGS GF) (C : WalCodec) (Mr : WalMarsha
     walOutAuth (W := W) WalOut.empty ∗ walNamesAuth (W := W) none ∗ walSplitAuth (W := W) [] ∗
     walSplitFrag (W := W) [] ∗ walLentAuth (W := W) ∅ ∗ ⌜s.area = r⌝ ∗
     ([∗list] i ∈ is, osFileStartO (L := L) i (fo i)) ∗
-    ⌜is.Nodup ∧ ((segsAll Ls).map (·.ino)).Nodup ∧ WalsStart C Mr R jr s Ls m ∧
+    ⌜is.Nodup ∧ (∀ i ∈ is, Named m i → (fo i).isSome) ∧
+      ((segsAll Ls).map (·.ino)).Nodup ∧ WalsStart C Mr R jr s Ls m ∧
       ∀ dir lay, Ls !! dir = some lay → ∀ g ∈ lay.segs,
       g.ino ∈ is ∧ ∃ f, fo g.ino = some f ∧ g.om = initMeta f ∧ g.bs = f.contents.map durB⌝)
 
@@ -101,7 +103,8 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
       walCrashTok (W := W) -∗ osSharedInv (L := L) R -∗
       crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) [] false V' ={E}=∗
       ∃ (W' : WalGS GF) (s' : AbsDiskState) (D : List Ino),
-        walCrashWal W W' ∗ ⌜s'.area = r ∧ DirsAvoid R jr s'⌝ ∗ walStart L' W' C Mr R jr r s' V'.now ∗
+        walCrashWal W W' ∗ ⌜s'.area = r ∧ DirsAvoid R jr s' ∧ WalsBounded s' ∧ DirsRoots R s'⌝ ∗
+        walStart L' W' C Mr R jr r s' V'.now ∗
         walPast (W := W') s' ∗ walUnlockedTok (W := W') ∗ walCrashTok (W := W') ∗
         crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D false V' := by
   iintro #Hinv #Hcrd Htok #Hsh Hcr
@@ -148,13 +151,16 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
     ipureintro; exact hcrash
   isplitr
   · ipureintro
-    refine ⟨by rw [harea', Har], fun dd hdd => Han.2 dd ?_⟩
+    refine ⟨by rw [harea', Har], fun dd hdd => Han.2 dd ?_, walsBounded_crash hcrash Hbd.1,
+      dirsRoots_crash hcrash Hbd.2⟩
     rw [← hcrash.2.1]; exact hdd
   unfold walStart
   iexists Ls', (segsAll Ls).map (·.ino), (fun i => st'.fs.files !! i)
   iframe Hg' Hstarts Hcr' Ht' Hpk' Hdk' Hcp' Hpo' Hnm' Hnw' Hnwf' Hlt'
   ipureintro
-  exact ⟨by rw [harea', Har], walsOk_nodup Hok, hnd', hstart, hsegs⟩
+  exact ⟨by rw [harea', Har], walsOk_nodup Hok, fun i hi hn => by
+    obtain ⟨g, hg, rfl⟩ := List.mem_map.1 hi
+    exact (hfiles g hg).2.1 hn, hnd', hstart, hsegs⟩
 
 /-- Every name of a set. -/
 theorem restrictN_all (e : Ents) : restrictN (.except []) e = e := by
@@ -507,7 +513,8 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     (hJm : ∀ dir nm J, InArea r dir nm → V.now.entry jr nm = some (.dir J) → Jm !! dir = some J)
     (hnames : ∀ nm J, walNameOk nm → V.now.entry jr nm = some (.dir J) →
       ∃ h, (jr, NameSet.only [nm], h) ∈ cl)
-    (hnok : ∀ b h, (jr, NameSet.only [b], h) ∈ cl → NameOk b) (hbd : WalsBounded s) (qs : Qp)
+    (hnok : ∀ b h, (jr, NameSet.only [b], h) ∈ cl → NameOk b) (hbd : WalsBounded s)
+    (hdr : DirsRoots R s) (qs : Qp)
     (E : CoPset) :
     ⊢ walStart L W C Mr R jr r s V.now -∗
       osClaims L (cl.map (fun c => (c, DFrac.own 1))) -∗
@@ -523,7 +530,7 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
   iintro Hst Hcl Htmp Hsp Hoth
   unfold walStart
   icases Hst with ⟨%Ls, %is, %fo, Hg, Hcr, Htl, Hpk, Hdk, Hcp, Hpo, Hnm, Hnw, Hnwf, Hlt, %Har, Hfs, %Hp⟩
-  obtain ⟨-, hnd, hstart, hsegs⟩ := Hp
+  obtain ⟨-, -, hnd, hstart, hsegs⟩ := Hp
   ihave Hoth := Hoth $$ %Ls %hstart
   -- the segments' start resources, halved
   have hsub : ((segsAll Ls).map (·.ino)) ⊆ is := fun i hi => by
@@ -720,7 +727,7 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
       · ipureintro
         exact ⟨fun nm hnm => (hW nm).1 hnm, fun dir lay hl _ => (hW lay.nm).2 ⟨dir, lay, hl, rfl⟩⟩
       iexists qs; iexact Hsp
-    ipureintro; exact hbd
+    ipureintro; exact ⟨hbd, hdr⟩
   imodintro
   unfold walInv
   iframe Hinv
