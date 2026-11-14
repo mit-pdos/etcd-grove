@@ -144,6 +144,12 @@ theorem walLastIdx_snap (P : WalHist) :
       | .save _ es => (es.getLast?.map (fun e => uint.nat e.Index')).getD x
       | .snap _ => x) 0) (walMaxSnapIdx P) := rfl
 
+/-- **The bytes a batch of entries takes in the WAL**, over-approximated: each entry's encoding plus 64
+bytes (its record's type, CRC and length fields, the frame's length word and padding; `frame_walRecEnc_tight`,
+`StreamBound.lean`), summed (`Save`'s premise; ledger 2026-11-14, "the batch's size"). -/
+def walBatchBytes (Mr : WalMarshal) (es : List EntryM) : Nat :=
+  (es.map (fun e => (Mr.encEntry e).length + 64)).sum
+
 end pure
 
 /-! ## The raft messages `Save` reads -/
@@ -327,10 +333,17 @@ def walHandleIn (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h
 sealed): quiescent (`WalHS.Done`). The history is the program's copy's (`walDiskAt dir d` has `d.H = H`, the update of
 `Save` moves both). The metadata below `2 ^ 41` bytes (`cut`'s header records, `cut.spec`'s `2 ^ 42` with
 `walAreaOk`'s bound on the hard state's encoding; ledger 2026-11-14): fixed at `Create`, whose premise it is
-(the server's metadata is a small protobuf), and the same for every handle of the WAL (`ReadAll`'s). -/
+(the server's metadata is a small protobuf), and the same for every handle of the WAL (`ReadAll`'s).
+The tail's resize window may be open (`TailMetaW`: a `Save` that wrote past the preallocated size and did not
+sync, W6 log, thirteenth session). **The stream's end below `2 ^ 43`** (`Save`'s bound across its batch,
+ledger 2026-11-14, "the batch's size"): a `Save` cuts once the offset reaches `SegmentSizeBytes`, its
+pending bytes at most the page writer's buffer (`2 ^ 18`; a `sync` after the `Seek` moves them to the file,
+the end unchanged), and a cut's or `Create`'s headers hold the metadata (below `2 ^ 41`) and the state
+(below `2 ^ 32`, `walAreaOk`); **obligation** of `Create` and `ReadAll` when they return the handle. -/
 @[no_expose] def walOpenWF (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) :
     IProp GF :=
-  iprop(∃ h : WalHS, walHandleIn (W := W) P Mr w dir h ∗ ⌜h.Done⌝ ∗ ⌜h.md.length < 2 ^ 41⌝ ∗ ⧗ h.pc)
+  iprop(∃ h : WalHS, walHandleIn (W := W) P Mr w dir h TailMetaW ∗ ⌜h.Done⌝ ∗ ⌜h.md.length < 2 ^ 41⌝ ∗
+    ⌜h.o0 + h.out.length + h.pend.length < 2 ^ 43⌝ ∗ ⧗ h.pc)
 
 /-- **The cuts budget** (`notes/bounds-plan.md`: the counter's owner turns the global receipt bound into
 its bound): with the area's `ReceiptBoundLe GF (2 ^ 62)`, `⧗ (pc + 1)` (the handle's `⧗ pc` and the receipt

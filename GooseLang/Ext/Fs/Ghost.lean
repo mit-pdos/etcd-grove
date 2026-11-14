@@ -81,6 +81,11 @@ structure OsMeta where
   none of them is written). A sync of a file whose last page is known zero past the size makes the
   zeros known from the size on (`OsMeta.synced`). -/
   cz : Nat := 0
+  /-- Stamps of resizes of the file known to the client (each among the file's `OsFile.rzs`,
+  `MetaOk.rz`): a resize that landed with its cut-off candidates known (`rsPostK true`) adds its
+  stamp; nothing else changes it. Ghost only: what a client (the WAL, at a crash) needs to tell a
+  resize's zero candidates from a `pwrite`'s (W1, `notes/wal-fsext-plan.md` §2.5). -/
+  rz : List Nat := []
 
 /-- How the candidates `cs` of a byte resource relate to the state's `sc`, as `cut` says: the same
 (`none`); or (`some c`, after a sync without the bytes at change number `c`) the same candidates
@@ -183,6 +188,15 @@ def OsMeta.announce (m : OsMeta) (lo hi tg : Nat) : OsMeta :=
   · rfl
   · split <;> rfl
 
+@[simp] theorem OsMeta.touch_rz (m : OsMeta) (lo hi : Nat) : (m.touch lo hi).rz = m.rz := by
+  unfold OsMeta.touch; split
+  · rfl
+  · split <;> rfl
+
+@[simp] theorem OsMeta.announce_rz (m : OsMeta) (lo hi tg : Nat) :
+    (m.announce lo hi tg).rz = m.rz := by
+  simp [OsMeta.announce]
+
 @[simp] theorem OsMeta.announce_cut (m : OsMeta) (lo hi tg : Nat) :
     (m.announce lo hi tg).cut = m.cut := by
   simp [OsMeta.announce]
@@ -197,11 +211,13 @@ def TokInfo.Is (ti : TokInfo) (c : OsChange) : Prop :=
 
 instance OsMeta.countable : Pos.Countable OsMeta :=
   Pos.Countable.ofInjective
-    (fun m => Pos.Countable.encode (m.size, m.lo, m.hi, m.maps, m.dlo, m.dhi, m.zf, m.tc, m.cut, m.cz))
+    (fun m => Pos.Countable.encode (m.size, m.lo, m.hi, m.maps, m.dlo, m.dhi, m.zf, m.tc, m.cut, m.cz,
+      m.rz))
     (fun a b h => by
       have h := Pos.encode_inj h
       cases a; cases b; simp only [Prod.mk.injEq] at h
-      obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10⟩ := h; subst h1 h2 h3 h4 h5 h6 h7 h8 h9 h10; rfl)
+      obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11⟩ := h
+      subst h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11; rfl)
 
 instance Qp.countable : Pos.Countable Qp :=
   Pos.Countable.ofInjective (fun q => Pos.Countable.encode (q.val.num, q.val.den))
@@ -303,6 +319,8 @@ structure MetaOk (i : Ino) (m : OsMeta) (f : OsFile) : Prop where
   zf : ∀ z, m.zf = some z → f.size ≤ z ∧ ∀ b, z ≤ b → f.cand b = [(0, 0)]
   tail : ∀ b c, f.size ≤ b → m.tc !! b = some c → f.cand b = c
   cz : ∀ b, f.size ≤ b → b < m.cz → f.cache b = 0
+  /-- The resize stamps `m` knows are the file's. -/
+  rz : ∀ s ∈ m.rz, s ∈ f.rzs
 
 /-- The files' ghost maps mirror the state. -/
 structure OsCoh (Γb : GMap (Ino × Nat) ByteG) (Γm : GMap Ino OsMeta)
@@ -329,6 +347,9 @@ structure OsCoh (Γb : GMap (Ino × Nat) ByteG) (Γm : GMap Ino OsMeta)
     ∀ b, inRange ti.lo ti.hi b = true → ∃ c0, f.cand b = c0 ++ [(ti.val b, ti.n)] ∧
       (∀ z, ti.m0.zf = some z → z ≤ b → c0 = [(0, 0)]) ∧
       ∀ c, ti.m0.size ≤ b → ti.m0.tc !! b = some c → c0 = c
+  /-- A resize in flight has its stamp among its file's resize stamps (its first step recorded it). -/
+  tok_rz : ∀ t ti, Γt !! t = some ti → ti.kind.isResize = true → ∃ f, st.file ti.ino = some f ∧
+    ti.n ∈ f.rzs
   /-- A cut is at most the last change's number. -/
   cut_le : ∀ i m c, Γm !! i = some m → m.cut = some c → c ≤ st.fs.stamp
 
@@ -883,7 +904,7 @@ theorem tailMap_cand (f : OsFile) (b : Nat) (c : Cands) (h : tailMap f !! b = so
 /-- The ghost `OsMeta` of a file as on disk: all of it durable, zeros past its last page (durable
 zeros), and the candidates of the bytes past its size in its last page (`tailMap`). -/
 def initMeta (f : OsFile) : OsMeta :=
-  ⟨f.size, f.size, f.size, ∅, 0, 0, some (pageEnd f.size), tailMap f, none, 0⟩
+  ⟨f.size, f.size, f.size, ∅, 0, 0, some (pageEnd f.size), tailMap f, none, 0, []⟩
 
 /-- The bytes of the files of `st`, each as the state has it. -/
 def bytesMapF (F : GMap Ino OsFile) : GMap (Ino × Nat) ByteG :=
@@ -1186,7 +1207,8 @@ theorem metaOk_ofDisk {st : OsState} {i : Ino} (img : Nat → w8) (sz : Nat)
     (hinfl : ∀ t c, st.proc.inflight !! t = some c → c.ino ≠ i) :
     MetaOk st i (initMeta (OsFile.ofDisk img sz)) (OsFile.ofDisk img sz) := by
   refine ⟨rfl, by simp [initMeta, OsFile.ofDisk], by simp [initMeta, OsFile.ofDisk], ?_, ?_, ?_, ?_,
-    fun b c _ h => tailMap_cand _ b c h, fun b _ h => absurd h (by simp [initMeta])⟩
+    fun b c _ h => tailMap_cand _ b c h, fun b _ h => absurd h (by simp [initMeta]),
+    fun s h => by simp [initMeta] at h⟩
   · intro b len
     simp only [initMeta]
     constructor
@@ -1203,7 +1225,7 @@ theorem osInit_wf_coh {st : OsState} (h : FsInit st) :
   obtain ⟨hproc, -, -, -, -, -, hdisk, -, -⟩ := h
   have hdisk' : ∀ i f, st.file i = some f → ∃ img sz, f = OsFile.ofDisk img sz :=
     fun i f hf => (hdisk i f hf).2
-  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩⟩
+  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩⟩
   · intro fd d h; simp [hproc, ProcState.empty] at h
   · intro b m h; simp [hproc, ProcState.empty] at h
   · intro b1 m1 _ _ h; simp [hproc, ProcState.empty] at h
@@ -1243,6 +1265,7 @@ theorem osInit_wf_coh {st : OsState} (h : FsInit st) :
   · simp [hproc, ProcState.empty]
   · intro t; simp [hproc, ProcState.empty]
   · intro t ti c h; simp at h
+  · intro t ti h; simp at h
   · intro t ti h; simp at h
   · intro t ti h; simp at h
   · intro t ti h; simp at h

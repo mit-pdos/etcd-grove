@@ -17,6 +17,7 @@ import (
 	"sync"
 	"syscall"
 	"testing"
+	"unsafe"
 
 	"golang.org/x/sys/unix"
 )
@@ -435,4 +436,24 @@ func TestEnoent(t *testing.T) {
 	close(stop)
 	wg.Wait()
 	t.Logf("3000 rounds of open/readdir under churn: %d failures, none ENOENT", fails)
+}
+
+// model_os_readdirnames_len.go: append of one string to a []string of 2^44 panics with
+// "growslice: len out of range" (the slice header made by unsafe.Slice over one string:
+// growslice checks the new capacity before it allocates anything).
+func TestAppendStringsLenLimit(t *testing.T) {
+	var one string
+	big := unsafe.Slice(&one, 1<<44)
+	msg := func() (msg string) {
+		defer func() {
+			if r := recover(); r != nil {
+				msg = fmt.Sprint(r)
+			}
+		}()
+		big = append(big, "x")
+		return ""
+	}()
+	if msg != "runtime error: growslice: len out of range" {
+		t.Fatalf("append past 2^44 strings: %q, want growslice's panic", msg)
+	}
 }

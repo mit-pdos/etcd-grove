@@ -32,8 +32,8 @@ theorem ftDoneH_shrunk (p : Ino) (m : OsMeta) (tg : Nat) (zs : List Cands) (htg 
       ⌜m1.size = tg ∧ m1.maps = m.maps ∧ pageEnd m.size ≤ m1.cz⌝ ∗
       osMeta p (DFrac.own (1 : Qp).half) m1 := by
   unfold os.ftDoneH
-  iintro ⟨%hzs, ⟨%tc, Hm⟩, -⟩
-  iexists (rsPost true m tg tg).withTc tc
+  iintro ⟨%hzs, ⟨%tc, %rz, Hm⟩, -⟩
+  iexists (rsPost true m tg tg).withTc tc rz
   iframe Hm
   ipureintro
   have h := os.rsPost_cz_true m tg tg

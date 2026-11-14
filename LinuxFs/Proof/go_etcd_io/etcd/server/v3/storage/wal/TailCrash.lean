@@ -767,7 +767,7 @@ theorem crashOkA_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur}
     · rw [hfo _ (hpre g' hg')]; exact hnmd g' (by rw [hs]; simp [hg']) (by rw [hj]; exact hnd')
     · rw [← hino, hfo0g, Option.isSome_map]; exact hnmd g hgm (by rw [hino, hj]; exact hnd')
   have hw0 : W1G C (walInos (entsOf m' lay0.j)) (fun i => imgOf (fo0 i)) (segBytesOf lay0)
-      (fun _ => []) := by
+      (segRzOf lay0) := by
     apply w1G_sync
     intro i bs hbs b hb
     obtain ⟨g', hg', rfl, rfl⟩ := segBytesOf_some hbs
