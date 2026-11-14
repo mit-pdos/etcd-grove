@@ -766,6 +766,14 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   invariant's commit bound compared with the program's. Open.
 - **Decision.** Made, minor and internal (`wal-create16`): a hypothesis's post strengthened; its truth is an
   obligation recorded here and in the W4 log's eighteenth session.
+  **Superseding direction (the coordinator, decided; `wal-create17`, not yet made)**: limit `hJC` to the
+  crashes that keep `J`'s entries (`∀ y e E, (y, e, E) ∈ hJ.ents → K y`), under which `hJ.valAfter J K b =
+  hJ.cur !! b`; `walCreate_osAUnc` then takes `osCommitLb m` with `J`'s entries below `m` (`syncDir(nm.tmp)`
+  gives `osCommitLb n` for any `osLogLb n`: pass `J`'s claim's `next`) and raises the invariant's commit
+  bound to `max n m` at the commit (`walsOk_mono`, `walsNamed_mono`, `absentNone_mono`, as `walInvBody_named`
+  does), so every `RegionCrashedK` it quantifies over keeps them; then the post's `valAfter … = none` is
+  dropped from `specTmp` (no allocator fact). Note also that `Create` removes an existing `nm.tmp` before
+  `CreateDirAll`, so only `specTmp`'s `mkdir` case is reached.
 
 ## 2026-11-14: `wal.WAL.renameWAL.spec` / `renameWALUnlock.spec` (internal, the part's) -- the error arms lose the lock file and the spines
 
@@ -791,8 +799,24 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   without the client's update (the open position of index 0 leaves `unl`, so no commit is needed; the
   state from `walCreateQ`'s `walPast`), and its success arm adding `walLenLb w' dir 0 ∗ walSyncedLb dir 0`
   (`Create.spec`'s success post). Not yet made.
-- **Decision.** Pending (`wal-create16` stopped at its budget; the next session makes it with `renameWAL`'s
-  re-proof).
+- **Decision.** Adopted in part (`wal-create17`, the coordinator's task 1, decided). **Made**: the pre takes
+  `walLockIn e f fd fname d c off` (the empty encoder, the segment's `*os.File`, its fd and descriptor, its
+  offset); arm 1 returns it; arms 3 and 4 return `walLockLeft f fd fname d` (open: `os.ownFile f fd`,
+  `osFd`; or closed by `renameWALUnlock`'s `Close`: `os.ownFile f (-1)`), and arm 4's case list names the
+  retry's failed `Open`/`ReadAll`; `renameWALUnlock.spec`'s pre the same; `renameWAL` re-proved. The second
+  close is `os.File.Close.specClosed` (`LinuxFs/Spec/os/File__CloseClosed.lean`): **not provable from the
+  model** (`File.Close.impl` asks `FdKind(-1)`, stuck on a closed fd), a hypothesis of `Create.wp_proof`;
+  proposed trusted change (pending the user): the model returns Go's `&PathError{"close", name,
+  ErrClosed}` on fd -1. **Changed from the proposal**: arm 4 does not return the two spines (one stays
+  with the pipeline `renameWAL` started, which an error leaves running, so `Create` could never give the
+  caller's area spine back); instead their area part is the invariant's lend (`walInv_areaPath`,
+  `AreaPath.lean`), and `Create`'s caller's spine is never lent. **Not made** (arm 2): as stated it is
+  unprovable (`walOpenWF` holds `walNamed dir` and `walNamesFrag none`, which only `Create`'s parent fsync
+  and registration give, after `renameWAL` returns; and `U (some x)` holds the lock token the handle holds
+  too, so the arm is contradictory for `Create`, which does not use that). It needs a handle before
+  naming (`walDirH` without `walNamed`, with `walNamesFrag (some dir)`), which `Create`'s arm 1 would build
+  too, both then going through the parent fsync and the registration: not designed. `Create` leaves arm 2
+  a `sorry`.
 
 ## 2026-11-14: `os.File.Truncate.specAu` (the part's, `LinuxFs/Spec/os/File__TruncateAu.lean`) -- the outcome's `tc` domain
 

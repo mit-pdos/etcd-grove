@@ -2,7 +2,7 @@
 `wal.Create` over `fsExt`: the proof (W4 of `notes/wal-fsext-plan.md`; spec
 `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/Create.lean`). The callees' specs not yet proved
 over `fsExt` are hypotheses (`CreateCallees.lean`; the W4 log lists them). **Unfinished**: the body is
-proved up to the frontier `sorry` after the call of `renameWAL` (the W4 log, eighteenth session, says what is left). Lean-first.
+proved through the call of `renameWAL` and its committed-error arm; its other three arms are `sorry` (the W4 log, nineteenth session, says what is left). Lean-first.
 -/
 module
 
