@@ -141,7 +141,7 @@ theorem walHandleIn_idx (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoSt
     ipureintro
     exact ⟨Hen, Hlt, Hpure⟩
   · ipureintro
-    exact Hpure.2.2.2.2.2.1
+    exact Hpure.2.2.2.2.1
 
 end handle
 

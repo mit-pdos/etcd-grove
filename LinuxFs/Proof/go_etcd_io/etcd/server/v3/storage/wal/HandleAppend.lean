@@ -199,9 +199,9 @@ theorem walHandleIn_append (P : WalPbIn GF) (Mr : WalMarshal) (R : Roots) (jr : 
       iframe Hm Hb Hv
       ipureintro; exact hm
     ipureintro
-    obtain ⟨p1, p2, p3, p4, p5, ⟨p6a, p6⟩, p7⟩ := hp
+    obtain ⟨p1, p2, p3, p4, ⟨p6a, p6⟩, p7⟩ := hp
     have hidx' := hidx (p6a hr) p6
-    refine ⟨WalHS.split_snoc Mr h o hc p1, p2, p3, p4, p5, ⟨fun h0 => ?_, hidx'.2⟩, p7⟩
+    refine ⟨WalHS.split_snoc Mr h o hc p1, p2, p3, p4, ⟨fun h0 => ?_, hidx'.2⟩, p7⟩
     exact hidx'.1 (by simpa [hr] using h0)
   isplitl [Hlb]
   · iexact Hlb

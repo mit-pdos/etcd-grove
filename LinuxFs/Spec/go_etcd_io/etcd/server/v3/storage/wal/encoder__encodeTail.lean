@@ -3,9 +3,8 @@
 `saveEntry`'s and `saveState`'s proofs until the tail's writer accepts writes past its preallocated size (the
 window of writes past the size, I3b log): `encoder.encode.specG` over the tail's writer (`wal.tailWriter`)
 without `tailOk`'s size clause, the size growing with the writes (and with them the tail's resize window open,
-`TailMetaW`, until a `sync`). The stream bound (ledger 2026-11-14, "the batch's size"): the encoder's bytes and
-the record's frame below ext4's maximum offset, the caller's (`Save`'s batch bound and the handle's stream end);
-the post's size then below it too. Lean-first.
+`TailMetaW`, until a `sync`). No bound on the stream (withdrawn 2026-11-14, `wal-maxb14`): the writes that
+succeed land below ext4's `s_maxbytes` (`fsExt`'s `maxBytes`), so the post's size stays below it. Lean-first.
 -/
 module
 
@@ -30,7 +29,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 
 /-- **`e.encode(rec)` on the WAL's tail** (see the file header): the encoder's bytes and the record's frame a
-prefix of the tail's intended stream past `o0`, below ext4's maximum offset; on success, the tail written to some `out'` (the encoder holding
+prefix of the tail's intended stream past `o0`; on success, the tail written to some `out'` (the encoder holding
 `pend'`, `out' ++ pend'` everything it was given), its size `sz'` grown as needed. *Error*: the tail's
 resources lost (the invariant holds what was written). -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.specTail (Mr : WalMarshal) : Prop :=
@@ -40,7 +39,6 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.specTail (Mr : WalMa
   recSize (recOf ⟨t, hash.crc32.crc32c c d, d⟩) < 2 ^ 47 →
   out ++ pend ++ frame (walRecEnc ⟨t, hash.crc32.crc32c c d, d⟩) <+: (tailStream Mr H md cuts).drop o0 →
   o0 + out.length ≤ sz → sz ≤ 0xffffffff000 →
-  o0 + out.length + pend.length + (frame (walRecEnc ⟨t, hash.crc32.crc32c c d, d⟩)).length ≤ 0xffffffff000 →
   {{ WalFs.walAreaOk walCodec Mr R jr r ∗ encEnv ∗ ownEncoder e (wal.fileWi f) c pend ∗
       walTailW (W := W) f fd name dir γ i H md cuts o0 sz out TailMetaW ∗ encRecIn rp t d }}
     (App (Val (e @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.encoder.ty @!!
@@ -50,8 +48,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.specTail (Mr : WalMa
         recRoC rp (recOf ⟨t, hash.crc32.crc32c c d, d⟩) ∗
         ((∃ (out' : List w8) (sz' : Nat), ⌜err = GoInterface.nil ∧
             out' ++ pend' = out ++ pend ++ frame (walRecEnc ⟨t, hash.crc32.crc32c c d, d⟩) ∧
-            o0 + out'.length ≤ sz' ∧ sz' ≤ 0xffffffff000 ∧
-            o0 + out'.length + pend'.length ≤ 0xffffffff000⌝ ∗
+            o0 + out'.length ≤ sz' ∧ sz' ≤ 0xffffffff000⌝ ∗
             walTailW (W := W) f fd name dir γ i H md cuts o0 sz' out' TailMetaW) ∨
          ⌜err ≠ GoInterface.nil⌝) }}
 

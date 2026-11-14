@@ -483,3 +483,32 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   corrections to its wording found in the proof: the fact is on the stream's end, not the offset (a `Save` that
   syncs flushes its pending bytes after its `Seek`, so the next `Save` may start at `SegmentSizeBytes` plus the
   buffer), and its bound covers a cut's headers (the metadata may reach 2^41 bytes).
+- **Withdrawn (2026-11-14, `wal-maxb14`).** The model now bounds every file at ext4's `s_maxbytes`
+  (`fsExt`'s `maxBytes = 0xffffffff000`, a trusted semantics change pending the user's review:
+  `examples/osfs/semantics/data_maxbytes.go`, measured on configuration C). A write never lands a byte at or
+  past it, so the tail's written stream stays below it by the writes' success alone, and nothing needs a
+  bound on the stream before the write: `Save` is back to the per-entry premise of "no bound on the records'
+  size" (needed by the frame encoding, not by the offsets), the handle's stream-end fact
+  (`o0 + |out| + |pend|`, in `walHandleIn` and the sealed `walOpenWF`) is gone, and so are
+  `saveEntry`/`saveState`'s stream premise and `encode.specTail`'s (entry below).
+
+## 2026-11-14: `wal.WAL.Save.spec` (the part's, over `fsExt`) -- the batch premise withdrawn: the model's file-size bound
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__Save.lean` (premise
+  `walBatchBytes Mr es < 2 ^ 40`); the internal `WAL__saveEntry.lean`, `WAL__saveState.lean` (premise
+  `(tailStream Mr h.H h.md h.cuts).length ≤ 0xffffffff000`), `encoder__encodeTail.lean` (premise
+  `o0 + |out| + |pend| + |frame| ≤ 0xffffffff000`, and the same of the result in its post); the sealed handle
+  (`walHandleIn`'s `o0 + |out| + |pend| ≤ 0xffffffff000`, `walOpenWF`'s `< 2 ^ 43`).
+- **Defect.** `SaveSnapshot` never cuts (S/wal.go:1137-1162), so `n` calls in a row grow the tail by `n`
+  records, and no constant bound on the stream holds across them (`SaveSnapshot.wp_proof`'s `sorry`, W6 log,
+  thirteenth session); the batch premise only moved the problem.
+- **Evidence.** W6 log, thirteenth and fourteenth sessions; ext4's `s_maxbytes` (`ext4_max_size`,
+  `generic_write_check_limits`, `inode_newsize_ok`, `vfs_fallocate`), measured on C (`TestMaxBytes`).
+- **Change (made).** The model: `PWriteFinish` lands nothing at or past `maxBytes`; `FtruncateFinish`,
+  `FallocFinish` land no target past it; `CrashFile`, `FsInit` sizes at most it (`OsWf.sizes`). Clients get
+  it through `PwCut` (a write's landed end) and `wp_osMeta_size` (any `OsMeta`'s size, before a step). The
+  WAL: `Save`'s premise back to `∀ e ∈ es, (Mr.encEntry e).length < 2 ^ 40`; the stream premises and the
+  handle's stream-end fact removed (the handle keeps `o0 + |out| ≤ sz ≤ 0xffffffff000`, which the writes'
+  success now gives). A client-visible weakening of `Save`'s premise; no new ghost state.
+- **Decision.** Adopted provisionally (the coordinator's decision of 2026-11-14 for `wal-maxb14`), pending
+  the user's review of the trusted semantics change.

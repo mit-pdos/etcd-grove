@@ -28,9 +28,8 @@ variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.A
 entry record; encodes it (`MustMarshalMessage`, `encode`) and sets `w.enti` to its index (below
 `2^64-1`, `Save`'s premise). When it is the last record (`rest = 1`), the history's last index is
 at most the larger of its index and `w.snapi` (the handle's bound at `rest = 0`; `Save` has it: the
-entry is the operation's last, and `walMaxSnapIdx ≤ snapi`). The tail's whole stream (the records not
-yet encoded too) below ext4's maximum offset (`Save`'s, from its batch bound and the handle's stream
-end, ledger 2026-11-14, "the batch's size"). The tail's resize window may be open, before and after
+entry is the operation's last, and `walMaxSnapIdx ≤ snapi`). No bound on the tail's stream (withdrawn
+2026-11-14: a write never lands past ext4's `s_maxbytes`, `fsExt`'s `maxBytes`). The tail's resize window may be open, before and after
 (`TailMetaW`: a write past the preallocated size opens one, W6 log, thirteenth session), its size `sz'`
 grown with the writes. *Error* (a write of the page writer): the handle lost. -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.saveEntry.spec (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
@@ -39,7 +38,6 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.saveEntry.spec (P : WalPbIn GF)
   (h.rest = 1 → walLastIdx (h.H.map WalOpG.toM) ≤ max (uint.nat e.Index') (uint.nat h.snapi)) →
   (((tailRecs Mr h.H h.md h.cuts)[(tailRecs Mr h.H h.md h.cuts).length - h.rest]?).map
     (fun x => (x.typ, x.data)) = some (entryType, Mr.encEntry e)) →
-  (tailStream Mr h.H h.md h.cuts).length ≤ 0xffffffff000 →
   {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walHandleIn P Mr w dir h TailMetaW ∗ P.entIn l e }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"saveEntry")) (Val #l))
   {{ (err : GoInterface), RET #err;
