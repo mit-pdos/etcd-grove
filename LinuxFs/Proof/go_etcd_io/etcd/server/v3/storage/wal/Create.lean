@@ -610,7 +610,8 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
     -- `syncDir(tmpdirpath)` (F-N1): `nm.tmp` fsynced, committing `J`'s entries (all below `mJ`)
     imod osNames_next R J _ _ _ CoPset.subseteq_top $$ Hsi HJr with ⟨HJr, #HlbJr⟩
     ihave ⟨Ho, #HlbO⟩ := crOut_logLb J (walFileName 0 0) _ _ x0 s0 i $$ Ho
-    ihave #HlbJ0 := osLogLb_max _ (x0 + 1) $$ [HlbJr HlbO]
+    ihave #HlbJ0 := osLogLb_max (hJ.restrict J ((NameSet.except []).diff [walFileName 0 0])).next
+      (x0 + 1) $$ [HlbJr HlbO]
     · iframe #
     icases (osPathS_frac R r e a' jr).1 $$ Hp with ⟨Hpe, Hpa⟩
     icases (osNames_join jr (.only [tmpName nm]) e b' hT3 hqq).2 $$ HT with ⟨HTe, HTb⟩
