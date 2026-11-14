@@ -46,6 +46,13 @@ Worktree `/shared/etcd-grove-rs56`, branch `restart-s7` (off `lean`). Plan: `not
   (`RestartRowsSingle.lean`); full build OK (flock, 64G); tcb unchanged (870, 4); bounds/mode/api/layout ok.
   Waiting for etcd-grove-81's review of the interface diff (`/shared/tmp/restart-s7/p2a-interface.diff`), then land.
 
+- **Weaker exported lemmas (P2-a; the review's item 5)**: lemmas of raft's importable protocol modules took
+  extra premises: `replOk_message` (the step's configuration `c`, its destination fact, `cfgCommitted`),
+  `ownRaftGhost_step_win`/`_send_apps` (the destination fact), `outMsgOk_self`/`outMsgOk_pend` (the message
+  is no snapshot), `outboxRelP_isRaftMsg(_gen)`/`outboxRelP_isRaftMsgs` (`SnapNotSelf`); and `isMessage`'s
+  `.snap` clause, `outMsgOk`'s waiting disjunct and `isRaftMsg` each gained a conjunct. Nothing outside raft
+  uses them (the independent review checked: no client-visible fact weaker outside raft).
+
 ## Next, in order
 1. P2-a: the law in `isRaftMsg` (raft side, then `srvRestartRows_single`); stop at the raft interface diff
    for etcd-grove-81's review.

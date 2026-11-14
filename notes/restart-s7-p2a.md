@@ -23,13 +23,16 @@ By reading, the same holds of every path:
 - `send` panics on a non-response message addressed to `r.id` (`message should not be self-addressed`):
   the "not the sender" half, about the sending node's id, not the message's `From` field.
 - The tracker's keys are its configuration's voters and learners (`confchange`'s `checkInvariants`), and
-  the tracker changes only in `applyConfChange` (fed by the application) and `restore` (a snapshot).
+  the tracker changes only through `switchToConfig`, called from `newRaft` (`raft.go:479`, the storage's
+  initial `ConfState`), `appliedSnap` (`raft.go:787`, an applied snapshot) and `applyConfChange`
+  (`raft.go:1971`, fed by the application); `restore` does not touch `r.trk`.
 
 ## The uncommitted-entries question: does not arise
 
-The tracker's configuration changes only through `ApplyConfChange`, whose dynamic-mode premise in the
-raft API (`Spec/go_etcd_io/raft/v3/RawNode__ApplyConfChange.lean`, `DynCCPre`) is "the next **committed**
-conf entry's decoded change", and through `restore` of a snapshot, whose configuration is certified
+The tracker's configuration changes only through `switchToConfig`: at `newRaft` (the storage's initial
+`ConfState`), at `applyConfChange` (`ApplyConfChange`, whose dynamic-mode premise in the raft API,
+`Spec/go_etcd_io/raft/v3/RawNode__ApplyConfChange.lean`, `DynCCPre`, is "the next **committed** conf
+entry's decoded change"), and at `appliedSnap` of an applied snapshot, whose configuration is certified
 (`raftSnapCert`: the fold of the recorded decisions over a full log prefix ending at the snapshot). So
 the sender's configuration at send time is the fold over a committed prefix, and the server's static
 membership (`srv_confAt_eq_simple`: every committed configuration is the boot one) applies to it. A

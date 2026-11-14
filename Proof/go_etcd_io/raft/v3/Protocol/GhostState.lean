@@ -178,8 +178,11 @@ theorem dynEnv_static (γ : RaftNames) (id : w64) (c : CfgM) (s : PState) (HC : 
 statically nothing (the tracked bound is `isMessage`'s own clause); dynamically a voter or learner
 of the configuration `c` of a committed log `L` under recorded decisions (`CfgAt`): the sender's
 tracker's configuration when it sent it (`maybeSendSnapshot` sends only to a peer of its progress
-map, whose ids are the configuration's; raft v3's tracker follows the committed conf entries the
-application applies, `ApplyConfChange`'s `DynCCPre`, and a restored snapshot's certified one). -/
+map, whose ids are the configuration's). Raft v3 (`565c2bd`) sets the tracker only through
+`switchToConfig`, called from `newRaft` (`raft.go:479`, `Storage.InitialState`'s `ConfState`),
+`appliedSnap` (`raft.go:787`, an applied snapshot's certified configuration) and `applyConfChange`
+(`raft.go:1971`, the committed conf entries the application applies, `ApplyConfChange`'s `DynCCPre`);
+`restore` does not touch it. -/
 def snapDstOk (γ : RaftNames) (d : w64) : IProp GF :=
   iprop(⌜γ.reDyn = none⌝ ∨ ∃ (L : List EntryM) (M : DecMap) (c : CfgM),
     isCommitted γ L ∗ decLb γ M ∗ ⌜CfgAt γ M L c ∧ d ∈ c.voters ∪ c.learners⌝)
@@ -2394,7 +2397,8 @@ def outMsgOk (γ : RaftNames) (id : w64) (s : PState) (πc : List Prom) (W : Dur
   iprop(isMessage γ m ∨
     (□ (durFrags γ id W -∗ isMessage γ m)) ∗ ⌜m.dst ≠ id → OutPend id s πc⌝ ∗
     -- (restart S7.3, 2026-11-14) a message waiting for the fragments is no snapshot (the
-    -- waiting ones are a follower's responses and a candidate's vote requests), so a snapshot's
+    -- waiting ones are a follower's responses, a candidate's vote requests and a leader's
+    -- self-addressed `MsgAppResp`, `outMsgOk_self`), so a snapshot's
     -- destination fact (`snapDstOk`) is the outright message's, never behind the fragments
     -- (`outMsgOk_snapDst`)
     ⌜m.ty ≠ .snap⌝)

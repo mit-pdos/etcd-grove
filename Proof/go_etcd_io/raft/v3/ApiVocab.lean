@@ -447,9 +447,11 @@ theorem isRaftMsg_dat (γ : RaftNames) (id : w64) (st : MsgSt) :
   iexact H
 
 /-- (restart S7.3, 2026-11-14; `notes/restart-s7-p2a.md`) **A `MsgSnap`'s destination: not its
-sender, and tracked**: to an id other than the sender's `id` (`SnapNotSelf`), a voter or learner of
-a committed log's configuration (`snapDstOk`, the sender's tracker's when it sent it: raft sends a
-`MsgSnap` only to a peer of its progress map). What a `Ready` says of each message it hands out
+sender, and tracked**: to an id other than the sender's `id` (`SnapNotSelf`), and, **in raft's dynamic
+mode only**, a voter or learner of a committed log's configuration (`snapDstOk`, the sender's
+tracker's when it sent it: raft sends a `MsgSnap` only to a peer of its progress map); in the static
+mode nothing beyond `To ≠ id` (the tracked bound is `isMessage`'s own clause). Clients use it in
+`InvNodeRule.snapTo_confAt`'s form. What a `Ready` says of each message it hands out
 (`readyRest`), before the batch is durable: it reads only the committed log and the sender's
 configuration at the step, never the node's unsynced state; and what `isRaftMsg` says
 (`isRaftMsg_snapTo`). -/

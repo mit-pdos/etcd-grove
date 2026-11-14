@@ -364,7 +364,9 @@ theorem sentMsg_appFrom (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) 
 
 /-- (restart S7.3, 2026-11-14; `notes/restart-s7-p2a.md`) **A message's `MsgSnap` facts, in the
 cluster `γ`** (persistent; raft's `snapToOk` at the cluster's raft names): a `MsgSnap` from node `id`
-is not to `id`, and to a voter or learner of a committed log's configuration. -/
+is not to `id`, and, in raft's dynamic mode only, to a voter or learner of a committed log's
+configuration (in the static mode nothing more). Clients read it through
+`InvNodeRule.snapTo_confAt`. -/
 @[no_expose] def snapTo (γ : Cluster) (id : w64) (st : MsgSt) : IProp GF :=
   snapToOk γ.raft id st
 
@@ -373,8 +375,9 @@ instance snapTo_persistent (γ : Cluster) (id : w64) (st : MsgSt) :
   unfold snapTo; infer_instance
 
 /-- (restart S7.3, 2026-11-14; `notes/restart-s7-p2a.md`) **A sent `MsgSnap`'s destination** (`snapToOk`):
-not its sender `src` (`send`'s panic), and a voter or learner of a committed log's configuration
-(`snapDstOk`: the sender's tracker's when it sent it). -/
+not its sender `src` (`send`'s panic), and, in raft's dynamic mode only, a voter or learner of a
+committed log's configuration (`snapDstOk`: the sender's tracker's when it sent it); see
+`InvNodeRule.snapTo_confAt`. -/
 theorem sentMsg_snapTo (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) :
     sentMsg (GF := GF) γ N src st ⊢ snapTo γ src st := by
   unfold sentMsg ApiImpl.sentMsg snapTo
@@ -933,7 +936,8 @@ theorem readyRest_facts (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (
 
 /-- (restart S7.3, 2026-11-14; `notes/restart-s7-p2a.md`) **A `Ready`'s messages' `MsgSnap` facts**
 (`snapToOk`), at its receive, before the batch is durable: each `MsgSnap` is not to the node `id`
-and to a voter or learner of a committed log's configuration. -/
+and, in raft's dynamic mode only, to a voter or learner of a committed log's configuration; see
+`InvNodeRule.snapTo_confAt`. -/
 theorem readyRest_snapTo (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState)
     (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan) (ms : List QMsg)
     (ss : Option (w64 × StateType)) :

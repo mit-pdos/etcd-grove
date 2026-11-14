@@ -695,13 +695,18 @@ def bootstrapRestartContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfi
 2026-11-12; a premise of `NewServer.specR` only, at the image's witnesses `A` and `σ`; S7 deletes it):
 once `NewServer` has the restarted node's names `γn` (`NodeStartSpecR`'s: the cluster's raft names
 `γ`, the member `id`, no start log, the restart point's backend log the image's `A`, the start term
-the records' hard state's) and its read names `γr` at `γ`, a ghost update gives row 4
+the records' hard state's), its read names `γr` at `γ` and the server's read-only member id field at
+`id` (restart S7.3, 2026-11-14: the sent `MsgSnap`s' sender), a fancy update at `⊤` (restart S7.3:
+until then a ghost update; the rows' own wands are fancy updates at `⊤` too, so that a one-member
+cluster discharges them through the cluster's and the server's invariants, `srvRestartRows_single`;
+D-S7-6 superseded on this point) gives row 4
 (`rnSnapTermAbove γn`, which `NodeStartSpecR`'s installer takes) and row 1 (`srvWinPend s γr γn`,
 `isServerBuiltC`'s `Hwpend`), each with the frozen text R2d'a gave it. One-shot. **Row 4 is true of
 Go but not provable from raft's API** (`rnSnapTermAbove`'s docstring: R2d'b's target). **Row 1 is
 false on a disclosed class** (`srvWinPend`'s docstring: a restarted member later elected that
 snapshots a lagging follower). So a `NewServer.specR` with this premise is honest only as an open
-triple: it is linked into no closed theorem, and S7 (R2s) deletes both rows and this premise.
+triple in general: it is linked into no closed theorem; R2s-A deletes both rows and this premise; in a
+one-member cluster both rows hold (`srvRestartRows_single`, `RestartRowsSingle.lean`).
 (Restart B2, 2026-11-14, decided by etcd-grove-81 on the reviewer's finding: the update's scope
 parenthesized, `|==> (rnSnapTermAbove γn ∗ srvWinPend s γr γn)` as this docstring says; until then the
 text parsed as `(|==> rnSnapTermAbove γn) ∗ srvWinPend s γr γn`, `srvWinPend` outside the update, a
