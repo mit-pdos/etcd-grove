@@ -258,7 +258,7 @@ theorem walInvBody_sync (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
       · iexists G0; iframe HGs; ipureintro; exact walMapLe_sync hd hmH HG0
       · isplitr
         · ipureintro; exact walKeysInArea_sync hd Hk0
-        · iapply walStepsLb_mono _ _ (fun n hn => hn.insert rfl (hn dir d hd)) $$ Hst
+        · iapply walStepsLb_mono _ _ (fun n hn => WalsStepped.insert (d' := { d with m := d.H.length }) hn rfl (hn dir d hd)) $$ Hst
     isplitr
     · ipureintro; exact Har
     isplitl [Hpre Hseg Hrest]

@@ -80,7 +80,7 @@ theorem segStream_snoc (C : WalCodec) (Mr : WalMarshal) (d : WalDur) {cuts : Lis
 
 /-- **The static relation after a cut's rename** (see the file header). The old layout: its last
 segment `g0` synced and truncated at its stream (`hlast0`), the history synced (`hm`), its end a cut
-position past the last cut (`hcut`). The new segment `g`: named `walFileName sq ix` above every old
+position past the last cut (`hcut`). The new segment `g`: named `walFileName sq ix` (`sq` the old tail's sequence plus one, `hsq`) above every old
 name and above every index before `|H|`, its bytes the stream `wr` bytes long (its headers' frames)
 then zeros, all durable, its `OsMeta` sized to them; the directory's entries `ents'` the old ones
 with `g`'s name. -/

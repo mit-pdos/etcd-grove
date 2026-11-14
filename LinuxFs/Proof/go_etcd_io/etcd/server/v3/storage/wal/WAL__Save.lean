@@ -3,7 +3,9 @@
 proved: `saveEntry`/`saveState`/`sync` wait for writes past the tail's preallocated size), the laws of
 the client's raft messages (`WalPbIn.IsEmptyLaw`, `WalPbIn.MustSyncLaw`, `WalPbIn.ZeroLaw`: the part
 cannot import the main tree's raft specs, plan §10), `WAL.tail`, and Perennial's `Mutex`. The update
-commits at the call's first step (`walHandleIn_append`); then (S/wal.go:1093-1135): the lock, the
+commits right after the lock (`walHandleIn_append`; the deferred `Unlock`'s resolution, a counted step, raises the
+WALs' step bound read at
+a look, `walHandleIn_steps`, which the commit deposits); then (S/wal.go:1093-1135): the lock, the
 shortcut (an empty state and no entries: nothing written, the committed handle quiescent already), the
 nil states replaced by fresh zero ones (`ZeroLaw`), `MustSync`, the entries' records (the loop's
 invariant `SaveSt`, `SavePure.lean`), the state's, the tail's offset (`Seek`, always the encoder's
@@ -124,27 +126,28 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
   icases walHandleIn_lockFacts P Mr w dir h TailMetaW $$ Hh with ⟨Hh, #Hmu, #Hsync, #Hseg⟩
   icases walHandleIn_pure P Mr w dir h TailMetaW $$ Hh with ⟨Hh, %hpu0⟩
   have hix0 := hix.1 hD.1
-  -- the WALs' step bound at a look (`⧖ |H|`), raised by the call's first step (the error result's
-  -- zero value), deposited by the commit (`notes/bounds-plan.md`, "The WAL's segment sequence")
+  -- the WALs' step bound at a look (`⧖ |H|`), raised by the receipt of the deferred `w.mu.Unlock`'s
+  -- resolution, deposited by the commit right after it (`notes/bounds-plan.md`, "The WAL's segment sequence")
   iapply (wp_notCrashed_acc _ _ rfl)
   iintro Hnc
   imod walHandleIn_steps P Mr R jr r w dir h TailMetaW $$ Harea Hnc Hh with ⟨Hnc, Hh, #Hst⟩
   imodintro
   iframe Hnc
-  wp_bind (App (Val (GoInstruction (GoZeroVal _))) (Val _))
-  iapply wp_go_step_preceipt'
-  case hv => exact isPanic_intoVal _
-  isplitr
-  · iexact Hst
-  inext
-  iintro - #Hst1 -
-  iapply wp_value'
-  -- the commit, after the call's first step
+  ihave %hlen := ownSlice_len $$ Hsl
+  iunfold walEntsIn at Hes
+  icases Hes with #Hes
+  ihave %hlen2 := BigSepL2.bigSepL2_length $$ Hes
+  wp_auto
+  wp_apply wp_with_defer as %defer defer
+  (try wp_auto)
+  wp_apply +noauto sync.Mutex.wp_Lock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync] as ⟨Hlocked, -⟩
+  wp_raise_receipt Hst
+  -- the commit, right after the lock
   iapply (wp_notCrashed_acc _ _ rfl)
   iintro Hnc
   imod walHandleIn_append P Mr R jr r w dir h (WalOpG.save hs es).toRaw sized Q hD.1
     (saveOp_fit Mr hs es (hS hs) hsz) (fun a b => saveOp_idx Mr h.H hs es _ _ a b)
-    (saveOp_noMax hs es hidx) TailMetaW $$ Harea Hnc Hh Hau Hst1 with ⟨Hnc, Hh, #Hlb, HQ, %hcp⟩
+    (saveOp_noMax hs es hidx) TailMetaW $$ Harea Hnc Hh Hau Hst with ⟨Hnc, Hh, #Hlb, HQ, %hcp⟩
   imodintro
   iframe Hnc
   have hcut : ∀ b ∈ h.cuts, b ≤ h.H.length := fun b hb => by
@@ -153,14 +156,6 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
     · have := (List.getElem?_eq_some_iff.1 h1).1; simp at this; omega
   have hs0 := SaveSt.init Mr h hs es
   generalize ({ h with H := h.H ++ [(WalOpG.save hs es).toRaw], rest := (opDs Mr (WalOpG.save hs es).toRaw.toM).length } : WalHS) = h1 at hs0 ⊢
-  ihave %hlen := ownSlice_len $$ Hsl
-  iunfold walEntsIn at Hes
-  icases Hes with #Hes
-  ihave %hlen2 := BigSepL2.bigSepL2_length $$ Hes
-  wp_auto
-  wp_apply wp_with_defer as %defer defer
-  (try wp_auto)
-  wp_apply sync.Mutex.wp_Lock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync] as ⟨Hlocked, -⟩
   (try wp_auto)
   -- the shortcut's test
   wp_apply (wp_empty hp hs) $$ [] as %b %hb

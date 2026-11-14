@@ -13,8 +13,10 @@ map `walOwn` with it) and in the open handle's tail record (both halves), the la
   the crash condition has no alternative layout, so `crashOk_snoc` gives it); `o`'s records must fit
   a frame (`hfit`: the WAL's records fitting, as the static relation's `fit` says, so do they with
   `o`'s).
-* `walTail_append`: the step, at an update of mask `⊤` (`wp_notCrashed_acc` before any step of the
-  call): `walInv` opened with `notCrashed`, the client's update (at `walAuMask`) committed; the client's
+* `walTail_append`: the step, at an update of mask `⊤` (`wp_notCrashed_acc` right after `w.mu.Lock()`, whose
+  deferred `Unlock`'s resolution, a counted step, raised the WALs' step bound to `⧖ (|H| + 1)`, which the
+  commit deposits: `walGhost_updR`;
+  `Steps.lean`): `walInv` opened with `notCrashed`, the client's update (at `walAuMask`) committed; the client's
   `Q d` (`d.H` the handle's history), the handle's `walLenLb` at the new length, and the cuts' facts of
   the static relation (`walCutPos`, increasing: `cut.spec`'s premises).
 -/
