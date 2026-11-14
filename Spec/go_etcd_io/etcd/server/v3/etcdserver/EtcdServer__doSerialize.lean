@@ -52,7 +52,8 @@ such bounds (`srvAuthLb`, as `Range`'s), and with `chk`'s refusal `R info err` o
 was passed: on an error, with auth on, the request side's reasons (`AuthInfoFromCtx`'s, `reqSideWhy`),
 `chk`'s refusal of the auth info the request side gave (`infoWhy`: the anonymous one, or one bound to
 the request), or the revision re-check's (`oldRevWhy`: a state no older than `n` whose revision is
-not the info's); `serialWhy`. `R := fun _ _ => True` and `n = 0` give back the reason-free triple. -/
+not the info's); `serialWhy`. `R := fun _ _ => True` and `n = 0` give back the reason-free triple, with the premises `srvAuthLb s E`
+and `□ auth.authPubLbM E.authMode 0` added (`specOff` discharges both with auth off). -/
 abbrev EtcdServer.doSerialize.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (chk get : GoFunc) (G Q : IProp GF)

@@ -48,7 +48,10 @@ the context's), and which (`rangeErrOut`, k8s etcd3 7c-2 part 2, S3: mvcc's `Err
 modes' former specs). (auth-guard-completeness G4, 2026-11-14) And why, if the auth checks refused
 it (`rangeWhyOut`): with auth on, the request side's reasons, the read check of `[key, e)` refusing
 the auth info the request side gave (`permWhy`, at states no older than `n`), or `doSerialize`'s
-revision re-check (`oldRevWhy`); otherwise the error is the read index's or the read's own. -/
+revision re-check (`oldRevWhy`), or the error is the read index's or the read's own; with auth off
+or in the mode `any` the conjunct is `True` (`rangeWhyOut_off`). An auth error variable is the first
+case, or `rangeKeys`' wrapped context error, which Perennial's errorf model leaves opaque
+(`rangeWhy_of_authErr`). -/
 abbrev EtcdServer.Range.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (o : OpFull)

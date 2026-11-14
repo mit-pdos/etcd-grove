@@ -43,8 +43,10 @@ with auth off). A success gives:
 An error leaves `resp` unconstrained, as Go returns it, and says why if the auth checks refused it
 (`txnWhyOut`; auth-guard-completeness G4, 2026-11-14): with auth on, the request side's reasons, one
 of the transaction's range checks refusing the auth info the request side gave (`permWhy`, at states
-no older than `n`), or `doSerialize`'s revision re-check (`oldRevWhy`); otherwise the error is the read
-index's or the read's own.
+no older than `n`), or `doSerialize`'s revision re-check (`oldRevWhy`), or the error is the read
+index's or the read's own; with auth off or in the mode `any` the conjunct is `True` (`txnWhyOut_off`).
+Margin: the read's own errors include a done context's `%w`-wrapped error (`mvcc.ctxErrorf`), which
+Perennial's errorf model leaves opaque, so an auth error variable is not told apart from it here.
 
 *Writing*: the proposal path. The caller's permit (`txnPermitM`) gives the update its step and,
 with auth on, the transaction's shape checked against the permission cache and the update's

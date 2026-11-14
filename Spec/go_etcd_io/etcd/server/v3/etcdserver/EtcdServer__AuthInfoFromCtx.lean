@@ -59,8 +59,9 @@ token, or the flag read `false` at such a state, `auth.noPrincipalFrom`; the TLS
 only after the store's `(nil, nil)`) and why it failed (`ErrInvalidAuthToken`: the flag read `true` at
 such a state and the context carries a token, `auth.tokRefusedFrom`; the token provider's contract says
 nothing more of a refused token). (G4, 2026-11-14) A principal comes with the flag read `true` at such a
-state (the store's, `store.go:1073`), or from the TLS fallback (`srvTLSId`), which reads no flag
-(`AuthInfoFromTLS`, `v3_server.go:1214`; `nonissues/etcd-auth-old-revision-auth-disabled.md`). -/
+state (the store's, `store.go:1073`), or the server's TLS fallback is enabled (`srvTLSId`: only that;
+a principal from the fallback, `AuthInfoFromTLS`, `v3_server.go:1214`, comes with no flag read:
+`nonissues/etcd-auth-old-revision-auth-disabled.md`). -/
 abbrev EtcdServer.AuthInfoFromCtx.specLb : Prop :=
   ∀ (s : Loc) (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) (cca : Bool)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (n : Nat),

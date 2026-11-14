@@ -83,9 +83,10 @@ instance rangeWhyOut_persistent (s : Loc) (M : auth.AuthMode) (n : Nat) (ctx : G
   unfold rangeWhyOut; infer_instance
 
 /-- **Why a read-only transaction `t` was refused** on the server `s` (persistent): with auth on, the
-request side's reasons, or one of its reads' checks (`apply.txnMay`, of a wire transaction `tw`
-describing `t`: `IsRangePermitted` of a comparison's or a get's range) refusing the auth info the
-request side gave (`permWhy`), or `doSerialize`'s revision
+request side's reasons, or a range check refusing the auth info the request side gave (`permWhy`)
+of a permission `x` that some wire transaction `tw` whose model is `t` may check (`apply.txnMay tw x`:
+`IsRangePermitted` of one of its comparisons' or gets' ranges; `tw` is existential, not the request's
+own wire value, which `t` does not determine), or `doSerialize`'s revision
 re-check (`oldRevWhy`); `True` in the modes `off` and `any`. -/
 def txnWhy (s : Loc) (M : auth.AuthMode) (n : Nat) (ctx : GoInterface) (t : TxnModel)
     (err : GoInterface) : IProp GF :=
@@ -152,6 +153,36 @@ theorem txnWhy_of_serialWhy (s : Loc) (M : auth.AuthMode) (γa : auth.AuthNames)
     · ipureintro; exact ⟨htw, hx⟩
     · iapply (permWhy_of_infoWhy s γa n n' h ctx err info x.1 x.2.1 .read herr) $$ Hi HR
   · iright; iright; iexact Ho
+
+/-- **An auth error variable from a failed `Range` is a refusal with its reason**, or `rangeKeys`'
+`%w`-wrapped context error (`mvcc.rangeKeysErr`), which Perennial's errorf model leaves opaque
+(`Spec/fmt/ErrorfWrap.lean`): not the read index's errors (`readErrIs_authErrVarIs`) nor mvcc's
+`ErrFutureRev`/`ErrCompacted` (their message cells, `errVarCell_authErrVarIs`). -/
+theorem rangeWhy_of_authErr (s : Loc) (M : auth.AuthMode) (n : Nat) (ctx : GoInterface) (o : OpFull)
+    (err : GoInterface) (herr : err ≠ GoInterface.nil) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ⊢
+      authErrVarIs err -∗ rangeWhyOut s M n ctx o err -∗ rangeWhy s M n ctx o err ∨ mvcc.rangeKeysErr err := by
+  iintro ⟨#Pa, #Pe, #Pm⟩ #Ha #H
+  ihave Hmi : (go_etcd_io.etcd.server.v3.storage.mvcc.mvccInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Pm
+  icases Hmi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
+    -, -, -, -, -, -, -, #C1, #C2, -⟩
+  unfold rangeWhyOut
+  icases H with (#Hw | #Hr | ⟨%ef, #Hef, %He⟩ | ⟨%ec, #Hec, %He⟩ | #Hk)
+  · ileft; iexact Hw
+  · ihave %h := readErrIs_authErrVarIs err $$ [$Pa $Pe] Hr Ha
+    exact absurd h herr
+  · iexfalso
+    subst He
+    iapply (errVarCell_authErrVarIs go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev
+      go!"mvcc: required revision is a future revision" _ (by decide) herr) $$ Pa C2 Hef Ha
+  · iexfalso
+    subst He
+    iapply (errVarCell_authErrVarIs go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted
+      go!"mvcc: required revision has been compacted" _ (by decide) herr) $$ Pa C1 Hec Ha
+  · iright; iexact Hk
 
 /-- The reasons are about the context's token only: a context with the same incoming metadata
 (`EnsureTrace`'s and the tracer's derived contexts) has the same ones. -/

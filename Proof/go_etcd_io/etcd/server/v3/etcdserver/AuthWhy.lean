@@ -9,7 +9,10 @@ the caller knew when it called (a lower bound `n` of the store's published index
 Every reason starts with a read of the enabled flag `true` at a state no older than `n`: in Go every
 refusal of these checks follows an `IsAuthEnabled()` of `true` during the call (`store.go:916`,
 `:1073`; `v3_server.go:1278`; `v3rpc/auth.go:192`). So a guard that refuses with auth disabled meets
-none of them.
+none of them. One exception (G4): `doSerialize`'s revision re-check (`oldRevWhy`) reads no flag, and
+its auth info may come from the TLS fallback, which reads none either; its reason has the flag read
+`true` only when the server's TLS fallback is off (otherwise `srvTLSId`:
+`nonissues/etcd-auth-old-revision-auth-disabled.md`).
 
 * the request side (`reqSideWhy`, common to every class): `ErrUserEmpty` when the context carries no
   token, or when the flag also read `false` at such a state (the flag changed since `n`; unordered:
@@ -43,7 +46,9 @@ without new trust).
 
 The guards' outcomes with the reason (`authedOutC`, `adminOutC`) are what their specs state; a caller
 that needs no reason drops it (`authedOutB_of_C`, `adminOutB_of_C`). TLS identities are out of scope
-(D4): `ErrUserEmpty`'s reason is "no token", silent on a client certificate. A guard that never
+(D4): `ErrUserEmpty`'s reason is "no token", silent on a client certificate; the one place they appear
+is `oldRevWhy`'s `srvTLSId` alternative (the fallback enabled), which a server without client-certificate
+auth excludes (`srvTLSId_false`). A guard that never
 returns meets every triple.
 -/
 module
@@ -369,8 +374,9 @@ instance infoWhy_persistent (s : Loc) (M : auth.AuthMode) (n : Nat) (ctx : GoInt
 /-- **Why `doSerialize`'s revision re-check refused** (persistent; `v3_server.go:1053`,
 `if ai.Revision != 0 && ai.Revision != s.authStore.Revision()`): `ErrAuthOldRevision`, for an auth
 info with a non-zero revision bound to the request (`principalBound`) that the request side gave
-with the flag read `true` at a state no older than `n` (or through the TLS fallback, `srvTLSId`,
-which reads no flag: `nonissues/etcd-auth-old-revision-auth-disabled.md`), and a state no older
+with the flag read `true` at a state no older than `n`, or with the server's TLS fallback enabled
+(`srvTLSId`: only that it is enabled; the principal may still have come from a token, but if it came
+from the fallback no flag was read: `nonissues/etcd-auth-old-revision-auth-disabled.md`), and a state no older
 than `n` (`Revision()`'s read, after the read) whose revision is not the info's. -/
 def oldRevWhy (s : Loc) (γa : auth.AuthNames) (n : Nat) (ctx err : GoInterface) : IProp GF :=
   iprop(auth.authErrOf .authOldRevision err ∗ ∃ info : go_etcd_io.etcd.server.v3.auth.AuthInfo,
@@ -428,15 +434,6 @@ theorem permWhy_of_infoWhy (s : Loc) (γa : auth.AuthNames) (n n' : Nat) (h : n 
   · iapply (auth.permRefusalFrom_mono γa n n' h) $$ Hr'
 
 end defs
-
-section defs2
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
-
-end defs2
 
 section apart
 variable [GooseExts] [GooseSemantics] [GooseInterp]

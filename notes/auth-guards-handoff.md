@@ -93,6 +93,19 @@ Every reason needs a flag read `true` no older than `n`; errors tied to their ca
   exported `apply_check_txn_auth_lb` unchanged. `Txn` takes `specLbW` (link: `=apply.CheckTxnAuth.wp_lbW_linked`).
 - `apply/Results.lean`: `admin_rejected_why` (`adminRejL` ⇒ `adminRefused` at the latest state),
   `kv_rejected_why`/`kv_rejected_why_quota` (`authOutL` with `.rejected .auth` ⇒ `refusedL`).
+- `rangeWhy_of_authErr` (`ReadWhy.lean`, review minor 7): an auth error variable in `rangeWhyOut` is
+  `rangeWhy`, or `rangeKeys`' wrapped context error (opaque: `errDesc` has no law for auth variables).
+- Review (etcd-grove-81, 2026-11-14): (a)-(c) accepted; (d) accepted for KV only.
+
+### Left (G4)
+
+- **The admin rejection's reason does not reach the proposer** (review MAJOR (d)). `admin_rejected_why` is
+  apply-level only: `admin_state_of_latest` (`Results.lean`) gives `adminStateR rq st st`, which a failing
+  step also gives, and `adminTieAr` (`KVAuthModel.lean`) says nothing when the result's error is set (nor
+  for a rejected outcome). Fix: in `adminTieAr`, `out = .rejected` (or `v.Err' ≠ nil`) ⇒ `adminRefused` at
+  `st` ∨ the step's own error, produced by `adminOut_model` (`ApplyTieOn.lean`) from `adminRejL` and carried
+  to the waiter; or an etcdserver-level result. Not done: `adminTieAr` is in the waiter's and the request
+  path's exported specs (21 uses), beyond the guards' internal specs.
 
 ## Follow-ups
 
