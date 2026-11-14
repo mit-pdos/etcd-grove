@@ -25,7 +25,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 theorem mvcc.eventBatch.add.wp_proof : mvcc.eventBatch.add.spec (GF := GF) (hG := hG) := by
   intro eb B e ev
-  wp_start as ⟨HB, #He⟩
+  wp_start as ⟨HB, He⟩
   ihave Hmi : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hmi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmax, -⟩
@@ -37,7 +37,7 @@ theorem mvcc.eventBatch.add.wp_proof : mvcc.eventBatch.add.spec (GF := GF) (hG :
       ps'.length = B'.evs.length →
       (eb ↦ ({ evs' := s', revs' := B'.revs, moreRev' := B'.moreRev } : eventBatch) ∗
         s' ↦* ps' ∗ ownSliceCap Loc s' (DFrac.own 1) ∗
-        ([∗list] x ∈ ps'.zip B'.evs, mvcc.evIs x.1 x.2) : IProp GF) ⊢ mvcc.ownEventBatch eb B' := by
+        ([∗list] x ∈ ps'.zip B'.evs, mvcc.evOwn x.1 x.2) : IProp GF) ⊢ mvcc.ownEventBatch eb B' := by
     intro B' s' ps' hl
     iintro ⟨H1, H2, H3, H4⟩
     iunfold mvcc.ownEventBatch
@@ -102,20 +102,12 @@ theorem mvcc.eventBatch.add.wp_proof : mvcc.eventBatch.add.spec (GF := GF) (hG :
     (by rw [hsl1]; omega) (by rw [hsl1]; simp) $$ Hs with ⟨Hp, Hs⟩
   rw [hBe, List.zip_append hil]
   simp only [List.zip_cons_cons, List.zip_nil_left]
-  icases BigSepL.bigSepL_snoc.1 $$ Hevs with ⟨Hevs, #Hl⟩
+  icases BigSepL.bigSepL_snoc.1 $$ Hevs with ⟨Hevs, Hl⟩
   simp only
-  ihave #Hl' := Hl
-  ihave #He' := He
-  iunfold mvcc.evIs at Hl' He'
-  icases Hl' with ⟨%p1, %q1, %st1, %uf1, %sc1, %Hn1, #Hpl, #Hkv1, -⟩
-  icases He' with ⟨%p2, %q2, %st2, %uf2, %sc2, %Hn2, #Hev, #Hkv2, #Hprev2⟩
-  iunfold mvcc.kvPtrFixed at Hkv1 Hkv2
-  icases Hkv1 with ⟨%ks1, %vs1, %kst1, %kuf1, %ksc1, -, -, #Hk1⟩
-  icases Hkv2 with ⟨%ks2, %vs2, %kst2, %kuf2, %ksc2, -, -, #Hk2⟩
-  icases mvcc.event_fields _ _ _ $$ Hpl with ⟨-, #Hpl, -⟩
-  icases mvcc.event_fields _ _ _ $$ Hev with ⟨-, #Hev, -⟩
-  icases mvcc.kv_fields _ _ _ $$ Hk1 with ⟨-, #Hk1⟩
-  icases mvcc.kv_fields _ _ _ $$ Hk2 with ⟨-, #Hk2⟩
+  icases mvcc.evOwn_rd _ _ _ $$ Hl with ⟨Hl, #HlR⟩
+  icases mvcc.evOwn_rd _ _ _ $$ He with ⟨He, #HeR⟩
+  icases mvcc.evRd_modRev _ _ $$ HlR with ⟨%p1, #Hpl, #Hk1⟩
+  icases mvcc.evRd_modRev _ _ $$ HeR with ⟨%p2, #Hev, #Hk2⟩
   wp_auto
   ihave Hs := Hs $$ Hp
   rw [show (pinit ++ [pl]).set (sint.Z (s.len - W64 1)).toNat pl = pinit ++ [pl] by

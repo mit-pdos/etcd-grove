@@ -172,13 +172,10 @@ theorem mvcc.newWatcherBatch.wp_proof
           unfold mvcc.minRevLe; rw [hstw]
         wp_if_destruct
         · (try wp_auto)
-          ihave %Ha1 := typedPointsto_not_null $$ «$a1»
-          ipersist «$a1»
-          ihave #Hnew : mvcc.evIs «$a1_ptr» evn $$ []
-          · iunfold mvcc.evIs
-            iexists p, q, _, _, _
-            iframe «$a1» Hkv Hprev
-            ipureintro; exact ⟨Ha1, Hnn.2⟩
+          imod mvcc.evOwn_intro _ p q _ _ _ evn Hnn.2 $$ [«$a1» Hkv Hprev] with Hnew
+          · iframe «$a1» Hkv
+            iunfold mvcc.prevKvIs
+            cases evn.prevKv <;> iexact Hprev
           wp_method_call
           wp_call
           wp_load

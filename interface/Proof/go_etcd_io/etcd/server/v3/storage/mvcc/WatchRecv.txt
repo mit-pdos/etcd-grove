@@ -82,14 +82,15 @@ def mvcc.watchRecvResult (γ : mvcc.WsNames) (ch : Loc) (γc : mvcc.WatchChanNam
     iprop(∃ r,
         mvcc.watchConsumer γc (received ++ [r]) ∗
           mvcc.respIs v r ∗
-            mvcc.respOk r ∗
-              mvcc.apiRecvLb γ ch γc (received ++ [r]) ∗
-                mvcc.watchRecvOk γ r.w (List.filter (fun x => decide (x.w = r.w)) (received ++ [r])) ∗
-                  mvcc.chanRegFact γc r.w ∗
-                    (⌜r.id = W64 (-1)⌝ → mvcc.progFact γc.prog) ∗
-                      mvcc.respCov γ γc received r ∗
-                        mvcc.regsAt γc received.length r ∗
-                          mvcc.chanSentLb γc (received ++ [r]) ∗ ⌜r.idx = received.length⌝)
+            mvcc.respPk v r ∗
+              mvcc.respOk r ∗
+                mvcc.apiRecvLb γ ch γc (received ++ [r]) ∗
+                  mvcc.watchRecvOk γ r.w (List.filter (fun x => decide (x.w = r.w)) (received ++ [r])) ∗
+                    mvcc.chanRegFact γc r.w ∗
+                      (⌜r.id = W64 (-1)⌝ → mvcc.progFact γc.prog) ∗
+                        mvcc.respCov γ γc received r ∗
+                          mvcc.regsAt γc received.length r ∗
+                            mvcc.chanSentLb γc (received ++ [r]) ∗ ⌜r.idx = received.length⌝)
   else mvcc.watchConsumer γc received
 
 theorem mvcc.watch_take (γ : mvcc.WsNames) (γc : mvcc.WatchChanNames) (closed : Bool) (received sent
@@ -97,11 +98,12 @@ theorem mvcc.watch_take (γ : mvcc.WsNames) (γc : mvcc.WatchChanNames) (closed 
     (rest : List go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse) (hpre : received <+: sent)
     (hsw : ∀ (x : mvcc.RespM), x ∈ sent → x.w ∈ L) : (ghostVar γc.recv (Qp.half 1) received ∗
     ghostVar γc.recv (Qp.half 1) received ∗ mvcc.respsIs (v :: rest) (List.drop received.length
-    sent) ∗ (□ [∗list] x ∈ sent, mvcc.respOk x) ∗ (□ [∗list] w ∈ L, mvcc.chanRegFact γc w) ∗ (□
-    [∗list] x ∈ sent, iprop(⌜x.id = W64 (-1)⌝ → mvcc.progFact γc.prog)) ∗ [∗list] w ∈ L,
-    mvcc.chanWatcher γ γc closed sent w) ⊢ |==> ∃ r, ghostVar γc.recv (Qp.half 1) (received ++ [r])
-    ∗ ghostVar γc.recv (Qp.half 1) (received ++ [r]) ∗ mvcc.respsIs rest (List.drop (received ++
-    [r]).length sent) ∗ ⌜received ++ [r] <+: sent⌝ ∗ ([∗list] w ∈ L, mvcc.chanWatcher γ γc closed
-    sent w) ∗ mvcc.respIs v r ∗ mvcc.respOk r ∗ mvcc.watchRecvOk γ r.w (List.filter (fun x => decide
-    (x.w = r.w)) (received ++ [r])) ∗ mvcc.chanRegFact γc r.w ∗ (⌜r.id = W64 (-1)⌝ → mvcc.progFact
-    γc.prog)
+    sent) ∗ mvcc.respsPk (v :: rest) (List.drop received.length sent) ∗ (□ [∗list] x ∈ sent,
+    mvcc.respOk x) ∗ (□ [∗list] w ∈ L, mvcc.chanRegFact γc w) ∗ (□ [∗list] x ∈ sent, iprop(⌜x.id =
+    W64 (-1)⌝ → mvcc.progFact γc.prog)) ∗ [∗list] w ∈ L, mvcc.chanWatcher γ γc closed sent w) ⊢ |==>
+    ∃ r, ghostVar γc.recv (Qp.half 1) (received ++ [r]) ∗ ghostVar γc.recv (Qp.half 1) (received ++
+    [r]) ∗ mvcc.respsIs rest (List.drop (received ++ [r]).length sent) ∗ ⌜received ++ [r] <+: sent⌝
+    ∗ ([∗list] w ∈ L, mvcc.chanWatcher γ γc closed sent w) ∗ mvcc.respIs v r ∗ mvcc.respOk r ∗
+    mvcc.watchRecvOk γ r.w (List.filter (fun x => decide (x.w = r.w)) (received ++ [r])) ∗
+    mvcc.chanRegFact γc r.w ∗ (⌜r.id = W64 (-1)⌝ → mvcc.progFact γc.prog) ∗ mvcc.respsPk rest
+    (List.drop (received ++ [r]).length sent) ∗ mvcc.respPk v r

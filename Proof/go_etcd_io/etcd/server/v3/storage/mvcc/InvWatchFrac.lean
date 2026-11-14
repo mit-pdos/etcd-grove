@@ -180,13 +180,28 @@ theorem watcherOwn_fractional (w : Loc) (st : WatcherSt) :
     (wFractional_sep (wFractional_typed _ _) (wFractional_sep (wFractional_typed _ _)
       (wFractional_typed _ _))))
 
+theorem evPk_fractional (e : Loc) (ev : EvM) :
+    Fractional (fun q => evPk (GF := GF) e ev q) := by
+  unfold evPk
+  refine fractional_exists_agree _ (fun pq => ?_) ?_
+  · exact wFractional_sep (wFractional_typed _ _) (wFractional_persistent _)
+  · intro pq1 pq2 q1 q2
+    iintro ⟨⟨H1, -⟩, ⟨H2, -⟩⟩
+    icombine H1 H2 gives %Heq
+    ipureintro; exact Heq
+
+theorem evOwn_fractional (e : Loc) (ev : EvM) :
+    Fractional (fun q => evOwn (GF := GF) e ev q) := by
+  unfold evOwn
+  exact wFractional_sep (wFractional_persistent _) (evPk_fractional e ev)
+
 theorem ownEventBatch_fractional (eb : Loc) (B : EventBatch) :
     Fractional (fun q => ownEventBatch (GF := GF) eb B q) := by
   have heq : ∀ q, ownEventBatch (GF := GF) eb B q ⊣⊢ iprop(∃ x : GoSlice × List Loc,
       typedPointsto eb ({ evs' := x.1, revs' := B.revs, moreRev' := B.moreRev } : eventBatch)
         (DFrac.own q) ∗
       ownSlice x.1 x.2 (DFrac.own q) ∗ ownSliceCap Loc x.1 (DFrac.own q) ∗
-      ⌜x.2.length = B.evs.length⌝ ∗ [∗list] y ∈ x.2.zip B.evs, evIs y.1 y.2) := by
+      ⌜x.2.length = B.evs.length⌝ ∗ [∗list] y ∈ x.2.zip B.evs, evOwn y.1 y.2 q) := by
     intro q
     unfold ownEventBatch
     constructor
@@ -196,7 +211,8 @@ theorem ownEventBatch_fractional (eb : Loc) (B : EventBatch) :
   · exact wFractional_sep (wFractional_typed _ _) (wFractional_sep
       (fractional_of_dfractional (fun dq => ownSlice x.1 x.2 dq)) (wFractional_sep
         (fractional_of_dfractional (fun dq => ownSliceCap Loc x.1 dq))
-        (wFractional_sep (wFractional_pure _) (wFractional_persistent _))))
+        (wFractional_sep (wFractional_pure _)
+          (wFractional_bigSepL _ _ (fun y => evOwn_fractional y.1 y.2)))))
   · rintro ⟨s1, ps1⟩ ⟨s2, ps2⟩ q1 q2
     iintro ⟨⟨H1, Hs1, -⟩, ⟨H2, Hs2, -⟩⟩
     icombine H1 H2 gives %Heq

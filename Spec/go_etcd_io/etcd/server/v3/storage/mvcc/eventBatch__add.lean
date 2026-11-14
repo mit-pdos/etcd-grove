@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 abbrev mvcc.eventBatch.add.spec : Prop :=
   ∀ (eb : Loc) (B : mvcc.EventBatch) (e : Loc) (ev : mvcc.EvM),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.ownEventBatch eb B ∗ mvcc.evIs e ev }}
+      mvcc.ownEventBatch eb B ∗ mvcc.evOwn e ev }}
     (App (Val (eb @!! go.GoType.PointerType eventBatch.ty @!! go!"add")) (Val #e))
   {{ RET #(); mvcc.ownEventBatch eb (mvcc.ebAdd B ev) }}
 

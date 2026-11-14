@@ -137,6 +137,10 @@ theorem cmp_send_inner (γ : WsNames) (w : Loc) (γw : WatcherNames) (r : WatchR
         [cmpResp w r.id sent.length c] else []) = sent ++ [cmpResp w r.id sent.length c] := by
       simp [Deliv.sent]
     irevert Hws; rw [hs2]; iintro Hws
+    ihave Hrpk : respPk v (cmpResp w r.id sent.length c) $$ []
+    · iapply respPk_nil v _ rfl []
+      rw [hv.2.2.2]; iexact Hnil
+    ihave Hpk' := respsPk_snoc vs sent recv.length hpre _ _ $$ [$Hvs $Hpk $Hrpk]
     ihave #Hvs' := respsIs_snoc vs sent recv.length hpre _ _ $$ [$Hvs $Hresp]
     imod sentAuth_snoc γ γw.wc sent L (cmpResp w r.id sent.length c)
       (fun h => absurd h Hrid) rfl $$ Hsentl Hrc with Hsentl
@@ -154,7 +158,7 @@ theorem cmp_send_inner (γ : WsNames) (w : Loc) (γw : WatcherNames) (r : WatchR
       rfl rfl rfl hcp
       $$ [$Hapi $Hws $Hok' $Hrf $Hrt $Hmeta $Hfix $Hsf $Hcv] with ⟨Hapi, Hws⟩
     imod Hmask with -
-    imod Hclose $$ [Hchan Hrecv Hregl Hcl Hreg Hws Hsentl Hapi] with -
+    imod Hclose $$ [Hchan Hrecv Hregl Hcl Hreg Hws Hsentl Hapi Hpk'] with -
     · inext
       iunfold watchChanInv
       iexists _, sent ++ [cmpResp w r.id sent.length c], recv, vs ++ [v], L
@@ -169,6 +173,8 @@ theorem cmp_send_inner (γ : WsNames) (w : Loc) (γw : WatcherNames) (r : WatchR
       · ipureintro; simp_all [EtcdGrove.chanInflight]
       isplitr
       · iexact Hvs'
+      isplitl [Hpk']
+      · iexact Hpk'
       isplitr
       · iintro !>
         iapply BigSepL.bigSepL_snoc.2

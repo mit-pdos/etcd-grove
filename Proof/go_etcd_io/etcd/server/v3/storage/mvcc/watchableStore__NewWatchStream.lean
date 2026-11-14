@@ -161,6 +161,9 @@ theorem mvcc.watchableStore.NewWatchStream.wp_proof
       iintro !> %i %v %r %hv
       simp at hv
     isplitr
+    · iunfold mvcc.respsPk; simp only [List.drop_nil, List.zip_nil_left]
+      iapply BigSepL.bigSepL_nil.2; iempintro
+    isplitr
     · iintro !>; iapply BigSepL.bigSepL_nil.2; itrivial
     isplitr
     · itrivial

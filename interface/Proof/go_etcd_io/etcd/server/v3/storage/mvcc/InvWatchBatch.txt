@@ -13,7 +13,8 @@ def mvcc.ownEventBatch (eb : Loc) (B : mvcc.EventBatch) (q : Qp := 1) : IProp GF
   iprop(∃ s ps,
       typedPointsto eb { evs' := s, revs' := B.revs, moreRev' := B.moreRev } (DFrac.own q) ∗
         ownSlice s ps (DFrac.own q) ∗
-          ownSliceCap Loc s (DFrac.own q) ∗ ⌜ps.length = B.evs.length⌝ ∗ [∗list] x ∈ ps.zip B.evs, mvcc.evIs x.fst x.snd)
+          ownSliceCap Loc s (DFrac.own q) ∗
+            ⌜ps.length = B.evs.length⌝ ∗ [∗list] x ∈ ps.zip B.evs, mvcc.evOwn x.fst x.snd q)
 
 def mvcc.evIs (e : Loc) (ev : mvcc.EvM) : IProp GF :=
   iprop(∃ p q st uf sc,
@@ -69,6 +70,11 @@ def mvcc.gmapMapK {K V V' : Type} (f : K → V → V') (m : GMap K V) : GMap K V
 
 theorem mvcc.rstClear_minRev (curRev : w64) (st : mvcc.WatcherSt) : (mvcc.rstClear curRev st).minRev
     = st.minRev
+
+theorem mvcc.evRd_modRev (e : Loc) (ev : mvcc.EvM) : mvcc.evRd e ev ⊢ ∃ p, typedPointsto
+    (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"Kv" e) p DFrac.discard ∗ typedPointsto
+    (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.KeyValue go!"ModRevision" p) ev.kv.modRev
+    DFrac.discard
 
 theorem mvcc.batchStepL_lookup (ST : GMap Loc mvcc.WatcherSt) (ev : mvcc.EvM) (D : List Loc) (Bm :
     GMap Loc mvcc.EventBatch) (hnd : D.Nodup) (w : Loc) : mvcc.batchStepL ST ev D Bm !! w = if w ∈ D
@@ -132,6 +138,12 @@ def mvcc.minRevL (ST : GMap Loc mvcc.WatcherSt) (D : List Loc) : Int :=
 
 theorem mvcc.evIs_persistent (e : Loc) (ev : mvcc.EvM) : Persistent (mvcc.evIs e ev)
 
+def mvcc.evPk (e : Loc) (ev : mvcc.EvM) (q : Qp := 1) : IProp GF :=
+  iprop(∃ pq,
+      typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"PrevKv" e) pq
+          (DFrac.own q) ∗
+        mvcc.prevKvIs pq ev.prevKv)
+
 theorem mvcc.minRevL_snoc (ST : GMap Loc mvcc.WatcherSt) (D : List Loc) (w : Loc) : mvcc.minRevL ST
     (D ++ [w]) = mvcc.minRevStep ST (mvcc.minRevL ST D) w
 
@@ -139,6 +151,8 @@ theorem mvcc.takeMembers_succ (W : GMap Loc mvcc.WatchRange) (keys : List Loc) (
     (r : mvcc.WatchRange) (hkey : keys[n]? = some key) (hnd : keys.Nodup) (hW : W !! key = some r) :
     mvcc.takeMembers W keys (n + 1) = <[key := r]>(mvcc.takeMembers W keys n) ∧ mvcc.takeMembers W
     keys n !! key = none
+
+theorem mvcc.prevKvIs_persistent (q : Loc) (pk : Option EtcdKv) : Persistent (mvcc.prevKvIs q pk)
 
 def mvcc.rstClear (curRev : w64) (st : mvcc.WatcherSt) : mvcc.WatcherSt :=
   if sint.Z curRev < sint.Z st.minRev then
@@ -148,11 +162,17 @@ def mvcc.rstClear (curRev : w64) (st : mvcc.WatcherSt) : mvcc.WatcherSt :=
 theorem mvcc.takeMembers_zero (W : GMap Loc mvcc.WatchRange) (keys : List Loc) : mvcc.takeMembers W
     keys 0 = ∅
 
+theorem mvcc.evOwn_persist (e : Loc) (ev : mvcc.EvM) (q : Qp) : mvcc.evOwn e ev q ⊢ |==> mvcc.evIs e
+    ev
+
 theorem mvcc.event_fields (l : Loc) (v : go_etcd_io.etcd.api.v3.mvccpb.Event) (dq : DFrac) :
     typedPointsto l v dq ⊢ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event
     go!"Type" l) v.Type' dq ∗ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event
     go!"Kv" l) v.Kv' dq ∗ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event
     go!"PrevKv" l) v.PrevKv' dq
+
+theorem mvcc.bigSepL_filter_drop {A : Type} (p : A → Bool) (Φ : A → IProp GF) (l : List A) :
+    ([∗list] x ∈ l, Φ x) ⊢ [∗list] x ∈ List.filter p l, Φ x
 
 def mvcc.watchBatchMaxRevsV : w64 :=
   W64 1000
@@ -173,16 +193,50 @@ def mvcc.minRevStep (ST : GMap Loc mvcc.WatcherSt) (m : Int) (w : Loc) : Int :=
   | some st => min m (sint.Z st.minRev)
   | none => m
 
+def mvcc.evRd (e : Loc) (ev : mvcc.EvM) : IProp GF :=
+  iprop(∃ p st uf sc,
+      ⌜e ≠ null ∧ p ≠ null⌝ ∗
+        typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"state" e) st
+            DFrac.discard ∗
+          typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"Type" e)
+              (mvcc.evType ev) DFrac.discard ∗
+            typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event go!"Kv" e) p DFrac.discard ∗
+              typedPointsto
+                  (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event
+                    go!"unknownFields" e)
+                  uf DFrac.discard ∗
+                typedPointsto
+                    (structFieldRef go_etcd_io.etcd.api.v3.mvccpb.Event
+                      go!"sizeCache" e)
+                    sc DFrac.discard ∗
+                  mvcc.kvPtrFixed p ev.kv)
+
+theorem mvcc.evOwns_split (l : List (Loc × mvcc.EvM)) (q : Qp) : ([∗list] x ∈ l, mvcc.evOwn x.fst
+    x.snd q) ⊣⊢ ([∗list] x ∈ l, mvcc.evRd x.fst x.snd) ∗ [∗list] x ∈ l, mvcc.evPk x.fst x.snd q
+
+def mvcc.evOwn (e : Loc) (ev : mvcc.EvM) (q : Qp := 1) : IProp GF :=
+  iprop(mvcc.evRd e ev ∗ mvcc.evPk e ev q)
+
+theorem mvcc.evIs_evRd (e : Loc) (ev : mvcc.EvM) : mvcc.evIs e ev ⊢ mvcc.evRd e ev
+
 def mvcc.evType (ev : mvcc.EvM) : w32 :=
   if ev.del = true then W32 1 else W32 0
 
 theorem mvcc.minRevOf_chooseRst (curRev : w64) (D S : GMap Loc Unit) (ST : GMap Loc mvcc.WatcherSt)
     : mvcc.minRevOf (mvcc.chooseRst curRev D ST) S = mvcc.minRevOf ST S
 
+theorem mvcc.evOwn_rd (e : Loc) (ev : mvcc.EvM) (q : Qp) : mvcc.evOwn e ev q ⊢ mvcc.evOwn e ev q ∗
+    mvcc.evRd e ev
+
 theorem mvcc.ownWatcherGroup_watchers (wg : Loc) (W : GMap Loc mvcc.WatchRange) :
     mvcc.ownWatcherGroup wg W ⊢ ∃ v, typedPointsto wg v (DFrac.own 1) ∗ mvcc.ownWatcherSet
     v.watchers' W.domSet ∗ (typedPointsto wg v (DFrac.own 1) -∗ mvcc.ownWatcherSet v.watchers'
     W.domSet -∗ mvcc.ownWatcherGroup wg W)
+
+def mvcc.prevKvIs (q : Loc) (pk : Option EtcdKv) : IProp GF :=
+  match pk with
+  | none => iprop(⌜q = null⌝)
+  | some k => mvcc.kvPtrFixed q k
 
 structure mvcc.EvM : Type where
   del : Bool
@@ -194,10 +248,17 @@ def mvcc.minRevOf (ST : GMap Loc mvcc.WatcherSt) (S : GMap Loc Unit) : Int :=
 
 theorem mvcc.rstClear_ch (curRev : w64) (st : mvcc.WatcherSt) : (mvcc.rstClear curRev st).ch = st.ch
 
+theorem mvcc.evRd_persistent (e : Loc) (ev : mvcc.EvM) : Persistent (mvcc.evRd e ev)
+
 def mvcc.notBehind (ST : GMap Loc mvcc.WatcherSt) (c : w64) (w : Loc) : Bool :=
   match ST !! w with
   | some st => decide (sint.Z c ≤ sint.Z st.minRev)
   | none => true
+
+theorem mvcc.evOwn_intro (e p q : Loc) (st : google_golang_org.protobuf.internal.impl.MessageState)
+    (uf : GoSlice) (sc : w32) (ev : mvcc.EvM) (hp : p ≠ null) : typedPointsto e { state' := st,
+    Type' := mvcc.evType ev, Kv' := p, PrevKv' := q, unknownFields' := uf, sizeCache' := sc }
+    (DFrac.own 1) ∗ mvcc.kvPtrFixed p ev.kv ∗ mvcc.prevKvIs q ev.prevKv ⊢ |==> mvcc.evOwn e ev
 
 def mvcc.chooseRst (curRev : w64) (D : GMap Loc Unit) (ST : GMap Loc mvcc.WatcherSt) : GMap Loc
     mvcc.WatcherSt :=
@@ -205,6 +266,9 @@ def mvcc.chooseRst (curRev : w64) (D : GMap Loc Unit) (ST : GMap Loc mvcc.Watche
 
 def mvcc.ownStates (ST : GMap Loc mvcc.WatcherSt) : IProp GF :=
   [∗map] w ↦ st ∈ ST, mvcc.watcherOwn w st
+
+theorem mvcc.evOwns_persist (l : List (Loc × mvcc.EvM)) (q : Qp) : ([∗list] x ∈ l, mvcc.evOwn x.fst
+    x.snd q) ⊢ |==> [∗list] x ∈ l, mvcc.evIs x.fst x.snd
 
 def mvcc.kvPtrFixed (p : Loc) (kv : EtcdKv) : IProp GF :=
   iprop(∃ ks vs st uf sc,

@@ -18,6 +18,69 @@ the worktree's untracked `questions.md` (decisions; never re-add it tracked).
   this stage's T5-c); 7f-0 partial (records only; the rest goes with 7f-6, Q7).
 - No Lean edited. Nothing built on this branch.
 
+## Handoff point (2026-11-13, fifth 7f-5 agent, final): 7f-3b mvcc part LANDED; v3rpc part next
+
+Done (`3e90b6e741` on `k8s-7f5`; full build passes, 17487 jobs; tcb matches 870/4; gates all ok after
+the interfaces were regenerated, log `/shared/tmp/k8s7f3b/gates.log`):
+- mvcc vocabulary (`InvWatchBatch.lean`): `prevKvIs`, `evRd` (field-wise, persistent: every field but
+  `PrevKv`, the key-value `kvPtrFixed`), `evPk e ev q` (the `PrevKv` field owned at a fraction: the
+  lock invariant is fractional), `evOwn := evRd ∗ evPk`; laws `evIs_evRd`, `evOwn_intro` (the
+  allocated copy), `evOwn_persist`/`evOwns_persist` (give the copies up: back to `evIs`),
+  `evOwn_rd`, `evOwns_split`, `evRd_modRev`, `bigSepL_filter_drop`; `evPk_fractional`,
+  `evOwn_fractional` (`InvWatchFrac`).
+- `ownEventBatch` holds `evOwn`; `eventBatch.add`/`watcherBatch.add` take `evOwn`; `newWatcherBatch`
+  makes each copy `evOwn` (`evOwn_intro`); `watcher.send` takes the copies `evOwn` and gives them back
+  on `false` (post `if b then ↦*□ else ↦* ∗ [∗list] evOwn`); notify/syncWatchers/moveVictims keep
+  them in the victim batches.
+- Internally `respIs` keeps `evRd` (persistent); the channel invariant `watchChanInv` gains
+  `"Hpk" ∷ respsPk vs (sent.drop recv.length)` (the in-flight responses' `PrevKv` fields);
+  `watchRecvResult` carries `respPk v r`; every `imod Hclose` passes `Hpk`.
+- API: `mvcc.api.wrespIs` carries `evOwn` (81: D2, wrespIs itself); `respIs_wrespIs` takes
+  `respIs ∗ respPk`.
+- Readers: `filterSpec`, v3rpc `filterNoPut`/`filterNoDelete` take `evRd`; the examples
+  (`mvccfull` `stream__receive`/`stream__watch`, `mvccrand` `watchCheck__receive`) read `evRd`.
+- v3rpc stopgap: `WatchApi.wrespIs_persistent` (false now) replaced by `v3rpc.wrespRO` (the old
+  read-only form over `mvcc.evIs`) and `wrespIs_ro : wrespIs ⊢ |==> wrespRO`, applied at the send
+  loop's two receipts. The v3rpc part of 7f-3b replaces this by the `PrevKv` write.
+
+81 approved the interface diff and accepted `wrespRO` as temporary; landed on lean (hash in the next
+handoff line / STATUS). **Next, a fresh agent: the v3rpc part of 7f-3b**, in this order (statements in
+`Draft7f3a.lean`: `swsMuP`, `watchReqOkP`, `client.rawRespOkP`, `prevKvLogOk`):
+1. `recvLoop` records `creq.PrevKv` in the `prevKV` map (`watch.go:342-349`): `swsMu` → `swsMuP`
+   (entries allowed in `prevKV`, `fragment` still empty).
+2. `sendLoop`'s branch (`watch.go:437-455`): the create check (`IsCreateEvent`), mvcc's `Range` of the
+   key at `ModRevision - 1` (`Api/RangeApi.lean`), and `events[i].PrevKv = r.KVs[0]` written into the
+   copy's owned field (`evPk`, from `wrespIs`'s `evOwn`), with the `nil`/error arms.
+3. `IsCreateEvent`'s spec on `evRd` (today `evIs`).
+4. `rawRespOkP` (the client pipeline's server contract: each pointer `prevKvLogOk`), in place of
+   `rawRespOk`.
+5. `watchReqOkP` in `upOk` (the server's `prev_kv = false` restriction dropped).
+6. Remove the stopgap `v3rpc.wrespRO` / `wrespIs_ro` (`WatchApi.lean`) and its two uses in
+   `serverWatchStream__sendLoop.lean`.
+Then the client part, 7f-3c (`notes/k8s-7f3a-draft.md` §5). Report the v3rpc interface/statement
+changes to 81 before landing, as for mvcc.
+
+**Pitfall (wp_join):** after a failing bullet inside `wp_join`, later goals carry unassigned metavariables
+and `wp_for`'s clean-up silently fails (`Hif : #(decide …) = #true` undecoded, `word` fails): fix the
+FIRST error before reading later ones. `etc/lean-check.py` incremental runs once gave a spurious
+`(kernel) application type mismatch` on `moveVictims` that `lake build` did not.
+
+## Handoff point (2026-11-13, fourth 7f-5 agent, final): T5-a LANDED (lean `7112e7c0d6`); 7f-3b next
+
+T5-a landed via `etc/land.sh` (gates all passed, `/shared/tmp/k8s7f3a/land3.log`): the translation of
+`WithRequireLeader`/grpc metadata reverted (`WithPrevKV` kept), the restated axiom with its four-part
+clause (81 accepted the `Value(&cancelCtxKey)` part), `WithRequireLeader.watchCtx_of_post` proved,
+Go tests, STATUS entry. Trust base 870 axioms, 4 sorries (no baseline change).
+
+**Next (a fresh agent): 7f-3b**, from the design section below. 81 approved: `wrespIs` itself
+carries `evOwn` (not a second predicate). Order: vocabulary (`evRd`, `evPk`, `evOwn`, laws
+`evIs ⊢ evRd`, the recombination to `evIs`), built; mvcc proofs bottom-up (newWatcherBatch,
+eventBatch/watcherBatch add, ownEventBatch and victims, watcher.send, the three send sites, Api's
+`wrespIs`, WatchLaws); **report the mvcc interface diff (`etc/gen-interface.py` for mvcc's API list)
+to 81 before landing 7f-3b**; then v3rpc (`recvLoop` with `swsMuP`, `sendLoop`'s `PrevKv` branch,
+`rawRespOkP`, `watchReqOkP`), then the examples/client readers. `Draft7f3a.lean` holds the S1-S9
+statements.
+
 ## Handoff point (2026-11-13, end of the fourth 7f-5 agent): T5-a decomposed; land after 81 sees the flag
 
 81 decided (a): the axiom's `watchCtx ctx s -∗ watchCtx c s` decomposed (no trunc line). Done in
