@@ -61,6 +61,27 @@ theorem walSearch_lt {ws : List GoString} {idx : w64} {k : Nat}
     (hk : walSearch (ws.map walNameIdx) idx = some k) : k < ws.length := by
   have := walSearchFrom_lt hk; simpa using this
 
+/-- **The selected segment's name index is at most the start's** (`searchIndex`; `readAll_success`'s
+`hsel`), for a name `walFileName sq ix` with `ix < 2^64` (`walFileName` keeps `ix` modulo `2^64`). -/
+theorem walSearch_sel {segs : List SegG} {idx : w64} {k : Nat}
+    (hk : walSearch ((segs.map (·.name)).map walNameIdx) idx = some k) (g : SegG)
+    (hg : (segs.drop k).head? = some g) (sq ix : Nat) (hn : g.name = walFileName sq ix)
+    (hix : ix < 2 ^ 64) : ix ≤ uint.nat idx := by
+  have hle := walSearchFrom_le hk
+  have hg' : segs[k]? = some g := by
+    rw [List.head?_drop] at hg; exact hg
+  have e : ((segs.map (·.name)).map walNameIdx).getD k 0 = BitVec.ofNat 64 ix := by
+    rw [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_map, hg']
+    simp only [Option.map_some, Option.getD_some]
+    rw [hn, walFileName_walNameStr]
+    unfold walNameIdx
+    rw [fmt.scanWalName_walNameStr]
+  rw [e] at hle
+  have h1 : uint.Z (BitVec.ofNat 64 ix) = ix := by
+    simp only [uint.Z, BitVec.toNat_ofNat]; omega
+  have h2 : uint.Z idx = uint.nat idx := by simp [uint.Z, uint.nat]
+  omega
+
 end pure
 
 section proof
@@ -269,6 +290,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
     have hws : ws = lay.segs.map (·.name) :=
       walNamesOut_segs hX hsn habs.names.1 hnd habs.names.2 hnmf hout
     have hK : walOpenK s.1 lay = sint.nat kk := walOpenK_eq hsearch hws
+    have hselg : ∀ g, (lay.segs.drop (sint.nat kk)).head? = some g → ∀ sq ix,
+        g.name = walFileName sq ix → ix < 2 ^ 64 → ix ≤ uint.nat s.1 :=
+      fun g hg sq ix hn hix => walSearch_sel (by rw [← hws]; exact hsearch) g hg sq ix hn hix
     have hKl : sint.nat kk < ws.length := walSearch_lt hsearch
     have hwl : ws.length = lay.segs.length := by rw [hws, List.length_map]
     subst herr
@@ -395,7 +419,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       · iexists gs, fls
         iframe Ho
         isplitr
-        · ipureintro; exact ⟨hndg, hS⟩
+        · ipureintro; exact ⟨hndg, hS, hselg⟩
         isplitr
         · ipureintro; exact htf
         iexact Hlk
@@ -483,7 +507,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       · iexists gs, fls
         iframe Ho
         isplitr
-        · ipureintro; exact ⟨hndg, hS⟩
+        · ipureintro; exact ⟨hndg, hS, hselg⟩
         isplitr
         · ipureintro; exact htf
         rw [hlfs]

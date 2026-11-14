@@ -459,7 +459,18 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `decoder.Decode.specR` (`decoder__DecodeR.lean`), a hypothesis of `WAL.ReadAll.wp_proof` until then. The
   proof needs Perennial's `fmt.Errorf` model to give an error distinct from `io.EOF` with `errors.Is` answering
   false on it (its wrapping is not kept) and the same of `proto.Unmarshal`'s error.
-- **Decision.** Pending (proof agent `wal-readall14`; internal spec, no client-visible change).
+- **Decision.** Adopted (the coordinator, 2026-11-14; made by `wal-readall15`). `decPost` (`DecDefs.lean`) is now
+  `decPostB ∗ decAns eof err`: the old body, and `errors.Is(err, io.EOF)`'s answer on a non-nil error
+  (`isEofAns`); `stopErr`'s catch-all is `e ≠ nil ∧ e ≠ eof`, so `io.EOF` comes only from the `.eof` stop
+  (the `IoE` arm excludes it by `isEofOk`). `Decode.spec`'s and `decodeRecord.spec`'s statements read the same
+  (over `decPost`); `decoder.Decode.specR` is gone. The proof's new inputs: `fmt.ErrorfErrsNot.spec` (`Errorf`'s
+  result is not `t` and `errors.Is(_, t)` is false on it when it is so of every error argument, `t` a package
+  variable's value; a hypothesis, `LinuxFs/Spec/fmt/ErrorfErrsNot.lean`), `proto.UnmarshalWalRecordE.spec`
+  (`Unmarshal`'s error is not `io.EOF`, the same answer; a hypothesis), `walpb.Record.Validate.spec` with the
+  same of its error (statement change: targets `X`/`t`, premise `errIsNot ErrCRCMismatch t`), and `decEnv`
+  holding `errIsNot ErrCRCMismatch io.EOF` (a client obligation, as `isEofOk`). `notes/perennial-changes.md`,
+  2026-11-14, "`errors.Is` on `fmt.Errorf`'s result".
+
 ## 2026-11-14: `wal.WAL.Save.spec` (the part's, over `fsExt`) -- the batch's size, not each entry's
 
 - **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__Save.lean`, premise

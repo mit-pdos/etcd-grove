@@ -327,11 +327,11 @@ variable [bufio_sem : _root_.Perennial.bufio.Assumptions]
 theorem decPost_cons_eof (C : WalCodec) (d rp : Loc) (IoE : GoInterface → Prop)
     (eof ueof : GoInterface) (F : DecFile GF) (fs : List (DecFile GF)) (off : Nat) (c : w32)
     (err : GoInterface) (h : decRecStep C fs.isEmpty F.bs off c = .eof) (hfs : fs ≠ []) :
-    decPost C d rp IoE eof ueof fs 0 c err ⊢ decPost C d rp IoE eof ueof (F :: fs) off c err := by
+    decPostB C d rp IoE eof ueof fs 0 c err ⊢ decPostB C d rp IoE eof ueof (F :: fs) off c err := by
   have hg : goDecode C ((F :: fs).map (·.bs)) off c = goDecode C (fs.map (·.bs)) 0 c := by
     simp only [List.map_cons]
     exact goDecode_eof_next (by simpa using h) (by simpa using hfs)
-  unfold decPost
+  unfold decPostB
   rw [hg]
   iintro (⟨%k, H⟩ | H | ⟨%k, %s, %off', %c', %hf, H⟩)
   · ileft
@@ -358,11 +358,11 @@ theorem decPost_stop (C : WalCodec) (d rp : Loc) (IoE : GoInterface → Prop)
     (err : GoInterface) (s : WalStop) (h : decRecStep C fs.isEmpty F.bs off c = .stop s c')
     (herr : stopErr eof ueof s err) :
     ownRecAny rp ∗ ownDecoder d IoE eof (F :: fs) off c' (decide (s = .eof)) ⊢
-      decPost C d rp IoE eof ueof (F :: fs) off c err := by
+      decPostB C d rp IoE eof ueof (F :: fs) off c err := by
   have hg : goDecode C ((F :: fs).map (·.bs)) off c = .stop s ((F :: fs).map (·.bs)) off c' := by
     have h' : decRecStep C (fs.map (·.bs)).isEmpty F.bs off c = .stop s c' := by simpa using h
     simp only [List.map_cons]; unfold goDecode; rw [h']
-  unfold decPost
+  unfold decPostB
   rw [hg]
   iintro ⟨Hr, Hd⟩
   ileft
@@ -377,11 +377,11 @@ theorem decPost_accept (C : WalCodec) (d rp : Loc) (IoE : GoInterface → Prop)
     (eof ueof : GoInterface) (F : DecFile GF) (fs : List (DecFile GF)) (off : Nat) (c c' : w32)
     (r : WalRec) (len : Nat) (h : decRecStep C fs.isEmpty F.bs off c = .accept r len c') :
     ownRec rp r ∗ ownDecoder d IoE eof (F :: fs) (off + len) c' true ⊢
-      decPost C d rp IoE eof ueof (F :: fs) off c GoInterface.nil := by
+      decPostB C d rp IoE eof ueof (F :: fs) off c GoInterface.nil := by
   have hg : goDecode C ((F :: fs).map (·.bs)) off c = .ok r ((F :: fs).map (·.bs)) (off + len) c' := by
     have h' : decRecStep C (fs.map (·.bs)).isEmpty F.bs off c = .accept r len c' := by simpa using h
     simp only [List.map_cons]; unfold goDecode; rw [h']
-  unfold decPost
+  unfold decPostB
   rw [hg]
   iintro ⟨Hr, Hd⟩
   ileft
@@ -396,9 +396,9 @@ theorem decPost_ioe (C : WalCodec) (d rp : Loc) (IoE : GoInterface → Prop)
     (eof ueof : GoInterface) (fs fs' : List (DecFile GF)) (off off' : Nat) (c c' : w32)
     (err : GoInterface) (hI : IoE err) :
     ownRecAny rp ∗ ownDecoder d IoE eof fs' off' c' false ⊢
-      decPost C d rp IoE eof ueof fs off c err := by
+      decPostB C d rp IoE eof ueof fs off c err := by
   iintro ⟨Hr, Hd⟩
-  unfold decPost
+  unfold decPostB
   iright; ileft
   isplitl []
   · ipureintro; exact hI
@@ -417,9 +417,9 @@ theorem decPost_fail (C : WalCodec) (d rp : Loc) (IoE : GoInterface → Prop)
     (eof ueof : GoInterface) (F : DecFile GF) (fs : List (DecFile GF)) (off : Nat) (c : w32)
     (err : GoInterface) (s : WalStop) (h : RecFail C fs.isEmpty F.bs off s)
     (herr : stopErr eof ueof s err) :
-    ownDecoder d IoE eof (F :: fs) off c false ⊢ decPost C d rp IoE eof ueof (F :: fs) off c err := by
+    ownDecoder d IoE eof (F :: fs) off c false ⊢ decPostB C d rp IoE eof ueof (F :: fs) off c err := by
   iintro Hd
-  unfold decPost
+  unfold decPostB
   iright; iright
   iexists 0, s, off, c
   simp only [List.drop_zero]
@@ -428,6 +428,73 @@ theorem decPost_fail (C : WalCodec) (d rp : Loc) (IoE : GoInterface → Prop)
   refine ⟨?_, herr⟩
   simp only [List.map_cons]
   exact GoFail.here (by simpa using h)
+
+/-! ### The answer of `errors.Is(err, io.EOF)` (`decAns`) -/
+
+/-- `decPost` from its body and the answer. -/
+theorem decPost_mk (C : WalCodec) (d rp : Loc) (IoE : GoInterface → Prop)
+    (eof ueof : GoInterface) (fs : List (DecFile GF)) (off : Nat) (c : w32) (err : GoInterface) :
+    decAns eof err ∗ decPostB C d rp IoE eof ueof fs off c err ⊢
+      decPost C d rp IoE eof ueof fs off c err := by
+  unfold decPost
+  iintro ⟨#Ha, H⟩
+  iframe
+  iexact Ha
+
+/-- `nil`'s answer. -/
+theorem decAns_nil (eof : GoInterface) : ⊢ decAns (GF := GF) eof GoInterface.nil := by
+  unfold decAns
+  ileft
+  ipureintro
+  rfl
+
+/-- The answer on `nil`, `io.EOF`, `io.ErrUnexpectedEOF` and the readers' errors (`isEofOk`). -/
+theorem decAns_of_eofOk (IoE : GoInterface → Prop) (eof ueof e : GoInterface)
+    (h : e = GoInterface.nil ∨ e = eof ∨ e = ueof ∨ IoE e) :
+    isEofOk IoE eof ueof ⊢ decAns (GF := GF) eof e := by
+  unfold isEofOk decAns isEofAns
+  iintro ⟨-, #H⟩
+  iright
+  ihave #H2 := H $$ %e %h
+  imodintro
+  iexact H2
+
+/-- The answer on an error that is not `io.EOF` (`errIsNot`). -/
+theorem decAns_of_not (e eof : GoInterface) : errIsNot e eof ⊢ decAns (GF := GF) eof e := by
+  unfold errIsNot decAns isEofAns
+  iintro ⟨%hne, #H⟩
+  iright
+  imodintro
+  imodintro
+  iintro %Φ - HΦ
+  wp_apply H
+  rw [show false = decide (e = eof) from (decide_eq_false hne).symm]
+  iapply HΦ
+  ipureintro
+  rfl
+
+/-- `io.ErrUnexpectedEOF` is not `io.EOF` (`isEofOk`). -/
+theorem errIsNot_ueof (IoE : GoInterface → Prop) (eof ueof : GoInterface) :
+    isEofOk IoE eof ueof ⊢ errIsNot (GF := GF) ueof eof := by
+  unfold isEofOk errIsNot
+  iintro ⟨%hne, #H⟩
+  isplitr
+  · ipureintro; exact fun h => hne.1 h.symm
+  ihave #H2 := H $$ %ueof %(Or.inr (Or.inr (Or.inl rfl)))
+  imodintro
+  imodintro
+  iintro %Φ - HΦ
+  wp_apply H2 as %b %hb
+  rw [hb, decide_eq_false (fun h => hne.1 h.symm)]
+  iapply HΦ
+  itrivial
+
+/-- `errIsNot`'s pure part. -/
+theorem errIsNot_ne (e t : GoInterface) : errIsNot (GF := GF) e t ⊢ ⌜e ≠ t⌝ := by
+  unfold errIsNot
+  iintro ⟨%h, -⟩
+  ipureintro
+  exact h
 
 end post
 

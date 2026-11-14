@@ -547,8 +547,11 @@ W7-W12 log, second session); `ReadDir`'s loops and the names' bound proved (`wal
 and the hypothesis `WAL.Close.specOpening` (W10's to discharge); `Open`'s success keeps the client's half of the call
 permission in `walOpeningF` (ledger 2026-11-14) (`wal-read13`; W3/W5 log, thirteenth session). `WalPinSized`'s
 invariant conjunct is designed, not made (same log). `ReadAll`'s pure core (the running files' decode, the fold to `walReadAllOk`, the read position below
-`walOpenPos`: `readAll_success`) is proved, over the hypotheses `WalReadState` and `decoder.Decode.specR`; its wp proof
-not started (`wal-readall14`; W3/W5 log, fourteenth session).
+`walOpenPos`: `readAll_success`) is proved, over the hypothesis `WalReadState` (and `Decode.spec`); its wp proof
+not started (`wal-readall14`; W3/W5 log, fourteenth session). The decoder's error identity (`Decode.spec` strengthened, `specR` gone), `WalTailIdle` in the invariant
+(`walTailsRes`), `WalReadState`'s idle part proved (`walInvBody_readIdle`) and `walReadTie`'s selection fact are done
+(`wal-readall15`; W3/W5 log, fifteenth session: open are the cuts' positivity, the pinned segments' law, `nameBound`'s
+`ix < 2^64`, and the finding that `WalDecEnvSupply` is unsatisfiable).
 invariant conjunct is designed, not made (same log). Each registered WAL name has its own claim (`walNamesRes`, a framed conjunct; registration pending linked to the lock token, `walNamesFrag`), and the path law `walInv_dirPath` (a kept fraction of `osPathS R dir _ j` from `walDirKey`, with `walNamesFrag none`) is proved (`wal-path13`; W1 log, thirteenth session); `walAreaRes` holds every WAL name not split out (`walSplitFrag`), `Exist`/`openAtIndex`/`Create` read a registered name through its own claim, `openAtIndex` takes its path from `walInv_dirPath`, and `Create`'s post-commit split (`walInv_splitNew`) and registration (`walInv_register`) are proved, not yet used by `Create`'s body (`wal-path14`; W1 log, fourteenth session). Open: `renameWAL`'s path law, `Open`'s `WalDirPathLaw`, `WalsBounded`.
 
 The resize stamps reach the WAL's crash condition (`OsMeta.rz`, `MetaOk.rz`, `OsCoh.tok_rz`; `CrashOk` passes `segRzOf`) and `W1G.drop_rz` transports W1 across a truncate's zeros (`wal-tc5`; W1 log, fifteenth session); the truncate window's `CrashOk`, `W1G` over the known candidates past the bytes, the WAL-level supplies and `specWalTail` remain (I3b, `wal-tc5` entry).
@@ -4149,3 +4152,60 @@ the zeroing, three syncs, the encoder; not started).
   `GoFail`/`IoE` arms: error) gives `walDecodeFiles … = acc` and the stop; the write-mode check then needs
   `specR`. Open `walInv` once at the commit step (the `Fsync(w.dirFile)` or `syncDir`'s step, for `walNamed`),
   read `WalReadState` there and apply `readAll_success`.
+
+**W3/W5 log, fifteenth session (branch `wal-readall15`, 2026-11-14).** The decoder's error identity, `WalTailIdle`
+in the invariant, the selection fact; `WAL.ReadAll.wp_proof` still `sorry` (not started). No `sorry` added.
+- *Task 1, the decoder* (ledger 2026-11-14, "the error's identity": **adopted**). `decPost` (`DecDefs.lean`) is now
+  `decPostB ∗ decAns eof err` (the old body; `errors.Is(err, io.EOF)`'s answer on a non-nil error, `isEofAns`);
+  `stopErr`'s catch-all is `e ≠ nil ∧ e ≠ eof`, so `io.EOF` comes only from the `.eof` stop (the `IoE` arm: `isEofOk`'s
+  `¬ IoE eof`). `Decode.spec`/`decodeRecord.spec` read the same; **`decoder.Decode.specR` deleted**. Re-proved
+  (`decoder__decodeRecord.lean`, `decoder__Decode.lean` unchanged, `lake build`), over two new **hypotheses**:
+  `fmt.ErrorfErrsNot.spec` (`LinuxFs/Spec/fmt/ErrorfErrsNot.lean`: `Errorf`'s result is not `t` and `errors.Is(_, t)`
+  is false on it when so of every error argument, `t` a package variable's value; `errIsNot`) and
+  `proto.UnmarshalWalRecordE.spec` (the error is not `io.EOF`, same answer); `perennial-changes.md` 2026-11-14.
+  *Statement changes (internal)*: `walpb.Record.Validate.spec` takes targets `X`/`t` and `errIsNot ErrCRCMismatch t`,
+  gives `errIsNot` of its error (re-proved over `ErrorfErrsNot`); `decEnv` holds `errIsNot ErrCRCMismatch io.EOF` (a
+  client obligation, as `isEofOk`). New lemmas (`DecLemmas.lean`): `decPost_mk`, `decAns_nil`, `decAns_of_eofOk`,
+  `decAns_of_not`, `errIsNot_ueof`, `errIsNot_ne`.
+- **Finding (for `openAtIndex`'s owner): `WalDecEnvSupply` is unsatisfiable.** It gives `decEnv IoE eof ueof` with
+  `∀ ii, IsPointerError ii → IoE (ok ii)`, but `decEnv`'s `isEofOk` needs `¬ IoE eof`, and `eof` (`io.EOF`, an
+  `errors.New` `*errorString`) is a pointer error: the hypothesis proves `False` under `isPkgInit wal`, so
+  `openAtIndex`/`Open`/`OpenForRead` are vacuous until it is fixed. Fix: `IoE` the `*PathError`s (`os.File.Read`'s
+  error) and `Stat`'s errors with `≠ eof` (`ReadBridge.lean`'s two uses of `hIo`: line 133 a `*PathError`, line 200
+  `Stat`'s pointer error, which then needs `Stat`'s spec to say it is not `io.EOF`).
+- *Task 2, `WalTailIdle`* (`Inv.lean`). **Deviation from "a separate conjunct of `walInvBody`"**: the condition is on
+  the WALs with no registered tail, i.e. on `walTailsRes`'s map `T`, which only `walTailsRes` binds (a separate
+  conjunct would need `T`'s authority split three ways). So it is a third pure part of `walTailsRes`, after
+  `TailsOnly`: `WalTailIdle C Mr s Ls T := ∀ dir d lay, T !! dir = none → s.wal !! dir = some d → Ls !! dir = some lay
+  → TailIdle C Mr d lay`, `TailIdle := TailExact lay ∧ lay.wr = |segStream … lay.cuts.length|` (still framed: no proof
+  that does not unfold `walTailsRes` changed). Established by `walInv_alloc` (from `WalsStart`: `wr = z0 = |S|`, the
+  last segment exact) and by `Create`'s commit (`walTailsRes_create`'s new premise, `CreateAu`'s `hex`/`htail`); kept by
+  the registered WALs' steps (`WalTailIdle.of_reg`: `walTailsRes_cut`, `_append`, `TailAcc`/`TailAccW`), the state-only
+  changes (`walTailsRes_mono` takes the reverse lookup too: `OpenUnl`, `TailSync`, `CreateNamed`) and registration.
+  **Obligation (W10)**: `Close`'s unregistration must establish `TailIdle` of its WAL (after its sync: the stream
+  written; no resize window open).
+- *Cut positivity: not done.* It cannot go into the invariant without the cut recording it: `CutLay`'s `hcut` gives
+  only `walCutPos` (which allows 0), and the crash must keep it (`WalsStart`). Plumbing (for the cut's owner):
+  `0 < h.H.length` through `WAL.cut.spec` (`WAL__Save` knows it: its history is `H ++ [save]`), `CutAu`, and a fourth
+  pure part (`∀ dir lay, Ls !! dir = some lay → ∀ b ∈ lay.cuts, 0 < b`, all WALs) with `walTailsRes_cut` taking
+  `∀ b ∈ lay'.cuts, b ∈ lay.cuts ∨ 0 < b`; `WalsStart` and `CrashPure` keep it. Not a field of `WalAbsD`: a dozen
+  positional constructions (`RzStepPure`, `TailStepPure`, `OpenUnl`, ...) would break.
+- *`WalReadState`* (`ReadAllLaws.lean`): **still a hypothesis**, now with its idle part proved: **`walInvBody_readIdle`**
+  (the WAL's key and `walTailsFrag ∅` give `d`, the layout with `lay.j = j`, `WalAbsD` and `TailIdle`); helpers
+  `walTailsRes_idle`, `walDirKeys_lay`. What `WalReadState` adds and no invariant fact gives yet: (i) the cuts'
+  positivity (above); (ii) **`WalPinnedSegs`**: the pinned segments `gs` are `lay.segs.drop kk`. Design (for the
+  invariant's owner): a pure part of `walParked` relating the out record to the layout, `∀ dir lay, Ls !! dir =
+  some lay → (lay.j, _) ∈ o.D → T !! dir = none → ∃ k, (lay.segs.drop k).map ino = o.O` (one handle at a time: the
+  lock token); the pin establishes it (`walInvBody_pin`: `walOpenK`), the put-back and registration drop it, purges
+  (W9, `ReleaseLockTo`) keep it (they drop a prefix and the handle's own pins), the contents then follow from the
+  halves' agreement (`walTailsRes_none`: no change in flight). Once both are in, `WalReadState` is
+  `walInvBody_readIdle` plus them.
+- *Task 3, the selection fact*: `walReadTie` takes the start `s` and records `∀ g, gs.head? = some g → ∀ sq ix,
+  g.name = walFileName sq ix → ix < 2^64 → ix ≤ uint.nat s.1` (`openAtIndex`: `walSearch_sel`, over
+  `walSearchFrom_le`). **The bound `ix < 2^64` is needed**: `walFileName` keeps `ix` modulo `2^64` (`hex16`), so the
+  unbounded form is false. Hence `readAll_success` now takes `hsel` in that form and **`hnb`** (the selected segment's
+  `nameBound` with `ix < 2^64`) instead of reading `hab.nameBound`: **obligation (invariant's owner)**: `WalAbsD.nameBound`
+  should carry `ix < 2^64` (the cut names its file with a `uint64`, `Create` with 0; the copies are unchanged).
+- *Not done*: `WAL.ReadAll.wp_proof` (task 4), with the fourteenth session's plan; its hypotheses now: `WalReadState`
+  (narrowed as above), `Decode.spec` (strengthened), the `ZeroToEnd` instance (`wal-tc5`), `walInv_dirPath`
+  (`NameClaims.lean`, `wal-path13`: use it, not `WalDirPathLaw`), the metadata bound (`WalsBounded`, `wal-path14`).
