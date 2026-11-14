@@ -3,7 +3,8 @@ Package initialization of `os`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
 Its fact (`Proof/os/PkgInit.lean`): `Stderr` holds a fixed `*File`, which raft's
-initializer loads (`defaultLogger`), and `ErrExist` a non-nil error (io/fs's; the part only). `os` is this repository's translation (project bboltfs's): its
+initializer loads (`defaultLogger`), `ErrExist` a non-nil error and `ErrNotExist` some
+error (io/fs's; the part only). `os` is this repository's translation (project bboltfs's): its
 initializer initializes its imports and runs its variables' translated initializers (`errors.New`
 errors, io/fs's and internal/poll's error variables, `sync.OnceValue`, function values) and the
 trusted models of the standard streams' (`TrustedCode/os.lean`: `Stdin`, `Stdout` nothing, `Stderr`
@@ -154,6 +155,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of _root_.Perennial.io.fs.ErrInvalid))
   ipersist HStderr
   ipersist HErrExist
+  ipersist HErrNotExist
   iframe Hown
   imodintro
   isplitr

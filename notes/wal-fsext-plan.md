@@ -511,7 +511,9 @@ module; the bboltfs/crashlog/walfs examples and the generated translations not l
   past 1 GiB).
 Not yet stated (no `sorry`, no statement): `Close`, `ReleaseLockTo`, `Repair`, `ValidSnapshotEntries`, `Exist`
 (§4.2's W7-W12), the WAL-level resize updates (I3b's open items). `Create`'s ghost steps (drop, mint, unmint, merges) are proved (`wal-create10`; W4 log, tenth session). The record of what is out of the parked state and the changes in flight only on segments out (W3/W5's gaps A and B) are in the invariant, with the pin's and the put-back's moves (`Parked.lean`, `wal-read9`; W1 log, tenth session). A change in flight only on a registered tail (`TailsOnly`), the tails' authority halved with the lock holder (`walTailsFrag`), and `openAtIndex`'s pin (`walInvBody_pin`, `OpenPinTake.lean`) are proved (`wal-read10`; W1 log, eleventh session; W3/W5 log, tenth session). Gap C (every WAL's directory claim once and exclusive, `DirClaimsOk` in `DirKeysOk`), the pin keying its WAL, the put-back (`walInvBody_unpin`), the commit's `unl` raise (`walInvBody_unl`) and the tail's registration (`walTailsRes_register`) are proved (`wal-read11`; W1 log, twelfth session; W3/W5 log, eleventh session).
-`Exist` proved over hypotheses (`wal-small12`, W7-W12 log; no `sorry`). Not yet stated (no `sorry`, no statement): `Close`, `ReleaseLockTo`, `Repair`, `ValidSnapshotEntries`
+`Exist` proved over hypotheses (`wal-small12`, W7-W12 log; no `sorry`); `hErrNotExist` dropped and the
+`os`/extension layer of its `ReadDir` hypotheses proved over the provisional `ENOENT` rule (`wal-enoent13`,
+W7-W12 log, second session); left: `ReadDir`'s loops and the names' bound, `errors.IsPathErrnoNotExist.spec`. Not yet stated (no `sorry`, no statement): `Close`, `ReleaseLockTo`, `Repair`, `ValidSnapshotEntries`
 (§4.2's W7-W11), the WAL-level resize updates (I3b's open items). `Create`'s ghost steps (drop, mint, unmint, merges) are proved (`wal-create10`; W4 log, tenth session). The record of what is out of the parked state and the changes in flight only on segments out (W3/W5's gaps A and B) are in the invariant, with the pin's and the put-back's moves (`Parked.lean`, `wal-read9`; W1 log, tenth session). A change in flight only on a registered tail (`TailsOnly`), the tails' authority halved with the lock holder (`walTailsFrag`), and `openAtIndex`'s pin (`walInvBody_pin`, `OpenPinTake.lean`) are proved (`wal-read10`; W1 log, eleventh session; W3/W5 log, tenth session).
 
 ## W1 implementation log (branch `wal-inv`, 2026-11-13)
@@ -1059,7 +1061,9 @@ holds some mode). Nothing proves the new models yet.
   `readInt64` takes `len(r0) + 8 < 2^62`. The decoder discharges both reads: the length word inside
   `|F.bs| + 8`, the frame at most 8 bytes past the file (Go's size check counts from `lastValidOff`).
 
-**Pending the user's review (trusted or axiomatic), all off `lean`:** the fork fixes (§8,
+**Pending the user's review (trusted or axiomatic), all off `lean`:** the `ENOENT` rule of `fsExt`
+(2026-11-14, `Impl.lean`'s `ENOENT`, `Open`/`DirReadNext`; `examples/osfs/semantics/meta_enoent.go`,
+measured on C; the W7-W12 log); the fork fixes (§8,
 `notes/wal-fsext-fork/`); W1 (the crash premise, `LinuxFs/.../wal/W1.lean`; the open question of torn
 non-`Data` bytes, under investigation on `wal-bytemix`); the new `os`/`syscall` models and the
 `PathKind` query in `GooseLang/Ext/Fs/Impl.lean` (§9, `notes/wal-fsext-models-review.md`); the
@@ -3585,4 +3589,47 @@ tail). Task 3 (the pin, `openAtIndex`, `OpenForRead`, `Open`) not started.
 - **Statement change (minor):** `wal.Exist.specCreate` (`CreateCallees.lean`) takes `NameOk nm` (both `ReadDir`
   hypotheses need it; `walNameOk` allows a NUL byte); `Create.lean` passes its own `hnmO`. `wal-create12`: replace
   the hypothesis `wp_Exist` by `wal.Exist.wp_specCreate C Mr wp_WithExt wp_RDabs wp_RDchild hErrNotExist`.
+- *Not started*: `ValidSnapshotEntries` (W8), `ReleaseLockTo` (W9).
+
+**Second session (branch `wal-enoent13`, 2026-11-14).**
+
+- **Trusted semantics change [user], decided provisionally, pending the user's review: `ENOENT`.**
+  `GooseLang/Ext/Fs/Impl.lean`: `def ENOENT : w64 := 2`; `IsFsStep "Open"`'s failure disjunct gains
+  `(e = ENOENT → st0.lookup p = none)` (a failing `open` of a path of the trees returns `ENOENT` only
+  when the path does not resolve at the step); `"DirReadNext"`'s errno disjunct gains
+  `(e = ENOENT → ¬ Reach st.fs.roots st.tree df.ino)` (only for a removed directory). Not `Unlink`/
+  `Rmdir`/`Rename`/`Mkdir` (`RemoveAll`'s model relies on their free `ENOENT`), not `Open`'s outside
+  case. Why the step is right (the model resolves paths at the step): Linux's `ENOENT` is a component's
+  lookup finding no entry or a dead directory (`fs/namei.c`); with no directory renamed during the call
+  (the stuck clause), the path did not resolve at that instant (or just after the `rmdir` that killed
+  the walk's directory), and the call does nothing else before returning, so the step may sit there;
+  `iterate_dir` (`fs/readdir.c`) answers `ENOENT` exactly for `IS_DEADDIR`, which is permanent. Go
+  example `examples/osfs/semantics/meta_enoent.go` (indexed in `doc.go`); **measured on C**
+  (`run-models-on-c.sh`, `check.sh` passed): `TestEnoent`, `ENOENT` for a missing name, under a missing
+  and under a removed directory, and from `Readdirnames` of a removed directory; 3000 rounds of `Open`
+  of a present directory and of a file in it and `Readdirnames` of a 2000-entry (htree) directory,
+  under 8 goroutines creating/renaming/removing siblings, never failed. ext4's own lookup/readdir
+  errors not `ENOENT`: kernel source, not exhaustively measured.
+- **Extension** (repaired: patterns in `CommitMono`, `Tests`, `TreeSpecs{Open,DirFd}`,
+  `TreeShared{OpenDir,Create,Trunc,Read}`, `os/SharedExt`; no statement weakened): `wp_osOpenDirGenS'`
+  (generic in what shows the path), `wp_osOpenDirS`'s failure now `e ≠ ENOENT` (stronger),
+  **`wp_osOpenDirChildS`** (`d/b` through a fraction of a claim of `d`'s directory holding it: the child
+  form `ExistCallees` asked for; no `walDirPath` hypothesis needed); `wp_dirReadS`'s errno arm gains
+  `e = ENOENT → WGone`, `wp_osDirReadNextGenS'` (a further resource showing a state property),
+  **`wp_osDirReadNextChildS`** (`e ≠ ENOENT`).
+- **`os` layer** (`LinuxFs/Proof/os/NsChildS.lean`, no `sorry`): `os.errnoPathErr err e` (a `*PathError`
+  of the errno `e`, persistent; `fmtErrorOk` for `e ≠ 0`), `wp_pathError_errno`, `wp_wrapErrno_errno`;
+  `os.OpenFile/Open.wp_dirChildS`, `os.File.Readdirnames.wp_dirChildS` (errors `e ≠ 0 ∧ e ≠ ENOENT`),
+  `os.OpenFile/Open.wp_absentErrS` (`wp_absentS` with the error explicit).
+- **`hErrNotExist` dropped**: the part's `os` package fact records `os.ErrNotExist` (some error;
+  `etc/gen-init.py`'s `LFS_OS`, `--check` passes; `os.errNotExist_of_pkgInit`, `PkgInit.lean`).
+  `wal.Exist.wp_proof`/`wp_specCreate`/`wp_core` lose the hypothesis (`wal-create12`: pass no
+  `hErrNotExist`).
+- **`ReadDir.specAbsentIs`/`specChildIs` still hypotheses.** What is left (`ExistCallees.lean`'s header):
+  `ReadDir`'s own loops (`applyOpts` over the closures, the extension filter) and a bound on the names
+  read, which `sort.Strings.spec` needs (`≤ 2^62`) and nothing gives (`ReadDir.wp_proof` is `sorry` for
+  the same reasons: one proof of the loops serves all three); and the new
+  `errors.IsPathErrnoNotExist.spec` (`errors.Is(*PathError of e, os.ErrNotExist) = (e = ENOENT)`: needs
+  the error tree of the part's `os` errors, `syscall.Errno.Is`, and `os.ErrNotExist = oserror.ErrNotExist`
+  distinct from `ErrPermission`/`ErrExist`/`ErrUnsupported` in the package facts).
 - *Not started*: `ValidSnapshotEntries` (W8), `ReleaseLockTo` (W9).

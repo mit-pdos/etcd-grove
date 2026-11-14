@@ -511,6 +511,8 @@ SPECIAL['internal.syscall.unix'] = dict(alloc_types=_ALLOC_ANY)
 
 # (2026-11-14, the WAL over fsExt: `wal.Create` returns `os.ErrExist`, non-nil) the part's `io/fs` and
 # `os` record `ErrExist`'s error non-nil (`LinuxFs/Proof/os/PkgInit.lean`); the main tree's are unchanged.
+# (2026-11-14, `wal.Exist`'s `errors.Is(err, os.ErrNotExist)`) the part's `os` also records
+# `ErrNotExist`'s error (some error, for good).
 _lfs_fs_ex = '(∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrExist) e DFrac.discard)'
 _lfs_fs_ex_nn = ('(∃ e : GoInterface, ⌜e ≠ interface.nil⌝ ∗ typedPointsto (globalAddr '
                  '_root_.Perennial.io.fs.ErrExist) e DFrac.discard)')
@@ -520,10 +522,10 @@ LFS_IOFS['doc'] = SPECIAL['io.fs']['doc'].replace('hold some error for good.',
 # (its finish unchanged: `is_pkg_init_finish` proves the pure conjunct)
 LFS_OS = dict(SPECIAL['os'])
 LFS_OS['doc'] = SPECIAL['os']['doc'].replace("which raft's\ninitializer loads (`defaultLogger`).",
-    "which raft's\ninitializer loads (`defaultLogger`), and `ErrExist` a non-nil error (io/fs's; the part only).")
+    "which raft's\ninitializer loads (`defaultLogger`), `ErrExist` a non-nil error and `ErrNotExist` some\nerror (io/fs's; the part only).")
 LFS_OS['before'] = {'dirBufPool': [l.replace(_lfs_fs_ex, _lfs_fs_ex_nn).replace('⟨%fe3, #F3⟩', '⟨%fe3, %hfe3, #F3⟩')
                                    for l in SPECIAL['os']['before']['dirBufPool']]}
-LFS_OS['finish'] = ['ipersist HStderr', 'ipersist HErrExist', 'iframe Hown', 'imodintro', 'isplitr',
+LFS_OS['finish'] = ['ipersist HStderr', 'ipersist HErrExist', 'ipersist HErrNotExist', 'iframe Hown', 'imodintro', 'isplitr',
                     '· ipureintro', '  exact isPanic_intoVal _', 'is_pkg_init_finish']
 
 # (WAL leaf specs, 2026-11-13) the part's bufio, internal/filepathlite and path/filepath: their

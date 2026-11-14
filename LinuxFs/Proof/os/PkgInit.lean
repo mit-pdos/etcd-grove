@@ -57,13 +57,24 @@ namespace os
 /-- `os`: `Stderr` holds a fixed `*File`, which raft's initializer loads (`defaultLogger`); the
 trusted model of its initializer (`TrustedCode/os.lean`) allocates it (2026-11-07; until then an
 assumption of `Init.lean`'s); and `ErrExist` holds a non-nil error (io/fs's, which the initializer
-copies; `wal.Create` returns it, 2026-11-14; the part's only: the main tree's `os` fact is
-`Stderr`'s alone). -/
+copies; `wal.Create` returns it, 2026-11-14), and `ErrNotExist` holds some error for good (`wal.Exist`
+compares with it, 2026-11-14); the part's only: the main tree's `os` fact is `Stderr`'s alone. -/
 instance os_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.os :=
   define_is_pkg_init iprop((∃ f : Loc, typedPointsto (globalAddr os.Stderr) f DFrac.discard) ∗
-    ∃ e : GoInterface, ⌜e ≠ interface.nil⌝ ∗ typedPointsto (globalAddr os.ErrExist) e DFrac.discard)
+    (∃ e : GoInterface, ⌜e ≠ interface.nil⌝ ∗ typedPointsto (globalAddr os.ErrExist) e DFrac.discard) ∗
+    ∃ e : GoInterface, typedPointsto (globalAddr os.ErrNotExist) e DFrac.discard)
 instance os_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.os :=
   build_get_is_pkg_init_wf
+
+/-- `os.ErrNotExist` holds some error, for good (the part's fact). -/
+theorem errNotExist_of_pkgInit : isPkgInit (PROP := IProp GF) pkg_id.os ⊢
+    ∃ e : GoInterface, typedPointsto (globalAddr os.ErrNotExist) e DFrac.discard := by
+  refine (isPkgInit_access (PROP := IProp GF) pkg_id.os).trans ?_
+  show iprop((∃ f : Loc, typedPointsto (globalAddr os.Stderr) f DFrac.discard) ∗
+      (∃ e : GoInterface, ⌜e ≠ interface.nil⌝ ∗ typedPointsto (globalAddr os.ErrExist) e DFrac.discard) ∗
+      ∃ e : GoInterface, typedPointsto (globalAddr os.ErrNotExist) e DFrac.discard) ⊢ _
+  iintro ⟨-, -, He⟩
+  iexact He
 
 end os
 
