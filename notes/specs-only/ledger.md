@@ -336,3 +336,31 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   ~33 bytes): discharged at C6 from raftpb's encoder.
 - **Decision.** Adopted (the coordinator, the user away): a client-visible law on a parameter, true of
   etcd's marshaller.
+
+## 2026-11-14: `wal.Exist.spec` -- the lock token, and a `false` that `fsExt` cannot exclude
+
+- **Spec.** `wal.Exist.spec` (the main tree's W4a axiom `Spec/go_etcd_io/etcd/server/v3/storage/wal/Exist.lean`),
+  restated over `fsExt` in `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/Exist.lean` (W12 of
+  `notes/wal-fsext-plan.md`).
+- **Defects.** (1) *The token.* To read a present WAL's directory, `Exist` needs a fraction of its directory's
+  claim, which `walParked` holds while no handle is open; taking it out needs the lock (`walParked_lock`,
+  as `Open`'s pin). The old spec took no token. (2) *Q4 (b).* `Create`'s failure after its rename leaves a
+  fresh, unnamed WAL whose directory `cleanupWAL` may have moved aside (plan §11): `false` must allow it.
+  (3) *`false` on a present WAL.* `Exist` returns `false` when `ReadDir` fails with an error
+  `errors.Is(_, os.ErrNotExist)` accepts. `fsExt` lets every failing system call return any errno, `ENOENT`
+  included (`IsFsStep` "Open", "Readdir"), so the model has runs where `Exist` of a present, named WAL
+  returns `false`: the old post (`false → o = none`) is false of the model, though true on configuration C
+  (Linux's `open(2)` returns `ENOENT` only for a missing component; `getdents64` only on a removed
+  directory, which a WAL directory under the area discipline is not).
+- **Evidence.** `GooseLang/Ext/Fs/Impl.lean`, "Environmental failure is a nondeterministic errno"; the W12
+  proof (the plan's W7-W12 log).
+- **Proposed change.** (1) `Exist` takes `walUnlockedTok` (framed), as `Open` and `Create` do; its callers
+  (the server's bootstrap, the tester's restart) call it with no handle open. (2) `false → o = none ∨ ∃ d,
+  o = some d ∧ d.H = [] ∧ d.named = false`. (3) Kept the strong post, proved over the hypothesis
+  `fileutil.ReadDir.specChildIs` (a present directory's read fails only with an error `errors.Is` does not
+  take for `os.ErrNotExist`), unprovable against the current model; the model fix ("`ENOENT` only when the
+  path does not resolve", for `open` and `getdents`) is the user's (trusted semantics) -- the alternative,
+  a `false` that claims nothing, would leave `Create` (which needs `walAbsent`) unreachable from the
+  server's bootstrap.
+- **Decision.** (1), (2) adopted (minor; (2) is the coordinator's Q4 (b)). (3) **for the user**: the
+  hypothesis stays until the model tightens `ENOENT` (`notes/wal-fsext-plan.md`, W7-W12 log).
