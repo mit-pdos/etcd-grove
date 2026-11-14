@@ -52,20 +52,21 @@ theorem publish_elem (V : WEnv GF) (P : WsPrm GF) (C : List w64) (i : Nat)
       watchHdrOwn v.Header' r ∗ ⌜dispOk P.rev hiB hiA r⌝ ∗
       statusErrOk v.closeErr' ∗
       (⌜P.γ.cpl = false⌝ ∨ ∃ (c2 c2' : w64) (σ : KVState), monoListIdxOwn P.γ.cur2 i c2 ∗
-        monoListIdxOwn P.γ.cur2 (i + 1) c2' ∗ □ P.Q σ ∗ watchStateRespOk P.o σ c2 c2' v r) ∗
+        monoListIdxOwn P.γ.cur2 (i + 1) c2' ∗ □ P.Q σ ∗ watchStateRespOkP P.o σ c2 c2' v r ∗
+        eventsPkAt v.Events' r.events) ∗
       □ (⌜r.events ≠ []⌝ → wsRow V P) ∗ cmpOkOf V.kv r.compactRev ⊢
     |==> (monoListAuthOwn P.γ.cur 1 (C ++ [hiA]) ∗ outcElem V.kv P.γ P.o P.Q (wsRow V P) (i : Int) v) := by
   iintro ⟨Hauth, #Hev, Hhdr, -, -, #Hc2, #Hrow, #Hcmp⟩
   imod monoListAuthOwn_update_app (GF := GF) [hiA] $$ Hauth with ⟨Hauth, -⟩
-  icases Hc2 with (%Hf | ⟨%c2, %c2', %σ, #H1, #H2, #HQ, #Hs⟩)
+  icases Hc2 with (%Hf | ⟨%c2, %c2', %σ, #H1, #H2, #HQ, #Hs, #Hpk⟩)
   · rw [hcpl] at Hf; cases Hf
   imod hdrAt_of_hdrOwn v.Header' r $$ Hhdr with #Hh
   imodintro
   iframe Hauth
-  unfold outcElem watchStateElem respAt
+  unfold outcElem watchStateElemP respAtP respAt
   iexists r, σ, c2, c2'
   simp only [Int.toNat_natCast]
-  iframe Hev Hh H1 H2 HQ Hs Hrow
+  iframe Hev Hh H1 H2 HQ Hs Hrow Hpk
   isplitr
   · ipureintro; exact hf
   rw [hf.1]; iexact Hcmp
@@ -135,7 +136,8 @@ theorem publish_cmpl (V : WEnv GF) (P : WsPrm GF) (i k : Nat) (kk : Int) (hk : k
     cur2Pos (GF := GF) P i k ∗ recvCmpl V P kk v r ⊢
     |==> (cur2Pos P (i + 1) (k + 1) ∗
       (⌜P.γ.cpl = false⌝ ∨ ∃ (c2 c2' : w64) (σ : KVState), monoListIdxOwn P.γ.cur2 i c2 ∗
-        monoListIdxOwn P.γ.cur2 (i + 1) c2' ∗ □ P.Q σ ∗ watchStateRespOk P.o σ c2 c2' v r)) := by
+        monoListIdxOwn P.γ.cur2 (i + 1) c2' ∗ □ P.Q σ ∗ watchStateRespOkP P.o σ c2 c2' v r ∗
+        eventsPkAt v.Events' r.events)) := by
   unfold cur2Pos recvCmpl
   rw [hk]
   iintro ⟨(%H | ⟨%C2, %cl2, Ha, %HC, #Hk⟩), #Hc⟩
@@ -143,7 +145,7 @@ theorem publish_cmpl (V : WEnv GF) (P : WsPrm GF) (i k : Nat) (kk : Int) (hk : k
     isplitl []
     · ileft; ipureintro; exact H
     · ileft; ipureintro; exact H
-  icases Hc with (%H | ⟨%h2B, %h2A, #HB, #HA, -, %σ, #HQ, #Hok⟩)
+  icases Hc with (%H | ⟨%h2B, %h2A, #HB, #HA, -, %σ, #HQ, #Hok, #Hpk⟩)
   · imodintro
     isplitl []
     · ileft; ipureintro; exact H
@@ -165,7 +167,7 @@ theorem publish_cmpl (V : WEnv GF) (P : WsPrm GF) (i k : Nat) (kk : Int) (hk : k
     ipureintro; simp [HC.1]
   iright
   iexists h2B, h2A, σ
-  iframe Hi1 Hi2 HQ Hok
+  iframe Hi1 Hi2 HQ Hok Hpk
 
 /-- **A created response, not published** (K2e-7): the second cursor's position moves past it
 (it keeps the server-level contract's position). -/

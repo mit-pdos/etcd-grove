@@ -112,7 +112,7 @@ theorem checkCompactRev.wp_proof
     isplitr
     · ipureintro
       refine ⟨?_, ?_, by decide, ?_⟩
-      · simp [opWatchModel, opFold, OpFull.getInit, withRevM, OpFull.isRangeWatch, OpFull.newOp,
+      · simp [opWatchModel, opFold, OpFull.getInit, withRevM, OpFull.isRangeWatchP, OpFull.newOp,
           OpModel.zero]
       · simp [opWatchPanics, OpFull.watchPanics, opWatchModel, opFold, OpFull.getInit, withRevM,
           OpFull.newOp, OpModel.zero]

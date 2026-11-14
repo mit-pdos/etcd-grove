@@ -89,13 +89,14 @@ theorem outcElem_canceled (γk : KVNames) (γ : EtcdWatchNames) (o : OpFull) (Q 
     outcElem γk γ o Q Au (i : Int) v := by
   obtain ⟨he, hc, hca, hcr, hh⟩ := hv
   iintro ⟨#Hrev, #Hse, #HQ, #Hi, #Hi'⟩
-  unfold outcElem watchStateElem
+  unfold outcElem watchStateElemP
   iexists { events := [], compactRev := W64 0, canceled := true, created := false, hdrRev := W64 0 },
     σ0, c, c
   simp only [Int.toNat_natCast]
   iframe HQ Hi Hi'
   isplitr
-  · unfold respAt
+  · unfold respAtP respAt
+    isplitr
     isplitr
     · unfold eventsAt
       iexists []
@@ -110,13 +111,25 @@ theorem outcElem_canceled (γk : KVNames) (γ : EtcdWatchNames) (o : OpFull) (Q 
       iright
       iframe #
       ipureintro; exact hh
-    ipureintro; exact ⟨hc, hca, hcr⟩
+    · ipureintro; exact ⟨hc, hca, hcr⟩
+    unfold eventsPkAt
+    iexists []
+    rw [he]
+    isplitr
+    · iapply ownSlice_nil
+    isplitr
+    · ipureintro; rfl
+    iintro !> %j %ev %e %h; simp at h
   isplitr
-  · unfold watchStateRespOk
-    ileft
-    iframe Hse
-    ipureintro
-    exact ⟨Or.inr (Or.inr hca), rfl⟩
+  · unfold watchStateRespOkP
+    isplitr
+    · unfold watchStateRespOk
+      ileft
+      iframe Hse
+      ipureintro
+      exact ⟨Or.inr (Or.inr hca), rfl⟩
+    iapply respPkOk_nil
+    unfold KVState.rangeEvents; simp
   isplitr
   · iintro !> %h
     exact absurd rfl h
@@ -157,7 +170,7 @@ theorem watch_spsc_alloc (γk : KVNames) (o : OpFull) (Q : KVState → IProp GF)
   iexists ⟨γs, γcur, γcur, b⟩
   iframe Hp Ha Hc
   have heq : outcElem (GF := GF) γk ⟨⟨γc, 0, 0⟩, γcur, γcur, b⟩ o Q Au =
-      outcElem γk ⟨γs, γcur, γcur, b⟩ o Q Au := by unfold outcElem watchStateElem; rfl
+      outcElem γk ⟨γs, γcur, γcur, b⟩ o Q Au := by unfold outcElem watchStateElemP; rfl
   rw [← heq]
   isplitr
   · iexact Hs
@@ -169,7 +182,7 @@ theorem watch_spsc_alloc (γk : KVNames) (o : OpFull) (Q : KVState → IProp GF)
 
 omit [Pos.Countable V] [ZeroVal V] [TypedPointsto (GF := GF) V] [IntoValTyped (GF := GF) V t] in
 /-- **`Watch`'s result** (D47): a watch's channel of `outcElem` at the names `γ`, the consumer's
-side and the second cursor at the start, is the triple's (`watchStateElem`) at `γ` with its second
+side and the second cursor at the start, is the triple's (`watchStateElemP`) at `γ` with its second
 cursor as the cursor. -/
 theorem watch_post (γk : KVNames) (γ : EtcdWatchNames) (o : OpFull) (Q : KVState → IProp GF) (Au : IProp GF)
     (ch : Loc) (rev : w64) :
@@ -177,7 +190,7 @@ theorem watch_post (γk : KVNames) (γ : EtcdWatchNames) (o : OpFull) (Q : KVSta
       spscConsumer γ.spsc ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
       monoListIdxOwn γ.cur2 0 (rev - W64 1) ⊢
     isSpsc ({ γ with cur := γ.cur2 } : EtcdWatchNames).spsc ch
-        (watchStateElem γk { γ with cur := γ.cur2 } o Q Au) (fun _ => iprop(True)) ∗
+        (watchStateElemP γk { γ with cur := γ.cur2 } o Q Au) (fun _ => iprop(True)) ∗
       spscConsumer ({ γ with cur := γ.cur2 } : EtcdWatchNames).spsc
         ([] : List go_etcd_io.etcd.client.v3.WatchResponse) ∗
       monoListIdxOwn ({ γ with cur := γ.cur2 } : EtcdWatchNames).cur 0 (rev - W64 1) := by

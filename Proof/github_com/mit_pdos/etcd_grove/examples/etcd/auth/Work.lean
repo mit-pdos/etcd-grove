@@ -748,6 +748,7 @@ theorem Work.wp_proof
     iapply HΦ; itrivial
   simp only [↓reduceIte]
   icases Hv with ⟨Hel, Hcons⟩
+  ihave Hel := watchStateElemP_elem _ _ _ _ _ _ _ $$ Hel
   iunfold watchStateElem at Hel
   icases Hel with ⟨%r, %σ, %c, %c', #Hresp, -, -, -, -, #Hau', -⟩
   iunfold respAt at Hresp

@@ -407,6 +407,264 @@ theorem evs_eventsAt (sl : GoSlice) (ps : List Loc) (evs : List mvcc.EvM)
   ihave ⟨-, H2⟩ := Hr $$ %k %p %ev %kv %hp %he %hk
   iexact H2
 
+/-! ## The events' previous key-values (k8s 7f-3c) -/
+
+/-- An event of a log's range events is at a revision of the log with changes, without a previous
+key-value. -/
+theorem rangeLogEvents_mem (L : mvcc.Log) (o : OpFull) (lo hi : Nat) (ev : mvcc.EvM)
+    (h : ev ∈ rangeLogEvents L o lo hi) :
+    ∃ j, lo ≤ j ∧ j < hi ∧ j < L.length ∧ ev.kv.modRev = W64 (j : Int) ∧ ev.prevKv = none ∧
+      L.getD j [] ≠ [] := by
+  unfold rangeLogEvents at h
+  obtain ⟨j, h1, h2, hj⟩ := (mem_logEvents L lo hi ev).1 (List.mem_filter.1 h).1
+  have hne : L.getD j [] ≠ [] := by
+    intro he; rw [he, evsOfRevM_nil] at hj; simp at hj
+  have hjl : j < L.length := by
+    refine Classical.byContradiction fun hc => hne ?_
+    rw [List.getD_eq_getElem?_getD, List.getElem?_eq_none (by omega)]; rfl
+  refine ⟨j, h1, h2, hjl, evsOfRevM_modRev_sm j _ (stateAt_sorted _ _) _ ev hj, ?_, hne⟩
+  unfold evsOfRevM at hj
+  obtain ⟨i, -, hi⟩ := List.mem_filterMap.1 hj
+  cases hk : changeKv (W64 (j : Int)) (stateAt L (j - 1)) (L.getD j []) i with
+  | none => rw [hk] at hi; cases hi
+  | some kv =>
+    rw [hk] at hi
+    simp only [Option.map_some, Option.some.injEq] at hi
+    subst hi
+    unfold evOfKv; split <;> rfl
+
+theorem getD_prefix {A B : mvcc.Log} (h : A <+: B) (i : Nat) (hi : i < A.length) :
+    A.getD i [] = B.getD i [] := by
+  obtain ⟨t, rfl⟩ := h
+  simp [List.getD_eq_getElem?_getD, List.getElem?_append_left hi]
+
+/-- **A sent event's `PrevKv` pointer `q`, at the server's level** (persistent; k8s 7f-3c): for
+mvcc's event `ev0` of the watcher `id`, the send loop sent `ev0`, or `ev0` with a previous
+key-value written (`v3rpc.pkWritten`), and `q` is the sent event's (`mvcc.prevKvIs`). -/
+def pkSent (r : v3rpc.WRun GF) (id : w64) (ev0 : mvcc.EvM) (q : Loc) : IProp GF :=
+  iprop(∃ ev : mvcc.EvM, v3rpc.pkWritten r id ev0 ev ∗ mvcc.prevKvIs q ev.prevKv)
+
+instance pkSent_persistent (r : v3rpc.WRun GF) (id : w64) (ev0 : mvcc.EvM) (q : Loc) :
+    Persistent (pkSent (GF := GF) r id ev0 q) := by
+  unfold pkSent; infer_instance
+
+/-- **A sent event's pointer, as the client's contract reads it** (k8s 7f-3c): for mvcc's event
+`ev0` of the watcher `X` at the revision `j ≥ 1` of a certified log `L` (a revision with changes),
+the pointer is `prevKvLogOk` at `L`. Without `WithPrevKV` the watcher asked for none (`pkIs`
+agreement with the created response's, `ctrlWatcher`): the send loop wrote none. A written one is
+the key's record at `j - 1` of a certified log `L'`, comparable with `L`, so `L`'s (`stateAt` of a
+prefix); `j ≠ 1`, as `L'`'s revision `1`, which is `L`'s, is empty. -/
+theorem pkSent_logOk (r : v3rpc.WRun GF) (X : w64) (o : OpFull) (L : mvcc.Log) (ev0 : mvcc.EvM)
+    (q : Loc) (j : Nat) (hj1 : 1 ≤ j) (hj : j < L.length) (hm : ev0.kv.modRev = W64 (j : Int))
+    (hp : ev0.prevKv = none) (hne : L.getD j [] ≠ []) :
+    srvWLaws r.W ∗ □ r.W.histLb L ∗ v3rpc.pkIs r.γpk X o.base.prevKV ∗ pkSent r X ev0 q ⊢
+      prevKvLogOk o L ev0 q := by
+  iintro ⟨#Hl, #HL, #Hpk, #Hs⟩
+  iunfold pkSent at Hs
+  icases Hs with ⟨%ev, #Hw, #Hq⟩
+  iunfold v3rpc.pkWritten at Hw
+  icases Hw with (%Heq | ⟨%kv, %L', %H, #HL', #Hpk'⟩)
+  · subst Heq
+    rw [hp]
+    iunfold mvcc.prevKvIs at Hq
+    icases Hq with %Hq
+    unfold prevKvLogOk
+    split
+    · ileft; ipureintro; exact Hq
+    · ipureintro; exact Hq
+  obtain ⟨hev, hnc, h1L', hL1, hlt, hfind⟩ := H
+  ihave %Hb := v3rpc.pkIs_agree r.γpk X o.base.prevKV true $$ [$Hpk $Hpk']
+  ihave %Hwl := srvWLaws_model r.W L $$ [$Hl $HL]
+  have hL63 := Hwl.2.1
+  iunfold srvWLaws at Hl
+  icases Hl with ⟨-, #Hcmp, -⟩
+  ihave %Hc := Hcmp $$ %L %L' HL HL'
+  have hjz : sint.Z ev0.kv.modRev = j := by rw [hm]; word
+  have hjn : sint.nat ev0.kv.modRev = j := by
+    show (sint.Z ev0.kv.modRev).toNat = j; rw [hjz]; simp
+  -- revision `1` is empty in both
+  have hj2 : 2 ≤ j := by
+    refine Classical.byContradiction fun hc => hne ?_
+    have hj1' : j = 1 := by omega
+    subst hj1'
+    rcases Hc with hc | hc
+    · rw [getD_prefix hc 1 hj]; exact hL1
+    · rw [← getD_prefix hc 1 h1L']; exact hL1
+  have hst : mvcc.stateAt L (j - 1) = mvcc.stateAt L' (j - 1) := by
+    rcases Hc with hc | hc
+    · exact v3rpc.stateAt_prefix hc (by omega)
+    · exact (v3rpc.stateAt_prefix hc (by omega)).symm
+  rw [hev]
+  iunfold mvcc.prevKvIs at Hq
+  unfold prevKvLogOk
+  rw [if_pos Hb]
+  iright
+  iexists kv
+  iframe Hq
+  ipureintro
+  refine ⟨hnc, ?_⟩
+  rw [hjn, hst, ← hjn]
+  exact hfind (by omega)
+
+/-- An mvcc event's `PrevKv` field, read-only, and its pointer the event's previous key-value. -/
+theorem evIs_pk (e : Loc) (ev : mvcc.EvM) :
+    mvcc.evIs (GF := GF) e ev ⊢
+      ∃ q : Loc, structFieldRef mvccpb.Event go!"PrevKv" e ↦□ q ∗ mvcc.prevKvIs q ev.prevKv := by
+  iintro #H
+  iunfold mvcc.evIs at H
+  icases H with ⟨%p, %q, %st, %uf, %sc, -, #Hev, -, #Hq⟩
+  icases typedPointsto_split _ _ _ $$ Hev with Hev
+  simp only [TypedPointsto.typedPointstoDef]
+  iNamed Hev
+  iexists q
+  iframe PrevKv
+  unfold mvcc.prevKvIs
+  iexact Hq
+
+/-- The slice `sl` of `*mvccpb.Event` (read-only) holds events whose `PrevKv` fields are `qs`. -/
+def pkQAt (sl : GoSlice) (qs : List Loc) : IProp GF :=
+  iprop(∃ ls : List Loc, sl ↦*□ ls ∗ ⌜ls.length = qs.length⌝ ∗
+    □ (∀ (i : Nat) (p q : Loc), ⌜ls[i]? = some p⌝ -∗ ⌜qs[i]? = some q⌝ -∗
+      structFieldRef mvccpb.Event go!"PrevKv" p ↦□ q))
+
+instance pkQAt_persistent (sl : GoSlice) (qs : List Loc) : Persistent (pkQAt (GF := GF) sl qs) := by
+  unfold pkQAt; infer_instance
+
+/-- The pointers `qs`, as the events' with them. -/
+theorem pkQAt_at (sl : GoSlice) (qs : List Loc) (es : List EvModel) (h : qs.length = es.length) :
+    pkQAt (GF := GF) sl qs ⊢ eventsPkAt sl (withPk es qs) := by
+  iintro #H0
+  iunfold pkQAt at H0
+  icases H0 with ⟨%ls, #Hsl, %Hl, #H⟩
+  unfold eventsPkAt
+  iexists ls
+  iframe Hsl
+  isplitr
+  · ipureintro; rw [withPk_length es qs h]; omega
+  iintro !> %i %p %e %hp %he
+  rw [withPk_getElem?] at he
+  cases hes : es[i]? with
+  | none => rw [hes] at he; simp at he
+  | some e0 =>
+    cases hqs : qs[i]? with
+    | none => rw [hes, hqs] at he; simp at he
+    | some q =>
+      rw [hes, hqs] at he
+      simp only [Option.some.injEq] at he
+      subst he
+      iapply H $$ %i %p %q %hp %hqs
+
+theorem evs_pk_aux : ∀ (ps : List Loc) (evs : List mvcc.EvM), ps.length = evs.length →
+    ([∗list] x ∈ ps.zip evs, mvcc.evIs (GF := GF) x.1 x.2) ⊢
+      ∃ qs : List Loc, ⌜qs.length = evs.length⌝ ∗
+        □ (∀ (k : Nat) (p : Loc) (ev : mvcc.EvM) (q : Loc), ⌜ps[k]? = some p⌝ → ⌜evs[k]? = some ev⌝ →
+          ⌜qs[k]? = some q⌝ →
+          structFieldRef mvccpb.Event go!"PrevKv" p ↦□ q ∗ mvcc.prevKvIs q ev.prevKv)
+  | [], [], _ => by
+    iintro -
+    iexists []
+    isplitr
+    · ipureintro; rfl
+    iintro !> %k %p %ev %q %h
+    simp at h
+  | [], _ :: _, h => by simp at h
+  | _ :: _, [], h => by simp at h
+  | p :: ps, ev :: evs, h => by
+    iintro H
+    simp only [List.zip_cons_cons]
+    icases (BigSepL.bigSepL_cons).1 $$ H with ⟨#Hev, H⟩
+    ihave ⟨%qs, %Hl, #Hr⟩ := evs_pk_aux ps evs (by simpa using h) $$ H
+    ihave ⟨%q, #Hf, #Hq⟩ := evIs_pk p ev $$ Hev
+    iexists q :: qs
+    isplitr
+    · ipureintro; simp [Hl]
+    iintro !> %k %p' %ev' %q' %hp %he %hq
+    cases k with
+    | zero =>
+      simp at hp he hq
+      subst hp he hq
+      iframe #
+    | succ k =>
+      simp at hp he hq
+      iapply Hr $$ %k %p' %ev' %q' %hp %he %hq
+
+/-- **The `PrevKv` pointers of a received response** (k8s 7f-3c): the events `evs` the send loop
+sent for mvcc's response `x` (`v3rpc.evsSentOk`), read through their `PrevKv` fields, give pointers
+`qs`, one per event of `x`, each `pkSent`. -/
+theorem evs_pkSent (r : v3rpc.WRun GF) (x : mvcc.api.WResp) (evs : List mvcc.EvM) (sl : GoSlice)
+    (ps : List Loc) (h : ps.length = evs.length) :
+    sl ↦*□ ps ∗ ([∗list] y ∈ ps.zip evs, mvcc.evIs (GF := GF) y.1 y.2) ∗ v3rpc.evsSentOk r x evs ⊢
+      ∃ qs : List Loc, ⌜qs.length = x.evs.length⌝ ∗ pkQAt sl qs ∗
+        □ (∀ (k : Nat) (ev0 : mvcc.EvM) (q : Loc), ⌜x.evs[k]? = some ev0⌝ → ⌜qs[k]? = some q⌝ →
+          pkSent r x.id ev0 q) := by
+  iintro ⟨#Hsl, H, #Hs⟩
+  ihave ⟨%qs, %Hl, #Hr⟩ := evs_pk_aux ps evs h $$ H
+  iunfold v3rpc.evsSentOk at Hs
+  icases Hs with ⟨%Hsl', #Hs⟩
+  iexists qs
+  isplitr
+  · ipureintro; omega
+  isplitr
+  · unfold pkQAt
+    iexists ps
+    iframe Hsl
+    isplitr
+    · ipureintro; omega
+    iintro !> %i %p %q %hp %hq
+    have hi : i < evs.length := by have := (List.getElem?_eq_some_iff.1 hq).1; omega
+    ihave ⟨Hf, -⟩ := Hr $$ %i %p %(evs[i]) %q %hp %(List.getElem?_eq_getElem hi) %hq
+    iexact Hf
+  iintro !> %k %ev0 %q %h0 %hq
+  have hi : k < evs.length := by have := (List.getElem?_eq_some_iff.1 hq).1; omega
+  have hpi : k < ps.length := by omega
+  ihave ⟨-, #Hq⟩ := Hr $$ %k %(ps[k]) %(evs[k]) %q %(List.getElem?_eq_getElem hpi)
+    %(List.getElem?_eq_getElem hi) %hq
+  ihave #Hw := Hs $$ %k %ev0 %(evs[k]) %h0 %(List.getElem?_eq_getElem hi)
+  unfold pkSent
+  iexists evs[k]
+  iframe Hw Hq
+
+/-- The events with pointers, as `eventsAt` reads them (it reads no pointer). -/
+theorem eventsAt_withPk (sl : GoSlice) (es : List EvModel) (qs : List Loc)
+    (h : qs.length = es.length) :
+    eventsAt (GF := GF) sl es ⊢ eventsAt sl (withPk es qs) := by
+  iintro #H0
+  iunfold eventsAt at H0
+  icases H0 with ⟨%ls, #Hsl, %Hl, #H⟩
+  unfold eventsAt
+  iexists ls
+  iframe Hsl
+  isplitr
+  · ipureintro; rw [withPk_length es qs h]; exact Hl
+  iintro !> %i %p %e %hp %he
+  rw [withPk_getElem?] at he
+  cases hes : es[i]? with
+  | none => rw [hes] at he; simp at he
+  | some e0 =>
+    cases hqs : qs[i]? with
+    | none => rw [hes, hqs] at he; simp at he
+    | some q =>
+      rw [hes, hqs] at he
+      simp only [Option.some.injEq] at he
+      subst he
+      ihave #Ha := H $$ %i %p %e0 %hp %hes
+      iunfold eventAt at Ha
+      unfold eventAt
+      iexact Ha
+
+/-- No events, no pointers. -/
+theorem eventsPkAt_nil (sl : GoSlice) : eventsAt (GF := GF) sl [] ⊢ eventsPkAt sl [] := by
+  iintro #H
+  iunfold eventsAt at H
+  icases H with ⟨%ls, #Hsl, %Hl, -⟩
+  unfold eventsPkAt
+  iexists ls
+  iframe Hsl
+  isplitr
+  · ipureintro; exact Hl
+  iintro !> %i %p %e %_ %he
+  simp at he
+
 theorem keyRangeUnder_key_ne {pfx key re : GoString} (h : KeyRangeUnder pfx key re)
     (hp : pfx ≠ []) : key ≠ [] := by
   intro hk
@@ -486,11 +744,14 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (rr : w64) (srr : Bool) (h
     (hrecv : x.evs ≠ [] → mvcc.api.recvEvs (pre ++ [x]) X = mvcc.watchEvents L rg lo d ∧
       d ≤ L.length)
     (hps : ps.length = x.evs.length) (hok : wsReqOk V.pfx P) (hpfx : V.pfx ≠ [])
-    (hcr : v3rpc.createRangeOk (createOf P.key P.ed rr P.pn srr P.bd) X rg)
+    (hcr : v3rpc.createRangeOk (createOf P.key P.ed rr P.pn srr P.bd P.o.base.prevKV) X rg)
     (hrr : P.rev = W64 0 ∨ sint.Z P.rev ≤ sint.Z rr) (hlor : sint.Z rr ≤ (lo : Int))
     (hhb : sint.Z hb < sint.Z rr ∨ sint.Z hb < 0)
     (hhi : (evsOf Dm X = [] ∧ hi = hb) ∨
-      ∃ e, (evsOf Dm X).getLast? = some e ∧ hi = e.kv.modRev) :
+      ∃ e, (evsOf Dm X).getLast? = some e ∧ hi = e.kv.modRev)
+    (r : v3rpc.WRun GF) (qs : List Loc) (hqs : qs.length = x.evs.length) :
+    pkQAt sl qs ∗ □ (∀ (k : Nat) (ev0 : mvcc.EvM) (q : Loc), ⌜x.evs[k]? = some ev0⌝ →
+      ⌜qs[k]? = some q⌝ → pkSent r x.id ev0 q) ∗
     srvWLaws V.W ∗ (⌜x.evs ≠ []⌝ -∗ □ V.W.histLb L) ∗
       (⌜evsOf Dm X = []⌝ ∨ ∃ (L1 : mvcc.Log) (d1 : Nat), □ V.W.histLb L1 ∗
         ⌜evsOf Dm X = mvcc.watchEvents L1 rg lo d1 ∧ lo ≤ d1 ∧ d1 ≤ L1.length⌝) ∗
@@ -502,12 +763,54 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (rr : w64) (srr : Bool) (h
           (es.getLast?.map EvModel.rev).getD hi = e.kv.modRev⌝ ∗
       (⌜evsOf (Dm ++ [m]) X = []⌝ ∨ ∃ (L1 : mvcc.Log) (d1 : Nat), □ V.W.histLb L1 ∗
         ⌜evsOf (Dm ++ [m]) X = mvcc.watchEvents L1 rg lo d1 ∧ lo ≤ d1 ∧ d1 ≤ L1.length⌝) ∗
-      (∃ kvs : List Loc, ⌜es = List.zipWith evModelOf x.evs kvs ∧ kvs.length = x.evs.length⌝ ∗
+      (∃ kvs : List Loc, ⌜es.map EvModel.erasePk = List.zipWith evModelOf x.evs kvs ∧
+          kvs.length = x.evs.length⌝ ∗
         □ (∀ (k : Nat) (ev : mvcc.EvM) (kv : Loc), ⌜x.evs[k]? = some ev⌝ → ⌜kvs[k]? = some kv⌝ →
-          mvcc.kvPtrFixed kv ev.kv)) := by
-  iintro ⟨#Hlaws, HLw, #Hcut, #Hsl, #Hevs⟩
-  ihave ⟨%kvs, %Hkvl, #Hea, #Hkv⟩ := evs_eventsAt sl ps x.evs hps $$ [Hsl Hevs]
+          mvcc.kvPtrFixed kv ev.kv)) ∗
+      eventsPkAt sl es ∗
+      □ (∀ (k : Nat) (ev0 : mvcc.EvM) (e : EvModel), ⌜x.evs[k]? = some ev0⌝ → ⌜es[k]? = some e⌝ →
+        pkSent r x.id ev0 e.prevKv) := by
+  iintro ⟨#Hpq, #Hpks, #Hlaws, HLw, #Hcut, #Hsl, #Hevs⟩
+  ihave ⟨%kvs, %Hkvl, #Hea0, #Hkv⟩ := evs_eventsAt sl ps x.evs hps $$ [Hsl Hevs]
   · iframe #
+  have hqe : qs.length = (List.zipWith evModelOf x.evs kvs).length := by simp [Hkvl, hqs]
+  ihave #Hea := eventsAt_withPk sl (List.zipWith evModelOf x.evs kvs) qs hqe $$ Hea0
+  ihave #Hpka := pkQAt_at sl qs (List.zipWith evModelOf x.evs kvs) hqe $$ Hpq
+  ihave #Hpke : □ (∀ (k : Nat) (ev0 : mvcc.EvM) (e : EvModel), ⌜x.evs[k]? = some ev0⌝ →
+      ⌜(withPk (List.zipWith evModelOf x.evs kvs) qs)[k]? = some e⌝ → pkSent r x.id ev0 e.prevKv) $$ []
+  · iintro !> %k %ev0 %e %h0 %he
+    rw [withPk_getElem?] at he
+    cases hz : (List.zipWith evModelOf x.evs kvs)[k]? with
+    | none => rw [hz] at he; simp at he
+    | some e0 =>
+      cases hq : qs[k]? with
+      | none => rw [hz, hq] at he; simp at he
+      | some q =>
+        rw [hz, hq] at he
+        simp only [Option.some.injEq] at he
+        subst he
+        iapply Hpks $$ %k %ev0 %q %h0 %hq
+  have herase : (withPk (List.zipWith evModelOf x.evs kvs) qs).map EvModel.erasePk =
+      List.zipWith evModelOf x.evs kvs := by
+    rw [withPk_erase _ _ hqe, zipWith_evModelOf_erase]
+  have hrevs : (withPk (List.zipWith evModelOf x.evs kvs) qs).map EvModel.rev =
+      (List.zipWith evModelOf x.evs kvs).map EvModel.rev := withPk_revs _ _ hqe
+  have hlastW : (withPk (List.zipWith evModelOf x.evs kvs) qs).getLast?.map EvModel.rev =
+      (List.zipWith evModelOf x.evs kvs).getLast?.map EvModel.rev := by
+    rw [← List.getLast?_map, hrevs, List.getLast?_map]
+  have hmemW : ∀ e ∈ withPk (List.zipWith evModelOf x.evs kvs) qs,
+      ∃ e' ∈ List.zipWith evModelOf x.evs kvs, e.rev = e'.rev := by
+    intro e he
+    have : e.rev ∈ (List.zipWith evModelOf x.evs kvs).map EvModel.rev := by
+      rw [← hrevs]; exact List.mem_map_of_mem he
+    obtain ⟨e', h1, h2⟩ := List.mem_map.1 this
+    exact ⟨e', h1, h2.symm⟩
+  have hsortW : EvRevSorted (List.zipWith evModelOf x.evs kvs) →
+      EvRevSorted (withPk (List.zipWith evModelOf x.evs kvs) qs) := by
+    unfold EvRevSorted; intro h
+    have h' := (List.pairwise_map (f := EvModel.rev) (R := fun a b => sint.Z a ≤ sint.Z b)).2 h
+    rw [← hrevs] at h'
+    exact (List.pairwise_map (f := EvModel.rev) (R := fun a b => sint.Z a ≤ sint.Z b)).1 h'
   have hsnoc : evsOf (Dm ++ [m]) X = evsOf Dm X ++ (if x.evs ≠ [] then x.evs else []) := by
     unfold evsOf
     rw [sentEvsOf_snoc, hsrc]
@@ -515,14 +818,15 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (rr : w64) (srr : Bool) (h
     · simp [hxX hne, hne]
     · simp only [ne_eq, Decidable.not_not] at hne
       simp [hne]
-  iexists List.zipWith evModelOf x.evs kvs
+  iexists withPk (List.zipWith evModelOf x.evs kvs) qs
   iframe Hea
   isplitr
-  · ipureintro; simp [Hkvl]
+  · ipureintro; rw [withPk_length _ _ hqe]; simp [Hkvl]
   by_cases hne : x.evs = []
   · -- no events: the cursor stands still
     imodintro
-    have hes : List.zipWith evModelOf x.evs kvs = [] := by rw [hne]; simp
+    have hes : withPk (List.zipWith evModelOf x.evs kvs) qs = [] := by
+      rw [← List.length_eq_zero_iff, withPk_length _ _ hqe]; simp [hne]
     rw [hes]
     have hsn : evsOf (Dm ++ [m]) X = evsOf Dm X := by rw [hsnoc, if_neg (by simp [hne])]; simp
     rw [hsn]
@@ -533,9 +837,12 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (rr : w64) (srr : Bool) (h
     · ipureintro; exact hhi
     isplitr
     · iexact Hcut
+    iframe Hpka Hpke
     iexists kvs
     iframe Hkv
-    ipureintro; rw [hes]; exact ⟨rfl, Hkvl⟩
+    have herase' := herase
+    rw [hes] at herase'
+    ipureintro; exact ⟨herase', Hkvl⟩
   -- events: the certified log's
   ihave #HL := HLw $$ %hne
   obtain ⟨hflat, hdL⟩ := hrecv hne
@@ -597,8 +904,11 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (rr : w64) (srr : Bool) (h
     rw [hsnoc, if_pos hne]
   isplitr
   · ipureintro
-    refine ⟨hsorted, fun e he => ⟨hgt e he, ?_⟩, rfl⟩
-    obtain ⟨ev, hev, hre⟩ := mem_zipWith_evModel he
+    refine ⟨hsortW hsorted, fun e he => ?_, rfl⟩
+    obtain ⟨e', he', hee⟩ := hmemW e he
+    rw [hee]
+    refine ⟨hgt e' he', ?_⟩
+    obtain ⟨ev, hev, hre⟩ := mem_zipWith_evModel he'
     obtain ⟨j, hj1, hj2, hj3⟩ := hmemrev ev hev
     rw [hre, hj3]
     have hjz : sint.Z (W64 (j : Int)) = j := by word
@@ -609,16 +919,17 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (rr : w64) (srr : Bool) (h
     right
     refine ⟨elast, ?_, ?_⟩
     · rw [hsn, List.getLast?_append, helast]; rfl
-    · rw [hlast, helast]; rfl
+    · rw [hlastW, hlast, helast]; rfl
   isplitr
   · iright
     iexists L, d
     iframe HL
     ipureintro
     exact ⟨hsn.trans hflat', hlod, hdd⟩
+  iframe Hpka Hpke
   iexists kvs
   iframe Hkv
-  ipureintro; exact ⟨rfl, Hkvl⟩
+  ipureintro; exact ⟨herase, Hkvl⟩
 
 end content
 
