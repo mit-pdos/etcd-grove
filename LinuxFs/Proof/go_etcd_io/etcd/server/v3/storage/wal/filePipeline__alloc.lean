@@ -122,13 +122,19 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.alloc.wp_proof
       isplitl [Hz]
       · rw [hm'.1]; iexact Hz
       ipureintro
-      refine ⟨hfd, hm'.2.1.trans hmaps, hcur, hm'.2.2.2.1.trans hcut0, hm'.2.2.2.2 (by omega), ?_, ?_⟩
+      refine ⟨hfd, hm'.2.1.trans hmaps, hcur, hm'.2.2.2.1.trans hcut0, hm'.2.2.2.2 (by omega), ?_, ?_, ?_⟩
       · rw [hm'.1, hw.2.2 rfl]
         have := BitVec.toInt_eq_toNat_cond sz
         split at this <;> omega
       · rw [hm'.1, hw.2.2 rfl]
         have := BitVec.toInt_eq_toNat_cond sz
         split at this <;> omega
+      · -- **Obligation** (W6 log, sixteenth session): the zeros known past the new file's size
+        -- (`ZeroPg`). True of the state (a created or `O_TRUNC`-truncated file has its zeros known
+        -- from 0 or the cache zeroed to the old end's page, `rsCz`; `fallocate`'s growth keeps them),
+        -- but neither `trFile` (`os.OpenFile.specCreateTruncS`'s post) nor `preGrown`
+        -- (`fileutil.Preallocate`'s) says so: both posts must carry `ZeroPg`.
+        sorry
     | ok ei =>
       (try wp_auto)
       wp_apply wp_Int64 as %f1 -

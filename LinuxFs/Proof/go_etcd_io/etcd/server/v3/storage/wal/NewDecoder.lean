@@ -77,8 +77,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.NewDecoder.wp_proof
     ihave HF' := HF
     iunfold decFile at HF'
     icases HF' with ⟨#Hrs, #Hpre, #HFI, %HFp⟩
-    wp_apply HNFB F.fr F.S (decRdErr F.bs eof IoE) []
-      (fun fi err => iprop(⌜err ≠ GoInterface.nil → IoE err⌝ ∗
+    wp_apply HNFB F.fr F.S (decRdE F.bs eof IoE) []
+      (fun fi err => iprop(⌜err ≠ GoInterface.nil → IoE err⌝ ∗ decAns eof err ∗
         (⌜err = GoInterface.nil⌝ -∗ fileInfoOk fi F.bs.length))) HFp.1 $$ [HS]
       as %fbr ⟨%b, %fi, %err, Hfbr, Hb, HQ⟩
     · iframe; iexact HFI
@@ -99,7 +99,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.NewDecoder.wp_proof
     · iframe; ipureintro
       simp only [List.length_append, List.length_replicate]
       exact ⟨Hn.1, by word⟩
-    icases HQ with ⟨%HQ1, HQ2⟩
+    icases HQ with ⟨%HQ1, #HQa, HQ2⟩
     try wp_auto
     imodintro
     wp_for_post
@@ -127,7 +127,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.NewDecoder.wp_proof
       iunfold ownFbr
       iexists b, fi, err
       iframe
-      iframe Hfbr HF
+      iframe Hfbr HF HQa
       ipureintro; exact HQ1
     ipureintro
     refine ⟨by word, by omega, by simp [Hn.2.2]⟩

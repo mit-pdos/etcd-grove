@@ -78,7 +78,7 @@ theorem wp_tailFsync (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (di
   have htail : lay.wr = (segStream walCodec Mr dw lay.cuts lay.cuts.length).length := by
     rw [← hwrl, hwr, hH, hmd, hcuts]; rfl
   have hzf : ∀ z, g0.om.zf = some z → g0.bs.length ≤ z := fun z hz => by
-    rw [hm.1]; exact hm.2.2.1 z hz
+    rw [hm.1]; exact hm.2.2.1.ge z hz
   imod (fupd_mask_subseteq (show (⊤ : CoPset) \ ↑walN ⊆ (⊤ : CoPset) \ ↑walN from fun _ h => h)) with Hid
   imodintro
   iframe Hnc

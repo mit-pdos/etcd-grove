@@ -11,6 +11,7 @@ module
 
 public import LinuxFs.Proof.os.Off
 public import LinuxFs.Proof.os.ErrorOk
+public import LinuxFs.Proof.os.ErrnoPathErr
 
 @[expose] public section
 
@@ -86,7 +87,12 @@ local macro "read_rest " N:term:max hd:term:max : tactic => `(tactic| (
   rotate_left
   · simp only [decide_eq_false he0, Bool.not_false]
     wp_auto
-    wp_apply os.wp_wrapErrno_ok _ inner name e he0 $$ Hn as %pe #Hok
+    wp_apply os.wp_wrapErrno_errno _ inner name e $$ Hn as %perr #Hep
+    ihave #Hok := os.errnoPathErr_fmtErrorOk perr e he0 $$ Hep
+    ihave #Hep2 := Hep
+    iunfold os.errnoPathErr at Hep2
+    icases Hep2 with ⟨%pe, %op, %path, %hpe, -⟩
+    subst hpe
     iapply HΦ
     iframe Hosfd Hm Hbs
     isplitl [Hfd]
@@ -101,7 +107,10 @@ local macro "read_rest " N:term:max hd:term:max : tactic => `(tactic| (
     iright; iright
     isplitr
     · ipureintro; first | rfl | trivial
-    iexists pe; iframe Hok; ipureintro; first | rfl | trivial
+    iexists pe; iframe Hok
+    isplitr
+    · ipureintro; first | rfl | trivial
+    iexists e; iframe Hep; ipureintro; exact he0
   subst he0
   rw [show decide ((W64 0) = W64 0) = true from decide_eq_true rfl]
   simp only [Bool.not_true]
@@ -183,7 +192,7 @@ local macro "read_rest " N:term:max hd:term:max : tactic => `(tactic| (
 file: `|bs| = size`), any fractions, the read ending below `2^62`: it delivers the `k` bytes from
 `o` on (`k ≤ len(b)`, `o + k ≤ size`) into the front of `b`, moving the offset by `k`; with `nil`,
 `k > 0` unless `b` is empty; `0, io.EOF` only at or past the end of the file; or `0` and a
-`*PathError`. -/
+`*PathError` of a nonzero errno (`os.errnoPathErr`). -/
 theorem os.File.Read.wp_eof (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice)
     (vs : List w8) (o : w64) (dq dqm dqb : DFrac) (d : OsFd) (m : OsMeta) (bs : List ByteG)
     (eof : GoInterface)
@@ -202,7 +211,7 @@ theorem os.File.Read.wp_eof (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac)
            ⌜k = 0 ∧ vs ≠ [] ∧ bs.length ≤ o.toNat ∧ err = eof⌝ ∨
            (⌜k = 0⌝ ∗ ∃ pe : Loc,
               ⌜err = interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe⌝ ∗
-              fmtErrorOk err)) }} := by
+              fmtErrorOk err ∗ ∃ e : w64, ⌜e ≠ 0⌝ ∗ os.errnoPathErr err e)) }} := by
   unfold os.ownFile os.ownOff
   wp_start as ⟨#Hinv, #Heof, ⟨%inner, #Hf, Hfd, #Hn⟩, ⟨%inner', #Hf', Ho⟩, Hsl, Hosfd, Hm, Hbs⟩
   icombine Hf Hf' gives %hin'

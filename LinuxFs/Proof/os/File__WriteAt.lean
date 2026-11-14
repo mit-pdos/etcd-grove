@@ -82,7 +82,22 @@ theorem pwPost_step (m : OsMeta) (off n nn j k : Nat) (hoff : off ≤ m.size) (h
     simp only [pwPost, announce_tc, announce_size, hm1, inRange, Bool.and_eq_true, decide_eq_true_eq]
     (repeat' split) <;> first | rfl | omega
   · simp [pwPost]
-  · simp [pwPost]
+  · -- the page cache known zero: raised once the data is all written (`pwCz`)
+    show pwCz (pwPost m off n j) (off + nn) (n - nn) k = pwCz m off n (max j (nn + k))
+    have hz1 : (pwPost m off n j).zf = m.zf.map (fun z => max z (off + n)) := by
+      simp only [pwPost, announce_zf, hm1]
+      cases m.zf with
+      | none => rfl
+      | some z => simp only [Option.map_some, show off < off + n by omega, if_true]
+    have hcz1 : (pwPost m off n j).cz = pwCz m off n j := rfl
+    unfold pwCz
+    rw [hz1, hcz1]
+    unfold pwCz
+    cases m.zf with
+    | none => rfl
+    | some z =>
+      simp only [Option.map_some, show off + nn + (n - nn) = off + n by omega]
+      (repeat' split) <;> omega
   · simp [pwPost]
 
 /-- The bytes after a write's next attempt, from `nn ≤ j` (where a short attempt stopped), over

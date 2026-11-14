@@ -68,12 +68,14 @@ theorem walDecFiles_mk
     (wp_Stat : os.File.Stat.spec (GF := GF) (hG := hG))
     (wp_Size : os.fileStat.Size.spec (GF := GF) (hG := hG))
     (wp_Name : os.fileStat.Name.spec (GF := GF) (hG := hG))
+    (wp_IsEof : errors.IsPathErrnoEof.spec (GF := GF) (hG := hG))
     (IoE : GoInterface → Prop) (hIo : ∀ pe : Loc, IoE (interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe))
-    (eof : GoInterface) (write : Bool) (dir : GoString) :
+    (eof : GoInterface) (hIoEof : ¬ IoE eof) (write : Bool) (dir : GoString) :
     ∀ (gs : List SegG) (frs : List GoInterfaceOk) (lfs : List Loc),
     frs.length = gs.length → lfs.length = gs.length →
     (∀ g ∈ gs, g.om.size = g.bs.length ∧ g.bs.length + 2 ^ 12 < 2 ^ 62) →
     osInv (GF := GF) ∗ globalAddr _root_.Perennial.io.EOF ↦□ eof ∗
+      isPkgInit (PROP := IProp GF) pkg_id.os ∗ isEofAns (GF := GF) eof eof ∗
       ([∗list] m ↦ i ∈ gs.map (·.ino), walOpenedFile write dir ((gs.map (·.name)).getD m []) i
         (frs.getD m ⟨go.GoType.PointerType go.string, #()⟩) (lfs.getD m null)) ∗
       ([∗list] g ∈ gs, segHalves g) ⊢
@@ -82,7 +84,7 @@ theorem walDecFiles_mk
       [∗list] k ↦ lf ∈ lfs, if write then fileutil.lockedFile lf (fls.getD k null) else ⌜lf = null⌝
   | [], frs, lfs, hfr, hlf, _ => by
     rw [List.length_eq_zero_iff.1 hfr, List.length_eq_zero_iff.1 hlf]
-    iintro ⟨-, -, -, -⟩
+    iintro ⟨-, -, -, -, -, -⟩
     iexists [], []
     isplitr
     · ipureintro
@@ -93,15 +95,15 @@ theorem walDecFiles_mk
   | g :: gs, fr :: frs, lf :: lfs, hfr, hlf, hsz => by
     simp only [List.length_cons, Nat.add_right_cancel_iff] at hfr hlf
     obtain ⟨hsz1, hlen1⟩ := hsz g (List.mem_cons_self ..)
-    have ih := walDecFiles_mk wp_Stat wp_Size wp_Name IoE hIo eof write dir gs frs lfs hfr hlf
+    have ih := walDecFiles_mk wp_Stat wp_Size wp_Name wp_IsEof IoE hIo eof hIoEof write dir gs frs lfs hfr hlf
       (fun g' hg' => hsz g' (List.mem_cons_of_mem _ hg'))
-    iintro ⟨#Hinv, #Heof, Hop, Hh⟩
+    iintro ⟨#Hinv, #Heof, #Hos, #Heofa, Hop, Hh⟩
     simp only [List.map_cons]
     icases BigSepL.bigSepL_cons.1 $$ Hop with ⟨H0, Hop⟩
     icases BigSepL.bigSepL_cons.1 $$ Hh with ⟨Hh0, Hh⟩
     simp only [List.getD_cons_zero, List.getD_cons_succ]
     ihave ⟨%fs, %fls, %Ht, Hfs, Hls⟩ := ih $$ [Hop Hh]
-    · iframe Hinv Heof Hh
+    · iframe Hinv Heof Hos Heofa Hh
       iexact Hop
     unfold walOpenedFile
     icases H0 with ⟨%f, %fd, %rl, Hf, Hfd, Ho, %hfd0, %hfr, #Hrl, Hlk⟩
@@ -117,10 +119,10 @@ theorem walDecFiles_mk
     · iapply BigSepL.bigSepL_cons.2
       iframe Hfs
       isplitr
-      · iapply (walDecFile_ok wp_Stat wp_Size wp_Name IoE hIo eof rl f fd (child dir g.name)
+      · iapply (walDecFile_ok wp_Stat wp_Size wp_Name wp_IsEof IoE hIo eof hIoEof rl f fd (child dir g.name)
           (openFd g.ino (walReadFlag write)) g hfd0 rfl ?_ hsz1 hlen1)
         · cases write <;> rfl
-        · iframe Hinv Heof Hrl
+        · iframe Hinv Heof Hos Heofa Hrl
       simp only [walDecFile]
       iunfold walFileS
       unfold segHalves

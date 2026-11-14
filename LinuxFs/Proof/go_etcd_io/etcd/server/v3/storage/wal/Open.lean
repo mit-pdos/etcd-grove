@@ -42,13 +42,13 @@ theorem walReadH_key (write : Bool) (w : Loc) (dir : GoString) (s : w64 × w64) 
     walReadH (W := W) write w dir s ⊢
       walReadH (W := W) write w dir s ∗ ∃ (j : Ino) (X : List GoString), walDirKey (W := W) dir j X := by
   unfold walReadH walReadTie
-  iintro ⟨Hin, %dec, %IoE, %eof, %ueof, %fs, %locks, %lfs, %fp, %rc, Hd, Hdec, Hde, Htie, Hr⟩
-  icases Htie with ⟨%j, %X, %hj, %gs, %fls, Hn, Ho, Ht, #Hk, Hrest⟩
+  iintro ⟨Hin, %dec, %IoE, %eof, %ueof, %fs, %locks, %lfs, %fp, %rc, %j, Hd, Hdec, Hde, Htie, Hr⟩
+  icases Htie with ⟨%X, %hj, %gs, %fls, Hn, Ho, Ht, #Hk, Hrest⟩
   isplitl [Hin Hd Hdec Hde Hn Ho Ht Hrest Hr]
   · iframe Hin
-    iexists dec, IoE, eof, ueof, fs, locks, lfs, fp, rc
+    iexists dec, IoE, eof, ueof, fs, locks, lfs, fp, rc, j
     iframe Hd Hdec Hde Hr
-    iexists j, X, hj, gs, fls
+    iexists X, hj, gs, fls
     iframe
     iexact Hk
   · iexists j, X; iexact Hk
@@ -60,15 +60,15 @@ theorem walReadH_namesOut (write : Bool) (w : Loc) (dir : GoString) (s : w64 × 
       walNamesFrag (W := W) none ∗ (walNamesFrag (W := W) none -∗ walReadH (W := W) write w dir s) ∗
       ∃ (j : Ino) (X : List GoString), walDirKey (W := W) dir j X := by
   unfold walReadH walReadTie
-  iintro ⟨Hin, %dec, %IoE, %eof, %ueof, %fs, %locks, %lfs, %fp, %rc, Hd, Hdec, Hde, Htie, Hr⟩
-  icases Htie with ⟨%j, %X, %hj, %gs, %fls, Hn, Ho, ⟨Ht, Hnf⟩, #Hk, Hrest⟩
+  iintro ⟨Hin, %dec, %IoE, %eof, %ueof, %fs, %locks, %lfs, %fp, %rc, %j, Hd, Hdec, Hde, Htie, Hr⟩
+  icases Htie with ⟨%X, %hj, %gs, %fls, Hn, Ho, ⟨Ht, Hnf⟩, #Hk, Hrest⟩
   iframe Hnf
   isplitl [Hin Hd Hdec Hde Hn Ho Ht Hrest Hr]
   · iintro Hnf
     iframe Hin
-    iexists dec, IoE, eof, ueof, fs, locks, lfs, fp, rc
+    iexists dec, IoE, eof, ueof, fs, locks, lfs, fp, rc, j
     iframe Hd Hdec Hde Hr
-    iexists j, X, hj, gs, fls
+    iexists X, hj, gs, fls
     iframe
     iexact Hk
   · iexists j, X; iexact Hk
