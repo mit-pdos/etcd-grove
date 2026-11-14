@@ -4,9 +4,9 @@ The package-initialization instances of raft's root package (the part's translat
 `tracker`, `confchange`: the main tree's translations; protobuf-go's `internal/impl`,
 `runtime/protoimpl`), for the part `LinuxFs/`, as the main tree's `Proof/go_etcd_io/raft/v3/Base.lean`
 declares them, which the part cannot import (it imports the main raft root package, whose names the
-part's raft root declares too). Their facts are `True` here. (The main tree's raft root fact is
-stronger: the part's WAL does not read raft's variables yet; `emptyState`, which `IsEmptyHardState`
-reads, would join it.) Their `wp_initialize'`: `LinuxFs/Proof/go_etcd_io/raft/v3/InitPb.lean` (a copy of
+part's raft root declares too). Their facts are `True` here but the raft root's, `rootInit`:
+`emptyState`, which `IsEmptyHardState` reads (the main tree's raft root fact is stronger: the part's
+WAL reads no other raft variable). Their `wp_initialize'`: `LinuxFs/Proof/go_etcd_io/raft/v3/InitPb.lean` (a copy of
 the main tree's) and the generated `Init.lean`s. WAL package init, 2026-11-13.
 -/
 module
@@ -85,8 +85,24 @@ instance confchange_isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.raft
 instance confchange_get_isPkgInit_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.raft.v3.confchange :=
   build_get_is_pkg_init_wf
+/-- **The part's raft root fact**: `emptyState = &pb.HardState{}` (`node.go`), which
+`IsEmptyHardState` compares against: the main tree's `isInitialized` conjunct (`Base.lean`), word
+for word (W4c U4: `WalPbIn.IsEmptyLaw`'s proof reads it; ledger 2026-11-14, "the WAL's raftpb laws"). -/
+def rootInit : IProp GF :=
+  iprop(∃ es : Loc, (globalAddr emptyState ↦□ es : IProp GF) ∗ ⌜es ≠ null⌝ ∗
+      (es.[raftpb.HardState, go!"Term"] ↦□ null : IProp GF) ∗
+      (es.[raftpb.HardState, go!"Vote"] ↦□ null : IProp GF) ∗
+      (es.[raftpb.HardState, go!"Commit"] ↦□ null : IProp GF) ∗
+      inv (nroot.@"protobuf") iprop(∃ (st : google_golang_org.protobuf.internal.impl.MessageState)
+          (sc : w32) (us : GoSlice),
+        es.[raftpb.HardState, go!"state"] ↦ st ∗ es.[raftpb.HardState, go!"sizeCache"] ↦ sc ∗
+          es.[raftpb.HardState, go!"unknownFields"] ↦ us ∗ us ↦* ([] : List w8)))
+
+instance rootInit_persistent : Persistent (rootInit (GF := GF)) := by
+  unfold rootInit; infer_instance
+
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.raft.v3 :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init rootInit
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.raft.v3 :=
   build_get_is_pkg_init_wf
 

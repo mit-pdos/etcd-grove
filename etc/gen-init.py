@@ -685,11 +685,37 @@ says returns.''',
             'iframe #'],
 )
 # (WAL package init, 2026-11-13) the part's raft root package (names-only): `emptyState`, a
-# translated `&pb.HardState{}`, not in its fact (`True`)
+# translated `&pb.HardState{}`; (W4c U4, 2026-11-14) in its fact (`rootInit`, `PkgInit.lean`), as the
+# main tree's (`Proof/go_etcd_io/raft/v3/Init.lean`'s steps): its cells (all `nil`) frozen, its hidden
+# fields in the `protobuf` invariant
 LFS_SPECIAL['io.fs'] = LFS_IOFS
 LFS_SPECIAL['os'] = LFS_OS
 LFS_SPECIAL['go_etcd_io.raft.v3'] = dict(
+    doc='''Its fact (`rootInit`, `PkgInit.lean`): `emptyState` holds a pointer to a zero `HardState`,
+its cells `nil` for good, its hidden fields in the `protobuf` invariant. Its initializer initializes
+its imports, runs the untranslated initializers of its other variables (`X.init`, axioms of the
+translation), which the trust-boundary axiom `opaqueInitsOk` says run without panicking, and the
+translated `emptyState = &pb.HardState{}`.''',
     alloc_types={'emptyState': 'Loc'},
+    finish=['ihave %HesNN := typedPointsto_not_null $$ «$r0»',
+            'icases typedPointsto_split _ _ _ $$ «$r0» with Hes',
+            'simp only [TypedPointsto.typedPointstoDef]',
+            'icases Hes with ⟨Hst, HeT, HeV, HeC, Heuf, Hesc, -⟩',
+            'ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []',
+            '· iapply ownSlice_nil',
+            'imod inv_alloc (nroot.@"protobuf") ⊤',
+            '    iprop(∃ (st : google_golang_org.protobuf.internal.impl.MessageState) (sc : w32) (us : GoSlice),',
+            '      _.[raftpb.HardState, go!"state"] ↦ st ∗ _.[raftpb.HardState, go!"sizeCache"] ↦ sc ∗',
+            '        _.[raftpb.HardState, go!"unknownFields"] ↦ us ∗ us ↦* ([] : List w8))',
+            '    $$ [Hst Heuf Hesc Hnil] with #HesPb',
+            '· inext',
+            '  iexists _, _, _',
+            '  iframe Hst Hesc Heuf Hnil',
+            'ipersist HemptyState', 'ipersist HeT', 'ipersist HeV', 'ipersist HeC',
+            'iframe Hown', 'imodintro', 'isplitr',
+            '· ipureintro', '  exact isPanic_intoVal _', 'is_pkg_init_finish',
+            'unfold rootInit', 'iexists _', 'iframe HemptyState HeT HeV HeC HesPb',
+            'ipureintro; exact HesNN'],
 )
 
 SPECIAL['internal.poll'] = dict(
