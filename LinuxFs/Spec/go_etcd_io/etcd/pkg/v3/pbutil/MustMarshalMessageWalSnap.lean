@@ -4,14 +4,14 @@ WAL's proofs take as a hypothesis (W6 of `notes/wal-fsext-plan.md`: "the proofs 
 (`MustMarshalMessage`, ...) as hypotheses"), its encoding the marshaller parameter's `Mr.encSnap`, in a fresh non-nil slice (protobuf-go's
 `Marshal` returns a non-nil slice, empty or not: `MarshalPb.lean`).
 `pbutil` is names-only (the main tree's spec, `Spec/go_etcd_io/etcd/pkg/v3/pbutil/MustMarshalMessage.lean`,
-is over a registered protobuf type's model; the part has no `walpb.Snapshot` model yet).
+is over a registered protobuf type's content).
 
-**Open (for W6/W11): as stated, the law constrains `Mr` beyond what `walSnapAt` determines.**
-`walSnapAt sp sm cs` fixes the `Index` and `Term` and whether `ConfState` is nil, not the conf
-state's content (nor unknown fields), which the encoding includes; so the law holds of the real
-marshaller only once `walSnapAt` ties the whole object to `sm` (`ConfState'` and no unknown fields),
-or `Mr.encSnap` is replaced by the encoding of the object. `Create`'s snapshot (`Index: 0, Term: 0`,
-no conf state) is determined. Lean-first.
+`walSnapAt Mr sp sm cs` (`walpb/PbSnapshot.lean`) is a frozen `walpb.Snapshot` at a content `c` whose
+encoding `snapEnc c` (protobuf-go's, `snapEncC_ok`) is `Mr.encSnap sm`, so the law holds of the real
+`MustMarshalMessage`: it is the main tree's generic spec at the registered `pbSnapC` (`pbSnapC_reg`;
+`pbEncC pbSnapC c = snapEnc c`), plus protobuf-go's non-nil result (`Marshal` returns a non-nil slice,
+empty or not), which the generic spec does not state. Not derived here: the part has no copy of the
+generic spec yet. Lean-first.
 -/
 module
 
@@ -38,7 +38,7 @@ variable [sem : go.Semantics]
 /-- See the file header. -/
 abbrev go_etcd_io.etcd.pkg.v3.pbutil.MustMarshalMessage.specWalSnap (Mr : WalMarshal) : Prop :=
   ∀ (sp : Loc) (sm : SnapshotMetadataM) (cs : Bool),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil ∗ walSnapAt sp sm cs }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil ∗ walSnapAt Mr sp sm cs }}
     (App (Val (@! go_etcd_io.etcd.pkg.v3.pbutil.MustMarshalMessage))
       (Val #(interface.mkOk
         (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.ty) #sp)))

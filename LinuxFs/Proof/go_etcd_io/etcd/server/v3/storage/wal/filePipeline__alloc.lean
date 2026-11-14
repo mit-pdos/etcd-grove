@@ -122,10 +122,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.alloc.wp_proof
       isplitl [Hz]
       · rw [hm'.1]; iexact Hz
       ipureintro
-      refine ⟨hfd, hm'.2.1.trans hmaps, hcur, hm'.2.2.2.1.trans hcut0, hm'.2.2.2.2 (by omega), ?_⟩
-      rw [hm'.1, hw.2.2 rfl]
-      have := BitVec.toInt_eq_toNat_cond sz
-      split at this <;> omega
+      refine ⟨hfd, hm'.2.1.trans hmaps, hcur, hm'.2.2.2.1.trans hcut0, hm'.2.2.2.2 (by omega), ?_, ?_⟩
+      · rw [hm'.1, hw.2.2 rfl]
+        have := BitVec.toInt_eq_toNat_cond sz
+        split at this <;> omega
+      · rw [hm'.1, hw.2.2 rfl]
+        have := BitVec.toInt_eq_toNat_cond sz
+        split at this <;> omega
     | ok ei =>
       (try wp_auto)
       wp_apply wp_Int64 as %f1 -

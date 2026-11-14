@@ -124,14 +124,23 @@ def SegFl.Ok (fl : SegFl) (g : SegG) : Prop :=
     pwAnn fl.data fl.n (cfRange fl.m fl.bs fl.off fl.data.length) ++
     fl.bs.drop (cfHi fl.m fl.off fl.data.length) ∧ 0 < fl.off
 
+/-- **The `OsMeta` of a segment with a resize in flight, as the layout holds it** (I3b): the token's
+(`TokInfo.meta`: `m` with `[min size tg, rsHi tr size tg)` announced, the target `tg`), and of each byte
+it announced past the size, the candidates `m` knew (`OsMeta.pc`) then the zero stamped `n` (`rsTail` at
+the old size), which the token's `OsMeta` forgot and a crash may keep (`crashRestAt_take_tok`'s last
+fact, from the state's `tok_cand`): a growth's bytes past the old size, those a truncate's landing kept
+in `tc`. -/
+def rzMeta (tr : Bool) (m : OsMeta) (tg n : Nat) : OsMeta :=
+  { m.announce (min m.size tg) (rsHi tr m.size tg) tg with tc := rsTail tr m tg m.size n [] }
+
 /-- **The segment `g` as the resize in flight `fl` to `tg` (`ftruncate` if `tr`, else `fallocate`'s
-growth) announced it** (I3b; `wp_osResizeStart`): `g`'s `OsMeta` the token's (`TokInfo.meta`: `m` with
-`[min size tg, rsHi tr size tg)` announced, the target `tg`), its bytes `fl.bs` with zero added as a
+growth) announced it** (I3b; `wp_osResizeStart`): `g`'s `OsMeta` the token's with the candidates past
+the size (`rzMeta`), its bytes `fl.bs` with zero added as a
 candidate of each byte cut off (`rsAnn`; none if it grows the file); the resize keeps byte 0
 (`0 < min size tg`), so that the invariant keeps half of it, as `SegFl.Ok`'s `0 < fl.off`. -/
 def SegFl.OkR (fl : SegFl) (tr : Bool) (tg : Nat) (g : SegG) : Prop :=
   fl.bs.length = fl.m.size ∧ fl.m.cut = none ∧
-  g.om = fl.m.announce (min fl.m.size tg) (rsHi tr fl.m.size tg) tg ∧
+  g.om = rzMeta tr fl.m tg fl.n ∧
   g.bs = fl.bs.take (min fl.m.size tg) ++ rsAnn fl.n (fl.bs.drop (min fl.m.size tg)) ∧
   0 < min fl.m.size tg
 

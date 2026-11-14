@@ -26,21 +26,30 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.GetIndex.wp_proof :
   intro sp s
   wp_start as Hs
   iunfold walSnapIdTerm at Hs
-  icases Hs with ⟨%md, %cs, Hs, %hs⟩
-  iunfold walSnapAt at Hs
-  icases Hs with ⟨%v, #Hp, #Hi, #Ht, %hc⟩
-  ihave %Hn := typedPointsto_not_null sp _ _ $$ Hp
-  ihave %Hn' := typedPointsto_not_null v.Index' _ _ $$ Hi
-  ihave #Hp2 := Hp
-  iStructNamed Hp2
+  icases Hs with ⟨%c, Hs, %hs⟩
+  iunfold snapRoC at Hs
+  icases Hs with ⟨%pi, %pt, %pc, %Hn, #Hi, Hci, -⟩
   wp_auto
   simp only [decide_eq_false Hn]
   wp_auto
-  simp only [decide_eq_false Hn']
-  wp_auto
-  rw [← hs]
-  iapply HΦ
-  ipureintro; trivial
+  have hs1 : s.1 = c.index.getD (W64 0) := by rw [← hs]; rfl
+  rcases hci : c.index with _ | i
+  · rw [hci] at hs1
+    iunfold recCell at Hci
+    icases Hci with %Hpi
+    subst Hpi
+    wp_auto
+    rw [hs1]; simp only [Option.getD_none, Option.getD_some]
+    iapply HΦ
+    ipureintro; trivial
+  · rw [hci] at hs1
+    iunfold recCell at Hci
+    ihave %Hn' := typedPointsto_not_null pi _ _ $$ Hci
+    simp only [decide_eq_false Hn']
+    wp_auto
+    rw [hs1]; simp only [Option.getD_none, Option.getD_some]
+    iapply HΦ
+    ipureintro; trivial
 
 end proof
 

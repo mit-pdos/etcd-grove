@@ -14,7 +14,10 @@ Two kinds of copy (`COPIES`):
 
 - `Whole(path)`: the module word for word, but its imports: an import of a copied module or of a module
   the part translates itself (`LinuxFs/{Code,GeneratedProof,TrustedCode,ManualProof}/...`) points to
-  the part's (`LinuxFs.<module>`); `drop` removes imports, `add` adds part imports after the rest.
+  the part's (`LinuxFs.<module>`); `drop` removes imports, `add` adds part imports after the rest;
+  `omit` removes the named top-level declarations (with their docstrings), which the part declares
+  differently in a module `add` imports (the part's `walSnapAt` over `walpb.Snapshot`'s registered
+  content model, `walpb/PbSnapshot.lean`).
 - `Extract(path, names, ...)`: the named top-level declarations of a module that mixes them with heavy
   imports (the raft vocabulary in `NodeApiVocab`, `CommitWit`, the server's `WalRecs`), verbatim (with
   their docstrings and attributes), in a frame of the given imports, `open`s and `variable`s. A main-tree
@@ -37,8 +40,8 @@ PART_TRANSLATED = ('Code.', 'GeneratedProof.', 'TrustedCode.', 'ManualProof.')
 
 
 class Whole:
-    def __init__(self, path, drop=(), add=()):
-        self.path, self.drop, self.add = path, list(drop), list(add)
+    def __init__(self, path, drop=(), add=(), omit=()):
+        self.path, self.drop, self.add, self.omit = path, list(drop), list(add), list(omit)
 
 
 class Extract:
@@ -70,7 +73,11 @@ COPIES = [
     Whole('GooseLang/Ext/AbsDisk/Specs.lean'),
     # the WAL vocabulary and the encoding/fold layer over it
     Whole(STOR + 'WalHist.lean'),
-    Whole(STOR + 'WalDisk.lean'),
+    # the snapshot pointer predicates over `walpb.Snapshot`'s registered content (W6, `PbSnapshot.lean`)
+    Whole(STOR + 'WalDisk.lean',
+          add=['LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.walpb.PbSnapshot'],
+          omit=['walSnapAt', 'walSnapIdTerm', 'walSnapsAt', 'walSnapAt_persistent',
+                'walSnapIdTerm_persistent']),
     Whole(STOR + 'WalHistLemmas.lean'),
     Whole(STOR + 'WalViews.lean'),
     Whole(STOR + 'WalEncRecs.lean'),
@@ -105,7 +112,7 @@ COPIES = [
 ] + [
     Whole(f'Spec/go_uber_org/zap/{n}.lean', drop=['Proof.go_etcd_io.etcd.cache.v3.Base'],
           add=['LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.DepsPkgInit'])
-    for n in ['Logger__Warn', 'Duration', 'String', 'Error', 'Int64']
+    for n in ['Logger__Warn', 'Logger__Info', 'Duration', 'String', 'Error', 'Int64']
 ]
 
 IMPORT_RE = re.compile(r'^((?:public\s+)?(?:meta\s+)?import\s+(?:all\s+)?)(\S+)(.*)$')
@@ -158,10 +165,15 @@ def gen_whole(c):
         if last_import is None:
             sys.exit(f'{c.path}: no import to add after')
         out[last_import + 1:last_import + 1] = ['public import ' + a for a in c.add]
+    if c.omit:
+        out = omit_decls(c, out)
     kind = 'A copy, word for word but its imports,'
     if c.drop or c.add:
         kind = 'A copy, word for word but its imports (dropped: ' + (', '.join(c.drop) or 'none') + \
             '; added: ' + (', '.join(c.add) or 'none') + '),'
+    if c.omit:
+        kind = kind[:-1] + ' and the declarations ' + ', '.join(f'`{n}`' for n in c.omit) + \
+            ' (the part declares them in the added module),'
     return header(c, kind) + '\n'.join(out)
 
 
@@ -188,6 +200,27 @@ def chunks(lines):
         merged.append(pend + ch)
         pend = []
     return merged
+
+
+def omit_decls(c, lines):
+    """`lines` without the top-level declarations named in `c.omit` (after `@[expose] public section`)."""
+    try:
+        start = next(i for i, l in enumerate(lines) if l.startswith('@[expose] public section')) + 1
+    except StopIteration:
+        sys.exit(f'{c.path}: no `@[expose] public section`')
+    rest = lines[start:]
+    lead = 0
+    while lead < len(rest) and rest[lead][:1] in ('', ' ', '\t'):
+        lead += 1
+    chs = chunks(rest)
+    if sum(len(ch) for ch in chs) + lead != len(rest):
+        sys.exit(f'{c.path}: cannot split into declarations')
+    names = [decl_name(ch) for ch in chs]
+    missing = [n for n in c.omit if n not in names]
+    if missing:
+        sys.exit(f'{c.path}: declarations to omit not found: {missing}')
+    kept = [ch for ch, n in zip(chs, names) if n not in c.omit]
+    return lines[:start] + rest[:lead] + [l for ch in kept for l in ch]
 
 
 DECL_RE = re.compile(r'^(?:@\[[^\]]*\]\s*)*(?:(?:noncomputable|private|protected|partial|unsafe)\s+)*'

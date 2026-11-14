@@ -1,10 +1,11 @@
 /-
 The proof of `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__cut.lean` (W2).
-**Unfinished (`sorry` at the rename's return).** Done: steps 1-2 (over the hypotheses
-`os.File.Truncate.specWalTail`, `WAL.sync.specCut`), 3 (the name), 4 (`wp_walPipeH_open`), 5 (the headers on
-`N.tmp`: `saveCrc`, `encode(Metadata)`, `saveState.specPre`, `sync.specPreL`, `Seek`) and 6 up to
-`os.Rename.specFileSnc`'s return (`walCut_osAUnc` instantiated, `CutRen.lean`'s premises). Next: the rename's
-outcome, steps 7-8 (the W2 log's ninth session). The steps (S/wal.go:875-965)
+**Proved** (no `sorry`), over the hypotheses `os.File.Truncate.specWalTail` and `WAL.sync.specCut` (steps
+1-2, to be proved on `wal-tc2` and with W6's `sync`) and the callees' specs. Steps 7-8: the directory fsync
+(`fileutil.Fsync.specDirS`) and `CutFin.lean`'s `walInv_cutSynced` at the next step (`wp_notCrashed_acc`);
+`Close`, `LockFile` over `openWALFiles.lean`'s `walOpen_triple` (`os.OpenFile.wp_fileS` of the renamed name),
+`Seek`, `w.locks[last]`, `Sum32`, `newFileEncoder`, the log line; the new handle at the new segment
+(`walPipeH_next`, `tailCrc_cut`, the out-record from `walCutQ`). The steps (S/wal.go:875-965)
 and what each needs:
 1. `w.tail().Seek(0, SeekCurrent)`, `Truncate(off)`: the tail's whole `OsMeta`, half of which is
    `walInv`'s (`segRes`): a crash-aware truncate opening `walInv` around the step (W6's tail
@@ -62,6 +63,17 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutHdr
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutHdrStream
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutRen
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutAu
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutFin
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.openWALFiles
+public import LinuxFs.Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.FsyncS
+public import LinuxFs.Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.LockFile
+public import LinuxFs.Spec.os.File__Close
+public import LinuxFs.Spec.go_uber_org.zap.Logger__Info
+public import LinuxFs.Spec.go_uber_org.zap.String
+public import LinuxFs.Spec.time.Duration__Seconds
+public import Perennial.Spec.time.Now
+public import Perennial.Spec.time.Since
+public import GooseLang.Ext.Fs.NotCrashedAcc
 
 @[expose] public section
 
@@ -89,6 +101,8 @@ theorem cut_off_toInt (a b : Nat) (h : a + b ≤ 0xffffffff000) :
     word
   omega
 
+-- (the proof term's instantiation at the end of the declaration exceeds the default budget)
+set_option maxHeartbeats 1000000 in
 theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAssumptions]
     [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions] (P : WalPbIn GF) (Mr : WalMarshal)
     (wp_tail : go_etcd_io.etcd.server.v3.storage.wal.WAL.tail.spec (GF := GF) (hG := hG))
@@ -100,7 +114,14 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     (_wp_encode : go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.specG (GF := GF) (hG := hG))
     (_wp_Open : go_etcd_io.etcd.server.v3.storage.wal.filePipeline.Open.spec (GF := GF) (hG := hG))
     (_wp_Rename : os.Rename.specFileSnc (GF := GF) (hG := hG))
-    (_wp_SyncDir : os.File.Sync.specDirS (GF := GF) (hG := hG))
+    (wp_FsyncDir : go_etcd_io.etcd.client.pkg.v3.fileutil.Fsync.specDirS (GF := GF) (hG := hG))
+    (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
+    (wp_LockFile : go_etcd_io.etcd.client.pkg.v3.fileutil.LockFile.spec (GF := GF) (hG := hG))
+    (wp_Now : time.Now.spec (GF := GF) (hG := hG))
+    (wp_Since : time.Since.spec (GF := GF) (hG := hG))
+    (wp_Seconds : time.Duration.Seconds.spec (GF := GF) (hG := hG))
+    (wp_String : zap.String.spec (GF := GF) (hG := hG))
+    (wp_Info : zap.Logger.Info.spec (GF := GF) (hG := hG))
     (wp_Name : os.File.Name.spec (GF := GF) (hG := hG))
     (wp_Base : filepath.Base.spec (GF := GF) (hG := hG))
     (wp_parse : go_etcd_io.etcd.server.v3.storage.wal.parseWALName.spec (GF := GF) (hG := hG))
@@ -219,7 +240,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   try rw [h1pend]
   iunfold walDirH at Hdh
   icases Hdh with ⟨%Rd, %qd, %X, %hj, %nm0, %ph, #Hdk, Hcl, Hpd, #Hsid, Hperm, Hdfd, #Hnamed, Hout, %hdh⟩
-  obtain ⟨hnm0w, hnm0c, hname, htmps, hXw, ⟨sq, ix, hnm0, hsq⟩, hlargest⟩ := hdh
+  obtain ⟨hnm0w, hnm0c, hname, htmps, hXw, ⟨sq, ix, hnm0, hsq0⟩, hlargest⟩ := hdh
+  have hsq : sq + 1 < 2 ^ 64 := by omega
   iunfold walPipeH at Hpipe
   icases Hpipe with ⟨%γp, %Rp, %dqp, %szp, %np, #Hisfp, Hmain, Hpc, %hnp⟩
   ihave #Hisfp' := Hisfp
@@ -307,7 +329,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   -- step 5: the headers, on the owned `N.tmp`
   iunfold pipeFile at Hpf
   icases Hpf with ⟨%f2, %fd2, %i2, %m2, %ht, #Hlf2, Hf2, Hoff2, Hfd2, Hm2, Hz2, Hn2, %hpf⟩
-  obtain ⟨hfd2, hmaps2, hcur2, hcut2, hlo2, hsz8⟩ := hpf
+  obtain ⟨hfd2, hmaps2, hcur2, hcut2, hlo2, hsz8, hszmax⟩ := hpf
   wp_apply wp_slice_literal (V := Loc) [ntl]
   isplitr
   · ipureintro; rfl
@@ -439,8 +461,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     $$ [HwsP] [Hsp He Henc2 HW2] as %serr3 ⟨He, Hr3⟩
   · iexact HwsP
   · iframe Henv Hsp He Henc2 HW2 Hst
-  ihave Hu : (⌜serr3 = GoInterface.nil⌝ ∗ ∃ (sp' : Loc) (pend3 ys3 : List w8),
-      structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"state" w ↦ sp' ∗
+  ihave Hu : (⌜serr3 = GoInterface.nil⌝ ∗ ∃ (pend3 ys3 : List w8),
+      structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"state" w ↦ sp ∗
       ownEncoder e2 (wal.fileWi f2) (crcAfter walCodec c0 (cutHdrDs Mr h.md h.st)) pend3 ∗
       os.fileWI f2 fd2 (child dir (pipeTmp np)) (DFrac.own 1) (DFrac.own 1)
         (openFd i2 (wal.walOpenFlag true ||| W64 0x80000)) m2 (zs2.map (fun c => ((0 : w8), c)))
@@ -453,19 +475,19 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     · ileft
       isplitr
       · ipureintro; exact hE.1
-      iexists sp, pend2, []
+      iexists pend2, []
       rw [crcAfter_cutHdrs, if_pos hE.2, List.append_nil]
       iframe
       ipureintro; rw [if_pos hE.2]; simp
     · ileft
       isplitr
       · ipureintro; exact he3
-      iexists sp, pend3, ys3
+      iexists pend3, ys3
       rw [crcAfter_cutHdrs, if_neg hNE]
       iframe
       ipureintro; rw [if_neg hNE]; exact hys3
     · iright; ipureintro; exact he3
-  icases Hu with (⟨%he3, %sp', %pend3, %ys3, Hspf, Henc2, HW3, %hys3⟩ | %he3)
+  icases Hu with (⟨%he3, %pend3, %ys3, Hspf, Henc2, HW3, %hys3⟩ | %he3)
   rotate_left
   · rcases serr3 with ei | _
     rotate_left
@@ -635,7 +657,247 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
       (Qp.half_add_half 1) hq3)
     $$ [Hpd1 Hpd2 Hperm Hn2b Hcl2 Hau] as %rerr ⟨Hpd1, Hpd2, Hperm, %ro, %hro, HQ, Hro⟩
   · iframe; iframe #
-  sorry
+  iclear Hlt1 Hmu0 Htab0 Ht1 Hmdsb «$res0»
+  -- the rename's outcome: an error returns
+  rcases rerr with ei | _
+  · (try wp_auto)
+    iapply HΦ
+    iright; ipureintro; nofun
+  obtain ⟨⟨x, s0⟩, rfl⟩ := Option.isSome_iff_exists.1 (hro rfl)
+  generalize hbt : walFileName (sq + 1) (max (uint.nat h.enti) (uint.nat h.snapi) + 1) = bt
+    at hbtw hcurbt hbX hlt hg ⊢
+  generalize hL : (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length = L
+    at hoS1 hoS2 hgbs hgz hLpos hgmeta hL8 hlenL hszS ⊢
+  iunfold walCutQ at HQ
+  icases HQ with ⟨Htm1, Hcw1, -, Htk, Hv, Hpk, Hout, Hcf, HmG, HbG⟩
+  iunfold renFileOut at Hro
+  icases Hro with ⟨#Hlog, Htm2, Hcw2⟩
+  iunfold logOut at Hlog
+  icases Hlog with ⟨-, #Hlogd⟩
+  iunfold osLogged at Hlogd
+  icases Hlogd with ⟨-, -, #Hlb⟩
+  iunfold claimOut at Htm2 Hcw2
+  isimp only at Htm2 Hcw2
+  isimp only [cutClaim] at Hcw1
+  ihave Hcw : osNames j (.except X) (DFrac.own (qQuarter + qQuarter))
+      (hj.log x (renFileEnt j (pipeTmp np) j bt g.ino hj s0) (<[bt := .file g.ino]> hj.cur)) $$ [Hcw1 Hcw2]
+  · iapply (osNames_frac _ _ _ _ _).2; iframe
+  rw [show qQuarter + qQuarter = (1 : Qp).half from Qp.half_add_half _] at *
+  (try wp_auto)
+  -- step 7: `fileutil.Fsync(w.dirFile)`
+  wp_apply wp_Now as %t0 -
+  (try wp_auto)
+  wp_apply (wp_FsyncDir df dfd dnm (DFrac.own 1) Rd j ph (x + 1)) $$ [Hdff Hdfd] as %ferr ⟨Hdff, Hdfd, Hfr⟩
+  · iframe; iframe #
+  icases Hfr with (%hfe | ⟨%hfe, #Hcm⟩)
+  · rcases ferr with ei | _
+    rotate_left
+    · exact absurd rfl hfe
+    (try wp_auto)
+    iapply HΦ
+    iright; ipureintro; nofun
+  subst hfe
+  (try wp_auto)
+  iapply wp_notCrashed_acc
+  · rfl
+  iintro Hnc
+  imod (walInv_cutSynced Mr R jr r dir j X hj x (renFileEnt j (pipeTmp np) j bt g.ino hj s0)
+      (<[bt := .file g.ino]> hj.cur) bt g.ino (DFrac.own (1 : Qp).half) h1.γ
+      ((h.H, h.md, h.cuts ++ [h.H.length], L, g.ino, none) : TailG) (x + 1) (by omega)
+      ((renFileEnt_writes _ _ _ _ _ _ _ _).2 ⟨rfl, Or.inr rfl⟩) hbtw (GMap.lookup_insert _ _ _) rfl)
+    $$ Hinv Hnc Hdk Hcw Htk Hv Hcf Hcm with ⟨Hnc, Hcw, Htk, Hv, Hcf⟩
+  imodintro
+  iframe Hnc
+  -- the fsync's duration
+  ihave #Henv0 := Henv
+  iunfold encEnv at Henv0
+  icases Henv0 with ⟨-, -, -, #Htime, #Hmet⟩
+  iunfold wal.metricsInit at Hmet
+  icases Hmet with ⟨⟨%hs, #Hhs, #Hhspec⟩, -, -⟩
+  iunfold wal.histSpec at Hhspec
+  wp_apply wp_Since as %dur -
+  (try wp_auto)
+  -- (`MethodResolve` on a `Duration` needs `NotInterface go.int64`: `go.int64` is a plain `def`, which
+  -- `notInterface_Named` does not unfold)
+  haveI _hni : go.NotInterface go.int64 := ⟨by unfold go.int64; trivial⟩
+  wp_pures
+  wp_apply (wp_Seconds dur) as %fl -
+  (try wp_auto)
+  wp_apply Hhspec
+  iclear Hhspec Hhs
+  (try wp_auto)
+  -- step 8: `newTail.Close()`
+  wp_method_call
+  wp_call
+  (try wp_auto)
+  wp_apply (wp_Close f2 fd2 _ _) $$ [Hf2 Hfd2] as %cerr -
+  · iframe; iframe #
+  (try wp_auto)
+  -- `fileutil.LockFile(fpath, O_WRONLY, PrivateFileMode)`
+  ihave Hpd : osPathS Rd dir (DFrac.own qd) j $$ [Hpd1 Hpd2]
+  · iapply (show osPathS (GF := GF) Rd dir (DFrac.own (qd.half + qd.half)) j ⊢
+      osPathS Rd dir (DFrac.own qd) j by rw [Qp.half_add_half])
+    iapply (osPathS_frac Rd dir qd.half qd.half j).2; iframe
+  ihave #Hfupk : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.fileutil $$ []
+  · iPkgInit
+  have hbn : NameOk bt := by rw [← hbt]; exact walFileName_nameOk _ _
+  wp_apply (wp_LockFile (child dir bt) (W64 1) (W32 384) _ Unit _ _
+      (walOpen_triple Rd dir bt (DFrac.own qd) j g.ino (.except X) (DFrac.own (1 : Qp).half)
+        (hj.log x (renFileEnt j (pipeTmp np) j bt g.ino hj s0) (<[bt := .file g.ino]> hj.cur))
+        (1 : Qp).half (W64 1) (by simp only [OpenFlagsOk, O_CREAT, O_TRUNC, O_CLOEXEC]; decide)
+        (by decide) hbn hbX (GMap.lookup_insert _ _ _)))
+    $$ [Hpd Hcw Hperm] as %lf3 %lerr Hlp
+  · iframe; iframe #
+  iunfold fileutil.lockPost at Hlp
+  icases Hlp with ⟨%u, (⟨%hle, ⟨Hpd, Hcw, Hperm⟩, %f3, %fd3, %i3, ⟨%hfd3, %hi3⟩, #Hlf3, Hf3, Hoff3, Hfd3⟩ |
+    ⟨⟨%hle, -⟩, -⟩)⟩
+  rotate_left
+  · rcases lerr with ei | _
+    rotate_left
+    · exact absurd rfl hle
+    (try wp_auto)
+    iapply HΦ
+    iright; ipureintro; nofun
+  subst hle hi3
+  (try wp_auto)
+  -- `newTail.Seek(off, io.SeekStart)`
+  ihave #Hlf3' := Hlf3
+  iunfold fileutil.lockedFile at Hlf3'
+  iStructNamed Hlf3'
+  (try wp_auto)
+  wp_method_call
+  wp_call
+  (try wp_auto)
+  wp_apply (os.File.Seek.wp_start f3 fd3 _ _ (W64 0) _ hfd3 hoS1 hoS2) $$ [$Hf3 $Hoff3] as ⟨Hf3, Hoff3⟩
+  (try wp_auto)
+  -- `w.locks[len(w.locks)-1] = newTail`
+  ihave %hlen := ownSlice_len locks'' (DFrac.own 1) _ $$ Hls
+  simp only [List.length_append, List.length_singleton] at hlen
+  have hix : 0 ≤ sint.Z (locks''.len - W64 1) ∧ sint.Z (locks''.len - W64 1) < sint.Z locks''.len := by
+    obtain ⟨hl1, hl2⟩ := hlen; constructor <;> word
+  rw [if_pos hix]
+  wp_apply (wp_store_slice_index locks'' (sint.Z (locks''.len - W64 1)) _ lf3) $$ [$Hls] as Hls
+  · ipureintro
+    obtain ⟨hl1, hl2⟩ := hlen
+    simp only [List.length_append, List.length_singleton]
+    constructor <;> word
+  have hset : (ls ++ [lt] ++ [ntl]).set (sint.Z (locks''.len - W64 1)).toNat lf3 = (ls ++ [lt]) ++ [lf3] := by
+    have : (sint.Z (locks''.len - W64 1)).toNat = (ls ++ [lt]).length := by
+      obtain ⟨hl1, hl2⟩ := hlen; simp only [List.length_append, List.length_singleton]; word
+    rw [this, List.set_append_right _ _ (Nat.le_refl _)]
+    simp
+  rw [hset]
+  (try wp_auto)
+  -- `prevCrc = w.encoder.crc.Sum32()`
+  iunfold ownEncoder at Henc2
+  icases Henc2 with ⟨%pw2, %hc2, %b2, %u2, %bs2, %us2, #Hmu2, Hbw2, Hpw2, Hcf2, Hdc2, Hb2, Hbs2, %hb2,
+    Hu2, Hus2, %hus2⟩
+  iunfold ownDecCrc at Hdc2
+  icases Hdc2 with ⟨%l2, %tab2, %hl2, Hl2, #Htab2⟩
+  subst hl2
+  (try wp_auto)
+  wp_apply (wp_Sum32 l2 _ tab2 (DFrac.own 1)) $$ [Hl2] as Hl2
+  · iexact Hl2
+  (try wp_auto)
+  -- `w.encoder, err = newFileEncoder(w.tail().File, prevCrc)`
+  wp_apply (wp_tail w locks'' (ls ++ [lt]) lf3 (DFrac.own 1) (DFrac.own 1)) $$ [Hlocks Hls]
+    as ⟨Hlocks, Hls⟩
+  · iframe
+  (try wp_auto)
+  wp_apply (wp_newFileEncoder f3 fd3 _ _ (W64 ((0 : Nat) + (L : Int))) _ hfd3 hoS1 hoS2)
+    $$ [Hf3 Hoff3] as %e3 ⟨Henc3, Hf3, Hoff3, %he3⟩
+  · iframe; iframe #
+  (try wp_auto)
+  -- the log line
+  wp_apply wp_String as %fs -
+  (try wp_auto)
+  wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [fs]
+  isplitr
+  · ipureintro; rfl
+  iintro %fsl ⟨-, -⟩
+  (try wp_auto)
+  wp_apply wp_Info lg _ _ $$ []
+  · iframe #
+  -- the new handle: its tail the new segment
+  have hcrc' : WalHS.crc Mr ({ h with cuts := h.cuts ++ [h.H.length], ino := g.ino, o0 := L, out := [], pend := [], rest := 0, γ := h1.γ, sz := g.bs.length, pc := h.pc + 1 } : WalHS) =
+      crcAfter walCodec c0 (cutHdrDs Mr h.md h.st) := by
+    rw [WalHS.crc_done Mr _ rfl]
+    simp only
+    rw [tailCrc_cut Mr h.H h.md h.cuts hsorted' hle', ← hst, ← hcrc0, hc0]
+  have htm : TailMeta g.om g.bs := by
+    rw [← hg]
+    exact tailMeta_synced _ _ (by simp [hysS]) (by rw [hokS.2.2.2.1]; exact hmaps2)
+  have hgsz : g.bs.length ≤ 0xffffffff000 := by rw [hgbsL, hysS, hszS]; omega
+  have hfd3' : openFd g.ino (W64 1 ||| W64 524288) = ⟨g.ino, false, true⟩ := by
+    unfold openFd; congr 1
+  icases Hfdo with ⟨%rd, Hfdo⟩
+  iapply HΦ
+  ileft
+  isplitr
+  · ipureintro; rfl
+  iexists ({ h with cuts := h.cuts ++ [h.H.length], ino := g.ino, o0 := L, out := [], pend := [], rest := 0, γ := h1.γ, sz := g.bs.length, pc := h.pc + 1 } : WalHS)
+  isplitl
+  rotate_left
+  · isplitr
+    · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+    · iexact Hsyn
+  iunfold walHandleIn
+  iexists lg, df, sp, e3, fp, lf3, f3, mds, locks'', ls ++ [lt] ++ [lf3], fd3, dfd, child dir bt, dnm, j, rc
+  rw [hcrc']
+  simp only
+  iframe Hlg Hzap Hdir Hdf Hdff Hmd Hmds Hspf Hst Hdec Hrc Hns Hmu Henti Hsnapi He Hlocks Hls Hcap
+    Hlf3 Hfp Henv Hcrc Hwpk Henc3
+  isplitr
+  · ipureintro; exact he3
+  isplitl [Hf3 Hfd3 Hoff3 Htk HmG HbG Hv]
+  · iunfold walTailW
+    iframe Hf3 Htk
+    isplitl [Hfd3]
+    · iexists false; rw [hfd3'] at *; iexact Hfd3
+    isplitl [Hoff3]
+    · rw [show ((L : Nat) : Int) + ((([] : List w8).length : Nat) : Int) = ((0 : Nat) : Int) + ((L : Nat) : Int)
+        by simp]
+      iexact Hoff3
+    iexists g.om, g.bs
+    iframe HmG HbG
+    isplitr
+    · ipureintro; exact ⟨hgmeta.1, htm, by omega, hfd3⟩
+    iunfold tailVar at Hv
+    iexact Hv
+  isplitl [Hdk Hcw Hpd Hsid Hperm Hdfd Hnamed Hout]
+  · iunfold walDirH
+    iexists Rd, qd, X, (hj.log x (renFileEnt j (pipeTmp np) j bt g.ino hj s0) (<[bt := .file g.ino]> hj.cur)),
+      bt, ph
+    iframe Hdk Hcw Hpd Hsid Hperm Hdfd Hnamed
+    rw [walOut_cut]
+    iframe Hout
+    ipureintro
+    exact ⟨hbtw, GMap.lookup_insert _ _ _, rfl, htmps, hXw, ⟨sq + 1, _, hbt.symm, by omega⟩,
+      cutDir_largest g.ino hlargest hlt⟩
+  isplitr
+  · ipureintro; simp
+  isplitl [Hlks Hf Hfdo]
+  · simp only [List.dropLast_concat]
+    iapply (BigSepL.bigSepL_snoc (Φ := fun _ lf => walLockH lf)).2
+    iframe Hlks
+    iunfold walLockH
+    iexists f, fd, name, ⟨h1.ino, rd, true⟩
+    iframe Hltf Hf Hfdo
+  isplitl [Hmain Htm1 Htm2]
+  · iapply walPipeH_next fp dir h.pc γp Rp dqp j szp np hnp
+    iframe Hisfp Hmain
+    iapply tmpClaim_absent j (pipeTmp np)
+      (ht.log x (renFileEnt j (pipeTmp np) j bt g.ino hj s0) (GMap.delete (pipeTmp np) ht.cur))
+      (GMap.lookup_delete _ _)
+    iapply (osNames_join _ _ _ _ _ (Qp.half_add_half 1)).1
+    iframe
+  isplitl [Hopen Hpk Hcf]
+  · iapply (walOpenW_cut w dir).2
+    iframe
+  ipureintro
+  refine ⟨WalHS.split_fresh Mr _ rfl hL.symm rfl rfl, hfd3, hgbs.2, hgsz,
+    by have := hgbs.2; simp only [List.length_nil]; omega,
+    ⟨fun _ => hidx.1 (by rw [h1rest, hrest]), hidx.2⟩, hmx⟩
 
 end proof
 
