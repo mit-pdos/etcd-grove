@@ -6,9 +6,9 @@ the first step (`walInv_openAt`, `OpenAtPin.lean`); then `selectWALFiles`, `open
 pipeline; the error arms put the pinned halves back at the `Errorf` call's step (`walInv_unpin`).
 The path to the WAL directory is lent by the invariant (`walInv_dirPath`, with the pin's
 `walNamesFrag none`; until 2026-11-14 the hypothesis `WalDirPathLaw`). Hypotheses besides the callees'
-specs: `OsMetaSizeLaw` (the model's file-size bound, `SegSize.lean`, until `wal-maxb14`'s `Fs.wp_osMeta_size`
-lands; until 2026-11-14 the invariant hypothesis `WalPinSized`), `WalDecEnvSupply` (the decoder's environment
-from the package's initialization).
+specs: `WalDecEnvSupply` (the decoder's environment from the package's initialization). (Until
+2026-11-14 also `WalPinSized`: the segments' size bound is now read at the step after the pin,
+`wp_segs_size`, `SegSize.lean`.)
 -/
 module
 
@@ -159,7 +159,6 @@ theorem walTmpsRes_split (j : Ino) :
   iframe
 
 theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMarshal)
-    (hsize : OsMetaSizeLaw (L := hG.goose_localGS))
     (hEnv : WalDecEnvSupply (GF := GF))
     (wp_Clone : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.Clone.spec (GF := GF) (hG := hG))
     (wp_select : go_etcd_io.etcd.server.v3.storage.wal.selectWALFiles.spec (GF := GF) (hG := hG))
@@ -246,7 +245,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
     have hS : ∀ g ∈ lay.segs.drop (walOpenK s.1 lay), g.om.size = g.bs.length := fun g hg =>
       (habs.metas g (List.mem_of_mem_drop hg)).1
     -- the segments' size bound, before the next step (the model's `s_maxbytes`)
-    iapply wp_segs_size hsize _ _ _ _ rfl _ $$ HS
+    iapply wp_segs_size _ _ _ _ rfl _ $$ HS
     iintro %hsz0 HS
     have hsz : ∀ g ∈ lay.segs.drop (walOpenK s.1 lay), g.bs.length + 2 ^ 12 < 2 ^ 62 := fun g hg => by
       have h1 := hsz0 g hg; rw [hS g hg] at h1; omega

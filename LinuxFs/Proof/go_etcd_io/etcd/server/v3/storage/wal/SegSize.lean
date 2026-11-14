@@ -4,16 +4,14 @@
 
 The decoder's reads need `|g.bs| + 2^12 < 2^62` for every segment a reader opens
 (`walDecFiles_mk`). No invariant conjunct holds it: the bound is the model's (no file is larger than
-ext4's `s_maxbytes` on configuration C, `0xffffffff000`), read off a segment's `OsMeta` before a step.
+ext4's `s_maxbytes` on configuration C, `maxBytes = 0xffffffff000`), read off a segment's `OsMeta`
+before a step (`Fs.wp_osMeta_size`, `GooseLang/Ext/Fs/Specs.lean`). It bounds the page cache's size,
+`g.om.size`, which a pinned segment has equal to `|g.bs|` (`WalAbsD.metas`); read at the step, nothing
+has to keep it across writes, resizes or crashes (the bound on `g.om.hi` the thirteenth session's design
+kept in the invariant is not needed, and is not kept: a write's announcement raises `hi`).
 
-**`OsMetaSizeLaw`** (a named hypothesis, the coordinator's decision of 2026-11-14) is that rule, with
-the statement of `wal-maxb14`'s `Fs.wp_osMeta_size` (`GooseLang/Ext/Fs/Specs.lean` there,
-`maxBytes = 0xffffffff000`): once that lands, it is discharged by that lemma and goes. It bounds the
-page cache's size, `g.om.size`, which a pinned segment has equal to `|g.bs|` (`WalAbsD.metas`); it is
-read at the step, so nothing has to keep it across writes, resizes or crashes (the bound on `g.om.hi`
-the thirteenth session's design kept in the invariant is not needed).
-
-`wp_segs_size` reads it off a list of segments' `segRes`.
+`wp_segs_size` reads it off a list of segments' `segRes`. (Before `wal-maxb14` landed, the rule was the
+named hypothesis `OsMetaSizeLaw`, 2026-11-14.)
 -/
 module
 
@@ -33,20 +31,11 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Fs
 
 section iris
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
-  [GoGlobalContext]
+  [GoGlobalContext] [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 
-/-- **No file is larger than `0xffffffff000`** (hypothesis; see the file header): before any step of
-a non-value `e`, an `OsMeta` at hand has its size at most ext4's `s_maxbytes` on C. -/
-def OsMetaSizeLaw : Prop :=
-  ∀ (s : Stuckness) (E : CoPset) (e : Expr) (Φ : val → IProp GF), toVal e = none →
-    ∀ (i : Ino) (dq : DFrac) (m : OsMeta),
-    ⊢ osMeta (L := L) i dq m -∗
-      (⌜m.size ≤ 0xffffffff000⌝ -∗ osMeta (L := L) i dq m -∗ WP e @ s; E {{ Φ }}) -∗
-      WP e @ s; E {{ Φ }}
-
-/-- **The segments' size bound before a step** (`OsMetaSizeLaw` over a list of segments). -/
-theorem wp_segs_size (hlaw : OsMetaSizeLaw (L := L)) (s : Stuckness) (E : CoPset) (e : Expr)
+/-- **The segments' size bound before a step** (`Fs.wp_osMeta_size` over a list of segments). -/
+theorem wp_segs_size (s : Stuckness) (E : CoPset) (e : Expr)
     (Φ : val → IProp GF) (he : toVal e = none) (gs : List SegG) :
     ⊢ ([∗list] g ∈ gs, segRes (L := L) g) -∗
       (⌜∀ g ∈ gs, g.om.size ≤ 0xffffffff000⌝ -∗ ([∗list] g ∈ gs, segRes (L := L) g) -∗
@@ -62,7 +51,7 @@ theorem wp_segs_size (hlaw : OsMetaSizeLaw (L := L)) (s : Stuckness) (E : CoPset
     icases (BigSepL.bigSepL_cons (Φ := fun _ x => segRes (L := L) x)).1 $$ Hs with ⟨Hg, Hs⟩
     iunfold segRes at Hg
     icases Hg with ⟨Hm, Hb⟩
-    iapply hlaw s E e Φ he g.ino _ g.om $$ Hm
+    iapply Fs.wp_osMeta_size (s := s) (E := E) e Φ he g.ino _ g.om $$ Hm
     iintro %hg Hm
     iapply ih $$ Hs
     iintro %hgs Hs
