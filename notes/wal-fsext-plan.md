@@ -6971,8 +6971,8 @@ started.
   for kind `true`); `RepairFsync`: `wp_tailFsyncR`, `os.File.Sync.wp_tailR` (the model's body with the tail's
   step), **`fileutil.Fsync.wp_specRepTail`**; `RepairPut`: `walInvBody_untailR` (`walInvBody_untail` over that
   post), **`walInv_repairPut`** (untail, then `walInv_unpinLast` with the synced segment: L5's changed case).
-  None is in the `Link` yet (no `Repair.wp_proof` uses them; `etc/gen-link.py --walfs` lists only proofs of
-  specs its roots reach).
+  The `Link` regenerated (`etc/gen-link.py --walfs`: 204 results, 175 without hypothesis; the truncate's and
+  the fsync's proofs are results).
 - **Not made: `Repair.wp_proof`.** Its pieces now: `openLast.spec`; `walInvRegisterPendLaw_holds` at the pin
   (`gs = [gL]`, then `walTailP_po`); the decoder loop over `fileutil.NewFileReader(f.File)` (L2,
   `repairAt_*`; the `errors.Is(err, io.ErrUnexpectedEOF)` test via `os.errnoPathErr`); the `.broken` file
