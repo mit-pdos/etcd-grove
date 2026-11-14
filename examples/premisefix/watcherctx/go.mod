@@ -15,6 +15,7 @@ replace go.etcd.io/etcd/server/v3 => github.com/upamanyus/etcd/server/v3 v3.0.0-
 replace go.etcd.io/raft/v3 => github.com/upamanyus/etcd/v3 v3.0.0-20261110053807-d2c16c558247
 
 require (
+	go.etcd.io/etcd/api/v3 v3.8.0-alpha.0
 	go.etcd.io/etcd/client/v3 v3.8.0-alpha.0
 	go.opentelemetry.io/otel/sdk v1.47.0
 	go.uber.org/zap v1.28.0
@@ -22,6 +23,7 @@ require (
 	k8s.io/apimachinery v0.0.0-20261021173754-0b7d352f711c
 	k8s.io/apiserver v0.0.0-20261021221356-9c4ec15b8038
 	k8s.io/component-base v0.0.0-20261018214756-cd2c1afd246a
+	k8s.io/klog/v2 v2.140.0
 )
 
 require (
@@ -55,7 +57,6 @@ require (
 	github.com/prometheus/procfs v0.22.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	go.etcd.io/etcd/api/v3 v3.8.0-alpha.0 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.8.0-alpha.0 // indirect
 	go.etcd.io/etcd/server/v3 v3.8.0-alpha.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
@@ -83,7 +84,6 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	k8s.io/api v0.0.0-20261020174351-067c983ccbc3 // indirect
 	k8s.io/client-go v0.0.0-20261021054439-569675c57fa3 // indirect
-	k8s.io/klog/v2 v2.140.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20261014044854-ca3452a79603 // indirect
 	k8s.io/utils v0.0.0-20260626114624-be93311217bd // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect

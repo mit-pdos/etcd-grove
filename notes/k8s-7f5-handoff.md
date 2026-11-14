@@ -18,6 +18,21 @@ the worktree's untracked `questions.md` (decisions; never re-add it tracked).
   this stage's T5-c); 7f-0 partial (records only; the rest goes with 7f-6, Q7).
 - No Lean edited. Nothing built on this branch.
 
+## START HERE (2026-11-14, eighth 7f-5 agent): 7f-5a-D Draft written; STOPPED at S3 for etcd-grove-81
+
+The Draft of the etcd3 watcher's serial branch is in the unlinked
+`Proof/k8s_io/apiserver/pkg/storage/etcd3/Draft7f5a.lean` (namespace `k8s.Draft`; builds with
+`lake build Proof.k8s_io.apiserver.pkg.storage.etcd3.Draft7f5a`), explained in
+`notes/k8s-7f5a-draft.md` (statements §1-§4, trusted texts §5, proof plan §6, decisions D1-D7 §7).
+Go evidence for the new trusted texts T5-e (`isContext` through `WithRequireLeader`) and T5-f (leaf
+no-op specs): `examples/premisefix/watcherctx/draft7f5a_test.go` (passes). tcb --check: no change
+(`/shared/tmp/k8s7f5a-d-tcb.log`). **Next, on 81's decisions:** if T5-e is approved, restate
+`WithRequireLeader.wp_proof` (one conjunct), build, tcb --check (same count: the name is unchanged),
+axiom-tok, land T5-e on its own; then 7f-5a-P in the Draft's §6 order (move the vocabulary to
+`WatchDefs.lean`, the triple to `Spec/.../store__Watch.lean`, delete the Draft). Pitfalls: the
+monoList ghost lists need `Pos.Countable` (Draft: `watchEvent_countable`, `kwev_countable`; `KRaw`
+needs one too, today an instance argument of `kInElem`/`kResInv`).
+
 ## START HERE (2026-11-14, seventh 7f-5 agent, final): 7f-3 LANDED; next 7f-5a-D, a fresh agent
 
 7f-3 is complete and landed (7f-3c approved by etcd-grove-81, including keeping `isRangeWatch`,
