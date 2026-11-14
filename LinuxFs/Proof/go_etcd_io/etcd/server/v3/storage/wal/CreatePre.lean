@@ -133,25 +133,31 @@ theorem osNames_disj {E : CoPset} (R : Roots) (j : Ino) (N N' : NameSet) (dq dq'
   icases gAuth_lookup _ _ _ _ _ _ $$ HAn H' with %h2
   exact absurd hb' (hcoh.2.disj j N N' h h' b h1 h2 hNN hb)
 
-/-- **`J` is not the area's directory**: `Create` holds `nm.tmp`'s claim of `jr` and a claim of `J`
-holding `nm.tmp` (every name but the pipeline's). -/
-theorem create_J_ne {E : CoPset} (R : Roots) (jr J : Ino) (tmp : GoString) (dq dq' : DFrac)
-    (h h' : NamesH) (htw : walNameP tmp = false) (htt : tmp ∉ walTmps) (hE : ↑osShN ⊆ E) :
-    ⊢ osSharedInv (GF := GF) R -∗ osNames jr (.only [tmp]) dq h -∗
+/-- **`J` is not the area's directory**: `Create` holds a claim of `jr` on finitely many names, one of
+them (`nm`) not a pipeline name, and a claim of `J` on every name but the pipeline's. -/
+theorem create_J_ne {E : CoPset} (R : Roots) (jr J : Ino) (bs : List GoString) (b : GoString)
+    (dq dq' : DFrac) (h h' : NamesH) (hb : b ∈ bs) (htt : b ∉ walTmps) (hE : ↑osShN ⊆ E) :
+    ⊢ osSharedInv (GF := GF) R -∗ osNames jr (.only bs) dq h -∗
       osNames J ((NameSet.except []).diff walTmps) dq' h' ={E}=∗
-      ⌜J ≠ jr⌝ ∗ osNames jr (.only [tmp]) dq h ∗
+      ⌜J ≠ jr⌝ ∗ osNames jr (.only bs) dq h ∗
         osNames J ((NameSet.except []).diff walTmps) dq' h' := by
   iintro #Hsi H H'
   by_cases hJ : J = jr
   · subst hJ
-    have hne : NameSet.only [tmp] ≠ (NameSet.except []).diff walTmps := by
+    have hne : NameSet.only bs ≠ (NameSet.except []).diff walTmps := by
       simp [NameSet.diff]
-    imod osNames_disj R J _ _ dq dq' h h' tmp hne (by simp [NameSet.Mem])
+    imod osNames_disj R J _ _ dq dq' h h' b hne hb
       ((NameSet.mem_diff _ _ _).2 ⟨by simp [NameSet.Mem], htt⟩) hE $$ Hsi H H' with Hf
     iexfalso; iexact Hf
   · imodintro
     iframe H H'
     ipureintro; exact hJ
+
+/-- A WAL directory's name is no pipeline name (it has no `.`). -/
+theorem walNameOk_not_tmps {nm : GoString} (h : walNameOk nm) : nm ∉ walTmps := by
+  intro hm
+  simp only [walTmps, List.mem_cons, List.not_mem_nil, _root_.or_false] at hm
+  rcases hm with rfl | rfl <;> exact h.2.2 (by decide)
 
 end proof
 
