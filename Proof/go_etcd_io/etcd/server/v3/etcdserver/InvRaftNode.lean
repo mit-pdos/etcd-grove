@@ -466,7 +466,7 @@ def rnSnapTermAbove (γ : RNNames) : IProp GF :=
   iprop(□ ∀ (rd : Ready) (L : List EntryModel) (p : HardStateM) (S : RaftState) (r : StateType)
       (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (Lo : Option SnapLoan)
       (ms : List QMsg) (ss : Option (w64 × StateType)),
-    readyRest γ.node.cl srvClusterN γ.id rd (rnDrvSt γ L p S r) ce es h Lo ms ss -∗
+    readyRest γ.node.cl srvClusterN γ.id rd (rnDrvSt γ L p S r) ce es h Lo ms ss ={⊤}=∗
       readyRest γ.node.cl srvClusterN γ.id rd (rnDrvSt γ L p S r) ce es h Lo ms ss ∗
       ⌜∀ q ∈ ms, q.st.msg.Type' = MsgSnap → uint.Z γ.t0 < uint.Z q.st.msg.Term'⌝)
 
@@ -518,7 +518,7 @@ theorem rnRestartOk_snapTerm (γ : RNNames) (L : List EntryModel) (p : HardState
     (Lo : Option SnapLoan) (ms : List QMsg) (ss : Option (w64 × StateType)) :
     rnRestartOk (GF := GF) γ ⊢
       (letI := srvStor (GF := GF) γ.node;
-        readyRest γ.node.cl srvClusterN γ.id rd (rnDrvSt γ L p S r) ce es h Lo ms ss) -∗
+        readyRest γ.node.cl srvClusterN γ.id rd (rnDrvSt γ L p S r) ce es h Lo ms ss) ={⊤}=∗
       (letI := srvStor (GF := GF) γ.node;
         readyRest γ.node.cl srvClusterN γ.id rd (rnDrvSt γ L p S r) ce es h Lo ms ss) ∗
       ⌜rnSnapTermOk γ ms⌝ := by
@@ -528,7 +528,8 @@ theorem rnRestartOk_snapTerm (γ : RNNames) (L : List EntryModel) (p : HardState
   icases Hr with (%Ha | ⟨-, -, #Hs⟩)
   · iframe H; ipureintro; exact Or.inl Ha.2.1
   · iunfold rnSnapTermAbove at Hs
-    ihave ⟨H, %hb⟩ := Hs $$ %rd %L %p %S %r %ce %es %h %Lo %ms %ss H
+    ihave Hs' := Hs $$ %rd %L %p %S %r %ce %es %h %Lo %ms %ss H
+    imod Hs' with ⟨H, %hb⟩
     iframe H; ipureintro; exact Or.inr hb
 
 /-- (R2d'a task 4; S1, 2026-11-11: derived, until then R2d'a's A8 `rnWinInstallAbove`, a premise)
@@ -1221,7 +1222,7 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
   icases Hgot with ⟨%ce, %es, %h, %Lo, %ms, %ss, #Hce, #Hcom, ⟨%sts, #Hrs, #Hrsok⟩, Hrest, Hlead,
     Henter, #Hdlb0, #Hhsc⟩
   -- (R2d'a A10 item 5, Q29 (d)) the `MsgSnap`s' terms, from the restart data
-  ihave ⟨Hrest, %Hsb⟩ := rnRestartOk_snapTerm γ L p S r rd ce es h Lo ms ss $$ Hrok Hrest
+  imod (rnRestartOk_snapTerm γ L p S r rd ce es h Lo ms ss) $$ Hrok Hrest with ⟨Hrest, %Hsb⟩
   -- (R2d'a task 4) a snapshot's index above the restart point (A8; S1: derived, from the loop's fact)
   ihave ⟨Hrest, %Hwa2⟩ := rnRestartOk_winAbove γ L p S r rd ce es h Lo ms ss Hc0 $$ Hrok Hrest
   have Hwa := Hwa2.2

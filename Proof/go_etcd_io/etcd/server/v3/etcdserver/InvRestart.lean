@@ -709,7 +709,9 @@ stronger premise on `NewServer.specR`'s caller.) -/
 def srvRestartRows (γ : SrvRaft) (id : w64) (A : List EntryModel) (σ : StorContents) : IProp GF :=
   iprop(∀ (s : Loc) (γr : ReadNames) (γn : RNNames),
     ⌜γn.node = γ ∧ γn.id = id ∧ γn.pre = [] ∧ γn.a0 = A ∧ γn.t0 = σ.hs.Term' ∧ γr.raft.raft = γ⌝ -∗
-    |==> (rnSnapTermAbove γn ∗ srvWinPend s γr γn))
+    -- (restart S7.3, 2026-11-14) the server's member id field (the sent `MsgSnap`s' sender)
+    srvMemberIDAddr s ↦□ id -∗
+    |={⊤}=> (rnSnapTermAbove γn ∗ srvWinPend s γr γn))
 
 end boot
 

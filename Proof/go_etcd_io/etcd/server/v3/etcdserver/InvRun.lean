@@ -66,7 +66,7 @@ def srvWinPend (s : Loc) (γr : ReadNames) (γn : RNNames) : IProp GF :=
         rnRtOk γn rt n -∗
         ∀ (id : w64) (m : Loc) (st : MsgSt),
           srvMemberIDAddr s ↦□ id -∗ msgOwn m (DFrac.own 1) st -∗
-            sentMsg γr.raft.raft.cl srvClusterN id st -∗
+            sentMsg γr.raft.raft.cl srvClusterN id st ={⊤}=∗
             ⌜st.msg.Type' = MsgSnap → st.msg.Term' ≠ rt⌝ ∗ msgOwn m (DFrac.own 1) st ∗ token γwp))
 
 /-- (R2d'a A10 item 5) **At a first start `srvWinPend` is free**: with the backend's log empty the

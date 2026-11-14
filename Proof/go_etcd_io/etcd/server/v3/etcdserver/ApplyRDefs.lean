@@ -110,7 +110,7 @@ def winNoMergedSendR (γ : SrvRaft) (s : Loc) (t0 : w64) (T : IProp GF) (R : Lis
   letI := srvStor (GF := GF) γ
   iprop(⌜R = []⌝ ∨
     □ (⌜uint.Z t0 < uint.Z rt⌝ -∗ T -∗ ∀ (id : w64) (m : Loc) (st : MsgSt),
-      srvMemberIDAddr s ↦□ id -∗ msgOwn m (DFrac.own 1) st -∗ sentMsg γ.cl srvClusterN id st -∗
+      srvMemberIDAddr s ↦□ id -∗ msgOwn m (DFrac.own 1) st -∗ sentMsg γ.cl srvClusterN id st ={⊤}=∗
         ⌜st.msg.Type' = MsgSnap → st.msg.Term' ≠ rt⌝ ∗ msgOwn m (DFrac.own 1) st ∗ T))
 
 instance winNoMergedSendR_persistent (γ : SrvRaft) (s : Loc) (t0 : w64) (T : IProp GF)

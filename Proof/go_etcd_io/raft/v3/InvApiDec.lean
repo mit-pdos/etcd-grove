@@ -696,7 +696,8 @@ committed prefix (`ModeDec.fold`), and the committed raft log is a lower bound o
 theorem snapTo_confAt_impl (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ E) (id : w64)
     (st : MsgSt) (k0 : Nat) (m0 : Membership) (Hty : st.msg.Type' = MsgSnap) :
     ⊢ clusterInv (GF := GF) γ N -∗ confAtU γ k0 m0 -∗ snapToOk γ.raft id st ={E}=∗
-      ⌜st.msg.To' ≠ id⌝ ∗ ∃ (k : Nat) (m : Membership), confAtU γ k m ∗ ⌜st.msg.To' ∈ m.ids⌝ := by
+      ⌜st.msg.To' ≠ id⌝ ∗ ∃ (k : Nat) (m : Membership) (l : List LogEntry), confAtU γ k m ∗
+        isCommittedLogLb γ l ∗ ⌜k ≤ l.length ∧ st.msg.To' ∈ m.ids⌝ := by
   iintro #Hci #Hc0 #Hs
   unfold snapToOk
   ihave ⟨%Hne, #Hd⟩ := Hs $$ %Hty
@@ -729,7 +730,7 @@ theorem snapTo_confAt_impl (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑
   imodintro
   isplitr
   · ipureintro; exact Hne
-  iexists (strip L).length, m
+  iexists (strip L).length, m, strip L
   isplitr
   · unfold confAtU
     iexists strip L, M
@@ -737,7 +738,8 @@ theorem snapTo_confAt_impl (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑
     ipureintro
     refine ⟨Nat.le_refl _, c0, g, Hmd, ?_⟩
     rw [List.take_length]; exact Hm
-  ipureintro; exact Hid
+  iframe Hlb
+  ipureintro; exact ⟨Nat.le_refl _, Hid⟩
 
 end names
 

@@ -399,21 +399,24 @@ theorem EtcdServer.applyAll.wp_proofBatch
         rw [hγn]
         -- (R2d'a A7) past the window after the batch, or no merged send at the batch's term
         -- (`winNoMergedSendR`, this member's `MsgSnap`: `isServerApplyAll`'s member id)
-        ihave ⟨%Hwt, Hm, HT⟩ : iprop(⌜rp.A₀.length ≤ (A ++ unapplied ai ms).length ∨ sm.msg.Term' ≠ rt⌝ ∗
+        ihave Hwt : iprop(|={⊤}=> ⌜rp.A₀.length ≤ (A ++ unapplied ai ms).length ∨ sm.msg.Term' ≠ rt⌝ ∗
             msgOwn m (DFrac.own 1) sm ∗ T) $$ [Hm HT]
         · iunfold winNoMergedSendR at Hwin
           icases Hwin with (%Hnil | #Hwin)
-          · iframe Hm HT; ipureintro; left
+          · imodintro; iframe Hm HT; ipureintro; left
             exact Nat.le_of_not_lt (fun h => by
               have := List.length_drop (l := rp.A₀) (i := (A ++ unapplied ai ms).length)
               rw [Hnil] at this; simp at this; omega)
           · rw [← hγn]
             by_cases hlt : uint.Z γn.t0 < uint.Z rt
-            · ihave ⟨%Hn, Hm, HT⟩ := Hwin $$ %hlt HT %γn.id %m %sm Hmidm Hm Hsm
+            · ihave Hw' := Hwin $$ %hlt HT %γn.id %m %sm Hmidm Hm Hsm
+              imod Hw' with ⟨%Hn, Hm, HT⟩
+              imodintro
               iframe Hm HT; ipureintro; right; exact Hn Hty
             · -- `rt ≤ t0`: the bag's `MsgSnap` is above `t0` (`rnSnapMsg`'s bound)
-              iframe Hm HT; ipureintro; right
+              imodintro; iframe Hm HT; ipureintro; right
               intro h; rw [h] at Hsbt; exact hlt Hsbt
+        imod Hwt with ⟨%Hwt, Hm, HT⟩
         letI := srvStor (GF := GF) γr.raft.raft
         ihave %Hsh := sentMsg_shape _ _ _ _ $$ Hsm
         obtain ⟨sn, hsn, -⟩ := Hsh.2 Hty

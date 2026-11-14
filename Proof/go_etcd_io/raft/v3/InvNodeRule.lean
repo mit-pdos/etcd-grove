@@ -453,8 +453,9 @@ one-member cluster), so no `MsgSnap` is ever sent. -/
 theorem snapTo_confAt (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ E) (id : w64)
     (st : MsgSt) (k0 : Nat) (m0 : Membership) (Hty : st.msg.Type' = MsgSnap) :
     ⊢ isCluster (GF := GF) γ N -∗ confAt γ k0 m0 -∗ snapTo γ id st ={E}=∗
-      ⌜st.msg.To' ≠ id⌝ ∗ ∃ (k : Nat) (m : Membership), confAt γ k m ∗ ⌜st.msg.To' ∈ m.ids⌝ := by
-  unfold isCluster confAt snapTo ApiImpl.isClusterU
+      ⌜st.msg.To' ≠ id⌝ ∗ ∃ (k : Nat) (m : Membership) (l : List LogEntry), confAt γ k m ∗
+        isCommittedLogLb γ l ∗ ⌜k ≤ l.length ∧ st.msg.To' ∈ m.ids⌝ := by
+  unfold isCluster confAt snapTo ApiImpl.isClusterU isCommittedLogLb
   haveI := ApiImpl.clusterInv_persistent (GF := GF) γ N
   haveI := ApiImpl.confAtU_persistent (GF := GF) γ k0 m0
   iintro ⟨-, #Hci, -⟩ #Hc0 #Hs
