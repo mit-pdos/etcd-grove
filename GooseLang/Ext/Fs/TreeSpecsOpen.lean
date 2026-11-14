@@ -131,7 +131,7 @@ theorem osCoh_create {Γb Γm Γf Γt} (hwf : OsWf st) (hcoh : OsCoh st Γb Γm 
     rw [hp, hn] at hf; cases hf
   refine ⟨fun q => ?_, fun q m hm => ?_, fun q i x hx => ?_, fun q f1 i h1 hi => ?_,
     hcoh.fds, hcoh.toks, hcoh.tok_is, fun t ti h => ?_, fun t ti h => ?_, fun t ti h => ?_,
-    fun q m c hm hc => ?_⟩
+    fun t ti h hk => ?_, fun q m c hm hc => ?_⟩
   · rw [files_setFile, GMap.lookup_insert_eq_iff]; split
     · simp
     · exact hcoh.meta_dom q
@@ -160,6 +160,8 @@ theorem osCoh_create {Γb Γm Γf Γt} (hwf : OsWf st) (hcoh : OsCoh st Γb Γm 
   · obtain ⟨f1, h1, hrest⟩ := hcoh.tok_file t ti h
     exact ⟨f1, by rw [file_setFile_ne _ _ (Ne.symm (hnt' t ti h))]; exact h1, hrest⟩
   · obtain ⟨f1, h1, hrest⟩ := hcoh.tok_cand t ti h
+    exact ⟨f1, by rw [file_setFile_ne _ _ (Ne.symm (hnt' t ti h))]; exact h1, hrest⟩
+  · obtain ⟨f1, h1, hrest⟩ := hcoh.tok_rz t ti h hk
     exact ⟨f1, by rw [file_setFile_ne _ _ (Ne.symm (hnt' t ti h))]; exact h1, hrest⟩
   · rw [GMap.lookup_insert_eq_iff] at hm
     split at hm

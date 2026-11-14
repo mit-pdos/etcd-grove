@@ -69,10 +69,10 @@ theorem syscall.Fallocate.wp_growAu (fd off len : w64) (dq : DFrac) (d : OsFd) (
   iexact HQ
 
 /-- The caller's halves of a growth of `i` from `m` to `tg` that landed with the size `w`: the
-`OsMeta` (up to the candidates it knows past the size, `rsPostK`'s), and the bytes grown over,
+`OsMeta` (up to the candidates it knows past the size and the resize stamps, `rsPostK`'s), and the bytes grown over,
 zeros. -/
 def fallocDoneH (i : Ino) (m : OsMeta) (tg w : Nat) : IProp GF :=
-  iprop(∃ tc, osMeta i (DFrac.own (1 : Qp).half) ((rsPost false m tg w).withTc tc) ∗
+  iprop(∃ tc rz, osMeta i (DFrac.own (1 : Qp).half) ((rsPost false m tg w).withTc tc rz) ∗
     osZerosA i m.size (w - m.size) (DFrac.own (1 : Qp).half))
 
 /-- **The caller's halves of a growth's outcome** (`rsOutF`'s): on success the growth landed; on

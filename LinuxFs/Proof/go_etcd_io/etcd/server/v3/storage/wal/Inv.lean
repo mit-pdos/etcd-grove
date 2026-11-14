@@ -129,9 +129,11 @@ def SegFl.Ok (fl : SegFl) (g : SegG) : Prop :=
 it announced past the size, the candidates `m` knew (`OsMeta.pc`) then the zero stamped `n` (`rsTail` at
 the old size), which the token's `OsMeta` forgot and a crash may keep (`crashRestAt_take_tok`'s last
 fact, from the state's `tok_cand`): a growth's bytes past the old size, those a truncate's landing kept
-in `tc`. -/
+in `tc`; and the resize's stamp `n` among the stamps known (`OsMeta.rz`; the state recorded it at the first
+step, `OsCoh.tok_rz`). -/
 def rzMeta (tr : Bool) (m : OsMeta) (tg n : Nat) : OsMeta :=
-  { m.announce (min m.size tg) (rsHi tr m.size tg) tg with tc := rsTail tr m tg m.size n [] }
+  { m.announce (min m.size tg) (rsHi tr m.size tg) tg with
+    tc := rsTail tr m tg m.size n [], rz := n :: m.rz }
 
 /-- **The segment `g` as the resize in flight `fl` to `tg` (`ftruncate` if `tr`, else `fallocate`'s
 growth) announced it** (I3b; `wp_osResizeStart`): `g`'s `OsMeta` the token's with the candidates past
