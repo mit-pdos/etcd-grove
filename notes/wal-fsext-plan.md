@@ -1282,7 +1282,7 @@ caller's `tc`.** Untrusted; `Impl.lean` unchanged. Task 1 done; tasks 2 (`truncS
   `(err = nil ∧ m.ZeroPg)`.
 - **`ZteMeta m m' := PcKeep m m' ∧ (m.ZfGe → m'.ZeroPg)`** on `ZeroToEnd.specAu`'s success post (ledger: adopted,
   simplified: `ZeroPg` replaces the proposal's `zf` bound and `cz` clause; with `TailZ m` and `m'.size = m.size` it gives
-  `TailZ m'`, a lemma still to write beside `specWalTail`). `ftDoneH_shrunk` gives the truncate's `PcKeep`/`ZeroPg`.
+  `TailZ m'`, a lemma still to write beside `specWalTail`). `ftDoneH_shrunk` gives the truncate's `PcKeep`/`ZeroPg`; `TailZ.zte` (`ZteTailZ.lean`) proved.
 - **Found: the growth supplies cannot be built with the tie `walTailKey dir γ ∗ tailVar γ (H, md, cuts, wr, i,
   none)`.** At the start's commit (state `g0` found, target `tg` = the size `ZeroToEnd` found) `rzGrow_pure` needs `tg ≤
   g0.om.hi` and `min g0.om.lo tg ≤ wr`; at the landing `walAbsD_rzLandG` needs `w ≤ |lay.old|` (`w = tg` on success).
