@@ -1640,6 +1640,9 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   it back). `ReadAll` still drops both (the ten exits' `walReadFailedF` body is task 4). The invariant steps
   for `Close` to put such a tail back are not made yet (W4c U5 log, fifth session: the lent tail's fdatasync in
   a window with no zeros past `wr`, `TailPend`).
+  And `specWalPend`'s success arm gives `walTailW … TailMetaS` (was `TailMeta`; the synced bytes are durable),
+  for the put-back of the exits after it (`walInvBody_untail` takes `TailMetaS`); `ReadAll` weakens it at once
+  (`walTailW_mono`). Internal, the agent's.
 
 ## 2026-11-14: `ZeroToEnd.specAu` (`fileutil`, the part's) -- the error arm says nothing of the bytes (W4c U5, fifth session)
 

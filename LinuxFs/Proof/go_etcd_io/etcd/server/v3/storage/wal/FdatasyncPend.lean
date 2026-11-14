@@ -259,7 +259,8 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync.wp_specWalPend
       iframe Hm Hb
       isplitr
       · ipureintro
-        exact ⟨by simp [OsMeta.synced, hmsz], hmz.synced, hsz62, hfd, LoWr.of_exact rfl rfl⟩
+        refine ⟨by simp [OsMeta.synced, hmsz], ⟨hmz.synced, fun y hy => ?_⟩, hsz62, hfd, LoWr.of_exact rfl rfl⟩
+        obtain ⟨x, -, rfl⟩ := List.mem_map.1 hy; rfl
       · iapply tailVar_unfold $$ Hv
     · iexact Hs
   · iright

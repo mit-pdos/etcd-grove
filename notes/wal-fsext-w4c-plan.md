@@ -874,13 +874,16 @@ Tasks 1 (the specs; not the invariant step for a window, below) and 2 done; 3-5 
   - E1-E5 (pending, idle): as above. `walReadFailedF`'s pending disjunct keeps every file's stream, the
     registration (`walTailsFrag {dir ↦ γt}`, `walPendTok`, the record's half), the exported facts of the last
     segment, `walOutFrag`, `walNamesFrag none`, the claim's half, the pipeline, the locks, `dirFile`.
+  - **`Fdatasync.specWalPend`'s success now gives `walTailW … TailMetaS`** (made: the synced bytes are `bs.map
+    durB`; `ReadAll` weakens it to `TailMeta` by `walTailW_mono` right after, so the exits after it can keep the
+    `TailMetaS` form instead).
   - E7 (`walTailP … k false (TailMetaZ ∧ zeros from o0)`): `Close`'s `w.sync()` (encoder nil) is
-    `Fdatasync.specWalPend` again; for the put-back its success must give `TailMetaS` (the synced bytes are
-    `bs.map durB`): a `specWalPendS` with `walTailW … TailMetaS` (the same proof), then `walInvBody_untail`.
-    On its error: `⌜err ≠ nil⌝`.
-  - E8-E10 (`walTailW … TailMeta`, the key): if `ReadAll` uses `specWalPendS`, the tail is `TailMetaS` at the exit
-    and is unregistered at `Close`'s first step (`walInvBody_untail`), then the idle flow; E10's `w.sync()`
-    flushes the empty encoder first (`encoder.flush` with `pend = []`: check it touches no file).
+    `Fdatasync.specWalPend` again, then `walInvBody_untail` (the key back, `TailMetaS`). On its error:
+    `⌜err ≠ nil⌝`.
+  - E8-E10 (`walTailW … TailMetaS`, the key, if `ReadAll` keeps the form): unregistered at `Close`'s first step
+    (`walInvBody_untail`), then the idle flow; E10's `w.sync()` flushes the empty encoder first (`encoder.flush`
+    takes an `io.writerStream` of the file even for `pend = []`: a stream over the idle tail with `lim = 0`, or
+    the write handle's own form).
   - **E6 (`walTailPE`) needs a new invariant step** (the only one): the fdatasync of a lent tail (kind `false`) in
     any state, given the length word at `wr` zero. With F-Z (`walLentRes_lookup`'s `TailZeros ∨ TailPend`) it is
     `walInvBody_syncP`'s success (`WinZero` from `WalAbsD.winZero` in a window, `TailLast.winZero` exact), then

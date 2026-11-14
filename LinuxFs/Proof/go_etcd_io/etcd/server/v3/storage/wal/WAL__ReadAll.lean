@@ -528,6 +528,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             lay.cuts lay.wr sz' gl.om.size hwrT) $$ [$HareaK $Htw $Hcf] as %ef ⟨Hcf, Hz⟩
           ihave Hgh := Hgh $$ Hcf
           icases Hz with (⟨%hef, Htw, #Hsyn⟩ | ⟨%hef, -⟩)
+          ihave Htw := walTailW_mono fl fdl _ dir γt gl.ino d0.H d0.metadata lay.cuts lay.wr sz' []
+            TailMetaS TailMeta (fun _ _ h => h.meta) $$ Htw
           rotate_left
           · -- the fdatasync's error
             have hez : errnoErr ef ≠ GoInterface.nil := WalFs.errnoErr_ne ef hef
