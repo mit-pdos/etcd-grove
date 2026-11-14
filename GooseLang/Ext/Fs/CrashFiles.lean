@@ -80,8 +80,8 @@ theorem machineCrash_init (htw : FsTreeWf st) (htc : TreeCoh st V Γdf Γc)
   · intro i f hf
     by_cases hi : Named st'.fs.treeDur i
     · refine ⟨hi, ?_⟩
-      obtain ⟨f0, f', -, ⟨sz, vs, -, -, rfl⟩, hf'⟩ := (hfiles i).1 hi
-      rw [hf] at hf'; cases hf'; exact ⟨vs, sz, rfl⟩
+      obtain ⟨f0, f', -, ⟨sz, vs, -, hmx, -, rfl⟩, hf'⟩ := (hfiles i).1 hi
+      rw [hf] at hf'; cases hf'; exact ⟨vs, sz, hmx, rfl⟩
     · rw [(hfiles i).2 hi] at hf; cases hf
   · intro i hi
     rw [hino]
@@ -125,8 +125,8 @@ theorem machineCrash_initS {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS)} (htw : F
   · intro i f hf
     by_cases hi : Named st'.fs.treeDur i
     · refine ⟨hi, ?_⟩
-      obtain ⟨f0, f', -, ⟨sz, vs, -, -, rfl⟩, hf'⟩ := (hfiles i).1 hi
-      rw [hf] at hf'; cases hf'; exact ⟨vs, sz, rfl⟩
+      obtain ⟨f0, f', -, ⟨sz, vs, -, hmx, -, rfl⟩, hf'⟩ := (hfiles i).1 hi
+      rw [hf] at hf'; cases hf'; exact ⟨vs, sz, hmx, rfl⟩
     · rw [(hfiles i).2 hi] at hf; cases hf
   · intro i hi
     rw [hino]
@@ -200,7 +200,7 @@ theorem crashSeen_crashed {Q : OsState → OsState → Prop} {i : Ino} {m : OsMe
   have hn : Named st'.fs.treeDur i := by
     apply Classical.byContradiction; intro hn
     rw [(hc.2.2.2.2.2.2.2 i).2 hn] at hf'; cases hf'
-  obtain ⟨f0, f1, hf0, ⟨sz, img, ⟨hlo, hhi⟩, hcand, rfl⟩, hf1⟩ := (hc.2.2.2.2.2.2.2 i).1 hn
+  obtain ⟨f0, f1, hf0, ⟨sz, img, ⟨hlo, hhi⟩, -, hcand, rfl⟩, hf1⟩ := (hc.2.2.2.2.2.2.2 i).1 hn
   rw [hf] at hf0; cases hf0
   rw [hf'] at hf1; cases hf1
   have hb : ∀ b, b < sz → (OsFile.ofDisk img sz).cache b = img b := fun b hb => by
@@ -235,6 +235,23 @@ theorem crashSeen_crashed {Q : OsState → OsState → Prop} {i : Ino} {m : OsMe
     · rw [hok.tail b cs (by rw [← hok.size]; exact hsb) hc] at hs
       exact .inl ⟨s, hs⟩
     · exact .inr ⟨Nat.le_trans hok.lo hl, h0⟩
+
+/-- **A crash leaves no file larger than `maxBytes`** (the model's bound, `Impl.lean`): what the
+restarted program may use of a file's size beside `FileCrashedR` (a segment's size bound across
+restarts, the WAL's `ReadAll`). -/
+theorem crashSeen_max {Q : OsState → OsState → Prop} {i : Ino} {m : OsMeta}
+    {rs : List (Nat × DFrac × List ByteG)} {ts : List (Nat × TokInfo)} {fo : Option OsFile}
+    (h : CrashSeenR Q i m rs ts fo) : ∀ f', fo = some f' → f'.size ≤ maxBytes := by
+  obtain ⟨st, st', Γb, Γm, Γf, Γt, -, -, hc, -, hfo, -, -, -, -⟩ := h
+  intro f' hf'
+  subst hfo
+  have hn : Named st'.fs.treeDur i := by
+    apply Classical.byContradiction; intro hn
+    rw [(hc.2.2.2.2.2.2.2 i).2 hn] at hf'; cases hf'
+  obtain ⟨f0, f1, -, hcf, hf1⟩ := (hc.2.2.2.2.2.2.2 i).1 hn
+  rw [hf'] at hf1; cases hf1
+  obtain ⟨sz, img, -, hmx, -, rfl⟩ := hcf
+  exact hmx
 
 end Fs
 end Perennial

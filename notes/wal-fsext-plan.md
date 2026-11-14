@@ -531,7 +531,8 @@ module; the bboltfs/crashlog/walfs examples and the generated translations not l
 - `wal/`: `Create.wp_proof` (`Create.lean`), `Open.wp_proof` (`OpenForRead`, `openAtIndex` proved, `wal-read12`),
   `openWALFiles.wp_proof`, `WAL.ReadAll.wp_proof` (`WAL.Save.wp_proof`/`WAL.SaveSnapshot.wp_proof` proved over
   hypotheses, `wal-save12`, W6 log, twelfth session; `Save` re-proved over the batch bound and the window form,
-  `SaveSnapshot` one `sorry` for its stream bound, `wal-save13`, thirteenth session),
+  `SaveSnapshot` one `sorry` for its stream bound, `wal-save13`, thirteenth session; that `sorry` gone and
+  the stream bounds withdrawn over the model's `maxBytes`, `wal-maxb14`, fourteenth session),
   `WAL.saveEntry.wp_proof`, `WAL.saveState.wp_proof`,
   `WAL.sync.wp_proof`, `wal.tailWriter` (`TailWriter.lean`);
 - `fileutil/`: none (`ReadDir.wp_proof` proved, `wal-small14`; `TouchDirAll`/`CreateDirAll` proved, `wal-create7`, over the above-root hypotheses);
@@ -557,7 +558,7 @@ decision on `io.ReadFull`'s axiom); `WalReadState` restated satisfiably (the pin
 W3/W5 log, sixteenth session).
 invariant conjunct is designed, not made (same log). Each registered WAL name has its own claim (`walNamesRes`, a framed conjunct; registration pending linked to the lock token, `walNamesFrag`), and the path law `walInv_dirPath` (a kept fraction of `osPathS R dir _ j` from `walDirKey`, with `walNamesFrag none`) is proved (`wal-path13`; W1 log, thirteenth session); `walAreaRes` holds every WAL name not split out (`walSplitFrag`), `Exist`/`openAtIndex`/`Create` read a registered name through its own claim, `openAtIndex` takes its path from `walInv_dirPath`, and `Create`'s post-commit split (`walInv_splitNew`) and registration (`walInv_register`) are proved, not yet used by `Create`'s body (`wal-path14`; W1 log, fourteenth session). Open: `renameWAL`'s path law, `Open`'s `WalDirPathLaw`, `WalsBounded`.
 
-The resize stamps reach the WAL's crash condition (`OsMeta.rz`, `MetaOk.rz`, `OsCoh.tok_rz`; `CrashOk` passes `segRzOf`) and `W1G.drop_rz` transports W1 across a truncate's zeros (`wal-tc5`; W1 log, fifteenth session); the truncate window's `CrashOk`, `W1G` over the known candidates past the bytes, the WAL-level supplies and `specWalTail` remain (I3b, `wal-tc5` entry).
+The resize stamps reach the WAL's crash condition (`OsMeta.rz`, `MetaOk.rz`, `OsCoh.tok_rz`; `CrashOk` passes `segRzOf`) and `W1G.drop_rz` transports W1 across a truncate's zeros (`wal-tc5`; W1 log, fifteenth session). `W1G` is over the known candidates past the bytes (`segBytesX`, the crash take exporting `om.pc`'s candidates), and the truncate window's pure `CrashOk` from an exact tail is proved (`crashOkA_win`, over `crashTo_tailL`) (`wal-tc6`; W1 log, sixteenth session); the landing step (`crashOkA` from the in-flight layout to the landed one), the window-to-window form (a `Save`'s window before the truncate), the WAL-level supplies, `specWalTail` and the `ZeroToEnd` instance remain (I3b, `wal-tc6` entry).
 
 ## W1 implementation log (branch `wal-inv`, 2026-11-13)
 
@@ -1125,6 +1126,30 @@ session's plan, as planned but for three choices below).** Untrusted; `Impl.lean
   `0 < n`, `n ∈ rz`), **`AsOfW.drop_rz`**, **`W1G.drop_rz`**: `W1G` over a window layout's bytes (a truncate's
   `rsAnn`) gives `W1G` over the exact tail's, with the same stamps. (`latestAt_append_lt`, `valAt_append_pos`.)
 
+**Sixteenth session (branch `wal-tc6`, 2026-11-14): `W1G` past the ghost's bytes; the truncate window's
+`CrashOk`.** Untrusted; `Impl.lean` unchanged; every importer of `CrashTakeFiles`, `Abs`, `TailCrash`, `RzW1`
+builds (merged with `wal-int` `4fb9b41cd4`).
+- *`W1G` past the bytes* (the design of the W6 log's thirteenth session, item 1; I3b `wal-tc6` entry for the
+  names): `segBytesOf lay i` maps **`segBytesX g = g.bs ++ pcRun g.om |g.bs|`** (the run of `om.pc` below `om.hi`,
+  up to the first unknown byte); an exact segment's is `g.bs` (`segBytesX_of_hi`). The crash side: **`FileCrashAt`**
+  (`GooseLang/Ext/Fs`) carries `m.pc`'s candidates past the size (`MetaOk.pc_cand`), **`crashRestAt_take_tok`**
+  exports `tok_cand` past the size, **`rzMeta_pc_cand`** turns both into `rzMeta`'s, **`SegCrashAt`** and
+  `crashGood_exists`'s `hfiles` carry `g.om.pc`'s candidates, `w1G_of_W1` takes `segBytesX g`'s (`segBytesX_cand`).
+  Users over exact layouts take `segBytesOf_some_ex`/`segBytesOf_mem_ex`.
+- *`crashTo_tailL`* (`TailCrash.lean`): `crashTo_tailM` with the tail's image of any length in `[max so z0, |bs|]`,
+  each byte below its size a candidate of the bytes (`crashTo_tailM` is now its corollary).
+- *`W1G.drop_rz`* (`RzW1.lean`) takes `|bs| ≤ |bs'|` (was equal lengths).
+- **`crashOkA_win`** (`WinCrash.lean`, proved): `CrashOkA` of a layout with the exact tail `g0` gives `CrashOkA` of
+  one whose tail `g` (same inode) has `wr ≤ |g.bs|`, `g.om.size = |g.bs|`, `wr ≤ g.om.lo`, `g.om.hi ≤ |g0.bs|`,
+  `|g0.bs| ≤ |segBytesX g|`, `segBytesX g`'s candidates `g0`'s below `wr` and `RzCands g.om.rz` of `g0`'s
+  everywhere; no alternative layout holds the tail. Proof: `hok` at images as of the last sync (as
+  `crashOkA_tail`), then `crashTo_tailL` on `lay0` with `W1G.drop_rz` (zero is a candidate stamped 0 of `g0`'s bytes
+  from `wr` on: **`tail_zero_cand`**, from `TailLast`'s `ByteOk` and F-Z). Covers the truncate in flight (`rzMeta`,
+  `rsAnn`: `|g.bs| = |g0.bs|`) and landed (`rsPostK true`: `|g.bs| = wr`, the cut-off bytes in `pcRun`).
+- **`crashOkA_same`** (`WinCrash.lean`, proved): `CrashOkA` across a tail step that allows no new crash, keeps
+  `segBytesX`'s candidates (no shorter) and the stamps: the truncate's finish, from the in-flight layout (the
+  invariant keeps only the current layout's condition).
+
 **Thirteenth session (branch `wal-path13`, 2026-11-14; G-spine, the claim on each WAL name).** A path to
 `dir = r/nm` is a spine through a fraction of a claim on `nm` alone (`osPathS_child`); `nm` sat only in the
 area or creating claim. Design (internal invariant, no client-visible ghost state; `Inv.lean`, `Ghost.lean`):
@@ -1272,7 +1297,9 @@ holds some mode). Nothing proves the new models yet.
   `readInt64` takes `len(r0) + 8 < 2^62`. The decoder discharges both reads: the length word inside
   `|F.bs| + 8`, the frame at most 8 bytes past the file (Go's size check counts from `lastValidOff`).
 
-**Pending the user's review (trusted or axiomatic), all off `lean`:** the `ENOENT` rule of `fsExt`
+**Pending the user's review (trusted or axiomatic), all off `lean`:** the file-size bound of `fsExt` (2026-11-14, `Impl.lean`'s
+`maxBytes`, ext4's `s_maxbytes` on C: `PWriteFinish`, `FtruncateFinish`, `FallocFinish`, `CrashFile`, `FsInit`;
+`examples/osfs/semantics/data_maxbytes.go`, measured on C; W6 log, fourteenth session); the `ENOENT` rule of `fsExt`
 (2026-11-14, `Impl.lean`'s `ENOENT`, `Open`/`DirReadNext`; `examples/osfs/semantics/meta_enoent.go`,
 measured on C; the W7-W12 log); the fork fixes (§8,
 `notes/wal-fsext-fork/`); W1 (the crash premise, `LinuxFs/.../wal/W1.lean`; the open question of torn
@@ -3150,6 +3177,68 @@ bound.**
   past `|bs|`, image length free in `[lo, hi]` (`wal-tc5`'s truncate-window lemma is the same argument with the
   truncate's zeros; one lemma for both).
 
+**W6, fourteenth session (branch `wal-maxb14`, 2026-11-14): ext4's `s_maxbytes` in the model; the stream bounds
+withdrawn; `SaveSnapshot` without `sorry`.**
+- *The semantics change (task 1; trusted, decided provisionally by the coordinator, **pending the user's review**,
+  §10)*: `Impl.lean`'s `maxBytes := 0xffffffff000` (configuration C's `s_maxbytes`: `ext4_max_size` gives
+  `(2^32 - 1) << 12` for extent files with 4 KiB blocks). `PWriteFinish` adds `(k = 0 ∨ off + k ≤ maxBytes)` (a
+  write starting at or past it lands nothing, one crossing it is cut there: a page cut, since `maxBytes` is
+  page-aligned); `FtruncateFinish`/`FallocFinish` land a resize (whole, or `fallocate`'s prefix) only if
+  `c.target ≤ maxBytes`, else only the failure with no change; `CrashFile` adds `sz ≤ maxBytes`; `FsInit` adds
+  it of every file at the first start. Go example `examples/osfs/semantics/data_maxbytes.go` (indexed in
+  `doc.go`), **measured on C** by `models_test.go`'s `TestMaxBytes` (`run-models-on-c.sh -run TestMaxBytes`,
+  kernel 7.0.0-38, `check.sh` passed): `pwrite(100 bytes at max-1) = 1` (size `max`), `pwrite` at `max` =
+  `EFBIG` with nothing landed, Go's `WriteAt` crossing it `(0, EFBIG)`, `ftruncate(max)` ok, `ftruncate(max+1)` =
+  `EFBIG` with the size unchanged, `fallocate(0, max-4096, 8192)` and the same with `KEEP_SIZE` = `EFBIG`
+  unchanged, `fallocate(0, max-4096, 4096)` ok.
+- *The model invariant*: `OsWf.sizes` is now `sizeLo ≤ size ≤ sizeHi ≤ maxBytes` (kept by every step,
+  `osWf_setFile`'s premise has the third clause; the start from `FsInit`, the crash from `CrashFile`).
+  **What clients get**: `PwCut` gained its second clause `(k = 0 ∨ off + k ≤ maxBytes)` (`Write.lean`), so every
+  `os` writer spec that states `PwCut` (`WriteAt`, `WriteLong`, `OffLong`, the writer streams) carries the bound
+  of what a write landed; **`wp_osMeta_size`/`wp_osMeta_sizeU`** (`Specs.lean`): before any step of a non-value
+  expression, `m.size ≤ maxBytes` of an `OsMeta` at hand, or of one an update reaches (opening invariants; the
+  general form, from Perennial's `wp_ext_acc`); `crashSeen_max` (`CrashFiles.lean`) and `crash_size_max`
+  (`Bridge.lean`) for the restarted program. `MetaOk` is unchanged (a law on a bare `osMeta` fragment needs the
+  world, so it is a step lemma, not a field). The WP rules' statements are unchanged (a resize past `maxBytes`
+  now only fails; their posts still allow that); their proofs pick the failure step when the target is past it.
+  `Tests.lean`: `CacheOk`/`CacheCand` carry the bound (`cacheOk_step` re-proved), `pwrite_page_cut` states it.
+- *The stream bounds withdrawn (task 2; ledger 2026-11-14, "the batch premise withdrawn")*: `Save`'s premise is
+  back to `∀ e ∈ es, (Mr.encEntry e).length < 2 ^ 40` (the frame encoding's, ledger "no bound on the records'
+  size"; the batch bound `walBatchBytes < 2 ^ 40` withdrawn); `walHandleIn` lost `o0 + |out| + |pend| ≤
+  0xffffffff000` and the sealed `walOpenWF` its `< 2 ^ 43` (the handle keeps `o0 + |out| ≤ sz ≤ 0xffffffff000`,
+  which writes that succeed now keep: they land below `maxBytes`; the pending bytes are at most `2 ^ 18`);
+  `saveEntry.spec`/`saveState.spec` lost `(tailStream …).length ≤ 0xffffffff000`; `encode.specTail` lost its
+  premise `o0 + |out| + |pend| + |frame| ≤ 0xffffffff000` and its post's `o0 + |out'| + |pend'| ≤ …` (it keeps
+  `sz' ≤ 0xffffffff000`, now the model's). **`SaveSnapshot.wp_proof` has no `sorry`.** `Save`, `Sync`, `sync`
+  (`wp_proofIn`), `cut` repaired. `StreamBound.lean`'s lemmas (`saveStream_le`, `cutStream_lt`, ...) are now
+  unused (left for the cleanup).
+- *`ReadAll`'s growth across restarts*: resolved by the model: a crash leaves no file past `maxBytes`
+  (`crashSeen_max`), and between crashes every size stays below it (`OsWf.sizes`), so a segment's `|g.bs|`
+  (its `OsMeta`'s size) is below `0xffffffff000` at any step: `wp_osMeta_sizeU`, opening `walInv` around the
+  step, gives the decoder's `|g.bs| + 2^12 < 2^62` without an invariant conjunct. **Not given**: a bound on
+  the ghost `om.hi` (`pwPost`'s `hi` is the announced end `max hi (off + n)`, which a write announced past
+  `maxBytes` raises past it although nothing lands there); `WalsBounded`'s `g.om.hi ≤ 0xffffffff000` (wal-path14)
+  should bound `|g.bs|` through `wp_osMeta_sizeU` instead, or `pwPost` could clip `hi` at `maxBytes` (a change to
+  `Write.lean`'s specs, not made).
+- *Task 3 (partial)*: the laws of `P` for `saveEntry`/`saveState` stated: `WalPbIn.MarshalEntLaw`
+  (`MustMarshalMessage` of an entry: a fresh non-nil slice of `Mr.encEntry e` with its capacity) and
+  `WalPbIn.GetIndexLaw` (`GetIndex` returns `e.Index'`), in `Spec/.../WAL__saveEntry.lean`; `saveState` uses the
+  existing `WalPbIn.IsEmptyLaw`/`MarshalHsLaw` (`WAL__cutPre.lean`). `saveEntry.wp_proof`/`saveState.wp_proof`
+  now take them and `encode.specTail` (still `sorry`; `saveState.wp_proofPre`, over a guarded writer, is the
+  model for its proof). *Not done*: the tail writer past the preallocated size (crash side, the design in the
+  thirteenth session; `wal-tc5`'s W1G past the ghost bytes), `sync.wp_proof`, `sync.specCut`, `encode.specTail`.
+  **Obligation for them**: the posts' `sz' ≤ 0xffffffff000` come from `PwCut`'s second clause of each write
+  (`os.File.WriteAt.spec`'s post) with the handle's `sz ≤ 0xffffffff000`; nothing else bounds the stream.
+  `sync`'s proof must also give `WAL.sync.specC` (`WAL__syncC.lean`, `wal-close15`: `sync.spec` over `walHandleC`,
+  the handle after `Close` closed the pipeline; `sync` never reads `w.fp`): ideally both from one core lemma over
+  the handle without the pipeline (coordinator, 2026-11-14). `walHandleC` lost the stream-end fact with
+  `walHandleIn` (this session).
+  From `wal-tc6` (merged, `W1G` past the ghost's bytes: `segBytesX`, `crashRestAt_take_tok`, `WinCrash.lean`): a
+  write in flight past the size stops `segBytesX` at the announced range, because the token's `OsMeta` forgot those
+  candidates; the thirteenth session's design item 2 (the announced layout keeping the token's candidates, `pwTail`-
+  shaped) fixes that, and is the tail writer's (not started here). `wal-tc7` does the window-to-window `CrashOk`
+  and `specWalTail`.
+
 ## W3/W5 implementation log (branch `wal-read`, 2026-11-13)
 
 **Proved (no `sorry`, `lake build`):**
@@ -3626,6 +3715,52 @@ flight (`rzMeta`) and landed (`rsPostK true`). Task 2 not done; what is in and t
   `crashOkA_win` covers both.
 - *Not started*: `truncSup`/`fallocSup` from `walInv` (`walInvBody_tailW`), `os.File.Truncate.specWalTail`'s proof, the
   `ZeroToEnd` instance (no name yet for `wal-read13` to swap in).
+
+**`W1G` past the ghost's bytes is in (branch `wal-tc6`, commit `e813841e16`, 2026-11-14; for `wal-maxb14`,
+`wal-readall15`).** Built on the design above, as designed. Names (all untrusted):
+- `Abs.lean`: **`pcRunN m b k`/`pcRun m b`** (the candidates `m.pc` knows from `b` on, below `m.hi`, up to the first
+  unknown; ghost value 0), **`segBytesX g := g.bs ++ pcRun g.om |g.bs|`**, **`segBytesOf lay i`** now maps
+  `segBytesX` (was `·.bs`). Laws: `pcRunN_getElem?`, `segBytesX_of_hi` (`om.hi ≤ |bs|` → `= g.bs`),
+  `segBytesX_getElem?_lt`/`_getD_lt`/`_length_le`, `segBytesX_getElem?_ge` (past `|bs|`: below `om.hi`, `om.pc b =
+  some y.2`), **`segBytesX_cand`** (the candidates of `segBytesX g` are a file's from `om.size = |bs|`, the `bs`
+  fact and the `pc` fact). `segBytesOf_some` now gives `segBytesX g = bs`; **`segBytesOf_some_ex`** (all segments
+  `om.hi ≤ |bs|`) the old form. `w1G_of_W1`'s premise is over `segBytesX g`.
+- `GooseLang/Ext/Fs/CrashTakeFiles.lean`: **`FileCrashAt`** gains `∀ b c, m.size ≤ b → m.pc b = some c → f.cand b =
+  c` (from `MetaOk.pc_cand`; `crashRestAt_take`, `crashRestAt_take_tok`).
+- `CrashTakeSeg.lean`: **`crashRestAt_take_tok`**'s third conjunct is now `∃ f, st.fs.files !! ti.ino = some f ∧
+  (ti.kind.isResize → ti.n ∈ f.rzs) ∧ ∀ b c, inRange ti.lo ti.hi b → ti.m0.size ≤ b → ti.m0.pc b = some c → f.cand
+  b = c ++ [(ti.val b, ti.n)]` (`tok_cand`); **`rzMeta_pc_cand`** (what `rzMeta` knows past the size is the file's),
+  `OsMeta.pc_congr`; **`SegCrashAt`** gains `∀ b c, g.om.size ≤ b → g.om.pc b = some c → f.cand b = c` (idle,
+  write and resize cases); `crashGood_exists`/`walCrash_pure`'s `hfiles` likewise.
+- `TailCrash.lean`: `segBytesOf_mem` gives `segBytesX g`; **`segBytesOf_mem_ex`** (exact) the old form.
+- Not yet: a write in flight past the size (`SegFl.Ok`'s `g.om = cfMeta …`, the token's `OsMeta`, which forgot the
+  announced bytes' `tc`): its `segBytesX` stops at the announced range (`pc` none there); `wal-maxb14`'s design
+  item 2 (the announced layout's `tc` the token's candidates, as `rzMeta`) extends it, with `TokPast`/`tok_cand`
+  (now exported) for the crash side.
+
+**The truncate window's `CrashOk`; what the supplies still need (branch `wal-tc6`, 2026-11-14).** Task 2 done (W1
+log, sixteenth session): `crashTo_tailL`, **`crashOkA_win`** (`WinCrash.lean`). Task 3 (the supplies,
+`specWalTail`, `ZeroToEnd`'s instance) not started; what it needs, found on the way:
+- *The landing step*: the invariant keeps only the current layout's `CrashOkW`, so at the truncate's finish
+  `crashOkA_win` (from the exact `lay0`) is not available; the finish needs `crashOkA` from the in-flight layout
+  (`rzMeta`, `rsAnn`) to the landed one (`rsPostK true`): `FileCrashedR` of the landed by
+  `fileCrashedR_rsPostK_rz`, `W1G` by equal candidates of `segBytesX` (the landed `pcRun` is the in-flight `rsAnn`'s
+  candidates, values aside: `rsTail` below the old size), `segRzOf` equal (`n :: m.rz` both). The generic step is
+  proved, **`crashOkA_same`** (`WinCrash.lean`: the tail's crashes no more, `segBytesX` no shorter with the same
+  candidates, the stamps kept); the instance's facts (`fileCrashedR_rsPostK_rz`, the `pcRun` of `rsTail` equal to
+  `rsAnn`'s candidates) are the supply's.
+- *The window before the truncate*: `specWalTail`'s pre is `TailMetaW` (a `Save`'s writes past the preallocated
+  size), so `lay0` may itself be in a window; `crashOkA_win` and `crashTo_tailL` need `SegExact g0` and `TailLast`
+  (`tailCands_of_abs`). The general form is `crashTo_tailL` over `TailWin` with the candidates past `|bs|` from
+  `segBytesX` (`wal-maxb14`'s write-past-the-size layout), then `crashOkA_win` window to window. Until then the supply
+  can be proved for an exact `lay0` only (a `walTailW … TailMeta` pre, `cut`'s case when no `Save` since the last
+  cut wrote past the size).
+- *The supply* (`truncSup (walTailKey dir γ ∗ tailVar γ ½ tg) i wr` from `walInv`): at the start's commit,
+  `walInvBody_tailW`, the invariant's halves of `g0` (`segResF` with no change) with the caller's for the whole
+  `OsMeta`/bytes, then the continuation at `rzSeg g0 true wr n` (`walAbsD_rzStart` for `WalsOk`'s static relation,
+  `crashOkA_win` for its `CrashOkW`; `0 < n` from `wp_osFtruncateStart_au`'s `hn` when `wr < size`); at the finish,
+  the token back, `rsOutT`'s `rsDoneK true` split (`rsPostK_withTc`), the landing step above. `fallocSup` likewise
+  for `ZeroToEnd`'s growth (`RzCands` with a growth's zeros; its `segBytesX` covers the regrown bytes).
 
 **Third session (branch `wal-read3`, 2026-11-13).**
 - *Gaps 1 and 2 closed* as the coordinator decided: `WalsNamed` and `walParked` in `walInvBody`, the parking

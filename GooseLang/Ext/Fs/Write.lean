@@ -1021,8 +1021,10 @@ variable {s : Stuckness} {E : CoPset}
 attribute [local instance] Classical.propDecidable
 
 /-- What a `pwrite`'s count may be (the page-cut rule, `Impl.lean`'s `PWriteFinish`): none of the
-data, all of it, or a prefix ending on a page boundary of the file. -/
-def PwCut (off len k : Nat) : Prop := k = 0 ∨ k = len ∨ (off + k) % osPageSize = 0
+data, all of it, or a prefix ending on a page boundary of the file; and what it landed ends at or
+below `maxBytes` (the model's bound, `Impl.lean`: ext4's `s_maxbytes` on C), unless it is empty. -/
+def PwCut (off len k : Nat) : Prop :=
+  (k = 0 ∨ k = len ∨ (off + k) % osPageSize = 0) ∧ (k = 0 ∨ off + k ≤ maxBytes)
 
 set_option maxHeartbeats 400000 in
 /-- The second step of `pwrite(fd, data, off)`: it writes the first `k` bytes of `data`, all of
@@ -1116,22 +1118,29 @@ theorem wp_osPWriteFinishK (keep : Bool) (t : Nat) (p : Ino) (off : Nat) (data :
     obtain ⟨x, hx⟩ := cellView_isSome hwf hm
     obtain ⟨m0, hm0⟩ := Hag l x hx
     rw [hm0]; rfl
-  have hfin := fun (k : Nat) (_hk : k ≤ data.length) => osWf_setFile' (osWf_done (t := t) hwf)
+  have hfin := fun (k : Nat) (_hk : k ≤ data.length) (hkm : k = 0 ∨ off + k ≤ maxBytes) =>
+    osWf_setFile' (osWf_done (t := t) hwf)
     (f' := pwFile f c off k) hf
-    (by simp only [pwFile, OsFile.land]; omega)
+    (by simp only [pwFile, OsFile.land]; split <;> omega)
     (fun b p0 hp0 => hwf.stamps c.ino f b p0 hf hp0)
   imodintro
   isplitr
   · ipureintro
-    exact ⟨_, renderHeap (pwState st t c.ino f c off data.length) h, _,
-      ⟨t, c, off, data, f, data.length, 0, rfl, hct, hckind, hf, Nat.le_refl _, .inl ⟨.inl rfl, rfl⟩,
-        .inr (.inl rfl), rfl, rfl⟩, mapsFresh_same rfl, heapRendered_render (hfin _ (Nat.le_refl _)) rfl Hh⟩
+    by_cases hfit : off + data.length ≤ maxBytes
+    · exact ⟨_, renderHeap (pwState st t c.ino f c off data.length) h, _,
+        ⟨t, c, off, data, f, data.length, 0, rfl, hct, hckind, hf, Nat.le_refl _, .inl ⟨.inl rfl, rfl⟩,
+          .inr (.inl rfl), .inr hfit, rfl, rfl⟩, mapsFresh_same rfl,
+        heapRendered_render (hfin _ (Nat.le_refl _) (.inr hfit)) rfl Hh⟩
+    · exact ⟨_, renderHeap (pwState st t c.ino f c off 0) h, _,
+        ⟨t, c, off, data, f, 0, 27, rfl, hct, hckind, hf, Nat.zero_le _, .inr (by decide),
+          .inl rfl, .inl rfl, rfl, rfl⟩, mapsFresh_same rfl,
+        heapRendered_render (hfin _ (Nat.zero_le _) (.inl rfl)) rfl Hh⟩
   inext
   iintro %e' %h' %st' %Hst
   obtain ⟨Hst, Hfr, Hr⟩ := Hst
   simp only [IsFsStep] at Hst
-  obtain ⟨t', c', off', data', f', k, e, hv, hinfl, hkind', hf', hk, hke, hpc0, hst', rfl⟩ := Hst
-  have hpc : PwCut off' data'.length k := hpc0
+  obtain ⟨t', c', off', data', f', k, e, hv, hinfl, hkind', hf', hk, hke, hpc0, hpm0, hst', rfl⟩ := Hst
+  have hpc : PwCut off' data'.length k := ⟨hpc0, hpm0⟩
   clear hpc0
   have htt : t = t' := by injection hv with hv; exact extVal_inj hv
   subst htt
@@ -1140,7 +1149,7 @@ theorem wp_osPWriteFinishK (keep : Bool) (t : Nat) (p : Ino) (off : Nat) (data :
   injection hkind' with ho hd'; subst ho; subst hd'
   rw [hf, Option.some.injEq] at hf'; subst hf'
   subst hst'
-  have hwf2 := hfin k hk
+  have hwf2 := hfin k hk hpc.2
   have hsz2 : (pwFile f c off k).size = pwSize f.size off k := pwFile_size f c off k hclo hgapf
   have hcache := fun b => pwFile_cache f c off k b hclo
   have hpsz : ∀ b, b < pwSize f.size off k ↔ b < f.size ∨ (0 < k ∧ b < off + k) := by

@@ -45,6 +45,8 @@
 //	data_short_io.go              short and failed pread/pwrite      PRead, PWriteFinish
 //	data_inflight_changes.go      changes in flight (one per file)   OsChange, announce, land, BusyAt, osHole
 //	data_resize_stamps.go         resize stamps (bookkeeping only)   OsFile.rzs, OsChangeKind.isResize, announce
+//	data_maxbytes.go              no byte at or past s_maxbytes      maxBytes, PWriteFinish, FtruncateFinish,
+//	                              (pending review)                   FallocFinish, CrashFile, FsInit, OsWf.sizes
 //
 // The directory tree and metadata calls:
 //
