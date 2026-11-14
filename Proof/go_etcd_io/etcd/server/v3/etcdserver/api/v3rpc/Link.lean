@@ -396,9 +396,17 @@ theorem AuthAdmin.wp_isPermitted :
     EtcdGrove.v3rpc.AuthAdmin.isPermitted.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.AuthAdmin.isPermitted.wp_proof EtcdServer.wp_AuthInfoFromCtx EtcdServer.wp_AuthStore
 
+theorem AuthAdmin.wp_isPermittedC :
+    EtcdGrove.v3rpc.AuthAdmin.isPermitted.specC (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthAdmin.isPermitted.wp_proofC EtcdServer.wp_AuthInfoFromCtxLb EtcdServer.wp_AuthStore
+
 theorem AuthAdmin.wp_requireAuthInfo :
     EtcdGrove.v3rpc.AuthAdmin.requireAuthInfo.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.AuthAdmin.requireAuthInfo.wp_proof EtcdServer.wp_AuthInfoFromCtx EtcdServer.wp_AuthStore
+
+theorem AuthAdmin.wp_requireAuthInfoC :
+    EtcdGrove.v3rpc.AuthAdmin.requireAuthInfo.specC (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.AuthAdmin.requireAuthInfo.wp_proofC EtcdServer.wp_AuthInfoFromCtxLb EtcdServer.wp_AuthStore
 
 theorem AuthServer.wp_AuthDisable :
     EtcdGrove.v3rpc.AuthServer.AuthDisable.spec (GF := GF) (hG := hG) :=
@@ -811,6 +819,14 @@ theorem authMaintenanceServer.wp_Snapshot :
 theorem authMaintenanceServer.wp_Status :
     EtcdGrove.v3rpc.authMaintenanceServer.Status.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.authMaintenanceServer.Status.wp_proof authMaintenanceServer.wp_requireAuthInfo wp_togRPCError
+
+theorem authMaintenanceServer.wp_isPermittedC :
+    EtcdGrove.v3rpc.authMaintenanceServer.isPermitted.specC (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.authMaintenanceServer.isPermitted.wp_proofC AuthAdmin.wp_isPermittedC
+
+theorem authMaintenanceServer.wp_requireAuthInfoC :
+    EtcdGrove.v3rpc.authMaintenanceServer.requireAuthInfo.specC (GF := GF) (hG := hG) :=
+  EtcdGrove.v3rpc.authMaintenanceServer.requireAuthInfo.wp_proofC AuthAdmin.wp_requireAuthInfoC
 
 theorem errors.wp_IsCtxErr :
     EtcdGrove.errors.IsCtxErr.spec (GF := GF) (hG := hG) :=

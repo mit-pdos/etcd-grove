@@ -1591,6 +1591,10 @@ theorem EtcdServer.wp_AuthInfoFromCtx :
     EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG) :=
   EtcdServer.AuthInfoFromCtx.wp_proof EtcdServer.wp_AuthStore
 
+theorem EtcdServer.wp_AuthInfoFromCtxLb :
+    EtcdServer.AuthInfoFromCtx.specLb (GF := GF) (hG := hG) :=
+  EtcdServer.AuthInfoFromCtx.wp_proofLb EtcdServer.wp_AuthStore
+
 theorem EtcdServer.wp_AuthStatus :
     EtcdServer.AuthStatus.spec (GF := GF) (hG := hG) :=
   EtcdServer.AuthStatus.wp_proof
@@ -2642,6 +2646,14 @@ theorem EtcdServer.wp_UserRevokeRole :
 theorem EtcdServer.wp_Watchable :
     EtcdServer.Watchable.spec (GF := GF) (hG := hG) :=
   EtcdServer.Watchable.wp_proof EtcdServer.wp_KV
+
+theorem EtcdServer.wp_checkMembershipOperationPermissionC :
+    EtcdServer.checkMembershipOperationPermission.specC (GF := GF) (hG := hG) :=
+  EtcdServer.checkMembershipOperationPermission.wp_proofC EtcdServer.wp_AuthInfoFromCtxLb EtcdServer.wp_AuthStore
+
+theorem EtcdServer.wp_requireAuthInfoC :
+    EtcdServer.requireAuthInfo.specC (GF := GF) (hG := hG) :=
+  EtcdServer.requireAuthInfo.wp_proofC EtcdServer.wp_AuthInfoFromCtxLb
 
 theorem v3alarm.wp_NewAlarmStore :
     v3alarm.NewAlarmStore.spec (GF := GF) (hG := hG) :=

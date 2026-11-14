@@ -7,6 +7,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthGuard
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthBound
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthWhy
 public import Proof.context.LibKeys
 
 @[expose] public section
@@ -44,6 +45,23 @@ abbrev EtcdServer.requireAuthInfo.spec : Prop :=
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"requireAuthInfo"))
       (Val #(GoInterface.ok ctx)))
   {{ (err : GoInterface), RET #err; E.RD ∗ authedOutB s E.authMode (GoInterface.ok ctx) err ∗
+      authErrVarIs err }}
+
+/-- `s.requireAuthInfo(ctx)` with why it refused (auth-guard-completeness G2, 2026-11-14;
+`notes/auth-guard-scope.md`, §2.3), for a caller holding a lower bound `n` of the auth store's
+published index (`auth.authPubLbM`): `spec`'s post, and on an error the authenticated class's reason
+(`authedOutC`'s `authedWhy`): with auth on, `ErrUserEmpty` only when the context carries no token or
+auth was disabled at a state no older than `n` (the disable race), `ErrInvalidAuthToken` only for a
+token the context carries. So every accepted token passes, whatever its user's roles. -/
+abbrev EtcdServer.requireAuthInfo.specC : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (n : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      srvAuthAt s E ∗ □ auth.authPubLbM E.authMode n ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗
+      E.RD }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"requireAuthInfo"))
+      (Val #(GoInterface.ok ctx)))
+  {{ (err : GoInterface), RET #err; E.RD ∗ authedOutC s E.authMode n (GoInterface.ok ctx) err ∗
       authErrVarIs err }}
 
 end spec

@@ -7,6 +7,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvAuthAdmin
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthBound
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthWhy
 public import Proof.context.LibKeys
 
 @[expose] public section
@@ -42,6 +43,20 @@ abbrev v3rpc.AuthAdmin.isPermitted.spec : Prop :=
     (App (Val (aa @!! go.GoType.PointerType v3rpc.AuthAdmin.ty @!! go!"isPermitted"))
       (Val #(GoInterface.ok ctx)))
   {{ (err : GoInterface), RET #err; E.RD ∗ adminOutB s E.authMode (GoInterface.ok ctx) err }}
+
+/-- `aa.isPermitted(ctx)` with why it refused (auth-guard-completeness G2, 2026-11-14), for a caller
+holding a lower bound `n` of the auth store's published index: `spec`'s post, and on an error the
+admin class's reason (`adminOutC`, as `EtcdServer.checkMembershipOperationPermission.specC`);
+`srvAdminNilOk` is not a premise (`authAdminIs`'s `srvAuthAt` gives it). -/
+abbrev v3rpc.AuthAdmin.isPermitted.specC : Prop :=
+  ∀ (aa s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (n : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+      v3rpc.authAdminIs aa s E ∗ □ auth.authPubLbM E.authMode n ∗ mvcc.txnCtx ctx cd ∗
+      context.libCtxOk ctx ∗ E.RD }}
+    (App (Val (aa @!! go.GoType.PointerType v3rpc.AuthAdmin.ty @!! go!"isPermitted"))
+      (Val #(GoInterface.ok ctx)))
+  {{ (err : GoInterface), RET #err; E.RD ∗ adminOutC s E.authMode n (GoInterface.ok ctx) err }}
 
 end spec
 

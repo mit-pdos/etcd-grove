@@ -44,6 +44,20 @@ theorem v3rpc.authMaintenanceServer.requireAuthInfo.wp_proof
   iframe HRD
   iexact Hout
 
+theorem v3rpc.authMaintenanceServer.requireAuthInfo.wp_proofC
+    (hP : v3rpc.AuthAdmin.requireAuthInfo.specC (GF := GF) (hG := hG)) :
+    v3rpc.authMaintenanceServer.requireAuthInfo.specC (GF := GF) (hG := hG) := by
+  intro p ms aa s E ctx cd n
+  wp_start as ⟨#Hams, #Haa, #Hlb, #Hctx, #Hlib, HRD⟩
+  iunfold v3rpc.amsIs at Hams
+  icases Hams with ⟨%Hpn, #Hms, #Haaf⟩
+  (try wp_auto)
+  wp_apply (hP aa s E ctx cd n) $$ [$HRD] as %err ⟨HRD, #Hout⟩
+  · iframe #
+  (try wp_auto)
+  iapply HΦ
+  iframe HRD Hout
+
 end proof
 
 end EtcdGrove

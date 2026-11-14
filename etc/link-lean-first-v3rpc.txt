@@ -126,6 +126,7 @@ newUnaryInterceptor: api_IsCapabilityEnabled EtcdServer__MemberID EtcdServer__Is
 # `sendLoop` (unreachable: the requests are restricted, `watchReqOk`), `_Watch_Watch_Handler`.
 mvcc_ReportEventReceived: @
 EtcdServer__AuthInfoFromCtx: @
+EtcdServer__AuthInfoFromCtx+Lb: @
 EtcdServer__AuthStore: @
 EtcdServer__Watchable: @
 config_ServerConfig__MaxRequestBytesWithOverhead:
@@ -227,6 +228,11 @@ AuthAdmin__isPermitted: EtcdServer__AuthInfoFromCtx EtcdServer__AuthStore
 AuthAdmin__requireAuthInfo: EtcdServer__AuthInfoFromCtx EtcdServer__AuthStore
 authMaintenanceServer__isPermitted: AuthAdmin__isPermitted
 authMaintenanceServer__requireAuthInfo: AuthAdmin__requireAuthInfo
+# auth-guard-completeness G2 (2026-11-14): the guards with why they refused
+AuthAdmin__isPermitted+C: EtcdServer__AuthInfoFromCtx+Lb EtcdServer__AuthStore
+AuthAdmin__requireAuthInfo+C: EtcdServer__AuthInfoFromCtx+Lb EtcdServer__AuthStore
+authMaintenanceServer__isPermitted+C: AuthAdmin__isPermitted+C
+authMaintenanceServer__requireAuthInfo+C: AuthAdmin__requireAuthInfo+C
 authMaintenanceServer__Defragment: authMaintenanceServer__isPermitted togRPCError
 authMaintenanceServer__Hash: authMaintenanceServer__isPermitted togRPCError
 authMaintenanceServer__HashKV: authMaintenanceServer__isPermitted togRPCError

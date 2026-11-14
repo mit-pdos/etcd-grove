@@ -7,6 +7,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthGuard
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthBound
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthWhy
 public import Proof.context.LibKeys
 
 @[expose] public section
@@ -43,6 +44,24 @@ abbrev EtcdServer.checkMembershipOperationPermission.spec : Prop :=
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!!
       go!"checkMembershipOperationPermission")) (Val #(GoInterface.ok ctx)))
   {{ (err : GoInterface), RET #err; E.RD ∗ adminOutB s E.authMode (GoInterface.ok ctx) err }}
+
+/-- `s.checkMembershipOperationPermission(ctx)` with why it refused (auth-guard-completeness G2,
+2026-11-14; `notes/auth-guard-scope.md`, §2.3), for a caller holding a lower bound `n` of the auth
+store's published index (`auth.authPubLbM`): `spec`'s post, and on an error the admin class's reason
+(`adminOutC`'s `adminWhy`): with auth on, the request side's (no token, or auth disabled at a state no
+older than `n`, for `ErrUserEmpty`; a token the context carries, for `ErrInvalidAuthToken`), or a
+principal bound to the request that is absent, unnamed or not root at states no older than `n`. So a
+user with the root role at every state since `n` passes. `IsAdminPermitted(nil)`'s clause
+(`srvAdminNilOk`) is not a premise: `srvAuthAt` gives it (`srvAdminNilOk_of_srvAuthAt`). -/
+abbrev EtcdServer.checkMembershipOperationPermission.specC : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (n : Nat),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      srvAuthAt s E ∗ □ auth.authPubLbM E.authMode n ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗
+      E.RD }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!!
+      go!"checkMembershipOperationPermission")) (Val #(GoInterface.ok ctx)))
+  {{ (err : GoInterface), RET #err; E.RD ∗ adminOutC s E.authMode n (GoInterface.ok ctx) err }}
 
 end spec
 

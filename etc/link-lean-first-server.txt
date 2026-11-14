@@ -316,10 +316,14 @@ EtcdServer__getCommittedIndex:
 EtcdServer__FeatureEnabled:
 EtcdServer__AuthStore:
 EtcdServer__AuthInfoFromCtx: EtcdServer__AuthStore
+# auth-guard-completeness G1/G2 (2026-11-14): the request side's and the guards' reasons at a lower bound
+EtcdServer__AuthInfoFromCtx+Lb: EtcdServer__AuthStore
 # the auth plan's A2 (2026-10-23): the server's auth guards and the member operations they guard
 # (`AuthGuard.lean`; `mayRemoveMember` and `configure`, names only, are the spec's contracts)
 EtcdServer__requireAuthInfo: EtcdServer__AuthInfoFromCtx
 EtcdServer__checkMembershipOperationPermission: EtcdServer__AuthInfoFromCtx EtcdServer__AuthStore
+EtcdServer__requireAuthInfo+C: EtcdServer__AuthInfoFromCtx+Lb
+EtcdServer__checkMembershipOperationPermission+C: EtcdServer__AuthInfoFromCtx+Lb EtcdServer__AuthStore
 EtcdServer__RemoveMember: EtcdServer__checkMembershipOperationPermission raftpb_ConfChangeType__Enum
 # the lease-keys plan's Part B (2026-10-31): the lease API's key checks (v3_server.go), a reader
 # of the auth store and of the lessor at lower bounds (`LeaseCheck.lean`); the entry points that
