@@ -33,6 +33,9 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.PreSync
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateHdr
 public import LinuxFs.Proof.os.MkdirAllParts
 public import Spec.fmt.SprintfWalName
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreatePre
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateRename
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateCoh
 
 @[expose] public section
 
@@ -638,6 +641,64 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
       create_seg_exit
     subst hse
     try wp_auto
+    -- `J`'s claims: merged after the segment's create, split off the pipeline's names
+    imod createJ_claims R J (walFileName 0 0) hJ x0 s0 i hJs.2.2 hJfr (walNameP_walFileName 0 0)
+      CoPset.subseteq_top $$ Hsi HJr Ho with ⟨%hJ', HJx, HTmps, %hJf⟩
+    obtain ⟨hJval, hJcur⟩ := hJf
+    imod osNames_coh R J _ _ _ CoPset.subseteq_top $$ Hsi HJx with ⟨HJx, %hJcoh⟩
+    imod osNames_next R J _ _ _ CoPset.subseteq_top $$ Hsi HJx with ⟨HJx, #HlbJ⟩
+    imod osNames_rekey R J ((NameSet.except []).diff walTmps) (.except walTmps) _ (fun _ => Iff.rfl)
+      CoPset.subseteq_top $$ Hsi HJx
+      with HJx
+    -- the minting: the creating claim `.only [nm, nm.tmp]`, the token
+    have hNnm' : (N.diff [tmpName nm]).Mem nm :=
+      (NameSet.mem_diff _ _ _).2 ⟨hNnm, by simpa using (tmpName_ne nm).symm⟩
+    have hNt' : ¬ (N.diff [tmpName nm]).Mem (tmpName nm) := fun hm =>
+      ((NameSet.mem_diff _ _ _).1 hm).2 (List.mem_singleton_self _)
+    have hDe : (N.diff [tmpName nm]).diff [nm] ≠ .only [] := by
+      apply nameSet_ne_empty (b := nm ++ go!"." ++ go!"a")
+      have hl : ∀ t : GoString, t.length ≠ (nm ++ go!"." ++ go!"a").length → nm ++ go!"." ++ go!"a" ≠ t :=
+        fun t ht he => ht (by rw [he])
+      refine (NameSet.mem_diff _ _ _).2 ⟨(NameSet.mem_diff _ _ _).2 ⟨hok.2.1 nm _ hnm, ?_⟩, ?_⟩
+      · simp only [List.mem_singleton]
+        exact hl _ (by simp [tmpName])
+      · simp only [List.mem_singleton]
+        exact hl _ (by simp)
+    iapply wp_notCrashed_acc _ _ rfl
+    iintro Hnc
+    imod walInv_mint walCodec Mr R jr r (child r nm) nm (tmpName nm) (N.diff [tmpName nm])
+      (h.restrict jr (N.diff [tmpName nm])) hT3 J walTmps
+      (hJ'.restrict J ((NameSet.except []).diff walTmps)) ⊤ CoPset.subseteq_top walN_osShN_top hnm
+      hNnm' hNt' hDe (tmpName_not_walName nm) (tmpName_walNameP nm) (walNameOk_not_tmps hnm)
+      walTmps_not_wal $$ Hinv Hsi Hnc Hu HN HT HJx with ⟨Hnc, %hC, Hcr, HNr, HC, HJx, %hCf⟩
+    iframe Hnc
+    imodintro
+    imod create_J_ne R jr J [nm, tmpName nm] nm _ _ hC _ (by simp) (walNameOk_not_tmps hnm)
+      CoPset.subseteq_top $$ Hsi HC HJx with ⟨%hJjr, HC, HJx⟩
+    imod osNames_next R jr _ _ _ CoPset.subseteq_top $$ Hsi HC with ⟨HC, #HlbC⟩
+    ihave #Hlb := osLogLb_max _ _ $$ [HlbC HlbJ]
+    · iframe HlbC HlbJ
+    have hctmp : hC.cur !! tmpName nm = some (.dir J) := by
+      have := congrArg (fun x : NamesH => x.cur !! tmpName nm) hCf.1
+      simp only [NamesH.restrict] at this
+      rw [restrictN_lookup _ _ _ (by simp [NameSet.Mem]), restrictN_lookup _ _ _ (by simp [NameSet.Mem]),
+        hJs.1] at this
+      exact this
+    have hcnm : hC.cur !! nm = none := by
+      have := congrArg (fun x : NamesH => x.cur !! nm) hCf.2.1
+      have hm : ((N.diff [tmpName nm]).inter [nm]).Mem nm := (NameSet.mem_inter _ _ _).2 ⟨hNnm', by simp⟩
+      simp only [NamesH.restrict] at this
+      rw [restrictN_lookup _ _ _ hm, restrictN_lookup _ _ _ hm, restrictN_lookup _ _ _ hNnm', hnmA] at this
+      exact this
+    have hm2c : m2.cut = none := by
+      rw [hgrow.1]; simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk]
+    have hout : [] ++ ys1 ++ ys2 ++ pend2 ++
+        snapFrame Mr (hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md) snapC0.model = createStream Mr md := by
+      rw [hFr]
+      simp only [List.nil_append] at hys1 ⊢
+      rw [show ys1 ++ ys2 ++ pend2 = ys1 ++ (ys2 ++ pend2) by simp, hys2, ← List.append_assoc, hys1]
+    have hokS' : os.StreamOk m2 0 (zs2.map (fun c => ((0 : w8), c))) (createStream Mr md) mS ysS := by
+      rw [← hout]; exact hokS
     sorry)
 
 end proof

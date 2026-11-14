@@ -138,16 +138,15 @@ them (`nm`) not a pipeline name, and a claim of `J` on every name but the pipeli
 theorem create_J_ne {E : CoPset} (R : Roots) (jr J : Ino) (bs : List GoString) (b : GoString)
     (dq dq' : DFrac) (h h' : NamesH) (hb : b ∈ bs) (htt : b ∉ walTmps) (hE : ↑osShN ⊆ E) :
     ⊢ osSharedInv (GF := GF) R -∗ osNames jr (.only bs) dq h -∗
-      osNames J ((NameSet.except []).diff walTmps) dq' h' ={E}=∗
+      osNames J (.except walTmps) dq' h' ={E}=∗
       ⌜J ≠ jr⌝ ∗ osNames jr (.only bs) dq h ∗
-        osNames J ((NameSet.except []).diff walTmps) dq' h' := by
+        osNames J (.except walTmps) dq' h' := by
   iintro #Hsi H H'
   by_cases hJ : J = jr
   · subst hJ
-    have hne : NameSet.only bs ≠ (NameSet.except []).diff walTmps := by
-      simp [NameSet.diff]
+    have hne : NameSet.only bs ≠ .except walTmps := by simp
     imod osNames_disj R J _ _ dq dq' h h' b hne hb
-      ((NameSet.mem_diff _ _ _).2 ⟨by simp [NameSet.Mem], htt⟩) hE $$ Hsi H H' with Hf
+      htt hE $$ Hsi H H' with Hf
     iexfalso; iexact Hf
   · imodintro
     iframe H H'
