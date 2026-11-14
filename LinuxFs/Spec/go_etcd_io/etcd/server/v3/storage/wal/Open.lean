@@ -37,8 +37,9 @@ until the lock model, plan §6 Q1: the raise is vacuous), commits on both arms, 
 (`readWALNames`: `ErrFileNotFound`). The `lg.Panic`s of `searchIndex`/`isValidSeq` are
 unreachable: every `.wal` name of a WAL directory is a segment's (`walNameStr`, the invariant's
 `WalDirClaim`), and `checkWALNames` keeps only names that parse. *Success*: the read handle
-(`walOpeningF`, with the lock token) and half the call permission (the other half is the pipeline's,
-as `Create`'s, plan §11). *Error*: the token and the whole permission back. -/
+(`walOpeningF`, with the lock token and the client's half of the call permission: the other half is
+the pipeline's; `notes/specs-only/ledger.md`, 2026-11-14). *Error*: the token and the whole permission
+back. -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.Open.spec (Mr : WalMarshal) : Prop :=
   ∀ (lg : Loc) (R : Roots) (jr : Ino) (r dir nm : GoString) (sp : Loc) (s : w64 × w64) (qp : Qp)
     (Q : Option WalDur → IProp GF),
@@ -54,7 +55,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.Open.spec (Mr : WalMarshal) : Prop 
   {{ (w : Loc) (err : GoInterface), RET (PairV #w #err);
       osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗ ∃ o : Option WalDur, Q o ∗
       ((⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walUnlockedTok ∗ osCallPerm 1) ∨
-       (⌜err = GoInterface.nil⌝ ∗ ⌜o ≠ none⌝ ∗ walOpeningF w dir s ∗ osCallPerm (1 : Qp).half)) }}
+       (⌜err = GoInterface.nil⌝ ∗ ⌜o ≠ none⌝ ∗ walOpeningF w dir s)) }}
 
 end spec
 

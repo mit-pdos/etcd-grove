@@ -129,10 +129,12 @@ def walReadH (write : Bool) (w : Loc) (dir : GoString) (s : w64 × w64) : IProp 
     encEnv ∗ walCrcTable)
 
 /-- **`w` is the WAL `Open` opened in `dir` at the snapshot `s`, not yet read** (the specs' handle;
-sealed): the ghost handle, `openAtIndex`'s fields in write mode, and `w.dirFile`
-(`fileutil.OpenDir(dir)`: a shared directory fd on the WAL directory, not read). -/
+sealed): the ghost handle, `openAtIndex`'s fields in write mode, `w.dirFile`
+(`fileutil.OpenDir(dir)`: a shared directory fd on the WAL directory, not read), and the client's half
+of the call permission (the pipeline holds the other; `ReadAll` moves it into the write handle's
+`walDirH`: `notes/specs-only/ledger.md`, 2026-11-14, "the call permission counted twice"). -/
 @[no_expose] def walOpeningF (w : Loc) (dir : GoString) (s : w64 × w64) : IProp GF :=
-  iprop(walOpening (W := W) w dir s ∗ walReadH true w dir s ∗
+  iprop(walOpening (W := W) w dir s ∗ walReadH true w dir s ∗ osCallPerm (1 : Qp).half ∗
     ∃ (df : Loc) (dfd : w64) (j : Ino),
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ df ∗
     os.ownFile df dfd dir (DFrac.own 1) ∗ osDirFdS dfd j .idle)
