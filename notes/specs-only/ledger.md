@@ -1247,6 +1247,9 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   sequence `first + k`, the invariant holding `⧖ |lay.cuts|` per WAL (deposited by `cut` after a counted step), or `⧖
   |d.H|` (deposited at `Save`'s commit; a crash keeps a prefix). No statement of `walDirH` changes. `ReadAll`'s `hsq`
   stays a marked `sorry` until it is made.
+  **2026-11-14 (`wal-readall28`): made, the alternative** (`⧖` of every history's length in the invariant's ghost
+  state, `walStepsLb`; `WalAbsD.seqName`; `notes/bounds-plan.md`, "Made"). No client-visible statement changed; the
+  `sorry` is gone.
 
 ## 2026-11-14: the resize supplies' `P` (internal, the part's) -- a growth's supply cannot bound the crash size
 

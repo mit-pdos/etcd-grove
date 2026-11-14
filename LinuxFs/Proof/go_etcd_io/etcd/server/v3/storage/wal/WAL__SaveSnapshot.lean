@@ -20,6 +20,7 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleLaws
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.SnapPure
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.StreamBound
 public import Perennial.Proof.sync.Results
+public import Proof.ReceiptTactics
 
 @[expose] public section
 
@@ -98,17 +99,16 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_proof (P : Wal
     rcases List.mem_append.1 hx with hx | hx
     · exact hold x hx
     · exact hfit _ x hx
+  -- the WALs' step bound at a look (`⧖ |H|`), raised by the receipt of the deferred `w.mu.Unlock`'s
+  -- resolution, deposited by the commit right after it (`notes/bounds-plan.md`, "The WAL's segment sequence")
   iapply (wp_notCrashed_acc _ _ rfl)
   iintro Hnc
-  imod walTail_append walCodec Mr R jr r w dir h.γ
-    ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG) (WalOpG.snap md) sized Q hfit'
-    (snapOp_noMax md hidx) $$ Hinv Hnc Htk [Hv] Hopen Hau with ⟨Hnc, Htk, Hv, Hopen, #Hlb, HQ, %hcp⟩
+  imod walTail_steps walCodec Mr R jr r dir h.γ
+    ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG) $$ Hinv Hnc Htk [Hv]
+    with ⟨Hnc, Htk, Hv, #Hstp⟩
   · unfold tailVar; iexact Hv
-  unfold tailVar
   imodintro
   iframe Hnc
-  have hc : ∀ b ∈ h.cuts, b ≤ h.H.length := fun b hb => by
-    simpa using walCutPos_le (hcp.1 b hb)
   ihave #Henv0 := Henv
   iunfold encEnv at Henv0
   icases Henv0 with ⟨-, -, #Hsync, -, -⟩
@@ -128,7 +128,19 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_proof (P : Wal
   wp_apply (wp_Marshal sp md cs (by omega)) $$ [] as %d ⟨%Hdn, Hd, Hdc⟩
   · iframe #
   try wp_auto
-  wp_apply sync.Mutex.wp_Lock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync] as ⟨Hown, -⟩
+  wp_apply +noauto sync.Mutex.wp_Lock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync] as ⟨Hown, -⟩
+  wp_raise_receipt Hstp
+  -- the commit, right after the lock
+  iapply (wp_notCrashed_acc _ _ rfl)
+  iintro Hnc
+  imod walTail_append walCodec Mr R jr r w dir h.γ
+    ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG) (WalOpG.snap md) sized Q hfit'
+    (snapOp_noMax md hidx) $$ Hinv Hnc Htk Hv Hopen Hau Hstp with ⟨Hnc, Htk, Hv, Hopen, #Hlb, HQ, %hcp⟩
+  unfold tailVar
+  imodintro
+  iframe Hnc
+  have hc : ∀ b ∈ h.cuts, b ≤ h.H.length := fun b hb => by
+    simpa using walCutPos_le (hcp.1 b hb)
   try wp_auto
   simp only [go_etcd_io.etcd.server.v3.storage.wal.SnapshotType]
   try wp_auto

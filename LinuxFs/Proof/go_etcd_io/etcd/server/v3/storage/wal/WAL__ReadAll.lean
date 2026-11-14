@@ -34,6 +34,7 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllWF
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllWFPure
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllIdx
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllGive
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Steps
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllLocks
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleLaws
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.TailFdatasync
@@ -749,6 +750,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
               (gs.take fsI.length) _ jd Xd hSz rfl
               $$ Hinv Hnc Htf Hk [Hv] Hkd Hout HS with ⟨Hnc, %hgv, Htf, Hk, Hv, Hout⟩
             · unfold tailVar; iexact Hv
+            -- the WALs' step bound: `⧖ |H|` (`notes/bounds-plan.md`, "The WAL's segment sequence")
+            imod walTail_steps walCodec Mr R jr rt dir γt
+              ((d0.H, d0.metadata, lay.cuts, lay.wr + ([] : List w8).length, gl.ino, none) : TailG)
+              $$ Hinv Hnc Hk Hv with ⟨Hnc, Hk, Hv, #Hstp⟩
             iframe Hnc
             imodintro
             iunfold tailVar at Hv
@@ -802,9 +807,21 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
               have hm := List.mem_of_getLast? hlastG
               unfold walNames at hm
               exact (List.mem_filter.1 (List.mem_mergeSort.1 hm)).2
+            -- the tail's sequence number: `|cuts| ≤ |H|` (`WalAbsD.tailSeq`), below the receipts' bound
+            ihave %hstl := preceipt_lt _ $$ Hstp
+            ihave #Ha2 := HareaK
+            iunfold WalFs.walAreaOk at Ha2
+            icases Ha2 with ⟨-, -, -, %hRB, -⟩
             have hsq : ∃ sq ix : Nat, gl.name = walFileName sq ix ∧ sq < 2 ^ 63 + 0 := by
-              sorry -- task 3 of `wal-readall27` (the tail's sequence bound; ledger 2026-11-14, `walDirH`'s
-                    -- sequence bound): the invariant does not bound it yet
+              have hlg : lay.segs.getLast? = some gl := by
+                rw [← hgs, List.getLast?_drop] at hglast
+                split at hglast
+                · cases hglast
+                · exact hglast
+              obtain ⟨⟨ix, hix⟩, hle⟩ := hab.tailSeq gl hlg
+              have hRB' := hRB.receiptBound_le
+              simp only at hstl
+              exact ⟨lay.cuts.length, ix, hix, by omega⟩
             -- the metadata slice non-nil
             ihave %hmdvl := ownSlice_len mdv _ _ $$ Hmdv
             have hmdvn : mdv ≠ slice.nil := by
