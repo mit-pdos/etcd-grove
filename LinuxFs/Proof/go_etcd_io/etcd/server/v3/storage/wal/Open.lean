@@ -160,8 +160,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.Open.wp_proof (Mr : WalMarshal)
         iexists lg', sp'
         iframe
         iframe #
-      iexists f, fd, j
+      iexists f, fd, j, X
       iframe
+      iframe #
     · -- `OpenDir` failed: `w.Close()`, the error wrapped
       subst hf
       obtain ⟨e2, rfl⟩ : ∃ e2, err2 = GoInterface.ok e2 := by

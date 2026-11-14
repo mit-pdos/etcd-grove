@@ -182,7 +182,19 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_proofPre (Mr :
   wp_apply (wp_Validate Mr sp sm cs hcs) $$ []
   · iexact Hs0
   try wp_auto
-  wp_apply (wp_Marshal sp sm cs) $$ [] as %d ⟨%Hdn, Hd, Hdc⟩
+  have hsz48 : (Mr.encSnap sm).length < 2 ^ 48 := by
+    have h1 := recEnc_length (recOf ⟨snapshotType, hash.crc32.crc32c c (Mr.encSnap sm), Mr.encSnap sm⟩)
+    have h2 : (walRecEnc ⟨snapshotType, hash.crc32.crc32c c (Mr.encSnap sm), Mr.encSnap sm⟩).length ≤
+        (snapFrame Mr c sm).length := by
+      unfold snapFrame WalEnc.frame; simp only [List.length_append]; omega
+    have h3 : (Mr.encSnap sm).length ≤
+        recSize (recOf ⟨snapshotType, hash.crc32.crc32c c (Mr.encSnap sm), Mr.encSnap sm⟩) := by
+      have hne : ¬ (snapshotType = crcType ∧ Mr.encSnap sm = []) := fun h => by
+        exact absurd h.1 (by decide)
+      unfold recSize recOf; simp only [if_neg hne]; omega
+    unfold walRecEnc at h2
+    simp only [List.length_append] at hlim; omega
+  wp_apply (wp_Marshal sp sm cs hsz48) $$ [] as %d ⟨%Hdn, Hd, Hdc⟩
   · iframe #
   try wp_auto
   iunfold walPreIn at Hpre

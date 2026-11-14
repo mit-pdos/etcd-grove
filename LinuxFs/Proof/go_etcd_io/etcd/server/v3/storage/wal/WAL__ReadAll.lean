@@ -25,11 +25,13 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllTail
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllEnd
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllRegPend
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllPend
-public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllCommit
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllRegCommit
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllNamed
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllSynced
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllOpen
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllZero
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllWF
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllWFPure
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.TailFdatasync
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.ReadAllTailCallees
 public import LinuxFs.Spec.os.File__Fd
@@ -241,7 +243,6 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
     (wp_CloneHs : WalPbIn.CloneHsLaw (GF := GF) (hG := hG) P)
     (wp_tail : go_etcd_io.etcd.server.v3.storage.wal.WAL.tail.spec (GF := GF) (hG := hG))
     (wp_Errorf : fmt.ErrorfErrs.spec (GF := GF) (hG := hG))
-    (wp_register : ∀ R jr r, WalFs.walInvRegisterPendLaw (hG := hG) (W := W) walCodec Mr R jr r)
     (wp_ZeroToEnd : go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.specWalTail (hG := hG) (W := W) Mr)
     (wp_FdatasyncP : go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync.specWalPend (hG := hG) (W := W) Mr)
     (wp_FsyncDir : go_etcd_io.etcd.client.pkg.v3.fileutil.Fsync.specDirS (GF := GF) (hG := hG))
@@ -252,13 +253,15 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
   intro R jr rt dir nm w s qp qc Q hin hcl
   wp_start as ⟨#Harea, Hp, Hperm, Hop, Hau⟩
   unfold walOpeningF
-  icases Hop with ⟨Hgh, Hrh, Hph, %df, %dfd, %jd, Hdff, Hdf, Hdfs⟩
+  icases Hop with ⟨Hgh, Hrh, Hph, %df, %dfd, %jd, %Xd, Hdff, Hdf, Hdfs, #Hkd⟩
   unfold walReadH walOpenIn walReadTie
   simp only [↓reduceIte]
   icases Hrh with ⟨⟨%lg, %sp, Hlg, #Hzap, Hdir, Hstart, #Hsp⟩, %dec, %IoE, %eof, %ueof, %fs, %locks,
     %lfs, %fp, %rc, %j, Hdecf, Hdec, ⟨#Hdenv, %hIoN⟩, ⟨%X, %hj, %gs, %fls, Hn, Hout, ⟨Htf, Hnf⟩, #Hk, %Hgs,
     %Hfs, #Hlks⟩, Hlocks, Hls, Hcap, Hrc, Hfp, ⟨%hrc, Hpipe⟩, He, Hst, Hmd, Henti, Hsnapi, Hns,
     #Hmu, #Henv, #Hcrc⟩
+  -- `w.dirFile`'s inode is the read tie's (the directory keys agree)
+  icases walDirKey_agree dir jd j Xd X $$ Hkd Hk with %hjd
   ihave #Henv0 := Henv
   iunfold encEnv at Henv0
   icases Henv0 with ⟨-, -, #Hsync, -, -⟩
@@ -278,21 +281,18 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
       exact ⟨f, fd, _, _, hS⟩) $$ Hdec with ⟨Hh, Hdbk⟩
   iapply wp_notCrashed_acc _ _ rfl
   iintro Hnc
-  -- the look at the invariant registers the tail (`walInvRegisterTailLaw`)
+  -- the look at the invariant: the update committed and the tail registered at one opening, at the
+  -- state the tail record holds (`walInv_readCommitReg`)
   obtain ⟨glr, hglr⟩ : ∃ g, gs.getLast? = some g := ⟨gs.getLast hgne, List.getLast?_eq_getLast hgne⟩
-  -- the update committed at this look, at the state as read (`walInv_readCommit`)
-  imod walInv_readCommit walCodec Mr R jr rt w dir s j X hj gs
-      (decFiles_names hfl (fun k F g h1 h2 => (hfk k F g h1 h2).2.1)) hgdrop hgsz _ Q
+  imod walInv_readCommitReg walCodec Mr R jr rt w dir s j X hj gs glr
+      (decFiles_names hfl (fun k F g h1 h2 => (hfk k F g h1 h2).2.1)) hgdrop hgsz hglr _ Q
       $$ Hinv Hsi Hnc Hk Hn Htf Hnf Hh Hgh Hau
-    with ⟨Hnc, Hn, Htf, Hnf, Hh, Hgh, %dc, %d1, %lay1, %kk1, %s1, %nmw, %qn, %hnw, HQ, #Hp1, #Hlen,
-      Hnw, #Hlbw, %hcm⟩
-  imod wp_register R jr rt dir j X hj gs glr
-      (decFiles_names hfl (fun k F g h1 h2 => (hfk k F g h1 h2).2.1)) hgdrop hgsz hglr
-      $$ Hinv Hnc Hk Hn Htf Hh with ⟨Hnc, Hn, Hh, %d0, %lay, %kk, %γt, Htf, Htk, Htv, %hlook⟩
+    with ⟨Hnc, Hn, Hnf, Hh, Hgh, %dc, %d0, %lay, %kk, %γt, %s1, %nmw, %qn, %hnw, HQ, #Hp1, #Hlen,
+      Hnw, #Hlbw, Htf, Htk, Htv, %hcm⟩
   ihave Hdec := Hdbk $$ Hh
   iframe Hnc
   imodintro
-  obtain ⟨-, hab, hex, hwr, hgs, htm, -, hold⟩ := hlook
+  obtain ⟨hpre1, hle1, hd1, -, hab, hex, hwr, hgs, htm, -, hold, hin1, hnm1, hcur1, hcoh1⟩ := hcm
   have hR0 := readFiles_ok' walCodec_ok hU hab hex hwr kk gs hgs hgne (fs.map (·.bs))
     (decFiles_bs hfl (fun k F g h1 h2 => (hfk k F g h1 h2).1))
   ihave %hnn := decEnv_nonnil IoE eof ueof $$ Hdenv
@@ -548,7 +548,6 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
           subst hef
           (try rw [show errnoErr 0 = GoInterface.nil from WalFs.errnoErr_zero])
           (try wp_auto)
-          obtain ⟨hpre1, hle1, hd1, hlj1, hab1, hex1, hwr1, hgs1, hin1, hnm1, hcur1, hcoh1⟩ := hcm
           -- `fileutil.Fsync(w.dirFile)`
           wp_apply (wp_FsyncDir df dfd dir _ R jd .idle hnw.next) $$ [Hdf Hdfs] as %ed ⟨Hdf, Hdfs, Hed⟩
           · iframe; iframe #
@@ -612,12 +611,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
           -- the WAL named (`walInv_namedBy`), the synced mark at the commit's state (`walInv_tailH`)
           iapply wp_notCrashed_acc _ _ rfl
           iintro Hnc
-          imod walInv_namedBy walCodec Mr R jr rt dir nmw s1 d1 (.only [nmw]) (DFrac.own qn) hnw j hnw.next
+          imod walInv_namedBy walCodec Mr R jr rt dir nmw s1 d0 (.only [nmw]) (DFrac.own qn) hnw j hnw.next
               hd1 hin1 (List.mem_singleton_self nmw) hcoh1 (Nat.le_refl _) hcur1
             $$ Hinv Hsi Hnc Hp1 Hnw Hcmt with ⟨Hnc, Hnw, #Hnamed⟩
           imod walInv_tailH walCodec Mr R jr rt _ _ _ _ _ _ _ _ _ _ _ _ _ s1 $$ Hinv Hnc Hp1 Htw
             with ⟨Hnc, Htw, %hHle⟩
-          ihave #Hsyn1 := walSyncedLb_le dir (n' := dc.H.length) (by rw [hle1.1]; exact hHle d1 hd1) $$ Hsyn
+          ihave #Hsyn1 := walSyncedLb_le dir (n' := dc.H.length) (by rw [hle1.1]; exact hHle d0 hd1) $$ Hsyn
           iframe Hnc
           imodintro
           -- `if !match { err = ErrSnapshotNotFound }`
@@ -672,13 +671,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             iframe Hfail
             iexists lg
             iframe Hlg Hdir Hzap
-          · -- `match`: the success (phase 4); the fold at the state read at the commit (`d1`, `lay1`, `kk1`)
+          · -- `match`: the success (phase 4); the fold at the state read at the commit (`d0`, `lay`, `kk`)
             have hR0eq1 : rdRest walCodec (fs.map (·.bs)) 0 0#32 =
-                walDecodeFiles walCodec ((lay1.segs.drop kk1).map segImg) 0#32 := by
-              rw [rdRest_start, decFiles_bs hfl (fun k F g h1 h2 => (hfk k F g h1 h2).1), hgs1]
+                walDecodeFiles walCodec ((lay.segs.drop kk).map segImg) 0#32 := by
+              rw [rdRest_start, decFiles_bs hfl (fun k F g h1 h2 => (hfk k F g h1 h2).1), hgs]
             have hfold := rdLoop_fold_eof hL hR0r hmt
             rw [hR0eq1] at hfold
-            obtain ⟨σ, hσ, hrσ⟩ := readAll_success1 hU hab1 hex1 hwr1 hgs1 hgne hghd hpre1 hle1 hfold
+            obtain ⟨σ, hσ, hrσ⟩ := readAll_success1 hU hab hex hwr hgs hgne hghd hpre1 hle1 hfold
             simp only [Prod.mk.injEq] at hrσ
             obtain ⟨hmdσ, hhsσ, hentsσ⟩ := hrσ
             (try wp_auto)
@@ -731,6 +730,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             iframe Hhs Hents Hein Hmdv Hnamed Hsyn1 Hlen Hpw
             isplitr
             · ipureintro; exact hσ
+            -- `walOpenWF`: (b) the read's hard state the history's last; (c) the metadata read;
+            -- (f) `w.dirFile`'s inode the read tie's
+            have hσhs := walReadAllOk_hs hσ
+            obtain ⟨mdr, hmdr⟩ := readAll_md_some walCodec_ok hab hex hwr kk hkk
+              (by rw [← hR0eq1]; exact hR0r) hL.fold
+            obtain ⟨rfl, -⟩ := hjd
             sorry
       · exact absurd hio hEu.2
       · exfalso
