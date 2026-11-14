@@ -98,7 +98,28 @@ Worktree `/shared/etcd-grove-rs56`, branch `restart-s7` (off `lean`). Plan: `not
 
 ## Next, in order
 1. S7.5: the example's proofs (P1's three lemmas), link, adequacy, `Results.lean`, collection; Freeze of the
-   theorem before its proof is linked. `etc/gen-init.py`'s `ROOTS` gets the package then.
+   theorem before its proof is linked. `etc/gen-init.py`'s `ROOTS` gets the package then. Not started in Lean.
+   Plan (templates in `X/etcd/restart/`):
+   a. `X/etcd/restart1/{Base,Defs}.lean` (restart3's `Defs` shape, one member): `BootFacts` (putget's), the names
+      and addresses, `premises` (`bootPremise` + `bootPremiseR` + `bootMarshal` + `commonPremises`), and the
+      joint split `memberUp_splitStop` (= `Scratch/S7Probe.lean`'s `probe_P1_split`, checked; keep it in the
+      example's `Defs`, not etcdstart's `Defs`, which would rebuild ~80 modules).
+   b. `startMember.spec` (first start: `BuildServer.spec` + `Start`, `wp_Start_built`) and `startMember.specRestart`
+      (`BuildServer.specRestart` + `wp_Start_builtR`, as restart3's `wp_proofRestart` without the peer listener).
+   c. `put.spec`: in-process `EtcdServer.Put` (`SE/EtcdServer__Put.lean`): borrow `srvLeadTimeReader ∗ E.RD` from
+      `srvRevokeBuilt_innerBorrow` (level 2 of the thread token, `£ 1`), give back with
+      `srvRevokeInnerLoan_giveBack`; `idCred` pure; P1 lemma `putRequestIs` from the allocated request; the
+      context laws (`WithTimeoutBackground.spec`, `libCtxOk_bgFrom`, `spanCtxOk` chain).
+   d. The example's KV ghost state: an invariant over `etcdKV ρ.rd.kv σ` and a counter of acknowledged puts
+      (sequential, no other writer): the range `[k, l)` of σ is the first `c` pairs, `putPermitM` from it per put.
+      This is the main new design; restart3's single-key `client.putGetInv` is the model.
+   e. `stop.spec`: restart3's `stop.wp_proof` without the listener close; needs `memberRestartRes` with no address
+      from the image (a new `StartRes` law beside `memberRestartRes_intro`, a form).
+   f. `check.spec`: `Leader()` wait, in-process `EtcdServer.Range` at the restarted names (`kvInv_restartNames`),
+      P1 lemmas `rangeRequestIs` and `traceutil.ctxTraceIs_bgFrom`; the response against the invariant of (d).
+   g. `Run`/`Main` (the rows discharged inside by `srvRestartRows_single`, never a hypothesis), then STOP for
+      the Freeze of `etcd_restart1_safe` (docstring: N1, N2, request-id freshness), then link, adequacy
+      (putget's), `Results.lean`, `etc/tcb-collections/restart1.txt`.
 
 ## Pitfalls
 - Run the Go test once per process (`go test -c`, then the binary per run): Run leaves the restarted member
