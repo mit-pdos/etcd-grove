@@ -513,3 +513,29 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   for `ReadAll`.
 - **Decision.** Adopted (the W10 session, 2026-11-14; plan §6 Q6's honest error posts; no client of the part's
   `Close` yet).
+
+## 2026-11-14: `WalDecEnvSupply` and `decEnv`'s `isEofOk` (the part's WAL decoder, over `fsExt`) -- the readers' errors and `errors.Is`
+
+- **Spec.** `WalDecEnvSupply` (`LinuxFs/Proof/.../wal/openAtIndex.lean`, a hypothesis of `openAtIndex.wp_proof`,
+  hence of `Open`/`OpenForRead` through it) and the decoder's environment `decEnv`/`isEofOk` (`DecDefs.lean`).
+- **Defect 1 (made, fixed).** The supply put every pointer error in the readers' errors `IoE`, while `isEofOk`
+  needs `¬ IoE eof` and `io.EOF` is a pointer error (an `errors.New` `*errorString`, `io.eof_of_init`): the
+  hypothesis proved `False` under `isPkgInit wal`, and `openAtIndex`/`Open`/`OpenForRead` were vacuous.
+- **Change (made).** `IoE` holds of every `*PathError` (`∀ pe, IoE (mkOk *PathError #pe)`); `os.File.Stat.spec`'s
+  error is the model's `*PathError` (was: some pointer error; its proof already knew it). Sanity check:
+  `walDecEnv_eof_not` (`io`'s initialization: `io.EOF` is no `*PathError`), so the pure part `¬ IoE eof`,
+  `∀ pe, IoE (PathError pe)` is met by `IoE` = the `*PathError`s.
+- **Defect 2 (open, not mine to fix).** Even so the supply is not true of Go: `isEofOk` asks
+  `errors.Is(e, io.EOF)` to answer `false` for every `IoE` error with no precondition, and `errors.Is` of a
+  `*PathError` unwraps its `Err` field (heap), so it answers `true` for a `&PathError{Err: io.EOF}`. No pure `IoE`
+  can hold of the `*PathError`s `os.File.Read`/`Stat` return (fresh allocations, `os.errnoPathErr`'s persistent
+  fields) and of no other: the errors' evidence is a heap fact, and the decoder's readers pass errors through
+  pure predicates only (`io.readerStream`'s `E`, `bufio.ownReader`, `decRdErr`, and the trust-boundary axiom
+  `io.ReadFull.wp_proof`, `Spec/io/ReadFull.lean`).
+- **Proposed change.** Carry the error's evidence with it: `io.readerStream ri S E` with `E` a persistent Iris
+  predicate (`List w8 → GoInterface → IProp`), so `ReadFull`'s axiom, `bufio`, `readInt64` and the decoder pass
+  it on; `decRdErr`'s I/O arm then `os.errnoPathErr e n` (`n ≠ 0`, which `Read.wp_eof`'s error arm gives with a
+  small strengthening), and `isEofOk`'s I/O branch is provable from an `errors.Is` fact on `errnoPathErr`
+  against an `*errorString` (as `errors.IsPathErrnoNotExist.spec`, `ExistCallees.lean`). Changing
+  `io.ReadFull.wp_proof`'s statement is a trust-base change: **the user's decision**.
+- **Decision.** Defect 1 fixed (2026-11-14, `wal-readall16`). Defect 2 pending the user.
