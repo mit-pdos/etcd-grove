@@ -22,7 +22,7 @@ An abort (either update) leaves the invariant as it was (`walInvBody_tailW_same`
 -/
 module
 
-public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.TruncSupPure
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.TruncSupPend
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.TailAccW
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Handle
 public import LinuxFs.Spec.os.File__TruncateAu
@@ -303,10 +303,13 @@ def truncStartP (dir : GoString) (γ : GName) (ok : Option (Nat × Bool)) (H : L
 /-- **The supply of the tail's truncate at its write position** (see the file header), the caller's
 property of the state it starts from the handle's `LoWr` (no window open, or `lo ≤ wr`: a window's
 crash sizes from `lo` on must be the old window's; a later attempt's state has `lo ≤ wr`,
-`os.truncSup`). -/
+`os.truncSup`). The tie's right `ok` is the key or a lent token of kind `false` (`wal-tc18`: F-Z, or a
+pending tail whose length word at `wr` is zero, `TailZK.zp`; then `rzStart_pureP`), the latter with `wr`
+the record's stream end (`hS`). -/
 theorem walTail_truncSup (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (dir : GoString)
     (γ : GName) (ok : Option (Nat × Bool)) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (wr : Nat) (i : Ino)
-    (hok : ∀ k p, ok ≠ some (k, p)) :
+    (hok : ∀ k, ok ≠ some (k, true))
+    (hS : ∀ kp, ok = some kp → wr = (tailStream Mr H md cuts).length) :
     ⊢ walInv (W := W) walCodec Mr R jr r -∗
       os.truncSup iprop(walTailKeyL (W := W) dir γ ok ∗ tailVar (W := W) γ ((H, md, cuts, wr, i, none) : TailG))
         i wr (fun m => LoWr m wr) := by
@@ -390,7 +393,16 @@ theorem walTail_truncSup (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       · rw [hwrl']; exact h
       · exact absurd (SegExact.of_os hsz h) hx
       · rw [hwrl']; exact h
-    obtain ⟨hW', hDK'⟩ := rzStart_pure walCodec_ok hW hd hl hs ⟨ents, habs⟩ hcut0 (hZ.zeros hok) hB hn.1 hn.2 hlo
+    have hZP : TailZeros lay ∨
+        (TailPend lay ∧ (segStream walCodec Mr d lay.cuts lay.cuts.length).length = lay.wr) := by
+      by_cases hon : ok = none
+      · subst hon; exact Or.inl hZ
+      · obtain ⟨kp, hkp⟩ := Option.ne_none_iff_exists'.1 hon
+        rcases hZ.zp hok with h | h
+        · exact Or.inl h
+        · refine Or.inr ⟨h, ?_⟩
+          rw [hwrl', hS kp hkp, hH, hmd, hcuts, tailStream_eq]
+    obtain ⟨hW', hDK'⟩ := rzStart_pureP walCodec_ok hW hd hl hs ⟨ents, habs⟩ hcut0 hZP hB hn.1 hn.2 hlo
     rw [hwrl'] at hW' hDK'
     have hFi : ∀ i, i ≠ g0.ino →
         (<[g0.ino := (⟨t, 0, [], n, g0.om, g0.bs, some (true, wr)⟩ : SegFl)]> F) !! i = F !! i :=
