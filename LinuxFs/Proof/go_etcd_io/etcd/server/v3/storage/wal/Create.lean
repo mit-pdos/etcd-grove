@@ -755,9 +755,11 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
         createU_none Mr R jr r nm md Q hC J hJ' i m2 mS zs2 ysS _ hin hnm hMr hmd hctmp hJjr
           (Nat.le_max_left _ _) (Nat.le_max_right _ _) hJcoh hJval hJcur hokS' hm2s hm2c⟩
     wp_apply _wp_renameWAL R jr J r (child r nm) nm (tmpName nm) (.only [nm, tmpName nm]) hC _
-      (e + a').half (DFrac.own d) wl lg mp md enc lf f snapi' enti' _ _ _ hOk
-      $$ [Hp Hperm HC Hau HSp HTmps Hpre fp dirFile] as %w' %err Hpost
+      (e + a').half (DFrac.own d) wl lg mp md enc lf f snapi' enti' fd _ _ _ _ _ _ _ hOk
+      $$ [Hp Hperm HC Hau HSp HTmps Hpre fp dirFile Henc Hf Hfd Hoff] as %w' %err Hpost
     · iframe; iframe #
+      iunfold walLockIn
+      iframe
     sorry)
 
 end proof

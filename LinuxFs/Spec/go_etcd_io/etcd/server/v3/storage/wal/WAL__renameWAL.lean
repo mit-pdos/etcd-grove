@@ -23,16 +23,32 @@ program's half of the creating claim `(jr, N)` (`nm` absent, `nm.tmp` holding `J
 resource `Sp`, `J`'s pipeline names (`walTmpsRes J`: the pipeline takes `0.tmp`, the handle `1.tmp`),
 `w`'s pre-rename fields (`walPreIn`) with `fp` and `dirFile` nil.
 
+*The lock file* (ledger 2026-11-14, `renameWALPost`'s error arms; decision (1)): the pre also takes
+what `renameWALUnlock`'s `w.Close()` consumes, the encoder (`ownEncoder e … c []`, empty) and the
+segment's `*os.File` `f` (its fd `fd`, the fd's descriptor `d`, its offset). On an error the caller's
+deferred `f.Close()` runs on it, open (the rename failed before `renameWALUnlock`'s `Close`, its sync
+failed so the locks stayed open, or `OpenDir` failed after a committed rename) or closed by that
+`Close` (`walLockLeft`: then a second close, `os.File.Close.specClosed`).
+
 *Post* (`renameWALPost`): the spine to the area back, and
-1. *committed, `w` returned*: the update's result, `SpR`, `w`'s fields, the pipeline in `w.fp`
-   (`isFilePipe`, `pipeMain γ 0`, the handle's `1.tmp` claim), the directory open in `w.dirFile`
-   (`osDirFdS … .idle`), a spine to `dir`, half the call permission (the pipeline holds the other);
+1. *committed, `w` returned*: the update's result, `SpR`, `w`'s fields, the lock file and the encoder,
+   the pipeline in `w.fp` (`isFilePipe`, `pipeMain γ 0`, the handle's `1.tmp` claim), the directory
+   open in `w.dirFile` (`osDirFdS … .idle`), a spine to `dir`, half the call permission (the pipeline
+   holds the other);
 2. *committed, a reopened WAL returned* (`renameWALUnlock`'s retry, then `Open`/`ReadAll`): the result,
-   `SpR`, the client handle, its named entry, the purge right;
-3. *not committed, an error*: everything back but `w`'s files, which `renameWALUnlock`'s `Close` may
-   have closed;
-4. *committed, an error* (`OpenDir` failed, or the rename failed after taking effect): the result,
-   `SpR`, half the call permission.
+   `SpR`, the client handle, its named entry, the purge right. **Pending** (ledger 2026-11-14,
+   nineteenth W4 session): not provable as stated (`walOpenWF` holds `walNamed dir` and
+   `walNamesFrag none`, which only `Create`'s parent fsync and registration give, after `renameWAL`
+   returns; and the update's result holds the lock token the handle holds too): it needs a handle
+   before naming, not designed;
+3. *not committed, an error*: everything back but `w`'s fields (perhaps not), the lock file open or
+   closed;
+4. *committed, an error* (`OpenDir` failed, the rename failed after taking effect, or the retry's
+   `Open`/`ReadAll` failed): the result, `SpR`, half the call permission, the lock file open or closed.
+
+The two spines to `dir` are not returned (one stays with the pipeline, which `renameWAL` starts and an
+error leaves running): their fractions of the area's spine are the invariant's lend
+(`walInv_areaPath`, `Create`'s `createSp`), not the caller's.
 Lean-first.
 -/
 module
@@ -77,15 +93,29 @@ def RenameWALOk (R : Roots) (jr J : Ino) (r dir nm tmp : GoString) (N : NameSet)
   (⊢ U none -∗ osAUnc (osNames jr N (DFrac.own (1 : Qp).half) h)
       (renDirOut jr J N tmp nm h (DFrac.own (1 : Qp).half) lb) U)
 
+/-- **The lock file after a failed `renameWAL`** (see the file header): open, or closed by
+`renameWALUnlock`'s `w.Close()` (fd -1). -/
+def walLockLeft (f : Loc) (fd : w64) (fname : GoString) (d : OsFd) : IProp GF :=
+  iprop((os.ownFile f fd fname (DFrac.own 1) ∗ osFd fd (DFrac.own 1) d) ∨
+    os.ownFile f (-1 : w64) fname (DFrac.own 1))
+
+/-- **The lock file and the encoder, as `renameWAL` takes them** (see the file header). -/
+def walLockIn (e f : Loc) (fd : w64) (fname : GoString) (d : OsFd) (c : w32) (off : w64) :
+    IProp GF :=
+  iprop(ownEncoder e (wal.fileWi f) c [] ∗ os.ownFile f fd fname (DFrac.own 1) ∗
+    osFd fd (DFrac.own 1) d ∗ os.ownOff f off)
+
 /-- **`renameWAL`'s post** (see the file header). -/
 def renameWALPost (P : WalPbIn GF) (Mr : WalMarshal) (R : Roots) (jr J : Ino) (r dir : GoString)
     (N : NameSet) (h : NamesH) (qp : Qp) (dq : DFrac) (w lg : Loc) (mds : GoSlice) (md : List w8)
-    (e lt f : Loc) (snapi enti : w64) (U : Option (Nat × Nat) → IProp GF) (Sp : IProp GF)
+    (e lt f : Loc) (snapi enti : w64) (fd : w64) (fname : GoString) (d : OsFd) (c : w32) (off : w64)
+    (U : Option (Nat × Nat) → IProp GF) (Sp : IProp GF)
     (SpR : Nat × Nat → IProp GF) (w' : Loc) (err : GoInterface) : IProp GF :=
   iprop(osPathS R r (DFrac.own qp) jr ∗
     ((⌜err = interface.nil ∧ w' = w⌝ ∗
         ∃ (x : Nat × Nat) (fp : Loc) (γ : PipeNames) (sz : w64) (df : Loc) (dfd : w64),
         U (some x) ∗ SpR x ∗ walPreIn w lg dir mds md e lt f snapi enti ∗
+        walLockIn e f fd fname d c off ∗
         structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ fp ∗
         isFilePipe fp γ R dir dq J sz ∗ pipeMain γ 0 ∗ tmpClaim J (pipeTmp 1) ∗
         structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ df ∗
@@ -94,8 +124,10 @@ def renameWALPost (P : WalPbIn GF) (Mr : WalMarshal) (R : Roots) (jr J : Ino) (r
      (⌜err = interface.nil⌝ ∗ ∃ x : Nat × Nat, U (some x) ∗ SpR x ∗ walOpenWF P Mr w' dir ∗
         WalFs.walNamed dir ∗ WalFs.walPurgeW w' dir) ∨
      (⌜err ≠ interface.nil⌝ ∗ U none ∗ osNames jr N (DFrac.own (1 : Qp).half) h ∗ osCallPerm 1 ∗
-        Sp ∗ walTmpsRes J ∗ (walPreIn w lg dir mds md e lt f snapi enti ∨ emp)) ∨
-     (⌜err ≠ interface.nil⌝ ∗ ∃ x : Nat × Nat, U (some x) ∗ SpR x ∗ osCallPerm (1 : Qp).half)))
+        Sp ∗ walTmpsRes J ∗ (walPreIn w lg dir mds md e lt f snapi enti ∨ emp) ∗
+        walLockLeft f fd fname d) ∨
+     (⌜err ≠ interface.nil⌝ ∗ ∃ x : Nat × Nat, U (some x) ∗ SpR x ∗ osCallPerm (1 : Qp).half ∗
+        walLockLeft f fd fname d)))
 
 end defs
 
@@ -112,8 +144,8 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.spec (P : WalPbIn GF)
     Prop :=
   ∀ (R : Roots) (jr J : Ino) (r dir nm tmp : GoString) (N : NameSet) (h : NamesH) (lb : Nat)
     (qp : Qp) (dq : DFrac) (w lg : Loc) (mds : GoSlice) (md : List w8) (e lt f : Loc)
-    (snapi enti : w64) (U : Option (Nat × Nat) → IProp GF) (Sp : IProp GF)
-    (SpR : Nat × Nat → IProp GF),
+    (snapi enti : w64) (fd : w64) (fname : GoString) (d : OsFd) (c : w32) (off : w64)
+    (U : Option (Nat × Nat) → IProp GF) (Sp : IProp GF) (SpR : Nat × Nat → IProp GF),
   RenameWALOk R jr J r dir nm tmp N h lb dq U Sp SpR →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ osInv ∗
       osSharedInv R ∗ osPathS R r (DFrac.own qp) jr ∗ osCallPerm 1 ∗ osLogLb lb ∗
@@ -121,12 +153,14 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.spec (P : WalPbIn GF)
       osAUnc (osNames jr N (DFrac.own (1 : Qp).half) h)
         (renDirOut jr J N tmp nm h (DFrac.own (1 : Qp).half) lb) U ∗
       Sp ∗ walTmpsRes J ∗ walPreIn w lg dir mds md e lt f snapi enti ∗
+      walLockIn e f fd fname d c off ∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ (null : Loc) ∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ (null : Loc) }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!!
       go!"renameWAL")) (Val #(child r tmp)))
   {{ (w' : Loc) (err : GoInterface), RET (PairV #w' #err);
-      renameWALPost P Mr R jr J r dir N h qp dq w lg mds md e lt f snapi enti U Sp SpR w' err }}
+      renameWALPost P Mr R jr J r dir N h qp dq w lg mds md e lt f snapi enti fd fname d c off U Sp
+        SpR w' err }}
 
 end spec
 
