@@ -131,7 +131,7 @@ theorem crashOk_sync {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} {
     · rw [hfo _ (hpre g' hg')]; exact hnmd g' (by rw [hs]; simp [hg']) hnd'
     · rw [hfo0g, Option.isSome_map]; exact hnmd (syncTail g') (by rw [hs]; simp) hnd'
   have hw0 : W1G C (walInos (entsOf m' lay.j)) (fun i => imgOf (fo0 i)) (segBytesOf lay)
-      (fun _ => []) := by
+      (segRzOf lay) := by
     apply w1G_sync
     intro i bs hbs b hb
     obtain ⟨g', hg', rfl, rfl⟩ := segBytesOf_some hbs

@@ -147,7 +147,7 @@ end def_
 
 theorem osMeta_eq {a b : OsMeta} (h1 : a.size = b.size) (h2 : a.lo = b.lo) (h3 : a.hi = b.hi)
     (h4 : a.maps = b.maps) (h5 : a.dlo = b.dlo) (h6 : a.dhi = b.dhi) (h7 : a.zf = b.zf)
-    (h8 : a.tc = b.tc) (h9 : a.cut = b.cut) (h10 : a.cz = b.cz) : a = b := by
+    (h8 : a.tc = b.tc) (h9 : a.cut = b.cut) (h10 : a.cz = b.cz) (h11 : a.rz = b.rz) : a = b := by
   cases a; cases b; simp_all
 
 theorem rsPost_tc (tr : Bool) (m : OsMeta) (tg sz' b : Nat) :
@@ -230,6 +230,7 @@ theorem announce_sub (m : OsMeta) (lo hi lo2 hi2 tg : Nat) (hl : lo ≤ lo2) (hh
         simp only [inRange, Bool.and_eq_true, decide_eq_true_eq] at hb ⊢; omega
       simp only [hb, hb', if_true]
     · simp only [hb, Bool.false_eq_true, if_false]
+  · simp
   · simp
   · simp
 

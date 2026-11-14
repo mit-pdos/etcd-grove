@@ -541,10 +541,10 @@ def OsMeta.syncZ (m : OsMeta) : Nat := if pageEnd m.size ≤ m.cz then m.size el
 
 /-- The `OsMeta` after a successful sync: the size is durable, every byte is durable, zeros from
 `syncZ` on (`OsFile.synced`: the end of the size's last page, or the size itself if the page cache is
-known zero to that end). -/
+known zero to that end); no resize stamps known (every byte durable, no candidate stamped by one). -/
 def OsMeta.synced (m : OsMeta) : OsMeta :=
   { m with
-    lo := m.size, hi := m.size, dlo := 0, dhi := 0, zf := some m.syncZ, tc := ∅ }
+    lo := m.size, hi := m.size, dlo := 0, dhi := 0, zf := some m.syncZ, tc := ∅, rz := [] }
 
 theorem OsMeta.size_le_syncZ (m : OsMeta) : m.size ≤ m.syncZ := by
   unfold OsMeta.syncZ; have := le_pageEnd m.size; split <;> omega
@@ -653,7 +653,7 @@ theorem wp_osFsync2 (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat) (
       · refine ⟨by simp [OsMeta.synced, hmo.size, f', synced_size],
           by simp [OsMeta.synced, f', OsFile.synced, hmo.size],
           by simp [OsMeta.synced, f', OsFile.synced, hmo.size], hmo.maps,
-          fun t c ht hc => absurd hc (hni t c ht), ?_, ?_, ?_, ?_, hmo.rz⟩
+          fun t c ht hc => absurd hc (hni t c ht), ?_, ?_, ?_, ?_, fun _ h => by simp [OsMeta.synced] at h⟩
         · intro b _ _; exact synced_cand f _ b (hnoI b)
         · intro z hz
           simp only [OsMeta.synced, Option.some.injEq] at hz; subst hz

@@ -93,8 +93,8 @@ theorem rsPost_withTc (tr : Bool) (m : OsMeta) (t : GMap Nat Cands) (r : List Na
   unfold rsPost OsMeta.announce
   rw [touch_withTc]; rfl
 
-theorem synced_withTc (m : OsMeta) (t : GMap Nat Cands) (r : List Nat) :
-    (m.withTc t r).synced = m.synced.withTc ∅ r := rfl
+@[simp] theorem synced_withTc (m : OsMeta) (t : GMap Nat Cands) (r : List Nat) :
+    (m.withTc t r).synced = m.synced := rfl
 
 section au
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
