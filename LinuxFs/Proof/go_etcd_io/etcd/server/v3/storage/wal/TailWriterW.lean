@@ -109,6 +109,23 @@ theorem twW_full (o a L k c : Nat) (hfk : a + k = L) (hk : k ≤ c) (hc : c ≤ 
 
 theorem twW_end (s0 o0 M E : Nat) (h : E ≤ max o0 M) (ho : o0 ≤ s0) : E ≤ max s0 M := by omega
 
+/-- The writer's state after a write past `max sz (o0 + |out|)`: its size, its bounds. -/
+theorem twW_post (sz a b S S' M : Nat) (hS : S = max sz a) (hS' : S' = max S (a + b))
+    (h62 : S < 2 ^ 62) (hab : a + b < 2 ^ 62) (hE : a + b ≤ max S M) (ha : a ≤ max sz M) :
+    S' = max sz (a + b) ∧ max sz (a + b) < 2 ^ 62 ∧ a + b ≤ max sz M := by omega
+
+/-- **The guard of the tail's writer past the size** (`wal.tailWriterW`): `tailOk` without its size
+clause; the stream's end below the model's `Write` bound (`os.model.offMax`, 2^62: a write reaching it
+is not modelled). -/
+def tailOkW (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (o0 : Nat)
+    (ys : List w8) : Prop :=
+  ys <+: (tailStream Mr H md cuts).drop o0 ∧ o0 + ys.length < 2 ^ 62
+
+theorem tailOkW_prefix {Mr : WalMarshal} {H : List (WalOpG WalEnt)} {md : List w8}
+    {cuts : List Nat} {o0 : Nat} {xs ys : List w8} (h : xs <+: ys)
+    (hy : tailOkW Mr H md cuts o0 ys) : tailOkW Mr H md cuts o0 xs :=
+  ⟨h.trans hy.1, Nat.lt_of_le_of_lt (Nat.add_le_add_left h.length_le _) hy.2⟩
+
 end pure
 
 section tail
@@ -784,6 +801,114 @@ theorem wp_tailWriteW [os.file.FieldAssumptions] (Mr : WalMarshal) (R : Roots) (
     iright
     ipureintro; intro h; cases h
 
+/-- **The tail writer's state past the size** (`wal.tailWriterW`): `walTailW` with the tail's size the
+larger of `sz` and the stream's end, a resize window possibly open (`TailMetaW`), the stream's end below
+`max sz maxBytes` (a write lands nothing past `maxBytes`). At `o0 + |out| ≤ sz`, `walTailW … sz out
+TailMetaW` and that bound. -/
+def walTailWS (f : Loc) (fd : w64) (name : GoString) (dir : GoString) (γ : GName) (i : Ino)
+    (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (o0 sz : Nat) (out : List w8) :
+    IProp GF :=
+  iprop(walTailW (W := W) f fd name dir γ i H md cuts o0 (max sz (o0 + out.length)) out TailMetaW ∗
+    ⌜o0 + out.length ≤ max sz maxBytes⌝)
+
+/-- **The tail's writer, from inside the file** (`wal.tailWriter` over `wp_tailWriteW`): the tail file
+`f` of inode `i`, written from the encoder's start `o0`, is a guarded stream of its intended bytes
+(`tailOkW`: no size clause), the tail growing past its size `sz` as needed (`walTailWS`); a failed write
+leaves nothing the program keeps. -/
+theorem wal.tailWriterW [os.file.FieldAssumptions] (Mr : WalMarshal) (R : Roots) (jr : Ino)
+    (r : GoString) (f : Loc) (fd : w64) (name dir : GoString) (γ : GName) (i : Ino)
+    (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (o0 sz : Nat) :
+    ⊢ walAreaOk walCodec Mr R jr r -∗
+      io.writerStreamP (wal.fileWi f) (tailOkW Mr H md cuts o0)
+        (walTailWS (W := W) f fd name dir γ i H md cuts o0 sz) (fun _ _ => iprop(True)) := by
+  iintro #Harea
+  unfold io.writerStreamP
+  iintro !> %out %p %xs %dqp %hok
+  iintro !> %Φ ⟨HW, Hp⟩ HΦ
+  iunfold walTailWS at HW
+  icases HW with ⟨HW, %hob⟩
+  iunfold walTailW at HW
+  icases HW with ⟨Hf, ⟨%rd, Hfd⟩, Ho, Hk, %m, %bs, Hm, Hb, %hmb, Hv⟩
+  obtain ⟨hsz, hm, hsz62, hfd0, hlw⟩ := hmb
+  obtain ⟨hpre, hle⟩ := hok
+  simp only [List.length_append] at hle
+  by_cases hx : xs = []
+  · subst hx
+    wp_apply os.File.Write.wp_empty f fd name _ p dqp _ hfd0 $$ [Hf Ho Hp] as %n %err ⟨%hn, Hf, Ho, Hp⟩
+    · iframe
+    iapply HΦ
+    iframe Hp
+    rcases err with ei | _
+    · iright
+      isplitr
+      · ipureintro; intro h; cases h
+      ipureintro; trivial
+    · ileft
+      isplitr
+      · ipureintro; exact ⟨rfl, by rw [hn]; rfl⟩
+      iunfold walTailWS
+      rw [List.append_nil]
+      isplitl [Hf Ho Hk Hfd Hm Hb Hv]
+      · iunfold walTailW
+        iframe Hf Ho Hk
+        isplitl [Hfd]
+        · iexists rd; iexact Hfd
+        iexists m, bs
+        iframe Hm Hb Hv
+        ipureintro; exact ⟨hsz, hm, hsz62, hfd0, hlw⟩
+      · ipureintro; exact hob
+  have hn : 0 < xs.length := List.length_pos_iff.2 hx
+  have hoN := os.W64_nat_toNat (o0 + out.length) (by omega)
+  have hoI := os.W64_nat_toInt (o0 + out.length) (by omega)
+  have hS : xs <+: (tailStream Mr H md cuts).drop (o0 + out.length) := by
+    obtain ⟨t, ht⟩ := hpre
+    have e1 : ((tailStream Mr H md cuts).drop o0).drop out.length =
+        (tailStream Mr H md cuts).drop (o0 + out.length) := by
+      rw [List.drop_drop]; try (congr 1; omega)
+    rw [← e1, ← ht, List.append_assoc, List.drop_left]
+    exact List.prefix_append _ _
+  have hin : o0 + out.length ≤ m.size := by rw [hsz]; exact Nat.le_max_right _ _
+  wp_apply (wp_tailWriteW Mr R jr r dir γ H md cuts f fd name (DFrac.own 1) p xs dqp
+      (W64 ((o0 + out.length : Nat) : Int)) (o0 + out.length) (DFrac.own 1) ⟨i, rd, true⟩ m bs hfd0
+      rfl (by rw [hoI]; omega) hoN hn hin (by rw [hoI]; omega) hS hm hlw)
+    $$ [Harea Hf Ho Hp Hfd Hk Hv Hm Hb] as %n %err ⟨Hf, Hp, Hres⟩
+  · unfold tailVar; iframe; iexact Harea
+  iapply HΦ
+  iframe Hp
+  icases Hres with (⟨%hres, Ho, Hfd, Hk, Hv, %m', %bs', Hm, Hb, %hmb⟩ | %herr)
+  · ileft
+    obtain ⟨hmW, hsz', hmax, hlw'⟩ := hmb
+    obtain ⟨p1, p2, p3⟩ := twW_post sz (o0 + out.length) xs.length m.size m'.size maxBytes hsz hsz'
+      (by rw [hsz]; exact hsz62) (by rw [Nat.add_assoc]; exact hle) hmax hob
+    isplitr
+    · ipureintro
+      refine ⟨hres.1, ?_⟩
+      rw [hres.2]; simp only [sint.Z]; rw [os.W64_nat_toInt xs.length (by omega)]
+    iunfold walTailWS
+    rw [List.length_append, ← Nat.add_assoc]
+    isplitl [Hf Hk Hfd Ho Hm Hb Hv]
+    · iunfold walTailW
+      rw [List.length_append, ← Nat.add_assoc]
+      iframe Hf Hk
+      isplitl [Hfd]
+      · iexists rd; iexact Hfd
+      isplitl [Ho]
+      · rw [show W64 ((o0 + out.length : Nat) : Int) + W64 (xs.length : Int) =
+            W64 ((o0 : Int) + ((out.length + xs.length : Nat) : Int)) by
+          simp only [W64]; push_cast; rw [← BitVec.ofInt_add]; congr 1; omega]
+        iexact Ho
+      iexists m', bs'
+      iframe Hm Hb
+      isplitr
+      · ipureintro; exact ⟨p1, hmW, p2, hfd0, hlw'⟩
+      unfold tailVar
+      try dsimp only
+      iexact Hv
+    · ipureintro; exact p3
+  · iright
+    isplitr
+    · ipureintro; exact herr
+    ipureintro; trivial
 
 end tail
 
