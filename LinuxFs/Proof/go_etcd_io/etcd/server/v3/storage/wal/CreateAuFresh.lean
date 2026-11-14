@@ -37,7 +37,7 @@ theorem createFresh_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoSt
     (md : List w8) (Q : IProp GF) (hC : NamesH) (J : Ino) (hJ' : NamesH) (i : Ino)
     (m2 mS : OsMeta) (zs2 : List Cands) (ysS : List ByteG) (lb : Nat)
     (hin : InArea r (child r nm) nm) (hnm : walNameOk nm) (hMr : WalMarshalCreateOk Mr)
-    (hmd : md.length < 2 ^ 41)
+    (hmd : md.length < 2 ^ 41) (hmdne : md ≠ [])
     (hctmp : hC.cur !! tmpName nm = some (.dir J)) (hJjr : J ≠ jr)
     (hlb : hC.next ≤ lb) (hJlb : (hJ'.restrict J ((NameSet.except []).diff walTmps)).next ≤ lb)
     (hJcoh : ClaimCoh (hJ'.restrict J ((NameSet.except []).diff walTmps)) J (.except walTmps))
@@ -78,6 +78,7 @@ theorem createFresh_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoSt
   · exact createJ_segsNamedC hw hcur'
   · exact hJm
   · exact hmd
+  · exact hmdne
 
 end au
 
