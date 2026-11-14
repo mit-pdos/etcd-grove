@@ -167,7 +167,7 @@ theorem walInvBody_unpin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   iintro Hb Hl Htf Hnf Ho HS Hn Ht #Hk
   iunfold walInvBody at Hb
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hcm, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
-    ⟨%K, %cp, HKa, Hca, %HDK⟩, %HAt, Hnms⟩
+    ⟨%K, %cp, HKa, Hca, %HDK⟩, %HAt, Hnms, %Hbd⟩
   icases walTailsRes_none (W := W) C Mr s Ls F $$ Htl Htf with ⟨%hF, Htl, Htf⟩
   have hF0 : F = ∅ := (GMap.lookup_empty_iff F).1 hF
   subst hF0
@@ -240,7 +240,7 @@ theorem walInvBody_unpin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       iframe HKa Hca
       ipureintro; exact HDK
     iframe HN
-    ipureintro; exact HAt
+    ipureintro; exact ⟨HAt, Hbd⟩
   unfold osClaims at hclose
   cases write with
   | false =>

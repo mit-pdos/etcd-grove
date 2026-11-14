@@ -553,3 +553,58 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Change (made).** `saveEntry.spec` takes `(Mr.encEntry e).length < 2 ^ 40` (`Save`'s premise for each of its
   entries, which `Save`'s proof passes); internal spec, no client-visible change.
 - **Decision.** Adopted (minor, internal; W6 fifteenth session).
+## 2026-11-14: `WalDecEnvSupply` and `decEnv`'s `isEofOk` (the part's WAL decoder, over `fsExt`) -- the readers' errors and `errors.Is`
+
+- **Spec.** `WalDecEnvSupply` (`LinuxFs/Proof/.../wal/openAtIndex.lean`, a hypothesis of `openAtIndex.wp_proof`,
+  hence of `Open`/`OpenForRead` through it) and the decoder's environment `decEnv`/`isEofOk` (`DecDefs.lean`).
+- **Defect 1 (made, fixed).** The supply put every pointer error in the readers' errors `IoE`, while `isEofOk`
+  needs `¬ IoE eof` and `io.EOF` is a pointer error (an `errors.New` `*errorString`, `io.eof_of_init`): the
+  hypothesis proved `False` under `isPkgInit wal`, and `openAtIndex`/`Open`/`OpenForRead` were vacuous.
+- **Change (made).** `IoE` holds of every `*PathError` (`∀ pe, IoE (mkOk *PathError #pe)`); `os.File.Stat.spec`'s
+  error is the model's `*PathError` (was: some pointer error; its proof already knew it). Sanity check:
+  `walDecEnv_eof_not` (`io`'s initialization: `io.EOF` is no `*PathError`), so the pure part `¬ IoE eof`,
+  `∀ pe, IoE (PathError pe)` is met by `IoE` = the `*PathError`s.
+- **Defect 2 (open, not mine to fix).** Even so the supply is not true of Go: `isEofOk` asks
+  `errors.Is(e, io.EOF)` to answer `false` for every `IoE` error with no precondition, and `errors.Is` of a
+  `*PathError` unwraps its `Err` field (heap), so it answers `true` for a `&PathError{Err: io.EOF}`. No pure `IoE`
+  can hold of the `*PathError`s `os.File.Read`/`Stat` return (fresh allocations, `os.errnoPathErr`'s persistent
+  fields) and of no other: the errors' evidence is a heap fact, and the decoder's readers pass errors through
+  pure predicates only (`io.readerStream`'s `E`, `bufio.ownReader`, `decRdErr`, and the trust-boundary axiom
+  `io.ReadFull.wp_proof`, `Spec/io/ReadFull.lean`).
+- **Proposed change.** Carry the error's evidence with it: `io.readerStream ri S E` with `E` a persistent Iris
+  predicate (`List w8 → GoInterface → IProp`), so `ReadFull`'s axiom, `bufio`, `readInt64` and the decoder pass
+  it on; `decRdErr`'s I/O arm then `os.errnoPathErr e n` (`n ≠ 0`, which `Read.wp_eof`'s error arm gives with a
+  small strengthening), and `isEofOk`'s I/O branch is provable from an `errors.Is` fact on `errnoPathErr`
+  against an `*errorString` (as `errors.IsPathErrnoNotExist.spec`, `ExistCallees.lean`). Changing
+  `io.ReadFull.wp_proof`'s statement is a trust-base change: **the user's decision**.
+- **Decision.** Defect 1 fixed (2026-11-14, `wal-readall16`). Defect 2 pending the user.
+## 2026-11-14: `wal.WAL.renameWAL.spec` (internal, the part's) -- the spine law cannot open the invariant
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__renameWAL.lean`, `RenameWALOk`'s third
+  conjunct: `∀ x, Sp -∗ renDirOut … (some x) ={⊤}=∗ osPathS R dir dq J ∗ osPathS R dir dq J ∗ SpR x`.
+- **Defect.** The caller (`Create`) can discharge it only with the invariant's post-commit split
+  (`walInv_splitNew`, `CreateSplit.lean`), which opens `walInv` (needs `notCrashed`) and takes the lock token
+  `walLockedTok` that the committed update's result `U (some x)` (`walCreateQ`) holds; the conjunct gives
+  neither.
+- **Evidence.** The W1 log, fourteenth session, "Not done" (1); `walInv_splitNew`'s statement.
+- **Change (made).** The conjunct is `∀ x, Sp -∗ notCrashed -∗ U (some x) -∗ renDirOut … (some x) ={⊤}=∗
+  notCrashed ∗ U (some x) ∗ osPathS R dir dq J ∗ osPathS R dir dq J ∗ SpR x`; `renameWAL` applies it at a
+  program step after the rename (`wp_notCrashed_acc`). `dq` is fixed by `Create`.
+- **Decision.** Adopted (the coordinator's decision, 2026-11-14, `wal-path15` task 3; internal spec, no client).
+
+## 2026-11-14: `wal.Repair.spec` (the part's, over `fsExt`) -- the lock token taken (plan §6 Q7)
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/Repair.lean` (`wal.Repair.spec`, new): the main
+  tree's axiom (`Spec/go_etcd_io/etcd/server/v3/storage/wal/Repair.lean`) with plan §3's binders (`walAreaOk`, the
+  area's spine and `walAreaRes`, `osCallPerm 1`, the update at `walAuMask`; `Open`'s premises, as `Repair` reads
+  the same directory), and `walUnlockedTok` framed.
+- **Defect (of the main axiom).** It promised that `Repair` blocks on the tail's lock while a handle holds it,
+  then acts as with no handle. Over `fsExt` the file locks are bookkeeping (plan §6 Q1: no lock state), so
+  `LockFile` waits for nothing and a concurrent appender would race the truncation: the axiom's statement
+  without the token is not provable (and with Q1's model, not true of the model).
+- **Evidence.** Plan §3 ("`Repair` takes `walUnlockedTok`") and §5/§6 Q7; both callers comply: the WAL tester
+  calls `Repair` after a successful `Close` (examples/etcd/wal/wal.go:192-198), `openWALFromSnapshot` before
+  any `Open`.
+- **Change (made).** The token in the pre and the post (framed); the "blocks until the handle's `Close`"
+  scenario dropped until the lock model. Otherwise the main tree's: committed as accessed, the boolean unconstrained.
+- **Decision.** Adopted (the coordinator, plan §6 Q7, 2026-11-13; stated in the W7-W12 log's fifth session).

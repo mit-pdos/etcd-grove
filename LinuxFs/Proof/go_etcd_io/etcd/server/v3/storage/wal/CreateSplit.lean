@@ -114,7 +114,7 @@ theorem walInvBody_rekey (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   unfold walInvBody
   iintro Hb #Hsi Ht H
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %hr, Hcl, Hn, HF, %hwo, %hwc, ⟨%CR, HCRa, %hCR⟩, Htl, %hab,
-    %hwn, Hpk, ⟨%K, %cc, HK, Hcc, %hdk⟩, %hAt, Hnms⟩
+    %hwn, Hpk, ⟨%K, %cc, HK, Hcc, %hdk⟩, %hAt, Hnms, %Hbd⟩
   icases walCreating_empty CR T hT $$ HCRa Ht with ⟨%hCR0, HCRa, Ht⟩
   subst hCR0
   imod osClaims_keys R jr D _ hD _ hDe hE $$ Hsi H Hcl with ⟨H, Hcl, %hk⟩
@@ -163,7 +163,7 @@ theorem walInvBody_rekey (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   · iexists K, cc
     iframe HK Hcc
     ipureintro; exact dirKeysOk_cover hcov hdk
-  ipureintro; exact walsAt_cover hcov hwo hAt
+  ipureintro; exact ⟨walsAt_cover hcov hwo hAt, Hbd⟩
 
 /-- **The drop of the name `b` off an area claim, the lock held** (`walInvBody_drop` with a lock
 token `T` in place of the free one; see the file header). -/
@@ -191,7 +191,7 @@ theorem walInvBody_dropT (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   unfold walInvBody
   iintro Hb #Hsi Ht H
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %hr, Hcl, Hn, HF, %hwo, %hwc, ⟨%CR, HCRa, %hCR⟩, Htl, %hab,
-    %hwn, Hpk, ⟨%K, %cc, HK, Hcc, %hdk⟩, %hAt, Hnms⟩
+    %hwn, Hpk, ⟨%K, %cc, HK, Hcc, %hdk⟩, %hAt, Hnms, %Hbd⟩
   icases walCreating_empty CR T hT $$ HCRa Ht with ⟨%hCR0, HCRa, Ht⟩
   subst hCR0
   imod osClaims_log (L := L) R _ hE $$ Hsi Hcl with ⟨Hcl, %hlog⟩
@@ -258,7 +258,7 @@ theorem walInvBody_dropT (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     ipureintro
     exact dirKeysOk_drop hd hbw hbn hw hdk
   ipureintro
-  exact walsAt_drop hAt hd.mem
+  exact ⟨walsAt_drop hAt hd.mem, Hbd⟩
 
 /-- **The new WAL registered** (see the file header): `Create`'s pending registration (`walNamesFrag
 (some dir)`, its WAL present since a past state's) cleared, its name added to the split names, a
@@ -277,7 +277,7 @@ theorem walInvBody_register (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
   unfold walInvBody
   iintro Hb #Hsi #Hp Hf Hsf H
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %hr, Hcl, Hn, HF, %hwo, %hwc, HCR, Htl, %hab,
-    %hwn, Hpk, Hdk, %hAt, Hnms⟩
+    %hwn, Hpk, Hdk, %hAt, Hnms, %Hbd⟩
   icases walPast_ghost_le s s0 $$ Hg Hp with %hle
   obtain ⟨d0, hd0⟩ := Option.ne_none_iff_exists'.1 hs0
   obtain ⟨d, hsd, -⟩ := hle.2.2 dir d0 hd0
@@ -315,6 +315,9 @@ theorem walInvBody_register (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
   · ipureintro; exact hwn
   isplitr
   · ipureintro; exact hAt
+  isplitl
+  rotate_left
+  · ipureintro; exact Hbd
   iexists none, nm' :: Wn'
   iframe Ha Hs Hsp
   isplitr

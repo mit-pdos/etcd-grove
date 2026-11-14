@@ -100,7 +100,7 @@ theorem walInvBody_existPin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
   iintro Hb #Hsi H Hsf Hu
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %hr, Hcl, Hn, HF, %hwo, %hwc, HCR, Ht, %hab,
-    %hwn, Hpk, Hdk, %hAt, Hnms⟩
+    %hwn, Hpk, Hdk, %hAt, Hnms, %Hbd⟩
   icases walNamesRes_splitOk (L := L) (W := W) R jr r Ls Wn $$ Hnms Hsf with ⟨Hnms, Hsf, %hW⟩
   have hin' : InArea s.area dir nm := by rw [hr]; exact hin
   cases hsd : s.wal !! dir with
@@ -115,7 +115,7 @@ theorem walInvBody_existPin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
     isplitr [Hu]
     · iexists Ls, cl, n, F
       iframe
-      ipureintro; exact ⟨hr, hwo, hwc, hab, hwn, hAt⟩
+      ipureintro; exact ⟨hr, hwo, hwc, hab, hwn, hAt, Hbd⟩
     ileft
     iframe Hu
     ipureintro; exact ⟨rfl, hN', hnone⟩
@@ -147,7 +147,7 @@ theorem walInvBody_existPin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
       isplitr; · ipureintro; exact hwn
       isplitl [HKa Hca]
       · iexists K', cp; iframe HKa Hca; ipureintro; exact HDK'
-      ipureintro; exact hAt
+      ipureintro; exact ⟨hAt, Hbd⟩
     iright
     isplitr
     · ipureintro; simp
@@ -172,7 +172,7 @@ theorem walInvBody_existUnpin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr :
   iintro Hb #Hsi #Hk Hl Htf Ho HJ
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %hr, Hcl, Hn, HF, %hwo, %hwc, HCR, Ht, %hab,
-    %hwn, Hpk, ⟨%K, %cp, HKa, Hca, %HDK⟩, %hAt, Hnms⟩
+    %hwn, Hpk, ⟨%K, %cp, HKa, Hca, %HDK⟩, %hAt, Hnms, %Hbd⟩
   icases walDirKey_lookup (W := W) K dir J X $$ HKa Hk with %hK
   obtain ⟨lay1, hj', -, -, -, -, ho1, -, -⟩ := HDK.1 dir J X hK
   have hcX' : (J, NameSet.except X, hj') ∈ cl := by
@@ -228,7 +228,7 @@ theorem walInvBody_existUnpin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr :
   isplitr; · ipureintro; exact hwn
   isplitl [HKa Hca]
   · iexists K, cp; iframe HKa Hca; ipureintro; exact HDK
-  ipureintro; exact hAt
+  ipureintro; exact ⟨hAt, Hbd⟩
 
 /-- **`Exist`'s start step** (see the file header), at a program step: the update `A` run (`hA`),
 what the area holds at `nm`, the claim pinned and the name claim lent if a WAL is there. -/
