@@ -269,6 +269,23 @@ theorem walReadFiles_running_end {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d
       rw [hold, ← hz0]
       exact hab.tailStop (by rw [hS]; exact hz0) r len c'
 
+/-- **The write position is inside the last file** (`walReadFiles_running`'s premises): `lay.wr` is at
+most the length of the last of the files read. -/
+theorem walReadFiles_wr_le {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
+    {ents : Ents} (hab : WalAbsD C Mr d lay ents) (hex : TailExact lay)
+    (hwr : lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length) (kk : Nat) (gs : List SegG)
+    (hgs : lay.segs.drop kk = gs) (g : SegG) (hg : gs.getLast? = some g) :
+    lay.wr ≤ g.bs.length := by
+  have hg' : lay.segs.getLast? = some g := by
+    have hne : gs ≠ [] := by intro h; rw [h] at hg; simp at hg
+    rw [← hgs] at hg hne
+    rw [List.getLast?_drop, if_neg (by intro h; exact hne (List.drop_eq_nil_of_le h))] at hg
+    exact hg
+  have himg := tailLast_img (hab.lastEx hex g hg') hwr
+  have := congrArg List.length himg
+  simp only [segImg, List.length_map, List.length_append] at this
+  omega
+
 end endpos
 
 end WalFs
