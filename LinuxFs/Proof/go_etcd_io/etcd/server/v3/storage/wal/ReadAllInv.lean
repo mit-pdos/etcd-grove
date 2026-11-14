@@ -42,6 +42,22 @@ theorem readFiles_dec' {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {U : WalUnma
   rw [rdRest_start, hbs, ← hgs]
   exact readFiles_dec hC hU hab hex hwr kk hkk
 
+/-- **The decoder's files decode, their metadata records the WAL's** (`readFiles_dec'` with
+`readFiles_md`: the loop's premise). -/
+theorem readFiles_ok' {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {U : WalUnmarshal} (hU : U.Ok Mr)
+    {d : WalDur} {lay : WalLay} {ents : Ents} (hab : WalAbsD C Mr d lay ents) (hex : TailExact lay)
+    (hwr : lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length) (kk : Nat)
+    (gs : List SegG) (hgs : lay.segs.drop kk = gs) (hne : gs ≠ []) (bss : List (List w8))
+    (hbs : bss = gs.map segImg) :
+    ∀ r ∈ (rdRest C bss 0 0#32).recs, RecDec U r ∧ RecMd d.metadata r := by
+  have hkk : kk < lay.segs.length := by
+    refine Nat.lt_of_not_le fun h => hne ?_
+    rw [← hgs]; exact List.drop_eq_nil_of_le h
+  intro r hr
+  refine ⟨readFiles_dec' hC hU hab hex hwr kk gs hgs hne bss hbs r hr, ?_⟩
+  rw [rdRest_start, hbs, ← hgs] at hr
+  exact readFiles_md hC hab hex hwr kk hkk r hr
+
 end pure
 
 section iris

@@ -132,6 +132,80 @@ theorem readFiles_dec {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {U : WalUnmar
   intro r hr
   exact recsOfSegs_dec hU _ _ r (List.mem_of_mem_drop hr)
 
+/-! ## The metadata records
+
+Every metadata record of the WAL's segments carries the WAL's metadata (`hdrDs`, `cutHdrDs`), so
+the metadata arm's check (`metadata != nil && !bytes.Equal(metadata, rec.Data)`, S/wal.go:549)
+never fails, and its `metadata != nil` (a nil slice for empty data) does not matter. -/
+
+/-- **The metadata record `r` carries `md`.** -/
+def RecMd (md : List w8) (r : WalRec) : Prop := r.typ = metadataType → r.data = md
+
+theorem dsMd_opDs {M : WalMarshal} (md : List w8) (o : WalOp) :
+    ∀ td ∈ opDs M o, td.1 = metadataType → td.2 = md := by
+  intro td htd ht
+  cases o with
+  | save h es =>
+    simp only [opDs, List.mem_append, List.mem_map] at htd
+    rcases htd with ⟨e, -, rfl⟩ | htd
+    · simp [entryType, metadataType] at ht
+    · split at htd
+      · simp at htd
+      · simp only [List.mem_singleton] at htd
+        subst htd
+        simp [stateType, metadataType] at ht
+  | snap m =>
+    simp only [opDs, List.mem_singleton] at htd
+    subst htd
+    simp [snapshotType, metadataType] at ht
+
+theorem dsMd_segsDs {M : WalMarshal} (md : List w8) :
+    ∀ (first : Bool) (P : WalHist) (Ss : List WalHist),
+    ∀ td ∈ (segsDs M md first P Ss).flatten, td.1 = metadataType → td.2 = md
+  | _, _, [] => by simp [segsDs]
+  | first, P, S :: Ss => by
+    intro td htd ht
+    simp only [segsDs, List.flatten_cons, List.mem_append] at htd
+    rcases htd with (htd | htd) | htd
+    · unfold segHdrDs at htd
+      split at htd
+      · simp only [hdrDs, List.mem_cons, List.not_mem_nil, or_false] at htd
+        rcases htd with rfl | rfl | rfl
+        · simp [crcType, metadataType] at ht
+        · rfl
+        · simp [snapshotType, metadataType] at ht
+      · simp only [cutHdrDs, List.mem_append, List.mem_cons,
+          List.not_mem_nil, or_false] at htd
+        rcases htd with (rfl | rfl) | htd
+        · simp [crcType, metadataType] at ht
+        · rfl
+        · split at htd
+          · simp at htd
+          · simp only [List.mem_singleton] at htd
+            subst htd
+            simp [stateType, metadataType] at ht
+    · simp only [List.mem_flatMap] at htd
+      obtain ⟨o, -, ho⟩ := htd
+      exact dsMd_opDs md o td ho ht
+    · exact dsMd_segsDs md false (P ++ S) Ss td htd ht
+
+/-- **Every metadata record of the WAL's segments carries the metadata.** -/
+theorem recsOfSegs_md {C : WalCodec} {M : WalMarshal} (md : List w8) (Ss : List WalHist) :
+    ∀ r ∈ recsOfSegs C M md Ss, RecMd md r := by
+  intro r hr ht
+  exact dsMd_segsDs (M := M) md true [] Ss _ (mem_chainRecs hr) ht
+
+/-- **What the reader reads from the pinned segments carries the metadata** (over
+`walReadFiles_running`). -/
+theorem readFiles_md {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal}
+    {d : WalDur} {lay : WalLay} {ents : Ents} (hab : WalAbsD C Mr d lay ents) (hex : TailExact lay)
+    (hwr : lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length) (kk : Nat)
+    (hkk : kk < lay.segs.length) :
+    ∀ r ∈ (walDecodeFiles C ((lay.segs.drop kk).map segImg) 0#32).recs, RecMd d.metadata r := by
+  rw [walReadFiles_running hC hab hex hwr kk hkk]
+  intro r hr
+  exact recsOfSegs_md _ _ r (List.mem_of_mem_drop hr)
+
 /-! ## The indices the loop writes -/
 
 /-- **`w.enti`/`w.snapi` after the record `r`** (S/wal.go:543, :569-571, :583-585): an entry sets

@@ -32,7 +32,7 @@ variable [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 /-- What `Preallocate` leaves of the caller's half of the file `i` of `OsMeta` `m`. -/
 def preallocPostH (i : Ino) (m : OsMeta) (sz : Nat) (ext : Bool) (err : GoInterface) : IProp GF :=
   if ext then iprop(∃ w : Nat, ⌜m.size ≤ w ∧ w ≤ sz ∧ (err = interface.nil → w = sz)⌝ ∗
-    preGrownH i m w)
+    preGrownH i m w (err = interface.nil ∧ m.ZeroPg))
   else osMeta i (DFrac.own (1 : Qp).half) m
 
 /-- See the file header. -/

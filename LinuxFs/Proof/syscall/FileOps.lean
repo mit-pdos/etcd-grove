@@ -48,7 +48,7 @@ theorem syscall.Fallocate.wp_grow (fd off len : w64) (dq : DFrac) (d : OsFd)
              rsDone false d.ino (max m.size (off.toNat + len.toNat)) w m n))) }} := by
   wp_start as ⟨#Hinv, Hfd, Hm, Hc⟩
   wp_apply wp_osFallocStart fd off len dq d m CoPset.subseteq_top hwr hoff hlen
-    $$ Hinv Hfd Hm Hc as %t %n Hfd Ht
+    $$ Hinv Hfd Hm Hc as %t %n %_ Hfd Ht
   wp_apply wp_osFallocFinish t d.ino _ m n (Nat.le_max_left _ _) CoPset.subseteq_top
     $$ Hinv Ht as %e Hr
   iapply wp_errno

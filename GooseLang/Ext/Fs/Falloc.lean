@@ -103,7 +103,7 @@ theorem wp_osFallocStart (fd off len : w64) (dq : DFrac) (d : OsFd) (m : OsMeta)
     (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osFd (L := L) fd dq d -∗ osMeta (L := L) d.ino (DFrac.own 1) m -∗
       mcellsAny m.maps m.size (max m.size (off.toNat + len.toNat)) -∗
-      (∀ t : Nat, ∀ n : Nat, osFd (L := L) fd dq d -∗
+      (∀ t : Nat, ∀ n : Nat, ⌜0 < n ∧ m.TcZ⌝ -∗ osFd (L := L) fd dq d -∗
         rsTok false t d.ino (max m.size (off.toNat + len.toNat)) m [] n -∗ Φ (osTokV t)) -∗
       WP (ExternalOp fsExt.name "FallocStart" (Val (PairV (#fd) (PairV (#off) (#len))))) @ s; E
         {{ Φ }} := by
@@ -129,19 +129,20 @@ theorem wp_osFallocStart (fd off len : w64) (dq : DFrac) (d : OsFd) (m : OsMeta)
     (by simp; omega) Φ $$ Hinv Hfd Hm [] [Hc]
   · rw [hmin]; unfold osBytes; iapply (bytesG_nil _ _ _ _).2; iempintro
   · rw [hmin, hmax]; iexact Hc
-  · iintro %t %n - Hfd Ht
-    iapply HΦ $$ Hfd Ht
+  · iintro %t %n %hn Hfd Ht
+    have hn' : 0 < n ∧ m.TcZ := ⟨hn.1, hn.2.1⟩
+    iapply HΦ $$ %t %n %hn' Hfd Ht
 
 /-- The second step of `fallocate`'s growth; if `keep` (a file with no sync cut), the `OsMeta` it
 lands with knows the candidates of the bytes it announced past the new size (`rsPostK`: a partial
-growth's). -/
+growth's), and one not landed those past the size and the stamp (`rsUnMeta`). -/
 theorem wp_osFallocFinishK (keep : Bool) (t : Nat) (p : Ino) (tg : Nat) (m : OsMeta) (n : Nat)
     (hgrow : m.size ≤ tg) (hkeep : keep = true → m.cut = none) (hE : ↑osN ⊆ E)
     (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ rsTok (L := L) false t p tg m [] n -∗
       (∀ e : w64,
         ((⌜e = 0⌝ ∗ rsDoneK (L := L) keep false p tg tg m [] n) ∨
-         (⌜e ≠ 0⌝ ∗ (rsUndone (L := L) false p tg m [] n ∨
+         (⌜e ≠ 0⌝ ∗ (rsUndoneK (L := L) keep false p tg m [] n ∨
            ∃ w, ⌜m.size ≤ w ∧ w ≤ tg⌝ ∗ rsDoneK (L := L) keep false p tg w m [] n))) -∗
         Φ (#e)) -∗
       WP (ExternalOp fsExt.name "FallocFinish" (Val (osTokV t))) @ s; E {{ Φ }} := by
@@ -202,7 +203,7 @@ theorem wp_osFallocFinishK (keep : Bool) (t : Nat) (p : Ino) (tg : Nat) (m : OsM
     · iapply (osWorld_unfold (L := L)).1 $$ Hw
     iapply wp_value'
     iapply HΦ; ileft; iframe; ipureintro; rfl
-  · imod resize_undone_world hwf hcoh hF Hr Hfr $$ HAb HAm HAf HAt Htok Hcells Hσ Ht
+  · imod resize_undone_worldK keep hwf hcoh hF Hr Hfr $$ HAb HAm HAf HAt Htok Hcells Hσ Ht
       with ⟨⟨%Γb', %Γm', %Γf', %Γt', Hw⟩, Hd⟩
     imodintro
     iexists Γb', Γm', Γf', Γt'
@@ -238,7 +239,7 @@ theorem wp_osFallocFinish (t : Nat) (p : Ino) (tg : Nat) (m : OsMeta) (n : Nat) 
            ∃ w, ⌜m.size ≤ w ∧ w ≤ tg⌝ ∗ rsDone (L := L) false p tg w m n))) -∗
         Φ (#e)) -∗
       WP (ExternalOp fsExt.name "FallocFinish" (Val (osTokV t))) @ s; E {{ Φ }} := by
-  simp only [← rsDoneK_false (xs := [])]
+  simp only [← rsDoneK_false (xs := []), ← rsUndoneK_false]
   exact wp_osFallocFinishK false t p tg m n hgrow (fun h => by cases h) hE Φ
 end specs
 
