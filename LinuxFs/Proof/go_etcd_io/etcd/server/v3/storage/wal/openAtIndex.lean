@@ -27,6 +27,7 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.OpenNames
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateArea
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreatePure
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.OpenAtTail
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutName
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.selectWALFiles
 
 @[expose] public section
@@ -118,6 +119,19 @@ theorem walReadTie_facts {dir : GoString} {write : Bool} {gs : List SegG} {fs : 
   obtain ⟨hb, f, fd, hf, hS⟩ := h3 k F g hF hg
   exact ⟨hb, hnm g (List.mem_of_getElem? hg), f, fd, hf, hS⟩
 
+theorem osCallPerm_halves' :
+    osCallPerm (L := hG.goose_localGS) 1 ⊢
+      osCallPerm (L := hG.goose_localGS) (1 : Qp).half ∗ osCallPerm (L := hG.goose_localGS) (1 : Qp).half := by
+  have h := osCallPerm_split (L := hG.goose_localGS) (1 : Qp).half (1 : Qp).half
+  rw [Qp.half_add_half] at h
+  exact h.1
+
+theorem walTmpsRes_split (j : Ino) :
+    walTmpsRes (hG := hG) j ⊢ tmpClaim (hG := hG) j (pipeTmp 0) ∗ tmpClaim (hG := hG) j (pipeTmp 1) := by
+  unfold walTmpsRes walTmps
+  iintro ⟨H0, H1, -⟩
+  iframe
+
 theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMarshal)
     (hpin : ∀ R jr r, WalPinSized (L := hG.goose_localGS) (W := W) walCodec Mr R jr r)
     (hpath : ∀ R jr r, WalDirPathLaw (L := hG.goose_localGS) (W := W) walCodec Mr R jr r)
@@ -128,7 +142,6 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
     (wp_openFiles : go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.spec (GF := GF) (hG := hG))
     (wp_NewDecoder : go_etcd_io.etcd.server.v3.storage.wal.NewDecoder.spec (GF := GF) (hG := hG))
     (wp_tail : go_etcd_io.etcd.server.v3.storage.wal.WAL.tail.spec (GF := GF) (hG := hG))
-    (wp_Name : os.File.Name.spec (GF := GF) (hG := hG))
     (wp_Base : filepath.Base.spec (GF := GF) (hG := hG))
     (wp_parse : go_etcd_io.etcd.server.v3.storage.wal.parseWALName.spec (GF := GF) (hG := hG))
     (wp_pipe : go_etcd_io.etcd.server.v3.storage.wal.newFilePipeline.spec (GF := GF) (hG := hG))
@@ -372,7 +385,102 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
         · ipureintro; exact htf
         iexact Hlk
       ipureintro; trivial
-    sorry
+    · -- write mode
+      have hgLm : gL ∈ lay.segs := by
+        have := List.mem_of_getElem? hgL
+        rw [← hgs] at this; exact List.mem_of_mem_drop this
+      obtain ⟨sqL, ixL, hgLn⟩ := hnmf gL hgLm
+      obtain ⟨ls, lt, hlfs⟩ : ∃ ls lt, lfs = ls ++ [lt] := by
+        rcases List.eq_nil_or_concat lfs with h0 | ⟨ls, lt, h1⟩
+        · subst h0; simp at hll; omega
+        · exact ⟨ls, lt, by rw [h1, List.concat_eq_append]⟩
+      have hlt : lfs.getD (gs.length - 1) null = lt := by
+        subst hlfs; simp only [List.length_append, List.length_singleton] at hll
+        rw [← hll]; simp [List.getD]
+      rw [hlt]
+      simp only [↓reduceIte]
+      icases Hlast with ⟨%fL, #HfL, #HltL⟩
+      try wp_auto
+      rw [hlfs]
+      wp_apply (wp_tail wl lsl ls lt (DFrac.own 1) (DFrac.own 1)) $$ [locks Hlsl] as ⟨locks, Hlsl⟩
+      · iframe
+      ihave #Hlt1 := HltL
+      iunfold fileutil.lockedFile at Hlt1
+      ihave %hltn := typedPointsto_not_null lt _ _ $$ Hlt1
+      iStructNamed Hlt1
+      try simp only [decide_eq_false hltn]
+      try wp_auto
+      wp_method_call
+      wp_call
+      try wp_auto
+      wp_apply os.File.Name.wp_named fL (child dir gL.name) $$ []
+      · iexact HfL
+      try wp_auto
+      wp_apply wp_Base as %bn %hbn
+      rw [hgLn, baseModel_child_walFileName] at hbn
+      subst hbn
+      try wp_auto
+      obtain ⟨hsuf, hscan⟩ := scanWalName_walFileName sqL ixL
+      wp_apply wp_parse as %sq' %ix' %perr %hpe
+      obtain ⟨rfl, -, -⟩ := hpe.1 _ _ hsuf hscan
+      try wp_auto
+      ihave #Hw2 : (wal.walInit : IProp GF) $$ []
+      · iapply isPkgInit_access $$ Hpkg
+      icases Hw2 with ⟨-, -, #Hseg, -⟩
+      try wp_auto
+      ihave ⟨Hperm1, Hperm2⟩ := osCallPerm_halves' $$ Hperm
+      ihave ⟨Ht0, Ht1⟩ := walTmpsRes_split lay.j $$ Ht
+      iapply wp_notCrashed_acc _ _ rfl
+      iintro Hnc
+      imod walInv_mintOpening walCodec Mr R jr r wl dir s $$ Hinv Hnc Hl with ⟨Hnc, Hop⟩
+      imodintro
+      iframe Hnc
+      wp_apply wp_pipe lg dir (W64 64000000) R (DFrac.own qd) lay.j (by decide) (by decide) (by omega)
+        (by decide) $$ [Hperm1 Hpd Ht0] as %fp ⟨%γ, #Hfp, Hmain⟩
+      · iframe; iframe #
+        unfold pipeRes
+        iframe
+      try wp_auto
+      iapply HΦ
+      iframe Hp
+      isplitl [HN Hcl]
+      · iapply walAreaRes_close jr N h cl hok; iframe
+      iexists o
+      iframe HQ
+      iright
+      isplitr
+      · ipureintro; rfl
+      isplitr
+      · ipureintro; exact ho
+      iframe dirFile Hop Hperm2
+      unfold walReadH walOpenIn walReadTie
+      isplitl [lg dir start]
+      · iexists lg, sp'
+        iframe
+        iframe #
+      rw [← hlfs]
+      iexists dec, IoE, eof, ueof, fs, lsl, lfs, fp, func.nil
+      subst hdI
+      iframe
+      iframe #
+      simp only [↓reduceIte]
+      isplitl [Ho Hlk]
+      · iexists gs, fls
+        iframe Ho
+        isplitr
+        · ipureintro; exact ⟨hndg, hS⟩
+        isplitr
+        · ipureintro; exact htf
+        rw [hlfs]
+        iexact Hlk
+      isplitr
+      · ipureintro; rfl
+      iexists lay.j
+      unfold walPipeH
+      iexists γ, R, DFrac.own qd, W64 64000000, 0
+      iframe
+      iframe #
+      ipureintro; exact Nat.le_refl 0
 
 end proof
 
