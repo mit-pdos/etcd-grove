@@ -1,12 +1,13 @@
 /-
 `c.SetDeadline(tm)` on a `Conn` `c` that is the end `s` of a TCP connection `cn` (`isConn`), through
-the interface (`conn.SetDeadline.impl`, promoted), for any `time.Time` `tm` (the model does not
-read it: a deadline in the past, in the future or cleared, `time.Time{}`, all record the same):
-the extension's `SetDeadline`, whose outcome the caller takes by a logically atomic update over the
-end's state: a failure of a closed end, which changes nothing, or the deadline recorded
-(`TcpEnd.dl`, after which a failed operation does not break the end, `TcpEnd.onFail`). Its result
-`Q ok` is handed back with the error: `nil` for `ok`, else an `*OpError`. Proved in
-`NetTcp/Proof/net/Conn__SetDeadline.lean`.
+the interface (stated on the resolved method; `conn.SetDeadline.impl`, promoted, the model
+`model.setDeadline`, `NetTcp/TrustedCode/net.lean`): the extension's `SetDeadline` of both the read
+and the write deadline, whose outcome (`DeadlineOutcome`, `GooseLang/Ext/Tcp/Impl.lean`, D5) the
+caller takes by a logically atomic update over the end's state (`tcpEnd`): on a closed end an
+error; otherwise both deadlines set, unless `tm` is Go's zero time (`timeIsZero` of its two words,
+`Time.IsZero`), which clears them. The deadline's value is not modeled: with a deadline set, an
+operation may time out. Its result `Q ok` is handed back with the error: `nil` for `ok`, else an
+`*OpError`. Proved in `NetTcp/Proof/net/Conn__SetDeadline.lean`.
 -/
 module
 
