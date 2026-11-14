@@ -2748,7 +2748,28 @@ bound.**
   `h.cuts.Pairwise` is not carried: `walTail_append` returns it.
 - *Spec defect (ledger 2026-11-14, pending)*: nothing bounds the records' size (`Mr.encEntry e`, `Mr.encSnap md`), which
   the commit needs (`WalAbsD.fit`, `2^56`) and the encoder needs (`2^47`): proposed premises of `Save`/`SaveSnapshot`.
-- *Not done*: `saveEntry`, `saveState`, `Save`, `SaveSnapshot` (task 3).
+- *Records' size (minor fix, ledger 2026-11-14)*: `Save` takes `∀ e ∈ es, (Mr.encEntry e).length < 2^40`,
+  `SaveSnapshot` `(Mr.encSnap md).length < 2^40`; `saveOp_fit` (over `recsFit_chainRecs_small`, `recSize_le`)
+  gives the append's fit premise for a `Save`.
+- *`Save.wp_proof` started* (`WAL__Save.lean`): the commit at the call's first step (`wp_notCrashed_acc`,
+  `walHandleIn_append` with `saveOp_fit`/`saveOp_idx`), then **`sorry`** (the body). What the body needs, in order:
+  (1) `wp_with_defer`, `sync.Mutex.wp_Lock` on `w.mu` (`walHandleIn`'s `isMutex … True`; `import all` of `Handle`
+  to reach it, then fold back before each callee); (2) the shortcut (`WalPbIn.IsEmptyLaw`, `WAL__cutPre.lean`'s,
+  as a hypothesis; `len(ents) = 0`): `walOpenWF` back at `H ++ [save hs []]` (`rest = 0`; `Done` needs `walLastHS`
+  of an empty save unchanged, a small lemma), `Hlb`, `Q d`, `walMustSync` vacuous; (3) `st == nil`/`w.state == nil`
+  → `&raftpb.HardState{}`: a law of `P` (a fresh zero `HardState` holds `hsZero`; `P.hsIn null hs → hs = hsZero`),
+  a new hypothesis; (4) `raft.MustSync` over `P.hsIn` (a new law, `MustSync(st, prev, n) = (n ≠ 0 ∨ vote/term
+  differ)`, which with `Done`'s `st = walLastHS H` is `walMustSync` off the shortcut); (5) the entries loop
+  (invariant: the handle at `rest = |opDs| - i`, `enti` the last saved entry's index; `saveEntry`'s record premise
+  from `tailRecs_snoc`/`chainRecs`, its `rest = 1` index premise from `walLastIdx` of the new history); (6)
+  `saveState`; `w.tail().Seek(0, SeekCurrent)` (`wp_tail`, `os.File.Seek.wp_cur` on `walTailW`'s offset, as
+  `cut`'s step 1) against `SegmentSizeBytes`; then `sync` if `mustSync` (`sync.spec`, blocked on writes past the
+  size only through its own proof) or `cut` (premises: `walPc_bound` with a step's receipt, `hcp` for the cuts,
+  `walCutPos` of `|H ++ [o]|` since the save wrote a record, `hmd` and `walAreaOk_encState` for `2^42`); (7) the
+  deferred `Unlock`. `saveEntry`/`saveState` stay `sorry` (the tail writer's guard `tailOk` still has the size
+  clause: writes past the size wait for `wal-tc2`'s window continuation).
+- *Not done*: `saveEntry`, `saveState`, the body of `Save`, `SaveSnapshot` (its commit is `walTail_append` on the
+  unsealed handle: `w.snapi` is raised after the encode).
 
 ## W3/W5 implementation log (branch `wal-read`, 2026-11-13)
 
