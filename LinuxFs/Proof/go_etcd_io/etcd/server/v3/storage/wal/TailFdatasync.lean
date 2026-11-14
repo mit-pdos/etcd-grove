@@ -37,9 +37,7 @@ variable [fu_sem : go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 /-- `TailMeta` of the synced tail. -/
 theorem TailMeta.synced {m : OsMeta} {bs : List ByteG} (h : TailMeta m bs) :
     TailMeta m.synced (bs.map (fun x => durB x.1)) :=
-  ⟨by simp [OsMeta.synced, h.1], h.2.1, fun z hz => by
-    simp only [OsMeta.synced, Option.some.injEq] at hz
-    subst hz; exact OsMeta.size_le_syncZ m, rfl, rfl⟩
+  ⟨by simp [OsMeta.synced, h.1], h.2.1, h.2.2.1.synced, rfl, rfl⟩
 
 /-- **`syscall.Fdatasync` of the tail** (see the file header). -/
 theorem syscall.Fdatasync.wp_tail (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)

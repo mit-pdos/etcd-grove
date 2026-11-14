@@ -600,7 +600,12 @@ theorem resize_done_worldK (keep : Bool) {st : OsState} {Γb Γm Γf Γt} {h h' 
           have h1 := hmo.maps b len; simp only [announce_maps] at h1
           simp only [rsPostK_maps, rsPost, announce_maps]; exact h1,
         fun t2 c2 h1 h2 => ?_, fun b hb hn => ?_, fun z hz => ?_, fun b cs hb hc => ?_,
-        fun b hb hbz => ?_, fun s hs => ?_⟩
+        fun b hb hbz => ?_, fun s hs => ?_, fun z hz b hzb => ?_⟩
+      rotate_right 1
+      · rw [hcache b]
+        split
+        · rfl
+        · exact hmo.zc z hz b hzb
       rotate_right 1
       · show s ∈ f.rzs
         have hmz : ∀ s ∈ m.rz, s ∈ f.rzs := fun s hs => hmo.rz s (by simpa using hs)

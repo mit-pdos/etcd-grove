@@ -331,7 +331,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   -- step 5: the headers, on the owned `N.tmp`
   iunfold pipeFile at Hpf
   icases Hpf with ⟨%f2, %fd2, %i2, %m2, %ht, #Hlf2, Hf2, Hoff2, Hfd2, Hm2, Hz2, Hn2, %hpf⟩
-  obtain ⟨hfd2, hmaps2, hcur2, hcut2, hlo2, hsz8, hszmax⟩ := hpf
+  obtain ⟨hfd2, hmaps2, hcur2, hcut2, hlo2, hsz8, hszmax, hzp2⟩ := hpf
   wp_apply wp_slice_literal (V := Loc) [ntl]
   isplitr
   · ipureintro; rfl
@@ -829,6 +829,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   have htm : TailMeta g.om g.bs := by
     rw [← hg]
     exact tailMeta_synced _ _ (by simp [hysS]) (by rw [hokS.2.2.2.1]; exact hmaps2)
+      (metaChain_zeroPg hokS.2.1 (Nat.zero_le _) hzp2).pageEnd_size
   have hgsz : g.bs.length ≤ 0xffffffff000 := by rw [hgbsL, hysS, hszS]; omega
   have hfd3' : openFd g.ino (W64 1 ||| W64 524288) = ⟨g.ino, false, true⟩ := by
     unfold openFd; congr 1

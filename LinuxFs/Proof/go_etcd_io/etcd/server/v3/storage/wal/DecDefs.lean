@@ -10,11 +10,14 @@ ghost state is the pure model's (`WalEncDecoder.lean`, `goDecode`): the files le
 
 * `decRdErr bs eof IoE r e`: the errors a file's reader may return after delivering `r`: `io.EOF`
   at the end of the bytes `bs` only, or an I/O error of the client's set `IoE` (which the decoder
-  passes on as it is).
+  passes on as it is). `decRdE` adds the evidence the reader gives with each error: `errors.Is(e,
+  io.EOF)`'s answer (`isEofAns`; 2026-11-14, ledger "the readers' errors and `errors.Is`": the answer
+  on an I/O error is a heap fact, a `*PathError`'s `Err` field, which no pure `IoE` can carry).
 * `fileInfoOk fi n`: the `fs.FileInfo` `fi`'s `Size()` returns `n` and its `Name()` some string.
 * `decFile IoE eof F` (persistent): `F.fr` (a `fileutil.FileReader`) reads `F.bs` as the stream
-  `F.S` (each state a prefix of the bytes), its `FileInfo()` (from any state, which it keeps)
-  returns an `IoE` error or a file info of size `|F.bs|`; `|F.bs| + 2^12 < 2^62` (a `bufio` refill reads 4 KiB past the position, at most
+  `F.S` (each state a prefix of the bytes, the errors `decRdE`'s), its `FileInfo()` (from any state,
+  which it keeps) returns an `IoE` error with its `errors.Is(_, io.EOF)` answer (`decAns`) or a file
+  info of size `|F.bs|`; `|F.bs| + 2^12 < 2^62` (a `bufio` refill reads 4 KiB past the position, at most
   past the end: `io.readerStream`'s bound on each read).
 * `ownFbr fbr IoE eof F r`: the `*FileBufReader` at `fbr` over `F`, having delivered `r`.
 * `ownDecoder d IoE eof fs off c live`: the `*decoder` at `d` over the files `fs` left (its
@@ -22,10 +25,10 @@ ghost state is the pure model's (`WalEncDecoder.lean`, `goDecode`): the files le
   `d.mu` (guarding nothing: the decoder is owned). When `live`, the first file's reader has
   delivered exactly its first `off` bytes and the others nothing (what `Decode` needs to step as
   `goDecode`); after an error that consumed bytes (a short read, a bad frame) it is not.
-* `isEofOk IoE eof ueof` (persistent): `errors.Is(e, io.EOF)` answers `e == io.EOF` on `nil` and the
-  errors a reader returns here (`io.EOF`, `io.ErrUnexpectedEOF`, `IoE`'s), and `io.EOF` is neither
-  `io.ErrUnexpectedEOF` nor an `IoE` error: a client obligation, from `errors.Is`'s spec, the two
-  `errors.New` allocations and the error trees of `IoE`'s errors. (Without `¬ IoE io.EOF` a reader
+* `isEofOk IoE eof ueof` (persistent): `errors.Is(e, io.EOF)` answers `e == io.EOF` on `nil`,
+  `io.EOF` and `io.ErrUnexpectedEOF` (the I/O errors' answers come with them, `decRdE`), and `io.EOF`
+  is neither `io.ErrUnexpectedEOF` nor an `IoE` error: from `errors.Is`'s spec and the two
+  `errors.New` allocations (`wal_decEnv`, `openAtIndex.lean`). (Without `¬ IoE io.EOF` a reader
   could end a file early with `io.EOF`, and the decoder would go on in the next file.)
 -/
 module
@@ -88,13 +91,39 @@ instance fileInfoOk_persistent (fi : GoInterface) (n : Nat) :
     Persistent (fileInfoOk (GF := GF) fi n) := by
   unfold fileInfoOk; infer_instance
 
+/-- **`errors.Is(e, io.EOF)` answers whether `e` is `io.EOF`** (persistent). -/
+def isEofAns (e eof : GoInterface) : IProp GF :=
+  iprop(□ {{ (True : IProp GF) }}
+      (App (App (Val (@! _root_.Perennial.errors.Is)) (Val #e)) (Val #eof))
+    {{ (b : Bool), RET #b; ⌜b = decide (e = eof)⌝ }})
+
+instance isEofAns_persistent (e eof : GoInterface) : Persistent (isEofAns (GF := GF) e eof) := by
+  unfold isEofAns; infer_instance
+
+/-- **The answer of `errors.Is(err, io.EOF)` on an error that may be `nil`** (persistent): `err` is
+`nil` or the call answers whether `err` is `io.EOF`. -/
+def decAns (eof err : GoInterface) : IProp GF :=
+  iprop(⌜err = GoInterface.nil⌝ ∨ isEofAns err eof)
+
+instance decAns_persistent (eof err : GoInterface) : Persistent (decAns (GF := GF) eof err) := by
+  unfold decAns; infer_instance
+
+/-- See the file header: a reader's error, with `errors.Is(_, io.EOF)`'s answer on it. -/
+def decRdE (bs : List w8) (eof : GoInterface) (IoE : GoInterface → Prop) (r : List w8)
+    (e : GoInterface) : IProp GF :=
+  iprop(⌜decRdErr bs eof IoE r e⌝ ∗ isEofAns e eof)
+
+instance decRdE_persistent (bs : List w8) (eof : GoInterface) (IoE : GoInterface → Prop)
+    (r : List w8) (e : GoInterface) : Persistent (decRdE (GF := GF) bs eof IoE r e) := by
+  unfold decRdE; infer_instance
+
 /-- See the file header. -/
 def decFile (IoE : GoInterface → Prop) (eof : GoInterface) (F : DecFile GF) : IProp GF :=
-  iprop(io.readerStream F.fr F.S (decRdErr F.bs eof IoE) ∗
+  iprop(io.readerStream F.fr F.S (decRdE F.bs eof IoE) ∗
     (□ ∀ r, F.S r -∗ ⌜r <+: F.bs⌝) ∗
     (□ ∀ r, {{ F.S r }} (App (Val #(methods F.fr.ty go!"FileInfo" F.fr.v)) (Val #()))
         {{ (fi : GoInterface) (err : GoInterface), RET (PairV #fi #err);
-            F.S r ∗ ⌜err ≠ GoInterface.nil → IoE err⌝ ∗
+            F.S r ∗ ⌜err ≠ GoInterface.nil → IoE err⌝ ∗ decAns eof err ∗
             (⌜err = GoInterface.nil⌝ -∗ fileInfoOk fi F.bs.length) }}) ∗
     ⌜F.fr.ty ≠ go.GoType.PointerType _root_.Perennial.bufio.Reader.ty ∧ F.bs.length + 2 ^ 12 < 2 ^ 62⌝)
 
@@ -110,8 +139,8 @@ def ownFbr (fbr : Loc) (IoE : GoInterface → Prop) (eof : GoInterface) (F : Dec
   iprop(∃ (b : Loc) (fi err : GoInterface),
     fbr ↦□ go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader.mk b fi err ∗
     decFile IoE eof F ∗
-    bufio.ownReader b F.fr F.S (decRdErr F.bs eof IoE) r ∗
-    ⌜err ≠ GoInterface.nil → IoE err⌝ ∗
+    bufio.ownReader b F.fr F.S (decRdE F.bs eof IoE) r ∗
+    ⌜err ≠ GoInterface.nil → IoE err⌝ ∗ decAns eof err ∗
     (⌜err = GoInterface.nil⌝ -∗ fileInfoOk fi F.bs.length))
 
 /-- The CRC digest the decoder holds (`d.crc`, `crc.New(prev, crcTable)`), at `c`. -/
@@ -180,7 +209,7 @@ instance walCrcTable_persistent : Persistent (walCrcTable (GF := GF)) := by
 /-- See the file header. -/
 def isEofOk (IoE : GoInterface → Prop) (eof ueof : GoInterface) : IProp GF :=
   iprop(⌜eof ≠ ueof ∧ ¬ IoE eof⌝ ∗
-    □ ∀ e : GoInterface, ⌜e = GoInterface.nil ∨ e = eof ∨ e = ueof ∨ IoE e⌝ →
+    □ ∀ e : GoInterface, ⌜e = GoInterface.nil ∨ e = eof ∨ e = ueof⌝ →
     {{ (True : IProp GF) }}
       (App (App (Val (@! _root_.Perennial.errors.Is)) (Val #e)) (Val #eof))
     {{ (b : Bool), RET #b; ⌜b = decide (e = eof)⌝ }})
@@ -238,22 +267,6 @@ instance decEnv_persistent (IoE : GoInterface → Prop) (eof ueof : GoInterface)
     Persistent (decEnv (GF := GF) IoE eof ueof) := by
   unfold decEnv; infer_instance
 
-/-- **`errors.Is(e, io.EOF)` answers whether `e` is `io.EOF`** (persistent). -/
-def isEofAns (e eof : GoInterface) : IProp GF :=
-  iprop(□ {{ (True : IProp GF) }}
-      (App (App (Val (@! _root_.Perennial.errors.Is)) (Val #e)) (Val #eof))
-    {{ (b : Bool), RET #b; ⌜b = decide (e = eof)⌝ }})
-
-instance isEofAns_persistent (e eof : GoInterface) : Persistent (isEofAns (GF := GF) e eof) := by
-  unfold isEofAns; infer_instance
-
-/-- **The answer of `errors.Is(err, io.EOF)` on what `Decode` returns** (persistent): `err` is `nil`
-or the call answers whether `err` is `io.EOF`. -/
-def decAns (eof err : GoInterface) : IProp GF :=
-  iprop(⌜err = GoInterface.nil⌝ ∨ isEofAns err eof)
-
-instance decAns_persistent (eof err : GoInterface) : Persistent (decAns (GF := GF) eof err) := by
-  unfold decAns; infer_instance
 
 /-- **What `Decode` (and `decodeRecord`) returns from the live decoder `(fs, off, c)`**: what
 `goDecode` says (a record in `*rp` and the decoder live at the next frame; or the stop's error,

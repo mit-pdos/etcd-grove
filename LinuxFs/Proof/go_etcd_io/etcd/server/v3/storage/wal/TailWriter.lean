@@ -178,7 +178,7 @@ theorem wp_tailPWriteStart (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStrin
   ihave Hb := Hclose $$ %g' %lay.wr %F' [] [Htok Hp2 Hs2] Hv'
   · ipureintro
     refine ⟨hino.symm, by simp [g', segAnn, cfMeta, hcut0], segAnn_length hin' hlen, ?_, ?_, ?_⟩
-    · refine ⟨fun z hz => by rw [hlen]; exact hm.2.2.1 z hz, hex0, ?_⟩
+    · refine ⟨fun z hz => by rw [hlen]; exact hm.2.2.1.ge z hz, hex0, ?_⟩
       have hT : max g0.om.size (off.toNat + data.length) = g0.om.size := by omega
       have e1 := hex0.1
       have e2 := hex0.2
@@ -298,7 +298,7 @@ theorem wp_tailPWriteFinish (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStri
     rw [hom] at hz
     simp only [cfMeta, announce_zf, Option.map_eq_some_iff] at hz
     obtain ⟨z0, hz0, rfl⟩ := hz
-    have h1 := hm.2.2.1 z0 hz0
+    have h1 := hm.2.2.1.ge z0 hz0
     have h2 : g0.bs.length = fl.m.size := by
       rw [hbs]; simp only [List.length_append, List.length_take, List.length_drop, pwAnn_length]
       rw [cfRange_length hin hl, hlo, hhi]; omega
@@ -333,11 +333,7 @@ theorem wp_tailPWriteFinish (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStri
     rotate_left
     · have := hm.2.2.2.1; simp only [pwPost, announce_lo, hps]; omega
     · have := hm.2.2.2.2; simp only [pwPost, announce_hi, hps]; omega
-    intro z hz
-    simp only [pwPost, announce_zf, Option.map_eq_some_iff] at hz
-    obtain ⟨z0, hz0, rfl⟩ := hz
-    have := hm.2.2.1 z0 hz0
-    simp only [pwPost, hps]; split <;> omega
+    exact hm.2.2.1.pwPost_in (by omega) (by omega)
   have hpost : k ≤ fl.data.length ∧ ((k = fl.data.length ∨ 0 < k) ∧ e = 0 ∨ e ≠ 0) ∧
       TailMeta (pwPost fl.m fl.off fl.data.length k) (finBytes fl.m fl.bs fl.off fl.data k fl.n zs) ∧
       (pwPost fl.m fl.off fl.data.length k).size = fl.m.size ∧

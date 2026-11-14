@@ -39,10 +39,8 @@ theorem TailMetaS.meta {m : Fs.OsMeta} {bs : List Fs.ByteG} (h : TailMetaS m bs)
 /-- The tail after a successful fdatasync (`wp_osFsync`'s post): synced. -/
 theorem TailMetaS.of_sync {m : Fs.OsMeta} {bs : List Fs.ByteG} (h : TailMeta m bs) :
     TailMetaS m.synced (bs.map (fun x => Fs.durB x.1)) := by
-  refine ⟨⟨by simp [OsMeta.synced, h.1], h.2.1, fun z hz => ?_, rfl, rfl⟩, fun y hy => ?_⟩
-  · simp only [OsMeta.synced, Option.some.injEq] at hz
-    subst hz; show m.size ≤ m.syncZ; unfold OsMeta.syncZ; have := le_pageEnd m.size; split <;> omega
-  · obtain ⟨x, -, rfl⟩ := List.mem_map.1 hy; rfl
+  refine ⟨⟨by simp [OsMeta.synced, h.1], h.2.1, h.2.2.1.synced, rfl, rfl⟩, fun y hy => ?_⟩
+  obtain ⟨x, -, rfl⟩ := List.mem_map.1 hy; rfl
 
 end synced
 
