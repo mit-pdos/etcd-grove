@@ -17,6 +17,29 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `internal/stringslite.HasPrefix`/`HasSuffix` and `strings.HasSuffix` without bodies (2026-11-14, branch `wal-leaf6`)
+
+- **Missing.** Perennial's `internal/stringslite.toml` translates nothing but `Clone` (trusted), and
+  `strings.toml` has `HasPrefix` as a trusted model but not `HasSuffix` (names only). Two calls of
+  the WAL cannot be stepped: `filepathlite.IsAbs(p)` is `stringslite.HasPrefix(p, "/")`
+  (`path_unix.go`; the part translates `internal/filepathlite` with bodies, `LinuxFs/Code/
+  internal/filepathlite.toml`), reached by `filepath.Abs`, `fileutil.IsDirWriteable`,
+  `TouchDirAll`, `CreateDirAll`, `Create`; and `strings.HasSuffix(name, ".wal")` (`checkWALNames`,
+  `parseWALName`).
+- **Workaround here.** `strings.HasSuffix.spec` is a main-tree trust-boundary axiom
+  (`Proof/strings/HasSuffix.lean`), linked in the WAL's `Link.lean` through the part's generated copy
+  (`etc/gen-part-copies.py`; the same axiom, no new one); `filepathlite.IsAbs.spec` has no axiom and
+  stays a hypothesis `h_filepathlite_IsAbs` of the six results that reach it. The part cannot
+  translate `internal/stringslite` itself: its translation would declare Perennial's names
+  (`Perennial.internal.stringslite.*`), which Perennial's `strconv`, `strings`, ... already import.
+- **Proposed.** Translate `stringslite.HasPrefix` and `HasSuffix` with bodies (`len(s) >= len(prefix)
+  && s[:len(prefix)] == prefix`; goose now translates string slicing, `Slice go.string`, as the
+  part's `filepathlite.Dir` shows) and `strings.HasSuffix` (a call of `stringslite.HasSuffix`), with
+  specs `RET #(decide (pre <+: s))` / `#(decide (suf <:+ s))` in `Perennial/Proof/{internal/
+  stringslite,strings}/`. Then `filepathlite.IsAbs.spec` is proved in the part (`RET #(decide
+  (p.head? = some (W8 47)))` from `go!"/" <+: p`) and the HasSuffix axiom becomes a theorem. Not yet
+  proposed.
+
 ### `append` does not model `growslice`'s `maxAlloc` limit (2026-11-14, branch `wal-small14`)
 
 Go's `append` panics ("growslice: len out of range") once the new capacity times the element size
@@ -115,6 +138,9 @@ local model go.
   fast path, if goose cannot translate the type switches. Then the two axioms here become
   `theorem`s with the same statements (the specs are already over Perennial's names). Not yet
   proposed.
+- **Status.** (2026-11-14, `wal-leaf6`) The WAL's `Link.lean` (`LinuxFs/`) rests on both axioms
+  through the part's generated copies of `Proof/io/ReadFull.lean` and `Proof/encoding/binary/
+  ReadInt64LE.lean` (`etc/gen-part-copies.py`: the same statements, not new axioms).
 
 ### Operations on untyped rune constants have no step (2026-11-13, WAL leaf specs, branch `wal-leaf-std2`)
 
@@ -154,6 +180,10 @@ local model go.
   verbs (`SkipSpace` over-approximated as here: an input byte that may begin a space makes the rest
   arbitrary), with `scanWalName` as its instance. (3) A trusted model of `Time.Format` returning an
   arbitrary string (Perennial's `arbitraryString`), so its spec is proved. Not yet proposed.
+- **Status.** (2026-11-14, `wal-leaf6`) Still missing at the pin (`intVerb` accepts a width only
+  before `d`; `Sscanf` names-only). The WAL's `Link.lean` rests on `fmt.SprintfWalName.wp_proof` and
+  `fmt.SscanfWalName.wp_proof` through the part's generated copies (`etc/gen-part-copies.py`: the
+  same statements, not new axioms).
 
 ### `sort.Sort`'s spec as a function of its input (2026-11-09, specs-only batch 3b)
 
@@ -872,6 +902,17 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   `wp_Errorf_setArgs` from the model with the faithfulness of that case as its premise.
 - **Proposed.** An `ArgWf` case for maps whose type has no formatting method (the value printed
   structurally; the spec needs only that `Errorf` returns a non-nil error).
+- **Status.** Not started.
+
+### Specs: `fmt`'s `ArgWf` for `[]string` and `fs.FileMode` arguments (2026-11-14, `wal-leaf5`)
+
+- **Missing.** Perennial's `fmt.Errorf` spec admits only basic arguments and arguments whose
+  `Error()`/`String()` has a spec: etcd's `fileutil.CreateDirAll` formats a `[]string` (`%q`) and
+  `CheckDirPermission` two `fs.FileMode`s (`%q`, `String()`, untranslated).
+- **Workaround here.** `LinuxFs/Spec/fmt/ErrorfStrs.lean` (`fmt.ErrorfStrs.spec`), proved over the model
+  (`LinuxFs/Proof/fmt/ErrorfStrs.lean`), the faithfulness argued in its header (as `fmt.ErrorfErrs`).
+- **Proposed.** `ArgWf` cases for a slice of basic values (printed structurally, its contents read: a
+  fraction held) and for a type whose `String()` is translated and specified (`FileMode.String`).
 - **Status.** Not started.
 
 ### Tactics: `wp_load` misses a field of a whole-struct points-to with a generic-struct field (2026-10-27, client-go listers)

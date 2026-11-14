@@ -132,23 +132,48 @@ theorem tmpDirH_none (j : Ino) (b : GoString) (h : NamesH) (hb : h.cur !! b = no
   · iexact Hn
   · iempintro
 
-/-- A name holding a directory that holds no directory, both claims whole: `tmpDirH`. -/
+/-- A name holding a directory that holds no directory, both claims whole, with its `.touch`'s
+file: `tmpDirH`. -/
 theorem tmpDirH_dir (j : Ino) (b : GoString) (h : NamesH) (J : Ino) (hJ : NamesH)
     (hb : h.cur !! b = some (.dir J)) (hno : ∀ c J', hJ.cur !! c ≠ some (.dir J')) :
-    osNames (GF := GF) j (.only [b]) (DFrac.own 1) h ∗ osNames J (.except []) (DFrac.own 1) hJ ⊢
-      tmpDirH j b h := by
+    osNames (GF := GF) j (.only [b]) (DFrac.own 1) h ∗ osNames J (.except []) (DFrac.own 1) hJ ∗
+      tmpEnt (hJ.cur !! go!".touch") ⊢ tmpDirH j b h := by
   unfold tmpDirH
   rw [hb]
   unfold tmpSub
-  iintro ⟨Hn, HJ⟩
+  iintro ⟨Hn, HJ, HT⟩
   iframe Hn
   iexists hJ
-  iframe HJ
+  iframe HJ HT
   ipureintro
   intro c n hc
   cases n with
   | file i => exact ⟨i, rfl⟩
   | dir J' => exact absurd hc (hno c J')
+
+/-- A name holding an empty directory, both claims whole: `tmpDirH`. -/
+theorem tmpDirH_dirE (j : Ino) (b : GoString) (h : NamesH) (J : Ino) (hJ : NamesH)
+    (hb : h.cur !! b = some (.dir J)) (he : hJ.cur = ∅) :
+    osNames (GF := GF) j (.only [b]) (DFrac.own 1) h ∗ osNames J (.except []) (DFrac.own 1) hJ ⊢
+      tmpDirH j b h := by
+  iintro ⟨Hn, HJ⟩
+  iapply tmpDirH_dir j b h J hJ hb (fun c J' hc => by rw [he] at hc; simp at hc)
+  iframe Hn HJ
+  rw [show hJ.cur !! go!".touch" = none by rw [he]; simp]
+  unfold tmpEnt
+  iempintro
+
+/-- What `IsDirWriteable` leaves at `.touch`: no directory, and its file whole if any. -/
+theorem touchOut_tmpEnt (o : Option Node) :
+    (⌜o = none⌝ ∨ ∃ i, ⌜o = some (.file i)⌝ ∗ trFile (GF := GF) i False) ⊢
+      ⌜∀ J', o ≠ some (.dir J')⌝ ∗ tmpEnt o := by
+  iintro (%h | ⟨%i, %h, Ht⟩)
+  · subst h; isplitl []
+    · ipureintro; intro J' hc; cases hc
+    · unfold tmpEnt; iempintro
+  · subst h; isplitl []
+    · ipureintro; intro J' hc; cases hc
+    · unfold tmpEnt; iexact Ht
 
 /-- A directory's claim merged from its `.only [b]` and `.except [b]` parts: each name's entry is the
 part's holding it. -/
@@ -314,9 +339,8 @@ theorem fileutil.TouchDirAll.wp_proof
       icases Hout with ⟨-, Hn1⟩
       icases Hnew with ⟨%hJ, HJ, %hJc⟩
       iexists _
-      iapply tmpDirH_dir jp name (h.log x (mkEnt jp name J s) (<[name := Node.dir J]> h.cur)) J hJ
-        (by simp [NamesH.log])
-        (fun c J' hc => by rw [hJc.1] at hc; simp at hc) $$ [Hn1 HJ]
+      iapply tmpDirH_dirE jp name (h.log x (mkEnt jp name J s) (<[name := Node.dir J]> h.cur)) J hJ
+        (by simp [NamesH.log]) hJc.1 $$ [Hn1 HJ]
       iframe
   | nil =>
     obtain ⟨⟨x, s, J⟩, rfl⟩ := Option.isSome_iff_exists.1 (hok rfl)
@@ -325,7 +349,6 @@ theorem fileutil.TouchDirAll.wp_proof
     icases Hnew with ⟨%hJ, HJ, %hJc⟩
     generalize hh1 : h.log x (mkEnt jp name J s) (<[name := Node.dir J]> h.cur) = h1
     have hcur1 : h1.cur !! name = some (.dir J) := by subst hh1; simp [NamesH.log]
-    have hno : ∀ c J', hJ.cur !! c ≠ some (.dir J') := fun c J' hc => by rw [hJc.1] at hc; simp at hc
     imod osNames_next R jp _ _ h1 CoPset.subseteq_top $$ Hsi Hn1 with ⟨Hn1, #Hlb⟩
     ihave Hs := (os.osPathS_joinPath R (joinPath [] rcs) j0 cs (DFrac.own qp) jp hR hm hcs).1 $$ Hp
     ihave %Hlen := ownSlice_len _ _ _ $$ Hsl
@@ -376,7 +399,7 @@ theorem fileutil.TouchDirAll.wp_proof
         isplitr
         · ipureintro; intro hc; cases hc
         iexists h1
-        iapply tmpDirH_dir jp name h1 J hJ hcur1 hno $$ [Hn1 HJ]
+        iapply tmpDirH_dirE jp name h1 J hJ hcur1 hJc.1 $$ [Hn1 HJ]
         iframe
       | nil =>
         wp_auto
@@ -416,7 +439,8 @@ theorem fileutil.TouchDirAll.wp_proof
       wp_apply wp_IsDirWriteable (child (joinPath (joinPath [] rcs) cs) name) R J (DFrac.own ε) _ 1 hlen hTn
         $$ [Hpc Hperm Ht]
       · iframe; isplitl [] <;> iassumption
-      iintro %err ⟨Hpc, Hperm, %hT, HT, %hTf⟩
+      iintro %err ⟨Hpc, Hperm, %hT, HT, Hd, %hTn⟩
+      icases touchOut_tmpEnt _ $$ Hd with ⟨%hTd, Hd⟩
       icases os.osPathS_unchild R _ name jp J ε a' hname $$ [Hpc Hpa] with ⟨%h'', Hp, Hne, %-⟩
       · iframe
       icases osNames_agree jp (.only [name]) _ _ h'' h1 $$ Hne Hnb with %he
@@ -436,7 +460,7 @@ theorem fileutil.TouchDirAll.wp_proof
         intro c J' hc
         rw [hMc c] at hc
         split at hc
-        · subst_vars; exact hTf.2 J' hc
+        · subst_vars; exact hTd J' hc
         · rw [hRc] at hc; cases hc
       wp_auto
       iapply HΦ
@@ -447,9 +471,12 @@ theorem fileutil.TouchDirAll.wp_proof
         isplitr
         · ipureintro; intro hc; cases hc
         iexists h''
-        iapply tmpDirH_dir jp name h'' J hM hcur1 hnoM $$ [Hn1 HM]
-        iframe
+        iapply tmpDirH_dir jp name h'' J hM hcur1 hnoM $$ [Hn1 HM Hd]
+        iframe Hn1 HM
+        rw [hMc go!".touch", if_pos rfl]
+        iexact Hd
       | nil =>
+        iclear Hd
         iright
         isplitr
         · ipureintro; rfl
@@ -463,7 +490,7 @@ theorem fileutil.TouchDirAll.wp_proof
         apply GMap.ext; intro c
         rw [hMc c]
         split
-        · subst_vars; rw [hTf.1 rfl]; simp
+        · subst_vars; rw [hTn rfl]; simp
         · rw [hRc]; simp
 
 theorem fileutil.CreateDirAll.wp_proof (hT : fileutil.TouchDirAll.spec (GF := GF))
@@ -511,7 +538,6 @@ theorem fileutil.CreateDirAll.wp_proof (hT : fileutil.TouchDirAll.spec (GF := GF
   subst he
   ihave Hn := (osNames_join jp (.only [name]) ε b' h'' hqq).1 $$ [Hne Hnb]
   · iframe
-  have hno : ∀ c J', hJ.cur !! c ≠ some (.dir J') := fun c J' hc => by rw [hf.2.2] at hc; simp at hc
   icases Hres with (⟨%names, %rs, %hrd, Hr⟩ | ⟨%he, -⟩)
   · obtain ⟨rfl, -, hnm, -, hout⟩ := hrd
     have hnames : names = [] := by
@@ -550,7 +576,7 @@ theorem fileutil.CreateDirAll.wp_proof (hT : fileutil.TouchDirAll.spec (GF := GF
       isplitr
       · ipureintro; intro hc; cases hc
       iexists h''
-      iapply tmpDirH_dir jp name h'' J hJ hf.1 hno $$ [Hn HJ]
+      iapply tmpDirH_dirE jp name h'' J hJ hf.1 hf.2.2 $$ [Hn HJ]
       iframe
 
 end proof

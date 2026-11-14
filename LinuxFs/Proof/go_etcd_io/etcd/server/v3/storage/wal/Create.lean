@@ -74,6 +74,12 @@ variable [fu_sem : go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 variable [os_sem : os.Assumptions] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
 variable [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 
+/-- The probe's name is not the first segment's. -/
+theorem touch_ne_walFileName : go!".touch" ≠ walFileName 0 0 := fun h => by
+  have := walNameP_walFileName 0 0
+  rw [← h] at this
+  revert this; decide
+
 set_option hygiene false in
 /-- **An error exit after the segment's create** (the deferred `f.Close()` and `RemoveAll(nm.tmp)`, the
 segment's claim merged back, the abort), at the deferred calls; unhygienic: it names `Create`'s
@@ -85,7 +91,10 @@ macro "create_seg_exit" : tactic => `(tactic| (
       $$ Hsi HJr Ho with ⟨%hJ', %hJf, HJ⟩
     ihave Ht : tmpDirH jr (tmpName nm) hT3 $$ [HT HJ]
     · unfold tmpDirH; rw [hJs.1]; unfold tmpSub; iframe HT; iexists hJ'; iframe HJ
-      ipureintro; exact hJf
+      rw [hJf.2 _ touch_ne_walFileName]
+      isplitr
+      · ipureintro; exact hJf.1
+      unfold tmpEnt; iempintro
     try wp_auto
     wp_apply +noauto wp_removeAllTmp wp_RmAbs wp_RmDir r (tmpName nm) R jr (e + a') hT3
       (tmpName_nameOk hnmO) $$ [Hp Ht Hperm] as %err' ⟨Hp, Hperm, Ht, -⟩
@@ -442,7 +451,10 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
         with ⟨%hJ', %hJf, HJ⟩
       ihave Ht : tmpDirH jr (tmpName nm) hT3 $$ [HT HJ]
       · unfold tmpDirH; rw [hJs.1]; unfold tmpSub; iframe HT; iexists hJ'; iframe HJ
-        ipureintro; exact hJf
+        rw [hJf.2 _ touch_ne_walFileName]
+        isplitr
+        · ipureintro; exact hJf.1
+        unfold tmpEnt; iempintro
       try wp_auto
       wp_apply wp_String as %f1 -
       wp_apply wp_Error as %f3 -
@@ -974,6 +986,11 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
       iintro Hnc
       imod create_unmint walCodec Mr R jr r (child r nm) N h cl Wn nm hC J
         (hJ'.restrict J ((NameSet.except []).diff walTmps)) hok hnm hNnm hnmA hctmp hcnm hfoJ
+        (by
+          simp only [NamesH.restrict]
+          by_cases hm : ((NameSet.except []).diff walTmps).Mem go!".touch"
+          · rw [restrictN_lookup _ _ _ hm, hJcur, if_neg touch_ne_walFileName]
+          · exact restrictN_lookup_not _ _ _ hm)
         $$ Hinv Hsi Hnc Hcr HNr HC HJh HJx HTmps with ⟨Hnc, Hu, %hN, %hT', %hNcur, HN, Ht⟩
       iframe Hnc
       imodintro

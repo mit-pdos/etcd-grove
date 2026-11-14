@@ -97,7 +97,7 @@ COPIES = [
     Whole('Spec/google_golang_org/protobuf/proto/UnmarshalPb.lean',
           add=['LinuxFs.Proof.google_golang_org.protobuf.proto.PkgInit']),
     # `proto.Clone`'s spec (`walpb.Snapshot.Clone`'s callee, `proto.CloneWalSnap.wp_proof`); its axiom
-    # is not copied yet (the part's link would need it)
+    # is copied below
     Whole('Spec/google_golang_org/protobuf/proto/ClonePb.lean',
           add=['LinuxFs.Proof.google_golang_org.protobuf.proto.PkgInit']),
     Whole('Proof/google_golang_org/protobuf/proto/SizePb.lean'),
@@ -117,6 +117,19 @@ COPIES = [
     Whole(f'Spec/go_uber_org/zap/{n}.lean', drop=['Proof.go_etcd_io.etcd.cache.v3.Base'],
           add=['LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.DepsPkgInit'])
     for n in ['Logger__Warn', 'Logger__Info', 'Duration', 'String', 'Error', 'Int64']
+] + [
+    # the trust-boundary axioms of the specs above and of the main-tree specs the part's proofs import
+    # as they are, for the WAL's link (`etc/gen-link.py --walfs` links the part's proofs only):
+    # copies of existing main-tree axioms (the same statements, in `etc/tcb-baseline.txt`), not new
+    # ones (`notes/wal-fsext-plan.md`, section 8, "Links"). Each imports its spec: the part's copy where
+    # there is one, else the main tree's (`zap.Logger.Error`, `strings.HasSuffix`, `fmt`'s two WAL-name
+    # specs, `io.ReadFull`, `binary.ReadInt64LE`), which the part's proofs import too.
+    Whole(f'Proof/{n}.lean') for n in [
+        'google_golang_org/protobuf/proto/ClonePb', 'time/Duration__Seconds', 'time/Duration__Seconds_ptr',
+        'go_uber_org/zap/Logger__Warn', 'go_uber_org/zap/Logger__Info', 'go_uber_org/zap/Logger__Error',
+        'go_uber_org/zap/Duration', 'go_uber_org/zap/String', 'go_uber_org/zap/Error',
+        'go_uber_org/zap/Int64', 'strings/HasSuffix', 'fmt/SprintfWalName', 'fmt/SscanfWalName',
+        'io/ReadFull', 'encoding/binary/ReadInt64LE']
 ]
 
 IMPORT_RE = re.compile(r'^((?:public\s+)?(?:meta\s+)?import\s+(?:all\s+)?)(\S+)(.*)$')

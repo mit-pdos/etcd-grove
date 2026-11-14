@@ -62,7 +62,7 @@ theorem create_Jback (R : Roots) (J : Ino) (hJ : NamesH) {E : CoPset} (hE : ↑o
     osSharedInv (L := hG.goose_localGS) R -∗
       osNames (L := hG.goose_localGS) J (.except walTmps) (DFrac.own 1) hJ -∗
       walTmpsRes (GF := GF) J ={E}=∗
-      ∃ hJ' : NamesH, ⌜FilesOnly hJ'.cur⌝ ∗
+      ∃ hJ' : NamesH, ⌜FilesOnly hJ'.cur ∧ hJ'.cur !! go!".touch" = hJ.cur !! go!".touch"⌝ ∗
         osNames (L := hG.goose_localGS) J (.except []) (DFrac.own 1) hJ' := by
   iintro #Hsi HD HT
   unfold walTmpsRes
@@ -86,6 +86,9 @@ theorem create_Jback (R : Roots) (J : Ino) (hJ : NamesH) {E : CoPset} (hE : ↑o
   iexists hb
   iframe Hb
   ipureintro
+  refine ⟨?_, ?_⟩
+  rotate_left
+  · rw [cur_of_part hrb.1 (by simp [NameSet.Mem]), cur_of_part hra.1 (by simp [NameSet.Mem])]
   intro c n hc
   by_cases c1 : c = go!"1.tmp"
   · subst c1
@@ -110,8 +113,7 @@ theorem create_abortTmpH (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗ walUnlockedTok (W := W) -∗
       osNames (L := hG.goose_localGS) jr (N.diff [tmpName nm]) (DFrac.own (1 : Qp).half) hN -∗
       tmpDirH jr (tmpName nm) hT -∗
-      osClaims hG.goose_localGS
-        ((cl.filter (fun c => decide (c.1 ≠ tmpName nm))).map (fun c => (c.2, DFrac.own 1))) -∗
+      areaCls (L := hG.goose_localGS) (cl.filter (fun c => decide (c.1 ≠ tmpName nm))) -∗
       walSplitFrag (W := W) Wn ={⊤}=∗
       notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ walUnlockedTok (W := W) ∗
         walAreaRes (L := hG.goose_localGS) jr := by
@@ -163,7 +165,7 @@ theorem create_unmint (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r
     (hC : NamesH) (J : Ino) (hJ : NamesH)
     (hok : AreaOk N h cl Wn) (hnm : walNameOk nm) (hNnm : N.Mem nm) (hnmA : h.cur !! nm = none)
     (hctmp : hC.cur !! tmpName nm = some (.dir J)) (hcnm : hC.cur !! nm = none)
-    (hfo : FilesOnly hJ.cur) :
+    (hfo : FilesOnly hJ.cur) (hJt : hJ.cur !! go!".touch" = none) :
     ⊢ walInv (L := hG.goose_localGS) (W := W) C Mr R jr r -∗ osSharedInv (L := hG.goose_localGS) R -∗
       notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗
       walCreating (W := W) dir (.only [nm, tmpName nm]) hC J -∗
@@ -221,7 +223,7 @@ theorem create_unmint (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r
   · iapply (osNames_frac (L := hG.goose_localGS) J (.except walTmps) (1 : Qp).half (1 : Qp).half hJ).2
     iframe
   rw [Qp.half_add_half]
-  imod create_Jback R J hJ CoPset.subseteq_top hfo $$ Hsi HJ HTs with ⟨%hJ', %hfo', HJ⟩
+  imod create_Jback R J hJ CoPset.subseteq_top hfo $$ Hsi HJ HTs with ⟨%hJ', ⟨%hfo', %hJt'⟩, HJ⟩
   have h2t : h2.cur !! tmpName nm = some (.dir J) := by
     rw [cur_of_part hm.2.1 (by simp [NameSet.Mem] : (NameSet.only [nm, tmpName nm]).Mem (tmpName nm)),
       hctmp]
@@ -250,7 +252,11 @@ theorem create_unmint (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r
   unfold tmpSub
   iexists hJ'
   iframe HJ
-  ipureintro; exact hfo'
+  rw [hJt', hJt]
+  isplitr
+  · ipureintro; exact hfo'
+  unfold tmpEnt
+  iempintro
 
 end iris
 

@@ -100,7 +100,7 @@ theorem walParked_relay (Ls : GMap GoString WalLay) (cl : List Claim) (dir : GoS
     (hino : g.ino = g0.ino) (hlen : g.bs.length = g0.bs.length) :
     walParked (L := L) (W := W) Ls cl F ⊢ walParked (L := L) (W := W) (<[dir := lay']> Ls) cl F := by
   unfold walParked
-  iintro ⟨%b, %o, Ha, Hoa, %hb, Hs, Hc, Ht⟩
+  iintro ⟨%b, %o, Ha, Hoa, %hb, Hs, Hc, Ht, Hw⟩
   iexists b, o
   iframe Ha Hoa
   isplitr
@@ -119,7 +119,9 @@ theorem walParked_relay (Ls : GMap GoString WalLay) (cl : List Claim) (dir : GoS
       unfold ParkedClaim; rw [walDirClaimOf_insert hl hj c]
     simp only [propext e]
     exact .rfl
+  isplitl [Ht]
   · iapply walTmpParked_insert Ls o.T dir lay lay' hl hj $$ Ht
+  · iapply walOthersL_mono (fun c _ hc => ⟨(walDirClaimOf_insert hl hj c).1 hc, rfl⟩) $$ Hw
 
 /-- **F-Z of the WAL in `dir`**, from its tail record (the handle's key and half). -/
 theorem walTailsRes_zeros (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState)
