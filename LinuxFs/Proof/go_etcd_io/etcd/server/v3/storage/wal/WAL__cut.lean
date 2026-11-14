@@ -817,7 +817,86 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   (try wp_auto)
   wp_apply wp_Info lg _ _ $$ []
   · iframe #
-  sorry
+  -- the new handle: its tail the new segment
+  have hcrc' : WalHS.crc Mr ({ h with cuts := h.cuts ++ [h.H.length], ino := g.ino, o0 := L, out := [], pend := [], rest := 0, γ := h1.γ, sz := g.bs.length, pc := h.pc + 1 } : WalHS) =
+      crcAfter walCodec c0 (cutHdrDs Mr h.md h.st) := by
+    rw [WalHS.crc_done Mr _ rfl]
+    simp only
+    rw [tailCrc_cut Mr h.H h.md h.cuts hsorted' hle', ← hst, ← hcrc0, hc0]
+  have htm : TailMeta g.om g.bs := by
+    rw [← hg]
+    exact tailMeta_synced _ _ (by simp [hysS]) (by rw [hokS.2.2.2.1]; exact hmaps2)
+  have hgsz : g.bs.length ≤ 0xffffffff000 := by rw [hgbsL, hysS, hszS]; omega
+  have hfd3' : openFd g.ino (W64 1 ||| W64 524288) = ⟨g.ino, false, true⟩ := by
+    unfold openFd; congr 1
+  icases Hfdo with ⟨%rd, Hfdo⟩
+  iapply HΦ
+  ileft
+  isplitr
+  · ipureintro; rfl
+  iexists ({ h with cuts := h.cuts ++ [h.H.length], ino := g.ino, o0 := L, out := [], pend := [], rest := 0, γ := h1.γ, sz := g.bs.length, pc := h.pc + 1 } : WalHS)
+  isplitl
+  rotate_left
+  · isplitr
+    · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+    · iexact Hsyn
+  iunfold walHandleIn
+  iexists lg, df, sp, e3, fp, lf3, f3, mds, locks'', ls ++ [lt] ++ [lf3], fd3, dfd, child dir bt, dnm, j, rc
+  rw [hcrc']
+  simp only
+  iframe Hlg Hzap Hdir Hdf Hdff Hmd Hmds Hspf Hst Hdec Hrc Hns Hmu Henti Hsnapi He Hlocks Hls Hcap
+    Hlf3 Hfp Henv Hcrc Hwpk Henc3
+  isplitr
+  · ipureintro; exact he3
+  isplitl [Hf3 Hfd3 Hoff3 Htk HmG HbG Hv]
+  · iunfold walTailW
+    iframe Hf3 Htk
+    isplitl [Hfd3]
+    · iexists false; rw [hfd3'] at *; iexact Hfd3
+    isplitl [Hoff3]
+    · rw [show ((L : Nat) : Int) + ((([] : List w8).length : Nat) : Int) = ((0 : Nat) : Int) + ((L : Nat) : Int)
+        by simp]
+      iexact Hoff3
+    iexists g.om, g.bs
+    iframe HmG HbG
+    isplitr
+    · ipureintro; exact ⟨hgmeta.1, htm, by omega, hfd3⟩
+    iunfold tailVar at Hv
+    iexact Hv
+  isplitl [Hdk Hcw Hpd Hsid Hperm Hdfd Hnamed Hout]
+  · iunfold walDirH
+    iexists Rd, qd, X, (hj.log x (renFileEnt j (pipeTmp np) j bt g.ino hj s0) (<[bt := .file g.ino]> hj.cur)),
+      bt, ph
+    iframe Hdk Hcw Hpd Hsid Hperm Hdfd Hnamed
+    rw [walOut_cut]
+    iframe Hout
+    ipureintro
+    exact ⟨hbtw, GMap.lookup_insert _ _ _, rfl, htmps, hXw, ⟨sq + 1, _, hbt.symm, by omega⟩,
+      cutDir_largest g.ino hlargest hlt⟩
+  isplitr
+  · ipureintro; simp
+  isplitl [Hlks Hf Hfdo]
+  · simp only [List.dropLast_concat]
+    iapply (BigSepL.bigSepL_snoc (Φ := fun _ lf => walLockH lf)).2
+    iframe Hlks
+    iunfold walLockH
+    iexists f, fd, name, ⟨h1.ino, rd, true⟩
+    iframe Hltf Hf Hfdo
+  isplitl [Hmain Htm1 Htm2]
+  · iapply walPipeH_next fp dir h.pc γp Rp dqp j szp np hnp
+    iframe Hisfp Hmain
+    iapply tmpClaim_absent j (pipeTmp np)
+      (ht.log x (renFileEnt j (pipeTmp np) j bt g.ino hj s0) (GMap.delete (pipeTmp np) ht.cur))
+      (GMap.lookup_delete _ _)
+    iapply (osNames_join _ _ _ _ _ (Qp.half_add_half 1)).1
+    iframe
+  isplitl [Hopen Hpk Hcf]
+  · iapply (walOpenW_cut w dir).2
+    iframe
+  ipureintro
+  refine ⟨WalHS.split_fresh Mr _ rfl hL.symm rfl rfl, hfd3, hgbs.2, hgsz,
+    by have := hgbs.2; simp only [List.length_nil]; omega,
+    ⟨fun _ => hidx.1 (by rw [h1rest, hrest]), hidx.2⟩, hmx⟩
 
 end proof
 
