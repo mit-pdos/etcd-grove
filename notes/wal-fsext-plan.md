@@ -7549,8 +7549,8 @@ fdatasync, `walLentRes_unpend`, either kind). *`wal-tc16` (2026-11-14)*: the pen
 - **The attempt (`validSnapshotEntries.specPinned`/`specAbsent`): not started.** `wal.wp_ValidSnapshotEntries`
   still takes `h_wal_validSnapshotEntriesPinned`/`Absent`. What the attempt's proof now has: the closer's triple
   (gap 2), `openWALFilesFn`'s value (gap 1), the I/O error's `false` answers (gap 3: in `decPostB`'s I/O arm,
-  `notUeof err` and `¬ IoE eof`). Still to add for it: `walDecFiles_mk` giving the persistent `rl ↦□
-X
+  `notUeof err` and `¬ IoE eof`), and `walDecFiles_mk`'s persistent `walFrFile F.fr (fls.getD k null)` per
+  file (`OpenFiles.lean`: with `walTie_files`' `walTieFile`s, it rebuilds each `walClosable` for the closer).
 
 ## io.Copy log (branch `wal-copy1`, 2026-11-14)
 
