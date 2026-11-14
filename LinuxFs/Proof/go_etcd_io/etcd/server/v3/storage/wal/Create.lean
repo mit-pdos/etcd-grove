@@ -441,7 +441,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
     ihave Hoff : os.ownOff f (W64 0) $$ [Hoff]
     · iexact Hoff
     wp_apply (wp_newFileEncoder f fd _ _ (W64 0) (W32 0) hfi.1 (by decide) (by decide))
-      $$ [Hf Hoff] as %e ⟨Henc, Hf, Hoff, %he⟩
+      $$ [Hf Hoff] as %enc ⟨Henc, Hf, Hoff, %he⟩
     · iframe; iframe #
     try wp_auto
     -- `w.locks = append(w.locks, f)`
@@ -472,20 +472,20 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
     ihave Hz2 : osBytes (openFd i (wal.walOpenFlag false ||| W64 524288)).ino 0 (DFrac.own 1)
         (zs2.map (fun c => ((0 : w8), c))) $$ [Hz2]
     · rw [hino, ← hnm0]; iexact Hz2
-    ihave HW0 := os.fileW_start f fd _ (DFrac.own 1) (DFrac.own 1)
+    ihave HW0 := os.fileW_start f fd (child (child r (tmpName nm)) (walFileName 0 0)) (DFrac.own 1) (DFrac.own 1)
       (openFd i (wal.walOpenFlag false ||| W64 524288)) m2 0 (zs2.map (fun c => ((0 : w8), c)))
       hlo2 (Nat.zero_le _) (by simp [hzs2, hm2s, hnm0]) $$ [Hf Hfd Hoff Hm2 Hz2]
     · iframe
-    ihave #Hws := os.File.writerStreamI wp_WriteAt f fd _ (DFrac.own 1) (DFrac.own 1)
+    ihave #Hws := os.File.writerStreamI wp_WriteAt f fd (child (child r (tmpName nm)) (walFileName 0 0)) (DFrac.own 1) (DFrac.own 1)
       (openFd i (wal.walOpenFlag false ||| W64 524288)) m2 (zs2.map (fun c => ((0 : w8), c)))
       (createStream Mr md).length hfi.1 hwr hmaps2 (by omega) $$ Hosi
     ihave #HwsP := (io.writerStream_P _ _ _ _).1 $$ Hws
-    ihave HW0' : os.fileWI f fd _ (DFrac.own 1) (DFrac.own 1)
+    ihave HW0' : os.fileWI f fd (child (child r (tmpName nm)) (walFileName 0 0)) (DFrac.own 1) (DFrac.own 1)
       (openFd i (wal.walOpenFlag false ||| W64 524288)) m2 (zs2.map (fun c => ((0 : w8), c))) [] $$ [HW0]
     · iunfold os.fileWI; iframe; iframe #
     -- `saveCrc(0)`
     rw [show (W32 0) = 0#32 from rfl] at *
-    wp_apply (wp_saveCrc wl e (wal.fileWi f) _ _ (fun ys => ys.length ≤ (createStream Mr md).length)
+    wp_apply (wp_saveCrc wl enc (wal.fileWi f) _ _ (fun ys => ys.length ≤ (createStream Mr md).length)
         [] [] 0#32 0#32 (fun xs ys hp hy => Nat.le_trans hp.length_le hy) (by rw [hFr]; simp))
       $$ [HwsP] [encoder Henc HW0'] as %serr1 ⟨%pend1, Hencf, Henc, Hr1⟩
     · iexact HwsP
