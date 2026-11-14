@@ -127,13 +127,13 @@ theorem durCreate_osAUnc (γ : DurGS) (f : DFile) (p : DurPhys) :
 
 /-- What the rename's update leaves its caller after the outcome `o`: nothing changed (`none`: the
 resources back), or (`some (x, s)`) the physical state after the rename with the state's `alt` now
-`a`, the new candidate's other half, and what the `Write` still owes there (the second update). -/
+`a` (not `none`), the new candidate's other half, and the second update, still owed. -/
 def durRenQ (γ : DurGS) (f : DFile) (p : DurPhys) (c : DCand) (Ψ : IProp GF) :
     Option (Nat × Nat) → IProp GF
   | none => iprop(durPhys γ p ∗ osMeta c.i (DFrac.own 1) c.m ∗
       osBytes c.i 0 (DFrac.own 1) (c.v.map durB) ∗ durWOwe γ f c.v p Ψ)
-  | some (x, s) => iprop(∃ a, durPhys γ (renPhys f p c a x s) ∗
-      candRes c (DFrac.own (1 : Qp).half) ∗ durWOwe γ f c.v (renPhys f p c a x s) Ψ)
+  | some (x, s) => iprop(∃ a, ⌜a ≠ none⌝ ∗ durPhys γ (renPhys f p c a x s) ∗
+      candRes c (DFrac.own (1 : Qp).half) ∗ durWriteSync γ Ψ)
 
 theorem renPhys_curIs (f : DFile) (p : DurPhys) (c : DCand) (a : Option (Option GoString))
     (x s : Nat) : (renPhys f p c a x s).CurIs f (some c.v) := by
@@ -225,13 +225,10 @@ theorem durRename_osAUnc (γ : DurGS) (f : DFile) (p : DurPhys) (c : DCand) (Ψ 
           exact hok.renA hA c x s0 hc hci
         imodintro
         iexists (some s'.cur)
-        iframe Hp
-        isplitl [Hm2 Hb2]
-        · iunfold candRes; iframe
-        iright
-        iframe Hsync
-        ipureintro
-        exact ⟨by simp [renPhys], renPhys_curIs f p c _ x s0⟩
+        iframe Hp Hsync
+        isplitr
+        · ipureintro; simp
+        iunfold candRes; iframe
       · -- a retry's rename: the state stays
         obtain ⟨hB1, hB2⟩ := hB
         have hcur : s.cur = some c.v := DurPhys.curIs_unique hok.inj hok.curIs hB2
@@ -254,13 +251,10 @@ theorem durRename_osAUnc (γ : DurGS) (f : DFile) (p : DurPhys) (c : DCand) (Ψ 
           exact hok.renB hB1 c x s0 hc hci hcur
         imodintro
         iexists p.alt
-        iframe Hp
-        isplitl [Hm2 Hb2]
-        · iunfold candRes; iframe
-        iright
-        iframe Hsync
-        ipureintro
-        exact ⟨hB1, renPhys_curIs f p c _ x s0⟩
+        iframe Hp Hsync
+        isplitr
+        · ipureintro; exact hB1
+        iunfold candRes; iframe
 
 /-- **The client's second update**, at a step after the directory's sync committed every entry of the
 name's claim (`osCommitLb n`, `n` at least its `next`; the claim coherent). -/

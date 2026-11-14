@@ -53,6 +53,18 @@ theorem DurFs.durWOwe_congr (γ : DurGS) (f : DFile) (data : GoString) (p p' : D
   obtain ⟨⟩ := p; obtain ⟨⟩ := p'
   simp only at hb hc ha; subst hb hc ha; exact .rfl
 
+theorem DurFs.osPathS_split_halves (R : Roots) (d : GoString) (q : Qp) (j : Ino) :
+    osPathS (GF := GF) R d (DFrac.own q) j ⊢
+      osPathS R d (DFrac.own q.half) j ∗ osPathS R d (DFrac.own q.half) j := by
+  have h := (osPathS_frac (GF := GF) R d q.half q.half j).1
+  rwa [Qp.half_add_half] at h
+
+theorem DurFs.osPathS_join_halves (R : Roots) (d : GoString) (q : Qp) (j : Ino) :
+    osPathS (GF := GF) R d (DFrac.own q.half) j ∗ osPathS R d (DFrac.own q.half) j ⊢
+      osPathS R d (DFrac.own q) j := by
+  have h := (osPathS_frac (GF := GF) R d q.half q.half j).2
+  rwa [Qp.half_add_half] at h
+
 /-- **The handle rebuilt** after a failed attempt that kept the temporary's file `i` (`TrOk`: as a
 `trFile` holds it). -/
 theorem DurFs.durHandle_tmp (γ : DurGS) (f : DFile) (R : Roots) (p : DurPhys) (ht1 : NamesH) (qd : Qp)
@@ -77,6 +89,45 @@ theorem DurFs.durHandle_tmp (γ : DurGS) (f : DFile) (R : Roots) (p : DurPhys) (
   · iapply mcellsAny_of_empty m.maps hmaps
   ipureintro
   exact ⟨hl, False.elim, hmaps, hcut, hlo, hzf, False.elim⟩
+
+/-- **The handle after the rename** of the temporary (the candidate `c`) over the name, at any
+physical state `p'` with the rename's histories and candidates. -/
+theorem DurFs.durHandle_ren (γ : DurGS) (f : DFile) (R : Roots) (p : DurPhys) (c : DCand)
+    (a : Option (Option GoString)) (x s : Nat) (qd : Qp) (p' : DurPhys)
+    (hb : p'.hb = (renPhys f p c a x s).hb) (ht : p'.ht = (renPhys f p c a x s).ht)
+    (hc : p'.cands = (renPhys f p c a x s).cands) :
+    ⊢ durPhys (GF := GF) γ p' -∗
+      osNames f.J (.only [f.b]) (DFrac.own (1 : Qp).half)
+        (p.hb.log x (renFileEnt f.J f.tb f.J f.b c.i p.hb s) (<[f.b := .file c.i]> p.hb.cur)) -∗
+      osNames f.J (.only [f.tb]) (DFrac.own (1 : Qp).half)
+        (p.ht.log x (renFileEnt f.J f.tb f.J f.b c.i p.hb s) (GMap.delete f.tb p.ht.cur)) -∗
+      candRes c (DFrac.own (1 : Qp).half) -∗ osPathS R f.d (DFrac.own qd) f.J -∗
+      durHandleP γ f R p' := by
+  iintro Hp Hnb Hnt Hc Hpath
+  iunfold durHandleP
+  iexists qd
+  rw [hb, ht]
+  simp only [renPhys_hb, renPhys_ht]
+  iframe Hp Hnb Hnt Hpath
+  isplitl [Hc]
+  · iapply (curRes_file f p' c.i (by rw [hb]; simp [NamesH.log])).2
+    iexists c
+    iframe Hc
+    ipureintro
+    exact ⟨by rw [hc]; simp, rfl⟩
+  · iapply (tmpRes_none f _ (by simp [NamesH.log])).2
+    iempintro
+
+/-- What a `Write` owes after a rename: the second update. -/
+theorem DurFs.durWOwe_ren (γ : DurGS) (f : DFile) (p : DurPhys) (c : DCand)
+    (a : Option (Option GoString)) (x s : Nat) (Ψ : IProp GF) (ha : a ≠ none) :
+    ⊢ durWriteSync (GF := GF) γ Ψ -∗ durWOwe γ f c.v (renPhys f p c a x s) Ψ := by
+  iintro Hs
+  iunfold durWOwe
+  iright
+  iframe Hs
+  ipureintro
+  exact ⟨by simpa using ha, renPhys_curIs f p c a x s⟩
 
 /-- See the file header. -/
 theorem DurFs.durTmpOpen (wp_OpenCT : os.OpenFile.specCreateTruncSnc (GF := GF) (hG := hG))

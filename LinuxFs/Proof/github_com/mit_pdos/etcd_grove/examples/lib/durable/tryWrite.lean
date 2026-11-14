@@ -144,7 +144,217 @@ theorem github_com.mit_pdos.etcd_grove.examples.lib.durable.tryWrite.wp_proof
   iintro %v ⟨%hv, data, f, Hf, Hfd, %e, %m1, %ys, err, Hm, Hby, %htr1⟩
   subst hv
   (try wp_auto)
-  sorry
+  cases e with
+  | ok ie =>
+    -- the write failed: the file closed, the temporary kept
+    (try wp_auto)
+    wp_apply wp_Close fl fd f.tmp _ $$ [Hinv Hf Hfd] as %e2 -
+    · iframe; iframe #
+    (try wp_auto)
+    iapply HΦ
+    iframe Hperm
+    iexists { p with ht := ht1 }
+    isplitl [Hp Hnb Hnt Hcur Hpath Hm Hby]
+    · iapply durHandle_tmp γ f R p ht1 qd i m1 ys hi htr1.1 $$ Hp Hnb Hnt Hcur Hpath Hm Hby
+    iright
+    isplitr
+    · ipureintro; rfl
+    iapply (durWOwe_congr γ f data p { p with ht := ht1 } Ψ rfl rfl rfl).2 $$ Howe
+  | nil =>
+  obtain ⟨hys, hsz1⟩ := htr1.2 rfl
+  (try wp_auto)
+  wp_apply wp_Sync fl fd f.tmp (DFrac.own 1) (DFrac.own 1) (openFd i (W64 2 ||| W64 64 ||| W64 512 ||| W64 524288)) m1 0 ys (OsMeta.covers_whole m1 htr1.1.1)
+    $$ [Hinv Hf Hfd Hm Hby] as %e2 ⟨Hf, Hfd, Hres, -⟩
+  · simp only [durOpenFd_ino]; iframe; iframe #
+  try simp only [durOpenFd_ino]
+  icases Hres with (⟨%he2, Hm, Hby⟩ | ⟨%he2, Hm, Hby⟩)
+  rotate_left
+  · -- the sync failed
+    cases e2 with
+    | nil => exact absurd rfl he2
+    | ok ie =>
+    (try wp_auto)
+    wp_apply wp_Close fl fd f.tmp _ $$ [Hinv Hf Hfd] as %e3 -
+    · iframe; iframe #
+    (try wp_auto)
+    iapply HΦ
+    iframe Hperm
+    iexists { p with ht := ht1 }
+    isplitl [Hp Hnb Hnt Hcur Hpath Hm Hby]
+    · iapply durHandle_tmp γ f R p ht1 qd i m1 ys hi htr1.1 $$ Hp Hnb Hnt Hcur Hpath Hm Hby
+    iright
+    isplitr
+    · ipureintro; rfl
+    iapply (durWOwe_congr γ f data p { p with ht := ht1 } Ψ rfl rfl rfl).2 $$ Howe
+  subst he2
+  (try wp_auto)
+  wp_apply wp_Close fl fd f.tmp _ $$ [Hinv Hf Hfd] as %e3 -
+  · iframe; iframe #
+  have htr2 := htr1.1.synced
+  have hby : ys.map (fun x => durB x.1) = data.map durB := by rw [← hys, List.map_map]; rfl
+  rw [hby] at htr2
+  rw [hby]
+  cases e3 with
+  | ok ie =>
+    -- the close failed
+    (try wp_auto)
+    iapply HΦ
+    iframe Hperm
+    iexists { p with ht := ht1 }
+    isplitl [Hp Hnb Hnt Hcur Hpath Hm Hby]
+    · iapply durHandle_tmp γ f R p ht1 qd i m1.synced (data.map durB) hi htr2 $$ Hp Hnb Hnt Hcur Hpath Hm Hby
+    iright
+    isplitr
+    · ipureintro; rfl
+    iapply (durWOwe_congr γ f data p { p with ht := ht1 } Ψ rfl rfl rfl).2 $$ Howe
+  | nil =>
+  (try wp_auto)
+  -- the rename: the temporary's file a candidate, the client's first update (or a retry's)
+  have hc : (DCand.mk i m1.synced data).Ok := dcand_ok i data hsz1 hdata
+  have hNt : (NameSet.only [f.tb]).Mem f.tb := by simp [NameSet.Mem]
+  have hNb : (NameSet.only [f.b]).Mem f.b := by simp [NameSet.Mem]
+  have hkey : (f.J, NameSet.only [f.tb]) ≠ (f.J, NameSet.only [f.b]) := by
+    intro h
+    simp only [Prod.mk.injEq, NameSet.only.injEq, List.cons.injEq, _root_.and_true, _root_.true_and] at h
+    exact f.tb_ne h
+  have hnd : ∀ J, p.hb.cur !! f.b ≠ some (.dir J) := by
+    intro J
+    have hc0 := hok.cur
+    cases hs : s0.cur with
+    | none => rw [hs] at hc0; simp only at hc0; rw [hc0]; simp
+    | some v =>
+      rw [hs] at hc0
+      obtain ⟨c', -, -, he⟩ := hc0
+      rw [he]; simp
+  ihave Hq : durRenQ γ f { p with ht := ht1 } ⟨i, m1.synced, data⟩ Ψ none $$ [Hp Hm Hby Howe]
+  · simp only [durRenQ]
+    iframe Hp Hm Hby
+    iapply (durWOwe_congr γ f data p { p with ht := ht1 } Ψ rfl rfl rfl).2 $$ Howe
+  ihave Hau := durRename_osAUnc γ f { p with ht := ht1 } ⟨i, m1.synced, data⟩ Ψ hc $$ Hdi Hq
+  icases osPathS_split_halves R f.d qd f.J $$ Hpath with ⟨Hpa, Hpb⟩
+  unfold DFile.tmp DFile.name
+  wp_apply wp_Rename f.d f.tb f.d f.b f.J f.J i (.only [f.tb]) (.only [f.b]) R (DFrac.own qd.half)
+      (DFrac.own qd.half) ht1 p.hb (1 : Qp).half (1 : Qp).half (1 : Qp).half (1 : Qp).half qc _
+      hf.2.2.2.2.1 hf.2.2.2.1 hNt hNb hkey hi hnd (Qp.half_add_half 1) (Qp.half_add_half 1)
+    $$ [Hinv Hsi Hpa Hpb Hperm Hnt Hnb Hau] as %e4 ⟨Hpa, Hpb, Hperm, %o, %ho, Hq, Hout⟩
+  · iframe; iframe #
+  ihave Hpath := osPathS_join_halves R f.d qd f.J $$ [$Hpa $Hpb]
+  rcases o with _ | ⟨x, s1⟩
+  · -- no effect: the rename failed, the temporary kept
+    have he4 : e4 ≠ interface.nil := fun h => by simpa using ho h
+    cases e4 with
+    | nil => exact absurd rfl he4
+    | ok ie =>
+    simp only [durRenQ]
+    icases Hq with ⟨Hp, Hm, Hby, Howe⟩
+    unfold renFileOut
+    simp only [logOut, claimOut]
+    icases Hout with ⟨-, Hnt, Hnb⟩
+    (try wp_auto)
+    iapply HΦ
+    iframe Hperm
+    iexists { p with ht := ht1 }
+    isplitl [Hp Hnb Hnt Hcur Hpath Hm Hby]
+    · iapply durHandle_tmp γ f R p ht1 qd i m1.synced (data.map durB) hi htr2 $$ Hp Hnb Hnt Hcur Hpath Hm Hby
+    iright
+    isplitr
+    · ipureintro; rfl
+    iexact Howe
+  -- the rename took effect
+  simp only [durRenQ]
+  icases Hq with ⟨%a, %ha, Hp, Hc, Hsync⟩
+  unfold renFileOut
+  simp only [logOut, claimOut]
+  icases Hout with ⟨-, Hnt, Hnb⟩
+  iclear Hcur
+  cases e4 with
+  | ok ie =>
+    -- reported a failure: the second update still owed
+    (try wp_auto)
+    iapply HΦ
+    iframe Hperm
+    iexists (renPhys f { p with ht := ht1 } ⟨i, m1.synced, data⟩ a x s1)
+    isplitl [Hp Hnb Hnt Hc Hpath]
+    · iapply durHandle_ren γ f R { p with ht := ht1 } ⟨i, m1.synced, data⟩ a x s1 qd _ rfl rfl rfl
+        $$ Hp Hnb Hnt Hc Hpath
+    iright
+    isplitr
+    · ipureintro; rfl
+    iapply durWOwe_ren γ f { p with ht := ht1 } ⟨i, m1.synced, data⟩ a x s1 Ψ ha $$ Hsync
+  | nil =>
+  (try wp_auto)
+  -- the directory opened and synced
+  wp_apply os.Open.wp_dirS f.d R f.J (DFrac.own qd) qc $$ [Hinv Hsi Hpath Hperm]
+    as %dfl %e5 ⟨Hpath, Hperm, Hres⟩
+  · iframe; iframe #
+  icases Hres with (⟨%dfd, %he5, Hdf, Hdfd⟩ | ⟨%he5, -⟩)
+  rotate_left
+  · cases e5 with
+    | nil => exact absurd rfl he5
+    | ok ie =>
+    (try wp_auto)
+    iapply HΦ
+    iframe Hperm
+    iexists (renPhys f { p with ht := ht1 } ⟨i, m1.synced, data⟩ a x s1)
+    isplitl [Hp Hnb Hnt Hc Hpath]
+    · iapply durHandle_ren γ f R { p with ht := ht1 } ⟨i, m1.synced, data⟩ a x s1 qd _ rfl rfl rfl
+        $$ Hp Hnb Hnt Hc Hpath
+    iright
+    isplitr
+    · ipureintro; rfl
+    iapply durWOwe_ren γ f { p with ht := ht1 } ⟨i, m1.synced, data⟩ a x s1 Ψ ha $$ Hsync
+  subst he5
+  (try wp_auto)
+  imod osNames_next R f.J _ _ _ CoPset.subseteq_top $$ Hsi Hnb with ⟨Hnb, #Hlb⟩
+  wp_apply wp_SyncDir dfl dfd f.d (DFrac.own 1) R f.J .idle _ $$ [Hinv Hsi Hdf Hdfd Hlb]
+    as %e6 ⟨Hdf, Hdfd, Hres⟩
+  · iframe; iframe #
+  icases Hres with (%he6 | ⟨%he6, #Hclb⟩)
+  · cases e6 with
+    | nil => exact absurd rfl he6
+    | ok ie =>
+    (try wp_auto)
+    wp_apply os.File.Close.wp_dirS dfl dfd f.d f.J .idle $$ [Hinv Hdf Hdfd] as %e7 -
+    · iframe; iframe #
+    (try wp_auto)
+    iapply HΦ
+    iframe Hperm
+    iexists (renPhys f { p with ht := ht1 } ⟨i, m1.synced, data⟩ a x s1)
+    isplitl [Hp Hnb Hnt Hc Hpath]
+    · iapply durHandle_ren γ f R { p with ht := ht1 } ⟨i, m1.synced, data⟩ a x s1 qd _ rfl rfl rfl
+        $$ Hp Hnb Hnt Hc Hpath
+    iright
+    isplitr
+    · ipureintro; rfl
+    iapply durWOwe_ren γ f { p with ht := ht1 } ⟨i, m1.synced, data⟩ a x s1 Ψ ha $$ Hsync
+  subst he6
+  (try wp_auto)
+  -- the client's second update
+  imod osNames_histCoh R f.J _ _ _ CoPset.subseteq_top $$ Hsi Hnb with ⟨Hnb, %hcoh⟩
+  iapply wp_notCrashed_acc _ _ rfl
+  iintro Hnc
+  imod durInv_commit γ f (renPhys f { p with ht := ht1 } ⟨i, m1.synced, data⟩ a x s1)
+    (p.hb.log x (renFileEnt f.J f.tb f.J f.b i p.hb s1) (<[f.b := .file i]> p.hb.cur)).next Ψ
+    (by simpa using hcoh) (by simp) $$ Hdi Hnc Hp Hclb Hsync with ⟨Hnc, Hp, HΨ⟩
+  iframe Hnc
+  imodintro
+  wp_apply os.File.Close.wp_dirS dfl dfd f.d f.J .idle $$ [Hinv Hdf Hdfd] as %e7 -
+  · iframe; iframe #
+  (try wp_auto)
+  iapply HΦ
+  iframe Hperm
+  iexists { renPhys f { p with ht := ht1 } ⟨i, m1.synced, data⟩ a x s1 with
+    nc := (p.hb.log x (renFileEnt f.J f.tb f.J f.b i p.hb s1) (<[f.b := .file i]> p.hb.cur)).next, alt := none }
+  isplitl [Hp Hnb Hnt Hc Hpath]
+  · iapply durHandle_ren γ f R { p with ht := ht1 } ⟨i, m1.synced, data⟩ a x s1 qd
+      { renPhys f { p with ht := ht1 } ⟨i, m1.synced, data⟩ a x s1 with
+        nc := (p.hb.log x (renFileEnt f.J f.tb f.J f.b i p.hb s1) (<[f.b := .file i]> p.hb.cur)).next,
+        alt := none } rfl rfl rfl
+      $$ Hp Hnb Hnt Hc Hpath
+  ileft
+  iframe HΨ
+  ipureintro
+  exact ⟨rfl, rfl⟩
 
 end proof
 

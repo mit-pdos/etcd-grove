@@ -87,6 +87,8 @@ theorem durOpenFlag_ok :
   unfold OpenFlagsOk O_CREAT O_TRUNC O_CLOEXEC
   decide
 
+@[simp] theorem durOpenFd_ino (i : Ino) (fl : w64) : (openFd i fl).ino = i := rfl
+
 theorem durOpenFlag_writable (i : Ino) :
     (openFd i ((W64 2 ||| W64 64 ||| W64 512) ||| W64 0x80000)).writable = true := by
   show decide (((W64 2 ||| W64 64 ||| W64 512) ||| W64 0x80000).toNat % 4 ≠ O_RDONLY) = true
