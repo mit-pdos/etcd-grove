@@ -88,7 +88,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.alloc.wp_proof
     wp_auto
     iunfold trFile at Htr
     icases Htr with ⟨%m, %xs, Hm, -, -, %hm⟩
-    obtain ⟨-, hm0, hmaps, hcut0, hlo0⟩ := hm
+    obtain ⟨-, hm0, hmaps, hcut0, hlo0, hzf0, hzp0⟩ := hm
     have hm0 := hm0 trivial
     obtain ⟨hfd, hcur⟩ := hfi
     wp_apply wp_Preallocate f fd (child dir (pipeTmp n)) (DFrac.own 1) (DFrac.own 1)
@@ -122,19 +122,14 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.alloc.wp_proof
       isplitl [Hz]
       · rw [hm'.1]; iexact Hz
       ipureintro
-      refine ⟨hfd, hm'.2.1.trans hmaps, hcur, hm'.2.2.2.1.trans hcut0, hm'.2.2.2.2 (by omega), ?_, ?_, ?_⟩
+      refine ⟨hfd, hm'.2.1.trans hmaps, hcur, hm'.2.2.2.1.1.trans hcut0, hm'.2.2.2.1.2.1 (by omega), ?_, ?_,
+        hm'.2.2.2.2 ⟨rfl, hzp0 trivial⟩⟩
       · rw [hm'.1, hw.2.2 rfl]
         have := BitVec.toInt_eq_toNat_cond sz
         split at this <;> omega
       · rw [hm'.1, hw.2.2 rfl]
         have := BitVec.toInt_eq_toNat_cond sz
         split at this <;> omega
-      · -- **Obligation** (W6 log, sixteenth session): the zeros known past the new file's size
-        -- (`ZeroPg`). True of the state (a created or `O_TRUNC`-truncated file has its zeros known
-        -- from 0 or the cache zeroed to the old end's page, `rsCz`; `fallocate`'s growth keeps them),
-        -- but neither `trFile` (`os.OpenFile.specCreateTruncS`'s post) nor `preGrown`
-        -- (`fileutil.Preallocate`'s) says so: both posts must carry `ZeroPg`.
-        sorry
     | ok ei =>
       (try wp_auto)
       wp_apply wp_Int64 as %f1 -
@@ -147,7 +142,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.alloc.wp_proof
       iintro %fsl ⟨-, -⟩
       (try wp_auto)
       wp_apply wp_LError lg _ _ $$ []
-      · iapply zapLoggerOk_ne_null; iexact Hlgok
+      · iexact Hlgok
       (try wp_auto)
       iStructNamed Hlf
       wp_method_call
@@ -174,8 +169,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.filePipeline.alloc.wp_proof
       isplitl []
       · iapply mcellsAny_empty m'.maps (hm'.2.1.trans hmaps)
       ipureintro
-      refine ⟨by simp [hzs, hm'.1], fun h => h.elim, hm'.2.1.trans hmaps, hm'.2.2.2.1.trans hcut0,
-        hm'.2.2.2.2 (by omega)⟩
+      refine ⟨by simp [hzs, hm'.1], fun h => h.elim, hm'.2.1.trans hmaps, hm'.2.2.2.1.1.trans hcut0,
+        hm'.2.2.2.1.2.1 (by omega), hm'.2.2.2.1.2.2 hzf0, fun h => h.elim⟩
   · cases e with
     | nil => exact absurd rfl he
     | ok ei =>

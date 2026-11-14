@@ -68,11 +68,32 @@ theorem syscall.Fallocate.wp_growAu (fd off len : w64) (dq : DFrac) (d : OsFd) (
   iexists n
   iexact HQ
 
+/-- **`tc` knows every byte a growth of `m` to `tg` that left the size `sz'` keeps known** (`TcKnows`'
+growth form, `wal-tc11`: `rsTail false m tg sz'`'s domain, the bytes the announcement leaves known and
+those in `[size, max size tg)` at or past `sz'` known to `m.pc`). -/
+def TcKnowsF (m : OsMeta) (tg sz' : Nat) (tc : GMap Nat Cands) : Prop :=
+  ∀ b, (rsTail false m tg sz' 0 [] !! b).isSome → (tc !! b).isSome
+
+/-- **The supply's fact**: `rsTail` knows what it knows. -/
+theorem TcKnowsF.rsTail (m : OsMeta) (tg sz' n : Nat) (xs : List ByteG) :
+    TcKnowsF m tg sz' (Fs.rsTail false m tg sz' n xs) := by
+  intro b hb
+  rw [rsTail_lookup] at hb ⊢
+  split
+  · split
+    · rfl
+    · rename_i h1 h2
+      rw [if_pos h1, if_neg h2] at hb
+      cases hc : m.pc b
+      · rw [hc] at hb; cases hb
+      · rfl
+  · rename_i h1; rw [if_neg h1] at hb; exact hb
+
 /-- The caller's halves of a growth of `i` from `m` to `tg` that landed with the size `w`: the
-`OsMeta` (up to the candidates it knows past the size and the resize stamps, `rsPostK`'s), and the bytes grown over,
-zeros. -/
+`OsMeta` (up to the candidates it knows past the size and the resize stamps, `rsPostK`'s, knowing
+which bytes past the size have known candidates, `TcKnowsF`), and the bytes grown over, zeros. -/
 def fallocDoneH (i : Ino) (m : OsMeta) (tg w : Nat) : IProp GF :=
-  iprop(∃ tc rz, osMeta i (DFrac.own (1 : Qp).half) ((rsPost false m tg w).withTc tc rz) ∗
+  iprop(∃ tc rz, ⌜TcKnowsF m tg w tc⌝ ∗ osMeta i (DFrac.own (1 : Qp).half) ((rsPost false m tg w).withTc tc rz) ∗
     osZerosA i m.size (w - m.size) (DFrac.own (1 : Qp).half))
 
 /-- **The caller's halves of a growth's outcome** (`rsOutF`'s): on success the growth landed; on

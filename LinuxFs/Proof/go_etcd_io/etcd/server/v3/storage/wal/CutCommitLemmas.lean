@@ -91,7 +91,7 @@ theorem creatingOk_cut {jr : Ino} {cl : List Claim} {CR : GMap GoString (NameSet
   have hne1 : (jr, N', h'') ≠ (j, N, h') := fun e => hjjr (by simp only [Prod.mk.injEq] at e; exact e.1.symm)
   have hJj : J ≠ j := fun e => by
     obtain ⟨b, hbw, hbN⟩ := hN
-    exact hJc _ hcl e.symm b hbw hbN
+    exact hJc _ hcl e.symm b (not_walTmps_of_wal hbw) hbN
   refine ⟨mem_replClaim_of_ne hm hne0, hcoh, fun c hc hne hc1 b hb' => ?_,
     claimOnce_repl_other honce hne0 hne1, hdist, hJr, fun c hc hc1 => ?_, hJd, hb⟩
   · rcases mem_replClaim_cases hc with rfl | ⟨hc', -⟩
@@ -302,10 +302,20 @@ theorem dirKeysOk_cut {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s
       rw [GMap.lookup_insert_eq] at hl'
       cases hl'
       rw [hlj']
-      exact ⟨X, hj.log x e c, hjjr, hX, hcutOnce, hcoh', hcutEx⟩
+      obtain ⟨X2, hj2, hD2, hx2⟩ := hDK.2.2 _ lay hl
+      obtain ⟨hXe, hje⟩ := hD2.eq_of_mem hX hcl
+      subst hXe hje
+      refine ⟨X, hj.log x e c, ⟨hjjr, hX, hcutOnce, hcoh', hcutEx⟩, hx2.repl fun c' hc' hne _ => ?_⟩
+      rcases mem_replClaim_cases hc' with he | ⟨hc'', hne0⟩
+      · exact absurd he hne
+      · exact ⟨hc'', hne0⟩
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)] at hl'
-      obtain ⟨X', hj1, hk3⟩ := hDK.2.2 dir' l hl'
-      exact ⟨X', hj1, hother _ X' hj1 (walsOk_dir_ne hW hexcl hd hl rfl hdd hl') hk3⟩
+      obtain ⟨X', hj1, hk3, hx3⟩ := hDK.2.2 dir' l hl'
+      have hj'j := walsOk_dir_ne hW hexcl hd hl rfl hdd hl'
+      refine ⟨X', hj1, hother _ X' hj1 hj'j hk3, hx3.mono fun c' hc' hcj _ => ?_⟩
+      rcases mem_replClaim_cases hc' with he | ⟨hc'', -⟩
+      · rw [he] at hcj; exact absurd hcj.symm hj'j
+      · exact hc''
   · have hdd : dir' ≠ dir := fun h => hcd (by rw [h])
     rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)] at hl''
     obtain ⟨la, -, -, hla, -, hjr', -, -, -, -⟩ := hW.1 dir' d' hd'

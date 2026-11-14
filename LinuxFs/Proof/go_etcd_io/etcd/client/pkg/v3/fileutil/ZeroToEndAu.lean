@@ -32,7 +32,7 @@ theorem ftDoneH_shrunk (p : Ino) (m : OsMeta) (tg : Nat) (zs : List Cands) (htg 
       ⌜m1.size = tg ∧ m1.maps = m.maps ∧ pageEnd m.size ≤ m1.cz⌝ ∗
       osMeta p (DFrac.own (1 : Qp).half) m1 := by
   unfold os.ftDoneH
-  iintro ⟨%hzs, ⟨%tc, %rz, Hm⟩, -⟩
+  iintro ⟨%hzs, ⟨%tc, %rz, -, Hm⟩, -⟩
   iexists (rsPost true m tg tg).withTc tc rz
   iframe Hm
   ipureintro
@@ -94,7 +94,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.wp_proofAu
       · ipureintro; simp [hm1]
       unfold osBytes; iapply (bytesG_nil _ _ _ _).2; iempintro
     · unfold os.ftUndoneH
-      icases Hd with ⟨⟨%tc, %rz, Hm⟩, Hb⟩
+      icases Hd with ⟨⟨%tc, %rz, -, Hm⟩, Hb⟩
       iexists W64 m.size, _, xs'
       iframe
       rw [show min m.size o.toNat = o.toNat by omega]

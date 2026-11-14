@@ -89,7 +89,7 @@ theorem walInv_mint (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r :
     (hJ : NamesH) (E : CoPset) (hE : ↑walN ⊆ E) (hE' : ↑osShN ⊆ E \ ↑walN)
     (hnm : walNameOk nm) (hNnm : N.Mem nm) (hNt : ¬ N.Mem tmp) (hDe : N.diff [nm] ≠ .only [])
     (htmp : ¬ walNameOk tmp) (htw : walNameP tmp = false) (hXnm : nm ∉ X)
-    (hX : ∀ b ∈ X, walNameP b = false) :
+    (hX : ∀ b ∈ X, walNameP b = false) (hXt : ∀ b ∈ X, b ∈ walTmps) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ osSharedInv (L := L) R -∗
       notCrashed (hC := L.goose_crashGS) -∗
       walUnlockedTok (W := W) -∗ osNames (L := L) jr N (DFrac.own (1 : Qp).half) h -∗
@@ -117,7 +117,7 @@ theorem walInv_mint (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r :
           hC.next = max (h.restrict jr (N.inter [nm])).next hT.next⌝)
     E hE (fun s => by
       iintro Hb ⟨#Hsi, Hu, H, HT, HJ⟩
-      imod walInvBody_mint C Mr R jr r s dir nm tmp N h hT J X hJ hnm hNnm hNt hDe htmp htw hXnm hX
+      imod walInvBody_mint C Mr R jr r s dir nm tmp N h hT J X hJ hnm hNnm hNt hDe htmp htw hXnm hX hXt
         hE' $$ Hb Hsi Hu H HT HJ with ⟨%hC, Hb, Ht, HD, HC, HJ, %hp⟩
       imodintro
       iframe Hb
