@@ -319,7 +319,7 @@ def decPostB (C : WalCodec) (d rp : Loc) (IoE : GoInterface → Prop) (eof ueof 
         ownDecoder d IoE eof (fs.drop k) off' c' false) ∨
     (∃ (k : Nat) (s : WalStop) (off' : Nat) (c' : w32),
       ⌜GoFail C (fs.map (·.bs)) off c s ((fs.drop k).map (·.bs)) off' c' ∧ stopErr eof ueof s err⌝ ∗
-      ownDecoder d IoE eof (fs.drop k) off' c' false))
+      ([∗list] F ∈ fs.take k, ∃ q, F.S q) ∗ ownDecoder d IoE eof (fs.drop k) off' c' false))
 
 /-- **`errors.Is(err, io.ErrUnexpectedEOF)` returns** (persistent): `err` is `nil`, or `errors.Is(err, _)`
 returns on every pointer target (`errIsTerm`: `Decode`'s own errors), or answers `false` on

@@ -68,7 +68,7 @@ theorem vse_exit_streams {C : WalCodec} (hC : C.Ok) (d rp : Loc) (IoE : GoInterf
   iintro ⟨Hpb, Hleft⟩
   unfold decPostB
   icases Hpb with (⟨%k, Hk, Hm⟩ | ⟨%hio, #Hn, -, %k, %off', %c', Hk, Hdec⟩ |
-    ⟨%k, %s, %off', %c', ⟨%hgf, -⟩, Hdec⟩)
+    ⟨%k, %s, %off', %c', ⟨%hgf, -⟩, -, Hdec⟩)
   · generalize hgd : goDecode C (fsD.map (·.bs)) off c = gd
     rcases gd with ⟨r, fs', off', c'⟩ | ⟨sx, fs', off', c'⟩
     · icases Hm with ⟨%hst, -, -⟩

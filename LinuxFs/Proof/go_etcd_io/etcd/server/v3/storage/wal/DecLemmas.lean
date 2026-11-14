@@ -357,17 +357,21 @@ theorem decPost_cons_eof (C : WalCodec) (d rp : Loc) (IoE : GoInterface → Prop
     iframe Hd
     iapply (BigSepL.bigSepL_cons (PROP := IProp GF)).2
     iframe
-  · iright; iright
+  · icases H with ⟨Hk, Hd⟩
+    iright; iright
     iexists (k + 1), s, off', c'
-    simp only [List.drop_succ_cons]
+    simp only [List.drop_succ_cons, List.take_succ_cons]
+    iframe Hd
+    isplitr
+    · ipureintro
+      refine ⟨?_, hf.2⟩
+      obtain ⟨G, gs, rfl⟩ : ∃ G gs, fs = G :: gs := by
+        cases fs with
+        | nil => exact absurd rfl hfs
+        | cons G gs => exact ⟨G, gs, rfl⟩
+      exact GoFail.next (by simpa using h) hf.1
+    iapply (BigSepL.bigSepL_cons (PROP := IProp GF)).2
     iframe
-    ipureintro
-    refine ⟨?_, hf.2⟩
-    obtain ⟨G, gs, rfl⟩ : ∃ G gs, fs = G :: gs := by
-      cases fs with
-      | nil => exact absurd rfl hfs
-      | cons G gs => exact ⟨G, gs, rfl⟩
-    exact GoFail.next (by simpa using h) hf.1
 
 /-- A stop in the first file. -/
 theorem decPost_stop (C : WalCodec) (d rp : Loc) (IoE : GoInterface → Prop)
@@ -458,12 +462,14 @@ theorem decPost_fail (C : WalCodec) (d rp : Loc) (IoE : GoInterface → Prop)
   unfold decPostB
   iright; iright
   iexists 0, s, off, c
-  simp only [List.drop_zero]
+  simp only [List.drop_zero, List.take_zero]
   iframe
-  ipureintro
-  refine ⟨?_, herr⟩
-  simp only [List.map_cons]
-  exact GoFail.here (by simpa using h)
+  isplitr
+  · ipureintro
+    refine ⟨?_, herr⟩
+    simp only [List.map_cons]
+    exact GoFail.here (by simpa using h)
+  iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro
 
 /-! ### The answer of `errors.Is(err, io.EOF)` (`decAns`) -/
 

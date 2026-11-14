@@ -146,7 +146,7 @@ theorem repair_decNorm (d rp : Loc) (IoE : GoInterface → Prop) (eof ueof : GoI
   icases Hok with ⟨%hne, -⟩
   have hF : [F].map (·.bs) = [F.bs] := rfl
   iunfold decPostB at Hp
-  icases Hp with (⟨%k, Ht, Hm⟩ | ⟨%hI, #Hnu, -, %k, %off', %c', Ht, Hd⟩ | ⟨%k, %s, %off', %c', ⟨%hgf, %hse⟩, Hd⟩)
+  icases Hp with (⟨%k, Ht, Hm⟩ | ⟨%hI, #Hnu, -, %k, %off', %c', Ht, Hd⟩ | ⟨%k, %s, %off', %c', ⟨%hgf, %hse⟩, -, Hd⟩)
   · rw [hF]
     generalize hg : goDecode walCodec [F.bs] off c = g
     cases g with
