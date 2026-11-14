@@ -542,3 +542,14 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   for `ReadAll`.
 - **Decision.** Adopted (the W10 session, 2026-11-14; plan §6 Q6's honest error posts; no client of the part's
   `Close` yet).
+
+## 2026-11-14: `wal.WAL.saveEntry.spec` (the part's, internal) -- no bound on the entry's encoding
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__saveEntry.lean`.
+- **Defect.** `encoder.encode.specTail` (as every encode spec) needs the record's size below `2 ^ 47`
+  (`recSize`, the frame's length word); `saveEntry.spec` gave no bound on `Mr.encEntry e` (the per-entry
+  bound was withdrawn with the batch premise, 2026-11-14, and moved back to `Save`'s premise only).
+- **Evidence.** `WAL.saveEntry.wp_proof` (W6, fifteenth session): the encode's premise.
+- **Change (made).** `saveEntry.spec` takes `(Mr.encEntry e).length < 2 ^ 40` (`Save`'s premise for each of its
+  entries, which `Save`'s proof passes); internal spec, no client-visible change.
+- **Decision.** Adopted (minor, internal; W6 fifteenth session).
