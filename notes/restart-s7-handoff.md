@@ -53,6 +53,15 @@ Worktree `/shared/etcd-grove-rs56`, branch `restart-s7` (off `lean`). Plan: `not
   `.snap` clause, `outMsgOk`'s waiting disjunct and `isRaftMsg` each gained a conjunct. Nothing outside raft
   uses them (the independent review checked: no client-visible fact weaker outside raft).
 
+- **Landed** P2-a: `lean` `7c9a02aec4` (2026-11-14).
+- **S7.4 question (stop)**: `BuildServer.specRestart` calls `NewServer.specR`, whose premise
+  `srvRestartRows γ id A σ` is at the image's witnesses `A σ`, which only the proof learns (it opens
+  `srvDiskImage`). Its precondition has no such resource. Options: (i) add `□ ∀ A σ, srvRestartRows γ id A σ`
+  to the precondition (restart1 discharges it with `srvRestartRows_single`; restart3's draft carries it);
+  (ii) specialize to one member (`ps = [id]`) and discharge it inside with `srvRestartRows_single` from
+  `memberRestartFacts`' `srvRaftLogInv`. Both add a premise that reaches `etcd_restart1_safe` (true by
+  construction there). Recommended: (i), general and honest; restart3 keeps its open row.
+
 ## Next, in order
 1. P2-a: the law in `isRaftMsg` (raft side, then `srvRestartRows_single`); stop at the raft interface diff
    for etcd-grove-81's review.
