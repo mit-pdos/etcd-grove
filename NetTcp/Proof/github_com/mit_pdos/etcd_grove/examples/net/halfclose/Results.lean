@@ -10,13 +10,15 @@ every crash of the node, with its own package table (`cmd.server.getIsPkgInit_wf
 its peers then see is the semantics' (`Impl.lean`, D10/D11). The plan has the server's address
 `SrvAddr` at a host `h`, which is the server node's; the client may be on any host (the server's
 too). The network starts with no connection. The theorems are about the deployment `Impl.lean`'s
-D13 assumes: these two processes are the only users of the network (a closed world), their
-addresses do not alias, `SrvAddr`'s port is not ephemeral, on the target configuration.
+D13 assumes: these two processes are the only users of the network (a closed world), on the
+target configuration, with a well-formed plan (D20, `PlanWellFormed`, a premise checked by `decide`:
+its addresses do not alias and their ports are not ephemeral).
 
 The precondition of a node's boot program, over the local ghost state `L` of a generation of the
 node (`nodePre`), is halfclose's protocol (`hcInvs`, `Defs.lean`: the address's invariant and every
-connection's state), the plan's entry for `SrvAddr`, a fresh package state and, for the server, its
-host. The global setup allocates the protocol from the network's start resources (`SrvAddr`'s
+connection's state), the plan's entry for `SrvAddr` (also as the network's plan, which the
+server's `Listen` needs, from the start resources' `hG.plan = g.plan`), a fresh package state and,
+for the server, its host. The global setup allocates the protocol from the network's start resources (`SrvAddr`'s
 pending set, empty); each node's first generation gets its precondition from its start resources
 (its host); a crash keeps the host (`tcp_crashStart`), and the rest is persistent, so every
 generation's proof guarantees the next one's precondition.
@@ -25,7 +27,8 @@ The conclusion, `halfclose_crash_safety`, mentions no ghost state and no bounds:
 of the system with crashes, no thread of any node is stuck and none has an unrecovered panic, so
 the client's check (a response read until EOF is a prefix of `"hello"`, the request it sent
 before shutting its write side) never fails, however reads are split, however the connections
-fail or break (EOF included: a killed server's kernel sends a FIN) and however the nodes crash.
+fail or break (EOF included: a killed server's kernel sends a FIN), whatever error each failure
+carries (D14), whichever dials are abandoned (D16) and however the nodes crash.
 -/
 module
 
@@ -41,6 +44,7 @@ public import NetTcp.Proof.net.Dial
 public import NetTcp.Proof.net.Listen
 public import NetTcp.Proof.net.Listener__Accept
 public import GooseLang.Ext.Tcp.Adequacy
+public import GooseLang.Ext.Tcp.Deploy
 
 @[expose] public section
 
@@ -136,17 +140,21 @@ theorem wp_boot_client [hG : HeapGS .hasLC GF] [sem : go.Semantics]
   ipureintro; rfl
 
 /-- The precondition of node `i`'s boot program in the generation with local ghost state `L`:
-halfclose's protocol, the plan's entry for `SrvAddr` (at `h`), a fresh package state, and for the
-server (`i = 0`), that its host is `h`. -/
+halfclose's protocol, the plan's entry for `SrvAddr` (at `h`: as the client's `Dial` needs it, and in
+the network's plan, as the server's `Listen` does), a fresh package state, and for the server
+(`i = 0`), that its host is `h`. -/
 def nodePre [G : GooseGlobalGS .hasLC GF] (h : GoString) (i : Nat) (L : GooseLocalGS GF) :
     IProp GF :=
   iprop((∃ γm, hcInvs (Gg := G) γm) ∗ tcpPlan (extGlobalGS tcpExt) srvAddr h ∗
-    ownGoState (hG := L.goose_go_stateGS) ∅ ∗
+    ⌜(extGlobalGS tcpExt (G := G)).plan !! srvAddr = some h⌝ ∗ ownGoState (hG := L.goose_go_stateGS) ∅ ∗
     ⌜i = 0 → (extLocalGS tcpExt (L := L)).host = h⌝)
 
+set_option linter.unusedVariables false in
 /-- `halfclose_crash_safety` for executions of fewer than `N` steps along which every node has fewer
 than `T` live threads, under any ghost state `GF` with `GooseGpreS GF`:
-`goose_dist_crash_adequacy` for the system. -/
+`goose_dist_crash_adequacy` for the system. The plan is the list `pl`, well formed (D20,
+`PlanWellFormed`, which `decide` checks on a concrete plan: the example below); the proof does not
+use it (it restricts the theorem to the deployment D13 describes). -/
 theorem halfclose_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     [server_sem : cmd.server.Assumptions] [client_sem : cmd.client.Assumptions]
     [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
@@ -154,6 +162,8 @@ theorem halfclose_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semanti
     (Hs : NodeStart lctx σs) (Hc : NodeStart lctx σc)
     (Hhost : (extLocal tcpExt σs.world).host = h)
     (Hplan : (extGlobal tcpExt g.globalWorld).plan.lookup srvAddr = some h)
+    (pl : List (GoString × GoString)) (Hwf : PlanWellFormed pl)
+    (Hpl : (extGlobal tcpExt g.globalWorld).plan = GMap.ofList pl)
     (Hconns : (extGlobal tcpExt g.globalWorld).conns = ∅)
     (n : Nat) (κs : List Observation) (c : DistCfg)
     (Hsteps : DistCrashNsteps ((system σs σc).map Prod.fst) n
@@ -174,7 +184,9 @@ theorem halfclose_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semanti
     iintro Hg
     icases tcp_globalStart g.globalWorld $$ Hg with Hnet
     unfold tcpStart
-    icases Hnet with ⟨Hplans, Hpends⟩
+    icases Hnet with ⟨Hplans, Hpends, %HGplan⟩
+    have HGp : (extGlobalGS tcpExt (G := G)).plan !! srvAddr = some h := by
+      rw [HGplan]; exact Hplan
     have Hpl : PartialMap.get? (extGlobal tcpExt g.globalWorld).plan srvAddr = some h := by
       rw [gmap_get?_eq]; exact Hplan
     ihave #Hp := (BigSepM.bigSepM_lookup (Φ := fun a h => tcpPlan (extGlobalGS tcpExt) a h) Hpl)
@@ -211,7 +223,7 @@ theorem halfclose_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semanti
       isplitl []
       · iexists γm
         iframe HaddrInv HhcInv
-      ipureintro; intro _; exact Hh.trans Hhost
+      ipureintro; exact ⟨HGp, fun _ => Hh.trans Hhost⟩
     isplitl []
     · -- the client
       iintro %L %_ %_ - Hgs
@@ -223,7 +235,7 @@ theorem halfclose_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semanti
       isplitl []
       · iexists γm
         iframe HaddrInv HhcInv
-      ipureintro; intro h0; cases h0
+      ipureintro; exact ⟨HGp, fun h0 => by cases h0⟩
     iempintro
   · -- every generation of every node: its boot program, and its next precondition
     intro hG _ _ i e σ Hes Hlctx
@@ -240,15 +252,15 @@ theorem halfclose_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semanti
     subst Hlctx
     letI hG : HeapGS .hasLC GF := ⟨G, ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
     unfold nodePre
-    iintro ⟨⟨%γm, #Hinvs⟩, #Hplan, Hgs, %Hh⟩ _
+    iintro ⟨⟨%γm, #Hinvs⟩, #Hplan, %HGp, Hgs, %Hh⟩ _
     imodintro
     isplitl [Hgs]
     · rcases Hnode with ⟨rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩
       · iapply wp_boot_server _ (cmd.server.wp_main net.Listen.wp_proof
           net.Listener.Accept.wp_proof net.Conn.Read.wp_proof net.Conn.Write.wp_proof
           net.Conn.Close.wp_proof γm) $$ [] Hgs
-        rw [Hh rfl]
-        iframe Hinvs Hplan
+        iframe Hinvs
+        ipureintro; rw [Hh rfl]; exact HGp
       · iapply wp_boot_client _ (cmd.client.wp_main net.Dial.wp_proof net.Conn.Read.wp_proof
           net.Conn.Write.wp_proof net.TCPConn.CloseWrite.wp_proof net.Conn.Close.wp_proof
           γm h) $$ [] Hgs
@@ -262,7 +274,7 @@ theorem halfclose_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semanti
       · iexists γm
         iexact Hinvs
       ipureintro
-      intro hi
+      refine ⟨HGp, fun hi => ?_⟩
       rw [Hhost']
       exact Hh hi
   · intro n hn
@@ -271,13 +283,15 @@ theorem halfclose_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semanti
     · exact Hs.threads
     · exact Hc.threads
 
+set_option linter.unusedVariables false in
 /-- Crash safety of the halfclose system: in every execution with crashes of the two nodes, the
 server's and the client's commands, each its own process (`DistCrashNsteps`, the real semantics: a
 crash of a node restarts it with its command's program, from a crashed local state, the network's
 connections and the bytes in flight on them kept), from local states whose Go contexts satisfy the
 Go semantics and the commands' assumptions, with no package initialized and their main threads
-only, where the server's host is `h`, the plan has `SrvAddr` at `h` and the network has no
-connection yet, every program returns `#()` if it returns, no thread of any node is stuck and none
+only, where the server's host is `h`, the plan is a well-formed list `pl` (D20, `PlanWellFormed`,
+checked by `decide`: the example below) with `SrvAddr` at `h` and the network has no connection
+yet, every program returns `#()` if it returns, no thread of any node is stuck and none
 has an unrecovered panic: the client's check holds, however connections fail and however often any
 node crashes or exits. (The deployment is the one `Impl.lean`'s D13 assumes: a closed world of
 these two processes, non-aliasing addresses, a non-ephemeral port, the target configuration.)
@@ -291,6 +305,8 @@ theorem halfclose_crash_safety [lctx : GoLocalContext] [sem : go.Semantics]
     (Hs : NodeStart lctx σs) (Hc : NodeStart lctx σc)
     (Hhost : (extLocal tcpExt σs.world).host = h)
     (Hplan : (extGlobal tcpExt g.globalWorld).plan.lookup srvAddr = some h)
+    (pl : List (GoString × GoString)) (Hwf : PlanWellFormed pl)
+    (Hpl : (extGlobal tcpExt g.globalWorld).plan = GMap.ofList pl)
     (Hconns : (extGlobal tcpExt g.globalWorld).conns = ∅)
     (n : Nat) (κs : List Observation) (c : DistCfg)
     (Hsteps : DistCrashNsteps ((system σs σc).map Prod.fst) n
@@ -300,7 +316,7 @@ theorem halfclose_crash_safety [lctx : GoLocalContext] [sem : go.Semantics]
       (∀ e, e ∈ tp → RealNotStuck e (σ, c.global)) ∧
       (∀ e, e ∈ tp → ¬ UnrecoveredPanic e) :=
   halfclose_crash_safety_bounded (GF := tcpGF) (n + 1) (n + 2) σs σc g h Hs Hc Hhost Hplan
-    Hconns n κs c Hsteps (by omega)
+    pl Hwf Hpl Hconns n κs c Hsteps (by omega)
     (DistCrashThreadsBelow.of_single (fun (i : Nat) (tp : List Expr) (σ : state) hi => by
       simp only [distInit, system, List.map_cons, List.map_nil] at hi
       match i, hi with
@@ -308,6 +324,9 @@ theorem halfclose_crash_safety [lctx : GoLocalContext] [sem : go.Semantics]
       | 1, hi => cases hi; exact Hc.threads))
 
 end adequacy
+
+/-- The plan of halfclose's deployment is well formed (D20). -/
+example : PlanWellFormed [(srvAddr, go!"h")] := by decide
 
 #print axioms halfclose_crash_safety
 

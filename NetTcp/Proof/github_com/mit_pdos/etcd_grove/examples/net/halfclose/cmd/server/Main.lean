@@ -30,7 +30,7 @@ variable [package_sem : Assumptions] [field_sem : net.FieldAssumptions]
 variable [go.BasicIntoValInj]
 
 /-- The server command's `main`: `Serve`, under halfclose's protocol (`hcInvs`) and the plan's
-entry of `SrvAddr` at the node's host. -/
+address `SrvAddr` at the node's host (the network's plan, `Listen`'s premise). -/
 theorem wp_main
     (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
     (wp_Accept : net.Listener.Accept.spec (GF := GF) (hG := hG))
@@ -39,17 +39,20 @@ theorem wp_main
     (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
     (γm : GName) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.net.halfclose.cmd.server ∗
-        hcInvs γm ∗ tcpPlan G srvAddr (extLocalGS tcpExt (L := hG.goose_localGS)).host }}
+        hcInvs γm ∗
+        ⌜(G (Gg := hG.goose_globalGS)).plan !! srvAddr =
+          some (extLocalGS tcpExt (L := hG.goose_localGS)).host⌝ }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hinvs, #Hplan⟩
+  wp_start as ⟨#Hinvs, %Hplan⟩
   ihave #Hhc : (isPkgInit (PROP := IProp GF)
       pkg_id.github_com.mit_pdos.etcd_grove.examples.net.halfclose) $$ []
   · iPkgInit
   icases eof_init $$ Hhc with ⟨%x, #Heof⟩
   (try wp_auto)
   wp_apply wp_Serve wp_Listen wp_Accept wp_Read wp_Write wp_Close γm x $$ []
-  · iframe Hinvs Hplan Heof
+  · iframe Hinvs Heof
+    ipureintro; exact Hplan
   (try wp_auto)
   iapply HΦ
   itrivial
