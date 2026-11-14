@@ -110,8 +110,7 @@ theorem create_areaBack (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
       osNames (L := hG.goose_localGS) jr ((N.diff [tmpName nm]).diff [nm]) (DFrac.own (1 : Qp).half)
         ((h.restrict jr (N.diff [tmpName nm])).restrict jr ((N.diff [tmpName nm]).diff [nm])) -∗
       osNames (L := hG.goose_localGS) jr (.only [tmpName nm]) (DFrac.own 1) ht -∗
-      osClaims hG.goose_localGS
-        ((cl.filter (fun c => decide (c.1 ≠ tmpName nm))).map (fun c => (c.2, DFrac.own 1))) -∗
+      areaCls (L := hG.goose_localGS) (cl.filter (fun c => decide (c.1 ≠ tmpName nm))) -∗
       walSplitFrag (W := W) (nm :: Wn) ={⊤}=∗
       notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ T ∗ walAreaRes (L := hG.goose_localGS) jr := by
   iintro #Hinv #Hsi Hnc Ht HN HT Hcl Hsf

@@ -5,7 +5,8 @@
 `walAreaRes jr` holds the program's half of the area claim `(jr, N, h)` and the whole claims under each
 non-WAL name, tagged by the name (`clOf`). `Create` takes `nm.tmp`'s (after `walInvBody_drop` split the
 claim on `nm.tmp` off the area claim): `area_takeTmp` gives the temporary directory's contents
-(`tmpSub`) and keeps the claims under every other name; `area_give` rebuilds `walAreaRes` from an area
+(`tmpSub`, its `.touch`'s file included: `areaCls`'s `tmpClTouch`, `wal-leaf5`) and keeps the claims
+under every other name; `area_give` rebuilds `walAreaRes` from an area
 claim (on the same names) that says of every non-WAL name but `nm.tmp` what `h` said, and the
 temporary directory's new contents.
 -/
@@ -179,29 +180,73 @@ theorem osClaims_take (l : List Claim) (c : Claim) (hc : c ∈ l) :
   icases (osClaims_cons _ _ _).1 $$ H with ⟨H, -⟩
   iexact H
 
+/-- A big separating conjunction over tagged claims split by a tag. -/
+theorem bigSepL_tag_split (Φ : GoString × Claim → IProp GF) (cl : List (GoString × Claim))
+    (t : GoString) :
+    ([∗list] c ∈ cl, Φ c) ⊢ ([∗list] c ∈ cl.filter (fun c => decide (c.1 = t)), Φ c) ∗
+      [∗list] c ∈ cl.filter (fun c => decide (c.1 ≠ t)), Φ c := by
+  induction cl with
+  | nil =>
+    simp only [List.filter_nil]
+    iintro -
+    isplitl [] <;> iapply BigSepL.bigSepL_nil.2 <;> iempintro
+  | cons c cl ih =>
+    iintro H
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨Hc, H⟩
+    icases ih $$ H with ⟨H1, H2⟩
+    by_cases hc : c.1 = t
+    · rw [List.filter_cons_of_pos (by simp [hc]), List.filter_cons_of_neg (by simp [hc])]
+      iframe H2
+      iapply BigSepL.bigSepL_cons.2
+      iframe
+    · rw [List.filter_cons_of_neg (by simp [hc]), List.filter_cons_of_pos (by simp [hc])]
+      iframe H1
+      iapply BigSepL.bigSepL_cons.2
+      iframe
+
+/-- A claim not of a temporary directory's directory owns no probe file. -/
+theorem tmpClTouch_not (c : GoString × Claim)
+    (h : ¬ ((∃ nm, walNameOk nm ∧ c.1 = tmpName nm) ∧ c.2.2.1 = NameSet.except [])) :
+    ⊢ tmpClTouch (L := hG.goose_localGS) c := by
+  unfold tmpClTouch
+  iintro %hc
+  exact absurd hc h
+
 /-- **The temporary directory's contents taken from the area's claims.** -/
 theorem area_takeTmp (N : NameSet) (h : NamesH) (cl : List (GoString × Claim)) (nm : GoString)
     (Wn : List GoString) (hok : AreaOk N h cl Wn) (hnm : walNameOk nm) :
-    osClaims (GF := GF) hG.goose_localGS (cl.map (fun c => (c.2, DFrac.own 1))) ⊢
+    areaCls (L := hG.goose_localGS) cl ⊢
       tmpSub (h.cur !! tmpName nm) ∗
-      osClaims hG.goose_localGS
-        ((cl.filter (fun c => decide (c.1 ≠ tmpName nm))).map (fun c => (c.2, DFrac.own 1))) := by
+      areaCls (L := hG.goose_localGS) (cl.filter (fun c => decide (c.1 ≠ tmpName nm))) := by
   have hnt : ¬ walNameOk (tmpName nm) := by
     intro hw; apply hw.2.2; simp [tmpName]
   have hsc := hok.2.2.1 (tmpName nm) (by have := hok.2.1 nm go!"tmp" hnm; simpa [tmpName] using this) hnt
   have htm := hok.2.2.2 nm hnm
-  iintro H
+  unfold areaCls
+  iintro ⟨H, Hf⟩
   icases osClaims_partition cl (tmpName nm) $$ H with ⟨Ht, H⟩
-  iframe H
+  icases bigSepL_tag_split (tmpClTouch (L := hG.goose_localGS)) cl (tmpName nm) $$ Hf with ⟨Hft, Hf⟩
+  iframe H Hf
   rcases htm with he | ⟨J, he, hf⟩
   · rw [he]; simp only [tmpSub]; iempintro
   · rw [he]
     obtain ⟨hJ, hmem⟩ := hsc J he J (.refl J)
     ihave HJ := osClaims_take _ _ hmem $$ Ht
+    have hmem' : (tmpName nm, (J, NameSet.except [], hJ)) ∈
+        cl.filter (fun c => decide (c.1 = tmpName nm)) := by
+      obtain ⟨c, hc, hc2⟩ := List.mem_map.1 hmem
+      have hc1 : c.1 = tmpName nm := by simpa using (List.mem_filter.1 hc).2
+      have : c = (tmpName nm, (J, NameSet.except [], hJ)) := Prod.ext hc1 hc2
+      exact this ▸ hc
+    ihave HT := BigSepL.bigSepL_mem (Φ := tmpClTouch (L := hG.goose_localGS)) hmem' $$ Hft
+    iunfold tmpClTouch at HT
     simp only [tmpSub]
     iexists hJ
-    iframe
-    ipureintro; exact hf hJ hmem
+    iframe HJ
+    isplitr
+    · ipureintro; exact hf hJ hmem
+    iapply HT
+    ipureintro; exact ⟨⟨nm, hnm, rfl⟩, by first | rfl | trivial⟩
 
 /-- **`walAreaRes` rebuilt** (see the file header). -/
 theorem area_give (N N' : NameSet) (h h' : NamesH) (cl : List (GoString × Claim)) (jr : Ino)
@@ -209,22 +254,26 @@ theorem area_give (N N' : NameSet) (h h' : NamesH) (cl : List (GoString × Claim
     (htN : ¬ walNameOk tmp)
     (hcur : ∀ b, b ≠ tmp → ¬ walNameOk b → h'.cur !! b = h.cur !! b) :
     osNames (L := hG.goose_localGS) jr N' (DFrac.own (1 : Qp).half) h' ∗ walSplitFrag (W := W) Wn ∗
-      tmpSub (h'.cur !! tmp) ∗ osClaims hG.goose_localGS
-        ((cl.filter (fun c => decide (c.1 ≠ tmp))).map (fun c => (c.2, DFrac.own 1))) ⊢
+      tmpSub (h'.cur !! tmp) ∗
+      areaCls (L := hG.goose_localGS) (cl.filter (fun c => decide (c.1 ≠ tmp))) ⊢
       walAreaRes (L := hG.goose_localGS) jr := by
   iintro ⟨Hn, Hs, Ht, Hc⟩
+  iunfold areaCls at Hc
+  icases Hc with ⟨Hc, Hf⟩
   rcases he : h'.cur !! tmp with _ | ⟨i | J⟩
   · have hok' := areaOk_give N N' h h' cl tmp [] Wn hok hN htN hcur
       ⟨by rw [he]; exact subCover_none _, by rw [he]; exact .inl rfl⟩
     rw [List.map_nil, List.append_nil] at hok'
     obtain ⟨a1, a2, a3, a4⟩ := hok'
+    ihave Hac : areaCls (L := hG.goose_localGS) (cl.filter (fun c => decide (c.1 ≠ tmp))) $$ [Hc Hf]
+    · unfold areaCls; iframe
     unfold walAreaRes
     iexists N', h', cl.filter (fun c => decide (c.1 ≠ tmp)), Wn
-    iframe Hn Hs Hc
+    iframe Hn Hs Hac
     ipureintro; exact ⟨a1, a2, a3, a4⟩
   · iunfold tmpSub at Ht; icases Ht with %hf; exact hf.elim
   · iunfold tmpSub at Ht
-    icases Ht with ⟨%hJ, %hf, HJ⟩
+    icases Ht with ⟨%hJ, %hf, HJ, HT⟩
     have hok' := areaOk_give N N' h h' cl tmp [(J, NameSet.except [], hJ)] Wn hok hN htN hcur
       ⟨by rw [he]; exact subCover_single J hJ hf,
        by rw [he]; exact .inr ⟨J, rfl, fun hJ' hm => by
@@ -240,10 +289,24 @@ theorem area_give (N N' : NameSet) (h h' : NamesH) (cl : List (GoString × Claim
       iapply (osClaims_cons _ _ _).2
       iframe HJ
       iapply osClaims_nil'
+    ihave Hac : areaCls (L := hG.goose_localGS) (cl.filter (fun c => decide (c.1 ≠ tmp)) ++
+        ([(J, NameSet.except [], hJ)] : List Claim).map (fun c => (tmp, c))) $$ [Hc' Hf HT]
+    · unfold areaCls
+      iframe Hc'
+      iapply BigSepL.bigSepL_append.2
+      iframe Hf
+      simp only [List.map_cons, List.map_nil]
+      iapply BigSepL.bigSepL_cons.2
+      isplitl [HT]
+      · unfold tmpClTouch
+        iintro -
+        iexact HT
+      iapply BigSepL.bigSepL_nil.2
+      iempintro
     unfold walAreaRes
     iexists N', h', cl.filter (fun c => decide (c.1 ≠ tmp)) ++
       ([(J, NameSet.except [], hJ)] : List Claim).map (fun c => (tmp, c)), Wn
-    iframe Hn Hs Hc'
+    iframe Hn Hs Hac
     ipureintro; exact ⟨a1, a2, a3, a4⟩
 
 /-- `walAreaRes` unpacked. -/
@@ -251,7 +314,7 @@ theorem walAreaRes_open (jr : Ino) :
     walAreaRes (L := hG.goose_localGS) jr ⊢ ∃ (N : NameSet) (h : NamesH) (cl : List (GoString × Claim))
       (Wn : List GoString),
       osNames (L := hG.goose_localGS) jr N (DFrac.own (1 : Qp).half) h ∗ walSplitFrag (W := W) Wn ∗
-      ⌜AreaOk N h cl Wn⌝ ∗ osClaims hG.goose_localGS (cl.map (fun c => (c.2, DFrac.own 1))) := by
+      ⌜AreaOk N h cl Wn⌝ ∗ areaCls (L := hG.goose_localGS) cl := by
   unfold walAreaRes
   iintro ⟨%N, %h, %cl, %Wn, Hn, Hs, %a1, %a2, Hc, %a3, %a4⟩
   iexists N, h, cl, Wn

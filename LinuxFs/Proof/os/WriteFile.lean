@@ -8,6 +8,7 @@ module
 public import LinuxFs.Spec.os.WriteFile
 public import LinuxFs.Spec.os.File__Close
 public import LinuxFs.Proof.os.OffLong
+public import LinuxFs.Proof.os.OpenFileTruncS
 
 @[expose] public section
 
@@ -46,6 +47,13 @@ theorem os.osAU_triv {A : Type} (α : IProp GF) (β : A → IProp GF) : α ⊢ o
     imodintro
     iexact Hβ
 
+/-- The file a create made, held whole, forgetting the success's facts. -/
+theorem os.crTr_false (P : Prop) (o : Option (Nat × Nat × Ino)) :
+    crTr (GF := GF) P o ⊢ crTr False o := by
+  rcases o with _ | ⟨x, s, i⟩
+  · dsimp only [crTr]; iintro H; iexact H
+  · dsimp only [crTr]; exact trFile_mono i P False False.elim
+
 /-- Two halves of a create's outcome on a claim make the whole. -/
 theorem os.crOut_join (j : Ino) (b : GoString) (h : NamesH) (o : Option (Nat × Nat × Ino)) :
     crOut (GF := GF) j b h (DFrac.own (1 : Qp).half) o ∗ crOut (GF := GF) j b h (DFrac.own (1 : Qp).half) o ⊢
@@ -76,10 +84,11 @@ theorem os.WriteFile.wp_proofEmptyS (wp_Open : os.OpenFile.specCreateTruncS (GF 
       (crOut j b h (DFrac.own (1 : Qp).half))
       (by simp only [OpenFlagsOk, O_CREAT, O_TRUNC, O_CLOEXEC]; decide) (by decide) (by decide)
       hb hnone (Qp.half_add_half 1) $$ [Hp Hperm Hq Hau]
-    as %f %err ⟨Hp, Hperm, %o, HQ, Hout, -, Hr⟩
+    as %f %err ⟨Hp, Hperm, %o, HQ, Hout, Htr, Hr⟩
   · iframe; isplitl [] <;> iassumption
   ihave Hout := os.crOut_join j b h o $$ [HQ Hout]
   · iframe
+  ihave Htr := os.crTr_false _ o $$ Htr
   icases Hr with (⟨%fd, %i, ⟨%herr, %hfd, %hio⟩, Hf, Ho, Hfd⟩ | ⟨%herr, -⟩)
   · subst herr
     wp_auto

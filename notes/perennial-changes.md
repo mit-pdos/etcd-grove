@@ -904,6 +904,17 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   structurally; the spec needs only that `Errorf` returns a non-nil error).
 - **Status.** Not started.
 
+### Specs: `fmt`'s `ArgWf` for `[]string` and `fs.FileMode` arguments (2026-11-14, `wal-leaf5`)
+
+- **Missing.** Perennial's `fmt.Errorf` spec admits only basic arguments and arguments whose
+  `Error()`/`String()` has a spec: etcd's `fileutil.CreateDirAll` formats a `[]string` (`%q`) and
+  `CheckDirPermission` two `fs.FileMode`s (`%q`, `String()`, untranslated).
+- **Workaround here.** `LinuxFs/Spec/fmt/ErrorfStrs.lean` (`fmt.ErrorfStrs.spec`), proved over the model
+  (`LinuxFs/Proof/fmt/ErrorfStrs.lean`), the faithfulness argued in its header (as `fmt.ErrorfErrs`).
+- **Proposed.** `ArgWf` cases for a slice of basic values (printed structurally, its contents read: a
+  fraction held) and for a type whose `String()` is translated and specified (`FileMode.String`).
+- **Status.** Not started.
+
 ### Tactics: `wp_load` misses a field of a whole-struct points-to with a generic-struct field (2026-10-27, client-go listers)
 
 - **Missing.** With `s ↦{dq} (⟨ri⟩ : daemonSetLister)` in context (a struct whose one field is the
