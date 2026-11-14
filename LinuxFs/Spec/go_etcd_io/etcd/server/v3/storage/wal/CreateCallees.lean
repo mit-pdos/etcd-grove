@@ -3,21 +3,26 @@ The callee specs `wal.Create`'s proof takes as hypotheses that no other spec sta
 `notes/wal-fsext-plan.md`, eleventh session). Each is a triple of the real code, stated for
 `Create`'s use; none is proved yet (the W4 log says what each needs).
 
-* **`tmpDirH j b h`**: the whole claim on the name `b` of `j` (its history `h`), `b` holding nothing
-  or a directory of files only, whose whole claim is held too: what `Create` keeps of its temporary
-  directory `nm.tmp` (a leftover's, `walAreaRes`), and what `RemoveAll`/`CreateDirAll` leave of it.
+* **`tmpDirH j b h`** (`LinuxFs/Spec/.../fileutil/TmpDir.lean`, moved there on `wal-leaf4`): the whole
+  claim on the name `b` of `j` (its history `h`), `b` holding nothing or a directory of files only, whose
+  whole claim is held too: what `Create` keeps of its temporary directory `nm.tmp` (a leftover's,
+  `walAreaRes`), and what `RemoveAll`/`CreateDirAll` leave of it.
 * **`wal.Exist.specCreate`** (W12 states `Exist` over `walDirIs`; `Create` needs only that it
   returns): `Exist(dir)` with `Create`'s resources, unchanged (and `NameOk nm`, which `ReadDir`'s specs
   need of the name it reads; `walNameOk` allows a NUL byte). Proved: `wal.Exist.wp_specCreate`.
 * **`fileutil.CreateDirAll.specTmp`**: `CreateDirAll.spec` (proved, `name` absent) extended to a
   `name` holding a directory of files (a leftover `nm.tmp` that `Exist` missed, a `Stat` error, or
   that `RemoveAll` returned `nil` on, `ENOENT` with no effect: `os.RemoveAll.specDirS`'s header), and
-  its error arm narrowed to `tmpDirH` (the proved spec's `osSubtreeH`: `TouchDirAll`'s `MkdirAll`
+  its error arm `tmpDirH` (as `CreateDirAll.spec`'s since `wal-leaf4`: `TouchDirAll`'s `MkdirAll`
   creates one directory, `IsDirWriteable` a file in it). Success: as `CreateDirAll.spec` (an empty
-  directory: `ReadDir` found none). (Until `wal-create18` the success post also said the new
-  directory names nothing at any crash of its claim, `valAfter … = none`: false, `IsDirWriteable`'s
-  `.touch` is created and removed through the claim; dropped, `Create` raising the invariant's commit
-  bound past the directory's entries instead: ledger 2026-11-14.)
+  directory: `ReadDir` found none) but for the commit bound, which is false of an existing directory
+  (`TouchDirAll` may sync nothing after a `Stat` error: ledger 2026-11-14, "the commit bound on an
+  existing directory"; dropped on `wal-leaf4`, `Create` never used it). (Until `wal-create18` the success
+  post also said the new directory names nothing at any crash of its claim, `valAfter … = none`: false,
+  `IsDirWriteable`'s `.touch` is created and removed through the claim; dropped, `Create` raising the
+  invariant's commit bound past the directory's entries instead: ledger 2026-11-14.) Not proved: the
+  existing-directory case needs a leftover `.touch`'s file (ledger 2026-11-14, "a leftover `.touch`
+  needs its file") and a spec of `CheckDirPermission`.
 * **`os.RemoveAll.specAbsentN`**: `os.RemoveAll.specAbsentS` (proved) for a fraction of a claim on any
   names holding `b` (the proved one takes `.only [b]`; the extension's leaf steps,
   `wp_osUnlinkS_none`/`wp_osRmdirS_none`, take `.only [b]`, and the absent case logs nothing, so
@@ -40,25 +45,6 @@ namespace EtcdGrove
 
 open Iris Iris.BI
 open Fs WalEnc WalFs
-
-section defs
-variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-
-/-- **What a temporary directory's entry `e` holds, owned**: nothing, or a directory of files, whose
-whole claim is held. -/
-def tmpSub : Option Node → IProp GF
-  | none => iprop(emp)
-  | some (.file _) => iprop(False)
-  | some (.dir J) => iprop(∃ hJ : NamesH, ⌜FilesOnly hJ.cur⌝ ∗ osNames J (.except []) (DFrac.own 1) hJ)
-
-/-- **The whole of the name `b` of `j` (its claim's history `h`), holding nothing or a directory of
-files** (whose whole claim is held). -/
-def tmpDirH (j : Ino) (b : GoString) (h : NamesH) : IProp GF :=
-  iprop(osNames j (.only [b]) (DFrac.own 1) h ∗ tmpSub (h.cur !! b))
-
-end defs
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
@@ -88,10 +74,9 @@ abbrev fileutil.CreateDirAll.specTmp [go_etcd_io.etcd.client.pkg.v3.fileutil.Ass
     (App (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.CreateDirAll)) (Val #lg)) (Val #d))
   {{ (err : GoInterface), RET #err; osPathS R parent (DFrac.own qp) jp ∗ osCallPerm 1 ∗
       ((⌜err ≠ interface.nil⌝ ∗ ∃ h', tmpDirH jp name h') ∨
-        (⌜err = interface.nil⌝ ∗ ∃ (h' hJ : NamesH) (J : Ino) (n : Nat),
-          ⌜h'.cur !! name = some (.dir J) ∧ h'.next ≤ n ∧ hJ.cur = ∅⌝ ∗
-          osNames jp (.only [name]) (DFrac.own 1) h' ∗ osNames J (.except []) (DFrac.own 1) hJ ∗
-          osCommitLb n)) }}
+        (⌜err = interface.nil⌝ ∗ ∃ (h' hJ : NamesH) (J : Ino),
+          ⌜h'.cur !! name = some (.dir J) ∧ hJ.cur = ∅⌝ ∗
+          osNames jp (.only [name]) (DFrac.own 1) h' ∗ osNames J (.except []) (DFrac.own 1) hJ)) }}
 
 /-- See the file header. -/
 abbrev os.RemoveAll.specAbsentN [os.Assumptions] : Prop :=

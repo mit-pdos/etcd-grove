@@ -1073,4 +1073,48 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   Then the proof is `MustUnmarshalMessagePb.wp_proof`'s over the part's `UnmarshalPb.spec`, with
   `snapOwnC_freeze` for the read-only snapshot.
 - **Decision.** Open: it adds an obligation to `ReadAll`'s callers (`U`'s coherence with protobuf-go), the
-  coordinator's call.
+  coordinator's call. **Adopted** (the coordinator, decided; made on `wal-leaf4`): the law is
+  `WalEnc.WalUnmarshal.SnapCoh U` (`ReadAllCallees.lean`, a pure `def`, for C6 to discharge with the client's
+  codec), a premise of `specWalSnap U` itself (`U.SnapCoh → ∀ sp d dq bs s, …`), and `isPkgInit pbutil` in the
+  pre. Proved (`MustUnmarshalMessage.wp_proofWalSnap`). `WAL.ReadAll.wp_proof` takes `hUs : U.SnapCoh` next to
+  `hU : U.Ok Mr`. (A canonical-only `U`, one decoding exactly the `snapEnc` images, satisfies both `Ok` and
+  `SnapCoh` when `Mr.encSnap` is `snapEnc` of a valid content, as `walSnapAt` already requires.)
+
+## 2026-11-14: `fileutil.CreateDirAll.specTmp` (internal, the part's) -- the commit bound on an existing directory
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/CreateCallees.lean`, `specTmp`'s success post
+  (`h'.next ≤ n ∧ … ∗ osCommitLb n`: every entry that wrote `name` committed).
+- **Defect.** False when `name` already holds a directory (the case `specTmp` adds): `TouchDirAll` (the fork's,
+  F-N2) syncs `name`'s parent only in its `Exist` branch and, in the other, for each directory its climbing loop
+  collected (`created`). `Exist(d)` is `Stat(d) == nil`, and `Stat` of an existing directory may fail (any errno:
+  `os.Stat.wp_dirS`, the extension's environmental failure); after such a failure the loop's `Exist(d)` may
+  succeed, so `created = []`, `MkdirAll` returns `nil` on the directory, nothing is synced, and `CreateDirAll`
+  returns `nil` with `name`'s entries possibly uncommitted (the leftover `nm.tmp`'s `mkdir` from earlier in the
+  generation). No premise `Create` can give rules it out (its `RemoveAll(nm.tmp)` leaves `tmpDirH` of any history).
+- **Evidence.** The translation of `TouchDirAll` (`LinuxFs/Code/.../fileutil.lean`, fileutil.go:49); found
+  designing `specTmp`'s existing-directory proof (`wal-leaf4`). Recorded as a durability gap of the fork's F-N2
+  patch: `nonissues/etcd-fork-touchdirall-stat-error-no-parent-sync.md`.
+- **Change (made, `wal-leaf4`).** The success post drops `h'.next ≤ n` and `osCommitLb n` (`∃ h' hJ J, ⌜h'.cur !!
+  name = some (.dir J) ∧ hJ.cur = ∅⌝ ∗ …`). `Create` never used them (since `wal-create18` its commit bound comes
+  from `syncDir(nm.tmp)` and the later parent fsync); its pattern loses `%n0`/`#Hcm0` and `hJs.2.2` becomes `hJs.2`.
+- **Decision.** Made (internal, weaker post nobody used; no client-visible change).
+
+## 2026-11-14: `fileutil.CreateDirAll.specTmp` (internal, the part's) -- a leftover `.touch` needs its file
+
+- **Spec.** `specTmp`'s pre (`tmpDirH jp name h`: `name` holding nothing or a directory of files, the claims
+  whole) and `tmpSub` (`CreateCallees.lean`).
+- **Defect.** Too weak for the existing-directory case: the directory may hold a leftover `.touch` (a crash, or an
+  error, between `IsDirWriteable`'s create and remove), and `IsDirWriteable`'s `os.WriteFile(dir/.touch, "",
+  O_TRUNC)` then truncates that file, a step on its `OsMeta` and bytes (`os.OpenFile.wp_truncS` takes `trFile i
+  False`). `tmpSub` holds only claims (names), no file's `OsMeta`; neither does any producer of `tmpDirH`
+  (`walAreaRes`'s `TmpOk`, `os.RemoveAll.specDirS`'s `rmAllOut`, `TouchDirAll`'s error arms: `specEmptyS` drops the
+  probe's `trFile`). So the case is unprovable: nobody owns the file the truncation changes.
+- **Evidence.** `IsDirWriteable.specFile` (`wal-leaf4`, proved) needs `trFile i False` of `.touch`'s file;
+  `walAreaRes` (`CreateDefs.lean`); `rmAllOut` (`Spec/os/RemoveAll.lean`).
+- **Proposed change.** `tmpSub`'s directory arm also holds each file whole: `∃ hJ, ⌜FilesOnly hJ.cur⌝ ∗ osNames J
+  (.except []) 1 hJ ∗ [∗map] c ↦ n ∈ hJ.cur, (∃ i, ⌜n = .file i⌝ ∗ trFile i False)` (or only `.touch`'s). Its
+  producers then give the files: `RemoveAll.specDirS` (its pre's files, minus the unlinked ones), `TouchDirAll`'s
+  error arms (`os.WriteFile.specEmptyS` returning the probe's `trFile`), and `walAreaRes`'s `TmpOk` for a leftover
+  from before a crash (the crash rebuild's file ownership: the deep part). Alternatively restrict `specTmp` to a
+  directory with no `.touch` (`Create` cannot show it).
+- **Decision.** Open: the coordinator's call (the change reaches `walAreaRes` and the crash rebuild).

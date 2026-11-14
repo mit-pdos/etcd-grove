@@ -591,6 +591,7 @@ target builds (3215 jobs, no failure, nothing to fix); `etc/gen-part-copies.py -
 
 **Non-callee premises of the `wp_proof`s (laws and supplies; 16 binders, 12 distinct)**
 - `S/WAL__ReadAll.lean:142` `hU : U.Ok Mr`; `:143` `hHs : WalHsOwn P U HsO` (`Sp/ReadAllCallees.lean`).
+- `S/WAL__ReadAll.lean` `hUs : U.SnapCoh` (`wal-leaf4`; `MustUnmarshalMessage.specWalSnap`'s premise).
 - `S/WAL__ReadAll.lean:155` `WalPbIn.UnmarshalEntLaw`; `:157` `GetTermLaw`; `:158` `CloneHsLaw`.
 - `WalPbIn.GetIndexLaw`: `S/WAL__ReadAll.lean:156`, `S/WAL__saveEntry.lean:34`.
 - `WalPbIn.IsEmptyLaw` (`Sp/WAL__cutPre.lean:80`): `S/WAL__Save.lean:115`, `S/WAL__cutPre.lean:57`,
@@ -606,11 +607,12 @@ target builds (3215 jobs, no failure, nothing to fix); `etc/gen-part-copies.py -
 - WAL's own variants: `WAL.renameWALUnlock.spec` (`S/WAL__renameWAL.lean:69`), `WAL.sync.specC`
   (`S/WAL__Close.lean:59`), `WAL.sync.specCut` (`S/WAL__cut.lean:112`), `encoder.encode.specTail` (3 uses, first
   `S/WAL__SaveSnapshot.lean:55`).
-- `fileutil.CreateDirAll.specTmp` (`Sp/CreateCallees.lean:82`; `S/Create.lean:101`; false as stated, ledger).
+- `fileutil.CreateDirAll.specTmp` (`Sp/CreateCallees.lean`; `S/Create.lean:105`): restated (`wal-leaf4`, commit bound
+  dropped); blocked on a leftover `.touch`'s file ownership and `CheckDirPermission`'s spec (ledger, `wal-leaf4` log).
 - `os.File.Close.specClosed` (`LinuxFs/Spec/os/File__CloseClosed.lean:38`; `S/Create.lean:111`, `CreateLockedLeft`).
 - `pbutil.MustMarshalMessage.specWalSnap`: proved (`wal-leaf3`, over `proto.MarshalPb.spec`; size premise added,
-  ledger). `pbutil.MustUnmarshalMessage.specWalSnap`
-  (`Sp/ReadAllCallees.lean:87`; `S/WAL__ReadAll.lean:154`).
+  ledger). `pbutil.MustUnmarshalMessage.specWalSnap`: proved (`wal-leaf4`, over `proto.UnmarshalPb.spec`, premise
+  `U.SnapCoh`, which `ReadAll` now takes).
 - Standard library / protobuf: `errors.AsLinkError.spec` (`S/WAL__renameWAL.lean:68`), `errors.IsErrno.spec`
   (`fileutil/TryLockFile.lean:300`), `errors.IsPathErrnoEof.spec` (`S/openAtIndex.lean:208`, `OpenFiles`),
   `fmt.ErrorfErrsNot.spec` (`S/decoder__decodeRecord.lean:47`), `proto.UnmarshalWalRecordE.spec`
@@ -668,6 +670,45 @@ extends a trust-boundary axiom, the user's call). None of the proofs below is li
   `tmpDirH` (what `TouchDirAll` leaves: one directory of files) and the existing-directory case (`MkdirAll`,
   `IsDirWriteable` with `.touch` possibly present, `ReadDir` on a directory of files), or the pre restricted to an
   absent name (the only case `Create` reaches, the ledger's note): not started, pending that restatement.
+
+## Leaf specs log (branch `wal-leaf4`, 2026-11-14)
+
+The two leaves `wal-leaf3` left (tasks decided by the coordinator).
+
+**Proved**
+- `pbutil.MustUnmarshalMessage.specWalSnap`: the ledger's restatement adopted (2026-11-14 entry, "`U` says
+  nothing of protobuf-go"): `WalEnc.WalUnmarshal.SnapCoh U` (`Sp/ReadAllCallees.lean`, a pure law of `U`: every
+  `bs` it decodes as `(index, term)` is `snapEnc c` of a content `c` with valid unknown fields and that index and
+  term; for C6 to discharge) is the spec's premise, `isPkgInit pbutil` in the pre. Proof:
+  `LinuxFs/Proof/go_etcd_io/etcd/pkg/v3/pbutil/MustUnmarshalMessageWalSnap.lean`
+  (`MustUnmarshalMessage.wp_proofWalSnap`), over the part's `proto.UnmarshalPb.spec` at `pbSnapC` (D2), the
+  decoded `snapOwnC` frozen by `snapOwnC_freeze` (a lemma of `proto.CloneWalSnap`'s proof module, imported: it
+  belongs in `walpb/PbSnapshot.lean`). `WAL.ReadAll.wp_proof` takes `hUs : U.SnapCoh` (its call passes it); the
+  same edit fixed a pre-existing break at the `fmt.Errorf` argument of the unknown-record-type arm (`cases hii` on
+  `GoInterface.ok ii = GoInterface.ok …` no longer substitutes: `injection`).
+- `os.MkdirAll.specDirS` (`LinuxFs/{Spec,Proof}/os/MkdirAllDir.lean`): `MkdirAll` of a name holding a directory,
+  no effect; with `os.Stat.wp_childDirS`/`os.Lstat.wp_childDirS` (a spine to `d/b` from fractions of `d`'s and of
+  the claim) and `os.Mkdir.wp_takenS`.
+- `os.WriteFile.specTruncS` (`LinuxFs/{Spec,Proof}/os/WriteFileTrunc.lean`): `WriteFile(d/b, "")` of an existing
+  file held whole (`trFile i False`), over `os.OpenFile.wp_truncS`; no claim changes. `trFile_false`.
+- `fileutil.IsDirWriteable.specFile` (`LinuxFs/{Spec,Proof}/.../fileutil/IsDirWriteableFile.lean`): the probe on a
+  leftover `.touch` file `i`, given `trFile i False`; on an error the file is given back if still there.
+- `TouchDirAll.spec`/`CreateDirAll.spec`: error post narrowed from `osSubtreeH` to `tmpDirH` (proofs repaired:
+  `tmpDirH_none`/`tmpDirH_dir`; the `osSubtreeH_*`/`subCover_*` lemmas there deleted). `tmpSub`/`tmpDirH` moved
+  from `Sp/CreateCallees.lean` to `LinuxFs/Spec/.../fileutil/TmpDir.lean`.
+
+**Restated, not proved**
+- `fileutil.CreateDirAll.specTmp`: success post without the commit bound (ledger 2026-11-14, "the commit bound on
+  an existing directory": false when `Stat` of the existing directory fails once, `created = []`, nothing synced;
+  `nonissues/etcd-fork-touchdirall-stat-error-no-parent-sync.md`); `Create` never used it (pattern repaired).
+  Still blocked: (1) a leftover `.touch` in the existing directory needs its file's `OsMeta` and bytes for
+  `WriteFile`'s truncation, which `tmpDirH` and its producers do not hold (ledger 2026-11-14, "a leftover `.touch`
+  needs its file": the coordinator's call, proposed `tmpSub` holding each file's `trFile`); (2) `TouchDirAll`'s
+  `Exist` branch calls `CheckDirPermission` (`Stat`, `FileInfo.Mode().Perm()`, `fmt.Errorf` of `FileMode`s), which
+  has no spec in the part; (3) the existing-directory `TouchDirAll` proof itself (the `Exist` branch's
+  `syncDir(parent)`, and the climbing loop of the other branch with `Exist(d)` answering either way, then
+  `os.MkdirAll.specDirS`, the syncs of `created`, `IsDirWriteable`/`specFile`): not written, waiting on (1).
+  The absent case is `CreateDirAll.spec` (proved, its error post now `tmpDirH`).
 
 ## Leaf specs log (branch `wal-leaf3`, 2026-11-14)
 
