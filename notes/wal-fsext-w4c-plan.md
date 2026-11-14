@@ -760,3 +760,32 @@ trusted changed, no Go changed.
   join lemmas now `¼ + ¼ = ½`), `WAL.cut` (its `Rename`/`LockFile` at the quarter), `PipeLemmas.wp_createTmp`
   (at the quarter). New in `Pipe.lean`: `osCallPerm_halfSplit q`/`osCallPerm_halfJoin q` (wand forms). The WAL
   Link unchanged (`--check`); the tester's `member.close.spec` returns `Close`'s half.
+- **Merge note for `wal-create25`** (Create's cleanup): `wal.Create.spec`'s success arm gained `∗ osCallPerm ½`
+  (last); `renameWALPost`'s first arm holds `osCallPerm ¼ ∗ osCallPerm ½` (was `½`), its second `… ∗ walPurgeW ∗
+  osCallPerm ½`; `Close.specU` returns `osCallPerm ½` (was `1`); `walOpenWFU_permAcc` lends `¼`. The cleanup
+  arms' `Q ∗ osCallPerm ½` are unchanged.
+- **The tester's converters, proved** (`TP/`, specs in `Sp`-tester): `newU64` (a fresh cell), `entData` (the bytes
+  `tEntData e`; `e.size < 2^63`; the salt loop and the pattern loop, the latter a macro run from both exits of
+  the first), `toHS` (`walRaftP.hsIn p (absHs h)`: the three cells set, so the content is `walHsCanon` unless
+  empty; `pbMsg_alloc` for the hidden fields), `toRaft` (`walRaftP.entIn l (absEnt e)` for `0 < e.size <
+  2^40`: `Data` non-nil and canonical, `walEntSmall` by `absEnt_small`). `raftpb.EntryType.Enum`'s spec and
+  proof are part copies now (`etc/gen-part-copies.py`).
+- **`member.save`, proved** (`TP/member__save.lean`, `TP/SavePure.lean`, `TP/SaveAu.lean`; decisions mine,
+  internal): `tSaveO o h es` (Go's `save` on the oracle), `tSaveO1` (the oracle with the save appended, the first
+  store), `tSaveD d h es` (the WAL state after the update), **`tMemHs o d`** (`absHs o.lastHS = walLastHS` of the
+  WAL history: a fact of its own beside `tMemOk`, so that the tester's `walMustSync` is the WAL's,
+  `tMustSync_iff`; `sync`/`close` unchanged). The spec takes `tMemOk o c d`, `tMemHs o d`, `tEntWf` of the
+  entries, `tOrSmall` of both stored oracles, the member's `walSyncedLb (tCandMark o c)` (persistent; the
+  first store's `tRelI` and the update's) and the entries `esl ↦*□ es`; any stored oracle `tOrOwn γ os none`
+  (the program's differs from the stored one by `lastHS` after a save: `∃ os'` in the post). The update
+  (`tInv_saveAu`) moves `walDirIs` and both halves of `γw` to `tSaveD d h es`, the relation by the member's
+  candidate at its mark. `true`: `oracleRep v' (tSaveO o h es)`, the handle, `tMemOk`/`tMemHs` of the new
+  state, the candidate's mark synced; `false`: the member stops (`Save` lost the handle). Callee hypotheses:
+  `hsEmpty`, `storeOracle`, `toRaft`, `toHS`, `walMustSync`, `phsNext` (all proved) and the part's
+  `WAL.Save.spec`.
+- **Not reached this session:** `saveSnap` (its `ConfState` canonical-encoding obligation, U1 mismatch 3, still
+  held), `restart` (`restartRead`: note `WAL.Close` of a *failed* `ReadAll`'s handle, `walReadFailedF`, has
+  no spec yet: `ReadAll`'s error arm gives only the sealed `walReadFailedF`, which no Close spec takes; the
+  tester's `restartRead` calls `w.Close()` there), `Boot`. `sync`/`close` still take `tOrOwn γ o none` at the
+  program's own oracle: after a `save` the caller has only `∃ os`; generalize their premise to any `os` (their
+  proofs pass it to `storeOracle`, which takes any) when the member's step is assembled.
