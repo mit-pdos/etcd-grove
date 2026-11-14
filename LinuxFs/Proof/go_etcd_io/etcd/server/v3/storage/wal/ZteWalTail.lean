@@ -301,7 +301,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.wp_specWalTail (Mr : Wa
       (fun m' h h' => ⟨.inr (by rw [hT] at h; omega), by rw [hT] at h; omega, h'⟩)
     $$ [Hof Hoff Hfd Hm Hbd HK] as %err ⟨Hof, Hfd, HK, Hr⟩
   · iframe; iframe #
-  icases Hr with (⟨%he, Hoff, %m', %hm', Hm', Hz⟩ | ⟨%he, -⟩)
+  icases Hr with (⟨%he, Hoff, %m', %hm', Hm', Hz⟩ | ⟨%he, Hr⟩)
   · iapply HΦ
     ileft
     isplitr
@@ -341,7 +341,34 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.wp_specWalTail (Mr : Wa
     unfold tailVar; iexact Hv
   · iapply HΦ
     iright
-    ipureintro; exact he
+    isplitr
+    · ipureintro; exact he
+    icases Hr with ⟨%o', %m', %ys, %hm', Hoff, Hm', Hys⟩
+    obtain ⟨hom, hmp', hys, hv⟩ := hm'
+    rw [hT] at hom hys
+    ihave Hys : osBytes i (bs.take o0).length (DFrac.own (1 : Qp).half) ys $$ [Hys]
+    · iapply (osBytes_off_eq (by rw [List.length_take, hT]; omega)) $$ Hys
+    unfold growTie
+    icases HK with ⟨Hk, Hv⟩
+    unfold walTailPE
+    iframe Hof
+    isplitl [Hfd]
+    · iexists rd; iexact Hfd
+    isplitl [Hoff]
+    · iexists o'; iexact Hoff
+    isplitl [Hk]
+    · rw [← walTailKeyL_some]; iexact Hk
+    iexists m', bs.take o0 ++ ys
+    iframe Hm'
+    isplitl [Hbt Hys]
+    · iapply osBytes_app0; iframe
+    isplitr
+    · ipureintro
+      refine ⟨hfd, ?_, hmp'.trans hmaps, hom, fun j hj => ?_⟩
+      · simp only [List.length_append, List.length_take]; omega
+      · rw [lenWord_app_take bs ys o0 (by omega) j]
+        exact lenWord_of_vals bs ys o0 hv hz j hj
+    unfold tailVar; iexact Hv
 
 end spec
 

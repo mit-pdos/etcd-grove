@@ -7,7 +7,9 @@ twenty-seventh session; the fdatasync's pending form is `wal-tc18`'s). The tail 
 this handle, `TailMetaR`, the length word at `o0` zero: the reader's `io.EOF` stop, `readAll_tailZeroWord`);
 `ZeroToEnd`'s success: the token of kind `false`, `TailMetaZ`, every byte from `o0` on zero-valued, its size
 at least `o0`; the fdatasync's success: the key back (`walLentRes_unpend`), the tail exact (`walTailW …
-TailMeta`), the history synced. On an error the tail is lost. Lean-first.
+TailMeta`), the history synced. On an error the tail comes back (W4c U5, fifth session: `walTailPE`, the file's offset
+unknown and the length word at `o0` zero, after `ZeroToEnd`'s; `walTailP` unchanged after the fdatasync's),
+for `Close` to sync and put back (`WAL.Close.specFailed`). Lean-first.
 -/
 module
 
@@ -36,7 +38,7 @@ header; `wal-tc17`'s intended statement, W1 log, twenty-seventh session): the pe
 the token of kind `true`) with `TailMetaR` and the zero length word at `o0`; on success the token of kind
 `false`, `TailMetaZ` and every byte from `o0` on zero-valued, the size unchanged. Proved
 (`ZeroToEnd.wp_specWalTail`, `ZteWalTail.lean`, over `ZeroToEnd.specAu`; `wal-tc19`, which added
-`isPkgInit errors` to the pre, `sz' = sz` to the post, and made `TailMetaZ` the cache fact, not `TailZ`). -/
+`isPkgInit errors` to the pre, `sz' = sz` to the post, and made `TailMetaZ` the cache fact, not `TailZ`). On an error the tail as `walTailPE` (W4c U5, fifth session). -/
 abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.specWalTail (Mr : WalMarshal) : Prop :=
   ∀ (R : Roots) (jr : Ino) (r : GoString) (f : Loc) (fd : w64) (name dir : GoString) (γ : GName)
     (i : Ino) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (o0 sz k : Nat),
@@ -49,11 +51,11 @@ abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.specWalTail (Mr : WalMar
       (⌜err = GoInterface.nil⌝ ∗ ∃ sz' : Nat, ⌜o0 ≤ sz' ∧ sz' = sz⌝ ∗
         walTailP f fd name dir γ i H md cuts o0 sz' [] k false
           (fun m bs => TailMetaZ m bs ∧ ∀ b x, o0 ≤ b → bs[b]? = some x → x.1 = 0)) ∨
-      ⌜err ≠ GoInterface.nil⌝ }}
+      (⌜err ≠ GoInterface.nil⌝ ∗ walTailPE (W := W) f fd name dir γ i H md cuts o0 k) }}
 
 /-- **`fileutil.Fdatasync` of the zeroed pending tail** (`wal-tc18`'s pending form): the window closed
 and the zeros durable, the key back (`walLentRes_unpend` at its commit), the tail exact (`walTailW …
-TailMeta`) and the history synced; on an error the tail is lost. Proved (`Fdatasync.wp_specWalPend`,
+TailMeta`) and the history synced; on an error the tail as it was (W4c U5, fifth session). Proved (`Fdatasync.wp_specWalPend`,
 `FdatasyncPend.lean`, over `os.File.Fd.spec`; `wal-tc20`). -/
 abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync.specWalPend (Mr : WalMarshal) : Prop :=
   ∀ (R : Roots) (jr : Ino) (r : GoString) (f : Loc) (fd : w64) (name dir : GoString) (γ : GName)
@@ -66,7 +68,9 @@ abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync.specWalPend (Mr : WalMar
     (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync)) (Val #f))
   {{ (e : w64), RET #(errnoErr e); walCutFrag (W := W) none ∗
       ((⌜e = 0⌝ ∗ walTailW (W := W) f fd name dir γ i H md cuts o0 sz [] ∗
-          WalFs.walSyncedLb (W := W) dir H.length) ∨ ⌜e ≠ 0⌝) }}
+          WalFs.walSyncedLb (W := W) dir H.length) ∨
+        (⌜e ≠ 0⌝ ∗ walTailP (W := W) f fd name dir γ i H md cuts o0 sz [] k false
+          (fun m bs => TailMetaZ m bs ∧ ∀ b x, o0 ≤ b → bs[b]? = some x → x.1 = 0))) }}
 
 end spec
 

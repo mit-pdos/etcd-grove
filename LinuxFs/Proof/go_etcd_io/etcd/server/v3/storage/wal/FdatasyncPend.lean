@@ -232,7 +232,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync.wp_specWalPend
   wp_start as ⟨#Harea, Hw, Hcf⟩
   unfold walTailP
   icases Hw with ⟨Hf, ⟨%rd, Hfd⟩, Hoff, Hk, %m, %bs, Hm, Hb, %hp, Hv⟩
-  obtain ⟨hmsz, ⟨hmz, hz⟩, hsz62, hfd, -⟩ := hp
+  obtain ⟨hmsz, ⟨hmz, hz⟩, hsz62, hfd, hlw⟩ := hp
   iapply Fs.wp_osMeta_zfGe _ _ rfl i _ m $$ Hm
   iintro %hzf Hm
   wp_auto
@@ -246,7 +246,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync.wp_specWalPend
   · iframe; iexact Harea
   iapply HΦ
   iframe Hcf
-  icases Hr with (⟨%he, Hk, Hm, Hb, #Hs⟩ | ⟨%he, -⟩)
+  icases Hr with (⟨%he, Hk, Hm, Hb, #Hs⟩ | ⟨%he, Hk, Hm, Hb⟩)
   · ileft
     isplitr
     · ipureintro; exact he
@@ -262,7 +262,17 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync.wp_specWalPend
         exact ⟨by simp [OsMeta.synced, hmsz], hmz.synced, hsz62, hfd, LoWr.of_exact rfl rfl⟩
       · iapply tailVar_unfold $$ Hv
     · iexact Hs
-  · iright; ipureintro; exact he
+  · iright
+    isplitr
+    · ipureintro; exact he
+    iframe Hf Hoff Hk
+    isplitl [Hfd]
+    · iexists rd; iexact Hfd
+    iexists m, bs
+    iframe Hm Hb
+    isplitr
+    · ipureintro; exact ⟨hmsz, ⟨hmz, hz⟩, hsz62, hfd, by simpa using hlw⟩
+    · iapply tailVar_unfold $$ Hv
 
 end spec
 

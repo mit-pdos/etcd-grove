@@ -71,7 +71,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.wp_proofAu
     · ipureintro; intro h; cases h
     iexists o, m, xs
     iframe
-    ipureintro; exact ⟨hole, rfl, hxs⟩
+    ipureintro; exact ⟨hole, rfl, hxs, .inl rfl⟩
   obtain ⟨rfl, rfl⟩ := hn
   wp_auto
   have hmin : min m.size o.toNat = o.toNat := by omega
@@ -107,7 +107,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.wp_proofAu
       have hl := congrArg List.length hxs'
       simp only [List.length_map] at hl
       refine ⟨by rw [OsMeta.withTc_size, announce_size']; omega,
-        announce_maps' m o.toNat (rsHi true m.size o.toNat) o.toNat, ?_⟩
+        announce_maps' m o.toNat (rsHi true m.size o.toNat) o.toNat, ?_, .inl hxs'⟩
       rw [OsMeta.withTc_size, announce_size']; omega
   subst he
   wp_auto
@@ -168,7 +168,9 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.wp_proofAu
     iframe
     ipureintro
     simp only [List.length_map]
-    refine ⟨by omega, hm'.2.1.trans hm1.2.1, by omega⟩
+    refine ⟨by omega, hm'.2.1.trans hm1.2.1, by omega, .inr fun y hy => ?_⟩
+    obtain ⟨c, -, rfl⟩ := List.mem_map.1 hy
+    rfl
 
 end proof
 
