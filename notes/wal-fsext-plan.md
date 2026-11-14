@@ -621,6 +621,59 @@ in that report. Paths: `S/` = `LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/w
   `fmt.ErrorfErrs.spec` (10 proofs), `fmt.ErrorfErrsNot.spec` (`decodeRecord`), `proto.CloneWalSnap.spec`
   (`walpb.Snapshot.Clone`), `proto.UnmarshalWalRecordE.spec` (`decodeRecord`).
 - The other callee specs the proofs take are proved or trust-boundary axioms (main tree `Proof/`, Perennial).
+- **Update (`wal-leaf1`, 2026-11-14; the "Leaf specs log" below):** proved, as `wp_proof`s over their own
+  callees: `walpb.Snapshot.GetTerm.spec`, `os.RemoveAll.specAbsentN`, `fmt.ErrorfErrs.spec`,
+  `proto.CloneWalSnap.spec` (over `proto.ClonePb.spec`, whose axiom the part does not copy yet). Left: 11.
+
+## Leaf specs log (branch `wal-leaf1`, 2026-11-14)
+
+The inventory's leaf callee specs not owned by another agent (`proto.UnmarshalWalRecordE.spec` skipped: it
+extends a trust-boundary axiom, the user's call). None of the proofs below is linked yet (the WAL has no
+`Link.lean`); each takes its callees' specs as hypotheses, all proved or trust-boundary specs.
+
+**Proved**
+- `walpb.Snapshot.GetTerm.spec`: `LinuxFs/Proof/.../wal/walpb/Snapshot__GetTerm.lean`, as `GetIndex`'s.
+- `os.RemoveAll.specAbsentN`: `LinuxFs/Proof/os/RemoveAllAbsentN.lean` (`os.RemoveAll.wp_proofAbsentN`).
+  `specAbsentS`'s proof over the absent case of `RemoveAllLeaf.lean`'s loops restated for any claim `N ∋ b`
+  (`os.model.wp_{unlinkLoop,openLoop,rmdirLoop,removeAllFrom}_absentN`), over two extension steps stated in the
+  same file, `Fs.wp_osUnlinkAbsentSN`/`wp_osRmdirAbsentSN` (the extension's `wp_osUnlinkS_none'`/`_none'` for
+  `N ∋ b` and an absent name; they belong in `GooseLang/Ext/Fs/TreeSharedCallEnd.lean`, as `SharedExt.lean`'s
+  do: moved there when the extension is next edited, to avoid a rebuild of the part now).
+- `fmt.ErrorfErrs.spec`: `LinuxFs/Proof/fmt/ErrorfErrs.lean`, over Perennial's model of `Errorf` (`errors.New(format)`)
+  and `errors.New.spec`, as Perennial's `fmt.Errorf.wp_proof`. The model is used beyond the arguments its spec
+  admits (`ArgsWf`): its only departure there, not calling the arguments' `Error()`, is harmless under the
+  premise (`errOk`: each such call returns some string), and the post says no more than Go gives (the file's header).
+- `proto.CloneWalSnap.spec`: `LinuxFs/Proof/google_golang_org/protobuf/proto/CloneWalSnap.lean`, over
+  `proto.ClonePb.spec` at `pbSnapC` (`pbSnapC_reg`) and `snapOwnC_freeze`/`walCsOwnC_freeze` (a decoded snapshot
+  frozen: both levels' hidden fields into the protobuf invariant). `ClonePb.spec`'s part copy is generated
+  (`etc/gen-part-copies.py`); its axiom `proto.ClonePb.wp_proof` is **not** copied (no axiom added): the part's
+  link will need it, as it has `MarshalPb`'s.
+
+**Not proved**
+- `walpb.Record.Reset.spec`: no body to prove it from. `Reset` is names-only in the part (`walpb.toml` excludes
+  `*.Reset`: `*x = Record{}` then `protoimpl.X.MessageStateOf(protoimpl.Pointer(x)).StoreMessageInfo(mi)`, unsafe
+  protobuf runtime plumbing), so `MethodUnfold … "Reset"` does not exist and the call does not step. Needs a
+  translation of `Reset` with a trusted model of the `MessageStateOf`/`StoreMessageInfo` pair (a trust-base
+  change: the user's), or an axiom (excluded here).
+- `errors.IsErrno.spec`, `errors.IsPathErrnoEof.spec`: `errors.is` walks into `syscall.Errno.Is` (and, for the
+  second, `(*fs.PathError).Unwrap`), names-only in the part (`LinuxFs/Code/syscall.toml`, `io/fs.toml`): the method
+  calls do not step. Need those translated (`Errno.Is` reads `oserror`'s variables and `errors.ErrUnsupported`, so
+  their package facts too) and, for `IsErrno`, Perennial's `errors.is.spec` at a comparable non-pointer target
+  (`notes/perennial-changes.md`, 2026-11-13 entry).
+- `errors.AsLinkError.spec`: Perennial's `errors.As.spec` (an axiom) says nothing of the result (`(b v')`, any
+  boolean and value), and `As` is not translated; the spec needs a first-match `As` spec in Perennial
+  (`notes/perennial-changes.md`, 2026-11-14, "The WAL's leaf specs").
+- `fmt.ErrorfErrsNot.spec`: the result (a fresh `*errorString` under the model) is not `t` only by freshness, and
+  nothing gives a points-to of `t`'s pointer (`errors.newVar` forgets it: the 2026-11-14 entry of
+  `notes/perennial-changes.md`); with it, `errors.Is(err, t)` is `false` by the model's walk.
+- `fileutil.CreateDirAll.specTmp`: **false as stated** (ledger 2026-11-14, "`specTmp`'s `valAfter` clause and
+  `.touch`"): the success post's `∀ K b, hJ.valAfter J K b = none` fails at `b = .touch` even when `CreateDirAll`
+  makes the directory (its `IsDirWriteable` logs `.touch`'s creation and removal in `J`'s claim, and a crash that
+  keeps the first but not the second leaves the file). The coordinator's decided restatement (drop the clause;
+  `wal-create17`) removes it. After it, the proof still needs the error post narrowed from `osSubtreeH` to
+  `tmpDirH` (what `TouchDirAll` leaves: one directory of files) and the existing-directory case (`MkdirAll`,
+  `IsDirWriteable` with `.touch` possibly present, `ReadDir` on a directory of files), or the pre restricted to an
+  absent name (the only case `Create` reaches, the ledger's note): not started, pending that restatement.
 
 ## W1 implementation log (branch `wal-inv`, 2026-11-13)
 
