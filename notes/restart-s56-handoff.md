@@ -50,7 +50,7 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
 
 ## B2 contract rows done (2026-11-14, the B2 agent): next agent starts here (write `wp_proofR`)
 
-81 approved the restatement (questions.md; decisions.md "Restart S6 B2", "B2 contract rows"; freeze
+**Landed: `lean` 6b99efd348** (full build clean, 17479 jobs; tcb --check 870/4; gen-interface clean; gates all passed: `/shared/tmp/restart-s56/b2rows/`). 81 approved the restatement (questions.md; decisions.md "Restart S6 B2", "B2 contract rows"; freeze
 package §11.6): `bootOkR` now has `bv.lg' = cfg.Logger'` in `%Hraft`, `"Hlate" ∷ mvcc.api.mvccWReg d.gx`
 and the last row `"#Hbfile" ∷ backend.bFile d.γB (config.backendPathOf cfg.DataDir')`, all `bootOk`'s.
 **The skeleton `E/NewServerR.lean` is removed from the tree** so that no `sorry` lands: restore it first,
