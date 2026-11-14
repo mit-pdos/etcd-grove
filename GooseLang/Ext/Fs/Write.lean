@@ -951,7 +951,8 @@ theorem pwCz_raise {m : OsMeta} {off k z : Nat} (hz : m.zf = some z) (hk : 0 < k
 /-- The `OsMeta` after a `pwrite` of `n` bytes at `off` that wrote `k`: as its first step left it,
 with the size it leaves, and the page cache known zero past it (`pwCz`). -/
 def pwPost (m : OsMeta) (off n k : Nat) : OsMeta :=
-  { m.announce (min off m.size) (off + n) (max m.size (off + n)) with size := pwSize m.size off k,
+  { m.announce (min off m.size) (off + n) (max m.size (off + n)) with
+    size := pwSize m.size off k
     cz := pwCz m off k }
 
 /-- The candidates known past the size after a `pwrite` of `data` at `off` (inside the file),
@@ -1287,8 +1288,7 @@ theorem wp_osPWriteFinishK (keep : Bool) (t : Nat) (p : Ino) (off : Nat) (data :
         by_cases hbc : b < m.cz
         · exact hmo.cz b hfb (by simpa only [announce_cz] using hbc)
         · exact pwFinish_cz_raise hmo hdl hb hpc.1 hbz hbc
-      · rw [hsz2] at hzb
-        simp only [announce_zf, Option.map_eq_some_iff] at hz
+      · simp only [announce_zf, Option.map_eq_some_iff] at hz
         obtain ⟨z0, hz0, rfl⟩ := hz
         have hz1 := hmo.zc _ (by simp only [announce_zf, hz0]; rfl) b hzb
         have hlt : off < off + data.length := by omega
