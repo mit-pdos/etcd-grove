@@ -1316,3 +1316,16 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `wal.tailWriterW`'s `B`, `flush`), and `renameWALPost`'s arm 2 must return `walLockLeft f …` (the retry's
   `w.Close()` closed it, or its `sync` failed and left it open).
 - **Decision.** Made (internal).
+
+## 2026-11-14: `time.Time.Format.spec` (trusted, an axiom) -- its result unconstrained; `cleanupWAL`'s rename
+
+- **Spec.** `time.Time.Format.spec` (`Spec/time/Time__Format.lean`, axiom `Proof/time/Time__Format.lean`): post `True`.
+- **Defect.** `cleanupWAL` renames the WAL to `fmt.Sprintf("%s.broken.%v", w.dir, time.Now().Format("20060102.150405.999999"))`;
+  with nothing known of the timestamp the target may hold `/` (a path under some other directory) or be any length,
+  and no `os.Rename` spec (nor ownership) covers an arbitrary target.
+- **Evidence.** `cleanupWAL`'s proof (`wal-create23`; W4 log, twenty-fifth session).
+- **Proposed change.** A spec of `Format` for that layout: the result's characters are digits and `.`, its length at
+  most 22 (Go's layout: `yyyymmdd.hhmmss` and a fraction of up to six digits, trailing zeros and a bare `.` dropped).
+  Until then `cleanupWAL`'s proof takes it as a callee hypothesis. Separately an `os.Rename` spec over `fsExt` for a
+  target name past 255 bytes (`ENAMETOOLONG`, nothing changed).
+- **Decision.** Pending the user (a trust-boundary change).
