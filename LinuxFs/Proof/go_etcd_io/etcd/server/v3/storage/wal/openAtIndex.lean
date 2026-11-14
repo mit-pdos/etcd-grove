@@ -90,6 +90,34 @@ theorem walAreaRes_close (jr : Ino) (N : NameSet) (h : NamesH) (cl : List (GoStr
   iframe
   ipureintro; exact ⟨hok.1, hok.2.1, hok.2.2.1, hok.2.2.2⟩
 
+/-- The encoder's environment, from the package's initialization. -/
+theorem wal_encEnv :
+    ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal -∗ encEnv (GF := GF) := by
+  iintro #Hpkg
+  ihave #Hdeps := isPkgInit_unfold_deps pkg_id.go_etcd_io.etcd.server.v3.storage.wal $$ Hpkg
+  isimp only [isPkgInitDeps] at Hdeps
+  icases Hdeps with ⟨#Hbin, -, -, -, -, #Hsync, #Hproto, -, -, -, -, -, -, #Htime, -, -, -, -, -, -, -, -,
+    -, -⟩
+  ihave #Hw : (wal.walInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  icases Hw with ⟨-, #Hm, -⟩
+  iunfold encEnv
+  iframe #
+
+/-- `walReadTie`'s pure part, from the decoder's files and the segments' names. -/
+theorem walReadTie_facts {dir : GoString} {write : Bool} {gs : List SegG} {fs : List (DecFile GF)}
+    {fls lfs : List Loc} {hj : NamesH} (htie : WalDecTie dir write gs fs fls)
+    (hll : lfs.length = gs.length) (hnm : ∀ g ∈ gs, hj.cur !! g.name = some (.file g.ino)) :
+    fs.length = gs.length ∧ lfs.length = gs.length ∧ fls.length = gs.length ∧
+      ∀ (k : Nat) (F : DecFile GF) (g : SegG), fs[k]? = some F → gs[k]? = some g →
+        F.bs = g.bs.map (·.1) ∧ hj.cur !! g.name = some (.file g.ino) ∧
+        ∃ (f : Loc) (fd : w64), fls[k]? = some f ∧
+          F.S = walFileS f fd (child dir g.name) (openFd g.ino (walReadFlag write)) g := by
+  obtain ⟨h1, h2, h3⟩ := htie
+  refine ⟨h1, hll, h2, fun k F g hF hg => ?_⟩
+  obtain ⟨hb, f, fd, hf, hS⟩ := h3 k F g hF hg
+  exact ⟨hb, hnm g (List.mem_of_getElem? hg), f, fd, hf, hS⟩
+
 theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMarshal)
     (hpin : ∀ R jr r, WalPinSized (L := hG.goose_localGS) (W := W) walCodec Mr R jr r)
     (hpath : ∀ R jr r, WalDirPathLaw (L := hG.goose_localGS) (W := W) walCodec Mr R jr r)
@@ -295,6 +323,55 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
     try wp_auto
     wp_apply wp_NewDecoder rsl fs IoE eof $$ [Hrsl Hdf] as %dI ⟨%dec, %hdI, Hrsl, Hdec⟩
     · iframe; iframe #
+    irename lg => Hlgp
+    irename «$r0» => Hwal
+    generalize «$r0_ptr» = wl at *
+    iStructNamed Hwal
+    imod sync.init_Mutex (BI.pure True : IProp GF) ⊤
+      (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"mu" wl) $$ mu [] with #Hmu
+    · inext; ipureintro; trivial
+    ihave #Henc := wal_encEnv $$ Hpkg
+    have hnmg : ∀ g ∈ gs, hj.cur !! g.name = some (.file g.ino) := fun g hg =>
+      (hsn.1 g (by rw [← hgs] at hg; exact List.mem_of_mem_drop hg)).2
+    have hndg : (gs.map (·.ino)).Nodup := by
+      rw [← hgs, List.map_drop]; exact hnd.sublist (List.drop_sublist _ _)
+    have htf := walReadTie_facts htie hll hnmg
+    cases write
+    · -- read mode
+      try wp_auto
+      iapply HΦ
+      iframe Hp
+      isplitl [HN Hcl]
+      · iapply walAreaRes_close jr N h cl hok; iframe
+      iexists o
+      iframe HQ
+      iright
+      isplitr
+      · ipureintro; rfl
+      isplitr
+      · ipureintro; exact ho
+      iframe dirFile
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      iframe Hl Hperm
+      unfold walReadH walOpenIn walReadTie
+      isplitl [lg dir start]
+      · iexists lg, sp'
+        iframe
+        iframe #
+      iexists dec, IoE, eof, ueof, fs, lsl, lfs, null, clo
+      subst hdI
+      iframe
+      iframe #
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      isplitl [Ho Hlk]
+      · iexists gs, fls
+        iframe Ho
+        isplitr
+        · ipureintro; exact ⟨hndg, hS⟩
+        isplitr
+        · ipureintro; exact htf
+        iexact Hlk
+      ipureintro; trivial
     sorry
 
 end proof
