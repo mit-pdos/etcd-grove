@@ -58,8 +58,8 @@ member serves gRPC; the auth state is set up and auth enabled through member 1; 
 linearizable read at each member (the barrier: each member has applied the set-up before any
 principal uses it); then the four principals' workloads run at once, each through its own member
 (`u` through member 2, `v` through member 3, the client with no token through member 1, the one
-with a token no provider issued through member 2), so every member refuses every request of theirs
-that the auth state forbids (writes, ranges, transactions, watches; a refusal is an error, a watch
+with a token no provider issued through member 2), so each member refuses every forbidden request
+of the principals that use it (writes, ranges, transactions, watches; a refusal is an error, a watch
 outside `[a, b)` reports no event) and replies only with keys the principal may read; root's
 history watch through member 1 holds only permitted writes, and `u`'s watch through member 2 only
 keys of `[a, b)`.

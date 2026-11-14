@@ -1,6 +1,6 @@
 /- Lean-first (no Rocq counterpart).
 
-# auth3's closed theorem (the auth3 Scope's A1, `notes/auth3-scope.md`, 2026-11-14)
+# auth3's closed theorem (the auth3 Scope's A2, `notes/auth3-scope.md`, 2026-11-14)
 
 A closed theorem about the operational semantics of `auth3`'s program (`examples/etcd/auth3`): the
 package's initialization (which initializes its import closure, `examples/etcd/auth` among it)

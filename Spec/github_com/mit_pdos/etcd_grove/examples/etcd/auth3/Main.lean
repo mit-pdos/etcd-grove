@@ -14,8 +14,9 @@ its peer address with its HTTP protocol unregistered, and on its client address)
 token and `Main`'s named premises (`etcd_auth3.premises`, putget3's at auth3's configuration),
 `Main()` does not panic and returns `Ok` (`0`), `Failed` (`1`: a member's start, a `Serve`, a
 client's creation, a step of the set-up, a barrier read or root's last put failed) or `WatchEnded`
-(`2`). Not panicking is authkv's auth result (`auth/Main.lean`'s header) at every member of a
-three-member cluster.
+(`2`). Not panicking is authkv's auth result (`auth/Main.lean`'s header) for each principal at
+its own member (u at 2, v at 3, the client with no token at 1, the invalid token at 2), after a
+barrier read at every member.
 -/
 module
 
