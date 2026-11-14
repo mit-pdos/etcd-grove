@@ -264,7 +264,7 @@ theorem walInvBody_named (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   iintro Hb #Hsh Hn #Hc
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n0, %F, Hg, %Har, Hcl, #Hcm, Hlays, %Hok, %Hco, Hcr, Htl, %Han, %Hnm, Hpk,
-    ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms⟩
+    ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms, %Hbd⟩
   obtain ⟨N', h', hc', hN'⟩ := Hco nm hin.1
   have hmem : ((jr, N', h'), DFrac.own (1 : Qp).half) ∈
       cl.map (fun c => (c, DFrac.own (1 : Qp).half)) := List.mem_map_of_mem hc'
@@ -318,7 +318,7 @@ theorem walInvBody_named (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       ipureintro
       exact dirKeysOk_named (n := max n0 n) (Nat.le_max_left _ _) Hok Hdko hd hin' hc' hN hl
         (Nat.lt_of_lt_of_le hx (Nat.le_max_right _ _)) hJ
-    iframe Hnms; ipureintro; exact HAt
+    iframe Hnms; ipureintro; exact ⟨HAt, walsBounded_upd Hbd (fun _ => rfl)⟩
   iframe Hn
   unfold walNamed
   iexists (setNamed s dir), { d with named := true }

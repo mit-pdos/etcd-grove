@@ -12,14 +12,10 @@ claim (`walInvBody_areaAt`), opens the client's update, and
   the WAL's halves out of the parked state from the selected position on (`walOpenK`, what
   `selectWALFiles` will compute).
 
-**The pin's hypothesis `WalPinSized`** (an obligation for the invariant's owner; the plan's W3/W5 log,
-twelfth session): `walInvBody_pin` (`OpenPinTake.lean`, proved) gives everything but two facts the
-invariant does not hold yet: **a path to the WAL directory** (`osPathS R dir (own q) lay.j`, which
-`selectWALFiles`, `openWALFiles` and the pipeline need: a spine is made of `.only [c]` claim fractions,
-and the area claim holds the WAL's name `nm` among all the area's names, half the program's, so no
-fraction of an `.only [nm]` claim is to be had) and **the segments' size bound** (`|g.bs| + 2^12 <
-2^62`, `walDecFiles_mk`'s, which the decoder's reads need). `WalPinSized` is `walInvBody_pin`'s statement
-with both added.
+What the pin hands the program is `walInvBody_pin`'s (`OpenPinTake.lean`), `walPinOut`
+(`walInvBody_pinOut`). Until 2026-11-14 a hypothesis, `WalPinSized`, added two facts: a path to the
+WAL directory (now `walInv_dirPath`, from the pin's `walNamesFrag none`, `NameClaims.lean`) and the
+segments' size bound (now read at `openAtIndex`'s next step, `wp_segs_size`, `SegSize.lean`).
 -/
 module
 
@@ -79,15 +75,13 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
   [W : WalGS GF]
 
-/-- **What the pin hands the program** (see the file header): `walInvBody_pin`'s outputs and the
-segments' size bound. -/
+/-- **What the pin hands the program** (see the file header): `walInvBody_pin`'s outputs. -/
 def walPinOut (C : WalCodec) (Mr : WalMarshal) (jr : Ino) (dir : GoString) (d : WalDur)
     (k : WalLay → Nat) (write : Bool) : IProp GF :=
   iprop(∃ (lay : WalLay) (X : List GoString) (hj : NamesH),
     ⌜lay.jr = jr ∧ (∀ b ∈ X, walNameP b = false) ∧
       ClaimCoh hj lay.j (.except X) ∧ WalAbsD C Mr d lay hj.cur ∧
-      (lay.segs.map (·.ino)).Nodup ∧ SegsNamed lay.segs hj.cur ∧
-      (∀ g ∈ lay.segs, g.bs.length + 2 ^ 12 < 2 ^ 62)⌝ ∗ walDirKey (W := W) dir lay.j X ∗
+      (lay.segs.map (·.ino)).Nodup ∧ SegsNamed lay.segs hj.cur⌝ ∗ walDirKey (W := W) dir lay.j X ∗
     walLockedTok (W := W) ∗ (walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) ∗
     walOutFrag (W := W) ⟨(lay.segs.drop (k lay)).map (·.ino), [(lay.j, .except X)],
       if write then [dir] else []⟩ ∗
@@ -95,12 +89,22 @@ def walPinOut (C : WalCodec) (Mr : WalMarshal) (jr : Ino) (dir : GoString) (d : 
     osNames (L := L) lay.j (.except X) (DFrac.own (1 : Qp).half) hj ∗
     (if write then walTmpsRes (hG := ⟨G, L⟩) lay.j else emp))
 
-/-- **The pin with the segments' size bound** (hypothesis; see the file header). -/
-def WalPinSized (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) : Prop :=
-  ∀ (s : AbsDiskState) (dir : GoString) (d : WalDur), s.wal !! dir = some d →
-    ∀ (k : WalLay → Nat) (write : Bool),
+/-- **The pin, as `walPinOut`** (`walInvBody_pin` repackaged). -/
+theorem walInvBody_pinOut (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+    (s : AbsDiskState) (dir : GoString) (d : WalDur) (hd : s.wal !! dir = some d)
+    (k : WalLay → Nat) (write : Bool) :
     ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walUnlockedTok (W := W) ==∗
-      walInvBody (L := L) (W := W) C Mr R jr r s ∗ walPinOut (L := L) (W := W) C Mr jr dir d k write
+      walInvBody (L := L) (W := W) C Mr R jr r s ∗ walPinOut (L := L) (W := W) C Mr jr dir d k write := by
+  iintro Hb Hu
+  imod walInvBody_pin C Mr R jr r s dir d hd k write $$ Hb Hu with
+    ⟨%lay, %X, %hj, %hp, Hkey, Hb, Hl, Htf, Hnf, Ho, HS, Hj, Ht⟩
+  obtain ⟨-, h1, h2, h3, h4, h5, h6⟩ := hp
+  imodintro
+  iframe Hb
+  unfold walPinOut
+  iexists lay, X, hj
+  iframe Hkey Hl Htf Hnf Ho HS Hj Ht
+  ipureintro; exact ⟨h1, h2, h3, h4, h5, h6⟩
 
 /-- **A path to a WAL directory** (hypothesis, a stand-in for the law `wal-path13` proves over a
 per-WAL-name claim; the coordinator's decision of 2026-11-14): a holder of the WAL's key (`walDirKey dir
@@ -131,7 +135,7 @@ theorem walInvBody_mapLe (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
 
 /-- **`openAtIndex`'s update and pin** (see the file header). -/
 theorem walInv_openAt (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (hpin : WalPinSized (L := L) (W := W) C Mr R jr r) (dir nm : GoString) (N : NameSet) (dq : DFrac)
+    (dir nm : GoString) (N : NameSet) (dq : DFrac)
     (h : NamesH) (Wn : List GoString) (write : Bool) (idx : w64) (Q : Option WalDur → IProp GF)
     (hin : InArea r dir nm) (hN : N.Mem nm ∨ nm ∈ Wn) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ osSharedInv (L := L) R -∗
@@ -187,7 +191,7 @@ theorem walInv_openAt (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r
     | false =>
       imod Hcommit $$ [HM] with HQ
       · iexists M; iframe HM; ipureintro; exact HMd
-      imod hpin s dir ds hsd (walOpenK idx) false $$ Hb Hu with ⟨Hb, Hp⟩
+      imod walInvBody_pinOut C Mr R jr r s dir ds hsd (walOpenK idx) false $$ Hb Hu with ⟨Hb, Hp⟩
       imod Hcl $$ [Hb] with -
       · iexists s; iexact Hb
       imodintro
@@ -208,7 +212,7 @@ theorem walInv_openAt (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r
         ipureintro
         simp only [ite_true, Option.map_some, hsd', walOptLe]
         exact walDurLe_unl _ hle
-      imod hpin _ dir _ hsd' (walOpenK idx) true $$ Hb Hu with ⟨Hb, Hp⟩
+      imod walInvBody_pinOut C Mr R jr r _ dir _ hsd' (walOpenK idx) true $$ Hb Hu with ⟨Hb, Hp⟩
       imod Hcl $$ [Hb] with -
       · iexists _; iexact Hb
       imodintro

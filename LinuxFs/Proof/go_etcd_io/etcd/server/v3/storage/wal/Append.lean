@@ -119,7 +119,7 @@ theorem walInvBody_append (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
   iintro Hb Hk Hv Hcf HM
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hn, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
-    ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms⟩
+    ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms, %Hbd⟩
   icases walCut_agree cp none $$ Hcp Hcf with %Hcpe
   subst Hcpe
   imod walTailsRes_append C Mr s Ls F dir γ tg o $$ Htl Hk Hv with ⟨%d, %lay, %g0, %hp, Hk, Hv, Htlc⟩
@@ -160,7 +160,7 @@ theorem walInvBody_append (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
   · iexists K, none
     iframe Hdk Hcp
     ipureintro; exact dirKeysOk_append o hd Hdko
-  iframe Hnms; ipureintro; exact HAt
+  iframe Hnms; ipureintro; exact ⟨HAt, walsBounded_insSame Hbd rfl hd rfl⟩
 
 /-- **The append's commit** (see the file header). -/
 theorem walTail_append (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)

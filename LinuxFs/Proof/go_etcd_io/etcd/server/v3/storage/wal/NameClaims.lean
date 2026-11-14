@@ -42,7 +42,7 @@ theorem walInvBody_dirPath (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : In
   iintro Hb Hf #Hk
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hcm, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
-    ⟨%K, %cp, HKa, Hca, %HDK⟩, %HAt, Hnms⟩
+    ⟨%K, %cp, HKa, Hca, %HDK⟩, %HAt, Hnms, Hbd⟩
   icases walDirKey_lookup (W := W) K dir j X $$ HKa Hk with %hK
   obtain ⟨lay, -, hl, rfl, -⟩ := HDK.1 dir j X hK
   unfold walNamesRes

@@ -148,7 +148,7 @@ theorem walInvBody_cutSynced (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : 
   iintro Hb #Hkey Hq Hk Hv Hcf #Hc
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n0, %F, Hg, %Har, Hcl0, #Hcm, Hlays, %Hok, %Hco, Hcr, Htl, %Han, %Hnm,
-    Hpk, ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms⟩
+    Hpk, ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms, %Hbd⟩
   icases walDirKey_lookup K dir j X $$ Hdk Hkey with %HK
   icases walCut_agree cp (some dir) $$ Hcp Hcf with %Hcpe
   subst Hcpe
@@ -194,7 +194,7 @@ theorem walInvBody_cutSynced (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : 
     exact dirKeysOk_cutSynced (Nat.le_max_left _ _) (Nat.lt_of_lt_of_le hx (Nat.le_max_right _ _))
       Hok Hdko HK hd hl1 hg0 (hj := hj) (List.mem_append_right _ (List.mem_cons_self ..)) hw hwal hc
   iframe Hnms; ipureintro
-  exact walsAt_mid hjjr HAt
+  exact ⟨walsAt_mid hjjr HAt, Hbd⟩
 
 end iris
 

@@ -103,7 +103,7 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
   · inext; iright; iframe Hcrd Htok
   icases Hb with ⟨%s, >Hb⟩
   iunfold walInvBody at Hb
-  icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, #Hcm, Hlays, %Hok, -, -, -, %Han, %Hnm, -, -, %HAt, -⟩
+  icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, #Hcm, Hlays, %Hok, -, -, -, %Han, %Hnm, -, -, %HAt, -, %Hbd⟩
   icases walGhost_keys_keep (W := W) s $$ Hg with ⟨Hg, %hk⟩
   -- the tree: what the claims allow
   imod crashRest_region Q L L' [] false V' R (cl.map (fun c => (c, DFrac.own (1 : Qp).half))) n E
@@ -491,7 +491,7 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     (hJm : ∀ dir nm J, InArea r dir nm → V.now.entry jr nm = some (.dir J) → Jm !! dir = some J)
     (hnames : ∀ nm J, walNameOk nm → V.now.entry jr nm = some (.dir J) →
       ∃ h, (jr, NameSet.only [nm], h) ∈ cl)
-    (hnok : ∀ b h, (jr, NameSet.only [b], h) ∈ cl → NameOk b) (qs : Qp)
+    (hnok : ∀ b h, (jr, NameSet.only [b], h) ∈ cl → NameOk b) (hbd : WalsBounded s) (qs : Qp)
     (E : CoPset) :
     ⊢ walStart L W C Mr R jr r s V.now -∗
       osClaims L (cl.map (fun c => (c, DFrac.own 1))) -∗
@@ -669,13 +669,15 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     isplitr
     · ipureintro
       exact walsAt_start C Mr R jr s Ls V cl hV hcl hstart
-    unfold walNamesRes
-    iexists none, nameClaimsOf jr Ls cl
-    iframe Hnm Hnw Hns
-    isplitr
-    · ipureintro
-      exact ⟨fun nm hnm => (hW nm).1 hnm, fun dir lay hl _ => (hW lay.nm).2 ⟨dir, lay, hl, rfl⟩⟩
-    iexists qs; iexact Hsp
+    isplitl [Hnm Hnw Hns Hsp]
+    · unfold walNamesRes
+      iexists none, nameClaimsOf jr Ls cl
+      iframe Hnm Hnw Hns
+      isplitr
+      · ipureintro
+        exact ⟨fun nm hnm => (hW nm).1 hnm, fun dir lay hl _ => (hW lay.nm).2 ⟨dir, lay, hl, rfl⟩⟩
+      iexists qs; iexact Hsp
+    ipureintro; exact hbd
   imodintro
   unfold walInv
   iframe Hinv
