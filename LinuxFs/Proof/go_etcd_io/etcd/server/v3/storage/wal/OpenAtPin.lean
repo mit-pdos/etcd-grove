@@ -106,18 +106,6 @@ theorem walInvBody_pinOut (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
   iframe Hkey Hl Htf Hnf Ho HS Hj Ht
   ipureintro; exact ⟨h1, h2, h3, h4, h5, h6⟩
 
-/-- **A path to a WAL directory** (hypothesis, a stand-in for the law `wal-path13` proves over a
-per-WAL-name claim; the coordinator's decision of 2026-11-14): a holder of the WAL's key (`walDirKey dir
-j X`: the WAL of `dir` has its directory at `j`) gets, at a program step, a fraction of a path to `j`,
-which it may keep; the area's spine framed. Swap: replace `WalDirPathLaw` by the real law's statement
-where `openAtIndex`'s proof applies it (one call, in `wp_openAt_pin`'s step). -/
-def WalDirPathLaw (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) : Prop :=
-  ∀ (dir : GoString) (j : Ino) (X : List GoString) (qp : Qp),
-    ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ notCrashed (hC := L.goose_crashGS) -∗
-      walDirKey (W := W) dir j X -∗ osPathS (L := L) R r (DFrac.own qp) jr ={⊤}=∗
-      notCrashed (hC := L.goose_crashGS) ∗ osPathS (L := L) R r (DFrac.own qp) jr ∗
-      ∃ q : Qp, osPathS (L := L) R dir (DFrac.own q) j
-
 /-- The program's map is below the invariant's state. -/
 theorem walInvBody_mapLe (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (s : AbsDiskState) (M : GMap GoString WalDur) :

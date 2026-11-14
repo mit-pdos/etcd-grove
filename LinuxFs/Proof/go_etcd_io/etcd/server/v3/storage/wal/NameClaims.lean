@@ -9,8 +9,8 @@ and a fraction of the area's spine (`walNamesRes`, `Inv.lean`), and lends half o
 
 * `walInvBody_dirPath`: with the lock's record of no pending registration (`walNamesFrag none`: every
   present WAL registered) and the WAL's key, a fraction of the path to its directory.
-* `walInv_dirPath`: the same at a program step (`notCrashed`), the form of `OpenAtPin.lean`'s
-  `WalDirPathLaw` with `walNamesFrag none` framed in place of the area's spine.
+* `walInv_dirPath`: the same at a program step (`notCrashed`); `openAtIndex` and `Open` take their
+  paths from it (until 2026-11-14 the hypothesis `WalDirPathLaw`, the area's spine framed).
 -/
 module
 
@@ -114,9 +114,8 @@ theorem walInvBody_dirPath (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : In
     ipureintro; exact ⟨hnok, hwnm, hcur⟩
   · iexists e; rw [hdir]; iexact Hpath
 
-/-- **A path to a registered WAL's directory, at a program step** (`notCrashed`): the form of
-`OpenAtPin.lean`'s `WalDirPathLaw`, with the lock's `walNamesFrag none` (which `walParked_lock`, the
-pin's, hands the taker) framed in place of the area's spine. -/
+/-- **A path to a registered WAL's directory, at a program step** (`notCrashed`), with the lock's
+`walNamesFrag none` (which `walParked_lock`, the pin's, hands the taker). -/
 theorem walInv_dirPath (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (dir : GoString) (j : Ino) (X : List GoString) :
     ⊢ walInv (L := hG.goose_localGS) (W := W) C Mr R jr r -∗
