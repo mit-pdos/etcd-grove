@@ -2,10 +2,16 @@
 The end-to-end result of `examples/net/acceptloop`: the distributed crash safety of the two-node
 system over TCP (`GooseLang/Ext/Tcp`), with goroutines on both nodes.
 
-The nodes run the boot programs `boot Server` and `boot Client` (initialize the package, then call
-the node's function), at the start and after every crash of the node. The plan has the server's
-address `SrvAddr` at a host `h`, which is the server node's; the client may be on any host (the
-server's too). The network starts with no connection.
+The nodes are the example's commands (`examples/net/acceptloop/cmd/{server,client}`), each its own
+process, as the package's process tests run them over real TCP: node `i` runs its command's
+program, `boot_server` or `boot_client` (initialize the command's package, then call its `main`),
+at the start and after every crash of the node, each with its own package table
+(`cmd.<node>.getIsPkgInit_wf`). A process that exits is, for its peers, a node whose connections
+break (`Impl.lean`, D10/D11). The plan has the server's address `SrvAddr` at a host `h`, which is
+the server node's; the client may be on any host (the server's too). The network starts with no
+connection. The deployment is the one every theorem over the TCP semantics assumes (`Impl.lean`,
+D13: a closed world, addresses that do not alias, a port outside the ephemeral range, the target
+configuration).
 
 The precondition of a node's boot program, over the local ghost state `L` of a generation of the
 node (`nodePre`), is the protocol (`echoInvs`, `Defs.lean`: the address's invariant and every
@@ -24,16 +30,18 @@ the bytes in flight on a connection: the network is global state).
 -/
 module
 
-public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.acceptloop.Nodes
-public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.acceptloop.PkgTable
+public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.acceptloop.cmd.server.Main
+public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.acceptloop.cmd.server.PkgTable
+public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.acceptloop.cmd.client.Main
+public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.acceptloop.cmd.client.PkgTable
 public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.ReadFull
-public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.Forever
 public import NetTcp.Proof.net.Conn__Read
 public import NetTcp.Proof.net.Conn__Write
 public import NetTcp.Proof.net.Conn__Close
 public import NetTcp.Proof.net.Dial
 public import NetTcp.Proof.net.Listen
 public import NetTcp.Proof.net.Listener__Accept
+public import Perennial.Proof.sync.Link
 public import GooseLang.Ext.Tcp.Adequacy
 
 @[expose] public section
@@ -55,15 +63,21 @@ attribute [local instance] tcpExts tcpExtsSemantics tcpExtsInterp tcpExts_hasTcp
 invariants are those of the fancy updates. -/
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
-/-- The boot program of a node: initialize the package, then call the package's function `f` (as
-goose calls a function: resolve it, then apply it). -/
-def boot [GoGlobalContext] (f : GoString) : Expr :=
-  Seq (App (Val initialize') (Val #()))
-    (App (App (Val (GoInstruction (FuncResolve f []))) (Val #())) (Val #()))
+/-- The server node's program: initialize the `server` command's package, then call its `main`
+(as goose calls a function: resolve it, then apply it). -/
+def boot_server [GoGlobalContext] : Expr :=
+  Seq (App (Val cmd.server.initialize') (Val #()))
+    (App (App (Val (GoInstruction (FuncResolve cmd.server.main []))) (Val #())) (Val #()))
 
-/-- The system: the server and the client, from the local states `σs` and `σc`. -/
+/-- The client node's program: the same for the `client` command. -/
+def boot_client [GoGlobalContext] : Expr :=
+  Seq (App (Val cmd.client.initialize') (Val #()))
+    (App (App (Val (GoInstruction (FuncResolve cmd.client.main []))) (Val #())) (Val #()))
+
+/-- The system: the server and the client commands, each a process, from the local states `σs`
+and `σc`. -/
 def system [GoGlobalContext] (σs σc : state) : List (Expr × state) :=
-  [(boot Server, σs), (boot Client, σc)]
+  [(boot_server, σs), (boot_client, σc)]
 
 /-- A node's initial local state: its Go context is `lctx`, no package is initialized and it has
 its main thread only. -/
@@ -75,26 +89,49 @@ structure NodeStart [GoGlobalContext] (lctx : GoLocalContext) (σ : state) : Pro
 section adequacy
 variable [GoGlobalContext] {GF : BundledGFunctors}
 
-/-- A boot program, from a spec of its function `f` with precondition `P` (and the package
-initialized). -/
-theorem wp_boot [hG : HeapGS .hasLC GF] [sem : go.Semantics] [package_sem : Assumptions]
-    (f : GoString) (P : IProp GF)
+/-- No package is initialized: the start of `ownInitializing`. -/
+theorem ownInitializing_start [hG : HeapGS .hasLC GF]
+    (get_is_pkg_init : GoString → IProp GF) :
+    ⊢ ownGoState ∅ -∗ ownInitializing get_is_pkg_init := by
+  iintro Hgs
+  rw [ownInitializing_unseal]
+  unfold ownInitializingDef
+  iexists ∅
+  iframe Hgs
+  iintro !>
+  iapply BigSepM.bigSepM_empty.2
+  iempintro
+
+/-- The server node's program, from a spec of its command's `main` with precondition `P` (and the
+command's package initialized). -/
+theorem wp_boot_server [hG : HeapGS .hasLC GF] [sem : go.Semantics]
+    [package_sem : cmd.server.Assumptions] (P : IProp GF)
     (Hf : {{ isPkgInit (PROP := IProp GF)
-            pkg_id.github_com.mit_pdos.etcd_grove.examples.net.acceptloop ∗ P }}
-        (App (Val (@! f)) (Val #()))
+            pkg_id.github_com.mit_pdos.etcd_grove.examples.net.acceptloop.cmd.server ∗ P }}
+        (App (Val (@! cmd.server.main)) (Val #()))
       {{ RET #(); True }}) :
-    ⊢ P -∗ ownGoState ∅ -∗ WP (boot f) @ Stuckness.NotStuck; ⊤ {{ v, ⌜v = #()⌝ }} := by
+    ⊢ P -∗ ownGoState ∅ -∗ WP boot_server @ Stuckness.NotStuck; ⊤ {{ v, ⌜v = #()⌝ }} := by
   iintro HP Hgs
-  unfold boot
-  wp_apply (wp_initialize' _ getIsPkgInit_wf) $$ [Hgs] as ⟨-, #Hpkg⟩
-  · -- no package is initialized
-    rw [ownInitializing_unseal]
-    unfold ownInitializingDef
-    iexists ∅
-    iframe Hgs
-    iintro !>
-    iapply BigSepM.bigSepM_empty.2
-    iempintro
+  unfold boot_server
+  wp_apply (cmd.server.wp_initialize' _ cmd.server.getIsPkgInit_wf) $$ [Hgs] as ⟨-, #Hpkg⟩
+  · iapply ownInitializing_start $$ Hgs
+  wp_pures
+  wp_apply Hf $$ [HP]
+  · iframe
+  ipureintro; rfl
+
+/-- The client node's program, from a spec of its command's `main`. -/
+theorem wp_boot_client [hG : HeapGS .hasLC GF] [sem : go.Semantics]
+    [package_sem : cmd.client.Assumptions] (P : IProp GF)
+    (Hf : {{ isPkgInit (PROP := IProp GF)
+            pkg_id.github_com.mit_pdos.etcd_grove.examples.net.acceptloop.cmd.client ∗ P }}
+        (App (Val (@! cmd.client.main)) (Val #()))
+      {{ RET #(); True }}) :
+    ⊢ P -∗ ownGoState ∅ -∗ WP boot_client @ Stuckness.NotStuck; ⊤ {{ v, ⌜v = #()⌝ }} := by
+  iintro HP Hgs
+  unfold boot_client
+  wp_apply (cmd.client.wp_initialize' _ cmd.client.getIsPkgInit_wf) $$ [Hgs] as ⟨-, #Hpkg⟩
+  · iapply ownInitializing_start $$ Hgs
   wp_pures
   wp_apply Hf $$ [HP]
   · iframe
@@ -113,7 +150,8 @@ def nodePre [G : GooseGlobalGS .hasLC GF] (h : GoString) (i : Nat) (L : GooseLoc
 fewer than `T` live threads, under any ghost state `GF` with `GooseGpreS GF`:
 `goose_dist_crash_adequacy` for the system. -/
 theorem acceptloop_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : Assumptions] [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
+    [server_sem : cmd.server.Assumptions] [client_sem : cmd.client.Assumptions]
+    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
     [hPre : GooseGpreS GF] (N T : Nat) (σs σc : state) (g : GlobalState) (h : GoString)
     (Hs : NodeStart lctx σs) (Hc : NodeStart lctx σc)
     (Hhost : (extLocal tcpExt σs.world).host = h)
@@ -192,7 +230,7 @@ theorem acceptloop_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semant
   · -- every generation of every node: its boot program, and its next precondition
     intro hG _ _ i e σ Hes Hlctx
     obtain ⟨G, ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩ := hG
-    have Hnode : (i = 0 ∧ e = boot Server ∧ σ = σs) ∨ (i = 1 ∧ e = boot Client ∧ σ = σc) := by
+    have Hnode : (i = 0 ∧ e = boot_server ∧ σ = σs) ∨ (i = 1 ∧ e = boot_client ∧ σ = σc) := by
       match i, Hes with
       | 0, Hes => cases Hes; exact .inl ⟨rfl, rfl, rfl⟩
       | 1, Hes => cases Hes; exact .inr ⟨rfl, rfl, rfl⟩
@@ -208,14 +246,15 @@ theorem acceptloop_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semant
     imodintro
     isplitl [Hgs]
     · rcases Hnode with ⟨rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩
-      · iapply wp_boot Server _ (wp_Server net.Listen.wp_proof net.Listener.Accept.wp_proof
-          (wire.ReadFull.wp_proof net.Conn.Read.wp_proof) net.Conn.Write.wp_proof
-          net.Conn.Close.wp_proof wire.Forever.wp_proof γm) $$ [] Hgs
+      · iapply wp_boot_server _ (cmd.server.wp_main net.Listen.wp_proof
+          net.Listener.Accept.wp_proof (wire.ReadFull.wp_proof net.Conn.Read.wp_proof)
+          net.Conn.Write.wp_proof net.Conn.Close.wp_proof γm) $$ [] Hgs
         rw [Hh rfl]
         iframe Hinvs Hplan
-      · iapply wp_boot Client _ (wp_Client net.Dial.wp_proof
+      · iapply wp_boot_client _ (cmd.client.wp_main net.Dial.wp_proof
           (wire.ReadFull.wp_proof net.Conn.Read.wp_proof) net.Conn.Write.wp_proof
-          net.Conn.Close.wp_proof wire.Forever.wp_proof γm h) $$ [] Hgs
+          net.Conn.Close.wp_proof sync.WaitGroup.wp_Add sync.WaitGroup.wp_Done
+          sync.WaitGroup.wp_Wait γm h) $$ [] Hgs
         iframe Hinvs Hplan
     · -- after a crash: the host is kept, the rest is persistent
       iintro %L' _ Hcs Hgs'
@@ -235,10 +274,12 @@ theorem acceptloop_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semant
     · exact Hs.threads
     · exact Hc.threads
 
-/-- Crash safety of the acceptloop system: in every execution with crashes of the two nodes
-(`DistCrashNsteps`, the real semantics: a crash of a node restarts it with its boot program, from
-a crashed local state, the network's connections and the bytes in flight on them kept), from
-local states whose Go contexts satisfy the Go semantics and the package's assumptions, with no
+/-- Crash safety of the acceptloop system, its two nodes the example's commands, each its own
+process (`boot_server`, `boot_client`), in the deployment `Impl.lean`'s D13 assumes: in every
+execution with crashes of the two nodes (`DistCrashNsteps`, the real semantics: a crash of a node
+restarts it with its boot program, from a crashed local state, the network's connections and the
+bytes in flight on them kept), from local states whose Go contexts satisfy the Go semantics and
+the assumptions of the commands' packages (and of the packages they import), with no
 package initialized and their main threads only, where the server's host is `h`, the plan has
 `SrvAddr` at `h` and the network has no connection yet, every boot program returns `#()` if it
 returns, no thread of any node is stuck and none has an unrecovered panic: each of the client's
@@ -248,7 +289,8 @@ crashes. (`acceptloop_crash_safety_bounded` with the ghost state `tcpGF`, the st
 and the thread bound `n + 2`, which an execution of `n` steps from single threads respects,
 `DistCrashThreadsBelow.of_single`.) -/
 theorem acceptloop_crash_safety [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : Assumptions] [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
+    [server_sem : cmd.server.Assumptions] [client_sem : cmd.client.Assumptions]
+    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
     (σs σc : state) (g : GlobalState) (h : GoString)
     (Hs : NodeStart lctx σs) (Hc : NodeStart lctx σc)
     (Hhost : (extLocal tcpExt σs.world).host = h)

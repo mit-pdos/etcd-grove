@@ -15,7 +15,7 @@ goroutines of the server's accept loop nor the client's two concurrent calls nee
   while the server still holds the token. Every resource the protocol moves is timeless; a
   direction's invariant `inv echoN (dirInv cn s (γ.dir s))`, which `Stream.lean`'s updates take, is
   derived from `echoState`'s (`dir_inv`, `inv_alter`).
-* **The dial** (`dial_both_au`, `wire.dial_au` with both ends' fresh resources at hand): the
+* **The dial** (`wire.dial_both_au`: the deposit made from both ends' fresh resources): the
   dialer registers the connection (`echo_register`: names, both directions' bodies, the echo
   state) and deposits for the acceptor `connProto γm cn` (its end, the token, the up direction's
   reader half), keeping its end, the up direction's writer half and the down direction's reader
@@ -154,31 +154,6 @@ theorem echoTok_exclusive (γ : GName) :
   iintro H1 H2
   iapply token_exclusive $$ H1 H2
 
-/-! ## The stream protocol of a direction, without its invariant -/
-
-/-- A new direction's protocol, from its fresh resource, as `wire.dirInv_alloc` but leaving the
-invariant's body (`dirInv`) to the caller (here: inside `echoState`). -/
-theorem dirInv_new (c : Nat) (s : Bool) :
-    tcpDir (G (Gg := Gg)) c s TcpDir.fresh ==∗ ∃ γ, dirInv (Gg := Gg) c s γ ∗ sentAll γ [] ∗
-      rcvdAll γ [] := by
-  letI := (G (Gg := Gg)).allG
-  iintro Hd
-  imod mono_list_own_alloc (GF := GF) ([] : List w8) with ⟨%γw, Hw, -⟩
-  icases (show monoListAuthOwn (GF := GF) γw 1 ([] : List w8) ⊣⊢
-      iprop(monoListAuthOwn γw (1 : Qp).half [] ∗ monoListAuthOwn γw (1 : Qp).half []) by
-    conv => lhs; rw [← Qp.half_add_half 1]
-    exact (monoListAuthOwn_fractional γw []).fractional _ _).mp $$ Hw with ⟨Hw1, Hw2⟩
-  imod ghostVar_alloc (GF := GF) ([] : List w8) with ⟨%γr, Hr⟩
-  icases (ghostVar_split_half γr 1 ([] : List w8)).mp $$ Hr with ⟨Hr1, Hr2⟩
-  imodintro
-  iexists ⟨γw, γr⟩
-  unfold dirInv sentAll rcvdAll
-  isplitl [Hd Hw1 Hr1]
-  · iexists TcpDir.fresh, [], []
-    iframe Hd Hw1 Hr1
-    ipureintro; exact wire.dirOk_fresh
-  iframe Hw2 Hr2
-
 /-- A direction's invariant, from the protocol's: its body is a part of `echoState`'s. -/
 theorem dir_inv (γm : GName) (cn : Nat) (γ : ConnG) (s : Bool) :
     ⊢ inv echoN (echoState (Gg := Gg) γm) -∗ connName γm cn γ -∗
@@ -235,8 +210,8 @@ theorem echo_register (γm : GName) (cn : Nat) :
     icases Hc with ⟨⟨%d, %W, %R, Hd', -⟩, -⟩
     icases tcpDir_excl _ cn false _ _ $$ Hdd Hd' with ⟨⟩
   | none =>
-    imod dirInv_new cn false $$ Hdd with ⟨%γu, Hu, Hsu, Hru⟩
-    imod dirInv_new cn true $$ Had with ⟨%γd, Hdn, Hsd, Hrd⟩
+    imod wire.dirInv_body_alloc cn false $$ Hdd with ⟨%γu, Hu, Hsu, Hru⟩
+    imod wire.dirInv_body_alloc cn true $$ Had with ⟨%γd, Hdn, Hsd, Hrd⟩
     imod token_alloc (GF := GF) with ⟨%γt, Htok⟩
     let γ : ConnG := ⟨γt, γu.w, γu.r, γd.w, γd.r⟩
     have hu : γ.dir false = γu := rfl
@@ -269,38 +244,6 @@ theorem echo_register (γm : GName) (cn : Nat) :
       unfold connName
       rw [hu, hd]
       iframe Hde Hsu Hrd Hlbd Hname
-
-/-- A dial of `a` whose dialer makes its deposit `Φ cn` from both ends' fresh resources (at the
-address's invariant's mask) and keeps `R cn`: `wire.dial_au`, for a dialer that needs its own end's
-fresh resources too. -/
-theorem dial_both_au (N : Namespace) (a : GoString) (Φ R : Nat → IProp GF)
-    [∀ cn, Timeless (Φ cn)] :
-    ⊢ inv N (addrInv a Φ) -∗
-      (∀ cn, tcpConnAt G cn a -∗ tcpFresh G cn false -∗ tcpFresh G cn true ={⊤ \ ↑N}=∗
-        Φ cn ∗ R cn) -∗
-      |={⊤,∅}=> ∃ S, tcpPend G a S ∗
-        ∀ cn, ⌜cn ∉ S⌝ -∗ tcpPend G a (S ∪ {[cn]}) -∗ tcpConnAt G cn a -∗
-          tcpFresh G cn false -∗ tcpFresh G cn true ={∅,⊤}=∗ R cn := by
-  iintro #Hinv Hmk
-  iinv Hinv with Hi Hclose
-  unfold addrInv
-  icases Hi with ⟨%S, >Hpend, >Hdeps⟩
-  iapply fupd_mask_intro Std.LawfulSet.empty_subset
-  iintro Hmask
-  iexists S
-  iframe Hpend
-  iintro %cn %HcS Hpend #Hat Hd Ha
-  imod Hmask
-  imod Hmk $$ %cn Hat Hd Ha with ⟨HΦ, HR⟩
-  imod Hclose $$ [Hpend Hdeps HΦ] with -
-  · inext
-    iexists S ∪ {[cn]}
-    iframe Hpend
-    rw [wire.setMap_insert]
-    iapply (BigSepM.bigSepM_insert (wire.setMap_lookup_none HcS)).2
-    iframe Hdeps HΦ
-  imodintro
-  iexact HR
 
 /-- The server's one write on `cn`, of bytes `bs` that are a prefix of the dialer's (`si`), with
 the connection's token: the echo state's bytes were nothing, and are a prefix of `si` after. -/
@@ -355,23 +298,6 @@ theorem server_write_au (γm : GName) (cn : Nat) (γ : ConnG) (bs si : List w8) 
     exact (List.take_prefix k bs).trans hbs
   imodintro
   iexact Hend
-
-/-- A close of the end `s` of `cn` (its state `st` the thread's), with its outcome dropped. -/
-theorem close_drop_au (γm : GName) (cn : Nat) (γ : ConnG) (s : Bool) (st : TcpEnd) :
-    ⊢ inv echoN (echoState (Gg := Gg) γm) -∗ connName γm cn γ -∗ tcpEnd G cn s st -∗
-      |={⊤,∅}=> ∃ st0 d, tcpEnd G cn s st0 ∗ tcpDir G cn s d ∗
-        ∀ ok st' d', ⌜CloseOutcome st0 d ok st' d'⌝ -∗ tcpEnd G cn s st' -∗ tcpDir G cn s d'
-          ={∅,⊤}=∗ True := by
-  iintro #Hinv #Hname Hend
-  ihave #Hdi := dir_inv γm cn γ s $$ Hinv Hname
-  imod wire.close_au echoN cn s (γ.dir s) st $$ Hdi Hend with ⟨%st0, %d, Hend, Hd, Hk⟩
-  imodintro
-  iexists st0, d
-  iframe Hend Hd
-  iintro %ok %st' %d' %Hc Hend Hd
-  imod Hk $$ %ok %st' %d' %Hc Hend Hd with -
-  imodintro
-  itrivial
 
 /-- The client's check: a reply it read (`resp`, a lower bound of the server's bytes) is a prefix
 of the client's own bytes `W`. -/
