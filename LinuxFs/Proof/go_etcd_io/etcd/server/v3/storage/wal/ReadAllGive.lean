@@ -16,9 +16,7 @@ What `walOpenWF`'s `walDirH` needs that `ReadAll` holds only as the read's tie (
 -/
 module
 
-public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutSync
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.OpenUnpin
-public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutCommitPure
 
 @[expose] public section
 
@@ -34,6 +32,13 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Fs WalEnc
 
 section pure
 variable [GooseExts]
+
+/-- A `.wal` name of a directory is among its sorted `.wal` names. -/
+theorem mem_walNamesR {E : Ents} {b : GoString} {e : Node} (hb : walNameP b = true)
+    (he : E !! b = some e) : b ∈ walNames E := by
+  unfold walNames
+  refine (List.mergeSort_perm _ _).mem_iff.2 (List.mem_filter.2 ⟨?_, hb⟩)
+  exact List.mem_map.2 ⟨(b, e), (GMap.mem_toList _ _ _).2 he, rfl⟩
 
 /-- **The last of a directory's sorted `.wal` names is the largest.** -/
 theorem walNames_last_max {E : Ents} {nm0 : GoString} (hl : (walNames E).getLast? = some nm0) :
@@ -58,7 +63,7 @@ theorem walNames_last_max {E : Ents} {nm0 : GoString} (hl : (walNames E).getLast
     simp [go.goStringLt_eq_of_not_lt h1 h2]
   have hsort : (walNames E).Pairwise (fun a b => decide (go.GoStringLt a b ∨ a = b) = true) :=
     List.pairwise_mergeSort htr hto _
-  have hmem := mem_walNames hw hb
+  have hmem := mem_walNamesR hw hb
   obtain ⟨l, hl'⟩ := List.getLast?_eq_some_iff.1 hl
   rw [hl'] at hmem hsort
   rcases List.mem_append.1 hmem with h | h
@@ -77,6 +82,45 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
   [GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
   [W : WalGS GF]
+
+/-- **The tail record of `dir`** names the WAL, its layout and the layout's last segment (as
+`CutSync.lean`'s `walTailsRes_lookup`, which this file does not import: its module chain declares names
+`ReadAll`'s chain declares too). -/
+theorem walTailsRes_lookupR (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState)
+    (Ls : GMap GoString WalLay) (F : GMap Ino SegFl) (dir : GoString) (γ : GName) (tg : TailG) :
+    ⊢ walTailsRes (W := W) C Mr s Ls F -∗ walTailKey (W := W) dir γ -∗ tailVar (W := W) γ tg -∗
+      ⌜∃ (d : WalDur) (lay : WalLay) (g0 : SegG), s.wal !! dir = some d ∧ Ls !! dir = some lay ∧
+          lay.segs.getLast? = some g0 ∧ tg = tailG d lay g0.ino (F !! g0.ino)⌝ ∗
+        walTailsRes (W := W) C Mr s Ls F ∗ walTailKey (W := W) dir γ ∗ tailVar (W := W) γ tg := by
+  letI := walAllG (W := W)
+  unfold walTailsRes tailVar
+  iintro ⟨%T, HTa, %HTo, %HTi, HTm, HL⟩ Hk Hv
+  icases walTailKey_lookup T dir γ $$ HTa Hk with %HT
+  ihave ⟨Hent, HTm⟩ := (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (γ : GName) =>
+    iprop(∃ (d : WalDur) (lay : WalLay) (g : SegG),
+      ⌜s.wal !! dir = some d ∧ Ls !! dir = some lay ∧ lay.segs.getLast? = some g ∧ TailZ0 lay ∧
+        TailBound C Mr d lay⌝ ∗
+      ghostVar γ (1 : Qp).half (tailG d lay g.ino (F !! g.ino)))) HT).1 $$ HTm
+  icases Hent with ⟨%d, %lay, %g0, %hp, Hv'⟩
+  icases ghostVar_agree _ _ _ _ _ $$ Hv Hv' with %Htg
+  isplitr
+  · ipureintro; exact ⟨d, lay, g0, hp.1, hp.2.1, hp.2.2.1, Htg⟩
+  iframe Hk Hv
+  iexists T
+  iframe HTa HL
+  isplitr
+  · ipureintro; exact HTo
+  isplitr
+  · ipureintro; exact HTi
+  iapply (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (γ : GName) =>
+    iprop(∃ (d : WalDur) (lay : WalLay) (g : SegG),
+      ⌜s.wal !! dir = some d ∧ Ls !! dir = some lay ∧ lay.segs.getLast? = some g ∧ TailZ0 lay ∧
+        TailBound C Mr d lay⌝ ∗
+      ghostVar γ (1 : Qp).half (tailG d lay g.ino (F !! g.ino)))) HT).2
+  iframe HTm
+  iexists d, lay, g0
+  iframe Hv'
+  ipureintro; exact hp
 
 /-- **The holder's half of the tails' authority bounds what is in flight** (`TailsOnly`). -/
 theorem walTailsRes_only (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (Ls : GMap GoString WalLay)
@@ -113,7 +157,7 @@ theorem walInvBody_readGive (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : I
     ⟨%K, %cp, HKa, Hca, %HDK⟩, %HAt, Hnms, %Hbd⟩
   icases walDirKey_lookup (W := W) K dir j X $$ HKa Hkey with %hK
   obtain ⟨-, -, -, -, -, hX, -⟩ := HDK.1 dir j X hK
-  icases walTailsRes_lookup (W := W) C Mr s Ls F dir γt tg $$ Htl Hk Hv with ⟨%hlk, Htl, Hk, Hv⟩
+  icases walTailsRes_lookupR C Mr s Ls F dir γt tg $$ Htl Hk Hv with ⟨%hlk, Htl, Hk, Hv⟩
   obtain ⟨d, lay, g0, hd, hl, hg0, htg⟩ := hlk
   -- nothing in flight: the holder's tails name only this WAL's, whose record says none
   icases walTailsRes_only (W := W) C Mr s Ls F _ $$ Htl Htf with ⟨%hTO, Htl, Htf⟩
