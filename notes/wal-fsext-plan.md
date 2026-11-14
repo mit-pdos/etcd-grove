@@ -249,6 +249,18 @@ need a witness after the landing), for no gain: either way W1 excludes a few rea
 the *intended* frame when part of it is zeros (unwritten, zeroed by the truncate, or written as zeros),
 which the old W1 already did for unwritten zeros. Both are in `W1.lean`'s docstring for the review.
 
+**Restated exactly (2026-11-14, `wal-tc4`; trusted bookkeeping pending the user's review).** The
+amendment above excluded real crashes: a frame split by the page writer whose second `pwrite`'s share of
+the core is zeros (the data's trailing zeros) comes back intact, yet that `pwrite` "wrote no nonzero
+byte". The state now records each file's resize stamps (`OsFile.rzs`, appended by `OsFile.announce` for
+a `truncate`/`falloc` kind, `[]` at `ofDisk`; read by no step: `examples/osfs/semantics/data_resize_stamps.go`),
+and the change disjunct asks `p.2 ∉ f.rzs` in place of `WroteIn`. Allowed: the split frame
+(`AsOfW.split_zero`); excluded: the truncate window (`AsOfW.not_rz_window`). What W1 still excludes of
+real crashes: an intended core whose zero tail no announced `pwrite` has written yet (still in the
+encoder's buffer when the crash comes, the bytes under it zeros): the state has no record of buffered
+bytes (`W1.lean`'s docstring). Not reset at a sync (a resize in flight keeps its candidates across one;
+stamps are never reused).
+
 ## 3. Changes to the statements
 
 Binder changes for all 12:
@@ -514,7 +526,7 @@ Everything under `LinuxFs/` and `GooseLang/Ext/Fs/` builds (3019 jobs); `etc/gen
 `etc/gen-init.py --check` pass. The W1 layer (`Ghost`, `Inv`, `Crash`, `CrashPure`, ...), `CreateAu`'s update
 (both arms) and the pipeline have no `sorry`. The remaining `sorry`s of the track (declarations using one, by
 module; the bboltfs/crashlog/walfs examples and the generated translations not listed):
-- `wal/`: `Create.wp_proof` (`Create.lean`), `Open.wp_proof`, `OpenForRead.wp_proof`, `openAtIndex.wp_proof`,
+- `wal/`: `Create.wp_proof` (`Create.lean`), `Open.wp_proof` (`OpenForRead`, `openAtIndex` proved, `wal-read12`),
   `openWALFiles.wp_proof`, `WAL.ReadAll.wp_proof`, `WAL.Save.wp_proof`, `WAL.SaveSnapshot.wp_proof`,
   `WAL.saveEntry.wp_proof`, `WAL.saveState.wp_proof`,
   `WAL.sync.wp_proof`, `wal.tailWriter` (`TailWriter.lean`);
@@ -523,8 +535,11 @@ module; the bboltfs/crashlog/walfs examples and the generated translations not l
   past 1 GiB).
 Not yet stated (no `sorry`, no statement): `Close`, `ReleaseLockTo`, `Repair`, `ValidSnapshotEntries`, `Exist`
 (§4.2's W7-W12), the WAL-level resize updates (I3b's open items). `Create`'s ghost steps (drop, mint, unmint, merges) are proved (`wal-create10`; W4 log, tenth session). The record of what is out of the parked state and the changes in flight only on segments out (W3/W5's gaps A and B) are in the invariant, with the pin's and the put-back's moves (`Parked.lean`, `wal-read9`; W1 log, tenth session). A change in flight only on a registered tail (`TailsOnly`), the tails' authority halved with the lock holder (`walTailsFrag`), and `openAtIndex`'s pin (`walInvBody_pin`, `OpenPinTake.lean`) are proved (`wal-read10`; W1 log, eleventh session; W3/W5 log, tenth session). Gap C (every WAL's directory claim once and exclusive, `DirClaimsOk` in `DirKeysOk`), the pin keying its WAL, the put-back (`walInvBody_unpin`), the commit's `unl` raise (`walInvBody_unl`) and the tail's registration (`walTailsRes_register`) are proved (`wal-read11`; W1 log, twelfth session; W3/W5 log, eleventh session).
-`Exist` proved over hypotheses (`wal-small12`, W7-W12 log; no `sorry`). Not yet stated (no `sorry`, no statement): `Close`, `ReleaseLockTo`, `Repair`, `ValidSnapshotEntries`
+`Exist` proved over hypotheses (`wal-small12`, W7-W12 log; no `sorry`); `hErrNotExist` dropped and the
+`os`/extension layer of its `ReadDir` hypotheses proved over the provisional `ENOENT` rule (`wal-enoent13`,
+W7-W12 log, second session); left: `ReadDir`'s loops and the names' bound, `errors.IsPathErrnoNotExist.spec`. Not yet stated (no `sorry`, no statement): `Close`, `ReleaseLockTo`, `Repair`, `ValidSnapshotEntries`
 (§4.2's W7-W11), the WAL-level resize updates (I3b's open items). `Create`'s ghost steps (drop, mint, unmint, merges) are proved (`wal-create10`; W4 log, tenth session). The record of what is out of the parked state and the changes in flight only on segments out (W3/W5's gaps A and B) are in the invariant, with the pin's and the put-back's moves (`Parked.lean`, `wal-read9`; W1 log, tenth session). A change in flight only on a registered tail (`TailsOnly`), the tails' authority halved with the lock holder (`walTailsFrag`), and `openAtIndex`'s pin (`walInvBody_pin`, `OpenPinTake.lean`) are proved (`wal-read10`; W1 log, eleventh session; W3/W5 log, tenth session).
+(§4.2's W7-W12), the WAL-level resize updates (I3b's open items). `Create`'s ghost steps (drop, mint, unmint, merges) are proved (`wal-create10`; W4 log, tenth session). The record of what is out of the parked state and the changes in flight only on segments out (W3/W5's gaps A and B) are in the invariant, with the pin's and the put-back's moves (`Parked.lean`, `wal-read9`; W1 log, tenth session). A change in flight only on a registered tail (`TailsOnly`), the tails' authority halved with the lock holder (`walTailsFrag`), and `openAtIndex`'s pin (`walInvBody_pin`, `OpenPinTake.lean`) are proved (`wal-read10`; W1 log, eleventh session; W3/W5 log, tenth session). Gap C (every WAL's directory claim once and exclusive, `DirClaimsOk` in `DirKeysOk`), the pin keying its WAL, the put-back (`walInvBody_unpin`), the commit's `unl` raise (`walInvBody_unl`) and the tail's registration (`walTailsRes_register`) are proved (`wal-read11`; W1 log, twelfth session; W3/W5 log, eleventh session). `openAtIndex` and `OpenForRead` are proved, over two invariant hypotheses (`WalPinSized`: the segments' size bound; `WalDirPathLaw`: a path to the WAL directory, `wal-path13`'s to replace) and `WalDecEnvSupply` (`wal-read12`; W3/W5 log, twelfth session).
 
 ## W1 implementation log (branch `wal-inv`, 2026-11-13)
 
@@ -1029,6 +1044,38 @@ core has a nonzero candidate stamped `n_rz`, so `AsOfW` at such `n` is false; be
 `latestAt` is stamped 0. So an accepted frame straddling `wr` is as of the flush (`n ≥ k`: intended) or
 as of the sync.
 
+**Fourteenth session (branch `wal-tc4`, 2026-11-14): W1 restated exactly over recorded resize stamps.**
+- *Trusted* (`GooseLang/Ext/Fs/Impl.lean`, **pending the user's review**, bookkeeping only): `OsFile.rzs :
+  List Nat := []`, `OsChangeKind.isResize`, `OsFile.announce` appends the stamp of a resize (so
+  `FtruncateStart`, `FallocStart` and `open`'s `O_TRUNC` record it; `ofDisk`/`newFile` start empty). Go
+  example `examples/osfs/semantics/data_resize_stamps.go` (indexed in `doc.go`). No extension proof
+  changed (every `GooseLang/Ext/Fs` module rebuilt as is).
+- *W1* (`W1.lean`): `WroteIn` dropped; the statement (Lean):
+```lean
+def AsOfW (cs : Nat → Cands) (rz : List Nat) (v : Nat → w8) (o len : Nat) : Prop :=
+  (∀ b, o ≤ b → b < o + len → v b = valAt (cs b) 0) ∨
+  ∃ n, 0 < n ∧ ∀ b, o ≤ b → b < o + len →
+    ∃ p, latestAt (cs b) n = some p ∧ v b = p.1 ∧ 0 < p.2 ∧ p.2 ∉ rz
+def AsOfOne (f f' : OsFile) (o len : Nat) : Prop := AsOfW f.cand f.rzs f'.cache o len
+```
+  `AsOfW.congr` takes `rz' ⊆ rz` (fewer resizes known is weaker); `AsOfW.weak` unchanged in form; sanity
+  lemmas `AsOfW.of_last`, `AsOfW.split_zero` (allowed: the split frame, second share zeros),
+  `AsOfW.not_rz_window` (excluded: a byte last zeroed by a resize after a byte written since the sync);
+  `W1Sat` unchanged. The docstring's "excludes real crashes" caveat narrowed to the buffered-zeros case.
+- *Ghost side* (`Abs.lean`): `AsOfOneG bs rz img o len`, **`W1G … bsOf rzOf`** (the resize stamps known of
+  each file); `w1G_of_W1 … rzOf` asks, of each segment, `∀ s ∈ rzOf g.ino, s ∈ f.rzs`. **`CrashOk` and
+  `CrashOkA` pass `fun _ => []`** for now: their users get exactly the weak form (as before), and no
+  `CrashOk` proof changed. `w1G_durable`, `w1G_sync`, `w1G_prefix`, `crashTo_tailM`/its wrapper are generic
+  in `rzOf`.
+- **The ghost link `cut`'s window needs (next unit, not done)**: the WAL must know, at a crash, that the
+  truncate's stamp is in the file's `rzs`. Plan: `OsMeta.rz : List Nat := []` (ghost, `Ghost.lean`), a
+  `MetaOk` clause `∀ s ∈ m.rz, s ∈ f.rzs` (kept by every step: `rzs` only grows, `announce` keeps `m.rz`),
+  `rsPostK … n …` sets `rz := n :: m.rz` (`rsPostK_false` and `ResizeAu`'s `withTc` form then need the
+  `rz` field), the crash take (`crashRest_take_files`, `FileCrashAt`) exporting it next to the
+  candidates, `walCrash_pure`'s `hfiles` carrying it, and `CrashOk`'s `W1G` passing `segRzOf lay i :=
+  (find g.ino).om.rz`. Every `CrashOk` prover is unaffected (`asOfOneG_asOf` is generic in `rz`); the
+  window's prover uses `AsOfW` with the truncate's stamp in `g.om.rz` (`AsOfW.not_rz_window`'s argument).
+
 ## 9. The trusted-model drafts (2026-11-13, branch `wal-models`; pending the user's review [user])
 
 The WAL and fileutil retranslated from the fork's `goose-lean-walfs` (`f15d88841`, the two local fixes
@@ -1093,10 +1140,14 @@ holds some mode). Nothing proves the new models yet.
   `readInt64` takes `len(r0) + 8 < 2^62`. The decoder discharges both reads: the length word inside
   `|F.bs| + 8`, the frame at most 8 bytes past the file (Go's size check counts from `lastValidOff`).
 
-**Pending the user's review (trusted or axiomatic), all off `lean`:** the fork fixes (§8,
+**Pending the user's review (trusted or axiomatic), all off `lean`:** the `ENOENT` rule of `fsExt`
+(2026-11-14, `Impl.lean`'s `ENOENT`, `Open`/`DirReadNext`; `examples/osfs/semantics/meta_enoent.go`,
+measured on C; the W7-W12 log); the fork fixes (§8,
 `notes/wal-fsext-fork/`); W1 (the crash premise, `LinuxFs/.../wal/W1.lean`; the open question of torn
 non-`Data` bytes, under investigation on `wal-bytemix`; amended 2026-11-14 so a resize's zeros do not
-write a frame, §2.5, and it excludes a few real crashes that leave the intended frame, its docstring); the new `os`/`syscall` models and the
+write a frame, restated exactly over the recorded resize stamps by `wal-tc4`, §2.5; it still excludes the rare crash
+leaving an intended frame whose zero tail was not yet written, its docstring); the resize-stamp record `OsFile.rzs`
+(bookkeeping, `wal-tc4`); the new `os`/`syscall` models and the
 `PathKind` query in `GooseLang/Ext/Fs/Impl.lean` (§9, `notes/wal-fsext-models-review.md`); the
 crc32 model; the `walpb` registrations; the leaf axioms above; the restated `ReadAll` post
 (`notes/specs-only/ledger.md`, 2026-11-13).
@@ -3307,6 +3358,15 @@ decision (option 1); task 3 (the supplies) not done.
   (3) `truncSup`/`fallocSup` from `walInv` via `walInvBody_tailW`, then `specWalTail`'s proof and `ZeroToEnd`'s
   instance.
 
+**W1 restated exactly (branch `wal-tc4`, 2026-11-14).** Task 1 of `wal-tc3`'s list redone exactly (W1 log,
+fourteenth session): the state records resize stamps (`OsFile.rzs`, trusted bookkeeping, pending review),
+W1's change disjunct asks each byte's candidate as of `n` be a `pwrite`'s (`p.2 ∉ f.rzs`), so the
+split-frame crash with a zero share is allowed and `cut`'s truncate window excluded. `W1G` takes the
+resize stamps known per file (`rzOf`); `CrashOk` passes none until the ghost link (`OsMeta.rz`, the W1 log's
+plan) is in. **Open (task 3, unchanged)**: the ghost link first; then the pure `CrashOk` of `cut`'s window
+(with `segRzOf`), `ReadAll`'s `ZeroToEnd` (`segBytesOf` by `pc`, `SegCrashAt`), `truncSup`/`fallocSup` from
+`walInv` via `walInvBody_tailW`, `specWalTail`'s proof and the `ZeroToEnd` instance.
+
 **Third session (branch `wal-read3`, 2026-11-13).**
 - *Gaps 1 and 2 closed* as the coordinator decided: `WalsNamed` and `walParked` in `walInvBody`, the parking
   flag in the lock token (W1 log, sixth session, for the design and the other units' obligations).
@@ -3645,4 +3705,75 @@ tail). Task 3 (the pin, `openAtIndex`, `OpenForRead`, `Open`) not started.
 - **Statement change (minor):** `wal.Exist.specCreate` (`CreateCallees.lean`) takes `NameOk nm` (both `ReadDir`
   hypotheses need it; `walNameOk` allows a NUL byte); `Create.lean` passes its own `hnmO`. `wal-create12`: replace
   the hypothesis `wp_Exist` by `wal.Exist.wp_specCreate C Mr wp_WithExt wp_RDabs wp_RDchild hErrNotExist`.
+- *Not started*: `ValidSnapshotEntries` (W8), `ReleaseLockTo` (W9).
+
+**Twelfth session (branch `wal-read12`, 2026-11-14).** `openAtIndex` and `OpenForRead` proved (no `sorry`,
+`lake build` of `openAtIndex`); `Open`, `ReadAll` not started.
+- *New modules, proved*: `OpenAtPin.lean` (**`walInv_openAt`**: at `openAtIndex`'s first step, `walInv` opened,
+  the area read (`walInvBody_areaAt`), the client's update opened and committed (write mode `walInvBody_unl`), and
+  either `Q none` with the token and `h.cur !! nm = none`, or `walPinOut`: the pin's outputs from position
+  `walOpenK idx lay` (`walSearch` of the layout's names, which `selectWALFiles` then computes: `walOpenK_eq`));
+  `OpenAtSteps.lean` (`walInv_unpin`: the error arms' put-back at a step; `walInv_mintOpening`: write mode's
+  `walOpening` from the lock token, at the pipeline's call step); `OpenAtTail.lean` (`os.fileNamed`, `os.File.Name`
+  over it, `walOpenedFiles_last`: the tail's name and lock kept before the decoder takes the file's fd).
+- **Hypotheses of `openAtIndex.wp_proof`** (besides the callees' specs, listed in its signature; for the coordinator):
+  1. `WalPinSized walCodec Mr R jr r` (`OpenAtPin.lean`): `walInvBody_pin` plus **each segment's `|g.bs| + 2^12 <
+     2^62`** (`walDecFiles_mk`'s); the invariant does not hold a size bound. Fix: a framed pure conjunct (ext4's
+     maximum file size, 16 TiB, on every segment), or in `WalAbsD.metas`; then `WalPinSized` is `walInvBody_pin` with it.
+  2. `WalDirPathLaw walCodec Mr R jr r` (`OpenAtPin.lean`; the coordinator's interim law, finding G-spine): a holder
+     of `walDirKey dir j X`, at a program step, with the area's spine framed, gets `∃ q, osPathS R dir (own q) j`,
+     kept. Applied once (the pin's step); swap for `wal-path13`'s law there.
+  3. `WalDecEnvSupply` (`openAtIndex.lean`): `isPkgInit wal -∗ ∃ IoE eof ueof, decEnv IoE eof ueof ∗ ⌜pointer
+     errors ∈ IoE⌝` (needs Perennial's `errors.Is` for `isEofOk`; `io`'s variables).
+- **Statement changes** (ledger, 2026-11-14): `openAtIndex`/`Open`/`OpenForRead` take `NameOk nm` (an absent WAL:
+  `selectWALFiles.specAbsent`) and `dir.length < 2^59` (`openWALFiles`, `newFilePipeline`), as `Create`.
+  `OpenForRead.wp_proof` takes `openAtIndex.spec`.
+- **For `Open`/`ReadAll` (not done)**: (a) *call permission*: `Open` returns `osCallPerm ½` and its pipeline holds
+  the other half, but `walDirH` (the handle `ReadAll` returns) holds another `½`: `Open`'s success should keep its
+  half in `walOpeningF` (as `Create`'s post now does, ledger 2026-11-14), a statement change of `Open`; (b) `Open`'s
+  `OpenDir` error arm calls `w.Close()`, which has no spec (W10); (c) `ReadAll` gets the directory path from
+  `WalDirPathLaw` (its spec has the area spine and `walAreaOk`; the key is in `walReadTie`), the metadata bound
+  (`d.metadata.length < 2^41`) is not in `walInvBody` yet (`wal-save11`'s message: a framed conjunct).
+
+**Second session (branch `wal-enoent13`, 2026-11-14).**
+
+- **Trusted semantics change [user], decided provisionally, pending the user's review: `ENOENT`.**
+  `GooseLang/Ext/Fs/Impl.lean`: `def ENOENT : w64 := 2`; `IsFsStep "Open"`'s failure disjunct gains
+  `(e = ENOENT → st0.lookup p = none)` (a failing `open` of a path of the trees returns `ENOENT` only
+  when the path does not resolve at the step); `"DirReadNext"`'s errno disjunct gains
+  `(e = ENOENT → ¬ Reach st.fs.roots st.tree df.ino)` (only for a removed directory). Not `Unlink`/
+  `Rmdir`/`Rename`/`Mkdir` (`RemoveAll`'s model relies on their free `ENOENT`), not `Open`'s outside
+  case. Why the step is right (the model resolves paths at the step): Linux's `ENOENT` is a component's
+  lookup finding no entry or a dead directory (`fs/namei.c`); with no directory renamed during the call
+  (the stuck clause), the path did not resolve at that instant (or just after the `rmdir` that killed
+  the walk's directory), and the call does nothing else before returning, so the step may sit there;
+  `iterate_dir` (`fs/readdir.c`) answers `ENOENT` exactly for `IS_DEADDIR`, which is permanent. Go
+  example `examples/osfs/semantics/meta_enoent.go` (indexed in `doc.go`); **measured on C**
+  (`run-models-on-c.sh`, `check.sh` passed): `TestEnoent`, `ENOENT` for a missing name, under a missing
+  and under a removed directory, and from `Readdirnames` of a removed directory; 3000 rounds of `Open`
+  of a present directory and of a file in it and `Readdirnames` of a 2000-entry (htree) directory,
+  under 8 goroutines creating/renaming/removing siblings, never failed. ext4's own lookup/readdir
+  errors not `ENOENT`: kernel source, not exhaustively measured.
+- **Extension** (repaired: patterns in `CommitMono`, `Tests`, `TreeSpecs{Open,DirFd}`,
+  `TreeShared{OpenDir,Create,Trunc,Read}`, `os/SharedExt`; no statement weakened): `wp_osOpenDirGenS'`
+  (generic in what shows the path), `wp_osOpenDirS`'s failure now `e ≠ ENOENT` (stronger),
+  **`wp_osOpenDirChildS`** (`d/b` through a fraction of a claim of `d`'s directory holding it: the child
+  form `ExistCallees` asked for; no `walDirPath` hypothesis needed); `wp_dirReadS`'s errno arm gains
+  `e = ENOENT → WGone`, `wp_osDirReadNextGenS'` (a further resource showing a state property),
+  **`wp_osDirReadNextChildS`** (`e ≠ ENOENT`).
+- **`os` layer** (`LinuxFs/Proof/os/NsChildS.lean`, no `sorry`): `os.errnoPathErr err e` (a `*PathError`
+  of the errno `e`, persistent; `fmtErrorOk` for `e ≠ 0`), `wp_pathError_errno`, `wp_wrapErrno_errno`;
+  `os.OpenFile/Open.wp_dirChildS`, `os.File.Readdirnames.wp_dirChildS` (errors `e ≠ 0 ∧ e ≠ ENOENT`),
+  `os.OpenFile/Open.wp_absentErrS` (`wp_absentS` with the error explicit).
+- **`hErrNotExist` dropped**: the part's `os` package fact records `os.ErrNotExist` (some error;
+  `etc/gen-init.py`'s `LFS_OS`, `--check` passes; `os.errNotExist_of_pkgInit`, `PkgInit.lean`).
+  `wal.Exist.wp_proof`/`wp_specCreate`/`wp_core` lose the hypothesis (`wal-create12`: pass no
+  `hErrNotExist`).
+- **`ReadDir.specAbsentIs`/`specChildIs` still hypotheses.** What is left (`ExistCallees.lean`'s header):
+  `ReadDir`'s own loops (`applyOpts` over the closures, the extension filter) and a bound on the names
+  read, which `sort.Strings.spec` needs (`≤ 2^62`) and nothing gives (`ReadDir.wp_proof` is `sorry` for
+  the same reasons: one proof of the loops serves all three); and the new
+  `errors.IsPathErrnoNotExist.spec` (`errors.Is(*PathError of e, os.ErrNotExist) = (e = ENOENT)`: needs
+  the error tree of the part's `os` errors, `syscall.Errno.Is`, and `os.ErrNotExist = oserror.ErrNotExist`
+  distinct from `ErrPermission`/`ErrExist`/`ErrUnsupported` in the package facts).
 - *Not started*: `ValidSnapshotEntries` (W8), `ReleaseLockTo` (W9).

@@ -479,7 +479,7 @@ theorem wp_osDirReadStep (fd : w64) (j : Ino) (rs : List GoString) (g : DirG) (q
   · ipureintro
     obtain ⟨hfr', hr⟩ := step_filesSame (h := h) Hwc.1
       (filesSame_setDfd st fd { df with rd := .reading u s r }) Hag
-    exact ⟨_, h, _, ⟨fd, df, u, s, r, rfl, hdf, hcur', .inr (.inr ⟨1, by decide, rfl, rfl⟩)⟩,
+    exact ⟨_, h, _, ⟨fd, df, u, s, r, rfl, hdf, hcur', .inr (.inr ⟨1, by decide, fun h => absurd h (by decide), rfl, rfl⟩)⟩,
       hfr', hr⟩
   inext
   iintro %e' %h' %st' %Hst
@@ -533,7 +533,7 @@ theorem wp_osDirReadStep (fd : w64) (j : Ino) (rs : List GoString) (g : DirG) (q
     (try unfold osDirFd); iexact Hfd
   ihave Hw : osWorld (L := L) st Γb Γm Γf Γt h $$ [HAb HAm HAf HAt Htok Hcells Hσ]
   · unfold osWorld; iframe; ipureintro; exact Hwc
-  rcases hres with ⟨b, hsb, hrb, hst, rfl⟩ | ⟨hall, hst, rfl⟩ | ⟨e, he, hst, rfl⟩
+  rcases hres with ⟨b, hsb, hrb, hst, rfl⟩ | ⟨hall, hst, rfl⟩ | ⟨e, he, -, hst, rfl⟩
   · -- a name
     have hb : (g.now !! b).isSome := by
       have := (hus b).2.1; rw [hsb] at this

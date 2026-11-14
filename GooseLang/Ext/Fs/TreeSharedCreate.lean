@@ -161,7 +161,7 @@ theorem openCreateStep_cases [GooseExts] [GoGlobalContext] [go.BasicIntoValInj] 
   obtain ⟨-, hres⟩ := hres
   have hl : (st.metaEnd k).lookup (child d b) = st.tree.entry j b := lookup_child hw.roots hp hb
   have hpar : (st.metaEnd k).parent (child d b) = some (j, b) := parent_child hp hb
-  rcases hres with ⟨st1, tgt, fd, heff, hfree, hst, rfl⟩ | ⟨e, he, rfl, hst⟩
+  rcases hres with ⟨st1, tgt, fd, heff, hfree, hst, rfl⟩ | ⟨e, he, -, rfl, hst⟩
   · unfold OpenEffect at heff
     rw [hl] at heff
     cases hen : st.tree.entry j b with
@@ -291,7 +291,7 @@ theorem wp_osOpenCreateS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h
         FilesSame st st' := by
     intro st hw _ hcall _ hp hat
     refine ⟨_, st.metaEnd k, .inl ⟨child d b, fl, k, s0, rfl, .inr (treeName_child hp hb), hfl,
-      hcall, ⟨fun htr1 i hl => ?_, .inr ⟨1, by decide, rfl, .inl rfl⟩⟩⟩, filesSame_metaEnd st k⟩
+      hcall, ⟨fun htr1 i hl => ?_, .inr ⟨1, by decide, fun h => absurd h (by decide), rfl, .inl rfl⟩⟩⟩, filesSame_metaEnd st k⟩
     rcases htr with htr | hnone
     · have htr' : decide ((fl.toNat / O_TRUNC) % 2 = 1) = false := by simp [htr]
       exact (Bool.false_ne_true (htr'.symm.trans htr1)).elim
@@ -574,7 +574,7 @@ theorem wp_osOpenFileS' (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
   · ipureintro
     obtain ⟨hfr, hr⟩ := step_filesSame (h := h0) Hwc.1 (filesSame_metaEnd st k) Hag
     exact ⟨_, h0, _, .inl ⟨child d b, fl, k, s0, rfl, treePath_of_lookup hl', hfl, hcall,
-      ⟨fun h => absurd h (by simp [htr']), .inr ⟨1, by decide, rfl, .inl rfl⟩⟩⟩, hfr, hr⟩
+      ⟨fun h => absurd h (by simp [htr']), .inr ⟨1, by decide, fun h => absurd h (by decide), rfl, .inl rfl⟩⟩⟩, hfr, hr⟩
   inext
   iintro %e' %h' %st' %Hst
   imod Hclose2
@@ -594,7 +594,7 @@ theorem wp_osOpenFileS' (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
   ihave Hw : osWorld (L := L) st Γb Γm Γf Γt h0 $$ [HAb HAm HAf HAt Htok Hcells Hσ]
   · unfold osWorld; iframe; ipureintro; exact Hwc
   obtain ⟨-, hres⟩ := hres
-  rcases hres with ⟨st1, tgt, fd, heff, hfree, hst, rfl⟩ | ⟨e, he, rfl, hst⟩
+  rcases hres with ⟨st1, tgt, fd, heff, hfree, hst, rfl⟩ | ⟨e, he, -, rfl, hst⟩
   · unfold OpenEffect at heff
     rw [hl0] at heff
     obtain ⟨⟨f', -, hst1⟩, rfl⟩ := heff

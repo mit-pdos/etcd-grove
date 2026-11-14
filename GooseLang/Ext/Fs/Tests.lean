@@ -630,7 +630,7 @@ theorem cacheOk_step [GooseExts] [GoGlobalContext] {op : String} {v : val} {st s
     rcases hs with ⟨p, fl, t, start, -, -, -, -, hr⟩ | ⟨p, fl, t, start, -, -, -, -, -, hr⟩
     · dsimp only at hr
       obtain ⟨hg, hr⟩ := hr
-      rcases hr with ⟨st1, tgt, fd, he, -, rfl, -⟩ | ⟨e, -, -, rfl | ⟨tgt, he⟩⟩
+      rcases hr with ⟨st1, tgt, fd, he, -, rfl, -⟩ | ⟨e, -, -, -, rfl | ⟨tgt, he⟩⟩
       · have h1 := cacheOk_openEffect (cacheOk_metaEnd h t) hg he
         cases tgt <;> exact cacheOk_setProc h1 _ rfl
       · exact cacheOk_metaEnd h t
@@ -706,7 +706,7 @@ theorem cacheOk_step [GooseExts] [GoGlobalContext] {op : String} {v : val} {st s
   next => -- DirClose
     obtain ⟨-, -, -, -, -, rfl, -⟩ := hs; exact cacheOk_setProc h _ rfl
   next => -- DirReadNext
-    obtain ⟨-, -, -, -, -, -, -, -, ⟨b, -, -, rfl, -⟩ | ⟨-, rfl, -⟩ | ⟨e, -, rfl, -⟩⟩ := hs
+    obtain ⟨-, -, -, -, -, -, -, -, ⟨b, -, -, rfl, -⟩ | ⟨-, rfl, -⟩ | ⟨e, -, -, rfl, -⟩⟩ := hs
     all_goals exact cacheOk_setProc h _ rfl
   next => -- LstatDir
     obtain ⟨-, -, -, t, -, -, -, -, rfl, -⟩ := hs; exact cacheOk_metaEnd h t

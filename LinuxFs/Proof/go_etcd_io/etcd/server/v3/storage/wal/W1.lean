@@ -16,22 +16,23 @@ reader accepts (`acceptsFiles`: the length word and the record pass `decodeRecor
 reader's CRC-record check, `WalEncDecode.decStep`), the frame's *core* (its length word and its
 record bytes, `frameCore`; not its 0-7 padding bytes) came back **as of one change** (`AsOfOne`,
 `AsOfW`): as of the file's last sync (each byte its candidate stamped 0), or as of a change `n > 0`
-by which every one of its bytes had been **written**: the candidate `valAt (cand b) n` reads (the last
-stamped at most `n`, `latestAt`) is stamped in `(0, n]` by a change that announced a nonzero value for
-some byte of the core (`WroteIn`). The semantics lets a crash mix the bytes of a frame from any of their
-candidates; W1 says a mix that is no such state (a frame partly written since the sync, or mixed from
-several changes) does not pass the reader.
+by which every one of its bytes had been **written by a `pwrite`**: the candidate `valAt (cand b) n`
+reads (the last stamped at most `n`, `latestAt`) is stamped in `(0, n]` by a change that is not a
+resize (its stamp not in the file's `OsFile.rzs`). The semantics lets a crash mix the bytes of a frame
+from any of their candidates; W1 says a mix that is no such state (a frame partly written since the
+sync, or mixed from several changes) does not pass the reader.
 
-**A resize's zeros do not write a frame** (amended 2026-11-14, `notes/wal-fsext-plan.md`, I3b,
-`wal-tc3`). An `ftruncate`, `fallocate`'s growth and `open`'s `O_TRUNC` announce zeros, stamped like a
-write (`OsChange.ofResize`). `cut` truncates the tail at the file offset, which the page writer leaves
-at a page boundary, in general inside a frame whose rest the encoder still buffers (`wal.go:882-895`):
-as of the truncate, that frame is the intended bytes up to the offset and the truncate's zeros after it,
-a torn frame the reader accepts only on a CRC-32C collision. Before the amendment every byte of it had a
-candidate stamped in `(0, n]`, so W1 did not exclude it. The state keeps no landed change's kind, so
-"written by a `pwrite`" is approximated by "by a change that announced a nonzero byte of the core": exact
-for a resize (only zeros), and conservative for a `pwrite` whose data over the core is all zeros, whose
-bytes W1 then treats as unwritten.
+**A resize's zeros do not write a frame** (2026-11-14, `notes/wal-fsext-plan.md` §2.5, I3b; `wal-tc3`
+approximated it by "a change that announced a nonzero byte of the core", which excluded real crashes;
+`wal-tc4` states it exactly over the resize stamps the state now records, `OsFile.rzs`, bookkeeping only,
+pending the user's review). An `ftruncate`, `fallocate`'s growth and `open`'s `O_TRUNC` announce zeros,
+stamped like a write (`OsChange.ofResize`). `cut` truncates the tail at the file offset, which the page
+writer leaves at a page boundary, in general inside a frame whose rest the encoder still buffers
+(`wal.go:882-895`): as of the truncate, that frame is the intended bytes up to the offset and the
+truncate's zeros after it, a torn frame the reader accepts only on a CRC-32C collision (or when the
+buffered rest is zeros, below). W1 excludes it (`AsOfW.not_rz_window`). A `pwrite`'s zeros do write:
+a frame whose last `pwrite`'s share of the core is zeros (the data's trailing zeros, the frame split
+by the page writer) comes back as of that `pwrite` (`AsOfW.split_zero`).
 
 **Evidence.** The WAL W3 decision (`notes/decisions.md`, "WAL W3", approved): "no CRC32-C collision
 on torn data": a torn record passes only if CRC32-C of its torn data equals the torn CRC field; the
@@ -54,13 +55,13 @@ is the WAL's own assumption (etcd relies on the CRC to reject torn tails: `decod
 
 **What W1 excludes beyond collisions (for the review).** In a real run the reader accepts a frame
 only if its core is the intended one (or on a collision, or a torn `Type`, above), but W1 asks more: that
-the core is as of one change that wrote all of it. When part of the intended core is zeros, the image can
-hold the intended frame with those bytes never written, or written only by zeros, and W1 excludes that
-crash though the reader would rightly accept it: bytes not yet written (a frame split across two `pwrite`s,
-the crash before the second, the bytes under it zeros: so before the amendment too), zeroed by a resize
-(`cut`'s truncate inside the frame, the crash before the encoder's flush), or written by a `pwrite` of
-zeros only. These crashes leave the intended frame; the proof cannot tell them from torn ones because
-the semantics keeps values, not intentions.
+the core is as of one change, each byte last written by a `pwrite` announced by then. It excludes a crash
+that leaves the intended frame only when part of the intended core is zeros that **no announced
+`pwrite` has written yet**: the page writer flushed the frame's first part, its rest (all zeros) is
+still in the encoder's buffer, and the bytes under it are zeros (unwritten, or zeroed by `cut`'s
+truncate). The reader accepts that image, rightly; W1 excludes it because the state has no record of
+the buffered bytes (the semantics keeps values announced, not intentions). Rare: the unflushed rest of
+a core is all zeros only when the record's data ends in zeros across a page boundary.
 
 **Satisfiable** (`W1Sat`): a crash whose every byte comes back as of the last sync satisfies it.
 -/
@@ -197,39 +198,31 @@ theorem latestAt_mem {l : Cands} {n : Nat} {p : w8 × Nat} (h : latestAt l n = s
   simp only [List.mem_filter, decide_eq_true_eq] at this
   exact this
 
-/-- The change stamped `s` **wrote** the bytes `[o, o + len)` of a file whose candidates are `cs`:
-it announced a nonzero value for one of them. A resize (`ftruncate`, `fallocate`'s growth, `open`'s
-`O_TRUNC`) announces only zeros (`OsChange.ofResize`), so it never writes a frame; nor does a `pwrite`
-whose data over those bytes is all zeros, which the state cannot tell from a resize (the state keeps
-no change's kind once it has landed). -/
-def WroteIn (cs : Nat → Cands) (o len s : Nat) : Prop :=
-  ∃ b, o ≤ b ∧ b < o + len ∧ ∃ v : w8, (v, s) ∈ cs b ∧ v ≠ 0
-
 /-- The values `v` of the bytes `[o, o + len)` are those of the candidates `cs` **as of one
 change**: as of the last sync (each its candidate stamped 0), or as of a change `n > 0` by which
-every one of them had been written (the candidate `valAt (cs b) n` reads, `latestAt`, is stamped
-in `(0, n]` by a change that wrote the range, `WroteIn`: not a resize's zero). -/
-def AsOfW (cs : Nat → Cands) (v : Nat → w8) (o len : Nat) : Prop :=
+every one of them had been written by a `pwrite` (the candidate `valAt (cs b) n` reads, `latestAt`,
+is stamped in `(0, n]` by a change not among the resizes `rz`, the file's `OsFile.rzs`: not a
+resize's zero). -/
+def AsOfW (cs : Nat → Cands) (rz : List Nat) (v : Nat → w8) (o len : Nat) : Prop :=
   (∀ b, o ≤ b → b < o + len → v b = valAt (cs b) 0) ∨
   ∃ n, 0 < n ∧ ∀ b, o ≤ b → b < o + len →
-    ∃ p, latestAt (cs b) n = some p ∧ v b = p.1 ∧ 0 < p.2 ∧ WroteIn cs o len p.2
+    ∃ p, latestAt (cs b) n = some p ∧ v b = p.1 ∧ 0 < p.2 ∧ p.2 ∉ rz
 
-/-- `AsOfW` reads `cs` and `v` only on the range. -/
-theorem AsOfW.congr {cs cs' : Nat → Cands} {v v' : Nat → w8} {o len : Nat}
+/-- `AsOfW` reads `cs` and `v` only on the range, and is weaker with fewer resizes known. -/
+theorem AsOfW.congr {cs cs' : Nat → Cands} {rz rz' : List Nat} {v v' : Nat → w8} {o len : Nat}
     (hcs : ∀ b, o ≤ b → b < o + len → cs b = cs' b) (hv : ∀ b, o ≤ b → b < o + len → v b = v' b)
-    (h : AsOfW cs v o len) : AsOfW cs' v' o len := by
-  have hw : ∀ s, WroteIn cs o len s → WroteIn cs' o len s := by
-    rintro s ⟨b, h1, h2, x, hx, hx0⟩
-    exact ⟨b, h1, h2, x, hcs b h1 h2 ▸ hx, hx0⟩
+    (hrz : ∀ s, s ∈ rz' → s ∈ rz)
+    (h : AsOfW cs rz v o len) : AsOfW cs' rz' v' o len := by
   rcases h with h | ⟨n, hn, h⟩
   · left; intro b h1 h2; rw [← hcs b h1 h2, ← hv b h1 h2]; exact h b h1 h2
   · right; refine ⟨n, hn, fun b h1 h2 => ?_⟩
-    obtain ⟨p, hp, hvp, hp0, hpw⟩ := h b h1 h2
-    exact ⟨p, hcs b h1 h2 ▸ hp, hv b h1 h2 ▸ hvp, hp0, hw _ hpw⟩
+    obtain ⟨p, hp, hvp, hp0, hpr⟩ := h b h1 h2
+    exact ⟨p, hcs b h1 h2 ▸ hp, hv b h1 h2 ▸ hvp, hp0, fun h' => hpr (hrz _ h')⟩
 
 /-- **`AsOfW`'s weak form** (W1 before the resize amendment, 2026-11-14): as of the last sync, or
 each byte `valAt (cs b) n` with some candidate stamped in `(0, n]`. -/
-theorem AsOfW.weak {cs : Nat → Cands} {v : Nat → w8} {o len : Nat} (h : AsOfW cs v o len) :
+theorem AsOfW.weak {cs : Nat → Cands} {rz : List Nat} {v : Nat → w8} {o len : Nat}
+    (h : AsOfW cs rz v o len) :
     (∀ b, o ≤ b → b < o + len → v b = valAt (cs b) 0) ∨
     ∃ n, 0 < n ∧ ∀ b, o ≤ b → b < o + len →
       v b = valAt (cs b) n ∧ ∃ q ∈ cs b, 0 < q.2 ∧ q.2 ≤ n := by
@@ -240,9 +233,70 @@ theorem AsOfW.weak {cs : Nat → Cands} {v : Nat → w8} {o len : Nat} (h : AsOf
     obtain ⟨hpm, hpn⟩ := latestAt_mem hp
     exact ⟨by rw [valAt_latestAt, hp, hvp]; rfl, p, hpm, hp0, hpn⟩
 
+/-! ### What `AsOfW` allows and excludes (sanity checks) -/
+
+theorem latestAt_append_last (c0 : Cands) (x : w8) {s n : Nat} (hs : s ≤ n) :
+    latestAt (c0 ++ [(x, s)]) n = some (x, s) := by
+  simp [latestAt, List.filter_append, hs]
+
+/-- **A frame each of whose bytes was last announced by a `pwrite`** is as of the latest of them. -/
+theorem AsOfW.of_last {cs : Nat → Cands} {rz : List Nat} {v : Nat → w8} {o len n : Nat}
+    (hn : 0 < n)
+    (h : ∀ b, o ≤ b → b < o + len → ∃ c0 s, cs b = c0 ++ [(v b, s)] ∧ 0 < s ∧ s ≤ n ∧ s ∉ rz) :
+    AsOfW cs rz v o len := by
+  right; refine ⟨n, hn, fun b h1 h2 => ?_⟩
+  obtain ⟨c0, s, hc, hs0, hsn, hsr⟩ := h b h1 h2
+  exact ⟨(v b, s), by rw [hc]; exact latestAt_append_last c0 (v b) hsn, rfl, hs0, hsr⟩
+
+/-- **Allowed: a frame split across two `pwrite`s whose second share of the core is all zeros**
+(the data's trailing zeros; the padding is outside the core), the crash keeping the intended frame
+after both were announced: the bytes `[o, o + k)` last announced by a `pwrite` stamped `s1`, the
+rest of the core by one stamped `s2 ≥ s1` with zeros. (`wal-tc3`'s W1, `WroteIn`, excluded it: the
+second `pwrite` wrote no nonzero byte of the core.) -/
+theorem AsOfW.split_zero {cs : Nat → Cands} {rz : List Nat} {v : Nat → w8} {o k len s1 s2 : Nat}
+    (hs1 : 0 < s1) (h12 : s1 ≤ s2) (hr1 : s1 ∉ rz) (hr2 : s2 ∉ rz)
+    (h1 : ∀ b, o ≤ b → b < o + k → ∃ c0, cs b = c0 ++ [(v b, s1)])
+    (h2 : ∀ b, o + k ≤ b → b < o + len → v b = 0 ∧ ∃ c0, cs b = c0 ++ [(0, s2)]) :
+    AsOfW cs rz v o len := by
+  refine AsOfW.of_last (n := s2) (by omega) (fun b hb1 hb2 => ?_)
+  by_cases hk : b < o + k
+  · obtain ⟨c0, hc⟩ := h1 b hb1 hk
+    exact ⟨c0, s1, hc, hs1, h12, hr1⟩
+  · obtain ⟨hv, c0, hc⟩ := h2 b (by omega) hb2
+    exact ⟨c0, s2, by rw [hc, hv], by omega, Nat.le_refl _, hr2⟩
+
+/-- **Excluded: a frame zeroed by a resize** (`cut`'s truncate window). Byte `b0` of the core was
+durable `x0` at the last sync, then zeroed by the resize stamped `r` (its last candidate); byte `b1`
+was written `y1 ≠ y0` by a change stamped `s > 0` since the sync (in practice `s < r`; not needed), and the crash keeps `y1`. The
+core is as of no change: as of the sync `b1` differs; as of `n < s`, `b1` reads its synced
+candidate; as of `n ∈ [s, r)`, `b0` reads its synced candidate (stamp 0); as of `n ≥ r`, `b0`
+reads the resize's zero. -/
+theorem AsOfW.not_rz_window {cs : Nat → Cands} {rz : List Nat} {v : Nat → w8}
+    {o len b0 b1 r s : Nat} {x0 y0 y1 : w8} (hb0 : o ≤ b0 ∧ b0 < o + len)
+    (hb1 : o ≤ b1 ∧ b1 < o + len) (h0 : cs b0 = [(x0, 0), (0, r)]) (hr : r ∈ rz)
+    (h1 : cs b1 = [(y0, 0), (y1, s)]) (hs : 0 < s) (hv1 : v b1 = y1) (hy : y1 ≠ y0) :
+    ¬ AsOfW cs rz v o len := by
+  rintro (h | ⟨n, hn, h⟩)
+  · have := h b1 hb1.1 hb1.2
+    rw [hv1, h1] at this
+    simp [valAt, show s ≠ 0 by omega] at this
+    exact hy this
+  · obtain ⟨p, hp, -, hp0, hpr⟩ := h b0 hb0.1 hb0.2
+    obtain ⟨q, hq, -, hq0, -⟩ := h b1 hb1.1 hb1.2
+    rw [h0] at hp
+    rw [h1] at hq
+    by_cases hrn : r ≤ n
+    · simp [latestAt, hrn] at hp
+      subst hp; exact hpr hr
+    · by_cases hsn : s ≤ n
+      · simp [latestAt, hrn] at hp
+        subst hp; simp at hp0
+      · simp [latestAt, hsn] at hq
+        subst hq; simp at hq0
+
 /-- The bytes `[o, o + len)` of the crashed file `f'` are those of `f` **as of one change**
-(`AsOfW` of `f`'s candidates and `f'`'s page cache). -/
-def AsOfOne (f f' : OsFile) (o len : Nat) : Prop := AsOfW f.cand f'.cache o len
+(`AsOfW` of `f`'s candidates and resizes, and `f'`'s page cache). -/
+def AsOfOne (f f' : OsFile) (o len : Nat) : Prop := AsOfW f.cand f.rzs f'.cache o len
 
 /-- **W1** at a crash from `st` to `st'` (see the file header): every frame a fresh reader accepts
 over a directory's `.wal` files, from any of them on, has its core as of one change. -/

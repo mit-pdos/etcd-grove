@@ -62,7 +62,7 @@ theorem isFsStep_commitGrows {o : String} {v : val} {st st' : OsState} {e' : Exp
   unfold IsFsStep at h
   split at h
   · rcases h with ⟨p, fl, t, start, -, -, -, -, -, hc⟩ | ⟨p, fl, t, start, -, -, -, -, -, hc⟩
-    · rcases hc with ⟨st1, tgt, fd, he, -, rfl, -⟩ | ⟨e, -, -, rfl | ⟨tgt, he⟩⟩
+    · rcases hc with ⟨st1, tgt, fd, he, -, rfl, -⟩ | ⟨e, -, -, -, rfl | ⟨tgt, he⟩⟩
       · have h1 := openEffect_committed he
         cases tgt <;> (show st1.fs.committed y; rw [h1]; exact hy)
       · exact hy
@@ -156,7 +156,7 @@ theorem isFsStep_ofd {o : String} {v : val} {st st' : OsState} {e' : Expr}
   split at h
   · rcases h with ⟨p, fl, t, start, -, -, -, -, -, hc⟩ | ⟨p, fl, t, start, -, -, -, -, -, hc⟩
     · dsimp only at hc
-      rcases hc with ⟨st1, tgt, fd, he, hfree, rfl, -⟩ | ⟨e, -, -, rfl | ⟨tgt, he⟩⟩
+      rcases hc with ⟨st1, tgt, fd, he, hfree, rfl, -⟩ | ⟨e, -, -, -, rfl | ⟨tgt, he⟩⟩
       · have hs := procSub_trans (procSub_metaEnd st t) (procSub_openEffect he)
         obtain ⟨-, -, -, hon⟩ := hfree
         refine ⟨fun fd' ho' => ?_, .inl ?_⟩

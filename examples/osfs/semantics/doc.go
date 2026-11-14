@@ -44,6 +44,7 @@
 //	data_keep_size.go             FALLOC_FL_KEEP_SIZE: no change     FallocKeep
 //	data_short_io.go              short and failed pread/pwrite      PRead, PWriteFinish
 //	data_inflight_changes.go      changes in flight (one per file)   OsChange, announce, land, BusyAt, osHole
+//	data_resize_stamps.go         resize stamps (bookkeeping only)   OsFile.rzs, OsChangeKind.isResize, announce
 //
 // The directory tree and metadata calls:
 //
@@ -54,6 +55,8 @@
 //	meta_file_fsync.go            a file fsync commits no name       Fsync, DirSync
 //	meta_wal_create.go            wal.Create's directory swap        DirSync, Follows
 //	meta_readdir.go               readdir racing changes             OsDirRead, DirReadNext
+//	meta_enoent.go                ENOENT only for a missing path     ENOENT, Open, DirReadNext (pending review)
+//	                              or a removed directory
 //
 // Trusted models of the Go wrappers (drafts of 2026-11-13, pending review;
 // models_test.go holds their measurements, run on C by run-models-on-c.sh):
