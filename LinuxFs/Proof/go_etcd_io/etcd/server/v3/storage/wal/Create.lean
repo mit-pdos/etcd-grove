@@ -794,9 +794,10 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
       ihave #Hst0 := hnil
       iunfold walLockIn at Hlk
       icases Hlk with ⟨Henc, Hf, Hfd, Hoff⟩
-      have hzp : ZeroPg m2 := hzp2 ⟨rfl, ⟨0, by simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes,
+      have hpe0 : Fs.pageEnd 0 = 0 := by unfold Fs.pageEnd; rfl
+      have hzp : ZeroPg m2 := hzp2 ⟨trivial, ⟨0, by simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes,
         OsFile.ofDisk], by simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk],
-        by simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk]; decide⟩⟩
+        by simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk, hpe0]⟩⟩
       have htmS := createSeg_tailMeta Mr md hMr i m2 mS zs2 ysS hokS' hm2s hm2c hmaps2 hzp
       obtain ⟨hL, hszS⟩ := createSeg_size Mr md hMr hmd i m2 mS zs2 ysS hokS' hm2s
       have hjm : ((NameSet.except []).diff walTmps).Mem (walFileName 0 0) :=
@@ -804,7 +805,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
           have := walTmps_not_wal _ h; rw [walNameP_walFileName] at this; cases this⟩
       have hj0 : (hJ'.restrict J ((NameSet.except []).diff walTmps)).cur !! walFileName 0 0 =
           some (.file (createSeg i mS ysS).ino) := by
-        simp only [NamesH.restrict]; rw [restrictN_lookup _ _ _ hjm, hJcur]; simp [createSeg]
+        simp only [NamesH.restrict]; rw [restrictN_lookup _ _ _ hjm, hJcur]; try simp [createSeg]
       have hj1 : ∀ b n, (hJ'.restrict J ((NameSet.except []).diff walTmps)).cur !! b = some n →
           b = walFileName 0 0 := by
         intro b n hb
@@ -821,7 +822,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
         (hJ'.restrict J ((NameSet.except []).diff walTmps)) R d dfd df (child r nm) null func.nil fp γ R
         (DFrac.own d) sz rfl hwr (by simp only [hout, Nat.zero_add]) hmp rfl htmS hL hszS hj0 hj1 hfpn
         hfi.1 $$ [Hpre Henc Hf Hfd Hoff Htr Hm Hb HJx Hsd Hperm Hdfd Ho Hnf Hdff Hdf state decoder readClose
-          Hfpf Hmain Ht1 Hopen]
+          Hfpf Hpipe Hmain Ht1 Hopen]
       · iframe; iframe #
       icases HhIn with ⟨%γt, HhIn⟩
       imod (receipt_zero (GF := GF)) with Hr0

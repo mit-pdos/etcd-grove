@@ -3460,6 +3460,32 @@ advanced (frontier `sorry`s unchanged). Note: the stream-end fact `< 2^43` is go
   variant) and the rename to `nm.broken.*` (the area's claim on it: `CreateDropStep`'s drop), then the post's
   committed-error arm (`Q ∗ osCallPerm ½`; the pipeline's half: `Close` returns it).
 
+**Twenty-third session (branch `wal-create21`, 2026-11-14).**
+- *Setup*: `wal-int` `e9b343bc4e`, later `1766cf7bb9` (`wal-tc17`) and `wal-save24`'s merge; seed
+  `agent-a0d5232984f8fe5f2`, traces unshared, `GooseLang`/`LinuxFs` builds copied.
+- **The tail registered at the commit** (ledger 2026-11-14, "`walCreateQ` / `walDirH`"): a registration after the
+  commit (`walTailsRes_register` inside `walInv`, as the twenty-second session planned) cannot match the
+  invariant's history and layout to the handle's encoder CRC and offset (nothing after the commit pins them to the
+  fresh WAL's: `walInvBody_readState` gives only `WalAbsD`). So `walCreate_osAUnc`'s commit registers it
+  (`walTailsRes_register` on the new layout; new premise `TailBound`, `createLay_tailBound`), and `walCreateQ`'s
+  committed arm holds `walTailReg dir t` in place of `walTailsFrag ∅` (`t` a parameter, `createTailG` from
+  `createU`). *Obligation*: `renameWALUnlock`'s retry unregisters it (`walTails_unregister`) with the rest of
+  `w.Close()`'s parking. *For `wal-tc18`*: `TailIdle`'s new `so = wr ∧ TailMaps` is the fresh layout's (`so = wr =
+  |stream|`, no maps) at `walTailsRes_create`.
+- **Definition fixes found by the assembly** (internal): `walDirH`'s tail name `∃ pd, name = child pd nm0` (Go's
+  `f.Name()` of `Create`'s segment is `dir.tmp/…wal` after the rename; `cut`'s `w.seq()` reads the base only);
+  `walHandleIn`'s and `walHandleC`'s `w.decoder` field `↦ GoInterface.nil` (was `↦ null` at type `Loc`: the field is
+  an interface, `ReadAll` sets it to `nil`); `renameWALPost`'s arm 1 says `fp ≠ null` (`newFilePipeline`'s);
+  `SaveSnapshot.specPre`'s post says the indices (`snapi`/`enti` each kept or the snapshot's index; ledger).
+- **`CreateHandle.lean`** (proved, no `sorry`): `createHS` (the fresh handle state), `createHS_split`/`_crc`/`_done`,
+  `createSeg_tailMeta` (the synced segment's `TailMeta`, from the preallocation's `ZeroPg`, `metaChain_zeroPg`),
+  `createSeg_size`; `walInv_mintAppend` (the append-mode handle from the lock token); `create_ghost` (the name
+  registered, `walInv_register` with half of `createSpR`'s fraction, the handle minted; residue `createUH x`);
+  `create_handleIn` (the handle `walHandleIn … emp` from arm 1's fields, encoder, tail file, registration, segment
+  halves, directory share, pipeline). Laws: `walHandleP_openW` (`HandleAlloc.lean`), `walOpenWFU_intro` and
+  `WalPbIn.NilLaw` (`⊢ P.hsIn null hsZero`, a new hypothesis of `Create.wp_proof`, as `ZeroLaw` is `Save`'s)
+  (`HandleUnnamed.lean`).
+
 ## 11. Coordinator decisions after W2 and W4 (2026-11-13)
 
 - **Q4 revised to (b)** (W4 found (a) unprovable: `cleanupWAL`'s rename to `dir.broken.*` is never fsynced,
