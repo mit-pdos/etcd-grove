@@ -94,10 +94,10 @@ Worktree `/shared/etcd-grove-rs56`, branch `restart-s7` (off `lean`). Plan: `not
   gained `∃ x, idKeyFactAt ρ.ids.fs ρ.ids.key x` (from `memberBoot`'s), because `idIncarnation_alloc` needs
   `idPfxOk` of the prefix, which `idKeyFact_pfxOk` reads off the claims' invariant.
 
+- **Landed** S7.4: `lean` `66859f329e` (2026-11-14; etcd-grove-81's go, forms accepted).
+
 ## Next, in order
-1. Land S7.4 (after etcd-grove-81's go): full build, interfaces (`etc/gen-interface.py etc/api/etcdstart.txt`,
-   `--layout --update` for the two new `specRestart`s), tcb `--check`, then `etc/land.sh`.
-2. S7.5: the example's proofs (P1's three lemmas), link, adequacy, `Results.lean`, collection; Freeze of the
+1. S7.5: the example's proofs (P1's three lemmas), link, adequacy, `Results.lean`, collection; Freeze of the
    theorem before its proof is linked. `etc/gen-init.py`'s `ROOTS` gets the package then.
 
 ## Pitfalls
