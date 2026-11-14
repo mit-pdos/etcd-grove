@@ -1490,5 +1490,12 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `raftpb.HardState` in the part (`WalHsC`, `hsEnc` as in `RaftModel/Codec.lean`, a schema
   `[(1,[0]),(2,[0]),(3,[0])]`, `hsEncC_ok`, `pbHsC_reg`; Go-tested as `walpb.Snapshot`'s) and give
   `HardState.Reset` a trusted model -- or keep the three laws as hypotheses of the closed result.
-- **Decision.** Pending (the coordinator for (1), an internal law change; the user for (2)-(3), trust-base
-  additions).
+- **Decision.** (1) taken (coordinator, 2026-11-14, branch `wal-u4b`): `isPkgInit pbutil` in the pres of
+  `MarshalEntLaw`, `MarshalHsLaw`; `isPkgInit proto` in `CloneHsLaw`'s; `isPkgInit raft` (the part's root
+  package) in `IsEmptyLaw`'s; **`isPkgInit wal`** (not pbutil) in `UnmarshalEntLaw`'s and `WalHsOwn.unmarshal`'s,
+  as every spec of a `wal` function (`MustUnmarshalEntry`/`MustUnmarshalState` are `wal`'s; wal's
+  initialization gives pbutil's). `WAL.saveState.specPre` (`cut`'s) gains `isPkgInit wal` in its pre (it had
+  none, and its two laws now need raft's and pbutil's). The part's raft root fact gains `emptyState` (the
+  main tree's conjunct, word for word), which `IsEmptyLaw`'s proof reads. (2)+(3) stay out (the user's call,
+  W4c U4 task 3): `MarshalHsLaw`, `CloneHsLaw`, `WalHsOwn.unmarshal`, `WalHsOwn.reset` remain hypotheses of
+  the closed result, listed in §10 of `notes/wal-fsext-plan.md` as pending the user.

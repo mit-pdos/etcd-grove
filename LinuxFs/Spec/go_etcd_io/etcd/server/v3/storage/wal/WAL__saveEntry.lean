@@ -31,7 +31,7 @@ state (`WAL__cutPre.lean`), which `saveState` uses: the part cannot import the m
 `saveEntry`'s proof. -/
 abbrev WalPbIn.MarshalEntLaw (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
   ∀ (l : Loc) (e : EntryM),
-  {{ P.entIn l e }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil ∗ P.entIn l e }}
     (App (Val (@! go_etcd_io.etcd.pkg.v3.pbutil.MustMarshalMessage))
       (Val #(interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.raftpb.Entry.ty) #l)))
   {{ (d : GoSlice), RET #d; d ↦* Mr.encEntry e ∗ ownSliceCap w8 d (DFrac.own 1) ∗ ⌜d ≠ slice.nil⌝ }}

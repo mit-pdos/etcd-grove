@@ -39,7 +39,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 entry; the bytes are only read. -/
 abbrev WalPbIn.UnmarshalEntLaw (P : WalPbIn GF) (U : WalUnmarshal) : Prop :=
   ∀ (d : GoSlice) (dq : DFrac) (bs : List w8) (e : EntryM), U.decEntry bs = some e →
-  {{ d ↦*{dq} bs }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ d ↦*{dq} bs }}
     (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.MustUnmarshalEntry)) (Val #d))
   {{ (l : Loc), RET #l; d ↦*{dq} bs ∗ P.entIn l e }}
 
@@ -57,7 +57,7 @@ it freezes into `P.hsIn` (`freeze`). -/
 structure WalHsOwn (P : WalPbIn GF) (U : WalUnmarshal) (HsO : Loc → HardStateM → IProp GF) : Prop where
   zero : ∀ p : Loc, p ↦ (zero_val go_etcd_io.raft.v3.raftpb.HardState) ⊢ HsO p hsZero
   unmarshal : ∀ (d : GoSlice) (dq : DFrac) (bs : List w8) (h : HardStateM), U.decState bs = some h →
-    {{ d ↦*{dq} bs }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ d ↦*{dq} bs }}
       (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.MustUnmarshalState)) (Val #d))
     {{ (p : Loc), RET #p; d ↦*{dq} bs ∗ HsO p h }}
   getCommit : ∀ (p : Loc) (h : HardStateM),
@@ -72,10 +72,11 @@ structure WalHsOwn (P : WalPbIn GF) (U : WalUnmarshal) (HsO : Loc → HardStateM
     {{ RET #(); HsO p hsZero }}
   freeze : ∀ (p : Loc) (h : HardStateM) (E : CoPset), HsO p h ⊢ |={E}=> P.hsIn p h
 
-/-- **`proto.Clone(state).(*raftpb.HardState)`** (S/wal.go:648): a fresh hard state holding the same. -/
+/-- **`proto.Clone(state).(*raftpb.HardState)`** (S/wal.go:648): a fresh hard state holding the same.
+The package initializations in the laws' pres: ledger 2026-11-14, "the WAL's raftpb laws", item 1. -/
 abbrev WalPbIn.CloneHsLaw (P : WalPbIn GF) : Prop :=
   ∀ (p : Loc) (h : HardStateM),
-  {{ P.hsIn p h }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ P.hsIn p h }}
     (App (Val (@! google_golang_org.protobuf.proto.Clone))
       (Val #(interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.raftpb.HardState.ty) #p)))
   {{ (m : GoInterface), RET #m; ∃ p' : Loc,

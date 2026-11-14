@@ -639,7 +639,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             iintro %dq HQ Hfail
             -- `w.state = proto.Clone(state)`
             imod hHs.freeze stp st.hs ⊤ $$ Hhs with Hhs
-            wp_apply wp_CloneHs stp st.hs $$ Hhs as %m ⟨%p', %hm', Hhs⟩
+            wp_apply wp_CloneHs stp st.hs $$ [Hhs] as %m ⟨%p', %hm', Hhs⟩
+            · iexact Hhs
             subst hm'
             (try wp_auto)
             -- `w.readClose` is nil in write mode; `w.start`, `w.metadata`
@@ -689,7 +690,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             (try wp_auto)
             -- `w.state = proto.Clone(state)`
             imod hHs.freeze stp st.hs ⊤ $$ Hhs with #Hhs
-            wp_apply wp_CloneHs stp st.hs $$ Hhs as %m ⟨%p', %hm', #Hhs'⟩
+            wp_apply wp_CloneHs stp st.hs $$ [Hhs] as %m ⟨%p', %hm', #Hhs'⟩
+            · iexact Hhs
             subst hm'
             (try wp_auto)
             -- `w.readClose` is nil in write mode; `w.start`, `w.metadata`
@@ -938,7 +940,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
           unfold ownRec
           icases Hr with ⟨%v, Hl, Ht, Hc, Hd⟩
           wp_auto
-          wp_apply wp_UnmarshalEnt v.Data' _ r.data e he $$ Hd as %el ⟨Hd, #Hel⟩
+          wp_apply wp_UnmarshalEnt v.Data' _ r.data e he $$ [Hd] as %el ⟨Hd, #Hel⟩
+          · iexact Hd
           ihave %hlE := walEntsIn_len P esL st.ents $$ Hein
           ihave %hlS := ownSlice_len (GF := GF) entsv _ esL $$ Hents
           ihave %hcS := ownSliceCap_wf (GF := GF) (V := Loc) entsv _ $$ Hecap
@@ -1110,7 +1113,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
           unfold ownRec
           icases Hr with ⟨%v, Hl, Ht, Hc, Hd⟩
           wp_auto
-          wp_apply hHs.unmarshal v.Data' _ r.data h hh $$ Hd as %p ⟨Hd, Hhs'⟩
+          wp_apply hHs.unmarshal v.Data' _ r.data h hh $$ [Hd] as %p ⟨Hd, Hhs'⟩
+          · iexact Hd
           have hst : raStep U s st (r.typ, r.data) = .ok { st with hs := h } := by
             simp [raStep, hT, hh, stateType, entryType]
           wp_for_post

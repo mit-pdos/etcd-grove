@@ -10,6 +10,7 @@ public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.encoder__encode
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__cutPre
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.SaveNext
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.StreamBound
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.SaveHandle
 
 @[expose] public section
 
@@ -36,6 +37,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.saveState.wp_proof (P : WalPbI
     go_etcd_io.etcd.server.v3.storage.wal.WAL.saveState.spec (W := W) P Mr := by
   intro R jr r w dir h hp hs hpre
   wp_start as ⟨#Harea, Hh, #Hhs, %Hhp⟩
+  icases WalFs.walHandleIn_pkgInit P Mr w dir h TailMetaW $$ Hh with ⟨Hh, #Hwpk0⟩
   try wp_auto
   wp_apply (wp_empty hp hs) $$ [] as %b %hb
   · iexact Hhs

@@ -76,10 +76,11 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specPreL : Prop :=
          (⌜err ≠ GoInterface.nil⌝ ∗ (B out pend ∨ W (out ++ pend)))) }}
 
 /-- **`raft.IsEmptyHardState` over the client's hard states**: whether `hp` holds an empty state
-(`hsEmptyP`; a nil `hp` holds the zero state, empty). -/
+(`hsEmptyP`; a nil `hp` holds the zero state, empty). Raft's initialization gives `emptyState`, which it
+compares against (ledger 2026-11-14, "the WAL's raftpb laws", item 1). -/
 abbrev WalPbIn.IsEmptyLaw (P : WalPbIn GF) : Prop :=
   ∀ (hp : Loc) (hs : HardStateM),
-  {{ P.hsIn hp hs }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ P.hsIn hp hs }}
     (App (Val (@! go_etcd_io.raft.v3.IsEmptyHardState)) (Val #hp))
   {{ (b : Bool), RET #b; ⌜b = true ↔ hsEmptyP hs⌝ }}
 
@@ -87,7 +88,7 @@ abbrev WalPbIn.IsEmptyLaw (P : WalPbIn GF) : Prop :=
 (`Mr.encState`, the bytes the WAL's state record holds). -/
 abbrev WalPbIn.MarshalHsLaw (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
   ∀ (hp : Loc) (hs : HardStateM), ¬ hsEmptyP hs →
-  {{ P.hsIn hp hs }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil ∗ P.hsIn hp hs }}
     (App (Val (@! go_etcd_io.etcd.pkg.v3.pbutil.MustMarshalMessage))
       (Val #(interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.raftpb.HardState.ty) #hp)))
   {{ (d : GoSlice), RET #d; d ↦* Mr.encState hs ∗ ⌜d ≠ slice.nil⌝ }}
@@ -107,7 +108,8 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.saveState.specPre (P : WalPbIn 
   (¬ hsEmptyP hs → ok (out ++ pend ++ stateFrame Mr c hs) ∧
     recSize (recOf ⟨stateType, hash.crc32.crc32c c (Mr.encState hs), Mr.encState hs⟩) < 2 ^ 47) →
   ⊢ io.writerStreamP wi ok W B -∗
-    {{ encEnv ∗ structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"state" w ↦ sp0 ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ encEnv ∗
+        structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"state" w ↦ sp0 ∗
         structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"encoder" w ↦ e ∗
         ownEncoder e wi c pend ∗ W out ∗ P.hsIn hp hs }}
       (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!!
