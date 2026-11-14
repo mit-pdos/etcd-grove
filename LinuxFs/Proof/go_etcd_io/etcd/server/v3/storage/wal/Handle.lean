@@ -184,13 +184,65 @@ def tailOk [GooseExts] (Mr : WalMarshal) (H : List (WalOpG WalEnt)) (md : List w
     (o0 sz : Nat) (ys : List w8) : Prop :=
   ys <+: (tailStream Mr H md cuts).drop o0 ∧ o0 + ys.length ≤ sz
 
+/-- **The candidates of every byte past the tail's size known, across a sync** (W6 log, sixteenth
+session, finding 1): zeros known from `z` on (at least the size, `MetaOk.zf`), the candidates of the
+bytes between the size and `z` known (`tc`: a truncate's cut-off bytes, a write's announced bytes past
+the size, `pwPostK true`), and the page cache known zero to the end of the page holding `z` (or `z`
+page-aligned at the size), so that a sync (`OsMeta.synced`: `tc` forgotten, zeros from `syncZ` on)
+leaves the zeros known from the size on (`OsMeta.synced_zf_size`). A write past the size reads these
+candidates (`wp_osPWriteFinishK`'s `zs`); a write landing up to `z` raises `cz` to its end's page
+(`Fs.pwCz`). -/
+def TailZ (m : Fs.OsMeta) : Prop :=
+  ∃ z, m.zf = some z ∧ m.size ≤ z ∧ Fs.pageEnd z ≤ max m.size m.cz ∧
+    ∀ b, m.size ≤ b → b < z → ∃ c, m.tc !! b = some c
+
+theorem TailZ.ge {m : Fs.OsMeta} (h : TailZ m) : ∀ z, m.zf = some z → m.size ≤ z := by
+  obtain ⟨z0, h0, h1, -⟩ := h
+  intro z hz; rw [h0, Option.some.injEq] at hz; subst hz; exact h1
+
+/-- What a sync needs of `TailZ` (`OsMeta.syncZ` is the size). -/
+theorem TailZ.pageEnd_size {m : Fs.OsMeta} (h : TailZ m) : Fs.pageEnd m.size ≤ max m.size m.cz := by
+  obtain ⟨z, -, h1, h2, -⟩ := h
+  exact Nat.le_trans (Fs.pageEnd_mono h1) h2
+
+/-- **A sync keeps `TailZ`**, given the page cache known zero to the end of the size's page. -/
+theorem TailZ.synced_of {m : Fs.OsMeta} (hB : Fs.pageEnd m.size ≤ max m.size m.cz) :
+    TailZ m.synced := by
+  have hz : m.syncZ = m.size := by
+    unfold Fs.OsMeta.syncZ; have := Fs.le_pageEnd m.size; split <;> omega
+  refine ⟨m.size, by simp [Fs.OsMeta.synced, hz], by simp [Fs.OsMeta.synced], ?_, ?_⟩
+  · simp only [Fs.OsMeta.synced]; exact hB
+  · intro b h1 h2; simp only [Fs.OsMeta.synced] at h1; omega
+
+theorem TailZ.synced {m : Fs.OsMeta} (h : TailZ m) : TailZ m.synced := TailZ.synced_of h.pageEnd_size
+
+/-- **A write inside the size keeps `TailZ`** (the zeros known and the candidates past the size
+untouched, `cz` raised at most). -/
+theorem TailZ.pwPost_in {m : Fs.OsMeta} {off n k : Nat} (h : TailZ m) (hin : off + n ≤ m.size)
+    (hk : k ≤ n) : TailZ (Fs.pwPost m off n k) := by
+  obtain ⟨z, hz, h1, h2, h3⟩ := h
+  have hmin : min off m.size = off := by omega
+  have hsz : (Fs.pwPost m off n k).size = m.size := by
+    simp only [Fs.pwPost, Fs.pwSize]; split <;> omega
+  have hzf : (Fs.pwPost m off n k).zf = some z := by
+    simp only [Fs.pwPost, Fs.announce_zf, hz, hmin, Option.map_some, Option.some.injEq]
+    split <;> omega
+  refine ⟨z, hzf, by rw [hsz]; exact h1, ?_, ?_⟩
+  · rw [hsz]; have := Fs.le_pwCz m off n k; show Fs.pageEnd z ≤ max m.size (Fs.pwCz m off n k); omega
+  · intro b hb1 hb2
+    rw [hsz] at hb1
+    obtain ⟨c, hc⟩ := h3 b hb1 hb2
+    refine ⟨c, ?_⟩
+    show (m.announce (min off m.size) (off + n) (max m.size (off + n))).tc !! b = some c
+    rw [Fs.announce_tc, if_neg (by simp [Fs.inRange]; omega)]; exact hc
+
 /-- **What the program knows of the tail's `OsMeta` `m` and bytes `bs`** (`walTailW`): all its bytes,
-no mappings, its known zeros past its size (`MetaOk.zf`: a fact of the state, which the WAL
-invariant does not keep and a step's crash condition needs, `crashOkA_tail`'s `hzf`), and no resize
-window open on it (`SegExact`: a crash leaves it with its size; the invariant's static relation does
-not say so of the last segment, I3b). -/
+no mappings, the candidates past its size (`TailZ`: zeros known past it, `MetaOk.zf`, a fact of the
+state, which the WAL invariant does not keep and a step's crash condition needs, `crashOkA_tail`'s
+`hzf`), and no resize window open on it (`SegExact`: a crash leaves it with its size; the invariant's
+static relation does not say so of the last segment, I3b). -/
 def TailMeta (m : Fs.OsMeta) (bs : List Fs.ByteG) : Prop :=
-  bs.length = m.size ∧ m.maps = ∅ ∧ (∀ z, m.zf = some z → m.size ≤ z) ∧ m.lo = m.size ∧ m.hi = m.size
+  bs.length = m.size ∧ m.maps = ∅ ∧ TailZ m ∧ m.lo = m.size ∧ m.hi = m.size
 
 /-- **`TailMeta` with a resize window open** (I3b, `wal-tc3`): from `cut`'s truncate of the tail at its
 write position until `cut`'s fdatasync (`os.File.Truncate.specWalTail`'s post, `WAL.sync.specCut`'s
@@ -198,7 +250,7 @@ pre). The truncate lands its size (`rsPost true m tg tg`: `lo = size = tg`, `hi`
 flush's writes past it raise the size; a crash may leave any size in `[lo, hi]` (`SegExact` fails).
 Otherwise as `TailMeta`. -/
 def TailMetaW (m : Fs.OsMeta) (bs : List Fs.ByteG) : Prop :=
-  bs.length = m.size ∧ m.maps = ∅ ∧ (∀ z, m.zf = some z → m.size ≤ z) ∧ m.lo ≤ m.size ∧ m.size ≤ m.hi
+  bs.length = m.size ∧ m.maps = ∅ ∧ TailZ m ∧ m.lo ≤ m.size ∧ m.size ≤ m.hi
 
 theorem TailMeta.win {m : Fs.OsMeta} {bs : List Fs.ByteG} (h : TailMeta m bs) : TailMetaW m bs :=
   ⟨h.1, h.2.1, h.2.2.1, Nat.le_of_eq h.2.2.2.1, Nat.le_of_eq h.2.2.2.2.symm⟩

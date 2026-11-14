@@ -323,6 +323,10 @@ structure MetaOk (i : Ino) (m : OsMeta) (f : OsFile) : Prop where
   cz : ∀ b, f.size ≤ b → b < m.cz → f.cache b = 0
   /-- The resize stamps `m` knows are the file's. -/
   rz : ∀ s ∈ m.rz, s ∈ f.rzs
+  /-- The page cache is zero from the zeros known on (no step writes the page cache past every
+  change's announced range; a sync zeroes it past the size's last page). What lets a write that
+  lands up to the zeros known raise `cz` (`pwPost`). -/
+  zc : ∀ z, m.zf = some z → ∀ b, z ≤ b → f.cache b = 0
 
 /-- The files' ghost maps mirror the state. -/
 structure OsCoh (Γb : GMap (Ino × Nat) ByteG) (Γm : GMap Ino OsMeta)
@@ -1223,7 +1227,7 @@ theorem metaOk_ofDisk {st : OsState} {i : Ino} (img : Nat → w8) (sz : Nat)
     MetaOk st i (initMeta (OsFile.ofDisk img sz)) (OsFile.ofDisk img sz) := by
   refine ⟨rfl, by simp [initMeta, OsFile.ofDisk], by simp [initMeta, OsFile.ofDisk], ?_, ?_, ?_, ?_,
     fun b c _ h => tailMap_cand _ b c h, fun b _ h => absurd h (by simp [initMeta]),
-    fun s h => by simp [initMeta] at h⟩
+    fun s h => by simp [initMeta] at h, ?_⟩
   · intro b len
     simp only [initMeta]
     constructor
@@ -1234,6 +1238,9 @@ theorem metaOk_ofDisk {st : OsState} {i : Ino} (img : Nat → w8) (sz : Nat)
   · intro z hz
     simp only [initMeta, Option.some.injEq] at hz; subst hz
     refine ⟨le_pageEnd _, fun b hb => ofDisk_cand_past img sz b hb⟩
+  · intro z hz b hb
+    simp only [initMeta, Option.some.injEq] at hz; subst hz
+    exact diskByte_past hb
 
 theorem osInit_wf_coh {st : OsState} (h : FsInit st) :
     OsWf st ∧ OsCoh st (bytesMap st) (metaMap st) ∅ ∅ := by

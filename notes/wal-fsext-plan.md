@@ -565,6 +565,8 @@ invariant conjunct is designed, not made (same log). Each registered WAL name ha
 
 The resize stamps reach the WAL's crash condition (`OsMeta.rz`, `MetaOk.rz`, `OsCoh.tok_rz`; `CrashOk` passes `segRzOf`) and `W1G.drop_rz` transports W1 across a truncate's zeros (`wal-tc5`; W1 log, fifteenth session). `W1G` is over the known candidates past the bytes (`segBytesX`, the crash take exporting `om.pc`'s candidates), and the truncate window's pure `CrashOk` from an exact tail is proved (`crashOkA_win`, over `crashTo_tailL`) (`wal-tc6`; W1 log, sixteenth session); the landing step (`crashOkA` from the in-flight layout to the landed one), the window-to-window form (a `Save`'s window before the truncate), the WAL-level supplies, `specWalTail` and the `ZeroToEnd` instance remain (I3b, `wal-tc6` entry). A write in flight past the size is in the layout (`wrMeta`) and the crash take; `saveEntry`/`saveState` proved over `encode.specTail`; the writer past the size waits on known zeros past the size (lost by `OsMeta.synced`), the window's size fact and `TailWin`'s past-size clause (`wal-save15`; W6 log, fifteenth session).
 The resize stamps reach the WAL's crash condition (`OsMeta.rz`, `MetaOk.rz`, `OsCoh.tok_rz`; `CrashOk` passes `segRzOf`) and `W1G.drop_rz` transports W1 across a truncate's zeros (`wal-tc5`; W1 log, fifteenth session). `W1G` is over the known candidates past the bytes (`segBytesX`, the crash take exporting `om.pc`'s candidates), and the truncate window's pure `CrashOk` from an exact tail is proved (`crashOkA_win`, over `crashTo_tailL`) (`wal-tc6`; W1 log, sixteenth session); the window-to-window form (`crashOkA_rzStart`, over the invariant's new `WalAbsD.winLo` and the extension's `OsMeta.TcZ`/`0 < n` at the start's commit) and the landing's facts (`rzLand`, `segBytesX_rzLand`) are proved (`wal-tc7`; W1 log, seventeenth session); the WAL-level supplies, `specWalTail` and the `ZeroToEnd` instance remain (I3b, `wal-tc7` entry). The start's `zf ≥ size` is in the commit's `OsMeta.TcZ`, the landing's static relation and crash condition and the invariant's transports over any crash step are proved (`walAbsD_rzLand`, `crashOkA_rzLand`, `walsOk_tailA`/`dirKeysOk_tailA`, `tailCrashStep_rzStart`/`_rzLand`); the not-landed outcome needs the extension's `rsUndone` to keep the stamp and the candidates past the size (`rsUndoneK`, designed); `truncSup`, `specWalTail`, growth and `ZeroToEnd`'s instance not started (`wal-tc8`; W1 log, eighteenth session; I3b, `wal-tc8` entry).
+The resize stamps reach the WAL's crash condition (`OsMeta.rz`, `MetaOk.rz`, `OsCoh.tok_rz`; `CrashOk` passes `segRzOf`) and `W1G.drop_rz` transports W1 across a truncate's zeros (`wal-tc5`; W1 log, fifteenth session). `W1G` is over the known candidates past the bytes (`segBytesX`, the crash take exporting `om.pc`'s candidates), and the truncate window's pure `CrashOk` from an exact tail is proved (`crashOkA_win`, over `crashTo_tailL`) (`wal-tc6`; W1 log, sixteenth session); the landing step (`crashOkA` from the in-flight layout to the landed one), the window-to-window form (a `Save`'s window before the truncate), the WAL-level supplies, `specWalTail` and the `ZeroToEnd` instance remain (I3b, `wal-tc6` entry). A write in flight past the size is in the layout (`wrMeta`) and the crash take; `saveEntry`/`saveState` proved over `encode.specTail`; the writer past the size waits on known zeros past the size (lost by `OsMeta.synced`), the window's size fact and `TailWin`'s past-size clause (`wal-save15`; W6 log, fifteenth session). The known zeros past the size survive a sync: the extension's `MetaOk.zc` and `pwCz` (a complete write up to the zeros known raises `cz`), the tail's `TailZ` in `TailMeta`/`TailMetaW` (`ZeroPg` on the pipeline's files; `filePipeline.alloc`'s `ZeroPg` a `sorry` pending `trFile`/`preGrown` posts; `Create`/`ReadAll`/`specWalTail` obligations); finding 2 restated (false of `ZeroToEnd`'s window), finding 3 not added; bboltfs's `DB.init`/`initCrash` exact `cz` to repair (`wal-save16`; W6 log, sixteenth session).
+The resize stamps reach the WAL's crash condition (`OsMeta.rz`, `MetaOk.rz`, `OsCoh.tok_rz`; `CrashOk` passes `segRzOf`) and `W1G.drop_rz` transports W1 across a truncate's zeros (`wal-tc5`; W1 log, fifteenth session). `W1G` is over the known candidates past the bytes (`segBytesX`, the crash take exporting `om.pc`'s candidates), and the truncate window's pure `CrashOk` from an exact tail is proved (`crashOkA_win`, over `crashTo_tailL`) (`wal-tc6`; W1 log, sixteenth session); the window-to-window form (`crashOkA_rzStart`, over the invariant's new `WalAbsD.winLo` and the extension's `OsMeta.TcZ`/`0 < n` at the start's commit) and the landing's facts (`rzLand`, `segBytesX_rzLand`) are proved (`wal-tc7`; W1 log, seventeenth session); the WAL-level supplies, `specWalTail` and the `ZeroToEnd` instance remain (I3b, `wal-tc7` entry).
 
 ## W1 implementation log (branch `wal-inv`, 2026-11-13)
 
@@ -3436,6 +3438,45 @@ withdrawn; `SaveSnapshot` without `sorry`.**
 - *Not done*: tasks 1 (the steps past the size), 2 and 4 (`StreamBound.lean`'s cleanup: `recSize_tight` and the
   varint lemmas are used now; `saveStream_le`, `cutStream_lt`, `walBatchBytes_*`, `WalHS.end_*` still look unused).
 
+**W6, sixteenth session (branch `wal-save16`, 2026-11-14): finding 1 in the extension (option (b)); `TailZ` in the
+tail's facts; findings 2 and 3 re-examined.**
+- *Extension (untrusted ghost, `GooseLang/Ext/Fs`)*: option (b) needs a fact the coordinator's wording left implicit:
+  raising `cz` past a write's end needs the page cache past the write to be known zero, and `MetaOk.zf` constrains
+  only candidates. So **`MetaOk.zc`** (new field: `∀ z, m.zf = some z → ∀ b, z ≤ b → f.cache b = 0`; every
+  `MetaOk` construction repaired: announce, the write's and resize's finish, both syncs, boot's `initMeta`) and
+  **`Fs.pwCz m off n k`** (`pwPost`'s `cz`): `max cz (pageEnd (off + n))` when the write wrote **all** of its data
+  (`k = n`, `0 < n`) and `zf ≤ off + n`, else `cz`. Raising only on a complete write (not on any `zf ≤ off + k`)
+  matters twice: a short write ends on a page boundary (`PwCut`), so it would add nothing; and with it a retry's
+  `OsMeta` is still the whole write's (`pwPost_step`, `File__WriteAt.lean`, re-proved with a `cz` case: the
+  first form broke it). Lemmas `le_pwCz`, `pwCz_raise`, `pwFinish_cz_raise`. `WReach.cz` (`Spec/os/CrashSt.lean`)
+  is now `m.cz ≤ m'.cz`.
+- *The tail's facts (`Handle.lean`)*: **`TailZ m`** (`∃ z, zf = some z ∧ size ≤ z ∧ pageEnd z ≤ max size cz ∧`
+  the candidates of `[size, z)` known in `tc`) replaces `TailMeta`/`TailMetaW`'s third conjunct (`∀ z, zf = some z →
+  size ≤ z`, now `TailZ.ge`). The coordinator's `∃ z, zf = some z ∧ z ≤ max size hi` is false after `cut`'s truncate
+  of a tail whose size is not page-aligned (the truncate raises `zf` to `pageEnd` of the old size, above `hi`);
+  `TailZ` says what the writer past the size and the sync need: every byte past the size has known candidates
+  (`OsMeta.pc`), and a sync keeps that (`TailZ.synced`: `syncZ` is the size). Kept by writes inside the size
+  (`TailZ.pwPost_in`), syncs, and full writes (`ZeroPg.write`, `CutHdr.lean`). `ZeroPg` (`TailZ` without the
+  candidates) is the pipeline file's (`pipeFile`'s new conjunct): `cut`'s new tail gets `TailZ` after its sync
+  from it (`metaChain_zeroPg`). `TailMetaS.of_sync` (`wal-close17`) carries `TailZ.synced`.
+- **Obligations** (new or restated statements): `Create`'s and `ReadAll`'s returned handle, and
+  `os.File.Truncate.specWalTail`'s post (`TailMetaW`), now carry `TailZ`; ReadAll's tail from disk has `zf =
+  pageEnd size`, `cz = 0`, so it gets `TailZ` only after `ZeroToEnd`'s truncate (`cz ≥ pageEnd` of the old end).
+  **`filePipeline.alloc`'s `ZeroPg` is a `sorry`** (true of the state, but neither `trFile`, `os.OpenFile.
+  specCreateTruncS`'s post, nor `preGrown`, `fileutil.Preallocate`'s, says anything of `zf`/`cz`: both posts must
+  carry it).
+- **Finding 2 restated**: `sz = o0 + |out|` is false of `ReadAll`'s `ZeroToEnd` window (truncate to `wr`, then
+  `fallocate` back to the old size: the size is the old one, above `wr`). What the window's fdatasync needs is
+  rather that the bytes of `bs` past the write position are zero-valued (`cut`'s window: none; `ZeroToEnd`'s: the
+  growth's zeros); not added.
+- **Finding 3 (the `TailWin` past-size clause)**: not added. Its proposed form needs `wal-tc7`'s `walAbsD_rzStart`
+  to show the truncate's cut-off candidates `RzCands`-shaped (they are `ByteOk`'s old bytes past `wr`, durable
+  zeros when `z0 < |S|`, plus the truncate's `(0, n)`), and `TailLast.win` a `SegExact` premise.
+- **Not done**: task 4 (the writer past the size, `encode.specTail`, `sync`); bboltfs's `DB.init`/`DB.initCrash`
+  (their posts state the exact `OsMeta` `{m with size := max m.size 16384}.synced`, whose `cz` the first write now
+  raises when `zf ≤ 16384`: the posts' `cz` should be `pwCz m 0 16384 16384`, and `initCrash`'s proof needs a
+  `WReach` lemma giving a completed write's `cz` exactly).
+
 ## W3/W5 implementation log (branch `wal-read`, 2026-11-13)
 
 **Proved (no `sorry`, `lake build`):**
@@ -4284,6 +4325,12 @@ window-to-window `crashTo_tailL` needs and the write steps past the size establi
 ∃ c, g.om.pc b = some c ∧ ∀ q ∈ c, q = (0, 0) ∨ (q.1 = 0 ∧ q.2 ∈ g.om.rz) ∨ (q.1 = S.getD b 0 ∧ 0 < q.2)`, and the
 window's size is the stream's end (`sz = o0 + |out|`, W6 log fifteenth session, finding 2). Not added to `Abs.lean`:
 if you make it, `wal-save*` builds on it.
+**From `wal-save16` (2026-11-14), for the resize agents.** `TailMetaW`/`TailMeta` now carry `TailZ m` (zeros known
+from `z ≥ size`, the candidates of `[size, z)` known, `pageEnd z ≤ max size cz`; `Handle.lean`): `specWalTail`'s post and
+`ZeroToEnd`'s window must establish it (a truncate to `wr` with `keep = true` does: `rsTail` knows the cut-off bytes and
+`[old size, pageEnd old)` through `pc`, `rsCz` raises `cz` to `pageEnd` of the old end). The window's `g.om.lo ≤ lay.wr`
+(`WalAbsD.winLo`) for a window opened by writes past the size, and the `TailWin` past-size clause, are still open (W6 log,
+sixteenth session).
 
 ## W7-W12 implementation log (branch `wal-small12`, 2026-11-14)
 
