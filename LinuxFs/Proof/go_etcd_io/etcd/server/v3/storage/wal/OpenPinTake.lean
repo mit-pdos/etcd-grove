@@ -31,6 +31,27 @@ namespace WalFs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Fs WalEnc
 
+section pure
+variable [GooseExts]
+
+/-- **A WAL keyed** (its directory claim's facts, `DirClaimsOk`'s), the directory without a key. -/
+theorem dirKeysOk_key {C : WalCodec} {Mr : WalMarshal} {jr : Ino} {s : AbsDiskState}
+    {Ls : GMap GoString WalLay} {cl : List Claim} {n : Nat} {K : GMap GoString (Ino × List GoString)}
+    {cp : Option GoString} {dir : GoString} {lay : WalLay} {X : List GoString} {hj : NamesH}
+    (h : DirKeysOk C Mr jr s Ls cl n K cp) (hl : Ls !! dir = some lay) (hD : DirClaimOk jr cl lay.j X hj) :
+    DirKeysOk C Mr jr s Ls cl n (<[dir := (lay.j, X)]> K) cp := by
+  refine ⟨fun dir' j X' hk => ?_, h.2.1, h.2.2⟩
+  by_cases e : dir' = dir
+  · subst e
+    rw [GMap.lookup_insert_eq] at hk
+    simp only [Option.some.injEq, Prod.mk.injEq] at hk
+    obtain ⟨rfl, rfl⟩ := hk
+    exact ⟨lay, hj, hl, rfl, hD⟩
+  · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hk
+    exact h.1 dir' j X' hk
+
+end pure
+
 section iris
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
   [GoGlobalContext]
@@ -87,6 +108,40 @@ theorem segResF_empty (g : SegG) : segResF (L := L) ∅ g ⊣⊢ segRes (L := L)
   rw [GMap.lookup_empty]
   exact .rfl
 
+/-- **The pinned WAL's key** (`walDirKey`): the generation's (`walDirKeysAuth_get`) if it has one, else
+made (`walDirKey_insert`, `dirKeysOk_key`); its claim the WAL directory's (`DirClaimsOk`, gap C). -/
+theorem walDirKeys_pin (C : WalCodec) (Mr : WalMarshal) (jr : Ino) (s : AbsDiskState)
+    (Ls : GMap GoString WalLay) (cl : List Claim) (n : Nat) (K : GMap GoString (Ino × List GoString))
+    (cp : Option GoString) (dir : GoString) (lay : WalLay) (X : List GoString) (hj : NamesH)
+    (hK : DirKeysOk C Mr jr s Ls cl n K cp) (hl : Ls !! dir = some lay)
+    (hX : ∀ b ∈ X, walNameP b = false) (hc : (lay.j, NameSet.except X, hj) ∈ cl) :
+    ⊢ walDirKeysAuth (W := W) K ==∗ ∃ K', walDirKeysAuth (W := W) K' ∗
+      ⌜DirKeysOk C Mr jr s Ls cl n K' cp⌝ ∗ walDirKey (W := W) dir lay.j X := by
+  iintro Ha
+  cases e : K !! dir with
+  | none =>
+    obtain ⟨X2, hj2, hD⟩ := hK.2.2 dir lay hl
+    obtain ⟨hXe, hje⟩ := hD.eq_of_mem hX hc
+    subst hXe hje
+    imod walDirKey_insert (W := W) K dir lay.j X e $$ Ha with ⟨Ha, Hk⟩
+    imodintro
+    iexists _
+    iframe Ha Hk
+    ipureintro; exact dirKeysOk_key hK hl hD
+  | some x =>
+    obtain ⟨j', X'⟩ := x
+    obtain ⟨lay1, hj1, hl1, hlj, hjr, hX1, ho, hco, hex⟩ := hK.1 dir j' X' e
+    rw [hl] at hl1
+    cases hl1
+    subst hlj
+    obtain ⟨hXe, -⟩ := DirClaimOk.eq_of_mem (jr := jr) ⟨hjr, hX1, ho, hco, hex⟩ hX hc
+    subst hXe
+    icases walDirKeysAuth_get (W := W) K dir lay.j X e $$ Ha with ⟨Ha, Hk⟩
+    imodintro
+    iexists K
+    iframe Ha Hk
+    ipureintro; exact hK
+
 /-- **`Open`'s pin** (see the file header): the WAL in `dir` present, its segments from position `k`
 on, its directory's claim and, in write mode, its pipeline names taken out of the parked state, with
 the lock; what the layout says of them. -/
@@ -96,7 +151,8 @@ theorem walInvBody_pin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
     ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walUnlockedTok (W := W) ==∗
       ∃ (lay : WalLay) (X : List GoString) (hj : NamesH),
         ⌜InArea s.area dir lay.nm ∧ lay.jr = jr ∧ (∀ b ∈ X, walNameP b = false) ∧
-          ClaimCoh hj lay.j (.except X) ∧ WalAbsD C Mr d lay hj.cur⌝ ∗
+          ClaimCoh hj lay.j (.except X) ∧ WalAbsD C Mr d lay hj.cur ∧
+          (lay.segs.map (·.ino)).Nodup⌝ ∗ walDirKey (W := W) dir lay.j X ∗
         walInvBody (L := L) (W := W) C Mr R jr r s ∗ walLockedTok (W := W) ∗ walTailsFrag (W := W) ∅ ∗
         walOutFrag (W := W) ⟨(lay.segs.drop k).map (·.ino), [(lay.j, .except X)],
           if write then [dir] else []⟩ ∗
@@ -109,6 +165,8 @@ theorem walInvBody_pin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
     Hdk, %HAt⟩
   obtain ⟨lay, nm, hj, hl, hA, hjr, hnm, hc, habs, hcr⟩ := HW.1 dir d hd
   obtain ⟨X, hX, hcX, hcoh⟩ := hc
+  icases Hdk with ⟨%K, %cp, HKa, Hca, %HDK⟩
+  imod walDirKeys_pin C Mr jr s Ls cl n K cp dir lay X hj HDK hl hX hcX $$ HKa with ⟨%K', HKa, %HDK', #Hkey⟩
   imod walParked_lock (L := L) (W := W) Ls cl F $$ Hpk Hu with ⟨Hpk, Hl, Ho, Htf, %hF⟩
   have hF0 : F = ∅ := (GMap.lookup_empty_iff F).1 hF
   subst hF0
@@ -135,20 +193,21 @@ theorem walInvBody_pin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
     iapply (bigSepL_take_drop (fun g => segRes (L := L) g) lay.segs k).2
     iframe Hpre Hpost
   have hpure : InArea s.area dir lay.nm ∧ lay.jr = jr ∧ (∀ b ∈ X, walNameP b = false) ∧
-      ClaimCoh hj lay.j (.except X) ∧ WalAbsD C Mr d lay hj.cur := by
-    rw [hnm]; exact ⟨hA, hjr, hX, hcoh, habs⟩
+      ClaimCoh hj lay.j (.except X) ∧ WalAbsD C Mr d lay hj.cur ∧ (lay.segs.map (·.ino)).Nodup := by
+    rw [hnm]
+    exact ⟨hA, hjr, hX, hcoh, habs, ((segsAll_nodup_iff Ls).1 HW.2.2.1).1 dir lay hl⟩
   cases write with
   | false =>
     imodintro
     iexists lay, X, hj
     simp only [Bool.false_eq_true, ↓reduceIte]
-    iframe HS Hnm Hl Htf
+    iframe HS Hnm Hl Htf Hkey
     isplitr
     · ipureintro; exact hpure
-    isplitl [Hg Hcl Hn Hlays HCR Htl Hpk Hdk]
+    isplitl [Hg Hcl Hn Hlays HCR Htl Hpk HKa Hca]
     · iexists Ls, cl, n, ∅
       iframe
-      ipureintro; exact ⟨Har, HW, HWC, Hab, HNm, HAt⟩
+      ipureintro; exact ⟨Har, HW, HWC, Hab, HNm, HDK', HAt⟩
     · iapply walOutFrag_eq' (W := W) $$ Ho
       ipureintro; simp [WalOut.empty, WalOut.addClaim]
   | true =>
@@ -157,13 +216,13 @@ theorem walInvBody_pin (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (
     imodintro
     iexists lay, X, hj
     simp only [↓reduceIte]
-    iframe HS Hnm Hl Htf Ht
+    iframe HS Hnm Hl Htf Ht Hkey
     isplitr
     · ipureintro; exact hpure
-    isplitl [Hg Hcl Hn Hlays HCR Htl Hpk Hdk]
+    isplitl [Hg Hcl Hn Hlays HCR Htl Hpk HKa Hca]
     · iexists Ls, cl, n, ∅
       iframe
-      ipureintro; exact ⟨Har, HW, HWC, Hab, HNm, HAt⟩
+      ipureintro; exact ⟨Har, HW, HWC, Hab, HNm, HDK', HAt⟩
     · iapply walOutFrag_eq' (W := W) $$ Ho
       ipureintro; simp [WalOut.empty, WalOut.addClaim, WalOut.addTmp]
 
