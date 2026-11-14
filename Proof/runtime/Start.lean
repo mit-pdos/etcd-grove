@@ -99,18 +99,35 @@ def prometheus.namesUnclaimed [GooseExts] (e : Expr) (Ns : List GoString) : Prop
   ∀ n ∈ Ns, prometheus.nameUnclaimed e n
 
 /-- **The address `a` is the program's** (`addrsUnclaimed`'s claim of one address: no other
-process, nor unverified code of the program, binds it or connects to it). -/
+process binds it or connects to it, and the program's own connections to it are the ones
+`addrsUnclaimed` lists). -/
 axiom addrUnclaimed [GooseExts] (e : Expr) (a : GoString) : Prop
 
 /-- **The addresses `As` are the program's** (a fact of the environment a run of `e` is in, and
 of `e`'s unverified code): while `e` runs, no other process binds an address of `As`, nor a socket
 overlapping one (a wildcard bind of its port, `0.0.0.0:p` or `[::]:p`), and no code of `e` whose
-behaviour this repository does not verify binds one. (2026-11-14, the network fault review; a
-world assumption the user accepted that day) Nor does any other process, or any code of `e` whose
-behaviour this repository does not verify, connect to an address of `As`: every connection
-accepted on one was dialed by `e`'s verified code (a local process can dial `127.0.0.1:p` and send
-requests, `examples/premisefix/foreignconn`; the boundaries' closed world, `InvNet.lean`, rests on
-it). (Sweep repairs 1, W5) `As`'s strings are
+behaviour this repository does not verify binds one. (2026-11-14, the network fault review; the
+connect clause reworded after the independent review the same day) Two parts:
+(a) **the world assumption** (the user accepted it, 2026-11-14): no other process connects to an
+address of `As` (a local process can dial `127.0.0.1:p` and send requests,
+`examples/premisefix/foreignconn`);
+(b) **what `e` itself does** (a fact of its code, checked against the source): every connection to
+an address of `As` is made by `e`, and its requests are either sent through operations this
+repository verifies or specifies at a trust boundary (clientv3 over grpc's `ClientConn`, rafthttp's
+pipeline, stream and snapshot senders over `http.Transport`, `http.roundTripperOk`; the cluster
+programs' bridge, `bridge.New`'s spec), or are etcd's own names-only peer requests: the prober's
+`GET /raft/probing` (`probing.NewProber`, rafthttp `transport.go:146-147`), the version monitor's
+`GET /version` (`cluster_util.go:257`) and bootstrap's `GET /members` (`cluster_util.go:81`), at
+the pinned etcd. Those reach no handler whose protocol needs knowledge: the peer port's handler is
+the `RaftHandler` mux (`EtcdServer.RaftHandler`, `server.go:646`), which routes only `/raft`,
+`/raft/stream/`, `/raft/snapshot` and `/raft/probing` (`transport.go:163-166`), so it answers
+`/version` and `/members` with `404` (`http.mux_handlerOk_spec`), and the raft protocol's request
+knowledge holds of all three with no premise (`raftProto.req`, `Proof/go_etcd_io/etcd/server/v3/
+etcdserver/api/rafthttp/Stream.lean:464`: its premises are only on `POST /raft`, `POST
+/raft/snapshot` and `GET`s under `/raft/stream/`); being `GET`s, their handler runs get no ticket
+(`http.reqTicketOnce`). `examples/premisefix/peerreqs` records them in a three-member cluster.
+The boundaries' closed world (`InvNet.lean`) rests on (a) and (b). (Sweep repairs 1, W5) `As`'s
+strings are
 numeric loopback literals (`netAddrLit`, `goose_adequacy_start`'s `hAsLit`; loopback since
 2026-11-14: never proxied), so "an address of `As`" is the
 one socket the literal names. (2026-11-08: stated address by address, `addrUnclaimed`, the same

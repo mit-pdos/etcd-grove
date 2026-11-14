@@ -24,8 +24,8 @@ variable [sem : go.Semantics]
 TCP socket at `addr` (resolved), returning a `*net.TCPListener` as a `net.Listener`, or an error
 (the address in use, not permitted, unresolvable). The listener accepts the connections dialed to
 `addr` by the program: `netAddrFree` says no other socket holds the address and (2026-11-14) no
-other process, nor unverified code of the program, dials it, the closed-world assumption of
-`InvNet.lean` (`addrsUnclaimed`). -/
+other process dials it, and what the program's own connections carry (`addrsUnclaimed`'s parts
+(a) and (b), `Proof/runtime/Start.lean`), the closed-world assumption of `InvNet.lean`. -/
 axiom net.Listen.wp_proof : net.Listen.spec (GF := GF) (hG := hG)
 
 end proof

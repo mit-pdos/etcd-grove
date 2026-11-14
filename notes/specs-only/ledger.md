@@ -25,6 +25,22 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-14: `Http` headers -- Go rewrites header values, adds request headers, decompresses gzip
+
+- **Spec.** `SpecPlan/Spec/net/http/Api.lean`: `hdrView` (the client's view of committed response
+  headers), `srvReq r R rd` (the handler's view of the request's headers), the response writer's
+  `Flush`; the real boundary's `srvView`, `reqAt`, `hdrsReady`, `Flush_spec` (`Proof/net/http/`).
+- **Defect.** Unsound: Go's server turns CR/LF in a response header value into spaces, its client
+  trims values and drops non-token keys, and decompresses a body whose handler set
+  `Content-Encoding: gzip`; the handler sees `Accept-Encoding`, `User-Agent`, `Content-Length` the
+  client never set, and trimmed values; `Flush` on an uncommitted writer commits `200`.
+- **Evidence.** The independent review of `http-boundary-fix` (etcd-grove-81, 2026-11-14);
+  `examples/premisefix/{httpgzip,httphdr,httpreqhdr}`.
+- **Proposed change.** As the real boundary on `http-boundary-fix`: committed response headers
+  `respHdrsOk` (token keys, `hdrValOk` values, none of `respNoKeys`); the handler's request headers
+  `reqHdrView R.hdr hs` (trimmed, but at `reqTpKeys`); `Flush` of a committed writer.
+- **Decision.** Pending (trust-boundary specs of the plan).
+
 ## 2026-11-14: `Http.roundTripperOk` -- a response's status may be the server's own, not a handler's
 
 - **Spec.** `SpecPlan/Spec/net/http/Api.lean`, `roundTripperOk` (and the header's "The response's

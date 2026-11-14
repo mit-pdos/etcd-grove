@@ -61,8 +61,8 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **`h.ServeHTTP(w, r)`** of a request to `a` routed to the stream prefix (so not of the
-prober's path), as `http.handlerFor`
+/-- **`h.ServeHTTP(w, r)`** of a request to `a` routed to the stream prefix (`streamPfx`), as
+`http.handlerFor`
 hands it: it returns (or panics, on a peer's malformed version header) with the borrowed `Rs` and
 its response writer back (`http.handlerDone`). A stream request it answers with `200` and hands to
 the peer's stream writer of its type (`attachOutgoingConn`), waiting until the connection is
@@ -70,7 +70,7 @@ closed, which gives the writer back. -/
 abbrev rafthttp.streamHandler.ServeHTTP.spec : Prop :=
   ∀ (Rh : RaftHttp GF) (a : GoString) (γd : GName) (Rs : IProp GF) (h : Loc) (wi : GoInterfaceOk)
     (r : Loc) (R : http.HReq) (γk : GName) (rd : GoInterface),
-  R.host = a → R.path ≠ probingPath →
+  R.host = a → streamPfx <+: R.path →
   ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp -∗
     streamHandlerOk Rh a γd Rs h -∗
     http.reqAt r R rd -∗ □ (raftProto Rh).req R γk -∗ http.reqTicketOnce R γk -∗

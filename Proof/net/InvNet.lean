@@ -6,9 +6,11 @@ start (`Proof/google_golang_org/grpc/InvGrpcServer.lean`).
 
 * `netAddrFree addr` (exclusive): no listener of this program or of any other process is, or
   will be (other than through this token), bound at the address `addr`, and (2026-11-14, the
-  network fault review) no other process, nor unverified code of the program, connects to it:
-  every connection to `addr` is dialed by the program's verified code (`addrsUnclaimed`,
-  `Proof/runtime/Start.lean`, which program start turns into this token). The closed-world
+  network fault review; reworded after the independent review) no other process connects to it,
+  and the program's own connections to it carry requests of its verified or trust-boundary
+  clients, or etcd's names-only peer requests that need no protocol knowledge
+  (`addrsUnclaimed`'s parts (a) and (b), `Proof/runtime/Start.lean`, which program start turns
+  into this token). The closed-world
   assumption of the gRPC boundary (`InvGrpc.lean`: the facts `grpcServes addr ...` say what the
   server at `addr` runs, forever): the program's addresses are its own. Nothing here produces
   it: a program's adequacy statement takes the free addresses of its initial world, one token
@@ -16,7 +18,7 @@ start (`Proof/google_golang_org/grpc/InvGrpcServer.lean`).
   listened on at most once in a run (Go would let a program listen again after closing the
   listener, or after grpc's `Serve` returned and closed it; such a program has no spec here).
 * `netListenerAt l addr` (exclusive): the `net.Listener` `l` is bound at `addr` and accepts the
-  connections dialed to `addr` by the program (no one else dials it, `netAddrFree`); nothing has
+  connections dialed to `addr` by the program (no other process dials it, `netAddrFree`); nothing has
   accepted on it yet (grpc's `Serve` takes it,
   `grpc.start`).
 -/
@@ -35,7 +37,7 @@ namespace EtcdGrove
 open Iris Iris.BI
 
 /-- **The address `addr` is the program's, unbound, dialed only by the program** (exclusive; see
-the file header). -/
+the file header: `addrsUnclaimed`'s parts (a) and (b)). -/
 axiom netAddrFree {GF : BundledGFunctors} [GooseExts] (addr : GoString) : IProp GF
 
 /-- **The right to fix the HTTP protocol of the address `addr`** (exclusive; D39a, 2026-10-23,

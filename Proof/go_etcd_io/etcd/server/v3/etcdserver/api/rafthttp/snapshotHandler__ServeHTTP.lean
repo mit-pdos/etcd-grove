@@ -128,7 +128,7 @@ theorem wp_app_panic (e : Expr) (q : val) (Φ : val → IProp GF) :
 theorem raftProto_req_snap (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) :
     (raftProto Rh).req R γk ⊢ ⌜R.meth = go!"POST" ∧ R.path = snapPath⌝ → snapReq Rh R γk := by
   show iprop((⌜R.meth = go!"POST" ∧ R.path = go!"/raft"⌝ → pipeReq Rh R γk) ∗
-    (⌜R.meth = go!"GET" ∧ R.path ≠ probingPath⌝ → streamReq Rh R γk) ∗
+    (⌜R.meth = go!"GET" ∧ streamPfx <+: R.path⌝ → streamReq Rh R γk) ∗
     (⌜R.meth = go!"POST" ∧ R.path = snapPath⌝ → snapReq Rh R γk)) ⊢ _
   iintro ⟨-, -, Hs⟩
   iexact Hs
@@ -153,7 +153,7 @@ local macro "resp_ok" : tactic => `(tactic| (
   isplitr
   · ipureintro; decide
   simp only [http.hdrsReady]
-  iexists _; iframe; ipureintro; exact Hver))
+  iexists _; iframe; ipureintro; exact ⟨Hver, Hrok⟩))
 
 set_option hygiene false in
 /-- `vec.WithLabelValues(x)` of a metric vector of label `From` (`HWLV`, with the vector `v` and
@@ -272,7 +272,7 @@ theorem rafthttp.snapshotHandler.ServeHTTP.wp_proof
   wp_auto
   ihave #HR0 := HR
   iunfold http.reqAt at HR
-  icases HR with ⟨#HMeth, ⟨%u, #HU, #HUP⟩, ⟨%hm, #HHm, #Hhs⟩, ⟨%ra, #HRA, %Hra⟩, #HB, %Hrdnn⟩
+  icases HR with ⟨#HMeth, ⟨%u, #HU, #HUP⟩, ⟨%hm, %hs, #HHm, #Hhs, %Hview⟩, ⟨%ra, #HRA, %Hra⟩, #HB, %Hrdnn⟩
   iStructNamed Hhv
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -286,14 +286,16 @@ theorem rafthttp.snapshotHandler.ServeHTTP.wp_proof
   (try wp_auto)
   wp_if_destruct
   · -- a `POST`: `w.Header().Set("X-Etcd-Cluster-ID", h.cid.String())`
-    wp_apply hIDStringPtr _ DFrac.discard hv.cid' $$ [$cid] as %cs ⟨-, %_⟩
+    wp_apply hIDStringPtr _ DFrac.discard hv.cid' $$ [$cid] as %cs ⟨-, %Hcs⟩
     wp_apply hRespHeader _ wi [] rfl $$ [$Hhd] as %hm' ⟨Hhm', Hhcl⟩
     wp_apply hHeaderSet hm' [] $$ [$Hhm'] as Hhm'
     ihave Hhd := Hhcl $$ Hhm'
     have Hver : verHdrOk (http.hdrSet [] go!"X-Etcd-Cluster-ID" cs) :=
       verHdrOk_set _ _ _ (by decide) verHdrOk_nil
+    have Hrok : http.respHdrsOk (http.hdrSet [] go!"X-Etcd-Cluster-ID" cs) :=
+      respHdrsOk_set_raft _ _ _ (Or.inl rfl) http.respHdrsOk_nil (Hcs ▸ idStr_hdrValOk _)
     -- the header check
-    wp_apply hCheck hv.lg' hv.localID' hv.cid' hm R.hdr $$ [$Hhs $Hhvlg] as %rv Hrv
+    wp_apply hCheck hv.lg' hv.localID' hv.cid' hm hs $$ [$Hhs $Hhvlg] as %rv Hrv
     icases Hrv with (%Hrv | ⟨%e, %Hre, #He⟩)
     · rcases Hrv with rfl | ⟨p, rfl⟩
       · -- `nil`: `addRemoteFromRequest(h.tr, r)`
@@ -564,6 +566,8 @@ theorem rafthttp.snapshotHandler.ServeHTTP.wp_proof
   ihave Hhd := Hhcl $$ Hhm'
   have Hver : verHdrOk (http.hdrSet [] go!"Allow" go!"POST") :=
     verHdrOk_set _ _ _ (by decide) verHdrOk_nil
+  have Hrok : http.respHdrsOk (http.hdrSet [] go!"Allow" go!"POST") :=
+    respHdrsOk_set_raft _ _ _ (Or.inr (Or.inl rfl)) http.respHdrsOk_nil (by decide)
   wp_apply hError (raftHttpNet Rh) _ a R γk $$ [$Hw Hhd] as Hw
   · resp_ok
   with_from hCWLV vRFl HRFll go!"UNKNOWN_SNAPSHOT_SENDER" (by unfold asciiStr; decide)

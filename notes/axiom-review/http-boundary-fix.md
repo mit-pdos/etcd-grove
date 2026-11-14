@@ -79,3 +79,58 @@ one to `10.255.255.1` gets the proxy's `502`.
 
 A Lean counterexample (none was needed: no attack got through); TLS (`HTTPS`) and HTTP/2 were read,
 not run (rafthttp's closed paths are plaintext HTTP/1.1).
+
+## The independent review (etcd-grove-81's, 2026-11-14) and its fixes
+
+Three findings, each confirmed with a Go test, all fixed on this branch.
+
+1. **BLOCKER, the closed-world wording.** "No code of `e` this repository does not verify connects
+   to an address of `As`" is false of every multi-member program: etcd's names-only code sends the
+   prober's `GET /raft/probing`, the version monitor's `GET /version` and bootstrap's `GET /members`
+   to the peer ports, and the dials are `http.Transport`'s and grpc's (axiomatized, not verified).
+   **Fix:** `addrsUnclaimed` (and `addrUnclaimed`, `netAddrFree`/`netListenerAt`, `net.Listen`)
+   now say (a) the world assumption, unchanged: no other process connects; (b) what the program
+   does: its connections carry requests of its verified or trust-boundary clients, or those three
+   names-only requests, which reach no handler whose protocol needs knowledge. Checked: the
+   `RaftHandler` mux routes only `/raft`, `/raft/stream/`, `/raft/snapshot`, `/raft/probing`
+   (rafthttp `transport.go:163-166`), so `/version` and `/members` get its `404`. To make "needs
+   no knowledge" true, `raftProto.req`'s stream branch is narrowed from "a `GET` of any path but the
+   prober's" to "a `GET` under `/raft/stream/`" (`streamPfx`): before, `handlerOk` delivered
+   `□ streamReq` of a `GET /version` that no client established (unused: the mux's `404` premise
+   drops it, `TransportHandler.lean`, but a false fact in a trusted statement). Being `GET`s, these
+   requests' runs get no ticket (`reqTicketOnce`), which also closes a hole the old `handlerOk`
+   had: a names-only request's run received an exclusive ticket of an arbitrary name.
+   `examples/premisefix/peerreqs` (three members, 8 s: `GET /raft/probing` 200 x20, `GET /version`
+   404 x4, `GET /members` 404 x3).
+2. **MAJOR 1, transparent gunzip and the transport's request headers.** A handler that sets
+   `Content-Encoding: gzip` makes rafthttp's client read decompressed bytes, not a prefix of what
+   the handler wrote (`examples/premisefix/httpgzip`). **Fix:** `hdrsReady` asks `respHdrsOk` of the
+   committed headers: no `Content-Encoding` (nor `Trailer`, `Keep-Alive`, `Proxy-Connection`,
+   `Upgrade`: `respNoKeys`). Request side, confirmed: the handler sees `Accept-Encoding`,
+   `User-Agent`, `Content-Length` the client never set, so `reqAt`'s `hdrAt hm R.hdr` let a proof
+   conclude `r.Header.Get("Accept-Encoding") = ""` (`examples/premisefix/httpreqhdr`). **Fix:**
+   `reqAt` gives `hdrAt hm hs` with `reqHdrView R.hdr hs`: the client's value, trimmed, at every key
+   but `reqTpKeys`.
+3. **MAJOR 2, rewritten header values.** Go's server turns CR/LF into spaces, the client trims
+   surrounding spaces and tabs, and a non-token key is not sent (`examples/premisefix/httphdr`).
+   **Fix:** `respHdrsOk` also asks token keys and `hdrValOk` values (printable ASCII, no surrounding
+   space). Request side: a non-token key or a CR/LF value makes `RoundTrip` fail; trimming is in
+   `reqHdrView`.
+
+Found while fixing them: **`Flush` before the commit.** Go's `Flush` on an uncommitted writer
+commits `200` and the headers, after which `WriteHeader(500)` is ignored, but `Flush_spec` kept the
+writer at `none` (`examples/premisefix/httphdr`, `TestFlushCommits`). **Fix:** `Flush_spec` asks a
+committed writer (`st.isSome`); every caller flushes after `WriteHeader`.
+
+The proofs: the three raft handlers prove `respHdrsOk` of what they set (`X-Etcd-Cluster-ID` an id's
+hexadecimal string, `idStr_hdrValOk`; `X-Server-Version` and `Allow` constants); the handlers and
+`addRemoteFromRequest` read the server's headers `hs` and carry the protocol's facts over with
+`fromOkAt_view`/`peerURLsHdrOk_view` (`Pipe.lean`: an id string and a list of plain peer URLs are
+unchanged by trimming).
+
+**Attacks on the new texts** (self-review): HTTP/2's connection-specific headers, dropped on both
+sides, are in `reqTpKeys`/`respNoKeys`; obs-text request values pass unchanged (only trimmed) and
+are excluded from response values (`hdrValByte` is printable ASCII only), which only restricts
+handlers; `canonKey` is idempotent on canonical keys, so the server's re-canonicalization is the
+identity on `R.hdr`'s keys; `Host` never reaches `r.Header`; a key the client set among
+`reqTpKeys` gets no promise.
