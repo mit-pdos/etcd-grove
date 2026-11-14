@@ -226,7 +226,8 @@ theorem dirKeysOk_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
         htmpN hcnm' hctmp hothers htw hnw
 
 /-- **The segments at their names after the commit**: the new WAL's (its directory's claim the
-appended one: `hsn` now, `hJC` after a crash, of every crash of `J`'s claim), the others' as
+appended one: `hsn` now, `hJC` after a crash: every crash the claims allow at the bound `n` keeps `J`'s
+entries, all below `n`, so the claim's names are as now, `ClaimCoh`), the others' as
 before (their directories not `J`; a crash keeping the rename is one of the claims before on the
 `.wal` names, `treeUnren`). -/
 theorem walsNamed_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s : AbsDiskState}
@@ -241,9 +242,8 @@ theorem walsNamed_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
     (hothers : ∀ c' ∈ cl, c' ≠ (jr, N, h) → c'.1 = jr → ¬ c'.2.1.Mem nm ∧ ¬ c'.2.1.Mem tmp)
     (htw : walNameP tmp = false) (hnw : walNameP nm = false)
     (hlj : lay.j = J) (hX : ∀ b ∈ X, walNameP b = false)
-    (hsn : SegsNamed lay.segs hJ.cur)
-    (hJC : ∀ (K : Nat → Prop) (E : Ents), (∀ b, walNameP b = true → E !! b = hJ.valAfter J K b) →
-      SegsNamedC lay.segs E) :
+    (hsn : SegsNamed lay.segs hJ.cur) (hJC : SegsNamedC lay.segs hJ.cur)
+    (hJcoh : ClaimCoh hJ J (.except X)) (hJn : ∀ xe ∈ hJ.ents, xe.1 < n) :
     WalsNamed (<[dir := lay]> Ls)
       (createClaims cl jr N h x (renDirEnt jr tmp nm J st) (renCur N h tmp nm J) J X hJ) n := by
   classical
@@ -263,10 +263,12 @@ theorem walsNamed_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
       · simp only [Prod.mk.injEq] at he; exact absurd (hlj.symm.trans he.1) hJjr
       · exact absurd (hexc X' hX') (hJc _ hm' (by rw [hlj]) b0 (not_walTmps_of_wal hb0))
     · obtain ⟨K, hK⟩ := (regionCrashed_iff _ _ _).1 hr
-      refine hJC K _ (fun b hb => ?_)
+      have hKJ : ∀ xe ∈ hJ.ents, K xe.1 := fun xe hxe =>
+        hK.2.1 _ mem_createClaims_J xe.1 xe.2.1 xe.2.2 hxe (hJn xe hxe)
+      refine segsNamedC_congr_ents (fun b hb => ?_) hJC
       have hbX : (NameSet.except X).Mem b := fun hbX => by rw [hX b hbX] at hb; cases hb
-      rw [entsOf_entry, hlj]
-      exact hK.2.2 _ mem_createClaims_J b hbX
+      rw [entsOf_entry, hlj, hK.2.2 _ mem_createClaims_J b hbX]
+      exact (hJcoh.2 K hKJ b hbX).symm
   · rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)] at hl'
     -- the other WAL's directory is not `J`
     have hd' : ∃ d', s.wal !! dir' = some d' := by

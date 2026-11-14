@@ -124,6 +124,10 @@ class WalGS (GF : BundledGFunctors) where
   `List GoString`, half the invariant's (each a present WAL's name, its own claim `.only [nm]`), half
   the area's program part's (`walAreaRes`: its claim holds every WAL name but these). -/
   γnw : GName
+  /-- The lent tails (`walLentAuth`/`walLentTok`; `Inv.lean`'s `walLentRes`, I3b, `wal-tc14`): a ghost
+  map from a WAL directory to its tail record's name and the length of its layout's `old`, the
+  authority the invariant's, each element (exclusive) the holder's of the lent tail. -/
+  γl : GName
 
 section ghost
 variable {GF : BundledGFunctors} [W : WalGS GF]
@@ -426,6 +430,62 @@ theorem walTails_agree (T T' : GMap GoString GName) :
 def walTailKey (dir : GoString) (γ : GName) : IProp GF :=
   letI := walAllG (W := W)
   dir ↪[W.γt] γ
+
+/-- **The lent tails' authority** (the invariant's, `walLentRes`): each lent directory to its tail
+record's name and the length of its `old`. -/
+def walLentAuth (M : GMap GoString (GName × Nat)) : IProp GF :=
+  letI := walAllG (W := W)
+  ghostMapAuth W.γl 1 M
+
+instance walLentAuth_timeless (M : GMap GoString (GName × Nat)) : Timeless (walLentAuth (W := W) M) := by
+  unfold walLentAuth; infer_instance
+
+/-- **The tail of `dir`, record `γ`, lent to the invariant, its `old` `k` long** (exclusive; I3b,
+`wal-tc14`): while it is out, the invariant holds the tail's key (`walTailKey dir γ`), so no step
+that needs the key (an append, a cut, the window's fdatasync, `Close`) runs on the tail, and the
+layout's `old` stays `k` long; the steps of a resize (`walInvBody_tailW`) take this token in place of
+the key. -/
+def walLentTok (dir : GoString) (γ : GName) (k : Nat) : IProp GF :=
+  letI := walAllG (W := W)
+  dir ↪[W.γl] (γ, k)
+
+instance walLentTok_timeless (dir : GoString) (γ : GName) (k : Nat) :
+    Timeless (walLentTok (W := W) dir γ k) := by
+  unfold walLentTok; infer_instance
+
+theorem walLentTok_lookup (M : GMap GoString (GName × Nat)) (dir : GoString) (γ : GName) (k : Nat) :
+    ⊢@{IProp GF} walLentAuth (W := W) M -∗ walLentTok (W := W) dir γ k -∗ ⌜M !! dir = some (γ, k)⌝ := by
+  unfold walLentAuth walLentTok
+  letI := walAllG (W := W)
+  iintro Ha Hk
+  iapply ghost_map_lookup $$ Ha Hk
+
+theorem walLentTok_insert (M : GMap GoString (GName × Nat)) (dir : GoString) (γ : GName) (k : Nat)
+    (hM : M !! dir = none) :
+    ⊢@{IProp GF} walLentAuth (W := W) M ==∗
+      walLentAuth (W := W) (<[dir := (γ, k)]> M) ∗ walLentTok (W := W) dir γ k := by
+  unfold walLentAuth walLentTok
+  letI := walAllG (W := W)
+  iintro Ha
+  iapply ghost_map_insert dir (γ, k) hM $$ Ha
+
+theorem walLentTok_delete (M : GMap GoString (GName × Nat)) (dir : GoString) (γ : GName) (k : Nat) :
+    ⊢@{IProp GF} walLentAuth (W := W) M -∗ walLentTok (W := W) dir γ k ==∗
+      walLentAuth (W := W) (GMap.delete dir M) := by
+  unfold walLentAuth walLentTok
+  letI := walAllG (W := W)
+  iintro Ha Hk
+  iapply ghost_map_delete $$ Ha Hk
+
+/-- Two keys of the same tail directory: impossible (the key is exclusive). -/
+theorem walTailKey_excl (dir : GoString) (γ γ' : GName) :
+    ⊢@{IProp GF} walTailKey (W := W) dir γ -∗ walTailKey (W := W) dir γ' -∗ False := by
+  unfold walTailKey
+  letI := walAllG (W := W)
+  iintro H1 H2
+  icases ghostMapElem_valid_2 _ _ _ _ _ _ $$ H1 H2 with %h
+  exfalso
+  exact dfrac_own_one_op_invalid _ h.1
 
 /-- **`w` is the WAL opened in `dir`, ready to append.** Sealed. -/
 @[no_expose] def walOpenW (w : Loc) (dir : GoString) : IProp GF :=
@@ -925,7 +985,8 @@ theorem walGhost_init (hPre : AbsDiskGpreS GF) (s : AbsDiskState) (hk : walKeysI
       walPast (W := W) s ∗ walUnlockedTok (W := W) ∗ walCrashTok (W := W) ∗
       walCreatingAuth (W := W) ∅ ∗ walTailsAuth (W := W) ∅ ∗ walParkAuth (W := W) true ∗
       walDirKeysAuth (W := W) ∅ ∗ walCutAuth (W := W) none ∗ walOutAuth (W := W) WalOut.empty ∗
-      walNamesAuth (W := W) none ∗ walSplitAuth (W := W) [] ∗ walSplitFrag (W := W) [] := by
+      walNamesAuth (W := W) none ∗ walSplitAuth (W := W) [] ∗ walSplitFrag (W := W) [] ∗
+      walLentAuth (W := W) ∅ := by
   imod absDisk_local_init hPre s hk with ⟨%hA, Hctx, Hst⟩
   letI := hA.absDiskAllG
   imod (ghost_map_alloc_empty (GF := GF) (K := GName) (V := WalMode)) with ⟨%γh, Hh⟩
@@ -942,7 +1003,8 @@ theorem walGhost_init (hPre : AbsDiskGpreS GF) (s : AbsDiskState) (hk : walKeysI
   imod (ghostVar_alloc (GF := GF) WalOut.empty) with ⟨%γpo, Hpo⟩
   imod (ghostVar_alloc (GF := GF) (none : Option GoString)) with ⟨%γnm, Hnm⟩
   imod (ghostVar_alloc (GF := GF) ([] : List GoString)) with ⟨%γnw, Hnw⟩
-  iexists ⟨hA, γh, γhd, γhp, γc, γcr, γt, γpk, γdk, γcp, γpo, γnm, γnw⟩
+  imod (ghost_map_alloc_empty (GF := GF) (K := GoString) (V := GName × Nat)) with ⟨%γl, Hl⟩
+  iexists ⟨hA, γh, γhd, γhp, γc, γcr, γt, γpk, γdk, γcp, γpo, γnm, γnw, γl⟩
   icases (ghostVar_split_half (GF := GF) γnm 1 (none : Option GoString)).1 $$ Hnm with ⟨Hnm1, Hnm2⟩
   icases (ghostVar_split_half (GF := GF) γnw 1 ([] : List GoString)).1 $$ Hnw with ⟨Hnw1, Hnw2⟩
   icases (ghostVar_split_half (GF := GF) γpo 1 WalOut.empty).1 $$ Hpo with ⟨Hpo1, Hpo2⟩
@@ -956,8 +1018,8 @@ theorem walGhost_init (hPre : AbsDiskGpreS GF) (s : AbsDiskState) (hk : walKeysI
   icases Hst with ⟨HM, Hp, Hu⟩
   unfold walGhost walOwn walPast walUnlockedTok walCrashTok walHandleAuth walCreatingAuth walTailsAuth
     walParkFrag walParkAuth walDirKeysAuth walCutFrag walCutAuth walOutFrag walOutAuth walTailsFrag
-    walNamesFrag walNamesAuth walSplitFrag walSplitAuth walAllG
-  iframe Hs HP HM Hp Hu Hc Hcr Ht1 Ht2 Hpk1 Hpk2 Hdk Hcp1 Hcp2 Hpo1 Hpo2 Hnm1 Hnm2 Hnw1 Hnw2
+    walNamesFrag walNamesAuth walSplitFrag walSplitAuth walLentAuth walAllG
+  iframe Hs HP HM Hp Hu Hc Hcr Ht1 Ht2 Hpk1 Hpk2 Hdk Hcp1 Hcp2 Hpo1 Hpo2 Hnm1 Hnm2 Hnw1 Hnw2 Hl
   isplitl [Hh Hhd Hhp]
   · isplitl [Hh Hhd Hhp]
     · iexists 0, ∅, ∅, ∅

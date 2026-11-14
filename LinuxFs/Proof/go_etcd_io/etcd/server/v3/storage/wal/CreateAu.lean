@@ -14,7 +14,9 @@ of the area `r`, in the area claim `(jr, N, h)` that the program's `walCreating 
   commits to `walDiskAt dir (walDurFresh md)` (the real WAL state `createSt`, `walGhost_upd`); the
   invariant takes the logged claim's half, half of `J`'s claim, the segment's halves (its inode none of
   the layouts', `laysResF_ino_ne`), the new layout `lay`, and the creating entry is deleted; its pure
-  facts are `walsOk_create`'s. The program gets the client's `Q`, the segment's other halves, and a past
+  facts are `walsOk_create`'s, at the invariant's commit bound raised to the program's `osCommitLb m`
+  (`m` past `J`'s entries: every crash the claims then allow keeps them, so `J`'s names after a crash
+  are its names now, `ClaimCoh`; `walsNamed_create`). The program gets the client's `Q`, the segment's other halves, and a past
   state with the fresh WAL in `dir`.
 -/
 module
@@ -22,6 +24,7 @@ module
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateAuLemmas
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateKeys
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateDefs
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateNamed
 
 @[expose] public section
 
@@ -132,8 +135,10 @@ def walCreateQ (dir : GoString) (N : NameSet) (h : NamesH) (md : List w8) (Q : I
 log bound `lb` past both claims' last entries; the new layout `lay` of `jr`, `nm`, `J` with the one
 segment `g` (nonempty), its static relation over `J`'s names, every byte durable and zeros known only
 past its end (`hzf`, `TailSynced`: its `OsMeta` synced, `TailMeta`), the stream then
-zeros; the segment at its name in `J` (`hsn`), and after any crash of `J`'s claim (`hJC`: every
-`.wal` entry a file, the segment's file only at its name). -/
+zeros; the segment at its name in `J` (`hsn`), and the same of `J`'s names in the form a crash's
+names take (`hJC`: every `.wal` entry a file, the segment's file only at its name), which `J`'s names
+are after any crash keeping `J`'s entries, as every crash does once the commit bound `m` (the
+program's `osCommitLb m`) is past them (`hJm`). -/
 theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (dir nm tmp : GoString) (md : List w8) (Q : IProp GF) (N : NameSet) (h : NamesH) (J : Ino)
     (X : List GoString) (hJ : NamesH) (lay : WalLay) (g : SegG) (lb : Nat)
@@ -149,15 +154,16 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     (hold0 : ∀ b, lay.wr ≤ b → b < lay.old.length → lay.old.getD b 0 = 0)
     (hz : lay.old.length - lay.wr = 0 ∨ 8 ≤ lay.old.length - lay.wr)
     (hcut : g.om.cut = none) (hgx : SegExact g) (hsn : SegsNamed lay.segs hJ.cur)
-    (hJC : ∀ (K : Nat → Prop) (E : Ents), (∀ b, walNameP b = true → E !! b = hJ.valAfter J K b) →
-      SegsNamedC lay.segs E) (hmd : md.length < 2 ^ 41) :
-    ⊢ walInv (W := W) C Mr R jr r -∗ walCreateP (W := W) dir N h md Q J X hJ g -∗
+    (hJC : SegsNamedC lay.segs hJ.cur) (m : Nat) (hJm : ∀ xe ∈ hJ.ents, xe.1 < m)
+    (hmd : md.length < 2 ^ 41) :
+    ⊢ walInv (W := W) C Mr R jr r -∗ osCommitLb m -∗
+      walCreateP (W := W) dir N h md Q J X hJ g -∗
       osAUnc (osNames jr N (DFrac.own (1 : Qp).half) h)
         (renDirOut jr J N tmp nm h (DFrac.own (1 : Qp).half) lb)
         (walCreateQ (W := W) dir N h md Q J X hJ g) := by
   have hex : TailExact lay := fun g1 hg1 => by
     rw [hsegs, List.getLast?_singleton, Option.some.injEq] at hg1; exact hg1 ▸ hgx
-  iintro #Hinv HP
+  iintro #Hinv #Hcmm HP
   iapply osAUnc_coiter _ _ _ (walCreateP (W := W) dir N h md Q J X hJ g) $$ [] HP
   iintro !> HP
   unfold osAUncPre
@@ -257,7 +263,15 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       imodintro
       dsimp only [walCreateQ, walCreateP]
       iframe Htok Hau HJ Hm Hbs
-    · -- the commit
+    · -- the commit, at the commit bound raised to `m`
+      have Hok := walsOk_mono (Nat.le_max_left n m) Hok
+      have Han := And.intro (absentNone_mono (Nat.le_max_left n m) Han.1) Han.2
+      have Hnm := walsNamed_mono (Nat.le_max_left n m) Hnm
+      have Hdko := dirKeysOk_mono (Nat.le_max_left n m) Hdko
+      ihave #Hcm' : osCommitLb (max n m) $$ []
+      · rcases Nat.le_total n m with hle | hle
+        · rw [Nat.max_eq_right hle]; iexact Hcmm
+        · rw [Nat.max_eq_left hle]; iexact Hcm
       unfold renDirOut
       simp only [logOut, claimOut]
       icases Hβ with ⟨⟨%hls, Hlog⟩, Hα⟩
@@ -358,8 +372,8 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       · iexists (createSt s dir md)
         iexists <[dir := lay]> Ls,
           createClaims (l1 ++ (jr, N, h) :: l2) jr N h x (renDirEnt jr tmp nm J s0)
-            (renCur N h tmp nm J) J X hJ, n, GMap.delete g.ino F
-        iframe Hg Hcm
+            (renCur N h tmp nm J) J X hJ, max n m, GMap.delete g.ino F
+        iframe Hg Hcm'
         isplitr
         · ipureintro; exact Har
         isplitl [Hl1 Hα Hl2 HJ]
@@ -401,7 +415,8 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         isplitr
         · ipureintro
           exact walsNamed_create (x := x) (st := s0) Hok Hnm hnew hc hcoh (Nat.le_trans hlb hls) hne
-            hnmN htmpN hcnm hctmp hothers htw hnw hlay.2.2 hX hsn hJC
+            hnmN htmpN hcnm hctmp hothers htw hnw hlay.2.2 hX hsn hJC hJcoh
+            (fun xe hxe => Nat.lt_of_lt_of_le (hJm xe hxe) (Nat.le_max_right _ _))
         isplitl [Hpk]
         · unfold createClaims; iexact Hpk
         isplitl [Hdk Hcp]
