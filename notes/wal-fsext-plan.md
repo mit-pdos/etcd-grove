@@ -2645,8 +2645,13 @@ budget, `walpb.Snapshot`'s wire format.**
   `h.cuts.Pairwise (· < ·)` and `h.md.length + (Mr.encState h.st).length < 2^42` from `wal-cut9`: the cuts are
   pairwise increasing as positions in a growing history, so the handle can carry it, `cut`'s post appending `|H|`;
   the `2^42` bound is not derivable from the handle today and must come from the area or the WAL's creation:
-  `md` is fixed at `Create` (a premise there, the server's metadata is a small protobuf) and the state record is a
-  `HardState` (three `uint64`s: at most 33 bytes), so `Create` should take `md.length < 2^41` and carry it);
+  `md` is fixed at `Create` (a premise there, the server's metadata is a small protobuf: `Create` should take
+  `md.length < 2^41` and the handle carry it), but `Mr.encState` is the client's marshaller parameter, about
+  which nothing is known: the real one is protobuf's `HardState` encoding (three optional `uint64`s, at most 33
+  bytes), so the bound is a property of `Mr` the client must state (e.g. `∀ hs, (Mr.encState hs).length < 2^41`
+  in `walAreaOk` beside `Mr`, or a premise of `Save`): **a client-visible statement change, for the
+  coordinator** (proposal: in `walAreaOk`, discharged at C6 by the server's `Mr`, as the one wire form per
+  metadata of the ledger's 2026-11-14 entry));
   (3) `SaveSnapshot` over `SaveSnapshotPre`-style steps and the commit; (4) the past-size writes once `wal-tc2`'s
   window continuation lands, then `saveEntry`/`saveState`/`sync.wp_proof`.
 
