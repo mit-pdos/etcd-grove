@@ -81,7 +81,7 @@ noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
 /-- key is the i-th Put's key, "k" followed by the byte i (i < 256): the keys are distinct, in the
     order of i, and all in [RangeKey, RangeEnd).
 
-    go: restart1.go:62:6 -/
+    go: restart1.go:66:6 -/
 noncomputable def key.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "i"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
@@ -99,7 +99,7 @@ noncomputable def key.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- value is the i-th Put's value, "v" followed by the byte i.
 
-    go: restart1.go:67:6 -/
+    go: restart1.go:71:6 -/
 noncomputable def value.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "i"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
@@ -118,7 +118,7 @@ noncomputable def value.impl [GooseExts] [GoGlobalContext] : val :=
 /-- startMember builds the member (etcdstart.BuildServer, at the snapshot settings) and starts it.
     Starting it again after it was stopped finds its data directory: etcd restarts it from its WAL.
 
-    go: restart1.go:79:6 -/
+    go: restart1.go:83:6 -/
 noncomputable def startMember.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer.ty)))) (Val #())))
@@ -187,7 +187,7 @@ noncomputable def startMember.impl [GooseExts] [GoGlobalContext] : val :=
 /-- put puts key(i) with value value(i) through s's own API, in a context with the request timeout,
     cancelled after the call.
 
-    go: restart1.go:92:6 -/
+    go: restart1.go:96:6 -/
 noncomputable def put.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "i"
@@ -244,7 +244,7 @@ noncomputable def put.impl [GooseExts] [GoGlobalContext] : val :=
     run's deferred shutdown stops the raft node and calls Cleanup, which closes the lessor, the KV
     store, the auth store and the backend, so that the data directory can be opened again).
 
-    go: restart1.go:103:6 -/
+    go: restart1.go:107:6 -/
 noncomputable def stop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Seq (App (Val exceptionDo)
@@ -268,7 +268,7 @@ noncomputable def stop.impl [GooseExts] [GoGlobalContext] : val :=
     the NPuts Puts' keys, in order, each with its value. It reports whether the check ran: false if
     the Range failed.
 
-    go: restart1.go:116:6 -/
+    go: restart1.go:120:6 -/
 noncomputable def check.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -371,7 +371,7 @@ noncomputable def check.impl [GooseExts] [GoGlobalContext] : val :=
     whether the check ran (and passed): false if a step failed first. It leaves the restarted member
     running.
 
-    go: restart1.go:142:6 -/
+    go: restart1.go:146:6 -/
 noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -466,7 +466,7 @@ noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Main runs the example with no logging (Run).
 
-    go: restart1.go:163:6 -/
+    go: restart1.go:167:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)

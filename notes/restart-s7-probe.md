@@ -173,3 +173,12 @@ Total about 6-8.5 weeks of work (Scope: 7-10).
 3. **P4-a**: `BuildServer.specRestart`'s precondition gains the persistent part of `memberBoot` at the
    stopped names. *Recommended.*
 4. **P1**: the three local lemmas, and the S7.0 driver's leader wait. *Recommended.*
+
+## Decided (etcd-grove-81, 2026-11-14)
+
+All four yes. P2-a narrowed: the law says only that a `MsgSnap`'s destination is in the sender's tracked
+progress set (its configuration's voters and learners) at send time, and is not the sender; no clause on the
+sender's membership (a leader that removed itself stays leader for a while in raft v3). A Go check of the
+narrowed law at the raft fork's pin first; the interface diff is reviewed before landing; if the law needs the
+uncommitted-entries question, stop. P4-a is noted in `BuildServer.specRestart`'s header. The leader wait is
+noted in `restart1`'s docstring.

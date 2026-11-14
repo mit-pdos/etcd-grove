@@ -12,6 +12,10 @@
 // consistent index, and restarts the raft node from the WAL's hard state. The cluster has no other
 // member, so no peer listener is served and no snapshot is ever sent; no gRPC is served either.
 //
+// Before the Range, the driver waits until the restarted member knows a leader (it elects itself):
+// a linearizable read begun earlier fails with ErrLeaderChanged when the election ends (found by the
+// test, restart S7.0). A liveness wait, as stop's wait on AppliedIndex().
+//
 // "Restart" here is a graceful stop in one process: not a kill, a SIGKILL or a power loss.
 //
 // Main panics if the check fails; the adequacy theorem to prove is that it does not. An error from
