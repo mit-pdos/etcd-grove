@@ -193,8 +193,8 @@ theorem crashTo_start (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLa
         rw [hg1] at hk
         simp only [Option.map_some, Option.some.injEq] at hk
         subst hk
-        obtain ⟨sq, ix, hn, hb⟩ := habs.nameBound (q + k) g1 hg1
-        refine ⟨sq, ix, by rw [newSeg_name]; exact hn, fun hpos => ?_⟩
+        obtain ⟨sq, ix, hn, hix, hb⟩ := habs.nameBound (q + k) g1 hg1
+        refine ⟨sq, ix, by rw [newSeg_name]; exact hn, hix, fun hpos => ?_⟩
         have e : lay.first + (q + k) = (crashLay fo lay q S.length).first + k := by
           simp only [crashLay]; omega
         rw [← e]
@@ -287,6 +287,7 @@ theorem crashTo_start (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLa
       rw [hold]
       exact hstop0 r len c'
     · exact hne'
+    · exact habs.cutPos
   case fit =>
     have hp := (segs_pre C Mr d.metadata (P := I.map WalOpG.toM) (Q := d.H.map WalOpG.toM)
       (le_segStart_length hsorted) htI hpI).1

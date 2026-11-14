@@ -165,12 +165,12 @@ theorem walAbsD_snoc {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay
   obtain ⟨gl, hgl⟩ : ∃ g, lay.segs.getLast? = some g :=
     ⟨_, List.getLast?_eq_some_getLast h.nonempty⟩
   have hW := h.lastWin gl hgl
-  obtain ⟨hn, hcs, hnb, hcut, hmeta, hint, hlast, hsyn, hls, -, hstop, hne⟩ := h
-  refine ⟨hn, ⟨fun b hb => ?_, hcs.2⟩, ?_, hcut, hmeta, ?_, ?_, ?_, hls, hfit, ?_, hne⟩
+  obtain ⟨hn, hcs, hnb, hcut, hmeta, hint, hlast, hsyn, hls, -, hstop, hne, hcp⟩ := h
+  refine ⟨hn, ⟨fun b hb => ?_, hcs.2⟩, ?_, hcut, hmeta, ?_, ?_, ?_, hls, hfit, ?_, hne, hcp⟩
   · rw [histM_snoc]; exact walCutPos_snoc _ (hcs.1 b hb)
   · intro k g hk
-    obtain ⟨sq, ix, hnm, hb⟩ := hnb k g hk
-    refine ⟨sq, ix, hnm, fun hpos => ?_⟩
+    obtain ⟨sq, ix, hnm, hix, hb⟩ := hnb k g hk
+    refine ⟨sq, ix, hnm, hix, fun hpos => ?_⟩
     rw [htake _ (segStart_le hc _)]
     exact hb hpos
   · intro k g hk hg
@@ -280,7 +280,7 @@ theorem walAbsD_sync {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay
   have hlast' : (syncLay lay pre g0).segs.getLast? = some (syncTail g0) := by simp [syncLay]
   refine { names := ?_, cuts := ?_, nameBound := ?_, cut := h.cut, metas := ?_, intact := ?_,
            last := ?_, synced := ?_, lastSynced := ?_, fit := h.fit, tailStop := h.tailStop,
-           nonempty := ?_ }
+           nonempty := ?_, cutPos := h.cutPos }
   · rw [hmapI, hmapN]; exact h.names
   · exact ⟨h.cuts.1, h.cuts.2.1, by rw [hlen]; exact h.cuts.2.2⟩
   · intro k g hk

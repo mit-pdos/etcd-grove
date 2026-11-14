@@ -135,7 +135,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     (wp_syncPreL : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specPreL (GF := GF) (hG := hG))
     (wp_saveStatePre : go_etcd_io.etcd.server.v3.storage.wal.WAL.saveState.specPre P Mr) :
     go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.spec (W := W) P Mr := by
-  intro R jr r w dir h hrest hst hcnt hcuts hsorted hcpos hmdsz
+  intro R jr r w dir h hrest hst hcnt hcuts hsorted hcpos hpos hmdsz
   wp_start as ⟨#Harea, Hh⟩
   iunfold walHandleIn at Hh
   icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j,
@@ -635,7 +635,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     (walFileName (sq + 1) (max (uint.nat h.enti) (uint.nat h.snapi) + 1)) nm0
     (tailStream Mr h.H h.md (h.cuts ++ [h.H.length])).length (sq + 1)
     (max (uint.nat h.enti) (uint.nat h.snapi) + 1) (by simp)
-    (htmps _ (pipeTmp_mem np)) hcuts hcpos ⟨hnm0w, hnm0c⟩ ⟨rfl, by omega, hlt⟩ hbtw hcurbt hbs0 hm0x
+    (htmps _ (pipeTmp_mem np)) hcuts ⟨hcpos, hpos⟩ ⟨hnm0w, hnm0c⟩ ⟨rfl, by omega, hlt, hmx⟩ hbtw hcurbt hbs0 hm0x
     rfl hgbs hgmeta hfitH hgz (by rw [← hg]) hgne $$ Hinv [Hdk Htk Hv Hcl1 Hn2a Hpk Hcf Hout Hm Hbs HmS HbS]
   · iunfold walCutP
     iframe Hdk Htk Hcl1 Hn2a Hpk Hcf Hout Hm Hbs Hsyn Hnamed

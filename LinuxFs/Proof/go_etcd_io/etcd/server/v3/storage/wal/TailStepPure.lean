@@ -195,7 +195,7 @@ theorem walAbsD_tail {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay
   have hg0 : lay.segs.getLast? = some g0 := by rw [hs]; simp
   obtain ⟨-, -, hl0, -, -, -, hzS, hzZ⟩ := (habs.last g0 hg0).1 hex0
   refine ⟨?_, ?_, ?_, habs.cut, ?_, ?_, ?_, habs.synced, habs.lastSynced, habs.fit, habs.tailStop,
-    by simp [tailLay]⟩
+    by simp [tailLay], by simpa [tailLay] using habs.cutPos⟩
   · have h1 := habs.names.1; have h2 := habs.names.2
     rw [hs] at h1 h2
     simp only [tailLay, List.map_append, List.map_cons, List.map_nil] at h1 h2 ⊢

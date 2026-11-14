@@ -98,7 +98,7 @@ theorem cutLay_abs (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) 
       g.om.hi = g.bs.length)
     (hfit : RecsFit C (recsOfSegs C Mr d.metadata (segsOf (histM d) (lay.cuts ++ [d.H.length]))))
     (hents : walInos ents' = walInos ents ++ [g.ino])
-    (hz : g.bs.length - wr = 0 ∨ 8 ≤ g.bs.length - wr) :
+    (hz : g.bs.length - wr = 0 ∨ 8 ≤ g.bs.length - wr) (hix : ix < 2 ^ 64) (hpos : 0 < d.H.length) :
     WalAbsD C Mr d (cutLay lay d.H.length g wr) ents' := by
   have hlen := habs.cuts.2.2
   have hne := habs.nonempty
@@ -123,7 +123,8 @@ theorem cutLay_abs (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) 
       rfl
   refine
     { names := ?_, cuts := ?_, nameBound := ?_, cut := ?_, metas := ?_, intact := ?_,
-      last := ?_, synced := ?_, lastSynced := ?_, fit := ?_, tailStop := ?_, nonempty := ?_ }
+      last := ?_, synced := ?_, lastSynced := ?_, fit := ?_, tailStop := ?_, nonempty := ?_,
+      cutPos := ?_ }
   · simp only [cutLay, List.map_append, List.map_cons, List.map_nil]
     refine ⟨by rw [hents, habs.names.1], List.pairwise_append.2 ⟨habs.names.2, by simp, ?_⟩⟩
     intro a ha b hb
@@ -141,8 +142,8 @@ theorem cutLay_abs (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) 
     simp only [cutLay] at hk ⊢
     by_cases hkl : k < lay.segs.length
     · rw [List.getElem?_append_left hkl] at hk
-      obtain ⟨sq', ix', h1, h2⟩ := habs.nameBound k g' hk
-      exact ⟨sq', ix', h1, by rw [segStart_snoc (by omega)]; exact h2⟩
+      obtain ⟨sq', ix', h1, hix', h2⟩ := habs.nameBound k g' hk
+      exact ⟨sq', ix', h1, hix', by rw [segStart_snoc (by omega)]; exact h2⟩
     · rw [List.getElem?_append_right (by omega)] at hk
       have hk0 : k = lay.segs.length := by
         rcases Nat.lt_or_ge (k - lay.segs.length) 1 with h1 | h1
@@ -151,7 +152,7 @@ theorem cutLay_abs (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) 
       subst hk0
       simp only [Nat.sub_self, List.getElem?_cons_zero, Option.some.injEq] at hk
       subst hk
-      refine ⟨sq, ix, hname.1, fun _ => ?_⟩
+      refine ⟨sq, ix, hname.1, hix, fun _ => ?_⟩
       rw [show lay.first + lay.segs.length = lay.cuts.length + 1 by omega, segStart_snoc_last,
         List.take_of_length_le (by simp [histM])]
       exact hname.2.1
@@ -207,6 +208,11 @@ theorem cutLay_abs (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) 
     rw [decStep_zeros C true (z := g.bs.length) (by rw [← Nat.sub_zero g.bs.length]; rw [hwr, ← hz0] at hz; simpa using hz) (by simp)]
     simp
   · simp [cutLay]
+  · intro b hb
+    simp only [cutLay, List.mem_append, List.mem_singleton] at hb
+    rcases hb with hb | rfl
+    · exact habs.cutPos b hb
+    · exact hpos
 
 /-- **The crash condition from a cut's rename on**: `crashOkA_rename` for the new layout `cutLay`,
 whose crashes keeping the rename are those of a synced WAL (`crashTo_synced`). -/

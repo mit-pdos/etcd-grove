@@ -15,7 +15,7 @@ it there (`crashRestAt_take_tok`).
 * **The second step** (`wp_osFtruncateFinish_au`, `wp_osFallocFinish_au`): the update lends the token
   and commits with what the step leaves (`rsOutT`/`rsOutF`, whole: the size landed, `rsDoneK`, with the
   new bytes, zeros, and, for a file with no sync cut, the candidates of the bytes announced past the
-  new size in its `OsMeta`'s `tc`; or, on failure, maybe not, `rsUndone`), its `Q e` the caller's
+  new size in its `OsMeta`'s `tc`; or, on failure, maybe not, `rsUndoneK`), its `Q e` the caller's
   (typically its halves back: the update's owner splits them).
 
 The files are unmapped (`m.maps = ∅`: no cells to lend). The whole-resource specs
@@ -105,11 +105,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
 theorem mcellsAny_nomaps (lo hi : Nat) : ⊢ mcellsAny (GF := GF) (∅ : GMap Loc Nat) lo hi := by
   unfold mcellsAny; exact BigSepM.bigSepM_empty.2
 
-/-- What `ftruncate`'s second step leaves: on success the size landed; on failure it did or not. -/
+/-- What `ftruncate`'s second step leaves: on success the size landed; on failure it did or not
+(for a file with no sync cut, the `OsMeta` not landed knowing the candidates past the size and the
+stamp, `rsUnMeta`, as the landed one knows those cut off). -/
 def rsOutT (p : Ino) (tg : Nat) (m : OsMeta) (xs : List ByteG) (n : Nat) (e : w64) : IProp GF :=
   iprop((⌜e = 0⌝ ∗ rsDoneK (L := L) m.cut.isNone true p tg tg m xs n) ∨
     (⌜e ≠ 0⌝ ∗ (rsDoneK (L := L) m.cut.isNone true p tg tg m xs n ∨
-      rsUndone (L := L) true p tg m xs n)))
+      rsUndoneK (L := L) m.cut.isNone true p tg m xs n)))
 
 /-- What `fallocate`'s second step leaves: on success the growth landed; on failure none of it, or a
 prefix (the size `w` between). -/

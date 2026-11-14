@@ -6,7 +6,7 @@
 the last segment up to some `j`, at least those below `max so z0`, then a frame it rejects. Here that is
 lifted to the WAL's crash condition:
 
-* **the last segment's records** (`lastRecs`): the chain from the CRC after every earlier segment
+* **the last segment's records** (`lastSegRecs`): the chain from the CRC after every earlier segment
   (`lastC0`), the segment's headers (`lastHdr`) then its operations' records; every other segment's
   records depend only on the history before the last cut (`SegPre.lean`'s `segsInit`);
 * **the image of the history** a record count `j` of the last segment gives (`tailImg`): the history
@@ -45,7 +45,7 @@ variable [GooseExts]
 /-! ## The last segment's records -/
 
 /-- The last segment's records. -/
-def lastRecs (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (cuts : List Nat) : List WalRec :=
+def lastSegRecs (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (cuts : List Nat) : List WalRec :=
   (segRecs C Mr d cuts).getD cuts.length []
 
 /-- The segments before the last. -/
@@ -63,9 +63,9 @@ def lastHdr (Mr : WalMarshal) (d : WalDur) (cuts : List Nat) : List (w64 × List
 def lastOps (d : WalDur) (cuts : List Nat) : WalHist := (histM d).drop (segStart cuts cuts.length)
 
 theorem lastRecs_eq (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (cuts : List Nat) :
-    lastRecs C Mr d cuts = chainRecs C (lastC0 C Mr d cuts)
+    lastSegRecs C Mr d cuts = chainRecs C (lastC0 C Mr d cuts)
       (lastHdr Mr d cuts ++ (lastOps d cuts).flatMap (opDs Mr)) := by
-  unfold lastRecs segRecs lastC0 lastHdr lastOps initSegs
+  unfold lastSegRecs segRecs lastC0 lastHdr lastOps initSegs
   rw [segsOf_split, segsDs_snoc, chainSegs_snoc, List.getD_eq_getElem?_getD,
     List.getElem?_append_right (by rw [length_chainSegs, length_segsDs, length_segsInit]; exact Nat.le_refl _)]
   rw [length_chainSegs, length_segsDs, length_segsInit, Nat.sub_self]
@@ -75,7 +75,7 @@ theorem lastRecs_eq (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (cuts : List N
 theorem allRecs_split (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (cuts : List Nat) :
     recsOfSegs C Mr d.metadata (segsOf (histM d) cuts) =
       chainRecs C 0#32 (segsDs Mr d.metadata true [] (initSegs d cuts)).flatten ++
-        lastRecs C Mr d cuts := by
+        lastSegRecs C Mr d cuts := by
   rw [lastRecs_eq]
   unfold recsOfSegs lastC0 lastHdr lastOps initSegs
   rw [segsOf_split, segsDs_snoc, List.flatten_append, chainRecs_append]
@@ -84,12 +84,12 @@ theorem allRecs_split (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (cuts : List
 /-- The chain's CRC after every record of the WAL: after the last segment's, from `lastC0`. -/
 theorem chainEnd_allRecs_split (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (cuts : List Nat) :
     chainEnd C 0#32 (recsOfSegs C Mr d.metadata (segsOf (histM d) cuts)) =
-      chainEnd C (lastC0 C Mr d cuts) (lastRecs C Mr d cuts) := by
+      chainEnd C (lastC0 C Mr d cuts) (lastSegRecs C Mr d cuts) := by
   rw [allRecs_split, chainEnd_append, chainEnd_chainRecs]
   rfl
 
 theorem chainOk_lastRecs {C : WalCodec} (hC : C.Ok) (Mr : WalMarshal) (d : WalDur)
-    (cuts : List Nat) : ChainOk C (lastC0 C Mr d cuts) (lastRecs C Mr d cuts) := by
+    (cuts : List Nat) : ChainOk C (lastC0 C Mr d cuts) (lastSegRecs C Mr d cuts) := by
   have h : ChainOk C 0#32 (recsOfSegs C Mr d.metadata (segsOf (histM d) cuts)) :=
     chainOk_chainRecs hC _ _ (segsDs_crcOk Mr d.metadata true [] _)
   rw [allRecs_split, chainOk_append, chainEnd_chainRecs] at h
@@ -144,8 +144,8 @@ theorem lastOps_tailImg (Mr : WalMarshal) (d : WalDur) (cuts : List Nat) (n : Na
 /-- **The last segment's records of the image: the first `|hdr| + n`.** -/
 theorem lastRecs_tailImg (C : WalCodec) (Mr : WalMarshal) (d : WalDur) {cuts : List Nat} (n : Nat)
     (hc : cuts.Pairwise (· < ·)) (hL : segStart cuts cuts.length ≤ d.H.length) :
-    lastRecs C Mr { d with H := tailImg Mr d cuts n } cuts =
-      (lastRecs C Mr d cuts).take ((lastHdr Mr d cuts).length + n) := by
+    lastSegRecs C Mr { d with H := tailImg Mr d cuts n } cuts =
+      (lastSegRecs C Mr d cuts).take ((lastHdr Mr d cuts).length + n) := by
   have hi := initSegs_tailImg Mr d n hc hL
   have e0 : lastC0 C Mr { d with H := tailImg Mr d cuts n } cuts = lastC0 C Mr d cuts := by
     unfold lastC0; rw [hi]
@@ -261,7 +261,7 @@ theorem prefix_of_getD {xs img : List w8} (hl : xs.length ≤ img.length)
 
 /-- The last segment of a WAL with cuts begins with a CRC record. -/
 theorem lastRecs_head_crc (C : WalCodec) (Mr : WalMarshal) (d : WalDur) {cuts : List Nat}
-    (hc : cuts ≠ []) : ∃ r rs, lastRecs C Mr d cuts = r :: rs ∧ r.typ = crcType := by
+    (hc : cuts ≠ []) : ∃ r rs, lastSegRecs C Mr d cuts = r :: rs ∧ r.typ = crcType := by
   have hne : initSegs d cuts ≠ [] := by
     intro h; have := length_segsInit (histM d) cuts; unfold initSegs at h; rw [h] at this
     cases cuts with
@@ -358,7 +358,7 @@ theorem tailCands_of_abs {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wa
 headers and the synced operations. -/
 theorem lastRecs_synced (C : WalCodec) (Mr : WalMarshal) (d : WalDur) {cuts : List Nat}
     (hc : cuts.Pairwise (· < ·)) (hL : segStart cuts cuts.length ≤ d.m) :
-    lastRecs C Mr { d with H := d.H.take d.m } cuts = (lastRecs C Mr d cuts).take
+    lastSegRecs C Mr { d with H := d.H.take d.m } cuts = (lastSegRecs C Mr d cuts).take
       ((lastHdr Mr d cuts).length +
         (((lastOps d cuts).take (d.m - segStart cuts cuts.length)).flatMap (opDs Mr)).length) := by
   have hi : initSegs { d with H := d.H.take d.m } cuts = initSegs d cuts :=
@@ -381,7 +381,7 @@ theorem lastHdr_pos (Mr : WalMarshal) (d : WalDur) (cuts : List Nat) :
   split <;> split <;> simp
 
 theorem lastRecs_length (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (cuts : List Nat) :
-    (lastRecs C Mr d cuts).length =
+    (lastSegRecs C Mr d cuts).length =
       (lastHdr Mr d cuts).length + ((lastOps d cuts).flatMap (opDs Mr)).length := by
   rw [lastRecs_eq, length_chainRecs, List.length_append]
 
@@ -415,7 +415,7 @@ theorem crashTo_tailL {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} 
   obtain ⟨f, hf⟩ := Option.isSome_iff_exists.1 (hn hgin)
   obtain ⟨hszlo, hsz, hrun⟩ := himg0 f hf
   -- the decoding core
-  generalize hR : lastRecs C Mr d lay.cuts = R
+  generalize hR : lastSegRecs C Mr d lay.cuts = R
   have hRS : segStream C Mr d lay.cuts lay.cuts.length = recFrames C R := by rw [← hR]; rfl
   have hT := tailCands_of_abs habs hZ hg hex
   rw [hRS] at hT
@@ -523,7 +523,7 @@ theorem crashTo_tailL {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} 
   have hiI := initSegs_tailImg Mr d nI hsorted hLH
   have hiI0 : initSegs { d with H := I0 } lay.cuts = initSegs d lay.cuts :=
     initSegs_of_take hsorted (walImg_take hI0 hm0)
-  have hlastI : lastRecs C Mr { d with H := tailImg Mr d lay.cuts nI } lay.cuts = R.take j := by
+  have hlastI : lastSegRecs C Mr { d with H := tailImg Mr d lay.cuts nI } lay.cuts = R.take j := by
     rw [lastRecs_tailImg C Mr d _ hsorted hLH, hR, hnI, Nat.add_sub_cancel' hhdr]
   refine Or.inr ⟨q, tailImg Mr d lay.cuts nI, hent, hq, hinos,
     hIimg, by omega, ?_, ?_, ?_⟩
@@ -553,7 +553,7 @@ theorem crashTo_tailL {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} 
     rw [hg] at hg''
     cases hg''
     have e1 : segStream C Mr { d with H := tailImg Mr d lay.cuts nI } lay.cuts lay.cuts.length = recFrames C (R.take j) := by
-      show recFrames C (lastRecs C Mr _ lay.cuts) = _
+      show recFrames C (lastSegRecs C Mr _ lay.cuts) = _
       rw [hlastI]
     have e2 := chainEnd_allRecs_split C Mr { d with H := tailImg Mr d lay.cuts nI } lay.cuts
     have e3 : lastC0 C Mr { d with H := tailImg Mr d lay.cuts nI } lay.cuts = lastC0 C Mr d lay.cuts := by
@@ -614,14 +614,14 @@ theorem walAbsD_so_pos {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalL
     (habs : WalAbsD C Mr d lay ents) : 0 < lay.so := by
   have hs := habs.synced.2
   have e : (segRecs C Mr { d with H := d.H.take d.m } lay.cuts).getD lay.cuts.length [] =
-      (lastRecs C Mr d lay.cuts).take ((lastHdr Mr d lay.cuts).length +
+      (lastSegRecs C Mr d lay.cuts).take ((lastHdr Mr d lay.cuts).length +
         (((lastOps d lay.cuts).take (d.m - segStart lay.cuts lay.cuts.length)).flatMap
           (opDs Mr)).length) :=
     lastRecs_synced C Mr d habs.cuts.2.1 habs.lastSynced
   rw [e] at hs
   have h1 := lastHdr_pos Mr d lay.cuts
   have hR := lastRecs_length C Mr d lay.cuts
-  generalize lastRecs C Mr d lay.cuts = R at hs hR
+  generalize lastSegRecs C Mr d lay.cuts = R at hs hR
   obtain ⟨k, hk⟩ : ∃ k, (lastHdr Mr d lay.cuts).length + (((lastOps d lay.cuts).take
       (d.m - segStart lay.cuts lay.cuts.length)).flatMap (opDs Mr)).length = k + 1 :=
     ⟨_, (Nat.succ_pred_eq_of_pos (by omega)).symm⟩
