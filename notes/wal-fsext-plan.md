@@ -510,7 +510,7 @@ module; the bboltfs/crashlog/walfs examples and the generated translations not l
 - `os/`: `File.Truncate.wp_proofAu` (`File__TruncateAu.lean`), `File.WriteAt.wp_proof_long` (`WriteLong.lean`,
   past 1 GiB).
 Not yet stated (no `sorry`, no statement): `Close`, `ReleaseLockTo`, `Repair`, `ValidSnapshotEntries`, `Exist`
-(§4.2's W7-W12), the WAL-level resize updates (I3b's open items). `Create`'s ghost steps (drop, mint, unmint, merges) are proved (`wal-create10`; W4 log, tenth session). The record of what is out of the parked state and the changes in flight only on segments out (W3/W5's gaps A and B) are in the invariant, with the pin's and the put-back's moves (`Parked.lean`, `wal-read9`; W1 log, tenth session). A change in flight only on a registered tail (`TailsOnly`), the tails' authority halved with the lock holder (`walTailsFrag`), and `openAtIndex`'s pin (`walInvBody_pin`, `OpenPinTake.lean`) are proved (`wal-read10`; W1 log, eleventh session; W3/W5 log, tenth session).
+(§4.2's W7-W12), the WAL-level resize updates (I3b's open items). `Create`'s ghost steps (drop, mint, unmint, merges) are proved (`wal-create10`; W4 log, tenth session). The record of what is out of the parked state and the changes in flight only on segments out (W3/W5's gaps A and B) are in the invariant, with the pin's and the put-back's moves (`Parked.lean`, `wal-read9`; W1 log, tenth session). A change in flight only on a registered tail (`TailsOnly`), the tails' authority halved with the lock holder (`walTailsFrag`), and `openAtIndex`'s pin (`walInvBody_pin`, `OpenPinTake.lean`) are proved (`wal-read10`; W1 log, eleventh session; W3/W5 log, tenth session). Gap C (every WAL's directory claim once and exclusive, `DirClaimsOk` in `DirKeysOk`), the pin keying its WAL, the put-back (`walInvBody_unpin`), the commit's `unl` raise (`walInvBody_unl`) and the tail's registration (`walTailsRes_register`) are proved (`wal-read11`; W1 log, twelfth session; W3/W5 log, eleventh session).
 
 ## W1 implementation log (branch `wal-inv`, 2026-11-13)
 
@@ -3421,3 +3421,19 @@ tail). Task 3 (the pin, `openAtIndex`, `OpenForRead`, `Open`) not started.
   authority combined, the key inserted/deleted, split back) and **`walTailsRes_register`** (from `walTailsFrag ∅`
   and the record's facts: a fresh `γ`, the invariant's half in `walTailsRes`, the program's half, the key and
   `walTailsFrag {dir ↦ γ}`).
+- *Not done*: `openAtIndex`, `OpenForRead`, `Open`, `ReadAll` (proofs still `sorry`). **Plan for `openAtIndex`**
+  (the next session): (1) a step lemma for the pin, at the first call (`startSnap.Clone()`, `wp_notCrashed_acc`):
+  `walInv_open` at `⊤`, the AU opened at `walAuMask` (as `CutAu`'s `fupd_mask_subseteq`), `walDirIs dir o`'s
+  `walOwn M` against `walGhost s` (`walOwn_agree`); `o = some d`: `walInvBody_pin` with `k lay := walSearch
+  (lay.segs.map (walNameIdx ∘ name)) s.1` (the program's `d.H` is the real one's, `walDurLe`), in write mode
+  `walInvBody_unl` with `p = walOpenPos …` and the commit from `walOwn (unlSt …).wal`, read mode the commit
+  unchanged; `o = none`: commit `Q none`, keep the token, continue on `selectWALFiles.specAbsent`. (2)
+  `selectWALFiles` (premise `WalDirNamesOk` from the pin's new `SegsNamed lay.segs hj.cur`, `walDirNamesOk_of`;
+  its position is `k lay` by `walNamesOut_segs`), `openWALFiles` (`walOpenNames_ok`), `walDecFiles_mk`,
+  `NewDecoder`, the struct; write mode `WAL.tail`, `os.File.Name`, `filepath.Base`, `parseWALName`,
+  `newFilePipeline` (with the pin's `walTmpsRes`). (3) The error arms: `walInvBody_unpin` at the step of the
+  `Errorf` call (`wp_notCrashed_acc` again), `hS` from the pin's `WalAbsD.metas`. (4) `walReadTie` from the pin's
+  outputs (it now holds them, `ReadDefs`). **Coordinator obligations noted**: `walDirH` takes the pipeline count
+  `k` (`sq < 2^63 + k`, `wal-cut10`): `ReadAll`/`openAtIndex` establish the read tail's sequence number below
+  `2^63` with `k = h.pc`; `wal-save11`'s handle facts (`h.cuts` increasing from the layout, the metadata's
+  length bound) are `ReadAll`'s.
