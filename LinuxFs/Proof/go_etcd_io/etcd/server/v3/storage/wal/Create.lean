@@ -8,6 +8,7 @@ module
 
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.Create
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.CreateCallees
+public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__renameWAL
 public import LinuxFs.Spec.go_etcd_io.etcd.server.v3.storage.wal.syncDir
 public import LinuxFs.Spec.path.filepath.Clean
 public import LinuxFs.Spec.path.filepath.Join
@@ -43,9 +44,10 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [fu_sem : go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 variable [os_sem : os.Assumptions] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
+variable [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 
-theorem wal.Create.wp_proof (C : WalCodec) (Mr : WalMarshal)
-    (wp_Exist : wal.Exist.specCreate (GF := GF) C Mr)
+theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
+    (wp_Exist : wal.Exist.specCreate (GF := GF) walCodec Mr)
     (wp_FExist : go_etcd_io.etcd.client.pkg.v3.fileutil.Exist.spec (GF := GF) (hG := hG))
     (wp_Clean : filepath.Clean.spec (GF := GF) (hG := hG))
     (wp_RmAbs : os.RemoveAll.specAbsentS (GF := GF) (hG := hG))
@@ -57,8 +59,9 @@ theorem wal.Create.wp_proof (C : WalCodec) (Mr : WalMarshal)
     (wp_SprintfWal : fmt.SprintfWalName.spec (GF := GF) (hG := hG))
     (wp_Join : filepath.Join.spec (GF := GF) (hG := hG))
     (wp_cNWF : go_etcd_io.etcd.server.v3.storage.wal.createNewWALFile.specLocked (GF := GF) (hG := hG))
-    (wp_OpenC : os.OpenFile.specCreateSnc (GF := GF) (hG := hG)) :
-    wal.Create.spec (GF := GF) C Mr := by
+    (wp_OpenC : os.OpenFile.specCreateSnc (GF := GF) (hG := hG))
+    (_wp_renameWAL : go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.spec (W := W) P Mr) :
+    wal.Create.spec (GF := GF) P Mr := by
   intro lg R jr r dir nm mp md qp Q hin hnmO hdl hr hmp
   wp_start as ⟨#Hzap, #Hmd, #Hok, #Hdd, Hp, Hres, Hperm, Hu, Hau⟩
   try wp_auto
@@ -106,9 +109,9 @@ theorem wal.Create.wp_proof (C : WalCodec) (Mr : WalMarshal)
   iapply wp_notCrashed_acc _ _ rfl
   iintro Hnc
   imod osNames_self R jr N _ h CoPset.subseteq_top $$ Hsi HN with ⟨HN, %hself⟩
-  imod walInv_absent C Mr R jr r N _ h (child r nm) nm md Q hin hNnm $$ Hinv Hsi Hnc Hau HN
+  imod walInv_absent walCodec Mr R jr r N _ h (child r nm) nm md Q hin hNnm $$ Hinv Hsi Hnc Hau HN
     with ⟨Hnc, Hau, HN, %hnmA⟩
-  imod walInv_drop C Mr R jr r N h nm (tmpName nm) ⊤ CoPset.subseteq_top walN_osShN_top hnm hNnm hNt
+  imod walInv_drop walCodec Mr R jr r N h nm (tmpName nm) ⊤ CoPset.subseteq_top walN_osShN_top hnm hNnm hNt
     (tmpName_walNameP nm) (tmpName_not_walName nm) (tmpName_areaSlot hnm) $$ Hinv Hsi Hnc Hu HN
     with ⟨Hnc, Hu, HN, HT⟩
   iframe Hnc
@@ -138,7 +141,7 @@ theorem wal.Create.wp_proof (C : WalCodec) (Mr : WalMarshal)
     icases Ht with ⟨%hT1, Ht⟩
     iapply wp_notCrashed_acc _ _ rfl
     iintro Hnc
-    imod create_abortTmp C Mr R jr r N h cl nm hT1 hok hnm hself $$ Hinv Hsi Hnc Hu HN Ht Hcl
+    imod create_abortTmp walCodec Mr R jr r N h cl nm hT1 hok hnm hself $$ Hinv Hsi Hnc Hu HN Ht Hcl
       with ⟨Hnc, Hu, Hres⟩
     iframe Hnc
     imodintro
@@ -178,7 +181,7 @@ theorem wal.Create.wp_proof (C : WalCodec) (Mr : WalMarshal)
       icases Ht with ⟨%hT3, Ht⟩
       iapply wp_notCrashed_acc _ _ rfl
       iintro Hnc
-      imod create_abortTmp C Mr R jr r N h cl nm hT3 hok hnm hself $$ Hinv Hsi Hnc Hu HN Ht Hcl
+      imod create_abortTmp walCodec Mr R jr r N h cl nm hT3 hok hnm hself $$ Hinv Hsi Hnc Hu HN Ht Hcl
         with ⟨Hnc, Hu, Hres⟩
       iframe Hnc
       imodintro
@@ -280,7 +283,7 @@ theorem wal.Create.wp_proof (C : WalCodec) (Mr : WalMarshal)
       icases Ht with ⟨%hT4, Ht⟩
       iapply wp_notCrashed_acc _ _ rfl
       iintro Hnc
-      imod create_abortTmp C Mr R jr r N h cl nm hT4 hok hnm hself $$ Hinv Hsi Hnc Hu HN Ht Hcl
+      imod create_abortTmp walCodec Mr R jr r N h cl nm hT4 hok hnm hself $$ Hinv Hsi Hnc Hu HN Ht Hcl
         with ⟨Hnc, Hu, Hres⟩
       iframe Hnc
       imodintro

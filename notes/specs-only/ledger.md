@@ -336,3 +336,20 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   ~33 bytes): discharged at C6 from raftpb's encoder.
 - **Decision.** Adopted (the coordinator, the user away): a client-visible law on a parameter, true of
   etcd's marshaller.
+
+## 2026-11-14: `wal.Create.spec` (the part's, over `fsExt`) -- its success post is the ghost-only handle
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/Create.lean` (`wal.Create.spec`), success arm:
+  `walOpenW w dir` (the sealed ghost handle: mode and lock token) and `osCallPerm ½`.
+- **Defect.** `Save`/`SaveSnapshot`/`Sync`/`Close` (W6/W10) take the client handle `walOpenWF P Mr w dir`
+  (`Handle.lean`: `w`'s fields, encoder, tail, pipeline, directory share, `walOpenW` inside), as `ReadAll`
+  returns it; a WAL made by `Create` could not be appended to. The commit's out-record, the tails' authority half,
+  the named entry and the metadata belong in that handle, and were dropped.
+- **Evidence.** W4 log, eleventh session ("For the coordinator"); the coordinator's decision of 2026-11-14
+  (task 3 of `wal-create12`).
+- **Change (made).** `wal.Create.spec (P : WalPbIn GF) (Mr : WalMarshal)` over `walAreaOk walCodec Mr` (the
+  handle's codec, as `Save`'s), `HeapGS HasLC.hasLC` (the handle's receipts); success arm `Q ∗ walOpenWF P Mr w dir ∗
+  walNamed dir ∗ walLenLb w dir 0 ∗ walSyncedLb dir 0 ∗ walPurgeW w dir`, the call permission's half now inside the
+  handle (`walDirH`). An internal refinement: no new client-visible ghost state (`walOpenWF` is the existing
+  handle; it implies `walOpenW`, `walOpenWF_iff`); no client of `Create`'s part spec exists yet.
+- **Decision.** Adopted (coordinator's decision; proof agent, `wal-create12`).
