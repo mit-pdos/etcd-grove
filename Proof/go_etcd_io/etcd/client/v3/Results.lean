@@ -1211,12 +1211,16 @@ theorem etcd_putHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   ihave Hu := HNR
   imod Hu with Hid
   imod (monoNatLbOwn_0 (GF := GF) γr.committed) with #H0
+  ihave #HcA : committedAtLeast γr (W64 0) $$ []
+  · iunfold committedAtLeast; ileft
+    rw [show uint.nat (W64 0) = 0 from rfl]
+    iexact H0
   imod (authPubLbM_zero (GF := GF) E.authMode) with #Hna
   iapply wp_fupd
   iapply (v3rpc.put_end_to_endM p s E ρ γr (W64 0) cid mid n (GoInterface.ok ci) r o F d 0) $$
     [Hlt Hsr Hlg Hrd Hard Hid Hdep]
   · iframe #
-    unfold v3rpc.srvCall srvRdCall committedAtLeast
+    unfold v3rpc.srvCall srvRdCall
     isplitl []
     · ipureintro; exact Hany
     isplitl [Hlt Hid]
@@ -1225,8 +1229,7 @@ theorem etcd_putHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
       iframe #
       ipureintro; rfl
     iframe
-    rw [show uint.nat (W64 0) = 0 from rfl]
-    iframe H0
+    iframe HcA
     ipureintro; exact Hdp
   inext
   iintro %resp %err ⟨Hpost, #HSe⟩
@@ -1536,6 +1539,10 @@ theorem etcd_deleteHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
   ihave Hu := HNR
   imod Hu with Hid
   imod (monoNatLbOwn_0 (GF := GF) γr.committed) with #H0
+  ihave #HcA : committedAtLeast γr (W64 0) $$ []
+  · iunfold committedAtLeast; ileft
+    rw [show uint.nat (W64 0) = 0 from rfl]
+    iexact H0
   imod (authPubLbM_zero (GF := GF) E.authMode) with #Hna
   rw [show v3rpc.kvOpAuM (GF := GF) E.authOn s E ρ (auth.ctxTokenOf (GoInterface.ok ci)) (.deleteRange o) Q =
       v3rpc.kvDepOwnM E.authOn s E ρ γr (auth.ctxTokenOf (GoInterface.ok ci)) (.op1 (.deleteRange o) Q)
@@ -1544,7 +1551,7 @@ theorem etcd_deleteHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
   iapply (v3rpc.deleteRange_end_to_endM p s E ρ γr (W64 0) cid mid n (GoInterface.ok ci) r o F
       (.op1 (.deleteRange o) Q) 0) $$ [Hlt Hsr Hlg Hrd Hard Hid Hau]
   · iframe # Hau
-    unfold v3rpc.srvCall srvRdCall committedAtLeast
+    unfold v3rpc.srvCall srvRdCall
     isplitl []
     · ipureintro; exact Hany
     isplitl [Hlt Hid]
@@ -1553,8 +1560,7 @@ theorem etcd_deleteHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
       iframe #
       ipureintro; rfl
     iframe
-    rw [show uint.nat (W64 0) = 0 from rfl]
-    iframe H0
+    iframe HcA
     ipureintro; exact ⟨⟨⟨Q, rfl⟩, Hz⟩, Hsh⟩
   inext
   iintro %resp %err ⟨Hpost, #HSe⟩

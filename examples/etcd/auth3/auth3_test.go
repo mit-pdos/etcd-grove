@@ -48,9 +48,9 @@ func TestMemberIDs(t *testing.T) {
 
 // TestMainRun runs Main for real: three members in a fresh directory (their DataDirs are
 // relative); the checks must pass. Then it asks the first member, which Main left running, that
-// the cluster has three members, that the principals' requests were refused by the auth checks
-// (not timeouts), and that u's permitted writes took effect (so that the history check was not
-// vacuous).
+// the cluster has three members, asks every member that the principals' requests are refused by
+// the auth checks (not timeouts) and that an anonymous watch of c/ from revision 1 reports no
+// event, and that u's permitted writes took effect (so that the history check was not vacuous).
 func TestMainRun(t *testing.T) {
 	t.Chdir(t.TempDir())
 	if r := Main(); r != auth.Ok {
@@ -58,8 +58,8 @@ func TestMainRun(t *testing.T) {
 	}
 
 	lg := zap.NewNop()
-	newCli := func(user, pw string) *clientv3.Client {
-		cli, err := clientv3.New(clientv3.Config{Endpoints: []string{clientAddr}, Username: user,
+	newCliAt := func(addr, user, pw string) *clientv3.Client {
+		cli, err := clientv3.New(clientv3.Config{Endpoints: []string{addr}, Username: user,
 			Password: pw, Logger: lg})
 		if err != nil {
 			t.Fatal(err)
@@ -70,7 +70,7 @@ func TestMainRun(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	root := newCli("root", "root-pw")
+	root := newCliAt(clientAddr, "root", "root-pw")
 	ml, err := root.MemberList(ctx)
 	if err != nil {
 		t.Fatal(err)
@@ -79,18 +79,29 @@ func TestMainRun(t *testing.T) {
 		t.Fatalf("expected 3 members, got %d", len(ml.Members))
 	}
 
-	u, v, anon := newCli("u", "u-pw"), newCli("v", "v-pw"), newCli("", "")
 	want := func(who string, err, kind error) {
 		if !errors.Is(err, kind) {
 			t.Errorf("%s: got %v, want %v", who, err, kind)
 		}
 	}
-	_, err = u.Put(ctx, "c/u/x", "x")
-	want("u outside", err, rpctypes.ErrPermissionDenied)
-	_, err = v.Put(ctx, "a/v/x", "x")
-	want("v", err, rpctypes.ErrPermissionDenied)
-	_, err = anon.Put(ctx, "a/anon/x", "x")
-	want("anon", err, rpctypes.ErrUserEmpty)
+	for _, addr := range []string{clientAddr, clientAddr2, clientAddr3} {
+		u, v, anon := newCliAt(addr, "u", "u-pw"), newCliAt(addr, "v", "v-pw"), newCliAt(addr, "", "")
+		_, err = u.Put(ctx, "c/u/x", "x")
+		want(addr+": u outside", err, rpctypes.ErrPermissionDenied)
+		_, err = v.Put(ctx, "a/v/x", "x")
+		want(addr+": v", err, rpctypes.ErrPermissionDenied)
+		_, err = anon.Put(ctx, "a/anon/x", "x")
+		want(addr+": anon", err, rpctypes.ErrUserEmpty)
+		_, err = anon.Get(ctx, "c/", clientv3.WithPrefix(), clientv3.WithSerializable())
+		want(addr+": anon serializable read", err, rpctypes.ErrUserEmpty)
+		wctx, wcancel := context.WithTimeout(ctx, 2*time.Second)
+		for wresp := range anon.Watch(wctx, "c/", clientv3.WithPrefix(), clientv3.WithRev(1)) {
+			if len(wresp.Events) > 0 {
+				t.Errorf("%s: anonymous watch reported %d events", addr, len(wresp.Events))
+			}
+		}
+		wcancel()
+	}
 
 	resp, err := root.Get(ctx, "", clientv3.WithPrefix())
 	if err != nil {
@@ -115,7 +126,7 @@ func TestMainRun(t *testing.T) {
 
 // mainServers is Main (test-only: not translated), at the given addresses, returning the members'
 // servers as well, so that a test can read the followers' state: the same members (startMember,
-// the same cluster map shape and names), then auth.Run on the first.
+// the same cluster map shape and names), then run.
 func mainServers(p1, p2, p3, c1, c2, c3 string) (int, [3]*etcdserver.EtcdServer) {
 	var ss [3]*etcdserver.EtcdServer
 	lg := zap.NewNop()
@@ -133,7 +144,7 @@ func mainServers(p1, p2, p3, c1, c2, c3 string) (int, [3]*etcdserver.EtcdServer)
 	if ss[2], err = startMember("auth3-3", peer3, p3, c3, cluster, lg); err != nil {
 		return auth.Failed, ss
 	}
-	return auth.Run(ss[0], c1, lg), ss
+	return run(ss[0], ss[1], ss[2], c1, c2, c3, lg), ss
 }
 
 // TestFollowersApplied runs Main's steps with the servers exposed (mainServers, on addresses of its

@@ -594,7 +594,8 @@ theorem setup_reply_enable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn :
       ∃ (hs : List AuthState) (Lset : List EntryModel) (k : Nat) (r : Nat),
         authHistFrozen ρ.kv γz hs ∗ srvReqLogLb ρ.raft Lset ∗
         ⌜admStates ρ.kv srvAuthSt0 Lset = hs ∧ srvAuthAtLog ρ.kv srvAuthSt0 Lset = setupSt r⌝ ∗
-        auth.authPubLb γa k ∗ auth.authStateAt γa k (setupSt r) := by
+        auth.authPubLb γa k ∗ auth.authStateAt γa k (setupSt r) ∗
+        ∃ Lc : List EntryModel, srvRLogLb ρ.raft Lc ∗ ⌜srvAuthAtLog ρ.kv srvAuthSt0 Lc = setupSt r⌝ := by
   iintro #Hc #Hn #Hx #Hr
   iunfold v3rpc.adminReplied at Hr
   icases Hr with ⟨%hm, %rq', %L, %Hw, #HL, #Hpub, #Hq, #Hb⟩
@@ -630,8 +631,11 @@ theorem setup_reply_enable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn :
     have hx : (kvRaftOfOn ρ.kv.c0 ρ.kv.ch0 (srvAuthSt0, ρ.kv.log0) (L ++ [e])).1 = setupSt r := by
       show srvAuthAtLog ρ.kv srvAuthSt0 (L ++ [e]) = _
       rw [hsnoc]; refine hset.trans ?_; rw [hr]
-    rw [← hx]
-    iexact Hst
+    isplitl []
+    · rw [← hx]; iexact Hst
+    iexists L ++ [e]
+    iframe HLe
+    ipureintro; exact hx
   · imod (setup_reply_like ρ γz L Ek h1 h2 hen) $$ Hc Hn Hlb with Hl
     icases Hl with %hl
     have hsame : adminNext (apply.withHeader irrAuthEnable hm) (srvAuthAtLog ρ.kv srvAuthSt0 L) =
@@ -822,7 +826,8 @@ theorem setup_post_enable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : 
       ∃ (hs : List AuthState) (Lset : List EntryModel) (k : Nat) (r : Nat),
         authHistFrozen ρ.kv γz hs ∗ srvReqLogLb ρ.raft Lset ∗
         ⌜admStates ρ.kv srvAuthSt0 Lset = hs ∧ srvAuthAtLog ρ.kv srvAuthSt0 Lset = setupSt r⌝ ∗
-        auth.authPubLb γa k ∗ auth.authStateAt γa k (setupSt r) := by
+        auth.authPubLb γa k ∗ auth.authStateAt γa k (setupSt r) ∗
+        ∃ Lc : List EntryModel, srvRLogLb ρ.raft Lc ∗ ⌜srvAuthAtLog ρ.kv srvAuthSt0 Lc = setupSt r⌝ := by
   iintro #Hc #Hn #Hx Hr
   iunfold setupReplied at Hr
   icases Hr with ⟨%md, %hmd, #Hr⟩

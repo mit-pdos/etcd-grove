@@ -383,7 +383,7 @@ theorem SetUp.wp_proof
         itrivial
     subst Herr7
     imod (setup_post_enable s E ρ conn _ γz γa hmode hc0 ⊤ (fun _ _ => CoPset.mem_full)
-      (fun _ _ => CoPset.mem_full)) $$ Hc Hn Hx Hq7 with ⟨%hs, %Lset, %k, %r, #Hf, #HLs, %Hd, #Hk, #Hst⟩
+      (fun _ _ => CoPset.mem_full)) $$ Hc Hn Hx Hq7 with ⟨%hs, %Lset, %k, %r, #Hf, #HLs, %Hd, #Hk, #Hst, %Lc, #HLc, %HLc⟩
     (try wp_auto)
     wp_apply Hcancel
     (try wp_auto)
@@ -391,7 +391,11 @@ theorem SetUp.wp_proof
     simp only [↓reduceIte]
     iexists γz, hs, Lset, k, r
     iframe Hf HLs Hk Hst
-    ipureintro; exact Hd
+    isplitr
+    · ipureintro; exact Hd
+    iexists Lc
+    iframe HLc
+    ipureintro; exact HLc
 
 end proof
 

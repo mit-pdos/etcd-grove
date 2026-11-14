@@ -1,20 +1,20 @@
 /-
-`Main()` (`examples/etcd/auth3/auth3.go`; the auth3 Scope's A1, 2026-11-14): **proved**, over its
+`Main()` (`examples/etcd/auth3/auth3.go`; the auth3 Scope's A1, 2026-11-14, and A2): **proved**, over its
 callees' specs. Lean-first (no Rocq counterpart).
 
 The steps: putget3's start with auth on (the logger; the peer URL slices and the initial cluster's
-map, read-only; the cluster's ghost state with auth on, `etcdstart.alloc3On`; the three members,
-`startMember`, the thread token passed along, as putget3's `StartMember`s), the history invariant
-over member 1's KV names (`akHist_alloc`, at the boot state, `stateHistOk_boot`), then authkv's run
-on member 1 (`auth.Run`, its spec `etcd_auth.Run.spec`): its gRPC API at its client address (the
-listen right from its fresh bundle), the client's view of the auth history at the start. Every error
-returns `Failed`.
+map, read-only; the cluster's ghost state with auth on, `etcdstart.alloc3On`, with the members'
+names of one cluster, `sameCluster`; the three members, `startMember`, the thread token passed
+along, member 2's and 3's kept without it), the history invariant over member 1's KV names
+(`akHist_alloc`, at the boot state, `stateHistOk_boot`), then `run` across the three members (its
+spec `run.spec`): each member's gRPC API at its client address (the listen rights from the fresh
+bundles), the client's view of the auth history at the start. Every error returns `Failed`.
 -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth3.Main
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth3.startMember
-public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Run
+public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth3.run
 public import Spec.go_uber_org.zap.NewNop
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Alloc3On
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Hist
@@ -129,7 +129,7 @@ set_option maxHeartbeats 1000000 in
 theorem Main.wp_proof
     (wp_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
     (wp_startMember : startMember.spec (GF := GF) (hG := hG))
-    (wp_Run : etcd_auth.Run.spec (GF := GF) (hG := hG))
+    (wp_run : run.spec (GF := GF) (hG := hG))
     (hne : mvcc.api.names_nonempty.law) :
     Main.spec (GF := GF) (hG := hG) := by
   intro CS ES FS RS CRE CEC N id₁ id₂ id₃ ps ctxs boot Hbf Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo
@@ -214,13 +214,15 @@ theorem Main.wp_proof
   have hblen0 : boot.length = 3 := by rw [Hbf.boot.1, Hbf.perm.length_eq]; rfl
   imod (etcdstart.alloc3On hne id₁ id₂ id₃ ps Hbf.perm ctxs boot Hbf.toBootCore
       (dir3 id₁ id₂ id₃) peerAddr₁ peerAddr₂ peerAddr₃ (dir3_ok id₁ id₂ id₃ ps ctxs boot Hbf).1
-      (dir3_host id₁ id₂ id₃) (by omega) (by omega) name₁ name₂ name₃ (some clientAddr₁) none none)
+      (dir3_host id₁ id₂ id₃) (by omega) (by omega) name₁ name₂ name₃ (some clientAddr₁) (some clientAddr₂) (some clientAddr₃))
       $$ Hmarsh Hs₁ Hs₂ Hs₃
     with ⟨%γ, %reg₁, %reg₂, %reg₃, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hal,
     Hmb₁, ⟨#Hnet₁, Hfr₁⟩, Hmb₂, ⟨#Hnet₂, Hfr₂⟩, Hmb₃, ⟨#Hnet₃, Hfr₃⟩, Hetcd, Hview⟩
-  -- member 1's client address's listen right, out of its fresh bundle (to `Run`'s `Serve`)
+  -- the members' client addresses' listen rights, out of their fresh bundles (to `run`'s `Serve`s)
   icases etcdstart.memberFreshRes_client _ _ _ _ rfl $$ Hfr₁ with ⟨Hac, Hfr₁⟩
-  obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hc0₁, hlog₁⟩ := Hal
+  icases etcdstart.memberFreshRes_client _ _ _ _ rfl $$ Hfr₂ with ⟨Hac₂, Hfr₂⟩
+  icases etcdstart.memberFreshRes_client _ _ _ _ rfl $$ Hfr₃ with ⟨Hac₃, Hfr₃⟩
+  obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hc0₁, hlog₁, hs₂, hs₃⟩ := Hal
   -- the history invariant over member 1's KV names, at the boot state
   have hσ₀ : etcd_auth.stateHistOk (kvStateOf (kvModelOn ρ₁.rd.kv srvAuthSt0
       (bootEntries (LogEntry.toEntries boot 0)))) :=
@@ -276,7 +278,7 @@ theorem Main.wp_proof
     iapply HΦ; ipureintro; right; left; rfl
   subst Herr
   wp_auto
-  icases memberUpOn_tok _ _ _ _ _ _ _ $$ Hup₂ with ⟨Htok, -⟩
+  icases memberUpOn_tok _ _ _ _ _ _ _ $$ Hup₂ with ⟨Htok, Hup₂⟩
   wp_apply (wp_startMember N name₃ peerAddr₃ clientAddr₃
       (slice.mk peer₃ (W64 1) (W64 1)) pm lg
       (GMap.insert name₃ (slice.mk peer₃ (W64 1) (W64 1)) (GMap.insert name₂ (slice.mk peer₂ (W64 1) (W64 1))
@@ -297,11 +299,14 @@ theorem Main.wp_proof
     iapply HΦ; ipureintro; right; left; rfl
   subst Herr
   wp_auto
-  icases memberUpOn_tok _ _ _ _ _ _ _ $$ Hup₃ with ⟨Htok, -⟩
+  icases memberUpOn_tok _ _ _ _ _ _ _ $$ Hup₃ with ⟨Htok, Hup₃⟩
   ihave Hup₁ := Hup₁ $$ Htok
-  -- `auth.Run(s, clientAddr, lg)` on member 1
-  wp_apply (wp_Run s₁ lg clientAddr₁ ρ₁ E₁ γn id₁ γa (by unfold plainEndpoint clientAddr₁; decide)
-      Htb HLv Hrb48 Hbuq Hrf Hms hAs hc0₁ hlog₁) $$ [Hac Hup₁ Hview] as %r %Hr
+  -- `run(s1, s2, s3, clientAddr, clientAddr2, clientAddr3, lg)`
+  wp_apply (wp_run s₁ s₂ s₃ lg clientAddr₁ clientAddr₂ clientAddr₃ ρ₁ ρ₂ ρ₃ E₁ E₂ E₃ γn id₁ id₂ id₃
+      γa γa₂ γa₃ (by unfold plainEndpoint clientAddr₁; decide)
+      (by unfold plainEndpoint clientAddr₂; decide) (by unfold plainEndpoint clientAddr₃; decide)
+      Htb HLv Hrb48 Hbuq Hrf Hms hAs hc0₁ hlog₁ hs₂ hs₃)
+    $$ [Hac Hac₂ Hac₃ Hup₁ Hup₂ Hup₃ Hview] as %r %Hr
   · iframe; iframe #
   iapply HΦ; ipureintro; exact Hr
 

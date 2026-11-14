@@ -35,7 +35,8 @@ lower bound `n` of the auth store's published index the reader holds (`srvAuthLb
 (`kvStM E.authOn`: a client's `Get` update, or nothing). Success: the auth store's
 `IsRangePermitted` passed for some auth info at states no older than some `m ≥ n`
 (`apply.rangeClassFrom`: with auth off, a pass), the info the caller's (`infoBoundM`: with auth on,
-the empty user or one bound to the context's token) and, for a linearizable read with auth on, no
+the empty user or one bound to the context's token), the store published through `m`
+(`auth.authPubLbM`: the auth3 A2 read barrier, 2026-11-14) and, for a linearizable read with auth on, no
 older than the auth state the committed log through the read index left (`authFloorAt`); and the
 txn package's answer at a certified log of at least two revisions, after the read index unless
 serializable, the header's id fields owned, a linearizable one at the mode's model of a committed
@@ -59,7 +60,7 @@ abbrev EtcdServer.Range.spec : Prop :=
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvRdCall s E γr c ∗
       ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗
           (∃ (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (m : Nat), ⌜n ≤ m⌝ ∗ apply.rangeClassFrom E.authMode m info o ∗
-            infoBoundM E.authOn s E (GoInterface.ok ctx) info ∗
+            infoBoundM E.authOn s E (GoInterface.ok ctx) info ∗ auth.authPubLbM E.authMode m ∗
             (if o.base.serializable then iprop(True) else authFloorAt E.authMode γr c m)) ∗
           rangeReadOkM E.authOn E γr c F o resp Q) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗

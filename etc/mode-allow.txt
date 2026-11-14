@@ -127,3 +127,6 @@ lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/MainSe
 lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/WorkEnv\.lean::  # 1
 lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth/startServer\.lean::  # 3
 lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/startMember\.lean::  # 3 (auth3 A1, 2026-11-14): authkv's startServer at a member of three
+lit-mode unmoved ^Spec/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/barrier\.lean::  # 1 (auth3 A2, 2026-11-14): a member started with auth on (memberUpOn_served's read view), as authkv's WorkEnv
+lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/AuthFixed\.lean::  # 1 (auth3 A2, 2026-11-14): the barrier lemma over akAuthFixed_alloc's read view, as authkv's WorkEnv
+lit-mode unmoved ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/run\.lean::  # 1 (auth3 A2, 2026-11-14): serve_member, authkv's Run's Serve step

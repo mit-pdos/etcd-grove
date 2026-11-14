@@ -427,7 +427,7 @@ theorem Main.wp_proof
         (opSizeOk_opGetModel (K := 2) (E := 0) (V := 0) (optsKeep_nil _ _ _) hkl (by decide)))
         as %gresp %gerr Hget
     · iframe #
-      iunfold committedAtLeast
+      iunfold committedAtLeast; ileft
       iExactEq Hc0; rfl
     (try wp_auto)
     wp_apply Hgcancel

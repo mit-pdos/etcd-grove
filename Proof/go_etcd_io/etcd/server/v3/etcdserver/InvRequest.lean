@@ -1446,9 +1446,16 @@ instance kvBatch_persistent (γr : ReadNames) (c ai : w64) (A ms : List EntryMod
 /-- The applied index is at least `i` (persistent). -/
 def appliedAtLeast (γr : ReadNames) (i : w64) : IProp GF := monoNatLbOwn γr.applied (uint.nat i)
 
-/-- The cluster's committed index is at least `i` (persistent: what a caller knew). -/
+/-- **The cluster's committed index is at least `i`** (persistent: what a caller knew): a lower
+bound of the member's own committed index (`s.committedIndex`, `γr.committed`), or (the auth3 A2
+read barrier, 2026-11-14) a committed raft log at least `i` long, known by any client of any
+member. The second disjunct is sound for every reader of the bound: `srvRLogLb` is a lower bound of
+the cluster's committed log, which is all the read loop needs of a caller's bound
+(`committedAtLeast_log`: raft's `ReadIndex` takes a committed log at least the bound long; etcd's
+read index is the leader's commit index, at least every entry committed before the request). -/
 def committedAtLeast (γr : ReadNames) (i : w64) : IProp GF :=
-  monoNatLbOwn γr.committed (uint.nat i)
+  iprop(monoNatLbOwn γr.committed (uint.nat i) ∨
+    ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜uint.Z i ≤ uint.Z γr.raft.ai0 + L.length⌝)
 
 instance appliedAtLeast_persistent (γr : ReadNames) (i : w64) :
     Persistent (appliedAtLeast (GF := GF) γr i) := by
@@ -1495,7 +1502,20 @@ theorem committedAtLeast_le (γr : ReadNames) (i j : w64) (h : uint.Z j ≤ uint
   iintro H
   iunfold committedAtLeast at H
   iunfold committedAtLeast
-  iapply monoNatLbOwn_le (uint.nat j) (by word) $$ H
+  icases H with (H | ⟨%L, #HL, %HLi⟩)
+  · ileft; iapply monoNatLbOwn_le (uint.nat j) (by word) $$ H
+  · iright; iexists L; iframe HL; ipureintro; word
+
+/-- A lower bound of the member's committed index is a `committedAtLeast`. -/
+theorem committedAtLeast_of_lb (γr : ReadNames) (i : w64) :
+    monoNatLbOwn (GF := GF) γr.committed (uint.nat i) ⊢ committedAtLeast γr i := by
+  iintro H; iunfold committedAtLeast; ileft; iexact H
+
+/-- A committed raft log at least `i` long is a `committedAtLeast` (the second disjunct). -/
+theorem committedAtLeast_of_rlog (γr : ReadNames) (i : w64) (L : List EntryModel)
+    (h : uint.Z i ≤ uint.Z γr.raft.ai0 + L.length) :
+    srvRLogLb (GF := GF) γr.raft L ⊢ committedAtLeast γr i := by
+  iintro H; iunfold committedAtLeast; iright; iexists L; iframe H; ipureintro; exact h
 
 /-- **A batch's last entry is committed** (persistent; 2026-10-14, unit C2a): the committed index
 has reached the batch's last index (the raft loop's `updateCommittedIndex` before it hands the
@@ -2475,21 +2495,23 @@ theorem committedAtLeast_log (s : Loc) (γr : ReadNames) (n : w64) (E : CoPset)
     ⊢ srvCommittedInv (GF := GF) s γr -∗ committedAtLeast γr n ={E}=∗
       ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜uint.Z n ≤ uint.Z γr.raft.ai0 + L.length⌝ := by
   iintro #Hinv #Hn
-  iunfold srvCommittedInv at Hinv
-  iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%v, Hv, Hauth, ⟨%L, #HL, %HvL⟩⟩
   iunfold committedAtLeast at Hn
-  ihave %Hle := monoNatLbOwn_valid γr.committed _ _ _ $$ Hauth Hn
-  imod Hclose $$ [Hv Hauth] with -
-  · inext; iexists v; iframe Hv Hauth; iexists L; iframe HL; ipureintro; exact HvL
-  imodintro
-  iexists L
-  iframe HL
-  ipureintro
-  have h := Hle.2
-  have h1 := uint_nat_eq n
-  have h2 := uint_nat_eq v
-  omega
+  icases Hn with (#Hn | ⟨%L0, #HL0, %HL0⟩)
+  · iunfold srvCommittedInv at Hinv
+    iinv Hinv with >Hi Hclose
+    icases Hi with ⟨%v, Hv, Hauth, ⟨%L, #HL, %HvL⟩⟩
+    ihave %Hle := monoNatLbOwn_valid γr.committed _ _ _ $$ Hauth Hn
+    imod Hclose $$ [Hv Hauth] with -
+    · inext; iexists v; iframe Hv Hauth; iexists L; iframe HL; ipureintro; exact HvL
+    imodintro
+    iexists L
+    iframe HL
+    ipureintro
+    have h := Hle.2
+    have h1 := uint_nat_eq n
+    have h2 := uint_nat_eq v
+    omega
+  · imodintro; iexists L0; iframe HL0; ipureintro; exact HL0
 
 /-- **The writer's half of the committed index's authority** at `v` (unit 4c's
 `updateCommittedIndex`; unused in 4b). -/

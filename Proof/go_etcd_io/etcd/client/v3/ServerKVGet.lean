@@ -308,7 +308,7 @@ theorem kv_get_server_r (api : Loc) (addr : List GoString) (s : Loc) (E : apply.
       · iintro !> %h; cases h
   imod (monoNatLbOwn_0 (GF := GF) γr.committed) with #H0
   ihave #Hc0 : committedAtLeast γr (W64 0) $$ []
-  · unfold committedAtLeast
+  · unfold committedAtLeast; ileft
     rw [show uint.nat (W64 0) = 0 from rfl]
     iexact H0
   ihave #Hus := rangeUpd_srvsAt addr E γr cid mid (rangeWireOf (opGetModel key gs)) Q $$ Hdq

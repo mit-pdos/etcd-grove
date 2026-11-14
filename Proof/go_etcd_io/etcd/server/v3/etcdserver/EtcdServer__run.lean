@@ -1108,7 +1108,7 @@ theorem EtcdServer.run.wp_proofG
         ihave #Hlb := monoNatLbOwn_get γr.committed _ _ $$ Hown
         ihave #Hca : iprop(committedAtLeast γr ci') $$ []
         · iapply committedAtLeast_le γr cci ci' (by word)
-          iunfold committedAtLeast
+          iunfold committedAtLeast; ileft
           iexact Hlb
         (try wp_auto)
         iapply HΦ'

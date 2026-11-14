@@ -2170,7 +2170,7 @@ theorem srvStart_alloc (ms : List (SrvAt GF)) :
     iunfold srvStart
     iunfold srvApi.kvLogLb
     iframe HF0
-    iunfold committedAtLeast
+    iunfold committedAtLeast; ileft
     iExactEq Hc0; rfl
 
 end start_alloc

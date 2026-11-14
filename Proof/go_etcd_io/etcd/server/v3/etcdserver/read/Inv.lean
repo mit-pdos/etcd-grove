@@ -606,7 +606,7 @@ theorem read_swap (γr : ReadNames) (nc : Loc) (γn : NeedNames) (nc' : Loc) (γ
     rw [show uint.nat (W64 0) = 0 by word]
     iframe Hauth' Hlist'
     isplitl []
-    · iunfold committedAtLeast
+    · iunfold committedAtLeast; ileft
       rw [show uint.nat (W64 0) = 0 by word]
       iexact H0
     iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2

@@ -273,7 +273,7 @@ theorem Run.wp_proof
   wp_auto
   -- the auth state fixed after the set-up (S6, `akAuthFixed_alloc`), from `SetUp`'s post
   rw [ite_eq_left rfl]
-  icases Hok with ⟨%γz, %hs, %Lset, %kpub, %rset, #Hfz, #Hllb, %Hadm, #Hpub, #Hsst⟩
+  icases Hok with ⟨%γz, %hs, %Lset, %kpub, %rset, #Hfz, #Hllb, %Hadm, #Hpub, #Hsst, -⟩
   -- (N6) `memberUpOn_served`'s read view is at the mode `E.authOn`, which is `true`
   have hfix := akAuthFixed_alloc srv E γa { ρ with wait := γw } γz hs Lset kpub rset HEo
   rw [← hon] at hfix

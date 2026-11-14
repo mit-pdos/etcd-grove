@@ -213,7 +213,7 @@ theorem restartCheck.wp_proof
       (opSizeOk_opGetModel (K := 1) (E := 0) (V := 0) (optsKeep_nil _ _ _) (by decide) (by decide)))
     as %gresp %gerr Hget
   · iframe #
-    iunfold committedAtLeast
+    iunfold committedAtLeast; ileft
     iExactEq Hc0; rfl
   -- `gcancel()`
   (try wp_auto)
