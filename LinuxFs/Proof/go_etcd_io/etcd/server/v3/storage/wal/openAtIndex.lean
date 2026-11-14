@@ -637,7 +637,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       iframe
       iframe #
       isplitr
-      · ipureintro; exact Nat.le_refl 0
+      · ipureintro; exact ⟨Nat.le_refl 0, trivial⟩
       · ipureintro; exact hfpn
 
 end proof

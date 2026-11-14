@@ -380,6 +380,24 @@ def walUnlockedTok : IProp GF :=
   iprop(token W.hA.γu ∗ walParkFrag (W := W) true ∗ walCutFrag (W := W) none ∗
     walOutFrag (W := W) WalOut.empty ∗ walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none)
 
+/-- **The free lock token but its names fragment** (`walUnlockedTok` less `walNamesFrag none`): what
+`Close.specU` returns of the handle before naming, whose names fragment is `Create`'s pending
+registration (`some dir`; design P, `notes/wal-units/create.md`). With `walNamesFrag none` it is the
+free token (`walUnlockedTokX_join`). -/
+def walUnlockedTokX : IProp GF :=
+  letI := walAllG (W := W)
+  iprop(token W.hA.γu ∗ walParkFrag (W := W) true ∗ walCutFrag (W := W) none ∗
+    walOutFrag (W := W) WalOut.empty ∗ walTailsFrag (W := W) ∅)
+
+theorem walUnlockedTokX_join :
+    walUnlockedTokX (W := W) ∗ walNamesFrag (W := W) none ⊣⊢ walUnlockedTok (W := W) := by
+  unfold walUnlockedTokX walUnlockedTok
+  constructor
+  · iintro ⟨⟨H1, H2, H3, H4, H5⟩, H6⟩
+    iframe
+  · iintro ⟨H1, H2, H3, H4, H5, H6⟩
+    iframe
+
 /-- **The lock token as an open handle holds it**: the parking flag at `false` (the handle may hold
 program halves the invariant would otherwise park), no cut's rename pending (a cut sets the flag to
 its directory at the rename and back to `none` at the directory's sync: `walCut_begin`/`_end`).
@@ -713,6 +731,19 @@ theorem walLockedTok_unlock (b : Bool) :
   imod walPark_set (W := W) b false true $$ Ha Hf with ⟨Ha, Hf⟩
   imodintro
   iframe Ha Ht Hf Hc Ho Htf Hn
+  ipureintro; exact hb
+
+/-- `walLockedTok_unlock` without the names fragment (`walUnlockedTokX`). -/
+theorem walLockedTok_unlockX (b : Bool) :
+    ⊢@{IProp GF} walParkAuth (W := W) b -∗ walLockedTok (W := W) -∗
+      walOutFrag (W := W) WalOut.empty -∗ walTailsFrag (W := W) ∅ ==∗
+      ⌜b = false⌝ ∗ walParkAuth (W := W) true ∗ walUnlockedTokX (W := W) := by
+  unfold walUnlockedTokX walLockedTok
+  iintro Ha ⟨Ht, Hf, Hc⟩ Ho Htf
+  icases walPark_agree (W := W) b false $$ Ha Hf with %hb
+  imod walPark_set (W := W) b false true $$ Ha Hf with ⟨Ha, Hf⟩
+  imodintro
+  iframe Ha Ht Hf Hc Ho Htf
   ipureintro; exact hb
 
 /-- The halves of the pending registration agree. -/

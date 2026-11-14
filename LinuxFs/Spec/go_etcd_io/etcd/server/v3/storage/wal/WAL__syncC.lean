@@ -35,19 +35,21 @@ tail's size grown to cover them if they pass it), the tail fdatasynced: the hist
 `TailSynced`, the W7-W12 log's sixth session). The window may be open before
 (`TailMetaW`: a write past the preallocated size, W6 log, thirteenth session). *Error*: the handle lost but
 the lock token (`walLockedTok`: `Close` returns before it unlocks, and `Create`'s cleanup must still merge
-`nm.tmp`'s claim back, which needs a token excluding the free one; ledger 2026-11-14). -/
+`nm.tmp`'s claim back, which needs a token excluding the free one; ledger 2026-11-14) and the names
+fragment (`walNamesFrag nf`: `Create`'s pending registration, which its cleanup completes when nothing was
+renamed; `notes/wal-units/create.md`). -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specC (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
   ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (j : Ino) (h : WalHS)
-    (nmd : IProp GF),
+    (nmd : Roots → Qp → IProp GF) (nf : Option GoString),
   h.rest = 0 →
-  {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walHandleC P Mr w dir j h TailMetaW nmd }}
+  {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walHandleC P Mr w dir j h TailMetaW nmd nf }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"sync")) (Val #()))
   {{ (err : GoInterface), RET #err;
       (⌜err = GoInterface.nil⌝ ∗ walHandleC P Mr w dir j
           { h with out := h.out ++ h.pend, pend := [], sz := max h.sz (h.o0 + h.out.length + h.pend.length) }
-          TailMetaS nmd ∗
+          TailMetaS nmd nf ∗
           WalFs.walSyncedLb dir h.H.length) ∨
-      (⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walLockedTok) }}
+      (⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walLockedTok ∗ WalFs.walNamesFrag nf) }}
 
 end spec
 

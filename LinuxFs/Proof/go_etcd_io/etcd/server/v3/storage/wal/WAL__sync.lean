@@ -427,7 +427,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofC [os.file.FieldA
     (wp_Duration : zap.Duration.spec (GF := GF) (hG := hG))
     (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specC (W := W) P Mr := by
-  intro R jr r w dir j h nmd hrest
+  intro R jr r w dir j h nmd nf hrest
   wp_start_folded as ⟨#Harea, Hh⟩
   iunfold walHandleC at Hh
   icases Hh with ⟨%lg, %df, %sp, %e, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm,
@@ -456,6 +456,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofC [os.file.FieldA
   · iright
     isplitr
     · ipureintro; exact H0
+    unfold walDirH
+    icases Hdh with ⟨%Rd, %qd, %X, %hj, %nm0, %ph, -, -, -, -, -, -, -, -, -, Hnf, -⟩
+    iframe Hnf
     iapply walOpenW_lockedTok $$ Hopen
 
 /-- **`WAL.sync.specCut`**: `sync.spec` at a handle whose size is its write position

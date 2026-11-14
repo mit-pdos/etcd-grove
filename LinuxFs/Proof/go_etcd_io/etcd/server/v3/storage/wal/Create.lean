@@ -127,15 +127,16 @@ names `Create`'s hypotheses. The error exits (`OpenDir`, `Fsync`, the close: `cl
 macro "create_named_cont" w:term : tactic => `(tactic| (
     iunfold createUH at HUH
     icases HUH with ⟨HQ, ⟨%s', #Hpast, %hs'⟩, ⟨%c, %hn, Hnm, %hnm⟩, #HlbX, ⟨%ht, Htmp, %hht⟩, Hsf'⟩
+    obtain ⟨_hcq, hnm⟩ := hnm
     try wp_auto
     -- `pdir, perr := fileutil.OpenDir(filepath.Dir(w.dir))`
-    icases walOpenWFU_dirAcc P Mr $w (child r nm) $$ Hw with ⟨Hdir, Hw⟩
+    icases walOpenWFU_dirAcc P Mr $w (child r nm) _ _ $$ Hw with ⟨Hdir, Hw⟩
     try wp_auto
     wp_apply wp_Dir (child r nm) as %pd %hpd
     rw [dir_child_model hrc hnmO] at hpd
     subst pd
     ihave Hw := Hw $$ Hdir
-    icases walOpenWFU_permAcc P Mr $w (child r nm) $$ Hw with ⟨Hperm, Hw⟩
+    icases walOpenWFU_permAcc P Mr $w (child r nm) _ _ $$ Hw with ⟨Hperm, Hw⟩
     wp_apply wp_OpenDir r R jr (DFrac.own (e + a')) (1 : Qp).half.half $$ [Hp Hperm]
       as %pf %perr ⟨Hp, Hperm, Hod⟩
     · iframe; iframe #
@@ -157,15 +158,6 @@ macro "create_named_cont" w:term : tactic => `(tactic| (
       sorry
     subst hfe
     try wp_auto
-    -- the parent's fsync names the WAL
-    obtain ⟨hnc, ex, Ex, hlw, hEx⟩ := hnm
-    iapply wp_notCrashed_acc _ _ rfl
-    iintro Hnc
-    imod walInv_named walCodec Mr R jr r (child r nm) nm s' (walDurFresh md) (.only [nm]) (DFrac.own c)
-      hn x.1 ex Ex J (x.1 + 1) hs' hin (by simp [NameSet.Mem]) hlw (by omega) hEx
-      $$ Hinv Hsi Hnc Hpast Hnm Hcm with ⟨Hnc, -, #Hnamed⟩
-    iframe Hnc
-    imodintro
     -- `walFsyncSec.Observe(time.Since(start).Seconds())`
     ihave #Henv0 := Henv
     iunfold encEnv at Henv0
@@ -196,7 +188,21 @@ macro "create_named_cont" w:term : tactic => `(tactic| (
       (tmpName_nameOk hnmO) hht $$ [Hp Htmp Hperm] as %err' ⟨Hp, Htmp, Hperm, -⟩
     · iframe; iframe #
     ihave Hw := Hw $$ Hperm
-    ihave Hw := walOpenWFU_named P Mr $w (child r nm) $$ Hw Hnamed
+    -- the success exit (after the parent's close: the twenty-seventh session): the parent's fsync names
+    -- the WAL (`walInv_named`), and the name is registered now (`walInv_register`; design P,
+    -- `notes/wal-units/create.md`), the handle sealed (`walOpenWFU_seal`)
+    obtain ⟨hnc, ex, Ex, hlw, hEx⟩ := hnm
+    icases walOpenWFU_seal P Mr $w (child r nm) _ _ $$ Hw with ⟨Hnf, Hw⟩
+    iapply wp_notCrashed_acc _ _ rfl
+    iintro Hnc
+    imod walInv_named walCodec Mr R jr r (child r nm) nm s' (walDurFresh md) (.only [nm]) (DFrac.own c)
+      hn x.1 ex Ex J (x.1 + 1) hs' hin (by simp [NameSet.Mem]) hlw (by omega) hEx
+      $$ Hinv Hsi Hnc Hpast Hnm Hcm with ⟨Hnc, Hnm, #Hnamed⟩
+    imod walInv_register walCodec Mr R jr r s' (child r nm) nm Wn c hn hin hnmO
+      (by rw [hs']; simp) $$ Hinv Hsi Hnc Hpast Hnf Hsf' Hnm with ⟨Hnc, Hnf, Hsf'⟩
+    iframe Hnc
+    imodintro
+    ihave Hw := Hw $$ Hnf Hnamed
     iapply wp_notCrashed_acc _ _ rfl
     iintro Hnc
     imod create_areaBack walCodec Mr R jr r N h cl nm ht Wn (walOpenWF P Mr $w (child r nm))
@@ -894,7 +900,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
           (Nat.le_max_left _ _) (Nat.le_max_right _ _) hJcoh hJcur hokS' hm2s hm2c hmaps2⟩
     wp_apply _wp_renameWAL R jr J r (child r nm) nm (tmpName nm) (.only [nm, tmpName nm]) hC _
       (e + a') (DFrac.own d) wl lg mp md enc lf f snapi' enti' fd _ _ _ _ _ _ _
-      (createUH jr J r nm md Q Wn) hOk
+      (createUH jr J r nm md Q Wn d) hOk
       $$ [Hp Hperm HC Hau HSp HTmps Hpre fp dirFile Henc Hf Hfd Hoff] as %w' %err Hpost
     · iframe; iframe #
       iunfold walLockIn
@@ -902,7 +908,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     unfold renameWALPost
     icases Hpost with ⟨Hp, Hpost⟩
     icases Hpost with (⟨%herr, %x, %fp, %γ, %sz, %df, %dfd, %hfpn, HU, HSpR, Hpre, Hlk, Hfpf, Hpipe, Hmain,
-        Ht1, Hdff, Hdf, Hdfd, Hsd, Hperm, Hcp⟩ | ⟨%herr, %x, HUH, Hw, Hpw, Hcp⟩ |
+        Ht1, Hdff, Hdf, Hdfd, Hsd, Hperm, Hcp⟩ | ⟨%herr, %x, %qd, %hqd, HUH, Hw, Hpw, Hcp⟩ |
       ⟨%herr, HU, HC, Hperm, HSp, HTmps, -, Hll⟩ | ⟨%herr, %x, HU, HSpR, Hperm, Hll⟩)
     · -- committed, `w` returned: the name registered, the handle minted and assembled
       -- (`create_ghost`, `create_handleIn`: the handle before naming)
@@ -914,7 +920,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
       iapply wp_notCrashed_acc _ _ rfl
       iintro Hnc
       imod create_ghost Mr R jr r nm hC md Q J (hJ'.restrict J ((NameSet.except []).diff walTmps))
-        (createSeg i mS ysS) Wn (b1 + b1) x wl hin hnmO $$ Hsi Hnc HU HSpR Hsf
+        (createSeg i mS ysS) Wn (b1 + b1) d x wl hd $$ Hnc HU HSpR Hsf
         with ⟨Hnc, HUH, -, Hh, Hm, Hb, Ho, Htr, Hnf, #Hk⟩
       iframe Hnc
       imodintro
@@ -953,12 +959,12 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
         (openFd i (wal.walOpenFlag false ||| W64 524288)) _ (createSeg i mS ysS) jr J
         (hJ'.restrict J ((NameSet.except []).diff walTmps)) R d dfd df (child r nm) null func.nil fp γ R
         (DFrac.own d) sz rfl hwr hoffE hmp rfl htmS hL hszS hj0 hj1 hfpn
-        hfi.1 $$ [Hpre Henc Hf Hfd Hoff Htr Hm Hb HJx Hsd Hperm Hdfd Ho Hnf Hdff Hdf state decoder readClose
+        hfi.1 rfl rfl $$ [Hpre Henc Hf Hfd Hoff Htr Hm Hb HJx Hsd Hperm Hdfd Ho Hnf Hdff Hdf state decoder readClose
           Hfpf Hpipe Hmain Ht1 Hopen]
       · iframe; iframe #
       icases HhIn with ⟨%γt, HhIn⟩
       imod (receipt_zero (GF := GF)) with Hr0
-      ihave Hw := walOpenWFU_intro P Mr wl (child r nm)
+      ihave Hw := walOpenWFU_intro P Mr wl (child r nm) R d
         (createHS md i (createStream Mr md).length γt (createSeg i mS ysS).om.size)
         (createHS_done md i _ γt _) hmd $$ [HhIn Hr0]
       · iframe

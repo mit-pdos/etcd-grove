@@ -134,16 +134,19 @@ theorem lastWrite_log_restrict (h : NamesH) (j : Ino) (M : NameSet) (b : GoStrin
 /-- **`Create`'s residue once the WAL's handle holds its share** (`renameWALPost`'s `UH`, the two
 success arms' convergence point): the client's `Q`, the past state with the fresh WAL, the rest of
 its fraction `c` of the new name's claim with the rename its last writer and the log past it (the
-parent fsync's naming, `walInv_named`), the whole claim on the absent `nm.tmp` (the deferred
-`RemoveAll`, the area's merge), and the area's split record with `nm` registered. -/
+parent fsync's naming, `walInv_named`), `c` being the program's half less the two paths to `dir` the
+handle holds (`qh` each, pinned in `walOpenWFU`; design P, `notes/wal-units/create.md`: the name is not
+registered until `Create` succeeds), the whole claim on the absent `nm.tmp` (the deferred `RemoveAll`,
+the area's merge), and the area's split record (`nm` not in it). -/
 def createUH (jr J : Ino) (r nm : GoString) (md : List w8) (Q : IProp GF) (Wn : List GoString)
-    (x : Nat × Nat) : IProp GF :=
+    (qh : Qp) (x : Nat × Nat) : IProp GF :=
   iprop(Q ∗ (∃ s', walPast (W := W) s' ∗ ⌜s'.wal !! child r nm = some (walDurFresh md)⌝) ∗
     (∃ (c : Qp) (hn : NamesH), osNames jr (.only [nm]) (DFrac.own c) hn ∗
-      ⌜hn.cur !! nm = some (.dir J) ∧ ∃ e E, LastWrite hn jr nm x.1 e E ∧ E !! nm = some (.dir J)⌝) ∗
+      ⌜qh + (qh + c) = (1 : Qp).half ∧
+        hn.cur !! nm = some (.dir J) ∧ ∃ e E, LastWrite hn jr nm x.1 e E ∧ E !! nm = some (.dir J)⌝) ∗
     osLogLb (x.1 + 1) ∗
     (∃ ht : NamesH, osNames jr (.only [tmpName nm]) (DFrac.own 1) ht ∗ ⌜ht.cur !! tmpName nm = none⌝) ∗
-    walSplitFrag (W := W) (nm :: Wn))
+    walSplitFrag (W := W) Wn)
 
 /-- **The spine law** (`RenameWALOk`'s third conjunct) of `Create`'s choices: `d + (d + c)` the
 program's half of the new name's claim. -/

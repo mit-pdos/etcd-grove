@@ -4,8 +4,9 @@
 `walCloseLawU`: `walCloseLaw` (`CloseLaw.lean`) with no client update to commit: the cleanup's `Close`
 (`WAL.Close.specU`, `Create`'s `cleanupWAL`: after the commit `Create` no longer holds `walDiskAt`,
 the client does; ledger 2026-11-14). The tail unregistered (`walInvBody_untail`), then
-`walInvBody_unpin` with the tail's halves, the directory claim and the pipeline names, and the lock:
-the free lock token back.
+`walInvBody_unpinX` with the tail's halves, the directory claim and the pipeline names, and the lock:
+the free lock token back but its names fragment (`walUnlockedTokX`), which the handle before naming holds
+as `Create`'s pending registration (design P, `notes/wal-units/create.md`).
 -/
 module
 
@@ -40,10 +41,10 @@ theorem walCloseLawU (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (w 
       walDirKey (W := W) dir j X -∗ osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj -∗
       tmpClaim (hG := ⟨G, L⟩) j b -∗ tmpClaim (hG := ⟨G, L⟩) j b' -∗
       walOutFrag (W := W) ⟨[ino], [(j, .except X)], [dir]⟩ -∗
-      walTailsFrag (W := W) (<[dir := γt]> (∅ : GMap GoString GName)) -∗ walNamesFrag (W := W) none -∗
+      walTailsFrag (W := W) (<[dir := γt]> (∅ : GMap GoString GName)) -∗
       walOpenW (W := W) w dir -∗ walPurgeW (W := W) w dir ={⊤}=∗
-      notCrashed (hC := L.goose_crashGS) ∗ walUnlockedTok (W := W) := by
-  iintro #Hinv Hnc Hk Hv Hm Hbs #Hdk Hn Htb Htb' Ho Htf Hnf Hopen -
+      notCrashed (hC := L.goose_crashGS) ∗ walUnlockedTokX (W := W) := by
+  iintro #Hinv Hnc Hk Hv Hm Hbs #Hdk Hn Htb Htb' Ho Htf Hopen -
   imod walInv_open walCodec Mr R jr r ⊤ CoPset.subseteq_top $$ Hinv Hnc with ⟨⟨%s, Hb⟩, Hnc, Hcl⟩
   imod walInvBody_untail Mr R jr r s dir γ γt H md cuts wr ino m bs hTM hwr $$ Hb Htf Hk Hv Hm Hbs with
     ⟨%d, -, Hb, Htf, Hm, Hbs⟩
@@ -51,10 +52,10 @@ theorem walCloseLawU (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (w 
   icases Hopen with ⟨-, Hlk⟩
   have hS : ∀ g ∈ [(⟨go!"", ino, m, bs⟩ : SegG)], g.om.size = g.bs.length := by
     intro g hg; simp only [List.mem_singleton] at hg; subst hg; exact hTM.1.1.symm
-  have hu := walInvBody_unpin (L := L) (W := W) walCodec Mr R jr r s dir j X hj
+  have hu := walInvBody_unpinX (L := L) (W := W) walCodec Mr R jr r s dir j X hj
     [(⟨go!"", ino, m, bs⟩ : SegG)] true hS
   simp only [List.map_cons, List.map_nil, ↓reduceIte] at hu
-  imod hu $$ Hb [Hlk] Htf Hnf Ho [Hm Hbs] Hn [Htb Htb'] Hdk with ⟨Hb, Hu⟩
+  imod hu $$ Hb [Hlk] Htf Ho [Hm Hbs] Hn [Htb Htb'] Hdk with ⟨Hb, Hu⟩
   · unfold walLockedTok; iexact Hlk
   · iapply (BigSepL.bigSepL_singleton (PROP := IProp GF)).2
     unfold segRes; iframe Hm Hbs

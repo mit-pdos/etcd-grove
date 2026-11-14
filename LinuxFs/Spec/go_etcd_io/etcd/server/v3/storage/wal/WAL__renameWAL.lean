@@ -38,7 +38,9 @@ failed so the locks stayed open, or `OpenDir` failed after a committed rename) o
    2026-11-14);
 2. *committed, a reopened WAL returned* (`renameWALUnlock`'s retry, then `Open`/`ReadAll`): the
    reopened WAL as the handle before naming (`walOpenWFU`, `Handle.lean`: what `Create` builds from
-   arm 1 too, so that the two arms converge before the parent's fsync), its purge right, the half of
+   arm 1 too, so that the two arms converge before the parent's fsync; its name not registered and its two
+   paths to `dir`, the handle's and the pipeline's, pinned at the spine law's roots and fraction `dq`:
+   design P, `notes/wal-units/create.md`), its purge right, the half of
    the call permission the handle and its pipeline do not hold, and the
    caller's residue `UH x` (the update's result and `SpR` less what the reopened handle holds; a
    parameter, `Create`'s `createUH`). Restated 2026-11-14 (ledger, twenty-second W4 session): the
@@ -126,7 +128,8 @@ def renameWALPost (P : WalPbIn GF) (Mr : WalMarshal) (R : Roots) (jr J : Ino) (r
         structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ df ∗
         os.ownFile df dfd dir (DFrac.own 1) ∗ osDirFdS dfd J .idle ∗ osPathS R dir dq J ∗
         osCallPerm (1 : Qp).half.half ∗ osCallPerm (1 : Qp).half) ∨
-     (⌜err = interface.nil⌝ ∗ ∃ x : Nat × Nat, UH x ∗ walOpenWFU P Mr w' dir ∗
+     (⌜err = interface.nil⌝ ∗ ∃ (x : Nat × Nat) (qd : Qp), ⌜dq = DFrac.own qd⌝ ∗ UH x ∗
+        walOpenWFU P Mr w' dir R qd ∗
         WalFs.walPurgeW w' dir ∗ osCallPerm (1 : Qp).half) ∨
      (⌜err ≠ interface.nil⌝ ∗ U none ∗ osNames jr N (DFrac.own (1 : Qp).half) h ∗ osCallPerm 1 ∗
         Sp ∗ walTmpsRes J ∗ (walPreIn w lg dir mds md e lt f snapi enti ∨ emp) ∗
