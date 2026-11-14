@@ -32,7 +32,7 @@ or empty at start, pairwise disjoint, and touched only by the operations whose s
 effects. The verified code's first `bootstrap` of `dd` consumes the right. So each data directory
 of `Ds` is bootstrapped fresh at most once in a run, over an empty backend, which `bootstrap`'s
 contract needs (`wal.Exist(dir)` false: `bootstrapNewWAL`; no backend file: `HD`, `HmEmpty`).
-(Sweep repairs 1, W5) The addresses of `As` are numeric literals (`hAsLit`, decidable), so each
+(Sweep repairs 1, W5) The addresses of `As` are numeric loopback literals (`hAsLit`, decidable; loopback since 2026-11-14, so no proxy), so each
 names one socket and the per-string rights are per-socket. (Sweep repairs 1, B4) For a program of
 which `verifyEnvOff e` holds (`ETCD_VERIFY` off for the run), it also receives `envVerifyOff`,
 which the backend's lock checks and `VerifyBackendConsistency` take.
@@ -111,7 +111,8 @@ behaviour this repository does not verify, connect to an address of `As`: every 
 accepted on one was dialed by `e`'s verified code (a local process can dial `127.0.0.1:p` and send
 requests, `examples/premisefix/foreignconn`; the boundaries' closed world, `InvNet.lean`, rests on
 it). (Sweep repairs 1, W5) `As`'s strings are
-numeric literals (`netAddrLit`, `goose_adequacy_start`'s `hAsLit`), so "an address of `As`" is the
+numeric loopback literals (`netAddrLit`, `goose_adequacy_start`'s `hAsLit`; loopback since
+2026-11-14: never proxied), so "an address of `As`" is the
 one socket the literal names. (2026-11-08: stated address by address, `addrUnclaimed`, the same
 claim; until then an axiomatized proposition of the list.) -/
 def addrsUnclaimed [GooseExts] (e : Expr) (As : List GoString) : Prop := ∀ a ∈ As, addrUnclaimed e a
