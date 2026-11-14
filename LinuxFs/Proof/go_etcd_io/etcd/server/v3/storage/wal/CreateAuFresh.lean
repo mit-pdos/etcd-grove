@@ -30,7 +30,8 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [W : WalGS G
 
 /-- **`Create`'s update for the rename of `nm.tmp` onto `nm`**, over the fresh layout: the creating
 claim `(jr, .only [nm, nm.tmp], hC)` holding `J` at `nm.tmp`; `J`'s claim off the pipeline's names
-(`hJ'` merged after the segment's create, `createJ_claims`), coherent; the segment after its header
+(`hJ'` merged after the segment's create, `createJ_claims`), coherent, its entries below the
+program's commit bound `m`; the segment after its header
 stream and fdatasync (`hok`, over the preallocated `m2`); the log bound `lb` past both claims. -/
 theorem createFresh_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoString)
     (md : List w8) (Q : IProp GF) (hC : NamesH) (J : Ino) (hJ' : NamesH) (i : Ino)
@@ -40,12 +41,11 @@ theorem createFresh_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoSt
     (hctmp : hC.cur !! tmpName nm = some (.dir J)) (hJjr : J ≠ jr)
     (hlb : hC.next ≤ lb) (hJlb : (hJ'.restrict J ((NameSet.except []).diff walTmps)).next ≤ lb)
     (hJcoh : ClaimCoh (hJ'.restrict J ((NameSet.except []).diff walTmps)) J (.except walTmps))
-    (hval : ∀ (K : Nat → Prop) (b : GoString),
-      hJ'.valAfter J K b = none ∨ (b = walFileName 0 0 ∧ hJ'.valAfter J K b = some (.file i)))
+    (m : Nat) (hJm : ∀ xe ∈ (hJ'.restrict J ((NameSet.except []).diff walTmps)).ents, xe.1 < m)
     (hcur : ∀ b, hJ'.cur !! b = if b = walFileName 0 0 then some (.file i) else none)
     (hok : os.StreamOk m2 0 (zs2.map (fun c => ((0 : w8), c))) (createStream Mr md) mS ysS)
     (hm2s : m2.size = 64000000) (hm2c : m2.cut = none) :
-    ⊢ walInv (W := W) walCodec Mr R jr r -∗
+    ⊢ walInv (W := W) walCodec Mr R jr r -∗ osCommitLb m -∗
       walCreateP (W := W) (child r nm) (.only [nm, tmpName nm]) hC md Q J walTmps
         (hJ'.restrict J ((NameSet.except []).diff walTmps)) (createSeg i mS ysS) -∗
       osAUnc (osNames jr (.only [nm, tmpName nm]) (DFrac.own (1 : Qp).half) hC)
@@ -57,9 +57,6 @@ theorem createFresh_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoSt
   have hw : walNameP (createSeg i mS ysS).name = true := walNameP_walFileName 0 0
   have hcur' : ∀ b, hJ'.cur !! b =
       if b = (createSeg i mS ysS).name then some (.file (createSeg i mS ysS).ino) else none := hcur
-  have hval' : ∀ (K : Nat → Prop) (b : GoString), hJ'.valAfter J K b = none ∨
-      (b = (createSeg i mS ysS).name ∧
-        hJ'.valAfter J K b = some (.file (createSeg i mS ysS).ino)) := hval
   apply walCreate_osAUnc walCodec Mr R jr r (child r nm) nm (tmpName nm) md Q _ hC J walTmps _
     (createLay jr nm J (createSeg i mS ysS) (createStream Mr md).length) (createSeg i mS ysS) lb
     hin (tmpName_ne nm) (by simp [NameSet.Mem]) (by simp [NameSet.Mem]) hctmp
@@ -73,7 +70,8 @@ theorem createFresh_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoSt
   · exact hmeta.2.1
   · exact ⟨hmeta.2.2.1, hmeta.2.2.2⟩
   · exact createJ_segsNamed rfl hcur'
-  · exact createJ_segsNamedC hval' hw
+  · exact createJ_segsNamedC hw hcur'
+  · exact hJm
   · exact hmd
 
 end au

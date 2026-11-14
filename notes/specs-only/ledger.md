@@ -927,3 +927,26 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   crashes keeping `J`'s entries, drop the clause from `specTmp`) removes the false clause; this entry is one more
   reason for it (a clause restricted to `b ≠ .touch` would instead need the extension's allocator fact).
 - **Decision.** Recorded only (`wal-leaf1`); the restatement is `wal-create17`'s.
+
+## 2026-11-14: `fileutil.CreateDirAll.specTmp` / `walCreate_osAUnc` (internal, the part's) -- the clause dropped, the commit bound raised
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/CreateCallees.lean` (`specTmp`'s success post);
+  `walCreate_osAUnc` (`CreateAu.lean`), `walsNamed_create` (`CreateKeys.lean`), `createFresh_osAUnc`, `createU_none`,
+  `createJ_claims` (internal lemmas).
+- **Defect.** The two entries above: `specTmp`'s `∀ K b, hJ.valAfter J K b = none` is false (`.touch`), and was there
+  only for `walCreate_osAUnc`'s `hJC` over every crash of `J`'s claim.
+- **Evidence.** The entries above; `ClaimCoh` (`Cut.lean`: with every entry kept, `valAfter = cur`).
+- **Change (made, `wal-create18`, the coordinator's direction).** The clause is dropped from `specTmp` (nothing
+  relies on it). `walCreate_osAUnc` takes `osCommitLb m` (a wand argument) with `J`'s entries below `m` (`hJm : ∀ xe
+  ∈ hJ.ents, xe.1 < m`) and raises the invariant's commit bound to `max n m` at the commit (`walsOk_mono`,
+  `absentNone_mono`, `walsNamed_mono`, the new `dirKeysOk_mono`); `hJC` is now `SegsNamedC lay.segs hJ.cur` (the
+  claim's names now), and `walsNamed_create` gets every crash's `J`-names from `ClaimCoh` (each crash the claims
+  allow at the raised bound keeps `J`'s entries). `Create` passes `syncDir(nm.tmp)`'s `osCommitLb` at `max
+  (J's claim off the segment's name).next (x0 + 1)` (`osNames_next`, `crOut_logLb`), and `createJ_claims` returns
+  the entries bound of the claim off the pipeline's names (`ClaimCoh` of the merged claim, `osNames_merge`'s
+  `next`) instead of `createJ_val` (deleted).
+- **Still open for `specTmp`'s proof** (the `wal-leaf1` finding): a narrower error post, and the existing-directory
+  case: it stays, since `Create`'s `RemoveAll(nm.tmp)` returning `nil` gives only `tmpDirH` (`wp_removeAllTmp`,
+  `os.RemoveAll.specDirS`), not the name's absence; restricting `specTmp`'s pre to an absent name would need
+  `RemoveAll`'s success post to give absence (arguable since the extension's `ENOENT` decision, not made).
+- **Decision.** Made (the coordinator's, decided; internal, no client-visible change).
