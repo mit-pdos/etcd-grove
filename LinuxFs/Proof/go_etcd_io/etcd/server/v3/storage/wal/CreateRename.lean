@@ -79,7 +79,7 @@ theorem createU_none (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoString)
     (hJcoh : ClaimCoh (hJ'.restrict J ((NameSet.except []).diff walTmps)) J (.except walTmps))
     (hcur : ∀ b, hJ'.cur !! b = if b = walFileName 0 0 then some (.file i) else none)
     (hok : os.StreamOk m2 0 (zs2.map (fun c => ((0 : w8), c))) (createStream Mr md) mS ysS)
-    (hm2s : m2.size = 64000000) (hm2c : m2.cut = none) :
+    (hm2s : m2.size = 64000000) (hm2c : m2.cut = none) (hm2m : m2.maps = ∅) :
     ⊢ createU (W := W) Mr R jr r nm hC md Q J (hJ'.restrict J ((NameSet.except []).diff walTmps))
         (createSeg i mS ysS) none -∗
       osAUnc (osNames jr (.only [nm, tmpName nm]) (DFrac.own (1 : Qp).half) hC)
@@ -94,7 +94,7 @@ theorem createU_none (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoString)
           (hJ'.restrict J ((NameSet.except []).diff walTmps)) (createSeg i mS ysS)) from rfl]
   iintro ⟨#Hinv, ⟨%m, %hJm, #Hcm⟩, HP⟩
   ihave Hau := createFresh_osAUnc Mr R jr r nm md Q hC J hJ' i m2 mS zs2 ysS lb hin hnm hMr hmd
-    hctmp hJjr hlb hJlb hJcoh m hJm hcur hok hm2s hm2c $$ Hinv Hcm HP
+    hctmp hJjr hlb hJlb hJcoh m hJm hcur hok hm2s hm2c hm2m $$ Hinv Hcm HP
   iapply osAUnc_mono $$ [] Hau
   iintro !> %o HQ
   unfold createU

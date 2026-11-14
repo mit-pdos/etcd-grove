@@ -164,7 +164,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     (hold0 : ∀ b, lay.wr ≤ b → b < lay.old.length → lay.old.getD b 0 = 0) (hZ0 : TailZeros lay)
     (hz : lay.old.length - lay.wr = 0 ∨ 8 ≤ lay.old.length - lay.wr)
     (hTB : TailBound C Mr (walDurFresh md) lay)
-    (hcut : g.om.cut = none) (hgx : SegExact g) (hsn : SegsNamed lay.segs hJ.cur)
+    (hcut : g.om.cut = none) (hmaps : g.om.maps = ∅) (hgx : SegExact g) (hsn : SegsNamed lay.segs hJ.cur)
     (hJC : SegsNamedC lay.segs hJ.cur) (m : Nat) (hJm : ∀ xe ∈ hJ.ents, xe.1 < m)
     (hmd : md.length < 2 ^ 41) :
     ⊢ walInv (W := W) C Mr R jr r -∗ osCommitLb m -∗
@@ -386,7 +386,10 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
           · subst e; rw [GMap.lookup_delete_eq] at hi; exact absurd rfl hi
           · rwa [GMap.lookup_delete_ne _ (Ne.symm e)] at hi) ⟨hex, htail, fun g1 hg1 => by
             rw [hsegs, List.getLast?_singleton, Option.some.injEq] at hg1
-            exact hg1 ▸ ⟨hdur, hzf⟩⟩ $$ Htl
+            exact hg1 ▸ ⟨hdur, hzf⟩,
+          ((habs.last g (by rw [hsegs]; rfl)).1 hgx).so_eq hdur, fun g1 hg1 => by
+            rw [hsegs, List.getLast?_singleton, Option.some.injEq] at hg1
+            exact hg1 ▸ hmaps⟩ $$ Htl
       imod walTailsRes_register C Mr (createSt s dir md) (<[dir := lay]> Ls) (GMap.delete g.ino F) dir
         (walDurFresh md) lay g ⟨by simp [createSt], by simp,
           by rw [hsegs]; rfl, hZ0, hTB⟩ $$ Htl Htf with ⟨%γt, Htl, Htf, Htk, Htv⟩

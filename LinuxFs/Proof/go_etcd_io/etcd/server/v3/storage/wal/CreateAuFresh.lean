@@ -44,7 +44,7 @@ theorem createFresh_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoSt
     (m : Nat) (hJm : ∀ xe ∈ (hJ'.restrict J ((NameSet.except []).diff walTmps)).ents, xe.1 < m)
     (hcur : ∀ b, hJ'.cur !! b = if b = walFileName 0 0 then some (.file i) else none)
     (hok : os.StreamOk m2 0 (zs2.map (fun c => ((0 : w8), c))) (createStream Mr md) mS ysS)
-    (hm2s : m2.size = 64000000) (hm2c : m2.cut = none) :
+    (hm2s : m2.size = 64000000) (hm2c : m2.cut = none) (hm2m : m2.maps = ∅) :
     ⊢ walInv (W := W) walCodec Mr R jr r -∗ osCommitLb m -∗
       walCreateP (W := W) (child r nm) (.only [nm, tmpName nm]) hC md Q J walTmps
         (hJ'.restrict J ((NameSet.except []).diff walTmps)) (createSeg i mS ysS) -∗
@@ -72,6 +72,7 @@ theorem createFresh_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoSt
   · simpa [createLay] using hz
   · exact createLay_tailBound Mr md jr nm J _
   · exact hmeta.2.1
+  · simpa [createSeg, OsMeta.synced] using hok.2.2.2.1.trans hm2m
   · exact ⟨hmeta.2.2.1, hmeta.2.2.2⟩
   · exact createJ_segsNamed rfl hcur'
   · exact createJ_segsNamedC hw hcur'

@@ -1073,3 +1073,32 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Obligation.** `renameWALUnlock`'s `RenameWALOk` law (the retry's `w.Close()` and the reopen) now unregisters the
   tail too (`walTails_unregister`, `Close`'s).
 - **Decision.** Made (internal, no client-visible change).
+## 2026-11-14: `pbutil.MustMarshalMessage.specWalSnap` (internal, the part's) -- the size premise
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/pkg/v3/pbutil/MustMarshalMessageWalSnap.lean`.
+- **Defect.** No bound on the encoding's size: `proto.Marshal` allocates it, and an allocation above Go's
+  `maxAlloc` panics (`proto.MarshalPb.spec`'s premise `size c < 2 ^ 48`); `walSnapAt` bounds nothing, so the
+  triple is unprovable over the part's `MarshalPb.spec`.
+- **Evidence.** The proof (`wal-leaf3`): `wp_Marshal pbSnapC pbSnapC_reg sp c trivial ?_` has no argument.
+- **Change (made, `wal-leaf3`).** The premise `(Mr.encSnap sm).length < 2 ^ 48`. Both callers have it:
+  `SaveSnapshot.spec`'s pre gives `< 2 ^ 40`; `SaveSnapshot.specPre`'s frame bound `≤ lim < 2 ^ 47` (the record's
+  data within its encoding, `recSize`). The non-nil result is derived (the encoding is non-empty, `Index` set:
+  `snapEnc_ne_of_index`), not assumed.
+- **Decision.** Made (internal, minimal, no client-visible change).
+
+## 2026-11-14: `pbutil.MustUnmarshalMessage.specWalSnap` (internal, the part's) -- `U` says nothing of protobuf-go (proposed, not made)
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/ReadAllCallees.lean`.
+- **Defect.** (1) The premise `U.decSnap bs = some s` is about the client's parameter `U : WalUnmarshal`, which no
+  hypothesis ties to protobuf-go (`WalUnmarshal.Ok` ties it to `Mr` only): `bs` need not be any snapshot's
+  encoding, `proto.Unmarshal` may fail (the code panics) and the decoded index/term need not be `s`. (2) The pre
+  lacks `isPkgInit pbutil` (the call to `proto.Unmarshal` needs `proto`'s, which comes from it).
+- **Evidence.** `proto.UnmarshalPb.spec` (part copy) at `pbSnapC`: success only when `bs = snapEnc c₀` for a
+  `c₀` with valid unknown fields; the decoded content is `c₀` only then.
+- **Proposed change.** A premise on `U` (a `ReadAll` hypothesis the client discharges for its codec, as
+  `walSnapAt` ties `Mr` to `snapEnc`): `∀ bs s, U.decSnap bs = some s → ∃ c : WalSnapC, (∀ p ∈ c.levels,
+  ufWire p.1 p.2) ∧ bs = snapEnc c ∧ (c.model.Index', c.model.Term') = s`, and `isPkgInit pbutil` in the pre.
+  Then the proof is `MustUnmarshalMessagePb.wp_proof`'s over the part's `UnmarshalPb.spec`, with
+  `snapOwnC_freeze` for the read-only snapshot.
+- **Decision.** Open: it adds an obligation to `ReadAll`'s callers (`U`'s coherence with protobuf-go), the
+  coordinator's call.

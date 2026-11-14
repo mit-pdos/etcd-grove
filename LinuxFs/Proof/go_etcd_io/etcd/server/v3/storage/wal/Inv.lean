@@ -668,13 +668,49 @@ crash (the segments are their files' images, `initMeta`: zeros known from the la
 def TailSynced (lay : WalLay) : Prop :=
   ∀ g, lay.segs.getLast? = some g → (∀ y ∈ g.bs, y = durB y.1) ∧ ∀ z, g.om.zf = some z → g.bs.length ≤ z
 
-/-- **A WAL's tail idle** (`WalTailIdle`'s, W3/W5 fifteenth session): no resize window open on its last
-segment (`TailExact`), its last segment's stream all written (`wr` its length) and synced (`TailSynced`). What `ReadAll` needs
-of a WAL no handle has registered: without it, it could succeed with the history's last records missing
-(the reader stops at the zeros past `wr`). -/
-def TailIdle (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) : Prop :=
-  TailExact lay ∧ lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length ∧ TailSynced lay
+/-- **The last segment unmapped** (`TailIdle`'s fifth part; W1 log, twenty-eighth session, finding C):
+no WAL segment is ever mapped (a crash's `initMeta` has no mapping, `Create`'s and `Close`'s handles have
+`TailMeta`'s `maps = ∅`, a sync keeps the mappings), which `ZeroToEnd`'s truncate and `fallocate` need
+of the tail `ReadAll` registers (`TailMetaR`). -/
+def TailMaps (lay : WalLay) : Prop := ∀ g, lay.segs.getLast? = some g → g.om.maps = ∅
 
+/-- **A WAL's tail idle** (`WalTailIdle`'s, W3/W5 fifteenth session): no resize window open on its last
+segment (`TailExact`), its last segment's stream all written (`wr` its length) and synced (`TailSynced`,
+and `so = wr`), its last segment unmapped (`TailMaps`). What `ReadAll` needs
+of a WAL no handle has registered: without it, it could succeed with the history's last records missing
+(the reader stops at the zeros past `wr`); `so = wr` gives the record boundary its registration needs
+(`TailIdle.bound`; W1 log, twenty-eighth session, finding D). -/
+def TailIdle (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) : Prop :=
+  TailExact lay ∧ lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length ∧ TailSynced lay ∧
+    lay.so = lay.wr ∧ TailMaps lay
+
+theorem TailIdle.synced {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
+    (h : TailIdle C Mr d lay) : TailSynced lay := h.2.2.1
+
+theorem TailIdle.so {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
+    (h : TailIdle C Mr d lay) : lay.so = lay.wr := h.2.2.2.1
+
+theorem TailIdle.maps {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
+    (h : TailIdle C Mr d lay) : TailMaps lay := h.2.2.2.2
+
+/-- **An exact last segment all durable is synced to its write position** (`TailLast`'s `ByteOk`: a
+written byte not synced has a second candidate, which `durB` has not): what `Close` and `Create`'s
+commit give `TailIdle`'s `so = wr` from. -/
+theorem TailLast.so_eq {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {g : SegG}
+    (h : TailLast C Mr d lay g) (hdur : ∀ y ∈ g.bs, y = durB y.1) : lay.so = lay.wr := by
+  obtain ⟨h1, -, h3, h4, h5, -⟩ := h
+  refine Nat.le_antisymm h1 (Nat.le_of_not_lt fun hlt => ?_)
+  have hb : lay.so < g.bs.length := by omega
+  have hok := h5 lay.so g.bs[lay.so] (List.getElem?_eq_getElem hb)
+  have hd := hdur _ (List.getElem_mem hb)
+  have hw : decide (lay.so < lay.wr) = true := by simp; omega
+  have hs : decide (lay.so < lay.so) = false := by simp
+  rw [hw, hs] at hok
+  obtain ⟨ex, he, -, -, hif⟩ := hok
+  simp only [if_true] at hif
+  rw [hd] at he
+  simp only [durB, List.cons.injEq] at he
+  exact hif.2 he.2.symm
 /-- `TailIdle` depends on the WAL's history and metadata only. -/
 theorem TailIdle.congr {C : WalCodec} {Mr : WalMarshal} {d d' : WalDur} {lay : WalLay}
     (h : TailIdle C Mr d lay) (hH : d'.H = d.H) (hmd : d'.metadata = d.metadata) :
@@ -683,6 +719,20 @@ theorem TailIdle.congr {C : WalCodec} {Mr : WalMarshal} {d d' : WalDur} {lay : W
     simp [segRecs, histM, hH, hmd]
   refine ⟨h.1, ?_, h.2.2⟩
   unfold segStream; rw [e]; exact h.2.1
+
+/-- **An idle tail's record boundary** (finding D): synced to its write position, which is its stream's
+end, so the boundary is all its records (`z0 ≤ wr` from `TailLast`). -/
+theorem TailIdle.bound {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
+    (habs : WalAbsD C Mr d lay ents) (h : TailIdle C Mr d lay) : TailBound C Mr d lay := by
+  obtain ⟨g, hg⟩ : ∃ g, lay.segs.getLast? = some g := by
+    cases e : lay.segs.getLast? with
+    | none => exact absurd (List.getLast?_eq_none_iff.1 e) habs.nonempty
+    | some g => exact ⟨g, rfl⟩
+  have hl := (habs.last g hg).1 (h.1 g hg)
+  have hz0 : lay.z0 ≤ lay.wr := hl.2.2.2.2.2.1
+  refine ⟨((segRecs C Mr d lay.cuts).getD lay.cuts.length []).length, Nat.le_refl _, ?_⟩
+  rw [List.take_length, h.so, Nat.max_eq_left hz0, h.2.1]
+  rfl
 
 /-- **Every WAL no handle has registered is idle** (`walTailsRes`'s third part; W3/W5 fifteenth session,
 the coordinator's `WalTailIdle`): established by a crash (`CrashStart`: `wr = so = z0 = |stream|`), by

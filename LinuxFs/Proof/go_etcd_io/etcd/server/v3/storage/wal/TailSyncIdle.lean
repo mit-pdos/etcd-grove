@@ -149,9 +149,12 @@ theorem tailIdle_syncIdle {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : W
   have hg0 : lay.segs.getLast? = some g0 := by rw [hs]; simp
   have hsz0 := (habs.metas g0 (List.mem_of_getLast? hg0)).1
   have hg : (syncLay lay pre g0).segs.getLast? = some (syncTail g0) := by simp [syncLay]
-  refine ⟨fun g hg' => ?_, hid.2.1, fun g hg' => ?_⟩
+  refine ⟨fun g hg' => ?_, hid.2.1, fun g hg' => ?_, rfl, fun g hg' => ?_⟩
   · rw [hg] at hg'; cases hg'
     simp [SegExact, syncTail, OsMeta.synced, hsz0]
+  rotate_left
+  · rw [hg] at hg'; cases hg'
+    simpa [syncTail, OsMeta.synced] using hid.maps g0 hg0
   · rw [hg] at hg'; cases hg'
     refine ⟨fun y hy => ?_, fun z hz => ?_⟩
     · simp only [syncTail, List.mem_map] at hy
@@ -193,7 +196,7 @@ theorem walsOk_syncIdle {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
       exact ⟨syncLay lay pre g0, nm, hj, GMap.lookup_insert _ _ _, hA, hjr, hnm, hc,
         walAbsD_syncIdle habs hs hex hid.2.1,
         ⟨none, (fun _ h => nomatch h), (crashOkA_none_iff _ _ _ _ _ _).2
-          (crashOk_syncIdle habs hs hex hid.2.2 hnd hok)⟩⟩
+          (crashOk_syncIdle habs hs hex hid.synced hnd hok)⟩⟩
     · obtain ⟨lay1, nm, hj, hl1, rest⟩ := h1 dir' d' hd'
       exact ⟨lay1, nm, hj, by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hl1, rest⟩
   · have e : dir' ≠ dir := by rintro rfl; rw [hd] at hn; cases hn
@@ -236,7 +239,7 @@ theorem dirKeysOk_syncIdle {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : In
         ((segsAll_nodup_iff Ls).1 hW.2.2.1).1 dir' lay hl
       have hok := (crashOkA_none_iff _ _ _ _ _ _).1 (h2 dir' d lay hd hl (by simp))
       exact (crashOkA_none_iff _ _ _ _ _ _).2
-        (crashOk_syncIdle habs hs (hid.1 g0 hg0) hid.2.2 hnd hok)
+        (crashOk_syncIdle habs hs (hid.1 g0 hg0) hid.synced hnd hok)
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hl'
       exact h2 dir' d' lay' hd' hl' hc
 
