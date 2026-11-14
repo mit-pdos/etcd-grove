@@ -6,6 +6,7 @@ public import LinuxFs.Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.
 public import LinuxFs.Spec.os.File__WriteAt
 public import LinuxFs.Spec.os.File__Fd
 public import LinuxFs.Spec.syscall.Fdatasync
+public import LinuxFs.Spec.os.CrashSt
 public import LinuxFs.Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Writer
 
 @[expose] public section
@@ -382,16 +383,20 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
     unfold initFile
     rw [hI, ← key, List.map_map]; rfl
   have hm3 : (pwPost m2 0 D0.length D0.length).synced =
-      ({ m with size := max m.size 16384 } : OsMeta).synced :=
+      ({ m with size := max m.size 16384, cz := pwCz m 0 16384 16384 } : OsMeta).synced :=
     synced_eq _ _ hS3 ((announce_maps m2 _ _ (max m2.size (0 + D0.length))).trans (hm2m.trans hmaps.symm))
       (by
         have h1 : m1.cut = m.cut := by rw [← hm1']; simp [pwPost, OsMeta.synced]
         have h2 : m2.cut = m1.cut := by rw [← hm2']; simp [pwPost, OsMeta.synced]
         simp [pwPost, h2, h1])
       (by
-        have h1 : m1.cz = m.cz := by rw [← hm1']; simp [pwPost, OsMeta.synced]
-        have h2 : m2.cz = m1.cz := by rw [← hm2']; simp [pwPost, OsMeta.synced]
-        simp [pwPost, h2, h1])
+        have h1 : m1.cz = pwCz m 0 16384 16384 := by rw [← hm1', ← hF]; rfl
+        obtain ⟨z1, hz1, hz1s⟩ : ∃ z, m1.zf = some z ∧ m1.size ≤ z := hm1' ▸ synced_zf_ge _
+        have h2 : m2.cz = m1.cz := by
+          rw [← hm2']; exact pwCz_eq_of_lt hz1 (by rw [hD1l]; omega)
+        obtain ⟨z2, hz2, hz2s⟩ : ∃ z, m2.zf = some z ∧ m2.size ≤ z := hm2' ▸ synced_zf_ge _
+        show pwCz m2 0 D0.length D0.length = _
+        rw [pwCz_eq_of_lt hz2 (by rw [hD0l]; omega), h2, h1])
   have hsz64 : sint.Z (W64 (m.size : Int)) = m.size := by
     have : (m.size : Int) < 2 ^ 63 := by omega
     word

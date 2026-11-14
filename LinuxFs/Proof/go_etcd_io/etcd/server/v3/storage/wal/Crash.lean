@@ -219,8 +219,8 @@ theorem walAbsD_restrictTmps {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay 
     {e : Ents} (h : WalAbsD C Mr d lay e) : WalAbsD C Mr d lay (restrictN (.except walTmps) e) := by
   have hw : walInos e = walInos (restrictN (.except walTmps) e) :=
     walInos_congr (fun b hb => (restrictN_lookup _ _ _ (walTmps_mem_wal hb)).symm)
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12⟩ := h
-  exact ⟨hw ▸ h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12⟩
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13⟩ := h
+  exact ⟨hw ▸ h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13⟩
 
 /-- **What the invariant says of the WALs, at the start** (pure): from the start's static relation,
 claims with nothing logged on each WAL's area names (`harea`) and wholly on every directory at such

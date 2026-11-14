@@ -87,9 +87,9 @@ theorem cutCommit_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {
     (hc0 : ClaimOnce (j, .except X, hj) cl)
     (hm : d.m = d.H.length) (_hnamed : d.named = true)
     (hlast0 : g0.bs = (segStream C Mr d lay.cuts lay.cuts.length).map durB) (hex0 : SegExact g0)
-    (hcuts : ∀ b ∈ lay.cuts, b < d.H.length) (hcpos : walCutPos (histM d) d.H.length)
+    (hcuts : ∀ b ∈ lay.cuts, b < d.H.length) (hcpos : walCutPos (histM d) d.H.length ∧ 0 < d.H.length)
     (hnm0 : walNameP nm0 = true ∧ hj.cur !! nm0 = some (.file g0.ino))
-    (hbt : bt = walFileName sq ix ∧ walLastIdx (histM d) + 1 ≤ ix ∧ go.GoStringLt nm0 bt)
+    (hbt : bt = walFileName sq ix ∧ walLastIdx (histM d) + 1 ≤ ix ∧ go.GoStringLt nm0 bt ∧ ix < 2 ^ 64)
     (hbtw : walNameP bt = true) (hcur : hj.cur !! bt = none)
     (hwr : wr = (segStream C Mr d (lay.cuts ++ [d.H.length]) (lay.cuts.length + 1)).length)
     (hbs : g.bs = ((segStream C Mr d (lay.cuts ++ [d.H.length]) (lay.cuts.length + 1)) ++
@@ -150,8 +150,8 @@ theorem cutCommit_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {
   have hlt : ∀ g' ∈ lay.segs, go.GoStringLt g'.name bt := by
     intro g' hg'
     rcases pairwise_last_name habs.names.2 hg0 g' hg' with h | h
-    · rw [h, ← hnm0e]; exact hbt.2.2
-    · rw [hnm0e] at hbt; exact go.goStringLt_trans h hbt.2.2
+    · rw [h, ← hnm0e]; exact hbt.2.2.1
+    · rw [hnm0e] at hbt; exact go.goStringLt_trans h hbt.2.2.1
   have hents : walInos (<[bt := Node.file g.ino]> hj.cur) = walInos hj.cur ++ [g.ino] := by
     refine walInos_insert_last hbtw hcur (fun b e hb he => ?_)
     obtain ⟨i, rfl⟩ := hsn.2 b e hb he
@@ -163,9 +163,9 @@ theorem cutCommit_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {
   have hexL : TailExact lay := fun g1 hg1 => by rw [hg0] at hg1; exact Option.some.inj hg1 ▸ hex0
   have habs' : WalAbsD C Mr d (cutLay lay d.H.length g wr) (<[bt := Node.file g.ino]> hj.cur) :=
     cutLay_abs C Mr d lay hj.cur _ g wr sq ix habs hexL hm
-      (fun g0' h => by rw [hg0] at h; cases h; exact hlast0) ⟨hcpos, hcuts⟩
+      (fun g0' h => by rw [hg0] at h; cases h; exact hlast0) ⟨hcpos.1, hcuts⟩
       ⟨hgname.trans hbt.1, hbt.2.1, fun g' hg' => by rw [hgname]; exact hlt g' hg'⟩ hwr hbs hmeta
-      hfit hents hz
+      hfit hents hz hbt.2.2.2 hcpos.2
   -- every byte durable
   have hdur : ∀ g' ∈ lay.segs, ∀ y ∈ g'.bs, y = durB y.1 := by
     intro g' hg' y hy

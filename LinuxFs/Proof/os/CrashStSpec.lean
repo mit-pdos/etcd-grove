@@ -435,7 +435,7 @@ theorem os.File.WriteAt.wp_proof_crashS : os.File.WriteAt.specCrashS (GF := GF) 
         isplitl []
         · isplitl [] <;> iassumption
         · ipureintro
-          exact ⟨_, hRs _ (.inl rfl), .inl ⟨hsln, rfl, by show _ ≤ pwSize _ _ _; omega,
+          exact ⟨_, hRs _ (.inl rfl), .inl ⟨hsln, rfl, hfk, by show _ ≤ pwSize _ _ _; omega,
             fun i hi => hpre' i (by omega)⟩⟩
       · rw [decide_eq_false he0]
         wp_auto

@@ -6,9 +6,10 @@ The pure core of `ReadAll`'s success arm in one statement (`readAll_success`): t
 relation (`WalAbsD`) at the step the proof reads it, its tail idle (`TailExact`, the stream written:
 `WalTailIdle`), the segment `kk` the selection opened (named with an index at most the start's), the
 start the newest valid pair from the read position; then a successful fold of what the reader reads
-from the segments from `kk` on is the restated post (`walReadAllOk`) with the WAL's metadata. The selected segment's name index is bounded (`hnb`, `hsel`:
-`walFileName` keeps the index modulo `2^64`, so `WalAbsD.nameBound`'s index, unbounded there, must be
-below `2^64` for `walReadTie`'s selection fact to apply; an obligation on the invariant's owner). Over
+from the segments from `kk` on is the restated post (`walReadAllOk`) with the WAL's metadata. The selected
+segment's name index is a `uint64` (`WalAbsD.nameBound`: `walFileName` keeps the index modulo `2^64`, so
+`walReadTie`'s selection fact `hsel` applies only to an index below `2^64`), and every cut is past the
+history's start (`WalAbsD.cutPos`). Over
 `walReadFiles_running`, `readAll_ok_pure` and `readPos_le_openPos`.
 -/
 module
@@ -93,11 +94,9 @@ theorem length_flatten_take_segsOf {I : WalHist} {cuts : List Nat} (h : cuts.Pai
 theorem readAll_success {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {U : WalUnmarshal}
     (hU : U.Ok Mr) {d : WalDur} {lay : WalLay} {ents : Ents} (hab : WalAbsD C Mr d lay ents)
     (hex : TailExact lay) (hwr : lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length)
-    (hcpos : ∀ b ∈ lay.cuts, 0 < b) (kk : Nat) (g : SegG) (hg : lay.segs[kk]? = some g)
+    (kk : Nat) (g : SegG) (hg : lay.segs[kk]? = some g)
     (s : w64 × w64)
     (hsel : ∀ sq ix, g.name = walFileName sq ix → ix < 2 ^ 64 → ix ≤ uint.nat s.1)
-    (hnb : ∃ sq ix : Nat, g.name = walFileName sq ix ∧ ix < 2 ^ 64 ∧ (0 < lay.first + kk →
-      walLastIdx ((histM d).take (segStart lay.cuts (lay.first + kk))) + 1 ≤ ix))
     (hs : some s = walNewestPair (walValidSnaps (histM d) d.cut)) (stop : WalStop)
     (r : List w8 × HardStateM × List EntryM)
     (hok : readAllFold U s true (walDecodeFiles C ((lay.segs.drop kk).map segImg) 0#32).recs stop =
@@ -110,7 +109,7 @@ theorem readAll_success {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {U : WalUnm
   have hp : lay.first + kk ≤ lay.cuts.length := by omega
   have hk := length_flatten_take_segsOf (I := histM d) hlt hle hp
   rw [walReadFiles_running hC hab hex hwr kk hkk] at hok
-  obtain ⟨sq, ix, hnm, hix, hnb⟩ := hnb
+  obtain ⟨sq, ix, hnm, hix, hnb⟩ := hab.nameBound kk g hg
   apply readAll_ok_pure hU d.metadata (histM d) lay.cuts (lay.first + kk) d.cut s stop r ⟨hcp, hlt⟩ hp
   · rw [hk, hcut]; exact segStart_mono hlt (by omega) hp
   · intro hp0 hnil
@@ -119,7 +118,7 @@ theorem readAll_success {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {U : WalUnm
     obtain ⟨q, hq⟩ : ∃ q, lay.first + kk = q + 1 := ⟨lay.first + kk - 1, by omega⟩
     have hq' : q < lay.cuts.length := by omega
     rw [hq, segStart_succ hq'] at h0
-    have := hcpos _ (List.getElem_mem hq')
+    have := hab.cutPos _ (List.getElem_mem hq')
     omega
   · intro hm
     rw [hk]

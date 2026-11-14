@@ -8,6 +8,7 @@ To be proved in `LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/Create.lean
 module
 
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateDefs
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateSnap
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Handle
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.PkgInit
 public import LinuxFs.GeneratedProof.go_etcd_io.etcd.server.v3.storage.wal
@@ -36,7 +37,9 @@ its record's `Data`) in `dir = r/nm`, a WAL directory of the area `r` (the direc
 
 `nm` is a name (`NameOk`: no NUL byte, beyond `walNameOk`; the system calls on `dir` need it), the
 metadata shorter than `2^41` (the handle `walOpenWF` keeps that bound; ledger, 2026-11-14), and
-`dir` shorter than `2^59` (`filepath.Join`'s and `CreateDirAll`'s bounds, on `dir.tmp`'s paths).
+`dir` shorter than `2^59` (`filepath.Join`'s and `CreateDirAll`'s bounds, on `dir.tmp`'s paths). The
+client's marshaller encodes `Create`'s initial snapshot object as protobuf-go does (`WalMarshalCreateOk`,
+`CreateSnap.lean`: the fresh WAL's `Mr.snap0`; ledger, 2026-11-14).
 
 *Package initialization*: `isPkgInit wal` (`PkgInit.lean`: `SegmentSizeBytes`, the metrics `Create`
 observes, the CRC table its encoder takes).
@@ -76,7 +79,7 @@ abbrev wal.Create.spec (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
   ∀ (lg : Loc) (R : Roots) (jr : Ino) (r dir nm : GoString) (mp : GoSlice) (md : List w8) (qp : Qp)
     (Q : IProp GF),
   InArea r dir nm → NameOk nm → dir.length < 2 ^ 59 → cleanAbsPath r → mp ≠ slice.nil →
-  md.length < 2 ^ 41 →
+  md.length < 2 ^ 41 → WalMarshalCreateOk Mr →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗
       mp ↦*□ md ∗ WalFs.walAreaOk walCodec Mr R jr r ∗ WalFs.dirDurable r ∗ osPathS R r (DFrac.own qp) jr ∗
       walAreaRes jr ∗ osCallPerm 1 ∗ WalFs.walUnlockedTok ∗

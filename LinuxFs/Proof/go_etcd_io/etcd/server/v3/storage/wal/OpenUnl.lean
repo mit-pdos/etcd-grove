@@ -34,7 +34,7 @@ def unlSt (s : AbsDiskState) (dir : GoString) (p : Nat) : AbsDiskState :=
 theorem walAbsD_unl {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
     (u : Nat) (h : WalAbsD C Mr d lay ents) : WalAbsD C Mr { d with unl := u } lay ents :=
   ⟨h.names, h.cuts, h.nameBound, h.cut, h.metas, h.intact, h.last, h.synced, h.lastSynced, h.fit,
-    h.tailStop, h.nonempty⟩
+    h.tailStop, h.nonempty, h.cutPos⟩
 
 theorem crashOkA_unl {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
     {alt : Option WalLay} {cl : List Claim} {n : Nat} (u : Nat) (h : CrashOkA C Mr d lay alt cl n) :

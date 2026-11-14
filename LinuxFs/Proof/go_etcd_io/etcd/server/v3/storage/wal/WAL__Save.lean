@@ -408,7 +408,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
       rw [hf.H]; exact walCutPos_save h.H hs es hne
     have hsz2 : hc2.md.length + (Mr.encState hc2.st).length < 2 ^ 42 := by
       have := hS hc2.st; rw [hf.md]; omega
-    wp_apply (wp_cut R jr r w dir hc2 hf.rest hf.st hpc hcuts hpw hcpos hsz2) $$ [Hh] as %err Hres
+    wp_apply (wp_cut R jr r w dir hc2 hf.rest hf.st hpc hcuts hpw hcpos
+      (by rw [hf.H]; simp) hsz2) $$ [Hh] as %err Hres
     · iframe Harea Hh
     (try wp_auto)
     wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hlocked]
