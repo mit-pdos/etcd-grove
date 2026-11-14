@@ -18,6 +18,29 @@ the worktree's untracked `questions.md` (decisions; never re-add it tracked).
   this stage's T5-c); 7f-0 partial (records only; the rest goes with 7f-6, Q7).
 - No Lean edited. Nothing built on this branch.
 
+## Handoff point (2026-11-14, seventh 7f-5 agent): 7f-3c in progress (the client part)
+
+Done on `k8s-7f5` (commits after `c5073670f3`; decisions in questions.md, 2026-11-14 7f-3c entry):
+- Step 1: `client.rawRespOk` is the Draft's `rawRespOkP` in place (`WatchStateDefs.lean`, with
+  `prevKvLogOk`, `EvModel.erasePk`, `withPk`); producers: `dispatch_content` (pointers `qs` from
+  `evs_pkSent`: `pkQAt`, `pkSent` per event), `cmpl_events` (`pkSent_logOk`, with the run's `pkIs`
+  from `regFacts`' new 4th conjunct `pkReg`, filled at the created response from `ctrlWatcher`);
+  consumer `raw_to_state` (WatchFire) gives `watchStateRespOkP` (`prevKvLogOk_state`).
+- Step 2: `recvCmpl` carries `watchStateRespOkP ∗ eventsPkAt`; `outcElem := watchStateElemP`;
+  run/serveSubstream/sendCloseSubstream/WatchApiLemmas adapted; the request carries `prevKV`
+  (`createOf … pk`, `wrRO`, `watchRequest.toPB.spec` with `prevKV ↦□ pk`).
+- Step 3: `watcher.Watch.spec` is S6's text under the old name (`isRangeWatchP`, `watchStateElemP`);
+  `watcher.Watch.wp_proof` proves it.
+- Step 4 (in progress): `Draft7f3a.lean` deleted; old forms kept where the cache uses them
+  (`isRangeWatch`, `watchStateElem`, `watchStateRespOk`, `respAt`). Users switched so far: KMWatch,
+  etcdstart RespChan, compactor (`client_Watch_field` restated with the P-forms), auth Work. Pattern:
+  after `wp_spsc_receive`, `ihave HP := watchStateElemP_elem _ _ _ _ _ _ _ $$ HP`; a premise
+  `isRangeWatch … = true` becomes `OpFull.isRangeWatchP_of h` (or `simp [OpFull.isRangeWatchP]`).
+
+Next: the remaining users (lean-check each; then the full build), tcb --check, gen-interface,
+gates; STOP for 81 with the statement list (watcher.Watch.spec, toPB.spec, RespChan's lemmas,
+client_Watch_field).
+
 ## Handoff point (2026-11-14, sixth 7f-5 agent, final): 7f-3b v3rpc part LANDED; 7f-3c next (a fresh agent)
 
 81 approved the v3rpc part as is (step 4 moved to 7f-3c, the `γpk`/`pkIs` map, the nonissue); landed
