@@ -89,6 +89,31 @@ theorem WalFs.walOpenedFile_named (write : Bool) (dir b : GoString) (i : Ino) (f
     iexists f
     iframe #
 
+/-- The opened files' last one: its name and lock, persistent. -/
+theorem WalFs.walOpenedFiles_last (write : Bool) (dir : GoString) (gs : List WalFs.SegG)
+    (frs : List GoInterfaceOk) (lfs : List Loc) (n : Nat) (g : WalFs.SegG) (hg : gs[n]? = some g) :
+    ([∗list] m ↦ i ∈ gs.map (·.ino), WalFs.walOpenedFile (GF := GF) write dir
+        ((gs.map (·.name)).getD m []) i (frs.getD m ⟨go.GoType.PointerType go.string, #()⟩)
+        (lfs.getD m null)) ⊢
+      ([∗list] m ↦ i ∈ gs.map (·.ino), WalFs.walOpenedFile (GF := GF) write dir
+        ((gs.map (·.name)).getD m []) i (frs.getD m ⟨go.GoType.PointerType go.string, #()⟩)
+        (lfs.getD m null)) ∗
+      □ (∃ f : Loc, os.fileNamed f (child dir g.name) ∗
+        (if write then fileutil.lockedFile (lfs.getD n null) f else ⌜lfs.getD n null = null⌝)) := by
+  have hi : (gs.map (·.ino))[n]? = some g.ino := by simp [hg]
+  have hn : (gs.map (·.name)).getD n [] = g.name := by simp [List.getD, hg]
+  iintro H
+  icases (BigSepL.bigSepL_lookup_acc hi).1 $$ H with ⟨H1, Hback⟩
+  ihave ⟨H1, #Hn⟩ := WalFs.walOpenedFile_named write dir _ g.ino _ _ $$ H1
+  ihave H := Hback $$ H1
+  have hset : (gs.map (·.ino)).set n g.ino = gs.map (·.ino) := by
+    obtain ⟨hlt, heq⟩ := List.getElem?_eq_some_iff.1 hi
+    rw [← heq, List.set_getElem_self]
+  rw [hset]
+  rw [hn]
+  iframe H
+  iexact Hn
+
 end opened
 
 end EtcdGrove

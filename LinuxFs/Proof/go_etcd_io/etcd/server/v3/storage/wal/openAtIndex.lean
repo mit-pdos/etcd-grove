@@ -213,6 +213,55 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       ileft
       iframe
       ipureintro; nofun
+    obtain ⟨hout, hsearch, -⟩ := hsel
+    have hws : ws = lay.segs.map (·.name) :=
+      walNamesOut_segs hX hsn habs.names.1 hnd habs.names.2 hnmf hout
+    have hK : walOpenK s.1 lay = sint.nat kk := walOpenK_eq hsearch hws
+    have hKl : sint.nat kk < ws.length := walSearch_lt hsearch
+    have hwl : ws.length = lay.segs.length := by rw [hws, List.length_map]
+    subst herr
+    rw [hK] at hS
+    rw [hK]
+    try wp_auto
+    wp_apply wp_openFiles lg dir rr ws (DFrac.own 1) kk write ((lay.segs.map (·.ino)).drop (sint.nat kk))
+      R lay.j (DFrac.own qd) 1 (.except X) (DFrac.own (1 : Qp).half) hj hk0 (by omega)
+      (by simp [hwl]) (by omega) (walOpenNames_ok (sint.nat kk) hX hsn hnmf hout hws)
+      $$ [Hpd Hperm Hj Hws] as %rsl %lsl %clo %err2 ⟨Hpd, Hperm, Hj, Hws, Hopen⟩
+    · iframe; iframe #
+    icases Hopen with (⟨%frs, %lfs, ⟨%herr2, %hfl, %hll⟩, Hrsl, Hrc, Hlsl, Hlc, Hfiles⟩ | ⟨%e, %herr, #He⟩)
+    rotate_left
+    · -- `openWALFiles` failed: the halves back
+      obtain ⟨-, rfl⟩ : True ∧ err2 = GoInterface.ok e := ⟨trivial, herr⟩
+      try wp_auto
+      wp_apply wp_slice_literal (V := GoAny) [interface.ok e]
+      isplitr
+      · ipureintro; rfl
+      iintro %asl ⟨Hasl, -⟩
+      iapply wp_notCrashed_acc _ _ rfl
+      iintro Hnc
+      imod walInv_unpin walCodec Mr R jr r dir lay.j X hj _ write hS $$ Hinv Hnc Hl Htf Ho HS Hj Ht Hkey
+        with ⟨Hnc, Hu⟩
+      imodintro
+      iframe Hnc
+      wp_apply wp_Errorf _ _ [interface.ok e] [e] (by
+          intro ii hii
+          right
+          simp only [List.mem_cons, List.not_mem_nil, or_false] at hii
+          cases hii
+          simp) $$ [Hasl] as %e1 #He1
+      · iframe
+        iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
+        iexact He
+      try wp_auto
+      iapply HΦ
+      iframe Hp
+      isplitl [HN Hcl]
+      · iapply walAreaRes_close jr N h cl hok; iframe
+      iexists o
+      iframe HQ
+      ileft
+      iframe
+      ipureintro; nofun
     sorry
 
 end proof
