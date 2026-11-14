@@ -84,6 +84,8 @@ macro "create_seg_exit" : tactic => `(tactic| (
     iframe
     ipureintro; intro hc; cases hc))
 
+-- (the proof term's instantiation at the end of the declaration exceeds the default budget)
+set_option maxHeartbeats 1000000 in
 theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
     (wp_Exist : wal.Exist.specCreate (GF := GF) walCodec Mr)
     (wp_FExist : go_etcd_io.etcd.client.pkg.v3.fileutil.Exist.spec (GF := GF) (hG := hG))
@@ -503,6 +505,51 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
       try wp_auto
       create_seg_exit
     subst he1
+    try wp_auto
+    -- `encode(&Record{Type: MetadataType, Data: metadata})`
+    unfold go_etcd_io.etcd.server.v3.storage.wal.MetadataType
+    try wp_auto
+    imod (typedPointsto_dfractional _ _).dfractional_persist (DFrac.own 1) $$ «$v0» with #Ht1
+    have hmdr : recSize (recOf ⟨metadataType, hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md, md⟩)
+        < 2 ^ 47 := recSize_hdr _ _ _ (by decide) (by omega)
+    wp_apply (wp_encode enc (wal.fileWi f) _ _ (fun ys => ys.length ≤ (createStream Mr md).length)
+        ([] ++ ys1) pend1 (hash.crc32.crc32c 0#32 []) «$a0_ptr» metadataType md hmdr
+        (fun xs ys hp hy => Nat.le_trans hp.length_le hy) (by
+          have h1 := congrArg List.length hys1
+          rw [hFr]; unfold snapFrame
+          simp only [List.length_append, List.length_nil] at h1 ⊢; omega))
+      $$ [HwsP] [Henc HW1 «$a0»] as %serr2 ⟨%pend2, Henc, -, Hr2⟩
+    · iexact HwsP
+    · iframe Henv Henc HW1
+      iunfold encRecIn
+      iexists _
+      iframe «$a0»
+      have hd : (recOf ⟨metadataType, 0#32, md⟩).data = some md := by
+        simp [recOf, metadataType, crcType]
+      rw [hd]
+      have hmt : metadataType = W64 1 := rfl
+      rw [hmt]
+      isplitl
+      · iexact Ht1
+      isplitr
+      · simp only [recBytes, recOf, metadataType, crcType]
+        isplitr
+        · ipureintro; exact hmp
+        iexact Hmd
+      · ipureintro; trivial
+    icases Hr2 with (⟨%ys2, ⟨%he2, %hys2⟩, HW2⟩ | ⟨%a2, %b2, ⟨%he2, -, -⟩, HB2⟩)
+    rotate_left
+    · -- `encode` failed: the deferred `f.Close()` and `RemoveAll(nm.tmp)`, the abort
+      rcases serr2 with ei | _
+      rotate_left
+      · exact absurd rfl he2
+      iunfold os.fileBI at HB2
+      icases HB2 with ⟨HB2, -⟩
+      iunfold os.fileB at HB2
+      icases HB2 with ⟨%o', %mb, %ysb, -, Hf, Hfd, -⟩
+      try wp_auto
+      create_seg_exit
+    subst he2
     try wp_auto
     sorry)
 
