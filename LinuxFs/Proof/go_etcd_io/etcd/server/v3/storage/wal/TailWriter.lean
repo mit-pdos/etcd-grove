@@ -816,6 +816,7 @@ theorem wal.tailWriter [os.file.FieldAssumptions] (Mr : WalMarshal) (R : Roots) 
       isplitr
       · ipureintro; exact ⟨rfl, by rw [hn]; rfl⟩
       iunfold walTailW
+      simp only []
       rw [List.append_nil]
       iframe Hf Ho Hk
       isplitl [Hfd]
@@ -847,6 +848,7 @@ theorem wal.tailWriter [os.file.FieldAssumptions] (Mr : WalMarshal) (R : Roots) 
       refine ⟨hres.1, ?_⟩
       rw [hres.2]; simp only [sint.Z]; rw [os.W64_nat_toInt xs.length (by omega)]
     iunfold walTailW
+    simp only []
     iframe Hf Hk
     isplitl [Hfd]
     · iexists rd; iexact Hfd
@@ -861,7 +863,7 @@ theorem wal.tailWriter [os.file.FieldAssumptions] (Mr : WalMarshal) (R : Roots) 
     · ipureintro; exact ⟨by rw [hmb.2, hsz], hmb.1, hsz62, hfd0⟩
     rw [List.length_append, ← Nat.add_assoc]
     unfold tailVar
-    dsimp only
+    try dsimp only
     iexact Hv
   · iright
     isplitr
