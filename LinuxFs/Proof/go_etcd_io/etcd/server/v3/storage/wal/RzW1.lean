@@ -61,16 +61,16 @@ theorem AsOfW.drop_rz {cs cs' : Nat → Cands} {rz : List Nat} {v : Nat → w8} 
         exact ⟨p, hp, hv, hp0, hpr⟩
 
 /-- **`W1G` over a layout's bytes with known resizes' zeros appended gives `W1G` over the bytes
-without them** (same lengths). -/
+without them** (the bytes with the zeros at least as long: past the shorter bytes `W1G` says nothing). -/
 theorem W1G.drop_rz {C : WalCodec} {js : List Ino} {img : Ino → List w8}
     {bsOf bsOf' : Ino → Option (List ByteG)} {rzOf : Ino → List Nat}
     (h : W1G C js img bsOf' rzOf)
-    (hb : ∀ i bs, bsOf i = some bs → ∃ bs', bsOf' i = some bs' ∧ bs'.length = bs.length ∧
+    (hb : ∀ i bs, bsOf i = some bs → ∃ bs', bsOf' i = some bs' ∧ bs.length ≤ bs'.length ∧
       ∀ b, b < bs.length → RzCands (rzOf i) (bs.getD b (0, [])).2 (bs'.getD b (0, [])).2) :
     W1G C js img bsOf rzOf := by
   intro k p hp i bs hi hbs hsz
   obtain ⟨bs', hbs', hl, hc⟩ := hb i bs hbs
-  have h1 := h k p hp i bs' hi hbs' (by rw [hl]; exact hsz)
+  have h1 := h k p hp i bs' hi hbs' (by omega)
   exact AsOfW.drop_rz (fun b h1 h2 => hc b (by omega)) h1
 
 end WalFs

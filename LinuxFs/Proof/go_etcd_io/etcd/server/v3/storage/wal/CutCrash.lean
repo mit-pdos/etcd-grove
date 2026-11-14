@@ -324,7 +324,8 @@ theorem crashOkA_rename (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay lay' 
       have hct := hok (treeDel m' lay.j bt) fo ((regionCrashed_iff _ _ _).2 ⟨K, hK'⟩) hfo
         (fun g hg hin => hn g (hpre.subset hg) (by rw [hj']; exact mem_walInos_treeDel hin))
         (w1G_durable C _ _ _ _ (fun i bs hb => by
-          obtain ⟨g, hg, rfl, rfl⟩ := segBytesOf_some hb
+          obtain ⟨g, hg, rfl, rfl⟩ := segBytesOf_some_ex
+            (fun g1 hg1 => Nat.le_of_eq (habs.metasEx hex g1 hg1).2.2.2) hb
           refine ⟨hdur g hg, ?_⟩
           cases hfg : fo g.ino with
           | none => right; simp [imgOf]

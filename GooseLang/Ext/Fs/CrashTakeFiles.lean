@@ -40,14 +40,14 @@ def crashRestAt (Q : OsState → OsState → Prop) (hL hL' : OsGS GF) (D : List 
 
 /-- What the crash from `st` to `st'` did to the file `i`, the old generation knowing its `OsMeta`
 as `m` and its bytes as the runs `rs`: `FileCrashedR`; named in the new tree, it is there; it was a
-file of `st`, whose candidates are the runs' if `m` has no sync cut, and whose resize stamps include
-those `m` knows. -/
+file of `st`, whose candidates are the runs' if `m` has no sync cut, whose resize stamps include
+those `m` knows, and whose candidates past the size are those `m` knows (`OsMeta.pc`). -/
 def FileCrashAt (st st' : OsState) (V' : Hist) (i : Ino) (m : OsMeta)
     (rs : List (Nat × DFrac × List ByteG)) : Prop :=
   FileCrashedR m rs (st'.fs.files !! i) ∧ (Named V'.now i → (st'.fs.files !! i).isSome) ∧
   ∃ f, st.fs.files !! i = some f ∧ (m.cut = none →
     ∀ r ∈ rs, ∀ k (hk : k < r.2.2.length), f.cand (r.1 + k) = (r.2.2[k]).2) ∧
-    ∀ s ∈ m.rz, s ∈ f.rzs
+    (∀ s ∈ m.rz, s ∈ f.rzs) ∧ ∀ b c, m.size ≤ b → m.pc b = some c → f.cand b = c
 
 variable (hL : OsGS GF)
 
@@ -116,7 +116,8 @@ theorem crashRestAt_take (Q : OsState → OsState → Prop) (hL' : OsGS GF) (D :
   · ipureintro
     refine ⟨crashSeen_crashed hseen, fun hn => hnamed i hn, ?_⟩
     obtain ⟨f, hf, hmok⟩ := hcoh.meta_some i m hmo
-    refine ⟨f, hf, fun hcut r hr k hk => ?_, hmok.rz⟩
+    refine ⟨f, hf, fun hcut r hr k hk => ?_, hmok.rz,
+      fun b c hb hc => hmok.pc_cand b c (by rw [← hmok.size]; exact hb) hc⟩
     obtain ⟨f1, hf1, -, -, -, hrel⟩ := hcoh.bytes i _ _ (hxs r hr k hk)
     simp only [OsState.file, hf, Option.some.injEq] at hf1
     subst hf1
