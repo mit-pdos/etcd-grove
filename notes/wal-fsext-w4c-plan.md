@@ -712,3 +712,38 @@ operation yet.** No axiom, no `sorry`, nothing trusted changed, no Go changed. `
   (`restartRead`: `ValidSnapshotEntries`, `Open`, `ReadAll`, `Repair`; `checkRestart`), `Boot` (the `Create` arm:
   `walAbsent` from `TBoot`'s `od = none`), and `encode/decodeOracle`; `tester_crash` once U2c's `durInv_crash` and
   U3d's `walBootCrash` land (over `tOracleFile_crash`, `CrashPure`, the WAL `_keep` lemmas).
+
+**Second session (branch `wal-u5b`, 2026-11-14): the oracle helpers and the member's `sync`/`close` proved; a
+WAL resource mismatch found.** No axiom, no `sorry`, nothing trusted changed, no Go changed.
+
+- **Proved** (`TP/`): `freshOracle`, `putHS`, `putOps`, `encodeOracle` (new specs `putHS.spec`, `putOps.spec`:
+  append `tHsBytes`/`tOpsBytes`); `decoder.u64`/`hs`/`ops` and `decodeOracle` (`TP/DecRep.lean`: `decRep d bs k`, the
+  decoder at offset `k` of the read-only bytes `bs`, `ok` true, `|bs| ≤ 2^30` from `tOrSmall`; the method specs
+  read `tU64 x`/`tHsBytes h`/`tOpsBytes h` at `bs.drop k`, `ops` returning `opsRep ∗ ownSliceCap`; the byte
+  fold's step by `bv_decide`). The oracle helpers' three stated specs (`encodeOracle`, `decodeOracle`,
+  `freshOracle`) are now proved, so `storeOracle`/`loadOracle` rest only on `durable`'s and these.
+- **`TP/Member.lean`** (decision mine, internal): `tMemOk o c d`, the running member's WAL side: the oracle
+  created, `c ∈ cands`, no pending `Open` (`checkRestart` clears them), the WAL state `d` (the program's
+  `tWalOwn γ (some d)`) **exactly** `c`'s history (`d.H.map toM = (tCandHist o c).map absOp`: no crash cut it),
+  `d`'s positions within `c`'s bounds (`unl ≤ c.unl`: the opens are none), sized, well formed, `synced ≤
+  |since|`. `tSynced o` (`synced := |since|`); `tMemOk_candOk`: then `tCandOk (tSynced o) c d` at the whole
+  history (`walImg` at `j = |H|`).
+- **`member.sync`/`member.close`** (`Spec/.../member__sync.lean`, `member__close.lean`; proofs over
+  `storeOracle.spec` and the part's `WAL.Sync.spec`/`WAL.Close.spec` at `walRaftP`/`walRaftMr`, callee
+  hypotheses as the Link will give them): the specs take the member's touched fields (`orPath`, `w`, `o`),
+  `oracleRep`, the program's halves, `tMemOk o c d` and the handle (`walOpenWF`, `walLenLb w dir |d.H|`;
+  `close`: `walPurgeW`), `walNamed`; success: the synced oracle stored (`tRelI_synced` from the returned
+  `walSyncedLb dir |d.H|`); `close` also `walUnlockedTok ∗ osCallPerm 1` and `m.w = nil`. `Close`'s update
+  commits on `TInv` with the state unchanged (`tInv_walAu`; `tN_sub_walAu`); on `Close`'s error the WAL state's
+  half is lost with its `Q` (the caller stops). `oracleRep_synced`: the Go store `m.o.synced = len(since)`.
+- **Mismatch (ledger 2026-11-14, "the client keeps no call permission while a WAL is open"; open, for the WAL's
+  coordinator):** since the two `osCallPerm ½` ledger entries the open handle and its pipeline hold the whole call
+  permission, so nothing supplies `storeOracle`'s `osCallPerm qc` while the WAL is open (`Boot` after `Create`,
+  `save`, `saveSnap`, `sync`, `opOwnSnap`, `restartRead`). Interim: the member specs take the client's `qc` as a
+  parameter (their proofs stand once `Create`/`ReadAll` give a fraction back); `Boot`/`restart` wait for it.
+- **Next:** `toHS`/`toRaft`/`entData`/`newU64` specs against `walRaftP` (`walHsIn`: fresh cells, `pbMsg_alloc` for
+  the hidden fields, `c = walHsCanon h` unless empty; `walEntIn`: `walEntCanon`, `Data` non-nil, `walEntSmall`),
+  then `member.save` (the oracle with the op stored first: `tRelI` for `since ++ [op]` with the *old* `d` from
+  `walSyncedLb (tCandMark o c)`, which the member must carry, as `sync`'s and `close`'s success arms now give; the
+  `Save` update committed on `TInv` to `d.H ++ [op]`, `tMemOk` for the new oracle), `saveSnap` (the same, plus the
+  `ConfState` canonical-encoding obligation, U1 mismatch 3), `restart` (needs the call-permission fix).
