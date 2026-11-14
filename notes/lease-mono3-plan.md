@@ -868,7 +868,7 @@ axioms, 4 sorries).
 | `etcdstart.alloc3`, `alloc3Http` (private) (etcdstart API) | `(hrev : lm ≠ .revocable)` | `(hap : lm = .revocable → leaseIdsApart [id₁, id₂, id₃])`; posts unchanged |
 | `etcdstart.memberBoot_of` (etcdstart API) | `(hrev : lm ≠ .revocable) (Hklg)` | `(Hklg) (hpfx : lm = .revocable → idPfxOf (W16 (uint.Z id)) ∈ γk.gps) (hpo : kvPfxOk γk)` |
 | `etcdstart.restartReqNames` (etcdstart API, definition) | the KV names' literal | keeps `gps := ρ.rd.kv.gps` (the new field) |
-| `KVNames` (wide fan-in record) | 12 fields | new last field `gps : List w64 := []`; the four positional literals (`NewServerAlloc`, `NewServerAllocOn` ×2, `WatchRun`'s `dummyWsPrm`, `Restart`) updated, meaning unchanged |
+| `KVNames` (wide fan-in record) | 12 fields | new last field `gps : List w64 := []`; the seven positional literals (`NewServerAlloc` ×2, `NewServerAllocOn` ×3, `WatchRun`'s `dummyWsPrm`, `Restart`'s `restartReqNames`) updated, meaning unchanged (the `On` ones and `dummyWsPrm` at `[]`) |
 
 Interfaces regenerated: `interface/…/etcdstart/Alloc3.txt`, `Restart.txt` (the diffs above, nothing
 else); the other API packages' interfaces unchanged (`--check`).
