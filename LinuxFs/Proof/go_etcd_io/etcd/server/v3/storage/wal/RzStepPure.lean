@@ -134,15 +134,15 @@ the step announces at most `wr` (`min lo tg ≤ wr`: so for `cut`'s and `ZeroToE
 wr`): the bytes below the write position are untouched. From an exact tail or a window (`wal-tc7`).
 The target at most `hi` (a truncate to `wr`, a growth back to the size) and `segBytesX` across the step
 as `segBytesX_rzSeg`/`segBytesX_rzGrow` give it (`hX`): the window's candidates (`WinCands`) gain the
-step's zero. -/
+step's zero. The new window's `WinZero` given F-Z is the old tail's (`WalAbsD.zeroPast`; `wal-tc17`,
+finding A: no `WinZero` premise, a pending tail's truncate keeps `old`'s torn values past `wr`). -/
 theorem walAbsD_rzStart {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
     {pre : List SegG} {g0 : SegG} {tr : Bool} {tg n : Nat}
     (habs : WalAbsD C Mr d lay ents) (hs : lay.segs = pre ++ [g0])
     (hwr : lay.wr ≤ tg) (hlo : min g0.om.lo tg ≤ lay.wr) (htg : tg ≤ g0.om.hi)
     (hX : (segBytesX (rzSeg g0 tr tg n)).length = (segBytesX g0).length ∧
       ∀ b, b < (segBytesX g0).length → RzCands (rzSeg g0 tr tg n).om.rz
-        ((segBytesX g0).getD b (0, [])).2 ((segBytesX (rzSeg g0 tr tg n)).getD b (0, [])).2)
-    (hz : WinZero lay g0) :
+        ((segBytesX g0).getD b (0, [])).2 ((segBytesX (rzSeg g0 tr tg n)).getD b (0, [])).2) :
     WalAbsD C Mr d (tailLay lay pre (rzSeg g0 tr tg n) lay.wr) ents := by
   have hg0 : lay.segs.getLast? = some g0 := by rw [hs]; simp
   obtain ⟨hsz, hcut, hlo0, hhi0, -⟩ := habs.metas g0 (List.mem_of_getLast? hg0)
@@ -169,14 +169,14 @@ theorem walAbsD_rzStart {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wal
   · refine ⟨⟨hso, hwS, by simp only [tailLay]; omega, by simp only [tailLay]; omega,
       fun b x hb hbw => ?_, hz0, hzS, hzZ, ?_⟩,
       WinHead.of_lo (by simp only [tailLay, rzSeg, rzMeta_lo]; omega),
-      fun b x hb hx => ?_, ?_, ?_⟩
+      fun hZ b x hb hx => ?_, ?_, ?_⟩
     · simp only [tailLay] at hbw
       rw [rzSeg_getElem?_lt hl (by omega)] at hb
       exact hB b x hb (by omega)
     · exact hWC.rz (by simp only [rzSeg, rzMeta_hi]; omega) hX.1 hX.2
         (fun s hs => by simp [rzSeg, rzMeta, hs])
     · obtain ⟨y, hy, hy1⟩ := rzSeg_getElem?_fst hx
-      rw [← hy1]; exact hz b y hb hy
+      rw [← hy1]; exact habs.zeroPast g0 hg0 hZ b y hb hy
     · have := habs.oldHi_any g0 hg0
       simp only [tailLay, rzSeg, rzMeta_hi]; omega
     · have := habs.winLo_any g0 hg0

@@ -15,9 +15,10 @@ step keeps `old` (`walLentRes_insert_same`), so the supplies, which step the tai
   with `k` its size: the tail's `OsMeta` is the invariant's (`segRes`, no change in flight: the record
   idle), an exact tail's bytes are as long as `old` (`TailLast`), so `|old| = size`
   (`walAbsD_old_exact`).
-* `walInvBody_unlend` / `walInv_unlend`: the token back for the key.
-
-Both at any program step (`wp_notCrashed_acc` gives `notCrashed`).
+At any program step (`wp_notCrashed_acc` gives `notCrashed`). The token goes back for the key at the
+fdatasync after `ZeroToEnd` (`walLentRes_unpend`, either kind); `walInvBody_unlend`/`walInv_unlend`
+(the token back at any step) are removed (`wal-tc17`: a lent tail may have `TailPend` in place of F-Z,
+and the key's holder reads F-Z).
 -/
 module
 
@@ -134,34 +135,6 @@ theorem walInvBody_lend (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
   · ipureintro; exact HAt
   ipureintro; exact Hbd
 
-/-- **A lent tail returned** (see the file header). -/
-theorem walInvBody_unlend (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (s : AbsDiskState) (dir : GoString) (γ : GName) (k : Nat) :
-    ⊢ walInvBody (W := W) C Mr R jr r s -∗ walLentTok (W := W) dir γ k ==∗
-      walInvBody (W := W) C Mr R jr r s ∗ walTailKey (W := W) dir γ := by
-  iintro Hb Hlt
-  unfold walInvBody
-  icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hn, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
-    HDK, %HAt, Hnms, %Hbd⟩
-  unfold walTailsRes
-  icases Htl with ⟨%T, HTa, %HTo, %HTi, HTm, HL⟩
-  imod walLentRes_unlend T Ls dir γ k $$ Hlt HL with ⟨Hk, HL⟩
-  imodintro
-  iframe Hk
-  iexists Ls, cl, n, F
-  iframe Hg Hcl Hn HCR Hpk HDK Hnms Hlays
-  isplitr
-  · ipureintro; exact Har
-  isplitr
-  · ipureintro; exact HW
-  isplitr
-  · ipureintro; exact HWC
-  isplitl [HTa HTm HL]
-  · iexists T
-    iframe HTa HL HTm
-    ipureintro; exact ⟨HTo, HTi⟩
-  ipureintro; exact ⟨Hab, HNm, HAt, Hbd⟩
-
 /-- **An exact, idle tail lent, at a program step** (`walInvBody_lend` under `walInv`). -/
 theorem walInv_lend (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     (dir : GoString) (γ : GName) (H : List (WalOpG WalEnt)) (md : List w8)
@@ -179,20 +152,6 @@ theorem walInv_lend (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r :
   · iexists s; iexact Hb
   imodintro
   iframe Hnc Hlt Hv Hm
-
-/-- **A lent tail returned, at a program step** (`walInvBody_unlend` under `walInv`). -/
-theorem walInv_unlend (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (dir : GoString) (γ : GName) (k : Nat) :
-    ⊢ walInv (W := W) C Mr R jr r -∗ notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗
-      walLentTok (W := W) dir γ k ={⊤}=∗
-      notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ walTailKey (W := W) dir γ := by
-  iintro #Hinv Hnc Hlt
-  imod walInv_open C Mr R jr r ⊤ (fun _ _ => CoPset.mem_full) $$ Hinv Hnc with ⟨⟨%s, Hb⟩, Hnc, Hcl⟩
-  imod walInvBody_unlend C Mr R jr r s dir γ k $$ Hb Hlt with ⟨Hb, Hk⟩
-  imod Hcl $$ [Hb]
-  · iexists s; iexact Hb
-  imodintro
-  iframe Hnc Hk
 
 end iris
 

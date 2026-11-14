@@ -220,6 +220,9 @@ theorem walInvBody_tailW (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   isplitl [HTa HTm Hvn HL]
   · iexists T
     ihave HL := walLentRes_insert_same (W := W) T Ls dir lay (tailLay lay pre g wr') hl rfl id
+      (fun hp => hwr'.elim (fun e => Or.inr (by
+        show wr' = lay.z0 ∧ ∀ j, j < 8 → lay.old.getD (wr' + j) 0 = 0
+        rw [e]; exact hp)) Or.inl)
       (fun h => absurd h (by rw [HT]; simp)) $$ HL
     iframe HTa HL
     isplitr
