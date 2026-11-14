@@ -2,7 +2,7 @@
 `wal.Create` over `fsExt`: the proof (W4 of `notes/wal-fsext-plan.md`; spec
 `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/Create.lean`). The callees' specs not yet proved
 over `fsExt` are hypotheses (`CreateCallees.lean`; the W4 log lists them). **Unfinished**: the body is
-proved up to the frontier `sorry` (the W4 log, eleventh session, says where). Lean-first.
+proved up to the frontier `sorry` after the call of `renameWAL` (the W4 log, eighteenth session, says what is left). Lean-first.
 -/
 module
 
@@ -676,8 +676,10 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
     imod create_J_ne R jr J [nm, tmpName nm] nm _ _ hC _ (by simp) (walNameOk_not_tmps hnm)
       CoPset.subseteq_top $$ Hsi HC HJx with ⟨%hJjr, HC, HJx⟩
     imod osNames_next R jr _ _ _ CoPset.subseteq_top $$ Hsi HC with ⟨HC, #HlbC⟩
-    ihave #Hlb := osLogLb_max _ _ $$ [HlbC HlbJ]
-    · iframe HlbC HlbJ
+    ihave #Hlb : osLogLb (max hC.next (hJ'.restrict J ((NameSet.except []).diff walTmps)).next) $$ []
+    · rcases Nat.le_total hC.next (hJ'.restrict J ((NameSet.except []).diff walTmps)).next with hle | hle
+      · rw [Nat.max_eq_right hle]; iexact HlbJ
+      · rw [Nat.max_eq_left hle]; iexact HlbC
     have hctmp : hC.cur !! tmpName nm = some (.dir J) := by
       have := congrArg (fun x : NamesH => x.cur !! tmpName nm) hCf.1
       simp only [NamesH.restrict] at this
@@ -742,7 +744,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
       iframe; iframe #
       ipureintro; exact hen
     -- `w.renameWAL(tmpdirpath)`: the commit
-    have hOk : RenameWALOk (W := W) R jr J r (child r nm) nm (tmpName nm) (.only [nm, tmpName nm]) hC
+    have hOk : RenameWALOk R jr J r (child r nm) nm (tmpName nm) (.only [nm, tmpName nm]) hC
         (max hC.next (hJ'.restrict J ((NameSet.except []).diff walTmps)).next) (DFrac.own d)
         (createU Mr R jr r nm hC md Q J (hJ'.restrict J ((NameSet.except []).diff walTmps))
           (createSeg i mS ysS))

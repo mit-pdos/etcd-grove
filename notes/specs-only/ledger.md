@@ -766,3 +766,30 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   invariant's commit bound compared with the program's. Open.
 - **Decision.** Made, minor and internal (`wal-create16`): a hypothesis's post strengthened; its truth is an
   obligation recorded here and in the W4 log's eighteenth session.
+
+## 2026-11-14: `wal.WAL.renameWAL.spec` / `renameWALUnlock.spec` (internal, the part's) -- the error arms lose the lock file and the spines
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__renameWAL.lean` (`renameWALPost`, arms 3 and 4),
+  `WAL__renameWALUnlock.lean`; decisions (1) and 2b of the entries above.
+- **Defect.** Too weak for `Create`'s exits after the call (`wal-create16`, which reaches them: `Create` now calls
+  `renameWAL` with every `RenameWALOk` law discharged). On `renameWAL`'s error `Create` returns at once, and its
+  deferred `f.Close()` (`retErr ≠ nil`) runs on the lock file: arm 3 (`walPreIn … ∨ emp`) and arm 4 (nothing)
+  do not say whether `f` is still open (`os.ownFile`/`osFd`, as `Create` framed them around the call) or was
+  closed by `renameWALUnlock`'s `w.Close()` (then the deferred close is a second close of a closed `*os.File`,
+  which needs its own `os.File.Close` spec: `ErrClosed`, no effect; none exists). Arm 4 also drops the two spines
+  to `dir` that the spine law made (`osPathS R dir dq J`, fractions of the area's spine and of `nm`'s claim), so
+  `Create` cannot give back the area's spine fraction it lent (`osPathS R r (own qp) jr` in `Create.spec`'s post).
+- **Evidence.** `Create.wp_proof`'s frontier `sorry` after `renameWAL` (`Create.lean`); `renameWALPost`.
+- **Proposed change** (with (1), the pre carrying what `Close` consumes): the pre takes the encoder, the tail file
+  (`os.ownFile f fd …`, `osFd`, `os.ownOff`) and the tail's lock (`fileutil.lockedFile lt f` is in `walPreIn`);
+  arm 1 returns them; arms 3 and 4 return them open (the rename failed before `renameWALUnlock`'s `Close`, or
+  `OpenDir` failed after a committed rename) or a closed-file token for the deferred `f.Close()` (a spec
+  `os.File.Close.specClosed` to add: a closed `*os.File` returns an error and changes nothing); arm 4 returns the
+  two spines (`osPathS R dir dq J ∗ osPathS R dir dq J`, for `osPathS_unchild`). Arm 2 (the retry's reopen) as
+  decided in 2b: proved over `Create`'s held resources (`createU (some x)`: `walLockedTok`, `walOutFrag`,
+  `walNamesFrag (some dir)`, the segment's halves), its `Open`/`ReadAll` through variants of `walInv_openAt`
+  without the client's update (the open position of index 0 leaves `unl`, so no commit is needed; the
+  state from `walCreateQ`'s `walPast`), and its success arm adding `walLenLb w' dir 0 ∗ walSyncedLb dir 0`
+  (`Create.spec`'s success post). Not yet made.
+- **Decision.** Pending (`wal-create16` stopped at its budget; the next session makes it with `renameWAL`'s
+  re-proof).
