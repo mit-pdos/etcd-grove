@@ -117,13 +117,18 @@ theorem walDecEnv_eof_not (eof : GoInterface) :
     isPkgInit (PROP := IProp GF) pkg_id.io ∗ globalAddr _root_.Perennial.io.EOF ↦□ eof ⊢
       ⌜∀ pe : Loc, interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe ≠ eof⌝ := by
   iintro ⟨#Hio, #Heof⟩
-  ihave ⟨%x, #Hx, -⟩ := _root_.Perennial.io.eof_of_init $$ Hio
+  ihave #Hn := _root_.Perennial.io.eof_of_init $$ Hio
+  iunfold _root_.Perennial.errors.newVar at Hn
+  icases Hn with ⟨%x, #Hx, -⟩
   icombine Heof Hx gives %he
   ipureintro
   subst he
   intro pe h
   unfold interface.mkOk at h
   injection h with h
+  injection h with h
+  injection h with h
+  rw [io.fs.PathError.ty.eq_1, _root_.Perennial.errors.errorString.ty.eq_1] at h
   injection h with h
   revert h; decide
 
