@@ -1167,3 +1167,17 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   assumption on the WALs found at boot, kept by `cut` only while receipts bound it). Needs the coordinator's
   design: no option is free.
 - **Decision.** Open: the coordinator's call. Until then `ReadAll`'s `walOpenWF` takes it as a marked `sorry`.
+
+## 2026-11-14: `wal.Create.spec` (the part's) -- the success arm is false when the parent's fsync fails and its close succeeds
+
+- **Spec.** `wal.Create.spec`'s first arm: `err = nil` gives `walOpenWF P Mr w dir`, `walNamed dir`, `Q`, ...
+- **Defect.** Not the spec's: the code's. After a failed `fileutil.Fsync(pdir)`, `Create` calls `dirCloser()`,
+  which assigns `pdir.Close()`'s result to `perr`; a successful close makes `Create` return `(nil, nil)` and skip
+  its deferred `cleanupWAL`. Over `fsExt` the fsync may fail (`Fsync.specDirS`) and the close succeed, so no
+  spec with an honest success arm holds (`nonissues/etcd-wal-create-parent-fsync-nil-nil.md`; etcd's
+  `bootstrapNewWAL` would dereference the nil WAL).
+- **Evidence.** The continuation after `renameWAL` (`wal-create22`).
+- **Proposed change.** None to the spec: the fork fix `notes/wal-fsext-fork/0005-...diff` (`pdir.Close()` on
+  that path), then retranslate; the spec stays as it is.
+- **Decision.** Pending the user (a fork change). Until then `Create.wp_proof` keeps a marked `sorry` on that
+  path only.
