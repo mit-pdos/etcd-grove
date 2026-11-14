@@ -705,6 +705,68 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     $$ Hinv Hnc Hdk Hcw Htk Hv Hcf Hcm with ⟨Hnc, Hcw, Htk, Hv, Hcf⟩
   imodintro
   iframe Hnc
+  -- the fsync's duration
+  ihave #Henv0 := Henv
+  iunfold encEnv at Henv0
+  icases Henv0 with ⟨-, -, -, #Htime, #Hmet⟩
+  iunfold wal.metricsInit at Hmet
+  icases Hmet with ⟨⟨%hs, #Hhs, #Hhspec⟩, -, -⟩
+  iunfold wal.histSpec at Hhspec
+  wp_apply wp_Since as %dur -
+  (try wp_auto)
+  -- (`MethodResolve` on a `Duration` needs `NotInterface go.int64`: `go.int64` is a plain `def`, which
+  -- `notInterface_Named` does not unfold)
+  haveI _hni : go.NotInterface go.int64 := ⟨by unfold go.int64; trivial⟩
+  wp_pures
+  wp_apply (wp_Seconds dur) as %fl -
+  (try wp_auto)
+  wp_apply Hhspec
+  iclear Hhspec Hhs
+  (try wp_auto)
+  -- step 8: `newTail.Close()`
+  wp_method_call
+  wp_call
+  (try wp_auto)
+  wp_apply (wp_Close f2 fd2 _ _) $$ [Hf2 Hfd2] as %cerr -
+  · iframe; iframe #
+  (try wp_auto)
+  -- `fileutil.LockFile(fpath, O_WRONLY, PrivateFileMode)`
+  ihave Hpd : osPathS Rd dir (DFrac.own qd) j $$ [Hpd1 Hpd2]
+  · iapply (show osPathS (GF := GF) Rd dir (DFrac.own (qd.half + qd.half)) j ⊢
+      osPathS Rd dir (DFrac.own qd) j by rw [Qp.half_add_half])
+    iapply (osPathS_frac Rd dir qd.half qd.half j).2; iframe
+  ihave #Hfupk : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.fileutil $$ []
+  · iPkgInit
+  have hbn : NameOk bt := by rw [← hbt]; exact walFileName_nameOk _ _
+  wp_apply (wp_LockFile (child dir bt) (W64 1) (W32 384) _ Unit _ _
+      (walOpen_triple Rd dir bt (DFrac.own qd) j g.ino (.except X) (DFrac.own (1 : Qp).half)
+        (hj.log x (renFileEnt j (pipeTmp np) j bt g.ino hj s0) (<[bt := .file g.ino]> hj.cur))
+        (1 : Qp).half (W64 1) (by simp only [OpenFlagsOk, O_CREAT, O_TRUNC, O_CLOEXEC]; decide)
+        (by decide) hbn hbX (GMap.lookup_insert _ _ _)))
+    $$ [Hpd Hcw Hperm] as %lf3 %lerr Hlp
+  · iframe; iframe #
+  iunfold fileutil.lockPost at Hlp
+  icases Hlp with ⟨%u, (⟨%hle, ⟨Hpd, Hcw, Hperm⟩, %f3, %fd3, %i3, ⟨%hfd3, %hi3⟩, #Hlf3, Hf3, Hoff3, Hfd3⟩ |
+    ⟨⟨%hle, -⟩, -⟩)⟩
+  rotate_left
+  · rcases lerr with ei | _
+    rotate_left
+    · exact absurd rfl hle
+    (try wp_auto)
+    iapply HΦ
+    iright; ipureintro; nofun
+  subst hle hi3
+  (try wp_auto)
+  -- `newTail.Seek(off, io.SeekStart)`
+  ihave #Hlf3' := Hlf3
+  iunfold fileutil.lockedFile at Hlf3'
+  iStructNamed Hlf3'
+  (try wp_auto)
+  wp_method_call
+  wp_call
+  (try wp_auto)
+  wp_apply (os.File.Seek.wp_start f3 fd3 _ _ (W64 0) _ hfd3 hoS1 hoS2) $$ [$Hf3 $Hoff3] as ⟨Hf3, Hoff3⟩
+  (try wp_auto)
   sorry
 
 end proof
