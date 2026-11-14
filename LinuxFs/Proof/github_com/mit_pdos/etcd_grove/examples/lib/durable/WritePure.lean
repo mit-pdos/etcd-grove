@@ -57,6 +57,26 @@ theorem DFile.tb_ne (f : DFile) : f.tb ≠ f.b := by
 
 theorem DFile.b_ne_tb (f : DFile) : f.b ≠ f.tb := fun h => f.tb_ne h.symm
 
+theorem DFile.child_eq (d b : GoString) : child d b = d ++ [path.slash] ++ b := by
+  simp [child]; rfl
+
+/-- `filepath.Dir(name)`: the directory. -/
+theorem DFile.dir_name {f : DFile} (hf : f.Ok) : path.dirModel f.name = f.d := by
+  unfold DFile.name; rw [DFile.child_eq]; exact filepath.dirModel_name f.d f.b hf.1 hf.2.1
+
+/-- `filepath.Base(name)`: the base name. -/
+theorem DFile.base_name {f : DFile} (hf : f.Ok) : path.baseModel f.name = f.b := by
+  unfold DFile.name; rw [DFile.child_eq]; exact filepath.baseModel_name f.d f.b hf.2.1
+
+/-- `filepath.Join(dir, ".durable-"+base)`: the temporary's path. -/
+theorem DFile.join_tmp {f : DFile} (hf : f.Ok) : path.joinModel [f.d, f.tb] = f.tmp := by
+  unfold DFile.tmp; rw [DFile.child_eq]; exact filepath.joinModel_name f.d f.tb hf.1 hf.2.2.1
+
+theorem DFile.join_len {f : DFile} (hf : f.Ok) : ([f.d, f.tb].map List.length).sum + 2 < 2 ^ 62 := by
+  have := hf.2.2.2.2.2
+  simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil]
+  omega
+
 /-! ## The physical states -/
 
 /-- The temporary's history after `os.OpenFile`'s create outcome `o`. -/
