@@ -317,7 +317,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofU [os.file.Field
   (try wp_auto)
   iapply HΦ
   ileft
-  iframe Hunl
+  iframe Hunl Hdir
   iapply osCallPerm_joinU
   iframe
 

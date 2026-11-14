@@ -31,14 +31,17 @@ variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.A
 consumed) with nothing committed: the free lock token back (`walUnlockedTok`, `walCloseLawU`) with the whole
 call permission, whatever `err` (the directory's `Close` may fail after everything else), or, the sync
 failed (`Close` returns before it unlocks), the lock token still held (`walLockedTok`: `WAL.sync.specC`'s
-error arm), which `Create` needs to merge `nm.tmp`'s claim back to the area. -/
+error arm), which `Create` needs to merge `nm.tmp`'s claim back to the area. The `dir` field comes back
+with the free token (`cleanupWAL` reads `w.dir` after `Close`, for the rename). -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.specU (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
   ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString),
   {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWFU P Mr w dir ∗ WalFs.walPurgeW w dir }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"Close"))
       (Val #()))
   {{ (err : GoInterface), RET #err;
-      (WalFs.walUnlockedTok ∗ osCallPerm 1) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walLockedTok) }}
+      (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dir" w ↦ dir ∗ WalFs.walUnlockedTok ∗
+        osCallPerm 1) ∨
+      (⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walLockedTok) }}
 
 end spec
 
