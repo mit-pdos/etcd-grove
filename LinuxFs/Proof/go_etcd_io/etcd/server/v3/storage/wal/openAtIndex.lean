@@ -460,7 +460,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
     · iunfold decEnv at Hde
       icases Hde with ⟨-, -, -, -, -, -, -, #Hok, -⟩
       iexact Hok
-    ihave ⟨%fs, %fls, ⟨%htie, %hfr⟩, Hdf, Hlk⟩ := walDecFiles_mk wp_Stat wp_Size wp_FName wp_IsEof IoE hIo eof
+    ihave ⟨%fs, %fls, ⟨%htie, %hfr⟩, Hdf, Hlk, -⟩ := walDecFiles_mk wp_Stat wp_Size wp_FName wp_IsEof IoE hIo eof
       hIoEof write dir gs frs lfs hfl hll hsz' $$ [Hfiles HS]
     · iframe Hfiles
       isplitl []

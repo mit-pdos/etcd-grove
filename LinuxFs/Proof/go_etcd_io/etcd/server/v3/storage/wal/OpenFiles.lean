@@ -63,6 +63,16 @@ theorem walDecTie_cons {dir : GoString} {write : Bool} {g : SegG} {gs : List Seg
     obtain ⟨hb, f', fd', hf', hS⟩ := h3 k F' g' hF' hg'
     exact ⟨hb, f', fd', by simpa using hf', hS⟩
 
+/-- The reader `fr` is a `*fileReader` over the `*os.File` `f` (persistent): what rebuilds
+`wal.walClosable` from a stream's file (`openWALFiles`' closer). -/
+def walFrFile (fr : GoInterfaceOk) (f : Loc) : IProp GF :=
+  iprop(∃ rl : Loc, ⌜GoInterface.ok fr = interface.mkOk
+      (go.GoType.PointerType go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader.ty) #rl⌝ ∗
+    rl ↦□ go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader.mk f)
+
+instance walFrFile_persistent (fr : GoInterfaceOk) (f : Loc) : Persistent (walFrFile (GF := GF) fr f) := by
+  unfold walFrFile; infer_instance
+
 /-- **The decoder's files** (see the file header). -/
 theorem walDecFiles_mk
     (wp_Stat : os.File.Stat.spec (GF := GF) (hG := hG))
@@ -81,7 +91,8 @@ theorem walDecFiles_mk
       ([∗list] g ∈ gs, segHalves g) ⊢
     ∃ (fs : List (DecFile GF)) (fls : List Loc), ⌜WalDecTie dir write gs fs fls ∧ fs.map (·.fr) = frs⌝ ∗
       ([∗list] F ∈ fs, decFile IoE eof F ∗ F.S []) ∗
-      [∗list] k ↦ lf ∈ lfs, if write then fileutil.lockedFile lf (fls.getD k null) else ⌜lf = null⌝
+      ([∗list] k ↦ lf ∈ lfs, if write then fileutil.lockedFile lf (fls.getD k null) else ⌜lf = null⌝) ∗
+      [∗list] k ↦ F ∈ fs, walFrFile F.fr (fls.getD k null)
   | [], frs, lfs, hfr, hlf, _ => by
     rw [List.length_eq_zero_iff.1 hfr, List.length_eq_zero_iff.1 hlf]
     iintro ⟨-, -, -, -, -, -⟩
@@ -89,6 +100,8 @@ theorem walDecFiles_mk
     isplitr
     · ipureintro
       exact ⟨⟨rfl, rfl, fun k F g hF _ => by simp at hF⟩, rfl⟩
+    isplitl
+    · iapply BigSepL.bigSepL_nil.2; iempintro
     isplitl
     · iapply BigSepL.bigSepL_nil.2; iempintro
     · iapply BigSepL.bigSepL_nil.2; iempintro
@@ -102,7 +115,7 @@ theorem walDecFiles_mk
     icases BigSepL.bigSepL_cons.1 $$ Hop with ⟨H0, Hop⟩
     icases BigSepL.bigSepL_cons.1 $$ Hh with ⟨Hh0, Hh⟩
     simp only [List.getD_cons_zero, List.getD_cons_succ]
-    ihave ⟨%fs, %fls, %Ht, Hfs, Hls⟩ := ih $$ [Hop Hh]
+    ihave ⟨%fs, %fls, %Ht, Hfs, Hls, #Hfrf⟩ := ih $$ [Hop Hh]
     · iframe Hinv Heof Hos Heofa Hh
       iexact Hop
     unfold walOpenedFile
@@ -129,6 +142,7 @@ theorem walDecFiles_mk
       iframe
       ipureintro
       exact ⟨List.nil_prefix, hfd0⟩
+    isplitl [Hls Hlk]
     · iapply BigSepL.bigSepL_cons.2
       simp only [List.getD_cons_zero, List.getD_cons_succ]
       iframe Hls
@@ -137,6 +151,14 @@ theorem walDecFiles_mk
         iexact Hlk
       · simp only [↓reduceIte]
         iexact Hlk
+    · iapply BigSepL.bigSepL_cons.2
+      simp only [List.getD_cons_zero, List.getD_cons_succ]
+      iframe Hfrf
+      unfold walFrFile
+      iexists rl
+      iframe Hrl
+      ipureintro
+      simp only [walDecFile]
   | _ :: _, [], _, hfr, _, _ => by simp at hfr
   | _ :: _, _ :: _, [], _, hlf, _ => by simp at hlf
 
