@@ -1,10 +1,10 @@
 /-
-`rec.Reset()` of a `*walpb.Record` (record.pb.go, names-only in the part: protobuf plumbing):
-**a hypothesis** of the decoder's proofs (no model, no axiom; its body, `*x = Record{}` then
-`protoimpl.X.MessageStateOf(x).StoreMessageInfo(...)`, is the protobuf runtime plumbing the
-configuration leaves out on purpose): a record owned whole is left blank, as the registered
-`walpb.Record` instance's `blank` says (`PbRecord.lean`: what `proto.Unmarshal` takes), whatever
-the message state then holds (2026-11-13).
+`rec.Reset()` of a `*walpb.Record` (record.pb.go: `*x = Record{}` then
+`protoimpl.X.MessageStateOf(x).StoreMessageInfo(...)`): a record owned whole is left blank, as the
+registered `walpb.Record` instance's `blank` says (`PbRecord.lean`: what `proto.Unmarshal` takes),
+whatever the message state then holds (2026-11-13). Proved (`Record__Reset.lean`, 2026-11-14) over the
+trusted model `Record.Reset.impl` (`LinuxFs/TrustedCode/go_etcd_io/etcd/server/v3/storage/wal/walpb.lean`,
+the fields' reset; pending the user's review).
 W3a of `notes/wal-fsext-plan.md`; Lean-first.
 -/
 module

@@ -7,13 +7,14 @@ token's pending-cut flag (`walCutFrag none`: no cut's rename pending, so the WAL
 no alternative layout), the invariant's contents give the WAL `d` of `dir`, its layout (the segments
 `pre` then the tail `g0`) and the tail's part; given back, once every record is flushed (`wr` the
 stream's end), no write in flight and the tail synced (`segRes (syncTail g0)`, the step's outcome), at
-the WAL state `walSyncS s dir d` (the mark at the whole history) with the layout `syncLay lay pre g0`,
+the WAL state `walSyncS s dir d` (the mark at the whole history) with the layout `syncLay lay pre g0`
+(`syncLayW` when a resize window is open on the tail: `syncLay_any`, W6 log, twentieth session),
 and that state's fact (`walPast`, for `walSyncedLb`). The tail record is unchanged (`syncLay` keeps the
 cuts and the write position). The pure part is `TailSyncPure.lean`.
 -/
 module
 
-public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.TailSyncPure
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.TailSyncWin
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutAuLemmas
 
 @[expose] public section
@@ -170,7 +171,7 @@ theorem walInvBody_sync (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
         segResF (L := L) F g0 ∗ walTailKey (W := W) dir γ ∗ tailVar (W := W) γ tg ∗
         walCutFrag (W := W) none ∗
         (⌜F !! g0.ino = none ∧ lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length ∧
-            (∀ z, g0.om.zf = some z → g0.bs.length ≤ z) ∧ SegExact g0⌝ -∗
+            (∀ z, g0.om.zf = some z → g0.bs.length ≤ z)⌝ -∗
           segRes (L := L) (syncTail g0) ==∗
           walInvBody (L := L) (W := W) C Mr R jr r (walSyncS s dir d) ∗
             walPast (W := W) (walSyncS s dir d)) ∧
@@ -234,13 +235,13 @@ theorem walInvBody_sync (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
       iframe Hdk Hcp
       ipureintro; exact Hdko
     iframe Hnms; ipureintro; exact ⟨HAt, Hbd⟩
-  iintro ⟨%hF, %htail, %hzf, %hex⟩ Hseg
+  iintro ⟨%hF, %htail, %hzf⟩ Hseg
   -- F-Z, from the tail record's entry (kept by `walTailsRes_cut`'s premise)
   have hZ : TailZeros lay := hZB.1
-  have hnd : (lay.segs.map (·.ino)).Nodup := ((segsAll_nodup_iff Ls).1 HW.2.2.1).1 dir lay hl
   have hmH : d.m ≤ d.H.length := habs.synced.1
-  have hok : CrashOk C Mr d lay cl n :=
-    (crashOkA_none_iff _ _ _ _ _ _).1 (Hdko.2.1 dir d lay hd hl (by simp))
+  -- the synced layout: `syncLay`, or `syncLayW` in a resize window
+  obtain ⟨Lw, hLs, hLj, hLnm, hLc, hLw, hLZ, hLB, hLW, hLK⟩ :=
+    syncLay_any hC HW hd hl hs htail hZ hzf Hdko habs
   -- the ghost state at the synced state
   unfold walGhost
   icases Hg with ⟨⟨%G0, HGs, %HG0⟩, HP, Hh, %Hk0⟩
@@ -248,7 +249,7 @@ theorem walInvBody_sync (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
   imod absPast_snap _ (walSyncS s dir d) $$ HP with ⟨HP, Hpast⟩
   imodintro
   isplitr [Hpast]
-  · iexists (<[dir := syncLay lay pre g0]> Ls), cl, n, F
+  · iexists (<[dir := Lw]> Ls), cl, n, F
     iframe Hcl Hn HCR
     isplitl [HGs HP Hh]
     · iframe HP Hh
@@ -262,7 +263,7 @@ theorem walInvBody_sync (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
       iapply (BigSepM.bigSepM_insert_delete (Φ := fun (_ : GoString) (lay : WalLay) =>
         iprop([∗list] g ∈ lay.segs, segResF (L := L) F g))).2
       isplitl [Hpre Hseg]
-      · simp only [syncLay]
+      · rw [hLs]
         iapply (BigSepL.bigSepL_append (PROP := IProp GF)).2
         iframe Hpre
         iapply (BigSepL.bigSepL_singleton (PROP := IProp GF)).2
@@ -271,7 +272,7 @@ theorem walInvBody_sync (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
         iexact Hseg
       · iapply (laysResF_map (L := L) F _).1 $$ Hrest
     isplitr
-    · ipureintro; exact walsOk_sync hC HW hd hl hs htail hZ hzf hex hok
+    · ipureintro; exact hLW
     isplitr
     · ipureintro; exact HWC
     isplitl [Htlc Hv']
@@ -290,32 +291,32 @@ theorem walInvBody_sync (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
           exact ⟨d, hd, rfl, rfl⟩
         · exact ⟨d', by rw [walSyncS_lookup_ne s dir d e] at hk; exact hk, rfl, rfl⟩
       iapply walTailsRes_mono C Mr s (walSyncS s dir d) _ F hmono hmono'
-      iapply Htlc $$ %(syncLay lay pre g0) %(syncTail g0) %F [] [Hv']
+      iapply Htlc $$ %Lw %(syncTail g0) %F [] [Hv']
       · ipureintro
-        exact ⟨by simp [syncLay], hZ,
-          TailBound.congr (d := { d with m := d.H.length }) rfl rfl (tailBound_sync habs hs htail),
+        exact ⟨by rw [hLs]; simp, hLZ,
+          TailBound.congr (d := { d with m := d.H.length }) rfl rfl hLB,
           fun _ _ _ _ _ _ => rfl, fun i hi => if e : i = g0.ino then Or.inl e else Or.inr ⟨hi, e⟩⟩
-      · have e : tailG d (syncLay lay pre g0) (syncTail g0).ino (F !! (syncTail g0).ino) = tg := by
-          rw [htg]; rfl
+      · have e : tailG d Lw (syncTail g0).ino (F !! (syncTail g0).ino) = tg := by
+          rw [htg]; unfold tailG; rw [hLc, hLw]; rfl
         rw [e]; iexact Hv'
     isplitr
     · ipureintro; exact ⟨absentNone_sync Hab.1, dirsAvoid_sync Hab.2⟩
     isplitr
     · ipureintro
-      exact walsNamed_relay hl hs rfl rfl rfl rfl HNm
+      exact walsNamed_relay hl hs hLs hLj rfl rfl HNm
     isplitl [Hpk]
-    · iapply walParked_relay Ls cl dir lay (syncLay lay pre g0) pre g0 (syncTail g0) hl hs rfl rfl
+    · iapply walParked_relay Ls cl dir lay Lw pre g0 (syncTail g0) hl hs hLs hLj
         rfl (by simp [syncTail]) $$ Hpk
     isplitl [Hdk Hcp]
     · iexists K, none
       iframe Hdk Hcp
       ipureintro
-      exact dirKeysOk_sync hC HW hd hl hs htail hZ hzf hex Hdko
+      exact hLK
     isplitr
     · ipureintro
-      exact walsAt_insert hl rfl rfl HAt
+      exact walsAt_insert hl hLnm hLj HAt
     isplitl [Hnms]
-    · iapply walNamesRes_insert _ _ _ _ _ _ (syncLay lay pre g0) hl rfl rfl $$ Hnms
+    · iapply walNamesRes_insert _ _ _ _ _ _ Lw hl hLnm hLj $$ Hnms
     ipureintro; exact walsBounded_insSame Hbd rfl hd rfl
   · unfold walPast; iexact Hpast
 
