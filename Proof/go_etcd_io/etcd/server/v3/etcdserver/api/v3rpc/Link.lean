@@ -862,7 +862,7 @@ theorem serverWatchStream.wp_close [go_etcd_io.etcd.cache.v3.Assumptions] :
 
 theorem serverWatchStream.wp_isWatchPermitted :
     EtcdGrove.v3rpc.serverWatchStream.isWatchPermitted.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.v3rpc.serverWatchStream.isWatchPermitted.wp_proof EtcdServer.wp_AuthInfoFromCtx EtcdServer.wp_AuthStore
+  EtcdGrove.v3rpc.serverWatchStream.isWatchPermitted.wp_proof EtcdServer.wp_AuthInfoFromCtxLb EtcdServer.wp_AuthStore
 
 theorem serverWatchStream.wp_newResponseHeader :
     EtcdGrove.v3rpc.serverWatchStream.newResponseHeader.spec (GF := GF) (hG := hG) :=

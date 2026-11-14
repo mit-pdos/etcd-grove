@@ -35,7 +35,7 @@ With the authority's history frozen from `n` on (`auth.histFrozenFrom`), enabled
 carrying a token, the authenticated class's only reason left is `ErrInvalidAuthToken`
 (`authed_served_of_frozen`), and so is the admin class's when every principal bound to the token is
 root (`admin_served_of_frozen`). In the mode `any` every reason is `True`. In the mode `off` the
-request side's is `False` (the flag never reads `true`); the admin check's is `True`, because the
+request side's is `False` (the flag never reads `true`); the admin and RBAC checks' are `True`, because the
 off store's request side (`isReqAuth`, of `NewAuthStore`'s axiom) does not say that `AuthInfoFromCtx`
 returns no error with auth off (a follow-up of D22, discharging that axiom by proof, would give it
 without new trust).
@@ -115,7 +115,9 @@ side gave (`AuthInfo{}` exactly when it gave none, or one bound to the request),
 at a state no older than `n` and `ErrUserEmpty` for revision `0`; `ErrAuthOldRevision` for a non-zero
 revision below a state's no older than `n`; or `ErrPermissionDenied` for a non-zero revision no lower
 than the revision read (a state no older than `n`) and a user absent, or without the root role and not
-covered, at such states (`store.go:869-899`); `False` with auth off, `True` in the mode `any`. -/
+covered, at such states (`auth.permRefusalFrom`, `store.go:869-899`); `True` in the modes `off` (as
+`adminWhy`: the off store's request side leaves `AuthInfoFromCtx`'s error free; a follow-up of D22)
+and `any`. -/
 def permWhy (s : Loc) (M : auth.AuthMode) (n : Nat) (ctx err : GoInterface)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (key rangeEnd : GoString) (op : auth.PermType) :
     IProp GF :=
@@ -123,18 +125,8 @@ def permWhy (s : Loc) (M : auth.AuthMode) (n : Nat) (ctx err : GoInterface)
   | .on γa => iprop(reqSideWhy M n ctx err ∨
       (((⌜info.Username' = (zeroValDef : GoString) ∧ info.Revision' = W64 0⌝ ∗
           auth.noPrincipalFrom M n ctx) ∨ principalBound s M ctx (some info)) ∗
-        auth.enabledVerdictFrom M n true ∗
-        ((auth.authErrOf .userEmpty err ∗ ⌜info.Revision' = W64 0⌝) ∨
-         (auth.authErrOf .authOldRevision err ∗ ⌜info.Revision' ≠ W64 0⌝ ∗
-            ∃ (j : Nat) (st : auth.AuthState),
-            auth.authStateAt γa j st ∗ ⌜n ≤ j ∧ uint.nat info.Revision' < st.revision⌝) ∨
-         (auth.authErrOf .permissionDenied err ∗ ∃ v : auth.AuthView, auth.recordedVFrom γa n v ∗
-            ⌜info.Revision' ≠ W64 0 ∧ v.rev.revision ≤ uint.nat info.Revision' ∧
-              ∀ u, v.user.users !! info.Username' = some u → ¬ auth.isRoot u ∧
-                (auth.reqShape key rangeEnd → ∀ u', v.cache.users !! info.Username' = some u' →
-                  ¬ auth.covers v.cache u' op key rangeEnd)⌝))))
-  | .any => iprop(True)
-  | .off => reqSideWhy M n ctx err
+        auth.permRefusalFrom γa n info key rangeEnd op err))
+  | _ => iprop(True)
 
 instance permWhy_persistent (s : Loc) (M : auth.AuthMode) (n : Nat) (ctx err : GoInterface)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (key rangeEnd : GoString) (op : auth.PermType) :
@@ -306,6 +298,54 @@ theorem admin_served_of_frozen (s : Loc) (γa : auth.AuthNames) (hs : List auth.
       obtain ⟨-, hu, hnr⟩ := Hj
       cases hu
       exact absurd hroot0 hnr
+
+/-! ### What `isWatchPermitted`'s proof uses -/
+
+theorem permWhy_of_reqSide (s : Loc) (M : auth.AuthMode) (n : Nat) (ctx err : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (key rangeEnd : GoString) (op : auth.PermType) :
+    reqSideWhy (GF := GF) M n ctx err ⊢ permWhy s M n ctx err info key rangeEnd op := by
+  cases M with
+  | on γa => unfold permWhy; iintro #H; ileft; iexact H
+  | _ => unfold permWhy; iintro -; itrivial
+
+/-- The anonymous principal (`AuthInfo{}`, the request side gave none) refused. -/
+theorem permWhy_anon (s : Loc) (M : auth.AuthMode) (n : Nat) (ctx err : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (key rangeEnd : GoString) (op : auth.PermType)
+    (herr : err ≠ GoInterface.nil)
+    (h0 : info.Username' = (zeroValDef : GoString) ∧ info.Revision' = W64 0) :
+    auth.noPrincipalFrom (GF := GF) M n ctx ⊢ auth.permRefusalM M n info key rangeEnd op err -∗
+      permWhy s M n ctx err info key rangeEnd op := by
+  cases M with
+  | on γa =>
+    unfold permWhy auth.permRefusalM
+    iintro #Hnp #Hr
+    iright; isplitr
+    · ileft; iframe Hnp; ipureintro; exact h0
+    · iapply Hr; exact herr
+  | _ => unfold permWhy; iintro - -; itrivial
+
+/-- A principal bound to the request refused. -/
+theorem permWhy_bound (s : Loc) (M : auth.AuthMode) (n : Nat) (ctx err : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (key rangeEnd : GoString) (op : auth.PermType)
+    (herr : err ≠ GoInterface.nil) :
+    principalBound (GF := GF) s M ctx (some info) ⊢ auth.permRefusalM M n info key rangeEnd op err -∗
+      permWhy s M n ctx err info key rangeEnd op := by
+  cases M with
+  | on γa =>
+    unfold permWhy auth.permRefusalM
+    iintro #Hpb #Hr
+    iright; isplitr
+    · iright; iexact Hpb
+    · iapply Hr; exact herr
+  | _ => unfold permWhy; iintro - -; itrivial
+
+theorem permWhy_off (s : Loc) (M : auth.AuthMode) (n : Nat) (ctx err : GoInterface)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (key rangeEnd : GoString) (op : auth.PermType)
+    (h : M.isOn = false) : ⊢ permWhy (GF := GF) s M n ctx err info key rangeEnd op := by
+  cases M with
+  | off => unfold permWhy; itrivial
+  | any => cases h
+  | on γa => cases h
 
 end defs
 

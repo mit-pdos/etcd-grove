@@ -7,6 +7,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvWatch
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthClass
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthBound
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthWhy
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadOn
 
 @[expose] public section
@@ -40,7 +41,11 @@ With auth on, a passed check's principal is moreover the anonymous one or bound 
 token (`principalBoundI`; the auth-mode merge, 2026-10-29: `spec` and `boundSpec` one spec).
 G2 (2026-10-30): at a bound `n` on the auth store's published index (`authPubLbM`), with the store's
 lower-bound check (`srvAuthLb`, as `Range`'s), the class is at states no older than `n`
-(`classResFrom`); at `n = 0` it is the plain class (`classResFrom_zero`). -/
+(`classResFrom`); at `n = 0` it is the plain class (`classResFrom_zero`).
+(auth-guard-completeness, 2026-11-14) On an error, why (`permWhy`, the RBAC class): with auth on, the
+request side's reasons, or, for the principal it gave (`AuthInfo{}` when none, or one bound to the
+stream's context), `isOpPermitted`'s refusal at states no older than `n`, each error tied to its case
+(`auth.permRefusalFrom`). -/
 abbrev v3rpc.serverWatchStream.isWatchPermitted.spec : Prop :=
   ∀ (sws : Loc) (r : v3rpc.WRun GF) (Up : Nat → v3rpc.WatchReqM → IProp GF)
     (Dn : Nat → v3rpc.WatchRespM → IProp GF) (st : GoInterface) (ci : GoInterfaceOk)
@@ -61,7 +66,9 @@ abbrev v3rpc.serverWatchStream.isWatchPermitted.spec : Prop :=
       (∀ _ : err = GoInterface.nil, ∃ info,
         apply.classResFrom r.srv.E.authMode n info [(k, e, auth.PermType.read)] ∗
         □ (⌜r.srv.E.authMode.isOn = true⌝ →
-          principalBoundI r.srv.s r.srv.E.authMode (GoInterface.ok ci) info)) }}
+          principalBoundI r.srv.s r.srv.E.authMode (GoInterface.ok ci) info)) ∗
+      (∀ _ : err ≠ GoInterface.nil, ∃ info,
+        permWhy r.srv.s r.srv.E.authMode n (GoInterface.ok ci) err info k e .read) }}
 
 end spec
 

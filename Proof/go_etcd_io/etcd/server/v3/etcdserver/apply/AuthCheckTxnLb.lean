@@ -264,6 +264,64 @@ theorem rangeCheckFrom_of_permCheck3 (ai : GoInterfaceOk) (RD : IProp GF) (M : a
   iapply classResFrom_not_on
   exact h
 
+/-- `rangeCheckFrom_of_isAuthStoreRangeLb` with the refusal half (auth-guard-completeness,
+`isWatchPermitted`). -/
+theorem rangeCheckFromR_of_isAuthStoreRangeLbR (ai : GoInterfaceOk) (RD : IProp GF)
+    (M : auth.AuthMode) (n : Nat) :
+    isAuthStoreRangeLbR (GoInterface.ok ai) RD M n ⊢
+    □ (∀ (a : Loc) (info : auth.AuthInfo) (dq : DFrac) (key re : GoSlice) (k e : List w8)
+      (dk de : DFrac),
+    {{ a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ RD ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ }}
+      (App (App (App (Val #(methods ai.ty go!"IsRangePermitted" ai.v)) (Val #a)) (Val #key))
+        (Val #re))
+    {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ RD ∗
+        authApplyErrIs err ∗ (⌜err = GoInterface.nil⌝ → classResFrom M n info [(k, e, .read)]) ∗
+        auth.permRefusalM M n info k e .read err }}) := by
+  iintro HR
+  iunfold isAuthStoreRangeLbR at HR
+  icases HR with ⟨%ai', %Hai', HP3L⟩
+  cases Hai'
+  iunfold permCheck3LbR at HP3L
+  icases HP3L with #HP3L
+  iintro !> %a %info %dq %key %re %k %e %dk %de
+  iintro %Φ !> Hpre HΦ
+  iapply HP3L $$ Hpre
+  iintro !> %err ⟨Ha, Hk, He, HRD, #Herr, #Hv, #Hr⟩
+  iapply HΦ
+  iframe Ha Hk He HRD Herr Hr
+  iintro %h
+  subst h
+  iapply classResFrom_of_permVerdictFrom $$ Hv
+
+/-- `rangeCheckFrom_of_permCheck3` with the (trivial, outside `on`) refusal half. -/
+theorem rangeCheckFromR_of_permCheck3 (ai : GoInterfaceOk) (RD : IProp GF) (M : auth.AuthMode)
+    (n : Nat) (h : ∀ γa, M ≠ .on γa) :
+    permCheck3 ai go!"IsRangePermitted" RD M .read ⊢
+    □ (∀ (a : Loc) (info : auth.AuthInfo) (dq : DFrac) (key re : GoSlice) (k e : List w8)
+      (dk de : DFrac),
+    {{ a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ RD ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ }}
+      (App (App (App (Val #(methods ai.ty go!"IsRangePermitted" ai.v)) (Val #a)) (Val #key))
+        (Val #re))
+    {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ RD ∗
+        authApplyErrIs err ∗ (⌜err = GoInterface.nil⌝ → classResFrom M n info [(k, e, .read)]) ∗
+        auth.permRefusalM M n info k e .read err }}) := by
+  iintro HP3
+  iunfold permCheck3 at HP3
+  icases HP3 with #HP3
+  iintro !> %a %info %dq %key %re %k %e %dk %de
+  iintro %Φ !> Hpre HΦ
+  iapply HP3 $$ Hpre
+  iintro !> %err ⟨Ha, Hk, He, HRD, #Herr, -, -⟩
+  iapply HΦ
+  iframe Ha Hk He HRD Herr
+  isplitl
+  · iintro -
+    iapply classResFrom_not_on
+    exact h
+  · cases M with
+    | on γa => exact absurd rfl (h γa)
+    | _ => unfold auth.permRefusalM; itrivial
+
 end defs
 
 end apply
