@@ -81,13 +81,14 @@ def walFileS (f : Loc) (fd : w64) (name : GoString) (fl : OsFd) (g : SegG) (r : 
     osMeta g.ino (DFrac.own (1 : Qp).half) g.om ∗ osBytes g.ino 0 (DFrac.own (1 : Qp).half) g.bs)
 
 /-- See the file header. -/
-def walReadTie (dir : GoString) (write : Bool) (fs : List (DecFile GF)) (lfs : List Loc) :
-    IProp GF :=
+def walReadTie (dir : GoString) (write : Bool) (s : w64 × w64) (fs : List (DecFile GF))
+    (lfs : List Loc) : IProp GF :=
   iprop(∃ (j : Ino) (X : List GoString) (hj : NamesH) (gs : List SegG) (fls : List Loc),
     osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
     walOutFrag (W := W) ⟨gs.map (·.ino), [(j, .except X)], if write then [dir] else []⟩ ∗
     (walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) ∗ walDirKey (W := W) dir j X ∗
-    ⌜(gs.map (·.ino)).Nodup ∧ (∀ g ∈ gs, g.om.size = g.bs.length)⌝ ∗
+    ⌜(gs.map (·.ino)).Nodup ∧ (∀ g ∈ gs, g.om.size = g.bs.length) ∧
+      ∀ g, gs.head? = some g → ∀ sq ix, g.name = walFileName sq ix → ix < 2 ^ 64 → ix ≤ uint.nat s.1⌝ ∗
     ⌜fs.length = gs.length ∧ lfs.length = gs.length ∧ fls.length = gs.length ∧
       ∀ (k : Nat) (F : DecFile GF) (g : SegG), fs[k]? = some F → gs[k]? = some g →
         F.bs = g.bs.map (·.1) ∧ hj.cur !! g.name = some (.file g.ino) ∧
@@ -112,7 +113,7 @@ def walReadH (write : Bool) (w : Loc) (dir : GoString) (s : w64 × w64) : IProp 
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"decoder" w ↦
       interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.decoder.ty) #dec ∗
     ownDecoder dec IoE eof fs 0 0#32 true ∗ decEnv IoE eof ueof ∗
-    walReadTie dir write fs lfs ∗
+    walReadTie dir write s fs lfs ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks ∗
     locks ↦* lfs ∗ ownSliceCap Loc locks (DFrac.own 1) ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"readClose" w ↦ rc ∗

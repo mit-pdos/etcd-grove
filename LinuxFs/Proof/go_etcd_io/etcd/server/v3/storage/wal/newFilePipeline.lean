@@ -65,6 +65,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.newFilePipeline.wp_proof
     with Hbc
   icases ownBroadcastChan_dup_unknown dc γdc _ _ $$ Hbc with ⟨Hbc, #Hbcu⟩
   let γ : PipeNames := ⟨fc, ec, dc, γf, γe, γdc, γa⟩
+  icases typedPointsto_not_null_dup _ _ _ $$ «$r0» with ⟨«$r0», %hfpn⟩
   iStructNamed «$r0»
   ipersist lg
   ipersist dir
@@ -94,6 +95,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.newFilePipeline.wp_proof
     ipureintro; exact isPanic_intoVal _
   (try wp_auto)
   iapply HΦ
+  isplitr
+  · ipureintro; exact hfpn
   iexists γ
   iframe Hfp
   iunfold pipeMain

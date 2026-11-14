@@ -296,14 +296,21 @@ theorem walInvBody_named (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     · ipureintro; exact Hco
     iframe Hcr
     isplitl [Htl]
-    · iapply walTailsRes_mono C Mr s (setNamed s dir) Ls F ?_ $$ Htl
-      intro dir' d' hd'
-      by_cases hdd : dir' = dir
-      · subst hdd; rw [hd] at hd'; cases hd'; exact ⟨_, hdn, rfl, rfl⟩
-      · refine ⟨d', ?_, rfl, rfl⟩
-        rw [show (setNamed s dir).wal = _ from absDiskUpd_wal s dir _ d hd,
-          GMap.lookup_insert_ne _ _ (Ne.symm hdd)]
-        exact hd'
+    · iapply walTailsRes_mono C Mr s (setNamed s dir) Ls F ?_ ?_ $$ Htl
+      · intro dir' d' hd'
+        by_cases hdd : dir' = dir
+        · subst hdd; rw [hd] at hd'; cases hd'; exact ⟨_, hdn, rfl, rfl⟩
+        · refine ⟨d', ?_, rfl, rfl⟩
+          rw [show (setNamed s dir).wal = _ from absDiskUpd_wal s dir _ d hd,
+            GMap.lookup_insert_ne _ _ (Ne.symm hdd)]
+          exact hd'
+      · intro dir' d' hd'
+        by_cases hdd : dir' = dir
+        · subst hdd; rw [hdn] at hd'; cases hd'; exact ⟨d, hd, rfl, rfl⟩
+        · refine ⟨d', ?_, rfl, rfl⟩
+          rw [show (setNamed s dir).wal = _ from absDiskUpd_wal s dir _ d hd,
+            GMap.lookup_insert_ne _ _ (Ne.symm hdd)] at hd'
+          exact hd'
     iframe Hpk
     isplitr
     · ipureintro

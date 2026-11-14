@@ -4,7 +4,9 @@ file reached is returned) into a zero `*walpb.Record`, on the live decoder `(fs,
 `goDecode` says, or an I/O error, or a failed `proto.Unmarshal` (`decPost`). `C` is the WAL's
 codec `walCodec`: CRC-32C (the trusted model's `crc32c`) and `proto.Unmarshal` of a record
 (`proto.UnmarshalWalRecord.spec`: on success the canonical decoding `recDecode`; it may fail on
-bytes that are no record's encoding). Proved in `LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/decoder__decodeRecord.lean`.
+bytes that are no record's encoding; its error is not `io.EOF`, `proto.UnmarshalWalRecordE.spec`, a
+hypothesis). `io.EOF` is returned only at the end of the data, and `errors.Is(err, io.EOF)` answers on
+every error (`decAns`; ledger 2026-11-14, "the error's identity"). Proved in `LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/decoder__decodeRecord.lean`.
 W3a of `notes/wal-fsext-plan.md`; Lean-first.
 -/
 module

@@ -25,11 +25,11 @@ variable [sem : go.Semantics]
 variable [go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions]
 
 theorem go_etcd_io.etcd.server.v3.storage.wal.walpb.Record.Validate.wp_proof
-    (HErrorf : fmt.ErrorfErrs.spec (GF := GF) (hG := hG))
+    (HErrorf : fmt.ErrorfErrsNot.spec (GF := GF) (hG := hG))
     (HGetCrc : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record.GetCrc.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.walpb.Record.Validate.spec (GF := GF) (hG := hG) := by
-  intro l r crc e
-  wp_start as ⟨#HE, #He, Hr⟩
+  intro l r crc e X t
+  wp_start as ⟨#HE, #Hok, #HX, #Hn, Hr⟩
   wp_auto
   wp_apply HGetCrc $$ Hr as Hr
   wp_if_destruct
@@ -46,16 +46,17 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.walpb.Record.Validate.wp_proof
     · ipureintro; rfl
     iintro %sl2 ⟨Hsl2, -⟩
     wp_apply HErrorf _ _ [GoInterface.ok e, interface.mkOk go.uint32 #r.crc,
-        interface.mkOk go.uint32 #crc] [e] (by
+        interface.mkOk go.uint32 #crc] [e] X t (by
           intro ii hii
           simp only [List.mem_cons, List.not_mem_nil, or_false] at hii
           rcases hii with h | h | h
           · cases h; exact Or.inr (by simp)
           · rw [interface.mkOk] at h; cases h; exact Or.inl (argWf_uint32 _)
-          · rw [interface.mkOk] at h; cases h; exact Or.inl (argWf_uint32 _)) $$ [Hsl2] as %err #Herr
+          · rw [interface.mkOk] at h; cases h; exact Or.inl (argWf_uint32 _)) $$ [Hsl2] as %err ⟨#Herr, #Hn'⟩
     · iframe
-      iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
-      iexact He
+      iframe HX
+      iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => iprop(errOk (GF := GF) e ∗ errIsNot (GoInterface.ok e) t))).2
+      iframe Hok Hn
     · iapply HΦ
       iframe
       iright
@@ -64,7 +65,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.walpb.Record.Validate.wp_proof
       · iexists err
         isplitl []
         · ipureintro; rfl
-        · iexact Herr
+        · iframe Herr Hn'
 
 end proof
 

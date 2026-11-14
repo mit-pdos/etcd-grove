@@ -93,7 +93,7 @@ theorem walInvBody_tailW (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hn, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
     ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms⟩
   unfold walTailsRes
-  icases Htl with ⟨%T, HTa, %HTo, HTm⟩
+  icases Htl with ⟨%T, HTa, %HTo, %HTi, HTm⟩
   icases walTailKey_lookup T dir γ $$ HTa Hk with %HT
   ihave ⟨Hent, HTm⟩ := (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (γ : GName) =>
     iprop(∃ (d : WalDur) (lay : WalLay) (g : SegG),
@@ -171,6 +171,10 @@ theorem walInvBody_tailW (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     · ipureintro
       exact HTo.insert HT hl hg (by simp [tailLay]) (fun i hi =>
         if e : i = g0.ino then Or.inl (e.trans hino.symm) else Or.inr ⟨by rwa [hF' i e] at hi, e⟩)
+    isplitr
+    · ipureintro
+      exact HTi.of_reg dir (fun h => by rw [HT] at h; cases h) (fun _ _ => rfl)
+        (fun k hk => GMap.lookup_insert_ne _ _ (Ne.symm hk))
     iapply (BigSepM.bigSepM_delete (Φ := fun (k : GoString) (γ' : GName) =>
       iprop(∃ (d' : WalDur) (la : WalLay) (g' : SegG),
         ⌜s.wal !! k = some d' ∧ (<[dir := tailLay lay pre g wr']> Ls) !! k = some la ∧
