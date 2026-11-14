@@ -42,18 +42,27 @@ theorem rzLand_getElem? {g0 : SegG} {tg n b : Nat} (htg : tg ≤ g0.om.size)
   simp only [rzLand]
   rw [List.getElem?_take, if_pos hb]
 
+/-- Two byte lists with the same candidates, position by position. -/
+theorem getD_snd_of_map {l1 l2 : List ByteG} (h : l1.map (·.2) = l2.map (·.2)) (b : Nat) :
+    (l1.getD b (0, [])).2 = (l2.getD b (0, [])).2 := by
+  have := congrArg (fun l => l[b]?) h
+  simp only [List.getElem?_map] at this
+  rw [List.getD_eq_getElem?_getD, List.getD_eq_getElem?_getD]
+  cases h1 : l1[b]? <;> cases h2 : l2[b]? <;> simp_all
+
 /-- **The landing keeps the static relation** (from the in-flight layout): the tail's bytes those
 below `wr`, a window open (exact only if nothing was cut off and the in-flight tail is exact). -/
 theorem walAbsD_rzLand {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
     {pre : List SegG} {g0 : SegG} {n : Nat}
     (habs : WalAbsD C Mr d lay ents) (hs : lay.segs = pre ++ [rzSeg g0 true lay.wr n])
-    (hlen : g0.bs.length = g0.om.size) (hwr : lay.wr ≤ g0.om.size) (hcut : g0.om.cut = none) :
+    (hlen : g0.bs.length = g0.om.size) (hwr : lay.wr ≤ g0.om.size) (hcut : g0.om.cut = none)
+    (hhi : g0.om.size ≤ g0.om.hi) :
     WalAbsD C Mr d (tailLay lay pre (rzLand g0 lay.wr n) lay.wr) ents := by
   have hg1 : lay.segs.getLast? = some (rzSeg g0 true lay.wr n) := by rw [hs]; simp
   have hl1 := rzSeg_length g0 true lay.wr n
   have hl2 := rzLand_length (n := n) hwr hlen
   have hW := habs.lastWin _ hg1
-  obtain ⟨hso, hwS, hbo, hwo, hB, hz0, hzS, hzZ⟩ := hW
+  obtain ⟨hso, hwS, hbo, hwo, hB, hz0, hzS, hzZ, hWC⟩ := hW
   have hmin : min g0.om.size lay.wr = lay.wr := Nat.min_eq_right hwr
   refine walAbsD_win habs hs rfl rfl ?_ ⟨fun hx => ?_, fun _ => ?_⟩
   · refine ⟨?_, ?_, ?_, ?_⟩
@@ -79,11 +88,20 @@ theorem walAbsD_rzLand {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalL
     refine ⟨k1, k2, ?_, k4, fun b x hb => k5 b x (by rw [← hbs]; exact hb), k6, k7, k8⟩
     rw [hbs]; exact k3
   · refine ⟨⟨hso, hwS, by simp only [tailLay]; omega, by simp only [tailLay]; omega,
-      fun b x hb hbw => ?_, hz0, hzS, hzZ⟩, ?_⟩
+      fun b x hb hbw => ?_, hz0, hzS, hzZ, ?_⟩, ?_, fun b x hb hx => ?_⟩
     · simp only [tailLay] at hbw ⊢
       rw [rzLand_getElem? hwr hlen hbw] at hb
       exact hB b x hb hbw
+    · have hX := segBytesX_rzLand (n := n) hwr hlen hhi
+      have hXl : (segBytesX (rzLand g0 lay.wr n)).length = (segBytesX (rzSeg g0 true lay.wr n)).length := by
+        have := congrArg List.length hX; simpa using this
+      refine hWC.same (by show max g0.om.hi lay.wr ≤ max g0.om.hi lay.wr; exact Nat.le_refl _)
+        (by rw [hl2]; show lay.wr ≤ max g0.om.hi lay.wr; omega) (Nat.le_of_eq hXl.symm)
+        (fun b _ => getD_snd_of_map hX b) (fun s hs => ?_)
+      simpa [rzLand, rzSeg, rzMeta] using hs
     · show min g0.om.lo lay.wr ≤ lay.wr; omega
+    · have := (List.getElem?_eq_some_iff.1 hx).1
+      simp only [tailLay] at hb; rw [hl2] at this; omega
 
 /-- **The landing keeps the crash condition** (from the in-flight layout, `crashOkA_same`). -/
 theorem crashOkA_rzLand {C : WalCodec} {Mr : WalMarshal} {d : WalDur}
