@@ -9,7 +9,9 @@ trusted fact `entryEncC_ok` is the main tree's axiom), and the decoder of those 
 `Save` takes entries below `2 ^ 40` bytes) get stand-in bytes, `walEntJunk`: `entryEncC_ok` says
 nothing of encodings of `2 ^ 63` bytes or more, so the real encoder's injectivity is not available
 there, and `WalUnmarshal.Ok`'s round trip is stated for every entry. The stand-in is longer than every
-real encoding of a smaller entry and injective, so `walEncEnt` is injective (`walEncEnt_inj`).
+real encoding of a smaller entry and injective, so `walEncEnt` is injective (`walEncEnt_inj`); it is
+also longer than any Go slice (`2 ^ 64` bytes or more, W4c U4 b), so no bytes in memory decode to such
+an entry (`walDecEnt_small`: `MustUnmarshalEntry`'s law needs the entry's real encoding).
 Lean-first.
 -/
 module
@@ -46,7 +48,7 @@ def walEntSmall (e : EntryM) : Prop := entrySize (walEntCanon e) < 2 ^ 48
 
 /-- **The stand-in bytes of an entry too large for Go** (see the file header). -/
 def walEntJunk (e : EntryM) : List w8 :=
-  List.replicate (2 ^ 48) (0 : w8) ++ varintEnc (uint.nat e.Term') ++ varintEnc (uint.nat e.Index') ++
+  List.replicate (2 ^ 64) (0 : w8) ++ varintEnc (uint.nat e.Term') ++ varintEnc (uint.nat e.Index') ++
     varintEnc (uint.nat e.Type') ++ e.Data'
 
 /-- **The entry marshaller**: protobuf-go's bytes of the canonical content (see the file header). -/
@@ -67,7 +69,7 @@ theorem walEncEnt_small {e : EntryM} (h : walEntSmall e) :
 theorem walEncEnt_big {e : EntryM} (h : ¬ walEntSmall e) : walEncEnt e = walEntJunk e := by
   unfold walEncEnt; rw [if_neg h]
 
-theorem walEntJunk_len (e : EntryM) : 2 ^ 48 ≤ (walEntJunk e).length := by
+theorem walEntJunk_len (e : EntryM) : 2 ^ 64 ≤ (walEntJunk e).length := by
   unfold walEntJunk; simp only [List.length_append, List.length_replicate]; omega
 
 theorem walEntJunk_inj {e e' : EntryM} (h : walEntJunk e = walEntJunk e') : e = e' := by
@@ -111,6 +113,24 @@ theorem walDecEnt_enc (e : EntryM) : walDecEnt (walEncEnt e) = some e := by
   unfold walDecEnt
   rw [dif_pos he]
   exact congrArg some (walEncEnt_inj (Classical.choose_spec he)).symm
+
+/-- **Bytes the decoder reads as an entry, shorter than any stand-in, are its real encoding.** -/
+theorem walDecEnt_small {bs : List w8} {e : EntryM} (h : walDecEnt bs = some e) (hl : bs.length < 2 ^ 64) :
+    walEntSmall e ∧ bs = entryEncC (walEntCanon e) := by
+  unfold walDecEnt at h
+  split at h
+  · rename_i hx
+    have he : Classical.choose hx = e := Option.some.inj h
+    have hb := Classical.choose_spec hx
+    rw [he] at hb
+    by_cases hs : walEntSmall e
+    · exact ⟨hs, hb.trans (walEncEnt_small hs).1⟩
+    · exfalso
+      rw [walEncEnt_big hs] at hb
+      have := walEntJunk_len e
+      rw [← hb] at this
+      omega
+  · cases h
 
 end codec
 

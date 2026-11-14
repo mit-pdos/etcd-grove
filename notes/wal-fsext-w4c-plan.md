@@ -256,9 +256,71 @@ Modules (`S/`): `BootPure` (pure), `BootStart0` (the first generation's `walStar
 | `WalHsOwn.reset` | blocked: `HardState.Reset` is names-only (item 3) |
 | `WalDecEnvSupply` | not a law of these parameters (`errors.newVar`'s Perennial gap, §2) |
 
-No law is false of real raftpb. `walPb_laws` (the bundle) waits for the blocked laws.
+No law is false of real raftpb. `walPb_laws` (the bundle) waits for the blocked laws (superseded below, U4 b).
 
 **Client obligation (C6 and the tester).** `Mr.encSnap`/`encState`/`encEntry` are the canonical forms' bytes, so
 the objects a client passes must be canonical: raft's `hardState()` (all set) is, a zero hard state any form;
 entries need `Term`/`Index`/`Type` set and `Data` nil iff empty (check the tester's and raft's literals;
 otherwise change the canonical form, a choice internal to the instance).
+
+## W4c U4 b log (branch `wal-u4b`, 2026-11-14)
+
+**Decisions** (the coordinator's, recorded in the ledger 2026-11-14, "the WAL's raftpb laws"):
+- **Package initializations in the laws' pres** (item 1): `isPkgInit pbutil` in `MarshalEntLaw`'s and
+  `MarshalHsLaw`'s, `isPkgInit proto` in `CloneHsLaw`'s, the part's `isPkgInit raft` in `IsEmptyLaw`'s,
+  `isPkgInit wal` in `UnmarshalEntLaw`'s and `WalHsOwn.unmarshal`'s (wal functions, as every wal spec);
+  `WAL.saveState.specPre` (`cut`'s) gains `isPkgInit wal`. Repairs: `saveState`/`Save` take the handle's
+  `isPkgInit wal` out (`walHandleIn_pkgInit`, `SaveHandle.lean`), `cut` frames its `Hwpk`.
+- **The part's raft root fact** is `rootInit`: `emptyState`, the main tree's conjunct word for word
+  (`LinuxFs/Proof/go_etcd_io/raft/v3/PkgInit.lean`; its `wp_initialize'` generated, `etc/gen-init.py`'s
+  `LFS_SPECIAL`, the main tree's steps).
+- **`raftpb.HardState`'s registration and `HardState.Reset`'s model stay out** (the user's call): four
+  laws stay hypotheses of the closed result (`notes/wal-fsext-plan.md` §10, "The raftpb instance's laws
+  pending the user", with what registering would take).
+- **Part extracts** (`etc/gen-part-copies.py`, copies of existing main-tree declarations and of one
+  main-tree axiom, `pbEntryC_reg`): `InvPb` (`pbMsg`, `pbMsg_alloc`), `PbContent` (+ `optCell`, `bytesC`,
+  `entRoC`), `PbContentOwn` (`entPtsCC`), `PbEntryType` (+ `entryTree`, `pbEntryM`, `pbEntryC`, its simp
+  lemmas, `entPtsCC_freeze`, `pbEntryC_reg`). The script: a `set_option`/`omit ... in` prefix joins its
+  declaration; an extract keeps the source's order (sections around top-level declarations; `pre` ones
+  first), with the source section's variables.
+
+**The instance's objects** (`RaftModel/Pb.lean`; internal choices):
+- `P.entIn l e := entRoC l (walEntCanon e) ∗ ⌜walEntSmall e⌝`: the frozen registered entry at the canonical
+  content.
+- `P.hsIn p h := ⌜p = null ∧ h = hsZero⌝ ∨ ∃ c, hsRoC p c ∗ ⌜c.model = h ∧ (hsEmptyP h ∨ c = walHsCanon h)⌝`:
+  **an empty hard state at any content** (changed from the canonical one: the tester's `toHS` of a zero
+  state sets the three cells, raft's `emptyState` leaves them nil; an empty state is never marshalled).
+  `hsRoC` = the frozen cells (`hsCells`) and raft's `pbMsg raftpb.HardState` invariant.
+- `HsO p h := hsOwnC p (walHsCanon h)`: owned cells and hidden fields (`WalHsOwn.zero` has no update to
+  allocate an invariant with; `freeze` allocates `pbMsg`).
+- **Stand-in entry bytes** (`EntCodec.lean`, ledger item 4): now `2 ^ 64` bytes or more (was `2 ^ 48`),
+  longer than any slice, so bytes in memory that `walDecEnt` decodes are the real encoding
+  (`walDecEnt_small`): `UnmarshalEntLaw` needs it.
+
+**Per law** (supersedes the U4 table):
+| law | status |
+|---|---|
+| `U.Ok`, `U.SnapCoh`, `WalMarshalCreateOk`, `Mr.encState < 2^32` | proved (U4, `Marshal.lean`) |
+| `NilLaw`, `ZeroLaw`, `MustSyncLaw`, `IsEmptyLaw` | proved (`LawsHs.lean`; `IsEmptyLaw` over `rootInit`) |
+| `GetIndexLaw`, `GetTermLaw`, `MarshalEntLaw`, `UnmarshalEntLaw` | proved (`LawsEnt.lean`, over `proto.MarshalPb.spec`/`UnmarshalPb.spec` at `pbEntryC_reg`) |
+| `WalHsOwn.zero`, `getCommit`, `freeze` | proved (`LawsHs.lean`) |
+| `MarshalHsLaw`, `CloneHsLaw`, `WalHsOwn.unmarshal`, `WalHsOwn.reset` | **hypotheses** (no trusted model of `raftpb.HardState`; [user]) |
+| `WalDecEnvSupply` | not a law of these parameters (§2) |
+
+The bundle: `walPb_laws : WalPbLaws walRaftP walRaftMr walRaftU` (`RaftModel/Laws.lean`) and
+`walRaftHsO_own h_unmarshal h_reset : WalHsOwn walRaftP walRaftU walRaftHsO`.
+
+**The client literals against the canonical forms** (task 4):
+- The tester (`examples/etcd/wal/wal.go`): `toRaft` sets `Index`, `Term`, `Type` (`EntryNormal.Enum()`), and
+  `Data = entData(e)`, non-nil and of at least 16 bytes: canonical. `toHS` sets the three cells: canonical
+  when non-empty; a zero state is not canonical, hence the relaxed `P.hsIn` above.
+- Raft: `hardState()` (`raft.go:504`) sets the three cells: canonical; `emptyState` (all nil): an empty state.
+  **Raft's entries are not canonical**: `appendEntry` sets `Term`/`Index` on a clone of the proposal, whose
+  `Type` is nil for a normal entry (`raft.go:979`'s `&pb.Entry{Data: nil}`, `node.go:472`'s proposals) but set
+  for a conf change (`bootstrap.go:61`) and for `raft.go:1359`'s replaced proposals (`EntryNormal.Enum()`);
+  entries a follower appends come off the wire with the leader's presence. **No canonical form fits both
+  the tester and raft**: `Mr.encEntry` is a function of the model only. For C6 the WAL's marshaller
+  parameter must speak of contents (`encEntry` over `EntryC`, or `P.entIn` carrying the content and `Save`'s
+  stream over it) -- a statement change of the WAL's specs, deferred to C6. The canonical form stays the
+  tester's (`Type` set).
+
