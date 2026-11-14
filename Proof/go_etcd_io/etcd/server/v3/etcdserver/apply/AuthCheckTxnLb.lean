@@ -101,6 +101,30 @@ instance isAuthStoreRangeLb_persistent (st : GoInterface) (RD : IProp GF) (M : a
     (n : Nat) : Persistent (isAuthStoreRangeLb st RD M n) := by
   unfold isAuthStoreRangeLb permCheck3Lb; infer_instance
 
+/-- **`permCheck3Lb` with the refusal half** (auth-guard-completeness, `isWatchPermitted`): each
+error tied to its case (`auth.permRefusalM`). -/
+def permCheck3LbR (ai : GoInterfaceOk) (m : GoString) (RD : IProp GF) (M : auth.AuthMode) (n : Nat)
+    (op : auth.PermType) : IProp GF :=
+  iprop(□ (∀ (a : Loc) (info : auth.AuthInfo) (dq : DFrac) (key re : GoSlice) (k e : List w8)
+      (dk de : DFrac),
+    {{ a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ RD ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ }}
+      (App (App (App (Val #(methods ai.ty m ai.v)) (Val #a)) (Val #key)) (Val #re))
+    {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ RD ∗
+        authApplyErrIs err ∗ auth.permVerdictFrom M n info k e op err ∗
+        auth.permRefusalM M n info k e op err }}))
+
+/-- **The auth store's range check no older than `n`, with why it refused** (the watch's check:
+`IsRangePermitted.specLbR`; beside `isAuthStoreRangeLb`, which the read path and the lease checks
+take). -/
+def isAuthStoreRangeLbR (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) (n : Nat) :
+    IProp GF :=
+  iprop(∃ ai : GoInterfaceOk, ⌜st = GoInterface.ok ai⌝ ∗
+    permCheck3LbR ai go!"IsRangePermitted" RD M n .read)
+
+instance isAuthStoreRangeLbR_persistent (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode)
+    (n : Nat) : Persistent (isAuthStoreRangeLbR st RD M n) := by
+  unfold isAuthStoreRangeLbR permCheck3LbR; infer_instance
+
 /-- **Every permission's verdict passed no older than `n`** (each check at its own state). -/
 def verdictsFrom (M : auth.AuthMode) (n : Nat) (info : auth.AuthInfo) (L : List Perm3) :
     IProp GF :=
@@ -269,6 +293,28 @@ theorem apply.isAuthStoreRangeLb_of_authInv
   iapply (hRange st R M n a info dq key re k e dk de) $$ [Ha Hk He Hrd]
   · iframe; iframe #; ipureintro; exact Hlen
   iintro !> %err ⟨Hrd, Ha, Hk, He, #Herr, #Hv⟩
+  iapply HΦ
+  iframe
+  iframe #
+  iapply apply.authErrIs_authApplyErrIs err $$ [$Hpkg $Herr]
+
+/-- **The real store's range check with why it refused, of its invariant.** -/
+theorem apply.isAuthStoreRangeLbR_of_authInv
+    (hRange : auth.authStore.IsRangePermitted.specLbR (GF := GF) (hG := hG))
+    (st : Loc) (R : IProp GF) (M : auth.AuthMode) (n : Nat) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ∗
+      auth.authPubLbM M n ⊢
+      apply.isAuthStoreRangeLbR (auth.authIface st) (auth.authRd st R M) M n := by
+  iintro ⟨#Hpkg, #Hinv, #Hlb⟩
+  iunfold apply.isAuthStoreRangeLbR
+  iexists (interface.mk (go.GoType.PointerType auth.authStore.ty) #st)
+  isplitr
+  · ipureintro; rfl
+  iunfold apply.permCheck3LbR
+  iintro !> %a %info %dq %key %re %k %e %dk %de %Φ !> ⟨Ha, Hk, He, Hrd, %Hlen⟩ HΦ
+  iapply (hRange st R M n a info dq key re k e dk de) $$ [Ha Hk He Hrd]
+  · iframe; iframe #; ipureintro; exact Hlen
+  iintro !> %err ⟨Hrd, Ha, Hk, He, #Herr, #Hv, #Hr⟩
   iapply HΦ
   iframe
   iframe #

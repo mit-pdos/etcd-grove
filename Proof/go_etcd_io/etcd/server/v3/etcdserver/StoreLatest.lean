@@ -74,11 +74,14 @@ index (`auth.authPubLbM`), the store's `IsRangePermitted` with its verdict at st
 (`apply.isAuthStoreRangeLb`, of the store's invariant through E3j's `IsRangePermitted.specLb`) and
 (the lease-src plan, 2026-11-02) the lease checks' methods at such states (`isAuthStoreLeaseLb`,
 through the five `specLb`s, `isAuthStoreLeaseLb_of_authInv`); `True` in the other modes. What a
-reader with auth on needs of the store (`Range.spec` at `E.authOn = true`, the lease checks' `srvAuthLeaseLb`). -/
+reader with auth on needs of the store (`Range.spec` at `E.authOn = true`, the lease checks' `srvAuthLeaseLb`);
+(auth-guard-completeness, 2026-11-14) and the range check with why it refused (`apply.isAuthStoreRangeLbR`,
+through `IsRangePermitted.specLbR`: the watch's check, `isWatchPermitted`). -/
 def authStoreLbM (M : auth.AuthMode) (st : GoInterface) (RD : IProp GF) : IProp GF :=
   match M with
   | .on γa => iprop(□ ∀ n : Nat, auth.authPubLbM (.on γa) n -∗
-      apply.isAuthStoreRangeLb st RD (.on γa) n ∗ isAuthStoreLeaseLb st RD (.on γa) n)
+      apply.isAuthStoreRangeLb st RD (.on γa) n ∗ isAuthStoreLeaseLb st RD (.on γa) n ∗
+      apply.isAuthStoreRangeLbR st RD (.on γa) n)
   | _ => iprop(True)
 
 instance authStoreLbM_persistent (M : auth.AuthMode) (st : GoInterface) (RD : IProp GF) :
@@ -96,7 +99,7 @@ theorem authStoreLbM_range (γa : auth.AuthNames) (st : GoInterface) (RD : IProp
       □ ∀ n : Nat, auth.authPubLbM (.on γa) n -∗ apply.isAuthStoreRangeLb st RD (.on γa) n := by
   unfold authStoreLbM
   iintro #H !> %n #Hn
-  ihave ⟨#HR, -⟩ := H $$ Hn
+  ihave ⟨#HR, -, -⟩ := H $$ Hn
   iexact HR
 
 open Iris.ProofMode in
@@ -106,8 +109,18 @@ theorem authStoreLbM_lease (γa : auth.AuthNames) (st : GoInterface) (RD : IProp
       □ ∀ n : Nat, auth.authPubLbM (.on γa) n -∗ isAuthStoreLeaseLb st RD (.on γa) n := by
   unfold authStoreLbM
   iintro #H !> %n #Hn
-  ihave ⟨-, #HL⟩ := H $$ Hn
+  ihave ⟨-, #HL, -⟩ := H $$ Hn
   iexact HL
+
+open Iris.ProofMode in
+/-- `authStoreLbM`'s range check with why it refused, with auth on (auth-guard-completeness). -/
+theorem authStoreLbM_rangeR (γa : auth.AuthNames) (st : GoInterface) (RD : IProp GF) :
+    authStoreLbM (GF := GF) (.on γa) st RD ⊢
+      □ ∀ n : Nat, auth.authPubLbM (.on γa) n -∗ apply.isAuthStoreRangeLbR st RD (.on γa) n := by
+  unfold authStoreLbM
+  iintro #H !> %n #Hn
+  ihave ⟨-, -, #HR⟩ := H $$ Hn
+  iexact HR
 
 /-- **The backend's write contract at every schema auth backend on the backend `bel`**
 (persistent; E3l): any `*authBackend` `abl` whose `be` field is `bel` (and some logger) has the

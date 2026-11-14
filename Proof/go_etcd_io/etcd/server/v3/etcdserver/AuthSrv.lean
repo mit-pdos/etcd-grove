@@ -439,6 +439,7 @@ theorem authStoreKit_on
     (hDelL : auth.authStore.IsDeleteRangePermitted.specL (GF := GF) (hG := hG))
     (hAdminL : auth.authStore.IsAdminPermitted.specL (GF := GF) (hG := hG))
     (hRangeLb : auth.authStore.IsRangePermitted.specLb (GF := GF) (hG := hG))
+    (hRangeLbR : auth.authStore.IsRangePermitted.specLbR (GF := GF) (hG := hG))
     (hEnLb : auth.authStore.IsAuthEnabled.specLb (GF := GF))
     (hRevLb : auth.authStore.Revision.specLb (GF := GF))
     (hAdminLb : auth.authStore.IsAdminPermitted.specLb (GF := GF) (hG := hG))
@@ -539,8 +540,11 @@ theorem authStoreKit_on
     isplitr
     · iapply apply.isAuthStoreRangeLb_of_authInv hRangeLb stp R (.on γa) n $$ [$Hpkg $Hinv $Hlb]
     -- (the lease-src plan) the lease checks' methods at the same lower bound
+    isplitr
     · iapply isAuthStoreLeaseLb_of_authInv hEnLb hRevLb hAdminLb hPutLb hRangeLb stp R (.on γa) n
         $$ [$Hpkg $Hinv $Hlb]
+    -- (auth-guard-completeness) the range check with why it refused
+    · iapply apply.isAuthStoreRangeLbR_of_authInv hRangeLbR stp R (.on γa) n $$ [$Hpkg $Hinv $Hlb]
   -- (E3t) publication, of its invariant
   ihave #HstPub := authPublishM_of_authInv stp R γa $$ Hinv
   -- (E3zb) the request side bound to the request context's token, of its invariant
@@ -675,6 +679,7 @@ theorem authSrvTP_on (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
     (hDelL : auth.authStore.IsDeleteRangePermitted.specL (GF := GF) (hG := hG))
     (hAdminL : auth.authStore.IsAdminPermitted.specL (GF := GF) (hG := hG))
     (hRangeLb : auth.authStore.IsRangePermitted.specLb (GF := GF) (hG := hG))
+    (hRangeLbR : auth.authStore.IsRangePermitted.specLbR (GF := GF) (hG := hG))
     (hEnLb : auth.authStore.IsAuthEnabled.specLb (GF := GF))
     (hRevLb : auth.authStore.Revision.specLb (GF := GF))
     (hAdminLb : auth.authStore.IsAdminPermitted.specLb (GF := GF) (hG := hG))
@@ -725,7 +730,7 @@ theorem authSrvTP_on (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
   · ipureintro
     exact ⟨rfl, fun _ => ⟨γa, rfl⟩, fun γa' h => by cases h; rfl⟩
   iapply (authStoreKit_on h_Warn h_Int h_Revision h_commit h_metrics h_refresh hCtx hCtxLb hAdminLbO hTLS hPut hRange
-    hDel hAdmin hEn hPutL hRangeL hDelL hAdminL hRangeLb hEnLb hRevLb hAdminLb hPutLb hEnableB hUserAddB hRoleAddB hUserGrantRoleB
+    hDel hAdmin hEn hPutL hRangeL hDelL hAdminL hRangeLb hRangeLbR hEnLb hRevLb hAdminLb hPutLb hEnableB hUserAddB hRoleAddB hUserGrantRoleB
     hRoleGrantPermissionB hAuthnB hCP hGT hD22 _ γa (auth.simpleAdmin p))
     $$ [$HtpA $HA $Hown $Hcur $HI $Hfr $Hcap $Hcn Hsucc $Hbk $HpubQ]
   unfold auth.authSucc; iexact Hsucc

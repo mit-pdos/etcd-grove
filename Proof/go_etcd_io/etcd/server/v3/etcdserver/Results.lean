@@ -1471,6 +1471,14 @@ theorem auth_ctx_lb : auth.authStore.AuthInfoFromCtx.specLb (GF := GF) (hG := hG
   auth.authStore.AuthInfoFromCtx.wp_lb auth_enabled_lb metadata.wp_FromIncomingContext
     auth.authStore.wp_authInfoFromToken auth.wp_redactToken zap.wp_String zap.Logger.wp_Warn
 
+theorem auth_op_permitted_lbR : auth.authStore.isOpPermitted.specLbR (GF := GF) :=
+  auth.authStore.isOpPermitted.wp_lbR auth_enabled_lb auth_revision_lb zap.wp_Uint64
+    zap.wp_ByteString zap.wp_Error zap.Logger.wp_Warn zap.wp_String zap.Logger.wp_Error
+    auth.wp_hasRootRole auth.authStore.lockedReadTx.wp_lb auth_range_op_permitted_lb
+
+theorem auth_range_permitted_lbR : auth.authStore.IsRangePermitted.specLbR (GF := GF) :=
+  auth.authStore.IsRangePermitted.wp_lbR auth_op_permitted_lbR
+
 theorem auth_admin_permitted_lbO :
     auth.authStore.IsAdminPermitted.specLbO (GF := GF) (hG := hG) :=
   auth.authStore.IsAdminPermitted.wp_lbO auth_enabled_lb auth_locked_read_tx_lb auth.wp_hasRootRole
@@ -1488,6 +1496,8 @@ end readLb
 #print axioms Perennial.EtcdGrove.auth_admin_permitted_lb
 #print axioms Perennial.EtcdGrove.auth_ctx_lb
 #print axioms Perennial.EtcdGrove.auth_admin_permitted_lbO
+#print axioms Perennial.EtcdGrove.auth_op_permitted_lbR
+#print axioms Perennial.EtcdGrove.auth_range_permitted_lbR
 
 section latestApply
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
@@ -2075,7 +2085,7 @@ theorem srv_auth_tp_on
     auth.authStore.wp_IsDeleteRangePermitted auth.authStore.wp_IsAdminPermitted
     auth.authStore.wp_IsAuthEnabled auth_put_permitted_latest auth_range_permitted_latest
     auth_delete_range_permitted_latest auth_admin_permitted_latest auth_range_permitted_lb
-    auth_enabled_lb auth_revision_lb auth_admin_permitted_lb auth_put_permitted_lb
+    auth_range_permitted_lbR auth_enabled_lb auth_revision_lb auth_admin_permitted_lb auth_put_permitted_lb
     (auth.authStore.AuthEnable.wp_tieB auth.authStore.wp_refreshRangePermCache
       auth.authStore.wp_setRevision auth.wp_hasRootRole zap.Logger.wp_Info)
     (auth.authStore.UserAdd.wp_tieSureB auth.authStore.wp_commitRevision
