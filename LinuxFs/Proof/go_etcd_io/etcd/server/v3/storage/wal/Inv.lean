@@ -90,8 +90,8 @@ def WalsOk (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (s : AbsDiskS
 
 /-- **A change in flight on a segment** (W6; I3b): its token `t` and change number `n`, and the
 segment's `OsMeta` `m` and bytes `bs` before it; a write (`rz = none`, `wp_osPWriteStart`'s: its
-offset `off` and data), or a resize to `tg` (`rz = some tg`, `wp_osResizeStart`'s: `ftruncate`, or
-`fallocate`'s growth; `off` and `data` unused, `[]` by convention). -/
+offset `off` and data), or a resize to `tg` (`rz = some (tr, tg)`, `wp_osResizeStart`'s: `ftruncate`
+if `tr`, else `fallocate`'s growth; `off` and `data` unused, `[]` by convention). -/
 structure SegFl where
   t : Nat
   off : Nat
@@ -99,7 +99,7 @@ structure SegFl where
   n : Nat
   m : OsMeta
   bs : List ByteG
-  rz : Option Nat := none
+  rz : Option (Bool × Nat) := none
 
 instance SegFl.countable : Pos.Countable SegFl :=
   Pos.Countable.ofInjective
@@ -124,14 +124,14 @@ def SegFl.Ok (fl : SegFl) (g : SegG) : Prop :=
     pwAnn fl.data fl.n (cfRange fl.m fl.bs fl.off fl.data.length) ++
     fl.bs.drop (cfHi fl.m fl.off fl.data.length) ∧ 0 < fl.off
 
-/-- **The segment `g` as the resize in flight `fl` to `tg` announced it** (I3b; `wp_osResizeStart`):
-`g`'s `OsMeta` the token's (`TokInfo.meta`: `m` with `[min size tg, rsHi true size tg)` announced, the
-target `tg`), its bytes `fl.bs` with zero added as a candidate of each byte cut off (`rsAnn`; none
-if it grows the file); the resize keeps byte 0 (`0 < min size tg`), so that the invariant keeps
-half of it, as `SegFl.Ok`'s `0 < fl.off`. -/
-def SegFl.OkR (fl : SegFl) (tg : Nat) (g : SegG) : Prop :=
+/-- **The segment `g` as the resize in flight `fl` to `tg` (`ftruncate` if `tr`, else `fallocate`'s
+growth) announced it** (I3b; `wp_osResizeStart`): `g`'s `OsMeta` the token's (`TokInfo.meta`: `m` with
+`[min size tg, rsHi tr size tg)` announced, the target `tg`), its bytes `fl.bs` with zero added as a
+candidate of each byte cut off (`rsAnn`; none if it grows the file); the resize keeps byte 0
+(`0 < min size tg`), so that the invariant keeps half of it, as `SegFl.Ok`'s `0 < fl.off`. -/
+def SegFl.OkR (fl : SegFl) (tr : Bool) (tg : Nat) (g : SegG) : Prop :=
   fl.bs.length = fl.m.size ∧ fl.m.cut = none ∧
-  g.om = fl.m.announce (min fl.m.size tg) (rsHi true fl.m.size tg) tg ∧
+  g.om = fl.m.announce (min fl.m.size tg) (rsHi tr fl.m.size tg) tg ∧
   g.bs = fl.bs.take (min fl.m.size tg) ++ rsAnn fl.n (fl.bs.drop (min fl.m.size tg)) ∧
   0 < min fl.m.size tg
 
@@ -407,9 +407,9 @@ def segResF (F : GMap Ino SegFl) (g : SegG) : IProp GF :=
         osBytes (L := L) g.ino 0 (DFrac.own (1 : Qp).half) (fl.bs.take (cfLo fl.m fl.off)) ∗
         osBytes (L := L) g.ino (cfHi fl.m fl.off fl.data.length) (DFrac.own (1 : Qp).half)
           (fl.bs.drop (cfHi fl.m fl.off fl.data.length)) ∗ ⌜fl.Ok g⌝)
-    | some tg => iprop(rsTok (L := L) true fl.t g.ino tg fl.m (fl.bs.drop (min fl.m.size tg)) fl.n ∗
+    | some (tr, tg) => iprop(rsTok (L := L) tr fl.t g.ino tg fl.m (fl.bs.drop (min fl.m.size tg)) fl.n ∗
         osBytes (L := L) g.ino 0 (DFrac.own (1 : Qp).half) (fl.bs.take (min fl.m.size tg)) ∗
-        ⌜fl.OkR tg g⌝)
+        ⌜fl.OkR tr tg g⌝)
 
 /-- The invariant's parts of every named segment of every WAL, the writes in flight `F`. -/
 def laysResF (F : GMap Ino SegFl) (Ls : GMap GoString WalLay) : IProp GF :=

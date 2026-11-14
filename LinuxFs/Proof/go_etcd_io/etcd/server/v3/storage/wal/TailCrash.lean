@@ -731,7 +731,8 @@ theorem crashOkA_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur}
     obtain ⟨hmlo0, hmhi0⟩ := hzf.2.1
     have hsz : f.size = g0.bs.length := by omega
     have hsz' : (syncImg g0.bs f.size).size = g0.bs.length := hsz
-    refine ⟨⟨_, rfl⟩, by omega, by omega, ?_, ?_⟩
+    have hsz0 := (habs0.metas g0 (List.mem_of_getLast? hg0)).1
+    refine ⟨⟨_, rfl⟩, by omega, by omega, ?_, ?_, fun b c hb _ hb2 => absurd hb2 (by omega)⟩
     · intro r hr k hk hks
       rw [List.mem_singleton] at hr; subst hr
       simp only [Nat.zero_add] at hks ⊢
