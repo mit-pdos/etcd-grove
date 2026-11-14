@@ -137,3 +137,79 @@ The plan, everything below over existing specs:
 ## Head
 
 See the final report.
+
+# Eighth session (branch `wal-c-tester`, 2026-11-14): `restartRead` / `member.restart`
+
+Base `origin/wal-int` (`89ef103d5b`). No axiom, no `sorry`, nothing trusted changed, no Go changed, no
+existing statement changed.
+
+## Blocker (decision for the user): `restartRead`'s newest-pair loop dereferences `*snaps[i].Index`
+
+`restartRead` reads `*snaps[i].Index` and `*snaps[i].Term` (wal.go:168-171): loads through the snapshots'
+`*uint64` fields. `ValidSnapshotEntries.spec` gives each snapshot only as `walSnapIdTerm p s` (`snapRoC p c`
+with `(c.model.Index', c.model.Term') = s`), where `c.index : Option w64` and the model reads a nil field as 0
+(`index.getD 0`); `recCell pi none` is `pi = null`. So nothing excludes a nil `Index`, and the load would
+panic (the model gets stuck): **the loop is not provable from the WAL's spec**. In the tester's runs the
+fields are always set (every snapshot record is `Create`'s or `saveSnap`'s, both with `Index`/`Term` set, and
+proto2 presence keeps a set 0), so this is not a reachable Go bug, but the WAL's model does not track presence
+(the history holds `SnapshotMetadataM`). The WAL itself reads them with `GetIndex()` (`validSnapshotEntries`,
+`openAtIndex`, ...: 22 uses in its translation). Options:
+- **(recommended) change the tester** to `snaps[i].GetIndex()` / `snaps[i].GetTerm()` (same behaviour: the
+  getters return 0 on nil, which is what the model reads; specs exist, `walpb/Snapshot__GetIndex.lean`,
+  `Snapshot__GetTerm.lean`). A Go change (and a re-translation of project walfs's part), hence the user's.
+- strengthen `walSnapIdTerm`/`ValidSnapshotEntries`'s post with the fields' presence: needs the WAL's decode
+  side to know that every snapshot record's bytes are `Mr.encSnap md` of an object with the fields set (a
+  WAL-layer change across `U.SnapCoh`, the marshaller's canonical form and every `walSnapIdTerm` producer).
+
+Until then `restartRead.wp_proof` is not written; its spec is stated and `member.restart` is proved over it.
+
+## Open point 1 (`walReadsBack` of the crashed WAL): option (a) as stated is false; a weaker premise
+
+`walReadsBack` of **every** image of a tester history is false: after `opRecvSnap`, `SaveSnapshot(s)` with
+`s > last` (synced), then `Save({commit s}, [s+1..])`; the torn image keeping the snapshot record and some of
+the `Save`'s entries but not its hard state has commit the old one `< s`, so `walRead`'s filter drops the
+record and the entries `s+1..` leave a gap after the old last index: `readEnt` fails, `walRead = none`. So
+"carry `∀ img ∈ tImgs …, walReadsBack (img.map absOp)` in `tCandOk`" (option (a) of the seventh session) would
+be a false invariant. On that image `ReadAll` fails too (the same gap: `ErrSliceOutOfRange`), so what the
+restart needs, and takes, is **`tReadsBackOk I := ∀ cut s σ', walReadAllOk I cut s σ' → walReadsBack I`**
+(`RestartOk.lean`): where `ReadAll` succeeds, the history reads back. It is a premise of `restartRead.spec`
+and `member.restart.spec` (on the WAL state `d`), the obligation of whoever carries the oracle invariant.
+Option (b) (proving it from the raft discipline) needs a history invariant every operation maintains (entries
+contiguous above the commit, commit at most the last index, the `opRecvSnap` shape), which lives in the ops'
+specs (`wal-c-ops`) and in lemmas about images that are not prefixes; not attempted. I believe `tReadsBackOk`
+holds of the tester's images (the deviation `readAllFold_zero_dev` needs a commit above the last index), but
+it is not proved.
+
+## Open point 2 (sizes)
+
+- `restartRead`: the opens' growth is proved, not assumed: `tEncodeOracle_withOpens_length` (8 bytes per
+  open, whatever the values); the premise is `(tEncodeOracle o).length + 16 ≤ 2^30` (two attempts).
+- `restart`: `storeOracle` of `tCheckRestart (tWithOpens o ls) c` needs its `tOrSmall`, which depends on the
+  candidates' images (their number and lengths), not on values; taken as the explicit premise
+  `∀ ls c, tOrSmall (tCheckRestart (tWithOpens o ls) c)`. Note for U7: across unboundedly many incarnations
+  the candidates' histories grow without bound (they start from `Create`), so the 1 GiB bound is an
+  assumption on the run's length, not a fact.
+
+## Done
+
+- `TP/RestartOk.lean` (pure): `tWalPathsOk` (the area's path premises, a world premise of the root),
+  `tWithOpens` and its encoding length, `tCandOk_addOpen` (monotonicity), `walOpenRaise_idem`, `tReadsBackOk`,
+  `tRead_of_readAll` (`tCheckNext_of_read`'s core, naming the image: `tRead img = some c`), `tHasCand` with
+  `tAddCand_has/_keep`, `tCandNext_keep/_has`, `tCheckNext_has` (the image is among the next candidates with
+  bounds at least its candidate's), `tRaiseUnl_ge`, `tRead_hs`, and **`tRestart_ok`**: the new oracle's
+  candidate accounts for the WAL as a running member's (`tMemOk`, `tMemHs`, `tCandOk`, mark = `|d.H|`).
+- `TS/restartRead.lean`: the spec (see its header).
+- `TS/member__restart.lean`, `TP/member__restart.lean`: `member.restart.wp_proof` over `restartRead.spec`,
+  `checkRestart.spec`, `storeOracle.spec`, `member.resume.spec`.
+
+## Next steps
+
+1. The user's decision above; then `restartRead.wp_proof`, all over existing specs: the AUs on `TInv`
+   (`ValidSnapshotEntries`, `Repair`: `walDirIs` unchanged; `ReadAll`: `walDiskAt` unchanged, its newest-pair
+   premise from `d.H`/`d.cut` being stable; `Open`: both ghost halves of the WAL state to the raised `d1`,
+   `tRelI` of the stored oracle from `tCandOk_open` and the persistent `walSyncedLb (tCandMark o cd)`); the
+   snapshot literal `walSnapIdTerm` (as `CreateSnap.walSnapAt_lit`); the loop invariant over `repaired`
+   (`l = [idx]` or `[idx, idx]`, `walOpenRaise_idem`), the permissions (`Open`'s half plus
+   `Close.specFailed`'s half for `Repair`); on success `tRead_of_readAll` (with `hsGet`'s and `fromRaft`'s
+   specs for the read).
+2. Discharging `tReadsBackOk` (open point 1) and the size premise in the invariant (U7 / whoever owns it).
