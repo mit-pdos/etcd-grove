@@ -388,7 +388,7 @@ theorem Main.wp_proof
     · iapply EtcdGrove.context.watchCtx_of_isContext; isplitl [] <;> iassumption
     isplitr
     · ipureintro
-      refine ⟨?_, hnp, by decide⟩
+      refine ⟨OpFull.isRangeWatchP_of ?_, hnp, by decide⟩
       unfold OpFull.isRangeWatch; simp only [decide_eq_true_eq]
       exact ⟨ht, hr, hpv, hfr, hfp, hfd⟩
     iintro !> %h
