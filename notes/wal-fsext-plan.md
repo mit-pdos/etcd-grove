@@ -527,7 +527,8 @@ Everything under `LinuxFs/` and `GooseLang/Ext/Fs/` builds (3019 jobs); `etc/gen
 (both arms) and the pipeline have no `sorry`. The remaining `sorry`s of the track (declarations using one, by
 module; the bboltfs/crashlog/walfs examples and the generated translations not listed):
 - `wal/`: `Create.wp_proof` (`Create.lean`), `Open.wp_proof` (`OpenForRead`, `openAtIndex` proved, `wal-read12`),
-  `openWALFiles.wp_proof`, `WAL.ReadAll.wp_proof`, `WAL.Save.wp_proof`, `WAL.SaveSnapshot.wp_proof`,
+  `openWALFiles.wp_proof`, `WAL.ReadAll.wp_proof` (`WAL.Save.wp_proof`/`WAL.SaveSnapshot.wp_proof` proved over
+  hypotheses, `wal-save12`, W6 log, twelfth session),
   `WAL.saveEntry.wp_proof`, `WAL.saveState.wp_proof`,
   `WAL.sync.wp_proof`, `wal.tailWriter` (`TailWriter.lean`);
 - `fileutil/`: `ReadDir.wp_proof` (`TouchDirAll`/`CreateDirAll` proved, `wal-create7`, over the above-root hypotheses);
@@ -2925,6 +2926,40 @@ bound.**
   clause: writes past the size wait for `wal-tc2`'s window continuation).
 - *Not done*: `saveEntry`, `saveState`, the body of `Save`, `SaveSnapshot` (its commit is `walTail_append` on the
   unsealed handle: `w.snapi` is raised after the encode).
+
+**W6, twelfth session (branch `wal-save12`, 2026-11-14): `Save` and `SaveSnapshot` proved over hypotheses.**
+- **`WAL.Save.wp_proof` proved** (`WAL__Save.lean`, no `sorry`), hypotheses: `sync.spec`, `saveEntry.spec`,
+  `saveState.spec`, `cut.spec`, `WAL.tail.spec` (proved, `WAL__tail.lean`), and three laws of the client's raft
+  messages (the part cannot import the main tree's raft specs, plan §10): `WalPbIn.IsEmptyLaw` (existing),
+  **`WalPbIn.MustSyncLaw`** (`MustSync(p1, p2, n) = (n ≠ 0 ∨ vote/term differ)`) and **`WalPbIn.ZeroLaw`** (a nil
+  pointer holds only `hsZero`; a fresh `&raftpb.HardState{}` (`p ↦ zero_val HardState`) holds `hsZero`, under an
+  update: the client keeps its hidden fields), both new, in `Spec/.../WAL__Save.lean` (to discharge at C6 from raft's
+  `hsRO`/`pbMsg` and raft's `MustSync` spec). No statement change. The proof: the commit at the first step
+  (`walHandleIn_append`), the lock (Perennial's `Mutex`, the handle's mutex and `sync`'s init by
+  `walHandleIn_lockFacts`), the shortcut joined on the `&&` (`wp_join (Q := …) at (if: _ then _ else #false)`, the
+  committed handle quiescent already: `SaveSt.finEmpty`), the nil states (`wp_join … at`, `iapply wp_fupd` before
+  the case split so `ZeroLaw`'s update can run; `walHandleIn_state` takes `w.state` out and back), `MustSync`, the
+  entries loop (invariant `SaveSt h hs es j hc`, `SavePure.lean`: `SaveSt.entryPre` gives `saveEntry`'s three
+  premises, `SaveSt.step` the next state), `saveState` (`SaveSt.statePre`; both successes joined into `SaveFin`),
+  `Seek` (`walHandleIn_seek`; the promoted method unfolded by `rw [MethodUnfold.method_unfold (t := …) (m := …)]`:
+  plain `wp_method_call` rewrote the deferred `Unlock` in the `defer` cell instead), `sync` or `cut` (a step's
+  receipt by `wp_take_receipt` before the method resolves, so the `if` is split by `by_cases`, not
+  `wp_if_destruct`, whose `wp_auto` resolves it; `save_pc_bound` keeps the receipt), `save_post` for the three
+  successes. Gotchas: a multi-line `{ h with … }` with the fields on a continuation line does not parse (keep it
+  on one line); `rename_i` to name the shadowed Go variable `i`'s cell (`wp_for`'s invariant names it).
+- **`WAL.SaveSnapshot.wp_proof` proved** (`WAL__SaveSnapshot.lean`, no `sorry`), hypotheses: `sync.spec`,
+  **`encoder.encode.specTail`** (new, `Spec/.../encoder__encodeTail.lean`: `encode.specG` over the tail's writer
+  without `tailOk`'s size clause, the size growing; its post claims the handle's offset bounds), `ValidateSnapshotForWrite.spec`,
+  `Snapshot.GetIndex.spec`, `MustMarshalMessage.specWalSnap`. The commit by `walTail_append` on the unsealed
+  handle; the handle rebuilt after the encode and the raises (`SnapPure.lean`: `WalHS.split_snap` (split and CRC),
+  `snap_guard` (the encode's guard), `snap_idx` (the index facts with `w.snapi`/`w.enti` raised)).
+- **Obligation (writes past the size; `saveEntry`/`saveState`/`encode.specTail`)**: the handle's
+  `o0 + |out| + |pend| ≤ 0xffffffff000` after an encode has no source (nothing bounds a segment's stream; a real
+  write past `s_maxbytes` fails with `EFBIG`, but the page writer's pending bytes are not written). The three
+  specs claim it in their posts; whoever proves them must find it (a bound in the guard, or a handle bound on
+  `o0 + |out|` only).
+- *Not done*: `sync.wp_proof` and `sync.specCut` (both flush pending bytes past the tail's size: blocked on the
+  writes past the size, as `saveEntry`/`saveState`; `wal-tc3` landed the truncate's window only).
 
 ## W3/W5 implementation log (branch `wal-read`, 2026-11-13)
 
