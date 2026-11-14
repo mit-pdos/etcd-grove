@@ -608,3 +608,19 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Change (made).** The token in the pre and the post (framed); the "blocks until the handle's `Close`"
   scenario dropped until the lock model. Otherwise the main tree's: committed as accessed, the boolean unconstrained.
 - **Decision.** Adopted (the coordinator, plan §6 Q7, 2026-11-13; stated in the W7-W12 log's fifth session).
+
+## 2026-11-14: `wal.WAL.sync.specC` (internal, the part's) -- the post says the tail is durable
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__syncC.lean` (a hypothesis of
+  `WAL.Close.wp_proof`, for the `sync` owner): its success post's handle `walHandleC … h'` (tail facts
+  `TailMeta`: `lo = size = hi`).
+- **Defect.** Too weak for `Close`'s unregistration: the invariant now requires an idle WAL's tail to be synced
+  (`TailSynced`, `TailIdle`'s third part: every byte durable, zeros known only past the end; plan's W7-W12 log,
+  sixth session), so that `Close` of an unread handle can fdatasync an unregistered tail without changing the
+  invariant. `TailMeta` says nothing of the bytes.
+- **Evidence.** `sync`'s last step is `fileutil.Fdatasync(w.tail().File)`, whose success post is the synced
+  `OsMeta` and the bytes `bs.map durB` (`fileutil.Fdatasync.wp_tail`, `TailFdatasync.lean`).
+- **Change (made).** The post's handle is `walHandleC … h' TailMetaS` (`TailMetaS m bs := TailMeta m bs ∧ ∀ y ∈ bs,
+  y = durB y.1`, `CloseHandle.lean`; `TailMetaS.of_sync` from `TailMeta m bs` to the synced pair). `WalCloseLaw`
+  takes `TailMetaS`; `WAL.Close.wp_proof` unchanged.
+- **Decision.** Adopted (the coordinator's `TailSynced` decision, 2026-11-14).
