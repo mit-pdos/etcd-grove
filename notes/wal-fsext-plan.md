@@ -3168,5 +3168,13 @@ tail). Task 3 (the pin, `openAtIndex`, `OpenForRead`, `Open`) not started.
   over `walReadH`'s `locks ↦* lfs` (nonempty: `openWALFiles` opens at least the selected file); `*LockedFile`'s
   promoted `Name` is `os.File.Name` after `iStructNamed` of `fileutil.lockedFile` and `wp_method_call`, as `WAL.cut`'s
   proof does (no new spec).
-- *Not done*: `openAtIndex`, `OpenForRead`, `Open` (the proofs; `Open`'s leftover `N.tmp` meeting `trFile`'s `cut =
-  none ∧ lo ≤ size` and `walPipeH` at `pc = 0` are for its pipeline step).
+- *The segments' put-back at a later state, proved* (`ParkedPut.lean`): **`walParked_putSegIno Ls cl F o g hnd (hF :
+  F !! g.ino = none) (hlen : ∀ g' ∈ segsAll Ls, g'.ino = g.ino → g'.bs.length = g.bs.length)`**: onto the segment of
+  `Ls` with `g`'s inode (`segResP_congr`: the program's halves depend only on the inode and length), or dropped
+  if none has it (`segsP_forget`). `hlen` at the error arm: the invariant's `segRes g'` (nothing in flight,
+  `walTailsRes_none`) and the held `segRes g` agree on the `OsMeta`, and `WalAbsD.metas` gives `size = |bs|` at both
+  ends (the pin's `WalAbsD` for `g`). The claim's put-back waits for gap C (W1 log, eleventh session).
+- *Not done*: the body-level put-back (`walInvBody_unpin`: gap C), `walInvBody_unl` (the commit's `unl` raise),
+  `openAtIndex`, `OpenForRead`, `Open` (the proofs; `Open`'s leftover `N.tmp` meeting `trFile`'s `cut = none ∧ lo ≤
+  size` and `walPipeH` at `pc = 0` are for its pipeline step). The `ZeroToEnd` instance on the crash-tracked tail
+  (`wal-tc2`) stays a hypothesis of `ReadAll`.
