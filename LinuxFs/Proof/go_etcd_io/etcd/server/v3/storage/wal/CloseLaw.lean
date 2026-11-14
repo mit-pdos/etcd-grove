@@ -191,15 +191,17 @@ theorem walInvBody_untail (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString
   subst hbb
   ihave Hlays := Hlays $$ [Hm2 Hb2]
   · iunfold segRes; iframe Hm2 Hb2
+  have hex : SegExact g := ⟨by rw [← hsz]; exact hTM.1.2.2.2.1, by rw [← hsz]; exact hTM.1.2.2.2.2.1⟩
   have hidle : TailIdle walCodec Mr d lay := by
-    refine ⟨fun g' hg' => ?_, ?_, fun g' hg' => ?_⟩
-    · rw [hg] at hg'; cases hg'
-      refine ⟨?_, ?_⟩
-      · rw [← hsz]; exact hTM.1.2.2.2.1
-      · rw [← hsz]; exact hTM.1.2.2.2.2.1
+    refine ⟨fun g' hg' => ?_, ?_, fun g' hg' => ?_, ?_, fun g' hg' => ?_⟩
+    · rw [hg] at hg'; cases hg'; exact hex
     · rw [hwr, tailStream_eq]
     · rw [hg] at hg'; cases hg'
       exact ⟨hTM.2, fun z hz => by rw [← hsz]; exact hTM.1.2.2.1.ge z hz⟩
+    · obtain ⟨lay', nm, hj, hl', -, -, -, -, habs, -⟩ := HW.1 _ _ hd
+      rw [hl] at hl'; cases hl'
+      exact ((habs.last g hg).1 hex).so_eq hTM.2
+    · rw [hg] at hg'; cases hg'; exact hTM.1.2.1
   imod Hclose $$ %(⟨hidle, GMap.lookup_empty _⟩ : TailIdle walCodec Mr d lay ∧ (∅ : GMap Ino SegFl) !! g.ino = none) with ⟨Htl, Htf⟩
   ihave Hlays := (laysRes_list (L := L) Ls).2 $$ Hlays
   ihave Hlays := (laysResF_empty (L := L) Ls).2 $$ Hlays
