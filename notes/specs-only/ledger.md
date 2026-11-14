@@ -1130,6 +1130,17 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   WALs found at boot), so the slice's length gives `≠ nil`. (B) is a few lines; (A) is the faithful one.
 - **Decision.** Open: (B) adds a client premise to `Create` and an assumption on the WALs found at boot; the
   coordinator's call. Until then `ReadAll`'s `walOpenWF` takes it as a marked `sorry` (`hmdnn`).
+  **Decided 2026-11-14 (coordinator; `wal-readall27`): (B).** The coordinator's first choice, relaxing
+  `walHandleIn` to accept a `nil` slice at `md = []`, is not sound: `cut` encodes `Record{Type: …, Data:
+  w.metadata}` as is (S/wal.go:842) and `record.proto`'s `data` is a proto2 `optional bytes`, so protobuf-go
+  omits the field for a `nil` slice and writes it, empty, for `[]byte{}` (`recEnc`'s `optBytesField`, measured by
+  `TestRecordEncoder`); a handle with a `nil` metadata would write a metadata record other than the model's
+  `walRecEnc (recOf ⟨metadataType, _, []⟩)` (the field present), which the segments' byte model (`tailStream`,
+  `WalAbsD`'s streams, the reader) fixes. Accepting it would need that model to admit both encodings of an empty
+  metadata record, or (A). Made: `Create.spec` takes `md ≠ []` (beside `mp ≠ nil`; the server's metadata is a
+  marshalled `etcdserverpb.Metadata` with both ids set); `WalsBounded` keeps `d.metadata ≠ []` (`Create`'s
+  commit from the premise; no other step changes a metadata; `walInv_alloc`'s caller for the WALs at boot,
+  none at the run's start); `ReadAll` gets the slice non-nil from its points-to's length.
 
 ## 2026-11-14: `walHandleIn`'s index bound (internal, the part's) -- `ReadAll` cannot bound `max(enti, snapi) + 1`
 
@@ -1147,6 +1158,11 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   client-visible change but the boot assumption.
 - **Decision.** Open (an invariant change touching `Save`'s commit steps, which `wal-save*` owns): the
   coordinator's call. Until then `ReadAll`'s `walOpenWF` takes it as a marked `sorry`.
+  **Decided 2026-11-14 (coordinator; `wal-readall27`): as proposed**, as a conjunct of `WalsBounded`
+  (`¬ walHasMaxIdx (histM d)`): `walInvBody_append` (and `walTail_append`, `walHandleIn_append`) take
+  `¬ walHasMaxIdx [o.toM]` of the appended operation, which `Save` and `SaveSnapshot` give from their index
+  premises; `Create` starts empty; the other steps keep the history. `ReadAll` bounds `max(enti, snapi) + 1`
+  by it (`readAll_idxD`: every index the loop writes is one of the history's, or 0).
 
 ## 2026-11-14: `walDirH`'s sequence bound (internal, the part's) -- `ReadAll` cannot bound the tail's sequence
 
