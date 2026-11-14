@@ -56,7 +56,7 @@ theorem wp_osClose (fd : w64) (d : OsFd) (hE : ↑osN ⊆ E) :
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   obtain ⟨hwf, hcoh⟩ := Hwc
   unfold osFd
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
+  icases gFdElem_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
   have hfd : st.proc.fds !! fd = some d := hcoh.fds ▸ Hfdl
   have hwf' : ∀ X : GMap w64 OsFd, (∀ fd d, X !! fd = some d → st.proc.fds !! fd = some d) →
@@ -78,7 +78,7 @@ theorem wp_osClose (fd : w64) (d : OsFd) (hE : ↑osN ⊆ E) :
   simp only [IsFsStep] at Hst
   obtain ⟨fd', e, d', hv, hfd', rfl, rfl⟩ := Hst
   cases go.intoVal_inj hv
-  imod gAuth_delete _ _ _ _ _ $$ HAf Hfd with HAf
+  imod gFdElem_delete _ _ _ _ _ $$ HAf Hfd with HAf
   imod cells_same hwf (hwf' _ hdel) Hr Hfr rfl (cellView_congr hwf (hwf' _ hdel) rfl (fun _ => rfl) rfl) $$ [Hσ Hcells]
     with ⟨Hσ, Hcells⟩
   · iframe
@@ -206,7 +206,7 @@ theorem wp_osFlock (fd how : w64) (dq : DFrac) (d : OsFd) (hE : ↑osN ⊆ E) (�
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   obtain ⟨hwf, hcoh⟩ := Hwc
   unfold osFd
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
+  icases gFdElem_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
   have hfd : st.proc.fds !! fd = some d := hcoh.fds ▸ Hfdl
   imodintro
@@ -241,7 +241,7 @@ theorem wp_osFdKind (fd : w64) (dq : DFrac) (d : OsFd) (hE : ↑osN ⊆ E) (Φ :
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   obtain ⟨hwf, hcoh⟩ := Hwc
   unfold osFd
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
+  icases gFdElem_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
   have hfd : st.proc.fds !! fd = some d := hcoh.fds ▸ Hfdl
   imodintro
@@ -282,7 +282,7 @@ theorem wp_osFstat (fd : w64) (dq dqm : DFrac) (d : OsFd) (m : OsMeta) (hE : ↑
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   obtain ⟨hwf, hcoh⟩ := Hwc
   unfold osFd osMeta
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
+  icases gFdElem_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
   icases gAuth_lookup _ _ _ _ _ _ $$ HAm Hm with %Hml
   icases tokRes_meta_whole _ $$ Htok Hm with %Hq
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
@@ -339,7 +339,7 @@ theorem wp_osPRead (fd off n : w64) (dq dqm dqb : DFrac) (d : OsFd) (m : OsMeta)
   obtain ⟨hwf, hcoh⟩ := Hwc
   icases osBytes_lookup hcoh d.ino off.toNat dqb xs $$ HAb Htok Hbs with %Hbl
   unfold osFd osMeta
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
+  icases gFdElem_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
   icases gAuth_lookup _ _ _ _ _ _ $$ HAm Hm with %Hml
   icases tokRes_meta_whole _ $$ Htok Hm with %Hq
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
@@ -420,7 +420,7 @@ theorem wp_osPRead_racy (fd off n : w64) (dq dqb : DFrac) (d : OsFd) (lo : Nat)
   obtain ⟨hwf, hcoh⟩ := Hwc
   icases osBytes_lookup hcoh d.ino lo dqb xs $$ HAb Htok Hbs with %Hbl
   unfold osFd
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
+  icases gFdElem_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
   have hfd : st.proc.fds !! fd = some d := hcoh.fds ▸ Hfdl
   obtain ⟨f, hf⟩ := hwf.fds fd d hfd
@@ -518,7 +518,7 @@ theorem wp_osPRead_racy_list (fd off n : w64) (dq : DFrac) (d : OsFd)
   obtain ⟨hwf, hcoh⟩ := Hwc
   icases osBytes_lookup_list hcoh d.ino rs $$ HAb Htok Hbs with %Hbl
   unfold osFd
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
+  icases gFdElem_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
   have hfd : st.proc.fds !! fd = some d := hcoh.fds ▸ Hfdl
   obtain ⟨f, hf⟩ := hwf.fds fd d hfd
@@ -642,7 +642,7 @@ theorem wp_osFsync2 (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat) (
   icases bytesG_lookup _ d.ino lo _ xs Γb $$ HAb Hbs with %Hbl
   icases bytesG_lookup _ d.ino lo2 _ ys Γb $$ HAb Hys with %Hbl2
   icases bytesG_lookup_runs _ d.ino Γb rs $$ HAb Hrs with %Hrl
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
+  icases gFdElem_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
   icases gAuth_lookup _ _ _ _ _ _ $$ HAm Hm with %Hml
   icases tokRes_meta_whole _ $$ Htok Hm with %Hnt
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
@@ -901,7 +901,7 @@ theorem wp_osFsyncB (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (hE : ↑osN
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   obtain ⟨hwf, hcoh⟩ := Hwc
   unfold osFd osMeta
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
+  icases gFdElem_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
   icases gAuth_lookup _ _ _ _ _ _ $$ HAm Hm with %Hml
   icases tokRes_meta_whole _ $$ Htok Hm with %Hnt
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
@@ -1029,7 +1029,7 @@ theorem wp_osMmap (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (m : OsMeta
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   obtain ⟨hwf, hcoh⟩ := Hwc
   unfold osFd osMeta
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
+  icases gFdElem_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
   icases gAuth_lookup _ _ _ _ _ _ $$ HAm Hm with %Hml
   icases tokRes_meta_whole _ $$ Htok Hm with %Hnt
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag

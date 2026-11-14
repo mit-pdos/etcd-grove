@@ -195,7 +195,7 @@ theorem treeWorld_mk {st st' : OsState} {V : Hist} {Γdf : GMap w64 (Ino × DirP
 the files alone (`st0`, then `fd` added). -/
 theorem osWorld_addFd {st st0 : OsState} {Γb Γm Γf Γt} {h h' : GMap Loc (NonAtomic val)}
     (hs : FilesSame st st0) {fd : w64} {d : OsFd} (hfd : st.proc.fds !! fd = none)
-    (hfile : ∃ f, st.file d.ino = some f)
+    (hfd0 : 0 ≤ fd.toInt) (hfile : ∃ f, st.file d.ino = some f)
     (hr : HeapRendered st (st0.setProc { st0.proc with fds := <[fd := d]> st0.proc.fds }) h h')
     (hfr : MapsFresh st (st0.setProc { st0.proc with fds := <[fd := d]> st0.proc.fds }) h) :
     ⊢ osWorld (L := L) st Γb Γm Γf Γt h ==∗
@@ -217,7 +217,7 @@ theorem osWorld_addFd {st st0 : OsState} {Γb Γm Γf Γt} {h h' : GMap Loc (Non
       (<[fd := d]> Γf) Γt := by
     rw [hΓf]; exact osCoh_fds hcoh0 _
   have hΓfn : Γf !! fd = none := by rw [hcoh.fds]; exact hfd
-  imod gAuth_insert _ _ _ fd d hΓfn $$ HAf with ⟨HAf, Hfd⟩
+  imod gFdElem_insert _ _ _ fd d hfd0 hΓfn $$ HAf with ⟨HAf, Hfd⟩
   have hcv : cellView (st0.setProc { st0.proc with fds := <[fd := d]> st0.proc.fds }) =
       cellView st := cellView_congr hwf hwf' hs.2.2.2.1 (fun i => congrArg _ (hf0 i)) hs.2.2.1
   imod cells_same hwf hwf' hr hfr hs.2.2.2.1 hcv $$ [Hσ Hcells] with ⟨Hσ, Hcells⟩
@@ -294,7 +294,7 @@ theorem wp_osOpenDir (p : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s0 : N
       cases h0 : Γdf !! fd with
       | none => rfl
       | some x => rw [h0] at this; cases this
-    imod gAuth_insert _ _ _ fd (j, DirPh.idle (dview (st.fs.treeDur, st.fs.metaLog) j) q) hΓ $$ HAdf
+    imod gFdElem_insert _ _ _ fd (j, DirPh.idle (dview (st.fs.treeDur, st.fs.metaLog) j) q) hfd0 hΓ $$ HAdf
       with ⟨HAdf, Hfd⟩
     have hst'' : st' = setDfd (st.metaEnd k') fd ⟨j, .idle⟩ := hst
     subst hst''
@@ -420,7 +420,7 @@ theorem wp_osOpenFile (p : GoString) (fl : w64) (R : Roots) (V : Hist) (q1 q : Q
     have hst'' : st' = (st.metaEnd k').setProc { (st.metaEnd k').proc with
         fds := <[fd := openFd i fl]> (st.metaEnd k').proc.fds } := hst
     subst hst''
-    imod osWorld_addFd (filesSame_metaEnd st k') hfdn ⟨f, hfi⟩ Hr Hfr $$ Hw with ⟨Hw, Hfd⟩
+    imod osWorld_addFd (filesSame_metaEnd st k') hfdn hfd0 ⟨f, hfi⟩ Hr Hfr $$ Hw with ⟨Hw, Hfd⟩
     have hw' : FsTreeWf ((st.metaEnd k').setProc { (st.metaEnd k').proc with
         fds := <[fd := openFd i fl]> (st.metaEnd k').proc.fds }) := by
       refine ⟨hw.roots, hw.hist, hw.dfds, fun fd' h' => ?_, fun i' hi' => hw.files_lt i' hi'⟩
@@ -704,7 +704,7 @@ theorem wp_osOpenCreate (d b : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s
       $$ [HAb HAm HAf HAt Htok Hcells Hσ]
     · unfold osWorld; rw [hcvC]; iframe; ipureintro; exact ⟨hwfC, hcohC⟩
     imod osWorld_addFd (st := createdSt st k' j b s0) (filesSame_refl _) (fd := fd)
-      (d := ⟨st.fs.nextIno, true, true⟩) hfdn ⟨_, hfC⟩ Hr Hfr $$ Hwc with ⟨Hwc, Hfd⟩
+      (d := ⟨st.fs.nextIno, true, true⟩) hfdn hfd0 ⟨_, hfC⟩ Hr Hfr $$ Hwc with ⟨Hwc, Hfd⟩
     have hw' : FsTreeWf ((createdSt st k' j b s0).setProc { (createdSt st k' j b s0).proc with
         fds := <[fd := ⟨st.fs.nextIno, true, true⟩]> (createdSt st k' j b s0).proc.fds }) := by
       refine ⟨hwC.roots, hwC.hist, hwC.dfds, fun fd' _ => ?_, hwC.files_lt⟩

@@ -127,7 +127,7 @@ theorem wp_osOpenDirGenS' (R : Roots) (p : GoString) (j : Ino) (P : IProp GF) (k
       cases h0 : Γdf !! fd with
       | none => rfl
       | some x => rw [h0] at this; cases this
-    imod gAuth_insert _ _ _ fd ((j, DirPhS.idle) : Ino × DirPhS) hΓ $$ Hadfs with ⟨Hadfs, Hfd⟩
+    imod gFdElem_insert _ _ _ fd ((j, DirPhS.idle) : Ino × DirPhS) hfd0 hΓ $$ Hadfs with ⟨Hadfs, Hfd⟩
     have hst'' : st' = setDfd (st.metaEnd k') fd ⟨j, .idle⟩ := hst
     subst hst''
     have hs : FilesSame st (setDfd (st.metaEnd k') fd ⟨j, .idle⟩) := ⟨rfl, rfl, rfl, rfl, rfl⟩

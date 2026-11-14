@@ -238,6 +238,9 @@ theorem os.File.Close.wp_outS (f : Loc) (fd : w64) (name : GoString) :
   ihave %hnn := typedPointsto_not_null _ _ _ $$ Hf
   rw [decide_eq_false hnn]
   wp_auto
+  ihave %hfd0 := osOutFd_nonneg _ $$ Hosfd
+  rw [decide_eq_false (by rintro rfl; exact absurd hfd0 (by decide))]
+  wp_auto
   wp_apply wp_osFdKindOut fd CoPset.subseteq_top $$ Hinv Hosfd as Hosfd
   try wp_auto
   wp_apply wp_osOutClose fd CoPset.subseteq_top $$ Hinv Hosfd as %e

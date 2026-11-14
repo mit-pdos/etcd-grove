@@ -108,7 +108,7 @@ def osLogEnt (x : Nat) (e : LogEntry) : IProp GF :=
 
 /-- The shared directory fd `fd`, on the directory `j`, its read at `ph`. -/
 def osDirFdS (fd : w64) (j : Ino) (ph : DirPhS) : IProp GF :=
-  gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γdfS fd (DFrac.own 1) (j, ph)
+  gFdElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γdfS fd (DFrac.own 1) (j, ph)
 
 /-- The components `cs` lead from the directory `j` to the directory `j'`: fractions `dq` of the
 claim on each component's name, which names the next directory. -/
@@ -146,6 +146,11 @@ instance osCallS_timeless (t s : Nat) (q : Qp) : Timeless (osCallS (L := L) t s 
   unfold osCallS; infer_instance
 instance osDirFdS_timeless (fd : w64) (j : Ino) (ph : DirPhS) :
     Timeless (osDirFdS (L := L) fd j ph) := by unfold osDirFdS; infer_instance
+
+/-- An open shared directory fd is not negative. -/
+theorem osDirFdS_nonneg (fd : w64) (j : Ino) (ph : DirPhS) :
+    osDirFdS (L := L) fd j ph ⊢ ⌜0 ≤ fd.toInt⌝ := by
+  unfold osDirFdS; exact gFdElem_nonneg _ _ _ _ _
 
 /-- An entry logged at `x ≥ s` by a call begun at `s`: its record, and the log's new length. -/
 def osLogged (x : Nat) (e : LogEntry) : IProp GF :=

@@ -1002,3 +1002,17 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   consumers (`DefsAu`, `ZeroToEndAu`, `preallocExtendTruncAu`, `TruncWalTail`) take `.1`. `fallocDoneH` unchanged
   (no user needs it yet).
 - **Decision.** Made (internal, weaker-or-equal knowledge given to the caller; no client-visible change).
+
+## 2026-11-14: `os.File.Close.specClosed` (the part's, `LinuxFs/Spec/os/File__CloseClosed.lean`) -- the package's initialization
+
+- **Spec.** `os.File.Close.specClosed` (a closed `*os.File`'s `Close`), and `wp_lockedCloseLeft`
+  (`CreateLockedLeft.lean`, internal), which calls it.
+- **Defect.** Over the closed-file model (`File.Close.impl` returns `&PathError{"close", name, ErrClosed}` on fd -1,
+  `wal-create18-closewip`), the result loads `os.ErrClosed`, whose points-to (and the error's `fmtErrorOk`) only
+  `isPkgInit pkg_id.os` gives (`os.errClosed_of_pkgInit`); the pre had none, so the spec was unprovable over the new
+  model too.
+- **Evidence.** The proof attempt (`LinuxFs/Proof/os/File__CloseClosed.lean`); `os.File.Close.specNil`, which returns
+  `os.ErrInvalid`, takes the same premise.
+- **Change (made, `wal-create19`).** The pre gains `isPkgInit pkg_id.os` (persistent; `Create` has it from `wal`'s
+  dependencies, `Hos`); `wp_lockedCloseLeft`'s pre the same. The spec is proved (`os.File.Close.wp_proofClosed`).
+- **Decision.** Made (internal, no client-visible change).
