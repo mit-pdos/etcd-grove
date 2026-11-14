@@ -120,11 +120,31 @@ from `fmt.argOk err` (from `statusErrOk`/`errStrOk`: `fmtArgOk_of_statusErrOk`,
 
 ## Reach and checks
 
-See the checkpoint report (filled in below at the stop).
+Roots reaching the axioms (`.lake/tcb.json` after the build, 2026-11-14):
+
+- `klog.Errorf.wp_proof` (12 roots): the closed theorems `k8s_compactor_safe`,
+  `k8s_compactor_partition_safe`, `k8s_compactor_Main`, `k8s_compactor_MainPartition` (and
+  `k8s_compactor.wp_{Main,MainPartition,apiserver}`, the etcd3 links).
+- `klog.Verbose.Infof.wp_proof` (29 roots): the compactor's as above, and `k8s_etcd3_safe`,
+  `k8s_etcd3_cluster_safe`, `k8s_etcd3_partition_safe`, `k8setcd3_{Main,MainCluster,MainPartition}`
+  (through the store's `updateOnce`/`deleteOnce`).
+
+No closed statement changed: no `Results`/`MainLinked`/`Link` file is edited, and the new premise is
+discharged inside the callers' proofs (every argument is a string, an `int64`, a fresh `[]string`
+or a client error). No new premise reaches a closed theorem.
+
+Checks (commit `6613efc5b6`): full build (`lake build`, 17495 jobs) passed; `etc/tcb-report.py
+--check` matches the baseline (870 axioms, 4 sorries, unchanged); 56 collections match, none updated;
+`etc/gates.sh` passed all sections (axiom-tok, errorf-wrap, interfaces, premisefix incl. this
+module, ...) except `k8s client error types`, which failed three times on `StartCluster failed` (a
+port taken under the parallel load, the gate's known flake); rerun alone it passed
+(`TestClientErrorTypes`, `TestCredentialNilError`, 208s). No interface diff (the etcd3 and klog
+packages have no `etc/api` list).
 
 ## Handoff
 
-- Done: the Go tests; `Args.lean`; the two spec texts; the three internal posts; the callers.
+- Done: the Go tests; `Args.lean`; the two spec texts; the three internal posts; the callers; build,
+  tcb, gates (above).
 - Next: etcd-grove-81's axiom review, then land (`etc/land.sh`, after the go).
 - Build: `flock /shared/tmp/etcd-grove-build.lock systemd-run --scope -q -p MemoryMax=64G lake
   --packages=/shared/tmp/manifest-ddc.json build`; Go: `cd examples/premisefix/klogargs && GOWORK=off
