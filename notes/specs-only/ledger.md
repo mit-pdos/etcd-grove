@@ -759,6 +759,7 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `decEnv IoE eof ueof` is `(decEnv IoE eof ueof ∗ ⌜¬ IoE nil⌝)`; `openAtIndex` passes it through. (The
   alternative, `err ≠ nil` in `decPostB`'s I/O arm, would reprove the decoder's specs.)
 - **Decision.** Adopted (`wal-readall20`, minor: a hypothesis true of Go, and a sealed body; no client-visible change).
+
 ## 2026-11-14: `fileutil.CreateDirAll.specTmp` (internal, the part's; a hypothesis of `wal.Create.wp_proof`) -- nothing about the new directory's history
 
 - **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/CreateCallees.lean`, `fileutil.CreateDirAll.specTmp`
