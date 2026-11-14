@@ -1295,3 +1295,24 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   that path), then retranslate; the spec stays as it is.
 - **Decision.** Pending the user (a fork change). Until then `Create.wp_proof` keeps a marked `sorry` on that
   path only.
+
+## 2026-11-14: `wal.Repair.spec` (the part's, over `fsExt`) -- the `false` arm after a failed `Truncate` or `Fsync` cannot return the lock token
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/Repair.lean` (`wal.Repair.spec`): every arm's post
+  returns `walUnlockedTok` (framed, the entry "the lock token taken" above).
+- **Defect.** Unprovable on two of the `false` arms. `walUnlockedTok`'s `walTailsFrag ∅` makes `Repair` unregister
+  the tail it registered (the pending token, kind `true`, for its truncate at `wr`), which needs the tail idle
+  (`WalTailIdle`: exact). After a failed `f.Truncate(lastOffset)` (`os.ftUndoneH`: the truncate's window open,
+  `lo = wr`) or a failed `fileutil.Fsync(f.File)` after it (the window open, landed or not), the Go code returns
+  `false` with no sync, and nothing the program can do closes the window. The state is crash-safe
+  (`crashOkA_tailRep`: the window of a `RepOld` tail); only the unregistration fails.
+- **Evidence.** The W7-W12 log, twelfth session ("Finding", option (b)); S/repair.go:83-97. Every client stops
+  on `false`: the WAL tester's `restartRead` returns `readFail` (examples/etcd/wal/wal.go:200-202), etcd's
+  `openWALFromSnapshot` calls `lg.Fatal` (server/etcdserver/bootstrap.go). Plan §6 Q6 (honest error posts: a
+  client stops on these errors; `Sync`'s error arm already loses the handle).
+- **Proposed change.** The post's token becomes `walUnlockedTok ∨ ⌜b = false⌝`: on `true` the token comes back;
+  on `false` it may not (the proof returns it on every `false` arm but the two above). Nothing else moves
+  (`∃ o, Q o`, the area's resources and the call permission are returned on every arm). The tester's proof
+  (`restartRead`) uses `Repair`'s token only on `true` (the retried `Open`).
+- **Decision.** Accepted (the coordinator, under plan §6 Q6, 2026-11-14: option (b) of the twelfth session's
+  finding); applied by `wal-repair24` (the W7-W12 log, thirteenth session).
