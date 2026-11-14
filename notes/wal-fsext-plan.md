@@ -2812,6 +2812,8 @@ advanced (frontier `sorry`s unchanged). Note: the stream-end fact `< 2^43` is go
   halved (half to `walCreateP`, half kept for the handle's `walDirH`), `walCreateP` and the update
   (`createU_none`), the spine fractions (`d` from `os.qp_common` of a quarter of the area's spine and of `¼`),
   `w.dir` loaded through `walPreIn`, and `renameWAL.spec` applied with `RenameWALOk` discharged.
+  *Tooling*: `etc/lean-check.py --fast` reported 0 errors on `Create.lean` where `lake build` found two (inside the
+  body's `all_goals (…)` block): check `Create` with `lake build`.
 - *New modules* (all proved, no `sorry`): **`CreateLay.lean`** (pure: `createLay jr nm J g L`, `createLay_abs`, the
   fresh layout's `WalAbsD`: `cutPos` vacuous, name index 0, `old` zeros, `z0 = 0` so `tailStop` is vacuous;
   `createSeg`, `createSeg_facts`: the segment after the header stream over the preallocated zeros and the
