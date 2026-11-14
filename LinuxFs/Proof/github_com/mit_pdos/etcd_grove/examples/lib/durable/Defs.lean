@@ -96,12 +96,14 @@ def DCand.Ok (c : DCand) : Prop :=
   c.m.size = c.v.length ∧ c.m.lo = c.m.size ∧ c.m.hi = c.m.size ∧ c.v.length ≤ 0x40000000
 
 /-- **The physical state**: the claims' histories of the file's name (`hb`) and of the
-temporary's (`ht`), a commit lower bound `nc`, the candidates. -/
+temporary's (`ht`), a commit lower bound `nc`, the candidates, and the state's `alt` (a copy, so
+that the handle knows it: the state is determined by the physical state, `DurOk.alt`). -/
 structure DurPhys where
   hb : NamesH
   ht : NamesH
   nc : Nat
   cands : List DCand
+  alt : Option (Option GoString)
 
 instance DCand.countable : Pos.Countable DCand :=
   Pos.Countable.ofInjective (fun c => Pos.Countable.encode (c.i, c.m, c.v))
@@ -111,11 +113,11 @@ instance DCand.countable : Pos.Countable DCand :=
       obtain ⟨h1, h2, h3⟩ := h; subst h1 h2 h3; rfl)
 
 instance DurPhys.countable : Pos.Countable DurPhys :=
-  Pos.Countable.ofInjective (fun p => Pos.Countable.encode (p.hb, p.ht, p.nc, p.cands))
+  Pos.Countable.ofInjective (fun p => Pos.Countable.encode (p.hb, p.ht, p.nc, p.cands, p.alt))
     (fun a b h => by
       have h := Pos.encode_inj h
       cases a; cases b; simp only [Prod.mk.injEq] at h
-      obtain ⟨h1, h2, h3, h4⟩ := h; subst h1 h2 h3 h4; rfl)
+      obtain ⟨h1, h2, h3, h4, h5⟩ := h; subst h1 h2 h3 h4 h5; rfl)
 
 /-- **What a crash may leave at the file's name** `o` is allowed by the state `s`: nothing if `cur` or
 `alt` is no file; a candidate's inode with the contents `cur` or `alt`'s. -/
@@ -128,7 +130,7 @@ def OutOk (s : DurSt) (cs : List DCand) : Option Node → Prop
 keeps the entries below the commit bound leaves the name as `OutOk` allows; the name holds, now,
 `cur` (a candidate's inode); the temporary's name holds no directory; with no rename to lose
 (`alt = none`), every entry of the name is below the commit bound; the candidates are `Ok`, at
-distinct inodes. -/
+distinct inodes; `alt` is the physical state's copy. -/
 structure DurOk (f : DFile) (s : DurSt) (p : DurPhys) : Prop where
   crash : ∀ K : Nat → Prop, (∀ y e E, (y, e, E) ∈ p.hb.ents → y < p.nc → K y) →
     OutOk s p.cands (p.hb.valAfter f.J K f.b)
@@ -139,6 +141,7 @@ structure DurOk (f : DFile) (s : DurSt) (p : DurPhys) : Prop where
   synced : s.alt = none → p.hb.next ≤ p.nc
   cands : ∀ c ∈ p.cands, c.Ok
   inj : (p.cands.map DCand.i).Nodup
+  alt : s.alt = p.alt
 
 /-- **What the file's name holds under the physical state `p`**: no file (`none`), or a candidate's
 inode and its contents. -/
@@ -226,9 +229,10 @@ def durHandleP (γ : DurGS) (f : DFile) (R : Roots) (p : DurPhys) : IProp GF :=
 
 /-- **A call's handle on the file `f`** in the roots `R`: the physical state's other half, the
 claims' other halves, the current inode's other half, the temporary's file, a fraction of the
-directory's spine. Exclusive (the claims' halves). -/
+directory's spine. Exclusive (the claims' halves). Between calls no `Write` is between its rename
+and its commit (`alt = none`). -/
 def durHandle (γ : DurGS) (f : DFile) (R : Roots) : IProp GF :=
-  iprop(∃ p : DurPhys, durHandleP γ f R p)
+  iprop(∃ p : DurPhys, durHandleP γ f R p ∗ ⌜p.alt = none⌝)
 
 end res
 

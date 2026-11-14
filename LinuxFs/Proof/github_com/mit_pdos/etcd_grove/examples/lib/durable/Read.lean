@@ -39,7 +39,7 @@ theorem github_com.mit_pdos.etcd_grove.examples.lib.durable.Read.wp_proof
   ihave #Hmu := github_com.mit_pdos.etcd_grove.examples.lib.durable.mu_of_pkgInit $$ Hpkg
   icases Hdeps with ⟨-, #Hospkg, -, #Hsync, -⟩
   iunfold durHandle at Hh
-  icases Hh with ⟨%p, Hh⟩
+  icases Hh with ⟨%p, Hh, %halt⟩
   wp_func_call; (try wp_call); (try wp_auto)
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
@@ -74,7 +74,7 @@ theorem github_com.mit_pdos.etcd_grove.examples.lib.durable.Read.wp_proof
     have hr : readRes s.cur = PairV (#(v.getD [])) (#v.isSome) := by rw [hs]; rfl
     rw [← hr]
     iapply HQ $$ [Hh] Hperm
-    iunfold durHandle; iexists p; iexact Hh
+    iunfold durHandle; iexists p; iframe Hh; ipureintro; exact halt
 
 end proof
 
