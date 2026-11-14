@@ -3574,6 +3574,28 @@ flight (`rzMeta`) and landed (`rsPostK true`). Task 2 not done; what is in and t
 - *Not started*: `truncSup`/`fallocSup` from `walInv` (`walInvBody_tailW`), `os.File.Truncate.specWalTail`'s proof, the
   `ZeroToEnd` instance (no name yet for `wal-read13` to swap in).
 
+**`W1G` past the ghost's bytes is in (branch `wal-tc6`, commit `e813841e16`, 2026-11-14; for `wal-maxb14`,
+`wal-readall15`).** Built on the design above, as designed. Names (all untrusted):
+- `Abs.lean`: **`pcRunN m b k`/`pcRun m b`** (the candidates `m.pc` knows from `b` on, below `m.hi`, up to the first
+  unknown; ghost value 0), **`segBytesX g := g.bs ++ pcRun g.om |g.bs|`**, **`segBytesOf lay i`** now maps
+  `segBytesX` (was `·.bs`). Laws: `pcRunN_getElem?`, `segBytesX_of_hi` (`om.hi ≤ |bs|` → `= g.bs`),
+  `segBytesX_getElem?_lt`/`_getD_lt`/`_length_le`, `segBytesX_getElem?_ge` (past `|bs|`: below `om.hi`, `om.pc b =
+  some y.2`), **`segBytesX_cand`** (the candidates of `segBytesX g` are a file's from `om.size = |bs|`, the `bs`
+  fact and the `pc` fact). `segBytesOf_some` now gives `segBytesX g = bs`; **`segBytesOf_some_ex`** (all segments
+  `om.hi ≤ |bs|`) the old form. `w1G_of_W1`'s premise is over `segBytesX g`.
+- `GooseLang/Ext/Fs/CrashTakeFiles.lean`: **`FileCrashAt`** gains `∀ b c, m.size ≤ b → m.pc b = some c → f.cand b =
+  c` (from `MetaOk.pc_cand`; `crashRestAt_take`, `crashRestAt_take_tok`).
+- `CrashTakeSeg.lean`: **`crashRestAt_take_tok`**'s third conjunct is now `∃ f, st.fs.files !! ti.ino = some f ∧
+  (ti.kind.isResize → ti.n ∈ f.rzs) ∧ ∀ b c, inRange ti.lo ti.hi b → ti.m0.size ≤ b → ti.m0.pc b = some c → f.cand
+  b = c ++ [(ti.val b, ti.n)]` (`tok_cand`); **`rzMeta_pc_cand`** (what `rzMeta` knows past the size is the file's),
+  `OsMeta.pc_congr`; **`SegCrashAt`** gains `∀ b c, g.om.size ≤ b → g.om.pc b = some c → f.cand b = c` (idle,
+  write and resize cases); `crashGood_exists`/`walCrash_pure`'s `hfiles` likewise.
+- `TailCrash.lean`: `segBytesOf_mem` gives `segBytesX g`; **`segBytesOf_mem_ex`** (exact) the old form.
+- Not yet: a write in flight past the size (`SegFl.Ok`'s `g.om = cfMeta …`, the token's `OsMeta`, which forgot the
+  announced bytes' `tc`): its `segBytesX` stops at the announced range (`pc` none there); `wal-maxb14`'s design
+  item 2 (the announced layout's `tc` the token's candidates, as `rzMeta`) extends it, with `TokPast`/`tok_cand`
+  (now exported) for the crash side.
+
 **Third session (branch `wal-read3`, 2026-11-13).**
 - *Gaps 1 and 2 closed* as the coordinator decided: `WalsNamed` and `walParked` in `walInvBody`, the parking
   flag in the lock token (W1 log, sixth session, for the design and the other units' obligations).
