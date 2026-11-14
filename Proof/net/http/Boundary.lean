@@ -18,7 +18,8 @@ The model (the note's points 1-6):
 * Body streams are prefixes; a request body's reader returns `EOF` only at the end. Any operation
   may fail with an error.
 * The response's status is the one the handler set (revised 2026-10-22: a `403`/`410` is
-  `errMemberRemoved`, which matters in a dynamic cluster).
+  `errMemberRemoved`, which matters in a dynamic cluster), or one of the server's own answers
+  (below, http-boundary-fix).
 * (2026-10-23, stage 4e) **An address's protocol is registered once.** `HttpNet` names a protocol
   for every address, but a spec stated for any `H` would let a client and a server of one
   address use different ones. So the protocol a client sends with and the one a server serves
@@ -33,9 +34,15 @@ The model (the note's points 1-6):
   peers before they listen.
 * (2026-10-23, D38b, the user's choice) **A request is handled at most once**: `RoundTrip` takes a
   fresh exclusive ghost ticket (`reqTicket γk`) and the handler of the request receives it; the
-  protocols are indexed by the ticket's name. Go's client never replays a `POST`
-  (`Request.isReplayable`), and its server runs one handler per request it reads. What a one-shot
-  payload needs: the receiver withdraws a deposit with the ticket, so only once.
+  protocols are indexed by the ticket's name. Go's client never replays a `POST` without an
+  idempotency key (`Request.isReplayable`), and its server runs one handler per request it reads.
+  What a one-shot payload needs: the receiver withdraws a deposit with the ticket, so only once.
+  (http-boundary-fix, 2026-11-14) Only the handler of a request never replayed (`onceOnly`)
+  receives the ticket (`reqTicketOnce`): Go replays a `GET` whose response read fails on a reused
+  connection, so one `RoundTrip` may run its handler twice.
+* (http-boundary-fix, 2026-11-14) **A response's status is a handler's or the server's own**: Go's
+  server answers some requests itself (`srvStatuses`: `400`, `417`, `431`, `501`, `505`), and every
+  registered protocol admits those answers (`Proto.srvOk`).
 * (2026-10-24, D42, rafthttp stage 7b) **A request's body is fixed or streamed.** A fixed body's
   bytes are the request's (`HReq.body`, from `NewRequest`'s reader at its bytes). A streamed body
   is a reader whose bytes the client does not hold (rafthttp's snapshot: the envelope, then the
@@ -137,6 +144,23 @@ instance Proto.resp_persistent (P : Proto GF) (R : HReq) (γk : GName) (st : w64
 instance Proto.sreq_persistent (P : Proto GF) (R : HReq) (γk : GName) (Pre Φ : List w8 → Prop) :
     Persistent (P.sreq R γk Pre Φ) :=
   P.sreq_pers R γk Pre Φ
+
+/-- **The statuses Go's server answers with itself, running no handler** (http-boundary-fix,
+2026-11-14; go1.27.3 `net/http`): `400` (a request it cannot parse, `badRequestError`, or HTTP sent
+to an HTTPS server), `417` (an `Expect` other than `100-continue`, `sendExpectationFailed`), `431`
+(headers over `MaxHeaderBytes`, `errTooLarge`; HTTP/2's `handleHeaderListTooLong` too), `501` (a
+transfer coding it does not support) and `505` (an unsupported protocol version), all in
+`conn.serve` (`server.go:2083-2123`) or `readRequest` (`server.go:1063`). The mux's own answers
+(`404`, `307`) are `mux_handlerOk_spec`'s, a `ServeMux`'s, not the server's. -/
+def srvStatuses : List w64 := [W64 400, W64 417, W64 431, W64 501, W64 505]
+
+/-- **A protocol the server's own answers keep** (http-boundary-fix, 2026-11-14): its `resp`
+admits every status of `srvStatuses` with any bytes, for any request and ticket, and its `rhdr`
+the empty headers (a server-made answer sets only keys of `srvKeys`: `Content-Type`,
+`Connection`). `reserve` asks it of the protocol it registers, so `RoundTrip`'s promise of
+`resp R γk st w` holds of a response no handler made (`examples/premisefix/httpsrvstatus`). -/
+def Proto.srvOk (P : Proto GF) : Prop :=
+  (∀ R γk st w, st ∈ srvStatuses → ⊢ P.resp R γk st w) ∧ ∀ R, P.rhdr R []
 
 /-- **The program's HTTP network**: each address's protocol, fixed for the run. -/
 structure HttpNet (GF : BundledGFunctors) where
@@ -273,6 +297,57 @@ theorem hdrGet_hdrSet_eq (hs : List (GoString × GoString)) (k v : GoString) :
       (List.filter (fun kv => decide (kv.1 ≠ canonKey k)) hs) = none := by
     rw [List.find?_eq_none]; intro x hx; simp [List.mem_filter] at hx; simp [hx.2]
   rw [this]; simp
+
+/-! ### Replayable requests (http-boundary-fix, 2026-11-14) -/
+
+/-- **Headers without an idempotency key**: no `Idempotency-Key` nor `X-Idempotency-Key` present,
+whatever its value (`Request.isReplayable` tests presence, `Header.has`, of these canonical keys). -/
+def noIdemKey (hs : List (GoString × GoString)) : Prop :=
+  ∀ p ∈ hs, p.1 ≠ canonKey go!"Idempotency-Key" ∧ p.1 ≠ canonKey go!"X-Idempotency-Key"
+
+theorem noIdemKey_nil : noIdemKey [] := by
+  intro p hp; cases hp
+
+/-- `Set` of a key that is not an idempotency key keeps `noIdemKey`. -/
+theorem noIdemKey_hdrSet (hs : List (GoString × GoString)) (k v : GoString) (h : noIdemKey hs)
+    (h1 : canonKey k ≠ canonKey go!"Idempotency-Key")
+    (h2 : canonKey k ≠ canonKey go!"X-Idempotency-Key") : noIdemKey (hdrSet hs k v) := by
+  intro p hp
+  unfold hdrSet at hp
+  rcases List.mem_append.1 hp with hp | hp
+  · exact h p (List.mem_filter.1 hp).1
+  · rw [List.mem_singleton.1 hp]; exact ⟨h1, h2⟩
+
+/-- **A request Go's client never replays** (`Request.isReplayable` false, go1.27.3
+`net/http/request.go:1561`): a method other than `GET` (also the empty method's default), `HEAD`,
+`OPTIONS`, `TRACE`, and no idempotency key (`noIdemKey`). Go's `Transport` retries a request on a
+reused connection only if it is replayable or nothing of it was written
+(`persistConn.shouldRetryRequest`, `transport.go:844`; HTTP/2's `shouldRetryRequest` only after a
+refused stream, a `GOAWAY` past it or an unusable connection, which the server did not process);
+the replay of a replayable one runs the server's handler a second time
+(`examples/premisefix/httpreplay`). Of the request's method and headers only: a body without
+`GetBody` makes Go's test false, which only makes more requests replayable here. -/
+def onceOnly (R : HReq) : Prop :=
+  R.meth ≠ [] ∧ R.meth ∉ [go!"GET", go!"HEAD", go!"OPTIONS", go!"TRACE"] ∧ noIdemKey R.hdr
+
+/-- A `POST` without an idempotency key is never replayed. -/
+theorem onceOnly_post (R : HReq) (hm : R.meth = go!"POST") (hk : noIdemKey R.hdr) :
+    onceOnly R := by
+  refine ⟨?_, ?_, hk⟩ <;> rw [hm] <;> decide
+
+/-- **What a handler run receives of a request's ticket** (http-boundary-fix, 2026-11-14): the
+ticket if the request is never replayed (`onceOnly`), nothing otherwise. Until then every handler
+run received `reqTicket γk`, which the replay of a `GET` (one `RoundTrip`, two handler runs, the
+same ticket name) made two copies of an exclusive resource. -/
+def reqTicketOnce (R : HReq) (γk : GName) : IProp GF := iprop(⌜onceOnly R⌝ -∗ reqTicket γk)
+
+/-- A handler of a request never replayed has its ticket. -/
+theorem reqTicketOnce_use (R : HReq) (γk : GName) (h : onceOnly R) :
+    reqTicketOnce (GF := GF) R γk ⊢ reqTicket γk := by
+  unfold reqTicketOnce
+  iintro Ht
+  iapply Ht
+  ipureintro; exact h
 
 /-- **A header map `hm` holding `hs`** (exclusive; a request's headers being built, or a response
 writer's). -/
@@ -512,7 +587,9 @@ its ticket `γk`, the protocol registered for its host (`httpProtoAt`) and
 `□ (H.proto R.host).req R γk`, (D42) its body of a kind the protocol allows (`reqSendOk`, with a
 streamed body's stream, `reqStream`, which `RoundTrip` consumes), either fails (with an error of
 net/http's, `netErr`: stage 7d) or returns a response whose status
-`st` is the handler's (with `□ ∃ w, resp R γk st w`) and whose body reader starts at `[]`, with
+`st` is a handler run's or the server's own (with `□ ∃ w, resp R γk st w`: the server's own answers,
+`srvStatuses`, are in the protocol, `Proto.srvOk`, which `reserve` asks of every registered one;
+http-boundary-fix 2026-11-14) and whose body reader starts at `[]`, with
 the right to close the body (`respCloser`, 2026-10-23, stage 5e-3); the request is the caller's
 again (`RoundTrip` must not modify it). (k8s 7f-4, Addendum T-i, the fix of a refutation:
 `notes/roundtripper-ctx-refuted.md`) The request's context is a `*cancelCtx` child of `Background()`
@@ -593,7 +670,8 @@ def handlerDone (H : HttpNet GF) (wr : GoInterface) (a : GoString) (R : HReq) (�
     ⌜v.isPanic = true⌝ ∗ respWriter H wr a R γk none [])
 
 /-- **A handler of the address `a`** (persistent), lending each invocation the resource `Rs`:
-`ServeHTTP` of any request the network delivers to `a`, with its ticket, its body (`reqBody`,
+`ServeHTTP` of any request the network delivers to `a`, with its ticket if the request is never
+replayed (`reqTicketOnce`, http-boundary-fix 2026-11-14: a replayed `GET` runs the handler twice), its body (`reqBody`,
 D42: fixed or streamed, as the protocol says) and a
 fresh response writer (a non-`nil` interface value, an `http.Flusher`: the server's writers are)
 with its empty header map, returns `Rs` and the writer (`handlerDone`; or panics, giving them back
@@ -601,7 +679,7 @@ too: `Serve` recovers the panic). -/
 def handlerOk (H : HttpNet GF) (a : GoString) (Rs : IProp GF) (h : GoInterface) : IProp GF :=
   iprop(∃ hi : GoInterfaceOk, ⌜h = GoInterface.ok hi⌝ ∗
     □ (∀ (wi : GoInterfaceOk) (r : Loc) (R : HReq) (γk : GName) (rd : GoInterface),
-      reqAt r R rd -∗ ⌜R.host = a⌝ -∗ □ (H.proto a).req R γk -∗ reqTicket γk -∗
+      reqAt r R rd -∗ ⌜R.host = a⌝ -∗ □ (H.proto a).req R γk -∗ reqTicketOnce R γk -∗
         reqBody H a R γk rd -∗ respWriter H (GoInterface.ok wi) a R γk none [] -∗
         respHdrs (GoInterface.ok wi) [] -∗
         ⌜go.typeSetContains wi.ty _root_.Perennial.net.http.Flusher.ty = true⌝ -∗ Rs -∗
@@ -1017,7 +1095,7 @@ def handlerFor (H : HttpNet GF) (a : GoString) (Rs : IProp GF) (pats : List GoSt
   iprop(∃ hi : GoInterfaceOk, ⌜h = GoInterface.ok hi⌝ ∗
     □ (∀ (wi : GoInterfaceOk) (r : Loc) (R : HReq) (γk : GName) (rd : GoInterface),
       reqAt r R rd -∗ ⌜R.host = a ∧ muxRoute pats R = some pat⌝ -∗ □ (H.proto a).req R γk -∗
-        reqTicket γk -∗ reqBody H a R γk rd -∗ respWriter H (GoInterface.ok wi) a R γk none [] -∗
+        reqTicketOnce R γk -∗ reqBody H a R γk rd -∗ respWriter H (GoInterface.ok wi) a R γk none [] -∗
         respHdrs (GoInterface.ok wi) [] -∗
         ⌜go.typeSetContains wi.ty _root_.Perennial.net.http.Flusher.ty = true⌝ -∗ Rs -∗
         WP (App (App (Val #(methods hi.ty go!"ServeHTTP" hi.v)) (Val #(GoInterface.ok wi)))

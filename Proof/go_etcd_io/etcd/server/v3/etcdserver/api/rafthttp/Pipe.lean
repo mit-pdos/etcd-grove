@@ -152,10 +152,13 @@ def fromOkAt (Rh : RaftHttp GF) (rid : w64) (hs : List (GoString × GoString)) :
 /-- **A pipeline request of ticket `γk`** (persistent): its body an encoding of a message `st`
 (stage A of the per-type models: of a wire content of it, `MsgEnc`; raft-entsize §4, 2026-11-10:
 of bounded size when the payload's messages are, `MsgEncSz`), not a snapshot (which goes by `SendSnapshot`), without responses, for the member owning the
-request's host, (stage 6d) from another member (`fromOkAt`); with `□ N.P st` and its deposit. -/
+request's host, (stage 6d) from another member (`fromOkAt`); with `□ N.P st` and its deposit;
+(http-boundary-fix, 2026-11-14) without an idempotency key (`http.noIdemKey`: a `POST` Go never
+replays, whose handler receives the ticket, `http.reqTicketOnce`). -/
 def pipeReq (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) : IProp GF :=
   iprop(∃ st : MsgSt, ⌜MsgWireOk st R.body ∧ MsgEncSz Rh.γn.N.Sz st R.body ∧ st.msg.To' = Rh.owner R.host ∧
-      st.msg.Type' ≠ MsgSnap ∧ st.resps = [] ∧ fromOkAt Rh (Rh.owner R.host) R.hdr⌝ ∗
+      st.msg.Type' ≠ MsgSnap ∧ st.resps = [] ∧ fromOkAt Rh (Rh.owner R.host) R.hdr ∧
+      http.noIdemKey R.hdr⌝ ∗
     □ Rh.γn.N.P st ∗ pipeDeposit Rh.γn.N γk st)
 
 instance pipeReq_persistent (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) :

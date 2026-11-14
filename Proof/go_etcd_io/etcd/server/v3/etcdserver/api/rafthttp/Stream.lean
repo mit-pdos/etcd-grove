@@ -397,9 +397,10 @@ def snapPath : GoString := go!"/raft/snapshot"
 
 /-- **A snapshot request** (rafthttp stage 6c; defined 2026-10-24, stage 7b, D42, was opaque): a
 `POST` to the snapshot path from another member (`fromOkAt`, as a pipeline request's), with a
-streamed body (`snapStreamed`), whose contract is `snapSReq`'s. -/
+streamed body (`snapStreamed`), whose contract is `snapSReq`'s; (http-boundary-fix, 2026-11-14)
+without an idempotency key (`http.noIdemKey`, as a pipeline request's). -/
 def snapReq (Rh : RaftHttp GF) (R : http.HReq) (_γk : GName) : IProp GF :=
-  iprop(⌜fromOkAt Rh (Rh.owner R.host) R.hdr⌝)
+  iprop(⌜fromOkAt Rh (Rh.owner R.host) R.hdr ∧ http.noIdemKey R.hdr⌝)
 
 instance snapReq_persistent (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) :
     Persistent (snapReq Rh R γk) := by
@@ -452,6 +453,26 @@ def raftProto (Rh : RaftHttp GF) : http.Proto GF where
   streamed R := snapStreamed R
   sreq R γk Pre Φ := snapSReq Rh R γk Pre Φ
   sreq_pers R γk Pre Φ := by infer_instance
+
+/-- (http-boundary-fix, 2026-11-14) **The raft protocol admits the server's own answers**
+(`http.Proto.srvOk`, which `http.reserve` asks): none is `200`, `403` or `410`. -/
+theorem raftProto_srvOk (Rh : RaftHttp GF) : (raftProto Rh).srvOk := by
+  refine ⟨fun R γk st w hst => ?_, fun _ => verHdrOk_nil⟩
+  have h200 : st ≠ W64 200 := by
+    intro h; subst h; simp [http.srvStatuses] at hst
+  have h403 : st ≠ W64 403 := by
+    intro h; subst h; simp [http.srvStatuses] at hst
+  have h410 : st ≠ W64 410 := by
+    intro h; subst h; simp [http.srvStatuses] at hst
+  show ⊢ iprop(⌜(R.path = go!"/raft" ∨ R.path = snapPath → st ≠ W64 403) ∧ st ≠ W64 410⌝ ∗
+    (⌜R.path ≠ probingPath⌝ → streamResp Rh R γk st w))
+  iintro
+  isplitr
+  · ipureintro; exact ⟨fun _ => h403, h410⟩
+  · iintro %_
+    unfold streamResp
+    iintro %h
+    exfalso; exact h200 h
 
 /-- The raft network's HTTP network: every address's protocol is a raft member's. -/
 def raftHttpNet (Rh : RaftHttp GF) : http.HttpNet GF := ⟨fun _ => raftProto Rh⟩

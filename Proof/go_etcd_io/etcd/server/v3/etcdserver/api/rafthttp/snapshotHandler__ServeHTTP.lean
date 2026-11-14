@@ -303,8 +303,9 @@ theorem rafthttp.snapshotHandler.ServeHTTP.wp_proof
           ipureintro; exact ⟨Hif, Hpath⟩
         iunfold snapReq at Hsr0
         icases Hsr0 with %Hfrom
+        ihave Htk := http.reqTicketOnce_use R γk (http.onceOnly_post R Hif Hfrom.2) $$ Htk
         wp_apply Haddr $$ [$HR0]
-        · ipureintro; rw [← Hhvok, ← Hhost]; exact Hfrom
+        · ipureintro; rw [← Hhvok, ← Hhost]; exact Hfrom.1
         -- the body: a stream of the protocol's contract
         iunfold http.reqBody at Hbody
         icases Hbody with (⟨%Hns, -⟩ | ⟨-, %Pre, %Φ, #Hsreq, %Hpc, Hbs⟩)

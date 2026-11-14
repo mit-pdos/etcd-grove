@@ -95,9 +95,9 @@ theorem netHttp_reserve3 (γn : NetNames GF) (a₁ a₂ a₃ : GoString) (hd0 : 
       (□ ∀ lid : w64, netHttpOk γn lid) ∗ http.httpProtoOwn a₁ (raftProto (netRh γn)) ∗
         http.httpProtoOwn a₂ (raftProto (netRh γn)) ∗ http.httpProtoOwn a₃ (raftProto (netRh γn)) := by
   iintro #Hreg Hf₁ Hf₂ Hf₃
-  imod (http.reserve a₁ (raftProto (netRh γn))) $$ Hf₁ with ⟨#Hat₁, Ho₁⟩
-  imod (http.reserve a₂ (raftProto (netRh γn))) $$ Hf₂ with ⟨#Hat₂, Ho₂⟩
-  imod (http.reserve a₃ (raftProto (netRh γn))) $$ Hf₃ with ⟨#Hat₃, Ho₃⟩
+  imod (http.reserve a₁ (raftProto (netRh γn)) (raftProto_srvOk _)) $$ Hf₁ with ⟨#Hat₁, Ho₁⟩
+  imod (http.reserve a₂ (raftProto (netRh γn)) (raftProto_srvOk _)) $$ Hf₂ with ⟨#Hat₂, Ho₂⟩
+  imod (http.reserve a₃ (raftProto (netRh γn)) (raftProto_srvOk _)) $$ Hf₃ with ⟨#Hat₃, Ho₃⟩
   imodintro
   iframe Ho₁ Ho₂ Ho₃
   iintro !> %lid

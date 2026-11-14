@@ -94,7 +94,7 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
         iunfold pipeReq at Hpr0
         icases Hpr0 with ⟨%st0, %Hst0, -, -⟩
         wp_apply Haddr $$ [$HR0]
-        · ipureintro; rw [← Hhvok, ← Hhost]; exact Hst0.2.2.2.2.2
+        · ipureintro; rw [← Hhvok, ← Hhost]; exact Hst0.2.2.2.2.2.1
         ihave #Hio : isPkgInit (PROP := IProp GF) pkg_id.io $$ []
         · iPkgInit
         ihave #Heof0 := io.eof_of_init $$ Hio
@@ -201,6 +201,7 @@ theorem rafthttp.pipelineHandler.ServeHTTP.wp_proof
           wp_auto
           -- the one-shot part, withdrawn with the request's ticket
           iapply wp_fupd
+          ihave Htk := http.reqTicketOnce_use R γk (http.onceOnly_post R Hif Hst.2.2.2.2.2.2) $$ Htk
           imod pipe_withdraw Rh.γn.N γk st ⊤ (by simp) $$ Hdep Htk Hlc1 with HO
           ihave #Hctx : nodeCtx (GF := GF) todoCtxVal bgCd $$ []
           · iunfold nodeCtx
