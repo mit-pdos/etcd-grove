@@ -397,6 +397,7 @@ axiom bbolt.optsAt_readOnly_rd
 axiom bbolt.optsAt_timeout_rd
 axiom bcrypt.CompareHashAndPassword.wp_proof
 axiom bcrypt.GenerateFromPassword.wp_proof
+axiom binary.ReadInt64LE.wp_proof
 axiom binary.ReadUint64.wp_proof
 axiom binary.WriteUint64.wp_proof
 axiom binary.WriteUint8.wp_proof
@@ -467,7 +468,9 @@ axiom fmt.SprintfArgs.wp_proof
 axiom fmt.SprintfClientPtr.wp_proof
 axiom fmt.SprintfID.wp_proof
 axiom fmt.SprintfNamed.wp_proof
+axiom fmt.SprintfWalName.wp_proof
 axiom fmt.Sscanf.wp_proof
+axiom fmt.SscanfWalName.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom goose_adequacy_start_files
 axiom grpc.ChainStreamInterceptor.wp_proof
@@ -575,6 +578,7 @@ axiom insecure.NewCredentials.wp_proof
 axiom io.MultiReader.wp_proof
 axiom io.Pipe.wp_proof
 axiom io.PipeWriter.CloseWithError.wp_proof
+axiom io.ReadFull.wp_proof
 axiom k8sfeature.featureOff_persistent
 axiom klog.Background.wp_proof
 axiom klog.Errorf.wp_proof
