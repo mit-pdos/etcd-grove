@@ -537,12 +537,22 @@ theorem walsBounded_upd {s : AbsDiskState} {dir : GoString} {f : WalDur → WalD
   | none => exact h
   | some d => exact walsBounded_insSame h rfl hd (hm d)
 
+/-- **The last segment synced** (`TailIdle`'s third part; the W7-W12 log, sixth session): every byte of
+the last segment durable, and zeros known (`OsMeta.zf`) only from its end on. Then an fdatasync of an
+idle tail (`Close` of a handle that never registered it: `WAL.Close.specOpening`) changes nothing the
+invariant says but the segment's `OsMeta` (`OsMeta.synced`, `walInvBody_syncIdle`). Established by a
+crash (the segments are their files' images, `initMeta`: zeros known from the last page's end), by
+`Create`'s commit (its segment fsynced before the rename) and by `Close`'s unregistration (after its
+`sync`: `TailMetaS`, `CloseHandle.lean`). -/
+def TailSynced (lay : WalLay) : Prop :=
+  ∀ g, lay.segs.getLast? = some g → (∀ y ∈ g.bs, y = durB y.1) ∧ ∀ z, g.om.zf = some z → g.bs.length ≤ z
+
 /-- **A WAL's tail idle** (`WalTailIdle`'s, W3/W5 fifteenth session): no resize window open on its last
-segment (`TailExact`) and its last segment's stream all written (`wr` its length). What `ReadAll` needs
+segment (`TailExact`), its last segment's stream all written (`wr` its length) and synced (`TailSynced`). What `ReadAll` needs
 of a WAL no handle has registered: without it, it could succeed with the history's last records missing
 (the reader stops at the zeros past `wr`). -/
 def TailIdle (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (lay : WalLay) : Prop :=
-  TailExact lay ∧ lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length
+  TailExact lay ∧ lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length ∧ TailSynced lay
 
 /-- `TailIdle` depends on the WAL's history and metadata only. -/
 theorem TailIdle.congr {C : WalCodec} {Mr : WalMarshal} {d d' : WalDur} {lay : WalLay}
@@ -550,8 +560,8 @@ theorem TailIdle.congr {C : WalCodec} {Mr : WalMarshal} {d d' : WalDur} {lay : W
     TailIdle C Mr d' lay := by
   have e : segRecs C Mr d' lay.cuts = segRecs C Mr d lay.cuts := by
     simp [segRecs, histM, hH, hmd]
-  refine ⟨h.1, ?_⟩
-  unfold segStream; rw [e]; exact h.2
+  refine ⟨h.1, ?_, h.2.2⟩
+  unfold segStream; rw [e]; exact h.2.1
 
 /-- **Every WAL no handle has registered is idle** (`walTailsRes`'s third part; W3/W5 fifteenth session,
 the coordinator's `WalTailIdle`): established by a crash (`CrashStart`: `wr = so = z0 = |stream|`), by
