@@ -10,15 +10,17 @@ with `auth-lease-scope` merged).
   check at the latest state) and `Scratch/AuthLeaseProbeModel.lean` (the mode-`on` model on the triple
   state). Both check with no `sorry`. Findings: CP0 report (below, "Pitfalls").
 
+- **S1 (empty-user fix), 2026-11-14** (go from etcd-grove-81): `leaseCheckFrom` over `principalBound`,
+  `v3rpc.leaseCheckT` over the new `v3rpc.principalBoundT` (`infoBoundTM` deleted); lemmas
+  `principalBoundOn_of_ctxBound`, `principalBound_ctx` (`LeaseCheck.lean`); ledger and decisions.md entries;
+  full build passes; interfaces unchanged (`gen-interface --check` on every `etc/api` list); waiting for the
+  coordinator's go to run `etc/land.sh`.
+- **S2 Draft** (design text): `notes/auth-lease-s2-draft.md`, reviewed in rounds (`/shared/tmp/auth-lease/`).
+
 ## Next, in order
 
-1. **S1 (empty-user fix)**: waiting at the hard stop for the coordinator's go on the frozen
-   `leaseCheckFrom` change (old/new text, ledger entry and decisions.md entry are in the CP0 report).
-   Then: the three check proofs (`EtcdServer__checkLease{Renew,Leases,TimeToLive}.lean`, at
-   `infoBoundM_of_ctxBound`), `leaseCheckFrom_mono` (`EtcdServer__LeaseLeases.lean`),
-   `leaseCheckFrom_ctx` (`EtcdServer__LeaseRenew.lean`), `v3rpc.leaseCheckT_of_from`
-   (`InvLeaseKeepAlive.lean`); regenerate the interfaces.
-2. S2 (apply layer at the latest state with a lessor): Draft from the probe's statements.
+1. Land S1 when the coordinator says lean is free (merge lean first; `etc/land.sh`).
+2. S2: finish the review rounds, then the Freeze package (hard stop), then the Lean Draft and Prove.
 3. S3, S4 as the Scope.
 
 ## Pitfalls

@@ -100,7 +100,7 @@ theorem EtcdServer.checkLeaseLeases.wp_proof
     · ipureintro; intro h; rw [apply.AEnv.authOn_eq, HaOn] at h; cases h
     iintro %h; cases h
   ihave #Hp := authInfoIs_pointsto a user rev' $$ Hai0
-  ihave #Hib := infoBoundM_of_ctxBound E.authOn s E _ a user rev' $$ [Hb Hai0]
+  ihave #Hib := principalBoundOn_of_ctxBound E.authOn s E _ a user rev' $$ [Hb Hai0]
   · iframe Hai0; iintro %h; iapply Hb $$ %h
   iunfold authInfoIs at Hai0
   icases Hai0 with ⟨%Hann, -, -⟩

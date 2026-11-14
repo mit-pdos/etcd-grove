@@ -63,9 +63,12 @@ private theorem leaseCheckFrom_ctx (s : Loc) (E : apply.AEnv GF) (c c' : GoInter
     (h : metadata.incomingOf c = metadata.incomingOf c') :
     leaseCheckFrom s E c n K ⊢ leaseCheckFrom s E c' n K := by
   unfold leaseCheckFrom
-  iintro (H | ⟨%info, Hb, Hk⟩)
+  iintro (H | ⟨%info, #Hb, Hk⟩)
   · ileft; iexact H
-  · iright; iexists info; iframe Hk; iapply (infoBoundM_ctx _ s E c c' info h); iexact Hb
+  · iright; iexists info; iframe Hk
+    iintro !> %ho
+    iapply (principalBound_ctx s E.authMode c c' info h)
+    iapply Hb $$ %ho
 
 /-- The lessor's error variables `LeaseRenew` returns or compares with (`leaseInit`). -/
 private theorem renewErrs [_root_.Perennial.errors.Assumptions] :
