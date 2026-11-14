@@ -1567,3 +1567,27 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   the WAL's own specs name it; its body is exposed, not `@[no_expose]`-sealed). No client-visible ghost state: `fl` is
   inside the invariant.
 - **Decision.** Adopted (internal), in progress: the design's open points are in the U3 log, third session.
+
+## 2026-11-14: the part's WAL handle specs (`wal.Create.spec`, `WAL.ReadAll.spec`, `walOpenWF`) -- the client keeps no call permission while a WAL is open (W4c U5)
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/Create.lean` (success arm: `walOpenWF` alone, no
+  `osCallPerm` back), `Open.lean` (`walOpeningF` holds the client's `½`), `WAL__ReadAll.lean` (moves it into the
+  handle's `walDirH`), `WAL__Close.lean` (gives back `osCallPerm 1`); `Handle.lean:457` (`walDirH` holds `osCallPerm ½`)
+  and the pipeline (`walPipeH`) the other half.
+- **Defect.** While a WAL is open the handle and its pipeline hold the whole call permission, so the client can make
+  no `os` call until `Close`. The tester (`examples/etcd/wal/wal.go`) calls `storeOracle` (`durable.Write`: `os`
+  calls, `osCallPerm qc` with `qc > 0`) between WAL calls with its WAL open (`save`, `saveSnap`, `sync`, `opOwnSnap`,
+  `restartRead`'s `Open` loop, `Boot` after `Create`), and so would etcd (its snapshotter and backend write files
+  while the WAL is open). The W4c U0 audit assumed the client kept `osCallPerm ½` while a WAL is open (plan §2, the
+  table's `Open` row); the two ledger entries of 2026-11-14 that moved the halves into the handle and the pipeline
+  (`Create`'s, `Open`'s "the call permission counted twice") left the client none.
+- **Evidence.** `member.sync`'s proof (W4c U5, second session): after `Create`/`ReadAll` nothing supplies
+  `storeOracle.spec`'s `osCallPerm qc`.
+- **Proposed change.** The handle and its pipeline hold a quarter each and `Create`'s success arm (and `ReadAll`'s)
+  gives the client `osCallPerm ½` back (`Open` keeps taking `1`: it hands `¼` to the pipeline, `¼` in
+  `walOpeningF`, `½` back); `Close` gives back the handle's and the pipeline's `½`, the client recombining to `1`.
+  A resource placement (fractions only, no new ghost state); the WAL's own proofs change only where they split or
+  join the permission (`openAtIndex`, `Create`'s commit, `ReadAll`, `Close`). Interim (made): the tester's member
+  state (`TP/Member.lean`) holds the client's `osCallPerm qc` as a parameter, so the member operations' proofs stand
+  once the WAL's arms give it back; only `Boot`/`restart` (which take it from `Create`/`ReadAll`) wait.
+- **Decision.** Open: for the WAL's coordinator (it changes the WAL's internal proofs, not the tester's).
