@@ -76,6 +76,71 @@ absent and the WAL's directory at the broken name:
   invariant's: `WalsOk`): its `∀ nm sfx, N.Mem (nm.sfx)` and `SubCover` get an exception for a list of
   moved-aside names whose claims the invariant holds (a ghost list, like `Wn`).
 
-## Session log
+## Session log (branch `wal-c-create`, 2026-11-14)
 
-(below)
+*Setup*: base `origin/wal-create25` (`4004d7adef`); the `wal-above` build copied; every importer of the
+changed modules rebuilt (281 modules: `Create`, the WAL `Link`, the tester's leaves) with no error.
+
+**Done: design P's first stage** (commit `f1e467bdf3`; no axiom, no `sorry` added or removed; the TCB baseline
+unchanged):
+- `Handle.lean`: `walDirH`'s naming fact `nmd : Roots → Qp → IProp` (default `fun _ _ => walNamed dir`), its
+  names fragment `nf` (default `none`); `walPipeH`'s pin `pp : Roots → DFrac → Prop` (default `True`, the pure
+  conjunct `⌜n ≤ k ∧ pp R dq⌝`); `walHandleIn` passes `nmd nf pp`, `walHandleC` (`CloseHandle.lean`) `nmd nf`.
+  **`walOpenWFU P Mr w dir Rp qp`**: `nmd := ⌜R = Rp ∧ q = qp⌝`, `nf := some dir`, `pp := R = Rp ∧ dq = own qp`.
+  Edits outside the unit's files for the defaults: `CutPipe` (two lines), `openAtIndex` (one), `WAL__Close`
+  (`wp_syncC`'s new argument), `WAL__sync` (`specC`'s error arm).
+- `HandleUnnamed.lean`: `walOpenWFU_intro` (pinned), `walDirH_split`, `walPipeH_mono`, `walHandleIn_split`
+  (the names fragment out and another back, the naming fact along a wand, the pin weakened),
+  **`walOpenWFU_seal`** (the fragment `some dir` out; with `none` and `walNamed dir`, `walOpenWF`);
+  `walOpenWF_unnamed`, `walHandleIn_nmd`, `walDirH_nmd`, `walOpenWFU_named` removed (no user left);
+  `walOpenWF_unlocked_excl` proved directly.
+- `Ghost.lean`: `walUnlockedTokX` (the free token less its names fragment), `walUnlockedTokX_join`,
+  `walLockedTok_unlockX`; `Parked.lean`: `walParked_unlockX`; `OpenUnpin.lean`: **`walInvBody_unpinX`** (the
+  put-back keeping the holder's names fragment), `walInvBody_unpin` now its corollary (statement unchanged);
+  `CloseLawU.lean`: `walCloseLawU` takes no names fragment and returns `walUnlockedTokX`.
+- Specs (internal; ledger 2026-11-14, "`Create`'s name registered only at success"): **`WAL.Close.specU`**
+  (success: `w.dir ↦ dir ∗ walUnlockedTokX ∗ walNamesFrag (some dir) ∗ osCallPerm ½ ∗ ∃ j, osPathS Rp dir (own
+  qp) j ∗ osPathS Rp dir (own qp) j`; error: `walLockedTok ∗ walNamesFrag (some dir)`), proved;
+  **`WAL.sync.specC`**'s error arm returns `walNamesFrag nf`, proved; **`renameWALPost`**'s arm 2 `∃ x qd, ⌜dq =
+  own qd⌝ ∗ UH x ∗ walOpenWFU P Mr w' dir R qd ∗ …`.
+- `Create`: `createUH … qh x` keeps `Create`'s whole remainder `c` with `qh + (qh + c) = ½` and the split record
+  `Wn`; `create_ghost` no longer registers; `create_handleIn` builds the pinned pending handle; the success exit
+  (`create_named_cont`), after the parent's close and the deferred `RemoveAll`, names (`walInv_named`, moved
+  after the close as the twenty-seventh session found it must be), registers (`walInv_register` with the whole
+  `c`) and seals. `wal.Create.wp_proof` builds; its three cleanup `sorry` sites are unchanged, but each now holds
+  everything P promised: the pinned pending handle and `createUH` with `qh + (qh + c) = ½`.
+
+**`WAL.renameWALUnlock.spec`** (in the path: it is `renameWAL`'s hypothesis for arm 2). Still false/unprovable
+as stated; its arm 2 is now the pinned pending handle, what design P needs. What a proof needs, unchanged by P
+(ledger entries "unprovable as stated" and "(2) Create-specific"): (a) an `Open`/`ReadAll` variant over the
+pending WAL with no client atomic update (`Open.spec` asks for one on `walDirIs dir`, which `Create` no longer
+has after its commit), building the handle from `Create`'s claim fraction and returning it pinned; (b) a
+`RenameWALOk` law from `U (some x) ∗ SpR x` to `UH x` and the reopen's resources; (c) a public `os.Rename`
+spec for an absent source (the second rename after a first that took effect). None is a client-facing change.
+
+**Left (the next steps, in order):**
+1. **The tail lock file after the cleanup.** `Create`'s deferred `f.Close()` runs after `cleanupWAL` (`retErr`
+   set): `Create` needs `os.ownFile f (-1)` (after `Close.specU`'s success: `os.File.Close.specClosed`) or the
+   open file (after its failure). `walOpenWFU` hides the tail lock: pin it too (a fourth pinned value: the
+   handle's last lock `lt` and its `*os.File`), and `Close.specU` returns the file (closed, or open with its
+   `osFd` when the sync failed: `sync.specC`'s error arm then returns the tail's `os.ownFile`/`osFd`, which
+   `wp_core`'s flush error arms must keep; twenty-fifth session's obligations (1)-(3)). The pin needs a new
+   defaulted parameter of `walHandleIn` (its existentials `lt f`); every pure conjunct is destructured by
+   position in several modules, so the cheapest place is another function-valued parameter like `nmd`.
+2. **`cleanupWAL`'s spec and proof** (`LinuxFs/Spec/.../wal/WAL__cleanupWAL.lean`), `Create`-specific, over a
+   caller law for the rename: pre the pinned pending handle, its purge right, `osCallPerm ½`, the area's path,
+   a frame `Pre`, and a law `∀ s, (s's characters timestamp ones) → Pre ∗ walUnlockedTokX ∗ walNamesFrag (some
+   dir) ∗ the two paths ∗ notCrashed ={⊤}=∗ notCrashed ∗ ∃ N h J q r lb Qr, ⌜nm, brokenName nm s ∈ N, nm holds
+   J, q + r = 1⌝ ∗ osNames jr N (own q) h ∗ osLogLb lb ∗ osAUnc (osNames jr N (own r) h) (renDirOutA jr J N nm
+   (brokenName nm s) h (own r) lb) Qr ∗ (∀ err, the rename's post -∗ osCallPerm 1 -∗ … ={⊤}=∗ Fin err)`; post
+   the area's path and `(⌜err ≠ nil⌝ ∗ walLockedTok ∗ walNamesFrag (some dir) ∗ osCallPerm ½ ∗ Pre) ∨ Fin err`.
+   Callees: `Close.specU`, `time.Now`, `time.Time.Format.specBroken`, `fmt.SprintfBroken.spec`,
+   `os.Rename.specDirAnySnc`, zap. Plus `fmt.ErrorfAny.spec` in `Create` for the deferred closure's
+   `fmt.Errorf("%w (after: %v)", …)`.
+3. **`Create`'s three sites** over it: the `Close`-failed arm registers `nm` (`walInv_register`, any fraction)
+   and merges back (`create_areaBack`, `T := walLockedTok`), as arm 4 does; the law: `c + qp + qp = ½` from the
+   two paths (`os.osPathS_unchild` twice, `osNames_agree` for `J`), the broken name split off the area claim
+   (`walInv_drop`, as `nm.tmp`), the claim on `[nm, brokenName nm s]` merged, the invariant's half's `osAUnc`;
+   the rename failed: register and merge back; the rename took effect: **the moved-aside step** above
+   (`WalsAt`'s exception holding `Create`'s names fragment, the moved-aside list in `walAreaRes`), the one
+   remaining invariant design.
