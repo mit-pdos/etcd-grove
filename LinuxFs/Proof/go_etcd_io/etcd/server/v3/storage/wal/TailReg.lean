@@ -85,7 +85,8 @@ theorem walTailsRes_register (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState)
   iexists γ
   iframe Hf Hk Hv2
   iexists <[dir := γ]> ∅
-  ihave HL := walLentRes_reg (W := W) ∅ Ls dir γ (GMap.lookup_empty _) $$ HL
+  ihave HL := walLentRes_reg (W := W) ∅ Ls dir γ (GMap.lookup_empty _)
+    (fun la hla => by rw [hp.2.1] at hla; cases hla; exact hp.2.2.2.1) $$ HL
   iframe Ha HL
   isplitr
   · ipureintro
@@ -97,12 +98,60 @@ theorem walTailsRes_register (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState)
     exact Hi k d' lay' (GMap.lookup_empty _) hd' hl'
   iapply (BigSepM.bigSepM_insert (Φ := fun (dir' : GoString) (γ' : GName) => iprop(∃ (d : WalDur)
       (lay : WalLay) (g : SegG), ⌜s.wal !! dir' = some d ∧ Ls !! dir' = some lay ∧
-        lay.segs.getLast? = some g ∧ TailZeros lay ∧ TailBound C Mr d lay⌝ ∗
+        lay.segs.getLast? = some g ∧ TailZ0 lay ∧ TailBound C Mr d lay⌝ ∗
       ghostVar γ' (1 : Qp).half (tailG d lay g.ino (F !! g.ino)))) (GMap.lookup_empty _)).2
   iframe Hm
   iexists d, lay, g
   iframe Hv1
-  ipureintro; exact hp
+  ipureintro; exact ⟨hp.1, hp.2.1, hp.2.2.1, Or.inl hp.2.2.2.1, hp.2.2.2.2⟩
+
+/-- **A holder with no tail registers its WAL's tail, not yet zeroed** (I3b, `wal-tc15`; `ReadAll`
+after a crash): as `walTailsRes_register`, under `TailZ0` (F-Z, or nothing written past the start's
+frames) in place of F-Z; the holder gets the pending token `walPendTok dir γ |old|` in place of the
+key, which goes into the invariant (`walLentRes_regPend`), until the fdatasync after `ZeroToEnd`
+(`walLentRes_unpend`). -/
+theorem walTailsRes_registerPend (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (Ls : GMap GoString WalLay)
+    (F : GMap Ino SegFl) (dir : GoString) (d : WalDur) (lay : WalLay) (g : SegG)
+    (hp : s.wal !! dir = some d ∧ Ls !! dir = some lay ∧ lay.segs.getLast? = some g ∧
+      TailBound C Mr d lay) :
+    ⊢ walTailsRes (W := W) C Mr s Ls F -∗ walTailsFrag (W := W) ∅ ==∗ ∃ γ : GName,
+      ⌜TailZ0 lay⌝ ∗ walTailsRes (W := W) C Mr s Ls F ∗ walTailsFrag (W := W) (<[dir := γ]> ∅) ∗
+        walPendTok (W := W) dir γ lay.old.length ∗
+        (letI := walAllG (W := W); ghostVar γ (1 : Qp).half (tailG d lay g.ino (F !! g.ino))) := by
+  unfold walTailsRes
+  letI := walAllG (W := W)
+  iintro ⟨%T, Ha, %Ho, %Hi, Hm, HL⟩ Hf
+  icases walTails_agree (W := W) T ∅ $$ Ha Hf with %hT
+  subst hT
+  imod (ghostVar_alloc (GF := GF) (tailG d lay g.ino (F !! g.ino))) with ⟨%γ, Hv⟩
+  icases (ghostVar_split_half (GF := GF) γ 1 (tailG d lay g.ino (F !! g.ino))).1 $$ Hv with ⟨Hv1, Hv2⟩
+  imod walTails_register (W := W) ∅ dir γ (GMap.lookup_empty _) $$ Ha Hf with ⟨Ha, Hf, Hk⟩
+  icases walLentRes_idle (W := W) ∅ Ls $$ HL with ⟨%hI, HL⟩
+  have hz0 : TailZ0 lay := hI dir lay (GMap.lookup_empty _) hp.2.1
+  imod walLentRes_regPend (W := W) ∅ Ls dir γ lay (GMap.lookup_empty _) hp.2.1 $$ Hk HL with ⟨Hl, HL⟩
+  imodintro
+  iexists γ
+  iframe Hf Hl Hv2
+  isplitr
+  · ipureintro; exact hz0
+  iexists <[dir := γ]> ∅
+  iframe Ha HL
+  isplitr
+  · ipureintro
+    intro i hi
+    exact absurd (Ho.none_of_empty i) hi
+  isplitr
+  · ipureintro
+    intro k d' lay' hk hd' hl'
+    exact Hi k d' lay' (GMap.lookup_empty _) hd' hl'
+  iapply (BigSepM.bigSepM_insert (Φ := fun (dir' : GoString) (γ' : GName) => iprop(∃ (d : WalDur)
+      (lay : WalLay) (g : SegG), ⌜s.wal !! dir' = some d ∧ Ls !! dir' = some lay ∧
+        lay.segs.getLast? = some g ∧ TailZ0 lay ∧ TailBound C Mr d lay⌝ ∗
+      ghostVar γ' (1 : Qp).half (tailG d lay g.ino (F !! g.ino)))) (GMap.lookup_empty _)).2
+  iframe Hm
+  iexists d, lay, g
+  iframe Hv1
+  ipureintro; exact ⟨hp.1, hp.2.1, hp.2.2.1, hz0, hp.2.2.2⟩
 
 end iris
 

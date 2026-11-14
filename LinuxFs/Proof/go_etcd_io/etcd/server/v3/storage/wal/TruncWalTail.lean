@@ -108,7 +108,7 @@ theorem os.File.Truncate.wp_specWalTail (Mr : WalMarshal)
   ihave #Hsup : os.truncSup iprop(walTailKey (W := W) dir γ ∗
       tailVar (W := W) γ ((H, md, cuts, o0 + out.length, i, none) : TailG)) i
       (W64 ((o0 : Int) + (out.length : Int))).toNat (fun m => LoWr m (o0 + out.length)) $$ []
-  · rw [hT, ← walTailKeyL_none]; iapply walTail_truncSup Mr R jr r dir γ none H md cuts (o0 + out.length) i $$ Hinv
+  · rw [hT, ← walTailKeyL_none]; iapply walTail_truncSup Mr R jr r dir γ none H md cuts (o0 + out.length) i (fun _ h => nomatch h) $$ Hinv
   ihave HK : iprop(walTailKey (W := W) dir γ ∗
       tailVar (W := W) γ ((H, md, cuts, o0 + out.length, i, none) : TailG)) $$ [Hk Hv]
   · unfold tailVar; iframe
