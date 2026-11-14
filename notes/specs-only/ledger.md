@@ -591,6 +591,37 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   notCrashed ∗ U (some x) ∗ osPathS R dir dq J ∗ osPathS R dir dq J ∗ SpR x`; `renameWAL` applies it at a
   program step after the rename (`wp_notCrashed_acc`). `dq` is fixed by `Create`.
 - **Decision.** Adopted (the coordinator's decision, 2026-11-14, `wal-path15` task 3; internal spec, no client).
+## 2026-11-14: `wal.WAL.renameWAL.spec` (internal, the part's) -- no bound on the directory's length
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__renameWAL.lean`, `RenameWALOk`.
+- **Defect.** `newFilePipeline.spec` needs `dir.length < 2 ^ 61` (its `Join`s of `dir` and `0.tmp`/`1.tmp`);
+  nothing in `RenameWALOk` bounds `dir` (`osPathS` gives no length).
+- **Evidence.** `renameWAL.wp_proof`'s `newFilePipeline` step (`wal-create14`).
+- **Change (made).** `RenameWALOk`'s second conjunct `dir.length < 2 ^ 59` (`Create.spec`'s premise, which
+  `Create` passes on).
+- **Decision.** Adopted (minor, internal; `wal-create14`).
+## 2026-11-14: `wal.WAL.renameWALUnlock.spec` (internal, the part's) -- unprovable as stated
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__renameWALUnlock.lean`.
+- **Defects.** (1) Its `w.Close()` flushes the encoder, fdatasyncs the tail and closes the lock fds, but the pre
+  (`walPreIn`) has neither `ownEncoder` nor the tail file's ownership (`os.ownFile`/`osFd`, its writer stream):
+  `Create` gives the segment to the rename's update (`walCreateP`), so a generic `U` hides it. (2) Its `Open`/
+  `ReadAll` need `walAreaRes jr`, `walUnlockedTok`, `osCallPerm 1` and an `AU` on `walDirIs dir`; after a
+  committed rename the lock token is in `U (some x)` (`walCreateQ`) and the client's `walDiskAt` in its `Q`, so no
+  generic law gives `Open`'s `AU`. (3) After a rename that committed with an error (`o = some x`), the second
+  `os.Rename(nm.tmp, nm)` has an absent source: no `os.Rename` spec covers it (`wp_osRenameAbsentS` is internal
+  to `Proof/os/Rename.lean`).
+- **Evidence.** `renameWAL.wp_proof` (`wal-create14`) uses the spec as a hypothesis; `WAL.sync.specPreL`'s pre;
+  `Open.spec`'s pre; `os.Rename.specDirSnc`'s premises.
+- **Change.** Decided by the coordinator (2026-11-14) for (1): the pre carries what `Close` consumes (the
+  encoder, the tail file, the lock fds) as `Create` holds them before the rename; the first `Close` proved inline
+  over `os.File.Close`, `os.File.Close.specNil` and the encoder's flush spec, not through `WAL.Close.spec`.
+  **Not yet made** (`wal-create14` stopped at its context budget; `Create`'s body has not reached the encoder, so
+  the exact form is open). (2) and (3) need a design: proposed, a caller-supplied law (like `Sp`/`SpR`) from the
+  committed result to `Open`'s pre, which `Create` discharges by releasing the fresh WAL's lock and merging the
+  names back, or a `Create`-specific (non-generic) `renameWALUnlock` spec; and a public `os.Rename` spec for an
+  absent source (`ENOENT`, no effect).
+- **Decision.** (1) adopted (coordinator); (2), (3) pending the coordinator.
 
 ## 2026-11-14: `wal.Repair.spec` (the part's, over `fsExt`) -- the lock token taken (plan §6 Q7)
 

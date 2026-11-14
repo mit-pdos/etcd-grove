@@ -248,7 +248,7 @@ theorem os.Rename.wp_proofDirSnc : os.Rename.specDirSnc (GF := GF) (hG := hG) :=
         iapply HΦ
         iframe
         isplitr
-        · ipureintro; intro hc; cases hc
+        · ipureintro; exact ⟨fun hc => (by cases hc), Or.inr ⟨le, rfl⟩⟩
         unfold renDirOut logOut claimOut; iframe
     · icases (osNames_join j N q r _ hq).2 $$ Hw with ⟨Hn, Hr⟩
       unfold osLogged
@@ -275,14 +275,14 @@ theorem os.Rename.wp_proofDirSnc : os.Rename.specDirSnc (GF := GF) (hG := hG) :=
         wp_auto
         iapply HΦ
         iframe
-        ipureintro; intro _; rfl
+        ipureintro; exact ⟨fun _ => rfl, Or.inl rfl⟩
       rw [decide_eq_false (show e ≠ W64 0 from he0)]
       wp_auto
       wp_apply wp_linkError
       iintro %le
       iapply HΦ
       iframe
-      ipureintro; intro _; rfl
+      ipureintro; exact ⟨fun _ => rfl, Or.inr ⟨le, rfl⟩⟩
   · obtain ⟨x, sx⟩ := xs
     isimp only [renDirOut, logOut, claimOut] at Hout
     icases Hout with ⟨⟨%hlo, Hlo⟩, Hn⟩
@@ -319,7 +319,7 @@ theorem os.Rename.wp_proofDirSnc : os.Rename.specDirSnc (GF := GF) (hG := hG) :=
     iintro %le
     iapply HΦ
     iframe
-    ipureintro; intro _; rfl
+    ipureintro; exact ⟨fun _ => rfl, Or.inr ⟨le, rfl⟩⟩
 
 /-- `specDirS` from `specDirSnc`: an `osAU` is an `osAUnc`. -/
 theorem os.Rename.wp_proofDirS : os.Rename.specDirS (GF := GF) (hG := hG) := by

@@ -60,14 +60,15 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 
-/-- **What `renameWAL` needs of its parameters** (see the file header): `dir = r/nm`; `nm.tmp`
+/-- **What `renameWAL` needs of its parameters** (see the file header): `dir = r/nm` (of length below
+`2^59`: `newFilePipeline`'s paths); `nm.tmp`
 (`tmp`) holding `J` and `nm` absent in the creating claim `(jr, N, h)`, both names of it; the spine
 law (`Sp` and the program's half of the claim after the rename give two spines to `dir` and `SpR`); an
 aborted update's result rebuilds the update. -/
 def RenameWALOk (R : Roots) (jr J : Ino) (r dir nm tmp : GoString) (N : NameSet) (h : NamesH)
     (lb : Nat) (dq : DFrac) (U : Option (Nat × Nat) → IProp GF) (Sp : IProp GF)
     (SpR : Nat × Nat → IProp GF) : Prop :=
-  InArea r dir nm ∧ NameOk nm ∧ NameOk tmp ∧ tmp ≠ nm ∧ N.Mem nm ∧ N.Mem tmp ∧
+  InArea r dir nm ∧ dir.length < 2 ^ 59 ∧ NameOk nm ∧ NameOk tmp ∧ tmp ≠ nm ∧ N.Mem nm ∧ N.Mem tmp ∧
   h.cur !! tmp = some (.dir J) ∧ h.cur !! nm = none ∧
   (⊢ ∀ x : Nat × Nat, Sp -∗ notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗ U (some x) -∗
       renDirOut jr J N tmp nm h (DFrac.own (1 : Qp).half) lb (some x) ={⊤}=∗
