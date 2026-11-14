@@ -196,7 +196,7 @@ theorem walInvBody_untail (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString
     · rw [hg] at hg'; cases hg'
       refine ⟨?_, ?_⟩
       · rw [← hsz]; exact hTM.1.2.2.2.1
-      · rw [← hsz]; exact hTM.1.2.2.2.2
+      · rw [← hsz]; exact hTM.1.2.2.2.2.1
     · rw [hwr, tailStream_eq]
     · rw [hg] at hg'; cases hg'
       exact ⟨hTM.2, fun z hz => by rw [← hsz]; exact hTM.1.2.2.1.ge z hz⟩

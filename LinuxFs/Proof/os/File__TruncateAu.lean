@@ -31,7 +31,7 @@ variable [os.Assumptions]
 /-- The caller's half of a landed attempt from a state that had not landed is the landing from `m`. -/
 theorem os.ftDoneH_of (p : Ino) (m m0 : OsMeta) (tg : Nat) (zs : List Cands)
     (hm0 : m0 = m ∨
-      ∃ tc rz, TcKnows m tg m.size tc ∧
+      ∃ tc rz, (TcKnows m tg m.size tc ∧ TcFrom m (max m.size tg) tc rz) ∧
         m0 = (m.announce (min m.size tg) (rsHi true m.size tg) tg).withTc tc rz) :
     os.ftDoneH (GF := GF) p m0 tg zs ⊢ os.ftDoneH p m tg zs := by
   have hsz : m0.size = m.size := by rcases hm0 with rfl | ⟨_, _, -, rfl⟩ <;> simp
@@ -40,11 +40,12 @@ theorem os.ftDoneH_of (p : Ino) (m m0 : OsMeta) (tg : Nat) (zs : List Cands)
     rcases hm0 with rfl | ⟨tc0, rz0, -, rfl⟩
     · rfl
     · rw [rsPost_withTc, os.rsPost_announce]
-  have hk : ∀ tc, TcKnows m0 tg tg tc → TcKnows m tg tg tc := by
-    intro tc h
+  have hk : ∀ tc rz, TcKnows m0 tg tg tc ∧ TcFrom m0 (max m.size tg) tc rz →
+      TcKnows m tg tg tc ∧ TcFrom m (max m.size tg) tc rz := by
+    intro tc rz h
     rcases hm0 with rfl | ⟨tc0, rz0, h0, rfl⟩
     · exact h
-    · exact TcKnows.of_announce h0 h
+    · exact ⟨TcKnows.of_announce h0.1 h.1, TcFrom.trans h.2 h0.2 (Nat.le_refl _)⟩
   unfold os.ftDoneH
   rw [hsz]
   iintro ⟨%h, ⟨%tc, %rz, %htc, Hm⟩, Hb⟩
@@ -52,13 +53,14 @@ theorem os.ftDoneH_of (p : Ino) (m m0 : OsMeta) (tg : Nat) (zs : List Cands)
   isplitr
   · ipureintro; exact h
   isplitl [Hm]
-  · iexists tc, rz; iframe; ipureintro; exact hk tc htc
+  · iexists tc, rz; iframe; ipureintro; exact hk tc rz htc
   iexact Hb
 
 /-- A further attempt after one that landed (from `rsPost true m tg tg` up to the candidates known
 past the size, nothing to cut off) leaves the landing from `m`, whatever its outcome. -/
 theorem os.truncOutH_again (p : Ino) (m : OsMeta) (tc0 : GMap Nat Cands) (rz0 : List Nat) (tg n : Nat) (e : w64)
-    (zs : List Cands) (hzs : zs.length = tg - m.size) (h0 : TcKnows m tg tg tc0) :
+    (zs : List Cands) (hzs : zs.length = tg - m.size) (h0 : TcKnows m tg tg tc0)
+    (h0' : TcFrom m (max m.size tg) tc0 rz0) :
     os.truncOutH (GF := GF) p tg ((rsPost true m tg tg).withTc tc0 rz0) [] n e ∗
       osBytes p m.size (DFrac.own (1 : Qp).half) (zs.map (fun c => ((0 : w8), c))) ⊢
       os.ftDoneH p m tg zs := by
@@ -76,7 +78,9 @@ theorem os.truncOutH_again (p : Ino) (m : OsMeta) (tc0 : GMap Nat Cands) (rz0 : 
     · iexists tc
       iexists rz
       isplitr
-      · ipureintro; exact TcKnows.of_rsPost h0 htc
+      · ipureintro
+        exact ⟨TcKnows.of_rsPost h0 htc.1,
+          TcFrom.trans htc.2 h0' (show max tg tg ≤ max m.size tg by omega)⟩
       iexact Hm
     iexact Hb
   unfold os.truncOutH
@@ -91,7 +95,9 @@ theorem os.truncOutH_again (p : Ino) (m : OsMeta) (tc0 : GMap Nat Cands) (rz0 : 
     isplitr
     · ipureintro; exact hzs
     isplitl [Hm]
-    · iexists tc, rz; iframe; ipureintro; exact TcKnows.of_rsPost h0 htc
+    · iexists tc, rz; iframe; ipureintro
+      exact ⟨TcKnows.of_rsPost h0 htc.1,
+        TcFrom.trans htc.2 h0' (show max tg tg ≤ max m.size tg by omega)⟩
     iframe
 
 /-- An announced state's least crash size is at most the target. -/
@@ -108,7 +114,8 @@ theorem os.rsPost_lo_le (tr : Bool) (m : OsMeta) (tg sz' : Nat) (tc : GMap Nat C
 an attempt announced it; the bytes to cut off have `xs`'s values), or one did. -/
 def ftStateH (p : Ino) (m : OsMeta) (tg : Nat) (xs : List ByteG) : IProp GF :=
   iprop((∃ (m0 : OsMeta) (xs0 : List ByteG),
-      ⌜(m0 = m ∨ ∃ (tc : GMap Nat Cands) (rz : List Nat), TcKnows m tg m.size tc ∧
+      ⌜(m0 = m ∨ ∃ (tc : GMap Nat Cands) (rz : List Nat),
+          (TcKnows m tg m.size tc ∧ TcFrom m (max m.size tg) tc rz) ∧
           m0 = (m.announce (min m.size tg) (rsHi true m.size tg) tg).withTc tc rz) ∧
         xs0.map Prod.fst = xs.map Prod.fst ∧ xs0.length = m.size - tg⌝ ∗
       osMeta p (DFrac.own (1 : Qp).half) m0 ∗ osBytes p (min m.size tg) (DFrac.own (1 : Qp).half) xs0) ∨
@@ -141,11 +148,12 @@ theorem os.File.Truncate.wp_proofAu : os.File.Truncate.specAu (GF := GF) (hG := 
   · obtain ⟨hm0, hv, hl⟩ := hm0
     have hsz0 : m0.size = m.size := by rcases hm0 with rfl | ⟨_, _, -, rfl⟩ <;> simp
     have hmaps0 : m0.maps = m.maps := by rcases hm0 with rfl | ⟨_, _, -, rfl⟩ <;> simp
-    have hk0 : ∀ tc, TcKnows m0 sz.toNat m.size tc → TcKnows m sz.toNat m.size tc := by
-      intro tc h
+    have hk0 : ∀ tc rz, TcKnows m0 sz.toNat m.size tc ∧ TcFrom m0 (max m.size sz.toNat) tc rz →
+        TcKnows m sz.toNat m.size tc ∧ TcFrom m (max m.size sz.toNat) tc rz := by
+      intro tc rz h
       rcases hm0 with rfl | ⟨tc0, rz0, h0, rfl⟩
       · exact h
-      · exact TcKnows.of_announce h0 h
+      · exact ⟨TcKnows.of_announce h0.1 h.1, TcFrom.trans h.2 h0.2 (Nat.le_refl _)⟩
     rw [← hsz0] at hl
     ihave Hb : osBytes d.ino (min m0.size sz.toNat) (DFrac.own (1 : Qp).half) xs0 $$ [Hb]
     · rw [hsz0]; iexact Hb
@@ -170,7 +178,7 @@ theorem os.File.Truncate.wp_proofAu : os.File.Truncate.specAu (GF := GF) (hG := 
         (⌜e ≠ 0⌝ ∗ ((∃ zs, os.ftDoneH d.ino m sz.toNat zs) ∨
           (∃ (xs1 : List ByteG) (tc : GMap Nat Cands) (rz : List Nat),
             ⌜(xs1.map Prod.fst = xs.map Prod.fst ∧ xs1.length = m.size - sz.toNat) ∧
-              TcKnows m sz.toNat m.size tc⌝ ∗
+              (TcKnows m sz.toNat m.size tc ∧ TcFrom m (max m.size sz.toNat) tc rz)⌝ ∗
             osMeta d.ino (DFrac.own (1 : Qp).half)
               ((m.announce (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat).withTc tc rz) ∗
             osBytes d.ino (min m.size sz.toNat) (DFrac.own (1 : Qp).half) xs1))) $$ [Hr]
@@ -183,10 +191,11 @@ theorem os.File.Truncate.wp_proofAu : os.File.Truncate.specAu (GF := GF) (hG := 
       · iright; isplitr; · ipureintro; exact he
         iright; iexists rsAnn n xs0, tc, rz
         rw [hsz0] at htc
+        have htc' := hk0 tc rz htc
         rw [hann tc rz, hsz0]
         iframe
         ipureintro
-        refine ⟨⟨?_, by rw [rsAnn_length]; exact hl⟩, hk0 tc htc⟩
+        refine ⟨⟨?_, by rw [rsAnn_length]; exact hl⟩, htc'⟩
         rw [← hv]; simp [rsAnn, List.map_map, Function.comp_def]
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]
@@ -251,7 +260,7 @@ theorem os.File.Truncate.wp_proofAu : os.File.Truncate.specAu (GF := GF) (hG := 
       as %t %n %- Hosfd Hau
     wp_apply wp_osFtruncateFinish_au t d.ino sz.toNat _ [] n _ $$ Hinv Hau as %e ⟨Hr, HK⟩
     ihave Hd : os.ftDoneH d.ino m sz.toNat zs $$ [Hr Hbs]
-    · iapply os.truncOutH_again _ m tc0 rz0 sz.toNat n e zs hzs htc0 $$ [Hr Hbs]; iframe
+    · iapply os.truncOutH_again _ m tc0 rz0 sz.toNat n e zs hzs htc0.1 htc0.2 $$ [Hr Hbs]; iframe
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]
       wp_auto

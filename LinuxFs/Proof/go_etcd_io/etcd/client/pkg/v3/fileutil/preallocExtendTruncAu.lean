@@ -90,7 +90,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtendTrunc.wp_proofAu
         Nat.le_of_eq (announce_cz' m (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat).symm,
         growMeta_announce m (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat,
         PcKeep.of_tc (tr := true) (announce_size' m (min m.size sz.toNat) (rsHi true m.size sz.toNat) sz.toNat)
-          rfl htc, fun h => absurd h.1 he⟩
+          rfl htc.1, fun h => absurd h.1 he⟩
     rw [Nat.sub_self]
     iapply osZerosA_nil
 

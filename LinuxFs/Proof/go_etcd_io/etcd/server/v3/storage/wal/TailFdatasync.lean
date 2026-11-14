@@ -37,7 +37,7 @@ variable [fu_sem : go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 /-- `TailMeta` of the synced tail. -/
 theorem TailMeta.synced {m : OsMeta} {bs : List ByteG} (h : TailMeta m bs) :
     TailMeta m.synced (bs.map (fun x => durB x.1)) :=
-  ⟨by simp [OsMeta.synced, h.1], h.2.1, h.2.2.1.synced, rfl, rfl⟩
+  ⟨by simp [OsMeta.synced, h.1], h.2.1, h.2.2.1.synced, rfl, rfl, PastZ.synced m⟩
 
 /-- **`syscall.Fdatasync` of the tail** (see the file header). -/
 theorem syscall.Fdatasync.wp_tail (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
@@ -103,7 +103,7 @@ theorem fileutil.Fdatasync.wp_tail (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG
       iframe Hm Hb
       isplitr
       · ipureintro
-        exact ⟨by simp [OsMeta.synced, hp.1], hp.2.1.synced, hp.2.2.1, hp.2.2.2⟩
+        exact ⟨by simp [OsMeta.synced, hp.1], hp.2.1.synced, hp.2.2.1, hp.2.2.2.1, LoWr.of_exact rfl rfl⟩
       · iapply tailVar_unfold $$ Hv
     · ileft; iframe Hs; ipureintro; exact he
   · isplitl [Hf Hfd Hoff Hk Hm Hb Hv]
@@ -120,7 +120,7 @@ theorem fileutil.Fdatasync.wp_tail (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG
 /-- **A window's tail synced is exact** (`OsMeta.synced`: `lo = hi = size`). -/
 theorem TailMetaW.synced {m : OsMeta} {bs : List ByteG} (h : TailMetaW m bs) :
     TailMeta m.synced (bs.map (fun x => durB x.1)) :=
-  ⟨by simp [OsMeta.synced, h.1], h.2.1, h.2.2.1.synced, rfl, rfl⟩
+  ⟨by simp [OsMeta.synced, h.1], h.2.1, h.2.2.1.synced, rfl, rfl, PastZ.synced m⟩
 
 /-- **`fileutil.Fdatasync` of the tail in a resize window** (`wp_tail` over `walTailW`'s `TailMetaW`): on
 success the tail is exact again (`TailMeta` of the synced `OsMeta`, `TailMetaW.synced`). -/
@@ -162,7 +162,7 @@ theorem fileutil.Fdatasync.wp_tailW (wp_Fd : os.File.Fd.spec (GF := GF) (hG := h
       iframe Hm Hb
       isplitr
       · ipureintro
-        exact ⟨by simp [OsMeta.synced, hp.1], hp.2.1.synced, hp.2.2.1, hp.2.2.2⟩
+        exact ⟨by simp [OsMeta.synced, hp.1], hp.2.1.synced, hp.2.2.1, hp.2.2.2.1, LoWr.of_exact rfl rfl⟩
       · iapply tailVar_unfold $$ Hv
     · iexact Hs
   · iright

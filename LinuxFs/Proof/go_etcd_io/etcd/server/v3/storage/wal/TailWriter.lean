@@ -130,7 +130,7 @@ theorem wp_tailPWriteStart (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStrin
   icases osBytes_agree d.ino _ _ 0 bs g0.bs (by rw [hm.1, hsz]) $$ Hb1 Hb2 with %hbb
   subst hbb
   have hlen : g0.bs.length = g0.om.size := hm.1
-  have hex0 : SegExact g0 := ⟨by rw [hm.2.2.2.1, hlen], by rw [hm.2.2.2.2, hlen]⟩
+  have hex0 : SegExact g0 := ⟨by rw [hm.2.2.2.1, hlen], by rw [hm.2.2.2.2.1, hlen]⟩
   -- the write is past the synced bytes
   have hso : lay.so ≤ off.toNat := by
     obtain ⟨hso', -, -, -, hB, -⟩ := (habs.last g0 hg0).1 hex0
@@ -307,7 +307,7 @@ theorem wp_tailPWriteFinish (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStri
     rw [hbs]; simp only [List.length_append, List.length_take, List.length_drop, pwAnn_length]
     rw [cfRange_length hin hl, hlo, hhi]; omega
   have hmlo := hm.2.2.2.1
-  have hmhi := hm.2.2.2.2
+  have hmhi := hm.2.2.2.2.1
   have hT : max fl.m.size (fl.off + fl.data.length) = fl.m.size := by omega
   have hex0 : SegExact g0 := by
     refine ⟨?_, ?_⟩ <;> rw [hom, hgl] <;> simp only [cfMeta, announce_lo, announce_hi, hT] <;> omega
@@ -329,10 +329,11 @@ theorem wp_tailPWriteFinish (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoStri
   · iexists s; iexact Hb
   imodintro
   have htm : TailMeta (pwPost fl.m fl.off fl.data.length k) (finBytes fl.m fl.bs fl.off fl.data k fl.n zs) := by
-    refine ⟨by rw [hflen]; simp [pwPost, hps], by simp [pwPost, hm.2.1], ?_, ?_, ?_⟩
+    refine ⟨by rw [hflen]; simp [pwPost, hps], by simp [pwPost, hm.2.1], ?_, ?_, ?_,
+      hm.pastZ.pwPost _ _ _⟩
     rotate_left
     · have := hm.2.2.2.1; simp only [pwPost, announce_lo, hps]; omega
-    · have := hm.2.2.2.2; simp only [pwPost, announce_hi, hps]; omega
+    · have := hm.2.2.2.2.1; simp only [pwPost, announce_hi, hps]; omega
     exact hm.2.2.1.pwPost_in (by omega) (by omega)
   have hpost : k ≤ fl.data.length ∧ ((k = fl.data.length ∨ 0 < k) ∧ e = 0 ∨ e ≠ 0) ∧
       TailMeta (pwPost fl.m fl.off fl.data.length k) (finBytes fl.m fl.bs fl.off fl.data k fl.n zs) ∧
@@ -796,7 +797,7 @@ theorem wal.tailWriter [os.file.FieldAssumptions] (Mr : WalMarshal) (R : Roots) 
   iintro !> %Φ ⟨HW, Hp⟩ HΦ
   iunfold walTailW at HW
   icases HW with ⟨Hf, ⟨%rd, Hfd⟩, Ho, Hk, %m, %bs, Hm, Hb, %hmb, Hv⟩
-  obtain ⟨hsz, hm, hsz62, hfd0⟩ := hmb
+  obtain ⟨hsz, hm, hsz62, hfd0, -⟩ := hmb
   obtain ⟨hpre, hle⟩ := hok
   simp only [List.length_append] at hle
   by_cases hx : xs = []
@@ -821,7 +822,7 @@ theorem wal.tailWriter [os.file.FieldAssumptions] (Mr : WalMarshal) (R : Roots) 
       · iexists rd; iexact Hfd
       iexists m, bs
       iframe Hm Hb Hv
-      ipureintro; exact ⟨hsz, hm, hsz62, hfd0⟩
+      ipureintro; exact ⟨hsz, hm, hsz62, hfd0, hm.loWr _⟩
   have hn : 0 < xs.length := List.length_pos_iff.2 hx
   have hoN := os.W64_nat_toNat (o0 + out.length) (by omega)
   have hoI := os.W64_nat_toInt (o0 + out.length) (by omega)
@@ -858,7 +859,7 @@ theorem wal.tailWriter [os.file.FieldAssumptions] (Mr : WalMarshal) (R : Roots) 
     iexists m', bs'
     iframe Hm Hb
     isplitr
-    · ipureintro; exact ⟨by rw [hmb.2, hsz], hmb.1, hsz62, hfd0⟩
+    · ipureintro; exact ⟨by rw [hmb.2, hsz], hmb.1, hsz62, hfd0, hmb.1.loWr _⟩
     rw [List.length_append, ← Nat.add_assoc]
     unfold tailVar
     try dsimp only

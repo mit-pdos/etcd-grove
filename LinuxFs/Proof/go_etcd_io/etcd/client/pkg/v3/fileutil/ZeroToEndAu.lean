@@ -39,7 +39,7 @@ theorem ftDoneH_shrunk (p : Ino) (m : OsMeta) (tg : Nat) (zs : List Cands) (htg 
   ipureintro
   have h := os.rsPost_cz_true m tg tg
   rw [Nat.max_eq_left htg] at h
-  exact ⟨rfl, rsPost_maps true m tg tg, h, PcKeep.of_tc (tr := true) rfl rfl htc,
+  exact ⟨rfl, rsPost_maps true m tg tg, h, PcKeep.of_tc (tr := true) rfl rfl htc.1,
     fun hz => OsMeta.zeroPg_rsPost_true hz tg⟩
 
 theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.wp_proofAu

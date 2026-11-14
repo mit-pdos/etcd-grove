@@ -44,9 +44,11 @@ variable [os.Assumptions]
 (`os.ftDone`'s, the candidates `zs` of the bytes grown over), its `OsMeta` up to the candidates it
 knows past the size and of its resize stamps (`rsPostK`: the update's owner, holding the other half,
 knows them), knowing which bytes past the size have known candidates (`TcKnows`: those the landing
-keeps known, `rsTail`'s domain; `wal-tc10`). -/
+keeps known, `rsTail`'s domain; `wal-tc10`), and that the candidates known past the old size and the
+target are `m`'s or zeros stamped 0 or by a known resize (`TcFrom`; `wal-save22`). -/
 def os.ftDoneH (p : Ino) (m : OsMeta) (tg : Nat) (zs : List Cands) : IProp GF :=
-  iprop(⌜zs.length = tg - m.size⌝ ∗ (∃ tc rz, ⌜TcKnows m tg tg tc⌝ ∗ osMeta p (DFrac.own (1 : Qp).half)
+  iprop(⌜zs.length = tg - m.size⌝ ∗ (∃ tc rz, ⌜TcKnows m tg tg tc ∧ TcFrom m (max m.size tg) tc rz⌝ ∗
+      osMeta p (DFrac.own (1 : Qp).half)
       ((rsPost true m tg tg).withTc tc rz)) ∗
     osBytes p m.size (DFrac.own (1 : Qp).half) (zs.map (fun c => ((0 : w8), c))))
 
@@ -54,9 +56,10 @@ def os.ftDoneH (p : Ino) (m : OsMeta) (tg : Nat) (zs : List Cands) : IProp GF :=
 bytes it would have cut off `xs'`), its `OsMeta` up to the candidates it knows past the size and of
 its resize stamps (`rsUnMeta`: the update's owner, holding the other half, knows them), knowing which
 bytes past the size have known candidates (`TcKnows` at the old size: those the not-landed outcome keeps
-known). -/
+known), and where the candidates known past the old size and the target come from (`TcFrom`). -/
 def os.ftUndoneH (p : Ino) (m : OsMeta) (tg : Nat) (xs' : List ByteG) : IProp GF :=
-  iprop((∃ tc rz, ⌜TcKnows m tg m.size tc⌝ ∗ osMeta p (DFrac.own (1 : Qp).half)
+  iprop((∃ tc rz, ⌜TcKnows m tg m.size tc ∧ TcFrom m (max m.size tg) tc rz⌝ ∗
+      osMeta p (DFrac.own (1 : Qp).half)
       ((m.announce (min m.size tg) (rsHi true m.size tg) tg).withTc tc rz)) ∗
     osBytes p (min m.size tg) (DFrac.own (1 : Qp).half) xs')
 

@@ -235,7 +235,7 @@ theorem walTail_truncFin (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
         · iexists (rsPostK true true m0 wr wr n (bs0.drop (min m0.size wr))).tc
           iexists (rsPostK true true m0 wr wr n (bs0.drop (min m0.size wr))).rz
           isplitr
-          · ipureintro; exact TcKnows.rsTail m0 wr wr n _
+          · ipureintro; exact ⟨TcKnows.rsTail m0 wr wr n _, TcFrom.rsTail m0 wr wr n _⟩
           rw [← rsPostK_withTc]; iexact Hm1
         simp only [List.map_nil]
         unfold osBytes; iapply (bytesG_nil _ _ _ _).2; iempintro
@@ -286,7 +286,7 @@ theorem walTail_truncFin (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       · iexists (rsTail true m0 wr m0.size n [])
         iexists (n :: m0.rz)
         isplitr
-        · ipureintro; exact TcKnows.rsTail m0 wr m0.size n []
+        · ipureintro; exact ⟨TcKnows.rsTail m0 wr m0.size n [], TcFrom.rsTail m0 wr m0.size n []⟩
         have eU : rsUnMeta true true m0 wr n = (m0.announce (min m0.size wr) (rsHi true m0.size wr) wr).withTc
             (rsTail true m0 wr m0.size n []) (n :: m0.rz) := rfl
         rw [← eU]; iexact Hm1
@@ -300,13 +300,14 @@ def truncStartP (dir : GoString) (γ : GName) (ok : Option Nat) (H : List (WalOp
     osMeta i (DFrac.own (1 : Qp).half) m0 ∗ osBytes i (min m0.size wr) (DFrac.own (1 : Qp).half) xs0)
 
 /-- **The supply of the tail's truncate at its write position** (see the file header), the caller's
-property of the state it starts from `OsExact` (no window open: a window's crash sizes from `lo` on
-must be the old window's, so `lo ≤ wr`, which the attempt's state then has, `os.truncSup`). -/
+property of the state it starts from the handle's `LoWr` (no window open, or `lo ≤ wr`: a window's
+crash sizes from `lo` on must be the old window's; a later attempt's state has `lo ≤ wr`,
+`os.truncSup`). -/
 theorem walTail_truncSup (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (dir : GoString)
     (γ : GName) (ok : Option Nat) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (wr : Nat) (i : Ino) :
     ⊢ walInv (W := W) walCodec Mr R jr r -∗
       os.truncSup iprop(walTailKeyL (W := W) dir γ ok ∗ tailVar (W := W) γ ((H, md, cuts, wr, i, none) : TailG))
-        i wr OsExact := by
+        i wr (fun m => LoWr m wr) := by
   iintro #Hinv
   unfold os.truncSup
   iintro !> %m0 %xs0 %hxs0 %hP0 ⟨Hk, Hv⟩ Hm Hbx
@@ -383,9 +384,10 @@ theorem walTail_truncSup (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
     imod Hcl'
     have hwrl' : lay.wr = wr := hwrl.symm
     have hlo : ¬ SegExact g0 → g0.om.lo ≤ lay.wr := fun hx => by
-      rcases hP0 with h | h
+      rcases hP0 with h | h | h
       · rw [hwrl']; exact h
       · exact absurd (SegExact.of_os hsz h) hx
+      · rw [hwrl']; exact h
     obtain ⟨hW', hDK'⟩ := rzStart_pure walCodec_ok hW hd hl hs ⟨ents, habs⟩ hcut0 hZ hB hn.1 hn.2 hlo
     rw [hwrl'] at hW' hDK'
     have hFi : ∀ i, i ≠ g0.ino →

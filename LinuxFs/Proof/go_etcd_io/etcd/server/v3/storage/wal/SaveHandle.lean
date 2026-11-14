@@ -105,7 +105,7 @@ theorem walHandleIn_seek (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoS
   iexists locks, ls, lt, f, fd, name
   iframe Hlocks Hls Hltf Hf Hoff
   isplitr
-  · ipureintro; exact ⟨hmb.2.2.2, by have := Hpure.2.2.1; have := Hpure.2.2.2.1; omega⟩
+  · ipureintro; exact ⟨hmb.2.2.2.1, by have := Hpure.2.2.1; have := Hpure.2.2.2.1; omega⟩
   iintro Hlocks Hls Hf Hoff
   ihave Htw : walTailW (W := W) f fd name dir h.γ h.ino h.H h.md h.cuts h.o0 h.sz h.out tm
       $$ [Hf Hfdo Hoff Htk Hm Hbs Hv]
