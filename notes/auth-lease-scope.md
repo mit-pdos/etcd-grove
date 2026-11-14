@@ -7,7 +7,9 @@ approved by the user on 2026-11-14 as a next step. Go evidence was run at the et
 `notes/auth-lease-scope/zz_authlease_store_test.go` (copy into `server/auth`) and
 `notes/auth-lease-scope/zz_authlease_rows_test.go` (copy into `tests/integration`). Both pass, the
 integration tests 3 of 3 runs, together with etcd's own `TestV3AuthWithLease*` and
-`TestPutWithLeaseInTXN` (§4).
+`TestPutWithLeaseInTXN` (§4). The 3-member variant (§7, revised 2026-11-14 at etcd-grove-81's
+request) adds `zz_authlease3_examples_test.go` (copy into `examples/etcd/auth3`) and
+`zz_authlease3_rows_test.go` (copy into `tests/integration`); each passes 3 of 3 runs.
 
 ## 0. Summary
 
@@ -38,6 +40,14 @@ integration tests 3 of 3 runs, together with etcd's own `TestV3AuthWithLease*` a
   apply thread. Only the prefix's randomness keeps two such tokens apart, and a repeat panics (E7).
   Proving it needs a freshness assumption on `genTokenPrefix`, which is trusted text: optional
   stage S5.
+- **Three members (§7, asked by the user):** the variant needs no new trusted text, as long as the
+  peers serve only the raft handler, as every example's do. It adds 10 to 18 days to S4: the
+  revocable mode on three members (lease-mono3's step 2), a per-member lessor read-barrier law and
+  auth3's start. Recommendation: three members directly, with S1–S3 unchanged.
+  - A follower checks `TimeToLive` and `KeepAlive` itself, against its own auth state and lessor.
+    It then forwards over leasehttp with no caller identity, and the leader checks nothing.
+  - With the examples' peers, a follower reports a live lease absent. The theorem claims refusals
+    only, so its statement is unaffected.
 - **Trusted text in S1–S4: none** (§3), apart from one docstring sentence of `NewLessor`'s axiom
   that becomes stale.
 - **Estimate:** S1–S4 take 25 to 38 agent-days. S5 takes 5 to 8 more, S6 3 to 5 more, each after
@@ -394,23 +404,18 @@ commit and the axiom post of §2.4.
 **Total S0–S4:** 25 to 38 agent-days. The S3 range is the widest: the auth-on model's lemmas
 (`KVAuthModel.lean` is 1405 lines) all take the third component.
 
-**Decisions needed:**
-- **Q1, the theorem.** A new `etcd_authlease_safe` (recommended, §1), or authkv's driver extended
-  with lease workloads per principal.
-- **Q2, expiry.** S1–S4 with "auth on implies no lease expires during the run" (`lease.leasesNoExpiry`
-  reused, revocation by request only), recommended. Or include expiry now, with S5's trust decision
-  first.
-- **Q3, the empty user.** Change the frozen `leaseCheckFrom` as in §2.1: recommended. The TLS-fallback
-  empty common name stays admitted, as the code admits it.
-- **Q4, the TOCTOU.** Keep the margin in S1–S4 (recommended). The user decides whether to file the
-  issue upstream, and S6 comes after that.
-- **Q5, the latest track's lease class.** Put `chainLeaseClass` into `kvPostFL` (the lease-keys plan's
-  Q5 option (a), deferred then): recommended, as it is what carries the class to the auth-on server.
-- **Q6, scope against `grpc-auth-matrix-theorem`.** This Scope takes the lease rows only (GHSA-q8m4's
-  lease part). Registration of Compact, Maintenance and Cluster stays with that proposal or the guard
-  Scope.
-- **Q7, the hub request.** The `lease.bootCfg` body change (§2.3) goes to the coordinator as a hub
-  change.
+**Decisions (2026-11-14, via etcd-grove-81):**
+- **Q1, the theorem:** a new theorem (the user's decision). Its size is in §7.
+- **Q2, expiry:** reuse `lease.leasesNoExpiry`, with no expiry under auth on in S1–S4 (the user's
+  decision).
+- **Q3, the empty user:** change the frozen `leaseCheckFrom` as in §2.1 (decided by etcd-grove-81).
+- **Q4, the TOCTOU:** keep the margin, and do not file upstream: the user is not ready to go public
+  (decided by etcd-grove-81). S6 is parked.
+- **Q5, the latest track's lease class:** in `kvPostFL` (decided by etcd-grove-81).
+- **Q6:** this Scope takes the lease rows only (decided by etcd-grove-81).
+- **Q7:** the `lease.bootCfg` body change goes to the coordinator as a hub change (decided by
+  etcd-grove-81).
+- **Open, Q8:** one member or three for S4 (§7.5).
 
 ## 6. Overlap with ongoing work
 
@@ -424,3 +429,160 @@ commit and the axiom post of §2.4.
 
 Not in conflict: D22 (`authSchemaSrv`, the same hypothesis), out_size C2 and the WAL/crash ladder
 (collections only).
+
+## 7. The 3-member variant (auth3 A2's shape)
+
+The user asked (2026-11-14, via etcd-grove-81) whether the theorem should have three members from
+the start, since one member is not realistic. This section gives the variant's delta over §§1–5 and
+a recommendation (§7.5). Its Go evidence is E10–E12 (§7.6).
+
+**The shape.**
+- `examples/etcd/authlease` on auth3's start: three `startMember`s with auth on, the simple token
+  provider and `NoSnapCount`/`NoSnapCatchUp`, each peer listener serving `s.RaftHandler()`
+  (`auth3.go:55-91`), at the revocable lease mode. Each member serves gRPC.
+- `SetUp` runs through member 1, then the barrier at each member (`auth3.go:108-118`).
+- Then the lease set-up: root grants `Lz` and puts `z` with it, `u` grants `Lu` and puts `a` with
+  it. **A second barrier at each member** follows, so that every member's lessor holds those keys
+  (§7.3).
+- Each principal uses one member: `u` on member 2, `v` on member 3, `anon` on member 1, `bad` on
+  member 2. Every lease row is also issued at the members where the leader is not, whichever member
+  that is. The checks are §1's.
+
+### 7.1 What a follower does with each lease method (the pin, `v3_server.go` unless noted)
+
+| method | at a follower | where the auth check runs, against what | does the caller's identity travel? |
+|---|---|---|---|
+| `LeaseGrant` | proposed through raft (`raftRequest`, `:434-456`) | `requireAuthInfo` on the receiving member (`:447`), its own auth store and token map; **no check at apply** (no `LeaseGrant` in `authApplierV3`) | yes, in the raft request's header (`Username`, `AuthRevision`, stamped by the receiving member, `:1067-1079`); nobody reads it for a grant |
+| `LeaseRevoke` | through raft (`:470-486`) | `requireAuthInfo` on the receiving member (`:477`); then `checkLeasePuts` **at apply, on every member**, for the header's principal, against the auth state and lessor the log has built (`apply/auth.go:191-220`) | yes, the header. A lagging receiving member stamps an older auth revision, and the apply refuses it (`ErrAuthOldRevision`): a refusal only |
+| `Put`/`Txn` with a lease | through raft | at apply, as `LeaseRevoke` (`checkPutAuth`) | yes, the header |
+| `LeaseTimeToLive` | `requireAuthInfo`, then (with `Keys`) `checkLeaseTimeToLive` **on the receiving member**, against its own auth store and **its own lessor's keys** (`:698-711`, `:607-634`); then `leaseTimeToLive` **forwards over leasehttp**: `TimeToLiveHTTP(cctx, id, r.Keys, leader's peer URL + /leases/internal, s.peerRt)` (`:668-690`); afterwards the receiving member re-checks its own auth revision (`:717-721`) | **no.** The HTTP body is `LeaseInternalRequest{ID, Keys}` only, and the leader's `leaseHandler.ServeHTTP` checks nothing (`leasehttp/http.go:58-170`) |
+| `LeaseKeepAlive` (`LeaseRenew`) | `checkLeaseRenew` **on the receiving member** (`:545-549`), then **forwards over leasehttp**: `RenewHTTP(cctx, id, leader's peer URL + /leases, s.peerRt)` (`:550-557`) | the receiving member's auth store and lessor | **no.** The body is `LeaseKeepAliveRequest{ID}`, and the leader's handler just `Renew`s (`http.go:78-108`) |
+| `LeaseLeases` | **no forwarding**: the receiving member's lessor's `Leases()` (`:737-749`) | `checkLeaseLeases` on the receiving member, over the leases it lists | n/a |
+
+On the leader, `LeaseTimeToLive` and `LeaseRenew` run their check, then answer from the local
+lessor after `waitAppliedIndex` (`:496-532`, `:636-664`).
+
+**The lagging-member question.** Every API-layer lease check uses the receiving member's auth state
+and lessor, and the leader does not check again. So a follower that has not applied a permission
+change, or an attach, checks against stale state. The lessor side is already recorded
+(`nonissues/etcd-lease-renew-keys-follower-lag.md` and the follower case of
+`issues/etcd-lease-timetolive-keys-toctou.md`). The auth-state side is recorded now as
+`nonissues/etcd-lease-checks-lagging-member.md` (code reading for the lag itself; the forwarding
+facts tested by E11/E12). In the driver neither arises:
+- The auth state is frozen after `SetUp` (authkv's `authHistFrozen`: no admin change in the
+  workload), and the auth barrier makes each member apply past it.
+- The lease set-up (`Lz` with `z`, `Lu` with `a`) is fixed before the checks (no detach, no delete
+  of `z` or `a`), and the second barrier makes each member apply past it.
+
+**What the examples' peers do to forwarding (E10).** Every example's peer listener serves only
+`s.RaftHandler()` (`etcdstart/common.go:172`, `auth3.go:85`), which is rafthttp's mux
+(`rafthttp/transport.go:158-168`, no `/leases` path). So a follower's forwarded call gets a 404,
+which leasehttp reads as `ErrLeaseNotFound` (`http.go:205-206, 263-264`). The gRPC layer then turns
+it into a `TimeToLive` reply with `TTL = -1` and no keys (`v3rpc/lease.go:67-73`) and a keep-alive
+`TTL = 0` (`:137-140`), which the client's `KeepAliveOnce` reports as `ErrLeaseNotFound`.
+- **A live lease is reported absent at every follower.** This happens after the follower's own
+  check has passed, so refusals are unaffected: the follower refuses `u` before forwarding (E10).
+- The existing axioms are written for this: `leasePeersOk` admits a 404 (`LeaseRead.lean:138-152`).
+- With etcd's full peer handler (`etcdhttp.NewPeerHandler`, what an etcd binary and the integration
+  framework serve, `tests/framework/integration/cluster.go:992`), the follower's call is answered
+  from the leader's lessor (E11).
+
+### 7.2 The axioms on the forwarding path, with auth on
+
+| trusted text | what it says | true with auth on? | adequate for the driver? |
+|---|---|---|---|
+| `EtcdServer.leaseTimeToLive.wp_proof` (`Spec/…/EtcdServer__leaseTimeToLive.lean`; reworked in k8s 7f-4) | a response or an error; the TTL facts and "`ErrLeaseNotFound` means absent" only under `leaseTTLRow s γl`, whose raft part holds at **one voter** (`LeaseRead.lean:126-134`, `leaseTTLRow_intro` at `[x]`) | **yes.** Nothing in it mentions auth, the forwarded call carries no identity, and the leader checks none (E12), so auth on changes nothing it states. In a 3-member example the `leaseTTLRow` guard is what keeps it true: E10's "live lease reported not found" would refute an unguarded "not found means absent" | **yes.** The driver's refusals rest on `checkLeaseTimeToLive` (proved), which runs before the call; the driver never uses the TTL row on three members |
+| `leasehttp.RenewHTTP.wp_proof` (`Spec/…/lease/leasehttp/RenewHTTP.lean`; reworked in k8s 7f-4) | a TTL and `nil`, or an error; nothing about the TTL | **yes** (auth-independent, as above) | **yes.** `LeaseRenew`'s refusal rests on `checkLeaseRenew` (proved) |
+| `leasePeersOk` (opaque, `LeaseRead.lean:152`) | a peer answers `/leases/internal` as etcd's handler does, or not with `200` | **yes** of the examples (404, E10) | yes, unchanged |
+| `lease.lessor.Renew.wp_proof` | the leader's local renewal | auth-independent | yes |
+| `EtcdServer.RaftHandler`, `http.Serve` | auth3's start | already in auth3's trust base | yes |
+
+**So the 3-member variant needs no new or changed trusted text**, as long as the peers serve only
+the raft handler.
+
+**Option S7 (later, not recommended for the first theorem): the full peer handler.** This gives
+realistic forwarding: an allowed follower call answers from the leader. It needs `s.LeaseHandler()`
+and `leaseHandler.ServeHTTP` (leasehttp, names-only, 0% verified).
+- Proving them takes 5 to 8 days, over the http-boundary fix's net/http models, and would then let
+  `leasePeersOk` be discharged instead of assumed.
+- Axiomatizing them would be new trusted text: a hard stop.
+
+### 7.3 Grant and Revoke from a follower; what leasecatchup gives
+
+- **The raft-path rows need nothing per member beyond S3.** S3's model (`kvEntryOn` with the lease
+  table, `kvGrantedL`) is cluster-level: every member applies the same entries from the requested
+  log (`kvInvOn`). The verdict of a revocation or a leased put is a function of the log, the same on
+  every member.
+  - A proposal from any member goes through `raftRequest`, with the header stamped at that member.
+    A token is checked at the member that issued it, since each client uses only its own member (the
+    auth3 token contract, `notes/auth3-scope.md` §2.2).
+- **The revocable mode on three members is not supported today.**
+  - `alloc3`/`alloc3Http` and the frozen `cluster3.StartCluster` carry the scope premise
+    `lm ≠ .revocable` (`etcdstart/Alloc3.lean:26, 116, 187, 319`; `notes/lease-mono3-plan.md:108`).
+    The revocable mode collects grant ids at one prefix (`kvPfx`), which `srvMemberBoot_alloc` ties
+    to one member's (`hpfx`). Lifting it is lease-mono3's step 2, not started.
+  - It also meets a real bug, `issues/etcd-lease-id-mask-member-prefix.md`: two members whose ids
+    agree in their low 15 bits generate colliding lease ids, and a revoked id can be granted again.
+    The example's member ids are fixed by its peer URLs. So, as auth3's `TestMemberIDs` does, a Go
+    test of the computed ids gives a `BootFacts` premise excluding the collision.
+  - **A cheaper option:** every grant goes through one member (root's and `u`'s grants through
+    member 1), so only one prefix collects grant ids. Grants through followers are then not
+    exercised. Step 2 is still needed in a restricted form: `hpfx` for member 1 only, no grant right
+    at the others.
+- **A lessor lower bound per member: a new server law.** The refusal of `u`'s
+  `TimeToLive(Lz, WithKeys)`, `KeepAlive(Lz)` and `Leases` at member k needs `lease.lessorLb γl_k m`
+  with `z ∈ keys(Lz)` at `m` in member k's lessor.
+  - With one member, the single-voter tie gives it (the raft part of `leaseTTLRow`, as above).
+  - With three: "a linearizable read served at member k, after the entry that attached `z`, gives
+    member k's lessor history past that entry". That is the lessor analogue of auth3 A2's route (ii)
+    read barrier (`authPubLb γa_k`, `notes/auth3-scope.md` §3), over the same applied lower bound of
+    the read loop. It should be built with A2's, or after it.
+- **Reuse from leasecatchup (lease-mono3 step 1):**
+  - `alloc3`'s lease-mode parameter;
+  - one lessor name `γl_k` per member, with one single-endpoint client per member (the Grant spec
+    differs per member, so `isGrpcRpcs` cannot mix them; lease-mono3 §2);
+  - the per-member registrations (`etcdLeaseGrantLiveAt` for the revocable mode,
+    `ServedLease.lean`) and the listing loop's proof (`leasecatchup/listed.lean`).
+- **Not reusable:** `cluster3.StartCluster` (bridges, partitioner, snapshots); auth3's own start is
+  the base. Its monotone facts (`leaseGrantedAt`) do not hold in the revocable mode.
+- **Snapshots:** none (`NoSnapCount`), so the auth-on snapshot path's `E.lg = false` premise
+  (`SnapRecvOn.lean:477`) is not reached. S3 should still restate it, since it records the
+  coupling S3 removes.
+
+### 7.4 The estimate delta
+
+S1–S3 are member-generic, so they are unchanged. S4 grows:
+
+| item | days |
+|---|---|
+| lease-mono3 step 2: the revocable mode in `alloc3`/`StartCluster` (per-member grant prefixes, the member-id premise and its Go test); a hub request, since `StartCluster` is frozen | 4–7 (2–4 in the one-granting-member form) |
+| the per-member lessor read-barrier law (with A2's route (ii)) | 3–5 |
+| auth3's start at the revocable mode, and the second barrier | 2–3 |
+| the per-member driver and the client registrations (`γa_k`, `γl_k`) | 2–4 |
+| minus the single-voter tie the 1-member S4 would have used | −1 |
+
+So the 3-member S4 costs **10 to 18 days more**, and S0–S4 at three members take **35 to 56
+agent-days**, against 25 to 38 at one member. Optional S7 (the full peer handler) is 5 to 8 more.
+
+### 7.5 Recommendation (Q8): three members directly
+
+- Only S4 depends on the member count. A 1-member S4 (8 to 12 days) would then be largely redone
+  for three members: the driver, `Main`, adequacy and the collection. Only the client's lease specs
+  at auth on carry over. So one member first, then three, costs about 1-member S4 plus the delta
+  plus 5 days of rework: more than going to three directly.
+- Do S1–S3 first, as planned. **Start lease-mono3 step 2 now**, in parallel, by another agent: it
+  is independent of auth and has its own hub request. Build the lessor barrier with, or after,
+  auth3 A2's route (ii).
+- **Fallback:** if step 2 stalls on its frozen and hub changes, S4 at one member still gives a
+  closed theorem over the same server lemmas, and the 3-member S4 follows.
+- **The realism caveat to state in the theorem's docstring:** with the examples' peers, a follower
+  reports a live lease absent on `TimeToLive`/`KeepAlive` (E10). The theorem claims refusals only,
+  so its statement is unaffected. Realistic forwarding is S7.
+
+### 7.6 Go evidence for the variant (the pin `2eaeb872bc`)
+
+| # | claim | test | result |
+|---|---|---|---|
+| E10 | with the examples' peers (raft handler only), on three members started as auth3's: `u`'s `TimeToLive` with keys, `KeepAlive`, `Leases` and `Revoke` are refused at every member; `u`'s `Grant` and the `Revoke` of its own lease pass through every member; root's `TimeToLive` with keys and `KeepAlive` work at the leader, and at a follower report the live lease absent (`TTL = -1`, no keys; `KeepAliveOnce` `ErrLeaseNotFound`) | `notes/auth-lease-scope/zz_authlease3_examples_test.go` (copy into `examples/etcd/auth3`) | passes 3 of 3 (the leader was member 3, 1, 1) |
+| E11 | with etcd's full peer handler, three members: at a follower, `u` is refused by the local check; root's `TimeToLive` with keys returns `[z]` and a positive TTL from the leader's lessor, and `KeepAliveOnce` renews; `u`'s `Revoke` of `Lz` through the follower is refused at apply, and its grant, leased put and revocation of its own lease pass, the key deleted as the leader sees it | `notes/auth-lease-scope/zz_authlease3_rows_test.go` (copy into `tests/integration`), `TestAuthLease3FullPeerHandler` | passes 3 of 3 |
+| E12 | the forwarded request carries no identity and the leader checks none: leasehttp's own client calls, the ones a follower makes (`TimeToLiveHTTP`, `RenewHTTP`), sent with no token over a plain peer round tripper (`rafthttp.NewRoundTripper`) to the leader's peer URL, return `Lz`'s keys and renew it | the same test | passes 3 of 3 |
