@@ -166,3 +166,63 @@ From `S/Link.lean` and `etc/tcb-collections/wal-fsext.txt`:
    `growslice` assumption, `proto.UnmarshalWalRecordE`, the fork's `O_TRUNC` fix (push pending).
 4. The tcb-baseline changes: −12 WAL axioms, −1 purgeRound, +the part's copies (15 generated axioms) and any of 3.
 5. `lib/durable` with bodies in the part (a new translated project and its `os` specs).
+
+## W4c U3 log
+
+**First session (branch `wal-u3`, 2026-11-14): the first boot proved; the crash boot designed, not
+proved.** No `sorry`, no axiom, nothing trusted changed; no statement of an existing lemma changed.
+Modules (`S/`): `BootPure` (pure), `BootStart0` (the first generation's `walStart`), `Boot0` (`walBoot0`).
+
+- **`walBoot0`** (`S/Boot0.lean`): at the shared mode's switch (`wp_osShare`'s `osSharedInv R` and the whole
+  claims `[∗list] j ∈ dom V.now, osNames j (.except []) 1 (namesOf V j _)`), with `osInv`: `∃ W, walAreaOk C Mr R
+  jr r ∗ walAreaRes jr ∗ walUnlockedTok ∗ walCrashTok ∗ walPast (walBoot0St r)`, and back the area's claim on
+  its names holding an entry (`(.except []).inter (areaOthers V.now jr)`) and every other directory's claim.
+  `osCallPerm 1` is untouched (the program keeps `wp_osShare`'s). It allocates the ghost state
+  (`walStart_boot0`: `walGhost_init` over `walBoot0St r = ⟨r, ∅, {r}⟩`, the steps' bound from `⧖ 0`), splits the
+  area's claim (`osNames_split` along `areaOthers`), and calls `walInv_alloc` with `cl` = the one area claim
+  `(jr, .except (areaOthers V.now jr), _)`, `Jm = ∅`, `qs = 1` (`osPathS_root`).
+- **Its premises** (each a world premise of the closed theorem's first boot; the user reviews them):
+  1. `hV : V.2 = []`: `wp_osShare` at the program's first step (not a world premise).
+  2. `hR : RootsOk R`: `FsInit`.
+  3. **`hr : (r, jr) ∈ R`, the area a root.** `Create` needs `dirDurable r` (`r ∈ s.dirs`), and no `fsExt` step
+     adds a durable directory (`TouchDirAll`'s spec gives a commit bound, not `dirDurable`): the boot state must
+     hold it, and `walInv_alloc`'s `DirsOk R s cl 0` must then hold for every tree the claims `cl` allow. A
+     directory below a root resolves in such trees only if `cl` holds its spine's claims, which `walInv_alloc`
+     also takes as the program's `osPathS R r` (the same `.only [c]` keys): so a durable directory must be a
+     root (`DirsRoots`, `BootPure.dirsOk_roots`/`dirsAvoid_roots`). For the tester: `tWalDir root = root/<nm>`,
+     the area its root.
+  4. `hjr : jr ∈ V.now`: from `FsInit`'s `TreeWf` (`Reach.root`); left a premise (U7 discharges it).
+  5. **`hslots : ∀ b, AreaSlot b → V.now.entry jr b = none`**: the area has no entry at any name a WAL
+     function may change (a WAL name — non-empty, no `/` or `.` — or `nm.<sfx>`: every name not starting with
+     `.`). Hence **no WAL at the first boot** (as `absDiskInitOk`'s `s.wal = ∅`, etcd-grove-81): a WAL found on
+     disk would need `WalsStart` (its bytes decoding to some `WalDur` with a layout) and `WalsBounded` (no index
+     `2^64-1`, metadata non-empty and `< 2^41`), facts of the decoded records that an arbitrary disk need not
+     meet (an older etcd's names, a maximal index): the C6 gate's "written by etcd at the pin". And the
+     program's part of the area holds no entry, so `walAreaRes`'s `SubCover`, `TmpOk` and `.touch` files are
+     vacuous. **Tester check (U0):** the oracle file and every other file of the tester must be outside the
+     area or named with a leading `.`.
+  6. `hrb : ReceiptBoundLe GF (2^62)`: the adequacy theorem's constant (`notes/bounds-plan.md`, rule 1).
+  7. `henc : ∀ hs, (Mr.encState hs).length < 2^32`: U4's law.
+  `WalsBounded`, `DirsOk`, `DirsAvoid`, `hdirs`/`hdirs1`/`hnames`/`hnok`/`hJm`, `walTmpsRes`, `walOthersL` are
+  all discharged (no WAL directory, one claim).
+- **`BootPure`**: `DirsRoots R s` (every durable directory a root) gives `DirsOk R s cl n` for any `cl, n` and
+  `DirsAvoid R jr s`; `walsBounded_crash : walStCrash s s' → WalsBounded s → WalsBounded s'` (a crash keeps the
+  metadata; an image's indices are the old history's); `dirsRoots_crash`.
+- **The crash boot (next unit, not started).** From `walInv_crash`'s outputs (`walStart L' W' … s' V'.now`,
+  `walPast`, the tokens, `DirsAvoid R jr s'`) and the new generation's `wp_osShare` claims on `V'.now`. What it
+  needs that the first boot did not, and what is missing:
+  (a) **`walInv_crash` must export `⌜WalsBounded s'⌝`** (its body's `Hbd` through `walsBounded_crash`: one line)
+  **and `⌜DirsRoots R s'⌝`** (needs the invariant to keep `DirsRoots R s`: no step changes `s.dirs`, so a framed
+  conjunct, or `DirsRoots` in place of `DirsOk`+`DirsAvoid`, which it implies). Statement changes to
+  `Crash.lean`/`Inv.lean` (129 importers, 37k lines rebuilt): deferred to that unit, not made here.
+  (b) the claims: per present WAL `nm` (directory `J`, `lay.j`), `(J, .except walTmps)` in `cl`, `(J, .only
+  walTmps)` split off to `walTmpsRes J`, `(jr, .only [nm])` in `cl` (`hnames`), the area claim `.except (Wn ++
+  others)`; `hdirs1` from `TreeWf`'s unique naming (distinct WAL names, distinct `J`; the crash's `FsInit` gives
+  `TreeWf` of `V'.now`).
+  (c) whole files (`trFile`, from `osFileStart` via `osFileStart_trFile`) of every WAL directory's non-`.wal`
+  entries (`walOthersL`, `walTmpsRes`) and of each `nm.tmp/.touch` (`tmpClTouch`): `crashRest` keeps them
+  untaken (`walInv_crash` takes the segments only); a take of named non-segment files is needed.
+  (d) **not derivable from the WAL invariant, premises of the crash boot** (the client's crash invariant, U5,
+  must carry them, or the WAL invariant must gain them): every WAL directory and every `nm.<sfx>` directory of
+  the area holds only files (`tmpEnt (dir _) = False`, `TmpOk`, `SubCover`); the WAL creates nothing else there,
+  but no invariant records that the claims' histories hold only files.
