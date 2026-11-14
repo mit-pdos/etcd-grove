@@ -48,6 +48,29 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
   and the risks R1-R5 (§7).
 - Decisions go in the worktree's `questions.md` (untracked).
 
+## B2: `restart_peerURLs` proved; `restart_snapOnceR` STOPPED for 81 (2026-11-14, fourth B2 agent): next agent starts here
+
+Branch `restart-s56`; **not landable** (one `sorry`: `restart_snapOnceR`, `E/NewServerRFacts.lean`).
+- **`restart_peerURLs` proved** (P5), no statement change: `RestReplay`'s phase-2 invariant already existed
+  (`memSync_boot`, `fold_sync`: past the boot log the members are `foldMem R` of the boot fold's);
+  new pure lemmas in Facts (forms): `memBootFold_notin`, `memBoot_lookup` (the saved ids distinct),
+  `bootFold_mem` (the boot entries put back `memBoot`'s members), `foldMem_peerURLs`; both prefix cases
+  (`A` past the boot log, or within it). Facts now imports `RestReplay`. `NewServerR.lean` checks
+  (`chk.sh -a`, 0 errors, 156 s).
+- **`restart_snapOnceR`: 81 decided the raft-side generalization** (token "no write since attach" at the
+  attached snapshot `sv₀`). Go confirmed (fork `2eaeb872b`, raft `565c2bd`): `bootstrappedWAL.MemoryStorage`
+  (`bootstrap.go:741`) is `NewMemoryStorage`, `ApplySnapshot(wal.snapshot)`, `SetHardState`, `Append`;
+  nothing writes the storage's snapshot before `run`'s `s.r.raftStorage.Snapshot()` (`server.go:755`;
+  `s.r.start`, which owns `ApplySnapshot`, is at 801; raft's `RestartNode` only reads its `Storage`; the
+  apply thread, `CreateSnapshot`/`Compact`, starts later). The MemoryStorage specs and
+  `bootstrappedWAL.MemoryStorage.spec` are proved (no axiom, no sorry). **But the change reaches trusted
+  meaning, so STOPPED before any edit**: `memStorRestarted` (BaseRestartStor.lean) is what the trusted
+  `bootOkR`'s `Hrest` row promises; it holds `memSnapLb γs σ.b`, whose `monoNatLbOwn γs.pr 1` is the
+  persistent write permission, so pr must stay 0 there (the row's meaning changes: stronger, still the
+  proved post), and the detached `ApplySnapshot` must take the token instead of `memSnapLb γs 0`. The
+  agreement on `sv₀` needs a new ghost name in `MemStorNames` (`MemStorNamesRec`, the registry's tuple, is
+  in `bootstrapRestartContract`'s type through `memStorRegAuth M`). Reported to 81 with the design.
+
 ## B2 post done; `restart_snapOnceR` blocked (2026-11-14, third B2 proof agent): next agent starts here
 
 Branch `restart-s56`; **not landable** (two `sorry`s left, both in `E/NewServerRFacts.lean`). Check loop as
