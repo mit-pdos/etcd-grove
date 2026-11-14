@@ -445,6 +445,25 @@ theorem snapshotCert_make (γ : Cluster) (N : Namespace) (E : CoPset) (l : List 
   unfold isCluster isCommittedLogLb confAt ownSnapsMade snapshotCert
   exact ApiImpl.snapshotCert_make_impl γ N E HE l i t d m cs S Hlen Hlast Hok Hcs
 
+/-- (restart S7.3, 2026-11-14; `notes/restart-s7-p2a.md`) **A `MsgSnap`'s destination, in the
+cluster's configurations**: a message with `snapTo` (a `Ready`'s, `readyRest_snapTo`; a sent one's,
+`sentMsg_snapTo`), if a `MsgSnap`, is not to its sender `id` and is to an id of a membership after a
+committed prefix (`confAt`), with a lower bound of the committed log covering it. The premise
+`confAt γ k0 m0` (any one; a cluster's boot membership `confAt γ 0 _` serves) witnesses that the
+cluster is in the client's decision mode (raft's dynamic mode), where `snapTo` carries the
+destination's configuration. So in a cluster whose committed memberships are all `simple {id}` (etcd's
+one-member cluster) no `MsgSnap` is ever sent (`srvRestartRows_single`). -/
+theorem snapTo_confAt (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ E) (id : w64)
+    (st : MsgSt) (k0 : Nat) (m0 : Membership) (Hty : st.msg.Type' = MsgSnap) :
+    ⊢ isCluster (GF := GF) γ N -∗ confAt γ k0 m0 -∗ snapTo γ id st ={E}=∗
+      ⌜st.msg.To' ≠ id⌝ ∗ ∃ (k : Nat) (m : Membership) (l : List LogEntry), confAt γ k m ∗
+        isCommittedLogLb γ l ∗ ⌜k ≤ l.length ∧ st.msg.To' ∈ m.ids⌝ := by
+  unfold isCluster confAt snapTo ApiImpl.isClusterU isCommittedLogLb
+  haveI := ApiImpl.clusterInv_persistent (GF := GF) γ N
+  haveI := ApiImpl.confAtU_persistent (GF := GF) γ k0 m0
+  iintro ⟨-, #Hci, -⟩ #Hc0 #Hs
+  iapply ApiImpl.snapTo_confAt_impl γ N E HE id st k0 m0 Hty $$ Hci Hc0 Hs
+
 end api
 
 section validLists

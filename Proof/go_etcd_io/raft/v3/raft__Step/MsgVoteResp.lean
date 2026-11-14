@@ -438,7 +438,7 @@ theorem wp_Step_MsgVoteResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
             refine .trans _ _ _ _ _ (StepR.recordVote (absMsg .voteResp m ents) (rOf s g) rfl Hto
               Hteq Hpr) ?_
             exact StepR.win _ (prvalsMatch pvs) ms Hpr (by rw [Hrc]; exact Hq) (Int.le_refl _) Hmt' Hms'
-              Hac
+              Hac (by rw [Hrc]; exact Hsn)
       · -- Leader: `stepLeader`'s `MsgVoteResp` arm only reads.
         simp only [stepFuncOf]
         wp_gets

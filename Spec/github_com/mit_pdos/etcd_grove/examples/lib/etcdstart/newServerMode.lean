@@ -10,11 +10,22 @@ premise: off in either mode, the retention zero; or on in compaction mode, in re
 positive retention of at least the cluster's, or in periodic mode at a period of at least 10ns and a
 cluster retention of `0`); at `N` write tokens (`N + N` on until M2's item 15, stage B3), on with the boot bundle in
 compaction mode (`memberBoot … true`).
+
+**`specRestart`** (restart S7.4, 2026-11-14; `BuildServer.specRestart`'s, which it serves): the member
+started again on the data directory its last stop left, at the retention `0`: the restart bundle
+(`memberRestartRes`, the image), the cluster's persistent facts at the stopped names
+(`memberRestartFacts`), `ETCD_VERIFY` off, `NewServer.specR`'s restart-only rows at every image's
+witnesses and `bootstrap`'s restart contract (`bootPremiseR`) in place of a first start's boot bundle,
+fresh directory and contract: an error, or the member built (`memberBuiltR`) at new names `ρ'` that
+agree with the stopped ones where the cluster sees them (`restartNames`) and a new stand-in
+environment, which the proof allocates (`memberRestartFacts_alloc`), with its data directory recorded.
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Defs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Restart
+public import Perennial.ProgramLogic.Bounds
 
 @[expose] public section
 
@@ -81,6 +92,41 @@ abbrev newServerMode.spec : Prop :=
           leaseTTLRowR s ps ∗
           -- (R2c-5) the data directory, the name's `.etcd`, with no dedicated WAL directory
           -- (`srvDataDir`, the slot's: `srvStop.dataDir`), which a stop request carries
+          srvDataDir s (name ++ go!".etcd")) }}
+
+/-- See the file header (`specRestart`). -/
+abbrev newServerMode.specRestart : Prop :=
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] (N : Nat) (name peerAddr client token mode : GoString)
+    (retention snapCount catchUp : w64) (peer : GoSlice) (cluster lg : Loc) (M : GMap GoString GoSlice)
+    (iu : GoString → List _root_.Perennial.net.url.URL) (Uok : BootURLs → Prop)
+    (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)
+    (id : w64) (γ : SrvRaft) (ρ : ReqNames) (γn : NetNames GF)
+    [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)] [ReceiptBoundLe GF (N + 1)],
+  N + 7 + bootWB ≤ backend.wbInit →
+  γ.vs = ps → γ.rule = srvRule (W64 0) bootLog → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
+  γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
+  rafthttp.bootCfg dir ps →
+  Uok ⟨[httpURL peerAddr], [httpURL client], M, iu⟩ →
+  -- the auto-compactor off (a restart is in the stop's scope: no compaction mode)
+  retention = W64 0 →
+  authRecordsFit → apply.backendUnderQuota → storage.diskOk →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
+      zapLoggerOk lg ∗
+      threadTok ∗
+      peer ↦*□ [httpURL peerAddr] ∗ cluster ↦$□ M ∗ ([∗map] k ↦ sl ∈ M, sl ↦*□ iu k) ∗
+      bootPremiseR N ps bootLog ctxs dir token name Uok id ∗ commonPremises ∗
+      context.isClosedchanInit ∗
+      memberRestartRes name {} γn γ ρ id ∗ netHttpOk γn id ∗
+      memberRestartFacts γ ρ id ∗ envVerifyOff ∗
+      □ (∀ A σ, srvRestartRows γ id A σ) }}
+    (App (App (App (App (App (App (App (App (App (App
+      (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.newServerMode))
+      (Val #name)) (Val #peer)) (Val #client)) (Val #cluster)) (Val #token)) (Val #mode))
+      (Val #retention)) (Val #snapCount)) (Val #catchUp)) (Val #lg))
+  {{ (s : Loc) (err : GoInterface), RET (PairV #s #err);
+      (⌜err ≠ GoInterface.nil⌝ ∗ threadTok) ∨
+        (⌜err = GoInterface.nil⌝ ∗ threadTok ∗ ∃ (ρ' : ReqNames) (E₀' : apply.AEnv GF),
+          ⌜restartNames ρ ρ'⌝ ∗ memberBuiltR s ρ' E₀' lg γn id N false ∗
           srvDataDir s (name ++ go!".etcd")) }}
 
 end spec

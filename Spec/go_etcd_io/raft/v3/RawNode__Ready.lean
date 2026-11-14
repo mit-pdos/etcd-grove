@@ -116,6 +116,10 @@ abbrev RawNode.Ready.spec : Prop :=
       -- (2026-11-01, durability stage II (k)) at role leader (after the `Ready`'s soft state) the
       -- messages may be sent first (the node API's `readyLeaderMsgs`)
       "#Hlead" ∷ (⌜roleAfter rs.role ss = StateLeader⌝ -∗ [∗list] q ∈ ms, isRaftMsg γ id q.st) ∗
+      -- (restart S7.3, 2026-11-14) each message's `MsgSnap` facts, outright (`snapToOk`: not to
+      -- the node, and in the dynamic mode to an id of a committed configuration; they read only the
+      -- committed log and the sender's configuration)
+      "#Hsnapto" ∷ ([∗list] q ∈ ms, snapToOk γ id q.st) ∗
       -- (2026-11-01, durability stage I fix G2) the soft state the node records
       "#Hss" ∷ softStateIs rd.SoftState' ss ∗
       "#Hce" ∷ entsRO rd.CommittedEntries' ce ∗

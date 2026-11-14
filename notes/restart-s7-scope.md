@@ -17,6 +17,11 @@
 - D-S7-5: the stage is named "S7 (restart1)"; "R2s-A" keeps its name (`notes/restart-scope.md`'s table updated);
 - D-S7-6: `specR`'s text kept (S7 discharges `srvRestartRows` for one member).
 
+- (2026-11-14, P2-a's second stop, `notes/restart-s7-p2a.md`) **D-S7-6 superseded on one point**:
+  `srvRestartRows`' two rows are restated as fancy updates (at masks excluding the invariants their users
+  hold open) and `srvRestartRows` as `|={⊤}=>` (a weaker premise of `NewServer.specR`), so that the one-member
+  discharge can open the cluster's and the server's invariants. No closed theorem supplies the premise.
+
 The rest of this note is the Scope as reviewed.
 
 ---

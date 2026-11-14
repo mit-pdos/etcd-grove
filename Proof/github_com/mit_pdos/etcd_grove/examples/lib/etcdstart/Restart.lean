@@ -16,6 +16,7 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRestart
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuiltRestart
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServerAlloc
 
 @[expose] public section
 
@@ -78,8 +79,11 @@ def memberBuiltR (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γ
 invariant, the cluster's ids invariant and its id `0` unclaimed, the proposals' mint and the read
 contexts' invariant (each over raft's names and the issued map only, which `restartNames` keeps:
 `srvPropMint` holds an exclusive authority, so a restart must reuse the stopped one's), and the KV
-invariant (`kvInv_restartNames`). What `BuildServer.specRestart` takes beside the image; a driver
-keeps it from the cluster's allocation (`memberBoot_restartFacts`). -/
+invariant (`kvInv_restartNames`); (restart S7.4, 2026-11-14) and the stopped incarnation's key
+registered (`idKeyFactAt`), from which the claims' invariant gives its prefix good (`idPfxOk`,
+`idKeyFact_pfxOk`), what a new incarnation's key needs (`idIncarnation_alloc`). What
+`BuildServer.specRestart` takes beside the image; a driver keeps it from the cluster's allocation
+(`memberBoot_restartFacts`). -/
 def memberRestartFacts (γ : SrvRaft) (ρ : ReqNames) (id : w64) : IProp GF :=
   iprop(⌜ρ.rd.raft = ⟨γ, [], W64 0⟩ ∧
       ρ.rd.kv.c0 = W64 0 ∧ ρ.rd.kv.ch0 = apply.alarmChain false false false ∧
@@ -87,7 +91,8 @@ def memberRestartFacts (γ : SrvRaft) (ρ : ReqNames) (id : w64) : IProp GF :=
       lease.runCfg (GF := GF) ρ.rd.kv.lm .none⌝ ∗
     srvRaftLogInv ρ.rd.raft ∗
     idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗ idNoZero ρ.ids ∗
-    srvPropMint ρ.rd.raft ρ.ids ∗ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗ kvInv ρ.rd.raft ρ.rd.kv)
+    srvPropMint ρ.rd.raft ρ.ids ∗ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗ kvInv ρ.rd.raft ρ.rd.kv ∗
+    ∃ x : GName, idKeyFactAt ρ.ids.fs ρ.ids.key x)
 
 instance memberRestartFacts_persistent (γ : SrvRaft) (ρ : ReqNames) (id : w64) :
     Persistent (memberRestartFacts (GF := GF) γ ρ id) := by
@@ -112,7 +117,7 @@ theorem memberBoot_restartFacts (γ : SrvRaft) (ctxs : List (List w8)) (ρ : Req
       memberRestartFacts γ ρ id ∗ memberBoot γ ctxs ρ E₀ Φs id false .none := by
   iintro H
   iunfold memberBoot at H
-  icases H with ⟨%Hρ, Hnb, #Hsrl, #Hidc, Hkf, #Hnz, #Hpm, #Hrc, Hsh, Hwt, Hfr, Hcok, Hrev, Hrdf,
+  icases H with ⟨%Hρ, Hnb, #Hsrl, #Hidc, #Hkf, #Hnz, #Hpm, #Hrc, Hsh, Hwt, Hfr, Hcok, Hrev, Hrdf,
     #Hkv, Hreg, Hsd⟩
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10⟩ := Hρ
   isplitr
@@ -127,6 +132,138 @@ theorem memberBoot_restartFacts (γ : SrvRaft) (ctxs : List (List w8)) (ρ : Req
   iframe #
 
 end laws
+
+
+section restartAlloc
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+
+/-- **What a restarted incarnation's `NewServer` takes of the ghost state** (restart S7.4; auth off,
+no compaction, the lease mode `none`): `NewServer.specR`'s rows at the incarnation's names `ρ` and
+stand-in environment `E₀` but the image and the restart-only rows: `memberBoot`'s, without the
+node's boot token, the storage registry and the snapshot directory (the image holds them). -/
+def memberRestartBoot (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEnv GF)
+    (Φs : w64 → w64 → List w8 → GName → IProp GF) (id : w64) : IProp GF :=
+  iprop(⌜ρ.rd.raft = ⟨γ, [], W64 0⟩ ∧
+      ρ.rd.kv.c0 = W64 0 ∧ ρ.rd.kv.ch0 = apply.alarmChain false false false ∧
+      ρ.rd.kv.log0 = [[], []] ∧ ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧
+      Φs ρ.ids.pfx = srvFloorFact E₀ ∧ E₀.cmp = false ∧ ρ.rd.kv.cmp = false ∧
+      E₀.Nx = srvApi.kvNx ρ.rd false ∧ lease.runCfg (GF := GF) ρ.rd.kv.lm .none⌝ ∗
+    srvRaftLogInv ρ.rd.raft ∗
+    idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
+    idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γs.slog ∗ idNoZero ρ.ids ∗
+    srvPropMint ρ.rd.raft ρ.ids ∗ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
+    idShare ρ.ids ∗ idWaitTok ρ.ids ∗
+    srvApi.newServerStoreFreshA E₀.γs ∗
+    ghostMapAuth ρ.rd.kv.cok 1 (∅ : GMap w64 mvcc.Log) ∗
+    ghostMapAuth E₀.γrev 1 (∅ : GMap w64 Unit) ∗
+    srvReadNamesFreshNK ρ.rd ∗ kvInv ρ.rd.raft ρ.rd.kv)
+
+open Iris.ProofMode in
+/-- **A registered key's prefix is good** (the claims' invariant: every key of the keys' map has a
+good prefix, and the facts' map has the keys' domain). -/
+theorem idKeyFact_pfxOk {X : Type} [Pos.Countable X] (issued cnt wn fs : GName)
+    (Φs : X → w64 → List w8 → GName → IProp GF) (k : IdKey) (x : X) (E : CoPset)
+    (HE : ↑idClusterN ⊆ E) :
+    ⊢ idClusterInv (GF := GF) issued cnt wn fs Φs -∗ idKeyFactAt fs k x ={E}=∗ ⌜idPfxOk k.1⌝ := by
+  iintro #Hcl #Hk
+  iunfold idClusterInv at Hcl
+  iinv Hcl with Hi Hclose
+  icases Hi with ⟨%I, %C, %R, %Fm, >HI, >HC, >HR, >HF, >%Hok, #HFs, >#HG⟩
+  iunfold idKeyFactAt at Hk
+  ihave %Hlk := ghost_map_lookup $$ HF Hk
+  imod Hclose $$ [HI HC HR HF] with -
+  · inext
+    iexists I, C, R, Fm
+    iframe HI HC HR HF HFs HG
+    ipureintro; exact Hok
+  imodintro
+  ipureintro
+  obtain ⟨-, h2, -, -, -, h6⟩ := Hok
+  have hs : (C !! k).isSome := (h6 k).2 (by simp [Hlk])
+  cases hc : C !! k with
+  | none => simp [hc] at hs
+  | some e => exact (h2 k e hc).1
+
+/-- **A restarted incarnation's names** (restart S7.4, `memberRestartFacts_alloc`): the stopped
+incarnation's `ρ` with new read names' rows (`applied`, `committed`, `notifier`, `logs`, `pend`), a
+new certificate map `cok` and applied height `hi`, and the ids at a new incarnation number `inc`
+with new slot and pending maps (`slot`, `ipend`). -/
+def restartReqNames (ρ : ReqNames) (applied committed notifier logs pend cok hi slot ipend : GName)
+    (inc : Nat) : ReqNames :=
+  let ids : IdNames := ⟨ρ.ids.issued, ρ.ids.cnt, slot, ρ.ids.pfx, ρ.ids.wn, inc, ρ.ids.fs, ipend⟩
+  let kv : KVNames := ⟨ρ.rd.kv.st, ρ.rd.kv.c0, ρ.rd.kv.ch0, ρ.rd.kv.log0, cok, hi, ids, ρ.rd.kv.hist,
+    ρ.rd.kv.cmp, ρ.rd.kv.rlog, ρ.rd.kv.cret, ρ.rd.kv.lm⟩
+  ⟨ρ.wait, ⟨applied, committed, notifier, logs, pend, ρ.rd.raft, kv⟩⟩
+
+theorem restartReqNames_restartNames (ρ : ReqNames)
+    (applied committed notifier logs pend cok hi slot ipend : GName) (inc : Nat) :
+    restartNames ρ (restartReqNames ρ applied committed notifier logs pend cok hi slot ipend inc) :=
+  ⟨rfl, ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, by unfold kvPfx; rfl⟩, rfl, rfl⟩
+
+open Iris.ProofMode in
+/-- **A restarted incarnation's names, allocated** (restart S7.4): from the cluster's persistent
+facts at the stopped incarnation's names `ρ`, new names `ρ'` that agree with `ρ` where the cluster
+sees them (`restartNames`; `restartReqNames`): raft's names, the KV names but the certificate map
+`cok` and the applied height `hi`, the claims' map, counters, wait names, facts' map and prefix, at a
+new incarnation key (`idIncarnation_alloc`, its number above every key's) with new slot and pending
+maps; new read names' rows (`srvReadNamesFreshNK`); and a new stand-in environment `E₀` over a fresh
+store's names (`newServerNames_alloc`), the key's facts at its store index. The persistent facts
+carry over (`srvPropMint_congr`, `kvInv_congr`). -/
+theorem memberRestartFacts_alloc (hne : mvcc.api.names_nonempty.law) (γ : SrvRaft) (ρ : ReqNames)
+    (id : w64) :
+    ⊢ memberRestartFacts (GF := GF) γ ρ id ={⊤}=∗
+      ∃ (ρ' : ReqNames) (E₀ : apply.AEnv GF) (Φs : w64 → w64 → List w8 → GName → IProp GF),
+        ⌜restartNames ρ ρ'⌝ ∗ memberRestartBoot γ ρ' E₀ Φs id := by
+  iintro #Hf
+  iunfold memberRestartFacts at Hf
+  icases Hf with ⟨%Hρ, #Hsrl, #Hidc, #Hnz, #Hpm, #Hrc, #Hkv, %x, #Hkf⟩
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := Hρ
+  imod (idKeyFact_pfxOk _ _ _ _ _ _ _ ⊤ (by simp)) $$ Hidc Hkf with %Hpok
+  imod newServerNames_alloc (GF := GF) with ⟨%γs, %cok, %rev, Hidx, Hcok, Hrev⟩
+  have γm : mvcc.api.MvccName := Classical.choice hne.1
+  imod (idIncarnation_alloc (GF := GF) _ _ _ _ srvFloorFacts ρ.ids.pfx γs.slog ⊤ (by simp) Hpok)
+    $$ Hidc with ⟨%inc, Hk, Hwt, #Hkf'⟩
+  imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Unit) with ⟨%γsl, Hsl⟩
+  imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Unit) with ⟨%γpd, Hpend⟩
+  imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γa, Ha, -⟩
+  imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γc, Hc, -⟩
+  imod ghostVar_alloc (GF := GF) ((null, ⟨γa, γa⟩) : Loc × NeedNames) with ⟨%γn, Hn⟩
+  imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := mvcc.Log) with ⟨%γl, Hl⟩
+  imod ghostVar_alloc (GF := GF) false with ⟨%γp, Hpd⟩
+  imod ghostVar_alloc (GF := GF) ρ.rd.kv.log0.length with ⟨%γhi, Hhi⟩
+  have hR := restartReqNames_restartNames ρ γa γc γn γl γp cok γhi γsl γpd inc
+  imodintro
+  iexists restartReqNames ρ γa γc γn γl γp cok γhi γsl γpd inc,
+    env₀ γm γs rev (srvApi.kvNx (restartReqNames ρ γa γc γn γl γp cok γhi γsl γpd inc).rd false) false,
+    (fun _ => srvFloorFacts γs.slog)
+  isplitr
+  · ipureintro; exact hR
+  iunfold memberRestartBoot
+  rw [kvInv_congr _ _ _ hR.2.1.symm, hR.1,
+    srvPropMint_congr _ (restartReqNames ρ γa γc γn γl γp cok γhi γsl γpd inc).ids ρ.ids rfl]
+  simp only [restartReqNames, env₀, ReqNames.ids, ReqNames.kv, IdNames.key]
+  isplitr
+  · ipureintro
+    refine ⟨h1, h2, h3, h4, h5, ?_, ?_, h6, ?_, h7⟩ <;> first | trivial | rfl
+  iframe Hsrl Hidc Hkf' Hpm Hrc Hkv Hidx Hcok Hrev
+  isplitr
+  · iunfold idNoZero; iunfold idNoZero at Hnz; iexact Hnz
+  isplitl [Hk Hsl Hpend]
+  · iunfold idShare
+    iframe Hk Hsl Hpend
+  isplitl [Hwt]
+  · iexact Hwt
+  iunfold srvReadNamesFreshNK
+  iframe Ha Hc Hl Hpd Hhi
+  iexists _
+  iexact Hn
+
+end restartAlloc
 
 
 end etcdstart

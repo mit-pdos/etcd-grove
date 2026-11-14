@@ -10,11 +10,18 @@ member's names', `memberBoot`, until then allocated here) (its premises from the
 ghost state and `bootstrap`'s contract); on success, `memberBuilt` from its postcondition
 (`isServerBuilt_of_gap`, the monitors off by the configuration's zero check intervals and the
 gate's `CompactHashCheck`).
+
+`wp_proofRestart` (restart S7.4, 2026-11-14): the same steps over `NewServer.specR`, at retention `0`,
+auth off and no compaction mode: the restarted incarnation's names allocated from the cluster's facts
+(`memberRestartFacts_alloc`), the image opened at its witnesses (`memberRestartRes_boot`), the
+restart-only rows used there; on success, `memberBuiltR` from the post (the lessor at the snapshot it
+recovered, `srvLeaseRd_of_srvInvAt`).
 -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.newServerMode
 public import Spec.go_etcd_io.etcd.server.v3.features.NewDefaultServerFeatureGate
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.NewServerR
 
 @[expose] public section
 
@@ -163,6 +170,120 @@ theorem newServerMode.wp_proof
     iframe #
   ipureintro
   exact ⟨HE.1, HE.2.1, rfl, rfl, rfl⟩
+
+/-- `newServerMode` at a restart (see the file header): the glue over `NewServer.specR`. -/
+theorem newServerMode.wp_proofRestart
+    (hne : mvcc.api.names_nonempty.law)
+    (wp_FG : features.NewDefaultServerFeatureGate.spec (GF := GF) (hG := hG))
+    (wp_NewServerR : ∀ [go_etcd_io.etcd.cache.v3.Assumptions],
+      NewServer.specR (GF := GF) (hG := hG)) :
+    newServerMode.specRestart (GF := GF) (hG := hG) := by
+  intro CS N name peerAddr client token mode retention snapCount catchUp peer cluster lg M iu Uok ps
+    bootLog ctxs dir id γ ρ γn ThB RcB RcN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps
+    HU Hret Haf Hbuq Hdbo
+  have Htb := ThreadBoundLe.le (GF := GF) (2 ^ 28)
+  have Hrb48 := ReceiptBoundLe.le (GF := GF) (2 ^ 48)
+  have HrbN := ReceiptBoundLe.le (GF := GF) (N + 1)
+  wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hrr, #Hnet, #Hrfs, #Hvoff,
+    #Hrows⟩
+  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
+  iunfold bootPremiseR at Hboot
+  iunfold commonPremises at Hcom
+  icases Hcom with ⟨#Hzap, #Htd, #Hns⟩
+  -- the restarted incarnation's names, from the cluster's facts at the stopped ones
+  imod (memberRestartFacts_alloc hne γ ρ id) $$ Hrfs with ⟨%ρ', %E₀, %Φs, %Hρ', Hmb⟩
+  iunfold memberRestartBoot at Hmb
+  icases Hmb with ⟨%Hρ, #Hsrl, #Hidc, #Hidk, #HNZ0, #Hpmint, #Hrdctx, Hids, Hwtok, Hidx, Hcok, Hrev,
+    Hnk, #Hkvinv⟩
+  obtain ⟨hraft, hc0, hch, hlog, hpfx, hΦs, hcmp0, hkcmp, hNx, hslg⟩ := Hρ
+  -- the stopped member's image, at its witnesses, and the restart-only rows there
+  ihave Himg := memberRestartRes_boot _ _ _ _ _ $$ Hrr
+  iunfold srvDiskImage at Himg
+  icases Himg with ⟨%S, %σ, %i, %A, %D, %mb, %Mr, Himg⟩
+  ihave #Hrw := Hrows $$ %A %σ
+  -- the imports' package facts
+  ihave #Pfeat : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.features $$ []
+  · iPkgInit
+  ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
+  · iPkgInit
+  (try wp_auto)
+  -- the configuration's client URLs
+  wp_apply wp_slice_literal
+  try (isplitr; (ipureintro; rfl))
+  iintro %curls ⟨Hcurls, -⟩
+  simp only [go.arrayLiteralSize, List.foldl]
+  (try wp_auto)
+  wp_apply wp_FG as %fgp ⟨%Hfgp, #Hfg, #Hfgc, #Hflc⟩
+  (try wp_auto)
+  letI : MemStorReg GF := ⟨γ.reg⟩
+  imod ownSlice_persist _ _ _ $$ Hcurls with #Hcurls
+  have hblen' : γ.boot.length ≤ 2 ^ 60 := by rw [hboot]; exact hblen
+  have wpNS : NewServer.specR (GF := GF) (hG := hG) := wp_NewServerR
+  simp only [NewServer.specR, kvInvM_false, srvErM_false] at wpNS
+  wp_apply (wpNS _ ⟨[httpURL peerAddr], [httpURL client], M, iu⟩
+      γ id ρ' ρ E₀ N Φs γn dir .none S σ i A D mb Mr hraft Hρ' (by rw [hboot]; exact hrule) hc0 hch
+      hlog hkcmp ⟨by simp, by simp [mvcc.rangeLimitMax]⟩
+      (by simp [v3rpc.etcdMaxRequestBytesOk, v3rpc.etcdMaxRecvMsgSize, v3rpc.grpcOverheadBytes])
+      v3rpc.maxTxnOpsOk_default (v3compactor.bootCfg_off _ _ _ _ Hret) hcmp0 hNx Htb Hrb48 HrbN
+      hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok (peerURLsDir_httpURL dir id peerAddr Hdirok Hdir)
+      (raftNode.bootCfg_of _ rfl) (by rw [hvs]; exact Hdirps)
+      (lease.bootCfg_of_run hslg (fun h => absurd h (by decide)))
+      (bootCfgOk_of _ rfl rfl rfl rfl) rfl rfl HwbN)
+    $$ [Htok Himg Hids Hwtok Hidx Hcok Hrev Hnk] as %srv %err Hres
+  · iframe
+    iframe #
+    isplitr
+    · iapply Hboot
+      ipureintro
+      refine ⟨?_, HU, hvs, hrule, hboot⟩
+      unfold cfgOk; simp
+    isplitr
+    · iunfold bootCfgRO
+      isplitr; · iExactEq Hpeer; rfl
+      isplitr; · iExactEq Hcurls; rfl
+      isplitr; · iExactEq Hcl; rfl
+      iexact Hsls
+    isplitr; · ipureintro; exact ⟨Hγn1, Hγn2⟩
+    isplitr; · ipureintro; exact Haf
+    isplitr; · ipureintro; exact Hbuq
+    isplitr; · ipureintro; exact Hdbo
+    ipureintro; exact storage.openMmapOk_of_quota_zero _ rfl
+  icases Hres with (⟨⟨%Hsn, %Herr⟩, Htok⟩ | ⟨%Herr, Htok, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %at₀,
+    %HE, Hstk, #Hwb, Hbuilt, Hserve, Hsv, Hmon, Hrc, #Hnm, Htokp, HServeR, Hls, -, Hkeep⟩)
+  · -- `NewServer` failed: the error returned
+    iapply HΦ; ileft; iframe Htok; ipureintro; exact Herr
+  subst Herr
+  iunfold srvMonitorCfg at Hmon
+  icases Hmon with ⟨#Hmc, #Hmd, #Hmf, Hlgm⟩
+  ihave #Hoff : srvMonitorsOff srv $$ []
+  · iunfold srvMonitorsOff
+    isplitr; · iExactEq Hmc; rfl
+    isplitr; · iExactEq Hmd; rfl
+    iexists _
+    iframe Hmf Hfgc
+  -- the lessor at the snapshot it recovered of the image's `lease` bucket
+  icases Hls with ⟨%recs, %ls, %mt, -, #Hlsrv⟩
+  ihave #Hlr : srvLeaseRd srv E .none $$ []
+  · iapply srvLeaseRd_of_srvInvAt srv E false _ $$ Hlsrv
+  -- the data directory, the slot's (the literal's fields)
+  icases srvStop.dataDir srv _ E γrn γk (name ++ go!".etcd") rfl rfl $$ Hkeep with ⟨#Hddir, Hkeep⟩
+  iapply HΦ
+  iright
+  isplitr; · ipureintro; rfl
+  iframe Htok Hddir
+  iexists ρ', E₀
+  isplitr; · ipureintro; exact Hρ'
+  iunfold memberBuiltR
+  iexists γA, ci, TM, E, γrn, b, _, γk, τ, at₀, A
+  simp only [etcdstart.memberPeerServeRes, Bool.false_eq_true, ↓reduceIte]
+  isplitr
+  rotate_left
+  · isplitl [Hstk]
+    · iexact Hstk
+    iframe
+    iframe #
+  ipureintro
+  exact ⟨HE.1, HE.2, rfl, rfl, rfl⟩
 
 end proof
 

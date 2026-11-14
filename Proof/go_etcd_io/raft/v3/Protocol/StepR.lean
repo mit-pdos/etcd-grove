@@ -191,6 +191,9 @@ inductive StepR : RState → List Msg → RState → Prop where
       LeaderMatchOk id r.p mt →
       (∀ m ∈ ms, ReplOk id (pwinState id r.p mt) m) →
       (∀ m ∈ ms, AppCommitEq (pwinState id r.p mt) m) →
+      -- (restart S7.3, 2026-11-14) a snapshot to a voter or learner of the configuration
+      -- (`StepC.win`'s; until then dropped by the dynamic model)
+      (∀ m ∈ ms, m.ty = .snap → m.dst ∈ r.cfg.cfg.voters ∪ r.cfg.cfg.learners) →
       StepR r [] { r with
         p := psendMsgs (pwinState id r.p mt) ([pselfAck id (pwinState id r.p mt)] ++ ms)
         pci := plastIndex r.p }
@@ -277,6 +280,9 @@ inductive StepR : RState → List Msg → RState → Prop where
       r.p.role = .leader →
       (∀ m ∈ ms, ReplOk id r.p m) →
       (∀ m ∈ ms, AppCommitEq r.p m) →
+      -- (restart S7.3, 2026-11-14) a snapshot to a voter or learner of the configuration
+      -- (`StepC.sendApps`'s; until then dropped by the dynamic model)
+      (∀ m ∈ ms, m.ty = .snap → m.dst ∈ r.cfg.cfg.voters ∪ r.cfg.cfg.learners) →
       StepR r [] { r with p := psendMsgs r.p ms }
   | propose (m : Msg) (r : RState) (cs : List (Option ConfChangeIM)) :
       m.ty = .propose →

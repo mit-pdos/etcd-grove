@@ -45,7 +45,9 @@ the storage registry `M`), in the stop's scope: auth off, no compaction mode (`s
   `nodeVacant`), the storage registry's empty authority (the image holds it at `M`) and the snapshot
   directory's ghost map (the image holds the first start's invariant); and the restart-only rows
   (`srvRestartRows`, D3: true of Go for row 4, false on a disclosed class for row 1, so this triple is
-  honest only as an open triple; S7 deletes the premise);
+  honest only as an open triple in general; restart S7.3, 2026-11-14: a fancy update at `⊤` taking the
+  server's member id field, its rows' wands fancy updates too; in a one-member cluster discharged by
+  `srvRestartRows_single`; R2s-A deletes the premise);
 * the post: the built part's restart form (`srvBuiltR`, its law `srvBuiltR_C` to `start`'s
   `isServerBuiltC .off`) at the restart's apply state (`restartKV ρ.rd.kv A`: the KV model of `A`)
   and some snapshot term `at₀`, in place of `srvBuiltG` and `srvBuildGap`; no lease-TTL row
@@ -101,7 +103,7 @@ abbrev NewServer.specR : Prop :=
       "#Hcfgro" ∷ bootCfgRO cfg U ∗
       -- the stopped member's image, in the configuration's data directory
       "Himg" ∷ srvDiskImageAt γ ρo id cfg.DataDir' S σ i A D mb M ∗
-      -- the restart-only rows (D3; S7 deletes them)
+      -- the restart-only rows (D3; one member: `srvRestartRows_single`; R2s-A deletes them)
       "Hrows" ∷ srvRestartRows γ id A σ ∗
       "#Hsrl" ∷ srvRaftLogInv ρ.rd.raft ∗
       "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗

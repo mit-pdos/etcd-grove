@@ -451,6 +451,12 @@ theorem wp_Step_MsgProp
               (Int.le_refl _) Hlv) ?_
           rw [show (absMsg .propose m ents ctx).entries = ents from rfl, Hpb]
           exact StepR.sendApps _ ms Hrl2 (fun m hm => (Hms m hm).1) (fun m hm => (Hms m hm).2.1)
+            (fun m hm h => by
+              have e : m.dst ∈ c.voters ∪ c.learners := (GMap.elem_of_subseteq _ _).1 Hpc _ (by
+                have := (Hms m hm).2.2.1 h
+                simp only [proposed, sendMsgs] at this
+                rw [Hspp] at this; exact this)
+              rw [← hc] at e; exact e)
       ileft; ipureintro; rfl
     · -- dropped: a leader transfer in progress, or `appendEntry` refused the batch (only
       -- `pendingConfIndex` moved, 2026-10-13)
