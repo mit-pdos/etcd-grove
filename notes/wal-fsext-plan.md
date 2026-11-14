@@ -7717,5 +7717,6 @@ alternative; **`ReadAll.wp_proof` has no `sorry`** (its `hsq` discharged). The o
   (the tester's boot) gives `walGhost_init` the bound of a state with no WAL (`preceipt_zero`). `bounds-check --check`:
   ok (330, unchanged).
 - Build: seeded from `agent-acf67bafb22b91eb4` (`wal-fork5`, building at the time; the WAL `Code` module was stale, so
-  the whole WAL tree rebuilt); `lake build` of the WAL `Link` target: everything builds but `Link.lean` itself, whose
-  failure is `wal-int`'s (`Create.wp_proof`'s new hypotheses, the W4 log's `fbace745fc`), not this branch's.
+  the whole WAL tree rebuilt); `lake build` of the WAL `Link` target: before merging `wal-int`, everything but `Link.lean`,
+  whose failure was `wal-int`'s (`Create.wp_proof`'s new hypotheses); after merging it, all 3063 jobs build; the only
+  WAL `sorry` left is `Create.lean`'s (its cleanup arms).
