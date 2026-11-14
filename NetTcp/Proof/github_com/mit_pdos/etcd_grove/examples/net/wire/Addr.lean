@@ -98,11 +98,11 @@ def addrInv (a : GoString) (Φ : Nat → IProp GF) : IProp GF :=
 new connection's acceptor end, `mk`) and keeps its own end and `R cn`. -/
 theorem dial_au (N : Namespace) (a : GoString) (Φ R : Nat → IProp GF) [∀ cn, Timeless (Φ cn)] :
     ⊢ inv N (addrInv a Φ) -∗
-      (∀ cn, tcpConnAt G cn a -∗ tcpFreshEnd G cn true ={⊤ \ ↑N}=∗ Φ cn ∗ R cn) -∗
+      (∀ cn, tcpConnAt G cn a -∗ tcpFresh G cn true ={⊤ \ ↑N}=∗ Φ cn ∗ R cn) -∗
       |={⊤,∅}=> ∃ S, tcpPend G a S ∗
         ∀ cn, ⌜cn ∉ S⌝ -∗ tcpPend G a (S ∪ {[cn]}) -∗ tcpConnAt G cn a -∗
-          tcpFreshEnd G cn false -∗ tcpFreshEnd G cn true ={∅,⊤}=∗
-          tcpFreshEnd G cn false ∗ R cn := by
+          tcpFresh G cn false -∗ tcpFresh G cn true ={∅,⊤}=∗
+          tcpFresh G cn false ∗ R cn := by
   iintro #Hinv Hmk
   iinv Hinv with Hi Hclose
   unfold addrInv
@@ -201,65 +201,6 @@ theorem addrInv_alloc (N : Namespace) (a : GoString) (Φ : Nat → IProp GF) :
   iapply BigSepM.bigSepM_empty.2
   iempintro
 
-
-/-- A write by an end its thread owns: the update of `net.Conn.Write`, which hands back the end's
-state and bytes after the write. -/
-theorem owned_write_au (c : Nat) (s : Bool) (st : TcpEnd) (r : Nat) (out : GoString) (f : Bool)
-    (bs : GoString) :
-    ⊢ tcpEnd G c s st r -∗ tcpOut (G (Gg := Gg)) c s out f -∗
-      |={⊤,∅}=> ∃ st0 r0 out0 f0, tcpEnd G c s st0 r0 ∗ tcpOut G c s out0 f0 ∗
-        ∀ k ok st', ⌜WriteRes st0 bs k ok st'⌝ -∗ tcpEnd G c s st' r0 -∗
-          tcpOut G c s (out0 ++ bs.take k) f0 ={∅,⊤}=∗
-          ∃ st'', ⌜WriteRes st bs k ok st''⌝ ∗ tcpEnd G c s st'' r ∗
-            tcpOut G c s (out ++ bs.take k) f := by
-  iintro Hend Hout
-  iapply fupd_mask_intro Std.LawfulSet.empty_subset
-  iintro Hmask
-  iexists st, r, out, f
-  iframe Hend Hout
-  iintro %k %ok %st' %Hwr Hend Hout
-  imod Hmask
-  imodintro
-  iexists st'
-  iframe Hend Hout
-  ipureintro; exact Hwr
-
-/-- A close by an end its thread owns: the update of `net.Conn.Close`. -/
-theorem owned_close_au (c : Nat) (s : Bool) (st : TcpEnd) (r : Nat) (out : GoString) (f : Bool) :
-    ⊢ tcpEnd G c s st r -∗ tcpOut (G (Gg := Gg)) c s out f -∗
-      |={⊤,∅}=> ∃ st0 r0 out0 f0, tcpEnd G c s st0 r0 ∗ tcpOut G c s out0 f0 ∗
-        ∀ ok st' f', ⌜CloseRes false (fun st => { st with closed := true }) st0 f0 ok st' f'⌝ -∗
-          tcpEnd G c s st' r0 -∗ tcpOut G c s out0 f' ={∅,⊤}=∗
-          ∃ st'' f'', ⌜CloseRes false (fun st => { st with closed := true }) st f ok st'' f''⌝ ∗
-            tcpEnd G c s st'' r ∗ tcpOut G c s out f'' := by
-  iintro Hend Hout
-  iapply fupd_mask_intro Std.LawfulSet.empty_subset
-  iintro Hmask
-  iexists st, r, out, f
-  iframe Hend Hout
-  iintro %ok %st' %f' %Hcr Hend Hout
-  imod Hmask
-  imodintro
-  iexists st', f'
-  iframe Hend Hout
-  ipureintro; exact Hcr
-
-
-/-- A close by an end its thread owns, whose state the thread no longer needs. -/
-theorem owned_close_drop (c : Nat) (s : Bool) (st : TcpEnd) (r : Nat) (out : GoString) (f : Bool) :
-    ⊢ tcpEnd G c s st r -∗ tcpOut (G (Gg := Gg)) c s out f -∗
-      |={⊤,∅}=> ∃ st0 r0 out0 f0, tcpEnd G c s st0 r0 ∗ tcpOut G c s out0 f0 ∗
-        ∀ ok st' f', ⌜CloseRes false (fun st => { st with closed := true }) st0 f0 ok st' f'⌝ -∗
-          tcpEnd G c s st' r0 -∗ tcpOut G c s out0 f' ={∅,⊤}=∗ True := by
-  iintro Hend Hout
-  iapply fupd_mask_intro Std.LawfulSet.empty_subset
-  iintro Hmask
-  iexists st, r, out, f
-  iframe Hend Hout
-  iintro %ok %st' %f' %Hcr - -
-  imod Hmask
-  imodintro
-  itrivial
 
 end wps
 
