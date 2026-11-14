@@ -234,7 +234,7 @@ theorem wp_osResizeStart (op : String) (v : val) (hop : DataOp op) (hv : v.isPan
     ⊢ osInv (L := L) -∗ osFd (L := L) fd dq d -∗ osMeta (L := L) d.ino (DFrac.own 1) m -∗
       osBytes (L := L) d.ino (min m.size tg) (DFrac.own 1) xs -∗
       mcellsAny m.maps (min m.size tg) (rsHi tr m.size tg) -∗
-      (∀ t : Nat, ∀ n : Nat, ⌜∀ x ∈ xs, ∀ q ∈ x.2, q.2 < n⌝ -∗ osFd (L := L) fd dq d -∗
+      (∀ t : Nat, ∀ n : Nat, ⌜0 < n ∧ m.TcZ ∧ ∀ x ∈ xs, ∀ q ∈ x.2, q.2 < n⌝ -∗ osFd (L := L) fd dq d -∗
         rsTok tr t d.ino tg m xs n -∗ Φ (osTokV t)) -∗
       WP (ExternalOp fsExt.name op (Val v)) @ s; E {{ Φ }} := by
   iintro #Hinv Hfd Hm Hbs Hc HΦ
@@ -377,9 +377,9 @@ theorem wp_osResizeStart (op : String) (v : val) (hop : DataOp op) (hv : v.isPan
     rw [hlo']
     iframe
   iapply wp_value'
-  iapply HΦ $$ %t %n %(fun x hx q hq => by
+  iapply HΦ $$ %t %n %(And.intro (Nat.succ_pos _) (And.intro hmo.tcz (fun x hx q hq => by
     obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hx
-    exact Nat.lt_succ_of_le (hxs k hk q hq)) Hfd
+    exact Nat.lt_succ_of_le (hxs k hk q hq)))) Hfd
   unfold rsTok osTok
   iframe Ht; ipureintro; exact hlen
 
@@ -999,7 +999,7 @@ theorem wp_osFtruncateStart (fd sz : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (
     ⊢ osInv (L := L) -∗ osFd (L := L) fd dq d -∗ osMeta (L := L) d.ino (DFrac.own 1) m -∗
       osBytes (L := L) d.ino (min m.size sz.toNat) (DFrac.own 1) xs -∗
       mcellsAny m.maps (min m.size sz.toNat) (rsHi true m.size sz.toNat) -∗
-      (∀ t : Nat, ∀ n : Nat, ⌜∀ x ∈ xs, ∀ q ∈ x.2, q.2 < n⌝ -∗ osFd (L := L) fd dq d -∗
+      (∀ t : Nat, ∀ n : Nat, ⌜0 < n ∧ m.TcZ ∧ ∀ x ∈ xs, ∀ q ∈ x.2, q.2 < n⌝ -∗ osFd (L := L) fd dq d -∗
         rsTok true t d.ino sz.toNat m xs n -∗ Φ (osTokV t)) -∗
       WP (ExternalOp fsExt.name "FtruncateStart" (Val (PairV (#fd) (#sz)))) @ s; E {{ Φ }} := by
   refine wp_osResizeStart "FtruncateStart" _ (by simp [DataOp]) (by simp [val.isPanic]) true fd
