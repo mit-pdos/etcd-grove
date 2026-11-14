@@ -609,8 +609,9 @@ target builds (3215 jobs, no failure, nothing to fix); `etc/gen-part-copies.py -
 - WAL's own variants: `WAL.renameWALUnlock.spec` (`S/WAL__renameWAL.lean:69`), `WAL.sync.specC`
   (`S/WAL__Close.lean:59`), `WAL.sync.specCut` (`S/WAL__cut.lean:112`), `encoder.encode.specTail` (3 uses, first
   `S/WAL__SaveSnapshot.lean:55`).
-- `fileutil.CreateDirAll.specTmp` (`Sp/CreateCallees.lean`; `S/Create.lean:105`): restated (`wal-leaf4`, commit bound
-  dropped); blocked on a leftover `.touch`'s file ownership and `CheckDirPermission`'s spec (ledger, `wal-leaf4` log).
+- `fileutil.CreateDirAll.specTmp` (`Sp/CreateCallees.lean`; `S/Create.lean:105`): proved (`wal-leaf5`,
+  `CreateDirAll.wp_proofTmp`), over `TouchDirAll.specDir` (proved) and `CheckDirPermission.spec` (proved on
+  `wal-leaf5-modeperm`, which translates `io/fs.ModePerm`; until it merges, a hypothesis).
 - `os.File.Close.specClosed` (`LinuxFs/Spec/os/File__CloseClosed.lean:38`; `S/Create.lean:111`, `CreateLockedLeft`).
 - `pbutil.MustMarshalMessage.specWalSnap`: proved (`wal-leaf3`, over `proto.MarshalPb.spec`; size premise added,
   ledger). `pbutil.MustUnmarshalMessage.specWalSnap`: proved (`wal-leaf4`, over `proto.UnmarshalPb.spec`, premise
@@ -652,9 +653,69 @@ Link alone, the rest of the repository's roots not being built here; the 8 new e
   copies of main-tree trust-boundary specs, whose axioms the part cannot import); `strings.HasSuffix`,
   `fmt.{SprintfWalName,SscanfWalName,ErrorfErrsNot}`, `errors.{AsLinkError,IsErrno,IsPathErrnoEof,IsPathErrnoNotExist}`,
   `filepathlite.{Dir,IsAbs}`, `io.ReadFull`, `binary.ReadInt64LE`, `proto.{ClonePb,UnmarshalWalRecordE}`; the WAL's own
-  `WAL.renameWALUnlock.spec` and `fileutil.CreateDirAll.specTmp` (false as stated, ledger). Premises: the `WalPbIn`
+  `WAL.renameWALUnlock.spec` and (until `wal-leaf5`) `fileutil.CreateDirAll.specTmp`; since `wal-leaf5`,
+  `fileutil.CheckDirPermission.spec` in its place (proved on `wal-leaf5-modeperm`). Premises: the `WalPbIn`
   laws, `U.Ok`, `U.SnapCoh`, `WalHsOwn`, `WalDecEnvSupply`. Semantic premise class: `[UntypedRuneSemantics]` (a section
   instance, from `filepath`).
+
+## Leaf specs log (branch `wal-leaf5`, 2026-11-14)
+
+The three tasks the coordinator decided after `wal-leaf4` (the `.touch` ownership, `CheckDirPermission`,
+`CreateDirAll.specTmp`).
+
+**Adopted: a temporary directory's `.touch` file owned** (ledger 2026-11-14, "a leftover `.touch` needs its
+file", decision recorded there). In the proposal's "only `.touch`'s" form, not "every file": `tmpSub`'s
+directory arm holds `WalFs.tmpEnt (hJ.cur !! .touch)` (`TmpDir.lean`). Every file whole would have made
+`Create`'s unminting give the new WAL's first segment back as a `trFile` (`walCreateP` has its `OsMeta` and
+bytes, not `trFile`'s facts), for no consumer: the other files are only unlinked (`RemoveAll`, which takes
+no file). Threaded through:
+- `walAreaRes` (`CreateDefs.lean`): its claims are `areaCls cl` (the claims whole and, per tagged claim,
+  `tmpClTouch`: the `.touch` of a whole claim under a WAL name's `nm.tmp`); `area_takeTmp`/`area_give`,
+  `walAreaRes_open`/`_close` and the `Create*` lemmas over `areaCls`; `bigSepL_tag_split`, `tmpClTouch_not`
+  (`CreateArea.lean`). Callers that only pass the claims along (`Exist`, `openAtIndex`, `openLast`) unchanged.
+- `RemoveAll`: `os.RemoveAll.specDirS` unchanged (it unlinks, needs no file); its wrapper
+  `rmAllOut_tmpDirH` (`CreateTmp.lean`) gives the file back if `.touch` is still there.
+- `TouchDirAll`'s error arms: `IsDirWriteable.spec`'s error post now gives the probe's file back
+  (`⌜none⌝ ∨ ∃ i, ⌜file i⌝ ∗ trFile i False`), over `os.WriteFile.specEmptyS`'s new `crTr False o`
+  (`os.crTr_false`; `trFile_false` is now `trFile_mono`'s instance). `tmpDirH_dir` takes the `tmpEnt`,
+  `tmpDirH_dirE` (an empty directory), `touchOut_tmpEnt` (`TouchDirAll.lean`).
+- `Create`'s exits: the directory has no `.touch` (`segClaim_back` and `create_Jback` now say so;
+  `create_unmint` takes `hJ.cur !! .touch = none`; `touch_ne_walFileName`).
+- The crash rebuild: `osFileStart_trFile` (`S/Crash.lean`): a file a crash kept, once taken from
+  `crashRest`, is a `trFile i False` (`initMeta`): what the area's establishment at boot (C6, not written:
+  nothing establishes `walAreaRes` from a boot yet) gives of a leftover `nm.tmp/.touch` (and `walTmpsRes` of
+  a leftover `N.tmp`). Its premise there: the leftover files' inodes distinct.
+
+**Proved**
+- `fileutil.TouchDirAll.specDir` (`LinuxFs/{Spec,Proof}/.../fileutil/TouchDirAllDir.lean`): `TouchDirAll` of a
+  name holding a directory of files (`tmpDirH` pre, the claim unchanged on success, `J` files only and
+  `.touch` none; error: `tmpDirH`). Both branches of `Exist(d)`: `CheckDirPermission` (logged), `syncDir(parent)`
+  over the spine; or the climbing loop (`wp_existAncDir`), `os.MkdirAll.specDirS`, the syncs; then the probe on
+  whatever `.touch` holds (`wp_isDirWriteableAny`: `IsDirWriteable.spec` or `specFile`; `wp_touchProbe`).
+  Takes `CheckDirPermission.spec`, `zap.Error.spec`, `zap.Logger.Warn.spec` (the part's) as hypotheses.
+- `fileutil.CreateDirAll.specTmp` (`fileutil.CreateDirAll.wp_proofTmp`, `.../fileutil/CreateDirAllTmp.lean`):
+  absent, `CreateDirAll.spec`; a directory, `specDir` then `ReadDir`, the files found (if any) named by
+  `fmt.Errorf("expected %q to be empty, got %q", dir, ns)`.
+- `fmt.ErrorfStrs.spec` (`LinuxFs/{Spec,Proof}/fmt/ErrorfStrs.lean`): `Errorf` whose arguments are basic, an
+  `io/fs.FileMode` or a `[]string` (a fraction of its contents held), proved over Perennial's `Errorf` model
+  (`errors.New(format)`) as `fmt.ErrorfErrs` is; the header says why the model is faithful for these
+  arguments (Go formats a `[]string` without methods; `FileMode.String` is total and pure). No new axiom;
+  a wider use of the trusted model, for the coordinator's review. The general fix is a Perennial `ArgWf`
+  case (`notes/perennial-changes.md`).
+
+**Stated; proved on branch `wal-leaf5-modeperm`**
+- `fileutil.CheckDirPermission.spec` (`.../fileutil/CheckDirPermission.lean`): a spine to the directory, any
+  `perm`, a fraction of the call permission: no effect, some error. Its proof needs `FileMode.Perm`'s mask
+  `io/fs.ModePerm`, which the part's `io/fs` did not translate (`axiom ModePerm : val`, names-only): branch
+  `wal-leaf5-modeperm` adds `"ModePerm"` to `LinuxFs/Code/io/fs.toml` (the translation: `axiom` to
+  `#(W32 511)`, `etc/goose.py --project bboltfs`) and proves it (`CheckDirPermission.wp_proof`, over `Exist`,
+  `os.Stat.wp_dirS`, `fmt.ErrorfStrs.spec`). Kept apart because the generated `LinuxFs/Code/io/fs.lean`
+  changes, which rebuilds the whole part (680 modules) for everyone who merges it: the coordinator's call when.
+
+**Statement changes** (internal, the part's): `tmpSub` (the `.touch` file), `walAreaRes` (`areaCls`),
+`IsDirWriteable.spec`'s and `os.WriteFile.specEmptyS`'s posts (the probe file back), `segClaim_back`,
+`create_Jback`, `create_unmint`'s premise. New: `TouchDirAll.specDir`, `CheckDirPermission.spec`,
+`fmt.ErrorfStrs.spec`.
 
 ## Leaf specs log (branch `wal-leaf1`, 2026-11-14)
 
