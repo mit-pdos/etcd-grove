@@ -97,7 +97,7 @@ theorem tcz_pc {m : OsMeta} (h : m.TcZ) {z b : Nat} (hz : m.zf = some z) (hzb : 
     (hsb : m.size ≤ b) : m.pc b = some [((0 : w8), 0)] := by
   unfold OsMeta.pc
   cases ht : m.tc !! b with
-  | some c => rw [h z b c hz hzb hsb ht]
+  | some c => rw [h.2 z b c hz hzb hsb ht]
   | none => simp [hz, hzb]
 
 /-- The truncate's first step's bytes, below the target the old ones, from it on with the zero
