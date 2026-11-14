@@ -9,7 +9,8 @@ at the size, `fallocSup` at the size.
 Post on success: the offset `o`; the caller's half of the `OsMeta`, of the old size and mappings, the
 page cache known zero past the size to the end of its last page (`pageEnd m.size ≤ m'.cz`: a sync then
 makes the zeros known from the size on, `OsMeta.synced_zf_size`; `os.zeroToEnd_cz` for the metas the
-resizes leave); its half of the bytes from `o` to the end, a zero run (`osZerosA`). On an error: some
+resizes leave), knowing the candidates past the size `m` knew and, if `m` knew zeros from at least its
+size, zeros from the page cache known zero on (`ZteMeta`: the WAL's tail gets `TailZ` back); its half of the bytes from `o` to the end, a zero run (`osZerosA`). On an error: some
 offset, its half of the `OsMeta` of some size `w ≥ o` and of `w - o` bytes from `o`. Both with `K`.
 The update's owner holds the other halves (it committed each step's outcome). Proved in
 `LinuxFs/Proof/go_etcd_io/etcd/client/pkg/v3/fileutil/ZeroToEndAu.lean`. Lean-first.
@@ -51,7 +52,7 @@ abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.specAu : Prop :=
     (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd)) (Val #f))
   {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ osFd fd dq d ∗ K ∗
       ((⌜err = interface.nil⌝ ∗ os.ownOff f o ∗
-          ∃ m' : OsMeta, ⌜m'.size = m.size ∧ m'.maps = m.maps ∧ pageEnd m.size ≤ m'.cz⌝ ∗
+          ∃ m' : OsMeta, ⌜m'.size = m.size ∧ m'.maps = m.maps ∧ pageEnd m.size ≤ m'.cz ∧ ZteMeta m m'⌝ ∗
             osMeta d.ino (DFrac.own (1 : Qp).half) m' ∗
             osZerosA d.ino o.toNat (m.size - o.toNat) (DFrac.own (1 : Qp).half)) ∨
        (⌜err ≠ interface.nil⌝ ∗ ∃ (o' : w64) (m' : OsMeta) (ys : List ByteG),

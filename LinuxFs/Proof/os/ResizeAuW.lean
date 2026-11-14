@@ -58,13 +58,14 @@ theorem wp_osFtruncateStart_auW (fd sz : w64) (dq : DFrac) (d : OsFd) (m : OsMet
   iapply HΦ $$ %t %n %hn Hfd HQ
 
 /-- **`fallocate`'s first step (mode 0), the update lending the whole `OsMeta`**; it commits with the
-token of the growth to `max size (off + len)`. -/
+token of the growth to `max size (off + len)` (and the start's facts, as `ftruncate`'s). -/
 theorem wp_osFallocStart_auW (fd off len : w64) (dq : DFrac) (d : OsFd) (m : OsMeta)
     (hwr : d.writable = true) (hoff : 0 ≤ off.toInt) (hlen : 0 < len.toInt) (hmaps : m.maps = ∅)
     (Q : Nat × Nat → IProp GF) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osFd (L := L) fd dq d -∗
       osAUnc (L := L) (A := Nat × Nat) (osMeta (L := L) d.ino (DFrac.own 1) m)
-        (fun tn => rsTok (L := L) false tn.1 d.ino (max m.size (off.toNat + len.toNat)) m [] tn.2) Q -∗
+        (fun tn => iprop(rsTok (L := L) false tn.1 d.ino (max m.size (off.toNat + len.toNat)) m [] tn.2 ∗
+          ⌜0 < tn.2 ∧ m.TcZ⌝)) Q -∗
       iprop(∀ t : Nat, ∀ n : Nat, osFd (L := L) fd dq d -∗ Q (t, n) -∗ Φ (osTokV t)) -∗
       WP (ExternalOp fsExt.name "FallocStart" (Val (PairV (#fd) (PairV (#off) (#len))))) {{ Φ }} := by
   iintro #Hinv Hfd Hau HΦ
@@ -73,10 +74,11 @@ theorem wp_osFallocStart_auW (fd off len : w64) (dq : DFrac) (d : OsFd) (m : OsM
   ihave Hc := mcellsAny_nomaps (GF := GF) m.size (max m.size (off.toNat + len.toNat))
   rw [← hmaps]
   iapply wp_osFallocStart fd off len dq d m osN_sub_au hwr hoff hlen $$ Hinv Hfd Hm Hc
-  iintro %t %n Hfd Ht
+  iintro %t %n %hn Hfd Ht
   iright
   iexists (t, n)
-  iframe Ht
+  isplitl [Ht]
+  · iframe Ht; ipureintro; exact hn
   iintro HQ
   iapply HΦ $$ %t %n Hfd HQ
 

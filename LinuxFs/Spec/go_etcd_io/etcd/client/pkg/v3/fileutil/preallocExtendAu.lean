@@ -43,7 +43,7 @@ abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtend.specAu : Prop :=
       (Val #sz))
   {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ os.ownOff f o ∗ osFd fd dq d ∗ K ∗
       ∃ w : Nat, ⌜m.size ≤ w ∧ w ≤ sz.toNat ∧ (err = interface.nil → w = sz.toNat)⌝ ∗
-        preGrownH d.ino m w }}
+        preGrownH d.ino m w (err = interface.nil ∧ m.ZeroPg) }}
 
 end spec
 
