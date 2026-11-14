@@ -238,7 +238,7 @@ theorem walInvBody_sync (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
   have hnd : (lay.segs.map (·.ino)).Nodup := ((segsAll_nodup_iff Ls).1 HW.2.2.1).1 dir lay hl
   have hmH : d.m ≤ d.H.length := habs.synced.1
   have hok : CrashOk C Mr d lay cl n :=
-    (crashOkA_none_iff _ _ _ _ _ _).1 (Hdko.2 dir d lay hd hl (by simp))
+    (crashOkA_none_iff _ _ _ _ _ _).1 (Hdko.2.1 dir d lay hd hl (by simp))
   -- the ghost state at the synced state
   unfold walGhost
   icases Hg with ⟨⟨%G0, HGs, %HG0⟩, HP, Hh, %Hk0⟩

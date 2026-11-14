@@ -332,6 +332,34 @@ theorem walsAt_start (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   show restrictN N (entsOf V.now jr) !! lay.nm = _
   rw [restrictN_lookup _ _ _ hN, entsOf_lookup, hnm]; exact he
 
+/-- **Every WAL's directory claim once and exclusive, at the start** (pure; gap C): the boot program
+claims every directory at a WAL name wholly (`hdirs`), once, and no other of its claims of that
+directory holds a `.wal` name (`hdirs1`). -/
+theorem dirClaimsOk_start (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
+    (s : AbsDiskState) (Ls : GMap GoString WalLay) (V : Hist) (cl : List Claim) (hV : V.2 = [])
+    (hcl : ∀ c ∈ cl, c.2.2 = namesOf V c.1 c.2.1)
+    (hdirs : ∀ nm J, walNameOk nm → V.now.entry jr nm = some (.dir J) →
+      ∃ h, (J, NameSet.except walTmps, h) ∈ cl)
+    (hdirs1 : ∀ nm J h, walNameOk nm → V.now.entry jr nm = some (.dir J) →
+      (J, NameSet.except walTmps, h) ∈ cl → ClaimOnce (J, NameSet.except walTmps, h) cl ∧
+        ∀ c' ∈ cl, c' ≠ (J, NameSet.except walTmps, h) → c'.1 = J → ∀ b, walNameP b = true →
+          ¬ c'.2.1.Mem b)
+    (hst : WalsStart C Mr R jr s Ls V.now) : DirClaimsOk jr Ls cl := by
+  intro dir lay hL
+  obtain ⟨d, hd⟩ : ∃ d, s.wal !! dir = some d := by
+    cases h : s.wal !! dir with
+    | none => rw [hst.2.1 dir h] at hL; cases hL
+    | some d => exact ⟨d, rfl⟩
+  obtain ⟨lay', nm, hL', hin, -, -, he, -⟩ := hst.1 dir d hd
+  rw [hL] at hL'; cases hL'
+  obtain ⟨h, hjm⟩ := hdirs nm lay.j hin.1 he
+  obtain ⟨honce, hex⟩ := hdirs1 nm lay.j h hin.1 he hjm
+  have hjc := hcl _ hjm
+  simp only at hjc
+  refine ⟨walTmps, h, hst.2.2.2.2.2 dir lay hL, walTmps_not_wal, honce, ?_, hex⟩
+  exact claimCoh_init _ _ _ (by rw [hjc, namesOf_nil hV])
+    (fun b _ => by rw [hjc, namesOf_nil hV])
+
 /-- A segment's start resources, its `OsMeta` and bytes those of the file, are its two halves. -/
 theorem segStart_halves (L : GooseLocalGS GF) (g : SegG) (f : Fs.OsFile) (hom : g.om = initMeta f)
     (hbs : g.bs = f.contents.map durB) :
@@ -372,6 +400,10 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     (harea : ∃ N h, (jr, N, h) ∈ cl ∧ ∀ nm, walNameOk nm → N.Mem nm)
     (hdirs : ∀ nm J, walNameOk nm → V.now.entry jr nm = some (.dir J) →
       ∃ h, (J, NameSet.except walTmps, h) ∈ cl)
+    (hdirs1 : ∀ nm J h, walNameOk nm → V.now.entry jr nm = some (.dir J) →
+      (J, NameSet.except walTmps, h) ∈ cl → ClaimOnce (J, NameSet.except walTmps, h) cl ∧
+        ∀ c' ∈ cl, c' ≠ (J, NameSet.except walTmps, h) → c'.1 = J → ∀ b, walNameP b = true →
+          ¬ c'.2.1.Mem b)
     (hdok : DirsOk R s cl 0) (hav : DirsAvoid R jr s) (Jm : GMap GoString Ino)
     (hJm : ∀ dir nm J, InArea r dir nm → V.now.entry jr nm = some (.dir J) → Jm !! dir = some J)
     (E : CoPset) :
@@ -514,7 +546,8 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     · iexists ∅, none
       iframe Hdk Hcp
       ipureintro
-      refine ⟨fun dir j X hk => by simp at hk, fun dir d lay hd hl _ => ?_⟩
+      refine ⟨fun dir j X hk => by simp at hk, fun dir d lay hd hl _ => ?_,
+        dirClaimsOk_start C Mr R jr s Ls V cl hV hcl hdirs hdirs1 hstart⟩
       exact crashOk_start C hC Mr R jr s Ls V cl hV hcl harea hdirs hstart dir d lay hd hl
     ipureintro
     exact walsAt_start C Mr R jr s Ls V cl hV hcl hstart

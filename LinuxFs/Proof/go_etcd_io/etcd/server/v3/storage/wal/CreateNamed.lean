@@ -165,7 +165,7 @@ theorem dirKeysOk_named {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} 
     DirKeysOk C Mr jr (setNamed s dir) Ls cl n K c := by
   have hw : (setNamed s dir).wal = <[dir := { d with named := true }]> s.wal :=
     absDiskUpd_wal s dir _ d hd
-  refine ⟨hk.1, fun dir' d' lay hd' hl' hcd => ?_⟩
+  refine ⟨hk.1, fun dir' d' lay hd' hl' hcd => ?_, hk.2.2⟩
   rw [hw] at hd'
   by_cases he : dir' = dir
   · subst he
@@ -174,10 +174,10 @@ theorem dirKeysOk_named {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} 
     rw [hl'] at hlay; cases hlay
     have hnmeq : nm' = nm := inArea_name hin' hin
     subst hnmeq
-    exact crashOkA_none_named hn (hk.2 dir' d lay hd hl' hcd) fun m' hr => ⟨J, by
+    exact crashOkA_none_named hn (hk.2.1 dir' d lay hd hl' hcd) fun m' hr => ⟨J, by
       rw [hjr, hnm, regionCrashed_lastWrite hc hN hl hx hr, hJ]⟩
   · rw [GMap.lookup_insert_ne _ _ (Ne.symm he)] at hd'
-    exact crashOkA_mono hn (hk.2 dir' d' lay hd' hl' hcd)
+    exact crashOkA_mono hn (hk.2.1 dir' d' lay hd' hl' hcd)
 
 /-- **Strong absence at a bigger commit bound.** -/
 theorem absentNone_mono {s : AbsDiskState} {jr : Ino} {cl : List Claim} {n0 n : Nat} (hn : n0 ≤ n)

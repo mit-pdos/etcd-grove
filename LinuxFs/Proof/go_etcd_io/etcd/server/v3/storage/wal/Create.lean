@@ -62,7 +62,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
     (wp_OpenC : os.OpenFile.specCreateSnc (GF := GF) (hG := hG))
     (_wp_renameWAL : go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.spec (W := W) P Mr) :
     wal.Create.spec (GF := GF) P Mr := by
-  intro lg R jr r dir nm mp md qp Q hin hnmO hdl hr hmp
+  intro lg R jr r dir nm mp md qp Q hin hnmO hdl hr hmp _hmd
   wp_start as ⟨#Hzap, #Hmd, #Hok, #Hdd, Hp, Hres, Hperm, Hu, Hau⟩
   try wp_auto
   wp_apply wp_with_defer as %defer Hdefer
@@ -101,7 +101,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
   -- the claim on `nm.tmp`, off the area claim (`walInvBody_drop`), with what it holds
   ihave #Hok' := Hok
   iunfold WalFs.walAreaOk at Hok'
-  icases Hok' with ⟨#Hinv, #Hosi, #Hsi, %hrb⟩
+  icases Hok' with ⟨#Hinv, #Hosi, #Hsi, %hrb, -⟩
   icases walAreaRes_open jr $$ Hres with ⟨%N, %h, %cl, HN, %hok, Hcl⟩
   have hnm := hin.1
   have hNnm : N.Mem nm := hok.1 nm hnm

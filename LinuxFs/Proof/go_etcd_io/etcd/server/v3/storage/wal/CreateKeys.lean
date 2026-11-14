@@ -135,44 +135,66 @@ theorem dirKeysOk_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
   have hcnm' := hcnm N h hc hnmN
   have hexc : ∀ X' : List GoString, (∀ b ∈ X', walNameP b = false) → (NameSet.except X').Mem b0 :=
     fun X' hX' hb => by rw [hX' b0 hb] at hb0; cases hb0
-  refine ⟨fun dir' j X' hk' => ?_, fun dir' d' lay' hd' hl' hcd => ?_⟩
+  have hnewOnce : ClaimOnce (J, NameSet.except X, hJ)
+      (createClaims cl jr N h x (renDirEnt jr tmp nm J st) (renCur N h tmp nm J) J X hJ) := by
+    refine ⟨replClaim (jr, N, h) (jr, N, h.log x (renDirEnt jr tmp nm J st)
+      (renCur N h tmp nm J)) cl, [], rfl, ?_, by simp⟩
+    intro hm
+    rcases mem_createClaims_cases (List.mem_append_left [(J, NameSet.except X, hJ)] hm) with
+      he | he | ⟨hm', -⟩
+    · -- the appended claim is not in the replaced list
+      unfold replClaim at hm
+      obtain ⟨c0, hc0, hfc⟩ := List.mem_map.1 hm
+      by_cases h0 : c0 = (jr, N, h)
+      · simp only [if_pos h0, Prod.mk.injEq] at hfc; exact hJjr hfc.1.symm
+      · simp only [if_neg h0] at hfc
+        subst hfc
+        exact hJc _ hc0 rfl b0 hb0 (hexc X hX)
+    · simp only [Prod.mk.injEq] at he; exact hJjr he.1
+    · exact hJc _ hm' rfl b0 hb0 (hexc X hX)
+  have hnewEx : ∀ c' ∈ createClaims cl jr N h x (renDirEnt jr tmp nm J st) (renCur N h tmp nm J) J X hJ,
+      c' ≠ (J, NameSet.except X, hJ) → c'.1 = J → ∀ b, walNameP b = true → ¬ c'.2.1.Mem b := by
+    intro c' hc' hne' hcj b hb
+    rcases mem_createClaims_cases hc' with he | he | ⟨hm', -⟩
+    · exact (hne' he).elim
+    · rw [he] at hcj; exact (hJjr hcj.symm).elim
+    · exact hJc c' hm' hcj b hb
+  -- another WAL's directory claim, once and exclusive after the commit
+  have hother : ∀ (j : Ino) (X' : List GoString) (hj : NamesH), DirClaimOk jr cl j X' hj →
+      DirClaimOk jr (createClaims cl jr N h x (renDirEnt jr tmp nm J st) (renCur N h tmp nm J) J X hJ)
+        j X' hj := by
+    intro j X' hj ⟨hjjr, hX', honce, hcoh', hex⟩
+    have hjJ : j ≠ J := fun e => hJc _ (claimOnce_mem honce) e b0 hb0 (hexc X' hX')
+    refine ⟨hjjr, hX',
+      claimOnce_createClaims honce (fun e => hjjr (by simp only [Prod.mk.injEq] at e; exact e.1))
+        (fun e => hjjr (by simp only [Prod.mk.injEq] at e; exact e.1)) hjJ, hcoh', ?_⟩
+    intro c' hc' hne' hcj b hb
+    rcases mem_createClaims_cases hc' with he | he | ⟨hm', -⟩
+    · rw [he] at hcj; exact (hjJ hcj.symm).elim
+    · rw [he] at hcj; exact (hjjr hcj.symm).elim
+    · exact hex c' hm' hne' hcj b hb
+  refine ⟨fun dir' j X' hk' => ?_, fun dir' d' lay' hd' hl' hcd => ?_, fun dir' l hl' => ?_⟩
   · by_cases hdd : dir' = dir
     · subst hdd
       rw [GMap.lookup_insert_eq] at hk'
       simp only [Option.some.injEq, Prod.mk.injEq] at hk'
       obtain ⟨rfl, rfl⟩ := hk'
-      refine ⟨lay, hJ, GMap.lookup_insert_eq .., hlay.2.2, hJjr, hX, ?_, hJcoh, ?_⟩
-      · refine ⟨replClaim (jr, N, h) (jr, N, h.log x (renDirEnt jr tmp nm J st)
-          (renCur N h tmp nm J)) cl, [], rfl, ?_, by simp⟩
-        intro hm
-        rcases mem_createClaims_cases (List.mem_append_left [(J, NameSet.except X, hJ)] hm) with
-          he | he | ⟨hm', -⟩
-        · -- the appended claim is not in the replaced list
-          unfold replClaim at hm
-          obtain ⟨c0, hc0, hfc⟩ := List.mem_map.1 hm
-          by_cases h0 : c0 = (jr, N, h)
-          · simp only [if_pos h0, Prod.mk.injEq] at hfc; exact hJjr hfc.1.symm
-          · simp only [if_neg h0] at hfc
-            subst hfc
-            exact hJc _ hc0 rfl b0 hb0 (hexc X hX)
-        · simp only [Prod.mk.injEq] at he; exact hJjr he.1
-        · exact hJc _ hm' rfl b0 hb0 (hexc X hX)
-      · intro c' hc' hne' hcj b hb
-        rcases mem_createClaims_cases hc' with he | he | ⟨hm', -⟩
-        · exact (hne' he).elim
-        · rw [he] at hcj; exact (hJjr hcj.symm).elim
-        · exact hJc c' hm' hcj b hb
+      exact ⟨lay, hJ, GMap.lookup_insert_eq .., hlay.2.2, hJjr, hX, hnewOnce, hJcoh, hnewEx⟩
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)] at hk'
       obtain ⟨lay1, hj, hl1, hlj, hjjr, hX', honce, hcoh', hex⟩ := hk.1 dir' j X' hk'
-      have hjJ : j ≠ J := fun e => hJc _ (claimOnce_mem honce) e b0 hb0 (hexc X' hX')
-      refine ⟨lay1, hj, by rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)]; exact hl1, hlj, hjjr, hX',
-        claimOnce_createClaims honce (fun e => hjjr (by simp only [Prod.mk.injEq] at e; exact e.1))
-          (fun e => hjjr (by simp only [Prod.mk.injEq] at e; exact e.1)) hjJ, hcoh', ?_⟩
-      intro c' hc' hne' hcj b hb
-      rcases mem_createClaims_cases hc' with he | he | ⟨hm', -⟩
-      · rw [he] at hcj; exact (hjJ hcj.symm).elim
-      · rw [he] at hcj; exact (hjjr hcj.symm).elim
-      · exact hex c' hm' hne' hcj b hb
+      obtain ⟨-, -, honce', -, hex'⟩ := hother j X' hj ⟨hjjr, hX', honce, hcoh', hex⟩
+      exact ⟨lay1, hj, by rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)]; exact hl1, hlj, hjjr, hX',
+        honce', hcoh', hex'⟩
+  rotate_left
+  · by_cases hdd : dir' = dir
+    · subst hdd
+      rw [GMap.lookup_insert_eq] at hl'
+      cases hl'
+      rw [hlay.2.2]
+      exact ⟨X, hJ, hJjr, hX, hnewOnce, hJcoh, hnewEx⟩
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)] at hl'
+      obtain ⟨X', hj, hk3⟩ := hk.2.2 dir' l hl'
+      exact ⟨X', hj, hother _ X' hj hk3⟩
   · by_cases hdd : dir' = dir
     · subst hdd
       simp only [createSt, GMap.lookup_insert_eq, Option.some.injEq] at hd'
@@ -187,7 +209,7 @@ theorem dirKeysOk_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
       rw [hl'] at hL'
       simp only [Option.some.injEq] at hL'
       subst hL'
-      exact crashOkA_none_create_other (hk.2 dir' d' lay' hd' hl' hcd) hjr'
+      exact crashOkA_none_create_other (hk.2.1 dir' d' lay' hd' hl' hcd) hjr'
         (hnm' ▸ inArea_ne hin hin' hdd) (hnm' ▸ not_inArea_tmp hin' htmp) hc hcoh hs hne hnmN
         htmpN hcnm' hctmp hothers htw hnw
 

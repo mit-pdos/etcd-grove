@@ -118,8 +118,8 @@ theorem dirKeysOk_tail {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} 
     (habs' : ∀ ents, WalAbsD C Mr d lay ents → WalAbsD C Mr d (tailLay lay pre g wr') ents)
     (h : DirKeysOk C Mr jr s Ls cl n K c) :
     DirKeysOk C Mr jr s (<[dir := tailLay lay pre g wr']> Ls) cl n K c := by
-  obtain ⟨h1, h2⟩ := h
-  refine ⟨fun dir' j X hk => ?_, fun dir' d' lay' hd' hl' hc => ?_⟩
+  obtain ⟨h1, h2, h3⟩ := h
+  refine ⟨fun dir' j X hk => ?_, fun dir' d' lay' hd' hl' hc => ?_, h3.insert hl rfl⟩
   · obtain ⟨lay1, hj, hl1, rest⟩ := h1 dir' j X hk
     by_cases e : dir' = dir
     · subst e; rw [hl] at hl1; cases hl1

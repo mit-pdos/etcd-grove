@@ -274,6 +274,22 @@ def AbsentNone (s : AbsDiskState) (jr : Ino) (cl : List Claim) (n : Nat) : Prop 
     (∀ N h, (jr, N, h) ∈ cl → N.Mem nm → h.cur !! nm = none) ∧
     ∀ m', RegionCrashed cl n m' → m'.entry jr nm = none
 
+/-- **A WAL directory's claim, as the invariant has it** (gap C; `DirKeysOk`'s facts of a key): the
+directory `j` not the area's, the claim `(j, .except X, hj)` (`X` holding no `.wal` name) once among
+the claims, coherent, and no other claim of `j` holding a `.wal` name. -/
+def DirClaimOk (jr : Ino) (cl : List Claim) (j : Ino) (X : List GoString) (hj : NamesH) : Prop :=
+  j ≠ jr ∧ (∀ b ∈ X, walNameP b = false) ∧ ClaimOnce (j, .except X, hj) cl ∧
+    ClaimCoh hj j (.except X) ∧
+    ∀ c' ∈ cl, c' ≠ (j, .except X, hj) → c'.1 = j → ∀ b, walNameP b = true → ¬ c'.2.1.Mem b
+
+/-- **Every WAL's directory claim, once and exclusive** (gap C, `DirKeysOk`'s third conjunct): of
+every present WAL, keyed or not, so that a holder of its program half can put it back at a later step
+(`walParked_putClaim`'s `l1 ++ c :: l2`, no other claim of its key) and the pin can key it
+(`walDirKey_insert`). Established at the start (`walInv_alloc`'s `hdirs1`: the boot program's claims),
+kept by every step (no claim of a WAL directory changes but a cut's, which keeps these facts). -/
+def DirClaimsOk (jr : Ino) (Ls : GMap GoString WalLay) (cl : List Claim) : Prop :=
+  ∀ dir lay, Ls !! dir = some lay → ∃ X hj, DirClaimOk jr cl lay.j X hj
+
 /-- **The WAL directories' claim keys, and no cut pending** (framed; W2 log, "the directory-claim
 map"). Each key `dir ↦ (j, X)` (`walDirKey`, persistent; an open handle holds the program's half of
 that claim): the WAL in `dir` has a layout of directory `j`, not the area's; the claim `(j, .except
@@ -281,7 +297,8 @@ X, hj)` (`X` holding no `.wal` name) occurs once among the claims, coherent, and
 `j` holds a `.wal` name (the shared invariant's `NamesCoh.disj`, recorded where the key is made: an
 update's opening, inside an `os` call's, cannot open that invariant). And every WAL but the one whose
 cut's rename is pending (`c`, `walCutAuth`; the lock token holds `none`) has no alternative layout
-(`CrashOkA … none`, i.e. `CrashOk`): a cut's rename needs it of its WAL. -/
+(`CrashOkA … none`, i.e. `CrashOk`): a cut's rename needs it of its WAL. And every WAL's directory claim is once and
+exclusive (`DirClaimsOk`, gap C). -/
 def DirKeysOk (C : WalCodec) (Mr : WalMarshal) (jr : Ino) (s : AbsDiskState)
     (Ls : GMap GoString WalLay) (cl : List Claim) (n : Nat)
     (K : GMap GoString (Ino × List GoString)) (c : Option GoString) : Prop :=
@@ -289,7 +306,60 @@ def DirKeysOk (C : WalCodec) (Mr : WalMarshal) (jr : Ino) (s : AbsDiskState)
     (∀ b ∈ X, walNameP b = false) ∧ ClaimOnce (j, .except X, hj) cl ∧ ClaimCoh hj j (.except X) ∧
     ∀ c' ∈ cl, c' ≠ (j, .except X, hj) → c'.1 = j → ∀ b, walNameP b = true → ¬ c'.2.1.Mem b) ∧
   (∀ dir d lay, s.wal !! dir = some d → Ls !! dir = some lay → c ≠ some dir →
-    CrashOkA C Mr d lay none cl n)
+    CrashOkA C Mr d lay none cl n) ∧
+  DirClaimsOk jr Ls cl
+
+theorem walNameP_dotWal : walNameP go!".wal" = true := by decide
+
+theorem exceptMem_dotWal {X : List GoString} (hX : ∀ b ∈ X, walNameP b = false) :
+    (NameSet.except X).Mem go!".wal" := fun hb => by
+  have h := walNameP_dotWal
+  rw [hX _ hb] at h; cases h
+
+/-- The WAL directory's claim is the only claim of `j` on all names but non-`.wal` ones. -/
+theorem DirClaimOk.eq_of_mem {jr : Ino} {cl : List Claim} {j : Ino} {X X' : List GoString}
+    {hj hj' : NamesH} (h : DirClaimOk jr cl j X hj) (hX' : ∀ b ∈ X', walNameP b = false)
+    (hm : (j, NameSet.except X', hj') ∈ cl) : X' = X ∧ hj' = hj := by
+  by_cases e : (j, NameSet.except X', hj') = (j, NameSet.except X, hj)
+  · simp only [Prod.mk.injEq, NameSet.except.injEq, true_and] at e; exact e
+  · exact absurd (exceptMem_dotWal hX') (h.2.2.2.2 _ hm e rfl _ walNameP_dotWal)
+
+/-- **The claim found once by its key** (`walParked_putClaim`'s premises): no other claim of its
+directory and names. -/
+theorem DirClaimOk.key_once {jr : Ino} {cl : List Claim} {j : Ino} {X : List GoString} {hj : NamesH}
+    (h : DirClaimOk jr cl j X hj) : ∃ l1 l2, cl = l1 ++ (j, NameSet.except X, hj) :: l2 ∧
+      ∀ c' ∈ l1 ++ l2, (c'.1, c'.2.1) ≠ (j, NameSet.except X) := by
+  obtain ⟨-, hX, ⟨l1, l2, hcl, h1, h2⟩, -, hex⟩ := h
+  refine ⟨l1, l2, hcl, fun c' hc' e => ?_⟩
+  simp only [Prod.mk.injEq] at e
+  have hne : c' ≠ (j, NameSet.except X, hj) := by
+    rintro rfl
+    rcases List.mem_append.1 hc' with h' | h'
+    · exact h1 h'
+    · exact h2 h'
+  have hmem : c' ∈ cl := by rw [hcl]; rcases List.mem_append.1 hc' with h' | h' <;> simp [h']
+  refine hex c' hmem hne e.1 _ walNameP_dotWal ?_
+  rw [e.2]; exact exceptMem_dotWal hX
+
+/-- `DirClaimsOk` with a layout replaced by one of the same directory. -/
+theorem DirClaimsOk.insert {jr : Ino} {Ls : GMap GoString WalLay} {cl : List Claim} {dir : GoString}
+    {lay lay' : WalLay} (h : DirClaimsOk jr Ls cl) (hl : Ls !! dir = some lay) (hj : lay'.j = lay.j) :
+    DirClaimsOk jr (<[dir := lay']> Ls) cl := by
+  intro dir' l hl'
+  by_cases e : dir' = dir
+  · subst e
+    rw [GMap.lookup_insert_eq] at hl'
+    cases hl'
+    rw [hj]; exact h _ _ hl
+  · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hl'
+    exact h _ _ hl'
+
+/-- `DirClaimsOk` under a change of claims keeping each WAL directory's facts. -/
+theorem DirClaimsOk.mono_cl {jr : Ino} {Ls : GMap GoString WalLay} {cl cl' : List Claim}
+    (h : DirClaimsOk jr Ls cl)
+    (hc : ∀ dir lay, Ls !! dir = some lay → ∀ X hj, DirClaimOk jr cl lay.j X hj →
+      DirClaimOk jr cl' lay.j X hj) : DirClaimsOk jr Ls cl' := fun dir lay hl =>
+  let ⟨X, hj, hk⟩ := h dir lay hl; ⟨X, hj, hc dir lay hl X hj hk⟩
 
 /-- A name of the area a WAL function may change: a WAL name, or `nm.<sfx>` of one (`Create`'s
 `nm.tmp`, the cleanup's `nm.broken.<time>`). -/

@@ -327,8 +327,10 @@ theorem dirKeysOk_drop {C : WalCodec} {Mr : WalMarshal} {jr : Ino} {s : AbsDiskS
     (hw : ∀ dir d, s.wal !! dir = some d → ∃ lay nm, Ls !! dir = some lay ∧ InArea s.area dir nm ∧
       lay.jr = jr ∧ lay.nm = nm)
     (hok : DirKeysOk C Mr jr s Ls cl n K c) : DirKeysOk C Mr jr s Ls (dropClaims cl jr N h b) n K c := by
-  obtain ⟨h1, h2⟩ := hok
-  refine ⟨fun dir j X hk => ?_, fun dir d lay hd' hl hc => ?_⟩
+  obtain ⟨h1, h2, h3⟩ := hok
+  refine ⟨fun dir j X hk => ?_, fun dir d lay hd' hl hc => ?_,
+    h3.mono_cl fun _ _ _ X hj ⟨hjr, hX, ho, hco, hoth⟩ => ⟨hjr, hX, claimOnce_drop hjr ho, hco,
+      fun c' hc' hne hj' => ?_⟩⟩
   · obtain ⟨lay, hj, hl, hlj, hjr, hX, ho, hco, hoth⟩ := h1 dir j X hk
     refine ⟨lay, hj, hl, hlj, hjr, hX, claimOnce_drop hjr ho, hco, fun c' hc' hne hj' => ?_⟩
     rcases mem_dropClaims hc' with he | ⟨hc', -⟩
@@ -340,6 +342,9 @@ theorem dirKeysOk_drop {C : WalCodec} {Mr : WalMarshal} {jr : Ino} {s : AbsDiskS
     cases hl'
     rintro ⟨-, h2⟩
     exact hbn (h2 ▸ hnm ▸ hia.1)
+  · rcases mem_dropClaims hc' with he | ⟨hc', -⟩
+    · exact absurd (by rw [← hj', he]) hjr
+    · exact hoth c' hc' hne hj'
 
 end pure
 

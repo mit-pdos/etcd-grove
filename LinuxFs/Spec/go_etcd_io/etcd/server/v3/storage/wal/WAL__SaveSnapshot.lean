@@ -26,7 +26,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 
 /-- **`w.SaveSnapshot(e)`** (S/wal.go:1137-1162): one snapshot record of `e`'s index and term (its
-conf state non-nil unless the index is 0, `ValidateSnapshotForWrite`; its index below `2^64-1`),
+conf state non-nil unless the index is 0, `ValidateSnapshotForWrite`; its index below `2^64-1`; its
+encoding below `2^40` bytes, ledger 2026-11-14),
 committed after `w.mu.Lock()`, before the record is encoded; always synced. *Error* (the encode's
 write, the flush, the fdatasync): committed (`Q d`), the handle lost, as `Save`'s. -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.spec (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
@@ -34,6 +35,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.spec (P : WalPbIn 
     (md : SnapshotMetadataM) (cs : Bool) (sized : Bool) (Q : WalDur → IProp GF),
   {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWF P Mr w dir ∗ walSnapAt Mr sp md cs ∗
       ⌜md.Index' = W64 0 ∨ cs = true⌝ ∗ ⌜uint.nat md.Index' < 2 ^ 64 - 1⌝ ∗
+      ⌜(Mr.encSnap md).length < 2 ^ 40⌝ ∗
       AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅
         <{ WalFs.walDiskAt dir { d with H := d.H ++ [WalOpG.snap md] }, COMM Q d }> }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"SaveSnapshot")) (Val #sp))
