@@ -9,7 +9,7 @@ server's too). The network starts with no connection.
 
 The precondition of a node's boot program, over the local ghost state `L` of a generation of the
 node (`nodePre`), is the protocol (`dupInvs`, `Defs.lean`: the address's invariant and every
-connection's server side), the plan's entry for `SrvAddr`, a fresh package state and, for the
+connection's state, `dupInvs_alloc`), the plan's entry for `SrvAddr`, a fresh package state and, for the
 server, its host. The global setup allocates the protocol from the network's start resources
 (`SrvAddr`'s pending set, empty); each node's first generation gets its precondition from its start
 resources (its host); a crash keeps the host (`tcp_crashStart`), and the rest is persistent, so
@@ -147,17 +147,8 @@ theorem duplex_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
       rw [gmap_get?_eq]; simp [pendInit, GMap.lookup_fmap, Hplan]
     ihave Hpend := (BigSepM.bigSepM_lookup (Φ := fun a S => tcpPend (extGlobalGS tcpExt) a S) Hpe)
       $$ Hpends
-    -- the protocol: the connections' echo state (none yet), then the address's invariant
-    letI := (extGlobalGS tcpExt (G := G)).allG
-    imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := GName) with ⟨%γm, Hm⟩
-    imod inv_alloc srvN ⊤ (srvState (extGlobalGS tcpExt) γm) $$ [Hm] with #HsrvInv
-    · inext
-      unfold srvState
-      iexists ∅
-      iframe Hm
-      iapply BigSepM.bigSepM_empty.2
-      iempintro
-    imod wire.addrInv_alloc addrN srvAddr (connProto (Gg := G) γm) $$ Hpend with #HaddrInv
+    -- the protocol: every connection's state (none yet), then the address's invariant
+    imod dupInvs_alloc (Gg := G) $$ Hpend with ⟨%γm, #Hinvs⟩
     imodintro
     simp only [system]
     unfold nodeStart
@@ -170,11 +161,11 @@ theorem duplex_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
       rw [Hs.packageState]
       imodintro
       simp only []
-      unfold nodePre dupInvs
+      unfold nodePre
       iframe Hgs Hp
       isplitl []
       · iexists γm
-        iframe HaddrInv HsrvInv
+        iexact Hinvs
       ipureintro; intro _; exact Hh.trans Hhost
     isplitl []
     · -- the client
@@ -182,11 +173,11 @@ theorem duplex_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
       rw [Hc.packageState]
       imodintro
       simp only []
-      unfold nodePre dupInvs
+      unfold nodePre
       iframe Hgs Hp
       isplitl []
       · iexists γm
-        iframe HaddrInv HsrvInv
+        iexact Hinvs
       ipureintro; intro h0; cases h0
     iempintro
   · -- every generation of every node: its boot program, and its next precondition
@@ -241,10 +232,10 @@ a crashed local state, the network's connections and the bytes in flight on them
 local states whose Go contexts satisfy the Go semantics and the package's assumptions, with no
 package initialized and their main threads only, where the server's host is `h`, the plan has
 `SrvAddr` at `h` and the network has no connection yet, every boot program returns `#()` if it
-returns, no thread of any node is stuck and none has an unrecovered panic: each of the client's
-two concurrent calls gets its own id back (or gives up), however the server's handler goroutines
-and the client's calls interleave, however connections fail, and however often either node
-crashes. (`duplex_crash_safety_bounded` with the ghost state `tcpGF`, the step bound `n + 1`
+returns, no thread of any node is stuck and none has an unrecovered panic: the bytes the
+client's reader reads are 1, 2, 3, 4 in order (or it gives up), however its writer and reader
+interleave, however the connections fail (bytes lost, a FIN or a reset at any read or write), and
+however often either node crashes. (`duplex_crash_safety_bounded` with the ghost state `tcpGF`, the step bound `n + 1`
 and the thread bound `n + 2`, which an execution of `n` steps from single threads respects,
 `DistCrashThreadsBelow.of_single`.) -/
 theorem duplex_crash_safety [lctx : GoLocalContext] [sem : go.Semantics]
