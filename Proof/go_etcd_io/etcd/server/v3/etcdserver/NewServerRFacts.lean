@@ -10,6 +10,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuiltRestart
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ImageLeases
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthSrv
 
 @[expose] public section
 
@@ -75,7 +76,209 @@ theorem restart_peerURLs (γ : ServerRaftNames) (γk : KVNames) (A : List EntryM
         ((memBoot γ.raft.boot).lookup f).map apply.MemberM.peerURLs⌝ := by
   sorry
 
+open srvApi mvcc.api in
+/-- (The restart's store invariant; `srvApi.bootStore_holds`' restart form) **The store invariant at
+the image's state**: the fresh store-state names moved to the image's history `kvModel A` and
+compaction revision `c` (the history extends the boot's `[[], []]`), its witness the committed `A`,
+its permit `c`'s, its receipt `New`'s. -/
+theorem restartStore_holds (Hp : mvcc.api.persistent.law (GF := GF)) (kv : GoInterface)
+    (γ : MvccName) (γr : ReadNames) (γs : KVSNames) (A : List EntryModel) (c : Int)
+    (h0 : ([[], []] : mvcc.Log) <+: kvModel γr.kv A)
+    (hk : mvcc.LogPutsLe etcdKeyMax (kvModel γr.kv A)) (hc : γr.kv.cmp = false → c = -1) :
+    isMvcc (GF := GF) kv γ ∗ mvccState γ (stAt (kvModel γr.kv A) c) ∗ newServerStoreFreshA γs ∗
+      srvRLogLb γr.raft A ∗ (⌜c = -1⌝ ∨ kvCmpPermit γr.kv c) ∗ ⧖ (mvcc.logCh (kvModel γr.kv A))
+      ={⊤}=∗ kvStoreInv kv γ γr false γs ∗ wSt γs (kvModel γr.kv A) c ∗ crOwn γs c := by
+  haveI := Hp.1 kv γ
+  rw [kvStoreInv_eq]
+  iintro ⟨#Hm, Hs, Hf, #Hlb, #Hcp, #Hr⟩
+  iunfold newServerStoreFreshA at Hf
+  icases Hf with ⟨Hst, Hcr, Hsl, Hnl⟩
+  imod (ghostVar_update (kvModel γr.kv A, (none : Option (List mvcc.Change))) γs.st _) $$ Hst with Hst
+  imod (ghostVar_update c γs.cr _) $$ Hcr with Hcr
+  imod (monoListAuthOwn_update (kvModel γr.kv A) h0) $$ Hsl with ⟨Hsl, -⟩
+  imod (monoListAuthOwn_update (kvModel γr.kv A) h0) $$ Hnl with ⟨Hnl, -⟩
+  ihave ⟨Hst, Hw1⟩ := (ghostVar_split_half γs.st 1 _).1 $$ Hst
+  ihave ⟨Hcr, Hq⟩ := (ghostVar_split_half γs.cr 1 _).1 $$ Hcr
+  ihave ⟨Hw2, Hc⟩ := (ghostVar_split_half γs.cr (1 : Qp).half _).1 $$ Hq
+  ihave #Hnx : kvNx γr false (kvModel γr.kv A) $$ []
+  · iunfold kvNx
+    iexists A
+    iframe Hlb
+    ipureintro; rw [kvModelM_false]; exact ⟨rfl, hk⟩
+  imod inv_alloc kvsN ⊤ iprop(∃ σ : MvccState, mvccState γ σ ∗
+    ghostVar γs.st (1 : Qp).half (σ.log, σ.pending) ∗ ghostVar γs.cr (1 : Qp).half σ.crev ∗
+    monoListAuthOwn γs.slog 1 σ.log ∗ monoListAuthOwn γs.nlog 1 σ.notifiedLog ∗
+    kvNx γr false σ.log ∗ kvNx γr false σ.notifiedLog ∗ ⧖ (mvcc.logCh σ.notifiedLog) ∗ crevOk γr σ.crev)
+    $$ [Hs Hst Hcr Hsl Hnl] with #Hinv
+  · inext
+    iexists (stAt (kvModel γr.kv A) c)
+    simp only [show (stAt (kvModel γr.kv A) c).log = kvModel γr.kv A from rfl,
+      show (stAt (kvModel γr.kv A) c).crev = c from rfl,
+      show (stAt (kvModel γr.kv A) c).pending = none from rfl,
+      show (stAt (kvModel γr.kv A) c).notifiedLog = kvModel γr.kv A from rfl]
+    iframe Hs Hst Hcr Hsl Hnl Hnx Hr
+    iunfold crevOk
+    iframe Hcp
+    ipureintro; exact hc
+  imodintro
+  iunfold kvStoreInvG
+  iunfold wSt
+  iunfold crOwn
+  iframe Hm Hinv Hw1 Hw2 Hc
+
+open backend go_etcd_io.etcd.server.v3.storage in
+/-- (Probe P7) **The image's auth buckets are a first start's leftovers**: `auth` at `authBoot`,
+`authUsers` and `authRoles` empty, at every committed log (`restModel_keep`). -/
+theorem imageRestAt_auth (γk : KVNames) (bootLog : List EntryM) (i : w64)
+    (L : List EntryModel) (D : Data) (h : imageRestAt γk bootLog i L D) :
+    (D.lookup go!"auth").getD ∅ = authBoot ∧ (D.lookup go!"authUsers").getD ∅ = ∅ ∧
+      (D.lookup go!"authRoles").getD ∅ = ∅ := by
+  obtain ⟨-, -, f, -, hb⟩ := h
+  refine ⟨?_, ?_, ?_⟩ <;>
+  (rw [hb _ (by decide), restLeasesWith_lookup_other _ _ _ _ (by decide),
+    restModel_keep _ _ _ _ (by decide) (by decide) (by decide)]
+   simp [restBoot, restBootBk])
+
+open backend go_etcd_io.etcd.server.v3.storage in
+/-- (Probe P7) **The image's alarm bucket is empty**, at every committed log. -/
+theorem imageRestAt_alarm (γk : KVNames) (bootLog : List EntryM) (i : w64)
+    (L : List EntryModel) (D : Data) (h : imageRestAt γk bootLog i L D) :
+    (D.lookup go!"alarm").getD ∅ = ∅ := by
+  obtain ⟨-, -, f, -, hb⟩ := h
+  rw [hb go!"alarm" (by decide), restLeasesWith_lookup_other _ _ _ _ (by decide),
+    restModel_keep _ _ _ _ (by decide) (by decide) (by decide)]
+  simp [restBoot, restBootBk]
+
 end lemmas
+
+section kit
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
+variable [auth_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
+open go_etcd_io.etcd.server.v3
+
+/-- (Restart S6 B2) **`authStoreKit` with the auth bucket a restart finds**: as `authStoreKit` (its body
+copied), the auth bucket empty (a first start) or at `authBoot` (a restart: what a first start
+leaves), as `NewAuthStore`'s axiom takes it since HS1 (restart S5). Only the mode `off`'s is built
+(`authStoreKitR_off`). Follow-up (proof cleanup): widen `authStoreKit` itself and drop this copy. -/
+def authStoreKitR (M : auth.AuthMode) (tp : GoInterface) : IProp GF :=
+  iprop(∃ K : IProp GF, K ∗ □ ∀ (lg : Loc) (ab : GoInterface) (abl : Loc)
+      (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp) (r : GMap GoString backend.BktData) (cost : w64),
+    {{ K ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ zapLoggerOk lg ∗
+        ⌜tp ≠ GoInterface.nil⌝ ∗ ⌜authRecordsFit⌝ ∗ ⌜ab = authBkIface abl⌝ ∗
+        structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"be" abl ↦□
+          (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
+            #d.be : GoInterface) ∗
+        structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"lg" abl ↦□ lg ∗
+        backend.isBackend d.γB d.P W Pk d.be ∗ backend.bOpen d.γB qo ∗
+        backend.plHook d.γB func.nil ∗ ownToks d.γB.wb 2 ∗ backend.rbOwnIn d.γB authBkts r ∗
+        authKitIn M d ∗
+        ⌜((r.lookup go!"auth").getD ∅ = ∅ ∨ (r.lookup go!"auth").getD ∅ = authBoot) ∧
+          (r.lookup go!"authUsers").getD ∅ = ∅ ∧ (r.lookup go!"authRoles").getD ∅ = ∅⌝ ∗
+        -- (2026-11-02, the backend-auth-split stage) the auth buckets in the backend's table, as
+        -- `NewAuthStore`'s axiom now takes them
+        ⌜d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧ d.P.has mvcc.authRolesBI⌝ }}
+      (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.NewAuthStore)) (Val #lg))
+        (Val #ab)) (Val #tp)) (Val #cost))
+    {{ (st : GoInterface), RET #st; backend.bOpen d.γB qo ∗ backend.plHook d.γB func.nil ∗
+        authKitOut M d r ∗
+        ∃ (RD : IProp GF) (stl : Loc), ⌜st = auth.authIface stl⌝ ∗ authBeOn stl d.be ∗
+        authRdSupply RD ∗
+        -- (auth-schema-fix S1 option A) the request side once the token provider is ready (`start`
+        -- fires `auth.tpReady`)
+        □ (auth.tpReady M -∗ isReqAuth st RD) ∗
+        authApplyOkM M stl RD ∗ authStoreLatestM M st RD stl ∗ authStoreLbM M st RD ∗
+        authPublishM M stl ∗
+        -- (E3zb) with auth on, the request side bound to the request context's token
+        □ (⌜M.isOn = true⌝ → auth.tpReady M -∗ isReqAuthBound st RD M) ∗
+        authApplyResPre M stl (auth.bump auth.bootState) d RD ∗ authCapM M stl ∗
+        -- (R-D1, 2026-11-04) the store abandoned on `NewServer`'s error path
+        authAbandonM M stl d RD ∗
+        -- (D22 J1a, 2026-10-26) in the mode `off`, the store's `Recover` on a new backend
+        -- (`NewAuthStore`'s axiom's `authRecoverOk`)
+        □ (⌜M = auth.AuthMode.off⌝ → authRecoverOk stl) ∗
+        -- (R2b-3d stage 5b, 2026-11-05) in the mode `off`, the store's `Close` (`NewAuthStore`'s
+        -- axiom's `authCloseOk`), for `Cleanup`
+        □ (⌜M = auth.AuthMode.off⌝ → authCloseOk stl) ∗
+        -- (the auth-on snapshot plan's decision 8) in the mode `on`, its snapshot clause
+        authSnapKitM M stl RD ∗
+        -- (authkv's Main, 2026-10-30) with auth on, the store's cost field, read-only
+        -- (`BcryptCost()`'s; `newAuthStore_on`'s); (C1's A4, 2026-10-31) and its `Authenticate`
+        -- side (`authnStoreOk`, of its invariant: `authnStoreOk_of_authInv`)
+        □ (⌜M.isOn = true⌝ →
+          (∃ c : w64, structFieldRef go_etcd_io.etcd.server.v3.auth.authStore go!"bcryptCost" stl ↦□ c) ∗
+          authnStoreOk st RD) }})
+
+
+/-- `authStoreKitR` in the mode `off`, of `NewAuthStore`'s axiom (`authStoreKit_off`'s proof). -/
+theorem authStoreKitR_off (h30 : auth.NewAuthStore.spec (GF := GF) (hG := hG)) (tp : GoInterface) :
+    ⊢ authStoreKitR (GF := GF) .off tp := by
+  iunfold authStoreKitR
+  iexists iprop(True)
+  isplitr
+  · itrivial
+  iintro !> %lg %ab %abl %d %W %Pk %qo %r %cost %Φ !> ⟨-, #Hpkg, #Hlg, %Htp, %Hfit, %Hab, #Habbe,
+    #Hablg, #HB, Ho, Hh, Hwb, Hrb, -, %Hr, %Hhas⟩ HΦ
+  -- (the auth-on snapshot plan's Prove step) the axiom at the auth buckets, idle
+  ihave Hrb := backend.rbOwnIn_part _ _ _ $$ Hrb
+  iapply (h30 lg ab tp cost abl d W Pk qo authBkts r (fun _ h => h) Hhas.1 Hhas.2.1
+    Hhas.2.2) $$ [Ho Hh Hwb Hrb]
+  · iframe Hpkg Habbe Hablg HB Ho Hh Hwb Hrb
+    isplitr
+    · iapply zapLoggerOk_orNil; iexact Hlg
+    ipureintro; exact ⟨Htp, Hfit, Hab, Hr.1, Hr.2⟩
+  iintro !> %st ⟨Ho, Hh, Hr, %RD, %stl, %Hst, Hbe, Hsl, #Hreq, #Hok, #HauR, #HauC⟩
+  iapply HΦ
+  iframe Ho Hh
+  isplitl [Hr]
+  · simp only [authKitOut]; iexact Hr
+  have hR : backend.authRdN - 1 ≤ Int.toNat sync.rwmutex.actualMaxReaders := by
+    rw [sync.rwmutex.actualMaxReaders_unseal]; unfold backend.authRdN; decide
+  icases replicate_takeN _ (backend.authRdN - 1) _ hR $$ Hsl with ⟨Hsl, -⟩
+  ihave Hsl : authRdSupply RD $$ [Hsl]
+  · unfold authRdSupply; iexact Hsl
+  iexists RD, stl
+  iframe Hbe Hsl
+  isplitr
+  · ipureintro; exact Hst
+  isplitr
+  · iintro !> -; iexact Hreq
+  isplitr
+  · iExactEq Hok; rfl
+  isplitr
+  · unfold authStoreLatestM; itrivial
+  isplitr
+  · unfold authStoreLbM; itrivial
+  isplitr
+  · unfold authPublishM; itrivial
+  isplitr
+  · iintro !> %h; exact absurd h (by decide)
+  isplitr
+  · unfold authApplyResPre
+    itrivial
+  isplitr
+  · unfold authCapM; itrivial
+  isplitr
+  · iunfold authAbandonM
+    iintro !> %_st _ _
+    unfold authOpenM
+    imodintro; itrivial
+  isplitr
+  · iintro !> -
+    iexact HauR
+  isplitr
+  · iintro !> -
+    iexact HauC
+  isplitr
+  · unfold authSnapKitM; itrivial
+  iintro !> %h; exact absurd h (by decide)
+
+
+end kit
 
 end EtcdGrove
 end Perennial
