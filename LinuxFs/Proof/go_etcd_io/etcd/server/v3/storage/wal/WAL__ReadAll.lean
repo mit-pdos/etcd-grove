@@ -77,6 +77,18 @@ theorem raIdx_other {U : WalUnmarshal} {s ix : w64 × w64} {r : WalRec} (h1 : r.
 theorem rdCrc_other {c : w32} {r : WalRec} (h : r.typ ≠ crcType) : rdCrc c r = c := by
   simp [rdCrc, h]
 
+/-- The metadata arm's step: every metadata record carries the same data. -/
+theorem raStep_md {U : WalUnmarshal} {s : w64 × w64} {st : RAState} {r : WalRec}
+    (hT : r.typ = metadataType) (hmd : ∀ dd, st.md = some dd → dd = r.data) :
+    raStep U s st (r.typ, r.data) = .ok { st with md := some r.data } := by
+  obtain ⟨md, hs, ents, m⟩ := st
+  cases md with
+  | none => simp [raStep, hT, metadataType, entryType, stateType]
+  | some dd =>
+    have := hmd dd rfl
+    subst this
+    simp [raStep, hT, metadataType, entryType, stateType]
+
 instance walEntsIn_persistent (P : WalPbIn GF) (esL : List Loc) (es : List EntryM) :
     Persistent (walEntsIn P esL es) := by
   unfold walEntsIn; infer_instance
@@ -226,6 +238,57 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
           iframe
           ipureintro
           exact ⟨hL', ⟨kD + k, by rw [hkD, List.drop_drop]⟩, hmdn, hmdd⟩
+        wp_if_destruct
+        · -- MetadataType
+          have hT : r.typ = metadataType := Hif
+          have hnc : ¬ (r.typ = crcType ∧ crcRecBad c' r) := by
+            rw [hT]; simp [metadataType, crcType]
+          have hmd : r.data = d0.metadata := (hdec0 hnc).2 hT
+          have hi1 : r.typ ≠ entryType := by rw [hT]; simp [metadataType, entryType]
+          have hi2 : r.typ ≠ snapshotType := by rw [hT]; simp [metadataType, snapshotType]
+          have hi3 : r.typ ≠ crcType := by rw [hT]; simp [metadataType, crcType]
+          have hst := raStep_md (U := U) (s := s) (st := st) hT (fun dd h => by rw [hmdd dd h, hmd])
+          have hL' := rdLoop_next hL hgd hok.2 hnc hst
+          rw [raIdx_other hi1 hi2, rdCrc_other hi3] at hL'
+          unfold ownRec
+          icases Hr with ⟨%v, Hl, Ht, Hc, Hd⟩
+          ihave #Hdeps := isPkgInit_unfold_deps pkg_id.go_etcd_io.etcd.server.v3.storage.wal $$ Hpkg
+          wp_if_destruct
+          · -- `metadata == nil`
+            wp_for_post
+            wp_apply (wp_Decode walCodec dec «$r0_ptr» IoE eof ueof (fsD.drop k) off' c' rfl)
+              $$ [Hdec Hl] as %e' Hpost
+            · iframe Hdec Hdenv; unfold ownRecAny; iexists v; iexact Hl
+            iframe
+            iexists acc ++ [r], fsD.drop k, off', c', { st with md := some r.data }, ix, e', v.Data', stp,
+              entsv, esL
+            simp only [Option.getD_some]
+            iframe
+            ipureintro
+            exact ⟨hL', ⟨kD + k, by rw [hkD, List.drop_drop]⟩, fun h => by simp at h,
+              fun dd h => by simp only [Option.some.injEq] at h; rw [← h, hmd]⟩
+          · -- `metadata != nil`: the same metadata
+            obtain ⟨dd, hdd⟩ : ∃ dd, st.md = some dd := by
+              rcases h : st.md with _ | dd
+              · exact absurd (hmdn h) (by assumption)
+              · exact ⟨dd, rfl⟩
+            rw [hdd, Option.getD_some]
+            wp_apply bytes.Equal.wp_proof $$ [Hmdv Hd] as ⟨Hmdv, Hd⟩
+            · iframe
+            simp only [hmdd dd hdd, ← hmd, eq_self_iff_true, _root_.decide_true]
+            wp_auto
+            wp_for_post
+            wp_apply (wp_Decode walCodec dec «$r0_ptr» IoE eof ueof (fsD.drop k) off' c' rfl)
+              $$ [Hdec Hl] as %e' Hpost
+            · iframe Hdec Hdenv; unfold ownRecAny; iexists v; iexact Hl
+            iframe
+            iexists acc ++ [r], fsD.drop k, off', c', { st with md := some r.data }, ix, e', v.Data', stp,
+              entsv, esL
+            simp only [Option.getD_some]
+            iframe
+            ipureintro
+            exact ⟨hL', ⟨kD + k, by rw [hkD, List.drop_drop]⟩, fun h => by simp at h,
+              fun dd h => by simp only [Option.some.injEq] at h; rw [← h, hmd]⟩
         sorry
       · icases Hm with ⟨%hst, -, -⟩
         exact absurd hst.1 (stopErr_nil hnn.1 hnn.2 sx)
