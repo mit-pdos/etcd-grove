@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import LinuxFs.ManualProof.go_etcd_io.etcd.server.v3.storage.wal.walpb
 public import Perennial.GeneratedProof.errors
 public import Perennial.GeneratedProof.fmt
 public import GeneratedProof.go_etcd_io.raft.v3.raftpb

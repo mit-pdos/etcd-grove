@@ -561,7 +561,7 @@ ties the pipeline's directory inode to the claim's and `walReadTie` records `gs 
 seventeenth session) `WalReadState` proved and deleted (`walInvBody_readState`: the pinned
 segments from `walReadTie`'s new name fact and the claim halves' agreement, no invariant law), the cuts positive
 (`WalAbsD.cutPos`, `WAL.cut.spec`'s `0 < |H|`: ledger) and the names' indices below `2^64` (`WalAbsD.nameBound`);
-`ReadAll.wp_proof` still `sorry`, its four-phase plan logged (`wal-readall18`; W3/W5 log, eighteenth session); its loop's pure invariant (`ReadAllLoop`: `RdLoop`, `rdLoop_ok`/`_stop`/`_fold_eof`, the indices `raIdx`, no arm panics: `readFiles_dec`), the look at the invariant before the loop (`walInv_readFiles`, no step), the arms' callees as hypotheses (`ReadAllCallees`: `UnmarshalEntLaw`, `WalHsOwn`, `CloneHsLaw`, `MustUnmarshalMessage.specWalSnap`, `GetTerm`s) and the proof's prologue through the first `Decode` are in (`wal-readall19`; W3/W5 log, nineteenth session). The loop (phase 1) and three of its five arms (state, metadata, CRC with its mismatch exit) are proved; the entry, snapshot and default arms and the loop's exit (phases 3-4) `sorry`; the error exits' rule (`readAll_failWp`), the halves lent out of the decoder, the metadata records' uniformity (`RecMd`) and no I/O error `nil` (`WalDecEnvSupply`, `walReadH`; ledger) are in (`wal-readall20`; W3/W5 log, twentieth session). All five arms and every error exit of the loop are proved (the entry arm with `ErrSliceOutOfRange`, the snapshot arm with `ErrSnapshotMismatch`, the default arm's `unexpected block type`), and the exit through the mode check (`w.tail()` non-nil, `errors.Is(err, io.EOF)`, the decoder's error returned) and the pure facts at `io.EOF` (`rdLoop_stop`); phases 3-4 (from `Seek`) one `sorry` (`wal-readall21`; W3/W5 log, twenty-first session).
+`ReadAll.wp_proof` still `sorry`, its four-phase plan logged (`wal-readall18`; W3/W5 log, eighteenth session); its loop's pure invariant (`ReadAllLoop`: `RdLoop`, `rdLoop_ok`/`_stop`/`_fold_eof`, the indices `raIdx`, no arm panics: `readFiles_dec`), the look at the invariant before the loop (`walInv_readFiles`, no step), the arms' callees as hypotheses (`ReadAllCallees`: `UnmarshalEntLaw`, `WalHsOwn`, `CloneHsLaw`, `MustUnmarshalMessage.specWalSnap`, `GetTerm`s) and the proof's prologue through the first `Decode` are in (`wal-readall19`; W3/W5 log, nineteenth session). The loop (phase 1) and three of its five arms (state, metadata, CRC with its mismatch exit) are proved; the entry, snapshot and default arms and the loop's exit (phases 3-4) `sorry`; the error exits' rule (`readAll_failWp`), the halves lent out of the decoder, the metadata records' uniformity (`RecMd`) and no I/O error `nil` (`WalDecEnvSupply`, `walReadH`; ledger) are in (`wal-readall20`; W3/W5 log, twentieth session). All five arms and every error exit of the loop are proved (the entry arm with `ErrSliceOutOfRange`, the snapshot arm with `ErrSnapshotMismatch`, the default arm's `unexpected block type`), and the exit through the mode check (`w.tail()` non-nil, `errors.Is(err, io.EOF)`, the decoder's error returned) and the pure facts at `io.EOF` (`rdLoop_stop`); phases 3-4 (from `Seek`) one `sorry` (`wal-readall21`; W3/W5 log, twenty-first session). `Decode` gives back the streams of the files it leaves (ledger; at `io.EOF` it holds none), so the loop ends with every file's stream; the decoder's end offset/CRC (`rdLoop_stop_end`) and the residue's `LastCRC` (`ReadAllTail`) are in; phases 3-4 still one `sorry`, the decoder-end-is-`wr` pure lemma next (`wal-readall22`; W3/W5 log, twenty-second session).
 invariant conjunct is designed, not made (same log). Each registered WAL name has its own claim (`walNamesRes`, a framed conjunct; registration pending linked to the lock token, `walNamesFrag`), and the path law `walInv_dirPath` (a kept fraction of `osPathS R dir _ j` from `walDirKey`, with `walNamesFrag none`) is proved (`wal-path13`; W1 log, thirteenth session); `walAreaRes` holds every WAL name not split out (`walSplitFrag`), `Exist`/`openAtIndex`/`Create` read a registered name through its own claim, `openAtIndex` takes its path from `walInv_dirPath`, and `Create`'s post-commit split (`walInv_splitNew`) and registration (`walInv_register`) are proved, not yet used by `Create`'s body (`wal-path14`; W1 log, fourteenth session). Open: `renameWAL`'s path law, `Open`'s `WalDirPathLaw`, `WalsBounded`.
 `ix < 2^64`, and the finding that `WalDecEnvSupply` is unsatisfiable).
 invariant conjunct is designed, not made (same log). Each registered WAL name has its own claim (`walNamesRes`, a framed conjunct; registration pending linked to the lock token, `walNamesFrag`), and the path law `walInv_dirPath` (a kept fraction of `osPathS R dir _ j` from `walDirKey`, with `walNamesFrag none`) is proved (`wal-path13`; W1 log, thirteenth session); `walAreaRes` holds every WAL name not split out (`walSplitFrag`), `Exist`/`openAtIndex`/`Create` read a registered name through its own claim, `openAtIndex` takes its path from `walInv_dirPath`, and `Create`'s post-commit split (`walInv_splitNew`) and registration (`walInv_register`) are proved, not yet used by `Create`'s body (`wal-path14`; W1 log, fourteenth session). `WalsBounded` (metadata `< 2^41`, a framed conjunct; the segments' size read at a step, `wp_segs_size`) replaces `WalPinSized`, and `Open` takes its path from `walInv_dirPath` (`WalDirPathLaw` deleted); `renameWAL.spec`'s spine law restated with `notCrashed` and the update's result (ledger); the nil-receiver `File.Close` proved (`wal-path15`; W1 log, fifteenth session). `renameWAL` proved over `renameWALUnlock.spec` (a hypothesis, unprovable as stated: ledger 2026-11-14) and `errors.AsLinkError.spec`; `Create` through `Preallocate` (`wal-create14`; W4 log, sixteenth session). `Create`'s header phase proved through `syncDir(nm.tmp)` (the encoder, `saveCrc`, the metadata record, the initial snapshot frozen by `walSnapAt_lit` over the new premise `WalMarshalCreateOk Mr`, `SaveSnapshot.specPre`, every error exit), `os.Rename.specAbsentSrc` proved (`wal-create15`; W4 log, seventeenth session). `Create` proved through the call of `renameWAL` (the fresh layout's `WalAbsD`, `J`'s claims and `hJC`, the minting, the update `createFresh_osAUnc`, `RenameWALOk`'s laws `create_spine`/`createU_none`); `CreateDirAll.specTmp`'s post says the new directory names nothing at any crash (ledger; obligation on the extension's `mkdir` law) (`wal-create16`; W4 log, eighteenth session). `renameWALPost`'s error arms restated (the lock file open or closed, `walLockLeft`; the spines' area part the invariant's lend, `walInv_areaPath`), `renameWAL` re-proved, `Create`'s committed-error arm proved (registration, `create_areaBack`); the second close `os.File.Close.specClosed` a hypothesis (the model is stuck on a closed fd: trusted change proposed) (`wal-create17`; W4 log, nineteenth session). Open: `hJC` limited to committed crashes (decided, planned), arm 3's unminting, arm 2 (unprovable as stated: needs a handle before naming), arm 1's post-commit order and the handle (`TailZ`), `renameWALUnlock`.
@@ -624,6 +624,11 @@ in that report. Paths: `S/` = `LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/w
 - **Update (`wal-leaf1`, 2026-11-14; the "Leaf specs log" below):** proved, as `wp_proof`s over their own
   callees: `walpb.Snapshot.GetTerm.spec`, `os.RemoveAll.specAbsentN`, `fmt.ErrorfErrs.spec`,
   `proto.CloneWalSnap.spec` (over `proto.ClonePb.spec`, whose axiom the part does not copy yet). Left: 11.
+- **Update (`wal-leaf2`, 2026-11-14; the "Leaf specs log (branch `wal-leaf2`)" below):** proved,
+  `walpb.Record.Reset.spec`, over a new trusted model (`Record.Reset.impl`, pending the user's review, §10).
+  Left: 10. `errors.IsErrno.spec`, `errors.IsPathErrnoEof.spec`, `errors.AsLinkError.spec` and
+  `fmt.ErrorfErrsNot.spec` are unprovable from Perennial's present facts and specs, whatever this repository
+  translates (the log says exactly what each lacks).
 
 ## Leaf specs log (branch `wal-leaf1`, 2026-11-14)
 
@@ -674,6 +679,57 @@ extends a trust-boundary axiom, the user's call). None of the proofs below is li
   `tmpDirH` (what `TouchDirAll` leaves: one directory of files) and the existing-directory case (`MkdirAll`,
   `IsDirWriteable` with `.touch` possibly present, `ReadDir` on a directory of files), or the pre restricted to an
   absent name (the only case `Create` reaches, the ledger's note): not started, pending that restatement.
+
+## Leaf specs log (branch `wal-leaf2`, 2026-11-14)
+
+The four `errors`/`fmt` leaves and `Record.Reset` (tasks decided by the coordinator).
+
+**Proved**
+- `walpb.Record.Reset.spec`: `LinuxFs/Proof/.../wal/walpb/Record__Reset.lean`, over the trusted model
+  `Record.Reset.impl` (`LinuxFs/TrustedCode/go_etcd_io/etcd/server/v3/storage/wal/walpb.lean`; the toml's
+  `trusted = ["Record.Reset"]`, an empty `LinuxFs/ManualProof/.../walpb.lean`). **Trusted, decided
+  provisionally, pending the user's review** (§10). The model is Go's first statement, `*x = Record{}` (a store
+  of the zero value, every field, `state` included); it leaves out `MessageStateOf(x).StoreMessageInfo(mi)`, an
+  atomic store of the package's fixed descriptor into `state`'s message-info cache, which nothing but the
+  protobuf runtime reads, and only through `ProtoReflect`, which stores the same `mi` when it finds the cache
+  `nil` (`record.pb.go`): a `nil` cache and one holding `mi` behave alike (the docstring). Nothing more than the
+  fields' reset was needed. The model names `Record`'s type by its name (`model.Record`; the translation's
+  `Record.ty` cannot be named from the trusted file it imports): `walpb_model_Record_eq` (by unfolding).
+  Retranslated with `etc/goose.py --project etcd` keeping only walpb's change (the pin `0b50f0426` would undo the
+  fork fixes in `wal`/`fileutil`, translated from `f15d88841`: those files reverted to the branch's).
+
+**Not proved (blocked by Perennial's facts and specs; no local route without an axiom)**
+- `errors.IsErrno.spec`: translating `Errno.Is` with its body is not enough. Its `switch` loads
+  `errors.ErrUnsupported` (the fourth case, reached for an errno target: the first three compare an `Errno`
+  with `oserror`'s `*errorString`s, different types, `false`), and Perennial's `errors` fact is `True`
+  (`Perennial/Proof/errors/Base.lean`: `define_is_pkg_init iprop(True)`), so nothing gives the global's
+  points-to and the load does not step. The part cannot add it: `errors` is Perennial's package (`ExternalInit`),
+  and syscall's initializer, which runs `errors.initialize'` only if not yet run, learns nothing of it. Needs
+  Perennial's `errors` fact to record `ErrUnsupported` (`errors.newVar ErrUnsupported "unsupported operation"`).
+  The `errors.is` walk at a comparable non-pointer target would then be the local part (symbolic execution of
+  `is` on a two-error tree; `errors.is.spec` admits only pointer targets).
+- `errors.IsPathErrnoEof.spec`: the same load of `errors.ErrUnsupported`, and also `io.EOF` distinct from
+  `oserror.ErrPermission`/`ErrExist`/`ErrNotExist` and `ErrUnsupported` (else `Errno.Is(io.EOF)` returns
+  `e == EACCES || ...`, which may be `true`): both are `*errorString`s, and `errors.newVar` (what `io`'s and
+  `oserror`'s facts keep, Perennial's packages) forgets the allocation (2026-11-14 entry of
+  `notes/perennial-changes.md`), so no fact of the part can say so ("`oserror`'s errors distinct in the part's
+  package facts" is not available: the part's `io/fs` and `os` facts copy `oserror`'s values, they never see the
+  allocations). Needs `newVar` to keep `x.s ↦□ msg` (different messages, different pointers).
+- `errors.AsLinkError.spec`: `errors.As` has no translation and no model (`Perennial/Code/errors.toml` leaves it
+  out, no `As_unfold`), only the axiom `errors.As.wp_proof` whose post is `∃ b v'`. A first-match lemma cannot be
+  derived from it: it would be an axiom (excluded). Needs Perennial's `As` spec with the first-match case (the
+  existing 2026-11-14 entry), or a model of `as`'s first iteration.
+- `fmt.ErrorfErrsNot.spec`: the model's result is a fresh `*errorString` (`errors.New(format)`), but "not `t`"
+  needs a points-to of `t`'s pointer (`t` = `io.EOF`'s value in every caller: `decodeRecord`, `Validate`), and
+  `io`'s fact is Perennial's `newVar`: the same gap. No part fact can carry it (the part does not translate
+  `io`). With `newVar` keeping `x.s ↦□ msg`: the fresh `x'.s ↦ format` (full, before it is persisted) and
+  `y.s ↦□ "EOF"` give `x' ≠ y`, then `errors.Is` of a leaf (`errors.wp_Is_leaf`) answers `false`.
+- **Translation not kept**: `Errno.Is` (with `EACCES`, `EPERM`, `EEXIST`, `ENOTEMPTY`, `ENOTSUP`,
+  `EOPNOTSUPP`; imports `errors`, `internal/oserror`) and `PathError.Unwrap` translate cleanly
+  (`etc/goose.py --project bboltfs`), but unblock nothing until Perennial's facts change, and rebuild 679 part
+  modules (`etc/importers.py --count`): reverted. To redo: add those names to `LinuxFs/Code/syscall.toml`'s
+  `translate` and the two packages to its `imports`, `"PathError.Unwrap"` to `LinuxFs/Code/io/fs.toml`, rerun
+  goose and `etc/gen-init.py` (syscall's initializer then runs `errors`'/`oserror`'s initializers).
 
 ## W1 implementation log (branch `wal-inv`, 2026-11-13)
 
@@ -1655,6 +1711,13 @@ holds some mode). Nothing proves the new models yet.
   `Err`), which the pure `E` could not carry, so the decoder's `isEofOk` had to claim it of every
   `*PathError`, false for `&PathError{Err: io.EOF}`. New hypothesis (true of Go, not an axiom):
   `errors.IsPathErrnoEof.spec`.
+- **Corrected (coordinator, 2026-11-14, after the user asked why it is trusted):** only the leaf system call needs a
+  model. `io.Copy`/`copyBuffer` (names-only in Perennial's `io`: `io.toml` translates only the types and errors) and
+  `(*os.File).ReadFrom`/`WriteTo` (names-only in the part's `os`) are ordinary Go to translate and verify; the one
+  kernel call they reach for file-to-file copies on Linux, `copy_file_range(2)` (via `internal/poll`), has no `fsExt`
+  step. Plan: translate those (the `io` part a Perennial configuration change, or the part's copy), add an `fsExt`
+  `CopyFileRange` step modelled as a `pwrite` of the source's bytes (crash candidates as a write's), with a Go example
+  measured on C — that step pending the user's review. The hypothesis below stands until then.
 - **`io.Copy(bf, f)` of two `*os.File`s** (`wal-repair19`, 2026-11-14; **a missing trusted model, pending the
   user**): `Repair` copies the torn segment into its `.broken` file with `io.Copy`, which on `*os.File` goes through
   `File.ReadFrom` (Linux: `copy_file_range`/`splice`/`sendfile`, then a generic loop) or `File.WriteTo`: neither is
@@ -1666,7 +1729,14 @@ holds some mode). Nothing proves the new models yet.
   past the WAL's state), so a weaker hypothesis (the destination file changed arbitrarily within its claim) also
   suffices. To be replaced by a model of `File.ReadFrom`'s generic path once the user decides.
 
-**Pending the user's review (trusted or axiomatic), all off `lean`:** the `io.Copy`-of-`*os.File` hypothesis of
+- **`(*walpb.Record).Reset`** (`wal-leaf2`, 2026-11-14; **a trusted model, decided provisionally by the
+  coordinator, pending the user's review**): `Record.Reset.impl`
+  (`LinuxFs/TrustedCode/go_etcd_io/etcd/server/v3/storage/wal/walpb.lean`) is Go's `*x = Record{}`; Go's
+  `MessageStateOf(x).StoreMessageInfo(mi)` is left out (a protobuf-runtime cache that `ProtoReflect` fills with
+  the same `mi` when `nil`). `walpb.Record.Reset.spec` is proved over it (`Record__Reset.lean`). Replaces the
+  hypothesis; to be dropped if the user prefers a translation of the protobuf runtime's message state.
+
+**Pending the user's review (trusted or axiomatic), all off `lean`:** the trusted model `walpb.Record.Reset.impl` (2026-11-14, `wal-leaf2`: `*x = Record{}`, the message-state store left out; its docstring, the "Leaf specs log (branch `wal-leaf2`)"); the `io.Copy`-of-`*os.File` hypothesis of
 `Repair` (2026-11-14, above); the `io.ReadFull` axiom's restatement
 with the reader's error evidence (2026-11-14, `wal-readall17`, above); the file-size bound of `fsExt` (2026-11-14, `Impl.lean`'s
 `maxBytes`, ext4's `s_maxbytes` on C: `PWriteFinish`, `FtruncateFinish`, `FallocFinish`, `CrashFile`, `FsInit`;
@@ -6079,3 +6149,42 @@ changed, no hypothesis added, no ledger entry.
   `readClose` (nil in write mode), `w.start`, `w.metadata`, `newFileEncoder`, `walOpenWF` with `walDirH`.
 - Build: seeded from `agent-a0e31bc0a52d6aa5b` (as the twentieth session); `lake build` of `WAL__ReadAll` after merging
   `wal-int` `65a8fb5429`.
+
+**W3/W5 log, twenty-second session (branch `wal-readall22`, 2026-11-14).** `ReadAll.wp_proof` still one `sorry`, at the
+same place (the `io.EOF` exit, before `w.tail().Seek(w.decoder.LastOffset(), io.SeekStart)`), now with every file's
+stream in hand. No `sorry` added or removed; one spec defect fixed (ledger 2026-11-14, "the files left behind are lost").
+- **Found and fixed (ledger)**: `Decode`'s post dropped the streams of the files the decoder leaves (`d.brs =
+  d.brs[1:]`); at `io.EOF` the decoder holds no file at all (`goDecode`'s last-file `.eof` returns `[]`), so phase 3
+  had nothing to `Seek`/`ZeroToEnd`/encode on and phase 4 no halves to put back. `decPostB`'s first arm is now `∃ k,
+  ([∗list] F ∈ fs.take k, ∃ q, F.S q) ∗ match …` (`DecDefs.lean`); `decPost_cons_eof` takes the left file's stream,
+  `decodeRecord`'s two end-of-file arms open the reader (`bufio.ownReader_open`) for it; `Decode`'s proof unchanged.
+- *The loop*: the invariant has `kD` (`fsD = fs.drop kD`, was `∃ k`) and `"Hleft" ∷ [∗list] F ∈ fs.take kD, ∃ q,
+  F.S q`, merged at each `Decode` (`leftS_merge`). `RdLoop` has `endOff`/`endCrc` (`R0.off`/`R0.crc` are the
+  decoder's at the end); **`rdLoop_stop_end`**: at a stop other than a CRC mismatch, `R0.off = off'`, `R0.crc = c'`.
+  At the `sorry`: `hR0o : R0.off = off'`, `hR0c : R0.crc = c'`, `Hleft` over `fs.take (kD + k)` (= `fs`: the decoder
+  is over `[]`), `Hdec : ownDecoder dec … (fsD.drop k) off' c' true`.
+- *`ReadAllTail.lean` (new)*: **`ownDecoder_lend`** (every file's `∃ q, F.S q` out, the residue `decResid d c`: the
+  CRC field and digest) and **`decoder.LastCRC.wp_resid`** (over `crc.digest.Sum32.spec`; `ReadAll.wp_proof` takes
+  the new hypothesis `wp_Sum32`, proved in the part), `leftS_merge`. With `Hleft` holding all streams, `ownDecoder_lend`
+  is needed only for the residue (`LastCRC` after `ZeroToEnd`).
+- *Next, in order*: (1) `wp_LastOffset` on `Hdec` (`W64 off'`); split `Hleft` at the last file (`fs = fs.dropLast ++
+  [Fl]`, `hfk (gs.length - 1)`: `Fl.S = walFileS f fd (child dir g.name) (openFd g.ino 2|O_CLOEXEC) g`, `fls[_]? =
+  some f`, `lockedFile lt f`), `wp_tail`, `MethodUnfold … LockedFile … Seek` as `WAL.Save`, `os.File.Seek.wp_start`
+  (needs `off' ≤ 0xffffffff000`: from (2) and the segment's size bound). (2) **pure, not started**: the decoder's end
+  is the write position, `(walDecodeFiles C ((lay.segs.drop kk).map segImg) 0#32).off = lay.wr` and `.crc` the chain's
+  CRC (`h.crc Mr` for the encoder) — `walDecodeFiles_running`'s `.recs` statement extended to `.off`/`.crc` (its core
+  lemmas `walDecodeFiles_core`/`_suffix`, main tree `WalEncSegsImg`/`WalEncSuffix`, state only `.recs`). (3) the
+  registration and `ZeroToEnd`, as named hypotheses until `wal-tc14` lands (the coordinator's decision, 2026-11-14:
+  `walTailsRes_register`'s per-tail premise `TailZeros lay ∨ lay.wr = lay.z0`; the window's fdatasync restores
+  `TailZeros`, `tailZeros_syncW`): intended names `walInv_registerTail` (the invariant-level registration at the pin:
+  `walTailKey dir γ`, `walTailsFrag {dir ↦ γ}`, the tail record's half `(H, md, cuts, wr, g.ino, none)` with `d`,
+  `lay`, `kk` as `walInv_readFiles`') and `ZeroToEnd.specWalTail` (`wal-tc13`'s intended statement: pre `walAreaOk ∗
+  walTailW … TailMeta` at `o0 + |out| = wr`, post `walTailW … TailMetaW` with the bytes from `wr` a zero run and
+  `TailZ`; on an error the handle lost); `wal-tc14` logs the real names here. (4) F-Z's `fileutil.Fdatasync`, F-N4's
+  `Fsync(w.dirFile)`/`syncDir` (the AU's commit at the directory sync), then **`!match` (decided: verified to the end)**:
+  `err = ErrSnapshotNotFound`, `proto.Clone`, `readClose`, `w.start`, `w.metadata`, `newFileEncoder` (its nil error
+  overwrites `err`), `w.decoder = nil`, the final `err == nil && !match` re-set, exit by `readAll_failWp` (the registered
+  tail and the new encoder dropped affinely). (5) Phase 4 as the nineteenth session lists.
+- Build: seeded from `agent-a0d5232984f8fe5f2` (traces unshared, `GooseLang`/`LinuxFs` real copies); `lean-check -a`
+  of `DecLemmas`, `ReadAllTail`; `--fast` of `decodeRecord`, `Decode`, `WAL__ReadAll`; `lake build` of the 53 leaves
+  importing `DecDefs` (below).

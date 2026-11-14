@@ -927,3 +927,21 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   crashes keeping `J`'s entries, drop the clause from `specTmp`) removes the false clause; this entry is one more
   reason for it (a clause restricted to `b ≠ .touch` would instead need the extension's allocator fact).
 - **Decision.** Recorded only (`wal-leaf1`); the restatement is `wal-create17`'s.
+
+## 2026-11-14: `decoder.Decode.spec`/`decodeRecord.spec` (internal, the part's) -- the files left behind are lost
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/decoder__Decode.lean`, `decoder__decodeRecord.lean`,
+  through `decPostB` (`LinuxFs/Proof/.../wal/DecDefs.lean`): the record and stop arms give the decoder live over
+  `fs.drop k`, the files it has not left.
+- **Defect.** Too weak: the `k` files the decoder leaves (`d.brs = d.brs[1:]`, decoder.go's `decodeRecord` at a
+  file's end) are dropped from the post with their readers' stream states (`F.S`, for the WAL's segments
+  `walFileS`: the open file, its offset and the program's halves of the segment). At `io.EOF` the decoder has left
+  every file (`goDecode`'s last-file `.eof` stop returns `[]`), so `ReadAll` (S/wal.go:622-670) cannot `Seek` its
+  tail, `ZeroToEnd` it or build the encoder on it, and cannot give the other segments' halves back to the invariant.
+- **Evidence.** `decPostB`'s `∃ k, … ownDecoder d IoE eof (fs.drop k) …`; `goDecode_eof_last`; found at `ReadAll`'s
+  phase 3 (`wal-readall22`, W3/W5 log, twenty-second session).
+- **Proposed change.** `decPostB`'s first arm `∃ k, ([∗list] F ∈ fs.take k, ∃ q, F.S q) ∗ match …`: the left files'
+  streams given back (no change to the I/O and `GoFail` arms, whose decoder is dead). Callers: `ReadAll`'s loop keeps
+  them (`fs.take kD`).
+- **Decision.** Made (`wal-readall22`): no client-visible ghost state (the streams are the caller's own resources,
+  lent to the decoder by `NewDecoder`'s spec).
