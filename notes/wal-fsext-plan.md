@@ -504,7 +504,7 @@ Everything under `LinuxFs/` and `GooseLang/Ext/Fs/` builds (3019 jobs); `etc/gen
 module; the bboltfs/crashlog/walfs examples and the generated translations not listed):
 - `wal/`: `Create.wp_proof` (`Create.lean`), `Open.wp_proof`, `OpenForRead.wp_proof`, `openAtIndex.wp_proof`,
   `openWALFiles.wp_proof`, `WAL.ReadAll.wp_proof`, `WAL.Save.wp_proof`, `WAL.SaveSnapshot.wp_proof`,
-  `WAL.cut.wp_proof`, `WAL.saveEntry.wp_proof`, `WAL.saveState.wp_proof`,
+  `WAL.saveEntry.wp_proof`, `WAL.saveState.wp_proof`,
   `WAL.sync.wp_proof`, `wal.tailWriter` (`TailWriter.lean`);
 - `fileutil/`: `ReadDir.wp_proof` (`TouchDirAll`/`CreateDirAll` proved, `wal-create7`, over the above-root hypotheses);
 - `os/`: `File.Truncate.wp_proofAu` (`File__TruncateAu.lean`), `File.WriteAt.wp_proof_long` (`WriteLong.lean`,
@@ -1659,6 +1659,33 @@ rename's return; `sorry` from the rename's outcome on.**
   `ino := g.ino`, `o0 := L`, `out = pend = []`, `cuts ++ [|H|]`, `pc + 1` (`walPipeH_next`), `walDirH` at the claim's
   new history (`walOutFrag` from `walCutQ`), the old tail into `walLockH` (`Hf`, `Hfdo`), `crc := crcAfter …`
   (`tailCrc_cut`). The goal is heavy (≈330 hypotheses): `iclear` what step 8 does not need before going on.
+
+**Tenth session (branch `wal-cut10`, 2026-11-14): `WAL.cut.wp_proof` proved (no `sorry`).**
+- *Steps 6-8* (`WAL__cut.lean`): the rename's outcome (an error returns; success gives `some (x, s0)`, `walCutQ`'s
+  commit arm, `renFileOut`'s claims, the log bound `osLogLb (x + 1)` from `osLogged`); step 7 `fileutil.Fsync`
+  (`Fsync.specDirS`, `osCommitLb (x + 1)`), then `CutFin.lean`'s `walInv_cutSynced` (`walInv_step` around
+  `walInvBody_cutSynced`) at the next step through `wp_notCrashed_acc`; the metrics (`time.Since`,
+  `Duration.Seconds`, the histogram); step 8 `Close` of `N.tmp`, `LockFile(fpath, O_WRONLY)` over
+  `openWALFiles.lean`'s `walOpen_triple` (the WAL claim's ½ at its new history, lent and given back), `Seek`,
+  `w.locks[last]` (`wp_store_slice_index`), `Sum32`, `newFileEncoder`, `lg.Info`; the new handle `h'` (`cuts ++
+  [|H|]`, tail `g.ino` at `o0 = |headers|`, `out = pend = []`, `sz = |g.bs|`, `pc + 1`): `walTailW` from `walCutQ`'s
+  halves and tail record, `walDirH` at the claim's new history (`cutDir_largest`, `walOut_cut`), the old tail into
+  `walLockH`, `walPipeH_next` with `tmpClaim_absent` (the tmp claim's halves joined, the name deleted), the crc
+  by `tailCrc_cut`, `WalHS.split_fresh`, `tailMeta_synced`. New hypotheses: `fileutil.Fsync.specDirS` (replaces
+  the unused `os.File.Sync.specDirS`), `os.File.Close.spec`, `fileutil.LockFile.spec`, `time.Now`/`Since`,
+  `time.Duration.Seconds.spec`, `zap.String.spec`, `zap.Logger.Info.spec` (part copy added to
+  `etc/gen-part-copies.py`). Steps 1-2 stay over `Truncate.specWalTail` (being proved on `wal-tc2`) and `sync.specCut`.
+- **Statement changes**: `walDirH` takes the pipeline count `k` (`walHandleIn` passes `h.pc`) and bounds the
+  tail's sequence by `sq < 2^63 + k` (was `sq + 1 < 2^64`, which the new handle cannot re-establish after an
+  increment): with `cut.spec`'s `pc + 2 < 2^63` it gives `sq + 1 < 2^64`, and the cut keeps it (`sq + 1 <
+  2^63 + (pc + 1)`). **For W4/W5**: `Create` produces it with `sq = 0`; `ReadAll` needs the read tail's
+  sequence below `2^63`. `pipeFile` carries `m.size ≤ 0xffffffff000` (the new tail's size, `walHandleIn`'s
+  `sz` bound; `alloc` proves it from the pipeline's size).
+- *Gotchas*: `MethodResolve` on a `time.Duration` value needs `go.NotInterface go.int64`, which instance search
+  does not find (`go.int64` a plain `def`; `notInterface_Named` does not unfold it): a local `haveI` (for
+  `notes/perennial-changes.md`: an instance for the predeclared named types). `wp_method_call` searches the
+  hypotheses too: clear a used `wal.histSpec` (it mentions `methods hs.ty "Observe"`) before the next call. The
+  proof's end-of-declaration processing needs `maxHeartbeats 1000000`.
 
 ## W4 implementation log (branch `wal-create`, 2026-11-13)
 
