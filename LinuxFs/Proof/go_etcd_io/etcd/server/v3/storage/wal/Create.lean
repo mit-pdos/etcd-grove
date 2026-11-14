@@ -14,6 +14,7 @@ public import LinuxFs.Spec.path.filepath.Clean
 public import LinuxFs.Spec.path.filepath.Join
 public import LinuxFs.Spec.go_uber_org.zap.String
 public import LinuxFs.Spec.go_uber_org.zap.Error
+public import LinuxFs.Spec.go_uber_org.zap.Int64
 public import LinuxFs.Spec.go_uber_org.zap.Logger__Warn
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateTmp
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateArea
@@ -25,6 +26,7 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.OpenNames
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.PipeLemmas
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateSeg
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateLocked
+public import LinuxFs.Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.Preallocate
 public import LinuxFs.Proof.os.MkdirAllParts
 public import Spec.fmt.SprintfWalName
 
@@ -47,6 +49,37 @@ variable [fu_sem : go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 variable [os_sem : os.Assumptions] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
 variable [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 
+set_option hygiene false in
+/-- **An error exit after the segment's create** (the deferred `f.Close()` and `RemoveAll(nm.tmp)`, the
+segment's claim merged back, the abort), at the deferred calls; unhygienic: it names `Create`'s
+hypotheses. -/
+macro "create_seg_exit" : tactic => `(tactic| (
+    wp_apply wp_lockedClose wp_Close lf f fd _ _ $$ [Hf Hfd] as %cerr -
+    · iframe; iframe #
+    imod segClaim_back R J (walFileName 0 0) hJ (some (x0, s0, i)) hJs.2.2 CoPset.subseteq_top
+      $$ Hsi HJr Ho with ⟨%hJ', %hJf, HJ⟩
+    ihave Ht : tmpDirH jr (tmpName nm) hT3 $$ [HT HJ]
+    · unfold tmpDirH; rw [hJs.1]; unfold tmpSub; iframe HT; iexists hJ'; iframe HJ
+      ipureintro; exact hJf
+    try wp_auto
+    wp_apply +noauto wp_removeAllTmp wp_RmAbs wp_RmDir r (tmpName nm) R jr (e + a') hT3
+      (tmpName_nameOk hnmO) $$ [Hp Ht Hperm] as %err' ⟨Hp, Hperm, Ht, -⟩
+    · iframe; iframe #
+    icases Ht with ⟨%hT4, Ht⟩
+    iapply wp_notCrashed_acc _ _ rfl
+    iintro Hnc
+    imod create_abortTmp walCodec Mr R jr r N h cl nm hT4 Wn hok hnm hNnm hself
+      $$ Hinv Hsi Hnc Hu HN Ht Hcl Hsf
+      with ⟨Hnc, Hu, Hres⟩
+    iframe Hnc
+    imodintro
+    try wp_auto
+    iapply HΦ
+    iframe
+    iright; ileft
+    iframe
+    ipureintro; intro hc; cases hc))
+
 theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
     (wp_Exist : wal.Exist.specCreate (GF := GF) walCodec Mr)
     (wp_FExist : go_etcd_io.etcd.client.pkg.v3.fileutil.Exist.spec (GF := GF) (hG := hG))
@@ -56,12 +89,14 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
     (wp_CDA : fileutil.CreateDirAll.specTmp (GF := GF) (hG := hG))
     (wp_String : zap.String.spec (GF := GF) (hG := hG))
     (wp_Error : zap.Error.spec (GF := GF) (hG := hG))
+    (wp_Int64 : zap.Int64.spec (GF := GF) (hG := hG))
     (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG))
     (wp_SprintfWal : fmt.SprintfWalName.spec (GF := GF) (hG := hG))
     (wp_Join : filepath.Join.spec (GF := GF) (hG := hG))
     (wp_cNWF : go_etcd_io.etcd.server.v3.storage.wal.createNewWALFile.specLocked (GF := GF) (hG := hG))
     (wp_OpenC : os.OpenFile.specCreateSnc (GF := GF) (hG := hG))
     (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
+    (wp_Prealloc : go_etcd_io.etcd.client.pkg.v3.fileutil.Preallocate.spec (GF := GF) (hG := hG))
     (_wp_renameWAL : go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.spec (W := W) P Mr) :
     wal.Create.spec (GF := GF) P Mr := by
   intro lg R jr r dir nm mp md qp Q hin hnmO hdl hr hmp _hmd
@@ -73,7 +108,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
   · iframe; iframe #
   ihave #Hdeps := isPkgInit_unfold_deps pkg_id.go_etcd_io.etcd.server.v3.storage.wal $$ Hpkg
   isimp only [isPkgInitDeps] at Hdeps
-  icases Hdeps with ⟨-, -, #Hfmt, -, -, -, -, #Hfu, -, -, -, -, #Hos, -, -, #Hfp, #Hzp, -, -, -, -, -, -, -⟩
+  icases Hdeps with ⟨-, #Herrs, #Hfmt, -, -, -, -, #Hfu, -, -, -, -, #Hos, -, -, #Hfp, #Hzp, -, -, -, -, -, -, -⟩
   cases bx
   rotate_left
   · -- `Exist(dir)`: `os.ErrExist`, nothing done
@@ -337,31 +372,46 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
       wp_apply wp_Warn lg _ _ $$ []
       · iframe #
       try wp_auto
-      wp_apply wp_lockedClose wp_Close lf f fd _ _ $$ [Hf Hfd] as %cerr -
-      · iframe; iframe #
-      imod segClaim_back R J (walFileName 0 0) hJ (some (x0, s0, i)) hJs.2.2 CoPset.subseteq_top
-        $$ Hsi HJr Ho with ⟨%hJ', %hJf, HJ⟩
-      ihave Ht : tmpDirH jr (tmpName nm) hT3 $$ [HT HJ]
-      · unfold tmpDirH; rw [hJs.1]; unfold tmpSub; iframe HT; iexists hJ'; iframe HJ
-        ipureintro; exact hJf
+      create_seg_exit
+    obtain ⟨rfl, rfl⟩ := hn
+    try wp_auto
+    -- `fileutil.Preallocate(f.File, SegmentSizeBytes, true)`: the segment grown to 64 MB of zeros
+    ihave #Hwi : (wal.walInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hpkg
+    iunfold wal.walInit at Hwi
+    icases Hwi with ⟨-, -, #Hseg, -⟩
+    try wp_auto
+    have hwr : (openFd i (wal.walOpenFlag false ||| W64 524288)).writable = true := by
+      simp only [openFd]; unfold wal.walOpenFlag O_RDONLY; decide
+    ihave Hm : osMeta (openFd i (wal.walOpenFlag false ||| W64 524288)).ino (DFrac.own 1) Fs.newMeta $$ [Hm]
+    · rw [hino]; iexact Hm
+    wp_apply wp_Prealloc f fd _ (DFrac.own 1) (DFrac.own 1) (openFd i (wal.walOpenFlag false ||| W64 524288))
+      Fs.newMeta _ (W64 64000000) true hfi.1 hwr (by simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes,
+        OsFile.ofDisk]) (by simp)
+      (by simp) (by decide) (by decide)
+      (fun _ => by simp [Fs.newMeta, initMeta, newFile, OsFile.ofBytes, OsFile.ofDisk])
+      $$ [$Hf $Hoff $Hfd $Hm] as %perr ⟨Hf, Hoff, Hfd, Hpa⟩
+    · iframe #
+    simp only [preallocPost, ite_true]
+    icases Hpa with ⟨%wsz, %hwsz, Hpa⟩
+    cases perr
+    case ok pe =>
+      -- the preallocation failed: the deferred `f.Close()` and `RemoveAll(nm.tmp)`, the abort
       try wp_auto
-      wp_apply +noauto wp_removeAllTmp wp_RmAbs wp_RmDir r (tmpName nm) R jr (e + a') hT3
-        (tmpName_nameOk hnmO) $$ [Hp Ht Hperm] as %err' ⟨Hp, Hperm, Ht, -⟩
-      · iframe; iframe #
-      icases Ht with ⟨%hT4, Ht⟩
-      iapply wp_notCrashed_acc _ _ rfl
-      iintro Hnc
-      imod create_abortTmp walCodec Mr R jr r N h cl nm hT4 Wn hok hnm hNnm hself
-        $$ Hinv Hsi Hnc Hu HN Ht Hcl Hsf
-        with ⟨Hnc, Hu, Hres⟩
-      iframe Hnc
-      imodintro
+      wp_apply wp_String as %f1 -
+      wp_apply wp_Int64 as %f2 -
+      wp_apply wp_Error as %f3 -
+      wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1, f2, f3]
+      isplitr
+      · ipureintro; rfl
+      iintro %fsl ⟨-, -⟩
       try wp_auto
-      iapply HΦ
-      iframe
-      iright; ileft
-      iframe
-      ipureintro; intro hc; cases hc
+      wp_apply wp_Warn lg _ _ $$ []
+      · iframe #
+      try wp_auto
+      create_seg_exit
+    obtain rfl : wsz = 64000000 := hwsz.2.2 rfl
+    try wp_auto
     sorry)
 
 end proof
