@@ -188,27 +188,30 @@ theorem pwOut_step (m : OsMeta) (off nn : Nat) (data : List w8) (j k nst : Nat)
 
 /-- The bytes a write has landed after one more attempt are a page cut, from those before and the
 attempt's. -/
-theorem pwCut_step (off len nn j k : Nat) (hj : PwCut off len j)
+theorem pwCut_step (off len nn j k : Nat) (hj : PwCut off len j) (hnj : nn ≤ j)
     (hnn : nn = 0 ∨ (off + nn) % osPageSize = 0) (hk : k ≤ len - nn) (hnl : nn < len)
     (hpc : PwCut (off + nn) (len - nn) k) : PwCut off len (max j (nn + k)) := by
   unfold PwCut at *
   unfold osPageSize at *
+  obtain ⟨hj, hjm⟩ := hj
+  obtain ⟨hpc, hpm⟩ := hpc
   rcases Nat.le_total j (nn + k) with h | h
   · rw [Nat.max_eq_right h]
+    refine ⟨?_, by omega⟩
     rcases hpc with h0 | h0 | h0
     · subst h0; rcases hnn with h1 | h1
       · left; omega
       · right; right; simpa using h1
     · right; left; omega
     · right; right; rw [← Nat.add_assoc]; exact h0
-  · rw [Nat.max_eq_left h]; exact hj
+  · rw [Nat.max_eq_left h]; exact ⟨hj, hjm⟩
 
 /-- After a short attempt that succeeded, the next starts on a page boundary. -/
 theorem pwCut_short (off len nn k : Nat) (hk0 : 0 < k) (hfull : nn + k ≠ len)
     (hpc : PwCut (off + nn) (len - nn) k) (hk : k ≤ len - nn) :
     nn + k = 0 ∨ (off + (nn + k)) % osPageSize = 0 := by
   unfold PwCut at hpc
-  rcases hpc with h0 | h0 | h0
+  rcases hpc.1 with h0 | h0 | h0
   · omega
   · omega
   · right; rw [← Nat.add_assoc]; exact h0
@@ -255,7 +258,7 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
   have hinv : (j = 0 ∧ nnv.toNat = 0 ∧ mj = m ∧ ys = xs) ∨
       (mj = pwPost m off.toNat data.length j ∧ os.PwOut m off.toNat data j xs ys) :=
     .inl ⟨hj0.symm, by subst hnnv; rfl, hmj, hy⟩
-  have hcj : PwCut off.toNat data.length j := by unfold PwCut; left; exact hj0.symm
+  have hcj : PwCut off.toNat data.length j := by unfold PwCut; exact ⟨.inl hj0.symm, .inl hj0.symm⟩
   have hcn : nnv.toNat = 0 ∨ (off.toNat + nnv.toNat) % osPageSize = 0 := by
     left; subst hnnv; rfl
   clear hmj hy hj0 hnnv
@@ -327,7 +330,7 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
   have hpc' : PwCut (off.toNat + nnv.toNat) (data.length - nnv.toNat) k := by
     rw [hoffv, hdl] at hpc; exact hpc
   have hcj' : PwCut off.toNat data.length (max j (nnv.toNat + k)) :=
-    pwCut_step _ _ _ _ _ hcj hcn hk hnl hpc'
+    pwCut_step _ _ _ _ _ hcj hnn hcn hk hnl hpc'
   -- the file as a write of the first `max j (nn + k)` bytes left it
   have hmeta : pwPost mj (off + nnv).toNat (data.drop nnv.toNat).length k =
       pwPost m off.toNat data.length (max j (nnv.toNat + k)) := by

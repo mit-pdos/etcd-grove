@@ -141,7 +141,7 @@ theorem tok_crash_past {st st' : OsState} {Γb : GMap (Ino × Nat) ByteG} {Γm :
   have hn : Named st'.fs.treeDur ti.ino := by
     apply Classical.byContradiction; intro hn
     rw [(hc.2.2.2.2.2.2.2 ti.ino).2 hn] at hf'; cases hf'
-  obtain ⟨f0, f1, hf0, ⟨sz, img, -, hcand, rfl⟩, hf1⟩ := (hc.2.2.2.2.2.2.2 ti.ino).1 hn
+  obtain ⟨f0, f1, hf0, ⟨sz, img, -, -, hcand, rfl⟩, hf1⟩ := (hc.2.2.2.2.2.2.2 ti.ino).1 hn
   rw [hf] at hf0; cases hf0
   rw [hf'] at hf1; cases hf1
   obtain ⟨f2, hf2, hc2⟩ := hcoh.tok_cand t ti hti

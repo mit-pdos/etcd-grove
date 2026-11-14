@@ -89,7 +89,8 @@ theorem dirswap_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   have hR : RootsOk (extLocal fsExt σ.world).fs.roots := Hinit.2.2.2.1
   have hdisk : ∀ i f, (extLocal fsExt σ.world).fs.files !! i = some f →
-      ∃ vs sz, f = OsFile.ofDisk vs sz := fun i f hf => (Hinit.2.2.2.2.2.2.1 i f hf).2
+      ∃ vs sz, f = OsFile.ofDisk vs sz := fun i f hf =>
+    let ⟨vs, sz, _, e⟩ := (Hinit.2.2.2.2.2.2.1 i f hf).2; ⟨vs, sz, e⟩
   obtain ⟨R, hRdef⟩ : ∃ R, (extLocal fsExt σ.world).fs.roots = R := ⟨_, rfl⟩
   rw [hRdef] at hR Hdir
   refine fs_crash_adequacy (GF := GF) N T (bootDS dir) σ g (fun v => v = #())
