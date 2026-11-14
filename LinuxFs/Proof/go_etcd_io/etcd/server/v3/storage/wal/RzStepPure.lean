@@ -9,9 +9,9 @@ layout in the window.
 * `rzSeg g0 tr tg n`: the tail as the first step of a resize to `tg` announces it (`SegFl.OkR`,
   `rzSeg_ok`);
 * `walAbsD_win`: the static relation of a layout whose tail `g` may be in a window (its `OsMeta` around
-  its bytes, `TailLast` if exact, `TailWin` if not), from the old one with an exact tail;
-* `walAbsD_rzStart`: a resize's first step from an exact tail, to a target at or past the write
-  position.
+  its bytes, `TailLast` if exact, `TailWin` and `lo ≤ wr` if not), from the old one;
+* `walAbsD_rzStart`: a resize's first step from an exact tail or a window, to a target at or past the
+  write position.
 
 The crash condition across the window (`CrashOk`) is not here: see the I3b log (2026-11-14, `wal-tc2`).
 -/
@@ -68,15 +68,15 @@ theorem rzSeg_bs_of_le {g0 : SegG} {tr : Bool} {tg n : Nat} (hlen : g0.bs.length
 
 /-- **The static relation of a layout whose tail may be in a resize window**: the old relation with
 an exact tail `g0`, the new tail `g` of the same name and inode, its `OsMeta` around its bytes, and
-the last segment's facts (`TailLast` if exact, `TailWin` if not). -/
+the last segment's facts (`TailLast` if exact, `TailWin` and `winLo` if not). -/
 theorem walAbsD_win {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
     {pre : List SegG} {g0 g : SegG} {wr' : Nat}
-    (habs : WalAbsD C Mr d lay ents) (hs : lay.segs = pre ++ [g0]) (hex0 : SegExact g0)
+    (habs : WalAbsD C Mr d lay ents) (hs : lay.segs = pre ++ [g0])
     (hino : g.ino = g0.ino) (hname : g.name = g0.name)
     (hmeta : g.om.size = g.bs.length ∧ g.om.cut = none ∧ g.om.lo ≤ g.bs.length ∧
       g.bs.length ≤ g.om.hi)
     (hlast : (SegExact g → TailLast C Mr d (tailLay lay pre g wr') g) ∧
-      (¬ SegExact g → TailWin C Mr d (tailLay lay pre g wr') g)) :
+      (¬ SegExact g → TailWin C Mr d (tailLay lay pre g wr') g ∧ g.om.lo ≤ wr')) :
     WalAbsD C Mr d (tailLay lay pre g wr') ents := by
   refine ⟨?_, ?_, ?_, habs.cut, ?_, ?_, ?_, habs.synced, habs.lastSynced, habs.fit, habs.tailStop,
     by simp [tailLay]⟩
@@ -96,7 +96,11 @@ theorem walAbsD_win {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
     · obtain ⟨h1, h2, h3, h4, h5⟩ := habs.metas g' (by rw [hs]; exact List.mem_append_left _ hg')
       refine ⟨h1, h2, h3, h4, h5.elim (fun h => Or.inr ?_) Or.inr⟩
       rw [hs, List.getLast?_append, List.getLast?_singleton, Option.some_or, Option.some.injEq] at h
-      exact h ▸ hex0
+      subst h
+      exfalso
+      have hn := habs.names.2
+      rw [hs, List.map_append, List.pairwise_append] at hn
+      exact go.goStringLt_irrefl _ (hn.2.2 _ (List.mem_map_of_mem hg') _ (by simp))
     · exact ⟨hmeta.1, hmeta.2.1, hmeta.2.2.1, hmeta.2.2.2, Or.inl (by simp [tailLay])⟩
   · intro k g' hk hg'
     simp only [tailLay, List.length_append, List.length_singleton] at hk
@@ -109,39 +113,42 @@ theorem walAbsD_win {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
     subst hg'
     exact hlast
 
-/-- **A resize's first step from an exact tail keeps the static relation** (the window opens), the
-target at or past the write position (`cut` truncates to it, `ZeroToEnd` to `z0 = wr`): the bytes
-below the write position are untouched. -/
+/-- **A resize's first step keeps the static relation** (the window opens, or stays open), the target
+at or past the write position (`cut` truncates to it, `ZeroToEnd` to `z0 = wr`), the least crash size
+the step announces at most `wr` (`min lo tg ≤ wr`: so for `cut`'s and `ZeroToEnd`'s truncate, `tg =
+wr`): the bytes below the write position are untouched. From an exact tail or a window (`wal-tc7`). -/
 theorem walAbsD_rzStart {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
     {pre : List SegG} {g0 : SegG} {tr : Bool} {tg n : Nat}
-    (habs : WalAbsD C Mr d lay ents) (hs : lay.segs = pre ++ [g0]) (hex0 : SegExact g0)
-    (hwr : lay.wr ≤ tg) :
+    (habs : WalAbsD C Mr d lay ents) (hs : lay.segs = pre ++ [g0])
+    (hwr : lay.wr ≤ tg) (hlo : min g0.om.lo tg ≤ lay.wr) :
     WalAbsD C Mr d (tailLay lay pre (rzSeg g0 tr tg n) lay.wr) ents := by
   have hg0 : lay.segs.getLast? = some g0 := by rw [hs]; simp
-  obtain ⟨hsz, hcut, -, -, -⟩ := habs.metas g0 (List.mem_of_getLast? hg0)
-  obtain ⟨hlo, hhi⟩ := hex0
-  have hl0 := (habs.last g0 hg0).1 ⟨hlo, hhi⟩
-  obtain ⟨hso, hwS, hbo, hwo, hB, hz0, hzS, hzZ⟩ := hl0
+  obtain ⟨hsz, hcut, hlo0, hhi0, -⟩ := habs.metas g0 (List.mem_of_getLast? hg0)
   have hlen := rzSeg_length g0 tr tg n
   have hl : g0.bs.length = g0.om.size := hsz.symm
-  refine walAbsD_win habs hs ⟨hlo, hhi⟩ rfl rfl ?_ ⟨fun hx => ?_, fun _ => ?_⟩
+  have hW := habs.lastWin g0 hg0
+  obtain ⟨hso, hwS, hbo, hwo, hB, hz0, hzS, hzZ⟩ := hW
+  refine walAbsD_win habs hs rfl rfl ?_ ⟨fun hx => ?_, fun _ => ?_⟩
   · simp only [rzSeg, rzMeta_size, rzMeta_cut, rzMeta_lo, rzMeta_hi] at hlen ⊢
     rw [hlen]; exact ⟨hsz, hcut, by omega, by omega⟩
-  · -- exact: the target at or past the size, nothing cut off
-    have hle : g0.om.size ≤ tg := by
-      have h1 : (rzSeg g0 tr tg n).om.lo = (rzSeg g0 tr tg n).bs.length := hx.1
-      have h2 : (rzSeg g0 tr tg n).om.lo = min g0.om.lo tg := rfl
-      omega
+  · -- exact: the old tail exact, the target at or past the size, nothing cut off
+    have h1 : (rzSeg g0 tr tg n).om.lo = (rzSeg g0 tr tg n).bs.length := hx.1
+    have h2 : (rzSeg g0 tr tg n).om.lo = min g0.om.lo tg := rfl
+    have h3 : (rzSeg g0 tr tg n).om.hi = (rzSeg g0 tr tg n).bs.length := hx.2
+    have h4 : (rzSeg g0 tr tg n).om.hi = max g0.om.hi tg := rfl
+    have hex0 : SegExact g0 := ⟨by omega, by omega⟩
+    have hle : g0.om.size ≤ tg := by omega
+    obtain ⟨hso, hwS, hbo, hwo, hB, hz0, hzS, hzZ⟩ := (habs.last g0 hg0).1 hex0
     have e : rzSeg g0 tr tg n = { g0 with om := rzMeta tr g0.om tg n } := by
       have := rzSeg_bs_of_le (tr := tr) (n := n) hl hle
       simp only [rzSeg] at this ⊢; rw [this]
     rw [e]
     exact ⟨hso, hwS, hbo, hwo, hB, hz0, hzS, hzZ⟩
-  · refine ⟨hso, hwS, by simp only [tailLay]; omega, by simp only [tailLay]; omega,
-      fun b x hb hbw => ?_, hz0, hzS, hzZ⟩
+  · refine ⟨⟨hso, hwS, by simp only [tailLay]; omega, by simp only [tailLay]; omega,
+      fun b x hb hbw => ?_, hz0, hzS, hzZ⟩, by simp only [rzSeg, rzMeta_lo]; omega⟩
     simp only [tailLay] at hbw
     rw [rzSeg_getElem?_lt hl (by omega)] at hb
-    exact hB b x hb
+    exact hB b x hb (by omega)
 
 end pure
 

@@ -39,8 +39,8 @@ theorem wp_osFtruncateStart_auW (fd sz : w64) (dq : DFrac) (d : OsFd) (m : OsMet
       osAUnc (L := L) (A := Nat × Nat)
         iprop(osMeta (L := L) d.ino (DFrac.own 1) m ∗
           osBytes (L := L) d.ino (min m.size sz.toNat) (DFrac.own 1) xs)
-        (fun tn => rsTok (L := L) true tn.1 d.ino sz.toNat m xs tn.2) Q -∗
-      iprop(∀ t : Nat, ∀ n : Nat, ⌜∀ x ∈ xs, ∀ q ∈ x.2, q.2 < n⌝ -∗ osFd (L := L) fd dq d -∗
+        (fun tn => iprop(rsTok (L := L) true tn.1 d.ino sz.toNat m xs tn.2 ∗ ⌜0 < tn.2 ∧ m.TcZ⌝)) Q -∗
+      iprop(∀ t : Nat, ∀ n : Nat, ⌜0 < n ∧ m.TcZ ∧ ∀ x ∈ xs, ∀ q ∈ x.2, q.2 < n⌝ -∗ osFd (L := L) fd dq d -∗
         Q (t, n) -∗ Φ (osTokV t)) -∗
       WP (ExternalOp fsExt.name "FtruncateStart" (Val (PairV (#fd) (#sz)))) {{ Φ }} := by
   iintro #Hinv Hfd Hau HΦ
@@ -52,7 +52,8 @@ theorem wp_osFtruncateStart_auW (fd sz : w64) (dq : DFrac) (d : OsFd) (m : OsMet
   iintro %t %n %hn Hfd Ht
   iright
   iexists (t, n)
-  iframe Ht
+  isplitl [Ht]
+  · iframe Ht; ipureintro; exact ⟨hn.1, hn.2.1⟩
   iintro HQ
   iapply HΦ $$ %t %n %hn Hfd HQ
 

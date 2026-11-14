@@ -370,6 +370,16 @@ def OsMeta.pc (m : OsMeta) (b : Nat) : Option Cands :=
     | some z => if z ≤ b then some [(0, 0)] else none
     | none => none
 
+/-- **The candidates `m` knows past its known zeros are the zero** (`MetaOk`'s `zf` and `tail`
+together, `MetaOk.tcz`): a resize's first step tells it of the `OsMeta` it found (`wp_osResizeStart`). -/
+def OsMeta.TcZ (m : OsMeta) : Prop :=
+  ∀ z b c, m.zf = some z → z ≤ b → m.size ≤ b → m.tc !! b = some c → c = [((0 : w8), 0)]
+
+theorem MetaOk.tcz {st : OsState} {i : Ino} {m : OsMeta} {f : OsFile} (h : MetaOk st i m f) :
+    m.TcZ := by
+  intro z b c hz hzb hsb hc
+  rw [← h.tail b c (by rw [← h.size]; exact hsb) hc, (h.zf z hz).2 b hzb]
+
 theorem OsMeta.pc_some {m : OsMeta} {b : Nat} {c : Cands} (h : m.pc b = some c) :
     m.tc !! b = some c ∨ ∃ z, m.zf = some z ∧ z ≤ b ∧ c = [(0, 0)] := by
   unfold OsMeta.pc at h
