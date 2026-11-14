@@ -76,14 +76,26 @@ def rsAnn (n : Nat) (xs : List ByteG) : List ByteG := xs.map (fun x => (x.1, x.2
 @[simp] theorem rsAnn_length (n : Nat) (xs : List ByteG) : (rsAnn n xs).length = xs.length := by
   simp [rsAnn]
 
-/-- The page cache known zero past the size after a resize from the size `s`, as `cz` (`OsMeta.cz`)
-was: an `ftruncate` (`tr`) zeroed it to the end of what it announced; `fallocate` keeps what was
-known. -/
-def rsCz (tr : Bool) (s tg cz : Nat) : Nat := if tr then max cz (rsHi tr s tg) else cz
+/-- The page cache known zero past the size after a resize from `m` to `tg` landed, as `cz`
+(`OsMeta.cz`): an `ftruncate` (`tr`) leaves it zero from the new size on (it zeroed it to the end of
+what it announced, and it was zero past the old size's last page, `MetaOk.ce`): known to the end of
+what it announced and of the page of the zeros known (`zf`). `fallocate`'s growth leaves it zero from
+the old size on if it was so (the old size's last page known zero, `pageEnd size ≤ max size cz`, and
+zero past it): then known to the end of the page of the target and of the zeros known; otherwise as
+it was. -/
+def rsCz (tr : Bool) (m : OsMeta) (tg : Nat) : Nat :=
+  if tr then max m.cz (max (rsHi tr m.size tg) (pageEnd (m.zf.getD 0)))
+  else if m.size < tg ∧ pageEnd m.size ≤ max m.size m.cz then
+    max m.cz (pageEnd (max (m.zf.getD 0) tg))
+  else m.cz
+
+/-- A resize never forgets the page cache known zero. -/
+theorem le_rsCz (tr : Bool) (m : OsMeta) (tg : Nat) : m.cz ≤ rsCz tr m tg := by
+  unfold rsCz; cases tr <;> simp only [Bool.false_eq_true, if_true, if_false] <;> (try split) <;> omega
 
 /-- The `OsMeta` after a resize from `m`'s size, to the target `tg`, landed with the size `sz'`. -/
 def rsPost (tr : Bool) (m : OsMeta) (tg sz' : Nat) : OsMeta :=
-  { m.announce (min m.size tg) (rsHi tr m.size tg) tg with size := sz', cz := rsCz tr m.size tg m.cz }
+  { m.announce (min m.size tg) (rsHi tr m.size tg) tg with size := sz', cz := rsCz tr m tg }
 
 /-- The candidates known past the size after a resize from `m`'s size to `tg` (`ftruncate`: `tr`)
 lands with the size `sz'`, announced as change `n` (each byte announced with zero, stamped `n`, as
@@ -147,6 +159,84 @@ theorem rsPostK_false (tr : Bool) (m : OsMeta) (tg sz' n : Nat) (xs : List ByteG
     (rsPostK keep tr m tg sz' n xs).cut = (rsPost tr m tg sz').cut := rfl
 @[simp] theorem rsPostK_cz (keep tr : Bool) (m : OsMeta) (tg sz' n : Nat) (xs : List ByteG) :
     (rsPostK keep tr m tg sz' n xs).cz = (rsPost tr m tg sz').cz := rfl
+
+/-! ## Zeros known past the size -/
+
+/-- Zeros known (`zf`) from an offset at least the size. -/
+def OsMeta.ZfGe (m : OsMeta) : Prop := ∃ z, m.zf = some z ∧ m.size ≤ z
+
+/-- Zeros known from `z`, at least the size, and the page cache known zero (`cz`) to the end of
+`z`'s page: the page cache is zero from the size on (with `MetaOk.ce`), what a write past the size
+and a sync need (the WAL's tail). Kept by complete writes, by `fallocate`'s growth landed (`rsCz`),
+made by an `ftruncate` landed (`OsMeta.zeroPg_rsPost_true`). -/
+def OsMeta.ZeroPg (m : OsMeta) : Prop := ∃ z, m.zf = some z ∧ m.size ≤ z ∧ pageEnd z ≤ max m.size m.cz
+
+theorem OsMeta.ZeroPg.zfGe {m : OsMeta} (h : m.ZeroPg) : m.ZfGe :=
+  let ⟨z, h1, h2, _⟩ := h; ⟨z, h1, h2⟩
+
+/-- An announce keeps the zeros known at least the size. -/
+theorem OsMeta.zfGe_announce {m : OsMeta} (h : m.ZfGe) (lo hi tg : Nat) : (m.announce lo hi tg).ZfGe := by
+  obtain ⟨z, hz, hs⟩ := h
+  refine ⟨if lo < hi then max z hi else z, by simp [announce_zf, hz], ?_⟩
+  simp only [announce_size]; split <;> omega
+
+/-- A resize landed with a size at most the larger of the old one and the target keeps the zeros
+known at least the size. -/
+theorem OsMeta.zfGe_rsPost {m : OsMeta} (h : m.ZfGe) (tr : Bool) (tg sz' : Nat) (hsz : sz' ≤ max m.size tg) :
+    (rsPost tr m tg sz').ZfGe := by
+  obtain ⟨z, hz, hs⟩ := h
+  have hR := le_rsHi tr m.size tg
+  refine ⟨if min m.size tg < rsHi tr m.size tg then max z (rsHi tr m.size tg) else z,
+    by simp [rsPost, announce_zf, hz], ?_⟩
+  show sz' ≤ _
+  split <;> omega
+
+private theorem pageEnd_max_le (a b : Nat) : pageEnd (max a (pageEnd b)) ≤ max (pageEnd a) (pageEnd b) := by
+  simp only [pageEnd]; omega
+
+/-- An `ftruncate` landed makes the zeros known from the size on: the page cache is zero from the new
+size on (`rsCz`). -/
+theorem OsMeta.zeroPg_rsPost_true {m : OsMeta} (h : m.ZfGe) (tg : Nat) : (rsPost true m tg tg).ZeroPg := by
+  obtain ⟨z, hz, hs⟩ := h
+  have hR := le_rsHi true m.size tg
+  have hhi : rsHi true m.size tg = pageEnd (max m.size tg) := by simp [rsHi]
+  refine ⟨if min m.size tg < rsHi true m.size tg then max z (rsHi true m.size tg) else z,
+    by simp [rsPost, announce_zf, hz], ?_, ?_⟩
+  · show tg ≤ _
+    split <;> omega
+  · show _ ≤ max tg (rsCz true m tg)
+    unfold rsCz
+    simp only [if_true, hz, Option.getD_some]
+    have h1 := pageEnd_max_le z (max m.size tg)
+    have h2 := le_pageEnd z
+    rw [hhi] at hR ⊢
+    split <;> omega
+
+/-- `fallocate`'s growth landed (in full or in part) keeps the zeros known from the size on: the
+page cache was zero from the old size on, and is from the new (`rsCz`). -/
+theorem OsMeta.zeroPg_rsPost_false {m : OsMeta} (h : m.ZeroPg) (tg w : Nat) (h1 : m.size ≤ w)
+    (h2 : w ≤ tg) : (rsPost false m tg w).ZeroPg := by
+  obtain ⟨z, hz, hs, hp⟩ := h
+  have hps : pageEnd m.size ≤ max m.size m.cz := Nat.le_trans (pageEnd_mono hs) hp
+  have hzp := le_pageEnd z
+  by_cases hlt : m.size < tg
+  · have e1 : min m.size tg = m.size := by omega
+    have e2 : max m.size tg = tg := by omega
+    refine ⟨max z tg, by simp [rsPost, announce_zf, hz, rsHi, e1, e2, hlt], ?_, ?_⟩
+    · show w ≤ max z tg; omega
+    · show pageEnd (max z tg) ≤ max w (rsCz false m tg)
+      unfold rsCz
+      simp only [Bool.false_eq_true, if_false, hz, Option.getD_some, if_pos (And.intro hlt hps)]
+      omega
+  · have hst : tg = m.size := by omega
+    subst hst
+    have hw : w = m.size := by omega
+    subst hw
+    refine ⟨z, by simp [rsPost, announce_zf, hz, rsHi], hs, ?_⟩
+    show pageEnd z ≤ max m.size (rsCz false m m.size)
+    unfold rsCz
+    simp only [Bool.false_eq_true, if_false, Nat.lt_irrefl, false_and]
+    omega
 
 /-- What `rsPostK true` knows of a byte a truncate cut off. -/
 theorem rsPostK_true_tc {tr : Bool} {m : OsMeta} {tg sz' n : Nat} {xs : List ByteG} {k : Nat}
@@ -505,6 +595,45 @@ theorem osWorld_unfold {st : OsState} {Γb Γm Γf Γt} {h : GMap Loc (NonAtomic
         gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γt Γt ∗
         tokRes (gooseOsGS (L := L)) Γt ∗ cellsRes (cellView st) ∗ naHeapCtx tls h) := .rfl
 
+/-- A byte past a landed resize's new size, at or past the old size, outside what it landed and past
+the page cache the old `OsMeta` knew zero, that the new `cz` covers (`rsCz`), is past the old size's
+last page. -/
+theorem rsCz_past {tr : Bool} {m : OsMeta} {tg e b : Nat}
+    (htr : tr = true → rsHi tr m.size tg ≤ e) (hne : ¬ (min m.size tg ≤ b ∧ b < e))
+    (hsb : m.size ≤ b) (hbc : ¬ b < m.cz) (hbz : b < rsCz tr m tg) : pageEnd m.size ≤ b := by
+  cases tr with
+  | true =>
+    have h1 := htr rfl
+    have h2 : pageEnd m.size ≤ rsHi true m.size tg := by
+      simp only [rsHi, if_true]; exact pageEnd_mono (Nat.le_max_left _ _)
+    omega
+  | false =>
+    unfold rsCz at hbz
+    simp only [Bool.false_eq_true, if_false] at hbz
+    split at hbz
+    · rename_i hc; omega
+    · omega
+
+/-- A byte past a landed resize's new size's last page, outside what it landed, is past the old
+size's last page. -/
+theorem rsCe_past {tr : Bool} {m : OsMeta} {tg e sz' b : Nat}
+    (hland : (max m.size tg ≤ e ∧ e = rsHi tr m.size tg ∧ sz' = tg) ∨
+      (m.size ≤ tg ∧ m.size ≤ e ∧ e ≤ tg ∧ sz' = e))
+    (hgrow : tr = false → m.size ≤ tg) (hne : ¬ (min m.size tg ≤ b ∧ b < e))
+    (hb : pageEnd sz' ≤ b) : pageEnd m.size ≤ b := by
+  have hsz := le_pageEnd sz'
+  rcases hland with ⟨h1, h2, h3⟩ | ⟨h1, h2, h3, h4⟩
+  · cases tr with
+    | true =>
+      have : pageEnd m.size ≤ rsHi true m.size tg := by
+        simp only [rsHi, if_true]; exact pageEnd_mono (Nat.le_max_left _ _)
+      omega
+    | false =>
+      subst h3
+      exact Nat.le_trans (pageEnd_mono (hgrow rfl)) hb
+  · subst h4
+    exact Nat.le_trans (pageEnd_mono h2) hb
+
 /-- **A resize landed**: up to `e`, with the new size `sz'` (a cut: all of it, to the target; a
 growth: up to `e`, the new end), and the client's resources; if `keep` (a file with no sync cut),
 its `OsMeta` knows the candidates of the bytes cut off. -/
@@ -514,8 +643,8 @@ theorem resize_done_worldK (keep : Bool) {st : OsState} {Γb Γm Γf Γt} {h h' 
     (hF : RsFacts st Γb Γm Γt t tr p tg m xs n c f) (e sz' : Nat)
     (hland : (max m.size tg ≤ e ∧ e = rsHi tr m.size tg ∧ sz' = tg) ∨
       (m.size ≤ tg ∧ m.size ≤ e ∧ e ≤ tg ∧ sz' = e))
-    (htr : tr = true → rsHi tr m.size tg ≤ e) (hkeep : keep = true → m.cut = none)
-    (hmax : sz' ≤ maxBytes)
+    (htr : tr = true → rsHi tr m.size tg ≤ e) (hgrow : tr = false → m.size ≤ tg)
+    (hkeep : keep = true → m.cut = none) (hmax : sz' ≤ maxBytes)
     (Hr : HeapRendered st ((st.doneInflight t).setFile p (f.land c e sz')) h h')
     (Hfr : MapsFresh st ((st.doneInflight t).setFile p (f.land c e sz')) h) :
     ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γb Γb -∗
@@ -600,7 +729,17 @@ theorem resize_done_worldK (keep : Bool) {st : OsState} {Γb Γm Γf Γt} {h h' 
           have h1 := hmo.maps b len; simp only [announce_maps] at h1
           simp only [rsPostK_maps, rsPost, announce_maps]; exact h1,
         fun t2 c2 h1 h2 => ?_, fun b hb hn => ?_, fun z hz => ?_, fun b cs hb hc => ?_,
-        fun b hb hbz => ?_, fun s hs => ?_, fun z hz b hzb => ?_⟩
+        fun b hb hbz => ?_, fun s hs => ?_, fun z hz b hzb => ?_, fun b hb => ?_⟩
+      rotate_right 1
+      · -- the page cache past the new size's last page
+        have hb2 : pageEnd sz' ≤ b := hb
+        rw [hcache b]
+        split
+        · rfl
+        · rename_i hne
+          refine hmo.ce b ?_
+          rw [← hmsz]
+          exact rsCe_past hland hgrow (by rw [← hclo]; exact hne) hb2
       rotate_right 1
       · rw [hcache b]
         split
@@ -663,22 +802,17 @@ theorem resize_done_worldK (keep : Bool) {st : OsState} {Γb Γm Γf Γt} {h h' 
             rcases hland with ⟨hl1, hl2, rfl⟩ | ⟨hl1, hl2, hl3, rfl⟩ <;> omega
       · -- the page cache known zero past the size
         have hb2 : sz' ≤ b := hb
-        have hbz2 : b < rsCz tr m.size tg m.cz := hbz
+        have hbz2 : b < rsCz tr m tg := hbz
         have hsb : m.size ≤ b ∧ ¬ (c.lo ≤ b ∧ b < e) ∨ (c.lo ≤ b ∧ b < e) := by
           rw [hclo]; rcases hland with ⟨hl1, hl2, rfl⟩ | ⟨hl1, hl2, hl3, rfl⟩ <;> omega
         rw [hcache b]
         rcases hsb with ⟨hsb, hne⟩ | hin
         · rw [if_neg hne]
-          refine hmo.cz b (by omega) ?_
-          rw [announce_cz]
-          unfold rsCz at hbz2
-          cases tr with
-          | false => exact hbz2
-          | true =>
-            have := htr rfl
-            simp only [if_true] at hbz2
-            rw [hclo] at hne
-            omega
+          by_cases hbc : b < m.cz
+          · exact hmo.cz b (by omega) (by rw [announce_cz]; exact hbc)
+          · refine hmo.ce b ?_
+            rw [← hmsz]
+            exact rsCz_past htr (by rw [← hclo]; exact hne) hsb hbc hbz2
         · rw [if_pos hin]
       · simp only [rsPostK_lo, rsPost, f2, OsFile.land, announce_lo]
         rcases hland with ⟨hl1, hl2, rfl⟩ | ⟨hl1, hl2, hl3, rfl⟩ <;> omega
@@ -893,7 +1027,7 @@ theorem resize_done_world {st : OsState} {Γb Γm Γf Γt} {h h' : GMap Loc (Non
     (hF : RsFacts st Γb Γm Γt t tr p tg m xs n c f) (e sz' : Nat)
     (hland : (max m.size tg ≤ e ∧ e = rsHi tr m.size tg ∧ sz' = tg) ∨
       (m.size ≤ tg ∧ m.size ≤ e ∧ e ≤ tg ∧ sz' = e))
-    (htr : tr = true → rsHi tr m.size tg ≤ e) (hmax : sz' ≤ maxBytes)
+    (htr : tr = true → rsHi tr m.size tg ≤ e) (hgrow : tr = false → m.size ≤ tg) (hmax : sz' ≤ maxBytes)
     (Hr : HeapRendered st ((st.doneInflight t).setFile p (f.land c e sz')) h h')
     (Hfr : MapsFresh st ((st.doneInflight t).setFile p (f.land c e sz')) h) :
     ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γb Γb -∗
@@ -906,7 +1040,7 @@ theorem resize_done_world {st : OsState} {Γb Γm Γf Γt} {h h' : GMap Loc (Non
       (∃ Γb' Γm' Γf' Γt', osWorld (L := L) ((st.doneInflight t).setFile p (f.land c e sz'))
         Γb' Γm' Γf' Γt' h') ∗ rsDone (L := L) tr p tg sz' m n := by
   rw [← rsDoneK_false (xs := xs)]
-  exact resize_done_worldK false hwf hcoh hF e sz' hland htr (fun h => by cases h) hmax Hr Hfr
+  exact resize_done_worldK false hwf hcoh hF e sz' hland htr hgrow (fun h => by cases h) hmax Hr Hfr
 
 /-- **The ghost maps with the `OsMeta` of the file `i` replaced** by one with the same cut, `MetaOk`
 for the file, no change in flight on it: the state unchanged. -/
@@ -945,7 +1079,7 @@ theorem metaOk_rsUnMeta {st : OsState} {p : Ino} {keep tr : Bool} {m : OsMeta} {
     (hcandP : ∀ b c, m.size ≤ b → b < rsHi tr m.size tg → m.pc b = some c → f.cand b = c ++ [(0, n)])
     (hn : keep = true → n ∈ f.rzs) :
     MetaOk st p (rsUnMeta keep tr m tg n) f := by
-  refine ⟨hmo.size, hmo.lo, hmo.hi, hmo.maps, hmo.targets, hmo.dur, hmo.zf, ?_, hmo.cz, ?_, hmo.zc⟩
+  refine ⟨hmo.size, hmo.lo, hmo.hi, hmo.maps, hmo.targets, hmo.dur, hmo.zf, ?_, hmo.cz, ?_, hmo.zc, hmo.ce⟩
   · intro b c hb hc
     cases keep with
     | false => exact hmo.tail b c hb hc
@@ -1231,7 +1365,7 @@ theorem wp_osFtruncateFinishK (keep : Bool) (t : Nat) (p : Ino) (tg : Nat) (m : 
   rw [hF.hf, Option.some.injEq] at hf'; subst hf'
   rcases hres with ⟨htm, rfl, rfl⟩ | ⟨e, he, rfl, rfl | ⟨htm, rfl⟩⟩
   · rw [hF.hctg] at Hr Hfr htm ⊢
-    imod resize_done_worldK keep hwf hcoh hF c.hi tg hland' (fun _ => Nat.le_of_eq hF.hchi.symm) hkeep htm Hr Hfr $$ HAb HAm HAf HAt Htok Hcells Hσ Ht
+    imod resize_done_worldK keep hwf hcoh hF c.hi tg hland' (fun _ => Nat.le_of_eq hF.hchi.symm) (fun h => by cases h) hkeep htm Hr Hfr $$ HAb HAm HAf HAt Htok Hcells Hσ Ht
       with ⟨⟨%Γb', %Γm', %Γf', %Γt', Hw⟩, Hd⟩
     imodintro
     iexists Γb', Γm', Γf', Γt'
@@ -1248,7 +1382,7 @@ theorem wp_osFtruncateFinishK (keep : Bool) (t : Nat) (p : Ino) (tg : Nat) (m : 
     iapply wp_value'
     iapply HΦ; iright; iframe; ipureintro; exact he
   · rw [hF.hctg] at Hr Hfr htm ⊢
-    imod resize_done_worldK keep hwf hcoh hF c.hi tg hland' (fun _ => Nat.le_of_eq hF.hchi.symm) hkeep htm Hr Hfr $$ HAb HAm HAf HAt Htok Hcells Hσ Ht
+    imod resize_done_worldK keep hwf hcoh hF c.hi tg hland' (fun _ => Nat.le_of_eq hF.hchi.symm) (fun h => by cases h) hkeep htm Hr Hfr $$ HAb HAm HAf HAt Htok Hcells Hσ Ht
       with ⟨⟨%Γb', %Γm', %Γf', %Γt', Hw⟩, Hd⟩
     imodintro
     iexists Γb', Γm', Γf', Γt'

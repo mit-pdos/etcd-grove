@@ -743,3 +743,23 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `WriteAt`'s `cz` is one complete write's, `pwCz m off |data| |data|`; `pwCz_eq_of_lt`, `synced_zf_ge`, all in
   `CrashSt.lean`). Clients (`Open`, `OpenCrash`, `DB.commit.wp_proof_crash`) repaired; no other user.
 - **Decision.** Made (`wal-save17`, the coordinator's task 1: the posts' `cz` as `pwCz m 0 16384 16384`).
+
+## 2026-11-14: `fileutil.Preallocate`/`preallocExtend`/`preallocExtendTrunc` (the part's) and `os.OpenFile.specCreateTruncS`'s `trFile` -- the zeros known on success
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/client/pkg/v3/fileutil/{Preallocate,preallocExtend,preallocExtendTrunc}.lean`
+  (posts: `preGrown i m w`); `LinuxFs/Spec/os/OpenFileTruncS.lean`'s `trFile i P` (the new or `O_TRUNC`-truncated file).
+- **Defect.** Too weak for `filePipeline.alloc` (`pipeFile`'s `ZeroPg`, W6 log, sixteenth session): neither post said
+  anything of the zeros known (`zf`) or the page cache known zero (`cz`), so `alloc`'s `ZeroPg` was a `sorry`. It was not
+  provable from stronger posts alone either (seventeenth session): a `fallocate` landing left `cz` behind the zeros
+  it announced, and an `O_TRUNC` of an arbitrary leftover gave no zeros fact.
+- **Evidence.** Linux keeps no page past the size's last page (the page cache reads zeros there); the extension now
+  says so (`MetaOk.ce`, untrusted ghost), and a landed resize raises `cz` (`rsCz`: an `ftruncate` to past the zeros
+  known and its announcement's end; `fallocate`'s growth when the old size's page was known zero). Then an
+  `ftruncate` landed makes `ZeroPg` (from `ZfGe`), `fallocate`'s growth landed keeps it; a resize that did not land
+  keeps neither (its `OsMeta` is the announcement's, unchanged, so that the WAL's layouts stay `rsUnMeta`).
+- **Change (made).** `preGrown i m w Z` (a condition `Z`: the grown `OsMeta` has `ZeroPg` if `Z`; `GrowMeta` keeps
+  `ZfGe`): `Preallocate`/`preallocExtend` post `Z := err = nil ∧ m.ZeroPg`, `preallocExtendTrunc` `Z := err = nil ∧
+  m.ZfGe`. `trFile i P` gains `m.ZfGe ∧ (P → m.ZeroPg)` (not unconditional `ZeroPg`, as proposed: a leftover from
+  `alloc`'s error path after a `fallocate` that did not land has none). `alloc`'s `ZeroPg` proved; `zerosA_trFile`
+  takes `ZfGe` (`filePipeline.run`, from `pipeFile`'s `ZeroPg`).
+- **Decision.** Made (`wal-save18`, the coordinator's task 1, `rsCz`; the shape adjusted as above and logged).

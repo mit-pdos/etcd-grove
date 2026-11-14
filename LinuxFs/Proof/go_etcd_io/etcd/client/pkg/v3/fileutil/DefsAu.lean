@@ -83,14 +83,15 @@ theorem preGrownH_trans (i : Ino) (m m1 : OsMeta) (w : Nat) (h1 : m.size ≤ m1.
   iframe
 
 /-- A growth that landed with the size `w`: grown. -/
-theorem fallocDoneH_preGrownH (i : Ino) (m : OsMeta) (tg w : Nat) (hw : m.size ≤ w ∨ w = tg) :
+theorem fallocDoneH_preGrownH (i : Ino) (m : OsMeta) (tg w : Nat) (hw : m.size ≤ w ∨ w = tg)
+    (hle : w ≤ max m.size tg) :
     fallocDoneH (GF := GF) i m tg w ⊢ preGrownH i m w := by
   unfold fallocDoneH preGrownH
   iintro ⟨%tc, %rz, Hm, Hz⟩
   iexists (rsPost false m tg w).withTc tc rz
   iframe
   ipureintro
-  exact ⟨rfl, rsPost_maps false m tg w, os.le_rsPost_cz false m tg w, growMeta_rsPost false m tg w hw⟩
+  exact ⟨rfl, rsPost_maps false m tg w, os.le_rsPost_cz false m tg w, growMeta_rsPost false m tg w hw hle⟩
 
 /-- A growth's outcome: grown to some `w` between the size and the target, all of it on success. -/
 theorem fallocOutH_preGrownH (i : Ino) (m : OsMeta) (tg : Nat) (e : w64) (hle : m.size ≤ tg) :
@@ -102,7 +103,7 @@ theorem fallocOutH_preGrownH (i : Ino) (m : OsMeta) (tg : Nat) (e : w64) (hle : 
   · iexists tg
     isplitr
     · ipureintro; exact ⟨hle, Nat.le_refl _, fun _ => rfl⟩
-    iapply fallocDoneH_preGrownH (hw := Or.inr rfl) $$ Hd
+    iapply fallocDoneH_preGrownH (hw := Or.inr rfl) (hle := Nat.le_max_right _ _) $$ Hd
   · iexists m.size
     isplitr
     · ipureintro; exact ⟨Nat.le_refl _, hle, fun h => absurd h he⟩
@@ -117,7 +118,7 @@ theorem fallocOutH_preGrownH (i : Ino) (m : OsMeta) (tg : Nat) (e : w64) (hle : 
   · iexists w
     isplitr
     · ipureintro; exact ⟨hw.1, hw.2, fun h => absurd h he⟩
-    iapply fallocDoneH_preGrownH (hw := Or.inl hw.1) $$ Hd
+    iapply fallocDoneH_preGrownH (hw := Or.inl hw.1) (hle := by omega) $$ Hd
 
 /-- A truncate that landed, growing the file (`os.ftDoneH`): grown. -/
 theorem ftDoneH_preGrownH (p : Ino) (m : OsMeta) (tg : Nat) (zs : List Cands) :
@@ -128,8 +129,8 @@ theorem ftDoneH_preGrownH (p : Ino) (m : OsMeta) (tg : Nat) (zs : List Cands) :
   iframe Hm
   isplitr
   · ipureintro
-    exact ⟨rfl, rsPost_maps true m tg tg, by simp only [OsMeta.withTc_cz, rsPost, rsCz, ite_true]; omega,
-      growMeta_rsPost true m tg tg (Or.inr rfl)⟩
+    exact ⟨rfl, rsPost_maps true m tg tg, by simp only [OsMeta.withTc_cz]; exact le_rsCz true m tg,
+      growMeta_rsPost true m tg tg (Or.inr rfl) (Nat.le_max_right _ _)⟩
   iapply (osZerosA_unfold p m.size _ _).2
   iexists zs
   iframe Hb

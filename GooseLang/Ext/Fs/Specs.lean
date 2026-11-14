@@ -35,7 +35,7 @@ theorem osWf_fds {st : OsState} (hwf : OsWf st) (X : GMap w64 OsFd)
 
 theorem MetaOk.fds {st : OsState} {p : Ino} {m : OsMeta} {f : OsFile} (X : GMap w64 OsFd)
     (h : MetaOk st p m f) : MetaOk (st.setProc { st.proc with fds := X }) p m f :=
-  ⟨h.size, h.lo, h.hi, h.maps, h.targets, h.dur, h.zf, h.tail, h.cz, h.rz, h.zc⟩
+  ⟨h.size, h.lo, h.hi, h.maps, h.targets, h.dur, h.zf, h.tail, h.cz, h.rz, h.zc, h.ce⟩
 
 theorem osCoh_fds {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) (X : GMap w64 OsFd) :
     OsCoh (st.setProc { st.proc with fds := X }) Γb Γm X Γt :=
@@ -696,7 +696,11 @@ theorem wp_osFsync2 (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (lo : Nat) (
           by simp [OsMeta.synced, f', OsFile.synced, hmo.size],
           by simp [OsMeta.synced, f', OsFile.synced, hmo.size], hmo.maps,
           fun t c ht hc => absurd hc (hni t c ht), ?_, ?_, ?_, ?_, fun _ h => by simp [OsMeta.synced] at h,
-          ?_⟩
+          ?_,
+          fun b hb => by
+            simp only [f', synced_size] at hb
+            simp only [f', OsFile.synced, if_neg (hnoI b)]
+            exact diskByte_past hb⟩
         rotate_right
         · intro z hz b hb
           simp only [OsMeta.synced, Option.some.injEq] at hz; subst hz
@@ -944,7 +948,11 @@ theorem wp_osFsyncB (fd : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (hE : ↑osN
       · refine ⟨by simp [OsMeta.bsynced, hmo.size, f', synced_size],
           by simp only [OsMeta.bsynced, f', OsFile.synced]; have := hmo.lo; omega,
           by simp only [OsMeta.bsynced, f', OsFile.synced]; have := hmo.hi; omega, hmo.maps,
-          fun t c ht hc => absurd hc (hni t c ht), ?_, ?_, ?_, ?_, hmo.rz, ?_⟩
+          fun t c ht hc => absurd hc (hni t c ht), ?_, ?_, ?_, ?_, hmo.rz, ?_,
+          fun b hb => by
+            simp only [f', synced_size] at hb
+            simp only [f', OsFile.synced, if_neg (hnoI b)]
+            exact diskByte_past hb⟩
         rotate_right
         · intro z hz b hb
           simp only [OsMeta.bsynced, Option.some.injEq] at hz; subst hz

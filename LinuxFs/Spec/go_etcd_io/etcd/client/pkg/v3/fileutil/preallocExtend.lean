@@ -6,7 +6,8 @@ sizeInBytes)`, a growth of the file to `sizeInBytes`; on `ENOTSUP` or `EINTR` (`
 The premises are `preallocExtendTrunc`'s (the file at most `sizeInBytes` long, unmapped, the offset
 known), `sizeInBytes` positive (`Preallocate` skips 0), and `errors`' package initialized (for
 `errors.As`). Post: the offset unchanged, the file grown to some `w` between its size and
-`sizeInBytes`, all of it on success (`preGrown`: the new bytes a zero run). Proved in
+`sizeInBytes`, all of it on success (`preGrown`: the new bytes a zero run), and on success the
+zeros known from the page cache on (`OsMeta.ZeroPg`) if they were. Proved in
 `LinuxFs/Proof/go_etcd_io/etcd/client/pkg/v3/fileutil/preallocExtend.lean`. Lean-first.
 -/
 module
@@ -43,7 +44,7 @@ abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtend.spec : Prop :=
       (Val #sz))
   {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ os.ownOff f o ∗ osFd fd dq d ∗
       ∃ w : Nat, ⌜m.size ≤ w ∧ w ≤ sz.toNat ∧ (err = interface.nil → w = sz.toNat)⌝ ∗
-        preGrown d.ino m w }}
+        preGrown d.ino m w (err = interface.nil ∧ m.ZeroPg) }}
 
 end spec
 
