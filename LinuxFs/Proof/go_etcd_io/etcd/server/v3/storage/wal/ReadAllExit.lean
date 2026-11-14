@@ -16,6 +16,9 @@ module
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.OpenAtSteps
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.DecStreams
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadDefs
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.DecLemmas
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadAllFiles
+public import Perennial.Proof.io.Base
 public import GooseLang.Ext.Fs.NotCrashedAcc
 import all LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Ghost
 
@@ -195,6 +198,49 @@ theorem ownDecoder_halves (d : Loc) (IoE : GoInterface → Prop) (eof : GoInterf
   isplitl [Hh Hbk]
   · iapply Hbk $$ Hh
   · ipureintro; exact hwf
+
+/-- **`io.EOF` and `io.ErrUnexpectedEOF` are not `nil`** (`io`'s initialization). -/
+theorem decEnv_nonnil (IoE : GoInterface → Prop) (eof ueof : GoInterface) :
+    decEnv (GF := GF) IoE eof ueof ⊢ ⌜eof ≠ GoInterface.nil ∧ ueof ≠ GoInterface.nil⌝ := by
+  iintro #Henv
+  iunfold decEnv at Henv
+  icases Henv with ⟨#Hio, -, -, -, -, #Heof, #Hueof, -, -, -, -⟩
+  ihave #HI := io.isInit_access $$ Hio
+  icases HI with ⟨-, -, -, -, #HE1, #HU1, -⟩
+  iunfold errors.newVar at HE1
+  icases HE1 with ⟨%x1, #Hx1, -⟩
+  ihave ⟨%x2, #Hx2, -⟩ := errOk_newVar _ _ $$ HU1
+  icombine Heof Hx1 gives %he
+  icombine Hueof Hx2 gives %hu
+  ipureintro
+  exact ⟨by rw [he]; simp [interface.mkOk], by rw [hu]; simp [interface.mkOk]⟩
+
+/-- The decoder's files are the segments' images (`walReadTie`'s facts). -/
+theorem decFiles_bs {fs : List (DecFile GF)} {gs : List SegG} (hl : fs.length = gs.length)
+    (hk : ∀ (k : Nat) (F : DecFile GF) (g : SegG), fs[k]? = some F → gs[k]? = some g →
+      F.bs = g.bs.map (·.1)) : fs.map (·.bs) = gs.map segImg := by
+  apply List.ext_getElem? 
+  intro n
+  rw [List.getElem?_map, List.getElem?_map]
+  rcases h : fs[n]? with _ | F
+  · have : gs[n]? = none := by
+      rw [List.getElem?_eq_none_iff] at h ⊢; omega
+    rw [this]; rfl
+  · obtain ⟨g, hg⟩ : ∃ g, gs[n]? = some g := by
+      have := (List.getElem?_eq_some_iff.1 h).1
+      exact ⟨gs[n]'(by omega), List.getElem?_eq_getElem _⟩
+    rw [hg]
+    simp only [Option.map_some, Option.some.injEq]
+    exact hk n F g h hg
+
+/-- Each segment's name is in the directory's names (`walReadTie`'s facts). -/
+theorem decFiles_names {fs : List (DecFile GF)} {gs : List SegG} {P : SegG → Prop}
+    (hl : fs.length = gs.length)
+    (hk : ∀ (k : Nat) (F : DecFile GF) (g : SegG), fs[k]? = some F → gs[k]? = some g → P g) :
+    ∀ g ∈ gs, P g := by
+  intro g hg
+  obtain ⟨n, hn, rfl⟩ := List.getElem_of_mem hg
+  exact hk n (fs[n]'(by omega)) _ (List.getElem?_eq_getElem _) (List.getElem?_eq_getElem _)
 
 end halves
 
