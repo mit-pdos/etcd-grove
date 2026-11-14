@@ -2782,7 +2782,8 @@ advanced (frontier `sorry`s unchanged). Note: the stream-end fact `< 2^43` is go
 - *Next* (in order): the fresh layout's `WalAbsD` as a pure lemma (`lay := ⟨jr, nm, J, [], 0, [g], replicate |g.bs| 0,
   L, L, 0⟩` with `L := |createStream|`, `old` zeros and `z0 = 0` so that `TailLast`'s last clause holds and
   `tailStop` is vacuous; `g := ⟨walFileName 0 0, i, mS.synced, ysS.map durB⟩`, its bytes `(stream ++ zeros).map durB`
-  by `streamOk_vals`; `hzf` from `OsMeta.size_le_syncZ`; `hz` by `cutHdrZeros`/`createStream_mod8`); the claim split
+  by `streamOk_vals`; `hzf` from `OsMeta.size_le_syncZ`; `hz` by `cutHdrZeros`/`createStream_mod8`; after `wal-readall18`, `WalAbsD.cutPos`
+  vacuous (no cuts) and `nameBound`'s `ix < 2^64` with `ix = 0`); the claim split
   of `J` (`.except walTmps` + `walTmpsRes J`), the minting (`walInv_mint`), then the rename (`renameWAL`, whose spec
   awaits the coordinator's decision on the retry), and the post-commit order of the sixteenth session's *Next*. The
   handle must establish `TailZ` (the coordinator, after `wal-save16`): after the fdatasync the segment's `OsMeta` is
