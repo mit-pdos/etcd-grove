@@ -138,6 +138,25 @@
 //	TestServerKilledBeforeReply  D1,D10,D11 the client reads EOF, no bytes, no error                     measured   ReadOutcome (break)
 //	TestKilledListener           D7,D8,D10 the queued connection is reset; Dial then refused             measured   AcceptStep, DialStep
 //
+// Network faults, in network namespaces (netns_test.go; NETTCP_NETNS=1, re-run as root by sudo -n;
+// client, router and server namespaces, the faults in the router's FORWARD chain):
+//
+//	TestTimeoutOnBreak           D1,D2,D14 a partition, the kernel gives up (TCP_USER_TIMEOUT 2s, a     measured   ReadOutcome (break), WriteOutcome
+//	                                  Read or a 16 MiB Write blocked; keepalive 1s/1s/2 idle): ETIMEDOUT            (open: sys, cut), TcpErr.sys,
+//	                                  as *OpError > *os.SyscallError > Errno, Timeout() and Temporary()               model.errFlag (arbitrary for sys)   
+//	                                  true, not ErrDeadlineExceeded; the Write (110048, ETIMEDOUT); bytes
+//	                                  written before lost; then EOF, EOF, EPIPE, EPIPE; the peer, healed:
+//	                                  Write nil, then ECONNRESET, EOF, EPIPE
+//	TestResetInNetwork           D1,D2,D14 a middlebox's RST (iptables REJECT tcp-reset): received unread  measured   ReadOutcome (break), WriteOutcome (cut)
+//	                                  bytes survive; Read first: bytes, ECONNRESET, EOF, then EPIPE; Write
+//	                                  first: ECONNRESET, EPIPE, then bytes, EOF; the bytes that drew it
+//	                                  lost; the other end: its bytes, then (healed) Write nil, ECONNRESET,
+//	                                  EOF, EPIPE
+//	TestPartitionHealed          D1,D2 a 2 s partition shorter than every timeout, healed: every byte     measured   ReadOutcome, WriteOutcome (no break)
+//	                                  both ways once, in order, no error (Writes block up to 2.9 s)
+//	TestAcceptOrder              D7   8 pending: back-to-back Dials accepted in Dial order (0/50 out of    measured   AcceptStep (any pending connection)
+//	                                  order); concurrent ones 47-50/50 out of Dial-return order
+//
 // The refutation, and the fix (2026-11-14). The first draft of D1 broke a
 // direction only in a Read that returned an error. After a crash (D10) the dead
 // node's directions stay open and the dead node runs no Close, so they could
@@ -184,8 +203,8 @@
 // then reset. All allowed (D6, D8: failure always; D9: pending stays
 // pending). The tests that need a Close to take effect at once exclude forks.
 //
-// Not measured here: D12 (ENOMEM, ENOBUFS), a machine crash ("nothing": no
-// FIN or RST until the peer's timeout), unreachable addresses; the faults
-// injected by the network (partitions, resets by a middlebox) are measured
-// in network namespaces (netns_test.go).
+// Not measured here: D12 (ENOMEM, ENOBUFS), unreachable addresses. What a
+// peer sees of a machine that dies silently (nothing, then its kernel's
+// timeout) is measured by the partitions of netns_test.go, as are the resets
+// a middlebox injects.
 package semantics
