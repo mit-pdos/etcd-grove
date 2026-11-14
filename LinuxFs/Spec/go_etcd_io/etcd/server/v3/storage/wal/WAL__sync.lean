@@ -25,15 +25,18 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 
 /-- **`w.sync()`** (S/wal.go:967-992) of a handle with every record of its history encoded
-(`rest = 0`): the encoder's pending bytes flushed to the tail (`out ++ pend`, nothing pending), the
-tail fdatasynced: the history synced (`walSyncedLb |H|`). *Error*: the handle lost. -/
+(`rest = 0`): the encoder's pending bytes flushed to the tail (`out ++ pend`, nothing pending; the
+tail's size grown to cover them if they pass it), the tail fdatasynced: the history synced (`walSyncedLb
+|H|`), the tail's resize window closed (the handle exact: `OsMeta.synced`). The window may be open before
+(`TailMetaW`: a write past the preallocated size, W6 log, thirteenth session). *Error*: the handle lost. -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.spec (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
   ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (h : WalHS),
   h.rest = 0 →
-  {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walHandleIn P Mr w dir h }}
+  {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walHandleIn P Mr w dir h TailMetaW }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"sync")) (Val #()))
   {{ (err : GoInterface), RET #err;
-      (⌜err = GoInterface.nil⌝ ∗ walHandleIn P Mr w dir { h with out := h.out ++ h.pend, pend := [] } ∗
+      (⌜err = GoInterface.nil⌝ ∗ walHandleIn P Mr w dir
+          { h with out := h.out ++ h.pend, pend := [], sz := max h.sz (h.o0 + h.out.length + h.pend.length) } ∗
           WalFs.walSyncedLb dir h.H.length) ∨
       ⌜err ≠ GoInterface.nil⌝ }}
 

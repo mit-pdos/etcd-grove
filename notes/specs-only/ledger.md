@@ -442,3 +442,27 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   returned to the client) and `openAtIndex` unchanged.
 - **Decision.** Adopted (the coordinator's decision of 2026-11-14, task 1 of `wal-read13`; no client of the
   part's `Open` exists yet).
+
+## 2026-11-14: `wal.WAL.Save.spec` (the part's, over `fsExt`) -- the batch's size, not each entry's
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__Save.lean`, premise
+  `∀ e ∈ es, (Mr.encEntry e).length < 2 ^ 40` (ledger 2026-11-14, "Records' size").
+- **Defect.** Each entry bounded, the batch is not: the tail's stream grows by the whole batch before `Save`
+  checks `SegmentSizeBytes`, and nothing then bounds the encoder's offset and pending bytes by ext4's maximum
+  offset (`0xffffffff000`, `walHandleIn`'s `o0 + |out| + |pend|` bound, `Seek`'s and the writes' arithmetic):
+  `saveEntry`/`saveState`/`encode.specTail` claimed it in their posts with no source (W6 log, twelfth
+  session).
+- **Evidence.** W6 log, thirteenth session (`wal-save13`): the bound is the stream before the call (a handle
+  fact at quiescence, below) plus the batch's frames; a frame is at most its data plus 64 bytes
+  (`frame_walRecEnc_tight`).
+- **Change (made).** `Save` takes `walBatchBytes Mr es < 2 ^ 40` (each entry's encoding plus 64 bytes, summed;
+  implies the per-entry bound). `SaveSnapshot`'s per-record premise is already its batch's. The handle fact
+  (sealed `walOpenWF`, no client-visible change): the tail's stream end `o0 + |out| + |pend| < 2 ^ 43` at
+  quiescence (`Save` cuts once the offset reaches `SegmentSizeBytes`, the pending bytes at most the page
+  writer's buffer, 2^18; a cut's or `Create`'s headers at most the metadata, below 2^41, and the state).
+  **C6 obligation**: raft bounds a `Ready`'s entries (`MaxSizePerMsg`, the uncommitted-size limit), so the
+  server's batches are far below 2^40 bytes.
+- **Decision.** Adopted (the coordinator's decision of 2026-11-14 for `wal-save13`, task 2), with two
+  corrections to its wording found in the proof: the fact is on the stream's end, not the offset (a `Save` that
+  syncs flushes its pending bytes after its `Seek`, so the next `Save` may start at `SegmentSizeBytes` plus the
+  buffer), and its bound covers a cut's headers (the metadata may reach 2^41 bytes).

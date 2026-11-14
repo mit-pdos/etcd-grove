@@ -18,6 +18,7 @@ public import LinuxFs.Spec.go_etcd_io.etcd.pkg.v3.pbutil.MustMarshalMessageWalSn
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleAppend
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleLaws
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.SnapPure
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.StreamBound
 public import Perennial.Proof.sync.Results
 
 @[expose] public section
@@ -60,7 +61,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_proof (P : Wal
     go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.spec (W := W) P Mr := by
   intro R jr r w dir sp md cs sized Q
   wp_start as ⟨#Harea, Hw, #Hs, %hcs, %hidx, %hsz, Hau⟩
-  icases (walOpenWF_iff P Mr w dir).1 $$ Hw with ⟨%h, Hh, %hD, %hmd, Hr⟩
+  icases (walOpenWF_iff P Mr w dir).1 $$ Hw with ⟨%h, Hh, %hD, %hmd, %hend, Hr⟩
   iunfold walHandleIn at Hh
   icases Hh with ⟨%lg, %df, %stp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j,
     %rc, Hlg, #Hzap, Hdir, Hdf, Hdff, Hmd, #Hmds, Hsp, #Hst, Hdec, Hrc, Hns, #Hmu, Henti, Hsnapi,
@@ -139,8 +140,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_proof (P : Wal
   have hpre : h.out ++ h.pend ++ frame (walRecEnc ⟨snapshotType, hash.crc32.crc32c (h.crc Mr)
       (Mr.encSnap md), Mr.encSnap md⟩) <+: (tailStream Mr (h.H ++ [WalOpG.snap md]) h.md h.cuts).drop h.o0 :=
     ⟨[], by rw [List.append_nil]; exact hguard⟩
+  have hbnd : h.o0 + h.out.length + h.pend.length + (frame (walRecEnc ⟨snapshotType, hash.crc32.crc32c (h.crc Mr)
+      (Mr.encSnap md), Mr.encSnap md⟩)).length ≤ 0xffffffff000 := by
+    have := frame_walRecEnc_tight snapshotType (hash.crc32.crc32c (h.crc Mr) (Mr.encSnap md)) (Mr.encSnap md)
+      (by decide) (by omega)
+    omega
   wp_apply (wp_encodeTail R jr r e f fd name dir h.γ h.ino (h.H ++ [WalOpG.snap md]) h.md h.cuts h.o0 h.sz
-      h.out h.pend (h.crc Mr) _ snapshotType (Mr.encSnap md) (snap_recSize _ _ hsz) hpre hoff)
+      h.out h.pend (h.crc Mr) _ snapshotType (Mr.encSnap md) (snap_recSize _ _ hsz) hpre hoff hszb hbnd)
     $$ [Henc Hf Hfdo Hoff Htk Hm Hbs Hv «$r0»] as %err ⟨%pend', Henc, #Hrec, Hres⟩
   · iframe Harea Henv Henc
     isplitl [Hf Hfdo Hoff Htk Hm Hbs Hv]
@@ -220,7 +226,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_proof (P : Wal
   rw [← hsv, ← hev, ← hmap] at hi1
   rw [← hsv, ← hmap] at hi2
   rw [← hsv, ← hev] at hi3
-  ihave Hh2 : walHandleIn (W := W) P Mr w dir { h with H := h.H ++ [WalOpG.snap md], out := out', pend := pend', sz := sz', snapi := sv, enti := ev }
+  ihave Hh2 : walHandleIn (W := W) P Mr w dir { h with H := h.H ++ [WalOpG.snap md], out := out', pend := pend', sz := sz', snapi := sv, enti := ev } TailMetaW
     $$ [Hlg Hdir Hdf Hdff Hmd Hsp Hdec Hrc Hns Henti Hsnapi He Henc Htw Hdh Hlocks Hls Hcap Hlks Hfp
       Hpipe Hopen]
   · iunfold walHandleIn
@@ -244,11 +250,15 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_proof (P : Wal
     isplitl [Hh Hr]
     · iapply (walOpenWF_iff P Mr w dir).2
       iexists _
+      ihave Hh := walHandleIn_win P Mr w dir _ $$ Hh
       iframe Hh
       simp only
       iframe Hr
       ipureintro
-      refine ⟨⟨hD.1, ?_⟩, hmd⟩
+      -- the stream's end after the snapshot record: NOT provable (W6 log, thirteenth session): `SaveSnapshot`
+      -- never cuts, so `walOpenWF`'s `< 2 ^ 43` fails after enough `SaveSnapshot`s in a row; the fix is the
+      -- coordinator's (ext4's `EFBIG` at `s_maxbytes` in the model, or another bound).
+      refine ⟨⟨hD.1, ?_⟩, hmd, sorry⟩
       show h.st = walLastHS ((h.H ++ [WalOpG.snap md]).map WalOpG.toM)
       rw [hmap, walLastHS_snap]; exact hD.2
     iexists d

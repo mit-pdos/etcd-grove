@@ -23,6 +23,7 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleAppend
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleLaws
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.SavePure
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.SaveHandle
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.StreamBound
 public import LinuxFs.Proof.os.Off
 public import Perennial.Proof.sync.Results
 public import Proof.ReceiptTactics
@@ -63,6 +64,14 @@ theorem save_off_toInt (a b : Nat) (h : a + b ≤ 0xffffffff000) :
     word
   omega
 
+/-- `Save`'s offset test, below the segment size. -/
+theorem save_hif (a b : Nat) (hx : (W64 ((a : Int) + (b : Int))).toInt = a + b)
+    (h : sint.Z (W64 ((a : Int) + (b : Int))) < sint.Z (W64 64000000)) : a + b < 64000000 := by
+  have e1 : sint.Z (W64 ((a : Int) + (b : Int))) = ((a + b : Nat) : Int) := by
+    rw [show sint.Z (W64 ((a : Int) + (b : Int))) = (W64 ((a : Int) + (b : Int))).toInt from rfl, hx]; simp
+  have e2 : sint.Z (W64 64000000) = 64000000 := by decide
+  rw [e1, e2] at h; omega
+
 /-- `walPc_bound`, keeping the receipt. -/
 theorem save_pc_bound (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (n : Nat) :
     ⊢@{IProp GF} WalFs.walAreaOk walCodec Mr R jr r -∗ ⧗ (n + 1) -∗ ⧗ (n + 1) ∗ ⌜n + 2 < 2 ^ 63⌝ := by
@@ -78,8 +87,8 @@ theorem save_pc_bound (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (n
 /-- **`Save`'s success post** from a quiescent handle (`hc.Done`) and the sync's wand. -/
 theorem save_post (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (hs : HardStateM)
     (es : List EntryM) (Q : WalDur → IProp GF) (h hc : WalHS) (hD : hc.Done)
-    (hmd : hc.md.length < 2 ^ 41) :
-    ⊢ walHandleIn (W := W) P Mr w dir hc -∗ ⧗ hc.pc -∗ WalFs.walLenLb w dir (h.H.length + 1) -∗
+    (hmd : hc.md.length < 2 ^ 41) (hend : hc.o0 + hc.out.length + hc.pend.length < 2 ^ 43) :
+    ⊢ walHandleIn (W := W) P Mr w dir hc TailMetaW -∗ ⧗ hc.pc -∗ WalFs.walLenLb w dir (h.H.length + 1) -∗
       (∃ d : WalDur, Q d ∗ ⌜d.H = h.H⌝) -∗
       (⌜walMustSync (h.H.map WalOpG.toM) hs es⌝ -∗ WalFs.walSyncedLb dir (h.H.length + 1)) -∗
       (walOpenWF (W := W) P Mr w dir ∗ ∃ d : WalDur, Q d ∗ WalFs.walLenLb w dir (d.H.length + 1) ∗
@@ -89,7 +98,7 @@ theorem save_post (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) 
   · iapply (walOpenWF_iff P Mr w dir).2
     iexists hc
     iframe Hh Hr
-    ipureintro; exact ⟨hD, hmd⟩
+    ipureintro; exact ⟨hD, hmd, hend⟩
   iexists d
   rw [hd]
   iframe HQ Hlb Hs
@@ -109,25 +118,32 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
     go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.spec (W := W) P Mr := by
   intro R jr r w dir hp hs sl esL es sized Q
   wp_start as ⟨#Harea, Hw, #Hhs, #Hsl, Hes, %hidx, %hsz, Hau⟩
-  icases (walOpenWF_iff P Mr w dir).1 $$ Hw with ⟨%h, Hh, %hD, %hmd, Hr⟩
+  icases (walOpenWF_iff P Mr w dir).1 $$ Hw with ⟨%h, Hh, %hD, %hmd, %hend, Hr⟩
   ihave %hS := walAreaOk_encState walCodec Mr R jr r $$ Harea
-  icases walHandleIn_idx P Mr w dir h $$ Hh with ⟨Hh, %hix⟩
-  icases walHandleIn_lockFacts P Mr w dir h $$ Hh with ⟨Hh, #Hmu, #Hsync, #Hseg⟩
+  icases walHandleIn_idx P Mr w dir h TailMetaW $$ Hh with ⟨Hh, %hix⟩
+  icases walHandleIn_lockFacts P Mr w dir h TailMetaW $$ Hh with ⟨Hh, #Hmu, #Hsync, #Hseg⟩
+  icases walHandleIn_pure P Mr w dir h TailMetaW $$ Hh with ⟨Hh, %hpu0⟩
   have hix0 := hix.1 hD.1
   -- the commit, before the call's first step
   iapply (wp_notCrashed_acc _ _ rfl)
   iintro Hnc
   imod walHandleIn_append P Mr R jr r w dir h (WalOpG.save hs es).toRaw sized Q hD.1
-    (saveOp_fit Mr hs es (hS hs) hsz) (fun a b => saveOp_idx Mr h.H hs es _ _ a b)
-    $$ Harea Hnc Hh Hau with ⟨Hnc, Hh, #Hlb, HQ, %hcp⟩
+    (saveOp_fit Mr hs es (hS hs) (walBatchBytes_each Mr es hsz)) (fun a b => saveOp_idx Mr h.H hs es _ _ a b)
+    TailMetaW $$ Harea Hnc Hh Hau with ⟨Hnc, Hh, #Hlb, HQ, %hcp⟩
   imodintro
   iframe Hnc
   have hcut : ∀ b ∈ h.cuts, b ≤ h.H.length := fun b hb => by
     rcases hcp.1 b hb with h0 | ⟨_, _, h1, _⟩
     · omega
     · have := (List.getElem?_eq_some_iff.1 h1).1; simp at this; omega
+  have hstream : (tailStream Mr (h.H ++ [(WalOpG.save hs es).toRaw]) h.md h.cuts).length ≤ 0xffffffff000 :=
+    saveStream_le Mr h.H h.md h.cuts hs es hcut (hS hs) hsz
+      (by have := WalHS.end_rest0 hpu0.1 hD.1; omega)
   have hs0 := SaveSt.init Mr h hs es
-  generalize ({ h with H := h.H ++ [(WalOpG.save hs es).toRaw], rest := (opDs Mr (WalOpG.save hs es).toRaw.toM).length } : WalHS) = h1 at hs0 ⊢
+  have hend1 : ({ h with H := h.H ++ [(WalOpG.save hs es).toRaw], rest := (opDs Mr (WalOpG.save hs es).toRaw.toM).length } : WalHS).o0 +
+      ({ h with H := h.H ++ [(WalOpG.save hs es).toRaw], rest := (opDs Mr (WalOpG.save hs es).toRaw.toM).length } : WalHS).out.length +
+      ({ h with H := h.H ++ [(WalOpG.save hs es).toRaw], rest := (opDs Mr (WalOpG.save hs es).toRaw.toM).length } : WalHS).pend.length < 2 ^ 43 := hend
+  generalize ({ h with H := h.H ++ [(WalOpG.save hs es).toRaw], rest := (opDs Mr (WalOpG.save hs es).toRaw.toM).length } : WalHS) = h1 at hs0 hend1 ⊢
   ihave %hlen := ownSlice_len $$ Hsl
   iunfold walEntsIn at Hes
   icases Hes with #Hes
@@ -166,7 +182,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
     isplitr
     · ipureintro; rfl
     rw [← hs0.pc]
-    iapply save_post P Mr w dir hs [] Q h h1 hf.done (by rw [hf.md]; exact hmd) $$ Hh Hr Hlb HQ
+    iapply save_post P Mr w dir hs [] Q h h1 hf.done (by rw [hf.md]; exact hmd)
+      hend1 $$ Hh Hr Hlb HQ
     iintro %hm
     exfalso
     rcases hm with hm | ⟨hm, -⟩
@@ -192,7 +209,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
       · ipureintro; trivial
       iexists hp; iframe st Hhs; ipureintro; exact Hif
   -- `w.state == nil`: a fresh zero state
-  icases walHandleIn_state P Mr w dir h1 $$ Hh with ⟨%sp, Hsp, #Hst, Hback⟩
+  icases walHandleIn_state P Mr w dir h1 TailMetaW $$ Hh with ⟨%sp, Hsp, #Hst, Hback⟩
   wp_join iprop(w_ptr ↦ w ∗ ∃ sp' : Loc,
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"state" w ↦ sp' ∗ P.hsIn sp' h1.st)
     at (if: _ then _ else _) with [Hsp w] as ⟨w, %sp', Hsp, #Hst'⟩
@@ -219,7 +236,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
   have hsl : sint.nat sl.len = es.length := by omega
   -- the entries' records: after `j` of them, the handle at `SaveSt … j`
   ihave HI : (∃ (j k0 : w64) (hc : WalHS),
-      "i" ∷ i_ptr ↦ j ∗ "i0" ∷ i_ptr_1 ↦ k0 ∗ "Hh" ∷ walHandleIn P Mr w dir hc ∗
+      "i" ∷ i_ptr ↦ j ∗ "i0" ∷ i_ptr_1 ↦ k0 ∗ "Hh" ∷ walHandleIn P Mr w dir hc TailMetaW ∗
       "%Hs" ∷ ⌜SaveSt Mr h hs es (sint.nat j) hc⌝ ∗
       "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.nat j ≤ es.length⌝ : IProp GF)
     $$ [-HΦ Hr HQ «$res0» w Hlocked defer ents st mustSync]
@@ -252,9 +269,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
     (try wp_auto)
     obtain ⟨hpos, hlast, hrec⟩ := Hs.entryPre hcut hix.2 e he
     have hei : uint.nat e.Index' < 2 ^ 64 - 1 := hidx e (List.mem_of_getElem? he)
-    wp_apply (wp_saveEntry R jr r w dir hc l e hpos hei hlast hrec) $$ [Hh] as %err Hres
+    have hst : (tailStream Mr hc.H hc.md hc.cuts).length ≤ 0xffffffff000 := by
+      rw [Hs.H, Hs.md, Hs.cuts]; exact hstream
+    wp_apply (wp_saveEntry R jr r w dir hc l e hpos hei hlast hrec hst) $$ [Hh] as %err Hres
     · iframe Harea Hh Hel
-    icases Hres with (⟨%herr, %out', %pend', Hh⟩ | %herr)
+    icases Hres with (⟨%herr, %out', %pend', %sz', Hh⟩ | %herr)
     · subst herr
       (try wp_auto)
       wp_for_post
@@ -264,7 +283,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
       have hj1 : sint.nat (j + W64 1) = sint.nat j + 1 := by word
       ipureintro
       refine ⟨?_, ?_, ?_⟩
-      · rw [hj1]; exact Hs.step e he out' pend'
+      · rw [hj1]; exact Hs.step e he out' pend' sz'
       · word
       · omega
     · rcases err with ei | _
@@ -290,15 +309,17 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
   rw [hje] at Hs
   (try wp_auto)
   -- the state's record
-  wp_apply (wp_saveState R jr r w dir hc hp' hs (Hs.statePre hcut hix0 hix.2)) $$ [Hh] as %err Hres
+  have hst : (tailStream Mr hc.H hc.md hc.cuts).length ≤ 0xffffffff000 := by
+    rw [Hs.H, Hs.md, Hs.cuts]; exact hstream
+  wp_apply (wp_saveState R jr r w dir hc hp' hs (Hs.statePre hcut hix0 hix.2) hst) $$ [Hh] as %err Hres
   · iframe Harea Hh Hhs'; ipureintro; exact hp'n
-  ihave Hres2 : (⌜err = GoInterface.nil⌝ ∗ ∃ hc2 : WalHS, walHandleIn P Mr w dir hc2 ∗
+  ihave Hres2 : (⌜err = GoInterface.nil⌝ ∗ ∃ hc2 : WalHS, walHandleIn P Mr w dir hc2 TailMetaW ∗
       ⌜SaveFin h hs es hc2⌝) ∨ ⌜err ≠ GoInterface.nil⌝ $$ [Hres]
-  · icases Hres with (⟨⟨%herr, %hse⟩, Hh⟩ | ⟨⟨%herr, %hse⟩, %out', %pend', Hh⟩ | %herr)
+  · icases Hres with (⟨⟨%herr, %hse⟩, Hh⟩ | ⟨⟨%herr, %hse⟩, %out', %pend', %sz', Hh⟩ | %herr)
     · ileft; iframe; ipureintro; exact ⟨herr, Hs.finEmpty hD hse⟩
     · ileft; isplitr
       · ipureintro; exact herr
-      iexists _; iframe Hh; ipureintro; exact Hs.finState hse out' pend'
+      iexists _; iframe Hh; ipureintro; exact Hs.finState hse out' pend' sz'
     · iright; ipureintro; exact herr
   icases Hres2 with (⟨%herr, %hc2, Hh, %hf⟩ | %herr)
   rotate_left
@@ -317,7 +338,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
   subst herr
   (try wp_auto)
   -- the tail's offset
-  icases walHandleIn_seek P Mr w dir hc2 $$ Hh with
+  icases walHandleIn_pure P Mr w dir hc2 TailMetaW $$ Hh with ⟨Hh, %hpu2⟩
+  icases walHandleIn_seek P Mr w dir hc2 TailMetaW $$ Hh with
     ⟨%locks, %ls, %lt, %f, %fd, %name, Hlocks, Hls, #Hltf, Hf, Hoff, %hsk, Hback⟩
   wp_apply (wp_tail w locks ls lt (DFrac.own 1) (DFrac.own 1)) $$ [Hlocks Hls] as ⟨Hlocks, Hls⟩
   · iframe
@@ -345,7 +367,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
       ileft
       isplitr
       · ipureintro; rfl
-      iapply save_post P Mr w dir hs es Q h hc2 hf.done (by rw [hf.md]; exact hmd) $$ Hh Hr Hlb HQ
+      iapply save_post P Mr w dir hs es Q h hc2 hf.done (by rw [hf.md]; exact hmd)
+        (by have := save_hif _ _ ho3 Hif; have := hpu2.2.1; omega) $$ Hh Hr Hlb HQ
       iintro %hm
       exfalso
       refine not_walMustSync _ _ _ ?_ hm
@@ -371,8 +394,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
       · ileft
         isplitr
         · ipureintro; exact herr
-        iapply save_post P Mr w dir hs es Q h { hc2 with out := hc2.out ++ hc2.pend, pend := [] }
-          ⟨hf.rest, hf.st⟩ (by simp only; rw [hf.md]; exact hmd) $$ Hh Hr Hlb HQ
+        ihave Hh := walHandleIn_win P Mr w dir _ $$ Hh
+        iapply save_post P Mr w dir hs es Q h
+          { hc2 with out := hc2.out ++ hc2.pend, pend := [], sz := max hc2.sz (hc2.o0 + hc2.out.length + hc2.pend.length) }
+          ⟨hf.rest, hf.st⟩ (by simp only; rw [hf.md]; exact hmd)
+          (by have := save_hif _ _ ho3 Hif; have := hpu2.2.1; simp only [List.length_append, List.length_nil]; omega)
+          $$ Hh Hr Hlb HQ
         iintro -
         rw [hlenH]; iexact Hsyn
       · iright
@@ -400,13 +427,22 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
     (try wp_auto)
     iapply HΦ
     icases Hres with (⟨%herr, %h', Hh, %hh', #Hsyn⟩ | %herr)
-    · obtain ⟨hH', hmd', -, hrest', hst', -, -, hpc'⟩ := hh'
+    · obtain ⟨hH', hmd', hcuts', hrest', hst', -, -, hpc'⟩ := hh'
       ileft
       isplitr
       · ipureintro; exact herr
       rw [← hpc'] at *
+      icases walHandleIn_pure P Mr w dir h' TailMeta $$ Hh with ⟨Hh, %hpu3⟩
+      ihave Hh := walHandleIn_win P Mr w dir _ $$ Hh
+      have hend' : h'.o0 + h'.out.length + h'.pend.length < 2 ^ 43 := by
+        have e1 := WalHS.end_rest0 hpu3.1 hrest'
+        have e2 := cutStream_lt Mr hc2.H hc2.md hc2.cuts (hpw.imp Nat.le_of_lt)
+          (fun b hb => Nat.le_of_lt (hcuts b hb)) (by rw [hf.md]; exact hmd)
+          (by rw [← hf.st]; exact hS _)
+        rw [hH', hmd', hcuts'] at e1
+        omega
       iapply save_post P Mr w dir hs es Q h h' ⟨hrest', by rw [hst', hH']; exact hf.st⟩
-        (by rw [hmd', hf.md]; exact hmd) $$ Hh Hr2 Hlb HQ
+        (by rw [hmd', hf.md]; exact hmd) hend' $$ Hh Hr2 Hlb HQ
       iintro -
       rw [hlenH]; iexact Hsyn
     · iright

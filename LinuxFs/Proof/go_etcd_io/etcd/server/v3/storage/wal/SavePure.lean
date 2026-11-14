@@ -173,9 +173,9 @@ theorem SaveSt.entryPre {Mr : WalMarshal} {h : WalHS} {hs : HardStateM} {es : Li
 /-- The handle after `saveEntry` of the `i`-th entry. -/
 theorem SaveSt.step {Mr : WalMarshal} {h : WalHS} {hs : HardStateM} {es : List EntryM} {i : Nat}
     {hc : WalHS} (s : SaveSt Mr h hs es i hc) (e : EntryM) (he : es[i]? = some e)
-    (out' pend' : List w8) :
+    (out' pend' : List w8) (sz' : Nat) :
     SaveSt Mr h hs es (i + 1)
-      { hc with rest := hc.rest - 1, out := out', pend := pend', enti := e.Index' } :=
+      { hc with rest := hc.rest - 1, out := out', pend := pend', enti := e.Index', sz := sz' } :=
   ⟨s.H, s.md, s.cuts, by simp only; rw [s.rest]; omega, s.st, s.snapi, s.pc, fun h => by omega,
     fun n e' hn he' => by
       simp only
@@ -230,8 +230,9 @@ theorem SaveSt.finEmpty {Mr : WalMarshal} {h : WalHS} {hs : HardStateM} {es : Li
     rw [s.st, s.H, histMap_save, walLastHS_save, phsNext_empty _ _ he]; exact hD.2, s.pc⟩
 
 theorem SaveSt.finState {Mr : WalMarshal} {h : WalHS} {hs : HardStateM} {es : List EntryM}
-    {hc : WalHS} (s : SaveSt Mr h hs es es.length hc) (hne : ¬ hsEmptyP hs) (out' pend' : List w8) :
-    SaveFin h hs es { hc with rest := hc.rest - 1, out := out', pend := pend', st := hs } :=
+    {hc : WalHS} (s : SaveSt Mr h hs es es.length hc) (hne : ¬ hsEmptyP hs) (out' pend' : List w8)
+    (sz' : Nat) :
+    SaveFin h hs es { hc with rest := hc.rest - 1, out := out', pend := pend', st := hs, sz := sz' } :=
   ⟨s.H, s.md, s.cuts, by simp only; rw [s.rest, opDs_save_length]; simp [hne], by
     simp only
     rw [s.H, histMap_save, walLastHS_save]

@@ -136,13 +136,14 @@ theorem walHandleIn_append (P : WalPbIn GF) (Mr : WalMarshal) (R : Roots) (jr : 
       walMaxSnapIdx (h.H.map WalOpG.toM) ≤ uint.nat h.snapi →
       ((opDs Mr o.toM).length = 0 → walLastIdx ((h.H ++ [o]).map WalOpG.toM) ≤
         max (uint.nat h.enti) (uint.nat h.snapi)) ∧
-      walMaxSnapIdx ((h.H ++ [o]).map WalOpG.toM) ≤ uint.nat h.snapi) :
+      walMaxSnapIdx ((h.H ++ [o]).map WalOpG.toM) ≤ uint.nat h.snapi)
+    (tm : Fs.OsMeta → List Fs.ByteG → Prop := TailMeta) :
     ⊢ walAreaOk walCodec Mr R jr r -∗ notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗
-      walHandleIn (W := W) P Mr w dir h -∗
+      walHandleIn (W := W) P Mr w dir h tm -∗
       (AU <{ ∃∃ d : WalDur, walDiskAt (W := W) dir d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅
         <{ walDiskAt (W := W) dir { d with H := d.H ++ [o] }, COMM Q d }>) -∗
       |={⊤}=> notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗
-        walHandleIn (W := W) P Mr w dir { h with H := h.H ++ [o], rest := (opDs Mr o.toM).length } ∗
+        walHandleIn (W := W) P Mr w dir { h with H := h.H ++ [o], rest := (opDs Mr o.toM).length } tm ∗
         walLenLb (W := W) w dir (h.H.length + 1) ∗ (∃ d : WalDur, Q d ∗ ⌜d.H = h.H⌝) ∗
         ⌜(∀ b ∈ h.cuts, walCutPos (h.H.map WalOpG.toM) b) ∧ h.cuts.Pairwise (· < ·)⌝ := by
   letI := walAllG (W := W)
