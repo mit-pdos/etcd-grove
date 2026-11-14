@@ -51,7 +51,8 @@ theorem createFresh_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoSt
       osAUnc (osNames jr (.only [nm, tmpName nm]) (DFrac.own (1 : Qp).half) hC)
         (renDirOut jr J (.only [nm, tmpName nm]) (tmpName nm) nm hC (DFrac.own (1 : Qp).half) lb)
         (walCreateQ (W := W) (child r nm) (.only [nm, tmpName nm]) hC md Q J walTmps
-          (hJ'.restrict J ((NameSet.except []).diff walTmps)) (createSeg i mS ysS)) := by
+          (hJ'.restrict J ((NameSet.except []).diff walTmps)) (createSeg i mS ysS)
+          (createTailG Mr md jr nm J (createSeg i mS ysS))) := by
   obtain ⟨⟨hbs1, hbs2⟩, hmeta, hzf, hne, hz, hdur⟩ :=
     createSeg_facts Mr md hMr i m2 mS zs2 ysS hok hm2s hm2c
   have hw : walNameP (createSeg i mS ysS).name = true := walNameP_walFileName 0 0
@@ -69,6 +70,7 @@ theorem createFresh_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoSt
   · intro b _ _
     simp only [createLay, List.getD_eq_getElem?_getD, List.getElem?_replicate]; split <;> rfl
   · simpa [createLay] using hz
+  · exact createLay_tailBound Mr md jr nm J _
   · exact hmeta.2.1
   · exact ⟨hmeta.2.2.1, hmeta.2.2.2⟩
   · exact createJ_segsNamed rfl hcur'
