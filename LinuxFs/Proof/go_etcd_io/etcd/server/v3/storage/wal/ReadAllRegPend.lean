@@ -3,9 +3,9 @@
 # `ReadAll`'s tail registration, not yet zeroed (I3b, `wal-tc17`; W3/W5's `walInvRegisterTailLaw`
 restated)
 
-`walInvRegisterTailLaw` (`ReadAllReg.lean`, a hypothesis of `WAL.ReadAll.wp_proof`) hands out the key
-and `TailMeta` of the tail it registers, which a crash's tail does not have (F-Z, `TailZ`, `PastZ`).
-**`walInvRegisterPendLaw`** is its restatement over the pending registration
+`walInvRegisterTailLaw` (formerly `ReadAllReg.lean`'s, removed once `ReadAll` switched, 2026-11-14) handed out the key
+and `TailMeta` of the tail it registered, which a crash's tail does not have (F-Z, `TailZ`, `PastZ`).
+**`walInvRegisterPendLaw`** (a hypothesis of `WAL.ReadAll.wp_proof`) is its restatement over the pending registration
 (`walTailsRes_registerPend`): the pending token `walPendTok dir γ |lay.old|` in place of the key,
 `TailMetaR` in place of `TailMeta`, and `TailZ0 lay ∧ |lay.old| = gl.om.size` added
 (`walAbsD_old_exact`). Its proof (the look of `walInvBody_readState` with the registration inside)
