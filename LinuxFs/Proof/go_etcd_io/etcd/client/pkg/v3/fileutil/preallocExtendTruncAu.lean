@@ -80,7 +80,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtendTrunc.wp_proofAu
     isplitr
     · ipureintro; exact ⟨Nat.le_refl _, hle, fun h => absurd h he⟩
     unfold os.ftUndoneH preGrownH
-    icases Hd with ⟨⟨%tc, %rz, Hm⟩, -⟩
+    icases Hd with ⟨⟨%tc, %rz, -, Hm⟩, -⟩
     iexists _
     iframe Hm
     isplitr

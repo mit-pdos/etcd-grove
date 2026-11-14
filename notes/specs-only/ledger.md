@@ -673,3 +673,23 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   y = durB y.1`, `CloseHandle.lean`; `TailMetaS.of_sync` from `TailMeta m bs` to the synced pair). `WalCloseLaw`
   takes `TailMetaS`; `WAL.Close.wp_proof` unchanged.
 - **Decision.** Adopted (the coordinator's `TailSynced` decision, 2026-11-14).
+
+## 2026-11-14: `os.File.Truncate.specAu` (the part's, `LinuxFs/Spec/os/File__TruncateAu.lean`) -- the outcome's `tc` domain
+
+- **Spec.** `os.ftDoneH`/`os.ftUndoneH`, the caller's halves of a truncate's outcome in `os.File.Truncate.specAu`'s
+  post (and so in the fileutil `Au` specs over it: `preallocExtendTrunc.specAu`, `ZeroToEnd.specAu`): `∃ tc rz,
+  osMeta ½ (… .withTc tc rz)`, the candidates known past the size existential.
+- **Defect.** Too weak for the WAL's `os.File.Truncate.specWalTail`: its post's `TailMetaW` includes `TailZ` (the
+  candidates of every byte between the size and the known zeros known, `wal-save16`), which the caller cannot
+  derive from an unknown `tc`; the supply (`walInv`) knows it is `rsTail`, but nothing carries the fact out (an
+  invariant opening outside an atomic step has no `notCrashed`). W1 log, nineteenth session, last item.
+- **Evidence.** Every outcome the extension leaves for a file with no sync cut (the WAL's segments: `WalsOk`'s
+  `cut = none`) has `tc = rsTail …` (`rsPostK true`, `rsUnMeta true`); `TcKnows.rsTail`.
+- **Change (made, `wal-tc10`).** `os.ftDoneH p m tg zs` carries `⌜TcKnows m tg tg tc⌝`, `os.ftUndoneH p m tg xs'`
+  `⌜TcKnows m tg m.size tc⌝` (`TcKnows m tg sz' tc := ∀ b, (rsTail true m tg sz' 0 [] !! b).isSome → (tc !!
+  b).isSome`, `LinuxFs/Proof/os/TcKnows.lean`: the domain of the outcome's `rsTail`, landed at `tg` or not at the
+  old size). A strengthening of the post; a supply (only the WAL's, not yet written) must prove it, which a supply
+  for a file with a sync cut could not (its outcome keeps the announcement's `tc`): none exists. The retry loop
+  carries it (`TcKnows.of_announce`, `TcKnows.of_rsPost`). The proposal had one `TcKnows m tg tc`; the not-landed
+  outcome keeps no candidates of the bytes in `[tg, size)` (below its size), hence the size argument.
+- **Decision.** Adopted (the coordinator's task list for `wal-tc10`, "decided").
