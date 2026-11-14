@@ -48,9 +48,199 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
   and the risks R1-R5 (§7).
 - Decisions go in the worktree's `questions.md` (untracked).
 
+## S6 B2 DONE: `NewServer.specR` proved and linked (2026-11-14, CP3 approved by etcd-grove-81): a fresh agent starts here
+
+The restart constructor's spec is proved, with no `sorry` (`wp_NewServerR` in the server's `Link.lean`). It is
+on `lean` (the hash is in the STATUS entry of 2026-11-14 and in 81's records). CP3 approved:
+- `bootOk`'s `Hsnone` text (the first-start instance);
+- raft's interface diff and `MemStorNamesRec`'s new name;
+- the gate baselines (mode lit-mode etcdserver 156, bounds stock etcdserver 33).
+
+**Next, in order:**
+1. **S5's leftovers** (`/shared/tmp/restart-s56/plan.md` §1 and §4 B1-B3; `notes/restart-scope.md`, S5). HS1 and
+   `lateWBR` are done (CP2, Phase B). What is left:
+   - S5's call sites (`E/AuthSrv.lean`'s `authSrvTP_off`, an `Or.inl`);
+   - widening `authStoreKit` itself to the auth bucket `∅ ∨ authBoot`, so that `authStoreKitR`/`authStoreKitR_off`
+     (NewServerRFacts.lean, copies) go;
+   - B3's callers and docstrings, and `notes/decisions.md` ("Restart S5/S6").
+   Check against plan.md §1 what is not yet on `lean` before starting.
+2. **S7 (R2s-A)**: follow the merged snapshot. `Hwpend` and the restart-only rows (`srvRestartRows`, row 4
+   `rnSnapTermAbove`) are removed (`notes/restart-scope.md`, "S7"; 6-9 weeks est.). It needs its own Scope for
+   81 first.
+3. **Proof cleanup (follow-up, with the proof-cleanup skill):** factor the shared tail of `NewServer.wp_proofG`
+   (`NewServer.lean`) and `NewServer.wp_proofRG` (`NewServerR.lean`) into lemmas. This is what brings the
+   bounds stock (etcdserver 33, raised by +3 for the restart proof's copies of `wp_proofG`'s replicate
+   stocks) back down, and the mode lit-mode count with it. Also: the private helpers copied into
+   `NewServerR.lean`.
+
+Pitfalls:
+- `NewServer.lean`'s compile peaks at 8.1 GiB, `NewServerR.lean`'s at 8.6 GiB (2026-11-14); keep the 64G cap
+  anyway (it once hit 80 GB).
+- No bare `iframe` with the replicate stocks in context.
+- `NewServer+R`'s link list entry is `NewServer`'s minus the four compaction-mode callees; keep them in sync.
+- The lock invariant's `Hsn_inv` is spatial now: a new MemoryStorage method lists it in its `Unlock` frame.
+
+## B2: both sorries proved, wp_proofR linked; CP3 checks running (2026-11-14, fourth B2 agent): next agent starts here
+
+81 approved the raft-side generalization (questions.md; freeze package §11.8). Commit `f75195aa23` (WIP), then fixes.
+- **Raft (API):** `MemStorNames.s0`. The lock's `Hsn` is `∃ s0, ghostVar γs.s0 ½ s0 ∗ (⌜sv = s0⌝ ∨ pr ≥ 1)`,
+  now spatial: every method lists `Hsn_inv` in its `Unlock` frame. `memSnapNone γs sv₀`, `memSnapNone_open`
+  at `sv₀`'s index, `memSnapNone_open_empty`, `memSnapNone_eq`. `Snapshot.spec`'s token is
+  `t : Option SnapshotM`. `ApplySnapshot.spec` has four triples, `.2.2.1`/`.2.2.2` being the token variants
+  (`wp_ApplySnapshot_gen` takes `w`). `NewMemoryStorage`'s token is at `memSnapEmpty`.
+- **Users:** the kv/kvreconf/kvdurable examples (`none` for `false`, `memSnapNone_open_empty`). `InvBoot`'s
+  `bootOk` `Hsnone` and `rnSnapOnce_of_tok`. `InvRunRes.rnSnapOnce`. `bootstrappedWAL__MemoryStorage` (the
+  token variants, no `memSnapNone_open`). `BaseRestartStor.memStorRestarted` (`memSnapNone γs (walSnapCS σ cs)`).
+  `NodeStart` (`srvMem_restartStorage` threads the token to `F`; `NodeStartSpecR`'s post returns it).
+  `NewServerR` (`Hmsnone`).
+- **`restart_snapOnceR` proved** over the token (`csPts_of_csOptA` new). It is restated: premises
+  `memSnapNone γs (walSnapCS σ cs)` and `confStateIs cs …`, no certificate or log premises.
+- **Link:** `NewServer.specR` moved to `Spec/.../NewServerR.lean` (text unchanged). `NewServer.wp_proofRG`
+  is the proof, and `NewServer.wp_proofR` the wrapper with `NewServer.wp_proof`'s callees less the four of
+  the compaction mode. Entry `etcdserver_NewServer+R` in `etc/link-lean-first-server.txt`, and
+  `Link.lean` regenerated (`wp_NewServerR`).
+- **Verified (commits `912b6d73ff`, `367565ac58`):** full build clean, 17482 jobs
+  (`/shared/tmp/restart-s56/cp3/full4.log`). Peak memory 8.6 GiB `NewServerR`, 8.1 GiB `NewServer`
+  (`cp3/report1.txt`, `report2.txt`). `tcb-report --check` matches (870 axioms, 4 sorries), and
+  `wp_NewServerR` reaches no `sorry`. `gen-interface` changes raft only (`cp3/raft-interface.diff`); the
+  other lists `--check` clean. Gates: `cp3/gates.log`.
+- **Next:** CP3 report to 81; land only on 81's go.
+
+## B2: `restart_peerURLs` proved; `restart_snapOnceR` STOPPED for 81 (2026-11-14, fourth B2 agent): next agent starts here
+
+Branch `restart-s56`; **not landable** (one `sorry`: `restart_snapOnceR`, `E/NewServerRFacts.lean`).
+- **`restart_peerURLs` proved** (P5), no statement change: `RestReplay`'s phase-2 invariant already existed
+  (`memSync_boot`, `fold_sync`: past the boot log the members are `foldMem R` of the boot fold's);
+  new pure lemmas in Facts (forms): `memBootFold_notin`, `memBoot_lookup` (the saved ids distinct),
+  `bootFold_mem` (the boot entries put back `memBoot`'s members), `foldMem_peerURLs`; both prefix cases
+  (`A` past the boot log, or within it). Facts now imports `RestReplay`. `NewServerR.lean` checks
+  (`chk.sh -a`, 0 errors, 156 s).
+- **`restart_snapOnceR`: 81 decided the raft-side generalization** (token "no write since attach" at the
+  attached snapshot `sv₀`). Go confirmed (fork `2eaeb872b`, raft `565c2bd`): `bootstrappedWAL.MemoryStorage`
+  (`bootstrap.go:741`) is `NewMemoryStorage`, `ApplySnapshot(wal.snapshot)`, `SetHardState`, `Append`;
+  nothing writes the storage's snapshot before `run`'s `s.r.raftStorage.Snapshot()` (`server.go:755`;
+  `s.r.start`, which owns `ApplySnapshot`, is at 801; raft's `RestartNode` only reads its `Storage`; the
+  apply thread, `CreateSnapshot`/`Compact`, starts later). The MemoryStorage specs and
+  `bootstrappedWAL.MemoryStorage.spec` are proved (no axiom, no sorry). **But the change reaches trusted
+  meaning, so STOPPED before any edit**: `memStorRestarted` (BaseRestartStor.lean) is what the trusted
+  `bootOkR`'s `Hrest` row promises; it holds `memSnapLb γs σ.b`, whose `monoNatLbOwn γs.pr 1` is the
+  persistent write permission, so pr must stay 0 there (the row's meaning changes: stronger, still the
+  proved post), and the detached `ApplySnapshot` must take the token instead of `memSnapLb γs 0`. The
+  agreement on `sv₀` needs a new ghost name in `MemStorNames` (`MemStorNamesRec`, the registry's tuple, is
+  in `bootstrapRestartContract`'s type through `memStorRegAuth M`). Reported to 81 with the design.
+
+## B2 post done; `restart_snapOnceR` blocked (2026-11-14, third B2 proof agent): next agent starts here
+
+Branch `restart-s56`; **not landable** (two `sorry`s left, both in `E/NewServerRFacts.lean`). Check loop as
+below (`/shared/tmp/restart-s56/b2tail/chk.sh -a`, ~50-150 s; `lc.sh --fast -q -a` on the Facts file, seconds).
+- **Done, checked (0 errors):** `wp_proofR`'s post (`NewServerR.lean`, from "the post: `srvBuiltR`" on):
+  `srvBuiltRC .off`'s rows in order (`simp only [AuthC.isOn]` first: it also drops the trivially true
+  `%Hρrd` and the `0 = 0` parts of `%HEr`), `#Hrdb` at `srvReadBuilt` with the store's log at
+  `kvModel A`, `#Hkvi` through `srvKVInvsM_C`, `HBr` at `P := A.take σ.b` (`applyBuiltR .off` at
+  `st₀ = ⟨0, γA.m0.1, 0, false⟩`, `g₀ = i`; the uber-applier's `isConsistentIndexer` by `srvCiC`'s own
+  `stLoaded` conjunct, not `hLoaded`; `applyKV` at `restartKV` with `leasesKnown_noLease`; `srvRest`
+  by the new `srvRest_restart`; `srvApRes`'s `srvMemOk` by the new `srvMemOk_of_keys` from `Hpurl`),
+  the lessor's records (`hrecs` through `rbData_real_lookup`). G's comment block and the first-start
+  `token_alloc` for `Hwpend` are gone. New in Facts (forms): `restartBk_eq`, `srvRest_restart`,
+  `srvReqs_of_recs`, `srvMemOk_of_keys`; Facts now imports `SnapApplyRest`, `SnapApplyKVLemmas`.
+- **`restart_noGrant` proved** (`kv_log_plain` + `kvTableOf_plainM`).
+- **`srvRestartRows` parenthesized** (81's decision on the reviewer's finding): `|==> (rnSnapTermAbove γn
+  ∗ srvWinPend s γr γn)`; `wp_proofR` takes both from one `imod`; recorded in decisions.md ("Restart S6 B2")
+  and the freeze package §11.7.
+- **Left:** `restart_peerURLs` (P5, ~250 lines, not started; the plan is in the sections below) and
+  **`restart_snapOnceR`, which is unprovable from raft's current `MemoryStorage` specs (reported to 81)**:
+  `rnSnapOnceR` asks `Snapshot()` to answer exactly index `|A.take σ.b| = σ.b`, but the restarted storage is
+  attached (`NodeStartSpecR`'s post: `memStorInv`), and `MemoryStorage.Snapshot.spec` in the attached mode
+  gives only `c ≤ index` (`memCompacted γs c`) and `index = 0 ∨ snapshotValid …`; the one exact answer it
+  has is `b = true → sv = memSnapEmpty` under `memSnapNone` (pr at 0), which a restart cannot hold (the
+  stored snapshot is the WAL's, so the invariant's `Hsn` needs `pr ≥ 1`; `memStorRestarted` already has
+  `memSnapLb γs σ.b`, which includes `pr ≥ 1`). Recommended fix (a raft-side spec change, so 81's call):
+  generalize the "no write since attach" token from `memSnapEmpty` to the attached snapshot (the invariant's
+  `Hsn` as `sv = sv₀ ∨ pr ≥ 1` with `sv₀` the snapshot at attach, `Snapshot`'s `b = true → sv = sv₀`), the
+  restart's `memStorRestarted` keeping `pr` at 0 until `run` opens it (`rnSnapOnceR`'s `|==> memSnapLb γs 0`).
+- Then: link, measure peak, full build, tcb, gen-interface, gates; STOP before landing (CP3).
+
+## B2 proof in progress (2026-11-14, second B2 proof agent): next agent starts here
+
+Branch `restart-s56`; **not landable** (four `sorry`s: tcb --check). Files: `E/NewServerR.lean`
+(`NewServer.wp_proofR`, statement unchanged; one new callee hypothesis `h30 : auth.NewAuthStore.spec`)
+and `E/NewServerRFacts.lean` (sub-facts; now imports `AuthSrv`). Check loop:
+`/shared/tmp/restart-s56/b2tail/chk.sh -a` (= `lc.sh --fast --split -q -a` on `NewServerR.lean`,
+filtered by `/shared/tmp/restart-s56/b2tail/err.py`: each message's header and its goal's tail; `N=60`
+for more lines). **Always `-a`**: without it an edit in the middle reports "stopped when the edited
+declaration was done, 0 errors" while later blocks still fail. A full check of the file: ~50-120 s.
+
+**Done, checked (0 errors; `sorry` at `NewServerR.lean:2019`):** everything of `wp_proofG`'s tail up to
+its post (`unfold srvBuiltG`, G line ~2420), adapted:
+- the lessor's aftermath: `γlt` at `(appliedTable ρ.rd A).ids`, no `lessorAt_empty` (the recovered
+  snapshot `HlAt0`, NewLessor's), `Hrbo` normalized to `(rbData d.P D).insert "lease" ((D.lookup
+  "lease").getD ∅)` (the lessor's post unfolds `rbData`'s lookup to `Option.filter`);
+- `mvcc.api.New.spec` at the image's state `srvApi.stAt (kvModel A) (crevOf A)`, `u` general (an
+  unfinished compaction resumed through the unset hook, `Hhk0`/`Hupre`/`Hupost`, `commitReq_true`),
+  `Ls = (appliedTable ρ.rd A).ids`, no item (`LogNoLease` from `kv_log_plain`); the store invariant by
+  the new `restartStore_holds` (Facts; `bootStore_holds`' restart form);
+- the auth store: the mode `off` from `hTP`'s `M.isOn = false` (`isOn_false_iff`), the kit
+  `authStoreKitR` (Facts: `authStoreKit`'s body copied, the auth bucket `∅ ∨ authBoot`, built by
+  `authStoreKitR_off` from `h30` with HS1's second disjunct), its premise by `imageRestAt_auth` (Facts);
+  `restoreAlarms` by `imageRestAt_alarm` (Facts); no `restBootBk_of_fresh` (the buckets after the
+  constructors stay `(((((rbData d.P D).insert lease (D's)).insert auth authBoot).insert authUsers
+  ∅).insert authRoles ∅).insert alarm ∅`: relate them to `restModel … A` at `srvRest`);
+- the compactor's branch dead (`exact absurd hcmpT (by decide)`), the `cmp` reader branch dead;
+- the node's names: `Hrnames` has 17 parts at a restart (`Hrnt0 Hrnc0 Hrns0` added);
+  `srvRestartRows` used right after (`HsTA` to the installer, `Hwpend` kept for the post). **Its text
+  parses as `(|==> rnSnapTermAbove γn) ∗ srvWinPend s γr γn`** (the `|==>` binds tighter than `∗`):
+  harmless for the proof, but the trusted row is not what its docstring says (report to 81);
+- the snapshot directory from the image (`Hsdimg`: `ssₒ γd γt ct`, `snapDirInv_ss_congr` with `Hssp`,
+  `Hsloc`), the counter `Hγt : monoNatAuthOwn γt 1 ct` with `ct ≤ i + 1`, in `HsnapB : srvSnapOwn s cil E
+  ρ.rd γA (W64 0 + W64 |A|)` (route (C); was `srvSnapBoot`);
+- the read names: `γk.hi` updated to `|kvModel A|`; the writer's facts at `kvModel A`; the indices by
+  the new `srvIndices_allocR` (Facts: the ghost applied index at `i`, `appliedLogAt γr i (kvModel A)`;
+  Go's atomic fields stay 0, the invariant asks `v ≤ a`); the certificates by the new
+  `kvCertInv_allocR` (Facts: `hi = |kvModel A|`, `#HkcA : kvCert ρ.rd.kv (kvModel A)`);
+- `bootKVOf false` → `restartKV ρ.rd.kv A` everywhere (the environment `srvErM`);
+- `run`'s snapshot: `HlastT : lastTermIs (A.take σ.b) σ.base.term'` (`restart_lastTerm`) and
+  `HsnapR` (`restart_snapOnceR`, Facts, **sorried**), in place of `srvBuildGap`/`Hsnone`;
+- `lease.srvInvAt false s E m (recMap (recs.zip ls), ∅, recTTLs minTTLsecs recs)` (`HLsrv`, from
+  `HlAt0`); no `leaseTTLRowR`; the post's existentials end with `at₀ := σ.base.term'`; `HBF` dropped.
+
+**Next, in order:**
+1. The post. `wp_proofG`'s assembly from `unfold srvBuiltG` on is in the block comment after the proof
+   (and `/shared/tmp/restart-s56/b2tail/post-tail.lean.txt`). Retarget it at `unfold srvBuiltR
+   srvBuiltRC` (rows: `AuthCompRows.lean:203`). Differences from `srvBuiltG` (ServerOn.lean:163):
+   `srvFieldsBuilt` (not `NA`), `srvReadBuilt` (not `NK`), `srvKVInvsC .off` (not `srvKVInvsM`),
+   no `Hua`/`Hsnapb`/`Hloop`/`Happly` at top level: they go into `HBr : srvBuiltRestartR .off s γA cil b
+   E ρ.rd γrn 0 σ.base.term' 0 (restartKV ρ.rd.kv A)` with `P := A.take σ.b` (`List.take_prefix`,
+   `HlastT`), `⟨msR, HmsR, HsnapR⟩` (rewrite `γrn.node.reg`, `γrn.γs` by `Hrn1`, `Hrn8`; `γrn.a0` by
+   `Hrna0`; `|A.take σ.b|`), `Hloop`/`Happly` (at `A.take σ.b` already), `applyBuiltR .off … A (W64
+   |P|)` (P3's table, `/shared/tmp/restart-s56/p3-rows.md`: `applyThread` at `γA.m0.1 = i` from
+   `bootOkR`'s `Hthr`/`Hm0` and `loopOk` since `|P| ≤ i`; `srvAppliedOwn`/`appliedLogAt` at `i` from
+   `Haown`/`Hal0`; `kvRunM false ρ.rd 0 0 A x₀` = `kvRun` from `Hkhi2` (now at `|kvModel A|`),
+   `#HkcA`, `HAr`, `x₀.chain = ch0`, `x₀.crev = crevOf`; `srvRest E ρ.rd A`: at `lg = false` the
+   bucket map above as `restModel 0 boot A` through `imageRestAt`'s `bkRestAtL` (`Himg`), at `lg = true`
+   the leased arm (`ltHalf` from `HltS`, `srvGrantable`, `srvReqs` from `#HlReq`, `srvEver` from
+   `HlEv : leaseEver γl (recs.map (·.1))`); `srvApRes s ρ.rd A` needs P5), and `HsnapB`. `HEr`'s
+   `uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = 0`; `Hwpend` from `srvRestartRows`. The lessor's
+   `leasesLive` (G's tail, `iexists []`): `iexists (appliedTable ρ.rd A).ids`, the items empty by
+   `hpi`/`LogNoLease`, `Hlown : leaseOwn γl Lr (pendItems … )` already at `∅` (`rw [hpi]`), `Hlt1`.
+   The spec's lease existential: `iexists recs, ls, minTTLsecs`, `HLsrv`, `Hls`, and `hrecs` at `D`
+   by `rbData_real_lookup d D _ (by decide)`.
+2. The sub-facts (`NewServerRFacts.lean`, all `sorry`): `restart_peerURLs` (P5, ~250 lines; also gives
+   `srvApRes`'s members at `A`), `restart_noGrant`, `restart_snapOnceR` (new: open `memStorInv` for
+   `memStorAt` as `rnSnapOnce_of_tok` does, `MemoryStorage.Snapshot.spec` at the restarted storage's
+   justification; may need `memStorMeta`/`memCompacted γs σ.b` from `NodeStartSpecR`'s post: a form).
+3. When no `sorry` is left: link (`etc/gen-link.py --server`, `etc/link-lean-first-server.txt`; the new
+   callee `h30` is `NewAuthStore`'s axiom, already in Link), measure the full compile's peak, full
+   build, tcb --check, gen-interface, gates; STOP before landing (CP3).
+
+Forms this session (questions.md): `restartStore_holds`, `srvIndices_allocR`, `kvCertInv_allocR`,
+`imageRestAt_auth`/`imageRestAt_alarm` (the P7 probes), `authStoreKitR`/`authStoreKitR_off` (a copy of
+`authStoreKit` widened to `authBoot`; cleanup: widen `authStoreKit` itself once `NewServer.lean` is
+rebuilt anyway), `restart_snapOnceR` (stated, sorry), `wp_proofR`'s extra hypothesis `h30`, the
+private helpers of `NewServer.lean` copied into `NewServerR.lean`.
+
 ## B2 contract rows done (2026-11-14, the B2 agent): next agent starts here (write `wp_proofR`)
 
-81 approved the restatement (questions.md; decisions.md "Restart S6 B2", "B2 contract rows"; freeze
+**Landed: `lean` 6b99efd348** (full build clean, 17479 jobs; tcb --check 870/4; gen-interface clean; gates all passed: `/shared/tmp/restart-s56/b2rows/`). 81 approved the restatement (questions.md; decisions.md "Restart S6 B2", "B2 contract rows"; freeze
 package §11.6): `bootOkR` now has `bv.lg' = cfg.Logger'` in `%Hraft`, `"Hlate" ∷ mvcc.api.mvccWReg d.gx`
 and the last row `"#Hbfile" ∷ backend.bFile d.γB (config.backendPathOf cfg.DataDir')`, all `bootOk`'s.
 **The skeleton `E/NewServerR.lean` is removed from the tree** so that no `sorry` lands: restore it first,

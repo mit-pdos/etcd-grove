@@ -203,22 +203,26 @@ theorem RaftLink.wp_RestartNode [package_sem : Assumptions] : RestartNode.spec
 
 theorem RaftLink.MemoryStorage.wp_Snapshot [package_sem : Assumptions] : MemoryStorage.Snapshot.spec
   -- `Perennial.EtcdGrove.MemoryStorage.Snapshot.spec`, unfolded:
-  ∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (o : Option (Nat × SnapshotM)) (c : Nat) (b : Bool)
+  ∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (o : Option (Nat × SnapshotM)) (c : Nat) (t : Option SnapshotM)
     (esu : GoInterface),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
             memStorAt ms γs J o iprop(emp) ∗
               memCompacted γs c ∗
-                (if b = true then memSnapNone γs else emp) ∗
+                (match t with
+                  | some s => memSnapNone γs s
+                  | none => emp) ∗
                   typedPointsto (globalAddr ErrSnapshotTemporarilyUnavailable) esu DFrac.discard -∗
           (▷
               ∀ snap err,
-                ((if b = true then memSnapNone γs else emp) ∗
+                ((match t with
+                    | some s => memSnapNone γs s
+                    | none => emp) ∗
                     ⌜err = GoInterface.nil⌝ ∗
                       ∃ sv,
                         ownSnapW snap (DFrac.own 1) sv ∗
-                          ⌜c ≤ uint.nat sv.Metadata'.Index' ∧ (b = true → sv = memSnapEmpty)⌝ ∗
+                          ⌜c ≤ uint.nat sv.Metadata'.Index' ∧ ∀ (s : SnapshotM), t = some s → sv = s⌝ ∗
                             match o with
                             | some (c0, sv0) => ⌜sv = sv0⌝ ∗ memStorFresh ms γs c0 sv0
                             | none => ⌜sv.Metadata'.Index' = W64 0⌝ ∨ J.SV sv ∗ J.DL (uint.nat sv.Metadata'.Index')) -∗
@@ -491,7 +495,7 @@ theorem RaftLink.wp_NewMemoryStorage [package_sem : Assumptions] : NewMemoryStor
                     memStorLock ms γs ∗
                       memLog γs 0 DFrac.discard [zero_val EntryM] ∗
                         memEnd γs 1 ∗
-                          memSnapNone γs ∗
+                          memSnapNone γs memSnapEmpty ∗
                             memStorMeta ms γs { Term' := W64 0, Vote' := W64 0, Commit' := W64 0 } ∗
                               memStorFresh ms γs 0 memSnapEmpty -∗
                   Φ (intoVal ms)) -∗
@@ -530,35 +534,94 @@ theorem RaftLink.MemoryStorage.wp_ApplySnapshot [package_sem : Assumptions] :
                           (intoVal ms)))
                       (intoVal sp))
                     {{ Φ }}) ∧
-    ∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (o : Option (Nat × SnapshotM)) (old : List EntryM) (sp : Loc)
-      (dq : DFrac) (sv : SnapshotM) (eood : GoInterface),
-      uint.nat sv.Metadata'.Index' = 0 →
-        ⊢
-          ∀ Φ,
-            isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                memStorAt ms γs J o iprop(J.B 0 ∗ J.SV sv ∗ J.DL 0) ∗
-                  memLog γs 1 (DFrac.own 1) old ∗
-                    memEnd γs (1 + old.length) ∗
-                      memLog γs 0 DFrac.discard [memDummy sv] ∗
-                        snapArg sp dq sv ∗
-                          memSnapLb γs 0 ∗ typedPointsto (globalAddr ErrSnapOutOfDate) eood DFrac.discard -∗
-              ▷
-                  ((ownSnapM sp dq sv ∗
-                      memCompacted γs 0 ∗
+    (∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (o : Option (Nat × SnapshotM)) (old : List EntryM) (sp : Loc)
+        (dq : DFrac) (sv : SnapshotM) (eood : GoInterface),
+        uint.nat sv.Metadata'.Index' = 0 →
+          ⊢
+            ∀ Φ,
+              isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                  memStorAt ms γs J o iprop(J.B 0 ∗ J.SV sv ∗ J.DL 0) ∗
+                    memLog γs 1 (DFrac.own 1) old ∗
+                      memEnd γs (1 + old.length) ∗
                         memLog γs 0 DFrac.discard [memDummy sv] ∗
-                          memEnd γs 1 ∗
-                            memSnapLb γs 0 ∗
-                              match o with
-                              | some (c, snd) => memStorFresh ms γs c sv
-                              | none => emp) -∗
-                    Φ (intoVal GoInterface.nil)) -∗
-                WP
-                  ((intoVal
-                      (methods MemoryStorage.ty.PointerType
-                        go!"ApplySnapshot"
-                        (intoVal ms)))
-                    (intoVal sp))
-                  {{ Φ }}
+                          snapArg sp dq sv ∗
+                            memSnapLb γs 0 ∗ typedPointsto (globalAddr ErrSnapOutOfDate) eood DFrac.discard -∗
+                ▷
+                    ((ownSnapM sp dq sv ∗
+                        memCompacted γs 0 ∗
+                          memLog γs 0 DFrac.discard [memDummy sv] ∗
+                            memEnd γs 1 ∗
+                              memSnapLb γs 0 ∗
+                                match o with
+                                | some (c, snd) => memStorFresh ms γs c sv
+                                | none => emp) -∗
+                      Φ (intoVal GoInterface.nil)) -∗
+                  WP
+                    ((intoVal
+                        (methods MemoryStorage.ty.PointerType
+                          go!"ApplySnapshot"
+                          (intoVal ms)))
+                      (intoVal sp))
+                    {{ Φ }}) ∧
+      (∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (o : Option (Nat × SnapshotM)) (j : Nat) (old : List EntryM)
+          (sp : Loc) (dq : DFrac) (sv : SnapshotM) (eood : GoInterface) (s0 : SnapshotM),
+          j ≤ uint.nat sv.Metadata'.Index' →
+            uint.nat sv.Metadata'.Index' < 2 ^ 61 →
+              ⊢
+                ∀ Φ,
+                  isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                      memStorAt ms γs J o
+                          iprop(J.B (uint.nat sv.Metadata'.Index') ∗ J.SV sv ∗ J.DL (uint.nat sv.Metadata'.Index')) ∗
+                        memLog γs j (DFrac.own 1) old ∗
+                          memEnd γs (j + old.length) ∗
+                            snapArg sp dq sv ∗
+                              memSnapNone γs s0 ∗ typedPointsto (globalAddr ErrSnapOutOfDate) eood DFrac.discard -∗
+                    ▷
+                        ((ownSnapM sp dq sv ∗
+                            memCompacted γs (uint.nat sv.Metadata'.Index') ∗
+                              memLog γs (uint.nat sv.Metadata'.Index') DFrac.discard [memDummy sv] ∗
+                                memEnd γs (uint.nat sv.Metadata'.Index' + 1) ∗
+                                  memSnapNone γs sv ∗
+                                    match o with
+                                    | some (c, snd) => memStorFresh ms γs (max c (uint.nat sv.Metadata'.Index')) sv
+                                    | none => emp) -∗
+                          Φ (intoVal GoInterface.nil)) -∗
+                      WP
+                        ((intoVal
+                            (methods MemoryStorage.ty.PointerType
+                              go!"ApplySnapshot"
+                              (intoVal ms)))
+                          (intoVal sp))
+                        {{ Φ }}) ∧
+        ∀ (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (o : Option (Nat × SnapshotM)) (old : List EntryM) (sp : Loc)
+          (dq : DFrac) (sv : SnapshotM) (eood : GoInterface) (s0 : SnapshotM),
+          uint.nat sv.Metadata'.Index' = 0 →
+            ⊢
+              ∀ Φ,
+                isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                    memStorAt ms γs J o iprop(J.B 0 ∗ J.SV sv ∗ J.DL 0) ∗
+                      memLog γs 1 (DFrac.own 1) old ∗
+                        memEnd γs (1 + old.length) ∗
+                          memLog γs 0 DFrac.discard [memDummy sv] ∗
+                            snapArg sp dq sv ∗
+                              memSnapNone γs s0 ∗ typedPointsto (globalAddr ErrSnapOutOfDate) eood DFrac.discard -∗
+                  ▷
+                      ((ownSnapM sp dq sv ∗
+                          memCompacted γs 0 ∗
+                            memLog γs 0 DFrac.discard [memDummy sv] ∗
+                              memEnd γs 1 ∗
+                                memSnapNone γs sv ∗
+                                  match o with
+                                  | some (c, snd) => memStorFresh ms γs c sv
+                                  | none => emp) -∗
+                        Φ (intoVal GoInterface.nil)) -∗
+                    WP
+                      ((intoVal
+                          (methods MemoryStorage.ty.PointerType
+                            go!"ApplySnapshot"
+                            (intoVal ms)))
+                        (intoVal sp))
+                      {{ Φ }}
 
 theorem RaftLink.node.wp_ForgetLeader [package_sem : Assumptions] : node.ForgetLeader.spec
   -- `Perennial.EtcdGrove.node.ForgetLeader.spec`, unfolded:

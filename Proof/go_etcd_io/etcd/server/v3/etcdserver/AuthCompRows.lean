@@ -606,7 +606,7 @@ theorem rnSnapOnceR_first (rg : GName) (cl : Cluster) (nk : GName) (ms : Loc) (�
   ihave #Hca : epCsAt γ [] cs $$ []
   · iunfold epCsAt; ileft; ipureintro; rfl
   ihave Hlb : iprop(|==> memSnapLb γs 0) $$ [Hnone]
-  · iapply (memSnapNone_open (GF := GF) γs) $$ Hnone
+  · iapply (memSnapNone_open_empty (GF := GF) γs) $$ Hnone
   iapply HΦ $$ %sn %pm %cs %sv %h Hsn Hpm Hcs Hok Hca Hlb Hinv
 
 /-- **A first start's `applyBuiltC` is the restart form at `A₀ = []`** (Go's index `ai₀`; restart S4). -/

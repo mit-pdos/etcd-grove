@@ -43,10 +43,8 @@ theorem Storage.Snapshot.wp_proof
   wp_apply wp_oneIn (W64 4) (by decide) $$ [$Hpkg] as %b -
   wp_if_destruct
   · try wp_auto
-    wp_apply wp_Snapshot ms γs J none c false esu $$ [$Hraft $Hc $Hesu] as %snap %err ⟨-, Hres⟩
-    · isplitr
-      · iapply memStorAt_none_intro $$ Hinv
-        iempintro
+    wp_apply wp_Snapshot ms γs J none c none esu $$ [$Hraft $Hc $Hesu] as %snap %err ⟨-, Hres⟩
+    · iapply memStorAt_none_intro $$ Hinv
       iempintro
     try wp_auto
     iapply HΦ

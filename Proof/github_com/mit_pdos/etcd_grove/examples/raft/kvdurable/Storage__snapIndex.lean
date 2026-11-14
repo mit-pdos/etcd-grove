@@ -62,9 +62,8 @@ theorem Storage.snapIndex.wp_proof
     ihave Hat : memStorAt ms γs J none emp $$ [Hp]
     · simp only [memStorAt]; iframe Hkeep Hp
     try wp_auto
-    wp_apply wp_Snapshot ms γs J none c false _ $$ [$Hraft $Hat $Hc $ErrSnapUnavail]
+    wp_apply wp_Snapshot ms γs J none c none _ $$ [$Hraft $Hat $Hc $ErrSnapUnavail]
       as %snap %err ⟨-, %Herr, %sv, Hs, %Hsv, Ho⟩
-    · iempintro
     ihave Hs := ownSnapW_E $$ Hs
     ihave Hs := ownSnapE_weaken $$ Hs
     try wp_auto
@@ -83,9 +82,8 @@ theorem Storage.snapIndex.wp_proof
     ihave Hat : memStorAt ms γs J (some (c0, sv0)) emp $$ [Hp]
     · simp only [memStorAt]; iframe Hkeep Hp
     try wp_auto
-    wp_apply wp_Snapshot ms γs J (some (c0, sv0)) c false _ $$ [$Hraft $Hat $Hc $ErrSnapUnavail]
+    wp_apply wp_Snapshot ms γs J (some (c0, sv0)) c none _ $$ [$Hraft $Hat $Hc $ErrSnapUnavail]
       as %snap %err ⟨-, %Herr, %sv, Hs, %Hsv, Ho⟩
-    · iempintro
     ihave Hs := ownSnapW_E $$ Hs
     ihave Hs := ownSnapE_weaken $$ Hs
     try wp_auto

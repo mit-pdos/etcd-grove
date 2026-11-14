@@ -339,7 +339,7 @@ theorem StartCluster.wp_proof
     · iframe Hvsl; ipureintro; exact Hid0
     wp_apply (wp_NewStorage _ clusterIds) $$ [$HstorInv $Hvsl]
       as %st ⟨%ms, %γs, #Hrec, #Hvoters, #Hml, #Hmlog, Hmend, Hmsnap, -, Hfresh⟩
-    imod memSnapNone_open γs $$ Hmsnap with #Hsnap0
+    imod memSnapNone_open_empty γs $$ Hmsnap with #Hsnap0
     have Hid0m : id0 ∈ clusterIds := List.mem_of_getElem? Hid0
     rw [drop_cons_of_getElem? _ _ _ Hid0]
     icases Htodo with ⟨⟨⟨HrS, Hvac⟩, Hseq⟩, Htodo⟩

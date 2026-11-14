@@ -701,11 +701,15 @@ the records' hard state's) and its read names `γr` at `γ`, a ghost update give
 Go but not provable from raft's API** (`rnSnapTermAbove`'s docstring: R2d'b's target). **Row 1 is
 false on a disclosed class** (`srvWinPend`'s docstring: a restarted member later elected that
 snapshots a lagging follower). So a `NewServer.specR` with this premise is honest only as an open
-triple: it is linked into no closed theorem, and S7 (R2s) deletes both rows and this premise. -/
+triple: it is linked into no closed theorem, and S7 (R2s) deletes both rows and this premise.
+(Restart B2, 2026-11-14, decided by etcd-grove-81 on the reviewer's finding: the update's scope
+parenthesized, `|==> (rnSnapTermAbove γn ∗ srvWinPend s γr γn)` as this docstring says; until then the
+text parsed as `(|==> rnSnapTermAbove γn) ∗ srvWinPend s γr γn`, `srvWinPend` outside the update, a
+stronger premise on `NewServer.specR`'s caller.) -/
 def srvRestartRows (γ : SrvRaft) (id : w64) (A : List EntryModel) (σ : StorContents) : IProp GF :=
   iprop(∀ (s : Loc) (γr : ReadNames) (γn : RNNames),
     ⌜γn.node = γ ∧ γn.id = id ∧ γn.pre = [] ∧ γn.a0 = A ∧ γn.t0 = σ.hs.Term' ∧ γr.raft.raft = γ⌝ -∗
-    |==> rnSnapTermAbove γn ∗ srvWinPend s γr γn)
+    |==> (rnSnapTermAbove γn ∗ srvWinPend s γr γn))
 
 end boot
 

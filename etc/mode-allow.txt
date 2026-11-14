@@ -102,7 +102,9 @@ lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__Txn\.le
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__applyEntryNormal\.lean::  # 4
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/MergedImageOn\.lean::  # 1
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/NewServerAllocOn\.lean::  # 1
-lit-mode unmoved ^Spec/go_etcd_io/etcd/server/v3/etcdserver/NewServer\.lean::NewServer\.specR::  # 3 (restart S6 CP2, D1: the restart constructor spec is scoped to auth off, srvStop.scope; an auth-on restart stage moves it)
+lit-mode unmoved ^Spec/go_etcd_io/etcd/server/v3/etcdserver/NewServerR\.lean::NewServer\.specR::  # 3 (restart S6 CP2, D1: the restart constructor spec is scoped to auth off, srvStop.scope; an auth-on restart stage moves it)
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/NewServerR\.lean::NewServer\.wp_proofRG::  # 9 (restart S6 B2, D1: the restart constructor's proof, at specR's auth-off scope; an auth-on restart stage moves it)
+lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/NewServerRFacts\.lean::srvIndices_allocR::  # 2 (restart S6 B2, D1: the restart's indices at specR's auth-off scope)
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ReadOn\.lean::  # 7
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/ReqOn\.lean::  # 12
 lit-mode unmoved ^Proof/go_etcd_io/etcd/server/v3/etcdserver/RunOn\.lean::  # 3
