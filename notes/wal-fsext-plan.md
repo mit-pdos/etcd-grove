@@ -1336,6 +1336,7 @@ Untrusted; no trusted change. Task 1 done as decided (builds); tasks 2 and 3 not
   forces it (`|bs| = |old|` for an exact tail). Once that step is wired through `walTailsRes_cut`, `OldStep` fails there,
   and no persistent value can survive it (a later `ReadAll` of the same cuts in the generation sees the shorter `old`).
   **Do not merge this branch's invariant change into `wal-int` before the coordinator decides** (I3b, `wal-tc13`).
+- *Build*: the 181 importers of `Ghost.lean` build (`lake build` of their leaves, 2818 jobs) but `WAL__Close` and `WAL__CloseOpening`, which fail at `wal-int`'s merge independently of this change (`iexact: cannot unify zapLoggerOk lg2 and ⌜lg2 ≠ null⌝`, lines 220/281; neither mentions `walTailsRes`).
 - **Also found: `tg ≤ hi` cannot go into the map** (the coordinator's suggestion): `hi` changes at every resize and
   every fdatasync (`OsMeta.synced` makes it the size), so no persistent element can carry it. Neither the tie nor the
   invariant gives it at the growth commits (a window found with `hi < tg` is allowed by `WalAbsD`).
