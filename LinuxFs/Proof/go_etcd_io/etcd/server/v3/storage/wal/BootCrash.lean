@@ -329,35 +329,35 @@ theorem bootFiles_split (L : GooseLocalGS GF) (R : Roots) (m : Tree) (jr : Ino) 
     | .dir J => dirBootFiles m a J
     | .file _ => []), trFile (hG := ⟨G, L⟩) i False)
   have e : ([∗list] i ∈ bootFiles m jr, trFile (hG := ⟨G, L⟩) i False) =
-      [∗map] a ↦ n ∈ entsOf m jr, F a n := by
+      [∗list] an ∈ GMap.toList (entsOf m jr), F an.1 an.2 := by
     unfold bootFiles
     rw [BigSepL.bigSepL_flatMap]
     rfl
   rw [e]
-  refine (BigSepM.bigSepM_mono (Ψ := fun a n => iprop((if walNameOk a then F a n else emp) ∗
-      (if IsTmpN a then F a n else emp))) (fun {a n} _ => ?_)).trans ?_
-  · by_cases hw : walNameOk a
+  refine ((BigSepL.bigSepL_mono (Ψ := fun _ an => iprop((if walNameOk an.1 then F an.1 an.2 else emp) ∗
+      (if IsTmpN an.1 then F an.1 an.2 else emp))) (fun {k an} _ => ?_)).trans
+      BigSepL.bigSepL_sep_eqv.1).trans (sep_mono ?_ ?_)
+  · by_cases hw : walNameOk an.1
     · rw [if_pos hw, if_neg (fun ⟨nm, _, ha⟩ => tmpName_not_walName' nm (ha ▸ hw))]
       exact sep_emp.2
     · rw [if_neg hw]
-      by_cases ht : IsTmpN a
+      by_cases ht : IsTmpN an.1
       · rw [if_pos ht]; exact emp_sep.2
       · rw [if_neg ht]; exact Affine.affine.trans emp_sep.2
-  · rw [BigSepM.bigSepM_sep_eq]
-    refine sep_mono ((bigSepM_sub_list (entsOf m jr) _ (bootWals m jr) Prod.fst (fun p => .dir p.2)
-      (bootWn_nodup m jr) (fun p hp => by
+  · refine (bigSepM_sub_list (entsOf m jr) (fun a n => if walNameOk a then F a n else emp)
+      (bootWals m jr) Prod.fst (fun p => .dir p.2) (bootWn_nodup m jr) (fun p hp => by
         rw [entsOf_lookup]; exact (mem_bootWals.1 hp).2)).trans (BigSepL.bigSepL_mono
-        (fun {k p} hk => ?_)))
-      ((bigSepM_sub_list (entsOf m jr) _ (bootTmps m jr) Prod.fst (fun aj => .dir aj.2)
-      (bootTmps_keys hfo) (fun aj haj => by
+        (fun {k p} hk => ?_))
+    have hp := List.mem_of_getElem? hk
+    show (if walNameOk p.1 then F p.1 (.dir p.2) else emp) ⊢ _
+    rw [if_pos (mem_bootWals.1 hp).1]
+  · refine (bigSepM_sub_list (entsOf m jr) (fun a n => if IsTmpN a then F a n else emp)
+      (bootTmps m jr) Prod.fst (fun aj => .dir aj.2) (bootTmps_keys hfo) (fun aj haj => by
         rw [entsOf_lookup]; exact bootTmps_entry hfo haj)).trans (BigSepL.bigSepL_mono
-        (fun {k aj} hk => ?_)))
-    · have hp := List.mem_of_getElem? hk
-      show (if walNameOk p.1 then F p.1 (.dir p.2) else emp) ⊢ _
-      rw [if_pos (mem_bootWals.1 hp).1]
-    · have haj := List.mem_of_getElem? hk
-      show (if IsTmpN aj.1 then F aj.1 (.dir aj.2) else emp) ⊢ _
-      rw [if_pos (of_decide_eq_true (List.mem_filter.1 haj).2)]
+        (fun {k aj} hk => ?_))
+    have haj := List.mem_of_getElem? hk
+    show (if IsTmpN aj.1 then F aj.1 (.dir aj.2) else emp) ⊢ _
+    rw [if_pos (of_decide_eq_true (List.mem_filter.1 haj).2)]
 
 /-- **`walAreaRes`'s probe files** (`tmpClTouch`), from the temporary directories' `.touch`s. -/
 theorem bootCls_touch (L : GooseLocalGS GF) (V : Hist) (jr : Ino) :
@@ -407,6 +407,7 @@ theorem walBootCrash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
         (namesOf V jr ((NameSet.except []).inter (bootOthers V.now jr))) ∗
       [∗list] j ∈ bootRest V.now jr,
         osNames (L := L) j (.except []) (DFrac.own 1) (namesOf V j (.except [])) := by
+  classical
   iintro #Hos #Hsh Hst Hfiles Hall
   -- the claims: the area's, the WALs', those under an `nm.<sfx>`, the rest
   ihave Hall := (BigSepL.bigSepL_perm (Φ := fun j => osNames (L := L) j (.except []) (DFrac.own 1)
@@ -467,14 +468,19 @@ theorem walBootCrash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     with ⟨#Hinv, %Ls, %hLs, Hnw, %hnc, Hcl⟩
   · unfold osClaims bootCl
     rw [List.map_cons, List.map_append]
+    dsimp only [bootAreaCl, bootN]
     iapply BigSepL.bigSepL_cons.2
     isplitl [Har]
     · iexact Har
     iapply BigSepL.bigSepL_append.2
     unfold bootWalCls bootNameCls
     rw [List.map_map, List.map_map, BigSepL.bigSepL_map, BigSepL.bigSepL_map]
+    dsimp only [Function.comp]
+    unfold bootWn
+    rw [BigSepL.bigSepL_map]
     iframe Hwc Hnc
-  · iapply bigSepM_ofList_intro
+  · unfold bootJm
+    iapply bigSepM_ofList_intro
     · exact bootJm_keys V jr r
     rw [BigSepL.bigSepL_map]
     iexact Hwt
@@ -488,22 +494,30 @@ theorem walBootCrash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     isplitl [Hwo]
     · unfold bootWalCls
       rw [BigSepL.bigSepL_map]
-      iapply BigSepL.bigSepL_mono (Φ := fun _ p =>
-        walOthers (L := L) [] p.2 (restrictN (.except walTmps) (entsOf V.now p.2))) (fun {k p} _ => ?_)
-      · iexact Hwo
-      · by_cases hc : WalDirClaimOf Ls (p.2, NameSet.except walTmps, namesOf V p.2 (.except walTmps))
-        · simp only; rw [if_pos hc]; exact .rfl
-        · simp only; rw [if_neg hc]; exact Affine.affine
-    · iapply (BigSepL.bigSepL_emp (l := bootNameCls V jr)).2.trans
-        (BigSepL.bigSepL_mono (fun {k c} hk => ?_))
-      · iempintro
-      · obtain ⟨nm, -, rfl⟩ := mem_bootNameCls.1 (List.mem_of_getElem? hk)
-        rw [if_neg (fun ⟨_, _, _, _, X, hX, _⟩ => by cases hX)]
-        exact .rfl
+      have hwo : ([∗list] p ∈ bootWals V.now jr,
+          walOthers (L := L) [] p.2 (restrictN (.except walTmps) (entsOf V.now p.2))) ⊢
+          [∗list] p ∈ bootWals V.now jr,
+            if WalDirClaimOf Ls (p.2, NameSet.except walTmps, namesOf V p.2 (.except walTmps)) then
+              walOthers (L := L) [] p.2 (namesOf V p.2 (.except walTmps)).cur else emp := by
+        refine BigSepL.bigSepL_mono (fun {k p} _ => ?_)
+        by_cases hc : WalDirClaimOf Ls (p.2, NameSet.except walTmps, namesOf V p.2 (.except walTmps))
+        · rw [if_pos hc]; exact .rfl
+        · rw [if_neg hc]; exact Affine.affine
+      iapply hwo
+      iexact Hwo
+    · have hnc : (emp : IProp GF) ⊢ [∗list] c ∈ bootNameCls V jr,
+          if WalDirClaimOf Ls c then walOthers (L := L) [] c.1 c.2.2.cur else emp := by
+        refine (BigSepL.bigSepL_emp (l := bootNameCls V jr)).2.trans
+          (BigSepL.bigSepL_mono (fun {k c} hk => ?_))
+        obtain ⟨nm, -, e⟩ := mem_bootNameCls.1 (List.mem_of_getElem? hk)
+        rw [e, if_neg (fun ⟨_, _, _, _, X, hX, _⟩ => by cases hX)]
+      iapply hnc
+      iempintro
   -- the area claim's half comes back
   unfold bootCl
   icases BigSepL.bigSepL_cons.1 $$ Hcl with ⟨Hac, -⟩
   rw [if_neg (bootAreaCl_not hLs)]
+  dsimp only [bootAreaCl]
   imodintro
   iframe Hoth Hrest
   isplitr
@@ -511,7 +525,9 @@ theorem walBootCrash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     iframe Hinv Hos Hsh
     ipureintro; exact ⟨hrb, henc⟩
   unfold walAreaRes
-  iexists bootN V.now jr, namesOf V jr (bootN V.now jr), bootCls V jr, nameClaimsOf jr Ls (bootCl V jr)
+  iexists bootN V.now jr, namesOf V jr (bootN V.now jr), bootCls V jr,
+    nameClaimsOf jr Ls ((jr, bootN V.now jr, namesOf V jr (bootN V.now jr)) ::
+      (bootWalCls V jr ++ bootNameCls V jr))
   iframe Hac Hnw
   isplitr
   · ipureintro
@@ -522,11 +538,12 @@ theorem walBootCrash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
       exact .inr ((hnc nm).2 (bootWals_lay hLs hJ))
   isplitr
   · ipureintro; exact fun nm sfx h => bootN_sfx nm sfx h
-  isplitr
+  isplitl [Htf Hs]
   · unfold areaCls
     iframe Htf
     unfold osClaims bootCls
     rw [List.map_map, BigSepL.bigSepL_map]
+    dsimp only [Function.comp]
     iexact Hs
   isplitr
   · ipureintro; exact fun b hb hnw => bootCls_subCover hwf hr b hb hnw
