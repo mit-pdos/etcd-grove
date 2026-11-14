@@ -542,7 +542,9 @@ W7-W12 log, second session); left: `ReadDir`'s loops and the names' bound, `erro
 (§4.2's W7-W12), the WAL-level resize updates (I3b's open items). `Create`'s ghost steps (drop, mint, unmint, merges) are proved (`wal-create10`; W4 log, tenth session). The record of what is out of the parked state and the changes in flight only on segments out (W3/W5's gaps A and B) are in the invariant, with the pin's and the put-back's moves (`Parked.lean`, `wal-read9`; W1 log, tenth session). A change in flight only on a registered tail (`TailsOnly`), the tails' authority halved with the lock holder (`walTailsFrag`), and `openAtIndex`'s pin (`walInvBody_pin`, `OpenPinTake.lean`) are proved (`wal-read10`; W1 log, eleventh session; W3/W5 log, tenth session). Gap C (every WAL's directory claim once and exclusive, `DirClaimsOk` in `DirKeysOk`), the pin keying its WAL, the put-back (`walInvBody_unpin`), the commit's `unl` raise (`walInvBody_unl`) and the tail's registration (`walTailsRes_register`) are proved (`wal-read11`; W1 log, twelfth session; W3/W5 log, eleventh session). `openAtIndex` and `OpenForRead` are proved, over two invariant hypotheses (`WalPinSized`: the segments' size bound; `WalDirPathLaw`: a path to the WAL directory, `wal-path13`'s to replace) and `WalDecEnvSupply` (`wal-read12`; W3/W5 log, twelfth session). `Open` is proved over `openAtIndex.spec`, `WalDirPathLaw`
 and the hypothesis `WAL.Close.specOpening` (W10's to discharge); `Open`'s success keeps the client's half of the call
 permission in `walOpeningF` (ledger 2026-11-14) (`wal-read13`; W3/W5 log, thirteenth session). `WalPinSized`'s
-invariant conjunct is designed, not made (same log).
+invariant conjunct is designed, not made (same log). `ReadAll`'s pure core (the running files' decode, the fold to `walReadAllOk`, the read position below
+`walOpenPos`: `readAll_success`) is proved, over the hypotheses `WalReadState` and `decoder.Decode.specR`; its wp proof
+not started (`wal-readall14`; W3/W5 log, fourteenth session).
 
 ## W1 implementation log (branch `wal-inv`, 2026-11-13)
 
@@ -3814,3 +3816,45 @@ tail). Task 3 (the pin, `openAtIndex`, `OpenForRead`, `Open`) not started.
 - *Not done*: Task 2's change (above), `ReadAll` (task 4: obligations unchanged from the twelfth session, plus moving
   `walOpeningF`'s call-permission half into `walDirH`; its `Close` on a failure arm is `walReadFailedF`'s).
 
+**W3/W5 log, fourteenth session (branch `wal-readall14`, 2026-11-14).** `ReadAll`'s pure core proved (no `sorry`,
+`lean-check`); `WAL.ReadAll.wp_proof` itself still `sorry` (its Goose body is ~40 KB: the loop, eight error arms,
+the zeroing, three syncs, the encoder; not started).
+- *Proved, the reader on the running files* (`ReadAllDecode.lean`, `ReadAllFiles.lean`): **`walReadFiles_running`**:
+  under `WalAbsD C Mr d lay ents`, `TailExact lay` and `lay.wr = |segStream … lay.cuts.length|` (the last segment's
+  stream all written), a fresh reader of the page-cache bytes (`segImg g = g.bs.map (·.1)`) of `lay.segs.drop kk`
+  reads exactly `(recsOfSegs … (segsOf (histM d) lay.cuts)).drop (recsOfSegs … (take (first + kk))).length`
+  (over `walDecodeFiles_core`/`_suffix`: the non-last segments are their frames (`intact`), the last its frames then
+  zeros past `z0 < |S|`, or `old` with `tailStop` at `z0 = |S|`: `noCollision_running`). Helpers: `histCut_of_le`,
+  `lastRecs`, `chainSegs_appendR` (a copy of `CutHdrStream`'s `chainSegs_append`, renamed: that module imports
+  `Handle`), `tailLast_img`, `decStep_zeros_any`.
+- *Proved, the fold to the post* (`ReadAllOk.lean`, `ReadAllPos.lean`): **`readAll_ok_pure`** (a successful
+  `readAllFold` over those records is `walReadAllOk I cut s σ` with the metadata; from a cut file `s` is newest from
+  the read position `k` too, because the fold matched a snapshot record of `s`'s index after `k`:
+  `walNewestPair_suffix`, `walValidSnaps_suffix`; `walReadAt_of_from`, the converse of `walReadAt_from_eq`);
+  **`readPos_le_openPos`** (`k ≤ walOpenPos I a` from `k`'s name bound, `ix ≤ a`, and that record).
+- *Proved, combined* (`ReadAllPure.lean`): **`readAll_success hC hU hab hex hwr hcpos kk g hg s hsel hs stop r hok :
+  ∃ σ, walReadAllOk (histM d) d.cut s σ ∧ r = (d.metadata, σ.hs, σ.ents)`**, `hok` the fold over
+  `(walDecodeFiles C ((lay.segs.drop kk).map segImg) 0#32).recs` (what `readerRun_start` gives of the Go loop when it
+  stops, not `GoFail`). Also `length_flatten_take_segsOf` (`(segsOf I cuts).take p` holds `segStart cuts p` ops),
+  `segStart_mono`. The AU's `d` vs the invariant's: `walDurLe` keeps `H`, `cut`, `metadata`.
+- **Hypotheses stated for the wp proof** (no `sorry`): `WalReadState` (`ReadAllLaws.lean`, one invariant law: at a
+  step, the WAL's key, `walTailsFrag ∅`, the out-record and the pinned halves give the invariant's `d`, layout,
+  names with `WalAbsD`, `TailExact`, the stream written (**`WalTailIdle`**: not in `walInvBody`; true after a crash,
+  `CrashStart`, and `Create`'s commit; `Close`'s unregistration must establish it, W10), the cuts positive
+  (`0 < b`: `walCutPos` allows a cut at 0, which `readAllFold_from` cannot read from; every real cut follows a
+  `Save`), and `lay.segs.drop kk = gs` (the pinned segments still the layout's suffix)); `decoder.Decode.specR`
+  (`decoder__DecodeR.lean`, ledger 2026-11-14 "the error's identity": `decPost` lets a bad frame return `io.EOF`
+  and gives no `errors.Is` answer on the decoder's own errors).
+- **Obligations for other units.** (1) `walReadH`/`walReadTie` must record the selection's fact for the first
+  pinned segment (`∀ sq ix, g.name = walFileName sq ix → ix ≤ s.1`, `readAll_success`'s `hsel`: `openAtIndex`
+  knows it from `searchIndex`, `walOpenK`); a sealed `ReadDefs` change and `openAtIndex`'s proof. (2) The invariant
+  owner: `WalReadState` (W1; `WalTailIdle` as a framed conjunct over unregistered WALs, the cuts' positivity in
+  `WalAbsD.cuts`). (3) `Decode.spec`'s strengthening (W3a). Unchanged from the thirteenth session: the `ZeroToEnd`
+  instance (`wal-tc5`), the tail registration and F-Z commit, the permission half into `walDirH`, the read tail's
+  sequence `< 2^63` (`k = h.pc = 0`), the metadata bound (`WalsBounded`, `wal-path13`), `walInvBody_unl`, `walOpenWF`.
+- *Plan for the wp proof* (next session): the loop as `ReaderRun` built backwards is awkward in a `for`; carry
+  instead `(rdRest C fs₀ 0 0#32).recs = acc ++ (rdRest C fsᵢ offᵢ cᵢ).recs` and `foldlM raStep raInit acc = .ok st`
+  (Go's `metadata/state/ents/match` the state's), stepping with `rdRest_ok`; at the exit `rdRest_stop` (or the
+  `GoFail`/`IoE` arms: error) gives `walDecodeFiles … = acc` and the stop; the write-mode check then needs
+  `specR`. Open `walInv` once at the commit step (the `Fsync(w.dirFile)` or `syncDir`'s step, for `walNamed`),
+  read `WalReadState` there and apply `readAll_success`.
