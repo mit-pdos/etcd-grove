@@ -1041,7 +1041,9 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Workaround here.** (1) `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/
   WaitGroupAdd.lean`, `wgJoin_wp_Add4_of` (`wp_Add_of`'s proof with four ghost steps; proved, no
   trust). (2) `Spec/fmt/SprintfID.lean`, a trust-boundary axiom for `types.ID` arguments (as
-  `SprintfNamed`, `SprintfClientPtr`).
+  `SprintfNamed`, `SprintfClientPtr`). Also (1) (2026-11-14, branch `net-tcp`): acceptloop's
+  `Call` (`wg.Add(2)`), `NetTcp/.../examples/net/acceptloop/Join.lean`'s `wp_Add_many`, a copy of
+  `examples/mvccrand/RunChecksJoin.lean`'s (the part cannot import the main tree).
 - **Proposed.** (1) `wp_Add_of` for a delta `n` (`0 < n`, the bound `num_added + n < 2^31`),
   giving `n` `ownDone`s (a `[∗list]` over `List.replicate n`); the `Add(1)` statement derived.
   (2) `wp_Sprintf` over arguments whose `String`/`Error` method has a given spec (a WP returning
