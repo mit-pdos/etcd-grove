@@ -50,8 +50,8 @@ def apply.authOutLL (M hs ai c rq log) (perms : List Perm3) (I) (ids : List w64)
     (chainStep backendStep c rq log oc ∧ passedL M hs ai perms ∧ ∀ id ∈ ids, leasePassedL M hs ai I id)
 ```
 
-`authOutL M hs ai c rq log perms` becomes an `abbrev` for `authOutLL … perms ∅ []` (review r1), so Range and
-DeleteRange keep their statements' text.
+`authOutL` stays a `def`, with the law `authOutL_iff : authOutL M hs ai c rq log perms oc ↔ authOutLL … perms ∅
+[] oc` (review r3: an `abbrev` would break every `rcases` on it), so DeleteRange keeps its statement's text.
 
 ## 2. The store's contract: `isAuthStoreL` gains the recorded latest state (CP0 fix 2)
 
@@ -166,9 +166,12 @@ any principal, the empty header included (Scope E5), which `leasePassedL` says. 
     `revokeRes` holds; at a KV kind `rqOk` does not depend on the mode, so the existing callers pass the same
     fact);
   - they thread the revocation's resources as `dispatch.spec` does (`uberApplier__dispatch.lean:58-81`):
-    `revokeOwn E rq ∗ ltHalf …` in, `revokeAnsR`, the `ltHalf` after-form and `revokeRest` out; off a
-    revocation these are identities (`revokeOwn_nonRevoke`, `revokeIds_nonRevoke`, `revokeRest_nonRevoke`,
-    `Chain.lean:541-548, 1682`), so the KV callers supply them for free;
+    `revokeOwn E rq ∗ ltHalf E T` in; out `revokeOwn E rq` back, `revokeAnsR`, `ltHalf E (revokeIds …)` and
+    `E.RO (revokeRest …)` (at `dispatch`), their `A` variants `revokeIdsA`, `revokeRestA`, `revokeAnsRA` at the two
+    `Apply` layers, exactly as `dispatch.spec`/`Apply.spec` state them; off a revocation these are identities
+    (`revokeOwn_nonRevoke`, `revokeIds_nonRevoke`, `revokeRest_nonRevoke`, `revokeIdsA_nonRevoke`,
+    `revokeRestA_nonRevoke`), but `ltHalf E T` is a real half when `E.lg`: the KV caller passes its `HLt` through
+    and rewrites (review r3 S1);
   - `kvShapedL … rq` becomes `kvShapedL … x.log rq`; the verdict `kvOutL` is the new one.
   The lease class stops at the auth applier's methods (`kvPostFL`, Q5): `applyAuthRes` (`InvUber.lean:195`)
   carries no class to the server and nothing past the methods consumes one, so the layers' posts do not state
@@ -194,9 +197,16 @@ Server-side consumers of the changed `kvOutL`/`kvShapedL` (review r2 F3), repair
   (`Results.lean:1802`, exported) with it;
 - `kvShapedL_of_log` (`ApplyNormalOn.lean:78`) and its caller (`EtcdServer__applyEntryNormal.lean:1746`): the
   `log` argument; the lease shapes from `plainCover` (lease `0`: no key);
-- `kv_entry_pre_on` (`ApplyEntryOn.lean:129`): its certificates cover the new refusals (vacuous under
-  `plainCover`);
-- `srv_uberKVL`, `srv_uberKVL_on` (`UberOn.lean:125, 152`): `applierKVL`'s fifth (revocation) method spec.
+- `kv_entry_pre_on` (`ApplyEntryOn.lean:129`): its proof covers the new refusals (vacuous under `plainCover`); its
+  statement does not change, nor does `kv_outcome_on_latest`'s;
+- `srv_uberKVL`, `srv_uberKVL_on` (`UberOn.lean:125, 152`): `applierKVL`'s fifth (revocation) method spec;
+- `uberKitM` (`UberKit.lean:38`, the bundle `NewServer` takes) gains a `LeaseRevoke.specL` conjunct for
+  `srvUberOn_of_kit`, so `server_new_auth_on`'s tuple (`Results.lean:2131`) gains `apply_lease_revoke_latest`;
+- the one real caller of the widened `Apply` triple, `EtcdServer__applyEntryNormal.lean` (≈1720, its `wp_apply
+  hK`): passes `HLt`, `rqOk_kv` (new: at a KV kind `rqOk .none log rq → rqOk lm log rq`) and rewrites the
+  identities;
+- a lemma `txnPutsW_plain : txnPlain t.toModel → o ∈ txnPutsW t → o.leaseID = 0` (mutual induction), for the
+  transaction's lease part under `plainCover`.
 All of these take `plainCover` from the auth-on log's shape (`plainEntryOn`), which S3 replaces by the model's
 lease table (`kvGrantedL`).
 
@@ -222,10 +232,10 @@ state is non-empty" is as easy and may be what S3 states. The server's `srv_uber
 ## 8. Exported statements this changes (for the Freeze)
 
 `apply.kvPostFL` (body), `apply.authApplierV3.{Put,Txn}.specL`, `apply.checkPutAuth.specL`,
-`apply.checkTxnPermission.specL`, `apply.CheckTxnAuth.specL`, `apply.applierKVL` (body), `apply.kvOutL` (body), `apply.kvShapedL` (body, new `log` argument), `apply.authApplierV3.{Range,DeleteRange}.specL` (through `kvPostFL`'s body; their text unchanged, their proofs add the trivial lease class),
+`apply.checkTxnPermission.specL`, `apply.CheckTxnAuth.specL`, `apply.applierKVL` (body), `apply.kvOutL` (body), `apply.kvShapedL` (body, new `log` argument), `apply.authApplierV3.DeleteRange.specL` (through `kvPostFL`'s body; its text unchanged, its proof adds the trivial lease class; `Range.specL` posts `rangePostL`, unchanged),
 `apply.isAuthStoreL` (body), `Results`' `apply_put_latest`, `apply_txn_latest`, `apply_applier_kv_latest`
 ("exported": `Results.lean`'s statements; the server has no `etc/api` list, so no `interface/` file shows them); new: `checkLeasePuts.specL`, `checkLeasePutsKeys.specL`,
-`authApplierV3.LeaseRevoke.specL`, `apply_lease_revoke_latest`; widened: `uberApplier.{dispatch,Apply}.kvSpecL`, `apply.uberKVC`, `apply.Apply.kvSpecL`; server-side (§6): `authOutL_of_kvOutL`, `authTie_of_kvOutL`, `kv_outcome_on_latest`, `kvShapedL_of_log`, `kv_entry_pre_on`, `srv_uberKVL{,_on}`. No trusted text, no axiom.
+`authApplierV3.LeaseRevoke.specL`, `apply_lease_revoke_latest`; widened: `uberApplier.{dispatch,Apply}.kvSpecL`, `apply.uberKVC`, `apply.Apply.kvSpecL`; server-side (§6): `authOutL_of_kvOutL`, `authTie_of_kvOutL`, `kvShapedL_of_log` (premises), `srv_uberKVL{,_on}`, `uberKitM` and `server_new_auth_on`'s tuple. No trusted text, no axiom.
 
 ## 9. The spec plan and the two tracks
 
@@ -249,3 +259,9 @@ layer triples instead of a parallel revocation triple; the lease class not carri
 server-side repairs, §6), F4 (the revocation's floor `[]`), §7's initial state, and the nits (`authOutL` as an
 abbrev gets an `authOutL_iff` law; `isAuthStoreL`'s ~13 `icases` patterns gain a `-`; the probe model's `putsW`
 becomes `apply.txnPutsW` when it moves) are addressed above.
+
+Round 3 (fresh `spec-reviewer`, `/shared/tmp/auth-lease/s2-review-r3.md`): **no first-tier finding**; the round-2
+fixes verified provable against the code. Its second-tier items (the widened posts' exact resources and `A`
+variants, the `HLt` call site and `rqOk_kv`, `txnPutsW_plain`, `uberKitM`/`server_new_auth_on`, `authOutL` kept a
+`def` with `authOutL_iff`, `Range.specL` and `kv_entry_pre_on` unchanged) are applied above. Unprobed, no obstacle
+seen by any round: `LeaseRevoke.specL`, the transaction checks' Löb step, the methods' lease-class lemmas.
