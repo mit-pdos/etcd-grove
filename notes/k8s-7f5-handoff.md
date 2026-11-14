@@ -18,6 +18,29 @@ the worktree's untracked `questions.md` (decisions; never re-add it tracked).
   this stage's T5-c); 7f-0 partial (records only; the rest goes with 7f-6, Q7).
 - No Lean edited. Nothing built on this branch.
 
+## Handoff point (2026-11-14, sixth 7f-5 agent, final): 7f-3b v3rpc part LANDED; 7f-3c next (a fresh agent)
+
+81 approved the v3rpc part as is (step 4 moved to 7f-3c, the `γpk`/`pkIs` map, the nonissue); landed
+via `etc/land.sh` (hash in STATUS / the landing log `/shared/tmp/k8s7f3b-v3rpc/land.log`).
+
+**Next: 7f-3c, the client part**, in this order (statements in `Draft7f3a.lean`, `notes/k8s-7f3a-draft.md` §5):
+1. `client.rawRespOkP` in place of `rawRespOk` (`WatchStateDefs.lean`; move `prevKvLogOk` there, with
+   `v3rpc.evIsCreate`). Producers (WatchRun's `prog_cmpl`/`cmpl_events`, WatchCompl, `run` ~1374) derive
+   each pointer's `prevKvLogOk` from the server's `evsSentOk` (`client.mvccOk_evsSent`, `v3rpc.pkWritten`):
+   for `prevKV = false`, `pkIs` of the response's id agrees (`v3rpc.pkIs_agree`, names through
+   `v3rpc.auxOf_inj_pk`) with the created response's `pkIs … c.prevKv` (`ctrlWatcher`); for a written
+   one, transfer `stateAt` between `pkWritten`'s `L` and the client's log by `histLb` agreement
+   (`v3rpc.stateAt_prefix`), and exclude revision 1 by `L[1] = []`. Consumers (WatchFire `raw_to_state`,
+   WatchResume, serveSubstream `rawRespOk_created`) read the erased-events equation.
+2. The client's `watchGRPCStream.run` / `serveSubstream` / `dispatchEvent` carry the `PrevKv` pointer
+   (the client copies the `*Event` pointers; today `evs_eventsAt` gives `evModelOf` with `prevKv := null`).
+3. `watcher.Watch.specP` (S6).
+4. Swap the old definitions (`isRangeWatch`, `watchStateRespOk`, `watchStateElem`, `respAt`,
+   `watcher.Watch.spec`) for the P-forms; each user (watchkv, cachekv, linkv3p `MainWatch`, the
+   compactor, `etcdstart.Collect`, `Election.observe`, recipes, auth `RootWatch`/`WorkCalls`) switches to
+   `specP` and reads elements through `watchStateElemP_elem`.
+Report the interface/statement changes to 81 before landing, as for 7f-3b.
+
 ## Handoff point (2026-11-14, sixth 7f-5 agent): 7f-3b v3rpc part done on the branch; checkpoint (not landed)
 
 Done (`35fdc186ad` and the commit after it on `k8s-7f5`; questions.md entries of 2026-11-14):
