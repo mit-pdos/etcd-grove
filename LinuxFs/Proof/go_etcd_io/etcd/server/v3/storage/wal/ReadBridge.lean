@@ -119,7 +119,7 @@ theorem walDecFile_ok
     imodintro
     iintro %Φ ⟨%Hrx, HS, Hp⟩ HΦ
     iunfold walFileS at HS
-    icases HS with ⟨%Hpre, Hf, Hfd, Ho, Hm, Hbs⟩
+    icases HS with ⟨⟨%Hpre, %Hfdn⟩, Hf, Hfd, Ho, Hm, Hbs⟩
     ihave #Hrl2 := Hrl
     iStructNamed Hrl2
     wp_method_call
@@ -195,13 +195,13 @@ theorem walDecFile_ok
     rw [← hino]
     iframe
     ipureintro
-    rw [hrys]; exact List.take_prefix _ _
+    rw [hrys]; exact ⟨List.take_prefix _ _, Hfdn⟩
   isplitr
   · imodintro
     iintro %r HS
     iunfold walFileS at HS
     icases HS with ⟨%Hpre, -⟩
-    ipureintro; exact Hpre
+    ipureintro; exact Hpre.1
   isplitr
   · imodintro
     iintro %r
