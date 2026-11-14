@@ -485,6 +485,7 @@ theorem crashTo_tailM {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} 
       simp only [imgOf, hf, Option.map_some, Option.getD_some] at h1
       have hcsb : ∀ b, b < p + frameCore f.contents p → cs b = (g.bs.getD b (0, [])).2 := by
         intro b hb; rw [← hcs]; simp only; rw [if_pos (by rw [← himgl]; omega)]
+      replace h1 := asOfOneG_asOf h1
       rcases h1 with h1 | ⟨n, hn0, h1⟩
       · left; intro b hb1 hb2; rw [hcsb b hb2]; exact h1 b hb1 hb2
       · right; refine ⟨n, hn0, fun b hb1 hb2 => ?_⟩

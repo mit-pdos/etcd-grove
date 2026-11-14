@@ -210,6 +210,7 @@ theorem w1G_durable (C : WalCodec) (js : List Ino) (img : Ino → List w8)
   subst hx
   left
   intro b hb1 hb2
+  show (img i).getD b 0 = valAt (bs.getD b (0, [])).2 0
   rcases himg with himg | himg
   · have hlt : b < (img i).length := by omega
     rw [himg] at hlt ⊢

@@ -65,7 +65,7 @@ def AsOf (cs : Nat → Cands) (img : List w8) (o len : Nat) : Prop :=
     img.getD b 0 = valAt (cs b) n ∧ ∃ q ∈ cs b, 0 < q.2 ∧ q.2 ≤ n
 
 theorem asOfOneG_asOf {bs : List ByteG} {img : List w8} {o len : Nat} (h : AsOfOneG bs img o len) :
-    AsOf (fun b => (bs.getD b (0, [])).2) img o len := h
+    AsOf (fun b => (bs.getD b (0, [])).2) img o len := AsOfW.weak h
 
 theorem valAt_single (x : w8) (n : Nat) : valAt [(x, 0)] n = x := by
   simp [valAt]

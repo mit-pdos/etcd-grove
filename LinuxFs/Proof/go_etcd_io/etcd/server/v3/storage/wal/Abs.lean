@@ -271,9 +271,7 @@ theorem segExact_metas {g : SegG} {lay : WalLay} (h : SegExact g) :
 /-- The ghost form of `AsOfOne`: the image bytes `img` of `[o, o + len)` against the bytes `bs`'
 candidates. -/
 def AsOfOneG (bs : List ByteG) (img : List w8) (o len : Nat) : Prop :=
-  (∀ b, o ≤ b → b < o + len → img.getD b 0 = valAt (bs.getD b (0, [])).2 0) ∨
-  ∃ n, 0 < n ∧ ∀ b, o ≤ b → b < o + len →
-    img.getD b 0 = valAt (bs.getD b (0, [])).2 n ∧ ∃ p ∈ (bs.getD b (0, [])).2, 0 < p.2 ∧ p.2 ≤ n
+  AsOfW (fun b => (bs.getD b (0, [])).2) (fun b => img.getD b 0) o len
 
 /-- **W1 over a crashed WAL directory**, from the ghost candidates: its `.wal` files `js` (in name
 order), their images `img`, read from any of them on with a fresh reader; a file that is a segment
@@ -351,11 +349,8 @@ theorem w1G_of_W1 (C : WalCodec) (st st' : Fs.OsState) (m' : Tree) (lay : WalLay
           simp only [hf', imgOf, Option.map_some, Option.getD_some, hlen] at hsz; omega
         rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hbl]
         exact (hcand b _ (List.getElem?_eq_getElem hbl)).symm
-      rcases h1 with h1 | ⟨n, hn, h1⟩
-      · left; intro b hb1 hb2
-        rw [(hbyte b hb1 hb2).1, (hbyte b hb1 hb2).2]; exact h1 b hb1 hb2
-      · right; refine ⟨n, hn, fun b hb1 hb2 => ?_⟩
-        rw [(hbyte b hb1 hb2).1, (hbyte b hb1 hb2).2]; exact h1 b hb1 hb2
+      exact AsOfW.congr (fun b hb1 hb2 => (hbyte b hb1 hb2).2.symm)
+        (fun b hb1 hb2 => (hbyte b hb1 hb2).1.symm) h1
 
 /-! ## The crash condition -/
 
