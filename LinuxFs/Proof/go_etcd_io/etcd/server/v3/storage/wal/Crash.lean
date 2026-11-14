@@ -116,7 +116,8 @@ crash adequacy theorem) and the WAL's crash token, the shared mode's invariant, 
 the new generation's start over the crashed tree, its lock and crash tokens, the crash boot's
 non-segment files whole (`bootFiles`: a WAL directory's files at its non-`.wal` names, a temporary
 directory's `.touch`; distinct by the crashed tree's unique naming, `crashRest_treeWf`, each from an old segment's
-start if it was one, else from `crashRest`), and `crashRest` back (those files taken, the tree not). -/
+start if it was one, else from `crashRest`), the crashed tree well formed (for the crash boot,
+`walBootCrash`), and `crashRest` back (those files taken, the tree not). -/
 theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsState → Fs.OsState → Prop)
     (hQ : ∀ st st', Q st st' → W1 C st st') (hPre : AbsDiskGpreS GF) (L L' : GooseLocalGS GF)
     (W : WalGS GF) (R : Roots) (jr : Ino) (r : GoString) (V' : Hist) (E : CoPset)
@@ -125,7 +126,8 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
       walCrashTok (W := W) -∗ osSharedInv (L := L) R -∗
       crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) [] false V' ={E}=∗
       ∃ (W' : WalGS GF) (s' : AbsDiskState) (D : List Ino),
-        walCrashWal W W' ∗ ⌜s'.area = r ∧ DirsAvoid R jr s' ∧ WalsBounded s' ∧ DirsRoots R s'⌝ ∗
+        walCrashWal W W' ∗
+        ⌜s'.area = r ∧ DirsAvoid R jr s' ∧ WalsBounded s' ∧ DirsRoots R s' ∧ TreeWf R V'.now⌝ ∗
         walStart L' W' C Mr R jr r s' V'.now ∗
         walPast (W := W') s' ∗ walUnlockedTok (W := W') ∗ walCrashTok (W := W') ∗
         ([∗list] i ∈ bootFiles V'.now jr, trFile (hG := ⟨G, L'⟩) i False) ∗
@@ -233,7 +235,7 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
   isplitr
   · ipureintro
     refine ⟨by rw [harea', Har], fun dd hdd => Han.2 dd ?_, walsBounded_crash hcrash Hbd.1,
-      dirsRoots_crash hcrash Hbd.2⟩
+      dirsRoots_crash hcrash Hbd.2, hwf⟩
     rw [← hcrash.2.1]; exact hdd
   unfold walStart
   iexists Ls', ((segsAll Ls).map (·.ino)).filter (fun i => !decide (i ∈ (bootFiles V'.now jr))), (fun i => st'.fs.files !! i)
