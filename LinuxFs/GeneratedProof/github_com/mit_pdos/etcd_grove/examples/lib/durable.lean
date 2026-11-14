@@ -3,7 +3,6 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.errors
-public import LinuxFs.GeneratedProof.io.fs
 public import LinuxFs.GeneratedProof.os
 public import LinuxFs.GeneratedProof.path.filepath
 public import Perennial.GeneratedProof.sync

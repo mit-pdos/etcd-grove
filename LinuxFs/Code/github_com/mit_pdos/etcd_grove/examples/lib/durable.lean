@@ -2,7 +2,6 @@
 module
 
 public import Perennial.Code.errors
-public import LinuxFs.Code.io.fs
 public import LinuxFs.Code.os
 public import LinuxFs.Code.path.filepath
 public import Perennial.Code.sync
@@ -43,7 +42,7 @@ noncomputable def tryWrite [GooseExts] [GoGlobalContext] : GoString :=
 /-- Read returns the entire contents of the file name and true, or "" and false if there is no
     such file.
 
-    go: durable.go:39:6 -/
+    go: durable.go:38:6 -/
 noncomputable def Read.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -102,7 +101,7 @@ noncomputable def Read.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- tryRead makes one attempt at Read: done is false if it failed.
 
-    go: durable.go:51:6 -/
+    go: durable.go:50:6 -/
 noncomputable def tryRead.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Let "s" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -217,7 +216,7 @@ noncomputable def tryRead.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (Val #(go!""))
   (Let "$r1" (Val #false)
   (Let "$r2" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.io.fs.ErrNotExist))) (Val #())))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.os.ErrNotExist))) (Val #())))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.Is []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -241,7 +240,7 @@ noncomputable def tryRead.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Write replaces the entire contents of the file name by data, creating it if needed,
     atomically and durably.
 
-    go: durable.go:70:6 -/
+    go: durable.go:69:6 -/
 noncomputable def Write.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "data"
@@ -272,7 +271,7 @@ noncomputable def Write.impl [GooseExts] [GoGlobalContext] : val :=
 /-- tryWrite makes one attempt at Write. It changes nothing a Read can see unless the rename
     succeeds, and then the file holds data; it returns true once that is durable.
 
-    go: durable.go:79:6 -/
+    go: durable.go:78:6 -/
 noncomputable def tryWrite.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "data"
@@ -415,7 +414,7 @@ noncomputable def tryWrite.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.durable where
-  pkgImportedPkgs := [pkg_id.errors, pkg_id.io.fs, pkg_id.os, pkg_id.path.filepath, pkg_id.sync]
+  pkgImportedPkgs := [pkg_id.errors, pkg_id.os, pkg_id.path.filepath, pkg_id.sync]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -425,11 +424,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (Val _root_.Perennial.errors.initialize') (Val #())))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.io.fs.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.os.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -445,7 +441,6 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Write_unfold : FuncUnfold Write [] Write.impl
   tryWrite_unfold : FuncUnfold tryWrite [] tryWrite.impl
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
-  import_fs_Assumption : _root_.Perennial.io.fs.Assumptions
   import_os_Assumption : _root_.Perennial.os.Assumptions
   import_filepath_Assumption : _root_.Perennial.path.filepath.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
@@ -455,7 +450,6 @@ attribute [instance] Assumptions.Read_unfold
   Assumptions.Write_unfold
   Assumptions.tryWrite_unfold
   Assumptions.import_errors_Assumption
-  Assumptions.import_fs_Assumption
   Assumptions.import_os_Assumption
   Assumptions.import_filepath_Assumption
   Assumptions.import_sync_Assumption

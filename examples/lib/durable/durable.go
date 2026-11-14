@@ -26,7 +26,6 @@ package durable
 
 import (
 	"errors"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"sync"
@@ -51,7 +50,7 @@ func Read(name string) (string, bool) {
 func tryRead(name string) (s string, ok bool, done bool) {
 	f, err := os.Open(name)
 	if err != nil {
-		return "", false, errors.Is(err, fs.ErrNotExist)
+		return "", false, errors.Is(err, os.ErrNotExist)
 	}
 	defer f.Close()
 	fi, err := f.Stat()
