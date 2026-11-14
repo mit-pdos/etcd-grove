@@ -34,11 +34,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.durable.Assumptions]
 
-/-- The second update of a `Write`: the directory's sync, `alt := none`. -/
-abbrev durWriteSync (γ : DurGS) (Ψ : IProp GF) : IProp GF :=
-  iprop(AU <{ ∃∃ s : DurSt, durSt (GF := GF) γ s }> @ durAuMask, ∅
-    <{ durSt (GF := GF) γ ⟨s.cur, none⟩, COMM Ψ }>)
-
 /-- See the file header. -/
 abbrev github_com.mit_pdos.etcd_grove.examples.lib.durable.Write.spec : Prop :=
   ∀ (γ : DurGS) (f : DFile) (R : Roots) (qc : Qp) (data : GoString), f.Ok →
@@ -49,7 +44,7 @@ abbrev github_com.mit_pdos.etcd_grove.examples.lib.durable.Write.spec : Prop :=
     durHandle (GF := GF) γ f R -∗ osCallPerm (GF := GF) qc -∗
     (AU <{ ∃∃ s : DurSt, durSt (GF := GF) γ s }> @ durAuMask, ∅
       <{ durSt (GF := GF) γ ⟨some data, some s.cur⟩, COMM
-        durWriteSync γ iprop(durHandle (GF := GF) γ f R -∗ osCallPerm (GF := GF) qc -∗ Φ #()) }>) -∗
+        durWriteSync (GF := GF) γ iprop(durHandle (GF := GF) γ f R -∗ osCallPerm (GF := GF) qc -∗ Φ #()) }>) -∗
     WP (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.durable.Write)) (Val #f.name))
       (Val #data)) {{ Φ }}
 

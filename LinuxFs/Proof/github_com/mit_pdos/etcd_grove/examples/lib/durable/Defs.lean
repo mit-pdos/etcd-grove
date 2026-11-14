@@ -234,6 +234,24 @@ and its commit (`alt = none`). -/
 def durHandle (γ : DurGS) (f : DFile) (R : Roots) : IProp GF :=
   iprop(∃ p : DurPhys, durHandleP γ f R p ∗ ⌜p.alt = none⌝)
 
+/-- The second update of a `Write`: the directory's sync, `alt := none`. -/
+abbrev durWriteSync (γ : DurGS) (Ψ : IProp GF) : IProp GF :=
+  iprop(AU <{ ∃∃ s : DurSt, durSt (GF := GF) γ s }> @ durAuMask, ∅
+    <{ durSt (GF := GF) γ ⟨s.cur, none⟩, COMM Ψ }>)
+
+/-- The first update of a `Write` of `data`: the rename, `cur := data, alt := some cur`; then the
+second (`durWriteSync`). -/
+abbrev durWriteAU (γ : DurGS) (data : GoString) (Ψ : IProp GF) : IProp GF :=
+  iprop(AU <{ ∃∃ s : DurSt, durSt (GF := GF) γ s }> @ durAuMask, ∅
+    <{ durSt (GF := GF) γ ⟨some data, some s.cur⟩, COMM durWriteSync γ Ψ }>)
+
+/-- **What a `Write` of `data` still owes its client** at the handle's physical state `p`: both
+updates (no rename yet: `alt = none`), or the second (a rename done: `alt ≠ none`, the name holding
+`data`). -/
+def durWOwe (γ : DurGS) (f : DFile) (data : GoString) (p : DurPhys) (Ψ : IProp GF) : IProp GF :=
+  iprop((⌜p.alt = none⌝ ∗ durWriteAU γ data Ψ) ∨
+    (⌜p.alt ≠ none ∧ p.CurIs f (some data)⌝ ∗ durWriteSync γ Ψ))
+
 end res
 
 end DurFs
