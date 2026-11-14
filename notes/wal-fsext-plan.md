@@ -237,6 +237,18 @@ turns any acceptance with wrong content into a collision on `Data`. The form abo
 accepted frame written since the last sync) excludes more than this justifies (a torn Type over 0); its
 Lean restatement in `W1.lean` to the narrower target is a later proof unit.
 
+**Amended (2026-11-14, `wal-tc3`; the coordinator's option 1 of `wal-tc2`'s finding, I3b): a resize's
+zeros do not write a frame.** The second disjunct now asks that the candidate `valAt (cand b) n` reads
+(`latestAt`) be stamped in `(0, n]` by a change that announced a nonzero byte of the core (`WroteIn`), so
+`cut`'s truncate inside a frame (the frame as of the truncate: intended bytes, then zeros) is excluded,
+as a torn frame should be. The state keeps no landed change's kind (only `inflight` has it), and a
+`pwrite` and a resize can leave the same candidates, so "a `pwrite`" is approximated by "nonzero": exact
+for resizes, conservative for an all-zero `pwrite` over the core. Recording the kind instead would need
+`OsFile`/`OsMeta` fields, their coherence in every step and a rebuild of `LinuxFs` (and the ghost would
+need a witness after the landing), for no gain: either way W1 excludes a few real crashes that leave
+the *intended* frame when part of it is zeros (unwritten, zeroed by the truncate, or written as zeros),
+which the old W1 already did for unwritten zeros. Both are in `W1.lean`'s docstring for the review.
+
 ## 3. Changes to the statements
 
 Binder changes for all 12:
@@ -993,6 +1005,28 @@ builds; no `sorry` added.
   here); a unit proving a new `DirKeysOk` step: the third conjunct; the adequacy theorem (`walInv_alloc`'s caller):
   `hdirs1` from the boot split of the claims.
 
+**Thirteenth session (branch `wal-tc3`, 2026-11-14): W1 amended (option 1 of `wal-tc2`'s finding).** `W1.lean`:
+`latestAt` (the candidate `valAt` reads), **`WroteIn cs o len s`** (change `s` announced a nonzero byte of
+`[o, o + len)`), **`AsOfW cs v o len`** (as of the last sync, or as of `n > 0` with each byte's `latestAt`
+stamped in `(0, n]` by a change that `WroteIn` the core), `AsOfOne f f' := AsOfW f.cand f'.cache`,
+`AsOfW.congr`, **`AsOfW.weak`** (gives the old form). `Abs.lean`: `AsOfOneG := AsOfW` over the ghost
+candidates; `w1G_of_W1` by `AsOfW.congr`. Users repaired minimally: `asOfOneG_asOf` is `AsOfW.weak` (every
+existing user consumes the old form), `w1G_durable` a `show`. `W1Sat` unchanged. All 31 importers built.
+New statement (Lean):
+```lean
+def WroteIn (cs : Nat → Cands) (o len s : Nat) : Prop :=
+  ∃ b, o ≤ b ∧ b < o + len ∧ ∃ v : w8, (v, s) ∈ cs b ∧ v ≠ 0
+def AsOfW (cs : Nat → Cands) (v : Nat → w8) (o len : Nat) : Prop :=
+  (∀ b, o ≤ b → b < o + len → v b = valAt (cs b) 0) ∨
+  ∃ n, 0 < n ∧ ∀ b, o ≤ b → b < o + len →
+    ∃ p, latestAt (cs b) n = some p ∧ v b = p.1 ∧ 0 < p.2 ∧ WroteIn cs o len p.2
+```
+**For the window's `CrashOk` (the users that need the new disjunct)**: in `cut`'s window a byte from `wr` on
+has `latestAt` the truncate's `(0, n_rz)` for `n ∈ [n_rz, k)` (`k` the flush's write), and no byte of the
+core has a nonzero candidate stamped `n_rz`, so `AsOfW` at such `n` is false; below `n_rz` those bytes'
+`latestAt` is stamped 0. So an accepted frame straddling `wr` is as of the flush (`n ≥ k`: intended) or
+as of the sync.
+
 ## 9. The trusted-model drafts (2026-11-13, branch `wal-models`; pending the user's review [user])
 
 The WAL and fileutil retranslated from the fork's `goose-lean-walfs` (`f15d88841`, the two local fixes
@@ -1059,7 +1093,8 @@ holds some mode). Nothing proves the new models yet.
 
 **Pending the user's review (trusted or axiomatic), all off `lean`:** the fork fixes (§8,
 `notes/wal-fsext-fork/`); W1 (the crash premise, `LinuxFs/.../wal/W1.lean`; the open question of torn
-non-`Data` bytes, under investigation on `wal-bytemix`); the new `os`/`syscall` models and the
+non-`Data` bytes, under investigation on `wal-bytemix`; amended 2026-11-14 so a resize's zeros do not
+write a frame, §2.5, and it excludes a few real crashes that leave the intended frame, its docstring); the new `os`/`syscall` models and the
 `PathKind` query in `GooseLang/Ext/Fs/Impl.lean` (§9, `notes/wal-fsext-models-review.md`); the
 crc32 model; the `walpb` registrations; the leaf axioms above; the restated `ReadAll` post
 (`notes/specs-only/ledger.md`, 2026-11-13).
@@ -3149,6 +3184,30 @@ changed in the invariant or the tail steps.
   `wp_tailPWriteStart`'s `hin` dropped, `TailMeta` relaxed to the window, `tailOk`'s size clause dropped (so
   `wal.tailWriter`, `encode.specG`'s guard, `sync.wp_proof := wp_proofIn`, and `saveEntry`/`saveState` over the
   encoder need no size premise); the window's closing fdatasync is `wal-tc2`'s (`walInvBody_sync` from the window).
+
+**W1 amended; the tail's window in the handle (branch `wal-tc3`, 2026-11-14).** Tasks 1-2 of the coordinator's
+decision (option 1); task 3 (the supplies) not done.
+- *Task 1* (W1 log, thirteenth session): W1's change disjunct asks that each byte's candidate as of `n` be stamped
+  by a change that wrote a nonzero byte of the core (`WroteIn`), so a resize's zeros do not make a frame written;
+  `cut`'s truncate inside a frame no longer blocks `CrashOk` in its window. The kind is not recorded (§2.5's
+  amendment says why "nonzero" and not "a `pwrite`"). `W1G`'s users take `AsOfW.weak` (the old form).
+- *Task 2* (`Handle.lean`, `WAL__cutTail.lean`, built with every importer): **`TailMetaW m bs`** (`TailMeta` with
+  `m.lo ≤ m.size ≤ m.hi` for `lo = size = hi`; `TailMeta.win`); `walTailW` and `walHandleIn` take a last optional
+  argument **`tm := TailMeta`** (call sites unchanged; a partial application `walTailW … sz` is now a lambda,
+  so `TailWriter`'s two re-folds take a `simp only []`). **`os.File.Truncate.specWalTail`'s success post is
+  `walTailW … (o0 + |out|) out TailMetaW`**, and **`WAL.sync.specCut`'s pre `walHandleIn P Mr w dir h TailMetaW`**
+  (its post the exact `walHandleIn … (cutSynced h)`: the fdatasync closes the window). `WAL.cut.wp_proof`
+  unchanged (it passes the post to `specCut`'s pre). The truncate's landed `OsMeta` (`rsPost true m tg tg`,
+  `ftDoneH`'s, any `tc`) satisfies `TailMetaW` (`lo = size = tg`, `hi` the old size, `zf ≥` the old size).
+- **For `wal-cut10`/`specCut`'s prover**: `specCut` now starts from the window (`TailMetaW`); its proof closes
+  it at the fdatasync's commit (`walInvBody_tailW` with the synced layout's `WalsOk`, the W6 entry above).
+- **Open (task 3)**: (1) the pure `CrashOk` of `cut`'s window layout (from `walAbsD_rzStart`'s/`fileCrashedR_rsPostK_rz`'s
+  state; the reader's argument of `crashTo_tailM` with the image's length free in `[lo, hi]`, each byte from `wr`
+  on `0`, the old byte, or the flush's; the accepted frame straddling `wr` is intended by `AsOfW`, W1 log
+  thirteenth session); (2) `ReadAll`'s `ZeroToEnd` (`segBytesOf` extended by `g.om.pc` on `[|bs|, hi)`, `SegCrashAt`
+  giving those candidates, `W1G`'s users given the frame's fit instead of `(img i).length ≤ bs.length`);
+  (3) `truncSup`/`fallocSup` from `walInv` via `walInvBody_tailW`, then `specWalTail`'s proof and `ZeroToEnd`'s
+  instance.
 
 **Third session (branch `wal-read3`, 2026-11-13).**
 - *Gaps 1 and 2 closed* as the coordinator decided: `WalsNamed` and `walParked` in `walInvBody`, the parking
