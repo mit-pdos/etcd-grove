@@ -65,12 +65,11 @@ func TestCloseUnblocksRead(t *testing.T) {
 	}
 }
 
-// TestCloseAfterReset (D3: "result nil or error (the end is closed either
-// way)"). Close of an end whose connection has been reset (the socket is in
+// TestCloseAfterReset (D3, D17: Close of an open end succeeds, whatever its
+// connection's state). Close of an end whose connection has been reset (the socket is in
 // CLOSE, the error pending) returns nil: close(2) does not report sk_err.
 // Before it, SetDeadline on the reset end returns nil (D5: only a closed
-// end errs; deadlines are Go's, no system call). Supports D3 (nil; the
-// error alternative is not observed here), D5.
+// end errs; deadlines are Go's, no system call). Supports D3, D17, D5.
 func TestCloseAfterReset(t *testing.T) {
 	t.Parallel()
 	c, peer := pair(t)

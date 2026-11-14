@@ -11,9 +11,9 @@ import (
 	"time"
 )
 
-// TestErrorsAreOpErrors (the trusted models, NetTcp/TrustedCode/net.lean:
-// "for any other failure an *OpError ... Op is Go's and Net is "tcp""; Read's
-// end is io.EOF itself). Every failure of the modeled operations on values
+// TestErrorsAreOpErrors (D14; the trusted models, NetTcp/TrustedCode/net.lean,
+// model.opError: every failure an *OpError whose Op is Go's and Net "tcp";
+// Read's end is io.EOF itself). Every failure of the modeled operations on values
 // that Listen, Dial and Accept returned is an *net.OpError (never a bare
 // error) with Net "tcp" and the model's Op: "read", "write", "close" (Close,
 // CloseWrite, the listener's Close), "set" (the deadlines), "dial", "listen",
@@ -86,12 +86,9 @@ func TestErrorsAreOpErrors(t *testing.T) {
 // outside net can make a zero TCPConn or TCPListener (var c net.TCPConn):
 // its fd is nil, and every method returns the bare syscall.EINVAL (not an
 // *OpError) and touches no socket. In the models the zero value's id is 0,
-// which names connection 0's dialer end, or listener 0, once Dial or Listen
-// has chosen that number (DialStep, ListenStep allow it): an operation on it
-// then acts on that connection or listener, where Go does nothing. Not a
-// refutation (a proof cannot make the extension choose 0, and the operation
-// is stuck otherwise), but more defined than Go
-// (notes/axiom-review/tcp-semantics.md). Measured.
+// which names no connection end and no listener (DialStep, ListenStep never
+// choose 0, since the 2026-11-14 review: notes/axiom-review/tcp-semantics.md),
+// so its methods are stuck: less defined than Go. Measured.
 func TestZeroValues(t *testing.T) {
 	t.Parallel()
 	var c net.TCPConn

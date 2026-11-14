@@ -1,7 +1,7 @@
 /-
 The instances goose's proofgen emits for a translated struct (typed points-to, field access,
 `IntoValTyped`), stated for the structs whose layouts are trusted in
-`NetTcp/TrustedCode/net.lean` (`conn`, `TCPConn`, `TCPListener`, `OpError`), of which goose emits
+`NetTcp/TrustedCode/net.lean` (`conn`, `TCPConn`, `TCPListener`), of which goose emits
 none. Proved, from the hand-stated field facts `net.FieldAssumptions` (an instance hypothesis).
 -/
 module
@@ -28,11 +28,23 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 
+/-! ### `Addr`, as the trusted layouts name it -/
+
+/-- `Addr.ty` is the named type of the trusted layouts' address fields (stated in `TrustedCode`,
+which `Code.net`'s `Addr.ty` cannot be). -/
+theorem Addr_ty_eq : Addr.ty = go.GoType.Named go!"net.Addr" [] := by unfold Addr.ty; rfl
+
+instance Addr_named_underlying :
+    go.UnderlyingDirectedEq (go.GoType.Named go!"net.Addr" []) Addr.underlying := by
+  rw [← Addr_ty_eq]; infer_instance
+
 /-! ### `conn` -/
 
 instance conn_typed_pointsto : TypedPointsto (GF := GF) conn where
   typedPointstoDef l v dq := iprop(
     "id" ∷ typedPointsto (structFieldRef conn go!"id" l) v.id' dq ∗
+    "laddr" ∷ typedPointsto (structFieldRef conn go!"laddr" l) v.laddr' dq ∗
+    "raddr" ∷ typedPointsto (structFieldRef conn go!"raddr" l) v.raddr' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -50,6 +62,36 @@ instance conn_access_store_id (l : Loc) (v : conn) (id' : w64) :
       (typedPointsto (structFieldRef conn go!"id" l) v.id' (DFrac.own 1))
       (typedPointsto (structFieldRef conn go!"id" l) id' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := id' } : conn) (DFrac.own 1)) := by
+  solve_pointsto_access_struct
+
+instance conn_access_load_laddr (l : Loc) (v : conn) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef conn go!"laddr" l) v.laddr' dq)
+      (typedPointsto (structFieldRef conn go!"laddr" l) v.laddr' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) := by
+  solve_pointsto_access_struct
+
+instance conn_access_store_laddr (l : Loc) (v : conn) (laddr' : GoInterface) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef conn go!"laddr" l) v.laddr' (DFrac.own 1))
+      (typedPointsto (structFieldRef conn go!"laddr" l) laddr' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1))
+      (typedPointsto l ({ v with laddr' := laddr' } : conn) (DFrac.own 1)) := by
+  solve_pointsto_access_struct
+
+instance conn_access_load_raddr (l : Loc) (v : conn) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef conn go!"raddr" l) v.raddr' dq)
+      (typedPointsto (structFieldRef conn go!"raddr" l) v.raddr' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) := by
+  solve_pointsto_access_struct
+
+instance conn_access_store_raddr (l : Loc) (v : conn) (raddr' : GoInterface) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef conn go!"raddr" l) v.raddr' (DFrac.own 1))
+      (typedPointsto (structFieldRef conn go!"raddr" l) raddr' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1))
+      (typedPointsto l ({ v with raddr' := raddr' } : conn) (DFrac.own 1)) := by
   solve_pointsto_access_struct
 
 instance conn_into_val_typed : IntoValTypedUnderlying (GF := GF) conn conn.underlying := by
@@ -96,6 +138,7 @@ instance TCPConn_into_val_typed : IntoValTypedUnderlying (GF := GF) TCPConn TCPC
 instance TCPListener_typed_pointsto : TypedPointsto (GF := GF) TCPListener where
   typedPointstoDef l v dq := iprop(
     "lid" ∷ typedPointsto (structFieldRef TCPListener go!"lid" l) v.id' dq ∗
+    "addr" ∷ typedPointsto (structFieldRef TCPListener go!"addr" l) v.addr' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -116,52 +159,23 @@ instance TCPListener_access_store_lid (l : Loc) (v : TCPListener) (id' : w64) :
       (typedPointsto l ({ v with id' := id' } : TCPListener) (DFrac.own 1)) := by
   solve_pointsto_access_struct
 
+instance TCPListener_access_load_addr (l : Loc) (v : TCPListener) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef TCPListener go!"addr" l) v.addr' dq)
+      (typedPointsto (structFieldRef TCPListener go!"addr" l) v.addr' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) := by
+  solve_pointsto_access_struct
+
+instance TCPListener_access_store_addr (l : Loc) (v : TCPListener) (addr' : GoInterface) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef TCPListener go!"addr" l) v.addr' (DFrac.own 1))
+      (typedPointsto (structFieldRef TCPListener go!"addr" l) addr' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1))
+      (typedPointsto l ({ v with addr' := addr' } : TCPListener) (DFrac.own 1)) := by
+  solve_pointsto_access_struct
+
 instance TCPListener_into_val_typed :
     IntoValTypedUnderlying (GF := GF) TCPListener TCPListener.underlying := by
-  solve_into_val_typed_struct
-
-/-! ### `OpError` -/
-
-instance OpError_typed_pointsto : TypedPointsto (GF := GF) OpError where
-  typedPointstoDef l v dq := iprop(
-    "Op" ∷ typedPointsto (structFieldRef OpError go!"Op" l) v.Op' dq ∗
-    "Net" ∷ typedPointsto (structFieldRef OpError go!"Net" l) v.Net' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-instance OpError_access_load_Op (l : Loc) (v : OpError) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef OpError go!"Op" l) v.Op' dq)
-      (typedPointsto (structFieldRef OpError go!"Op" l) v.Op' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) := by
-  solve_pointsto_access_struct
-
-instance OpError_access_store_Op (l : Loc) (v : OpError) (Op' : GoString) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef OpError go!"Op" l) v.Op' (DFrac.own 1))
-      (typedPointsto (structFieldRef OpError go!"Op" l) Op' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1))
-      (typedPointsto l ({ v with Op' := Op' } : OpError) (DFrac.own 1)) := by
-  solve_pointsto_access_struct
-
-instance OpError_access_load_Net (l : Loc) (v : OpError) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef OpError go!"Net" l) v.Net' dq)
-      (typedPointsto (structFieldRef OpError go!"Net" l) v.Net' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) := by
-  solve_pointsto_access_struct
-
-instance OpError_access_store_Net (l : Loc) (v : OpError) (Net' : GoString) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef OpError go!"Net" l) v.Net' (DFrac.own 1))
-      (typedPointsto (structFieldRef OpError go!"Net" l) Net' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1))
-      (typedPointsto l ({ v with Net' := Net' } : OpError) (DFrac.own 1)) := by
-  solve_pointsto_access_struct
-
-instance OpError_into_val_typed : IntoValTypedUnderlying (GF := GF) OpError OpError.underlying := by
   solve_into_val_typed_struct
 
 end def_

@@ -3,7 +3,12 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import NetTcp.ManualProof.net
+public import Perennial.GeneratedProof.context
+public import Perennial.GeneratedProof.errors
+public import GeneratedProof.internal.poll
 public import Perennial.GeneratedProof.io
+public import GeneratedProof.os
+public import GeneratedProof.syscall
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import NetTcp.Code.net
@@ -551,25 +556,6 @@ noncomputable instance ipv6ZoneCache_into_val_typed :
 end def_
 end ipv6ZoneCache
 
-namespace IP
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.Assumptions]
-
-noncomputable instance IP_typed_pointsto :
-    TypedPointsto (GF := GF) net.IP :=
-  sorry -- axiomatized type
-
-noncomputable instance IP_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.IP net.IP.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end IP
-
 namespace IPMask
 section def_
 
@@ -779,6 +765,114 @@ noncomputable instance canceledError_into_val_typed :
 end def_
 end canceledError
 
+namespace OpError
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : net.Assumptions]
+
+noncomputable instance OpError_typed_pointsto :
+    TypedPointsto (GF := GF) net.OpError where
+  typedPointstoDef l v dq := iprop(
+    "Op" ∷ typedPointsto (structFieldRef net.OpError go!"Op" l) v.Op' dq ∗
+    "Net" ∷ typedPointsto (structFieldRef net.OpError go!"Net" l) v.Net' dq ∗
+    "Source" ∷ typedPointsto (structFieldRef net.OpError go!"Source" l) v.Source' dq ∗
+    "Addr" ∷ typedPointsto (structFieldRef net.OpError go!"Addr" l) v.Addr' dq ∗
+    "Err" ∷ typedPointsto (structFieldRef net.OpError go!"Err" l) v.Err' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance OpError_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) net.OpError net.OpError.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance OpError_access_load_Op (l : Loc) (v : net.OpError) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.OpError go!"Op" l) v.Op' dq)
+      (typedPointsto (structFieldRef net.OpError go!"Op" l) v.Op' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance OpError_access_store_Op (l : Loc) (v : net.OpError) (Op' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.OpError go!"Op" l) v.Op' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.OpError go!"Op" l) Op' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Op' := Op' } : net.OpError) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance OpError_access_load_Net (l : Loc) (v : net.OpError) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.OpError go!"Net" l) v.Net' dq)
+      (typedPointsto (structFieldRef net.OpError go!"Net" l) v.Net' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance OpError_access_store_Net (l : Loc) (v : net.OpError) (Net' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.OpError go!"Net" l) v.Net' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.OpError go!"Net" l) Net' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Net' := Net' } : net.OpError) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance OpError_access_load_Source (l : Loc) (v : net.OpError) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.OpError go!"Source" l) v.Source' dq)
+      (typedPointsto (structFieldRef net.OpError go!"Source" l) v.Source' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance OpError_access_store_Source (l : Loc) (v : net.OpError) (Source' : net.Addr) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.OpError go!"Source" l) v.Source' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.OpError go!"Source" l) Source' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Source' := Source' } : net.OpError) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance OpError_access_load_Addr (l : Loc) (v : net.OpError) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.OpError go!"Addr" l) v.Addr' dq)
+      (typedPointsto (structFieldRef net.OpError go!"Addr" l) v.Addr' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance OpError_access_store_Addr (l : Loc) (v : net.OpError) (Addr' : net.Addr) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.OpError go!"Addr" l) v.Addr' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.OpError go!"Addr" l) Addr' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Addr' := Addr' } : net.OpError) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance OpError_access_load_Err (l : Loc) (v : net.OpError) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.OpError go!"Err" l) v.Err' dq)
+      (typedPointsto (structFieldRef net.OpError go!"Err" l) v.Err' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance OpError_access_store_Err (l : Loc) (v : net.OpError) (Err' : GoError) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.OpError go!"Err" l) v.Err' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.OpError go!"Err" l) Err' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Err' := Err' } : net.OpError) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end OpError
+
 namespace timeout
 section def_
 
@@ -902,12 +996,16 @@ variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
 noncomputable instance timeoutError_typed_pointsto :
-    TypedPointsto (GF := GF) net.timeoutError :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) net.timeoutError where
+  typedPointstoDef l v dq := iprop(
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance timeoutError_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.timeoutError net.timeoutError.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) net.timeoutError net.timeoutError.underlying := by
+  solve_into_val_typed_struct
 
 end def_
 end timeoutError
@@ -1320,12 +1418,67 @@ variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions]
 
 noncomputable instance TCPAddr_typed_pointsto :
-    TypedPointsto (GF := GF) net.TCPAddr :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) net.TCPAddr where
+  typedPointstoDef l v dq := iprop(
+    "IP" ∷ typedPointsto (structFieldRef net.TCPAddr go!"IP" l) v.IP' dq ∗
+    "Port" ∷ typedPointsto (structFieldRef net.TCPAddr go!"Port" l) v.Port' dq ∗
+    "Zone" ∷ typedPointsto (structFieldRef net.TCPAddr go!"Zone" l) v.Zone' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance TCPAddr_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.TCPAddr net.TCPAddr.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) net.TCPAddr net.TCPAddr.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance TCPAddr_access_load_IP (l : Loc) (v : net.TCPAddr) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.TCPAddr go!"IP" l) v.IP' dq)
+      (typedPointsto (structFieldRef net.TCPAddr go!"IP" l) v.IP' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance TCPAddr_access_store_IP (l : Loc) (v : net.TCPAddr) (IP' : net.IP) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.TCPAddr go!"IP" l) v.IP' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.TCPAddr go!"IP" l) IP' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IP' := IP' } : net.TCPAddr) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance TCPAddr_access_load_Port (l : Loc) (v : net.TCPAddr) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.TCPAddr go!"Port" l) v.Port' dq)
+      (typedPointsto (structFieldRef net.TCPAddr go!"Port" l) v.Port' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance TCPAddr_access_store_Port (l : Loc) (v : net.TCPAddr) (Port' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.TCPAddr go!"Port" l) v.Port' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.TCPAddr go!"Port" l) Port' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Port' := Port' } : net.TCPAddr) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance TCPAddr_access_load_Zone (l : Loc) (v : net.TCPAddr) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.TCPAddr go!"Zone" l) v.Zone' dq)
+      (typedPointsto (structFieldRef net.TCPAddr go!"Zone" l) v.Zone' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance TCPAddr_access_store_Zone (l : Loc) (v : net.TCPAddr) (Zone' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.TCPAddr go!"Zone" l) v.Zone' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.TCPAddr go!"Zone" l) Zone' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Zone' := Zone' } : net.TCPAddr) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end TCPAddr

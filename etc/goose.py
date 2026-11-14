@@ -679,7 +679,11 @@ PROJECTS = [
         rev=None,
         local=os.path.join("examples", "net"),
         root="NetTcp",
-        lean_roots=["github.com/mit-pdos/etcd-grove=NetTcp", "net=NetTcp"],
+        # (v3, 2026-11-14) `os`, `syscall`, `internal/poll`, `io/fs`, `internal/syscall` are the
+        # main tree's, as every project's (`net`'s errors are their values: `*os.SyscallError`,
+        # `poll.ErrNetClosing`, `poll.ErrDeadlineExceeded`).
+        lean_roots=["github.com/mit-pdos/etcd-grove=NetTcp", "net=NetTcp", "os=", "syscall=",
+                    "io/fs=", "internal/poll=", "internal/syscall="],
         packages=["net", "./wire", "./echo", "./framed", "./acceptloop", "./duplex", "./halfclose",
                   "./shutdown", "./preface",
                   # each node a command of its example, its own process (examples/net/README.md)

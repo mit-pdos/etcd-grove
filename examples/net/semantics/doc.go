@@ -3,101 +3,140 @@
 // ReadStep, WriteStep, CloseStep, CloseWriteStep, SetDeadlineStep, ListenStep,
 // AcceptStep, DialStep, LisClose and the node crash; each operation's outcome
 // is a relation there: ReadOutcome, WriteOutcome, CloseOutcome,
-// CloseWriteOutcome, DeadlineOutcome), numbered D1-D12 as in Impl.lean's
-// header:
+// CloseWriteOutcome, DeadlineOutcome, LisCloseOutcome, ListenAt), and of the
+// trusted net models (NetTcp/TrustedCode/net.lean), numbered D1-D21 as in
+// Impl.lean's header:
 //
-//	D1  ReadStep         D5  SetDeadlineStep  D9   LisClose
-//	D2  WriteStep        D6  ListenStep       D10  crash (a node's listeners go; connections untouched)
-//	D3  CloseStep        D7  AcceptStep       D11  process exit: as a crash, for the peers
-//	D4  CloseWriteStep   D8  DialStep         D12  not modeled (ENOMEM/ENOBUFS, other addresses, ...)
+//	D1  ReadStep         D8   DialStep              D15 the Write/Close race (WriteOutcome)
+//	D2  WriteStep        D9   LisClose              D16 abandoned dials (DialStep, TcpConn.abandoned)
+//	D3  CloseStep        D10  crash (a node's listeners go; connections untouched)
+//	D4  CloseWriteStep   D11  process exit: as a crash, for the peers
+//	D5  SetDeadlineStep  D12  not modeled (ENOMEM/ENOBUFS, other addresses, ...)
+//	D6  ListenStep       D13  the deployment     D17 Close of an open end or listener succeeds
+//	D7  AcceptStep       D14  the error kinds    D18 addresses (TrustedCode/net.lean)
+//	                                             D19 DialTimeout (TrustedCode/net.lean)
+//	                                             D20 PlanWellFormed (Deploy.lean)
+//	                                             D21 wildcard Listen (ListenAt)
 //
 // Each test is one behavior: its doc comment says the decision it supports or
 // refutes, what Linux and Go do, and why (the kernel or Go code path). Every
-// outcome is measured: Go 1.27.3 (linux/amd64), Linux 7.0.0-38-generic, over
+// measured outcome is Go 1.27.3 (linux/amd64), Linux 7.0.0-38-generic, over
 // 127.0.0.1 with kernel-chosen ports, the tests in parallel (go test
-// -count=100 passed). Where the kernel's timing matters, a test waits
-// (bounded) on a probe that changes nothing (the TCP state from TCP_INFO, the
-// unread count from SIOCINQ: helpers_test.go), never on a sleep. The process
-// tests re-run the test binary as a child (child_test.go) and kill it with
-// SIGKILL, or let it exit.
+// -count=100 passed for the v2 tests, -count=10 for v3_test.go). Where the
+// kernel's timing matters, a test waits (bounded) on a probe that changes
+// nothing (the TCP state from TCP_INFO, the unread count from SIOCINQ:
+// helpers_test.go), never on a sleep. The process tests re-run the test
+// binary as a child (child_test.go) and kill it with SIGKILL, or let it exit.
 //
 // The rule (CLAUDE.md): every change to the trusted semantics adds or updates
 // the test of the decision it changes, in the same commit.
 //
-// Index (decision; what it establishes; outcome; evidence):
+// Index. Each row: the test; the decisions; what it establishes; the class of
+// its evidence (measured: the test; documented: a cited source; assumed: no
+// evidence, an assumption every theorem makes); the Lean definition, and the
+// example of GooseLang/Ext/Tcp/Tests.lean that checks the relation allows (or
+// excludes) the outcome (by the test's name in its comment).
 //
 // Reads (read_test.go):
 //
-//	TestReadPartial              D1   a Read returns what arrived (k <= min(n, unread)), the rest stays   allowed, measured
-//	TestReadEmptyBuffer          D1   empty Read: 0, nil at once, even with bytes, an expired deadline   allowed, measured
+//	TestReadPartial              D1   a Read returns what arrived (k <= min(n, unread)), the rest stays;   measured   ReadOutcome, ReadAvail
+//	                                  never more than asked
+//	TestReadEmptyBuffer          D1   empty Read: 0, nil at once, even with bytes, an expired deadline     measured   ReadOutcome (n = 0)
 //	                                  or a pending RST (not consumed); ErrClosed after own Close
-//	TestReadEOFAfterFin          D1,D3 the bytes, then EOF, then EOF again                               allowed, measured
+//	TestReadEOFAfterFin          D1,D3 the bytes, then EOF, then EOF again                                 measured   ReadAvail (EOF)
+//	(in-order delivery)          D1,D2 a Read's bytes are the oldest unread ones, uncorrupted, once       assumed    ReadAvail (take/drop)
 //
 // Resets (reset_test.go):
 //
-//	TestResetCloseUnreadInput    D1,D3 Close with unread input sends RST; the peer reads the bytes       allowed, measured
+//	TestResetCloseUnreadInput    D1,D3 Close with unread input sends RST; the peer reads the bytes        measured   ReadOutcome (break), TcpErr.sys
 //	                                  it had received, then ECONNRESET, then EOF
-//	TestResetLingerZero          D1   SetLinger(0)+Close: the same                                       allowed, measured
-//	TestResetErrorTakenByWrite   D1,D2 the reset error goes to the first call: a Write takes it, then   allowed, measured
+//	TestResetLingerZero          D1   SetLinger(0)+Close: the same                                         measured   ReadOutcome (break)
+//	TestResetErrorTakenByWrite   D1,D2 the reset error goes to the first call: a Write takes it, then     measured   WriteOutcome (cut)
 //	                                  the reads are the bytes then EOF, no error (peer Closed: d fin)
-//	TestWriteAfterPeerClose      D2   a Write after the peer's FIN succeeds, bytes lost; after the RST  allowed, measured
+//	TestWriteAfterPeerClose      D2   a Write after the peer's FIN succeeds, bytes lost; after the RST    measured   WriteOutcome (cut)
 //	                                  every Write fails (EPIPE: RST in CLOSE_WAIT); the Read is EOF
-//	TestPartialWriteOnReset      D2   a Write cut by a RST returns 0 < n < len, ECONNRESET               allowed, measured
+//	TestPartialWriteOnReset      D2   a Write cut by a RST returns 0 < n < len, ECONNRESET                 measured   WriteOutcome (open: sys, cut)
 //
-// Writes (write_test.go):
+// Writes (write_test.go, v3_test.go):
 //
-//	TestEmptyWrite               D2   an empty Write: (0, nil) live; (0, timeout) with an expired       allowed (since the fix
-//	                                  write deadline; (0, ECONNRESET) then (0, EPIPE) after a RST;      below), measured
+//	TestEmptyWrite               D2   an empty Write: (0, nil) live; (0, timeout) with an expired         measured   WriteOutcome
+//	                                  write deadline; (0, ECONNRESET) then (0, EPIPE) after a RST;
 //	                                  (0, EPIPE) after CloseWrite
+//	TestWriteCloseRace           D15  a Write blocked when another goroutine Closes the end: 0 < k < len, measured   WriteOutcome (open: closed)
+//	                                  ErrClosed; the peer reads exactly k bytes, then EOF
+//	(short Write)                D2   a Write returns k < len only with an error (poll.FD.Write returns  documented WriteOutcome (k = len on success)
+//	                                  nn, err once nn == len(p), err nil there: internal/poll/fd_unix.go)
 //
-// Close, CloseWrite (close_test.go):
+// Close, CloseWrite (close_test.go, v3_test.go):
 //
-//	TestCloseTwice               D1-D5 Close: nil, FIN; after it every operation errs, net.ErrClosed     allowed, measured
-//	TestCloseUnblocksRead        D1,D3 own Close wakes a blocked Read with ErrClosed                     allowed, measured
-//	TestCloseAfterReset          D3,D5 Close and SetDeadline of a reset end: nil                         allowed, measured
-//	TestCloseWrite               D1,D2,D4 peer reads the bytes then EOF; own Write: EPIPE; own Read     allowed, measured
+//	TestCloseTwice               D1-D5,D17 Close: nil, FIN; after it every operation errs, ErrClosed     measured   CloseOutcome, TcpErr.closed
+//	TestCloseUnblocksRead        D1,D3 own Close wakes a blocked Read with ErrClosed                     measured   ReadOutcome (closed)
+//	TestCloseAfterReset          D3,D5,D17 Close and SetDeadline of a reset end: nil                     measured   CloseOutcome, DeadlineOutcome
+//	TestCloseOpenNil             D17  Close of an open end (fresh, after FIN, after CloseWrite, after a   measured   CloseOutcome, LisCloseOutcome
+//	                                  RST, a Read blocked) and of an open listener: nil (poll.FD.Close;
+//	                                  close(2) of a socket returns 0: documented, Linux sock_close)
+//	TestCloseWrite               D1,D2,D4 peer reads the bytes then EOF; own Write: EPIPE; own Read     measured   CloseWriteOutcome, WriteOutcome (fin)
 //	                                  still works; CloseWrite again: nil, then ENOTCONN after both FINs
-//	TestCloseWriteAfterReset     D4   CloseWrite of a reset end: ENOTCONN, the reset error kept          allowed, measured
+//	TestCloseWriteAfterReset     D4   CloseWrite of a reset end: ENOTCONN, the reset error kept          measured   CloseWriteOutcome (sys)
 //
 // Deadlines (deadline_test.go):
 //
-//	TestReadDeadlineLosesNothing D1,D5 a timeout consumes no byte (expired: timeout even with bytes);   allowed, measured
-//	                                  time.Time{} clears it
-//	TestWriteDeadlinePrefix      D2,D5 a Write past its deadline: 0 < n < len, timeout; exactly n bytes allowed, measured
+//	TestReadDeadlineLosesNothing D1,D5 a timeout consumes no byte (expired: timeout even with bytes);   measured   ReadAvail (timeout), DeadlineOutcome
+//	                                  time.Time{} clears it; no timeout without a deadline
+//	TestWriteDeadlinePrefix      D2,D5 a Write past its deadline: 0 < n < len, timeout; exactly n bytes measured   WriteOutcome (open: timeout)
 //	                                  reach the peer, the connection stays usable
 //
-// Listeners, Dial (listen_test.go):
+// Listeners, Dial (listen_test.go, v3_test.go):
 //
-//	TestListenTwice              D6   EADDRINUSE at an open listener's address; success after its Close allowed, measured
-//	TestListenTakenByOtherProcess D6  another process's listener: EADDRINUSE too (the model also allows  allowed, measured
+//	TestListenTwice              D6   EADDRINUSE at an open listener's address; success after its Close measured   ListenStep
+//	TestListenTakenByOtherProcess D6  another process's listener: EADDRINUSE too (the model also allows  measured   ListenStep
 //	                                  success: more than Linux)
-//	TestDialRefused              D8   no listener: ECONNREFUSED                                          allowed, measured
-//	TestAcceptAfterListenerClose D7,D9 LisClose: nil, wakes Accept with ErrClosed; Accept and Close     allowed, measured
+//	TestDialRefused              D8   no listener: ECONNREFUSED                                          measured   DialStep (sys)
+//	TestAcceptAfterListenerClose D7,D9,D17 LisClose: nil, wakes Accept with ErrClosed; Accept and Close  measured   AcceptStep, LisCloseOutcome
 //	                                  after it: ErrClosed
-//	TestPendingAtListenerClose   D7-D9 a dialed, unaccepted connection is reset by the listener's Close; allowed, measured
+//	TestPendingAtListenerClose   D7-D9 a dialed, unaccepted connection is reset by the listener's Close; measured   AcceptStep
 //	                                  a new listener does not get it (Linux excludes what D7 allows)
+//	TestDialTimeoutAccepted      D16,D19 a failed DialTimeout's connection is accepted, reading EOF,      measured   DialStep (abandoned), DialTimeout.impl
+//	                                  never data; its Err a timeout (both os.ErrDeadlineExceeded and
+//	                                  errTimeout occur) or an *os.SyscallError
 //
-// Error values (errors_test.go):
+// Error values (errors_test.go, v3_test.go):
 //
-//	TestErrorsAreOpErrors        models every failure an *OpError, Net "tcp", Op read/write/close/   allowed, measured
+//	TestErrorsAreOpErrors        D14  every failure an *OpError, Net "tcp", Op read/write/close/          measured   model.opError
 //	                                  set/dial/listen/accept; EOF is io.EOF itself
-//	TestZeroValues               models a zero TCPConn/TCPListener: bare syscall.EINVAL, no socket   model: stuck (id 0
-//	                                  touched                                                           names nothing)
+//	TestErrClosed                D14  own closed end or listener (also a blocked Read, Accept): Err is     measured   TcpErr.closed, model.closedErr
+//	                                  net.ErrClosed, Timeout/Temporary false; no other failure Is it
+//	TestDeadlineErrors           D14  a Read or Write deadline: Err is os.ErrDeadlineExceeded itself,     measured   TcpErr.timeout, model.deadlineErr
+//	                                  Timeout/Temporary true
+//	TestSyscallErrors            D14  other failures: *os.SyscallError{read|write|shutdown|connect|bind}  measured   TcpErr.sys, model.sysErr
+//	                                  around an Errno; the OpError's Source and Addr per operation
+//	(Timeout of sys errors)      D14  an Errno's Timeout/Temporary: ETIMEDOUT, EAGAIN true (syscall_unix.go documented model.errFlag (arbitrary)
+//	                                  Errno.Timeout), so OpError.Timeout is arbitrary for sys errors
+//	TestZeroValues               D12  a zero TCPConn/TCPListener: bare syscall.EINVAL, no socket          measured   (model: stuck, id 0 names nothing)
+//	                                  touched
 //
-// Addresses (addr_test.go):
+// Addresses (addr_test.go, v3_test.go; Deploy.lean):
 //
-//	TestAddressAliases           D13  "localhost:P", ":P" reach 127.0.0.1:P's listener; ":P"'s     D13's deployment
-//	                                  listener takes 127.0.0.1:P, 127.0.0.2:P; Listen(127.0.0.1:P) with  assumption, measured
+//	TestAddressAliases           D13,D20 "localhost:P", ":P" reach 127.0.0.1:P's listener; ":P"'s      measured   PlanWellFormed (excludes them)
+//	                                  listener takes 127.0.0.1:P, 127.0.0.2:P; Listen(127.0.0.1:P) with
 //	                                  ":P" open: EADDRINUSE
+//	TestWildcardListen           D21  ":P", "0.0.0.0:P", "[::]:P" listen, Addr "[::]:P", accept a Dial  measured   ListenAt, wildPort
+//	                                  of 127.0.0.1:P, conflict with Listen(127.0.0.1:P)
+//	TestAddrs                    D18  LocalAddr, RemoteAddr, Addr: non-nil *TCPAddr, the same at every    measured   model.anyTCPAddr, conn.LocalAddr
+//	                                  call, after a reset and after Close; zero TCPConn's nil; zero
+//	                                  TCPListener's Addr panics
+//	(the closed world)           D13  no process outside the system uses the plan's addresses            assumed    (prose: Impl.lean D13)
+//	(ephemeral ports)            D20  a port outside 32768-60999 cannot be a Dial's own source port       documented PlanWellFormed (Linux
+//	                                  (ip_local_port_range's default; Go's selfConnect: tcpsock_posix.go)            ip_local_port_range)
 //
 // Process death (process_test.go):
 //
-//	TestKilledWriterFin          D1,D10,D11 the bytes, then EOF, no error (kernel FIN)                   allowed (D1's break), measured
-//	TestKilledWithUnreadInput    D1,D10,D11 the bytes, then ECONNRESET, then EOF (kernel RST)            allowed, measured
-//	TestKilledResetTakenByWrite  D1,D2,D10 Write takes the RST's error; reads: bytes then EOF, no error  allowed (D1's break), measured
-//	TestWriteToKilledPeer        D2,D10 a Write after the FIN succeeds (lost); after the RST: EPIPE      allowed, measured
-//	TestServerKilledBeforeReply  D1,D10,D11 the client reads EOF, no bytes, no error                     allowed (D1's break), measured
-//	TestKilledListener           D7,D8,D10 the queued connection is reset; Dial then refused             allowed, measured
+//	TestKilledWriterFin          D1,D10,D11 the bytes, then EOF, no error (kernel FIN)                   measured   ReadOutcome (break)
+//	TestKilledWithUnreadInput    D1,D10,D11 the bytes, then ECONNRESET, then EOF (kernel RST)            measured   ReadOutcome (break)
+//	TestKilledResetTakenByWrite  D1,D2,D10 Write takes the RST's error; reads: bytes then EOF, no error  measured   ReadOutcome (break)
+//	TestWriteToKilledPeer        D2,D10 a Write after the FIN succeeds (lost); after the RST: EPIPE      measured   WriteOutcome (cut)
+//	TestServerKilledBeforeReply  D1,D10,D11 the client reads EOF, no bytes, no error                     measured   ReadOutcome (break)
+//	TestKilledListener           D7,D8,D10 the queued connection is reset; Dial then refused             measured   AcceptStep, DialStep
 //
 // The refutation, and the fix (2026-11-14). The first draft of D1 broke a
 // direction only in a Read that returned an error. After a crash (D10) the dead
@@ -130,6 +169,14 @@
 // a closed world, addresses that do not alias, ports outside the ephemeral
 // range, the target configuration).
 //
+// v3 (2026-11-14, notes/net-tcp-v3-plan.md): errors are Go's values (D14),
+// which needs the Write/Close race (D15: with identities, a Write returning
+// (k > 0, ErrClosed) is observable, and v2 allowed it only as a cut); a failed
+// Dial may leave an abandoned connection (D16); Close of an open end or
+// listener succeeds (D17); the addresses (D18); DialTimeout (D19, both timeout
+// shapes); the plan's well-formedness as a decidable premise (D20); wildcard
+// listens (D21).
+//
 // Also measured, the fork window (child_test.go, forkMu): while a process
 // forks (os/exec), the child holds a copy of every fd until its exec, so a
 // socket closed meanwhile stays open in the kernel: a closed listener's
@@ -137,6 +184,8 @@
 // then reset. All allowed (D6, D8: failure always; D9: pending stays
 // pending). The tests that need a Close to take effect at once exclude forks.
 //
-// Not measured: D12 (ENOMEM, ENOBUFS), a machine crash ("nothing": no FIN or
-// RST until the peer's timeout), unreachable addresses and Dial timeouts.
+// Not measured here: D12 (ENOMEM, ENOBUFS), a machine crash ("nothing": no
+// FIN or RST until the peer's timeout), unreachable addresses; the faults
+// injected by the network (partitions, resets by a middlebox) are measured
+// in network namespaces (netns_test.go).
 package semantics

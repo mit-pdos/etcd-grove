@@ -2,45 +2,76 @@
 Trusted Go model of `net` (namespace of the generated package; project nettcp of `etc/goose.py`,
 `NetTcp/Code/net.toml`), in terms of the TCP extension of `GooseLang.Ext.Tcp.Impl` (`Tcp.tcpExt`,
 `ExternalOp Tcp.tcpExt.name "Read"`, ...), for any program whose extensions include it. linux/amd64,
-Go 1.27.3 (`etc/goose.py`'s `GO_TOOLCHAIN`). The main tree's `net` (`Code.net`, names only) must not
-be in the same import closure. The design is `notes/net-tcp.md`.
+Go 1.27.3 (`etc/goose.py`'s `GO_TOOLCHAIN`; the Go code cited is `$GOROOT/src/net` and
+`internal/poll` of that release). The main tree's `net` (`Code.net`, names only) must not be in the
+same import closure. The design is `notes/net-tcp.md` (v3: `notes/net-tcp-v3-plan.md`).
 
 **Connections.** Go's `TCPConn` is `struct{ conn }` (`tcpsock.go`), translated as it is, so that
 `*TCPConn`'s method set is Go's (`conn`'s methods promoted); `conn` (`net.go`) holds `fd *netFD`,
-the socket. `conn` is trusted, with the layout `struct{ id uint64 }` (`conn.underlying`): `id` is
-the extension's id of the connection end the socket is. The other fields of Go's `netFD` (the
-network name, the addresses, the poller) are not observable to code outside `net` but through
-`LocalAddr`, `RemoteAddr` and the errors' fields, which are not modeled (below). A `*TCPConn` is
-made only by `Dial.impl` and `TCPListener.Accept.impl`, so its `id` is an id the extension returned,
-except in a zero-value `TCPConn` (`var c net.TCPConn`, which Go code outside `net` can make): its
-`id` is 0, which names no connection end (`Impl.lean`, "Handles"), so its methods are stuck.
+the socket. `conn` is trusted, with the layout `struct{ id uint64; laddr Addr; raddr Addr }`
+(`conn.underlying`): `id` is the extension's id of the connection end the socket is, `laddr` and
+`raddr` its `netFD`'s addresses (`fd.laddr`, `fd.raddr`). The other fields of Go's `netFD` (the
+network name, the poller) are not observable to code outside `net`. A `*TCPConn` is made only by
+`Dial.impl`, `DialTimeout.impl` and `TCPListener.Accept.impl`, so its `id` is an id the extension
+returned, except in a zero-value `TCPConn` (`var c net.TCPConn`, which Go code outside `net` can
+make): its `id` is 0, which names no connection end (`Impl.lean`, "Handles"), so its methods are
+stuck (but `LocalAddr`, `RemoteAddr`: `nil`, as Go's, whose `c.ok()` fails).
 
 **Listeners.** `TCPListener` (`struct{ fd *netFD; lc ListenConfig }` in Go) is trusted, with the
-layout `struct{ lid uint64 }`, the extension's id of the listener on this node.
+layout `struct{ lid uint64; addr Addr }`, the extension's id of the listener on this node and its
+`netFD`'s `laddr`.
 
-**Errors.** Go's errors here are `*OpError{Op, Net, Source, Addr, Err}`, `Err` the system's error
-(an `*os.SyscallError` around an `Errno`, `poll.ErrNetClosing`, `os.ErrDeadlineExceeded`, ...), and
-`io.EOF` unwrapped for a read at the end. The model returns `io.EOF` as Go does, and for any other
-failure an `*OpError` whose layout is trusted as `struct{ Op string; Net string }`: `Op` is Go's
-(`"read"`, `"write"`, `"close"`, `"dial"`, `"listen"`, `"accept"`, `"set"`) and `Net` is `"tcp"`.
-`Source`, `Addr` and `Err` are not modeled: a program that reads them is stuck (no such field), and
-so is one that calls `Unwrap` (not modeled), so `errors.Is(err, net.ErrClosed)` is stuck. `Error`,
-`Timeout` and `Temporary` return arbitrary values (the extension's `AnyString`, `AnyBool`): Go's
-depend on the system's error, which the model does not explain, and any of them is possible for
-some failure.
+**Addresses (D18).** A connection's two addresses and a listener's address are non-nil `*TCPAddr`s
+made when it is (`model.anyTCPAddr`: a new `TCPAddr` whose `IP`, `Port` and `Zone` are arbitrary)
+and returned as they are by `LocalAddr`, `RemoteAddr`, `Addr`: Go's `netFD.setAddr` stores them
+once (`fd_unix.go`'s `dial` and `accept`: `laddr` from `getsockname`, `raddr` from `getpeername`
+or the dialed address, each a new `*TCPAddr` from `sockaddrToTCP`, non-nil for an IPv4 socket:
+Linux's `inet_getname` does not fail on a connected or bound socket; Go's comment in
+`tcpsock_posix.go` that a socket may come with a `nil` `raddr` "under certain unknown conditions"
+concerns `sockaddrToTCP` of an unknown family, not an IPv4 socket), and the getters return the
+stored values (`net.go`, `tcpsock.go`). Their values are not modeled: arbitrary. `TCPAddr.String`
+is arbitrary too (`AnyString`).
+
+**Errors (D14).** Go's errors here are `*OpError{Op, Net, Source, Addr, Err}` (translated, with
+`Unwrap`), and `io.EOF` unwrapped for a read at the end. `Op` and the addresses are Go's for each
+operation (`net.go`, `tcpsock.go`, `dial.go`: the end's `laddr` and `raddr` for `Read`, `Write`,
+`Close`, `CloseWrite`; `nil` and `laddr` for the deadlines; `nil` and the listener's `laddr` for
+`Accept` and the listener's `Close`; `nil` and the resolved address, a `*TCPAddr` the model makes
+arbitrary, for `Dial` and `Listen`); `Net` is `"tcp"`. `Err` is the extension's kind's
+(`model.kindErr`): `closed` gives `poll.ErrNetClosing` (`errNetClosing{}`, an empty struct, so its
+value is that of its only value: `model.closedErr`), which `poll.FD` returns for an operation on a
+closing fd (`errClosing`) and `net.ErrClosed` is (`errClosed = poll.ErrNetClosing`); `timeout`
+gives the value of `poll.ErrDeadlineExceeded` (`&DeadlineExceededError{}`, read from its variable:
+`os.ErrDeadlineExceeded` is the same pointer), which `poll.FD` returns for an expired deadline;
+`sys` gives `&os.SyscallError{Syscall: name, Err: syscall.Errno(n)}` with `n` an arbitrary nonzero
+word (`model.sysErr`), the system call's error as `wrapSyscallError` and `os.NewSyscallError` wrap
+it (`error_posix.go`, `fd_unix.go`): `name` is Go's, `"read"`, `"write"` (`readSyscallName`,
+`writeSyscallName`), `"shutdown"` (`CloseWrite`), `"accept4"` (`poll.FD.Accept`'s `errcall`), and
+arbitrary for `Dial` and `Listen` (`"connect"`, `"getsockopt"`, `"socket"`, `"bind"`, `"listen"`,
+`"setsockopt"`: whichever call failed). `Error()` is arbitrary (`AnyString`: Go's message is made of
+the addresses' and the system error's strings); `Timeout()` and `Temporary()` are `false` for
+`errNetClosing` (its methods), `true` for `*DeadlineExceededError` and `*timeoutError` (theirs),
+and arbitrary otherwise: an `Errno`'s are `true` for `ETIMEDOUT`, `EAGAIN` (and `Temporary` for
+`EINTR`, `EMFILE`, `ENFILE`, and in `Accept` `ECONNRESET`, `ECONNABORTED`: `isConnError`), which a
+`sys` error may be (`syscall_unix.go`, `net.go`). The bare `Errno` that `Accept` and `Dial` return
+when registering a new socket with the poller fails (`ENOMEM`, `ENOSPC` of `epoll_ctl`) is not
+modeled (D12).
 
 **Faithfulness.** Each model is the Go function with its system calls replaced by the extension's
 operations (`Impl.lean` says why each operation's outcomes are those of Linux). Go's `Read` and
 `Write` loop over `read(2)`/`write(2)` (`poll.FD`, `EINTR` and `EAGAIN` handled by the poller): a
 `Read` returns once at least one byte has arrived, a `Write` once every byte is in the kernel or on
-an error, as the extension's operations do. Less defined than Go (a panic, which a proof must rule
-out): a network other than `"tcp"`; a nil receiver (a nil dereference, where Go returns `EINVAL`).
+an error, as the extension's operations do. Less defined than Go (a panic, or stuck, which a proof
+must rule out): a network other than `"tcp"`; a nil receiver (a nil dereference, where Go returns
+`EINVAL`).
 -/
 module
 
 public import Perennial.Golang.Defn
 public import Perennial.Code.io
 public import Perennial.Code.time
+public import Code.os
+public import Code.internal.poll
 public import GooseLang.Ext.Tcp.Impl
 
 @[expose] public section
@@ -51,42 +82,41 @@ namespace Perennial
 
 namespace net
 
-/-- The model's `conn` (`conn.underlying`): the id of the connection end. -/
-structure conn where
+/-- The model's `conn` (`conn.underlying`): the id of the connection end, and its addresses. -/
+structure conn [GooseExts] where
   mk ::
   id' : w64
+  laddr' : GoInterface
+  raddr' : GoInterface
 
-instance conn.zero_val : ZeroVal conn := ⟨conn.mk zeroValDef⟩
+instance conn.zero_val [GooseExts] : ZeroVal conn := ⟨conn.mk zeroValDef zeroValDef zeroValDef⟩
 
 /-- `TCPConn` (`struct{ conn }`, as Go's). -/
-structure TCPConn where
+structure TCPConn [GooseExts] where
   mk ::
   conn' : conn
 
-instance TCPConn.zero_val : ZeroVal TCPConn := ⟨TCPConn.mk zeroValDef⟩
+instance TCPConn.zero_val [GooseExts] : ZeroVal TCPConn := ⟨TCPConn.mk zeroValDef⟩
 
-/-- The model's `TCPListener` (`TCPListener.underlying`): the id of the listener. -/
-structure TCPListener where
+/-- The model's `TCPListener` (`TCPListener.underlying`): the id of the listener, and its
+address. -/
+structure TCPListener [GooseExts] where
   mk ::
   id' : w64
+  addr' : GoInterface
 
-instance TCPListener.zero_val : ZeroVal TCPListener := ⟨TCPListener.mk zeroValDef⟩
-
-/-- The model's `OpError` (`OpError.underlying`): the operation and the network. -/
-structure OpError where
-  mk ::
-  Op' : GoString
-  Net' : GoString
-
-instance OpError.zero_val : ZeroVal OpError := ⟨OpError.mk zeroValDef zeroValDef⟩
+instance TCPListener.zero_val [GooseExts] : ZeroVal TCPListener := ⟨TCPListener.mk zeroValDef zeroValDef⟩
 
 section code
 variable [GooseExts] [GoGlobalContext]
 
-/-- `conn` (`net.go`): the id of the socket's connection end, in place of `fd *netFD` (the module
-docstring says why the other fields of `netFD` are not needed). -/
+@[reducible] def model.Addr : go.GoType := go.GoType.Named go!"net.Addr" []
+
+/-- `conn` (`net.go`): the id of the socket's connection end and its addresses, in place of
+`fd *netFD` (the module docstring says why the other fields of `netFD` are not needed). -/
 @[reducible] def conn.fieldsUnsealed : List go.field_decl :=
-  [go.field_decl.FieldDecl go!"id" go.uint64]
+  [go.field_decl.FieldDecl go!"id" go.uint64, go.field_decl.FieldDecl go!"laddr" model.Addr,
+    go.field_decl.FieldDecl go!"raddr" model.Addr]
 
 /-- The fields, sealed (as goose seals a translated struct's), unfolded by `conn.equals_unfold`
 in the struct semantics. -/
@@ -114,11 +144,11 @@ instance TCPConn.equals_unfold : EqualsUnfold TCPConn.fields TCPConn.fieldsUnsea
 @[reducible] def TCPConn.underlying : go.GoType :=
   go.GoType.StructType TCPConn.fields
 
-/-- `TCPListener` (`tcpsock.go`): the id of the listener, in place of `fd *netFD` and `lc` (the field
-named `lid`, not `id`: a layout equal to `conn.underlying` would make the two structs' type
-representations ambiguous). -/
+/-- `TCPListener` (`tcpsock.go`): the id of the listener and its address, in place of
+`fd *netFD` and `lc` (the field named `lid`, not `id`: a layout like `conn.underlying` would make
+the two structs' type representations ambiguous). -/
 @[reducible] def TCPListener.fieldsUnsealed : List go.field_decl :=
-  [go.field_decl.FieldDecl go!"lid" go.uint64]
+  [go.field_decl.FieldDecl go!"lid" go.uint64, go.field_decl.FieldDecl go!"addr" model.Addr]
 
 /-- The fields, sealed (as goose seals a translated struct's), unfolded by `TCPListener.equals_unfold`
 in the struct semantics. -/
@@ -130,24 +160,8 @@ instance TCPListener.equals_unfold : EqualsUnfold TCPListener.fields TCPListener
 @[reducible] def TCPListener.underlying : go.GoType :=
   go.GoType.StructType TCPListener.fields
 
-/-- `OpError` (`net.go`): `Op` and `Net` only (the module docstring says why). -/
-@[reducible] def OpError.fieldsUnsealed : List go.field_decl :=
-  [go.field_decl.FieldDecl go!"Op" go.string,
-    go.field_decl.FieldDecl go!"Net" go.string]
-
-/-- The fields, sealed (as goose seals a translated struct's), unfolded by `OpError.equals_unfold`
-in the struct semantics. -/
-@[irreducible] def OpError.fields : List go.field_decl := OpError.fieldsUnsealed
-
-instance OpError.equals_unfold : EqualsUnfold OpError.fields OpError.fieldsUnsealed :=
-  ⟨by unfold OpError.fields; rfl⟩
-
-@[reducible] def OpError.underlying : go.GoType :=
-  go.GoType.StructType OpError.fields
-
 /-- The struct-field facts goose emits for every translated struct, stated by hand for the trusted
-layouts `conn.underlying`, `TCPConn.underlying`, `TCPListener.underlying` and
-`OpError.underlying`, of which goose emits
+layouts `conn.underlying`, `TCPConn.underlying` and `TCPListener.underlying`, of which goose emits
 none (as `os.file.FieldAssumptions`). Specs that need them take them as an instance hypothesis.
 Part of the trust base. -/
 class FieldAssumptions [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -155,6 +169,16 @@ class FieldAssumptions [GoLocalContext] [GoSemanticsFunctions] : Prop where
     (StructFieldGet conn.underlying go!"id") #x (Val #(x.id'))
   conn_set_id : ∀ (x : conn) (y : w64), go.IsGoStepPureDetTagged Tag.under
     (StructFieldSet conn.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : conn)))
+  conn_get_laddr : ∀ (x : conn), go.IsGoStepPureDetTagged Tag.under
+    (StructFieldGet conn.underlying go!"laddr") #x (Val #(x.laddr'))
+  conn_set_laddr : ∀ (x : conn) (y : GoInterface), go.IsGoStepPureDetTagged Tag.under
+    (StructFieldSet conn.underlying go!"laddr") (PairV #x #y)
+    (Val #(({ x with laddr' := y } : conn)))
+  conn_get_raddr : ∀ (x : conn), go.IsGoStepPureDetTagged Tag.under
+    (StructFieldGet conn.underlying go!"raddr") #x (Val #(x.raddr'))
+  conn_set_raddr : ∀ (x : conn) (y : GoInterface), go.IsGoStepPureDetTagged Tag.under
+    (StructFieldSet conn.underlying go!"raddr") (PairV #x #y)
+    (Val #(({ x with raddr' := y } : conn)))
   tcp_get_conn : ∀ (x : TCPConn), go.IsGoStepPureDetTagged Tag.under
     (StructFieldGet TCPConn.underlying go!"conn") #x (Val #(x.conn'))
   tcp_set_conn : ∀ (x : TCPConn) (y : conn), go.IsGoStepPureDetTagged Tag.under
@@ -165,22 +189,18 @@ class FieldAssumptions [GoLocalContext] [GoSemanticsFunctions] : Prop where
   lis_set_id : ∀ (x : TCPListener) (y : w64), go.IsGoStepPureDetTagged Tag.under
     (StructFieldSet TCPListener.underlying go!"lid") (PairV #x #y)
     (Val #(({ x with id' := y } : TCPListener)))
-  op_get_Op : ∀ (x : OpError), go.IsGoStepPureDetTagged Tag.under
-    (StructFieldGet OpError.underlying go!"Op") #x (Val #(x.Op'))
-  op_set_Op : ∀ (x : OpError) (y : GoString), go.IsGoStepPureDetTagged Tag.under
-    (StructFieldSet OpError.underlying go!"Op") (PairV #x #y)
-    (Val #(({ x with Op' := y } : OpError)))
-  op_get_Net : ∀ (x : OpError), go.IsGoStepPureDetTagged Tag.under
-    (StructFieldGet OpError.underlying go!"Net") #x (Val #(x.Net'))
-  op_set_Net : ∀ (x : OpError) (y : GoString), go.IsGoStepPureDetTagged Tag.under
-    (StructFieldSet OpError.underlying go!"Net") (PairV #x #y)
-    (Val #(({ x with Net' := y } : OpError)))
+  lis_get_addr : ∀ (x : TCPListener), go.IsGoStepPureDetTagged Tag.under
+    (StructFieldGet TCPListener.underlying go!"addr") #x (Val #(x.addr'))
+  lis_set_addr : ∀ (x : TCPListener) (y : GoInterface), go.IsGoStepPureDetTagged Tag.under
+    (StructFieldSet TCPListener.underlying go!"addr") (PairV #x #y)
+    (Val #(({ x with addr' := y } : TCPListener)))
 
 attribute [instance] FieldAssumptions.conn_get_id FieldAssumptions.conn_set_id
+  FieldAssumptions.conn_get_laddr FieldAssumptions.conn_set_laddr
+  FieldAssumptions.conn_get_raddr FieldAssumptions.conn_set_raddr
   FieldAssumptions.tcp_get_conn FieldAssumptions.tcp_set_conn
   FieldAssumptions.lis_get_id FieldAssumptions.lis_set_id
-  FieldAssumptions.op_get_Op FieldAssumptions.op_set_Op
-  FieldAssumptions.op_get_Net FieldAssumptions.op_set_Net
+  FieldAssumptions.lis_get_addr FieldAssumptions.lis_set_addr
 
 /-! The types as goose names them (their `.ty` is in `Code.net`, which imports this file), and
 helpers of the models (not Go functions). -/
@@ -191,72 +211,172 @@ helpers of the models (not Go functions). -/
 @[reducible] def model.OpError : go.GoType := go.GoType.Named go!"net.OpError" []
 @[reducible] def model.Conn : go.GoType := go.GoType.Named go!"net.Conn" []
 @[reducible] def model.Listener : go.GoType := go.GoType.Named go!"net.Listener" []
+@[reducible] def model.TCPAddr : go.GoType := go.GoType.Named go!"net.TCPAddr" []
+@[reducible] def model.IP : go.GoType := go.GoType.Named go!"net.IP" []
+@[reducible] def model.timeoutError : go.GoType := go.GoType.Named go!"net.timeoutError" []
+@[reducible] def model.Errno : go.GoType := go.GoType.Named go!"syscall.Errno" []
 
-/-- `&OpError{Op: op, Net: "tcp"}` as an `error`. -/
+/-- `&OpError{Op: op, Net: "tcp", Source: src, Addr: addr, Err: err}` as an `error`. -/
 noncomputable def model.opError : val :=
-  λ: "op",
+  λ: "op" "src" "addr" "err",
     let: "pe" := GoAlloc model.OpError (GoZeroVal model.OpError #()) in
     StructFieldRef model.OpError go!"Op" "pe" <-[go.string] "op" ;;
     StructFieldRef model.OpError go!"Net" "pe" <-[go.string] #(go!"tcp") ;;
+    StructFieldRef model.OpError go!"Source" "pe" <-[model.Addr] "src" ;;
+    StructFieldRef model.OpError go!"Addr" "pe" <-[model.Addr] "addr" ;;
+    StructFieldRef model.OpError go!"Err" "pe" <-[go.error] "err" ;;
     Convert (go.PointerType model.OpError) go.error "pe"
+
+/-- `poll.ErrNetClosing` as an `error`: `errNetClosing{}`, the only value of an empty struct. -/
+noncomputable def model.closedErr : val :=
+  λ: <>, Convert internal.poll.errNetClosing.ty go.error
+    (GoZeroVal internal.poll.errNetClosing.ty #())
+
+/-- The value of `poll.ErrDeadlineExceeded`. -/
+noncomputable def model.deadlineErr : val :=
+  λ: <>, ![go.error] (GlobalVarAddr internal.poll.ErrDeadlineExceeded #())
+
+/-- `&os.SyscallError{Syscall: name, Err: syscall.Errno(n)}` as an `error`, `n` arbitrary and
+nonzero. -/
+noncomputable def model.sysErr : val :=
+  λ: "name",
+    let: "n" := ExternalOp Tcp.tcpExt.name "AnyErrno" #() in
+    let: "p" := GoAlloc os.SyscallError.ty (GoZeroVal os.SyscallError.ty #()) in
+    StructFieldRef os.SyscallError.ty go!"Syscall" "p" <-[go.string] "name" ;;
+    StructFieldRef os.SyscallError.ty go!"Err" "p" <-[go.error] Convert model.Errno go.error "n" ;;
+    Convert (go.PointerType os.SyscallError.ty) go.error "p"
+
+/-- The `Err` of a failure of the kind with code `code` (`Tcp.TcpErr.code`), `name` the system
+call's for a `sys` failure. -/
+noncomputable def model.kindErr : val :=
+  λ: "code" "name",
+    if: "code" =⟨go.uint64⟩ #(W64 1) then model.closedErr #()
+    else if: "code" =⟨go.uint64⟩ #(W64 2) then model.deadlineErr #()
+    else model.sysErr "name"
+
+/-- A new `*TCPAddr` with arbitrary fields, as an `Addr`. -/
+noncomputable def model.anyTCPAddr : val :=
+  λ: <>,
+    let: "p" := GoAlloc model.TCPAddr (GoZeroVal model.TCPAddr #()) in
+    StructFieldRef model.TCPAddr go!"IP" "p" <-[model.IP]
+      Convert go.string (go.GoType.SliceType go.byte) (ExternalOp Tcp.tcpExt.name "AnyString" #()) ;;
+    StructFieldRef model.TCPAddr go!"Port" "p" <-[go.int] ExternalOp Tcp.tcpExt.name "AnyW64" #() ;;
+    StructFieldRef model.TCPAddr go!"Zone" "p" <-[go.string]
+      ExternalOp Tcp.tcpExt.name "AnyString" #() ;;
+    Convert (go.PointerType model.TCPAddr) model.Addr "p"
 
 /-- The id of the connection end of a `*conn`. -/
 noncomputable def model.connId : val :=
   λ: "c", ![go.uint64] (StructFieldRef model.conn go!"id" "c")
 
-/-- A new `*TCPConn` for the connection end `id`, as a `Conn`. -/
+/-- The `*OpError` of the operation `op` on the `*conn` `c` (`Source` its `laddr`, `Addr` its
+`raddr`), for a failure of code `code`, `name` the system call's. -/
+noncomputable def model.connErr : val :=
+  λ: "op" "c" "code" "name",
+    model.opError "op" (![model.Addr] (StructFieldRef model.conn go!"laddr" "c"))
+      (![model.Addr] (StructFieldRef model.conn go!"raddr" "c")) (model.kindErr "code" "name")
+
+/-- A new `*TCPConn` for the connection end `id`, with new addresses, as a `Conn`. -/
 noncomputable def model.newConn : val :=
   λ: "id",
     let: "t" := GoAlloc model.TCPConn (GoZeroVal model.TCPConn #()) in
     StructFieldRef model.conn go!"id" (StructFieldRef model.TCPConn go!"conn" "t") <-[go.uint64]
       "id" ;;
+    StructFieldRef model.conn go!"laddr" (StructFieldRef model.TCPConn go!"conn" "t") <-[model.Addr]
+      model.anyTCPAddr #() ;;
+    StructFieldRef model.conn go!"raddr" (StructFieldRef model.TCPConn go!"conn" "t") <-[model.Addr]
+      model.anyTCPAddr #() ;;
     Convert (go.PointerType model.TCPConn) model.Conn "t"
 
 /-- `Listen(network, address string) (Listener, error)` (`dial.go`): `ListenConfig.Listen` with
 the zero `ListenConfig`, which for `"tcp"` resolves the address, then `socket(2)`, `setsockopt`
 (`SO_REUSEADDR`), `bind(2)` and `listen(2)`: the extension's `Listen` of the address (stuck unless it
-is one of the plan's, at this node's host: the model's resolution). A `*TCPListener` as a
-`Listener`; an error is `&OpError{Op: "listen", ...}` with a nil `Listener`. -/
+is one of the plan's at this node's host, or a wildcard of D21: the model's resolution). A
+`*TCPListener` with a new address as a `Listener`; an error is
+`&OpError{Op: "listen", Addr: <the resolved address>, ...}` with a nil `Listener`. -/
 noncomputable def Listen.impl : val :=
   λ: "network" "address",
     if: "network" ≠⟨go.string⟩ #(go!"tcp") then Panic "net: Listen of a network but tcp not modelled"
     else
       let: "r" := ExternalOp Tcp.tcpExt.name "Listen" "address" in
-      if: Snd "r" then
+      if: Snd "r" =⟨go.uint64⟩ #(W64 0) then
         let: "l" := GoAlloc model.TCPListener (GoZeroVal model.TCPListener #()) in
         StructFieldRef model.TCPListener go!"lid" "l" <-[go.uint64] Fst "r" ;;
+        StructFieldRef model.TCPListener go!"addr" "l" <-[model.Addr] model.anyTCPAddr #() ;;
         (Convert (go.PointerType model.TCPListener) model.Listener "l", #GoInterface.nil)
-      else (GoZeroVal model.Listener #(), model.opError #(go!"listen"))
+      else (GoZeroVal model.Listener #(), model.opError #(go!"listen") #GoInterface.nil
+        (model.anyTCPAddr #())
+        (model.kindErr (Snd "r") (ExternalOp Tcp.tcpExt.name "AnyString" #())))
 
 /-- `Dial(network, address string) (Conn, error)` (`dial.go`): `Dialer.Dial` with the zero
 `Dialer`, which for `"tcp"` resolves the address, then `socket(2)` and `connect(2)` (waiting for
 the handshake): the extension's `Dial` (stuck unless the address is one of the plan's). A `*TCPConn`
-as a `Conn`; an error is `&OpError{Op: "dial", ...}` with a nil `Conn`. -/
+with new addresses as a `Conn`; an error is `&OpError{Op: "dial", Addr: <the resolved address>,
+...}` (`dialSingle`) with a nil `Conn`. -/
 noncomputable def Dial.impl : val :=
   λ: "network" "address",
     if: "network" ≠⟨go.string⟩ #(go!"tcp") then Panic "net: Dial of a network but tcp not modelled"
     else
       let: "r" := ExternalOp Tcp.tcpExt.name "Dial" "address" in
-      if: Snd "r" then (model.newConn (Fst "r"), #GoInterface.nil)
-      else (GoZeroVal model.Conn #(), model.opError #(go!"dial"))
+      if: Snd "r" =⟨go.uint64⟩ #(W64 0) then (model.newConn (Fst "r"), #GoInterface.nil)
+      else (GoZeroVal model.Conn #(), model.opError #(go!"dial") #GoInterface.nil
+        (model.anyTCPAddr #())
+        (model.kindErr (Snd "r") (ExternalOp Tcp.tcpExt.name "AnyString" #())))
+
+/-- D19. `DialTimeout(network, address string, timeout time.Duration) (Conn, error)` (`dial.go`):
+`Dialer{Timeout: timeout}.Dial`, the extension's `Dial` as `Dial.impl`; a failure's `Err` is the
+system's error, or a timeout: `net`'s `errTimeout` (`mapErr(ctx.Err())` once the dial's context
+expired: `dialSerial`, `partialDeadline`, `netFD.connect`) or `poll.ErrDeadlineExceeded`
+(`netFD.connect`'s `WaitWrite` under the write deadline it sets to the dial's deadline, returned
+as it is when the context's timer has not fired yet). The timeout's value is not modeled (any
+timeout may expire, as the deadlines of D5); the dial's connection may be left, abandoned (D16). -/
+noncomputable def DialTimeout.impl : val :=
+  λ: "network" "address" "timeout",
+    if: "network" ≠⟨go.string⟩ #(go!"tcp") then
+      Panic "net: DialTimeout of a network but tcp not modelled"
+    else
+      let: "r" := ExternalOp Tcp.tcpExt.name "Dial" "address" in
+      if: Snd "r" =⟨go.uint64⟩ #(W64 0) then (model.newConn (Fst "r"), #GoInterface.nil)
+      else (GoZeroVal model.Conn #(), model.opError #(go!"dial") #GoInterface.nil
+        (model.anyTCPAddr #())
+        (if: ExternalOp Tcp.tcpExt.name "AnyBool" #() then
+          model.kindErr (Snd "r") (ExternalOp Tcp.tcpExt.name "AnyString" #())
+         else if: ExternalOp Tcp.tcpExt.name "AnyBool" #() then
+          ![go.error] (GlobalVarAddr go!"net.errTimeout" #())
+         else model.deadlineErr #()))
 
 /-- `(*TCPListener).Accept() (Conn, error)` (`tcpsock.go`, `tcpsock_posix.go`'s `accept`):
 `accept4(2)` through the poller (waiting for a connection; `ECONNABORTED` retried): the extension's
-`Accept`. A `*TCPConn` as a `Conn`; an error is `&OpError{Op: "accept", ...}`. -/
+`Accept`. A `*TCPConn` with new addresses as a `Conn`; an error is
+`&OpError{Op: "accept", Addr: l.addr, ...}`. -/
 noncomputable def TCPListener.Accept.impl : val :=
   λ: "l" <>,
     let: "r" := ExternalOp Tcp.tcpExt.name "Accept"
       (![go.uint64] (StructFieldRef model.TCPListener go!"lid" "l")) in
-    if: Snd "r" then (model.newConn (Fst "r"), #GoInterface.nil)
-    else (GoZeroVal model.Conn #(), model.opError #(go!"accept"))
+    if: Snd "r" =⟨go.uint64⟩ #(W64 0) then (model.newConn (Fst "r"), #GoInterface.nil)
+    else (GoZeroVal model.Conn #(), model.opError #(go!"accept") #GoInterface.nil
+      (![model.Addr] (StructFieldRef model.TCPListener go!"addr" "l"))
+      (model.kindErr (Snd "r") #(go!"accept4")))
 
 /-- `(*TCPListener).Close() error` (`tcpsock.go`): `close(2)` of the listening socket (a second
-close is `ErrNetClosing`): the extension's `LisClose`. -/
+close is `ErrNetClosing`): the extension's `LisClose`; an error is
+`&OpError{Op: "close", Addr: l.addr, ...}`. -/
 noncomputable def TCPListener.Close.impl : val :=
   λ: "l" <>,
-    if: ExternalOp Tcp.tcpExt.name "LisClose"
-        (![go.uint64] (StructFieldRef model.TCPListener go!"lid" "l")) then #GoInterface.nil
-    else model.opError #(go!"close")
+    let: "r" := ExternalOp Tcp.tcpExt.name "LisClose"
+      (![go.uint64] (StructFieldRef model.TCPListener go!"lid" "l")) in
+    if: "r" =⟨go.uint64⟩ #(W64 0) then #GoInterface.nil
+    else model.opError #(go!"close") #GoInterface.nil
+      (![model.Addr] (StructFieldRef model.TCPListener go!"addr" "l"))
+      (model.kindErr "r" #(go!"close"))
+
+/-- `(*TCPListener).Addr() Addr` (`tcpsock.go`): `l.fd.laddr`, the stored address; a panic for a
+zero `TCPListener` (`lid` 0), whose `fd` is nil in Go (a nil dereference). -/
+noncomputable def TCPListener.Addr.impl : val :=
+  λ: "l" <>,
+    if: ![go.uint64] (StructFieldRef model.TCPListener go!"lid" "l") =⟨go.uint64⟩ #(W64 0) then
+      Panic "net: Addr of a zero TCPListener"
+    else ![model.Addr] (StructFieldRef model.TCPListener go!"addr" "l")
 
 /-- `(*conn).Read(b []byte) (int, error)` (`net.go`, `fd_posix.go`, `poll.FD.Read`): `read(2)`
 through the poller, which waits for bytes; an empty `b` returns `0, nil` at once; `0` bytes read
@@ -269,8 +389,8 @@ noncomputable def conn.Read.impl : val :=
     if: Snd "r" =⟨go.uint64⟩ #(W64 0) then
       ((FuncResolve go.copy [go.GoType.SliceType go.byte]) #() "b"
         (Convert go.string (go.GoType.SliceType go.byte) (Fst "r")), #GoInterface.nil)
-    else if: Snd "r" =⟨go.uint64⟩ #(W64 1) then (#(W64 0), ![go.error] (GlobalVarAddr io.EOF #()))
-    else (#(W64 0), model.opError #(go!"read"))
+    else if: Snd "r" =⟨go.uint64⟩ #(W64 4) then (#(W64 0), ![go.error] (GlobalVarAddr io.EOF #()))
+    else (#(W64 0), model.connErr #(go!"read") "c" (Snd "r") #(go!"read"))
 
 /-- `(*conn).Write(b []byte) (int, error)` (`net.go`, `poll.FD.Write`): `write(2)` through the
 poller, looping until every byte is written or an error: the extension's `Write` of `b`'s bytes.
@@ -279,35 +399,40 @@ noncomputable def conn.Write.impl : val :=
   λ: "c" "b",
     let: "r" := ExternalOp Tcp.tcpExt.name "Write"
       (model.connId "c", Convert (go.GoType.SliceType go.byte) go.string "b") in
-    if: Snd "r" then (Fst "r", #GoInterface.nil)
-    else (Fst "r", model.opError #(go!"write"))
+    if: Snd "r" =⟨go.uint64⟩ #(W64 0) then (Fst "r", #GoInterface.nil)
+    else (Fst "r", model.connErr #(go!"write") "c" (Snd "r") #(go!"write"))
 
 /-- `(*conn).Close() error` (`net.go`, `fd_posix.go`): `close(2)` of the socket (a second close
 is `ErrNetClosing`): the extension's `Close`. -/
 noncomputable def conn.Close.impl : val :=
   λ: "c" <>,
-    if: ExternalOp Tcp.tcpExt.name "Close" (model.connId "c") then #GoInterface.nil
-    else model.opError #(go!"close")
+    let: "r" := ExternalOp Tcp.tcpExt.name "Close" (model.connId "c") in
+    if: "r" =⟨go.uint64⟩ #(W64 0) then #GoInterface.nil
+    else model.connErr #(go!"close") "c" "r" #(go!"close")
 
 /-- `(*TCPConn).CloseWrite() error` (`tcpsock.go`): `shutdown(2)` with `SHUT_WR`: the
 extension's `CloseWrite`. -/
 noncomputable def TCPConn.CloseWrite.impl : val :=
   λ: "c" <>,
-    if: ExternalOp Tcp.tcpExt.name "CloseWrite"
-        (model.connId (StructFieldRef model.TCPConn go!"conn" "c")) then #GoInterface.nil
-    else model.opError #(go!"close")
+    let: "r" := ExternalOp Tcp.tcpExt.name "CloseWrite"
+      (model.connId (StructFieldRef model.TCPConn go!"conn" "c")) in
+    if: "r" =⟨go.uint64⟩ #(W64 0) then #GoInterface.nil
+    else model.connErr #(go!"close") (StructFieldRef model.TCPConn go!"conn" "c") "r"
+      #(go!"shutdown")
 
 /-- The extension's `SetDeadline` of the deadlines of kind `kind` (`0` both, `1` read, `2` write)
 of the end of `c` to the time `t`: `t`'s two words (`wall`, `ext`; the extension decides whether it
 is Go's zero time, `Tcp.timeIsZero`), read through a copy of `t` (the cell is the model's, never
-seen by the program). -/
+seen by the program). An error is `&OpError{Op: "set", Source: nil, Addr: c.laddr, ...}`. -/
 noncomputable def model.setDeadline (kind : w64) : val :=
   λ: "c" "t",
     let: "tp" := GoAlloc time.Time.ty "t" in
-    if: ExternalOp Tcp.tcpExt.name "SetDeadline"
+    let: "r" := ExternalOp Tcp.tcpExt.name "SetDeadline"
         (model.connId "c", (#kind, (![go.uint64] (StructFieldRef time.Time.ty go!"wall" "tp"),
-          ![go.int64] (StructFieldRef time.Time.ty go!"ext" "tp")))) then #GoInterface.nil
-    else model.opError #(go!"set")
+          ![go.int64] (StructFieldRef time.Time.ty go!"ext" "tp")))) in
+    if: "r" =⟨go.uint64⟩ #(W64 0) then #GoInterface.nil
+    else model.opError #(go!"set") #GoInterface.nil
+      (![model.Addr] (StructFieldRef model.conn go!"laddr" "c")) (model.kindErr "r" #(go!"set"))
 
 /-- `(*conn).SetDeadline(t time.Time) error` (`net.go`, `poll.FD.SetDeadline`): sets the read and
 the write deadline with the poller, or clears them for the zero time (`ErrNetClosing` on a closed
@@ -320,19 +445,47 @@ noncomputable def conn.SetReadDeadline.impl : val := model.setDeadline (W64 1)
 /-- `(*conn).SetWriteDeadline(t time.Time) error`: the write deadline only. -/
 noncomputable def conn.SetWriteDeadline.impl : val := model.setDeadline (W64 2)
 
+/-- D18. `(*conn).LocalAddr() Addr` (`net.go`): `c.fd.laddr`, the stored address (`nil` for a zero
+`TCPConn`, as Go's `c.ok()` check gives). -/
+noncomputable def conn.LocalAddr.impl : val :=
+  λ: "c" <>, ![model.Addr] (StructFieldRef model.conn go!"laddr" "c")
+
+/-- D18. `(*conn).RemoteAddr() Addr` (`net.go`): `c.fd.raddr`, as `LocalAddr`. -/
+noncomputable def conn.RemoteAddr.impl : val :=
+  λ: "c" <>, ![model.Addr] (StructFieldRef model.conn go!"raddr" "c")
+
+/-- `(*TCPAddr).String() string` (`tcpsock.go`): made of the address's fields, which the model does
+not explain: an arbitrary string. -/
+noncomputable def TCPAddr.String.impl : val :=
+  λ: "a" <>, ExternalOp Tcp.tcpExt.name "AnyString" #()
+
 /-- `(*OpError).Error() string` (`net.go`): Go's message names the operation, the addresses and
 the system's error, which the model does not explain: an arbitrary string. -/
 noncomputable def OpError.Error.impl : val :=
   λ: "e" <>, ExternalOp Tcp.tcpExt.name "AnyString" #()
 
-/-- `(*OpError).Timeout() bool` (`net.go`): whether the system's error is a timeout, which the
-model does not explain: an arbitrary answer. -/
-noncomputable def OpError.Timeout.impl : val :=
-  λ: "e" <>, ExternalOp Tcp.tcpExt.name "AnyBool" #()
+/-- `true` for an `Err` of the dynamic type `*poll.DeadlineExceededError` or `*timeoutError`,
+`false` for `poll.errNetClosing` (their `Timeout` and `Temporary` methods, constants: `fd.go`,
+`net.go`), arbitrary otherwise (an `*os.SyscallError` answers its `Errno`'s, which the model does
+not explain; any other `Err` a program stored answers its own methods). -/
+noncomputable def model.errFlag : val :=
+  λ: "e",
+    let: "err" := ![go.error] (StructFieldRef model.OpError go!"Err" "e") in
+    if: Snd (TypeAssert2 internal.poll.errNetClosing.ty "err") then #false
+    else if: Snd (TypeAssert2 (go.PointerType internal.poll.DeadlineExceededError.ty) "err") then
+      #true
+    else if: Snd (TypeAssert2 (go.PointerType model.timeoutError) "err") then #true
+    else ExternalOp Tcp.tcpExt.name "AnyBool" #()
 
-/-- `(*OpError).Temporary() bool` (`net.go`): as `Timeout`. -/
+/-- `(*OpError).Timeout() bool` (`net.go`): `e.Err`'s `Timeout()`, through an `*os.SyscallError`
+to its `Err` (`model.errFlag`). -/
+noncomputable def OpError.Timeout.impl : val :=
+  λ: "e" <>, model.errFlag "e"
+
+/-- `(*OpError).Temporary() bool` (`net.go`): `e.Err`'s `Temporary()` (and `true` for an accept's
+`ECONNRESET`, `ECONNABORTED`), as `Timeout` (`model.errFlag`). -/
 noncomputable def OpError.Temporary.impl : val :=
-  λ: "e" <>, ExternalOp Tcp.tcpExt.name "AnyBool" #()
+  λ: "e" <>, model.errFlag "e"
 
 
 /-- No type of `net` is named `_`: goose takes every trusted name for a possible type too, and the
@@ -344,9 +497,24 @@ uses. -/
 
 `net`'s variables (the DNS configuration, the error values, the test hooks, the cgo
 functions, ...) are trusted, each initializer a model that does nothing: the variable is not
-allocated, so code that loads it is stuck (has no proof), where Go reads its value. Neither the
-models above nor the examples read any (`NetTcp/Code/net.toml`). The models give a proof less
-than Go does, never more. -/
+allocated, so code that loads it is stuck (has no proof), where Go reads its value. The models
+give a proof less than Go does, never more. But `errClosed` and `ErrClosed` (`net.go`: `errClosed =
+poll.ErrNetClosing`, `ErrClosed error = errClosed`), which hold that value (`model.closedErr`: an
+empty struct's only value, so no read of `poll`'s variable is needed), and `errTimeout`
+(translated: `&timeoutError{}`). -/
+
+/-- `errClosed = poll.ErrNetClosing` (of type `poll.errNetClosing`). -/
+noncomputable def errClosed.init : val :=
+  λ: <>,
+    go.GlobalAlloc go!"net.errClosed" internal.poll.errNetClosing.ty #() ;;
+    GlobalVarAddr go!"net.errClosed" #() <-[internal.poll.errNetClosing.ty]
+      GoZeroVal internal.poll.errNetClosing.ty #()
+
+/-- `ErrClosed error = errClosed`. -/
+noncomputable def ErrClosed.init : val :=
+  λ: <>,
+    go.GlobalAlloc go!"net.ErrClosed" go.error #() ;;
+    GlobalVarAddr go!"net.ErrClosed" #() <-[go.error] model.closedErr #()
 
 def rfc6724policyTable.init : val := λ: <>, #()
 def confVal.init : val := λ: <>, #()
@@ -408,11 +576,8 @@ def ErrWriteToConnected.init : val := λ: <>, #()
 def aLongTimeAgo.init : val := λ: <>, #()
 def noDeadline.init : val := λ: <>, #()
 def noCancel.init : val := λ: <>, #()
-def errTimeout.init : val := λ: <>, #()
 def errNoSuchHost.init : val := λ: <>, #()
 def errUnknownPort.init : val := λ: <>, #()
-def errClosed.init : val := λ: <>, #()
-def ErrClosed.init : val := λ: <>, #()
 def pollSplice.init : val := λ: <>, #()
 def _cgo_77133bf98b3a_C2func_getaddrinfo.init : val := λ: <>, #()
 def _cgo_77133bf98b3a_C2func_getnameinfo.init : val := λ: <>, #()
