@@ -25,6 +25,15 @@ Worktree `/shared/etcd-grove-rs56`, branch `restart-s7` (off `lean`). Plan: `not
   `BuildServer.specRestart`'s proof is S7.4, not started.
 - **P2-a**: Go check done, law designed (`notes/restart-s7-p2a.md`), not yet written.
 
+- **srvLeaseRd consumer check** (etcd-grove-81's condition on the change, 2026-11-14):
+  `etc/importers.py --uses srvLeaseRd` lists `etcdstart.{Defs,Restart,Served,ServedLease,newServerMode}`;
+  with the laws' users (`srvLeaseRd_lessorRd`, `srvLeaseRd_srvInv`, `lease.srvInv_first`): `Served` passes it
+  through (`memberUp_served`); `newServerMode` and `Restart` build it; `ServedLease`'s mode-`none` branch takes
+  only the reader side (`srvLeaseRd_lessorRd`), its `mono`/`revocable` branches go through
+  `srvLeaseRd_srvInv` (`m ≠ none`, the empty start); the lease-expiry example (`revocable`) reads the empty
+  first snapshot through `srvLeaseRd_srvInv` then `lease.srvInv_first`. **No mode-`none` consumer relies on the
+  empty start.**
+
 ## Next, in order
 1. P2-a: the law in `isRaftMsg` (raft side, then `srvRestartRows_single`); stop at the raft interface diff
    for etcd-grove-81's review.

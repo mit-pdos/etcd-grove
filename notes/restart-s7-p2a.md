@@ -61,3 +61,24 @@ changes after commit).
   for etcd-grove-81's review before landing.
 
 Est. 1.5-2.5 wk (raft side 1-1.5 wk, server side 0.5-1 wk).
+
+## Approved (etcd-grove-81, 2026-11-14), and where the proof stands
+
+The design is approved: the clause goes in `isRaftMsg γ id st`, proved raft-side over `InvNode` as a law of
+the API module (nothing unsealed), then `srvRestartRows_single`; hard stop at the `ApiVocab`/`Api` interface
+diff.
+
+Mapped so far (no code yet):
+- **`To ≠ id` is already maintained**: the raft struct's queue invariant carries "not self-addressed (`send`'s
+  panic)" for every queued message (`InvRaftPhys.lean`, `ownRaftPhysC_msgs`'s `⌜st'.msg.To' ≠ id⌝`, durability
+  stage II (m)). It has to be carried to the `Ready`'s messages (`outboxRelP_isRaftMsg`/`_gen` in
+  `InvRawnodeReady.lean`, which build `isRaftMsg` from `XfOk`'s clauses: add the clause to `XfOk` or pass
+  it beside `Hsh`/`Hfr`).
+- **The tracked half** is the bulk: `maybeSendSnapshot`'s `to` is a key of `r.trk.Progress`
+  (`maybeSendAppend` reads `Progress[to]`); the static path already turns the tracker's keys into
+  `TrackedOk` (`InvRawnode.lean:2735`, `domSet s.progress`); the dynamic path needs the tracker's
+  configuration as the decisions' fold over a committed prefix (`StepGhostMode.lean:399`'s dynamic case,
+  `ApplyConfChange`'s `DynCCPre`, `restore`'s `raftSnapCert`), carried into the queued message's facts.
+- Producers of `isRaftMsg` to update: `outboxRelP_isRaftMsg`, `outboxRelP_isRaftMsg_gen`
+  (`InvRawnodeReady.lean`), `InvApiView.lean:432`; destructurings: `InvApiView.lean:395`,
+  `isRaftMsg_isMessage`, `isRaftMsg_dat`, `NetMsgOk`, `InvNode`/`InvApi`'s `sentMsg` laws.
