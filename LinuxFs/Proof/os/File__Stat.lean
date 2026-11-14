@@ -89,7 +89,7 @@ theorem os.File.Stat.wp_proof : os.File.Stat.spec (GF := GF) (hG := hG) := by
       · isplitl [] <;> iassumption
       isplitr
       rotate_left
-      · ipureintro; intro ii h; cases h; exact ⟨_, pe, rfl, rfl⟩
+      · ipureintro; intro ii h; cases h; exact ⟨pe, rfl⟩
       iright
       ipureintro; exact ⟨(fun h => by cases h), rfl⟩
 

@@ -5,7 +5,8 @@ the file's `OsMeta`, so that no change in flight resizes it and the size is exac
 it stores in a fresh `fileStat`. On success the result is that `*fileStat` as a `FileInfo`, holding
 the size (`os.ownFileStat`, read by `Size`, `Spec/os/fileStat__Size.lean`); on failure a nil
 `FileInfo` and a non-nil error. The error is one `fmt` formats (`fmtErrorOkOrNil`) and, if
-non-nil, a pointer error (`IsPointerError`: the model's fresh `*PathError`), as `fmt.Errorf`'s.
+non-nil, the model's fresh `*PathError` (so a pointer error, `IsPointerError`; never `io.EOF`, an
+`*errorString`: what the WAL's decoder needs of its readers' errors, `WalDecEnvSupply`).
 Proved in `Proof/os/File__Stat.lean`. Lean-first (no Rocq counterpart).
 -/
 module
@@ -44,7 +45,7 @@ abbrev os.File.Stat.spec : Prop :=
           os.ownFileStat fs (W64 m.size)) ∨
        ⌜err ≠ interface.nil ∧ fi = interface.nil⌝) ∗
       fmtErrorOkOrNil err ∗
-      ⌜∀ ii, err = GoInterface.ok ii → _root_.Perennial.errors.IsPointerError ii⌝ }}
+      ⌜∀ ii, err = GoInterface.ok ii → ∃ pe : Loc, ii = ⟨go.GoType.PointerType io.fs.PathError.ty, #pe⟩⌝ }}
 
 end spec
 

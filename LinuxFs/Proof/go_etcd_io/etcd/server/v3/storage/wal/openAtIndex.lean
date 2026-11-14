@@ -94,13 +94,38 @@ variable [os_sem : os.Assumptions] [bufio_sem : _root_.Perennial.bufio.Assumptio
 variable [os.file.FieldAssumptions] [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 
 /-- **The decoder's environment** (hypothesis): from the WAL package's initialization, `io.EOF`'s and
-`io.ErrUnexpectedEOF`'s values, `errors.Is(_, io.EOF)` on the readers' errors (`isEofOk`, over Perennial's
-`errors.Is` on pointer errors), the decoder's packages and variables (`decEnv`); the readers' errors are
-the pointer errors (`os.File.Read`'s and `Stat`'s `*PathError`s). -/
+`io.ErrUnexpectedEOF`'s values, `errors.Is(_, io.EOF)` on the readers' errors (`isEofOk`), the decoder's
+packages and variables (`decEnv`); the readers' errors `IoE` hold of every `*PathError` (`os.File.Read`'s
+and `Stat`'s errors). Until 2026-11-14 `IoE` held of every pointer error, which made the hypothesis
+unsatisfiable (`isEofOk` needs `¬ IoE eof`, and `io.EOF` is a pointer error); `walDecEnv_eof_not` checks
+that the new form's pure part agrees with `io`'s initialization. **Not true as stated** (ledger
+2026-11-14, "the readers' errors and `errors.Is`"): `isEofOk` asks `errors.Is(e, io.EOF)` to answer
+`false` for every `*PathError` `e`, which Go does not do for a `&PathError{Err: io.EOF}`; a pure `IoE`
+cannot say which `*PathError`s the model made (their fields are heap), so the true statement needs the
+readers' errors carried with their evidence (an Iris error predicate through `io.readerStream` and the
+trust-boundary axiom `io.ReadFull.wp_proof`, pending the user's decision). -/
 abbrev WalDecEnvSupply : Prop :=
   ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal -∗
     ∃ (IoE : GoInterface → Prop) (eof ueof : GoInterface), decEnv IoE eof ueof ∗
-      ⌜∀ ii, _root_.Perennial.errors.IsPointerError ii → IoE (GoInterface.ok ii)⌝
+      ⌜∀ pe : Loc, IoE (interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe)⌝
+
+/-- **The sanity check of `WalDecEnvSupply`'s pure part**: by `io`'s initialization `io.EOF` holds an
+`*errorString` (`errors.newVar`), so it is no `*PathError`, and `IoE` the `*PathError`s meets both
+`¬ IoE eof` (`isEofOk`) and the readers' errors. (The old form, every pointer error in `IoE`, failed
+here: `io.EOF` is one.) -/
+theorem walDecEnv_eof_not (eof : GoInterface) :
+    isPkgInit (PROP := IProp GF) pkg_id.io ∗ globalAddr _root_.Perennial.io.EOF ↦□ eof ⊢
+      ⌜∀ pe : Loc, interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe ≠ eof⌝ := by
+  iintro ⟨#Hio, #Heof⟩
+  ihave ⟨%x, #Hx, -⟩ := _root_.Perennial.io.eof_of_init $$ Hio
+  icombine Heof Hx gives %he
+  ipureintro
+  subst he
+  intro pe h
+  unfold interface.mkOk at h
+  injection h with h
+  injection h with h
+  revert h; decide
 
 /-- The program's area claim back. -/
 theorem walAreaRes_close (jr : Ino) (N : NameSet) (h : NamesH) (cl : List (GoString × Claim))
@@ -355,7 +380,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
     rw [List.length_map] at hfl hll
     have hEnv' : ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal -∗
         ∃ (IoE : GoInterface → Prop) (eof ueof : GoInterface), decEnv IoE eof ueof ∗
-          ⌜∀ ii, _root_.Perennial.errors.IsPointerError ii → IoE (GoInterface.ok ii)⌝ := hEnv
+          ⌜∀ pe : Loc, IoE (interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe)⌝ := hEnv
     ihave ⟨%IoE, %eof, %ueof, #Hde, %hIo⟩ := hEnv' $$ Hpkg
     ihave #Hde' := Hde
     iunfold decEnv at Hde'
