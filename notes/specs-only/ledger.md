@@ -425,3 +425,20 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Change (made).** The three take `dir.length < 2 ^ 59` and `NameOk nm`, as `wal.Create.spec` does (a path to
   a WAL directory is short in practice: Linux's `PATH_MAX` is 4096; etcd's name is `wal`).
 - **Decision.** Adopted (minor, proof agent `wal-read12`; no client of the part's `Open` exists yet).
+
+## 2026-11-14: `wal.Open.spec` (the part's, over `fsExt`) -- the call permission counted twice
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/Open.lean` (`wal.Open.spec`), success arm:
+  `walOpeningF w dir s ∗ osCallPerm ½`.
+- **Defect.** The client's `osCallPerm 1` is split by `openAtIndex` in write mode: half to the file pipeline
+  (`walPipeH`), half returned. `Open` returned that half to the client, but the handle `ReadAll` makes from
+  `walOpeningF` (`walOpenWF`, its `walDirH`) holds a half of its own (as `Create`'s does, ledger 2026-11-14):
+  after `Open` and `ReadAll` the client would hold 3/2 of the permission, and `ReadAll` could not be proved
+  (nothing in `walOpeningF` supplies the handle's half).
+- **Evidence.** `openAtIndex`'s proof and `ReadAll`'s obligations (W3/W5 log, twelfth session, item (a)).
+- **Change (made).** `Open`'s success arm is `walOpeningF w dir s` alone; the sealed `walOpeningF`
+  (`ReadDefs.lean`) holds the half (`osCallPerm ½`), which `ReadAll` moves into `walDirH`. A resource
+  placement, no new client-visible ghost state; `OpenForRead` (read mode: no pipeline, the whole permission
+  returned to the client) and `openAtIndex` unchanged.
+- **Decision.** Adopted (the coordinator's decision of 2026-11-14, task 1 of `wal-read13`; no client of the
+  part's `Open` exists yet).

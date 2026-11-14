@@ -36,7 +36,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.OpenForRead.wp_proof (Mr : WalMars
   · iframe; iframe #
   iapply HΦ
   iframe Hp Hres
-  icases Hr with (⟨%he, Hu, Hperm⟩ | ⟨%he, %ho, Hdf, Hl, Hrh, Hperm⟩)
+  icases Hr with (⟨%he, Hu, Hperm, -⟩ | ⟨%he, %ho, Hdf, Hl, Hrh, Hperm⟩)
   · iframe Hperm
     iexists o
     iframe HQ
