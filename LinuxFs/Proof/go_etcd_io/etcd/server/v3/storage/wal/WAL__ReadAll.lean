@@ -1,6 +1,6 @@
 /-
 The proof of `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__ReadAll.lean` (W3/W5 of
-`notes/wal-fsext-plan.md`; `sorry`: the plan's W3/W5 log says what is missing).
+`notes/wal-fsext-plan.md`). No `sorry` (the loop's EOF stop proved: `ReadAllEnd`, `ReadAllExit`).
 -/
 module
 

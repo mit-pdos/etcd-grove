@@ -11,7 +11,7 @@ other quarter; `Open` keeps one for the handle and returns the half: ledger 2026
 mode, the lock token taken (`walLockedTok`: the handle holds the WAL's halves out of `walParked`) and
 `walReadH false` and the whole permission; `dirFile` nil in both. *Error*: the
 token and the permission back, and an error whose `Error()` returns a string (`errOk`: `Open` wraps it
-with `%w`). Lean-first; proof `sorry`
+with `%w`). Lean-first; proved
 (`LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/openAtIndex.lean`). W5 of
 `notes/wal-fsext-plan.md`.
 -/
