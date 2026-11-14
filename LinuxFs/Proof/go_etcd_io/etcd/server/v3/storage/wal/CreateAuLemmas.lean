@@ -201,9 +201,10 @@ theorem walTailsRes_create (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (
       walTailsRes (W := W) C Mr (createSt s dir md) (<[dir := lay]> Ls) F' := by
   unfold walTailsRes
   letI := walAllG (W := W)
-  iintro ⟨%T, Ha, %Ho, %Hi, Hm⟩
+  iintro ⟨%T, Ha, %Ho, %Hi, Hm, HOld⟩
+  ihave HOld := walOldsRes_insert_new (W := W) Ls dir lay hLd $$ HOld
   iexists T
-  iframe Ha
+  iframe Ha HOld
   isplitr
   · ipureintro; exact Ho.insert_new hLd hF
   isplitr

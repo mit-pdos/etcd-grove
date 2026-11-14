@@ -69,13 +69,14 @@ theorem walParked_tailW (Ls : GMap GoString WalLay) (cl : List Claim) (F F' : GM
 theorem walInvBody_tailW (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     (r : GoString) (s : AbsDiskState) (dir : GoString) (γ : GName) (tg : TailG) (m : OsMeta) :
     ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walTailKey (W := W) dir γ -∗
-      tailVar (W := W) γ tg -∗ tailHeld (L := L) tg m -∗
+      tailVar (W := W) γ tg -∗ tailHeld (L := L) tg m ==∗
       ∃ (Ls : GMap GoString WalLay) (cl : List Claim) (n : Nat) (F : GMap Ino SegFl) (d : WalDur)
         (lay : WalLay) (pre : List SegG) (g0 : SegG),
         ⌜s.wal !! dir = some d ∧ Ls !! dir = some lay ∧ lay.segs = pre ++ [g0] ∧
           tg = tailG d lay g0.ino (F !! g0.ino) ∧ WalsOk C Mr R jr s Ls cl n ∧
           (∃ ents, WalAbsD C Mr d lay ents) ∧ g0.om.cut = none ∧ TailZeros lay ∧
           TailBound C Mr d lay⌝ ∗
+        walOldFrag (W := W) dir lay.cuts lay.old.length ∗
         segResF (L := L) F g0 ∗ walTailKey (W := W) dir γ ∗ tailVar (W := W) γ tg ∗
         tailVar (W := W) γ tg ∗ tailHeld (L := L) tg m ∗
         (∀ (g : SegG) (wr' : Nat) (F' : GMap Ino SegFl),
@@ -93,7 +94,7 @@ theorem walInvBody_tailW (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hn, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
     ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms, %Hbd⟩
   unfold walTailsRes
-  icases Htl with ⟨%T, HTa, %HTo, %HTi, HTm⟩
+  icases Htl with ⟨%T, HTa, %HTo, %HTi, HTm, HOld⟩
   icases walTailKey_lookup T dir γ $$ HTa Hk with %HT
   ihave ⟨Hent, HTm⟩ := (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (γ : GName) =>
     iprop(∃ (d : WalDur) (lay : WalLay) (g : SegG),
@@ -119,7 +120,10 @@ theorem walInvBody_tailW (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   icases walParkedIn_tail (L := L) Ls cl F g0 (mem_segsAll hl hg0m) tg m
     (by rw [Htg]; exact ⟨rfl, rfl⟩) $$ [Hpk Hlast Hh] with ⟨Hpk, Hlast, Hh⟩
   · iframe Hpk Hlast Hh
+  imod walOldsRes_mint (W := W) Ls dir lay hl $$ HOld with ⟨HOld, #HOf⟩
+  imodintro
   iexists Ls, cl, n, F, d, lay, pre, g0
+  iframe HOf
   isplitr
   · ipureintro; exact ⟨hd, hl, hs, Htg, HW0, ⟨_, habs⟩, hcut0, hZ, hB⟩
   iframe Hh
@@ -164,9 +168,11 @@ theorem walInvBody_tailW (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   · ipureintro; exact hW'
   isplitr
   · ipureintro; exact HWC
-  isplitl [HTa HTm Hvn]
+  isplitl [HTa HTm Hvn HOld]
   · iexists T
     iframe HTa
+    ihave HOld := walOldsRes_insert_same (W := W) Ls dir lay (tailLay lay pre g wr') hl rfl rfl $$ HOld
+    iframe HOld
     isplitr
     · ipureintro
       exact HTo.insert HT hl hg (by simp [tailLay]) (fun i hi =>

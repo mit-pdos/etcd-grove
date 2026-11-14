@@ -38,8 +38,10 @@ variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.A
 theorem wp_tailFsync (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (dir : GoString)
     (γ : GName) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (wr : Nat)
     (m : OsMeta) (bs : List ByteG) (fd : w64) (dq : DFrac) (d : OsFd) (Φ : val → IProp GF)
-    (hm : TailMetaW m bs) (hwr : wr = (tailStream Mr H md cuts).length) :
-    ⊢ walAreaOk walCodec Mr R jr r -∗ osFd fd dq d -∗ walTailKey (W := W) dir γ -∗
+    (hm : TailMetaW m bs) (hwr : wr = (tailStream Mr H md cuts).length) (ko : Option Nat)
+    (hko : (m.lo = m.size ∧ m.hi = m.size) ∨ ko = some m.size) :
+    ⊢ walAreaOk walCodec Mr R jr r -∗ walOldOpt (W := W) dir cuts ko -∗ osFd fd dq d -∗
+      walTailKey (W := W) dir γ -∗
       tailVar (W := W) γ ((H, md, cuts, wr, d.ino, none) : TailG) -∗ walCutFrag (W := W) none -∗
       osMeta d.ino (DFrac.own (1 : Qp).half) m -∗ osBytes d.ino 0 (DFrac.own (1 : Qp).half) bs -∗
       (∀ e : w64, osFd fd dq d -∗ walTailKey (W := W) dir γ -∗
@@ -50,13 +52,13 @@ theorem wp_tailFsync (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (di
          (⌜e ≠ 0 ∧ e ≠ EINTR⌝ ∗ osMeta d.ino (DFrac.own (1 : Qp).half) m ∗
             osBytes d.ino 0 (DFrac.own (1 : Qp).half) bs)) -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Fsync" (Val (#fd))) {{ Φ }} := by
-  iintro #Harea Hfd Hk Hv Hcf Hm1 Hb1 HΦ
+  iintro #Harea Hko Hfd Hk Hv Hcf Hm1 Hb1 HΦ
   unfold walAreaOk
   icases Harea with ⟨#Hinv, #Hos, -⟩
   iapply (wp_atomic_nc (E1 := ⊤) (E2 := (⊤ : CoPset) \ ↑walN) _ _ rfl)
   iintro Hnc
   imod walInv_open walCodec Mr R jr r ⊤ CoPset.subseteq_top $$ Hinv Hnc with ⟨⟨%s, Hb⟩, Hnc, Hcl⟩
-  icases walInvBody_sync walCodec walCodec_ok Mr R jr r s dir γ _ $$ Hb Hk Hv Hcf with
+  icases walInvBody_sync walCodec walCodec_ok Mr R jr r s dir γ _ ko $$ Hb Hk Hv Hcf Hko with
     ⟨%F, %dw, %lay, %pre, %g0, %hp, Hseg, Hk, Hv, Hcf, Hconts⟩
   obtain ⟨hdw, hs, htg, ⟨ents, habs⟩⟩ := hp
   simp only [tailG, Prod.mk.injEq] at htg
@@ -90,7 +92,10 @@ theorem wp_tailFsync (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (di
     icases (osBytes_halves _ _ _).1 $$ Hb with ⟨Hb1, Hb2⟩
     icases Hconts with ⟨Hsucc, -⟩
     imod Hsucc $$ [] [Hm2 Hb2] with ⟨Hb, Hpast⟩
-    · ipureintro; exact ⟨rfl, htail, hzf⟩
+    · ipureintro
+      refine ⟨rfl, htail, hzf, hko.imp (fun h => ⟨?_, ?_⟩) (fun h => by rw [h, hm.1])⟩
+      · show g0.om.lo = g0.bs.length; rw [h.1, hm.1]
+      · show g0.om.hi = g0.bs.length; rw [h.2, hm.1]
     · dsimp only [syncTail]; rw [← hino]; iframe
     imod Hid
     imod Hcl $$ [Hb]

@@ -343,7 +343,8 @@ theorem walCut_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
       ihave Htl := Htlk $$ %(cutLay lay1 d.H.length g wr) %g %(GMap.delete g.ino F) [] [Hvi]
       · ipureintro
         refine ⟨cutLay_last _ _ _ _, tailZeros_cut _ _ _ _, tailBound_cut _ _ _ _ _ _ hwr', ?_⟩
-        refine ⟨fun k la hk hla g' hg' => GMap.lookup_delete_ne _ (hino g' (mem_segsAll hla hg')).symm, ?_⟩
+        refine ⟨fun k la hk hla g' hg' => GMap.lookup_delete_ne _ (hino g' (mem_segsAll hla hg')).symm, ?_,
+          OldStep.cut d.H.length rfl⟩
         intro i hi
         by_cases e : i = g.ino
         · exact Or.inl e

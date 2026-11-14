@@ -180,7 +180,7 @@ theorem valAt0_cases (c : Cands) : valAt c 0 = 0 ∨ ∃ s, (valAt c 0, s) ∈ c
 /-- **The crash condition after the fdatasync of a tail in a window** (`crashOk_sync`'s window
 form): the old condition at the tail imaged as of the last sync (`syncImg`, of the synced size
 `|bs| ∈ [lo, hi]`; below `wr` a stamp-0 candidate, `ByteOk`'s head; from `wr` on, past `lo`
-(`winLo`), a stamp-0 candidate or the zero arm), then `crashTo_tailM` at the raised mark over the
+a stamp-0 candidate, else a zero candidate or the zero arm past `lo` (`WinHead`)), then `crashTo_tailM` at the raised mark over the
 static relation of `syncLayW` (`walAbsD_syncW`). -/
 theorem crashOk_syncW {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
     {ents : Ents} {cl : List Claim} {n : Nat} {pre : List SegG} {g0 : SegG}
@@ -236,7 +236,7 @@ theorem crashOk_syncW {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} 
     have hsz : f.size = g0.bs.length := hsyncSz f hf1
     have hsz' : (syncImg g0.bs f.size).size = g0.bs.length := hsz
     obtain ⟨hm1, -, hm3, hm4, -⟩ := habs0.metas g0 (List.mem_of_getLast? hg0)
-    have hlw := habs0.winLo g0 hg0 hx
+    have hhd := habs0.winHead g0 hg0 hx
     refine ⟨⟨_, rfl⟩, by omega, by omega, ?_, ?_, fun b c hb _ hb2 => absurd hb2 (by omega)⟩
     · intro r hr k hk hks
       rw [List.mem_singleton] at hr; subst hr
@@ -249,7 +249,11 @@ theorem crashOk_syncW {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur} 
       · obtain ⟨-, -, -, -, hbytes, -⟩ := hwin
         exact .inl (valAt_mem0 (hbytes k (g0.bs[k]'hk) (List.getElem?_eq_getElem hk) hkw).head0)
       · rcases valAt0_cases (g0.bs[k]'hk).2 with h0 | h0
-        · exact .inr ⟨by omega, h0⟩
+        · have hkX : k < (segBytesX g0).length := Nat.lt_of_lt_of_le hk segBytesX_length_le
+          rcases hhd k (by omega) hkX with hl | ⟨s0, hs0⟩
+          · exact .inr ⟨by omega, h0⟩
+          · rw [segBytesX_getD_lt hk, e] at hs0
+            exact .inl ⟨s0, by rw [h0]; exact hs0⟩
         · exact .inl h0
     · intro z hz b hzb hb
       have := hzf z hz; omega
@@ -414,22 +418,26 @@ theorem syncLay_any {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {R : Roots} {jr
     (hs : lay.segs = pre ++ [g0])
     (htail : lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length) (hZ : TailZeros lay)
     (hzf : ∀ z, g0.om.zf = some z → g0.bs.length ≤ z) (hK : DirKeysOk C Mr jr s Ls cl n K none)
-    (habs : WalAbsD C Mr d lay ents) :
+    (habs : WalAbsD C Mr d lay ents) (hold : ¬ SegExact g0 → g0.bs.length = lay.old.length) :
     ∃ L : WalLay, L.segs = pre ++ [syncTail g0] ∧ L.j = lay.j ∧ L.nm = lay.nm ∧
-      L.cuts = lay.cuts ∧ L.wr = lay.wr ∧ TailZeros L ∧
+      L.cuts = lay.cuts ∧ L.wr = lay.wr ∧ L.old.length = lay.old.length ∧ TailZeros L ∧
       TailBound C Mr { d with m := d.H.length } L ∧
       WalsOk C Mr R jr (walSyncS s dir d) (<[dir := L]> Ls) cl n ∧
       DirKeysOk C Mr jr (walSyncS s dir d) (<[dir := L]> Ls) cl n K none := by
   have hok : CrashOk C Mr d lay cl n :=
     (crashOkA_none_iff _ _ _ _ _ _).1 (hK.2.1 dir d lay hd hl (by simp))
   by_cases hex : SegExact g0
-  · exact ⟨syncLay lay pre g0, rfl, rfl, rfl, rfl, rfl, hZ, tailBound_sync habs hs htail,
+  · exact ⟨syncLay lay pre g0, rfl, rfl, rfl, rfl, rfl, rfl, hZ, tailBound_sync habs hs htail,
       walsOk_sync hC hW hd hl hs htail hZ hzf hex hok,
       dirKeysOk_sync hC hW hd hl hs htail hZ hzf hex hK⟩
   · have hg0 : lay.segs.getLast? = some g0 := by rw [hs]; simp
     have hwo : lay.wr ≤ lay.old.length := by
       obtain ⟨-, -, h3, h4, -⟩ := habs.lastWin g0 hg0; omega
-    exact ⟨syncLayW lay pre g0, rfl, rfl, rfl, rfl, rfl, tailZeros_syncW hZ hwo,
+    have hwb : lay.wr ≤ g0.bs.length := by
+      obtain ⟨-, -, -, h4, -⟩ := habs.lastWin g0 hg0; exact h4
+    exact ⟨syncLayW lay pre g0, rfl, rfl, rfl, rfl, rfl,
+      by simp only [syncLayW, syncLay]; rw [syncOld_length _ _ _ hwo, ← hold hex]; omega,
+      tailZeros_syncW hZ hwo,
       tailBound_syncW habs hs htail,
       walsOk_syncW hC hW hd hl hs htail hZ hzf hex hok,
       dirKeysOk_syncW hC hW hd hl hs htail hZ hzf hex hK⟩

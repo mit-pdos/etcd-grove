@@ -111,7 +111,7 @@ theorem walTailsRes_close (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (L
   unfold tailVar
   iintro Htl Htf Hk Hv
   unfold walTailsRes
-  icases Htl with ⟨%T, HTa, %HTo, %HTi, HTm⟩
+  icases Htl with ⟨%T, HTa, %HTo, %HTi, HTm, HOld⟩
   icases walTails_agree (W := W) T _ $$ HTa Htf with %hT
   subst hT
   icases walTailKey_lookup _ dir γ $$ HTa Hk with %HT
@@ -135,7 +135,7 @@ theorem walTailsRes_close (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (L
   imodintro
   iframe Htf
   iexists ∅
-  iframe HTa
+  iframe HTa HOld
   isplitr
   · ipureintro
     have hF0 := tailsOnly_single_none hp.2.1 hp.2.2.1 hidle.2 HTo

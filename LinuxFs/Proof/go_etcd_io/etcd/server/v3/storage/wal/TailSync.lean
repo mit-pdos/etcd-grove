@@ -129,7 +129,7 @@ theorem walTailsRes_zeros (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState)
         walTailsRes (W := W) C Mr s Ls F ∗ walTailKey (W := W) dir γ := by
   letI := walAllG (W := W)
   unfold walTailsRes
-  iintro ⟨%T, HTa, %HTo, %HTi, HTm⟩ Hk
+  iintro ⟨%T, HTa, %HTo, %HTi, HTm, HOld⟩ Hk
   icases walTailKey_lookup T dir γ $$ HTa Hk with %HT
   ihave ⟨Hent, HTm⟩ := (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (γ : GName) =>
     iprop(∃ (d : WalDur) (lay : WalLay) (g : SegG),
@@ -145,7 +145,7 @@ theorem walTailsRes_zeros (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState)
     exact ⟨hp.2.2.2.1, hp.2.2.2.2⟩
   iframe Hk
   iexists T
-  iframe HTa
+  iframe HTa HOld
   isplitr
   · ipureintro; exact HTo
   isplitr
@@ -160,29 +160,57 @@ theorem walTailsRes_zeros (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState)
   iframe Hv'
   ipureintro; exact hp
 
+/-- **The old-length fragment of a tail's cuts, if `ko` is some** (`walInvBody_sync`'s window case:
+the window's fdatasync keeps `old` as long, `OldStep`, only if the tail is as long as `old`). -/
+def walOldOpt (dir : GoString) (c : List Nat) : Option Nat → IProp GF
+  | none => iprop(True)
+  | some k => walOldFrag (W := W) dir c k
+
+theorem walTailsRes_oldOpt (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState)
+    (Ls : GMap GoString WalLay) (F : GMap Ino SegFl) (dir : GoString) (c : List Nat) (ko : Option Nat) :
+    ⊢ walTailsRes (W := W) C Mr s Ls F -∗ walOldOpt (W := W) dir c ko -∗
+      ⌜∀ k, ko = some k → ∀ lay, Ls !! dir = some lay → lay.cuts = c → k = lay.old.length⌝ ∗
+        walTailsRes (W := W) C Mr s Ls F := by
+  letI := walAllG (W := W)
+  cases ko with
+  | none =>
+    iintro Htl -
+    iframe Htl
+    ipureintro; intro k hk; cases hk
+  | some k =>
+    unfold walTailsRes walOldOpt
+    iintro ⟨%T, HTa, %HTo, %HTi, HTm, HOld⟩ Hk
+    icases walOldsRes_agree Ls dir c k $$ HOld Hk with ⟨%h, HOld⟩
+    isplitr
+    · ipureintro; intro k' hk'; cases hk'; exact h
+    iexists T
+    iframe HTa HTm HOld
+    ipureintro; exact ⟨HTo, HTi⟩
+
 /-- **The tail's fdatasync on the invariant** (see the file header). -/
 theorem walInvBody_sync (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots) (jr : Ino)
-    (r : GoString) (s : AbsDiskState) (dir : GoString) (γ : GName) (tg : TailG) :
+    (r : GoString) (s : AbsDiskState) (dir : GoString) (γ : GName) (tg : TailG) (ko : Option Nat) :
     ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walTailKey (W := W) dir γ -∗
-      tailVar (W := W) γ tg -∗ walCutFrag (W := W) none -∗
+      tailVar (W := W) γ tg -∗ walCutFrag (W := W) none -∗ walOldOpt (W := W) dir tg.2.2.1 ko -∗
       ∃ (F : GMap Ino SegFl) (d : WalDur) (lay : WalLay) (pre : List SegG) (g0 : SegG),
         ⌜s.wal !! dir = some d ∧ lay.segs = pre ++ [g0] ∧ tg = tailG d lay g0.ino (F !! g0.ino) ∧
           (∃ ents, WalAbsD C Mr d lay ents)⌝ ∗
         segResF (L := L) F g0 ∗ walTailKey (W := W) dir γ ∗ tailVar (W := W) γ tg ∗
         walCutFrag (W := W) none ∗
         (⌜F !! g0.ino = none ∧ lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length ∧
-            (∀ z, g0.om.zf = some z → g0.bs.length ≤ z)⌝ -∗
+            (∀ z, g0.om.zf = some z → g0.bs.length ≤ z) ∧ (SegExact g0 ∨ ko = some g0.bs.length)⌝ -∗
           segRes (L := L) (syncTail g0) ==∗
           walInvBody (L := L) (W := W) C Mr R jr r (walSyncS s dir d) ∗
             walPast (W := W) (walSyncS s dir d)) ∧
         (segResF (L := L) F g0 -∗ walInvBody (L := L) (W := W) C Mr R jr r s) := by
   letI := walAllG (W := W)
-  iintro Hb Hk Hv Hcf
+  iintro Hb Hk Hv Hcf Hko
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hn, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
     ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms, %Hbd⟩
   icases walCut_agree cp none $$ Hcp Hcf with %Hcpe
   subst Hcpe
+  icases walTailsRes_oldOpt C Mr s Ls F dir tg.2.2.1 ko $$ Htl Hko with ⟨%hagr, Htl⟩
   icases walTailsRes_zeros C Mr s Ls F dir γ tg $$ Htl Hk with ⟨%HZs, Htl, Hk⟩
   icases walTailsRes_cut C Mr s Ls F dir γ tg $$ Htl Hk Hv with
     ⟨%d, %lay, %g0, %hp, Hk, Hv, Hv', Htlc⟩
@@ -224,7 +252,7 @@ theorem walInvBody_sync (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
       iapply Htlc $$ %lay %g0 %F [] [Hv']
       · ipureintro
         exact ⟨hg, hZB.1, hZB.2, fun _ _ _ _ _ _ => rfl, fun i hi =>
-          if e : i = g0.ino then Or.inl e else Or.inr ⟨hi, e⟩⟩
+          if e : i = g0.ino then Or.inl e else Or.inr ⟨hi, e⟩, OldStep.same rfl rfl⟩
       · rw [← htg]; iexact Hv'
     isplitr
     · ipureintro; exact Hab
@@ -235,13 +263,17 @@ theorem walInvBody_sync (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
       iframe Hdk Hcp
       ipureintro; exact Hdko
     iframe Hnms; ipureintro; exact ⟨HAt, Hbd⟩
-  iintro ⟨%hF, %htail, %hzf⟩ Hseg
+  iintro ⟨%hF, %htail, %hzf, %hko⟩ Hseg
   -- F-Z, from the tail record's entry (kept by `walTailsRes_cut`'s premise)
   have hZ : TailZeros lay := hZB.1
   have hmH : d.m ≤ d.H.length := habs.synced.1
   -- the synced layout: `syncLay`, or `syncLayW` in a resize window
-  obtain ⟨Lw, hLs, hLj, hLnm, hLc, hLw, hLZ, hLB, hLW, hLK⟩ :=
-    syncLay_any hC HW hd hl hs htail hZ hzf Hdko habs
+  have hold : ¬ SegExact g0 → g0.bs.length = lay.old.length := fun hx => by
+    rcases hko with hko | hko
+    · exact absurd hko hx
+    · exact hagr _ hko lay hl (by rw [htg]; rfl)
+  obtain ⟨Lw, hLs, hLj, hLnm, hLc, hLw, hLo, hLZ, hLB, hLW, hLK⟩ :=
+    syncLay_any hC HW hd hl hs htail hZ hzf Hdko habs hold
   -- the ghost state at the synced state
   unfold walGhost
   icases Hg with ⟨⟨%G0, HGs, %HG0⟩, HP, Hh, %Hk0⟩
@@ -295,7 +327,8 @@ theorem walInvBody_sync (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
       · ipureintro
         exact ⟨by rw [hLs]; simp, hLZ,
           TailBound.congr (d := { d with m := d.H.length }) rfl rfl hLB,
-          fun _ _ _ _ _ _ => rfl, fun i hi => if e : i = g0.ino then Or.inl e else Or.inr ⟨hi, e⟩⟩
+          fun _ _ _ _ _ _ => rfl, fun i hi => if e : i = g0.ino then Or.inl e else Or.inr ⟨hi, e⟩,
+          OldStep.same hLc hLo⟩
       · have e : tailG d Lw (syncTail g0).ino (F !! (syncTail g0).ino) = tg := by
           rw [htg]; unfold tailG; rw [hLc, hLw]; rfl
         rw [e]; iexact Hv'
