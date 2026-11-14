@@ -2793,6 +2793,51 @@ its last page).
   - **Obligation for `wal-read7`**: the registration step, the sync commit above, `walTailW`'s new conjunct, and
     `TailMeta`'s exactness (W1 log, ninth session) when building `walTailW`.
 
+**The cut-off bytes' candidates in `tc`; `rz` with the kind (branch `wal-tc`, 2026-11-14).** Tasks 1-2 of the
+coordinator's decision (the item-2 proposal above); task 3 (the supplies) not done.
+- *Extension (`GooseLang/Ext/Fs`, untrusted; `Impl.lean` unchanged).* Sound against the crash rule: a landing
+  (`OsFile.land`) leaves every byte's candidates as they were, so a byte cut off keeps `c0 ++ [(0, n)]`, which a
+  crash may pick from, or zero past `sizeLo` (P1's clause, `FileCrashedR`'s `m.lo` disjunct).
+  - `Truncate.lean`: **`rsTail tr m tg sz' n xs`** (the `tc` a landing to `sz'` leaves: each announced byte at or
+    past `sz'` with its candidates, below the old size `xs`'s, past it `(m.pc b).map (· ++ [(0, n)])`, the rest as
+    the announcement left them); **`rsPostK keep tr m tg sz' n xs`** = `rsPost` with `tc := cond keep (rsTail …) _`
+    (`rsPostK_false` is `rsPost`, by `rfl`; projections `rsPostK_size`, …; `rsPostK_true_tc`, `_tc_past`);
+    `rsDoneK keep …` (`rsDoneK_false` = `rsDone`); `resize_done_worldK keep … (hkeep : keep = true → m.cut = none)`
+    (the byte resources' candidates are the state's only without a sync cut), `wp_osFtruncateFinishK`; `RsFacts`
+    gains `hcandP` (an announced byte past the size has `m.pc`'s candidates then `(0, n)`, from `tok_cand`).
+    `Falloc.lean`: `wp_osFallocFinishK` (a partial growth keeps `[w, tg)`'s). `Zeros.lean`: `rsDoneK_zeros`,
+    `rsDoneK_zerosA`. The old statements stay (wrappers at `keep := false`): no user outside changed.
+  - `CrashFiles.lean`: **`FileCrashedR` gains a sixth clause**: `∀ b c, m.size ≤ b → m.tc !! b = some c → b <
+    f'.size → (∃ s, (f'.cache b, s) ∈ c) ∨ (m.lo ≤ b ∧ f'.cache b = 0)` (from `MetaOk.tail`). Users that build a
+    `FileCrashedR` add it (`TailCrash`/`TailSyncPure`'s synced images: vacuous, `size = |bs|`); `CrashWrite`'s
+    patterns take the extra component.
+- *The split outcomes* (`LinuxFs/Proof/os/ResizeAu.lean`): `rsOutT`/`rsOutF` are over **`rsDoneK m.cut.isNone`**
+  (the whole outcome the update's owner gets knows the cut-off bytes for a file with no sync cut: every WAL
+  segment). The caller's halves hold the `OsMeta` **up to `tc`**: `OsMeta.withTc m tc` (`{ m with tc }`, simp
+  projections, `withTc_self`, `touch_withTc`, `announce_withTc`, `rsPost_withTc`, `synced_withTc`); `os.ftDoneH`
+  and `fallocDoneH` are `∃ tc, osMeta ½ ((rsPost … ).withTc tc)`. Repaired: `File__TruncateAu` (`truncOutH_again`
+  takes the landed state's `tc0`), `DefsAu`, `ZeroToEndAu`. **For the supplies**: the invariant splits
+  `osMeta 1 (rsPostK …)` and hands the program `½ (rsPost …).withTc (rsPostK …).tc` (`rsPostK_withTc`, `rfl`).
+- *Pure* (`LinuxFs/Proof/os/CrashResize.lean`): **`fileCrashedR_rsPostK`** — a crash after a truncate landed
+  (`rsPostK true`, bytes `ys` below `tg`) is a crash of the file as announced (`m.announce …`, `ys ++ rsAnn n
+  xs`): `CrashOk` across a truncate need only hold of the in-flight state (`SegFl.OkR`'s), which the layout
+  already describes. Suggested use: the landed tail's crash take converts with it, so `walsOk_resizeFinish`
+  reduces to `walsOk_resizeStart`'s state.
+- *Task 2* (`Inv.lean`): **`SegFl.rz : Option (Bool × Nat)`** (`some (tr, tg)`: `ftruncate` if `tr`, else
+  `fallocate`'s growth); `SegFl.OkR fl tr tg g` (`rsHi tr`); `segResF`'s case `rsTok tr`. Repaired:
+  `InvInos.segFlR_take_cons`, `CrashTakeSeg` (`runsCover_rz`, the take: `rsKind_meta`/`rsKind_lo` rewrite the token,
+  `rsKind tr` no longer reduces). `lake build` of every importer of `Truncate`, `CrashFiles`, `ResizeAu`, `Inv`:
+  clean (a seeded `.lake` needs its stale `Proof/io/ReaderStream` `.olean` removed).
+- **Open for task 3** (the supplies, `os.File.Truncate.specWalTail`, `ZeroToEnd`'s instance):
+  1. *A crash while `fallocate` is in flight* (`ZeroToEnd`'s regrowth over `[o, size)`): the token's `OsMeta`
+     (`TokInfo.meta` = `announce`) drops `tc` over the announced range, so `FileCrashedR` of it does not bound the
+     regrown bytes (the state's are `tc ++ [(0, n)]`, `tok_cand`'s third clause). Either a token-aware take
+     (`crashRestAt_take_tok` also giving `∀ b ≥ m0.size` in range, `m0.pc b = some c` → the byte is in `c ++
+     [(0, n)]` or zero past `lo`; from `CrashSeenR`'s `OsCoh`), or `TokInfo.meta` keeping them (an `Ext/Fs`
+     change: `osCoh_start`, `Write.lean`'s `htm`, `rsKind_meta`'s users).
+  2. The supplies themselves (`walInvBody_tail`'s continuation requires `SegExact g`; a resize needs a
+     continuation closing with `TailWin` and `CrashOk` in the window, by `fileCrashedR_rsPostK` and item 1).
+
 **Third session (branch `wal-read3`, 2026-11-13).**
 - *Gaps 1 and 2 closed* as the coordinator decided: `WalsNamed` and `walParked` in `walInvBody`, the parking
   flag in the lock token (W1 log, sixth session, for the design and the other units' obligations).
