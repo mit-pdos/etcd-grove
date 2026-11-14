@@ -14,6 +14,7 @@ exists (`WalsAt`; then `osPathS` extends to `dir`), nothing if it does not (`Abs
 module
 
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateNamed
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.NameSplit
 
 @[expose] public section
 
@@ -54,20 +55,33 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
   [W : WalGS GF]
 
-/-- **The area at a WAL's name, from the program's claim** (see the file header): the contents
-unchanged, the program's claim back, and what it holds at `nm`. -/
+/-- **The area at a WAL's name, with no WAL there, from the program's claim** (see the file header):
+the contents unchanged, the program's claim and split names (`Wn`; every WAL name is in `N` or split)
+back; with no WAL at `dir`, `nm` is not split (`split_absent`), so it is in `N`, absent. (A present
+WAL's name is split; its directory is reached through the name's claim, `walInv_dirPath`.) -/
 theorem walInvBody_areaAt (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
-    (s : AbsDiskState) (dir nm : GoString) (N : NameSet) (dq : DFrac) (h : NamesH) {Em : CoPset}
-    (hin : InArea r dir nm) (hN : N.Mem nm) (hE : ↑osShN ⊆ Em) :
+    (s : AbsDiskState) (dir nm : GoString) (N : NameSet) (dq : DFrac) (h : NamesH) (Wn : List GoString)
+    {Em : CoPset} (hin : InArea r dir nm) (hN0 : N.Mem nm ∨ nm ∈ Wn) (hE : ↑osShN ⊆ Em) :
     ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ osSharedInv (L := L) R -∗
-      osNames (L := L) jr N dq h ={Em}=∗
-      walInvBody (L := L) (W := W) C Mr R jr r s ∗ osNames (L := L) jr N dq h ∗
-      ⌜(s.wal !! dir = none → h.cur !! nm = none) ∧
-        ∀ d, s.wal !! dir = some d → ∃ J, h.cur !! nm = some (.dir J)⌝ := by
-  iintro Hb #Hsh Hn
+      osNames (L := L) jr N dq h -∗ walSplitFrag (W := W) Wn ={Em}=∗
+      walInvBody (L := L) (W := W) C Mr R jr r s ∗ osNames (L := L) jr N dq h ∗ walSplitFrag (W := W) Wn ∗
+      ⌜s.wal !! dir = none → N.Mem nm ∧ h.cur !! nm = none⌝ := by
+  iintro Hb #Hsh Hn Hsf
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n0, %F, Hg, %Har, Hcl, Hcm, Hlays, %Hok, %Hco, Hcr, Htl, %Han, %Hnm, Hpk,
     Hk, %HAt, Hnms⟩
+  icases walNamesRes_splitOk (L := L) (W := W) R jr r Ls Wn $$ Hnms Hsf with ⟨Hnms, Hsf, %hW⟩
+  have hin' : InArea s.area dir nm := by rw [Har]; exact hin
+  by_cases hsd : s.wal !! dir = none
+  rotate_left
+  · imodintro
+    iframe Hn Hsf
+    isplitl
+    · iexists Ls, cl, n0, F
+      iframe
+      ipureintro; exact ⟨Har, Hok, Hco, Han, Hnm, HAt⟩
+    ipureintro; intro h; exact absurd h hsd
+  have hN : N.Mem nm := hN0.resolve_right (split_absent Hok hW hin' hsd)
   obtain ⟨N', h', hc', hN'⟩ := Hco nm hin.1
   have hmem : ((jr, N', h'), DFrac.own (1 : Qp).half) ∈
       cl.map (fun c => (c, DFrac.own (1 : Qp).half)) := List.mem_map_of_mem hc'
@@ -76,18 +90,15 @@ theorem walInvBody_areaAt (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
   imod osNames_same_name R jr N N' dq _ h h' nm hN hN' hE $$ Hsh Hn Hi with ⟨%Hk', Hn, Hi⟩
   obtain ⟨rfl, rfl⟩ := Hk'
   ihave Hcl := Hcl $$ Hi
-  have hin' : InArea s.area dir nm := by rw [Har]; exact hin
-  obtain ⟨h1, h2⟩ := walDirAt_pure Hok HAt Han.1 hin' hc' hN
+  obtain ⟨h1, -⟩ := walDirAt_pure Hok HAt Han.1 hin' hc' hN
   imodintro
-  iframe Hn
+  iframe Hn Hsf
   isplitl
   · iexists Ls, cl, n0, F
     iframe
     ipureintro; exact ⟨Har, Hok, Hco, Han, Hnm, HAt⟩
   ipureintro
-  refine ⟨h1, fun d hd => ?_⟩
-  obtain ⟨lay, -, -, he⟩ := h2 d hd
-  exact ⟨lay.j, he⟩
+  intro _; exact ⟨hN, h1 hsd⟩
 
 end iris
 

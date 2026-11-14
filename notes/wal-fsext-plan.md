@@ -547,12 +547,12 @@ W7-W12 log, second session); `ReadDir`'s loops and the names' bound proved (`wal
 and the hypothesis `WAL.Close.specOpening` (W10's to discharge); `Open`'s success keeps the client's half of the call
 permission in `walOpeningF` (ledger 2026-11-14) (`wal-read13`; W3/W5 log, thirteenth session). `WalPinSized`'s
 invariant conjunct is designed, not made (same log). `ReadAll`'s pure core (the running files' decode, the fold to `walReadAllOk`, the read position below
-`walOpenPos`: `readAll_success`) is proved, over the hypotheses `WalReadState` and `decoder.Decode.specR`; its wp proof
+`walOpenPos`: `readAll_success`) is proved, over the hypothesis `WalReadState` (and `Decode.spec`); its wp proof
 not started (`wal-readall14`; W3/W5 log, fourteenth session). The decoder's error identity (`Decode.spec` strengthened, `specR` gone), `WalTailIdle` in the invariant
 (`walTailsRes`), `WalReadState`'s idle part proved (`walInvBody_readIdle`) and `walReadTie`'s selection fact are done
 (`wal-readall15`; W3/W5 log, fifteenth session: open are the cuts' positivity, the pinned segments' law, `nameBound`'s
 `ix < 2^64`, and the finding that `WalDecEnvSupply` is unsatisfiable).
-invariant conjunct is designed, not made (same log). Each registered WAL name has its own claim (`walNamesRes`, a framed conjunct; registration pending linked to the lock token, `walNamesFrag`), and the path law `walInv_dirPath` (a kept fraction of `osPathS R dir _ j` from `walDirKey`, with `walNamesFrag none`) is proved (`wal-path13`; W1 log, thirteenth session); `walAreaRes`'s split names and `Create`'s registration are open.
+invariant conjunct is designed, not made (same log). Each registered WAL name has its own claim (`walNamesRes`, a framed conjunct; registration pending linked to the lock token, `walNamesFrag`), and the path law `walInv_dirPath` (a kept fraction of `osPathS R dir _ j` from `walDirKey`, with `walNamesFrag none`) is proved (`wal-path13`; W1 log, thirteenth session); `walAreaRes` holds every WAL name not split out (`walSplitFrag`), `Exist`/`openAtIndex`/`Create` read a registered name through its own claim, `openAtIndex` takes its path from `walInv_dirPath`, and `Create`'s post-commit split (`walInv_splitNew`) and registration (`walInv_register`) are proved, not yet used by `Create`'s body (`wal-path14`; W1 log, fourteenth session). Open: `renameWAL`'s path law, `Open`'s `WalDirPathLaw`, `WalsBounded`.
 
 The resize stamps reach the WAL's crash condition (`OsMeta.rz`, `MetaOk.rz`, `OsCoh.tok_rz`; `CrashOk` passes `segRzOf`) and `W1G.drop_rz` transports W1 across a truncate's zeros (`wal-tc5`; W1 log, fifteenth session); the truncate window's `CrashOk`, `W1G` over the known candidates past the bytes, the WAL-level supplies and `specWalTail` remain (I3b, `wal-tc5` entry).
 
@@ -1162,6 +1162,48 @@ area or creating claim. Design (internal invariant, no client-visible ghost stat
   `walInvBody_merge2`'s `b1` must then be an unregistered WAL name. (3) `renameWAL.spec`'s caller-supplied path
   law (`RenameWALOk`'s third conjunct) to discharge from (2). (4) The `WalsBounded s Ls` conjunct (metadata
   `< 2^41`, segments' `om.hi ≤ 0xffffffff000`; coordinator's decision) not added.
+
+**Fourteenth session (branch `wal-path14`, 2026-11-14; G-spine continued).**
+- **`walAreaRes` with the split names** (`CreateDefs.lean`): `∃ N h cl Wn, osNames jr N ½ h ∗ walSplitFrag Wn ∗
+  ⌜∀ nm, walNameOk nm → N.Mem nm ∨ nm ∈ Wn⌝ ∗ …` (`AreaOk N h cl Wn`, `CreateArea.lean`). The predicate's text
+  in the specs is unchanged (it is the plan's design: `walInv_alloc` already returns the `walSplitFrag`), but it
+  now names `WalGS` (`walAreaRes` elaborates with `W`). `NameSplit.lean` (new): **`split_absent`** (no WAL at
+  `r/nm` → `nm ∉ Wn`, so the area claim holds it), `split_present`, **`walNamesRes_splitOk`** (agreement),
+  **`walNamesRes_lendAt`** (with `walNamesFrag none`, a present WAL's name claim and a spine fraction lent, kept).
+- **Users repaired**: `walInvBody_absent`/`walInv_absent` (take `walSplitFrag Wn` and `N.Mem nm ∨ nm ∈ Wn`, return
+  `N.Mem nm ∧ h.cur !! nm = none`); `walInvBody_areaAt` (post only the absent case, `N.Mem nm` included) and
+  `walInv_openAt` (thread `walSplitFrag`); `create_abortTmp` (takes `N.Mem nm`, `walSplitFrag`); `Exist`:
+  `walInvBody_existPin` reads a present WAL through the lent name claim (`ReadDir.specChildIs` with
+  `Np = .only [nm]`) and returns the WAL's key; `walInvBody_existUnpin`/`walInv_existEnd` find the directory's claim
+  by the key (`walDirKey`, `DirKeysOk`) instead of the area claim (no `walPast`, `N`, `h` any more).
+  `Create`, `Exist`, `openAtIndex`, `Open`, `OpenForRead`, `renameWAL` build.
+- **`openAtIndex` without `WalDirPathLaw`**: the pin's `walNamesFrag none` and `walInv_dirPath`. `Open` still
+  takes `WalDirPathLaw` (its `OpenDir` step holds the lock inside `walReadH`'s `walReadTie`; the swap needs a
+  lemma taking `walNamesFrag none` out of `walReadH` and back, not done).
+- **`Create`'s split and registration** (`CreateSplit.lean`, new; proved, not yet used in `Create`'s body):
+  **`walInvBody_dropT`** (`walInvBody_drop` with any lock token `T`, `walCreating_empty`; the area claim is no WAL
+  directory's by `WalsAt`), **`coverOk_rekey`** + **`walInvBody_rekey`** (a claim of `jr` holding a WAL name
+  rekeyed to a set of the same names: both halves, `osNames_rekey`, a covering change), **`walInv_splitNew`**
+  (after the commit: the program's half of `.only [nm, nm.tmp]` becomes its half of `.only [nm]` (the invariant
+  the other) and the whole `.only [nm.tmp]`, for `walInvBody_mergeIn` back into the area claim),
+  **`walInvBody_register`**/**`walInv_register`** (`walNamesFrag (some dir)` → `none`, `Wn` → `nm :: Wn`, a
+  fraction of the program's `.only [nm]` deposited as `nameShare`; the WAL present from a `walPast`).
+  **Order inside `Create`** (found this session): the split right after the commit (inside `renameWAL`: the
+  pipeline and `OpenDir` need paths, built by `osPathS_child` from fractions of the program's `.only [nm]`
+  half); the registration only after the parent directory's fsync and close succeed, because the after-rename
+  error arm's `cleanupWAL` renames `r/nm` away: `w.Close()` returns the lent fractions, and the rename needs the
+  whole claim, i.e. a step taking back the invariant's half of an unregistered (`o = some dir`) name's claim (not
+  written). `walInvBody_merge2` is then no longer what `Create` uses after the commit (the `.only [nm.tmp]` claim
+  goes back by `mergeIn`).
+- **Not done**: (1) `renameWAL.spec`'s law (`RenameWALOk`'s third conjunct) cannot be discharged as stated: it is
+  a `={⊤}=∗` without `notCrashed` (so `walInv` cannot be opened to its body) and without the update's result
+  `U (some x)` (whose `walLockedTok` is the lock token `walInv_splitNew` needs); proposed restatement (ledger
+  first): `∀ x, Sp -∗ notCrashed -∗ U (some x) -∗ renDirOut … (some x) ={⊤}=∗ notCrashed ∗ U (some x) ∗ osPathS R
+  dir dq J ∗ osPathS R dir dq J ∗ SpR x`, `dq` fixed by `Create` from a spine fraction it borrows beforehand
+  (`os.qp_common` of that fraction and `¼`). (2) `Open`'s swap (above). (3) `WalsBounded` (coordinator,
+  2026-11-14: the metadata half as a framed conjunct, the segments' `om.hi ≤ 0xffffffff000` as a named hypothesis
+  until `wal-maxb14`'s model lemma lands; no `pipeFile` obligation) not started. (4) nil-receiver `File.Close`,
+  `renameWALUnlock`, `renameWAL` not started.
 
 ## 9. The trusted-model drafts (2026-11-13, branch `wal-models`; pending the user's review [user])
 
@@ -2487,6 +2529,11 @@ h.cur !! tmpName nm = some (.dir J) → ∀ hJ, (J, NameSet.except [], hJ) ∈ c
 of a leftover `dir.tmp`. (2) The `walCreating` token is `walCreating dir N h J` and the minting must establish
 `CreatingNew` (W1 log, seventh session, task 2). (3) `walCreate_osAUnc`'s commit (task 3) needs more of the
 program: see the W1 log's task-3 entry.
+
+**Fourteenth session (branch `wal-path14`, 2026-11-14).** `Create`'s area part through the split names
+(`walInv_absent` gives `N.Mem nm` from the client's `walAbsent dir`); the post-commit split and the registration
+proved as steps (`CreateSplit.lean`; W1 log, fourteenth session, for the order inside `Create` and why the
+registration waits for the parent's fsync); the body not advanced (frontier `sorry` unchanged).
 
 ## 11. Coordinator decisions after W2 and W4 (2026-11-13)
 

@@ -27,9 +27,9 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Fs WalEnc
 
 section pure
 
-/-- The pure facts of `walAreaRes`. -/
-def AreaOk (N : NameSet) (h : NamesH) (cl : List (GoString × Claim)) : Prop :=
-  (∀ nm, walNameOk nm → N.Mem nm) ∧ (∀ nm sfx, walNameOk nm → N.Mem (nm ++ go!"." ++ sfx)) ∧
+/-- The pure facts of `walAreaRes` (`Wn` the split names). -/
+def AreaOk (N : NameSet) (h : NamesH) (cl : List (GoString × Claim)) (Wn : List GoString) : Prop :=
+  (∀ nm, walNameOk nm → N.Mem nm ∨ nm ∈ Wn) ∧ (∀ nm sfx, walNameOk nm → N.Mem (nm ++ go!"." ++ sfx)) ∧
   (∀ b, N.Mem b → ¬ walNameOk b → SubCover (clOf cl b) (h.cur !! b)) ∧
   (∀ nm, walNameOk nm → TmpOk (clOf cl (tmpName nm)) (h.cur !! tmpName nm))
 
@@ -84,11 +84,12 @@ theorem subCover_single (J : Ino) (hJ : NamesH) (hf : FilesOnly hJ.cur) :
 
 /-- **The pure facts rebuilt** with the temporary directory's new contents (`ct`: its claims). -/
 theorem areaOk_give (N N' : NameSet) (h h' : NamesH) (cl : List (GoString × Claim))
-    (tmp : GoString) (ct : List Claim) (hok : AreaOk N h cl) (hN : ∀ b, N'.Mem b ↔ N.Mem b)
+    (tmp : GoString) (ct : List Claim) (Wn : List GoString) (hok : AreaOk N h cl Wn)
+    (hN : ∀ b, N'.Mem b ↔ N.Mem b)
     (htN : ¬ walNameOk tmp)
     (hcur : ∀ b, b ≠ tmp → ¬ walNameOk b → h'.cur !! b = h.cur !! b)
     (hct : SubCover ct (h'.cur !! tmp) ∧ TmpOk ct (h'.cur !! tmp)) :
-    AreaOk N' h' (cl.filter (fun c => decide (c.1 ≠ tmp)) ++ ct.map (fun c => (tmp, c))) := by
+    AreaOk N' h' (cl.filter (fun c => decide (c.1 ≠ tmp)) ++ ct.map (fun c => (tmp, c))) Wn := by
   obtain ⟨h1, h2, h3, h4⟩ := hok
   have hcl : ∀ b, b ≠ tmp →
       clOf (cl.filter (fun c => decide (c.1 ≠ tmp)) ++ ct.map (fun c => (tmp, c))) b = clOf cl b := by
@@ -106,7 +107,7 @@ theorem areaOk_give (N N' : NameSet) (h h' : NamesH) (cl : List (GoString × Cla
     rw [List.filter_eq_self.2 (by intro c hc; obtain ⟨c', -, rfl⟩ := List.mem_map.1 hc; simp)]
     rw [List.map_map]
     exact List.map_id' _
-  refine ⟨fun nm hn => (hN _).2 (h1 nm hn), fun nm sfx hn => (hN _).2 (h2 nm sfx hn), ?_, ?_⟩
+  refine ⟨fun nm hn => (h1 nm hn).imp_left (hN _).2, fun nm sfx hn => (hN _).2 (h2 nm sfx hn), ?_, ?_⟩
   · intro b hb hbn
     by_cases hbt : b = tmp
     · subst hbt; rw [hclt]; exact hct.1
@@ -123,7 +124,7 @@ end pure
 section iris
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
   [GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [W : WalGS GF]
 
 theorem osClaims_nil' : ⊢ osClaims (GF := GF) hG.goose_localGS [] := by
   unfold osClaims; iintro; iapply BigSepL.bigSepL_nil.2; iempintro
@@ -180,7 +181,7 @@ theorem osClaims_take (l : List Claim) (c : Claim) (hc : c ∈ l) :
 
 /-- **The temporary directory's contents taken from the area's claims.** -/
 theorem area_takeTmp (N : NameSet) (h : NamesH) (cl : List (GoString × Claim)) (nm : GoString)
-    (hok : AreaOk N h cl) (hnm : walNameOk nm) :
+    (Wn : List GoString) (hok : AreaOk N h cl Wn) (hnm : walNameOk nm) :
     osClaims (GF := GF) hG.goose_localGS (cl.map (fun c => (c.2, DFrac.own 1))) ⊢
       tmpSub (h.cur !! tmpName nm) ∗
       osClaims hG.goose_localGS
@@ -204,26 +205,27 @@ theorem area_takeTmp (N : NameSet) (h : NamesH) (cl : List (GoString × Claim)) 
 
 /-- **`walAreaRes` rebuilt** (see the file header). -/
 theorem area_give (N N' : NameSet) (h h' : NamesH) (cl : List (GoString × Claim)) (jr : Ino)
-    (tmp : GoString) (hok : AreaOk N h cl) (hN : ∀ b, N'.Mem b ↔ N.Mem b) (htN : ¬ walNameOk tmp)
+    (tmp : GoString) (Wn : List GoString) (hok : AreaOk N h cl Wn) (hN : ∀ b, N'.Mem b ↔ N.Mem b)
+    (htN : ¬ walNameOk tmp)
     (hcur : ∀ b, b ≠ tmp → ¬ walNameOk b → h'.cur !! b = h.cur !! b) :
-    osNames (L := hG.goose_localGS) jr N' (DFrac.own (1 : Qp).half) h' ∗ tmpSub (h'.cur !! tmp) ∗
-      osClaims hG.goose_localGS
+    osNames (L := hG.goose_localGS) jr N' (DFrac.own (1 : Qp).half) h' ∗ walSplitFrag (W := W) Wn ∗
+      tmpSub (h'.cur !! tmp) ∗ osClaims hG.goose_localGS
         ((cl.filter (fun c => decide (c.1 ≠ tmp))).map (fun c => (c.2, DFrac.own 1))) ⊢
       walAreaRes (L := hG.goose_localGS) jr := by
-  iintro ⟨Hn, Ht, Hc⟩
+  iintro ⟨Hn, Hs, Ht, Hc⟩
   rcases he : h'.cur !! tmp with _ | ⟨i | J⟩
-  · have hok' := areaOk_give N N' h h' cl tmp [] hok hN htN hcur
+  · have hok' := areaOk_give N N' h h' cl tmp [] Wn hok hN htN hcur
       ⟨by rw [he]; exact subCover_none _, by rw [he]; exact .inl rfl⟩
     rw [List.map_nil, List.append_nil] at hok'
     obtain ⟨a1, a2, a3, a4⟩ := hok'
     unfold walAreaRes
-    iexists N', h', cl.filter (fun c => decide (c.1 ≠ tmp))
-    iframe Hn Hc
+    iexists N', h', cl.filter (fun c => decide (c.1 ≠ tmp)), Wn
+    iframe Hn Hs Hc
     ipureintro; exact ⟨a1, a2, a3, a4⟩
   · iunfold tmpSub at Ht; icases Ht with %hf; exact hf.elim
   · iunfold tmpSub at Ht
     icases Ht with ⟨%hJ, %hf, HJ⟩
-    have hok' := areaOk_give N N' h h' cl tmp [(J, NameSet.except [], hJ)] hok hN htN hcur
+    have hok' := areaOk_give N N' h h' cl tmp [(J, NameSet.except [], hJ)] Wn hok hN htN hcur
       ⟨by rw [he]; exact subCover_single J hJ hf,
        by rw [he]; exact .inr ⟨J, rfl, fun hJ' hm => by
          simp only [List.mem_singleton, Prod.mk.injEq] at hm; obtain ⟨-, -, rfl⟩ := hm; exact hf⟩⟩
@@ -240,18 +242,19 @@ theorem area_give (N N' : NameSet) (h h' : NamesH) (cl : List (GoString × Claim
       iapply osClaims_nil'
     unfold walAreaRes
     iexists N', h', cl.filter (fun c => decide (c.1 ≠ tmp)) ++
-      ([(J, NameSet.except [], hJ)] : List Claim).map (fun c => (tmp, c))
-    iframe Hn Hc'
+      ([(J, NameSet.except [], hJ)] : List Claim).map (fun c => (tmp, c)), Wn
+    iframe Hn Hs Hc'
     ipureintro; exact ⟨a1, a2, a3, a4⟩
 
 /-- `walAreaRes` unpacked. -/
 theorem walAreaRes_open (jr : Ino) :
-    walAreaRes (L := hG.goose_localGS) jr ⊢ ∃ (N : NameSet) (h : NamesH) (cl : List (GoString × Claim)),
-      osNames (L := hG.goose_localGS) jr N (DFrac.own (1 : Qp).half) h ∗ ⌜AreaOk N h cl⌝ ∗
-      osClaims hG.goose_localGS (cl.map (fun c => (c.2, DFrac.own 1))) := by
+    walAreaRes (L := hG.goose_localGS) jr ⊢ ∃ (N : NameSet) (h : NamesH) (cl : List (GoString × Claim))
+      (Wn : List GoString),
+      osNames (L := hG.goose_localGS) jr N (DFrac.own (1 : Qp).half) h ∗ walSplitFrag (W := W) Wn ∗
+      ⌜AreaOk N h cl Wn⌝ ∗ osClaims hG.goose_localGS (cl.map (fun c => (c.2, DFrac.own 1))) := by
   unfold walAreaRes
-  iintro ⟨%N, %h, %cl, Hn, %a1, %a2, Hc, %a3, %a4⟩
-  iexists N, h, cl
+  iintro ⟨%N, %h, %cl, %Wn, Hn, Hs, %a1, %a2, Hc, %a3, %a4⟩
+  iexists N, h, cl, Wn
   iframe
   ipureintro; exact ⟨a1, a2, a3, a4⟩
 
