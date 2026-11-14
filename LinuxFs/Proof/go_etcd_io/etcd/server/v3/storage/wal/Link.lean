@@ -12,7 +12,7 @@ with no proof and the premises on the model parameters (the client's protobuf la
 `h_WalPbIn_MarshalEntLaw` (2), `h_WalPbIn_MarshalHsLaw` (4), `h_WalPbIn_MustSyncLaw` (1),
 `h_WalPbIn_NilLaw` (1), `h_WalPbIn_UnmarshalEntLaw` (1), `h_WalPbIn_ZeroLaw` (1),
 `h_binary_ReadInt64LE` (4), `h_errors_AsLinkError` (2), `h_errors_IsErrno` (5),
-`h_errors_IsPathErrnoEof` (3), `h_errors_IsPathErrnoNotExist` (5), `h_filepathlite_Dir` (4),
+`h_errors_IsPathErrnoEof` (3), `h_errors_IsPathErrnoNotExist` (5), `h_filepathlite_Dir` (5),
 `h_filepathlite_IsAbs` (6), `h_fileutil_CreateDirAllTmp` (1), `h_fmt_ErrorfErrsNot` (4),
 `h_fmt_SprintfWalName` (3), `h_fmt_SscanfWalName` (13), `h_io_ReadFull` (4), `h_proto_ClonePb` (5),
 `h_proto_UnmarshalWalRecordE` (3), `h_strings_HasSuffix` (13), `h_time_Duration_Seconds` (13),
@@ -1602,8 +1602,9 @@ theorem wal.wp_Create
     (h_errors_AsLinkError : _root_.Perennial.EtcdGrove.errors.AsLinkError.spec (GF := GF) (hG :=
     hG)) (h_errors_IsPathErrnoNotExist :
     _root_.Perennial.EtcdGrove.errors.IsPathErrnoNotExist.spec (GF := GF) (hG := hG))
-    (h_fileutil_CreateDirAllTmp : _root_.Perennial.EtcdGrove.fileutil.CreateDirAll.specTmp (GF
-    := GF) (hG := hG)) (h_fmt_SprintfWalName :
+    (h_filepathlite_Dir : _root_.Perennial.EtcdGrove.filepathlite.Dir.spec (GF := GF) (hG :=
+    hG)) (h_fileutil_CreateDirAllTmp : _root_.Perennial.EtcdGrove.fileutil.CreateDirAll.specTmp
+    (GF := GF) (hG := hG)) (h_fmt_SprintfWalName :
     _root_.Perennial.EtcdGrove.fmt.SprintfWalName.spec (GF := GF) (hG := hG))
     (h_time_Duration_Seconds : _root_.Perennial.EtcdGrove.time.Duration.Seconds.spec (GF := GF)
     (hG := hG)) (h_time_Duration_Seconds_ptr :
@@ -1642,6 +1643,10 @@ theorem wal.wp_Create
     _root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.wp_syncDir
     (_root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_renameWAL P Mr
     h_errors_AsLinkError h_wal_WAL_renameWALUnlock h_zap_Error h_zap_Int64 h_zap_Logger_Error)
+    (_root_.Perennial.EtcdGrove.walfs.filepath.wp_Dir h_filepathlite_Dir)
+    _root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.client.pkg.v3.fileutil.wp_OpenDir
+    _root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.client.pkg.v3.fileutil.wp_FsyncDirS
+    _root_.Perennial.time.wp_Now _root_.Perennial.time.wp_Since h_time_Duration_Seconds
 
 theorem wal.wp_Exist
     (C : WalCodec) (Mr : WalMarshal) (h_errors_IsPathErrnoNotExist :

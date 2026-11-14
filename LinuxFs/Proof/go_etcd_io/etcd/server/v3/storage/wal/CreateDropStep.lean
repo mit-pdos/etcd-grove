@@ -226,6 +226,21 @@ theorem parked_drop (Ls : GMap GoString WalLay) (cl : List Claim) (jr : Ino) (N 
     rw [if_neg (fun hp => hW hp.1), if_neg (fun hp => not_walDirClaimOf_diff hbw hW hp.1)]
   · rw [if_neg hx]
 
+/-- The others after the drop (the area claim is no WAL directory's, before or after). -/
+theorem others_drop (Ls : GMap GoString WalLay) (cl : List Claim) (jr : Ino) (N : NameSet)
+    (h : NamesH) {D : List (Ino × NameSet)} (b : GoString) (hbw : walNameP b = false)
+    (hW : ¬ WalDirClaimOf Ls (jr, N, h)) :
+    walOthersL (L := L) Ls D cl ⊢ walOthersL (L := L) Ls D (dropClaims cl jr N h b) := by
+  classical
+  unfold walOthersL dropClaims replClaim
+  rw [BigSepL.bigSepL_map]
+  refine BigSepL.bigSepL_mono (fun {k x} _ => ?_)
+  by_cases hx : x = (jr, N, h)
+  · subst hx
+    simp only [if_true]
+    rw [if_neg hW, if_neg (not_walDirClaimOf_diff hbw hW)]
+  · rw [if_neg hx]
+
 /-- **The drop of the name `b` off the area claim** (see the file header): the program's half of
 the area claim `(jr, N, h)` (holding the WAL name `nm` and `b`, no WAL name nor `.wal` name, an area
 slot), the lock free; the invariant's contents keep the claim's part off `b`, the program gets the
@@ -261,7 +276,7 @@ theorem walInvBody_drop (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
   · iexfalso; iapply walUnlockedTok_excl $$ Hl Hu
   subst hCR0
   unfold walParked
-  icases Hpk with ⟨%bp, %o, Hpa, Hoa, %hOD, Hsegs, Hpc, Htp⟩
+  icases Hpk with ⟨%bp, %o, Hpa, Hoa, %hOD, Hsegs, Hpc, Htp, How⟩
   icases walUnlocked_out o $$ Hoa Hu with ⟨%ho, Hoa, Hu⟩
   subst ho
   imod osClaims_log (L := L) R _ hE $$ Hsi Hcl with ⟨Hcl, %hlog⟩
@@ -298,6 +313,7 @@ theorem walInvBody_drop (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
   imod osNames_rekey (L := L) R jr (N1.inter [b]) (.only [b]) _ hSame hE $$ Hsi HI with HI
   icases osNames_halve jr (N1.diff [b]) _ hDe $$ HD with ⟨HD1, HD2⟩
   ihave Hpc := parked_drop (L := L) Ls _ jr N1 h1 b hbw hW $$ Hpc
+  ihave How := others_drop (L := L) Ls _ jr N1 h1 b hbw hW $$ How
   have hw : ∀ dir d, s.wal !! dir = some d → ∃ lay nm, Ls !! dir = some lay ∧
       InArea s.area dir nm ∧ lay.jr = jr ∧ lay.nm = nm := fun dir d hd' => by
     obtain ⟨lay, nm', hj, hl, hia, hjr, hnm', -⟩ := hwo.1 dir d hd'
@@ -338,9 +354,9 @@ theorem walInvBody_drop (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
   · ipureintro; exact ⟨absentNone_drop hd hbn hab.1, hab.2⟩
   isplitr
   · ipureintro; exact walsNamed_drop hd hbw hW hwn
-  isplitl [Hpa Hoa Hsegs Hpc Htp]
+  isplitl [Hpa Hoa Hsegs Hpc Htp How]
   · iexists bp, WalOut.empty
-    iframe Hpa Hoa Hsegs Hpc Htp
+    iframe Hpa Hoa Hsegs Hpc Htp How
     ipureintro; exact hOD
   isplitl [HK Hcc]
   · iexists K, cc

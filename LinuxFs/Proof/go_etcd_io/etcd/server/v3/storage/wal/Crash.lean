@@ -498,17 +498,19 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     ⊢ walStart L W C Mr R jr r s V.now -∗
       osClaims L (cl.map (fun c => (c, DFrac.own 1))) -∗
       ([∗map] _dir ↦ J ∈ Jm, walTmpsRes (hG := ⟨G, L⟩) J) -∗
-      osPathS (L := L) R r (DFrac.own qs) jr ={E}=∗
+      osPathS (L := L) R r (DFrac.own qs) jr -∗
+      (∀ Ls, ⌜WalsStart C Mr R jr s Ls V.now⌝ -∗ walOthersL (L := L) Ls [] cl) ={E}=∗
       walInv (L := L) (W := W) C Mr R jr r ∗
       ∃ Ls, ⌜WalsStart C Mr R jr s Ls V.now⌝ ∗
         walSplitFrag (W := W) (nameClaimsOf jr Ls cl) ∗
         ⌜∀ nm, nm ∈ nameClaimsOf jr Ls cl ↔ ∃ dir lay, Ls !! dir = some lay ∧ lay.nm = nm⌝ ∗
         [∗list] c ∈ cl, if WalDirClaimOf Ls c ∨ NameClaimOf jr Ls c then emp else
           osNames (L := L) c.1 c.2.1 (DFrac.own (1 : Qp).half) c.2.2 := by
-  iintro Hst Hcl Htmp Hsp
+  iintro Hst Hcl Htmp Hsp Hoth
   unfold walStart
   icases Hst with ⟨%Ls, %is, %fo, Hg, Hcr, Htl, Hpk, Hdk, Hcp, Hpo, Hnm, Hnw, Hnwf, Hlt, %Har, Hfs, %Hp⟩
   obtain ⟨-, hnd, hstart, hsegs⟩ := Hp
+  ihave Hoth := Hoth $$ %Ls %hstart
   -- the segments' start resources, halved
   have hsub : ((segsAll Ls).map (·.ino)) ⊆ is := fun i hi => by
     obtain ⟨g, hg, rfl⟩ := List.mem_map.1 hi
@@ -598,7 +600,7 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
   imod hcm0 with #Hcm
   imod inv_alloc walN E (iprop((∃ s : AbsDiskState, walInvBody (L := L) (W := W) C Mr R jr r s) ∨
       (crashed (hC := L.goose_crashGS) ∗ walCrashTok (W := W)))) $$
-      [Hg Hc1 Hi Hcr Htl Hpk Hpo Hp Hc2 Hdk Hcp Htmp Hnm Hnw Hsp Hns Hlt]
+      [Hg Hc1 Hi Hcr Htl Hpk Hpo Hp Hc2 Hdk Hcp Htmp Hnm Hnw Hsp Hns Hlt Hoth]
       with #Hinv
   · inext; ileft; iexists s
     unfold walInvBody
@@ -655,7 +657,7 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     isplitr
     · ipureintro
       exact walsNamed_start C Mr R jr s Ls V cl hV hcl hdirs hstart
-    isplitl [Hpk Hpo Hc2 Hp Htmp]
+    isplitl [Hpk Hpo Hc2 Hp Htmp Hoth]
     · unfold walParked
       iexists true, WalOut.empty
       dsimp only [WalOut.empty]
@@ -667,6 +669,9 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
         rw [if_neg List.not_mem_nil]; exact segRes_segResP g
       isplitl [Hp]
       · iapply BigSepL.bigSepL_mono_of_forall (fun {k} {g} => hpk k g) $$ Hp
+      isplitl [Htmp]
+      rotate_left
+      · iexact Hoth
       unfold walTmpParked
       iexists Jm
       isplitr

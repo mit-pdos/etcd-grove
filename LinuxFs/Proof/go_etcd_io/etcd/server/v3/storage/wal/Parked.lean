@@ -235,16 +235,16 @@ def walParkedIn (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMap Ino SegF
     ([∗list] g ∈ segsAll Ls, if g.ino ∈ o.O then emp else segResP (L := L) g) ∗
     ([∗list] c ∈ cl, if ParkedClaim Ls o.D c then
       osNames (L := L) c.1 c.2.1 (DFrac.own (1 : Qp).half) c.2.2 else emp) ∗
-    walTmpParked (G := G) (L := L) Ls o.T)
+    walTmpParked (G := G) (L := L) Ls o.T ∗ walOthersL (L := L) Ls o.D cl)
 
 /-- A change in flight on `i`: `i` is out (gap B). -/
 theorem walParkedIn_of_fl (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMap Ino SegFl)
     (i : Ino) (hF : F !! i ≠ none) :
     walParked (L := L) (W := W) Ls cl F ⊢ walParkedIn (L := L) (W := W) Ls cl F i := by
   unfold walParked walParkedIn
-  iintro ⟨%b, %o, Hpa, Hoa, %hp, Hs, Hc, Ht⟩
+  iintro ⟨%b, %o, Hpa, Hoa, %hp, Hs, Hc, Ht, Hw⟩
   iexists b, o
-  iframe Hpa Hoa Hs Hc Ht
+  iframe Hpa Hoa Hs Hc Ht Hw
   ipureintro; exact ⟨hp, hp i hF⟩
 
 /-- A segment's two halves outside the parked state: its inode is out. -/
@@ -255,12 +255,12 @@ theorem walParkedIn_of_halves (Ls : GMap GoString WalLay) (cl : List Claim) (F :
       walParkedIn (L := L) (W := W) Ls cl F g.ino ∗ osMeta (L := L) g.ino (DFrac.own (1 : Qp).half) m1 ∗
         osMeta (L := L) g.ino (DFrac.own (1 : Qp).half) m2 := by
   unfold walParked walParkedIn
-  iintro ⟨⟨%b, %o, Hpa, Hoa, %hp, Hs, Hc, Ht⟩, H1, H2⟩
+  iintro ⟨⟨%b, %o, Hpa, Hoa, %hp, Hs, Hc, Ht, Hw⟩, H1, H2⟩
   icases segsP_meta (L := L) (segsAll Ls) o.O g.ino m1 m2 $$ [Hs H1 H2] with ⟨Hs, H1, H2, %hin⟩
   · iframe Hs H1 H2
   iframe H1 H2
   iexists b, o
-  iframe Hpa Hoa Hs Hc Ht
+  iframe Hpa Hoa Hs Hc Ht Hw
   ipureintro; exact ⟨hp, hin g hg rfl⟩
 
 /-- **Taking the lock** (`Open`, at its pin): nothing is out (the lock token's record is empty), so
@@ -271,15 +271,15 @@ theorem walParked_lock (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMap I
       walParked (L := L) (W := W) Ls cl F ∗ walLockedTok (W := W) ∗ walOutFrag (W := W) WalOut.empty ∗
         walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none ∗ ⌜∀ i, F !! i = none⌝ := by
   unfold walParked
-  iintro ⟨%b, %o, Hpa, Hoa, %hp, Hs, Hc, Ht⟩ Hu
+  iintro ⟨%b, %o, Hpa, Hoa, %hp, Hs, Hc, Ht, Hw⟩ Hu
   imod walUnlockedTok_lock (W := W) b $$ Hpa Hu with ⟨-, Hpa, Hl, Ho, Htf, Hn⟩
   icases walOut_agree (W := W) o WalOut.empty $$ Hoa Ho with %ho
   subst ho
   imodintro
   iframe Hl Ho Htf Hn
-  isplitl [Hpa Hoa Hs Hc Ht]
+  isplitl [Hpa Hoa Hs Hc Ht Hw]
   · iexists false, WalOut.empty
-    iframe Hpa Hoa Hs Hc Ht
+    iframe Hpa Hoa Hs Hc Ht Hw
     ipureintro; exact hp
   ipureintro
   intro i
@@ -292,12 +292,12 @@ theorem walParked_unlock (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMap
       walTailsFrag (W := W) ∅ -∗ walNamesFrag (W := W) none ==∗
       walParked (L := L) (W := W) Ls cl F ∗ walUnlockedTok (W := W) := by
   unfold walParked
-  iintro ⟨%b, %o, Hpa, Hoa, %hp, Hs, Hc, Ht⟩ Hl Ho Htf Hn
+  iintro ⟨%b, %o, Hpa, Hoa, %hp, Hs, Hc, Ht, Hw⟩ Hl Ho Htf Hn
   imod walLockedTok_unlock (W := W) b $$ Hpa Hl Ho Htf Hn with ⟨-, Hpa, Hu⟩
   imodintro
   iframe Hu
   iexists true, o
-  iframe Hpa Hoa Hs Hc Ht
+  iframe Hpa Hoa Hs Hc Ht Hw
   ipureintro; exact hp
 
 /-- **A parked segment taken out** (`Open`'s pin): it is idle (gap B), so its halves agree with the
@@ -308,17 +308,17 @@ theorem walParked_takeSeg (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMa
       walParked (L := L) (W := W) Ls cl F ∗ walOutFrag (W := W) (o.addSeg g.ino) ∗ segResP (L := L) g ∗
         ⌜F !! g.ino = none⌝ := by
   unfold walParked
-  iintro ⟨%b, %o', Hpa, Hoa, %hp, Hs, Hc, Ht⟩ Ho
+  iintro ⟨%b, %o', Hpa, Hoa, %hp, Hs, Hc, Ht, Hw⟩ Ho
   icases walOut_agree (W := W) o' o $$ Hoa Ho with %ho
   subst ho
   imod walOut_set (W := W) o' o' (o'.addSeg g.ino) $$ Hoa Ho with ⟨Hoa, Ho⟩
   icases segsP_take (L := L) (segsAll Ls) o'.O g hg hO $$ Hs with ⟨Hg, Hs⟩
   imodintro
   iframe Ho Hg
-  isplitl [Hpa Hoa Hs Hc Ht]
+  isplitl [Hpa Hoa Hs Hc Ht Hw]
   · iexists b, o'.addSeg g.ino
     dsimp only [WalOut.addSeg]
-    iframe Hpa Hoa Hs Hc Ht
+    iframe Hpa Hoa Hs Hc Ht Hw
     ipureintro
     intro i hi
     exact List.mem_cons_of_mem _ (hp i hi)
@@ -379,7 +379,7 @@ theorem walParked_putSeg (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMap
     ⊢ walParked (L := L) (W := W) Ls cl F -∗ walOutFrag (W := W) o -∗ segResP (L := L) g ==∗
       walParked (L := L) (W := W) Ls cl F ∗ walOutFrag (W := W) (o.delSeg g.ino) := by
   unfold walParked
-  iintro ⟨%b, %o', Hpa, Hoa, %hp, Hs, Hc, Ht⟩ Ho Hg
+  iintro ⟨%b, %o', Hpa, Hoa, %hp, Hs, Hc, Ht, Hw⟩ Ho Hg
   icases walOut_agree (W := W) o' o $$ Hoa Ho with %ho
   subst ho
   imod walOut_set (W := W) o' o' (o'.delSeg g.ino) $$ Hoa Ho with ⟨Hoa, Ho⟩
@@ -389,7 +389,7 @@ theorem walParked_putSeg (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMap
   iframe Ho
   iexists b, o'.delSeg g.ino
   dsimp only [WalOut.delSeg]
-  iframe Hpa Hoa Hs Hc Ht
+  iframe Hpa Hoa Hs Hc Ht Hw
   ipureintro
   intro i hi
   have hne : i ≠ g.ino := by rintro rfl; exact hi hF
@@ -403,7 +403,7 @@ theorem walParked_takeClaim (Ls : GMap GoString WalLay) (cl : List Claim) (F : G
       walParked (L := L) (W := W) Ls cl F ∗ walOutFrag (W := W) (o.addClaim (c.1, c.2.1)) ∗
         osNames (L := L) c.1 c.2.1 (DFrac.own (1 : Qp).half) c.2.2 := by
   unfold walParked
-  iintro ⟨%b, %o', Hpa, Hoa, %hp, Hs, Hc, Ht⟩ Ho
+  iintro ⟨%b, %o', Hpa, Hoa, %hp, Hs, Hc, Ht, Hw⟩ Ho
   icases walOut_agree (W := W) o' o $$ Hoa Ho with %ho
   subst ho
   imod walOut_set (W := W) o' o' (o'.addClaim (c.1, c.2.1)) $$ Hoa Ho with ⟨Hoa, Ho⟩
@@ -412,17 +412,21 @@ theorem walParked_takeClaim (Ls : GMap GoString WalLay) (cl : List Claim) (F : G
   iframe Ho Hn
   iexists b, o'.addClaim (c.1, c.2.1)
   dsimp only [WalOut.addClaim]
-  iframe Hpa Hoa Hs Hc Ht
+  obtain ⟨-, -, -, -, X, hX, -⟩ := hW
+  ihave Hw := walOthersL_keyD (L := L) (D' := (c.1, c.2.1) :: o'.D)
+    (fun j b => by rw [hX]; exact lendKey_cons_except b) $$ Hw
+  iframe Hpa Hoa Hs Hc Ht Hw
   ipureintro; exact hp
 
 /-- **A WAL directory's claim put back**: once in the claims, no other of its key (`DirKeysOk`). -/
 theorem walParked_putClaim (Ls : GMap GoString WalLay) (l1 l2 : List Claim) (F : GMap Ino SegFl)
-    (o : WalOut) (c : Claim) (hkey : ∀ c' ∈ l1 ++ l2, (c'.1, c'.2.1) ≠ (c.1, c.2.1)) :
+    (o : WalOut) (c : Claim) (hkey : ∀ c' ∈ l1 ++ l2, (c'.1, c'.2.1) ≠ (c.1, c.2.1))
+    (hcX : ∃ X, c.2.1 = .except X := by exact ⟨_, rfl⟩) :
     ⊢ walParked (L := L) (W := W) Ls (l1 ++ c :: l2) F -∗ walOutFrag (W := W) o -∗
         osNames (L := L) c.1 c.2.1 (DFrac.own (1 : Qp).half) c.2.2 ==∗
       walParked (L := L) (W := W) Ls (l1 ++ c :: l2) F ∗ walOutFrag (W := W) (o.delClaim (c.1, c.2.1)) := by
   unfold walParked
-  iintro ⟨%b, %o', Hpa, Hoa, %hp, Hs, Hc, Ht⟩ Ho Hn
+  iintro ⟨%b, %o', Hpa, Hoa, %hp, Hs, Hc, Ht, Hw⟩ Ho Hn
   icases walOut_agree (W := W) o' o $$ Hoa Ho with %ho
   subst ho
   imod walOut_set (W := W) o' o' (o'.delClaim (c.1, c.2.1)) $$ Hoa Ho with ⟨Hoa, Ho⟩
@@ -432,7 +436,10 @@ theorem walParked_putClaim (Ls : GMap GoString WalLay) (l1 l2 : List Claim) (F :
   iframe Ho
   iexists b, o'.delClaim (c.1, c.2.1)
   dsimp only [WalOut.delClaim]
-  iframe Hpa Hoa Hs Hc Ht
+  obtain ⟨X, hX⟩ := hcX
+  ihave Hw := walOthersL_keyD (L := L) (D' := o'.D.filter (· ≠ (c.1, c.2.1)))
+    (fun j b => by rw [hX]; exact lendKey_filter_except b) $$ Hw
+  iframe Hpa Hoa Hs Hc Ht Hw
   ipureintro; exact hp
 
 /-- **A WAL's pipeline names taken out** (`Open`'s pin, write mode). -/
@@ -442,7 +449,7 @@ theorem walParked_takeTmps (Ls : GMap GoString WalLay) (cl : List Claim) (F : GM
       walParked (L := L) (W := W) Ls cl F ∗ walOutFrag (W := W) (o.addTmp dir) ∗
         walTmpsRes (hG := ⟨G, L⟩) lay.j := by
   unfold walParked
-  iintro ⟨%b, %o', Hpa, Hoa, %hp, Hs, Hc, Ht⟩ Ho
+  iintro ⟨%b, %o', Hpa, Hoa, %hp, Hs, Hc, Ht, Hw⟩ Ho
   icases walOut_agree (W := W) o' o $$ Hoa Ho with %ho
   subst ho
   imod walOut_set (W := W) o' o' (o'.addTmp dir) $$ Hoa Ho with ⟨Hoa, Ho⟩
@@ -451,7 +458,7 @@ theorem walParked_takeTmps (Ls : GMap GoString WalLay) (cl : List Claim) (F : GM
   iframe Ho Hd
   iexists b, o'.addTmp dir
   dsimp only [WalOut.addTmp]
-  iframe Hpa Hoa Hs Hc Ht
+  iframe Hpa Hoa Hs Hc Ht Hw
   ipureintro; exact hp
 
 /-- **A WAL's pipeline names put back** (`Close`, an `Open` failing after its pin). -/
@@ -460,7 +467,7 @@ theorem walParked_putTmps (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMa
     ⊢ walParked (L := L) (W := W) Ls cl F -∗ walOutFrag (W := W) o -∗ walTmpsRes (hG := ⟨G, L⟩) lay.j ==∗
       walParked (L := L) (W := W) Ls cl F ∗ walOutFrag (W := W) (o.delTmp dir) := by
   unfold walParked
-  iintro ⟨%b, %o', Hpa, Hoa, %hp, Hs, Hc, Ht⟩ Ho Hd
+  iintro ⟨%b, %o', Hpa, Hoa, %hp, Hs, Hc, Ht, Hw⟩ Ho Hd
   icases walOut_agree (W := W) o' o $$ Hoa Ho with %ho
   subst ho
   imod walOut_set (W := W) o' o' (o'.delTmp dir) $$ Hoa Ho with ⟨Hoa, Ho⟩
@@ -470,7 +477,7 @@ theorem walParked_putTmps (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMa
   iframe Ho
   iexists b, o'.delTmp dir
   dsimp only [WalOut.delTmp]
-  iframe Hpa Hoa Hs Hc Ht
+  iframe Hpa Hoa Hs Hc Ht Hw
   ipureintro; exact hp
 
 end parked
