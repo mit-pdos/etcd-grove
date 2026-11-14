@@ -43,6 +43,7 @@ sealed Proof.go_etcd_io.etcd.server.v3.etcdserver.StopApi
 # start bundles into fresh ones.
 sealed Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes
 allow Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Alloc3
+allow Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartRes Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Alloc3On
 # (2026-11-05, hub plan step 7's E2, D1) the cluster's start bundle (`cluster3.startRes`), sealed;
 # its laws are in its own module, so no module imports it whole.
 sealed Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartRes
