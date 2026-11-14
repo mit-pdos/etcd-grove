@@ -44,6 +44,12 @@
 //	                                  every Write fails (EPIPE: RST in CLOSE_WAIT); the Read is EOF
 //	TestPartialWriteOnReset      D2   a Write cut by a RST returns 0 < n < len, ECONNRESET               allowed, measured
 //
+// Writes (write_test.go):
+//
+//	TestEmptyWrite               D2   an empty Write: (0, nil) live; (0, timeout) with an expired       REFUTES D2, measured
+//	                                  write deadline; (0, ECONNRESET) then (0, EPIPE) after a RST;
+//	                                  (0, EPIPE) after CloseWrite (WriteOutcome: success only, below)
+//
 // Close, CloseWrite (close_test.go):
 //
 //	TestCloseTwice               D1-D5 Close: nil, FIN; after it every operation errs, net.ErrClosed     allowed, measured
@@ -71,6 +77,19 @@
 //	TestPendingAtListenerClose   D7-D9 a dialed, unaccepted connection is reset by the listener's Close; allowed, measured
 //	                                  a new listener does not get it (Linux excludes what D7 allows)
 //
+// Error values (errors_test.go):
+//
+//	TestErrorsAreOpErrors        models every failure an *OpError, Net "tcp", Op read/write/close/   allowed, measured
+//	                                  set/dial/listen/accept; EOF is io.EOF itself
+//	TestZeroValues               models a zero TCPConn/TCPListener: bare syscall.EINVAL, no socket   (model: id 0; more
+//	                                  touched                                                           defined than Go)
+//
+// Addresses (addr_test.go):
+//
+//	TestAddressAliases           D7,D12 "localhost:P", ":P" reach 127.0.0.1:P's listener; ":P"'s   D12's deployment
+//	                                  listener takes 127.0.0.1:P, 127.0.0.2:P; Listen(127.0.0.1:P) with  assumption, measured
+//	                                  ":P" open: EADDRINUSE
+//
 // Process death (process_test.go):
 //
 //	TestKilledWriterFin          D1,D10,D11 the bytes, then EOF, no error (kernel FIN)                   allowed (D1's break), measured
@@ -91,6 +110,17 @@
 // the unread bytes, the Read answering as a Read of the broken direction does
 // (bytes, EOF or an error: ReadOutcome's last clause over ReadAvail), so these
 // traces are allowed.
+//
+// The second refutation (2026-11-14, notes/axiom-review/tcp-semantics.md).
+// WriteOutcome lets a Write fail only with fewer bytes written than asked (k <
+// len(bs)), so an empty Write on an end that is not closed, into a direction
+// it has not shut, can only succeed; Go returns (0, err) there with an
+// expired write deadline (prepareWrite runs before write(2)) or after a reset
+// (write(2) of no bytes still fails: tcp_sendmsg_locked checks the socket's
+// error and state first). TestEmptyWrite measures it, and
+// examples/axiomcx/tcp-emptywrite is a program that panics on every run and
+// has a closed no-panic theorem from the semantics (emptywrite_crash_safety).
+// Not yet fixed in Impl.lean.
 //
 // Also measured, the fork window (child_test.go, forkMu): while a process
 // forks (os/exec), the child holds a copy of every fd until its exec, so a
