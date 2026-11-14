@@ -48,7 +48,24 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
   and the risks R1-R5 (§7).
 - Decisions go in the worktree's `questions.md` (untracked).
 
-## Route (A) for finding 1: not started, STOPPED (2026-11-13, the CP2-fix agent)
+## Route (C) and the CP2 landing (2026-11-14, the route-C agent): next agent starts here
+
+81 decided route (C) for finding 1 (`questions.md`; freeze package §11.1a, superseding (A)).
+- **Done, commit `033c31e5fd`**: `srvSnapOwn`'s index is the apply thread's ghost index `g`
+  (`c ≤ g + 1`): `applyAll.specBatch` (pre `g`, post `g'`; `snapRm_raise` takes the ghost bound and
+  `ai ≤ g`), `applyAll.specSnapM` (pre `g`; `snapDir_take` from `hgi : g < sv.Index`), `applyResR`,
+  `applyResStopR` (the stop's image bound now direct), `srvRestartAtR` (at `g₀`), `srvBuiltRestartR`'s
+  row at `ai₀ + W64 |γn.a0|` (`start` rewrites it to `applyBuiltR`'s `g₀`). `applyRes`/`applyStart`
+  (InvRunRes) and `applyResOn`/`applyStartOn` (RunOn) unchanged: their `ai` is the ghost index. No
+  trusted text changed. Targeted build clean (`/shared/tmp/restart-s56/routeC/targeted.log`).
+- Merged `lean` (570cea0725, k8s 7f-3b mvcc); STATUS entry added (ten kept, oldest to status-history).
+- Verified (after the merge): full build clean, 17479 jobs (`/shared/tmp/restart-s56/routeC/full.log`);
+  `tcb-report --check` matches the baseline (870 axioms, 4 sorries; `routeC/tcb.log`); `gen-interface
+  --check` clean for every `etc/api` list. Gates and landing: by `etc/land.sh` (`routeC/land.log`).
+- **For B2**: the restart's `srvBuiltRestartR` row is `srvSnapOwn … (0 + W64 |A|)`, i.e. `c ≤ |A| + 1 =
+  i + 1` with the image's `c ≤ i + 1` (`uint.Z i = |A|`, the image's) -- no WAL link needed.
+
+## Route (A) for finding 1: superseded by route (C) (2026-11-13, the CP2-fix agent)
 
 81 approved route (A) (and the forms; the obsolete generator is deleted). Before any edit, reading
 the sites showed (A) is not the small change §11.1 estimated:
@@ -72,7 +89,7 @@ change, nothing trusted. Cost: `srvSnapOwn`'s index argument moves from Go's `ai
 `ai₀ + |γn.a0|`, start, run, RunOn, StopShutdown). **Waiting for 81's decision: (C) or (A) with the
 two extensions above.**
 
-## CP2 review fixes (2026-11-13, the CP2-fix agent): next agent starts here
+## CP2 review fixes (2026-11-13, the CP2-fix agent)
 
 81's decisions on the CP2 review (journal `wf_1e0c6340-ec5`); texts old → new in
 `/shared/tmp/restart-s56/freeze-package.md` §11. **STOP for 81's re-review.**
