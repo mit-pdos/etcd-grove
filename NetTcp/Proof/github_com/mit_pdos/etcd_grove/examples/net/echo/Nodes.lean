@@ -6,11 +6,14 @@ The proofs of `examples/net/echo`'s functions, over the specs of `net` and `wire
   dialer's), its echo (`server_write_au`, with the connection's token), and the close
   (`wire.close_drop_au`).
 * `Serve`: `Listen`, then the accept loop (`wire.accept_lis_au`: each accepted connection's protocol).
-* `Call`: the dial (`wire.dial_both_au`, the deposit `echo_deposit`), the write of `"hello"`
+* `Call`: the dial (`echo_dial_au`: `wire.dial_both_au` with the deposits `echo_deposit` and, for an
+  abandoned connection, `echo_deposit_ab`), the write of `"hello"`
   (`wire.write_au`), the full read of the reply (`wire.read_acc` on the down-direction), and the
   check: the reply is a prefix of `"hello"` (`client_check`) of its length, so `"hello"`.
 * `SendJunk`: as `Call`, without the check.
-* `eof_init`: `io.EOF`'s value, from the package's initialization (the bodies take it).
+* `eof_init`, `ed_init`: `io.EOF`'s and `poll.ErrDeadlineExceeded`'s values, from the package's
+  initialization (the bodies take them). A failure's error, of any kind, is a non-nil `*OpError`
+  (`net.resErr_netErr`): every `err != nil` check takes the failure branch.
 
 The commands' `main`s (`cmd/<node>/Main.lean`) call `Serve`, `Call` and `SendJunk`.
 -/
@@ -56,18 +59,40 @@ theorem client_check' (γm : GName) (cn : Nat) (γ : EchoNames) (W resp : List w
       ⌜resp <+: W⌝ ∗ sentAll (GF := GF) γ.up W :=
   client_check γm cn γ W resp
 
+/-- `internal/poll`'s package fact, from its `isPkgInit`. -/
+theorem poll_isInit_access :
+    isPkgInit (PROP := IProp GF) pkg_id.internal.poll ⊢
+      iprop((∃ e : GoInterface, globalAddr internal.poll.ErrNoDeadline ↦□ e) ∗
+        (∃ e : GoInterface, globalAddr internal.poll.ErrDeadlineExceeded ↦□ e)) := by
+  with_unfolding_all exact isPkgInit_access (PROP := IProp GF) pkg_id.internal.poll
+
+/-- `poll.ErrDeadlineExceeded`'s value (the `Err` of a deadline's failure, which the `Read` and
+`Write` specs name), from the package's initialization (`net` imports `internal/poll`).
+(General, as in the other examples: a candidate for `wire`.) -/
+theorem ed_init :
+    isPkgInit (PROP := IProp GF) pkg ⊢ ∃ ed : GoInterface,
+      globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed := by
+  iintro #Hpkg
+  ihave #Hp : (isPkgInit (PROP := IProp GF) pkg_id.internal.poll) $$ []
+  · iPkgInit
+  ihave Hf := poll_isInit_access $$ Hp
+  icases Hf with ⟨-, ⟨%ed, #Hed⟩⟩
+  iexists ed
+  iexact Hed
+
 theorem wp_serveConn
     (wp_ReadFull : wire.ReadFull.spec (GF := GF) (hG := hG))
     (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
     (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
-    (γm : GName) (c : GoInterface) (cn : Nat) (eof : GoInterface) :
+    (γm : GName) (c : GoInterface) (cn : Nat) (eof ed : GoInterface) :
     {{ isPkgInit (PROP := IProp GF) pkg ∗ echoInvs γm ∗ net.isConn c cn true srvAddr ∗
-        connProto γm cn ∗ globalAddr io.EOF ↦□ eof }}
+        connProto γm cn ∗ globalAddr io.EOF ↦□ eof ∗
+        globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed }}
       (App (Val (@! serveConn)) (Val #c))
     {{ RET #(); True }} := by
   unfold net.isConn echoInvs connProto
-  wp_start as ⟨⟨#HaddrInv, #HechoInv⟩, ⟨%t, %Hct, #Hc⟩, ⟨%γ, #Hname, Hend, Htok, Hr, #Hlb0⟩,
-    #Heof⟩
+  wp_start as ⟨⟨#HaddrInv, #HechoInv⟩, ⟨%t, %la, %ra, %Hct, #Hc⟩,
+    ⟨%γ, #Hname, Hend, Htok, Hr, #Hlb0⟩, #Heof, #Hed⟩
   subst Hct
   ihave #HdU := echo_dirInv_up γm cn γ $$ HechoInv Hname
   ihave #HdD := echo_dirInv_down γm cn γ $$ HechoInv Hname
@@ -79,12 +104,12 @@ theorem wp_serveConn
   · ipureintro; decide
   (try wp_auto)
   wp_apply wp_ReadFull (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t) cn true srvAddr
-      buf _ (wire.readP γ.up cn true TcpEnd.fresh []) eof $$ [Hbuf Hend Hr]
+      buf _ (wire.readP γ.up cn true TcpEnd.fresh []) eof ed $$ [Hbuf Hend Hr]
     as %ok ⟨%got, %bs', HP, Hbuf, %Hres⟩
-  · iframe Hbuf Heof Hacc
+  · iframe Hbuf Heof Hed Hacc
     isplitr [Hend Hr]
     · unfold net.isConn
-      iexists t
+      iexists t, la, ra
       iframe Hc
       ipureintro; rfl
     unfold wire.readP
@@ -96,7 +121,8 @@ theorem wp_serveConn
   cases ok
   · -- the read failed: close
     wp_auto
-    wp_apply wp_Close t cn true srvAddr (fun _ => iprop(True)) $$ [Hend] as %err ⟨%ok', -, -⟩
+    wp_apply wp_Close t cn true srvAddr la ra (fun _ => iprop(True)) $$ [Hend]
+      as %err ⟨%res, -, -⟩
     · iframe Hc
       iapply wire.close_drop_au echoN cn true γ.down _ $$ HdD Hend
     (try wp_auto)
@@ -105,14 +131,15 @@ theorem wp_serveConn
   · -- echo the request, then close
     obtain rfl := Hok rfl
     wp_auto
-    wp_apply wp_Write t cn true srvAddr buf got (DFrac.own 1)
+    wp_apply wp_Write t cn true srvAddr la ra buf got (DFrac.own 1) ed
         (fun _ _ => tcpEnd G cn true TcpEnd.fresh) $$ [Hbuf Hend Htok]
-      as %n %err ⟨%k, %okw, Hend, Hbuf, -⟩
-    · iframe Hc Hbuf
+      as %n %err ⟨%k, %res, Hend, Hbuf, -⟩
+    · iframe Hc Hbuf Hed
       iapply server_write_au γm cn γ got ([] ++ got) TcpEnd.fresh (by simp) $$ HechoInv Hname
         Htok Hlb Hend
     (try wp_auto)
-    wp_apply wp_Close t cn true srvAddr (fun _ => iprop(True)) $$ [Hend] as %err' ⟨%ok', -, -⟩
+    wp_apply wp_Close t cn true srvAddr la ra (fun _ => iprop(True)) $$ [Hend]
+      as %err' ⟨%res', -, -⟩
     · iframe Hc
       iapply wire.close_drop_au echoN cn true γ.down _ $$ HdD Hend
     (try wp_auto)
@@ -126,104 +153,125 @@ theorem wp_Serve
     (wp_ReadFull : wire.ReadFull.spec (GF := GF) (hG := hG))
     (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
     (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
-    (γm : GName) (eof : GoInterface) :
+    (γm : GName) (eof ed : GoInterface) :
     {{ isPkgInit (PROP := IProp GF) pkg ∗ echoInvs γm ∗
-        tcpPlan G srvAddr (extLocalGS tcpExt (L := hG.goose_localGS)).host ∗
-        globalAddr io.EOF ↦□ eof }}
+        ⌜(G (GF := GF)).plan !! srvAddr = some (extLocalGS tcpExt (L := hG.goose_localGS)).host⌝ ∗
+        globalAddr io.EOF ↦□ eof ∗ globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed }}
       (App (Val (@! Serve)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hinvs, #Hplan, #Heof⟩
+  wp_start as ⟨#Hinvs, %Hpl, #Heof, #Hed⟩
   icases echoInvs_elim γm $$ Hinvs with ⟨#HaddrInv, #HechoInv⟩
   (try wp_auto)
-  wp_apply wp_Listen srvAddr $$ Hplan as %li %err (⟨%Herr, %l, #Hli, Hlis, #Hla⟩ | %Herr)
+  wp_apply wp_Listen srvAddr srvAddr $$ []
+    as %li %err (⟨%Herr, %l, #Hli, Hlis, #Hla⟩ | ⟨%x, -, #Herr⟩)
+  · ipureintro; exact listenAt_self Hpl
   · -- listening: the accept loop
     subst Herr
     unfold net.isListener
-    icases Hli with ⟨%t, %Ht, #Hlt⟩
+    icases Hli with ⟨%t, %x, %Ht, #Hlt⟩
     subst Ht
     wp_auto
     ihave HI : ("Hlis" ∷ tcpLis (extLocalGS tcpExt (L := hG.goose_localGS)) l srvAddr true :
       IProp GF) $$ [Hlis]
     · iexact Hlis
     wp_for HI
-    wp_apply wp_Accept t l srvAddr
-        (tcpLis (extLocalGS tcpExt (L := hG.goose_localGS)) l srvAddr true)
+    wp_apply wp_Accept t l x srvAddr
+        (fun _ => tcpLis (extLocalGS tcpExt (L := hG.goose_localGS)) l srvAddr true)
         (fun cn => iprop(tcpLis (extLocalGS tcpExt (L := hG.goose_localGS)) l srvAddr true ∗
           connProto γm cn)) $$ [Hlis]
-      as %c %err (⟨%Herr, %cn, #Hc, Hlis, Hproto⟩ | ⟨%Herr, Hlis⟩)
+      as %c %err (⟨%Herr, %cn, #Hc, Hlis, Hproto⟩ | ⟨%k, Hlis, #Herr⟩)
     · iframe Hlt Hla
       iapply wire.accept_lis_au addrN srvAddr (connProto γm) _ l true $$ HaddrInv Hlis
     · -- a connection: serve it
       subst Herr
       wp_auto
-      wp_apply wp_serveConn wp_ReadFull wp_Write wp_Close γm c cn eof $$ [Hproto]
-      · iframe Hinvs Hc Hproto Heof
+      wp_apply wp_serveConn wp_ReadFull wp_Write wp_Close γm c cn eof ed $$ [Hproto]
+      · iframe Hinvs Hc Hproto Heof Hed
       wp_for_post
       iframe
-    · -- a failure: go on
-      obtain ⟨pe, rfl⟩ := Herr
+    · -- a failure (of any kind): go on
+      icases net.resErr_netErr _ _ _ _ _ _ _ $$ Herr with %Hne
+      obtain ⟨pe, rfl⟩ := Hne.2 (by simp)
       wp_auto
       wp_for_post
       iframe
   · -- not listening: return
-    obtain ⟨pe, rfl⟩ := Herr
+    icases net.resErr_netErr _ _ _ _ _ _ _ $$ Herr with %Hne
+    obtain ⟨pe, rfl⟩ := Hne.2 (by simp)
     wp_auto
     iapply HΦ
     itrivial
 
+/-- The dial's update (`net.Dial`'s, `Qfail := True`): the dialer keeps `dialerOwn` of a new
+connection; the deposit of an abandoned one (D16) is `echo_deposit_ab`'s. -/
+theorem echo_dial_au (γm : GName) :
+    ⊢ inv addrN (addrInv srvAddr (connProto (GF := GF) γm)) -∗ inv echoN (echoState (GF := GF) γm) -∗
+      |={⊤,∅}=> ∃ S, tcpPend G srvAddr S ∗
+        ∀ cn, ⌜cn ∉ S⌝ -∗ tcpPend G srvAddr (S ∪ {[cn]}) -∗ tcpConnAt G cn srvAddr -∗
+          tcpFresh G cn true -∗
+          ((tcpFresh G cn false ={∅,⊤}=∗ dialerOwn γm cn) ∧
+           (tcpEnd G cn false { TcpEnd.fresh with closed := true } -∗
+            tcpDir G cn false ⟨[], .fin⟩ ={∅,⊤}=∗ True)) := by
+  iintro #HaddrInv #HechoInv
+  iapply wire.dial_both_au addrN srvAddr (connProto γm) (dialerOwn γm) $$ HaddrInv
+  · iintro %cn #Hat Hd Ha
+    iapply echo_deposit γm cn $$ HechoInv Hat Hd Ha
+  · iintro %cn #Hat He Hd Ha
+    iapply echo_deposit_ab γm cn $$ HechoInv Hat He Hd Ha
 
 theorem wp_Call
     (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
     (wp_ReadFull : wire.ReadFull.spec (GF := GF) (hG := hG))
     (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
     (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
-    (γm : GName) (h : GoString) (eof : GoInterface) :
+    (γm : GName) (h : GoString) (eof ed : GoInterface) :
     {{ isPkgInit (PROP := IProp GF) pkg ∗ echoInvs γm ∗ tcpPlan G srvAddr h ∗
-        globalAddr io.EOF ↦□ eof }}
+        globalAddr io.EOF ↦□ eof ∗ globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed }}
       (App (Val (@! Call)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hinvs, #Hplan, #Heof⟩
+  wp_start as ⟨#Hinvs, #Hplan, #Heof, #Hed⟩
   icases echoInvs_elim γm $$ Hinvs with ⟨#HaddrInv, #HechoInv⟩
   (try wp_auto)
   wp_apply wp_Dial srvAddr h iprop(True) (fun cn => dialerOwn γm cn) $$ []
-    as %c %err (⟨%Herr, %cn, #Hc, Hown⟩ | ⟨%Herr, -⟩)
+    as %c %err (⟨%Herr, %cn, #Hc, Hown⟩ | ⟨-, %x, -, #Herr⟩)
   · iframe Hplan
     isplit
     · itrivial
-    · iapply wire.dial_both_au addrN srvAddr (connProto γm) (dialerOwn γm) $$ HaddrInv
-      iintro %cn #Hat Hd Ha
-      iapply echo_deposit γm cn $$ HechoInv Hat Hd Ha
+    · iapply echo_dial_au γm $$ HaddrInv HechoInv
   · subst Herr
     unfold dialerOwn
     icases Hown with ⟨%γ, #Hname, Hend, Hw, Hr, #Hlb0⟩
     unfold net.isConn
-    icases Hc with ⟨%t, %Hct, #Hca⟩
+    icases Hc with ⟨%t, %la, %ra, %Hct, #Hca⟩
     subst Hct
     ihave #HdU := echo_dirInv_up γm cn γ $$ HechoInv Hname
     ihave #HdD := echo_dirInv_down γm cn γ $$ HechoInv Hname
     wp_auto
     wp_apply wp_string_to_bytes with %sl ⟨Hsl, -⟩
     (try wp_auto)
-    wp_apply wp_Write t cn false srvAddr sl _ (DFrac.own 1)
-        (fun k ok => iprop(tcpEnd G cn false TcpEnd.fresh ∗
+    wp_apply wp_Write t cn false srvAddr la ra sl _ (DFrac.own 1) ed
+        (fun k res => iprop(tcpEnd G cn false TcpEnd.fresh ∗
           sentAll γ.up ([] ++ (go!"hello").take k) ∗
-          ⌜∃ d d', WriteOutcome TcpEnd.fresh d (go!"hello") k ok d'⌝))
+          ⌜∃ d d', WriteOutcome TcpEnd.fresh d (go!"hello") k res d'⌝))
         $$ [Hsl Hend Hw]
-      as %n %err ⟨%k, %okw, ⟨Hend, Hw, %Hwr⟩, Hsl, %Hn⟩
-    · iframe Hca Hsl
+      as %n %err ⟨%k, %res, ⟨Hend, Hw, %Hwr⟩, Hsl, %Hn, #Herr⟩
+    · iframe Hca Hsl Hed
       iapply wire.write_au echoN cn false γ.up TcpEnd.fresh [] _ $$ HdU Hend Hw
-    obtain ⟨-, Hnil, Herr⟩ := Hn
-    cases okw
-    · -- the write failed: close and return
-      obtain ⟨pe, rfl⟩ := Herr rfl
+    icases net.resErr_netErr _ _ _ _ _ _ _ $$ Herr with %Hne
+    by_cases hres : res = none
+    case neg =>
+      -- the write failed (any kind; a prefix may have been sent): close and return
+      obtain ⟨pe, rfl⟩ := Hne.2 hres
       wp_auto
-      wp_apply wp_Close t cn false srvAddr (fun _ => iprop(True)) $$ [Hend] as %err' ⟨%ok', -, -⟩
+      wp_apply wp_Close t cn false srvAddr la ra (fun _ => iprop(True)) $$ [Hend]
+        as %err' ⟨%res', -, -⟩
       · iframe Hca
         iapply wire.close_drop_au echoN cn false γ.up _ $$ HdU Hend
       (try wp_auto)
       iapply HΦ
       itrivial
-    rw [Hnil rfl]
+    subst hres
+    obtain rfl := Hne.1 rfl
     obtain ⟨d0, d0', Hwr⟩ := Hwr
     obtain rfl := wire.writeOutcome_ok Hwr
     wp_auto
@@ -234,12 +282,12 @@ theorem wp_Call
     · simp only [Bool.not_false]
       iexact HdD
     wp_apply wp_ReadFull (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t) cn false
-        srvAddr buf _ (wire.readP γ.down cn false TcpEnd.fresh []) eof $$ [Hbuf Hend Hr]
+        srvAddr buf _ (wire.readP γ.down cn false TcpEnd.fresh []) eof ed $$ [Hbuf Hend Hr]
       as %ok ⟨%got, %bs', HP, Hbuf, %Hres⟩
-    · iframe Hbuf Heof Hacc
+    · iframe Hbuf Heof Hed Hacc
       isplitr [Hend Hr]
       · unfold net.isConn
-        iexists t
+        iexists t, la, ra
         iframe Hca
         ipureintro; rfl
       unfold wire.readP
@@ -251,7 +299,8 @@ theorem wp_Call
     cases ok
     · -- the read failed: close
       wp_auto
-      wp_apply wp_Close t cn false srvAddr (fun _ => iprop(True)) $$ [Hend] as %err' ⟨%ok', -, -⟩
+      wp_apply wp_Close t cn false srvAddr la ra (fun _ => iprop(True)) $$ [Hend]
+        as %err' ⟨%res', -, -⟩
       · iframe Hca
         iapply wire.close_drop_au echoN cn false γ.up _ $$ HdU Hend
       (try wp_auto)
@@ -267,13 +316,15 @@ theorem wp_Call
       wp_auto
       wp_apply wp_bytes_to_string buf (go!"hello") (DFrac.own 1) $$ Hbuf as Hbuf
       (try wp_auto)
-      wp_apply wp_Close t cn false srvAddr (fun _ => iprop(True)) $$ [Hend] as %err' ⟨%ok', -, -⟩
+      wp_apply wp_Close t cn false srvAddr la ra (fun _ => iprop(True)) $$ [Hend]
+        as %err' ⟨%res', -, -⟩
       · iframe Hca
         iapply wire.close_drop_au echoN cn false γ.up _ $$ HdU Hend
       (try wp_auto)
       iapply HΦ
       itrivial
-  · obtain ⟨pe, rfl⟩ := Herr
+  · icases net.resErr_netErr _ _ _ _ _ _ _ $$ Herr with %Hne
+    obtain ⟨pe, rfl⟩ := Hne.2 (by simp)
     wp_auto
     iapply HΦ
     itrivial
@@ -284,40 +335,38 @@ theorem wp_SendJunk
     (wp_ReadFull : wire.ReadFull.spec (GF := GF) (hG := hG))
     (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
     (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
-    (γm : GName) (h : GoString) (eof : GoInterface) :
+    (γm : GName) (h : GoString) (eof ed : GoInterface) :
     {{ isPkgInit (PROP := IProp GF) pkg ∗ echoInvs γm ∗ tcpPlan G srvAddr h ∗
-        globalAddr io.EOF ↦□ eof }}
+        globalAddr io.EOF ↦□ eof ∗ globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed }}
       (App (Val (@! SendJunk)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hinvs, #Hplan, #Heof⟩
+  wp_start as ⟨#Hinvs, #Hplan, #Heof, #Hed⟩
   icases echoInvs_elim γm $$ Hinvs with ⟨#HaddrInv, #HechoInv⟩
   (try wp_auto)
   wp_apply wp_Dial srvAddr h iprop(True) (fun cn => dialerOwn γm cn) $$ []
-    as %c %err (⟨%Herr, %cn, #Hc, Hown⟩ | ⟨%Herr, -⟩)
+    as %c %err (⟨%Herr, %cn, #Hc, Hown⟩ | ⟨-, %x, -, #Herr⟩)
   · iframe Hplan
     isplit
     · itrivial
-    · iapply wire.dial_both_au addrN srvAddr (connProto γm) (dialerOwn γm) $$ HaddrInv
-      iintro %cn #Hat Hd Ha
-      iapply echo_deposit γm cn $$ HechoInv Hat Hd Ha
+    · iapply echo_dial_au γm $$ HaddrInv HechoInv
   · subst Herr
     unfold dialerOwn
     icases Hown with ⟨%γ, #Hname, Hend, Hw, Hr, #Hlb0⟩
     unfold net.isConn
-    icases Hc with ⟨%t, %Hct, #Hca⟩
+    icases Hc with ⟨%t, %la, %ra, %Hct, #Hca⟩
     subst Hct
     ihave #HdU := echo_dirInv_up γm cn γ $$ HechoInv Hname
     ihave #HdD := echo_dirInv_down γm cn γ $$ HechoInv Hname
     wp_auto
     wp_apply wp_string_to_bytes with %sl ⟨Hsl, -⟩
     (try wp_auto)
-    wp_apply wp_Write t cn false srvAddr sl _ (DFrac.own 1)
-        (fun k ok => iprop(tcpEnd G cn false TcpEnd.fresh ∗
+    wp_apply wp_Write t cn false srvAddr la ra sl _ (DFrac.own 1) ed
+        (fun k res => iprop(tcpEnd G cn false TcpEnd.fresh ∗
           sentAll γ.up ([] ++ (go!"xxxxxxxxxx").take k) ∗
-          ⌜∃ d d', WriteOutcome TcpEnd.fresh d (go!"xxxxxxxxxx") k ok d'⌝))
+          ⌜∃ d d', WriteOutcome TcpEnd.fresh d (go!"xxxxxxxxxx") k res d'⌝))
         $$ [Hsl Hend Hw]
-      as %n %err ⟨%k, %okw, ⟨Hend, -, -⟩, Hsl, -⟩
-    · iframe Hca Hsl
+      as %n %err ⟨%k, %res, ⟨Hend, -, -⟩, Hsl, -, -⟩
+    · iframe Hca Hsl Hed
       iapply wire.write_au echoN cn false γ.up TcpEnd.fresh [] _ $$ HdU Hend Hw
     (try wp_auto)
     wp_apply (wp_slice_make2 (V := w8) (W64 3)) as %buf ⟨Hbuf, -⟩
@@ -327,12 +376,12 @@ theorem wp_SendJunk
     · simp only [Bool.not_false]
       iexact HdD
     wp_apply wp_ReadFull (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t) cn false
-        srvAddr buf _ (wire.readP γ.down cn false TcpEnd.fresh []) eof $$ [Hbuf Hend Hr]
+        srvAddr buf _ (wire.readP γ.down cn false TcpEnd.fresh []) eof ed $$ [Hbuf Hend Hr]
       as %ok ⟨%got, %bs', HP, Hbuf, -⟩
-    · iframe Hbuf Heof Hacc
+    · iframe Hbuf Heof Hed Hacc
       isplitr [Hend Hr]
       · unfold net.isConn
-        iexists t
+        iexists t, la, ra
         iframe Hca
         ipureintro; rfl
       unfold wire.readP
@@ -341,17 +390,18 @@ theorem wp_SendJunk
     unfold wire.readP
     icases HP with ⟨Hend, -, -⟩
     (try wp_auto)
-    wp_apply wp_Close t cn false srvAddr (fun _ => iprop(True)) $$ [Hend] as %err' ⟨%ok', -, -⟩
+    wp_apply wp_Close t cn false srvAddr la ra (fun _ => iprop(True)) $$ [Hend]
+      as %err' ⟨%res', -, -⟩
     · iframe Hca
       iapply wire.close_drop_au echoN cn false γ.up _ $$ HdU Hend
     (try wp_auto)
     iapply HΦ
     itrivial
-  · obtain ⟨pe, rfl⟩ := Herr
+  · icases net.resErr_netErr _ _ _ _ _ _ _ $$ Herr with %Hne
+    obtain ⟨pe, rfl⟩ := Hne.2 (by simp)
     wp_auto
     iapply HΦ
     itrivial
-
 
 /-- `io.EOF`'s value, from the package's initialization. -/
 theorem eof_init :

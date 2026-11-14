@@ -9,13 +9,16 @@ junk}`, which the package's process tests run over real TCP): node `i` runs its 
 `getIsPkgInit_wf`). A process that exits is a node whose threads have all returned: its peers see
 what the semantics says of a dead process's connections (`Impl.lean` D10, D11). The plan
 has the server's address `SrvAddr` at a host `h`, which is the server node's; the client and the
-junk sender may be on any host (the server's too). The network starts with no connection.
+junk sender may be on any host (the server's too). The plan is well formed (`Deploy.lean`'s
+`PlanWellFormed`, D20, over the plan as a list `pl`, which `decide` checks: the example after the
+theorems). The network starts with no connection.
 
 The precondition of a node's boot program, over the local ghost state `L` of a generation of the
 node (`nodePre`), is echo's protocol (`echoInvs`, `Defs.lean`: the address's invariant and every
-connection's echo state), the plan's entry for `SrvAddr`, a fresh package state and, for the
-server, its host. The global setup allocates the protocol from the network's start resources
-(`SrvAddr`'s pending set, empty); each node's first generation gets its precondition from its start
+connection's echo state), the plan's entry for `SrvAddr` (as a resource, which `Dial` takes, and in
+the network's plan, which `Listen` resolves against), a fresh package state and, for the server,
+its host. The global setup allocates the protocol from the network's start resources (`SrvAddr`'s
+pending set, empty, and the ghost state's plan, the network's); each node's first generation gets its precondition from its start
 resources (its host); a crash keeps the host (`tcp_crashStart`), and the rest is persistent, so
 every generation's proof guarantees the next one's precondition. Each command's `main` is proved
 from echo's bodies (`cmd/<node>/Main.lean`: `wp_main`).
@@ -23,10 +26,12 @@ from echo's bodies (`cmd/<node>/Main.lean`: `wp_main`).
 The conclusion, `echo_crash_safety`, mentions no ghost state and no bounds: in every execution of
 the system with crashes, no thread of any node is stuck and none has an unrecovered panic, so the
 client's check (the reply it read in full is `"hello"`, the bytes it sent) never fails, whatever
-the junk sender sends, however the connections fail or the nodes crash (a crash does not clear
-the bytes in flight on a connection: the network is global state). Like every theorem over the TCP
-semantics, it assumes the deployment of `Impl.lean` D13 (a closed world, plan addresses that do
-not alias, ports outside the ephemeral range, the target configuration).
+the junk sender sends, however the connections fail (with any error kind, D14; a write cut short
+by a close, D15) or the nodes crash (a crash does not clear the bytes in flight on a connection: the
+network is global state), and whatever connections a failed dial leaves behind (D16: the server may
+accept one and reads EOF from it). Like every theorem over the TCP semantics, it assumes the
+deployment of `Impl.lean` D13: a closed world (prose), plan addresses that do not alias and ports
+outside the ephemeral range (`PlanWellFormed`, D20, a premise), the target configuration.
 -/
 module
 
@@ -44,6 +49,7 @@ public import NetTcp.Proof.net.Dial
 public import NetTcp.Proof.net.Listen
 public import NetTcp.Proof.net.Listener__Accept
 public import GooseLang.Ext.Tcp.Adequacy
+public import GooseLang.Ext.Tcp.Deploy
 
 @[expose] public section
 
@@ -122,17 +128,20 @@ theorem wp_boot [hG : HeapGS .hasLC GF] [sem : go.Semantics]
   ipureintro; rfl
 
 /-- The precondition of node `i`'s boot program in the generation with local ghost state `L`:
-echo's protocol, the plan's entry for `SrvAddr` (at `h`), a fresh package state, and for the
-server (`i = 0`), that its host is `h`. -/
+echo's protocol, the plan's entry for `SrvAddr` (at `h`; a resource, and in the ghost state's
+plan), a fresh package state, and for the server (`i = 0`), that its host is `h`. -/
 def nodePre [G : GooseGlobalGS .hasLC GF] (h : GoString) (i : Nat) (L : GooseLocalGS GF) :
     IProp GF :=
   iprop((∃ γm, echoInvs (Gg := G) γm) ∗ tcpPlan (extGlobalGS tcpExt) srvAddr h ∗
+    ⌜(extGlobalGS tcpExt (G := G)).plan !! srvAddr = some h⌝ ∗
     ownGoState (hG := L.goose_go_stateGS) ∅ ∗
     ⌜i = 0 → (extLocalGS tcpExt (L := L)).host = h⌝)
 
+set_option linter.unusedVariables false in
 /-- `echo_crash_safety` for executions of fewer than `N` steps along which every node has fewer
 than `T` live threads, under any ghost state `GF` with `GooseGpreS GF`:
-`goose_dist_crash_adequacy` for the system. -/
+`goose_dist_crash_adequacy` for the system. The plan is well formed (`Hwf`, D20; not used by
+the proof, it restricts the theorem to the deployment D13 describes). -/
 theorem echo_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     [srv_sem : cmd.server.Assumptions] [cli_sem : cmd.client.Assumptions]
     [junk_sem : cmd.junk.Assumptions] [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
@@ -140,6 +149,8 @@ theorem echo_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     (Hs : NodeStart lctx σs) (Hc : NodeStart lctx σc) (Hj : NodeStart lctx σj)
     (Hhost : (extLocal tcpExt σs.world).host = h)
     (Hplan : (extGlobal tcpExt g.globalWorld).plan.lookup srvAddr = some h)
+    (pl : List (GoString × GoString)) (Hwf : PlanWellFormed pl)
+    (Hpl : (extGlobal tcpExt g.globalWorld).plan = GMap.ofList pl)
     (Hconns : (extGlobal tcpExt g.globalWorld).conns = ∅)
     (n : Nat) (κs : List Observation) (c : DistCfg)
     (Hsteps : DistCrashNsteps ((system σs σc σj).map Prod.fst) n
@@ -160,15 +171,17 @@ theorem echo_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     iintro Hg
     icases tcp_globalStart g.globalWorld $$ Hg with Hnet
     unfold tcpStart
-    icases Hnet with ⟨Hplans, Hpends⟩
-    have Hpl : PartialMap.get? (extGlobal tcpExt g.globalWorld).plan srvAddr = some h := by
+    icases Hnet with ⟨Hplans, Hpends, %HGplan⟩
+    have HpS : PartialMap.get? (extGlobal tcpExt g.globalWorld).plan srvAddr = some h := by
       rw [gmap_get?_eq]; exact Hplan
-    ihave #Hp := (BigSepM.bigSepM_lookup (Φ := fun a h => tcpPlan (extGlobalGS tcpExt) a h) Hpl)
+    ihave #Hp := (BigSepM.bigSepM_lookup (Φ := fun a h => tcpPlan (extGlobalGS tcpExt) a h) HpS)
       $$ Hplans
     have Hpe : PartialMap.get? (pendInit (extGlobal tcpExt g.globalWorld)) srvAddr = some ∅ := by
       rw [gmap_get?_eq]; simp [pendInit, GMap.lookup_fmap, Hplan]
     ihave Hpend := (BigSepM.bigSepM_lookup (Φ := fun a S => tcpPend (extGlobalGS tcpExt) a S) Hpe)
       $$ Hpends
+    have HGp : (extGlobalGS tcpExt (G := G)).plan !! srvAddr = some h := by
+      rw [HGplan]; exact Hplan
     -- echo's protocol: the connections' states (none yet), then the address's invariant
     imod echoInvs_alloc (Gg := G) $$ Hpend with ⟨%γm, #Hinvs⟩
     imodintro
@@ -188,7 +201,7 @@ theorem echo_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
       isplitl []
       · iexists γm
         iexact Hinvs
-      ipureintro; intro _; exact Hh.trans Hhost
+      ipureintro; exact ⟨HGp, fun _ => Hh.trans Hhost⟩
     isplitl []
     · -- the client
       iintro %L %_ %_ - Hgs
@@ -200,7 +213,7 @@ theorem echo_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
       isplitl []
       · iexists γm
         iexact Hinvs
-      ipureintro; intro h0; cases h0
+      ipureintro; exact ⟨HGp, fun h0 => by cases h0⟩
     isplitl []
     · -- the junk sender
       iintro %L %_ %_ - Hgs
@@ -212,7 +225,7 @@ theorem echo_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
       isplitl []
       · iexists γm
         iexact Hinvs
-      ipureintro; intro h0; cases h0
+      ipureintro; exact ⟨HGp, fun h0 => by cases h0⟩
     iempintro
   · -- every generation of every node: its boot program, and its next precondition
     intro hG _ _ i e σ Hes Hlctx
@@ -232,7 +245,7 @@ theorem echo_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     subst Hlctx
     letI hG : HeapGS .hasLC GF := ⟨G, ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
     unfold nodePre
-    iintro ⟨⟨%γm, #Hinvs⟩, #Hplan, Hgs, %Hh⟩ _
+    iintro ⟨⟨%γm, #Hinvs⟩, #Hplan, %HGp, Hgs, %Hh⟩ _
     imodintro
     isplitl [Hgs]
     · rcases Hnode with ⟨rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩ | ⟨rfl, rfl, rfl⟩
@@ -241,8 +254,10 @@ theorem echo_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
           (cmd.server.wp_main net.Listen.wp_proof net.Listener.Accept.wp_proof
             (wire.ReadFull.wp_proof net.Conn.Read.wp_proof) net.Conn.Write.wp_proof
             net.Conn.Close.wp_proof γm) $$ [] Hgs
+        iframe Hinvs
+        ipureintro
         rw [Hh rfl]
-        iframe Hinvs Hplan
+        exact HGp
       · iapply wp_boot cmd.client.initialize' cmd.client.main _ cmd.client.getIsPkgInit
           (cmd.client.wp_initialize' _ cmd.client.getIsPkgInit_wf) _
           (cmd.client.wp_main net.Dial.wp_proof (wire.ReadFull.wp_proof net.Conn.Read.wp_proof)
@@ -258,6 +273,7 @@ theorem echo_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
       icases tcp_crashStart _ L' $$ Hcs with %Hhost'
       imodintro
       iframe Hgs' Hplan
+      iframe %HGp
       isplitl []
       · iexists γm
         iexact Hinvs
@@ -272,13 +288,15 @@ theorem echo_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     · exact Hc.threads
     · exact Hj.threads
 
+set_option linter.unusedVariables false in
 /-- Crash safety of the echo system: in every execution with crashes of the three nodes, the
 example's commands `cmd/server`, `cmd/client` and `cmd/junk`, each its own process
 (`DistCrashNsteps`, the real semantics: a crash of a node restarts it with its boot program, from
 a crashed local state, the network's connections and the bytes in flight on them kept), from
 local states whose Go contexts satisfy the Go semantics and the commands' assumptions, with no
 package initialized and their main threads only, where the server's host is `h`, the plan has
-`SrvAddr` at `h` and the network has no connection yet, every boot program returns `#()` if it
+`SrvAddr` at `h`, the plan is well formed (`PlanWellFormed`, D20, checked by `decide`: the
+example below) and the network has no connection yet, every boot program returns `#()` if it
 returns, no thread of any node is stuck and none has an unrecovered panic: the client's check
 holds, however connections fail, whatever the junk sender sends, and however often any node
 crashes. (`echo_crash_safety_bounded` with the ghost state `tcpGF`, the step bound `n + 1` and the
@@ -291,6 +309,8 @@ theorem echo_crash_safety [lctx : GoLocalContext] [sem : go.Semantics]
     (Hs : NodeStart lctx σs) (Hc : NodeStart lctx σc) (Hj : NodeStart lctx σj)
     (Hhost : (extLocal tcpExt σs.world).host = h)
     (Hplan : (extGlobal tcpExt g.globalWorld).plan.lookup srvAddr = some h)
+    (pl : List (GoString × GoString)) (Hwf : PlanWellFormed pl)
+    (Hpl : (extGlobal tcpExt g.globalWorld).plan = GMap.ofList pl)
     (Hconns : (extGlobal tcpExt g.globalWorld).conns = ∅)
     (n : Nat) (κs : List Observation) (c : DistCfg)
     (Hsteps : DistCrashNsteps ((system σs σc σj).map Prod.fst) n
@@ -300,7 +320,7 @@ theorem echo_crash_safety [lctx : GoLocalContext] [sem : go.Semantics]
       (∀ e, e ∈ tp → RealNotStuck e (σ, c.global)) ∧
       (∀ e, e ∈ tp → ¬ UnrecoveredPanic e) :=
   echo_crash_safety_bounded (GF := tcpGF) (n + 1) (n + 2) σs σc σj g h Hs Hc Hj Hhost Hplan
-    Hconns n κs c Hsteps (by omega)
+    pl Hwf Hpl Hconns n κs c Hsteps (by omega)
     (DistCrashThreadsBelow.of_single (fun (i : Nat) (tp : List Expr) (σ : state) hi => by
       simp only [distInit, system, List.map_cons, List.map_nil] at hi
       match i, hi with
@@ -309,6 +329,9 @@ theorem echo_crash_safety [lctx : GoLocalContext] [sem : go.Semantics]
       | 2, hi => cases hi; exact Hj.threads))
 
 end adequacy
+
+/-- The example's plan, one pair per address it uses, is well formed (D20). -/
+example : PlanWellFormed [(srvAddr, go!"h")] := by decide
 
 #print axioms echo_crash_safety
 

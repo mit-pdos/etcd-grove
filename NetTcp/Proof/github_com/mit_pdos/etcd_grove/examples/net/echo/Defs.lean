@@ -16,7 +16,10 @@ per-address protocol (`wire/Addr.lean`) and the per-direction stream protocol (`
   (`wire.accept_lis_au`): the acceptor end's state, the token, the reader's half of the
   up-direction (with its lower bound `sentLb γ.up []`) and the names. The dialer keeps
   `dialerOwn γm cn`: its end's state, the writer's half of the up-direction, the reader's half of
-  the down-direction.
+  the down-direction. A dial that fails but leaves its connection pending (abandoned, D16: the
+  dialer's end closed, its direction shut and empty) deposits the same `connProto`
+  (`echo_deposit_ab`): the up-direction's protocol starts from that shut direction, nothing written
+  (`dirInv_body_alloc_of`), so a server that accepts it reads EOF, and the dialer keeps nothing.
 
 The client's check (`client_check`): a reply it read (`sentLb γ.down resp`, from `Stream.read_acc`)
 is a prefix of the server's bytes `Wd`, which are a prefix of the client's own (its
@@ -145,20 +148,43 @@ theorem echoTok_exclusive (γ : GName) :
   iintro H1 H2
   iapply token_exclusive $$ H1 H2
 
-/-- A dialer's deposit for its new connection `cn`: both directions' stream protocols, a token,
-the names in the map, the connection's state (nothing written yet); the server's part
-(`connProto`) and the dialer's (`dialerOwn`). -/
-theorem echo_deposit (γm : GName) (cn : Nat) :
-    ⊢ inv echoN (echoState (Gg := Gg) γm) -∗ tcpConnAt G cn srvAddr -∗ tcpFresh G cn false -∗
-      tcpFresh G cn true ={⊤ \ ↑addrN}=∗ connProto γm cn ∗ dialerOwn γm cn := by
-  iintro #Hinv #Hat Hd Ha
+/-- A direction's protocol state, from its resource, for a direction with nothing in it that is not
+cut (a fresh one, or the shut one of an abandoned dial, D16): `wire.dirInv_body_alloc` for any such
+direction (general: a candidate for `wire/Stream.lean`). -/
+theorem dirInv_body_alloc_of (c : Nat) (s : Bool) (d : TcpDir) (hd : DirOk d [] []) :
+    tcpDir (G (Gg := Gg)) c s d ==∗ ∃ γ, dirInv c s γ ∗ sentAll γ [] ∗ rcvdAll γ [] := by
+  letI := (G (Gg := Gg)).allG
+  iintro Hd
+  imod mono_list_own_alloc (GF := GF) ([] : List w8) with ⟨%γw, Hw, -⟩
+  icases (show monoListAuthOwn (GF := GF) γw 1 ([] : List w8) ⊣⊢
+      iprop(monoListAuthOwn γw (1 : Qp).half [] ∗ monoListAuthOwn γw (1 : Qp).half []) by
+    conv => lhs; rw [← Qp.half_add_half 1]
+    exact (monoListAuthOwn_fractional γw []).fractional _ _).mp $$ Hw with ⟨Hw1, Hw2⟩
+  imod ghostVar_alloc (GF := GF) ([] : List w8) with ⟨%γr, Hr⟩
+  icases (ghostVar_split_half γr 1 ([] : List w8)).mp $$ Hr with ⟨Hr1, Hr2⟩
+  imodintro
+  iexists ⟨γw, γr⟩
+  unfold dirInv sentAll rcvdAll
+  isplitl [Hd Hw1 Hr1]
+  · iexists d, [], []
+    iframe Hd Hw1 Hr1
+    ipureintro; exact hd
+  iframe Hw2 Hr2
+
+/-- The deposit of a new connection `cn`, from the acceptor's fresh end and the dialer's direction
+`d` (nothing in it, not cut): both directions' stream protocols, a token, the names in the map, the
+connection's state (nothing written yet); the server's part (`connProto`) and the dialer's halves
+of the directions. -/
+theorem echo_deposit_dir (γm : GName) (cn : Nat) (d : TcpDir) (hd : DirOk d [] []) :
+    ⊢ inv echoN (echoState (Gg := Gg) γm) -∗ tcpDir G cn false d -∗ tcpEnd G cn true TcpEnd.fresh -∗
+      tcpDir G cn true TcpDir.fresh ={⊤ \ ↑addrN}=∗ connProto γm cn ∗
+        ∃ γ, echoName γm cn γ ∗ sentAll (Gg := Gg) γ.up [] ∗ rcvdAll (Gg := Gg) γ.down [] ∗
+          sentLb (Gg := Gg) γ.down [] := by
+  iintro #Hinv Hdd Hae Had
   iinv Hinv with Hi Hclose
   · exact ndot_mask nroot "echo_conns" "echo_addr" (by decide)
   unfold echoState
   icases Hi with ⟨%m, >Hm, >Hconns⟩
-  unfold tcpFresh
-  icases Hd with ⟨Hde, Hdd⟩
-  icases Ha with ⟨Hae, Had⟩
   letI := (G (Gg := Gg)).allG
   cases hm : m.lookup cn with
   | some γ' =>
@@ -169,7 +195,7 @@ theorem echo_deposit (γm : GName) (cn : Nat) :
     icases Hc with ⟨-, ⟨%d, %W, %R, Hdir, -⟩, -⟩
     icases tcpDir_excl _ cn true d TcpDir.fresh $$ Hdir Had with ⟨⟩
   | none =>
-    imod wire.dirInv_body_alloc cn false $$ Hdd with ⟨%γu, HIu, Hwu, Hru⟩
+    imod dirInv_body_alloc_of cn false d hd $$ Hdd with ⟨%γu, HIu, Hwu, Hru⟩
     imod wire.dirInv_body_alloc cn true $$ Had with ⟨%γd, HId, Hwd, Hrd⟩
     imod token_alloc (GF := GF) with ⟨%γt, Htok⟩
     ihave #Hlbu : (sentLb (Gg := Gg) γu [] : IProp GF) $$ [Hwu]
@@ -193,12 +219,43 @@ theorem echo_deposit (γm : GName) (cn : Nat) :
       iright
       ipureintro; rfl
     imodintro
-    unfold connProto dialerOwn echoName echoTok
+    unfold connProto echoName echoTok
     isplitl [Hae Htok Hru]
     · iexists ⟨γt, γu, γd⟩
       iframe Hname Hae Htok Hru Hlbu
     · iexists ⟨γt, γu, γd⟩
-      iframe Hname Hde Hwu Hrd Hlbd
+      iframe Hname Hwu Hrd Hlbd
+
+/-- A dialer's deposit for its new connection `cn` (`dial_both_au`'s `mk`): `echo_deposit_dir`
+from its fresh direction; the dialer keeps `dialerOwn`. -/
+theorem echo_deposit (γm : GName) (cn : Nat) :
+    ⊢ inv echoN (echoState (Gg := Gg) γm) -∗ tcpConnAt G cn srvAddr -∗ tcpFresh G cn false -∗
+      tcpFresh G cn true ={⊤ \ ↑addrN}=∗ connProto γm cn ∗ dialerOwn γm cn := by
+  iintro #Hinv #- Hd Ha
+  unfold tcpFresh
+  icases Hd with ⟨Hde, Hdd⟩
+  icases Ha with ⟨Hae, Had⟩
+  imod echo_deposit_dir γm cn TcpDir.fresh wire.dirOk_fresh $$ Hinv Hdd Hae Had
+    with ⟨Hp, %γ, #Hname, Hw, Hr, #Hlb⟩
+  imodintro
+  iframe Hp
+  unfold dialerOwn
+  iexists γ
+  iframe Hname Hde Hw Hr Hlb
+
+/-- The deposit of a dial that failed leaving its connection `cn` abandoned (D16; `dial_both_au`'s
+`mkAb`): `echo_deposit_dir` from the dialer's shut, empty direction (its closed end is dropped).
+The server may accept the connection; it reads EOF (the dialer wrote nothing). -/
+theorem echo_deposit_ab (γm : GName) (cn : Nat) :
+    ⊢ inv echoN (echoState (Gg := Gg) γm) -∗ tcpConnAt G cn srvAddr -∗
+      tcpEnd G cn false { TcpEnd.fresh with closed := true } -∗ tcpDir G cn false ⟨[], .fin⟩ -∗
+      tcpFresh G cn true ={⊤ \ ↑addrN}=∗ connProto γm cn := by
+  iintro #Hinv #- - Hdd Ha
+  unfold tcpFresh
+  icases Ha with ⟨Hae, Had⟩
+  imod echo_deposit_dir γm cn ⟨[], .fin⟩ (by simp [DirOk]) $$ Hinv Hdd Hae Had with ⟨Hp, -⟩
+  imodintro
+  iexact Hp
 
 /-- The state of a connection, from the invariant, by its names. -/
 theorem echoState_lookup (γm : GName) (cn : Nat) (γ : EchoNames) :

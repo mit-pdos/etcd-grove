@@ -1,6 +1,7 @@
 /-
 The proof of `examples/net/echo/cmd/client`'s `main`, echo's client node: `echo.Call` (`wp_Call`),
-with `io.EOF`'s value from the package's initialization (`eof_init`).
+with `io.EOF`'s and `poll.ErrDeadlineExceeded`'s values from the package's initialization
+(`eof_init`, `ed_init`).
 -/
 module
 
@@ -45,9 +46,10 @@ theorem wp_main
       pkg_id.github_com.mit_pdos.etcd_grove.examples.net.echo) $$ []
   · iPkgInit
   icases eof_init $$ Hecho with ⟨%eof, #Heof⟩
+  icases ed_init $$ Hecho with ⟨%ed, #Hed⟩
   (try wp_auto)
-  wp_apply wp_Call wp_Dial wp_ReadFull wp_Write wp_Close γm h eof $$ []
-  · iframe Hinvs Hplan Heof
+  wp_apply wp_Call wp_Dial wp_ReadFull wp_Write wp_Close γm h eof ed $$ []
+  · iframe Hinvs Hplan Heof Hed
   (try wp_auto)
   iapply HΦ
   itrivial

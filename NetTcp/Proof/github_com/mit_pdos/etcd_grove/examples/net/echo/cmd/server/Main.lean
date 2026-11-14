@@ -1,6 +1,7 @@
 /-
 The proof of `examples/net/echo/cmd/server`'s `main`, echo's server node: `echo.Serve`
-(`wp_Serve`), with `io.EOF`'s value from the package's initialization (`eof_init`).
+(`wp_Serve`), with `io.EOF`'s and `poll.ErrDeadlineExceeded`'s values from the package's
+initialization (`eof_init`, `ed_init`).
 -/
 module
 
@@ -27,8 +28,8 @@ variable [sem : go.Semantics]
 variable [package_sem' : cmd.server.Assumptions] [field_sem : net.FieldAssumptions]
 variable [go.BasicIntoValInj]
 
-/-- The server node's program: from echo's protocol and the plan's entry for `SrvAddr` at the
-node's own host, it listens there and serves. -/
+/-- The server node's program: from echo's protocol and the plan's having `SrvAddr` at the node's
+own host (the network's plan, which `Listen` resolves against), it listens there and serves. -/
 theorem wp_main
     (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
     (wp_Accept : net.Listener.Accept.spec (GF := GF) (hG := hG))
@@ -38,17 +39,20 @@ theorem wp_main
     (γm : GName) :
     {{ isPkgInit (PROP := IProp GF)
           pkg_id.github_com.mit_pdos.etcd_grove.examples.net.echo.cmd.server ∗
-        echoInvs γm ∗ tcpPlan G srvAddr (extLocalGS tcpExt (L := hG.goose_localGS)).host }}
+        echoInvs γm ∗
+        ⌜(G (GF := GF)).plan !! srvAddr = some (extLocalGS tcpExt (L := hG.goose_localGS)).host⌝ }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hinvs, #Hplan⟩
+  wp_start as ⟨#Hinvs, %Hpl⟩
   ihave #Hecho : (isPkgInit (PROP := IProp GF)
       pkg_id.github_com.mit_pdos.etcd_grove.examples.net.echo) $$ []
   · iPkgInit
   icases eof_init $$ Hecho with ⟨%eof, #Heof⟩
+  icases ed_init $$ Hecho with ⟨%ed, #Hed⟩
   (try wp_auto)
-  wp_apply wp_Serve wp_Listen wp_Accept wp_ReadFull wp_Write wp_Close γm eof $$ []
-  · iframe Hinvs Hplan Heof
+  wp_apply wp_Serve wp_Listen wp_Accept wp_ReadFull wp_Write wp_Close γm eof ed $$ []
+  · iframe Hinvs Heof Hed
+    ipureintro; exact Hpl
   (try wp_auto)
   iapply HΦ
   itrivial
