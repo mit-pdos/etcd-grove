@@ -367,7 +367,7 @@ theorem walReadFrom.wp_proof (wp_walLastHS : walLastHS.spec (GF := GF) (hG := hG
               · iexact Hoe
               ipureintro
               simpa [sint.nat] using He
-            have hwe := hwo.2 hos e (List.mem_of_getElem? He)
+            have hwe := hwo.2.1 hos e (List.mem_of_getElem? He)
             wp_apply wp_readEnt sv.baseIdx' es_s x e hwe.2.2.1 as %r %ok Hres
             · iexact Hxs
             have hj1 : sint.nat (jj + W64 1) = sint.nat jj + 1 := by word

@@ -34,7 +34,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.wal.Assumpt
 abbrev member.opResend.spec : Prop :=
   ∀ (W : WalGS GF) (e : TEnv) (γ : TGS) (m w : Loc) (v : oracle) (o os : TOracle) (c : TCand)
     (d : WalDur) (qc : Qp) (t vo cm l : w64) (tm : Loc) (M : GMap w64 w64),
-  e.orFile.Ok → tMemOk o c d → tMemHs o d → tCheckWf o → tOrRoom o 152 →
+  e.orFile.Ok → tMemOk o c d → tMemHs o d → tCheckWf o → tMemFields t M → tOrRoom o 152 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.wal ∗
       memSaveRes W e γ m w v o os c d qc ∗
       m.[member, go!"term"] ↦ t ∗ m.[member, go!"vote"] ↦ vo ∗ m.[member, go!"commit"] ↦ cm ∗

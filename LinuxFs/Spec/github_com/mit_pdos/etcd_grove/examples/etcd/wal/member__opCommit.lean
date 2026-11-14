@@ -30,7 +30,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.wal.Assumpt
 abbrev member.opCommit.spec : Prop :=
   ∀ (W : WalGS GF) (e : TEnv) (γ : TGS) (m w : Loc) (v : oracle) (o os : TOracle) (c : TCand)
     (d : WalDur) (qc : Qp) (t vo cm l : w64) (r : Loc) (rv : rnd),
-  e.orFile.Ok → tMemOk o c d → tMemHs o d →
+  e.orFile.Ok → tMemOk o c d → tMemHs o d → uint.nat t < 2 ^ 63 →
   (∀ h : THs, tOrSmall (tSaveO1 o h []) ∧ tOrSmall (tSynced (tSaveO1 o h []))) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.wal ∗
       memSaveRes W e γ m w v o os c d qc ∗

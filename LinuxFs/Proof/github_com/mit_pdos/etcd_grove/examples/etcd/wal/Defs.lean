@@ -295,10 +295,12 @@ def tEntWf (e : TEnt) : Prop :=
     uint.nat e.term' < 2 ^ 63
 
 /-- **The tester's operations are well formed**: entries well formed, a snapshot's index and term
-below `2^63`. -/
+below `2^63`, a save's hard state's term below `2^63` (the member's term: so a restart's read term is,
+`tMemFields` after `restart`; W4c U5, eighth session). -/
 def tOpWf (o : TOp) : Prop :=
   (o.snap = true → uint.nat o.idx < 2 ^ 63 ∧ uint.nat o.term < 2 ^ 63) ∧
-  (o.snap = false → ∀ e ∈ o.ents, tEntWf e)
+  (o.snap = false → ∀ e ∈ o.ents, tEntWf e) ∧
+  (o.snap = false → uint.nat o.hs.term' < 2 ^ 63)
 
 /-- Every operation of `h` is well formed. -/
 def tHistWf (h : List TOp) : Prop := ∀ o ∈ h, tOpWf o

@@ -1709,3 +1709,20 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   (`Open`/`ReadAll`, `Create`): an obligation of `restart`/`Boot`.
 - **Decision.** Adopted (internal, the agent's: a strengthening of a proved spec of our own example, its only
   clients `opTerm`/`opCommit`/`opEntries`/`opResend`/`opRecvSnap`, all re-proved); made.
+
+## 2026-11-14: `tOpWf` and `member.save.spec` (the tester's, W4c U5) -- a save's hard-state term unbounded, so a restart cannot re-establish the member's fields (W4c U5, restart)
+
+- **Spec.** `LinuxFs/Proof/github_com/mit_pdos/etcd_grove/examples/etcd/wal/Defs.lean`'s `tOpWf` (a save's entries
+  `tEntWf`, a snapshot's index and term below `2^63`; nothing on a save's hard state) and
+  `TS/member__save.lean` (premises `tMemOk`, `tMemHs`, the entries' `tEntWf`, the sizes).
+- **Defect.** After a restart the member's term is the read hard state's (`resume`), and `memLive` (`MemberInv`,
+  the form the operations take) asks it below `2^63` (`tMemFields`); the read's hard state is the history's last
+  save's, whose term nothing bounds, so `restart` could not give `memLive`.
+- **Evidence.** `notes/wal-units/ops.md`, "For `restart`'s author"; `tMemFields_read` (`RestartLive.lean`) needs
+  the bound (`tLastHS_term`).
+- **Proposed change.** `tOpWf` gains a third clause, `o.snap = false → uint.nat o.hs.term' < 2 ^ 63`;
+  `member.save.spec` the premise `uint.nat h.term' < 2 ^ 63`; its callers supply it: `opEntries` (its `t <
+  2^63`), `opRecvSnap` (`memLive`'s `tMemFields`), and new premises `uint.nat t < 2 ^ 63` of `opTerm`/`opCommit`
+  and `tMemFields t M` of `opResend` (all three implied by `memLive`, the form `step` will take).
+- **Decision.** Adopted (internal: the tester's own definitions and specs, recommended by the ops agent and
+  delegated to the restart path by the coordinator); made, every client re-proved.

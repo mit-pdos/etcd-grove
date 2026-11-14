@@ -21,7 +21,7 @@ What `restartRead` and `restart` need of the oracle, pure:
 module
 
 public import LinuxFs.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.RestartPure
-public import LinuxFs.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.SavePure
+public import LinuxFs.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.OrLen
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.Inv
 
 @[expose] public section
@@ -57,8 +57,6 @@ theorem tWithOpens_nil (o : TOracle) : tWithOpens o [] = o := by
 theorem tWithOpens_add (o : TOracle) (l : List w64) (a : w64) :
     tAddOpen (tWithOpens o l) a = tWithOpens o (l ++ [a]) := by
   simp [tAddOpen, tWithOpens, List.append_assoc]
-
-theorem tU64_length (x : w64) : (tU64 x).length = 8 := by simp [tU64]
 
 /-- **An open adds 8 bytes to the encoding**, whatever its value. -/
 theorem tEncodeOracle_withOpens_length (o : TOracle) (l : List w64) :
@@ -272,6 +270,76 @@ theorem tRaiseUnl_ge (o : TOracle) (cd : TCand) :
     max (uint.nat cd.unl) (tOpensBound o cd) ≤
       uint.nat (tRaiseUnl (tImgs (tCandHist o cd) (tCandMark o cd)) o.opens cd.unl) :=
   Nat.max_le.2 ⟨tRaiseUnl_ge_u _ _ _, tRaiseUnl_ge_fold _ _ _ 0 (Nat.zero_le _)⟩
+
+
+/-! ## The new oracle's candidates are images -/
+
+/-- Every candidate of `cs` has a history among `imgsOf`. -/
+def tCandsIn (P : List TOp → Prop) (cs : List TCand) : Prop := ∀ c ∈ cs, P c.h
+
+theorem tAddCand_in {P : List TOp → Prop} (img : List TOp) (u p : w64) (himg : P img) :
+    ∀ cs : List TCand, tCandsIn P cs → tCandsIn P (tAddCand img u p cs) := by
+  intro cs
+  induction cs with
+  | nil => intro _ c hc; rw [List.mem_singleton.1 hc]; exact himg
+  | cons c0 cs ih =>
+    intro hcs
+    unfold tAddCand
+    split
+    · intro c hc
+      rcases List.mem_cons.1 hc with rfl | hc
+      · exact hcs c0 (List.mem_cons_self ..)
+      · exact hcs c (List.mem_cons_of_mem _ hc)
+    · intro c hc
+      rcases List.mem_cons.1 hc with rfl | hc
+      · exact hcs _ (List.mem_cons_self ..)
+      · exact ih (fun c' hc' => hcs c' (List.mem_cons_of_mem _ hc')) c hc
+
+/-- An image of a candidate's history of `o`. -/
+def tIsImg (o : TOracle) (h : List TOp) : Prop :=
+  ∃ cd ∈ o.cands, h ∈ tImgs (tCandHist o cd) (tCandMark o cd)
+
+theorem tCandNext_in (o : TOracle) (c : TContents) (cd : TCand) (hcd : cd ∈ o.cands) :
+    ∀ (imgs : List (List TOp)) (nx : List TCand), (∀ i ∈ imgs, i ∈ tImgs (tCandHist o cd) (tCandMark o cd)) →
+      tCandsIn (tIsImg o) nx →
+      tCandsIn (tIsImg o) (imgs.foldl (fun nx img => if tImgReads img cd.pur c then
+        tAddCand img (tRaiseUnl (tImgs (tCandHist o cd) (tCandMark o cd)) o.opens cd.unl) cd.pur nx
+        else nx) nx) := by
+  intro imgs
+  induction imgs with
+  | nil => intro nx _ h; exact h
+  | cons i imgs ih =>
+    intro nx hi h
+    simp only [List.foldl_cons]
+    apply ih _ (fun j hj => hi j (List.mem_cons_of_mem _ hj))
+    split
+    · exact tAddCand_in _ _ _ ⟨cd, hcd, hi i (List.mem_cons_self ..)⟩ _ h
+    · exact h
+
+/-- **`checkRestart`'s next candidates are images of the candidates' histories.** -/
+theorem tCheckNext_imgs (o : TOracle) (c : TContents) : tCandsIn (tIsImg o) (tCheckNext o c) := by
+  unfold tCheckNext
+  suffices ∀ (cs : List TCand) (nx : List TCand), (∀ cd ∈ cs, cd ∈ o.cands) → tCandsIn (tIsImg o) nx →
+      tCandsIn (tIsImg o) (cs.foldl (tCandNext o c) nx) from
+    this _ _ (fun _ h => h) (fun _ h => by cases h)
+  intro cs
+  induction cs with
+  | nil => intro nx _ h; exact h
+  | cons cd cs ih =>
+    intro nx hcs h
+    simp only [List.foldl_cons]
+    exact ih _ (fun x hx => hcs x (List.mem_cons_of_mem _ hx))
+      (tCandNext_in o c cd (hcs cd (List.mem_cons_self ..)) _ _ (fun _ hi => hi) h)
+
+/-- **The new oracle meets `checkRestart`'s premises again** (`tCheckWf`), within 1 GiB: its candidates
+are images of well-formed histories, short by the size bound. -/
+theorem tCheckWf_restart {o : TOracle} {c : TContents} (hw : tCheckWf o)
+    (hs : tOrSmall (tCheckRestart o c)) : tCheckWf (tCheckRestart o c) := by
+  refine ⟨Nat.zero_le _, fun c' hc' => ⟨?_, tOrSmall_hist_lt hs hc'⟩⟩
+  obtain ⟨cd, hcd, hi⟩ := tCheckNext_imgs o c c' hc'
+  show tHistWf (c'.h ++ [])
+  rw [List.append_nil]
+  exact tHistWf_of_mem_tImgs (hw.2 cd hcd).1 hi
 
 /-! ## The read's hard state -/
 

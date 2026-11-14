@@ -67,7 +67,8 @@ theorem tRelI_save1 (W : WalGS GF) (root : GoString) (o : TOracle) (c : TCand) (
 
 /-- **`Save`'s update, committed on the tester's invariant.** -/
 theorem tInv_saveAu (W : WalGS GF) (e : TEnv) (γ : TGS) (o : TOracle) (c : TCand) (d : WalDur)
-    (h : THs) (es : List TEnt) (hok : tMemOk o c d) (hes : ∀ x ∈ es, tEntWf x) :
+    (h : THs) (es : List TEnt) (hok : tMemOk o c d) (hes : ∀ x ∈ es, tEntWf x)
+    (ht : uint.nat h.term' < 2 ^ 63) :
     TInv (W := W) e γ ∗ tWalOwn γ (some d) ∗ tOrOwn γ (tSaveO1 o h es) none ∗
       WalFs.walSyncedLb (W := W) (tWalDir e.root) (tCandMark o c) ∗
       WalFs.walNamed (W := W) (tWalDir e.root) ⊢
@@ -107,7 +108,7 @@ theorem tInv_saveAu (W : WalGS GF) (e : TEnv) (γ : TGS) (o : TOracle) (c : TCan
   · iintro Hwd
     iunfold tWalOwn at Hwo
     imod ghostVar_update_halves (some (tSaveD d h es)) γ.γw _ _ $$ Hwo Hw1 with ⟨Hwo, Hw1⟩
-    have hok' := tMemOk_save1 hok h es hes
+    have hok' := tMemOk_save1 hok h es hes ht
     ihave #Hrel := tRelI_save1 W e.root o c (tSaveD d h es) h es hok.1 hok.2.1
       (by
         have h2 := tMemOk_candOk0 hok'

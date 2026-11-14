@@ -134,7 +134,7 @@ theorem member.opRecvSnap.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :
     iunfold memSaveRes at Hres1
     icases Hres1 with ⟨#H1, #H2, #H3, #H4, H5, H6, H7, H8, H9, H10, H11, H12, #H13, H14, #H15, #H16, #H17⟩
     wp_apply (wp_save W e γ m w v1 _ os1 c d1 qc (hardState.mk t vo (l + W64 1 + k)) esl es hf Hok1.1
-      Hok1.2 h4 hsv.1 hsv.2) $$ [H5 H6 H7 H8 H9 H10 H11 H12 H14] as %b2 Hpost2
+      Hok1.2 h4 hfl.1 hsv.1 hsv.2) $$ [H5 H6 H7 H8 H9 H10 H11 H12 H14] as %b2 Hpost2
     · iframe
       iframe Hes H13 H15 H16 H17 H1 H2 H3 H4
     cases b2
@@ -168,7 +168,7 @@ theorem member.opRecvSnap.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :
     have hsm2' : tOrSmall (tSaveO (tSnapO o (l + W64 1 + k) t) (hardState.mk t vo (l + W64 1 + k)) es) := by
       unfold tOrSmall; unfold tOrRoom at hroom; omega
     have hl2 := tOrSmall_since_lt hsm2'
-    have hcw := tCheckWf_saveO (tCheckWf_snapO hwf hs63 hfl.1 hsnap) _ es h4 hsm2'
+    have hcw := tCheckWf_saveO (tCheckWf_snapO hwf hs63 hfl.1 hsnap) _ es h4 hfl.1 hsm2'
     iexists _
     isplitl
     · iunfold memLive

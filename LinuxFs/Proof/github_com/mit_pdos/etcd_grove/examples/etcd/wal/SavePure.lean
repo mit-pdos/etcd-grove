@@ -57,9 +57,10 @@ theorem tSaveD_hist (d : WalDur) (h : THs) (es : List TEnt) :
   unfold tSaveD
   rw [List.map_append, List.map_singleton, WalOpG.toM_toRaw, absOp_saveOp]
 
-theorem tSaveOp_wf (h : THs) (es : List TEnt) (hes : ∀ x ∈ es, tEntWf x) : tOpWf (tSaveOp h es) := by
+theorem tSaveOp_wf (h : THs) (es : List TEnt) (hes : ∀ x ∈ es, tEntWf x) (ht : uint.nat h.term' < 2 ^ 63) :
+    tOpWf (tSaveOp h es) := by
   unfold tOpWf tSaveOp
-  exact ⟨fun hs => absurd hs Bool.false_ne_true, fun _ => hes⟩
+  exact ⟨fun hs => absurd hs Bool.false_ne_true, fun _ => hes, fun _ => ht⟩
 
 theorem tSaveO1_hist (o : TOracle) (c : TCand) (h : THs) (es : List TEnt) :
     tCandHist (tSaveO1 o h es) c = tCandHist o c ++ [tSaveOp h es] := by
@@ -73,7 +74,8 @@ theorem tHistWf_snoc {H : List TOp} {op : TOp} (h1 : tHistWf H) (h2 : tOpWf op) 
 
 /-- **The appended oracle accounts for the WAL before the call** (the first store's relation). -/
 theorem tCandOk_save1 {o : TOracle} {c : TCand} {d : WalDur} (hok : tMemOk o c d) (h : THs)
-    (es : List TEnt) (hes : ∀ x ∈ es, tEntWf x) : tCandOk (tSaveO1 o h es) c d := by
+    (es : List TEnt) (hes : ∀ x ∈ es, tEntWf x) (ht : uint.nat h.term' < 2 ^ 63) :
+    tCandOk (tSaveO1 o h es) c d := by
   obtain ⟨-, -, -, h4, h5, h6, h7, h8, h9, h10⟩ := hok
   refine ⟨?_, h5, h6, Nat.le_trans h7 (Nat.le_max_left _ _), h8, ?_⟩
   · rw [tSaveO1_hist, h4]
@@ -83,15 +85,16 @@ theorem tCandOk_save1 {o : TOracle} {c : TCand} {d : WalDur} (hok : tMemOk o c d
     · simp
     · rw [List.map_append, List.take_append_of_le_length (by simp)]
       exact (List.take_of_length_le (by simp)).symm
-  · rw [tSaveO1_hist]; exact tHistWf_snoc h9 (tSaveOp_wf h es hes)
+  · rw [tSaveO1_hist]; exact tHistWf_snoc h9 (tSaveOp_wf h es hes ht)
 
 /-- **The appended oracle's candidate is the WAL after the save's update.** -/
 theorem tMemOk_save1 {o : TOracle} {c : TCand} {d : WalDur} (hok : tMemOk o c d) (h : THs)
-    (es : List TEnt) (hes : ∀ x ∈ es, tEntWf x) : tMemOk (tSaveO1 o h es) c (tSaveD d h es) := by
+    (es : List TEnt) (hes : ∀ x ∈ es, tEntWf x) (ht : uint.nat h.term' < 2 ^ 63) :
+    tMemOk (tSaveO1 o h es) c (tSaveD d h es) := by
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10⟩ := hok
   refine ⟨h1, h2, h3, ?_, h5, h6, h7, h8, ?_, ?_⟩
   · rw [tSaveD_hist, h4, tSaveO1_hist, List.map_append, List.map_singleton]
-  · rw [tSaveO1_hist]; exact tHistWf_snoc h9 (tSaveOp_wf h es hes)
+  · rw [tSaveO1_hist]; exact tHistWf_snoc h9 (tSaveOp_wf h es hes ht)
   · show uint.nat o.synced ≤ (o.since ++ [tSaveOp h es]).length
     simp only [List.length_append, List.length_singleton]; omega
 

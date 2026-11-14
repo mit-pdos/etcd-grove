@@ -181,7 +181,7 @@ theorem tRead_ents_wf {h : List TOp} {c : TContents} (hw : tHistWf h) (hr : tRea
   unfold tRead tFoldChk at hr
   refine tFoldChkFrom_ents_sub _ tC0 c hr (fun x hx => by cases hx) ?_
   intro o ho hsn x hx
-  exact (hw o (List.mem_filter.1 ho).1).2 hsn x hx
+  exact (hw o (List.mem_filter.1 ho).1).2.1 hsn x hx
 
 theorem absHs_inj {a b : THs} (h : absHs a = absHs b) : a = b := by
   cases a; cases b; simp only [absHs, HardStateM.mk.injEq] at h; obtain ⟨h1, h2, h3⟩ := h; subst h1 h2 h3; rfl

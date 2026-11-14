@@ -118,7 +118,7 @@ local macro "resend_rest" : tactic => `(tactic| (
     · iframe
     try wp_auto
     wp_apply (wp_save W e γ m w v o os c d qc (hardState.mk t' vo cm) esl es hf hok hhs
-      hesw (tOrRoom_save hroom (by omega) _).1 (tOrRoom_save hroom (by omega) _).2)
+      hesw (Hj.2.2 hfm).1 (tOrRoom_save hroom (by omega) _).1 (tOrRoom_save hroom (by omega) _).2)
       $$ [H5 H6 H7 H8 H9 Hrep H11 H12 H14] as %b Hpost
     · iframe
       iframe Hes H13 H15 H16 H17 H1 H2 H3 H4
@@ -136,7 +136,7 @@ theorem member.opResend.wp_proof (wp_copyOps : copyOps.spec (GF := GF) (hG := hG
     (wp_walFold : walFold.spec (GF := GF) (hG := hG))
     (wp_hs : member.hs.spec (GF := GF) (hG := hG)) (wp_save : member.save.spec (GF := GF) (hG := hG)) :
     member.opResend.spec (GF := GF) (hG := hG) := by
-  intro W e γ m w v o os c d qc t vo cm l tm M hf hok hhs hwf hroom
+  intro W e γ m w v o os c d qc t vo cm l tm M hf hok hhs hwf hfm hroom
   wp_start as ⟨Hres, Ht, Hv, Hc, Hl, Htm, HM⟩
   wp_auto
   wp_if_destruct
@@ -242,7 +242,7 @@ theorem member.opResend.wp_proof (wp_copyOps : copyOps.spec (GF := GF) (hG := hG
       intro x hx
       obtain ⟨op, hop, hsn, hxo⟩ := Hfe x hx
       have hcdm : cd ∈ o.cands := List.mem_of_getElem? Hcd
-      exact (hwf.2 cd hcdm).1 op hop |>.2 hsn x hxo
+      exact (hwf.2 cd hcdm).1 op hop |>.2.1 hsn x hxo
     ihave %Hfel := ownSlice_len $$ Hfe
     try wp_auto
     wp_if_destruct

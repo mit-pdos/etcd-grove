@@ -448,7 +448,7 @@ theorem tLastEnt_lt : ∀ (l : List TOp) (x : w64), tHistWf l → uint.nat x < 2
       cases hl : o.ents.getLast? with
       | none => exact hx
       | some e =>
-        exact ((hw o (List.mem_cons_self ..)).2 ho e (List.mem_of_getLast? hl)).2.2.1
+        exact ((hw o (List.mem_cons_self ..)).2.1 ho e (List.mem_of_getLast? hl)).2.2.1
     · simpa using hx
 
 theorem tMaxSnap_lt : ∀ (l : List TOp) (x : w64), tHistWf l → uint.nat x < 2 ^ 63 →
@@ -482,7 +482,7 @@ theorem tHistWf_noMax {h : List TOp} (hw : tHistWf h) : ¬ walHasMaxIdx (h.map a
   · simp only [absOp, hs, Bool.false_eq_true, ite_false] at hm
     obtain ⟨e', he', hi⟩ := hm
     obtain ⟨e, he, rfl⟩ := List.mem_map.1 he'
-    have := (hwo.2 hs e he).2.2.1
+    have := (hwo.2.1 hs e he).2.2.1
     simp only [absEnt] at hi; omega
   · simp only [absOp, hs, ite_true, absSnapMd] at hm
     have := (hwo.1 hs).1; omega

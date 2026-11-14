@@ -177,7 +177,8 @@ theorem tOrSmall_since_lt {o : TOracle} (hs : tOrSmall o) : o.since.length < 2 ^
 
 /-- **A save keeps `tCheckWf`**, its oracle within 1 GiB. -/
 theorem tCheckWf_saveO {o : TOracle} (hw : tCheckWf o) (h : THs) (es : List TEnt)
-    (hes : ∀ x ∈ es, tEntWf x) (hs : tOrSmall (tSaveO o h es)) : tCheckWf (tSaveO o h es) := by
+    (hes : ∀ x ∈ es, tEntWf x) (ht : uint.nat h.term' < 2 ^ 63) (hs : tOrSmall (tSaveO o h es)) :
+    tCheckWf (tSaveO o h es) := by
   obtain ⟨hw1, hw2⟩ := hw
   have hcands : (tSaveO o h es).cands = o.cands := by
     unfold tSaveO; split
@@ -210,7 +211,7 @@ theorem tCheckWf_saveO {o : TOracle} (hw : tCheckWf o) (h : THs) (es : List TEnt
         · exact tSaveO1_hist o cd h es
     rcases hhist with hh | hh <;> rw [hh]
     · exact (hw2 cd hcd).1
-    · exact tHistWf_snoc (hw2 cd hcd).1 (tSaveOp_wf h es hes)
+    · exact tHistWf_snoc (hw2 cd hcd).1 (tSaveOp_wf h es hes ht)
 
 end pure
 

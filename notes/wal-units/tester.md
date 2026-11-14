@@ -140,8 +140,9 @@ See the final report.
 
 # Eighth session (branch `wal-c-tester`, 2026-11-14): `restartRead` / `member.restart`
 
-Base `origin/wal-int` (`89ef103d5b`). No axiom, no `sorry`, nothing trusted changed, no Go changed, no
-existing statement changed.
+Base `origin/wal-int` (`89ef103d5b`), merged again with `origin/wal-int` after `wal-c-ops` landed (`fc80692a71`).
+No axiom, no `sorry`, nothing trusted changed, no Go changed. Statement changes: `tOpWf`, `member.save.spec`,
+`opTerm`/`opCommit`/`opResend`'s premises (below; ledger 2026-11-14).
 
 ## Blocker (decision for the user): `restartRead`'s newest-pair loop dereferences `*snaps[i].Index`
 
@@ -199,8 +200,26 @@ it is not proved.
   bounds at least its candidate's), `tRaiseUnl_ge`, `tRead_hs`, and **`tRestart_ok`**: the new oracle's
   candidate accounts for the WAL as a running member's (`tMemOk`, `tMemHs`, `tCandOk`, mark = `|d.H|`).
 - `TS/restartRead.lean`: the spec (see its header).
-- `TS/member__restart.lean`, `TP/member__restart.lean`: `member.restart.wp_proof` over `restartRead.spec`,
-  `checkRestart.spec`, `storeOracle.spec`, `member.resume.spec`.
+- `TP/RestartOk.lean` also: `tCheckNext_imgs` (the next candidates are images of the candidates' histories),
+  `tCheckWf_restart` (the new oracle meets `tCheckWf`, within 1 GiB, through `OrLen.tOrSmall_hist_lt`).
+- `TP/RestartLive.lean`: `tMemFields_read` (the fields `resume` sets from a well-formed history's read meet
+  `tMemFields`: the hard state's term the last save's, the base term a snapshot's, the entries' `tEntWf`).
+- `TS/member__restart.lean`, `TP/member__restart.lean`: **`member.restart.wp_proof`** over `restartRead.spec`,
+  `checkRestart.spec`, `storeOracle.spec`, `member.resume.spec`. Its `true` post is **`memLive W e γ m ½ o''`**
+  at the new oracle (`o'' = tCheckRestart (tWithOpens o ls) c`): `memSaveRes` with the handle's `walLenLb`, the
+  fields with `tMemFields`, `walPurgeW`, `tMemOk`/`tMemHs`/`tCheckWf`, so `step` can continue from it.
+
+## Statement changes (the coordinator's item 3, from `ops.md`)
+
+- **`tOpWf`** (`Defs.lean`) gains `o.snap = false → uint.nat o.hs.term' < 2 ^ 63` (a save's hard-state term), so a
+  restart's read term is bounded (`tMemFields_read`). Constructors re-proved: `tSaveOp_wf` (now takes the bound),
+  `tSnapOp_wf`, the torn op in `Check.tHistWf_of_mem_tImgs`; the users of the second clause
+  (`RefLemmas`, `RestartPure`, `opResend`) take `.2.1`.
+- **`member.save.spec`**: premise `uint.nat h.term' < 2 ^ 63`; `tCandOk_save1`, `tMemOk_save1`, `tInv_saveAu`,
+  `tCheckWf_saveO` take it too.
+- **`opTerm.spec`, `opCommit.spec`**: premise `uint.nat t < 2 ^ 63`; **`opResend.spec`**: premise `tMemFields t M`
+  (its `t'` is bounded by the loop's `tMemFields t M → tMemFields t' M'`). `opEntries` (its `t < 2^63`) and
+  `opRecvSnap` (`memLive`) had the bound. All implied by `memLive`.
 
 ## Next steps
 

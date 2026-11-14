@@ -219,8 +219,8 @@ theorem tHistWf_of_mem_tImgs {h : List TOp} {n : Nat} {img : List TOp} (hw : tHi
         · rw [List.mem_singleton] at hx
           subst hx
           have ho : tOpWf o := hw o (List.mem_of_getElem? hoj)
-          refine ⟨fun h => by simp [tTornOp] at h, fun _ e he => ?_⟩
-          exact ho.2 (by simpa using hsn) e (List.mem_of_mem_take he)
+          refine ⟨fun h => by simp [tTornOp] at h, fun _ e he => ?_, fun _ => by simp [tTornOp, tHs0]⟩
+          exact ho.2.1 (by simpa using hsn) e (List.mem_of_mem_take he)
 
 end pure
 

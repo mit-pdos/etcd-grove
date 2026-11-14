@@ -40,7 +40,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.wal.Assumpt
 abbrev member.save.spec : Prop :=
   ∀ (W : WalGS GF) (e : TEnv) (γ : TGS) (m w : Loc) (v : oracle) (o os : TOracle) (c : TCand)
     (d : WalDur) (qc : Qp) (h : THs) (esl : GoSlice) (es : List TEnt),
-  e.orFile.Ok → tMemOk o c d → tMemHs o d → (∀ x ∈ es, tEntWf x) →
+  e.orFile.Ok → tMemOk o c d → tMemHs o d → (∀ x ∈ es, tEntWf x) → uint.nat h.term' < 2 ^ 63 →
   tOrSmall (tSaveO1 o h es) → tOrSmall (tSynced (tSaveO1 o h es)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.wal ∗
       osInv (GF := GF) ∗ osSharedInv (GF := GF) e.R ∗ TInv (W := W) e γ ∗

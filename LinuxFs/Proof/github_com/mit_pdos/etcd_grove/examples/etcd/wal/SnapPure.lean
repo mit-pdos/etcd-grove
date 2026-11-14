@@ -59,7 +59,7 @@ theorem tOrRoom_snapO {o : TOracle} {n : Nat} (hr : tOrRoom o (n + 56)) (idx ter
 
 theorem tSnapOp_wf {idx term : w64} (hi : uint.nat idx < 2 ^ 63) (ht : uint.nat term < 2 ^ 63) :
     tOpWf (tSnapOp idx term) :=
-  ⟨fun _ => ⟨hi, ht⟩, fun h => by cases h⟩
+  ⟨fun _ => ⟨hi, ht⟩, ⟨fun h => by simp [tSnapOp] at h, fun h => by simp [tSnapOp] at h⟩⟩
 
 /-- **A mark's move keeps `tCheckWf`.** -/
 theorem tCheckWf_synced {o : TOracle} (hw : tCheckWf o) (hl : o.since.length < 2 ^ 64) :
