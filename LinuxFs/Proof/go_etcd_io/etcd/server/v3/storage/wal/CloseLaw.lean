@@ -130,8 +130,7 @@ theorem walTailsRes_close (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (L
   · ipureintro; exact ⟨hp.1, hp.2.1, hp.2.2.1, Htg, HTo⟩
   iintro %hidle
   icases walLentRes_unreg (W := W) _ Ls dir γt $$ Hk HL with ⟨Hk, HL⟩
-  ihave HL : walLentRes (W := W) ∅ Ls $$ [HL]
-  · rw [← tailsDel_single dir γt]; iexact HL
+  rw [tailsDel_single dir γt]
   have hu := walTails_unregister (W := W) (<[dir := γt]> ∅) dir γt
   rw [tailsDel_single] at hu
   imod hu $$ HTa Htf Hk with ⟨HTa, Htf⟩

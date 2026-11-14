@@ -86,15 +86,17 @@ theorem walInvBody_lend (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
   subst hino
   have hg0m : g0 ∈ segsAll Ls := mem_segsAll hl (List.mem_of_getLast? hg)
   iunfold laysResF at Hlays
-  icases (BigSepL.bigSepL_mem_acc (PROP := IProp GF) (Φ := fun g => segResF (L := hG.goose_localGS) F g) hg0m) $$ Hlays
-    with ⟨Hs0, Hlays⟩
-  have eseg : segResF F g0 = segRes g0 := by unfold segResF; rw [← hF]
+  ihave ⟨Hs0, Hlays⟩ := BigSepL.bigSepL_mem_acc hg0m $$ Hlays
+  have eseg : segResF (GF := GF) F g0 = segRes (GF := GF) g0 := by
+    unfold segResF; rw [← hF]
   rw [eseg]
   unfold segRes
   icases Hs0 with ⟨Hm0, Hb0⟩
   icases osMeta_agree2 _ _ _ _ _ $$ Hm Hm0 with %hm
   subst hm
-  obtain ⟨lay1, nm, -, hl1, -, -, -, -, habs, -⟩ := HW.1 dir d hd
+  have HW0 := HW
+  obtain ⟨hW1, -⟩ := HW0
+  obtain ⟨lay1, nm, hj, hl1, hA, hjr, hnm, hc, habs, hcr⟩ := hW1 dir d hd
   rw [hl] at hl1; cases hl1
   have hold : lay.old.length = g0.om.size := walAbsD_old_exact habs hg hlo hhi
   imod walLentRes_lend T Ls dir γ lay HT hl $$ Hk HL with ⟨Hlt, HL⟩
@@ -108,7 +110,7 @@ theorem walInvBody_lend (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
   isplitl [Hlays Hm0 Hb0]
   · iunfold laysResF
     iapply Hlays
-    rw [eseg]; unfold segRes; iframe Hm0 Hb0
+    iframe Hm0 Hb0
   isplitr
   · ipureintro; exact HW
   isplitr
