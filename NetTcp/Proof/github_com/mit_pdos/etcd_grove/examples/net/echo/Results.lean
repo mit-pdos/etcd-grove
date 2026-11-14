@@ -147,17 +147,8 @@ theorem echo_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
       rw [gmap_get?_eq]; simp [pendInit, GMap.lookup_fmap, Hplan]
     ihave Hpend := (BigSepM.bigSepM_lookup (Φ := fun a S => tcpPend (extGlobalGS tcpExt) a S) Hpe)
       $$ Hpends
-    -- echo's protocol: the connections' echo state (none yet), then the address's invariant
-    letI := (extGlobalGS tcpExt (G := G)).allG
-    imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := GName) with ⟨%γm, Hm⟩
-    imod inv_alloc echoN ⊤ (echoState (extGlobalGS tcpExt) γm) $$ [Hm] with #HechoInv
-    · inext
-      unfold echoState
-      iexists ∅
-      iframe Hm
-      iapply BigSepM.bigSepM_empty.2
-      iempintro
-    imod wire.addrInv_alloc addrN srvAddr (connProto (Gg := G) γm) $$ Hpend with #HaddrInv
+    -- echo's protocol: the connections' states (none yet), then the address's invariant
+    imod echoInvs_alloc (Gg := G) $$ Hpend with ⟨%γm, #Hinvs⟩
     imodintro
     simp only [system]
     unfold nodeStart
@@ -170,11 +161,11 @@ theorem echo_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
       rw [Hs.packageState]
       imodintro
       simp only []
-      unfold nodePre echoInvs
+      unfold nodePre
       iframe Hgs Hp
       isplitl []
       · iexists γm
-        iframe HaddrInv HechoInv
+        iexact Hinvs
       ipureintro; intro _; exact Hh.trans Hhost
     isplitl []
     · -- the client
@@ -182,11 +173,11 @@ theorem echo_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
       rw [Hc.packageState]
       imodintro
       simp only []
-      unfold nodePre echoInvs
+      unfold nodePre
       iframe Hgs Hp
       isplitl []
       · iexists γm
-        iframe HaddrInv HechoInv
+        iexact Hinvs
       ipureintro; intro h0; cases h0
     isplitl []
     · -- the junk sender
@@ -194,11 +185,11 @@ theorem echo_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
       rw [Hj.packageState]
       imodintro
       simp only []
-      unfold nodePre echoInvs
+      unfold nodePre
       iframe Hgs Hp
       isplitl []
       · iexists γm
-        iframe HaddrInv HechoInv
+        iexact Hinvs
       ipureintro; intro h0; cases h0
     iempintro
   · -- every generation of every node: its boot program, and its next precondition
