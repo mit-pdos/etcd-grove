@@ -110,6 +110,13 @@ Worktree `/shared/etcd-grove-rs56`, branch `restart-s7` (off `lean`). Plan: `not
   `Adequacy` (putget's), `Results.lean`, `etc/tcb-collections/restart1.txt`; regenerate etcdstart's interface
   (`StartRes`: `memberRestartRes_intro0`); `etc/api-check.py`, layout, bounds, full build, tcb `--check`.
 
+- **Freeze review (MAJOR)**: `check()` also requires `Version == 1` and `Header.Revision == 1 + NPuts`, proved
+  (`r1Ok` carries versions and `σ.rev = c + 1`; `67ce7c0010`); docstring revision 2 approved by the user
+  (2026-11-14). **Linked** (`40391b07eb`): `Init`/`PkgTable` (gen-init `ROOTS`/`PROGRAMS`), `MainLinked` (no
+  `Link.lean`, putget's shape), `Adequacy` (exactly the frozen hypotheses; none added), `Results.lean`,
+  `etc/tcb-collections/restart1.txt`; STATUS entry. Remaining before landing: full build, etcdstart interface,
+  gates, tcb `--check`, the collection's baseline, then land on 81's go.
+
 ## Next, in order
 1. S7.5: the example's proofs (P1's three lemmas), link, adequacy, `Results.lean`, collection; Freeze of the
    theorem before its proof is linked. `etc/gen-init.py`'s `ROOTS` gets the package then. Not started in Lean.

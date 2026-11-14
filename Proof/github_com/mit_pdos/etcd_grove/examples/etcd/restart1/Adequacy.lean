@@ -64,7 +64,7 @@ instance restart1GF_gooseGpreS : GooseGpreS restart1GF where
 
 /-- **A ghost-state instance at the local context `lctx`** (the hypotheses below are stated over
 every instance of the ghost state whose Go local context is the semantics' own). -/
-abbrev heapAt (hG : HeapGS .hasLC restart1GF) (lctx : GoLocalContext) : HeapGS .hasLC restart1GF :=
+abbrev heapAtR1 (hG : HeapGS .hasLC restart1GF) (lctx : GoLocalContext) : HeapGS .hasLC restart1GF :=
   ⟨hG.goose_globalGS, { hG.goose_localGS with goose_go_local_context := lctx }⟩
 
 /-! ## The closed theorem -/
@@ -89,7 +89,7 @@ theorem etcd_restart1_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.restart1.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [log.NewModel]
-    (Hctx : ∀ hG : HeapGS .hasLC restart1GF, ContextReadErrs (GF := restart1GF) (hG := heapAt hG lctx))
+    (Hctx : ∀ hG : HeapGS .hasLC restart1GF, ContextReadErrs (GF := restart1GF) (hG := heapAtR1 hG lctx))
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : etcd_restart1.BootFacts id ctxs boot)
     (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota) (Hdbo : storage.diskOk)
@@ -98,7 +98,7 @@ theorem etcd_restart1_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (HEnv : verifyEnvOff restart1Program)
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC restart1GF,
-      ⊢ etcd_restart1.premises (GF := restart1GF) (hG := heapAt hG lctx) n id ctxs boot)
+      ⊢ etcd_restart1.premises (GF := restart1GF) (hG := heapAtR1 hG lctx) n id ctxs boot)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -116,7 +116,7 @@ theorem etcd_restart1_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [(go!"restart1", {})] [] (List.Perm.refl _) (List.Perm.refl _) σ g ⟨trivial, trivial⟩
     ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs (fun _ h => absurd h List.not_mem_nil) HDs
     n κs t2 σ2 Hsteps fun hG HN HT => ?_
-  letI : HeapGS .hasLC restart1GF := heapAt hG lctx
+  letI : HeapGS .hasLC restart1GF := heapAtR1 hG lctx
   haveI := Hctx hG
   unfold progOk
   refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.etcd.restart1.wp_initialize' _

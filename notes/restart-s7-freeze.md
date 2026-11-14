@@ -7,6 +7,9 @@ The statement to freeze before the proof is linked (`X/etcd/restart1/Results.lea
 
 - Approved by the user, 2026-11-14, via etcd-grove-81: `etcd_restart1_safe`'s statement and docstring, revision 2 below.
 
+- (Linking, form) the ghost-state instance's abbreviation is `heapAtR1` (putget's `heapAt` clashes in the
+  TCB report's joint import; each example names its own, `heapAt3`, `heapAtLkv`, ...).
+
 ## Revision 2 (2026-11-14, after the independent Freeze review)
 
 - **MAJOR fixed by strengthening the program:** `check()` also panics unless every key-value's
@@ -121,7 +124,7 @@ theorem etcd_restart1_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.restart1.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [log.NewModel]
-    (Hctx : ∀ hG : HeapGS .hasLC restart1GF, ContextReadErrs (GF := restart1GF) (hG := heapAt hG lctx))
+    (Hctx : ∀ hG : HeapGS .hasLC restart1GF, ContextReadErrs (GF := restart1GF) (hG := heapAtR1 hG lctx))
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : etcd_restart1.BootFacts id ctxs boot)
     (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota) (Hdbo : storage.diskOk)
@@ -130,7 +133,7 @@ theorem etcd_restart1_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (HEnv : verifyEnvOff restart1Program)
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC restart1GF,
-      ⊢ etcd_restart1.premises (GF := restart1GF) (hG := heapAt hG lctx) n id ctxs boot)
+      ⊢ etcd_restart1.premises (GF := restart1GF) (hG := heapAtR1 hG lctx) n id ctxs boot)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
