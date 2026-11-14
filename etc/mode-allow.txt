@@ -23,7 +23,7 @@ match-mode model ::(kvAppliedM|entryOkM|kvNameTiesM|kvRunM|srvImageM|kvInvM|kvSt
 # or left over `M` as the auth package's verdict vocabulary)
 match-mode unmoved ::EtcdServer\.applyEntryNormal\.spec::
 match-mode unmoved ::adminRes::
-match-mode unmoved ::(authedWhy|adminWhy|permWhy)::  # (auth-guard-completeness G0, 2026-11-14) the guards' reasons, over `M` as adminRes/authedRes: the auth package's verdict vocabulary (`True` in `any`)
+match-mode unmoved ::(authedWhy|adminWhy|permWhy|serialWhy|rangeWhy|txnWhy)::  # (auth-guard-completeness G0, G4, 2026-11-14) the guards' and the serializable read path's reasons, over `M` as adminRes/authedRes: the auth package's verdict vocabulary (`True` in `any`)
 match-mode unmoved ::applyBuiltNAM::
 match-mode unmoved ::authApplyRes::
 match-mode unmoved ::authApplyResAt::
