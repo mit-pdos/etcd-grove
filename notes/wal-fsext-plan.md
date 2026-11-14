@@ -551,7 +551,10 @@ invariant conjunct is designed, not made (same log). `ReadAll`'s pure core (the 
 not started (`wal-readall14`; W3/W5 log, fourteenth session). The decoder's error identity (`Decode.spec` strengthened, `specR` gone), `WalTailIdle` in the invariant
 (`walTailsRes`), `WalReadState`'s idle part proved (`walInvBody_readIdle`) and `walReadTie`'s selection fact are done
 (`wal-readall15`; W3/W5 log, fifteenth session: open are the cuts' positivity, the pinned segments' law, `nameBound`'s
-`ix < 2^64`, and the finding that `WalDecEnvSupply` is unsatisfiable).
+`ix < 2^64`, and the finding that `WalDecEnvSupply` is unsatisfiable). `WalDecEnvSupply` restated satisfiably (`IoE` the
+`*PathError`s; `walDecEnv_eof_not`), still not true of Go (`isEofOk` over a pure `IoE`: ledger 2026-11-14, pending the user's
+decision on `io.ReadFull`'s axiom); `WalReadState` restated satisfiably (the pinned names); the hypotheses' audit (`wal-readall16`;
+W3/W5 log, sixteenth session).
 invariant conjunct is designed, not made (same log). Each registered WAL name has its own claim (`walNamesRes`, a framed conjunct; registration pending linked to the lock token, `walNamesFrag`), and the path law `walInv_dirPath` (a kept fraction of `osPathS R dir _ j` from `walDirKey`, with `walNamesFrag none`) is proved (`wal-path13`; W1 log, thirteenth session); `walAreaRes` holds every WAL name not split out (`walSplitFrag`), `Exist`/`openAtIndex`/`Create` read a registered name through its own claim, `openAtIndex` takes its path from `walInv_dirPath`, and `Create`'s post-commit split (`walInv_splitNew`) and registration (`walInv_register`) are proved, not yet used by `Create`'s body (`wal-path14`; W1 log, fourteenth session). Open: `renameWAL`'s path law, `Open`'s `WalDirPathLaw`, `WalsBounded`.
 
 The resize stamps reach the WAL's crash condition (`OsMeta.rz`, `MetaOk.rz`, `OsCoh.tok_rz`; `CrashOk` passes `segRzOf`) and `W1G.drop_rz` transports W1 across a truncate's zeros (`wal-tc5`; W1 log, fifteenth session); the truncate window's `CrashOk`, `W1G` over the known candidates past the bytes, the WAL-level supplies and `specWalTail` remain (I3b, `wal-tc5` entry).
@@ -4253,3 +4256,46 @@ in the invariant, the selection fact; `WAL.ReadAll.wp_proof` still `sorry` (not 
 - *Not done*: `WAL.ReadAll.wp_proof` (task 4), with the fourteenth session's plan; its hypotheses now: `WalReadState`
   (narrowed as above), `Decode.spec` (strengthened), the `ZeroToEnd` instance (`wal-tc5`), `walInv_dirPath`
   (`NameClaims.lean`, `wal-path13`: use it, not `WalDirPathLaw`), the metadata bound (`WalsBounded`, `wal-path14`).
+
+**W3/W5 log, sixteenth session (branch `wal-readall16`, 2026-11-14).** Task 1 (the vacuity) and task 2 (the audit) done;
+tasks 3-4 not started. No `sorry` added or removed.
+- *Task 1, `WalDecEnvSupply`* (`openAtIndex.lean`; ledger 2026-11-14, "the readers' errors and `errors.Is`"). `IoE` now
+  holds of every `*PathError` (`∀ pe, IoE (mkOk *PathError #pe)`), not of every pointer error. `os.File.Stat.spec`'s error is
+  the model's `*PathError` (`∃ pe, ii = ⟨*PathError, #pe⟩`, was `IsPointerError`; the proof already had it; its three other
+  users ignore the conjunct); `ReadBridge`/`OpenFiles` take the new `hIo`. **Sanity check** `walDecEnv_eof_not`: by `io`'s
+  initialization (`io.eof_of_init`, `errors.newVar`) `io.EOF` is an `*errorString`, so no `*PathError`: `IoE` the
+  `*PathError`s meets `¬ IoE eof`. `openAtIndex`, `Open`, `OpenForRead`, the bboltfs/crashlog users of `Stat` build (`lake
+  build`). **Not provable, and not true of Go**: `isEofOk` asks `errors.Is(e, io.EOF) = false` of every `IoE` error with no
+  precondition, false for a `&PathError{Err: io.EOF}`; no pure `IoE` can single out the model's `*PathError`s (their `Err`
+  is heap), and the errors reach the decoder through pure predicates only (`io.readerStream`'s `E`, `bufio.ownReader`,
+  `decRdErr`, the trust-boundary axiom `io.ReadFull.wp_proof`). The fix (an Iris error predicate through `readerStream` and
+  `ReadFull`'s axiom, then `isEofOk`'s I/O branch from an `errors.Is` fact on `os.errnoPathErr`) changes a trust-boundary
+  axiom: **the user's decision** (ledger entry, "Proposed change").
+- *Task 2, the audit of the hypotheses of the WAL `wp_proof`s that are not callee specs* (satisfiable = no contradiction
+  with another premise or itself; "true" where I could judge it against Go):
+  - `WalDecEnvSupply` (`openAtIndex`): was unsatisfiable; now satisfiable, not true (above).
+  - `WalReadState` (`ReadAll`, not yet used): **was unsatisfiable** once a segment is pinned: `gs`'s names were constrained
+    by nothing (the out record and the halves fix inodes, metadata, bytes), so renaming a pinned segment to a non-WAL name
+    contradicted `WalAbsD.nameBound` through `lay.segs.drop kk = gs`. Restated: takes the program's directory half
+    `osNames j (.except X) ½ hj0` with `∀ g ∈ gs, hj0.cur !! g.name = some (.file g.ino)` (`walReadTie` has both), and any
+    open-WAL record `ws` (read mode records none). Its proof needs the WAL directory's files singly named.
+  - `WalPinSized` (`openAtIndex`): satisfiable; true once the invariant bounds `g.om.hi` (`WalsBounded`, `wal-path15`).
+  - `WalDirPathLaw` (`Open`): satisfiable (fresh fractions of a path; `walInv_dirPath` proves its like); to be replaced.
+  - `WalCloseLaw` (`Close`): satisfiable; no unconstrained data (the tail record, halves, claims and tails' map agree with
+    the invariant; `b = b'` makes its premise false, harmless); `wal-close16` proves it.
+  - `WAL.sync.specC` (`Close`): a triple of the real `sync` (pre `TailMetaW`, success post `TailMeta`: the fdatasync closes
+    the resize window, as `sync.specCut`); plausible.
+  - `WAL.Close.specOpening` (`Open`): plausible (`(*os.File)(nil).Close()` returns `ErrInvalid`; `sync` skips a nil
+    encoder; an early return keeps the token, the halves being ghost).
+  - `WalPbIn.ZeroLaw` (`Save`): satisfiable (e.g. `hsIn _ hs := ⌜hs = hsZero⌝`); the client's instance must meet it.
+  - `fmt.ErrorfErrsNot.spec` (decoder): true (`ArgWf` arguments are basic, never wrapped; the result is fresh).
+  - `proto.UnmarshalWalRecordE.spec` (decoder): true of protobuf-go (its errors are not `io.EOF`); a hypothesis, the
+    trust-boundary axiom unchanged.
+  - `errors.IsPathErrnoNotExist.spec` (`Exist`): true (`Errno.Is(ErrNotExist)` is `e == ENOENT`).
+- *Merged* `wal-close15` (`6c1d49b154`): `walDirH` holds `∃ γt, walTailsFrag {dir ↦ γt}` and `walNamesFrag none`;
+  `ReadAll`'s write handle must put them in after `walTails_register`; `walPipeH` holds `fp ≠ null`.
+- *Not done*: task 3 (cut positivity, the pinned-segments law, `nameBound`'s `ix < 2^64`: 15 uses in 11 modules, the
+  cut's `hname` premise in `CutLay` and its callers must carry the bound from the cut's `uint64` index), task 4
+  (`ReadAll.wp_proof`, the fourteenth session's plan). Build note: a seed `.lake` older than `wal-int` rebuilds
+  `GooseLang.Ext.Fs.Impl`; copying `GooseLang`/`LinuxFs`/`Proof/.../storage` from a fresher worktree's build avoided it.
+
