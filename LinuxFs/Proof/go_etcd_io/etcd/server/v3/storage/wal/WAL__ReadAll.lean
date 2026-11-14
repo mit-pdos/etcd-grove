@@ -289,6 +289,60 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             ipureintro
             exact ⟨hL', ⟨kD + k, by rw [hkD, List.drop_drop]⟩, fun h => by simp at h,
               fun dd h => by simp only [Option.some.injEq] at h; rw [← h, hmd]⟩
+        wp_if_destruct
+        · -- CrcType
+          have hT : r.typ = crcType := Hif
+          have hi1 : r.typ ≠ entryType := by rw [hT]; simp [crcType, entryType]
+          have hi2 : r.typ ≠ snapshotType := by rw [hT]; simp [crcType, snapshotType]
+          have hst : raStep U s st (r.typ, r.data) = .ok st := by
+            simp [raStep, hT, crcType, entryType, stateType, metadataType]
+          have hL' : ¬ (r.typ = crcType ∧ crcRecBad c' r) →
+              RdLoop walCodec U s (rdRest walCodec (fs.map (·.bs)) 0 0#32) (acc ++ [r])
+                ((fsD.drop k).map (·.bs)) off' r.crc st ix := by
+            intro hnc
+            have := rdLoop_next hL hgd hok.2 hnc hst
+            rwa [raIdx_other hi1 hi2, show rdCrc c' r = r.crc by simp [rdCrc, hT]] at this
+          wp_apply wp_LastCRC dec IoE eof (fsD.drop k) off' c' true $$ Hdec as Hdec
+          wp_if_destruct
+          · -- the chain's CRC is zero: not checked
+            have hnc : ¬ (r.typ = crcType ∧ crcRecBad (W32 0) r) := fun h => h.2.1 rfl
+            wp_apply wp_GetCrc $$ Hr as Hr
+            wp_apply wp_UpdateCRC dec IoE eof (fsD.drop k) off' _ r.crc true $$ [Hdec] as Hdec
+            · iframe Hdec Hcrc
+            wp_for_post
+            wp_apply (wp_Decode walCodec dec «$r0_ptr» IoE eof ueof (fsD.drop k) off' r.crc rfl)
+              $$ [Hdec Hr] as %e' Hpost
+            · iframe Hdec Hdenv; iapply ownRec_any $$ Hr
+            iframe
+            iexists acc ++ [r], fsD.drop k, off', r.crc, st, ix, e', mdv, stp, entsv, esL
+            iframe
+            ipureintro
+            exact ⟨hL' hnc, ⟨kD + k, by rw [hkD, List.drop_drop]⟩, hmdn, hmdd⟩
+          · -- checked
+            ihave #Hde := Hdenv
+            iunfold decEnv at Hde
+            icases Hde with ⟨-, -, #Hfmt, -, -, #Heof, -, -, -, ⟨%ecm, #Hcm, #Hcmok, #Hcmnot⟩, -⟩
+            wp_apply wp_Validate «$r0_ptr» r c' ecm _ eof $$ [Hr] as %verr ⟨Hr, Hv⟩
+            · iframe Hr; iframe #
+            icases Hv with (⟨%hv1, %hv2⟩ | ⟨%hne, %ei, %hei, -, -⟩)
+            · subst hv1
+              have hnc : ¬ (r.typ = crcType ∧ crcRecBad c' r) := fun h => h.2.2 hv2
+              wp_auto
+              wp_apply wp_GetCrc $$ Hr as Hr
+              wp_apply wp_UpdateCRC dec IoE eof (fsD.drop k) off' _ r.crc true $$ [Hdec] as Hdec
+              · iframe Hdec Hcrc
+              wp_for_post
+              wp_apply (wp_Decode walCodec dec «$r0_ptr» IoE eof ueof (fsD.drop k) off' r.crc rfl)
+                $$ [Hdec Hr] as %e' Hpost
+              · iframe Hdec Hdenv; iapply ownRec_any $$ Hr
+              iframe
+              iexists acc ++ [r], fsD.drop k, off', r.crc, st, ix, e', mdv, stp, entsv, esL
+              iframe
+              ipureintro
+              exact ⟨hL' hnc, ⟨kD + k, by rw [hkD, List.drop_drop]⟩, hmdn, hmdd⟩
+            · subst hei
+              wp_auto
+              sorry
         sorry
       · icases Hm with ⟨%hst, -, -⟩
         exact absurd hst.1 (stopErr_nil hnn.1 hnn.2 sx)
