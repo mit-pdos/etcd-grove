@@ -10,9 +10,13 @@ announcements compose into one.
 After it, the file is as a write of the first `j` bytes of `b` that announced its first `A`
 (`j ≤ A ≤ len(b)`) left it: its `OsMeta` `pwPost m off A j`, its bytes `os.PwOutA` (`os.PwOut`
 where only the first `A` bytes have the data's byte among their candidates; the others keep their
-old ones). On success `j = A = len(b)` and the result is `(len(b), nil)`, as `File__WriteAt.lean`
-says; on failure `(0, err)`. When `len(b) ≤ maxRW` the one chunk is all of `b`: `A = len(b)`.
-`j` is a page cut of the write (`PwCut`). WAL W6 (2026-11-13, `wal-bridge`); proved in
+old ones), except that the page cache known zero past the size is as the last attempt that landed its
+whole chunk, ending at `E` (`E ≤ j`; `0` if none), left it (`pwPostE`: `pwCz m off E E`, which a chunk
+landing whole raises). On success `j = A = E = len(b)` (the `OsMeta` is `pwPost m off len(b) len(b)`)
+and the result is `(len(b), nil)`, as `File__WriteAt.lean` says; on failure `(0, err)`. When
+`len(b) ≤ maxRW` the one chunk is all of `b`: `A = len(b)`, and `pwPostE` is `pwPost`. `j` is a page
+cut of the write (`PwCut`) or the end of a chunk that landed whole (`PwCutE`: a chunk of `2^30` bytes
+from an offset off a page boundary ends off one too). Ledger, 2026-11-14. WAL W6 (2026-11-13, `wal-bridge`); proved in
 `Proof/os/WriteLong.lean`. Lean-first (no Rocq counterpart).
 -/
 module
@@ -37,6 +41,17 @@ def PwOutA (m : Fs.OsMeta) (off : Nat) (data : List w8) (A j : Nat) (xs ys : Lis
   ∀ i (hi : i < ys.length), ys[i].1 = Fs.pwByte off data j xs (off + i) ∧
     ∃ c0 extra, ys[i].2 = c0 ++ extra ∧ (i < A → extra ≠ []) ∧
       (∀ q ∈ extra, q.1 = data.getD i 0) ∧ ∀ (h : i < xs.length), c0 = xs[i].2
+
+/-- The `OsMeta` after a `WriteAt` of `data` at `off` (in chunks) that announced its first `A` bytes,
+wrote its first `j`, and whose last attempt to land its whole chunk ended at `E`: `pwPost m off A j`,
+with the page cache known zero as that attempt raised it (`pwCz m off E E`; `m.cz` when `E = 0`). -/
+def pwPostE (m : Fs.OsMeta) (off A j E : Nat) : Fs.OsMeta :=
+  { Fs.pwPost m off A j with cz := Fs.pwCz m off E E }
+
+/-- The bytes a chunked `WriteAt` of `len` bytes at `off` landed (`j`) are a page cut (`PwCut`), or end
+where a chunk that landed whole ended (`E`), within `maxBytes`. -/
+def PwCutE (off len j E : Nat) : Prop :=
+  Fs.PwCut off len j ∨ (j = E ∧ off + E ≤ Fs.maxBytes)
 
 end os
 
@@ -67,12 +82,13 @@ abbrev os.File.WriteAt.specLong : Prop :=
       (Val #off))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
       os.ownFile f fd name dqf ∗ sl ↦*{dqs} data ∗ osFd fd dq d ∗
-      ∃ (j A : Nat) (ys : List ByteG),
+      ∃ (j A E : Nat) (ys : List ByteG),
         ⌜j ≤ A ∧ A ≤ data.length ∧ (data.length ≤ 0x40000000 → A = data.length) ∧
-          os.PwOutA m off.toNat data A j xs ys ∧ PwCut off.toNat data.length j ∧
+          E ≤ j ∧ (j = A → E = A) ∧
+          os.PwOutA m off.toNat data A j xs ys ∧ os.PwCutE off.toNat data.length j E ∧
           ((j = data.length ∧ n = W64 data.length ∧ err = interface.nil) ∨
            (n = W64 0 ∧ err ≠ interface.nil))⌝ ∗
-        osMeta d.ino (DFrac.own 1) (pwPost m off.toNat A j) ∗
+        osMeta d.ino (DFrac.own 1) (os.pwPostE m off.toNat A j E) ∗
         osBytes d.ino (off.toNat) (DFrac.own 1) ys ∗
         mcellsAny m.maps (off.toNat) (off.toNat + data.length) ∗
       fmtErrorOkOrNil err }}

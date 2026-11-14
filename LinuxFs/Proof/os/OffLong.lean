@@ -107,9 +107,9 @@ theorem os.File.Write.wp_long (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) 
               os.PwOut m o.toNat data data.length xs ys⌝ ∗
             osMeta d.ino (DFrac.own 1) (pwPost m o.toNat data.length data.length) ∗
             osBytes d.ino o.toNat (DFrac.own 1) ys ∗ os.ownOff f (o + W64 data.length)) ∨
-         (∃ (j A : Nat) (ys : List ByteG), ⌜err ≠ interface.nil ∧ j ≤ A ∧ A ≤ data.length ∧
-              os.PwOutA m o.toNat data A j xs ys ∧ PwCut o.toNat data.length j⌝ ∗
-            osMeta d.ino (DFrac.own 1) (pwPost m o.toNat A j) ∗
+         (∃ (j A E : Nat) (ys : List ByteG), ⌜err ≠ interface.nil ∧ j ≤ A ∧ A ≤ data.length ∧
+              os.PwOutA m o.toNat data A j xs ys ∧ os.PwCutE o.toNat data.length j E⌝ ∗
+            osMeta d.ino (DFrac.own 1) (os.pwPostE m o.toNat A j E) ∗
             osBytes d.ino o.toNat (DFrac.own 1) ys ∗ os.ownOff f (W64 (-1)))) }} := by
   unfold os.ownOff
   wp_start as ⟨#Hinv, Hf, ⟨%inner, #Hfi, Ho⟩, Hsl, Hosfd, Hm, Hbs, Hmc⟩
@@ -146,9 +146,9 @@ theorem os.File.Write.wp_long (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) 
   have h63 : o.toNat + data.length < 2 ^ 63 := by
     have := BitVec.toInt_eq_toNat_cond o; split at this <;> omega
   wp_apply wp_WriteAt f fd name dqf sl data dqs o dq d m xs hwr h0 hle h63 hn hlo hxs
-    $$ [Hinv Hf Hsl Hosfd Hm Hbs Hmc] as %n %err ⟨Hf, Hsl, Hosfd, %j, %A, %ys, %Hres, Hm, Hbs, Hmc, -⟩
+    $$ [Hinv Hf Hsl Hosfd Hm Hbs Hmc] as %n %err ⟨Hf, Hsl, Hosfd, %j, %A, %E, %ys, %Hres, Hm, Hbs, Hmc, -⟩
   · iframe; iexact Hinv
-  obtain ⟨hjA, hAn, -, hout, hcut, hr⟩ := Hres
+  obtain ⟨hjA, hAn, -, -, hEA, hout, hcut, hr⟩ := Hres
   cases err with
   | nil =>
     rcases hr with ⟨rfl, rfl, -⟩ | ⟨-, h⟩
@@ -156,6 +156,8 @@ theorem os.File.Write.wp_long (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) 
     · exact absurd rfl h
     have hA : A = data.length := by omega
     subst hA
+    rw [hEA rfl, show os.pwPostE m o.toNat data.length data.length data.length =
+      pwPost m o.toNat data.length data.length from rfl]
     wp_auto
     iapply HΦ
     iframe Hf Hsl Hosfd Hmc
@@ -171,7 +173,7 @@ theorem os.File.Write.wp_long (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) 
     iapply HΦ
     iframe Hf Hsl Hosfd Hmc
     iright
-    iexists j, A, ys
+    iexists j, A, E, ys
     iframe Hm Hbs
     isplitr
     · ipureintro; exact ⟨fun h => (nomatch h), hjA, hAn, hout, hcut⟩
