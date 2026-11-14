@@ -243,7 +243,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   try rw [h1pend]
   iunfold walDirH at Hdh
   icases Hdh with ⟨%Rd, %qd, %X, %hj, %nm0, %ph, #Hdk, Hcl, Hpd, #Hsid, Hperm, Hdfd, #Hnamed, Hout, Htf, Hnf, %hdh⟩
-  obtain ⟨hnm0w, hnm0c, hname, htmps, hXw, ⟨sq, ix, hnm0, hsq0⟩, hlargest⟩ := hdh
+  obtain ⟨hnm0w, hnm0c, ⟨pd, hname⟩, htmps, hXw, ⟨sq, ix, hnm0, hsq0⟩, hlargest⟩ := hdh
   have hsq : sq + 1 < 2 ^ 64 := by omega
   iunfold walPipeH at Hpipe
   icases Hpipe with ⟨%γp, %Rp, %dqp, %szp, %np, #Hisfp, Hmain, Hpc, %hnp, %hfpn⟩
@@ -878,7 +878,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
     rw [walOut_cut]
     iframe Hout Htf Hnf
     ipureintro
-    exact ⟨hbtw, GMap.lookup_insert _ _ _, rfl, htmps, hXw, ⟨sq + 1, _, hbt.symm, by omega⟩,
+    exact ⟨hbtw, GMap.lookup_insert _ _ _, ⟨_, rfl⟩, htmps, hXw, ⟨sq + 1, _, hbt.symm, by omega⟩,
       cutDir_largest g.ino hlargest hlt⟩
   isplitr
   · ipureintro; simp

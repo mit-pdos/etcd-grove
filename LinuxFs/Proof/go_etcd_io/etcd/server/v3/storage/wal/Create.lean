@@ -577,7 +577,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
           rw [hFr]
           simp only [List.length_append, List.length_nil] at hlen1 hlen2 ⊢; omega)
         (by omega) hsyncOk)
-      $$ [Hws] [Hpre Henc HW2] as %serr3 ⟨%snapi', %enti', Hpre, Hr3⟩
+      $$ [Hws] [Hpre Henc HW2] as %serr3 ⟨%snapi', %enti', Hpre, %hse3, Hr3⟩
     · iexact Hws
     · iframe; iframe #
     icases Hr3 with (⟨%he3, Henc, HS⟩ | ⟨%he3, %c3, %pend3, Henc, HBW⟩)
@@ -772,7 +772,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
       iframe
     unfold renameWALPost
     icases Hpost with ⟨Hp, Hpost⟩
-    icases Hpost with (⟨%herr, %x, %fp, %γ, %sz, %df, %dfd, HU, HSpR, Hpre, Hlk, Hfpf, Hpipe, Hmain,
+    icases Hpost with (⟨%herr, %x, %fp, %γ, %sz, %df, %dfd, %hfpn, HU, HSpR, Hpre, Hlk, Hfpf, Hpipe, Hmain,
         Ht1, Hdff, Hdf, Hdfd, Hsd, Hperm⟩ | ⟨%herr, %x, HUH, Hw, Hpw⟩ |
       ⟨%herr, HU, HC, Hperm, HSp, HTmps, -, Hll⟩ | ⟨%herr, %x, HU, HSpR, Hperm, Hll⟩)
     · -- committed, `w` returned: the parent's fsync, the registration, the handle (not yet)

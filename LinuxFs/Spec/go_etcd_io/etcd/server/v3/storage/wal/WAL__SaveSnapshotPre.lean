@@ -88,7 +88,8 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specPre : Prop :=
 encoder holds, then `sync` (the record within the encoder's `2^47` bound: `lim < 2^47`, `Create`'s
 segment size). Success: the encoder empty, its CRC after the record, everything
 accepted and synced (`S`). Error: the encoder holds anything, the writer in some broken or accepted
-state (`Create` only closes the file then). `snapi`/`enti` raised to the index. -/
+state (`Create` only closes the file then). `snapi` and `enti` each raised to the index if below it
+(the pinned S/wal.go; ledger 2026-11-14, "`SaveSnapshot.specPre`'s indices"). -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.specPre (Mr : WalMarshal) : Prop :=
   ∀ (w lg : Loc) (dir : GoString) (mds : GoSlice) (md : List w8) (e lt f : Loc) (snapi enti : w64)
     (W : List w8 → IProp GF) (B : List w8 → List w8 → IProp GF) (S : List w8 → IProp GF)
@@ -104,6 +105,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.specPre (Mr : WalM
         go!"SaveSnapshot")) (Val #sp))
     {{ (err : GoInterface), RET #err;
         ∃ (snapi' enti' : w64), walPreIn w lg dir mds md e lt f snapi' enti' ∗
+        ⌜(snapi' = snapi ∨ snapi' = sm.Index') ∧ (enti' = enti ∨ enti' = sm.Index')⌝ ∗
         ((⌜err = GoInterface.nil⌝ ∗
             ownEncoder e (wal.fileWi f) (hash.crc32.crc32c c (Mr.encSnap sm)) [] ∗
             S (out ++ pend ++ snapFrame Mr c sm)) ∨

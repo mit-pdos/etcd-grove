@@ -97,6 +97,16 @@ theorem walHandleP_set (w : Loc) (dir : GoString) (m m' : WalMode) :
     exact ⟨by rw [GMap.lookup_insert_ne _ _ hne]; exact h1, h2, h3⟩
   · iexists γ; iframe Hdir Hm Hpt Hl
 
+/-- **An append-mode handle as the client's** (`Create`'s handle): `walOpenW` and the purge right. -/
+theorem walHandleP_openW (w : Loc) (dir : GoString) :
+    walHandleP (W := W) w dir .append ⊢ walOpenW (W := W) w dir ∗ walPurgeW (W := W) w dir := by
+  unfold walHandleP walOpenW walPurgeW walHandleSt
+  iintro ⟨%γ, #Hd, Hm, Hp, Hl⟩
+  iframe Hl
+  isplitl [Hm]
+  · iexists γ; iframe Hd Hm
+  · iexists γ; iframe Hd Hp
+
 /-- The handles' authority is `walGhost`'s: taking it out and putting it back. -/
 theorem walGhost_handleAuth (s : AbsDiskState) :
     walGhost (W := W) s ⊣⊢ walHandleAuth (W := W) ∗

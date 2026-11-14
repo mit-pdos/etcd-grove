@@ -247,6 +247,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_proofPre (Mr :
     isplitl [Hlg Hdir Hmd Hns Henti Hsnapi Hfe Hlocks Hls Hcap]
     · iexists locks
       iframe; iframe #; ipureintro; exact Hen
+    isplitr
+    · ipureintro; exact ⟨Or.inl rfl, Or.inl rfl⟩
     iright
     isplitr
     · ipureintro; exact Herr
@@ -287,6 +289,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_proofPre (Mr :
     iapply HΦ
     iexists _, _
     iframe Hpre
+    isplitr
+    · ipureintro
+      first
+        | exact ⟨Or.inl rfl, Or.inl rfl⟩
+        | exact ⟨Or.inl rfl, Or.inr rfl⟩
+        | exact ⟨Or.inr rfl, Or.inl rfl⟩
+        | exact ⟨Or.inr rfl, Or.inr rfl⟩
     icases Hres2 with (⟨%H0, HS⟩ | ⟨%H0, Hbad⟩)
     · ileft
       rw [heq]

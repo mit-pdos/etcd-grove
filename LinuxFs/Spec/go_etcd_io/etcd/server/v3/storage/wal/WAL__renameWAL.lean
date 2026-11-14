@@ -32,7 +32,7 @@ failed so the locks stayed open, or `OpenDir` failed after a committed rename) o
 
 *Post* (`renameWALPost`): the spine to the area back, and
 1. *committed, `w` returned*: the update's result, `SpR`, `w`'s fields, the lock file and the encoder,
-   the pipeline in `w.fp` (`isFilePipe`, `pipeMain γ 0`, the handle's `1.tmp` claim), the directory
+   the pipeline in `w.fp` (non-nil; `isFilePipe`, `pipeMain γ 0`, the handle's `1.tmp` claim), the directory
    open in `w.dirFile` (`osDirFdS … .idle`), a spine to `dir`, half the call permission (the pipeline
    holds the other);
 2. *committed, a reopened WAL returned* (`renameWALUnlock`'s retry, then `Open`/`ReadAll`): the
@@ -117,7 +117,7 @@ def renameWALPost (P : WalPbIn GF) (Mr : WalMarshal) (R : Roots) (jr J : Ino) (r
   iprop(osPathS R r (DFrac.own qp) jr ∗
     ((⌜err = interface.nil ∧ w' = w⌝ ∗
         ∃ (x : Nat × Nat) (fp : Loc) (γ : PipeNames) (sz : w64) (df : Loc) (dfd : w64),
-        U (some x) ∗ SpR x ∗ walPreIn w lg dir mds md e lt f snapi enti ∗
+        ⌜fp ≠ null⌝ ∗ U (some x) ∗ SpR x ∗ walPreIn w lg dir mds md e lt f snapi enti ∗
         walLockIn e f fd fname d c off ∗
         structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ fp ∗
         isFilePipe fp γ R dir dq J sz ∗ pipeMain γ 0 ∗ tmpClaim J (pipeTmp 1) ∗

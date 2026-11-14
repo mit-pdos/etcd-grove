@@ -433,7 +433,9 @@ invariant holds the claim `(j, .except X, hj)` once, `DirKeysOk`), the program's
 directory's path and the shared invariant of its roots, half of the call permission (the file
 pipeline holds the other, plan §11), the directory's open fd `dfd` (`w.dirFile`, which `cut`
 fsyncs: `os.File.Sync.specDirS`), and the tail's name: the `.wal` name `nm0` holding the tail's
-inode `ino`, the tail file's name `child dir nm0` (`w.seq()` parses it: `walFileName sq ix`, its
+inode `ino`, the tail file's name `child pd nm0` for some parent path `pd` (`dir`, or `dir.tmp` for
+`Create`'s segment, opened before the rename: Go's `f.Name()` keeps the path it was opened at; W4 log,
+twenty-third session; `w.seq()` parses only its base: `walFileName sq ix`, its
 sequence below `2^63 + k`, `k` the files the handle's pipeline has handed over (`WalHS.pc`): each `cut`
 increments both, so with `cut.spec`'s `pc + 2 < 2^63` the incremented sequence does not wrap; a
 producer at `k = 0` gives a sequence below `2^63`), the largest `.wal` name of the directory (the
@@ -456,7 +458,7 @@ def walDirH (dir : GoString) (j : Ino) (dfd : w64) (ino : Ino) (name : GoString)
     nmd ∗ walOutFrag (W := W) ⟨[ino], [(j, .except X)], [dir]⟩ ∗
     (∃ γt : GName, walTailsFrag (W := W) (<[dir := γt]> (∅ : GMap GoString GName))) ∗
     walNamesFrag (W := W) none ∗
-    ⌜walNameP nm0 = true ∧ hj.cur !! nm0 = some (.file ino) ∧ name = child dir nm0 ∧
+    ⌜walNameP nm0 = true ∧ hj.cur !! nm0 = some (.file ino) ∧ (∃ pd, name = child pd nm0) ∧
       (∀ t ∈ walTmps, t ∈ X) ∧ (∀ b ∈ X, walNameP b = false) ∧
       (∃ sq ix : Nat, nm0 = walFileName sq ix ∧ sq < 2 ^ 63 + k) ∧
       ∀ b n, hj.cur !! b = some n → walNameP b = true → b = nm0 ∨ go.GoStringLt b nm0⌝)

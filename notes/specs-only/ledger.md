@@ -1044,3 +1044,32 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   (`walUnlockedTok` after the registration and `walLockedTok_unlock`): to design with its `Open`/`ReadAll`
   variants (the "(2) Create-specific" entry above).
 - **Decision.** Made (internal, no client: `renameWAL` is `Create`'s; the coordinator's task 1, `wal-create20`).
+
+## 2026-11-14: `wal.WAL.SaveSnapshot.specPre` (internal, the part's) -- the indices after the call
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__SaveSnapshotPre.lean`.
+- **Defect.** The post returned `walPreIn … snapi' enti'` for some `snapi' enti'`, nothing said of them; `Create`'s
+  handle (`walHandleIn`) needs `max enti snapi + 1 < 2^64` of the fields it returns.
+- **Evidence.** The pinned `SaveSnapshot` raises `w.enti` and `w.snapi` each to the snapshot's index if below it
+  (the translation, `WAL.SaveSnapshot.impl`). `Create.wp_proof`'s arm 1 (`wal-create21`).
+- **Change (made, `wal-create21`).** The post adds `⌜(snapi' = snapi ∨ snapi' = sm.Index') ∧ (enti' = enti ∨
+  enti' = sm.Index')⌝` (every arm); the proof unchanged but for the fact.
+- **Decision.** Made (internal; strengthening a post).
+
+## 2026-11-14: `walCreateQ` / `walDirH` (internal, the part's) -- the tail registered at the commit; the tail's name
+
+- **Definitions.** `walCreateQ` (`CreateAu.lean`), `walDirH` (`Handle.lean`).
+- **Defect.** (1) `walCreateQ`'s committed arm gave `walTailsFrag ∅`, the handle to register its tail later. A
+  later registration (`walTailsRes_register`, inside `walInv`) finds the invariant's history and layout only up to
+  `WalAbsD` (no step after the commit pins them to the fresh WAL's), while the handle's encoder CRC and file offset
+  are the fresh WAL's: the tail record's `H`/`md`/`cuts`/`wr` could not be shown to match. (2) `walDirH` asked the
+  tail file's name to be `child dir nm0`; `Create`'s segment was opened as `dir.tmp/0000…0000.wal`, and Go's
+  `f.Name()` keeps that path after the rename.
+- **Change (made, `wal-create21`).** (1) The commit registers the tail (`walTailsRes_register` on the new layout,
+  `createLay_tailBound` its record boundary): `walCreateQ`'s committed arm holds `walTailReg dir t` (the holder's
+  half of the tails' authority `{dir ↦ γ}`, the key, the tail record's half `t`), `t` a new parameter
+  (`createTailG Mr md jr nm J g` from `createU`). (2) `walDirH`'s name fact is `∃ pd, name = child pd nm0` (`cut`'s
+  `w.seq()` reads only the base, `baseModel_child_walFileName`).
+- **Obligation.** `renameWALUnlock`'s `RenameWALOk` law (the retry's `w.Close()` and the reopen) now unregisters the
+  tail too (`walTails_unregister`, `Close`'s).
+- **Decision.** Made (internal, no client-visible change).
