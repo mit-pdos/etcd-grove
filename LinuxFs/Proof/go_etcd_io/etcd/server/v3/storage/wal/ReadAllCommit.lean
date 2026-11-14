@@ -60,7 +60,7 @@ theorem walInvBody_nameClaim (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : 
       walInvBody (L := hG.goose_localGS) (W := W) C Mr R jr r s ∗ walNamesFrag (W := W) none ∗
         ∃ (nm : GoString) (q : Qp) (hn : NamesH),
           osNames (L := hG.goose_localGS) jr (.only [nm]) (DFrac.own q) hn ∗
-          ⌜InArea r dir nm ∧ hn.cur !! nm = some (.dir j)⌝ := by
+          ⌜InArea r dir nm ∧ NameOk nm ∧ hn.cur !! nm = some (.dir j)⌝ := by
   iintro Hb Hf #Hk
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl, Hcm, Hlays, %HW, %HWC, HCR, Htl, %Hab, %HNm, Hpk,
@@ -122,7 +122,7 @@ theorem walInvBody_nameClaim (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : 
     ipureintro; exact ⟨hnok, hwnm, hcur⟩
   · iexists lay.nm, q.half, hn
     iframe Hn2
-    ipureintro; exact ⟨hin, hcur dir lay hl rfl⟩
+    ipureintro; exact ⟨hin, hnok, hcur dir lay hl rfl⟩
 
 /-- **`ReadAll`'s update committed at the look before the loop** (see the file header). -/
 theorem walInv_readCommit (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
@@ -153,7 +153,7 @@ theorem walInv_readCommit (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
         osLogLb (L := hG.goose_localGS) hn.next ∗
         ⌜Pre dc ∧ walDurLe dc d ∧ s.wal !! dir = some d ∧ lay.j = j ∧ WalAbsD C Mr d lay hj0.cur ∧
           TailExact lay ∧ lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length ∧
-          lay.segs.drop kk = gs ∧ InArea r dir nm ∧ hn.cur !! nm = some (.dir j) ∧
+          lay.segs.drop kk = gs ∧ InArea r dir nm ∧ NameOk nm ∧ hn.cur !! nm = some (.dir j) ∧
           ClaimCoh hn jr (.only [nm])⌝ := by
   iintro #Hinv #Hsi Hnc #Hk Hn Htf Hnf Hh Ho Hau
   imod walInv_open (L := hG.goose_localGS) C Mr R jr r ⊤ CoPset.subseteq_top $$ Hinv Hnc
@@ -197,7 +197,7 @@ theorem walInv_readCommit (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino
   iframe HQ Hp Hlen Hnn Hlb
   ipureintro
   obtain ⟨h1, h2, h3, h4, h5, h6⟩ := hrs
-  exact ⟨hpre, hle, h1, h2, h3, h4, h5, h6, hnc.1, hnc.2, hcoh⟩
+  exact ⟨hpre, hle, h1, h2, h3, h4, h5, h6, hnc.1, hnc.2.1, hnc.2.2, hcoh⟩
 
 end iris
 
