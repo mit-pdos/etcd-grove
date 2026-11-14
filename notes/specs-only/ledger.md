@@ -1167,3 +1167,37 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   assumption on the WALs found at boot, kept by `cut` only while receipts bound it). Needs the coordinator's
   design: no option is free.
 - **Decision.** Open: the coordinator's call. Until then `ReadAll`'s `walOpenWF` takes it as a marked `sorry`.
+
+## 2026-11-14: the resize supplies' `P` (internal, the part's) -- a growth's supply cannot bound the crash size
+
+- **Spec.** `os.truncSup K p tg P` (`LinuxFs/Spec/os/File__TruncateAu.lean`) told `m0.lo ≤ tg ∨ P m0`;
+  `fallocSup K i tg` (`Proof/syscall/FallocateAu.lean`) told only `m0.size ≤ tg`; `preallocExtend(Trunc).specAu`,
+  `Preallocate.specAu`, `ZeroToEnd.specAu` passing supplies with the default `P`.
+- **Defect.** The WAL's growth supplies (`ZeroToEnd`'s growth of the lent tail back to its size, `wal-tc19`)
+  need `min lo tg ≤ wr` of the state they start from (`rzGrow_pure`: the growth's crash sizes from `lo` on are
+  the window's), and the truncate's also `size ≤ tg`; `lo ≤ tg` (the old second disjunct) is too weak for a
+  growth (`tg` the size), and the default `P` says nothing. The supplies see only the state's `OsMeta`.
+- **Evidence.** `walTail_fallocSup`/`walTail_truncSupG` (`GrowSup.lean`).
+- **Change (made, `wal-tc19`).** `os.truncSup` told `⌜P m0⌝`; `os.File.Truncate.specAu` takes `P m` and `∀ m',
+  m'.lo ≤ min m.lo sz → m'.size ≤ max m.size sz → P m'` (every later attempt starts from an announced or landed
+  state, `lo := min lo tg`); `fallocSup … P` told `⌜P m0⌝`; `preGrownH` carries `m'.lo ≤ m.lo`; the
+  `preallocExtend(Trunc)`/`Preallocate` specAu take `P` with `∀ m', m'.lo ≤ m.lo → m'.size ≤ sz → P m'`;
+  `ZeroToEnd.specAu` takes `P` (the truncate to `o`) and `Q` (the growth) with `P m` and `∀ m', m'.lo ≤ min m.lo
+  o → m'.size ≤ m.size → P m' ∧ Q m'`, and its success post gains `m'.lo ≤ min m.lo o` (the handle's `LoWr`).
+  The WAL passes `LoWr · wr` (truncate, as before) and `lo ≤ wr ∧ size ≤ tg` (growth). Lean-first specs,
+  proved; no trusted change.
+- **Decision.** Made (internal; the only instances are the WAL's).
+
+## 2026-11-14: `ZeroToEnd.specWalTail` and `TailMetaZ` (internal, the part's)
+
+- **Spec.** `ZeroToEnd.specWalTail` (`ReadAllTailCallees.lean`, a hypothesis of `WAL.ReadAll.wp_proof`):
+  post `TailMetaZ` (`TailMetaW` without `PastZ`, so `TailZ` of the zeroed tail); pre without `isPkgInit errors`.
+- **Defect.** `TailZ` of the zeroed tail is not provable: a crashed tail (`initMeta`: `zf = pageEnd size`,
+  `cz = 0`) or a synced one need not know the candidates of its last page past the size, and `ZeroToEnd`
+  (`ZteMeta`) does not make them known; what the fdatasync after it needs is only the page cache known zero to
+  the end of the size's page (`TailZ.synced_of`), which `ZeroToEnd.specAu` gives. `ZeroToEnd.specAu` needs
+  `isPkgInit errors`.
+- **Change (made, `wal-tc19`).** `TailMetaZ m bs := |bs| = size ∧ maps = ∅ ∧ pageEnd size ≤ max size cz`;
+  `specWalTail`'s pre gains `isPkgInit errors` (`ReadAll`: `iPkgInit`, adapted), its post `sz' = sz`. Proved:
+  `ZeroToEnd.wp_specWalTail` (`ZteWalTail.lean`, over `ZeroToEnd.specAu`).
+- **Decision.** Made (internal).

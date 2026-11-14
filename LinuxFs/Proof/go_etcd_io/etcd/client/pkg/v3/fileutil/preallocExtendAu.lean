@@ -32,14 +32,14 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtend.wp_proofAu
     (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
     (wp_trunc : go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtendTrunc.specAu (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtend.specAu (GF := GF) (hG := hG) := by
-  intro f fd name dqf dq d m o sz K hfd hwr hmaps ho0 ho1 hsz0 hsz1 hle
+  intro f fd name dqf dq d m o sz K P hfd hwr hmaps ho0 ho1 hsz0 hsz1 hle hP
   unfold fallocSup
   wp_start as ⟨#Hinv, #Herrs, Hf, Ho, Hfd, Hm, HK, #Hfs, #Hts⟩
   wp_auto
   wp_apply wp_Fd f fd name dqf $$ Hf as Hf
   have htg : max m.size ((W64 0).toNat + sz.toNat) = sz.toNat := by
     rw [show (W64 0).toNat = 0 from rfl]; omega
-  ihave Hau := Hfs $$ %m %hle HK Hm
+  ihave Hau := Hfs $$ %m %hle %(hP m (Nat.le_refl _) hle) HK Hm
   wp_apply syscall.Fallocate.wp_growAuW fd (W64 0) sz dq d m
     (fun _ e => iprop(fallocOutH d.ino sz.toNat m e ∗ K)) hwr (by decide) hsz0 hmaps
     $$ [Hfd Hau] as %e ⟨Hfd, %n, Hr, HK⟩
@@ -79,16 +79,16 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtend.wp_proofAu
       wp_auto
       iunfold preGrownH at Hg
       icases Hg with ⟨%m1, %hm1, Hm1, Hz⟩
-      obtain ⟨rfl, hmm, hcz1, hg1, hpc1, -⟩ := hm1
-      wp_apply wp_trunc f fd name dqf dq d m1 o sz K hfd hwr (hmm.trans hmaps) ho0 ho1 (by omega)
-          hsz1 hw0.2.1 $$ [Hf Ho Hfd Hm1 HK] as %err ⟨Hf, Ho, Hfd, HK, %w, %hw, Hg'⟩
+      obtain ⟨rfl, hmm, hcz1, hg1, hpc1, hlo1, -⟩ := hm1
+      wp_apply wp_trunc f fd name dqf dq d m1 o sz K P hfd hwr (hmm.trans hmaps) ho0 ho1 (by omega)
+          hsz1 hw0.2.1 (fun m' h h' => hP m' (by omega) h') $$ [Hf Ho Hfd Hm1 HK] as %err ⟨Hf, Ho, Hfd, HK, %w, %hw, Hg'⟩
       · iframe; iframe Hinv; iexact Hts
       iapply HΦ
       iframe Hf Ho Hfd HK
       iexists w
       isplitr
       · ipureintro; exact ⟨by omega, hw.2.1, hw.2.2⟩
-      iapply preGrownH_trans d.ino m m1 w _ hw0.1 hw.1 hmm hcz1 hg1 hpc1 $$ [Hz Hg']
+      iapply preGrownH_trans d.ino m m1 w _ hw0.1 hw.1 hmm hcz1 hg1 hpc1 hlo1 $$ [Hz Hg']
       iframe Hz
       iapply preGrownH_mono _ _ _ (fun h => ⟨h.1, hg1.2.2 h.2.zfGe⟩) $$ Hg'
     · try rw [decide_eq_false h95]
@@ -98,16 +98,16 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtend.wp_proofAu
         wp_auto
         iunfold preGrownH at Hg
         icases Hg with ⟨%m1, %hm1, Hm1, Hz⟩
-        obtain ⟨rfl, hmm, hcz1, hg1, hpc1, -⟩ := hm1
-        wp_apply wp_trunc f fd name dqf dq d m1 o sz K hfd hwr (hmm.trans hmaps) ho0 ho1 (by omega)
-            hsz1 hw0.2.1 $$ [Hf Ho Hfd Hm1 HK] as %err ⟨Hf, Ho, Hfd, HK, %w, %hw, Hg'⟩
+        obtain ⟨rfl, hmm, hcz1, hg1, hpc1, hlo1, -⟩ := hm1
+        wp_apply wp_trunc f fd name dqf dq d m1 o sz K P hfd hwr (hmm.trans hmaps) ho0 ho1 (by omega)
+            hsz1 hw0.2.1 (fun m' h h' => hP m' (by omega) h') $$ [Hf Ho Hfd Hm1 HK] as %err ⟨Hf, Ho, Hfd, HK, %w, %hw, Hg'⟩
         · iframe; iframe Hinv; iexact Hts
         iapply HΦ
         iframe Hf Ho Hfd HK
         iexists w
         isplitr
         · ipureintro; exact ⟨by omega, hw.2.1, hw.2.2⟩
-        iapply preGrownH_trans d.ino m m1 w _ hw0.1 hw.1 hmm hcz1 hg1 hpc1 $$ [Hz Hg']
+        iapply preGrownH_trans d.ino m m1 w _ hw0.1 hw.1 hmm hcz1 hg1 hpc1 hlo1 $$ [Hz Hg']
         iframe Hz
         iapply preGrownH_mono _ _ _ (fun h => ⟨h.1, hg1.2.2 h.2.zfGe⟩) $$ Hg'
       · try rw [decide_eq_false h4]

@@ -113,14 +113,16 @@ def fallocAuW (i : Ino) (tg : Nat) (m : OsMeta) (Q : Nat → w64 → IProp GF) :
     (fun tn => osAUnc (A := w64) (rsTok false tn.1 i tg m [] tn.2) (rsOutF i tg m tn.2) (Q tn.2))
 
 /-- **The supply of a growth of `i` to `tg`**, the caller's tie `K` (persistent): from any `OsMeta`
-at most `tg` long, the caller's half and `K` make the growth's updates, the caller's share its halves
-of the outcome and `K`. -/
-def fallocSup (K : IProp GF) (i : Ino) (tg : Nat) : IProp GF :=
-  iprop(□ ∀ m0 : OsMeta, ⌜m0.size ≤ tg⌝ -∗ K -∗ osMeta i (DFrac.own (1 : Qp).half) m0 -∗
+at most `tg` long with the caller's property `P` (as `os.truncSup`'s; `True` by default; `ZeroToEnd`'s
+growth of the WAL's tail passes `lo ≤ wr`, `wal-tc19`: the growth's crash sizes, `rzGrow_pure`'s `min lo
+tg ≤ wr`), the caller's half and `K` make the growth's updates, the caller's share its halves of the
+outcome and `K`. -/
+def fallocSup (K : IProp GF) (i : Ino) (tg : Nat) (P : OsMeta → Prop := fun _ => True) : IProp GF :=
+  iprop(□ ∀ m0 : OsMeta, ⌜m0.size ≤ tg⌝ -∗ ⌜P m0⌝ -∗ K -∗ osMeta i (DFrac.own (1 : Qp).half) m0 -∗
     fallocAuW i tg m0 (fun _ e => iprop(fallocOutH i tg m0 e ∗ K)))
 
-instance fallocSup_persistent (K : IProp GF) (i : Ino) (tg : Nat) :
-    Persistent (fallocSup (GF := GF) K i tg) := by
+instance fallocSup_persistent (K : IProp GF) (i : Ino) (tg : Nat) (P : OsMeta → Prop) :
+    Persistent (fallocSup (GF := GF) K i tg P) := by
   unfold fallocSup; infer_instance
 
 /-- **`syscall.Fallocate(fd, 0, off, len)`, the update lending the whole `OsMeta`** (see the file

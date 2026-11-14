@@ -29,7 +29,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.Preallocate.wp_proofAu
     (wp_ext : go_etcd_io.etcd.client.pkg.v3.fileutil.preallocExtend.specAu (GF := GF) (hG := hG))
     (wp_fixed : go_etcd_io.etcd.client.pkg.v3.fileutil.preallocFixed.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.client.pkg.v3.fileutil.Preallocate.specAu (GF := GF) (hG := hG) := by
-  intro f fd name dqf dq d m o sz ext K hfd hwr hmaps ho0 ho1 hsz0 hsz1 hle
+  intro f fd name dqf dq d m o sz ext K P hfd hwr hmaps ho0 ho1 hsz0 hsz1 hle hP
   wp_start as ⟨#Hinv, #Herrs, Hf, Ho, Hfd, Hm, HK, #Hfs, #Hts⟩
   wp_auto
   by_cases hz : sz = W64 0
@@ -61,7 +61,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.Preallocate.wp_proofAu
     simp only [preallocPostH, Bool.false_eq_true, ↓reduceIte]
     iexact Hm
   · wp_auto
-    wp_apply wp_ext f fd name dqf dq d m o sz K hfd hwr hmaps ho0 ho1 hpos hsz1 (hle rfl)
+    wp_apply wp_ext f fd name dqf dq d m o sz K P hfd hwr hmaps ho0 ho1 hpos hsz1 (hle rfl) hP
       $$ [Hf Ho Hfd Hm HK] as %err ⟨Hf, Ho, Hfd, HK, Hr⟩
     · iframe
       isplitl []
