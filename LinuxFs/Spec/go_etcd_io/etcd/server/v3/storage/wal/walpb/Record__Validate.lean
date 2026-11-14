@@ -1,13 +1,15 @@
 /-
 `rec.Validate(crc)` (record.go:26-31, translated): `nil` iff the record's CRC is `crc`, else an
-error (`fmt.Errorf` wrapping `ErrCRCMismatch`). Over `fmt.ErrorfErrs.spec` (a hypothesis,
-`LinuxFs/Spec/fmt/ErrorfErrs.lean`). Proved in `LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/walpb/Record__Validate.lean`.
+error (`fmt.Errorf` wrapping `ErrCRCMismatch`), which is not `t` and on which `errors.Is(_, t)` is false
+(`errIsNot`) for a target `t` a package variable holds of which `ErrCRCMismatch` is not (`io.EOF`, for the
+decoder's reader: ledger 2026-11-14, "the error's identity"). Over `fmt.ErrorfErrsNot.spec` (a
+hypothesis, `LinuxFs/Spec/fmt/ErrorfErrsNot.lean`). Proved in `LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/walpb/Record__Validate.lean`.
 W3a of `notes/wal-fsext-plan.md`; Lean-first.
 -/
 module
 
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.walpb.Defs
-public import LinuxFs.Spec.fmt.ErrorfErrs
+public import LinuxFs.Spec.fmt.ErrorfErrsNot
 
 @[expose] public section
 
@@ -28,14 +30,15 @@ variable [go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions]
 
 /-- See the file header. -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.walpb.Record.Validate.spec : Prop :=
-  ∀ (l : Loc) (r : WalRec) (crc : w32) (e : GoInterfaceOk),
+  ∀ (l : Loc) (r : WalRec) (crc : w32) (e : GoInterfaceOk) (X : GoString) (t : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗
       globalAddr go_etcd_io.etcd.server.v3.storage.wal.walpb.ErrCRCMismatch ↦□ GoInterface.ok e ∗
-      errOk e ∗ ownRec l r }}
+      errOk e ∗ globalAddr X ↦□ t ∗ errIsNot (GoInterface.ok e) t ∗ ownRec l r }}
     (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.walpb.Record.ty @!! go!"Validate")) (Val #crc))
   {{ (err : GoInterface), RET #err; ownRec l r ∗
       (⌜err = GoInterface.nil ∧ r.crc = crc⌝ ∨
-       ⌜r.crc ≠ crc⌝ ∗ ∃ ei : GoInterfaceOk, ⌜err = GoInterface.ok ei⌝ ∗ errOk ei) }}
+       ⌜r.crc ≠ crc⌝ ∗ ∃ ei : GoInterfaceOk, ⌜err = GoInterface.ok ei⌝ ∗ errOk ei ∗
+         errIsNot (GoInterface.ok ei) t) }}
 
 end spec
 

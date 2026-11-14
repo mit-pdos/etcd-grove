@@ -43,7 +43,7 @@ theorem walInvBody_lenLb (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   icases walPast_ghost_le (W := W) s p $$ Hg Hp with %Hle
   icases Hrest with ⟨%Har, Hcl, Hn', Hlays, %HW, %HWC, HCR, Htl, Hrest⟩
   unfold walTailsRes
-  icases Htl with ⟨%T, HTa, %HTo, HTm⟩
+  icases Htl with ⟨%T, HTa, %HTo, %HTi, HTm⟩
   icases walTailKey_lookup T dir γ $$ HTa Hk with %HT
   ihave ⟨Hent, HTm⟩ := (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (γ : GName) =>
     iprop(∃ (d : WalDur) (lay : WalLay) (g : SegG),
@@ -72,6 +72,8 @@ theorem walInvBody_lenLb (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     iframe HTa
     isplitr
     · ipureintro; exact HTo
+    isplitr
+    · ipureintro; exact HTi
     iapply (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (γ : GName) =>
       iprop(∃ (d : WalDur) (lay : WalLay) (g : SegG),
         ⌜s.wal !! dir = some d ∧ Ls !! dir = some lay ∧ lay.segs.getLast? = some g ∧ TailZeros lay ∧

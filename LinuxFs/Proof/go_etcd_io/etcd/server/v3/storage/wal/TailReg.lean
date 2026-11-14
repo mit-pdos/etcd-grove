@@ -75,7 +75,7 @@ theorem walTailsRes_register (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState)
         (letI := walAllG (W := W); ghostVar γ (1 : Qp).half (tailG d lay g.ino (F !! g.ino))) := by
   unfold walTailsRes
   letI := walAllG (W := W)
-  iintro ⟨%T, Ha, %Ho, Hm⟩ Hf
+  iintro ⟨%T, Ha, %Ho, %Hi, Hm⟩ Hf
   icases walTails_agree (W := W) T ∅ $$ Ha Hf with %hT
   subst hT
   imod (ghostVar_alloc (GF := GF) (tailG d lay g.ino (F !! g.ino))) with ⟨%γ, Hv⟩
@@ -90,6 +90,10 @@ theorem walTailsRes_register (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState)
   · ipureintro
     intro i hi
     exact absurd (Ho.none_of_empty i) hi
+  isplitr
+  · ipureintro
+    intro k d' lay' hk hd' hl'
+    exact Hi k d' lay' (GMap.lookup_empty _) hd' hl'
   iapply (BigSepM.bigSepM_insert (Φ := fun (dir' : GoString) (γ' : GName) => iprop(∃ (d : WalDur)
       (lay : WalLay) (g : SegG), ⌜s.wal !! dir' = some d ∧ Ls !! dir' = some lay ∧
         lay.segs.getLast? = some g ∧ TailZeros lay ∧ TailBound C Mr d lay⌝ ∗

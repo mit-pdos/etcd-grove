@@ -60,8 +60,8 @@ theorem tmpName_areaSlot {nm : GoString} (h : walNameOk nm) : AreaSlot (tmpName 
 theorem tmpName_ne (nm : GoString) : tmpName nm ≠ nm := by
   intro e; have := congrArg List.length e; simp [tmpName] at this
 
-theorem areaOk_tmp {N : NameSet} {h : NamesH} {cl : List (GoString × Claim)} {nm : GoString}
-    (hok : AreaOk N h cl) (hnm : walNameOk nm) : N.Mem (tmpName nm) := by
+theorem areaOk_tmp {N : NameSet} {h : NamesH} {cl : List (GoString × Claim)} {Wn : List GoString}
+    {nm : GoString} (hok : AreaOk N h cl Wn) (hnm : walNameOk nm) : N.Mem (tmpName nm) := by
   have := hok.2.1 nm go!"tmp" hnm; simpa [tmpName] using this
 
 section iris

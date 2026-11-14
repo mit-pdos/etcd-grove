@@ -1,7 +1,8 @@
 /-
 `d.Decode(rec)` (decoder.go:81-86): `rec.Reset()`, then `decodeRecord` under `d.mu`: what
-`goDecode` says, or an I/O error, or a failed `proto.Unmarshal` (`decPost`); `C` is the WAL's
-codec `walCodec`. Proved in `LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/decoder__Decode.lean`.
+`goDecode` says, or an I/O error, or a failed `proto.Unmarshal` (`decPost`); `io.EOF` only at the end
+of the data, and `errors.Is(err, io.EOF)`'s answer on the error (`decAns`: a reader looping to the end,
+`ReadAll`, tests it; ledger 2026-11-14, "the error's identity"); `C` is the WAL's codec `walCodec`. Proved in `LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/decoder__Decode.lean`.
 W3a of `notes/wal-fsext-plan.md`; Lean-first.
 -/
 module
