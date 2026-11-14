@@ -581,3 +581,12 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   notCrashed ∗ U (some x) ∗ osPathS R dir dq J ∗ osPathS R dir dq J ∗ SpR x`; `renameWAL` applies it at a
   program step after the rename (`wp_notCrashed_acc`). `dq` is fixed by `Create`.
 - **Decision.** Adopted (the coordinator's decision, 2026-11-14, `wal-path15` task 3; internal spec, no client).
+## 2026-11-14: `wal.WAL.renameWAL.spec` (internal, the part's) -- no bound on the directory's length
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__renameWAL.lean`, `RenameWALOk`.
+- **Defect.** `newFilePipeline.spec` needs `dir.length < 2 ^ 61` (its `Join`s of `dir` and `0.tmp`/`1.tmp`);
+  nothing in `RenameWALOk` bounds `dir` (`osPathS` gives no length).
+- **Evidence.** `renameWAL.wp_proof`'s `newFilePipeline` step (`wal-create14`).
+- **Change (made).** `RenameWALOk`'s second conjunct `dir.length < 2 ^ 59` (`Create.spec`'s premise, which
+  `Create` passes on).
+- **Decision.** Adopted (minor, internal; `wal-create14`).
