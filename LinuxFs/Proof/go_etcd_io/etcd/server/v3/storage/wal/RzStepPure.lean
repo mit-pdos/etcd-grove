@@ -9,9 +9,9 @@ layout in the window.
 * `rzSeg g0 tr tg n`: the tail as the first step of a resize to `tg` announces it (`SegFl.OkR`,
   `rzSeg_ok`);
 * `walAbsD_win`: the static relation of a layout whose tail `g` may be in a window (its `OsMeta` around
-  its bytes, `TailLast` if exact, `TailWin` if not), from the old one with an exact tail;
-* `walAbsD_rzStart`: a resize's first step from an exact tail, to a target at or past the write
-  position.
+  its bytes, `TailLast` if exact, `TailWin` and `lo ≤ wr` if not), from the old one;
+* `walAbsD_rzStart`: a resize's first step from an exact tail or a window, to a target at or past the
+  write position.
 
 The crash condition across the window (`CrashOk`) is not here: see the I3b log (2026-11-14, `wal-tc2`).
 -/
@@ -68,7 +68,7 @@ theorem rzSeg_bs_of_le {g0 : SegG} {tr : Bool} {tg n : Nat} (hlen : g0.bs.length
 
 /-- **The static relation of a layout whose tail may be in a resize window**: the old relation with
 an exact tail `g0`, the new tail `g` of the same name and inode, its `OsMeta` around its bytes, and
-the last segment's facts (`TailLast` if exact, `TailWin` if not). -/
+the last segment's facts (`TailLast` if exact, `TailWin` and `winLo` if not). -/
 theorem walAbsD_win {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
     {pre : List SegG} {g0 g : SegG} {wr' : Nat}
     (habs : WalAbsD C Mr d lay ents) (hs : lay.segs = pre ++ [g0])

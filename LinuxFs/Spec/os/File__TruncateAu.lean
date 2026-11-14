@@ -67,7 +67,7 @@ the start's (the whole `OsMeta` and bytes cut off lent for the token), whose com
 def os.truncAuW (K : IProp GF) (p : Ino) (tg : Nat) (m0 : OsMeta) (xs0 : List ByteG) : IProp GF :=
   osAUnc (A := Nat × Nat)
     iprop(osMeta p (DFrac.own 1) m0 ∗ osBytes p (min m0.size tg) (DFrac.own 1) xs0)
-    (fun tn => rsTok true tn.1 p tg m0 xs0 tn.2)
+    (fun tn => iprop(rsTok true tn.1 p tg m0 xs0 tn.2 ∗ ⌜0 < tn.2 ∧ m0.TcZ⌝))
     (fun tn => osAUnc (A := w64) (rsTok true tn.1 p tg m0 xs0 tn.2) (rsOutT p tg m0 xs0 tn.2)
       (fun e => iprop(os.truncOutH p tg m0 xs0 tn.2 e ∗ K)))
 

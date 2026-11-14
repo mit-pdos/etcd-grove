@@ -93,12 +93,7 @@ theorem crashOkA_rz {C : WalCodec} {Mr : WalMarshal} {d : WalDur}
   · left; exact crashTo_congr_lay hjr hnm hj hcuts hfirst hinos h
   · right; exact ⟨la, hla, h⟩
 
-/-- **The candidates `m` knows past its known zeros are the zero** (`MetaOk`'s `zf` and `tail` together:
-a fact of every `OsMeta` of the state, `OsMeta.tcz_of_metaOk`). -/
-def OsMetaTcZ (m : OsMeta) : Prop :=
-  ∀ z b c, m.zf = some z → z ≤ b → m.size ≤ b → m.tc !! b = some c → c = [((0 : w8), 0)]
-
-theorem OsMetaTcZ.pc {m : OsMeta} (h : OsMetaTcZ m) {z b : Nat} (hz : m.zf = some z) (hzb : z ≤ b)
+theorem tcz_pc {m : OsMeta} (h : m.TcZ) {z b : Nat} (hz : m.zf = some z) (hzb : z ≤ b)
     (hsb : m.size ≤ b) : m.pc b = some [((0 : w8), 0)] := by
   unfold OsMeta.pc
   cases ht : m.tc !! b with
@@ -122,10 +117,10 @@ theorem rzBytes_getElem {bs : List ByteG} {tg n k : Nat} (htg : tg ≤ bs.length
 /-- **A crash after a truncate's first step, from a window, is one the window allows**: its size at
 least the window's `lo`, which is at most the target, a byte from the target on keeps one of its
 candidates or is zero (allowed there: past `lo`); past the size what the window's `OsMeta` knows
-(`OsMetaTcZ`: its known zeros and the zeros' candidates agree). -/
+(`OsMeta.TcZ`: its known zeros and the zeros' candidates agree). -/
 theorem fileCrashedR_rzMeta_win {m : OsMeta} {tg n : Nat} {bs : List ByteG} {q : DFrac}
     {fo : Option OsFile} (hlo : m.lo ≤ tg) (htg : tg ≤ m.size) (hhi : m.size ≤ m.hi)
-    (hlen : bs.length = m.size) (hzf : ∀ z, m.zf = some z → m.size ≤ z) (htcz : OsMetaTcZ m)
+    (hlen : bs.length = m.size) (hzf : ∀ z, m.zf = some z → m.size ≤ z) (htcz : m.TcZ)
     (h : FileCrashedR (rzMeta true m tg n) [(0, q, bs.take tg ++ rsAnn n (bs.drop tg))] fo) :
     FileCrashedR m [(0, q, bs)] fo := by
   intro f' hf'
@@ -158,7 +153,7 @@ theorem fileCrashedR_rzMeta_win {m : OsMeta} {tg n : Nat} {bs : List ByteG} {q :
         split at hb' <;> omega
       have htc : (rzMeta true m tg n).tc !! b = some [((0 : w8), 0), ((0 : w8), n)] := by
         show rsTail true m tg m.size n [] !! b = _
-        rw [rsTail_lookup, if_pos hin, if_neg (by omega), htcz.pc hz hzb hin.2.2]; rfl
+        rw [rsTail_lookup, if_pos hin, if_neg (by omega), tcz_pc htcz hz hzb hin.2.2]; rfl
       rcases h6 b _ (by simp only [rzMeta_size]; omega) htc hb with ⟨s, hs⟩ | ⟨-, h0⟩
       · simp only [List.mem_cons, Prod.mk.injEq, List.not_mem_nil, or_false] at hs
         rcases hs with ⟨h0, -⟩ | ⟨h0, -⟩ <;> exact h0
@@ -324,7 +319,7 @@ theorem segBytesX_rzSeg {g0 : SegG} {tg n : Nat} (hn : 0 < n) (htg : tg ≤ g0.o
 
 /-- **The crash condition across a truncate's first step at the write position** (`cut`'s), from an
 exact tail (`crashOkA_win`) or a window (`crashOkA_rz`: a window's `lo` is at most `wr`, `winLo`, and
-its `OsMeta` a state's, `OsMetaTcZ`): the layout `lay0`, its tail `g0`, gives the layout with the tail
+its `OsMeta` a state's, `OsMeta.TcZ`): the layout `lay0`, its tail `g0`, gives the layout with the tail
 as the truncate's first step announced it (`rzSeg`, stamp `n > 0`). -/
 theorem crashOkA_rzStart {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDur}
     {lay0 : WalLay} {ents0 : Ents} {alt : Option WalLay} {cl : List Claim} {k : Nat}
@@ -332,7 +327,7 @@ theorem crashOkA_rzStart {C : WalCodec} (hC : C.Ok) {Mr : WalMarshal} {d : WalDu
     (habs0 : WalAbsD C Mr d lay0 ents0) (hZ : TailZeros lay0) (hB : TailBound C Mr d lay0)
     (hnd : (lay0.segs.map (·.ino)).Nodup) (hs0 : lay0.segs = pre ++ [g0])
     (hzf : ∀ z, g0.om.zf = some z → g0.om.size ≤ z) (hn : 0 < n)
-    (hwin : ¬ SegExact g0 → g0.om.lo ≤ lay0.wr ∧ OsMetaTcZ g0.om)
+    (hwin : ¬ SegExact g0 → g0.om.lo ≤ lay0.wr ∧ g0.om.TcZ)
     (halt : ∀ la, alt = some la → ∀ g' ∈ la.segs, g'.ino ≠ g0.ino)
     (hok : CrashOkA C Mr d lay0 alt cl k) :
     CrashOkA C Mr d (tailLay lay0 pre (rzSeg g0 true lay0.wr n) lay0.wr) alt cl k := by

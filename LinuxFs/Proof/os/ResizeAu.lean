@@ -130,7 +130,7 @@ theorem wp_osFtruncateStart_au (fd sz : w64) (dq : DFrac) (d : OsFd) (m : OsMeta
         iprop(osMeta (L := L) d.ino (DFrac.own (1 : Qp).half) m ∗
           osBytes (L := L) d.ino (min m.size sz.toNat) (DFrac.own (1 : Qp).half) xs)
         (fun tn => rsTok (L := L) true tn.1 d.ino sz.toNat m xs tn.2) Q -∗
-      iprop(∀ t : Nat, ∀ n : Nat, ⌜∀ x ∈ xs, ∀ q ∈ x.2, q.2 < n⌝ -∗ osFd (L := L) fd dq d -∗
+      iprop(∀ t : Nat, ∀ n : Nat, ⌜0 < n ∧ m.TcZ ∧ ∀ x ∈ xs, ∀ q ∈ x.2, q.2 < n⌝ -∗ osFd (L := L) fd dq d -∗
         Q (t, n) -∗ Φ (osTokV t)) -∗
       WP (ExternalOp fsExt.name "FtruncateStart" (Val (PairV (#fd) (#sz)))) {{ Φ }} := by
   iintro #Hinv Hfd Hm Hb Hau HΦ
