@@ -42,7 +42,8 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
 
 /-- **The minting** (see the file header). The program: the free lock token, its half of the area
 claim `(jr, N, h)` (holding the WAL name `nm`, not `tmp`, with names besides `nm`), `tmp`'s claim
-whole, `J`'s claim whole (on all names but `X`, which holds neither `nm` nor a `.wal` name). It gets
+whole, `J`'s claim whole (on all names but `X`, which holds neither `nm` nor a `.wal` name, and
+only pipeline names, `walTmps`). It gets
 the creating token, its halves of the area claim off `nm` and of the creating claim, `J`'s claim
 back, and what the creating claim says: of `tmp` what `tmp`'s did, of `nm` what the area claim did,
 its log bound the larger of theirs. -/
@@ -51,7 +52,7 @@ theorem walInvBody_mint (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
     (X : List GoString) (hJ : NamesH) {Em : CoPset}
     (hnm : walNameOk nm) (hNnm : N.Mem nm) (hNt : ¬ N.Mem tmp) (hDe : N.diff [nm] ≠ .only [])
     (htmp : ¬ walNameOk tmp) (htw : walNameP tmp = false) (hXnm : nm ∉ X)
-    (hX : ∀ b ∈ X, walNameP b = false) (hE : ↑osShN ⊆ Em) :
+    (hX : ∀ b ∈ X, walNameP b = false) (hXt : ∀ b ∈ X, b ∈ walTmps) (hE : ↑osShN ⊆ Em) :
     ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ osSharedInv (L := L) R -∗
       walUnlockedTok (W := W) -∗ osNames (L := L) jr N (DFrac.own (1 : Qp).half) h -∗
       osNames (L := L) jr (.only [tmp]) (DFrac.own 1) hT -∗
@@ -176,11 +177,7 @@ theorem walInvBody_mint (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
         simp
       · refine ⟨hJjr, fun c hc hj b hb => ?_, fun d2 x hd2 hx => ?_, go!".wal", walNameP_dotwal, ?_⟩
         · have hc' : c ∈ cl := (hcov.other c (by rw [hj]; exact hJjr)).1 hc
-          refine hJx c hc' hj b ?_
-          show b ∉ X
-          intro hbX
-          rw [hX b hbX] at hb
-          cases hb
+          exact hJx c hc' hj b (show b ∉ X from fun hbX => hb (hXt b hbX))
         · rw [GMap.lookup_insert_ne _ _ (Ne.symm hd2)] at hx
           simp at hx
         · simp only [NameSet.Mem, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false,

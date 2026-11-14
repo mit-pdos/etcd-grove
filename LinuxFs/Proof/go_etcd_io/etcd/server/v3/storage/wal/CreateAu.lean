@@ -142,7 +142,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     (htmp : ¬ walNameOk tmp) (htw : walNameP tmp = false) (htmpS : AreaSlot tmp) (hJjr : J ≠ jr)
     (hlb : h.next ≤ lb) (hJlb : hJ.next ≤ lb)
     (hlay : lay.jr = jr ∧ lay.nm = nm ∧ lay.j = J) (hsegs : lay.segs = [g]) (hbs : g.bs ≠ [])
-    (hJcoh : ClaimCoh hJ J (.except X)) (hX : ∀ b ∈ X, walNameP b = false)
+    (hJcoh : ClaimCoh hJ J (.except X)) (hX : ∀ b ∈ X, walNameP b = false) (hXt : X = walTmps)
     (habs : WalAbsD C Mr (walDurFresh md) lay hJ.cur)
     (hdur : ∀ y ∈ g.bs, y = durB y.1) (hzf : ∀ z, g.om.zf = some z → g.bs.length ≤ z)
     (htail : lay.wr = (segStream C Mr (walDurFresh md) lay.cuts lay.cuts.length).length)
@@ -410,7 +410,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
           ipureintro
           exact dirKeysOk_create (x := x) (st := s0) (md := md) (CR := CR) Hok Han.1 Hdko hnew hsd hin'
             hc hcoh (Nat.le_trans hlb hls) hne hnmN htmpN hctmp hothers htmp htw hlay hJcoh
-            (Nat.le_trans hJlb hls) hX habs hex hdur' htail hold0 hz
+            (Nat.le_trans hJlb hls) hX hXt habs hex hdur' htail hold0 hz
         iframe Hnms
         ipureintro
         exact ⟨walsAt_create (x := x) (st := s0) (X := X) (hJ := hJ) HAt Hok hnew hin' htmp hc hothers

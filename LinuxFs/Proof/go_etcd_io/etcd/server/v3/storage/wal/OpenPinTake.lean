@@ -120,7 +120,7 @@ theorem walDirKeys_pin (C : WalCodec) (Mr : WalMarshal) (jr : Ino) (s : AbsDiskS
   iintro Ha
   cases e : K !! dir with
   | none =>
-    obtain ⟨X2, hj2, hD⟩ := hK.2.2 dir lay hl
+    obtain ⟨X2, hj2, hD, -⟩ := hK.2.2 dir lay hl
     obtain ⟨hXe, hje⟩ := hD.eq_of_mem hX hc
     subst hXe hje
     imod walDirKey_insert (W := W) K dir lay.j X e $$ Ha with ⟨Ha, Hk⟩
