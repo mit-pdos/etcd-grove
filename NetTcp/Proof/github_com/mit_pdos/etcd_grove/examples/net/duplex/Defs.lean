@@ -13,7 +13,7 @@ the per-address protocol (`wire/Addr.lean`) and the per-direction stream protoco
   moves is timeless; each direction's `inv srvN (dirInv …)`, which `Stream.lean`'s updates take, is
   derived from it (`dup_dirInv_up`/`_down`, `inv_alter`).
 * **The connection's protocol** `connProto γm cn`, which the dialer deposits in `srvAddr`'s
-  invariant (`dup_deposit`, through `dial_au2`) and the server takes at `Accept`: the acceptor
+  invariant (`dup_deposit`, through `wire.dial_both_au`) and the server takes at `Accept`: the acceptor
   end's state, the mirror's half (nothing written), the reader's half of the up-direction. The
   dialer keeps `dialerOwn γm cn`: its end's state, the writer's half of the up-direction, the
   reader's half of the down-direction.
@@ -78,24 +78,6 @@ instance DupNames.countable : Pos.Countable DupNames :=
     obtain ⟨rfl, rfl, rfl, rfl, rfl⟩ := h'; rfl)
 
 /-! ## Pure facts -/
-
-/-- A read of `m` bytes returns at most `m`. -/
-theorem readOutcome_got_le {st : TcpEnd} {d : TcpDir} {m : Nat} {r : ReadRes} {d' : TcpDir}
-    (h : ReadOutcome st d m r d') : r.got.length ≤ m := by
-  have hav : ∀ d0, ReadAvail st d0 m r d' → r.got.length ≤ m := by
-    intro d0 h
-    rcases h with ⟨k, hk1, hk, hkd, rfl, -⟩ | ⟨-, -, rfl, -⟩ | ⟨-, -, rfl, -⟩ | ⟨-, rfl, -⟩ |
-      ⟨-, rfl, -⟩
-    · simp only [ReadRes.got, List.length_take]; omega
-    all_goals simp [ReadRes.got]
-  unfold ReadOutcome at h
-  split at h
-  · obtain ⟨rfl, -⟩ := h; simp [ReadRes.got]
-  split at h
-  · obtain ⟨rfl, -⟩ := h; simp [ReadRes.got]
-  rcases h with h | ⟨k, -, h⟩
-  · exact hav _ h
-  · exact hav _ h
 
 theorem dseq_take_succ (i : Nat) (hi : i < 4) :
     dseq.take i ++ [W8 (i + 1)] = dseq.take (i + 1) := by
@@ -237,60 +219,6 @@ theorem half_alloc {A : Type} [Pos.Countable A] (a : A) :
   iexists γ
   iapply (ghostVar_split_half (GF := GF) γ 1 a).1 $$ H
 
-/-- `Stream.dirInv_alloc` without the invariant: a new direction's protocol, its ghost state
-only, from its fresh resource. (A candidate for `wire/Stream.lean`.) -/
-theorem dirInv_alloc_ghost (c : Nat) (s : Bool) :
-    tcpDir (G (Gg := Gg)) c s TcpDir.fresh ==∗ ∃ γ, dirInv c s γ ∗ sentAll γ [] ∗
-      rcvdAll γ [] := by
-  letI := (G (Gg := Gg)).allG
-  iintro Hd
-  imod mono_list_own_alloc (GF := GF) ([] : List w8) with ⟨%γw, Hw, -⟩
-  icases (show monoListAuthOwn (GF := GF) γw 1 ([] : List w8) ⊣⊢
-      iprop(monoListAuthOwn γw (1 : Qp).half [] ∗ monoListAuthOwn γw (1 : Qp).half []) by
-    conv => lhs; rw [← Qp.half_add_half 1]
-    exact (monoListAuthOwn_fractional γw []).fractional _ _).mp $$ Hw with ⟨Hw1, Hw2⟩
-  imod ghostVar_alloc (GF := GF) ([] : List w8) with ⟨%γr, Hr⟩
-  icases (ghostVar_split_half γr 1 ([] : List w8)).mp $$ Hr with ⟨Hr1, Hr2⟩
-  imodintro
-  iexists ⟨γw, γr⟩
-  unfold dirInv sentAll rcvdAll
-  isplitl [Hd Hw1 Hr1]
-  · iexists TcpDir.fresh, [], []
-    iframe Hd Hw1 Hr1
-    ipureintro; exact wire.dirOk_fresh
-  iframe Hw2 Hr2
-
-/-- `wire.dial_au` whose deposit is made from both new ends (the dialer's too), the dialer keeping
-only `R cn`: so the deposit can tie the dialer's direction to the acceptor's. (A candidate for
-`wire/Addr.lean`.) -/
-theorem dial_au2 (N : Namespace) (a : GoString) (Φ R : Nat → IProp GF) [∀ cn, Timeless (Φ cn)] :
-    ⊢ inv N (addrInv a Φ) -∗
-      (∀ cn, tcpConnAt G cn a -∗ tcpFresh G cn false -∗ tcpFresh G cn true ={⊤ \ ↑N}=∗
-        Φ cn ∗ R cn) -∗
-      |={⊤,∅}=> ∃ S, tcpPend G a S ∗
-        ∀ cn, ⌜cn ∉ S⌝ -∗ tcpPend G a (S ∪ {[cn]}) -∗ tcpConnAt G cn a -∗
-          tcpFresh G cn false -∗ tcpFresh G cn true ={∅,⊤}=∗ R cn := by
-  iintro #Hinv Hmk
-  iinv Hinv with Hi Hclose
-  unfold addrInv
-  icases Hi with ⟨%S, >Hpend, >Hdeps⟩
-  iapply fupd_mask_intro Std.LawfulSet.empty_subset
-  iintro Hmask
-  iexists S
-  iframe Hpend
-  iintro %cn %HcS Hpend #Hat Hd Ha
-  imod Hmask
-  imod Hmk $$ %cn Hat Hd Ha with ⟨HΦ, HR⟩
-  imod Hclose $$ [Hpend Hdeps HΦ] with -
-  · inext
-    iexists S ∪ {[cn]}
-    iframe Hpend
-    rw [setMap_insert]
-    iapply (BigSepM.bigSepM_insert (setMap_lookup_none HcS)).2
-    iframe Hdeps HΦ
-  imodintro
-  iexact HR
-
 /-- A dialer's deposit for its new connection `cn`: both directions' stream protocols, the
 server's mirror, the names in the map, the connection's state (nothing written yet); the server's
 part (`connProto`) and the dialer's (`dialerOwn`). -/
@@ -315,8 +243,8 @@ theorem dup_deposit (γm : GName) (cn : Nat) :
     icases Hc with ⟨-, ⟨%d, %W, %R, Hdir, -⟩, -⟩
     icases tcpDir_excl _ cn true d TcpDir.fresh $$ Hdir Had with ⟨⟩
   | none =>
-    imod dirInv_alloc_ghost cn false $$ Hdd with ⟨%γu, HIu, Hwu, Hru⟩
-    imod dirInv_alloc_ghost cn true $$ Had with ⟨%γd, HId, Hwd, Hrd⟩
+    imod wire.dirInv_body_alloc cn false $$ Hdd with ⟨%γu, HIu, Hwu, Hru⟩
+    imod wire.dirInv_body_alloc cn true $$ Had with ⟨%γd, HId, Hwd, Hrd⟩
     imod half_alloc (Gg := Gg) ([] : List w8) with ⟨%γh, Hh1, Hh2⟩
     ihave #Hlbu : (sentLb (Gg := Gg) γu [] : IProp GF) $$ [Hwu]
     · iapply wire.sentLb_get

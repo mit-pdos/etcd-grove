@@ -4,21 +4,22 @@ linked in `Results.lean`) and the protocol of `Defs.lean`:
 
 * `serveConn`: a loop of `Read`s into a 16-byte buffer (`wire.read_au` on the up-direction: what
   the server read, the dialer wrote), each read's bytes written back (`server_write_au`: the
-  server's bytes stay those it read), until a failure or EOF; then the close (`wire.close_au` on
+  server's bytes stay those it read), until a failure or EOF; then the close (`wire.close_drop_au` on
   the down-direction). The server thread owns its end.
 * `Serve`: `Listen`, then the accept loop (`wire.accept_lis_au`).
 * `writeAll`: the writer goroutine, the bytes 1..4 one at a time (`cli_write_au`).
-* `Call`: the dial (`dial_au2`, the deposit `dup_deposit`), the client's end put in its invariant
+* `Call`: the dial (`wire.dial_both_au`, the deposit `dup_deposit`), the client's end put in its invariant
   (`cliInv_alloc`), `writeAll` forked, then four `wire.ReadFull`s of one byte through the reader's
   accessor (`cli_read_acc`), each checked (`client_check`: the byte at position `i - 1` is `i`),
   and the close (`cli_close_au`).
-* `Server`, `Client`: the bodies, then `wire.Forever`.
+
+The commands' `main`s (`cmd/{server,client}/Main.lean`) call `Serve` and `Call`, with `io.EOF`'s
+value from the package's initialization (`eof_init`).
 -/
 module
 
 public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.duplex.Defs
 public import NetTcp.Spec.github_com.mit_pdos.etcd_grove.examples.net.wire.ReadFull
-public import NetTcp.Spec.github_com.mit_pdos.etcd_grove.examples.net.wire.Forever
 public import NetTcp.Spec.net.Conn__Read
 public import NetTcp.Spec.net.Conn__Write
 public import NetTcp.Spec.net.Conn__Close
@@ -74,14 +75,6 @@ theorem cliInv_alloc' (cn : Nat) (γ : DupNames) :
       ∃ γw, inv cliN (cliInv cn γ γw) ∗ half G γw (0 : Nat) :=
   cliInv_alloc cn γ
 
-/-- `wire.close_au`, its update under a node's invariants. -/
-theorem close_au' (N : Namespace) (c : Nat) (s : Bool) (γ : wire.DirNames) (st : TcpEnd) :
-    ⊢ inv N (dirInv (Gg := hG.goose_globalGS) c s γ) -∗ tcpEnd (G (GF := GF)) c s st -∗
-      |={⊤,∅}=> ∃ st0 d, tcpEnd G c s st0 ∗ tcpDir G c s d ∗
-        ∀ ok st' d', ⌜CloseOutcome st0 d ok st' d'⌝ -∗ tcpEnd G c s st' -∗ tcpDir G c s d'
-          ={∅,⊤}=∗ tcpEnd G c s st' ∗ ⌜∃ d d', CloseOutcome st d ok st' d'⌝ :=
-  wire.close_au N c s γ st
-
 /-- `wire.read_au` for the acceptor's end (the direction towards it, the dialer's), its update
 under a node's invariants. -/
 theorem read_au' (N : Namespace) (c : Nat) (γ : wire.DirNames) (st : TcpEnd) (R : List w8)
@@ -106,14 +99,7 @@ theorem wp_srvClose (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
   iintro %Φ ⟨#Hdir, #Hc, Hend⟩ HΦ
   wp_apply wp_Close t cn true srvAddr (fun _ => iprop(True)) $$ [Hend] as %err ⟨%ok, -, -⟩
   · iframe Hc
-    imod close_au' srvN cn true γ.down st $$ Hdir Hend with ⟨%st0, %d, Hend, Hd, Hk⟩
-    imodintro
-    iexists st0, d
-    iframe Hend Hd
-    iintro %ok %st' %d' %Hcl Hend Hd
-    imod Hk $$ %ok %st' %d' %Hcl Hend Hd with -
-    imodintro
-    itrivial
+    iapply wire.close_drop_au srvN cn true γ.down st $$ Hdir Hend
   iapply HΦ
   itrivial
 
@@ -162,7 +148,7 @@ theorem wp_serveConn
     simp only [Bool.not_true]
     iapply read_au' srvN cn γ.up TcpEnd.fresh R buf.len.toNat $$ HdU Hend Hr
   obtain ⟨d, d', Hro, Hnw⟩ := Hro
-  have Hgl := readOutcome_got_le Hro
+  have Hgl := (wire.readOutcome_got_le Hro).1
   rw [Hbn16] at Hgl
   cases r with
   | bytes bs1 =>
@@ -407,7 +393,7 @@ theorem wp_Call
   · iframe Hplan
     isplit
     · itrivial
-    · iapply dial_au2 addrN srvAddr (connProto γm) (dialerOwn γm) $$ HaddrInv
+    · iapply wire.dial_both_au addrN srvAddr (connProto γm) (dialerOwn γm) $$ HaddrInv
       iintro %cn #Hat Hd Ha
       iapply dup_deposit γm cn $$ HsrvInv Hat Hd Ha
   · subst Herr
@@ -526,44 +512,6 @@ theorem eof_init :
   icases Hn with ⟨%eofl, #Heof, -⟩
   iexists _
   iexact Heof
-
-theorem wp_Server
-    (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
-    (wp_Accept : net.Listener.Accept.spec (GF := GF) (hG := hG))
-    (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG))
-    (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
-    (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
-    (wp_Forever : wire.Forever.spec (GF := GF) (hG := hG))
-    (γm : GName) :
-    {{ isPkgInit (PROP := IProp GF) pkg ∗ dupInvs γm ∗
-        tcpPlan G srvAddr (extLocalGS tcpExt (L := hG.goose_localGS)).host }}
-      (App (Val (@! Server)) (Val #()))
-    {{ RET #(); True }} := by
-  wp_start as ⟨#Hinvs, #Hplan⟩
-  icases eof_init $$ Hpkg with ⟨%eof, #Heof⟩
-  (try wp_auto)
-  wp_apply wp_Serve wp_Listen wp_Accept wp_Read wp_Write wp_Close γm eof $$ []
-  · iframe Hinvs Hplan Heof
-  (try wp_auto)
-  wp_apply wp_Forever as ⟨⟩
-
-theorem wp_Client
-    (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
-    (wp_ReadFull : wire.ReadFull.spec (GF := GF) (hG := hG))
-    (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
-    (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
-    (wp_Forever : wire.Forever.spec (GF := GF) (hG := hG))
-    (γm : GName) (h : GoString) :
-    {{ isPkgInit (PROP := IProp GF) pkg ∗ dupInvs γm ∗ tcpPlan G srvAddr h }}
-      (App (Val (@! Client)) (Val #()))
-    {{ RET #(); True }} := by
-  wp_start as ⟨#Hinvs, #Hplan⟩
-  icases eof_init $$ Hpkg with ⟨%eof, #Heof⟩
-  (try wp_auto)
-  wp_apply wp_Call wp_Dial wp_ReadFull wp_Write wp_Close γm h eof $$ []
-  · iframe Hinvs Hplan Heof
-  (try wp_auto)
-  wp_apply wp_Forever as ⟨⟩
 
 end proof
 
