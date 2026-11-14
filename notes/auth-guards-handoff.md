@@ -20,6 +20,14 @@ Scope: `notes/auth-guard-scope.md`; decisions: `questions.md`, section "auth-gua
   `v3rpc.authMaintenanceServer.{isPermitted,requireAuthInfo}`; linked (`etc/link-lean-first-{server,v3rpc}.txt`,
   `<fn>+C`, `EtcdServer__AuthInfoFromCtx+Lb`).
 
+## G2 revision (2026-11-14, etcd-grove-81's review)
+
+Every reason needs a flag read `true` no older than `n`; errors tied to their cases
+(`auth.adminRefusalFrom`); `specC` the one proved spec of each guard, `spec` its corollary at `n = 0`
+(`authPubLbM_zero`, now in `auth/WhyDefs.lean`); `isReqAuthBound`'s rows read through accessors
+(`isReqAuthBound_{enLb,ctxLb,adminLb}`, `isAuthEnabled_ctxMLb`); `authed_served_of_frozen`,
+`admin_served_of_frozen` (`auth.authFrozenFrom`); Go tests `notes/auth-guard-scope/zz_guard_why_test.go`.
+
 ## Next, in order
 
 1. G2 hard stop: report the six `specC`s (git diff of `Spec/`) to etcd-grove-81 for review.

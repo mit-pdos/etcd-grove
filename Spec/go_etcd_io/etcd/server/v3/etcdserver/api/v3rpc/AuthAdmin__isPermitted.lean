@@ -46,8 +46,9 @@ abbrev v3rpc.AuthAdmin.isPermitted.spec : Prop :=
 
 /-- `aa.isPermitted(ctx)` with why it refused (auth-guard-completeness G2, 2026-11-14), for a caller
 holding a lower bound `n` of the auth store's published index: `spec`'s post, and on an error the
-admin class's reason (`adminOutC`, as `EtcdServer.checkMembershipOperationPermission.specC`);
-`srvAdminNilOk` is not a premise (`authAdminIs`'s `srvAuthAt` gives it). -/
+admin class's reason (`adminOutC`), as `EtcdServer.checkMembershipOperationPermission.specC` (the same
+code, and the same silence with auth off); `srvAdminNilOk` is not a premise (`authAdminIs`'s
+`srvAuthAt` gives it). `spec` follows (`wp_proof`). -/
 abbrev v3rpc.AuthAdmin.isPermitted.specC : Prop :=
   ∀ (aa s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (n : Nat),

@@ -47,7 +47,8 @@ abbrev v3rpc.AuthAdmin.requireAuthInfo.spec : Prop :=
 
 /-- `aa.requireAuthInfo(ctx)` with why it refused (auth-guard-completeness G2, 2026-11-14), for a
 caller holding a lower bound `n` of the auth store's published index: `spec`'s post, and on an error
-the authenticated class's reason (`authedOutC`, as `EtcdServer.requireAuthInfo.specC`). -/
+the authenticated class's reason (`authedOutC`), as `EtcdServer.requireAuthInfo.specC` (the same
+code). `spec` follows (`wp_proof`). -/
 abbrev v3rpc.AuthAdmin.requireAuthInfo.specC : Prop :=
   ∀ (aa s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (n : Nat),

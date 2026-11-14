@@ -2037,7 +2037,7 @@ theorem srv_auth_bound_of_inv (s stp : Loc) (R : IProp GF) (E : apply.AEnv GF)
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗
       structFieldRef EtcdServer go!"authStore" s ↦□ auth.authIface stp ∗
       auth.authInv stp R E.authMode ∗ auth.tpReady E.authMode ⊢ srvAuthBound s E :=
-  srvAuthBound_of_authInv auth.authStore.wp_AuthInfoFromCtx auth_ctx_lb auth_admin_permitted_lbO s stp R E hRD
+  srvAuthBound_of_authInv auth.authStore.wp_AuthInfoFromCtx auth_enabled_lb auth_ctx_lb auth_admin_permitted_lbO s stp R E hRD
 
 end tokens
 

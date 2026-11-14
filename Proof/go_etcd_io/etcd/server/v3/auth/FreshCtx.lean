@@ -3,12 +3,14 @@
 `notes/auth-guard-scope.md`, §2.2). Lean-first (no Rocq counterpart).
 
 `auth.authStore.AuthInfoFromCtx.spec`'s post, and why the request side gave no principal: `(nil,
-nil)` only when the context carries no token (`ctxTokenOf ctx = none`), or when `IsAuthEnabled()`
-read `false` at a state recorded at an index at least the reader's lower bound `n`
+nil)` only when `IsAuthEnabled()` read `true` at a state recorded at an index at least the reader's
+lower bound `n` and the context carries no token (`ctxTokenOf ctx = none`), or when it read `false` at
+such a state
 (`noPrincipalFrom`; the second is the disable race,
 `nonissues/etcd-auth-requireauthinfo-disable-race-user-empty.md`); and an error only
-`ErrInvalidAuthToken`, when the context carries a token (`tokRefusedFrom`; until token liveness,
-G5, only that there was one).
+`ErrInvalidAuthToken`, when the flag read `true` at such a state and the context carries a token
+(`tokRefusedFrom`: only that; the token provider's contract says nothing when it refuses a token, and
+token liveness is the Scope's G5).
 -/
 module
 
@@ -52,7 +54,7 @@ abbrev auth.authStore.AuthInfoFromCtx.specLb : Prop :=
   {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); enabledRd st M ∗ authInfoRO a ∗
       authErrIs err ∗ ctxBound M (GoInterface.ok ctx) a ∗
       (∀ _ : a = null ∧ err = GoInterface.nil, auth.noPrincipalFrom M n (GoInterface.ok ctx)) ∗
-      (∀ _ : err ≠ GoInterface.nil, authErrOf .invalidAuthToken err ∗
+      (∀ _ : err ≠ GoInterface.nil, authErrOf .invalidAuthToken err ∗ enabledVerdictFrom M n true ∗
         auth.tokRefusedFrom M n (GoInterface.ok ctx)) }}
 
 end spec
@@ -114,7 +116,7 @@ theorem auth.authStore.AuthInfoFromCtx.wp_lb
     isplitr
     · iunfold ctxBound; ileft; ipureintro; rfl
     isplitr
-    · iintro %_; iunfold noPrincipalFrom; ileft; ipureintro; unfold ctxTokenOf; rw [Hinc]
+    · iintro %_; iunfold noPrincipalFrom; ileft; iframe Hev; ipureintro; unfold ctxTokenOf; rw [Hinc]
     · iintro %Hne; exact absurd rfl Hne
   subst Hok
   wp_auto
@@ -183,7 +185,7 @@ theorem auth.authStore.AuthInfoFromCtx.wp_lb
       · iintro %Hz; exact absurd Hz.2 (fun h => by cases h)
       · iintro %_; isplitr
         · iunfold authErrOf; iexists eIT; simp only [AuthErr.var]; iframe HeITa
-        · iunfold tokRefusedFrom; ipureintro; exact ⟨_, Htk⟩
+        · iframe Hev; iunfold tokRefusedFrom; ipureintro; exact ⟨_, Htk⟩
     · (try wp_auto)
       iapply HΦ
       iframe
@@ -273,7 +275,7 @@ theorem auth.authStore.AuthInfoFromCtx.wp_lb
         · iintro %Hz; exact absurd Hz.2 (fun h => by cases h)
         · iintro %_; isplitr
           · iunfold authErrOf; iexists eIT; simp only [AuthErr.var]; iframe HeITa
-          · iunfold tokRefusedFrom; ipureintro; exact ⟨_, Htk⟩
+          · iframe Hev; iunfold tokRefusedFrom; ipureintro; exact ⟨_, Htk⟩
       · (try wp_auto)
         iapply HΦ
         iframe
@@ -306,7 +308,7 @@ theorem auth.authStore.AuthInfoFromCtx.wp_lb
       isplitr
       · iunfold ctxBound; ileft; ipureintro; rfl
       isplitr
-      · iintro %_; iunfold noPrincipalFrom; ileft; ipureintro
+      · iintro %_; iunfold noPrincipalFrom; ileft; iframe Hev; ipureintro
         unfold ctxTokenOf; rw [Hinc]; simp only [(Hdom _).1 h1, (Hdom _).1 h2]
       · iintro %Hne; exact absurd rfl Hne
 

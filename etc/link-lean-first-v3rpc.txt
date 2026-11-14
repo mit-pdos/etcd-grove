@@ -224,10 +224,10 @@ NewQuotaLeaseServer: NewLeaseServer
 # the auth plan's A2 (2026-10-23): auth.go's AuthAdmin guards, maintenance.go's guarded wrappers
 # (their inner maintenanceServer methods, names only, are the specs' contracts) and key.go's
 # kvServer.Compact (`InvAuthAdmin.lean`)
-AuthAdmin__isPermitted: EtcdServer__AuthInfoFromCtx EtcdServer__AuthStore
-AuthAdmin__requireAuthInfo: EtcdServer__AuthInfoFromCtx EtcdServer__AuthStore
-authMaintenanceServer__isPermitted: AuthAdmin__isPermitted
-authMaintenanceServer__requireAuthInfo: AuthAdmin__requireAuthInfo
+AuthAdmin__isPermitted: EtcdServer__AuthInfoFromCtx+Lb EtcdServer__AuthStore
+AuthAdmin__requireAuthInfo: EtcdServer__AuthInfoFromCtx+Lb EtcdServer__AuthStore
+authMaintenanceServer__isPermitted: AuthAdmin__isPermitted+C
+authMaintenanceServer__requireAuthInfo: AuthAdmin__requireAuthInfo+C
 # auth-guard-completeness G2 (2026-11-14): the guards with why they refused
 AuthAdmin__isPermitted+C: EtcdServer__AuthInfoFromCtx+Lb EtcdServer__AuthStore
 AuthAdmin__requireAuthInfo+C: EtcdServer__AuthInfoFromCtx+Lb EtcdServer__AuthStore

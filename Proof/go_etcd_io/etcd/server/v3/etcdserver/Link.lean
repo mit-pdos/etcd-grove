@@ -1765,7 +1765,7 @@ theorem EtcdServer.wp_LeaderChanged :
 
 theorem EtcdServer.wp_requireAuthInfo :
     EtcdServer.requireAuthInfo.spec (GF := GF) (hG := hG) :=
-  EtcdServer.requireAuthInfo.wp_proof EtcdServer.wp_AuthInfoFromCtx
+  EtcdServer.requireAuthInfo.wp_proof EtcdServer.wp_AuthInfoFromCtxLb
 
 theorem EtcdServer.wp_LeaseGrant :
     EtcdServer.LeaseGrant.spec (GF := GF) (hG := hG) :=
@@ -2121,7 +2121,7 @@ theorem EtcdServer.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
 
 theorem EtcdServer.wp_checkMembershipOperationPermission :
     EtcdServer.checkMembershipOperationPermission.spec (GF := GF) (hG := hG) :=
-  EtcdServer.checkMembershipOperationPermission.wp_proof EtcdServer.wp_AuthInfoFromCtx EtcdServer.wp_AuthStore
+  EtcdServer.checkMembershipOperationPermission.wp_proof EtcdServer.wp_AuthInfoFromCtxLb EtcdServer.wp_AuthStore
 
 theorem EtcdServer.wp_RemoveMember :
     EtcdServer.RemoveMember.spec (GF := GF) (hG := hG) :=

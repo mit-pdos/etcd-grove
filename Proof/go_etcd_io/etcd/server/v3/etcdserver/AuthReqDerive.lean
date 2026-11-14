@@ -150,6 +150,7 @@ theorem isReqAuth_of_authInv
 the token provider is ready (`auth.tpReady M`). -/
 theorem isReqAuthBound_of_authInv
     (hCtx : auth.authStore.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
+    (hEnLb : auth.authStore.IsAuthEnabled.specLb (GF := GF))
     (hCtxLb : auth.authStore.AuthInfoFromCtx.specLb (GF := GF) (hG := hG))
     (hAdminLbO : auth.authStore.IsAdminPermitted.specLbO (GF := GF) (hG := hG))
     (st : Loc) (R : IProp GF) (M : auth.AuthMode) :
@@ -178,8 +179,18 @@ theorem isReqAuthBound_of_authInv
     isplitr
     · iapply EtcdGrove.apply.authErrIs_authApplyErrIs err $$ [$Hpkg $Herr]
     iexact Hb
-  isplitr
   -- (auth-guard-completeness G1) the guards' calls at a lower bound
+  isplitr
+  · iintro !> %n %Φ !> ⟨#Hlb, Hrd⟩ HΦ
+    iunfold auth.authRd at Hrd
+    icases Hrd with ⟨Hen, Hca, HR⟩
+    iapply (hEnLb st R M n) $$ [Hen]
+    · iframe; iframe #
+    iintro !> %b ⟨Hen, #Hv⟩
+    iapply HΦ
+    iframe Hv
+    iunfold auth.authRd; iframe
+  isplitr
   · iintro !> %n %ctx %Φ !> ⟨#Hlb, #Hlib, #Hda, Hrd⟩ HΦ
     ihave #Hdr := auth.ctxDoneRecv_of_ctxDoneAny ctx $$ Hda
     iunfold context.libCtxOk at Hlib
@@ -205,6 +216,55 @@ theorem isReqAuthBound_of_authInv
     iframe Hrd Ha Hv
     iapply EtcdGrove.apply.authErrIs_authApplyErrIs err $$ [$Hpkg $Herr]
 
+
+/-! ### The bound request side's rows at a lower bound (auth-guard-completeness G2) -/
+
+/-- `IsAuthEnabled`'s row: the flag at a state no older than the caller's lower bound. -/
+theorem isReqAuthBound_enLb (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode)
+    (ai : GoInterfaceOk) (hai : st = GoInterface.ok ai) :
+    isReqAuthBound (GF := GF) st RD M ⊢
+      □ (∀ n : Nat,
+        {{ auth.authPubLbM M n ∗ RD }} (App (Val #(methods ai.ty go!"IsAuthEnabled" ai.v)) (Val #()))
+        {{ (b : Bool), RET #b; RD ∗ auth.enabledVerdictFrom M n b }}) := by
+  iunfold isReqAuthBound
+  iintro ⟨%ai1, %Hai1, -, #H, -, -⟩
+  have h1 : ai1 = ai := GoInterface.ok.inj (Hai1.symm.trans hai)
+  subst h1
+  iexact H
+
+/-- `AuthInfoFromCtx`'s row: the request side's reasons at the caller's lower bound. -/
+theorem isReqAuthBound_ctxLb (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode)
+    (ai : GoInterfaceOk) (hai : st = GoInterface.ok ai) :
+    isReqAuthBound (GF := GF) st RD M ⊢
+      □ (∀ (n : Nat) (ctx : GoInterfaceOk),
+        {{ auth.authPubLbM M n ∗ context.libCtxOk ctx ∗ auth.ctxDoneAny ctx ∗ RD }}
+          (App (Val #(methods ai.ty go!"AuthInfoFromCtx" ai.v)) (Val #(GoInterface.ok ctx)))
+        {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗
+            authApplyErrIs err ∗ auth.ctxBound M (GoInterface.ok ctx) a ∗
+            (∀ _ : a = null ∧ err = GoInterface.nil, auth.noPrincipalFrom M n (GoInterface.ok ctx)) ∗
+            (∀ _ : err ≠ GoInterface.nil, auth.authErrOf .invalidAuthToken err ∗
+              auth.enabledVerdictFrom M n true ∗ auth.tokRefusedFrom M n (GoInterface.ok ctx)) }}) := by
+  iunfold isReqAuthBound
+  iintro ⟨%ai1, %Hai1, -, -, #H, -⟩
+  have h1 : ai1 = ai := GoInterface.ok.inj (Hai1.symm.trans hai)
+  subst h1
+  iexact H
+
+/-- `IsAdminPermitted`'s row: both halves of its verdict at the caller's lower bound. -/
+theorem isReqAuthBound_adminLb (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode)
+    (ai : GoInterfaceOk) (hai : st = GoInterface.ok ai) :
+    isReqAuthBound (GF := GF) st RD M ⊢
+      □ (∀ (n : Nat) (a : Loc) (oinfo : Option go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac),
+        {{ auth.authPubLbM M n ∗ auth.authInfoAt a dq oinfo ∗ RD }}
+          (App (Val #(methods ai.ty go!"IsAdminPermitted" ai.v)) (Val #a))
+        {{ (err : GoInterface), RET #err; RD ∗ auth.authInfoAt a dq oinfo ∗ authApplyErrIs err ∗
+            auth.adminVerdictFromO M n oinfo err }}) := by
+  iunfold isReqAuthBound
+  iintro ⟨%ai1, %Hai1, -, -, -, #H⟩
+  have h1 : ai1 = ai := GoInterface.ok.inj (Hai1.symm.trans hai)
+  subst h1
+  iexact H
+
 /-- `isReqAuthBound` gives `isReqAuth`'s `AuthInfoFromCtx` clause (the binding dropped). -/
 theorem isReqAuthBound_ctx (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) :
     isReqAuthBound (GF := GF) st RD M ⊢ ∃ ai : GoInterfaceOk, ⌜st = GoInterface.ok ai⌝ ∗
@@ -214,7 +274,7 @@ theorem isReqAuthBound_ctx (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode
         {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗
             applyErrIs err }}) := by
   iunfold isReqAuthBound
-  iintro ⟨%ai, %Hai, #H, -, -⟩
+  iintro ⟨%ai, %Hai, #H, -, -, -⟩
   iexists ai
   isplitr
   · ipureintro; exact Hai
@@ -259,7 +319,7 @@ theorem isReqAuth_ctxM (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) (a
   · ihave #Hb' : isReqAuthBound st RD M $$ []
     · iapply Hb; ipureintro; rfl
     iunfold isReqAuthBound at Hb'
-    icases Hb' with ⟨%ai1, %Hai1, #H, -, -⟩
+    icases Hb' with ⟨%ai1, %Hai1, #H, -, -, -⟩
     have h1 : ai1 = ai := GoInterface.ok.inj (Hai1.symm.trans hai)
     subst h1
     iintro !> %ctx %Φ !> ⟨#Hda, #Hlib, Hrd⟩ HΦ
@@ -295,7 +355,8 @@ theorem isReqAuth_ctxMLb (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) 
             □ (⌜M.isOn = true⌝ → ∀ _ : a = null ∧ err = GoInterface.nil,
               auth.noPrincipalFrom M n (GoInterface.ok ctx)) ∗
             □ (⌜M.isOn = true⌝ → ∀ _ : err ≠ GoInterface.nil,
-              auth.authErrOf .invalidAuthToken err ∗ auth.tokRefusedFrom M n (GoInterface.ok ctx)) }}) := by
+              auth.authErrOf .invalidAuthToken err ∗ auth.enabledVerdictFrom M n true ∗
+                auth.tokRefusedFrom M n (GoInterface.ok ctx)) }}) := by
   iintro ⟨#Ha, #Hb, #Hlb⟩
   cases hon : M.isOn
   · iunfold isReqAuth at Ha
@@ -317,10 +378,7 @@ theorem isReqAuth_ctxMLb (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) 
     · iintro !> %h; cases h
   · ihave #Hb' : isReqAuthBound st RD M $$ []
     · iapply Hb; ipureintro; rfl
-    iunfold isReqAuthBound at Hb'
-    icases Hb' with ⟨%ai1, %Hai1, -, #H, -⟩
-    have h1 : ai1 = ai := GoInterface.ok.inj (Hai1.symm.trans hai)
-    subst h1
+    ihave #H := isReqAuthBound_ctxLb st RD M ai hai $$ Hb'
     iintro !> %ctx %Φ !> ⟨#Hda, #Hlib, Hrd⟩ HΦ
     iapply H $$ %n %ctx [Hrd]
     · iframe; iframe #
@@ -338,6 +396,38 @@ theorem isReqAuth_ctxMLb (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) 
     isplitl
     · iintro !> -; iexact Hz
     · iintro !> -; iexact Hne
+
+/-- **The store's `IsAuthEnabled` in the mode `M`, read with a lower bound `n`**
+(auth-guard-completeness G2): the store contract's verdict (`enabledVerdict`), and with auth on, over
+the bound request side's row at `n`, the flag at a state no older than `n`. -/
+theorem isAuthEnabled_ctxMLb (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode)
+    (ai : GoInterfaceOk) (hai : st = GoInterface.ok ai) (n : Nat) :
+    □ ({{ RD }} (App (Val #(methods ai.ty go!"IsAuthEnabled" ai.v)) (Val #()))
+        {{ (b : Bool), RET #b; RD ∗ auth.enabledVerdict M b }}) ∗
+      □ (⌜M.isOn = true⌝ → isReqAuthBound (GF := GF) st RD M) ∗ □ auth.authPubLbM M n ⊢
+      □ ({{ RD }} (App (Val #(methods ai.ty go!"IsAuthEnabled" ai.v)) (Val #()))
+        {{ (b : Bool), RET #b; RD ∗ auth.enabledVerdict M b ∗
+            □ (⌜M.isOn = true⌝ → auth.enabledVerdictFrom M n b) }}) := by
+  iintro ⟨#HEn, #Hb, #Hlb⟩
+  rcases (Bool.eq_false_or_eq_true M.isOn).symm with hon | hon
+  · iintro !> %Φ !> Hrd HΦ
+    iapply HEn $$ Hrd
+    iintro !> %b ⟨Hrd, #Hv⟩
+    iapply HΦ
+    iframe Hrd Hv
+    iintro !> %h; rw [hon] at h; cases h
+  · ihave #Hb' : isReqAuthBound st RD M $$ []
+    · iapply Hb; ipureintro; exact hon
+    ihave #H := isReqAuthBound_enLb st RD M ai hai $$ Hb'
+    iintro !> %Φ !> Hrd HΦ
+    iapply H $$ %n [Hrd]
+    · iframe; iframe #
+    iintro !> %b ⟨Hrd, #Hv⟩
+    iapply HΦ
+    iframe Hrd
+    isplitr
+    · iapply auth.enabledVerdictFrom_verdict M n b $$ Hv
+    · iintro !> -; iexact Hv
 
 /-- **The store's `Authenticate` side, of the real store** at `st` (`auth.authInv st R M`; C1's
 A4): `CheckPassword` over the reader resource (its error one of the package's, `authErrOf`),

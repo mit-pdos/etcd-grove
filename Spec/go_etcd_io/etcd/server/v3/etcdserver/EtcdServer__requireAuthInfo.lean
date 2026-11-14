@@ -50,9 +50,14 @@ abbrev EtcdServer.requireAuthInfo.spec : Prop :=
 /-- `s.requireAuthInfo(ctx)` with why it refused (auth-guard-completeness G2, 2026-11-14;
 `notes/auth-guard-scope.md`, §2.3), for a caller holding a lower bound `n` of the auth store's
 published index (`auth.authPubLbM`): `spec`'s post, and on an error the authenticated class's reason
-(`authedOutC`'s `authedWhy`): with auth on, `ErrUserEmpty` only when the context carries no token or
-auth was disabled at a state no older than `n` (the disable race), `ErrInvalidAuthToken` only for a
-token the context carries. So every accepted token passes, whatever its user's roles. -/
+(`authedOutC`'s `authedWhy`). Never an error with auth off. With auth on, the flag read `true` at a
+state no older than `n`, and `ErrUserEmpty` only when the context carries no token or the flag also
+read `false` at such a state (the flag changed since `n`: the disable race), `ErrInvalidAuthToken`
+only when the context carries a token (nothing more: the token provider's contract says nothing of a
+token it refuses, and the simple provider may refuse a token any time its keeper deletes it). So the
+check refuses with no other error, whatever the principal's roles; with the history frozen from `n`
+on, auth enabled and a token in the context, only `ErrInvalidAuthToken` remains
+(`authed_served_of_frozen`). `spec` follows (`wp_proof`). -/
 abbrev EtcdServer.requireAuthInfo.specC : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (n : Nat),

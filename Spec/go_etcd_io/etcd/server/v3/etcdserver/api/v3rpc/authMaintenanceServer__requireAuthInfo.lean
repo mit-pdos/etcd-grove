@@ -43,7 +43,7 @@ abbrev v3rpc.authMaintenanceServer.requireAuthInfo.spec : Prop :=
   {{ (err : GoInterface), RET #err; E.RD ∗ authedOutB s E.authMode (GoInterface.ok ctx) err }}
 
 /-- `ms.requireAuthInfo(ctx)` with why it refused (auth-guard-completeness G2, 2026-11-14):
-`AuthAdmin.requireAuthInfo.specC`'s. -/
+`AuthAdmin.requireAuthInfo.specC`'s. `spec` follows (`wp_proof`). -/
 abbrev v3rpc.authMaintenanceServer.requireAuthInfo.specC : Prop :=
   ∀ (p ms aa s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (n : Nat),

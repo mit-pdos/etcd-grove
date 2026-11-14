@@ -28,111 +28,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- One proof for both modes (the auth-mode merge, 2026-10-29: the former `wp_proof` and
-(`requireAuthInfo_bound`): `AuthInfoFromCtx` is called only with auth on). -/
-theorem v3rpc.AuthAdmin.requireAuthInfo.wp_proof
-    (hAI : EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
-    (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
-    v3rpc.AuthAdmin.requireAuthInfo.spec (GF := GF) (hG := hG) := by
-  intro aa s E ctx cd
-  wp_start as ⟨#Haa, #Hctx, #Hlib, HRD⟩
-  iunfold v3rpc.authAdminIs at Haa
-  icases Haa with ⟨%Hann, #Hag, #Hau⟩
-  iunfold srvAuthAt at Hau
-  icases Hau with ⟨%st, %cca, #Has, #Hreq, #Hreqb, #Hcca, #Hast⟩
-  iunfold apply.isAuthStore at Hast
-  icases Hast with ⟨%ai, %Hai, -, -, -, -, -, #HEn, -⟩
-  subst Hai
-  ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
-  · iPkgInit
-  (try wp_auto)
-  wp_apply (hAS s (GoInterface.ok ai))
-  · iframe #
-  (try wp_auto)
-  wp_apply HEn $$ [$HRD] as %b ⟨HRD, #Hb⟩
-  (try wp_auto)
-  cases b
-  · (try wp_auto)
-    iapply HΦ
-    iframe HRD
-    iunfold authedOutB
-    isplitr
-    · iapply applyErrIs_nil
-    isplitr
-    · ipureintro; intro _; rfl
-    isplitr
-    · iintro %_
-      iexists none
-      isplitl
-      · iapply (authedRes_of_disabled E.authMode none) $$ Hb
-      iintro !> -; iunfold principalBound; itrivial
-    · iintro %h; exact absurd rfl h
-  · (try wp_auto)
-    ihave %Hon := enabledVerdict_true_isOn E.authMode $$ Hb
-    wp_apply (hAI s (GoInterface.ok ai) E.RD E.authMode cca ctx cd)
-      $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr0, #Hbnd, -⟩
-    · iframe #
-    ihave #Herr := authApplyErrIs_apply _ $$ Herr0
-    -- auth on here (`Hon`): the binding's gate open
-    ihave #Hbnd : ctxBoundOrTLS s E.authMode (GoInterface.ok ctx) a $$ []
-    · iapply Hbnd; ipureintro; exact Hon
-    (try wp_auto)
-    rcases err with ei | _
-    · (try wp_auto)
-      iapply HΦ
-      iframe HRD
-      iunfold authedOutB
-      isplitr
-      · iexact Herr
-      isplitr
-      · ipureintro; intro h; rw [h] at Hon; cases Hon
-      isplitr
-      · iintro %h; cases h
-      · iintro %_; iexact Hb
-    · (try wp_auto)
-      iunfold authInfoOpt at Ha
-      icases Ha with (%Han | ⟨%user, %rev, Hau⟩)
-      · subst Han
-        (try wp_auto)
-        ihave #Hpauth : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []
-        · iPkgInit
-        ihave #Hainit : go_etcd_io.etcd.server.v3.auth.authInit (GF := GF) $$ []
-        · iapply isPkgInit_access $$ Hpauth
-        icases Hainit with ⟨#HUE, -⟩
-        ihave #HUEl := errVarLeaf_authErrVar _ $$ HUE
-        ihave ⟨%eUE, #HeUE, #HaUE⟩ := errVarLeaf_get _ $$ HUEl
-        (try wp_auto)
-        iapply HΦ
-        iframe HRD
-        iunfold authedOutB
-        isplitr
-        · iexact HaUE
-        isplitr
-        · ipureintro; intro h; rw [h] at Hon; cases Hon
-        isplitr
-        · iintro %h; cases h
-        · iintro %_; iexact Hb
-      · ihave #Hpb := principalBound_of_ctxBoundOrTLS s E.authMode (GoInterface.ok ctx) a user rev $$ [$Hbnd $Hau]
-        iunfold authInfoIs at Hau
-        icases Hau with ⟨%Hann', -, -⟩
-        (try wp_auto)
-        rw [_root_.decide_eq_false Hann']
-        (try wp_auto)
-        iapply HΦ
-        iframe HRD
-        iunfold authedOutB
-        isplitr
-        · iapply applyErrIs_nil
-        isplitr
-        · ipureintro; intro _; rfl
-        isplitr
-        · iintro %_
-          iexists (some { Username' := user, Revision' := rev })
-          isplitl
-          · iapply authedRes_some
-          iintro !> -; iexact Hpb
-        · iintro %h; exact absurd rfl h
-
 theorem v3rpc.AuthAdmin.requireAuthInfo.wp_proofC
     (hAI : EtcdServer.AuthInfoFromCtx.specLb (GF := GF) (hG := hG))
     (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
@@ -152,7 +47,8 @@ theorem v3rpc.AuthAdmin.requireAuthInfo.wp_proofC
   wp_apply (hAS s (GoInterface.ok ai))
   · iframe #
   (try wp_auto)
-  wp_apply HEn $$ [$HRD] as %b ⟨HRD, #Hb⟩
+  ihave #HEnLb := isAuthEnabled_ctxMLb (GoInterface.ok ai) E.RD E.authMode ai rfl n $$ [$HEn $Hreqb $Hlb]
+  wp_apply HEnLb $$ [$HRD] as %b ⟨HRD, #Hb, #HbLb⟩
   (try wp_auto)
   cases b
   · (try wp_auto)
@@ -175,6 +71,7 @@ theorem v3rpc.AuthAdmin.requireAuthInfo.wp_proofC
     · iintro %h; exact absurd rfl h
   · (try wp_auto)
     ihave %Hon := enabledVerdict_true_isOn E.authMode $$ Hb
+    ihave #HbLb' := HbLb $$ %Hon
     wp_apply (hAI s (GoInterface.ok ai) E.RD E.authMode cca ctx cd n)
       $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr0, #Hbnd, #Hae, #Hz, #Hne⟩
     · iframe #
@@ -199,10 +96,12 @@ theorem v3rpc.AuthAdmin.requireAuthInfo.wp_proofC
         · iintro %h; cases h
         · iintro %_; iexact Hb
       · iintro %hne
-        iapply (authedWhy_of_reqSide E.authMode n _ _ Hon)
+        iapply (authedWhy_of_reqSide E.authMode n _ _)
         iunfold reqSideWhy
+        ihave ⟨#Hit, #Hen', #Htk⟩ := Hne' $$ %hne
+        iframe Hen'
         iright
-        iapply Hne' $$ %hne
+        iframe Hit Htk
     · (try wp_auto)
       iunfold authInfoOpt at Ha
       icases Ha with (%Han | ⟨%user, %rev, Hau⟩)
@@ -235,8 +134,9 @@ theorem v3rpc.AuthAdmin.requireAuthInfo.wp_proofC
           · iintro %h; cases h
           · iintro %_; iexact Hb
         · iintro %_
-          iapply (authedWhy_of_reqSide E.authMode n _ _ Hon)
+          iapply (authedWhy_of_reqSide E.authMode n _ _)
           iunfold reqSideWhy
+          iframe HbLb'
           ileft
           isplitr
           · iunfold auth.authErrOf; iexists eUE; simp only [auth.AuthErr.var]; iframe HeUE
@@ -265,6 +165,22 @@ theorem v3rpc.AuthAdmin.requireAuthInfo.wp_proofC
           · iintro %h; exact absurd rfl h
         · iintro %h; exact absurd rfl h
 
+
+/-- `spec`, of `specC` (auth-guard-completeness G2): the reason dropped, at the lower bound `0`
+(`authPubLbM_zero`). -/
+theorem v3rpc.AuthAdmin.requireAuthInfo.wp_proof
+    (hAI : EtcdServer.AuthInfoFromCtx.specLb (GF := GF) (hG := hG))
+    (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
+    v3rpc.AuthAdmin.requireAuthInfo.spec (GF := GF) (hG := hG) := by
+  intro aa s E ctx cd
+  iintro %Φ ⟨#Hpkg, #Haa, #Hctx, #Hlib, HRD⟩ HΦ
+  imod (authPubLbM_zero (GF := GF) E.authMode) with #Hn
+  iapply (v3rpc.AuthAdmin.requireAuthInfo.wp_proofC hAI hAS aa s E ctx cd 0) $$ [HRD]
+  · iframe; iframe #
+  iintro !> %err ⟨HRD, #Hout⟩
+  iapply HΦ
+  iframe HRD
+  iapply authedOutB_of_C $$ Hout
 
 end proof
 

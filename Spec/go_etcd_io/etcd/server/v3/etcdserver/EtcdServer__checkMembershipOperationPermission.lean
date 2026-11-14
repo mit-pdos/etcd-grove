@@ -48,11 +48,15 @@ abbrev EtcdServer.checkMembershipOperationPermission.spec : Prop :=
 /-- `s.checkMembershipOperationPermission(ctx)` with why it refused (auth-guard-completeness G2,
 2026-11-14; `notes/auth-guard-scope.md`, §2.3), for a caller holding a lower bound `n` of the auth
 store's published index (`auth.authPubLbM`): `spec`'s post, and on an error the admin class's reason
-(`adminOutC`'s `adminWhy`): with auth on, the request side's (no token, or auth disabled at a state no
-older than `n`, for `ErrUserEmpty`; a token the context carries, for `ErrInvalidAuthToken`), or a
-principal bound to the request that is absent, unnamed or not root at states no older than `n`. So a
-user with the root role at every state since `n` passes. `IsAdminPermitted(nil)`'s clause
-(`srvAdminNilOk`) is not a premise: `srvAuthAt` gives it (`srvAdminNilOk_of_srvAuthAt`). -/
+(`adminOutC`'s `adminWhy`). With auth on: the request side's (as `requireAuthInfo.specC`), or a
+principal bound to the request that `IsAdminPermitted` refused with the flag `true` at a state no
+older than `n`: `ErrUserEmpty` for an unnamed one, `ErrUserNotFound` for a user absent at such a
+state, `ErrPermissionDenied` for one present there without the root role. With the history frozen
+from `n` on, auth enabled, a token in the context and every principal bound to it root, only
+`ErrInvalidAuthToken` remains (`admin_served_of_frozen`). With auth off, it says nothing of an error
+from `AuthInfoFromCtx`: the off store's request side (`isReqAuth`, of `NewAuthStore`'s axiom) does
+not say there is none. `IsAdminPermitted(nil)`'s clause (`srvAdminNilOk`) is not a premise:
+`srvAuthAt` gives it (`srvAdminNilOk_of_srvAuthAt`). `spec` follows (`wp_proof`). -/
 abbrev EtcdServer.checkMembershipOperationPermission.specC : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (n : Nat),

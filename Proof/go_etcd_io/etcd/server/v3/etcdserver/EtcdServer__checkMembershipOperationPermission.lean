@@ -26,81 +26,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- One proof for both modes (the auth-mode merge, 2026-10-29: the former `wp_proof` and
-`checkMembershipOperationPermission_bound`): the binding under the mode's gate. -/
-theorem EtcdServer.checkMembershipOperationPermission.wp_proof
-    (hAI : EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
-    (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
-    EtcdServer.checkMembershipOperationPermission.spec (GF := GF) (hG := hG) := by
-  intro s E ctx cd
-  wp_start as ⟨#Hau, #Hnil, #Hctx, #Hlib, HRD⟩
-  iunfold srvAuthAt at Hau
-  icases Hau with ⟨%st, %cca, #Has, #Hreq, #Hreqb, #Hcca, #Hast⟩
-  iunfold srvAdminNilOk at Hnil
-  icases Hnil with ⟨%st2, #Has2, #Hnil⟩
-  icombine Has Has2 gives %Heq
-  subst Heq
-  iunfold apply.isAuthStore at Hast
-  icases Hast with ⟨%ai, %Hai, -, -, -, #HAdm, -⟩
-  iunfold adminNilOk at Hnil
-  icases Hnil with ⟨%ai2, %Hai2, #HAdmNil⟩
-  have Hai2' : ai = ai2 := GoInterface.ok.inj (Hai.symm.trans Hai2)
-  subst Hai2'
-  subst Hai
-  (try wp_auto)
-  wp_apply (hAI s (GoInterface.ok ai) E.RD E.authMode cca ctx cd)
-    $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr0, #Hb, -⟩
-  · iframe #
-  ihave #Herr := authApplyErrIs_apply _ $$ Herr0
-  (try wp_auto)
-  rcases err with ei | _
-  · (try wp_auto)
-    iapply HΦ
-    iframe HRD
-    iunfold adminOutB
-    iframe #
-    iintro %h; cases h
-  · (try wp_auto)
-    wp_apply (hAS s (GoInterface.ok ai))
-    · iframe #
-    (try wp_auto)
-    iunfold authInfoOpt at Ha
-    icases Ha with (%Han | ⟨%user, %rev, #Hau⟩)
-    · subst Han
-      (try wp_auto)
-      wp_apply HAdmNil $$ [$HRD] as %err2 ⟨HRD, #Herr2, %Hoff, #Hv⟩
-      (try wp_auto)
-      iapply HΦ
-      iframe HRD
-      iunfold adminOutB
-      iframe #
-      iintro %h
-      subst h
-      iexists none
-      isplitl
-      · iapply (adminRes_of_adminVerdict _ _) $$ Hv
-      iintro !> -; iunfold principalBound; itrivial
-    · ihave #Hap := authInfoIs_pointsto a user rev $$ Hau
-      ihave #Hpb := principalBound_of_ctxBoundOrTLS_gate s E.authMode (GoInterface.ok ctx) a user rev $$ [$Hb $Hau]
-      iunfold authInfoIs at Hau
-      icases Hau with ⟨%Hann, -, -⟩
-      (try wp_auto)
-      wp_apply HAdm $$ [$Hap $HRD] as %err2 ⟨-, HRD, #Herr2, %Hoff, #Hv⟩
-      (try wp_auto)
-      iapply HΦ
-      iframe HRD
-      iunfold adminOutB
-      iframe #
-      iintro %h
-      subst h
-      iexists (some _)
-      isplitl
-      · iapply (adminRes_of_adminVerdict _ _) $$ Hv
-      iexact Hpb
-
-/-- `specC` (auth-guard-completeness G2): `wp_proof`'s, over `AuthInfoFromCtx`'s reasons at the
-lower bound (`specLb`) and, with auth on, `IsAdminPermitted`'s refusal half at it (the bound request
-side's row, `isReqAuthBound`). -/
+/-- The guard's proof, both modes, with why it refused (auth-guard-completeness G2): `AuthInfoFromCtx`'s
+reasons at the lower bound (`specLb`) and, with auth on, the bound request side's rows at it. -/
 theorem EtcdServer.checkMembershipOperationPermission.wp_proofC
     (hAI : EtcdServer.AuthInfoFromCtx.specLb (GF := GF) (hG := hG))
     (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
@@ -139,10 +66,12 @@ theorem EtcdServer.checkMembershipOperationPermission.wp_proofC
     · iintro %hne
       rcases (Bool.eq_false_or_eq_true E.authMode.isOn).symm with hon | hon
       · iapply (adminWhy_off s E.authMode n _ _ hon)
-      · iapply (adminWhy_of_reqSide' s E.authMode n _ _ hon)
+      · iapply (adminWhy_of_reqSide s E.authMode n _ _)
         iunfold reqSideWhy
+        ihave ⟨#Hit, #Hen', #Htk⟩ := Hne $$ %hon %hne
+        iframe Hen'
         iright
-        iapply Hne $$ %hon %hne
+        iframe Hit Htk
   · (try wp_auto)
     wp_apply (hAS s (GoInterface.ok ai))
     · iframe #
@@ -191,10 +120,7 @@ theorem EtcdServer.checkMembershipOperationPermission.wp_proofC
     · -- auth on: the bound request side's admin check at the lower bound
       ihave #HreqB : isReqAuthBound (GoInterface.ok ai) E.RD E.authMode $$ []
       · iapply Hreqb; ipureintro; exact hon
-      iunfold isReqAuthBound at HreqB
-      icases HreqB with ⟨%ai3, %Hai3, -, -, #HAdmLb⟩
-      have Hai3' : ai3 = ai := (GoInterface.ok.inj Hai3).symm
-      subst Hai3'
+      ihave #HAdmLb := isReqAuthBound_adminLb (GoInterface.ok ai) E.RD E.authMode ai rfl $$ HreqB
       ihave #Hz' := Hz $$ %hon
       icases Ha with (%Han | ⟨%user, %rev, #Hau⟩)
       · subst Han
@@ -246,6 +172,22 @@ theorem EtcdServer.checkMembershipOperationPermission.wp_proofC
           iexact Hpb
         · iintro %hne
           iapply (adminWhy_some s E.authMode n _ _ _ hne) $$ Hpb' Hv
+
+/-- `spec`, of `specC` (auth-guard-completeness G2): the reason dropped, at the lower bound `0`
+(`authPubLbM_zero`). -/
+theorem EtcdServer.checkMembershipOperationPermission.wp_proof
+    (hAI : EtcdServer.AuthInfoFromCtx.specLb (GF := GF) (hG := hG))
+    (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
+    EtcdServer.checkMembershipOperationPermission.spec (GF := GF) (hG := hG) := by
+  intro s E ctx cd
+  iintro %Φ ⟨#Hpkg, #Hau, -, #Hctx, #Hlib, HRD⟩ HΦ
+  imod (authPubLbM_zero (GF := GF) E.authMode) with #Hn
+  iapply (EtcdServer.checkMembershipOperationPermission.wp_proofC hAI hAS s E ctx cd 0) $$ [HRD]
+  · iframe; iframe #
+  iintro !> %err ⟨HRD, #Hout⟩
+  iapply HΦ
+  iframe HRD
+  iapply adminOutB_of_C $$ Hout
 
 end proof
 

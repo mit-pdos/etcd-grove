@@ -54,9 +54,11 @@ abbrev EtcdServer.AuthInfoFromCtx.spec : Prop :=
 /-- `s.AuthInfoFromCtx(ctx)` read by a caller holding a lower bound `n` of the auth store's
 published index (`auth.authPubLbM`; auth-guard-completeness G1, 2026-11-14,
 `notes/auth-guard-scope.md`, §2.2): `spec`'s post, and with auth on, why the request side gave no
-principal (`(nil, nil)`: the context carries no token, or auth was disabled at a state no older than
-`n`, `auth.noPrincipalFrom`; the TLS fallback returns `nil` only after the store's `(nil, nil)`) and
-why it failed (`ErrInvalidAuthToken`, for a token the context carries, `auth.tokRefusedFrom`). -/
+principal (`(nil, nil)`: the flag read `true` at a state no older than `n` and the context carries no
+token, or the flag read `false` at such a state, `auth.noPrincipalFrom`; the TLS fallback returns `nil`
+only after the store's `(nil, nil)`) and why it failed (`ErrInvalidAuthToken`: the flag read `true` at
+such a state and the context carries a token, `auth.tokRefusedFrom`; the token provider's contract says
+nothing more of a refused token). -/
 abbrev EtcdServer.AuthInfoFromCtx.specLb : Prop :=
   ∀ (s : Loc) (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) (cca : Bool)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (n : Nat),
@@ -73,7 +75,8 @@ abbrev EtcdServer.AuthInfoFromCtx.specLb : Prop :=
       □ (⌜M.isOn = true⌝ → ∀ _ : a = null ∧ err = GoInterface.nil,
         auth.noPrincipalFrom M n (GoInterface.ok ctx)) ∗
       □ (⌜M.isOn = true⌝ → ∀ _ : err ≠ GoInterface.nil,
-        auth.authErrOf .invalidAuthToken err ∗ auth.tokRefusedFrom M n (GoInterface.ok ctx)) }}
+        auth.authErrOf .invalidAuthToken err ∗ auth.enabledVerdictFrom M n true ∗
+          auth.tokRefusedFrom M n (GoInterface.ok ctx)) }}
 
 end spec
 

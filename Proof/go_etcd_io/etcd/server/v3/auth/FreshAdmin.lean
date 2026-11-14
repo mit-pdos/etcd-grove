@@ -11,10 +11,10 @@ What the lease checks need of it (`isAuthStoreLeaseLb`).
 
 **The refusal half** (auth-guard-completeness G1, 2026-11-14; `notes/auth-guard-scope.md`, §2.2):
 `IsAdminPermitted.specLbO` takes the auth info as `authInfoAt` (`nil` covered: the admin guards pass
-`AuthInfoFromCtx`'s `nil`) and states a refusal too (`adminVerdictFromO`): auth enabled and the
-principal absent, unnamed, or not root at states recorded at indices at least `n`
-(`adminRefusedFrom`), the error one of the three the check returns (`adminErrOf`; `ErrUserEmpty` only,
-for a `nil` auth info). `specLb` follows from it (`adminVerdictFromO_some`).
+`AuthInfoFromCtx`'s `nil`) and states a refusal too (`adminVerdictFromO`): auth enabled at a state recorded at an index at least `n`,
+each error tied to its case (`adminRefusalFrom`): `ErrUserEmpty` for a `nil` or unnamed auth info,
+`ErrUserNotFound` for a user absent at such a state, `ErrPermissionDenied` for one present there
+without the root role. `specLb` follows from it (`adminVerdictFromO_some`).
 -/
 module
 
@@ -157,22 +157,16 @@ theorem adminVerdictFromO_empty (M : AuthMode) (n : Nat)
     isplitr
     · iexists j, st; iframe #; ipureintro; exact ⟨Hb.1, fun h' => absurd h' herr⟩
     · iintro %_
+      unfold adminRefusalFrom
       isplitr
-      · unfold adminRefusedFrom
-        iexists j, j, st, st; iframe #; ipureintro
-        refine ⟨Hb.1, Hb.1, Hb.2.symm, fun a u ha hname _ => ?_⟩
-        cases oinfo with
-        | none => cases ha
-        | some info =>
-          simp only [Option.map_some] at ha
-          cases ha
-          exact absurd (h info rfl) hname
-      · unfold adminErrOf; ileft; iexact He
+      · iexists j, st; iframe #; ipureintro; exact ⟨Hb.1, Hb.2.symm⟩
+      · ileft; iframe He; ipureintro; exact h
 
 /-- `tx.UnsafeGetUser(authInfo.Username) == nil`: `ErrUserNotFound`. -/
 theorem adminVerdictFromO_noUser (M : AuthMode) (n : Nat)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (err : GoInterface) (sta : AuthState)
-    (herr : err ≠ GoInterface.nil) (hu : sta.users !! info.Username' = none) :
+    (herr : err ≠ GoInterface.nil) (hname : info.Username' ≠ [])
+    (hu : sta.users !! info.Username' = none) :
     enabledVerdictFrom (GF := GF) M n true ⊢ authSnapFrom M n sta -∗ authErrOf .userNotFound err -∗
       adminVerdictFromO M n (some info) err := by
   cases M with
@@ -184,23 +178,18 @@ theorem adminVerdictFromO_noUser (M : AuthMode) (n : Nat)
     isplitr
     · iexists i, sf; iframe #; ipureintro; exact ⟨Hb.1, fun h' => absurd h' herr⟩
     · iintro %_
+      unfold adminRefusalFrom
       isplitr
-      · unfold adminRefusedFrom
-        iexists i, j, sf, sta; iframe #; ipureintro
-        refine ⟨Hb.1, Hj, Hb.2.symm, fun a u ha _ hu' => ?_⟩
-        simp only [Option.map_some] at ha
-        cases ha
-        have hu'' : sta.users !! info.Username' = some u := hu'
-        rw [hu] at hu''; cases hu''
-      · unfold adminErrOf; iright; isplitr
-        · ipureintro; rfl
-        · ileft; iexact He
+      · iexists i, sf; iframe #; ipureintro; exact ⟨Hb.1, Hb.2.symm⟩
+      · iright; iexists info; isplitr
+        · ipureintro; exact ⟨rfl, hname⟩
+        · ileft; iframe He; iexists j, sta; iframe Hsu; ipureintro; exact ⟨Hj, hu⟩
 
 /-- `!hasRootRole(u)`: `ErrPermissionDenied`. -/
 theorem adminVerdictFromO_notRoot (M : AuthMode) (n : Nat)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (err : GoInterface) (sta : AuthState)
-    (roles : User) (herr : err ≠ GoInterface.nil) (hu : sta.users !! info.Username' = some roles)
-    (hn : ¬ isRoot roles) :
+    (roles : User) (herr : err ≠ GoInterface.nil) (hname : info.Username' ≠ [])
+    (hu : sta.users !! info.Username' = some roles) (hn : ¬ isRoot roles) :
     enabledVerdictFrom (GF := GF) M n true ⊢ authSnapFrom M n sta -∗
       authErrOf .permissionDenied err -∗ adminVerdictFromO M n (some info) err := by
   cases M with
@@ -212,18 +201,12 @@ theorem adminVerdictFromO_notRoot (M : AuthMode) (n : Nat)
     isplitr
     · iexists i, sf; iframe #; ipureintro; exact ⟨Hb.1, fun h' => absurd h' herr⟩
     · iintro %_
+      unfold adminRefusalFrom
       isplitr
-      · unfold adminRefusedFrom
-        iexists i, j, sf, sta; iframe #; ipureintro
-        refine ⟨Hb.1, Hj, Hb.2.symm, fun a u ha _ hu' => ?_⟩
-        simp only [Option.map_some] at ha
-        cases ha
-        have hu'' : sta.users !! info.Username' = some u := hu'
-        rw [hu] at hu''; cases hu''
-        exact hn
-      · unfold adminErrOf; iright; isplitr
-        · ipureintro; rfl
-        · iright; iexact He
+      · iexists i, sf; iframe #; ipureintro; exact ⟨Hb.1, Hb.2.symm⟩
+      · iright; iexists info; isplitr
+        · ipureintro; exact ⟨rfl, hname⟩
+        · iright; iframe He; iexists j, sta, roles; iframe Hsu; ipureintro; exact ⟨Hj, hu, hn⟩
 
 /-- A named user with the root role at a state no older than `n`: a pass. -/
 theorem adminVerdictFromO_root (M : AuthMode) (n : Nat)
@@ -412,7 +395,7 @@ theorem auth.authStore.IsAdminPermitted.wp_lbO
         iframe HeUNFa
         ipureintro; simp
       · iapply (adminVerdictFromO_noUser M n info (GoInterface.ok eUNF) sta (fun h => by cases h)
-          Hnone) $$ Hev Hsnap HoUNF
+          hname Hnone) $$ Hev Hsnap HoUNF
     ihave Hu' := userOut_some u sta info.Username' Hif $$ Hu
     icases Hu' with ⟨%roles, %ur, %Hur, Hu⟩
     wp_apply h_hasRootRole $$ [$Hu] as %root ⟨Hu, %Hroot⟩
@@ -437,7 +420,7 @@ theorem auth.authStore.IsAdminPermitted.wp_lbO
         iframe HePDa
         ipureintro; simp
       · iapply (adminVerdictFromO_notRoot M n info (GoInterface.ok ePD) sta roles
-          (fun h => by cases h) Hur.1 hn) $$ Hev Hsnap HoPD
+          (fun h => by cases h) hname Hur.1 hn) $$ Hev Hsnap HoPD
     · have hroot : isRoot roles := by rw [← Hur.2.1]; exact of_decide_eq_true Hroot.symm
       (try wp_auto)
       wp_bind (App (Val #(methods ti.ty go!"RUnlock" ti.v)) (Val #()))

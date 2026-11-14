@@ -42,7 +42,7 @@ abbrev v3rpc.authMaintenanceServer.isPermitted.spec : Prop :=
 
 /-- `ms.isPermitted(ctx)` with why it refused (auth-guard-completeness G2, 2026-11-14):
 `AuthAdmin.isPermitted.specC`'s, the binding kept (`adminOutC`; `spec` drops even the binding,
-`adminOut`). -/
+`adminOut`). `spec` follows (`wp_proof`). -/
 abbrev v3rpc.authMaintenanceServer.isPermitted.specC : Prop :=
   ∀ (p ms aa s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (n : Nat),

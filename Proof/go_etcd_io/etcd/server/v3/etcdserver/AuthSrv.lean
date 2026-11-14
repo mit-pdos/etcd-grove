@@ -544,7 +544,7 @@ theorem authStoreKit_on
   -- (E3t) publication, of its invariant
   ihave #HstPub := authPublishM_of_authInv stp R γa $$ Hinv
   -- (E3zb) the request side bound to the request context's token, of its invariant
-  ihave #HbB := isReqAuthBound_of_authInv hCtx hCtxLb hAdminLbO stp R (.on γa) $$ [$Hpkg $Hinv]
+  ihave #HbB := isReqAuthBound_of_authInv hCtx hEnLb hCtxLb hAdminLbO stp R (.on γa) $$ [$Hpkg $Hinv]
   subst hhs'
   -- (E2v) the halves tied to the start's history, whose states are disabled
   ihave ⟨Hown', HX⟩ := auth.tieRes_of_disabled stp γa [auth.bootState, auth.bump auth.bootState]
