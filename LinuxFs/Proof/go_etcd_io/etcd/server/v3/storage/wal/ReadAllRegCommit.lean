@@ -77,7 +77,8 @@ theorem walInvBody_readReg (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : In
       ∃ (d : WalDur) (lay : WalLay) (kk : Nat) (γ : GName),
         ⌜s.wal !! dir = some d ∧ lay.j = j ∧ WalAbsD C Mr d lay hj0.cur ∧ TailExact lay ∧
           lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length ∧ lay.segs.drop kk = gs ∧
-          TailMetaR gl.om gl.bs ∧ TailZ0 lay ∧ lay.old.length = gl.om.size⌝ ∗
+          TailMetaR gl.om gl.bs ∧ TailZ0 lay ∧ lay.old.length = gl.om.size ∧
+          (∀ z, gl.om.zf = some z → gl.om.size ≤ z) ∧ ∀ y ∈ gl.bs, y = Fs.durB y.1⌝ ∗
         walInvBody (L := L) (W := W) C Mr R jr r s ∗ walDirKey (W := W) dir j X ∗
         osNames (L := L) j (.except X) (DFrac.own (1 : Qp).half) hj0 ∗
         walTailsFrag (W := W) (<[dir := γ]> (∅ : GMap GoString GName)) ∗
@@ -135,7 +136,11 @@ theorem walInvBody_readReg (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : In
   imodintro
   iexists d, lay, kk, γ
   isplitr
-  · ipureintro; exact ⟨hd, hlj, habs, hid.1, hid.2.1, hdeq, htm, hz0, hold⟩
+  · ipureintro
+    have hsyn := hid.synced gl hglL
+    have hsz := (habs.metas gl (List.mem_of_getLast? hglL)).1
+    exact ⟨hd, hlj, habs, hid.1, hid.2.1, hdeq, htm, hz0, hold,
+      fun z hz => by rw [hsz]; exact hsyn.2 z hz, hsyn.1⟩
   iframe Hk Hn Hf Hgs Hpt Hv
   iexists Ls, cl, n, ∅
   iframe Hg Hcm HCR Htl Hpk Hnms Hcl
@@ -184,7 +189,7 @@ theorem walInvRegisterPendLaw_holds (C : WalCodec) (Mr : WalMarshal) (R : Roots)
   iexists d, lay, kk, γ
   iframe Htf Hpt Hv
   ipureintro
-  obtain ⟨-, h1, h2, h3, h4, h5, h6, h7, h8⟩ := hrs
+  obtain ⟨-, h1, h2, h3, h4, h5, h6, h7, h8, -⟩ := hrs
   exact ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩
 
 /-- **`ReadAll`'s update committed and its tail registered at one look** (see the file header):
@@ -224,7 +229,8 @@ theorem walInv_readCommitReg (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : 
           TailExact lay ∧ lay.wr = (segStream C Mr d lay.cuts lay.cuts.length).length ∧
           lay.segs.drop kk = gs ∧ TailMetaR gl.om gl.bs ∧ TailZ0 lay ∧ lay.old.length = gl.om.size ∧
           InArea r dir nm ∧ NameOk nm ∧ hn.cur !! nm = some (.dir j) ∧
-          ClaimCoh hn jr (.only [nm])⌝ := by
+          ClaimCoh hn jr (.only [nm]) ∧
+          (∀ z, gl.om.zf = some z → gl.om.size ≤ z) ∧ ∀ y ∈ gl.bs, y = Fs.durB y.1⌝ := by
   iintro #Hinv #Hsi Hnc #Hk Hn Htf Hnf Hh Ho Hau
   imod walInv_open (L := hG.goose_localGS) C Mr R jr r ⊤ CoPset.subseteq_top $$ Hinv Hnc
     with ⟨⟨%s, Hb⟩, Hnc, Hcl⟩
@@ -266,8 +272,8 @@ theorem walInv_readCommitReg (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : 
   iexists dc, d, lay, kk, γ, s, nm, q, hn
   iframe HQ Hp Hlen Hnn Hlb Htf Hpt Hv
   ipureintro
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ := hrs
-  exact ⟨hpre, hle, h1, h2, h3, h4, h5, h6, h7, h8, h9, hnc.1, hnc.2.1, hnc.2.2, hcoh⟩
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10⟩ := hrs
+  exact ⟨hpre, hle, h1, h2, h3, h4, h5, h6, h7, h8, h9, hnc.1, hnc.2.1, hnc.2.2, hcoh, h10⟩
 
 end iris
 

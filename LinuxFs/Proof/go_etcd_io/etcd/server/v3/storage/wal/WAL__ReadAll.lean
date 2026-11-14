@@ -297,7 +297,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
   ihave Hdec := Hdbk $$ Hh
   iframe Hnc
   imodintro
-  obtain ⟨hpre1, hle1, hd1, -, hab, hex, hwr, hgs, htm, -, hold, hin1, hnm1, hcur1, hcoh1⟩ := hcm
+  obtain ⟨hpre1, hle1, hd1, -, hab, hex, hwr, hgs, htm, -, hold, hin1, hnm1, hcur1, hcoh1, hsyn1⟩ := hcm
   have hR0 := readFiles_ok' walCodec_ok hU hab hex hwr kk gs hgs hgne (fs.map (·.bs))
     (decFiles_bs hfl (fun k F g h1 h2 => (hfk k F g h1 h2).1))
   ihave %hnn := decEnv_nonnil IoE eof ueof $$ Hdenv

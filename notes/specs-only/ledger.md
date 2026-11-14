@@ -1632,4 +1632,41 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   exists: the same gap as `Repair`'s failure arms); or (b) leave them, and `Close.specFailed`'s post may lose the
   lock token after these two exits (as `Repair.spec`'s `false` arm), which the tester's `restartRead` (it calls
   `Repair` after a `nil` `Close`) cannot meet.
-- **Decision.** Open (the coordinator's; (a) recommended).
+- **Decision.** (a), the coordinator's (2026-11-14, W4c U5 fifth session). Made (branch `wal-u5e`): the error arm
+  of `specWalTail` returns `walTailPE` (`HandlePend.lean`: file, fd, some offset, the lent token of kind
+  `false` (`ZeroToEnd`'s first step made it), the halves of some `OsMeta` and bytes with `TailMetaE o0`: all the
+  bytes, no mappings, at least `o0` long, the length word at `o0` zero; and the record), over the entry below on
+  `ZeroToEnd.specAu`; `specWalPend`'s error arm returns its `walTailP` unchanged (`wp_tailFsyncP` already gave
+  it back). `ReadAll` still drops both (the ten exits' `walReadFailedF` body is task 4). The invariant steps
+  for `Close` to put such a tail back are not made yet (W4c U5 log, fifth session: the lent tail's fdatasync in
+  a window with no zeros past `wr`, `TailPend`).
+
+## 2026-11-14: `ZeroToEnd.specAu` (`fileutil`, the part's) -- the error arm says nothing of the bytes (W4c U5, fifth session)
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/client/pkg/v3/fileutil/ZeroToEndAu.lean`, the error arm: some offset,
+  `OsMeta` `m'` (`o ≤ m'.size`, the mappings) and `m'.size - o` bytes `ys` from `o`, nothing of their values.
+- **Defect.** `Close` of the handle `ReadAll` leaves after a failed `ZeroToEnd` (entry above, option (a)) must
+  sync the tail and put it back; the tail's layout may have no F-Z (`TailPend`: a torn frame past `wr`), and the
+  synced layout's `tailStop` then needs the length word at `wr` zero, which only the handle's bytes show.
+- **Evidence.** `ZeroToEnd.wp_proofAu`'s four error exits: the seek's (bytes unchanged), the truncate's not
+  landed (`ftUndoneH`: `xs'.map Prod.fst = xs.map Prod.fst`), the truncate's landed (no bytes past `o`), the
+  growth's (`osZerosA`).
+- **Proposed change.** The arm's pure part gains `ys.map Prod.fst = xs.map Prod.fst ∨ ∀ y ∈ ys, y.1 = 0`.
+- **Decision.** Adopted (internal, the agent's: a proved spec, its only user `ZeroToEnd.wp_specWalTail`); made.
+
+## 2026-11-14: `WAL.Close.specFailed` (the part's, stated W4c U5 fourth session) -- the token back whatever `Close` answers (W4c U5, fifth session)
+
+- **Spec.** `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__CloseFailed.lean`: post `walUnlockedTok ∗
+  osCallPerm ½` for every `err`, as `Close.specOpening`.
+- **Defect.** With option (a) above, a failed `ReadAll` may leave its tail in a resize window (`ZeroToEnd`'s
+  truncate or growth failed) or unsynced (the fdatasync after it failed); `Close`'s `w.sync()` is then the only
+  step that can make it exact, and the unregistration needs the WAL's `TailIdle` (`walTailsRes`'s
+  `WalTailIdle`). When that fdatasync fails, `Close` returns its error before the locks and the tail stays lent
+  in its window: the token cannot come back. Unprovable as stated.
+- **Evidence.** `walTailsRes_close`/`walTailsRes_closeL` (`CloseLaw.lean`, `UnregLent.lean`) take `TailIdle`;
+  `WAL.Close.spec` loses the token on `sync`'s error for the same reason.
+- **Proposed change.** Post `(walUnlockedTok ∗ osCallPerm ½) ∨ ⌜err ≠ nil⌝`. Its client, the tester's
+  `restartRead` (`examples/etcd/wal/wal.go:195-197`), fails the read on a non-nil `Close` and calls `Repair`
+  (which takes the token) only after a nil one, so it needs only the left arm on `nil`.
+- **Decision.** Adopted (the agent's: the spec is stated, unproved, not in the Link; no client proved over it);
+  made.

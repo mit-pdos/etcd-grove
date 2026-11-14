@@ -847,3 +847,48 @@ stored oracle.** No axiom, no `sorry`, nothing trusted changed, no Go changed. T
     `lg`/`dir` only.
 - **Next:** decide B2; make B1 (export + `walInvBody_unregPend`); `walReadFailedF`'s body and the ten exits;
   `Close.wp_proofFailed` (B3's branch too); then task 3 (`restartRead` over `Close.specFailed`).
+
+**Fifth session (branch `wal-u5e`, 2026-11-14): B2 option (a)'s callee specs; B1's laws (the lent tail
+unregistered); `Close.specFailed`'s post weakened.** No axiom, no `sorry`, nothing trusted changed, no Go changed.
+Tasks 1 (the specs; not the invariant step for a window, below) and 2 done; 3-5 not started.
+
+- **B2 (a), the callee specs** (ledger 2026-11-14, the `specWalTail`/`specWalPend` entry: (a) made; and the new
+  `ZeroToEnd.specAu` entry): `ZeroToEnd.specAu`'s error arm says the bytes from the offset hold their old values or
+  zeros (its four error exits); `ZeroToEnd.specWalTail`'s error arm returns **`walTailPE`** (`HandlePend.lean`: file,
+  fd, some offset, the lent token of kind `false`, halves of some `OsMeta` and bytes with **`TailMetaE o0`**: all
+  the bytes, unmapped, at least `o0` long, the length word at `o0` zero; the record); `Fdatasync.specWalPend`'s error
+  arm returns its `walTailP` unchanged. `ReadAll` drops both still (`⟨%h, -⟩`). Lemmas `lenWord_app_take`,
+  `lenWord_of_vals`.
+- **B1, made for any token kind** (`UnregLent.lean`): `walLentRes_unregLent` (the token's registry entry deleted
+  with the registration, the key out; `IdleZ0` from the registered entry's `TailZ0`), `walTailsRes_closeL`
+  (`walTailsRes_close` by the token), **`walInvBody_untailL`** (`walInvBody_untailR` by the token `walLentTokB dir γ
+  k p`, over `TailMetaR ∧ zf ≥ size ∧ every byte durable`, which `walInvBody_untail`'s `TailMetaS` was used for only
+  so far). `walInvBody_readReg`/**`walInv_readCommitReg` export** the registered tail's `zf ≥ size` and durable
+  bytes (from the idle tail's `TailSynced`), last in their pure posts (`ReadAll`'s pattern: `hsyn1`, unused yet).
+  So E1-E5's put-back is `walInvBody_untailL` (p = `true`) at `Close`'s first step, then `specOpening`'s flow (the
+  idle sync, `walInv_unpin`).
+- **`Close.specFailed`'s post** is now `(walUnlockedTok ∗ osCallPerm ½) ∨ ⌜err ≠ nil⌝` (ledger, new entry): after
+  E6/E7 the tail may be in a window that only `Close`'s fdatasync closes. The tester meets it (a non-nil `Close`
+  fails the read; `Repair` only after `nil`).
+- **What is left for `Close.wp_proofFailed`** (plan for the next session; the exits' forms):
+  - E1-E5 (pending, idle): as above. `walReadFailedF`'s pending disjunct keeps every file's stream, the
+    registration (`walTailsFrag {dir ↦ γt}`, `walPendTok`, the record's half), the exported facts of the last
+    segment, `walOutFrag`, `walNamesFrag none`, the claim's half, the pipeline, the locks, `dirFile`.
+  - E7 (`walTailP … k false (TailMetaZ ∧ zeros from o0)`): `Close`'s `w.sync()` (encoder nil) is
+    `Fdatasync.specWalPend` again; for the put-back its success must give `TailMetaS` (the synced bytes are
+    `bs.map durB`): a `specWalPendS` with `walTailW … TailMetaS` (the same proof), then `walInvBody_untail`.
+    On its error: `⌜err ≠ nil⌝`.
+  - E8-E10 (`walTailW … TailMeta`, the key): if `ReadAll` uses `specWalPendS`, the tail is `TailMetaS` at the exit
+    and is unregistered at `Close`'s first step (`walInvBody_untail`), then the idle flow; E10's `w.sync()`
+    flushes the empty encoder first (`encoder.flush` with `pend = []`: check it touches no file).
+  - **E6 (`walTailPE`) needs a new invariant step** (the only one): the fdatasync of a lent tail (kind `false`) in
+    any state, given the length word at `wr` zero. With F-Z (`walLentRes_lookup`'s `TailZeros ∨ TailPend`) it is
+    `walInvBody_syncP`'s success (`WinZero` from `WalAbsD.winZero` in a window, `TailLast.winZero` exact), then
+    `walInvBody_untailR`. With `TailPend` and no F-Z (a torn frame past `wr`; a truncate announced that did not
+    land leaves its values, so no `WinZero`): a new synced layout **`syncLayP`** (`syncLay` with `old` past `wr` the
+    synced values; `TailPend` from the length word), pure: its `WalAbsD` at the raised mark (as `walAbsD_syncW`;
+    `tailStop` by `decStep_zeroWord`), `TailBound` (`tailBound_sync`), `CrashOk` at the raised mark
+    (`crashOkA_tailPend` reads the whole history of a `TailPend` crash; generalize its output mark through
+    `crashTo_tailP`'s `m0`), `WalsOk`/`DirKeysOk` at `walSyncS`; then the token stays lent and the put-back is
+    `walInvBody_untailL` (p = `false`). Then an `Fdatasync.specWalLentE` over it (as `FdatasyncPend.lean`), and
+    `WAL.sync`'s idle-form proof over it for `Close`.
