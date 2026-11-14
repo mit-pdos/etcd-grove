@@ -152,6 +152,73 @@ theorem dirOk_closeWrite {st : TcpEnd} {d d' : TcpDir} {W R : List w8} {ok : Boo
     · exact dirOk_shut h
     · exact h
 
+/-- A read of `m` bytes returns at most `m`, and some unless `m = 0`. -/
+theorem readOutcome_got_le {st : TcpEnd} {d : TcpDir} {m : Nat} {r : ReadRes} {d' : TcpDir}
+    (h : ReadOutcome st d m r d') : r.got.length ≤ m ∧ (r = .bytes [] → m = 0) := by
+  have hav : ∀ d0, ReadAvail st d0 m r d' → r.got.length ≤ m ∧ (r = .bytes [] → m = 0) := by
+    intro d0 h
+    rcases h with ⟨k, hk1, hk, hkd, rfl, -⟩ | ⟨-, -, rfl, -⟩ | ⟨-, -, rfl, -⟩ | ⟨-, rfl, -⟩ |
+      ⟨-, rfl, -⟩
+    · refine ⟨by simp only [ReadRes.got, List.length_take]; omega, ?_⟩
+      intro h
+      have h' := congrArg (fun r => r.got.length) h
+      simp only [ReadRes.got, List.length_take, List.length_nil] at h'
+      omega
+    all_goals simp [ReadRes.got]
+  unfold ReadOutcome at h
+  split at h
+  · obtain ⟨rfl, -⟩ := h; simp [ReadRes.got]
+  split at h
+  · obtain ⟨rfl, -⟩ := h; simp [ReadRes.got]; assumption
+  rcases h with h | ⟨k, -, h⟩
+  · exact hav _ h
+  · exact hav _ h
+
+/-- A read of `n > 0` bytes that returns bytes returns at least one. -/
+theorem readOutcome_bytes_pos {st : TcpEnd} {d d' : TcpDir} {n : Nat} {bs : List w8}
+    (h : ReadOutcome st d n (.bytes bs) d') (hn : 0 < n) : 1 ≤ bs.length := by
+  have hav : ∀ (d0 : TcpDir), ReadAvail st d0 n (.bytes bs) d' → 1 ≤ bs.length := by
+    intro d0 hr
+    rcases hr with ⟨k, hk1, -, hkl, hr, -⟩ | ⟨-, -, hr, -⟩ | ⟨-, -, hr, -⟩ | ⟨-, hr, -⟩ |
+      ⟨-, hr, -⟩
+    · cases hr; simp only [List.length_take]; omega
+    all_goals cases hr
+  unfold ReadOutcome at h
+  split at h
+  · cases h.1
+  · split at h
+    · omega
+    · rcases h with h | ⟨k, -, h⟩
+      · exact hav d h
+      · exact hav _ h
+
+/-- A close leaves the end closed. -/
+theorem closeOutcome_closed {st : TcpEnd} {d : TcpDir} {ok : Bool} {st' : TcpEnd} {d' : TcpDir}
+    (h : CloseOutcome st d ok st' d') : st'.closed = true := by
+  unfold CloseOutcome at h
+  split at h
+  · rw [h.2.1]; assumption
+  · rw [h.1]
+
+/-- A close of a closed end fails and changes nothing. -/
+theorem closeOutcome_of_closed {st : TcpEnd} {d : TcpDir} {ok : Bool} {st' : TcpEnd}
+    {d' : TcpDir} (hc : st.closed = true) (h : CloseOutcome st d ok st' d') :
+    ok = false ∧ st' = st := by
+  simp only [CloseOutcome, hc, ↓reduceIte] at h
+  exact ⟨h.1, h.2.1⟩
+
+/-- A write on a closed end fails. -/
+theorem writeOutcome_of_closed {st : TcpEnd} {d : TcpDir} {bs : List w8} {k : Nat} {ok : Bool}
+    {d' : TcpDir} (hc : st.closed = true) (h : WriteOutcome st d bs k ok d') : ok = false := by
+  simp only [WriteOutcome, hc, Bool.true_or, ↓reduceIte] at h
+  exact h.2.1
+
+/-- A read on a closed end fails. -/
+theorem readOutcome_of_closed {st : TcpEnd} {d : TcpDir} {n : Nat} {r : ReadRes} {d' : TcpDir}
+    (hc : st.closed = true) (h : ReadOutcome st d n r d') : r = .err := by
+  simp only [ReadOutcome, hc, ↓reduceIte] at h
+  exact h.1
+
 end pure
 
 /-! ## The ghost state and the invariant -/
@@ -227,9 +294,11 @@ theorem sentLb_valid (γ : DirNames) (W1 W2 : List w8) :
   iintro H1 H2
   iapply mono_list_lb_valid γ.w W1 W2 $$ H1 H2
 
-/-- A new direction's protocol, from its fresh resource: nothing written or read. -/
-theorem dirInv_alloc (N : Namespace) (E : CoPset) (c : Nat) (s : Bool) :
-    tcpDir (G (Gg := Gg)) c s TcpDir.fresh ={E}=∗ ∃ γ, inv N (dirInv c s γ) ∗ sentAll γ [] ∗
+/-- A new direction's protocol state, from its fresh resource: the invariant's body (to put in a
+protocol's own invariant, as when a dialer's deposit must stay timeless) and the writer's and
+reader's halves, nothing written or read. -/
+theorem dirInv_body_alloc (c : Nat) (s : Bool) :
+    tcpDir (G (Gg := Gg)) c s TcpDir.fresh ==∗ ∃ γ, dirInv c s γ ∗ sentAll γ [] ∗
       rcvdAll γ [] := by
   letI := (G (Gg := Gg)).allG
   iintro Hd
@@ -240,16 +309,26 @@ theorem dirInv_alloc (N : Namespace) (E : CoPset) (c : Nat) (s : Bool) :
     exact (monoListAuthOwn_fractional γw []).fractional _ _).mp $$ Hw with ⟨Hw1, Hw2⟩
   imod ghostVar_alloc (GF := GF) ([] : List w8) with ⟨%γr, Hr⟩
   icases (ghostVar_split_half γr 1 ([] : List w8)).mp $$ Hr with ⟨Hr1, Hr2⟩
-  imod inv_alloc N E (dirInv c s ⟨γw, γr⟩) $$ [Hd Hw1 Hr1] with #Hinv
-  · inext
-    unfold dirInv
-    iexists TcpDir.fresh, [], []
-    iframe Hd Hw1 Hr1
-    ipureintro; exact dirOk_fresh
   imodintro
   iexists ⟨γw, γr⟩
-  unfold sentAll rcvdAll
-  iframe Hinv Hw2 Hr2
+  unfold dirInv sentAll rcvdAll
+  isplitl [Hd Hw1 Hr1]
+  · iexists TcpDir.fresh, [], []
+    iframe Hd Hw1 Hr1
+    ipureintro; exact dirOk_fresh
+  iframe Hw2 Hr2
+
+/-- A new direction's protocol, from its fresh resource: its invariant, nothing written or read. -/
+theorem dirInv_alloc (N : Namespace) (E : CoPset) (c : Nat) (s : Bool) :
+    tcpDir (G (Gg := Gg)) c s TcpDir.fresh ={E}=∗ ∃ γ, inv N (dirInv c s γ) ∗ sentAll γ [] ∗
+      rcvdAll γ [] := by
+  iintro Hd
+  imod dirInv_body_alloc c s $$ Hd with ⟨%γ, Hb, Hw, Hr⟩
+  imod inv_alloc N E (dirInv c s γ) $$ [Hb] with #Hinv
+  · inext; iexact Hb
+  imodintro
+  iexists γ
+  iframe Hinv Hw Hr
 
 theorem sentAll_app (γ : DirNames) (W W' x : List w8) :
     @monoListAuthOwn GF (G (Gg := Gg)).allG _ _ γ.w (1 : Qp).half W -∗ sentAll γ W' ==∗
@@ -421,6 +500,22 @@ theorem closeWrite_au (N : Namespace) (c : Nat) (s : Bool) (γ : DirNames) (st :
   imodintro
   iframe Hend
   ipureintro; exact ⟨d, d', Hc⟩
+
+/-- `close_au` for a caller that keeps nothing of the close (`Conn.Close.spec` with `Q := True`). -/
+theorem close_drop_au (N : Namespace) (c : Nat) (s : Bool) (γ : DirNames) (st : TcpEnd) :
+    ⊢ inv N (dirInv (Gg := Gg) c s γ) -∗ tcpEnd G c s st -∗
+      |={⊤,∅}=> ∃ st0 d, tcpEnd G c s st0 ∗ tcpDir G c s d ∗
+        ∀ ok st' d', ⌜CloseOutcome st0 d ok st' d'⌝ -∗ tcpEnd G c s st' -∗ tcpDir G c s d'
+          ={∅,⊤}=∗ (True : IProp GF) := by
+  iintro #Hinv Hend
+  imod close_au N c s γ st $$ Hinv Hend with ⟨%st0, %d, Hend, Hdir, Hk⟩
+  imodintro
+  iexists st0, d
+  iframe Hend Hdir
+  iintro %ok %st' %d' %Hc Hend Hdir
+  imod Hk $$ %ok %st' %d' %Hc Hend Hdir with -
+  imodintro
+  itrivial
 
 end ghost
 

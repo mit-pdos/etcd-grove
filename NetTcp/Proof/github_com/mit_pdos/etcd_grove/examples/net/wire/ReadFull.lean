@@ -9,6 +9,7 @@ module
 
 public import NetTcp.Spec.github_com.mit_pdos.etcd_grove.examples.net.wire.ReadFull
 public import NetTcp.Spec.net.Conn__Read
+public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.Stream
 
 @[expose] public section
 
@@ -43,28 +44,6 @@ theorem readRes_inj {bs bs' : List w8} {c c' : w64} (h : readRes bs c = readRes 
   unfold readRes at h
   obtain ⟨h1, h2⟩ := val.PairV.inj h
   exact ⟨go.intoVal_inj h1, go.intoVal_inj h2⟩
-
-/-- A read of `m` bytes returns at most `m`, and some unless `m = 0`. -/
-theorem readOutcome_got_le {st : TcpEnd} {d : TcpDir} {m : Nat} {r : ReadRes} {d' : TcpDir}
-    (h : ReadOutcome st d m r d') : r.got.length ≤ m ∧ (r = .bytes [] → m = 0) := by
-  have hav : ∀ d0, ReadAvail st d0 m r d' → r.got.length ≤ m ∧ (r = .bytes [] → m = 0) := by
-    intro d0 h
-    rcases h with ⟨k, hk1, hk, hkd, rfl, -⟩ | ⟨-, -, rfl, -⟩ | ⟨-, -, rfl, -⟩ | ⟨-, rfl, -⟩ |
-      ⟨-, rfl, -⟩
-    · refine ⟨by simp only [ReadRes.got, List.length_take]; omega, ?_⟩
-      intro h
-      have h' := congrArg (fun r => r.got.length) h
-      simp only [ReadRes.got, List.length_take, List.length_nil] at h'
-      omega
-    all_goals simp [ReadRes.got]
-  unfold ReadOutcome at h
-  split at h
-  · obtain ⟨rfl, -⟩ := h; simp [ReadRes.got]
-  split at h
-  · obtain ⟨rfl, -⟩ := h; simp [ReadRes.got]; assumption
-  rcases h with h | ⟨k, -, h⟩
-  · exact hav _ h
-  · exact hav _ h
 
 theorem ReadFull.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG)) :
     ReadFull.spec (GF := GF) (hG := hG) := by

@@ -124,6 +124,38 @@ theorem dial_au (N : Namespace) (a : GoString) (Φ R : Nat → IProp GF) [∀ cn
   imodintro
   iframe Hd HR
 
+/-- A dial of `a` whose dialer deposits `Φ cn`, made from both new ends (the dialer's too: so the
+deposit can tie the dialer's direction to the acceptor's, as a per-connection protocol's state
+does), and keeps `R cn`. -/
+theorem dial_both_au (N : Namespace) (a : GoString) (Φ R : Nat → IProp GF)
+    [∀ cn, Timeless (Φ cn)] :
+    ⊢ inv N (addrInv a Φ) -∗
+      (∀ cn, tcpConnAt G cn a -∗ tcpFresh G cn false -∗ tcpFresh G cn true ={⊤ \ ↑N}=∗
+        Φ cn ∗ R cn) -∗
+      |={⊤,∅}=> ∃ S, tcpPend G a S ∗
+        ∀ cn, ⌜cn ∉ S⌝ -∗ tcpPend G a (S ∪ {[cn]}) -∗ tcpConnAt G cn a -∗
+          tcpFresh G cn false -∗ tcpFresh G cn true ={∅,⊤}=∗ R cn := by
+  iintro #Hinv Hmk
+  iinv Hinv with Hi Hclose
+  unfold addrInv
+  icases Hi with ⟨%S, >Hpend, >Hdeps⟩
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  iexists S
+  iframe Hpend
+  iintro %cn %HcS Hpend #Hat Hd Ha
+  imod Hmask
+  imod Hmk $$ %cn Hat Hd Ha with ⟨HΦ, HR⟩
+  imod Hclose $$ [Hpend Hdeps HΦ] with -
+  · inext
+    iexists S ∪ {[cn]}
+    iframe Hpend
+    rw [setMap_insert]
+    iapply (BigSepM.bigSepM_insert (setMap_lookup_none HcS)).2
+    iframe Hdeps HΦ
+  imodintro
+  iexact HR
+
 /-- An accept at `a`: the acceptor takes the connection's deposit. -/
 theorem accept_au (N : Namespace) (a : GoString) (Φ : Nat → IProp GF) [∀ cn, Timeless (Φ cn)] :
     ⊢ inv N (addrInv a Φ) -∗ |={⊤,∅}=> ∃ S, tcpPend G a S ∗
