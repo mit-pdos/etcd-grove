@@ -3881,6 +3881,10 @@ advanced (frontier `sorry`s unchanged). Note: the stream-end fact `< 2^43` is go
   `walTailW`; the flush's needs `wp_tailWriteAtW`'s/`wp_tailWriteW`'s error arms to keep `osFd` -- they have it in
   context -- and `wal.tailWriterW`'s `B` to carry it); (3) arm 2: `renameWALPost`'s arm 2 must return `walLockLeft f
   …` (the retry's `w.Close()` closed `f`, or left it open when its sync failed).
+- *Found on `wal-int`* (`b6db856cce`, not this branch's): the WAL `Link` does not build: `fileutil`'s
+  `NewFileBufReader`, `preallocExtendAu`, `preallocExtendTruncAu`, `PreallocateAu`, `ZeroToEndAu` and the WAL's
+  `NewDecoder` fail (signature mismatches: `bufio.ownReader`'s, `truncSup`/`fallocSup`'s). `Create`, `WAL__Close`,
+  `WAL__CloseU` build.
 - *Not done*: `cleanupWAL` (blocked above), `fmt.Errorf("%w (after: %v)", …)` (`fmt.ErrorfErrs.spec` needs `errOk`
   of both errors; `Create`'s post needs only `err ≠ nil`), `Create`'s four `sorry` sites, task 3.
 
