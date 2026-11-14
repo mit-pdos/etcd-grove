@@ -170,7 +170,10 @@ every branch, `default` included); not yet reported upstream.
   requires at most `2 ^ 62` elements (its heapsort fallback's index arithmetic), a bound no Go
   program needs (a slice that long cannot exist in memory).
 - **Needed by.** etcd's `sortRangeResults` (`txn/range.go:125`), through every spec that hands it a
-  range's results.
+  range's results. Also `fileutil.ReadDir` (the WAL over `fsExt`, 2026-11-14, branch `wal-above`):
+  it sorts the names `Readdirnames` read, which nothing bounds (the model is exact only on a claim's
+  names); its proof takes `sort.StringsAny.spec` (`LinuxFs/Spec/sort/StringsAny.lean`), the unbounded
+  spec, as a hypothesis.
 - **Workaround here.** The size bound is stated once, locally, where a range's results are produced:
   `stateOk` in mvcc's `Range` contracts (`Spec/go_etcd_io/etcd/server/v3/storage/mvcc/ApiState.lean`),
   proved from the store's whole-history receipt; not a law of the store's state (the user,

@@ -11,7 +11,7 @@ Over the part's shared-mode directory specs (`os.Open.wp_dirS`, `File.Readdirnam
 of `N` is among them iff `j` has it, at most once) and the result is `fileutil.ReadDirOut names ext`
 (sorted, filtered by the extension); on an error an error `fmt.Errorf` may wrap (`fmtErrorOkOrNil`:
 `readWALNames` wraps it with `%w`; 2026-11-13, `wal-read2`). The option slice and its closures are
-given back. Proved in `LinuxFs/Proof/go_etcd_io/etcd/client/pkg/v3/fileutil/ReadDir.lean`.
+given back. `specAbsentS`: of a name holding nothing, an error. Proved in `LinuxFs/Proof/go_etcd_io/etcd/client/pkg/v3/fileutil/ReadDir.lean`.
 Lean-first.
 -/
 module
@@ -66,6 +66,21 @@ abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.spec : Prop :=
             (∀ b, N.Mem b → names.count b ≤ 1) ∧ fileutil.ReadDirOut names (fileutil.optsExt es) rs⌝ ∗
           r ↦* rs) ∨
        ⌜err ≠ interface.nil⌝ ∗ fmtErrorOkOrNil err) }}
+
+/-- `ReadDir(d/b)` of a name holding nothing (a fraction of a claim on names containing `b` of `d`'s
+directory `j`): an error (`os.Open`'s), nothing changed. `openAtIndex` reading a WAL directory that does
+not exist (`wal.Open` of a missing WAL). -/
+abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.specAbsentS : Prop :=
+  ∀ (d b : GoString) (sl : GoSlice) (gs : List GoFunc) (es : List GoString) (dqs : DFrac) (R : Roots)
+    (j : Ino) (dq : DFrac) (qc : Qp) (N : NameSet) (dqn : DFrac) (h : NamesH),
+  es.length = gs.length → NameOk b → N.Mem b → h.cur !! b = none →
+  {{ osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.fileutil ∗
+      osPathS (GF := GF) R d dq j ∗ osCallPerm (GF := GF) qc ∗ osNames (GF := GF) j N dqn h ∗
+      sl ↦*{dqs} gs ∗ [∗list] i ↦ g ∈ gs, fileutil.withExtFn (GF := GF) g (es.getD i "") }}
+    (App (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir)) (Val #(child d b))) (Val #sl))
+  {{ (r : GoSlice) (err : GoInterface), RET (PairV #r #err); osPathS R d dq j ∗ osCallPerm qc ∗
+      osNames j N dqn h ∗ sl ↦*{dqs} gs ∗ ⌜err ≠ interface.nil⌝ ∗ fmtErrorOkOrNil err }}
 
 end spec
 

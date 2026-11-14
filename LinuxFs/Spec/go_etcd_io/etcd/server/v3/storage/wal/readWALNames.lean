@@ -56,6 +56,20 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.readWALNames.spec : Prop :=
       ((∃ ws : List GoString, ⌜err = interface.nil ∧ WalNamesOut N h ws⌝ ∗ r ↦* ws) ∨
        ∃ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ ∗ errOk e) }}
 
+/-- `readWALNames(lg, d/b)` of a name holding nothing (a fraction of a claim on names containing `b`
+of `d`'s directory `j`): an error (`ReadDir.specAbsentS`'s, wrapped). -/
+abbrev go_etcd_io.etcd.server.v3.storage.wal.readWALNames.specAbsentS : Prop :=
+  ∀ (lg : Loc) (d b : GoString) (R : Roots) (j : Ino) (dq : DFrac) (qc : Qp) (N : NameSet)
+    (dqn : DFrac) (h : NamesH),
+  NameOk b → N.Mem b → h.cur !! b = none →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗
+      osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osPathS (GF := GF) R d dq j ∗
+      osCallPerm (GF := GF) qc ∗ osNames (GF := GF) j N dqn h }}
+    (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.readWALNames)) (Val #lg))
+      (Val #(child d b)))
+  {{ (r : GoSlice) (err : GoInterface), RET (PairV #r #err); osPathS R d dq j ∗ osCallPerm qc ∗
+      osNames j N dqn h ∗ ∃ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ ∗ errOk e }}
+
 end spec
 
 end EtcdGrove
