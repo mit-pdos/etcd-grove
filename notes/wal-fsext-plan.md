@@ -561,7 +561,7 @@ ties the pipeline's directory inode to the claim's and `walReadTie` records `gs 
 seventeenth session) `WalReadState` proved and deleted (`walInvBody_readState`: the pinned
 segments from `walReadTie`'s new name fact and the claim halves' agreement, no invariant law), the cuts positive
 (`WalAbsD.cutPos`, `WAL.cut.spec`'s `0 < |H|`: ledger) and the names' indices below `2^64` (`WalAbsD.nameBound`);
-`ReadAll.wp_proof` still `sorry`, its four-phase plan logged (`wal-readall18`; W3/W5 log, eighteenth session); its loop's pure invariant (`ReadAllLoop`: `RdLoop`, `rdLoop_ok`/`_stop`/`_fold_eof`, the indices `raIdx`, no arm panics: `readFiles_dec`), the look at the invariant before the loop (`walInv_readFiles`, no step), the arms' callees as hypotheses (`ReadAllCallees`: `UnmarshalEntLaw`, `WalHsOwn`, `CloneHsLaw`, `MustUnmarshalMessage.specWalSnap`, `GetTerm`s) and the proof's prologue through the first `Decode` are in (`wal-readall19`; W3/W5 log, nineteenth session).
+`ReadAll.wp_proof` still `sorry`, its four-phase plan logged (`wal-readall18`; W3/W5 log, eighteenth session); its loop's pure invariant (`ReadAllLoop`: `RdLoop`, `rdLoop_ok`/`_stop`/`_fold_eof`, the indices `raIdx`, no arm panics: `readFiles_dec`), the look at the invariant before the loop (`walInv_readFiles`, no step), the arms' callees as hypotheses (`ReadAllCallees`: `UnmarshalEntLaw`, `WalHsOwn`, `CloneHsLaw`, `MustUnmarshalMessage.specWalSnap`, `GetTerm`s) and the proof's prologue through the first `Decode` are in (`wal-readall19`; W3/W5 log, nineteenth session). The loop (phase 1) and three of its five arms (state, metadata, CRC with its mismatch exit) are proved; the entry, snapshot and default arms and the loop's exit (phases 3-4) `sorry`; the error exits' rule (`readAll_failWp`), the halves lent out of the decoder, the metadata records' uniformity (`RecMd`) and no I/O error `nil` (`WalDecEnvSupply`, `walReadH`; ledger) are in (`wal-readall20`; W3/W5 log, twentieth session).
 invariant conjunct is designed, not made (same log). Each registered WAL name has its own claim (`walNamesRes`, a framed conjunct; registration pending linked to the lock token, `walNamesFrag`), and the path law `walInv_dirPath` (a kept fraction of `osPathS R dir _ j` from `walDirKey`, with `walNamesFrag none`) is proved (`wal-path13`; W1 log, thirteenth session); `walAreaRes` holds every WAL name not split out (`walSplitFrag`), `Exist`/`openAtIndex`/`Create` read a registered name through its own claim, `openAtIndex` takes its path from `walInv_dirPath`, and `Create`'s post-commit split (`walInv_splitNew`) and registration (`walInv_register`) are proved, not yet used by `Create`'s body (`wal-path14`; W1 log, fourteenth session). Open: `renameWAL`'s path law, `Open`'s `WalDirPathLaw`, `WalsBounded`.
 `ix < 2^64`, and the finding that `WalDecEnvSupply` is unsatisfiable).
 invariant conjunct is designed, not made (same log). Each registered WAL name has its own claim (`walNamesRes`, a framed conjunct; registration pending linked to the lock token, `walNamesFrag`), and the path law `walInv_dirPath` (a kept fraction of `osPathS R dir _ j` from `walDirKey`, with `walNamesFrag none`) is proved (`wal-path13`; W1 log, thirteenth session); `walAreaRes` holds every WAL name not split out (`walSplitFrag`), `Exist`/`openAtIndex`/`Create` read a registered name through its own claim, `openAtIndex` takes its path from `walInv_dirPath`, and `Create`'s post-commit split (`walInv_splitNew`) and registration (`walInv_register`) are proved, not yet used by `Create`'s body (`wal-path14`; W1 log, fourteenth session). `WalsBounded` (metadata `< 2^41`, a framed conjunct; the segments' size read at a step, `wp_segs_size`) replaces `WalPinSized`, and `Open` takes its path from `walInv_dirPath` (`WalDirPathLaw` deleted); `renameWAL.spec`'s spine law restated with `notCrashed` and the update's result (ledger); the nil-receiver `File.Close` proved (`wal-path15`; W1 log, fifteenth session). `renameWAL` proved over `renameWALUnlock.spec` (a hypothesis, unprovable as stated: ledger 2026-11-14) and `errors.AsLinkError.spec`; `Create` through `Preallocate` (`wal-create14`; W4 log, sixteenth session). `Create`'s header phase proved through `syncDir(nm.tmp)` (the encoder, `saveCrc`, the metadata record, the initial snapshot frozen by `walSnapAt_lit` over the new premise `WalMarshalCreateOk Mr`, `SaveSnapshot.specPre`, every error exit), `os.Rename.specAbsentSrc` proved (`wal-create15`; W4 log, seventeenth session). Open: the fresh layout's `WalAbsD` (pure), the minting and the commit, `renameWAL`'s `Create`-specific restatement (blocked: the retry's `Open` needs a second client update, ledger 2026-11-14), the post-commit order and the handle (`TailZ`).
@@ -5227,3 +5227,46 @@ pure part and the pieces every phase needs are in (no `sorry` added; `lean-check
   `h.st = walLastHS H` from the fold's `hs` (`walReadAllOk`'s `σ.hs`).
 - Build: seeded from `agent-a073f6c88b2244128`'s `.lake` after `agent-a2a9b3c66efdebc6a`'s was older than `wal-int`
   (`GooseLang.Ext.Fs.Impl` stale); traces unshared (the coordinator's `find … -links +1` fix).
+
+
+**W3/W5 log, twentieth session (branch `wal-readall20`, 2026-11-14).** `ReadAll.wp_proof` still `sorry`, at three
+places: the entry arm, the snapshot and default arms (one `sorry` after the CRC arm), and the loop's exit (phases 3-4).
+- *Proved, inline in `WAL__ReadAll.lean`*: the look at the invariant before the first `Decode` (`ownDecoder_halves`
+  lends the segments' halves out of the live decoder for `walInv_readFiles` and takes them back; `readFiles_ok'`
+  gives `∀ r ∈ R0.recs, RecDec U r ∧ RecMd d0.metadata r`); the loop's invariant as logged (nineteenth session) with
+  `mdv ↦* st.md.getD []`, `st.md = none → mdv = nil`, `∀ dd, st.md = some dd → dd = d0.metadata`, `∃ k, fsD = fs.drop
+  k`; `wp_for`; at `err == nil` the stops and `GoFail` excluded (`stopErr_nil`: `io.EOF`/`io.ErrUnexpectedEOF` are not
+  `nil`, `decEnv_nonnil`) and the I/O arm (`¬ IoE nil`, below); the record arm through `GetType`; **the state arm**
+  (`hHs.unmarshal`), **the metadata arm** (both `metadata == nil` and `bytes.Equal`, over `raStep_md`), **the CRC arm**
+  (`LastCRC`; at `c' = 0` unchecked, else `Validate`; `GetCrc`, `UpdateCRC`; `rdCrc c' r = r.crc`) **with its mismatch
+  exit** (`HardState.Reset`, the error variable from `wal.walInit`, `wp_for_post`'s return, `readAll_failWp`, the
+  deferred `Unlock`, the error post). Each arm ends: `wp_for_post`, `Decode` from `(fsD.drop k, off', c'')`, the
+  invariant at `acc ++ [r]` by `rdLoop_next` (with `raIdx_other`/`rdCrc_other` for the arms that write neither index).
+  Gotchas: `rcases` on `GoInterface` gives `ok` first; `wp_if_destruct`'s first branch substitutes an equality
+  condition (`mdv = slice.nil`, `c' = W32 0`); `«rec»` must be renamed before `wp_for` (`iNamed` cannot parse it), and
+  the invariant's names avoid `match`; the record variable `r` shadows the area root, so the proof names the root
+  `rt`; a persistent `#` name in the invariant fails (`walEntsIn` not seen persistent there): plain `Hein`.
+- *New modules and lemmas*: `ReadAllExit.lean`: `walInvBody_failOpening`/`walInv_failOpening` (the ghost handle
+  `opening s` to `failed`, `walHandleP_set`), `walAu_same` (the update committed unchanged, at `⊤ \ walN`),
+  **`readAll_failWp`** (both, under `wp_notCrashed_acc`, before the code returning the error), `ownFbrs_halves`/
+  `ownDecoder_halves`, `decEnv_nonnil`, `decFiles_bs`, `decFiles_names`. `ReadAllLoop.lean`: `RecMd`,
+  `recsOfSegs_md`, `readFiles_md` (every metadata record carries the WAL's metadata, so `metadata != nil &&
+  !bytes.Equal` never fails and a nil `rec.Data` for empty metadata does not matter). `ReadAllInv.lean`:
+  `readFiles_ok'`. In the proof file: `stopErr_nil`, `rdLoop_mem`, `rdLoop_next`, `raIdx_other`, `rdCrc_other`,
+  `raStep_md`.
+- *Statement changes (ledger 2026-11-14, "no I/O error is `nil`")*: `WalDecEnvSupply`'s pure part `(∀ pe, IoE
+  (*PathError pe)) ∧ ¬ IoE nil`; `walReadH`'s `(decEnv IoE eof ueof ∗ ⌜¬ IoE nil⌝)`; `openAtIndex` repaired (two
+  `isplitr`s); `Open`, `WAL__CloseOpening` unchanged (checked). Without it `decPostB`'s I/O arm at `err == nil` runs
+  the loop's body on a dead decoder.
+- *Obligation*: `walReadFailedF`'s body drops the program's halves, the out-record and the pipeline at a failure
+  (affine); `Close` of a failed handle (W10) will need them back in `walInv` (put them into the body then).
+- *Next*: (1) the snapshot arm (`var snap`, `specWalSnap`, `GetIndex`/`GetTerm`, `w.snapi`/`w.enti` per `raIdx`,
+  `match`, `hHs.getCommit`, `ents[:0]` by `ownSlice_slice_with_cap`; its mismatch exit as the CRC's); the default arm
+  (types outside 1-5: excluded by a `RecMd`-like fact on `recsOfSegs`, or taken as an exit with `fmt.ErrorfErrs`);
+  (2) the entry arm (`ents[:0]`, the `offset > len(ents)` exit with `Errorf` and the `GetTerm`s, `append(ents[:offset],
+  e)` by `ownSlice_slice_with_cap` and `wp_slice_append`, `walEntsIn` of `readEnt`); (3) the exit (`errors.Is` through
+  `decAns`; the spec is write mode only, so no read-mode return), phases 3-4 as the nineteenth session lists. An error
+  exit costs ~20 lines (the CRC's is the template).
+- Build: seeded (the coordinator's `agent-a2a9b3c66efdebc6a` was stale: `GooseLang.Ext.Fs.Impl`) from
+  `agent-a0e31bc0a52d6aa5b` (`wal-repair20`): `Proof`/`Spec` hard-linked (not rebuilt here), `GooseLang`/`LinuxFs`
+  real copies (a real copy of `Proof` is 13 GB; the disk had 6 GB left).
