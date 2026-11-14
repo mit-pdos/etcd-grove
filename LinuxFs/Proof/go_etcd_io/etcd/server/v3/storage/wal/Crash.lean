@@ -115,12 +115,12 @@ crash adequacy theorem) and the WAL's crash token, the shared mode's invariant, 
 `crashRest` (the tree untaken) and W1 (`hQ`): a new generation of the WAL's names, the crash view,
 the new generation's start over the crashed tree, its lock and crash tokens, the crash boot's
 non-segment files whole (`bootFiles`: a WAL directory's files at its non-`.wal` names, a temporary
-directory's `.touch`; distinct by the crashed tree's unique naming `hu`, each from an old segment's
+directory's `.touch`; distinct by the crashed tree's unique naming, `crashRest_treeWf`, each from an old segment's
 start if it was one, else from `crashRest`), and `crashRest` back (those files taken, the tree not). -/
 theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsState → Fs.OsState → Prop)
     (hQ : ∀ st st', Q st st' → W1 C st st') (hPre : AbsDiskGpreS GF) (L L' : GooseLocalGS GF)
     (W : WalGS GF) (R : Roots) (jr : Ino) (r : GoString) (V' : Hist) (E : CoPset)
-    (hE : ↑walN ⊆ E) (hE' : ↑osShN ⊆ E) (hu : UniqNames V'.now) :
+    (hE : ↑walN ⊆ E) (hE' : ↑osShN ⊆ E) :
     ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ crashed (hC := L.goose_crashGS) -∗
       walCrashTok (W := W) -∗ osSharedInv (L := L) R -∗
       crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) [] false V' ={E}=∗
@@ -131,6 +131,9 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
         ([∗list] i ∈ bootFiles V'.now jr, trFile (hG := ⟨G, L'⟩) i False) ∗
         crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D false V' := by
   iintro #Hinv #Hcrd Htok #Hsh Hcr
+  -- the crashed tree is well formed (`crashRest_treeWf`): its names unique
+  imod crashRest_treeWf Q L L' [] false V' R E hE' $$ Hsh Hcr with ⟨%hwf, Hcr⟩
+  have hu : UniqNames V'.now := uniqNames_of_wf hwf
   -- open the old invariant and close it with the crash tokens
   unfold walInv
   imod inv_acc (E := E) hE $$ Hinv with ⟨Hi, Hclose⟩
