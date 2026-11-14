@@ -63,6 +63,18 @@ theorem save_off_toInt (a b : Nat) (h : a + b ≤ 0xffffffff000) :
     word
   omega
 
+/-- `walPc_bound`, keeping the receipt. -/
+theorem save_pc_bound (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (n : Nat) :
+    ⊢@{IProp GF} WalFs.walAreaOk walCodec Mr R jr r -∗ ⧗ (n + 1) -∗ ⧗ (n + 1) ∗ ⌜n + 2 < 2 ^ 63⌝ := by
+  iintro #Harea Hr
+  have H := persistent_entails_left (PROP := IProp GF)
+    (P := iprop(WalFs.walAreaOk walCodec Mr R jr r ∗ ⧗ (n + 1))) (Q := iprop(⌜n + 2 < 2 ^ 63⌝))
+    (by iintro ⟨#Ha, Hr⟩; iapply (walPc_bound walCodec Mr R jr r n) $$ Ha Hr)
+  ihave Hx := H $$ [Hr]
+  · iframe Harea Hr
+  icases Hx with ⟨⟨-, Hr⟩, %hb⟩
+  iframe Hr; ipureintro; exact hb
+
 /-- **`Save`'s success post** from a quiescent handle (`hc.Done`) and the sync's wand. -/
 theorem save_post (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (hs : HardStateM)
     (es : List EntryM) (Q : WalDur → IProp GF) (h hc : WalHS) (hD : hc.Done)
@@ -319,7 +331,89 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
   wp_apply (os.File.Seek.wp_cur f fd name (DFrac.own 1) _ hsk.1 ho1 ho2) $$ [$Hf $Hoff] as ⟨Hf, Hoff⟩
   ihave Hh := Hback $$ Hlocks Hls Hf Hoff
   (try wp_auto)
-  sorry
+  have hlenH : hc2.H.length = h.H.length + 1 := by rw [hf.H]; simp
+  rw [← hf.pc]
+  by_cases Hif : sint.Z (W64 ((hc2.o0 : Int) + (hc2.out.length : Int))) < sint.Z (W64 64000000)
+  · -- below the segment size: `sync` if `MustSync`
+    rw [decide_eq_true Hif]
+    wp_auto
+    wp_if_destruct
+    · -- no sync due
+      wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hlocked]
+      (try wp_auto)
+      iapply HΦ
+      ileft
+      isplitr
+      · ipureintro; rfl
+      iapply save_post P Mr w dir hs es Q h hc2 hf.done (by rw [hf.md]; exact hmd) $$ Hh Hr Hlb HQ
+      iintro %hm
+      exfalso
+      refine not_walMustSync _ _ _ ?_ hm
+      rw [← hst1]
+      intro hx
+      have hnot : ¬ (sl.len ≠ W64 0 ∨ hs.Vote' ≠ h1.st.Vote' ∨ hs.Term' ≠ h1.st.Term') :=
+        fun hy => absurd (hms.2 hy) (by decide)
+      apply hnot
+      rcases hx with hx | hx
+      · left
+        intro h0
+        apply hx
+        rw [← List.length_eq_zero_iff, ← hlen2, List.length_eq_zero_iff]
+        exact (save_slen_zero sl esL hlen.1 hlen.2).1 h0
+      · right; exact hx
+    · wp_apply (wp_sync R jr r w dir hc2 hf.rest) $$ [Hh] as %err Hres
+      · iframe Harea Hh
+      (try wp_auto)
+      wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hlocked]
+      (try wp_auto)
+      iapply HΦ
+      icases Hres with (⟨%herr, Hh, #Hsyn⟩ | %herr)
+      · ileft
+        isplitr
+        · ipureintro; exact herr
+        iapply save_post P Mr w dir hs es Q h { hc2 with out := hc2.out ++ hc2.pend, pend := [] }
+          ⟨hf.rest, hf.st⟩ (by simp only; rw [hf.md]; exact hmd) $$ Hh Hr Hlb HQ
+        iintro -
+        rw [hlenH]; iexact Hsyn
+      · iright
+        isplitr
+        · ipureintro; exact herr
+        icases HQ with ⟨%d, HQ, -⟩
+        iexists d; iexact HQ
+  · -- at the segment size: `cut`
+    rw [decide_eq_false Hif]
+    wp_take_receipt as Hr1
+    ihave Hr2 := (receipt_add hc2.pc 1).2 $$ [Hr Hr1]
+    · iframe
+    icases save_pc_bound Mr R jr r hc2.pc $$ Harea Hr2 with ⟨Hr2, %hpc⟩
+    have hcuts : ∀ b ∈ hc2.cuts, b < hc2.H.length := fun b hb => by
+      rw [hf.cuts] at hb; have := hcut b hb; omega
+    have hpw : hc2.cuts.Pairwise (· < ·) := by rw [hf.cuts]; exact hcp.2
+    have hcpos : walCutPos (hc2.H.map WalOpG.toM) hc2.H.length := by
+      rw [hf.H]; exact walCutPos_save h.H hs es hne
+    have hsz2 : hc2.md.length + (Mr.encState hc2.st).length < 2 ^ 42 := by
+      have := hS hc2.st; rw [hf.md]; omega
+    wp_apply (wp_cut R jr r w dir hc2 hf.rest hf.st hpc hcuts hpw hcpos hsz2) $$ [Hh] as %err Hres
+    · iframe Harea Hh
+    (try wp_auto)
+    wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hlocked]
+    (try wp_auto)
+    iapply HΦ
+    icases Hres with (⟨%herr, %h', Hh, %hh', #Hsyn⟩ | %herr)
+    · obtain ⟨hH', hmd', -, hrest', hst', -, -, hpc'⟩ := hh'
+      ileft
+      isplitr
+      · ipureintro; exact herr
+      rw [← hpc'] at *
+      iapply save_post P Mr w dir hs es Q h h' ⟨hrest', by rw [hst', hH']; exact hf.st⟩
+        (by rw [hmd', hf.md]; exact hmd) $$ Hh Hr2 Hlb HQ
+      iintro -
+      rw [hlenH]; iexact Hsyn
+    · iright
+      isplitr
+      · ipureintro; exact herr
+      icases HQ with ⟨%d, HQ, -⟩
+      iexists d; iexact HQ
 
 end proof
 
