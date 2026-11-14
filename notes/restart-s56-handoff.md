@@ -68,7 +68,27 @@ deleted) and S6 (`NewServer` over both boots), against the restart/WAL interface
   replicate) and mode +3 (its auth-off literals); baselines raised and specR classified `lit-mode
   unmoved` (commit 77f542f56c; `questions.md`, a form for 81's checkpoint review).
 
-### B2 map (not started; for the next agent)
+### B2: decided by 81 (2026-11-14): the fallback, a separate `NewServer.wp_proofR`
+
+81 confirmed the gate baselines and decided D1's fallback (`notes/decisions.md`, "Restart S6 B2"):
+`NewServer.wp_proofR : NewServer.specR` in its own file `E/NewServerR.lean` (never in `NewServer.lean`,
+whose compile hit 80 GB; check peak memory, keep the 64G cap, 2^28 counts symbolic, no bare `iframe`
+over replicate lists), reusing `raftNode_of_RestartNode`, `wal.restartOk_start`, `boot_storageR`.
+Unlinked until done; land proof-only checkpoints via `land.sh` only when no `sorry` sits under a linked
+result **and** `tcb-report --check` matches (a `sorry` anywhere in the repo changes the baseline, so do
+not land a file with a `sorry`).
+- **Skeleton, commit below (not landed: it has a `sorry`)**: `E/NewServerR.lean`, `NewServer.wp_proofR`
+  with `wp_proofG`'s callee hypotheses at `authSrvTP false`/`uberKitM false`, the four compaction-only
+  ones dropped (`cmp = false`); body `sorry`. Imports `NewServer` (the public olean: proofs not loaded)
+  and `BuiltRestart`. Builds (1.7s). Next: `intro` `specR`'s binders, `wp_start`, `iNamed Hpre`, then
+  follow `wp_proofG` from line 418 with the restart's boot steps (B2 map below), checking with
+  `LAKE_OPTS=--packages=/shared/tmp/manifest-ddc.json etc/lean-check.py --fast --split
+  Proof/go_etcd_io/etcd/server/v3/etcdserver/NewServerR.lean` under the cap; measure the full compile's
+  peak (`etc/timed-build.py` + `etc/build-report.py`).
+- **Follow-up (proof cleanup, after `wp_proofR` is done):** factor the shared tail of `wp_proofG` and
+  `wp_proofR` into lemmas.
+
+### B2 map (for the next agent)
 
 `NewServer.wp_proofG` (`E/NewServer.lean:277`, ~2700 lines) uses the first-start boot rows in a few
 places only (line numbers at 77f542f56c):
