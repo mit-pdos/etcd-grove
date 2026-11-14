@@ -6599,4 +6599,4 @@ loop, not at the directory sync.
   hn.next`, its commit unused) and `syncDir`, error exits by `readAll_failWpQ`; on success `walInv_namedBy`,
   `walInv_tailH`; (3) `match`, `!match` to the end through `readAll_failWpQ`; (4) phase 4 (`readAll_success` at `d1`).
 - Build: seeded from `agent-a0d5232984f8fe5f2`; `lean-check -a` of `ReadAllNamed`, `ReadAllCommit`, `ReadAllSynced`;
-  `lake build` of `WAL__ReadAll` before the commit move (after it: see the branch's last commit).
+  `lake build` of `WAL__ReadAll` with the commit move, after merging `wal-int` with `wal-tc15` (unchanged hypotheses still build).
