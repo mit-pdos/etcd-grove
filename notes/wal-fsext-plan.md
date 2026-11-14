@@ -510,7 +510,7 @@ module; the bboltfs/crashlog/walfs examples and the generated translations not l
 - `os/`: `File.Truncate.wp_proofAu` (`File__TruncateAu.lean`), `File.WriteAt.wp_proof_long` (`WriteLong.lean`,
   past 1 GiB).
 Not yet stated (no `sorry`, no statement): `Close`, `ReleaseLockTo`, `Repair`, `ValidSnapshotEntries`, `Exist`
-(§4.2's W7-W12), the WAL-level resize updates (I3b's open items). `Create`'s ghost steps (drop, mint, unmint, merges) are proved (`wal-create10`; W4 log, tenth session). The record of what is out of the parked state and the changes in flight only on segments out (W3/W5's gaps A and B) are in the invariant, with the pin's and the put-back's moves (`Parked.lean`, `wal-read9`; W1 log, tenth session).
+(§4.2's W7-W12), the WAL-level resize updates (I3b's open items). `Create`'s ghost steps (drop, mint, unmint, merges) are proved (`wal-create10`; W4 log, tenth session). The record of what is out of the parked state and the changes in flight only on segments out (W3/W5's gaps A and B) are in the invariant, with the pin's and the put-back's moves (`Parked.lean`, `wal-read9`; W1 log, tenth session). A change in flight only on a registered tail (`TailsOnly`), the tails' authority halved with the lock holder (`walTailsFrag`), and `openAtIndex`'s pin (`walInvBody_pin`, `OpenPinTake.lean`) are proved (`wal-read10`; W1 log, eleventh session; W3/W5 log, tenth session).
 
 ## W1 implementation log (branch `wal-inv`, 2026-11-13)
 
@@ -921,6 +921,56 @@ coordinator adopted both logged proposals).** Every module of the WAL directory 
   gains `∀ i, F !! i ≠ none → ∃ dir γ, T !! dir = some γ ∧ <dir's last segment>.ino = i` (it has `T`, `Ls`, `F`):
   kept by `walInvBody_tail` (the tail stays last), `cut` (`delete g.ino`, the old tail idle), `Create`.
   The non-tail segments have the same need; the same clause gives them (a change only on a last segment).
+
+**Eleventh session (branch `wal-read10`, 2026-11-14; the coordinator's decision of the tenth session's "Open"):
+a change in flight only on a registered tail.** Every importer of `Ghost.lean` builds (93 modules); no `sorry` added.
+- *The decided clause* (`Inv.lean`): **`TailsOnly T Ls F := ∀ i, F !! i ≠ none → ∃ dir γ lay g, T !! dir = some γ ∧
+  Ls !! dir = some lay ∧ lay.segs.getLast? = some g ∧ g.ino = i`**, `walTailsRes`'s new **second** conjunct:
+  `∃ T, walTailsAuth T ∗ ⌜TailsOnly T Ls F⌝ ∗ [∗map] …`. Lemmas: `TailsOnly.none_of_empty`, `.mono_F`, `.insert` (a
+  registered WAL's layout replaced: `hF : ∀ i, F' !! i ≠ none → i = g.ino ∨ (F !! i ≠ none ∧ i ≠ g0.ino)`, `g0`/`g`
+  the old/new last segments), `.insert_new` (`Create`: `Ls !! dir = none`, `F' ⊆ F`).
+- **Deviation (needed to use it): the tails' authority is halved with the lock holder.** The clause alone does not
+  let a holder with no tail record conclude `F !! tail = none`: it would need `T !! dir = none`, which no resource
+  of the holder shows (the key `dir ↪[γt] γ` is exclusive, its absence is not ownable). So **`walTailsAuth T`** is
+  now half of `γt`'s authority (`(1 : Qp).half`), and **`walTailsFrag T`** (new, `Ghost.lean`) the other half: the
+  lock token's, empty (**`walUnlockedTok` gains a fifth conjunct `walTailsFrag ∅`**), or the lock holder's, with
+  the tails it registered. `walTails_agree`; **`walTailsRes_none`** (`Inv.lean`): `walTailsRes s Ls F -∗
+  walTailsFrag ∅ -∗ ⌜∀ i, F !! i = none⌝ ∗ …` (so a holder with the empty half puts back any segment). The
+  statement of `walGhost_init` is unchanged (its `walTailsAuth ∅` is the half; the other is in `walUnlockedTok`).
+- **Statement changes** (callers in this branch repaired):
+  - `walUnlockedTok_lock` gives `walTailsFrag ∅` (fifth); `walLockedTok_unlock` takes it (after `walOutFrag ∅`);
+    `walParked_lock … ==∗ walParked … ∗ walLockedTok ∗ walOutFrag ∅ ∗ walTailsFrag ∅ ∗ ⌜∀ i, F !! i = none⌝`;
+    `walParked_unlock` takes `walTailsFrag ∅` after `walOutFrag ∅`.
+  - `walTailsRes_cut`'s continuation premise gains a fifth conjunct `∀ i, F' !! i ≠ none → i = g.ino ∨ (F !! i ≠
+    none ∧ i ≠ g0.ino)` (`CutAu`: from `F' = delete g.ino F` and the old tail idle; `TailSync`'s two: `F' = F`,
+    `g.ino = g0.ino`: `fun i hi => if e : i = g0.ino then Or.inl e else Or.inr ⟨hi, e⟩`).
+  - `walTailsRes_create` takes `hLd : Ls !! dir = none` and `hF : ∀ i, F' !! i ≠ none → F !! i ≠ none`.
+  - `walCreateQ`'s commit (`CreateAu.lean`) holds **`walTailsFrag ∅`** after `walOutFrag (WalOut.empty.create …)`.
+- **Obligations for the concurrent units**:
+  - *`Create` (`wal-create*`)*: `walCreateQ`'s commit now holds `walTailsFrag ∅` (pattern `⟨HQ, Hm, Hb, HLk, Ho,
+    Htf, Hkey, Hp⟩`); `Create`'s post must keep it in the new handle (registering its tail turns it into
+    `walTailsFrag {dir ↦ γ}`, below). A proof destructuring `walUnlockedTok` gains a fifth name.
+  - *registering a tail* (`ReadAll`, `Create`; no lemma yet): `walTailsAuth T ∗ walTailsFrag T` combine to the
+    whole authority (`ghostMapAuth_halves`), `ghost_map_insert` gives the key, split back; `TailsOnly` is kept
+    with `T` larger. The handle's body (`walOpenWF`) then holds `walTailsFrag {dir ↦ γ}` beside `walOutFrag`.
+    `Close` (W10) deletes the key the same way (the record's `F !! tail = none` from the tail record's idle half:
+    `TailsOnly` with `T` back to `∅` needs every change in flight on that tail finished) and unlocks with
+    `walTailsFrag ∅`.
+  - *a proof destructuring `walTailsRes`*: `⟨%T, HTa, %HTo, HTm⟩`; rebuilding: `iexists T; iframe HTa; isplitr;
+    · ipureintro; exact HTo…`.
+- **Gap C, found (for the put-back; the invariant's owner)**: the error arms (and `Close`) put the WAL directory's
+  claim back at a later step, so they must find it among the invariant's claims `cl'` then, once
+  (`walParked_putClaim`'s `l1 ++ c :: l2`, no other of its key). `DirKeysOk` says it only of a WAL with a key
+  (`walDirKey`), and the WALs of a new generation have none (`K = ∅` at `walInv_alloc`, the keys made by
+  `Create`'s commit and `ReadAll`). Two ways: (a) by fractions, no invariant change — the holder's half and the
+  invariant's halves of `cl'` (`osClaims`): a second entry of the same key would be a third half
+  (`osNames`' validity), and an entry of that key agrees on the history; if no entry has the key, the half is
+  dropped (the record entry goes); (b) the pin makes the key (`walDirKey_insert`), which needs `DirKeysOk`'s
+  facts (`ClaimOnce`, no other claim of `j` with a `.wal` name) for a keyless WAL: an invariant clause over every
+  present WAL, established by `walInv_alloc` (its claims are the boot program's, distinct). `ReadAll` needs (b)'s
+  facts anyway to make its key. Recommended: (b). The segments' put-back has the same shape at a later `Ls'`
+  (`walParked_putSeg`'s `g ∈ segsAll Ls'`): by inode and length (`segResP` depends on nothing else), the sizes
+  from `WalAbsD.metas` at both ends and the `OsMeta` agreement, or dropped if no segment has the inode.
 
 ## 9. The trusted-model drafts (2026-11-13, branch `wal-models`; pending the user's review [user])
 
@@ -3094,3 +3144,37 @@ claim, `WalDirClaimOf` from `WalsOk`/`DirKeysOk`), in write mode `walParked_take
 `_putSeg`/`_putClaim`/`_putTmps`, then `walParked_unlock`; the put-back of the WAL's **last** segment needs
 `F !! ino = none`, open (W1 log, tenth session, "Open": a `walTailsRes` clause, a change only on a registered
 tail). Task 3 (the pin, `openAtIndex`, `OpenForRead`, `Open`) not started.
+
+**Tenth session (branch `wal-read10`, 2026-11-14).**
+- *The last segment's put-back* (the ninth session's open item): closed in the invariant (W1 log, eleventh session:
+  `TailsOnly`, and the tails' authority halved with the lock holder, `walTailsFrag`): a holder with `walTailsFrag ∅`
+  gets `∀ i, F !! i = none` from `walTailsRes_none`, so `walParked_putSeg`'s `hF` holds for every segment it took.
+- *The pin, proved* (`OpenPinTake.lean`, no `sorry`): **`walInvBody_pin … (hd : s.wal !! dir = some d) (k : Nat)
+  (write : Bool) : ⊢ walInvBody s -∗ walUnlockedTok ==∗ ∃ lay X hj, ⌜InArea s.area dir lay.nm ∧ lay.jr = jr ∧
+  (∀ b ∈ X, walNameP b = false) ∧ ClaimCoh hj lay.j (.except X) ∧ WalAbsD C Mr d lay hj.cur⌝ ∗ walInvBody s ∗
+  walLockedTok ∗ walTailsFrag ∅ ∗ walOutFrag ⟨(lay.segs.drop k).map ino, [(lay.j, .except X)], if write then
+  [dir] else []⟩ ∗ ([∗list] g ∈ lay.segs.drop k, segRes g) ∗ osNames lay.j (.except X) ½ hj ∗ (if write then
+  walTmpsRes lay.j else emp)`** (the program's halves exact: `segsRes_exact`, by agreement with the invariant's,
+  nothing in flight once the lock is taken). Helpers: `bigSepL_take_drop`, `segRes_exact`, `segResF_empty`,
+  `walOutFrag_eq'`. `k` is the caller's (`walSearch` of the layout's names, which `selectWALFiles` computes).
+- *What the pin's caller still needs*: (1) the update's commit raises `unl` in write mode, so `walInvBody s` must
+  become `walInvBody s'` with `dir`'s `unl` raised (a `walInvBody_unl`, as `walInvBody_named`: `WalsOk`, `DirKeysOk`,
+  `WalsNamed`, `AbsentNone` do not read `unl`; to check); (2) the put-back lemma for the error arms at a later state
+  (W1 log, eleventh session, gap C: the claim's survival; the segments by inode and length); (3) the handle's body
+  (`walReadH`) to hold what the pin returns (`walOutFrag`, `walTailsFrag ∅`, the exact halves are already
+  `walReadTie`'s `walFileS`), a `ReadDefs` change (sealed); (4) the absent case (`s.wal !! dir = none`): no pin, the
+  token kept, `selectWALFiles.specAbsent`.
+- *Callees checked*: `WAL.tail`'s spec (`WAL__tail.lean`) is over the `locks` field and the slice only, so it holds
+  over `walReadH`'s `locks ↦* lfs` (nonempty: `openWALFiles` opens at least the selected file); `*LockedFile`'s
+  promoted `Name` is `os.File.Name` after `iStructNamed` of `fileutil.lockedFile` and `wp_method_call`, as `WAL.cut`'s
+  proof does (no new spec).
+- *The segments' put-back at a later state, proved* (`ParkedPut.lean`): **`walParked_putSegIno Ls cl F o g hnd (hF :
+  F !! g.ino = none) (hlen : ∀ g' ∈ segsAll Ls, g'.ino = g.ino → g'.bs.length = g.bs.length)`**: onto the segment of
+  `Ls` with `g`'s inode (`segResP_congr`: the program's halves depend only on the inode and length), or dropped
+  if none has it (`segsP_forget`). `hlen` at the error arm: the invariant's `segRes g'` (nothing in flight,
+  `walTailsRes_none`) and the held `segRes g` agree on the `OsMeta`, and `WalAbsD.metas` gives `size = |bs|` at both
+  ends (the pin's `WalAbsD` for `g`). The claim's put-back waits for gap C (W1 log, eleventh session).
+- *Not done*: the body-level put-back (`walInvBody_unpin`: gap C), `walInvBody_unl` (the commit's `unl` raise),
+  `openAtIndex`, `OpenForRead`, `Open` (the proofs; `Open`'s leftover `N.tmp` meeting `trFile`'s `cut = none ∧ lo ≤
+  size` and `walPipeH` at `pc = 0` are for its pipeline step). The `ZeroToEnd` instance on the crash-tracked tail
+  (`wal-tc2`) stays a hypothesis of `ReadAll`.
