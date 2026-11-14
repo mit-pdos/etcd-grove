@@ -553,6 +553,37 @@ theorem NewServer.wp_proofR
   icases (ownToks_add 4 1 d.γB.wb).1 $$ Hwb with ⟨Hwl, Hwb⟩
   -- `lease.NewLessor`
   rw [Hbe0]
+  -- (restart) `lease.NewLessor` over the image's `lease` bucket: its records (as `applySnapshot`'s
+  -- `Recover`, `imageLeasesAt_recs`), the requested TTLs the applied table's (`tableReq`)
+  have HbkR : bkRestAtL ρ.rd.kv ρ.rd.raft.raft.boot (ρ.rd.raft.pre ++ A) D := by
+    rw [HρRaft, List.nil_append, restartNames_bkRestAtL HrN]; exact Himg.2.2
+  obtain ⟨recs, hrecs, hperm, -, hge⟩ := imageLeasesAt_recs (imageLeasesAt_of_bkRestAtL d HbkR)
+  have hreq := tableReq_le_recs (appliedTable ρ.rd A) recs (appliedTable_nodup ρ.rd A) hperm hge
+  imod restart_noGrant ρ.rd A (by rw [HρRaft]) $$ HkvI Hsrl [] with %Hng
+  · rw [HρRaft]; iexact HA0
+  have hGA : ρ.rd.kv.lg = true ∨ recs.map (·.1) = [] := by
+    cases hlg : ρ.rd.kv.lg
+    · right; exact List.Perm.eq_nil (by rw [← Hng hlg]; exact hperm)
+    · left; rfl
+  wp_apply (h24 cfg.Logger' _ _ d (mvcc.api.mvccW d.gx) (batchLockInv γA (metaTM d.γB d.P)) (1 : Qp).half
+      (srvGrantGuard ρ.rd.kv.lg false) (fun _ => True) (backend.rbData d.P D) (decide (m = .mono))
+      recs (tableReq (appliedTable ρ.rd A)) (appliedTable ρ.rd A).ids trivial HlP hrecs hreq
+      hperm.symm)
+    $$ [Hopen Hwl Hrbo]
+    as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlmode, #Hlcfg, -, #Hlexp, #Hlgd, Hlrd, Hlown, HlEv,
+      Hlrvk, Hro, HleOn, #Hlbe, Hlstop, #HlReq, ⟨%ls, %Hls, Hl0⟩, #Hllk'⟩
+  · iframe HB Hclok
+    unfold backend.wbTok
+    iunfold backend.rbOwn at Hrbo
+    iframe Hopen Hwl Hrbo
+    isplitr; · iright; iexact Hzlg
+    isplitr; · ipureintro; simp
+    imodintro
+    rcases hGA with hg | hn
+    · iapply (BigSepL.bigSepL_intro (P := iprop(emp))
+        (fun {_ _} _ => by unfold srvGrantGuard; exact pure_intro ⟨hg, rfl⟩))
+      iempintro
+    · rw [hn]; iapply BigSepL.bigSepL_nil.2; itrivial
   sorry
 
 end proof

@@ -57,7 +57,7 @@ Files: `E/NewServerR.lean` (the skeleton restored from `c081768592`, statement u
 (`etc/lean-check.py` under the 64G cap; the daemon stays in the scope). Each check of the current
 prefix: ~35s. The lean worker sat at 3 GB after the store section.
 
-**Done, checked (0 errors up to the `sorry`, `NewServerR.lean:556`):** `intro` (binder names as in
+**Done, checked (0 errors up to the `sorry`, `NewServerR.lean:587`):** `intro` (binder names as in
 `wp_proofG`, plus `ρo S σ i A D mb M`, `HrN` (restartNames), `Hfnc Hdwd`; no `ctxs γd Hcon Hauthcfg
 Hbcf`), `wp_start`, the image (`icases` of `srvDiskImageAt`: `Hvac HrS %Himr #HA %Himp ⟨%u,#Hmvi⟩
 %Hbl #Hconf %Hcsm Hwsi Hrauth Hfiles Hpath Hsdimg`; `Himg : imageRestAt ρo.rd.kv γ.boot i A D`,
@@ -70,10 +70,21 @@ back `Hwsi`, the image's WAL slot), G's lines 486-514 verbatim, `raftNode_of_Res
 `peersCtx pv []` from `peersNil`), its post as G's less `#Hsfresh`; G's lines 547-683 (perl
 `on`/`cmp` → `false`); `boot_storageR` at `kvModel ρ.rd.kv A`, `crevOf ρ.rd.kv A`, `u` (from the
 image's `mvccImage` through `restartNames_kvModel`/`restartNames_crevOf`); G's 699-721 (to
-`rw [Hbe0]`).
+`rw [Hbe0]`); **the lessor call** (`h24` at `recs` from `imageLeasesAt_recs`, `reqOf := tableReq
+(appliedTable ρ.rd A)` (`tableReq_le_recs`), `Lr := (appliedTable ρ.rd A).ids`; the guard premise from
+`restart_noGrant`, **sorried**), its post named as G's plus `#HlReq` (the requested TTLs) and
+`⟨%ls, %Hls, Hl0⟩` (`lessorAt γl 0 (recMap (recs.zip ls), ∅, recTTLs cfg.MinLeaseTTL' recs)`, for
+specR's `srvInvAt`). `Hrbo` is now `rbOwnIn … ((rbData d.P D).insert "lease" ((rbData d.P D).lookup
+"lease").getD ∅)`.
+
+**The goal at the `sorry`:** right after `NewLessor` (G line 771, `rw [List.map_nil]` and the
+`Hrbo` rewrite by `hLe`: both gone at a restart).
 
 **Next, in order:**
-1. The lessor (G 722-770, `h24`): `NewLessor.spec` at the image's `lease` bucket, as
+1. (Done but for these:) G 771-799 after the lessor: no `rw [List.map_nil]`/`hLe`; the live set's
+   ghost variable `γlt` at `(appliedTable ρ.rd A).ids` (not `[]`); **no `lessorAt_empty`** (`Hl0` is
+   the history's first snapshot; `Hlrdinv` as G); `Hlnil` as G at `false`. Notes on the call, kept:
+   `NewLessor.spec` at the image's `lease` bucket, as
    `EtcdServer__applySnapshot.lean:119-160` does for `Recover`: `bkRestAtL` (`Himg.2.2`, at
    `ρo.rd.kv`: move to `ρ.rd` by `HrN`'s `kvCongr`, c0/ch0/log0) → `imageLeasesAt_of_bkRestAtL d` →
    `imageLeasesAt_recs` gives `recs`, the perm to `(appliedTable ρ.rd A).ids` (= `Lr`), and the TTL
@@ -96,11 +107,13 @@ image's `mvccImage` through `restartNames_kvModel`/`restartNames_crevOf`); G's 6
    (`/shared/tmp/restart-s56/p3-rows.md`); `Hwpend`/`rnSnapTermAbove` from `Hrows`
    (`srvRestartRows`, at `γrn`, needs `Hrnames`); no `leaseTTLRowR`.
 3. Open sub-facts (sorried or to state in `NewServerRFacts.lean`): `restart_peerURLs` (P5, ~250
-   lines; also gives `srvApRes`'s members at `A`), `u = false` (if the store's later uses need it),
+   lines; also gives `srvApRes`'s members at `A`), `restart_noGrant` (no grant in a non-granting
+   cluster, from the KV invariant), `u = false` (if the store's later uses need it),
    the read names at `g₀ = i`, the authStoreKit widening (or a direct `Or.inr`).
 
 Forms so far (questions.md): the instance `bootstrapRestartContract_persistent` (local, in
-`NewServerR.lean`: `iNamed` needs it), `restartNames_crevOf` (proved), the file `NewServerRFacts.lean`.
+`NewServerR.lean`: `iNamed` needs it), `restartNames_crevOf`, `restartNames_bkRestAtL`,
+`tableReq_le_recs` (proved), the file `NewServerRFacts.lean`.
 
 ## B2 contract rows done (2026-11-14, the B2 agent): next agent starts here (write `wp_proofR`)
 
