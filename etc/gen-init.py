@@ -688,6 +688,15 @@ says returns.''',
 # translated `&pb.HardState{}`; (W4c U4, 2026-11-14) in its fact (`rootInit`, `PkgInit.lean`), as the
 # main tree's (`Proof/go_etcd_io/raft/v3/Init.lean`'s steps): its cells (all `nil`) frozen, its hidden
 # fields in the `protobuf` invariant
+# (W4c U2, 2026-11-14) the part's `examples/lib/durable`: `mu`, a mutex guarding nothing
+LFS_SPECIAL['github_com.mit_pdos.etcd_grove.examples.lib.durable'] = dict(
+    doc='''Its fact (`durable.durableInit`, `PkgInit.lean`): `mu` is a mutex guarding nothing (the calls are
+serialized in the proofs by the file's handle). Its initializer allocates `mu` and initializes its
+imports.''',
+    alloc_types={'mu': '_root_.Perennial.sync.Mutex'},
+    finish=['imod sync.init_Mutex iprop(True) ⊤ (globalAddr mu) $$ Hmu [] with #HM', '· inext; itrivial'] +
+           FIN_PRE[:6],
+)
 LFS_SPECIAL['io.fs'] = LFS_IOFS
 LFS_SPECIAL['os'] = LFS_OS
 LFS_SPECIAL['go_etcd_io.raft.v3'] = dict(
@@ -3127,7 +3136,10 @@ LFS_PKGS = ['os', 'syscall', 'io.fs', 'internal.poll', 'internal.syscall.unix', 
             'google_golang_org.protobuf.internal.impl', 'google_golang_org.protobuf.runtime.protoimpl',
             'go_etcd_io.etcd.server.v3.storage.wal.walpb', 'go_etcd_io.raft.v3', 'go_uber_org.zap.zapcore',
             'go_uber_org.zap', 'github_com.Masterminds.semver.v3', 'github_com.prometheus.client_golang.prometheus',
-            'go_etcd_io.etcd.pkg.v3.pbutil', 'go_etcd_io.etcd.server.v3.storage.wal']
+            'go_etcd_io.etcd.pkg.v3.pbutil', 'go_etcd_io.etcd.server.v3.storage.wal',
+            # (W4c U2, 2026-11-14) `examples/lib/durable` over the part's `os` (its fact: `mu` a
+            # mutex guarding nothing, `PkgInit.lean`)
+            'github_com.mit_pdos.etcd_grove.examples.lib.durable']
 # Packages of `LFS_PKGS` translated in the main tree only (no `os` below them): the part's `Init.lean`
 # is generated from the main translation, over the part's instance.
 LFS_MAIN_CODE = {'go_etcd_io.etcd.client.pkg.v3.verify', 'hash', 'google_golang_org.protobuf.internal.pragma',

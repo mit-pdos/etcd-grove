@@ -90,8 +90,10 @@ structure DCand where
   m : OsMeta
   v : GoString
 
-/-- A candidate's `OsMeta` says a crash leaves it at its size. -/
-def DCand.Ok (c : DCand) : Prop := c.m.size = c.v.length ∧ c.m.lo = c.m.size ∧ c.m.hi = c.m.size
+/-- A candidate's `OsMeta` says a crash leaves it at its size; its contents fit one `ReadAt` (1 GiB,
+as `Write`'s `data`). -/
+def DCand.Ok (c : DCand) : Prop :=
+  c.m.size = c.v.length ∧ c.m.lo = c.m.size ∧ c.m.hi = c.m.size ∧ c.v.length ≤ 0x40000000
 
 /-- **The physical state**: the claims' histories of the file's name (`hb`) and of the
 temporary's (`ht`), a commit lower bound `nc`, the candidates. -/
@@ -125,7 +127,8 @@ def OutOk (s : DurSt) (cs : List DCand) : Option Node → Prop
 /-- **The invariant's facts** of the file `f`, the state `s`, the physical state `p`: every crash that
 keeps the entries below the commit bound leaves the name as `OutOk` allows; the name holds, now,
 `cur` (a candidate's inode); the temporary's name holds no directory; with no rename to lose
-(`alt = none`), every entry of the name is below the commit bound; the candidates are `Ok`. -/
+(`alt = none`), every entry of the name is below the commit bound; the candidates are `Ok`, at
+distinct inodes. -/
 structure DurOk (f : DFile) (s : DurSt) (p : DurPhys) : Prop where
   crash : ∀ K : Nat → Prop, (∀ y e E, (y, e, E) ∈ p.hb.ents → y < p.nc → K y) →
     OutOk s p.cands (p.hb.valAfter f.J K f.b)
@@ -135,6 +138,15 @@ structure DurOk (f : DFile) (s : DurSt) (p : DurPhys) : Prop where
   tmp : ∀ J, p.ht.cur !! f.tb ≠ some (.dir J)
   synced : s.alt = none → p.hb.next ≤ p.nc
   cands : ∀ c ∈ p.cands, c.Ok
+  inj : (p.cands.map DCand.i).Nodup
+
+/-- **What the file's name holds under the physical state `p`**: no file (`none`), or a candidate's
+inode and its contents. -/
+def DurPhys.CurIs (f : DFile) (p : DurPhys) (v : Option GoString) : Prop :=
+  match p.hb.cur !! f.b with
+  | none => v = none
+  | some (.file i) => ∃ c ∈ p.cands, c.i = i ∧ v = some c.v
+  | some (.dir _) => False
 
 /-! ## Ghost state -/
 
@@ -205,14 +217,18 @@ def curRes (f : DFile) (p : DurPhys) : IProp GF :=
   | some (.file i) => iprop(∃ c : DCand, ⌜c ∈ p.cands ∧ c.i = i⌝ ∗ candRes (L := L) c (DFrac.own (1 : Qp).half))
   | _ => iprop(emp)
 
+/-- The handle at the physical state `p`. -/
+def durHandleP (γ : DurGS) (f : DFile) (R : Roots) (p : DurPhys) : IProp GF :=
+  iprop(∃ qd : Qp, durPhys γ p ∗
+    osNames (L := L) f.J (.only [f.b]) (DFrac.own (1 : Qp).half) p.hb ∗
+    osNames (L := L) f.J (.only [f.tb]) (DFrac.own (1 : Qp).half) p.ht ∗
+    curRes (L := L) f p ∗ tmpRes (L := L) f p.ht ∗ osPathS (L := L) R f.d (DFrac.own qd) f.J)
+
 /-- **A call's handle on the file `f`** in the roots `R`: the physical state's other half, the
 claims' other halves, the current inode's other half, the temporary's file, a fraction of the
 directory's spine. Exclusive (the claims' halves). -/
 def durHandle (γ : DurGS) (f : DFile) (R : Roots) : IProp GF :=
-  iprop(∃ (p : DurPhys) (qd : Qp), durPhys γ p ∗
-    osNames (L := L) f.J (.only [f.b]) (DFrac.own (1 : Qp).half) p.hb ∗
-    osNames (L := L) f.J (.only [f.tb]) (DFrac.own (1 : Qp).half) p.ht ∗
-    curRes (L := L) f p ∗ tmpRes (L := L) f p.ht ∗ osPathS (L := L) R f.d (DFrac.own qd) f.J)
+  iprop(∃ p : DurPhys, durHandleP γ f R p)
 
 end res
 

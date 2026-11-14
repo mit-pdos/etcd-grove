@@ -373,6 +373,49 @@ examples/lib/durable.lean` (generated), `LinuxFs/Proof/.../examples/lib/durable/
   Next: the claim list over `bootWals` (the `osNames_split`s of the area's and each `J`'s whole claims), then the
   proof as designed in the second session, with `hfo` (narrowed) its premise until `walFoRes` lands.
 
+**Second session (branch `wal-u2b`, 2026-11-14): `tryRead` and `Read` proved; the package initializer
+generated.** No axiom, no trusted change, no `sorry`. `Read.wp_proof` takes `tryRead.spec`;
+`tryRead.wp_proof` takes `errors.IsPathErrnoNotExist.spec` (the WAL's hypothesis, still unproved: it
+waits on Perennial's `errors-facts` branch) and the `os` specs `File.Stat`, `fileStat.Size`,
+`File.ReadAt`, `File.Close` (proved in the part).
+
+- **The Go: `errors.Is(err, os.ErrNotExist)`** (was `fs.ErrNotExist`, the same variable's value in Go):
+  the WAL's hypothesis is stated of `os.ErrNotExist`'s variable (`os`'s package fact gives its
+  points-to), so no second hypothesis for `io/fs`'s; `io/fs` is no longer imported. Retranslated
+  (`etc/goose.py --project durable`; the main tree's trusted translation is unchanged).
+- **`Open` of a present file never fails with `ENOENT`**: the extension lemma `wp_osOpenFileSN'`
+  (`GooseLang/Ext/Fs/TreeSharedOpenFileN.lean`, untrusted, a new module so that nothing rebuilds:
+  `wp_osOpenFileS'`'s proof with the semantics' `ENOENT` premise used in its failure branch) and the
+  `os` lemmas `OpenFile.wp_fileSN`/`Open.wp_fileSN` (`LinuxFs/Proof/os/NsFileS.lean`, the errno explicit
+  as `os.errnoPathErr err e`, `e ≠ ENOENT`).
+- **Defs changes (internal):** `durHandleP γ f R p` (the handle at a physical state; `durHandle` is
+  `∃ p, durHandleP`), `DurPhys.CurIs f p v` (what the name holds under `p`), `DurOk.inj` (the
+  candidates at distinct inodes, so `cur` is determined by `p`), `DCand.Ok`'s `length ≤ 1 GiB` (one
+  `ReadAt`; `Write`'s `data` bound, so the write proof keeps it).
+- **`tryRead.spec`** (`LinuxFs/Spec/.../durable/tryRead.lean`, internal): at the handle's `p`, with `∃ s,
+  DurOk f s p` as a premise (read off the invariant by the caller at a step), `isPkgInit os`; when
+  `done`, `(s, ok)` is what the name holds (`CurIs`). Nothing changes, so no update in it.
+- **`Inv.lean`**: `DurOk.curIs`, `DurPhys.curIs_unique`, `durInv_open` (with `notCrashed`),
+  `durInv_okAt`/`durInv_okHandle` (the facts of the handle's `p`), `durInv_readAU`/`durInv_readHandle`
+  (a read's update committed at a step: `s.cur` is what the name holds), `curRes_file`/`curRes_none`.
+- **`Read`**: the mutex taken (`mu_of_pkgInit`, `PkgInit.lean`), `tryRead` retried (`wp_for`); before
+  each attempt, at a step (`wp_notCrashed_acc`), `durInv_okHandle`; after a done one, at the next step,
+  `durInv_readHandle` commits the client's update; the deferred `Unlock`.
+- **The package initializer**: `etc/gen-init.py` (`LFS_PKGS`, `LFS_SPECIAL`: `sync.init_Mutex True`),
+  `LinuxFs/Proof/.../durable/Init.lean` generated; `--check` passes.
+- **Not done:** `errors.IsPathErrnoNotExist.spec` still lives in
+  `LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/ExistCallees.lean`, which `tryRead`'s proof imports
+  (moving it to `LinuxFs/Spec/errors/` rebuilds the WAL's importers: do it when Perennial's
+  `errors-facts` proves it). No `etc/gen-link.py` mode yet (the plan: lines `durable_tryRead: ...` /
+  `durable_Read: durable_tryRead` in `--bboltfs`'s list, or a mode of its own; `errors.IsPathErrnoNotExist`
+  a pending hypothesis).
+- **Next (in order):** (2) `tryWrite`/`Write`: `tryWrite`'s spec at the handle's `p` with the first
+  update inside, as `tryRead`'s (premise `∃ s, DurOk f s p`; post: `false` with the handle at some `p'`
+  and the first update not yet committed, or committed; `true` with the second committed). The
+  invariant cases: the temporary's inode is never a candidate within a generation (needs a fact
+  `tmp ∉ cands` in `DurOk`, from `tmpRes`'s whole `trFile`, or derived from the resources); a retry after
+  a rename makes a fresh candidate (`O_CREAT`, the temporary absent) with `data`, so `cands` grows
+  and `alt` stays. (3) the crash and boot lemmas; (4) the link.
 ## W4c U4 log (branch `wal-u4`, 2026-11-14)
 
 **The instance** (`LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/RaftModel/`), one module per group:
