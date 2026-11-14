@@ -5,7 +5,8 @@ state `walFileS f fd name fl g` (`ReadDefs.lean`: the file, the fd, its offset, 
 of the segment `g`'s `OsMeta` and bytes), satisfies the decoder's file contract `decFile`
 (`DecDefs.lean`) for the segment's bytes, given:
 * the errors `IoE` the decoder may see hold of every `*PathError` (`Read`'s and `Stat`'s errors), and
-  not of `io.EOF`; each such error comes with `errors.Is(_, io.EOF)`'s answer (`decRdE`, `decAns`),
+  not of `io.EOF`; each such error comes with `errors.Is(_, io.EOF)`'s answer (`decRdE`, `decAns`) and
+  `errors.Is(_, io.ErrUnexpectedEOF)`'s, `false` (`ioUeof`, `walPathErr_ueof`),
   from `errors.IsPathErrnoEof.spec` (a hypothesis, `LinuxFs/Spec/errors/IsPathErrnoEof.lean`), and
   `io.EOF` with its own (`isEofAns eof eof`, from `isEofOk`);
 * the segment at rest: its size its bytes' length (`g.om.size = |g.bs|`), and the bound of `decFile`;
@@ -63,7 +64,10 @@ theorem walPathErr_ans (wp_IsEof : errors.IsPathErrnoEof.spec (GF := GF) (hG := 
     isPkgInit (PROP := IProp GF) pkg_id.os ∗ globalAddr _root_.Perennial.io.EOF ↦□ eof ∗
       os.errnoPathErr (GF := GF) err e ⊢ isEofAns err eof := by
   iintro ⟨#Hos, #Heof, #Hep⟩
-  ihave #Hq := wp_IsEof err eof e he $$ Hos Heof Hep
+  ihave #Heof2 : (globalAddr _root_.Perennial.io.EOF ↦□ eof ∨
+      globalAddr _root_.Perennial.io.ErrUnexpectedEOF ↦□ eof : IProp GF) $$ []
+  · ileft; iexact Heof
+  ihave #Hq := wp_IsEof err eof e he $$ Hos Heof2 Hep
   ihave #Hep2 := Hep
   iunfold os.errnoPathErr at Hep2
   icases Hep2 with ⟨%pe, %op, %path, %hpe, -⟩
@@ -80,6 +84,21 @@ theorem walPathErr_ans (wp_IsEof : errors.IsPathErrnoEof.spec (GF := GF) (hG := 
   ipureintro
   rfl
 
+/-- **`errors.Is(err, io.ErrUnexpectedEOF)` on the `os` models' `*PathError`s** answers `false`
+(`notUeof`). -/
+theorem walPathErr_ueof (wp_IsEof : errors.IsPathErrnoEof.spec (GF := GF) (hG := hG))
+    (err : GoInterface) (e : w64) (he : e ≠ 0) :
+    isPkgInit (PROP := IProp GF) pkg_id.os ∗ os.errnoPathErr (GF := GF) err e ⊢ notUeof err := by
+  iintro ⟨#Hos, #Hep⟩
+  unfold notUeof
+  imodintro
+  iintro %ueof #Hu
+  ihave #Hu2 : (globalAddr _root_.Perennial.io.EOF ↦□ ueof ∨
+      globalAddr _root_.Perennial.io.ErrUnexpectedEOF ↦□ ueof : IProp GF) $$ []
+  · iright; iexact Hu
+  ihave #Hq := wp_IsEof err ueof e he $$ Hos Hu2 Hep
+  iexact Hq
+
 /-- `io.EOF`'s own answer, and `io.EOF` is no I/O error (`isEofOk`). -/
 theorem isEofOk_eof (IoE : GoInterface → Prop) (eof ueof : GoInterface) :
     isEofOk IoE eof ueof ⊢ isEofAns (GF := GF) eof eof ∗ ⌜¬ IoE eof⌝ := by
@@ -88,7 +107,7 @@ theorem isEofOk_eof (IoE : GoInterface → Prop) (eof ueof : GoInterface) :
   ihave #H2 := H $$ %eof %(Or.inr (Or.inl rfl))
   isplitl []
   · imodintro; iexact H2
-  · ipureintro; exact hne.2
+  · ipureintro; exact hne.2.1
 
 /-- The decoder's file of a segment `g` read through the `*fileReader` at `rl`. -/
 def walDecFile (rl f : Loc) (fd : w64) (name : GoString) (fl : OsFd) (g : SegG) : DecFile GF :=
@@ -151,19 +170,24 @@ theorem walDecFile_ok
       simp only [sint.Z]; rw [BitVec.toInt_eq_toNat_cond]; simp only [BitVec.toNat_ofInt]; split <;> omega
     ihave ⟨%Hc, #Hans⟩ : ⌜err = GoInterface.nil ∨ (k = 0 ∧ g.bs.length ≤ r.length ∧ err = eof) ∨
         (∃ pe : Loc, err = interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe)⌝ ∗
-        (⌜err = GoInterface.nil⌝ ∨ isEofAns err eof) $$ [Hcase]
+        (⌜err = GoInterface.nil⌝ ∨ (isEofAns err eof ∗ ioUeof IoE err)) $$ [Hcase]
     · icases Hcase with (%h | %h | ⟨-, %pe, %hpe, -, %e, %he, #Hep⟩)
       · isplitl []
         · ipureintro; exact .inl h.1
         ileft; ipureintro; exact h.1
       · isplitl []
         · ipureintro; exact .inr (.inl ⟨h.1, h.2.2.1, h.2.2.2⟩)
-        iright; rw [h.2.2.2]; iexact Heofa
+        iright; rw [h.2.2.2]; iframe Heofa
+        iunfold ioUeof; ileft; ipureintro; exact .inr hIoEof
       · isplitl []
         · ipureintro; exact .inr (.inr ⟨pe, hpe⟩)
         iright
-        iapply walPathErr_ans wp_IsEof IoE hIo err eof hIoEof e he
-        iframe Hos Heof Hep
+        isplitl []
+        · iapply walPathErr_ans wp_IsEof IoE hIo err eof hIoEof e he
+          iframe Hos Heof Hep
+        iunfold ioUeof; iright
+        iapply walPathErr_ueof wp_IsEof err e he
+        iframe Hos Hep
     iapply HΦ
     iexists ((g.bs.map Prod.fst).drop r.length).take k
     rw [hyl, hoff]
@@ -232,6 +256,8 @@ theorem walDecFile_ok
       · ipureintro; intro h; exact absurd rfl h
       isplitl []
       · iunfold decAns; ileft; ipureintro; rfl
+      isplitl []
+      · iunfold ioUeof; ileft; ipureintro; exact .inl rfl
       iintro -
       iunfold fileInfoOk
       iexists _
@@ -268,6 +294,10 @@ theorem walDecFile_ok
         iright
         iapply walPathErr_ans wp_IsEof IoE hIo err eof hIoEof e he
         iframe Hos Heof Hep
+      isplitl []
+      · iunfold ioUeof; iright
+        iapply walPathErr_ueof wp_IsEof err e he
+        iframe Hos Hep
       iintro %h
       exact absurd h hne
   ipureintro

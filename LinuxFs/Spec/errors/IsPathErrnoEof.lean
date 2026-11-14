@@ -1,6 +1,9 @@
 /-
-`errors.Is(err, io.EOF)` for a `*PathError` of a nonzero errno (`os.errnoPathErr err e`, what the
-part's `os` models return on a failed system call): it answers `false`. **A hypothesis** (of the WAL's
+`errors.Is(err, io.EOF)` and `errors.Is(err, io.ErrUnexpectedEOF)` for a `*PathError` of a nonzero errno
+(`os.errnoPathErr err e`, what the part's `os` models return on a failed system call): they answer
+`false`. (`io.ErrUnexpectedEOF` since 2026-11-14, `wal-vsnap2`: the decoder's readers' errors carry that
+answer too, `notUeof`; ledger "`decoder.Decode.spec`: no `io.ErrUnexpectedEOF` answer". The argument is
+the same: `io.ErrUnexpectedEOF` is a fifth `errors.New` allocation.) **A hypothesis** (of the WAL's
 `openWALFiles`/`openAtIndex` proofs, through the `os.File` reader bridge, `ReadBridge.lean`), not proved
 here and not an axiom; true of Go: `errors.Is` walks `&PathError{Op, Path, Errno(e)}`: the
 `*PathError` is not `io.EOF` (another type) and has no `Is` method; its `Unwrap` returns the `Errno`,
@@ -36,7 +39,8 @@ variable [sem : go.Semantics]
 /-- See the file header. -/
 abbrev errors.IsPathErrnoEof.spec : Prop :=
   ∀ (err eof : GoInterface) (e : w64), e ≠ 0 →
-    ⊢ isPkgInit (PROP := IProp GF) pkg_id.os -∗ globalAddr _root_.Perennial.io.EOF ↦□ eof -∗
+    ⊢ isPkgInit (PROP := IProp GF) pkg_id.os -∗
+      (globalAddr _root_.Perennial.io.EOF ↦□ eof ∨ globalAddr _root_.Perennial.io.ErrUnexpectedEOF ↦□ eof) -∗
       os.errnoPathErr (GF := GF) err e -∗
       {{ (True : IProp GF) }}
         (App (App (Val (@! _root_.Perennial.errors.Is)) (Val #err)) (Val #eof))

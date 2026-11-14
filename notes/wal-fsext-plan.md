@@ -538,7 +538,7 @@ module; the bboltfs/crashlog/walfs examples and the generated translations not l
 - `os/`: `File.Truncate.wp_proofAu` (`File__TruncateAu.lean`), `File.WriteAt.wp_proof_long` (`WriteLong.lean`,
   past 1 GiB).
 Not yet stated (no `sorry`, no statement): `Close`, `ReleaseLockTo`, `Repair`, `Exist`
-(§4.2's W7-W12; `ValidSnapshotEntries` stated and proved over its attempt's two internal statements, `wal-vsnap1`, W7-W12 log, W8 session), the WAL-level resize updates (I3b's open items). `Create`'s ghost steps (drop, mint, unmint, merges) are proved (`wal-create10`; W4 log, tenth session). The record of what is out of the parked state and the changes in flight only on segments out (W3/W5's gaps A and B) are in the invariant, with the pin's and the put-back's moves (`Parked.lean`, `wal-read9`; W1 log, tenth session). A change in flight only on a registered tail (`TailsOnly`), the tails' authority halved with the lock holder (`walTailsFrag`), and `openAtIndex`'s pin (`walInvBody_pin`, `OpenPinTake.lean`) are proved (`wal-read10`; W1 log, eleventh session; W3/W5 log, tenth session). Gap C (every WAL's directory claim once and exclusive, `DirClaimsOk` in `DirKeysOk`), the pin keying its WAL, the put-back (`walInvBody_unpin`), the commit's `unl` raise (`walInvBody_unl`) and the tail's registration (`walTailsRes_register`) are proved (`wal-read11`; W1 log, twelfth session; W3/W5 log, eleventh session).
+(§4.2's W7-W12; `ValidSnapshotEntries` stated and proved over its attempt's two internal statements, `wal-vsnap1`, W7-W12 log, W8 session; the attempt's gaps 1-3 closed, `wal-vsnap2`, W8 second session: `openWALFilesFn` in `walInit`, `openWALFiles`' closer, `Decode`'s I/O errors' `io.ErrUnexpectedEOF` answer; gap 4 and the attempt open), the WAL-level resize updates (I3b's open items). `Create`'s ghost steps (drop, mint, unmint, merges) are proved (`wal-create10`; W4 log, tenth session). The record of what is out of the parked state and the changes in flight only on segments out (W3/W5's gaps A and B) are in the invariant, with the pin's and the put-back's moves (`Parked.lean`, `wal-read9`; W1 log, tenth session). A change in flight only on a registered tail (`TailsOnly`), the tails' authority halved with the lock holder (`walTailsFrag`), and `openAtIndex`'s pin (`walInvBody_pin`, `OpenPinTake.lean`) are proved (`wal-read10`; W1 log, eleventh session; W3/W5 log, tenth session). Gap C (every WAL's directory claim once and exclusive, `DirClaimsOk` in `DirKeysOk`), the pin keying its WAL, the put-back (`walInvBody_unpin`), the commit's `unl` raise (`walInvBody_unl`) and the tail's registration (`walTailsRes_register`) are proved (`wal-read11`; W1 log, twelfth session; W3/W5 log, eleventh session).
 `Exist` proved over hypotheses (`wal-small12`, W7-W12 log; no `sorry`); `hErrNotExist` dropped and the
 `os`/extension layer of its `ReadDir` hypotheses proved over the provisional `ENOENT` rule (`wal-enoent13`,
 W7-W12 log, second session); `ReadDir`'s loops and the names' bound proved (`wal-small14`, W7-W12 log, third session: `Readdirnames`' model assumes Go's `growslice` limit, pending review); left: `errors.IsPathErrnoNotExist.spec`. `ReleaseLockTo` proved; `Close` (append mode) stated and proved over `WAL.sync.specC` and the invariant law `WalCloseLaw`; `WAL.Close.specOpening` (`Open`'s hypothesis) still a hypothesis (`wal-close15`, W7-W12 log, fourth session); `WalCloseLaw` proved, `Close` (append mode) over `WAL.sync.specC` only; `specOpening`'s three gaps (the unregistered tail's fdatasync: `TailSynced` designed; the pipeline's directory inode in `walReadH`; an empty `gs`) and `Repair` stated, not proved (`wal-close16`, W7-W12 log, fifth session). `TailSynced` in the invariant, the idle tail's fdatasync proved (`walInvBody_syncIdle`, `wp_idleFsync`); `specOpening` waits for `walReadTie`'s last-name fact; `specNoDir` is over the pre-rename handle, for `wal-create14` (`wal-close17`, W7-W12 log, sixth session). `Repair`'s laws L1 (the pin of the last segment, with `TailIdle`), L2 (its reader stops only at `wr`) and L5's unchanged case proved; L3 (the `.broken` file: the invariant must own the WAL directory's non-`.wal` files), L4, `openLast`'s spec and `Repair.wp_proof` open (`wal-repair18`, W7-W12 log, seventh session). `WAL.Close.specOpening` proved (`WAL.Close.wp_proofOpening`, over `WAL.sync.specIdle`, proved, and leaf specs); L3's design fixed (the WAL directory's other files parked with its claim), not made; `openLast` stated and proved (`wal-repair19`, W7-W12 log, eighth session). L3's create step: its pure core (`brokenHist_pure`), the `O_CREAT` open over a claim on any names (`wp_osOpenCreateSN`, `os.OpenFile.specCreateTruncSncN`) proved; the invariant step waits for a WAL directory claim's exclusivity on all its names (`wal-repair20`, W7-W12 log, ninth session). The exclusivity in (`DirClaimExcl` in `DirClaimsOk`; `CreatingNew` off `walTmps`) and the create step proved (`walBroken_osAUnc`, absent-name case); the leftover `.broken`'s `O_TRUNC` (the WAL directory's other files owned by the invariant), L4 (a tail registered for an idle WAL, then `walTail_truncSup`) and `Repair.wp_proof` open (`wal-repair21`, W7-W12 log, tenth session). The WAL directories' non-`.wal` files owned by the invariant whether the claim is parked or out (`walParked`'s `walOthersL`, lent by the pseudo-key `lendKey j b` in `WalOut.D`; `walInv_lendOther`/`walInv_unlendOther`, `walBroken_osAUnc` lends the new name; `walInv_alloc` takes the others); L4 blocked: `Repair` truncates a pending tail (kind `true`) whose word at `wr` is a torn frame's, and the truncate window's crash outcomes (the image's bytes mixed with the truncate's zeros) are outside W1 (finding, W1 extension proposed); `Repair.wp_proof` not started (`wal-repair22`, W7-W12 log, eleventh session). L4's crash step proved with no trusted change (`TailCrashRep.lean`: `RepOld`, `crashTo_tailR`, `crashOkA_tailRep`, `rzStart_pureR`: the reader stops at `wr` in every crash image through W1's exact form; the eleventh session's finding withdrawn); the truncate supply's use of it waits on a channel for `RepOld` of a kind-`true` tail at later attempts (design, coordinator's), and `Repair`'s truncate/fsync failure arms cannot unregister a tail left in a window (finding); `Repair.wp_proof` not started (`wal-repair23`, W7-W12 log, twelfth session). Not yet stated (no `sorry`, no statement): `ValidSnapshotEntries`
@@ -7468,6 +7468,46 @@ fdatasync, `walLentRes_unpend`, either kind). *`wal-tc16` (2026-11-14)*: the pen
      `badRec` stop's `io.ErrUnexpectedEOF` for the end, so the proof must show `GoFail` occurs only where the reader
      has no record left (every frame of the running stream is a record's encoding, `UFail` false there, and past it
      `hend`). A pure lemma over `walDecodeFiles_running`'s premises, by its proof's decomposition.
+
+**W8, second session (branch `wal-vsnap2`, 2026-11-14): the attempt's gaps 1-3 closed; 4 and the attempt open.**
+
+- **Gap 1 (done).** `wal.walInit` gains `globalAddr openWALFilesFn ↦□ functions openWALFiles []` (last conjunct;
+  `etc/gen-init.py`'s `LFS_SPECIAL`, `ipersist HopenWALFilesFn`; `--check` clean). Every part of the fact has a
+  named projection, `wal.walInit_<part>` (`PkgInit.lean`: `crcTable`, `metrics`, `segSize`, the eight error
+  variables, `openWALFilesFn`); the eleven positional destructurings (`ReadAll` x4, `Create`, `SaveHandle`,
+  `renameWAL`, `openAtIndex` x2, `readWALNames`, `parseWALName`) now use them, so a new conjunct breaks none.
+- **Gap 2 (done; ledger 2026-11-14, "`openWALFiles.spec` ... the closer not specified").** The success arm adds
+  `wal.walCloser write frs lfs cl` (`CloseDefs.lean`): `cl ≠ func.nil` and `□ {{ [∗list] m ↦ fr ∈ frs,
+  wal.walClosable write fr (lfs.getD m null) }} cl() {{ err, True }}`, `walClosable` the reader's `*fileReader`
+  over its `*os.File` (`rl ↦□ fileReader.mk f`), the file and fd whole (any name and state), in write mode the
+  lock's `lockedFile`. Proved: the loop's exit splits `walOpenedRcs` into the files and the persistent
+  `walRcLink`s (what the closure keeps: reader, file, the `io.ReadCloser`), persists `lg`, `rcs` and the `rcs`
+  slice (the loop's post under `wp_fupd`), and the closure's call is `closeAll` over `walClose_rcFiles` (the
+  points-to agreement of `rl ↦□` names the file). `openAtIndex` drops it (write mode `nil`s it; read mode
+  stores it unconstrained in `readClose`).
+- **Gap 3 (done; the ledger entry adopted, refined).** A general `decide (e = ueof)` answer is false of
+  `Decode`'s own errors (`fmt.Errorf("%w ...", io.ErrUnexpectedEOF)`), so only the I/O errors carry it:
+  `notUeof e` (`errors.Is(e, io.ErrUnexpectedEOF)` returns `false` for the value the global holds; no new
+  parameter anywhere), `ioUeof IoE e := ⌜e = nil ∨ ¬ IoE e⌝ ∨ notUeof e` in `decRdE` and in `decFile`'s and
+  `ownFbr`'s `FileInfo` result, `notUeof err` in `decPostB`'s I/O arm, and `isEofOk` gains `¬ IoE ueof` (so
+  that `io.ReadFull`'s own `io.ErrUnexpectedEOF` is no I/O error; `WalDecEnvSupply` supplies it, true of Go:
+  `IoE` is the `*PathError`s). Evidence: `errors.IsPathErrnoEof.spec` (a hypothesis) now covers
+  `io.ErrUnexpectedEOF`'s value too (`walPathErr_ueof`, `ReadBridge.lean`). Re-proved: `DecLemmas`
+  (`readFull_ans` gives `ioUeof`, `ioUeof_io`, `decPost_ioe` takes `notUeof`), `NewDecoder`, `decodeRecord`,
+  `ReadBridge`; the users (`ReadAll`, `openAtIndex`) unchanged but for `isEofOk`'s new conjunct.
+- **Gap 4 (not done): design.** The lemma needs the decoder's state at a frame boundary of the encoder's
+  frames, across files: a multi-file `RepairAt` (`RepairDecode.lean` has the one-file case,
+  `repairAt_fail`). Proposed: `FilesAt C Fs (fs, off, c)` := `fs = Fs.drop i`, the `i`-th file's records `xs ++
+  ys` with `off = |recFrames xs|` and `c` the chain's CRC through the earlier files and `xs`, over
+  `walDecodeFiles_running`'s premises (`chainSegs`' frames for the full segments, `hpre`/`hend` for the last);
+  step lemmas `filesAt_ok` (an `.ok` step, the file dropped at a full segment's end: its `decRecStep` is
+  `.eof`), `filesAt_fail` (a `GoFail` only at the last file's `ys = []`, by `decFrame_ofFrame`), and from it
+  `(rdRest C fs off c).recs = []`. Then `VsLoop` carries `FilesAt`.
+- **The attempt (`validSnapshotEntries.specPinned`/`specAbsent`): not started.** `wal.wp_ValidSnapshotEntries`
+  still takes `h_wal_validSnapshotEntriesPinned`/`Absent`. What the attempt's proof now has: the closer's triple
+  (gap 2), `openWALFilesFn`'s value (gap 1), the I/O error's `false` answers (gap 3: in `decPostB`'s I/O arm,
+  `notUeof err` and `¬ IoE eof`). Still to add for it: `walDecFiles_mk` giving the persistent `rl ↦□
+  fileReader.mk (fls.getD k null)` per file (to rebuild `walClosable` from the streams' `walTieFile`s).
 
 ## io.Copy log (branch `wal-copy1`, 2026-11-14)
 

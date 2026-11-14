@@ -886,7 +886,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             · simp only
               rw [hhsσ, hσhs, hle1.1]
             · simp only; exact hmdl
-      · exact absurd hio hEu.2
+      · exact absurd hio hEu.2.1
       · exfalso
         obtain ⟨t, rfl⟩ := goFail_badRec hgf.1
         have h2 := hgf.2
