@@ -623,7 +623,13 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     isplitl [Htl Hlt]
     · unfold walTailsRes
       iexists ∅
-      ihave Hlt := walLentRes_init (W := W) ∅ Ls (fun _ _ h _ => (h (GMap.lookup_empty _)).elim) $$ Hlt
+      ihave Hlt := walLentRes_init (W := W) ∅ Ls (fun _ _ h _ => (h (GMap.lookup_empty _)).elim)
+        (fun dir lay _ hl => by
+          cases hd : s.wal !! dir with
+          | none => rw [hstart.2.1 dir hd] at hl; cases hl
+          | some d =>
+            obtain ⟨lay', nm, hl', -, -, -, -, -, -, -, hwz, -⟩ := hstart.1 dir d hd
+            rw [hl] at hl'; cases hl'; exact Or.inr hwz) $$ Hlt
       iframe Htl Hlt
       isplitr
       · ipureintro; intro i hi; exact absurd (GMap.lookup_empty (K := Ino) (V := SegFl) i) hi

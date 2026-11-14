@@ -783,6 +783,26 @@ def ZerosOk (T : GMap GoString GName) (Ls : GMap GoString WalLay) (M : GMap GoSt
     Prop :=
   ∀ dir lay, T !! dir ≠ none → Ls !! dir = some lay → NotPend M dir → TailZeros lay
 
+/-- **Every unregistered WAL's tail: F-Z, or nothing written past the start's frames** (I3b,
+`wal-tc15`): a crash leaves `wr = z0`; `Create`'s, `Close`'s (the key's holder's) tails have F-Z; an idle
+tail's fdatasync keeps both. What `ReadAll`'s registration (`walTailsRes_registerPend`) reads. -/
+def IdleZ0 (T : GMap GoString GName) (Ls : GMap GoString WalLay) : Prop :=
+  ∀ dir lay, T !! dir = none → Ls !! dir = some lay → TailZ0 lay
+
+theorem IdleZ0.insert {T : GMap GoString GName} {Ls : GMap GoString WalLay} {dir : GoString} {lay' : WalLay}
+    (h : IdleZ0 T Ls) (hz : TailZ0 lay') : IdleZ0 T (<[dir := lay']> Ls) := by
+  intro d la hT hla
+  by_cases e : d = dir
+  · subst e; rw [GMap.lookup_insert] at hla; cases hla; exact hz
+  · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hla; exact h d la hT hla
+
+theorem IdleZ0.reg {T : GMap GoString GName} {Ls : GMap GoString WalLay} {dir : GoString} {γ : GName}
+    (h : IdleZ0 T Ls) : IdleZ0 (<[dir := γ]> T) Ls := by
+  intro d la hT hla
+  by_cases e : d = dir
+  · subst e; rw [GMap.lookup_insert] at hT; cases hT
+  · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hT; exact h d la hT hla
+
 /-- **The lent tails** (I3b, `wal-tc14`): the authority of `walLentTokB`'s map, and for each lent
 directory its tail's key (`walTailKey`, out of the handle's reach while lent), the tail registered
 and its `old` as long as recorded; and F-Z of every registered tail not registered, not yet zeroed
@@ -793,7 +813,7 @@ not lent (`walLentRes_insert_key`, `walLentRes_unreg`), or turns a pending tail'
 (`walLentRes_unpend`). -/
 def walLentRes (T : GMap GoString GName) (Ls : GMap GoString WalLay) : IProp GF :=
   iprop(∃ M : GMap GoString (GName × Nat × Bool), walLentAuth (W := W) M ∗ ⌜ZerosOk T Ls M⌝ ∗
-    [∗map] dir ↦ x ∈ M, ⌜LentOk T Ls dir x⌝ ∗ walTailKey (W := W) dir x.1)
+    ⌜IdleZ0 T Ls⌝ ∗ [∗map] dir ↦ x ∈ M, ⌜LentOk T Ls dir x⌝ ∗ walTailKey (W := W) dir x.1)
 
 instance walLentRes_timeless (T : GMap GoString GName) (Ls : GMap GoString WalLay) :
     Timeless (walLentRes (W := W) T Ls) := by
@@ -802,7 +822,7 @@ instance walLentRes_timeless (T : GMap GoString GName) (Ls : GMap GoString WalLa
   infer_instance
 
 theorem walLentRes_init (T : GMap GoString GName) (Ls : GMap GoString WalLay)
-    (hz : ∀ dir lay, T !! dir ≠ none → Ls !! dir = some lay → TailZeros lay) :
+    (hz : ∀ dir lay, T !! dir ≠ none → Ls !! dir = some lay → TailZeros lay) (hz0 : IdleZ0 T Ls) :
     walLentAuth (W := W) ∅ ⊢ walLentRes (W := W) T Ls := by
   unfold walLentRes
   iintro Ha
@@ -810,6 +830,8 @@ theorem walLentRes_init (T : GMap GoString GName) (Ls : GMap GoString WalLay)
   iframe Ha
   isplitr
   · ipureintro; exact fun dir lay hT hl _ => hz dir lay hT hl
+  isplitr
+  · ipureintro; exact hz0
   iapply BigSepM.bigSepM_empty.2; iempintro
 
 /-- The lent tails' entries under a change of the registrations and layouts that keeps each lent one
@@ -817,10 +839,11 @@ and F-Z of each registered tail. -/
 theorem walLentRes_mono (T T' : GMap GoString GName) (Ls Ls' : GMap GoString WalLay)
     (h : ∀ dir x, LentOk T Ls dir x → LentOk T' Ls' dir x)
     (hz : ∀ dir lay', T' !! dir ≠ none → Ls' !! dir = some lay' →
-      ∃ lay, T !! dir ≠ none ∧ Ls !! dir = some lay ∧ (TailZeros lay → TailZeros lay')) :
+      ∃ lay, T !! dir ≠ none ∧ Ls !! dir = some lay ∧ (TailZeros lay → TailZeros lay'))
+    (hz0 : IdleZ0 T Ls → IdleZ0 T' Ls') :
     walLentRes (W := W) T Ls ⊢ walLentRes (W := W) T' Ls' := by
   unfold walLentRes
-  iintro ⟨%M, Ha, %HZ, Hm⟩
+  iintro ⟨%M, Ha, %HZ, %HI, Hm⟩
   iexists M
   iframe Ha
   isplitr
@@ -828,6 +851,8 @@ theorem walLentRes_mono (T T' : GMap GoString GName) (Ls Ls' : GMap GoString Wal
     intro dir lay' hT hl hp
     obtain ⟨lay, hT0, hl0, himp⟩ := hz dir lay' hT hl
     exact himp (HZ dir lay hT0 hl0 hp)
+  isplitr
+  · ipureintro; exact hz0 HI
   iapply BigSepM.bigSepM_mono (fun {k x} _ => ?_) $$ Hm
   iintro ⟨%hk, Hk⟩
   iframe Hk
@@ -837,9 +862,10 @@ theorem walLentRes_mono (T T' : GMap GoString GName) (Ls Ls' : GMap GoString Wal
 fdatasync). -/
 theorem walLentRes_insert_same (T : GMap GoString GName) (Ls : GMap GoString WalLay) (dir : GoString)
     (lay lay' : WalLay) (hl : Ls !! dir = some lay) (ho : lay'.old.length = lay.old.length)
-    (hz : TailZeros lay → TailZeros lay') :
+    (hz : TailZeros lay → TailZeros lay') (hz0 : T !! dir = none → TailZ0 lay → TailZ0 lay') :
     walLentRes (W := W) T Ls ⊢ walLentRes (W := W) T (<[dir := lay']> Ls) := by
   refine walLentRes_mono T T Ls _ (fun d x ⟨hT, la, hla, hk⟩ => ⟨hT, ?_⟩) (fun d la' hT hla' => ?_)
+    (fun HI d la' hT hla' => ?_)
   · by_cases e : d = dir
     · subst e; rw [hl] at hla; cases hla
       exact ⟨lay', GMap.lookup_insert _ _ _, by rw [ho, hk]⟩
@@ -849,13 +875,19 @@ theorem walLentRes_insert_same (T : GMap GoString GName) (Ls : GMap GoString Wal
       exact ⟨lay, hT, hl, hz⟩
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hla'
       exact ⟨la', hT, hla', id⟩
+  · by_cases e : d = dir
+    · subst e; rw [GMap.lookup_insert] at hla'; cases hla'
+      exact hz0 hT (HI d lay hT hl)
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hla'
+      exact HI d la' hT hla'
 
 /-- **A new directory's layout** (`Create`), with F-Z if registered. -/
 theorem walLentRes_insert_new (T : GMap GoString GName) (Ls : GMap GoString WalLay) (dir : GoString)
-    (lay' : WalLay) (hl : Ls !! dir = none) (hz : T !! dir ≠ none → TailZeros lay') :
+    (lay' : WalLay) (hl : Ls !! dir = none) (hz : T !! dir ≠ none → TailZeros lay')
+    (hz0 : T !! dir = none → TailZ0 lay') :
     walLentRes (W := W) T Ls ⊢ walLentRes (W := W) T (<[dir := lay']> Ls) := by
   unfold walLentRes
-  iintro ⟨%M, Ha, %HZ, Hm⟩
+  iintro ⟨%M, Ha, %HZ, %HI, Hm⟩
   iexists M
   iframe Ha
   isplitr
@@ -864,6 +896,12 @@ theorem walLentRes_insert_new (T : GMap GoString GName) (Ls : GMap GoString WalL
     by_cases e : d = dir
     · subst e; rw [GMap.lookup_insert] at hla; cases hla; exact hz hT
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hla; exact HZ d la hT hla hp
+  isplitr
+  · ipureintro
+    intro d la hT hla
+    by_cases e : d = dir
+    · subst e; rw [GMap.lookup_insert] at hla; cases hla; exact hz0 hT
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hla; exact HI d la hT hla
   iapply BigSepM.bigSepM_mono (fun {k x} _ => ?_) $$ Hm
   iintro ⟨%hk, Hk⟩
   iframe Hk
@@ -878,13 +916,13 @@ theorem walLentRes_insert_new (T : GMap GoString GName) (Ls : GMap GoString WalL
 theorem walLentRes_notLent (T : GMap GoString GName) (Ls : GMap GoString WalLay) (dir : GoString)
     (γ : GName) :
     ⊢ walTailKey (W := W) dir γ -∗ walLentRes (W := W) T Ls -∗
-      ∃ M : GMap GoString (GName × Nat × Bool), ⌜M !! dir = none ∧ ZerosOk T Ls M⌝ ∗
+      ∃ M : GMap GoString (GName × Nat × Bool), ⌜M !! dir = none ∧ ZerosOk T Ls M ∧ IdleZ0 T Ls⌝ ∗
         walTailKey (W := W) dir γ ∗ walLentAuth (W := W) M ∗
         [∗map] dir ↦ x ∈ M, ⌜LentOk T Ls dir x⌝ ∗ walTailKey (W := W) dir x.1 := by
   unfold walLentRes
-  iintro Hk ⟨%M, Ha, %HZ, Hm⟩
+  iintro Hk ⟨%M, Ha, %HZ, %HI, Hm⟩
   cases hM : M !! dir with
-  | none => iexists M; iframe Hk Ha Hm; ipureintro; exact ⟨hM, HZ⟩
+  | none => iexists M; iframe Hk Ha Hm; ipureintro; exact ⟨hM, HZ, HI⟩
   | some x =>
     ihave ⟨⟨-, Hk'⟩, -⟩ := (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (x : GName × Nat × Bool) =>
       iprop(⌜LentOk T Ls dir x⌝ ∗ walTailKey (W := W) dir x.1)) hM).1 $$ Hm
@@ -903,7 +941,7 @@ theorem walLentRes_zeros (T : GMap GoString GName) (Ls : GMap GoString WalLay) (
   isplitr
   · ipureintro
     intro lay hT hl
-    exact hM.2 dir lay hT hl (fun x hx => by rw [hM.1] at hx; cases hx)
+    exact hM.2.1 dir lay hT hl (fun x hx => by rw [hM.1] at hx; cases hx)
   unfold walLentRes
   iexists M
   iframe Ha Hm
@@ -939,7 +977,9 @@ theorem walLentRes_insert_key (T : GMap GoString GName) (Ls : GMap GoString WalL
   iexists M
   iframe Ha
   isplitr
-  · ipureintro; exact zerosOk_insert hM.2 hz
+  · ipureintro; exact zerosOk_insert hM.2.1 hz
+  isplitr
+  · ipureintro; exact hM.2.2.insert (Or.inl hz)
   iapply BigSepM.bigSepM_mono (fun {k x} hk => ?_) $$ Hm
   iintro ⟨%hx, Hk⟩
   iframe Hk
@@ -961,7 +1001,9 @@ theorem walLentRes_free (T : GMap GoString GName) (Ls : GMap GoString WalLay) (d
   iexists M
   iframe Ha
   isplitr
-  · ipureintro; exact zerosOk_insert hM.2 hz
+  · ipureintro; exact zerosOk_insert hM.2.1 hz
+  isplitr
+  · ipureintro; exact hM.2.2.insert (Or.inl hz)
   iapply BigSepM.bigSepM_mono (fun {k x} hk => ?_) $$ Hm
   iintro ⟨%hx, Hk⟩
   iframe Hk
@@ -973,7 +1015,7 @@ theorem walLentRes_reg (T : GMap GoString GName) (Ls : GMap GoString WalLay) (di
     (γ : GName) (hT : T !! dir = none) (hz : ∀ lay, Ls !! dir = some lay → TailZeros lay) :
     walLentRes (W := W) T Ls ⊢ walLentRes (W := W) (<[dir := γ]> T) Ls := by
   unfold walLentRes
-  iintro ⟨%M, Ha, %HZ, Hm⟩
+  iintro ⟨%M, Ha, %HZ, %HI, Hm⟩
   iexists M
   iframe Ha
   isplitr
@@ -982,6 +1024,8 @@ theorem walLentRes_reg (T : GMap GoString GName) (Ls : GMap GoString WalLay) (di
     by_cases e : d = dir
     · subst e; exact hz la hla
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hT'; exact HZ d la hT' hla hp
+  isplitr
+  · ipureintro; exact HI.reg
   iapply BigSepM.bigSepM_mono (fun {k x} _ => ?_) $$ Hm
   iintro ⟨%hx, Hk⟩
   iframe Hk
@@ -998,7 +1042,7 @@ theorem walLentRes_regPend (T : GMap GoString GName) (Ls : GMap GoString WalLay)
     ⊢ walTailKey (W := W) dir γ -∗ walLentRes (W := W) T Ls ==∗
       walPendTok (W := W) dir γ lay.old.length ∗ walLentRes (W := W) (<[dir := γ]> T) Ls := by
   unfold walLentRes
-  iintro Hk ⟨%M, Ha, %HZ, Hm⟩
+  iintro Hk ⟨%M, Ha, %HZ, %HI, Hm⟩
   cases hM : M !! dir with
   | some x =>
     ihave ⟨⟨%hx, -⟩, -⟩ := (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (x : GName × Nat × Bool) =>
@@ -1019,6 +1063,8 @@ theorem walLentRes_regPend (T : GMap GoString GName) (Ls : GMap GoString WalLay)
       exact absurd (hp _ (GMap.lookup_insert _ _ _)) (by simp)
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hT'
       exact HZ d la hT' hla (fun x hx => hp x (by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hx))
+  isplitr
+  · ipureintro; exact HI.reg
   have hT1 : (<[dir := γ]> T) !! dir = some γ := GMap.lookup_insert _ _ _
   have hT2 : ∀ k, k ≠ dir → (<[dir := γ]> T) !! k = T !! k := fun k e => GMap.lookup_insert_ne _ _ (Ne.symm e)
   generalize (<[dir := γ]> T) = T' at hT1 hT2 ⊢
@@ -1051,7 +1097,16 @@ theorem walLentRes_unreg (T : GMap GoString GName) (Ls : GMap GoString WalLay) (
     intro d la hT hla hp
     by_cases e : d = dir
     · subst e; exact absurd (GMap.lookup_delete_eq _ _) hT
-    · rw [GMap.lookup_delete_ne _ (Ne.symm e)] at hT; exact hM.2 d la hT hla hp
+    · rw [GMap.lookup_delete_ne _ (Ne.symm e)] at hT; exact hM.2.1 d la hT hla hp
+  isplitr
+  · ipureintro
+    intro d la hT hla
+    by_cases e : d = dir
+    · subst e
+      by_cases hT0 : T !! d = none
+      · exact hM.2.2 d la hT0 hla
+      · exact Or.inl (hM.2.1 d la hT0 hla (fun x hx => by rw [hM.1] at hx; cases hx))
+    · rw [GMap.lookup_delete_ne _ (Ne.symm e)] at hT; exact hM.2.2 d la hT hla
   iapply BigSepM.bigSepM_mono (fun {k x} hk => ?_) $$ Hm
   iintro ⟨%hx, Hk⟩
   iframe Hk
@@ -1069,7 +1124,7 @@ theorem walLentRes_lookup (T : GMap GoString GName) (Ls : GMap GoString WalLay) 
       ⌜LentOk T Ls dir (γ, k, p) ∧ (p = false → ∀ lay, Ls !! dir = some lay → TailZeros lay)⌝ ∗
         walLentTokB (W := W) dir γ k p ∗ walLentRes (W := W) T Ls := by
   unfold walLentRes
-  iintro Hl ⟨%M, Ha, %HZ, Hm⟩
+  iintro Hl ⟨%M, Ha, %HZ, %HI, Hm⟩
   icases walLentTok_lookup M dir γ k p $$ Ha Hl with %hM
   ihave ⟨⟨%hx, Hk⟩, Hm⟩ := (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (x : GName × Nat × Bool) =>
     iprop(⌜LentOk T Ls dir x⌝ ∗ walTailKey (W := W) dir x.1)) hM).1 $$ Hm
@@ -1082,6 +1137,8 @@ theorem walLentRes_lookup (T : GMap GoString GName) (Ls : GMap GoString WalLay) 
   iframe Ha
   isplitr
   · ipureintro; exact HZ
+  isplitr
+  · ipureintro; exact HI
   iapply (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (x : GName × Nat × Bool) =>
     iprop(⌜LentOk T Ls dir x⌝ ∗ walTailKey (W := W) dir x.1)) hM).2
   iframe Hm Hk
@@ -1106,8 +1163,10 @@ theorem walLentRes_lend (T : GMap GoString GName) (Ls : GMap GoString WalLay) (d
     intro d la hT' hla hp
     by_cases e : d = dir
     · subst e
-      exact hM.2 d la hT' hla (fun x hx => by rw [hM.1] at hx; cases hx)
-    · exact hM.2 d la hT' hla (fun x hx => hp x (by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hx))
+      exact hM.2.1 d la hT' hla (fun x hx => by rw [hM.1] at hx; cases hx)
+    · exact hM.2.1 d la hT' hla (fun x hx => hp x (by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hx))
+  isplitr
+  · ipureintro; exact hM.2.2
   iapply (BigSepM.bigSepM_insert (Φ := fun (dir : GoString) (x : GName × Nat × Bool) =>
     iprop(⌜LentOk T Ls dir x⌝ ∗ walTailKey (W := W) dir x.1)) hM.1).2
   iframe Hm Hk
@@ -1119,7 +1178,7 @@ theorem walLentRes_unlend (T : GMap GoString GName) (Ls : GMap GoString WalLay) 
     ⊢ walLentTok (W := W) dir γ k -∗ walLentRes (W := W) T Ls ==∗
       walTailKey (W := W) dir γ ∗ walLentRes (W := W) T Ls := by
   unfold walLentRes
-  iintro Hl ⟨%M, Ha, %HZ, Hm⟩
+  iintro Hl ⟨%M, Ha, %HZ, %HI, Hm⟩
   icases walLentTok_lookup M dir γ k false $$ Ha Hl with %hM
   ihave ⟨⟨-, Hk⟩, Hm⟩ := (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (x : GName × Nat × Bool) =>
     iprop(⌜LentOk T Ls dir x⌝ ∗ walTailKey (W := W) dir x.1)) hM).1 $$ Hm
@@ -1128,11 +1187,13 @@ theorem walLentRes_unlend (T : GMap GoString GName) (Ls : GMap GoString WalLay) 
   iframe Hk
   iexists _
   iframe Ha Hm
-  ipureintro
-  intro d la hT hla hp
-  by_cases e : d = dir
-  · subst e; exact HZ d la hT hla (fun x hx => by rw [hM] at hx; cases hx; rfl)
-  · exact HZ d la hT hla (fun x hx => hp x (by rw [GMap.lookup_delete_ne _ (Ne.symm e)]; exact hx))
+  isplitr
+  · ipureintro
+    intro d la hT hla hp
+    by_cases e : d = dir
+    · subst e; exact HZ d la hT hla (fun x hx => by rw [hM] at hx; cases hx; rfl)
+    · exact HZ d la hT hla (fun x hx => hp x (by rw [GMap.lookup_delete_ne _ (Ne.symm e)]; exact hx))
+  ipureintro; exact HI
 
 /-- **A pending tail zeroed** (I3b, `wal-tc15`; the fdatasync after `ZeroToEnd`): the pending token in,
 the key out, the tail's layout replaced by one with F-Z. -/
@@ -1142,7 +1203,7 @@ theorem walLentRes_unpend (T : GMap GoString GName) (Ls : GMap GoString WalLay) 
       walTailKey (W := W) dir γ ∗
         ∀ lay' : WalLay, ⌜TailZeros lay'⌝ -∗ walLentRes (W := W) T (<[dir := lay']> Ls) := by
   unfold walLentRes
-  iintro Hl ⟨%M, Ha, %HZ, Hm⟩
+  iintro Hl ⟨%M, Ha, %HZ, %HI, Hm⟩
   icases walLentTok_lookup M dir γ k true $$ Ha Hl with %hM
   ihave ⟨⟨-, Hk⟩, Hm⟩ := (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (x : GName × Nat × Bool) =>
     iprop(⌜LentOk T Ls dir x⌝ ∗ walTailKey (W := W) dir x.1)) hM).1 $$ Hm
@@ -1159,6 +1220,8 @@ theorem walLentRes_unpend (T : GMap GoString GName) (Ls : GMap GoString WalLay) 
     · subst e; rw [GMap.lookup_insert] at hla; cases hla; exact hz
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm e)] at hla
       exact HZ d la hT hla (fun x hx => hp x (by rw [GMap.lookup_delete_ne _ (Ne.symm e)]; exact hx))
+  isplitr
+  · ipureintro; exact HI.insert (Or.inl hz)
   iapply BigSepM.bigSepM_mono (fun {k' x} hk => ?_) $$ Hm
   iintro ⟨%hx, Hk⟩
   iframe Hk
@@ -1167,6 +1230,17 @@ theorem walLentRes_unpend (T : GMap GoString GName) (Ls : GMap GoString WalLay) 
     change GMap.delete dir M !! k' = some x at hk; rintro rfl; rw [GMap.lookup_delete_eq] at hk; cases hk
   obtain ⟨hT, la, hla, hlen⟩ := hx
   exact ⟨hT, la, by rw [GMap.lookup_insert_ne _ _ (Ne.symm e)]; exact hla, hlen⟩
+
+/-- **The unregistered tails' `TailZ0`** (`walLentRes`'s `IdleZ0`). -/
+theorem walLentRes_idle (T : GMap GoString GName) (Ls : GMap GoString WalLay) :
+    walLentRes (W := W) T Ls ⊢ ⌜IdleZ0 T Ls⌝ ∗ walLentRes (W := W) T Ls := by
+  unfold walLentRes
+  iintro ⟨%M, Ha, %HZ, %HI, Hm⟩
+  isplitr
+  · ipureintro; exact HI
+  iexists M
+  iframe Ha Hm
+  ipureintro; exact ⟨HZ, HI⟩
 
 /-- **The open handles' tails** (W6): the invariant's half of the tails' authority, a change in
 flight only on a registered tail (`TailsOnly`), and for each directory with an open handle, its WAL

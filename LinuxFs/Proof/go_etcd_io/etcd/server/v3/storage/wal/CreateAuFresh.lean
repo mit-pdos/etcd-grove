@@ -66,6 +66,8 @@ theorem createFresh_osAUnc (Mr : WalMarshal) (R : Roots) (jr : Ino) (r nm : GoSt
     hdur hzf rfl
   · intro b hb _
     simp only [createLay, List.getD_eq_getElem?_getD, List.getElem?_replicate]; split <;> rfl
+  · intro b _ _
+    simp only [createLay, List.getD_eq_getElem?_getD, List.getElem?_replicate]; split <;> rfl
   · simpa [createLay] using hz
   · exact hmeta.2.1
   · exact ⟨hmeta.2.2.1, hmeta.2.2.2⟩

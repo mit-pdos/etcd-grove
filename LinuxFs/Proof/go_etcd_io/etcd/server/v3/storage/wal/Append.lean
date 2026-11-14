@@ -59,13 +59,15 @@ theorem walTailsRes_append (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState)
   unfold walTailsRes tailVar
   iintro ⟨%T, HTa, %HTo, %HTi, HTm, HL⟩ Hk Hv
   icases walTailKey_lookup T dir γ $$ HTa Hk with %HT
+  icases walLentRes_zeros T Ls dir γ $$ Hk HL with ⟨%HZk, Hk, HL⟩
   ihave ⟨Hent, HTm⟩ := (BigSepM.bigSepM_delete (Φ := fun (dir : GoString) (γ : GName) =>
     iprop(∃ (d : WalDur) (lay : WalLay) (g : SegG),
       ⌜s.wal !! dir = some d ∧ Ls !! dir = some lay ∧ lay.segs.getLast? = some g ∧ TailZ0 lay ∧
         TailBound C Mr d lay⌝ ∗
       ghostVar γ (1 : Qp).half (tailG d lay g.ino (F !! g.ino)))) HT).1 $$ HTm
   icases Hent with ⟨%d, %lay, %g0, %hp, Hv'⟩
-  obtain ⟨hd, hl, hg, hZ, hB⟩ := hp
+  obtain ⟨hd, hl, hg, -, hB⟩ := hp
+  have hZ : TailZeros lay := HZk lay (by rw [HT]; simp) hl
   icases ghostVar_agree _ _ _ _ _ $$ Hv Hv' with %Htg
   imod ghostVar_update_halves ((tg.1 ++ [o], tg.2) : TailG) γ _ _ $$ Hv Hv' with ⟨Hv, Hv'⟩
   imodintro
@@ -85,7 +87,7 @@ theorem walTailsRes_append (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState)
   iapply (BigSepM.bigSepM_delete (Φ := fun (k : GoString) (v : GName) =>
     iprop(∃ (d1 : WalDur) (lay1 : WalLay) (g : SegG),
       ⌜(walAppS s dir d o).wal !! k = some d1 ∧ Ls !! k = some lay1 ∧ lay1.segs.getLast? = some g ∧
-        TailZeros lay1 ∧ TailBound C Mr d1 lay1⌝ ∗
+        TailZ0 lay1 ∧ TailBound C Mr d1 lay1⌝ ∗
       ghostVar v (1 : Qp).half (tailG d1 lay1 g.ino (F !! g.ino)))) HT).2
   isplitl [Hv']
   · iexists { d with H := d.H ++ [o] }, lay, g0
@@ -94,7 +96,7 @@ theorem walTailsRes_append (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState)
     rw [e]
     iframe Hv'
     ipureintro
-    exact ⟨walAppS_lookup s dir d o, hl, hg, hZ, tailBound_snoc o hc hB⟩
+    exact ⟨walAppS_lookup s dir d o, hl, hg, Or.inl hZ, tailBound_snoc o hc hB⟩
   iapply BigSepM.bigSepM_mono (fun {k x} hk => ?_) $$ HTm
   have hkd : k ≠ dir := by
     rintro rfl

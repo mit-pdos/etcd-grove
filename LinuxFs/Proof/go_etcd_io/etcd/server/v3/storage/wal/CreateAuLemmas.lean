@@ -195,7 +195,7 @@ theorem laysResF_congr (F F' : GMap Ino SegFl) (Ls : GMap GoString WalLay)
 the writes in flight unchanged on their segments. -/
 theorem walTailsRes_create (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (Ls : GMap GoString WalLay) (F F' : GMap Ino SegFl)
     (dir : GoString) (md : List w8) (lay : WalLay) (hd : s.wal !! dir = none)
-    (h : ∀ g ∈ segsAll Ls, F' !! g.ino = F !! g.ino) (hLd : Ls !! dir = none)
+    (h : ∀ g ∈ segsAll Ls, F' !! g.ino = F !! g.ino) (hLd : Ls !! dir = none) (hz0 : TailZ0 lay)
     (hF : ∀ i, F' !! i ≠ none → F !! i ≠ none) (hidle : TailIdle C Mr (walDurFresh md) lay) :
     walTailsRes (W := W) C Mr s Ls F ⊢
       walTailsRes (W := W) C Mr (createSt s dir md) (<[dir := lay]> Ls) F' := by
@@ -214,7 +214,7 @@ theorem walTailsRes_create (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (
   | none =>
   iexists T
   ihave HL := walLentRes_insert_new (W := W) T Ls dir lay hLd
-    (fun h => (h hTd).elim) $$ HL
+    (fun h => (h hTd).elim) (fun _ => hz0) $$ HL
   iframe Ha HL
   isplitr
   · ipureintro; exact Ho.insert_new hLd hF

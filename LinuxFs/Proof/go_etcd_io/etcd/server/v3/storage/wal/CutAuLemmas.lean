@@ -123,7 +123,7 @@ theorem walTailsRes_cut (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (Ls 
   iintro %lay' %g %F' %hp Hvn
   obtain ⟨hg', hZ, hB, hF, hFo⟩ := hp
   iexists T
-  ispecialize HL $$ %lay'
+  ispecialize HL $$ %lay' %hZ
   iframe HTa HL
   isplitr
   · ipureintro; exact HTo.insert HT hl hg hg' hFo
@@ -140,7 +140,7 @@ theorem walTailsRes_cut (C : WalCodec) (Mr : WalMarshal) (s : AbsDiskState) (Ls 
   · iexists d, lay', g
     iframe Hvn
     ipureintro
-    exact ⟨hd, GMap.lookup_insert _ _ _, hg', hZ, hB⟩
+    exact ⟨hd, GMap.lookup_insert _ _ _, hg', Or.inl hZ, hB⟩
   · iapply BigSepM.bigSepM_mono (fun {k γ'} hk => ?_) $$ HTm
     have hne : k ≠ dir := by
       change GMap.delete dir T !! k = some γ' at hk

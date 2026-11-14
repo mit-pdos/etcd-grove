@@ -106,7 +106,7 @@ theorem walTailW_ofRead (f : Loc) (fd : w64) (name dir : GoString) (γ : GName) 
   iexists g.om, g.bs
   iframe Hm Hb
   isplitr
-  · ipureintro; exact ⟨rfl, hm, by omega, hfd⟩
+  · ipureintro; exact ⟨rfl, hm, by omega, hfd, hm.loWr _⟩
   · unfold tailG; iexact Hv
 
 /-- A zero errno is no error. -/

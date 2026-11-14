@@ -382,7 +382,8 @@ theorem walInvBody_tail (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (R : Roots)
   · ipureintro; exact HWC
   isplitl [HTa HTm Hvn HL]
   · iexists T
-    ihave HL := walLentRes_insert_same (W := W) T Ls dir lay (tailLay lay pre g wr') hl rfl id $$ HL
+    ihave HL := walLentRes_insert_same (W := W) T Ls dir lay (tailLay lay pre g wr') hl rfl id
+      (fun h => absurd h (by rw [HT]; simp)) $$ HL
     iframe HTa HL
     isplitr
     · ipureintro
