@@ -20,6 +20,24 @@ namespace EtcdGrove
 
 open Iris Fs
 
+theorem wl_add30 (nnv : w64) (h : sint.Z nnv + 1073741824 < 2 ^ 63) (h0 : 0 ≤ sint.Z nnv) :
+    sint.Z (nnv + W64 1073741824) = sint.Z nnv + 1073741824 := by
+  word
+
+theorem wl_W64_toNat (k : Nat) (h : k < 2 ^ 63) : (W64 k).toNat = k := by
+  simp only [W64]; rw [BitVec.toNat_ofInt]; omega
+
+theorem wl_len_eq (sl : GoSlice) (n : Nat) (h : sint.Z sl.len = n) (hn : n < 2 ^ 63) :
+    sl.len = W64 n := by
+  apply BitVec.eq_of_toInt_eq
+  simp only [sint.Z] at h
+  rw [h, W64, BitVec.toInt_ofInt, Int.bmod]; split <;> omega
+
+theorem wl_toNat_of_sintZ (mx : w64) (A' : Nat) (h : sint.Z mx = A') : mx.toNat = A' := by
+  simp only [sint.Z] at h
+  have h2 := BitVec.toInt_eq_toNat_cond mx
+  split at h2 <;> omega
+
 section lemmas
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
 variable [go_gctx : GoGlobalContext]
@@ -113,17 +131,17 @@ theorem pwPostE_step (m : OsMeta) (off A j E nn A' k : Nat) (hoff : off ≤ m.si
   · show pwSize (os.pwPostE m off A j E).size (off + nn) k = pwSize m.size off (max j (nn + k))
     rw [hsz]; exact pwSize_from _ _ _ _ _ hnn
   · simp only [pwPost, os.pwPostE, announce_lo, hsz]; omega
-  · simp only [pwPost, os.pwPostE, announce_hi, hsz]; omega
+  · simp only [pwPost, os.pwPostE, announce_hi]; omega
   · simp only [pwPost, os.pwPostE, announce_maps]
-  · simp only [pwPost, os.pwPostE, announce_dlo, announce_dhi, os.touch_dlo, os.touch_dhi, hm1, hsz]
+  · simp only [pwPost, os.pwPostE, announce_dlo, announce_dhi, os.touch_dlo, os.touch_dhi, hm1]
     by_cases h3 : m.dhi ≤ m.dlo <;>
       simp only [h3, if_true, if_false, show ¬ off + A ≤ off by omega,
         show ¬ off + A' ≤ off by omega] <;> (repeat' split) <;> omega
-  · simp only [pwPost, os.pwPostE, announce_dlo, announce_dhi, os.touch_dlo, os.touch_dhi, hm1, hsz]
+  · simp only [pwPost, os.pwPostE, announce_dlo, announce_dhi, os.touch_dlo, os.touch_dhi, hm1]
     by_cases h3 : m.dhi ≤ m.dlo <;>
       simp only [h3, if_true, if_false, show ¬ off + A ≤ off by omega,
         show ¬ off + A' ≤ off by omega] <;> (repeat' split) <;> omega
-  · simp only [pwPost, os.pwPostE, announce_zf, Option.map_map, hm1, hsz]
+  · simp only [pwPost, os.pwPostE, announce_zf, Option.map_map, hm1]
     cases m.zf with
     | none => rfl
     | some z =>
@@ -321,6 +339,20 @@ theorem pwCutE_step (off len nn j A A' E k : Nat) (hcj : os.PwCutE off len j E) 
       · rcases hpc2 with h | h
         · omega
         · right; omega
+
+/-- The bytes past a chunk are there only if the chunk is all below the size: then the attempt's
+bytes are as many as it took. -/
+theorem pwBytes_rest (S off nn c k nst len : Nat) (dc : List w8) (ys : List ByteG) (zs : List Cands)
+    (hyl : ys.length = min (off + len) S - off) (hS : off + nn ≤ S) (hc : nn + c ≤ len)
+    (hdc : dc.length = c) :
+    (ys.drop nn).drop c = [] ∨
+      ((ys.drop nn).take c).length = (pwBytes S (off + nn) dc k nst ((ys.drop nn).take c) zs).length := by
+  rw [pwBytes_length, hdc]
+  by_cases h : ys.length ≤ nn + c
+  · left; apply List.drop_eq_nil_of_le; simp only [List.length_drop]; omega
+  · right
+    have := pwSize_ge S (off + nn) k
+    simp only [List.length_take, List.length_drop]; omega
 
 end lemmas
 
