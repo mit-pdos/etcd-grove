@@ -8,7 +8,7 @@ The proofs of `examples/net/halfclose`'s functions, over the specs of `net` and 
 * `serveConn`: `readAll`; on EOF, the write back of what it read (`server_write_au`); the close
   (`server_close_au`), whose FIN keeps `finEcho`: the end is broken unless the read met EOF and the
   write wrote it all.
-* `Serve`: `Listen`, then the accept loop (`wire.accept_au`: each accepted connection's protocol).
+* `Serve`: `Listen`, then the accept loop (`wire.accept_lis_au`: each accepted connection's protocol).
 * `Call`: the dial (`wire.dial_au`, the deposit `hc_deposit`), the write of `"hello"`, the
   shutdown of the write side, `readAll`, and the check: on EOF, the response is `"hello"`
   (`client_check`).
@@ -309,7 +309,7 @@ theorem wp_Serve
   wp_start as ⟨#Hinvs, #Hplan, #Heof⟩
   icases hcInvs_elim γm $$ Hinvs with ⟨#HaddrInv, #HhcInv⟩
   (try wp_auto)
-  wp_apply wp_Listen srvAddr $$ Hplan as %li %err (⟨%Herr, %l, #Hli, Hlis⟩ | %Herr)
+  wp_apply wp_Listen srvAddr $$ Hplan as %li %err (⟨%Herr, %l, #Hli, Hlis, #Hla⟩ | %Herr)
   · -- listening: the accept loop
     subst Herr
     unfold net.isListener
@@ -320,23 +320,13 @@ theorem wp_Serve
       IProp GF) $$ [Hlis]
     · iexact Hlis
     wp_for HI
-    wp_apply wp_Accept t l srvAddr true
+    wp_apply wp_Accept t l srvAddr
         (tcpLis (extLocalGS tcpExt (L := hG.goose_localGS)) l srvAddr true)
         (fun cn => iprop(tcpLis (extLocalGS tcpExt (L := hG.goose_localGS)) l srvAddr true ∗
           connProto γm cn)) $$ [Hlis]
       as %c %err (⟨%Herr, %cn, #Hc, Hlis, Hproto⟩ | ⟨%Herr, Hlis⟩)
-    · iframe Hlt Hlis
-      isplit
-      · iintro Hl; iexact Hl
-      · imod wire.accept_au addrN srvAddr (connProto γm) $$ HaddrInv with ⟨%S, Hp, Hk⟩
-        imodintro
-        iexists S
-        iframe Hp
-        iintro %cn %HcS Hp
-        imod Hk $$ %cn %HcS Hp with Hproto
-        imodintro
-        iintro Hl -
-        iframe Hl Hproto
+    · iframe Hlt Hla
+      iapply wire.accept_lis_au addrN srvAddr (connProto γm) _ l true $$ HaddrInv Hlis
     · -- a connection: serve it
       subst Herr
       wp_auto

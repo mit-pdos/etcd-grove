@@ -18,8 +18,11 @@ The ghost state of the TCP extension (`Impl.lean`) and its interpretation (`ExtI
   - `tcpConnAt c a` (persistent): `c` was dialed to `a`.
   A connection's ghost names are in a ghost map from connection numbers (persistent entries).
 
-**The node's resources** (local): `tcpLis l a o`, the listener `l` at `a`, open if `o`; and the
-node's host (`TcpLocalGS.host`), fixed, which the local interpretation says is the node's.
+**The node's resources** (local): `tcpLis l a o`, the listener `l` at `a`, open if `o`
+(exclusive); `tcpLisAt l a` (persistent), the listener `l` exists, at `a`, which is what an `Accept`
+or a `Close` needs to step while `tcpLis` is elsewhere (in an invariant: a listener shared between
+threads); and the node's host (`TcpLocalGS.host`), fixed, which the local interpretation says is the
+node's.
 
 **Crashes**: the network's resources are global and survive a crash, as the network does. The
 listeners' ghost map is the node's, made anew at a crash (no listener survives).
@@ -104,6 +107,8 @@ structure TcpLocalGS (GF : BundledGFunctors) where
   allG : AllG GF
   host : GoString
   γlis : GName
+  /-- The listeners' addresses (persistent entries: a listener's address never changes). -/
+  γat : GName
 
 /-- What the adequacy theorem provides: the universal camera. -/
 structure TcpGpreS (GF : BundledGFunctors) where
@@ -149,11 +154,14 @@ def tcpCtx (hG : TcpGS GF) (g : TcpGlobal) : IProp GF :=
     [∗map] c ↦ cn ∈ g.conns, ∃ γ, ⌜nm !! c = some γ⌝ ∗ ghostMapElem hG.γnames c .discard γ ∗
       connCtx γ cn)
 
+/-- The listeners' addresses. -/
+def lisAddrs (m : GMap w64 (GoString × Bool)) : GMap w64 GoString := GMap.fmap Prod.fst m
+
 /-- The interpretation of a node: its host is the ghost state's, and its listeners are those of
-the ghost map. -/
+the ghost map (`γlis`), their addresses those of the other (`γat`). -/
 def tcpLocalCtx (hL : TcpLocalGS GF) (L : TcpLocal) : IProp GF :=
   letI := hL.allG
-  iprop(⌜L.host = hL.host⌝ ∗ ghostMapAuth hL.γlis 1 L.lis)
+  iprop(⌜L.host = hL.host⌝ ∗ ghostMapAuth hL.γlis 1 L.lis ∗ ghostMapAuth hL.γat 1 (lisAddrs L.lis))
 
 /-! ## The resources -/
 
@@ -202,6 +210,11 @@ def tcpPlan (hG : TcpGS GF) (a h : GoString) : IProp GF :=
 def tcpLis (hL : TcpLocalGS GF) (l : w64) (a : GoString) (o : Bool) : IProp GF :=
   letI := hL.allG; ghostMapElem hL.γlis l (.own 1) (a, o)
 
+/-- The listener `l` of this node exists, at `a` (persistent: what an `Accept` or `Close` of `l`
+needs to take a step, whoever holds `tcpLis`). -/
+def tcpLisAt (hL : TcpLocalGS GF) (l : w64) (a : GoString) : IProp GF :=
+  letI := hL.allG; ghostMapElem hL.γat l .discard a
+
 instance tcpNames_persistent (hG : TcpGS GF) c γ : Persistent (tcpNames hG c γ) := by
   unfold tcpNames; letI := hG.allG; infer_instance
 instance tcpOutLb_persistent (hG : TcpGS GF) c s bs : Persistent (tcpOutLb hG c s bs) := by
@@ -230,6 +243,10 @@ instance tcpPlan_timeless (hG : TcpGS GF) a h : Timeless (tcpPlan hG a h) := by
   unfold tcpPlan; letI := hG.allG; infer_instance
 instance tcpLis_timeless (hL : TcpLocalGS GF) l a o : Timeless (tcpLis hL l a o) := by
   unfold tcpLis; letI := hL.allG; infer_instance
+instance tcpLisAt_timeless (hL : TcpLocalGS GF) l a : Timeless (tcpLisAt hL l a) := by
+  unfold tcpLisAt; letI := hL.allG; infer_instance
+instance tcpLisAt_persistent (hL : TcpLocalGS GF) l a : Persistent (tcpLisAt hL l a) := by
+  unfold tcpLisAt; letI := hL.allG; infer_instance
 
 end defs
 
@@ -281,16 +298,23 @@ theorem tcp_global_init (hPre : TcpGpreS GF) (g : TcpGlobal) (hg : g.conns = ∅
 
 /-- The start resources of a node: its host, and its listeners. -/
 def lisStart (hL : TcpLocalGS GF) (L : TcpLocal) : IProp GF :=
-  iprop(⌜hL.host = L.host⌝ ∗ [∗map] l ↦ x ∈ L.lis, tcpLis hL l x.1 x.2)
+  iprop(⌜hL.host = L.host⌝ ∗ ([∗map] l ↦ x ∈ L.lis, tcpLis hL l x.1 x.2) ∗
+    [∗map] l ↦ a ∈ lisAddrs L.lis, tcpLisAt hL l a)
 
 theorem tcp_local_init (hPre : TcpGpreS GF) (L : TcpLocal) :
     ⊢@{IProp GF} |==> ∃ hL : TcpLocalGS GF, tcpLocalCtx hL L ∗ lisStart hL L := by
   letI := hPre.allG
   imod ghost_map_alloc (GF := GF) L.lis with ⟨%γ, H, Hs⟩
+  imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := GoString) with ⟨%γa, Ha⟩
+  imod ghost_map_insert_persist_big (γ := γa) (lisAddrs L.lis) (fun _ _ h => by simp at h)
+    $$ Ha with ⟨Ha, Has⟩
   imodintro
-  iexists (⟨hPre.allG, L.host, γ⟩ : TcpLocalGS GF)
-  unfold tcpLocalCtx lisStart tcpLis
-  iframe H Hs
+  iexists (⟨hPre.allG, L.host, γ, γa⟩ : TcpLocalGS GF)
+  unfold tcpLocalCtx lisStart tcpLis tcpLisAt
+  have hu : lisAddrs L.lis ∪ (∅ : GMap w64 GoString) = lisAddrs L.lis := by
+    apply GMap.ext; intro k; rw [gmap_lookup_union]; cases (lisAddrs L.lis).lookup k <;> rfl
+  rw [hu]
+  iframe H Hs Ha Has
   isplit <;> ipureintro <;> rfl
 
 end init

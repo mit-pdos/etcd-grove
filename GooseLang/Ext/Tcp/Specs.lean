@@ -1224,12 +1224,23 @@ theorem tcpCtx_plan (hG : TcpGS GF) (g : TcpGlobal) (a h : GoString) :
   iintro ⟨%nm, %pm, Hn, Hp, Hl, %Hpure, Hconns⟩ #Ha
   iapply ghost_map_lookup $$ Hl Ha
 
+theorem lisAddrs_insert (m : GMap w64 (GoString × Bool)) (l : w64) (x : GoString × Bool) :
+    lisAddrs (m.insert l x) = (lisAddrs m).insert l x.1 := by
+  unfold lisAddrs
+  apply GMap.ext; intro k
+  simp only [GMap.lookup_fmap, GMap.lookup_insert_eq_iff]
+  split <;> simp_all
+
+theorem lisAddrs_lookup (m : GMap w64 (GoString × Bool)) (l : w64) :
+    (lisAddrs m).lookup l = (m.lookup l).map Prod.fst := by
+  unfold lisAddrs; rw [GMap.lookup_fmap]
+
 /-- `Listen` at `a`, an address of this node's host in the plan: a failure, or a new open
-listener. -/
+listener (and its address, persistent). -/
 theorem wp_tcp_Listen (a : GoString) (Φ : val → IProp GF) :
     tcpPlan tcpG a (tcpL (L := L)).host -∗
     (Φ (PairV (#(W64 0)) (#false)) ∧ ∀ l : w64, tcpLis (tcpL (L := L)) l a true -∗
-      Φ (PairV (#l) (#true))) -∗
+      tcpLisAt (tcpL (L := L)) l a -∗ Φ (PairV (#l) (#true))) -∗
     WP (ExternalOp tcpExt.name "Listen" (Val (#a))) @ sk; E {{ Φ }} := by
   letI := (tcpL (L := L)).allG
   iintro #Hp HΦ
@@ -1239,7 +1250,7 @@ theorem wp_tcp_Listen (a : GoString) (Φ : val → IProp GF) :
   icases (tcp_local_ctx_eq σ).mp $$ Hl with Hl
   icases tcpCtx_plan _ g a _ $$ Hg Hp with %Hpa
   unfold tcpLocalCtx
-  icases Hl with ⟨%Hhost, Hlis⟩
+  icases Hl with ⟨%Hhost, Hlis, Hat⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hclose
   isplitr
@@ -1254,38 +1265,71 @@ theorem wp_tcp_Listen (a : GoString) (Φ : val → IProp GF) :
   · icases HΦ with ⟨HΦ, -⟩
     imodintro
     iframe Hheap
-    isplitl [Hlis]
-    · iapply (tcp_local_ctx_eq _).mpr; unfold tcpLocalCtx; iframe Hlis; ipureintro; exact Hhost
+    isplitl [Hlis Hat]
+    · iapply (tcp_local_ctx_eq _).mpr; unfold tcpLocalCtx; iframe Hlis Hat; ipureintro; exact Hhost
     isplitl [Hg]
     · iapply (tcp_global_ctx_eq _).mpr; iexact Hg
     iapply wp_value'
     iexact HΦ
-  · imod ghost_map_insert l (a, true) hl $$ Hlis with ⟨Hlis, Hel⟩
+  · have hla : (lisAddrs σ.lis).lookup l = none := by rw [lisAddrs_lookup, hl]; rfl
+    imod ghost_map_insert l (a, true) hl $$ Hlis with ⟨Hlis, Hel⟩
+    imod ghost_map_insert_persist l a hla $$ Hat with ⟨Hat, #Hla⟩
     icases HΦ with ⟨-, HΦ⟩
     imodintro
     iframe Hheap
-    isplitl [Hlis]
-    · iapply (tcp_local_ctx_eq _).mpr; unfold tcpLocalCtx; iframe Hlis; ipureintro; exact Hhost
+    isplitl [Hlis Hat]
+    · iapply (tcp_local_ctx_eq _).mpr; unfold tcpLocalCtx
+      simp only
+      rw [lisAddrs_insert]
+      iframe Hlis Hat; ipureintro; exact Hhost
     isplitl [Hg]
     · iapply (tcp_global_ctx_eq _).mpr; iexact Hg
     iapply wp_value'
-    iapply HΦ
-    unfold tcpLis
-    iexact Hel
+    iapply HΦ $$ [Hel]
+    · unfold tcpLis; iexact Hel
+    · unfold tcpLisAt; iexact Hla
 
-/-- `LisClose` of the listener `l`: closed; the result is whether it was open. -/
-theorem wp_tcp_LisClose (l : w64) (a : GoString) (o : Bool) (Φ : val → IProp GF) :
-    tcpLis (tcpL (L := L)) l a o -∗ (tcpLis (tcpL (L := L)) l a false -∗ Φ (#o)) -∗
+theorem tcpLocal_lookup (hL : TcpLocalGS GF) (σ : TcpLocal) (l : w64) (a : GoString) (o : Bool) :
+    tcpLocalCtx hL σ -∗ tcpLis hL l a o -∗ ⌜σ.lis !! l = some (a, o)⌝ := by
+  letI := hL.allG
+  unfold tcpLocalCtx tcpLis
+  iintro ⟨%Hhost, Hlis, -⟩ Hel
+  iapply ghost_map_lookup $$ Hlis Hel
+
+/-- The listener `l` exists in the node's state, at `a`. -/
+theorem tcpLisAt_lookup (hL : TcpLocalGS GF) (σ : TcpLocal) (l : w64) (a : GoString) :
+    tcpLocalCtx hL σ -∗ tcpLisAt hL l a -∗ ⌜∃ o, σ.lis !! l = some (a, o)⌝ := by
+  letI := hL.allG
+  unfold tcpLocalCtx tcpLisAt
+  iintro ⟨%Hhost, Hlis, Hat⟩ Hel
+  icases ghost_map_lookup $$ Hat Hel with %Hla
+  ipureintro
+  rw [lisAddrs_lookup] at Hla
+  cases hl : σ.lis.lookup l with
+  | none => rw [hl] at Hla; cases Hla
+  | some x =>
+    rw [hl] at Hla
+    obtain ⟨a', o⟩ := x
+    cases Hla
+    exact ⟨o, rfl⟩
+
+/-- `LisClose` of the listener `l` at `a`, by a logically atomic update over its state: closed; the
+result is whether it was open. -/
+theorem wp_tcp_LisClose (l : w64) (a : GoString) (Φ : val → IProp GF) :
+    tcpLisAt (tcpL (L := L)) l a -∗
+    (|={E,∅}=> ∃ o, tcpLis (tcpL (L := L)) l a o ∗
+      (tcpLis (tcpL (L := L)) l a false ={∅,E}=∗ Φ (#o))) -∗
     WP (ExternalOp tcpExt.name "LisClose" (Val (#l))) @ sk; E {{ Φ }} := by
   letI := (tcpL (L := L)).allG
-  iintro Hel HΦ
+  iintro #Hla HAU
   iapply wp_extStep "LisClose" (#l) Φ (by simp)
   iintro %h %σ %g Hheap Hl Hg
   icases (tcp_local_ctx_eq σ).mp $$ Hl with Hl
+  imod HAU with ⟨%o, Hel, Hk⟩
+  ihave %Hll := tcpLocal_lookup _ σ l a o $$ Hl Hel
   unfold tcpLocalCtx tcpLis
-  icases Hl with ⟨%Hhost, Hlis⟩
-  icases ghost_map_lookup $$ Hlis Hel with %Hll
-  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  icases Hl with ⟨%Hhost, Hlis, Hat⟩
+  iapply fupd_mask_intro (by simp)
   iintro Hclose
   isplitr
   · ipureintro
@@ -1303,21 +1347,33 @@ theorem wp_tcp_LisClose (l : w64) (a : GoString) (o : Bool) (Φ : val → IProp 
   cases o
   · simp only [Bool.false_eq_true, ↓reduceIte] at Hcase
     obtain ⟨rfl, rfl⟩ := Hcase
+    imod Hk $$ Hel with HΦ
     imodintro
     iframe Hheap Hg
-    isplitl [Hlis]
-    · iapply (tcp_local_ctx_eq _).mpr; unfold tcpLocalCtx; iframe Hlis; ipureintro; exact Hhost
+    isplitl [Hlis Hat]
+    · iapply (tcp_local_ctx_eq _).mpr; unfold tcpLocalCtx; iframe Hlis Hat; ipureintro; exact Hhost
     iapply wp_value'
-    iapply HΦ $$ Hel
+    iexact HΦ
   · simp only [↓reduceIte] at Hcase
     obtain ⟨rfl, rfl⟩ := Hcase
     imod ghost_map_update (a, false) $$ Hlis Hel with ⟨Hlis, Hel⟩
+    imod Hk $$ Hel with HΦ
+    have hsame : lisAddrs (σ.lis.insert l (a, false)) = lisAddrs σ.lis := by
+      rw [lisAddrs_insert]
+      apply GMap.ext; intro k
+      simp only [GMap.lookup_insert_eq_iff, lisAddrs_lookup]
+      split
+      · subst_vars; rw [Hll]; rfl
+      · rfl
     imodintro
     iframe Hheap Hg
-    isplitl [Hlis]
-    · iapply (tcp_local_ctx_eq _).mpr; unfold tcpLocalCtx; iframe Hlis; ipureintro; exact Hhost
+    isplitl [Hlis Hat]
+    · iapply (tcp_local_ctx_eq _).mpr; unfold tcpLocalCtx
+      simp only
+      rw [hsame]
+      iframe Hlis Hat; ipureintro; exact Hhost
     iapply wp_value'
-    iapply HΦ $$ Hel
+    iexact HΦ
 
 
 /-- The resources of a new connection's end `s`: fresh, nothing read or written. -/
@@ -1470,30 +1526,27 @@ theorem connCtx_addr [AllG GF] (γ : ConnNames) (cn : TcpConn) :
   iintro ⟨%H, -, -⟩
   ipureintro; exact H
 
-theorem tcpLocal_lookup (hL : TcpLocalGS GF) (σ : TcpLocal) (l : w64) (a : GoString) (o : Bool) :
-    tcpLocalCtx hL σ -∗ tcpLis hL l a o -∗ ⌜σ.lis !! l = some (a, o)⌝ := by
-  letI := hL.allG
-  unfold tcpLocalCtx tcpLis
-  iintro ⟨%Hhost, Hlis⟩ Hel
-  iapply ghost_map_lookup $$ Hlis Hel
-
-/-- `Accept` of the listener `l` at `a`: a failure; or a connection `c` pending at `a`, now
-accepted (taken out of `tcpPend`, by a logically atomic update). The update is used only when the
-accept returns a connection. -/
-theorem wp_tcp_Accept (l : w64) (a : GoString) (o : Bool) (Φ : val → IProp GF) :
-    tcpLis (tcpL (L := L)) l a o -∗
-    ((tcpLis (tcpL (L := L)) l a o -∗ Φ (PairV (#(W64 0)) (#false))) ∧
-      (|={E,∅}=> ∃ S, tcpPend tcpG a S ∗ ∀ c, ⌜c ∈ S⌝ -∗ tcpPend tcpG a (S \ {[c]}) ={∅,E}=∗
-        (tcpLis (tcpL (L := L)) l a o -∗ tcpConnAt tcpG c a -∗
+/-- `Accept` of the listener `l` at `a`, by a logically atomic update over its state and the
+address's pending set: a failure (both unchanged); or, only if the listener is open, a connection
+`c` pending at `a`, now accepted (taken out of the pending set). The update is opened only at the
+step that decides (the accept may first wait). -/
+theorem wp_tcp_Accept (l : w64) (a : GoString) (Φ : val → IProp GF) :
+    tcpLisAt (tcpL (L := L)) l a -∗
+    (|={E,∅}=> ∃ o S, tcpLis (tcpL (L := L)) l a o ∗ tcpPend tcpG a S ∗
+      ((tcpLis (tcpL (L := L)) l a o -∗ tcpPend tcpG a S ={∅,E}=∗
+          Φ (PairV (#(W64 0)) (#false))) ∧
+        (⌜o = true⌝ -∗ ∀ c, ⌜c ∈ S⌝ -∗ tcpLis (tcpL (L := L)) l a o -∗
+          tcpPend tcpG a (S \ {[c]}) -∗ tcpConnAt tcpG c a ={∅,E}=∗
           Φ (PairV (#(endId c true)) (#true))))) -∗
     WP (ExternalOp tcpExt.name "Accept" (Val (#l))) @ sk; E {{ Φ }} := by
   letI := (tcpG (G := G)).allG
   iloeb as IH
-  iintro Hel HΦ
+  iintro #Hla HAU
   iapply wp_extStep "Accept" (#l) Φ (by simp)
   iintro %h %σ %g Hheap Hl Hg
   icases (tcp_local_ctx_eq σ).mp $$ Hl with Hl
-  icases tcpLocal_lookup _ σ l a o $$ Hl Hel with %Hll
+  ihave %Hll := tcpLisAt_lookup _ σ l a $$ Hl Hla
+  obtain ⟨o, Hll⟩ := Hll
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hclose
   isplitr
@@ -1506,7 +1559,7 @@ theorem wp_tcp_Accept (l : w64) (a : GoString) (o : Bool) (Φ : val → IProp GF
   rw [Hll] at Hl0
   obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj Hl0)
   imod Hclose
-  rcases Hcase with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨-, c, cn, hcn, haddr, hacc, hb, rfl, rfl⟩
+  rcases Hcase with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨ho, c, cn, hcn, haddr, hacc, hb, rfl, rfl⟩
   · -- it waits
     imodintro
     iframe Hheap
@@ -1514,9 +1567,11 @@ theorem wp_tcp_Accept (l : w64) (a : GoString) (o : Bool) (Φ : val → IProp GF
     · iapply (tcp_local_ctx_eq _).mpr; iexact Hl
     isplitl [Hg]
     · iapply (tcp_global_ctx_eq _).mpr; iexact Hg
-    iapply IH $$ Hel HΦ
+    iapply IH $$ Hla HAU
   · -- a failure
+    imod HAU with ⟨%o', %S, Hel, Hpend, HΦ⟩
     icases HΦ with ⟨HΦ, -⟩
+    imod HΦ $$ Hel Hpend with HΦ
     imodintro
     iframe Hheap
     isplitl [Hl]
@@ -1524,10 +1579,13 @@ theorem wp_tcp_Accept (l : w64) (a : GoString) (o : Bool) (Φ : val → IProp GF
     isplitl [Hg]
     · iapply (tcp_global_ctx_eq _).mpr; iexact Hg
     iapply wp_value'
-    iapply HΦ $$ Hel
+    iexact HΦ
   · -- the connection `c`
-    icases HΦ with ⟨-, HAU⟩
-    imod HAU with ⟨%S, Hpend, Hk⟩
+    imod HAU with ⟨%o', %S, Hel, Hpend, HΦ⟩
+    icases tcpLocal_lookup _ _ l a o' $$ Hl Hel with %Hll'
+    rw [Hll] at Hll'
+    obtain ⟨-, rfl⟩ := Prod.mk.inj (Option.some.inj Hll')
+    icases HΦ with ⟨-, Hk⟩
     icases (tcp_global_ctx_eq _).mp $$ Hg with Hg
     unfold tcpCtx
     icases Hg with ⟨%nm, %pm, Hn, Hpm, Hpl, %Hpure, Hconns⟩
@@ -1538,13 +1596,19 @@ theorem wp_tcp_Accept (l : w64) (a : GoString) (o : Bool) (Φ : val → IProp GF
     imod ghost_map_update (S \ {[c]}) $$ Hpm Hpend with ⟨Hpm, Hpend⟩
     icases BigSepM.bigSepM_insert_acc hcn $$ Hconns with ⟨⟨%γ, %Hγ, #Hn', Hcc⟩, Hcl⟩
     icases connCtx_addr γ cn $$ Hcc with %Haddr
-    imod Hk $$ %c %hcS [Hpend] with HΦ
+    imod Hk $$ %ho %c %hcS Hel [Hpend] [] with HΦ
     · iexact Hpend
+    · unfold tcpConnAt
+      iexists γ
+      unfold tcpNames
+      iframe Hn'
+      ipureintro
+      exact ⟨Haddr.trans haddr, hb⟩
     imodintro
     iframe Hheap
     isplitl [Hl]
     · iapply (tcp_local_ctx_eq _).mpr; iexact Hl
-    isplitr [HΦ Hel]
+    isplitr [HΦ]
     · iapply (tcp_global_ctx_eq _).mpr
       unfold tcpCtx
       iexists nm, pm.insert a (S \ {[c]})
@@ -1567,13 +1631,7 @@ theorem wp_tcp_Accept (l : w64) (a : GoString) (o : Bool) (Φ : val → IProp GF
       rw [connCtx_accepted γ cn true]
       iexact Hcc
     iapply wp_value'
-    iapply HΦ $$ Hel
-    unfold tcpConnAt
-    iexists γ
-    unfold tcpNames
-    iframe Hn'
-    ipureintro
-    exact ⟨Haddr.trans haddr, hb⟩
+    iexact HΦ
 
 end lifting
 

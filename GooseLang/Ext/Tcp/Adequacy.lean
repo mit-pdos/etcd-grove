@@ -5,8 +5,8 @@ distributed program's adequacy theorem (`goose_dist_crash_adequacy`, Perennial's
 `DistAdequacy.lean`) is instantiated with.
 
 **A crash** keeps the network's ghost state, as the network itself (it is global). A node's
-local ghost state after a crash (`tcp_crash_interp`) has the same host and universal camera and a
-fresh ghost map of listeners, empty, as the crash leaves the node's listeners
+local ghost state after a crash (`tcp_crash_interp`) has the same host and universal camera and
+fresh ghost maps of listeners and of their addresses, empty, as the crash leaves the node's listeners
 (`Impl.lean`'s `crash`); `crashStart` says the host is kept.
 
 **Start resources**: the network's (`tcpStart`: the plan's persistent entries and every plan
@@ -37,11 +37,16 @@ instance tcp_crash_interp : ExtCrashInterp tcpExt where
     simp only
     iintro ⟨%Hhost, -⟩
     imod ghost_map_alloc_empty (K := w64) (V := GoString × Bool) with ⟨%γ, H⟩
+    imod ghost_map_alloc_empty (K := w64) (V := GoString) with ⟨%γa, Ha⟩
     imodintro
-    iexists (⟨hL.allG, hL.host, γ⟩ : TcpLocalGS _)
-    iframe H
+    iexists (⟨hL.allG, hL.host, γ, γa⟩ : TcpLocalGS _)
+    have he : lisAddrs (∅ : GMap w64 (GoString × Bool)) = ∅ := by
+      apply GMap.ext; intro k; unfold lisAddrs; rw [GMap.lookup_fmap]; rfl
+    simp only
+    rw [he]
+    iframe H Ha
     ipureintro
-    exact ⟨Hhost, rfl⟩
+    exact Hhost
 
 /-- The extensions of a networked program over TCP. -/
 @[reducible] def tcpExts : GooseExts := ⟨[tcpExt]⟩

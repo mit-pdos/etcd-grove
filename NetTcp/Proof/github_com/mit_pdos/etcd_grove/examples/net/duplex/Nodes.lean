@@ -5,7 +5,7 @@ linked in `Results.lean`) and the protocol of `Defs.lean`:
 * `serveConn`: a loop of `Read`s into a 16-byte buffer, each read's bytes written back
   (`server_write_au`: they follow the server's bytes in the dialer's), until a failure or EOF;
   then the close (`server_close_au`). The server thread owns its end.
-* `Serve`: `Listen`, then the accept loop (`wire.accept_au`).
+* `Serve`: `Listen`, then the accept loop (`wire.accept_lis_au`).
 * `writeAll`: the writer goroutine, the bytes 1..4 one at a time (`cli_write_au`).
 * `Call`: the dial (`wire.dial_au`, the deposit `dup_deposit`), the client's end put in its
   invariant (`cliInv_alloc`), `writeAll` forked, then four `wire.ReadFull`s of one byte through the
@@ -246,7 +246,7 @@ theorem wp_Serve
   wp_start as ⟨#Hinvs, #Hplan, #Heof⟩
   icases dupInvs_elim γm $$ Hinvs with ⟨#HaddrInv, #HsrvInv⟩
   (try wp_auto)
-  wp_apply wp_Listen srvAddr $$ Hplan as %li %err (⟨%Herr, %l, #Hli, Hlis⟩ | %Herr)
+  wp_apply wp_Listen srvAddr $$ Hplan as %li %err (⟨%Herr, %l, #Hli, Hlis, #Hla⟩ | %Herr)
   · -- listening: the accept loop
     subst Herr
     unfold net.isListener
@@ -257,23 +257,13 @@ theorem wp_Serve
       IProp GF) $$ [Hlis]
     · iexact Hlis
     wp_for HI
-    wp_apply wp_Accept t l srvAddr true
+    wp_apply wp_Accept t l srvAddr
         (tcpLis (extLocalGS tcpExt (L := hG.goose_localGS)) l srvAddr true)
         (fun cn => iprop(tcpLis (extLocalGS tcpExt (L := hG.goose_localGS)) l srvAddr true ∗
           connProto γm cn)) $$ [Hlis]
       as %c %err (⟨%Herr, %cn, #Hc, Hlis, Hproto⟩ | ⟨%Herr, Hlis⟩)
-    · iframe Hlt Hlis
-      isplit
-      · iintro Hl; iexact Hl
-      · imod wire.accept_au addrN srvAddr (connProto γm) $$ HaddrInv with ⟨%S, Hp, Hk⟩
-        imodintro
-        iexists S
-        iframe Hp
-        iintro %cn %HcS Hp
-        imod Hk $$ %cn %HcS Hp with Hproto
-        imodintro
-        iintro Hl -
-        iframe Hl Hproto
+    · iframe Hlt Hla
+      iapply wire.accept_lis_au addrN srvAddr (connProto γm) _ l true $$ HaddrInv Hlis
     · -- a connection: serve it
       subst Herr
       wp_auto

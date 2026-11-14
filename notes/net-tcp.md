@@ -80,25 +80,45 @@ differently), so the node file restates the few lemmas it `imod`s (echo's `clien
 
 ## Status
 
-- **echo**: proved end to end, `echo_crash_safety` (`echo/Results.lean`); axioms: only the
-  translation's axiomatized types.
-- framed, acceptloop, halfclose, preface: in progress (2026-11-14).
-- duplex, shutdown: need the two shared changes below.
+All proved end to end, with no `sorry` and no axiom of this repository; each `Results.lean` ends
+with `#print axioms` of its theorem, which lists only Lean's three and the translation's
+axiomatized Go types (`net.Dialer`, `sync.Map`, ..., which `etc/tcb-report.py` counts as
+Perennial's), and for preface Perennial's `time.Now.wp_proof` (the only spec of `time.Now`).
 
-## Planned changes
+| Example | Theorem | Nodes | What the proof needed beyond echo's |
+|---|---|---|---|
+| echo | `echo_crash_safety` | 3 | (the pattern) |
+| framed | `framed_crash_safety` | 3 | the server writes many times: a ghost variable mirrors its bytes instead of a one-shot token |
+| acceptloop | `acceptloop_crash_safety` | 2 | `go` per connection and two concurrent callers (`wp_fork`); echo's protocol as is |
+| duplex | `duplex_crash_safety` | 2 | one end shared by a writer and a reader goroutine: `ReadFull` through an accessor (below) |
+| halfclose | `halfclose_crash_safety` | 2 | `CloseWrite` (`NetTcp/Spec/net/TCPConn__CloseWrite.lean`); EOF pins the peer's full bytes (`tcpFin`), a broken end sends no FIN |
+| preface | `preface_crash_safety` | 3 | `SetDeadline` (`NetTcp/Spec/net/Conn__SetDeadline.lean`), `time.Now` and `Time.Add` (Perennial's specs) |
+| shutdown | (in progress) | 1 | a listener and an end shared with blocked threads; every operation after `Close` fails (below) |
 
-- **Listeners shared between threads** (shutdown: an accept loop in one goroutine, `Close` and a
-  last `Accept` in another; "every operation after Close fails"). The extension's `Accept` asks
-  for the success update even on a closed listener, so "Accept after Close fails" is unprovable;
-  and it takes `tcpLis` owned. Plan: a persistent `tcpLisAt l a` (the listener exists, at `a`:
-  a second, persistent ghost map) so that an Accept's reducibility needs no update (the step may
-  stutter, so the update cannot be opened just to look); `Accept`'s update over
-  `tcpLis l a o ∗ tcpPend a S` with a failure branch (closing them unchanged) and a success branch
-  owed only `⌜o = true⌝`; `LisClose` logically atomic over `tcpLis`; `wire.accept_au` with the
-  failure branch. The owned case stays a derived lemma.
-- **Ends shared between threads** (duplex: a writer goroutine and a reader on one end).
-  `wire.ReadFull`'s spec owns `tcpEnd`; the read side of a shared end needs it through an
-  accessor. Plan: `ReadFull.spec` over a reader predicate `P r` with a persistent accessor
-  `□ ∀ r, P r -∗ |={⊤,∅}=> ∃ st, tcpEnd c s st r ∗ ∀ st' r', tcpEnd c s st' r' ={∅,⊤}=∗ P r'`;
-  the owned spec as a derived lemma (`P r := ∃ st, tcpEnd c s st r`), so the clients' migration
-  is mechanical.
+## Changes made along the way
+
+- **`wire.ReadFull` over a reader predicate** (2026-11-14). Its spec owned the end (`tcpEnd`); duplex
+  reads an end its writer goroutine also uses. Now the caller supplies `P r` (its knowledge that
+  `r` bytes have been read) and a persistent accessor `□ ∀ r, P r -∗ |={⊤,∅}=> ∃ st, tcpEnd .. st r
+  ∗ ∀ st' r', tcpEnd .. st' r' ={∅,⊤}=∗ P r'`, used once per `Read`. A thread that owns its end uses
+  `wire.ReadFull.owned` (`wire/ReadFullOwned.lean`, a corollary): the old statement, except that the
+  end's state after a full read is no longer said to be unchanged (no caller needed it).
+- **Listeners shared between threads** (2026-11-14). `tcpLisAt l a` (persistent; `Ghost.lean`: a
+  second ghost map, of the listeners' addresses, whose entries never change) says the listener
+  exists; `Listen` returns it. The extension's `Accept` is logically atomic over `tcpLis l a o ∗
+  tcpPend a S` with a failure branch (both unchanged) and a success branch owed only when
+  `o = true`; the update is opened only at the step that decides, since an `Accept` may first wait
+  (which is why reducibility needs `tcpLisAt`, not the update). `LisClose` is logically atomic over
+  `tcpLis`. Go level: `Listener.Accept.spec` takes `tcpLisAt` and that update; the new
+  `Listener.Close.spec`; an owned listener's update is `wire.accept_lis_au`. So an `Accept` after
+  `Close` provably fails, and a listener can sit in an invariant shared with a thread blocked in
+  `Accept`.
+
+## Known gaps (sound, could be sharper)
+
+- No law from `tcpFin c s bs` to `tcpOutLb c s bs` (halfclose works around it with a length match
+  and a lower bound); the FIN's ghost state could give it.
+- `CloseRes` for `CloseWrite` (`canFail = true`) leaves the result free in its success branch, while
+  the semantics returns `true` there (`CloseWriteStep`).
+- `SetDeadline(time.Time{})` (clearing) records a deadline as setting one does (`dl` stays `true`),
+  so after clearing, a failure still does not break the end: more behaviors than Go, sound.

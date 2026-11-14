@@ -9,7 +9,7 @@ The proofs of `examples/net/preface`'s functions, over the specs of `net`, `wire
   (`server_write_au`, with the connection's token), and the close (`server_close_au`). A failure
   of any operation (a timeout under the deadline among them) needs no reasoning of its own: the
   specs allow every operation to fail.
-* `Serve`: `Listen`, then the accept loop (`wire.accept_au`: each accepted connection's protocol).
+* `Serve`: `Listen`, then the accept loop (`wire.accept_lis_au`: each accepted connection's protocol).
 * `Call`: the dial (`wire.dial_au`, the deposit `pf_deposit`), the writes of `Magic` and of the
   request `[42]`, the full read of the 1-byte reply, and the check: the reply is a prefix of the
   client's bytes past the preface, `[42]` (`client_check`), of its length, so `[42]`.
@@ -199,7 +199,7 @@ theorem wp_Serve
   wp_start as ⟨#Hinvs, #Hplan, #Heof⟩
   icases pfInvs_elim γm $$ Hinvs with ⟨#HaddrInv, #HpfInv⟩
   (try wp_auto)
-  wp_apply wp_Listen srvAddr $$ Hplan as %li %err (⟨%Herr, %l, #Hli, Hlis⟩ | %Herr)
+  wp_apply wp_Listen srvAddr $$ Hplan as %li %err (⟨%Herr, %l, #Hli, Hlis, #Hla⟩ | %Herr)
   · -- listening: the accept loop
     subst Herr
     unfold net.isListener
@@ -210,23 +210,13 @@ theorem wp_Serve
       IProp GF) $$ [Hlis]
     · iexact Hlis
     wp_for HI
-    wp_apply wp_Accept t l srvAddr true
+    wp_apply wp_Accept t l srvAddr
         (tcpLis (extLocalGS tcpExt (L := hG.goose_localGS)) l srvAddr true)
         (fun cn => iprop(tcpLis (extLocalGS tcpExt (L := hG.goose_localGS)) l srvAddr true ∗
           connProto γm cn)) $$ [Hlis]
       as %c %err (⟨%Herr, %cn, #Hc, Hlis, Hproto⟩ | ⟨%Herr, Hlis⟩)
-    · iframe Hlt Hlis
-      isplit
-      · iintro Hl; iexact Hl
-      · imod wire.accept_au addrN srvAddr (connProto γm) $$ HaddrInv with ⟨%S, Hp, Hk⟩
-        imodintro
-        iexists S
-        iframe Hp
-        iintro %cn %HcS Hp
-        imod Hk $$ %cn %HcS Hp with Hproto
-        imodintro
-        iintro Hl -
-        iframe Hl Hproto
+    · iframe Hlt Hla
+      iapply wire.accept_lis_au addrN srvAddr (connProto γm) _ l true $$ HaddrInv Hlis
     · -- a connection: serve it
       subst Herr
       wp_auto

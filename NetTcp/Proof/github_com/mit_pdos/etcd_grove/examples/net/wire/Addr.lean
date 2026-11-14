@@ -149,6 +149,46 @@ theorem accept_au (N : Namespace) (a : GoString) (Φ : Nat → IProp GF) [∀ cn
   imodintro
   iexact Hp
 
+/-- An accept at `a` on a listener the thread owns (`tcpLis hL l a o`): the update of
+`net.Listener.Accept`, which opens the address's invariant; a failure closes it unchanged and hands
+the listener back, a connection hands back the listener and the connection's deposit. -/
+theorem accept_lis_au (N : Namespace) (a : GoString) (Φ : Nat → IProp GF) [∀ cn, Timeless (Φ cn)]
+    (hL : TcpLocalGS GF) (l : w64) (o : Bool) :
+    ⊢ inv N (addrInv a Φ) -∗ tcpLis hL l a o -∗
+      |={⊤,∅}=> ∃ o' S, tcpLis hL l a o' ∗ tcpPend G a S ∗
+        ((tcpLis hL l a o' -∗ tcpPend G a S ={∅,⊤}=∗ tcpLis hL l a o) ∧
+          (⌜o' = true⌝ -∗ ∀ cn, ⌜cn ∈ S⌝ -∗ tcpLis hL l a o' -∗ tcpPend G a (S \ {[cn]}) -∗
+            tcpConnAt G cn a ={∅,⊤}=∗ tcpLis hL l a o ∗ Φ cn)) := by
+  iintro #Hinv Hl
+  iinv Hinv with Hi Hclose
+  unfold addrInv
+  icases Hi with ⟨%S, >Hpend, >Hdeps⟩
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  iexists o, S
+  iframe Hl Hpend
+  isplit
+  · iintro Hl Hpend
+    imod Hmask
+    imod Hclose $$ [Hpend Hdeps] with -
+    · inext
+      iexists S
+      iframe Hpend Hdeps
+    imodintro
+    iexact Hl
+  · iintro %ho %cn %HcS Hl Hpend #Hat
+    imod Hmask
+    have hl : PartialMap.get? (setMap S) cn = some () := by
+      rw [gmap_get?_eq]; exact (GMap.elem_of_gset _ _).1 HcS
+    icases (BigSepM.bigSepM_delete hl).1 $$ Hdeps with ⟨Hp, Hdeps⟩
+    rw [setMap_delete]
+    imod Hclose $$ [Hpend Hdeps] with -
+    · inext
+      iexists S \ {[cn]}
+      iframe Hpend Hdeps
+    imodintro
+    iframe Hl Hp
+
 /-- The address's invariant of a fresh network: nothing pending. -/
 theorem addrInv_alloc (N : Namespace) (a : GoString) (Φ : Nat → IProp GF) :
     tcpPend G a ∅ ={⊤}=∗ inv N (addrInv a Φ) := by

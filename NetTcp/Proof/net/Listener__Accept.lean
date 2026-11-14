@@ -27,8 +27,8 @@ variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 variable [go.BasicIntoValInj]
 
 theorem Listener.Accept.wp_proof : Listener.Accept.spec (GF := GF) (hG := hG) := by
-  intro t l a o Qfail Qok
-  wp_start as ⟨#Ht, Hl, HQ⟩
+  intro t l a Qfail Qok
+  wp_start as ⟨#Ht, #Hla, HQ⟩
   (try wp_method_call)
   (try unfold TCPListener.Accept.impl)
   rw [TCPListener_ty_eq]
@@ -36,11 +36,17 @@ theorem Listener.Accept.wp_proof : Listener.Accept.spec (GF := GF) (hG := hG) :=
   iStructNamed Ht2
   wp_auto
   wp_bind (ExternalOp _ _ _)
-  iapply wp_tcp_Accept l a o $$ Hl
+  iapply wp_tcp_Accept l a $$ Hla
+  imod HQ with ⟨%o, %S, Hl, Hpend, HQ⟩
+  imodintro
+  iexists o, S
+  iframe Hl Hpend
   isplit
   · -- a failure
-    iintro Hl
+    iintro Hl Hpend
     icases HQ with ⟨HQ, -⟩
+    imod HQ $$ Hl Hpend with HQ
+    imodintro
     wp_auto
     unfold model.opError
     rw [OpError_ty_eq, Conn_ty_eq]
@@ -49,18 +55,12 @@ theorem Listener.Accept.wp_proof : Listener.Accept.spec (GF := GF) (hG := hG) :=
     iright
     isplitr
     · ipureintro; exact ⟨_, rfl⟩
-    iapply HQ $$ Hl
+    iexact HQ
   · -- a connection
-    icases HQ with ⟨-, HAU⟩
-    imod HAU with ⟨%S, Hpend, Hk⟩
+    iintro %ho %cn %HcS Hl Hpend #Hat
+    icases HQ with ⟨-, Hk⟩
+    imod Hk $$ %ho %cn %HcS Hl Hpend Hat with HQ
     imodintro
-    iexists S
-    iframe Hpend
-    iintro %cn %HcS Hpend
-    imod Hk $$ %cn %HcS Hpend with HQ
-    imodintro
-    iintro Hl #Hat
-    ihave HQ := HQ $$ Hl Hat
     wp_auto
     unfold model.newConn
     rw [TCPConn_ty_eq, conn_ty_eq', Conn_ty_eq]

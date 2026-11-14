@@ -40,7 +40,7 @@ theorem Listen.wp_proof : Listen.spec (GF := GF) (hG := hG) := by
     iright
     ipureintro; exact ⟨_, rfl⟩
   · -- a new listener
-    iintro %lid Hl
+    iintro %lid Hl #Hla
     wp_auto
     rw [TCPListener_ty_eq, Listener_ty_eq]
     iapply wp_fupd
@@ -52,7 +52,7 @@ theorem Listen.wp_proof : Listen.spec (GF := GF) (hG := hG) := by
     isplitr
     · ipureintro; rfl
     iexists lid
-    iframe Hl
+    iframe Hl Hla
     unfold isListener
     iexists _
     iframe l
