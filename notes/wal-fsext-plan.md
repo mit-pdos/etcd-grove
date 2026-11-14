@@ -1570,6 +1570,44 @@ hypotheses; step 3's pure part.**
   (`streamOk_vals`, `metaChain_*`; the headers' frames = `tailStream Mr H md (cuts ++ [|H|])` from
   `cutHdrDs` and `h.st = walLastHS`).
 
+**Ninth session (branch `wal-cut9`, 2026-11-13): the `pipeFile` facts; steps 5-6 of `cut` proved up to the
+rename's return; `sorry` from the rename's outcome on.**
+- **`pipeFile` facts (the coordinator's decision, done)**: `pipeFile` carries `m.cut = none ∧ m.lo ≤ m.size ∧
+  m.size % 8 = 0`; `isFilePipe` and `newFilePipeline.spec` take `sz.toInt % 8 = 0`; `trFile` (`Spec/os/
+  OpenFileTruncS.lean`) gains `m.cut = none ∧ m.lo ≤ m.size` (**for W5's `Open`**: a leftover `N.tmp` handed
+  to the pipeline must satisfy them); `preGrown`/`preGrownH` gain `GrowMeta m m'` (`fileutil/Defs.lean`: the cut
+  kept, and `m.lo ≤ m.size → m'.lo ≤ m'.size`: the implication form spares `Preallocate`'s specs a premise);
+  `rsDone_preGrown`, `fallocDoneH_preGrownH` take `m.size ≤ sz' ∨ sz' = tg`, `preGrown(H)_trans` takes
+  `GrowMeta m m1`, `trFile_of_rsDone`/`zerosA_trFile` take the cut and the bound. Repaired: `OpenFileTruncS`,
+  `preallocExtend(Trunc)(Au)`, `ZeroToEnd(Au)`, `alloc`, `run`, `newFilePipeline`.
+- **Statement changes**: `cut.spec` takes `h.cuts.Pairwise (· < ·)` (the headers' state is `walLastHS` of the
+  segments' concatenation, `segsOf_flatten`) and `h.md.length + (Mr.encState h.st).length < 2^42` (the headers'
+  frames within ext4's maximum offset, `Seek`'s bound, each record within the encoder's `2^47`): **for W6, `Save`
+  supplies both** (or the handle carries them). `walHandleIn`: the metadata slice as `recBytes mds (some h.md)`
+  (non-nil: the record's data is present, `recOf`; `Create` takes it non-nil). `walDirH` holds `walNamed dir`,
+  `walOutFrag ⟨[ino], [(j, .except X)], [dir]⟩` (the out-record, W1 log tenth session), and `∀ b ∈ X, walNameP b =
+  false` (the rename's `N'.Mem bt`): producers (`Create`, `ReadAll`) supply them. `walCut_osAUnc` takes only the
+  headers' fit (`hfitH`), the old records' from `WalAbsD.fit` (`allRecs_cut`). `CutCommitPure`'s `walName_unique`
+  renamed `walName_unique_nd` (clash with `OpenNames`').
+- *New pure files*: `CutHdrStream.lean` (`tailRecs_cut`/`allRecs_cut`/`tailCrc_cut`: the new segment's records are
+  `cutHdrDs` chained from `tailCrc`; `cutHdrRecs_frames`, `crcAfter_cutHdrs`, `WalHS.crc_done`, `cutHdrs_fit`,
+  `recSize_hdr`), `CutRen.lean` (`walNameP_walFileName`, `cutName_free`, `recFrames_mod8`, `recsFit_of_frames`,
+  `tailStream_len_split`, `cutHdrZeros`).
+- *`cut.wp_proof`*: the synced handle generalized to a variable `h1` after step 2; step 5 proved (append, `prevCrc`
+  by `Sum32`, `newFileEncoder`, the stream `os.File.writerStreamI` over the zeros (`os.fileW_start`), `saveCrc`,
+  `encode(Metadata)`, `saveState.specPre` (both arms unified), `sync.specPreL` with `os.fileWI_preSyncOk`, `Seek`),
+  every error exit; step 6: the new segment `g = ⟨bt, i2, mS.synced, ysS.map durB⟩` and all `walCut_osAUnc`
+  premises, the update built, `os.Rename.specFileSnc` applied (½ tmp claim, ¼ WAL claim, path halves). New
+  hypotheses: `Sum32`, `newFileEncoder`, `WriteAt.specLong`, `Fdatasync`, `sync.specPreL`, `saveState.specPre`.
+- *Next* (`sorry` at the rename's return): the outcome `ro` (`hro`: success → `some`; `HQ : walCutQ … ro`,
+  `Hro : renFileOut … ¼ ½ ro`; an error with `none` returns, with `some` the handle is lost too: return the error);
+  step 7 `fileutil.Fsync(w.dirFile)` (`os.File.Sync.specDirS`, `walInvBody_cutSynced` under
+  `wp_notCrashed_acc`, the claim's ¼ from `Hro`); step 8 (`Close` of `f2`, `LockFile` of `child dir bt`
+  (`os.OpenFile.wp_fileS`), `Seek(L)`, `w.locks[last]`, `newFileEncoder`, the log) and the new handle: `h'` with
+  `ino := g.ino`, `o0 := L`, `out = pend = []`, `cuts ++ [|H|]`, `pc + 1` (`walPipeH_next`), `walDirH` at the claim's
+  new history (`walOutFrag` from `walCutQ`), the old tail into `walLockH` (`Hf`, `Hfdo`), `crc := crcAfter …`
+  (`tailCrc_cut`). The goal is heavy (≈330 hypotheses): `iclear` what step 8 does not need before going on.
+
 ## W4 implementation log (branch `wal-create`, 2026-11-13)
 
 **Statements (`sorry`-stubbed proofs):** `LinuxFs/Spec/.../storage/wal/Create.lean` (`wal.Create.spec C Mr`),

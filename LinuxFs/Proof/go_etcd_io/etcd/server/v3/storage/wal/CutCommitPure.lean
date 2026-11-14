@@ -8,7 +8,7 @@ Pure. The pieces of a cut's rename commit (`CutCommit.lean`) that do not depend 
   `c0` (`mem_replClaim_cases`); a claim once in `cl`, neither, is once after (`claimOnce_repl_other`);
 - the WAL directory's claim is the only one of `j` on all names but non-`.wal` ones
   (`walClaim_eq`);
-- the `.wal` names: one per file when the files are distinct (`walName_unique`); a `.wal` name
+- the `.wal` names: one per file when the files are distinct (`walName_unique_nd`); a `.wal` name
   above every other added at the end (`walInos_insert_last`);
 - a crash of the claims after the commit is one of the claims before (`regionCrashed_cut`: dropping
   the rename, the same tree; keeping it, the tree without `bt`, `treeDel`);
@@ -145,7 +145,7 @@ theorem mem_walNames {E : Ents} {b : GoString} {e : Node} (hb : walNameP b = tru
   exact List.mem_map.2 ⟨(b, e), (GMap.mem_toList _ _ _).2 he, rfl⟩
 
 /-- **Distinct files, one `.wal` name each**: two `.wal` names of the same file are one. -/
-theorem walName_unique {E : Ents} (hnd : (walInos E).Nodup) {b1 b2 : GoString} {i : Ino}
+theorem walName_unique_nd {E : Ents} (hnd : (walInos E).Nodup) {b1 b2 : GoString} {i : Ino}
     (h1 : walNameP b1 = true) (h2 : walNameP b2 = true) (e1 : E !! b1 = some (.file i))
     (e2 : E !! b2 = some (.file i)) : b1 = b2 := by
   unfold walInos at hnd

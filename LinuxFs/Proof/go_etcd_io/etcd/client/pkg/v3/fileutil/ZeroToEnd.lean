@@ -140,7 +140,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.ZeroToEnd.wp_proof
     iframe
     have hcz1 := hm1.2.2
     rw [Nat.max_eq_left hole] at hcz1
-    ipureintro; exact ⟨hm'.1, hm'.2.1.trans hm1.2.1, Nat.le_trans hcz1 hm'.2.2⟩
+    ipureintro; exact ⟨hm'.1, hm'.2.1.trans hm1.2.1, Nat.le_trans hcz1 hm'.2.2.1⟩
   · cases err with
     | nil => exact absurd rfl he
     | ok ie =>
