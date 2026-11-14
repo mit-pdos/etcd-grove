@@ -3205,7 +3205,8 @@ decision (option 1); task 3 (the supplies) not done.
   state; the reader's argument of `crashTo_tailM` with the image's length free in `[lo, hi]`, each byte from `wr`
   on `0`, the old byte, or the flush's; the accepted frame straddling `wr` is intended by `AsOfW`, W1 log
   thirteenth session); (2) `ReadAll`'s `ZeroToEnd` (`segBytesOf` extended by `g.om.pc` on `[|bs|, hi)`, `SegCrashAt`
-  giving those candidates, `W1G`'s users given the frame's fit instead of `(img i).length ≤ bs.length`);
+  giving those candidates; **done**: `W1G`'s premise is the frame's fit, `p + frameCore ≤ |bs|`, instead of
+  `(img i).length ≤ |bs|`, `crashTo_tailM` derives it from the image's length);
   (3) `truncSup`/`fallocSup` from `walInv` via `walInvBody_tailW`, then `specWalTail`'s proof and `ZeroToEnd`'s
   instance.
 
