@@ -17,9 +17,9 @@ generation's proof guarantees the next one's precondition.
 
 The conclusion, `halfclose_crash_safety`, mentions no ghost state and no bounds: in every execution
 of the system with crashes, no thread of any node is stuck and none has an unrecovered panic, so
-the client's check (a response read until EOF is `"hello"`, the request it sent before shutting
-its write side) never fails, however reads are split, however the connections fail or the nodes
-crash (a crash keeps the bytes in flight on a connection but sends no FIN).
+the client's check (a response read until EOF is a prefix of `"hello"`, the request it sent
+before shutting its write side) never fails, however reads are split, however the connections
+fail or break (EOF included: a killed server's kernel sends a FIN) and however the nodes crash.
 -/
 module
 
@@ -148,8 +148,8 @@ theorem halfclose_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semanti
       $$ Hpends
     -- halfclose's protocol: the connections' states (none yet), then the address's invariant
     letI := (extGlobalGS tcpExt (G := G)).allG
-    imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := GName) with ⟨%γm, Hm⟩
-    imod inv_alloc hcN ⊤ (hcState (extGlobalGS tcpExt) γm) $$ [Hm] with #HhcInv
+    imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := HcNames) with ⟨%γm, Hm⟩
+    imod inv_alloc hcN ⊤ (hcState (Gg := G) γm) $$ [Hm] with #HhcInv
     · inext
       unfold hcState
       iexists ∅

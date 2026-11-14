@@ -1,33 +1,35 @@
 /-
-The protocol of `examples/net/halfclose`, over the TCP extension's resources (`GooseLang/Ext/Tcp`)
-and the shared per-address protocol (`wire/Addr.lean`):
+The protocol of `examples/net/halfclose`, over the TCP extension's resources (`GooseLang/Ext/Tcp`),
+the shared per-address protocol (`wire/Addr.lean`) and the stream bookkeeping of `wire/Stream.lean`
+(`sentAll`, `rcvdAll`, `DirOk`):
 
-* **Every connection** `cn` to `srvAddr` has a ghost name `γ` (`hcName γm cn γ`, persistent: the
-  ghost map `γm`) and a state (`hcConn cn γ`): the acceptor's written bytes `so` and FIN flag `f`
-  (`tcpOut cn true so f`), mirrored in a ghost variable `γ` whose other half the server holds while
-  it serves the connection (so that it knows them), and the crux: once the acceptor has sent its
-  FIN, its bytes are all of the dialer's (`finEcho cn so`: the dialer has sent its FIN after bytes
-  of `so`'s length, and has written at least `so`). All connections' states are in one invariant
+* **Every connection** `cn` to `srvAddr` has ghost names `ns` (`hcName γm cn ns`, persistent: the
+  ghost map `γm`), one `DirNames` per direction (`ns.u` from the dialer, `ns.d` from the acceptor),
+  and a state (`hcConn cn ns`): for each direction its unread bytes (`tcpDir`), the invariant's
+  halves of what its writer wrote (`W`) and its reader read (`R`), agreeing (`DirOk`), and the
+  crux, `HcOk`: the dialer wrote a prefix of `"hello"` (`WU <+: hello`), and the acceptor wrote a
+  prefix of what it read (`WD <+: RU`). All connections' states are in one invariant
   (`hcState γm`), so that every resource the protocol moves is timeless.
 * **The connection's protocol** `connProto γm cn`, which every dialer deposits in `srvAddr`'s
-  invariant (`hc_deposit`, through `wire.dial_au`) and the server takes when it accepts `cn`
-  (`wire.accept_au`): the acceptor end's state (`tcpEnd cn true fresh 0`), the server's half of the
-  mirror (nothing written, no FIN) and its name.
+  invariant (`hc_deposit`, through `dial_both_au`) and the server takes when it accepts `cn`
+  (`wire.accept_lis_au`): the acceptor end's state, the reader's half of the up direction and the
+  writer's half of the down direction, and the names. The dialer keeps the other halves
+  (`clientProto`).
 
-Why `finEcho` holds when the server's FIN is sent (`server_close_au`): a close sends the FIN only
-from an end that is not broken (`CloseRes`); the server's end breaks on any failed read or write (it
-sets no deadline, `TcpEnd.onFail`), so it is not broken only if its read loop met EOF -- the
-dialer's FIN after exactly the bytes read, `tcpFin` -- and its one write of them all succeeded.
+The client's check (`client_check`): what it read from the down direction (`RD`) is a prefix of
+what the server wrote (`WD`, `DirOk`), a prefix of what the server read (`RU`, `HcOk`), a prefix of
+what the client wrote (`WU`, `DirOk`), a prefix of `"hello"` (`HcOk`). No FIN or EOF reasoning:
+EOF guarantees nothing (a killed process's kernel sends a FIN, `Impl.lean`, D1). Crashes change
+nothing: the invariants are global.
 
-The client's check (`client_check`): what it read until EOF is the server's bytes in full (the
-server's FIN after them, `tcpOut_fin`), which `finEcho` says are the dialer's -- the client's own --
-in full: a prefix of the client's bytes (`tcpOutLb`) of the length of its FIN's (`tcpOut_fin`).
-Crashes change nothing here: the invariants are global, and a crashed end sends no FIN.
+The updates of the operations, each opening the connection's state: `client_write_au`
+(`W ++ bs <+: hello`), `server_write_au` (`W ++ bs <+: R`, the bytes it read), `client_read_acc`,
+`server_read_acc` (the accessors of `readAll`), `hc_close_au`, `hc_closeWrite_au`.
 -/
 module
 
 public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.halfclose.Base
-public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.Addr
+public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.Stream
 
 @[expose] public section
 
@@ -38,68 +40,97 @@ noncomputable section
 namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Tcp
-open github_com.mit_pdos.etcd_grove.examples.net.wire (G addrInv setMap ndot_mask)
+open github_com.mit_pdos.etcd_grove.examples.net.wire (G addrInv setMap ndot_mask DirNames sentAll
+  rcvdAll DirOk dirOk_prefix dirOk_fresh dirOk_read dirOk_write dirOk_close dirOk_closeWrite
+  setMap_insert setMap_lookup_none sentAll_app)
 
 namespace github_com.mit_pdos.etcd_grove.examples.net.halfclose
 
 /-- The server's address, as a Go string. -/
 abbrev srvAddr : GoString := go!"127.0.0.1:7105"
 
+/-- The request's bytes. -/
+abbrev hello : List w8 := go!"hello"
+
 def addrN : Namespace := nroot.@"halfclose_addr"
 def hcN : Namespace := nroot.@"halfclose_conns"
 
-section defs
-variable {GF : BundledGFunctors}
+/-! ## The pure part -/
 
-/-- A half of the mirror `γ` of the acceptor's written bytes and FIN flag. -/
-def hcMirror (hT : TcpGS GF) (γ : GName) (so : GoString) (f : Bool) : IProp GF :=
-  @ghostVar GF hT.allG _ _ γ (1 : Qp).half (so, f)
+/-- The connection's protocol, on the up direction (`dU`, written `WU`, read `RU`) and the down
+direction (`dD`, `WD`, `RD`): each direction's bookkeeping agrees (`DirOk`), the dialer wrote a
+prefix of `"hello"`, the acceptor a prefix of what it read. -/
+def HcOk (dU : TcpDir) (WU RU : List w8) (dD : TcpDir) (WD RD : List w8) : Prop :=
+  DirOk dU WU RU ∧ DirOk dD WD RD ∧ WU <+: hello ∧ WD <+: RU
 
-instance hcMirror_timeless (hT : TcpGS GF) (γ : GName) (so : GoString) (f : Bool) :
-    Timeless (hcMirror hT γ so f) := by
-  unfold hcMirror; letI := hT.allG; infer_instance
+theorem hcOk_fresh : HcOk TcpDir.fresh [] [] TcpDir.fresh [] [] :=
+  ⟨dirOk_fresh, dirOk_fresh, List.nil_prefix, List.nil_prefix⟩
 
-/-- The acceptor's bytes `so` of `cn` are the dialer's in full: the dialer has sent its FIN after
-bytes of `so`'s length, and has written at least `so`. -/
-def finEcho (hT : TcpGS GF) (cn : Nat) (so : GoString) : IProp GF :=
-  iprop(∃ si, tcpFin hT cn false si ∗ tcpOutLb hT cn false so ∗ ⌜so.length = si.length⌝)
+/-- What the dialer read is a prefix of `"hello"`. -/
+theorem hcOk_check {dU dD : TcpDir} {WU RU WD RD : List w8} (h : HcOk dU WU RU dD WD RD) :
+    RD <+: hello :=
+  (dirOk_prefix h.2.1).trans (h.2.2.2.trans ((dirOk_prefix h.1).trans h.2.2.1))
 
-instance finEcho_persistent (hT : TcpGS GF) (cn : Nat) (so : GoString) :
-    Persistent (finEcho hT cn so) := by
-  unfold finEcho; infer_instance
+/-- A read returns at most the bytes asked for. -/
+theorem readOutcome_got_le {st : TcpEnd} {d d' : TcpDir} {n : Nat} {r : ReadRes}
+    (h : ReadOutcome st d n r d') : r.got.length ≤ n := by
+  have hav : ∀ (d0 : TcpDir), ReadAvail st d0 n r d' → r.got.length ≤ n := by
+    intro d0 hr
+    rcases hr with ⟨k, -, hk, -, rfl, -⟩ | ⟨-, -, rfl, -⟩ | ⟨-, -, rfl, -⟩ | ⟨-, rfl, -⟩ |
+      ⟨-, rfl, -⟩
+    · simp only [ReadRes.got, List.length_take]; omega
+    all_goals simp [ReadRes.got]
+  unfold ReadOutcome at h
+  split at h
+  · rw [h.1]; simp [ReadRes.got]
+  · split at h
+    · rw [h.1]; simp [ReadRes.got]
+    · rcases h with h | ⟨k, -, h⟩
+      · exact hav d h
+      · exact hav _ h
 
-instance finEcho_timeless (hT : TcpGS GF) (cn : Nat) (so : GoString) :
-    Timeless (finEcho hT cn so) := by
-  unfold finEcho; infer_instance
+/-- A read of `n > 0` bytes that returns bytes returns at least one. -/
+theorem readOutcome_bytes_pos {st : TcpEnd} {d d' : TcpDir} {n : Nat} {bs : List w8}
+    (h : ReadOutcome st d n (.bytes bs) d') (hn : 0 < n) : 1 ≤ bs.length := by
+  have hav : ∀ (d0 : TcpDir), ReadAvail st d0 n (.bytes bs) d' → 1 ≤ bs.length := by
+    intro d0 hr
+    rcases hr with ⟨k, hk1, -, hkl, hr, -⟩ | ⟨-, -, hr, -⟩ | ⟨-, -, hr, -⟩ | ⟨-, hr, -⟩ |
+      ⟨-, hr, -⟩
+    · cases hr; simp only [List.length_take]; omega
+    all_goals cases hr
+  unfold ReadOutcome at h
+  split at h
+  · cases h.1
+  · split at h
+    · omega
+    · rcases h with h | ⟨k, -, h⟩
+      · exact hav d h
+      · exact hav _ h
 
-/-- The state of the connection `cn`, whose mirror is `γ`: the acceptor's bytes and FIN flag, and
-if it has sent its FIN, `finEcho`. -/
-def hcConn (hT : TcpGS GF) (cn : Nat) (γ : GName) : IProp GF :=
-  iprop(∃ (so : GoString) (f : Bool), tcpOut hT cn true so f ∗ hcMirror hT γ so f ∗
-    (⌜f = false⌝ ∨ finEcho hT cn so))
+/-! ## The ghost names -/
 
-instance hcConn_timeless (hT : TcpGS GF) (cn : Nat) (γ : GName) :
-    Timeless (hcConn hT cn γ) := by
-  unfold hcConn; infer_instance
+/-- The ghost names of a connection's protocol: each direction's `DirNames`. -/
+structure HcNames where
+  uw : GName
+  ur : GName
+  dw : GName
+  dr : GName
 
-/-- Every connection's state, their mirrors' names in the ghost map `γm`. -/
-def hcState (hT : TcpGS GF) (γm : GName) : IProp GF :=
-  iprop(∃ m : GMap Nat GName, @ghostMapAuth GF hT.allG _ _ _ _ γm 1 m ∗
-    [∗map] cn ↦ γ ∈ m, hcConn hT cn γ)
+instance HcNames.countable : Pos.Countable HcNames :=
+  .ofInjective (fun ns : HcNames => Pos.Countable.encode (ns.uw, ns.ur, ns.dw, ns.dr))
+    (fun a b h => by
+      have h' := Pos.encode_inj h
+      cases a; cases b; simp only [Prod.mk.injEq] at h'
+      obtain ⟨rfl, rfl, rfl, rfl⟩ := h'; rfl)
 
-/-- The connection `cn`'s mirror is `γ`. -/
-def hcName (hT : TcpGS GF) (γm : GName) (cn : Nat) (γ : GName) : IProp GF :=
-  @ghostMapElem GF hT.allG _ _ _ _ γm cn .discard γ
-
-instance hcName_persistent (hT : TcpGS GF) (γm : GName) (cn : Nat) (γ : GName) :
-    Persistent (hcName hT γm cn γ) := by
-  unfold hcName; letI := hT.allG; infer_instance
-
-instance hcName_timeless (hT : TcpGS GF) (γm : GName) (cn : Nat) (γ : GName) :
-    Timeless (hcName hT γm cn γ) := by
-  unfold hcName; letI := hT.allG; infer_instance
-
-end defs
+/-- The up direction's names (from the dialer). -/
+def HcNames.u (ns : HcNames) : DirNames := ⟨ns.uw, ns.ur⟩
+/-- The down direction's names (from the acceptor). -/
+def HcNames.d (ns : HcNames) : DirNames := ⟨ns.dw, ns.dr⟩
+/-- The names of the two directions' protocols. -/
+def HcNames.of (γu γd : DirNames) : HcNames := ⟨γu.w, γu.r, γd.w, γd.r⟩
+theorem HcNames.of_u (γu γd : DirNames) : (HcNames.of γu γd).u = γu := rfl
+theorem HcNames.of_d (γu γd : DirNames) : (HcNames.of γu γd).d = γd := rfl
 
 section wps
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt tcpExt] [go_gctx : GoGlobalContext]
@@ -107,73 +138,178 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
-/-- What the server gets when it accepts `cn`. -/
+/-! ## The invariant -/
+
+/-- The invariant's part of a direction from the end `s` of `c` with names `γ`: its unread bytes,
+and the invariant's halves of what its writer wrote and its reader read. -/
+def dirPart (c : Nat) (s : Bool) (γ : DirNames) (d : TcpDir) (W R : List w8) : IProp GF :=
+  iprop(tcpDir G c s d ∗ @monoListAuthOwn GF (G (Gg := Gg)).allG _ _ γ.w (1 : Qp).half W ∗
+    @ghostVar GF (G (Gg := Gg)).allG _ _ γ.r (1 : Qp).half R)
+
+instance dirPart_timeless c s γ d W R : Timeless (dirPart (Gg := Gg) c s γ d W R) := by
+  unfold dirPart; letI := (G (Gg := Gg)).allG; infer_instance
+
+/-- The state of the connection `cn`, with names `ns`. -/
+def hcConn (cn : Nat) (ns : HcNames) : IProp GF :=
+  iprop(∃ (dU : TcpDir) (WU RU : List w8) (dD : TcpDir) (WD RD : List w8),
+    dirPart (Gg := Gg) cn false ns.u dU WU RU ∗ dirPart cn true ns.d dD WD RD ∗
+    ⌜HcOk dU WU RU dD WD RD⌝)
+
+instance hcConn_timeless (cn : Nat) (ns : HcNames) : Timeless (hcConn (Gg := Gg) cn ns) := by
+  unfold hcConn; infer_instance
+
+/-- Every connection's state, their names in the ghost map `γm`. -/
+def hcState (γm : GName) : IProp GF :=
+  iprop(∃ m : GMap Nat HcNames, @ghostMapAuth GF (G (Gg := Gg)).allG _ _ _ _ γm 1 m ∗
+    [∗map] cn ↦ ns ∈ m, hcConn (Gg := Gg) cn ns)
+
+/-- The connection `cn`'s names are `ns`. -/
+def hcName (γm : GName) (cn : Nat) (ns : HcNames) : IProp GF :=
+  @ghostMapElem GF (G (Gg := Gg)).allG _ _ _ _ γm cn .discard ns
+
+instance hcName_persistent (γm : GName) (cn : Nat) (ns : HcNames) :
+    Persistent (hcName (Gg := Gg) γm cn ns) := by
+  unfold hcName; letI := (G (Gg := Gg)).allG; infer_instance
+
+instance hcName_timeless (γm : GName) (cn : Nat) (ns : HcNames) :
+    Timeless (hcName (Gg := Gg) γm cn ns) := by
+  unfold hcName; letI := (G (Gg := Gg)).allG; infer_instance
+
+/-- What the server gets when it accepts `cn`: the acceptor end's state, the reader's half of the
+up direction, the writer's half of the down direction. -/
 def connProto (γm : GName) (cn : Nat) : IProp GF :=
-  iprop(∃ γ, tcpEnd G cn true TcpEnd.fresh 0 ∗ hcMirror G γ [] false ∗ hcName G γm cn γ)
+  iprop(∃ ns, tcpEnd G cn true TcpEnd.fresh ∗ rcvdAll (Gg := Gg) ns.u [] ∗ sentAll ns.d [] ∗
+    hcName γm cn ns)
 
 instance connProto_timeless (γm : GName) (cn : Nat) : Timeless (connProto (Gg := Gg) γm cn) := by
   unfold connProto; infer_instance
 
+/-- What the dialer keeps of its new connection `cn`: its end's state, the writer's half of the up
+direction, the reader's half of the down direction. -/
+def clientProto (γm : GName) (cn : Nat) : IProp GF :=
+  iprop(∃ ns, tcpEnd G cn false TcpEnd.fresh ∗ sentAll (Gg := Gg) ns.u [] ∗ rcvdAll ns.d [] ∗
+    hcName γm cn ns)
+
 /-- The invariants of the protocol. -/
 def hcInvs (γm : GName) : IProp GF :=
-  iprop(inv addrN (addrInv srvAddr (connProto (Gg := Gg) γm)) ∗ inv hcN (hcState G γm))
+  iprop(inv addrN (addrInv srvAddr (connProto (Gg := Gg) γm)) ∗ inv hcN (hcState (Gg := Gg) γm))
 
 instance hcInvs_persistent (γm : GName) : Persistent (hcInvs (Gg := Gg) γm) := by
   unfold hcInvs; infer_instance
 
 theorem hcInvs_elim (γm : GName) :
     hcInvs (Gg := Gg) γm ⊢ inv addrN (addrInv srvAddr (connProto (Gg := Gg) γm)) ∗
-      inv hcN (hcState G γm) := .rfl
+      inv hcN (hcState (Gg := Gg) γm) := .rfl
 
-/-- A dialer's deposit for its new connection `cn`: a mirror, its name in the map, the
-connection's state (nothing written, no FIN), and the acceptor end's state for the server. -/
+/-! ## Dialing -/
+
+/-- A dial of `a` whose dialer deposits `Φ cn`, made (at the address's invariant's mask) from both
+ends' fresh resources, and keeps `R cn`. (`wire.dial_au` hands `mk` the acceptor's end only; this
+protocol needs both directions at once, to put them in one invariant.) -/
+theorem dial_both_au (N : Namespace) (a : GoString) (Φ R : Nat → IProp GF)
+    [∀ cn, Timeless (Φ cn)] :
+    ⊢ inv N (addrInv a Φ) -∗
+      (∀ cn, tcpConnAt G cn a -∗ tcpFresh G cn false -∗ tcpFresh G cn true ={⊤ \ ↑N}=∗
+        Φ cn ∗ R cn) -∗
+      |={⊤,∅}=> ∃ S, tcpPend G a S ∗
+        ∀ cn, ⌜cn ∉ S⌝ -∗ tcpPend G a (S ∪ {[cn]}) -∗ tcpConnAt G cn a -∗
+          tcpFresh G cn false -∗ tcpFresh G cn true ={∅,⊤}=∗ R cn := by
+  iintro #Hinv Hmk
+  iinv Hinv with Hi Hclose
+  unfold addrInv
+  icases Hi with ⟨%S, >Hpend, >Hdeps⟩
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  iexists S
+  iframe Hpend
+  iintro %cn %HcS Hpend #Hat Hd Ha
+  imod Hmask
+  imod Hmk $$ %cn Hat Hd Ha with ⟨HΦ, HR⟩
+  imod Hclose $$ [Hpend Hdeps HΦ] with -
+  · inext
+    iexists S ∪ {[cn]}
+    iframe Hpend
+    rw [setMap_insert]
+    iapply (BigSepM.bigSepM_insert (setMap_lookup_none HcS)).2
+    iframe Hdeps HΦ
+  imodintro
+  iexact HR
+
+/-- A direction's protocol ghost state, new: the invariant's halves and the thread's. -/
+theorem dirNames_alloc :
+    ⊢@{IProp GF} |==> ∃ γ : DirNames,
+      @monoListAuthOwn GF (G (Gg := Gg)).allG w8 _ γ.w (1 : Qp).half ([] : List w8) ∗ sentAll (Gg := Gg) γ [] ∗
+      @ghostVar GF (G (Gg := Gg)).allG (List w8) _ γ.r (1 : Qp).half ([] : List w8) ∗ rcvdAll γ [] := by
+  letI := (G (Gg := Gg)).allG
+  imod mono_list_own_alloc (GF := GF) ([] : List w8) with ⟨%γw, Hw, -⟩
+  icases (show monoListAuthOwn (GF := GF) γw 1 ([] : List w8) ⊣⊢
+      iprop(monoListAuthOwn γw (1 : Qp).half [] ∗ monoListAuthOwn γw (1 : Qp).half []) by
+    conv => lhs; rw [← Qp.half_add_half 1]
+    exact (monoListAuthOwn_fractional γw []).fractional _ _).mp $$ Hw with ⟨Hw1, Hw2⟩
+  imod ghostVar_alloc (GF := GF) ([] : List w8) with ⟨%γr, Hr⟩
+  icases (ghostVar_split_half γr 1 ([] : List w8)).mp $$ Hr with ⟨Hr1, Hr2⟩
+  imodintro
+  iexists ⟨γw, γr⟩
+  unfold sentAll rcvdAll
+  iframe Hw1 Hw2 Hr1 Hr2
+
+/-- A dialer's deposit for its new connection `cn`, from both ends' fresh resources: the
+connection's state (nothing written or read) in the invariant, the server's part (`connProto`) and
+the dialer's (`clientProto`). -/
 theorem hc_deposit (γm : GName) (cn : Nat) :
-    ⊢ inv hcN (hcState (G (Gg := Gg)) γm) -∗ tcpConnAt G cn srvAddr -∗
-      tcpFreshEnd G cn true ={⊤ \ ↑addrN}=∗ connProto γm cn ∗ ∃ γ, hcName G γm cn γ := by
-  iintro #Hinv #Hat Ha
+    ⊢ inv hcN (hcState (Gg := Gg) γm) -∗ tcpConnAt G cn srvAddr -∗ tcpFresh G cn false -∗
+      tcpFresh G cn true ={⊤ \ ↑addrN}=∗ connProto γm cn ∗ clientProto γm cn := by
+  iintro #Hinv #Hat Hd Ha
   iinv Hinv with Hi Hclose
   · exact ndot_mask nroot "halfclose_conns" "halfclose_addr" (by decide)
   unfold hcState
   icases Hi with ⟨%m, >Hm, >Hconns⟩
-  unfold tcpFreshEnd
-  icases Ha with ⟨Hae, Hao⟩
+  unfold tcpFresh
+  icases Hd with ⟨Hde, Hdd⟩
+  icases Ha with ⟨Hae, Had⟩
   letI := (G (Gg := Gg)).allG
   cases hm : m.lookup cn with
-  | some γ' =>
-    -- `cn` is new: its acceptor's written bytes are owned once
-    icases BigSepM.bigSepM_lookup_acc (show PartialMap.get? m cn = some γ' by
-      rw [gmap_get?_eq]; exact hm) $$ Hconns with ⟨Hc, -⟩
-    unfold hcConn
-    icases Hc with ⟨%so, %f, Hout, -⟩
-    icases tcpOut_excl _ cn true so [] f false $$ Hout Hao with ⟨⟩
+  | some ns' =>
+    -- `cn` is new: its up direction's resource is owned once
+    icases (BigSepM.bigSepM_lookup_acc (show PartialMap.get? m cn = some ns' by
+      rw [gmap_get?_eq]; exact hm)).1 $$ Hconns with ⟨Hc, -⟩
+    unfold hcConn dirPart
+    icases Hc with ⟨%dU, %WU, %RU, %dD, %WD, %RD, ⟨HdU, -, -⟩, -, -⟩
+    icases tcpDir_excl _ cn false dU TcpDir.fresh $$ HdU Hdd with ⟨⟩
   | none =>
-    imod ghostVar_alloc_halves (GF := GF) (([] : GoString), false) with ⟨%γ, Hv1, Hv2⟩
-    imod ghost_map_insert_persist cn γ hm $$ Hm with ⟨Hm, #Hname⟩
-    imod Hclose $$ [Hm Hconns Hao Hv1] with -
+    imod dirNames_alloc (Gg := Gg) with ⟨%γu, HuW, HuS, HuR, HuC⟩
+    imod dirNames_alloc (Gg := Gg) with ⟨%γd, HdW, HdS, HdR, HdC⟩
+    imod ghost_map_insert_persist cn (HcNames.of γu γd) hm $$ Hm
+      with ⟨Hm, #Hname⟩
+    imod Hclose $$ [Hm Hconns Hdd Had HuW HuR HdW HdR] with -
     · inext
-      iexists m.insert cn γ
+      iexists m.insert cn (HcNames.of γu γd)
       iframe Hm
       iapply (BigSepM.bigSepM_insert (show PartialMap.get? m cn = none by
         rw [gmap_get?_eq]; exact hm)).2
       iframe Hconns
-      unfold hcConn hcMirror
-      iexists [], false
-      iframe Hao Hv1
-      ileft
-      ipureintro; rfl
+      unfold hcConn dirPart
+      iexists TcpDir.fresh, [], [], TcpDir.fresh, [], []
+      rw [HcNames.of_u, HcNames.of_d]
+      iframe Hdd Had HuW HuR HdW HdR
+      ipureintro; exact hcOk_fresh
     imodintro
-    unfold connProto hcName hcMirror
-    isplitl [Hae Hv2]
-    · iexists γ
-      iframe Hae Hv2 Hname
-    · iexists γ
-      iexact Hname
+    unfold connProto clientProto hcName
+    isplitl [Hae HuC HdS]
+    · iexists (HcNames.of γu γd)
+      rw [HcNames.of_u, HcNames.of_d]
+      iframe Hae HuC HdS Hname
+    · iexists (HcNames.of γu γd)
+      rw [HcNames.of_u, HcNames.of_d]
+      iframe Hde HuS HdC Hname
 
-/-- The state of a connection, from the invariant, by its mirror's name: it and the update that
-puts it back. -/
-theorem hcState_acc (γm : GName) (cn : Nat) (γ : GName) (E : CoPset) (hE : ↑hcN ⊆ E) :
-    ⊢ inv hcN (hcState (G (Gg := Gg)) γm) -∗ hcName G γm cn γ -∗
-      |={E, E \ ↑hcN}=> hcConn G cn γ ∗ (hcConn G cn γ ={E \ ↑hcN, E}=∗ True) := by
+/-! ## Opening a connection's state -/
+
+/-- The state of a connection, from the invariant, by its name: it and the update that puts it
+back. -/
+theorem hcState_acc (γm : GName) (cn : Nat) (ns : HcNames) (E : CoPset) (hE : ↑hcN ⊆ E) :
+    ⊢ inv hcN (hcState (Gg := Gg) γm) -∗ hcName γm cn ns -∗
+      |={E, E \ ↑hcN}=> hcConn cn ns ∗ (hcConn cn ns ={E \ ↑hcN, E}=∗ True) := by
   iintro #Hinv #Hname
   iinv Hinv with Hi Hclose
   unfold hcState
@@ -181,170 +317,258 @@ theorem hcState_acc (γm : GName) (cn : Nat) (γ : GName) (E : CoPset) (hE : ↑
   letI := (G (Gg := Gg)).allG
   unfold hcName
   icases ghost_map_lookup $$ Hm Hname with %Hl
-  icases BigSepM.bigSepM_insert_acc (show PartialMap.get? m cn = some γ by
-    rw [gmap_get?_eq]; exact Hl) $$ Hconns with ⟨Hc, Hback⟩
+  icases (BigSepM.bigSepM_lookup_acc (show PartialMap.get? m cn = some ns by
+    rw [gmap_get?_eq]; exact Hl)).1 $$ Hconns with ⟨Hc, Hback⟩
   imodintro
   iframe Hc
   iintro Hc
-  have hm : PartialMap.insert m cn γ = m := by
-    show m.insert cn γ = m
-    apply GMap.ext; intro k; simp only [GMap.lookup_insert_eq_iff]
-    split <;> simp_all
-  have hconv : ([∗map] k ↦ v ∈ PartialMap.insert m cn γ, hcConn (G (Gg := Gg)) k v) ⊢
-      [∗map] k ↦ v ∈ m, hcConn G k v := by rw [hm]
   imod Hclose $$ [Hm Hback Hc] with -
   · inext
     iexists m
     iframe Hm
-    iapply hconv
     iapply Hback $$ Hc
   imodintro
   itrivial
 
-/-- The two halves of a mirror agree. -/
-theorem hcMirror_agree (γ : GName) (so so' : GoString) (f f' : Bool) :
-    hcMirror (G (Gg := Gg)) γ so f -∗ hcMirror G γ so' f' -∗ ⌜so = so' ∧ f = f'⌝ := by
-  unfold hcMirror
-  letI := (G (Gg := Gg)).allG
-  iintro H1 H2
-  icases ghostVar_agree $$ H1 H2 with %h
-  ipureintro
-  exact Prod.mk.inj h
+/-- The direction from the end `s` of a connection's state, and its write-back at a direction
+that keeps every `DirOk`. -/
+theorem hcConn_dir (cn : Nat) (ns : HcNames) (s : Bool) :
+    hcConn (Gg := Gg) cn ns ⊢ ∃ d, tcpDir G cn s d ∗
+      (∀ d', ⌜∀ W R, DirOk d W R → DirOk d' W R⌝ -∗ tcpDir G cn s d' -∗ hcConn cn ns) := by
+  unfold hcConn dirPart
+  iintro ⟨%dU, %WU, %RU, %dD, %WD, %RD, ⟨HdU, HwU, HrU⟩, ⟨HdD, HwD, HrD⟩, %Hok⟩
+  cases s
+  · iexists dU
+    iframe HdU
+    iintro %d' %Hd' HdU
+    iexists d', WU, RU, dD, WD, RD
+    iframe HdU HwU HrU HdD HwD HrD
+    ipureintro
+    exact ⟨Hd' _ _ Hok.1, Hok.2.1, Hok.2.2.1, Hok.2.2.2⟩
+  · iexists dD
+    iframe HdD
+    iintro %d' %Hd' HdD
+    iexists dU, WU, RU, d', WD, RD
+    iframe HdU HwU HrU HdD HwD HrD
+    ipureintro
+    exact ⟨Hok.1, Hd' _ _ Hok.2.1, Hok.2.2.1, Hok.2.2.2⟩
 
-/-- The two halves of a mirror, updated together. -/
-theorem hcMirror_update (γ : GName) (so so' so'' : GoString) (f f' f'' : Bool) :
-    hcMirror (G (Gg := Gg)) γ so f -∗ hcMirror G γ so' f' ==∗
-      hcMirror G γ so'' f'' ∗ hcMirror G γ so'' f'' := by
-  unfold hcMirror
-  letI := (G (Gg := Gg)).allG
-  iintro H1 H2
-  iapply ghostVar_update_halves (so'', f'') $$ H1 H2
+/-! ## The updates -/
 
-/-- The server's write on `cn` of bytes `bs`, with its half of the mirror (`so`, no FIN): its bytes
-become `so ++ bs.take k`, still with no FIN; it gets back the end's state after the write. -/
-theorem server_write_au (γm : GName) (cn : Nat) (γ : GName) (bs so : GoString) (st : TcpEnd)
-    (r : Nat) :
-    ⊢ inv hcN (hcState (G (Gg := Gg)) γm) -∗ hcName G γm cn γ -∗ hcMirror G γ so false -∗
-      tcpEnd G cn true st r -∗
-      |={⊤,∅}=> ∃ st0 r0 out f, tcpEnd G cn true st0 r0 ∗ tcpOut G cn true out f ∗
-        ∀ k ok st', ⌜WriteRes st0 bs k ok st'⌝ -∗ tcpEnd G cn true st' r0 -∗
-          tcpOut G cn true (out ++ bs.take k) f ={∅,⊤}=∗
-          ∃ st'', ⌜WriteRes st bs k ok st''⌝ ∗ tcpEnd G cn true st'' r ∗
-            hcMirror G γ (so ++ bs.take k) false := by
-  iintro #Hinv #Hname Hmy Hend
-  imod hcState_acc γm cn γ ⊤ (by simp) $$ Hinv Hname with ⟨Hc, Hclose⟩
-  unfold hcConn
-  icases Hc with ⟨%so', %f, Hout, Hmir, Hcase⟩
-  icases hcMirror_agree γ so so' false f $$ Hmy Hmir with %Hag
-  obtain ⟨rfl, rfl⟩ := Hag
+/-- The dialer's write of `bs` on `cn` (its end's state `st`), having written `W`, with
+`W ++ bs` a prefix of `"hello"`: it has then written `W ++ bs.take k`. -/
+theorem client_write_au (γm : GName) (cn : Nat) (ns : HcNames) (st : TcpEnd) (W bs : List w8)
+    (h : W ++ bs <+: hello) :
+    ⊢ inv hcN (hcState (Gg := Gg) γm) -∗ hcName γm cn ns -∗ tcpEnd G cn false st -∗
+      sentAll ns.u W -∗
+      |={⊤,∅}=> ∃ st0 d, tcpEnd G cn false st0 ∗ tcpDir G cn false d ∗
+        ∀ k ok d', ⌜WriteOutcome st0 d bs k ok d'⌝ -∗ tcpEnd G cn false st0 -∗
+          tcpDir G cn false d' ={∅,⊤}=∗ tcpEnd G cn false st ∗ sentAll ns.u (W ++ bs.take k) ∗
+            ⌜∃ d d', WriteOutcome st d bs k ok d'⌝ := by
+  iintro #Hinv #Hname Hend Hw
+  imod hcState_acc γm cn ns ⊤ (by simp) $$ Hinv Hname with ⟨Hc, Hclose⟩
+  unfold hcConn dirPart
+  icases Hc with ⟨%dU, %WU, %RU, %dD, %WD, %RD, ⟨HdU, HwU, HrU⟩, HD, %Hok⟩
   iapply fupd_mask_intro (by simp)
   iintro Hmask
-  iexists st, r, so, false
-  iframe Hend Hout
-  iintro %k %ok %st' %Hwr Hend Hout
+  iexists st, dU
+  iframe Hend HdU
+  iintro %k %ok %d' %Hwr Hend HdU
   imod Hmask
-  imod hcMirror_update γ so so (so ++ bs.take k) false false false $$ Hmy Hmir with ⟨Hmy, Hmir⟩
-  imod Hclose $$ [Hout Hmir] with -
-  · iexists so ++ bs.take k, false
-    iframe Hout Hmir
-    ileft
-    ipureintro; rfl
+  imod sentAll_app ns.u WU W (bs.take k) $$ HwU Hw with ⟨%Heq, HwU, Hw⟩
+  subst Heq
+  imod Hclose $$ [HdU HwU HrU HD] with -
+  · try unfold hcConn dirPart
+    iexists d', WU ++ bs.take k, RU, dD, WD, RD
+    iframe HdU HwU HrU HD
+    ipureintro
+    exact ⟨dirOk_write Hok.1 Hwr, Hok.2.1,
+      ((List.prefix_append_right_inj WU).2 (List.take_prefix k bs)).trans h, Hok.2.2.2⟩
   imodintro
-  iexists st'
-  iframe Hend Hmy
-  ipureintro; exact Hwr
+  iframe Hend Hw
+  ipureintro; exact ⟨dU, d', Hwr⟩
 
-/-- The server's close of `cn`, with its half of the mirror (`so`, `f`), when its end is broken or
-`so` is the dialer's bytes in full: the FIN it may send keeps `finEcho`. -/
-theorem server_close_au (γm : GName) (cn : Nat) (γ : GName) (so : GoString) (f : Bool)
-    (st : TcpEnd) (r : Nat) :
-    ⊢ inv hcN (hcState (G (Gg := Gg)) γm) -∗ hcName G γm cn γ -∗ hcMirror G γ so f -∗
-      (⌜st.broken = true⌝ ∨ finEcho G cn so) -∗ tcpEnd G cn true st r -∗
-      |={⊤,∅}=> ∃ st r out f, tcpEnd G cn true st r ∗ tcpOut G cn true out f ∗
-        ∀ ok st' f', ⌜CloseRes false (fun st => { st with closed := true }) st f ok st' f'⌝ -∗
-          tcpEnd G cn true st' r -∗ tcpOut G cn true out f' ={∅,⊤}=∗ True := by
-  iintro #Hinv #Hname Hmy #Hok Hend
-  imod hcState_acc γm cn γ ⊤ (by simp) $$ Hinv Hname with ⟨Hc, Hclose⟩
-  unfold hcConn
-  icases Hc with ⟨%so', %f0, Hout, Hmir, #Hcase⟩
-  icases hcMirror_agree γ so so' f f0 $$ Hmy Hmir with %Hag
-  obtain ⟨rfl, rfl⟩ := Hag
+/-- The server's write of `bs` on `cn` (its end's state `st`), having written `W` and read `R`,
+with `W ++ bs` a prefix of `R`: it has then written `W ++ bs.take k`. -/
+theorem server_write_au (γm : GName) (cn : Nat) (ns : HcNames) (st : TcpEnd) (W R bs : List w8)
+    (h : W ++ bs <+: R) :
+    ⊢ inv hcN (hcState (Gg := Gg) γm) -∗ hcName γm cn ns -∗ tcpEnd G cn true st -∗
+      sentAll ns.d W -∗ rcvdAll ns.u R -∗
+      |={⊤,∅}=> ∃ st0 d, tcpEnd G cn true st0 ∗ tcpDir G cn true d ∗
+        ∀ k ok d', ⌜WriteOutcome st0 d bs k ok d'⌝ -∗ tcpEnd G cn true st0 -∗
+          tcpDir G cn true d' ={∅,⊤}=∗ tcpEnd G cn true st ∗ sentAll ns.d (W ++ bs.take k) ∗
+            rcvdAll ns.u R ∗ ⌜∃ d d', WriteOutcome st d bs k ok d'⌝ := by
+  iintro #Hinv #Hname Hend Hw Hr
+  imod hcState_acc γm cn ns ⊤ (by simp) $$ Hinv Hname with ⟨Hc, Hclose⟩
+  unfold hcConn dirPart
+  icases Hc with ⟨%dU, %WU, %RU, %dD, %WD, %RD, ⟨HdU, HwU, HrU⟩, ⟨HdD, HwD, HrD⟩, %Hok⟩
+  letI := (G (Gg := Gg)).allG
+  unfold rcvdAll
+  icases ghostVar_agree $$ HrU Hr with %HeqR
+  subst HeqR
   iapply fupd_mask_intro (by simp)
   iintro Hmask
-  iexists st, r, so, f
-  iframe Hend Hout
-  iintro %ok %st' %f' %Hcr - Hout
+  iexists st, dD
+  iframe Hend HdD
+  iintro %k %ok %d' %Hwr Hend HdD
   imod Hmask
-  imod hcMirror_update γ so so so f f f' $$ Hmy Hmir with ⟨-, Hmir⟩
+  imod sentAll_app ns.d WD W (bs.take k) $$ HwD Hw with ⟨%Heq, HwD, Hw⟩
+  subst Heq
+  imod Hclose $$ [HdU HwU HrU HdD HwD HrD] with -
+  · try unfold hcConn dirPart
+    iexists dU, WU, RU, d', WD ++ bs.take k, RD
+    iframe HdU HwU HrU HdD HwD HrD
+    ipureintro
+    exact ⟨Hok.1, dirOk_write Hok.2.1 Hwr, Hok.2.2.1,
+      ((List.prefix_append_right_inj WD).2 (List.take_prefix k bs)).trans h⟩
+  imodintro
+  iframe Hend Hw Hr
+  ipureintro; exact ⟨dD, d', Hwr⟩
+
+/-- The server's reader predicate of `readAll` on `cn`: its end's state, and the bytes `got` read
+from the up direction. -/
+def srvP (ns : HcNames) (cn : Nat) (st : TcpEnd) (got : List w8) : IProp GF :=
+  iprop(tcpEnd G cn true st ∗ rcvdAll (Gg := Gg) ns.u got)
+
+/-- The accessor of `readAll` for `srvP`. -/
+theorem server_read_acc (γm : GName) (cn : Nat) (ns : HcNames) (st : TcpEnd) :
+    inv hcN (hcState (Gg := Gg) γm) ∗ hcName γm cn ns ⊢
+      □ (∀ (got : List w8) (m : Nat), srvP ns cn st got -∗
+        |={⊤,∅}=> ∃ st0 d, tcpEnd G cn true st0 ∗ tcpDir G cn false d ∗
+          ∀ r d', ⌜ReadOutcome st0 d m r d' ∧ r ≠ .wait⌝ -∗ tcpEnd G cn true st0 -∗
+            tcpDir G cn false d' ={∅,⊤}=∗ srvP ns cn st (got ++ r.got)) := by
+  iintro ⟨#Hinv, #Hname⟩
+  imodintro
+  iintro %got %m HP
+  unfold srvP
+  icases HP with ⟨Hend, Hr⟩
+  imod hcState_acc γm cn ns ⊤ (by simp) $$ Hinv Hname with ⟨Hc, Hclose⟩
+  unfold hcConn dirPart
+  icases Hc with ⟨%dU, %WU, %RU, %dD, %WD, %RD, ⟨HdU, HwU, HrU⟩, HD, %Hok⟩
+  letI := (G (Gg := Gg)).allG
+  unfold rcvdAll
+  icases ghostVar_agree $$ HrU Hr with %HeqR
+  subst HeqR
+  iapply fupd_mask_intro (by simp)
+  iintro Hmask
+  iexists st, dU
+  iframe Hend HdU
+  iintro %r %d' %Hrd Hend HdU
+  imod Hmask
+  imod ghostVar_update_halves (RU ++ r.got) $$ HrU Hr with ⟨HrU, Hr⟩
+  imod Hclose $$ [HdU HwU HrU HD] with -
+  · try unfold hcConn dirPart
+    iexists d', WU, RU ++ r.got, dD, WD, RD
+    iframe HdU HwU HrU HD
+    ipureintro
+    exact ⟨dirOk_read Hok.1 Hrd.1, Hok.2.1, Hok.2.2.1,
+      Hok.2.2.2.trans (List.prefix_append RU r.got)⟩
+  imodintro
+  iframe Hend Hr
+
+/-- The dialer's reader predicate of `readAll` on `cn`: its end's state, and the bytes `got` read
+from the down direction. -/
+def cliP (ns : HcNames) (cn : Nat) (st : TcpEnd) (got : List w8) : IProp GF :=
+  iprop(tcpEnd G cn false st ∗ rcvdAll (Gg := Gg) ns.d got)
+
+/-- The accessor of `readAll` for `cliP`. -/
+theorem client_read_acc (γm : GName) (cn : Nat) (ns : HcNames) (st : TcpEnd) :
+    inv hcN (hcState (Gg := Gg) γm) ∗ hcName γm cn ns ⊢
+      □ (∀ (got : List w8) (m : Nat), cliP ns cn st got -∗
+        |={⊤,∅}=> ∃ st0 d, tcpEnd G cn false st0 ∗ tcpDir G cn true d ∗
+          ∀ r d', ⌜ReadOutcome st0 d m r d' ∧ r ≠ .wait⌝ -∗ tcpEnd G cn false st0 -∗
+            tcpDir G cn true d' ={∅,⊤}=∗ cliP ns cn st (got ++ r.got)) := by
+  iintro ⟨#Hinv, #Hname⟩
+  imodintro
+  iintro %got %m HP
+  unfold cliP
+  icases HP with ⟨Hend, Hr⟩
+  imod hcState_acc γm cn ns ⊤ (by simp) $$ Hinv Hname with ⟨Hc, Hclose⟩
+  unfold hcConn dirPart
+  icases Hc with ⟨%dU, %WU, %RU, %dD, %WD, %RD, HU, ⟨HdD, HwD, HrD⟩, %Hok⟩
+  letI := (G (Gg := Gg)).allG
+  unfold rcvdAll
+  icases ghostVar_agree $$ HrD Hr with %HeqR
+  subst HeqR
+  iapply fupd_mask_intro (by simp)
+  iintro Hmask
+  iexists st, dD
+  iframe Hend HdD
+  iintro %r %d' %Hrd Hend HdD
+  imod Hmask
+  imod ghostVar_update_halves (RD ++ r.got) $$ HrD Hr with ⟨HrD, Hr⟩
+  imod Hclose $$ [HU HdD HwD HrD] with -
+  · try unfold hcConn dirPart
+    iexists dU, WU, RU, d', WD, RD ++ r.got
+    iframe HU HdD HwD HrD
+    ipureintro
+    exact ⟨Hok.1, dirOk_read Hok.2.1 Hrd.1, Hok.2.2.1, Hok.2.2.2⟩
+  imodintro
+  iframe Hend Hr
+
+/-- The client's check on `cn`: what it read from the down direction is a prefix of
+`"hello"`. -/
+theorem client_check (γm : GName) (cn : Nat) (ns : HcNames) (R : List w8) :
+    ⊢ inv hcN (hcState (Gg := Gg) γm) -∗ hcName γm cn ns -∗ rcvdAll ns.d R ={⊤}=∗
+      ⌜R <+: hello⌝ ∗ rcvdAll ns.d R := by
+  iintro #Hinv #Hname Hr
+  imod hcState_acc γm cn ns ⊤ (by simp) $$ Hinv Hname with ⟨Hc, Hclose⟩
+  unfold hcConn dirPart
+  icases Hc with ⟨%dU, %WU, %RU, %dD, %WD, %RD, HU, ⟨HdD, HwD, HrD⟩, %Hok⟩
+  letI := (G (Gg := Gg)).allG
+  unfold rcvdAll
+  icases ghostVar_agree $$ HrD Hr with %HeqR
+  subst HeqR
+  imod Hclose $$ [HU HdD HwD HrD] with -
+  · try unfold hcConn dirPart
+    iexists dU, WU, RU, dD, WD, RD
+    iframe HU HdD HwD HrD
+    ipureintro; exact Hok
+  imodintro
+  iframe Hr
+  ipureintro; exact hcOk_check Hok
+
+/-- A close of the end `s` of `cn` (its state `st` the thread's): the direction from it shut
+(`CloseOutcome`). -/
+theorem hc_close_au (γm : GName) (cn : Nat) (ns : HcNames) (s : Bool) (st : TcpEnd) :
+    ⊢ inv hcN (hcState (Gg := Gg) γm) -∗ hcName γm cn ns -∗ tcpEnd G cn s st -∗
+      |={⊤,∅}=> ∃ st0 d, tcpEnd G cn s st0 ∗ tcpDir G cn s d ∗
+        ∀ ok st' d', ⌜CloseOutcome st0 d ok st' d'⌝ -∗ tcpEnd G cn s st' -∗ tcpDir G cn s d'
+          ={∅,⊤}=∗ True := by
+  iintro #Hinv #Hname Hend
+  imod hcState_acc γm cn ns ⊤ (by simp) $$ Hinv Hname with ⟨Hc, Hclose⟩
+  icases hcConn_dir cn ns s $$ Hc with ⟨%d, Hd, Hback⟩
+  iapply fupd_mask_intro (by simp)
+  iintro Hmask
+  iexists st, d
+  iframe Hend Hd
+  iintro %ok %st' %d' %Hcl - Hd
+  imod Hmask
   iapply Hclose
-  iexists so, f'
-  iframe Hout Hmir
-  rcases Hcr with ⟨-, -, -, rfl⟩ | ⟨-, -, rfl⟩
-  · iexact Hcase
-  · cases f
-    · cases hb : st.broken
-      · simp only [Bool.not_false, Bool.or_true]
-        icases Hok with (%Hb | #Hfe)
-        · cases Hb
-        · iright; iexact Hfe
-      · ileft; ipureintro; rfl
-    · simp only [Bool.true_or]
-      iexact Hcase
+  iapply Hback $$ %d' [] Hd
+  ipureintro; intro W R h; exact dirOk_close h Hcl
 
-/-- The client's check on `cn`, its bytes `out`: what it read until EOF (`resp`, a prefix of the
-server's bytes, of the length of the server's FIN's) is `out`. -/
-theorem client_check (γm : GName) (cn : Nat) (γ : GName) (out : GoString) (f : Bool)
-    (resp sent : GoString) (hlen : sent.length = resp.length) :
-    ⊢ inv hcN (hcState (G (Gg := Gg)) γm) -∗ hcName G γm cn γ -∗
-      tcpOut G cn false out f -∗ tcpOutLb G cn true resp -∗ tcpFin G cn true sent ={⊤}=∗
-      ⌜resp = out⌝ ∗ tcpOut G cn false out f := by
-  iintro #Hinv #Hname Hmy #Hresp #Hfin
-  imod hcState_acc γm cn γ ⊤ (by simp) $$ Hinv Hname with ⟨Hc, Hclose⟩
-  unfold hcConn
-  icases Hc with ⟨%so, %f', Hout, Hmir, #Hcase⟩
-  icases tcpOut_lb_prefix _ cn true so f' resp $$ Hout Hresp with %Hrs
-  icases tcpOut_fin _ cn true so f' sent $$ Hout Hfin with %Hf
-  obtain ⟨hf', hsent⟩ := Hf
-  icases Hcase with (%Hf | #Hfe)
-  · rw [hf'] at Hf; cases Hf
-  ihave #Hfe' := Hfe
-  unfold finEcho
-  icases Hfe' with ⟨%si, #Hsi, #Hlb, %Hsl⟩
-  icases tcpOut_fin _ cn false out f si $$ Hmy Hsi with %Hf2
-  icases tcpOut_lb_prefix _ cn false out f so $$ Hmy Hlb with %Hpre
-  imod Hclose $$ [Hout Hmir] with -
-  · iexists so, f'
-    iframe Hout Hmir
-    iright
-    iexact Hfe
-  imodintro
-  iframe Hmy
-  ipureintro
-  have h1 : resp = so := Hrs.eq_of_length (by rw [← hlen, hsent])
-  have h2 : so = out := Hpre.eq_of_length (by rw [Hsl, Hf2.2])
-  rw [h1, h2]
-
-/-- A shutdown of the write side by an end its thread owns: the update of
-`net.TCPConn.CloseWrite`, which hands back the end's state and FIN flag after it. -/
-theorem owned_closeWrite_au (c : Nat) (s : Bool) (st : TcpEnd) (r : Nat) (out : GoString)
-    (f : Bool) :
-    ⊢ tcpEnd G c s st r -∗ tcpOut (G (Gg := Gg)) c s out f -∗
-      |={⊤,∅}=> ∃ st0 r0 out0 f0, tcpEnd G c s st0 r0 ∗ tcpOut G c s out0 f0 ∗
-        ∀ ok st' f', ⌜CloseRes true (fun st => { st with wshut := true }) st0 f0 ok st' f'⌝ -∗
-          tcpEnd G c s st' r0 -∗ tcpOut G c s out0 f' ={∅,⊤}=∗
-          ∃ st'' f'', ⌜CloseRes true (fun st => { st with wshut := true }) st f ok st'' f''⌝ ∗
-            tcpEnd G c s st'' r ∗ tcpOut G c s out f'' := by
-  iintro Hend Hout
-  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+/-- A `CloseWrite` of the end `s` of `cn` (its state `st` the thread's): the direction from it shut
+(`CloseWriteOutcome`); the end's state is handed back. -/
+theorem hc_closeWrite_au (γm : GName) (cn : Nat) (ns : HcNames) (s : Bool) (st : TcpEnd) :
+    ⊢ inv hcN (hcState (Gg := Gg) γm) -∗ hcName γm cn ns -∗ tcpEnd G cn s st -∗
+      |={⊤,∅}=> ∃ st0 d, tcpEnd G cn s st0 ∗ tcpDir G cn s d ∗
+        ∀ ok d', ⌜CloseWriteOutcome st0 d ok d'⌝ -∗ tcpEnd G cn s st0 -∗ tcpDir G cn s d'
+          ={∅,⊤}=∗ tcpEnd G cn s st := by
+  iintro #Hinv #Hname Hend
+  imod hcState_acc γm cn ns ⊤ (by simp) $$ Hinv Hname with ⟨Hc, Hclose⟩
+  icases hcConn_dir cn ns s $$ Hc with ⟨%d, Hd, Hback⟩
+  iapply fupd_mask_intro (by simp)
   iintro Hmask
-  iexists st, r, out, f
-  iframe Hend Hout
-  iintro %ok %st' %f' %Hcr Hend Hout
+  iexists st, d
+  iframe Hend Hd
+  iintro %ok %d' %Hcl Hend Hd
   imod Hmask
+  imod Hclose $$ [Hback Hd] with -
+  · iapply Hback $$ %d' [] Hd
+    ipureintro; intro W R h; exact dirOk_closeWrite h Hcl
   imodintro
-  iexists st', f'
-  iframe Hend Hout
-  ipureintro; exact Hcr
+  iexact Hend
 
 end wps
 
