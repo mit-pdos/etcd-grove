@@ -2233,6 +2233,52 @@ success arm (next: `walName(0,0)`/`Join`, `createNewWALFile`).
   with an error), its `renameWALUnlock` (`Close`, `Open`, `ReadAll`) a hypothesis; then `Create` after it is the
   parent fsync (`walInv_named`), the merge back (`walInv_merge2`, `b1 := nm ++ "a"`) and `area_give`.
 
+**Twelfth session (branch `wal-create12`, 2026-11-14).** `Create` continued past `CreateDirAll`: frontier `sorry`
+now at `f.Seek(0, io.SeekEnd)` (after `createNewWALFile`'s success).
+- *Done (no `sorry`):* `walName(0, 0)`/`Join` (`p = child (child r nm.tmp) (walFileName 0 0)`); `createNewWALFile(p,
+  false)` over `CreateSeg.lean`'s **`wp_createSeg`** (the `OpenTriple` over `os.OpenFile.specCreateSnc`, trivial
+  update, as `PipeLemmas.wp_createTmp`; `walOpenFlag_create`), with `J`'s claim split at the segment's name
+  (`osNames_split` + `osNames_rekey` to `.only [b]`) and the spine to `nm.tmp` (`os.qp_common`, `osPathS_child`,
+  `os.osPathS_unchild` after); its error arm proved to the abort (`segClaim_back`/`filesOnly_merge`: the segment's
+  claim merged back into `J`'s, files only, so `tmpDirH` again; the deferred `RemoveAll`; `create_abortTmp`).
+  `Create.lean` is now at `HeapGS HasLC.hasLC` (the handle's).
+- *`hErrExist` dropped* (task 4): the part's `io/fs` fact records `ErrExist` non-nil and the part's `os` fact
+  records `os.ErrExist` (`LinuxFs/Proof/os/PkgInit.lean`; `etc/gen-init.py`'s `LFS_SPECIAL['io.fs']`/`['os']`,
+  variants of the main tree's, which is unchanged; `--check` passes). Read in `Create` by `isPkgInit_access`.
+- *`Create.spec` returns `walOpenWF P Mr`* (task 3; ledger entry 2026-11-14): binders `P Mr`, `walAreaOk walCodec Mr`,
+  `HasLC.hasLC`; success `Q ∗ walOpenWF ∗ walNamed ∗ walLenLb 0 ∗ walSyncedLb 0 ∗ walPurgeW` (the call permission's
+  half inside the handle's `walDirH`). No new client-visible ghost state.
+- *`renameWAL` stated* (task 1): `Spec/.../wal/WAL__renameWAL.lean` (`renameWAL.spec P Mr`, `RenameWALOk`,
+  `renameWALPost`), generic in the rename's update `U` (`Create`'s is `walCreate_osAUnc`'s, `U := walCreateQ`; an
+  aborted `U none` must rebuild the update, for the retry), four post arms (committed with `w`'s pipeline and
+  directory fd; committed with a reopened client handle, from `renameWALUnlock`; not committed; committed with an
+  error). `WAL__renameWALUnlock.lean`: its retry, same vocabulary and post, a hypothesis of `renameWAL`'s proof.
+  `Proof/.../WAL__renameWAL.lean`: `sorry` stub over its callees (`specAbsentN`, `Rename.specDirSnc`,
+  `newFilePipeline`, `OpenDir`, `renameWALUnlock`). `Create.wp_proof` takes `renameWAL.spec` (unused yet).
+- **Finding G-spine (for the invariant's owner; blocks `renameWAL` and every `walDirH` producer):** no
+  `osPathS R dir dq J` to a WAL directory can be built. `osSpine` is made of fractions of `.only [c]` claims, but
+  `nm` is only ever in the creating claim `.only [nm, nm.tmp]` (half `walInv`'s) and, merged back, in the cofinite
+  area claim (half `walInv`'s); `osPathS_child` needs a `.only [nm]` fraction. `newFilePipeline` (`pipeRes`),
+  `OpenDir(w.dir)` and `walDirH` all need one. `renameWAL.spec` takes it as a caller-supplied law (`Sp`/`SpR`,
+  `RenameWALOk`'s third conjunct), which nothing supplies. Possible fix: each WAL name's `.only [nm]` claim kept
+  apart from the area claim (split at creation, half in `walInv`, fractions of the program's half for spines;
+  `WalsCreateOk` restated), or a spine through a fraction of any claim holding the name (an `Fs` change; but a
+  fraction held by a spine pins the area claim, which the next `Create` must change).
+- **Finding (renameWALUnlock):** `os.Rename`'s errors are all `*os.LinkError`, so every failed rename takes
+  `renameWALUnlock`, whose `w.Close()` reaches `w.dirFile.Close()` with a nil `dirFile` (`ErrInvalid` in Go, stuck
+  in the trusted model: plan §0 item 6); and its `Open`/`ReadAll` need `walAreaRes`, split up by `Create` then. Its
+  spec is a hypothesis until the model handles a nil `*os.File`'s `Close`.
+- *Next:* `f.Seek(0, io.SeekEnd)` is a promoted method of `*fileutil.LockedFile` (`methods (ptr LockedFile) "Seek"
+  lf`): needs a lemma unfolding it to the embedded `*os.File`'s (`os.File.Seek.wp_end`, size 0 after the create);
+  the deferred `f.Close()` likewise (`LockedFile`'s `Close`). Then `Preallocate` (`PreallocateAu`/`preallocExtend`
+  specs), `newFileEncoder`, the encoder's records and `SaveSnapshot.specPre`, `syncDir(nm.tmp)` (proved), the
+  minting (`walInv_mint`, after `J`'s `.except walTmps` + `walTmpsRes J` split), `renameWAL` (blocked on G-spine),
+  the parent fsync (`walInv_named`), `walInv_merge2`, `area_give`, the handle (`walOpenWF_iff`, `⧗ 0`).
+- *`Create.wp_proof`'s hypotheses now:* `wal.Exist.specCreate`, `fileutil.Exist.spec`, `filepath.Clean.spec`,
+  `os.RemoveAll.specAbsentS`/`specDirS`, `fileutil.CreateDirAll.specTmp`, zap `String`/`Error`/`Warn`,
+  `fmt.SprintfWalName.spec`, `filepath.Join.spec`, `createNewWALFile.specLocked`, `os.OpenFile.specCreateSnc`,
+  `WAL.renameWAL.spec`.
+
 **For `wal-create6` (the invariant's owner, 2026-11-13).** (1) `walAreaRes jr` gains `⌜∀ nm J, walNameOk nm →
 h.cur !! tmpName nm = some (.dir J) → ∀ hJ, (J, NameSet.except [], hJ) ∈ cl → FilesOnly hJ.cur⌝` (a leftover
 `nm.tmp` holds only files; `CreateDefs.lean`, importing `LinuxFs.Spec.os.RemoveAll`), for `os.RemoveAll.specDirS`
