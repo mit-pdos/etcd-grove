@@ -148,13 +148,14 @@ U7, U8.
 ## 5. Unproved hypotheses blocking a closed result
 
 From `S/Link.lean` and `etc/tcb-collections/wal-fsext.txt`:
-- `sorry`s: `wal.Create.wp_proof` (cleanup arms, `S/Create.lean:145,157,191`: blocked by design, unregistration
-  proposed), `WAL.ReadAll.wp_proof` (EOF stop), and `S/Repair.lean:411`, `S/RepairLoop.lean:65`;
+- `sorry`s: `wal.Create.wp_proof` only (cleanup arms, `S/Create.lean:145,157,191`: blocked by design, unregistration
+  proposed; branch `wal-c-create`). `ReadAll`'s EOF stop, `S/Repair.lean:411`, `S/RepairLoop.lean:65` were
+  proved before 2026-11-14 (`notes/wal-units/readall.md`);
 - Perennial gaps (true of Go): `errors.{AsLinkError,IsErrno,IsPathErrnoEof,IsPathErrnoNotExist}`,
   `fmt.ErrorfErrsNot`, `filepathlite.IsAbs` (`stringslite.HasPrefix` has no body), `WalDecEnvSupply`;
 - trust-boundary extension: `proto.UnmarshalWalRecordE` [user];
-- the WAL's own: `WAL.renameWALUnlock.spec` (false as stated, ledger), `wal.validSnapshotEntries{Absent,Pinned}`,
-  `fileutil.CheckDirPermission` (proved on `wal-leaf5-modeperm`, unmerged);
+- the WAL's own: `WAL.renameWALUnlock.spec` (false as stated, ledger) only (`validSnapshotEntries{Absent,Pinned}`
+  and `fileutil.CheckDirPermission` proved and linked);
 - model laws: U4.
 
 ## 6. User-review items gating landing on `lean`
