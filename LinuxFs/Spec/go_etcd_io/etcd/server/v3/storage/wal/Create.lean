@@ -32,7 +32,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 /-- **`Create(lg, dir, md)`** (S/wal.go:102-262): a fresh WAL with metadata `md` (a non-nil slice:
 its record's `Data`) in `dir = r/nm`, a WAL directory of the area `r` (the directory `jr`, durable).
 
-`nm` is a name (`NameOk`: no NUL byte, beyond `walNameOk`; the system calls on `dir` need it).
+`nm` is a name (`NameOk`: no NUL byte, beyond `walNameOk`; the system calls on `dir` need it), and
+`dir` shorter than `2^59` (`filepath.Join`'s and `CreateDirAll`'s bounds, on `dir.tmp`'s paths).
 
 *Package initialization*: `isPkgInit wal` (`PkgInit.lean`: `SegmentSizeBytes`, the metrics `Create`
 observes, the CRC table its encoder takes).
@@ -69,7 +70,7 @@ implementation log. -/
 abbrev wal.Create.spec (C : WalCodec) (Mr : WalMarshal) : Prop :=
   ∀ (lg : Loc) (R : Roots) (jr : Ino) (r dir nm : GoString) (mp : GoSlice) (md : List w8) (qp : Qp)
     (Q : IProp GF),
-  InArea r dir nm → NameOk nm → cleanAbsPath r → mp ≠ slice.nil →
+  InArea r dir nm → NameOk nm → dir.length < 2 ^ 59 → cleanAbsPath r → mp ≠ slice.nil →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗
       mp ↦*□ md ∗ WalFs.walAreaOk C Mr R jr r ∗ WalFs.dirDurable r ∗ osPathS R r (DFrac.own qp) jr ∗
       walAreaRes jr ∗ osCallPerm 1 ∗ WalFs.walUnlockedTok ∗

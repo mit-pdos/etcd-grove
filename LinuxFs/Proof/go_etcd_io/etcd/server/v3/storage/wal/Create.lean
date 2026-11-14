@@ -51,7 +51,7 @@ theorem wal.Create.wp_proof (C : WalCodec) (Mr : WalMarshal)
     (hErrExist : ⊢ isPkgInit (PROP := IProp GF) pkg_id.os -∗
       ∃ e : GoInterface, ⌜e ≠ interface.nil⌝ ∗ typedPointsto (globalAddr os.ErrExist) e DFrac.discard) :
     wal.Create.spec (GF := GF) C Mr := by
-  intro lg R jr r dir nm mp md qp Q hin hnmO hr hmp
+  intro lg R jr r dir nm mp md qp Q hin hnmO hdl hr hmp
   wp_start as ⟨#Hzap, #Hmd, #Hok, #Hdd, Hp, Hres, Hperm, Hu, Hau⟩
   try wp_auto
   wp_apply wp_with_defer as %defer Hdefer
@@ -139,6 +139,43 @@ theorem wal.Create.wp_proof (C : WalCodec) (Mr : WalMarshal)
   all_goals (
     try wp_auto
     icases Ht with ⟨%hT1, Ht⟩
+    have htl : (child r (tmpName nm)).length < 2 ^ 60 := by
+      simp [child, tmpName] at hdl ⊢; omega
+    wp_apply wp_CDA lg R jr (child r (tmpName nm)) r (tmpName nm) qp hT1 rfl (tmpName_nameOk hnmO) htl
+      $$ [Hp Hperm Ht] as %err ⟨Hp, Hperm, Hcda⟩
+    · iframe; iframe #
+    icases Hcda with (⟨%herr, %hT2, Ht⟩ | ⟨%herr, %hT2, %hJ, %J, %n0, %hJs, HT, HJ, #Hcm0⟩)
+    · -- `CreateDirAll` failed: the deferred `RemoveAll(nm.tmp)`, then the abort
+      cases err
+      case nil => exact absurd rfl herr
+      try wp_auto
+      wp_apply wp_String as %f1 -
+      wp_apply wp_String as %f2 -
+      wp_apply wp_Error as %f3 -
+      wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1, f2, f3]
+      isplitr
+      · ipureintro; rfl
+      iintro %fsl ⟨-, -⟩
+      try wp_auto
+      wp_apply wp_Warn lg _ _ $$ []
+      · iframe #
+      try wp_auto
+      wp_apply wp_removeAllTmp wp_RmAbs wp_RmDir r (tmpName nm) R jr qp hT2 (tmpName_nameOk hnmO)
+        $$ [Hp Ht Hperm] as %err' ⟨Hp, Hperm, Ht, -⟩
+      · iframe; iframe #
+      icases Ht with ⟨%hT3, Ht⟩
+      iapply wp_notCrashed_acc _ _ rfl
+      iintro Hnc
+      imod create_abortTmp C Mr R jr r N h cl nm hT3 hok hnm hself $$ Hinv Hsi Hnc Hu HN Ht Hcl
+        with ⟨Hnc, Hu, Hres⟩
+      iframe Hnc
+      imodintro
+      try wp_auto
+      iapply HΦ
+      iframe
+      iright; ileft
+      iframe
+      ipureintro; intro hc; cases hc
     sorry)
 
 end proof
