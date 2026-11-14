@@ -275,7 +275,8 @@ variable [bufio_sem : _root_.Perennial.bufio.Assumptions]
 `io.ErrUnexpectedEOF` at `eof`/`ueof`, `errors.Is(_, io.EOF)` on the readers' errors
 (`isEofOk`), the WAL's CRC table, `walpb.ErrCRCMismatch` (read by `Record.Validate`) and
 protobuf's `proto` initialized (`proto.Unmarshal`). `errors.Is(ErrCRCMismatch, io.EOF)` is false
-(`errIsNot`; two `errors.New` allocations, a client obligation as `isEofOk`). -/
+(`errIsNot`; two `errors.New` allocations, a client obligation as `isEofOk`), and `errors.Is` on it
+returns for every pointer target (`errIsTerm`: a leaf; 2026-11-14, `wal-vsnap3`). -/
 def decEnv (IoE : GoInterface → Prop) (eof ueof : GoInterface) : IProp GF :=
   iprop(isPkgInit (PROP := IProp GF) pkg_id.io ∗ isPkgInit (PROP := IProp GF) pkg_id.encoding.binary ∗
     isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ isPkgInit (PROP := IProp GF) pkg_id.sync ∗
@@ -285,7 +286,7 @@ def decEnv (IoE : GoInterface → Prop) (eof ueof : GoInterface) : IProp GF :=
     isEofOk IoE eof ueof ∗ walCrcTable ∗
     (∃ e : GoInterfaceOk,
       globalAddr go_etcd_io.etcd.server.v3.storage.wal.walpb.ErrCRCMismatch ↦□ GoInterface.ok e ∗
-      errOk e ∗ errIsNot (GoInterface.ok e) eof) ∗
+      errOk e ∗ errIsNot (GoInterface.ok e) eof ∗ errIsTerm (GoInterface.ok e)) ∗
     isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto)
 
 instance decEnv_persistent (IoE : GoInterface → Prop) (eof ueof : GoInterface) :
@@ -318,12 +319,24 @@ def decPostB (C : WalCodec) (d rp : Loc) (IoE : GoInterface → Prop) (eof ueof 
       ⌜GoFail C (fs.map (·.bs)) off c s ((fs.drop k).map (·.bs)) off' c' ∧ stopErr eof ueof s err⌝ ∗
       ownDecoder d IoE eof (fs.drop k) off' c' false))
 
+/-- **`errors.Is(err, io.ErrUnexpectedEOF)` returns** (persistent): `err` is `nil`, or `errors.Is(err, _)`
+returns on every pointer target (`errIsTerm`: `Decode`'s own errors), or answers `false` on
+`io.ErrUnexpectedEOF` (`notUeof`: a reader's I/O error). No answer on `Decode`'s own errors: Go's on
+`fmt.Errorf("%w ...", io.ErrUnexpectedEOF)` (`true`) is not Perennial's `fmt` model's (ledger 2026-11-14, "no
+`errors.Is(_, io.ErrUnexpectedEOF)` termination"). -/
+def decUe (err : GoInterface) : IProp GF :=
+  iprop(⌜err = GoInterface.nil⌝ ∨ errIsTerm err ∨ notUeof err)
+
+instance decUe_persistent (err : GoInterface) : Persistent (decUe (GF := GF) err) := by
+  unfold decUe; infer_instance
+
 /-- **What `Decode` (and `decodeRecord`) returns** (`decPostB`), with `errors.Is(err, io.EOF)`'s answer
-on it (`decAns`). `io.EOF` itself is returned only at `goDecode`'s `.eof` stop (`stopErr`, and `IoE`
+on it (`decAns`) and `errors.Is(err, io.ErrUnexpectedEOF)`'s termination (`decUe`; since 2026-11-14,
+`wal-vsnap3`). `io.EOF` itself is returned only at `goDecode`'s `.eof` stop (`stopErr`, and `IoE`
 excludes it: `isEofOk`). -/
 def decPost (C : WalCodec) (d rp : Loc) (IoE : GoInterface → Prop) (eof ueof : GoInterface)
     (fs : List (DecFile GF)) (off : Nat) (c : w32) (err : GoInterface) : IProp GF :=
-  iprop(decPostB C d rp IoE eof ueof fs off c err ∗ decAns eof err)
+  iprop(decPostB C d rp IoE eof ueof fs off c err ∗ decAns eof err ∗ decUe err)
 
 end post
 
