@@ -7674,6 +7674,33 @@ fdatasync, `walLentRes_unpend`, either kind). *`wal-tc16` (2026-11-14)*: the pen
   `notUeof err` and `¬ IoE eof`), and `walDecFiles_mk`'s persistent `walFrFile F.fr (fls.getD k null)` per
   file (`OpenFiles.lean`: with `walTie_files`' `walTieFile`s, it rebuilds each `walClosable` for the closer).
 
+**W8, third session (branch `wal-vsnap3`, 2026-11-14): task 1 (the decoder's `io.ErrUnexpectedEOF` termination) and
+gap 4 done.**
+
+- **Task 1 (done; ledger 2026-11-14, "no `errors.Is(_, io.ErrUnexpectedEOF)` termination").** `decPost := decPostB ∗
+  decAns eof err ∗ decUe err`, `decUe err := ⌜err = nil⌝ ∨ errIsTerm err ∨ notUeof err`; `errIsTerm e`
+  (`LinuxFs/Spec/fmt/ErrorfErrsNot.lean`): `errors.Is(e, u)` returns for every pointer target `u`. Carried by the
+  hypotheses `fmt.ErrorfErrsNot.spec` (each error argument's in, the result's out), `walpb.Record.Validate.spec`
+  (proved: `ErrCRCMismatch`'s in, its error's out), `proto.UnmarshalWalRecordE.spec` (its error's) and `decEnv`
+  (`ErrCRCMismatch`'s: a part of the hypothesis `WalDecEnvSupply`); `io.EOF`'s and `io.ErrUnexpectedEOF`'s proved
+  (`DecTerm.lean`: `*errorString` leaves, `errors.wp_Is_leaf`, `errorStringLeaf_inst`). `decodeRecord` re-proved (12
+  return sites), `Decode` unchanged; `RepairLoop`'s `errUeAns_end` proved (now over `decUe` and `err ≠ nil`): no
+  `sorry` left in `Repair`'s proof. **Deviation from the decided wording** ("the `%w`-wrapped `io.ErrUnexpectedEOF`:
+  true; `io.EOF`: false"): only termination, no answer. Go's `true` on `fmt.Errorf("%w ...", io.ErrUnexpectedEOF)` is
+  false of Perennial's `fmt.Errorf` model (`errors.New(format)`, a fresh leaf), so a hypothesis claiming it could never
+  be discharged from the model (the user's call, if wanted: a Perennial `%w` model first); no caller needs an answer
+  (`Repair` takes `true` only at the frames' end, `validSnapshotEntries`' error arm any error, and gap 4 makes every
+  stop the end). Build: the leaves of the changed modules (`Init`, `Link`, `Repair`, `ZteTailZ`), 3153 jobs.
+- **Gap 4 (done, pure).** `FilesAt.lean`: `FilesOk C c rss R last` (full files of `rss`'s frames, a last file with
+  `R`'s frames a prefix, one chain from `c`, nothing accepted at the end), `FilesAt C fs off c` (the decoder at the end
+  of a prefix of the current file's records, the chain's value), `filesAt_start`, `filesAt_ok` (a `goDecode` `.ok`
+  step with the reader's CRC check passed keeps it, across the `.eof` drop of a full file), `filesAt_fail` (at a
+  `GoFail`, `(rdRest C fs off c).recs = []`: at an encoder frame `Unmarshal` cannot fail, `decFrame_ofFrame`; past
+  the end the reader accepts nothing). `FilesAtRun.lean`: `filesOk_running` (`walDecodeFiles_running`'s premises
+  give `FilesOk` from CRC 0, a cut file starting with a CRC record) and `walFilesAt` (a fresh decoder on the named
+  segments from the `kk`-th on, the tail idle: `FilesAt … 0 0`). The attempt's loop carries `FilesAt` beside
+  `VsLoop`: on a `GoFail` with `vsLoop`'s `R0.recs = acc ++ (rdRest …).recs`, `filesAt_fail` gives `R0.recs = acc`.
+
 ## io.Copy log (branch `wal-copy1`, 2026-11-14)
 
 **The Go path** of `Repair`'s `io.Copy(bf, f)` (`bf` an `*os.File`, `f` a `*fileutil.LockedFile`, whose method set has
