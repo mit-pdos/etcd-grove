@@ -281,13 +281,13 @@ theorem kvPtrFixed_facts (p : Loc) (kv : EtcdKv) :
   iexists ks
   iframe #
 
-/-- An mvcc event, read-only, as the contract reads it. -/
+/-- An mvcc event's fields but `PrevKv`, read-only, as the contract reads them (k8s 7f-3b: the
+send loop may have written `PrevKv`). -/
 theorem evIs_facts (e : Loc) (ev : mvcc.EvM) :
-    mvcc.evIs (GF := GF) e ev ⊢ ∃ kv : Loc, eventAt e (evModelOf ev kv) ∗ mvcc.kvPtrFixed kv ev.kv := by
+    mvcc.evRd (GF := GF) e ev ⊢ ∃ kv : Loc, eventAt e (evModelOf ev kv) ∗ mvcc.kvPtrFixed kv ev.kv := by
   iintro #H
-  unfold mvcc.evIs
-  icases H with ⟨%p, %q, %st, %uf, %sc, %Hn, #He, #Hkv, -⟩
-  iStructNamed He
+  unfold mvcc.evRd
+  icases H with ⟨%p, %st, %uf, %sc, %Hn, -, #Type', #Kv, -, -, #Hkv⟩
   ihave ⟨-, -, %ks, #Hk, #Hks, #Hmr⟩ := kvPtrFixed_facts p ev.kv $$ Hkv
   iexists p
   iframe Hkv
@@ -295,8 +295,43 @@ theorem evIs_facts (e : Loc) (ev : mvcc.EvM) :
   iexists ks
   iframe #
 
+/-- mvcc events, as their fields but `PrevKv`. -/
+theorem evIss_evRds (ps : List Loc) (evs : List mvcc.EvM) :
+    ([∗list] y ∈ ps.zip evs, mvcc.evIs (GF := GF) y.1 y.2) ⊢
+      [∗list] y ∈ ps.zip evs, mvcc.evRd y.1 y.2 :=
+  BigSepL.bigSepL_mono fun _ => mvcc.evIs_evRd _ _
+
+/-- **The events of a sent response, as mvcc's** (k8s 7f-3b): events that agree with `evs0` but for
+their previous key-values (`v3rpc.evsSentOk_rd`) read as `evs0`'s fields but `PrevKv`. -/
+theorem evIs_evRd_transfer : ∀ (ps : List Loc) (evs evs0 : List mvcc.EvM),
+    (□ ∀ (k : Nat) (ev ev0 : mvcc.EvM), ⌜evs[k]? = some ev⌝ -∗ ⌜evs0[k]? = some ev0⌝ -∗
+        ⌜ev.del = ev0.del ∧ ev.kv = ev0.kv⌝) ∗ ⌜evs.length = evs0.length⌝ ∗
+      ([∗list] y ∈ ps.zip evs, mvcc.evIs (GF := GF) y.1 y.2) ⊢
+      [∗list] y ∈ ps.zip evs0, mvcc.evRd y.1 y.2
+  | [], _, _ => by iintro -; simp only [List.zip_nil_left]; iapply BigSepL.bigSepL_nil.2; iempintro
+  | _ :: _, [], [] => by iintro -; simp only [List.zip_nil_right]; iapply BigSepL.bigSepL_nil.2; iempintro
+  | _ :: _, [], _ :: _ => by iintro ⟨-, %h, -⟩; simp at h
+  | _ :: _, _ :: _, [] => by iintro ⟨-, %h, -⟩; simp at h
+  | p :: ps, ev :: evs, ev0 :: evs0 => by
+    iintro ⟨#H, %hl, Hl⟩
+    simp only [List.zip_cons_cons]
+    icases (BigSepL.bigSepL_cons).1 $$ Hl with ⟨#Hev, Hl⟩
+    ihave %h0 := H $$ %0 %ev %ev0 %rfl %rfl
+    iapply (BigSepL.bigSepL_cons).2
+    isplitr
+    · ihave #Hr := mvcc.evIs_evRd p ev $$ Hev
+      have hrd : mvcc.evRd (GF := GF) p ev ⊢ mvcc.evRd p ev0 := by
+        unfold mvcc.evRd mvcc.evType; rw [h0.1, h0.2]
+      iapply hrd $$ Hr
+    iapply evIs_evRd_transfer ps evs evs0
+    iframe Hl
+    isplitr
+    · iintro !> %k %e %e0 %h %h'
+      iapply H $$ %(k + 1) %e %e0 %h %h'
+    ipureintro; simpa using hl
+
 theorem evs_facts_aux : ∀ (ps : List Loc) (evs : List mvcc.EvM), ps.length = evs.length →
-    ([∗list] x ∈ ps.zip evs, mvcc.evIs (GF := GF) x.1 x.2) ⊢
+    ([∗list] x ∈ ps.zip evs, mvcc.evRd (GF := GF) x.1 x.2) ⊢
       ∃ kvs : List Loc, ⌜kvs.length = evs.length⌝ ∗
         □ (∀ (k : Nat) (p : Loc) (ev : mvcc.EvM) (kv : Loc), ⌜ps[k]? = some p⌝ → ⌜evs[k]? = some ev⌝ →
           ⌜kvs[k]? = some kv⌝ → eventAt p (evModelOf ev kv) ∗ mvcc.kvPtrFixed kv ev.kv)
@@ -333,7 +368,7 @@ theorem evs_facts_aux : ∀ (ps : List Loc) (evs : List mvcc.EvM), ps.length = e
 /-- **The events of a received response**, as the contract reads them. -/
 theorem evs_eventsAt (sl : GoSlice) (ps : List Loc) (evs : List mvcc.EvM)
     (h : ps.length = evs.length) :
-    sl ↦*□ ps ∗ ([∗list] x ∈ ps.zip evs, mvcc.evIs (GF := GF) x.1 x.2) ⊢
+    sl ↦*□ ps ∗ ([∗list] x ∈ ps.zip evs, mvcc.evRd (GF := GF) x.1 x.2) ⊢
       ∃ kvs : List Loc, ⌜kvs.length = evs.length⌝ ∗
         eventsAt sl (List.zipWith evModelOf evs kvs) ∗
         □ (∀ (k : Nat) (ev : mvcc.EvM) (kv : Loc), ⌜evs[k]? = some ev⌝ → ⌜kvs[k]? = some kv⌝ →
@@ -459,7 +494,7 @@ theorem dispatch_content (V : WEnv GF) (P : WsPrm GF) (rr : w64) (srr : Bool) (h
     srvWLaws V.W ∗ (⌜x.evs ≠ []⌝ -∗ □ V.W.histLb L) ∗
       (⌜evsOf Dm X = []⌝ ∨ ∃ (L1 : mvcc.Log) (d1 : Nat), □ V.W.histLb L1 ∗
         ⌜evsOf Dm X = mvcc.watchEvents L1 rg lo d1 ∧ lo ≤ d1 ∧ d1 ≤ L1.length⌝) ∗
-      sl ↦*□ ps ∗ ([∗list] y ∈ ps.zip x.evs, mvcc.evIs (GF := GF) y.1 y.2) ⊢
+      sl ↦*□ ps ∗ ([∗list] y ∈ ps.zip x.evs, mvcc.evRd (GF := GF) y.1 y.2) ⊢
     |={⊤}=> ∃ es : List EvModel, eventsAt sl es ∗ ⌜es.length = x.evs.length⌝ ∗
       ⌜dispOk P.rev hi ((es.getLast?.map EvModel.rev).getD hi) ⟨es, W64 0, false, false, hdr⟩⌝ ∗
       ⌜(evsOf (Dm ++ [m]) X = [] ∧ (es.getLast?.map EvModel.rev).getD hi = hb) ∨

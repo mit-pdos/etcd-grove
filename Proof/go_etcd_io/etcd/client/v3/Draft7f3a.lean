@@ -13,8 +13,7 @@ after the review. Only the pure laws relating the two forms are proved here.
 * `watchStateRespOkP`, `watchStateElemP`, `watcher.Watch.specP`: the client's watch with them.
 * `client.prevKvLogOk`, `client.rawRespOkP`: the same at the server's level (a watched log's state
   at `r - 1`, `mvcc.stateAt`; the key-value fixed, `mvcc.kvPtrFixed`).
-* `v3rpc.watchReqOkP`, `v3rpc.swsMuP`: the server's restrictions without `prev_kv = false`, and
-  its `prevKV` map allowed entries.
+* (`v3rpc.watchReqOkP`, `v3rpc.swsMuP`: adopted in 7f-3b as `v3rpc.watchReqOk` and `v3rpc.swsMu`.)
 * (`WithRequireLeader.specGen` moved into `WithRequireLeader.spec`, the restated axiom: decision D1.)
 -/
 module
@@ -54,9 +53,9 @@ theorem OpFull.isRangeWatch_eq (rev : w64) (o : OpFull) :
   unfold OpFull.isRangeWatch OpFull.isRangeWatchP
   cases o.base.prevKV <;> simp [and_left_comm]
 
-/-- An event is a create (`mvccpb.Event.IsCreate`, `v3rpc.IsCreateEvent`): a put whose create
-revision is its mod revision. -/
-def mvccEvIsCreate (ev : mvcc.EvM) : Prop := ev.del = false ∧ ev.kv.createRev = ev.kv.modRev
+/-- An event is a create (`mvccpb.Event.IsCreate`, `v3rpc.IsCreateEvent`): `v3rpc.evIsCreate`
+(7f-3b). -/
+abbrev mvccEvIsCreate (ev : mvcc.EvM) : Prop := v3rpc.evIsCreate ev
 
 end pure
 
@@ -235,34 +234,6 @@ end raw
 
 end client
 
-namespace v3rpc
-
-/-- **The watch server's restrictions, with `prev_kv`** (7f-3a): `watchReqOk` without
-`c.prevKv = false` (the send loop's `PrevKv` write and the store read behind it are proved). -/
-def watchReqOkP [GooseExts] : WatchReqM → Prop
-  | .create c => c.fragment = false ∧ c.filters = [] ∧ c.watchId = W64 0
-  | .other => False
-  | _ => True
-
-theorem watchReqOk_P [GooseExts] (q : WatchReqM) (h : watchReqOk q) : watchReqOkP q := by
-  cases q <;> simp_all [watchReqOk, watchReqOkP]
-
-section mu
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-
-/-- **What `sws.mu` guards, with `prev_kv`** (7f-3a): `swsMu` with entries allowed in `prevKV`
-(`recvLoop` records `creq.PrevKv`), `fragment` still empty. -/
-def swsMuP (pm vm fm : Loc) (q : Qp) : IProp GF :=
-  iprop(∃ (PM VM FM : GMap w64 Bool),
-    ownMap pm (DFrac.own q) PM ∗ ownMap vm (DFrac.own q) VM ∗ ownMap fm (DFrac.own q) FM ∗
-    ⌜∀ id, FM !! id = none⌝)
-
-end mu
-
-end v3rpc
 
 end EtcdGrove
 end Perennial

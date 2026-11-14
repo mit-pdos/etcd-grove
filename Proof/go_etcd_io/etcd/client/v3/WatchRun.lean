@@ -1067,7 +1067,7 @@ theorem reg_pre (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (B : RegB) (hB 
     (j : Nat) (m : v3rpc.WatchRespM) (n : Nat) (x : mvcc.api.WResp)
     (rg : mvcc.WatchRange) (lo : Nat) (sent : List Loc) (C : List w64)
     (h : Loc) (sl : GoSlice) (ps : List Loc) (kvs : List Loc)
-    (hsrc : m.src = some (n, x)) (hev : m.evs = x.evs)
+    (hsrc : m.src = some (n, x)) (hev : m.evs.length = x.evs.length)
     (hfl : m.compactRev = W64 0 ∧ m.canceled = false ∧ m.created = false)
     (hps : ps.length = x.evs.length) (hkvl : kvs.length = x.evs.length)
     (hok : wsReqOk V.pfx P) (hpfx : V.pfx ≠ []) (hhn : h ≠ null)
@@ -1077,7 +1077,7 @@ theorem reg_pre (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (B : RegB) (hB 
       startOk V B.srr B.rr ∗ v3rpc.downLbW γs Dm ∗ cur2St V γs Dm P B x.id rg lo sent ∗
       streamAuxIs γs (v3rpc.auxOf r) ∗ □ v3rpc.mvccOk r j m ∗
       regFacts V γs Dm P B x.id rg lo ∗ sl ↦*□ ps ∗
-      ([∗list] y ∈ ps.zip x.evs, mvcc.evIs (GF := GF) y.1 y.2) ∗
+      ([∗list] y ∈ ps.zip x.evs, mvcc.evRd (GF := GF) y.1 y.2) ∗
       eventsAt sl (List.zipWith evModelOf x.evs kvs) ∗
       monoListAuthOwn P.γhi 1 C ∗
       (dghostVar P.γx DFrac.discard true ∨
@@ -1302,7 +1302,7 @@ theorem reg_pre_cmp (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (B : RegB) 
     (j : Nat) (m : v3rpc.WatchRespM) (n : Nat) (x : mvcc.api.WResp)
     (rg : mvcc.WatchRange) (lo : Nat) (sent : List Loc) (C : List w64)
     (h : Loc) (sl : GoSlice) (ps : List Loc) (kvs : List Loc)
-    (hsrc : m.src = some (n, x)) (hev : m.evs = x.evs)
+    (hsrc : m.src = some (n, x)) (hev : m.evs.length = x.evs.length)
     (hfl : m.compactRev ≠ W64 0 ∧ m.canceled = true ∧ m.created = false ∧ m.evs = [] ∧
       m.hdr.revision = W64 0)
     (hps : ps.length = x.evs.length) (hkvl : kvs.length = x.evs.length)
@@ -1313,7 +1313,7 @@ theorem reg_pre_cmp (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (B : RegB) 
       startOk V B.srr B.rr ∗ v3rpc.downLbW γs Dm ∗ cur2St V γs Dm P B x.id rg lo sent ∗
       streamAuxIs γs (v3rpc.auxOf r) ∗ □ v3rpc.mvccOk r j m ∗
       regFacts V γs Dm P B x.id rg lo ∗ sl ↦*□ ps ∗
-      ([∗list] y ∈ ps.zip x.evs, mvcc.evIs (GF := GF) y.1 y.2) ∗
+      ([∗list] y ∈ ps.zip x.evs, mvcc.evRd (GF := GF) y.1 y.2) ∗
       eventsAt sl (List.zipWith evModelOf x.evs kvs) ∗
       monoListAuthOwn P.γhi 1 C ∗
       (dghostVar P.γx DFrac.discard true ∨
@@ -1376,7 +1376,8 @@ theorem reg_pre_cmp (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (B : RegB) 
   obtain ⟨hcr, hlor, hlo0⟩ := Hcr
   iunfold cursorOk at Hcur
   icases Hcur with ⟨%Hhi, #Hcut⟩
-  have hρe : x.evs = [] := by rw [← hev]; exact hfl.2.2.2.1
+  have hρe : x.evs = [] := by
+    rw [← List.length_eq_zero_iff, ← hev, List.length_eq_zero_iff]; exact hfl.2.2.2.1
   ihave Hdc := dispatch_content V P B.rr B.srr B.hb Dm m n x [] x.id rg lo hi sl ps
       m.hdr.revision [] 0 hsrc (fun _ => rfl) (fun hne => absurd hρe hne)
       (fun hne => absurd hρe hne) hps hok hpfx hcr hB.1 hlor hB.2.1 Hhi $$ []
@@ -1485,7 +1486,7 @@ theorem reg_pre_any (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (B : RegB) 
     (j : Nat) (m : v3rpc.WatchRespM) (n : Nat) (x : mvcc.api.WResp)
     (rg : mvcc.WatchRange) (lo : Nat) (sent : List Loc) (C : List w64)
     (h : Loc) (sl : GoSlice) (ps : List Loc) (kvs : List Loc)
-    (hsrc : m.src = some (n, x)) (hev : m.evs = x.evs)
+    (hsrc : m.src = some (n, x)) (hev : m.evs.length = x.evs.length)
     (hfl : m.created = false ∧ ((m.compactRev = W64 0 ∧ m.canceled = false) ∨
       (m.compactRev ≠ W64 0 ∧ m.canceled = true ∧ m.evs = [] ∧ m.hdr.revision = W64 0)))
     (hps : ps.length = x.evs.length) (hkvl : kvs.length = x.evs.length)
@@ -1496,7 +1497,7 @@ theorem reg_pre_any (V : WEnv GF) (γs : StreamNames) (P : WsPrm GF) (B : RegB) 
       startOk V B.srr B.rr ∗ v3rpc.downLbW γs Dm ∗ cur2St V γs Dm P B x.id rg lo sent ∗
       streamAuxIs γs (v3rpc.auxOf r) ∗ □ v3rpc.mvccOk r j m ∗
       regFacts V γs Dm P B x.id rg lo ∗ sl ↦*□ ps ∗
-      ([∗list] y ∈ ps.zip x.evs, mvcc.evIs (GF := GF) y.1 y.2) ∗
+      ([∗list] y ∈ ps.zip x.evs, mvcc.evRd (GF := GF) y.1 y.2) ∗
       eventsAt sl (List.zipWith evModelOf x.evs kvs) ∗
       monoListAuthOwn P.γhi 1 C ∗
       (dghostVar P.γx DFrac.discard true ∨
