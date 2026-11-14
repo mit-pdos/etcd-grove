@@ -33,7 +33,8 @@ started at the history's length (`cuts ++ [|H|]`), its headers (`Crc`, the metad
 has handed over since this `Open`/`Create`, `walPipeH`): its `count` is a Go `int`, and its
 `count % 2` (the next file's name) is a signed remainder (`Pipe.lean`); the caller supplies it
 (W6: per-lifetime receipts, `notes/bounds-plan.md`). The cuts below `|H|` and `|H|` a cut position
-(`walCutPos`: after a `Save` that wrote a record): the new segment starts a new cut (`cutLay_abs`).
+(`walCutPos`: after a `Save` that wrote a record; and past the start, `0 < |H|`, which `walCutPos`
+alone allows: the invariant's `WalAbsD.cutPos`, `ReadAll`'s): the new segment starts a new cut (`cutLay_abs`).
 `w.state` the history's last hard state: the new segment's headers hold it (`cutHdrDs`). The cuts
 increasing (the headers' state is `walLastHS` of the segments' concatenation, `segsOf_flatten`);
 the metadata and the state's encoding below `2^42` bytes (the headers' frames below ext4's maximum
@@ -44,7 +45,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.spec (P : WalPbIn GF) (Mr :
   ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (h : WalHS),
   h.rest = 0 → h.st = walLastHS (h.H.map WalOpG.toM) → h.pc + 2 < 2 ^ 63 →
   (∀ b ∈ h.cuts, b < h.H.length) → h.cuts.Pairwise (· < ·) →
-  walCutPos (h.H.map WalOpG.toM) h.H.length →
+  walCutPos (h.H.map WalOpG.toM) h.H.length → 0 < h.H.length →
   h.md.length + (Mr.encState h.st).length < 2 ^ 42 →
   {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walHandleIn P Mr w dir h TailMetaW }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"cut")) (Val #()))

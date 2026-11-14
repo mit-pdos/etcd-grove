@@ -41,8 +41,8 @@ theorem crashOk_mono {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay
 /-- The static relation does not depend on `named`. -/
 theorem walAbsD_named {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay} {ents : Ents}
     (b : Bool) (h : WalAbsD C Mr d lay ents) : WalAbsD C Mr { d with named := b } lay ents := by
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12⟩ := h
-  exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12⟩
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13⟩ := h
+  exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13⟩
 
 theorem crashOkW_mono {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : WalLay}
     {cl : List Claim} {n0 n : Nat} (hn : n0 ≤ n) (h : CrashOkW C Mr d lay cl n0) :

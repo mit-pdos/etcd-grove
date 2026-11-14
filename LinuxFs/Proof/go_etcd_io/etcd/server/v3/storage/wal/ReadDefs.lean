@@ -19,7 +19,9 @@ do not depend on their bodies.
   (at least one: `selectWALFiles` fails with `ErrFileNotFound` on none; in write mode the last one at the
   claim's last `.wal` name, so the handle's last file is the WAL's tail: `Close.specOpening`'s `wp_idleFsync`),
   each read through `walFileS`; the program's half of the WAL directory's claim (`WalDirClaim`), so
-  that the directory's names cannot change either (no atomic readdir needed); in write mode each
+  that the directory's names cannot change either (no atomic readdir needed), the segments' names the
+  claim's `.wal` names from some position on (`(walNames hj.cur).drop kk = gs.map name`: with the
+  invariant's `WalAbsD.names`, the segments are the layout's from `kk` on, `walInvBody_readState`); in write mode each
   lock is `fileutil.lockedFile` of its file. And what the pin returns for the put-back
   (`walInvBody_unpin`, `OpenUnpin.lean`; 2026-11-14): the record of what is out (`walOutFrag`: the
   segments' inodes, the directory's claim key, in write mode the pipeline names of `dir`), the holder's
@@ -92,7 +94,8 @@ def walReadTie (dir : GoString) (write : Bool) (s : w64 × w64) (j : Ino) (fs : 
     (walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) ∗ walDirKey (W := W) dir j X ∗
     ⌜gs ≠ [] ∧ (gs.map (·.ino)).Nodup ∧ (∀ g ∈ gs, g.om.size = g.bs.length) ∧
       (∀ g, gs.head? = some g → ∀ sq ix, g.name = walFileName sq ix → ix < 2 ^ 64 → ix ≤ uint.nat s.1) ∧
-      (write = true → ∀ g, gs.getLast? = some g → (walNames hj.cur).getLast? = some g.name)⌝ ∗
+      (write = true → ∀ g, gs.getLast? = some g → (walNames hj.cur).getLast? = some g.name) ∧
+      ∃ kk, (walNames hj.cur).drop kk = gs.map (·.name)⌝ ∗
     ⌜fs.length = gs.length ∧ lfs.length = gs.length ∧ fls.length = gs.length ∧
       ∀ (k : Nat) (F : DecFile GF) (g : SegG), fs[k]? = some F → gs[k]? = some g →
         F.bs = g.bs.map (·.1) ∧ hj.cur !! g.name = some (.file g.ino) ∧
