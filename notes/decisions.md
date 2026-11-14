@@ -35644,3 +35644,18 @@ member's names agree on it, while each member generates ids of its own prefix.
 - **Rejected: the one-granting-member form** (all grants through member 1): with `kvCongr` and
   `memberBoot`'s per-member prefix, members 2 and 3 could not be booted in the revocable mode at all,
   and withholding their grant right needs a per-member guard in frozen server statements.
+## `leaseCheckFrom` drops the empty-user disjunct (2026-11-14 · Q3 and CP0, decided by etcd-grove-81 · branch `auth-lease`, S1)
+
+**Cause.** `leaseCheckFrom` (Part B of the lease-keys plan, frozen 2026-10-31) named its principal through
+`infoBoundM`, which with auth on admits the empty user unbound: `doSerialize`'s stand-in for a context
+without a user. The lease checks have no such case: each returns `ErrUserEmpty` for a `nil` auth info
+(`v3_server.go:585, 617, 764`; the auth-lease Scope's E2), so the post was weaker than the code, and the
+posts of `LeaseLeases`/`LeaseRenew` did not say "authenticated" (GHSA-q8m4's lease rows).
+
+**Decision.** `leaseCheckFrom`'s principal is `□ (⌜E.authOn = true⌝ → principalBound s E.authMode ctx (some info))`;
+the keep-alive stream's `v3rpc.leaseCheckT` the same over the token (`v3rpc.principalBoundT`, new; `infoBoundTM`
+deleted), so `kaDn` changes with it. The TLS fallback stays admitted (a certificate's common name may be empty,
+`auth/store.go:1040-1043`). The ledger entry is `notes/specs-only/ledger.md`, 2026-11-14. This is the only
+change to Part B's frozen statements; the three check proofs use `principalBoundOn_of_ctxBound`
+(`LeaseCheck.lean`) in place of `infoBoundM_of_ctxBound`. `infoBoundT` (the watch's and KV's vocabulary) is
+unchanged.

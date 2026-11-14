@@ -56,26 +56,28 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-! ## The check over a token -/
 
-/-- **An auth info is the caller's, over its token** (persistent; `infoBoundM`'s over the token
-`tok`): with auth off nothing, with auth on `infoBoundT`. -/
-def infoBoundTM (on : Bool) (s : Loc) (M : auth.AuthMode) (tok : Option GoString)
+/-- **A principal bound to the token `tok`** (persistent; `principalBound`'s over the token, the lease
+checks' `leaseCheckFrom`): the user `tok` was issued to, or the server's TLS fallback is on. Unlike
+`infoBoundT`, not the empty user (auth-lease S1, 2026-11-14: until then `infoBoundTM`, `infoBoundT`
+with auth on). -/
+def principalBoundT (s : Loc) (M : auth.AuthMode) (tok : Option GoString)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) : IProp GF :=
-  match on with
-  | false => iprop(True)
-  | true => infoBoundT s M tok info
+  iprop((∃ token : GoString, ⌜tok = some token⌝ ∗ auth.tokOk M token info.Username') ∨ srvTLSId s)
 
-instance infoBoundTM_persistent (on : Bool) (s : Loc) (M : auth.AuthMode) (tok : Option GoString)
+instance principalBoundT_persistent (s : Loc) (M : auth.AuthMode) (tok : Option GoString)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
-    Persistent (infoBoundTM (GF := GF) on s M tok info) := by
-  cases on <;> unfold infoBoundTM <;> infer_instance
+    Persistent (principalBoundT (GF := GF) s M tok info) := by
+  unfold principalBoundT; infer_instance
 
 /-- **What a passed lease check establishes, for the token `tok`** (persistent; `leaseCheckFrom`
 over the context's token, as a stream specification can state it): auth disabled at a state no
-older than `n`; or an info bound to the token an admin at such a state, or `K info`. -/
+older than `n`; or an info that, with auth on, is bound to the token (`principalBoundT`) an admin at
+such a state, or `K info`. -/
 def leaseCheckT (s : Loc) (E : apply.AEnv GF) (tok : Option GoString) (n : Nat)
     (K : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF) : IProp GF :=
   iprop(auth.enabledVerdictFrom E.authMode n false ∨
-    ∃ info : go_etcd_io.etcd.server.v3.auth.AuthInfo, infoBoundTM E.authOn s E.authMode tok info ∗
+    ∃ info : go_etcd_io.etcd.server.v3.auth.AuthInfo,
+      □ (⌜E.authOn = true⌝ → principalBoundT s E.authMode tok info) ∗
       (adminVerdictFrom E.authMode n info GoInterface.nil ∨ K info))
 
 instance leaseCheckT_persistent (s : Loc) (E : apply.AEnv GF) (tok : Option GoString) (n : Nat)
@@ -165,31 +167,26 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 open Iris.ProofMode
 
-/-- `infoBoundM` gives the same over the context's token. -/
-theorem infoBoundTM_of_infoBoundM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ctx : GoInterface)
+/-- A principal bound to the context is bound to its token. -/
+theorem principalBoundT_of_principalBound (s : Loc) (M : auth.AuthMode) (ctx : GoInterface)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
-    infoBoundM (GF := GF) on s E ctx info ⊢ infoBoundTM on s E.authMode (auth.ctxTokenOf ctx) info := by
-  cases on with
-  | false => unfold infoBoundTM; iintro -; itrivial
-  | true =>
-    unfold infoBoundM infoBoundTM
-    iintro H
-    iapply infoBoundT_of_principalBoundI
-    unfold principalBoundI
-    iexact H
+    principalBound (GF := GF) s M ctx (some info) ⊢ principalBoundT s M (auth.ctxTokenOf ctx) info := by
+  unfold principalBound principalBoundT
+  iintro H; iexact H
 
 /-- **A passed lease check, over the context's token** (`leaseCheckFrom` gives `leaseCheckT`). -/
 theorem leaseCheckT_of_from (s : Loc) (E : apply.AEnv GF) (ctx : GoInterface) (n : Nat)
     (K : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF) :
     leaseCheckFrom (GF := GF) s E ctx n K ⊢ leaseCheckT s E (auth.ctxTokenOf ctx) n K := by
   unfold leaseCheckFrom leaseCheckT
-  iintro (H | ⟨%info, Hb, HK⟩)
+  iintro (H | ⟨%info, #Hb, HK⟩)
   · ileft; iexact H
   · iright
     iexists info
-    isplitl [Hb]
-    · iapply infoBoundTM_of_infoBoundM; iexact Hb
-    · iexact HK
+    iframe HK
+    iintro !> %ho
+    iapply principalBoundT_of_principalBound
+    iapply Hb $$ %ho
 
 end lemmas
 

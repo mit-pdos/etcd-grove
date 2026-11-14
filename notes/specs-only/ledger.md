@@ -25,6 +25,45 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-14: `leaseCheckFrom` (the lease checks' and lease methods' posts) -- admits the empty user unbound
+
+- **Spec.** `Proof/go_etcd_io/etcd/server/v3/etcdserver/LeaseCheck.lean`, `leaseCheckFrom` (the lease-keys
+  plan's Part B vocabulary, frozen 2026-10-31), in the posts of `EtcdServer.checkLease{Renew,Leases,TimeToLive}.spec`
+  and `EtcdServer.Lease{Leases,Renew,TimeToLive}.spec`; its stream form `v3rpc.leaseCheckT`
+  (`api/v3rpc/InvLeaseKeepAlive.lean`, through `infoBoundTM`), in the keep-alive stream's `kaDn`. The spec plan's
+  `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__checkLeaseRenew.lean` (and the other two) state
+  nothing of the principal on success: no plan change.
+- **Defect.** Too weak. With auth on, the principal is named through `infoBoundM` (`ReqOn.lean`), whose first
+  disjunct admits `info.Username' = ""` unbound to the context; for an absent or keyless lease, where the keys'
+  verdict `K info` holds trivially, a proof may pick the empty user, so the post does not say "authenticated".
+- **Evidence.** The code refuses it: `checkLeaseRenew`, `checkLeaseTimeToLive`, `checkLeaseLeases` return
+  `auth.ErrUserEmpty` for a `nil` auth info (`v3_server.go:585, 617, 764` at the pin `2eaeb872bc`); the Scope's
+  E2 (`notes/auth-lease-scope/zz_authlease_rows_test.go`) shows it on every lease method, keyless leases included.
+  The three check proofs already establish the stronger disjunct (`infoBoundM_of_ctxBound`'s last step,
+  `principalBound_of_ctxBoundOrTLS`).
+- **Proposed change.** `leaseCheckFrom`'s principal: `□ (⌜E.authOn = true⌝ → principalBound s E.authMode ctx
+  (some info))` in place of `infoBoundM E.authOn s E ctx info`; `leaseCheckT`'s: `□ (⌜E.authOn = true⌝ →
+  principalBoundT s E.authMode tok info)` (new, `principalBound` over the token) in place of `infoBoundTM`
+  (deleted). The TLS fallback (`srvTLSId`) stays admitted: its common name may be empty (E8). No other
+  statement text changes; the proofs of the three checks, `leaseCheckFrom_mono`, `leaseCheckFrom_ctx` and
+  `leaseCheckT_of_from` are repaired.
+- **Decision.** Accepted (Q3 and the CP0 decision, etcd-grove-81, 2026-11-14; branch `auth-lease`, S1).
+
+## 2026-11-14: the mode-`on` KV model (`kvEntryOn`) -- a refused revocation would be applied once the model has leases
+
+- **Spec.** `Proof/go_etcd_io/etcd/server/v3/etcdserver/KVAuthModel.lean`, `kvEntryOn`'s refusal guard
+  `apply.isKVKind (apply.dispatchKind rq) = true ∧ ¬ kvGranted s.1 rq`; the auth-lease Scope's Draft
+  (`notes/auth-lease-scope.md` §2.3), which replaces `kvGranted` by `kvGrantedL` with a `.leaseRevoke` case.
+- **Defect.** Wrong once the auth-on model admits revocations (S3): `isKVKind` excludes `.leaseRevoke`, so the
+  Draft's revocation case of `leaseGrantedM` is never consulted and a revocation the auth layer refuses
+  (`authApplierV3.LeaseRevoke`'s `checkLeasePuts`, `apply/auth.go:191-196`) would delete the lease's keys in
+  the model. Today harmless (the mode-`on` log has no lease request, `plainEntryOn`).
+- **Evidence.** The S0 probe (`Scratch/AuthLeaseProbeModel.lean` of the `auth-lease` worktree); `apply.authChecks`
+  (`apply/Chain.lean:153`) includes `.leaseRevoke`, `isKVKind` (`apply/InvRequest.lean:299`) does not.
+- **Proposed change.** The guard over `authKVKind k := isKVKind k || k == .leaseRevoke`, in S2's Draft of the
+  triple-state model (`kvEntryOnL`).
+- **Decision.** Accepted (CP0 item 3, etcd-grove-81, 2026-11-14); applied in S2's Draft.
+
 ## 2026-11-14: `Http` headers -- Go rewrites header values, adds request headers, decompresses gzip
 
 - **Spec.** `SpecPlan/Spec/net/http/Api.lean`: `hdrView` (the client's view of committed response
