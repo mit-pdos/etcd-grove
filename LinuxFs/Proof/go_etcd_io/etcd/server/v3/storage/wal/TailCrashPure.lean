@@ -151,6 +151,30 @@ theorem TailCands.asOf (h : TailCands X Y cs so z0) {img : List w8} {o len : Nat
 
 end cands
 
+/-- **What the decoding reads of a crashed tail's image `img`, its values** (W6 log, twenty-third session;
+`tail_decodeV`): each byte the intended stream's, or (past `max so z0`) a zero. Of an exact tail,
+`TailCands.mem_val` (`TailCands.vals`); of a tail in a resize window, its candidates' shapes
+(`WinShape`). -/
+def TailVals (X : Nat → w8) (so z0 : Nat) (img : List w8) : Prop :=
+  ∀ b, b < img.length → img.getD b 0 = X b ∨ (max so z0 ≤ b ∧ img.getD b 0 = 0)
+
+/-- **... and its frames' cores** (W1 as the decoding reads it): the bytes of `[o, o + len)` as of the
+last sync (the intended stream below `max so z0`, zero above) or all the intended stream's
+(`TailCands.asOf`'s two cases). -/
+def TailAsOf (X : Nat → w8) (so z0 : Nat) (img : List w8) (o len : Nat) : Prop :=
+  (∀ b, o ≤ b → b < o + len → img.getD b 0 = if b < max so z0 then X b else 0) ∨
+  (∀ b, o ≤ b → b < o + len → img.getD b 0 = X b)
+
+theorem TailCands.vals {X Y : Nat → w8} {cs : Nat → Cands} {so z0 : Nat}
+    (h : TailCands X Y cs so z0) {img : List w8}
+    (himg : ∀ b, b < img.length → ∃ s, (img.getD b 0, s) ∈ cs b) : TailVals X so z0 img :=
+  fun b hb => h.mem_val (himg b hb).choose_spec
+
+theorem TailCands.tailAsOf {X Y : Nat → w8} {cs : Nat → Cands} {so z0 : Nat}
+    (h : TailCands X Y cs so z0) {img : List w8} {o len : Nat} (ha : AsOf cs img o len) :
+    TailAsOf X so z0 img o len := h.asOf ha
+
+
 /-! ## Frames at record boundaries -/
 
 section frames
@@ -242,16 +266,20 @@ variable {C : WalCodec} {R : List WalRec} {Y : Nat → w8} {cs : Nat → Cands} 
 
 /-- **A frame the reader accepts at a record boundary is the intended frame there** (see the file
 header). -/
-theorem tail_frame_match (hfit : RecsFit C R)
-    (hT : TailCands (fun b => (recFrames C R).getD b 0) Y cs so z0) {jE : Nat}
+theorem tail_frame_matchV (hfit : RecsFit C R) {so z0 jE : Nat}
     (hEb : (recFrames C (R.take jE)).length = max so z0)
-    {img : List w8} (himg : ∀ b, b < img.length → ∃ s, (img.getD b 0, s) ∈ cs b)
+    {img : List w8} (hV : TailVals (fun b => (recFrames C R).getD b 0) so z0 img)
     {xs ys : List WalRec} (hxs : xs ++ ys = R) {c : w32} {r : WalRec} {len : Nat} {c' : w32}
     (hd : decStep C true img (recFrames C xs).length c = .accept r len c')
-    (ha : AsOf cs img (recFrames C xs).length (frameCore img (recFrames C xs).length)) :
+    (ha : TailAsOf (fun b => (recFrames C R).getD b 0) so z0 img (recFrames C xs).length
+      (frameCore img (recFrames C xs).length)) :
     ∃ y ys', ys = y :: ys' ∧ len = (frame (C.encRec y)).length ∧
       (img.drop (recFrames C xs).length).take (frame (C.encRec y)).length = frame (C.encRec y) := by
   generalize hp : (recFrames C xs).length = p at hd ha
+  unfold TailAsOf at ha
+  dsimp only at ha
+  unfold TailVals at hV
+  dsimp only at hV
   obtain ⟨hl0, hp8, hlen⟩ := decStep_accept_shape hd
   have hbnd := (decStep_rec_bound hd).2
   have hS : recFrames C R = recFrames C xs ++ recFrames C ys := by rw [← hxs, recFrames_append]
@@ -262,17 +290,17 @@ theorem tail_frame_match (hfit : RecsFit C R)
   -- the image's bytes at the frame: the intended ones (as of one change, or below `max so z0`)
   have hval : ∀ b, b < img.length → b < max so z0 → img.getD b 0 = (recFrames C R).getD b 0 := by
     intro b hb hbE
-    rcases hT.mem_val (himg b hb).choose_spec with h | ⟨h1, -⟩
+    rcases hV b hb with h | ⟨h1, -⟩
     · exact h
     · omega
   have hzero : ∀ b, b < img.length → (recFrames C R).getD b 0 = 0 → img.getD b 0 = 0 := by
     intro b hb hx
-    rcases hT.mem_val (himg b hb).choose_spec with h | ⟨-, h⟩
+    rcases hV b hb with h | ⟨-, h⟩
     · rw [h, hx]
     · exact h
   -- the length word is the intended one
   have hword : ∀ i, i < 8 → img.getD (p + i) 0 = (recFrames C ys).getD i 0 := by
-    rcases hT.asOf ha with ha | ha
+    rcases ha with ha | ha
     · -- as of the sync: below `max so z0`, else the word is zero
       by_cases hpE : p < max so z0
       · obtain ⟨y, ys', rfl, hle⟩ := frame_at_lt C hxs (by rw [hp, hEb]; exact hpE)
@@ -316,7 +344,7 @@ theorem tail_frame_match (hfit : RecsFit C R)
           List.getElem?_append_left hi]
       rw [← hXi]
       by_cases hc : i < 8 + (C.encRec y).length
-      · rcases hT.asOf ha with ha | ha
+      · rcases ha with ha | ha
         · by_cases hpE : p < max so z0
           · obtain ⟨y', ys'', hyy, hle⟩ := frame_at_lt C hxs (by rw [hp, hEb]; exact hpE)
             cases hyy
@@ -357,19 +385,20 @@ theorem acceptsFrom_accept {C : WalCodec} {last : Bool} {bs : List w8} {off : Na
 
 /-- **The reader of the crashed tail** (see the file header): it accepts the intended records up to
 some `j`, at least `jE` (those below `max so z0`), and rejects the next frame. -/
-theorem tail_decode (hC : C.Ok) (hfit : RecsFit C R) {c0 : w32} (hch : ChainOk C c0 R)
-    (hT : TailCands (fun b => (recFrames C R).getD b 0) Y cs so z0) {jE : Nat} (hjE : jE ≤ R.length)
+theorem tail_decodeV (hC : C.Ok) (hfit : RecsFit C R) {c0 : w32} (hch : ChainOk C c0 R)
+    {so z0 jE : Nat} (hjE : jE ≤ R.length)
     (hEb : (recFrames C (R.take jE)).length = max so z0)
-    {img : List w8} (himg : ∀ b, b < img.length → ∃ s, (img.getD b 0, s) ∈ cs b)
+    {img : List w8} (hV : TailVals (fun b => (recFrames C R).getD b 0) so z0 img)
     (hlen : max so z0 ≤ img.length)
-    (hW : ∀ p ∈ acceptsFrom C true img 0 c0, AsOf cs img p (frameCore img p)) :
+    (hW : ∀ p ∈ acceptsFrom C true img 0 c0,
+      TailAsOf (fun b => (recFrames C R).getD b 0) so z0 img p (frameCore img p)) :
     ∃ j, jE ≤ j ∧ j ≤ R.length ∧ recFrames C (R.take j) <+: img ∧
       ∀ r len c', decStep C true img (recFrames C (R.take j)).length (chainEnd C c0 (R.take j)) ≠
         .accept r len c' := by
   -- the image is the intended stream below `max so z0`
   have hval : ∀ b, b < img.length → b < max so z0 → img.getD b 0 = (recFrames C R).getD b 0 := by
     intro b hb hbE
-    rcases hT.mem_val (himg b hb).choose_spec with h | ⟨h1, -⟩
+    rcases hV b hb with h | ⟨h1, -⟩
     · exact h
     · omega
   have key : ∀ ys xs, xs ++ ys = R → recFrames C xs <+: img →
@@ -388,7 +417,7 @@ theorem tail_decode (hC : C.Ok) (hfit : RecsFit C R) {c0 : w32} (hch : ChainOk C
       intro r len c' hd
       rw [List.take_length] at hd
       have hm := hsub _ (by rw [acceptsFrom_accept hd]; exact List.mem_cons_self ..)
-      obtain ⟨y, ys', hy, -⟩ := tail_frame_match hfit hT hEb himg (List.append_nil xs) hd (hW _ hm)
+      obtain ⟨y, ys', hy, -⟩ := tail_frame_matchV hfit hEb hV (List.append_nil xs) hd (hW _ hm)
       cases hy
     | cons y ys ih =>
       intro xs hxs hpre hsub
@@ -430,7 +459,7 @@ theorem tail_decode (hC : C.Ok) (hfit : RecsFit C R) {c0 : w32} (hch : ChainOk C
         · intro r len c' h; rw [hx, hd] at h; cases h
       | accept r len c' =>
         have hm := hsub _ (by rw [acceptsFrom_accept hd]; exact List.mem_cons_self ..)
-        obtain ⟨y', ys', hyy, hlenF, hwin⟩ := tail_frame_match hfit hT hEb himg hxs hd (hW _ hm)
+        obtain ⟨y', ys', hyy, hlenF, hwin⟩ := tail_frame_matchV hfit hEb hV hxs hd (hW _ hm)
         cases hyy
         have hbs : img.drop (recFrames C xs).length = frame (C.encRec y) ++
             (img.drop (recFrames C xs).length).drop (frame (C.encRec y)).length := by
@@ -459,6 +488,18 @@ theorem tail_decode (hC : C.Ok) (hfit : RecsFit C R) {c0 : w32} (hch : ChainOk C
         exact ⟨j, h1, h2, h3, h4⟩
   have := key R [] rfl (by simp [recFrames_nil]) (by simp [recFrames_nil, chainEnd])
   exact this
+
+/-- `tail_decodeV` over the candidates of an exact tail (`TailCands`). -/
+theorem tail_decode (hC : C.Ok) (hfit : RecsFit C R) {c0 : w32} (hch : ChainOk C c0 R)
+    (hT : TailCands (fun b => (recFrames C R).getD b 0) Y cs so z0) {jE : Nat} (hjE : jE ≤ R.length)
+    (hEb : (recFrames C (R.take jE)).length = max so z0)
+    {img : List w8} (himg : ∀ b, b < img.length → ∃ s, (img.getD b 0, s) ∈ cs b)
+    (hlen : max so z0 ≤ img.length)
+    (hW : ∀ p ∈ acceptsFrom C true img 0 c0, AsOf cs img p (frameCore img p)) :
+    ∃ j, jE ≤ j ∧ j ≤ R.length ∧ recFrames C (R.take j) <+: img ∧
+      ∀ r len c', decStep C true img (recFrames C (R.take j)).length (chainEnd C c0 (R.take j)) ≠
+        .accept r len c' :=
+  tail_decodeV hC hfit hch hjE hEb (hT.vals himg) hlen (fun p hp => hT.tailAsOf (hW p hp))
 
 end decode
 
