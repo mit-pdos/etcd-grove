@@ -1762,6 +1762,13 @@ holds some mode). Nothing proves the new models yet.
   step. Plan: translate those (the `io` part a Perennial configuration change, or the part's copy), add an `fsExt`
   `CopyFileRange` step modelled as a `pwrite` of the source's bytes (crash candidates as a write's), with a Go example
   measured on C — that step pending the user's review. The hypothesis below stands until then.
+  **Done in part (`wal-copy1`, 2026-11-14, "io.Copy log" at the end):** the part's `os` translates the dispatch
+  (`File.ReadFrom`/`WriteTo`, `writeTo`, `generic*`, `getPollFDAndNetwork`, ...) and `poll.handleCopyFileRangeErr`;
+  `copy_file_range(2)` is modelled with no new `fsExt` step, as the extension's `PRead` then `PWriteStart`/
+  `PWriteFinish` (`model.copyFileRangeRound`, **pending the user's review**, with three Go bodies made trusted because
+  they touch `pfd`, absent from the trusted `file` layout; `examples/osfs/semantics/model_os_copy_file_range.go`,
+  measured on C). `io.Copy`/`copyBuffer` still have no bodies (Perennial's `io`), so the hypothesis stays until
+  Perennial translates them (`notes/perennial-changes.md`, "`io.Copy`/`copyBuffer` without bodies").
 - **`io.Copy(bf, f)` of two `*os.File`s** (`wal-repair19`, 2026-11-14; **a missing trusted model, pending the
   user**): `Repair` copies the torn segment into its `.broken` file with `io.Copy`, which on `*os.File` goes through
   `File.ReadFrom` (Linux: `copy_file_range`/`splice`/`sendfile`, then a generic loop) or `File.WriteTo`: neither is
@@ -6342,3 +6349,73 @@ stream in hand. No `sorry` added or removed; one spec defect fixed (ledger 2026-
 - Build: seeded from `agent-a0d5232984f8fe5f2` (traces unshared, `GooseLang`/`LinuxFs` real copies); `lean-check -a`
   of `DecLemmas`, `ReadAllTail`; `--fast` of `decodeRecord`, `Decode`, `WAL__ReadAll`; `lake build` of the 53 leaves
   importing `DecDefs` (below).
+
+## io.Copy log (branch `wal-copy1`, 2026-11-14)
+
+**The Go path** of `Repair`'s `io.Copy(bf, f)` (`bf` an `*os.File`, `f` a `*fileutil.LockedFile`, whose method set has
+`*os.File`'s promoted `WriteTo`), Go 1.27.3 (`GO_TOOLCHAIN`), linux/amd64, file:line of `$GOROOT/src`:
+
+1. `io.Copy` (io.go:387) → `copyBuffer(dst, src, nil)` (io.go:407): `src.(WriterTo)` holds → `f.File.WriteTo(bf)`.
+2. `File.WriteTo` (os/file.go:265): `checkValid("read")`, then `f.writeTo(bf)` (zero_copy_linux.go:18):
+   `getPollFDAndNetwork(bf)` (:124): `bf.(syscall.Conn)` holds, `bf.SyscallConn()` (file.go:698, `newRawConn`,
+   rawconn.go:45) is a `*rawConn`, which has no `PollFD`/`Network` → `nil` → unhandled → `genericWriteTo(f, bf)`
+   (file.go:294) → `io.Copy(bf, fileWithoutWriteTo{File: f})`.
+3. `copyBuffer`: `fileWithoutWriteTo` has no `WriteTo` (the embedded `noWriteTo`'s and `*File`'s collide at depth 1);
+   `bf.(ReaderFrom)` holds → `bf.ReadFrom(src')` (file.go:175): `checkValid("write")`, `bf.readFrom(src')`
+   (zero_copy_linux.go:42): `appendMode` false → `bf.copyFileRange(src')` (:89): `tryLimitedReader` (zero_copy_posix.go:26,
+   `remain = 2^63-1`), the type switch's `fileWithoutWriteTo` case, `src.checkValid`, `pollCopyFileRange(&bf.pfd,
+   &f.pfd, remain)` = `poll.CopyFileRange` (internal/poll/copy_file_range_unix.go:13): `supportCopyFileRange()`
+   (copy_file_range_linux.go:15, kernel ≥ 5.3), rounds of `copyFileRange` (:35, fd locks, `ignoringEINTR2`,
+   `unix.CopyFileRange(src, nil, dst, nil, min(remain, 0x7ffff000), 0)`) until `n == 0` or an error, each judged by
+   `handleCopyFileRangeErr` (copy_file_range_linux.go:95).
+4. Handled (the first round copied something): `ReadFrom` returns `(written, f.wrapErr("write", e))` (the error a
+   `*os.SyscallError{"copy_file_range", errno}`). Unhandled (the first round returned 0 — an empty rest — or `ENOSYS`,
+   `EXDEV`, `EINVAL`, `EIO`, `EOPNOTSUPP`, `EPERM`): `spliceToFile` (:59, unhandled: the source's `rawConn` has no
+   `PollFD`) → `genericReadFrom` (file.go:204) → `io.Copy(fileWithoutReadFrom{bf}, src')` → `copyBuffer`'s loop with a
+   32 KiB buffer over `File.Read`/`File.Write` (both modelled).
+
+Measured on C (strace, `TestCopyFileRangeIoCopy`): a 9900-byte rest is `copy_file_range(4, NULL, 7, NULL, 2147479552,
+0) = 9900` then `= 0`; an empty source `copy_file_range(...) = 0` then `read(8, "", 32768) = 0`. No `sendfile`/`splice`.
+
+**What is translated, what is trusted** (`8b93163b63`): the part's `os.toml` translates `File.ReadFrom`, `File.WriteTo`,
+`File.writeTo`, `genericReadFrom`/`genericWriteTo`, `noReadFrom.ReadFrom`/`noWriteTo.WriteTo` (panics),
+`getPollFDAndNetwork` (its assertion to an anonymous interface translates), `isUnixOrTCP`, `tryLimitedReader`,
+`File.checkValid`, `File.wrapErr`, `File.SyscallConn`, `newRawConn`, `wrapSyscallError`, `NewSyscallError`,
+`SyscallError.Error`/`Unwrap`; `internal/poll.toml` translates `handleCopyFileRangeErr` and `maxCopyFileRangeRound`.
+Trusted (`LinuxFs/TrustedCode/os.lean`, **pending the user's review**): `File.readFrom`, `File.copyFileRange`,
+`File.spliceToFile` (Go's bodies, but they read `f.appendMode` and pass `&f.pfd`, absent from the trusted `file`
+layout), `rawConn.Control/Read/Write` (panics: `pfd.RawRead`, never reached here), and the system call
+`model.copyFileRangeRound` with `model.pollCopyFileRange` (poll's loop, `supportCopyFileRange()` true on C).
+`goose.py --check --project bboltfs` passes; `gen-init --check` unchanged.
+
+**Decision (provisional, coordinator's to confirm, then the user's): no new `fsExt` step.** One `copy_file_range`
+round is the existing `PRead` of up to `max` bytes at the source's offset, then `PWriteStart`/`PWriteFinish` of what it
+read at the destination's offset, both offsets (the trusted `file.off` cells) moved by the count written; an errno
+with nothing written is returned; at the source's end 0. So `Impl.lean` is unchanged and every existing write/read
+lemma (page cuts, crash candidates, announce/land, `PwCut`) applies to the copy; no world rebuild of `GooseLang`. Why
+it is a superset of Linux on C (the docstring and `model_os_copy_file_range.go`): ext4 has no `remap_file_range`, so
+`vfs_copy_file_range` copies by `splice_copy_file_range` → `do_splice_direct`, a page-cache read and a
+`generic_perform_write` (pwrite's path); finer interleavings with writers of the source are sequences of rounds
+(`PRead`'s short counts); every errno with nothing copied (`EINVAL` on overlapping ranges of one file, measured) is a
+`PRead` errno. `TestCopyFileRange` on C: 12388 bytes from offset 100 to offset 50, both offsets advanced by the count,
+the bytes the source's; 0 at the end; `EINVAL` with nothing changed on overlapping ranges.
+
+**Finding** (`nonissues/go-os-readfrom-count-after-fallback.md`): after a partial copy, an `EIO`/`EINVAL`/... round
+makes `ReadFrom` fall back and return only the fallback's count. `Repair` ignores the count; the triple below claims
+nothing of `n`. So the logged statement's "the source's offset moved by `n`" is **dropped** (ledger: not a frozen
+spec, the hypothesis's own statement).
+
+**Not done: the triple's proof.** `io.Copy`/`copyBuffer` have no bodies (Perennial's `io.toml`: names-only), and a
+part copy of `io` cannot give them (`notes/perennial-changes.md`, the `io.ReadFull` entry: a `FuncUnfold` comes only
+from its package's `Assumptions`, and Perennial's `io` is in every closure). Recorded as a Perennial change
+("`io.Copy`/`copyBuffer` without bodies"). So `Repair.wp_proof` keeps the hypothesis, restated:
+`io.CopyFiles.spec`: for `dst = bf` (an `*os.File` with the whole file's `osMeta`/`osBytes` claim and its offset `o_d`)
+and `src = f` (an `*os.File` or a struct embedding one, offset `o_s`, the source's bytes `S`), `io.Copy(dst, src)`
+returns `(n, err)`; afterwards the source's bytes are `S`, the destination's are `D[:o_d] ++ S[o_s:o_s+k]` past its
+old content for some `k` (with the write's crash candidates) and both offsets moved by `k`, with `k = |S| - o_s` when
+`err = nil`; `n` arbitrary. What `Repair.wp_proof` should call: that hypothesis (named `io.CopyFiles.spec`), its
+`err` only compared with `nil`.
+Proof plan once Perennial translates `io`: the chain above, in `LinuxFs/Proof/os/` (`File__WriteTo`, `File__ReadFrom`,
+`copyFileRange` over a round lemma `model.copyFileRangeRound` = `wp_PRead` + `wp_PWrite*`), and the generic loop
+of `copyBuffer` (a loop over `File.Read`/`File.Write`'s specs; reached only from an empty rest, so one iteration:
+`Read` returns `io.EOF`).
