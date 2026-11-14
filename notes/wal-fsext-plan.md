@@ -575,7 +575,25 @@ The resize stamps reach the WAL's crash condition (`OsMeta.rz`, `MetaOk.rz`, `Os
 
 W4 `cleanupWAL` (2026-11-14, `wal-create24`): **blocked by design** -- the cleanup renames a *registered* WAL name, whose claim G-spine never makes whole again (W4 log, twenty-sixth session: unregistration proposed); its name's hypotheses (`Format`, `Sprintf`) and `fmt.ErrorfAny` in; `Create`'s four cleanup `sorry`s stay.
 
-### Inventory (2026-11-14, integration, refreshed on `wal-int4`)
+### Inventory (2026-11-14, integration, refreshed on `wal-int5`)
+
+Branch `wal-int5` (`wal-int` `21ccdef24f` with `wal-leaf5-modeperm` merged, Link regenerated): every `LinuxFs`
+and `GooseLang/Ext/Fs` target builds (3303 jobs, nothing to fix; the six modules `wal-create23` saw failing,
+`fileutil.{NewFileBufReader,preallocExtendAu,preallocExtendTruncAu,PreallocateAu,ZeroToEndAu}` and
+`wal.NewDecoder`, build: stale artifacts there). `gen-part-copies`, `gen-init`, `goose.py` (`bboltfs`, `crashlog`,
+`walfs`) and `gen-link.py --walfs --check` pass. The Link has 205 results, 176 with no hypothesis.
+- **`sorry`s (2 declarations, 4 `sorry`s)**: `S/Create.lean:145`, `:157`, `:191` (`wal.Create.wp_proof`),
+  `LinuxFs/Proof/os/WriteLong.lean:56` (`os.File.WriteAt.wp_proof_long`). `ReadAll` and `sync` are proved.
+- **Trust report** (`etc/tcb-report.lean --part=LinuxFs` on the Link) against `etc/tcb-collections/wal-fsext.txt`:
+  the 23 axioms, plus `zap.Int'.wp_proof` (`ValidSnapshotEntries`, new); `sorry`s 2 (`ReadAll`'s gone). Not the
+  intended `CheckDirPermission`-only difference, so the baseline is not updated here.
+- **Non-callee premises (14 distinct, as Link hypotheses)**: `U_Ok`, `U_SnapCoh`, `WalDecEnvSupply`, `WalHsOwn`,
+  `WalPbIn.{CloneHs,GetIndex,GetTerm,IsEmpty,MarshalEnt,MarshalHs,MustSync,Nil,UnmarshalEnt,Zero}Law`.
+- **Unproved callee hypotheses of the Link (10)**: `errors.{AsLinkError,IsErrno,IsPathErrnoEof,
+  IsPathErrnoNotExist}`, `filepathlite.IsAbs`, `fmt.ErrorfErrsNot`, `proto.UnmarshalWalRecordE`,
+  `WAL.renameWALUnlock`, `wal.validSnapshotEntries{Absent,Pinned}`. `CheckDirPermission.spec` is now linked.
+
+The `wal-int4` inventory follows.
 
 Branch `wal-int4` (from `wal-int` `5c98a6197a`, `wal-save22` merged): every `LinuxFs` and `GooseLang/Ext/Fs`
 target builds (3215 jobs, no failure, nothing to fix); `etc/gen-part-copies.py --check`, `etc/gen-init.py --check` and `etc/goose.py
