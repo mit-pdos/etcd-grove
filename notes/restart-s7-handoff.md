@@ -82,11 +82,22 @@ Worktree `/shared/etcd-grove-rs56`, branch `restart-s7` (off `lean`). Plan: `not
      `BuildServer.specRestart`'s precondition (persistent; the driver keeps it from the first start's fresh
      bundle; the same world assumption `verifyEnvOff` the closed theorems already take).
 
+- **S7.4 done** (2026-11-14, `9d8786af86`, `99591c7ae4`, not landed): `BuildServer.specRestart` takes
+  `envVerifyOff` (approved by etcd-grove-81; restart3's drafts carry it, `Run` keeps it from member 2's fresh
+  bundle, `memberFreshRes_verify`); `newServerMode.specRestart`/`newServer.specRestart` (retention `0`) and
+  `newServerMode.wp_proofRestart` over `NewServer.specR`, `newServer.wp_proofRestart`,
+  `BuildServer.wp_proofRestart`, linked in etcdstart's `Link.lean` (`wp_BuildServerRestart`, `+Restart` in
+  `etc/link-lean-first-common.txt`). The restarted names: `memberRestartFacts_alloc` (`Restart.lean`;
+  `restartReqNames`, `memberRestartBoot`): `idIncarnation_alloc` at a new key, new slot/pending maps, read
+  names' rows, `cok`, `hi`, a fresh store (`newServerNames_alloc`), `env₀`; `restartNames` by `rfl`. The
+  carry-over probes P4 are `srvPropMint_congr`/`rfl` rewrites inside it. **Form:** `memberRestartFacts`
+  gained `∃ x, idKeyFactAt ρ.ids.fs ρ.ids.key x` (from `memberBoot`'s), because `idIncarnation_alloc` needs
+  `idPfxOk` of the prefix, which `idKeyFact_pfxOk` reads off the claims' invariant.
+
 ## Next, in order
-1. P2-a: the law in `isRaftMsg` (raft side, then `srvRestartRows_single`); stop at the raft interface diff
-   for etcd-grove-81's review.
-2. S7.4: `BuildServer.specRestart`'s proof (allocate the per-incarnation names, `idIncarnation_alloc`).
-3. S7.5: the example's proofs (P1's three lemmas), link, adequacy, `Results.lean`, collection; Freeze of the
+1. Land S7.4 (after etcd-grove-81's go): full build, interfaces (`etc/gen-interface.py etc/api/etcdstart.txt`,
+   `--layout --update` for the two new `specRestart`s), tcb `--check`, then `etc/land.sh`.
+2. S7.5: the example's proofs (P1's three lemmas), link, adequacy, `Results.lean`, collection; Freeze of the
    theorem before its proof is linked. `etc/gen-init.py`'s `ROOTS` gets the package then.
 
 ## Pitfalls
