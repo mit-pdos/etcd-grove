@@ -66,6 +66,7 @@
 //	model_syscall_fallocate.go    syscall.Fallocate as unix's        syscall.lean: Fallocate.impl
 //	model_syscall_fcntlflock.go   lock commands; F_OFD_GETLK on any  syscall.lean: FcntlFlock.impl
 //	model_os_close_nil.go         nil *File Close: ErrInvalid        os.lean: File.Close.impl
+//	model_os_close_twice.go       closed *File Close: ErrClosed      os.lean: File.Close.impl
 //	model_os_stat.go              Stat/Lstat as open+fstat+close     os.lean: model.stat, arbitraryMode
 //	model_os_mkdirall.go          MkdirAll: Go's body over models    os.lean: MkdirAll.impl
 //	model_os_mkdirall_above.go    MkdirAll at or above a root        Impl.lean: PathKind; os.lean: mkdirAllAbove

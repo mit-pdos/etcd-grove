@@ -518,16 +518,26 @@ SPECIAL['internal.syscall.unix'] = dict(alloc_types=_ALLOC_ANY)
 _lfs_fs_ex = '(∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrExist) e DFrac.discard)'
 _lfs_fs_ex_nn = ('(∃ e : GoInterface, ⌜e ≠ interface.nil⌝ ∗ typedPointsto (globalAddr '
                  '_root_.Perennial.io.fs.ErrExist) e DFrac.discard)')
+# (2026-11-14, the closed-file `(*os.File).Close` returns `&PathError{"close", name, ErrClosed}`,
+# `LinuxFs/Spec/os/File__CloseClosed.lean`) the part's `io/fs` and `os` record `ErrClosed`'s error as
+# one `fmt` formats (`fmtErrorOk`: internal/oserror's `errors.New`, `errorString_fmtErrorOk`).
+_lfs_fs_cl = '(∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrClosed) e DFrac.discard)'
+_lfs_fs_cl_ok = ('(∃ e : GoInterface, EtcdGrove.fmtErrorOk e ∗ typedPointsto (globalAddr '
+                 '_root_.Perennial.io.fs.ErrClosed) e DFrac.discard)')
 LFS_IOFS = dict(SPECIAL['io.fs'])
 LFS_IOFS['doc'] = SPECIAL['io.fs']['doc'].replace('hold some error for good.',
-    'hold some error for good, `ErrExist` a non-nil one (the part only).')
-# (its finish unchanged: `is_pkg_init_finish` proves the pure conjunct)
+    'hold some error for good, `ErrExist` a non-nil one, `ErrClosed` one `fmt` formats (the part only).')
+LFS_IOFS['imports'] = SPECIAL['io.fs']['imports'] + ['Proof.errors.ErrorStringOk']
+# (`is_pkg_init_finish` proves the pure conjunct and frames `ErrClosed`'s `fmtErrorOk`)
+LFS_IOFS['finish'] = ['ihave #HClOk := EtcdGrove.errorString_fmtErrorOk xCl _ $$ ECl'] + SPECIAL['io.fs']['finish']
 LFS_OS = dict(SPECIAL['os'])
 LFS_OS['doc'] = SPECIAL['os']['doc'].replace("which raft's\ninitializer loads (`defaultLogger`).",
-    "which raft's\ninitializer loads (`defaultLogger`), `ErrExist` a non-nil error, `ErrNotExist` and\n`ErrInvalid` some error (io/fs's; the part only).")
+    "which raft's\ninitializer loads (`defaultLogger`), `ErrExist` a non-nil error, `ErrNotExist` and\n`ErrInvalid` some error, `ErrClosed` one `fmt` formats (io/fs's; the part only).")
 LFS_OS['before'] = {'dirBufPool': [l.replace(_lfs_fs_ex, _lfs_fs_ex_nn).replace('⟨%fe3, #F3⟩', '⟨%fe3, %hfe3, #F3⟩')
+                                    .replace(_lfs_fs_cl, _lfs_fs_cl_ok).replace('⟨%fe5, #F5⟩', '⟨%fe5, #F5ok, #F5⟩')
                                    for l in SPECIAL['os']['before']['dirBufPool']]}
-LFS_OS['finish'] = ['ipersist HStderr', 'ipersist HErrExist', 'ipersist HErrNotExist', 'ipersist HErrInvalid', 'iframe Hown', 'imodintro', 'isplitr',
+LFS_OS['finish'] = ['ipersist HStderr', 'ipersist HErrExist', 'ipersist HErrNotExist', 'ipersist HErrInvalid',
+                    'ipersist HErrClosed', 'iframe Hown', 'imodintro', 'isplitr',
                     '· ipureintro', '  exact isPanic_intoVal _', 'is_pkg_init_finish']
 
 # (WAL leaf specs, 2026-11-13) the part's bufio, internal/filepathlite and path/filepath: their
