@@ -16,7 +16,7 @@ linked in `Results.lean`) and the protocol of `Defs.lean`:
 module
 
 public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.duplex.Defs
-public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.ReadFullNew
+public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.ReadFull
 public import NetTcp.Spec.github_com.mit_pdos.etcd_grove.examples.net.wire.Forever
 public import NetTcp.Spec.net.Conn__Read
 public import NetTcp.Spec.net.Conn__Write

@@ -26,7 +26,7 @@ module
 
 public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.duplex.Nodes
 public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.duplex.PkgTable
-public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.ReadFullNew
+public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.ReadFull
 public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.Forever
 public import NetTcp.Proof.net.Conn__Read
 public import NetTcp.Proof.net.Conn__Write

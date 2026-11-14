@@ -17,7 +17,7 @@ The proofs of `examples/net/acceptloop`'s functions, over the specs of `net` and
 module
 
 public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.acceptloop.Defs
-public import NetTcp.Spec.github_com.mit_pdos.etcd_grove.examples.net.wire.ReadFull
+public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.ReadFullOwned
 public import NetTcp.Spec.github_com.mit_pdos.etcd_grove.examples.net.wire.Forever
 public import NetTcp.Spec.net.Conn__Read
 public import NetTcp.Spec.net.Conn__Write
@@ -76,7 +76,7 @@ theorem wp_handle
   · ipureintro; decide
   (try wp_auto)
   imod tcpOutLb_nil (G (GF := GF)) cn false srvAddr $$ Hat with #Hlb0
-  wp_apply wp_ReadFull (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t) cn true srvAddr buf
+  wp_apply wire.ReadFull.owned wp_ReadFull (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t) cn true srvAddr buf
       _ TcpEnd.fresh 0 [] eof rfl $$ [Hbuf Hend]
     as %ok ⟨%st', %r', %bs', Hend, Hbuf, %Hlen, Hres⟩
   · simp only [Bool.not_true]
@@ -97,7 +97,7 @@ theorem wp_handle
   · -- echo the request, then close
     simp only [↓reduceIte]
     icases Hres with ⟨%sent, #Hsent, %Hs⟩
-    obtain ⟨rfl, rfl, -, hsd⟩ := Hs
+    obtain ⟨rfl, -, hsd⟩ := Hs
     simp only [List.drop_zero] at hsd
     subst hsd
     wp_auto
@@ -106,7 +106,7 @@ theorem wp_handle
         $$ [Hbuf Hend Htok]
       as %n %err ⟨%k, %okw, ⟨%st'', Hend⟩, Hbuf, -⟩
     · iframe Hc Hbuf
-      iapply server_write_au γm cn γ sent sent TcpEnd.fresh
+      iapply server_write_au γm cn γ sent sent _
         (0 + (List.replicate 1 (zero_val w8)).length) (List.prefix_refl _) $$ HechoInv Hname Htok
         Hsent Hend
     (try wp_auto)
@@ -258,7 +258,7 @@ theorem wp_CallOne
     · ipureintro; decide
     (try wp_auto)
     imod tcpOutLb_nil (G (GF := GF)) cn true srvAddr $$ Hat with #Hlb0
-    wp_apply wp_ReadFull (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t) cn false srvAddr
+    wp_apply wire.ReadFull.owned wp_ReadFull (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t) cn false srvAddr
         buf _ TcpEnd.fresh 0 [] eof rfl $$ [Hbuf Hend]
       as %ok ⟨%st'', %r', %bs', Hend, Hbuf, %Hlen, Hres⟩
     · simp only [Bool.not_false]
@@ -279,7 +279,7 @@ theorem wp_CallOne
     · -- the reply is a prefix of `[id]` of its length
       simp only [↓reduceIte]
       icases Hres with ⟨%sent, #Hsent, %Hs⟩
-      obtain ⟨rfl, rfl, hsl, hsd⟩ := Hs
+      obtain ⟨rfl, hsl, hsd⟩ := Hs
       simp only [List.drop_zero] at hsd
       subst hsd
       imod client_check' γm cn γ _ false sent $$ HechoInv Hname Hout Hsent with ⟨%Hpre, Hout⟩

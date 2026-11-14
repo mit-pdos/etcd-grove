@@ -20,7 +20,7 @@ The proofs of `examples/net/framed`'s functions, over the specs of `net` and `wi
 module
 
 public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.framed.Defs
-public import NetTcp.Spec.github_com.mit_pdos.etcd_grove.examples.net.wire.ReadFull
+public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.ReadFullOwned
 public import NetTcp.Spec.github_com.mit_pdos.etcd_grove.examples.net.wire.Forever
 public import NetTcp.Spec.net.Conn__Read
 public import NetTcp.Spec.net.Conn__Write
@@ -97,7 +97,7 @@ theorem wp_serveConn
   wp_apply (wp_slice_make2 (V := w8) (W64 1)) as %hdr ⟨Hhdr, -⟩
   · ipureintro; decide
   (try wp_auto)
-  wp_apply wp_ReadFull (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t) cn true srvAddr
+  wp_apply wire.ReadFull.owned wp_ReadFull (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t) cn true srvAddr
       hdr _ st sent.length sent eof rfl $$ [Hhdr Hend]
     as %ok ⟨%st1, %r1, %bs1, Hend, Hhdr, %Hlen1, Hres⟩
   · simp only [Bool.not_true]
@@ -118,7 +118,7 @@ theorem wp_serveConn
     itrivial
   simp only [↓reduceIte]
   icases Hres with ⟨%sent1, #Hlb1, %Hs1⟩
-  obtain ⟨rfl, rfl, hsl1, hsd1⟩ := Hs1
+  obtain ⟨rfl, hsl1, hsd1⟩ := Hs1
   wp_auto
   ihave %Hhl := ownSlice_len $$ Hhdr
   obtain ⟨h, rfl⟩ : ∃ h, bs1 = [h] := List.length_eq_one_iff.1 (by simpa using Hlen1)
@@ -137,7 +137,7 @@ theorem wp_serveConn
   wp_apply (wp_slice_make2 (V := w8) (W64 (uint.Z h))) as %pl ⟨Hpl, -⟩
   · ipureintro; word
   (try wp_auto)
-  wp_apply wp_ReadFull (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t) cn true srvAddr
+  wp_apply wire.ReadFull.owned wp_ReadFull (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t) cn true srvAddr
       pl _ st1 _ (sent ++ [h]) eof hsl1 $$ [Hpl Hend]
     as %ok ⟨%st2, %r2, %bs2, Hend, Hpl, %Hlen2, Hres⟩
   · simp only [Bool.not_true]
@@ -158,7 +158,7 @@ theorem wp_serveConn
     itrivial
   simp only [↓reduceIte]
   icases Hres with ⟨%sent2, #Hlb2, %Hs2⟩
-  obtain ⟨rfl, rfl, hsl2, hsd2⟩ := Hs2
+  obtain ⟨rfl, hsl2, hsd2⟩ := Hs2
   icases tcpOutLb_valid _ cn false (sent ++ [h]) sent2 $$ Hlb1 Hlb2 with %Hpre2
   have hs2 : sent2 = (sent ++ [h]) ++ bs2 := by
     have hp : sent ++ [h] <+: sent2 :=
@@ -374,7 +374,7 @@ theorem wp_exchange
   wp_apply (wp_slice_make2 (V := w8) (W64 1)) as %rhdr ⟨Hrhdr, -⟩
   · ipureintro; decide
   (try wp_auto)
-  wp_apply wp_ReadFull (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t) cn false srvAddr
+  wp_apply wire.ReadFull.owned wp_ReadFull (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t) cn false srvAddr
       rhdr _ st out.length sent0 eof hsent0 $$ [Hrhdr Hend]
     as %ok ⟨%st1, %r1, %bs1, Hend, Hrhdr, %Hlen1, Hres⟩
   · simp only [Bool.not_false]
@@ -392,7 +392,7 @@ theorem wp_exchange
     itrivial
   simp only [↓reduceIte]
   icases Hres with ⟨%sentA, #HlbA, %HsA⟩
-  obtain ⟨rfl, rfl, hslA, hsdA⟩ := HsA
+  obtain ⟨rfl, hslA, hsdA⟩ := HsA
   imod client_check' γm cn γ _ false sentA $$ HInv Hname Hout HlbA with ⟨%HpA, Hout⟩
   have hO : List.drop out.length (out ++ [l] ++ reqbs) = l :: reqbs := by simp
   have hbs1 : bs1 = [l] := by
@@ -413,7 +413,7 @@ theorem wp_exchange
   wp_apply (wp_slice_make2 (V := w8) (W64 (uint.Z l))) as %resp ⟨Hresp, -⟩
   · ipureintro; word
   (try wp_auto)
-  wp_apply wp_ReadFull (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t) cn false srvAddr
+  wp_apply wire.ReadFull.owned wp_ReadFull (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t) cn false srvAddr
       resp _ st1 _ sentA eof hslA $$ [Hresp Hend]
     as %ok ⟨%st2, %r2, %bs2, Hend, Hresp, %Hlen2, Hres⟩
   · simp only [Bool.not_false]
@@ -431,7 +431,7 @@ theorem wp_exchange
     itrivial
   simp only [↓reduceIte]
   icases Hres with ⟨%sentB, #HlbB, %HsB⟩
-  obtain ⟨rfl, rfl, hslB, hsdB⟩ := HsB
+  obtain ⟨rfl, hslB, hsdB⟩ := HsB
   imod client_check' γm cn γ _ false sentB $$ HInv Hname Hout HlbB with ⟨%HpB, Hout⟩
   have hbs2 : bs2 = reqbs := by
     have hO' : List.drop (out.length + 1) (out ++ [l] ++ reqbs) = reqbs := by simp

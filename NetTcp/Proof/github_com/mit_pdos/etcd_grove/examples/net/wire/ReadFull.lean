@@ -1,7 +1,9 @@
 /-
 The proof of `wire.ReadFull` (`NetTcp/Spec/.../wire/ReadFull.lean`): a loop over `c.Read(buf[n:])`
-(`net.Conn.Read.spec`), each read's update taken from the owned end; the invariant: `n` bytes
-read, the first `n` of `buf` the bytes after `r` of a prefix `sent` of the other end's bytes.
+(`net.Conn.Read.spec`), each read's update made from the caller's accessor (its outcome kept as
+`ReadInfo`: `ReadPost` without the end's state, which goes back through the accessor); the
+invariant: `n` bytes read, the first `n` of `buf` the bytes after `r` of a prefix `sent` of the
+other end's bytes.
 -/
 module
 
@@ -42,18 +44,59 @@ theorem readRes_inj {bs bs' : List w8} {c c' : w64} (h : readRes bs c = readRes 
   obtain ⟨h1, h2⟩ := val.PairV.inj h
   exact ⟨go.intoVal_inj h1, go.intoVal_inj h2⟩
 
+/-- What a read returned, without the end's state (`ReadPost`'s cases): the position after it is
+`r'`. -/
+def ReadInfo (hT : TcpGS GF) (cn : Nat) (s : Bool) (n : w64) (r : Nat) (res : val) (r' : Nat) :
+    IProp GF :=
+  iprop(⌜res = readRes [] 2 ∧ r' = r⌝ ∨ ⌜n = 0 ∧ res = readRes [] 0 ∧ r' = r⌝ ∨
+    (∃ (bs sent : GoString), ⌜1 ≤ bs.length ∧ bs.length ≤ n.toNat ∧
+        sent.length = r + bs.length ∧ sent.drop r = bs ∧ res = readRes bs 0 ∧ r' = r + bs.length⌝ ∗
+      tcpOutLb hT cn (!s) sent) ∨
+    (∃ sent : GoString, ⌜sent.length = r ∧ res = readRes [] 1 ∧ r' = r⌝ ∗ tcpFin hT cn (!s) sent))
+
+theorem readPost_info (hT : TcpGS GF) (cn : Nat) (s : Bool) (n : w64) (st : TcpEnd) (r : Nat)
+    (res : val) :
+    ReadPost hT cn s n st r res ⊢ ∃ st' r', tcpEnd hT cn s st' r' ∗ ReadInfo hT cn s n r res r' := by
+  iintro H
+  unfold ReadPost ReadInfo
+  icases H with (⟨%Hr, Hend⟩ | ⟨%Hr, Hend⟩ | ⟨%bs, %sent, %Hr, #Hlb, Hend⟩ | ⟨%sent, %Hr, #Hfin, Hend⟩)
+  · iexists _, r
+    iframe Hend
+    ileft
+    ipureintro; exact ⟨Hr, rfl⟩
+  · iexists st, r
+    iframe Hend
+    iright; ileft
+    ipureintro; exact ⟨Hr.2.1, Hr.2.2, rfl⟩
+  · iexists st, (r + bs.length)
+    iframe Hend
+    iright; iright; ileft
+    iexists bs, sent
+    iframe Hlb
+    ipureintro
+    obtain ⟨-, h1, h2, h3, h4, h5⟩ := Hr
+    exact ⟨h1, h2, h3, h4, h5, rfl⟩
+  · iexists st, r
+    iframe Hend
+    iright; iright; iright
+    iexists sent
+    iframe Hfin
+    ipureintro
+    obtain ⟨-, h1, h2⟩ := Hr
+    exact ⟨h1, h2, rfl⟩
+
 theorem ReadFull.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG)) :
     ReadFull.spec (GF := GF) (hG := hG) := by
-  intro c cn s a buf bs0 st r sent0 eof hsent0
+  intro c cn s a buf bs0 P r sent0 eof hsent0
   unfold net.isConn
-  wp_start as ⟨⟨%t, %Hct, #Hc⟩, Hbuf, #Heof, Hend, #Hlb0⟩
+  wp_start as ⟨⟨%t, %Hct, #Hc⟩, Hbuf, #Heof, Hend, #Hlb0, #Hacc⟩
   subst Hct
   wp_auto
   ihave %Hlen0 := ownSlice_len $$ Hbuf
   ihave %Hwf := ownSlice_wf $$ Hbuf
   ihave HI : (∃ (k : w64) (bsn : List w8) (sent : GoString),
       "n" ∷ n_ptr ↦ k ∗ "Hbuf" ∷ buf ↦* bsn ∗
-      "Hend" ∷ tcpEnd (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s st (r + sint.nat k) ∗
+      "Hend" ∷ P (r + sint.nat k) ∗
       "#Hlb" ∷ tcpOutLb (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn (!s) sent ∗
       "%Hinv" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ sint.Z buf.len ∧ bsn.length = bs0.length ∧
         sent.length = r + sint.nat k ∧ sent.drop r = bsn.take (sint.nat k)⌝ : IProp GF)
@@ -72,26 +115,28 @@ theorem ReadFull.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG)) :
     icases (ownSlice_split_all k buf _ bsn ⟨Hk0, Hkl⟩).1 $$ Hbuf with ⟨Hb1, Hb2⟩
     wp_auto
     wp_apply wp_Read t cn s a (slice.slice buf w8 k buf.len) (bsn.drop (sint.nat k)) eof
-        (fun res => ReadPost (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s
-          (slice.slice buf w8 k buf.len).len st (r + sint.nat k) res) $$ [Hb2 Hend]
-      as %k' %err ⟨%bs, %code, %bs', HQ, Hb2, %Hout⟩
+        (fun res => iprop(∃ r', P r' ∗ ReadInfo (extGlobalGS tcpExt (G := hG.goose_globalGS)) cn s
+          (slice.slice buf w8 k buf.len).len (r + sint.nat k) res r')) $$ [Hb2 Hend]
+      as %k' %err ⟨%bs, %code, %bs', ⟨%r', Hend, HQ⟩, Hb2, %Hout⟩
     · iframe Hc Hb2 Heof
-      iapply fupd_mask_intro Std.LawfulSet.empty_subset
-      iintro Hcl
-      iexists st, (r + sint.nat k)
-      iframe Hend
-      iintro %res Hpost
-      imod Hcl
+      imod Hacc $$ %(r + sint.nat k) Hend with ⟨%st, HE, Hcl⟩
       imodintro
-      iexact Hpost
+      iexists st, (r + sint.nat k)
+      iframe HE
+      iintro %res Hpost
+      icases readPost_info _ cn s _ st _ res $$ Hpost with ⟨%st', %r', HE, Hinfo⟩
+      imod Hcl $$ %st' %r' HE with HP
+      imodintro
+      iexists r'
+      iframe HP Hinfo
     have hdl : (bsn.drop (sint.nat k)).length = sint.nat buf.len - sint.nat k := by
       rw [List.length_drop, Hbl, Hlen0.1]
     have hsl : (slice.slice buf w8 k buf.len).len = buf.len - k := rfl
     have hsn : sint.nat (buf.len - k) = sint.nat buf.len - sint.nat k := by word
-    iunfold ReadPost at HQ
-    icases HQ with (⟨%Hr, Hend⟩ | ⟨%Hr, Hend⟩ | ⟨%bs2, %sent2, %Hr, #Hlb2, Hend⟩ |
-      ⟨%sent2, %Hr, #Hfin, Hend⟩)
+    iunfold ReadInfo at HQ
+    icases HQ with (%Hr | %Hr | ⟨%bs2, %sent2, %Hr, #Hlb2⟩ | ⟨%sent2, %Hr, #Hfin⟩)
     · -- a failure
+      obtain ⟨Hr, rfl⟩ := Hr
       obtain ⟨rfl, rfl⟩ := readRes_inj Hr
       rcases Hout with ⟨h0, -⟩ | ⟨h1, -⟩ | ⟨-, -, rfl, ⟨pe, rfl⟩, rfl⟩
       · cases h0
@@ -99,7 +144,7 @@ theorem ReadFull.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG)) :
       wp_auto
       wp_for_post
       iapply HΦ
-      iexists st.onFail, (r + sint.nat k), _
+      iexists (r + sint.nat k), _
       iframe Hend
       ihave Hbuf := buf_rejoin buf k _ _ (by simp; word) ⟨Hk0, Hkl⟩ $$ Hb1 Hb2
       iframe Hbuf
@@ -113,12 +158,12 @@ theorem ReadFull.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG)) :
         omega
       · itrivial
     · -- an empty buffer: not with `k < len(buf)`
-      obtain ⟨-, hz, -⟩ := Hr
+      obtain ⟨hz, -⟩ := Hr
       exfalso
       have : sint.Z buf.len - sint.Z k = 0 := by word
       omega
     · -- the next bytes
-      obtain ⟨hcl, hb1, hbn, hsl2, hsd2, hres⟩ := Hr
+      obtain ⟨hb1, hbn, hsl2, hsd2, hres, rfl⟩ := Hr
       obtain ⟨rfl, rfl⟩ := readRes_inj hres
       rcases Hout with ⟨-, hk', rfl, rfl⟩ | ⟨h1, -⟩ | ⟨h0, -⟩
       · have hlenk : BitVec.toNat (buf.len - k) = sint.nat buf.len - sint.nat k := by word
@@ -160,7 +205,7 @@ theorem ReadFull.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG)) :
       · cases h1
       · exact absurd rfl h0
     · -- EOF
-      obtain ⟨hcl, hsl2, hres⟩ := Hr
+      obtain ⟨hsl2, hres, rfl⟩ := Hr
       obtain ⟨rfl, rfl⟩ := readRes_inj hres
       rcases Hout with ⟨h0, -⟩ | ⟨-, rfl, Herr, rfl⟩ | ⟨-, h1, -⟩
       · cases h0
@@ -185,7 +230,7 @@ theorem ReadFull.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG)) :
           (try wp_auto)
           wp_for_post
           iapply HΦ
-          iexists st, (r + sint.nat k), bsn
+          iexists (r + sint.nat k), bsn
           iframe Hend Hbuf
           simp only [Bool.false_eq_true, ↓reduceIte]
           isplitl
@@ -199,7 +244,7 @@ theorem ReadFull.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG)) :
       rw [Hlen0.1]; show (sint.Z k).toNat = (sint.Z buf.len).toNat; rw [hk]
     (try wp_auto)
     iapply HΦ
-    iexists st, (r + sint.nat k), bsn
+    iexists (r + sint.nat k), bsn
     iframe Hend Hbuf
     simp only [↓reduceIte]
     isplitl
@@ -207,7 +252,7 @@ theorem ReadFull.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG)) :
     iexists sent
     iframe Hlb
     ipureintro
-    refine ⟨trivial, by rw [hkn], Hsl, ?_⟩
+    refine ⟨by rw [hkn], Hsl, ?_⟩
     rw [Hsd, List.take_of_length_le (by omega)]
 
 end proof

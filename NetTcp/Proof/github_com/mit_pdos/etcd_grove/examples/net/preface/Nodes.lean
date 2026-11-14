@@ -19,7 +19,7 @@ The proofs of `examples/net/preface`'s functions, over the specs of `net`, `wire
 module
 
 public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.preface.Defs
-public import NetTcp.Spec.github_com.mit_pdos.etcd_grove.examples.net.wire.ReadFull
+public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.ReadFullOwned
 public import NetTcp.Spec.github_com.mit_pdos.etcd_grove.examples.net.wire.Forever
 public import NetTcp.Spec.net.Conn__Read
 public import NetTcp.Spec.net.Conn__Write
@@ -91,7 +91,7 @@ theorem wp_serveConn
   · ipureintro; decide
   (try wp_auto)
   imod tcpOutLb_nil (G (GF := GF)) cn false srvAddr $$ Hat with #Hlb0
-  wp_apply wp_ReadFull (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t) cn true srvAddr buf
+  wp_apply wire.ReadFull.owned wp_ReadFull (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t) cn true srvAddr buf
       _ st1 0 [] eof rfl $$ [Hbuf Hend]
     as %ok ⟨%st', %r', %bs', Hend, Hbuf, %Hlen, Hres⟩
   · simp only [Bool.not_true]
@@ -111,7 +111,7 @@ theorem wp_serveConn
     itrivial
   · simp only [↓reduceIte]
     icases Hres with ⟨%sent, #Hsent, %Hs⟩
-    obtain ⟨rfl, rfl, hsl, hsd⟩ := Hs
+    obtain ⟨rfl, hsl, hsd⟩ := Hs
     simp only [List.drop_zero] at hsd
     subst hsd
     wp_auto
@@ -139,7 +139,7 @@ theorem wp_serveConn
     wp_apply (wp_slice_make2 (V := w8) (W64 1)) as %req ⟨Hreq, -⟩
     · ipureintro; decide
     (try wp_auto)
-    wp_apply wp_ReadFull (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t) cn true srvAddr
+    wp_apply wire.ReadFull.owned wp_ReadFull (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t) cn true srvAddr
         req _ st2 (0 + (List.replicate 4 (zero_val w8)).length) [80#8, 82#8, 73#8, 42#8] eof
         (by simp) $$ [Hreq Hend]
       as %ok2 ⟨%st3, %r3, %bs3, Hend, Hreq, %Hlen3, Hres2⟩
@@ -161,7 +161,7 @@ theorem wp_serveConn
     · -- reply with the request, then close
       simp only [↓reduceIte]
       icases Hres2 with ⟨%sent2, #Hsent2, %Hs2⟩
-      obtain ⟨rfl, rfl, -, hsd2⟩ := Hs2
+      obtain ⟨rfl, -, hsd2⟩ := Hs2
       subst hsd2
       wp_auto
       wp_apply wp_Write t cn true srvAddr req _ (DFrac.own 1)
@@ -344,7 +344,7 @@ theorem wp_Call
     · ipureintro; decide
     (try wp_auto)
     imod tcpOutLb_nil (G (GF := GF)) cn true srvAddr $$ Hat with #Hlb0
-    wp_apply wp_ReadFull (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t) cn false srvAddr
+    wp_apply wire.ReadFull.owned wp_ReadFull (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t) cn false srvAddr
         buf _ TcpEnd.fresh 0 [] eof rfl $$ [Hbuf Hend]
       as %ok ⟨%st'', %r', %bs', Hend, Hbuf, %Hlen, Hres⟩
     · simp only [Bool.not_false]
@@ -365,7 +365,7 @@ theorem wp_Call
     · -- the reply is a prefix of the request of its length
       simp only [↓reduceIte]
       icases Hres with ⟨%sent, #Hsent, %Hs⟩
-      obtain ⟨rfl, rfl, hsl, hsd⟩ := Hs
+      obtain ⟨rfl, hsl, hsd⟩ := Hs
       simp only [List.drop_zero] at hsd
       subst hsd
       imod client_check' γm cn γ _ false sent $$ HpfInv Hname Hout Hsent with ⟨%Hpre, Hout⟩
@@ -457,7 +457,7 @@ theorem wp_SendJunk
     · ipureintro; decide
     (try wp_auto)
     imod tcpOutLb_nil (G (GF := GF)) cn true srvAddr $$ Hat with #Hlb0
-    wp_apply wp_ReadFull (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t) cn false srvAddr
+    wp_apply wire.ReadFull.owned wp_ReadFull (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t) cn false srvAddr
         buf _ st' 0 [] eof rfl $$ [Hbuf Hend]
       as %ok ⟨%st'', %r', %bs', Hend, Hbuf, -, -⟩
     · simp only [Bool.not_false]
