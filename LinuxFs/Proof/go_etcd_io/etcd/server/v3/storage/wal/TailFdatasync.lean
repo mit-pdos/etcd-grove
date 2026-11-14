@@ -12,6 +12,7 @@ synced (`walSyncedLb dir |H|`); on failure nothing changes. The lock token's pen
 module
 
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.TailFsync
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CloseHandle
 public import LinuxFs.Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync
 
 @[expose] public section
@@ -122,8 +123,14 @@ theorem TailMetaW.synced {m : OsMeta} {bs : List ByteG} (h : TailMetaW m bs) :
     TailMeta m.synced (bs.map (fun x => durB x.1)) :=
   ⟨by simp [OsMeta.synced, h.1], h.2.1, h.2.2.1.synced, rfl, rfl, PastZ.synced m⟩
 
+/-- **A window's tail synced is exact and durable** (`TailMetaW.synced`, every byte `durB`). -/
+theorem TailMetaW.syncedS {m : OsMeta} {bs : List ByteG} (h : TailMetaW m bs) :
+    TailMetaS m.synced (bs.map (fun x => durB x.1)) := by
+  refine ⟨h.synced, fun y hy => ?_⟩
+  obtain ⟨x, -, rfl⟩ := List.mem_map.1 hy; rfl
+
 /-- **`fileutil.Fdatasync` of the tail in a resize window** (`wp_tail` over `walTailW`'s `TailMetaW`): on
-success the tail is exact again (`TailMeta` of the synced `OsMeta`, `TailMetaW.synced`). -/
+success the tail is exact again and every byte durable (`TailMetaS` of the synced `OsMeta`, `TailMetaW.syncedS`). -/
 theorem fileutil.Fdatasync.wp_tailW (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
     (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (f : Loc) (fd : w64)
     (name dir : GoString) (γ : GName) (i : Ino) (H : List (WalOpG WalEnt)) (md : List w8)
@@ -134,7 +141,7 @@ theorem fileutil.Fdatasync.wp_tailW (wp_Fd : os.File.Fd.spec (GF := GF) (hG := h
         walCutFrag (W := W) none }}
       (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync)) (Val #f))
     {{ (e : w64), RET #(errnoErr e); walCutFrag (W := W) none ∗
-        ((⌜e = 0⌝ ∗ walTailW (W := W) f fd name dir γ i H md cuts o0 sz out ∗
+        ((⌜e = 0⌝ ∗ walTailW (W := W) f fd name dir γ i H md cuts o0 sz out (tm := TailMetaS) ∗
             walSyncedLb (W := W) dir H.length) ∨
          (⌜e ≠ 0⌝ ∗ walTailW (W := W) f fd name dir γ i H md cuts o0 sz out (tm := TailMetaW))) }} := by
   wp_start as ⟨#Harea, Hw, Hcf⟩
@@ -162,7 +169,7 @@ theorem fileutil.Fdatasync.wp_tailW (wp_Fd : os.File.Fd.spec (GF := GF) (hG := h
       iframe Hm Hb
       isplitr
       · ipureintro
-        exact ⟨by simp [OsMeta.synced, hp.1], hp.2.1.synced, hp.2.2.1, hp.2.2.2.1, LoWr.of_exact rfl rfl⟩
+        exact ⟨by simp [OsMeta.synced, hp.1], hp.2.1.syncedS, hp.2.2.1, hp.2.2.2.1, LoWr.of_exact rfl rfl⟩
       · iapply tailVar_unfold $$ Hv
     · iexact Hs
   · iright
