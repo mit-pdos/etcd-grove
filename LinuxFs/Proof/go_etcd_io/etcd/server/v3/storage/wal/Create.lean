@@ -22,6 +22,8 @@ public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateAbort
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CutName
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.OpenNames
 public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.PipeLemmas
+public import LinuxFs.Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateSeg
+public import LinuxFs.Proof.os.MkdirAllParts
 public import Spec.fmt.SprintfWalName
 
 @[expose] public section
@@ -36,7 +38,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Fs WalEnc WalFs
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
 variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [W : WalGS GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [fu_sem : go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
@@ -53,7 +55,9 @@ theorem wal.Create.wp_proof (C : WalCodec) (Mr : WalMarshal)
     (wp_Error : zap.Error.spec (GF := GF) (hG := hG))
     (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG))
     (wp_SprintfWal : fmt.SprintfWalName.spec (GF := GF) (hG := hG))
-    (wp_Join : filepath.Join.spec (GF := GF) (hG := hG)) :
+    (wp_Join : filepath.Join.spec (GF := GF) (hG := hG))
+    (wp_cNWF : go_etcd_io.etcd.server.v3.storage.wal.createNewWALFile.specLocked (GF := GF) (hG := hG))
+    (wp_OpenC : os.OpenFile.specCreateSnc (GF := GF) (hG := hG)) :
     wal.Create.spec (GF := GF) C Mr := by
   intro lg R jr r dir nm mp md qp Q hin hnmO hdl hr hmp
   wp_start as ⟨#Hzap, #Hmd, #Hok, #Hdd, Hp, Hres, Hperm, Hu, Hau⟩
@@ -215,6 +219,78 @@ theorem wal.Create.wp_proof (C : WalCodec) (Mr : WalMarshal)
     wp_apply wp_Join _ _ _ hjl $$ [$Hjsl] as %fpath ⟨%hfpath, -⟩
     rw [join_child htc (walFileName_nameOk 0 0)] at hfpath
     subst hfpath
+    try wp_auto
+    -- `createNewWALFile(p, false)`: the segment's name split off `J`'s claim, the spine to `nm.tmp`
+    have hb0 := walFileName_nameOk 0 0
+    have hSame : ((NameSet.except []).inter [walFileName 0 0]).Same (.only [walFileName 0 0]) :=
+      fun b' => by
+        rw [NameSet.mem_inter]
+        simp only [NameSet.Mem, List.mem_singleton, List.not_mem_nil, not_false_eq_true,
+          _root_.true_and]
+    have hcur0 : (hJ.restrict J ((NameSet.except []).inter [walFileName 0 0])).cur !!
+        walFileName 0 0 = none := by
+      simp only [NamesH.restrict]
+      rw [restrictN_lookup _ _ _ ((NameSet.mem_inter _ _ _).2 ⟨by simp [NameSet.Mem], by simp⟩),
+        hJs.2.2]
+      rfl
+    imod osNames_split R J (.except []) [walFileName 0 0] hJ CoPset.subseteq_top $$ Hsi HJ
+      with ⟨HJ0, HJr⟩
+    imod osNames_rekey R J _ (.only [walFileName 0 0]) _ hSame CoPset.subseteq_top $$ Hsi HJ0
+      with HJ0
+    obtain ⟨e, a', b', hqd, hqq⟩ := os.qp_common qp 1
+    subst hqd
+    icases (osPathS_frac R r e a' jr).1 $$ Hp with ⟨Hpe, Hpa⟩
+    icases (osNames_join jr (.only [tmpName nm]) e b' hT2 hqq).2 $$ HT with ⟨HTe, HTb⟩
+    ihave Hpc := osPathS_child R r (tmpName nm) (DFrac.own e) jr J hT2 (tmpName_nameOk hnmO) hJs.1
+      $$ Hpe HTe
+    wp_apply wp_createSeg wp_cNWF wp_OpenC R (child r (tmpName nm)) (DFrac.own e) J (walFileName 0 0) _ 1
+      hb0 hcur0 $$ [Hpc Hperm HJ0] as %lf %err ⟨Hpc, Hperm, %o, Ho, Hm, Hcs⟩
+    · iframe; iframe #
+    icases os.osPathS_unchild R r (tmpName nm) jr J e a' (tmpName_nameOk hnmO) $$ [Hpc Hpa]
+      with ⟨%hT3, Hp, HTe, %-⟩
+    · iframe
+    icases osNames_agree jr (.only [tmpName nm]) _ _ hT3 hT2 $$ HTe HTb with %he
+    subst he
+    ihave HT := (osNames_join jr (.only [tmpName nm]) e b' hT3 hqq).1 $$ [HTe HTb]
+    · iframe
+    icases Hcs with (⟨%herr, %f, %fd, %i, %hfi, #Hlf, Hf, Hoff, Hfd⟩ | %herr)
+    rotate_left
+    · -- the create failed: the segment's claim back, the deferred `RemoveAll(nm.tmp)`, the abort
+      cases err
+      case nil => exact absurd rfl herr
+      imod segClaim_back R J (walFileName 0 0) hJ o hJs.2.2 CoPset.subseteq_top $$ Hsi HJr Ho
+        with ⟨%hJ', %hJf, HJ⟩
+      ihave Ht : tmpDirH jr (tmpName nm) hT3 $$ [HT HJ]
+      · unfold tmpDirH; rw [hJs.1]; unfold tmpSub; iframe HT; iexists hJ'; iframe HJ
+        ipureintro; exact hJf
+      try wp_auto
+      wp_apply wp_String as %f1 -
+      wp_apply wp_Error as %f3 -
+      wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [f1, f3]
+      isplitr
+      · ipureintro; rfl
+      iintro %fsl ⟨-, -⟩
+      try wp_auto
+      wp_apply wp_Warn lg _ _ $$ []
+      · iframe #
+      try wp_auto
+      wp_apply +noauto wp_removeAllTmp wp_RmAbs wp_RmDir r (tmpName nm) R jr (e + a') hT3
+        (tmpName_nameOk hnmO) $$ [Hp Ht Hperm] as %err' ⟨Hp, Hperm, Ht, -⟩
+      · iframe; iframe #
+      icases Ht with ⟨%hT4, Ht⟩
+      iapply wp_notCrashed_acc _ _ rfl
+      iintro Hnc
+      imod create_abortTmp C Mr R jr r N h cl nm hT4 hok hnm hself $$ Hinv Hsi Hnc Hu HN Ht Hcl
+        with ⟨Hnc, Hu, Hres⟩
+      iframe Hnc
+      imodintro
+      try wp_auto
+      iapply HΦ
+      iframe
+      iright; ileft
+      iframe
+      ipureintro; intro hc; cases hc
+    subst herr
     try wp_auto
     sorry)
 
